@@ -238,7 +238,7 @@ export function UseCases() {
         </h2>
         <p className={bk} style={{ color: 'var(--bp-ink-soft)', fontSize: 'clamp(13.5px, 1.5vw, 15px)', lineHeight: 1.65, maxWidth: 620, marginTop: 12 }}>
           {L(
-            '결정을 받치던 것이 흔들리거나, 기다리던 때가 오는 순간 — 대개는 아무도 알려주지 않죠. 그때 Argus가 먼저 당신에게 돌아옵니다. 실제로 이런 순간들이에요.',
+            '믿고 정했던 것이 흔들리거나, 기다리던 때가 오는 순간 — 대개는 아무도 알려주지 않죠. 그때 Argus가 먼저 당신에게 돌아옵니다. 실제로 이런 순간들이에요.',
             'What your decision rested on shifts — or the moment you were waiting for finally lands. Usually no one tells you. That’s when Argus comes back to you. Real ones:',
           )}
         </p>
