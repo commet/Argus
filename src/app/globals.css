@@ -265,28 +265,47 @@ body {
   animation: argus-mascot-breathe 5.8s ease-in-out infinite;
   transform-origin: 50% 82%;
 }
+/* Entrance — a soft pop-in with a tiny overshoot (warmer than a plain fade). */
 @keyframes argus-mascot-enter {
-  from { opacity: 0; transform: translateY(8px); filter: blur(3px); }
-  to   { opacity: 1; transform: translateY(0); filter: blur(0); }
+  0%   { opacity: 0; transform: translateY(10px) scale(0.9); filter: blur(3px); }
+  60%  { opacity: 1; transform: translateY(-2px) scale(1.03); filter: blur(0); }
+  100% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
 }
 .argus-mascot-enter {
-  animation: argus-mascot-enter 420ms var(--ease-wave) both;
+  animation: argus-mascot-enter 520ms var(--ease-wave) both;
 }
-/* Playful wag — mostly still, then a quick happy shake every ~4.6s. Pivots from
-   the base like a tail-wag. For warm "moment" surfaces (seal / settle). */
+/* Playful idle — mostly still, then a warm little wag + bob every ~4.4s.
+   Pivots from the base like a tail-wag. For "moment" surfaces (seal / settle). */
 @keyframes argus-mascot-wiggle {
-  0%, 70%, 100% { transform: translateY(0) rotate(0deg); }
-  76% { transform: translateY(-2px) rotate(-6deg); }
-  82% { transform: translateY(0) rotate(5deg); }
-  88% { transform: translateY(-1px) rotate(-3deg); }
-  94% { transform: translateY(0) rotate(1.5deg); }
+  0%, 64%, 100% { transform: translateY(0) rotate(0deg); }
+  70% { transform: translateY(-2.5px) rotate(-6deg); }
+  76% { transform: translateY(0) rotate(5deg); }
+  82% { transform: translateY(-1.5px) rotate(-3.5deg); }
+  88% { transform: translateY(0) rotate(2deg); }
+  94% { transform: translateY(-0.5px) rotate(-1deg); }
 }
 .argus-mascot-wiggle {
-  animation: argus-mascot-wiggle 4.6s ease-in-out infinite;
+  animation: argus-mascot-wiggle 4.4s ease-in-out infinite;
   transform-origin: 50% 80%;
 }
+/* Friendly hover — come near and the dog perks up: a quick eager wag, then
+   holds a little lifted/attentive. Works on every mascot (framed or not,
+   idle-animated or static) since it targets the base .argus-mascot. */
+@keyframes argus-mascot-perk {
+  0%   { transform: translateY(0) rotate(0deg) scale(1); }
+  18%  { transform: translateY(-4px) rotate(-8deg) scale(1.07); }
+  40%  { transform: translateY(-1px) rotate(7deg) scale(1.05); }
+  62%  { transform: translateY(-2.5px) rotate(-5deg) scale(1.055); }
+  82%  { transform: translateY(-1px) rotate(2.5deg) scale(1.05); }
+  100% { transform: translateY(-1.5px) rotate(0deg) scale(1.05); }
+}
+.argus-mascot { transform-origin: 50% 80%; }
+.argus-mascot:hover {
+  animation: argus-mascot-perk 0.7s var(--ease-wave) forwards;
+}
 @media (prefers-reduced-motion: reduce) {
-  .voyage-anim, .voyage-fog, .argus-mascot-breathe, .argus-mascot-enter, .argus-mascot-wiggle { animation: none; }
+  .voyage-anim, .voyage-fog, .argus-mascot-breathe, .argus-mascot-enter, .argus-mascot-wiggle,
+  .argus-mascot:hover { animation: none; }
 }
 
 /* ── 봉인 의식 (앱 레지스터, P1-A3 / 07 S1) — 작업 화면이 허용하는 유일한 의식.
