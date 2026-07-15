@@ -10,41 +10,48 @@ flagged), so nothing is renamed until the map below is signed off.
 
 ---
 
-## 1. De-jargon — the term map
+## 1. De-jargon — align the PLUGIN to the MCP's already-plain vocabulary
 
-**Recommended scope: user-facing copy + internal code identifiers. KEEP the
-command names** (`/argus:sail` etc.) — renaming commands breaks muscle memory,
-docs, install scripts, and settings, for less readability gain than fixing the
-copy. (If you want command renames too, say so and I'll add them.)
+The real problem is not "the plugin needs prettier words." It is **one product
+speaking two languages**: the MCP already unified on a plain canon
+(`decision, prediction, predict, check-by, resolve, outcome, receipt, premise,
+assumption, crux` — zero nautical terms), while the plugin still talks
+`sail / seal / settle / bearing / fog / reef / anchor / voyage`. A user who
+reads the MCP and then the plugin (or vice versa) is needlessly confused. So the
+target vocabulary is **NOT invented — it is the MCP's existing canon.** Reuse it.
 
-Pervasiveness (how many of ~20 skills use the term today) shows the blast radius:
+Pervasiveness (how many of ~20 plugin skills use the term) shows the blast radius:
 
-| Nautical term | Uses | Proposed plain replacement | Note |
+| Plugin term | Uses | → MCP canonical word (already in use) | Note |
 |---|---:|---|---|
-| **bearing** | 17 | **the read** (or "the takeaway") | The one-line output. NOT a verdict/recommendation — keep it neutral. |
-| chart | 10 | **version history** | |
-| voyage | 9 | **decision** (or "review") | one run over one decision |
-| Current Heading | 8 | **your current call** / "where you're leaning" | |
-| fog | 8 | **unknowns** / "what's unclear" | |
-| reef | 8 | **risks** / "hazards" | |
-| anchor | 6 | **done** / "final" | the closed/settled state |
-| crew | 5 | **reviewers** | the parallel agents |
-| helm | 5 | **pre-approval scan** | (also the `/argus:helm` command — keep name, gloss it) |
-| deaf rowers | 2 | drop the term → "the reviewers don't judge you" | |
-| road not taken | 1 | **the other option** / "alternative" | |
-| Sirens | 1 | drop the term → "pressure to change your mind" | |
+| **bearing** | 17 | **crux** (the one neutral question) + "the read" | MCP surfaces a `crux`, never a verdict — same concept. |
+| chart | 10 | **version history** | MCP has no chart; plainest word. |
+| voyage | 9 | **decision** | MCP's word (21 uses). |
+| Current Heading | 8 | **current call** | |
+| fog | 8 | **assumption / unknown** | MCP uses `assumption`. |
+| reef | 8 | **risk** | |
+| anchor | 6 | **resolved / done** | MCP's terminal state is `resolved`. |
+| crew | 5 | **reviewers** | |
+| helm | 5 | **pre-approval scan** | |
+| deaf rowers | 2 | drop → "the reviewers don't judge you" | |
+| road not taken | 1 | **the other option** | |
+| Sirens | 1 | drop → "pressure to change your mind" | |
 
-Command names stay, each gets a plain one-line gloss in `help`:
-`sail`=start a decision review · `scan`=find past decisions in your chats ·
-`seal`=lock a prediction to check later · `settle`=record what reality did ·
-`clarify`=sharpen the question · `verify`=split claims (supported/challenged/
-human-required) · `team`=run reviewers in parallel · `revise`=apply feedback into
-a new draft · `chart`=version history · `log`=your decision journal ·
-`boss`=stakeholder pressure-check · `helm`=silent pre-approval scan ·
-`track`=manage a decision's premises · `principles`=turn your patterns into rules.
+Also align the CONCEPT verbs to the MCP so the same action has ONE name:
+- plugin **seal** → **predict** (MCP: `argus_predict` = save a falsifiable prediction)
+- plugin **settle** → **resolve** (MCP: `argus_resolve` = record what reality did)
+- plugin **track / premises** → **premise** (MCP's word)
 
-Internal code identifiers (variables/functions using the metaphor) mirror the
-same plain words, so reading the code stops requiring a decoder.
+**Command names (`/argus:sail` etc.):** the strongest "don't confuse people" fix
+is to rename the commands to match the MCP verbs too (`/argus:seal`→`/argus:predict`,
+`/argus:settle`→`/argus:resolve`), so a user never meets two names for one action.
+That is more disruptive (muscle memory, docs, installs). **Your call:** (a) align
+commands to the MCP too (fullest consistency), or (b) keep command names, align only
+copy + internal code + concept words. Recommendation: (a) — the whole point is one
+vocabulary.
+
+Internal code identifiers mirror the same MCP words, so the plugin code and the
+MCP code read as one system.
 
 ## 2. Cap the questions at 2 (friction fix)
 
