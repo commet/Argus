@@ -80,6 +80,9 @@ interface ReviewState {
   getReceipt: (id: string) => JudgmentReceipt | undefined;
   /** toggle a judgment obligation as user-owned; flips receipt state to owned. */
   setObligationOwned: (receiptId: string, obligationId: string, owned: boolean) => void;
+  /** Record that an obligation was sealed into the DKK ledger (onramp). Its
+   *  lifecycle now lives in DKK; the local receipt keeps only the link. */
+  markObligationSealed: (receiptId: string, obligationId: string, judgmentId: string, projectId: string) => void;
   setReceiptState: (receiptId: string, state: ReceiptState) => void;
   /** Seal a falsifiable follow-up: the user owns the predicate; receipt→sealed. */
   sealFollowup: (receiptId: string, followupId: string, patch: SealPatch) => void;
@@ -154,6 +157,26 @@ export const useReviewStore = create<ReviewState>((set, get) => ({
       const anyOwned = obligations.some((o) => o.owned_by_user);
       const state: ReceiptState = anyOwned && r.state === 'reviewed' ? 'owned' : r.state;
       return { ...r, judgment_obligations: obligations, state, updated_at: new Date().toISOString() };
+    });
+    set({ receipts: next });
+    persist(next);
+    pushUpdated(next, receiptId);
+  },
+
+  markObligationSealed: (receiptId, obligationId, judgmentId, projectId) => {
+    const now = new Date().toISOString();
+    const next = get().receipts.map((r) => {
+      if (r.receipt_id !== receiptId) return r;
+      const obligations = r.judgment_obligations.map((o) =>
+        o.obligation_id === obligationId ? { ...o, owned_by_user: true, sealed_judgment_id: judgmentId } : o,
+      );
+      return {
+        ...r,
+        judgment_obligations: obligations,
+        project_id: r.project_id ?? `account-project:${projectId}`,
+        state: r.state === 'reviewed' ? 'owned' : r.state,
+        updated_at: now,
+      };
     });
     set({ receipts: next });
     persist(next);

@@ -87,14 +87,14 @@ function claimStatusLabel(status: string, L: LFn): string {
 
 export function ReceiptView({
   receipt,
-  onOwn,
-  onSeal,
+  onSealObligation,
   onSettle,
   onReReview,
 }: {
   receipt: JudgmentReceipt;
-  onOwn?: (obligation: JudgmentObligation, owned: boolean) => void;
-  onSeal?: (receipt: JudgmentReceipt) => void;
+  /** Own & seal a judgment obligation into the DKK ledger (the single unified
+   *  action — the former separate "own" toggle + "seal a follow-up" are merged). */
+  onSealObligation?: (obligation: JudgmentObligation) => void;
   onSettle?: (followupId: string) => void;
   /** "더 검증하기" — re-run the review (design doc §Receipt Summary 3 actions). */
   onReReview?: () => void;
@@ -246,7 +246,7 @@ export function ReceiptView({
           </div>
           <div className="space-y-2.5">
             {topObligations.map((o) => (
-              <ObligationRow key={o.obligation_id} o={o} onOwn={onOwn} />
+              <ObligationRow key={o.obligation_id} o={o} onSealObligation={onSealObligation} />
             ))}
           </div>
         </Card>
@@ -269,21 +269,10 @@ export function ReceiptView({
         <div className="text-[12px] text-[var(--text-tertiary)] leading-[1.6]">{receipt.routing.disclosure}</div>
       )}
 
-      {/* actions — up to 3 primary (design doc §Receipt Summary): own is on the
-          obligation above; here: seal / 문서 수정안 / 더 검증하기 */}
-      {/* First-meeting caption (06 S4) — same grammar as the existing "(현실 기록)"
-          parenthetical: say what sealing does before the tap. */}
-      {receipt.falsifiable_followups.length > 0 && onSeal && (
-        <p className="text-[11px] leading-snug text-[var(--text-tertiary)]">
-          {L('봉인하면 확인일에 현실과 대조해요', 'Seal it and we check it against reality on the date you pick')}
-        </p>
-      )}
+      {/* actions — sealing now happens on an obligation above ("이 판단을 내가
+          소유하기"), which owns + seals into the DKK ledger in one act. Here:
+          문서 수정안 / 더 검증하기. */}
       <div className="flex flex-wrap gap-2">
-        {receipt.falsifiable_followups.length > 0 && onSeal && (
-          <Button variant="primary" size="sm" onClick={() => onSeal(receipt)}>
-            {L('후속 예측 봉인하기', 'Seal a follow-up prediction')}
-          </Button>
-        )}
         {fixes.length > 0 && (
           <Button variant="secondary" size="sm" onClick={() => setShowFixes((v) => !v)}>
             {showFixes
@@ -464,15 +453,16 @@ export function ReceiptView({
  *  reasoning collapses so the card scans at a glance instead of stacking prose. */
 function ObligationRow({
   o,
-  onOwn,
+  onSealObligation,
 }: {
   o: JudgmentObligation;
-  onOwn?: (obligation: JudgmentObligation, owned: boolean) => void;
+  onSealObligation?: (obligation: JudgmentObligation) => void;
 }) {
   const locale = useLocale();
   const L = (ko: string, en: string) => (locale === 'ko' ? ko : en);
   const [open, setOpen] = useState(false);
   const hasWhy = Boolean(o.why_human || o.evidence_needed);
+  const sealed = Boolean(o.sealed_judgment_id);
   return (
     <div className="border-b border-[#8b6914]/10 last:border-0 pb-2.5 last:pb-0">
       <p className="text-[14px] font-medium leading-snug text-[var(--text-primary)]">
@@ -482,13 +472,15 @@ function ObligationRow({
         )}
       </p>
       <div className="mt-2 flex items-center gap-2">
-        <Button
-          variant={o.owned_by_user ? 'secondary' : 'accent'}
-          size="sm"
-          onClick={() => onOwn?.(o, !o.owned_by_user)}
-        >
-          {o.owned_by_user ? L('✓ 내가 소유한 판단', '✓ A judgment I own') : L('이 판단을 내가 소유하기', 'Own this judgment')}
-        </Button>
+        {sealed ? (
+          <span className="inline-flex items-center gap-1 text-[12px] font-medium text-green-700">
+            ✓ {L('내가 소유·봉인함 — 확인일에 정산', 'Owned & sealed — settle on the check-in date')}
+          </span>
+        ) : (
+          <Button variant="accent" size="sm" onClick={() => onSealObligation?.(o)}>
+            {L('이 판단을 내가 소유하기', 'Own this judgment')}
+          </Button>
+        )}
         {hasWhy && (
           <button
             type="button"

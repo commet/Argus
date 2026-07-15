@@ -21,6 +21,7 @@ import { SealStamp } from '@/components/workspace/progressive/SealStamp';
 import { SealModal } from './SealModal';
 import { SettleModal } from './SettleModal';
 import { extractFile, type ExtractedText } from '@/lib/review/extract-file';
+import { sealReviewObligation } from '@/lib/review-seal';
 import { useSettingsStore, hasOwnApiKey } from '@/stores/useSettingsStore';
 import { getStorage, setStorage, STORAGE_KEYS } from '@/lib/storage';
 import { track } from '@/lib/analytics';
@@ -33,6 +34,7 @@ import {
   type SourceKind,
   type ReviewConcern,
   type UserReviewContext,
+  type JudgmentObligation,
 } from '@/lib/review';
 
 type Phase = 'list' | 'import' | 'running' | 'receipt' | 'failed';
@@ -67,7 +69,10 @@ export function ReviewFlow() {
   const [sessionSource, setSessionSource] = useState<{ id: string; text: string } | null>(null);
   const [job, setJob] = useState<ReviewJob | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
-  const [sealing, setSealing] = useState(false);
+  // Own & seal an obligation into the DKK ledger (unified action). null = closed.
+  const [sealingObligation, setSealingObligation] = useState<JudgmentObligation | null>(null);
+  const [sealBusy, setSealBusy] = useState(false);
+  const [sealError, setSealError] = useState<string | null>(null);
   const [settlingId, setSettlingId] = useState<string | null>(null);
   const [elapsed, setElapsed] = useState(0);
   // BYOK gate: a full-document review burns tokens, so a user NOT on their own
@@ -371,11 +376,7 @@ export function ReviewFlow() {
         })()}
         <ReceiptView
           receipt={receipt}
-          onOwn={(o, owned) => {
-            store.setObligationOwned(receipt.receipt_id, o.obligation_id, owned);
-            if (owned) track('judgment_obligation_selected', { receipt_id: receipt.receipt_id });
-          }}
-          onSeal={() => setSealing(true)}
+          onSealObligation={(o) => { setSealError(null); setSealingObligation(o); }}
           onSettle={(followupId) => setSettlingId(followupId)}
           onReReview={reReview}
         />
@@ -428,14 +429,32 @@ export function ReviewFlow() {
           </Button>
         </div>
 
-        {sealing && receipt.falsifiable_followups.length > 0 && (
+        {sealingObligation && (
           <SealModal
+            obligation={{ statement: sealingObligation.statement }}
             followups={receipt.falsifiable_followups}
-            onClose={() => setSealing(false)}
-            onSeal={(followupId, patch) => {
-              store.sealFollowup(receipt.receipt_id, followupId, patch);
-              track('receipt_sealed', { receipt_id: receipt.receipt_id });
-              setSealing(false);
+            busy={sealBusy}
+            error={sealError}
+            onClose={() => { if (!sealBusy) { setSealingObligation(null); setSealError(null); } }}
+            onSeal={async (_followupId, patch) => {
+              setSealBusy(true);
+              setSealError(null);
+              const res = await sealReviewObligation(receipt, sealingObligation, {
+                predicate: patch.predicate,
+                check_by: patch.check_by,
+                pass_condition: patch.pass_condition,
+                fail_condition: patch.fail_condition,
+              });
+              setSealBusy(false);
+              if (res.ok) {
+                store.markObligationSealed(receipt.receipt_id, sealingObligation.obligation_id, res.judgment_id, res.project_id);
+                track('receipt_sealed', { receipt_id: receipt.receipt_id });
+                setSealingObligation(null);
+              } else if (res.code === 'NOT_SIGNED_IN') {
+                setSealError(L('봉인은 로그인이 필요해요. 로그인하면 이 판단이 내 결정 원장에 기록돼 확인일에 정산됩니다.', 'Sealing needs sign-in. Once signed in, this judgment is recorded in your decision ledger and settled on the check-in date.'));
+              } else {
+                setSealError(L('봉인에 실패했어요. 잠시 후 다시 시도해 주세요.', 'Sealing failed. Please try again in a moment.'));
+              }
             }}
           />
         )}

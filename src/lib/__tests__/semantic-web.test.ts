@@ -6,6 +6,7 @@ import {
   semanticProjection,
   semanticProjectionAsOf,
 } from '@/lib/semantic-web';
+import { fold } from '@/lib/decision-kernel';
 
 const projectId = '4c8fe7bf-820a-4d8d-9721-8a7e3f4a4112';
 const at = (minute: number) => `2026-07-14T18:${String(minute).padStart(2, '0')}:00.000Z`;
@@ -108,5 +109,53 @@ describe('web semantic command adapter', () => {
     events = append(events, { kind: 'defer', command_id: 'defer-2', return_contract_id: returnId, review_at: '2026-09-15T00:00:00.000Z', reason: 'One cohort is still incomplete.' }, 2);
     expect(semanticProjection(events, judgmentId, '2026-09-02T00:00:00.000Z')?.lifecycle).toBe('sealed');
     expect(semanticProjection(events, judgmentId, '2026-09-16T00:00:00.000Z')?.lifecycle).toBe('due');
+  });
+});
+
+describe('web seal — document-review onramp (proposal batch)', () => {
+  it('records AI proposal + human seal + return in one atomic batch, marking the proposal adopted', () => {
+    const command = {
+      kind: 'seal' as const, command_id: 'cmd-1', judgment_id: 'web-judgment:j1',
+      statement: '예산 5억을 ROI 근거 없이 승인할지 결정', return_contract_id: 'web-judgment:j1:return',
+      review_at: at(30), review_question: '8주 내 ROI 정량 산출이 제시되는가', resolution_criterion: '제시=pass',
+      proposal_id: 'prop-1', proposal_text: '예산 ROI 근거 부재 — 사람이 승인 여부 판단', source_ref: 'review:report.pdf',
+    };
+    const result = buildSemanticWebCommand({ project_id: projectId, command, recorded_at: at(0) });
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error(result.code);
+    const evs = result.events as Array<Record<string, unknown>>;
+    expect(evs.map((e) => e.event)).toEqual(['proposal_created', 'judgment_sealed', 'return_promised']);
+    // ordinal event ids keep the proposal sorting before the seal on every reader
+    expect(evs.map((e) => e.event_id)).toEqual(['web:cmd-1:0-proposal', 'web:cmd-1:1-sealed', 'web:cmd-1:2-return']);
+
+    const proposal = evs[0] as { authority: { authorized_by?: unknown; originated_by: { kind: string } }; provenance: { source_kind: string; source_ref: string } };
+    expect(proposal.authority.authorized_by).toBeUndefined();          // non-authorial: AI cannot authorize
+    expect(proposal.authority.originated_by.kind).toBe('ai');
+    expect(proposal.provenance.source_kind).toBe('ai_generation');
+    expect(proposal.provenance.source_ref).toBe('review:report.pdf');
+
+    const sealed = evs[1] as { source_proposal_id?: string; authority: { authorized_by: { kind: string } } };
+    expect(sealed.source_proposal_id).toBe('prop-1');
+    expect(sealed.authority.authorized_by.kind).toBe('human');         // human-authorized seal
+
+    // guardAppendBatch accepts the whole batch, and the fold adopts the proposal.
+    expect(preflightSemanticWebCommand([], { project_id: projectId, command, recorded_at: at(0) }).ok).toBe(true);
+    const state = fold(result.events) as { proposals: Map<string, { state: string }> };
+    expect(state.proposals.get('prop-1')?.state).toBe('adopted');
+    const projection = semanticProjection(result.events, 'web-judgment:j1', at(10)); // before review_at(30)
+    expect(projection?.lifecycle).toBe('sealed');
+    expect(projection?.statement).toContain('예산 5억');
+  });
+
+  it('a direct human seal without a proposal stays a 2-event batch (backward compatible)', () => {
+    const command = {
+      kind: 'seal' as const, command_id: 'cmd-2', judgment_id: 'j2', statement: 's',
+      return_contract_id: 'r2', review_at: at(30), review_question: 'q',
+    };
+    const result = buildSemanticWebCommand({ project_id: projectId, command, recorded_at: at(0) });
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error(result.code);
+    expect(result.events.map((e) => e.event)).toEqual(['judgment_sealed', 'return_promised']);
+    expect((result.events[0] as { source_proposal_id?: string }).source_proposal_id).toBeUndefined();
   });
 });
