@@ -231,6 +231,9 @@ const sailSkillPath = path.join(root, "skills", "sail", "SKILL.md");
 if (fs.existsSync(sailSkillPath)) {
   const sail = fs.readFileSync(sailSkillPath, "utf8");
   check(sail.includes("current call"), "sail skill must define current call rendering");
+  // Friction cap (2026-07-15): the whole run surfaces at most 2 AskUserQuestion.
+  check(/Question Budget/.test(sail) && /at most \*\*?2|at most 2/.test(sail), "sail must declare the Question Budget — at most 2 AskUserQuestion per run (friction #1)");
+  check(/Wake[\s\S]{0,400}NOT an `?AskUserQuestion/.test(sail), "sail Step 7.5 Wake must be surfaced, NOT an AskUserQuestion (it never spends a budget slot)");
   check(!sail.includes("## Step 7 - SurfaceCard"), "sail skill must not use SurfaceCard as the Step 7 output");
   check(sail.includes("No machinery selling"), "sail skill must forbid machinery selling");
   // Step-0 gate routing (v2.5.0): sail must read request_type and refuse to

@@ -444,6 +444,14 @@ Rules (keep it restrained):
 
 ### Step 3 — Framing validation (conditional)
 
+**Fires ONLY when the frame is load-bearing AND uncertain** — `frame_status ==
+"load_bearing"` AND `framing_confidence < 70`. On a `flat` frame, ask nothing
+(a question on a flat case is the mirror-clause over-fire). This is the single
+**crux slot** in sail's Question Budget (≤2/run): ask **ONE** question — the most
+load-bearing of the three forms below — never a chain of them. If a budget slot
+was already spent on disambiguation, and stakes will also need one, prefer the
+crux here and let stakes infer.
+
 If `framing_confidence < 70`:
 
 1. Use **AskUserQuestion** with locale-aware content:
@@ -475,27 +483,26 @@ Mirror it here so both surfaces share the same spine. **Run only for
 run the reviewers, so there is no song to tie a rope against — skip silently). **Skip on
 `--quick` and on `frame_status == "flat"`.**
 
-Ask once, in prose (NEVER a two-pole fork, never a directional nudge):
-
-> **locale ko:** "시작 전에 — 지금 마음은 한 줄로 어디로 기울어요? (없으면 그냥 넘어가요)
-> 그리고 언제 다시 확인할까요? — 1주 / 2주 / 1달 / 안 함"
-> **locale en:** "Before we start — in one line, where are you leaning right now?
-> (skip if unsure) · And when should I check back — 1 week / 2 weeks / 1 month / never"
+**Do NOT ask the lean** (Question Budget: BIND is never a pre-ask — pre-asking
+"where are you leaning" was a friction slot spent before any value). Capture a
+lean ONLY when the user **volunteered one in their own problem text** — a
+directional statement they already made ("내 생각엔 X로 가야", "I think we should
+ship", "we're leaning toward B"). Never a two-pole fork, never a directional
+nudge, never a manufactured lean.
 
 Then:
 
-- **Skip / no lean and no date → write NOTHING** (honest-empty; identical to today).
-  The skip is unconditional — never block, never re-ask, never fabricate a lean.
-- **Lean given → write an EARLY rope to the ledger now** (the user's own words are the
-  predicate; `author:"user"` records that it is theirs, not machine-surfaced):
+- **No volunteered lean → write NOTHING** (honest-empty; the default). Never block,
+  never prompt, never fabricate a lean.
+- **A lean was volunteered → write an EARLY rope to the ledger now** (the user's own
+  words are the predicate; `author:"user"` records it is theirs, not machine-
+  surfaced). Infer the check-back from stakes (do NOT ask): high → +2 weeks,
+  medium → +1 month, else omit `check_by`. The user can change it at settle:
 
 ```json
 {"event":"harvest","id":"lean:<session-id>","project":"<.argus dir name>","session":"<session-id>","decided_at":"<now ISO>","quote":"<the user's lean, verbatim>","decision":"<the user's lean, verbatim>","type":"open","at":"<now ISO>"}
-{"event":"seal","id":"lean:<session-id>","predicate":"<the user's lean, verbatim>","falsified_if":"opposite observed","check_by":"<now + 1w/2w/1m, or omit if no date>","author":"user","at":"<now ISO>"}
+{"event":"seal","id":"lean:<session-id>","predicate":"<the user's lean, verbatim>","falsified_if":"opposite observed","check_by":"<inferred from stakes: high +2w, medium +1m, else omit>","author":"user","at":"<now ISO>"}
 ```
-
-- **Date only, no lean →** record only the check-in intent (a valid rope: "bind the
-  commitment, ears open"); do not fabricate a predicate.
 
 **Ears open (reviewers never see the lean):** the lean is NEVER handed to the reviewers as a directive and
 NEVER suppresses Phase 2 generation — it is only the anchor that `settle` re-confronts

@@ -25,6 +25,40 @@ Do not expose worker counts, ledger counts, schemas, model names, or phase names
 in the default read. Those details live in `.argus/sessions/` and
 `/argus:versions`.
 
+## Question Budget — at most 2 `AskUserQuestion` per run (HARD CAP)
+
+Friction-to-first-value is the #1 bounce risk: a busy user leaves at the second
+prompt, long before the track-record payoff. So the ENTIRE run (sail plus the
+clarify / team / verify / boss it chains) surfaces **at most 2** `AskUserQuestion`
+prompts. Every other decision point **infers a default and surfaces it in the
+card for correction — it does not ask.** This governs every sub-skill; a
+sub-skill's local "ask" is permitted only if a budget slot remains.
+
+**Fill the ≤2 slots in this priority order, then stop asking:**
+1. **Disambiguation** — only when a named artifact genuinely fails to resolve
+   (clarify §Ambiguity: a number matches no PR, a path doesn't exist, several
+   branches match). A real "which one?" earns a slot; a guess never.
+2. **The one load-bearing crux / weakness** — only when clarify's under-fire gate
+   fires (`frame_status == "load_bearing"` AND `framing_confidence < 70`): ONE
+   neutral question on the weakest load-bearing assumption. On a `flat` frame,
+   ask nothing (manufacturing a question on a flat case is the mirror-clause
+   violation — CLAUDE.md).
+3. **Stakes / check-back** — only when `stakes_confidence < 75` (Step 6b).
+
+**Never a question — infer and surface instead:**
+- **The BIND lean (clarify Step 3.4)** is NOT a pre-ask. Capture a lean ONLY if
+  the user volunteers one in their own words; never prompt "where are you
+  leaning". No volunteered lean → no rope, no manufactured moment.
+- **The Wake (Step 7.5)** is a single neutral line in the card ("출발 때 당신은 X라
+  했어요 — 지금도?"), surfaced for the user to react to, NOT an `AskUserQuestion`.
+- **Session resume (Step 2)** defaults from git/session state; only ask if truly
+  ambiguous AND a slot remains.
+- clarify's second/skeleton fork probes fold into the single crux slot or are
+  inferred.
+
+`--no-prompt` / non-interactive: **0** questions — infer every default, surface
+every one in the card.
+
 ---
 
 ## When To Run
@@ -592,15 +626,20 @@ It is the on-ramp that sells the later reality settlement (`/argus:resolve`).
 - **`--no-prompt` / non-interactive** → skip (cannot ask); the next interactive
   decision or settle still has the rope.
 
-When the rope exists, ONE `AskUserQuestion` (a measurement, not a quiz — neutral tone):
+When the rope exists, surface ONE neutral line in the card — **NOT an
+`AskUserQuestion`** (Question Budget: the Wake never spends a slot; it is surfaced,
+not asked). It is a mirror the user may react to in their own words, not a modal
+that blocks:
 
-- Title: `항적` (en: `Your wake`)
-- Question: `출발할 때 당신은 "{{lean predicate verbatim}}" 이라고 했어요. 다 보고 난 지금도 그래요?`
-  (en: `When you set out you said "{{lean}}". Now that you've seen it all — does it still hold?`)
-- Options:
-  - `그대로예요` (en: `It still holds`) → `changed:false`, `lean_after` = the lean verbatim
-  - `바뀌었어요` (en: `It moved`) → ask for ONE line; `changed:true`, `lean_after` = the user's new line
-  - `건너뛰기` (en: `Skip`) → write nothing
+- Line (locale-aware, neutral tone): `출발할 때 당신은 "{{lean predicate verbatim}}"
+  이라고 했어요. 다 보고 난 지금도 그래요? (그대로면 넘어가도 돼요.)`
+  (en: `When you set out you said "{{lean}}". Now that you've seen it all — does it
+  still hold? (If it does, just carry on.)`)
+- Record a `wake` event ONLY if the user reacts (their next free-text turn):
+  - reply reads as "still holds" → `changed:false`, `lean_after` = the lean verbatim
+  - reply gives a new line → `changed:true`, `lean_after` = the user's new line
+  - no reaction / they move on → write nothing (lossless; the rope still settles
+    later at `/argus:resolve`)
 
 **Spine (do not regress):**
 - `lean_after` is PURE user-authored — NEVER prefilled from the read or any model
