@@ -27,42 +27,42 @@ No command needed either — "review this plan before I send it" triggers Argus.
 
 Flags: --quick (framing only) · --full (force full pipeline) · --resume <id> · --no-boss
 
-The crew, individually (sail chains these for you):
-  /argus:scan      recover decision candidates from past Claude Code chats
-  /argus:seal      seal one sail seed or scan candidate for later checking
-  /argus:clarify   sharpen the real question before any work
-  /argus:team      crew agents work the artifact in parallel
-  /argus:verify    split claims: supported / challenged / human-required
-  /argus:boss      stakeholder pressure-check (persona from .argus/config.yaml)
-  /argus:configure set up language, boss/stakeholder, and preferences
-  /argus:revise    apply the feedback into a new child draft, re-verify
-  /argus:chart     see one voyage's version tree, promote, branch, resume
-  /argus:log       voyage log across ALL sessions + your prediction record
-  /argus:settle    check past predictions against reality (the contract loop)
-  /argus:principles codify a recurring pattern in your settled record as your own rule
-  /argus:track     view/correct a decision's premises & phenomena; toggle change-alerts
-  /argus:connect   pair this project with your webapp account using a push token
-  /argus:push      send local Argus records to the paired webapp account
-  /argus:pull      bring webapp settle/defer actions back into the local ledger
-  /argus:sync      pull webapp actions, then push the updated local records
-  /argus:helm      (experimental) silent pre-approval scan of an agent plan
+The reviewers, individually (sail chains these for you):
+  /argus:scan       recover decision candidates from past Claude Code chats
+  /argus:predict    save one sail seed or scan candidate for later checking
+  /argus:clarify    sharpen the real question before any work
+  /argus:team       reviewer agents work the artifact in parallel
+  /argus:verify     split claims: supported / challenged / human-required
+  /argus:boss       stakeholder pressure-check (persona from .argus/config.yaml)
+  /argus:configure  set up language, boss/stakeholder, and preferences
+  /argus:revise     apply the feedback into a new child draft, re-verify
+  /argus:versions   see one decision's version tree, promote, branch, resume
+  /argus:journal    decision journal across ALL sessions + your prediction record
+  /argus:resolve    check past predictions against reality (the contract loop)
+  /argus:principles codify a recurring pattern in your record as your own rule
+  /argus:premises   view/correct a decision's premises & phenomena; toggle change-alerts
+  /argus:connect    pair this project with your webapp account using a push token
+  /argus:push       send local Argus records to the paired webapp account
+  /argus:pull       bring webapp resolve/defer actions back into the local ledger
+  /argus:sync       pull webapp actions, then push the updated local records
+  /argus:preapprove (experimental) silent pre-approval scan of an agent plan
 
 Where things live:
   .argus/config.yaml      locale + boss persona (auto-created, edit freely)
-  .argus/sessions/<id>/   the full voyage (git-ignored by default)
+  .argus/sessions/<id>/   the full decision (git-ignored by default)
   .argus/ledger/          prediction ledger + webapp push token (git-ignored)
 
-Lost mid-voyage? /argus:chart shows where you are and names the next command.
+Lost mid-decision? /argus:versions shows where you are and names the next command.
 
 Simple model:
-  sail   = work the decision you are making now
-  scan   = recover decision candidates from past Claude Code chats
-  seal   = save one sail seed or scan candidate for later
-  settle = answer what actually happened
+  sail    = work the decision you are making now
+  scan    = recover decision candidates from past Claude Code chats
+  predict = save one sail seed or scan candidate for later
+  resolve = answer what actually happened
 
 Background:
   Argus may show one local reminder when something is ready to check.
-  It does not judge, settle, or sync automatically.
+  It does not judge, resolve, or sync automatically.
 
 Developer standard:
   A good code decision names the file/PR/test, the failure mode, and the smallest
@@ -75,17 +75,17 @@ for the list, answer with the ONE command that fits, plus one sentence why:
 - has a fuzzy/important decision → `/argus:sail "<it>"`
 - asks whether an AI/Claude Code plan should be executed as-is → `/argus:sail "<plan question>"`
 - wants to recover past Claude Code decisions → `/argus:scan`
-- wants to remember one seed/candidate for later checking → `/argus:seal <id>`
+- wants to remember one seed/candidate for later checking → `/argus:predict <id>`
 - wants only sharper framing, no pipeline → `/argus:sail --quick`
-- got a bearing and wants to act on concerns → `/argus:revise`
-- wants to dig into the current voyage → `/argus:chart`
-- asks "what have I decided here" / "my track record" → `/argus:log`
-- a contract reminder fired / "how did that bet go?" → `/argus:settle`
+- got a read and wants to act on concerns → `/argus:revise`
+- wants to dig into the current decision → `/argus:versions`
+- asks "what have I decided here" / "my track record" → `/argus:journal`
+- a contract reminder fired / "how did that bet go?" → `/argus:resolve`
 - wants to keep a repeated lesson as their own rule → `/argus:principles`
 - wants plugin results in the webapp → `/argus:connect <token>` once, then `/argus:sync`
 - settled/deferred plugin records in the webapp → `/argus:pull`
-- wants a silent pre-approval scan of a generated plan → `/argus:helm`
-- result felt thin / wants the full crew → `/argus:sail --full`
+- wants a silent pre-approval scan of a generated plan → `/argus:preapprove`
+- result felt thin / wants the full review team → `/argus:sail --full`
 
 ## Forbidden patterns
 

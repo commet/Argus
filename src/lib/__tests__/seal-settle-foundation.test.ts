@@ -21,7 +21,7 @@ import { join } from 'node:path';
  *      NEVER infers/self-grades it (hoisted to the point of action in R41).
  */
 const sail = readFileSync(join(process.cwd(), 'argus-plugin-v2/skills/sail/SKILL.md'), 'utf8');
-const settle = readFileSync(join(process.cwd(), 'argus-plugin-v2/skills/settle/SKILL.md'), 'utf8');
+const settle = readFileSync(join(process.cwd(), 'argus-plugin-v2/skills/resolve/SKILL.md'), 'utf8');
 
 describe('R41 — SEAL-side falsifiability (no fail_condition → not sealed)', () => {
   it('the contract seed requires pass AND fail conditions', () => {

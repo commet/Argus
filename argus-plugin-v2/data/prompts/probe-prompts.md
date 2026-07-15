@@ -1,4 +1,4 @@
-# Probe Prompts — 시험 항해 (C 분기 탐침 · D 하중 탐침)
+# Probe Prompts — 시험 주행 (C 분기 탐침 · D 하중 탐침)
 
 > **단일 원천 규약**: 이 파일의 한국어 블록은 웹의
 > `src/lib/prompts/probe-prompts.ts`와 **글자 단위로 동일**해야 한다.

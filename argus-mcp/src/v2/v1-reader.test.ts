@@ -75,6 +75,18 @@ describe('foldV1 — 합성 v1 여정 (defer·watch·gate 포함)', () => {
     expect(extras.defers).toEqual([{ id: 'd1', from: '2026-06-15', to: '2026-06-29', note: '아직 현실이 답 안 줌' }]);
   });
 
+  it('folds a plugin-dialect harvest (decided_at/at, no ts) without losing the date', () => {
+    // The plugin skills stamp `decided_at`/`at`; the canonical v1 stamps `ts`.
+    // The fold reads all three so the plugin's dates survive (no silent drift).
+    const state = emptyState();
+    foldV1(state, [
+      { v: 1, id: 'pg', event: 'harvest', decision: '플러그인 결정', decided_at: '2026-07-15T09:00:00Z', at: '2026-07-15T09:00:00Z' },
+    ] as unknown as V1Event[]);
+    const d = state.decisions.get('pg')!;
+    expect(d.state).toBe('harvested');
+    expect(d.harvested_on).toBe('2026-07-15');
+  });
+
   it('maps v1 predicate_owner honestly: ai_surfaced stays, user downgrades to host_reported', () => {
     const state = emptyState();
     foldV1(state, [

@@ -830,7 +830,7 @@ agents:
   - id: navigator
     persona_id: navigator
     framework_key: navigator
-    name: { ko: "항해장", en: "Navigator" }
+    name: { ko: "종합자", en: "Synthesizer" }
     role: { ko: "종합 검토자", en: "Chief Reviewer" }
     emoji: "🧭"
     color: "#0F172A"

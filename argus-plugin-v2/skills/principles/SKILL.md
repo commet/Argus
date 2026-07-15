@@ -1,6 +1,6 @@
 ---
 name: principles
-description: Turn a recurring structure in your OWN settled decisions into a principle you author. Argus surfaces the pattern from `.argus/ledger/` (the hard synthesis across scattered voyages) and asks "is this yours?"; if you ratify it, it is recorded in YOUR words in `.argus/principles.md` — tagged authored:user, never a machine verdict. This is the ratify half of the learning loop (settle records outcomes; principles lets you codify what recurs). Use when the user says "내 원칙 정리", "이 패턴 원칙으로 남겨줘", "codify this", "what have I learned across these decisions", or after /argus:log --insights surfaces something worth keeping. Requires ≥3 settled contracts. Invoked as `/argus:principles`.
+description: Turn a recurring structure in your OWN settled decisions into a principle you author. Argus surfaces the pattern from `.argus/ledger/` (the hard synthesis across scattered decisions) and asks "is this yours?"; if you ratify it, it is recorded in YOUR words in `.argus/principles.md` — tagged authored:user, never a machine verdict. This is the ratify half of the learning loop (settle records outcomes; principles lets you codify what recurs). Use when the user says "내 원칙 정리", "이 패턴 원칙으로 남겨줘", "codify this", "what have I learned across these decisions", or after /argus:journal --insights surfaces something worth keeping. Requires ≥3 settled contracts. Invoked as `/argus:principles`.
 ---
 
 # /argus:principles
@@ -9,11 +9,11 @@ description: Turn a recurring structure in your OWN settled decisions into a pri
 the recurring *structure* across them as evidence, and — only if the user ratifies
 it — records it as a principle **in the user's own words** in `.argus/principles.md`.
 
-**Why this matters:** `/argus:log` shows the record honestly but is read-only —
+**Why this matters:** `/argus:journal` shows the record honestly but is read-only —
 it never lets you *keep* what you learned. This skill closes Dalio's loop
 ("structure repeated experience into a rule") with one hard rule that the old
 `patterns` skill broke: **the machine does the synthesis (finding the structure
-across scattered voyages — the part a person can't easily do); the user does the
+across scattered decisions — the part a person can't easily do); the user does the
 authorship (deciding it is a principle and how it is phrased).** A machine that
 writes the principle *for* you is a verdict adopted without being tested — the
 exact failure Argus exists to fight. So Argus surfaces and asks; it never
@@ -29,15 +29,15 @@ English templates below, render naturally in ko.
 
 - The user says "내 원칙 정리 / 이 패턴 원칙으로 / codify this / what have I
   learned here".
-- `/argus:log --insights` surfaced an observation the user wants to keep.
+- `/argus:journal --insights` surfaced an observation the user wants to keep.
 
 Refuse (always say what to do next, never a bare halt):
 
 - No `.argus/ledger/ledger.jsonl`, or **fewer than 3 settled contracts** → there
   is not enough settled reality to draw a principle from yet. Say exactly that
-  and point to `/argus:settle` (to settle what's due) or `/argus:sail` (to start
+  and point to `/argus:resolve` (to settle what's due) or `/argus:sail` (to start
   a decision): "정산된 결정이 아직 {{T}}건이에요 — 원칙을 세우기엔 일러요 (3건부터).
-  정산할 게 있으면 /argus:settle."
+  정산할 게 있으면 /argus:resolve."
 
 ---
 
@@ -48,7 +48,7 @@ Refuse (always say what to do next, never a bare halt):
    crash). Keep only **settled** contracts (status `settled`, with an `outcome`).
 2. For each settled contract keep VERBATIM: `predicate`, `outcome`
    (happened/avoided/partial), `basis` (reasoned/luck/external, if present),
-   `author` (user / absent=AI-surfaced), and any fog/reef tag. **Do not re-infer
+   `author` (user / absent=AI-surfaced), and any unknown/risk tag. **Do not re-infer
    or relabel a tag** — the ledger tag is ground truth (a `luck` win is not a
    skill win; an AI-surfaced seed is not the user's bet).
 3. Read the existing `.argus/principles.md` if present → the user's current
@@ -56,7 +56,7 @@ Refuse (always say what to do next, never a bare halt):
 
 ## Step 2 — Compute claim strength (mechanical — gate BEFORE any LLM)
 
-Mirror `/argus:log` exactly so the two surfaces can't disagree. `T` = settled
+Mirror `/argus:journal` exactly so the two surfaces can't disagree. `T` = settled
 count; `domains` = distinct decision domains they span.
 
 - `T < 3` → **refuse** (Step "When to run"). Never manufacture a principle.

@@ -179,14 +179,14 @@ export type ShownLog = ReadonlyMap<string, string>;
 
 export interface FairPick {
   pick: DueItem | null;
-  /** "외 N건" — 항상 병기, 전체 목록은 /argus:settle. */
+  /** "외 N건" — 항상 병기, 전체 목록은 /argus:resolve. */
   others: number;
 }
 
 /** 그물 1회 보장 (Matrix Capture 행: "unsealed 다음날 그물 1회 후 후보 보관").
  *  표시 이력에 있는 항목은 **영원히** 다시 뽑히지 않는다 — 그물은 재촉이
  *  아니라 단 한 번의 되물음이고, 그 후 결정은 원장에 harvested로 조용히
- *  보관된다 (능동 표면은 침묵, /argus:settle·debrief 류 pull 표면에서만
+ *  보관된다 (능동 표면은 침묵, /argus:resolve·debrief 류 pull 표면에서만
  *  보임). 표시 이력은 due 공정 큐와 같은 사상으로 드라이버가 영속한다. */
 export function pickNetOnce(net: UnsealedNetItem[], shownNet: ShownLog): UnsealedNetItem[] {
   return net.filter((n) => !shownNet.has(n.decision_id));

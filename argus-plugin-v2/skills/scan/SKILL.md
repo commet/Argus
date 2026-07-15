@@ -15,7 +15,7 @@ This is an entry point, like `/argus:sail`:
 - `/argus:scan` = recover decisions already made in past Claude Code chats.
 
 It never seals automatically. The user must choose which candidates are worth
-turning into later-checkable contracts with `/argus:seal <id>`.
+turning into later-checkable contracts with `/argus:predict <id>`.
 
 ---
 
@@ -49,7 +49,7 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/decision-ledger.js" scan --list
 3. Relay the compact result:
    - how many conversation segments were scanned,
    - candidate ids found,
-   - next command: `/argus:seal <id>`.
+   - next command: `/argus:predict <id>`.
 
 ---
 

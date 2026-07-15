@@ -59,6 +59,20 @@ check('directive verdict on flat fails', !staticGate(directive, { id: 't', kind:
 const verifyAsk = { ...cleanFlat, next_helm: 'You should verify the path is unused before renaming.' };
 check('verification "you should verify" passes', staticGate(verifyAsk, { id: 't', kind: 'flat' }).passed);
 
+// 6b. Shared-brain surface-lint tells on a flat case FAIL (fork + confirm).
+const twoPoleFork = { ...cleanFlat, current_course: { status: 'proceed', summary: 'Is it option A or B — either you keep tmp or you go with scratch?' } };
+check('flat + two-pole fork phrasing fails (VERDICT_FORK)', !staticGate(twoPoleFork, { id: 't', kind: 'flat' }).passed);
+
+const confirmEn = { ...cleanFlat, current_course: { status: 'proceed', summary: 'Renaming to scratch. Is this the right direction?' } };
+check('flat + English confirm-question fails (VERDICT_CONFIRM_EN)', !staticGate(confirmEn, { id: 't', kind: 'flat' }).passed);
+
+const confirmKo = { ...cleanFlat, current_course: { status: 'proceed', summary: 'scratch로 바꿀게요 — 이 방향이 맞나요?' } };
+check('flat + Korean confirm-question fails (VERDICT_CONFIRM_KO)', !staticGate(confirmKo, { id: 't', kind: 'flat' }).passed);
+
+// 6c. The same fork phrasing on a REAL fork case does NOT trip the tells (a stated course is legitimate there).
+const forkWithChoiceLang = { ...cleanFork, current_course: { status: 'fork', summary: 'Is it option A or B — hold for counsel, or ship with a rollback?' }, road_not_taken: [{ option: 'Ship with rollback', why_not_now: 'legal gap unclassified' }] };
+check('fork case with choice language passes (tells scoped to flat/low-stakes)', staticGate(forkWithChoiceLang, { id: 't', kind: 'fork' }).passed);
+
 // 7. Clean fork passes.
 check('clean fork passes', staticGate(cleanFork, { id: 't', kind: 'fork' }).passed);
 

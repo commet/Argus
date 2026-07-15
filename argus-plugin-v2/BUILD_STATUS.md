@@ -49,7 +49,7 @@ argus-plugin-v2/
 | **M5** Analysis primacy | ✓ | /argus:clarify is mandatory first step; orchestrator refuses to run :team without it; clarify has self-check that surface != real_question. |
 | **M6** Stakes-driven agent selection | ✓ | classification.yaml has stakes → agent_count_max (2/3/4); team SKILL.md includes capability scoring formula + critic mandate for critical stakes. |
 | **M7** Commodity bot test | ✓ | Output is decision scaffold (not review doc); preserves contradictions (Cursor/Copilot average away); named MBTI boss (generic tools don't have); workers ON real artifacts. |
-| **M8** Archive growth | ✓ | .argus/sessions/ structure; /argus:chart renders tree; git-committable for team sharing. |
+| **M8** Archive growth | ✓ | .argus/sessions/ structure; /argus:versions renders tree; git-committable for team sharing. |
 | **M9** Worker not critic | ✓ | Every agent .md has explicit "You are a worker, NOT a critic"; team SKILL.md forbids workers critiquing each other; donghyuk.md has special clarification about risk analysis being WORK. |
 | **M10** Versioning-ready | ✓ | Every artifact written under versions/{label}/; Draft schema has parent_draft_id + version_label; version-numbering algorithm ported to lib/session/. |
 
@@ -203,7 +203,7 @@ Remaining 8% unverifiable by simulation:
 ### Must do before plugin swap
 
 4. **/argus:configure skill** — interactive UI for setting Boss MBTI + locale. Currently users edit `lib/config.example.yaml` → copy manually. Template pointer works for MVP but not great UX.
-5. **/argus:revise skill** — implemented on 2026-06-09 follow-up. Navigator now creates child drafts after verification/boss/user directives.
+5. **/argus:revise skill** — implemented on 2026-06-09 follow-up. The Synthesizer now creates child drafts after verification/boss/user directives.
 6. **Schema path resolution** — SKILL.md files reference `data/schemas/*.json` by relative path. When installed to `~/.claude/`, data goes to `~/.claude/argus-data/`. Skills need to handle both paths (plugin dev mode vs installed mode).
 7. **Agent .md → Task tool binding — RESOLVED (was broken).** The Task/Agent tool's `subagent_type` only accepts built-in types (`general-purpose`, `Explore`, `Plan`); it does NOT bind a custom agent by bare id like `subagent_type: sujin` (ref: anthropics/claude-code#25504). So the old approach silently ran a generic model under the worker's name — the persona collapsed invisibly. **Fix applied:** team Step 4 now uses `subagent_type: general-purpose` and INJECTS the agent's persona (from `~/.claude/agents/<id>.md` or `agents.yaml`) inline into the worker prompt. The .md files remain a convenience source; `agents.yaml` is the always-present fallback. (If a future Claude Code supports plugin-scoped `subagent_type: "argus:sujin"`, team may switch to it, keeping inline injection as fallback.)
 8. **scripts/extract-from-webapp.ts** — placeholder directory exists but extraction script not implemented. Currently data files are hand-authored from source reading.
@@ -233,7 +233,7 @@ When you return, please check:
 
 4. **team SKILL.md orchestration steps** — read `skills/team/SKILL.md`. The 11-step execution is dense. Is any step mis-specified? Particular attention: Step 4 (parallel spawn) and Step 9 (FinalScaffold construction).
 
-5. **version numbering behavior** — read `lib/session/version-numbering.md` + the /argus:chart tree rendering. Does the "해도" navigation feel right?
+5. **version numbering behavior** — read `lib/session/version-numbering.md` + the /argus:versions tree rendering. Does the "해도" navigation feel right?
 
 ## Confidence assessment
 
@@ -354,7 +354,7 @@ gate.
 - Added `data/schemas/verification-ledger.json`.
 - Updated `session.json`, `worker-result.json`, `final-scaffold.json`, and
   `minimal-scaffold.json` for verification state.
-- Updated `/argus:sail`, `/argus:team`, `/argus:boss`, and `/argus:chart` so
+- Updated `/argus:sail`, `/argus:team`, `/argus:boss`, and `/argus:versions` so
   medium/high routes run `clarify -> team -> verify -> boss`.
 - Updated statusline to show verification status, challenged claim count, and
   human check count.
@@ -362,31 +362,31 @@ gate.
 - Rewrote README and TEST_PLAN around verification-first positioning.
 - Fixed manifest agent reference from missing `concertmaster.md` to existing
   `navigator.md`.
-- Follow-up Current Heading pass replaced the retired `surface_card.json` with
+- Follow-up current call pass replaced the retired `surface_card.json` with
   `current_bearing.json` and rewrote `/argus:sail` so the default user-facing
-  output shows current course, why, fog/reef, road not taken, next helm, and an
+  output shows current course, why, unknown/risk, road not taken, next helm, and an
   optional decision-contract seed.
 
-## Current Heading direction pass - 2026-06-10
+## current call direction pass - 2026-06-10
 
 The webapp direction clarified that Argus is not just a risk reducer. It is a
-decision voyage system: clarify the destination, gather crew work, preserve
-forks, verify claims, choose a bearing, and leave a trail that can later be
+decision voyage system: clarify the destination, gather reviewers work, preserve
+forks, verify claims, choose a read, and leave a trail that can later be
 checked against reality.
 
 Plugin changes from this pass:
 
 - Added `internal design notes` as the product direction anchor.
-- Replaced the default medium/high output contract with Current Heading.
+- Replaced the default medium/high output contract with current call.
 - Replaced `data/schemas/surface-card.json` with
   `data/schemas/current-bearing.json`.
 - Updated manifest, installer, README, TEST_PLAN, data docs, session layout,
-  and validation script around Current Heading terminology.
+  and validation script around current call terminology.
 - Kept verification-first architecture intact; verification now feeds the
-  bearing instead of becoming the visible product.
+  read instead of becoming the visible product.
 - Added `scripts/simulate-plugin.js` with real-shaped PR, strategy-doc, GDPR,
   and low-density decision cases. The simulation fails on missing source refs,
-  missing road-not-taken, machinery-language leakage, overlong bearing output,
+  missing road-not-taken, machinery-language leakage, overlong read output,
   blocked/proceed status mismatches, and non-falsifiable contract seeds.
 
 ## New gate
@@ -447,11 +447,11 @@ bodies are cached at session start.
 
 ## v2.3.0 (shipped earlier today)
 
-Added the back half of the decision-contract loop: `/argus:settle` (outcome
-recording into the append-only ledger, bearing-seed import), `/argus:log`
-(cross-session voyage log + `--insights`), clarify track-record injection,
-first-voyage hint, and routed the reminder hook / statusline / chart at
-`/argus:settle`. See CHANGELOG 2.3.0.
+Added the back half of the decision-contract loop: `/argus:resolve` (outcome
+recording into the append-only ledger, read-seed import), `/argus:journal`
+(cross-session decision log + `--insights`), clarify track-record injection,
+first-decision hint, and routed the reminder hook / statusline / chart at
+`/argus:resolve`. See CHANGELOG 2.3.0.
 
 ## v2.3.1 (same-day hardening pass)
 
@@ -461,9 +461,9 @@ up. Four real bugs fixed:
 
 1. `check-contracts.js` replayed only `seal`/`settle` — pushed (`amend`) and
    dismissed contracts kept firing the session-start reminder. Now replays the
-   full `ledger.mjs` event set; reads both bearing spellings.
-2. Settled bearing seeds: hook + statusline counted `contract_seed`
-   unconditionally, so after `/argus:settle` imported and settled a seed, both
+   full `ledger.mjs` event set; reads both read spellings.
+2. Settled read seeds: hook + statusline counted `contract_seed`
+   unconditionally, so after `/argus:resolve` imported and settled a seed, both
    surfaces flashed OVERDUE forever while settle said "no contracts due."
    Both now dedup against ledger ids (`bearing:<session>:<label>`) and, for
    root-level bearings, verbatim sealed predicates.
@@ -588,7 +588,7 @@ Fourth pass (same day, v2.4.1) — devil's-advocate round on the shipped 2.4.0:
 - Ledger write verification (settle/helm): append → re-read → JSON.parse,
   because every reader silently skips corrupt lines (a malformed seal = a
   prediction that never existed).
-- Settle #1 payoff surface: quote the source bearing's fog/reef next to the
+- Settle #1 payoff surface: quote the source read's unknown/risk next to the
   outcome — the loop's friction/payoff was upside-down (first visible payoff
   previously arrived at settle #3 via --insights).
 - README redaction claim downgraded to prompt-rule honesty (ko+en);
@@ -599,12 +599,12 @@ Fourth pass (same day, v2.4.1) — devil's-advocate round on the shipped 2.4.0:
 
 Fifth pass (same day) — the gate got walked, twice, in simulation:
 two agent-driven end-to-end runs against real fixtures (a real pptx with
-Korean slides + speaker notes; a planted overdue bearing seed). Results:
+Korean slides + speaker notes; a planted overdue read seed). Results:
 
-PM voyage ("보고서.pptx 임원회의 가져가도 되나?", no slash):
+PM decision ("보고서.pptx 임원회의 가져가도 되나?", no slash):
 - SURVIVED. Extraction recipe worked verbatim (copy-to-zip mandatory, numeric
   slide sort, notes read, provenance line printed); zero-droppings held
-  (nothing written before density=medium); bearing = 17 lines, zero
+  (nothing written before density=medium); read = 17 lines, zero
   machinery leakage, 4-part falsifiable seed, and it found the deck's real
   weakness (unverified 8% + the "검증 안 됨" admission physically embedded in
   the shareable file — something paste-into-Claude likely misses).
@@ -619,12 +619,12 @@ PM voyage ("보고서.pptx 임원회의 가져가도 되나?", no slash):
   undefined on documents, extraction temp dir, phase never completing, boss
   first_reaction demands, time-preview honesty).
 
-Settlement loop (/argus:settle on an overdue seed):
+Settlement loop (/argus:resolve on an overdue seed):
 - SURVIVED end-to-end: reminder → settle (seed import, append-only writes,
   write-verification gate passed) → hook/statusline/log all went silent via
   the same dedup — and the v2.4.1 안개 payoff line landed as designed ("당시
   짚었던 안개: 'B안 우위가 프로모션 효과일 수 있음' — 현실의 답: partial").
-  Bearing byte-identical after settle (SHA256 match).
+  Read byte-identical after settle (SHA256 match).
 - Found the highest-leverage mechanical bug of the day: **UTF-8 BOM** (from
   PS 5.1 Out-File) made bearings/ledgers silently invisible to hook and
   statusline on Windows — no reminder ever fires, and the miss burns the

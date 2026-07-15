@@ -24,7 +24,7 @@ root.
 │       │   │   ├── debate.json         # Critical stakes only
 │       │   │   ├── mix.json
 │       │   │   ├── verification.json   # From /argus:verify
-│       │   │   ├── current_bearing.json # Compressed Current Heading from /argus:sail
+│       │   │   ├── current_bearing.json # Compressed current call from /argus:sail
 │       │   │   ├── boss_feedback.json  # From /argus:boss
 │       │   │   └── scaffold.json       # FinalScaffold
 │       │   ├── v0.2/
@@ -116,8 +116,8 @@ artifacts into one blob); atomicity is a *separate* property and is mandatory:
   reads correctly as "team did not finish"; verify/sail then re-run team rather
   than trusting a partial.)
 - **Universal, no drift list.** Every skill that writes any stored session or
-  version `.json` owns this discipline — clarify, team, verify, boss, chart, sail,
-  revise, settle. Same rule as the read side: if a skill writes a stored `.json`,
+  version `.json` owns this discipline — clarify, team, verify, boss, versions, sail,
+  revise, resolve. Same rule as the read side: if a skill writes a stored `.json`,
   it writes it atomically. Do not maintain a hand-picked list of who must comply.
 
 ## Git Commitment
@@ -154,7 +154,7 @@ record is personal by default; delete the line by hand to share it.
 - `active_draft_id` is the currently focused draft, defaulting to latest by
   `created_at`.
 - `released_draft_id` is the draft marked as `v{major}.0` through
-  `/argus:chart --promote`.
+  `/argus:versions --promote`.
 
 ### Concurrency: the version dirs are authoritative; `drafts[]` is a derived index
 
@@ -185,11 +185,11 @@ time:
   load against the one on disk just before writing; if it changed, another writer
   intervened — re-read and re-merge rather than overwrite.
 
-A reader (e.g. chart) that finds `drafts[]` out of step with the dirs trusts the
+A reader (e.g. versions) that finds `drafts[]` out of step with the dirs trusts the
 **dirs** and reconciles, for the same reason: the dirs are write-once truth, the
 index can lag a concurrent write.
 
-When `active_draft_id` changes through `/argus:chart --checkout`, the session's
+When `active_draft_id` changes through `/argus:versions --checkout`, the session's
 surface view reflects the active draft's scaffold.
 
 ## Files Written By Phase
@@ -202,8 +202,8 @@ surface view reflects the active draft's scaffold.
 | `/argus:sail` Step 7 | `current_bearing.json` for medium/high paths |
 | `/argus:boss` | `boss_feedback.json`, updated `scaffold.json` with applied/rejected concerns; in session.json only the active draft's `boss_reviewed: true` flag + `phase` (boss does NOT touch `reviewing_agent_id` — that marks who produced a draft, not who reviewed it) |
 | `/argus:revise` | writes a transient `pending_revision.json` (session level, consumed by team), then via `/argus:team --revise` creates a new **child** version dir (full artifacts, write-once) and appends a child Draft (`directive`, `reviewing_agent_id: navigator`); then `/argus:verify` re-verifies. The parent draft is untouched. |
-| `/argus:settle` | appends `harvest`/`seal` (bearing-seed import), `settle`, or `amend` events to `.argus/ledger/ledger.jsonl` — append-only, never touches session dirs |
-| `/argus:log`, `/argus:help`, `/argus:chart` (default) | read-only — write nothing |
+| `/argus:resolve` | appends `harvest`/`seal` (read-seed import), `settle`, or `amend` events to `.argus/ledger/ledger.jsonl` — append-only, never touches session dirs |
+| `/argus:journal`, `/argus:help`, `/argus:versions` (default) | read-only — write nothing |
 
 ## Phase Is Derived From Artifacts, Not Declared
 
@@ -222,7 +222,7 @@ actually complete wins:
 
 | Artifact present & complete (active version dir) | Derived phase / next |
 |---|---|
-| `current_bearing.json` | bearing rendered → `complete` (chart) |
+| `current_bearing.json` | read rendered → `complete` (chart) |
 | `boss_feedback.json` | boss done → `refining`/`complete` per routing |
 | `verification.json` | verify done → `dm_feedback` (boss next) or per `routing_decision` |
 | `scaffold.json` + `mix.json` + `workers.json` (full set per `team_plan.json`) | team done → `verifying` (verify next) |

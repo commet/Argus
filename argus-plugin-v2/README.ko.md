@@ -56,8 +56,8 @@ Argus는 그럴듯한 답만으로는 부족한 결정에 씁니다.
 ```text
 결정하기      /argus:sail
 되찾기        /argus:scan
-기준 남기기   /argus:seal
-나중에 확인   /argus:settle
+기준 남기기   /argus:predict
+나중에 확인   /argus:resolve
 ```
 
 쉽게 말하면:
@@ -69,8 +69,8 @@ Argus는 그럴듯한 답만으로는 부족한 결정에 씁니다.
 
 그 아래에는 결정 과정을 실제로 굴리는 명령들이 있습니다. `/argus:sail`이 보통
 대신 호출합니다: `/argus:clarify`, `/argus:team`, `/argus:verify`,
-`/argus:boss`, `/argus:revise`. 기록을 보고 싶으면 `/argus:log`와
-`/argus:chart`, 웹앱과 맞추려면 `/argus:connect`와 `/argus:sync`를 씁니다.
+`/argus:boss`, `/argus:revise`. 기록을 보고 싶으면 `/argus:journal`와
+`/argus:versions`, 웹앱과 맞추려면 `/argus:connect`와 `/argus:sync`를 씁니다.
 
 확인할 때가 되면 Argus가 로컬에서 짧게 알려줄 수 있습니다. 자동으로 판단하거나
 정산하거나 웹앱에 보내지는 않습니다.
@@ -107,16 +107,16 @@ Argus는 그럴듯한 답만으로는 부족한 결정에 씁니다.
 |---|---|
 | `/argus:sail` | 결정해야 할 일이 있을 때. 여기서 시작합니다. |
 | `/argus:scan` | 과거 Claude Code 대화에서 결정 후보를 회수할 때. |
-| `/argus:seal` | 나중에 확인할 기준을 남길 때. |
-| `/argus:settle` | Argus가 실제로 어땠는지 묻거나, 확인할 때가 됐을 때. |
-| `/argus:log` | 결정 기록과 예측 기록을 볼 때. |
-| `/argus:chart` | 항해/버전 트리를 볼 때. |
+| `/argus:predict` | 나중에 확인할 기준을 남길 때. |
+| `/argus:resolve` | Argus가 실제로 어땠는지 묻거나, 확인할 때가 됐을 때. |
+| `/argus:journal` | 결정 기록과 예측 기록을 볼 때. |
+| `/argus:versions` | 결정/버전 트리를 볼 때. |
 | `/argus:connect` | 이 프로젝트를 웹앱과 처음 연결할 때. |
 | `/argus:sync` | 로컬 플러그인과 웹앱을 맞출 때. |
 | `/argus:help` | 가장 짧은 명령어 지도가 필요할 때. |
 
 `/argus:sail` 안에서 쓰이는 고급 명령: `/argus:clarify`, `/argus:team`,
-`/argus:verify`, `/argus:boss`, `/argus:revise`, `/argus:helm`.
+`/argus:verify`, `/argus:boss`, `/argus:revise`, `/argus:preapprove`.
 
 ---
 

@@ -11,7 +11,7 @@ This directory is the **reference data** consumed by plugin skills at runtime. I
 | `classification.yaml` | Task/domain/output vocab + stakes rules | `src/lib/task-classifier.ts`, `orchestrator-classify.ts` |
 | `schemas/*.json` | JSON Schema contracts for plugin artifacts | `src/stores/types.ts` |
 | `schemas/verification-ledger.json` | Plugin-native positive/negative validation ledger | Plugin v2.1, aligned with webapp worker validation direction |
-| `schemas/current-bearing.json` | Compressed one-screen user-facing decision-voyage bearing | Plugin v2.1 Current Heading contract |
+| `schemas/current-bearing.json` | Compressed one-screen user-facing decision-voyage read | Plugin v2.1 current call contract |
 
 ## Regenerate from webapp
 
@@ -34,7 +34,7 @@ The plugin holds **data copies**, not live references. Webapp can change indepen
 4. **Stakes classification at runtime** — plugin skills classify via LLM using `classification.yaml` as vocabulary reference, NOT via deterministic regex. Webapp uses regex + LLM hybrid.
 5. **FinalScaffold** — plugin emits decision scaffold, NOT the markdown `final_deliverable` webapp produces. `data/schemas/final-scaffold.json` is plugin-only.
 6. **VerificationLedger** — plugin has a first-class `/argus:verify` artifact that splits team output into supported claims, challenged claims, unresolved tensions, and human-required checks before boss review. This is intentionally plugin-native because terminal users benefit from a compact pre-signoff quality gate more than a rich web UI.
-7. **CurrentBearing** — plugin hides the multi-agent machinery in the default `/argus:sail` output. `current_bearing.json` is the one-screen bearing users actually consume; deeper artifacts remain available through `/argus:chart`.
+7. **CurrentBearing** — plugin hides the multi-agent machinery in the default `/argus:sail` output. `current_bearing.json` is the one-screen read users actually consume; deeper artifacts remain available through `/argus:versions`.
 
 ## What's EXACTLY mirrored from webapp
 

@@ -389,22 +389,22 @@ function validateBearing(testCase) {
 
 function renderBearing(bearing) {
   const lines = [
-    `## Argus - Current Heading - ${bearing.label}`,
+    `## Argus - current call - ${bearing.label}`,
     `Current course: ${bearing.current_course.summary}`,
     "Why this course:",
     ...bearing.why_this_course.map((reason) => `- ${reason.point}${reason.source ? ` (${reason.source})` : ""}`)
   ];
 
   if (bearing.fog_or_reef) {
-    lines.push(`Fog / reef: ${bearing.fog_or_reef.issue}`);
+    lines.push(`Unknown / risk: ${bearing.fog_or_reef.issue}`);
     lines.push(`Required check: ${bearing.fog_or_reef.required_check || bearing.fog_or_reef.why_it_matters}`);
   }
 
   for (const road of bearing.road_not_taken) {
-    lines.push(`Road not taken: ${road.option} - ${road.why_not_now}`);
+    lines.push(`Alternative: ${road.option} - ${road.why_not_now}`);
   }
 
-  lines.push(`Next helm: ${bearing.next_helm}`);
+  lines.push(`Next step: ${bearing.next_helm}`);
 
   if (bearing.contract_seed) {
     lines.push(`Contract seed: ${bearing.contract_seed.predicate}`);

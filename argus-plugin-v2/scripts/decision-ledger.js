@@ -4,7 +4,7 @@
  *
  * Product shape:
  *   /argus:sail and /argus:scan are entry points.
- *   /argus:seal and /argus:settle are common ledger state changes.
+ *   /argus:predict and /argus:resolve are common ledger state changes.
  *
  * This script absorbs the useful argus-watch scan/seal path into the plugin
  * bundle, so normal plugin users do not install a second CLI.
@@ -565,7 +565,7 @@ async function cmdScan() {
   saveScanState(state);
 
   if (!written) console.log("Scan complete. No new decision candidates found.");
-  else console.log(`Scan complete. ${written} candidate(s) found. Next: /argus:seal <id>`);
+  else console.log(`Scan complete. ${written} candidate(s) found. Next: /argus:predict <id>`);
   if (failed) console.log(`Skipped ${failed} segment(s) that failed detection; they will retry next scan.`);
 }
 
@@ -666,7 +666,7 @@ function printSealable() {
       console.log(`  ${item.id} [${item.stakes || "unknown"}] ${truncate(item.decision || item.quote)}`);
     }
   }
-  console.log("Next: /argus:seal <id>");
+  console.log("Next: /argus:predict <id>");
 }
 
 function findSeedById(id) {
@@ -690,7 +690,7 @@ async function cmdSeal() {
   if (seed) {
     const checkBy = flags["check-by"] || seed.check_by;
     if (!/^\d{4}-\d{2}-\d{2}$/.test(String(checkBy || ""))) {
-      console.error(`Seed ${seed.id} has no ISO check_by date. Run /argus:seal ${seed.id} --check-by YYYY-MM-DD`);
+      console.error(`Seed ${seed.id} has no ISO check_by date. Run /argus:predict ${seed.id} --check-by YYYY-MM-DD`);
       process.exit(1);
     }
     appendEvent({
@@ -721,7 +721,7 @@ async function cmdSeal() {
   const decision = ledger.get(target);
   if (!decision) {
     console.error(`Unknown seal target: ${target}`);
-    console.error("Run /argus:seal --list to see candidates and sail seeds.");
+    console.error("Run /argus:predict --list to see candidates and sail seeds.");
     process.exit(1);
   }
   if (decision.status !== "candidate") {
@@ -745,7 +745,7 @@ async function cmdSeal() {
   }
   if (!draft.predicate || !draft.falsified_if || !/^\d{4}-\d{2}-\d{2}$/.test(draft.check_by || "")) {
     console.error("Seal needs predicate, falsified_if, and ISO check_by.");
-    console.error(`Run /argus:seal ${target} --predicate "..." --falsified-if "..." --check-by ${addDaysISO(localToday(), 14)}`);
+    console.error(`Run /argus:predict ${target} --predicate "..." --falsified-if "..." --check-by ${addDaysISO(localToday(), 14)}`);
     process.exit(1);
   }
   appendEvent({
@@ -772,13 +772,43 @@ function cmdStatus() {
   console.log(`Ledger: ${rel(ledgerFile())}`);
 }
 
-const commands = { scan: cmdScan, seal: cmdSeal, list: () => cmdList(), status: cmdStatus };
+// Single-source writer for the settle event (was hand-written JSON in the resolve
+// skill — the drift source). The CLI owns the canonical v1 shape; appendEvent
+// stamps `at`. Reality answers; Argus never grades — so no score is recorded.
+function cmdSettle() {
+  const id = flags._[0];
+  const outcome = String(flags.outcome || "");
+  const OUTCOMES = ["happened", "avoided", "partial"];
+  const BASES = ["reasoned", "luck", "external", "mixed"];
+  if (!id) {
+    console.error('Usage: decision-ledger.js settle <id> --outcome happened|avoided|partial [--basis reasoned|luck|external|mixed] [--note "<one sentence>"]');
+    process.exit(1);
+  }
+  if (!OUTCOMES.includes(outcome)) {
+    console.error(`--outcome must be one of ${OUTCOMES.join("|")}`);
+    process.exit(1);
+  }
+  const event = { event: "settle", id, outcome };
+  if (flags.basis) {
+    const basis = String(flags.basis);
+    if (!BASES.includes(basis)) {
+      console.error(`--basis must be one of ${BASES.join("|")}`);
+      process.exit(1);
+    }
+    event.basis = basis;
+  }
+  if (flags.note) event.note = String(flags.note);
+  appendEvent(event);
+  console.log(`Settled ${id}: ${outcome}${event.basis ? ` (${event.basis})` : ""}`);
+}
+
+const commands = { scan: cmdScan, seal: cmdSeal, settle: cmdSettle, list: () => cmdList(), status: cmdStatus };
 if (!cmd || !commands[cmd]) {
   console.log("Usage:");
   console.log("  /argus:scan [--since days] [--all-projects] [--model sonnet] [--list]");
-  console.log("  /argus:seal --list");
-  console.log("  /argus:seal <id>");
-  console.log("  /argus:seal --latest-seed");
+  console.log("  /argus:predict --list");
+  console.log("  /argus:predict <id>");
+  console.log("  /argus:predict --latest-seed");
   console.log("  node decision-ledger.js status");
   process.exit(cmd ? 1 : 0);
 }

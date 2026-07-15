@@ -32,7 +32,7 @@
     },
     "boss_reviewed": {
       "type": "boolean",
-      "description": "True if /argus:boss has run on this draft (i.e. versions/{version_label}/boss_feedback.json exists). A small flag for the chart tree — the full feedback stays in the version dir."
+      "description": "True if /argus:boss has run on this draft (i.e. versions/{version_label}/boss_feedback.json exists). A small flag for the version tree — the full feedback stays in the version dir."
     },
     "created_at": {
       "type": "string",

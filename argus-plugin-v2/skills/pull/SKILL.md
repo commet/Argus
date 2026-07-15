@@ -10,7 +10,7 @@ paired account and appends them to `.argus/ledger/ledger.jsonl`.
 
 This is the return path of the bridge:
 
-- `/argus:push` sends local ledger/bearing records to the webapp.
+- `/argus:push` sends local ledger/read records to the webapp.
 - The webapp can settle or defer imported plugin decisions.
 - `/argus:pull` brings those webapp actions back into the local ledger.
 
