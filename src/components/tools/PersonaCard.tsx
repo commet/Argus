@@ -15,9 +15,9 @@ interface PersonaCardProps {
 function getInfluenceConfig(locale: 'ko' | 'en') {
   const ko = locale === 'ko';
   return {
-    high: { bg: 'bg-red-50', border: 'border-red-200', text: 'text-red-700', label: ko ? '높음' : 'High', Icon: Crown },
-    medium: { bg: 'bg-amber-50', border: 'border-amber-200', text: 'text-amber-700', label: ko ? '중간' : 'Med', Icon: Shield },
-    low: { bg: 'bg-blue-50', border: 'border-blue-200', text: 'text-blue-600', label: ko ? '낮음' : 'Low', Icon: User },
+    high: { bg: 'bg-[var(--danger)]/10', border: 'border-[var(--danger)]/25', text: 'text-[var(--danger)]', label: ko ? '높음' : 'High', Icon: Crown },
+    medium: { bg: 'bg-[var(--warning)]/10', border: 'border-[var(--warning)]/30', text: 'text-[var(--warning)]', label: ko ? '중간' : 'Med', Icon: Shield },
+    low: { bg: 'bg-[var(--ai)]', border: 'border-[var(--ai-fg)]/20', text: 'text-[var(--ai-fg)]', label: ko ? '낮음' : 'Low', Icon: User },
   } as const;
 }
 

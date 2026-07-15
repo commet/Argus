@@ -151,9 +151,9 @@ export function FeedbackResult({ record, personas, onStartDiscussion, discussion
                     </div>
                     {persona.influence && (
                       <span className={`ml-auto shrink-0 px-1.5 py-0.5 rounded text-[10px] font-bold ${
-                        persona.influence === 'high' ? 'bg-red-100 text-red-700'
-                        : persona.influence === 'medium' ? 'bg-amber-100 text-amber-700'
-                        : 'bg-gray-100 text-gray-600'
+                        persona.influence === 'high' ? 'bg-[var(--danger)]/15 text-[var(--danger)]'
+                        : persona.influence === 'medium' ? 'bg-[var(--warning)]/15 text-[var(--warning)]'
+                        : 'bg-[var(--bg-hover)] text-[var(--text-tertiary)]'
                       }`}>
                         {persona.influence === 'high' ? L('높음', 'High') : persona.influence === 'medium' ? L('중간', 'Med') : L('낮음', 'Low')}
                       </span>

@@ -22,11 +22,11 @@ import {
 } from '@/lib/review';
 
 const STATUS_STYLE: Record<DerivedStatus, string> = {
-  due: 'text-amber-800 bg-amber-50 border-amber-200',
+  due: 'text-[var(--warning)] bg-[var(--warning)]/10 border-[var(--warning)]/30',
   sealed: 'text-[var(--accent)] bg-[var(--accent)]/10 border-[var(--accent)]/30',
   owned: 'text-[var(--human-fg)] bg-[var(--human-fg)]/10 border-[var(--human-fg)]/20',
   reviewed: 'text-[var(--text-secondary)] bg-[var(--bg)] border-[var(--border-subtle)]',
-  settled: 'text-green-700 bg-green-50 border-green-200',
+  settled: 'text-[var(--success)] bg-[var(--success)]/10 border-[var(--success)]/25',
 };
 
 function todayYMD(): string {

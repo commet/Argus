@@ -27,8 +27,8 @@ import {
 type LFn = (ko: string, en: string) => string;
 
 const SEVERITY_CLS: Record<Finding['severity'], string> = {
-  critical: 'text-red-700 bg-red-50 border-red-200',
-  caution: 'text-amber-700 bg-amber-50 border-amber-200',
+  critical: 'text-[var(--danger)] bg-[var(--danger)]/10 border-[var(--danger)]/25',
+  caution: 'text-[var(--warning)] bg-[var(--warning)]/10 border-[var(--warning)]/30',
   minor: 'text-[var(--text-tertiary)] bg-[var(--bg)] border-[var(--border-subtle)]',
 };
 
