@@ -22,6 +22,14 @@
    ```json
    "statusLine": { "type": "command", "command": "node ${CLAUDE_PLUGIN_ROOT}/statusline/index.js" }
    ```
+3. **ambient 방아쇠 동봉** — [`hooks/ambient-nudge.js`](./hooks/ambient-nudge.js)는
+   프롬프트 제출 시 due **건수만** 확인하고, 있으면 "이번 턴의 대기 시간(백그라운드
+   빌드·테스트 등)에 due 항목 하나만 물어봐도 된다"는 지침을 모델에 주입한다 —
+   기다리는 시간이 판단 확인 시간이 된다. 발사 게이트가 먼저다: due 0건, stale
+   LOGBOOK, 쿨다운(세션당 1회 + 세션 밖 4시간) 미충족이면 완전 침묵. 결정/전제
+   본문은 절대 주입하지 않으며(건수뿐), 내용은 모델이 `argus_check_in`으로
+   서버에서 받는다. 전제·열린 질문은 자유 텍스트로만 묻게 강제된다(선택지 금지).
+   끄기: `~/.argus/config.json`에 `{ "ambient": { "opt_out": true } }`.
 
 ## 이 플러그인이 하지 않는 일
 
