@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback, useMemo, type ReactNode } fro
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronRight, Sparkles, Check, ArrowRight, UserCheck, Loader2, ChevronDown } from 'lucide-react';
 import { WorkerAvatar } from './progressive/WorkerAvatar';
+import { ArgusMascot } from '@/components/brand/ArgusMascot';
 import type { DemoScenario } from '@/lib/demo-data';
 import { applyPatch, buildFinal } from '@/lib/demo-data';
 import type { AnalysisSnapshot, DMConcern } from '@/stores/types';
@@ -1460,7 +1461,9 @@ function DemoSettleCard({ scenario, locale = 'ko' }: { scenario: DemoScenario; l
             ) : (
               <motion.div key="rev" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, ease: EASE }} className="space-y-6">
                 <div className="text-center">
-                  <p className="text-[10px] font-bold text-[var(--accent)] uppercase tracking-[0.18em] mb-2">{L('확인일', 'Check-in day')}</p>
+                  {/* Argus는 '제가 먼저 물어볼게요'의 그 감시자 — 정산 순간에 직접 등장 */}
+                  <div className="flex justify-center mb-3"><ArgusMascot variant="head" size="sm" animate /></div>
+                  <p className="text-[10px] font-bold text-[var(--accent)] uppercase tracking-[0.18em] mb-2">{L('확인일 — 제가 돌아왔어요', 'Check-in day — I’m back')}</p>
                   <h2 className="text-[22px] md:text-[26px] font-bold text-[var(--text-primary)] tracking-tight">{L('그래서, 어떻게 됐어요?', 'So, how did it go?')}</h2>
                 </div>
 

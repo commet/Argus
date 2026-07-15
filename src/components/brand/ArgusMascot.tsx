@@ -45,7 +45,11 @@ export function ArgusMascot({
     <span
       className={[
         'argus-mascot relative inline-flex shrink-0 overflow-hidden',
-        framed ? 'rounded-xl bg-[var(--surface)] shadow-[0_1px_0_rgba(255,255,255,.65)_inset,0_8px_24px_rgba(26,20,12,.10)] ring-1 ring-[var(--border-subtle)]/70' : '',
+        // 마스코트 PNG는 불투명(크림 양피지 배경이 구워진 RGB)이라 흰 박스+링에
+        // 얹으면 '스티커'처럼 뜬다. 그림의 크림(#ECE3D5)에 맞춘 따뜻한 판 위에 올려
+        // 액자가 아니라 '의도된 일러스트 판'으로 읽히게. 밝은 그림이므로 다크모드에도
+        // 어두운 박스가 아니라 같은 따뜻한 판을 유지한다(광택 인셋 하이라이트 제거).
+        framed ? 'rounded-xl bg-[#ece3d4] ring-1 ring-black/[0.05] shadow-[0_4px_14px_rgba(70,52,30,0.12)]' : '',
         animate ? 'argus-mascot-breathe' : '',
         wrapperSize,
         className,
