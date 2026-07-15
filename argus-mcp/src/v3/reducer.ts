@@ -92,8 +92,16 @@ const fingerprint = (event: SemanticEvent): string => JSON.stringify({
     authorization_mode: event.authority.authorization_mode,
     authorization_ref: event.authority.authorization_ref,
   },
+  // Idempotency fingerprint EXCLUDES the timestamps (occurred_at too): a genuine
+  // retry of one command (same idempotency_key) re-stamps a fresh recorded_at,
+  // and for a contemporaneous command occurred_at == recorded_at, so keeping
+  // occurred_at here made an honest retry read as IDEMPOTENCY_CONFLICT. The key
+  // already scopes to one command, so timestamp drift within a key is retry
+  // bookkeeping, never a new intent. temporal_mode stays — it is the semantic
+  // distinction (contemporaneous vs retrospective), stable across retries.
+  // NOTE: mirrored verbatim by append_project_semantic_events (SQL) and the
+  // dogfood supabase-emulator — keep all three in lockstep.
   time: {
-    occurred_at: event.time.occurred_at,
     temporal_mode: event.time.temporal_mode,
   },
 });
