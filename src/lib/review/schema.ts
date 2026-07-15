@@ -621,6 +621,11 @@ export interface ReviewJob {
   status: ReviewJobStatus;
   progress_label: string;
   partial_receipt?: Partial<JudgmentReceipt>;
+  /** During the long lens stage, a few of the document's OWN premises currently
+   *  under examination — surfaced verbatim so the wait shows real, specific work
+   *  on the user's material. These are the source's stated assumptions/claims,
+   *  NEVER a verdict about them (no status, no rationale). Target, not judgment. */
+  examining?: string[];
   error?: ReviewFailure;
 }
 

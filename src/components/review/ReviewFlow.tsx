@@ -469,6 +469,16 @@ export function ReviewFlow() {
       || (preExtracted?.slides_read ?? 0) > 30;
     const mm = Math.floor(elapsed / 60);
     const ss = String(elapsed % 60).padStart(2, '0');
+    // Short, honest names for the five real pipeline phases (order matches
+    // stageIndex). The live progress_label above carries the detail; these are
+    // the milestones so the user can see *where* in the review they are.
+    const REVIEW_STAGES: { id: string; label: string }[] = [
+      { id: 'profiling', label: L('읽기', 'Read') },
+      { id: 'mapping', label: L('판단 지도', 'Map') },
+      { id: 'routing', label: L('범위', 'Scope') },
+      { id: 'reviewing', label: L('검수', 'Review') },
+      { id: 'synthesizing', label: L('영수증', 'Receipt') },
+    ];
     return (
       <div className="max-w-2xl mx-auto w-full">
         <Card variant="elevated">
@@ -479,16 +489,71 @@ export function ReviewFlow() {
             </span>
           </div>
           <p className="text-[15px] text-[var(--text-primary)]">{job?.progress_label ?? L('문서를 읽는 중', 'Reading the document')}…</p>
-          <div className="mt-3 flex gap-1">
-            {['profiling', 'mapping', 'routing', 'reviewing', 'synthesizing'].map((s) => (
-              <div
-                key={s}
-                className={`h-1 flex-1 rounded-full ${
-                  job && stageIndex(job.status) >= stageIndex(s) ? 'bg-[var(--accent)]' : 'bg-[var(--border-subtle)]'
-                }`}
-              />
-            ))}
+          {/* Honest stage stepper — each of the five bars is a *named* phase of
+              the real pipeline (profiling→mapping→routing→reviewing→synthesizing),
+              not a decorative fill. Finished phases sit solid; the phase in flight
+              sweeps a light band (see .review-stage-active). This is what makes
+              the wait legible instead of blank — specificity, not ornament. */}
+          <div className="mt-4 flex gap-1.5">
+            {REVIEW_STAGES.map(({ id, label }) => {
+              const cur = job ? stageIndex(job.status) : -1;
+              const done = cur > stageIndex(id);
+              const active = cur === stageIndex(id);
+              return (
+                <div key={id} className="flex-1 min-w-0">
+                  <div
+                    className={`h-1 rounded-full ${
+                      done ? 'bg-[var(--accent)]' : active ? 'review-stage-active' : 'bg-[var(--border-subtle)]'
+                    }`}
+                  />
+                  <div
+                    className={`mt-1.5 text-[9px] leading-tight truncate transition-colors ${
+                      active
+                        ? 'text-[var(--accent)] font-semibold'
+                        : done
+                          ? 'text-[var(--text-secondary)]'
+                          : 'text-[var(--text-tertiary)]'
+                    }`}
+                  >
+                    {label}
+                  </div>
+                </div>
+              );
+            })}
           </div>
+          {/* What's being examined — a few of the document's OWN premises,
+              surfaced verbatim and rotated slowly so the wait shows specific work
+              on the user's material. It names the *document's* premise (not an
+              Argus verdict), and uses the approved tint-block quote treatment
+              (no left accent bar). Target, not judgment. */}
+          {job?.examining && job.examining.length > 0 && (() => {
+            const items = job.examining;
+            const idx = Math.floor(elapsed / 3) % items.length;
+            return (
+              <div className="mt-4">
+                <div className="text-[11px] text-[var(--text-tertiary)] mb-1.5">
+                  {L('지금 문서가 깔고 있는 전제를 살펴보는 중', 'Looking at a premise the document rests on')}
+                </div>
+                <div key={idx} className="animate-fade-in rounded-lg bg-[var(--accent)]/[0.04] px-4 py-3">
+                  <p className="text-[13px] leading-[1.6] text-[var(--text-secondary)]">
+                    &ldquo;{items[idx]}&rdquo;
+                  </p>
+                </div>
+                {items.length > 1 && (
+                  <div className="mt-1.5 flex gap-1" aria-hidden>
+                    {items.map((_, i) => (
+                      <div
+                        key={i}
+                        className={`h-0.5 w-4 rounded-full transition-colors ${
+                          i === idx ? 'bg-[var(--accent)]' : 'bg-[var(--border-subtle)]'
+                        }`}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
           {/* Long-wait reassurance — a big real document can take a while to
               read. Says it's still working (not stuck) and offers a way out. */}
           {longWait && (

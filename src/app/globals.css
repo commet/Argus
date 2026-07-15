@@ -449,6 +449,28 @@ body {
   100% { background-position: 200% 0; }
 }
 
+/* ── Document-review progress stepper: the stage in flight sweeps a light band
+   across an accent-filled bar (indeterminate "work is happening here, now"),
+   while finished stages sit solid. Calm by design — no spinner, no toy. ── */
+.review-stage-active {
+  background-image: linear-gradient(
+    90deg,
+    var(--accent) 0%,
+    rgba(255, 255, 255, 0.55) 50%,
+    var(--accent) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.6s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .review-stage-active {
+    animation: none;
+    background-image: none;
+    background-color: var(--accent);
+    opacity: 0.7;
+  }
+}
+
 /* ── Gold shimmer for premium CTAs ── */
 @keyframes gold-shimmer {
   0% { background-position: -200% center; }

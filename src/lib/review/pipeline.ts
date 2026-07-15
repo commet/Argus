@@ -399,7 +399,11 @@ export async function runDocumentReview(
     // instead of a frozen bar — never a fabricated linear %.
     const lensTotal = routing.selected.length;
     let lensDone = 0;
-    emit('reviewing', lensTotal > 0 ? `근거 확인 중 (렌즈 0/${lensTotal})` : '근거가 약한 곳을 확인하는 중');
+    // Surface a few of the document's OWN premises (its stated assumptions, then
+    // claims) so the longest stage shows specific work on the user's material —
+    // verbatim source text, never a verdict about it (see ReviewJob.examining).
+    const examining = sampleExaminingPremises(map);
+    emit('reviewing', lensTotal > 0 ? `근거 확인 중 (렌즈 0/${lensTotal})` : '근거가 약한 곳을 확인하는 중', { examining });
     const mapSummary = summarizeMap(map);
     const lensResults = await Promise.allSettled(
       routing.selected.map(async (lensId) => {
@@ -418,7 +422,7 @@ export async function runDocumentReview(
           return normalizeFindings(out.findings, lensId, resolveAnchors);
         } finally {
           lensDone++;
-          emit('reviewing', `근거 확인 중 (렌즈 ${lensDone}/${lensTotal})`);
+          emit('reviewing', `근거 확인 중 (렌즈 ${lensDone}/${lensTotal})`, { examining });
         }
       }),
     );
@@ -484,6 +488,22 @@ export async function runDocumentReview(
     };
     return { job: emit('failed', '검수 실패', { error }) };
   }
+}
+
+/** A few of the document's OWN premises to surface during the lens wait:
+ *  its stated assumptions first (the load-bearing kind), then main claims to
+ *  fill up to three. Verbatim source text only — no status, no rationale, no
+ *  verdict. Whitespace-collapsed and length-capped for a calm one-line display. */
+function sampleExaminingPremises(map: DocumentJudgmentMap): string[] {
+  const clean = (t: unknown): string =>
+    (typeof t === 'string' ? t : '').replace(/\s+/g, ' ').trim();
+  const out: string[] = [];
+  const push = (t: string) => {
+    if (t && !out.includes(t)) out.push(t.length > 120 ? `${t.slice(0, 117)}…` : t);
+  };
+  for (const a of map.assumptions ?? []) { if (out.length >= 3) break; push(clean(a?.text)); }
+  for (const c of map.main_claims ?? []) { if (out.length >= 3) break; push(clean(c?.text)); }
+  return out;
 }
 
 // ---------------------------------------------------------------------------
