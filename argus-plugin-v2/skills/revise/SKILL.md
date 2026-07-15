@@ -7,7 +7,7 @@ description: Apply boss concerns and/or verify's challenged claims to a reviewed
 
 **What this skill does:** Takes the feedback already produced (boss concerns, verify challenges) and produces a **new child draft** that actually addresses it — re-running the owning workers with the specific fixes injected, then re-verifying. This closes the loop: clarify → team → verify → boss → **revise** → (verify) → …
 
-**Why this matters:** Without revise, a finished voyage is read-only — the user gets a scaffold with concerns and has nowhere to go. The second run is what determines whether anyone keeps using the tool. revise is the bridge from "here's what's wrong" to "here's the fixed version, and here's whether the fix held."
+**Why this matters:** Without revise, a finished decision is read-only — the user gets a scaffold with concerns and has nowhere to go. The second run is what determines whether anyone keeps using the tool. revise is the bridge from "here's what's wrong" to "here's the fixed version, and here's whether the fix held."
 
 ---
 
@@ -49,13 +49,13 @@ Build a list of concrete things to fix, each tied to an owner:
 
 - From `boss_feedback.json.concerns[]`: every concern with `applied == true` (critical ones default applied). Each → `{ source: "boss_concern", text, suggested_fix, owner_agent_id, severity }`. **Boss concerns carry no owner — revise resolves it here** (the boss reviews the scaffold, not a specific worker). See §Resolving the owner below; the resolved `owner_agent_id` is required, never left blank.
 - From `verification.json.challenged_claims[]`: every `critical` / `important` challenge. Each → `{ source: "challenged_claim", text: claim, suggested_fix, owner_agent_id, severity }`. Verify already attributes these to the originating worker.
-- **`verification.json.root_crack`** (if non-null): the **reality reef** — an
+- **`verification.json.root_crack`** (if non-null): the **reality risk** — an
   `external`, load-bearing claim only reality can confirm. Re-running the team
   CANNOT settle it (the agents would just re-agree), so do **NOT** add it to
   `items[]`. Instead carry it into the child scaffold's
   `human_required_checkpoints[]` (`reason: "reality_reef"`) so the next draft
   still surfaces the real-world check. revise repairs only the *agent-fixable*
-  (internal) challenged claims; the reef stays a human/external check.
+  (internal) challenged claims; the risk stays a human/external check.
 - Any free-text directive the user typed in the invocation. Owner = `navigator` (synthesis pass).
 
 **§Resolving the owner for a boss concern (so none is silently lost).** Each
@@ -71,7 +71,7 @@ schema. Resolve in order:
    cannot be resolved by re-running any worker (e.g. "needs real legal sign-off",
    "the market data doesn't exist yet"), do NOT add it to `items[]`. Append it to
    the scaffold's `human_required_checkpoints[]` with `reason: "boss_concern_unrouted"`
-   so it survives into the bearing. Surfacing it is the honest outcome; dropping it
+   so it survives into the read. Surfacing it is the honest outcome; dropping it
    is the bug this rule closes.
 
 Every applied boss concern ends as exactly one of: an owned `items[]` entry, or a
@@ -111,7 +111,7 @@ Invoke `/argus:team --revise` (and `--invoked-via-sail` if this skill was). Team
 - Branch from `pending_revision.parent_draft_id` (the resolved parent — NOT necessarily `session.active_draft_id`) → compute the child label via `nextChildLabel` from `parent_label` (e.g. revising `v0.1` while `v0.2` exists → `v0.1.1`; revising the latest → `v0.2`). (team Step 1.4)
 - Read `pending_revision.json` and inject each item into its `owner_agent_id` worker's prompt ("Your prior output was challenged on X; the suggested fix is Y — produce a revised analysis that addresses it"). Workers without a targeted item carry their prior output forward unchanged where possible.
 - Write the new `versions/{child_label}/` artifacts and append a child Draft with `directive = directive_text`, `reviewing_agent_id = "navigator"`, `parent_draft_id` set, and `set session.active_draft_id` to it.
-  - **`change_summary`**: a NEUTRAL record of what this draft changed — name the items addressed, e.g. `"반영: 출시 kill-criteria, 비용 모델"` (ko) / `"addressed: rollout kill-criteria, cost model"` (en). When a `reality_reef` was carried forward, append `"· 현실 확인 대기: {reef}"` / `"· awaiting reality check: {reef}"`. Do NOT label it "첫 균열/first crack/wrongest" or any ranking verdict — the tree records *what changed and what's still open*, never a judgment about which claim was most wrong (spine: no laundered verdict in a persistent label).
+  - **`change_summary`**: a NEUTRAL record of what this draft changed — name the items addressed, e.g. `"반영: 출시 kill-criteria, 비용 모델"` (ko) / `"addressed: rollout kill-criteria, cost model"` (en). When a `reality_reef` was carried forward, append `"· 현실 확인 대기: {risk}"` / `"· awaiting reality check: {risk}"`. Do NOT label it "첫 균열/first crack/wrongest" or any ranking verdict — the tree records *what changed and what's still open*, never a judgment about which claim was most wrong (spine: no laundered verdict in a persistent label).
 - Delete `pending_revision.json`.
 
 ### Step 5 — Re-verify the revision
@@ -131,7 +131,7 @@ when there is genuinely new, agent-addressable feedback under the cap.
 ### Step 6 — Report
 
 #### `--invoked-via-sail`
-One value-oriented line (version labels are fine — chart shows them — but no
+One value-oriented line (version labels are fine — version tree shows them — but no
 "N items applied · re-verify next" machinery), then let sail Step 7 render the card:
 ```
 ✓ Revised the draft ({{parent_label}} → {{child_label}}). Re-checking whether the fix held.

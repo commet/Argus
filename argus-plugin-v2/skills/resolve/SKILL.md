@@ -36,13 +36,13 @@ Two sources, merged and deduped by id:
    (`predicate`, `falsified_if`, `check_by`), `amend` updates fields,
    `settle`/`dismiss` closes it. Keep contracts still open whose `check_by`
    (ISO date) ≤ today.
-2. **Bearing seeds:** every `current_bearing.json` (or legacy hyphen
+2. **Read seeds:** every `current_bearing.json` (or legacy hyphen
    spelling) with a `contract_seed` whose `check_by` contains an ISO date ≤
    today — scan the same three levels the statusline and reminder hook scan,
    so no surface can alert on a seed settle can't reach:
    `.argus/sessions/*/versions/*/` (id `bearing:<session-id>:<label>`),
-   `.argus/sessions/*/` (id `bearing:<session-id>:<bearing.label or "v0">`),
-   and `.argus/` root (id `bearing:root:<bearing.label or "v0">`).
+   `.argus/sessions/*/` (id `bearing:<session-id>:<read.label or "v0">`),
+   and `.argus/` root (id `bearing:root:<read.label or "v0">`).
    Synthesize a stable id: `bearing:<session-id>:<label>`. Skip seeds whose id
    already appears in the ledger (they were settled or already imported) — or
    whose verbatim predicate was already sealed under another id (e.g., sealed
@@ -91,17 +91,17 @@ not be).
 **Concurrency (true append, not read-modify-write).** Append each event as a
 single line in append mode (`O_APPEND`) — never read the whole `ledger.jsonl`,
 add a line in memory, and rewrite the file. Two concurrent writers (a seal from
-one session, a settle from another, or helm sealing while settle runs) each
+one session, a settle from another, or preapprove sealing while settle runs) each
 appending one line both land; a read-rewrite-whole-file would lose one. Append-only
 is exactly what lets concurrent in-process writers AND git merges both converge —
-this rule applies to every ledger writer (settle, helm, watch), not just here.
+this rule applies to every ledger writer (settle, preapprove, watch), not just here.
 
 
-- For a **bearing seed not yet in the ledger**, first import it as two events,
+- For a **read seed not yet in the ledger**, first import it as two events,
   then settle — so the ledger stays the single replayable source:
 
 ```json
-{"event":"harvest","id":"bearing:<session-id>:<label>","project":"<name of the directory containing .argus>","session":"<session-id>","decided_at":"<bearing generated_at>","quote":"<predicate>","decision":"<current_course.summary>","type":"adopt","stakes":"<from the session's classification.json if readable; omit the field otherwise — never fabricate>","at":"<now ISO>"}
+{"event":"harvest","id":"bearing:<session-id>:<label>","project":"<name of the directory containing .argus>","session":"<session-id>","decided_at":"<read generated_at>","quote":"<predicate>","decision":"<current_course.summary>","type":"adopt","stakes":"<from the session's classification.json if readable; omit the field otherwise — never fabricate>","at":"<now ISO>"}
 {"event":"seal","id":"<same id>","predicate":"<predicate>","falsified_if":"<fail_condition or 'opposite observed'>","check_by":"<ISO date>","at":"<now ISO>"}
 ```
 
@@ -145,7 +145,7 @@ ledger (verbatim predicates and outcomes) stays local by default.
 ## Argus - Settle
 
 ✓ "{{predicate clipped 70}}" → {{outcome}}
-{{if contract came from a bearing seed AND that bearing has fog_or_reef}}
+{{if contract came from a read seed AND that read has fog_or_reef}}
   당시 짚었던 위험: "{{fog_or_reef.issue clipped 60}}" — 현실의 답: {{outcome}}
 {{endif}}
 {{...per settled contract}}
@@ -153,7 +153,7 @@ ledger (verbatim predicates and outcomes) stays local by default.
 
 Track record: {{S}} sealed · {{T}} settled — held {{h}} · missed {{a}} · partial {{p}}{{if T < 3}} (인사이트까지 {{3-T}}건){{endif}}
 {{if remaining due}}{{N}} more due — run /argus:resolve again.{{endif}}
-{{if T >= 3}}Patterns across your voyages: /argus:journal{{endif}}
+{{if T >= 3}}Patterns across your decisions: /argus:journal{{endif}}
 ```
 
 **Settlement is reality-only — do NOT auto-offer `/argus:sail` on a missed or
@@ -161,17 +161,17 @@ partial outcome.** A missed bet does not mean the decision should be re-opened;
 the user just learned what reality did and may simply be recording it.
 Re-deciding is the user's explicit move, not an engine nudge — pushing
 re-engagement here is over-fire (the mirror clause, CLAUDE.md), the same reason
-the request-type gate (clarify Step 1.7) refuses to fork a vent. The 안개-line
+the request-type gate (clarify Step 1.7) refuses to fork a vent. The unknown-line
 above already surfaces "what you flagged vs what reality did" honestly; let that
 stand on its own. If the user wants to re-decide, they will say so.
 
-**Recovering `fog_or_reef` for the 안개 line:** parse the contract id back
+**Recovering `fog_or_reef` for the unknown line:** parse the contract id back
 into a path — `bearing:<session-id>:<label>` →
 `.argus/sessions/<session-id>/versions/<label>/current_bearing.json` (try the
-hyphen spelling too; `bearing:root:<label>` → the root bearing). This works
+hyphen spelling too; `bearing:root:<label>` → the root read). This works
 for ledger-origin contracts settled in a later run, where the id is the only
-link back to the source bearing. If the bearing is gone, skip the line —
-never reconstruct the fog from memory.
+link back to the source read. If the read is gone, skip the line —
+never reconstruct the unknown from memory.
 
 The track-record line is computed mechanically from the full ledger replay.
 No praise, no scolding — counts only. The "당시 짚었던 위험" line is the one
@@ -194,7 +194,7 @@ for settle #2 — it quotes, it never editorializes.
   `happened`/`avoided` from git state or argument.
 - **No nagging:** one pass per invocation; skipping is one tap and is never
   questioned.
-- **Id stability:** the same bearing seed must always produce the same id, or
+- **Id stability:** the same read seed must always produce the same id, or
   it will be double-settled.
 
 ## Forbidden patterns

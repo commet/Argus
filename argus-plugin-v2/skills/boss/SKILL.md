@@ -1,6 +1,6 @@
 ---
 name: boss
-description: Stakeholder pressure-check of a verified Argus scaffold in the voice of a configured MBTI personality. Reacts to the verified/mixed scaffold and contributes approval conditions or concerns to the Current Heading. Use after /argus:verify passes, or when the user asks how a stakeholder would receive the work — "임원회의 가져가도 되나", "보스가 뭐라 할까", "will my boss/stakeholders approve this". NOT the verification gate — /argus:verify checks claims, boss checks reception; do not run before verification. Invoked as `/argus:boss`.
+description: Stakeholder pressure-check of a verified Argus scaffold in the voice of a configured MBTI personality. Reacts to the verified/mixed scaffold and contributes approval conditions or concerns to the current call. Use after /argus:verify passes, or when the user asks how a stakeholder would receive the work — "임원회의 가져가도 되나", "보스가 뭐라 할까", "will my boss/stakeholders approve this". NOT the verification gate — /argus:verify checks claims, boss checks reception; do not run before verification. Invoked as `/argus:boss`.
 ---
 
 # /argus:boss
@@ -190,7 +190,7 @@ For each concern:
 
 Use `AskUserQuestion` only when running directly and the user needs to decide
 which non-critical concerns to apply. When invoked by sail, do not interrupt;
-write the defaults and let Current Heading show the top concern if relevant.
+write the defaults and let current call show the top concern if relevant.
 
 ### Step 5 - Route Boss Demands
 
@@ -248,7 +248,7 @@ into `versions/{label}/scaffold.json` above; do NOT copy them into session.json)
 
 - On the active draft in `session.drafts[]` (matching `active_draft_id`), set
   `boss_reviewed: true` (a small flag — full feedback stays in the version dir)
-  so the chart tree shows this draft was reviewed. Do NOT set `reviewing_agent_id`
+  so the version tree shows this draft was reviewed. Do NOT set `reviewing_agent_id`
   (that marks who PRODUCED the draft — `navigator` for a revise child — not who
   reviewed it).
 - `phase = "refining"` (next natural step is `/argus:revise`).
@@ -259,11 +259,11 @@ into `versions/{label}/scaffold.json` above; do NOT copy them into session.json)
 If `--invoked-via-sail`, print one line only:
 
 ```text
-Stakeholder pressure checked. Approval conditions will be folded into the current bearing.
+Stakeholder pressure checked. Approval conditions will be folded into the current read.
 ```
 
 Do not print concern counts, MBTI theatrics, or a second report. Sail owns the
-Current Heading.
+current call.
 
 For direct invocation:
 

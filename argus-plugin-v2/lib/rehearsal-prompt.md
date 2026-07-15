@@ -179,7 +179,7 @@ Apply gates: **M2** (boss voice distinct from generic reviewer), **M4** (scaffol
 
 Record bugs.
 
-### Phase 4 — Chart dry-run
+### Phase 4 — Version tree dry-run
 
 Walk through `skills/versions/SKILL.md`:
 1. Render version tree (just v0.1 at this point).

@@ -1,6 +1,6 @@
 ---
 name: clarify
-description: Sharpen a problem before deploying a team to work on it. Surfaces hidden assumptions, reframes the surface question into the real question, and produces a skeleton + execution plan. Entry point of the Argus pipeline (charting the waters before sailing). Use when the user has a problem to work through — a technical decision, a PR to review, a design choice, a fuzzy goal. The user may name a PR, issue, file, branch, or document in plain prose — detect and expand it (see Inputs); no special syntax required. Output is an AnalysisSnapshot written to `.argus/sessions/{id}/versions/v0.1/analysis.json` that `/argus:team` will consume. NEVER skip this step to save time — the analysis IS the value. Invoked as `/argus:clarify`.
+description: Sharpen a problem before deploying a team to work on it. Surfaces hidden assumptions, reframes the surface question into the real question, and produces a skeleton + execution plan. Entry point of the Argus pipeline (the framing step before any work). Use when the user has a problem to work through — a technical decision, a PR to review, a design choice, a fuzzy goal. The user may name a PR, issue, file, branch, or document in plain prose — detect and expand it (see Inputs); no special syntax required. Output is an AnalysisSnapshot written to `.argus/sessions/{id}/versions/v0.1/analysis.json` that `/argus:team` will consume. NEVER skip this step to save time — the analysis IS the value. Invoked as `/argus:clarify`.
 argument-hint: "[decision question — may mention a PR, issue, file, branch, or document]"
 ---
 
@@ -200,7 +200,7 @@ settled**, prepare ONE reference line for the Step 2 prompt, appended as:
 
 ```text
 <user-data context="track-record">
-Past voyages in this project: {{T}} contracts settled — held {{h}}, missed {{a}}, partial {{p}}.{{ IF the recent miss is relevant (rule 1): ` Most recently missed: "{{predicate, clipped 80}}".` }}
+Past decisions in this project: {{T}} contracts settled — held {{h}}, missed {{a}}, partial {{p}}.{{ IF the recent miss is relevant (rule 1): ` Most recently missed: "{{predicate, clipped 80}}".` }}
 </user-data>
 ```
 
@@ -211,7 +211,7 @@ Injection rules (these override any urge to use the data harder):
    mechanical tag/keyword/domain overlap, NOT a judgment call. On a mismatch,
    inject the COUNTS ONLY and omit the example: an unrelated recent-miss seeds a
    false analogy (R38 case-4 — a marketing-attribution miss bled into a surgery
-   decision as a loose "same kind of fog" link) and crowds out problem-specific
+   decision as a loose "same kind of unknown" link) and crowds out problem-specific
    analysis. The bare counts still calibrate `stakes_guess` sensitivity without
    seeding an analogy.
 2. Reference only — the line informs `hidden_assumptions` and `stakes_guess`
@@ -264,7 +264,7 @@ Then STOP; do not also run the normal Step 1.7 → engine machinery.
 
 ### Step 1.7 — Request-type & readiness gate (step-0: *whether* to run the engine)
 
-The whole pipeline below — reframe, probe, crew, verify — assumes the user is
+The whole pipeline below — reframe, probe, reviewers, verify — assumes the user is
 **navigating an undecided question**. Run it on a different kind of request and
 the engine does harm: it re-opens a decision the user already closed, forks an
 emotional vent into options nobody asked for, or — when the real bottleneck is
@@ -321,7 +321,7 @@ infer resistance from tone or guess it from a first-time question.
   under-resourced person the check exists to protect. Then offer the single cheapest **falsifiable check** — the one thing
   that, if it came back wrong, would change their mind. **No contract seed** (a
   settlement seed on an already-made decision is ceremony-as-endorsement — see
-  Forbidden patterns), no crew unless they ask. Write `request_type:
+  Forbidden patterns), no reviewers unless they ask. Write `request_type:
   "validation"` to the snapshot; set `decision_density` so sail does not escalate.
   One escape line, e.g. ko: "이미 정한 걸로 보고 확인할 지점만 짚었어요 — 처음부터
   다시 따져보길 원하면 말해줘요." / en: "Read this as already-decided, so I flagged
@@ -337,22 +337,22 @@ infer resistance from tone or guess it from a first-time question.
   unless the user picks it up.
 - **`info`** → answer the question directly. No session, no reframe.
 - **`self_profiling`** → decline the cold-read honestly: a real read of how they
-  decide is earned only from their own logged voyages (≥3 settled — the patterns
+  decide is earned only from their own logged decisions (≥3 settled — the patterns
   sample-size bar), so name that and point them at building it (run a real
   decision, settle it). No trait verdict, no session. ko: "어떤 결정자인지는 내가
-  지레짐작할 게 아니라 당신이 실제로 내린 결정들에서 드러나요 — 몇 번 항해하고
+  지레짐작할 게 아니라 당신이 실제로 내린 결정들에서 드러나요 — 몇 번 결정하고
   정산하면 그때 패턴으로 같이 봐요." / en: "What kind of decider you are isn't mine
   to guess — it shows up in the decisions you actually log. Run a few and settle
   them, and we'll read the pattern then."
 - **`open_decision` + `resistance`** → run Step 2 (the framing still has value),
-  but surface the pattern as the live issue and do **not** spin up the probe/crew
+  but surface the pattern as the live issue and do **not** spin up the probe/reviewers
   to generate more options. Condition on the observable, hand control back: ko:
   "이 결정이 꽤 오래 열려 있고 새로 들어온 정보는 없는 것 같아요 — 그럼 분석이
   빠진 조각이 아닐 수도 있어요. 제일 작은 실제 테스트 하나를 정해볼까요, 아니면
   계속 틀을 잡아볼까요?" / en: "This has been open a while with no new
   information — so more analysis may not be the missing piece. Want to set the
   smallest real-world test instead, or keep framing?" Route the test through the
-  settle loop (`/argus:resolve`) rather than the crew.
+  settle loop (`/argus:resolve`) rather than the reviewers.
 
 When any non-open branch fires, this is one of the few places clarify answers
 inline instead of building a scaffold — deliberate, and symmetric with the
@@ -396,15 +396,15 @@ set) on the snapshot either way, so sail Step 6 can route without re-classifying
 > 1. **(open_decision, load-bearing only)** The `real_question` MUST NOT be "how do I {{surface request verbatim}}?" — *when a load-bearing reframe exists*. This reframe mandate applies ONLY to `open_decision`; a `validation` request is answered against the decision the user already made (Step 1.7) and is never re-opened into a different question. Examples:
 >    - Surface: "should we use TypeScript or JavaScript?" → Real: "How much long-term velocity are we willing to trade for short-term setup speed, given team seniority?"
 >    - Surface: "review my PR" → Real: "What's the ONE risk in this PR that would make me roll it back in 48 hours?"
-> 1b. **The reframe must be LOAD-BEARING, or it must not be made (`frame_status`).** Before reframing, apply the leverage test to your own reframe: *would flipping to the reframed question actually change the answer/action?* If yes → `frame_status: "load_bearing"`, reframe as in rule 1. If **no** — the surface question already IS the real question, the axes line up, any reasonable branch lands the same — then **set `frame_status: "flat"`, let `real_question` equal the surface question, and do NOT manufacture a different one.** A reframe that does not change the answer is manufactured divergence — the validated stress test measured this over-fire on ~60% of flat decisions, and it is the more harmful error here (the mirror clause, CLAUDE.md). When genuinely unsure, default `load_bearing` (the safe direction — a missed real fork is worse than one honest flat answer). On `flat`, Step 3.5 (probe) and the team are skipped and sail renders a restraint bearing (Step 6·0.5); the honest deliverable is "this is flat — here's the one thing you're resting on, go ahead," not a fabricated fork.
-> 1c. **BREADTH sweep (R36 — high-stakes / irreversible / multi-domain load_bearing decisions ONLY; SKIP on low-stakes/reversible, where it is ceremony/over-fire).** **FIRE-OR-NOT GATE FIRST (R37, mirror clause):** run these ONLY on a request that classified as OPEN — NEVER on a VALIDATION/CLOSED, FLAT, or already-logged decision. If the user already decided or is just logging it, do NOT sweep (R37: the sweep over-fired once on an already-closed low-stakes logging request — the fire-or-not gate runs BEFORE the form, CLAUDE.md mirror clause). A head-to-head test (R35) found a single strong pass loses to a multi-agent crew on exactly ONE axis — generation breadth — and the gap is fully captured by three sweeps a single pass usually skips. Run them so the reframe + `hidden_assumptions` carry the crew's value without the crew (this is why the crew is internal-only, not a user surface):
+> 1b. **The reframe must be LOAD-BEARING, or it must not be made (`frame_status`).** Before reframing, apply the leverage test to your own reframe: *would flipping to the reframed question actually change the answer/action?* If yes → `frame_status: "load_bearing"`, reframe as in rule 1. If **no** — the surface question already IS the real question, the axes line up, any reasonable branch lands the same — then **set `frame_status: "flat"`, let `real_question` equal the surface question, and do NOT manufacture a different one.** A reframe that does not change the answer is manufactured divergence — the validated stress test measured this over-fire on ~60% of flat decisions, and it is the more harmful error here (the mirror clause, CLAUDE.md). When genuinely unsure, default `load_bearing` (the safe direction — a missed real fork is worse than one honest flat answer). On `flat`, Step 3.5 (probe) and the team are skipped and sail renders a restraint read (Step 6·0.5); the honest deliverable is "this is flat — here's the one thing you're resting on, go ahead," not a fabricated fork.
+> 1c. **BREADTH sweep (R36 — high-stakes / irreversible / multi-domain load_bearing decisions ONLY; SKIP on low-stakes/reversible, where it is ceremony/over-fire).** **FIRE-OR-NOT GATE FIRST (R37, mirror clause):** run these ONLY on a request that classified as OPEN — NEVER on a VALIDATION/CLOSED, FLAT, or already-logged decision. If the user already decided or is just logging it, do NOT sweep (R37: the sweep over-fired once on an already-closed low-stakes logging request — the fire-or-not gate runs BEFORE the form, CLAUDE.md mirror clause). A head-to-head test (R35) found a single strong pass loses to a multi-agent reviewers on exactly ONE axis — generation breadth — and the gap is fully captured by three sweeps a single pass usually skips. Run them so the reframe + `hidden_assumptions` carry the reviewers' value without the reviewers (this is why the reviewers is internal-only, not a user surface):
 >    - **Off-frame gate:** name the ONE compliance / security / finance / legal / people gate the obvious framing omits (a "payments rewrite" is usually gated by PCI scope, not the code; a "UK launch" by a hidden integration build). If one exists it is usually the real load-bearing risk → put it in `hidden_assumptions`.
 >    - **Symmetric scrutiny:** apply the SAME skepticism to the option the user is LEANING toward as to the alternative — surface the hidden cost in their preferred path, not only the rejected one (the tilt symmetry applied to their own pole).
 >    - **One pivotal number:** if the decision turns on a quantity (break-even, runway, NRR, ROI), name THE single number + the threshold that flips the call; do not leave it qualitative.
->    - **External-approval / stakeholder gate (R39):** name the SPECIFIC external party whose sign-off or hard constraint is the real gate (acquiring bank / regulator / security-review board / data-protection authority / a key customer / an auditor), what they require, and the lead time. **HONESTY GUARD:** an external-dependency next-action MUST be verify-first and conditional ("먼저 실제 처리자·통합 현황 확인 → 해당되면 DPA 서명") — NEVER assert a specific vendor/integration EXISTS ("Stripe DPA 서명") unless the user gave it. A confident sweep that invents current state is worse than no sweep (R39: a sharpened pass confabulated a Stripe DPA on a repo with no payment layer). **(R40 — verify-first + tag-don't-assert)** For state that IS in the repo (files, integrations, baseline), VERIFY it by reading before asserting (you have Read/Grep — use them; this is the one place the single pass matches a crew). For state that is NOT in the repo — runtime / dashboard / live-provider / third-party-config settings — it is UNVERIFIABLE from a static read: tag it as inference (unverifiable-external), NEVER assert it as settled fact, and build NO verdict whose load-bearing premise rests on it (R40: a pass asserted a Supabase dashboard provider-switch as already done).
->    - **(firing form)** The sweeps inform `hidden_assumptions` / the fog — they do NOT license a verdict. Even on a heavy multi-domain decision the `real_question` stays a NEUTRAL question, NEVER a directional headline ("항로: 진행"); R39 caught the sweeps' added assertiveness leaking into a mirror-clause lean on the heaviest case.
+>    - **External-approval / stakeholder gate (R39):** name the SPECIFIC external party whose sign-off or hard constraint is the real gate (acquiring bank / regulator / security-review board / data-protection authority / a key customer / an auditor), what they require, and the lead time. **HONESTY GUARD:** an external-dependency next-action MUST be verify-first and conditional ("먼저 실제 처리자·통합 현황 확인 → 해당되면 DPA 서명") — NEVER assert a specific vendor/integration EXISTS ("Stripe DPA 서명") unless the user gave it. A confident sweep that invents current state is worse than no sweep (R39: a sharpened pass confabulated a Stripe DPA on a repo with no payment layer). **(R40 — verify-first + tag-don't-assert)** For state that IS in the repo (files, integrations, baseline), VERIFY it by reading before asserting (you have Read/Grep — use them; this is the one place the single pass matches a reviewers). For state that is NOT in the repo — runtime / dashboard / live-provider / third-party-config settings — it is UNVERIFIABLE from a static read: tag it as inference (unverifiable-external), NEVER assert it as settled fact, and build NO verdict whose load-bearing premise rests on it (R40: a pass asserted a Supabase dashboard provider-switch as already done).
+>    - **(firing form)** The sweeps inform `hidden_assumptions` / the unknown — they do NOT license a verdict. Even on a heavy multi-domain decision the `real_question` stays a NEUTRAL question, NEVER a directional headline ("방향: 진행"); R39 caught the sweeps' added assertiveness leaking into a mirror-clause lean on the heaviest case.
 > 2. `hidden_assumptions` must be declarative sentences, not questions.
-> 2b. **`constraints_as_read` surfaces a possible MISREAD, not every constraint (the constraint-semantic guard).** Include a `{stated, reading}` pair ONLY when you interpreted an explicitly stated constraint into something operational the user might disagree with — e.g. they said "must be GDPR-ready" and you are operating it as "has a privacy policy + a signed DPA". A literal echo ("by Friday" -> "deadline Friday") adds nothing — omit it. No explicit constraints, or all readings literal -> empty array (do not manufacture an interpretation to fill it — over-fire / mirror clause). This is a transparency note the user can correct, NEVER a verdict and NEVER a confirmation gate (keep the escape — the user can proceed without confirming). **If a misread would be load-bearing** (the decision changes when your reading is wrong), ALSO add it to `hidden_assumptions` so it travels into the bearing fog on the sail path, where clarify's own scaffold is not shown to the user.
+> 2b. **`constraints_as_read` surfaces a possible MISREAD, not every constraint (the constraint-semantic guard).** Include a `{stated, reading}` pair ONLY when you interpreted an explicitly stated constraint into something operational the user might disagree with — e.g. they said "must be GDPR-ready" and you are operating it as "has a privacy policy + a signed DPA". A literal echo ("by Friday" -> "deadline Friday") adds nothing — omit it. No explicit constraints, or all readings literal -> empty array (do not manufacture an interpretation to fill it — over-fire / mirror clause). This is a transparency note the user can correct, NEVER a verdict and NEVER a confirmation gate (keep the escape — the user can proceed without confirming). **If a misread would be load-bearing** (the decision changes when your reading is wrong), ALSO add it to `hidden_assumptions` so it travels into the read unknown on the sail path, where clarify's own scaffold is not shown to the user.
 > 3. Do NOT propose solutions. This skill's job ends at structuring the question — UNLESS rule 4 applies.
 > 4. **`decision_density: "low"` gate** — set ONLY when ALL of:
 >    - `reversibility == "reversible"` (decision can be undone in <1 day with no signal cost)
@@ -435,7 +435,7 @@ Rules (keep it restrained):
 - `external`: true when reality can later verify the fact (rates, supply, a date,
   an external party's decision); false for a value/preference/internal judgment.
 - `load_bearing`: true ONLY for the 1-2 assumptions that would flip the decision if
-  wrong (the ones that went into the fog). These are the ones the alert layer will
+  wrong (the ones that went into the unknown). These are the ones the alert layer will
   watch by default (on_change) — so mark sparingly.
 - **Append-only, emit once:** if `.argus/items.jsonl` already has an `extract` line
   for this `decision_id`, do NOT re-emit (a later deepening round leaves the items
@@ -466,20 +466,20 @@ If `framing_confidence < 70`:
 
 2. If user rejects, re-run Step 2 with rejection reason as additional context.
 
-### Step 3.4 — BIND (tie the rope before the crew) — Phase 1 mirror
+### Step 3.4 — BIND (commit your lean before the reviewers run) — Phase 1 mirror
 
 The webapp seals the user's own lean at project-OPEN, BEFORE any generation
-("tie the rope before you hear the Sirens" — `internal design notes`).
+(commit the lean before the pressure to flip arrives — `internal design notes`).
 Mirror it here so both surfaces share the same spine. **Run only for
 `request_type == open_decision`** (vent/info/validation/self_profiling/crisis never
-run the crew, so there is no song to tie a rope against — skip silently). **Skip on
+run the reviewers, so there is no song to tie a rope against — skip silently). **Skip on
 `--quick` and on `frame_status == "flat"`.**
 
 Ask once, in prose (NEVER a two-pole fork, never a directional nudge):
 
-> **locale ko:** "출항 전에 — 지금 마음은 한 줄로 어디로 기울어요? (없으면 그냥 넘어가요)
+> **locale ko:** "시작 전에 — 지금 마음은 한 줄로 어디로 기울어요? (없으면 그냥 넘어가요)
 > 그리고 언제 다시 확인할까요? — 1주 / 2주 / 1달 / 안 함"
-> **locale en:** "Before we sail — in one line, where are you leaning right now?
+> **locale en:** "Before we start — in one line, where are you leaning right now?
 > (skip if unsure) · And when should I check back — 1 week / 2 weeks / 1 month / never"
 
 Then:
@@ -497,24 +497,24 @@ Then:
 - **Date only, no lean →** record only the check-in intent (a valid rope: "bind the
   commitment, ears open"); do not fabricate a predicate.
 
-**Ears open (deaf rowers):** the lean is NEVER handed to the crew as a directive and
+**Ears open (reviewers never see the lean):** the lean is NEVER handed to the reviewers as a directive and
 NEVER suppresses Phase 2 generation — it is only the anchor that `settle` re-confronts
-later ("출항 때 당신은 X로 기울어 있었다 — 지금도?", a bare neutral question, never a
+later ("시작할 때 당신은 X로 기울어 있었다 — 지금도?", a bare neutral question, never a
 disclaimed lean). The ledger is append-only, so the late seed-seal and `settle` preserve
 this early rope automatically — they never clobber it.
 
-### Step 3.5 — 시험 항해 (Trial Sail probe) — W2 재배선
+### Step 3.5 — 시험 주행 (Trial probe) — W2 재배선
 
 **Skip when `decision_density == "low"`** (a 1-line decision doesn't get a
-crew — cost discipline + the P0.B lesson: probes talk on everything unless
+reviewers — cost discipline + the P0.B lesson: probes talk on everything unless
 gated) **or `frame_status == "flat"`** (the probe is a fork *generator*; on a
 flat decision it will manufacture a divergence that does not exist — the exact
 ~60% over-fire the stress test measured, mirror clause) **or `--quick`.**
 
 > Locale note: the quoted Korean strings below are the ko reference copy —
 > render user-facing lines in `config.locale`. English equivalents:
-> step 3 → "The crew read the same brief independently — no differentiated
-> instructions." · step 7 → "The crew converged on the same course. No
+> step 3 → "The reviewers read the same brief independently — no differentiated
+> instructions." · step 7 → "The reviewers converged on the same course. No
 > measurable fork inside this text — the remaining risk lives outside it."
 > The constraint lines (no persona text in probe prompts, mechanical
 > post-filters, call budget) are implementation rules and apply regardless
@@ -534,7 +534,7 @@ probed.
 
 2. **C 분기 탐침**: launch 3 parallel haiku-class Tasks, each = GROUND_RULES +
    the brief verbatim in `<user-data>` + the C sample block. **차별화 지시
-   절대 금지 — 페르소나 텍스트를 이 프롬프트에 넣지 마라** (측정 오염). Crew
+   절대 금지 — 페르소나 텍스트를 이 프롬프트에 넣지 마라** (측정 오염). Reviewers
    names/emoji are presentation only, applied to finished cards.
 3. Render cards as they arrive: "같은 브리프를 따로따로 읽었어요 — 서로 다른
    지시는 없었어요."
@@ -545,7 +545,7 @@ probed.
    whose `removed_sentence` does not occur in the brief.
 6. Write `versions/{label}/probe.json`:
    `{ samples[], forks[], findings[], silent }`.
-7. **갈림 0 && 하중 0** → say exactly: "선원들이 같은 곳으로 갔어요. 이 텍스트
+7. **갈림 0 && 하중 0** → say exactly: "검토자들이 같은 곳으로 갔어요. 이 텍스트
    안에서 잴 수 있는 갈림은 없었어요 — 남은 위험은 텍스트 밖이에요." and
    proceed. 침묵도 출력이다 — do NOT manufacture a finding to seem useful.
 
@@ -724,7 +724,7 @@ If any gate fails, revise before emitting files.
 - **User provides no problem text and git state is clean**: prompt for problem text via AskUserQuestion.
 - **PR/issue reference fails** (gh not installed, unauthorized): degrade gracefully — ask user to paste the text, note fallback in meta.json.
 - **LLM returns malformed JSON**: retry once with stricter schema emphasis. If still fails, write what you got to `versions/v0.1/raw_analysis.txt` and explain the issue to user.
-- **Corrupt/half-written stored JSON** (a prior run was interrupted mid-write, so `session.json` / `analysis.json` won't parse): do NOT crash with an opaque error. Defensively try/parse every stored file you read; on parse failure, move the bad file to `<name>.corrupt.<ts>` (this is the canonical quarantine token — every skill uses exactly `<name>.corrupt.<ts>`, not `.<timestamp>` or any other suffix), log to `.argus/sessions/{id}/errors.log`, and either recreate it from defaults (if it's regenerable, e.g. analysis.json → re-run Step 2) or halt with a precise message naming the exact file to delete. **Missing and corrupt are different states and must not collapse into each other:** a *missing* file = "that step has not run" → route to the skill that produces it; a *corrupt* file = "the step ran but its record is unreadable" → quarantine + report, NEVER silently treat as missing/empty (an unreadable `verification.json` read as "not verified" routes the user past a check that actually ran and may have blocked; an unreadable `workers.json` read as "zero workers" produces a falsely clean `verified`). **This guard is universal — it applies to every skill that reads any stored session OR version JSON, with no exceptions** (clarify, team, verify, boss, chart, sail, revise, settle, log). Do not maintain this as a hand-picked list that drifts: if a skill reads a stored `.json`, it owns this discipline. Never let one interrupted write permanently brick a session. **This read guard catches only the residue:** the write side (`lib/session/session-layout.md` → Write Discipline) makes a half-written canonical file *rare by construction* — every write is temp-file + atomic rename, so a kill mid-write leaves the previous complete file intact plus an ignorable `*.json.tmp`. Treat a stray `*.json.tmp` / `*.stream.partial` as a discarded write attempt (ignore it), NOT as a corrupt artifact to quarantine.
+- **Corrupt/half-written stored JSON** (a prior run was interrupted mid-write, so `session.json` / `analysis.json` won't parse): do NOT crash with an opaque error. Defensively try/parse every stored file you read; on parse failure, move the bad file to `<name>.corrupt.<ts>` (this is the canonical quarantine token — every skill uses exactly `<name>.corrupt.<ts>`, not `.<timestamp>` or any other suffix), log to `.argus/sessions/{id}/errors.log`, and either recreate it from defaults (if it's regenerable, e.g. analysis.json → re-run Step 2) or halt with a precise message naming the exact file to delete. **Missing and corrupt are different states and must not collapse into each other:** a *missing* file = "that step has not run" → route to the skill that produces it; a *corrupt* file = "the step ran but its record is unreadable" → quarantine + report, NEVER silently treat as missing/empty (an unreadable `verification.json` read as "not verified" routes the user past a check that actually ran and may have blocked; an unreadable `workers.json` read as "zero workers" produces a falsely clean `verified`). **This guard is universal — it applies to every skill that reads any stored session OR version JSON, with no exceptions** (clarify, team, verify, boss, versions, sail, revise, resolve, journal). Do not maintain this as a hand-picked list that drifts: if a skill reads a stored `.json`, it owns this discipline. Never let one interrupted write permanently brick a session. **This read guard catches only the residue:** the write side (`lib/session/session-layout.md` → Write Discipline) makes a half-written canonical file *rare by construction* — every write is temp-file + atomic rename, so a kill mid-write leaves the previous complete file intact plus an ignorable `*.json.tmp`. Treat a stray `*.json.tmp` / `*.stream.partial` as a discarded write attempt (ignore it), NOT as a corrupt artifact to quarantine.
 
 ---
 
@@ -737,9 +737,9 @@ If any gate fails, revise before emitting files.
 - Using trait descriptions of agents ("a researcher would ask...") — no agents run here.
 - Setting `decision_density: "low"` to "save the user time" when the four conditions in Step 2 rule 4 don't all hold. False-low is more harmful than false-medium.
 - Writing a MinimalScaffold with `recommendation` that says "consider X" or "it depends." Minimal mode is for directives only; if you can't give a directive, density isn't low.
-- **Re-opening a `validation` request** into a different question, or running the crew on it, when the user already decided and only asked for a check (Step 1.7).
+- **Re-opening a `validation` request** into a different question, or running the reviewers on it, when the user already decided and only asked for a check (Step 1.7).
 - **Forking a `vent`** into options the user never asked for, or writing a session for it before the user accepts the invitation to make it a decision.
-- **Arming `resistance`** with more forks/crew when the bottleneck is avoidance, not analysis — or naming the avoidance as a verdict about the user instead of conditioning on the observable (long-pending + no new info).
+- **Arming `resistance`** with more forks/reviewers when the bottleneck is avoidance, not analysis — or naming the avoidance as a verdict about the user instead of conditioning on the observable (long-pending + no new info).
 - **Manufacturing a reframe on a flat decision** (rule 1b / M-flat). If the surface question already is the real question and any reasonable branch lands the same, that is `frame_status: "flat"` — name the one assumption and return the handle. Inventing a different `real_question` to look thorough is over-fire (the mirror clause); ~60% of flat decisions failed exactly this way in the validated stress test.
 - **(crisis) Running contract/settlement ceremony, attaching a re-engagement hook, or under-naming the irreversible magnitude on a ruin/safety input** — ceremony there reads as endorsement of proceeding (Step 1.6 / M-crisis). [R12 P27]
 - **(tilt) Surfacing a "neutral" crux then loading all reasoning to one pole, editorializing against a pole, rigging branch logic so every path lands one way, treating status-quo as a neutral baseline, or promoting an unraised third option above the user's poles** (M-tilt). Flattening tilt never means dropping the crux. [R12 P07/P11/P12/P23/P28]

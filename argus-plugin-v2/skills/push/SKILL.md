@@ -45,7 +45,7 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/push-webapp.js" push --status
 
 3. Relay the script's compact result:
    - number of decisions written,
-   - number of Current Headings written,
+   - number of current calls written,
    - any skipped artifact count,
    - webapp import URL.
 
@@ -60,7 +60,7 @@ Run /argus:connect <argus_pat_...> first. You can issue the token in the Argus w
 ## What Gets Sent
 
 - `.argus/ledger/ledger.jsonl`: sealed and settled decision contracts.
-- `.argus/sessions/**/current_bearing.json`: Current Heading artifacts.
+- `.argus/sessions/**/current_bearing.json`: current call artifacts.
 - `.argus/sessions/**/current-bearing.json`: legacy spelling, if present.
 
 The webapp stores them under the paired account as `plugin_decisions` and

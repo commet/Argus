@@ -1,12 +1,12 @@
 ---
 name: versions
-description: Display the chart of the current Argus decision voyage — version tree, active draft, Current Heading summary, verification state, open concerns, and next route. Use when the user asks where they are in a decision, wants to see or switch between drafts/branches, or needs the next useful command — "지금 어디까지 왔지", "버전 트리 보여줘", "show the branches", "where am I". Read-only by default; checkout/promote/delete/json flags can mutate or export. NOT for generating new analysis — no LLM runs. Invoked as `/argus:versions`.
+description: Display the version tree of the current Argus decision — active draft, current call summary, verification state, open concerns, and next route. Use when the user asks where they are in a decision, wants to see or switch between drafts/branches, or needs the next useful command — "지금 어디까지 왔지", "버전 트리 보여줘", "show the branches", "where am I". Read-only by default; checkout/promote/delete/json flags can mutate or export. NOT for generating new analysis — no LLM runs. Invoked as `/argus:versions`.
 ---
 
 # /argus:versions
 
 **What this skill does:** Shows the map of an Argus session. It is the user's
-way to see branches, active draft, released draft, current bearing, blockers,
+way to see branches, active draft, released draft, current read, blockers,
 and the next useful command.
 
 **Default behavior:** read-only. No LLM. No analysis generation.
@@ -44,30 +44,30 @@ Flags that mutate state are mutually exclusive.
 
 1. Read `.argus/config.yaml` (silent-create from `${CLAUDE_PLUGIN_ROOT}/lib/config.example.yaml` if missing, same as other skills). All user-facing text in this skill uses `config.locale`.
 2. **Zero-sessions guard:** if `.argus/sessions/` does not exist or contains no session directory, do NOT error. Print and stop:
-   - ko: `아직 Argus 항해 기록이 없습니다. \`/argus:sail "<결정>"\` 로 시작하세요.`
-   - en: `No Argus voyages yet. Start one with \`/argus:sail "<your decision>"\`.`
+   - ko: `아직 Argus 결정 기록이 없습니다. \`/argus:sail "<결정>"\` 로 시작하세요.`
+   - en: `No Argus decisions yet. Start one with \`/argus:sail "<your decision>"\`.`
 3. **Legacy guard:** if only pre-v2 (`v0.5`-era) files exist with no `session.json`, note that legacy sessions aren't rendered by this version and point to the newest v2 session if any.
 
 ### Default (no flags) — show current session
 
 1. Find the latest session: the session directory whose `session.json` has the newest `updated_at`; if `updated_at` is missing or tied, fall back to directory mtime. Read its `session.json`.
-2. Read these per-version files for the active draft: `versions/{label}/current_bearing.json` (the Current Heading block — course, fog/reef, next helm), `scaffold.json` (reframed_question, assumptions, checkpoints), `verification.json` (read `routing_decision` + `overall_status` + `root_crack`), `boss_feedback.json` (boss status). **Missing vs corrupt are different states:** treat a *missing* file as "not run" (render the dash, route to the skill that produces it). Treat a file that exists but *fails to parse* as **corrupt, not absent** — render `⚠ <name> unreadable (recover: rerun /argus:<skill>)` for that line and quarantine it to `<name>.corrupt.<ts>`; do NOT silently collapse a corrupt `verification.json` into "not run," which would route the user past a verification that actually ran (and may have blocked).
+2. Read these per-version files for the active draft: `versions/{label}/current_bearing.json` (the current call block — course, unknown/risk, next step), `scaffold.json` (reframed_question, assumptions, checkpoints), `verification.json` (read `routing_decision` + `overall_status` + `root_crack`), `boss_feedback.json` (boss status). **Missing vs corrupt are different states:** treat a *missing* file as "not run" (render the dash, route to the skill that produces it). Treat a file that exists but *fails to parse* as **corrupt, not absent** — render `⚠ <name> unreadable (recover: rerun /argus:<skill>)` for that line and quarantine it to `<name>.corrupt.<ts>`; do NOT silently collapse a corrupt `verification.json` into "not run," which would route the user past a verification that actually ran (and may have blocked).
 3. Parse draft tree from `session.drafts[]`, then **reconcile against the version directories on disk — the dirs are authoritative** (session-layout → Concurrency): for any `versions/{label}/` dir with no matching `drafts[]` entry, add it to the rendered tree (a concurrent writer may have created the dir before its `drafts[]` index write landed). If `drafts[]` is empty entirely (session predates draft persistence, or only clarify ran), build the whole tree from the dirs present instead of rendering blank. Never show fewer drafts than there are version dirs.
 4. Render a one-screen map:
 
 ```text
-## Argus Chart - {{session.id}}
+## Argus Version Tree - {{session.id}}
 
 Problem: {{problem_text[:80]}}
 Active: {{active_label}}  Released: {{released_label or "-"}}
 
-Current Heading:
+current call:
 - Course: {{current_bearing.current_course.summary or "not rendered yet"}}
-- Fog/Reef: {{current_bearing.fog_or_reef.issue or "none named"}}
-- Next helm: {{current_bearing.next_helm or "run /argus:sail --resume {{id}}"}}
+- Unknown/Risk: {{current_bearing.fog_or_reef.issue or "none named"}}
+- Next step: {{current_bearing.next_helm or "run /argus:sail --resume {{id}}"}}
 
 Version Tree:
-v0.1 (initial bearing)
+v0.1 (initial read)
   `- v0.2 (applied verification repair)  [active]
   `- v0.1.1 (alternate lower-scope course)
 
@@ -134,9 +134,9 @@ as its own ordered-first-match, so it holds **exactly one** of `revise_team` /
 boolean flags or `overall_status` for routing — `routing_decision` is the single
 source of truth, and reading anything else is what reintroduces gate collisions.
 
-- A sealed contract (ledger or this session's bearing seed) is past its
+- A sealed contract (ledger or this session's read seed) is past its
   check-by date -> `/argus:resolve` (outranks everything below — an unsettled
-  past prediction is the most perishable item on the chart)
+  past prediction is the most perishable item on the version tree)
 - Missing `verification.json` on a medium/high draft -> `/argus:verify --session <id>`
 - Verification `revise_team` -> `/argus:revise --session <id>` (revise auto-detects the challenged claims to repair)
 - Verification `stop_for_human_check` -> show the first human check and
@@ -144,7 +144,7 @@ source of truth, and reading anything else is what reintroduces gate collisions.
 - Verification `ask_user` (unresolved critical challenge) -> `/argus:sail --resume <id>` to make the call
 - Boss critical applied concerns exist -> `/argus:revise --session <id>` (revise auto-applies the accepted concerns)
 - No `current_bearing.json` -> `/argus:sail --resume <id>`
-- Bearing status is `anchor` -> `/argus:versions --promote <active_label>`
+- Read status is `anchor` -> `/argus:versions --promote <active_label>`
 - Otherwise -> `/argus:revise "<directive>"` or `/argus:versions --promote <active_label>`
 
 ---
@@ -261,9 +261,9 @@ ROOT_LABEL = `v0`. First child = `v0.1`.
 
 ## Meta-Check Gates
 
-- **No LLM:** chart never invokes an LLM.
+- **No LLM:** version tree never invokes an LLM.
 - **Idempotent default:** `/argus:versions` does not mutate state.
-- **Bearing-centered:** default view starts from current course and next helm.
+- **Read-centered:** default view starts from current course and next step.
 - **Branch clarity:** active and released drafts are visibly distinct.
 - **Safe mutation:** checkout/promote/delete read and verify before writing.
 
@@ -271,8 +271,8 @@ ROOT_LABEL = `v0`. First child = `v0.1`.
 
 ## Forbidden Patterns
 
-- Generating new analysis in chart.
-- Printing long worker internals in the default chart.
-- Auto-promoting without confirmation when the bearing is not anchor-ready.
+- Generating new analysis in version tree.
+- Printing long worker internals in the default version tree.
+- Auto-promoting without confirmation when the read is not anchor-ready.
 - Deleting without confirmation.
 - Rewriting version labels outside the promotion path.

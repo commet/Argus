@@ -1,6 +1,6 @@
 ---
 name: team
-description: Deploy a team of specialized agents as WORKERS on a clarified problem (the crew sets out from port). Each agent does their domain work — research, numbers, UX, legal, risk, etc. — in their own voice on the actual artifact (code, PR, file, design doc). Agents are not a panel of generic critics; they're producers whose claims will be verified by `/argus:verify`. Output is a MixResult plus a candidate FinalScaffold with attribution preserved. Invoke after `/argus:clarify` has produced an AnalysisSnapshot with an `execution_plan`. Invoked as `/argus:team`.
+description: Deploy a team of specialized agents as WORKERS on a clarified problem (the reviewers sets out from port). Each agent does their domain work — research, numbers, UX, legal, risk, etc. — in their own voice on the actual artifact (code, PR, file, design doc). Agents are not a panel of generic critics; they're producers whose claims will be verified by `/argus:verify`. Output is a MixResult plus a candidate FinalScaffold with attribution preserved. Invoke after `/argus:clarify` has produced an AnalysisSnapshot with an `execution_plan`. Invoked as `/argus:team`.
 ---
 
 # /argus:team
@@ -52,7 +52,7 @@ repo-local `argus-plugin-v2/data/`). If not found anywhere: stop and print
 exactly one line in the user's locale — ko: `agents.yaml이 없거나 손상됐어요 —
 플러그인을 재설치해 주세요 (/plugin install argus@argus).` · en: `agents.yaml is
 missing or corrupt — reinstall the plugin (/plugin install argus@argus).` Do not
-improvise a crew without it.
+improvise a reviewers without it.
 
 ### Step 1 — Load session state
 
@@ -471,7 +471,7 @@ This is the PLUGIN-SPECIFIC divergence from webapp. Webapp produces a markdown d
 Construct a candidate `FinalScaffold` (schema: `${CLAUDE_PLUGIN_ROOT}/data/schemas/final-scaffold.json`). Candidate means it is not yet trusted; `/argus:verify` owns final verification state.
 - `reframed_question`: from snapshot
 - `key_trade_offs[]`: extract from team outputs + debate. Each trade-off = axis + side_a + side_b.
-  - **Candidate-scope (missed-option) disclosure.** If the crew examined essentially ONE course (no debate, no opposing stances, every worker assumed the same direction) AND stakes are `important`+ AND a *concrete plausible alternative the crew never analyzed* is nameable, add it as a trade-off: side_a = the examined course, side_b = that alternative with its label stating it was NOT analyzed (e.g. `"<alternative> — not evaluated by the crew"`). The bearing's `road_not_taken` derives from `key_trade_offs`, so this surfaces narrow scope as an honest coverage note. **Gate (mirror clause):** only when a concrete alternative is nameable — if none is, the decision is genuinely flat, so leave it out; never manufacture an alternative to look thorough.
+  - **Candidate-scope (missed-option) disclosure.** If the reviewers examined essentially ONE course (no debate, no opposing stances, every worker assumed the same direction) AND stakes are `important`+ AND a *concrete plausible alternative the reviewers never analyzed* is nameable, add it as a trade-off: side_a = the examined course, side_b = that alternative with its label stating it was NOT analyzed (e.g. `"<alternative> — not evaluated by the reviewers"`). The read's `road_not_taken` derives from `key_trade_offs`, so this surfaces narrow scope as an honest coverage note. **Gate (mirror clause):** only when a concrete alternative is nameable — if none is, the decision is genuinely flat, so leave it out; never manufacture an alternative to look thorough.
 - `hidden_assumptions[]`: from mix.key_assumptions, with `evaluation` (likely_true / uncertain / doubtful) based on team's validation
 - `team_contradictions[]`: populated from debate.json if ran; else empty array
 - `human_required_checkpoints[]`: extract from worker outputs where agents flagged "AI cannot decide this" or "human judgment needed". **Also append**: every entry from `classification.json:dropped_steps[]` (from Step 3.5(c)) as a checkpoint with `checkpoint: "<original task>", why: "dropped from automated pipeline — over_agent_budget. Manual coverage needed."`. This is mandatory per M4 transparency.
@@ -486,14 +486,14 @@ Write to `versions/{label}/scaffold.json`.
 
 - Workers, stages, mix, and the scaffold are ALREADY written write-once to `versions/{label}/` (`workers.json`, `team_plan.json` stages, `mix.json`, `scaffold.json`) — do NOT also copy them into session.json. Duplicating them is exactly the monolithic-blob merge-conflict surface this model removes.
 - Update `session.classification` (small routing state — kept in the skeleton)
-- **Append a Draft to `session.drafts[]`** (schema: `${CLAUDE_PLUGIN_ROOT}/data/schemas/draft.json`) and set `session.active_draft_id` to it. Without this the chart version tree is permanently empty and `--checkout` / `--promote` / branching cannot work. **Concurrency (see session-layout → "the version dirs are authoritative"):** re-read `session.json` *immediately before* this write and append to the drafts[] you find *now* — never to the snapshot you loaded back in Step 1. A second `team --revise` (or another session) may have appended a sibling draft in between; appending to the stale snapshot would atomically erase it. Your `versions/{label}/` dir was created write-once under a unique label so it never collides — only this drafts[] index can lose an entry, and the re-read-then-union (dedup by `version_label`) prevents it. Shape:
+- **Append a Draft to `session.drafts[]`** (schema: `${CLAUDE_PLUGIN_ROOT}/data/schemas/draft.json`) and set `session.active_draft_id` to it. Without this the version tree is permanently empty and `--checkout` / `--promote` / branching cannot work. **Concurrency (see session-layout → "the version dirs are authoritative"):** re-read `session.json` *immediately before* this write and append to the drafts[] you find *now* — never to the snapshot you loaded back in Step 1. A second `team --revise` (or another session) may have appended a sibling draft in between; appending to the stale snapshot would atomically erase it. Your `versions/{label}/` dir was created write-once under a unique label so it never collides — only this drafts[] index can lose an entry, and the re-read-then-union (dedup by `version_label`) prevents it. Shape:
   - `id`: stable draft id (e.g. `draft-{label}`)
   - `parent_draft_id`: the draft this one descends from — on a `--revise`/branch run, the draft whose `version_label` matches the checked-out `session.active_draft_id`; on the first team run, `null` (root)
   - `version_label`: the version label this run wrote (e.g. `v0.1`, `v0.2`, `v0.1.1`)
   - `directive`: on `--revise`, a short note of what was asked to change; else `null`
   - `reviewing_agent_id`: `navigator` on a `--revise` child draft; else `null`
   - `boss_reviewed`: `false` (boss hasn't run on this fresh draft yet)
-  - `change_summary`: one line (≤60 chars) for the chart tree annotation (e.g. "초기 팀 배치" / "ISTJ 우려 반영")
+  - `change_summary`: one line (≤60 chars) for the version tree annotation (e.g. "초기 팀 배치" / "ISTJ 우려 반영")
   - `created_at`
   - (Do NOT embed the scaffold/mix/feedback in the draft node — they live in `versions/{label}/`; the draft is a pointer.)
 - Set `phase: "verifying"` (ready for `/argus:verify`) OR `phase: "complete"` only when the user explicitly asked for team output without verification
@@ -508,7 +508,7 @@ Write to `versions/{label}/scaffold.json`.
 Sail's Step 7 will render the consolidated decision card. Team only emits a value-oriented transition line (NOT a machinery report — no agent counts, no "N contradictions preserved", no phase names; those are exactly the strings sail's forbidden-transition list bans):
 
 ```
-✓ Crew work done. Checking evidence next.
+✓ Reviewers work done. Checking evidence next.
 {{if N_failed > 0}}⚠ Some domain coverage is incomplete — see .argus/sessions/{{id}}/errors.log{{endif}}
 ```
 

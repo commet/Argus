@@ -1,6 +1,6 @@
 ---
 name: configure
-description: Set up or change Argus's saved preferences for THIS repo — language and your stakeholder (Boss) persona — written to .argus/config.yaml. Use when the user wants to set or change the language, configure the Boss that /argus:boss role-plays, decide whether voyage session files get committed, or asks "how do I configure Argus / change settings". Interactive and entirely optional — Argus works with sensible defaults if it's never run. Invoked as `/argus:configure`.
+description: Set up or change Argus's saved preferences for THIS repo — language and your stakeholder (Boss) persona — written to .argus/config.yaml. Use when the user wants to set or change the language, configure the Boss that /argus:boss role-plays, decide whether decision session files get committed, or asks "how do I configure Argus / change settings". Interactive and entirely optional — Argus works with sensible defaults if it's never run. Invoked as `/argus:configure`.
 allowed-tools: Read, Write, AskUserQuestion
 ---
 
@@ -27,7 +27,7 @@ were a stale design and are gone):
   against: `mbti_code` (one of the 16 in `data/boss-types.yaml`), `name`, `gender`
   (`남`/`여` or `male`/`female`), `role` (free text, default `팀장` / `Team Lead`).
 - **`archive.commit_sessions`** — `true`/`false`. Whether `/argus:versions` offers to
-  git-commit `.argus/sessions/` when a voyage completes. Default `false`.
+  git-commit `.argus/sessions/` when a decision completes. Default `false`.
 - **`team`** *(optional, advanced)* — `max_agents_override` (1–6), `preferred_agents`
   (ids). Only touch if the user explicitly asks; otherwise leave it out.
 
@@ -57,7 +57,7 @@ decisions against in `/argus:boss`? You can skip — a generic reviewer is used.
     `data/boss-types.yaml` (ISTJ … ENTJ).
 - **Skip** → omit the entire `boss:` block (don't write an empty one).
 
-**Ask 3 · Commit session files?** — "When a voyage ends, should `/argus:versions` offer
+**Ask 3 · Commit session files?** — "When a decision ends, should `/argus:versions` offer
 to git-commit `.argus/sessions/`? Default no — they're git-ignored." →
 `archive.commit_sessions`.
 

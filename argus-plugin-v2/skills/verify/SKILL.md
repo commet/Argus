@@ -1,16 +1,16 @@
 ---
 name: verify
-description: Verify Argus crew output before it is promoted. Splits claims into supported, challenged, unresolved, and human-required checks, then routes to boss, revise, human check, or Current Heading. Use after /argus:team writes its scaffold, when /argus:sail chains a medium/high decision, or when the user asks whether the crew output can be trusted — "믿어도 되나", "근거 확인해줘", "can we trust this output". NOT for grading future outcomes (that is /argus:resolve), and not needed for a low-density minimal scaffold. Invoked as `/argus:verify`.
+description: Verify Argus reviewers output before it is promoted. Splits claims into supported, challenged, unresolved, and human-required checks, then routes to boss, revise, human check, or current call. Use after /argus:team writes its scaffold, when /argus:sail chains a medium/high decision, or when the user asks whether the reviewers output can be trusted — "믿어도 되나", "근거 확인해줘", "can we trust this output". NOT for grading future outcomes (that is /argus:resolve), and not needed for a low-density minimal scaffold. Invoked as `/argus:verify`.
 ---
 
 # /argus:verify
 
-**What this skill does:** Reads the latest crew output and produces a
+**What this skill does:** Reads the latest reviewers output and produces a
 `VerificationLedger`. This is immediate pre-commit verification, not future
 outcome grading.
 
-**Why this matters:** Argus must not let fluent crew output become a false
-bearing. Verification names what can be trusted, what is weak, what remains in
+**Why this matters:** Argus must not let fluent reviewers output become a false
+read. Verification names what can be trusted, what is weak, what remains in
 tension, and what only a human/external source can check.
 
 ---
@@ -31,7 +31,7 @@ Refuse when (always say what to do next, never a bare halt):
 - only `minimal_scaffold.json` exists → this is not an error; explain in one
   friendly line (user's locale):
   - en: `This was a low-density decision — the minimal scaffold already contains
-    its one flip-check, so there is no crew output to verify. To force the full
+    its one flip-check, so there is no reviewers output to verify. To force the full
     pipeline: /argus:sail --full "<problem>".`
   - ko: 같은 의미를 자연스럽게.
 
@@ -168,7 +168,7 @@ Claims passing become `supported_claims[]`:
 }
 ```
 
-### Step 3.5 - Grounding + Load-Bearing Pass (find the reality reef)
+### Step 3.5 - Grounding + Load-Bearing Pass (find the reality risk)
 
 The deepest failure this gate must catch is NOT an internal wording slip — it is
 a claim **only reality can confirm** that the conclusion rests on and that nobody
@@ -183,7 +183,7 @@ Two cheap, **checkable** tags per claim (no prose-inference, no graph solver):
   behavior. **Cross-agent agreement is NOT confirmation of an `external` claim**
   (the second agent is the same model restating the first).
 
-**(b) Load-bearing — STRUCTURAL anchors only.** A claim is load-bearing iff a
+**(b) Load-read — STRUCTURAL anchors only.** A claim is load-bearing iff a
 `scaffold.next_actions[]` entry lists it in `rests_on`, or `current_course`
 rests on it. Record those anchors:
 
@@ -197,7 +197,7 @@ co-generated both claims, so "X assumes Y" is always *plausible* and never
 counts. No anchor → `depended_on_by: []`. This is what stops a fabricated edge
 from silently escalating severity (the over-fire failure, mirror clause).
 
-The reef = a claim that is **`external` AND load-bearing AND not confirmed by a
+The risk = a claim that is **`external` AND load-bearing AND not confirmed by a
 real-world source**. That intersection — not "most-depended-on claim" — is where
 a real decision actually goes wrong.
 
@@ -231,7 +231,7 @@ Claims failing checks become `challenged_claims[]`:
 Severity:
 
 - `critical`: final signoff or execution would be unsafe.
-- `important`: must be visible in the Current Heading or fixed.
+- `important`: must be visible in the current call or fixed.
 - `minor`: note it; do not block by itself.
 
 **Developer-output gate.** For `repo_context.mode` in `explicit_target` or
@@ -241,7 +241,7 @@ route, migration, API endpoint, config file, or command output). Worker prose
 such as "the auth flow may regress" is not support; it must become a challenged
 claim with a repair like "read `<file>` and add/check `<test>`." If the team
 looked at a PR/file but the verifier cannot name the affected surface, route to
-`revise_team` or `stop_for_human_check` instead of emitting a confident bearing.
+`revise_team` or `stop_for_human_check` instead of emitting a confident read.
 
 **Grounding-driven handling — generate first, then flag, gate only when it must.**
 Being `external` is NOT a reason to withhold the answer. Argus's spine is *maximum
@@ -285,7 +285,7 @@ gate "did work" is over-fire (the mirror clause, CLAUDE.md): it manufactures
 ceremony and downstream pushes a needless revise loop. **This restraint is
 asymmetric and never applies upward:** a `critical` or `important` challenge is
 ALWAYS surfaced — verify's reason to exist is catching the fluent-but-wrong
-claim, and burying a real reef to look tidy is the opposite, under-fire failure.
+claim, and burying a real risk to look tidy is the opposite, under-fire failure.
 Suppress only the manufactured *minor*, never a real material challenge.
 
 ### Step 5 - Preserve Tensions
@@ -307,14 +307,14 @@ Create `human_required_checks[]` from:
   verification as a *precondition for relying on a claim* — "load-test before
   trusting this", "confirm with legal", "benchmark before quoting the number" —
   and no `supported_claims[]` evidence shows it was actually run. Surface it with
-  `why_ai_cannot_verify: "named by the crew as needed but not run"`.
+  `why_ai_cannot_verify: "named by the reviewers as needed but not run"`.
   **Tightly scoped (mirror clause — do not turn every 'should' into a wall):**
   only when (a) a worker framed it as a *precondition*, not a vague "might also
   consider," AND (b) it is tied to a load-bearing claim or a `next_action`. A soft
   suggestion on a leaf is NOT surfaced. **Default `blocks: "none"`** (a worth-doing
   to-do, not a gate); escalate to `final_signoff`/`execution` only when the unrun
   check sits on a load-bearing claim whose failure is unsafe or irreversible (there
-  it coincides with the reality reef / a critical gate). On a routine or reversible
+  it coincides with the reality risk / a critical gate). On a routine or reversible
   decision a missed soft check stays unsurfaced.
 
 Each check must say why AI cannot verify it:
@@ -331,7 +331,7 @@ Each check must say why AI cannot verify it:
 `blocks` takes FOUR values (per the schema): `"execution"` and
 `"final_signoff"` gate; `"boss_review"` and `"none"` do NOT. A check that is
 merely worth doing is `"none"` and must not flip the overall status to
-`blocked` (or the bearing to `collect_evidence`). Most human checks are
+`blocked` (or the read to `collect_evidence`). Most human checks are
 `"none"` or `"boss_review"` — reserve the gating values for checks whose
 failure genuinely invalidates the course. (The example above gates because
 unsigned legal review really does.)
@@ -343,7 +343,7 @@ unsigned legal review really does.)
 1. **else-if** any human check has `blocks: "execution"` → `stop_for_human_check`. (Highest priority: an execution blocker must never be overridable by a "proceed" choice downstream.)
 2. **else-if** any `critical` challenged claim exists → `ask_user`. (Or, under `--no-prompt` where the user can't be asked, escalate to `revise_team` if the repair is agent-owned, otherwise `stop_for_human_check` — never silently `proceed_to_boss` on a critical challenge.)
 3. **else-if** `--strict` and any `important` challenged claim exists → `ask_user`.
-4. **else-if** there is an agent-owned repair worth a loop — a challenged claim of severity **`important` or above** with an `owner_agent_id` and no human data needed — **AND the revise loop has not converged-out**: `session.revise_cycles < session.max_revise_cycles` (default 3) AND this claim is **not a repeat** of one already challenged in the immediately-prior verification on this lineage → `revise_team`. `minor` challenged claims NEVER trigger this route, owner or not (their own definition says they don't block; re-running the whole team over a wording nit is the loop-forever failure mode). **If the only agent-owned repair is a repeat claim, or `revise_cycles` has reached the cap → `stop_for_human_check`** and write that claim to `human_required_checks[]` with `reason: "unconverged_after_revision"` (cap reached → `reason: "max_revisions_reached"`). Re-looping the team on a claim it already failed to fix is wasted ceremony; escalation to a human is the honest exit, not another auto-pass. **When the unconverged claim was `critical`, the escalated `human_required_checks[]` entry MUST gate** — set `blocks: "final_signoff"` (or `"execution"` if acting before the check is unsafe), never `"none"`. A never-fixed critical claim must not land as a non-gating note; a `blocks: "none"` check would leave `overall_status` off `blocked` and let the bearing read as proceedable.
+4. **else-if** there is an agent-owned repair worth a loop — a challenged claim of severity **`important` or above** with an `owner_agent_id` and no human data needed — **AND the revise loop has not converged-out**: `session.revise_cycles < session.max_revise_cycles` (default 3) AND this claim is **not a repeat** of one already challenged in the immediately-prior verification on this lineage → `revise_team`. `minor` challenged claims NEVER trigger this route, owner or not (their own definition says they don't block; re-running the whole team over a wording nit is the loop-forever failure mode). **If the only agent-owned repair is a repeat claim, or `revise_cycles` has reached the cap → `stop_for_human_check`** and write that claim to `human_required_checks[]` with `reason: "unconverged_after_revision"` (cap reached → `reason: "max_revisions_reached"`). Re-looping the team on a claim it already failed to fix is wasted ceremony; escalation to a human is the honest exit, not another auto-pass. **When the unconverged claim was `critical`, the escalated `human_required_checks[]` entry MUST gate** — set `blocks: "final_signoff"` (or `"execution"` if acting before the check is unsafe), never `"none"`. A never-fixed critical claim must not land as a non-gating note; a `blocks: "none"` check would leave `overall_status` off `blocked` and let the read read as proceedable.
 5. **else** (challenged claims all minor, no blocking human checks) → `proceed_to_boss`. Minor claims travel forward as visible caveats, not as work orders.
 
 Overall status (also ordered, first match wins):
@@ -365,7 +365,7 @@ English:
 - Question: `Verification found material issues. How should Argus route this?`
 - Options:
   - `Proceed with verified parts`: continue, but challenged claims remain visible
-  - `Revise crew output first`: route to `/argus:revise`
+  - `Revise reviewers output first`: route to `/argus:revise`
   - `Pause for human check`: stop and show human-required checks
 
 Korean:
@@ -374,7 +374,7 @@ Korean:
 - Question: `검증에서 중요한 이슈가 나왔습니다. 어떻게 이어갈까요?`
 - Options:
   - `검증된 부분만 진행`
-  - `먼저 crew output 수정`
+  - `먼저 reviewers output 수정`
   - `사람 확인 후 재개`
 
 Persist the selected option to `ledger.user_choice`.
@@ -386,7 +386,7 @@ Write `versions/{label}/verification.json` conforming to
 (current ISO-8601 timestamp) — it is a required field and a downstream validator
 rejects a ledger without it.
 
-**Compute `root_crack`** — set it ONLY for the **gating** reality reef: the
+**Compute `root_crack`** — set it ONLY for the **gating** reality risk: the
 load-bearing, `external`, unconfirmed claim on a **high-stakes, hard-to-reverse**
 decision (Step 4). It carries *armed help*, never a bare referral:
 
@@ -404,15 +404,15 @@ decision (Step 4). It carries *armed help*, never a bare referral:
 
 **`root_crack` is `null`** when no load-bearing external claim sits on a
 high-stakes irreversible decision — a reversible call or an internal-only
-decision has no gating reef (the external check still ships as a non-gating armed
+decision has no gating risk (the external check still ships as a non-gating armed
 note, just not here). Do NOT promote an `internal` claim, a leaf, or a reversible
 external claim here (over-fire / mirror clause).
 
-**Connection to the seal→settle loop (timing matters).** A *gating* reef does NOT
+**Connection to the seal→settle loop (timing matters).** A *gating* risk does NOT
 itself seed a contract — a blocked decision is not yet a commitment, so there is
 nothing to seal. It surfaces as `fog_or_reef` + the gating human check (sail
 Assembly Priority handles this). The seal happens on the **proceed** path: once
-the reef is resolved (or when a *reversible* external load-bearing assumption is
+the risk is resolved (or when a *reversible* external load-bearing assumption is
 carried on a proceeding course), that external claim is the natural
 `contract_seed` predicate — sail Step 7 prefers it. Same insight (only reality
 settles it), correct timing (seal when you commit, not when you are blocked).
@@ -447,11 +447,11 @@ Update `session.json`:
 If `--invoked-via-sail`, print one line only:
 
 ```text
-Evidence checked. Any fog, reef, or human-only check will be folded into the current bearing.
+Evidence checked. Any unknown, risk, or human-only check will be folded into the current read.
 ```
 
 Do not print claim counts, ledger counts, routing internals, or agent names.
-Sail owns the consolidated Current Heading.
+Sail owns the consolidated current call.
 
 For direct invocation:
 
@@ -493,7 +493,7 @@ Keep this to one terminal screen. Full detail stays in `verification.json`.
 - **No contradiction averaging:** unresolved tensions remain visible.
 - **Human agency:** material routing changes use `AskUserQuestion` unless
   `--no-prompt` was explicitly passed.
-- **Current Heading readiness:** the ledger must identify one best fog/reef item
+- **current call readiness:** the ledger must identify one best unknown/risk item
   that sail can carry into `current_bearing.json`.
 
 ---

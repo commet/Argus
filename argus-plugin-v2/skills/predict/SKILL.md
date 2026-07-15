@@ -30,7 +30,7 @@ This is a shared state transition, not a separate entry point:
   - `--model sonnet|haiku|opus`
 
 Use `--latest-seed` when the user says "seal this" immediately after a sail
-run and there is an obvious latest Current Heading seed. Use `<id>` when the
+run and there is an obvious latest current call seed. Use `<id>` when the
 user is choosing from scan results.
 
 ---

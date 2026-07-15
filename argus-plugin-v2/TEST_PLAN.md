@@ -167,15 +167,15 @@ review because it includes checked claims and preserved tension.
 
 FAIL: it reads like a normal markdown review with extra fields.
 
-### #5.5 Current Heading Compression
+### #5.5 current call Compression
 
 PASS: default `/argus:sail` output is one screen and does not make the user think
 about agents, ledgers, schemas, or workflow phases.
 
 FAIL: output sells the multi-agent machinery instead of showing the current
-course, why, fog/reef, road not taken, next helm, and optional contract seed.
+course, why, unknown/risk, road not taken, next helm, and optional contract seed.
 
-### #5.6 Voyage Continuity
+### #5.6 Decision Continuity
 
 PASS: the output preserves at least one meaningful road-not-taken or explicitly
 states why the decision is too small for an alternate course.
@@ -217,8 +217,8 @@ Write results to `.argus/test-observations.md`:
 - #3 verification: N/A - minimal route skipped verification as expected
 - #4 human gate: N/A
 - #5 commodity: PASS - [evidence]
-- #5.5 current bearing compression: PASS - [evidence]
-- #5.6 voyage continuity: PASS - [evidence]
+- #5.5 current read compression: PASS - [evidence]
+- #5.6 decision continuity: PASS - [evidence]
 - #6 use intent: PASS - [evidence]
 - #7 revision integrity: N/A - no revision path in TC1
 
@@ -258,7 +258,7 @@ node ./argus-plugin-v2/scripts/test-check-contracts.mjs
 - GDPR/EU launch decision
 - low-density rename route
 
-The simulation fails when a Current Heading:
+The simulation fails when a current call:
 
 - lacks source references for file/PR/document cases,
 - has no road-not-taken for medium/high decisions,
@@ -421,12 +421,12 @@ due 계약 0 상태에서 `/argus:resolve`.
 > 평결 (b) — find-the-leverage 엔진은 **평탄한 결정에서 발산을 제조**한다
 > (negative control 60% over-fire, asymmetric_steer가 modal harm). v2.6.0은
 > dial을 **under-fire 디폴트**로 고정했다 (clarify FLAT 분기, sail Step 6·0.5
-> flatness gate + no-tilt bearing, boss/verify/settle 절제).
+> flatness gate + no-tilt read, boss/verify/settle 절제).
 
 ### 정직한 한계 — 구조 가드는 *회귀 바닥*이지 *안전 증명*이 아니다
 
 플러그인은 프롬프트 기반이고 CI에 실행 LLM이 없다. `validate-plugin.js`(문자열·
-스키마 가드)와 `simulate-plugin.js`(손수 작성한 bearing fixture + over-fire-shape
+스키마 가드)와 `simulate-plugin.js`(손수 작성한 read fixture + over-fire-shape
 lint)는 **gross shape만** 잡는다 — 라운드 4가 증명했듯 *tilt는 구조 체크 아래에
 산다*(D1 ledger를 통과한 asymmetric_steer). 그래서 아래 자동 가드가 통과해도
 "over-fire 고쳤다"가 아니라 "**명백한 형태의 과발화는 회귀하지 않는다**"까지만
@@ -440,7 +440,7 @@ flatness gate(Step 6·0.5) 존재 + "create one from the rejected obvious
 alternative" 부재 + engine-weighted pole/swap-test 명문화 ③ current-bearing
 스키마 `road_not_taken.minItems == 0` ④ settle가 missed/partial에 `/argus:sail`
 자동 제안 안 함 ⑤ R4 평탄 fixture 3건(folder-rename·incumbent·express)이 빈
-road_not_taken·null fog·proceed/anchor로 통과, fork fixture가 parity floor 통과.
+road_not_taken·null unknown·proceed/anchor로 통과, fork fixture가 parity floor 통과.
 
 ### TC-OF-2 — 수동 라운드 5 (엄격 5-vote + negative control, 분기별 1회)
 엔진 프롬프트(clarify/sail/boss/verify)를 의미 있게 바꿀 때마다 1회:

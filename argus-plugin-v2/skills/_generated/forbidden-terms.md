@@ -2,7 +2,7 @@
 
 # Forbidden machinery terms (reference)
 
-A user-facing Current Heading must never leak these (the product is orientation, not a workflow report):
+A user-facing current call must never leak these (the product is orientation, not a workflow report):
 
 - `multi-agent`
 - `agent count`

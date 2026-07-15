@@ -110,7 +110,7 @@ Argus는 그럴듯한 답만으로는 부족한 결정에 씁니다.
 | `/argus:predict` | 나중에 확인할 기준을 남길 때. |
 | `/argus:resolve` | Argus가 실제로 어땠는지 묻거나, 확인할 때가 됐을 때. |
 | `/argus:journal` | 결정 기록과 예측 기록을 볼 때. |
-| `/argus:versions` | 항해/버전 트리를 볼 때. |
+| `/argus:versions` | 결정/버전 트리를 볼 때. |
 | `/argus:connect` | 이 프로젝트를 웹앱과 처음 연결할 때. |
 | `/argus:sync` | 로컬 플러그인과 웹앱을 맞출 때. |
 | `/argus:help` | 가장 짧은 명령어 지도가 필요할 때. |
