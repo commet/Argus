@@ -813,6 +813,18 @@ export function ReviewFlow() {
         </label>
       )}
 
+      {/* A deck only carries its embedded images to vision (no in-browser slide
+          renderer). Nudge toward PDF export, which gets full-fidelity native
+          vision — every slide, layout and all — for free. */}
+      {sourceKind === 'pptx' && !!preExtracted && (
+        <p className="text-[11px] leading-[1.6] text-[var(--text-tertiary)]">
+          {L(
+            '💡 덱을 PDF로 내보내 올리면 모든 슬라이드를 이미지로 더 정밀하게 검수해요 (지금은 덱에 박힌 이미지만 봅니다).',
+            '💡 Export your deck to PDF and upload that for a full visual review of every slide — right now only the deck’s embedded images are seen.',
+          )}
+        </p>
+      )}
+
       {gateBlocked && (
         <Card variant="muted" className="border border-[var(--border-subtle)]">
           <div className="text-[13px] font-medium text-[var(--text-primary)] mb-1">
