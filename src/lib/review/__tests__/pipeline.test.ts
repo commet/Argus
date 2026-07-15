@@ -279,6 +279,33 @@ describe('runDocumentReview — end to end with a mock model', () => {
     expect(receipt!.coverage!.notes).toEqual([]);
   });
 
+  it('drops an obligation that merely restates a finding (same anchor + wording)', async () => {
+    const artifact = ingest({ source_kind: 'markdown', text: DOC });
+    const uid = artifact.units[0].unit_id;
+    const base = mockLLM(artifact);
+    const llm: ReviewLLM = {
+      model_name: base.model_name, model_provider: base.model_provider,
+      async json<T>(args: ReviewLLMArgs): Promise<T> {
+        if (args.system.includes('렌즈다')) {
+          return { findings: [{ title: '예산 근거 없음', detail: '수치 근거 없음', severity: 'critical', confidence: 'medium', suggested_action: '수치 확인', unit_ids: [uid] }] } as T;
+        }
+        if (args.system.includes('"종합"')) {
+          // restates the finding as an obligation on the SAME anchor + words → dropped
+          return { core_question: 'q', current_heading: 'h',
+            judgment_obligations: [
+              { statement: '예산 근거 없음 여부를 판단', owner: '사용자', why_human: 'w', unit_ids: [uid] },
+              { statement: '전혀 다른 조직 구조를 바꿀지 결정', owner: '사용자', why_human: 'w', unit_ids: [] },
+            ], followups: [] } as T;
+        }
+        return base.json<T>(args);
+      },
+    };
+    const { receipt } = await runDocumentReview(artifact, { llm, today: '2026-07-01' });
+    const statements = receipt!.judgment_obligations.map((o) => o.statement);
+    expect(statements).not.toContain('예산 근거 없음 여부를 판단');       // restatement dropped
+    expect(statements).toContain('전혀 다른 조직 구조를 바꿀지 결정');    // distinct obligation kept
+  });
+
   it('de-dups an issue surfaced by multiple lenses in the single-pass path', async () => {
     const artifact = ingest({ source_kind: 'markdown', text: DOC });
     const uid = artifact.units[0].unit_id;

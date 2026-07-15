@@ -23,6 +23,11 @@ const SPINE = `너는 Argus의 판단 검수기다. 사용자의 결정을 대�
   식별자(u_...)를 문장에 절대 노출하지 않는다. unit_id는 오직 unit_ids 배열에만 넣는다.
 - "리스크를 고려하세요", "더 조사하세요" 같은 일반론은 금지한다. 무엇을 확인할지 구체적으로 쓴다.
 - 원문에 없는 사실을 지어내지 않는다.
+- 지적의 "유형"을 다양하게 본다. "근거가 부족하다"만 반복하지 말고, 해당되면 더 날카로운 유형을 짚는다:
+  · 섹션 간 모순(A절은 X라는데 B절은 반대로 기술)  · 미충족 선결조건(전제가 아직 안 됐는데 그 위에서 결론)
+  · 비현실적/검증 안 된 가정  · 의존관계 역전(선행 과제가 후행보다 늦게 배치)  · 숫자·근거 불일치
+  · 이해관계자 반론(승인·예산을 쥔 사람이 먼저 걸 지점). 같은 문서의 findings 제목이 서로 붙여넣기처럼 보이면 실패다.
+- 짧고 날카롭게. title은 한 줄(대략 40자 이내), detail은 2문장 이내. 장황한 서술 금지.
 - 출력은 순수 JSON. 마크다운/설명 없이 { 로 시작해 } 로 끝난다.
 - 모든 사용자 노출 값은 원문과 사용자 맥락의 주된 언어로 쓴다. 한국어 문서는 한국어로, 영어 문서는 영어로 쓴다. 서로 섞지 않는다.`;
 
@@ -138,6 +143,12 @@ Keep the result selective and concise:
 - Separate claims, evidence, and assumptions. Do not treat repetition as proof.
 - current_heading describes the document's present direction without deciding
   for the user.
+- A judgment obligation is a DECISION the human must make, NOT a restatement of
+  a finding. Never repeat a finding as an obligation. Keep obligations distinct
+  from each other and from the findings.
+- Vary the finding TYPE — contradiction between sections, an unmet precondition,
+  an unrealistic assumption, a reversed dependency, a number that doesn't add up,
+  a stakeholder objection. Do not label every claim "evidence insufficient".
 - Return at most 3 judgment obligations and 3 falsifiable followups.
 - followup check_by must be a real date after ${today}.
 - Complete every JSON field below; use empty arrays instead of filler.`;
@@ -250,8 +261,9 @@ ${lens.review_questions.map((q) => `- ${q}`).join('\n')}
 금지된 출력(이런 문장을 내면 실패로 간주한다):
 ${lens.failure_modes.map((f) => `- "${f}"`).join('\n')}
 
-너의 렌즈에 해당하는 finding만 낸다. 전체 결론이나 다른 렌즈의 영역은 건드리지 않는다.
-finding이 없으면 빈 배열을 낸다(억지로 만들지 않는다).`;
+이 렌즈에 걸리는 **실질 이슈만** 낸다. 없으면 빈 배열 — 렌즈를 채우려고 억지 지적을 만들지 않는다.
+다른 finding과 같은 지점·같은 말이 될 것 같으면 내지 않는다(중복 금지). 전체 결론이나 다른 렌즈 영역은 건드리지 않는다.
+title은 이 문서에 고유한 한 줄로 쓴다 — "…의 근거가 부족하다" 같은 틀을 반복하지 말고, 무엇이 왜 문제인지 구체적으로.`;
 
   const user = `문서 판단 지도 요약:
 ${mapSummary}
@@ -263,8 +275,8 @@ ${renderUnits(units, unitLimit)}
 {
   "findings": [
     {
-      "title": "특정 claim에 걸린 짧은 제목 (예: slide 4 시장규모 주장에 근거 없음)",
-      "detail": "무엇이 문제인지 원문 기준으로",
+      "title": "이 문서에 고유한 한 줄 제목 — 무엇이 왜 문제인지 (40자 이내, 근거부족 틀 반복 금지)",
+      "detail": "무엇이 문제인지 원문 기준으로, 2문장 이내",
       "severity": "minor|caution|critical",
       "confidence": "low|medium|high",
       "suggested_action": "무엇을 확인/보완할지 구체적으로 (일반론 금지)",
@@ -290,7 +302,10 @@ export function buildSynthesisPrompt(
 
 이번 단계는 "종합"이다. 렌즈 결과를 Judgment Receipt 필드로 압축한다.
 - current_heading은 중립적 방향 한 줄이다. "진행하세요" 같은 평결이 아니다.
-- judgment_obligations는 사람이 직접 판단해야 하는 항목이다. AI가 대신 결론내지 않는다.
+- judgment_obligations는 사람이 직접 **결정**해야 하는 갈림길이다. **finding(문서의 결함 지적)의 재진술이 아니다** —
+  이미 finding으로 낸 지적을 의무로 다시 쓰지 마라. obligation은 "무엇을 결정할 것인가"이지 "무엇이 근거 부족인가"가 아니다.
+- 서로 다른 결정만 남긴다. 의무 2~3개면 충분하고, 겹치는 것은 하나로 합친다.
+- 각 항목은 짧게. statement 한 줄, why_human 한 줄.
 - 사용자가 결론을 냈다고 말하지 않는다.
 - follow-up predicate는 나중에 현실이 pass/fail로 답할 수 있어야 한다. check_by는 ${today} 이후의 미래 날짜(YYYY-MM-DD)로 제안한다.`;
 

@@ -778,7 +778,7 @@ function assembleReceipt(args: {
     reviewability: args.reviewability,
     routing: args.routing,
     core_question: map.core_question,
-    judgment_obligations: args.obligations,
+    judgment_obligations: dropObligationsCoveredByFindings(args.obligations, rankFindings(findings)),
     claim_ledger: map.main_claims,
     hidden_assumptions: map.assumptions,
     forks: [], // MVP: only real alternatives; surfaced later, never manufactured
@@ -831,6 +831,45 @@ function unionAnchors(a: SourceAnchor[], b: SourceAnchor[]): SourceAnchor[] {
     if (k && !seen.has(k)) { seen.add(k); out.push(x); }
   }
   return out;
+}
+
+/** Content words (≥2 chars) for a loose topical-overlap check. */
+function contentTokens(s: string): Set<string> {
+  return new Set(
+    s.toLowerCase().replace(/[^\p{L}\p{N}\s]/gu, ' ').split(/\s+/).filter((w) => w.length >= 2),
+  );
+}
+
+function tokenOverlap(a: Set<string>, b: Set<string>): number {
+  if (!a.size || !b.size) return 0;
+  let inter = 0;
+  for (const w of a) if (b.has(w)) inter++;
+  return inter / Math.min(a.size, b.size);
+}
+
+/**
+ * Drop an obligation that merely restates a finding. The `human_judgment` lens
+ * and the synthesis obligations both draw on `decision_points`, so the same
+ * issue used to appear twice (once as a Finding, once as an Obligation). Kept
+ * conservative — an obligation is only removed when it shares a source anchor
+ * with a finding AND overlaps it heavily in words, so distinct decisions stay.
+ */
+function dropObligationsCoveredByFindings(
+  obligations: JudgmentObligation[],
+  findings: Finding[],
+): JudgmentObligation[] {
+  if (!findings.length) return obligations;
+  const findingAnchors = findings.map((f) => new Set(f.anchors.map(anchorKey).filter(Boolean)));
+  const findingTokens = findings.map((f) => contentTokens(`${f.title} ${f.detail}`));
+  return obligations.filter((o) => {
+    const oTokens = contentTokens(o.statement);
+    const oAnchors = new Set(o.anchors.map(anchorKey).filter(Boolean));
+    const isRestatement = findings.some((_, i) => {
+      const shareAnchor = [...oAnchors].some((k) => findingAnchors[i].has(k));
+      return shareAnchor && tokenOverlap(oTokens, findingTokens[i]) >= 0.5;
+    });
+    return !isRestatement;
+  });
 }
 
 /** Collapse items that repeat the same text across chunks, keeping the first and

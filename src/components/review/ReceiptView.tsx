@@ -244,24 +244,9 @@ export function ReceiptView({
           <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#8b6914] mb-2">
             {L('사람이 직접 판단해야 할 것', 'What a human must judge')}
           </div>
-          <div className="space-y-3">
+          <div className="space-y-2.5">
             {topObligations.map((o) => (
-              <div key={o.obligation_id} className="border-b border-[#8b6914]/10 last:border-0 pb-3 last:pb-0">
-                <p className="text-[14px] font-medium text-[var(--text-primary)]">{o.statement}</p>
-                {o.why_human && <p className="mt-1 text-[12px] text-[var(--text-secondary)]">{L('왜 사람인가', 'Why a human')}: {o.why_human}</p>}
-                {o.evidence_needed && (
-                  <p className="mt-0.5 text-[12px] text-[var(--text-tertiary)]">{L('확인할 근거', 'Evidence to check')}: {o.evidence_needed}</p>
-                )}
-                <div className="mt-2">
-                  <Button
-                    variant={o.owned_by_user ? 'secondary' : 'accent'}
-                    size="sm"
-                    onClick={() => onOwn?.(o, !o.owned_by_user)}
-                  >
-                    {o.owned_by_user ? L('✓ 내가 소유한 판단', '✓ A judgment I own') : L('이 판단을 내가 소유하기', 'Own this judgment')}
-                  </Button>
-                </div>
-              </div>
+              <ObligationRow key={o.obligation_id} o={o} onOwn={onOwn} />
             ))}
           </div>
         </Card>
@@ -475,26 +460,89 @@ export function ReceiptView({
   );
 }
 
+/** One judgment obligation — the decision stays visible; the "why / evidence"
+ *  reasoning collapses so the card scans at a glance instead of stacking prose. */
+function ObligationRow({
+  o,
+  onOwn,
+}: {
+  o: JudgmentObligation;
+  onOwn?: (obligation: JudgmentObligation, owned: boolean) => void;
+}) {
+  const locale = useLocale();
+  const L = (ko: string, en: string) => (locale === 'ko' ? ko : en);
+  const [open, setOpen] = useState(false);
+  const hasWhy = Boolean(o.why_human || o.evidence_needed);
+  return (
+    <div className="border-b border-[#8b6914]/10 last:border-0 pb-2.5 last:pb-0">
+      <p className="text-[14px] font-medium leading-snug text-[var(--text-primary)]">
+        {o.statement}
+        {anchorLabel(L, o.anchors[0]) && (
+          <span className="ml-1 text-[11px] font-normal text-[var(--text-tertiary)]">({anchorLabel(L, o.anchors[0])})</span>
+        )}
+      </p>
+      <div className="mt-2 flex items-center gap-2">
+        <Button
+          variant={o.owned_by_user ? 'secondary' : 'accent'}
+          size="sm"
+          onClick={() => onOwn?.(o, !o.owned_by_user)}
+        >
+          {o.owned_by_user ? L('✓ 내가 소유한 판단', '✓ A judgment I own') : L('이 판단을 내가 소유하기', 'Own this judgment')}
+        </Button>
+        {hasWhy && (
+          <button
+            type="button"
+            onClick={() => setOpen((v) => !v)}
+            className="text-[11px] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]"
+          >
+            {open ? L('접기', 'Less') : L('왜 사람인가 ▾', 'Why a human ▾')}
+          </button>
+        )}
+      </div>
+      {open && hasWhy && (
+        <div className="mt-1.5 space-y-0.5">
+          {o.why_human && <p className="text-[12px] text-[var(--text-secondary)]">{L('왜 사람인가', 'Why a human')}: {o.why_human}</p>}
+          {o.evidence_needed && (
+            <p className="text-[12px] text-[var(--text-tertiary)]">{L('확인할 근거', 'Evidence to check')}: {o.evidence_needed}</p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** One finding — a scannable single line (severity · title · anchor); the detail
+ *  and suggested action open on tap so the receipt reads at a glance. */
 function FindingRow({ f }: { f: Finding }) {
   const locale = useLocale();
   const L = (ko: string, en: string) => (locale === 'ko' ? ko : en);
+  const [open, setOpen] = useState(false);
+  const hasMore = Boolean(f.detail || f.suggested_action);
   return (
-    <div className="border-b border-[var(--border-subtle)] last:border-0 pb-2.5 last:pb-0">
-      <div className="flex items-start gap-2">
+    <div className="border-b border-[var(--border-subtle)] last:border-0 pb-2 last:pb-0">
+      <button
+        type="button"
+        onClick={() => hasMore && setOpen((v) => !v)}
+        className={`w-full flex items-start gap-2 text-left ${hasMore ? 'cursor-pointer' : 'cursor-default'}`}
+        aria-expanded={hasMore ? open : undefined}
+      >
         <span className={`shrink-0 mt-0.5 px-1.5 py-0.5 text-[10px] font-bold rounded border ${SEVERITY_CLS[f.severity]}`}>{severityLabel(f.severity, L)}</span>
-        <div className="min-w-0">
-          <p className="text-[13px] font-medium text-[var(--text-primary)]">
-            {f.title}
-            {anchorLabel(L, f.anchors[0]) && (
-              <span className="ml-1 text-[11px] font-normal text-[var(--text-tertiary)]">({anchorLabel(L, f.anchors[0])})</span>
-            )}
-          </p>
-          {f.detail && <p className="mt-0.5 text-[12px] text-[var(--text-secondary)]">{f.detail}</p>}
+        <span className="min-w-0 flex-1 text-[13px] font-medium leading-snug text-[var(--text-primary)]">
+          {f.title}
+          {anchorLabel(L, f.anchors[0]) && (
+            <span className="ml-1 text-[11px] font-normal text-[var(--text-tertiary)]">({anchorLabel(L, f.anchors[0])})</span>
+          )}
+        </span>
+        {hasMore && <span className="shrink-0 mt-0.5 text-[10px] text-[var(--text-tertiary)]">{open ? '▲' : '▼'}</span>}
+      </button>
+      {open && hasMore && (
+        <div className="mt-1 pl-8 space-y-0.5">
+          {f.detail && <p className="text-[12px] text-[var(--text-secondary)]">{f.detail}</p>}
           {f.suggested_action && (
-            <p className="mt-0.5 text-[12px] text-[var(--accent)]">{L('확인', 'Check')}: {f.suggested_action}</p>
+            <p className="text-[12px] text-[var(--accent)]">{L('확인', 'Check')}: {f.suggested_action}</p>
           )}
         </div>
-      </div>
+      )}
     </div>
   );
 }
