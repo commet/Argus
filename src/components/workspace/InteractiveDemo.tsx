@@ -1353,11 +1353,21 @@ function DemoSealCard({ scenario, decisionLine, onSealed, locale = 'ko' }: {
   const checkDate = useMemo(() => formatCheckDate(scenario.checkInDays, locale), [scenario.checkInDays, locale]);
   const onSealedRef = useRef(onSealed);
   onSealedRef.current = onSealed;
+  const advancedRef = useRef(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => { if (timerRef.current) clearTimeout(timerRef.current); }, []);
 
+  // 확인일로 진행 — 버튼(즉시)과 자동 폴백(3.2초)이 함께 호출해도 한 번만.
+  const go = () => {
+    if (advancedRef.current) return;
+    advancedRef.current = true;
+    if (timerRef.current) clearTimeout(timerRef.current);
+    onSealedRef.current();
+  };
   const doSeal = () => {
     if (sealed) return;
     setSealed(true);
-    setTimeout(() => onSealedRef.current(), 1900);
+    timerRef.current = setTimeout(go, 3200);
   };
 
   return (
@@ -1371,7 +1381,7 @@ function DemoSealCard({ scenario, decisionLine, onSealed, locale = 'ko' }: {
           </div>
 
           <div>
-            <p className="text-[11px] font-bold text-[var(--text-tertiary)] uppercase tracking-wider mb-1.5">{L('당신이 내린 결정', 'The call you made')}</p>
+            <p className="text-[11px] font-bold text-[var(--text-tertiary)] uppercase tracking-wider mb-1.5">{L('봉인할 결정', 'The decision to seal')}</p>
             <p className="text-[16px] md:text-[17px] text-[var(--text-primary)] font-medium leading-[1.5]">&ldquo;{decisionLine}&rdquo;</p>
           </div>
 
@@ -1394,16 +1404,17 @@ function DemoSealCard({ scenario, decisionLine, onSealed, locale = 'ko' }: {
               </motion.button>
             ) : (
               <motion.div key="seal-done" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease: EASE }}
-                className="rounded-xl bg-[var(--accent)]/[0.04] border border-[var(--accent)]/20 p-4 flex items-start gap-3">
-                <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0" style={{ background: 'var(--gradient-gold)' }}>
-                  <Check size={15} className="text-white" />
+                className="rounded-xl bg-[var(--accent)]/[0.04] border border-[var(--accent)]/20 p-4 space-y-3">
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0" style={{ background: 'var(--gradient-gold)' }}>
+                    <Check size={15} className="text-white" />
+                  </div>
+                  <p className="text-[14px] font-semibold text-[var(--text-primary)] min-w-0">{L(`봉인했어요 — ${checkDate}에 제가 먼저 물어볼게요.`, `Sealed — I'll ask you first on ${checkDate}.`)}</p>
                 </div>
-                <div className="min-w-0">
-                  <p className="text-[14px] font-semibold text-[var(--text-primary)]">{L(`봉인했어요 — ${checkDate}에 제가 먼저 물어볼게요.`, `Sealed — I'll ask you first on ${checkDate}.`)}</p>
-                  <p className="text-[12px] text-[var(--text-secondary)] mt-0.5 flex items-center gap-1.5">
-                    <TypingDots /> {L('그날로 가볼게요…', 'Jumping to that day…')}
-                  </p>
-                </div>
+                <button onClick={go}
+                  className="w-full flex items-center justify-center gap-1.5 py-2 rounded-lg text-[13px] font-medium text-[var(--accent)] hover:bg-[var(--accent)]/[0.06] cursor-pointer transition-colors">
+                  {L('확인일로 가보기', 'Jump to the check-in day')} <ChevronRight size={13} />
+                </button>
               </motion.div>
             )}
           </AnimatePresence>
@@ -1684,8 +1695,11 @@ export function InteractiveDemo({ scenario, locale = 'ko', onStartReal, onBack }
   const prevSnapshot = snapshots.length > 1 ? snapshots[snapshots.length - 2] : null;
   const dm = scenario.dmVariants[dmKey];
   const isDone = phase === 'settle';
-  // 봉인 카드에 넣을 결정 한 줄 — Q1이 덮어썼으면 그 값, 아니면 기본.
-  const sealDecisionLine = decisionLine ?? scenario.draftV2?.decisionLineDefault ?? scenario.draft.title;
+  // 봉인 카드는 '정본' 결정에 고정한다. 봉인/정산은 스크립트 고정이라, Q1 분기
+  // 결정을 여기 끌어오면 (결정·예측·정산) 삼각이 겉돌 수 있다(예: 기획안의
+  // '기존vs신사업' 가지). 정본 삼각으로 종막을 항상 일관되게 한다 — 분기가 만든
+  // 변주는 이미 위 초안 카드가 보여줬다.
+  const sealDecisionLine = scenario.draftV2?.decisionLineDefault ?? scenario.draft.title;
   // finalContent는 DemoFinalCard 안에서 직접 계산 (override-and-morph 지원)
 
   return (
@@ -1942,28 +1956,38 @@ export function InteractiveDemo({ scenario, locale = 'ko', onStartReal, onBack }
           {/* 9. Final */}
           {phase === 'final' && (
             <>
-              <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.5, ease: EASE }}
-                className="flex items-center justify-center gap-2 py-3">
-                <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ background: 'var(--gradient-gold)' }}>
-                  <Check size={14} className="text-white" />
+              {/* 완성 문서는 접어 둔다 — 클라이맥스는 아래 봉인이다 (문서는 도구). */}
+              <motion.details initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease: EASE }}
+                className="group rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] overflow-hidden">
+                <summary className="flex items-center gap-2.5 cursor-pointer select-none list-none px-5 py-3.5 [&::-webkit-details-marker]:hidden">
+                  <div className="w-6 h-6 rounded-full flex items-center justify-center shrink-0" style={{ background: 'var(--gradient-gold)' }}>
+                    <Check size={12} className="text-white" />
+                  </div>
+                  <span className="text-[13px] font-medium text-[var(--text-primary)] flex-1 min-w-0">
+                    {L('완성된 문서', 'The finished document')}
+                    <span className="text-[11px] text-[var(--text-tertiary)] ml-1.5">
+                      {concerns.filter(c => c.applied).length > 0
+                        ? L(`· 피드백 ${concerns.filter(c => c.applied).length}건 반영`, `· ${concerns.filter(c => c.applied).length} applied`)
+                        : L('· 초안 그대로', '· as-is')}
+                    </span>
+                  </span>
+                  <span className="text-[11px] text-[var(--text-tertiary)] group-open:hidden shrink-0">{L('펼쳐 보기', 'Expand')}</span>
+                  <ChevronDown size={15} className="text-[var(--text-tertiary)] transition-transform duration-200 group-open:rotate-180 shrink-0" />
+                </summary>
+                <div className="border-t border-[var(--border-subtle)] p-3">
+                  <AnimatePresence mode="wait">
+                    <DemoFinalCard
+                      key={concerns.map(c => c.applied ? '1' : '0').join('')}
+                      scenario={scenario}
+                      concerns={concerns}
+                      q1Answer={q1Answer}
+                      q2Answer={q2Answer}
+                      dmKey={dmKey}
+                      locale={locale}
+                    />
+                  </AnimatePresence>
                 </div>
-                <p className="text-[14px] font-medium text-[var(--text-primary)]">
-                  {concerns.filter(c => c.applied).length > 0
-                    ? L(`피드백 ${concerns.filter(c => c.applied).length}건 반영 완료`, `${concerns.filter(c => c.applied).length} feedback item(s) applied`)
-                    : L('초안 그대로 완성', 'Completed as-is')}
-                </p>
-              </motion.div>
-              <AnimatePresence mode="wait">
-                <DemoFinalCard
-                  key={concerns.map(c => c.applied ? '1' : '0').join('')}
-                  scenario={scenario}
-                  concerns={concerns}
-                  q1Answer={q1Answer}
-                  q2Answer={q2Answer}
-                  dmKey={dmKey}
-                  locale={locale}
-                />
-              </AnimatePresence>
+              </motion.details>
 
               {/* Seal CTA — 문서는 도구, 진짜는 봉인 → 정산 */}
               <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6, duration: 0.5, ease: EASE }}
@@ -2031,7 +2055,7 @@ export function InteractiveDemo({ scenario, locale = 'ko', onStartReal, onBack }
                 {i > 0 && <div className={`w-4 h-px transition-colors duration-500 ${reached ? 'bg-[var(--accent)]/40' : 'bg-[var(--border-subtle)]'}`} />}
                 <div className={`flex items-center gap-1 transition-all duration-300 ${current ? 'opacity-100' : reached ? 'opacity-60' : 'opacity-25'}`}>
                   <div className={`w-1.5 h-1.5 rounded-full transition-colors duration-500 ${reached ? 'bg-[var(--accent)]' : 'bg-[var(--text-tertiary)]'}`} />
-                  <span className={`text-[9px] ${current ? 'text-[var(--accent)] font-semibold' : 'text-[var(--text-tertiary)]'}`}>{label}</span>
+                  <span className={`hidden sm:inline text-[9px] ${current ? 'text-[var(--accent)] font-semibold' : 'text-[var(--text-tertiary)]'}`}>{label}</span>
                 </div>
               </div>
             );
