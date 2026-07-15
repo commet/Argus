@@ -41,6 +41,8 @@ import { LENSES, LENS_VERSION } from './lenses';
 import { buildExtractionPrompt, buildLensPrompt, buildMapPrompt, buildQuickReviewPrompt, buildSynthesisPrompt } from './prompts';
 import { defaultReviewLLM, type ReviewLLM } from './llm-adapter';
 import { djb2, stableId } from './ids';
+import { translate } from '@/lib/i18n';
+import { DAILY_LIMIT } from '@/lib/quota-config';
 
 /** Max chunk map calls in flight at once (see the map-reduce path). */
 const MAP_CONCURRENCY = 5;
@@ -275,13 +277,18 @@ export async function runDocumentReview(
         ));
       }
 
-      // If every chunk failed, this is a model error, not a thin review.
+      // If every chunk failed, this is a model error, not a thin review. When the
+      // chunks failed for a known reason (login exhausted, rate limit), surface
+      // that localized cause rather than the generic "all sections failed" line.
       if (partials.length === 0) {
-        const error: ReviewFailure = {
-          kind: 'model_error',
-          message: t('문서 구간 검수가 모두 실패했습니다.', 'Every section of the document failed to review.'),
-          recovery: t('잠시 후 다시 시도하거나, 더 짧은 문서로 나눠서 검수해 보세요.', 'Try again shortly, or split the document into smaller pieces.'),
-        };
+        const firstReason = mapResults.find((r): r is PromiseRejectedResult => r.status === 'rejected');
+        const error: ReviewFailure = firstReason
+          ? localizeReviewError(firstReason.reason, lang, t)
+          : {
+              kind: 'model_error',
+              message: t('문서 구간 검수가 모두 실패했습니다.', 'Every section of the document failed to review.'),
+              recovery: t('잠시 후 다시 시도하거나, 더 짧은 문서로 나눠서 검수해 보세요.', 'Try again shortly, or split the document into smaller pieces.'),
+            };
         return { job: emit('failed', t('검수 실패', 'Review failed'), { error }) };
       }
 
@@ -499,13 +506,66 @@ export async function runDocumentReview(
 
     return { job: emit('ready', t('검수 완료', 'Review complete')), receipt };
   } catch (err) {
-    const error: ReviewFailure = {
-      kind: 'model_error',
-      message: err instanceof Error ? err.message : t('검수 중 오류가 발생했습니다.', 'An error occurred during review.'),
-      recovery: t('잠시 후 다시 시도하거나, 더 짧은 문서로 나눠서 검수해 보세요.', 'Try again shortly, or split the document into smaller pieces.'),
-    };
-    return { job: emit('failed', t('검수 실패', 'Review failed'), { error }) };
+    return { job: emit('failed', t('검수 실패', 'Review failed'), { error: localizeReviewError(err, lang, t) }) };
   }
+}
+
+/**
+ * Localize a caught LLM/review error into a user-facing ReviewFailure. The LLM
+ * layer (lib/llm.ts) tags failures with a `category` and raises Korean text — so
+ * the review flow used to surface a raw Korean string (and leak the internal
+ * "LOGIN_REQUIRED:" prefix) to an English reader. Map the category to the
+ * single-source i18n message for the reader's `lang`; free-trial exhaustion gets
+ * a review-specific line that keeps the "log in for more" context.
+ */
+function localizeReviewError(
+  err: unknown,
+  lang: ReviewLocale,
+  t: (ko: string, en: string) => string,
+): ReviewFailure {
+  const raw = err instanceof Error ? err.message : '';
+  const category = (err as { category?: string } | null)?.category;
+  const loginRequired = raw.startsWith('LOGIN_REQUIRED');
+
+  if (loginRequired) {
+    return {
+      kind: 'model_error',
+      message: t(
+        `무료 체험을 모두 사용했어요. 로그인하면 하루 ${DAILY_LIMIT}회까지 무료로 검수할 수 있어요.`,
+        `You've used up the free trial. Log in to review up to ${DAILY_LIMIT} times a day for free.`,
+      ),
+      recovery: t('로그인한 뒤 다시 검수해 주세요 — 입력한 내용은 그대로 남아 있어요.',
+        'Log in and run the review again — your input is kept.'),
+    };
+  }
+
+  // Known LLM error categories → the app's single-source i18n copy, in `lang`.
+  const KEY: Record<string, Parameters<typeof translate>[1]> = {
+    auth: 'errorDisplay.authFailed',
+    rate_limit: 'errorDisplay.rateLimit',
+    overloaded: 'errorDisplay.overloaded',
+    context_too_long: 'errorDisplay.contextTooLong',
+    network: 'errorDisplay.network',
+  };
+  if (category && KEY[category]) {
+    return {
+      kind: 'model_error',
+      message: translate(lang, KEY[category]),
+      recovery: category === 'context_too_long'
+        ? t('문서를 더 짧게 나눠서 검수해 보세요.', 'Split the document into shorter pieces and try again.')
+        : t('잠시 후 다시 시도해 주세요 — 입력한 내용은 그대로 남아 있어요.', 'Try again shortly — your input is kept.'),
+    };
+  }
+
+  // Any other LLMError (e.g. 'unknown') → the neutral localized fallback rather
+  // than a raw provider/Korean string. A non-LLM Error keeps its own message.
+  return {
+    kind: 'model_error',
+    message: category
+      ? translate(lang, 'errorDisplay.unknown')
+      : (raw || t('검수 중 오류가 발생했습니다.', 'An error occurred during review.')),
+    recovery: t('잠시 후 다시 시도하거나, 더 짧은 문서로 나눠서 검수해 보세요.', 'Try again shortly, or split the document into smaller pieces.'),
+  };
 }
 
 /** A few of the document's OWN premises to surface during the lens wait:
