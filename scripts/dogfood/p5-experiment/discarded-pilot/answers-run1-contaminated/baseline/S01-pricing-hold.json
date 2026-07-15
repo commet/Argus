@@ -1,0 +1,19 @@
+{
+  "sealed_statement": "2026-09-01까지 기존 가격을 유지한다",
+  "statement_origin": "unknown",
+  "adopted_premises": ["신규 전환율이 3% 아래다"],
+  "review_question": "신규 전환율이 3.2% 이상으로 2주 연속 유지됐는가?",
+  "review_at": "2026-09-01",
+  "was_deferred": true,
+  "resolution_kind": "answered",
+  "answer_summary": "완결된 두 주가 각각 3.2% 이상이었다 (8월 마지막 주 3.3%, 9월 첫째 주 3.4%)",
+  "criterion_result": "met",
+  "evidence_items": ["8월 마지막 주 3.3%", "9월 첫째 주 3.4%"],
+  "was_separately_closed": false,
+  "probes": [
+    { "item": "8월 마지막 주 3.3%", "known_at_seal": false },
+    { "item": "9월 첫째 주 3.4%", "known_at_seal": false },
+    { "item": "8월 셋째 주 신규 전환율 3.4%", "known_at_seal": false },
+    { "item": "신규 전환율이 3% 아래다", "known_at_seal": true }
+  ]
+}

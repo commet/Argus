@@ -24,6 +24,19 @@ export const SemanticWebCommandSchema = z.discriminatedUnion('kind', [
     statement: z.string().min(1).max(4000), return_contract_id: zId,
     review_at: zIsoDateTime, review_question: z.string().min(1).max(4000),
     resolution_criterion: z.string().min(1).max(2000).optional(),
+    /** Who first wrote the statement TEXT (provenance, not authority — 제2조).
+     * 'ai' = an AI draft the user adopted verbatim; default 'human'. The seal
+     * itself is always human-authorized either way. */
+    statement_originated_by: z.enum(['human', 'ai']).optional(),
+    /** Premises the user adopts in the SAME confirmation (§6.2: one command,
+     * several semantic events, one confirmation). Absent for months from this
+     * surface — the design's premise_adopted had no web write path, found by
+     * the P5 blind-reconstruction run (dkk premise recovery was 0). */
+    premises: z.array(z.strictObject({
+      premise_id: zId,
+      text: z.string().min(1).max(4000),
+      originated_by: z.enum(['human', 'ai']).optional(),
+    })).max(16).optional(),
   }),
   z.strictObject({
     kind: z.literal('observe'), command_id: zCommandId, observation_id: zId,
@@ -144,21 +157,50 @@ export function buildSemanticWebCommand(input: SemanticWebCommandInput): Semanti
   const command = parsedCommand.data;
 
   switch (command.kind) {
-    case 'seal':
+    case 'seal': {
       // Multi-event batches carry an ordinal in the event id. The ledger table
       // stores one created_at per transaction, and every reader breaks the tie
       // with ORDER BY event_id — without the ordinal, ':return' sorts before
       // ':sealed' and the fold drops the return contract as an unknown
       // reference (found by scripts/dogfood, scenario W1 root cause).
+      const sealedBase = commandEventBase(projectId, command, recordedAt, '1-sealed', origin);
+      // Provenance ≠ authority (제2조 저자성 세탁 금지): when the user adopted an
+      // AI-drafted statement verbatim, the CONTENT originated from the AI even
+      // though the seal is human-authorized. Hardcoding 'human' here silently
+      // upgraded AI provenance — found by the P5 reconstruction experiment.
+      const sealedAuthority = command.statement_originated_by === 'ai'
+        ? { ...sealedBase.authority, originated_by: { kind: 'ai' as const, id: `assistant:${command.command_id}` } }
+        : sealedBase.authority;
+      // Premise events ride the same atomic batch and the same single human
+      // confirmation. Ordinals keep every table read-back order valid: any
+      // suffix sorts after '1-sealed', and premise_adopted only needs the
+      // sealed judgment to exist.
+      const premiseEvents = (command.premises ?? []).map((premise, index) => {
+        const premiseBase = commandEventBase(projectId, command, recordedAt, `${index + 3}-premise`, origin);
+        return {
+          ...premiseBase,
+          event_id: `${premiseBase.event_id}-${premise.premise_id}`,
+          idempotency_key: `${premiseBase.idempotency_key}-${premise.premise_id}`,
+          authority: premise.originated_by === 'ai'
+            ? { ...premiseBase.authority, originated_by: { kind: 'ai' as const, id: `assistant:${command.command_id}` } }
+            : premiseBase.authority,
+          event: 'premise_adopted' as const,
+          premise_id: premise.premise_id,
+          judgment_id: command.judgment_id,
+          text: premise.text,
+        };
+      });
       return {
         ok: true,
         events: [
           {
-            ...commandEventBase(projectId, command, recordedAt, '1-sealed', origin),
+            ...sealedBase,
+            authority: sealedAuthority,
             event: 'judgment_sealed',
             judgment_id: command.judgment_id,
             statement: command.statement,
           },
+          ...premiseEvents,
           {
             ...commandEventBase(projectId, command, recordedAt, '2-return', origin),
             event: 'return_promised',
@@ -170,6 +212,7 @@ export function buildSemanticWebCommand(input: SemanticWebCommandInput): Semanti
           },
         ],
       };
+    }
     case 'observe':
       return {
         ok: true,

@@ -1,0 +1,281 @@
+{
+  "packet_id": "S12-dbmove.dkk_v6",
+  "questionnaire": "당신은 기록 감사인이다. 이 결정이 있고 몇 달이 지났고, 당신이 가진 것은 아래 record가 전부다.\nrecord에 없는 것은 추측하지 말고 \"unknown\"으로 답하라 — unknown은 감점이 아니며, 근거 없는 확신이 감점이다.\n\n각 질문에 JSON으로 답하라:\n{\n  \"sealed_statement\": \"봉인된 판단문을 기록에서 찾은 그대로 (없으면 unknown)\",\n  \"statement_origin\": \"그 문장을 처음 쓴 주체는? 'ai'(AI 초안을 그대로 채택) | 'human'(사용자 자신의 문장) | 'unknown'\",\n  \"adopted_premises\": [\"봉인 당시 사용자가 채택한 전제들 (기록 근거가 있는 것만)\"],\n  \"review_question\": \"돌아보기로 약속한 질문 (없으면 unknown)\",\n  \"review_at\": \"약속한 확인일 YYYY-MM-DD (없으면 unknown)\",\n  \"was_deferred\": true | false | \"unknown\",\n  \"resolution_kind\": \"answered | indeterminate | moot | unknown\",\n  \"answer_summary\": \"확인한 답의 요지 (없으면 unknown)\",\n  \"criterion_result\": \"met | not_met | partial | not_applicable | none_recorded | unknown\",\n  \"evidence_items\": [\"종결의 근거가 된 관찰들\"],\n  \"was_separately_closed\": true | false | \"unknown\",\n  \"probes\": [{ \"item\": \"<probe 문장 그대로>\", \"known_at_seal\": true | false | \"unknown\" }]\n}\n\nprobes 규칙: 각 항목에 대해 \"이 사실/전제가 봉인 시점에 이미 기록에 존재했는가(사용자가 봉인 당시 알고 채택/인지했는가)\"를\n기록의 시간 정보만으로 판정하라. 기록이 시점을 구분해주지 않으면 unknown.",
+  "probes": [
+    "지원 티켓 3건, 상태페이지 신고 1건",
+    "인덱스 리빌드가 복제 지연 예산 안에 든다",
+    "APM상 12분 오류율 상승"
+  ],
+  "record": {
+    "ledger_events": [
+      {
+        "event_id": "web:S12-dbmove-seal:1-sealed",
+        "v": 3,
+        "space_id": "account-project:p5-S12-dbmove",
+        "idempotency_key": "web:S12-dbmove-seal:1-sealed",
+        "atomic_batch_id": "web:S12-dbmove-seal",
+        "time": {
+          "occurred_at": "2026-06-01T10:01:10+09:00",
+          "recorded_at": "2026-06-01T10:01:10+09:00",
+          "authorized_at": "2026-06-01T10:01:10+09:00",
+          "temporal_mode": "contemporaneous"
+        },
+        "authority": {
+          "originated_by": {
+            "kind": "human",
+            "id": "account-project:p5-S12-dbmove"
+          },
+          "recorded_by": {
+            "kind": "system",
+            "id": "web:argus"
+          },
+          "authorized_by": {
+            "kind": "human",
+            "id": "account-project:p5-S12-dbmove"
+          },
+          "authorization_mode": "explicit_confirmation",
+          "authorization_ref": {
+            "kind": "command_digest",
+            "ref": "web-command:seal:S12-dbmove-seal"
+          }
+        },
+        "event": "judgment_sealed",
+        "judgment_id": "S12-dbmove-j1",
+        "statement": "7월 둘째 주에 주 DB를 이관한다"
+      },
+      {
+        "event_id": "web:S12-dbmove-seal:2-return",
+        "v": 3,
+        "space_id": "account-project:p5-S12-dbmove",
+        "idempotency_key": "web:S12-dbmove-seal:2-return",
+        "atomic_batch_id": "web:S12-dbmove-seal",
+        "time": {
+          "occurred_at": "2026-06-01T10:01:10+09:00",
+          "recorded_at": "2026-06-01T10:01:10+09:00",
+          "authorized_at": "2026-06-01T10:01:10+09:00",
+          "temporal_mode": "contemporaneous"
+        },
+        "authority": {
+          "originated_by": {
+            "kind": "human",
+            "id": "account-project:p5-S12-dbmove"
+          },
+          "recorded_by": {
+            "kind": "system",
+            "id": "web:argus"
+          },
+          "authorized_by": {
+            "kind": "human",
+            "id": "account-project:p5-S12-dbmove"
+          },
+          "authorization_mode": "explicit_confirmation",
+          "authorization_ref": {
+            "kind": "command_digest",
+            "ref": "web-command:seal:S12-dbmove-seal"
+          }
+        },
+        "event": "return_promised",
+        "return_contract_id": "S12-dbmove-r1",
+        "judgment_id": "S12-dbmove-j1",
+        "review_at": "2026-07-15T09:00:00+09:00",
+        "review_question": "고객 체감 다운타임이 5분 이내였는가",
+        "resolution_criterion": "상태페이지 신고 + 지원 티켓 기준"
+      },
+      {
+        "event_id": "web:S12-dbmove-seal:3-premise-S12-dbmove-p1",
+        "v": 3,
+        "space_id": "account-project:p5-S12-dbmove",
+        "idempotency_key": "web:S12-dbmove-seal:3-premise-S12-dbmove-p1",
+        "atomic_batch_id": "web:S12-dbmove-seal",
+        "time": {
+          "occurred_at": "2026-06-01T10:01:10+09:00",
+          "recorded_at": "2026-06-01T10:01:10+09:00",
+          "authorized_at": "2026-06-01T10:01:10+09:00",
+          "temporal_mode": "contemporaneous"
+        },
+        "authority": {
+          "originated_by": {
+            "kind": "human",
+            "id": "account-project:p5-S12-dbmove"
+          },
+          "recorded_by": {
+            "kind": "system",
+            "id": "web:argus"
+          },
+          "authorized_by": {
+            "kind": "human",
+            "id": "account-project:p5-S12-dbmove"
+          },
+          "authorization_mode": "explicit_confirmation",
+          "authorization_ref": {
+            "kind": "command_digest",
+            "ref": "web-command:seal:S12-dbmove-seal"
+          }
+        },
+        "event": "premise_adopted",
+        "premise_id": "S12-dbmove-p1",
+        "judgment_id": "S12-dbmove-j1",
+        "text": "인덱스 리빌드가 복제 지연 예산 안에 든다"
+      },
+      {
+        "event_id": "web:S12-dbmove-obs1:observation",
+        "v": 3,
+        "space_id": "account-project:p5-S12-dbmove",
+        "idempotency_key": "web:S12-dbmove-obs1:observation",
+        "time": {
+          "occurred_at": "2026-07-12T09:00:00+09:00",
+          "recorded_at": "2026-07-12T09:00:00+09:00",
+          "temporal_mode": "contemporaneous"
+        },
+        "authority": {
+          "originated_by": {
+            "kind": "human",
+            "id": "account-project:p5-S12-dbmove"
+          },
+          "recorded_by": {
+            "kind": "system",
+            "id": "web:argus"
+          },
+          "observed_by": {
+            "kind": "human",
+            "id": "account-project:p5-S12-dbmove"
+          }
+        },
+        "event": "observation_recorded",
+        "observation_id": "S12-dbmove-o1",
+        "text": "이관 완료. APM상 12분간 오류율 상승. 지원 티켓 3건, 상태페이지 신고 1건.",
+        "provenance": {
+          "source_kind": "user_utterance",
+          "source_ref": "transcript:S12-dbmove",
+          "verification": "pasted"
+        }
+      },
+      {
+        "event_id": "web:S12-dbmove-oar:1-observation",
+        "v": 3,
+        "space_id": "account-project:p5-S12-dbmove",
+        "idempotency_key": "web:S12-dbmove-oar:1-observation",
+        "atomic_batch_id": "web:S12-dbmove-oar",
+        "time": {
+          "occurred_at": "2026-07-15T10:00:00+09:00",
+          "recorded_at": "2026-07-15T10:00:00+09:00",
+          "authorized_at": "2026-07-15T10:00:00+09:00",
+          "temporal_mode": "contemporaneous"
+        },
+        "authority": {
+          "originated_by": {
+            "kind": "human",
+            "id": "account-project:p5-S12-dbmove"
+          },
+          "recorded_by": {
+            "kind": "system",
+            "id": "web:argus"
+          },
+          "observed_by": {
+            "kind": "human",
+            "id": "account-project:p5-S12-dbmove"
+          }
+        },
+        "event": "observation_recorded",
+        "observation_id": "S12-dbmove-ofinal",
+        "text": "APM 12분 오류율 상승; 지원 티켓 3건, 상태페이지 신고 1건 (사용자 보고)",
+        "provenance": {
+          "source_kind": "user_utterance",
+          "verification": "pasted"
+        }
+      },
+      {
+        "event_id": "web:S12-dbmove-oar:2-resolution",
+        "v": 3,
+        "space_id": "account-project:p5-S12-dbmove",
+        "idempotency_key": "web:S12-dbmove-oar:2-resolution",
+        "atomic_batch_id": "web:S12-dbmove-oar",
+        "time": {
+          "occurred_at": "2026-07-15T10:00:00+09:00",
+          "recorded_at": "2026-07-15T10:00:00+09:00",
+          "authorized_at": "2026-07-15T10:00:00+09:00",
+          "temporal_mode": "contemporaneous"
+        },
+        "authority": {
+          "originated_by": {
+            "kind": "human",
+            "id": "account-project:p5-S12-dbmove"
+          },
+          "recorded_by": {
+            "kind": "system",
+            "id": "web:argus"
+          },
+          "authorized_by": {
+            "kind": "human",
+            "id": "account-project:p5-S12-dbmove"
+          },
+          "authorization_mode": "explicit_confirmation",
+          "authorization_ref": {
+            "kind": "command_digest",
+            "ref": "web-command:observe_and_resolve:S12-dbmove-oar"
+          }
+        },
+        "event": "resolution_asserted",
+        "resolution_id": "S12-dbmove-res1",
+        "judgment_id": "S12-dbmove-j1",
+        "return_contract_id": "S12-dbmove-r1",
+        "resolution": {
+          "kind": "answered",
+          "answer_summary": "12분 오류율 상승과 티켓 발생으로 5분 예산 초과",
+          "criterion_result": "not_met",
+          "evidence_refs": [
+            "S12-dbmove-ofinal"
+          ]
+        }
+      },
+      {
+        "event_id": "web:S12-dbmove-close:closed",
+        "v": 3,
+        "space_id": "account-project:p5-S12-dbmove",
+        "idempotency_key": "web:S12-dbmove-close:closed",
+        "time": {
+          "occurred_at": "2026-07-15T10:00:00+09:00",
+          "recorded_at": "2026-07-15T10:00:00+09:00",
+          "authorized_at": "2026-07-15T10:00:00+09:00",
+          "temporal_mode": "contemporaneous"
+        },
+        "authority": {
+          "originated_by": {
+            "kind": "human",
+            "id": "account-project:p5-S12-dbmove"
+          },
+          "recorded_by": {
+            "kind": "system",
+            "id": "web:argus"
+          },
+          "authorized_by": {
+            "kind": "human",
+            "id": "account-project:p5-S12-dbmove"
+          },
+          "authorization_mode": "explicit_confirmation",
+          "authorization_ref": {
+            "kind": "command_digest",
+            "ref": "web-command:close:S12-dbmove-close"
+          }
+        },
+        "event": "judgment_closed",
+        "judgment_id": "S12-dbmove-j1",
+        "resolution_id": "S12-dbmove-res1"
+      }
+    ],
+    "projection": {
+      "judgment_id": "S12-dbmove-j1",
+      "lifecycle": "resolved_answered",
+      "statement": "7월 둘째 주에 주 DB를 이관한다",
+      "active_return_contract_id": "S12-dbmove-r1",
+      "resolution": {
+        "kind": "answered",
+        "answer_summary": "12분 오류율 상승과 티켓 발생으로 5분 예산 초과",
+        "criterion_result": "not_met",
+        "evidence_refs": [
+          "S12-dbmove-ofinal"
+        ]
+      }
+    }
+  }
+}

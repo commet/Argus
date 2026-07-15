@@ -1,0 +1,18 @@
+{
+  "sealed_statement": "플랫폼팀을 인프라/개발경험 둘로 나눈다",
+  "statement_origin": "unknown",
+  "adopted_premises": ["채용 두 명이 3월까지 합류한다"],
+  "review_question": "2분기 배포 빈도가 주 10회를 넘는가",
+  "review_at": "2026-07-01",
+  "was_deferred": false,
+  "resolution_kind": "answered",
+  "answer_summary": "2분기 주당 배포 빈도 평균 12.3회로 10회를 넘었다",
+  "criterion_result": "met",
+  "evidence_items": ["2분기 주당 배포 빈도 평균 12.3회"],
+  "was_separately_closed": false,
+  "probes": [
+    { "item": "2분기 주당 배포 빈도 평균 12.3회", "known_at_seal": false },
+    { "item": "채용 두 명이 3월까지 합류한다", "known_at_seal": true },
+    { "item": "채용이 한 명만 됨 (전제 폐기)", "known_at_seal": false }
+  ]
+}

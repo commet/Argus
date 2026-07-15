@@ -1,0 +1,17 @@
+{
+  "sealed_statement": "브랜드 캠페인에 2천을 쓴다 — 4월 말까지 브랜드 검색량이 30% 이상 오른다는 예측으로",
+  "statement_origin": "unknown",
+  "adopted_premises": ["검색량 데이터를 주 단위로 얻을 수 있다"],
+  "review_question": "4월 말까지 브랜드 검색량이 30% 이상 올랐는가",
+  "review_at": "2026-04-30",
+  "was_deferred": false,
+  "resolution_kind": "indeterminate",
+  "answer_summary": "집계 방식 변경으로 비교 기준선이 소실되어 답할 수 없다",
+  "criterion_result": "unknown",
+  "evidence_items": ["검색량 API 집계 방식 변경 공지"],
+  "was_separately_closed": false,
+  "probes": [
+    { "item": "검색량 API 집계 방식 변경으로 2월 이전과 비교 불가", "known_at_seal": false },
+    { "item": "검색량 데이터를 주 단위로 얻을 수 있다", "known_at_seal": true }
+  ]
+}

@@ -1,0 +1,277 @@
+{
+  "packet_id": "S04-campaign.dkk_v6",
+  "questionnaire": "당신은 기록 감사인이다. 이 결정이 있고 몇 달이 지났고, 당신이 가진 것은 아래 record가 전부다.\nrecord에 없는 것은 추측하지 말고 \"unknown\"으로 답하라 — unknown은 감점이 아니며, 근거 없는 확신이 감점이다.\n\n각 질문에 JSON으로 답하라:\n{\n  \"sealed_statement\": \"봉인된 판단문을 기록에서 찾은 그대로 (없으면 unknown)\",\n  \"statement_origin\": \"그 문장을 처음 쓴 주체는? 'ai'(AI 초안을 그대로 채택) | 'human'(사용자 자신의 문장) | 'unknown'\",\n  \"adopted_premises\": [\"봉인 당시 사용자가 채택한 전제들 (기록 근거가 있는 것만)\"],\n  \"review_question\": \"돌아보기로 약속한 질문 (없으면 unknown)\",\n  \"review_at\": \"약속한 확인일 YYYY-MM-DD (없으면 unknown)\",\n  \"was_deferred\": true | false | \"unknown\",\n  \"resolution_kind\": \"answered | indeterminate | moot | unknown\",\n  \"answer_summary\": \"확인한 답의 요지 (없으면 unknown)\",\n  \"criterion_result\": \"met | not_met | partial | not_applicable | none_recorded | unknown\",\n  \"evidence_items\": [\"종결의 근거가 된 관찰들\"],\n  \"was_separately_closed\": true | false | \"unknown\",\n  \"probes\": [{ \"item\": \"<probe 문장 그대로>\", \"known_at_seal\": true | false | \"unknown\" }]\n}\n\nprobes 규칙: 각 항목에 대해 \"이 사실/전제가 봉인 시점에 이미 기록에 존재했는가(사용자가 봉인 당시 알고 채택/인지했는가)\"를\n기록의 시간 정보만으로 판정하라. 기록이 시점을 구분해주지 않으면 unknown.",
+  "probes": [
+    "검색량 API 집계 방식 변경으로 2월 이전과 비교 불가",
+    "검색량 데이터를 주 단위로 얻을 수 있다"
+  ],
+  "record": {
+    "ledger_events": [
+      {
+        "event_id": "web:S04-campaign-seal:1-sealed",
+        "v": 3,
+        "space_id": "account-project:p5-S04-campaign",
+        "idempotency_key": "web:S04-campaign-seal:1-sealed",
+        "atomic_batch_id": "web:S04-campaign-seal",
+        "time": {
+          "occurred_at": "2026-02-14T13:01:10+09:00",
+          "recorded_at": "2026-02-14T13:01:10+09:00",
+          "authorized_at": "2026-02-14T13:01:10+09:00",
+          "temporal_mode": "contemporaneous"
+        },
+        "authority": {
+          "originated_by": {
+            "kind": "human",
+            "id": "account-project:p5-S04-campaign"
+          },
+          "recorded_by": {
+            "kind": "system",
+            "id": "web:argus"
+          },
+          "authorized_by": {
+            "kind": "human",
+            "id": "account-project:p5-S04-campaign"
+          },
+          "authorization_mode": "explicit_confirmation",
+          "authorization_ref": {
+            "kind": "command_digest",
+            "ref": "web-command:seal:S04-campaign-seal"
+          }
+        },
+        "event": "judgment_sealed",
+        "judgment_id": "S04-campaign-j1",
+        "statement": "브랜드 캠페인에 2천을 쓴다 — 4월 말까지 브랜드 검색량이 30% 이상 오른다는 예측으로"
+      },
+      {
+        "event_id": "web:S04-campaign-seal:2-return",
+        "v": 3,
+        "space_id": "account-project:p5-S04-campaign",
+        "idempotency_key": "web:S04-campaign-seal:2-return",
+        "atomic_batch_id": "web:S04-campaign-seal",
+        "time": {
+          "occurred_at": "2026-02-14T13:01:10+09:00",
+          "recorded_at": "2026-02-14T13:01:10+09:00",
+          "authorized_at": "2026-02-14T13:01:10+09:00",
+          "temporal_mode": "contemporaneous"
+        },
+        "authority": {
+          "originated_by": {
+            "kind": "human",
+            "id": "account-project:p5-S04-campaign"
+          },
+          "recorded_by": {
+            "kind": "system",
+            "id": "web:argus"
+          },
+          "authorized_by": {
+            "kind": "human",
+            "id": "account-project:p5-S04-campaign"
+          },
+          "authorization_mode": "explicit_confirmation",
+          "authorization_ref": {
+            "kind": "command_digest",
+            "ref": "web-command:seal:S04-campaign-seal"
+          }
+        },
+        "event": "return_promised",
+        "return_contract_id": "S04-campaign-r1",
+        "judgment_id": "S04-campaign-j1",
+        "review_at": "2026-04-30T09:00:00+09:00",
+        "review_question": "4월 말까지 브랜드 검색량이 30% 이상 올랐는가"
+      },
+      {
+        "event_id": "web:S04-campaign-seal:3-premise-S04-campaign-p1",
+        "v": 3,
+        "space_id": "account-project:p5-S04-campaign",
+        "idempotency_key": "web:S04-campaign-seal:3-premise-S04-campaign-p1",
+        "atomic_batch_id": "web:S04-campaign-seal",
+        "time": {
+          "occurred_at": "2026-02-14T13:01:10+09:00",
+          "recorded_at": "2026-02-14T13:01:10+09:00",
+          "authorized_at": "2026-02-14T13:01:10+09:00",
+          "temporal_mode": "contemporaneous"
+        },
+        "authority": {
+          "originated_by": {
+            "kind": "ai",
+            "id": "assistant:S04-campaign-seal"
+          },
+          "recorded_by": {
+            "kind": "system",
+            "id": "web:argus"
+          },
+          "authorized_by": {
+            "kind": "human",
+            "id": "account-project:p5-S04-campaign"
+          },
+          "authorization_mode": "explicit_confirmation",
+          "authorization_ref": {
+            "kind": "command_digest",
+            "ref": "web-command:seal:S04-campaign-seal"
+          }
+        },
+        "event": "premise_adopted",
+        "premise_id": "S04-campaign-p1",
+        "judgment_id": "S04-campaign-j1",
+        "text": "검색량 데이터를 주 단위로 얻을 수 있다"
+      },
+      {
+        "event_id": "web:S04-campaign-obs1:observation",
+        "v": 3,
+        "space_id": "account-project:p5-S04-campaign",
+        "idempotency_key": "web:S04-campaign-obs1:observation",
+        "time": {
+          "occurred_at": "2026-04-28T09:00:00+09:00",
+          "recorded_at": "2026-04-28T09:00:00+09:00",
+          "temporal_mode": "contemporaneous"
+        },
+        "authority": {
+          "originated_by": {
+            "kind": "human",
+            "id": "account-project:p5-S04-campaign"
+          },
+          "recorded_by": {
+            "kind": "system",
+            "id": "web:argus"
+          },
+          "observed_by": {
+            "kind": "human",
+            "id": "account-project:p5-S04-campaign"
+          }
+        },
+        "event": "observation_recorded",
+        "observation_id": "S04-campaign-o1",
+        "text": "문제: 검색량 API 제공사가 3월부터 집계 방식을 바꿔 2월 이전과 비교가 불가능하다고 공지했어요.",
+        "provenance": {
+          "source_kind": "user_utterance",
+          "source_ref": "transcript:S04-campaign",
+          "verification": "pasted"
+        }
+      },
+      {
+        "event_id": "web:S04-campaign-oar:1-observation",
+        "v": 3,
+        "space_id": "account-project:p5-S04-campaign",
+        "idempotency_key": "web:S04-campaign-oar:1-observation",
+        "atomic_batch_id": "web:S04-campaign-oar",
+        "time": {
+          "occurred_at": "2026-04-30T10:00:00+09:00",
+          "recorded_at": "2026-04-30T10:00:00+09:00",
+          "authorized_at": "2026-04-30T10:00:00+09:00",
+          "temporal_mode": "contemporaneous"
+        },
+        "authority": {
+          "originated_by": {
+            "kind": "human",
+            "id": "account-project:p5-S04-campaign"
+          },
+          "recorded_by": {
+            "kind": "system",
+            "id": "web:argus"
+          },
+          "observed_by": {
+            "kind": "human",
+            "id": "account-project:p5-S04-campaign"
+          }
+        },
+        "event": "observation_recorded",
+        "observation_id": "S04-campaign-ofinal",
+        "text": "검색량 API 집계 방식 변경 공지 (사용자 보고)",
+        "provenance": {
+          "source_kind": "user_utterance",
+          "verification": "pasted"
+        }
+      },
+      {
+        "event_id": "web:S04-campaign-oar:2-resolution",
+        "v": 3,
+        "space_id": "account-project:p5-S04-campaign",
+        "idempotency_key": "web:S04-campaign-oar:2-resolution",
+        "atomic_batch_id": "web:S04-campaign-oar",
+        "time": {
+          "occurred_at": "2026-04-30T10:00:00+09:00",
+          "recorded_at": "2026-04-30T10:00:00+09:00",
+          "authorized_at": "2026-04-30T10:00:00+09:00",
+          "temporal_mode": "contemporaneous"
+        },
+        "authority": {
+          "originated_by": {
+            "kind": "human",
+            "id": "account-project:p5-S04-campaign"
+          },
+          "recorded_by": {
+            "kind": "system",
+            "id": "web:argus"
+          },
+          "authorized_by": {
+            "kind": "human",
+            "id": "account-project:p5-S04-campaign"
+          },
+          "authorization_mode": "explicit_confirmation",
+          "authorization_ref": {
+            "kind": "command_digest",
+            "ref": "web-command:observe_and_resolve:S04-campaign-oar"
+          }
+        },
+        "event": "resolution_asserted",
+        "resolution_id": "S04-campaign-res1",
+        "judgment_id": "S04-campaign-j1",
+        "return_contract_id": "S04-campaign-r1",
+        "resolution": {
+          "kind": "indeterminate",
+          "reason": "집계 방식 변경으로 비교 기준선이 소실되어 답할 수 없다",
+          "evidence_refs": [
+            "S04-campaign-ofinal"
+          ]
+        }
+      },
+      {
+        "event_id": "web:S04-campaign-close:closed",
+        "v": 3,
+        "space_id": "account-project:p5-S04-campaign",
+        "idempotency_key": "web:S04-campaign-close:closed",
+        "time": {
+          "occurred_at": "2026-04-30T10:00:00+09:00",
+          "recorded_at": "2026-04-30T10:00:00+09:00",
+          "authorized_at": "2026-04-30T10:00:00+09:00",
+          "temporal_mode": "contemporaneous"
+        },
+        "authority": {
+          "originated_by": {
+            "kind": "human",
+            "id": "account-project:p5-S04-campaign"
+          },
+          "recorded_by": {
+            "kind": "system",
+            "id": "web:argus"
+          },
+          "authorized_by": {
+            "kind": "human",
+            "id": "account-project:p5-S04-campaign"
+          },
+          "authorization_mode": "explicit_confirmation",
+          "authorization_ref": {
+            "kind": "command_digest",
+            "ref": "web-command:close:S04-campaign-close"
+          }
+        },
+        "event": "judgment_closed",
+        "judgment_id": "S04-campaign-j1",
+        "resolution_id": "S04-campaign-res1"
+      }
+    ],
+    "projection": {
+      "judgment_id": "S04-campaign-j1",
+      "lifecycle": "resolved_indeterminate",
+      "statement": "브랜드 캠페인에 2천을 쓴다 — 4월 말까지 브랜드 검색량이 30% 이상 오른다는 예측으로",
+      "active_return_contract_id": "S04-campaign-r1",
+      "resolution": {
+        "kind": "indeterminate",
+        "reason": "집계 방식 변경으로 비교 기준선이 소실되어 답할 수 없다",
+        "evidence_refs": [
+          "S04-campaign-ofinal"
+        ]
+      }
+    }
+  }
+}

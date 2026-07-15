@@ -13,7 +13,7 @@
  *   - output in the document's language, pure JSON.
  */
 
-import { type ArtifactUnit, type JudgmentLens, type UserReviewContext } from './schema.js';
+import { type ArtifactUnit, type JudgmentLens, type UserReviewContext, type ReviewLocale } from './schema.js';
 
 const SPINE = `너는 Argus의 판단 검수기다. 사용자의 결정을 대신 내리지 않는다.
 - 절대 "이 전략은 틀렸다", "진행하세요" 같은 평결을 내지 않는다.
@@ -23,8 +23,20 @@ const SPINE = `너는 Argus의 판단 검수기다. 사용자의 결정을 대�
   식별자(u_...)를 문장에 절대 노출하지 않는다. unit_id는 오직 unit_ids 배열에만 넣는다.
 - "리스크를 고려하세요", "더 조사하세요" 같은 일반론은 금지한다. 무엇을 확인할지 구체적으로 쓴다.
 - 원문에 없는 사실을 지어내지 않는다.
-- 출력은 순수 JSON. 마크다운/설명 없이 { 로 시작해 } 로 끝난다.
-- 모든 사용자 노출 값은 원문과 사용자 맥락의 주된 언어로 쓴다. 한국어 문서는 한국어로, 영어 문서는 영어로 쓴다. 서로 섞지 않는다.`;
+- 출력은 순수 JSON. 마크다운/설명 없이 { 로 시작해 } 로 끝난다.`;
+
+/**
+ * Output-language directive — appended LAST to every stage's system prompt so it
+ * wins over the Korean prompt scaffolding above it. Without this, the Korean
+ * instructions drag the model into Korean output even for an English document
+ * read by an English-locale user. This makes the review answer in the reader's
+ * locale (`lang`), not the prompt's language or the document's.
+ */
+function langDirective(lang: ReviewLocale): string {
+  return lang === 'en'
+    ? `OUTPUT LANGUAGE — HIGHEST PRIORITY, overrides everything above: write EVERY user-facing string value in the JSON (every title, detail, rationale, question, heading, statement, label, text, if_false, suggested_action, …) in ENGLISH. The source document and these instructions may be in Korean; your output values MUST still be in English, and must never mix the two. Structural tokens stay exactly as specified: unit_id / lens_id values, the status/severity/confidence/kind enums, and YYYY-MM-DD dates.`
+    : `출력 언어 — 최우선, 위의 모든 지시보다 우선한다: JSON의 모든 사용자 노출 문자열 값(title·detail·rationale·question·heading·statement·label·text·if_false·suggested_action 등)을 한국어로 쓴다. 원문이나 이 지시가 영어라도 출력 값은 한국어로 쓰고, 두 언어를 섞지 않는다. 구조 토큰은 지정된 형식 그대로 둔다: unit_id / lens_id 값, status·severity·confidence·kind enum, YYYY-MM-DD 날짜.`;
+}
 
 export function renderUnits(units: ArtifactUnit[], limit: number): string {
   return units
@@ -56,6 +68,7 @@ export function buildExtractionPrompt(
   units: ArtifactUnit[],
   ctx: UserReviewContext,
   unitLimit: number,
+  lang: ReviewLocale,
 ): { system: string; user: string } {
   const concerns = ctx.concerns?.length ? `사용자 관심사: ${ctx.concerns.join(', ')}.` : '';
   const hints = [
@@ -74,7 +87,9 @@ document_type, intent, audience, stakes, artifact_maturity를 추론하고, 확�
 논지들 사이의 의존 구조도 표시한다: main_claims에 나온 순서가 곧 번호다(첫 번째=C1, 두 번째=C2 …).
 어떤 논거가 특정 논지를 뒷받침하면 그 논거의 supports_claim_ids에 논지 번호(예: "C1")를 넣고,
 어떤 논지가 다른 논지가 참이어야 성립하면 그 논지의 depends_on_claim_ids에 기대는 논지 번호를 넣는다.
-확실하지 않으면 링크를 억지로 만들지 말고 생략한다(빈 배열).`;
+확실하지 않으면 링크를 억지로 만들지 말고 생략한다(빈 배열).
+
+${langDirective(lang)}`;
 
   const user = `아래는 검수할 문서의 단위(unit)들이다. 각 줄은 [unit_id] (종류 · 위치) 텍스트 형식이다.
 
@@ -111,6 +126,7 @@ export function buildQuickReviewPrompt(
   ctx: UserReviewContext,
   unitLimit: number,
   today: string,
+  lang: ReviewLocale,
 ): { system: string; user: string } {
   const context = [
     ctx.audience_hint && `Audience hint: ${ctx.audience_hint}`,
@@ -127,8 +143,6 @@ judgment spine: core_question, claim_evidence, hidden_assumption,
 human_judgment, falsifiable_followup.
 
 Keep the result selective and concise:
-- Write every user-facing value in the document's primary language. Use Korean
-  for a Korean document and English for an English document. Do not mix them.
 - When the document contains unsupported causal claims, untested assumptions,
   or a human-only decision, return 2 to 5 material findings. Return zero only
   when there is genuinely no material issue. Do not manufacture one per lens.
@@ -140,7 +154,9 @@ Keep the result selective and concise:
   for the user.
 - Return at most 3 judgment obligations and 3 falsifiable followups.
 - followup check_by must be a real date after ${today}.
-- Complete every JSON field below; use empty arrays instead of filler.`;
+- Complete every JSON field below; use empty arrays instead of filler.
+
+${langDirective(lang)}`;
 
   const user = `Document units:
 ${renderUnits(units, unitLimit)}
@@ -182,6 +198,7 @@ export function buildMapPrompt(
   chunkIndex: number,
   chunkCount: number,
   today: string,
+  lang: ReviewLocale,
 ): { system: string; user: string } {
   const context = [
     ctx.audience_hint && `Audience hint: ${ctx.audience_hint}`,
@@ -204,7 +221,8 @@ ${chunkIndex + 1}번째 구간이다. **이 구간의 원문 단위(units)에 �
 - 모든 claim·assumption·finding은 이 구간의 unit_id를 하나 이상 인용한다.
 - core_question은 이 구간에서 읽히는 결정 질문의 최선 추정이다(뒤 구간에서 갱신될 수 있다).
 - obligations·followups는 여기서 내지 않는다(전체를 합친 뒤 한 번에 만든다).
-- 모든 사용자 노출 값은 원문의 주 언어로 쓴다.`;
+
+${langDirective(lang)}`;
 
   const user = `구간 ${chunkIndex + 1}/${chunkCount}의 원문 단위:
 ${renderUnits(units, units.length)}
@@ -240,6 +258,7 @@ export function buildLensPrompt(
   mapSummary: string,
   units: ArtifactUnit[],
   unitLimit: number,
+  lang: ReviewLocale,
 ): { system: string; user: string } {
   const system = `${SPINE}
 
@@ -251,7 +270,9 @@ ${lens.review_questions.map((q) => `- ${q}`).join('\n')}
 ${lens.failure_modes.map((f) => `- "${f}"`).join('\n')}
 
 너의 렌즈에 해당하는 finding만 낸다. 전체 결론이나 다른 렌즈의 영역은 건드리지 않는다.
-finding이 없으면 빈 배열을 낸다(억지로 만들지 않는다).`;
+finding이 없으면 빈 배열을 낸다(억지로 만들지 않는다).
+
+${langDirective(lang)}`;
 
   const user = `문서 판단 지도 요약:
 ${mapSummary}
@@ -285,6 +306,7 @@ export function buildSynthesisPrompt(
   findingsSummary: string,
   ctx: UserReviewContext,
   today: string,
+  lang: ReviewLocale,
 ): { system: string; user: string } {
   const system = `${SPINE}
 
@@ -292,7 +314,9 @@ export function buildSynthesisPrompt(
 - current_heading은 중립적 방향 한 줄이다. "진행하세요" 같은 평결이 아니다.
 - judgment_obligations는 사람이 직접 판단해야 하는 항목이다. AI가 대신 결론내지 않는다.
 - 사용자가 결론을 냈다고 말하지 않는다.
-- follow-up predicate는 나중에 현실이 pass/fail로 답할 수 있어야 한다. check_by는 ${today} 이후의 미래 날짜(YYYY-MM-DD)로 제안한다.`;
+- follow-up predicate는 나중에 현실이 pass/fail로 답할 수 있어야 한다. check_by는 ${today} 이후의 미래 날짜(YYYY-MM-DD)로 제안한다.
+
+${langDirective(lang)}`;
 
   const worry = ctx.biggest_worry ? `사용자가 가장 불안해한 부분: ${ctx.biggest_worry}` : '';
 

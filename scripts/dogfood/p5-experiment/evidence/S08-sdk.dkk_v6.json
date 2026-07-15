@@ -1,0 +1,305 @@
+{
+  "scenario_id": "S08-sdk",
+  "arm": "dkk_v6",
+  "confirmation_actions": 3,
+  "task_seconds_agent": 0.002,
+  "completed_lifecycle": true,
+  "record": {
+    "ledger_events": [
+      {
+        "event_id": "web:S08-sdk-seal:1-sealed",
+        "v": 3,
+        "space_id": "account-project:p5-S08-sdk",
+        "idempotency_key": "web:S08-sdk-seal:1-sealed",
+        "atomic_batch_id": "web:S08-sdk-seal",
+        "time": {
+          "occurred_at": "2026-03-20T15:02:00+09:00",
+          "recorded_at": "2026-03-20T15:02:00+09:00",
+          "authorized_at": "2026-03-20T15:02:00+09:00",
+          "temporal_mode": "contemporaneous"
+        },
+        "authority": {
+          "originated_by": {
+            "kind": "ai",
+            "id": "assistant:S08-sdk-seal"
+          },
+          "recorded_by": {
+            "kind": "system",
+            "id": "web:argus"
+          },
+          "authorized_by": {
+            "kind": "human",
+            "id": "account-project:p5-S08-sdk"
+          },
+          "authorization_mode": "explicit_confirmation",
+          "authorization_ref": {
+            "kind": "command_digest",
+            "ref": "web-command:seal:S08-sdk-seal"
+          }
+        },
+        "event": "judgment_sealed",
+        "judgment_id": "S08-sdk-j1",
+        "statement": "SDK 코어를 4월 15일 MIT로 공개한다. 예측: 8월 15일까지 외부 기여 PR이 10건 이상 들어온다."
+      },
+      {
+        "event_id": "web:S08-sdk-seal:2-return",
+        "v": 3,
+        "space_id": "account-project:p5-S08-sdk",
+        "idempotency_key": "web:S08-sdk-seal:2-return",
+        "atomic_batch_id": "web:S08-sdk-seal",
+        "time": {
+          "occurred_at": "2026-03-20T15:02:00+09:00",
+          "recorded_at": "2026-03-20T15:02:00+09:00",
+          "authorized_at": "2026-03-20T15:02:00+09:00",
+          "temporal_mode": "contemporaneous"
+        },
+        "authority": {
+          "originated_by": {
+            "kind": "human",
+            "id": "account-project:p5-S08-sdk"
+          },
+          "recorded_by": {
+            "kind": "system",
+            "id": "web:argus"
+          },
+          "authorized_by": {
+            "kind": "human",
+            "id": "account-project:p5-S08-sdk"
+          },
+          "authorization_mode": "explicit_confirmation",
+          "authorization_ref": {
+            "kind": "command_digest",
+            "ref": "web-command:seal:S08-sdk-seal"
+          }
+        },
+        "event": "return_promised",
+        "return_contract_id": "S08-sdk-r1",
+        "judgment_id": "S08-sdk-j1",
+        "review_at": "2026-08-15T09:00:00+09:00",
+        "review_question": "8월 15일까지 외부 기여 PR이 10건 이상 들어왔는가"
+      },
+      {
+        "event_id": "web:S08-sdk-seal:3-premise-S08-sdk-p1",
+        "v": 3,
+        "space_id": "account-project:p5-S08-sdk",
+        "idempotency_key": "web:S08-sdk-seal:3-premise-S08-sdk-p1",
+        "atomic_batch_id": "web:S08-sdk-seal",
+        "time": {
+          "occurred_at": "2026-03-20T15:02:00+09:00",
+          "recorded_at": "2026-03-20T15:02:00+09:00",
+          "authorized_at": "2026-03-20T15:02:00+09:00",
+          "temporal_mode": "contemporaneous"
+        },
+        "authority": {
+          "originated_by": {
+            "kind": "ai",
+            "id": "assistant:S08-sdk-seal"
+          },
+          "recorded_by": {
+            "kind": "system",
+            "id": "web:argus"
+          },
+          "authorized_by": {
+            "kind": "human",
+            "id": "account-project:p5-S08-sdk"
+          },
+          "authorization_mode": "explicit_confirmation",
+          "authorization_ref": {
+            "kind": "command_digest",
+            "ref": "web-command:seal:S08-sdk-seal"
+          }
+        },
+        "event": "premise_adopted",
+        "premise_id": "S08-sdk-p1",
+        "judgment_id": "S08-sdk-j1",
+        "text": "경쟁 우위는 SDK가 아니라 데이터에 있다"
+      },
+      {
+        "event_id": "web:S08-sdk-obs1:observation",
+        "v": 3,
+        "space_id": "account-project:p5-S08-sdk",
+        "idempotency_key": "web:S08-sdk-obs1:observation",
+        "time": {
+          "occurred_at": "2026-07-30T09:00:00+09:00",
+          "recorded_at": "2026-07-30T09:00:00+09:00",
+          "temporal_mode": "contemporaneous"
+        },
+        "authority": {
+          "originated_by": {
+            "kind": "human",
+            "id": "account-project:p5-S08-sdk"
+          },
+          "recorded_by": {
+            "kind": "system",
+            "id": "web:argus"
+          },
+          "observed_by": {
+            "kind": "human",
+            "id": "account-project:p5-S08-sdk"
+          }
+        },
+        "event": "observation_recorded",
+        "observation_id": "S08-sdk-o1",
+        "text": "현황: 외부 기여 PR 4건. 그중 2건이 문서 수정입니다.",
+        "provenance": {
+          "source_kind": "user_utterance",
+          "source_ref": "transcript:S08-sdk",
+          "verification": "pasted"
+        }
+      },
+      {
+        "event_id": "web:S08-sdk-oar:1-observation",
+        "v": 3,
+        "space_id": "account-project:p5-S08-sdk",
+        "idempotency_key": "web:S08-sdk-oar:1-observation",
+        "atomic_batch_id": "web:S08-sdk-oar",
+        "time": {
+          "occurred_at": "2026-08-15T10:00:00+09:00",
+          "recorded_at": "2026-08-15T10:00:00+09:00",
+          "authorized_at": "2026-08-15T10:00:00+09:00",
+          "temporal_mode": "contemporaneous"
+        },
+        "authority": {
+          "originated_by": {
+            "kind": "human",
+            "id": "account-project:p5-S08-sdk"
+          },
+          "recorded_by": {
+            "kind": "system",
+            "id": "web:argus"
+          },
+          "observed_by": {
+            "kind": "human",
+            "id": "account-project:p5-S08-sdk"
+          }
+        },
+        "event": "observation_recorded",
+        "observation_id": "S08-sdk-ofinal",
+        "text": "최종 외부 기여 PR 6건 (사용자 보고)",
+        "provenance": {
+          "source_kind": "user_utterance",
+          "verification": "pasted"
+        }
+      },
+      {
+        "event_id": "web:S08-sdk-oar:2-resolution",
+        "v": 3,
+        "space_id": "account-project:p5-S08-sdk",
+        "idempotency_key": "web:S08-sdk-oar:2-resolution",
+        "atomic_batch_id": "web:S08-sdk-oar",
+        "time": {
+          "occurred_at": "2026-08-15T10:00:00+09:00",
+          "recorded_at": "2026-08-15T10:00:00+09:00",
+          "authorized_at": "2026-08-15T10:00:00+09:00",
+          "temporal_mode": "contemporaneous"
+        },
+        "authority": {
+          "originated_by": {
+            "kind": "human",
+            "id": "account-project:p5-S08-sdk"
+          },
+          "recorded_by": {
+            "kind": "system",
+            "id": "web:argus"
+          },
+          "authorized_by": {
+            "kind": "human",
+            "id": "account-project:p5-S08-sdk"
+          },
+          "authorization_mode": "explicit_confirmation",
+          "authorization_ref": {
+            "kind": "command_digest",
+            "ref": "web-command:observe_and_resolve:S08-sdk-oar"
+          }
+        },
+        "event": "resolution_asserted",
+        "resolution_id": "S08-sdk-res1",
+        "judgment_id": "S08-sdk-j1",
+        "return_contract_id": "S08-sdk-r1",
+        "resolution": {
+          "kind": "answered",
+          "answer_summary": "PR 6건으로 10건에 미달",
+          "criterion_result": "not_met",
+          "evidence_refs": [
+            "S08-sdk-ofinal"
+          ]
+        }
+      },
+      {
+        "event_id": "web:S08-sdk-close:closed",
+        "v": 3,
+        "space_id": "account-project:p5-S08-sdk",
+        "idempotency_key": "web:S08-sdk-close:closed",
+        "time": {
+          "occurred_at": "2026-08-15T10:00:00+09:00",
+          "recorded_at": "2026-08-15T10:00:00+09:00",
+          "authorized_at": "2026-08-15T10:00:00+09:00",
+          "temporal_mode": "contemporaneous"
+        },
+        "authority": {
+          "originated_by": {
+            "kind": "human",
+            "id": "account-project:p5-S08-sdk"
+          },
+          "recorded_by": {
+            "kind": "system",
+            "id": "web:argus"
+          },
+          "authorized_by": {
+            "kind": "human",
+            "id": "account-project:p5-S08-sdk"
+          },
+          "authorization_mode": "explicit_confirmation",
+          "authorization_ref": {
+            "kind": "command_digest",
+            "ref": "web-command:close:S08-sdk-close"
+          }
+        },
+        "event": "judgment_closed",
+        "judgment_id": "S08-sdk-j1",
+        "resolution_id": "S08-sdk-res1"
+      }
+    ],
+    "projection": {
+      "judgment_id": "S08-sdk-j1",
+      "lifecycle": "resolved_answered",
+      "statement": "SDK 코어를 4월 15일 MIT로 공개한다. 예측: 8월 15일까지 외부 기여 PR이 10건 이상 들어온다.",
+      "active_return_contract_id": "S08-sdk-r1",
+      "resolution": {
+        "kind": "answered",
+        "answer_summary": "PR 6건으로 10건에 미달",
+        "criterion_result": "not_met",
+        "evidence_refs": [
+          "S08-sdk-ofinal"
+        ]
+      }
+    }
+  },
+  "transcript": [
+    {
+      "role": "user",
+      "at": "2026-03-20T15:00:00+09:00",
+      "text": "SDK를 오픈소스로 풀지 말지 계속 고민 중이야."
+    },
+    {
+      "role": "ai",
+      "at": "2026-03-20T15:00:40+09:00",
+      "text": "초안 제안: \"SDK 코어를 4월 15일 MIT로 공개한다. 예측: 8월 15일까지 외부 기여 PR이 10건 이상 들어온다.\" 전제 후보: (a) 경쟁 우위는 SDK가 아니라 데이터에 있다, (b) 문서화 부채가 공개 전에 해소된다."
+    },
+    {
+      "role": "user",
+      "at": "2026-03-20T15:02:00+09:00",
+      "text": "그 문구 그대로 봉인해. 전제는 (a)만 — (b)는 희망사항이지 전제가 아니야."
+    },
+    {
+      "role": "ai",
+      "at": "2026-07-30T09:00:00+09:00",
+      "text": "현황: 외부 기여 PR 4건. 그중 2건이 문서 수정입니다."
+    },
+    {
+      "role": "user",
+      "at": "2026-08-15T10:00:00+09:00",
+      "text": "PR 6건으로 끝났어. 10건 미달 — 빗나감으로 닫아줘."
+    }
+  ]
+}

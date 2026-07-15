@@ -1,0 +1,20 @@
+{
+  "sealed_statement": "레거시 리포트 기능을 3월 말에 내린다 — 신규 대시보드 주간 활성 이전율 80% 이상 조건으로",
+  "statement_origin": "unknown",
+  "adopted_premises": ["이전 안내 배너가 2월부터 노출된다", "대시보드의 핵심 지표 패리티가 2월 안에 완성된다"],
+  "review_question": "신규 대시보드로의 주간 활성 이전율이 80% 이상인가",
+  "review_at": "2026-04-01",
+  "was_deferred": false,
+  "resolution_kind": "answered",
+  "answer_summary": "이전율 84%로 조건은 넘었으나 패리티 전제가 깨져 일몰은 연기됨",
+  "criterion_result": "met",
+  "evidence_items": ["이전율 84%", "엑셀 내보내기 미완"],
+  "was_separately_closed": false,
+  "probes": [
+    { "item": "엑셀 내보내기가 3월 말까지 미완 (패리티 미완성)", "known_at_seal": false },
+    { "item": "이전율 84%", "known_at_seal": false },
+    { "item": "대시보드의 핵심 지표 패리티가 2월 안에 완성된다", "known_at_seal": true },
+    { "item": "일몰 5월로 연기", "known_at_seal": false },
+    { "item": "이전 안내 배너가 2월부터 노출된다", "known_at_seal": true }
+  ]
+}

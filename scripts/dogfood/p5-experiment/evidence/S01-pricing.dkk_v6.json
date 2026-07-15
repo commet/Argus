@@ -1,0 +1,346 @@
+{
+  "scenario_id": "S01-pricing",
+  "arm": "dkk_v6",
+  "confirmation_actions": 4,
+  "task_seconds_agent": 0.023,
+  "completed_lifecycle": true,
+  "record": {
+    "ledger_events": [
+      {
+        "event_id": "web:S01-pricing-seal:1-sealed",
+        "v": 3,
+        "space_id": "account-project:p5-S01-pricing",
+        "idempotency_key": "web:S01-pricing-seal:1-sealed",
+        "atomic_batch_id": "web:S01-pricing-seal",
+        "time": {
+          "occurred_at": "2026-05-04T09:13:05+09:00",
+          "recorded_at": "2026-05-04T09:13:05+09:00",
+          "authorized_at": "2026-05-04T09:13:05+09:00",
+          "temporal_mode": "contemporaneous"
+        },
+        "authority": {
+          "originated_by": {
+            "kind": "ai",
+            "id": "assistant:S01-pricing-seal"
+          },
+          "recorded_by": {
+            "kind": "system",
+            "id": "web:argus"
+          },
+          "authorized_by": {
+            "kind": "human",
+            "id": "account-project:p5-S01-pricing"
+          },
+          "authorization_mode": "explicit_confirmation",
+          "authorization_ref": {
+            "kind": "command_digest",
+            "ref": "web-command:seal:S01-pricing-seal"
+          }
+        },
+        "event": "judgment_sealed",
+        "judgment_id": "S01-pricing-j1",
+        "statement": "2026-09-01까지 기존 가격을 유지한다"
+      },
+      {
+        "event_id": "web:S01-pricing-seal:2-return",
+        "v": 3,
+        "space_id": "account-project:p5-S01-pricing",
+        "idempotency_key": "web:S01-pricing-seal:2-return",
+        "atomic_batch_id": "web:S01-pricing-seal",
+        "time": {
+          "occurred_at": "2026-05-04T09:13:05+09:00",
+          "recorded_at": "2026-05-04T09:13:05+09:00",
+          "authorized_at": "2026-05-04T09:13:05+09:00",
+          "temporal_mode": "contemporaneous"
+        },
+        "authority": {
+          "originated_by": {
+            "kind": "human",
+            "id": "account-project:p5-S01-pricing"
+          },
+          "recorded_by": {
+            "kind": "system",
+            "id": "web:argus"
+          },
+          "authorized_by": {
+            "kind": "human",
+            "id": "account-project:p5-S01-pricing"
+          },
+          "authorization_mode": "explicit_confirmation",
+          "authorization_ref": {
+            "kind": "command_digest",
+            "ref": "web-command:seal:S01-pricing-seal"
+          }
+        },
+        "event": "return_promised",
+        "return_contract_id": "S01-pricing-r1",
+        "judgment_id": "S01-pricing-j1",
+        "review_at": "2026-09-01T09:00:00+09:00",
+        "review_question": "신규 전환율이 3.2% 이상으로 2주 연속 유지됐는가?",
+        "resolution_criterion": "완결된 주간 코호트 두 개가 각각 3.2% 이상"
+      },
+      {
+        "event_id": "web:S01-pricing-seal:3-premise-S01-pricing-p1",
+        "v": 3,
+        "space_id": "account-project:p5-S01-pricing",
+        "idempotency_key": "web:S01-pricing-seal:3-premise-S01-pricing-p1",
+        "atomic_batch_id": "web:S01-pricing-seal",
+        "time": {
+          "occurred_at": "2026-05-04T09:13:05+09:00",
+          "recorded_at": "2026-05-04T09:13:05+09:00",
+          "authorized_at": "2026-05-04T09:13:05+09:00",
+          "temporal_mode": "contemporaneous"
+        },
+        "authority": {
+          "originated_by": {
+            "kind": "human",
+            "id": "account-project:p5-S01-pricing"
+          },
+          "recorded_by": {
+            "kind": "system",
+            "id": "web:argus"
+          },
+          "authorized_by": {
+            "kind": "human",
+            "id": "account-project:p5-S01-pricing"
+          },
+          "authorization_mode": "explicit_confirmation",
+          "authorization_ref": {
+            "kind": "command_digest",
+            "ref": "web-command:seal:S01-pricing-seal"
+          }
+        },
+        "event": "premise_adopted",
+        "premise_id": "S01-pricing-p1",
+        "judgment_id": "S01-pricing-j1",
+        "text": "신규 전환율이 3% 아래다"
+      },
+      {
+        "event_id": "web:S01-pricing-obs1:observation",
+        "v": 3,
+        "space_id": "account-project:p5-S01-pricing",
+        "idempotency_key": "web:S01-pricing-obs1:observation",
+        "time": {
+          "occurred_at": "2026-08-26T10:00:00+09:00",
+          "recorded_at": "2026-08-26T10:00:00+09:00",
+          "temporal_mode": "contemporaneous"
+        },
+        "authority": {
+          "originated_by": {
+            "kind": "human",
+            "id": "account-project:p5-S01-pricing"
+          },
+          "recorded_by": {
+            "kind": "system",
+            "id": "web:argus"
+          },
+          "observed_by": {
+            "kind": "human",
+            "id": "account-project:p5-S01-pricing"
+          }
+        },
+        "event": "observation_recorded",
+        "observation_id": "S01-pricing-o1",
+        "text": "참고: 8월 셋째 주 신규 전환율이 3.4%로 집계됐어요 (analytics 대시보드). 아직 한 주뿐이라 기준에는 못 답해요.",
+        "provenance": {
+          "source_kind": "user_utterance",
+          "source_ref": "transcript:S01-pricing",
+          "verification": "pasted"
+        }
+      },
+      {
+        "event_id": "web:S01-pricing-defer1:deferred",
+        "v": 3,
+        "space_id": "account-project:p5-S01-pricing",
+        "idempotency_key": "web:S01-pricing-defer1:deferred",
+        "time": {
+          "occurred_at": "2026-09-01T09:00:00+09:00",
+          "recorded_at": "2026-09-01T09:00:00+09:00",
+          "authorized_at": "2026-09-01T09:00:00+09:00",
+          "temporal_mode": "contemporaneous"
+        },
+        "authority": {
+          "originated_by": {
+            "kind": "human",
+            "id": "account-project:p5-S01-pricing"
+          },
+          "recorded_by": {
+            "kind": "system",
+            "id": "web:argus"
+          },
+          "authorized_by": {
+            "kind": "human",
+            "id": "account-project:p5-S01-pricing"
+          },
+          "authorization_mode": "explicit_confirmation",
+          "authorization_ref": {
+            "kind": "command_digest",
+            "ref": "web-command:defer:S01-pricing-defer1"
+          }
+        },
+        "event": "return_deferred",
+        "return_contract_id": "S01-pricing-r1",
+        "review_at": "2026-09-15T09:00:00+09:00",
+        "reason": "완결된 두 번째 주가 아직 없어. 9월 15일에 다시 보자."
+      },
+      {
+        "event_id": "web:S01-pricing-oar:1-observation",
+        "v": 3,
+        "space_id": "account-project:p5-S01-pricing",
+        "idempotency_key": "web:S01-pricing-oar:1-observation",
+        "atomic_batch_id": "web:S01-pricing-oar",
+        "time": {
+          "occurred_at": "2026-09-15T09:30:00+09:00",
+          "recorded_at": "2026-09-15T09:30:00+09:00",
+          "authorized_at": "2026-09-15T09:30:00+09:00",
+          "temporal_mode": "contemporaneous"
+        },
+        "authority": {
+          "originated_by": {
+            "kind": "human",
+            "id": "account-project:p5-S01-pricing"
+          },
+          "recorded_by": {
+            "kind": "system",
+            "id": "web:argus"
+          },
+          "observed_by": {
+            "kind": "human",
+            "id": "account-project:p5-S01-pricing"
+          }
+        },
+        "event": "observation_recorded",
+        "observation_id": "S01-pricing-ofinal",
+        "text": "8월 마지막 주 3.3%; 9월 첫째 주 3.4% (사용자 보고)",
+        "provenance": {
+          "source_kind": "user_utterance",
+          "verification": "pasted"
+        }
+      },
+      {
+        "event_id": "web:S01-pricing-oar:2-resolution",
+        "v": 3,
+        "space_id": "account-project:p5-S01-pricing",
+        "idempotency_key": "web:S01-pricing-oar:2-resolution",
+        "atomic_batch_id": "web:S01-pricing-oar",
+        "time": {
+          "occurred_at": "2026-09-15T09:30:00+09:00",
+          "recorded_at": "2026-09-15T09:30:00+09:00",
+          "authorized_at": "2026-09-15T09:30:00+09:00",
+          "temporal_mode": "contemporaneous"
+        },
+        "authority": {
+          "originated_by": {
+            "kind": "human",
+            "id": "account-project:p5-S01-pricing"
+          },
+          "recorded_by": {
+            "kind": "system",
+            "id": "web:argus"
+          },
+          "authorized_by": {
+            "kind": "human",
+            "id": "account-project:p5-S01-pricing"
+          },
+          "authorization_mode": "explicit_confirmation",
+          "authorization_ref": {
+            "kind": "command_digest",
+            "ref": "web-command:observe_and_resolve:S01-pricing-oar"
+          }
+        },
+        "event": "resolution_asserted",
+        "resolution_id": "S01-pricing-res1",
+        "judgment_id": "S01-pricing-j1",
+        "return_contract_id": "S01-pricing-r1",
+        "resolution": {
+          "kind": "answered",
+          "answer_summary": "완결된 두 주가 각각 3.2% 이상이었다",
+          "criterion_result": "met",
+          "evidence_refs": [
+            "S01-pricing-ofinal"
+          ]
+        }
+      },
+      {
+        "event_id": "web:S01-pricing-close:closed",
+        "v": 3,
+        "space_id": "account-project:p5-S01-pricing",
+        "idempotency_key": "web:S01-pricing-close:closed",
+        "time": {
+          "occurred_at": "2026-09-15T09:30:00+09:00",
+          "recorded_at": "2026-09-15T09:30:00+09:00",
+          "authorized_at": "2026-09-15T09:30:00+09:00",
+          "temporal_mode": "contemporaneous"
+        },
+        "authority": {
+          "originated_by": {
+            "kind": "human",
+            "id": "account-project:p5-S01-pricing"
+          },
+          "recorded_by": {
+            "kind": "system",
+            "id": "web:argus"
+          },
+          "authorized_by": {
+            "kind": "human",
+            "id": "account-project:p5-S01-pricing"
+          },
+          "authorization_mode": "explicit_confirmation",
+          "authorization_ref": {
+            "kind": "command_digest",
+            "ref": "web-command:close:S01-pricing-close"
+          }
+        },
+        "event": "judgment_closed",
+        "judgment_id": "S01-pricing-j1",
+        "resolution_id": "S01-pricing-res1"
+      }
+    ],
+    "projection": {
+      "judgment_id": "S01-pricing-j1",
+      "lifecycle": "resolved_answered",
+      "statement": "2026-09-01까지 기존 가격을 유지한다",
+      "active_return_contract_id": "S01-pricing-r1",
+      "resolution": {
+        "kind": "answered",
+        "answer_summary": "완결된 두 주가 각각 3.2% 이상이었다",
+        "criterion_result": "met",
+        "evidence_refs": [
+          "S01-pricing-ofinal"
+        ]
+      }
+    }
+  },
+  "transcript": [
+    {
+      "role": "user",
+      "at": "2026-05-04T09:12:00+09:00",
+      "text": "전환율이 아직 약해서 9월 전에는 가격을 유지하는 편이 낫겠어. 신규 전환율이 3% 아래라는 게 내 판단의 바탕이야."
+    },
+    {
+      "role": "ai",
+      "at": "2026-05-04T09:12:20+09:00",
+      "text": "구조화 제안: 판단 \"2026-09-01까지 기존 가격을 유지한다\", 전제 \"신규 전환율이 3% 아래다\", 검토 질문 \"9월 1일에 신규 전환율이 3.2% 이상 2주 연속 유지됐는가\". 추가로 \"경쟁사 B가 가격을 내리지 않는다\"도 전제로 넣을까요?"
+    },
+    {
+      "role": "user",
+      "at": "2026-05-04T09:13:05+09:00",
+      "text": "판단으로 남겨. 문구는 그대로 좋아. 경쟁사 B 전제는 넣지 마 — 그건 내 판단의 근거가 아니야. 9월 1일에 보자. 기준은 완결된 주간 코호트 두 개가 각각 3.2% 이상."
+    },
+    {
+      "role": "ai",
+      "at": "2026-08-26T10:00:00+09:00",
+      "text": "참고: 8월 셋째 주 신규 전환율이 3.4%로 집계됐어요 (analytics 대시보드). 아직 한 주뿐이라 기준에는 못 답해요."
+    },
+    {
+      "role": "user",
+      "at": "2026-09-01T09:00:00+09:00",
+      "text": "완결된 두 번째 주가 아직 없어. 9월 15일에 다시 보자."
+    },
+    {
+      "role": "user",
+      "at": "2026-09-15T09:30:00+09:00",
+      "text": "8월 마지막 주 3.3%, 9월 첫째 주 3.4%. 두 주 모두 3.2%를 넘었어. 조건 충족으로 닫아줘."
+    }
+  ]
+}

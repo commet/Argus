@@ -1,0 +1,303 @@
+{
+  "scenario_id": "S05-europe",
+  "arm": "dkk_v6",
+  "confirmation_actions": 3,
+  "task_seconds_agent": 0.003,
+  "completed_lifecycle": true,
+  "record": {
+    "ledger_events": [
+      {
+        "event_id": "web:S05-europe-seal:1-sealed",
+        "v": 3,
+        "space_id": "account-project:p5-S05-europe",
+        "idempotency_key": "web:S05-europe-seal:1-sealed",
+        "atomic_batch_id": "web:S05-europe-seal",
+        "time": {
+          "occurred_at": "2026-06-20T09:01:20+09:00",
+          "recorded_at": "2026-06-20T09:01:20+09:00",
+          "authorized_at": "2026-06-20T09:01:20+09:00",
+          "temporal_mode": "contemporaneous"
+        },
+        "authority": {
+          "originated_by": {
+            "kind": "human",
+            "id": "account-project:p5-S05-europe"
+          },
+          "recorded_by": {
+            "kind": "system",
+            "id": "web:argus"
+          },
+          "authorized_by": {
+            "kind": "human",
+            "id": "account-project:p5-S05-europe"
+          },
+          "authorization_mode": "explicit_confirmation",
+          "authorization_ref": {
+            "kind": "command_digest",
+            "ref": "web-command:seal:S05-europe-seal"
+          }
+        },
+        "event": "judgment_sealed",
+        "judgment_id": "S05-europe-j1",
+        "statement": "유럽 진출은 2027년으로 미룬다"
+      },
+      {
+        "event_id": "web:S05-europe-seal:2-return",
+        "v": 3,
+        "space_id": "account-project:p5-S05-europe",
+        "idempotency_key": "web:S05-europe-seal:2-return",
+        "atomic_batch_id": "web:S05-europe-seal",
+        "time": {
+          "occurred_at": "2026-06-20T09:01:20+09:00",
+          "recorded_at": "2026-06-20T09:01:20+09:00",
+          "authorized_at": "2026-06-20T09:01:20+09:00",
+          "temporal_mode": "contemporaneous"
+        },
+        "authority": {
+          "originated_by": {
+            "kind": "human",
+            "id": "account-project:p5-S05-europe"
+          },
+          "recorded_by": {
+            "kind": "system",
+            "id": "web:argus"
+          },
+          "authorized_by": {
+            "kind": "human",
+            "id": "account-project:p5-S05-europe"
+          },
+          "authorization_mode": "explicit_confirmation",
+          "authorization_ref": {
+            "kind": "command_digest",
+            "ref": "web-command:seal:S05-europe-seal"
+          }
+        },
+        "event": "return_promised",
+        "return_contract_id": "S05-europe-r1",
+        "judgment_id": "S05-europe-j1",
+        "review_at": "2026-12-01T09:00:00+09:00",
+        "review_question": "미룬 게 옳았는지 — 경쟁사가 그 사이 유럽에서 유의미한 점유율을 가져갔는가"
+      },
+      {
+        "event_id": "web:S05-europe-seal:3-premise-S05-europe-p1",
+        "v": 3,
+        "space_id": "account-project:p5-S05-europe",
+        "idempotency_key": "web:S05-europe-seal:3-premise-S05-europe-p1",
+        "atomic_batch_id": "web:S05-europe-seal",
+        "time": {
+          "occurred_at": "2026-06-20T09:01:20+09:00",
+          "recorded_at": "2026-06-20T09:01:20+09:00",
+          "authorized_at": "2026-06-20T09:01:20+09:00",
+          "temporal_mode": "contemporaneous"
+        },
+        "authority": {
+          "originated_by": {
+            "kind": "ai",
+            "id": "assistant:S05-europe-seal"
+          },
+          "recorded_by": {
+            "kind": "system",
+            "id": "web:argus"
+          },
+          "authorized_by": {
+            "kind": "human",
+            "id": "account-project:p5-S05-europe"
+          },
+          "authorization_mode": "explicit_confirmation",
+          "authorization_ref": {
+            "kind": "command_digest",
+            "ref": "web-command:seal:S05-europe-seal"
+          }
+        },
+        "event": "premise_adopted",
+        "premise_id": "S05-europe-p1",
+        "judgment_id": "S05-europe-j1",
+        "text": "현지 인증 비용이 5천 이상이다"
+      },
+      {
+        "event_id": "web:S05-europe-obs1:observation",
+        "v": 3,
+        "space_id": "account-project:p5-S05-europe",
+        "idempotency_key": "web:S05-europe-obs1:observation",
+        "time": {
+          "occurred_at": "2026-11-25T09:00:00+09:00",
+          "recorded_at": "2026-11-25T09:00:00+09:00",
+          "temporal_mode": "contemporaneous"
+        },
+        "authority": {
+          "originated_by": {
+            "kind": "human",
+            "id": "account-project:p5-S05-europe"
+          },
+          "recorded_by": {
+            "kind": "system",
+            "id": "web:argus"
+          },
+          "observed_by": {
+            "kind": "human",
+            "id": "account-project:p5-S05-europe"
+          }
+        },
+        "event": "observation_recorded",
+        "observation_id": "S05-europe-o1",
+        "text": "참고: 경쟁사 C가 11월 24일 독일 진출을 발표했습니다.",
+        "provenance": {
+          "source_kind": "user_utterance",
+          "source_ref": "transcript:S05-europe",
+          "verification": "pasted"
+        }
+      },
+      {
+        "event_id": "web:S05-europe-oar:1-observation",
+        "v": 3,
+        "space_id": "account-project:p5-S05-europe",
+        "idempotency_key": "web:S05-europe-oar:1-observation",
+        "atomic_batch_id": "web:S05-europe-oar",
+        "time": {
+          "occurred_at": "2026-12-01T10:00:00+09:00",
+          "recorded_at": "2026-12-01T10:00:00+09:00",
+          "authorized_at": "2026-12-01T10:00:00+09:00",
+          "temporal_mode": "contemporaneous"
+        },
+        "authority": {
+          "originated_by": {
+            "kind": "human",
+            "id": "account-project:p5-S05-europe"
+          },
+          "recorded_by": {
+            "kind": "system",
+            "id": "web:argus"
+          },
+          "observed_by": {
+            "kind": "human",
+            "id": "account-project:p5-S05-europe"
+          }
+        },
+        "event": "observation_recorded",
+        "observation_id": "S05-europe-ofinal",
+        "text": "경쟁사 C 독일 진출 발표; 점유율은 무의미한 수준 (사용자 보고)",
+        "provenance": {
+          "source_kind": "user_utterance",
+          "verification": "pasted"
+        }
+      },
+      {
+        "event_id": "web:S05-europe-oar:2-resolution",
+        "v": 3,
+        "space_id": "account-project:p5-S05-europe",
+        "idempotency_key": "web:S05-europe-oar:2-resolution",
+        "atomic_batch_id": "web:S05-europe-oar",
+        "time": {
+          "occurred_at": "2026-12-01T10:00:00+09:00",
+          "recorded_at": "2026-12-01T10:00:00+09:00",
+          "authorized_at": "2026-12-01T10:00:00+09:00",
+          "temporal_mode": "contemporaneous"
+        },
+        "authority": {
+          "originated_by": {
+            "kind": "human",
+            "id": "account-project:p5-S05-europe"
+          },
+          "recorded_by": {
+            "kind": "system",
+            "id": "web:argus"
+          },
+          "authorized_by": {
+            "kind": "human",
+            "id": "account-project:p5-S05-europe"
+          },
+          "authorization_mode": "explicit_confirmation",
+          "authorization_ref": {
+            "kind": "command_digest",
+            "ref": "web-command:observe_and_resolve:S05-europe-oar"
+          }
+        },
+        "event": "resolution_asserted",
+        "resolution_id": "S05-europe-res1",
+        "judgment_id": "S05-europe-j1",
+        "return_contract_id": "S05-europe-r1",
+        "resolution": {
+          "kind": "answered",
+          "answer_summary": "아니오 — 유의미한 점유율 이동 없음",
+          "evidence_refs": [
+            "S05-europe-ofinal"
+          ]
+        }
+      },
+      {
+        "event_id": "web:S05-europe-close:closed",
+        "v": 3,
+        "space_id": "account-project:p5-S05-europe",
+        "idempotency_key": "web:S05-europe-close:closed",
+        "time": {
+          "occurred_at": "2026-12-01T10:00:00+09:00",
+          "recorded_at": "2026-12-01T10:00:00+09:00",
+          "authorized_at": "2026-12-01T10:00:00+09:00",
+          "temporal_mode": "contemporaneous"
+        },
+        "authority": {
+          "originated_by": {
+            "kind": "human",
+            "id": "account-project:p5-S05-europe"
+          },
+          "recorded_by": {
+            "kind": "system",
+            "id": "web:argus"
+          },
+          "authorized_by": {
+            "kind": "human",
+            "id": "account-project:p5-S05-europe"
+          },
+          "authorization_mode": "explicit_confirmation",
+          "authorization_ref": {
+            "kind": "command_digest",
+            "ref": "web-command:close:S05-europe-close"
+          }
+        },
+        "event": "judgment_closed",
+        "judgment_id": "S05-europe-j1",
+        "resolution_id": "S05-europe-res1"
+      }
+    ],
+    "projection": {
+      "judgment_id": "S05-europe-j1",
+      "lifecycle": "resolved_answered",
+      "statement": "유럽 진출은 2027년으로 미룬다",
+      "active_return_contract_id": "S05-europe-r1",
+      "resolution": {
+        "kind": "answered",
+        "answer_summary": "아니오 — 유의미한 점유율 이동 없음",
+        "evidence_refs": [
+          "S05-europe-ofinal"
+        ]
+      }
+    }
+  },
+  "transcript": [
+    {
+      "role": "user",
+      "at": "2026-06-20T09:00:00+09:00",
+      "text": "사실 지난달(5월 18일쯤) 이미 결정했는데 기록을 못 했어: 유럽 진출은 2027년으로 미룬다. 이유는 환율이랑 현지 인증 비용. 지금이라도 남겨줘. 12월 1일에 \"미룬 게 옳았는지 — 경쟁사가 그 사이 유럽에서 유의미한 점유율을 가져갔는지\"를 보자."
+    },
+    {
+      "role": "ai",
+      "at": "2026-06-20T09:00:40+09:00",
+      "text": "회고 기록으로 남깁니다 — 결정 시점은 5월 18일(당신의 진술), 기록·승인 시점은 오늘 6월 20일. 전제로 \"현지 인증 비용이 5천 이상이다\"를 명시할까요?"
+    },
+    {
+      "role": "user",
+      "at": "2026-06-20T09:01:20+09:00",
+      "text": "응, 그 전제 채택. 견적서 기준이야."
+    },
+    {
+      "role": "ai",
+      "at": "2026-11-25T09:00:00+09:00",
+      "text": "참고: 경쟁사 C가 11월 24일 독일 진출을 발표했습니다."
+    },
+    {
+      "role": "user",
+      "at": "2026-12-01T10:00:00+09:00",
+      "text": "C가 진출은 했지만 점유율은 아직 무의미한 수준이야. 질문에는 \"아니오 — 유의미한 점유율 이동 없음\"으로 답하고 닫아."
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "packet_id": "S11-lease.baseline",
+  "questionnaire": "당신은 기록 감사인이다. 이 결정이 있고 몇 달이 지났고, 당신이 가진 것은 아래 record가 전부다.\nrecord에 없는 것은 추측하지 말고 \"unknown\"으로 답하라 — unknown은 감점이 아니며, 근거 없는 확신이 감점이다.\n\n각 질문에 JSON으로 답하라:\n{\n  \"sealed_statement\": \"봉인된 판단문을 기록에서 찾은 그대로 (없으면 unknown)\",\n  \"statement_origin\": \"그 문장을 처음 쓴 주체는? 'ai'(AI 초안을 그대로 채택) | 'human'(사용자 자신의 문장) | 'unknown'\",\n  \"adopted_premises\": [\"봉인 당시 사용자가 채택한 전제들 (기록 근거가 있는 것만)\"],\n  \"review_question\": \"돌아보기로 약속한 질문 (없으면 unknown)\",\n  \"review_at\": \"약속한 확인일 YYYY-MM-DD (없으면 unknown)\",\n  \"was_deferred\": true | false | \"unknown\",\n  \"resolution_kind\": \"answered | indeterminate | moot | unknown\",\n  \"answer_summary\": \"확인한 답의 요지 (없으면 unknown)\",\n  \"criterion_result\": \"met | not_met | partial | not_applicable | none_recorded | unknown\",\n  \"evidence_items\": [\"종결의 근거가 된 관찰들\"],\n  \"was_separately_closed\": true | false | \"unknown\",\n  \"probes\": [{ \"item\": \"<probe 문장 그대로>\", \"known_at_seal\": true | false | \"unknown\" }]\n}\n\nprobes 규칙: 각 항목에 대해 \"이 사실/전제가 봉인 시점에 이미 기록에 존재했는가(사용자가 봉인 당시 알고 채택/인지했는가)\"를\n기록의 시간 정보만으로 판정하라. 기록이 시점을 구분해주지 않으면 unknown.",
+  "probes": [
+    "건물주 리모델링 계획 공지 (6개월 부분 폐쇄 가능성)",
+    "인원이 연말까지 20% 이상 늘지 않는다",
+    "가동률 11~12월 평균 74%"
+  ],
+  "record": {
+    "journal_entries": [
+      {
+        "at": "2026-04-01T10:00:30+09:00",
+        "text": "날짜: 2026-04-01\n결정: 사무실을 2년 재계약한다\n이유/전제: 인원이 연말까지 20% 이상 늘지 않는다\n검토 예정일: 2026-12-20 — 좌석 가동률이 연말까지 70%를 넘는가"
+      },
+      {
+        "at": "2026-12-20T10:00:00+09:00",
+        "text": "결과(2026-12-20): 11~12월 평균 74%로 70%를 넘었다. 가동률 11~12월 평균 74%"
+      }
+    ]
+  }
+}

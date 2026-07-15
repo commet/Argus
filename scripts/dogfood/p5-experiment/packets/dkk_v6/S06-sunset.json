@@ -1,0 +1,319 @@
+{
+  "packet_id": "S06-sunset.dkk_v6",
+  "questionnaire": "당신은 기록 감사인이다. 이 결정이 있고 몇 달이 지났고, 당신이 가진 것은 아래 record가 전부다.\nrecord에 없는 것은 추측하지 말고 \"unknown\"으로 답하라 — unknown은 감점이 아니며, 근거 없는 확신이 감점이다.\n\n각 질문에 JSON으로 답하라:\n{\n  \"sealed_statement\": \"봉인된 판단문을 기록에서 찾은 그대로 (없으면 unknown)\",\n  \"statement_origin\": \"그 문장을 처음 쓴 주체는? 'ai'(AI 초안을 그대로 채택) | 'human'(사용자 자신의 문장) | 'unknown'\",\n  \"adopted_premises\": [\"봉인 당시 사용자가 채택한 전제들 (기록 근거가 있는 것만)\"],\n  \"review_question\": \"돌아보기로 약속한 질문 (없으면 unknown)\",\n  \"review_at\": \"약속한 확인일 YYYY-MM-DD (없으면 unknown)\",\n  \"was_deferred\": true | false | \"unknown\",\n  \"resolution_kind\": \"answered | indeterminate | moot | unknown\",\n  \"answer_summary\": \"확인한 답의 요지 (없으면 unknown)\",\n  \"criterion_result\": \"met | not_met | partial | not_applicable | none_recorded | unknown\",\n  \"evidence_items\": [\"종결의 근거가 된 관찰들\"],\n  \"was_separately_closed\": true | false | \"unknown\",\n  \"probes\": [{ \"item\": \"<probe 문장 그대로>\", \"known_at_seal\": true | false | \"unknown\" }]\n}\n\nprobes 규칙: 각 항목에 대해 \"이 사실/전제가 봉인 시점에 이미 기록에 존재했는가(사용자가 봉인 당시 알고 채택/인지했는가)\"를\n기록의 시간 정보만으로 판정하라. 기록이 시점을 구분해주지 않으면 unknown.",
+  "probes": [
+    "엑셀 내보내기가 3월 말까지 미완 (패리티 미완성)",
+    "이전율 84%",
+    "대시보드의 핵심 지표 패리티가 2월 안에 완성된다",
+    "일몰 5월로 연기",
+    "이전 안내 배너가 2월부터 노출된다"
+  ],
+  "record": {
+    "ledger_events": [
+      {
+        "event_id": "web:S06-sunset-seal:1-sealed",
+        "v": 3,
+        "space_id": "account-project:p5-S06-sunset",
+        "idempotency_key": "web:S06-sunset-seal:1-sealed",
+        "atomic_batch_id": "web:S06-sunset-seal",
+        "time": {
+          "occurred_at": "2026-01-15T11:01:00+09:00",
+          "recorded_at": "2026-01-15T11:01:00+09:00",
+          "authorized_at": "2026-01-15T11:01:00+09:00",
+          "temporal_mode": "contemporaneous"
+        },
+        "authority": {
+          "originated_by": {
+            "kind": "human",
+            "id": "account-project:p5-S06-sunset"
+          },
+          "recorded_by": {
+            "kind": "system",
+            "id": "web:argus"
+          },
+          "authorized_by": {
+            "kind": "human",
+            "id": "account-project:p5-S06-sunset"
+          },
+          "authorization_mode": "explicit_confirmation",
+          "authorization_ref": {
+            "kind": "command_digest",
+            "ref": "web-command:seal:S06-sunset-seal"
+          }
+        },
+        "event": "judgment_sealed",
+        "judgment_id": "S06-sunset-j1",
+        "statement": "레거시 리포트 기능을 3월 말에 내린다 — 신규 대시보드 주간 활성 이전율 80% 이상 조건으로"
+      },
+      {
+        "event_id": "web:S06-sunset-seal:2-return",
+        "v": 3,
+        "space_id": "account-project:p5-S06-sunset",
+        "idempotency_key": "web:S06-sunset-seal:2-return",
+        "atomic_batch_id": "web:S06-sunset-seal",
+        "time": {
+          "occurred_at": "2026-01-15T11:01:00+09:00",
+          "recorded_at": "2026-01-15T11:01:00+09:00",
+          "authorized_at": "2026-01-15T11:01:00+09:00",
+          "temporal_mode": "contemporaneous"
+        },
+        "authority": {
+          "originated_by": {
+            "kind": "human",
+            "id": "account-project:p5-S06-sunset"
+          },
+          "recorded_by": {
+            "kind": "system",
+            "id": "web:argus"
+          },
+          "authorized_by": {
+            "kind": "human",
+            "id": "account-project:p5-S06-sunset"
+          },
+          "authorization_mode": "explicit_confirmation",
+          "authorization_ref": {
+            "kind": "command_digest",
+            "ref": "web-command:seal:S06-sunset-seal"
+          }
+        },
+        "event": "return_promised",
+        "return_contract_id": "S06-sunset-r1",
+        "judgment_id": "S06-sunset-j1",
+        "review_at": "2026-04-01T09:00:00+09:00",
+        "review_question": "신규 대시보드로의 주간 활성 이전율이 80% 이상인가",
+        "resolution_criterion": "주간 활성 이전율 80% 이상"
+      },
+      {
+        "event_id": "web:S06-sunset-seal:3-premise-S06-sunset-p1",
+        "v": 3,
+        "space_id": "account-project:p5-S06-sunset",
+        "idempotency_key": "web:S06-sunset-seal:3-premise-S06-sunset-p1",
+        "atomic_batch_id": "web:S06-sunset-seal",
+        "time": {
+          "occurred_at": "2026-01-15T11:01:00+09:00",
+          "recorded_at": "2026-01-15T11:01:00+09:00",
+          "authorized_at": "2026-01-15T11:01:00+09:00",
+          "temporal_mode": "contemporaneous"
+        },
+        "authority": {
+          "originated_by": {
+            "kind": "ai",
+            "id": "assistant:S06-sunset-seal"
+          },
+          "recorded_by": {
+            "kind": "system",
+            "id": "web:argus"
+          },
+          "authorized_by": {
+            "kind": "human",
+            "id": "account-project:p5-S06-sunset"
+          },
+          "authorization_mode": "explicit_confirmation",
+          "authorization_ref": {
+            "kind": "command_digest",
+            "ref": "web-command:seal:S06-sunset-seal"
+          }
+        },
+        "event": "premise_adopted",
+        "premise_id": "S06-sunset-p1",
+        "judgment_id": "S06-sunset-j1",
+        "text": "이전 안내 배너가 2월부터 노출된다"
+      },
+      {
+        "event_id": "web:S06-sunset-seal:4-premise-S06-sunset-p2",
+        "v": 3,
+        "space_id": "account-project:p5-S06-sunset",
+        "idempotency_key": "web:S06-sunset-seal:4-premise-S06-sunset-p2",
+        "atomic_batch_id": "web:S06-sunset-seal",
+        "time": {
+          "occurred_at": "2026-01-15T11:01:00+09:00",
+          "recorded_at": "2026-01-15T11:01:00+09:00",
+          "authorized_at": "2026-01-15T11:01:00+09:00",
+          "temporal_mode": "contemporaneous"
+        },
+        "authority": {
+          "originated_by": {
+            "kind": "ai",
+            "id": "assistant:S06-sunset-seal"
+          },
+          "recorded_by": {
+            "kind": "system",
+            "id": "web:argus"
+          },
+          "authorized_by": {
+            "kind": "human",
+            "id": "account-project:p5-S06-sunset"
+          },
+          "authorization_mode": "explicit_confirmation",
+          "authorization_ref": {
+            "kind": "command_digest",
+            "ref": "web-command:seal:S06-sunset-seal"
+          }
+        },
+        "event": "premise_adopted",
+        "premise_id": "S06-sunset-p2",
+        "judgment_id": "S06-sunset-j1",
+        "text": "대시보드의 핵심 지표 패리티가 2월 안에 완성된다"
+      },
+      {
+        "event_id": "web:S06-sunset-obs1:observation",
+        "v": 3,
+        "space_id": "account-project:p5-S06-sunset",
+        "idempotency_key": "web:S06-sunset-obs1:observation",
+        "time": {
+          "occurred_at": "2026-03-10T09:00:00+09:00",
+          "recorded_at": "2026-03-10T09:00:00+09:00",
+          "temporal_mode": "contemporaneous"
+        },
+        "authority": {
+          "originated_by": {
+            "kind": "human",
+            "id": "account-project:p5-S06-sunset"
+          },
+          "recorded_by": {
+            "kind": "system",
+            "id": "web:argus"
+          },
+          "observed_by": {
+            "kind": "human",
+            "id": "account-project:p5-S06-sunset"
+          }
+        },
+        "event": "observation_recorded",
+        "observation_id": "S06-sunset-o1",
+        "text": "경고: 패리티 작업 중 엑셀 내보내기가 3월 말까지 안 됩니다 (엔지니어링 리포트).",
+        "provenance": {
+          "source_kind": "user_utterance",
+          "source_ref": "transcript:S06-sunset",
+          "verification": "pasted"
+        }
+      },
+      {
+        "event_id": "web:S06-sunset-oar:1-observation",
+        "v": 3,
+        "space_id": "account-project:p5-S06-sunset",
+        "idempotency_key": "web:S06-sunset-oar:1-observation",
+        "atomic_batch_id": "web:S06-sunset-oar",
+        "time": {
+          "occurred_at": "2026-04-01T10:00:00+09:00",
+          "recorded_at": "2026-04-01T10:00:00+09:00",
+          "authorized_at": "2026-04-01T10:00:00+09:00",
+          "temporal_mode": "contemporaneous"
+        },
+        "authority": {
+          "originated_by": {
+            "kind": "human",
+            "id": "account-project:p5-S06-sunset"
+          },
+          "recorded_by": {
+            "kind": "system",
+            "id": "web:argus"
+          },
+          "observed_by": {
+            "kind": "human",
+            "id": "account-project:p5-S06-sunset"
+          }
+        },
+        "event": "observation_recorded",
+        "observation_id": "S06-sunset-ofinal",
+        "text": "이전율 84%; 엑셀 내보내기 미완 (사용자 보고)",
+        "provenance": {
+          "source_kind": "user_utterance",
+          "verification": "pasted"
+        }
+      },
+      {
+        "event_id": "web:S06-sunset-oar:2-resolution",
+        "v": 3,
+        "space_id": "account-project:p5-S06-sunset",
+        "idempotency_key": "web:S06-sunset-oar:2-resolution",
+        "atomic_batch_id": "web:S06-sunset-oar",
+        "time": {
+          "occurred_at": "2026-04-01T10:00:00+09:00",
+          "recorded_at": "2026-04-01T10:00:00+09:00",
+          "authorized_at": "2026-04-01T10:00:00+09:00",
+          "temporal_mode": "contemporaneous"
+        },
+        "authority": {
+          "originated_by": {
+            "kind": "human",
+            "id": "account-project:p5-S06-sunset"
+          },
+          "recorded_by": {
+            "kind": "system",
+            "id": "web:argus"
+          },
+          "authorized_by": {
+            "kind": "human",
+            "id": "account-project:p5-S06-sunset"
+          },
+          "authorization_mode": "explicit_confirmation",
+          "authorization_ref": {
+            "kind": "command_digest",
+            "ref": "web-command:observe_and_resolve:S06-sunset-oar"
+          }
+        },
+        "event": "resolution_asserted",
+        "resolution_id": "S06-sunset-res1",
+        "judgment_id": "S06-sunset-j1",
+        "return_contract_id": "S06-sunset-r1",
+        "resolution": {
+          "kind": "answered",
+          "answer_summary": "이전율 84%로 조건은 넘었으나 패리티 전제가 깨져 일몰은 연기됨",
+          "criterion_result": "partial",
+          "evidence_refs": [
+            "S06-sunset-ofinal"
+          ]
+        }
+      },
+      {
+        "event_id": "web:S06-sunset-close:closed",
+        "v": 3,
+        "space_id": "account-project:p5-S06-sunset",
+        "idempotency_key": "web:S06-sunset-close:closed",
+        "time": {
+          "occurred_at": "2026-04-01T10:00:00+09:00",
+          "recorded_at": "2026-04-01T10:00:00+09:00",
+          "authorized_at": "2026-04-01T10:00:00+09:00",
+          "temporal_mode": "contemporaneous"
+        },
+        "authority": {
+          "originated_by": {
+            "kind": "human",
+            "id": "account-project:p5-S06-sunset"
+          },
+          "recorded_by": {
+            "kind": "system",
+            "id": "web:argus"
+          },
+          "authorized_by": {
+            "kind": "human",
+            "id": "account-project:p5-S06-sunset"
+          },
+          "authorization_mode": "explicit_confirmation",
+          "authorization_ref": {
+            "kind": "command_digest",
+            "ref": "web-command:close:S06-sunset-close"
+          }
+        },
+        "event": "judgment_closed",
+        "judgment_id": "S06-sunset-j1",
+        "resolution_id": "S06-sunset-res1"
+      }
+    ],
+    "projection": {
+      "judgment_id": "S06-sunset-j1",
+      "lifecycle": "resolved_answered",
+      "statement": "레거시 리포트 기능을 3월 말에 내린다 — 신규 대시보드 주간 활성 이전율 80% 이상 조건으로",
+      "active_return_contract_id": "S06-sunset-r1",
+      "resolution": {
+        "kind": "answered",
+        "answer_summary": "이전율 84%로 조건은 넘었으나 패리티 전제가 깨져 일몰은 연기됨",
+        "criterion_result": "partial",
+        "evidence_refs": [
+          "S06-sunset-ofinal"
+        ]
+      }
+    }
+  }
+}

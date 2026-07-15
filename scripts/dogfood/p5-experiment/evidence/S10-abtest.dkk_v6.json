@@ -1,0 +1,301 @@
+{
+  "scenario_id": "S10-abtest",
+  "arm": "dkk_v6",
+  "confirmation_actions": 3,
+  "task_seconds_agent": 0.002,
+  "completed_lifecycle": true,
+  "record": {
+    "ledger_events": [
+      {
+        "event_id": "web:S10-abtest-seal:1-sealed",
+        "v": 3,
+        "space_id": "account-project:p5-S10-abtest",
+        "idempotency_key": "web:S10-abtest-seal:1-sealed",
+        "atomic_batch_id": "web:S10-abtest-seal",
+        "time": {
+          "occurred_at": "2026-05-10T10:00:30+09:00",
+          "recorded_at": "2026-05-10T10:00:30+09:00",
+          "authorized_at": "2026-05-10T10:00:30+09:00",
+          "temporal_mode": "contemporaneous"
+        },
+        "authority": {
+          "originated_by": {
+            "kind": "human",
+            "id": "account-project:p5-S10-abtest"
+          },
+          "recorded_by": {
+            "kind": "system",
+            "id": "web:argus"
+          },
+          "authorized_by": {
+            "kind": "human",
+            "id": "account-project:p5-S10-abtest"
+          },
+          "authorization_mode": "explicit_confirmation",
+          "authorization_ref": {
+            "kind": "command_digest",
+            "ref": "web-command:seal:S10-abtest-seal"
+          }
+        },
+        "event": "judgment_sealed",
+        "judgment_id": "S10-abtest-j1",
+        "statement": "연간 플랜 가격을 20% 올린 A/B를 6월 한 달 돌린다"
+      },
+      {
+        "event_id": "web:S10-abtest-seal:2-return",
+        "v": 3,
+        "space_id": "account-project:p5-S10-abtest",
+        "idempotency_key": "web:S10-abtest-seal:2-return",
+        "atomic_batch_id": "web:S10-abtest-seal",
+        "time": {
+          "occurred_at": "2026-05-10T10:00:30+09:00",
+          "recorded_at": "2026-05-10T10:00:30+09:00",
+          "authorized_at": "2026-05-10T10:00:30+09:00",
+          "temporal_mode": "contemporaneous"
+        },
+        "authority": {
+          "originated_by": {
+            "kind": "human",
+            "id": "account-project:p5-S10-abtest"
+          },
+          "recorded_by": {
+            "kind": "system",
+            "id": "web:argus"
+          },
+          "authorized_by": {
+            "kind": "human",
+            "id": "account-project:p5-S10-abtest"
+          },
+          "authorization_mode": "explicit_confirmation",
+          "authorization_ref": {
+            "kind": "command_digest",
+            "ref": "web-command:seal:S10-abtest-seal"
+          }
+        },
+        "event": "return_promised",
+        "return_contract_id": "S10-abtest-r1",
+        "judgment_id": "S10-abtest-j1",
+        "review_at": "2026-07-05T09:00:00+09:00",
+        "review_question": "순매출(전환×단가)이 최소 5% 올랐는가",
+        "resolution_criterion": "순매출 +5% 이상"
+      },
+      {
+        "event_id": "web:S10-abtest-seal:3-premise-S10-abtest-p1",
+        "v": 3,
+        "space_id": "account-project:p5-S10-abtest",
+        "idempotency_key": "web:S10-abtest-seal:3-premise-S10-abtest-p1",
+        "atomic_batch_id": "web:S10-abtest-seal",
+        "time": {
+          "occurred_at": "2026-05-10T10:00:30+09:00",
+          "recorded_at": "2026-05-10T10:00:30+09:00",
+          "authorized_at": "2026-05-10T10:00:30+09:00",
+          "temporal_mode": "contemporaneous"
+        },
+        "authority": {
+          "originated_by": {
+            "kind": "human",
+            "id": "account-project:p5-S10-abtest"
+          },
+          "recorded_by": {
+            "kind": "system",
+            "id": "web:argus"
+          },
+          "authorized_by": {
+            "kind": "human",
+            "id": "account-project:p5-S10-abtest"
+          },
+          "authorization_mode": "explicit_confirmation",
+          "authorization_ref": {
+            "kind": "command_digest",
+            "ref": "web-command:seal:S10-abtest-seal"
+          }
+        },
+        "event": "premise_adopted",
+        "premise_id": "S10-abtest-p1",
+        "judgment_id": "S10-abtest-j1",
+        "text": "표본이 플랜별 최소 400 전환은 된다"
+      },
+      {
+        "event_id": "web:S10-abtest-obs1:observation",
+        "v": 3,
+        "space_id": "account-project:p5-S10-abtest",
+        "idempotency_key": "web:S10-abtest-obs1:observation",
+        "time": {
+          "occurred_at": "2026-07-03T09:00:00+09:00",
+          "recorded_at": "2026-07-03T09:00:00+09:00",
+          "temporal_mode": "contemporaneous"
+        },
+        "authority": {
+          "originated_by": {
+            "kind": "human",
+            "id": "account-project:p5-S10-abtest"
+          },
+          "recorded_by": {
+            "kind": "system",
+            "id": "web:argus"
+          },
+          "observed_by": {
+            "kind": "human",
+            "id": "account-project:p5-S10-abtest"
+          }
+        },
+        "event": "observation_recorded",
+        "observation_id": "S10-abtest-o1",
+        "text": "집계: 전환 -9%, 단가 +20%, 순매출 +9.2%. 표본은 각 460/470 전환. 제 해석으로는 명확한 성공입니다.",
+        "provenance": {
+          "source_kind": "user_utterance",
+          "source_ref": "transcript:S10-abtest",
+          "verification": "pasted"
+        }
+      },
+      {
+        "event_id": "web:S10-abtest-oar:1-observation",
+        "v": 3,
+        "space_id": "account-project:p5-S10-abtest",
+        "idempotency_key": "web:S10-abtest-oar:1-observation",
+        "atomic_batch_id": "web:S10-abtest-oar",
+        "time": {
+          "occurred_at": "2026-07-05T10:00:00+09:00",
+          "recorded_at": "2026-07-05T10:00:00+09:00",
+          "authorized_at": "2026-07-05T10:00:00+09:00",
+          "temporal_mode": "contemporaneous"
+        },
+        "authority": {
+          "originated_by": {
+            "kind": "human",
+            "id": "account-project:p5-S10-abtest"
+          },
+          "recorded_by": {
+            "kind": "system",
+            "id": "web:argus"
+          },
+          "observed_by": {
+            "kind": "human",
+            "id": "account-project:p5-S10-abtest"
+          }
+        },
+        "event": "observation_recorded",
+        "observation_id": "S10-abtest-ofinal",
+        "text": "전환 -9%, 단가 +20%, 순매출 +9.2% (사용자 보고)",
+        "provenance": {
+          "source_kind": "user_utterance",
+          "verification": "pasted"
+        }
+      },
+      {
+        "event_id": "web:S10-abtest-oar:2-resolution",
+        "v": 3,
+        "space_id": "account-project:p5-S10-abtest",
+        "idempotency_key": "web:S10-abtest-oar:2-resolution",
+        "atomic_batch_id": "web:S10-abtest-oar",
+        "time": {
+          "occurred_at": "2026-07-05T10:00:00+09:00",
+          "recorded_at": "2026-07-05T10:00:00+09:00",
+          "authorized_at": "2026-07-05T10:00:00+09:00",
+          "temporal_mode": "contemporaneous"
+        },
+        "authority": {
+          "originated_by": {
+            "kind": "human",
+            "id": "account-project:p5-S10-abtest"
+          },
+          "recorded_by": {
+            "kind": "system",
+            "id": "web:argus"
+          },
+          "authorized_by": {
+            "kind": "human",
+            "id": "account-project:p5-S10-abtest"
+          },
+          "authorization_mode": "explicit_confirmation",
+          "authorization_ref": {
+            "kind": "command_digest",
+            "ref": "web-command:observe_and_resolve:S10-abtest-oar"
+          }
+        },
+        "event": "resolution_asserted",
+        "resolution_id": "S10-abtest-res1",
+        "judgment_id": "S10-abtest-j1",
+        "return_contract_id": "S10-abtest-r1",
+        "resolution": {
+          "kind": "answered",
+          "answer_summary": "조건은 충족했지만 이탈 코호트의 LTV를 아직 몰라서 성공 단정은 이르다",
+          "criterion_result": "met",
+          "evidence_refs": [
+            "S10-abtest-ofinal"
+          ]
+        }
+      },
+      {
+        "event_id": "web:S10-abtest-close:closed",
+        "v": 3,
+        "space_id": "account-project:p5-S10-abtest",
+        "idempotency_key": "web:S10-abtest-close:closed",
+        "time": {
+          "occurred_at": "2026-07-05T10:00:00+09:00",
+          "recorded_at": "2026-07-05T10:00:00+09:00",
+          "authorized_at": "2026-07-05T10:00:00+09:00",
+          "temporal_mode": "contemporaneous"
+        },
+        "authority": {
+          "originated_by": {
+            "kind": "human",
+            "id": "account-project:p5-S10-abtest"
+          },
+          "recorded_by": {
+            "kind": "system",
+            "id": "web:argus"
+          },
+          "authorized_by": {
+            "kind": "human",
+            "id": "account-project:p5-S10-abtest"
+          },
+          "authorization_mode": "explicit_confirmation",
+          "authorization_ref": {
+            "kind": "command_digest",
+            "ref": "web-command:close:S10-abtest-close"
+          }
+        },
+        "event": "judgment_closed",
+        "judgment_id": "S10-abtest-j1",
+        "resolution_id": "S10-abtest-res1"
+      }
+    ],
+    "projection": {
+      "judgment_id": "S10-abtest-j1",
+      "lifecycle": "resolved_answered",
+      "statement": "연간 플랜 가격을 20% 올린 A/B를 6월 한 달 돌린다",
+      "active_return_contract_id": "S10-abtest-r1",
+      "resolution": {
+        "kind": "answered",
+        "answer_summary": "조건은 충족했지만 이탈 코호트의 LTV를 아직 몰라서 성공 단정은 이르다",
+        "criterion_result": "met",
+        "evidence_refs": [
+          "S10-abtest-ofinal"
+        ]
+      }
+    }
+  },
+  "transcript": [
+    {
+      "role": "user",
+      "at": "2026-05-10T10:00:00+09:00",
+      "text": "연간 플랜 가격을 20% 올린 A/B를 6월 한 달 돌린다. 예측: 순매출(전환×단가)이 최소 5% 오른다. 7월 5일 확인. 전제: 표본이 플랜별 최소 400 전환은 된다."
+    },
+    {
+      "role": "ai",
+      "at": "2026-05-10T10:00:30+09:00",
+      "text": "기록했습니다."
+    },
+    {
+      "role": "ai",
+      "at": "2026-07-03T09:00:00+09:00",
+      "text": "집계: 전환 -9%, 단가 +20%, 순매출 +9.2%. 표본은 각 460/470 전환. 제 해석으로는 명확한 성공입니다."
+    },
+    {
+      "role": "user",
+      "at": "2026-07-05T10:00:00+09:00",
+      "text": "숫자는 그대로 기록해. 근데 \"명확한 성공\"은 네 해석이고 — 내 해석은 \"조건은 충족했지만 이탈 코호트의 LTV를 아직 몰라서 성공 단정은 이르다\"야. 조건 충족(met)으로 하되 내 문장으로 답을 남기고 닫아."
+    }
+  ]
+}

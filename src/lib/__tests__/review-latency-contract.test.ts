@@ -25,10 +25,14 @@ describe('document review latency contract', () => {
     expect(pipeline).toContain('maxTokens: 2000');
   });
 
-  it('keeps fast-path output in the document language and requires material anchored findings', () => {
+  it("keeps fast-path output in the reader's locale and requires material anchored findings", () => {
     const prompts = fs.readFileSync(path.resolve('src/lib/review/prompts.ts'), 'utf8');
-    expect(prompts).toContain("Write every user-facing value in the document's primary language");
-    expect(prompts).toContain('Do not mix them');
+    // The output-language contract moved from "document's primary language" to a
+    // per-locale directive appended LAST to every stage prompt (reader's locale).
+    expect(prompts).toContain('OUTPUT LANGUAGE — HIGHEST PRIORITY');
+    expect(prompts).toContain('출력 언어 — 최우선');
+    expect(prompts).toContain('must never mix the two');
+    expect(prompts).toContain('두 언어를 섞지 않는다');
     expect(prompts).toContain('return 2 to 5 material findings');
     expect(prompts).toContain('Copy one exact snake_case lens_id');
   });

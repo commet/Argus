@@ -377,6 +377,7 @@ async function pull() {
 
   const events = Array.isArray(res.data.events) ? res.data.events : [];
   let written = 0;
+  let semanticWritten = 0;
   let skipped = 0;
   for (const item of events) {
     const eventId = item && item.event_id ? String(item.event_id) : null;
@@ -406,7 +407,7 @@ async function pull() {
       for (const semanticEvent of semanticEvents) {
         if (semanticEvent && semanticEvent.event_id) applied.add(String(semanticEvent.event_id));
       }
-      written += semanticEvents.length;
+      semanticWritten += semanticEvents.length;
       continue;
     }
     appendWebEvent({ ...payload, event_id: eventId });
@@ -419,7 +420,10 @@ async function pull() {
     lastPulledAt: new Date().toISOString(),
   });
 
-  console.log(`Pulled ${written} web event(s) into ${path.relative(root, ledgerFile()).replace(/\\/g, "/")}.`);
+  // Name the file each kind actually landed in — saying ledger.jsonl for
+  // semantic batches misreported where the user's data went (기계의 정직).
+  if (semanticWritten) console.log(`Pulled ${semanticWritten} semantic event(s) into ${path.relative(root, semanticLedgerFile()).replace(/\\/g, "/")}.`);
+  if (written || !semanticWritten) console.log(`Pulled ${written} web event(s) into ${path.relative(root, ledgerFile()).replace(/\\/g, "/")}.`);
   if (skipped) console.log(`Skipped ${skipped} already-applied or invalid event(s).`);
 }
 

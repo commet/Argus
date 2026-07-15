@@ -1,0 +1,280 @@
+{
+  "packet_id": "S09-teamsplit.dkk_v6",
+  "questionnaire": "당신은 기록 감사인이다. 이 결정이 있고 몇 달이 지났고, 당신이 가진 것은 아래 record가 전부다.\nrecord에 없는 것은 추측하지 말고 \"unknown\"으로 답하라 — unknown은 감점이 아니며, 근거 없는 확신이 감점이다.\n\n각 질문에 JSON으로 답하라:\n{\n  \"sealed_statement\": \"봉인된 판단문을 기록에서 찾은 그대로 (없으면 unknown)\",\n  \"statement_origin\": \"그 문장을 처음 쓴 주체는? 'ai'(AI 초안을 그대로 채택) | 'human'(사용자 자신의 문장) | 'unknown'\",\n  \"adopted_premises\": [\"봉인 당시 사용자가 채택한 전제들 (기록 근거가 있는 것만)\"],\n  \"review_question\": \"돌아보기로 약속한 질문 (없으면 unknown)\",\n  \"review_at\": \"약속한 확인일 YYYY-MM-DD (없으면 unknown)\",\n  \"was_deferred\": true | false | \"unknown\",\n  \"resolution_kind\": \"answered | indeterminate | moot | unknown\",\n  \"answer_summary\": \"확인한 답의 요지 (없으면 unknown)\",\n  \"criterion_result\": \"met | not_met | partial | not_applicable | none_recorded | unknown\",\n  \"evidence_items\": [\"종결의 근거가 된 관찰들\"],\n  \"was_separately_closed\": true | false | \"unknown\",\n  \"probes\": [{ \"item\": \"<probe 문장 그대로>\", \"known_at_seal\": true | false | \"unknown\" }]\n}\n\nprobes 규칙: 각 항목에 대해 \"이 사실/전제가 봉인 시점에 이미 기록에 존재했는가(사용자가 봉인 당시 알고 채택/인지했는가)\"를\n기록의 시간 정보만으로 판정하라. 기록이 시점을 구분해주지 않으면 unknown.",
+  "probes": [
+    "2분기 주당 배포 빈도 평균 12.3회",
+    "채용 두 명이 3월까지 합류한다",
+    "채용이 한 명만 됨 (전제 폐기)"
+  ],
+  "record": {
+    "ledger_events": [
+      {
+        "event_id": "web:S09-teamsplit-seal:1-sealed",
+        "v": 3,
+        "space_id": "account-project:p5-S09-teamsplit",
+        "idempotency_key": "web:S09-teamsplit-seal:1-sealed",
+        "atomic_batch_id": "web:S09-teamsplit-seal",
+        "time": {
+          "occurred_at": "2026-01-08T10:00:30+09:00",
+          "recorded_at": "2026-01-08T10:00:30+09:00",
+          "authorized_at": "2026-01-08T10:00:30+09:00",
+          "temporal_mode": "contemporaneous"
+        },
+        "authority": {
+          "originated_by": {
+            "kind": "human",
+            "id": "account-project:p5-S09-teamsplit"
+          },
+          "recorded_by": {
+            "kind": "system",
+            "id": "web:argus"
+          },
+          "authorized_by": {
+            "kind": "human",
+            "id": "account-project:p5-S09-teamsplit"
+          },
+          "authorization_mode": "explicit_confirmation",
+          "authorization_ref": {
+            "kind": "command_digest",
+            "ref": "web-command:seal:S09-teamsplit-seal"
+          }
+        },
+        "event": "judgment_sealed",
+        "judgment_id": "S09-teamsplit-j1",
+        "statement": "플랫폼팀을 인프라/개발경험 둘로 나눈다"
+      },
+      {
+        "event_id": "web:S09-teamsplit-seal:2-return",
+        "v": 3,
+        "space_id": "account-project:p5-S09-teamsplit",
+        "idempotency_key": "web:S09-teamsplit-seal:2-return",
+        "atomic_batch_id": "web:S09-teamsplit-seal",
+        "time": {
+          "occurred_at": "2026-01-08T10:00:30+09:00",
+          "recorded_at": "2026-01-08T10:00:30+09:00",
+          "authorized_at": "2026-01-08T10:00:30+09:00",
+          "temporal_mode": "contemporaneous"
+        },
+        "authority": {
+          "originated_by": {
+            "kind": "human",
+            "id": "account-project:p5-S09-teamsplit"
+          },
+          "recorded_by": {
+            "kind": "system",
+            "id": "web:argus"
+          },
+          "authorized_by": {
+            "kind": "human",
+            "id": "account-project:p5-S09-teamsplit"
+          },
+          "authorization_mode": "explicit_confirmation",
+          "authorization_ref": {
+            "kind": "command_digest",
+            "ref": "web-command:seal:S09-teamsplit-seal"
+          }
+        },
+        "event": "return_promised",
+        "return_contract_id": "S09-teamsplit-r1",
+        "judgment_id": "S09-teamsplit-j1",
+        "review_at": "2026-07-01T09:00:00+09:00",
+        "review_question": "2분기 배포 빈도가 주 10회를 넘는가"
+      },
+      {
+        "event_id": "web:S09-teamsplit-seal:3-premise-S09-teamsplit-p1",
+        "v": 3,
+        "space_id": "account-project:p5-S09-teamsplit",
+        "idempotency_key": "web:S09-teamsplit-seal:3-premise-S09-teamsplit-p1",
+        "atomic_batch_id": "web:S09-teamsplit-seal",
+        "time": {
+          "occurred_at": "2026-01-08T10:00:30+09:00",
+          "recorded_at": "2026-01-08T10:00:30+09:00",
+          "authorized_at": "2026-01-08T10:00:30+09:00",
+          "temporal_mode": "contemporaneous"
+        },
+        "authority": {
+          "originated_by": {
+            "kind": "human",
+            "id": "account-project:p5-S09-teamsplit"
+          },
+          "recorded_by": {
+            "kind": "system",
+            "id": "web:argus"
+          },
+          "authorized_by": {
+            "kind": "human",
+            "id": "account-project:p5-S09-teamsplit"
+          },
+          "authorization_mode": "explicit_confirmation",
+          "authorization_ref": {
+            "kind": "command_digest",
+            "ref": "web-command:seal:S09-teamsplit-seal"
+          }
+        },
+        "event": "premise_adopted",
+        "premise_id": "S09-teamsplit-p1",
+        "judgment_id": "S09-teamsplit-j1",
+        "text": "채용 두 명이 3월까지 합류한다"
+      },
+      {
+        "event_id": "web:S09-teamsplit-obs1:observation",
+        "v": 3,
+        "space_id": "account-project:p5-S09-teamsplit",
+        "idempotency_key": "web:S09-teamsplit-obs1:observation",
+        "time": {
+          "occurred_at": "2026-06-28T09:00:00+09:00",
+          "recorded_at": "2026-06-28T09:00:00+09:00",
+          "temporal_mode": "contemporaneous"
+        },
+        "authority": {
+          "originated_by": {
+            "kind": "human",
+            "id": "account-project:p5-S09-teamsplit"
+          },
+          "recorded_by": {
+            "kind": "system",
+            "id": "web:argus"
+          },
+          "observed_by": {
+            "kind": "human",
+            "id": "account-project:p5-S09-teamsplit"
+          }
+        },
+        "event": "observation_recorded",
+        "observation_id": "S09-teamsplit-o1",
+        "text": "집계: 2분기 주당 배포 빈도 평균 12.3회.",
+        "provenance": {
+          "source_kind": "user_utterance",
+          "source_ref": "transcript:S09-teamsplit",
+          "verification": "pasted"
+        }
+      },
+      {
+        "event_id": "web:S09-teamsplit-oar:1-observation",
+        "v": 3,
+        "space_id": "account-project:p5-S09-teamsplit",
+        "idempotency_key": "web:S09-teamsplit-oar:1-observation",
+        "atomic_batch_id": "web:S09-teamsplit-oar",
+        "time": {
+          "occurred_at": "2026-07-01T10:00:00+09:00",
+          "recorded_at": "2026-07-01T10:00:00+09:00",
+          "authorized_at": "2026-07-01T10:00:00+09:00",
+          "temporal_mode": "contemporaneous"
+        },
+        "authority": {
+          "originated_by": {
+            "kind": "human",
+            "id": "account-project:p5-S09-teamsplit"
+          },
+          "recorded_by": {
+            "kind": "system",
+            "id": "web:argus"
+          },
+          "observed_by": {
+            "kind": "human",
+            "id": "account-project:p5-S09-teamsplit"
+          }
+        },
+        "event": "observation_recorded",
+        "observation_id": "S09-teamsplit-ofinal",
+        "text": "2분기 주당 배포 빈도 평균 12.3회 (사용자 보고)",
+        "provenance": {
+          "source_kind": "user_utterance",
+          "verification": "pasted"
+        }
+      },
+      {
+        "event_id": "web:S09-teamsplit-oar:2-resolution",
+        "v": 3,
+        "space_id": "account-project:p5-S09-teamsplit",
+        "idempotency_key": "web:S09-teamsplit-oar:2-resolution",
+        "atomic_batch_id": "web:S09-teamsplit-oar",
+        "time": {
+          "occurred_at": "2026-07-01T10:00:00+09:00",
+          "recorded_at": "2026-07-01T10:00:00+09:00",
+          "authorized_at": "2026-07-01T10:00:00+09:00",
+          "temporal_mode": "contemporaneous"
+        },
+        "authority": {
+          "originated_by": {
+            "kind": "human",
+            "id": "account-project:p5-S09-teamsplit"
+          },
+          "recorded_by": {
+            "kind": "system",
+            "id": "web:argus"
+          },
+          "authorized_by": {
+            "kind": "human",
+            "id": "account-project:p5-S09-teamsplit"
+          },
+          "authorization_mode": "explicit_confirmation",
+          "authorization_ref": {
+            "kind": "command_digest",
+            "ref": "web-command:observe_and_resolve:S09-teamsplit-oar"
+          }
+        },
+        "event": "resolution_asserted",
+        "resolution_id": "S09-teamsplit-res1",
+        "judgment_id": "S09-teamsplit-j1",
+        "return_contract_id": "S09-teamsplit-r1",
+        "resolution": {
+          "kind": "answered",
+          "answer_summary": "주당 평균 12.3회로 10회를 넘었다",
+          "criterion_result": "met",
+          "evidence_refs": [
+            "S09-teamsplit-ofinal"
+          ]
+        }
+      },
+      {
+        "event_id": "web:S09-teamsplit-close:closed",
+        "v": 3,
+        "space_id": "account-project:p5-S09-teamsplit",
+        "idempotency_key": "web:S09-teamsplit-close:closed",
+        "time": {
+          "occurred_at": "2026-07-01T10:00:00+09:00",
+          "recorded_at": "2026-07-01T10:00:00+09:00",
+          "authorized_at": "2026-07-01T10:00:00+09:00",
+          "temporal_mode": "contemporaneous"
+        },
+        "authority": {
+          "originated_by": {
+            "kind": "human",
+            "id": "account-project:p5-S09-teamsplit"
+          },
+          "recorded_by": {
+            "kind": "system",
+            "id": "web:argus"
+          },
+          "authorized_by": {
+            "kind": "human",
+            "id": "account-project:p5-S09-teamsplit"
+          },
+          "authorization_mode": "explicit_confirmation",
+          "authorization_ref": {
+            "kind": "command_digest",
+            "ref": "web-command:close:S09-teamsplit-close"
+          }
+        },
+        "event": "judgment_closed",
+        "judgment_id": "S09-teamsplit-j1",
+        "resolution_id": "S09-teamsplit-res1"
+      }
+    ],
+    "projection": {
+      "judgment_id": "S09-teamsplit-j1",
+      "lifecycle": "resolved_answered",
+      "statement": "플랫폼팀을 인프라/개발경험 둘로 나눈다",
+      "active_return_contract_id": "S09-teamsplit-r1",
+      "resolution": {
+        "kind": "answered",
+        "answer_summary": "주당 평균 12.3회로 10회를 넘었다",
+        "criterion_result": "met",
+        "evidence_refs": [
+          "S09-teamsplit-ofinal"
+        ]
+      }
+    }
+  }
+}

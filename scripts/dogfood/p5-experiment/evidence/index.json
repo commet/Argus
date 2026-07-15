@@ -1,0 +1,18 @@
+{
+  "label": "AGENT-DRIVEN dogfood arms — not a human cohort; see ADR",
+  "scenarios": [
+    "S01-pricing",
+    "S02-contractor",
+    "S03-vendor",
+    "S04-campaign",
+    "S05-europe",
+    "S06-sunset",
+    "S07-oncall",
+    "S08-sdk",
+    "S09-teamsplit",
+    "S10-abtest",
+    "S11-lease",
+    "S12-dbmove"
+  ],
+  "generated_by": "scripts/dogfood/p5-experiment/run-arms.ts"
+}

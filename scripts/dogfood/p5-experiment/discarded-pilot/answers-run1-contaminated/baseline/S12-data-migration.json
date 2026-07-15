@@ -1,0 +1,18 @@
+{
+  "sealed_statement": "7월 둘째 주에 주 DB를 이관한다",
+  "statement_origin": "unknown",
+  "adopted_premises": ["인덱스 리빌드가 복제 지연 예산 안에 든다"],
+  "review_question": "고객 체감 다운타임이 5분 이내였는가",
+  "review_at": "2026-07-15",
+  "was_deferred": false,
+  "resolution_kind": "answered",
+  "answer_summary": "12분 오류율 상승과 티켓 발생으로 5분 예산 초과",
+  "criterion_result": "not_met",
+  "evidence_items": ["APM 12분 오류율 상승", "지원 티켓 3건, 상태페이지 신고 1건"],
+  "was_separately_closed": false,
+  "probes": [
+    { "item": "APM상 12분 오류율 상승", "known_at_seal": false },
+    { "item": "인덱스 리빌드가 복제 지연 예산 안에 든다", "known_at_seal": true },
+    { "item": "지원 티켓 3건, 상태페이지 신고 1건", "known_at_seal": false }
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "sealed_statement": "유럽 진출은 2027년으로 미룬다",
+  "statement_origin": "human",
+  "adopted_premises": [],
+  "review_question": "미룬 게 옳았는지 — 경쟁사가 그 사이 유럽에서 유의미한 점유율을 가져갔는가",
+  "review_at": "2026-12-01",
+  "was_deferred": false,
+  "resolution_kind": "answered",
+  "answer_summary": "아니오 — 유의미한 점유율 이동 없음",
+  "criterion_result": "none_recorded",
+  "evidence_items": [
+    "경쟁사 C 독일 진출 발표; 점유율은 무의미한 수준 (사용자 보고) — observation S05-retro-seal-ofinal (2026-12-01)"
+  ],
+  "was_separately_closed": true,
+  "probes": [
+    { "item": "경쟁사 C가 11월 24일 독일 진출 발표", "known_at_seal": false },
+    { "item": "현지 인증 비용이 5천 이상이다", "known_at_seal": "unknown" }
+  ]
+}

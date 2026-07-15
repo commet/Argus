@@ -1,0 +1,303 @@
+{
+  "scenario_id": "S03-vendor",
+  "arm": "dkk_v6",
+  "confirmation_actions": 3,
+  "task_seconds_agent": 0.005,
+  "completed_lifecycle": true,
+  "record": {
+    "ledger_events": [
+      {
+        "event_id": "web:S03-vendor-seal:1-sealed",
+        "v": 3,
+        "space_id": "account-project:p5-S03-vendor",
+        "idempotency_key": "web:S03-vendor-seal:1-sealed",
+        "atomic_batch_id": "web:S03-vendor-seal",
+        "time": {
+          "occurred_at": "2026-03-02T10:01:30+09:00",
+          "recorded_at": "2026-03-02T10:01:30+09:00",
+          "authorized_at": "2026-03-02T10:01:30+09:00",
+          "temporal_mode": "contemporaneous"
+        },
+        "authority": {
+          "originated_by": {
+            "kind": "human",
+            "id": "account-project:p5-S03-vendor"
+          },
+          "recorded_by": {
+            "kind": "system",
+            "id": "web:argus"
+          },
+          "authorized_by": {
+            "kind": "human",
+            "id": "account-project:p5-S03-vendor"
+          },
+          "authorization_mode": "explicit_confirmation",
+          "authorization_ref": {
+            "kind": "command_digest",
+            "ref": "web-command:seal:S03-vendor-seal"
+          }
+        },
+        "event": "judgment_sealed",
+        "judgment_id": "S03-vendor-j1",
+        "statement": "B의 정산 지연이 48시간 이내로 안정화되면 결제 벤더를 A에서 B로 옮긴다"
+      },
+      {
+        "event_id": "web:S03-vendor-seal:2-return",
+        "v": 3,
+        "space_id": "account-project:p5-S03-vendor",
+        "idempotency_key": "web:S03-vendor-seal:2-return",
+        "atomic_batch_id": "web:S03-vendor-seal",
+        "time": {
+          "occurred_at": "2026-03-02T10:01:30+09:00",
+          "recorded_at": "2026-03-02T10:01:30+09:00",
+          "authorized_at": "2026-03-02T10:01:30+09:00",
+          "temporal_mode": "contemporaneous"
+        },
+        "authority": {
+          "originated_by": {
+            "kind": "human",
+            "id": "account-project:p5-S03-vendor"
+          },
+          "recorded_by": {
+            "kind": "system",
+            "id": "web:argus"
+          },
+          "authorized_by": {
+            "kind": "human",
+            "id": "account-project:p5-S03-vendor"
+          },
+          "authorization_mode": "explicit_confirmation",
+          "authorization_ref": {
+            "kind": "command_digest",
+            "ref": "web-command:seal:S03-vendor-seal"
+          }
+        },
+        "event": "return_promised",
+        "return_contract_id": "S03-vendor-r1",
+        "judgment_id": "S03-vendor-j1",
+        "review_at": "2026-06-02T09:00:00+09:00",
+        "review_question": "B의 5월 정산 지연 지표가 48시간 이내로 안정화됐는가"
+      },
+      {
+        "event_id": "web:S03-vendor-seal:3-premise-S03-vendor-p1",
+        "v": 3,
+        "space_id": "account-project:p5-S03-vendor",
+        "idempotency_key": "web:S03-vendor-seal:3-premise-S03-vendor-p1",
+        "atomic_batch_id": "web:S03-vendor-seal",
+        "time": {
+          "occurred_at": "2026-03-02T10:01:30+09:00",
+          "recorded_at": "2026-03-02T10:01:30+09:00",
+          "authorized_at": "2026-03-02T10:01:30+09:00",
+          "temporal_mode": "contemporaneous"
+        },
+        "authority": {
+          "originated_by": {
+            "kind": "ai",
+            "id": "assistant:S03-vendor-seal"
+          },
+          "recorded_by": {
+            "kind": "system",
+            "id": "web:argus"
+          },
+          "authorized_by": {
+            "kind": "human",
+            "id": "account-project:p5-S03-vendor"
+          },
+          "authorization_mode": "explicit_confirmation",
+          "authorization_ref": {
+            "kind": "command_digest",
+            "ref": "web-command:seal:S03-vendor-seal"
+          }
+        },
+        "event": "premise_adopted",
+        "premise_id": "S03-vendor-p1",
+        "judgment_id": "S03-vendor-j1",
+        "text": "A의 수수료 인상이 예정대로 7월에 시행된다"
+      },
+      {
+        "event_id": "web:S03-vendor-obs1:observation",
+        "v": 3,
+        "space_id": "account-project:p5-S03-vendor",
+        "idempotency_key": "web:S03-vendor-obs1:observation",
+        "time": {
+          "occurred_at": "2026-05-28T09:00:00+09:00",
+          "recorded_at": "2026-05-28T09:00:00+09:00",
+          "temporal_mode": "contemporaneous"
+        },
+        "authority": {
+          "originated_by": {
+            "kind": "human",
+            "id": "account-project:p5-S03-vendor"
+          },
+          "recorded_by": {
+            "kind": "system",
+            "id": "web:argus"
+          },
+          "observed_by": {
+            "kind": "human",
+            "id": "account-project:p5-S03-vendor"
+          }
+        },
+        "event": "observation_recorded",
+        "observation_id": "S03-vendor-o1",
+        "text": "뉴스: 벤더 B가 5월 27일 국내 서비스 종료를 공지했습니다 (공식 블로그).",
+        "provenance": {
+          "source_kind": "user_utterance",
+          "source_ref": "transcript:S03-vendor",
+          "verification": "pasted"
+        }
+      },
+      {
+        "event_id": "web:S03-vendor-oar:1-observation",
+        "v": 3,
+        "space_id": "account-project:p5-S03-vendor",
+        "idempotency_key": "web:S03-vendor-oar:1-observation",
+        "atomic_batch_id": "web:S03-vendor-oar",
+        "time": {
+          "occurred_at": "2026-06-02T09:00:00+09:00",
+          "recorded_at": "2026-06-02T09:00:00+09:00",
+          "authorized_at": "2026-06-02T09:00:00+09:00",
+          "temporal_mode": "contemporaneous"
+        },
+        "authority": {
+          "originated_by": {
+            "kind": "human",
+            "id": "account-project:p5-S03-vendor"
+          },
+          "recorded_by": {
+            "kind": "system",
+            "id": "web:argus"
+          },
+          "observed_by": {
+            "kind": "human",
+            "id": "account-project:p5-S03-vendor"
+          }
+        },
+        "event": "observation_recorded",
+        "observation_id": "S03-vendor-ofinal",
+        "text": "벤더 B가 5월 27일 국내 서비스 종료를 공지 (사용자 보고)",
+        "provenance": {
+          "source_kind": "user_utterance",
+          "verification": "pasted"
+        }
+      },
+      {
+        "event_id": "web:S03-vendor-oar:2-resolution",
+        "v": 3,
+        "space_id": "account-project:p5-S03-vendor",
+        "idempotency_key": "web:S03-vendor-oar:2-resolution",
+        "atomic_batch_id": "web:S03-vendor-oar",
+        "time": {
+          "occurred_at": "2026-06-02T09:00:00+09:00",
+          "recorded_at": "2026-06-02T09:00:00+09:00",
+          "authorized_at": "2026-06-02T09:00:00+09:00",
+          "temporal_mode": "contemporaneous"
+        },
+        "authority": {
+          "originated_by": {
+            "kind": "human",
+            "id": "account-project:p5-S03-vendor"
+          },
+          "recorded_by": {
+            "kind": "system",
+            "id": "web:argus"
+          },
+          "authorized_by": {
+            "kind": "human",
+            "id": "account-project:p5-S03-vendor"
+          },
+          "authorization_mode": "explicit_confirmation",
+          "authorization_ref": {
+            "kind": "command_digest",
+            "ref": "web-command:observe_and_resolve:S03-vendor-oar"
+          }
+        },
+        "event": "resolution_asserted",
+        "resolution_id": "S03-vendor-res1",
+        "judgment_id": "S03-vendor-j1",
+        "return_contract_id": "S03-vendor-r1",
+        "resolution": {
+          "kind": "moot",
+          "reason": "B가 국내 서비스를 종료해 질문의 대상이 사라졌다",
+          "evidence_refs": [
+            "S03-vendor-ofinal"
+          ]
+        }
+      },
+      {
+        "event_id": "web:S03-vendor-close:closed",
+        "v": 3,
+        "space_id": "account-project:p5-S03-vendor",
+        "idempotency_key": "web:S03-vendor-close:closed",
+        "time": {
+          "occurred_at": "2026-06-02T09:00:00+09:00",
+          "recorded_at": "2026-06-02T09:00:00+09:00",
+          "authorized_at": "2026-06-02T09:00:00+09:00",
+          "temporal_mode": "contemporaneous"
+        },
+        "authority": {
+          "originated_by": {
+            "kind": "human",
+            "id": "account-project:p5-S03-vendor"
+          },
+          "recorded_by": {
+            "kind": "system",
+            "id": "web:argus"
+          },
+          "authorized_by": {
+            "kind": "human",
+            "id": "account-project:p5-S03-vendor"
+          },
+          "authorization_mode": "explicit_confirmation",
+          "authorization_ref": {
+            "kind": "command_digest",
+            "ref": "web-command:close:S03-vendor-close"
+          }
+        },
+        "event": "judgment_closed",
+        "judgment_id": "S03-vendor-j1",
+        "resolution_id": "S03-vendor-res1"
+      }
+    ],
+    "projection": {
+      "judgment_id": "S03-vendor-j1",
+      "lifecycle": "resolved_moot",
+      "statement": "B의 정산 지연이 48시간 이내로 안정화되면 결제 벤더를 A에서 B로 옮긴다",
+      "active_return_contract_id": "S03-vendor-r1",
+      "resolution": {
+        "kind": "moot",
+        "reason": "B가 국내 서비스를 종료해 질문의 대상이 사라졌다",
+        "evidence_refs": [
+          "S03-vendor-ofinal"
+        ]
+      }
+    }
+  },
+  "transcript": [
+    {
+      "role": "user",
+      "at": "2026-03-02T10:00:00+09:00",
+      "text": "결제 벤더를 A에서 B로 옮길지 6월에 결정하려고 해. 일단 \"B의 정산 지연이 48시간 이내로 안정화되면 옮긴다\"로 적어둘래. 6월 2일에 B의 5월 정산 지표를 보고 판단하자."
+    },
+    {
+      "role": "ai",
+      "at": "2026-03-02T10:00:40+09:00",
+      "text": "기록했습니다. 전제를 하나 제안해요: \"A의 수수료 인상이 예정대로 7월에 시행된다\" — 이게 무너지면 옮길 이유가 약해져요."
+    },
+    {
+      "role": "user",
+      "at": "2026-03-02T10:01:30+09:00",
+      "text": "그 전제 채택할게. 그게 사실 이 판단의 뿌리야."
+    },
+    {
+      "role": "ai",
+      "at": "2026-05-28T09:00:00+09:00",
+      "text": "뉴스: 벤더 B가 5월 27일 국내 서비스 종료를 공지했습니다 (공식 블로그)."
+    },
+    {
+      "role": "user",
+      "at": "2026-06-02T09:00:00+09:00",
+      "text": "B가 사라졌으니 이 질문은 의미가 없어졌네. 질문 소멸로 닫아줘."
+    }
+  ]
+}

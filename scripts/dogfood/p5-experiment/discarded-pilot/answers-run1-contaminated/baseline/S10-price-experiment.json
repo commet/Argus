@@ -1,0 +1,18 @@
+{
+  "sealed_statement": "연간 플랜 가격을 20% 올린 A/B를 6월 한 달 돌린다",
+  "statement_origin": "unknown",
+  "adopted_premises": ["표본이 플랜별 최소 400 전환은 된다"],
+  "review_question": "순매출(전환×단가)이 최소 5% 올랐는가",
+  "review_at": "2026-07-05",
+  "was_deferred": false,
+  "resolution_kind": "answered",
+  "answer_summary": "순매출 +9.2%로 조건은 충족했지만 이탈 코호트의 LTV를 아직 몰라서 성공 단정은 이르다",
+  "criterion_result": "met",
+  "evidence_items": ["전환 -9%", "단가 +20%", "순매출 +9.2%"],
+  "was_separately_closed": false,
+  "probes": [
+    { "item": "표본 460/470", "known_at_seal": false },
+    { "item": "표본이 플랜별 최소 400 전환은 된다", "known_at_seal": true },
+    { "item": "전환 -9%, 단가 +20%, 순매출 +9.2%", "known_at_seal": false }
+  ]
+}

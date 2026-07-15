@@ -1,0 +1,18 @@
+{
+  "sealed_statement": "사무실을 2년 재계약한다",
+  "statement_origin": "unknown",
+  "adopted_premises": ["인원이 연말까지 20% 이상 늘지 않는다"],
+  "review_question": "좌석 가동률이 연말까지 70%를 넘는가",
+  "review_at": "2026-12-20",
+  "was_deferred": false,
+  "resolution_kind": "answered",
+  "answer_summary": "11~12월 평균 74%로 70%를 넘었다",
+  "criterion_result": "met",
+  "evidence_items": ["가동률 11~12월 평균 74%"],
+  "was_separately_closed": false,
+  "probes": [
+    { "item": "건물주 리모델링 계획 공지 (6개월 부분 폐쇄 가능성)", "known_at_seal": "unknown" },
+    { "item": "인원이 연말까지 20% 이상 늘지 않는다", "known_at_seal": true },
+    { "item": "가동률 11~12월 평균 74%", "known_at_seal": false }
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "sealed_statement": "SDK 코어를 4월 15일 MIT로 공개한다. 예측: 8월 15일까지 외부 기여 PR이 10건 이상 들어온다.",
+  "statement_origin": "ai",
+  "adopted_premises": [
+    "8월 15일까지 외부 기여 PR이 10건 이상 들어온다는 예측 (봉인문 자체에 포함)"
+  ],
+  "review_question": "8월 15일까지 외부 기여 PR이 10건 이상 들어왔는가",
+  "review_at": "2026-08-15",
+  "was_deferred": false,
+  "resolution_kind": "answered",
+  "answer_summary": "PR 6건으로 10건에 미달",
+  "criterion_result": "not_met",
+  "evidence_items": [
+    "최종 외부 기여 PR 6건 (사용자 보고) — observation S08-open-source-ofinal (2026-08-15)"
+  ],
+  "was_separately_closed": true,
+  "probes": [
+    { "item": "7월 말 외부 기여 PR 4건", "known_at_seal": false },
+    { "item": "최종 PR 6건", "known_at_seal": false },
+    { "item": "경쟁 우위는 SDK가 아니라 데이터에 있다", "known_at_seal": "unknown" }
+  ]
+}

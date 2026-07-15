@@ -243,7 +243,18 @@ export const review: ToolModule = {
         if (charAcc > CHAR_BUDGET && effLimit > 0) break;
         effLimit++;
       }
-      const extraction = buildExtractionPrompt(artifact.units, ctx, effLimit);
+      // Voice follows the document's own language (M4), the same way seal/settle
+      // follow the predicate. Review was ko-hardcoded, so an English draft got a
+      // Korean scaffold line (experience-loop / backlog find). Detect from the
+      // doc body, fall back to the title. The shared review core takes this as
+      // its ReviewLocale, so the whole scaffold — prompts included — answers in
+      // the reader's language (webapp parity, review-mcp-drift guard).
+      const docSample = (typeof a['text'] === 'string' && a['text']) || artifact.source_title || '';
+      const ko = resolveResponseLocale(
+        typeof a['argus_dir'] === 'string' ? a['argus_dir'] : null,
+        docSample,
+      ) === 'ko';
+      const extraction = buildExtractionPrompt(artifact.units, ctx, effLimit, ko ? 'ko' : 'en');
 
       const lenses = routing.selected.map((id) => ({
         id,
@@ -252,16 +263,6 @@ export const review: ToolModule = {
         review_questions: LENSES[id].review_questions,
         avoid: LENSES[id].failure_modes,
       }));
-
-      // Voice follows the document's own language (M4), the same way seal/settle
-      // follow the predicate. Review was ko-hardcoded, so an English draft got a
-      // Korean scaffold line (experience-loop / backlog find). Detect from the
-      // doc body, fall back to the title.
-      const docSample = (typeof a['text'] === 'string' && a['text']) || artifact.source_title || '';
-      const ko = resolveResponseLocale(
-        typeof a['argus_dir'] === 'string' ? a['argus_dir'] : null,
-        docSample,
-      ) === 'ko';
       // The reviewability SCORE stays in data for lens routing only — surfacing
       // "74/100" to the user read as a grade on their document (experience-loop
       // spine find: the reviewer came to see weak spots, not be scored; the

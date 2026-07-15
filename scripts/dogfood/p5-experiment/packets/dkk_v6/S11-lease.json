@@ -1,0 +1,280 @@
+{
+  "packet_id": "S11-lease.dkk_v6",
+  "questionnaire": "당신은 기록 감사인이다. 이 결정이 있고 몇 달이 지났고, 당신이 가진 것은 아래 record가 전부다.\nrecord에 없는 것은 추측하지 말고 \"unknown\"으로 답하라 — unknown은 감점이 아니며, 근거 없는 확신이 감점이다.\n\n각 질문에 JSON으로 답하라:\n{\n  \"sealed_statement\": \"봉인된 판단문을 기록에서 찾은 그대로 (없으면 unknown)\",\n  \"statement_origin\": \"그 문장을 처음 쓴 주체는? 'ai'(AI 초안을 그대로 채택) | 'human'(사용자 자신의 문장) | 'unknown'\",\n  \"adopted_premises\": [\"봉인 당시 사용자가 채택한 전제들 (기록 근거가 있는 것만)\"],\n  \"review_question\": \"돌아보기로 약속한 질문 (없으면 unknown)\",\n  \"review_at\": \"약속한 확인일 YYYY-MM-DD (없으면 unknown)\",\n  \"was_deferred\": true | false | \"unknown\",\n  \"resolution_kind\": \"answered | indeterminate | moot | unknown\",\n  \"answer_summary\": \"확인한 답의 요지 (없으면 unknown)\",\n  \"criterion_result\": \"met | not_met | partial | not_applicable | none_recorded | unknown\",\n  \"evidence_items\": [\"종결의 근거가 된 관찰들\"],\n  \"was_separately_closed\": true | false | \"unknown\",\n  \"probes\": [{ \"item\": \"<probe 문장 그대로>\", \"known_at_seal\": true | false | \"unknown\" }]\n}\n\nprobes 규칙: 각 항목에 대해 \"이 사실/전제가 봉인 시점에 이미 기록에 존재했는가(사용자가 봉인 당시 알고 채택/인지했는가)\"를\n기록의 시간 정보만으로 판정하라. 기록이 시점을 구분해주지 않으면 unknown.",
+  "probes": [
+    "건물주 리모델링 계획 공지 (6개월 부분 폐쇄 가능성)",
+    "인원이 연말까지 20% 이상 늘지 않는다",
+    "가동률 11~12월 평균 74%"
+  ],
+  "record": {
+    "ledger_events": [
+      {
+        "event_id": "web:S11-lease-seal:1-sealed",
+        "v": 3,
+        "space_id": "account-project:p5-S11-lease",
+        "idempotency_key": "web:S11-lease-seal:1-sealed",
+        "atomic_batch_id": "web:S11-lease-seal",
+        "time": {
+          "occurred_at": "2026-04-01T10:00:30+09:00",
+          "recorded_at": "2026-04-01T10:00:30+09:00",
+          "authorized_at": "2026-04-01T10:00:30+09:00",
+          "temporal_mode": "contemporaneous"
+        },
+        "authority": {
+          "originated_by": {
+            "kind": "human",
+            "id": "account-project:p5-S11-lease"
+          },
+          "recorded_by": {
+            "kind": "system",
+            "id": "web:argus"
+          },
+          "authorized_by": {
+            "kind": "human",
+            "id": "account-project:p5-S11-lease"
+          },
+          "authorization_mode": "explicit_confirmation",
+          "authorization_ref": {
+            "kind": "command_digest",
+            "ref": "web-command:seal:S11-lease-seal"
+          }
+        },
+        "event": "judgment_sealed",
+        "judgment_id": "S11-lease-j1",
+        "statement": "사무실을 2년 재계약한다"
+      },
+      {
+        "event_id": "web:S11-lease-seal:2-return",
+        "v": 3,
+        "space_id": "account-project:p5-S11-lease",
+        "idempotency_key": "web:S11-lease-seal:2-return",
+        "atomic_batch_id": "web:S11-lease-seal",
+        "time": {
+          "occurred_at": "2026-04-01T10:00:30+09:00",
+          "recorded_at": "2026-04-01T10:00:30+09:00",
+          "authorized_at": "2026-04-01T10:00:30+09:00",
+          "temporal_mode": "contemporaneous"
+        },
+        "authority": {
+          "originated_by": {
+            "kind": "human",
+            "id": "account-project:p5-S11-lease"
+          },
+          "recorded_by": {
+            "kind": "system",
+            "id": "web:argus"
+          },
+          "authorized_by": {
+            "kind": "human",
+            "id": "account-project:p5-S11-lease"
+          },
+          "authorization_mode": "explicit_confirmation",
+          "authorization_ref": {
+            "kind": "command_digest",
+            "ref": "web-command:seal:S11-lease-seal"
+          }
+        },
+        "event": "return_promised",
+        "return_contract_id": "S11-lease-r1",
+        "judgment_id": "S11-lease-j1",
+        "review_at": "2026-12-20T09:00:00+09:00",
+        "review_question": "좌석 가동률이 연말까지 70%를 넘는가"
+      },
+      {
+        "event_id": "web:S11-lease-seal:3-premise-S11-lease-p1",
+        "v": 3,
+        "space_id": "account-project:p5-S11-lease",
+        "idempotency_key": "web:S11-lease-seal:3-premise-S11-lease-p1",
+        "atomic_batch_id": "web:S11-lease-seal",
+        "time": {
+          "occurred_at": "2026-04-01T10:00:30+09:00",
+          "recorded_at": "2026-04-01T10:00:30+09:00",
+          "authorized_at": "2026-04-01T10:00:30+09:00",
+          "temporal_mode": "contemporaneous"
+        },
+        "authority": {
+          "originated_by": {
+            "kind": "human",
+            "id": "account-project:p5-S11-lease"
+          },
+          "recorded_by": {
+            "kind": "system",
+            "id": "web:argus"
+          },
+          "authorized_by": {
+            "kind": "human",
+            "id": "account-project:p5-S11-lease"
+          },
+          "authorization_mode": "explicit_confirmation",
+          "authorization_ref": {
+            "kind": "command_digest",
+            "ref": "web-command:seal:S11-lease-seal"
+          }
+        },
+        "event": "premise_adopted",
+        "premise_id": "S11-lease-p1",
+        "judgment_id": "S11-lease-j1",
+        "text": "인원이 연말까지 20% 이상 늘지 않는다"
+      },
+      {
+        "event_id": "web:S11-lease-obs1:observation",
+        "v": 3,
+        "space_id": "account-project:p5-S11-lease",
+        "idempotency_key": "web:S11-lease-obs1:observation",
+        "time": {
+          "occurred_at": "2026-09-15T09:00:00+09:00",
+          "recorded_at": "2026-09-15T09:00:00+09:00",
+          "temporal_mode": "contemporaneous"
+        },
+        "authority": {
+          "originated_by": {
+            "kind": "human",
+            "id": "account-project:p5-S11-lease"
+          },
+          "recorded_by": {
+            "kind": "system",
+            "id": "web:argus"
+          },
+          "observed_by": {
+            "kind": "human",
+            "id": "account-project:p5-S11-lease"
+          }
+        },
+        "event": "observation_recorded",
+        "observation_id": "S11-lease-o1",
+        "text": "중요: 건물주가 내년 리모델링 계획을 공지했어요. 6개월 부분 폐쇄 가능성이 있습니다.",
+        "provenance": {
+          "source_kind": "user_utterance",
+          "source_ref": "transcript:S11-lease",
+          "verification": "pasted"
+        }
+      },
+      {
+        "event_id": "web:S11-lease-oar:1-observation",
+        "v": 3,
+        "space_id": "account-project:p5-S11-lease",
+        "idempotency_key": "web:S11-lease-oar:1-observation",
+        "atomic_batch_id": "web:S11-lease-oar",
+        "time": {
+          "occurred_at": "2026-12-20T10:00:00+09:00",
+          "recorded_at": "2026-12-20T10:00:00+09:00",
+          "authorized_at": "2026-12-20T10:00:00+09:00",
+          "temporal_mode": "contemporaneous"
+        },
+        "authority": {
+          "originated_by": {
+            "kind": "human",
+            "id": "account-project:p5-S11-lease"
+          },
+          "recorded_by": {
+            "kind": "system",
+            "id": "web:argus"
+          },
+          "observed_by": {
+            "kind": "human",
+            "id": "account-project:p5-S11-lease"
+          }
+        },
+        "event": "observation_recorded",
+        "observation_id": "S11-lease-ofinal",
+        "text": "가동률 11~12월 평균 74% (사용자 보고)",
+        "provenance": {
+          "source_kind": "user_utterance",
+          "verification": "pasted"
+        }
+      },
+      {
+        "event_id": "web:S11-lease-oar:2-resolution",
+        "v": 3,
+        "space_id": "account-project:p5-S11-lease",
+        "idempotency_key": "web:S11-lease-oar:2-resolution",
+        "atomic_batch_id": "web:S11-lease-oar",
+        "time": {
+          "occurred_at": "2026-12-20T10:00:00+09:00",
+          "recorded_at": "2026-12-20T10:00:00+09:00",
+          "authorized_at": "2026-12-20T10:00:00+09:00",
+          "temporal_mode": "contemporaneous"
+        },
+        "authority": {
+          "originated_by": {
+            "kind": "human",
+            "id": "account-project:p5-S11-lease"
+          },
+          "recorded_by": {
+            "kind": "system",
+            "id": "web:argus"
+          },
+          "authorized_by": {
+            "kind": "human",
+            "id": "account-project:p5-S11-lease"
+          },
+          "authorization_mode": "explicit_confirmation",
+          "authorization_ref": {
+            "kind": "command_digest",
+            "ref": "web-command:observe_and_resolve:S11-lease-oar"
+          }
+        },
+        "event": "resolution_asserted",
+        "resolution_id": "S11-lease-res1",
+        "judgment_id": "S11-lease-j1",
+        "return_contract_id": "S11-lease-r1",
+        "resolution": {
+          "kind": "answered",
+          "answer_summary": "11~12월 평균 74%로 70%를 넘었다",
+          "criterion_result": "met",
+          "evidence_refs": [
+            "S11-lease-ofinal"
+          ]
+        }
+      },
+      {
+        "event_id": "web:S11-lease-close:closed",
+        "v": 3,
+        "space_id": "account-project:p5-S11-lease",
+        "idempotency_key": "web:S11-lease-close:closed",
+        "time": {
+          "occurred_at": "2026-12-20T10:00:00+09:00",
+          "recorded_at": "2026-12-20T10:00:00+09:00",
+          "authorized_at": "2026-12-20T10:00:00+09:00",
+          "temporal_mode": "contemporaneous"
+        },
+        "authority": {
+          "originated_by": {
+            "kind": "human",
+            "id": "account-project:p5-S11-lease"
+          },
+          "recorded_by": {
+            "kind": "system",
+            "id": "web:argus"
+          },
+          "authorized_by": {
+            "kind": "human",
+            "id": "account-project:p5-S11-lease"
+          },
+          "authorization_mode": "explicit_confirmation",
+          "authorization_ref": {
+            "kind": "command_digest",
+            "ref": "web-command:close:S11-lease-close"
+          }
+        },
+        "event": "judgment_closed",
+        "judgment_id": "S11-lease-j1",
+        "resolution_id": "S11-lease-res1"
+      }
+    ],
+    "projection": {
+      "judgment_id": "S11-lease-j1",
+      "lifecycle": "resolved_answered",
+      "statement": "사무실을 2년 재계약한다",
+      "active_return_contract_id": "S11-lease-r1",
+      "resolution": {
+        "kind": "answered",
+        "answer_summary": "11~12월 평균 74%로 70%를 넘었다",
+        "criterion_result": "met",
+        "evidence_refs": [
+          "S11-lease-ofinal"
+        ]
+      }
+    }
+  }
+}

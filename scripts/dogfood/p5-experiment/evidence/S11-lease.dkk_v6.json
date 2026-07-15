@@ -1,0 +1,300 @@
+{
+  "scenario_id": "S11-lease",
+  "arm": "dkk_v6",
+  "confirmation_actions": 3,
+  "task_seconds_agent": 0.002,
+  "completed_lifecycle": true,
+  "record": {
+    "ledger_events": [
+      {
+        "event_id": "web:S11-lease-seal:1-sealed",
+        "v": 3,
+        "space_id": "account-project:p5-S11-lease",
+        "idempotency_key": "web:S11-lease-seal:1-sealed",
+        "atomic_batch_id": "web:S11-lease-seal",
+        "time": {
+          "occurred_at": "2026-04-01T10:00:30+09:00",
+          "recorded_at": "2026-04-01T10:00:30+09:00",
+          "authorized_at": "2026-04-01T10:00:30+09:00",
+          "temporal_mode": "contemporaneous"
+        },
+        "authority": {
+          "originated_by": {
+            "kind": "human",
+            "id": "account-project:p5-S11-lease"
+          },
+          "recorded_by": {
+            "kind": "system",
+            "id": "web:argus"
+          },
+          "authorized_by": {
+            "kind": "human",
+            "id": "account-project:p5-S11-lease"
+          },
+          "authorization_mode": "explicit_confirmation",
+          "authorization_ref": {
+            "kind": "command_digest",
+            "ref": "web-command:seal:S11-lease-seal"
+          }
+        },
+        "event": "judgment_sealed",
+        "judgment_id": "S11-lease-j1",
+        "statement": "사무실을 2년 재계약한다"
+      },
+      {
+        "event_id": "web:S11-lease-seal:2-return",
+        "v": 3,
+        "space_id": "account-project:p5-S11-lease",
+        "idempotency_key": "web:S11-lease-seal:2-return",
+        "atomic_batch_id": "web:S11-lease-seal",
+        "time": {
+          "occurred_at": "2026-04-01T10:00:30+09:00",
+          "recorded_at": "2026-04-01T10:00:30+09:00",
+          "authorized_at": "2026-04-01T10:00:30+09:00",
+          "temporal_mode": "contemporaneous"
+        },
+        "authority": {
+          "originated_by": {
+            "kind": "human",
+            "id": "account-project:p5-S11-lease"
+          },
+          "recorded_by": {
+            "kind": "system",
+            "id": "web:argus"
+          },
+          "authorized_by": {
+            "kind": "human",
+            "id": "account-project:p5-S11-lease"
+          },
+          "authorization_mode": "explicit_confirmation",
+          "authorization_ref": {
+            "kind": "command_digest",
+            "ref": "web-command:seal:S11-lease-seal"
+          }
+        },
+        "event": "return_promised",
+        "return_contract_id": "S11-lease-r1",
+        "judgment_id": "S11-lease-j1",
+        "review_at": "2026-12-20T09:00:00+09:00",
+        "review_question": "좌석 가동률이 연말까지 70%를 넘는가"
+      },
+      {
+        "event_id": "web:S11-lease-seal:3-premise-S11-lease-p1",
+        "v": 3,
+        "space_id": "account-project:p5-S11-lease",
+        "idempotency_key": "web:S11-lease-seal:3-premise-S11-lease-p1",
+        "atomic_batch_id": "web:S11-lease-seal",
+        "time": {
+          "occurred_at": "2026-04-01T10:00:30+09:00",
+          "recorded_at": "2026-04-01T10:00:30+09:00",
+          "authorized_at": "2026-04-01T10:00:30+09:00",
+          "temporal_mode": "contemporaneous"
+        },
+        "authority": {
+          "originated_by": {
+            "kind": "human",
+            "id": "account-project:p5-S11-lease"
+          },
+          "recorded_by": {
+            "kind": "system",
+            "id": "web:argus"
+          },
+          "authorized_by": {
+            "kind": "human",
+            "id": "account-project:p5-S11-lease"
+          },
+          "authorization_mode": "explicit_confirmation",
+          "authorization_ref": {
+            "kind": "command_digest",
+            "ref": "web-command:seal:S11-lease-seal"
+          }
+        },
+        "event": "premise_adopted",
+        "premise_id": "S11-lease-p1",
+        "judgment_id": "S11-lease-j1",
+        "text": "인원이 연말까지 20% 이상 늘지 않는다"
+      },
+      {
+        "event_id": "web:S11-lease-obs1:observation",
+        "v": 3,
+        "space_id": "account-project:p5-S11-lease",
+        "idempotency_key": "web:S11-lease-obs1:observation",
+        "time": {
+          "occurred_at": "2026-09-15T09:00:00+09:00",
+          "recorded_at": "2026-09-15T09:00:00+09:00",
+          "temporal_mode": "contemporaneous"
+        },
+        "authority": {
+          "originated_by": {
+            "kind": "human",
+            "id": "account-project:p5-S11-lease"
+          },
+          "recorded_by": {
+            "kind": "system",
+            "id": "web:argus"
+          },
+          "observed_by": {
+            "kind": "human",
+            "id": "account-project:p5-S11-lease"
+          }
+        },
+        "event": "observation_recorded",
+        "observation_id": "S11-lease-o1",
+        "text": "중요: 건물주가 내년 리모델링 계획을 공지했어요. 6개월 부분 폐쇄 가능성이 있습니다.",
+        "provenance": {
+          "source_kind": "user_utterance",
+          "source_ref": "transcript:S11-lease",
+          "verification": "pasted"
+        }
+      },
+      {
+        "event_id": "web:S11-lease-oar:1-observation",
+        "v": 3,
+        "space_id": "account-project:p5-S11-lease",
+        "idempotency_key": "web:S11-lease-oar:1-observation",
+        "atomic_batch_id": "web:S11-lease-oar",
+        "time": {
+          "occurred_at": "2026-12-20T10:00:00+09:00",
+          "recorded_at": "2026-12-20T10:00:00+09:00",
+          "authorized_at": "2026-12-20T10:00:00+09:00",
+          "temporal_mode": "contemporaneous"
+        },
+        "authority": {
+          "originated_by": {
+            "kind": "human",
+            "id": "account-project:p5-S11-lease"
+          },
+          "recorded_by": {
+            "kind": "system",
+            "id": "web:argus"
+          },
+          "observed_by": {
+            "kind": "human",
+            "id": "account-project:p5-S11-lease"
+          }
+        },
+        "event": "observation_recorded",
+        "observation_id": "S11-lease-ofinal",
+        "text": "가동률 11~12월 평균 74% (사용자 보고)",
+        "provenance": {
+          "source_kind": "user_utterance",
+          "verification": "pasted"
+        }
+      },
+      {
+        "event_id": "web:S11-lease-oar:2-resolution",
+        "v": 3,
+        "space_id": "account-project:p5-S11-lease",
+        "idempotency_key": "web:S11-lease-oar:2-resolution",
+        "atomic_batch_id": "web:S11-lease-oar",
+        "time": {
+          "occurred_at": "2026-12-20T10:00:00+09:00",
+          "recorded_at": "2026-12-20T10:00:00+09:00",
+          "authorized_at": "2026-12-20T10:00:00+09:00",
+          "temporal_mode": "contemporaneous"
+        },
+        "authority": {
+          "originated_by": {
+            "kind": "human",
+            "id": "account-project:p5-S11-lease"
+          },
+          "recorded_by": {
+            "kind": "system",
+            "id": "web:argus"
+          },
+          "authorized_by": {
+            "kind": "human",
+            "id": "account-project:p5-S11-lease"
+          },
+          "authorization_mode": "explicit_confirmation",
+          "authorization_ref": {
+            "kind": "command_digest",
+            "ref": "web-command:observe_and_resolve:S11-lease-oar"
+          }
+        },
+        "event": "resolution_asserted",
+        "resolution_id": "S11-lease-res1",
+        "judgment_id": "S11-lease-j1",
+        "return_contract_id": "S11-lease-r1",
+        "resolution": {
+          "kind": "answered",
+          "answer_summary": "11~12월 평균 74%로 70%를 넘었다",
+          "criterion_result": "met",
+          "evidence_refs": [
+            "S11-lease-ofinal"
+          ]
+        }
+      },
+      {
+        "event_id": "web:S11-lease-close:closed",
+        "v": 3,
+        "space_id": "account-project:p5-S11-lease",
+        "idempotency_key": "web:S11-lease-close:closed",
+        "time": {
+          "occurred_at": "2026-12-20T10:00:00+09:00",
+          "recorded_at": "2026-12-20T10:00:00+09:00",
+          "authorized_at": "2026-12-20T10:00:00+09:00",
+          "temporal_mode": "contemporaneous"
+        },
+        "authority": {
+          "originated_by": {
+            "kind": "human",
+            "id": "account-project:p5-S11-lease"
+          },
+          "recorded_by": {
+            "kind": "system",
+            "id": "web:argus"
+          },
+          "authorized_by": {
+            "kind": "human",
+            "id": "account-project:p5-S11-lease"
+          },
+          "authorization_mode": "explicit_confirmation",
+          "authorization_ref": {
+            "kind": "command_digest",
+            "ref": "web-command:close:S11-lease-close"
+          }
+        },
+        "event": "judgment_closed",
+        "judgment_id": "S11-lease-j1",
+        "resolution_id": "S11-lease-res1"
+      }
+    ],
+    "projection": {
+      "judgment_id": "S11-lease-j1",
+      "lifecycle": "resolved_answered",
+      "statement": "사무실을 2년 재계약한다",
+      "active_return_contract_id": "S11-lease-r1",
+      "resolution": {
+        "kind": "answered",
+        "answer_summary": "11~12월 평균 74%로 70%를 넘었다",
+        "criterion_result": "met",
+        "evidence_refs": [
+          "S11-lease-ofinal"
+        ]
+      }
+    }
+  },
+  "transcript": [
+    {
+      "role": "user",
+      "at": "2026-04-01T10:00:00+09:00",
+      "text": "사무실을 2년 재계약한다. 예측: 하이브리드 3일 출근제 기준으로 좌석 가동률이 연말까지 70%를 넘는다. 12월 20일 확인. 전제: 인원이 연말까지 20% 이상 늘지 않는다."
+    },
+    {
+      "role": "ai",
+      "at": "2026-04-01T10:00:30+09:00",
+      "text": "기록했습니다."
+    },
+    {
+      "role": "ai",
+      "at": "2026-09-15T09:00:00+09:00",
+      "text": "중요: 건물주가 내년 리모델링 계획을 공지했어요. 6개월 부분 폐쇄 가능성이 있습니다."
+    },
+    {
+      "role": "user",
+      "at": "2026-12-20T10:00:00+09:00",
+      "text": "가동률 11~12월 평균 74%. 충족으로 닫아. 리모델링 건은 이 판단과 별개 결정으로 다룰게 — 이 기록에 섞지 마."
+    }
+  ]
+}

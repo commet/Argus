@@ -1,0 +1,318 @@
+{
+  "packet_id": "S07-oncall.dkk_v6",
+  "questionnaire": "당신은 기록 감사인이다. 이 결정이 있고 몇 달이 지났고, 당신이 가진 것은 아래 record가 전부다.\nrecord에 없는 것은 추측하지 말고 \"unknown\"으로 답하라 — unknown은 감점이 아니며, 근거 없는 확신이 감점이다.\n\n각 질문에 JSON으로 답하라:\n{\n  \"sealed_statement\": \"봉인된 판단문을 기록에서 찾은 그대로 (없으면 unknown)\",\n  \"statement_origin\": \"그 문장을 처음 쓴 주체는? 'ai'(AI 초안을 그대로 채택) | 'human'(사용자 자신의 문장) | 'unknown'\",\n  \"adopted_premises\": [\"봉인 당시 사용자가 채택한 전제들 (기록 근거가 있는 것만)\"],\n  \"review_question\": \"돌아보기로 약속한 질문 (없으면 unknown)\",\n  \"review_at\": \"약속한 확인일 YYYY-MM-DD (없으면 unknown)\",\n  \"was_deferred\": true | false | \"unknown\",\n  \"resolution_kind\": \"answered | indeterminate | moot | unknown\",\n  \"answer_summary\": \"확인한 답의 요지 (없으면 unknown)\",\n  \"criterion_result\": \"met | not_met | partial | not_applicable | none_recorded | unknown\",\n  \"evidence_items\": [\"종결의 근거가 된 관찰들\"],\n  \"was_separately_closed\": true | false | \"unknown\",\n  \"probes\": [{ \"item\": \"<probe 문장 그대로>\", \"known_at_seal\": true | false | \"unknown\" }]\n}\n\nprobes 규칙: 각 항목에 대해 \"이 사실/전제가 봉인 시점에 이미 기록에 존재했는가(사용자가 봉인 당시 알고 채택/인지했는가)\"를\n기록의 시간 정보만으로 판정하라. 기록이 시점을 구분해주지 않으면 unknown.",
+  "probes": [
+    "2월 장애 폭풍으로 데이터 오염",
+    "4월 중앙값 12분",
+    "3월 대시보드 이관",
+    "페이지 볼륨이 현 수준(주 40건)을 유지한다"
+  ],
+  "record": {
+    "ledger_events": [
+      {
+        "event_id": "web:S07-oncall-seal:1-sealed",
+        "v": 3,
+        "space_id": "account-project:p5-S07-oncall",
+        "idempotency_key": "web:S07-oncall-seal:1-sealed",
+        "atomic_batch_id": "web:S07-oncall-seal",
+        "time": {
+          "occurred_at": "2026-02-01T10:01:00+09:00",
+          "recorded_at": "2026-02-01T10:01:00+09:00",
+          "authorized_at": "2026-02-01T10:01:00+09:00",
+          "temporal_mode": "contemporaneous"
+        },
+        "authority": {
+          "originated_by": {
+            "kind": "human",
+            "id": "account-project:p5-S07-oncall"
+          },
+          "recorded_by": {
+            "kind": "system",
+            "id": "web:argus"
+          },
+          "authorized_by": {
+            "kind": "human",
+            "id": "account-project:p5-S07-oncall"
+          },
+          "authorization_mode": "explicit_confirmation",
+          "authorization_ref": {
+            "kind": "command_digest",
+            "ref": "web-command:seal:S07-oncall-seal"
+          }
+        },
+        "event": "judgment_sealed",
+        "judgment_id": "S07-oncall-j1",
+        "statement": "온콜을 주 단위에서 일 단위 로테이션으로 바꾼다"
+      },
+      {
+        "event_id": "web:S07-oncall-seal:2-return",
+        "v": 3,
+        "space_id": "account-project:p5-S07-oncall",
+        "idempotency_key": "web:S07-oncall-seal:2-return",
+        "atomic_batch_id": "web:S07-oncall-seal",
+        "time": {
+          "occurred_at": "2026-02-01T10:01:00+09:00",
+          "recorded_at": "2026-02-01T10:01:00+09:00",
+          "authorized_at": "2026-02-01T10:01:00+09:00",
+          "temporal_mode": "contemporaneous"
+        },
+        "authority": {
+          "originated_by": {
+            "kind": "human",
+            "id": "account-project:p5-S07-oncall"
+          },
+          "recorded_by": {
+            "kind": "system",
+            "id": "web:argus"
+          },
+          "authorized_by": {
+            "kind": "human",
+            "id": "account-project:p5-S07-oncall"
+          },
+          "authorization_mode": "explicit_confirmation",
+          "authorization_ref": {
+            "kind": "command_digest",
+            "ref": "web-command:seal:S07-oncall-seal"
+          }
+        },
+        "event": "return_promised",
+        "return_contract_id": "S07-oncall-r1",
+        "judgment_id": "S07-oncall-j1",
+        "review_at": "2026-03-01T09:00:00+09:00",
+        "review_question": "야간 페이지 응답시간 중앙값이 15분 아래로 내려갔는가"
+      },
+      {
+        "event_id": "web:S07-oncall-seal:3-premise-S07-oncall-p1",
+        "v": 3,
+        "space_id": "account-project:p5-S07-oncall",
+        "idempotency_key": "web:S07-oncall-seal:3-premise-S07-oncall-p1",
+        "atomic_batch_id": "web:S07-oncall-seal",
+        "time": {
+          "occurred_at": "2026-02-01T10:01:00+09:00",
+          "recorded_at": "2026-02-01T10:01:00+09:00",
+          "authorized_at": "2026-02-01T10:01:00+09:00",
+          "temporal_mode": "contemporaneous"
+        },
+        "authority": {
+          "originated_by": {
+            "kind": "ai",
+            "id": "assistant:S07-oncall-seal"
+          },
+          "recorded_by": {
+            "kind": "system",
+            "id": "web:argus"
+          },
+          "authorized_by": {
+            "kind": "human",
+            "id": "account-project:p5-S07-oncall"
+          },
+          "authorization_mode": "explicit_confirmation",
+          "authorization_ref": {
+            "kind": "command_digest",
+            "ref": "web-command:seal:S07-oncall-seal"
+          }
+        },
+        "event": "premise_adopted",
+        "premise_id": "S07-oncall-p1",
+        "judgment_id": "S07-oncall-j1",
+        "text": "페이지 볼륨이 현 수준(주 40건)을 유지한다"
+      },
+      {
+        "event_id": "web:S07-oncall-defer1:deferred",
+        "v": 3,
+        "space_id": "account-project:p5-S07-oncall",
+        "idempotency_key": "web:S07-oncall-defer1:deferred",
+        "time": {
+          "occurred_at": "2026-03-01T09:00:00+09:00",
+          "recorded_at": "2026-03-01T09:00:00+09:00",
+          "authorized_at": "2026-03-01T09:00:00+09:00",
+          "temporal_mode": "contemporaneous"
+        },
+        "authority": {
+          "originated_by": {
+            "kind": "human",
+            "id": "account-project:p5-S07-oncall"
+          },
+          "recorded_by": {
+            "kind": "system",
+            "id": "web:argus"
+          },
+          "authorized_by": {
+            "kind": "human",
+            "id": "account-project:p5-S07-oncall"
+          },
+          "authorization_mode": "explicit_confirmation",
+          "authorization_ref": {
+            "kind": "command_digest",
+            "ref": "web-command:defer:S07-oncall-defer1"
+          }
+        },
+        "event": "return_deferred",
+        "return_contract_id": "S07-oncall-r1",
+        "review_at": "2026-04-01T09:00:00+09:00",
+        "reason": "2월에 장애 폭풍이 있어서 데이터가 오염됐어. 4월 1일로 미루자."
+      },
+      {
+        "event_id": "web:S07-oncall-defer2:deferred",
+        "v": 3,
+        "space_id": "account-project:p5-S07-oncall",
+        "idempotency_key": "web:S07-oncall-defer2:deferred",
+        "time": {
+          "occurred_at": "2026-04-01T09:00:00+09:00",
+          "recorded_at": "2026-04-01T09:00:00+09:00",
+          "authorized_at": "2026-04-01T09:00:00+09:00",
+          "temporal_mode": "contemporaneous"
+        },
+        "authority": {
+          "originated_by": {
+            "kind": "human",
+            "id": "account-project:p5-S07-oncall"
+          },
+          "recorded_by": {
+            "kind": "system",
+            "id": "web:argus"
+          },
+          "authorized_by": {
+            "kind": "human",
+            "id": "account-project:p5-S07-oncall"
+          },
+          "authorization_mode": "explicit_confirmation",
+          "authorization_ref": {
+            "kind": "command_digest",
+            "ref": "web-command:defer:S07-oncall-defer2"
+          }
+        },
+        "event": "return_deferred",
+        "return_contract_id": "S07-oncall-r1",
+        "review_at": "2026-05-01T09:00:00+09:00",
+        "reason": "3월 데이터도 반쪽이야 — 대시보드 이관 때문에. 5월 1일로 한 번만 더."
+      },
+      {
+        "event_id": "web:S07-oncall-oar:1-observation",
+        "v": 3,
+        "space_id": "account-project:p5-S07-oncall",
+        "idempotency_key": "web:S07-oncall-oar:1-observation",
+        "atomic_batch_id": "web:S07-oncall-oar",
+        "time": {
+          "occurred_at": "2026-05-01T09:00:00+09:00",
+          "recorded_at": "2026-05-01T09:00:00+09:00",
+          "authorized_at": "2026-05-01T09:00:00+09:00",
+          "temporal_mode": "contemporaneous"
+        },
+        "authority": {
+          "originated_by": {
+            "kind": "human",
+            "id": "account-project:p5-S07-oncall"
+          },
+          "recorded_by": {
+            "kind": "system",
+            "id": "web:argus"
+          },
+          "observed_by": {
+            "kind": "human",
+            "id": "account-project:p5-S07-oncall"
+          }
+        },
+        "event": "observation_recorded",
+        "observation_id": "S07-oncall-ofinal",
+        "text": "4월 야간 페이지 응답시간 중앙값 12분 (사용자 보고)",
+        "provenance": {
+          "source_kind": "user_utterance",
+          "verification": "pasted"
+        }
+      },
+      {
+        "event_id": "web:S07-oncall-oar:2-resolution",
+        "v": 3,
+        "space_id": "account-project:p5-S07-oncall",
+        "idempotency_key": "web:S07-oncall-oar:2-resolution",
+        "atomic_batch_id": "web:S07-oncall-oar",
+        "time": {
+          "occurred_at": "2026-05-01T09:00:00+09:00",
+          "recorded_at": "2026-05-01T09:00:00+09:00",
+          "authorized_at": "2026-05-01T09:00:00+09:00",
+          "temporal_mode": "contemporaneous"
+        },
+        "authority": {
+          "originated_by": {
+            "kind": "human",
+            "id": "account-project:p5-S07-oncall"
+          },
+          "recorded_by": {
+            "kind": "system",
+            "id": "web:argus"
+          },
+          "authorized_by": {
+            "kind": "human",
+            "id": "account-project:p5-S07-oncall"
+          },
+          "authorization_mode": "explicit_confirmation",
+          "authorization_ref": {
+            "kind": "command_digest",
+            "ref": "web-command:observe_and_resolve:S07-oncall-oar"
+          }
+        },
+        "event": "resolution_asserted",
+        "resolution_id": "S07-oncall-res1",
+        "judgment_id": "S07-oncall-j1",
+        "return_contract_id": "S07-oncall-r1",
+        "resolution": {
+          "kind": "answered",
+          "answer_summary": "4월 중앙값 12분으로 15분 아래",
+          "criterion_result": "met",
+          "evidence_refs": [
+            "S07-oncall-ofinal"
+          ]
+        }
+      },
+      {
+        "event_id": "web:S07-oncall-close:closed",
+        "v": 3,
+        "space_id": "account-project:p5-S07-oncall",
+        "idempotency_key": "web:S07-oncall-close:closed",
+        "time": {
+          "occurred_at": "2026-05-01T09:00:00+09:00",
+          "recorded_at": "2026-05-01T09:00:00+09:00",
+          "authorized_at": "2026-05-01T09:00:00+09:00",
+          "temporal_mode": "contemporaneous"
+        },
+        "authority": {
+          "originated_by": {
+            "kind": "human",
+            "id": "account-project:p5-S07-oncall"
+          },
+          "recorded_by": {
+            "kind": "system",
+            "id": "web:argus"
+          },
+          "authorized_by": {
+            "kind": "human",
+            "id": "account-project:p5-S07-oncall"
+          },
+          "authorization_mode": "explicit_confirmation",
+          "authorization_ref": {
+            "kind": "command_digest",
+            "ref": "web-command:close:S07-oncall-close"
+          }
+        },
+        "event": "judgment_closed",
+        "judgment_id": "S07-oncall-j1",
+        "resolution_id": "S07-oncall-res1"
+      }
+    ],
+    "projection": {
+      "judgment_id": "S07-oncall-j1",
+      "lifecycle": "resolved_answered",
+      "statement": "온콜을 주 단위에서 일 단위 로테이션으로 바꾼다",
+      "active_return_contract_id": "S07-oncall-r1",
+      "resolution": {
+        "kind": "answered",
+        "answer_summary": "4월 중앙값 12분으로 15분 아래",
+        "criterion_result": "met",
+        "evidence_refs": [
+          "S07-oncall-ofinal"
+        ]
+      }
+    }
+  }
+}
