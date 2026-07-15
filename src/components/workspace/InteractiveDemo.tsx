@@ -1021,7 +1021,7 @@ function AnswerChip({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -4 }}
             transition={{ duration: 0.15 }}
-            className="absolute top-full mt-1 left-0 min-w-[min(280px,calc(100vw-2rem))] max-w-[min(360px,calc(100vw-2rem))] rounded-xl border border-[var(--border-subtle)] bg-[var(--surface)] shadow-2xl z-50 py-1.5 overflow-hidden"
+            className="absolute top-full mt-1 left-0 min-w-[min(280px,calc(100vw-2rem))] max-w-[min(360px,calc(100vw-2rem))] rounded-xl border border-[var(--border-subtle)] bg-[var(--surface)] shadow-[var(--shadow-xl)] z-50 py-1.5 overflow-hidden"
           >
             {options.map((opt) => {
               const isCurrent = opt === currentValue;
@@ -1891,7 +1891,7 @@ export function InteractiveDemo({ scenario, locale = 'ko', onStartReal, onBack }
                     onClick={() => setPhase('matching')}
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
-                    className="inline-flex items-center gap-2.5 px-6 py-3.5 rounded-2xl text-[15px] font-semibold text-[var(--accent-fg)] cursor-pointer shadow-lg hover:shadow-xl transition-shadow"
+                    className="inline-flex items-center gap-2.5 px-6 py-3.5 rounded-2xl text-[15px] font-semibold text-[var(--accent-fg)] cursor-pointer shadow-[var(--shadow-lg)] hover:shadow-[var(--shadow-xl)] transition-shadow"
                     style={{ background: 'var(--gradient-gold)' }}
                   >
                     <UserCheck size={18} />

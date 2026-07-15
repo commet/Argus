@@ -287,7 +287,7 @@ export default function TeamsPage() {
               <select
                 value={inviteRole}
                 onChange={(e) => setInviteRole(e.target.value as 'member' | 'admin')}
-                className="px-3 py-2.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[13px] text-[var(--text-primary)] focus:outline-none"
+                className="px-3 py-2.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[13px] text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)]"
               >
                 <option value="member">Member</option>
                 <option value="admin">Admin</option>
