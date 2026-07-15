@@ -42,16 +42,53 @@ Also align the CONCEPT verbs to the MCP so the same action has ONE name:
 - plugin **settle** → **resolve** (MCP: `argus_resolve` = record what reality did)
 - plugin **track / premises** → **premise** (MCP's word)
 
-**Command names (`/argus:sail` etc.):** the strongest "don't confuse people" fix
-is to rename the commands to match the MCP verbs too (`/argus:seal`→`/argus:predict`,
-`/argus:settle`→`/argus:resolve`), so a user never meets two names for one action.
-That is more disruptive (muscle memory, docs, installs). **Your call:** (a) align
-commands to the MCP too (fullest consistency), or (b) keep command names, align only
-copy + internal code + concept words. Recommendation: (a) — the whole point is one
-vocabulary.
+**DECIDED: align everything, including command names** ("다 맞춰야 돼", 2026-07-14).
+Proposed command renames (approve/tweak in one pass — several have no exact MCP
+twin, so these are recommendations):
+
+| Plugin command | → New | Basis |
+|---|---|---|
+| `/argus:seal` | **`/argus:predict`** | MCP `argus_predict` — same action |
+| `/argus:settle` | **`/argus:resolve`** | MCP `argus_resolve` — same action |
+| `/argus:track` | **`/argus:premises`** | MCP concept `premise` |
+| `/argus:chart` | **`/argus:versions`** | "chart" is jargon; plain |
+| `/argus:log` | **`/argus:journal`** | plain |
+| `/argus:helm` | **`/argus:preapprove`** | "helm" is jargon; plain |
+| `/argus:sail` | **`/argus:review`** (or keep as flagship) | MCP has `argus_review`; sail is broader — FOUNDER CALL |
+| `/argus:scan` | keep | already plain enough |
+| `/argus:clarify` | keep (or `/argus:reframe` to match the web) | plain; web uses "reframe" — FOUNDER CALL |
+| `/argus:verify` `/argus:team` `/argus:revise` `/argus:boss` `/argus:principles` `/argus:connect` `/argus:push` `/argus:pull` `/argus:sync` `/argus:help` `/argus:configure` | keep | already plain |
 
 Internal code identifiers mirror the same MCP words, so the plugin code and the
 MCP code read as one system.
+
+## Every place a rename must touch (so nothing is left half-mixed)
+
+In-plugin reference counts (today): sail 29 · settle 24 · boss 24 · verify 21 ·
+chart 18 · team 17 · revise 17 · clarify 14 · seal 11 · scan 10 · log 10 ·
+helm 8 · track 6. Each command also has: its skill directory, frontmatter
+`name:`/`Invoked as`, `argument-hint`, cross-references in OTHER skills, the
+`help` command list, `_generated/`, and the validator.
+
+**Out-of-plugin references (must change in the SAME sweep):**
+- `README.md`, `README.ko.md`
+- web app: `src/app/[locale]/import/page.tsx`, `src/lib/ledger-schema.ts`
+- MCP: `argus-mcp/src/v2/brief.ts`
+- docs: `docs/ARGUS-REPO-MAP.md`, `docs/ARGUS-MCP-V2-SPEC.md`,
+  `docs/ARGUS-MCP-V2-DESIGN-HISTORY.md`
+
+## Execution + verification (one focused sweep)
+1. Lock the command/term map above (founder approves the FOUNDER-CALL rows).
+2. Rename skill directories + update every reference (in-plugin + out-of-plugin).
+3. Apply the term map (copy + internal identifiers).
+4. Verify: `node argus-plugin-v2/scripts/validate-plugin.js`, the web build
+   (`npm run build`), the MCP build/tests, and a final
+   `grep -ri "sail\|bearing\|voyage\|fog\|reef\|anchor\|seal\|settle\|helm\|chart"`
+   sweep for stragglers. Zero half-renamed references before commit.
+
+Because references span three code areas (plugin, web app, MCP) plus docs, this
+is best run as ONE dedicated pass so the result is uniform — a partial rename is
+worse than none.
 
 ## 2. Cap the questions at 2 (friction fix)
 
