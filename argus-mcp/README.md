@@ -250,6 +250,69 @@ between tool calls — no MCP server can. So Argus doesn't claim "zero judgment"
 it surfaces one question, names any faint lean as a known limit, and lets
 reality do the grading. `zero judgment` is an asymptote, disclosed — not a badge.
 
+## The judgment kernel (for contributors)
+
+Under the six tools sits a versioned **judgment kernel** (`src/v3/`) — the
+semantic core that the web app, Telegram, and plugin surfaces all fold through,
+so a decision's *meaning* can't fork per surface. It is documented normatively in
+[`../docs/DESIGN-decision-knowledge-kernel-v6-final-2026-07-14.md`](../docs/DESIGN-decision-knowledge-kernel-v6-final-2026-07-14.md);
+this section is the map, not the authority.
+
+**What it is.** Not a memory store and not a personal ontology — a **judgment
+ledger**. It records time-stamped *acts* ("the user approved this sentence as a
+judgment at 18:20"), never a guess at a mind's state. It borrows parts from event
+sourcing, W3C PROV-O, preregistration, and Palantir's object/action/authority
+split — but its canon is *the user's authored judgment*, not the world's current
+state.
+
+**The shape, compressed:**
+
+- **Six objects** — Judgment · Premise · Return Contract · Observation ·
+  Resolution Assertion · Closure. Each also declares what it *deliberately drops*
+  (a Judgment drops numeric confidence; a Premise drops implicit/unconscious
+  premises) — a type that can't name what it drops is accumulation, not abstraction.
+- **Four layers by authority** — Proposal (AI/human suggestion) → Assertion
+  (sourced claim) → **Authorial Act (human-only: seal, adopt, close)** → System
+  Event. A user-owned judgment exists *only* once an Authorial Act attaches.
+- **Three cross-sections** on every event — Provenance (where it came from),
+  Authority (who authorized it), Temporal (`occurred_at` vs `recorded_at` vs
+  `authorized_at`, kept apart so hindsight can't leak into the contemporaneous
+  record).
+- **A 14-article constitution**, each tied to a machine enforcement point — "an
+  article without an enforcement point is a wish."
+
+**Enforced, not promised** — the same structural spirit as the tool surface:
+
+| Invariant | Where it's enforced |
+|---|---|
+| An AI proposal can't silently become a human judgment | `zAuthorial` requires `authorized_by.kind === 'human'` + authorization evidence (`src/v3/types.ts`) |
+| The same events fold to the same state on every surface | deterministic reducer (`src/v3/reducer.ts`) + cross-surface conformance |
+| Sealed meaning is append-only; a correction is a new act | reducer immutability + supersession fixtures |
+| `still_pending` / `return_deferred` are never terminal | resolution taxonomy is `answered` / `indeterminate` / `moot` only |
+| The twelve "betrayals" can't happen | `src/v3/constitution.test.ts`, `corpus-golden.test.ts` over `fixtures/dkk-corpus.ts` |
+
+**Three rules if you touch it:**
+
+1. **Don't fork the reducer.** Every surface imports the one kernel
+   (`src/v3/index.ts`); the web app reaches it through `src/lib/decision-kernel.ts`.
+   A per-surface state machine is exactly what this design forbids.
+2. **Never repair a semantic mistake by editing or deleting events** — use a new
+   authorized command, or an additive migration with an ADR and fixtures.
+3. **v2 data stays v2** until the user explicitly reforges it. The legacy adapter
+   (`src/v3/legacy-v2.ts`) reads old encodings and reports loss; it never rewrites
+   the original.
+
+**Status — honest.** The kernel is **structurally implemented and tested, not
+value-proven.** The user-value comparison (P5) is on **HOLD**; run its
+deterministic gate only against real matched data, and never fill an absent
+measurement with zero:
+
+```bash
+npm run eval:p5   # → GO / narrowed-continuation / NO-GO
+```
+
+Do not read "the code is ready" as "P5 passed" or "the kernel is GA."
+
 ## Develop
 
 ```bash
