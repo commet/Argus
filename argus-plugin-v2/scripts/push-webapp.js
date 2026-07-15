@@ -315,7 +315,7 @@ async function push() {
   }
   const files = collectFiles();
   if (files.length === 0) {
-    console.log("Nothing to push yet. Run /argus:sail, /argus:scan, or /argus:settle first.");
+    console.log("Nothing to push yet. Run /argus:sail, /argus:scan, or /argus:resolve first.");
     return;
   }
   const bytes = files.reduce((sum, file) => sum + Buffer.byteLength(file.content), 0);

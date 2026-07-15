@@ -343,7 +343,7 @@ export function VoyageChart({ onNavigated }: { onNavigated?: () => void } = {}) 
                     </button>
                     <button
                       onClick={handleConfirm}
-                      className="flex-1 px-3 py-2.5 rounded-lg text-[12.5px] font-semibold text-white shadow-[var(--shadow-sm)] cursor-pointer"
+                      className="flex-1 px-3 py-2.5 rounded-lg text-[12.5px] font-semibold text-[var(--accent-fg)] shadow-[var(--shadow-sm)] cursor-pointer"
                       style={{ background: 'var(--gradient-gold)' }}
                     >
                       {isSwitch ? L('이 길로', 'Go') : L('이 항로로', 'Set course')}

@@ -13,7 +13,7 @@
  *   - output in the document's language, pure JSON.
  */
 
-import { type ArtifactUnit, type JudgmentLens, type UserReviewContext } from './schema';
+import { type ArtifactUnit, type JudgmentLens, type UserReviewContext, type ReviewLocale } from './schema';
 
 const SPINE = `너는 Argus의 판단 검수기다. 사용자의 결정을 대신 내리지 않는다.
 - 절대 "이 전략은 틀렸다", "진행하세요" 같은 평결을 내지 않는다.
@@ -28,8 +28,20 @@ const SPINE = `너는 Argus의 판단 검수기다. 사용자의 결정을 대�
   · 비현실적/검증 안 된 가정  · 의존관계 역전(선행 과제가 후행보다 늦게 배치)  · 숫자·근거 불일치
   · 이해관계자 반론(승인·예산을 쥔 사람이 먼저 걸 지점). 같은 문서의 findings 제목이 서로 붙여넣기처럼 보이면 실패다.
 - 짧고 날카롭게. title은 한 줄(대략 40자 이내), detail은 2문장 이내. 장황한 서술 금지.
-- 출력은 순수 JSON. 마크다운/설명 없이 { 로 시작해 } 로 끝난다.
-- 모든 사용자 노출 값은 원문과 사용자 맥락의 주된 언어로 쓴다. 한국어 문서는 한국어로, 영어 문서는 영어로 쓴다. 서로 섞지 않는다.`;
+- 출력은 순수 JSON. 마크다운/설명 없이 { 로 시작해 } 로 끝난다.`;
+
+/**
+ * Output-language directive — appended LAST to every stage's system prompt so it
+ * wins over the Korean prompt scaffolding above it. Without this, the Korean
+ * instructions drag the model into Korean output even for an English document
+ * read by an English-locale user. This makes the review answer in the reader's
+ * locale (`lang`), not the prompt's language or the document's.
+ */
+function langDirective(lang: ReviewLocale): string {
+  return lang === 'en'
+    ? `OUTPUT LANGUAGE — HIGHEST PRIORITY, overrides everything above: write EVERY user-facing string value in the JSON (every title, detail, rationale, question, heading, statement, label, text, if_false, suggested_action, …) in ENGLISH. The source document and these instructions may be in Korean; your output values MUST still be in English, and must never mix the two. Structural tokens stay exactly as specified: unit_id / lens_id values, the status/severity/confidence/kind enums, and YYYY-MM-DD dates.`
+    : `출력 언어 — 최우선, 위의 모든 지시보다 우선한다: JSON의 모든 사용자 노출 문자열 값(title·detail·rationale·question·heading·statement·label·text·if_false·suggested_action 등)을 한국어로 쓴다. 원문이나 이 지시가 영어라도 출력 값은 한국어로 쓰고, 두 언어를 섞지 않는다. 구조 토큰은 지정된 형식 그대로 둔다: unit_id / lens_id 값, status·severity·confidence·kind enum, YYYY-MM-DD 날짜.`;
+}
 
 export function renderUnits(units: ArtifactUnit[], limit: number): string {
   return units
@@ -89,6 +101,7 @@ export function buildExtractionPrompt(
   units: ArtifactUnit[],
   ctx: UserReviewContext,
   unitLimit: number,
+  lang: ReviewLocale,
 ): { system: string; user: string } {
   const concerns = ctx.concerns?.length ? `사용자 관심사: ${ctx.concerns.join(', ')}.` : '';
   const hints = [
@@ -107,7 +120,9 @@ document_type, intent, audience, stakes, artifact_maturity를 추론하고, 확�
 논지들 사이의 의존 구조도 표시한다: main_claims에 나온 순서가 곧 번호다(첫 번째=C1, 두 번째=C2 …).
 어떤 논거가 특정 논지를 뒷받침하면 그 논거의 supports_claim_ids에 논지 번호(예: "C1")를 넣고,
 어떤 논지가 다른 논지가 참이어야 성립하면 그 논지의 depends_on_claim_ids에 기대는 논지 번호를 넣는다.
-확실하지 않으면 링크를 억지로 만들지 말고 생략한다(빈 배열).`;
+확실하지 않으면 링크를 억지로 만들지 말고 생략한다(빈 배열).
+
+${langDirective(lang)}`;
 
   const user = `아래는 검수할 문서의 단위(unit)들이다. 각 줄은 [unit_id] (종류 · 위치) 텍스트 형식이다.
 
@@ -144,6 +159,7 @@ export function buildQuickReviewPrompt(
   ctx: UserReviewContext,
   unitLimit: number,
   today: string,
+  lang: ReviewLocale,
 ): { system: string; user: string } {
   const context = [
     ctx.audience_hint && `Audience hint: ${ctx.audience_hint}`,
@@ -160,8 +176,6 @@ judgment spine: core_question, claim_evidence, hidden_assumption,
 human_judgment, falsifiable_followup.
 
 Keep the result selective and concise:
-- Write every user-facing value in the document's primary language. Use Korean
-  for a Korean document and English for an English document. Do not mix them.
 - When the document contains unsupported causal claims, untested assumptions,
   or a human-only decision, return 2 to 5 material findings. Return zero only
   when there is genuinely no material issue. Do not manufacture one per lens.
@@ -174,12 +188,11 @@ Keep the result selective and concise:
 - A judgment obligation is a DECISION the human must make, NOT a restatement of
   a finding. Never repeat a finding as an obligation. Keep obligations distinct
   from each other and from the findings.
-- Vary the finding TYPE — contradiction between sections, an unmet precondition,
-  an unrealistic assumption, a reversed dependency, a number that doesn't add up,
-  a stakeholder objection. Do not label every claim "evidence insufficient".
 - Return at most 3 judgment obligations and 3 falsifiable followups.
 - followup check_by must be a real date after ${today}.
-- Complete every JSON field below; use empty arrays instead of filler.`;
+- Complete every JSON field below; use empty arrays instead of filler.
+
+${langDirective(lang)}`;
 
   const user = `Document units:
 ${renderUnits(units, unitLimit)}
@@ -226,6 +239,7 @@ export function buildVisionReviewPrompt(
   ctx: UserReviewContext,
   unitLimit: number,
   today: string,
+  lang: ReviewLocale,
   isDeck: boolean,
 ): { system: string; user: string } {
   const context = [
@@ -241,14 +255,13 @@ export function buildVisionReviewPrompt(
 You can SEE the document itself — ${isDeck ? "the deck's images (charts/diagrams) are attached" : 'the PDF pages are attached and rendered'} — in ADDITION to the extracted text below. Use both: read the visuals (charts, tables, figures, numbers inside images, layout) that plain text extraction misses, and cross-check them against the prose. Apply the complete five-part judgment spine: core_question, claim_evidence, hidden_assumption, human_judgment, falsifiable_followup.
 
 Keep the result selective and concise:
-- Write every user-facing value in the document's primary language.
 - Return 2 to 5 material findings; zero only when genuinely nothing is material. Do not manufacture one per lens.
-- Vary the finding TYPE — a contradiction between a chart and the text, a figure that doesn't add up, an unmet precondition, an untested assumption, a reversed dependency, a stakeholder objection. Do not label everything "evidence insufficient".
 - Prefer findings that only the VISUAL reveals (a chart trend that contradicts a claim, a number shown only in an image) — that is the point of this pass.
-- 짧고 날카롭게. title은 한 줄(대략 40자 이내), detail은 2문장 이내.
 - A judgment obligation is a DECISION the human must make, NOT a restatement of a finding. Keep obligations distinct from each other and from the findings.
 - Reference locations in prose the human way ("slide 4의 시장규모 차트", "3쪽 표"). In the JSON, cite ${anchorWord} numbers in the "pages" array (e.g. [4] or [4,7]).
-- followup check_by must be a real date after ${today}. Return at most 3 obligations and 3 followups.`;
+- followup check_by must be a real date after ${today}. Return at most 3 obligations and 3 followups.
+
+${langDirective(lang)}`;
 
   const user = `Extracted text (for cross-reference — the attached ${isDeck ? 'images' : 'pages'} are the source of truth for anything visual):
 ${renderUnits(units, unitLimit)}
@@ -284,6 +297,7 @@ export function buildMapPrompt(
   chunkIndex: number,
   chunkCount: number,
   today: string,
+  lang: ReviewLocale,
   outline = '',
 ): { system: string; user: string } {
   const context = [
@@ -322,7 +336,8 @@ ${chunkIndex + 1}번째 구간이다. **이 구간의 원문 단위(units)에 �
 - 모든 claim·assumption·finding은 이 구간의 unit_id를 하나 이상 인용한다.
 - core_question은 이 구간에서 읽히는 결정 질문의 최선 추정이다(뒤 구간에서 갱신될 수 있다).
 - obligations·followups는 여기서 내지 않는다(전체를 합친 뒤 한 번에 만든다).
-- 모든 사용자 노출 값은 원문의 주 언어로 쓴다.`;
+
+${langDirective(lang)}`;
 
   const user = `구간 ${chunkIndex + 1}/${chunkCount}의 원문 단위:
 ${renderUnits(units, units.length)}
@@ -358,6 +373,7 @@ export function buildLensPrompt(
   mapSummary: string,
   units: ArtifactUnit[],
   unitLimit: number,
+  lang: ReviewLocale,
 ): { system: string; user: string } {
   const system = `${SPINE}
 
@@ -368,9 +384,10 @@ ${lens.review_questions.map((q) => `- ${q}`).join('\n')}
 금지된 출력(이런 문장을 내면 실패로 간주한다):
 ${lens.failure_modes.map((f) => `- "${f}"`).join('\n')}
 
-이 렌즈에 걸리는 **실질 이슈만** 낸다. 없으면 빈 배열 — 렌즈를 채우려고 억지 지적을 만들지 않는다.
-다른 finding과 같은 지점·같은 말이 될 것 같으면 내지 않는다(중복 금지). 전체 결론이나 다른 렌즈 영역은 건드리지 않는다.
-title은 이 문서에 고유한 한 줄로 쓴다 — "…의 근거가 부족하다" 같은 틀을 반복하지 말고, 무엇이 왜 문제인지 구체적으로.`;
+너의 렌즈에 해당하는 finding만 낸다. 전체 결론이나 다른 렌즈의 영역은 건드리지 않는다.
+finding이 없으면 빈 배열을 낸다(억지로 만들지 않는다).
+
+${langDirective(lang)}`;
 
   const user = `문서 판단 지도 요약:
 ${mapSummary}
@@ -382,8 +399,8 @@ ${renderUnits(units, unitLimit)}
 {
   "findings": [
     {
-      "title": "이 문서에 고유한 한 줄 제목 — 무엇이 왜 문제인지 (40자 이내, 근거부족 틀 반복 금지)",
-      "detail": "무엇이 문제인지 원문 기준으로, 2문장 이내",
+      "title": "특정 claim에 걸린 짧은 제목 (예: slide 4 시장규모 주장에 근거 없음)",
+      "detail": "무엇이 문제인지 원문 기준으로",
       "severity": "minor|caution|critical",
       "confidence": "low|medium|high",
       "suggested_action": "무엇을 확인/보완할지 구체적으로 (일반론 금지)",
@@ -404,17 +421,17 @@ export function buildSynthesisPrompt(
   findingsSummary: string,
   ctx: UserReviewContext,
   today: string,
+  lang: ReviewLocale,
 ): { system: string; user: string } {
   const system = `${SPINE}
 
 이번 단계는 "종합"이다. 렌즈 결과를 Judgment Receipt 필드로 압축한다.
 - current_heading은 중립적 방향 한 줄이다. "진행하세요" 같은 평결이 아니다.
-- judgment_obligations는 사람이 직접 **결정**해야 하는 갈림길이다. **finding(문서의 결함 지적)의 재진술이 아니다** —
-  이미 finding으로 낸 지적을 의무로 다시 쓰지 마라. obligation은 "무엇을 결정할 것인가"이지 "무엇이 근거 부족인가"가 아니다.
-- 서로 다른 결정만 남긴다. 의무 2~3개면 충분하고, 겹치는 것은 하나로 합친다.
-- 각 항목은 짧게. statement 한 줄, why_human 한 줄.
+- judgment_obligations는 사람이 직접 판단해야 하는 항목이다. AI가 대신 결론내지 않는다.
 - 사용자가 결론을 냈다고 말하지 않는다.
-- follow-up predicate는 나중에 현실이 pass/fail로 답할 수 있어야 한다. check_by는 ${today} 이후의 미래 날짜(YYYY-MM-DD)로 제안한다.`;
+- follow-up predicate는 나중에 현실이 pass/fail로 답할 수 있어야 한다. check_by는 ${today} 이후의 미래 날짜(YYYY-MM-DD)로 제안한다.
+
+${langDirective(lang)}`;
 
   const worry = ctx.biggest_worry ? `사용자가 가장 불안해한 부분: ${ctx.biggest_worry}` : '';
 

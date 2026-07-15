@@ -15,8 +15,9 @@ import {
   type ReviewConcern,
   type Stakes,
   type CanonicalArtifact,
+  type ReviewLocale,
 } from './schema';
-import { LENSES, ALL_LENS_IDS } from './lenses';
+import { LENSES, ALL_LENS_IDS, lensLabel } from './lenses';
 
 const STAKES_ORDER: Record<Stakes, number> = { low: 0, medium: 1, high: 2 };
 
@@ -41,10 +42,12 @@ const CONCERN_TO_LENS: Record<ReviewConcern, LensId[]> = {
 export function routeLenses(
   profile: DocumentProfile,
   artifact: CanonicalArtifact,
-  opts: { concerns?: ReviewConcern[]; maxLensCalls: number } = { maxLensCalls: 7 },
+  opts: { concerns?: ReviewConcern[]; maxLensCalls: number; lang?: ReviewLocale } = { maxLensCalls: 7 },
 ): LensRoutingResult {
   const isDeck = artifact.detected_structure.is_deck;
   const concerns = opts.concerns ?? [];
+  const lang: ReviewLocale = opts.lang ?? 'ko';
+  const t = (ko: string, en: string) => (lang === 'en' ? en : ko);
 
   // Candidate set: base + profile-driven + concern-driven, filtered by applies_to.
   const wanted = new Set<LensId>(BASE);
@@ -76,15 +79,15 @@ export function routeLenses(
   for (const id of ALL_LENS_IDS) {
     if (selected.includes(id)) continue;
     if (cutForBudget.includes(id)) {
-      skipped.push({ id, reason: '분석 예산(렌즈 수) 초과로 이번엔 제외' });
+      skipped.push({ id, reason: t('분석 예산(렌즈 수) 초과로 이번엔 제외', 'Skipped this time — over the analysis budget (lens count)') });
     } else if (!applies(LENSES[id], profile, isDeck)) {
-      skipped.push({ id, reason: skipReason(id, profile, isDeck) });
+      skipped.push({ id, reason: skipReason(id, profile, isDeck, lang) });
     } else {
-      skipped.push({ id, reason: '이 문서에는 우선순위가 낮아 제외' });
+      skipped.push({ id, reason: t('이 문서에는 우선순위가 낮아 제외', 'Lower priority for this document — skipped') });
     }
   }
 
-  return { selected, skipped, disclosure: buildDisclosure(selected, profile) };
+  return { selected, skipped, disclosure: buildDisclosure(selected, profile, lang) };
 }
 
 /** Structural gates — a lens simply cannot apply to this document shape. */
@@ -123,22 +126,25 @@ function orderByPriority(ids: LensId[], concerns: ReviewConcern[]): LensId[] {
   return [...ids].sort((a, b) => rank(a) - rank(b) || ALL_LENS_IDS.indexOf(a) - ALL_LENS_IDS.indexOf(b));
 }
 
-function skipReason(id: LensId, profile: DocumentProfile, isDeck: boolean): string {
-  if (id === 'deck_narrative' && !isDeck) return '덱이 아니어서 제외';
-  if (id === 'reversibility') return '되돌림 판단이 핵심이 아닌 문서 유형이어서 제외';
-  if (id === 'stakeholder_objection') return '이해관계/stakes가 낮아 제외';
+function skipReason(id: LensId, profile: DocumentProfile, isDeck: boolean, lang: ReviewLocale): string {
+  const t = (ko: string, en: string) => (lang === 'en' ? en : ko);
+  if (id === 'deck_narrative' && !isDeck) return t('덱이 아니어서 제외', 'Skipped — not a deck');
+  if (id === 'reversibility') return t('되돌림 판단이 핵심이 아닌 문서 유형이어서 제외', 'Skipped — reversibility is not central to this document type');
+  if (id === 'stakeholder_objection') return t('이해관계/stakes가 낮아 제외', 'Skipped — low stakes / stakeholder exposure');
   void profile;
-  return '이 문서에 해당하지 않아 제외';
+  return t('이 문서에 해당하지 않아 제외', 'Skipped — does not apply to this document');
 }
 
-function buildDisclosure(selected: LensId[], profile: DocumentProfile): string {
-  const labels = selected.map((id) => LENSES[id].label).join(', ');
-  const typeKo = documentTypeKo(profile.document_type);
-  return `적용한 검수 렌즈: ${labels}. 이유: 이 문서는 ${typeKo}이고, 핵심 주장과 사람이 책임질 판단을 우선 확인했습니다.`;
+function buildDisclosure(selected: LensId[], profile: DocumentProfile, lang: ReviewLocale): string {
+  const labels = selected.map((id) => lensLabel(id, lang)).join(', ');
+  const type = documentTypeLabel(profile.document_type, lang);
+  return lang === 'en'
+    ? `Review lenses applied: ${labels}. Why: this document is ${type}, so we checked its core claims and the judgments a human must own first.`
+    : `적용한 검수 렌즈: ${labels}. 이유: 이 문서는 ${type}이고, 핵심 주장과 사람이 책임질 판단을 우선 확인했습니다.`;
 }
 
-function documentTypeKo(t: DocumentProfile['document_type']): string {
-  const map: Partial<Record<DocumentProfile['document_type'], string>> = {
+function documentTypeLabel(dt: DocumentProfile['document_type'], lang: ReviewLocale): string {
+  const ko: Partial<Record<DocumentProfile['document_type'], string>> = {
     strategy_memo: '전략 메모',
     prd: '제품 요구사항 문서(PRD)',
     rfc: 'RFC',
@@ -154,5 +160,21 @@ function documentTypeKo(t: DocumentProfile['document_type']): string {
     proposal: '제안서',
     unknown: '문서',
   };
-  return map[t] ?? '문서';
+  const en: Partial<Record<DocumentProfile['document_type'], string>> = {
+    strategy_memo: 'a strategy memo',
+    prd: 'a product requirements doc (PRD)',
+    rfc: 'an RFC',
+    adr: 'an ADR',
+    strategy_deck: 'a strategy deck',
+    pitch_deck: 'a pitch deck',
+    board_deck: 'a board deck',
+    sales_deck: 'a sales deck',
+    investor_update: 'an investor update',
+    research_report: 'a research report',
+    meeting_notes: 'meeting notes',
+    llm_answer: 'an AI answer',
+    proposal: 'a proposal',
+    unknown: 'a document',
+  };
+  return lang === 'en' ? (en[dt] ?? 'a document') : (ko[dt] ?? '문서');
 }

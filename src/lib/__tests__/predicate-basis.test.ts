@@ -131,15 +131,17 @@ describe('summarizeRecord — luck count aggregates across projects', () => {
 });
 
 describe('cross-surface parity — webapp basis set === plugin settle basis', () => {
-  it('PREDICATE_BASES matches the plugin settle event basis values', () => {
-    const settle = readFileSync(
-      join(process.cwd(), 'argus-plugin-v2/skills/settle/SKILL.md'),
+  it('PREDICATE_BASES matches the plugin settle basis values', () => {
+    // The plugin's settle event is now written by the single-source CLI
+    // (decision-ledger.js), which owns the canonical basis enum. Parity is
+    // checked against that source, not the skill prose it used to hand-write.
+    const cli = readFileSync(
+      join(process.cwd(), 'argus-plugin-v2/scripts/decision-ledger.js'),
       'utf8',
     );
-    const m = settle.match(/"basis"\s*:\s*"([^"]+)"/);
-    expect(m, 'plugin settle must declare a basis field in its settle event JSON').toBeTruthy();
-    // value looks like: reasoned|luck|external|mixed — user's own read, optional
-    const pluginSet = m![1].split('—')[0].split('|').map((s) => s.trim()).filter(Boolean);
+    const m = cli.match(/const BASES\s*=\s*\[([^\]]+)\]/);
+    expect(m, 'decision-ledger.js settle must declare a BASES enum').toBeTruthy();
+    const pluginSet = (m![1].match(/"([^"]+)"/g) ?? []).map((s) => s.replace(/"/g, ''));
     expect([...PREDICATE_BASES].sort()).toEqual(pluginSet.sort());
   });
 });

@@ -1,6 +1,6 @@
 ---
 name: team
-description: Deploy a team of specialized agents as WORKERS on a clarified problem (the crew sets out from port). Each agent does their domain work — research, numbers, UX, legal, risk, etc. — in their own voice on the actual artifact (code, PR, file, design doc). Agents are not a panel of generic critics; they're producers whose claims will be verified by `/argus:verify`. Output is a MixResult plus a candidate FinalScaffold with attribution preserved. Invoke after `/argus:clarify` has produced an AnalysisSnapshot with an `execution_plan`. Invoked as `/argus:team`.
+description: Deploy a team of specialized agents as WORKERS on a clarified problem (reviewers work the artifact in parallel). Each agent does their domain work — research, numbers, UX, legal, risk, etc. — in their own voice on the actual artifact (code, PR, file, design doc). Agents are not a panel of generic critics; they're producers whose claims will be verified by `/argus:verify`. Output is a MixResult plus a candidate FinalScaffold with attribution preserved. Invoke after `/argus:clarify` has produced an AnalysisSnapshot with an `execution_plan`. Invoked as `/argus:team`.
 ---
 
 # /argus:team
@@ -52,7 +52,7 @@ repo-local `argus-plugin-v2/data/`). If not found anywhere: stop and print
 exactly one line in the user's locale — ko: `agents.yaml이 없거나 손상됐어요 —
 플러그인을 재설치해 주세요 (/plugin install argus@argus).` · en: `agents.yaml is
 missing or corrupt — reinstall the plugin (/plugin install argus@argus).` Do not
-improvise a crew without it.
+improvise a reviewers without it.
 
 ### Step 1 — Load session state
 
@@ -62,7 +62,7 @@ improvise a crew without it.
 4. Compute next version label using rules from `${CLAUDE_PLUGIN_ROOT}/lib/session/version-numbering.md`:
    - v0.1 directory exists already (created by `/argus:clarify`).
    - **Marker-file detection for re-run**: a version is considered "team-completed" when `versions/{label}/workers.json` exists. If the latest version's `workers.json` exists, this invocation is a re-run → compute the next label via `nextChildLabel(parent_label, existing_siblings_under_same_parent)` from version-numbering.md.
-   - **Branch from the checked-out draft, not the newest.** `parent_label` is the `version_label` of `session.active_draft_id` (set by `/argus:chart --checkout` or the last run), NOT simply the newest label on disk. On a `--revise` or post-checkout run this is what makes the new draft a proper child/branch (e.g. revising `v0.1` while `v0.2` exists yields `v0.1.1`, not a `v0.3` main-line). Only when `active_draft_id` is unset/points to the latest does this reduce to "main-line continuation" (`v0.2`).
+   - **Branch from the checked-out draft, not the newest.** `parent_label` is the `version_label` of `session.active_draft_id` (set by `/argus:versions --checkout` or the last run), NOT simply the newest label on disk. On a `--revise` or post-checkout run this is what makes the new draft a proper child/branch (e.g. revising `v0.1` while `v0.2` exists yields `v0.1.1`, not a `v0.3` main-line). Only when `active_draft_id` is unset/points to the latest does this reduce to "main-line continuation" (`v0.2`).
    - If `workers.json` does NOT exist in the latest version dir, this is the first team run for that version → use the existing label (do NOT create a new version dir). The team populates the same dir clarify already opened.
 5. Create `versions/{label}/` directory only if a new version was computed; otherwise reuse existing.
 6. Read locale from `.argus/config.yaml` (default `ko`). All user-facing text in this skill (AskUserQuestion options, report strings, worker instructions) uses this locale.
@@ -237,7 +237,7 @@ Produce `versions/{label}/team_plan.json`:
 
 **Role of team_plan.json — internal orchestration + forensic.**
 - **Step 4–6 read it** to know which agent runs in which stage with which framework. It IS the working plan.
-- **Kept post-execution** so `/argus:chart` (or any future debugger) can answer "why did *this* team get deployed for this decision?" If a deployment looked weird, the assignment scoring + reconciliation results that produced it are inspectable here.
+- **Kept post-execution** so `/argus:versions` (or any future debugger) can answer "why did *this* team get deployed for this decision?" If a deployment looked weird, the assignment scoring + reconciliation results that produced it are inspectable here.
 - **Not consumed by sail Step 7** — the final decision card draws from `scaffold.json` + `boss_feedback.json`. team_plan is intentionally *upstream* of the user-facing artifact: it's how the team was planned, not what the team produced.
 
 Stage rules:
@@ -471,7 +471,7 @@ This is the PLUGIN-SPECIFIC divergence from webapp. Webapp produces a markdown d
 Construct a candidate `FinalScaffold` (schema: `${CLAUDE_PLUGIN_ROOT}/data/schemas/final-scaffold.json`). Candidate means it is not yet trusted; `/argus:verify` owns final verification state.
 - `reframed_question`: from snapshot
 - `key_trade_offs[]`: extract from team outputs + debate. Each trade-off = axis + side_a + side_b.
-  - **Candidate-scope (missed-option) disclosure.** If the crew examined essentially ONE course (no debate, no opposing stances, every worker assumed the same direction) AND stakes are `important`+ AND a *concrete plausible alternative the crew never analyzed* is nameable, add it as a trade-off: side_a = the examined course, side_b = that alternative with its label stating it was NOT analyzed (e.g. `"<alternative> — not evaluated by the crew"`). The bearing's `road_not_taken` derives from `key_trade_offs`, so this surfaces narrow scope as an honest coverage note. **Gate (mirror clause):** only when a concrete alternative is nameable — if none is, the decision is genuinely flat, so leave it out; never manufacture an alternative to look thorough.
+  - **Candidate-scope (missed-option) disclosure.** If the reviewers examined essentially ONE course (no debate, no opposing stances, every worker assumed the same direction) AND stakes are `important`+ AND a *concrete plausible alternative the reviewers never analyzed* is nameable, add it as a trade-off: side_a = the examined course, side_b = that alternative with its label stating it was NOT analyzed (e.g. `"<alternative> — not evaluated by the reviewers"`). The read's `road_not_taken` derives from `key_trade_offs`, so this surfaces narrow scope as an honest coverage note. **Gate (mirror clause):** only when a concrete alternative is nameable — if none is, the decision is genuinely flat, so leave it out; never manufacture an alternative to look thorough.
 - `hidden_assumptions[]`: from mix.key_assumptions, with `evaluation` (likely_true / uncertain / doubtful) based on team's validation
 - `team_contradictions[]`: populated from debate.json if ran; else empty array
 - `human_required_checkpoints[]`: extract from worker outputs where agents flagged "AI cannot decide this" or "human judgment needed". **Also append**: every entry from `classification.json:dropped_steps[]` (from Step 3.5(c)) as a checkpoint with `checkpoint: "<original task>", why: "dropped from automated pipeline — over_agent_budget. Manual coverage needed."`. This is mandatory per M4 transparency.
@@ -486,14 +486,14 @@ Write to `versions/{label}/scaffold.json`.
 
 - Workers, stages, mix, and the scaffold are ALREADY written write-once to `versions/{label}/` (`workers.json`, `team_plan.json` stages, `mix.json`, `scaffold.json`) — do NOT also copy them into session.json. Duplicating them is exactly the monolithic-blob merge-conflict surface this model removes.
 - Update `session.classification` (small routing state — kept in the skeleton)
-- **Append a Draft to `session.drafts[]`** (schema: `${CLAUDE_PLUGIN_ROOT}/data/schemas/draft.json`) and set `session.active_draft_id` to it. Without this the chart version tree is permanently empty and `--checkout` / `--promote` / branching cannot work. **Concurrency (see session-layout → "the version dirs are authoritative"):** re-read `session.json` *immediately before* this write and append to the drafts[] you find *now* — never to the snapshot you loaded back in Step 1. A second `team --revise` (or another session) may have appended a sibling draft in between; appending to the stale snapshot would atomically erase it. Your `versions/{label}/` dir was created write-once under a unique label so it never collides — only this drafts[] index can lose an entry, and the re-read-then-union (dedup by `version_label`) prevents it. Shape:
+- **Append a Draft to `session.drafts[]`** (schema: `${CLAUDE_PLUGIN_ROOT}/data/schemas/draft.json`) and set `session.active_draft_id` to it. Without this the version tree is permanently empty and `--checkout` / `--promote` / branching cannot work. **Concurrency (see session-layout → "the version dirs are authoritative"):** re-read `session.json` *immediately before* this write and append to the drafts[] you find *now* — never to the snapshot you loaded back in Step 1. A second `team --revise` (or another session) may have appended a sibling draft in between; appending to the stale snapshot would atomically erase it. Your `versions/{label}/` dir was created write-once under a unique label so it never collides — only this drafts[] index can lose an entry, and the re-read-then-union (dedup by `version_label`) prevents it. Shape:
   - `id`: stable draft id (e.g. `draft-{label}`)
   - `parent_draft_id`: the draft this one descends from — on a `--revise`/branch run, the draft whose `version_label` matches the checked-out `session.active_draft_id`; on the first team run, `null` (root)
   - `version_label`: the version label this run wrote (e.g. `v0.1`, `v0.2`, `v0.1.1`)
   - `directive`: on `--revise`, a short note of what was asked to change; else `null`
   - `reviewing_agent_id`: `navigator` on a `--revise` child draft; else `null`
   - `boss_reviewed`: `false` (boss hasn't run on this fresh draft yet)
-  - `change_summary`: one line (≤60 chars) for the chart tree annotation (e.g. "초기 팀 배치" / "ISTJ 우려 반영")
+  - `change_summary`: one line (≤60 chars) for the version tree annotation (e.g. "초기 팀 배치" / "ISTJ 우려 반영")
   - `created_at`
   - (Do NOT embed the scaffold/mix/feedback in the draft node — they live in `versions/{label}/`; the draft is a pointer.)
 - Set `phase: "verifying"` (ready for `/argus:verify`) OR `phase: "complete"` only when the user explicitly asked for team output without verification
@@ -508,7 +508,7 @@ Write to `versions/{label}/scaffold.json`.
 Sail's Step 7 will render the consolidated decision card. Team only emits a value-oriented transition line (NOT a machinery report — no agent counts, no "N contradictions preserved", no phase names; those are exactly the strings sail's forbidden-transition list bans):
 
 ```
-✓ Crew work done. Checking evidence next.
+✓ Reviewers work done. Checking evidence next.
 {{if N_failed > 0}}⚠ Some domain coverage is incomplete — see .argus/sessions/{{id}}/errors.log{{endif}}
 ```
 

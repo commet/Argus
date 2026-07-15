@@ -92,10 +92,10 @@ CI pins: projection parity test (fixture ledger → byte-identical brief/LOGBOOK
 3. *Deterministic net (LLM-free).* Next SessionStart: if yesterday had gate-fired decision(s) with zero seal, the brief may carry ONE line: "어제 열린 결정 1건이 봉인 없이 남아 있습니다: '(사용자 인용)' — 한 줄로 봉인할까요? (건너뛰면 후보로 접습니다)". Once; skip → archived candidate, never re-shown.
 4. *Harvest (P6, opt-in, post-gate).* See §5.
 
-**RESURFACE (deterministic delivery, hedged relay):** SessionStart hook runs `argus brief` (shared reducer) → stdout injected into model context. Honest rating: deterministic **to the model**; relay to the user is the residual compliance hop. Hedges: (a) imperative top-of-context phrasing — "Surface the following to the user before the task, once, then continue:"; (b) slash commands printed IN the brief text so the deterministic path is in front of the user ("/argus:settle 로 정산"); (c) LOGBOOK.md the user can open with zero model involvement; (d) statusline pixels (per P0 spike). Relay rate is a measured P2 exit metric (≥90% over 20 cold starts).
+**RESURFACE (deterministic delivery, hedged relay):** SessionStart hook runs `argus brief` (shared reducer) → stdout injected into model context. Honest rating: deterministic **to the model**; relay to the user is the residual compliance hop. Hedges: (a) imperative top-of-context phrasing — "Surface the following to the user before the task, once, then continue:"; (b) slash commands printed IN the brief text so the deterministic path is in front of the user ("/argus:resolve 로 정산"); (c) LOGBOOK.md the user can open with zero model involvement; (d) statusline pixels (per P0 spike). Relay rate is a measured P2 exit metric (≥90% over 20 cold starts).
 
 **Brief content (≤3 lines, one block, priority-ordered, silence at zero):**
-1. Oldest overdue/due settle — seal-time words with provenance-conditional verb + inline escapes ("정산 / 미루기 / 접기 — /argus:settle")
+1. Oldest overdue/due settle — seal-time words with provenance-conditional verb + inline escapes ("정산 / 미루기 / 접기 — /argus:resolve")
 2. Candidate headline — only if the live set contains never-headlined items ("후보 N건" — never "전제 N건"); candidates auto-expire to a dated archive after 14 days with one-time mention ("후보 3건이 봉인 없이 만료 — 보관됨"), then silence
 3. Bearing line — only on change or every 5th session
 Honest-gap lines (harvest failure, transcript-parse canary) ride in the block when present.
@@ -157,7 +157,7 @@ Honest-gap lines (harvest failure, transcript-parse canary) ride in the block wh
 |---|---|---|
 | 1 | Model relaying SessionStart brief to user | Imperative top-of-context phrasing; measured relay rate (P2 exit ≥90%/20 cold starts); slash commands printed in the brief; LOGBOOK + statusline as model-free channels |
 | 2 | Model acting on gate-first anchor nudge | Per-turn injection (strongest channel available); telemetry: keyword-fire vs gate-call ratio; under-fire bias accepted; deterministic net catches gate-fired-unsealed decisions next morning |
-| 3 | Final settle/promote tool call | Elicitation one-shot where supported; text-first tested (elicitation-disabled CI path); OUTCOME_REQUIRED loud; deterministic /argus:settle advertised in the brief itself |
+| 3 | Final settle/promote tool call | Elicitation one-shot where supported; text-first tested (elicitation-disabled CI path); OUTCOME_REQUIRED loud; deterministic /argus:resolve advertised in the brief itself |
 | 4 | Harvest extraction quality | Opt-in; gate-fired pre-filter; abstain default; byte-match; drop-rate auto-quiet; flat-fixture red tests; 30-transcript precision harness |
 | 5 | Transcript JSONL format drift | Schema canary → loud brief line; /argus:doctor; pinned-version nightly CI parse test |
 | 6 | Elicitation partial support | Text fallback everywhere; text path is the tested primary |
@@ -210,7 +210,7 @@ argus_config, argus_amend, argus_dismiss (→ seal ops), argus_watch (anchor→b
 | H4 | harvest hook | SessionEnd | ADD in P6, opt-in only | Deterministic spawn | Only if capture_mode:auto (consented). Pre-filter: gate-fired-unsealed sessions only. Detached haiku, ARGUS_HEADLESS=1, single-flight lock, ≤1/day, ≤2 candidates/week, byte-match-or-discard, harvest.log, honest-gap on failure. |
 | — | Stop / PreToolUse / PreCompact hooks | — | **KILL** | — | Over-fire risk / unspecced surfaces / not load-bearing. Backlogged. |
 | S1 | statusline | every render | KEEP (demoted to bonus) | P0 spike decides wiring | One item max: overdue → due → candidates → absent. Shown-diff settings patch or compositing wrapper; never silently steals the slot. |
-| C1–C6 | /argus:settle · /argus:candidates · /argus:debrief · /argus:return · /argus:bearing · /argus:mute (+/argus:doctor) | slash commands | ADD | User-typed | Deterministic manual path for every loop link; advertised inside brief copy. 21 legacy skills + 17 agents killed. |
+| C1–C6 | /argus:resolve · /argus:candidates · /argus:debrief · /argus:return · /argus:bearing · /argus:mute (+/argus:doctor) | slash commands | ADD | User-typed | Deterministic manual path for every loop link; advertised inside brief copy. 21 legacy skills + 17 agents killed. |
 | F1 | .argus/ledger/ledger.jsonl | file | KEEP | every write | Single source of truth, append-only, lock-guarded. |
 | F2 | .argus/LOGBOOK.md | file | ADD | every write tool call (server-written) | Sections: 확인일 도착(Due) / 열린 계약(Open) / 후보(ai_surfaced 표시) / 방향(Heading) / 정산 기록(counts only). Header claims only enforced facts. THE deterministic channel on hook-less hosts. |
 | F3 | AGENTS.md snippet | file | ADD (opt-in, conditional) | init, shown-diff | Inert for non-users ("If .argus/LOGBOOK.md exists…"); default-skip on multi-committer repos. |
@@ -272,7 +272,7 @@ $ claude plugin install argus
 
 주말 지나 월요일 첫 세션. 브리프 한 블록:
 
-> **[Argus]** 확인일 도착 1건 — 7일 전 **당신이 봉인한 문장**: "무료 티어 유지 — 8/1까지 유료 전환율 3% 이상"… 은 아직이고, 지난주 것: "빌링 마이그레이션이 금요일까지 스테이징 통과". 실제로는 어땠나요? (정산 / 미루기 / 접기 — /argus:settle)
+> **[Argus]** 확인일 도착 1건 — 7일 전 **당신이 봉인한 문장**: "무료 티어 유지 — 8/1까지 유료 전환율 3% 이상"… 은 아직이고, 지난주 것: "빌링 마이그레이션이 금요일까지 스테이징 통과". 실제로는 어땠나요? (정산 / 미루기 / 접기 — /argus:resolve)
 
 서진: "통과는 했는데 토요일에야 됐어."
 
@@ -341,7 +341,7 @@ Event schema v2 (gate_result, candidate, candidate_action, waypoint, bearing, sn
 **Cut until later:** all hooks, all LLM anything.
 
 ## P2 — Driver skeleton + Day 0 (week 2)
-Plugin bundling MCP via .mcp.json; SessionStart brief hook (per-item calendar-day dedupe, snooze-aware, imperative relay preamble, ARGUS_HEADLESS guard); v1 double-registration detection; greeting + RetroSeal taste; statusline per P0 outcome; /argus:settle, /argus:mute, /argus:doctor; hook-contract CI smoke tests.
+Plugin bundling MCP via .mcp.json; SessionStart brief hook (per-item calendar-day dedupe, snooze-aware, imperative relay preamble, ARGUS_HEADLESS guard); v1 double-registration detection; greeting + RetroSeal taste; statusline per P0 outcome; /argus:resolve, /argus:mute, /argus:doctor; hook-contract CI smoke tests.
 **Exit:** clean-machine one-command install; nothing due → nothing injected (eyeball); seeded due contract → brief relayed to user in ≥90% of 20 cold starts; RetroSeal produces a real receipt in the first session inside 5 minutes; test proves identical brief cannot fire two consecutive days without state change.
 **Cut:** anchor/landing hooks, candidates.
 

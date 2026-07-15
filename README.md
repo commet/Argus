@@ -213,7 +213,7 @@ After restarting Claude Code, from any repo:
 ```
 
 Commands: `/argus:sail` (30-second judgment) · `/argus:team` (deploy an agent team)
-· `/argus:boss` (boss simulation) · `/argus:clarify` · `/argus:chart`
+· `/argus:boss` (boss simulation) · `/argus:clarify` · `/argus:versions`
 More → [argus-plugin-v2/README.md](./argus-plugin-v2/README.md)
 
 ### MCP server

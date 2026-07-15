@@ -144,7 +144,7 @@ export function StepIntro({ stepKey }: StepIntroProps) {
             </div>
             <h2 className="text-[15px] font-bold text-[var(--text-primary)] mb-1.5">{title}</h2>
             <p className="text-[13px] text-[var(--text-primary)] leading-relaxed mb-2">{purpose}</p>
-            <p className="text-[12px] text-[var(--text-secondary)] leading-relaxed border-l-2 border-[var(--accent)]/30 pl-3">
+            <p className="text-[12px] text-[var(--text-secondary)] leading-relaxed rounded-lg bg-[var(--accent)]/[0.04] px-3 py-2">
               <span className="font-semibold text-[var(--text-tertiary)] mr-1">{L('예:', 'e.g.')}</span>
               {example}
             </p>

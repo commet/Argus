@@ -959,7 +959,7 @@ function DemoDMFeedback({ fb, onToggle, onDone, showDoneButton = true, locale = 
           {/* Done button */}
           {showDoneButton && (
             <motion.button onClick={onDone} whileTap={{ scale: 0.98 }}
-              className="w-full flex items-center justify-center gap-2 px-6 py-4 text-white rounded-2xl text-[14px] font-semibold shadow-[var(--shadow-sm)] cursor-pointer mt-2"
+              className="w-full flex items-center justify-center gap-2 px-6 py-4 text-[var(--accent-fg)] rounded-2xl text-[14px] font-semibold shadow-[var(--shadow-sm)] cursor-pointer mt-2"
               style={{ background: 'var(--gradient-gold)' }}>
               {L('반영하고 최종 문서 보기', 'Apply and see final document')} <ChevronRight size={14} />
             </motion.button>
@@ -1021,7 +1021,7 @@ function AnswerChip({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -4 }}
             transition={{ duration: 0.15 }}
-            className="absolute top-full mt-1 left-0 min-w-[min(280px,calc(100vw-2rem))] max-w-[min(360px,calc(100vw-2rem))] rounded-xl border border-[var(--border-subtle)] bg-[var(--surface)] shadow-2xl z-50 py-1.5 overflow-hidden"
+            className="absolute top-full mt-1 left-0 min-w-[min(280px,calc(100vw-2rem))] max-w-[min(360px,calc(100vw-2rem))] rounded-xl border border-[var(--border-subtle)] bg-[var(--surface)] shadow-[var(--shadow-xl)] z-50 py-1.5 overflow-hidden"
           >
             {options.map((opt) => {
               const isCurrent = opt === currentValue;
@@ -1399,7 +1399,7 @@ function DemoSealCard({ scenario, decisionLine, onSealed, locale = 'ko' }: {
             {!sealed ? (
               <motion.button key="seal-btn" onClick={doSeal} whileTap={{ scale: 0.98 }}
                 initial={{ opacity: 1 }} exit={{ opacity: 0 }}
-                className="w-full flex items-center justify-center gap-2 px-6 py-4 text-white rounded-2xl text-[15px] font-semibold shadow-[var(--shadow-sm)] cursor-pointer"
+                className="w-full flex items-center justify-center gap-2 px-6 py-4 text-[var(--accent-fg)] rounded-2xl text-[15px] font-semibold shadow-[var(--shadow-sm)] cursor-pointer"
                 style={{ background: 'var(--gradient-gold)' }}>
                 {L('봉인하기', 'Seal it')} <ChevronRight size={15} />
               </motion.button>
@@ -1891,7 +1891,7 @@ export function InteractiveDemo({ scenario, locale = 'ko', onStartReal, onBack }
                     onClick={() => setPhase('matching')}
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
-                    className="inline-flex items-center gap-2.5 px-6 py-3.5 rounded-2xl text-[15px] font-semibold text-white cursor-pointer shadow-lg hover:shadow-xl transition-shadow"
+                    className="inline-flex items-center gap-2.5 px-6 py-3.5 rounded-2xl text-[15px] font-semibold text-[var(--accent-fg)] cursor-pointer shadow-[var(--shadow-lg)] hover:shadow-[var(--shadow-xl)] transition-shadow"
                     style={{ background: 'var(--gradient-gold)' }}
                   >
                     <UserCheck size={18} />
@@ -1999,7 +1999,7 @@ export function InteractiveDemo({ scenario, locale = 'ko', onStartReal, onBack }
                   {L('문서는 도구일 뿐이에요. 진짜는 이 결정을 봉인하고 — 확인일에 맞춰보는 거예요.', 'The document is just a tool. The real thing is sealing this decision — and checking it on the day.')}
                 </p>
                 <motion.button onClick={() => setPhase('seal')} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
-                  className="inline-flex items-center gap-2.5 px-6 py-3.5 rounded-2xl text-[15px] font-semibold text-white cursor-pointer shadow-lg hover:shadow-xl transition-shadow"
+                  className="inline-flex items-center gap-2.5 px-6 py-3.5 rounded-2xl text-[15px] font-semibold text-[var(--accent-fg)] cursor-pointer shadow-lg hover:shadow-xl transition-shadow"
                   style={{ background: 'var(--gradient-gold)' }}>
                   <span className="text-[16px]">⚓</span>
                   {L('이 결정을 봉인하기', 'Seal this decision')}

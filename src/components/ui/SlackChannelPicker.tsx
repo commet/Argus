@@ -71,7 +71,7 @@ export function SlackChannelPicker({ open, onClose, title, content }: SlackChann
           </div>
 
           {error && (
-            <p className="text-[13px] text-red-600 bg-red-50 px-3 py-2 rounded-lg">{error}</p>
+            <p className="text-[13px] text-[var(--danger)] bg-[var(--danger)]/10 px-3 py-2 rounded-lg">{error}</p>
           )}
 
           {/* Channel list */}

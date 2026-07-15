@@ -218,7 +218,7 @@ const BUILTIN_PERSONAS: WorkerPersona[] = [
   },
   {
     id: 'navigator',
-    name: '항해장', nameEn: 'Navigator',
+    name: '종합자', nameEn: 'Synthesizer',
     role: '종합 검토자', roleEn: 'Chief Reviewer',
     emoji: '🧭',
     expertise: '팀 전체 결과물을 통합 검토하고, 톤과 논리의 일관성을 맞춥니다.',

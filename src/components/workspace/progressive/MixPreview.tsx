@@ -84,7 +84,7 @@ export function MixPreview({ mix, dm, onDM, onSkip, busy, cmReview, debateResult
         transition={{ duration: 0.5, ease: EASE }}
         className="mb-3 flex items-center gap-2.5"
       >
-        <span className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-bold text-white" style={{ background: 'var(--gradient-gold)' }}>
+        <span className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-bold text-[var(--accent-fg)]" style={{ background: 'var(--gradient-gold)' }}>
           <CheckIcon size={11} strokeWidth={3} />
           {L('초안이 닿았어요', 'The draft has landed')}
         </span>
@@ -223,7 +223,7 @@ export function MixPreview({ mix, dm, onDM, onSkip, busy, cmReview, debateResult
                       founder's call that getting a virtual reader's review matters
                       more here, and the ladder is effectively opt-in. */}
                   <motion.button type="button" onClick={onDM} disabled={busy} aria-busy={busy} whileTap={{ scale: 0.98 }}
-                    className="w-full flex items-center justify-center gap-2 px-5 py-3 text-white rounded-xl text-[14px] font-semibold shadow-[var(--shadow-sm)] cursor-pointer disabled:opacity-50"
+                    className="w-full flex items-center justify-center gap-2 px-5 py-3 text-[var(--accent-fg)] rounded-xl text-[14px] font-semibold shadow-[var(--shadow-sm)] cursor-pointer disabled:opacity-50"
                     style={{ background: 'var(--gradient-gold)' }}>
                     {busy ? <Loader2 size={16} className="animate-spin" /> : <><UserCheck size={16} /> {L(`마무리 전에 — ${dm || '이해관계자'} 시점에서 검토 받아보기 →`, `Before wrapping up — get a review as ${dm || 'a stakeholder'} →`)}</>}
                   </motion.button>
@@ -246,7 +246,7 @@ export function MixPreview({ mix, dm, onDM, onSkip, busy, cmReview, debateResult
                       </div>
                     </div>
                     <motion.button type="button" onClick={onDM} disabled={busy} aria-busy={busy} whileTap={{ scale: 0.98 }}
-                      className="w-full flex items-center justify-center gap-2 px-5 py-3 text-white rounded-xl text-[14px] font-semibold shadow-[var(--shadow-sm)] cursor-pointer disabled:opacity-50"
+                      className="w-full flex items-center justify-center gap-2 px-5 py-3 text-[var(--accent-fg)] rounded-xl text-[14px] font-semibold shadow-[var(--shadow-sm)] cursor-pointer disabled:opacity-50"
                       style={{ background: 'var(--gradient-gold)' }}>
                       {busy ? <><Loader2 size={16} className="animate-spin" /> {L(`${dm || '리뷰어'}이(가) 읽고 있어요...`, `${dm || 'Reviewer'} is reading...`)}</> : <><UserCheck size={16} /> {L('검토 받기', 'Get Review')}</>}
                     </motion.button>

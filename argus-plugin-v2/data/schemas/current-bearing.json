@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "argus:current-bearing",
   "title": "CurrentBearing",
-  "description": "The compressed user-facing Argus output. It shows the user's current decision course, evidence, fog, road not taken, next helm action, and optional decision-contract seed.",
+  "description": "The compressed user-facing Argus output. It shows the user's current decision course, evidence, the unknown, the alternative, the next step, and optional decision-contract seed.",
   "type": "object",
   "required": [
     "label",
@@ -33,7 +33,7 @@
         "summary": {
           "type": "string",
           "maxLength": 240,
-          "description": "One sentence explaining the current bearing."
+          "description": "One sentence explaining the current read."
         }
       },
       "additionalProperties": false

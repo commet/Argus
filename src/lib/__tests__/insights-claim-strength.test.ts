@@ -26,7 +26,7 @@ import { join } from 'node:path';
  * runtime, which does not exist as TS).
  */
 const log = readFileSync(
-  join(process.cwd(), 'argus-plugin-v2/skills/log/SKILL.md'),
+  join(process.cwd(), 'argus-plugin-v2/skills/journal/SKILL.md'),
   'utf8',
 );
 

@@ -23,4 +23,4 @@ team:
   # preferred_agents: [donghyuk, jieun]
 
 archive:
-  commit_sessions: false  # If true, /argus:chart suggests git commit at phase=complete
+  commit_sessions: false  # If true, /argus:versions suggests git commit at phase=complete

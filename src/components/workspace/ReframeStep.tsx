@@ -1079,11 +1079,11 @@ export function ReframeStep({ onNavigate }: ReframeStepProps) {
                 </LocaleLink>
               </div>
             ) : (
-              <div className="flex items-center justify-between gap-2 text-red-600 text-[13px] bg-red-50 rounded-lg px-3 py-2 mt-3">
+              <div className="flex items-center justify-between gap-2 text-[var(--danger)] text-[13px] bg-[var(--danger)]/10 rounded-lg px-3 py-2 mt-3">
                 <div className="flex items-center gap-2">
                   <AlertTriangle size={14} /> <span>{error}</span>
                 </div>
-                <button onClick={() => { setError(''); handleAnalyze(); }} className="shrink-0 px-2.5 py-1 rounded-lg text-[11px] font-medium border border-red-200 text-red-600 hover:bg-red-100 cursor-pointer transition-colors">
+                <button onClick={() => { setError(''); handleAnalyze(); }} className="shrink-0 px-2.5 py-1 rounded-lg text-[11px] font-medium border border-[var(--danger)]/25 text-[var(--danger)] hover:bg-[var(--danger)]/15 cursor-pointer transition-colors">
                   {L('다시 시도', 'Retry')}
                 </button>
               </div>
@@ -1220,8 +1220,8 @@ export function ReframeStep({ onNavigate }: ReframeStepProps) {
                                   transition-all duration-200 cursor-pointer border
                                   ${ev === value
                                     ? color === 'emerald' ? 'bg-emerald-50 border-emerald-300 text-emerald-700'
-                                      : color === 'amber' ? 'bg-amber-50 border-amber-300 text-amber-700'
-                                      : 'bg-red-50 border-red-300 text-red-700'
+                                      : color === 'amber' ? 'bg-[var(--warning)]/10 border-[var(--warning)]/30 text-[var(--warning)]'
+                                      : 'bg-[var(--danger)]/10 border-[var(--danger)]/25 text-[var(--danger)]'
                                     : 'border-[var(--border-subtle)] text-[var(--text-tertiary)] hover:border-[var(--border)]'
                                   }
                                 `}
@@ -1306,7 +1306,7 @@ export function ReframeStep({ onNavigate }: ReframeStepProps) {
                         {analysis.hidden_assumptions.map((a, i) => {
                           const ev = a.evaluation || 'uncertain';
                           const dotColor = ev === 'doubtful' ? 'bg-red-500' : ev === 'likely_true' ? 'bg-emerald-500' : 'bg-amber-500';
-                          const textColor = ev === 'doubtful' ? 'text-red-700' : ev === 'likely_true' ? 'text-emerald-700' : 'text-amber-700';
+                          const textColor = ev === 'doubtful' ? 'text-[var(--danger)]' : ev === 'likely_true' ? 'text-emerald-700' : 'text-[var(--warning)]';
                           const label = ev === 'doubtful' ? L('의심', 'Doubt') : ev === 'likely_true' ? L('맞음', 'True') : L('불확실', 'Uncertain');
                           return (
                             <div key={i} className="flex items-start gap-2">
@@ -1447,11 +1447,11 @@ export function ReframeStep({ onNavigate }: ReframeStepProps) {
                   </LocaleLink>
                 </div>
               ) : (
-                <div className="flex items-center justify-between gap-2 text-red-600 text-[13px] bg-red-50 rounded-lg px-3 py-2">
+                <div className="flex items-center justify-between gap-2 text-[var(--danger)] text-[13px] bg-[var(--danger)]/10 rounded-lg px-3 py-2">
                   <div className="flex items-center gap-2">
                     <AlertTriangle size={14} /> <span>{error}</span>
                   </div>
-                  <button onClick={() => { setError(''); handleAnalyze(); }} className="shrink-0 px-2.5 py-1 rounded-lg text-[11px] font-medium border border-red-200 text-red-600 hover:bg-red-100 cursor-pointer transition-colors">
+                  <button onClick={() => { setError(''); handleAnalyze(); }} className="shrink-0 px-2.5 py-1 rounded-lg text-[11px] font-medium border border-[var(--danger)]/25 text-[var(--danger)] hover:bg-[var(--danger)]/15 cursor-pointer transition-colors">
                     {L('다시 시도', 'Retry')}
                   </button>
                 </div>

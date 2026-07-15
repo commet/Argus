@@ -80,6 +80,27 @@ export function jsonbEqual(a: unknown, b: unknown): boolean {
   return stableStringify(a) === stableStringify(b);
 }
 
+/**
+ * Idempotency fingerprint — MUST mirror `public._argus_semantic_idem_fingerprint`
+ * (SQL) and the v3 reducer (argus-mcp/src/v3/reducer.ts). Strips the volatile
+ * bookkeeping fields so an honest retry (fresh time.*) is a duplicate while an
+ * altered payload still conflicts. Strip: event_id, idempotency_key,
+ * causal_parent_ids, atomic_batch_id, time.{occurred_at,recorded_at,authorized_at},
+ * authority.recorded_by. Keep: event kind + payload, time.temporal_mode,
+ * authority.{originated_by,authorized_by,authorization_mode,authorization_ref}.
+ */
+export function semanticIdemFingerprint(event: unknown): unknown {
+  if (!event || typeof event !== 'object') return event;
+  const { event_id, idempotency_key, causal_parent_ids, atomic_batch_id, time, authority, ...rest } =
+    event as Record<string, unknown>;
+  void event_id; void idempotency_key; void causal_parent_ids; void atomic_batch_id;
+  const t = (time && typeof time === 'object' ? time : {}) as Record<string, unknown>;
+  const a = (authority && typeof authority === 'object' ? authority : {}) as Record<string, unknown>;
+  const { recorded_by, ...authRest } = a;
+  void recorded_by;
+  return { ...rest, time: { temporal_mode: t.temporal_mode }, authority: authRest };
+}
+
 type Row = Record<string, unknown>;
 
 interface QueryResult { data: unknown; error: { message: string } | null }
@@ -337,7 +358,9 @@ export class SupabaseEmulator {
     if (matchCount > 0) {
       if (matchCount !== events.length) return err('IDEMPOTENCY_CONFLICT');
       for (const [index, existing] of matches.entries()) {
-        if (!jsonbEqual(existing!.event, events[index])) return err('IDEMPOTENCY_CONFLICT');
+        // Fingerprint compare (not raw): an honest retry re-stamps time.* → duplicate.
+        if (!jsonbEqual(semanticIdemFingerprint(existing!.event), semanticIdemFingerprint(events[index])))
+          return err('IDEMPOTENCY_CONFLICT');
       }
       const receipt = this.receiptRows(userId, spaceId, batchKeys, true);
       return { data: receipt, error: null };

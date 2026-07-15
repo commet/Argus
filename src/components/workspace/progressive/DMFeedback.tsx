@@ -191,7 +191,7 @@ export function DMFeedback({ fb, onToggle, onFinalize, onDeepen, busy }: { fb: D
                 whileTap={{ scale: 0.98 }}
                 animate={hasChanges && !busy ? { boxShadow: ['0 0 0px rgba(180,160,100,0)', '0 0 18px rgba(180,160,100,0.45)', '0 0 0px rgba(180,160,100,0)'] } : { boxShadow: '0 0 0px rgba(180,160,100,0)' }}
                 transition={hasChanges && !busy ? { duration: 2.2, repeat: Infinity, ease: 'easeInOut' } : { duration: 0.4 }}
-                className="w-full flex items-center justify-center gap-2 px-6 py-4 text-white rounded-2xl text-[14px] font-semibold shadow-[var(--shadow-sm)] cursor-pointer disabled:opacity-50"
+                className="w-full flex items-center justify-center gap-2 px-6 py-4 text-[var(--accent-fg)] rounded-2xl text-[14px] font-semibold shadow-[var(--shadow-sm)] cursor-pointer disabled:opacity-50"
                 style={{ background: 'var(--gradient-gold)' }}
               >
                 {busy

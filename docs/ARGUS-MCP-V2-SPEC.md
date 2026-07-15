@@ -46,7 +46,7 @@ PROJECTION  LOGBOOK.md · MCP Resources · check_in · export · calendar(.ics)
 | 6 | renderer 수용 기준: **동일 BriefState 소비 + renderer별 골든 픽스처** (byte-identical 출력 아님) |
 | 7 | P5 표현: 5명 중 3명 = **프로토타입 신호** (median-user 증명 주장 금지) |
 | 8 | 슬래시 커맨드 7종: settle · candidates · debrief · return · bearing · mute · doctor |
-| 9 | due 노출은 **공정 큐**(기아 방지): ①한 번도 표시 안 된 due 중 최고령 → ②가장 오래 미표시 → ③check_by 최고령. 항상 "외 N건" 병기, 전체 목록은 /argus:settle. overdue 재노출은 이 큐 규칙 안에서; "동일 브리프 이틀 연속 금지"는 비-overdue 내용에만 적용 |
+| 9 | due 노출은 **공정 큐**(기아 방지): ①한 번도 표시 안 된 due 중 최고령 → ②가장 오래 미표시 → ③check_by 최고령. 항상 "외 N건" 병기, 전체 목록은 /argus:resolve. overdue 재노출은 이 큐 규칙 안에서; "동일 브리프 이틀 연속 금지"는 비-overdue 내용에만 적용 |
 | 10 | LOGBOOK은 재생성 가능한 projection (write-through 정본 아님) — I-1 커서 규칙 적용 |
 | 11 | 쓰기 락 범위: `lock → replay → transition guard → append/fsync → unlock` **만**. LOGBOOK·receipt·.ics·account sync는 락 밖 |
 | 12 | account sync는 **최소 outbox 상태머신**: `sync_pending → sync_attempted → sync_succeeded | sync_abandoned`, 각 상태에 event_id·attempts·next_retry_at·last_error. 원격 API는 event_id를 idempotency key로 수용 (범용 큐 프레임워크 금지) |

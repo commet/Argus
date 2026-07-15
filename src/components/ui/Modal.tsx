@@ -134,7 +134,7 @@ export function Modal({ open, onClose, title, children, widthClass = 'max-w-lg',
             type="button"
             onClick={onClose}
             aria-label={closeLabel}
-            className="p-1.5 hover:bg-[var(--bg)] rounded-lg transition-colors cursor-pointer"
+            className="flex items-center justify-center -mr-1.5 min-h-[44px] min-w-[44px] hover:bg-[var(--bg)] rounded-lg transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
           >
             <X size={16} strokeWidth={1.5} />
           </button>

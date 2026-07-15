@@ -21,6 +21,8 @@ const DIR = join(process.cwd(), 'src', 'components', 'workspace', 'progressive')
 const BANNED = [
   '항해장의 한마디',
   'Navigator Note',
+  '종합자의 한마디',
+  'Synthesizer Note',
   '팀 내 반론',
   'Team Dissent',
 ];

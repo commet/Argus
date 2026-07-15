@@ -48,8 +48,8 @@ export const en: Record<TranslationKey, string> = {
   'error.llm': 'Error during LLM call',
   'error.unexpected': 'An unexpected error occurred',
 
-  'navigator.title': 'Navigator',
-  'navigator.open': 'Open Navigator',
+  'navigator.title': 'Synthesizer',
+  'navigator.open': 'Open Synthesizer',
   'navigator.close': 'Close',
   'navigator.noInsights': 'No new insights.',
   'navigator.firstSession': 'Insights will accumulate after your first analysis.',

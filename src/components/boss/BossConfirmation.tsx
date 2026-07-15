@@ -144,7 +144,7 @@ export function BossConfirmation({
             padding: '10px 18px',
             borderRadius: 12,
             background: 'var(--gradient-gold)',
-            color: 'white',
+            color: 'var(--accent-fg)',
             fontSize: 13,
             fontWeight: 700,
             cursor: 'pointer',

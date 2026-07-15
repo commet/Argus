@@ -65,11 +65,11 @@ export function SessionExpiredToast() {
           exit={{ opacity: 0, y: -8 }}
           role="status"
           aria-live="polite"
-          className="fixed top-14 right-4 z-50 flex items-start gap-2 max-w-xs rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 shadow-md"
+          className="fixed top-14 right-4 z-50 flex items-start gap-2 max-w-xs rounded-lg border border-[var(--warning)]/30 bg-[var(--warning)]/10 px-3 py-2 shadow-[var(--shadow-md)]"
         >
-          <CloudOff size={14} className="mt-0.5 shrink-0 text-amber-600" />
+          <CloudOff size={14} className="mt-0.5 shrink-0 text-[var(--warning)]" />
           <div className="min-w-0">
-            <p className="text-[12px] leading-snug text-amber-800">
+            <p className="text-[12px] leading-snug text-[var(--warning)]">
               {L(
                 '로그인이 잠시 풀렸어요. 작업은 이 기기에 계속 저장되고 있어요 — 다시 로그인하면 클라우드 백업이 이어져요.',
                 'Your sign-in lapsed. Work keeps saving on this device — sign in again and cloud backup resumes.',
@@ -77,7 +77,7 @@ export function SessionExpiredToast() {
             </p>
             <LocaleLink
               href={`/login?redirect=${redirect}`}
-              className="inline-block mt-1 text-[12px] font-semibold text-amber-900 underline underline-offset-2 hover:text-amber-700"
+              className="inline-block mt-1 text-[12px] font-semibold text-[var(--warning)] underline underline-offset-2 hover:text-[var(--warning)]"
               onClick={() => setVisible(false)}
             >
               {L('다시 로그인', 'Sign in again')}
@@ -86,7 +86,7 @@ export function SessionExpiredToast() {
           <button
             onClick={() => setVisible(false)}
             aria-label={L('닫기', 'Dismiss')}
-            className="shrink-0 text-amber-600 hover:text-amber-800 cursor-pointer"
+            className="shrink-0 text-[var(--warning)] hover:text-[var(--warning)] cursor-pointer"
           >
             <X size={13} />
           </button>

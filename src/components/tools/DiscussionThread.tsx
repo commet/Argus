@@ -16,7 +16,7 @@ const TYPE_CONFIG = {
   agreement: { icon: Handshake, labelKo: '동의', labelEn: 'agrees with', color: 'text-[var(--success)]' },
   disagreement: { icon: GitBranch, labelKo: '반박', labelEn: 'disagrees with', color: 'text-[#E24B4A]' },
   elaboration: { icon: Lightbulb, labelKo: '보충', labelEn: 'builds on', color: 'text-[var(--accent)]' },
-  question: { icon: HelpCircle, labelKo: '질문', labelEn: 'asks', color: 'text-amber-600' },
+  question: { icon: HelpCircle, labelKo: '질문', labelEn: 'asks', color: 'text-[var(--warning)]' },
 };
 
 export function DiscussionThread({ messages, personas, keyTakeaway }: DiscussionThreadProps) {
@@ -80,10 +80,10 @@ export function DiscussionThread({ messages, personas, keyTakeaway }: Discussion
 
       {/* Key takeaway */}
       {keyTakeaway && (
-        <div className="mt-4 flex items-start gap-2.5 px-4 py-3 rounded-xl bg-[var(--checkpoint)] border border-amber-200">
-          <Lightbulb size={16} className="text-amber-600 shrink-0 mt-0.5" />
+        <div className="mt-4 flex items-start gap-2.5 px-4 py-3 rounded-xl bg-[var(--checkpoint)] border border-[var(--warning)]/30">
+          <Lightbulb size={16} className="text-[var(--warning)] shrink-0 mt-0.5" />
           <div>
-            <p className="text-[11px] font-bold text-amber-700 mb-0.5">{L('핵심 결론', 'Key takeaway')}</p>
+            <p className="text-[11px] font-bold text-[var(--warning)] mb-0.5">{L('핵심 결론', 'Key takeaway')}</p>
             <p className="text-[13px] text-[var(--text-primary)] leading-relaxed">{keyTakeaway}</p>
           </div>
         </div>

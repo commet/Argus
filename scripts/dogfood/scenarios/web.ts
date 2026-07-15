@@ -95,6 +95,23 @@ export const webScenarios: Scenario[] = [
     },
   },
   {
+    id: 'W2b',
+    title: 'Re-stamped retry (fresh clock, same command) returns a duplicate receipt',
+    proves: 'The real browser retry re-preflights with a fresh recorded_at — it must still read as duplicate, not IDEMPOTENCY_CONFLICT. Byte-replay (W2) misses this; the idempotency fingerprint strips the volatile time.* fields.',
+    async run(w) {
+      const projectId = w.newProject();
+      const seal = sealCmd(w);
+      await w.step({ scenario: 'W2b', step: 'seal', surface: 'web', action: 'seal', projectId },
+        { ok: true, appended: 2, duplicate: false },
+        () => w.web.command(projectId, seal));
+      // Same command object, but web.command re-preflights with the next tick →
+      // fresh time.occurred_at/recorded_at/authorized_at, the exact retry shape.
+      await w.step({ scenario: 'W2b', step: 'retry-restamped', surface: 'web', action: 'seal', projectId },
+        { ok: true, appended: 0, duplicate: true },
+        () => w.web.command(projectId, seal));
+    },
+  },
+  {
     id: 'W3',
     title: 'Same idempotency key, altered content is refused',
     proves: 'P6 step 8: a retry that changed content cannot silently replace or split the original command.',

@@ -1730,7 +1730,7 @@ export async function runNavigatorRevision(params: {
 
   const locale = getCurrentLanguage();
 
-  const systemKo = `당신은 선원들의 분석을 종합하는 항해장(Navigator)입니다. 이미 완성된 기획안을, 사용자의 수정 요청에 따라 최소 침습 원칙으로 편집합니다.
+  const systemKo = `당신은 검토자들의 분석을 종합하는 종합자입니다. 이미 완성된 기획안을, 사용자의 수정 요청에 따라 최소 침습 원칙으로 편집합니다.
 
 ## 원칙
 1. **원본 구조 유지** — 섹션 제목, 순서, 전체 톤을 보존합니다. directive가 명시적으로 구조 변경을 요구할 때만 변경합니다.
@@ -1746,7 +1746,7 @@ export async function runNavigatorRevision(params: {
   "change_summary": "한 줄 요약 (40자 이내)"
 }`;
 
-  const systemEn = `You are the Navigator of an orchestra of expert agents. A complete document already exists; your job is to edit it per the user's directive with minimum-invasive edits.
+  const systemEn = `You are the Synthesizer of an orchestra of expert agents. A complete document already exists; your job is to edit it per the user's directive with minimum-invasive edits.
 
 ## Principles
 1. **Preserve original structure** — section headings, order, tone. Change them only if the directive explicitly requires it.

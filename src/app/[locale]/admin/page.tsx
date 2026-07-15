@@ -151,7 +151,7 @@ export default function AdminPage() {
       </div>
 
       {error === 'other' && (
-        <p className="text-[13px] text-red-600 mb-4">{L('불러오기 실패. 새로고침 해보세요.', 'Failed to load. Try refresh.')}</p>
+        <p className="text-[13px] text-[var(--danger)] mb-4">{L('불러오기 실패. 새로고침 해보세요.', 'Failed to load. Try refresh.')}</p>
       )}
 
       {metrics && (

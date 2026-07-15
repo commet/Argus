@@ -10,6 +10,7 @@ import { recastToMarkdown } from '@/lib/export';
 import { AnimatedPlaceholder } from '@/components/ui/AnimatedPlaceholder';
 import { Send, Loader2, Upload, Check, AlertTriangle, ChevronDown, ChevronUp, Bot, Brain, Flag } from 'lucide-react';
 import { useLocale } from '@/hooks/useLocale';
+import { toast } from '@/lib/toast';
 
 interface FeedbackRequestProps {
   personas: Persona[];
@@ -29,9 +30,9 @@ interface FeedbackRequestProps {
 function getInfluenceStyles(locale: 'ko' | 'en') {
   const ko = locale === 'ko';
   return {
-    high: { bg: 'bg-red-50', border: 'border-red-200', text: 'text-red-700', label: ko ? '높음' : 'High' },
-    medium: { bg: 'bg-amber-50', border: 'border-amber-200', text: 'text-amber-700', label: ko ? '중간' : 'Med' },
-    low: { bg: 'bg-blue-50', border: 'border-blue-200', text: 'text-blue-600', label: ko ? '낮음' : 'Low' },
+    high: { bg: 'bg-[var(--danger)]/10', border: 'border-[var(--danger)]/25', text: 'text-[var(--danger)]', label: ko ? '높음' : 'High' },
+    medium: { bg: 'bg-[var(--warning)]/10', border: 'border-[var(--warning)]/30', text: 'text-[var(--warning)]', label: ko ? '중간' : 'Med' },
+    low: { bg: 'bg-[var(--ai)]', border: 'border-[var(--ai-fg)]/20', text: 'text-[var(--ai-fg)]', label: ko ? '낮음' : 'Low' },
   } as const;
 }
 
@@ -97,11 +98,11 @@ export function FeedbackRequest({ personas, onSubmit, loading, initialContent, i
     if (!file) return;
     const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
     if (file.size > MAX_FILE_SIZE) {
-      alert(L('파일이 너무 큽니다 (최대 5MB).', 'File is too large (max 5MB).'));
+      toast(L('파일이 너무 큽니다 (최대 5MB).', 'File is too large (max 5MB).'), 'error');
       return;
     }
     if (!file.type.startsWith('text/') && !file.name.match(/\.(txt|md|csv|json)$/i)) {
-      alert(L('텍스트 파일만 업로드할 수 있습니다 (.txt, .md, .csv, .json).', 'Only text files are supported (.txt, .md, .csv, .json).'));
+      toast(L('텍스트 파일만 업로드할 수 있습니다 (.txt, .md, .csv, .json).', 'Only text files are supported (.txt, .md, .csv, .json).'), 'error');
       return;
     }
     const reader = new FileReader();
@@ -171,7 +172,7 @@ export function FeedbackRequest({ personas, onSubmit, loading, initialContent, i
                   {relatedRecast.analysis.steps?.filter(s => s.checkpoint).length || 0} {L('체크포인트', 'checkpoints')}
                 </span>
                 {relatedRecast.analysis.key_assumptions?.length > 0 && (
-                  <span className="text-amber-700">
+                  <span className="text-[var(--warning)]">
                     <AlertTriangle size={10} className="inline mr-1" />
                     {L(`핵심 가정 ${relatedRecast.analysis.key_assumptions.length}건`, `${relatedRecast.analysis.key_assumptions.length} key assumption${relatedRecast.analysis.key_assumptions.length === 1 ? '' : 's'}`)}
                   </span>

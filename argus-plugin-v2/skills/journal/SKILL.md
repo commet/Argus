@@ -1,17 +1,17 @@
 ---
-name: log
-description: The voyage log — a one-screen view across ALL Argus sessions in this project; recent decisions and their courses, sealed contracts, settled outcomes, and your calibration record. Read-only and mechanical by default; `--insights` adds one LLM-written pattern note once enough contracts are settled. Use when the user asks "what have I decided here", "show my track record", "how good are my predictions", or wants the decision history. Invoked as `/argus:log`.
+name: journal
+description: The decision log — a one-screen view across ALL Argus sessions in this project; recent decisions and their courses, sealed contracts, settled outcomes, and your calibration record. Read-only and mechanical by default; `--insights` adds one LLM-written pattern note once enough contracts are settled. Use when the user asks "what have I decided here", "show my track record", "how good are my predictions", or wants the decision history. Invoked as `/argus:journal`.
 ---
 
-# /argus:log
+# /argus:journal
 
 **What this skill does:** Aggregates the project's decision history —
 `.argus/sessions/` + `.argus/ledger/ledger.jsonl` — into one screen. This is
 the view that makes the accumulated history visible: what was decided, what
 was predicted, and how those predictions fared.
 
-`/argus:chart` is depth (one session's version tree); `/argus:log` is breadth
-(every voyage in the project).
+`/argus:versions` is depth (one session's version tree); `/argus:journal` is breadth
+(every decision in the project).
 
 **Default behavior:** read-only, no LLM, no mutation. Locale from
 `.argus/config.yaml` (English templates below; render naturally in ko).
@@ -32,11 +32,11 @@ was predicted, and how those predictions fared.
    (defensive-parse; skip corrupt) → id, `problem_text`, `phase`,
    `updated_at`. From the newest version dir read `current_bearing.json` →
    `current_course.status` + summary, or `minimal_scaffold.json` →
-   "minimal". Missing both → "in progress". **A session dir with a bearing
+   "minimal". Missing both → "in progress". **A session dir with a read
    but no readable `session.json`** (webapp emission, partial sync) still
-   counts as a voyage — render it degraded from the bearing
+   counts as a decision — render it degraded from the read
    (`current_course.summary` in place of `problem_text`, date from
-   `generated_at`); never show "Voyages: 0" next to "Contracts: 1 sealed".
+   `generated_at`); never show "Decisions: 0" next to "Contracts: 1 sealed".
 2. **Ledger:** replay `.argus/ledger/ledger.jsonl` by id (`seal` opens,
    `amend` updates, `settle`/`dismiss` closes; skip unparsable lines).
    Compute: sealed count, open contracts (with next/overdue check-by dates),
@@ -58,14 +58,14 @@ was predicted, and how those predictions fared.
    rounds 5-8).
 
 If `.argus/` is missing or holds no sessions and no ledger: print one line —
-`No voyages logged yet. Start one: /argus:sail "<your decision>"` — and stop.
+`No decisions logged yet. Start one: /argus:sail "<your decision>"` — and stop.
 
 ## Step 2 — Render (one screen)
 
 ```text
-## Argus - Voyage Log ({{project dir name}})
+## Argus - Decision Log ({{project dir name}})
 
-Voyages: {{total}} ({{complete}} complete · {{in_progress}} underway)
+Decisions: {{total}} ({{complete}} complete · {{in_progress}} underway)
 
 Recent:
   {{date}}  {{problem_text clipped 48}}  → {{course status or "minimal" or "underway"}}
@@ -73,14 +73,14 @@ Recent:
 
 Contracts: {{sealed}} sealed · {{open}} open{{if overdue}} · {{overdue}} OVERDUE{{endif}}
 Record:    held {{h}} · missed {{a}} · partial {{p}}{{if T==0}} (nothing settled yet){{endif}}
-{{if overdue}}Next: /argus:settle — {{overdue}} contract(s) past check-by{{endif}}
+{{if overdue}}Next: /argus:resolve — {{overdue}} contract(s) past check-by{{endif}}
 {{if !overdue && open}}Next check-by: {{nearest date}} — "{{predicate clipped 60}}"{{endif}}
 
-Reopen a voyage: /argus:chart --session <id> · /argus:sail --resume <id>
+Reopen a decision: /argus:versions --session <id> · /argus:sail --resume <id>
 ```
 
 Keep it under one terminal screen. No worker counts, no schema names, no
-machinery — same surface rules as the Current Heading.
+machinery — same surface rules as the current call.
 
 ## Step 3 — `--insights` (optional, the only LLM use)
 
@@ -96,15 +96,15 @@ the moat is *over-sold* the moment a 4-7-entry correlation is stated as a rule:
   경향") — never a law.
 - `rule` (11+): may be stated as a pattern, still scoped to the user's own log.
 
-Prompt yourself with the settled predicates + outcomes + recent fog/reef items
-**plus the `basis` (reasoned/luck/external) and fog/reef tags VERBATIM** — do NOT
+Prompt yourself with the settled predicates + outcomes + recent unknown/risk items
+**plus the `basis` (reasoned/luck/external) and unknown/risk tags VERBATIM** — do NOT
 re-infer or relabel a tag the user/engine already set (R33: weak models relabel a
-`luck`/`mixed` win as a skill-win, or a `fog` as a `reef`; the ledger tag is
+`luck`/`mixed` win as a skill-win, or a `unknown` as a `risk`; the ledger tag is
 ground truth — quote it). Wrap all in `<user-data>`. Produce AT MOST 3 lines,
 each grounded in a SPECIFIC entry, at the strength `pattern_strength` allows:
 
 - one observation in held-vs-missed (cite entries, not vibes);
-- one fog/reef theme **only if it genuinely recurs** (a single occurrence is not
+- one unknown/risk theme **only if it genuinely recurs** (a single occurrence is not
   a theme — stay silent rather than inflate one entry);
 - one suggestion as reference, not directive ("worth one extra check when X" —
   never "be more conservative").

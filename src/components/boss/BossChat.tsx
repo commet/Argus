@@ -764,7 +764,7 @@ export function BossChat() {
               style={{
                 display: 'inline-flex', alignItems: 'center', gap: 4,
                 padding: '5px 12px', borderRadius: 99,
-                background: 'var(--gradient-gold)', color: 'white',
+                background: 'var(--gradient-gold)', color: 'var(--accent-fg)',
                 fontSize: 11, fontWeight: 600, textDecoration: 'none', whiteSpace: 'nowrap',
               }}
             >

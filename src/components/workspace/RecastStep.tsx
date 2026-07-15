@@ -621,7 +621,7 @@ export function RecastStep({ onNavigate }: RecastStepProps) {
                 {reframeCtx.unverified_assumptions && reframeCtx.unverified_assumptions.length > 0 && (
                   <div className="mt-2 flex flex-wrap gap-1.5">
                     {reframeCtx.unverified_assumptions.slice(0, 3).map((a, i) => (
-                      <span key={i} className="px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 text-[10px] font-medium border border-amber-200">
+                      <span key={i} className="px-2 py-0.5 rounded-full bg-[var(--warning)]/10 text-[var(--warning)] text-[10px] font-medium border border-[var(--warning)]/30">
                         {L('미확인', 'Unverified')}: {typeof a === 'string' ? a : a.assumption}
                       </span>
                     ))}
@@ -656,11 +656,11 @@ export function RecastStep({ onNavigate }: RecastStepProps) {
                 </LocaleLink>
               </div>
             ) : (
-              <div className="flex items-center justify-between gap-2 text-red-600 text-[13px] bg-red-50 rounded-lg px-3 py-2 mt-3">
+              <div className="flex items-center justify-between gap-2 text-[var(--danger)] text-[13px] bg-[var(--danger)]/10 rounded-lg px-3 py-2 mt-3">
                 <div className="flex items-center gap-2">
                   <AlertTriangle size={14} /> <span>{error}</span>
                 </div>
-                <button onClick={() => { setError(''); handleAnalyze(); }} className="shrink-0 px-2.5 py-1 rounded-lg text-[11px] font-medium border border-red-200 text-red-600 hover:bg-red-100 cursor-pointer transition-colors">
+                <button onClick={() => { setError(''); handleAnalyze(); }} className="shrink-0 px-2.5 py-1 rounded-lg text-[11px] font-medium border border-[var(--danger)]/25 text-[var(--danger)] hover:bg-[var(--danger)]/15 cursor-pointer transition-colors">
                   {L('다시 시도', 'Retry')}
                 </button>
               </div>
@@ -749,23 +749,23 @@ export function RecastStep({ onNavigate }: RecastStepProps) {
 
           {/* AI limitation warnings — code-level validation */}
           {current.analysis?.ai_limitation_warnings && current.analysis.ai_limitation_warnings.length > 0 && (
-            <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
-              <p className="text-[12px] font-semibold text-amber-800 mb-1.5">
+            <div className="rounded-xl border border-[var(--warning)]/30 bg-[var(--warning)]/10 px-4 py-3">
+              <p className="text-[12px] font-semibold text-[var(--warning)] mb-1.5">
                 <AlertTriangle size={12} className="inline mr-1 -mt-0.5" />
                 {L('AI 한계 주의', 'AI limitation warning')}
               </p>
               {current.analysis.ai_limitation_warnings.map((w, i) => (
-                <p key={i} className="text-[12px] text-amber-700 leading-relaxed">- {w}</p>
+                <p key={i} className="text-[12px] text-[var(--warning)] leading-relaxed">- {w}</p>
               ))}
             </div>
           )}
 
           {error && (
-            <div className="flex items-center justify-between gap-2 text-red-600 text-[13px] bg-red-50 rounded-lg px-3 py-2">
+            <div className="flex items-center justify-between gap-2 text-[var(--danger)] text-[13px] bg-[var(--danger)]/10 rounded-lg px-3 py-2">
               <div className="flex items-center gap-2">
                 <AlertTriangle size={14} /> <span>{error}</span>
               </div>
-              <button onClick={() => { setError(''); handleAnalyze(); }} className="shrink-0 px-2.5 py-1 rounded-lg text-[11px] font-medium border border-red-200 text-red-600 hover:bg-red-100 cursor-pointer transition-colors">
+              <button onClick={() => { setError(''); handleAnalyze(); }} className="shrink-0 px-2.5 py-1 rounded-lg text-[11px] font-medium border border-[var(--danger)]/25 text-[var(--danger)] hover:bg-[var(--danger)]/15 cursor-pointer transition-colors">
                 {L('다시 시도', 'Retry')}
               </button>
             </div>
@@ -913,16 +913,16 @@ function QuickRehearsalCard({
   };
 
   const influenceColors: Record<string, string> = {
-    high: 'bg-red-100 text-red-700',
-    medium: 'bg-amber-100 text-amber-700',
-    low: 'bg-gray-100 text-gray-600',
+    high: 'bg-[var(--danger)]/15 text-[var(--danger)]',
+    medium: 'bg-[var(--warning)]/15 text-[var(--warning)]',
+    low: 'bg-[var(--bg-hover)] text-[var(--text-tertiary)]',
   };
   const influenceLabels: Record<string, string> = { high: L('높음', 'High'), medium: L('중간', 'Medium'), low: L('낮음', 'Low') };
 
   return (
-    <Card className="!bg-[var(--checkpoint)] !border-amber-200">
+    <Card className="!bg-[var(--checkpoint)] !border-[var(--warning)]/30">
       <div className="flex items-center gap-2 mb-2">
-        <Users size={16} className="text-amber-700" />
+        <Users size={16} className="text-[var(--warning)]" />
         <p className="text-[14px] font-bold text-[var(--text-primary)]">{L('이 계획을 검증할 이해관계자', 'Stakeholders to verify this plan')}</p>
       </div>
       <p className="text-[12px] text-[var(--text-secondary)] mb-3">
@@ -962,7 +962,7 @@ function QuickRehearsalCard({
               <p className="text-[12px] text-[var(--text-secondary)] leading-relaxed mb-1.5">{reviewer.why_relevant}</p>
               <div className="flex flex-wrap gap-1.5">
                 {reviewer.decision_style && (
-                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-[var(--ai)] text-[#2d4a7c] font-medium">
+                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-[var(--ai)] text-[var(--ai-fg)] font-medium">
                     {{ analytical: L('데이터 중심', 'Data-driven'), intuitive: L('직관 중심', 'Intuitive'), consensus: L('합의 중시', 'Consensus-driven'), directive: L('빠른 결정', 'Decisive') }[reviewer.decision_style]}
                   </span>
                 )}
@@ -972,7 +972,7 @@ function QuickRehearsalCard({
                   </span>
                 )}
                 {reviewer.success_metric && (
-                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-[var(--collab)] text-[#2d6b2d] font-medium">
+                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-[var(--collab)] text-[var(--both-fg)] font-medium">
                     OK: {reviewer.success_metric.slice(0, 30)}{reviewer.success_metric.length > 30 ? '...' : ''}
                   </span>
                 )}

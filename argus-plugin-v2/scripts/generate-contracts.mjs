@@ -28,7 +28,7 @@ const ARTIFACTS = [
     source: 'data/contracts/machinery-terms.json',
     output: 'skills/_generated/forbidden-terms.md',
     render: (d) =>
-      `${AUTO}\n\n# Forbidden machinery terms (reference)\n\nA user-facing Current Heading must never leak these (the product is orientation, not a workflow report):\n\n${d.forbidden_surface_terms.map((t) => `- \`${t}\``).join('\n')}\n`,
+      `${AUTO}\n\n# Forbidden machinery terms (reference)\n\nA user-facing current call must never leak these (the product is orientation, not a workflow report):\n\n${d.forbidden_surface_terms.map((t) => `- \`${t}\``).join('\n')}\n`,
   },
   {
     source: 'data/contracts/crisis-taxonomy.json',

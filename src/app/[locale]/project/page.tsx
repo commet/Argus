@@ -427,7 +427,7 @@ export default function ProjectPage() {
         href: '/workspace?step=reframe',
         status: latestReframe?.status === 'done' ? 'done' : latestReframe ? 'in-progress' : 'not-started',
         summary: latestReframe?.selected_question || latestReframe?.analysis?.surface_task,
-        color: 'text-[#2d4a7c]',
+        color: 'text-[var(--ai-fg)]',
         bgColor: 'bg-[var(--ai)]',
       },
       {
@@ -439,7 +439,7 @@ export default function ProjectPage() {
         summary: latestRecast?.analysis
           ? L(`${latestRecast.steps.length}단계 워크플로우`, `${latestRecast.steps.length}-step workflow`)
           : undefined,
-        color: 'text-[#8b6914]',
+        color: 'text-[var(--human-fg)]',
         bgColor: 'bg-[var(--human)]',
       },
       {
@@ -519,7 +519,7 @@ export default function ProjectPage() {
             <LocaleLink
               href="/workspace"
               onClick={() => setCurrentProjectId(null)}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-[var(--bg)] text-[12.5px] font-semibold hover:shadow-[var(--shadow-md)] transition-all cursor-pointer self-start sm:self-auto"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-[var(--accent-fg)] text-[12.5px] font-semibold hover:shadow-[var(--shadow-md)] transition-all cursor-pointer self-start sm:self-auto"
               style={{ background: 'var(--gradient-gold)' }}
             >
               <Plus size={13} /> {L('새 프로젝트', 'New project')}
@@ -751,12 +751,12 @@ export default function ProjectPage() {
 
               {/* Project grid — rich cards */}
               {filteredProjects.length === 0 ? (
-                <div className="text-center py-10 text-[13px] text-[var(--text-tertiary)]">
-                  <p>{L('조건에 맞는 항해가 없어요.', 'No voyages match these filters.')}</p>
+                <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-[var(--border)] bg-[var(--surface)]/40 px-6 py-12 text-center">
+                  <p className="text-[13px] text-[var(--text-secondary)]">{L('조건에 맞는 항해가 없어요.', 'No voyages match these filters.')}</p>
                   <button
                     type="button"
                     onClick={() => { setQuery(''); setStatusFilter('all'); }}
-                    className="mt-3 inline-flex items-center px-3 py-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-[12px] font-semibold text-[var(--accent)] hover:border-[var(--accent)]/50 transition-colors cursor-pointer"
+                    className="inline-flex items-center px-3 py-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-[12px] font-semibold text-[var(--accent)] hover:border-[var(--accent)]/50 transition-colors cursor-pointer"
                   >
                     {L('전체 프로젝트 보기', 'Show all projects')}
                   </button>
@@ -873,7 +873,7 @@ export default function ProjectPage() {
                             redundant "항해 진행 중" body line was contradicting it, so
                             we only show CONTENT here, or the not-started nudge. */}
                         {m.questionExcerpt ? (
-                          <p className="text-[12.5px] text-[var(--text-secondary)] leading-[1.55] line-clamp-2 border-l-2 border-[var(--accent)]/30 pl-2.5">
+                          <p className="text-[12.5px] text-[var(--text-secondary)] leading-[1.55] line-clamp-2 rounded-lg bg-[var(--accent)]/[0.04] px-3 py-2">
                             {m.questionExcerpt}
                           </p>
                         ) : !m.startedEff ? (

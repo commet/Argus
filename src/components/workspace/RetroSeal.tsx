@@ -245,7 +245,7 @@ export function RetroSeal({ onExit, onRealSeal }: {
             <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] px-6 py-7 shadow-sm">
               {/* Echo the sealed lean so the user sees what they're settling against. */}
               {leanTrimmed && (
-                <p className="text-[12px] text-[var(--text-secondary)] line-clamp-2 border-l-2 border-[var(--accent)]/40 pl-2.5 mb-4">
+                <p className="text-[12px] text-[var(--text-secondary)] line-clamp-2 rounded-lg bg-[var(--accent)]/[0.04] px-3 py-2 mb-4">
                   {leanTrimmed}
                 </p>
               )}

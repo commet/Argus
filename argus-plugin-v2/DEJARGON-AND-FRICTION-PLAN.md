@@ -1,12 +1,54 @@
-# Plain-language + friction plan (proposal for sign-off) — 2026-07-14
+# Plain-language + friction plan — 2026-07-15 (MAP LOCKED, executing)
 
-Three founder directives from the user-value review, turned into a concrete,
-reviewable plan. **The words are your brand decision** — this proposes specific
-replacements so you can approve/tweak in one pass; deciding the words IS the hard
-part. Once the map is locked, applying it across the 20 skills is mechanical.
+Three founder directives from the user-value review, turned into a concrete
+plan. Once the map is locked, applying it across the skills is mechanical.
 
 Applying a holistic rename half-way makes the mixing WORSE (the exact thing you
-flagged), so nothing is renamed until the map below is signed off.
+flagged), so the map below is now LOCKED and executed as atomic phases, each
+leaving the repo internally consistent (never half-renamed within a phase).
+
+## LOCKED decisions (2026-07-15)
+
+- **`/argus:sail` stays** — it is the L4 orchestrator; MCP has no public twin
+  (`argus_review` is internal-only). Keep as the flagship command.
+- **`clarify` is canonical; the WEB is pulled to it** — the web app's `reframe`
+  concept renames to `clarify` (not the reverse). One product, one word.
+- Command renames: `seal→predict, settle→resolve, track→premises, chart→versions,
+  log→journal, helm→preapprove`. Everything else keeps its name.
+
+## THE WIRE-FORMAT BOUNDARY (why a "complete" rename must NOT touch these)
+
+`bearing`, `fog`, `anchor`, `voyage` are not only jargon — several are **persisted
+data identifiers** (on the user's disk / in the shared ledger). Renaming a
+persisted identifier silently breaks existing users' sealed contracts, because
+reality is matched against that exact string — the precise silent-degradation the
+Honest-Structure spine warns against. This is the SAME situation as `sealed` /
+`settled` (ledger status enum): the WORD is kept as the wire identifier, and only
+the user-facing DISPLAY is translated (the statusline already does this:
+`anchor`→"done"). So:
+
+| KEEP (wire format — display-translate only) | why |
+|---|---|
+| `.argus/current-bearing.json` / `current_bearing` file name | on-disk format; readers hardcode it |
+| `bearing:<session>:<label>` seed-ID prefix | ledger contract matching — rename = orphan every sealed bet |
+| course status enum `proceed/hold/fork/anchor/revise/collect_evidence` | statusline already translates to plain on display |
+| schema keys `fog_or_reef, next_helm, current_course, road_not_taken, contract_seed` | on-disk `current-bearing.json` schema |
+| ledger status `sealed`/`settled`, event `judgment_sealed` | append-only wire format, cross-surface |
+| **`load-bearing` / `load_bearing`** (frame_status enum, under-fire dial) | English idiom, NOT nautical — must never be swept |
+
+| RENAME (user-facing — safe) | to |
+|---|---|
+| command names (6, above) | predict/resolve/premises/versions/journal/preapprove |
+| prose/card word `bearing` (the read) | **crux** / "the read" |
+| `voyage` (prose) | **decision** |
+| `fog` (prose) | **assumption / unknown** |
+| `reef` (prose) | **risk** |
+| `crew` (prose) | **reviewers** |
+| `Current Heading` | **current call** |
+| `Sirens`, `deaf rowers`, `road not taken` (prose) | drop / "the other option" |
+
+Litmus for each hit: *does a machine read this string back, or does a human?*
+Machine → keep + translate on display. Human → rename.
 
 ---
 
@@ -48,12 +90,12 @@ twin, so these are recommendations):
 
 | Plugin command | → New | Basis |
 |---|---|---|
-| `/argus:seal` | **`/argus:predict`** | MCP `argus_predict` — same action |
-| `/argus:settle` | **`/argus:resolve`** | MCP `argus_resolve` — same action |
-| `/argus:track` | **`/argus:premises`** | MCP concept `premise` |
-| `/argus:chart` | **`/argus:versions`** | "chart" is jargon; plain |
-| `/argus:log` | **`/argus:journal`** | plain |
-| `/argus:helm` | **`/argus:preapprove`** | "helm" is jargon; plain |
+| `/argus:predict` | **`/argus:predict`** | MCP `argus_predict` — same action |
+| `/argus:resolve` | **`/argus:resolve`** | MCP `argus_resolve` — same action |
+| `/argus:premises` | **`/argus:premises`** | MCP concept `premise` |
+| `/argus:versions` | **`/argus:versions`** | "chart" is jargon; plain |
+| `/argus:journal` | **`/argus:journal`** | plain |
+| `/argus:preapprove` | **`/argus:preapprove`** | "helm" is jargon; plain |
 | `/argus:sail` | **`/argus:review`** (or keep as flagship) | MCP has `argus_review`; sail is broader — FOUNDER CALL |
 | `/argus:scan` | keep | already plain enough |
 | `/argus:clarify` | keep (or `/argus:reframe` to match the web) | plain; web uses "reframe" — FOUNDER CALL |

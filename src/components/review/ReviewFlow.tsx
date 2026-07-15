@@ -213,6 +213,7 @@ export function ReviewFlow() {
       source_kind: sourceKind,
       title,
       text,
+      locale,
       privacy_mode: storeSource ? 'store_source' : 'receipt_only',
       pre_extracted: preExtracted?.text,
       pre_extracted_units: preExtracted?.units,
@@ -256,6 +257,7 @@ export function ReviewFlow() {
     const { job: finalJob, receipt: r } = await runDocumentReview(artifact, {
       context: ctx,
       budget,
+      locale,
       onProgress: setJob,
       signal: controller.signal,
       // Opt-in multimodal pass: send the PDF/deck visuals so the model reads the
@@ -362,7 +364,7 @@ export function ReviewFlow() {
       <>
         {receipt.version && receipt.version > 1 && receipt.drift_note && (
           <Card variant="checkpoint" className="mb-4">
-            <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-amber-700 mb-1">
+            <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--warning)] mb-1">
               {L(`버전 ${receipt.version} · 재검수`, `Version ${receipt.version} · Re-review`)}
             </div>
             <p className="text-[13px] text-[var(--text-primary)]">{receipt.drift_note}</p>
@@ -559,11 +561,12 @@ export function ReviewFlow() {
               );
             })}
           </div>
-          {/* What's being examined — a few of the document's OWN premises,
-              surfaced verbatim and rotated slowly so the wait shows specific work
-              on the user's material. It names the *document's* premise (not an
-              Argus verdict), and uses the approved tint-block quote treatment
-              (no left accent bar). Target, not judgment. */}
+          {/* What's being examined — a few of the document's OWN premises (as
+              the pipeline extracted them; currently Korean regardless of UI
+              locale), rotated slowly so the wait shows specific work on the
+              user's material. It names the *document's* premise (not an Argus
+              verdict), and uses the approved tint-block quote treatment (no left
+              accent bar). Target, not judgment. */}
           {job?.examining && job.examining.length > 0 && (() => {
             const items = job.examining;
             const idx = Math.floor(elapsed / 3) % items.length;
@@ -620,7 +623,7 @@ export function ReviewFlow() {
     return (
       <div className="max-w-2xl mx-auto w-full">
         <Card variant="danger">
-          <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-red-700 mb-2">{L('검수 어려움', 'Unable to review')}</div>
+          <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--danger)] mb-2">{L('검수 어려움', 'Unable to review')}</div>
           <p className="text-[14px] text-[var(--text-primary)]">
             {job?.error?.message ?? L('이 문서는 지금 상태로는 검수하기 어렵습니다.', 'This document is hard to review in its current form.')}
           </p>
@@ -708,7 +711,7 @@ export function ReviewFlow() {
               ? L('텍스트 추출 중…', 'Extracting text…')
               : L('파일 업로드 (md · txt · pdf · docx · pptx)', 'Upload a file (md · txt · pdf · docx · pptx)')}
           </Button>
-          <span className={`text-[11px] ${text.length >= PASTE_CHAR_CAP ? 'text-amber-700 font-semibold' : 'text-[var(--text-tertiary)]'}`}>
+          <span className={`text-[11px] ${text.length >= PASTE_CHAR_CAP ? 'text-[var(--warning)] font-semibold' : 'text-[var(--text-tertiary)]'}`}>
             {text.length >= PASTE_CHAR_CAP
               ? L(
                   `최대 ${PASTE_CHAR_CAP.toLocaleString()}자 — 초과분은 잘립니다`,
@@ -726,7 +729,7 @@ export function ReviewFlow() {
           if (preExtracted.units?.length) parts.push(L(`${preExtracted.units.length}개 항목`, `${preExtracted.units.length} items`));
           const scope = parts.length ? ` (${parts.join(' · ')})` : '';
           return (
-            <p className="mt-2 text-[12px] text-green-700">
+            <p className="mt-2 text-[12px] text-[var(--success)]">
               {L(
                 `${sourceKind.toUpperCase()}에서 텍스트를 추출했습니다${scope}${extractNote ? ` — ${extractNote}` : ''}. 문서 전체를 검수합니다.`,
                 `Extracted text from the ${sourceKind.toUpperCase()}${scope}${extractNote ? ` — ${extractNote}` : ''}. The whole document will be reviewed.`,
@@ -735,7 +738,7 @@ export function ReviewFlow() {
           );
         })()}
         {pendingBinary && (
-          <p className="mt-2 text-[12px] text-amber-700">
+          <p className="mt-2 text-[12px] text-[var(--warning)]">
             {extractNote ? `${extractNote} ` : ''}
             {L(
               `${pendingBinary.toUpperCase()} 파일에서 충분한 텍스트를 얻지 못했습니다. 그대로 검수하면 “무엇이 빠졌는지”를 먼저 보여주고, 본문을 붙여넣으면 정식 검수합니다.`,

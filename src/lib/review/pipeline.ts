@@ -28,6 +28,7 @@ import {
   type ArtifactUnit,
   type LensId,
   type ReviewProvenance,
+  type ReviewLocale,
   DEFAULT_BUDGET,
   REVIEW_SCHEMA_VERSION,
   reviewabilityBand,
@@ -40,6 +41,8 @@ import { buildDocumentOutline, buildExtractionPrompt, buildLensPrompt, buildMapP
 import { defaultReviewLLM, type ReviewLLM } from './llm-adapter';
 import type { LLMContentBlock, LLMImageBlock } from '../llm';
 import { djb2, stableId } from './ids';
+import { translate } from '@/lib/i18n';
+import { DAILY_LIMIT } from '@/lib/quota-config';
 
 /** Max chunk map calls in flight at once (see the map-reduce path). */
 const MAP_CONCURRENCY = 5;
@@ -81,6 +84,9 @@ export interface RunReviewOptions {
   context?: UserReviewContext;
   rootMode?: 'create' | 'review';
   today?: string; // YYYY-MM-DD
+  /** Output language for LLM content AND progress labels. Defaults to 'ko' so
+   *  existing callers/tests are unchanged; the web passes the reader's locale. */
+  locale?: ReviewLocale;
   onProgress?: (job: ReviewJob) => void;
   signal?: AbortSignal;
   /** When present (user opted into vision), the review runs as a single
@@ -118,6 +124,11 @@ export async function runDocumentReview(
   const budget = options.budget ?? DEFAULT_BUDGET.standard;
   const ctx = options.context ?? {};
   const today = options.today ?? isoToday();
+  const lang: ReviewLocale = options.locale ?? 'ko';
+  // Progress-label + inline-message localizer (the LLM content is localized via
+  // the prompt language directive; this covers the strings the pipeline itself
+  // emits during the run).
+  const t = (ko: string, en: string) => (lang === 'en' ? en : ko);
   const jobId = stableId('job', artifact.artifact_id, today);
   const promptParts: string[] = [];
 
@@ -133,10 +144,10 @@ export async function runDocumentReview(
   if ((artifact.extraction_quality === 'unsupported' || artifact.units.length === 0) && !options.vision) {
     const error: ReviewFailure = {
       kind: artifact.extraction_quality === 'unsupported' ? 'unsupported_format' : 'extraction_low',
-      message: artifact.extraction_notes[0] ?? '이 문서는 자동 검수를 지원하지 않습니다.',
-      recovery: '본문 텍스트를 붙여넣으면 검수할 수 있습니다.',
+      message: artifact.extraction_notes[0] ?? t('이 문서는 자동 검수를 지원하지 않습니다.', 'This document cannot be reviewed automatically.'),
+      recovery: t('본문 텍스트를 붙여넣으면 검수할 수 있습니다.', 'Paste the body text and it can be reviewed.'),
     };
-    return { job: emit('needs_context', '검수 불가 — 맥락 필요', { error }) };
+    return { job: emit('needs_context', t('검수 불가 — 맥락 필요', 'Cannot review — context needed'), { error }) };
   }
 
   const unitMap = new Map<string, ArtifactUnit>(artifact.units.map((u) => [u.unit_id, u]));
@@ -158,7 +169,7 @@ export async function runDocumentReview(
     if (options.vision) {
       const attachments = buildVisionAttachments(options.vision);
       if (attachments.length) {
-        emit('reviewing', '문서를 이미지까지 함께 정밀 검수하는 중');
+        emit('reviewing', t('문서를 이미지까지 함께 정밀 검수하는 중', 'Reviewing the document — including its images — closely'));
         const isDeck = artifact.detected_structure?.is_deck === true || artifact.source_kind === 'pptx';
         const resolvePageAnchors = (ids: unknown): SourceAnchor[] => {
           if (!Array.isArray(ids)) return [];
@@ -184,7 +195,7 @@ export async function runDocumentReview(
         };
         const packedV = packUnitsForPrompt(artifact.units, budget.max_units);
         const coverageV = computeCoverage(artifact, artifact.units.length);
-        const vp = buildVisionReviewPrompt(packedV.units, ctx, packedV.units.length, today, isDeck);
+        const vp = buildVisionReviewPrompt(packedV.units, ctx, packedV.units.length, today, lang, isDeck);
         promptParts.push(vp.system);
         const raw = await llm.json<Record<string, unknown>>({
           system: vp.system,
@@ -208,7 +219,7 @@ export async function runDocumentReview(
           mapPagesToIds(raw[k]);
         }
         const profileV = normalizeProfile(raw['profile'], ctx);
-        const mapV = normalizeMap(raw, resolvePageAnchors);
+        const mapV = normalizeMap(raw, resolvePageAnchors, lang);
         const reviewabilityV = scoreReviewability(artifact, mapV);
         const routingV = routeLenses(profileV, artifact, { concerns: ctx.concerns, maxLensCalls: budget.max_lens_calls });
         const allowedV = new Set<LensId>(routingV.selected);
@@ -217,13 +228,13 @@ export async function runDocumentReview(
           if (!finding || typeof finding !== 'object') return [];
           const lensId = String((finding as Record<string, unknown>)['lens_id']) as LensId;
           if (!allowedV.has(lensId)) return [];
-          return normalizeFindings([finding], lensId, resolvePageAnchors);
+          return normalizeFindings([finding], lensId, resolvePageAnchors, lang);
         }).slice(0, 6);
-        const findingsV = dedupeFindings(supplementQuickFindings(normV, mapV));
-        const obligationsV = normalizeObligations(raw['judgment_obligations'], resolvePageAnchors).slice(0, 3);
+        const findingsV = dedupeFindings(supplementQuickFindings(normV, mapV, lang));
+        const obligationsV = normalizeObligations(raw['judgment_obligations'], resolvePageAnchors, lang).slice(0, 3);
         const followupsV = normalizeFollowups(raw['followups'], today);
         const coreQ = String(raw['core_question'] || mapV.core_question || '').trim();
-        const headingV = String(raw['current_heading'] || '').trim() || neutralHeading(mapV);
+        const headingV = String(raw['current_heading'] || '').trim() || neutralHeading(mapV, lang);
         const receiptV = assembleReceipt({
           artifact, profile: profileV, reviewability: reviewabilityV, routing: routingV,
           map: { ...mapV, core_question: coreQ },
@@ -232,7 +243,7 @@ export async function runDocumentReview(
           rootMode: options.rootMode ?? 'review', today, llm, promptHash: djb2(promptParts.join('')),
         });
         receiptV.provenance.vision = { mode: options.vision.kind, page_count: options.vision.page_count };
-        return { job: emit('ready', '검수 완료 (이미지 포함)'), receipt: receiptV };
+        return { job: emit('ready', t('검수 완료 (이미지 포함)', 'Review complete (images included)')), receipt: receiptV };
       }
       // empty attachments → fall through to the text path below.
     }
@@ -241,7 +252,7 @@ export async function runDocumentReview(
     // Pack units ONCE under both the count cap and the prompt char budget, so a
     // large document degrades to "fewer units + a coverage note" instead of
     // hard-failing the server's per-message limit — and so coverage is honest.
-    emit('profiling', '주장을 분석하는 중');
+    emit('profiling', t('주장을 분석하는 중', 'Analyzing the claims'));
     const packed = packUnitsForPrompt(artifact.units, budget.max_units);
     const unitsReviewed = packed.units.length;
     const coverage = computeCoverage(artifact, unitsReviewed);
@@ -251,8 +262,8 @@ export async function runDocumentReview(
     // but asks for its map, findings, obligations, and follow-ups in one bounded
     // structured response. Standard/deep reviews retain the multi-stage path.
     if (budget.depth === 'quick') {
-      emit('reviewing', '핵심 판단 5가지를 한 번에 검수하는 중');
-      const quickPrompt = buildQuickReviewPrompt(packed.units, ctx, packed.units.length, today);
+      emit('reviewing', t('핵심 판단 5가지를 한 번에 검수하는 중', 'Reviewing the five core judgments in one pass'));
+      const quickPrompt = buildQuickReviewPrompt(packed.units, ctx, packed.units.length, today, lang);
       promptParts.push(quickPrompt.system);
       const raw = await llm.json<Record<string, unknown>>({
         system: quickPrompt.system,
@@ -277,24 +288,25 @@ export async function runDocumentReview(
       });
 
       const profile = normalizeProfile(raw['profile'], ctx);
-      const map = normalizeMap(raw, resolveAnchors);
-      emit('mapping', '판단 지도와 근거 위치를 정리하는 중');
-      const reviewability = scoreReviewability(artifact, map);
+      const map = normalizeMap(raw, resolveAnchors, lang);
+      emit('mapping', t('판단 지도와 근거 위치를 정리하는 중', 'Laying out the judgment map and where the evidence sits'));
+      const reviewability = scoreReviewability(artifact, map, lang);
       const routing = routeLenses(profile, artifact, {
         concerns: ctx.concerns,
         maxLensCalls: budget.max_lens_calls,
+        lang,
       });
-      emit('routing', '검수 범위를 확인하는 중');
+      emit('routing', t('검수 범위를 확인하는 중', 'Confirming the review scope'));
 
       if (reviewabilityBand(reviewability.score) === 'insufficient') {
         const receipt = assembleReceipt({
           artifact, profile, reviewability, routing, map,
           findings: [], obligations: [], followups: [],
-          currentHeading: neutralHeading(map), coverage,
+          currentHeading: neutralHeading(map, lang), coverage,
           rootMode: options.rootMode ?? 'review', today, llm, promptHash: djb2(promptParts.join('')),
         });
         receipt.state = 'draft';
-        return { job: emit('needs_context', '검수 가능성 낮음 — 부족한 맥락 표시'), receipt };
+        return { job: emit('needs_context', t('검수 가능성 낮음 — 부족한 맥락 표시', 'Low reviewability — showing what context is missing')), receipt };
       }
 
       const allowedLenses = new Set<LensId>(routing.selected);
@@ -303,14 +315,14 @@ export async function runDocumentReview(
         if (!finding || typeof finding !== 'object') return [];
         const lensId = String((finding as Record<string, unknown>)['lens_id']) as LensId;
         if (!allowedLenses.has(lensId)) return [];
-        return normalizeFindings([finding], lensId, resolveAnchors);
+        return normalizeFindings([finding], lensId, resolveAnchors, lang);
       }).slice(0, 5);
-      const findings = supplementQuickFindings(normalizedFindings, map);
+      const findings = supplementQuickFindings(normalizedFindings, map, lang);
 
-      emit('synthesizing', 'Judgment Receipt를 정리하는 중');
-      const obligations = normalizeObligations(raw['judgment_obligations'], resolveAnchors).slice(0, 3);
+      emit('synthesizing', t('Judgment Receipt를 정리하는 중', 'Assembling your Judgment Receipt'));
+      const obligations = normalizeObligations(raw['judgment_obligations'], resolveAnchors, lang).slice(0, 3);
       const followups = normalizeFollowups(raw['followups'], today);
-      const currentHeading = String(raw['current_heading'] || '').trim() || neutralHeading(map);
+      const currentHeading = String(raw['current_heading'] || '').trim() || neutralHeading(map, lang);
       const coreQuestion = String(raw['core_question'] || map.core_question || '').trim();
       const receipt = assembleReceipt({
         artifact, profile, reviewability, routing,
@@ -318,7 +330,7 @@ export async function runDocumentReview(
         findings, obligations, followups, currentHeading, coverage,
         rootMode: options.rootMode ?? 'review', today, llm, promptHash: djb2(promptParts.join('')),
       });
-      return { job: emit('ready', '검수 완료'), receipt };
+      return { job: emit('ready', t('검수 완료', 'Review complete')), receipt };
     }
 
     // --- Map-Reduce for long documents ------------------------------------
@@ -332,7 +344,7 @@ export async function runDocumentReview(
     const chunked = chunkUnitsForReview(artifact.units, maxChunks);
     if (chunked.chunks.length > 1) {
       const chunks = chunked.chunks;
-      emit('profiling', `문서를 ${chunks.length}개 구간으로 나눠 전체를 검수하는 중`);
+      emit('profiling', t(`문서를 ${chunks.length}개 구간으로 나눠 전체를 검수하는 중`, `Splitting the document into ${chunks.length} sections to review all of it`));
       let mapDone = 0;
       // Whole-document outline computed ONCE from every unit — the contextual
       // header each isolated chunk needs to catch cross-section conflicts.
@@ -341,7 +353,7 @@ export async function runDocumentReview(
       // ~6 sockets and risks a rate-limit spike. A small pool keeps the request
       // stream smooth while still overlapping the slow model calls.
       const mapResults = await mapPool(chunks, MAP_CONCURRENCY, async (chunk, i) => {
-          const mp = buildMapPrompt(chunk, ctx, i, chunks.length, today, outline);
+          const mp = buildMapPrompt(chunk, ctx, i, chunks.length, today, lang, outline);
           promptParts.push(mp.system);
           try {
             return await llm.json<Record<string, unknown>>({
@@ -367,7 +379,7 @@ export async function runDocumentReview(
             });
           } finally {
             mapDone++;
-            emit('reviewing', `근거 확인 중 (구간 ${mapDone}/${chunks.length})`);
+            emit('reviewing', t(`근거 확인 중 (구간 ${mapDone}/${chunks.length})`, `Checking evidence (section ${mapDone}/${chunks.length})`));
           }
       });
 
@@ -383,41 +395,50 @@ export async function runDocumentReview(
       const coverage = computeCoverage(artifact, unitsReviewed);
       const failedChunks = chunks.length - partials.length;
       if (failedChunks > 0) {
-        coverage.notes.push(`${chunks.length}개 구간 중 ${failedChunks}개 구간은 검수 중 오류로 빠졌습니다.`);
+        coverage.notes.push(t(
+          `${chunks.length}개 구간 중 ${failedChunks}개 구간은 검수 중 오류로 빠졌습니다.`,
+          `${failedChunks} of ${chunks.length} sections were dropped due to an error during review.`,
+        ));
       }
 
-      // If every chunk failed, this is a model error, not a thin review.
+      // If every chunk failed, this is a model error, not a thin review. When the
+      // chunks failed for a known reason (login exhausted, rate limit), surface
+      // that localized cause rather than the generic "all sections failed" line.
       if (partials.length === 0) {
-        const error: ReviewFailure = {
-          kind: 'model_error',
-          message: '문서 구간 검수가 모두 실패했습니다.',
-          recovery: '잠시 후 다시 시도하거나, 더 짧은 문서로 나눠서 검수해 보세요.',
-        };
-        return { job: emit('failed', '검수 실패', { error }) };
+        const firstReason = mapResults.find((r): r is PromiseRejectedResult => r.status === 'rejected');
+        const error: ReviewFailure = firstReason
+          ? localizeReviewError(firstReason.reason, lang, t)
+          : {
+              kind: 'model_error',
+              message: t('문서 구간 검수가 모두 실패했습니다.', 'Every section of the document failed to review.'),
+              recovery: t('잠시 후 다시 시도하거나, 더 짧은 문서로 나눠서 검수해 보세요.', 'Try again shortly, or split the document into smaller pieces.'),
+            };
+        return { job: emit('failed', t('검수 실패', 'Review failed'), { error }) };
       }
 
-      const maps = partials.map((raw) => normalizeMap(raw, resolveAnchors));
+      const maps = partials.map((raw) => normalizeMap(raw, resolveAnchors, lang));
       const map = mergeMaps(maps);
       const profile = normalizeProfile(
         partials.find((p) => p['profile'] && typeof p['profile'] === 'object')?.['profile'],
         ctx,
       );
 
-      const reviewability = scoreReviewability(artifact, map);
+      const reviewability = scoreReviewability(artifact, map, lang);
       const routing = routeLenses(profile, artifact, {
         concerns: ctx.concerns,
         maxLensCalls: budget.max_lens_calls,
+        lang,
       });
 
       if (reviewabilityBand(reviewability.score) === 'insufficient') {
         const receipt = assembleReceipt({
           artifact, profile, reviewability, routing, map,
           findings: [], obligations: [], followups: [],
-          currentHeading: neutralHeading(map), coverage,
+          currentHeading: neutralHeading(map, lang), coverage,
           rootMode: options.rootMode ?? 'review', today, llm, promptHash: djb2(promptParts.join('')),
         });
         receipt.state = 'draft';
-        return { job: emit('needs_context', '검수 가능성 낮음 — 부족한 맥락 표시'), receipt };
+        return { job: emit('needs_context', t('검수 가능성 낮음 — 부족한 맥락 표시', 'Low reviewability — showing what context is missing')), receipt };
       }
 
       const allowedLenses = new Set<LensId>(routing.selected);
@@ -427,19 +448,19 @@ export async function runDocumentReview(
           if (!finding || typeof finding !== 'object') return [];
           const lensId = String((finding as Record<string, unknown>)['lens_id']) as LensId;
           if (!allowedLenses.has(lensId)) return [];
-          return normalizeFindings([finding], lensId, resolveAnchors);
+          return normalizeFindings([finding], lensId, resolveAnchors, lang);
         });
       let findings = dedupeFindings(mappedFindings);
-      if (findings.length === 0) findings = supplementQuickFindings([], map);
+      if (findings.length === 0) findings = supplementQuickFindings([], map, lang);
       // A whole-document review surfaces more than a single prompt — keep the top
       // ranked handful so the receipt stays readable, deduped first so the cut
       // never drops a unique issue in favor of a near-duplicate, and diversified
       // by anchor so one dense section can't crowd every other slide out of the 10.
       findings = diversifyByAnchor(rankFindings(findings)).slice(0, 10);
 
-      emit('synthesizing', 'Judgment Receipt를 만드는 중');
+      emit('synthesizing', t('Judgment Receipt를 만드는 중', 'Building your Judgment Receipt'));
       const mapSummary = summarizeMap(map);
-      const synPrompt = buildSynthesisPrompt(mapSummary, summarizeFindings(findings), ctx, today);
+      const synPrompt = buildSynthesisPrompt(mapSummary, summarizeFindings(findings), ctx, today, lang);
       promptParts.push(synPrompt.system);
       let syn: Record<string, unknown> = {};
       try {
@@ -460,9 +481,9 @@ export async function runDocumentReview(
         syn = {};
       }
 
-      const obligations = normalizeObligations(syn['judgment_obligations'], resolveAnchors);
+      const obligations = normalizeObligations(syn['judgment_obligations'], resolveAnchors, lang);
       const followups = normalizeFollowups(syn['followups'], today);
-      const currentHeading = String(syn['current_heading'] || '').trim() || neutralHeading(map);
+      const currentHeading = String(syn['current_heading'] || '').trim() || neutralHeading(map, lang);
       const coreQuestion = String(syn['core_question'] || map.core_question || '').trim();
 
       const receipt = assembleReceipt({
@@ -471,10 +492,10 @@ export async function runDocumentReview(
         findings, obligations, followups, currentHeading, coverage,
         rootMode: options.rootMode ?? 'review', today, llm, promptHash: djb2(promptParts.join('')),
       });
-      return { job: emit('ready', '검수 완료'), receipt };
+      return { job: emit('ready', t('검수 완료', 'Review complete')), receipt };
     }
 
-    const exPrompt = buildExtractionPrompt(packed.units, ctx, packed.units.length);
+    const exPrompt = buildExtractionPrompt(packed.units, ctx, packed.units.length, lang);
     promptParts.push(exPrompt.system);
     const raw = await llm.json<Record<string, unknown>>({
       system: exPrompt.system,
@@ -494,29 +515,33 @@ export async function runDocumentReview(
     });
 
     const profile = normalizeProfile(raw['profile'], ctx);
-    const map = normalizeMap(raw, resolveAnchors);
+    const map = normalizeMap(raw, resolveAnchors, lang);
 
-    emit('mapping', '사람이 판단할 지점을 찾는 중');
+    emit('mapping', t('사람이 판단할 지점을 찾는 중', 'Finding the points a human must judge'));
 
     // --- Stage 2: reviewability + routing ---------------------------------
-    const reviewability = scoreReviewability(artifact, map);
+    const reviewability = scoreReviewability(artifact, map, lang);
     const routing = routeLenses(profile, artifact, {
       concerns: ctx.concerns,
       maxLensCalls: budget.max_lens_calls,
+      lang,
     });
-    emit('routing', '문서 유형에 맞는 검수 렌즈를 고르는 중');
+    emit('routing', t('문서 유형에 맞는 검수 렌즈를 고르는 중', 'Choosing review lenses for this document type'));
 
     // Insufficient reviewability → produce a "what is missing" receipt, no lenses.
     if (reviewabilityBand(reviewability.score) === 'insufficient') {
       const receipt = assembleReceipt({
         artifact, profile, reviewability, routing, map,
         findings: [], obligations: [], followups: [],
-        currentHeading: '이 문서는 지금 상태로는 충분히 검수하기 어렵습니다. 무엇이 빠졌는지부터 봅니다.',
+        currentHeading: t(
+          '이 문서는 지금 상태로는 충분히 검수하기 어렵습니다. 무엇이 빠졌는지부터 봅니다.',
+          'This document is hard to review as it stands. Let us start with what is missing.',
+        ),
         coverage,
         rootMode: options.rootMode ?? 'review', today, llm, promptHash: djb2(promptParts.join('')),
       });
       receipt.state = 'draft';
-      return { job: emit('needs_context', '검수 가능성 낮음 — 부족한 맥락 표시', {}), receipt };
+      return { job: emit('needs_context', t('검수 가능성 낮음 — 부족한 맥락 표시', 'Low reviewability — showing what context is missing'), {}), receipt };
     }
 
     // --- Stage 3: lens reviews (parallel) ---------------------------------
@@ -529,12 +554,12 @@ export async function runDocumentReview(
     // claims) so the longest stage shows specific work on the user's material —
     // verbatim source text, never a verdict about it (see ReviewJob.examining).
     const examining = sampleExaminingPremises(map);
-    emit('reviewing', lensTotal > 0 ? `근거 확인 중 (렌즈 0/${lensTotal})` : '근거가 약한 곳을 확인하는 중', { examining });
+    emit('reviewing', lensTotal > 0 ? t(`근거 확인 중 (렌즈 0/${lensTotal})`, `Checking evidence (lens 0/${lensTotal})`) : t('근거가 약한 곳을 확인하는 중', 'Checking where the evidence is weak'), { examining });
     const mapSummary = summarizeMap(map);
     const lensResults = await Promise.allSettled(
       routing.selected.map(async (lensId) => {
         const lens = LENSES[lensId];
-        const lp = buildLensPrompt(lens, mapSummary, relevantUnits(packed.units, lens, packed.units.length), packed.units.length);
+        const lp = buildLensPrompt(lens, mapSummary, relevantUnits(packed.units, lens, packed.units.length), packed.units.length, lang);
         promptParts.push(lp.system);
         try {
           const out = await llm.json<{ findings?: unknown[] }>({
@@ -548,10 +573,10 @@ export async function runDocumentReview(
             signal: options.signal,
             shape: { findings: { type: 'array', default: [] } },
           });
-          return normalizeFindings(out.findings, lensId, resolveAnchors);
+          return normalizeFindings(out.findings, lensId, resolveAnchors, lang);
         } finally {
           lensDone++;
-          emit('reviewing', `근거 확인 중 (렌즈 ${lensDone}/${lensTotal})`, { examining });
+          emit('reviewing', t(`근거 확인 중 (렌즈 ${lensDone}/${lensTotal})`, `Checking evidence (lens ${lensDone}/${lensTotal})`), { examining });
         }
       }),
     );
@@ -574,7 +599,7 @@ export async function runDocumentReview(
     });
     if (failedLenses.length) {
       routing.selected = routing.selected.filter((id) => !failedLenses.includes(id));
-      for (const id of failedLenses) routing.skipped.push({ id, reason: '검수 중 오류로 이번 결과에서 제외' });
+      for (const id of failedLenses) routing.skipped.push({ id, reason: t('검수 중 오류로 이번 결과에서 제외', 'Excluded from this result due to an error during review') });
     }
 
     // --- Stage 4: synthesis → receipt fields ------------------------------
@@ -583,8 +608,8 @@ export async function runDocumentReview(
     // whole review. The findings above are the load-bearing output; obligations
     // and follow-ups are additive. A bare await here turned one truncated JSON
     // into a total model_error with zero findings shown.
-    emit('synthesizing', 'Judgment Receipt를 만드는 중');
-    const synPrompt = buildSynthesisPrompt(mapSummary, summarizeFindings(findings), ctx, today);
+    emit('synthesizing', t('Judgment Receipt를 만드는 중', 'Building your Judgment Receipt'));
+    const synPrompt = buildSynthesisPrompt(mapSummary, summarizeFindings(findings), ctx, today, lang);
     promptParts.push(synPrompt.system);
     let syn: Record<string, unknown> = {};
     try {
@@ -605,9 +630,9 @@ export async function runDocumentReview(
       syn = {};
     }
 
-    const obligations = normalizeObligations(syn['judgment_obligations'], resolveAnchors);
+    const obligations = normalizeObligations(syn['judgment_obligations'], resolveAnchors, lang);
     const followups = normalizeFollowups(syn['followups'], today);
-    const currentHeading = String(syn['current_heading'] || '').trim() || neutralHeading(map);
+    const currentHeading = String(syn['current_heading'] || '').trim() || neutralHeading(map, lang);
     const coreQuestion = String(syn['core_question'] || map.core_question || '').trim();
 
     const receipt = assembleReceipt({
@@ -618,21 +643,76 @@ export async function runDocumentReview(
       rootMode: options.rootMode ?? 'review', today, llm, promptHash: djb2(promptParts.join('')),
     });
 
-    return { job: emit('ready', '검수 완료'), receipt };
+    return { job: emit('ready', t('검수 완료', 'Review complete')), receipt };
   } catch (err) {
-    const error: ReviewFailure = {
-      kind: 'model_error',
-      message: err instanceof Error ? err.message : '검수 중 오류가 발생했습니다.',
-      recovery: '잠시 후 다시 시도하거나, 더 짧은 문서로 나눠서 검수해 보세요.',
-    };
-    return { job: emit('failed', '검수 실패', { error }) };
+    return { job: emit('failed', t('검수 실패', 'Review failed'), { error: localizeReviewError(err, lang, t) }) };
   }
+}
+
+/**
+ * Localize a caught LLM/review error into a user-facing ReviewFailure. The LLM
+ * layer (lib/llm.ts) tags failures with a `category` and raises Korean text — so
+ * the review flow used to surface a raw Korean string (and leak the internal
+ * "LOGIN_REQUIRED:" prefix) to an English reader. Map the category to the
+ * single-source i18n message for the reader's `lang`; free-trial exhaustion gets
+ * a review-specific line that keeps the "log in for more" context.
+ */
+function localizeReviewError(
+  err: unknown,
+  lang: ReviewLocale,
+  t: (ko: string, en: string) => string,
+): ReviewFailure {
+  const raw = err instanceof Error ? err.message : '';
+  const category = (err as { category?: string } | null)?.category;
+  const loginRequired = raw.startsWith('LOGIN_REQUIRED');
+
+  if (loginRequired) {
+    return {
+      kind: 'model_error',
+      message: t(
+        `무료 체험을 모두 사용했어요. 로그인하면 하루 ${DAILY_LIMIT}회까지 무료로 검수할 수 있어요.`,
+        `You've used up the free trial. Log in to review up to ${DAILY_LIMIT} times a day for free.`,
+      ),
+      recovery: t('로그인한 뒤 다시 검수해 주세요 — 입력한 내용은 그대로 남아 있어요.',
+        'Log in and run the review again — your input is kept.'),
+    };
+  }
+
+  // Known LLM error categories → the app's single-source i18n copy, in `lang`.
+  const KEY: Record<string, Parameters<typeof translate>[1]> = {
+    auth: 'errorDisplay.authFailed',
+    rate_limit: 'errorDisplay.rateLimit',
+    overloaded: 'errorDisplay.overloaded',
+    context_too_long: 'errorDisplay.contextTooLong',
+    network: 'errorDisplay.network',
+  };
+  if (category && KEY[category]) {
+    return {
+      kind: 'model_error',
+      message: translate(lang, KEY[category]),
+      recovery: category === 'context_too_long'
+        ? t('문서를 더 짧게 나눠서 검수해 보세요.', 'Split the document into shorter pieces and try again.')
+        : t('잠시 후 다시 시도해 주세요 — 입력한 내용은 그대로 남아 있어요.', 'Try again shortly — your input is kept.'),
+    };
+  }
+
+  // Any other LLMError (e.g. 'unknown') → the neutral localized fallback rather
+  // than a raw provider/Korean string. A non-LLM Error keeps its own message.
+  return {
+    kind: 'model_error',
+    message: category
+      ? translate(lang, 'errorDisplay.unknown')
+      : (raw || t('검수 중 오류가 발생했습니다.', 'An error occurred during review.')),
+    recovery: t('잠시 후 다시 시도하거나, 더 짧은 문서로 나눠서 검수해 보세요.', 'Try again shortly, or split the document into smaller pieces.'),
+  };
 }
 
 /** A few of the document's OWN premises to surface during the lens wait:
  *  its stated assumptions first (the load-bearing kind), then main claims to
- *  fill up to three. Verbatim source text only — no status, no rationale, no
- *  verdict. Whitespace-collapsed and length-capped for a calm one-line display. */
+ *  fill up to three. The source's stated premise text as the pipeline extracted
+ *  it (currently rendered in Korean regardless of UI locale — see the pipeline
+ *  i18n note) — no status, no rationale, no verdict. Whitespace-collapsed and
+ *  length-capped for a calm one-line display. */
 function sampleExaminingPremises(map: DocumentJudgmentMap): string[] {
   const clean = (t: unknown): string =>
     (typeof t === 'string' ? t : '').replace(/\s+/g, ' ').trim();
@@ -668,7 +748,7 @@ function normalizeProfile(raw: unknown, ctx: UserReviewContext): DocumentProfile
   };
 }
 
-function normalizeMap(raw: Record<string, unknown>, resolve: (ids: unknown) => SourceAnchor[]): DocumentJudgmentMap {
+function normalizeMap(raw: Record<string, unknown>, resolve: (ids: unknown) => SourceAnchor[], lang: ReviewLocale): DocumentJudgmentMap {
   const arr = (v: unknown): Record<string, unknown>[] =>
     Array.isArray(v) ? v.filter((x): x is Record<string, unknown> => !!x && typeof x === 'object') : [];
   const s = (v: unknown, fb = ''): string => (typeof v === 'string' ? v : fb);
@@ -680,14 +760,14 @@ function normalizeMap(raw: Record<string, unknown>, resolve: (ids: unknown) => S
   const rawClaims = arr(raw['main_claims']);
   const builtClaims: Claim[] = rawClaims.map((c) => ({
     claim_id: stableId('claim', s(c['text'])),
-    text: scrubIds(s(c['text'])),
+    text: scrubIds(s(c['text']), lang),
     status: (['supported', 'weak', 'unsupported', 'human_check', 'contradicted'].includes(String(c['status']))
       ? c['status']
       : 'weak') as Claim['status'],
     anchors: resolve(c['unit_ids']),
-    rationale: scrubIds(s(c['rationale'])),
-    evidence_needed: s(c['evidence_needed']) ? scrubIds(s(c['evidence_needed'])) : undefined,
-    fix_suggestion: s(c['fix_suggestion']) ? scrubIds(s(c['fix_suggestion'])) : undefined,
+    rationale: scrubIds(s(c['rationale']), lang),
+    evidence_needed: s(c['evidence_needed']) ? scrubIds(s(c['evidence_needed']), lang) : undefined,
+    fix_suggestion: s(c['fix_suggestion']) ? scrubIds(s(c['fix_suggestion']), lang) : undefined,
   }));
   const resolveClaimRefs = (refs: unknown): string[] => {
     if (!Array.isArray(refs)) return [];
@@ -721,9 +801,9 @@ function normalizeMap(raw: Record<string, unknown>, resolve: (ids: unknown) => S
     evidence_items: evidenceItems,
     assumptions: arr(raw['assumptions']).map((a) => ({
       assumption_id: stableId('asm', s(a['text'])),
-      text: scrubIds(s(a['text'])),
+      text: scrubIds(s(a['text']), lang),
       anchors: resolve(a['unit_ids']),
-      if_false: scrubIds(s(a['if_false'])),
+      if_false: scrubIds(s(a['if_false']), lang),
     })).filter((a) => a.text),
     tradeoffs: arr(raw['tradeoffs']).map((t) => ({
       tradeoff_id: stableId('to', s(t['text'])),
@@ -745,7 +825,7 @@ function normalizeMap(raw: Record<string, unknown>, resolve: (ids: unknown) => S
   };
 }
 
-function normalizeFindings(raw: unknown, lensId: LensId, resolve: (ids: unknown) => SourceAnchor[]): Finding[] {
+function normalizeFindings(raw: unknown, lensId: LensId, resolve: (ids: unknown) => SourceAnchor[], lang: ReviewLocale): Finding[] {
   if (!Array.isArray(raw)) return [];
   return raw
     .filter((f): f is Record<string, unknown> => !!f && typeof f === 'object')
@@ -758,11 +838,11 @@ function normalizeFindings(raw: unknown, lensId: LensId, resolve: (ids: unknown)
       return {
         finding_id: stableId('find', lensId, s(f['title'])),
         lens_id: lensId,
-        title: scrubIds(s(f['title'])),
-        detail: scrubIds(s(f['detail'])),
+        title: scrubIds(s(f['title']), lang),
+        detail: scrubIds(s(f['detail']), lang),
         severity: (['minor', 'caution', 'critical'].includes(String(f['severity'])) ? f['severity'] : 'caution') as Finding['severity'],
         confidence,
-        suggested_action: s(f['suggested_action']) ? scrubIds(s(f['suggested_action'])) : undefined,
+        suggested_action: s(f['suggested_action']) ? scrubIds(s(f['suggested_action']), lang) : undefined,
         anchors,
         provenance: 'ai_surfaced' as const,
       };
@@ -770,12 +850,6 @@ function normalizeFindings(raw: unknown, lensId: LensId, resolve: (ids: unknown)
     .filter((f) => f.title);
 }
 
-/**
- * Quick mode receives the judgment map and lens findings in one response. Some
- * models produce a rich map but only one top-level finding. Promote already
- * extracted, anchored weak claims/assumptions so the receipt does not hide
- * material issues. No new fact or inference is introduced here.
- */
 /**
  * Last-resort backfill for when the model returned zero explicit findings but
  * its judgment map already carries HARD defect verdicts. We surface only the
@@ -786,7 +860,8 @@ function normalizeFindings(raw: unknown, lensId: LensId, resolve: (ids: unknown)
  * fabrication), and it was the exact source of the repeated "…근거 부족" the
  * receipt showed when the real findings had been truncated away by the token cap.
  */
-function supplementQuickFindings(findings: Finding[], map: DocumentJudgmentMap): Finding[] {
+function supplementQuickFindings(findings: Finding[], map: DocumentJudgmentMap, lang: ReviewLocale): Finding[] {
+  const t = (ko: string, en: string) => (lang === 'en' ? en : ko);
   const out = [...findings];
   const alreadyCovered = (text: string) => {
     const needle = text.trim().slice(0, 24);
@@ -804,11 +879,11 @@ function supplementQuickFindings(findings: Finding[], map: DocumentJudgmentMap):
       finding_id: stableId('find', 'claim_evidence', claim.claim_id),
       lens_id: 'claim_evidence',
       title: contradicted
-        ? `“${claim.text}” 주장이 문서의 다른 서술과 충돌`
-        : `“${claim.text}” 주장을 뒷받침하는 근거가 문서에 없음`,
+        ? t(`“${claim.text}” 주장이 문서의 다른 서술과 충돌`, `The claim “${claim.text}” conflicts with another statement in the document`)
+        : t(`“${claim.text}” 주장을 뒷받침하는 근거가 문서에 없음`, `No evidence in the document supports the claim “${claim.text}”`),
       detail: claim.rationale || (contradicted
-        ? '문서 안의 다른 서술과 이 주장이 어긋납니다.'
-        : '이 주장을 뒷받침하는 근거가 문서 안에서 확인되지 않습니다.'),
+        ? t('문서 안의 다른 서술과 이 주장이 어긋납니다.', 'This claim contradicts another statement in the document.')
+        : t('이 주장을 뒷받침하는 근거가 문서 안에서 확인되지 않습니다.', 'No supporting evidence for this claim was found within the document.')),
       severity: 'critical',
       confidence: 'medium',
       suggested_action: claim.evidence_needed || claim.fix_suggestion,
@@ -825,11 +900,11 @@ function supplementQuickFindings(findings: Finding[], map: DocumentJudgmentMap):
     out.push({
       finding_id: stableId('find', 'hidden_assumption', assumption.assumption_id),
       lens_id: 'hidden_assumption',
-      title: `검증되지 않은 가정: ${assumption.text}`,
-      detail: `이 가정이 틀리면 ${assumption.if_false}`,
+      title: t(`검증되지 않은 가정: ${assumption.text}`, `Untested assumption: ${assumption.text}`),
+      detail: t(`이 가정이 틀리면 ${assumption.if_false}`, `If this assumption is wrong, ${assumption.if_false}`),
       severity: 'caution',
       confidence: 'medium',
-      suggested_action: '이 가정을 확인할 근거와 통과·실패 조건을 명시하세요.',
+      suggested_action: t('이 가정을 확인할 근거와 통과·실패 조건을 명시하세요.', 'Specify the evidence and the pass/fail conditions that would confirm this assumption.'),
       anchors: assumption.anchors,
       provenance: 'ai_surfaced',
     });
@@ -838,18 +913,18 @@ function supplementQuickFindings(findings: Finding[], map: DocumentJudgmentMap):
   return out.slice(0, 5);
 }
 
-function normalizeObligations(raw: unknown, resolve: (ids: unknown) => SourceAnchor[]): JudgmentObligation[] {
+function normalizeObligations(raw: unknown, resolve: (ids: unknown) => SourceAnchor[], lang: ReviewLocale): JudgmentObligation[] {
   if (!Array.isArray(raw)) return [];
   const s = (v: unknown, fb = ''): string => (typeof v === 'string' ? v : fb);
   return raw
     .filter((o): o is Record<string, unknown> => !!o && typeof o === 'object')
     .map((o) => ({
       obligation_id: stableId('obl', s(o['statement'])),
-      statement: scrubIds(s(o['statement'])),
-      owner: s(o['owner'], '사용자'),
-      why_human: scrubIds(s(o['why_human'])),
+      statement: scrubIds(s(o['statement']), lang),
+      owner: s(o['owner'], lang === 'en' ? 'You' : '사용자'),
+      why_human: scrubIds(s(o['why_human']), lang),
       decision_needed_by: s(o['decision_needed_by']) || undefined,
-      evidence_needed: s(o['evidence_needed']) ? scrubIds(s(o['evidence_needed'])) : undefined,
+      evidence_needed: s(o['evidence_needed']) ? scrubIds(s(o['evidence_needed']), lang) : undefined,
       anchors: resolve(o['unit_ids']),
       owned_by_user: false,
     }))
@@ -1187,8 +1262,10 @@ function summarizeFindings(findings: Finding[]): string {
     .join('\n');
 }
 
-function neutralHeading(map: DocumentJudgmentMap): string {
-  return `이 문서는 "${map.core_question || '핵심 판단'}"을 다룹니다. 아래 항목을 확인한 뒤 방향을 정하세요.`;
+function neutralHeading(map: DocumentJudgmentMap, lang: ReviewLocale): string {
+  return lang === 'en'
+    ? `This document is about “${map.core_question || 'the core judgment'}”. Review the items below, then decide the direction.`
+    : `이 문서는 "${map.core_question || '핵심 판단'}"을 다룹니다. 아래 항목을 확인한 뒤 방향을 정하세요.`;
 }
 
 function relevantUnits(units: ArtifactUnit[], lens: { id: LensId }, limit: number): ArtifactUnit[] {
@@ -1207,9 +1284,9 @@ function relevantUnits(units: ArtifactUnit[], lens: { id: LensId }, limit: numbe
  * prompt already forbids this; this is the fallback. Anchors still come from the
  * unit_ids arrays, untouched.
  */
-function scrubIds(s: string): string {
+function scrubIds(s: string, lang: ReviewLocale): string {
   return s
-    .replace(/\bu_[0-9a-f]{4,12}\b/gi, '해당 부분')
+    .replace(/\bu_[0-9a-f]{4,12}\b/gi, lang === 'en' ? 'that part' : '해당 부분')
     .replace(/\s{2,}/g, ' ')
     .replace(/\(\s*[·,]\s*/g, '(')
     .trim();

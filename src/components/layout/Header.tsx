@@ -1,6 +1,7 @@
 'use client';
 
 import { LocaleLink } from '@/components/ui/LocaleLink';
+import { Logo } from '@/components/brand/Logo';
 import { usePathname, useRouter } from 'next/navigation';
 import { Menu, X, LogOut, Sun, Moon, Lock, MoreHorizontal, Download, Users, BookOpen, BarChart3, UserCheck, Search, Compass, FolderKanban, Settings2 } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
@@ -10,6 +11,7 @@ import { RateLimitBadge } from '@/components/ui/RateLimitBadge';
 import { SyncStatus } from '@/components/ui/SyncStatus';
 import { StorageErrorToast } from '@/components/ui/StorageErrorToast';
 import { SessionExpiredToast } from '@/components/ui/SessionExpiredToast';
+import { Toast } from '@/components/ui/Toast';
 import { useLocaleSwitch } from '@/hooks/useLocaleSwitch';
 import { stripLocale } from '@/lib/locale-path';
 import { CommandPalette, type CommandPaletteItem } from '@/components/ui/CommandPalette';
@@ -208,12 +210,7 @@ export function Header() {
     <header className="sticky top-0 z-40 border-b border-[var(--border-subtle)] bg-[var(--bg)]/92 backdrop-blur-xl">
       <div className="max-w-7xl mx-auto px-4 md:px-6">
         <div className="h-16 flex items-center justify-between">
-          <LocaleLink href="/" className="flex items-center gap-2.5 group">
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center shadow-[var(--shadow-sm)] group-hover:shadow-[var(--glow-gold)] transition-all duration-300" style={{ background: 'var(--gradient-gold)' }}>
-              <span className="text-white text-[13px] font-black tracking-tight">A</span>
-            </div>
-            <span className="text-[var(--primary)] font-extrabold text-[18px] tracking-tight">Argus</span>
-          </LocaleLink>
+          <Logo size="md" href="/" />
 
           <div className="hidden md:flex items-center gap-3">
             {/* Desktop nav */}
@@ -344,6 +341,8 @@ export function Header() {
               <StorageErrorToast />
               {/* One-time "sign-in lapsed" lantern — fires from AuthProvider (P0-5) */}
               <SessionExpiredToast />
+              {/* Generic toast — replaces native alert() (settings, uploads, …) */}
+              <Toast />
             </div>
 
             {/* User area */}
@@ -367,7 +366,7 @@ export function Header() {
                       />
                     ) : null}
                     <div className={`w-7 h-7 rounded-full bg-[var(--accent)] flex items-center justify-center ${avatarUrl ? 'hidden' : ''}`}>
-                      <span className="text-white text-[11px] font-bold">{displayName.charAt(0).toUpperCase()}</span>
+                      <span className="text-[var(--accent-fg)] text-[11px] font-bold">{displayName.charAt(0).toUpperCase()}</span>
                     </div>
                   </button>
 

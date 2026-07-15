@@ -148,7 +148,7 @@ export function VerificationGate({ workers, anyRunning, onApprove, onReject, onR
         {/* Footer */}
         <div className="px-5 py-4 border-t border-[var(--border-subtle)] shrink-0 flex flex-col gap-2">
           <button type="button" onClick={onSail} disabled={!allClear}
-            className="w-full flex items-center justify-center gap-2 px-5 py-3 text-white rounded-xl text-[14px] font-semibold cursor-pointer shadow-[var(--shadow-sm)] hover:shadow-[var(--shadow-md)] transition-shadow disabled:opacity-40 disabled:cursor-not-allowed"
+            className="w-full flex items-center justify-center gap-2 px-5 py-3 text-[var(--accent-fg)] rounded-xl text-[14px] font-semibold cursor-pointer shadow-[var(--shadow-sm)] hover:shadow-[var(--shadow-md)] transition-shadow disabled:opacity-40 disabled:cursor-not-allowed"
             style={{ background: 'var(--gradient-gold)' }}>
             {allClear
               ? L('초안 만들기', 'Create draft')

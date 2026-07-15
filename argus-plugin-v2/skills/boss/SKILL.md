@@ -1,6 +1,6 @@
 ---
 name: boss
-description: Stakeholder pressure-check of a verified Argus scaffold in the voice of a configured MBTI personality. Reacts to the verified/mixed scaffold and contributes approval conditions or concerns to the Current Heading. Use after /argus:verify passes, or when the user asks how a stakeholder would receive the work — "임원회의 가져가도 되나", "보스가 뭐라 할까", "will my boss/stakeholders approve this". NOT the verification gate — /argus:verify checks claims, boss checks reception; do not run before verification. Invoked as `/argus:boss`.
+description: Stakeholder pressure-check of a verified Argus scaffold in the voice of a configured MBTI personality. Reacts to the verified/mixed scaffold and contributes approval conditions or concerns to the current call. Use after /argus:verify passes, or when the user asks how a stakeholder would receive the work — "임원회의 가져가도 되나", "보스가 뭐라 할까", "will my boss/stakeholders approve this". NOT the verification gate — /argus:verify checks claims, boss checks reception; do not run before verification. Invoked as `/argus:boss`.
 ---
 
 # /argus:boss
@@ -176,7 +176,7 @@ Retry once if invalid or generic.
 
 ### Step 4 - Apply Concern Defaults
 
-**If `--invoked-via-sail` is set: do NOT AskUserQuestion here.** Auto-apply all `critical` concerns (`applied = true`), leave others `applied = false`, and let sail Step 7 surface them so the user can revisit via `/argus:chart` later. Firing a concern-selection dialog mid-chain breaks sail's "auto-proceeding, Ctrl-C to halt" contract and hangs an unattended run — this was a confirmed regression. Proceed straight to the report step.
+**If `--invoked-via-sail` is set: do NOT AskUserQuestion here.** Auto-apply all `critical` concerns (`applied = true`), leave others `applied = false`, and let sail Step 7 surface them so the user can revisit via `/argus:versions` later. Firing a concern-selection dialog mid-chain breaks sail's "auto-proceeding, Ctrl-C to halt" contract and hangs an unattended run — this was a confirmed regression. Proceed straight to the report step.
 
 **Only on direct invocation** (no `--invoked-via-sail`), let the user toggle via AskUserQuestion (locale-aware):
 - ko Title: `어느 우려를 반영할까요?`
@@ -190,7 +190,7 @@ For each concern:
 
 Use `AskUserQuestion` only when running directly and the user needs to decide
 which non-critical concerns to apply. When invoked by sail, do not interrupt;
-write the defaults and let Current Heading show the top concern if relevant.
+write the defaults and let current call show the top concern if relevant.
 
 ### Step 5 - Route Boss Demands
 
@@ -248,7 +248,7 @@ into `versions/{label}/scaffold.json` above; do NOT copy them into session.json)
 
 - On the active draft in `session.drafts[]` (matching `active_draft_id`), set
   `boss_reviewed: true` (a small flag — full feedback stays in the version dir)
-  so the chart tree shows this draft was reviewed. Do NOT set `reviewing_agent_id`
+  so the version tree shows this draft was reviewed. Do NOT set `reviewing_agent_id`
   (that marks who PRODUCED the draft — `navigator` for a revise child — not who
   reviewed it).
 - `phase = "refining"` (next natural step is `/argus:revise`).
@@ -259,11 +259,11 @@ into `versions/{label}/scaffold.json` above; do NOT copy them into session.json)
 If `--invoked-via-sail`, print one line only:
 
 ```text
-Stakeholder pressure checked. Approval conditions will be folded into the current bearing.
+Stakeholder pressure checked. Approval conditions will be folded into the current read.
 ```
 
 Do not print concern counts, MBTI theatrics, or a second report. Sail owns the
-Current Heading.
+current call.
 
 For direct invocation:
 
@@ -298,11 +298,11 @@ Approval condition: {{approval_condition}}
 {{locale-aware footer — conditional on there being a concern worth applying}}
 - **If `concerns[]` is empty (or all rejected):** do NOT push `/argus:revise` —
   there is nothing to revise. Offer the done-handle instead:
-  - ko: `다음: 반영할 우려 없음 — 이대로 확정하려면 \`/argus:chart --promote\`.`
-  - en: `Next: no concerns to apply — \`/argus:chart --promote\` to finalize as is.`
+  - ko: `다음: 반영할 우려 없음 — 이대로 확정하려면 \`/argus:versions --promote\`.`
+  - en: `Next: no concerns to apply — \`/argus:versions --promote\` to finalize as is.`
 - **If at least one concern is worth applying:**
-  - ko: `다음: 우려를 반영하려면 \`/argus:revise\` (선택한 우려로 자식 초안 생성 + 재검증). 현재 초안으로 확정하려면 \`/argus:chart --promote\`.`
-  - en: `Next: \`/argus:revise\` to apply the concerns (forks a child draft + re-verifies). Or \`/argus:chart --promote\` to finalize this draft.`
+  - ko: `다음: 우려를 반영하려면 \`/argus:revise\` (선택한 우려로 자식 초안 생성 + 재검증). 현재 초안으로 확정하려면 \`/argus:versions --promote\`.`
+  - en: `Next: \`/argus:revise\` to apply the concerns (forks a child draft + re-verifies). Or \`/argus:versions --promote\` to finalize this draft.`
 ```
 
 Keep this to one terminal screen.

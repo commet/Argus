@@ -16,7 +16,7 @@ You are auditing Argus plugin v2 via **dry-run simulation**. This file is your r
 
 ## Hard rules — read carefully
 
-**🚫 DO NOT invoke real plugin commands.** No `/argus:sail`, `/argus:clarify`, `/argus:team`, `/argus:verify`, `/argus:boss`, `/argus:chart`. These would actually execute SKILL.md procedures, create real `.argus/sessions/` directories, spawn real Task tool subagents, and hit real LLM calls. **Simulation ≠ execution.**
+**🚫 DO NOT invoke real plugin commands.** No `/argus:sail`, `/argus:clarify`, `/argus:team`, `/argus:verify`, `/argus:boss`, `/argus:versions`. These would actually execute SKILL.md procedures, create real `.argus/sessions/` directories, spawn real Task tool subagents, and hit real LLM calls. **Simulation ≠ execution.**
 
 **🚫 DO NOT spawn Task tool subagents to "test" individual agents.** That's also real execution.
 
@@ -39,7 +39,7 @@ Read in this order. Internalize structure, not memorize content. ~10 minutes.
 4. `skills/clarify/SKILL.md` — Phase 0
 5. `skills/team/SKILL.md` — Phase 1 (longest, most complex — read carefully)
 6. `skills/boss/SKILL.md` — Phase 2
-7. `skills/chart/SKILL.md` — version tree utility
+7. `skills/versions/SKILL.md` — version tree utility
 
 **Tier 2 — skim for structure:**
 8. `data/agents.yaml` — 17 agents (read at least 3 fully: sujin, donghyuk, junseo for voice reference)
@@ -179,9 +179,9 @@ Apply gates: **M2** (boss voice distinct from generic reviewer), **M4** (scaffol
 
 Record bugs.
 
-### Phase 4 — Chart dry-run
+### Phase 4 — Version tree dry-run
 
-Walk through `skills/chart/SKILL.md`:
+Walk through `skills/versions/SKILL.md`:
 1. Render version tree (just v0.1 at this point).
 2. Verify status output shape.
 

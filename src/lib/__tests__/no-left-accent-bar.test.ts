@@ -17,7 +17,9 @@ describe('디자인 금지 패턴 — 왼쪽 악센트 바', () => {
       // -l: 파일명만. 히트가 없으면 grep이 exit 1 → catch에서 빈 결과로 처리.
       out = execFileSync(
         'git',
-        ['grep', '-l', '-E', 'border-l-\\[[0-9.]+px\\] border-\\[var\\(--accent\\)', '--', 'src/**/*.tsx'],
+        // 임의-px(border-l-[3px])와 스케일 유틸(border-l-2) 두 형태 모두 잡는다 —
+        // 텍스트 블록에 별도 border-[var(--accent)]로 세로 바를 그리는 패턴.
+        ['grep', '-l', '-E', 'border-l-(\\[[0-9.]+px\\]|[0-9]+) border-\\[var\\(--accent\\)', '--', 'src/**/*.tsx'],
         { cwd: process.cwd(), encoding: 'utf8' },
       );
     } catch {

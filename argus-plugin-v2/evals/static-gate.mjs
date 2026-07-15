@@ -49,6 +49,26 @@ const DIRECTIVE_VERDICT_PATTERNS = [
   /\bdefinitely\s+(go|do|ship|launch|quit|stay)\b/i,
 ];
 
+// SHARED BRAIN — verbatim mirror of the MCP's surface-lint.ts verdict tells, so
+// the plugin gate and the MCP crux guard forbid the SAME shapes with no drift.
+// Locked byte-for-byte by argus-mcp/src/lib/__tests__/surface-lint-static-gate-parity.test.ts.
+// (Do not edit one copy without the other — the parity test fails CI.)
+const VERDICT_LEAN =
+  /\b(you should|i'd|i would|the (stronger|better|safer|smarter) (case|choice|option|move|bet)|most (teams|people|founders)|the right (call|move|choice)|go with|lean(s)? toward|my (recommendation|advice|take)|honestly,? (i|you)|if i were you)\b/i;
+const VERDICT_FORK = /\b(a or b|option (a|b|1|2)|either\b.*\bor\b.*\?)/i;
+const VERDICT_CONFIRM_EN = /\b(does this look right|is this (the )?(right )?(direction|call|approach))\b/i;
+const VERDICT_CONFIRM_KO =
+  /이\s*방향(이|으로)?\s*맞(나요|죠|습니까|을까요)|(이게|이\s*방향이)\s*맞다고\s*보(시|나요|죠)/;
+// All four are mirrored verbatim (drift-locked by the parity test). The plugin
+// APPLIES the FORK + CONFIRM tells — the genuine new coverage (two-pole "A or B?"
+// forks and "is this the right direction?" confirmations manufactured on a flat
+// case). It does NOT apply VERDICT_LEAN here: for directional leans it uses its
+// own DIRECTIVE_VERDICT_PATTERNS above, which correctly EXEMPT verification asks
+// ("you should verify") that surface-lint's broader bare-"you should" would
+// over-flag on a card that legitimately tells the user what to check.
+void VERDICT_LEAN;
+const SHARED_VERDICT_TELLS = [VERDICT_FORK, VERDICT_CONFIRM_EN, VERDICT_CONFIRM_KO];
+
 function renderBearingText(bearing) {
   if (!bearing) return '';
   // Defensive: weaker tiers (haiku) sometimes emit why_this_course/road_not_taken
@@ -137,10 +157,17 @@ export function staticGate(bearing, testCase) {
   for (const re of DISCLAIMED_LEAN_PATTERNS) {
     if (re.test(text)) v.push(`disclaimed/soft lean detected (${re}) — a tagged lean is still a spine violation`);
   }
-  // Directional verdict only flagged on flat/low_stakes (where there's no real fork to justify a course).
+  // Directional verdict / two-pole fork / confirmation only flagged on
+  // flat/low_stakes (reversible) cases, where there is no real fork to justify a
+  // course — a lean, an "A or B?" fork, or an "is this the right direction?"
+  // there is manufactured tilt (mirror clause). On a genuine fork the stated
+  // course is legitimate, so these are not run.
   if (kind === 'flat' || kind === 'low_stakes') {
     for (const re of DIRECTIVE_VERDICT_PATTERNS) {
       if (re.test(text)) v.push(`directional verdict on a flat/low-stakes case (${re}) — over-fire`);
+    }
+    for (const re of SHARED_VERDICT_TELLS) {
+      if (re.test(text)) v.push(`surface-lint verdict tell on a flat/low-stakes case (${re}) — over-fire`);
     }
   }
 

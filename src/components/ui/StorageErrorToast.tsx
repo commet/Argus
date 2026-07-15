@@ -55,10 +55,10 @@ export function StorageErrorToast() {
           exit={{ opacity: 0, y: -8 }}
           role="alert"
           aria-live="assertive"
-          className="fixed top-14 right-4 z-50 flex items-start gap-2 max-w-xs rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 shadow-md"
+          className="fixed top-14 right-4 z-50 flex items-start gap-2 max-w-xs rounded-lg border border-[var(--warning)]/30 bg-[var(--warning)]/10 px-3 py-2 shadow-[var(--shadow-md)]"
         >
-          <AlertTriangle size={14} className="mt-0.5 shrink-0 text-amber-600" />
-          <span className="text-[12px] leading-snug text-amber-800">{message}</span>
+          <AlertTriangle size={14} className="mt-0.5 shrink-0 text-[var(--warning)]" />
+          <span className="text-[12px] leading-snug text-[var(--warning)]">{message}</span>
         </motion.div>
       )}
     </AnimatePresence>

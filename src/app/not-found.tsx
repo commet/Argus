@@ -58,7 +58,7 @@ export default function NotFound() {
         <div className="flex items-center justify-center gap-3 mt-7">
           <Link
             href={withLocale(locale, '/workspace')}
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-white text-[13px] font-semibold hover:shadow-[var(--shadow-md)] transition-all"
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-[var(--accent-fg)] text-[13px] font-semibold hover:shadow-[var(--shadow-md)] transition-all"
             style={{ background: 'var(--gradient-gold)' }}
           >
             {L('워크스페이스로', 'Back to workspace')} <ArrowRight size={14} />
