@@ -11,6 +11,7 @@ import { RateLimitBadge } from '@/components/ui/RateLimitBadge';
 import { SyncStatus } from '@/components/ui/SyncStatus';
 import { StorageErrorToast } from '@/components/ui/StorageErrorToast';
 import { SessionExpiredToast } from '@/components/ui/SessionExpiredToast';
+import { Toast } from '@/components/ui/Toast';
 import { useLocaleSwitch } from '@/hooks/useLocaleSwitch';
 import { stripLocale } from '@/lib/locale-path';
 import { CommandPalette, type CommandPaletteItem } from '@/components/ui/CommandPalette';
@@ -340,6 +341,8 @@ export function Header() {
               <StorageErrorToast />
               {/* One-time "sign-in lapsed" lantern — fires from AuthProvider (P0-5) */}
               <SessionExpiredToast />
+              {/* Generic toast — replaces native alert() (settings, uploads, …) */}
+              <Toast />
             </div>
 
             {/* User area */}

@@ -10,6 +10,7 @@ import { recastToMarkdown } from '@/lib/export';
 import { AnimatedPlaceholder } from '@/components/ui/AnimatedPlaceholder';
 import { Send, Loader2, Upload, Check, AlertTriangle, ChevronDown, ChevronUp, Bot, Brain, Flag } from 'lucide-react';
 import { useLocale } from '@/hooks/useLocale';
+import { toast } from '@/lib/toast';
 
 interface FeedbackRequestProps {
   personas: Persona[];
@@ -97,11 +98,11 @@ export function FeedbackRequest({ personas, onSubmit, loading, initialContent, i
     if (!file) return;
     const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
     if (file.size > MAX_FILE_SIZE) {
-      alert(L('파일이 너무 큽니다 (최대 5MB).', 'File is too large (max 5MB).'));
+      toast(L('파일이 너무 큽니다 (최대 5MB).', 'File is too large (max 5MB).'), 'error');
       return;
     }
     if (!file.type.startsWith('text/') && !file.name.match(/\.(txt|md|csv|json)$/i)) {
-      alert(L('텍스트 파일만 업로드할 수 있습니다 (.txt, .md, .csv, .json).', 'Only text files are supported (.txt, .md, .csv, .json).'));
+      toast(L('텍스트 파일만 업로드할 수 있습니다 (.txt, .md, .csv, .json).', 'Only text files are supported (.txt, .md, .csv, .json).'), 'error');
       return;
     }
     const reader = new FileReader();

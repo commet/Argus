@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
 import { clearAllStorage, STORAGE_KEYS, getStorage } from '@/lib/storage';
 import { downloadJson } from '@/lib/export';
+import { toast } from '@/lib/toast';
 import { exportAccountData, deleteAccount } from '@/lib/api-account';
 import { useAuth } from '@/lib/auth';
 import type { LLMMode, LLMProvider } from '@/stores/types';
@@ -121,7 +122,7 @@ export default function SettingsPage() {
     if (file.size > MAX_IMPORT_SIZE) {
       // Voice rule: a blocked import is the ship's limit, not the user's fault —
       // no "올바른지 확인해주세요" suspicion copy (02 P1-7).
-      alert(L('파일이 10MB를 넘어 이 화면에서는 읽지 못했어요. 파일은 지우지 말고 보관해 주세요.', "This file is over 10MB, more than this screen can read. Don't delete it — keep it safe."));
+      toast(L('파일이 10MB를 넘어 이 화면에서는 읽지 못했어요. 파일은 지우지 말고 보관해 주세요.', "This file is over 10MB, more than this screen can read. Don't delete it — keep it safe."), 'error');
       return;
     }
     const allowedKeys: Set<string> = new Set(Object.values(STORAGE_KEYS).filter(k => k !== 'sot_settings'));
@@ -136,10 +137,10 @@ export default function SettingsPage() {
         // deferred (§3.5-1: a buggy restore is the one failure mode that
         // OVERWRITES local data — not for an unattended session).
         if (data && typeof data === 'object' && data.tables && data.exported_at) {
-          alert(L(
+          toast(L(
             '서버 내보내기 파일이에요. 이 파일은 보관용 사본이고, 앱으로 되돌리는 복원은 아직 지원하지 않아요. 복원하려면 로그아웃 상태에서 만든 백업 파일을 사용하세요.',
             "This is a server export file — an archival copy. Restoring it into the app isn't supported yet. To restore, use a backup file created while signed out.",
-          ));
+          ), 'info');
           return;
         }
         let imported = 0;
@@ -150,13 +151,13 @@ export default function SettingsPage() {
           }
         }
         if (imported === 0) {
-          alert(L('이 파일에서는 결정 기록을 찾지 못했어요. Argus에서 내보낸 파일이 맞다면, 저희 쪽 문제일 수 있어요 — 파일은 지우지 말고 보관해 주세요.', "Couldn't find any decision records in this file. If it came from an Argus export, the fault may be on our side — don't delete it, keep it safe."));
+          toast(L('이 파일에서는 결정 기록을 찾지 못했어요. Argus에서 내보낸 파일이 맞다면, 저희 쪽 문제일 수 있어요 — 파일은 지우지 말고 보관해 주세요.', "Couldn't find any decision records in this file. If it came from an Argus export, the fault may be on our side — don't delete it, keep it safe."), 'error');
           return;
         }
-        alert(L('데이터를 성공적으로 가져왔습니다. 페이지를 새로고침합니다.', 'Data imported successfully. The page will now reload.'));
-        window.location.reload();
+        toast(L('데이터를 성공적으로 가져왔습니다. 페이지를 새로고침합니다.', 'Data imported successfully. The page will now reload.'), 'success');
+        setTimeout(() => window.location.reload(), 900);
       } catch {
-        alert(L('이 파일은 JSON 형식으로 읽히지 않았어요. 내보내기로 받은 .json 파일을 그대로 올려 주세요.', "This file didn't read as JSON. Please upload the .json file from the export as-is."));
+        toast(L('이 파일은 JSON 형식으로 읽히지 않았어요. 내보내기로 받은 .json 파일을 그대로 올려 주세요.', "This file didn't read as JSON. Please upload the .json file from the export as-is."), 'error');
       }
     };
     reader.readAsText(file);
@@ -167,7 +168,7 @@ export default function SettingsPage() {
     try {
       await exportAccountData();
     } catch {
-      alert(L('내보내기에 실패했어요. 다시 시도해 주세요.', 'Export failed. Please try again.'));
+      toast(L('내보내기에 실패했어요. 다시 시도해 주세요.', 'Export failed. Please try again.'), 'error');
     } finally {
       setExporting(false);
     }
@@ -180,7 +181,7 @@ export default function SettingsPage() {
         // Logged in — erase ALL server data + the auth identity (complete, with receipt).
         const result = await deleteAccount();
         if (!result.ok) {
-          alert(L('일부 데이터를 지우지 못했어요. 계정은 안전하게 보존했어요. 다시 시도해 주세요.', 'Some data could not be deleted. Your account was kept safe. Please try again.'));
+          toast(L('일부 데이터를 지우지 못했어요. 계정은 안전하게 보존했어요. 다시 시도해 주세요.', 'Some data could not be deleted. Your account was kept safe. Please try again.'), 'error');
           setDeleting(false);
           return;
         }
@@ -195,7 +196,7 @@ export default function SettingsPage() {
         window.location.reload();
       }
     } catch {
-      alert(L('삭제에 실패했어요. 다시 시도해 주세요.', 'Deletion failed. Please try again.'));
+      toast(L('삭제에 실패했어요. 다시 시도해 주세요.', 'Deletion failed. Please try again.'), 'error');
       setDeleting(false);
     }
   };
