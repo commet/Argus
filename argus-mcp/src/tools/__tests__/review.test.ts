@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import path from 'path';
+import { fileURLToPath } from 'url';
 import { review } from '../review.js';
 
 const DOC = `# 온보딩 리빌드 전략
@@ -45,6 +46,30 @@ describe('argus_review', () => {
     const surface = String(res.structuredContent?.surface ?? '');
     expect(surface).not.toMatch(/진행하세요|틀렸|맞습니다|추천/);
     expect(surface).not.toMatch(/\bu_[0-9a-f]/); // unit ids stay in the units block
+  });
+
+  it('hands a scanned PDF (no extractable text) a VISION scaffold, not a dead-end', async () => {
+    // A real 0-text PDF (vector shapes only) — the text extractor is blind, but
+    // the host is a vision model, so the tool must tell it to READ THE FILE by eye
+    // with the same lenses/spine, never just "paste the text".
+    const fixture = fileURLToPath(new URL('fixtures/scanned-no-text.pdf', import.meta.url));
+    const res = await review.handler({ file_path: fixture });
+    expect(res.isError).toBeFalsy();
+    const d = data(res);
+    expect(d.vision_required).toBe(true);         // not needs_context/skip
+    expect(d.file_path).toBe(fixture);            // the host opens THIS path
+    expect(d.anchors_by).toBe('page');
+    // same judgment spine the text path hands over
+    const ids = d.lenses.map((l: { id: string }) => l.id);
+    expect(ids).toContain('claim_evidence');
+    expect(ids).toContain('human_judgment');
+    // the protocol explicitly tells the host to open + read the file visually
+    expect(Array.isArray(d.protocol)).toBe(true);
+    expect(d.protocol.join(' ')).toMatch(/눈으로|열어|read|visually/);
+    // and it still routes to the same seal loop
+    expect(res.structuredContent?.next_actions).toContain('argus_predict');
+    // never a verdict in the surface
+    expect(String(res.structuredContent?.surface ?? '')).not.toMatch(/진행하세요|틀렸|추천/);
   });
 
   it('degrades honestly on empty input', async () => {

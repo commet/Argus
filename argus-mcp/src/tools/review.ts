@@ -20,10 +20,30 @@ import {
   type UserReviewContext,
   type CanonicalArtifact,
   type SourceCaps,
+  type LensId,
 } from '../lib/review/index.js';
 import { extractFileFromPath, type ExtractedText } from '../lib/review/extract-file-node.js';
 
 const BINARY_KINDS: SourceKind[] = ['pdf', 'docx', 'pptx'];
+
+/** The five-part judgment spine (+ deck narrative for a deck) — the lenses a
+ *  VISION review applies to what it SEES. Same lens objects the text path hands
+ *  the host, so the framework is identical across modalities. */
+function visionLensIds(isDeck: boolean): LensId[] {
+  const ids: LensId[] = ['core_question', 'claim_evidence', 'hidden_assumption', 'human_judgment', 'falsifiable_followup'];
+  if (isDeck) ids.push('deck_narrative' as LensId);
+  return ids.filter((id) => id in LENSES);
+}
+
+function buildLensList(ids: LensId[]) {
+  return ids.map((id) => ({
+    id,
+    label: LENSES[id].label,
+    purpose: LENSES[id].purpose,
+    review_questions: LENSES[id].review_questions,
+    avoid: LENSES[id].failure_modes,
+  }));
+}
 
 function capsFrom(bx: ExtractedText): SourceCaps | undefined {
   const caps: SourceCaps = {};
@@ -62,7 +82,7 @@ const EXT_KIND: Record<string, SourceKind> = {
 
 const inputSchema = z.strictObject({
   text: z.string().max(MAX_DOC_BYTES).describe('The document body to review (paste). Provide this OR file_path.').optional(),
-  file_path: z.string().max(1024).describe('Absolute path to a DOCUMENT (.md/.txt/.pdf/.docx/.pptx) inside this project, the working directory, or another project already known to Argus. Other paths and non-document types are refused. PDF/DOCX/PPTX are text-extracted with page/slide anchors; scanned or image-only files degrade honestly.').optional(),
+  file_path: z.string().max(1024).describe('Absolute path to a DOCUMENT (.md/.txt/.pdf/.docx/.pptx) inside this project, the working directory, or another project already known to Argus. Other paths and non-document types are refused. PDF/DOCX/PPTX are text-extracted with page/slide anchors. A scanned or image-only PDF/deck (no extractable text) returns a VISION scaffold instead of failing: open the file and review its pages by eye with the same lenses.').optional(),
   argus_dir: zArgusDir.describe('Optional: scope the readable root to this project.').optional(),
   source_kind: z.enum(['paste', 'markdown', 'txt', 'pdf', 'docx', 'pptx', 'transcript', 'llm_answer', 'pr_diff']).describe('Override the inferred source kind.').optional(),
   title: z.string().max(300).optional(),
@@ -78,7 +98,7 @@ export const review: ToolModule = {
     'Review an EXISTING document (strategy memo / PRD / deck text / AI answer) for judgment risk. ' +
     'Returns: a reviewability score+band, the routed review lenses, and the extraction prompt (which embeds the anchored source units + output schema) — then hands YOU (the model) the analysis to run. ' +
     'Anchor every finding to the source; never deliver a verdict on the document. End by sealing ONE falsifiable follow-up via argus_seal. ' +
-    'Use for a document the user already wrote; to open a FRESH decision use argus_open_decision instead. Accepts pasted text or a file path — PDF/DOCX/PPTX are parsed with page/slide anchors; scanned/image-only files degrade honestly.',
+    'Use for a document the user already wrote; to open a FRESH decision use argus_open_decision instead. Accepts pasted text or a file path — PDF/DOCX/PPTX are parsed with page/slide anchors. If a PDF/deck has no extractable text (scanned/image-only), the tool returns a VISION scaffold (vision_required + file_path): open the file and review its pages visually with the same lenses. For a text PDF/deck, a visual_hint asks you to also read its charts/figures by eye.',
   inputSchema,
   outputSchema: ENVELOPE_OUTPUT_SCHEMA,
   annotations: { title: 'Review a document', readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
@@ -160,12 +180,50 @@ export const review: ToolModule = {
         text || title || filePath,
       ) === 'ko';
 
-      // Honest degrade for a binary that yielded too little (scanned PDF, image
-      // deck) — surface the parser's own note, never a confident fake review.
+      // A binary that yielded too little text (scanned PDF, image-only deck).
+      // The text extractor is blind here — but the HOST is a vision model and can
+      // OPEN the file and read its pages by eye. Rather than dead-end it, hand it a
+      // VISION scaffold: read the pages visually, apply the SAME lenses/spine/seal
+      // loop, anchor by page/slide. Only pdf/pptx (docx has no visual layer).
       if (binaryExtract) {
         const bx = binaryExtract;
         const empty = !bx.units?.length && !bx.text.trim();
         if (bx.quality === 'unsupported' || bx.quality === 'low' || empty) {
+          const isDeck = inferredKind === 'pptx';
+          if ((inferredKind === 'pdf' || inferredKind === 'pptx') && filePathSafe) {
+            const vlenses = buildLensList(visionLensIds(isDeck));
+            const anchorWord = isDeck ? 'slide' : '쪽';
+            return envelope({
+              ok: true, tool: 'argus_review',
+              surface: reviewKo
+                ? `이 문서는 추출 가능한 텍스트가 없습니다(스캔·이미지). 파일을 직접 눈으로 읽어 렌즈별로 검수하세요. "${title}" · 렌즈 ${vlenses.length}개.`
+                : `This document has no extractable text (scanned / image-only). Open it and review its pages visually, lens by lens. "${title}" · ${vlenses.length} lens(es).`,
+              next_actions: ['argus_predict', 'skip'],
+              data: {
+                schema_version: REVIEW_SCHEMA_VERSION,
+                lens_version: LENS_VERSION,
+                vision_required: true,
+                file_path: filePath,          // the host opens THIS path with its own file reader
+                anchors_by: isDeck ? 'slide' : 'page',
+                extraction_quality: bx.quality,
+                notes: bx.note ? [bx.note] : [],
+                lenses: vlenses,
+                protocol: reviewKo ? [
+                  `1) "${filePath}" 파일을 직접 열어 페이지를 눈으로 읽어라 — 너의 파일 읽기/비전 능력을 쓴다. 이 문서는 추출 가능한 텍스트가 없어 반드시 눈으로 봐야 한다.`,
+                  `2) 본 것(차트·표·수치·도표·레이아웃)을 근거로 아래 lenses를 적용해 판단 지도(claims/assumptions/decision_points)와 finding을 만든다. 모든 finding은 위치("${isDeck ? 'slide 4' : '3쪽'}")에 앵커한다.`,
+                  '3) 사람이 직접 판단해야 할 항목을 분리한다. 문서에 평결("틀렸다/진행하라")을 내리지 않는다. 짧고 날카롭게, 지적 유형을 다양하게(모순·미검증 가정·미충족 선결조건·수치 불일치·이해관계자 반론).',
+                  '4) 현실이 pass/fail로 답할 반증 가능한 예측 1개를 찾고, 사용자가 원하면 argus_predict로 저장한다. 예측·조건·check_by는 사용자의 것이다.',
+                ] : [
+                  `1) Open the file at "${filePath}" and read its pages by eye — use your own file-reading / vision capability. This document has no extractable text, so you MUST read it visually.`,
+                  `2) Apply the lenses below to what you SEE (charts, tables, figures, numbers-in-images, layout): build the judgment map (claims/assumptions/decision points) and findings. Anchor every finding to a location ("${isDeck ? 'slide 4' : 'page 3'}").`,
+                  '3) Separate the points that require human judgment. Do not deliver a verdict. Keep findings short and sharp, and vary their TYPE (a contradiction, an untested assumption, an unmet precondition, a number that does not add up, a stakeholder objection).',
+                  '4) Find one falsifiable prediction reality can answer pass/fail; save it with argus_predict only if the user wants. The prediction, conditions, and check_by belong to the user.',
+                ],
+                anchor_word: anchorWord,
+              },
+            });
+          }
+          // docx or no file path → genuinely unreviewable; keep the honest degrade.
           return envelope({
             ok: true, tool: 'argus_review',
             surface: bx.note || (reviewKo
@@ -270,6 +328,15 @@ export const review: ToolModule = {
       // the read, never a grade of the draft.
       const thin = band === 'limited' || band === 'insufficient';
       const caveat = thin ? (ko ? '근거로 삼을 내용이 적어 검수가 제한적일 수 있습니다. ' : 'There is limited material to work from, so this review may be partial. ') : '';
+      // Text extracted fine, but a PDF/deck also carries charts/figures/tables the
+      // text can't convey. Nudge the vision-capable host to ALSO read them by eye —
+      // so the text and visual reads go together (framework parity with the webapp's
+      // vision pass), anchored by page/slide.
+      const visualHint = (inferredKind === 'pdf' || inferredKind === 'pptx') && filePathSafe
+        ? (ko
+            ? `이 문서는 ${inferredKind === 'pptx' ? '덱' : 'PDF'}입니다 — 차트·도표·표가 있으면 "${filePath}"를 직접 열어 눈으로도 확인하고 판단에 반영하세요(그 finding은 ${inferredKind === 'pptx' ? 'slide' : '쪽'}에 앵커).`
+            : `This is a ${inferredKind === 'pptx' ? 'deck' : 'PDF'} — if it contains charts or figures, also open "${filePath}" and read them by eye, factoring them into the review (anchor those findings by ${inferredKind === 'pptx' ? 'slide' : 'page'}).`)
+        : undefined;
       return envelope({
         ok: true, tool: 'argus_review',
         surface: ko
@@ -296,6 +363,7 @@ export const review: ToolModule = {
           // stage (no separate units dump; the source text is heavy and should
           // not be sent twice).
           extraction_prompt: extraction,
+          ...(visualHint ? { visual_hint: visualHint } : {}),
           units_shown: Math.min(artifact.units.length, effLimit),
           units_total: artifact.units.length,
           ...(artifact.units.length > effLimit
