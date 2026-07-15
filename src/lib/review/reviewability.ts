@@ -15,6 +15,7 @@ import {
   type CanonicalArtifact,
   type DocumentJudgmentMap,
   type ReviewabilityScore,
+  type ReviewLocale,
   reviewabilityBand,
 } from './schema';
 
@@ -28,15 +29,17 @@ const EXTRACTION_WEIGHT: Record<CanonicalArtifact['extraction_quality'], number>
 export function scoreReviewability(
   artifact: CanonicalArtifact,
   map?: DocumentJudgmentMap,
+  lang: ReviewLocale = 'ko',
 ): ReviewabilityScore {
+  const t = (ko: string, en: string) => (lang === 'en' ? en : ko);
   const reasons: string[] = [];
 
   // 1. extraction
   const extraction = EXTRACTION_WEIGHT[artifact.extraction_quality];
   if (artifact.extraction_quality === 'unsupported') {
-    reasons.push('텍스트를 추출하지 못해 전체 검수가 어렵습니다.');
+    reasons.push(t('텍스트를 추출하지 못해 전체 검수가 어렵습니다.', 'Text could not be extracted, so a full review is hard.'));
   } else if (artifact.extraction_quality === 'low') {
-    reasons.push('텍스트 추출 품질이 낮습니다.');
+    reasons.push(t('텍스트 추출 품질이 낮습니다.', 'Text extraction quality is low.'));
   }
 
   // 2. structure — headings/sections/slides give the reviewer scaffolding
@@ -44,7 +47,7 @@ export function scoreReviewability(
   const structuralUnits = (s.heading_count ?? 0) + (s.slide_count ?? 0) + (s.section_count ?? 0);
   const structure = clamp(structuralUnits === 0 ? 40 : 60 + Math.min(40, structuralUnits * 8));
   if (structuralUnits === 0 && artifact.units.length > 0) {
-    reasons.push('구조(제목/섹션)가 없어 근거 위치를 짚기 어렵습니다.');
+    reasons.push(t('구조(제목/섹션)가 없어 근거 위치를 짚기 어렵습니다.', 'Without structure (headings/sections) it is hard to pin down where the evidence sits.'));
   }
 
   // 3. anchor coverage — share of units that carry a usable anchor
@@ -58,7 +61,7 @@ export function scoreReviewability(
     const hasCore = !!map.core_question && map.core_question.length > 8;
     const decisionPoints = map.decision_points.length;
     decision_clarity = clamp((hasCore ? 55 : 20) + Math.min(45, decisionPoints * 15));
-    if (!hasCore) reasons.push('문서에서 결정할 질문이 뚜렷하지 않습니다.');
+    if (!hasCore) reasons.push(t('문서에서 결정할 질문이 뚜렷하지 않습니다.', 'The document does not make the decision question clear.'));
 
     const claims = map.main_claims.length || 1;
     const withEvidence = map.main_claims.filter((c) => c.anchors.length > 0 || c.status === 'supported').length;
@@ -75,9 +78,9 @@ export function scoreReviewability(
 
   const band = reviewabilityBand(score);
   if (band === 'insufficient') {
-    reasons.push('전체 receipt 대신 "무엇이 빠졌는지"를 먼저 보여줍니다.');
+    reasons.push(t('전체 receipt 대신 "무엇이 빠졌는지"를 먼저 보여줍니다.', 'Instead of a full receipt, it shows "what is missing" first.'));
   } else if (band === 'limited') {
-    reasons.push('제한적으로만 검수하고 부족한 맥락을 요청합니다.');
+    reasons.push(t('제한적으로만 검수하고 부족한 맥락을 요청합니다.', 'It reviews only partially and asks for the missing context.'));
   }
 
   return {

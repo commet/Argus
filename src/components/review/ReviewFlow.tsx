@@ -198,6 +198,7 @@ export function ReviewFlow() {
       source_kind: sourceKind,
       title,
       text,
+      locale,
       privacy_mode: storeSource ? 'store_source' : 'receipt_only',
       pre_extracted: preExtracted?.text,
       pre_extracted_units: preExtracted?.units,
@@ -235,6 +236,7 @@ export function ReviewFlow() {
     const { job: finalJob, receipt: r } = await runDocumentReview(artifact, {
       context: ctx,
       budget,
+      locale,
       onProgress: setJob,
       signal: controller.signal,
     });
@@ -521,11 +523,12 @@ export function ReviewFlow() {
               );
             })}
           </div>
-          {/* What's being examined — a few of the document's OWN premises,
-              surfaced verbatim and rotated slowly so the wait shows specific work
-              on the user's material. It names the *document's* premise (not an
-              Argus verdict), and uses the approved tint-block quote treatment
-              (no left accent bar). Target, not judgment. */}
+          {/* What's being examined — a few of the document's OWN premises (as
+              the pipeline extracted them; currently Korean regardless of UI
+              locale), rotated slowly so the wait shows specific work on the
+              user's material. It names the *document's* premise (not an Argus
+              verdict), and uses the approved tint-block quote treatment (no left
+              accent bar). Target, not judgment. */}
           {job?.examining && job.examining.length > 0 && (() => {
             const items = job.examining;
             const idx = Math.floor(elapsed / 3) % items.length;

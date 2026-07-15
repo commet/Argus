@@ -24,8 +24,18 @@ import {
   type ExtractionQuality,
   type SourceAnchor,
   type SourceCaps,
+  type ReviewLocale,
 } from './schema';
 import { fingerprint, stableId } from './ids';
+
+const deckNote = (lang: ReviewLocale, isDeck: boolean): string =>
+  lang === 'en'
+    ? isDeck
+      ? 'This deck was reviewed by its slide text and order. Chart/image interpretation is limited.'
+      : 'Reviewed by text. Some tables/images may be left out of the analysis.'
+    : isDeck
+      ? '이 deck은 슬라이드 텍스트와 순서를 기준으로 검수했습니다. 차트/이미지 해석은 제한적입니다.'
+      : '텍스트를 기준으로 검수했습니다. 표/이미지 일부는 분석에서 빠질 수 있습니다.';
 
 export interface IngestInput {
   source_kind: SourceKind;
@@ -48,6 +58,9 @@ export interface IngestInput {
    *  pipeline can compute honest coverage. */
   source_caps?: SourceCaps;
   privacy_mode?: PrivacyMode;
+  /** Output language for the honesty notes and default title this ingest emits
+   *  (the artifact's user-facing metadata). Defaults to 'ko'. */
+  locale?: ReviewLocale;
 }
 
 const TIER0: SourceKind[] = ['paste', 'markdown', 'txt', 'llm_answer', 'transcript', 'pr_diff'];
@@ -55,22 +68,23 @@ const BINARY: SourceKind[] = ['pdf', 'docx', 'pptx'];
 
 export function ingest(input: IngestInput): CanonicalArtifact {
   const privacy_mode: PrivacyMode = input.privacy_mode ?? 'receipt_only';
-  const title = (input.title || '').trim() || defaultTitle(input.source_kind);
+  const lang: ReviewLocale = input.locale ?? 'ko';
+  const title = (input.title || '').trim() || defaultTitle(input.source_kind, lang);
 
   // Pre-anchored units from a real parser (pdf pages / pptx slides): trust the
   // parser's page/slide numbers rather than re-flattening to text.
   if (input.pre_extracted_units && input.pre_extracted_units.length > 0) {
-    return fromUnits(input, title, privacy_mode);
+    return fromUnits(input, title, privacy_mode, lang);
   }
 
   // Binary format with no extracted text → honest degrade, data model intact.
   if (BINARY.includes(input.source_kind) && !input.pre_extracted && !input.text) {
-    return degradedArtifact(input.source_kind, title, privacy_mode);
+    return degradedArtifact(input.source_kind, title, privacy_mode, lang);
   }
 
   const text = (input.pre_extracted ?? input.text ?? '').replace(/\r\n/g, '\n');
   if (!text.trim()) {
-    return degradedArtifact(input.source_kind, title, privacy_mode, 'empty');
+    return degradedArtifact(input.source_kind, title, privacy_mode, lang, 'empty');
   }
 
   const isDeck = input.source_kind === 'pptx';
@@ -87,11 +101,7 @@ export function ingest(input: IngestInput): CanonicalArtifact {
 
   const notes: string[] = [...(input.extraction_notes ?? [])];
   if (BINARY.includes(input.source_kind) && notes.length === 0) {
-    notes.push(
-      input.source_kind === 'pptx'
-        ? '이 deck은 슬라이드 텍스트와 순서를 기준으로 검수했습니다. 차트/이미지 해석은 제한적입니다.'
-        : '텍스트를 기준으로 검수했습니다. 표/이미지 일부는 분석에서 빠질 수 있습니다.',
-    );
+    notes.push(deckNote(lang, input.source_kind === 'pptx'));
   }
 
   return {
@@ -120,7 +130,7 @@ export function ingest(input: IngestInput): CanonicalArtifact {
  * pptx slides). The parser carries page/slide numbers that a flattened-text
  * re-extraction would lose, so we keep them verbatim and only derive structure.
  */
-function fromUnits(input: IngestInput, title: string, privacy_mode: PrivacyMode): CanonicalArtifact {
+function fromUnits(input: IngestInput, title: string, privacy_mode: PrivacyMode, lang: ReviewLocale): CanonicalArtifact {
   const units = input.pre_extracted_units!;
   const joined = units.map((u) => u.text).join('\n');
   const fp = fingerprint(joined || title);
@@ -133,11 +143,7 @@ function fromUnits(input: IngestInput, title: string, privacy_mode: PrivacyMode)
   }
   const notes = [...(input.extraction_notes ?? [])];
   if (notes.length === 0) {
-    notes.push(
-      isDeck
-        ? '이 deck은 슬라이드 텍스트와 순서를 기준으로 검수했습니다. 차트/이미지 해석은 제한적입니다.'
-        : '텍스트를 기준으로 검수했습니다. 표/이미지 일부는 분석에서 빠질 수 있습니다.',
-    );
+    notes.push(deckNote(lang, isDeck));
   }
   return {
     artifact_id: `art_${fp}`,
@@ -160,8 +166,8 @@ function fromUnits(input: IngestInput, title: string, privacy_mode: PrivacyMode)
   };
 }
 
-function defaultTitle(kind: SourceKind): string {
-  const map: Record<SourceKind, string> = {
+function defaultTitle(kind: SourceKind, lang: ReviewLocale): string {
+  const ko: Record<SourceKind, string> = {
     paste: '붙여넣은 문서',
     markdown: 'Markdown 문서',
     txt: '텍스트 문서',
@@ -173,23 +179,42 @@ function defaultTitle(kind: SourceKind): string {
     pr_diff: 'PR diff',
     llm_answer: 'AI 답변',
   };
-  return map[kind];
+  const en: Record<SourceKind, string> = {
+    paste: 'Pasted document',
+    markdown: 'Markdown document',
+    txt: 'Text document',
+    pdf: 'PDF document',
+    docx: 'DOCX document',
+    pptx: 'Slide deck',
+    transcript: 'Meeting notes',
+    mcp_file: 'File',
+    pr_diff: 'PR diff',
+    llm_answer: 'AI answer',
+  };
+  return (lang === 'en' ? en : ko)[kind];
 }
 
 function degradedArtifact(
   kind: SourceKind,
   title: string,
   privacy_mode: PrivacyMode,
+  lang: ReviewLocale,
   reason: 'unsupported' | 'empty' = 'unsupported',
 ): CanonicalArtifact {
   const note =
     reason === 'empty'
-      ? '문서에서 텍스트를 찾지 못했습니다.'
+      ? (lang === 'en' ? 'No text could be found in the document.' : '문서에서 텍스트를 찾지 못했습니다.')
       : kind === 'pdf'
-        ? '이 PDF는 아직 자동 텍스트 추출을 지원하지 않습니다. 본문 텍스트를 붙여넣으면 검수할 수 있습니다.'
+        ? (lang === 'en'
+            ? 'This PDF does not yet support automatic text extraction. Paste the body text and it can be reviewed.'
+            : '이 PDF는 아직 자동 텍스트 추출을 지원하지 않습니다. 본문 텍스트를 붙여넣으면 검수할 수 있습니다.')
         : kind === 'pptx'
-          ? '이 deck은 아직 자동 추출을 지원하지 않습니다. 슬라이드 텍스트를 붙여넣으면 검수할 수 있습니다.'
-          : '이 파일은 아직 자동 텍스트 추출을 지원하지 않습니다. 본문을 붙여넣어 주세요.';
+          ? (lang === 'en'
+              ? 'This deck does not yet support automatic extraction. Paste the slide text and it can be reviewed.'
+              : '이 deck은 아직 자동 추출을 지원하지 않습니다. 슬라이드 텍스트를 붙여넣으면 검수할 수 있습니다.')
+          : (lang === 'en'
+              ? 'This file does not yet support automatic text extraction. Please paste the body text.'
+              : '이 파일은 아직 자동 텍스트 추출을 지원하지 않습니다. 본문을 붙여넣어 주세요.');
   return {
     artifact_id: `art_${stableId(kind, title, reason)}`,
     source_kind: kind,
