@@ -75,6 +75,16 @@ export interface DemoScenario {
   dmVariants: Record<string, DMFeedbackResult>;
   finalBase: string;
   finalPatches: [string, string]; // [concern0 applied text, concern1 applied text]
+  // NOTE: this interface is a duplicate of the one in demo-data.ts (pre-existing).
+  // Keep the two in sync — seal/settle mirror the KO type. (Dedup is a separate cleanup.)
+  seal: {
+    prediction: string;
+  };
+  settle: {
+    verdict: 'held' | 'partial' | 'broke';
+    happened: string;
+    learning: string;
+  };
 }
 
 // ─── Utility ───
@@ -627,6 +637,14 @@ Generic solutions require 2-3 months to learn industry-specific terminology and 
 - **Free trial**: 1 month free, then convert to paid after demonstrating results (target 30% conversion rate)
 - **Content marketing**: Industry-specific success story blog posts to drive inbound leads`,
   ],
+  seal: {
+    prediction: 'This week I get 3 e-commerce sellers on a call, and at least one says "yeah, that’s bleeding money right now."',
+  },
+  settle: {
+    verdict: 'partial',
+    happened: 'Talked to 3 sellers. All three agreed the problem is real — but two of them asked "how much?" first.',
+    learning: 'The problem was real. The weak spot was pricing — next time I test price before building the beta.',
+  },
 };
 
 // ═══════════════════════════════════════════════════════════════
@@ -1089,6 +1107,14 @@ Company S spends 15 of 30 minutes introducing themselves. **We spend 20 minutes 
 - **Full code & documentation handover** — your internal team can run it without us
 - **Backup capacity** — partner firm MOU, 2 additional engineers within 48 hours if needed`,
   ],
+  seal: {
+    prediction: 'On PT day, the logistics lead names us first or backs us in front of the execs.',
+  },
+  settle: {
+    verdict: 'held',
+    happened: 'The logistics lead opened with "I saw your last project." The exec questions moved from price to how we’d execute.',
+    learning: 'An inside champion actually opened the door. Next PT, "secure someone who’ll back us" comes first.',
+  },
 };
 
 // ═══════════════════════════════════════════════════════════════
@@ -1520,6 +1546,14 @@ The value our customers get that justifies the premium:
 
 At the estimated 5-10% churn rate, **annual impact is $60K-$120K.** The goal is to keep churn below 5% through the differentiation strategy.`,
   ],
+  seal: {
+    prediction: 'This week, at most 1 of the 3 "we’re leaving" accounts actually files a cancellation.',
+  },
+  settle: {
+    verdict: 'broke',
+    happened: 'Two accounts actually cancelled. I thought it was price-shopping — one was already about to sign with a competitor.',
+    learning: 'I underweighted the churn signal — next time I meet top accounts while they’re still just "comparing."',
+  },
 };
 
 // ─── Export ───

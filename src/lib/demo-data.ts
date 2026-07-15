@@ -79,6 +79,20 @@ export interface DemoScenario {
   dmVariants: Record<string, DMFeedbackResult>;
   finalBase: string;
   finalPatches: [string, string]; // [concern0 반영 텍스트, concern1 반영 텍스트]
+  /** 결정→봉인→정산 종막. checkInDays 안에 판가름 나는 반증 가능한 예측 하나와,
+   *  확인일에 현실이 보여준 결과(스크립트). 데모는 저장하지 않고 SealMoment /
+   *  SettlementModal의 언어·비주얼만 미러링한다. */
+  seal: {
+    /** A single falsifiable, check-in-day-sized prediction (leading signal). */
+    prediction: string;
+  };
+  settle: {
+    verdict: 'held' | 'partial' | 'broke';
+    /** What reality showed on the check-in day. */
+    happened: string;
+    /** One-line takeaway — the point of the loop. */
+    learning: string;
+  };
 }
 
 // ─── Utility ───
@@ -629,6 +643,14 @@ const scenario1: DemoScenario = {
 | 3 | 4~6개월 | 셀러 커뮤니티 타겟 마케팅 | **+11** |
 `,
   ],
+  seal: {
+    prediction: '이번 주 안에 이커머스 셀러 3명과 통화하고, 그 중 최소 1명이 “그 문제로 지금 돈이 샌다”고 말한다.',
+  },
+  settle: {
+    verdict: 'partial',
+    happened: '3명과 통화했어요. 셋 다 문제는 인정했는데, 두 명이 먼저 물은 건 “얼마예요?”였어요.',
+    learning: '문제는 진짜였어요. 약했던 건 가격 가정 — 다음엔 베타보다 가격을 먼저 떠봅니다.',
+  },
 };
 
 // ═══════════════════════════════════════════════════════════════
@@ -1079,6 +1101,14 @@ S사는 30분 중 15분을 회사 소개에 씁니다. **우리는 20분을 고�
 - **비상 인력** — 48시간 내 파트너사 2명 추가 투입 (MOU 체결)
 `,
   ],
+  seal: {
+    prediction: 'PT 당일, 물류팀장이 임원 앞에서 우리를 먼저 언급하거나 편들어 준다.',
+  },
+  settle: {
+    verdict: 'held',
+    happened: '물류팀장이 먼저 “이전 프로젝트를 봤다”며 운을 뗐어요. 임원 질문이 가격에서 실행 방식으로 옮겨갔죠.',
+    learning: '내부에서 편들어 줄 사람이 결재의 문을 실제로 열었어요. 다음 PT도 “우리 편 확보”를 1순위로.',
+  },
 };
 
 // ═══════════════════════════════════════════════════════════════
@@ -1501,6 +1531,14 @@ const scenario3: DemoScenario = {
 핵심 20곳이 유지되면 영향 5% 이내 통제 가능. **목표: 이탈률 5% 이하**.
 `,
   ],
+  seal: {
+    prediction: '이번 주, “이탈하겠다”던 3곳 중 실제로 해지를 통보하는 곳은 1곳 이하다.',
+  },
+  settle: {
+    verdict: 'broke',
+    happened: '2곳이 실제로 해지를 통보했어요. 가격 비교인 줄 알았는데, 한 곳은 이미 경쟁사와 계약 직전이었죠.',
+    learning: '이탈 신호를 과소평가했어요 — 다음엔 상위 고객은 “비교” 단계에서 먼저 만납니다.',
+  },
 };
 
 // ─── Export ───
