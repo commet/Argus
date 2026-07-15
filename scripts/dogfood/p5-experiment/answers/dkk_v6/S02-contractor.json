@@ -1,0 +1,20 @@
+{
+  "sealed_statement": "4월 안에 계약직 1명을 뽑되, 6월 15일 마감은 스코프 축소와 병행해서 지킨다",
+  "statement_origin": "human",
+  "adopted_premises": ["온보딩에 2주면 충분하다", "예산 승인이 이번 주에 난다"],
+  "review_question": "마감을 지켰는가",
+  "review_at": "2026-06-16",
+  "was_deferred": false,
+  "resolution_kind": "answered",
+  "answer_summary": "마감을 지키지 못했다 — 6월 30일로 밀렸고 원인은 채용 지연",
+  "criterion_result": "not_met",
+  "evidence_items": ["마감이 6월 30일로 밀림; 채용이 5월 말에 됨 (사용자 보고) — observation S02-contractor-ofinal, 2026-06-16"],
+  "was_separately_closed": true,
+  "probes": [
+    { "item": "예산 승인이 이번 주에 난다", "known_at_seal": true },
+    { "item": "예산 승인이 5월 19일에 남", "known_at_seal": false },
+    { "item": "채용이 5월 말에 됨", "known_at_seal": false },
+    { "item": "온보딩에 2주면 충분하다", "known_at_seal": true },
+    { "item": "마감이 6월 30일로 밀림", "known_at_seal": false }
+  ]
+}

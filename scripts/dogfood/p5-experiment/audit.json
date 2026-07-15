@@ -1,0 +1,5 @@
+{
+  "note": "Review each candidate: it is a CONFIRMED fabrication only if the reconstructor asserted it confidently and it exists nowhere in the record they were given. Move confirmed items into `confirmed`, leave paraphrases out.",
+  "candidates": {},
+  "confirmed": {}
+}

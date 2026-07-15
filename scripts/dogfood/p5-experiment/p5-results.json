@@ -1,0 +1,219 @@
+{
+  "synthetic": {
+    "corpus_case_count": 44,
+    "structural_conformance": 1,
+    "unnamed_loss_count": 0
+  },
+  "baseline": {
+    "cycles": [
+      {
+        "cycle_id": "baseline:S01-pricing",
+        "completed_lifecycle": true,
+        "task_completion_seconds": 0.001,
+        "confirmation_actions": 3,
+        "silent_false_seal": false,
+        "missed_judgment": false
+      },
+      {
+        "cycle_id": "baseline:S02-contractor",
+        "completed_lifecycle": true,
+        "task_completion_seconds": 0,
+        "confirmation_actions": 2,
+        "silent_false_seal": false,
+        "missed_judgment": false
+      },
+      {
+        "cycle_id": "baseline:S03-vendor",
+        "completed_lifecycle": true,
+        "task_completion_seconds": 0,
+        "confirmation_actions": 2,
+        "silent_false_seal": false,
+        "missed_judgment": false
+      },
+      {
+        "cycle_id": "baseline:S04-campaign",
+        "completed_lifecycle": true,
+        "task_completion_seconds": 0,
+        "confirmation_actions": 2,
+        "silent_false_seal": false,
+        "missed_judgment": false
+      },
+      {
+        "cycle_id": "baseline:S05-europe",
+        "completed_lifecycle": true,
+        "task_completion_seconds": 0,
+        "confirmation_actions": 2,
+        "silent_false_seal": false,
+        "missed_judgment": false
+      },
+      {
+        "cycle_id": "baseline:S06-sunset",
+        "completed_lifecycle": true,
+        "task_completion_seconds": 0,
+        "confirmation_actions": 2,
+        "silent_false_seal": false,
+        "missed_judgment": false
+      },
+      {
+        "cycle_id": "baseline:S07-oncall",
+        "completed_lifecycle": true,
+        "task_completion_seconds": 0,
+        "confirmation_actions": 3,
+        "silent_false_seal": false,
+        "missed_judgment": false
+      },
+      {
+        "cycle_id": "baseline:S08-sdk",
+        "completed_lifecycle": true,
+        "task_completion_seconds": 0,
+        "confirmation_actions": 2,
+        "silent_false_seal": false,
+        "missed_judgment": false
+      },
+      {
+        "cycle_id": "baseline:S09-teamsplit",
+        "completed_lifecycle": true,
+        "task_completion_seconds": 0,
+        "confirmation_actions": 2,
+        "silent_false_seal": false,
+        "missed_judgment": false
+      },
+      {
+        "cycle_id": "baseline:S10-abtest",
+        "completed_lifecycle": true,
+        "task_completion_seconds": 0,
+        "confirmation_actions": 2,
+        "silent_false_seal": false,
+        "missed_judgment": false
+      },
+      {
+        "cycle_id": "baseline:S11-lease",
+        "completed_lifecycle": true,
+        "task_completion_seconds": 0,
+        "confirmation_actions": 2,
+        "silent_false_seal": false,
+        "missed_judgment": false
+      },
+      {
+        "cycle_id": "baseline:S12-dbmove",
+        "completed_lifecycle": true,
+        "task_completion_seconds": 0,
+        "confirmation_actions": 2,
+        "silent_false_seal": false,
+        "missed_judgment": false
+      }
+    ],
+    "authorship_attribution_error": 0,
+    "hindsight_leakage_rate": 0,
+    "premise_provenance_reconstruction": 1,
+    "return_contract_reconstruction": 1,
+    "resolution_subject_and_evidence_reconstruction": 0.9166666666666666,
+    "fabrication_rate": 0
+  },
+  "dkk_v6": {
+    "cycles": [
+      {
+        "cycle_id": "dkk_v6:S01-pricing",
+        "completed_lifecycle": true,
+        "task_completion_seconds": 0.023,
+        "confirmation_actions": 4,
+        "silent_false_seal": false,
+        "missed_judgment": false
+      },
+      {
+        "cycle_id": "dkk_v6:S02-contractor",
+        "completed_lifecycle": true,
+        "task_completion_seconds": 0.008,
+        "confirmation_actions": 3,
+        "silent_false_seal": false,
+        "missed_judgment": false
+      },
+      {
+        "cycle_id": "dkk_v6:S03-vendor",
+        "completed_lifecycle": true,
+        "task_completion_seconds": 0.005,
+        "confirmation_actions": 3,
+        "silent_false_seal": false,
+        "missed_judgment": false
+      },
+      {
+        "cycle_id": "dkk_v6:S04-campaign",
+        "completed_lifecycle": true,
+        "task_completion_seconds": 0.006,
+        "confirmation_actions": 3,
+        "silent_false_seal": false,
+        "missed_judgment": false
+      },
+      {
+        "cycle_id": "dkk_v6:S05-europe",
+        "completed_lifecycle": true,
+        "task_completion_seconds": 0.003,
+        "confirmation_actions": 3,
+        "silent_false_seal": false,
+        "missed_judgment": false
+      },
+      {
+        "cycle_id": "dkk_v6:S06-sunset",
+        "completed_lifecycle": true,
+        "task_completion_seconds": 0.003,
+        "confirmation_actions": 3,
+        "silent_false_seal": false,
+        "missed_judgment": false
+      },
+      {
+        "cycle_id": "dkk_v6:S07-oncall",
+        "completed_lifecycle": true,
+        "task_completion_seconds": 0.003,
+        "confirmation_actions": 5,
+        "silent_false_seal": false,
+        "missed_judgment": false
+      },
+      {
+        "cycle_id": "dkk_v6:S08-sdk",
+        "completed_lifecycle": true,
+        "task_completion_seconds": 0.002,
+        "confirmation_actions": 3,
+        "silent_false_seal": false,
+        "missed_judgment": false
+      },
+      {
+        "cycle_id": "dkk_v6:S09-teamsplit",
+        "completed_lifecycle": true,
+        "task_completion_seconds": 0.002,
+        "confirmation_actions": 3,
+        "silent_false_seal": false,
+        "missed_judgment": false
+      },
+      {
+        "cycle_id": "dkk_v6:S10-abtest",
+        "completed_lifecycle": true,
+        "task_completion_seconds": 0.002,
+        "confirmation_actions": 3,
+        "silent_false_seal": false,
+        "missed_judgment": false
+      },
+      {
+        "cycle_id": "dkk_v6:S11-lease",
+        "completed_lifecycle": true,
+        "task_completion_seconds": 0.002,
+        "confirmation_actions": 3,
+        "silent_false_seal": false,
+        "missed_judgment": false
+      },
+      {
+        "cycle_id": "dkk_v6:S12-dbmove",
+        "completed_lifecycle": true,
+        "task_completion_seconds": 0.002,
+        "confirmation_actions": 3,
+        "silent_false_seal": false,
+        "missed_judgment": false
+      }
+    ],
+    "authorship_attribution_error": 0,
+    "hindsight_leakage_rate": 0,
+    "premise_provenance_reconstruction": 1,
+    "return_contract_reconstruction": 1,
+    "resolution_subject_and_evidence_reconstruction": 1,
+    "fabrication_rate": 0
+  }
+}

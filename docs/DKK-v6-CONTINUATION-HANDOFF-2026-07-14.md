@@ -394,6 +394,36 @@ still unchecked. What changed:
    webhook delegates to it; the runner drives the same functions. Logic is
    single-sourced — do not fork it back into the route.
 
+## Addendum 2026-07-15: P5 second run (agent cohort) + four engine repairs
+
+Definition-of-done boxes are UNCHANGED — every production-gated box remains
+unchecked, deliberately (this session had, and should have had, no production
+credentials). What changed:
+
+1. **The P5 gate ran on real matched evidence for the first time** —
+   an honestly-labeled AGENT-DRIVEN dogfood cohort (12 completed lifecycles
+   per arm through the real builders/gateway, blind record-only
+   reconstruction, preregistered scoring; a first pilot was DISCARDED for
+   experimenter leakage and rerun). Verdict: **HOLD**, but of a new kind —
+   every no-go trap passed (silent false seal 0, fabrication 0, cost within
+   preregistered limits, conformance 1.0); the sole reason is baseline
+   hindsight leakage of 0, making the preregistered relative-reduction claim
+   unmeasurable against a best-case diligent journal. Claims are narrowed
+   accordingly; the decisive-cohort requirements are preregistered. See
+   `ADR-2026-07-15-dkk-v6-p5-agent-cohort-rerun.md` and
+   `docs/receipts/2026-07-15-dkk-verification/evidence.md`.
+2. **Four engine defects found by the verification runs, fixed with
+   regression guards**: review-core web↔MCP drift (red on main), seal
+   authorship laundering (originated_by hardcoded human — 제2조), the web
+   surface's missing premise_adopted write path (§6.2 — measured as 0
+   premise recovery in the first blind run), and pull()'s wrong-file report
+   (제13조). Evidence doc §4.
+3. **The real push-webapp.js pull ran end-to-end** (child process, wire-
+   faithful local server): byte-identical append, idempotent re-pull,
+   invalid-batch visible error, no-token refusal (`scripts/dogfood/p7-real-pull.ts`).
+4. The remaining production-only work is packaged as a 30-minute founder
+   protocol: `docs/receipts/2026-07-15-dkk-verification/founder-production-protocol.md`.
+
 ## Suggested opening message for the next context-free session
 
 Copy only this prompt into the new session:

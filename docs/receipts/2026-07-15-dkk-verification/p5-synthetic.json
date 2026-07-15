@@ -1,0 +1,8 @@
+{
+  "_label": "SYNTHETIC ARM ONLY — real baseline/dkk_v6 cycles must come from live dogfood; never zero-fill them (p5-gate holds on absence).",
+  "synthetic": {
+    "corpus_case_count": 44,
+    "structural_conformance": 1,
+    "unnamed_loss_count": 0
+  }
+}

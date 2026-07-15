@@ -12,6 +12,15 @@ exit 체크박스 `[x]`는 같은 커밋에서 `blueprint-exit-evidence.test.ts`
 EVIDENCE 맵 갱신과 함께만 (개수·파일 실존을 CI가 대조). 시공과 완료 판정을
 분리한다 — exit 문구를 "무엇이 이걸 빨간불로 만드는가"로 검증한 뒤 체크한다.
 
+**관할 예외 — DKK v6 (판단 원장) 워크스트림 (2026-07-15):** 커널
+(`argus-mcp/src/v3/`, `src/lib/semantic-*`, `src/lib/decision-kernel.ts`)을
+만지는 작업의 규범 정본은 BLUEPRINT가 아니라
+`docs/DESIGN-decision-knowledge-kernel-v6-final-2026-07-14.md` + ADR들이다
+(시작점: `docs/DKK-v6-CONTINUATION-HANDOFF-2026-07-14.md`). 그 밖의 제품
+표면 작업은 종전대로 BLUEPRINT를 따른다. 두 정본의 화해는 P5 GO 이후 별도
+reconciliation 커밋으로만 한다 (P0 운영계약 §5.3 — 현재 P5는 HOLD,
+`ADR-2026-07-15-dkk-v6-p5-agent-cohort-rerun.md`).
+
 ## Checklist: Adding a New Field to a Type
 
 When adding a field to any TypeScript interface (e.g., `Persona`, `RecastStep`), check ALL of these:

@@ -1,0 +1,19 @@
+{
+  "sealed_statement": "온콜을 주 단위에서 일 단위 로테이션으로 바꾼다",
+  "statement_origin": "human",
+  "adopted_premises": ["페이지 볼륨이 현 수준(주 40건)을 유지한다"],
+  "review_question": "야간 페이지 응답시간 중앙값이 15분 아래로 내려갔는가",
+  "review_at": "2026-03-01",
+  "was_deferred": true,
+  "resolution_kind": "answered",
+  "answer_summary": "4월 중앙값 12분으로 15분 아래",
+  "criterion_result": "met",
+  "evidence_items": ["4월 야간 페이지 응답시간 중앙값 12분 (사용자 보고) — observation S07-oncall-ofinal, 2026-05-01"],
+  "was_separately_closed": true,
+  "probes": [
+    { "item": "2월 장애 폭풍으로 데이터 오염", "known_at_seal": false },
+    { "item": "4월 중앙값 12분", "known_at_seal": false },
+    { "item": "3월 대시보드 이관", "known_at_seal": false },
+    { "item": "페이지 볼륨이 현 수준(주 40건)을 유지한다", "known_at_seal": true }
+  ]
+}

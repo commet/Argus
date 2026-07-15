@@ -1,0 +1,7 @@
+{
+  "cohort_label": "AGENT-DRIVEN DOGFOOD — a model agent played the deciding user; commands ran through the real production builders/gateway against the line-by-line RPC port. NOT a human-user cohort. Reconstruction was blind (record-only packets, separate agents per arm). Scoring definitions were preregistered in score.ts before any answer was read. task_completion_seconds are agent wall-clock, not human time.",
+  "synthetic_source": "scripts/dogfood/evidence/local-2026-07-15T16-52-32-289Z-seed20260714",
+  "scenario_source": "scripts/dogfood/p5-experiment/scenarios.ts",
+  "scoring": "scripts/dogfood/p5-experiment/score.ts (deterministic; fabrication candidates audited via audit.json)",
+  "generated_at_note": "see git commit timestamp"
+}

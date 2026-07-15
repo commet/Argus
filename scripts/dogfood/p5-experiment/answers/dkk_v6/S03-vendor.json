@@ -1,0 +1,17 @@
+{
+  "sealed_statement": "B의 정산 지연이 48시간 이내로 안정화되면 결제 벤더를 A에서 B로 옮긴다",
+  "statement_origin": "human",
+  "adopted_premises": ["A의 수수료 인상이 예정대로 7월에 시행된다"],
+  "review_question": "B의 5월 정산 지연 지표가 48시간 이내로 안정화됐는가",
+  "review_at": "2026-06-02",
+  "was_deferred": false,
+  "resolution_kind": "moot",
+  "answer_summary": "unknown (answer_summary 없음 — moot 사유만 기록됨: \"B가 국내 서비스를 종료해 질문의 대상이 사라졌다\")",
+  "criterion_result": "none_recorded",
+  "evidence_items": ["벤더 B가 5월 27일 국내 서비스 종료를 공지 (사용자 보고) — observation S03-vendor-ofinal, 2026-06-02"],
+  "was_separately_closed": true,
+  "probes": [
+    { "item": "벤더 B가 5월 27일 국내 서비스 종료를 공지", "known_at_seal": false },
+    { "item": "A의 수수료 인상이 예정대로 7월에 시행된다", "known_at_seal": true }
+  ]
+}
