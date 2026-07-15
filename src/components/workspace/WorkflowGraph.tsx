@@ -286,13 +286,13 @@ export function WorkflowGraph({
                           <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-1.5">
                             {step.ai_scope && (
                               <div className="flex items-start gap-1.5 text-[11px] px-2 py-1.5 rounded-md bg-[#3b6dcc]/5">
-                                <span className="font-bold text-[#2d4a7c] shrink-0">AI:</span>
+                                <span className="font-bold text-[var(--ai-fg)] shrink-0">AI:</span>
                                 <span className="text-[var(--text-secondary)]">{step.ai_scope}</span>
                               </div>
                             )}
                             {step.human_scope && (
-                              <div className="flex items-start gap-1.5 text-[11px] px-2 py-1.5 rounded-md bg-[#8b6914]/5">
-                                <span className="font-bold text-[#8b6914] shrink-0">{L('사람', 'Human')}:</span>
+                              <div className="flex items-start gap-1.5 text-[11px] px-2 py-1.5 rounded-md bg-[var(--human-fg)]/5">
+                                <span className="font-bold text-[var(--human-fg)] shrink-0">{L('사람', 'Human')}:</span>
                                 <span className="text-[var(--text-secondary)]">{step.human_scope}</span>
                               </div>
                             )}
@@ -303,10 +303,10 @@ export function WorkflowGraph({
                         {!isExpanded && hasInput && (
                           <div className="flex gap-2 mt-2">
                             {step.user_ai_guide?.trim() && (
-                              <span className="text-[10px] px-2 py-0.5 rounded-full bg-[var(--ai)] text-[#2d4a7c] font-medium">{L('AI 가이드 입력됨', 'AI guide entered')}</span>
+                              <span className="text-[10px] px-2 py-0.5 rounded-full bg-[var(--ai)] text-[var(--ai-fg)] font-medium">{L('AI 가이드 입력됨', 'AI guide entered')}</span>
                             )}
                             {step.user_decision?.trim() && (
-                              <span className="text-[10px] px-2 py-0.5 rounded-full bg-[var(--human)] text-[#8b6914] font-medium">{L('결정 입력됨', 'Decision entered')}</span>
+                              <span className="text-[10px] px-2 py-0.5 rounded-full bg-[var(--human)] text-[var(--human-fg)] font-medium">{L('결정 입력됨', 'Decision entered')}</span>
                             )}
                           </div>
                         )}
@@ -341,7 +341,7 @@ export function WorkflowGraph({
                             <div className="rounded-lg p-3" style={{ backgroundColor: `${ACTORS.ai.color}06` }}>
                               <div className="flex items-center gap-1.5 mb-2.5">
                                 <Bot size={12} style={{ color: ACTORS.ai.text }} />
-                                <p className="text-[12px] font-semibold text-[#2d4a7c]">{L('AI 실행 방향', 'AI direction')}</p>
+                                <p className="text-[12px] font-semibold text-[var(--ai-fg)]">{L('AI 실행 방향', 'AI direction')}</p>
                               </div>
                               {step.ai_direction_options && step.ai_direction_options.length > 0 && (
                                 <div className="flex flex-wrap gap-1.5 mb-2">
@@ -359,7 +359,7 @@ export function WorkflowGraph({
                                       }}
                                       className={`px-3 py-1.5 rounded-lg text-[12px] font-medium border cursor-pointer transition-all ${
                                         (step.user_ai_guide || '').includes(opt)
-                                          ? 'border-[#3b6dcc] bg-[#3b6dcc]/10 text-[#2d4a7c]'
+                                          ? 'border-[#3b6dcc] bg-[#3b6dcc]/10 text-[var(--ai-fg)]'
                                           : 'border-[var(--border)] text-[var(--text-secondary)] hover:border-[#3b6dcc]/50'
                                       }`}
                                     >
@@ -381,7 +381,7 @@ export function WorkflowGraph({
                             <div className="rounded-lg p-3" style={{ backgroundColor: `${ACTORS.human.color}06` }}>
                               <div className="flex items-center gap-1.5 mb-2.5">
                                 <Brain size={12} style={{ color: ACTORS.human.text }} />
-                                <p className="text-[12px] font-semibold text-[#8b6914]">{L('사람이 결정할 것', 'What the human decides')}</p>
+                                <p className="text-[12px] font-semibold text-[var(--human-fg)]">{L('사람이 결정할 것', 'What the human decides')}</p>
                               </div>
                               {/* Show judgment only when no pills extracted (otherwise redundant) */}
                               {step.judgment?.trim() && options.length === 0 && (
@@ -398,8 +398,8 @@ export function WorkflowGraph({
                                         onClick={(e) => { e.stopPropagation(); onUpdateField?.(i, { user_decision: opt }); }}
                                         className={`px-3 py-1.5 rounded-lg text-[12px] font-medium border cursor-pointer transition-all ${
                                           step.user_decision === opt
-                                            ? 'border-[#8b6914] bg-[#8b6914] text-white'
-                                            : 'border-[var(--border)] text-[var(--text-secondary)] hover:border-[#8b6914] hover:text-[#8b6914]'
+                                            ? 'border-[var(--human-fg)] bg-[var(--human-fg)] text-white'
+                                            : 'border-[var(--border)] text-[var(--text-secondary)] hover:border-[var(--human-fg)] hover:text-[var(--human-fg)]'
                                         }`}
                                       >
                                         {opt}
@@ -411,7 +411,7 @@ export function WorkflowGraph({
                                     value={options.includes(step.user_decision || '') ? '' : (step.user_decision || '')}
                                     onChange={(e) => onUpdateField?.(i, { user_decision: e.target.value })}
                                     placeholder={L('또는 직접 입력...', 'Or type your own...')}
-                                    className="w-full text-[12px] px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] placeholder:text-[var(--text-tertiary)] focus:border-[#8b6914] focus:outline-none"
+                                    className="w-full text-[12px] px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] placeholder:text-[var(--text-tertiary)] focus:border-[var(--human-fg)] focus:outline-none"
                                     onClick={(e) => e.stopPropagation()}
                                   />
                                 </div>
@@ -422,7 +422,7 @@ export function WorkflowGraph({
                                   onChange={(e) => onUpdateField?.(i, { user_decision: e.target.value })}
                                   placeholder={L('이 단계에서의 판단을 입력하세요...', 'Enter your judgment for this step...')}
                                   rows={2}
-                                  className="w-full text-[12px] px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] placeholder:text-[var(--text-tertiary)] focus:border-[#8b6914] focus:outline-none resize-none"
+                                  className="w-full text-[12px] px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] placeholder:text-[var(--text-tertiary)] focus:border-[var(--human-fg)] focus:outline-none resize-none"
                                   onClick={(e) => e.stopPropagation()}
                                 />
                               )}
@@ -433,7 +433,7 @@ export function WorkflowGraph({
                             {/* AI guide input (ai-only steps) */}
                             {editable && step.actor === 'ai' && (
                               <div>
-                                <p className="text-[12px] font-semibold text-[#2d4a7c] mb-1.5">{L('AI 실행 방향', 'AI direction')}</p>
+                                <p className="text-[12px] font-semibold text-[var(--ai-fg)] mb-1.5">{L('AI 실행 방향', 'AI direction')}</p>
                                 {step.ai_direction_options && step.ai_direction_options.length > 0 && (
                                   <div className="flex flex-wrap gap-1.5 mb-2">
                                     {step.ai_direction_options.map((opt, j) => (
@@ -450,7 +450,7 @@ export function WorkflowGraph({
                                         }}
                                         className={`px-3 py-1.5 rounded-lg text-[12px] font-medium border cursor-pointer transition-all ${
                                           (step.user_ai_guide || '').includes(opt)
-                                            ? 'border-[#3b6dcc] bg-[#3b6dcc]/10 text-[#2d4a7c]'
+                                            ? 'border-[#3b6dcc] bg-[#3b6dcc]/10 text-[var(--ai-fg)]'
                                             : 'border-[var(--border)] text-[var(--text-secondary)] hover:border-[#3b6dcc]/50'
                                         }`}
                                       >
@@ -473,7 +473,7 @@ export function WorkflowGraph({
                             {/* Human judgment + decision (human-only steps) */}
                             {editable && step.actor === 'human' && (
                               <div>
-                                <p className="text-[12px] font-semibold text-[#8b6914] mb-1.5">{L('여기서 결정할 것', 'What to decide here')}</p>
+                                <p className="text-[12px] font-semibold text-[var(--human-fg)] mb-1.5">{L('여기서 결정할 것', 'What to decide here')}</p>
                                 {step.judgment?.trim() && options.length === 0 && (
                                   <p className="text-[12px] text-[var(--text-primary)] mb-2 leading-relaxed bg-[var(--bg)] rounded-lg px-3 py-2">
                                     {step.judgment.replace(/[:：]\s*$/, '')}
@@ -488,8 +488,8 @@ export function WorkflowGraph({
                                           onClick={(e) => { e.stopPropagation(); onUpdateField?.(i, { user_decision: opt }); }}
                                           className={`px-3 py-1.5 rounded-lg text-[12px] font-medium border cursor-pointer transition-all ${
                                             step.user_decision === opt
-                                              ? 'border-[#8b6914] bg-[#8b6914] text-white'
-                                              : 'border-[var(--border)] text-[var(--text-secondary)] hover:border-[#8b6914] hover:text-[#8b6914]'
+                                              ? 'border-[var(--human-fg)] bg-[var(--human-fg)] text-white'
+                                              : 'border-[var(--border)] text-[var(--text-secondary)] hover:border-[var(--human-fg)] hover:text-[var(--human-fg)]'
                                           }`}
                                         >
                                           {opt}
@@ -501,7 +501,7 @@ export function WorkflowGraph({
                                       value={options.includes(step.user_decision || '') ? '' : (step.user_decision || '')}
                                       onChange={(e) => onUpdateField?.(i, { user_decision: e.target.value })}
                                       placeholder={L('또는 직접 입력...', 'Or type your own...')}
-                                      className="w-full text-[12px] px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] placeholder:text-[var(--text-tertiary)] focus:border-[#8b6914] focus:outline-none"
+                                      className="w-full text-[12px] px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] placeholder:text-[var(--text-tertiary)] focus:border-[var(--human-fg)] focus:outline-none"
                                       onClick={(e) => e.stopPropagation()}
                                     />
                                   </div>
@@ -512,7 +512,7 @@ export function WorkflowGraph({
                                     onChange={(e) => onUpdateField?.(i, { user_decision: e.target.value })}
                                     placeholder={L('이 단계에서의 판단을 입력하세요...', 'Enter your judgment for this step...')}
                                     rows={2}
-                                    className="w-full text-[12px] px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] placeholder:text-[var(--text-tertiary)] focus:border-[#8b6914] focus:outline-none resize-none"
+                                    className="w-full text-[12px] px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] placeholder:text-[var(--text-tertiary)] focus:border-[var(--human-fg)] focus:outline-none resize-none"
                                     onClick={(e) => e.stopPropagation()}
                                   />
                                 )}
@@ -524,13 +524,13 @@ export function WorkflowGraph({
                         {/* Read-only filled values */}
                         {!editable && step.user_ai_guide?.trim() && (
                           <div className="rounded-lg bg-[var(--ai)] px-3 py-2">
-                            <p className="text-[11px] font-bold text-[#2d4a7c] mb-0.5">{L('AI 가이드', 'AI guide')}</p>
+                            <p className="text-[11px] font-bold text-[var(--ai-fg)] mb-0.5">{L('AI 가이드', 'AI guide')}</p>
                             <p className="text-[12px] text-[var(--text-primary)]">{step.user_ai_guide}</p>
                           </div>
                         )}
                         {!editable && step.user_decision?.trim() && (
                           <div className="rounded-lg bg-[var(--human)] px-3 py-2">
-                            <p className="text-[11px] font-bold text-[#8b6914] mb-0.5">{L('결정', 'Decision')}</p>
+                            <p className="text-[11px] font-bold text-[var(--human-fg)] mb-0.5">{L('결정', 'Decision')}</p>
                             <p className="text-[12px] text-[var(--text-primary)]">{step.user_decision}</p>
                           </div>
                         )}

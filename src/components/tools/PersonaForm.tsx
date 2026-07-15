@@ -565,7 +565,7 @@ export function PersonaForm({ persona, onSave, onCancel }: PersonaFormProps) {
           <button onClick={() => setStep('freetext')}
             className="w-full flex items-center gap-3 p-4 rounded-xl border border-[var(--border)] hover:border-[var(--accent)] hover:bg-[var(--ai)]/30 transition-all text-left cursor-pointer group">
             <div className="w-10 h-10 rounded-xl bg-[var(--ai)] flex items-center justify-center shrink-0">
-              <Sparkles size={20} className="text-[#2d4a7c]" />
+              <Sparkles size={20} className="text-[var(--ai-fg)]" />
             </div>
             <div className="flex-1">
               <p className="text-[14px] font-semibold text-[var(--text-primary)]">{L('자유롭게 설명', 'Describe freely')}</p>
@@ -577,7 +577,7 @@ export function PersonaForm({ persona, onSave, onCancel }: PersonaFormProps) {
           <button onClick={() => fileInputRef.current?.click()}
             className="w-full flex items-center gap-3 p-4 rounded-xl border border-[var(--border)] hover:border-[var(--accent)] hover:bg-[var(--ai)]/30 transition-all text-left cursor-pointer group">
             <div className="w-10 h-10 rounded-xl bg-[var(--human)] flex items-center justify-center shrink-0">
-              <FileText size={20} className="text-[#8b6914]" />
+              <FileText size={20} className="text-[var(--human-fg)]" />
             </div>
             <div className="flex-1">
               <p className="text-[14px] font-semibold text-[var(--text-primary)]">{L('파일에서 분석', 'Analyze from file')}</p>

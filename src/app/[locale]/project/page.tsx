@@ -427,7 +427,7 @@ export default function ProjectPage() {
         href: '/workspace?step=reframe',
         status: latestReframe?.status === 'done' ? 'done' : latestReframe ? 'in-progress' : 'not-started',
         summary: latestReframe?.selected_question || latestReframe?.analysis?.surface_task,
-        color: 'text-[#2d4a7c]',
+        color: 'text-[var(--ai-fg)]',
         bgColor: 'bg-[var(--ai)]',
       },
       {
@@ -439,7 +439,7 @@ export default function ProjectPage() {
         summary: latestRecast?.analysis
           ? L(`${latestRecast.steps.length}단계 워크플로우`, `${latestRecast.steps.length}-step workflow`)
           : undefined,
-        color: 'text-[#8b6914]',
+        color: 'text-[var(--human-fg)]',
         bgColor: 'bg-[var(--human)]',
       },
       {

@@ -962,7 +962,7 @@ function QuickRehearsalCard({
               <p className="text-[12px] text-[var(--text-secondary)] leading-relaxed mb-1.5">{reviewer.why_relevant}</p>
               <div className="flex flex-wrap gap-1.5">
                 {reviewer.decision_style && (
-                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-[var(--ai)] text-[#2d4a7c] font-medium">
+                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-[var(--ai)] text-[var(--ai-fg)] font-medium">
                     {{ analytical: L('데이터 중심', 'Data-driven'), intuitive: L('직관 중심', 'Intuitive'), consensus: L('합의 중시', 'Consensus-driven'), directive: L('빠른 결정', 'Decisive') }[reviewer.decision_style]}
                   </span>
                 )}
@@ -972,7 +972,7 @@ function QuickRehearsalCard({
                   </span>
                 )}
                 {reviewer.success_metric && (
-                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-[var(--collab)] text-[#2d6b2d] font-medium">
+                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-[var(--collab)] text-[var(--both-fg)] font-medium">
                     OK: {reviewer.success_metric.slice(0, 30)}{reviewer.success_metric.length > 30 ? '...' : ''}
                   </span>
                 )}

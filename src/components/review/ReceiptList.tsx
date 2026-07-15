@@ -24,7 +24,7 @@ import {
 const STATUS_STYLE: Record<DerivedStatus, string> = {
   due: 'text-amber-800 bg-amber-50 border-amber-200',
   sealed: 'text-[var(--accent)] bg-[var(--accent)]/10 border-[var(--accent)]/30',
-  owned: 'text-[#8b6914] bg-[#8b6914]/10 border-[#8b6914]/20',
+  owned: 'text-[var(--human-fg)] bg-[var(--human-fg)]/10 border-[var(--human-fg)]/20',
   reviewed: 'text-[var(--text-secondary)] bg-[var(--bg)] border-[var(--border-subtle)]',
   settled: 'text-green-700 bg-green-50 border-green-200',
 };

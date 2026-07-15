@@ -579,7 +579,7 @@ ${L('리스크', 'Risks')}: ${(r.classified_risks || []).map(cr => `[${cr.catego
           {autoPersonaIds.length > 0 && (
             <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[var(--ai)]">
               <Check size={14} className="text-[var(--accent)]" />
-              <span className="text-[12px] font-medium text-[#2d4a7c]">{L(`선원 배치에서 찾은 이해관계자 ${autoPersonaIds.length}명이 선택되었습니다`, `${autoPersonaIds.length} stakeholder${autoPersonaIds.length === 1 ? '' : 's'} from Recast selected`)}</span>
+              <span className="text-[12px] font-medium text-[var(--ai-fg)]">{L(`선원 배치에서 찾은 이해관계자 ${autoPersonaIds.length}명이 선택되었습니다`, `${autoPersonaIds.length} stakeholder${autoPersonaIds.length === 1 ? '' : 's'} from Recast selected`)}</span>
             </div>
           )}
 
