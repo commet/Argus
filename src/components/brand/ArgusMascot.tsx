@@ -25,6 +25,7 @@ export function ArgusMascot({
   alt,
   framed = true,
   animate = false,
+  playful = false,
   className = '',
   style,
 }: {
@@ -33,6 +34,9 @@ export function ArgusMascot({
   alt?: string;
   framed?: boolean;
   animate?: boolean;
+  /** Warm "moment" surfaces (seal / settle): a periodic cute wag instead of the
+   *  calm breathe. Implies animate. Honors prefers-reduced-motion. */
+  playful?: boolean;
   className?: string;
   style?: CSSProperties;
 }) {
@@ -50,7 +54,7 @@ export function ArgusMascot({
         // 액자가 아니라 '의도된 일러스트 판'으로 읽히게. 밝은 그림이므로 다크모드에도
         // 어두운 박스가 아니라 같은 따뜻한 판을 유지한다(광택 인셋 하이라이트 제거).
         framed ? 'rounded-xl bg-[#ece3d4] ring-1 ring-black/[0.05] shadow-[0_4px_14px_rgba(70,52,30,0.12)]' : '',
-        animate ? 'argus-mascot-breathe' : '',
+        playful ? 'argus-mascot-wiggle' : animate ? 'argus-mascot-breathe' : '',
         wrapperSize,
         className,
       ].filter(Boolean).join(' ')}

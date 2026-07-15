@@ -33,6 +33,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { LocaleLink } from '@/components/ui/LocaleLink';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { Anchor, CalendarPlus, Check, ChevronDown, Target, AlertTriangle, GitBranch } from 'lucide-react';
+import { ArgusMascot } from '@/components/brand/ArgusMascot';
 import { useLocale } from '@/hooks/useLocale';
 import { useAuth } from '@/lib/auth';
 import { useProjectStore } from '@/stores/useProjectStore';
@@ -509,9 +510,13 @@ export function SealMoment({
         <div className="flex justify-center">
           <SealStamp animate date={stampDate} />
         </div>
-        <p className="seal-line-write mt-7 text-[15px] font-semibold text-[var(--text-primary)] leading-[1.5]">
-          {L(`봉인했어요 — ${checkDateStr}에 제가 먼저 물어볼게요.`, `Sealed — I'll ask you first on ${checkDateStr}.`)}
-        </p>
+        <div className="mt-7 flex flex-col items-center gap-2.5">
+          {/* '제가 먼저 물어볼게요' — 약속하는 그 Argus가 직접 */}
+          <ArgusMascot variant="head" size="sm" animate playful alt={L('Argus', 'Argus')} />
+          <p className="seal-line-write text-[15px] font-semibold text-[var(--text-primary)] leading-[1.5]">
+            {L(`봉인했어요 — ${checkDateStr}에 제가 먼저 물어볼게요.`, `Sealed — I'll ask you first on ${checkDateStr}.`)}
+          </p>
+        </div>
       </motion.div>
     ) : scene === 'sealed' ? (
       // ════ SEALED — the seal certificate (07 S4): the plate above is the

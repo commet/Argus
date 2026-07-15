@@ -1462,7 +1462,7 @@ function DemoSettleCard({ scenario, locale = 'ko' }: { scenario: DemoScenario; l
               <motion.div key="rev" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, ease: EASE }} className="space-y-6">
                 <div className="text-center">
                   {/* Argus는 '제가 먼저 물어볼게요'의 그 감시자 — 정산 순간에 직접 등장 */}
-                  <div className="flex justify-center mb-3"><ArgusMascot variant="head" size="sm" animate /></div>
+                  <div className="flex justify-center mb-3"><ArgusMascot variant="head" size="sm" animate playful /></div>
                   <p className="text-[10px] font-bold text-[var(--accent)] uppercase tracking-[0.18em] mb-2">{L('확인일 — 제가 돌아왔어요', 'Check-in day — I’m back')}</p>
                   <h2 className="text-[22px] md:text-[26px] font-bold text-[var(--text-primary)] tracking-tight">{L('그래서, 어떻게 됐어요?', 'So, how did it go?')}</h2>
                 </div>

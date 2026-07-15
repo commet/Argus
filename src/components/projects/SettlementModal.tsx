@@ -26,7 +26,8 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
-import { Target, AlertTriangle, GitBranch, Check, Anchor } from 'lucide-react';
+import { Target, AlertTriangle, GitBranch, Check } from 'lucide-react';
+import { ArgusMascot } from '@/components/brand/ArgusMascot';
 import { useLocale } from '@/hooks/useLocale';
 import { useProjectStore } from '@/stores/useProjectStore';
 import { useReviewStore } from '@/stores/useReviewStore';
@@ -350,9 +351,8 @@ export function SettlementModal({
             settle feels like arriving in port, not filling a dialog. Mirrors the
             SealMoment scene at the other end of the loop. */}
         <div className="flex flex-col items-center text-center gap-2 pb-1">
-          <div className="w-11 h-11 rounded-full flex items-center justify-center shadow-[var(--shadow-sm)]" style={{ background: 'var(--gradient-gold)' }}>
-            <Anchor size={19} className="text-white" />
-          </div>
+          {/* 돌아온 Argus가 직접 묻는다 — '제가 먼저 물어볼게요'의 그 감시자 */}
+          <ArgusMascot variant="head" size="sm" animate playful alt={L('돌아온 Argus', 'Argus, back')} />
           <p className="text-[15px] md:text-[16px] font-bold text-[var(--text-primary)] leading-[1.35]" style={{ fontFamily: 'var(--font-display)' }}>
             {L('그때 건 예측을, 이제 현실과 맞춰봐요', 'Time to check your prediction against what happened')}
           </p>
