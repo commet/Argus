@@ -802,7 +802,87 @@ function cmdSettle() {
   console.log(`Settled ${id}: ${outcome}${event.basis ? ` (${event.basis})` : ""}`);
 }
 
-const commands = { scan: cmdScan, seal: cmdSeal, settle: cmdSettle, list: () => cmdList(), status: cmdStatus };
+// Single-source writer for a BRAND-NEW predicate (harvest + seal in one atomic
+// pair) — was hand-written JSON in the clarify (BIND lean) and preapprove skills.
+// Unlike `seal`, which seals an EXISTING candidate/seed, `record` births a fresh
+// id the caller owns (clarify: lean:<session>, preapprove: sha(session|quote)).
+// The CLI owns the canonical v1 shape and appends both lines in O_APPEND, so the
+// two skills can no longer drift from what the readers (v1-reader, statusline,
+// reminder) replay. Provenance (`--author user`) rides the seal, exactly as the
+// webapp `authored` field does.
+function cmdRecord() {
+  const predicate = flags.predicate ? String(flags.predicate) : "";
+  const session = flags.session ? String(flags.session) : "";
+  const quote = flags.quote ? String(flags.quote) : predicate;
+  // The caller may pass an explicit --id (clarify: lean:<session>) or let the CLI
+  // derive the same sha256(session|quote) id argus-watch and /argus:scan use, so
+  // the LLM never has to compute a hash by hand (preapprove).
+  let id = flags.id ? String(flags.id) : "";
+  if (!id && session && quote) id = stableId(session, quote);
+  if (!id || !predicate) {
+    console.error('Usage: decision-ledger.js record --predicate "<one checkable sentence>" (--id <id> | --session <sess> [--quote "..."]) [--check-by YYYY-MM-DD] [--decision "..."] [--falsified-if "..."] [--type adopt|open|...] [--stakes high|medium|low] [--author user] [--project <name>] [--decided-at <ISO>]');
+    process.exit(1);
+  }
+  const checkBy = flags["check-by"] ? String(flags["check-by"]) : undefined;
+  if (checkBy && !/^\d{4}-\d{2}-\d{2}$/.test(checkBy)) {
+    console.error("--check-by must be an ISO date (YYYY-MM-DD) or omitted.");
+    process.exit(1);
+  }
+  const harvest = {
+    event: "harvest",
+    id,
+    project: flags.project ? String(flags.project) : path.basename(root),
+    session: session || "unknown",
+    decided_at: flags["decided-at"] ? String(flags["decided-at"]) : new Date().toISOString(),
+    quote,
+    decision: flags.decision ? String(flags.decision) : predicate,
+    type: flags.type ? String(flags.type) : "adopt",
+  };
+  if (flags.stakes) harvest.stakes = String(flags.stakes);
+  appendEvent(harvest);
+  const seal = {
+    event: "seal",
+    id,
+    predicate,
+    falsified_if: flags["falsified-if"] ? String(flags["falsified-if"]) : "opposite observed",
+  };
+  if (checkBy) seal.check_by = checkBy;
+  if (flags.author) seal.author = String(flags.author);
+  appendEvent(seal);
+  console.log(`Recorded ${id}${seal.author ? ` (author: ${seal.author})` : ""}`);
+  console.log(`  predicate: ${truncate(predicate, 140)}`);
+  console.log(`  check_by: ${checkBy || "none"}`);
+}
+
+// Single-source writer for the amend event (push a due contract's date, or fix a
+// field) — was hand-written JSON in the resolve skill's pending branch. Append-only:
+// the reducer preserves the prior values in history, so this never clobbers.
+function cmdAmend() {
+  const id = flags._[0];
+  const checkBy = flags["check-by"] ? String(flags["check-by"]) : undefined;
+  const predicate = flags.predicate ? String(flags.predicate) : undefined;
+  const falsifiedIf = flags["falsified-if"] ? String(flags["falsified-if"]) : undefined;
+  if (!id) {
+    console.error('Usage: decision-ledger.js amend <id> [--check-by YYYY-MM-DD] [--predicate "..."] [--falsified-if "..."]');
+    process.exit(1);
+  }
+  if (!checkBy && !predicate && !falsifiedIf) {
+    console.error("amend needs at least one of --check-by / --predicate / --falsified-if.");
+    process.exit(1);
+  }
+  if (checkBy && !/^\d{4}-\d{2}-\d{2}$/.test(checkBy)) {
+    console.error("--check-by must be an ISO date (YYYY-MM-DD).");
+    process.exit(1);
+  }
+  const event = { event: "amend", id };
+  if (checkBy) event.check_by = checkBy;
+  if (predicate) event.predicate = predicate;
+  if (falsifiedIf) event.falsified_if = falsifiedIf;
+  appendEvent(event);
+  console.log(`Amended ${id}${checkBy ? ` → check_by ${checkBy}` : ""}`);
+}
+
+const commands = { scan: cmdScan, seal: cmdSeal, settle: cmdSettle, record: cmdRecord, amend: cmdAmend, list: () => cmdList(), status: cmdStatus };
 if (!cmd || !commands[cmd]) {
   console.log("Usage:");
   console.log("  /argus:scan [--since days] [--all-projects] [--model sonnet] [--list]");

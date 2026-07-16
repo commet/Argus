@@ -497,12 +497,20 @@ Then:
 - **A lean was volunteered → write an EARLY rope to the ledger now** (the user's own
   words are the predicate; `author:"user"` records it is theirs, not machine-
   surfaced). Infer the check-back from stakes (do NOT ask): high → +2 weeks,
-  medium → +1 month, else omit `check_by`. The user can change it at settle:
+  medium → +1 month, else omit `--check-by`. The user can change it at settle.
+  Write it through the single-source ledger writer — do NOT hand-write the JSON
+  (the CLI owns the canonical harvest+seal shape, stamps `at`, and appends in
+  `O_APPEND`, so this rope can never drift from what the readers replay):
 
-```json
-{"event":"harvest","id":"lean:<session-id>","project":"<.argus dir name>","session":"<session-id>","decided_at":"<now ISO>","quote":"<the user's lean, verbatim>","decision":"<the user's lean, verbatim>","type":"open","at":"<now ISO>"}
-{"event":"seal","id":"lean:<session-id>","predicate":"<the user's lean, verbatim>","falsified_if":"opposite observed","check_by":"<inferred from stakes: high +2w, medium +1m, else omit>","author":"user","at":"<now ISO>"}
+```bash
+node "${CLAUDE_PLUGIN_ROOT}/scripts/decision-ledger.js" record \
+  --id "lean:<session-id>" --session "<session-id>" --type open --author user \
+  --predicate "<the user's lean, verbatim>" [--check-by <high +2w / medium +1m, else omit>]
 ```
+
+  `quote`/`decision` default to the predicate and `falsified_if` to `opposite
+  observed`, so the user's verbatim lean is all you pass. Omit `--check-by`
+  entirely for low stakes.
 
 **Ears open (reviewers never see the lean):** the lean is NEVER handed to the reviewers as a directive and
 NEVER suppresses Phase 2 generation — it is only the anchor that `settle` re-confronts
