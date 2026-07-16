@@ -251,8 +251,8 @@ export function UseCases() {
         {/* the loop in one line + the one quiet product-level honesty */}
         <p className={bk} style={{ color: 'var(--bp-ink-soft)', fontSize: 12, lineHeight: 1.6, marginTop: 24, opacity: 0.9, maxWidth: 720 }}>
           {L(
-            '무엇을 정하든 같아요 — 결정을 받친 것을 기억해 뒀다가, 그게 흔들리거나 때가 오면 당신에게 돌려드립니다. 결정은 늘 당신이 내려요. (저희가 던지는 질문에도 옅은 치우침은 남아요 — 아는 한계고요.)',
-            'Whatever you decide, it’s the same — we remember what it stood on, and when that shifts (or the moment arrives), we hand it back to you. You always make the call. (Even our questions carry a faint lean — a limit we own.)',
+            '결정의 근거를 기억했다 때가 오면 돌려드려요. 결정은 당신 몫이고, 질문의 치우침도 숨기지 않습니다.',
+            'We return what your decision stood on when the time comes. The call is yours; we don’t hide our questions’ lean.',
           )}
         </p>
       </div>
