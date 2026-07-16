@@ -272,3 +272,37 @@ K1은 schema, pure reducer, shadow sink contract와 독립 테스트까지만 �
 - [ ] **F3** 개인 반복 Pattern의 3건 최소치를 고정 헌법으로 둘 것인가
 - [ ] **F4** evidence excerpt/private 원문 보존의 기본 정책은 무엇인가
 - [ ] **F5** server watch 전 premise text 편집/redaction 단계를 필수로 둘 것인가
+
+---
+
+## 창업자 결정 브리프
+
+이 부록은 F1~F5를 닫기 위한 의사결정 메모다. 아래 권고는 K1/K2 구현의
+임시 기본값을 public contract로 승격하지 않으며, 창업자 승인 전에는 제품 표면,
+export/developer API, 장기 저장 정책, 자동 코칭 정책을 열지 않는다.
+
+| 결정 | 권고 기본값 | 승인하면 열리는 다음 단계 | 승인 전 금지 |
+|---|---|---|---|
+| F1 public naming | 내부 코어와 export/developer API는 `DecisionCase`, `JudgmentVersion`, `Assertion`, `EvidenceArtifact`를 유지하고, 사용자 UI는 기존 판단/예측/전제/근거 언어를 유지한다. | developer-facing 문서와 export schema 초안을 만들 수 있다. | 사용자 표면에서 `JudgmentVersion`을 제품 용어로 노출하지 않는다. |
+| F2 combined consent | UI는 한 번 승인처럼 보일 수 있지만 receipt는 premise adoption과 remote sync consent를 별도 필드로 기록한다. | W1 검토 카드의 copy와 receipt shape를 설계할 수 있다. | 한 버튼 클릭을 두 권한의 재사용 가능한 포괄 동의로 저장하지 않는다. |
+| F3 Pattern floor | 개인 반복 Pattern은 독립 resolved case 3건을 최소치로 두고, blast radius 알림은 별도 deterministic 경로로 둔다. | O4 이후 Patterns policy test와 projection fixture를 만들 수 있다. | K1/K2에서 개인 Pattern 산출, 코칭 카드, 5차원 Patterns UI를 만들지 않는다. |
+| F4 Evidence retention | 기본은 locator, hash, 짧은 excerpt 또는 measurement만 저장하고 `full_content`는 금지한다. | evidence excerpt limit, private source policy, vault 별도 ADR을 열 수 있다. | private 원문, 업로드 본문, 웹 문서 전문을 v4 schema에 추가하지 않는다. |
+| F5 watch redaction | server watch는 사용자가 선택한 premise literal text와 WatchSpec, opaque decision ref만 전송한다. redaction step은 W1에서 별도 제품 결정으로 둔다. | watch consent UI와 local redaction affordance를 설계할 수 있다. | 전체 판단 문장, rationale, 선택지, 다른 premise를 자동 전송하지 않는다. |
+
+### Draft 해제 기준
+
+PR #170을 Draft에서 Ready로 바꾸려면 다음 중 하나가 필요하다.
+
+1. 창업자가 F1~F5를 위 권고 기본값으로 승인한다.
+2. 창업자가 일부 항목을 수정 승인하고, 이 ADR의 해당 F 항목과 브리프가 같은
+   의미로 갱신된다.
+3. F1~F5는 intentionally deferred로 남기되, PR #170의 병합 범위가 shadow-only
+   실험 계약임을 승인한다.
+
+어느 경우에도 K1/K2 병합 전까지 다음 경계는 유지한다.
+
+- `ARGUS_SEMANTIC_V4_SHADOW=1`이 없으면 v4는 off다.
+- v4는 v3 reducer/store를 import하거나 monkey-patch하지 않는다.
+- v1/v2 write path의 성공, 응답, 수명주기를 바꾸지 않는다.
+- proposed semantic relation은 judgment lifecycle을 바꾸지 못한다.
+- 별도 authorization receipt 없이는 `user_lean`에서 `JudgmentVersion`을 만들지 않는다.
