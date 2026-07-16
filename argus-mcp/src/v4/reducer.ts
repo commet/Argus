@@ -209,9 +209,10 @@ export function fold(events: readonly unknown[]): SemanticState {
 }
 
 export function foldAsOf(events: readonly unknown[], asOf: string): SemanticState {
+  const cutoff = Date.parse(asOf);
   return fold(events.filter((raw) => {
     const parsed = SemanticEventSchema.safeParse(raw);
-    return parsed.success && parsed.data.time.recorded_at <= asOf;
+    return parsed.success && Date.parse(parsed.data.time.recorded_at) <= cutoff;
   }));
 }
 

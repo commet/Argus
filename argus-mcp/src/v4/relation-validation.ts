@@ -16,7 +16,8 @@ function overlaps(
   right: Assertion['scope']['valid_time'],
 ): boolean {
   if (!left || !right) return false;
-  return left.from <= right.to && right.from <= left.to;
+  return Date.parse(left.from) <= Date.parse(right.to)
+    && Date.parse(right.from) <= Date.parse(left.to);
 }
 
 function sameSubject(left: Assertion, right: Assertion): boolean {

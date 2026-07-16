@@ -265,6 +265,24 @@ describe('§14.2 time and no-overwrite betrayal fixtures', () => {
     expect(state.observations.has('observation:late')).toBe(false);
   });
 
+  it('compares as-of timestamps by instant rather than ISO string shape', () => {
+    const observed = SemanticEventSchema.parse({
+      ...base('observation:offset', '2026-07-16T10:00:00.000+09:00'),
+      authority: { ...system, observed_by: { kind: 'host', id: 'source:test' } },
+      provenance: { source_kind: 'host_report', source_ref: 'evidence:offset', verification: 'host_reported' },
+      event: 'observation_recorded',
+      observation: {
+        observation_id: 'observation:offset',
+        report: 'Offset timestamp observation.',
+        valid_time: { from: '2026-07-16T10:00:00.000+09:00', to: '2026-07-16T02:00:00.000Z' },
+        evidence_refs: ['evidence:offset'],
+        confidence: 0.9,
+      },
+    });
+    const state = foldAsOf([evidence('evidence:offset'), observed], '2026-07-16T01:30:00.000Z');
+    expect(state.observations.has('observation:offset')).toBe(true);
+  });
+
   it('keeps retrospective rationale explicitly retrospective', () => {
     const retrospective = SemanticEventSchema.parse({
       ...base('rationale:retro', T2),
@@ -395,6 +413,25 @@ describe('§14.4 relation betrayal fixtures', () => {
       .toEqual({ eligible: false, reason: 'TIME_SCOPE_MISMATCH' });
   });
 
+  it('compares relation time scopes by instant rather than offset string order', () => {
+    const left = AssertionSchema.parse({
+      ...premise('assertion:offset:left'),
+      scope: {
+        ...premise('assertion:offset:left').scope,
+        valid_time: { from: '2026-07-16T10:00:00.000+09:00', to: '2026-07-16T02:00:00.000Z' },
+      },
+    });
+    const right = AssertionSchema.parse({
+      ...premise('assertion:offset:right'),
+      scope: {
+        ...premise('assertion:offset:right').scope,
+        valid_time: { from: '2026-07-16T01:30:00.000Z', to: '2026-07-16T12:00:00.000+09:00' },
+      },
+    });
+    expect(validateRelationCandidate({ type: 'same_fact', from: left, to: right, evidence_refs: ['evidence:a'] }))
+      .toEqual({ eligible: true, reason: 'TYPE_CONTRACT_SATISFIED' });
+  });
+
   it('does not treat a prediction miss as an automatic semantic contradiction', () => {
     const observed = AssertionSchema.parse({
       ...prediction('assertion:observed', 'Observed active teams were below 20.'),
@@ -423,6 +460,37 @@ describe('§14.4 relation betrayal fixtures', () => {
       verification_basis: 'llm_similarity',
     };
     expect(SemanticEventSchema.safeParse(forged).success).toBe(false);
+  });
+
+  it('does not let semantic inference types become system_verified with a deterministic-looking basis', () => {
+    const forged = {
+      ...base('relation:shared:structural'), authority: system, event: 'relation_verified',
+      relation: {
+        relation_id: 'relation:shared:structural', type: 'shared_constraint',
+        from_ref: { kind: 'assertion', id: 'constraint:a' },
+        to_ref: { kind: 'assertion', id: 'constraint:b' },
+        direction: 'symmetric', evidence_refs: ['evidence:a', 'evidence:b'],
+        endpoint_evidence: { from: ['evidence:a'], to: ['evidence:b'] },
+        status: 'system_verified', proposed_by: { kind: 'system', id: 'argus:test' },
+      },
+      verification_basis: 'structural',
+    };
+    expect(SemanticEventSchema.safeParse(forged).success).toBe(false);
+  });
+
+  it('still permits exact identity relations to be system_verified', () => {
+    const verified = {
+      ...base('relation:same-fact:exact'), authority: system, event: 'relation_verified',
+      relation: {
+        relation_id: 'relation:same-fact:exact', type: 'same_fact',
+        from_ref: { kind: 'assertion', id: 'assertion:a' },
+        to_ref: { kind: 'assertion', id: 'assertion:b' },
+        direction: 'symmetric', evidence_refs: ['evidence:a', 'evidence:b'],
+        status: 'system_verified', proposed_by: { kind: 'system', id: 'argus:test' },
+      },
+      verification_basis: 'same_content_hash',
+    };
+    expect(SemanticEventSchema.safeParse(verified).success).toBe(true);
   });
 
   it('withholds coaching eligibility if either endpoint lacks evidence', () => {

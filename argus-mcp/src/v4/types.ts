@@ -38,7 +38,9 @@ export const TimeRangeSchema = z.strictObject({
   from: zIsoDateTime,
   to: zIsoDateTime,
 }).superRefine((range, ctx) => {
-  if (range.from > range.to) ctx.addIssue({ code: 'custom', message: 'time range from must not exceed to' });
+  if (Date.parse(range.from) > Date.parse(range.to)) {
+    ctx.addIssue({ code: 'custom', message: 'time range from must not exceed to' });
+  }
 });
 export type TimeRange = z.infer<typeof TimeRangeSchema>;
 
@@ -122,6 +124,13 @@ export const SemanticRelationTypeSchema = z.enum([
   'derived_from',
 ]);
 export type SemanticRelationType = z.infer<typeof SemanticRelationTypeSchema>;
+
+const SystemVerifiableRelationTypeSchema = z.enum([
+  'same_fact',
+  'updates',
+  'same_question',
+  'derived_from',
+]);
 
 export const RelationSchema = z.strictObject({
   relation_id: zId,
@@ -305,6 +314,9 @@ const relationVerified = z.strictObject({
   verification_basis: z.enum(['same_entity_id', 'same_content_hash', 'same_normalized_url', 'same_series_id', 'structural']),
 }).superRefine((event, ctx) => {
   if (event.relation.status !== 'system_verified') ctx.addIssue({ code: 'custom', message: 'verified relation must have system_verified status' });
+  if (!SystemVerifiableRelationTypeSchema.safeParse(event.relation.type).success) {
+    ctx.addIssue({ code: 'custom', message: 'semantic relation type cannot be system_verified in K1' });
+  }
 });
 
 const relationConfirmed = authorial({
