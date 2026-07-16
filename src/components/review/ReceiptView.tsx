@@ -66,11 +66,12 @@ function anchorLabel(L: LFn, a?: SourceAnchor, isImage = false): string {
   if (!a) return '';
   if (a.slide !== undefined) return L(`슬라이드 ${a.slide}`, `Slide ${a.slide}`);
   const sec = a.section_path?.length ? a.section_path.join(' › ') : '';
-  // A single uploaded image has no pages — the vision pass anchors its findings
-  // to "page 1", so render that as "이미지" instead of the awkward "1쪽". (A
-  // future multi-image upload would keep the number: "이미지 2".)
+  // A single uploaded image IS the whole source — the vision pass anchors every
+  // finding to "page 1", so a "(이미지)" tag on each line just repeats and adds
+  // nothing. Drop it. Only when there are several images does the number carry
+  // information ("이미지 2"), so keep that. (Never the awkward "1쪽".)
   if (isImage && a.page !== undefined) {
-    return a.page > 1 ? L(`이미지 ${a.page}`, `Image ${a.page}`) : L('이미지', 'Image');
+    return a.page > 1 ? L(`이미지 ${a.page}`, `Image ${a.page}`) : '';
   }
   // A PDF anchor carries a page; show it (with the section when we have one) so a
   // finding always points somewhere — a page-only anchor used to render blank.
