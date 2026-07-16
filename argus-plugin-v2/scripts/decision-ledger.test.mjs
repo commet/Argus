@@ -109,6 +109,45 @@ const isIso = (s) => typeof s === 'string' && /^\d{4}-\d{2}-\d{2}T/.test(s);
   rmSync(p, { recursive: true, force: true });
 }
 
+// --- premises: the items.jsonl store (a DIFFERENT file from the ledger) --------
+const CHECK_CONTRACTS = join(dirname(fileURLToPath(import.meta.url)), 'check-contracts.js');
+function itemsLines(cwd) {
+  return readFileSync(join(cwd, '.argus', 'items.jsonl'), 'utf8').split('\n').filter(Boolean).map((l) => JSON.parse(l));
+}
+{
+  const p = freshProject();
+  // extract a load-bearing external premise → the reducer starts it monitored (on_change)
+  const ex = run(p, ['premises', 'extract', '--id', 'item_d_p1', '--decision', 'd', '--type', 'premise',
+    '--text', 'rates stay flat this year', '--external', '--load-bearing']);
+  ok('premises extract exits 0', ex.status === 0);
+  const it = itemsLines(p).at(-1);
+  ok('extract writes to items.jsonl (not the ledger) with the reducer-consumed shape',
+    it.event === 'extract' && it.id === 'item_d_p1' && it.type === 'premise' && it.external === true && it.load_bearing === true && it.ai_original === 'rates stay flat this year');
+  ok('extract defaults ai_original to text; no undefined leaks', !JSON.stringify(it).includes('"undefined"'));
+  // items.jsonl is gitignored (personal), same privacy posture as the ledger
+  ok('items.jsonl is added to .argus/.gitignore', readFileSync(join(p, '.argus', '.gitignore'), 'utf8').includes('items.jsonl'));
+
+  // END-TO-END: the reducer (check-contracts.js) must actually SEE this as a due premise
+  const reminder = spawnSync(process.execPath, [CHECK_CONTRACTS], { cwd: p, encoding: 'utf8' });
+  ok('check-contracts surfaces the CLI-written premise as due', /premise|전제/i.test(reminder.stdout));
+
+  // add (user) → source:user, no ai_original
+  run(p, ['premises', 'add', '--id', 'item_d_q1', '--decision', 'd', '--type', 'open_question', '--text', 'do we need region 2?']);
+  const added = itemsLines(p).at(-1);
+  ok('add is user-sourced with no ai_original', added.event === 'add' && added.source === 'user' && !('ai_original' in added));
+
+  // alert off → reducer drops it from "due"; dismiss/edit/recheck shapes
+  run(p, ['premises', 'alert', '--id', 'item_d_p1', '--mode', 'off']);
+  ok('alert writes {id,mode}', itemsLines(p).at(-1).mode === 'off');
+  run(p, ['premises', 'edit', '--id', 'item_d_p1', '--action', 'refine', '--to', 'rates rise 0.5pt']);
+  ok('edit writes {id,action,to}', (() => { const e = itemsLines(p).at(-1); return e.event === 'edit' && e.action === 'refine' && e.to === 'rates rise 0.5pt'; })());
+  run(p, ['premises', 'recheck', '--id', 'item_d_p1', '--last-value', 'BOK held at 3.5%']);
+  ok('recheck writes {id,last_value}', itemsLines(p).at(-1).last_value === 'BOK held at 3.5%');
+  run(p, ['premises', 'dismiss', '--id', 'item_d_p1']);
+  ok('dismiss writes {id}', itemsLines(p).at(-1).event === 'dismiss');
+  rmSync(p, { recursive: true, force: true });
+}
+
 // --- loud failures: a broken call must exit non-zero, never write junk ------
 {
   const p = freshProject();
