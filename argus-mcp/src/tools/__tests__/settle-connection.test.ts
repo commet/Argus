@@ -68,8 +68,11 @@ describe('settle 연결 읽기 — 같은 전제에 선 다른 열린 결정', (
     expect(settled.data['connections']).toEqual(['rate-limiter']);
     expect(settled.surface).toContain('rate-limiter');
     expect(settled.surface).toContain('same assumption');
-    // 스파인: 평결 어휘 없음 — 사실 + 손잡이(check_in)뿐.
-    expect(settled.surface).not.toMatch(/recommend|verdict|you were wrong|mistake/i);
+    // 스파인: 평결 어휘 없음 — 사실 + 손잡이(check_in)뿐. 단 첫 정산의 surface에는
+    // 영수증 전문이 실리고(§9.7 O1 방3) 그 안의 헌법 서명 줄 "AI VERDICT ON THIS
+    // DECISION ··· NONE"은 반(反)판정 선언이므로, 그 한 줄만 제외하고 가드를 그대로 건다.
+    const sansSignature = String(settled.surface).replace(/AI VERDICT ON THIS DECISION[^\n]*NONE/g, '');
+    expect(sansSignature).not.toMatch(/recommend|verdict|you were wrong|mistake/i);
     expect(settled.surface).toContain('argus_check_in');
   });
 
