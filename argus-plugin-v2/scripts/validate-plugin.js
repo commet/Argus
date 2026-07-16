@@ -310,6 +310,25 @@ if (fs.existsSync(sailWakePath)) {
   check(!/\{"event":"wake"/.test(sailWake), "sail must not hand-write a wake ledger JSON line — route through decision-ledger.js (single-source shape)");
 }
 
+// The tracked-items store (.argus/items.jsonl) is also single-source (Option A):
+// premises (add/edit/alert/recheck/dismiss) and clarify (extract) must route through
+// `decision-ledger.js premises <op>`, never hand-written items JSON. The reducer that
+// replays them is check-contracts.js; argus-mcp driver-plugin.test.ts locks the
+// CLI-op ↔ reducer-consumption contract.
+const ITEMS_JSON = /\{\s*"?event"?:\s*"(extract|add|edit|alert|recheck|dismiss)"/;
+const premisesItemsPath = path.join(root, "skills", "premises", "SKILL.md");
+if (fs.existsSync(premisesItemsPath)) {
+  const premises = fs.readFileSync(premisesItemsPath, "utf8");
+  check(/decision-ledger\.js" premises\b/.test(premises), "premises must write items through `decision-ledger.js premises <op>`, not hand-written items.jsonl JSON");
+  check(!ITEMS_JSON.test(premises), "premises must not hand-write items.jsonl event JSON — route through decision-ledger.js (single-source shape)");
+}
+const clarifyItemsPath = path.join(root, "skills", "clarify", "SKILL.md");
+if (fs.existsSync(clarifyItemsPath)) {
+  const clarifyItems = fs.readFileSync(clarifyItemsPath, "utf8");
+  check(/decision-ledger\.js" premises extract\b/.test(clarifyItems), "clarify must emit decision items through `decision-ledger.js premises extract`, not hand-written extract JSON");
+  check(!ITEMS_JSON.test(clarifyItems), "clarify must not hand-write items.jsonl event JSON — route through decision-ledger.js");
+}
+
 const draft = readJson(path.join(root, "data", "schemas", "draft.json"));
 if (draft) {
   // v2.1: the draft node is a thin tree pointer — boss review is a small boolean

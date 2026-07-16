@@ -425,10 +425,15 @@ analysis.json, project the assumptions you ALREADY computed into trackable items
 so `/argus:premises` and the premise-alert layer have data (design:
 `internal design notes`). Reuse
 `hidden_assumptions` — do NOT run a second extraction (that would drift from the
-webapp's `item-extract-core`). Append one line per item to `.argus/items.jsonl`
-(project root, append-only), event `extract`:
+webapp's `item-extract-core`). Write one item per assumption through the
+single-source CLI (never hand-write the JSON — the CLI owns the shape the
+premise-alert reducer replays); `ai_original` defaults to `--text`:
 
-`{"event":"extract","id":"item_{session_id}_p{n}","decision_id":"{session_id}","type":"premise","text":"{assumption}","external":{true|false},"load_bearing":{true|false},"ai_original":"{assumption}","at":"{ISO}"}`
+```bash
+node "${CLAUDE_PLUGIN_ROOT}/scripts/decision-ledger.js" premises extract \
+  --id "item_{session_id}_p{n}" --decision "{session_id}" --type premise \
+  --text "{assumption}" [--external] [--load-bearing]
+```
 
 Rules (keep it restrained):
 - One `premise` item per `hidden_assumptions` entry (`ai_original` = the same text).

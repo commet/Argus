@@ -29,18 +29,22 @@ Copy rule: **literal, direct language — no metaphorical verbs.**
 One JSON per line. Nothing is ever rewritten — an edit is the signal and must never
 be lost (mirrors the ledger's amend principle).
 
-Events:
-- `extract` — an AI-extracted item is created: `{event, id, decision_id, type,
-  text, external, load_bearing, ai_original, at}` (type ∈ premise | phenomenon |
-  conclusion | open_question | prediction).
-- `add` — the user adds an item: same fields, `source:"user"`, no `ai_original`.
-- `edit` — the user changes an item: `{event:"edit", id, action, from, to, at}`
-  (action ∈ accept | refine | replace | reject).
-- `alert` — the user sets an item's alert mode: `{event:"alert", id, mode, at}`
-  (mode ∈ off | on_change | weekly | monthly).
-- `recheck` — a premise was re-checked against reality: `{event:"recheck", id,
-  last_value, at}` (updates the drift baseline + last-checked time).
-- `dismiss` — the user dismissed an item's alert: `{event:"dismiss", id, at}`.
+Events — **all written by the single-source CLI (`decision-ledger.js premises
+<op>`), never hand-written JSON.** The CLI owns the canonical shape the reducer
+(`check-contracts.js`) replays, so an emitted field can't silently drift from what
+the alert layer consumes (Honest-Structure invariant). It stamps `at` and appends
+in `O_APPEND`:
+- `extract` — an AI-extracted item (fields: id, decision_id, type, text, external,
+  load_bearing, ai_original). type ∈ premise | phenomenon | conclusion |
+  open_question | prediction.
+- `add` — the user adds an item: same fields, `source:user`, no ai_original.
+- `edit` — the user changes an item (fields: id, action, from, to). action ∈
+  accept | refine | replace | reject.
+- `alert` — the user sets an item's alert mode (fields: id, mode). mode ∈ off |
+  on_change | weekly | monthly.
+- `recheck` — a premise re-checked against reality (fields: id, last_value) —
+  updates the drift baseline + last-checked time.
+- `dismiss` — the user dismissed an item's alert (fields: id).
 
 State = replay by id. `reject` retires an item (keep it, mark retired). Two
 `dismiss` events auto-quiet the alert (adaptive back-off). Defaults on `extract`:
@@ -107,15 +111,22 @@ For `edit <ref>`, one `AskUserQuestion`:
   - `조금 다듬을게요` → action `refine`, take the user's new text verbatim
   - `틀렸어요, 다시 쓸게요` → action `replace`, take the user's new text verbatim
   - `이건 빼주세요` → action `reject`
-Append the matching `edit` event. Never rewrite prior lines.
+Write the matching `edit` through the single-source CLI (never hand-write JSON,
+never rewrite prior lines):
+```bash
+node "${CLAUDE_PLUGIN_ROOT}/scripts/decision-ledger.js" premises edit --id <ref> --action accept|refine|replace|reject [--to "<user's new text, verbatim>"]
+```
 
 **On `refine`/`replace`, the new text is the USER's wording verbatim** — do not
 re-summarize it. This is the authorship transfer; the item becomes `ai_edited_by_user`.
 
 ### Step 4 — Alert toggle (on request)
-For `alert <ref> <mode>`, append `{event:"alert", id, mode, at}`. Confirm in one line:
-`{{ref}} 알림: {{mode}}.` For an external premise, `on_change` means "re-check the
-fact periodically and tell you only if it actually changed."
+For `alert <ref> <mode>`, write it through the CLI (single-source, never hand-written):
+```bash
+node "${CLAUDE_PLUGIN_ROOT}/scripts/decision-ledger.js" premises alert --id <ref> --mode off|on_change|weekly|monthly
+```
+Confirm in one line: `{{ref}} 알림: {{mode}}.` For an external premise, `on_change`
+means "re-check the fact periodically and tell you only if it actually changed."
 
 ### Step 5 — Re-check monitored premises (`/argus:premises check`)
 The living-premises alert: re-check whether a premise's fact still holds, and pull
@@ -132,15 +143,19 @@ firing threshold is high, so silence is the common result.
 3. **Decide drift** (mechanical, mirrors `src/lib/premise-drift.ts` — do NOT
    free-judge): numeric facts drift when they move ≥10% or the sign flips; text
    facts drift when the summary changed. First-ever check = baseline only (never
-   alerts). Append `{event:"recheck", id, last_value:"<current line>", at}` either
-   way (updates the baseline + last-checked).
+   alerts). Write the `recheck` through the CLI either way (updates the baseline +
+   last-checked):
+   ```bash
+   node "${CLAUDE_PLUGIN_ROOT}/scripts/decision-ledger.js" premises recheck --id <id> --last-value "<current factual line>"
+   ```
 4. **If drifted → fire ONE alert** (literal, a fact + a question, never a verdict):
    > 전제가 된 사실이 바뀜: "{{premise}}" → {{what changed}}.
    > 이 결정 다시 볼래요?  [전제 수정] [이 알림 끄기] [넘어가기]
-   - `전제 수정` → `edit` event (`replace`, user's wording).
-   - `이 알림 끄기` → `alert` event (`off`).
-   - `넘어가기` → `dismiss` event (2 of these auto-quiet the alert — restraint
-     learned from behavior).
+   Write the chosen reaction through the CLI (single-source, never hand-written):
+   - `전제 수정` → `premises edit --id <id> --action replace --to "<user's wording>"`.
+   - `이 알림 끄기` → `premises alert --id <id> --mode off`.
+   - `넘어가기` → `premises dismiss --id <id>` (2 of these auto-quiet the alert —
+     restraint learned from behavior).
    **If not drifted → stay silent** for that premise (the `recheck` event is still
    written; do not report "no change" as noise).
 
@@ -149,8 +164,11 @@ Open questions are things the user EXPLICITLY left undecided. Argus NEVER invent
 one from a sealed decision — re-opening a closed call is a mirror-clause violation.
 The only source is the user:
 
-- `/argus:premises open "<text>"` → append `{"event":"add","id":"item_{decision}_q{n}",
-  "decision_id":"{decision}","type":"open_question","text":"<text>","source":"user","at":"{ISO}"}`.
+- `/argus:premises open "<text>"` → write through the CLI (single-source, never
+  hand-written JSON; the CLI sets `source:user`):
+  ```bash
+  node "${CLAUDE_PLUGIN_ROOT}/scripts/decision-ledger.js" premises add --id "item_{decision}_q{n}" --decision "{decision}" --type open_question --text "<text>"
+  ```
 - `/argus:premises reconsider <ref>` for an `open_question` item. **Spine-critical
   form (mirrors the MCP `argus_premises` op=resolve — keep the two surfaces from
   drifting): an open question closes ONLY in the user's own words. NO options, NO
@@ -162,9 +180,12 @@ The only source is the user:
      > 지금 다시 본다면, 당신의 말로 어떻게 정리돼요? (열어둔 채로 둬도 괜찮아요 — 그것도 진짜 답이에요.)
      Do NOT generate example answers, starting points, or poles to think against —
      even "balanced" ones. The question stands bare; the user fills it.
-  3. On a written answer, append an `edit` (`refine`) whose text is the USER's words
-     verbatim → the item becomes theirs (`authored:user`). Never re-summarize it,
-     never substitute an Argus-drafted line.
+  3. On a written answer, write an `edit` (`refine`) whose text is the USER's words
+     verbatim through the CLI → the item becomes theirs (`authored:user`). Never
+     re-summarize it, never substitute an Argus-drafted line:
+     ```bash
+     node "${CLAUDE_PLUGIN_ROOT}/scripts/decision-ledger.js" premises edit --id <ref> --action refine --to "<user's words, verbatim>"
+     ```
   4. If the user chooses to leave it open, append NOTHING — the item stays active
      and simply resurfaces later (no `reconsider`/`still_open` event exists in this
      surface's `items.jsonl` reducer, and inventing one would be a dead wire nothing

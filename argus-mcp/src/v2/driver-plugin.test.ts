@@ -125,15 +125,22 @@ describe('premises 스킬 — 미결 질문은 fork로 묻지 않는다 (스파�
   });
 
   it('leave-open은 소비처 없는 이벤트를 만들지 않는다 (LLM-glue: 죽은 와이어 금지)', () => {
-    // items.jsonl 리듀서(check-contracts.js)가 소비하는 이벤트만 등장해야 한다.
+    // items.jsonl 쓰기는 이제 단일소스 CLI(decision-ledger.js premises <op>)가
+    // 소유한다(플러그인-코어 Option A). 소비 계약은 스킬 산문이 아니라 그 CLI가
+    // emit하는 op 집합 ↔ 리듀서(check-contracts.js)가 소비하는 case 집합으로
+    // 옮겨졌다: CLI가 내보내는 모든 op를 리듀서가 소비해야 한다(죽은 와이어 금지).
     const reducer = fs.readFileSync(path.join(REPO_ROOT, 'argus-plugin-v2', 'scripts', 'check-contracts.js'), 'utf8');
+    const cli = fs.readFileSync(path.join(REPO_ROOT, 'argus-plugin-v2', 'scripts', 'decision-ledger.js'), 'utf8');
     const consumes = (ev: string) => new RegExp(`case\\s+"${ev}"`).test(reducer);
-    // 스킬이 append하라고 지시하는 items.jsonl 이벤트를 뽑아 전부 소비 대조.
-    const appended = new Set<string>();
-    for (const m of body.matchAll(/\{\s*"?event"?:\s*"([a-z_]+)"/g)) appended.add(m[1]!);
-    for (const ev of appended) {
-      expect(consumes(ev) || ev === 'extract', `items.jsonl 이벤트 "${ev}"는 리듀서가 소비해야 한다`).toBe(true);
+    const opsMatch = cli.match(/const OPS = \[([^\]]+)\]/);
+    expect(opsMatch, 'decision-ledger.js premises must declare a const OPS list').toBeTruthy();
+    const ops = [...opsMatch![1]!.matchAll(/"([a-z_]+)"/g)].map((m) => m[1]!);
+    expect(ops.length).toBeGreaterThan(0);
+    for (const ev of ops) {
+      expect(consumes(ev), `items.jsonl op "${ev}"는 리듀서가 소비해야 한다`).toBe(true);
     }
+    // 그리고 스킬은 items.jsonl JSON을 더 이상 손으로 쓰지 않는다(단일소스).
+    expect(body).not.toMatch(/\{\s*"?event"?:\s*"(add|edit|alert|recheck|dismiss|extract)"/);
     // reconsider/still_open은 이 표면에 존재하지 않는다 — 지시로도 등장 금지.
     expect(body).not.toMatch(/append\s+`?\{event:"reconsider"/);
   });

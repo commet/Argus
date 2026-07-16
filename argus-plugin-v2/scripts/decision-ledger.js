@@ -87,6 +87,32 @@ function appendEvent(event) {
   fs.appendFileSync(ledgerFile(), `${JSON.stringify({ ...event, at: new Date().toISOString() })}\n`);
 }
 
+function itemsFile() {
+  return path.join(argusDir(), "items.jsonl");
+}
+
+// items.jsonl carries the user's tracked premises/phenomena/edits — personal by
+// default, same privacy posture as the ledger. Ensure it's gitignored on first write.
+function ensureItemsIgnored() {
+  fs.mkdirSync(argusDir(), { recursive: true });
+  const gitignore = path.join(argusDir(), ".gitignore");
+  let text = "";
+  try {
+    text = fs.readFileSync(gitignore, "utf8");
+  } catch {
+    text = "";
+  }
+  if (/^items\.jsonl$/m.test(text)) return;
+  const prefix = text && !text.endsWith("\n") ? "\n" : "";
+  fs.writeFileSync(gitignore, `${text}${prefix}# Argus: personal tracked decision items.\nitems.jsonl\n`);
+}
+
+function appendItem(event) {
+  ensureItemsIgnored();
+  fs.mkdirSync(argusDir(), { recursive: true });
+  fs.appendFileSync(itemsFile(), `${JSON.stringify({ ...event, at: new Date().toISOString() })}\n`);
+}
+
 function loadLedger() {
   const map = new Map();
   let text = "";
@@ -929,7 +955,100 @@ function cmdWake() {
   if (flags.changed) console.log(`  ${truncate(leanBefore, 60)} → ${truncate(leanAfter, 60)}`);
 }
 
-const commands = { scan: cmdScan, seal: cmdSeal, settle: cmdSettle, record: cmdRecord, amend: cmdAmend, wake: cmdWake, list: () => cmdList(), status: cmdStatus };
+// Single-source writer for the tracked-items store (.argus/items.jsonl) — was
+// hand-written JSON in the premises skill (add/edit/alert/recheck/dismiss) and
+// clarify (extract). Different store from the ledger, same invariant: the CLI owns
+// the canonical shape the reducer (check-contracts.js duePremises) replays, so an
+// emitted field can't silently drift from what the alert layer consumes. The op set
+// here IS the consumption contract — driver-plugin.test.ts asserts the reducer
+// consumes every op this command emits.
+function cmdPremises() {
+  const op = flags._[0];
+  const id = flags.id ? String(flags.id) : "";
+  const OPS = ["extract", "add", "edit", "alert", "recheck", "dismiss"];
+  if (!OPS.includes(op)) {
+    console.error(`Usage: decision-ledger.js premises <${OPS.join("|")}> --id <id> [op-specific flags]`);
+    process.exit(1);
+  }
+  if (!id) {
+    console.error(`premises ${op} needs --id <item-id>.`);
+    process.exit(1);
+  }
+  const ITEM_TYPES = ["premise", "phenomenon", "conclusion", "open_question", "prediction"];
+  switch (op) {
+    case "extract":
+    case "add": {
+      const type = flags.type ? String(flags.type) : "";
+      const text = flags.text ? String(flags.text) : "";
+      if (!ITEM_TYPES.includes(type)) {
+        console.error(`--type must be one of ${ITEM_TYPES.join("|")}`);
+        process.exit(1);
+      }
+      if (!text) {
+        console.error("--text is required.");
+        process.exit(1);
+      }
+      const ev = {
+        event: op,
+        id,
+        decision_id: flags.decision ? String(flags.decision) : "",
+        type,
+        text,
+        external: !!flags.external,
+        load_bearing: !!flags["load-bearing"],
+      };
+      // extract = AI-projected (keeps ai_original for the edit-signal baseline);
+      // add = user-authored (source:"user", no ai_original).
+      if (op === "extract") ev.ai_original = flags["ai-original"] ? String(flags["ai-original"]) : text;
+      else ev.source = "user";
+      appendItem(ev);
+      console.log(`${op} ${id} [${type}${ev.external ? "/external" : ""}${ev.load_bearing ? "/load-bearing" : ""}]`);
+      break;
+    }
+    case "edit": {
+      const action = flags.action ? String(flags.action) : "";
+      const ACTIONS = ["accept", "refine", "replace", "reject"];
+      if (!ACTIONS.includes(action)) {
+        console.error(`--action must be one of ${ACTIONS.join("|")}`);
+        process.exit(1);
+      }
+      const ev = { event: "edit", id, action };
+      if (flags.from) ev.from = String(flags.from);
+      if (flags.to) ev.to = String(flags.to);
+      appendItem(ev);
+      console.log(`edit ${id} (${action})`);
+      break;
+    }
+    case "alert": {
+      const mode = flags.mode ? String(flags.mode) : "";
+      const MODES = ["off", "on_change", "weekly", "monthly"];
+      if (!MODES.includes(mode)) {
+        console.error(`--mode must be one of ${MODES.join("|")}`);
+        process.exit(1);
+      }
+      appendItem({ event: "alert", id, mode });
+      console.log(`alert ${id}: ${mode}`);
+      break;
+    }
+    case "recheck": {
+      const lastValue = flags["last-value"] != null ? String(flags["last-value"]) : "";
+      if (!lastValue) {
+        console.error('--last-value "<current factual line>" is required.');
+        process.exit(1);
+      }
+      appendItem({ event: "recheck", id, last_value: lastValue });
+      console.log(`recheck ${id}`);
+      break;
+    }
+    case "dismiss": {
+      appendItem({ event: "dismiss", id });
+      console.log(`dismiss ${id}`);
+      break;
+    }
+  }
+}
+
+const commands = { scan: cmdScan, seal: cmdSeal, settle: cmdSettle, record: cmdRecord, amend: cmdAmend, wake: cmdWake, premises: cmdPremises, list: () => cmdList(), status: cmdStatus };
 if (!cmd || !commands[cmd]) {
   console.log("Usage:");
   console.log("  /argus:scan [--since days] [--all-projects] [--model sonnet] [--list]");
