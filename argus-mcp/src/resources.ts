@@ -12,9 +12,11 @@ import { duePremises, groupDuePremises, isMonitored, isDueForRecheck } from './l
  * resources (not read-tools) because they are app-injected context, and being
  * read-only is itself the proof that the reading surface cannot write a verdict.
  *
- * No per-call argument channel exists, so the dir is resolved from ARGUS_DIR.
- * When unbound, every resource degrades cleanly to an {unbound} payload rather
- * than throwing.
+ * No per-call argument channel exists, so the dir resolves like a tool call
+ * without an arg: ARGUS_DIR env, else the zero-config ~/.argus default —
+ * tools and resources must see the same ledger (§9.7 O1 방2). Unbound now
+ * means exactly one thing — ARGUS_DIR is set but invalid — and every resource
+ * degrades cleanly to an {unbound} payload rather than throwing.
  */
 const JSON_MIME = 'application/json';
 
@@ -42,7 +44,9 @@ export const RESOURCE_TEMPLATES = [
 ] as const;
 
 function unbound(uri: string) {
-  return { uri, mimeType: JSON_MIME, text: JSON.stringify({ unbound: true, hint: 'Set ARGUS_DIR to the project ledger directory. Normal tool use initializes Argus automatically.' }) };
+  // Reached only when ARGUS_DIR is set but invalid (unexpanded ${...}/%...% or
+  // a relative path) — with no env at all, resources read ~/.argus like tools.
+  return { uri, mimeType: JSON_MIME, text: JSON.stringify({ unbound: true, hint: 'ARGUS_DIR is set but is not an expanded absolute path. Fix it in your MCP config (e.g. "C:\\Users\\you\\.argus" or "/Users/you/.argus"), or remove it entirely to use the default ~/.argus.' }) };
 }
 
 export function listResources() {
