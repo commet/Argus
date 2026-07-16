@@ -74,7 +74,7 @@ async function mapPool<T, R>(
 export interface ReviewVisionSource {
   kind: 'pdf' | 'images';
   pdf_base64?: string;
-  images?: Array<{ media_type: string; data: string }>;
+  images?: Array<{ media_type: string; data: string; page?: number }>;
   page_count?: number;
   /** pages actually sent (images path may stop at the budget) — see VisionSource. */
   pages_seen?: number;
@@ -97,20 +97,40 @@ export interface RunReviewOptions {
 }
 
 const IMG_MEDIA = new Set(['image/png', 'image/jpeg', 'image/webp', 'image/gif']);
+// One request's worth of rendered pages. A long scanned PDF is split into
+// several of these and reviewed in parallel, then merged — the user never has to
+// split the file themselves (the image-side of the text map-reduce).
+const VISION_BATCH_MAX_IMAGES = 30;
+const VISION_BATCH_MAX_B64 = 3_300_000; // per request, under the ~4.4MB body cap
+const VISION_MAX_BATCHES = 4;           // ≤ ~120 pages; bounds cost/latency
 
-/** Turn a vision source into Anthropic content blocks (document/image). Returns
- *  [] when the payload is empty or malformed — the caller then stays text-only. */
-function buildVisionAttachments(v: ReviewVisionSource): LLMContentBlock[] {
+/** Split a vision source into REQUEST-sized batches of Anthropic content blocks.
+ *  A PDF document block is a single batch. Rendered page images are grouped
+ *  under the per-request count/byte bounds, each image preceded by a "— Page N —"
+ *  text label so the model cites the ABSOLUTE page number even in a later batch.
+ *  Returns [] when the payload is empty/malformed (caller stays text-only). */
+function visionBatches(v: ReviewVisionSource): LLMContentBlock[][] {
   if (v.kind === 'pdf' && v.pdf_base64) {
-    return [{ type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: v.pdf_base64 } }];
+    return [[{ type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: v.pdf_base64 } }]];
   }
-  if (v.kind === 'images' && v.images?.length) {
-    return v.images
-      .filter((im) => IMG_MEDIA.has(im.media_type) && im.data)
-      .slice(0, 40)
-      .map((im) => ({ type: 'image' as const, source: { type: 'base64' as const, media_type: im.media_type as LLMImageBlock['source']['media_type'], data: im.data } }));
+  const imgs = (v.images ?? []).filter((im) => IMG_MEDIA.has(im.media_type) && im.data);
+  if (!imgs.length) return [];
+  const batches: LLMContentBlock[][] = [];
+  let cur: LLMContentBlock[] = [];
+  let count = 0;
+  let bytes = 0;
+  for (const im of imgs) {
+    if (count >= VISION_BATCH_MAX_IMAGES || (count > 0 && bytes + im.data.length > VISION_BATCH_MAX_B64)) {
+      batches.push(cur);
+      if (batches.length >= VISION_MAX_BATCHES) return batches; // hard cap — pages_seen already discloses the rest
+      cur = []; count = 0; bytes = 0;
+    }
+    if (typeof im.page === 'number') cur.push({ type: 'text', text: `— Page ${im.page} —` });
+    cur.push({ type: 'image', source: { type: 'base64', media_type: im.media_type as LLMImageBlock['source']['media_type'], data: im.data } });
+    count++; bytes += im.data.length;
   }
-  return [];
+  if (cur.length) batches.push(cur);
+  return batches;
 }
 
 export interface ReviewResult {
@@ -164,15 +184,19 @@ export async function runDocumentReview(
   };
 
   try {
-    // --- Vision pass: a single multimodal review over the attached document ---
-    // When the user opts in, the model SEES the PDF pages / deck images and reads
-    // the visuals text extraction drops. One call → the full receipt, anchored by
-    // page/slide. Falls through to the text path if the payload is empty.
+    // --- Vision pass: multimodal review over the attached document ----------
+    // The model SEES the PDF pages / deck images and reads the visuals text
+    // extraction drops. A long scanned PDF is split into REQUEST-sized batches,
+    // each reviewed (in parallel) with its pages page-labeled, then the batches'
+    // maps + findings are merged (the image-side of the text map-reduce) — so the
+    // user never has to split the file. Falls through to text if payload empty.
     if (options.vision) {
-      const attachments = buildVisionAttachments(options.vision);
-      if (attachments.length) {
-        emit('reviewing', t('문서를 이미지까지 함께 정밀 검수하는 중', 'Reviewing the document — including its images — closely'));
+      const batches = visionBatches(options.vision);
+      if (batches.length) {
         const isDeck = artifact.detected_structure?.is_deck === true || artifact.source_kind === 'pptx';
+        emit('reviewing', batches.length > 1
+          ? t(`문서를 이미지 ${batches.length}묶음으로 나눠 전체 검수하는 중`, `Reviewing the whole document visually across ${batches.length} batches`)
+          : t('문서를 이미지까지 함께 정밀 검수하는 중', 'Reviewing the document — including its images — closely'));
         const resolvePageAnchors = (ids: unknown): SourceAnchor[] => {
           if (!Array.isArray(ids)) return [];
           const out: SourceAnchor[] = [];
@@ -199,59 +223,77 @@ export async function runDocumentReview(
         const coverageV = computeCoverage(artifact, artifact.units.length);
         const vp = buildVisionReviewPrompt(packedV.units, ctx, packedV.units.length, today, lang, isDeck);
         promptParts.push(vp.system);
-        const raw = await llm.json<Record<string, unknown>>({
-          system: vp.system,
-          user: vp.user,
-          maxTokens: Math.min(budget.max_tokens || 8000, 6500),
-          model: 'default',
-          signal: options.signal,
-          attachments,
-          shape: {
-            core_question: { type: 'string', default: '' },
-            findings: { type: 'array', default: [] },
-            judgment_obligations: { type: 'array', default: [] },
-            followups: { type: 'array', default: [] },
-            current_heading: { type: 'string', default: '' },
-            main_claims: { type: 'array', default: [] },
-            assumptions: { type: 'array', default: [] },
-            decision_points: { type: 'array', default: [] },
-          },
+        // One model call per batch (bounded concurrency); a failed batch drops
+        // out (allSettled) rather than sinking the whole review.
+        const batchResults = await mapPool(batches, MAP_CONCURRENCY, async (batch) => {
+          const raw = await llm.json<Record<string, unknown>>({
+            system: vp.system,
+            user: vp.user,
+            maxTokens: Math.min(budget.max_tokens || 8000, 6500),
+            model: 'default',
+            signal: options.signal,
+            attachments: batch,
+            shape: {
+              core_question: { type: 'string', default: '' },
+              findings: { type: 'array', default: [] },
+              judgment_obligations: { type: 'array', default: [] },
+              followups: { type: 'array', default: [] },
+              current_heading: { type: 'string', default: '' },
+              main_claims: { type: 'array', default: [] },
+              assumptions: { type: 'array', default: [] },
+              decision_points: { type: 'array', default: [] },
+            },
+          });
+          for (const k of ['findings', 'judgment_obligations', 'main_claims', 'assumptions', 'decision_points']) {
+            mapPagesToIds(raw[k]);
+          }
+          return raw;
         });
-        for (const k of ['findings', 'judgment_obligations', 'main_claims', 'assumptions', 'decision_points']) {
-          mapPagesToIds(raw[k]);
-        }
-        const profileV = normalizeProfile(raw['profile'], ctx);
-        const mapV = normalizeMap(raw, resolvePageAnchors, lang);
-        const reviewabilityV = scoreReviewability(artifact, mapV);
+        const raws = batchResults
+          .filter((r): r is PromiseFulfilledResult<Record<string, unknown>> => r.status === 'fulfilled')
+          .map((r) => r.value);
+        if (!raws.length) throw new Error('vision review failed on every batch');
+
+        // Reduce: merge each batch's judgment map, then dedupe findings/obligations
+        // across batches (page anchors keep them distinct where they should be).
+        const maps = raws.map((raw) => normalizeMap(raw, resolvePageAnchors, lang));
+        const mergedMap = maps.length === 1 ? maps[0] : mergeMaps(maps);
+        const profileV = normalizeProfile(raws[0]['profile'], ctx);
+        const reviewabilityV = scoreReviewability(artifact, mergedMap);
         const routingV = routeLenses(profileV, artifact, { concerns: ctx.concerns, maxLensCalls: budget.max_lens_calls });
         const allowedV = new Set<LensId>(routingV.selected);
-        const rawFindingsV = Array.isArray(raw['findings']) ? raw['findings'] : [];
-        const normV = rawFindingsV.flatMap((finding) => {
-          if (!finding || typeof finding !== 'object') return [];
-          const lensId = String((finding as Record<string, unknown>)['lens_id']) as LensId;
-          if (!allowedV.has(lensId)) return [];
-          return normalizeFindings([finding], lensId, resolvePageAnchors, lang);
-        }).slice(0, 6);
-        const findingsV = dedupeFindings(supplementQuickFindings(normV, mapV, lang));
-        const obligationsV = normalizeObligations(raw['judgment_obligations'], resolvePageAnchors, lang).slice(0, 3);
-        const followupsV = normalizeFollowups(raw['followups'], today);
-        const coreQ = String(raw['core_question'] || mapV.core_question || '').trim();
-        const headingV = String(raw['current_heading'] || '').trim() || neutralHeading(mapV, lang);
-        // Honest partial-coverage disclosure: when the render budget stopped us
-        // before the last page, say so on the receipt's coverage notes — never let
-        // a reviewed prefix read as the whole document.
+        const allFindings = raws.flatMap((raw) => {
+          const rf = Array.isArray(raw['findings']) ? raw['findings'] : [];
+          return rf.flatMap((finding) => {
+            if (!finding || typeof finding !== 'object') return [];
+            const lensId = String((finding as Record<string, unknown>)['lens_id']) as LensId;
+            if (!allowedV.has(lensId)) return [];
+            return normalizeFindings([finding], lensId, resolvePageAnchors, lang);
+          });
+        });
+        let findingsV = dedupeFindings(supplementQuickFindings(allFindings, mergedMap, lang));
+        findingsV = rankFindings(findingsV).slice(0, 10); // assembleReceipt diversifies by anchor
+        const obligationsV = dedupeObligations(
+          raws.flatMap((raw) => normalizeObligations(raw['judgment_obligations'], resolvePageAnchors, lang)),
+        ).slice(0, 3);
+        const followupsV = raws.flatMap((raw) => normalizeFollowups(raw['followups'], today)).slice(0, 3);
+        const coreQ = String(raws[0]['core_question'] || mergedMap.core_question || '').trim();
+        const headingV = String(raws[0]['current_heading'] || '').trim() || neutralHeading(mergedMap, lang);
+
+        // Honest partial-coverage disclosure: if rendering stopped before the last
+        // page (page/byte budget), say so — never let a prefix read as the whole doc.
         const seen = options.vision.pages_seen;
         const total = options.vision.page_count;
         if (typeof seen === 'number' && typeof total === 'number' && seen < total) {
           coverageV.notes = [
             ...coverageV.notes,
-            t(`이 문서는 ${total}쪽 중 앞 ${seen}쪽만 이미지로 검수했어요. 나머지는 페이지를 나눠 올려주세요.`,
-              `Only the first ${seen} of ${total} pages were reviewed visually (render budget). Upload the rest in a separate batch.`),
+            t(`이 문서는 ${total}쪽 중 앞 ${seen}쪽까지 이미지로 검수했어요 (아주 긴 문서라 일부만). 나머지는 그 뒤 페이지만 잘라 올려주세요.`,
+              `Reviewed the first ${seen} of ${total} pages visually (very long document). Upload only the later pages to review the rest.`),
           ];
         }
         const receiptV = assembleReceipt({
           artifact, profile: profileV, reviewability: reviewabilityV, routing: routingV,
-          map: { ...mapV, core_question: coreQ },
+          map: { ...mergedMap, core_question: coreQ },
           findings: findingsV, obligations: obligationsV, followups: followupsV,
           currentHeading: headingV, coverage: coverageV,
           rootMode: options.rootMode ?? 'review', today, llm, promptHash: djb2(promptParts.join('')),
@@ -1247,6 +1289,19 @@ function dedupeFindings(findings: Finding[]): Finding[] {
     if (CONF_RANK[f.confidence] < CONF_RANK[hit.confidence]) hit.confidence = f.confidence;
     hit.anchors = unionAnchors(hit.anchors, f.anchors);
     if (!hit.suggested_action && f.suggested_action) hit.suggested_action = f.suggested_action;
+  }
+  return out;
+}
+
+/** Collapse obligations that state the same decision (e.g. surfaced from more
+ *  than one vision batch of a long doc). Kept simple: statement-text similarity,
+ *  first occurrence wins, anchors merge. */
+function dedupeObligations(obs: JudgmentObligation[]): JudgmentObligation[] {
+  const out: JudgmentObligation[] = [];
+  for (const o of obs) {
+    const hit = out.find((k) => findingTextSim(k.statement, o.statement) >= 0.5);
+    if (hit) { hit.anchors = unionAnchors(hit.anchors, o.anchors); continue; }
+    out.push(o);
   }
   return out;
 }

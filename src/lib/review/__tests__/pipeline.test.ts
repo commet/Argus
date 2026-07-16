@@ -289,6 +289,42 @@ describe('runDocumentReview — end to end with a mock model', () => {
     expect(receipt!.findings.some((f) => f.anchors.some((a) => a.page === 3))).toBe(true);
   });
 
+  it('auto-batches a long scanned PDF across multiple vision calls and merges by page', async () => {
+    // 65 rendered pages → 3 request batches (30 + 30 + 5). The user uploads once;
+    // Argus splits + reviews + merges. Each batch's findings must anchor to the
+    // ABSOLUTE page (from the "— Page N —" labels), and all batches must merge.
+    const artifact = ingest({ source_kind: 'pdf', title: 'long.pdf' });
+    const images = Array.from({ length: 65 }, (_, i) => ({ media_type: 'image/jpeg', data: 'x'.repeat(20), page: i + 1 }));
+    let calls = 0;
+    const llm: ReviewLLM = {
+      model_name: 'mock', model_provider: 'anthropic',
+      async json<T>(args: ReviewLLMArgs): Promise<T> {
+        calls++;
+        // The first page label in this batch tells us its starting page.
+        const label = args.attachments?.find((a) => a.type === 'text') as { text?: string } | undefined;
+        const p = label?.text ? parseInt(/(\d+)/.exec(label.text)?.[1] ?? '0', 10) : 0;
+        return {
+          profile: { document_type: 'report', intent: 'inform', audience: 'team', stakes: 'medium', artifact_maturity: 'final', source_confidence: 0.5 },
+          core_question: 'q',
+          findings: [{ lens_id: 'claim_evidence', title: `${p}쪽의 수치가 근거와 불일치`, detail: `${p}쪽 표와 본문이 어긋남`, severity: 'caution', confidence: 'medium', pages: [p] }],
+          judgment_obligations: [], followups: [], current_heading: 'h', main_claims: [], assumptions: [], decision_points: [],
+        } as T;
+      },
+    };
+    const { job, receipt } = await runDocumentReview(artifact, {
+      today: '2026-07-01',
+      vision: { kind: 'images', images, page_count: 65, pages_seen: 65 },
+      llm,
+    });
+    expect(job.status).toBe('ready');
+    expect(calls).toBe(3); // 65 pages / 30-per-batch → 3 requests
+    const pages = new Set(receipt!.findings.flatMap((f) => f.anchors.map((a) => a.page)));
+    // findings from the FIRST batch (page 1) and the LAST batch (page 61) both survive the merge.
+    expect(pages.has(1)).toBe(true);
+    expect(pages.has(61)).toBe(true);
+    expect(receipt!.provenance.vision?.mode).toBe('images');
+  });
+
   it('discloses partial visual coverage when the render budget saw only a prefix', async () => {
     const artifact = ingest({ source_kind: 'pdf', title: 'long-scan.pdf' });
     const llm: ReviewLLM = {

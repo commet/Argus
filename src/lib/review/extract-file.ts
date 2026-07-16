@@ -38,8 +38,10 @@ export interface VisionSource {
   kind: 'pdf' | 'images';
   /** kind 'pdf' — the whole PDF, base64. */
   pdf_base64?: string;
-  /** kind 'images' — deck-embedded images, base64. */
-  images?: Array<{ media_type: 'image/png' | 'image/jpeg' | 'image/webp' | 'image/gif'; data: string }>;
+  /** kind 'images' — rendered PDF pages or deck-embedded images, base64. `page`
+   *  is the 1-based source page (set for rendered PDF pages) so the review can
+   *  anchor a finding to the real page even across multiple request batches. */
+  images?: Array<{ media_type: 'image/png' | 'image/jpeg' | 'image/webp' | 'image/gif'; data: string; page?: number }>;
   /** total pages/slides in the source. */
   page_count?: number;
   /** how many pages were actually sent to the model (the 'images' path may stop
@@ -55,8 +57,8 @@ export interface VisionSource {
 // images instead (a fraction of the raw size), which is also the only way to
 // review a scanned PDF that carries no text layer at all.
 const VISION_DOC_BLOCK_MAX_BYTES = 3_200_000;   // raw PDF → base64 ~4.3MB, under the body cap
-const VISION_RENDER_MAX_PAGES = 40;             // bound cost/latency of a rendered review
-const VISION_RENDER_MAX_B64 = 3_600_000;        // total base64 budget for rendered pages (< body cap)
+const VISION_RENDER_MAX_PAGES = 100;            // Anthropic's page ceiling; the pipeline batches these into multiple requests
+const VISION_RENDER_MAX_B64 = 14_000_000;       // total render budget held in memory (~14MB base64); batching keeps each REQUEST small
 const VISION_RENDER_TARGET_WIDTH = 1100;        // px — legible to the model, small on the wire
 const VISION_MAX_IMAGES = 40;
 const VISION_IMG_MAX_BYTES = 5_000_000;    // ~5 MB per embedded deck image
@@ -434,9 +436,9 @@ async function renderPdfPages(doc: PdfDocLike): Promise<NonNullable<VisionSource
       throw new Error('no canvas');
     }
     const data = toBase64(new Uint8Array(await blob.arrayBuffer()));
-    if (b64Total + data.length > VISION_RENDER_MAX_B64) break; // budget spent — stop, disclose via page_count
+    if (b64Total + data.length > VISION_RENDER_MAX_B64) break; // memory budget spent — stop, disclose via pages_seen
     b64Total += data.length;
-    images.push({ media_type: 'image/jpeg', data });
+    images.push({ media_type: 'image/jpeg', data, page: p });
   }
   return images;
 }
