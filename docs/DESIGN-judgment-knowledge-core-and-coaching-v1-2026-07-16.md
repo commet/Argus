@@ -1008,12 +1008,21 @@ flowchart TB
 - Prediction, Evidence, Relation의 정규 의미를 확정한다.
 - betrayal fixture를 먼저 작성한다.
 
+**2026-07-16 구현 상태:** `ADR-2026-07-16-judgment-knowledge-core-k0.md`에서 열
+질문의 owner와 임시/확정 상태를 정리했다. 창업자 결정 F1~F5는 아직 Proposed이며,
+K1은 그 결정을 선점하지 않는 shadow-only 기본값만 사용한다.
+
 ### 단계 K1 — 새 semantic schema
 
 - 새 이벤트 스키마와 reducer를 만든다.
 - as-of projection을 구현한다.
 - relationship proposal을 구조화한다.
 - 기존 v3를 깨지 않고 versioned adapter를 둔다.
+
+**2026-07-16 구현 상태:** 신규 `argus-mcp/src/v4/`에 v4 schema, pure reducer,
+관계 타입 검증, watch 판정, 실패 격리 shadow sink를 추가했다. 기본 off인
+`ARGUS_SEMANTIC_V4_SHADOW=1` 계약만 존재하며 기존 write path에는 아직 배선하지 않았다.
+v3 schema/reducer/store의 의미와 코드는 변경하지 않았다.
 
 ### 단계 K2 — Predict 보존과 변화 사슬
 
@@ -1022,6 +1031,11 @@ flowchart TB
 - Rationale과 원인 Evidence 연결 UI를 최소 마찰로 제공한다.
 - “AI 전/후” 비교 projection을 만든다.
 
+**2026-07-16 선행 슬라이스:** `src/lib/semantic-v4/user-lean-shadow.ts`가 최초 유효
+`user_lean`을 원문 그대로 Prediction 승격 후보로 만들고, 별도 승인 영수증 없이는
+JudgmentVersion을 만들지 않는다. 주입식 sink와 env gate만 추가했으며 기존
+DecisionContract callsite와 사용자 표면은 아직 변경하지 않았다.
+
 ### 단계 A0 — 계정 연결
 
 - 데스크톱 기본: Authorization Code + PKCE
@@ -1029,6 +1043,10 @@ flowchart TB
 - OS credential storage
 - 연결 상태, scope, revoke, disconnect
 - 기존 수동 토큰은 advanced path로 유지
+
+**2026-07-16 구현 상태:** 브라우저 사용 환경은 external browser + PKCE + loopback,
+headless는 Device Authorization polling을 사용하도록 계정 연결 경로를 추가했다. 기존
+`ARGUS_TOKEN`은 명시적 override로 유지한다. 자동 코칭·Patterns 표면과는 연결하지 않는다.
 
 ### 단계 W1 — 봉인 시 자동 전제 제안
 
@@ -1070,6 +1088,11 @@ flowchart TB
 ## 14. 테스트와 배신 방지 fixture
 
 코어 테스트는 정상 동작보다 “Argus가 자기 철학을 배신하는 순간”을 먼저 막아야 한다.
+
+§14.1~14.5의 실행 가능한 K1 fixture는
+`argus-mcp/src/v4/betrayal-fixtures.test.ts`에 있다. 이 fixture는 v4 구현 파일보다 먼저
+추가되어 missing contract로 실패하는 red 상태를 확인한 후 구현되었다. fixture가
+통과하더라도 사용자 표면 개방을 승인하는 것은 아니다.
 
 ### 14.1 저자성
 
@@ -1173,18 +1196,26 @@ flowchart TB
 
 ## 16. 아직 결정해야 할 질문
 
-1. `JudgmentVersion`이라는 이름을 제품·API에서도 쓸지, 코어 내부 명칭으로만 둘지
-2. Assertion을 단일 테이블+role로 둘지, role별 projection을 별도 제공할지
-3. 사용자 한 번의 승인이 Premise 채택과 서버 동기화를 함께 포함할 때 scope 설명을 어떻게 가장 짧고 명확하게 만들지
-4. Relation의 `system_verified` 허용 범위를 어디까지 둘지
-5. 의미 관계 확인을 매번 묻지 않고도 높은 precision을 유지할 수 있는 기준
-6. 개인 반복 Pattern의 최소 독립 사례를 항상 3개로 둘지, 위험도와 근거 강도에 따라 조절할지
-7. EvidenceArtifact의 원문 보존 범위와 저작권·개인정보 정책
-8. 로컬 전용 판단이 서버 watch를 사용할 때 어떤 최소 정보만 동기화할지
-9. 기존 web DecisionContract를 언제 read-only projection으로 전환할지
-10. DKK v4로 명명할지, v3 extension namespace로 둘지
+K0 결정 초안은 `ADR-2026-07-16-judgment-knowledge-core-k0.md` 한 편에서 관리한다.
+별도 정본 문서를 만들지 않으며, 이 문서가 normative design이고 ADR은 결정 상태와
+구현 경계를 기록한다.
 
-이 질문들은 구현 세부가 아니라 코어 의미와 사용자 신뢰에 영향을 주므로 ADR로 결정하는 편이 좋다.
+| # | 질문 | K0 상태 |
+|---:|---|---|
+| 1 | `JudgmentVersion`을 제품·API에서도 쓸지 | **창업자 결정 F1** — 임시로 internal-only |
+| 2 | Assertion 저장과 role projection | 구현 결정 I1 — 단일 canonical union |
+| 3 | Premise 채택과 sync 한 번 승인 | **창업자 결정 F2** — 두 receipt로 의미 분리 |
+| 4 | `system_verified` 허용 범위 | 구현 결정 I2 — 결정적 관계만 |
+| 5 | semantic relation 확인 정책 | 구현 결정 I3 — 의미 사용 직전에만 확인 |
+| 6 | 개인 Pattern 최소 사례 | **창업자 결정 F3** — 임시 최소 3건 |
+| 7 | Evidence 원문 보존 | **창업자 결정 F4** — locator/hash/excerpt만 |
+| 8 | local-only watch 최소 sync | **창업자 결정 F5** — 선택 premise+WatchSpec만 |
+| 9 | DecisionContract read-only 전환 | 구현 결정 I4 — dual-write parity 후 별도 ADR |
+| 10 | v4 또는 v3 extension | 구현 결정 I5 — 별도 DKK v4 |
+
+K1은 창업자 결정이 열려 있어도 되돌릴 수 있는 shadow schema까지만 진행한다. public
+surface, 원문 저장, Patterns 생성, legacy read/write cutover는 해당 결정과 후속 gate 전까지
+금지한다.
 
 ---
 
