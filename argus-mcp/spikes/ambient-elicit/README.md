@@ -46,14 +46,22 @@ SDK(`Server.elicitInput`)도 연결이 살아있는 한 아무 때나 보낼 수
 
 | 호스트 | autofire (S1꼴) | arm 후 지연 (S2꼴) | 확인일 |
 |---|---|---|---|
-| Claude Code 2.1.210 (headless `-p`) | ✅ capability 선언 + OOB 요청 수신, **auto-cancel** (UI 없음 — 17ms 내 `action:"cancel"`, 무해) | 동일 | 2026-07-15 (샌드박스 실측) |
-| Claude Code (인터랙티브 TUI) | 미확인 — 샌드박스에서 온보딩/로그인 게이트로 미도달, 로컬 확인 필요 | 미확인 | — |
+| **Claude Code 2.1.211 (인터랙티브 TUI)** | ✅ **픽커 렌더 확인** — 툴 호출 0번, 15초 뒤 서버발 elicit이 방향키로 고르는 5지선다 픽커("MCP server requests your input", outcome enum + Accept/Decline)로 화면에 뜸 | 동일 (같은 채널) | **2026-07-16 (사용자 맥 실측, 스크린샷)** |
+| Claude Code 2.1.210 (headless `-p`) | ✅ capability 선언 + OOB 요청 수신, **auto-cancel** (print 모드엔 UI 없음 — 17ms 내 `action:"cancel"`, 무해) | 동일 | 2026-07-15 (샌드박스 실측) |
 | Claude Desktop / claude.ai | 미확인 | 미확인 | — |
 | Cursor | 미확인 | 미확인 | — |
 
-headless 실측의 함의: 렌더 없는 호스트도 **조용히 cancel로 답한다** — 서버 쪽
-발사 게이트(ambient-elicit.ts)는 cancel을 decline과 같게 취급하므로 최악의
-경우에도 "4시간에 한 번 아무 일도 안 일어남"이 전부다 (무해 확인).
+**핵심 결론 (2026-07-16):** 판가름 대상이 **참으로 확정**됐다 — Claude Code
+인터랙티브 TUI는 툴 호출 밖에서 도착한 OOB elicit을 **선택 가능한 픽커로
+렌더한다.** 즉 플러그인 훅 없이 **MCP 단독으로 ambient 질문이 선다.** (실측
+경로: 의존성 0짜리 미니 stdio 서버가 `notifications/initialized` 15초 뒤
+`elicitation/create`를 보냄 → TUI가 즉시 렌더. headless `-p`는 렌더 UI가
+없어 auto-cancel하지만 그 경로도 무해.)
+
+두 모드의 함의를 함께 두면: **인터랙티브는 렌더(성립), 렌더 없는 모드는
+조용히 cancel** — 서버 발사 게이트(ambient-elicit.ts)가 cancel을 decline과
+같게 처리하므로, 어느 호스트에서도 최악은 "4시간에 한 번 아무 일 없음"이다
+(양쪽 다 실측 무해).
 
 ## 제품에 얹을 때의 설계 제약 (스파이크가 확정한 것)
 
