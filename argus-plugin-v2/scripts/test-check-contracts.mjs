@@ -96,11 +96,11 @@ t("sealed bet due in the future → silence", () => {
 
 // ─── Ledger replay ──────────────────────────────────────
 
-t("overdue sealed bet → one line with /argus:settle", () => {
+t("overdue sealed bet → one line with /argus:resolve", () => {
   const r = repo();
   ledger(r, bet("aaaa0001", iso(-3), "지난 결정"));
   const out = run(r);
-  assert(out.includes("/argus:settle"), `missing settle hint: ${out}`);
+  assert(out.includes("/argus:resolve"), `missing settle hint: ${out}`);
   assert(out.includes(iso(-3)), `missing date: ${out}`);
   assert(!out.includes("\n"), `must be exactly one line: ${out}`);
 });
@@ -108,7 +108,7 @@ t("overdue sealed bet → one line with /argus:settle", () => {
 t("check-by today → fires (settle treats ≤ today as due)", () => {
   const r = repo();
   ledger(r, bet("aaaa0001", iso(0), "오늘 결정"));
-  assert(run(r).includes("/argus:settle"), "due-today must fire");
+  assert(run(r).includes("/argus:resolve"), "due-today must fire");
 });
 
 t("settled bet → silence", () => {
@@ -126,7 +126,7 @@ t("amend pushes check_by → silence (the 'push the date' path)", () => {
 t("amend pulls check_by into the past → fires", () => {
   const r = repo();
   ledger(r, bet("aaaa0001", iso(10), "당긴 결정", [{ event: "amend", check_by: iso(-1) }]));
-  assert(run(r).includes("/argus:settle"), "amended-overdue must fire");
+  assert(run(r).includes("/argus:resolve"), "amended-overdue must fire");
 });
 
 t("dismissed contract → silence", () => {
@@ -155,7 +155,7 @@ t("corrupt ledger lines → skipped, valid events survive", () => {
   writeFileSync(join(r, ".argus", "ledger", "ledger.jsonl"),
     "not json\n" + bet("aaaa0001", iso(-1), "살아남은 결정").map(e => JSON.stringify(e)).join("\n") + "\n{broken",
   );
-  assert(run(r).includes("/argus:settle"), "valid events must survive corrupt lines");
+  assert(run(r).includes("/argus:resolve"), "valid events must survive corrupt lines");
 });
 
 // ─── Bearing seeds ──────────────────────────────────────
@@ -164,7 +164,7 @@ t("overdue bearing seed → fires", () => {
   const r = repo();
   seedBearing(r, "s1", "v0.1", { predicate: "시드 예측", check_by: iso(-2) });
   const out = run(r);
-  assert(out.includes("시드 예측") && out.includes("/argus:settle"), `seed must fire: ${out}`);
+  assert(out.includes("시드 예측") && out.includes("/argus:resolve"), `seed must fire: ${out}`);
 });
 
 t("legacy hyphen spelling seed → fires", () => {
@@ -209,7 +209,7 @@ t("seed imported but still open → fires ONCE (ledger owns it)", () => {
     { event: "seal", id: "bearing:s1:v0.1", predicate: "열린 시드", check_by: iso(-3) },
   ]);
   const out = run(r);
-  assert(out.includes("/argus:settle"), `open imported seed is still due: ${out}`);
+  assert(out.includes("/argus:resolve"), `open imported seed is still due: ${out}`);
   assert(!/2|외/.test(out.replace(iso(-3), "")), `must not double-count: ${out}`);
 });
 
@@ -229,7 +229,7 @@ t("locale ko in config.yaml → Korean line", () => {
   writeFileSync(join(r, ".argus", "config.yaml"), "locale: ko\n");
   ledger(r, bet("aaaa0001", iso(-1), "한국어 결정"));
   const out = run(r);
-  assert(out.includes("정산할 때") && out.includes("/argus:settle"), `expected ko line: ${out}`);
+  assert(out.includes("정산할 때") && out.includes("/argus:resolve"), `expected ko line: ${out}`);
 });
 
 t("UTF-8 BOM bearing (PS 5.1 Out-File) → still fires", () => {
@@ -247,7 +247,7 @@ t("UTF-8 BOM ledger → still replayed", () => {
   mkdirSync(join(r, ".argus", "ledger"), { recursive: true });
   writeFileSync(join(r, ".argus", "ledger", "ledger.jsonl"),
     "﻿" + bet("aaaa0001", iso(-1), "BOM 원장").map(e => JSON.stringify(e)).join("\n") + "\n");
-  assert(run(r).includes("/argus:settle"), "BOM-prefixed ledger must still fire");
+  assert(run(r).includes("/argus:resolve"), "BOM-prefixed ledger must still fire");
 });
 
 t("root-level bearing seed → fires (statusline coverage parity)", () => {
@@ -292,7 +292,7 @@ t("overdue beats greeting — and still burns the marker", () => {
   const r = repo();
   ledger(r, bet("aaaa0001", iso(-1), "기존 사용자 결정"));
   const out = run(r, { CLAUDE_CONFIG_DIR: cfg });
-  assert(out.includes("/argus:settle") && !out.includes("/argus:help"), `overdue line must win: ${out}`);
+  assert(out.includes("/argus:resolve") && !out.includes("/argus:help"), `overdue line must win: ${out}`);
   assert(run(repo(), { CLAUDE_CONFIG_DIR: cfg }) === "", "user with contracts never gets the intro later");
 });
 
@@ -324,11 +324,11 @@ function premise(id, extra = {}) {
   return { event: "extract", id, decision_id: "d", type: "premise", text: "금리 동결", external: true, load_bearing: true, ...extra };
 }
 
-t("due monitored premise → one line with /argus:track check", () => {
+t("due monitored premise → one line with /argus:premises check", () => {
   const r = repo();
   items(r, [premise("item_p1")]); // never re-checked → due
   const out = run(r);
-  assert(out.includes("/argus:track check"), `missing re-check hint: ${out}`);
+  assert(out.includes("/argus:premises check"), `missing re-check hint: ${out}`);
   assert(!out.includes("\n"), `must be one line: ${out}`);
 });
 
@@ -353,7 +353,7 @@ t("premise re-checked recently (<7d) → silence", () => {
 t("premise re-checked 8+ days ago → fires", () => {
   const r = repo();
   items(r, [premise("item_p1"), { event: "recheck", id: "item_p1", last_value: "v", at: iso(-8) }]);
-  assert(run(r).includes("/argus:track check"), "a stale re-check is due again");
+  assert(run(r).includes("/argus:premises check"), "a stale re-check is due again");
 });
 
 t("premise dismissed twice (back-off) → silence", () => {
@@ -379,7 +379,7 @@ t("overdue contract beats premise reminder — one line, settle only", () => {
   ledger(r, bet("aaaa0001", iso(-1), "지난 결정"));
   items(r, [premise("item_p1")]);
   const out = run(r);
-  assert(out.includes("/argus:settle") && !out.includes("/argus:track check"), `settle must win: ${out}`);
+  assert(out.includes("/argus:resolve") && !out.includes("/argus:premises check"), `settle must win: ${out}`);
   assert(!out.includes("\n"), `must be one line: ${out}`);
 });
 
@@ -388,7 +388,7 @@ t("premise reminder respects ko locale", () => {
   items(r, [premise("item_p1")]);
   writeFileSync(join(r, ".argus", "config.yaml"), "locale: ko\n");
   const out = run(r);
-  assert(out.includes("재확인할 전제") && out.includes("/argus:track check"), `expected ko premise line: ${out}`);
+  assert(out.includes("재확인할 전제") && out.includes("/argus:premises check"), `expected ko premise line: ${out}`);
 });
 
 // ─── Cleanup & verdict ──────────────────────────────────

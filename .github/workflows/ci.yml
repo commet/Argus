@@ -85,6 +85,13 @@ jobs:
       - name: Argus ledger writers
         run: node argus-plugin-v2/scripts/decision-ledger.test.mjs
 
+      # SessionStart reminder hook (check-contracts.js): the overdue-contract and
+      # living-premises reminders. Gated so a command rename can't silently rot the
+      # reminder copy again (this test lagged the settle→resolve / track→premises
+      # rename because it wasn't wired here).
+      - name: Argus reminder hook
+        run: node argus-plugin-v2/scripts/test-check-contracts.mjs
+
       # Clean-install preconditions (manifest parity, skills/agents/hooks/schemas resolve).
       - name: Argus install smoke
         run: node argus-plugin-v2/scripts/install-smoke.mjs
