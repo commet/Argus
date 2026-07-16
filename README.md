@@ -11,33 +11,38 @@ Argus keeps it alive as a **living course**.
 It's a judgment system that reframes the question, marks the forks, verifies the
 claims, shows your current bearing, and comes back when reality answers.
 
-## ⚡ Get Argus (30 seconds)
+## ⚡ Install the MCP server (30 seconds)
 
-One product, one local ledger (`~/.argus`). Find the row for **the tool you
-already work in** — you never need to know what's inside the box.
-Zero config: no API key, no account; your data stays on your machine.
+Argus ships as an **MCP server** — drop it into Claude Code, Claude Desktop,
+Cursor, or any MCP host, and your AI gains a *decision-accountability* loop.
+In Claude Code, one line does it:
 
-| You work in… | Do this |
-|---|---|
-| **Claude Code** — terminal, desktop app, or IDE extension | `/plugin marketplace add commet/Argus` then `/plugin install argus-driver@argus` — the MCP server is wired in automatically ([details](./argus-driver/README.md)) |
-| **Any other AI tool that speaks MCP** — Claude Desktop (the chat app), Cursor, Codex, Windsurf… | Register `npx -y argus-decision-mcp` in that tool's MCP settings → [per-host setup](./argus-mcp/README.md) |
+```bash
+claude mcp add argus -- npx -y argus-decision-mcp
+```
 
+**Zero config** — no API key, no account, your data stays local in `~/.argus`.
 Then just tell your AI *"seal a prediction that … by <date>"* and it takes over.
 
-Not a terminal person — or showing Argus to a teammate who isn't? The same loop
-runs on the web with nothing to install: **[argus.voyage](https://argus.voyage)**.
-
-<details>
-<summary>Optional, Claude Code only: the deep pressure-test harness</summary>
-
-`/plugin install argus@argus` adds `/argus:sail` — reframes the question,
-simulates your stakeholders, and pressure-tests a decision before you commit.
-Docs: [argus-plugin-v2/README.md](./argus-plugin-v2/README.md)
-
-</details>
-
 - 📦 npm: [`argus-decision-mcp`](https://www.npmjs.com/package/argus-decision-mcp)
-- 🛠️ Full setup (Windows paths, per-project ledger) + the tool list → **[argus-mcp/README.md](./argus-mcp/README.md)**
+- 🛠️ Full setup (Claude Desktop, Windows, per-project ledger) + the tool list → **[argus-mcp/README.md](./argus-mcp/README.md)**
+- 🔌 Using **Claude Code**? There's also a native plugin with slash commands (`/argus:sail`, `/argus:settle`): `/plugin marketplace add commet/Argus` → **[plugin docs](./argus-plugin-v2/README.md)**
+
+---
+
+### Three ways to use Argus
+
+Pick the door that fits you — each one links to its own setup guide.
+
+| | Best for | Get started |
+|---|---|---|
+| 🌐 **Web app** | Anyone. Nothing to install. | Open **[argus.voyage](https://argus.voyage)** |
+| 🧩 **MCP server** | Any AI assistant that speaks MCP — Claude Desktop, Claude Code, Cursor, and more. | `claude mcp add argus -- npx -y argus-decision-mcp` → [MCP docs](./argus-mcp/README.md) |
+| 🔌 **Claude Code plugin** | Deciding *inside* a codebase (over your PRs and files). | `/plugin marketplace add commet/Argus` → [plugin docs](./argus-plugin-v2/README.md) |
+
+New here and not sure? **Start with the [web app](https://argus.voyage)** — it
+needs no setup. If you live in an AI assistant and want Argus available in every
+chat, the **[MCP server](./argus-mcp/README.md)** is the one you want.
 
 > *Argus* is the name of the dog who, after Odysseus returned in disguise ten
 > years later, recognized his true master beneath the rags. An eye that sees
@@ -209,7 +214,7 @@ After restarting Claude Code, from any repo:
 ```
 
 Commands: `/argus:sail` (30-second judgment) · `/argus:team` (deploy an agent team)
-· `/argus:boss` (boss simulation) · `/argus:clarify` · `/argus:versions`
+· `/argus:boss` (boss simulation) · `/argus:clarify` · `/argus:chart`
 More → [argus-plugin-v2/README.md](./argus-plugin-v2/README.md)
 
 ### MCP server
