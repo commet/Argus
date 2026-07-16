@@ -449,6 +449,16 @@ KEYSTONE §10의 봉인 그대로: **공개 후 30일 안에 외부인 1명이 �
   가깝게 취급)
 - MCP 원장 스냅샷/컴팩션 (수천 이벤트 시 replay 지연 — 현실 데이터가 요구할 때)
 - argus_review의 당직 루프 편입 (문서 리뷰→capture 자동 제안 — M1 준공 후 검토)
+- **[O4 관문 뒤에만 인출 — §9.7]** Codex plugin v1 (`.codex-plugin` + 같은 MCP 자동
+  배선 + 3 skills + 당직 미러)
+- **[O4 관문 뒤]** MCPB Desktop 번들 (한 파일 설치 + `user_config` 폴더 선택기 —
+  Desktop 첫설치 블로커의 공인 해법; 로컬-우선 제품의 sanctioned 배포 형태)
+- **[O4 관문 뒤]** MCP Apps 위젯 — 상한 2종: 영수증 then-vs-now display · due 인박스
+  picker (게이미피케이션·verdict 금지는 위젯에도 그대로; 미지원 호스트는 텍스트 강등)
+- **[O4 관문 뒤]** `npx argus install` 범용 설치기 (host 감지·명시 선택·
+  doctor/update/uninstall, managed block + dry-run + idempotent)
+- TUI due-inbox — 위젯 2종이 같은 일자리를 더 싸게 대체하므로 보류; 터미널-네이티브
+  수요가 실측될 때만 재개 (PTY/CJK/resize 전장을 열지 않는다)
 
 ---
 
@@ -627,6 +637,77 @@ Desktop은 README 설정 그대로가 전 도구 실패, 영수증 렌더러는 
 > 부르는가)을 본다.
 >
 > AI VERDICT ON THIS TRACK ································· NONE
+
+### 9.7 전면 개편 위계 O0~O5 — 수렴과 확장의 관문 (2026-07-16 신설, 창업자 승인)
+
+> 입력 문서 3편이 독립적으로 같은 결론에 수렴했다:
+> `ARGUS-MCP-PLUGIN-OVERHAUL-REVIEW-2026-07-16.md` ·
+> `PROPOSAL-ARGUS-MULTIHOST-CORE-AND-DISTRIBUTION-2026-07-16.md` ·
+> `ARGUS-PRODUCT-EVALUATION-2026-07-16.ko.md`. **이 절이 그 수렴의 정본이다.
+> 같은 진단을 반복하는 새 감사·평가·계획 문서는 새 정보가 있을 때만 짓는다.**
+> 우선순위: §9.2 스파인 판정(헌법) > 이 위계 > V2-SPEC 시공 상세. §9.5의
+> M0~M4는 이 위계 이전 단계로 유효하며 잔여는 M4 두 건(publish·외부인 완주).
+> 명명 주의: DKK "P5 가치 관문"과의 충돌을 피해 이 위계는 O(Overhaul)를 쓴다.
+
+**한 줄 원리: 아키텍처 수술은 마찰 수리의 수단으로 지금(O1~O2), 시장 확장은
+실사용 증거 관문(O4) 뒤(O5). 헌법은 어느 공정에서도 변하지 않는다.**
+
+**Product contract (4표면 공통 — 웹·MCP·플러그인·설치 문구가 같은 문장을 쓴다):**
+
+> Argus는 결정을 대신 내리지 않는다. 당신의 판단을 그대로 기록하고, 예측을
+> 봉인하고, 확인일에 현실과 대조한다. 평결·추천·점수는 어떤 표면에도 없다.
+
+- 외부 어휘 = plain canon (predict/resolve/check/history). 항해어는 브랜드 장식과
+  내부 artifact로만.
+- locale은 대화-언어 우선. 설정과 대화 언어가 어긋나면 1회 확인 후 갱신 — 감지
+  1회 영구 고착 금지 (2026-06-15 P5 테스트가 실 config에 `locale: en`을 오염시킨
+  사건이 회귀 fixture의 근거).
+- 상호작용은 elicitation-first + capability probe + 텍스트 fallback. **crux는
+  어떤 층(텍스트/elicitation/위젯)에서도 선택지가 되지 않는다.**
+- Boss 리뷰는 MBTI 성격극이 아니라 역할·목표·권한 기반 이해관계자 리뷰로 (O3).
+
+**공정 O0 · 헌법 동결 (완료 = 이 절의 커밋)**
+
+**공정 O1 · 루프의 구조 수리 — 방 5개, 각 방 = 증상 + 원인 수술 (M~L)**
+- 방1 시간·언어 결정화: 환경 해석기 1벌(clock/locale/tz, 주입식 — MCP·플러그인
+  공용 소비, 감지기 2벌 해소) + Intl 테스트 격리(잔여 red) + **테스트·평가의
+  ARGUS_DIR 격리 강제**.
+- 방2 귀환 계약: attention projection 1벌 — `argus://attention` resource가
+  tools와 같은 zero-config 저장 모델을 보게 (현재 `ARGUS_DIR` 미설정 시 unbound).
+- 방3 첫 영수증 보상: then-vs-now 한 화면이 structured-숨김 호스트에서도 보이게.
+- 방4 봉인 1탭: Keep/Reword/Skip elicitation (OOB picker 실증 #163 위에).
+- 방5 게이트 전진: 신뢰 게이트를 Stop-hook 사후 경고 → 렌더 전 결정론 검증으로.
+- exit: [ ] 설치→봉인→재시작→귀환→정산 여정 fixture가 ko/en·Windows에서 초록
+  [ ] 릴리스 스위트 결정적(로케일·시계·홈 독립) [ ] 대화-언어 불일치 1회 확인
+  fixture
+- **O1 exit부터 실사용 코호트 가동 (O4 데이터 수집 시작 — 코드보다 사용이 주역).**
+
+**공정 O2 · 두뇌 수렴 (M)**
+- decision-ledger.js 내장 → MCP/Core 호출 교체 (Option A 2단계 — 스킬 prose 불변).
+- Core 경계 추출(거동 불변) + CI 경계 게이트(core↛어댑터, 플러그인↛writer,
+  렌더러↛전이). 저장 정본 = v2 durable (v1 호환 리더, v3는 P5 HOLD ADR대로 동결).
+- exit: [ ] canonical append 구현이 Core 밖 0개 (경계 테스트) [ ] 같은 이벤트
+  fixture → 플러그인/MCP/statusline 동일 해석
+
+**공정 O3 · 포장 통합 (M)**
+- driver + plugin-v2 → 사용자에게 하나의 `Argus` (기본 = 조용한 driver 거동,
+  deep review는 `/argus:review`만 — auto-trigger는 CI 빨강).
+- 명령 20→5 (자연어 기본 + review/check/history/settings) · plain rename
+  (+alias 2 minor 유지) · README/사이트 "어디서 쓰세요?" 문 구조 · Boss 교체.
+- exit: [ ] fresh install 명령 1개 [ ] activation 계약 테스트(자동 deep review 0)
+
+**공정 O4 · 증거 관문 (공정이 아니라 판정 — §6 준공 검사·P5 가치 관문과 한 몸)**
+- 5명×21일 관찰, 7단계 퍼널(noticed→captured→accepted→surfaced→returned→
+  resolved→again), 완주 lifecycle ≥ 10 + 비교군. kill/hold/iterate 숫자는
+  착수 전에 봉인.
+- **통과 전 확장 착공 금지. 확장 후보는 전부 §8 동결 목록에 있다.**
+
+**공정 O5 · 확장 (관문 통과 후에만, 순서는 O4 데이터가 정한다)**
+- §8의 `[O4 관문 뒤]` 항목에서 인출: MCPB(Desktop) · Codex plugin · 위젯 2종 ·
+  installer · (remote/team/v3/TUI는 그 뒤).
+
+**exit 체크 규약은 §6과 동일** — `[x]`는 같은 커밋에서 EVIDENCE 맵 갱신과 함께만.
+병행 트랙: 웹 공정 5(첫인상 수리)는 이 위계와 독립적으로 §6을 따른다.
 
 ---
 
