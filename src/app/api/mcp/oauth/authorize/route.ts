@@ -52,7 +52,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'login_required' }, { status: 401 });
   }
 
-  const code = randomOpaqueCode('argus_code_');
+  const code = randomOpaqueCode('mcp_code_');
   const admin = adminClient();
   const { error: insertError } = await admin.from('mcp_account_authorizations').insert({
     flow: 'authorization_code',

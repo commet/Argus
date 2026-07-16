@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'invalid_request' }, { status: 400 });
   }
 
-  const deviceCode = randomOpaqueCode('argus_device_', 40);
+  const deviceCode = randomOpaqueCode('mcp_device_', 40);
   const userCode = randomUserCode();
   const admin = adminClient();
   const { error } = await admin.from('mcp_account_authorizations').insert({
