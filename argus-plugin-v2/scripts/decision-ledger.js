@@ -165,6 +165,20 @@ function loadLedger() {
           cur.basis = event.basis;
         }
         break;
+      case "wake":
+        // In-session 1st settlement of the BIND lean (sail Step 7.5): did the
+        // user's own read hold or move once the reviewers were in? Attaches to the
+        // same lean:<session> rope. Replaying it here is what lets a second wake be
+        // refused (the "already woken → skip" rule, now mechanical not LLM-judged).
+        if (cur) {
+          cur.woke = {
+            lean_before: event.lean_before,
+            lean_after: event.lean_after,
+            changed: !!event.changed,
+            at: event.at,
+          };
+        }
+        break;
     }
   }
   return map;
@@ -882,7 +896,40 @@ function cmdAmend() {
   console.log(`Amended ${id}${checkBy ? ` → check_by ${checkBy}` : ""}`);
 }
 
-const commands = { scan: cmdScan, seal: cmdSeal, settle: cmdSettle, record: cmdRecord, amend: cmdAmend, list: () => cmdList(), status: cmdStatus };
+// Single-source writer for the wake event (sail Step 7.5's in-session lean
+// settlement) — was hand-written JSON in the sail skill. `lean_after` is PURE
+// user-authored (never prefilled); `lean_before` defaults to the sealed predicate
+// on the same rope, so the model never retypes the verbatim lean. A second wake on
+// the same id is refused here, making the skill's "already woken → skip" rule
+// mechanical instead of LLM-judged.
+function cmdWake() {
+  const id = flags._[0];
+  const leanAfter = flags["lean-after"] != null ? String(flags["lean-after"]) : "";
+  if (!id || !leanAfter) {
+    console.error('Usage: decision-ledger.js wake <id> --lean-after "<the user\'s own words>" [--lean-before "<verbatim BIND lean>"] [--changed]');
+    process.exit(1);
+  }
+  const ledger = loadLedger();
+  const cur = ledger.get(id);
+  if (cur && cur.woke) {
+    console.error(`${id} already has a wake — refusing a second (append-only, no re-ask).`);
+    process.exit(1);
+  }
+  // lean_before is the BIND lean = the sealed predicate on this rope. Pull it from
+  // the ledger so it can't drift from what was sealed; fall back to the flag.
+  const leanBefore = flags["lean-before"]
+    ? String(flags["lean-before"])
+    : (cur && cur.predicate ? cur.predicate : "");
+  if (!leanBefore) {
+    console.error(`No sealed lean found for ${id}; pass --lean-before "<verbatim BIND lean>".`);
+    process.exit(1);
+  }
+  appendEvent({ event: "wake", id, lean_before: leanBefore, lean_after: leanAfter, changed: !!flags.changed });
+  console.log(`Woke ${id}: ${flags.changed ? "moved" : "held"}`);
+  if (flags.changed) console.log(`  ${truncate(leanBefore, 60)} → ${truncate(leanAfter, 60)}`);
+}
+
+const commands = { scan: cmdScan, seal: cmdSeal, settle: cmdSettle, record: cmdRecord, amend: cmdAmend, wake: cmdWake, list: () => cmdList(), status: cmdStatus };
 if (!cmd || !commands[cmd]) {
   console.log("Usage:");
   console.log("  /argus:scan [--since days] [--all-projects] [--model sonnet] [--list]");

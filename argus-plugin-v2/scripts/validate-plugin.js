@@ -301,6 +301,14 @@ if (fs.existsSync(preapproveLedgerPath)) {
   check(/decision-ledger\.js" record\b/.test(preapprove), "preapprove must seal a plan through `decision-ledger.js record`, not hand-written harvest+seal JSON");
   check(!/\{"event":"(harvest|seal|amend)"/.test(preapprove), "preapprove must not hand-write harvest/seal ledger JSON — route through decision-ledger.js");
 }
+// sail's in-session Wake (Step 7.5) records the lean's 1st settlement — a ledger
+// `wake` event that must go through the single-source CLI, never hand-written JSON.
+const sailWakePath = path.join(root, "skills", "sail", "SKILL.md");
+if (fs.existsSync(sailWakePath)) {
+  const sailWake = fs.readFileSync(sailWakePath, "utf8");
+  check(/decision-ledger\.js" wake\b/.test(sailWake), "sail Wake (Step 7.5) must record through `decision-ledger.js wake`, not hand-written wake JSON");
+  check(!/\{"event":"wake"/.test(sailWake), "sail must not hand-write a wake ledger JSON line — route through decision-ledger.js (single-source shape)");
+}
 
 const draft = readJson(path.join(root, "data", "schemas", "draft.json"));
 if (draft) {
