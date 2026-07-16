@@ -68,6 +68,10 @@ export function ReviewFlow() {
   // instead of silently disabling the button.
   const [imageBlocked, setImageBlocked] = useState(false);
   const [extracting, setExtracting] = useState(false);
+  // Drag-and-drop onto the import card. dragDepth counts enter/leave across child
+  // elements so the highlight doesn't flicker as the cursor crosses the textarea.
+  const [dragOver, setDragOver] = useState(false);
+  const dragDepth = useRef(0);
   const [preExtracted, setPreExtracted] = useState<ExtractedText | null>(null);
   const [concerns, setConcerns] = useState<ReviewConcern[]>(['full_judgment_review']);
   const [audienceHint, setAudienceHint] = useState('');
@@ -227,6 +231,27 @@ export function ReviewFlow() {
       setSourceKind('txt');
       setPendingBinary(null);
     }
+  };
+
+  // Drop a file straight onto the card — same path as the upload button. Only the
+  // first file is taken (the flow reviews one document at a time).
+  const onDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    dragDepth.current = 0;
+    setDragOver(false);
+    const file = e.dataTransfer?.files?.[0];
+    if (file) onFile(file);
+  };
+  const onDragEnter = (e: React.DragEvent) => {
+    if (!Array.from(e.dataTransfer?.types ?? []).includes('Files')) return;
+    e.preventDefault();
+    dragDepth.current += 1;
+    setDragOver(true);
+  };
+  const onDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    dragDepth.current -= 1;
+    if (dragDepth.current <= 0) { dragDepth.current = 0; setDragOver(false); }
   };
 
   const toggleConcern = (id: ReviewConcern) => {
@@ -724,7 +749,20 @@ export function ReviewFlow() {
         )}
       </div>
 
-      <Card>
+      <Card
+        onDragEnter={onDragEnter}
+        onDragOver={(e) => e.preventDefault()}
+        onDragLeave={onDragLeave}
+        onDrop={onDrop}
+        className={`relative transition-shadow ${dragOver ? 'ring-2 ring-[var(--accent)] ring-offset-2 ring-offset-[var(--bg)]' : ''}`}
+      >
+        {dragOver && (
+          <div className="absolute inset-0 z-10 flex items-center justify-center rounded-xl bg-[var(--accent)]/[0.06] pointer-events-none">
+            <p className="text-[13px] font-semibold text-[var(--accent)]">
+              {L('여기에 파일을 놓으세요 (pdf · docx · pptx · 이미지 · txt)', 'Drop your file here (pdf · docx · pptx · image · txt)')}
+            </p>
+          </div>
+        )}
         <textarea
           value={text}
           onChange={(e) => {
