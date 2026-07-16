@@ -17,24 +17,36 @@ import { tmpArgusDir } from '../../test-helpers.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
 const DIST = path.join(ROOT, 'dist', 'index.js');
-const TODAY = '2026-07-02';
+function utcDay(offsetDays = 0): string {
+  const date = new Date();
+  date.setUTCDate(date.getUTCDate() + offsetDays);
+  return date.toISOString().slice(0, 10);
+}
+
+// Resources have no argument channel for today_override and therefore read the
+// server clock. Keep the fixture dates relative to that same clock so this
+// protocol test cannot expire as the calendar advances.
+const TODAY = utcDay();
 // A monitored premise's first recheck now waits one cadence from its add date
 // (founder decision 2026-07-10), so premises are added a month before TODAY to
 // be due by the TODAY checks.
-const ADDED = '2026-06-01';
+const ADDED = utcDay(-31);
+const CHECK_BY = utcDay(60);
 
 let client: Client;
 let dir: string;
 
 beforeAll(async () => {
-  // Always rebuild — this suite drives the BUILT dist directly, so a stale dist
-  // silently tests old behavior (it did: the cadence-gate looked to pass here
-  // only because dist hadn't been rebuilt).
-  execSync('npm run build', { cwd: ROOT, stdio: 'ignore' });
+  // Always recompile — this suite drives the BUILT dist directly, so a stale
+  // dist silently tests old behavior. Do not run the package's clean step here:
+  // the root Vitest suite imports dist in parallel, and deleting it creates a
+  // transient ERR_MODULE_NOT_FOUND race for those tests.
+  execSync('npm exec -- tsc -p tsconfig.build.json', { cwd: ROOT, stdio: 'ignore' });
   dir = tmpArgusDir();
   const env: Record<string, string> = {};
   for (const [k, v] of Object.entries(process.env)) if (typeof v === 'string') env[k] = v;
   env['ARGUS_DIR'] = dir; // resources resolve the project from the env, like a real host config
+  env['ARGUS_TZ'] = 'UTC'; // match the UTC-relative fixture clock above
 
   client = new Client({ name: 'roundtrip-test', version: '0.0.0' });
   await client.connect(new StdioClientTransport({ command: process.execPath, args: [DIST], env }));
@@ -105,7 +117,7 @@ describe('MCP protocol round-trip (built server, stdio)', () => {
           request_id: 'pilot-seal',
           judgment_id: 'pilot-pricing',
           statement: 'Keep the current price through the next cohort.',
-          review_at: '2026-09-01T00:00:00.000Z',
+          review_at: `${CHECK_BY}T00:00:00.000Z`,
           review_question: 'Did the conversion rate hold?',
           authorization: { mode: 'direct_command', evidence_kind: 'user_utterance', evidence_ref: 'host:turn:pilot-1' },
         },
@@ -124,7 +136,7 @@ describe('MCP protocol round-trip (built server, stdio)', () => {
       name: 'argus_seal',
       arguments: {
         argus_dir: dir, id: 'rt1', predicate: 'the cutover ships with no visible outage',
-        check_by: '2026-09-01', predicate_owner: 'user',
+        check_by: CHECK_BY, predicate_owner: 'user',
         unverified_assumption: 'the index rebuild fits the replication lag budget',
         today_override: ADDED,
       },
