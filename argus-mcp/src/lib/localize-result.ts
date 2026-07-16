@@ -36,6 +36,7 @@ const KO_ERRORS: Record<string, ErrorCopy> = {
   NOT_CONNECTED: { message: '이 터미널은 Argus 계정과 연결돼 있지 않습니다.', recovery: '웹 설정에서 동기화 토큰을 발급하고 MCP 설정의 ARGUS_TOKEN에 넣으세요.' },
   SYNC_FAILED: { message: 'Argus 계정과 동기화하지 못했습니다.', recovery: '네트워크와 ARGUS_API_URL을 확인한 뒤 다시 시도하세요. 로컬 기록은 영향을 받지 않습니다.' },
   TEXT_REQUIRED: { message: '기록할 문장이 필요합니다.', recovery: '사용자의 문장을 고치거나 요약하지 말고 그대로 text에 전달하세요.' },
+  SEAL_INVALID: { message: '다시 쓴 예측 문장의 길이가 맞지 않습니다 (8~400자).', recovery: '사용자에게 예측 문장을 8~400자로 다시 물어 그대로 저장하세요.' },
   INTERNAL_ERROR: { message: '내부 오류가 발생했습니다.', recovery: '같은 작업을 다시 시도하세요. 반복되면 MCP 서버 로그를 확인하세요.' },
   UNKNOWN_TOOL: { message: '알 수 없는 도구입니다.', recovery: 'tools/list에 나온 정확한 도구 이름을 사용하세요.' },
 };

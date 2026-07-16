@@ -65,4 +65,51 @@ describe('argus_seal confirm_draft (one-tap)', () => {
     const r = body(await seal.handler({ argus_dir: dir, id: 'f1', ...base }));
     expect((r['data'] as Record<string, unknown>)['status']).toBe('sealed');
   });
+
+  it('inline reword: wording typed in the form is saved verbatim as the user\'s, one round-trip (§9.7 O1 방4)', async () => {
+    const dir = tmpArgusDir();
+    setElicitor(async () => ({ action: 'accept', content: { choice: 'reword', your_wording: 'cutover downtime stays under 5 minutes' } }));
+    const r = body(await seal.handler({ argus_dir: dir, id: 'w1', ...base }));
+    const data = r['data'] as Record<string, unknown>;
+    expect(data['status']).toBe('sealed');
+    expect(data['predicate']).toBe('cutover downtime stays under 5 minutes'); // their words, verbatim
+    expect(data['predicate_owner']).toBe('user');
+  });
+
+  it('inline reword still passes the falsifiability gate — a typed vibe is refused, nothing written', async () => {
+    const dir = tmpArgusDir();
+    setElicitor(async () => ({ action: 'accept', content: { choice: 'reword', your_wording: 'it will probably go well for us' } }));
+    const r = await seal.handler({ argus_dir: dir, id: 'v1', ...base });
+    expect(isError(r)).toBe(true);
+    expect(await sealedState(dir, 'v1')).toBe('RECEIPT_NOT_FOUND');
+  });
+
+  it('inline reword that is too short is refused with a recovery, nothing written', async () => {
+    const dir = tmpArgusDir();
+    setElicitor(async () => ({ action: 'accept', content: { choice: 'reword', your_wording: 'ok' } }));
+    const r = await seal.handler({ argus_dir: dir, id: 'v2', ...base });
+    expect(isError(r)).toBe(true);
+    expect(body(r)['error_code']).toBe('SEAL_INVALID');
+    expect(await sealedState(dir, 'v2')).toBe('RECEIPT_NOT_FOUND');
+  });
+
+  it('STRUCTURAL trigger: an ai_surfaced draft fires the picker even without confirm_draft', async () => {
+    const dir = tmpArgusDir();
+    let asked = 0;
+    setElicitor(async () => { asked++; return { action: 'accept', content: { choice: 'keep' } }; });
+    const { confirm_draft: _omit, ...noFlag } = base;
+    const r = body(await seal.handler({ argus_dir: dir, id: 'st1', ...noFlag }));
+    expect(asked).toBe(1); // the picker cannot be skipped by prose non-compliance
+    expect((r['data'] as Record<string, unknown>)['predicate_owner']).toBe('user');
+  });
+
+  it('no ceremony on user-authored words: predicate_owner=user without confirm_draft seals with NO picker', async () => {
+    const dir = tmpArgusDir();
+    let asked = 0;
+    setElicitor(async () => { asked++; return { action: 'accept', content: { choice: 'keep' } }; });
+    const { confirm_draft: _omit, ...noFlag } = base;
+    const r = body(await seal.handler({ argus_dir: dir, id: 'u1', ...noFlag, predicate_owner: 'user' as const }));
+    expect(asked).toBe(0); // over-fire mirror clause: don't re-confirm the user's own words
+    expect((r['data'] as Record<string, unknown>)['status']).toBe('sealed');
+  });
 });
