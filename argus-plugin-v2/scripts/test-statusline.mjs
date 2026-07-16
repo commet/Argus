@@ -100,14 +100,14 @@ t("empty repo → line 1 only", () => {
   assert(out[0].includes("TestModel"), "missing model name");
 });
 
-t("overdue bet → OVERDUE line with /argus:settle hint", () => {
+t("overdue bet → OVERDUE line with /argus:resolve hint", () => {
   const r = repo();
   ledger(r, bet("aaaa0001", iso(-3), "플러그인 보존, 포지셔닝 피벗"));
   const out = lines(run(r));
   assert(out.length === 2, `expected 2 lines, got ${out.length}`);
   assert(out[1].includes("OVERDUE"), `no OVERDUE: ${out[1]}`);
   assert(out[1].includes("플러그인 보존"), `missing decision text: ${out[1]}`);
-  assert(out[1].includes("/argus:settle"), `missing hint: ${out[1]}`);
+  assert(out[1].includes("/argus:resolve"), `missing hint: ${out[1]}`);
 });
 
 t("two overdue bets → ×2, oldest date shown", () => {
@@ -145,7 +145,7 @@ t("bet due today → 'due today', not OVERDUE", () => {
   const l2 = lines(run(r))[1];
   assert(l2.includes("due today"), `no due today: ${l2}`);
   assert(!l2.includes("OVERDUE"), `today is due, not overdue: ${l2}`);
-  assert(l2.includes("/argus:settle"), `missing hint: ${l2}`);
+  assert(l2.includes("/argus:resolve"), `missing hint: ${l2}`);
 });
 
 t("overdue beats due today", () => {
@@ -348,7 +348,9 @@ t("narrow terminal → Korean text clipped, line fits budget", () => {
   }, 0.1);
   const l2 = lines(run(r, { COLUMNS: "80" }))[1];
   assert(l2.includes("…"), `expected clipping: ${l2}`);
-  assert(l2.includes("🌫"), `fog must survive truncation: ${l2}`);
+  // plain-canon sweep replaced the 🌫 glyph with the literal `risk:` label —
+  // the invariant is the same: the fog fragment must survive truncation.
+  assert(l2.includes("risk:"), `fog must survive truncation: ${l2}`);
 });
 
 t("UTF-8 BOM bearing/ledger (PS 5.1 Out-File) → still read", () => {
