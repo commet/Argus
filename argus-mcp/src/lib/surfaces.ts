@@ -1,6 +1,6 @@
 import fs from 'fs';
 import { configPath } from './layout.js';
-import { detectLocaleFromText } from './locale.js';
+import { detectLocaleFromText, osLocaleHint } from './locale.js';
 
 /**
  * surfaces.ts — the ONE locale brain for user-facing surface strings
@@ -92,12 +92,9 @@ export function resolveResponseLocale(argusDir: string | null | undefined, text?
   if (explicit) return explicit;
   const fromText = detectLocaleFromText(text);
   if (fromText) return fromText;
-  const env = process.env['LANG'] || process.env['LC_ALL'] || '';
-  if (/^ko/i.test(env)) return 'ko';
-  try {
-    if (/^ko/i.test(Intl.DateTimeFormat().resolvedOptions().locale)) return 'ko';
-  } catch { /* Intl unavailable */ }
-  return 'en';
+  // One probe, one rule — the env→Intl chain used to be duplicated here and
+  // in detectLocale, drifting independently (§9.7 O1 방1).
+  return osLocaleHint();
 }
 
 /** Shape shared by both locales — a key added to one MUST exist in the other
