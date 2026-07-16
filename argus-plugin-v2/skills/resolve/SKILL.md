@@ -97,13 +97,23 @@ is exactly what lets concurrent in-process writers AND git merges both converge 
 this rule applies to every ledger writer (settle, preapprove, watch), not just here.
 
 
-- For a **read seed not yet in the ledger**, first import it as two events,
-  then settle — so the ledger stays the single replayable source:
+- For a **read seed not yet in the ledger**, first import it (harvest+seal),
+  then settle — so the ledger stays the single replayable source. Write the
+  import through the single-source CLI (do NOT hand-write the JSON — the CLI owns
+  the canonical harvest+seal shape and stamps `at`). Pass the id you synthesized
+  in Step 1 verbatim so import, dedup, and settle all target the same contract:
 
-```json
-{"event":"harvest","id":"bearing:<session-id>:<label>","project":"<name of the directory containing .argus>","session":"<session-id>","decided_at":"<read generated_at>","quote":"<predicate>","decision":"<current_course.summary>","type":"adopt","stakes":"<from the session's classification.json if readable; omit the field otherwise — never fabricate>","at":"<now ISO>"}
-{"event":"seal","id":"<same id>","predicate":"<predicate>","falsified_if":"<fail_condition or 'opposite observed'>","check_by":"<ISO date>","at":"<now ISO>"}
+```bash
+node "${CLAUDE_PLUGIN_ROOT}/scripts/decision-ledger.js" record \
+  --id "bearing:<session-id>:<label>" --session "<session-id>" \
+  --decided-at "<read generated_at>" --decision "<current_course.summary>" \
+  --type adopt [--stakes <from classification.json if readable; omit otherwise — never fabricate>] \
+  --predicate "<predicate>" --falsified-if "<fail_condition or 'opposite observed'>" \
+  --check-by "<ISO date>"
 ```
+
+`quote` defaults to the predicate. Do NOT pass `--author` — a read seed is
+machine-surfaced (the Step 3 authorship note), not the user's own bet.
 
 Omit `note` from the settle event when the user offered no sentence.
 
@@ -135,10 +145,12 @@ user's judgment. A seal WITHOUT `author` (the AI-surfaced seed from sail Step 7)
 machine-surfaced belief, not the user's bet — a held one is NOT the user's skill-win
 (same principle as luck-vs-judgment basis). Never silently relabel one as the other.
 
-- `pending` → extend instead (history preserved, no settle):
+- `pending` → extend instead (history preserved, no settle). Write it through the
+  single-source CLI, never hand-written JSON (the reducer keeps the prior date in
+  `history`, so this never clobbers):
 
-```json
-{"event":"amend","id":"<id>","check_by":"<today + 14d, or user-given date>","at":"<now ISO>"}
+```bash
+node "${CLAUDE_PLUGIN_ROOT}/scripts/decision-ledger.js" amend <id> --check-by "<today + 14d, or user-given date>"
 ```
 
 Create `.argus/ledger/` if missing. Ensure `.argus/.gitignore` exists per sail

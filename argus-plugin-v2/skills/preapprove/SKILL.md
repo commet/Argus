@@ -98,21 +98,23 @@ description: EXPERIMENTAL — pre-approval evidence check for agent plans (the "
 
 ## Step 2 — 봉인 (사용자가 "네"일 때만)
 
-`.argus/ledger/ledger.jsonl`에 watch와 **같은 이벤트 형식**으로 append
-(스키마 규약은 Argus 저장소의 `src/lib/ledger-schema.ts` ·
-`tools/argus-watch/lib/ledger.mjs` — 플러그인에 동봉되지 않으므로 아래
-예시 두 줄이 이 스킬의 단일 계약이다):
+단일소스 렛저 라이터로 harvest+seal을 한 번에 쓴다 — JSON을 손으로 적지 않는다
+(CLI가 canonical 모양을 소유하고, `sha256(session|quote)` id를 직접 계산하며,
+`at`을 찍고 `O_APPEND`로 붙이므로 이 봉인이 리더가 replay하는 것과 절대 어긋날 수
+없다). id 해시·리플레이 규칙이 CLI에 있으니 `/argus:predict --list`에도 그대로 잡힌다:
 
-```json
-{"event":"harvest","id":"<sha256(session|quote).slice(0,8)>","project":"<repo>","session":"helm/<ISO date>","decided_at":"<ISO>","quote":"<계획의 해당 문장>","decision":"<계획 한 줄 요약>","type":"adopt","stakes":"high","at":"<ISO>"}
-{"event":"seal","id":"<같은 id>","predicate":"<확인 가능한 한 문장>","falsified_if":"<반대 신호 한 문장>","check_by":"<YYYY-MM-DD, 기본 +1w>","at":"<ISO>"}
+```bash
+node "${CLAUDE_PLUGIN_ROOT}/scripts/decision-ledger.js" record \
+  --session "helm/<ISO date>" --quote "<계획의 해당 문장>" \
+  --decision "<계획 한 줄 요약>" --type adopt --stakes high \
+  --predicate "<확인 가능한 한 문장>" --falsified-if "<반대 신호 한 문장>" \
+  --check-by "<YYYY-MM-DD, 기본 +1w>"
 ```
 
-- id 해시·이벤트 리플레이 규칙은 ledger.mjs와 동일 — `argus-watch list`에 그대로 잡힌다.
-- **쓰기 검증**: append 직후 방금 쓴 줄을 다시 읽어 JSON 파싱이 되는지 확인.
-  모든 리더가 깨진 줄을 조용히 건너뛰므로, 잘못 쓴 봉인은 에러가 아니라
-  "존재한 적 없는 예측"이 된다. 파싱 실패 시 수정된 줄을 즉시 다시 append
-  (기존 줄 수정 금지).
+- `--id`를 생략하면 CLI가 `sha256(session|quote).slice(0,8)`로 계산 — 모델이 해시를
+  손으로 만들 필요가 없다. `--check-by`를 생략하면 날짜 없는 밧줄이 된다.
+- **쓰기 검증**: 명령 성공 후 `/argus:predict --list`(또는 `status`)로 방금 봉인이
+  잡히는지 확인. 실패했다면 다시 실행 — CLI는 append-only라 재실행이 안전하다.
 - `.argus/ledger/` 생성 시 `.argus/.gitignore`에 `ledger/` 줄이 있는지 확인하고
   없으면 추가 (sail Step 0 프라이버시 기본값 — preapprove이 원장을 처음 만드는
   경우도 있으므로 여기서도 보장한다).

@@ -276,6 +276,30 @@ if (fs.existsSync(settleSkillPath)) {
   const settle = fs.readFileSync(settleSkillPath, "utf8");
   check(!/열린 질문이 하나 남았네요 — 잡아보려면: \/argus:sail/.test(settle), "settle must not auto-offer /argus:sail on a missed/partial outcome (reopen-on-settle over-fire, v2.6.0)");
   check(/reality-only/i.test(settle), "settle must state settlement is reality-only — reopening is the user's explicit move (v2.6.0)");
+  // Single-source ledger writes (plugin-core Option A): every ledger mutation goes
+  // through decision-ledger.js so the JSON shape can't drift from what the readers
+  // replay (the Honest-Structure invariant — a hand-written template is a wire the
+  // compiler/CI can't see). resolve imports a due seed via `record` and pushes a
+  // pending contract via `amend`; neither may hand-write harvest/seal/amend JSON.
+  check(/decision-ledger\.js" record\b/.test(settle), "resolve must import a read seed through `decision-ledger.js record`, not hand-written harvest+seal JSON");
+  check(/decision-ledger\.js" amend\b/.test(settle), "resolve must push a pending contract through `decision-ledger.js amend`, not hand-written amend JSON");
+  check(!/\{"event":"(harvest|seal|amend)"/.test(settle), "resolve must not hand-write harvest/seal/amend ledger JSON — route through decision-ledger.js (single-source shape)");
+}
+
+// clarify's BIND lean and preapprove's plan seal both birth a FRESH predicate —
+// they must use `decision-ledger.js record` (harvest+seal), never hand-written JSON.
+const clarifyLeanPath = path.join(root, "skills", "clarify", "SKILL.md");
+if (fs.existsSync(clarifyLeanPath)) {
+  const clarify = fs.readFileSync(clarifyLeanPath, "utf8");
+  check(/decision-ledger\.js" record\b/.test(clarify), "clarify BIND lean must be written through `decision-ledger.js record`, not hand-written harvest+seal JSON");
+  check(/record[\s\S]{0,220}--author user/.test(clarify), "clarify's record call must carry --author user (the lean is the user's own bet, R57/R58 provenance)");
+  check(!/\{"event":"(harvest|seal|amend)"/.test(clarify), "clarify must not hand-write harvest/seal ledger JSON — route through decision-ledger.js");
+}
+const preapproveLedgerPath = path.join(root, "skills", "preapprove", "SKILL.md");
+if (fs.existsSync(preapproveLedgerPath)) {
+  const preapprove = fs.readFileSync(preapproveLedgerPath, "utf8");
+  check(/decision-ledger\.js" record\b/.test(preapprove), "preapprove must seal a plan through `decision-ledger.js record`, not hand-written harvest+seal JSON");
+  check(!/\{"event":"(harvest|seal|amend)"/.test(preapprove), "preapprove must not hand-write harvest/seal ledger JSON — route through decision-ledger.js");
 }
 
 const draft = readJson(path.join(root, "data", "schemas", "draft.json"));

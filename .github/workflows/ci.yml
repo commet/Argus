@@ -79,6 +79,12 @@ jobs:
       - name: Argus secret redaction
         run: node argus-plugin-v2/scripts/redact.test.mjs
 
+      # Single-source ledger writers (plugin-core Option A): record/amend/settle
+      # emit the canonical shape the readers replay, so a skill can't hand-write a
+      # drifting line. Functional test spawns the CLI and asserts the JSONL.
+      - name: Argus ledger writers
+        run: node argus-plugin-v2/scripts/decision-ledger.test.mjs
+
       # Clean-install preconditions (manifest parity, skills/agents/hooks/schemas resolve).
       - name: Argus install smoke
         run: node argus-plugin-v2/scripts/install-smoke.mjs
