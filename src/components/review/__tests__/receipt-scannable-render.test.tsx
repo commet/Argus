@@ -63,4 +63,19 @@ describe('ReceiptView — scannable by default', () => {
     clickButtonContaining('왜 사람인가');
     expect(container.textContent).toContain('재무 리스크는 사람이 감수');
   });
+
+  it('renders an image receipt\'s page-1 anchor as "이미지", never "1쪽"', () => {
+    // The vision pass anchors a single-image finding to page 1; the receipt must
+    // read "이미지", not the awkward "1쪽" (which implies a paginated document).
+    const imgReceipt = {
+      ...RECEIPT,
+      source_kind: 'image',
+      source_title: 'chart.png',
+      judgment_obligations: [],
+      findings: [{ finding_id: 'fi', lens_id: 'claim_evidence', title: '차트 급증에 출처 없음', detail: 'd', severity: 'caution', confidence: 'medium', anchors: [{ page: 1 }], provenance: 'ai_surfaced' }],
+    } as unknown as JudgmentReceipt;
+    act(() => { root.render(createElement(ReceiptView, { receipt: imgReceipt })); });
+    expect(container.textContent).toContain('이미지');
+    expect(container.textContent).not.toContain('1쪽');
+  });
 });

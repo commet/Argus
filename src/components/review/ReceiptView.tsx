@@ -62,10 +62,16 @@ function settlementLabel(L: LFn, outcome?: string): string {
   return outcome ? map[outcome] ?? outcome : L('기록됨', 'Recorded');
 }
 
-function anchorLabel(L: LFn, a?: SourceAnchor): string {
+function anchorLabel(L: LFn, a?: SourceAnchor, isImage = false): string {
   if (!a) return '';
   if (a.slide !== undefined) return L(`슬라이드 ${a.slide}`, `Slide ${a.slide}`);
   const sec = a.section_path?.length ? a.section_path.join(' › ') : '';
+  // A single uploaded image has no pages — the vision pass anchors its findings
+  // to "page 1", so render that as "이미지" instead of the awkward "1쪽". (A
+  // future multi-image upload would keep the number: "이미지 2".)
+  if (isImage && a.page !== undefined) {
+    return a.page > 1 ? L(`이미지 ${a.page}`, `Image ${a.page}`) : L('이미지', 'Image');
+  }
   // A PDF anchor carries a page; show it (with the section when we have one) so a
   // finding always points somewhere — a page-only anchor used to render blank.
   if (a.page !== undefined) return sec ? L(`${a.page}쪽 · ${sec}`, `p.${a.page} · ${sec}`) : L(`${a.page}쪽`, `p.${a.page}`);
@@ -107,6 +113,8 @@ export function ReceiptView({
   const [showFixes, setShowFixes] = useState(false);
   const [claimFilter, setClaimFilter] = useState<string>('all');
   const isJudgmentMirror = receipt.kind === 'judgment' || receipt.root_mode === 'judgment';
+  // A pure image review anchors to "page 1" — render its anchors as "이미지".
+  const isImage = receipt.source_kind === 'image';
   const reviewability = receipt.reviewability;
   const band = reviewability ? reviewabilityBand(reviewability.score) : null;
   const topFindings = receipt.findings.slice(0, 3);
@@ -114,8 +122,8 @@ export function ReceiptView({
 
   // "문서 수정안" — collected concrete fixes, never a full rewrite (§MVP 금지 10).
   const fixes = [
-    ...receipt.claim_ledger.filter((c) => c.fix_suggestion).map((c) => ({ where: anchorLabel(L, c.anchors[0]) || c.text.slice(0, 24), text: c.fix_suggestion! })),
-    ...receipt.findings.filter((f) => f.suggested_action).map((f) => ({ where: anchorLabel(L, f.anchors[0]) || f.title.slice(0, 24), text: f.suggested_action! })),
+    ...receipt.claim_ledger.filter((c) => c.fix_suggestion).map((c) => ({ where: anchorLabel(L, c.anchors[0], isImage) || c.text.slice(0, 24), text: c.fix_suggestion! })),
+    ...receipt.findings.filter((f) => f.suggested_action).map((f) => ({ where: anchorLabel(L, f.anchors[0], isImage) || f.title.slice(0, 24), text: f.suggested_action! })),
   ];
   const filteredClaims = claimFilter === 'all' ? receipt.claim_ledger : receipt.claim_ledger.filter((c) => c.status === claimFilter);
   const claimStatuses = Array.from(new Set(receipt.claim_ledger.map((c) => c.status)));
@@ -246,7 +254,7 @@ export function ReceiptView({
           </div>
           <div className="space-y-2.5">
             {topObligations.map((o) => (
-              <ObligationRow key={o.obligation_id} o={o} onSealObligation={onSealObligation} />
+              <ObligationRow key={o.obligation_id} o={o} onSealObligation={onSealObligation} isImage={isImage} />
             ))}
           </div>
         </Card>
@@ -258,7 +266,7 @@ export function ReceiptView({
           <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--text-secondary)] mb-2">{L('주요 발견', 'Key findings')}</div>
           <div className="space-y-2.5">
             {topFindings.map((f) => (
-              <FindingRow key={f.finding_id} f={f} />
+              <FindingRow key={f.finding_id} f={f} isImage={isImage} />
             ))}
           </div>
         </Card>
@@ -341,8 +349,8 @@ export function ReceiptView({
                         {claimStatusLabel(c.status, L)}
                       </span>
                       <span className="text-[var(--text-primary)]">{c.text}</span>
-                      {anchorLabel(L, c.anchors[0]) && (
-                        <span className="ml-1 text-[11px] text-[var(--text-tertiary)]">({anchorLabel(L, c.anchors[0])})</span>
+                      {anchorLabel(L, c.anchors[0], isImage) && (
+                        <span className="ml-1 text-[11px] text-[var(--text-tertiary)]">({anchorLabel(L, c.anchors[0], isImage)})</span>
                       )}
                     </div>
                     {c.evidence_needed && (
@@ -438,7 +446,7 @@ export function ReceiptView({
               </div>
               <div className="space-y-2.5">
                 {receipt.findings.slice(3).map((f) => (
-                  <FindingRow key={f.finding_id} f={f} />
+                  <FindingRow key={f.finding_id} f={f} isImage={isImage} />
                 ))}
               </div>
             </Card>
@@ -454,9 +462,11 @@ export function ReceiptView({
 function ObligationRow({
   o,
   onSealObligation,
+  isImage = false,
 }: {
   o: JudgmentObligation;
   onSealObligation?: (obligation: JudgmentObligation) => void;
+  isImage?: boolean;
 }) {
   const locale = useLocale();
   const L = (ko: string, en: string) => (locale === 'ko' ? ko : en);
@@ -467,8 +477,8 @@ function ObligationRow({
     <div className="border-b border-[#8b6914]/10 last:border-0 pb-2.5 last:pb-0">
       <p className="text-[14px] font-medium leading-snug text-[var(--text-primary)]">
         {o.statement}
-        {anchorLabel(L, o.anchors[0]) && (
-          <span className="ml-1 text-[11px] font-normal text-[var(--text-tertiary)]">({anchorLabel(L, o.anchors[0])})</span>
+        {anchorLabel(L, o.anchors[0], isImage) && (
+          <span className="ml-1 text-[11px] font-normal text-[var(--text-tertiary)]">({anchorLabel(L, o.anchors[0], isImage)})</span>
         )}
       </p>
       <div className="mt-2 flex items-center gap-2">
@@ -505,7 +515,7 @@ function ObligationRow({
 
 /** One finding — a scannable single line (severity · title · anchor); the detail
  *  and suggested action open on tap so the receipt reads at a glance. */
-function FindingRow({ f }: { f: Finding }) {
+function FindingRow({ f, isImage = false }: { f: Finding; isImage?: boolean }) {
   const locale = useLocale();
   const L = (ko: string, en: string) => (locale === 'ko' ? ko : en);
   const [open, setOpen] = useState(false);
@@ -521,8 +531,8 @@ function FindingRow({ f }: { f: Finding }) {
         <span className={`shrink-0 mt-0.5 px-1.5 py-0.5 text-[10px] font-bold rounded border ${SEVERITY_CLS[f.severity]}`}>{severityLabel(f.severity, L)}</span>
         <span className="min-w-0 flex-1 text-[13px] font-medium leading-snug text-[var(--text-primary)]">
           {f.title}
-          {anchorLabel(L, f.anchors[0]) && (
-            <span className="ml-1 text-[11px] font-normal text-[var(--text-tertiary)]">({anchorLabel(L, f.anchors[0])})</span>
+          {anchorLabel(L, f.anchors[0], isImage) && (
+            <span className="ml-1 text-[11px] font-normal text-[var(--text-tertiary)]">({anchorLabel(L, f.anchors[0], isImage)})</span>
           )}
         </span>
         {hasMore && <span className="shrink-0 mt-0.5 text-[10px] text-[var(--text-tertiary)]">{open ? '▲' : '▼'}</span>}
