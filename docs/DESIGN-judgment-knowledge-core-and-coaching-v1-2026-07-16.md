@@ -1009,8 +1009,8 @@ flowchart TB
 - betrayal fixture를 먼저 작성한다.
 
 **2026-07-16 구현 상태:** `ADR-2026-07-16-judgment-knowledge-core-k0.md`에서 열
-질문의 owner와 임시/확정 상태를 정리했다. 창업자 결정 F1~F5는 아직 Proposed이며,
-K1은 그 결정을 선점하지 않는 shadow-only 기본값만 사용한다.
+질문의 owner와 확정 상태를 정리했다. 창업자 결정 F1~F5는 완료되었으며, K1은
+그 결정의 후속 제품 표면을 선점하지 않는 shadow-only 기본값만 사용한다.
 
 ### 단계 K1 — 새 semantic schema
 
@@ -1202,20 +1202,20 @@ K0 결정 초안은 `ADR-2026-07-16-judgment-knowledge-core-k0.md` 한 편에서
 
 | # | 질문 | K0 상태 |
 |---:|---|---|
-| 1 | `JudgmentVersion`을 제품·API에서도 쓸지 | **창업자 결정 F1** — 임시로 internal-only |
+| 1 | `JudgmentVersion`을 제품·API에서도 쓸지 | **창업자 결정 F1** — 사용자 UI는 쉬운 말, developer/export API는 코어 명칭 공개 가능 |
 | 2 | Assertion 저장과 role projection | 구현 결정 I1 — 단일 canonical union |
-| 3 | Premise 채택과 sync 한 번 승인 | **창업자 결정 F2** — 두 receipt로 의미 분리 |
+| 3 | Premise 채택과 sync 한 번 승인 | **창업자 결정 F2** — 한 흐름으로 승인 가능하되 두 receipt로 의미 분리 |
 | 4 | `system_verified` 허용 범위 | 구현 결정 I2 — 결정적 관계만 |
 | 5 | semantic relation 확인 정책 | 구현 결정 I3 — 의미 사용 직전에만 확인 |
-| 6 | 개인 Pattern 최소 사례 | **창업자 결정 F3** — 임시 최소 3건 |
-| 7 | Evidence 원문 보존 | **창업자 결정 F4** — locator/hash/excerpt만 |
-| 8 | local-only watch 최소 sync | **창업자 결정 F5** — 선택 premise+WatchSpec만 |
+| 6 | 개인 Pattern 최소 사례 | **창업자 결정 F3** — 기본 3건, 민감 패턴은 후속 정책에서 3~5건 가능 |
+| 7 | Evidence 원문 보존 | **창업자 결정 F4** — 기본 최소 저장, 명시 동의 자료는 후속 Evidence Vault 가능 |
+| 8 | local-only watch 최소 sync | **창업자 결정 F5** — 전송 전 미리보기와 선택 편집, 선택 premise+WatchSpec만 |
 | 9 | DecisionContract read-only 전환 | 구현 결정 I4 — dual-write parity 후 별도 ADR |
 | 10 | v4 또는 v3 extension | 구현 결정 I5 — 별도 DKK v4 |
 
-K1은 창업자 결정이 열려 있어도 되돌릴 수 있는 shadow schema까지만 진행한다. public
-surface, 원문 저장, Patterns 생성, legacy read/write cutover는 해당 결정과 후속 gate 전까지
-금지한다.
+K1은 창업자 결정이 닫혀 있어도 되돌릴 수 있는 shadow schema까지만 진행한다. 사용자
+public surface, Evidence Vault 원문 저장, Patterns 생성, legacy read/write cutover는
+해당 후속 gate 전까지 금지한다.
 
 ---
 

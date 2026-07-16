@@ -1,7 +1,7 @@
 # ADR — Judgment Knowledge Core K0 결정 경계
 
 Date: 2026-07-16
-Status: **Proposed — 창업자 결정 5건 대기, K1 shadow schema의 임시 계약**
+Status: **Accepted — 창업자 결정 F1~F5 완료, K1 shadow schema 계약**
 Decision owner: Judgment Knowledge Core implementation stream
 Founder decision owner: Argus founder
 Normative source: `DESIGN-judgment-knowledge-core-and-coaching-v1-2026-07-16.md`
@@ -24,9 +24,9 @@ K1의 임시 계약은 다음과 같다.
 - 의미 관계는 기본 `proposed`; 결정적 구조 관계만 `system_verified`가 가능하다.
 - user-facing 이름, 코칭 카드, 5차원 Patterns UI는 O4 gate 전까지 열지 않는다.
 
-이 ADR은 §16의 열 가지 질문을 닫되, 창업자 판단이 필요한 항목은 임시 기본값만
-둔다. 창업자 승인 전에는 해당 경계를 public contract 또는 되돌리기 어려운 저장
-정책으로 승격하지 않는다.
+이 ADR은 §16의 열 가지 질문을 닫고, 창업자 판단이 필요한 항목 F1~F5의 제품 경계를
+확정한다. K1/K2의 구현 범위는 여전히 shadow-only이며, public surface, Evidence Vault,
+Patterns UI, legacy read/write cutover는 아래 결정과 후속 gate를 통과한 범위에서만 연다.
 
 ---
 
@@ -34,14 +34,14 @@ K1의 임시 계약은 다음과 같다.
 
 | # | 질문 | K0 제안 | 소유자 | K1 효력 |
 |---:|---|---|---|---|
-| 1 | `JudgmentVersion`을 제품·API에서도 쓸 것인가 | 코어 내부 이름으로만 사용. 제품은 기존 사용자 언어 유지 | **[창업자 결정 필요 F1]** | public surface 미노출 |
+| 1 | `JudgmentVersion`을 제품·API에서도 쓸 것인가 | 사용자 UI는 쉬운 말 유지, developer/export API에는 코어 명칭 공개 가능 | **[창업자 결정 F1]** | 사용자 표면 미노출, developer/export 초안 가능 |
 | 2 | Assertion 저장 구조 | 단일 canonical discriminated union + role별 projection | [구현 결정 I1] | 확정 |
-| 3 | 한 번 승인으로 Premise 채택과 sync를 함께 설명하는 법 | 한 카드 안에서 항목과 sync 범위를 분리 표시하고 한 번 승인 | **[창업자 결정 필요 F2]** | A0 내부 consent receipt만, 카피 비정본 |
+| 3 | 한 번 승인으로 Premise 채택과 sync를 함께 설명하는 법 | 한 카드 안에서 승인 가능하되 premise adoption과 remote sync receipt는 분리 | **[창업자 결정 F2]** | W1 copy/receipt 설계 가능 |
 | 4 | `system_verified` 허용 범위 | ID·해시·정규화된 exact key 등 결정적 관계만 허용 | [구현 결정 I2] | 확정 |
 | 5 | 매번 묻지 않고 semantic relation precision을 지키는 법 | 관계는 저장 가능하나 의미 변화에 사용할 때만 확인; 그 전에는 제안 | [구현 결정 I3] | UI 미노출, proposed만 허용 |
-| 6 | 개인 Pattern 최소 사례 수 | 독립 resolved case 3건 기본, blast radius는 예외 | **[창업자 결정 필요 F3]** | Patterns 생성/노출 금지 |
-| 7 | Evidence 원문 보존·저작권·개인정보 | 기본은 locator+hash+짧은 발췌/측정값, 원문 미복제 | **[창업자 결정 필요 F4]** | full content 필드 금지 |
-| 8 | local-only 판단의 server watch 최소 sync 정보 | 선택된 premise text + WatchSpec + decision opaque ref만 | **[창업자 결정 필요 F5]** | 명시 scope 전송만 허용 |
+| 6 | 개인 Pattern 최소 사례 수 | 독립 resolved case 3건 기본, 민감한 패턴은 후속 정책에서 3~5건으로 상향 가능 | **[창업자 결정 F3]** | O4 전 Patterns 생성/노출 금지 |
+| 7 | Evidence 원문 보존·저작권·개인정보 | 기본은 최소 저장, 명시 동의한 자료만 후속 Evidence Vault에 원문 보관 가능 | **[창업자 결정 F4]** | v4 core `full_content` 필드 금지 |
+| 8 | local-only 판단의 server watch 최소 sync 정보 | 전송 전 preview와 선택 편집 제공, 선택된 premise text + WatchSpec + opaque ref만 전송 | **[창업자 결정 F5]** | 자동 확장 전송 금지 |
 | 9 | web DecisionContract read-only 전환 시점 | dual-write replay parity와 rollback rehearsal 통과 후 | [구현 결정 I4] | 기존 read/write 유지 |
 | 10 | DKK v4인가 v3 extension인가 | 별도 DKK v4 | [구현 결정 I5, 사용자 경계로 승인됨] | 확정 |
 
@@ -63,8 +63,9 @@ K1의 임시 계약은 다음과 같다.
 
 ### 창업자 결정
 
-**[F1] 향후 export/developer API에는 내부 명칭을 그대로 공개할지 결정해야 한다.**
-승인 전 기본값은 internal-only다.
+**[F1 결정]** 사용자 표면은 판단 기록, 예측, 전제, 근거, 돌아보기 같은 쉬운 말을
+유지한다. developer/export API에는 `DecisionCase`, `JudgmentVersion`, `Assertion`,
+`EvidenceArtifact` 같은 코어 명칭을 공개할 수 있다.
 
 ---
 
@@ -106,11 +107,9 @@ canonical table이 아니다.
 
 ### 창업자 결정
 
-**[F2] 한 번의 버튼이 premise adoption과 원격 sync consent를 함께 승인해도 되는지,
-아니면 첫 server watch 때 step-up consent를 분리할지 결정해야 한다.**
-
-임시 기본값은 로컬 채택과 sync consent를 논리적으로 분리하고, UI가 한 번 승인으로
-묶더라도 두 receipt를 생성하는 방식이다.
+**[F2 결정]** 사용자에게는 한 카드/한 흐름으로 승인할 수 있게 하되, authorization
+receipt에는 premise adoption과 remote sync consent를 별도 필드로 기록한다. 항목 또는
+scope가 바뀌면 이전 승인을 재사용하지 않는다.
 
 ---
 
@@ -165,10 +164,9 @@ schema와 reducer로 차단한다.
 
 ### 창업자 결정
 
-**[F3] “3건”을 제품 헌법의 고정 최소치로 둘지, risk/evidence 등급에 따라 3~5건으로
-올릴 수 있는 정책값으로 둘지 결정해야 한다.**
-
-K1에서는 Pattern 산출 자체를 구현하지 않는다.
+**[F3 결정]** 개인 반복 Pattern은 독립 resolved case 3건을 기본 최소치로 둔다.
+민감하거나 사용자를 강하게 규정할 수 있는 패턴은 후속 정책에서 3~5건으로 상향할 수
+있다. K1에서는 Pattern 산출 자체를 구현하지 않는다.
 
 ---
 
@@ -189,10 +187,10 @@ K1에서는 Pattern 산출 자체를 구현하지 않는다.
 
 ### 창업자 결정
 
-**[F4] 짧은 excerpt의 최대 범위, private evidence의 서버 보존 기본값, 원문 vault를
-Argus가 제공할지 결정해야 한다.**
-
-K1 schema는 `full_content`를 허용하지 않는다.
+**[F4 결정]** 기본 Evidence 보존은 locator, hash, 짧은 excerpt 또는 measurement로
+제한한다. 사용자가 명시적으로 허용한 자료는 후속 Evidence Vault에서 원문 보관을
+지원할 수 있다. Vault는 retention, export, erasure, copyright 정책을 별도 ADR로
+승인한 뒤 설계한다. K1 schema는 `full_content`를 허용하지 않는다.
 
 ---
 
@@ -212,10 +210,10 @@ opaque ref로 로컬 case에 다시 연결한다.
 
 ### 창업자 결정
 
-**[F5] premise literal text도 민감할 수 있으므로 local redaction/사용자 편집 단계를
-필수로 둘지 결정해야 한다.**
-
-임시 기본값은 명시적으로 선택된 literal text만 전송하고 자동 확장하지 않는 것이다.
+**[F5 결정]** server watch 전송 전에는 사용자가 보낼 내용을 미리 보고 원하면 편집할
+수 있어야 한다. 편집 단계를 필수로 막지는 않지만, 전송 범위는 선택된 premise literal
+text, WatchSpec, opaque decision reference, consent receipt, source client ID로 제한한다.
+전체 판단 문장, 선택지, rationale, 다른 premises는 자동 전송하지 않는다.
 
 ---
 
@@ -257,7 +255,7 @@ K1은 schema, pure reducer, shadow sink contract와 독립 테스트까지만 �
 ## K0 exit criteria
 
 - §16의 열 질문 모두 owner와 임시/확정 상태가 있다.
-- 창업자 결정 5건은 public contract가 아닌 안전한 임시 기본값으로 제한된다.
+- 창업자 결정 F1~F5는 이 ADR에 명시된 public/product 경계로 확정된다.
 - §14.1~14.5가 실행 가능한 betrayal fixture 목록으로 변환된다.
 - fixture가 K1 코드보다 먼저 추가되고, missing v4 contract로 실패하는 것을 확인한다.
 - K1은 fixture를 통과시키는 최소 schema/reducer/shadow contract만 구현한다.
@@ -267,37 +265,31 @@ K1은 schema, pure reducer, shadow sink contract와 독립 테스트까지만 �
 
 ## 창업자 결정 체크리스트
 
-- [ ] **F1** export/developer API에서 내부 코어 명칭을 공개할 것인가
-- [ ] **F2** premise 채택과 원격 sync를 한 버튼으로 승인할 것인가
-- [ ] **F3** 개인 반복 Pattern의 3건 최소치를 고정 헌법으로 둘 것인가
-- [ ] **F4** evidence excerpt/private 원문 보존의 기본 정책은 무엇인가
-- [ ] **F5** server watch 전 premise text 편집/redaction 단계를 필수로 둘 것인가
+- [x] **F1** export/developer API에는 코어 명칭 공개 가능, 사용자 UI는 쉬운 말 유지
+- [x] **F2** premise 채택과 원격 sync는 한 흐름으로 승인 가능하되 receipt는 분리
+- [x] **F3** 개인 반복 Pattern은 기본 3건, 민감 패턴은 후속 정책에서 3~5건 가능
+- [x] **F4** 기본은 최소 Evidence 저장, 명시 동의 자료만 후속 Vault 원문 보관 가능
+- [x] **F5** server watch 전 미리보기와 선택 편집 제공, 자동 확장 전송 금지
 
 ---
 
 ## 창업자 결정 브리프
 
-이 부록은 F1~F5를 닫기 위한 의사결정 메모다. 아래 권고는 K1/K2 구현의
-임시 기본값을 public contract로 승격하지 않으며, 창업자 승인 전에는 제품 표면,
-export/developer API, 장기 저장 정책, 자동 코칭 정책을 열지 않는다.
+이 부록은 F1~F5의 최종 결정을 구현 가능한 다음 단계로 압축한 메모다. K1/K2는
+여전히 shadow-only이며, 아래 결정은 후속 W1/O4/Vault/cutover gate의 입력으로 사용한다.
 
 | 결정 | 권고 기본값 | 승인하면 열리는 다음 단계 | 승인 전 금지 |
 |---|---|---|---|
-| F1 public naming | 내부 코어와 export/developer API는 `DecisionCase`, `JudgmentVersion`, `Assertion`, `EvidenceArtifact`를 유지하고, 사용자 UI는 기존 판단/예측/전제/근거 언어를 유지한다. | developer-facing 문서와 export schema 초안을 만들 수 있다. | 사용자 표면에서 `JudgmentVersion`을 제품 용어로 노출하지 않는다. |
+| F1 public naming | 내부 코어와 developer/export API는 `DecisionCase`, `JudgmentVersion`, `Assertion`, `EvidenceArtifact`를 유지하고, 사용자 UI는 기존 판단/예측/전제/근거 언어를 유지한다. | developer-facing 문서와 export schema 초안을 만들 수 있다. | 사용자 표면에서 `JudgmentVersion`을 제품 용어로 노출하지 않는다. |
 | F2 combined consent | UI는 한 번 승인처럼 보일 수 있지만 receipt는 premise adoption과 remote sync consent를 별도 필드로 기록한다. | W1 검토 카드의 copy와 receipt shape를 설계할 수 있다. | 한 버튼 클릭을 두 권한의 재사용 가능한 포괄 동의로 저장하지 않는다. |
-| F3 Pattern floor | 개인 반복 Pattern은 독립 resolved case 3건을 최소치로 두고, blast radius 알림은 별도 deterministic 경로로 둔다. | O4 이후 Patterns policy test와 projection fixture를 만들 수 있다. | K1/K2에서 개인 Pattern 산출, 코칭 카드, 5차원 Patterns UI를 만들지 않는다. |
-| F4 Evidence retention | 기본은 locator, hash, 짧은 excerpt 또는 measurement만 저장하고 `full_content`는 금지한다. | evidence excerpt limit, private source policy, vault 별도 ADR을 열 수 있다. | private 원문, 업로드 본문, 웹 문서 전문을 v4 schema에 추가하지 않는다. |
-| F5 watch redaction | server watch는 사용자가 선택한 premise literal text와 WatchSpec, opaque decision ref만 전송한다. redaction step은 W1에서 별도 제품 결정으로 둔다. | watch consent UI와 local redaction affordance를 설계할 수 있다. | 전체 판단 문장, rationale, 선택지, 다른 premise를 자동 전송하지 않는다. |
+| F3 Pattern floor | 개인 반복 Pattern은 독립 resolved case 3건을 기본 최소치로 두고, 민감 패턴은 후속 정책에서 3~5건으로 상향 가능하게 둔다. Blast radius 알림은 별도 deterministic 경로로 둔다. | O4 이후 Patterns policy test와 projection fixture를 만들 수 있다. | K1/K2에서 개인 Pattern 산출, 코칭 카드, 5차원 Patterns UI를 만들지 않는다. |
+| F4 Evidence retention | 기본은 locator, hash, 짧은 excerpt 또는 measurement만 저장한다. 사용자가 명시적으로 허용한 자료는 후속 Evidence Vault에서 원문 보관할 수 있다. | evidence excerpt limit, private source policy, vault 별도 ADR을 열 수 있다. | private 원문, 업로드 본문, 웹 문서 전문을 v4 core schema에 추가하지 않는다. |
+| F5 watch redaction | server watch 전 미리보기와 선택 편집을 제공한다. 전송은 선택된 premise literal text, WatchSpec, opaque decision ref만 허용한다. | watch consent UI와 edit affordance를 설계할 수 있다. | 전체 판단 문장, rationale, 선택지, 다른 premise를 자동 전송하지 않는다. |
 
 ### Draft 해제 기준
 
-PR #170을 Draft에서 Ready로 바꾸려면 다음 중 하나가 필요하다.
-
-1. 창업자가 F1~F5를 위 권고 기본값으로 승인한다.
-2. 창업자가 일부 항목을 수정 승인하고, 이 ADR의 해당 F 항목과 브리프가 같은
-   의미로 갱신된다.
-3. F1~F5는 intentionally deferred로 남기되, PR #170의 병합 범위가 shadow-only
-   실험 계약임을 승인한다.
+PR #170을 Draft에서 Ready로 바꾸려면 F1~F5 결정이 이 ADR과 설계 문서에 일치하게
+반영되고, CI와 경계 테스트가 통과해야 한다.
 
 어느 경우에도 K1/K2 병합 전까지 다음 경계는 유지한다.
 
