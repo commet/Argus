@@ -101,3 +101,40 @@ describe('argus-driver 플러그인 골격 (P2-4)', () => {
     expect(readme).toContain('플러그인 제거가 절대 삭제하지 않는다');
   });
 });
+
+describe('premises 스킬 — 미결 질문은 fork로 묻지 않는다 (스파인 미러 조항 가드)', () => {
+  // 열린 질문의 reconsider가 A/B lean 칩으로 되돌아가는 것을 막는다. MCP
+  // argus_premises op=resolve(자유 텍스트, 선택지 없음)가 정본이고, 이 스킬이
+  // 거기서 드리프트하면 두 표면이 스파인 위반 여부에서 갈린다. disclaimed lean도
+  // 세탁이 아니므로(CLAUDE.md rounds 5–8), 규칙 문구까지 실재를 확인한다.
+  const SKILL = path.join(REPO_ROOT, 'argus-plugin-v2', 'skills', 'premises', 'SKILL.md');
+  const body = fs.readFileSync(SKILL, 'utf8');
+
+  it('reconsider 단계가 A/B lean 칩(fork)을 다시 들이지 않는다', () => {
+    // 과거 위반 형태의 지문: "[A로 기운다] [B로 기운다]" 류 + "balanced example lean".
+    expect(body).not.toMatch(/기운다/);
+    expect(body).not.toMatch(/balanced\s+example\s+leans?/i);
+    // "poles to think against"를 생성하라는 지시가 없어야 한다 (금지 문구는 예외).
+    expect(body).not.toMatch(/Offer\s+\*\*2[^\n]*leans/i);
+  });
+
+  it('미결 질문은 사용자의 말(자유 텍스트)로만 닫힌다고 명시한다', () => {
+    expect(body).toMatch(/op=resolve/); // MCP 정본과의 대응을 문서가 못박는다
+    expect(body).toMatch(/NO A\/B fork|multiple-choice crux IS a fork/);
+    expect(body).toMatch(/열어둔 채로 둬도 괜찮아요/); // leave-open이 유효한 답
+  });
+
+  it('leave-open은 소비처 없는 이벤트를 만들지 않는다 (LLM-glue: 죽은 와이어 금지)', () => {
+    // items.jsonl 리듀서(check-contracts.js)가 소비하는 이벤트만 등장해야 한다.
+    const reducer = fs.readFileSync(path.join(REPO_ROOT, 'argus-plugin-v2', 'scripts', 'check-contracts.js'), 'utf8');
+    const consumes = (ev: string) => new RegExp(`case\\s+"${ev}"`).test(reducer);
+    // 스킬이 append하라고 지시하는 items.jsonl 이벤트를 뽑아 전부 소비 대조.
+    const appended = new Set<string>();
+    for (const m of body.matchAll(/\{\s*"?event"?:\s*"([a-z_]+)"/g)) appended.add(m[1]!);
+    for (const ev of appended) {
+      expect(consumes(ev) || ev === 'extract', `items.jsonl 이벤트 "${ev}"는 리듀서가 소비해야 한다`).toBe(true);
+    }
+    // reconsider/still_open은 이 표면에 존재하지 않는다 — 지시로도 등장 금지.
+    expect(body).not.toMatch(/append\s+`?\{event:"reconsider"/);
+  });
+});

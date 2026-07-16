@@ -151,16 +151,25 @@ The only source is the user:
 
 - `/argus:premises open "<text>"` → append `{"event":"add","id":"item_{decision}_q{n}",
   "decision_id":"{decision}","type":"open_question","text":"<text>","source":"user","at":"{ISO}"}`.
-- `/argus:premises reconsider <ref>` for an `open_question` item:
-  1. Present the question verbatim.
-  2. Offer **2 short, balanced example leans (A / B)** — concrete starting points to
-     think against, each naming a real cost. These are OPTIONS, never a recommendation.
-  3. `AskUserQuestion` — "지금 다시 본다면?" → `[A로 기운다] [B로 기운다] [아직 미정]
-     [내 말로 정리]`.
-  4. On a lean, append an `edit` (`refine`) whose text is the USER's decision (their
-     words on "내 말로", else the chosen lean) → the item becomes theirs (authored:user).
-     `아직 미정` leaves it open to resurface later. NEVER record Argus's example as the
-     answer, and never nudge toward A or B.
+- `/argus:premises reconsider <ref>` for an `open_question` item. **Spine-critical
+  form (mirrors the MCP `argus_premises` op=resolve — keep the two surfaces from
+  drifting): an open question closes ONLY in the user's own words. NO options, NO
+  example leans, NO A/B fork — a multiple-choice crux IS a fork, and a disclaimed
+  lean ("just an option, not a recommendation") does not launder it; per-output
+  tilt-tagging makes the violation worse (CLAUDE.md mirror clause, rounds 5–8).**
+  1. Present the question verbatim — nothing else framing it.
+  2. Ask, as free text (plain prose, NOT an `AskUserQuestion` chip fork):
+     > 지금 다시 본다면, 당신의 말로 어떻게 정리돼요? (열어둔 채로 둬도 괜찮아요 — 그것도 진짜 답이에요.)
+     Do NOT generate example answers, starting points, or poles to think against —
+     even "balanced" ones. The question stands bare; the user fills it.
+  3. On a written answer, append an `edit` (`refine`) whose text is the USER's words
+     verbatim → the item becomes theirs (`authored:user`). Never re-summarize it,
+     never substitute an Argus-drafted line.
+  4. If the user chooses to leave it open, append NOTHING — the item stays active
+     and simply resurfaces later (no `reconsider`/`still_open` event exists in this
+     surface's `items.jsonl` reducer, and inventing one would be a dead wire nothing
+     consumes). No verdict, no pressure; leaving a question open is a valid answer,
+     and this must never read as a nudge to finally decide.
 
 ---
 

@@ -2,7 +2,7 @@
   "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
   "name": "argus-driver",
   "displayName": "Argus Driver",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Thin Claude Code driver for the Argus decision-accountability MCP server. Installing it wires argus-decision-mcp automatically, so users can clarify a decision, save a testable prediction, and later record what actually happened. The model never grades the user. Includes an optional durable-ledger-aware status line.",
   "author": {
     "name": "Argus",
