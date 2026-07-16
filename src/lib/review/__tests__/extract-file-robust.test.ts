@@ -50,6 +50,32 @@ describe('extractFile — guards run before any parser, never throw', () => {
     expect(r.quality).toBe('unsupported');
   });
 
+  it('turns a small image into a vision payload (no text path)', async () => {
+    // A small png rides verbatim — no canvas needed, so this runs in jsdom.
+    const f = new File([new Uint8Array(512)], 'chart.png', { type: 'image/png' });
+    const r = await extractFile(f, 'image');
+    expect(r.quality).toBe('medium');
+    expect(r.text).toBe('');
+    expect(r.vision?.kind).toBe('images');
+    expect(r.vision?.images?.[0].media_type).toBe('image/png');
+    expect(r.vision?.images?.[0].page).toBe(1);
+    expect(typeof r.vision?.images?.[0].data).toBe('string');
+  });
+
+  it('resolves media type from the extension when MIME is missing', async () => {
+    const f = new File([new Uint8Array(300)], 'photo.JPG', { type: '' });
+    const r = await extractFile(f, 'image');
+    expect(r.vision?.images?.[0].media_type).toBe('image/jpeg');
+  });
+
+  it('refuses an unsupported image format honestly', async () => {
+    const f = new File([new Uint8Array(64)], 'photo.heic', { type: 'image/heic' });
+    const r = await extractFile(f, 'image');
+    expect(r.quality).toBe('unsupported');
+    expect(r.error_kind).toBe('wrong_format');
+    expect(r.note).toMatch(/PNG|형식/);
+  });
+
   // Note: the corrupt/encrypted PARSER path is covered by classifyExtractError
   // above (every error kind) plus the extractFile try/catch that funnels every
   // parser throw through it — exercised end-to-end by the real-doc suites. We do

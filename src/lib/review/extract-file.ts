@@ -124,12 +124,12 @@ export function classifyExtractError(e: unknown, kind: SourceKind): { note: stri
     return { note: '파일이 손상됐거나 형식이 올바르지 않아요 (열 수 없는 문서 구조). 다시 저장해 올리거나 본문을 붙여넣어 주세요.', error_kind: 'corrupt' };
   }
   // A file whose extension lies about its real format usually fails the parser here.
-  const label = kind === 'pdf' ? 'PDF' : kind === 'docx' ? 'Word 문서' : kind === 'pptx' ? '슬라이드' : '문서';
+  const label = kind === 'pdf' ? 'PDF' : kind === 'docx' ? 'Word 문서' : kind === 'pptx' ? '슬라이드' : kind === 'image' ? '이미지' : '문서';
   return { note: `이 ${label}에서 내용을 읽지 못했어요. 파일이 손상됐거나 형식이 확장자와 다를 수 있어요 — 다시 저장하거나 본문을 붙여넣어 주세요.`, error_kind: 'unknown' };
 }
 
 export async function extractFile(file: File, kind: SourceKind): Promise<ExtractedText> {
-  if (kind !== 'docx' && kind !== 'pptx' && kind !== 'pdf') {
+  if (kind !== 'docx' && kind !== 'pptx' && kind !== 'pdf' && kind !== 'image') {
     return { text: '', quality: 'unsupported' };
   }
   // Guard size + emptiness BEFORE reading bytes into memory or invoking a parser,
@@ -154,11 +154,121 @@ export async function extractFile(file: File, kind: SourceKind): Promise<Extract
   try {
     if (kind === 'docx') return await extractDocx(buf);
     if (kind === 'pptx') return await extractPptx(buf);
+    if (kind === 'image') return await extractImage(file, buf);
     return await extractPdf(buf);
   } catch (e) {
     const { note, error_kind } = classifyExtractError(e, kind);
     return { text: '', quality: 'unsupported', note, error_kind };
   }
+}
+
+// --------------------------------------------------------------------------
+// IMAGE — a pure picture (png/jpg/webp/gif). No text to extract; it exists only
+// to be reviewed visually. Small images ride verbatim; a large photo/screenshot
+// is downscaled to Anthropic's max long edge and JPEG-encoded so it fits the
+// request body (a phone photo can be many MB). Always page 1 of 1.
+// --------------------------------------------------------------------------
+
+const IMAGE_MEDIA: Record<string, 'image/png' | 'image/jpeg' | 'image/webp' | 'image/gif'> = {
+  png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', webp: 'image/webp', gif: 'image/gif',
+};
+// Anthropic downsizes any image so its long edge ≤ 1568px, so we render to that
+// ourselves — we never ship pixels the model will only throw away, and a huge
+// photo becomes a small legible JPEG that fits the body.
+const IMAGE_LONG_EDGE = 1568;
+const IMAGE_PASSTHROUGH_MAX_BYTES = 1_400_000; // small enough to send verbatim (base64 ~1.9MB)
+const IMAGE_ENCODE_MAX_B64 = 3_300_000;        // re-encoded output must fit under the ~4.4MB body cap
+
+/** Resolve an uploaded image's Anthropic media type from its MIME, falling back
+ *  to the file extension (some drops arrive with an empty `type`). */
+function imageMediaType(file: File): 'image/png' | 'image/jpeg' | 'image/webp' | 'image/gif' | undefined {
+  const t = (file.type || '').toLowerCase();
+  if (t === 'image/png' || t === 'image/jpeg' || t === 'image/webp' || t === 'image/gif') return t;
+  if (t === 'image/jpg') return 'image/jpeg';
+  return IMAGE_MEDIA[(file.name.split('.').pop() || '').toLowerCase()];
+}
+
+async function extractImage(file: File, buf: ArrayBuffer): Promise<ExtractedText> {
+  const media_type = imageMediaType(file);
+  if (!media_type) {
+    return {
+      text: '', quality: 'unsupported', error_kind: 'wrong_format',
+      note: '지원하지 않는 이미지 형식이에요. PNG·JPG·WEBP·GIF만 검수할 수 있어요.',
+    };
+  }
+  const bytes = new Uint8Array(buf);
+  // Small enough to send as-is — best fidelity, no re-encode.
+  if (bytes.length <= IMAGE_PASSTHROUGH_MAX_BYTES) {
+    return {
+      text: '', quality: 'medium',
+      vision: { kind: 'images', images: [{ media_type, data: toBase64(bytes), page: 1 }], page_count: 1, pages_seen: 1 },
+    };
+  }
+  // Larger image → downscale to Anthropic's max long edge and JPEG-encode so it
+  // fits the request body (a scanned/exported/photo image can be many MB).
+  try {
+    const down = await downscaleImage(buf, media_type);
+    if (down) {
+      return {
+        text: '', quality: 'medium',
+        note: '이미지를 검수용으로 축소했어요 (원본 화질과 다를 수 있어요).',
+        vision: { kind: 'images', images: [{ media_type: 'image/jpeg', data: down, page: 1 }], page_count: 1, pages_seen: 1 },
+      };
+    }
+  } catch {
+    // rendering unavailable / decode failed → fall through to the honest refuse
+  }
+  return {
+    text: '', quality: 'unsupported', error_kind: 'too_large',
+    note: `이미지가 너무 커서 (${Math.round(bytes.length / 1_000_000)}MB) 검수 크기로 줄이지 못했어요. 더 작게 저장해 올려주세요.`,
+  };
+}
+
+/** Downscale an image to IMAGE_LONG_EDGE and JPEG-encode it, dropping quality
+ *  until it fits the body budget. Returns base64, or undefined if no canvas is
+ *  available (server/no-DOM) — the caller then refuses honestly. */
+async function downscaleImage(buf: ArrayBuffer, media_type: string): Promise<string | undefined> {
+  if (typeof createImageBitmap === 'undefined') return undefined;
+  const bitmap = await createImageBitmap(new Blob([buf], { type: media_type }));
+  try {
+    const longEdge = Math.max(bitmap.width, bitmap.height);
+    const scale = Math.min(1, IMAGE_LONG_EDGE / Math.max(1, longEdge));
+    const w = Math.max(1, Math.round(bitmap.width * scale));
+    const h = Math.max(1, Math.round(bitmap.height * scale));
+    let quality = 0.85;
+    for (;;) {
+      const data = await encodeCanvasJpeg(bitmap, w, h, quality);
+      if (!data) return undefined;
+      if (data.length <= IMAGE_ENCODE_MAX_B64 || quality <= 0.5) return data;
+      quality -= 0.15;
+    }
+  } finally {
+    bitmap.close?.();
+  }
+}
+
+/** Draw an ImageBitmap to a w×h canvas and JPEG-encode at `quality` → base64.
+ *  OffscreenCanvas when available, DOM canvas otherwise; undefined with no canvas. */
+async function encodeCanvasJpeg(source: ImageBitmap, w: number, h: number, quality: number): Promise<string | undefined> {
+  let blob: Blob;
+  if (typeof OffscreenCanvas !== 'undefined') {
+    const canvas = new OffscreenCanvas(w, h);
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return undefined;
+    ctx.drawImage(source, 0, 0, w, h);
+    blob = await canvas.convertToBlob({ type: 'image/jpeg', quality });
+  } else if (typeof document !== 'undefined') {
+    const canvas = document.createElement('canvas');
+    canvas.width = w; canvas.height = h;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return undefined;
+    ctx.drawImage(source, 0, 0, w, h);
+    blob = await new Promise<Blob>((res, rej) =>
+      canvas.toBlob((b) => (b ? res(b) : rej(new Error('toBlob failed'))), 'image/jpeg', quality));
+  } else {
+    return undefined;
+  }
+  return toBase64(new Uint8Array(await blob.arrayBuffer()));
 }
 
 // --------------------------------------------------------------------------

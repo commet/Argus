@@ -42,6 +42,9 @@ type Phase = 'list' | 'import' | 'running' | 'receipt' | 'failed';
 
 const TEXT_EXT = ['md', 'markdown', 'txt', 'text'];
 const BINARY_EXT: Record<string, SourceKind> = { pdf: 'pdf', docx: 'docx', pptx: 'pptx' };
+/** Raster image formats Anthropic vision can read — reviewed purely visually (no
+ *  text path), so they require a connected vision provider. */
+const IMAGE_EXT = ['png', 'jpg', 'jpeg', 'webp', 'gif'];
 
 /** Paste cap — matched to the server's MAX_MESSAGE_LENGTH (50_000, lib/llm-validation.ts)
  *  so a large paste degrades honestly (coverage note) instead of a hard 400. */
@@ -60,6 +63,10 @@ export function ReviewFlow() {
   const [sourceKind, setSourceKind] = useState<SourceKind>('paste');
   const [pendingBinary, setPendingBinary] = useState<SourceKind | null>(null);
   const [extractNote, setExtractNote] = useState<string | null>(null);
+  // An image can ONLY be read visually — set when we can't build a vision review
+  // (no vision provider connected, or the image is unusable) so the UI says so
+  // instead of silently disabling the button.
+  const [imageBlocked, setImageBlocked] = useState(false);
   const [extracting, setExtracting] = useState(false);
   const [preExtracted, setPreExtracted] = useState<ExtractedText | null>(null);
   const [concerns, setConcerns] = useState<ReviewConcern[]>(['full_judgment_review']);
@@ -147,11 +154,45 @@ export function ReviewFlow() {
     setExtractNote(null);
     setPreExtracted(null);
     setUseVision(false);
+    setImageBlocked(false);
     if (TEXT_EXT.includes(ext)) {
       const content = await file.text();
       setText(content);
       setSourceKind(ext.startsWith('md') ? 'markdown' : 'txt');
       setPendingBinary(null);
+    } else if (IMAGE_EXT.includes(ext)) {
+      // A pure image has no text to extract — it's reviewed entirely by a vision
+      // model. Without one connected there is NO path, so say so plainly rather
+      // than run an empty review.
+      setSourceKind('image');
+      setPendingBinary(null);
+      if (!visionCapable()) {
+        setImageBlocked(true);
+        setExtractNote(L(
+          '이미지 검수는 시각 모델이 필요해요. 설정에서 Anthropic API 키를 연결하면 이미지를 눈으로 검수할 수 있어요.',
+          'Image review needs a vision model. Connect an Anthropic API key in Settings and the image can be reviewed visually.',
+        ));
+        return;
+      }
+      setExtracting(true);
+      setText('');
+      try {
+        const extracted = await extractFile(file, 'image');
+        if (extracted.vision) {
+          setPreExtracted(extracted);
+          setUseVision(true); // the only way to read an image
+          setExtractNote(extracted.note ?? null);
+        } else {
+          // Unsupported format / too large to downscale → honest, specific reason.
+          setImageBlocked(true);
+          setExtractNote(extracted.note ?? L('이 이미지를 검수하지 못했어요.', 'Could not review this image.'));
+        }
+      } catch {
+        setImageBlocked(true);
+        setExtractNote(L('이미지를 읽지 못했어요. 다시 시도해 주세요.', 'Could not read the image. Please try again.'));
+      } finally {
+        setExtracting(false);
+      }
     } else if (BINARY_EXT[ext]) {
       setSourceKind(BINARY_EXT[ext]);
       setExtracting(true);
@@ -340,6 +381,8 @@ export function ReviewFlow() {
     setPendingBinary(null);
     setExtractNote(null);
     setPreExtracted(null);
+    setImageBlocked(false);
+    setUseVision(false);
     setJob(null);
     setPhase('import');
   };
@@ -690,6 +733,7 @@ export function ReviewFlow() {
             setPendingBinary(null);
             setPreExtracted(null);
             setExtractNote(null);
+            setImageBlocked(false);
           }}
           maxLength={PASTE_CHAR_CAP}
           placeholder={L(
@@ -702,14 +746,14 @@ export function ReviewFlow() {
           <input
             ref={fileRef}
             type="file"
-            accept=".md,.markdown,.txt,.text,.pdf,.docx,.pptx"
+            accept=".md,.markdown,.txt,.text,.pdf,.docx,.pptx,.png,.jpg,.jpeg,.webp,.gif"
             className="hidden"
             onChange={(e) => e.target.files?.[0] && onFile(e.target.files[0])}
           />
           <Button variant="ghost" size="sm" onClick={() => fileRef.current?.click()} disabled={extracting}>
             {extracting
-              ? L('텍스트 추출 중…', 'Extracting text…')
-              : L('파일 업로드 (md · txt · pdf · docx · pptx)', 'Upload a file (md · txt · pdf · docx · pptx)')}
+              ? L('읽는 중…', 'Reading…')
+              : L('파일 업로드 (md · txt · pdf · docx · pptx · 이미지)', 'Upload a file (md · txt · pdf · docx · pptx · image)')}
           </Button>
           <span className={`text-[11px] ${text.length >= PASTE_CHAR_CAP ? 'text-[var(--warning)] font-semibold' : 'text-[var(--text-tertiary)]'}`}>
             {text.length >= PASTE_CHAR_CAP
@@ -720,7 +764,15 @@ export function ReviewFlow() {
               : text.length > 0 ? L(`${text.length.toLocaleString()}자`, `${text.length.toLocaleString()} characters`) : ''}
           </span>
         </div>
-        {preExtracted && (() => {
+        {preExtracted && sourceKind === 'image' && (
+          <p className="mt-2 text-[12px] text-[var(--success)]">
+            {L(
+              `이미지를 눈으로 검수합니다${extractNote ? ` — ${extractNote}` : ''}.`,
+              `This image will be reviewed visually${extractNote ? ` — ${extractNote}` : ''}.`,
+            )}
+          </p>
+        )}
+        {preExtracted && sourceKind !== 'image' && (() => {
           // Show the real scope pulled from the file so the user knows how much
           // will be reviewed (a whole 40-page report vs. a title slide).
           const parts: string[] = [];
@@ -745,6 +797,19 @@ export function ReviewFlow() {
               `Not enough text could be read from the ${pendingBinary.toUpperCase()} file. Review it as is and Argus will first show what's missing; paste the text for a full review.`,
             )}
           </p>
+        )}
+        {imageBlocked && (
+          <div className="mt-2">
+            <p className="text-[12px] text-[var(--warning)]">{extractNote}</p>
+            {!visionCapable() && (
+              <a
+                href={`/${locale}/settings`}
+                className="inline-flex mt-1 text-[12px] font-medium text-[var(--accent)] hover:underline"
+              >
+                {L('설정에서 API 키 연결하기 →', 'Connect an API key in Settings →')}
+              </a>
+            )}
+          </div>
         )}
       </Card>
 
@@ -811,8 +876,9 @@ export function ReviewFlow() {
       </label>
 
       {/* Opt-in vision review — only when the extractor produced a visual payload
-          (a PDF, or a deck with embedded images) AND the provider can take it. */}
-      {!!preExtracted?.vision && visionCapable() && (
+          (a PDF, or a deck with embedded images) AND the provider can take it.
+          An image skips this: vision is its ONLY path, not an option to toggle. */}
+      {!!preExtracted?.vision && sourceKind !== 'image' && visionCapable() && (
         <label className="flex items-start gap-2 text-[12px] text-[var(--text-secondary)] cursor-pointer">
           <input type="checkbox" checked={useVision} onChange={(e) => setUseVision(e.target.checked)} className="mt-0.5" />
           <span>

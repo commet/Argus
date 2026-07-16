@@ -289,6 +289,39 @@ describe('runDocumentReview — end to end with a mock model', () => {
     expect(receipt!.findings.some((f) => f.anchors.some((a) => a.page === 3))).toBe(true);
   });
 
+  it('reviews a pure image (no text, medium quality) via the vision path', async () => {
+    // An uploaded png/jpg has NO text and NO units — it exists only to be seen.
+    // ingest gives it a units-less MEDIUM artifact (not `unsupported`, which Gate 0
+    // would reject); the pipeline reviews it straight from the attached image.
+    const artifact = ingest({ source_kind: 'image', title: 'chart.png' });
+    expect(artifact.source_kind).toBe('image');
+    expect(artifact.units.length).toBe(0);
+    expect(artifact.extraction_quality).toBe('medium'); // reviewable, not a dead end
+    let sawImages = 0;
+    const llm: ReviewLLM = {
+      model_name: 'mock', model_provider: 'anthropic',
+      async json<T>(args: ReviewLLMArgs): Promise<T> {
+        sawImages = args.attachments?.filter((a) => a.type === 'image').length ?? 0;
+        return {
+          profile: { document_type: 'report', intent: 'inform', audience: 'team', stakes: 'medium', artifact_maturity: 'final', source_confidence: 0.5 },
+          core_question: '이 이미지의 주장을 받아들일 것인가?',
+          findings: [{ lens_id: 'claim_evidence', title: '차트의 급증 추세에 출처가 없음', detail: '이미지에 보이는 곡선을 뒷받침하는 데이터가 없다', severity: 'caution', confidence: 'medium', seen_in_visual: true, pages: [1] }],
+          judgment_obligations: [], followups: [], current_heading: 'h',
+          main_claims: [], assumptions: [], decision_points: [],
+        } as T;
+      },
+    };
+    const { job, receipt } = await runDocumentReview(artifact, {
+      today: '2026-07-01',
+      vision: { kind: 'images', images: [{ media_type: 'image/png', data: 'z'.repeat(40), page: 1 }], page_count: 1, pages_seen: 1 },
+      llm,
+    });
+    expect(job.status).toBe('ready'); // NOT needs_context — vision bypassed Gate 0
+    expect(sawImages).toBe(1);
+    expect(receipt!.provenance.vision?.mode).toBe('images');
+    expect(receipt!.findings.some((f) => f.anchors.some((a) => a.page === 1))).toBe(true);
+  });
+
   it('auto-batches a long scanned PDF across multiple vision calls and merges by page', async () => {
     // 65 rendered pages → 3 request batches (30 + 30 + 5). The user uploads once;
     // Argus splits + reviews + merges. Each batch's findings must anchor to the
