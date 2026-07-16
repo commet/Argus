@@ -82,6 +82,33 @@ const isIso = (s) => typeof s === 'string' && /^\d{4}-\d{2}-\d{2}T/.test(s);
   rmSync(p, { recursive: true, force: true });
 }
 
+// --- wake: in-session lean settlement on the BIND rope (sail Step 7.5) -------
+{
+  const p = freshProject();
+  // a user-authored lean rope, exactly like clarify's BIND seal
+  run(p, ['record', '--id', 'lean:s9', '--session', 's9', '--type', 'open',
+    '--author', 'user', '--predicate', 'we should ship B']);
+  // held: no --changed, lean_before auto-fills from the sealed predicate
+  const held = run(p, ['wake', 'lean:s9', '--lean-after', 'we should ship B']);
+  ok('wake (held) exits 0', held.status === 0);
+  const w = ledgerLines(p).at(-1);
+  ok('wake line has the canonical shape', w.event === 'wake' && w.id === 'lean:s9' && w.changed === false && isIso(w.at));
+  ok('lean_before auto-fills from the sealed predicate (single-source, no retype)', w.lean_before === 'we should ship B');
+  ok('lean_after is the passed user words', w.lean_after === 'we should ship B');
+  // a second wake on the same rope is refused (mechanical "already woken → skip")
+  ok('second wake on same id is refused', run(p, ['wake', 'lean:s9', '--lean-after', 'x']).status !== 0);
+  rmSync(p, { recursive: true, force: true });
+}
+{
+  const p = freshProject();
+  run(p, ['record', '--id', 'lean:s10', '--session', 's10', '--author', 'user', '--predicate', 'go with plan A']);
+  const moved = run(p, ['wake', 'lean:s10', '--lean-after', 'actually plan C now', '--changed']);
+  ok('wake (moved) exits 0', moved.status === 0);
+  const w = ledgerLines(p).at(-1);
+  ok('moved wake records changed:true + the new user line', w.changed === true && w.lean_after === 'actually plan C now' && w.lean_before === 'go with plan A');
+  rmSync(p, { recursive: true, force: true });
+}
+
 // --- loud failures: a broken call must exit non-zero, never write junk ------
 {
   const p = freshProject();
@@ -90,6 +117,8 @@ const isIso = (s) => typeof s === 'string' && /^\d{4}-\d{2}-\d{2}T/.test(s);
   ok('record without id or session exits non-zero', run(p, ['record', '--predicate', 'y']).status !== 0);
   ok('amend with no fields exits non-zero', run(p, ['amend', 'c1']).status !== 0);
   ok('amend with non-ISO --check-by exits non-zero', run(p, ['amend', 'c1', '--check-by', 'later']).status !== 0);
+  ok('wake without --lean-after exits non-zero', run(p, ['wake', 'lean:z']).status !== 0);
+  ok('wake on an id with no sealed lean (no --lean-before) exits non-zero', run(p, ['wake', 'lean:none', '--lean-after', 'x']).status !== 0);
   rmSync(p, { recursive: true, force: true });
 }
 

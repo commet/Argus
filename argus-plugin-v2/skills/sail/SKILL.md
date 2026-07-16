@@ -650,20 +650,23 @@ that blocks:
   judge whether your read should have moved.
 - Skip is one tap, lossless, never re-asked.
 
-**Record** (append-only, `O_APPEND` — same discipline as seal/settle; the field
-shape mirrors the webapp `lean_after {text, changed}`):
+**Record** through the single-source ledger writer — do NOT hand-write the JSON
+(the CLI owns the canonical wake shape, stamps `at`, and appends in `O_APPEND`, so
+the after-reading can never drift from what settle/journal replay):
 
-```json
-{"event":"wake","id":"lean:<session-id>","lean_before":"<the BIND lean verbatim>","lean_after":"<held: same text; moved: the user's new line>","changed":true,"at":"<now ISO>"}
+```bash
+node "${CLAUDE_PLUGIN_ROOT}/scripts/decision-ledger.js" wake "lean:<session-id>" \
+  --lean-after "<held: the lean verbatim; moved: the user's new line>" [--changed]
 ```
 
-- Same id as the BIND seal (`lean:<session-id>`) so a ledger replay attaches the
-  after-reading to the same rope. `wake` is unknown to existing readers (statusline
-  and settle replay switch on event type with no `default` branch) → safely ignored
-  by them; only the surfaces that opt in (settle Step 4, log) read it.
-- **Write verification:** re-read the appended line and JSON-parse it; on failure
-  append a corrected line (never edit in place) — a malformed wake is a settlement
-  that ceases to exist.
+- Pass `--changed` ONLY when the read moved; omit it when it held.
+- `lean_after` is PURE user-authored — pass the user's own words verbatim, never a
+  model line. `lean_before` is filled by the CLI from the sealed lean on the same
+  `lean:<session-id>` rope, so you never retype it (pass `--lean-before` only if the
+  seal isn't loadable). A second wake on the same id is refused by the CLI — the
+  "already woken → skip" rule is mechanical, not something you re-judge.
+- `wake` is unknown to statusline (its replay has no `default` branch) → safely
+  ignored there; only the surfaces that opt in (settle Step 4, journal) read it.
 
 **Render** after recording (user's locale), one line, no verdict:
 - held: `단단함 — 들은 뒤에도 마음은 그대로예요.` (en: `It held — your read didn't move.`)
