@@ -26,7 +26,7 @@ import {
 } from '../lib/review/index.js';
 import { extractFileFromPath, type ExtractedText } from '../lib/review/extract-file-node.js';
 
-const BINARY_KINDS: SourceKind[] = ['pdf', 'docx', 'pptx'];
+const BINARY_KINDS: SourceKind[] = ['pdf', 'docx', 'pptx', 'hwpx'];
 
 /** The five-part judgment spine (+ deck narrative for a deck) — the lenses a
  *  VISION review applies to what it SEES. Same lens objects the text path hands
@@ -79,14 +79,14 @@ const CONCERNS = ['strategic_fit', 'evidence', 'stakeholder_objection', 'executi
 
 const EXT_KIND: Record<string, SourceKind> = {
   md: 'markdown', markdown: 'markdown', txt: 'txt', text: 'txt',
-  pdf: 'pdf', docx: 'docx', pptx: 'pptx',
+  pdf: 'pdf', docx: 'docx', pptx: 'pptx', hwpx: 'hwpx',
 };
 
 const inputSchema = z.strictObject({
   text: z.string().max(MAX_DOC_BYTES).describe('The document body to review (paste). Provide this OR file_path.').optional(),
-  file_path: z.string().max(1024).describe('Absolute path to a DOCUMENT (.md/.txt/.pdf/.docx/.pptx) inside this project, the working directory, or another project already known to Argus. Other paths and non-document types are refused. PDF/DOCX/PPTX are text-extracted with page/slide anchors. A scanned or image-only PDF/deck (no extractable text) returns a VISION scaffold instead of failing: open the file and review its pages by eye with the same lenses.').optional(),
+  file_path: z.string().max(1024).describe('Absolute path to a DOCUMENT (.md/.txt/.pdf/.docx/.pptx/.hwpx) inside this project, the working directory, or another project already known to Argus. Other paths and non-document types are refused. PDF/DOCX/PPTX/HWPX are text-extracted with page/slide anchors where the format has them. A scanned or image-only PDF/deck (no extractable text) returns a VISION scaffold instead of failing: open the file and review its pages by eye with the same lenses.').optional(),
   argus_dir: zArgusDir.describe('Optional: scope the readable root to this project.').optional(),
-  source_kind: z.enum(['paste', 'markdown', 'txt', 'pdf', 'docx', 'pptx', 'transcript', 'llm_answer', 'pr_diff']).describe('Override the inferred source kind.').optional(),
+  source_kind: z.enum(['paste', 'markdown', 'txt', 'pdf', 'docx', 'pptx', 'hwpx', 'transcript', 'llm_answer', 'pr_diff']).describe('Override the inferred source kind.').optional(),
   title: z.string().max(300).optional(),
   concerns: z.array(z.enum(CONCERNS)).max(3).describe('What to weight — drives lens routing.').optional(),
   audience_hint: z.string().max(200).optional(),

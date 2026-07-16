@@ -41,7 +41,7 @@ import {
 type Phase = 'list' | 'import' | 'running' | 'receipt' | 'failed';
 
 const TEXT_EXT = ['md', 'markdown', 'txt', 'text'];
-const BINARY_EXT: Record<string, SourceKind> = { pdf: 'pdf', docx: 'docx', pptx: 'pptx' };
+const BINARY_EXT: Record<string, SourceKind> = { pdf: 'pdf', docx: 'docx', pptx: 'pptx', hwpx: 'hwpx' };
 /** Raster image formats Anthropic vision can read — reviewed purely visually (no
  *  text path), so they require a connected vision provider. */
 const IMAGE_EXT = ['png', 'jpg', 'jpeg', 'webp', 'gif'];
@@ -63,10 +63,10 @@ export function ReviewFlow() {
   const [sourceKind, setSourceKind] = useState<SourceKind>('paste');
   const [pendingBinary, setPendingBinary] = useState<SourceKind | null>(null);
   const [extractNote, setExtractNote] = useState<string | null>(null);
-  // An image can ONLY be read visually — set when we can't build a vision review
-  // (no vision provider connected, or the image is unusable) so the UI says so
-  // instead of silently disabling the button.
-  const [imageBlocked, setImageBlocked] = useState(false);
+  // A file we can't turn into a review (image with no vision provider, unusable
+  // image, legacy .hwp) — surfaced as an honest note instead of silently
+  // disabling the button. `needsKey` adds the Settings link (vision-only case).
+  const [uploadBlock, setUploadBlock] = useState<{ note: string; needsKey?: boolean } | null>(null);
   const [extracting, setExtracting] = useState(false);
   // Drag-and-drop onto the import card. dragDepth counts enter/leave across child
   // elements so the highlight doesn't flicker as the cursor crosses the textarea.
@@ -158,12 +158,24 @@ export function ReviewFlow() {
     setExtractNote(null);
     setPreExtracted(null);
     setUseVision(false);
-    setImageBlocked(false);
+    setUploadBlock(null);
     if (TEXT_EXT.includes(ext)) {
       const content = await file.text();
       setText(content);
       setSourceKind(ext.startsWith('md') ? 'markdown' : 'txt');
       setPendingBinary(null);
+    } else if (ext === 'hwp') {
+      // Legacy binary 한글 (.hwp, a CFB blob) has no in-browser parser. Degrade
+      // honestly with the concrete fix (save as HWPX, or paste) instead of a
+      // silent no-op that leaves the button dead.
+      setSourceKind('paste');
+      setPendingBinary(null);
+      setUploadBlock({
+        note: L(
+          '구버전 한글(.hwp)은 바로 읽지 못해요. 한글에서 "다른 이름으로 저장 → HWPX(.hwpx)"로 저장해 올리거나, 본문을 붙여넣어 주세요.',
+          'Legacy Hangul (.hwp) can\'t be read directly. Save it as HWPX (.hwpx) in Hancom Office and upload that, or paste the text.',
+        ),
+      });
     } else if (IMAGE_EXT.includes(ext)) {
       // A pure image has no text to extract — it's reviewed entirely by a vision
       // model. Without one connected there is NO path, so say so plainly rather
@@ -171,11 +183,13 @@ export function ReviewFlow() {
       setSourceKind('image');
       setPendingBinary(null);
       if (!visionCapable()) {
-        setImageBlocked(true);
-        setExtractNote(L(
-          '이미지 검수는 시각 모델이 필요해요. 설정에서 Anthropic API 키를 연결하면 이미지를 눈으로 검수할 수 있어요.',
-          'Image review needs a vision model. Connect an Anthropic API key in Settings and the image can be reviewed visually.',
-        ));
+        setUploadBlock({
+          note: L(
+            '이미지 검수는 시각 모델이 필요해요. 설정에서 Anthropic API 키를 연결하면 이미지를 눈으로 검수할 수 있어요.',
+            'Image review needs a vision model. Connect an Anthropic API key in Settings and the image can be reviewed visually.',
+          ),
+          needsKey: true,
+        });
         return;
       }
       setExtracting(true);
@@ -188,12 +202,10 @@ export function ReviewFlow() {
           setExtractNote(extracted.note ?? null);
         } else {
           // Unsupported format / too large to downscale → honest, specific reason.
-          setImageBlocked(true);
-          setExtractNote(extracted.note ?? L('이 이미지를 검수하지 못했어요.', 'Could not review this image.'));
+          setUploadBlock({ note: extracted.note ?? L('이 이미지를 검수하지 못했어요.', 'Could not review this image.') });
         }
       } catch {
-        setImageBlocked(true);
-        setExtractNote(L('이미지를 읽지 못했어요. 다시 시도해 주세요.', 'Could not read the image. Please try again.'));
+        setUploadBlock({ note: L('이미지를 읽지 못했어요. 다시 시도해 주세요.', 'Could not read the image. Please try again.') });
       } finally {
         setExtracting(false);
       }
@@ -406,7 +418,7 @@ export function ReviewFlow() {
     setPendingBinary(null);
     setExtractNote(null);
     setPreExtracted(null);
-    setImageBlocked(false);
+    setUploadBlock(null);
     setUseVision(false);
     setJob(null);
     setPhase('import');
@@ -771,7 +783,7 @@ export function ReviewFlow() {
             setPendingBinary(null);
             setPreExtracted(null);
             setExtractNote(null);
-            setImageBlocked(false);
+            setUploadBlock(null);
           }}
           maxLength={PASTE_CHAR_CAP}
           placeholder={L(
@@ -784,7 +796,7 @@ export function ReviewFlow() {
           <input
             ref={fileRef}
             type="file"
-            accept=".md,.markdown,.txt,.text,.pdf,.docx,.pptx,.png,.jpg,.jpeg,.webp,.gif"
+            accept=".md,.markdown,.txt,.text,.pdf,.docx,.pptx,.hwpx,.hwp,.png,.jpg,.jpeg,.webp,.gif"
             className="hidden"
             onChange={(e) => e.target.files?.[0] && onFile(e.target.files[0])}
           />
@@ -836,10 +848,10 @@ export function ReviewFlow() {
             )}
           </p>
         )}
-        {imageBlocked && (
+        {uploadBlock && (
           <div className="mt-2">
-            <p className="text-[12px] text-[var(--warning)]">{extractNote}</p>
-            {!visionCapable() && (
+            <p className="text-[12px] text-[var(--warning)]">{uploadBlock.note}</p>
+            {uploadBlock.needsKey && (
               <a
                 href={`/${locale}/settings`}
                 className="inline-flex mt-1 text-[12px] font-medium text-[var(--accent)] hover:underline"

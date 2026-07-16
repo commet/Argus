@@ -64,7 +64,7 @@ export interface IngestInput {
 }
 
 const TIER0: SourceKind[] = ['paste', 'markdown', 'txt', 'llm_answer', 'transcript', 'pr_diff'];
-const BINARY: SourceKind[] = ['pdf', 'docx', 'pptx'];
+const BINARY: SourceKind[] = ['pdf', 'docx', 'pptx', 'hwpx'];
 
 export function ingest(input: IngestInput): CanonicalArtifact {
   const privacy_mode: PrivacyMode = input.privacy_mode ?? 'receipt_only';
@@ -216,6 +216,7 @@ function defaultTitle(kind: SourceKind, lang: ReviewLocale): string {
     pdf: 'PDF 문서',
     docx: 'DOCX 문서',
     pptx: '슬라이드 덱',
+    hwpx: '한글 문서',
     image: '이미지',
     transcript: '회의록',
     mcp_file: '파일',
@@ -229,6 +230,7 @@ function defaultTitle(kind: SourceKind, lang: ReviewLocale): string {
     pdf: 'PDF document',
     docx: 'DOCX document',
     pptx: 'Slide deck',
+    hwpx: 'Hangul document',
     image: 'Image',
     transcript: 'Meeting notes',
     mcp_file: 'File',
@@ -256,9 +258,13 @@ function degradedArtifact(
           ? (lang === 'en'
               ? 'This deck does not yet support automatic extraction. Paste the slide text and it can be reviewed.'
               : '이 deck은 아직 자동 추출을 지원하지 않습니다. 슬라이드 텍스트를 붙여넣으면 검수할 수 있습니다.')
-          : (lang === 'en'
-              ? 'This file does not yet support automatic text extraction. Please paste the body text.'
-              : '이 파일은 아직 자동 텍스트 추출을 지원하지 않습니다. 본문을 붙여넣어 주세요.');
+          : kind === 'hwpx'
+            ? (lang === 'en'
+                ? 'No text could be read from this Hangul document. Paste the body text and it can be reviewed.'
+                : '이 한글 문서에서 텍스트를 찾지 못했습니다. 본문을 붙여넣으면 검수할 수 있습니다.')
+            : (lang === 'en'
+                ? 'This file does not yet support automatic text extraction. Please paste the body text.'
+                : '이 파일은 아직 자동 텍스트 추출을 지원하지 않습니다. 본문을 붙여넣어 주세요.');
   return {
     artifact_id: `art_${stableId(kind, title, reason)}`,
     source_kind: kind,

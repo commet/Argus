@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect } from 'vitest';
+import JSZip from 'jszip';
 import { extractFile, classifyExtractError } from '../extract-file';
 
 // The file-reading path must NEVER throw an unhandled error at the user — every
@@ -74,6 +75,33 @@ describe('extractFile — guards run before any parser, never throw', () => {
     expect(r.quality).toBe('unsupported');
     expect(r.error_kind).toBe('wrong_format');
     expect(r.note).toMatch(/PNG|형식/);
+  });
+
+  it('extracts text from an HWPX (Contents/sectionN.xml, runs joined + entities decoded)', async () => {
+    const zip = new JSZip();
+    zip.file(
+      'Contents/section0.xml',
+      '<hml><hp:p><hp:run><hp:t>첫 번째 문단입니다. 이 문서는 검수 대상이 되는 충분한 본문을 담고 있습니다.</hp:t></hp:run></hp:p>' +
+        '<hp:p><hp:t>두 번째 </hp:t><hp:t>문단 &amp; 인용을 포함합니다.</hp:t></hp:p></hml>',
+    );
+    const buf = await zip.generateAsync({ type: 'arraybuffer' });
+    const r = await extractFile(new File([buf], 'plan.hwpx'), 'hwpx');
+    expect(r.quality).toBe('medium');
+    expect(r.text).toContain('첫 번째 문단입니다.');
+    // adjacent <hp:t> runs join into one paragraph; &amp; decodes to &
+    expect(r.text).toContain('두 번째 문단 & 인용을 포함합니다.');
+    // paragraph boundaries become newlines
+    expect(r.text.split('\n').length).toBeGreaterThanOrEqual(2);
+  });
+
+  it('refuses a mislabeled/old .hwp (zip with no Contents/section xml) honestly', async () => {
+    const zip = new JSZip();
+    zip.file('BodyText/Section0', 'not owpml');
+    const buf = await zip.generateAsync({ type: 'arraybuffer' });
+    const r = await extractFile(new File([buf], 'legacy.hwpx'), 'hwpx');
+    expect(r.quality).toBe('unsupported');
+    expect(r.error_kind).toBe('wrong_format');
+    expect(r.note).toMatch(/한글|HWPX|손상/);
   });
 
   // Note: the corrupt/encrypted PARSER path is covered by classifyExtractError

@@ -129,7 +129,7 @@ export function classifyExtractError(e: unknown, kind: SourceKind): { note: stri
 }
 
 export async function extractFile(file: File, kind: SourceKind): Promise<ExtractedText> {
-  if (kind !== 'docx' && kind !== 'pptx' && kind !== 'pdf' && kind !== 'image') {
+  if (kind !== 'docx' && kind !== 'pptx' && kind !== 'pdf' && kind !== 'image' && kind !== 'hwpx') {
     return { text: '', quality: 'unsupported' };
   }
   // Guard size + emptiness BEFORE reading bytes into memory or invoking a parser,
@@ -154,6 +154,7 @@ export async function extractFile(file: File, kind: SourceKind): Promise<Extract
   try {
     if (kind === 'docx') return await extractDocx(buf);
     if (kind === 'pptx') return await extractPptx(buf);
+    if (kind === 'hwpx') return await extractHwpx(buf);
     if (kind === 'image') return await extractImage(file, buf);
     return await extractPdf(buf);
   } catch (e) {
@@ -413,6 +414,86 @@ async function extractPptxImages(
     images.push({ media_type, data: toBase64(bytes) });
   }
   return images.length ? { kind: 'images', images, pages_seen: images.length } : undefined;
+}
+
+// --------------------------------------------------------------------------
+// HWPX — Hancom's OWPML format: a zip of Contents/sectionN.xml. Text runs live
+// in <hp:t> elements grouped by <hp:p> paragraphs. We walk runs + paragraph
+// closings in document order so each paragraph becomes a line (tables flush per
+// cell). No page anchors — ingest's markdown extractor rebuilds line anchors.
+// (Old binary .hwp is a CFB blob with no in-browser parser — the UI degrades it
+// honestly before ever reaching here.)
+// --------------------------------------------------------------------------
+
+async function extractHwpx(buf: ArrayBuffer): Promise<ExtractedText> {
+  const JSZip = (await import('jszip')).default;
+  const zip = await JSZip.loadAsync(buf);
+  const sectionPaths = Object.keys(zip.files)
+    .filter((p) => /^Contents\/section\d+\.xml$/i.test(p))
+    .sort((a, b) => hwpxSectionNum(a) - hwpxSectionNum(b));
+  if (!sectionPaths.length) {
+    // A real .hwpx always has Contents/section0.xml — its absence means a
+    // mislabeled/old .hwp or a corrupt zip. Honest, specific reason.
+    return {
+      text: '', quality: 'unsupported', error_kind: 'wrong_format',
+      note: '한글 문서 구조를 찾지 못했어요. 구버전 .hwp이거나 파일이 손상됐을 수 있어요 — HWPX로 다시 저장하거나 본문을 붙여넣어 주세요.',
+    };
+  }
+  const lines: string[] = [];
+  for (const path of sectionPaths) {
+    const xml = await zip.files[path].async('string');
+    lines.push(...hwpxParagraphs(xml));
+    if (lines.length >= MAX_UNITS) break;
+  }
+  const text = lines.join('\n').trim();
+  if (text.length < 40) {
+    return { text: '', quality: 'low', note: '한글 문서에서 텍스트를 거의 찾지 못했습니다 (이미지 위주일 수 있습니다).' };
+  }
+  return { text, quality: 'medium', note: text.length < 400 ? '추출된 텍스트가 적습니다. 핵심 본문은 붙여넣으면 더 정확합니다.' : undefined };
+}
+
+function hwpxSectionNum(p: string): number {
+  return parseInt(/section(\d+)/i.exec(p)?.[1] ?? '0', 10);
+}
+
+/** Walk <hp:t> run contents and <hp:p> paragraph closings in document order.
+ *  Each paragraph boundary flushes its accumulated runs as one line. The prefix
+ *  is matched loosely (`(?:\w+:)?`) so a differently-namespaced OWPML still
+ *  parses. */
+function hwpxParagraphs(xml: string): string[] {
+  const lines: string[] = [];
+  let cur = '';
+  const re = /<(?:\w+:)?t\b[^>]*>([\s\S]*?)<\/(?:\w+:)?t>|<\/(?:\w+:)?p>/g;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(xml))) {
+    if (m[1] !== undefined) {
+      cur += decodeXmlEntities(m[1]);
+    } else {
+      const line = cur.replace(/\s+/g, ' ').trim();
+      if (line) lines.push(line);
+      cur = '';
+    }
+  }
+  const tail = cur.replace(/\s+/g, ' ').trim();
+  if (tail) lines.push(tail);
+  return lines;
+}
+
+/** Minimal XML entity decoder for run text (`&amp;` resolved last so it can't
+ *  double-decode an already-entity-escaped `&`). */
+function decodeXmlEntities(s: string): string {
+  return s
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'")
+    .replace(/&#x([0-9a-fA-F]+);/g, (_, h) => codePoint(parseInt(h, 16)))
+    .replace(/&#(\d+);/g, (_, d) => codePoint(parseInt(d, 10)))
+    .replace(/&amp;/g, '&');
+}
+
+function codePoint(n: number): string {
+  return Number.isFinite(n) && n > 0 && n <= 0x10ffff ? String.fromCodePoint(n) : '';
 }
 
 // --------------------------------------------------------------------------

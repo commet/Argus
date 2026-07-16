@@ -32,6 +32,7 @@ export type SourceKind =
   | 'pdf'
   | 'docx'
   | 'pptx'
+  | 'hwpx'
   | 'image'
   | 'transcript'
   | 'mcp_file'
