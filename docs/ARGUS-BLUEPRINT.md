@@ -706,6 +706,20 @@ Desktop은 README 설정 그대로가 전 도구 실패, 영수증 렌더러는 
 - §8의 `[O4 관문 뒤]` 항목에서 인출: MCPB(Desktop) · Codex plugin · 위젯 2종 ·
   installer · (remote/team/v3/TUI는 그 뒤).
 
+**병렬 코어 트랙 K (2026-07-16 등록, 창업자 승인)** — `docs/DESIGN-judgment-knowledge-core-and-coaching-v1-2026-07-16.md`(judgment knowledge core & coaching, PR #167)의 구현 트랙. O-위계와 병렬 진행을 허용하되 경계 3규칙:
+1. **순서와 격리**: K0(ADR + 배신방지 fixture를 코드보다 먼저) → K1(새 스키마는
+   `argus-mcp/src/v4/` 신규 네임스페이스 + env 플래그 뒤 **shadow-write만**, v3
+   의미 변경 금지 — 설계 문서 §12.1) → K2(웹 `user_lean` 승격). A0(계정 연결,
+   PKCE+Device — §8의 "OAuth 원격 전송"=MCP transport 인증과 **별개**)은 기존
+   sync 마찰 수리로서 표면 포함 진행 가능. v1/v2 쓰기 경로·플러그인 scripts
+   (O2 소유)·열린 O1 PR의 파일은 무접촉, 테스트는 격리 규약(실홈 금지) 준수.
+2. **표면 게이트 유지**: 사용자-표면(코칭 카드·5차원 Patterns 노출)과 canonical
+   read 전환은 **O4 통과 후에만** — 동결의 목적(가치 증명 전 표면 확장 금지)은
+   K-트랙 아래에서도 그대로다.
+3. **봉인 순간은 카드 한 장**: O1 방4(predicate Keep/Reword/Skip)가 먼저, K-트랙
+   W1(전제 watch 승인)은 그 카드를 확장한다 — 두 장이 되면 over-fire.
+   PR 첫 줄 규약: `공정 K{n} · 겨냥 퍼널 단계 X→Y`.
+
 **exit 체크 규약은 §6과 동일** — `[x]`는 같은 커밋에서 EVIDENCE 맵 갱신과 함께만.
 병행 트랙: 웹 공정 5(첫인상 수리)는 이 위계와 독립적으로 §6을 따른다.
 
