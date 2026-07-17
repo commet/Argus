@@ -114,6 +114,13 @@ export function productionE3BReleaseDecision(
   return evaluateE3BReleaseGate(requestedReceiptId, APPROVED_E3B_RELEASE_RECEIPTS);
 }
 
+/** Navigation is discoverable only in builds selecting the same approved receipt. */
+export function clientE3BReleaseDecision(
+  requestedReceiptId = process.env.NEXT_PUBLIC_ARGUS_E3B_RELEASE_RECEIPT,
+): E3BGateDecision {
+  return evaluateE3BReleaseGate(requestedReceiptId, APPROVED_E3B_RELEASE_RECEIPTS);
+}
+
 export function hasApprovedE3BReleaseReceipt(): boolean {
   return APPROVED_E3B_RELEASE_RECEIPTS.some((receipt) =>
     evaluateE3BReleaseGate(receipt.receipt_id, APPROVED_E3B_RELEASE_RECEIPTS).open);

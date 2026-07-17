@@ -29,6 +29,10 @@ export type E3BReviewAction =
   }
   | { kind: 'revoke'; action_id: string; claim_id: string; origin_id?: string; grant_id: string; reason?: string };
 
+export type E3BReviewActionInput = E3BReviewAction extends infer Action
+  ? Action extends E3BReviewAction ? Omit<Action, 'action_id'> : never
+  : never;
+
 export interface ServerReviewSnapshot {
   review_cards: ClaimReviewCardProjection[];
   patterns: PublicPatternProjection[];

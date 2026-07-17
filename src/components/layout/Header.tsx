@@ -3,7 +3,7 @@
 import { LocaleLink } from '@/components/ui/LocaleLink';
 import { Logo } from '@/components/brand/Logo';
 import { usePathname, useRouter } from 'next/navigation';
-import { Menu, X, LogOut, Sun, Moon, Lock, MoreHorizontal, Download, Users, BookOpen, BarChart3, UserCheck, Search, Compass, FolderKanban, Settings2 } from 'lucide-react';
+import { Menu, X, LogOut, Sun, Moon, Lock, MoreHorizontal, Download, Users, BookOpen, BarChart3, UserCheck, Search, Compass, FolderKanban, Settings2, Waves } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { useAuth } from '@/lib/auth';
 import { useDueCount } from '@/hooks/useDueCount';
@@ -15,6 +15,7 @@ import { Toast } from '@/components/ui/Toast';
 import { useLocaleSwitch } from '@/hooks/useLocaleSwitch';
 import { stripLocale } from '@/lib/locale-path';
 import { CommandPalette, type CommandPaletteItem } from '@/components/ui/CommandPalette';
+import { clientE3BReleaseDecision } from '@/lib/epistemic/e3b-release-gate';
 
 export function Header() {
   const { locale, switchTo: handleLocaleChange } = useLocaleSwitch();
@@ -46,6 +47,7 @@ export function Header() {
   // /admin page enforces the real gate server-side via the argus_metrics RPC;
   // this flag only decides whether to surface the menu link.
   const isOperator = user?.app_metadata?.is_operator === true;
+  const e3bReleased = clientE3BReleaseDecision().open;
   const utilityItems: Array<{ href: string; label: string; icon: typeof Download }> = [
     { href: '/import', label: L('가져오기', 'Import'), icon: Download },
     { href: '/teams', label: L('팀', 'Teams'), icon: Users },
@@ -53,6 +55,7 @@ export function Header() {
     // only the extra doorway on the landing was removed.
     { href: '/boss', label: L('보고 상대 설정', 'Set your reviewer'), icon: UserCheck },
     { href: '/guide', label: L('사용 가이드', 'Guide'), icon: BookOpen },
+    ...(e3bReleased ? [{ href: '/patterns', label: 'Patterns', icon: Waves }] : []),
     ...(isOperator ? [{ href: '/admin', label: L('계기판', 'Dashboard'), icon: BarChart3 }] : []),
   ];
 
@@ -91,6 +94,8 @@ export function Header() {
         ? L('내 결정을 검토할 상대의 관점을 설정합니다.', 'Set the perspective that will review your decisions.')
         : item.href === '/guide'
         ? L('Argus의 흐름과 주요 기능을 빠르게 익힙니다.', 'Learn the Argus flow and its main features.')
+        : item.href === '/patterns'
+        ? L('근거와 반례를 검토하고 미래 AI 영향 권한을 따로 관리합니다.', 'Review evidence and counterexamples, then manage future AI influence separately.')
         : L('운영 지표와 제품 상태를 확인합니다.', 'Review product status and operating metrics.'),
       group: L('도구', 'Tools'),
       keywords: [],

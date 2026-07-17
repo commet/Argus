@@ -57,6 +57,10 @@ function LayoutShellInner({ children }: { children: React.ReactNode }) {
   if (isBoss) {
     return <div className="flex-1 min-w-0">{content}</div>;
   }
+  const isPatterns = pathname.startsWith('/patterns');
+  if (isPatterns) {
+    return <div className="flex-1 min-w-0">{content}</div>;
+  }
 
   // The 224px <Sidebar /> that used to render here is gone (Argus 2.0 H1-C4):
   // on every one of these pages it was an almost-empty white column that read

@@ -48,7 +48,9 @@ export interface ClaimReviewCardProjection {
   sources: ClaimSourceProjection[];
   counterexamples: CounterexampleProjection[];
   limitations: string[];
+  limitations_en: string[];
   review_question: string;
+  review_question_en: string;
   active_grants: GrantProjection[];
 }
 
@@ -73,6 +75,7 @@ export interface PatternDimensionProjection {
   dimension: PatternDimensionId;
   available: boolean;
   summary: string;
+  summary_en: string;
   source_refs: string[];
 }
 
@@ -131,6 +134,12 @@ function baseCard(state: ClaimAuthorityState): ClaimReviewCardProjection | null 
     ...(state.scope.value.review_by ? [`${state.scope.value.review_by} 전에 다시 검토해야 합니다.`] : []),
     '이 기록은 성격 진단이나 미래 행동 지시가 아닙니다.',
   ];
+  const limitationsEn = [
+    ...(counterexamples.length === 0
+      ? ['No counterexample is attached to the record. This does not prove none exists.'] : []),
+    ...(state.scope.value.review_by ? [`Review again before ${state.scope.value.review_by}.`] : []),
+    'This record is not a personality diagnosis or an instruction for future behavior.',
+  ];
   return {
     claim_id: state.claim_id,
     statement: state.statement.value,
@@ -143,7 +152,9 @@ function baseCard(state: ClaimAuthorityState): ClaimReviewCardProjection | null 
     sources,
     counterexamples,
     limitations,
+    limitations_en: limitationsEn,
     review_question: '이 표현이 지금의 당신과 맞나요?',
+    review_question_en: 'Does this wording fit who you are now?',
     active_grants: Object.values(state.grants)
       .filter((grant) => grant.status === 'active')
       .map(grantProjection),
@@ -178,12 +189,14 @@ function patternDimensions(card: ClaimReviewCardProjection): PatternDimensionPro
       dimension: 'outcome_frequency',
       available: card.sources.length >= 3,
       summary: `서로 독립된 해결 사례 ${card.sources.length}건에서 관찰됐습니다.`,
+      summary_en: `Observed across ${card.sources.length} independent resolved cases.`,
       source_refs: refs,
     },
     {
       dimension: 'authorship_trajectory',
       available: true,
       summary: '현재 문구의 저자성과 검토 상태를 원본 사건과 분리해 보존합니다.',
+      summary_en: 'Authorship and review status are preserved separately from the source events.',
       source_refs: refs,
     },
     {
@@ -192,6 +205,9 @@ function patternDimensions(card: ClaimReviewCardProjection): PatternDimensionPro
       summary: card.claim_kind === 'causal_hypothesis'
         ? `독립 인과 묶음 ${causalClusters.length}개를 연결한 가설이며, 인과 사실로 확정하지 않습니다.`
         : '이 기록만으로 인과를 주장하지 않습니다.',
+      summary_en: card.claim_kind === 'causal_hypothesis'
+        ? `This hypothesis links ${causalClusters.length} independent causal clusters; it is not established as causal fact.`
+        : 'This record alone does not establish causation.',
       source_refs: refs,
     },
     {
@@ -200,12 +216,16 @@ function patternDimensions(card: ClaimReviewCardProjection): PatternDimensionPro
       summary: projects.length >= 2
         ? `검토된 적용 범위에 결정 ${projects.length}건이 포함됩니다.`
         : '교차 결정 영향 범위는 아직 확인되지 않았습니다.',
+      summary_en: projects.length >= 2
+        ? `The reviewed scope includes ${projects.length} decisions.`
+        : 'Cross-decision impact has not been established.',
       source_refs: refs,
     },
     {
       dimension: 'transfer_question',
       available: false,
       summary: '현재 판단과의 검증된 연결이 생기기 전에는 과거 패턴을 코칭으로 전이하지 않습니다.',
+      summary_en: 'The past pattern is not transferred into coaching until a verified connection to a current judgment exists.',
       source_refs: [],
     },
   ];
