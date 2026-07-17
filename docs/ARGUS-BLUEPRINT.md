@@ -677,8 +677,8 @@ Desktop은 README 설정 그대로가 전 도구 실패, 영수증 렌더러는 
 - 방3 첫 영수증 보상: then-vs-now 한 화면이 structured-숨김 호스트에서도 보이게.
 - 방4 봉인 1탭: Keep/Reword/Skip elicitation (OOB picker 실증 #163 위에).
 - 방5 게이트 전진: 신뢰 게이트를 Stop-hook 사후 경고 → 렌더 전 결정론 검증으로.
-- exit: [ ] 설치→봉인→재시작→귀환→정산 여정 fixture가 ko/en·Windows에서 초록
-  [ ] 릴리스 스위트 결정적(로케일·시계·홈 독립) [ ] 대화-언어 불일치 1회 확인
+- exit: [x] 설치→봉인→재시작→귀환→정산 여정 fixture가 ko/en·Windows에서 초록
+  [x] 릴리스 스위트 결정적(로케일·시계·홈 독립) [x] 대화-언어 불일치 1회 확인
   fixture
 - **O1 exit부터 실사용 코호트 가동 (O4 데이터 수집 시작 — 코드보다 사용이 주역).**
 

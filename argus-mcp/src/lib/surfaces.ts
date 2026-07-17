@@ -62,8 +62,10 @@ export function humanizeSyncReason(reason: string, locale: SurfaceLocale): strin
 /** The explicit config locale, or null when no config.yaml declares one.
  *  Distinct from surfaceLocale so the response-locale chain can tell an
  *  EXPLICIT `locale: en` (config wins, never overridden) apart from the
- *  bare 'en' base voice (a mere default, which text detection may override). */
-function configLocale(argusDir?: string | null): SurfaceLocale | null {
+ *  bare 'en' base voice (a mere default, which text detection may override).
+ *  Exported for the locale-mismatch once-note (§9.7 O1), which needs to know
+ *  whether a pin EXISTS — not what the resolved voice is. */
+export function configLocale(argusDir?: string | null): SurfaceLocale | null {
   if (!argusDir) return null;
   try {
     const cfg = fs.readFileSync(configPath(argusDir), 'utf8');

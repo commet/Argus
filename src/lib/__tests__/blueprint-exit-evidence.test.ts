@@ -84,6 +84,22 @@ const EVIDENCE_M: Record<string, string[]> = {
   ],
 };
 
+/** §9.7 전면 개편 위계(공정 O0~O5)의 exit 증거 — 같은 계약. O-트랙 헤딩도
+ *  M-트랙과 같은 볼드 문단 형식이라 별도 파서로 감시한다 (M-트랙 신설 때의
+ *  교훈 그대로: 새 트랙을 사각지대로 두면 이 테스트의 존재 이유가 무색해진다). */
+const EVIDENCE_O: Record<string, string[]> = {
+  '공정 O0': [], // 헌법 동결 — 체크박스 없음 (완료 = §9.7 커밋 자체)
+  '공정 O1': [
+    'argus-mcp/src/tools/__tests__/journey-o1.test.ts', // 설치→봉인→재시작→귀환→정산 ko/en 여정
+    'argus-mcp/src/lib/__tests__/os-locale-hint.test.ts', // 스위트 결정성 — env 규칙 매트릭스 + 격리 카나리아 (홈/로케일)
+    'argus-mcp/src/lib/__tests__/locale-mismatch-note.test.ts', // 대화-언어 불일치 1회 확인
+  ],
+  '공정 O2': [],
+  '공정 O3': [],
+  '공정 O4': [],
+  '공정 O5': [],
+};
+
 function readBlueprintMTrackSections(): Map<string, string> {
   const md = readFileSync(join(process.cwd(), 'docs/ARGUS-BLUEPRINT.md'), 'utf8');
   const s9Start = md.indexOf('## §9.');
@@ -95,6 +111,23 @@ function readBlueprintMTrackSections(): Map<string, string> {
     const start = headings[i].index! + headings[i][0].length;
     const end = i + 1 < headings.length ? headings[i + 1].index! : s9.indexOf('**exit 체크 규약');
     sections.set(headings[i][1], s9.slice(start, end === -1 ? undefined : end));
+  }
+  return sections;
+}
+
+function readBlueprintOTrackSections(): Map<string, string> {
+  const md = readFileSync(join(process.cwd(), 'docs/ARGUS-BLUEPRINT.md'), 'utf8');
+  const s97Start = md.indexOf('### 9.7');
+  if (s97Start === -1) return new Map(); // §9.7 없으면 O-트랙도 없다
+  const s97 = md.slice(s97Start, md.indexOf('## 마지막 장'));
+  const sections = new Map<string, string>();
+  const headings = [...s97.matchAll(/^\*\*(공정 O\d+)[^\n]*\*\*$/gm)];
+  for (let i = 0; i < headings.length; i++) {
+    const start = headings[i].index! + headings[i][0].length;
+    // 마지막 O-공정(O5) 뒤에는 K-트랙 등록 블록이 온다 — 그 앞에서 끊는다.
+    const tail = s97.indexOf('**병렬 코어 트랙 K');
+    const end = i + 1 < headings.length ? headings[i + 1].index! : (tail === -1 ? s97.indexOf('**exit 체크 규약') : tail);
+    sections.set(headings[i][1], s97.slice(start, end === -1 ? undefined : end));
   }
   return sections;
 }
@@ -165,6 +198,36 @@ describe('BLUEPRINT §9 M-트랙 exit 체크 증거 계약 (같은 규약)', () 
 
   it('M-트랙 기계 증거 경로도 전부 리포에 실존한다', () => {
     for (const [name, entries] of Object.entries(EVIDENCE_M)) {
+      for (const entry of entries) {
+        if (entry.startsWith('manual: ')) {
+          expect(entry.length, `${name}의 manual 증거는 무엇을/누가 확인했는지 적어야 함`).toBeGreaterThan(20);
+          continue;
+        }
+        expect(existsSync(join(process.cwd(), entry)), `${name}의 증거 파일이 없음: ${entry}`).toBe(true);
+      }
+    }
+  });
+});
+
+describe('BLUEPRINT §9.7 O-트랙 exit 체크 증거 계약 (같은 규약)', () => {
+  const sections = readBlueprintOTrackSections();
+
+  it('§9.7에서 여섯 O-공정을 모두 찾는다', () => {
+    expect([...sections.keys()]).toEqual(['공정 O0', '공정 O1', '공정 O2', '공정 O3', '공정 O4', '공정 O5']);
+  });
+
+  it.each([...readBlueprintOTrackSections().keys()])('%s: 체크된 exit 수 == 등록된 증거 수', (name) => {
+    const body = sections.get(name)!;
+    const checked = (body.match(/\[x\]/g) || []).length;
+    const evidence = EVIDENCE_O[name] || [];
+    expect(
+      evidence.length,
+      `${name}의 [x]는 ${checked}개인데 EVIDENCE_O 맵에는 ${evidence.length}개 — 체크(또는 취소)와 같은 커밋에서 맵을 갱신할 것`,
+    ).toBe(checked);
+  });
+
+  it('O-트랙 기계 증거 경로도 전부 리포에 실존한다', () => {
+    for (const [name, entries] of Object.entries(EVIDENCE_O)) {
       for (const entry of entries) {
         if (entry.startsWith('manual: ')) {
           expect(entry.length, `${name}의 manual 증거는 무엇을/누가 확인했는지 적어야 함`).toBeGreaterThan(20);
