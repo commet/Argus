@@ -40,9 +40,35 @@ export function learnLocaleFromContent(argusDir: string | null | undefined, args
 }
 
 /**
+ * osLocaleHint — THE one OS-environment locale probe (§9.7 O1 방1: one env
+ * resolver, consumed by every locale chain).
+ *
+ * Until 2026-07-16 this env→Intl chain lived in two copies (detectLocale here,
+ * resolveResponseLocale in surfaces.ts) and both treated env as a KO-DETECTOR
+ * ONLY: `LANG=en_US` didn't pin en — the chain fell through to Intl and a
+ * Korean-locale OS still resolved ko. That asymmetry is why the release suite
+ * was machine-dependent (4 reds on a ko OS; overhaul review §10) and why an
+ * explicit English env could never assert itself.
+ *
+ * Rule: a NON-EMPTY LANG/LC_ALL names the user's working language explicitly —
+ * ko iff it starts with ko, else en (Argus is binary ko/en). Only an EMPTY env
+ * falls through to the OS Intl locale. Explicit config wins ABOVE this at
+ * every call site, and Korean CONTENT re-claims ko later regardless (the text
+ * step / learnLocaleFromContent) — so an en hint never locks a Korean user out.
+ */
+export function osLocaleHint(): Locale {
+  const env = process.env['LANG'] || process.env['LC_ALL'] || '';
+  if (env) return /^ko/i.test(env) ? 'ko' : 'en';
+  try {
+    if (/^ko/i.test(Intl.DateTimeFormat().resolvedOptions().locale)) return 'ko';
+  } catch { /* Intl unavailable */ }
+  return 'en';
+}
+
+/**
  * detectLocale — CONFIG/ENV detection seeded at argus_init write time.
  *
- * Chain (write-time): explicit config > env (LANG/LC_ALL) > Intl > 'en'.
+ * Chain (write-time): explicit config > osLocaleHint (env, then Intl) > 'en'.
  * The runtime input-text step lives in resolveResponseLocale (surfaces.ts),
  * which layers text detection on TOP of a persisted config. This function
  * stays env-only so a fresh dir on a KST machine seeds locale:ko once.
@@ -53,12 +79,7 @@ export function detectLocale(argusDir: string): Locale {
     const m = cfg.match(/^locale:\s*(ko|en)\b/m);
     if (m) return m[1] as Locale;
   } catch { /* no config */ }
-  const env = process.env['LANG'] || process.env['LC_ALL'] || '';
-  if (/^ko/i.test(env)) return 'ko';
-  try {
-    if (/^ko/i.test(Intl.DateTimeFormat().resolvedOptions().locale)) return 'ko';
-  } catch { /* Intl unavailable */ }
-  return 'en';
+  return osLocaleHint();
 }
 
 /**

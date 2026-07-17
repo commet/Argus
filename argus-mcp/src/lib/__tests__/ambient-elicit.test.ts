@@ -65,6 +65,19 @@ function wire(): void {
 
 const settleFlush = (ms = 40) => new Promise((r) => setTimeout(r, ms));
 
+/** Deterministic wait for the FIRE side of an assertion (§9.7 O1 방1 — the
+ *  suite must be load-independent). The fire chain is: quiet-timer → up to two
+ *  elicit round-trips → a real settle with file I/O; a fixed 40–80ms sleep
+ *  raced that chain on loaded CI runners (⑧ was the recurring casualty).
+ *  Poll the completion condition instead: fast when fast, generous ceiling
+ *  when slow, and a ceiling expiry simply lets the following expect() fail
+ *  with real values. Silence assertions keep the short fixed sleep — you
+ *  cannot poll for "nothing happens". */
+async function waitFor(cond: () => boolean, ceilingMs = 5000): Promise<void> {
+  const t0 = Date.now();
+  while (!cond() && Date.now() - t0 < ceilingMs) await new Promise((r) => setTimeout(r, 10));
+}
+
 function arm(toolName = 'argus_predict'): void {
   armAmbientElicit(toolName, { argus_dir: dir, today_override: TODAY_DUE });
 }
@@ -96,7 +109,9 @@ describe('out-of-band ambient elicit — 발사 게이트', () => {
     ]);
     wire();
     arm();
-    await settleFlush(80);
+    // 완료 조건은 마지막 쓰기(settle)까지 — seen만 기다리면 두 번째 응답과
+    // 원장 append 사이 틈에서 단언이 앞질러 간다 (첫 flake 수리의 재발 방지).
+    await waitFor(() => replayLedger(dir, TODAY_DUE).contracts.get('amb-1')?.status === 'settled');
     expect(seen.length).toBe(2);
     expect(seen[0]).toContain(PREDICATE); // 우정 1조 — 네가 한 말을 그대로
     expect(seen[0]).toContain('2026-09-01');
@@ -112,7 +127,7 @@ describe('out-of-band ambient elicit — 발사 게이트', () => {
     const { seen } = scriptElicitor([{ action: 'decline' }]);
     wire();
     arm();
-    await settleFlush();
+    await waitFor(() => seen.length >= 1);
     expect(seen.length).toBe(1);
     expect(replayLedger(dir, TODAY_DUE).contracts.get('amb-1')?.status).toBe('sealed'); // 미기록
     arm(); // 같은 프로세스 재무장 시도
@@ -128,7 +143,8 @@ describe('out-of-band ambient elicit — 발사 게이트', () => {
     ]);
     wire();
     arm(); arm(); arm(); // 대화가 이어지는 동안은 리셋
-    await settleFlush(80);
+    await waitFor(() => seen.filter((m) => m.includes(PREDICATE)).length >= 1);
+    await settleFlush(); // 두 번째 발사가 없어야 함은 짧은 고정 대기로만 확인 가능
     expect(seen.filter((m) => m.includes(PREDICATE)).length).toBe(1);
   });
 
@@ -172,7 +188,7 @@ describe('out-of-band ambient elicit — 발사 게이트', () => {
     fs.writeFileSync(path.join(dir, 'ambient-elicit-state.json'), JSON.stringify({ last_fired_at: Date.now() - 5 * 3600_000 }));
     wire();
     arm();
-    await settleFlush(80);
+    await waitFor(() => replayLedger(dir, TODAY_DUE).contracts.get('amb-1')?.status === 'settled');
     expect(replayLedger(dir, TODAY_DUE).contracts.get('amb-1')?.status).toBe('settled');
   });
 
@@ -184,7 +200,8 @@ describe('out-of-band ambient elicit — 발사 게이트', () => {
     ]);
     wire();
     arm();
-    await settleFlush(80);
+    await waitFor(() => seen.length >= 2);
+    await settleFlush(); // 거절 뒤 어떤 기록도 없어야 함
     expect(seen.length).toBe(2);
     expect(replayLedger(dir, TODAY_DUE).contracts.get('amb-1')?.status).toBe('sealed'); // 정직한 공백
   });
@@ -199,7 +216,7 @@ describe('out-of-band ambient elicit — 발사 게이트', () => {
     ]);
     wire();
     arm();
-    await settleFlush(80);
+    await waitFor(() => replayLedger(dir, '2026-09-03').contracts.get('amb-1')?.check_by === '2026-10-02');
     expect(seen.length).toBe(2);
     const entry = replayLedger(dir, '2026-09-03').contracts.get('amb-1');
     expect(entry?.status).toBe('sealed'); // 여전히 살아있고
@@ -230,7 +247,8 @@ describe('out-of-band ambient elicit — 적대 케이스 (안정성)', () => {
       setElicitor(() => { asked += 1; return new Promise(() => { /* 영원히 pending */ }); }, () => true);
       wire();
       arm();
-      await settleFlush(120);
+      await waitFor(() => asked >= 1);
+      await settleFlush(60); // 30ms ask-timeout이 해소되고 예산이 기록될 여유
       expect(asked).toBe(1);
       expect(replayLedger(dir, TODAY_DUE).contracts.get('amb-1')?.status).toBe('sealed'); // 무기록
       arm(); // 예산 소진 — 같은 프로세스 재질문 없음
@@ -247,6 +265,7 @@ describe('out-of-band ambient elicit — 적대 케이스 (안정성)', () => {
     setElicitor(async () => { asked += 1; throw new Error('host exploded'); }, () => true);
     wire();
     arm();
+    await waitFor(() => asked >= 1);
     await settleFlush();
     expect(asked).toBe(1);
     expect(replayLedger(dir, TODAY_DUE).contracts.get('amb-1')?.status).toBe('sealed');
@@ -257,7 +276,8 @@ describe('out-of-band ambient elicit — 적대 케이스 (안정성)', () => {
     const { seen } = scriptElicitor([{ action: 'accept', content: { outcome: 'yes' } }]);
     wire();
     arm();
-    await settleFlush();
+    await waitFor(() => seen.length >= 1);
+    await settleFlush(); // 잘못된 outcome 뒤 2차 질문이 없어야 함 — 짧은 고정 대기로 확인
     expect(seen.length).toBe(1); // what_happened까지 가지 않는다
     expect(replayLedger(dir, TODAY_DUE).contracts.get('amb-1')?.status).toBe('sealed');
   });
@@ -277,7 +297,7 @@ describe('out-of-band ambient elicit — 적대 케이스 (안정성)', () => {
     ]);
     wire();
     arm();
-    await settleFlush(120);
+    await waitFor(() => seen.length >= 2 && replayLedger(dir, TODAY_DUE).contracts.get('amb-1')?.status === 'settled');
     expect(seen.length).toBe(2);
     const entry = replayLedger(dir, TODAY_DUE).contracts.get('amb-1');
     expect(entry?.status).toBe('settled');
@@ -315,7 +335,7 @@ describe('out-of-band ambient elicit — 적대 케이스 (안정성)', () => {
     ]);
     wire();
     arm();
-    await settleFlush(120);
+    await waitFor(() => seen.length >= 2 && replayLedger(dir, TODAY_DUE).contracts.get('early')?.status === 'settled');
     expect(seen.length).toBe(2); // outcome + what_happened — 결정 하나 분량뿐
     expect(seen[0]).toContain('파트너 계약서'); // 가장 오래된 due가 뽑힌다
     const state = replayLedger(dir, TODAY_DUE);
@@ -332,7 +352,8 @@ describe('out-of-band ambient elicit — 적대 케이스 (안정성)', () => {
     ]);
     wire();
     arm();
-    await settleFlush(80);
+    await waitFor(() => seen.length >= 2);
+    await settleFlush(); // 공백 답 뒤 어떤 기록도 없어야 함
     expect(seen.length).toBe(2);
     expect(replayLedger(dir, TODAY_DUE).contracts.get('amb-1')?.status).toBe('sealed');
   });
@@ -345,7 +366,8 @@ describe('out-of-band ambient elicit — 적대 케이스 (안정성)', () => {
     ]);
     wire();
     arm();
-    await settleFlush(80);
+    await waitFor(() => seen.length >= 2);
+    await settleFlush(); // 거절 뒤 어떤 변경도 없어야 함
     expect(seen.length).toBe(2);
     const entry = replayLedger(dir, TODAY_DUE).contracts.get('amb-1');
     expect(entry?.status).toBe('sealed');

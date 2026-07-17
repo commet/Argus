@@ -15,3 +15,38 @@
  * unintended.
  */
 process.env.ARGUS_API_URL = 'http://127.0.0.1:1';
+
+/**
+ * Tests must never depend on the developer's OS locale (§9.7 O1 방1).
+ *
+ * The locale chain's last step is osLocaleHint (LANG/LC_ALL, else Intl). On a
+ * Korean-locale Windows machine the Intl fallback resolves ko, which made 4
+ * tests red locally while green on en-locale CI — the suite's "en baseline"
+ * was an unstated ASSUMPTION about the machine. Pin it instead: every test
+ * runs against an explicit en env unless it sets a locale env itself
+ * (init-locale-seed's ko case does exactly that). Content-driven Korean
+ * (Hangul text) still resolves ko through this pin — only the env/Intl
+ * fallback is being made deterministic.
+ */
+process.env.LANG = 'en_US.UTF-8';
+delete process.env.LC_ALL;
+
+/**
+ * Tests must never touch the real user home (§9.7 O1 방1 — the 2026-06-15
+ * incident class: an eval run wrote locale:en into a real config and every
+ * later surface spoke English; and writeBoundMarker registers every init'd
+ * dir into ~/.argus/.bound, so ANY seal/init test was appending to the real
+ * registry with nothing turning red).
+ *
+ * os.homedir() reads USERPROFILE (Windows) / HOME (POSIX) per call, so
+ * redirecting both to a per-worker temp dir isolates every zero-config
+ * default (~/.argus, the global .bound registry, v2 durable ledger homes)
+ * without mocking. Tests that fake a home explicitly (vi.spyOn homedir)
+ * keep winning over this.
+ */
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+const TEST_HOME = fs.mkdtempSync(path.join(os.tmpdir(), 'argus-test-home-'));
+process.env.HOME = TEST_HOME;
+process.env.USERPROFILE = TEST_HOME;
