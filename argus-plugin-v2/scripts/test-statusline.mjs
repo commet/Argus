@@ -183,6 +183,32 @@ t("MCP defer (still_pending re-arm) pushes check_by out of overdue too", () => {
   assert(lines(run(r)).length === 1, "deferred date should not be overdue");
 });
 
+t("bound repo: durable home AND project v1 are UNIONed — plugin writes stay visible (O2 방4)", () => {
+  // 드리프트 6호: the plugin CLI writes only the project v1 file and the v2
+  // mirror runs only inside MCP calls — a bound repo's statusline read the
+  // durable home ALONE, so plugin-written bets vanished from this surface.
+  const r = repo();
+  const home = repo();
+  mkdirSync(join(r, ".argus"), { recursive: true });
+  writeFileSync(join(r, ".argus", "project.json"), JSON.stringify({ repository_id: "unionb1" }));
+  const dur = join(home, "projects", "unionb1");
+  mkdirSync(dur, { recursive: true });
+  writeFileSync(join(dur, "ledger.v1.jsonl"), [
+    JSON.stringify({ event: "harvest", id: "durA", decision: "durable home bet", quote: "durable home bet" }),
+    JSON.stringify({ event: "seal", id: "durA", predicate: "durable home bet — predicate", check_by: iso(-3) }),
+  ].join("\n") + "\n");
+  ledger(r, bet("projB", iso(-2), "plugin-written bet"));
+  const l2 = lines(run(r, { ARGUS_HOME: home }))[1];
+  assert(l2 && l2.includes("OVERDUE ×2"), `both worlds must be folded: ${l2}`);
+});
+
+t("bare seal (no prior harvest) still becomes a tracked bet (O2 ⑥ parity)", () => {
+  const r = repo();
+  ledger(r, [{ event: "seal", id: "bare0001", predicate: "bare seal renders — predicate", check_by: iso(-2) }]);
+  const l2 = lines(run(r))[1];
+  assert(l2 && l2.includes("OVERDUE"), `bare seal must fire: ${l2}`);
+});
+
 t("fresh bearing → status + summary + fog", () => {
   const r = repo();
   bearing(r, {}, 0.1);

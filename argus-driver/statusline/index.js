@@ -203,7 +203,12 @@ function applyV2Line(e, map, acc) {
 function loadLedger(root) {
   const empty = { bets: [], ids: new Set(), sealedPredicates: new Set() };
   const durable = durableLedgerFiles(root);
-  const files = durable || [join(root, ".argus", "ledger", "ledger.jsonl")];
+  // 바인딩된 repo에서도 프로젝트 v1 파일을 UNION으로 접는다 (O2 방4 — 드리프트
+  // 6호): 플러그인 CLI는 프로젝트 v1에만 쓰고 v2 미러는 MCP 호출 안에서만
+  // 일어나므로, 내구 창고만 읽으면 플러그인이 쓴 봉인/정산이 이 표면에서
+  // 사라진다. 같은 논리 이벤트의 중복 fold는 상태 설정이라 무해(멱등).
+  const projectV1 = join(root, ".argus", "ledger", "ledger.jsonl");
+  const files = durable ? [...durable, projectV1] : [projectV1];
 
   const map = new Map();
   for (const file of files) {
@@ -229,10 +234,17 @@ function foldLines(raw, map, empty) {
       case "harvest":
         if (!cur) map.set(e.id, { status: "candidate", decision: e.decision, quote: e.quote });
         break;
-      case "seal":
+      case "seal": {
         if (typeof e.predicate === "string") empty.sealedPredicates.add(e.predicate);
-        if (cur) Object.assign(cur, { status: "sealed", predicate: e.predicate, check_by: e.check_by });
+        // Self-create on a bare seal (O2 ⑥ — parity with the MCP replay, the
+        // v2 fold above, and check-contracts): a seal without a prior harvest
+        // must still become a tracked bet, or it lights other surfaces while
+        // this one stays dark.
+        const rec = cur || {};
+        Object.assign(rec, { status: "sealed", predicate: e.predicate, check_by: e.check_by });
+        map.set(e.id, rec);
         break;
+      }
       case "amend":
         if (cur) {
           if (e.predicate != null) cur.predicate = e.predicate;
