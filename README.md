@@ -26,7 +26,7 @@ Then just tell your AI *"seal a prediction that … by <date>"* and it takes ove
 
 - 📦 npm: [`argus-decision-mcp`](https://www.npmjs.com/package/argus-decision-mcp)
 - 🛠️ Full setup (Claude Desktop, Windows, per-project ledger) + the tool list → **[argus-mcp/README.md](./argus-mcp/README.md)**
-- 🔌 Using **Claude Code**? There's also a native plugin with slash commands (`/argus:sail`, `/argus:settle`): `/plugin marketplace add commet/Argus` → **[plugin docs](./argus-plugin-v2/README.md)**
+- 🔌 Using **Claude Code**? There's also a native plugin with slash commands (`/argus:review`, `/argus:check`): `/plugin marketplace add commet/Argus` → **[plugin docs](./argus-plugin-v2/README.md)**
 
 ---
 
@@ -210,11 +210,13 @@ curl -fsSL https://raw.githubusercontent.com/commet/Argus/main/argus-plugin-v2/i
 After restarting Claude Code, from any repo:
 
 ```
-/argus:sail "the question you need to decide"
+/argus:review "the question you need to decide"
 ```
 
-Commands: `/argus:sail` (30-second judgment) · `/argus:team` (deploy an agent team)
-· `/argus:boss` (boss simulation) · `/argus:clarify` · `/argus:chart`
+Commands (5): `/argus:review` (deep pressure-test, explicit opt-in) ·
+`/argus:check` (settle what is due · seal · premises) · `/argus:history`
+(decision log · version tree · scan past chats) · `/argus:settings` ·
+`/argus:help` — aliases kept: `/argus:sail`, `/argus:resolve`
 More → [argus-plugin-v2/README.md](./argus-plugin-v2/README.md)
 
 ### MCP server

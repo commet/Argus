@@ -4,6 +4,33 @@ All notable changes to the Argus plugin. Versioning follows
 [semver](https://semver.org); users receive an update only when the
 `version` in `.claude-plugin/plugin.json` is bumped.
 
+## 2.9.0 — 2026-07-17
+
+Commands 20 → 5 (공정 O3 방2): one quiet product, five doors, and a structural
+guarantee that the deep review never fires on its own.
+
+- **5-axis surface**: `/argus:review` (deep pressure-test — the full pipeline),
+  `/argus:check` (due · settle · seal `<id>` · `premises`), `/argus:history`
+  (journal · `versions` · principles · `scan`), `/argus:settings` (configure ·
+  `connect <token>` · push/pull/`sync`), `/argus:help`. Kept aliases:
+  `/argus:sail` (= review), `/argus:resolve`. Old command names still work when
+  typed (menu-hidden via `user-invocable: false`) — printed hints and webapp
+  copy now teach the axis names.
+- **Auto deep review = 0, structurally**: `review` and `sail` carry
+  `disable-model-invocation: true` — the model cannot auto-open the reviewer
+  pipeline from natural conversation (its description never enters ambient
+  context). The former step skills (clarify, team, verify, boss, revise) moved
+  INSIDE `skills/review/` as supporting files, so no auto-invocable skill
+  carries fan-out vocabulary. `activation-contract.test.ts` pins all of it
+  (menu inventory, door flags, fan-out closure, no-resurrection, help scope).
+- **One due announcer**: `check-contracts.js` now folds BOTH storage planes
+  (project v1 UNION durable home, statusline-parity incl. v:2 events) and is
+  the sole SessionStart due voice; the absorbed `session-start.js` hook no
+  longer counts dues (it keeps stale-LOGBOOK repair pointers, first-run
+  welcome, harvest queue).
+- Natural language stays quiet by design: talking about a decision routes to
+  capture/seal via the bundled MCP, never to the reviewer fan-out.
+
 ## 2.8.0 — 2026-07-17
 
 One install (공정 O3 방1): the separate `argus-driver` plugin is absorbed — the

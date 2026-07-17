@@ -13,19 +13,19 @@ root.
 │       ├── session.json         # Top-level session record
 │       ├── versions/
 │       │   ├── v0.1/
-│       │   │   ├── analysis.json       # From /argus:clarify
+│       │   │   ├── analysis.json       # From the clarify step (review)
 │       │   │   ├── questions_and_answers.json
 │       │   │   ├── meta.json            # incl. target_context (expanded PR/file/issue)
 │       │   │   ├── minimal_scaffold.json # clarify, only when decision_density == low
-│       │   │   ├── classification.json # From /argus:team
+│       │   │   ├── classification.json # From the team step (review)
 │       │   │   ├── team_plan.json
 │       │   │   ├── repo_context.json    # M1 code-native context for workers
 │       │   │   ├── workers.json
 │       │   │   ├── debate.json         # Critical stakes only
 │       │   │   ├── mix.json
-│       │   │   ├── verification.json   # From /argus:verify
-│       │   │   ├── current_bearing.json # Compressed current call from /argus:sail
-│       │   │   ├── boss_feedback.json  # From /argus:boss
+│       │   │   ├── verification.json   # From the verify step (review)
+│       │   │   ├── current_bearing.json # Compressed current call from /argus:review
+│       │   │   ├── boss_feedback.json  # From the boss step (review)
 │       │   │   └── scaffold.json       # FinalScaffold
 │       │   ├── v0.2/
 │       │   └── v0.1.1/
@@ -79,12 +79,12 @@ Version-level files in `versions/{label}/*.json` (authoritative, write-once):
   `questions_and_answers.json`, `workers.json`, `mix.json`, `verification.json`,
   `boss_feedback.json`, `scaffold.json`.
 - Immutable once complete, with two documented exceptions: `meta.json` annotations,
-  and `scaffold.json` — which `/argus:verify` updates (verification summary) and
-  `/argus:boss` updates (applied/rejected concerns + boss-issued actions). Consumers
+  and `scaffold.json` — which `the verify step (review)` updates (verification summary) and
+  `the boss step (review)` updates (applied/rejected concerns + boss-issued actions). Consumers
   must treat `scaffold.json` as the authoritative latest, not assume it is frozen
-  after `/argus:team`.
-- A version starts when `/argus:clarify`, `/argus:team`, `/argus:verify`, or
-  `/argus:boss` begins a new draft chain.
+  after `the team step (review)`.
+- A version starts when `the clarify step (review)`, `the team step (review)`, `the verify step (review)`, or
+  `the boss step (review)` begins a new draft chain.
 
 ## Write Discipline (Atomic)
 
@@ -196,12 +196,12 @@ surface view reflects the active draft's scaffold.
 
 | Skill | Files written |
 |---|---|
-| `/argus:clarify` | `analysis.json`, `questions_and_answers.json`, `meta.json` (incl. `target_context` when a target was expanded), `minimal_scaffold.json` (only when `decision_density == "low"`) |
-| `/argus:team` | `classification.json`, `team_plan.json`, `repo_context.json` (M1 code-native context), `workers.json`, optional `debate.json`, `mix.json`, candidate `scaffold.json`; appends a Draft to `session.drafts[]` and sets `active_draft_id` |
-| `/argus:verify` | `verification.json`, updated `scaffold.json` verification summary, updated `session.json` verification state |
-| `/argus:sail` Step 7 | `current_bearing.json` for medium/high paths |
-| `/argus:boss` | `boss_feedback.json`, updated `scaffold.json` with applied/rejected concerns; in session.json only the active draft's `boss_reviewed: true` flag + `phase` (boss does NOT touch `reviewing_agent_id` — that marks who produced a draft, not who reviewed it) |
-| `/argus:revise` | writes a transient `pending_revision.json` (session level, consumed by team), then via `/argus:team --revise` creates a new **child** version dir (full artifacts, write-once) and appends a child Draft (`directive`, `reviewing_agent_id: navigator`); then `/argus:verify` re-verifies. The parent draft is untouched. |
+| `the clarify step (review)` | `analysis.json`, `questions_and_answers.json`, `meta.json` (incl. `target_context` when a target was expanded), `minimal_scaffold.json` (only when `decision_density == "low"`) |
+| `the team step (review)` | `classification.json`, `team_plan.json`, `repo_context.json` (M1 code-native context), `workers.json`, optional `debate.json`, `mix.json`, candidate `scaffold.json`; appends a Draft to `session.drafts[]` and sets `active_draft_id` |
+| `the verify step (review)` | `verification.json`, updated `scaffold.json` verification summary, updated `session.json` verification state |
+| `/argus:review` Step 7 | `current_bearing.json` for medium/high paths |
+| `the boss step (review)` | `boss_feedback.json`, updated `scaffold.json` with applied/rejected concerns; in session.json only the active draft's `boss_reviewed: true` flag + `phase` (boss does NOT touch `reviewing_agent_id` — that marks who produced a draft, not who reviewed it) |
+| `the revise step (review)` | writes a transient `pending_revision.json` (session level, consumed by team), then via `the team step (review) --revise` creates a new **child** version dir (full artifacts, write-once) and appends a child Draft (`directive`, `reviewing_agent_id: navigator`); then `the verify step (review)` re-verifies. The parent draft is untouched. |
 | `/argus:resolve` | appends `harvest`/`seal` (read-seed import), `settle`, or `amend` events to `.argus/ledger/ledger.jsonl` — append-only, never touches session dirs |
 | `/argus:journal`, `/argus:help`, `/argus:versions` (default) | read-only — write nothing |
 
@@ -226,7 +226,7 @@ actually complete wins:
 | `boss_feedback.json` | boss done → `refining`/`complete` per routing |
 | `verification.json` | verify done → `dm_feedback` (boss next) or per `routing_decision` |
 | `scaffold.json` + `mix.json` + `workers.json` (full set per `team_plan.json`) | team done → `verifying` (verify next) |
-| `team_plan.json` present but `workers.json` absent/partial/unparseable | interrupted mid-team → re-run `/argus:team` |
+| `team_plan.json` present but `workers.json` absent/partial/unparseable | interrupted mid-team → re-run `the team step (review)` |
 | `analysis.json` with `execution_plan.steps ≥ 2` | framing ready → `conversing` (team next) |
 | `analysis.json` only (`execution_plan < 2`) | `analyzing`/`conversing` → clarify `--continue` |
 | nothing | `new` → clarify |
@@ -249,8 +249,8 @@ accumulate. A sub-step's output is a **pure function of its upstream artifacts**
 run it twice, get the same result.
 
 - **File-writing steps overwrite and recompute, never append.** Re-running
-  `/argus:verify` overwrites `verification.json` (a fresh ledger), it does not add a
-  second one. Re-running `/argus:team` on a crashed run reuses the same version dir
+  `the verify step (review)` overwrites `verification.json` (a fresh ledger), it does not add a
+  second one. Re-running `the team step (review)` on a crashed run reuses the same version dir
   (the `workers.json` marker — absent/partial → reuse the label and overwrite; a
   *complete* set means team already finished, so phase-derivation routes onward, not
   back into team). Mutations into a shared file (e.g. boss folding concerns into

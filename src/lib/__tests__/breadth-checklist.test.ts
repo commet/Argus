@@ -22,7 +22,7 @@ import { join } from 'node:path';
  * Both surfaces must carry it (rules=data parity). File-read guard.
  */
 const webapp = readFileSync(join(process.cwd(), 'src/lib/progressive-prompts.ts'), 'utf8');
-const pluginClarify = readFileSync(join(process.cwd(), 'argus-plugin-v2/skills/clarify/SKILL.md'), 'utf8');
+const pluginClarify = readFileSync(join(process.cwd(), 'argus-plugin-v2/skills/review/clarify.md'), 'utf8');
 
 describe('R36 — BREADTH checklist present on both surfaces', () => {
   it('webapp OPEN branch carries all three sweeps', () => {

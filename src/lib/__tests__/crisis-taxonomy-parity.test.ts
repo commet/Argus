@@ -31,7 +31,7 @@ describe('crisis taxonomy — single source + webapp reachability', () => {
 
 describe('crisis taxonomy — webapp<->plugin parity (drift guard)', () => {
   const skill = readFileSync(
-    join(process.cwd(), 'argus-plugin-v2/skills/clarify/SKILL.md'),
+    join(process.cwd(), 'argus-plugin-v2/skills/review/clarify.md'),
     'utf8',
   ).toLowerCase();
 

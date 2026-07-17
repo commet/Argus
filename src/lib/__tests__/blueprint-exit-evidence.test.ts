@@ -100,6 +100,7 @@ const EVIDENCE_O: Record<string, string[]> = {
   ],
   '공정 O3': [
     'argus-mcp/src/v2/one-install.test.ts', // 하나의 설치 — marketplace 1항목 + .mcp.json·훅·doctor 번들 + driver 잔재 0
+    'argus-mcp/src/v2/activation-contract.test.ts', // 자동 deep review 0 — 문 잠금(disable-model-invocation)·fan-out 폐포·메뉴 5+2
   ],
   '공정 O4': [],
   '공정 O5': [],

@@ -1,9 +1,9 @@
 ---
 name: verify
-description: Verify Argus reviewers output before it is promoted. Splits claims into supported, challenged, unresolved, and human-required checks, then routes to boss, revise, human check, or current call. Use after /argus:team writes its scaffold, when /argus:sail chains a medium/high decision, or when the user asks whether the reviewers output can be trusted — "믿어도 되나", "근거 확인해줘", "can we trust this output". NOT for grading future outcomes (that is /argus:resolve), and not needed for a low-density minimal scaffold. Invoked as `/argus:verify`.
+description: Verify Argus reviewers output before it is promoted. Splits claims into supported, challenged, unresolved, and human-required checks, then routes to boss, revise, human check, or current call. Use after team.md writes its scaffold, when /argus:review chains a medium/high decision, or when the user asks whether the reviewers output can be trusted — "믿어도 되나", "근거 확인해줘", "can we trust this output". NOT for grading future outcomes (that is /argus:resolve), and not needed for a low-density minimal scaffold. Runs as a step inside `/argus:review` (formerly `/argus:verify`).
 ---
 
-# /argus:verify
+# verify step — part of /argus:review (formerly /argus:verify)
 
 **What this skill does:** Reads the latest reviewers output and produces a
 `VerificationLedger`. This is immediate pre-commit verification, not future
@@ -19,20 +19,20 @@ tension, and what only a human/external source can check.
 
 Invoke after:
 
-- `/argus:team` has written `workers.json`, `mix.json`, and `scaffold.json`.
-- `/argus:sail` is chaining a medium/high decision.
+- `team.md` has written `workers.json`, `mix.json`, and `scaffold.json`.
+- `/argus:review` is chaining a medium/high decision.
 - The user asks whether the output can be trusted.
 
 Refuse when (always say what to do next, never a bare halt):
 
-- no session exists → point to `/argus:sail "<decision>"`.
+- no session exists → point to `/argus:review "<decision>"`.
 - latest version has no `workers.json` or `scaffold.json` → point to
-  `/argus:team` (or `/argus:sail --resume <id>`).
+  `team.md` (or `/argus:review --resume <id>`).
 - only `minimal_scaffold.json` exists → this is not an error; explain in one
   friendly line (user's locale):
   - en: `This was a low-density decision — the minimal scaffold already contains
     its one flip-check, so there is no reviewers output to verify. To force the full
-    pipeline: /argus:sail --full "<problem>".`
+    pipeline: /argus:review --full "<problem>".`
   - ko: 같은 의미를 자연스럽게.
 
 ---
@@ -365,7 +365,7 @@ English:
 - Question: `Verification found material issues. How should Argus route this?`
 - Options:
   - `Proceed with verified parts`: continue, but challenged claims remain visible
-  - `Revise reviewers output first`: route to `/argus:revise`
+  - `Revise reviewers output first`: route to `revise.md`
   - `Pause for human check`: stop and show human-required checks
 
 Korean:
@@ -504,8 +504,8 @@ Apply the plugin's defensive-read discipline (same as clarify) to every artifact
 read in Step 1:
 
 - **Missing `workers.json` / `mix.json` / `scaffold.json`:** there is nothing to
-  verify. Halt with the minimal-scaffold redirect (point to `/argus:team` or
-  `/argus:sail --resume`); do not fabricate claims from an empty input.
+  verify. Halt with the minimal-scaffold redirect (point to `team.md` or
+  `/argus:review --resume`); do not fabricate claims from an empty input.
 - **Corrupt / unparseable artifact:** quarantine it to `<name>.corrupt.<ts>` and
   report the recovery path; do not crash and do not silently treat a corrupt file
   as empty (an unreadable `workers.json` is NOT "zero workers" — that would

@@ -1,5 +1,6 @@
 ---
 name: versions
+user-invocable: false
 description: Display the version tree of the current Argus decision — active draft, current call summary, verification state, open concerns, and next route. Use when the user asks where they are in a decision, wants to see or switch between drafts/branches, or needs the next useful command — "지금 어디까지 왔지", "버전 트리 보여줘", "show the branches", "where am I". Read-only by default; checkout/promote/delete/json flags can mutate or export. NOT for generating new analysis — no LLM runs. Invoked as `/argus:versions`.
 ---
 
@@ -79,11 +80,11 @@ Open Checks:
 {{if contract past check-by}}- Contract: "{{predicate clipped 50}}" was due {{check_by}} -> /argus:resolve{{endif}}
 
 Next:
-- If verification is missing: run `/argus:verify`
-- If verification is blocked: complete human checks, then `/argus:sail --resume {{session.id}}`
-- Apply boss concerns / verify challenges: `/argus:revise` (forks a child draft with the fixes + re-verifies)
+- If verification is missing: `/argus:review --resume {{session.id}}` (routes to the verify step)
+- If verification is blocked: complete human checks, then `/argus:review --resume {{session.id}}`
+- Apply boss concerns / verify challenges: `/argus:review --resume {{session.id}}` (the revise step forks a child draft with the fixes + re-verifies)
 - Promote this draft to v1.0: `/argus:versions --promote {{active_label}}`
-- Branch from an older draft: `/argus:versions --checkout <label>` then `/argus:revise --from <label>`
+- Branch from an older draft: `/argus:versions --checkout <label>` then `/argus:review --resume {{session.id}}` (revise branches from the checked-out draft)
 ```
 
 Do not render worker counts by default. If the user wants internals, they can
@@ -137,15 +138,15 @@ source of truth, and reading anything else is what reintroduces gate collisions.
 - A sealed contract (ledger or this session's read seed) is past its
   check-by date -> `/argus:resolve` (outranks everything below — an unsettled
   past prediction is the most perishable item on the version tree)
-- Missing `verification.json` on a medium/high draft -> `/argus:verify --session <id>`
-- Verification `revise_team` -> `/argus:revise --session <id>` (revise auto-detects the challenged claims to repair)
+- Missing `verification.json` on a medium/high draft -> `/argus:review --resume <id>` (routes to the verify step)
+- Verification `revise_team` -> `/argus:review --resume <id>` (the revise step auto-detects the challenged claims to repair)
 - Verification `stop_for_human_check` -> show the first human check and
-  `/argus:sail --resume <id>` after evidence is added
-- Verification `ask_user` (unresolved critical challenge) -> `/argus:sail --resume <id>` to make the call
-- Boss critical applied concerns exist -> `/argus:revise --session <id>` (revise auto-applies the accepted concerns)
-- No `current_bearing.json` -> `/argus:sail --resume <id>`
+  `/argus:review --resume <id>` after evidence is added
+- Verification `ask_user` (unresolved critical challenge) -> `/argus:review --resume <id>` to make the call
+- Boss critical applied concerns exist -> `/argus:review --resume <id>` (the revise step auto-applies the accepted concerns)
+- No `current_bearing.json` -> `/argus:review --resume <id>`
 - Read status is `anchor` -> `/argus:versions --promote <active_label>`
-- Otherwise -> `/argus:revise "<directive>"` or `/argus:versions --promote <active_label>`
+- Otherwise -> `/argus:review --resume <id> "<directive>"` or `/argus:versions --promote <active_label>`
 
 ---
 

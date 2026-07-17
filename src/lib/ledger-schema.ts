@@ -7,7 +7,7 @@
  * uses two doors) is proven. Each surface keeps its own storage:
  *
  *   web    projects.decision_contract jsonb  (DecisionContract, stores/types.ts)
- *   plugin .argus/ledger/ledger.jsonl        (/argus:scan, /argus:predict, /argus:resolve)
+ *   plugin .argus/ledger/ledger.jsonl        (/argus:history scan, /argus:check, /argus:resolve)
  *   helm   .argus/ledger/ (reuses plugin ledger semantics)
  *
  * This file is the single source of truth for the SHAPE those surfaces agree

@@ -20,7 +20,7 @@ import { join } from 'node:path';
  *  (b) SETTLE-side: the recorded outcome IS the user's stated answer; the skill
  *      NEVER infers/self-grades it (hoisted to the point of action in R41).
  */
-const sail = readFileSync(join(process.cwd(), 'argus-plugin-v2/skills/sail/SKILL.md'), 'utf8');
+const sail = readFileSync(join(process.cwd(), 'argus-plugin-v2/skills/review/pipeline.md'), 'utf8');
 const settle = readFileSync(join(process.cwd(), 'argus-plugin-v2/skills/resolve/SKILL.md'), 'utf8');
 
 describe('R41 — SEAL-side falsifiability (no fail_condition → not sealed)', () => {

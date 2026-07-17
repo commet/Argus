@@ -1,5 +1,6 @@
 ---
 name: scan
+user-invocable: false
 description: "Recover decision candidates from past Claude Code conversations in this project. This is the ambient-capture entry point: it finds decisions that happened outside `/argus:sail`, writes them as local candidate ledger events, and does not seal anything automatically. Use when the user asks to scan past chats, recover decisions, harvest decisions, or asks what argus-watch scan used to do. Invoked as `/argus:scan`."
 argument-hint: "[--since days] [--all-projects] [--list]"
 ---

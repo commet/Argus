@@ -13,7 +13,7 @@ Argus는 Claude Code에서 쓰는 결정 루프입니다.
 ```text
 /plugin marketplace add commet/Argus
 /plugin install argus@argus
-/argus:sail "이걸 해야 할까?"
+/argus:review "이걸 해야 할까?"
 ```
 
 결정 뒤 Argus가 “나중에 확인할 기준을 남길까요?”라고 물을 수 있습니다. 나중에는
@@ -34,13 +34,15 @@ Claude Code에서:
 Claude Code를 다시 시작한 뒤:
 
 ```text
-/argus:sail "Firestore에서 Supabase로 옮길까?"
-/argus:sail "PR 123 머지해도 되나?"
-/argus:sail "docs/strategy.md 방향이 맞나?"
+/argus:review "Firestore에서 Supabase로 옮길까?"
+/argus:review "PR 123 머지해도 되나?"
+/argus:review "docs/strategy.md 방향이 맞나?"
 ```
 
-자연어로 그냥 물어도 됩니다. 질문에 PR, 파일, 브랜치, 문서가 들어 있으면
-Argus는 그 자료를 읽고 실제 일이 벌어지는 자리에서 판단을 다룹니다.
+질문에 PR, 파일, 브랜치, 문서가 들어 있으면 Argus는 그 자료를 읽고 실제 일이
+벌어지는 자리에서 판단을 다룹니다. 결정을 그냥 대화로 말하면 조용한 기본이
+작동합니다 — 포착하고, 나중에 확인할 기준을 남겨줄 수는 있지만, 깊은 리뷰
+파이프라인은 `/argus:review`를 직접 부를 때만 돌아갑니다.
 
 지원 문서: `pdf`, `md`, `txt`, `pptx`, `docx`, `hwpx`. `xlsx`와 구형 Office/HWP
 파일은 CSV/PDF로 내보낸 뒤 쓰는 편이 안전합니다.
@@ -76,26 +78,31 @@ Argus는 그 자료를 읽고 실제 일이 벌어지는 자리에서 판단을 
 
 Argus는 그럴듯한 답만으로는 부족한 결정에 씁니다.
 
-핵심 루프는 작습니다.
+핵심 루프는 작습니다 — 명령 다섯 개, 기본은 조용함.
 
 ```text
-결정하기      /argus:sail
-되찾기        /argus:scan
-기준 남기기   /argus:predict
-나중에 확인   /argus:resolve
+깊은 검토     /argus:review
+귀환 루프     /argus:check
+기록          /argus:history
+설정·동기화   /argus:settings
+지도          /argus:help
 ```
 
 쉽게 말하면:
 
-- `sail`은 지금 하고 있는 결정을 다룹니다.
-- `scan`은 과거 Claude Code 대화에서 지나간 결정 후보를 되찾습니다.
-- `seal`은 `sail`의 결정 씨앗이나 `scan`의 후보 중 하나를 나중에 확인할 기준으로 남깁니다.
-- `settle`은 시간이 지난 뒤 실제로 어땠는지 묻습니다.
+- `review`는 지금 하는 결정을 전체 리뷰 파이프라인으로 압박 검증합니다(질문
+  벼리기 → 리뷰어 에이전트가 실제 산출물 위에서 작업 → 주장 검증 → 선택적
+  이해관계자 검토). **명시적으로 부를 때만** 돌아갑니다 — 스스로 실행되는
+  일은 없습니다.
+- `check`는 귀환 루프입니다 — 지금 확인할 것, 지난 예측의 현실 정산, 후보
+  봉인(`/argus:check <id>`), 전제 재확인(`/argus:check premises`).
+- `history`는 기록입니다 — 결정 일지, 버전 트리, 예측 성적, 반복 원칙, 그리고
+  과거 대화 회수(`/argus:history scan`).
+- `settings`는 설정입니다 — 언어·보스 페르소나, 웹앱 연결과 동기화.
 
-그 아래에는 결정 과정을 실제로 굴리는 명령들이 있습니다. `/argus:sail`이 보통
-대신 호출합니다: `/argus:clarify`, `/argus:team`, `/argus:verify`,
-`/argus:boss`, `/argus:revise`. 기록을 보고 싶으면 `/argus:journal`와
-`/argus:versions`, 웹앱과 맞추려면 `/argus:connect`와 `/argus:sync`를 씁니다.
+예전 이름 두 개는 별칭으로 남습니다: `/argus:sail`(= review),
+`/argus:resolve`(= due 정산). 옛 단계 명령(clarify, team, verify, boss,
+revise)은 더 이상 개별 명령이 아니라 review 안의 내부 단계입니다.
 
 확인할 때가 되면 Argus가 로컬에서 짧게 알려줄 수 있습니다. 자동으로 판단하거나
 정산하거나 웹앱에 보내지는 않습니다.
@@ -109,20 +116,19 @@ Argus는 그럴듯한 답만으로는 부족한 결정에 씁니다.
 프로젝트마다 처음 한 번 연결합니다.
 
 ```text
-/argus:connect <argus_pat_...>
+/argus:settings connect <argus_pat_...>
 ```
 
 그 다음부터는:
 
 ```text
-/argus:sync
+/argus:settings sync
 ```
 
-`/argus:sync`는 먼저 웹앱에서 한 정산/연기를 로컬 ledger로 가져오고, 그 다음
-갱신된 로컬 기록을 웹앱으로 보냅니다. 반복 실행해도 안전합니다.
+sync는 먼저 웹앱에서 한 정산/연기를 로컬 ledger로 가져오고, 그 다음 갱신된
+로컬 기록을 웹앱으로 보냅니다. 반복 실행해도 안전합니다.
 
-`/argus:sync` 또는 `/argus:push`를 실행하지 않으면 웹앱으로 아무것도 보내지
-않습니다.
+직접 sync나 push를 실행하지 않으면 웹앱으로 아무것도 보내지 않습니다.
 
 ---
 
@@ -130,18 +136,14 @@ Argus는 그럴듯한 답만으로는 부족한 결정에 씁니다.
 
 | 명령 | 언제 쓰나 |
 |---|---|
-| `/argus:sail` | 결정해야 할 일이 있을 때. 여기서 시작합니다. |
-| `/argus:scan` | 과거 Claude Code 대화에서 결정 후보를 회수할 때. |
-| `/argus:predict` | 나중에 확인할 기준을 남길 때. |
-| `/argus:resolve` | Argus가 실제로 어땠는지 묻거나, 확인할 때가 됐을 때. |
-| `/argus:journal` | 결정 기록과 예측 기록을 볼 때. |
-| `/argus:versions` | 결정/버전 트리를 볼 때. |
-| `/argus:connect` | 이 프로젝트를 웹앱과 처음 연결할 때. |
-| `/argus:sync` | 로컬 플러그인과 웹앱을 맞출 때. |
+| `/argus:review` | 결정·PR·문서를 전체 리뷰 파이프라인으로 압박 검증하고 싶을 때. |
+| `/argus:check` | 확인일이 됐을 때 · 현실 정산 · 후보 봉인(`<id>`) · 전제 재확인(`premises`). |
+| `/argus:history` | 결정 일지 · 버전 트리(`versions`) · 예측 성적 · 원칙 · 과거 대화 회수(`scan`). |
+| `/argus:settings` | 언어·보스 설정, 웹앱 연결/동기화(`connect <token>`, `sync`). |
 | `/argus:help` | 가장 짧은 명령어 지도가 필요할 때. |
 
-`/argus:sail` 안에서 쓰이는 고급 명령: `/argus:clarify`, `/argus:team`,
-`/argus:verify`, `/argus:boss`, `/argus:revise`, `/argus:preapprove`.
+유지되는 별칭: `/argus:sail`(= review) · `/argus:resolve`(= due 정산).
+비상구: `/argus:doctor` (읽기 전용 설치·배선 자가진단).
 
 ---
 

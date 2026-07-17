@@ -51,7 +51,14 @@ if (manifest) {
   check(typeof manifest.version === "string" && manifest.version.length > 0, "manifest must declare a version");
 }
 
-const SKILLS = ["sail", "scan", "predict", "clarify", "team", "verify", "boss", "revise", "versions", "preapprove", "help", "resolve", "journal", "connect", "push", "pull", "sync"];
+// O3 방2 5-axis surface: 공개 5 + alias 2 + 숨김 내부 스킬. 구 단계 스킬
+// (clarify/team/verify/boss/revise)은 skills/review/의 step 파일로 이주 —
+// 그 실존은 아래 REVIEW_STEPS가 검사한다 (activation-contract.test.ts와 동형).
+const SKILLS = ["review", "check", "history", "settings", "help", "sail", "resolve", "scan", "predict", "premises", "versions", "principles", "preapprove", "journal", "configure", "connect", "push", "pull", "sync"];
+const REVIEW_STEPS = ["pipeline", "clarify", "team", "verify", "boss", "revise"];
+for (const step of REVIEW_STEPS) {
+  check(fs.existsSync(path.join(root, "skills", "review", `${step}.md`)), `missing skills/review/${step}.md (review pipeline step)`);
+}
 for (const skill of SKILLS) {
   const skillPath = path.join(root, "skills", skill, "SKILL.md");
   check(fs.existsSync(skillPath), `missing skills/${skill}/SKILL.md (auto-discovered as /argus:${skill})`);
@@ -98,7 +105,7 @@ for (const skill of SKILLS) {
   }
 }
 
-const clarifySkillPath = path.join(root, "skills", "clarify", "SKILL.md");
+const clarifySkillPath = path.join(root, "skills", "review", "clarify.md");
 if (fs.existsSync(clarifySkillPath)) {
   const clarify = fs.readFileSync(clarifySkillPath, "utf8");
   check(/natural language is the primary form/i.test(clarify), "clarify §Inputs must keep natural-language target detection as the primary intake path (prose-first contract, v2.4.0)");
@@ -227,7 +234,7 @@ if (currentBearing) {
   );
 }
 
-const sailSkillPath = path.join(root, "skills", "sail", "SKILL.md");
+const sailSkillPath = path.join(root, "skills", "review", "pipeline.md");
 if (fs.existsSync(sailSkillPath)) {
   const sail = fs.readFileSync(sailSkillPath, "utf8");
   check(sail.includes("current call"), "sail skill must define current call rendering");
@@ -253,7 +260,7 @@ if (fs.existsSync(sailSkillPath)) {
   check(!/- `author`: `"?ai_surfaced"?`/.test(sail), "sail must not tell current_bearing.contract_seed to include author (schema rejects it; absence means AI-surfaced)");
 }
 
-const teamSkillPath = path.join(root, "skills", "team", "SKILL.md");
+const teamSkillPath = path.join(root, "skills", "review", "team.md");
 if (fs.existsSync(teamSkillPath)) {
   const team = fs.readFileSync(teamSkillPath, "utf8");
   check(/developer payload/i.test(team), "team worker prompt must require a developer payload for code decisions");
@@ -262,7 +269,7 @@ if (fs.existsSync(teamSkillPath)) {
   check(/target_context\.kind == "plan"/.test(team), "team must treat target_context.kind == plan as the artifact under review");
 }
 
-const verifySkillPath = path.join(root, "skills", "verify", "SKILL.md");
+const verifySkillPath = path.join(root, "skills", "review", "verify.md");
 if (fs.existsSync(verifySkillPath)) {
   const verify = fs.readFileSync(verifySkillPath, "utf8");
   check(/Developer-output gate/.test(verify), "verify must keep the Developer-output gate for repo/PR claims");
@@ -288,7 +295,7 @@ if (fs.existsSync(settleSkillPath)) {
 
 // clarify's BIND lean and preapprove's plan seal both birth a FRESH predicate —
 // they must use `decision-ledger.js record` (harvest+seal), never hand-written JSON.
-const clarifyLeanPath = path.join(root, "skills", "clarify", "SKILL.md");
+const clarifyLeanPath = path.join(root, "skills", "review", "clarify.md");
 if (fs.existsSync(clarifyLeanPath)) {
   const clarify = fs.readFileSync(clarifyLeanPath, "utf8");
   check(/decision-ledger\.js" record\b/.test(clarify), "clarify BIND lean must be written through `decision-ledger.js record`, not hand-written harvest+seal JSON");
@@ -303,7 +310,7 @@ if (fs.existsSync(preapproveLedgerPath)) {
 }
 // sail's in-session Wake (Step 7.5) records the lean's 1st settlement — a ledger
 // `wake` event that must go through the single-source CLI, never hand-written JSON.
-const sailWakePath = path.join(root, "skills", "sail", "SKILL.md");
+const sailWakePath = path.join(root, "skills", "review", "pipeline.md");
 if (fs.existsSync(sailWakePath)) {
   const sailWake = fs.readFileSync(sailWakePath, "utf8");
   check(/decision-ledger\.js" wake\b/.test(sailWake), "sail Wake (Step 7.5) must record through `decision-ledger.js wake`, not hand-written wake JSON");
@@ -313,7 +320,7 @@ if (fs.existsSync(sailWakePath)) {
 // The tracked-items store (.argus/items.jsonl) is also single-source (Option A):
 // premises (add/edit/alert/recheck/dismiss) and clarify (extract) must route through
 // `decision-ledger.js premises <op>`, never hand-written items JSON. The reducer that
-// replays them is check-contracts.js; argus-mcp driver-plugin.test.ts locks the
+// replays them is check-contracts.js; argus-mcp one-install.test.ts locks the
 // CLI-op ↔ reducer-consumption contract.
 const ITEMS_JSON = /\{\s*"?event"?:\s*"(extract|add|edit|alert|recheck|dismiss)"/;
 const premisesItemsPath = path.join(root, "skills", "premises", "SKILL.md");
@@ -322,7 +329,7 @@ if (fs.existsSync(premisesItemsPath)) {
   check(/decision-ledger\.js" premises\b/.test(premises), "premises must write items through `decision-ledger.js premises <op>`, not hand-written items.jsonl JSON");
   check(!ITEMS_JSON.test(premises), "premises must not hand-write items.jsonl event JSON — route through decision-ledger.js (single-source shape)");
 }
-const clarifyItemsPath = path.join(root, "skills", "clarify", "SKILL.md");
+const clarifyItemsPath = path.join(root, "skills", "review", "clarify.md");
 if (fs.existsSync(clarifyItemsPath)) {
   const clarifyItems = fs.readFileSync(clarifyItemsPath, "utf8");
   check(/decision-ledger\.js" premises extract\b/.test(clarifyItems), "clarify must emit decision items through `decision-ledger.js premises extract`, not hand-written extract JSON");

@@ -38,7 +38,7 @@ if [ ! -d "$CLAUDE_DIR" ]; then
 fi
 
 echo ""
-echo -e "${BOLD}  Argus v2.8${NC} - decision harness for Claude Code."
+echo -e "${BOLD}  Argus v2.9${NC} - decision harness for Claude Code."
 echo ""
 
 TEMP_DIR=""
@@ -201,9 +201,18 @@ if [ "$LINK_MODE" = false ] && [ -n "$TEMP_DIR" ]; then
 fi
 
 ERRORS=0
-for required in sail scan predict clarify team verify boss revise versions preapprove help resolve journal connect push pull sync; do
+# O3 방2: 5-axis surface (review/check/history/settings/help) + 2 kept aliases
+# (sail, resolve) + hidden internals. clarify/team/verify/boss/revise moved INTO
+# skills/review/ as supporting files — checked separately below.
+for required in review check history settings help sail resolve scan predict premises versions principles preapprove journal configure connect push pull sync; do
   if [ ! -f "$CLAUDE_DIR/skills/$required/SKILL.md" ]; then
     fail "Missing: $required"
+    ERRORS=$((ERRORS + 1))
+  fi
+done
+for step in pipeline clarify team verify boss revise; do
+  if [ ! -f "$CLAUDE_DIR/skills/review/$step.md" ]; then
+    fail "Missing review step: $step.md"
     ERRORS=$((ERRORS + 1))
   fi
 done
@@ -231,7 +240,7 @@ fi
 echo ""
 
 if [ "$ERRORS" -eq 0 ]; then
-  echo -e "${GREEN}${BOLD}  Installed successfully (v2.8.0)${NC}"
+  echo -e "${GREEN}${BOLD}  Installed successfully (v2.9.0)${NC}"
   if [ "$LINK_MODE" = true ]; then
     echo -e "  ${DIM}Mode: linked to local repo. Restart Claude Code after editing skills.${NC}"
   fi

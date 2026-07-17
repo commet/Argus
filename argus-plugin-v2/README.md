@@ -13,7 +13,7 @@ It helps you:
 ```text
 /plugin marketplace add commet/Argus
 /plugin install argus@argus
-/argus:sail "Should we ...?"
+/argus:review "Should we ...?"
 ```
 
 After a decision, Argus may ask whether to save a check for later. Later, it
@@ -34,14 +34,16 @@ In Claude Code:
 Restart Claude Code, then start with:
 
 ```text
-/argus:sail "Should we migrate from Firestore to Supabase?"
-/argus:sail "Is PR 123 safe to merge?"
-/argus:sail "Is docs/strategy.md taking us the right way?"
+/argus:review "Should we migrate from Firestore to Supabase?"
+/argus:review "Is PR 123 safe to merge?"
+/argus:review "Is docs/strategy.md taking us the right way?"
 ```
 
-You can also just ask in natural language. If your question names a PR, file,
-branch, or document, Argus tries to read that artifact and work where the
-decision is actually happening.
+If your question names a PR, file, branch, or document, Argus reads that
+artifact and works where the decision is actually happening. Talking about a
+decision in plain language stays quiet by design: Argus can capture it and save
+a check for later, but the deep reviewer pipeline runs only when you invoke
+`/argus:review` yourself.
 
 Supported documents: `pdf`, `md`, `txt`, `pptx`, `docx`, `hwpx`. For `xlsx` and
 legacy Office/HWP formats, export to CSV/PDF first.
@@ -77,26 +79,33 @@ Uninstalling the plugin never deletes your decision records — the ledgers unde
 Argus is useful when a decision has enough consequence that a polished answer is
 not enough.
 
-The core loop is small:
+The core loop is small — five commands, and quiet by default:
 
 ```text
-Decide      /argus:sail
-Recover     /argus:scan
-Save check  /argus:predict
-Return      /argus:resolve
+Deep review   /argus:review
+Return loop   /argus:check
+Record        /argus:history
+Setup & sync  /argus:settings
+Map           /argus:help
 ```
 
 Plain language:
 
-- `sail` works the decision you are making now.
-- `scan` recovers decision candidates from past Claude Code conversations.
-- `seal` saves one sail seed or scan candidate as a later-checkable item.
-- `settle` asks what actually happened later.
+- `review` pressure-tests the decision you are making now — the full reviewer
+  pipeline (sharpen the question, reviewer agents on the real artifact,
+  supported/challenged claims, optional stakeholder pass). Explicit opt-in
+  only: it never runs on its own.
+- `check` is the return loop — what is due now, settle past predictions against
+  reality, seal a candidate for later (`/argus:check <id>`), re-check premises
+  (`/argus:check premises`).
+- `history` is the record — decision log, one decision's version tree, your
+  track record, recurring principles, and `/argus:history scan` to recover
+  decisions from past Claude Code chats.
+- `settings` is setup — language and boss persona, webapp pairing and sync.
 
-There is more under the surface. `/argus:sail` usually calls the working commands
-for you: `/argus:clarify`, `/argus:team`, `/argus:verify`, `/argus:boss`, and
-`/argus:revise`. Use `/argus:journal` and `/argus:versions` for history and decision
-state; use `/argus:connect` and `/argus:sync` when you want the webapp paired.
+Two legacy aliases are kept: `/argus:sail` (= review) and `/argus:resolve`
+(= settle what is due). The old step commands (clarify, team, verify, boss,
+revise) are no longer separate commands — review runs them as internal steps.
 
 Argus may show a short local reminder when something is ready to check. It does
 not judge, settle, or sync automatically.
@@ -110,19 +119,19 @@ The plugin is local-first. Webapp sync is optional.
 First connect this project once:
 
 ```text
-/argus:connect <argus_pat_...>
+/argus:settings connect <argus_pat_...>
 ```
 
 Then use:
 
 ```text
-/argus:sync
+/argus:settings sync
 ```
 
-`/argus:sync` first pulls webapp actions into the local ledger, then pushes the
-updated local records back to the webapp. Re-running it is safe.
+Sync first pulls webapp actions into the local ledger, then pushes the updated
+local records back to the webapp. Re-running it is safe.
 
-Nothing is sent to the webapp unless you run `/argus:sync` or `/argus:push`.
+Nothing is sent to the webapp unless you run a sync or push yourself.
 
 ---
 
@@ -130,18 +139,14 @@ Nothing is sent to the webapp unless you run `/argus:sync` or `/argus:push`.
 
 | Command | Use it when |
 |---|---|
-| `/argus:sail` | You have a decision to make. Start here. |
-| `/argus:scan` | You want to recover decision candidates from past Claude Code chats. |
-| `/argus:predict` | You want to save a check for later. |
-| `/argus:resolve` | Argus asks what actually happened, or a check is due. |
-| `/argus:journal` | You want to see your decision history and prediction record. |
-| `/argus:versions` | You want to inspect a decision/version tree. |
-| `/argus:connect` | You want to pair this project with the webapp once. |
-| `/argus:sync` | You want the local plugin and webapp to agree. |
+| `/argus:review` | You want a decision or artifact pressure-tested by the full reviewer pipeline. |
+| `/argus:check` | A check is due, you want to settle against reality, seal a candidate (`<id>`), or re-check premises. |
+| `/argus:history` | You want the decision log, a version tree (`versions`), your track record, principles, or `scan`. |
+| `/argus:settings` | You want to configure Argus or pair/sync the webapp (`connect <token>`, `sync`). |
 | `/argus:help` | You want the shortest command map. |
 
-Advanced commands used by `/argus:sail`: `/argus:clarify`, `/argus:team`,
-`/argus:verify`, `/argus:boss`, `/argus:revise`, `/argus:preapprove`.
+Kept aliases: `/argus:sail` (= review) · `/argus:resolve` (= settle what is due).
+Emergency hatch: `/argus:doctor` (read-only install/wiring self-diagnosis).
 
 ---
 

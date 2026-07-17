@@ -1,5 +1,6 @@
 ---
 name: journal
+user-invocable: false
 description: The decision log — a one-screen view across ALL Argus sessions in this project; recent decisions and their courses, sealed contracts, settled outcomes, and your calibration record. Read-only and mechanical by default; `--insights` adds one LLM-written pattern note once enough contracts are settled. Use when the user asks "what have I decided here", "show my track record", "how good are my predictions", or wants the decision history. Invoked as `/argus:journal`.
 ---
 

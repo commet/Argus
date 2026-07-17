@@ -1,5 +1,6 @@
 ---
 name: sync
+user-invocable: false
 description: Two-way sync between the local Argus plugin ledger and the webapp. Pulls webapp-originated settle/defer events into local ledger, then pushes the updated local ledger and bearings back to the webapp. Invoked as `/argus:sync`.
 ---
 

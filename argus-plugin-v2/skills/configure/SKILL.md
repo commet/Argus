@@ -1,6 +1,7 @@
 ---
 name: configure
-description: Set up or change Argus's saved preferences for THIS repo — language and your stakeholder (Boss) persona — written to .argus/config.yaml. Use when the user wants to set or change the language, configure the Boss that /argus:boss role-plays, decide whether decision session files get committed, or asks "how do I configure Argus / change settings". Interactive and entirely optional — Argus works with sensible defaults if it's never run. Invoked as `/argus:configure`.
+user-invocable: false
+description: Set up or change Argus's saved preferences for THIS repo — language and your stakeholder (Boss) persona — written to .argus/config.yaml. Use when the user wants to set or change the language, configure the Boss that the boss step of /argus:review role-plays, decide whether decision session files get committed, or asks "how do I configure Argus / change settings". Interactive and entirely optional — Argus works with sensible defaults if it's never run. Invoked as `/argus:configure`.
 allowed-tools: Read, Write, AskUserQuestion
 ---
 
@@ -23,7 +24,7 @@ were a stale design and are gone):
 
 - **`locale`** — `ko` | `en`. Language for prompts, AskUserQuestion options, and
   generated output. *(required)*
-- **`boss`** *(optional block)* — the stakeholder `/argus:boss` pressure-checks
+- **`boss`** *(optional block)* — the stakeholder the boss step (`/argus:review`) pressure-checks
   against: `mbti_code` (one of the 16 in `data/boss-types.yaml`), `name`, `gender`
   (`남`/`여` or `male`/`female`), `role` (free text, default `팀장` / `Team Lead`).
 - **`archive.commit_sessions`** — `true`/`false`. Whether `/argus:versions` offers to
@@ -46,7 +47,7 @@ Read `.argus/config.yaml`.
 language is obvious, offer the detected one first.)
 
 **Ask 2 · Boss persona?** — "Set up the stakeholder Argus pressure-checks your
-decisions against in `/argus:boss`? You can skip — a generic reviewer is used."
+decisions against in the boss step of `/argus:review`? You can skip — a generic reviewer is used."
 - **Yes** → gather in ONE compact turn (one message, not four prompts):
   - `name` — free text (e.g. `박 팀장`, `Alex`).
   - `role` — free text; default `팀장` (ko) / `Team Lead` (en).

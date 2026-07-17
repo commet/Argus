@@ -3,8 +3,8 @@
  * Argus decision ledger utility.
  *
  * Product shape:
- *   /argus:sail and /argus:scan are entry points.
- *   /argus:predict and /argus:resolve are common ledger state changes.
+ *   /argus:review and /argus:history scan are entry points.
+ *   /argus:check and /argus:resolve are common ledger state changes.
  *
  * This script absorbs the useful argus-watch scan/seal path into the plugin
  * bundle, so normal plugin users do not install a second CLI.
@@ -699,7 +699,7 @@ async function cmdScan() {
   saveScanState(state);
 
   if (!written) console.log("Scan complete. No new decision candidates found.");
-  else console.log(`Scan complete. ${written} candidate(s) found. Next: /argus:predict <id>`);
+  else console.log(`Scan complete. ${written} candidate(s) found. Next: /argus:check <id>`);
   if (failed) console.log(`Skipped ${failed} segment(s) that failed detection; they will retry next scan.`);
 }
 
@@ -785,7 +785,7 @@ function printSealable() {
   const { candidates, seeds } = listSealable();
   if (!candidates.length && !seeds.length) {
     console.log("No sealable decisions found.");
-    console.log("Use /argus:sail for a new decision or /argus:scan to recover past decisions.");
+    console.log("Use /argus:review for a new decision or /argus:history scan to recover past decisions.");
     return;
   }
   if (seeds.length) {
@@ -800,7 +800,7 @@ function printSealable() {
       console.log(`  ${item.id} [${item.stakes || "unknown"}] ${truncate(item.decision || item.quote)}`);
     }
   }
-  console.log("Next: /argus:predict <id>");
+  console.log("Next: /argus:check <id>");
 }
 
 function findSeedById(id) {
@@ -824,7 +824,7 @@ async function cmdSeal() {
   if (seed) {
     const checkBy = flags["check-by"] || seed.check_by;
     if (!/^\d{4}-\d{2}-\d{2}$/.test(String(checkBy || ""))) {
-      console.error(`Seed ${seed.id} has no ISO check_by date. Run /argus:predict ${seed.id} --check-by YYYY-MM-DD`);
+      console.error(`Seed ${seed.id} has no ISO check_by date. Run /argus:check ${seed.id} --check-by YYYY-MM-DD`);
       process.exit(1);
     }
     appendEvent({
@@ -855,7 +855,7 @@ async function cmdSeal() {
   const decision = ledger.get(target);
   if (!decision) {
     console.error(`Unknown seal target: ${target}`);
-    console.error("Run /argus:predict --list to see candidates and sail seeds.");
+    console.error("Run /argus:check --list to see candidates and sail seeds.");
     process.exit(1);
   }
   if (decision.status !== "candidate") {
@@ -879,7 +879,7 @@ async function cmdSeal() {
   }
   if (!draft.predicate || !draft.falsified_if || !/^\d{4}-\d{2}-\d{2}$/.test(draft.check_by || "")) {
     console.error("Seal needs predicate, falsified_if, and ISO check_by.");
-    console.error(`Run /argus:predict ${target} --predicate "..." --falsified-if "..." --check-by ${addDaysISO(localToday(), 14)}`);
+    console.error(`Run /argus:check ${target} --predicate "..." --falsified-if "..." --check-by ${addDaysISO(localToday(), 14)}`);
     process.exit(1);
   }
   appendEvent({
@@ -955,7 +955,7 @@ function cmdRecord() {
   const session = flags.session ? String(flags.session) : "";
   const quote = flags.quote ? String(flags.quote) : predicate;
   // The caller may pass an explicit --id (clarify: lean:<session>) or let the CLI
-  // derive the same sha256(session|quote) id argus-watch and /argus:scan use, so
+  // derive the same sha256(session|quote) id argus-watch and /argus:history scan use, so
   // the LLM never has to compute a hash by hand (preapprove).
   let id = flags.id ? String(flags.id) : "";
   if (!id && session && quote) id = stableId(session, quote);
@@ -1151,10 +1151,10 @@ function cmdPremises() {
 const commands = { scan: cmdScan, seal: cmdSeal, settle: cmdSettle, record: cmdRecord, amend: cmdAmend, wake: cmdWake, premises: cmdPremises, list: () => cmdList(), status: cmdStatus };
 if (!cmd || !commands[cmd]) {
   console.log("Usage:");
-  console.log("  /argus:scan [--since days] [--all-projects] [--model sonnet] [--list]");
-  console.log("  /argus:predict --list");
-  console.log("  /argus:predict <id>");
-  console.log("  /argus:predict --latest-seed");
+  console.log("  /argus:history scan [--since days] [--all-projects] [--model sonnet] [--list]");
+  console.log("  /argus:check --list");
+  console.log("  /argus:check <id>");
+  console.log("  /argus:check --latest-seed");
   console.log("  node decision-ledger.js status");
   process.exit(cmd ? 1 : 0);
 }

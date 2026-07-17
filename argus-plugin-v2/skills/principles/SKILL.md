@@ -1,5 +1,6 @@
 ---
 name: principles
+user-invocable: false
 description: Turn a recurring structure in your OWN settled decisions into a principle you author. Argus surfaces the pattern from `.argus/ledger/` (the hard synthesis across scattered decisions) and asks "is this yours?"; if you ratify it, it is recorded in YOUR words in `.argus/principles.md` — tagged authored:user, never a machine verdict. This is the ratify half of the learning loop (settle records outcomes; principles lets you codify what recurs). Use when the user says "내 원칙 정리", "이 패턴 원칙으로 남겨줘", "codify this", "what have I learned across these decisions", or after /argus:journal --insights surfaces something worth keeping. Requires ≥3 settled contracts. Invoked as `/argus:principles`.
 ---
 

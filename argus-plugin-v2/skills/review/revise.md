@@ -1,9 +1,9 @@
 ---
 name: revise
-description: Apply boss concerns and/or verify's challenged claims to a reviewed scaffold and produce a NEW child draft — the iteration loop that turns a one-shot answer into a converging decision. Branches from the active draft, re-runs the relevant workers with the specific fixes injected, re-verifies, and appends the result to the version tree. Use after /argus:boss or /argus:verify when you want to act on the feedback instead of just reading it. Invoked as `/argus:revise`.
+description: Apply boss concerns and/or verify's challenged claims to a reviewed scaffold and produce a NEW child draft — the iteration loop that turns a one-shot answer into a converging decision. Branches from the active draft, re-runs the relevant workers with the specific fixes injected, re-verifies, and appends the result to the version tree. Use after boss.md or verify.md when you want to act on the feedback instead of just reading it. Runs as a step inside `/argus:review` (formerly `/argus:revise`).
 ---
 
-# /argus:revise
+# revise step — part of /argus:review (formerly /argus:revise)
 
 **What this skill does:** Takes the feedback already produced (boss concerns, verify challenges) and produces a **new child draft** that actually addresses it — re-running the owning workers with the specific fixes injected, then re-verifying. This closes the loop: clarify → team → verify → boss → **revise** → (verify) → …
 
@@ -14,12 +14,12 @@ description: Apply boss concerns and/or verify's challenged claims to a reviewed
 ## When to run
 
 Invoke after:
-- `/argus:boss` produced concerns (phase `refining`), OR
-- `/argus:verify` routed `revise_team` / produced `challenged_claims[]`, OR
+- `boss.md` produced concerns (phase `refining`), OR
+- `verify.md` routed `revise_team` / produced `challenged_claims[]`, OR
 - the user explicitly says "반영해줘 / apply the feedback / revise this".
 
 Refuse when:
-- No session exists, or the active draft has neither `boss_feedback.json` nor `verification.json` → there is no feedback to apply yet. Direct the user to run `/argus:verify` (and optionally `/argus:boss`) first.
+- No session exists, or the active draft has neither `boss_feedback.json` nor `verification.json` → there is no feedback to apply yet. Direct the user to run `verify.md` (and optionally `boss.md`) first.
 
 ---
 
@@ -40,8 +40,8 @@ Refuse when:
 1. Read `.argus/config.yaml` for `locale`. All user-facing text uses it.
 2. Find the session; resolve the parent draft: if `--from <label>` is given, find the draft in `session.drafts[]` whose `version_label` matches it; else use `session.active_draft_id`. Call its id `parent_draft_id` and its `version_label` `parent_label`. (Everything downstream branches from THIS draft, not necessarily the active one — `--from v0.1` while `v0.2` is active must branch from `v0.1`.)
 3. Read from `versions/{parent_label}/`: `scaffold.json` (required), `boss_feedback.json` (if present), `verification.json` (if present).
-4. If neither `boss_feedback.json` nor `verification.json` exists, halt: there is nothing to revise. Point the user to `/argus:verify` first.
-5. Defensive-read every JSON (see clarify error modes — the canonical discipline) — on parse failure, quarantine the file to `<name>.corrupt.<ts>`, log to `errors.log`, and report the recovery path; never crash. **Distinguish missing from corrupt:** a *missing* `verification.json`/`boss_feedback.json` means there is nothing to revise yet → point the user to `/argus:verify` (Step 4 already halts on this). A *corrupt* one is different — it must NOT be read as "not run": revising against a `verification.json` you couldn't parse (treating it as "no challenges") would silently drop the very challenges this skill exists to apply. Halt naming the file to recover rather than producing a child draft from an unreadable parent record.
+4. If neither `boss_feedback.json` nor `verification.json` exists, halt: there is nothing to revise. Point the user to `verify.md` first.
+5. Defensive-read every JSON (see clarify error modes — the canonical discipline) — on parse failure, quarantine the file to `<name>.corrupt.<ts>`, log to `errors.log`, and report the recovery path; never crash. **Distinguish missing from corrupt:** a *missing* `verification.json`/`boss_feedback.json` means there is nothing to revise yet → point the user to `verify.md` (Step 4 already halts on this). A *corrupt* one is different — it must NOT be read as "not run": revising against a `verification.json` you couldn't parse (treating it as "no challenges") would silently drop the very challenges this skill exists to apply. Halt naming the file to recover rather than producing a child draft from an unreadable parent record.
 
 ### Step 2 — Gather the revision items
 
@@ -107,7 +107,7 @@ Set `session.phase = "team_deploying"` and `updated_at`.
 
 ### Step 4 — Re-run the team on a new child draft
 
-Invoke `/argus:team --revise` (and `--invoked-via-sail` if this skill was). Team will:
+Invoke `team.md --revise` (and `--invoked-via-sail` if this skill was). Team will:
 - Branch from `pending_revision.parent_draft_id` (the resolved parent — NOT necessarily `session.active_draft_id`) → compute the child label via `nextChildLabel` from `parent_label` (e.g. revising `v0.1` while `v0.2` exists → `v0.1.1`; revising the latest → `v0.2`). (team Step 1.4)
 - Read `pending_revision.json` and inject each item into its `owner_agent_id` worker's prompt ("Your prior output was challenged on X; the suggested fix is Y — produce a revised analysis that addresses it"). Workers without a targeted item carry their prior output forward unchanged where possible.
 - Write the new `versions/{child_label}/` artifacts and append a child Draft with `directive = directive_text`, `reviewing_agent_id = "navigator"`, `parent_draft_id` set, and `set session.active_draft_id` to it.
@@ -116,7 +116,7 @@ Invoke `/argus:team --revise` (and `--invoked-via-sail` if this skill was). Team
 
 ### Step 5 — Re-verify the revision
 
-Invoke `/argus:verify` (`--invoked-via-sail` if applicable) on the new child draft. The whole point is to learn **whether the fix held** — did the previously-challenged claims become supported, or are they still challenged? Verify writes the new `verification.json` + scaffold summary as usual.
+Invoke `verify.md` (`--invoked-via-sail` if applicable) on the new child draft. The whole point is to learn **whether the fix held** — did the previously-challenged claims become supported, or are they still challenged? Verify writes the new `verification.json` + scaffold summary as usual.
 
 **Convergence check (the exit condition `converging` means).** Compare the new
 `verification.json` against the parent's. A claim that was challenged before and is
@@ -150,7 +150,7 @@ Show what changed and whether it held (locale-aware):
 {{if still challenged AND converging}}⚠ Still challenged: {{claim}} — one more agent pass may resolve it ({{revise_cycles}}/{{max_revise_cycles}}){{endif}}
 {{if still challenged AND NOT converging (repeat or cap reached)}}⛔ Not converging: {{claim}} — escalated to a human check ({{reason}}); another auto-pass won't help{{endif}}
 
-**Next:** `/argus:boss` to re-review · `/argus:versions` to see the tree{{if converging AND under cap}} · `/argus:revise` again if needed{{endif}}
+**Next:** `boss.md` to re-review · `/argus:versions` to see the tree{{if converging AND under cap}} · `revise.md` again if needed{{endif}}
 ```
 
 ---
@@ -176,6 +176,6 @@ Show what changed and whether it held (locale-aware):
 
 - Mutating the parent draft's version dir. Revision always creates a NEW child; the tree is append-only.
 - Re-running the full pipeline from clarify. Revise reuses the locked framing + analysis; only the workers re-run with fixes.
-- Marking the revision "verified" itself — `/argus:verify` (Step 5) owns that, on the new draft.
+- Marking the revision "verified" itself — `verify.md` (Step 5) owns that, on the new draft.
 - Applying feedback the user deselected.
 - Looping past `session.max_revise_cycles`, or re-issuing `revise_team` on a claim that survived a prior revision. An unconverged claim escalates to a human check (`unconverged_after_revision` / `max_revisions_reached`) — it does NOT auto-loop forever.

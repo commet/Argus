@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
     .eq('token_hash', hashToken(raw))
     .single();
   if (!tokenRow || isTokenExpired(tokenRow.expires_at)) {
-    return NextResponse.json({ error: 'Unknown, revoked, or expired token. Re-issue with /argus:connect.' }, { status: 401 });
+    return NextResponse.json({ error: 'Unknown, revoked, or expired token. Re-issue with /argus:settings connect.' }, { status: 401 });
   }
 
   let body: { files?: unknown };

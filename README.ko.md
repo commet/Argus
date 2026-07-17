@@ -26,7 +26,7 @@ claude mcp add argus -- npx -y argus-decision-mcp
 
 - 📦 npm: [`argus-decision-mcp`](https://www.npmjs.com/package/argus-decision-mcp)
 - 🛠️ 전체 설정(Claude Desktop, Windows, 프로젝트별 원장) + 툴 목록 → **[argus-mcp/README.md](./argus-mcp/README.md)**
-- 🔌 **Claude Code** 사용자라면 슬래시 명령(`/argus:sail`, `/argus:settle`)이 있는 네이티브 플러그인도 있습니다: `/plugin marketplace add commet/Argus` → **[플러그인 문서](./argus-plugin-v2/README.ko.md)**
+- 🔌 **Claude Code** 사용자라면 슬래시 명령(`/argus:review`, `/argus:check`)이 있는 네이티브 플러그인도 있습니다: `/plugin marketplace add commet/Argus` → **[플러그인 문서](./argus-plugin-v2/README.ko.md)**
 
 ---
 
@@ -184,11 +184,14 @@ curl -fsSL https://raw.githubusercontent.com/commet/Argus/main/argus-plugin-v2/i
 Claude Code 재시작 후, 아무 repo에서:
 
 ```
-/argus:sail "결정해야 할 질문"
+/argus:review "결정해야 할 질문"
 ```
 
-명령: `/argus:sail` (30초 판단) · `/argus:team` (에이전트 팀 배치) · `/argus:boss` (보스 시뮬레이션) · `/argus:clarify` · `/argus:chart`
-자세히 → [argus-plugin-v2/README.md](./argus-plugin-v2/README.md)
+명령 5개: `/argus:review` (깊은 압박 검증, 명시 호출 전용) · `/argus:check`
+(due 정산 · 봉인 · 전제 재확인) · `/argus:history` (결정 일지 · 버전 트리 ·
+과거 대화 회수) · `/argus:settings` · `/argus:help` — 별칭 유지:
+`/argus:sail`, `/argus:resolve`
+자세히 → [argus-plugin-v2/README.ko.md](./argus-plugin-v2/README.ko.md)
 
 ### MCP 서버
 

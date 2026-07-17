@@ -1,26 +1,26 @@
 ---
 name: team
-description: Deploy a team of specialized agents as WORKERS on a clarified problem (reviewers work the artifact in parallel). Each agent does their domain work — research, numbers, UX, legal, risk, etc. — in their own voice on the actual artifact (code, PR, file, design doc). Agents are not a panel of generic critics; they're producers whose claims will be verified by `/argus:verify`. Output is a MixResult plus a candidate FinalScaffold with attribution preserved. Invoke after `/argus:clarify` has produced an AnalysisSnapshot with an `execution_plan`. Invoked as `/argus:team`.
+description: Deploy a team of specialized agents as WORKERS on a clarified problem (reviewers work the artifact in parallel). Each agent does their domain work — research, numbers, UX, legal, risk, etc. — in their own voice on the actual artifact (code, PR, file, design doc). Agents are not a panel of generic critics; they're producers whose claims will be verified by `verify.md`. Output is a MixResult plus a candidate FinalScaffold with attribution preserved. Invoke after `clarify.md` has produced an AnalysisSnapshot with an `execution_plan`. Runs as a step inside `/argus:review` (formerly `/argus:team`).
 ---
 
-# /argus:team
+# team step — part of /argus:review (formerly /argus:team)
 
 **What this skill does:** Takes a clarified problem + execution plan, classifies it, selects the right 2–4 agents, deploys them in parallel as WORKERS (not a review panel), and aggregates their work into a candidate scaffold.
 
-**Why this matters (M9 — Workers not critics):** The legacy 4R plugin had agents as "persona reviewers." This skill rejects that model. Agents here PRODUCE artifacts — research notes, ROI tables, UX checks, compliance checklists. Verification is a separate downstream quality gate (`/argus:verify`), and stakeholder/personality review is a later optional layer (`/argus:boss`).
+**Why this matters (M9 — Workers not critics):** The legacy 4R plugin had agents as "persona reviewers." This skill rejects that model. Agents here PRODUCE artifacts — research notes, ROI tables, UX checks, compliance checklists. Verification is a separate downstream quality gate (`verify.md`), and stakeholder/personality review is a later optional layer (`boss.md`).
 
-**Why this matters (M3 — Contradiction preservation):** For `stakes: critical` problems, this skill runs a two-stage pipeline with an explicit debate step. Agent disagreements are stored in `team_contradictions[]`, not aggregated away. `/argus:verify` later classifies those tensions as supported, challenged, or still unresolved.
+**Why this matters (M3 — Contradiction preservation):** For `stakes: critical` problems, this skill runs a two-stage pipeline with an explicit debate step. Agent disagreements are stored in `team_contradictions[]`, not aggregated away. `verify.md` later classifies those tensions as supported, challenged, or still unresolved.
 
 ---
 
 ## When to run
 
 Invoke after:
-- `/argus:clarify` has written `versions/v{X}/analysis.json` with `execution_plan.steps` ≥ 2
-- User explicitly runs `/argus:team` with a prior session in conversing phase
+- `clarify.md` has written `versions/v{X}/analysis.json` with `execution_plan.steps` ≥ 2
+- User explicitly runs `team.md` with a prior session in conversing phase
 
 Refuse to run when:
-- No session exists → direct user to `/argus:clarify` first
+- No session exists → direct user to `clarify.md` first
 - Latest snapshot lacks `execution_plan` → direct user to run another round of clarify
 - Unless `--force` flag is passed (prints warning)
 
@@ -30,12 +30,12 @@ Refuse to run when:
 
 - **Session ID** (optional): from `--session <id>`. Defaults to most recently modified session in `.argus/sessions/`.
 - **Force flag** (optional): `--force` skips the analysis_readiness check.
-- **Revise flag** (optional): `--revise` — this run is a feedback-driven repair (from `/argus:revise`, or verify's `routing_decision: "revise_team"`). Read the revision items and inject them into the owning workers; without this a "revision" is just an identical re-roll that never sees the feedback.
-  - **Primary source:** `.argus/sessions/{id}/pending_revision.json` (written by `/argus:revise`) — it aggregates the selected boss concerns AND verify challenges as `items[]`, each with `text`, `suggested_fix`, `owner_agent_id`, `severity`, plus a `directive_text`. For each item, inject into its `owner_agent_id` worker: "Your prior output was challenged on «text»; suggested fix: «suggested_fix» — produce a revised analysis that addresses it." Workers with no targeted item carry their prior output forward where possible.
+- **Revise flag** (optional): `--revise` — this run is a feedback-driven repair (from `revise.md`, or verify's `routing_decision: "revise_team"`). Read the revision items and inject them into the owning workers; without this a "revision" is just an identical re-roll that never sees the feedback.
+  - **Primary source:** `.argus/sessions/{id}/pending_revision.json` (written by `revise.md`) — it aggregates the selected boss concerns AND verify challenges as `items[]`, each with `text`, `suggested_fix`, `owner_agent_id`, `severity`, plus a `directive_text`. For each item, inject into its `owner_agent_id` worker: "Your prior output was challenged on «text»; suggested fix: «suggested_fix» — produce a revised analysis that addresses it." Workers with no targeted item carry their prior output forward where possible.
     - **Unmatched owner (defensive).** If an item's `owner_agent_id` matches no worker in this revision's plan (the prior worker isn't being re-run, or the id is stale), do NOT silently drop it: inject it into the `navigator` synthesis pass instead, and if there is no synthesis pass either, append it to the scaffold's `human_required_checkpoints[]` with `reason: "revision_item_unrouted"`. A revision item must always land somewhere a human can see.
   - **Fallback** (no pending_revision.json): read the latest `versions/{parent_label}/verification.json` and inject its `challenged_claims[]` the same way.
   - Compute a new **child** version label (Step 1.4 branches from `session.active_draft_id`). Append the child Draft with `directive = directive_text`, `reviewing_agent_id = "navigator"`. **Delete `pending_revision.json`** when done (it's a consumed hand-off).
-  - **Bound the loop here — this is the single chokepoint both revise paths cross** (`/argus:revise` and sail's `revise_team` → `team --revise`). At the START of a `--revise` run, before reworking: read `session.revise_cycles` (default 0) and `session.max_revise_cycles` (default 3). If `revise_cycles >= max_revise_cycles`, do **NOT** rework — write the still-open challenges from the parent's `verification.json.challenged_claims[]` to the scaffold's `human_required_checkpoints[]` with `reason: "max_revisions_reached"`, leave `session.active_draft_id` on the parent, and stop with a one-line "수정 한도(N)에 도달 — 사람 확인이 필요합니다 / revise cap (N) reached — needs a human check." Otherwise increment `session.revise_cycles += 1` and proceed. This caps the loop even when sail routes `revise_team` directly and bypasses the revise skill.
+  - **Bound the loop here — this is the single chokepoint both revise paths cross** (`revise.md` and sail's `revise_team` → `team --revise`). At the START of a `--revise` run, before reworking: read `session.revise_cycles` (default 0) and `session.max_revise_cycles` (default 3). If `revise_cycles >= max_revise_cycles`, do **NOT** rework — write the still-open challenges from the parent's `verification.json.challenged_claims[]` to the scaffold's `human_required_checkpoints[]` with `reason: "max_revisions_reached"`, leave `session.active_draft_id` on the parent, and stop with a one-line "수정 한도(N)에 도달 — 사람 확인이 필요합니다 / revise cap (N) reached — needs a human check." Otherwise increment `session.revise_cycles += 1` and proceed. This caps the loop even when sail routes `revise_team` directly and bypasses the revise skill.
 - **Override agents** (optional): `--agents sujin,donghyuk,jieun` — bypass automatic selection. Use sparingly; classification is usually better.
 - **Sail-invocation flag** (optional): `--invoked-via-sail` — suppress Step 11 verbose print block. JSON files are still written; sail's Step 7 will compose the consolidated decision card from them. Use this to avoid double-rendering when sail orchestrates the chain.
 
@@ -60,7 +60,7 @@ improvise a reviewers without it.
 2. Read the latest snapshot from `versions/{label}/analysis.json` (authoritative; session.json no longer stores snapshots).
 3. Assert `execution_plan.steps` has ≥ 2 entries. If not, halt with direction to run more clarify rounds.
 4. Compute next version label using rules from `${CLAUDE_PLUGIN_ROOT}/lib/session/version-numbering.md`:
-   - v0.1 directory exists already (created by `/argus:clarify`).
+   - v0.1 directory exists already (created by `clarify.md`).
    - **Marker-file detection for re-run**: a version is considered "team-completed" when `versions/{label}/workers.json` exists. If the latest version's `workers.json` exists, this invocation is a re-run → compute the next label via `nextChildLabel(parent_label, existing_siblings_under_same_parent)` from version-numbering.md.
    - **Branch from the checked-out draft, not the newest.** `parent_label` is the `version_label` of `session.active_draft_id` (set by `/argus:versions --checkout` or the last run), NOT simply the newest label on disk. On a `--revise` or post-checkout run this is what makes the new draft a proper child/branch (e.g. revising `v0.1` while `v0.2` exists yields `v0.1.1`, not a `v0.3` main-line). Only when `active_draft_id` is unset/points to the latest does this reduce to "main-line continuation" (`v0.2`).
    - If `workers.json` does NOT exist in the latest version dir, this is the first team run for that version → use the existing label (do NOT create a new version dir). The team populates the same dir clarify already opened.
@@ -74,7 +74,7 @@ improvise a reviewers without it.
 **Three paths:**
 
 **(A) Explicit target** — `session.invoking_context.target_type` in `{pr, file, branch, issue, design_doc, plan}`:
-- **Primary source:** read `versions/v0.1/meta.json` → `target_context` (written by `/argus:clarify` when it expanded the target — see clarify Inputs). This is the single source of truth for the diff/contents/body/plan the team must work ON. Use `target_context.diff` / `.contents` / `.body` / `.files_changed` directly.
+- **Primary source:** read `versions/v0.1/meta.json` → `target_context` (written by `clarify.md` when it expanded the target — see clarify Inputs). This is the single source of truth for the diff/contents/body/plan the team must work ON. Use `target_context.diff` / `.contents` / `.body` / `.files_changed` directly.
   - If `target_context.kind == "plan"`, treat the plan as the artifact under review and the repo as the environment it would mutate. Workers must map plan steps to likely files/surfaces, identify unsafe bundled changes, and decide run/split/revise/hold.
 - **If `target_context` is absent or has an `error` field** (clarify ran before this field existed, or `gh` failed): re-fetch live as a fallback —
   - `pr` → `gh pr view <N> --json title,body,files,state` + `gh pr diff <N>`
@@ -204,7 +204,7 @@ Apply (a), then (b), then (c) in order. Each step may resolve the overage partia
 **(c) Drop lowest-scoring steps iteratively.** While `steps.length > agent_count_max`: compute best-match agent score for every remaining step, drop the ONE with lowest score. Preserve each dropped step in `classification.json:dropped_steps[]` with its reason and best-agent score. Repeat until budget matches.
 - **Mandatory surfacing**: every dropped step MUST be represented in the final `scaffold.human_required_checkpoints[]` with `checkpoint: "<original task>", why: "dropped from automated pipeline — over_agent_budget"`. This preserves transparency (M4) and gives the user a path to manually cover the dropped area.
 
-**(d) Forbidden fallback**: one agent assigned to two un-merged steps. Do NOT do this silently. If (a)–(c) all failed (e.g., stakes already critical AND no mergeable pairs AND budget still exceeded), halt with error message explaining the conflict and suggesting the user increase `team.max_agents_override` in config.yaml or split the execution_plan into two `/argus:team` invocations.
+**(d) Forbidden fallback**: one agent assigned to two un-merged steps. Do NOT do this silently. If (a)–(c) all failed (e.g., stakes already critical AND no mergeable pairs AND budget still exceeded), halt with error message explaining the conflict and suggesting the user increase `team.max_agents_override` in config.yaml or split the execution_plan into two `team.md` invocations.
 
 After reconciliation, `steps.length ≤ agent_count_max` is guaranteed.
 
@@ -382,12 +382,12 @@ Framework: {{worker.framework}}
 
 Your job: identify the 2-3 most important ranked risks (unsupported claims, false-positive traps, foundational evidence gaps) in the team's combined output, PLUS one risk nobody on the team named (the unspoken one). For each, give a one-line mitigation or the specific evidence that would resolve it. This matches your agent spec (2-3 + one unspoken) — do NOT collapse to a single easily-absorbed criticism. Follow M9 — you are doing the WORK of risk analysis, not "reviewing" each agent in turn.
 
-If a risk is a foundational evidence gap (the decision's premise is unverified — e.g. "we assume X is legal/true" with no source), flag it explicitly as `foundational: true` so `/argus:verify` can route it to a human-required check rather than waving it through.
+If a risk is a foundational evidence gap (the decision's premise is unverified — e.g. "we assume X is legal/true" with no source), flag it explicitly as `foundational: true` so `verify.md` can route it to a human-required check rather than waving it through.
 
 Return a risk_assessment in ~500 words.
 ```
 
-Stage-2 output is still a worker result, not the final verifier. `/argus:verify` reads it as negative-validation evidence.
+Stage-2 output is still a worker result, not the final verifier. `verify.md` reads it as negative-validation evidence.
 
 ### Step 7 — Debate (critical stakes only)
 
@@ -468,7 +468,7 @@ Write result to `versions/{label}/mix.json`.
 
 This is the PLUGIN-SPECIFIC divergence from webapp. Webapp produces a markdown document; plugin produces a decision scaffold.
 
-Construct a candidate `FinalScaffold` (schema: `${CLAUDE_PLUGIN_ROOT}/data/schemas/final-scaffold.json`). Candidate means it is not yet trusted; `/argus:verify` owns final verification state.
+Construct a candidate `FinalScaffold` (schema: `${CLAUDE_PLUGIN_ROOT}/data/schemas/final-scaffold.json`). Candidate means it is not yet trusted; `verify.md` owns final verification state.
 - `reframed_question`: from snapshot
 - `key_trade_offs[]`: extract from team outputs + debate. Each trade-off = axis + side_a + side_b.
   - **Candidate-scope (missed-option) disclosure.** If the reviewers examined essentially ONE course (no debate, no opposing stances, every worker assumed the same direction) AND stakes are `important`+ AND a *concrete plausible alternative the reviewers never analyzed* is nameable, add it as a trade-off: side_a = the examined course, side_b = that alternative with its label stating it was NOT analyzed (e.g. `"<alternative> — not evaluated by the reviewers"`). The read's `road_not_taken` derives from `key_trade_offs`, so this surfaces narrow scope as an honest coverage note. **Gate (mirror clause):** only when a concrete alternative is nameable — if none is, the decision is genuinely flat, so leave it out; never manufacture an alternative to look thorough.
@@ -496,7 +496,7 @@ Write to `versions/{label}/scaffold.json`.
   - `change_summary`: one line (≤60 chars) for the version tree annotation (e.g. "초기 팀 배치" / "ISTJ 우려 반영")
   - `created_at`
   - (Do NOT embed the scaffold/mix/feedback in the draft node — they live in `versions/{label}/`; the draft is a pointer.)
-- Set `phase: "verifying"` (ready for `/argus:verify`) OR `phase: "complete"` only when the user explicitly asked for team output without verification
+- Set `phase: "verifying"` (ready for `verify.md`) OR `phase: "complete"` only when the user explicitly asked for team output without verification
 - Update `updated_at`
 
 ### Step 11 — Report to user
@@ -516,7 +516,7 @@ That's it. No print of contradictions/assumptions/checkpoints/counts (sail Step 
 
 #### Step 11b — Direct invocation (no `--invoked-via-sail`) → full report
 
-User typed `/argus:team` directly without going through sail. Render the full block:
+User typed `team.md` directly without going through sail. Render the full block:
 
 ```
 ## Argus · Team · {{label}}
@@ -548,7 +548,7 @@ User typed `/argus:team` directly without going through sail. Render the full bl
 - {{checkpoint}} — {{why AI cannot}}
 {{endfor}}
 
-**Next step:** `/argus:verify` to split supported/challenged claims. Then `/argus:boss` if the verified scaffold should face stakeholder review.
+**Next step:** `verify.md` to split supported/challenged claims. Then `boss.md` if the verified scaffold should face stakeholder review.
 ```
 
 ---
@@ -576,10 +576,10 @@ User typed `/argus:team` directly without going through sail. Render the full bl
 
 ## Forbidden patterns
 
-- Running `/argus:team` without prior `/argus:clarify` session.
+- Running `team.md` without prior `clarify.md` session.
 - Spawning agents sequentially when they should be parallel (you MUST use multiple Task tool calls in a single message for stage-1 workers).
 - Collapsing team_contradictions into a "consensus" bullet.
 - Letting stage-1 workers critique each other. They don't see each other's work until stage 2 (critical stakes only).
 - Using `devils-advocate` as a default agent. It's not in agents.yaml for a reason — critique is in-stage via donghyuk.
 - Writing a "final deliverable markdown document" à la webapp. Plugin emits FinalScaffold. The mix is internal.
-- Marking team output as verified. Only `/argus:verify` can do that.
+- Marking team output as verified. Only `verify.md` can do that.
