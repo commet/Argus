@@ -1,5 +1,4 @@
 import type { ContractEntry, LedgerState } from './ledger-replay.js';
-import type { ReceiptPremisesInfo } from './render-receipt.js';
 import { deriveState } from './state-machine.js';
 import { GuardError } from './state-machine.js';
 import {
@@ -172,7 +171,17 @@ export function groupDuePremises(due: DuePremise[]): DuePremiseGroup[] {
 }
 
 /** The living-premises summary a receipt renders from (plan v5 §3.3): the
- *  premise set is canonical — headline = first active load-bearing premise. */
+ *  premise set is canonical — headline = first active load-bearing premise.
+ *  The SHAPE is owned here (core) — renderers import it, never the reverse:
+ *  this type used to live in render-receipt.ts, which pulled the whole
+ *  presentation layer (surfaces/locale) into the core import closure through
+ *  one type-only edge (O2 방2 boundary audit). */
+export interface ReceiptPremisesInfo {
+  headline?: string;
+  tracked: number;
+  changed_at_recheck: number;
+}
+
 export function receiptPremisesInfo(entry: ContractEntry | undefined): ReceiptPremisesInfo | undefined {
   const list = entry?.premises ?? [];
   if (list.length === 0) return undefined;

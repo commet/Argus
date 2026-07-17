@@ -1,4 +1,5 @@
 import type { Receipt } from './receipt.js';
+import type { ReceiptPremisesInfo } from './premises.js';
 import { SURFACES, type SurfaceLocale } from './surfaces.js';
 
 /**
@@ -12,11 +13,11 @@ import { SURFACES, type SurfaceLocale } from './surfaces.js';
  * receipt renders from it. headline stands in when the seal-time assumption
  * field was skipped but a load-bearing premise exists.
  */
-export interface ReceiptPremisesInfo {
-  headline?: string;
-  tracked: number;
-  changed_at_recheck: number;
-}
+// The shape is core-owned (premises.ts) — renderers import it, never the
+// reverse (O2 방2: a type defined here once dragged surfaces/locale into the
+// core closure through premises' type-only import). Re-exported so existing
+// `from './render-receipt.js'` type imports keep working.
+export type { ReceiptPremisesInfo } from './premises.js';
 
 export function renderReceipt(r: Receipt, premises?: ReceiptPremisesInfo, locale: SurfaceLocale = 'en'): string {
   const R = SURFACES[locale].receipt;
