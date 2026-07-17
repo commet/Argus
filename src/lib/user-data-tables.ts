@@ -26,6 +26,8 @@ export const USER_DATA_TABLES = [
   'epistemic_command_receipts',
   'epistemic_context_traces',
   'epistemic_projection_outbox',
+  'epistemic_recall_documents',
+  'epistemic_recall_projection_state',
   'epistemic_use_receipts',
   'feedback_records',
   'human_agent_messages',
