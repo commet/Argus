@@ -6,6 +6,11 @@ import { asDate } from './resolve-today.js';
  * hard-refused. The "not falsifiable" check is a WEAK heuristic (m3) — it
  * catches a few obvious vibe-predicates in English and is explicitly NOT
  * claimed to be a complete falsifiability gate.
+ *
+ * MIRROR: the plugin's SEED gate (argus-plugin-v2/scripts/validate-gates.mjs)
+ * carries a copy of the VIBE/VIBE_KO regexes and the structural checks — the
+ * packages can't share code (the plugin must be self-contained), so keep the
+ * two in sync by hand when editing either.
  */
 
 export interface SealValidationError {

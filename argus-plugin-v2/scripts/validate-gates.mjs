@@ -14,10 +14,23 @@
 //   ROUTE-CONTRACT— a non-open request (validation/vent/info) must NOT produce a
 //                   manufactured fork (vent especially never forks). [over-fire]
 //   FRAME-FLAT    — a flat decision must NOT manufacture a fork/fog. [over-fire]
+//   SEED          — a contract_seed must be settleable: non-empty predicate,
+//                   four parts (pass/fail conditions), a present check_by
+//                   (date or prose event per sail Step 7; a dated one must be
+//                   strictly after the bearing's generated_at), and no
+//                   vibe-predicate ("잘 될 것 같다"). Port of the MCP's seal
+//                   gate (argus-mcp/src/lib/validate-seal.ts — keep in sync):
+//                   the skill prose already demands all this, but prose rules
+//                   fail 25–44% under token pressure (R29) — an unsettleable
+//                   seed sealed today is a dead reminder in 30 days.
 //
 // Usage:
 //   node validate-gates.mjs                 # walk all sessions under ./.argus, exit 2 on any violation (CI gate)
-//   node validate-gates.mjs --latest --warn # check only the most-recent session, always exit 0 (Stop-hook mode)
+//   node validate-gates.mjs --latest --warn # check only the most-recent session, always exit 0 (Stop-hook backstop)
+//   node validate-gates.mjs --hook          # PostToolUse(Write|Edit) mode: reads the hook JSON from stdin and
+//                                           # gates the JUST-WRITTEN bearing BEFORE the model renders it —
+//                                           # exit 2 feeds the violations back so the render the user sees is
+//                                           # already repaired (§9.7 O1 방5: post-hoc warn → pre-render gate).
 //   node validate-gates.mjs --root <dir>    # point at a specific .argus dir (tests)
 //
 // Never throws on read/parse errors — a broken gate-check must not wedge a session.
@@ -43,6 +56,19 @@ function readJson(file) {
 function firstExisting(dir, names) {
   for (const n of names) { const p = path.join(dir, n); if (fs.existsSync(p)) return readJson(p); }
   return null;
+}
+
+// ── SEED gate helpers — mirror of argus-mcp/src/lib/validate-seal.ts. The
+// vibe lists are the same WEAK heuristic (obvious cases only, not a complete
+// falsifiability gate); no \b in the Korean one (word boundaries don't work
+// for Hangul).
+const VIBE = /\b(go well|be fine|be good|be great|work out|feel right|be successful|do better|improve somehow)\b/i;
+const VIBE_KO = /(잘\s*될|잘\s*풀릴|괜찮을|좋아질|나아질)\s*(것|거)\s*(같|이)|아마도|어떻게든\s*(될|되)/;
+
+function asDate(value) {
+  if (typeof value !== 'string') return null;
+  const m = value.match(/(\d{4})-(\d{2})-(\d{2})/);
+  return m ? `${m[1]}-${m[2]}-${m[3]}` : null;
 }
 
 // Collect the active/latest version for each session. Superseded drafts are
@@ -133,6 +159,42 @@ export function checkVersion(dir) {
     }
   }
 
+  // ── SEED GATE — a sealed prediction must be one reality can actually grade.
+  // Dates compare against the bearing's own generated_at, not today: this gate
+  // re-runs over old sessions in CI, and "past today" is a contract that is
+  // DUE, not one that was invalid when sealed.
+  const seed = bearing.contract_seed;
+  if (seed !== null && seed !== undefined) {
+    if (typeof seed !== 'object' || Array.isArray(seed)) {
+      v.push('SEED: contract_seed is not an object — the four-part contract shape is lost');
+    } else {
+      const predicate = seed.predicate;
+      if (typeof predicate !== 'string' || predicate.trim().length < 8) {
+        v.push('SEED: contract_seed.predicate is empty or under 8 chars — a seal needs a statement reality can mark true or false');
+      } else if (VIBE.test(predicate) || VIBE_KO.test(predicate)) {
+        v.push('SEED: contract_seed.predicate reads like a vibe, not a checkable prediction — restate with a number, threshold, or observable event (weak heuristic; may miss cases)');
+      }
+      for (const part of ['pass_condition', 'fail_condition']) {
+        if (typeof seed[part] !== 'string' || !seed[part].trim()) {
+          v.push(`SEED: contract_seed.${part} is missing — without it, settle has no sealed criterion to hold reality against`);
+        }
+      }
+      // check_by may be a date OR prose ("30 days after release") per sail
+      // Step 7 — prose is legitimate (settle lists it as "date unclear"), so
+      // only a MISSING check_by is a violation; the date rules apply only
+      // when a date is actually present.
+      if (typeof seed.check_by !== 'string' || !seed.check_by.trim()) {
+        v.push('SEED: contract_seed.check_by is missing — without a date or event, reality is never consulted and the contract can never settle');
+      } else {
+        const checkBy = asDate(seed.check_by);
+        const sealedOn = asDate(bearing.generated_at);
+        if (checkBy && sealedOn && checkBy <= sealedOn) {
+          v.push(`SEED: contract_seed.check_by (${checkBy}) is not after the bearing's generated_at (${sealedOn}) — the contract was born already due`);
+        }
+      }
+    }
+  }
+
   // ── FRAME-FLAT GATE (over-fire on flat decisions)
   if (analysis?.frame_status === 'flat') {
     if (road.length > 0) v.push('FRAME-FLAT: flat decision has a non-empty road_not_taken — manufactured fork (over-fire)');
@@ -143,8 +205,36 @@ export function checkVersion(dir) {
   return v;
 }
 
+// ── hook mode (PostToolUse Write|Edit): gate the just-written bearing BEFORE render.
+// The skills' step order is "write artifacts → render Current Bearing", so a
+// violation surfaced HERE reaches the model before the user sees anything —
+// unlike the Stop-hook backstop, which can only warn about a render that
+// already happened. Every non-bearing write exits 0 silently and fast; any
+// stdin/parse problem also exits 0 — a broken gate must never wedge a session.
+function hookMain() {
+  let filePath = null;
+  try {
+    const raw = fs.readFileSync(0, 'utf8');
+    const hook = JSON.parse(deBom(raw));
+    const input = hook && typeof hook === 'object' ? hook.tool_input : null;
+    if (input && typeof input.file_path === 'string') filePath = input.file_path;
+  } catch { /* no/garbage stdin → nothing to gate */ }
+  if (!filePath || !BEARING_NAMES.includes(path.basename(filePath))) process.exit(0);
+
+  const violations = checkVersion(path.dirname(filePath));
+  if (violations.length) {
+    console.error(
+      `⚓ Argus gate check — the bearing just written violates the spine; repair it BEFORE rendering it to the user:\n` +
+      violations.map((m) => `  ${m}`).join('\n'),
+    );
+    process.exit(2);
+  }
+  process.exit(0);
+}
+
 // ── run (only when invoked directly, not when imported by the test)
 function main() {
+  if (args.includes('--hook')) return hookMain();
   let versions = collectVersions();
   if (LATEST && versions.length) {
     versions = [versions.sort((a, b) => b.mtime - a.mtime)[0]];

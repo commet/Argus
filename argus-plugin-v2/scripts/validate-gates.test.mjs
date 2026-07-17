@@ -107,5 +107,108 @@ check('all workers clean passes', run({
   'analysis.json': { frame_status: 'load_bearing', request_type: 'open_decision' },
 }).length === 0);
 
+// ── SEED gate (port of argus-mcp validate-seal.ts)
+const goodSeed = {
+  predicate: 'If we compress the crew to 5, 30-day first-run completion stays at or above the 62% baseline.',
+  check_by: '2026-07-23',
+  pass_condition: '30-day first-run completion rate >= 62%.',
+  fail_condition: '30-day first-run completion rate < 62%.',
+};
+
+// 14. SEED: a complete four-part seed with a future check_by passes.
+check('four-part seed passes', run({
+  'current_bearing.json': { ...cleanBearing, contract_seed: goodSeed },
+}).length === 0);
+
+// 15. SEED: empty/too-short predicate FAILS.
+check('empty predicate fails', run({
+  'current_bearing.json': { ...cleanBearing, contract_seed: { ...goodSeed, predicate: 'ok' } },
+}).some((m) => m.startsWith('SEED')));
+
+// 16. SEED: English vibe-predicate FAILS.
+check('vibe predicate (en) fails', run({
+  'current_bearing.json': { ...cleanBearing, contract_seed: { ...goodSeed, predicate: 'The launch will probably go well for the team.' } },
+}).some((m) => m.startsWith('SEED')));
+
+// 17. SEED: Korean vibe-predicate FAILS.
+check('vibe predicate (ko) fails', run({
+  'current_bearing.json': { ...cleanBearing, contract_seed: { ...goodSeed, predicate: '이번 출시는 잘 될 것 같다 아마도' } },
+}).some((m) => m.startsWith('SEED')));
+
+// 18. SEED: prose check_by ("event + offset") is legitimate per sail Step 7 — PASSES.
+check('prose check_by passes', run({
+  'current_bearing.json': { ...cleanBearing, contract_seed: { ...goodSeed, check_by: '30 days after release' } },
+}).length === 0);
+
+// 18b. SEED: MISSING check_by FAILS — the contract can never settle.
+check('missing check_by fails', run({
+  'current_bearing.json': { ...cleanBearing, contract_seed: { predicate: goodSeed.predicate, pass_condition: goodSeed.pass_condition, fail_condition: goodSeed.fail_condition } },
+}).some((m) => m.startsWith('SEED')));
+
+// 19. SEED: check_by not after the bearing's generated_at FAILS (born already due).
+check('check_by <= generated_at fails', run({
+  'current_bearing.json': { ...cleanBearing, contract_seed: { ...goodSeed, check_by: '2026-06-23' } },
+}).some((m) => m.startsWith('SEED')));
+
+// 20. SEED: missing fail_condition FAILS (four-part contract, sail Step 7).
+check('missing fail_condition fails', run({
+  'current_bearing.json': { ...cleanBearing, contract_seed: { predicate: goodSeed.predicate, check_by: goodSeed.check_by, pass_condition: goodSeed.pass_condition } },
+}).some((m) => m.startsWith('SEED')));
+
+// 21. SEED: check_by past TODAY but after generated_at still passes — an old
+// session's due contract is due, not invalid (CI replays history).
+check('old-but-valid seed passes in replay', run({
+  'current_bearing.json': { ...cleanBearing, generated_at: '2025-01-01T00:00:00.000Z', contract_seed: { ...goodSeed, check_by: '2025-01-31' } },
+}).length === 0);
+
+// ── --hook mode (PostToolUse pre-render gate, §9.7 O1 방5) — spawn the real
+// CLI with hook JSON on stdin, exactly as Claude Code invokes it.
+import { spawnSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
+const SCRIPT = fileURLToPath(new URL('./validate-gates.mjs', import.meta.url));
+
+function runHook(stdinText) {
+  return spawnSync(process.execPath, [SCRIPT, '--hook'], { input: stdinText, encoding: 'utf8' });
+}
+
+function hookWrite(files, writtenName) {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'argus-hook-'));
+  for (const [name, obj] of Object.entries(files)) {
+    fs.writeFileSync(path.join(dir, name), JSON.stringify(obj));
+  }
+  const res = runHook(JSON.stringify({ tool_name: 'Write', tool_input: { file_path: path.join(dir, writtenName) } }));
+  fs.rmSync(dir, { recursive: true, force: true });
+  return res;
+}
+
+// 22. hook: a just-written bearing with an unsettleable seed exits 2 and names SEED —
+// the violation reaches the model BEFORE it renders the bearing.
+{
+  const res = hookWrite(
+    { 'current_bearing.json': { ...cleanBearing, contract_seed: { ...goodSeed, predicate: 'ok' } } },
+    'current_bearing.json',
+  );
+  check('hook: violating bearing write exits 2', res.status === 2);
+  check('hook: violation names the SEED gate', /SEED/.test(res.stderr));
+}
+
+// 23. hook: a clean bearing write exits 0 silently.
+{
+  const res = hookWrite({ 'current_bearing.json': { ...cleanBearing, contract_seed: goodSeed } }, 'current_bearing.json');
+  check('hook: clean bearing write exits 0', res.status === 0 && !res.stderr.trim());
+}
+
+// 24. hook: any non-bearing write is a silent fast no-op.
+{
+  const res = hookWrite({ 'notes.json': { hello: 1 } }, 'notes.json');
+  check('hook: non-bearing write exits 0', res.status === 0 && !res.stderr.trim());
+}
+
+// 25. hook: garbage stdin never wedges the session (exit 0).
+{
+  const res = runHook('not json at all');
+  check('hook: garbage stdin exits 0', res.status === 0);
+}
+
 console.log(`\nvalidate-gates.test: ${pass} passed, ${fail} failed`);
 process.exit(fail === 0 ? 0 : 1);

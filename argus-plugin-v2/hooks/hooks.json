@@ -65,6 +65,16 @@
             "timeout": 5
           }
         ]
+      },
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/validate-gates.mjs\" --hook",
+            "timeout": 5
+          }
+        ]
       }
     ],
     "Stop": [
