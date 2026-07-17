@@ -33,8 +33,8 @@ The plugin holds **data copies**, not live references. Webapp can change indepen
 3. **Worker-mode dialogues** — agents' `worker_mode_examples[]` are NEW (written for plugin). Webapp has critic-mode persona prompts; plugin dialogues show agents PRODUCING artifacts in their voice. This is the M9 differentiator.
 4. **Stakes classification at runtime** — plugin skills classify via LLM using `classification.yaml` as vocabulary reference, NOT via deterministic regex. Webapp uses regex + LLM hybrid.
 5. **FinalScaffold** — plugin emits decision scaffold, NOT the markdown `final_deliverable` webapp produces. `data/schemas/final-scaffold.json` is plugin-only.
-6. **VerificationLedger** — plugin has a first-class `/argus:verify` artifact that splits team output into supported claims, challenged claims, unresolved tensions, and human-required checks before boss review. This is intentionally plugin-native because terminal users benefit from a compact pre-signoff quality gate more than a rich web UI.
-7. **CurrentBearing** — plugin hides the multi-agent machinery in the default `/argus:sail` output. `current_bearing.json` is the one-screen read users actually consume; deeper artifacts remain available through `/argus:versions`.
+6. **VerificationLedger** — plugin has a first-class `the verify step (review)` artifact that splits team output into supported claims, challenged claims, unresolved tensions, and human-required checks before boss review. This is intentionally plugin-native because terminal users benefit from a compact pre-signoff quality gate more than a rich web UI.
+7. **CurrentBearing** — plugin hides the multi-agent machinery in the default `/argus:review` output. `current_bearing.json` is the one-screen read users actually consume; deeper artifacts remain available through `/argus:versions`.
 
 ## What's EXACTLY mirrored from webapp
 

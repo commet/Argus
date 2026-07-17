@@ -23,16 +23,16 @@
     },
     "directive": {
       "type": ["string", "null"],
-      "description": "The revision directive that produced this draft (what was asked to change). null for the root draft. Set by /argus:revise."
+      "description": "The revision directive that produced this draft (what was asked to change). null for the root draft. Set by the revise step (review)."
     },
     "reviewing_agent_id": {
       "type": ["string", "null"],
       "enum": [null, "navigator"],
-      "description": "The agent that produced this revision: 'navigator' for an /argus:revise child draft, null for an initial pipeline draft. (Boss review is NOT recorded here — a draft is 'reviewed' iff versions/{version_label}/boss_feedback.json exists.)"
+      "description": "The agent that produced this revision: 'navigator' for an the revise step (review) child draft, null for an initial pipeline draft. (Boss review is NOT recorded here — a draft is 'reviewed' iff versions/{version_label}/boss_feedback.json exists.)"
     },
     "boss_reviewed": {
       "type": "boolean",
-      "description": "True if /argus:boss has run on this draft (i.e. versions/{version_label}/boss_feedback.json exists). A small flag for the version tree — the full feedback stays in the version dir."
+      "description": "True if the boss step (review) has run on this draft (i.e. versions/{version_label}/boss_feedback.json exists). A small flag for the version tree — the full feedback stays in the version dir."
     },
     "created_at": {
       "type": "string",

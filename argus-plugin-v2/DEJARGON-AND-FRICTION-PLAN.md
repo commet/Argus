@@ -1,5 +1,11 @@
 # Plain-language + friction plan — 2026-07-15 (MAP LOCKED, executing)
 
+> **HISTORICAL — superseded by O3 (2026-07-17).** The rename map below was the
+> 2026-07-15 plan; O3 finished the surface work (commands 20→5 + aliases
+> sail/resolve, plain command axis, boss seat-first). Kept as the decision
+> record for those renames; do not update. Current canon:
+> `docs/ARGUS-BLUEPRINT.md` §9.7.
+
 Three founder directives from the user-value review, turned into a concrete
 plan. Once the map is locked, applying it across the skills is mechanical.
 

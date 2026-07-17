@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "argus:worker-result",
   "title": "WorkerResult",
-  "description": "Output of a single agent worker during /argus:team. Plugin scope keeps the artifact, metadata, and verification fields so failed or weak output never looks like a clean completion.",
+  "description": "Output of a single agent worker during the team step (review). Plugin scope keeps the artifact, metadata, and verification fields so failed or weak output never looks like a clean completion.",
   "type": "object",
   "required": ["id", "agent_id", "task", "expected_output", "status"],
   "properties": {

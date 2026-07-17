@@ -1,5 +1,11 @@
 # Plugin v2.4 Reality Check - Test Plan
 
+> **HISTORICAL — frozen at O3 completion (2026-07-17).** Command names and
+> structure here predate O3 (commands 20→5 under `/argus:review`·`/argus:check`·
+> `/argus:history`·`/argus:settings`·`/argus:help`; driver absorbed; boss is
+> seat-first). Kept as a record of how v2.4 was tested; do not update. Current
+> canon: `docs/ARGUS-BLUEPRINT.md` + each skill's SKILL.md.
+
 **Why this exists.** Earlier plugin validation relied too much on simulated
 self-audit. v2.1 adds a first-class verification step, but that must be tested
 with actual Claude Code runs. The goal is to confirm that Argus does not merely

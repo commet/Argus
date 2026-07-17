@@ -737,6 +737,15 @@ Desktop은 README 설정 그대로가 전 도구 실패, 영수증 렌더러는 
   concerns:[]가 정직한 출력(스키마가 스킬의 R42 절제 규칙과 모순이었음).
   seat-not-type.test.ts가 구조 회귀를 고정. 근거: R42 실측(가치는 전부 자리,
   타입 0/5) + 평가 문서 §4.4 personality-theater 경고.)
+  (방4 준공 2026-07-17 — 문·카피 마감: README 세-문("어디서 쓰세요?") 구조는
+  O0 표가 정본으로 유지·방2에서 명령 어휘 최신화 완료 확인. 방2·방3 명시-포기
+  잔여 청소 — 스키마 8종·agents/classification yaml·data README의 구 명령
+  산문을 step-언어로 매핑(node JSON.parse 11/11 검증), queue.ts의 미출하
+  /argus:debrief 스텁 정직화(§8 대기 명시, 설계 인용은 원문 보존+주석),
+  session.json boss_agent를 자리-우선으로(legacy mbti_code 주석), 구 문서
+  4종(TEST_PLAN·BUILD_STATUS·DEJARGON·rehearsal-prompt)에 HISTORICAL 동결
+  스탬프. **공정 O3 준공 — 방 4/4 완료, exit 2/2 전부 체크.** 다음 = O4 증거 관문
+  (실사용 코호트가 주역) ∥ npm publish(자연어 입구 완성 조각, 창업자 명령 필요).)
 - exit: [x] fresh install 명령 1개 [x] activation 계약 테스트(자동 deep review 0)
 
 **공정 O4 · 증거 관문 (공정이 아니라 판정 — §6 준공 검사·P5 가치 관문과 한 몸)**

@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "argus:minimal-scaffold",
   "title": "MinimalScaffold",
-  "description": "One-screen output for routine/low-density decisions. Replaces FinalScaffold when /argus:clarify determines that the user's question is reversible, single-action, and confidence-high. The whole point: a 1-line decision + 1 quick check fits in one screen and stops bikeshedding. Anti-pattern: forcing a 5-section FinalScaffold onto a tab-rename decision (TC1 failure mode from 2026-04-28 reality test).",
+  "description": "One-screen output for routine/low-density decisions. Replaces FinalScaffold when the clarify step (review) determines that the user's question is reversible, single-action, and confidence-high. The whole point: a 1-line decision + 1 quick check fits in one screen and stops bikeshedding. Anti-pattern: forcing a 5-section FinalScaffold onto a tab-rename decision (TC1 failure mode from 2026-04-28 reality test).",
   "type": "object",
   "required": ["recommendation", "one_check", "_meta"],
   "properties": {

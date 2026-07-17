@@ -1,5 +1,12 @@
 # Argus v2 Self-Rehearsal Runbook
 
+> **HISTORICAL HARNESS — vocabulary frozen pre-O3 (2026-07-17).** This rehearsal
+> simulates the pre-O3 surface (individual clarify/team/verify/boss commands,
+> MBTI-first boss config). The DO-NOT-INVOKE list below is still safe — those
+> names no longer exist as commands. If this harness is revived, re-target it at
+> `skills/review/pipeline.md` and the seat-first boss (config
+> role/owns/goals/authority) first.
+
 You are auditing Argus plugin v2 via **dry-run simulation**. This file is your runbook — read it once, then execute the protocol below.
 
 > **Use ultrathink throughout.** This is a thorough self-audit, not a quick scan. Reasoning depth determines bug-find rate.

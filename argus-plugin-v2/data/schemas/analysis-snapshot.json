@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "argus:analysis-snapshot",
   "title": "AnalysisSnapshot",
-  "description": "Output of /argus:clarify. Problem understanding at a point in time. Ported from webapp's AnalysisSnapshot type (src/stores/types.ts:681).",
+  "description": "Output of the clarify step (review). Problem understanding at a point in time. Ported from webapp's AnalysisSnapshot type (src/stores/types.ts:681).",
   "type": "object",
   "required": ["version", "real_question", "hidden_assumptions", "skeleton"],
   "properties": {
@@ -109,7 +109,7 @@
     },
     "decision_density": {
       "enum": ["low", "medium", "high"],
-      "description": "Estimated cognitive weight the decision deserves. low = single-action, reversible, high confidence — emit MinimalScaffold and stop. medium = standard FinalScaffold via team. high = critical-stakes, two-stage with debate. Set by /argus:clarify in Step 2 alongside the snapshot. Routing in /argus:sail Step 6 reads this. Absent on legacy snapshots — treat as medium for back-compat."
+      "description": "Estimated cognitive weight the decision deserves. low = single-action, reversible, high confidence — emit MinimalScaffold and stop. medium = standard FinalScaffold via team. high = critical-stakes, two-stage with debate. Set by the clarify step (review) in Step 2 alongside the snapshot. Routing in /argus:review Step 6 reads this. Absent on legacy snapshots — treat as medium for back-compat."
     },
     "decision_density_reasoning": {
       "type": "string",
@@ -117,13 +117,13 @@
     },
     "stakes_guess": {
       "enum": ["routine", "important", "critical"],
-      "description": "Pre-classification stakes hint produced by /argus:clarify. /argus:team Step 2 confirms or refines. /argus:sail Step 6 uses this for routing offer. Vocabulary matches classification.yaml.stakes."
+      "description": "Pre-classification stakes hint produced by the clarify step (review). the team step (review) Step 2 confirms or refines. /argus:review Step 6 uses this for routing offer. Vocabulary matches classification.yaml.stakes."
     },
     "stakes_confidence": {
       "type": "integer",
       "minimum": 0,
       "maximum": 100,
-      "description": "Confidence in stakes_guess. <75 means /argus:sail SHOULD AskUserQuestion before locking the routing path (per M-preserve-user-agency). 75+ proceeds without confirmation."
+      "description": "Confidence in stakes_guess. <75 means /argus:review SHOULD AskUserQuestion before locking the routing path (per M-preserve-user-agency). 75+ proceeds without confirmation."
     },
     "stakes": {
       "enum": ["routine", "important", "critical"],

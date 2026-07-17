@@ -5,6 +5,10 @@
  * > 반환 — 실제 추출은 lease+retry count를 가진 처리 단계에서, 실패 시
  * > 큐 항목 보존, 재시도는 다음 SessionStart 또는 /argus:debrief."
  *
+ * (인용 속 /argus:debrief는 설계 당시 구상한 이름으로, 그 명령은 출하된 적이
+ * 없다 — 수동 재개 표면은 §8 대기 목록 소관이고, 그 전까지 exhausted 항목은
+ * 아래 필드들로 정직하게 기록만 남는다. O3 방4에서 명시.)
+ *
  * 자산 등급 (정본 규칙 3 — 저장 3분할): 이 큐는 `${CLAUDE_PLUGIN_DATA}`에
  * 사는 **임시 상태**다. 플러그인 제거로 삭제돼도 잃는 것은 "아직 추출 안
  * 한 수확 작업"뿐이고, 사용자 자산(원장·후보 이벤트)은 전부 ~/.argus에
@@ -41,7 +45,8 @@ export interface QueueItem {
   /** 마지막 실패 사유 (다음 시도·debrief가 읽는 정직 기록). */
   last_error?: string;
   /** attempts가 MAX_ATTEMPTS에 닿음 — 자동 재시도 대상에서 제외되지만
-   *  항목은 보존된다 (조용한 소실 금지; /argus:debrief가 수동 재개 가능). */
+   *  항목은 보존된다 (조용한 소실 금지; 수동 재개 표면은 미출하 — §8 대기.
+   *  그 전까지 doctor [8]항이 exhausted 건수를 사실로 보고한다). */
   exhausted?: boolean;
 }
 
@@ -134,7 +139,7 @@ export function complete(dataDir: string, itemId: string, nonce: string): boolea
 
 /** 실패 — 항목 보존 + attempts 증가 + lease 해제 (규칙 4: 실패 시 큐 항목
  *  보존). MAX_ATTEMPTS 도달 시 exhausted로 표시하되 삭제하지 않는다 —
- *  조용한 소실은 금지고, 수동 재개(/argus:debrief)의 대상으로 남는다. */
+ *  조용한 소실은 금지고, 미래의 수동 재개 표면(§8 대기)의 대상으로 남는다. */
 export function fail(
   dataDir: string,
   itemId: string,
