@@ -247,7 +247,7 @@ describe('E-B11 protected gate — counterexamples can contest and stop a claim'
     expect(epistemicTypes).toContain("'candidate' | 'endorsed' | 'contested' | 'retired'");
     expect(controlPlane).toContain('export function addClaimCounterexample');
     expect(controlPlane).toContain("lifecycle: args.material ? 'contested' : current.lifecycle");
-    expect(controlPlane).toContain("reason: 'contested'");
+    expect(controlPlane).toContain("return 'contested'");
   });
 });
 
