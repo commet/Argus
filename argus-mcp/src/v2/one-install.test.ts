@@ -1,11 +1,14 @@
 /**
- * P2-4 구조 가드 — argus-driver 얇은 플러그인 골격.
+ * O3 방1 구조 가드 — 하나의 설치 (one install).
  *
- * 이 플러그인은 코드가 거의 없다(설정 3파일 + statusline 사본). 그래서
- * 위험은 로직 버그가 아니라 **조용한 구조 파손**이다: JSON 오타로 설치가
- * 소리 없이 실패하거나, marketplace 항목과 디렉토리가 어긋나거나,
- * statusline 사본이 정본(argus-plugin-v2)에서 드리프트하는 것. 전부
- * 여기서 CI red로 만든다 (LLM-glue invariant: 조용한 파손 금지).
+ * driver + plugin-v2 통합 후의 위험은 로직 버그가 아니라 **조용한 구조 파손**
+ * 이다: JSON 오타로 설치가 소리 없이 실패하거나, marketplace가 다시 두
+ * 플러그인으로 갈라지거나, 번들(.mcp.json·훅·doctor)이 빠진 채 배송되는 것.
+ * 전부 여기서 CI red로 만든다 (LLM-glue invariant: 조용한 파손 금지).
+ *
+ * 전신: driver-plugin.test.ts (P2-4~P2-6). 어서션은 병합본(argus 플러그인
+ * 하나) 기준으로 승계했고, statusline 바이트 동일성 대조는 사본 자체가
+ * 사라져(정본 단일 사본) 존재 이유와 함께 은퇴했다.
  */
 import { describe, expect, it } from 'vitest';
 import fs from 'node:fs';
@@ -14,22 +17,22 @@ import { fileURLToPath } from 'node:url';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(here, '..', '..', '..');
-const DRIVER = path.join(REPO_ROOT, 'argus-driver');
+const PLUGIN = path.join(REPO_ROOT, 'argus-plugin-v2');
 
 const readJson = (p: string): Record<string, unknown> =>
   JSON.parse(fs.readFileSync(p, 'utf8')) as Record<string, unknown>;
 
-describe('argus-driver 플러그인 골격 (P2-4)', () => {
+describe('argus 플러그인 골격 — 하나의 설치 (O3 방1)', () => {
   it('plugin.json — 이름·버전·MIT가 실재하고 파싱된다', () => {
-    const manifest = readJson(path.join(DRIVER, '.claude-plugin', 'plugin.json'));
-    expect(manifest['name']).toBe('argus-driver');
+    const manifest = readJson(path.join(PLUGIN, '.claude-plugin', 'plugin.json'));
+    expect(manifest['name']).toBe('argus');
     expect(manifest['license']).toBe('MIT');
     expect(typeof manifest['version']).toBe('string');
-    expect(fs.existsSync(path.join(DRIVER, 'LICENSE'))).toBe(true);
+    expect(fs.existsSync(path.join(PLUGIN, 'LICENSE'))).toBe(true);
   });
 
-  it('.mcp.json — argus-decision-mcp stdio 배선 (스파이크 ②: 설치만으로 자동 배선)', () => {
-    const mcp = readJson(path.join(DRIVER, '.mcp.json'));
+  it('.mcp.json — argus-decision-mcp stdio 배선 (설치만으로 자동 배선)', () => {
+    const mcp = readJson(path.join(PLUGIN, '.mcp.json'));
     const servers = mcp['mcpServers'] as Record<string, { command: string; args: string[] }>;
     const wired = Object.values(servers);
     expect(wired.length).toBeGreaterThan(0);
@@ -42,63 +45,70 @@ describe('argus-driver 플러그인 골격 (P2-4)', () => {
     expect(pkgArg).toMatch(/^argus-decision-mcp@\^\d+$/);
   });
 
-  it('statusline 사본은 정본(argus-plugin-v2)과 바이트 동일 — 드리프트는 여기서 죽는다', () => {
-    // Single Source of Truth 원칙의 의도적 예외: 플러그인은 자기 완결
-    // 번들이어야 해서 사본을 배송한다. 대신 이 대조가 두 파일이 서로
-    // 다른 말을 하는 상태를 CI에서 불가능하게 만든다. 수정은 정본
-    // (argus-plugin-v2/statusline/index.js)에서 하고 복사할 것.
-    const canonical = fs.readFileSync(path.join(REPO_ROOT, 'argus-plugin-v2', 'statusline', 'index.js'));
-    const shipped = fs.readFileSync(path.join(DRIVER, 'statusline', 'index.js'));
-    expect(shipped.equals(canonical)).toBe(true);
-  });
-
-  it('marketplace.json — argus-driver 항목이 있고 source 디렉토리가 실존한다', () => {
+  it('marketplace.json — 플러그인은 정확히 하나(argus)고 driver 잔재가 없다', () => {
     const market = readJson(path.join(REPO_ROOT, '.claude-plugin', 'marketplace.json'));
     const plugins = market['plugins'] as Array<{ name: string; source: string; license: string }>;
-    const entry = plugins.find((p) => p.name === 'argus-driver');
-    expect(entry, 'marketplace에 argus-driver 항목이 있어야 한다').toBeDefined();
-    expect(entry!.license).toBe('MIT');
-    const sourceDir = path.join(REPO_ROOT, entry!.source);
+    expect(plugins.map((p) => p.name), '설치 명령이 하나가 되려면 항목도 하나여야 한다').toEqual(['argus']);
+    expect(plugins[0]!.license).toBe('MIT');
+    const sourceDir = path.join(REPO_ROOT, plugins[0]!.source);
     expect(fs.existsSync(path.join(sourceDir, '.claude-plugin', 'plugin.json'))).toBe(true);
     expect(fs.existsSync(path.join(sourceDir, '.mcp.json'))).toBe(true);
+    // 두 플러그인 시대의 잔재 금지 — 디렉토리가 되돌아오면 "하나의 설치"가 깨진 것.
+    expect(fs.existsSync(path.join(REPO_ROOT, 'argus-driver'))).toBe(false);
   });
 
-  it('hooks.json — 파싱되고, 가리키는 스크립트가 전부 실존한다 (P2-5)', () => {
-    const hooks = readJson(path.join(DRIVER, 'hooks', 'hooks.json'))['hooks'] as
+  it('hooks.json — 파싱되고, 스크립트가 전부 실존하며, 흡수한 훅 2개가 배선되어 있다', () => {
+    const hooks = readJson(path.join(PLUGIN, 'hooks', 'hooks.json'))['hooks'] as
       Record<string, Array<{ hooks: Array<{ type: string; command: string }> }>>;
     const commands = Object.values(hooks).flat().flatMap((m) => m.hooks);
     expect(commands.length).toBeGreaterThan(0);
+    const referenced: string[] = [];
     for (const c of commands) {
       expect(c.type).toBe('command');
       const m = /\$\{CLAUDE_PLUGIN_ROOT\}\/(\S+?)"/.exec(c.command);
       expect(m, `플러그인 루트 상대 경로여야 한다: ${c.command}`).not.toBeNull();
-      expect(fs.existsSync(path.join(DRIVER, m![1]!)), `${m![1]!} 실존`).toBe(true);
+      referenced.push(m![1]!);
+      expect(fs.existsSync(path.join(PLUGIN, m![1]!)), `${m![1]!} 실존`).toBe(true);
     }
+    // 흡수 계약: 조용한 SessionStart 점검 + ambient 방아쇠 — 파일만 있고
+    // 배선이 빠지는 조용한 파손을 막는다 (소비 없는 생산 금지).
+    expect(referenced).toContain('hooks/session-start.js');
+    expect(referenced).toContain('hooks/ambient-nudge.js');
   });
 
-  it('commands/*.md — 프론트매터가 있고, 가리키는 플러그인 루트 스크립트가 실존한다 (P2-6)', () => {
-    const commandsDir = path.join(DRIVER, 'commands');
+  it('commands/*.md — 프론트매터가 있고, 가리키는 플러그인 루트 스크립트가 실존한다', () => {
+    const commandsDir = path.join(PLUGIN, 'commands');
     const files = fs.readdirSync(commandsDir).filter((f) => f.endsWith('.md'));
     expect(files.length).toBeGreaterThan(0);
     for (const f of files) {
       const body = fs.readFileSync(path.join(commandsDir, f), 'utf8');
       expect(body.startsWith('---\n'), `${f}: 프론트매터 필수`).toBe(true);
       for (const m of body.matchAll(/\$\{CLAUDE_PLUGIN_ROOT\}\/([^\s"'`]+)/g)) {
-        expect(fs.existsSync(path.join(DRIVER, m[1]!)), `${f} → ${m[1]!} 실존`).toBe(true);
+        expect(fs.existsSync(path.join(PLUGIN, m[1]!)), `${f} → ${m[1]!} 실존`).toBe(true);
       }
     }
   });
 
   it('일상 ritual 커맨드는 없고 읽기 전용 doctor 비상구만 남는다', () => {
-    const files = fs.readdirSync(path.join(DRIVER, 'commands')).filter((f) => f.endsWith('.md'));
+    const files = fs.readdirSync(path.join(PLUGIN, 'commands')).filter((f) => f.endsWith('.md'));
     expect(files).toEqual(['doctor.md']);
   });
 
-  it('README — 설치 2줄과 "플러그인 제거가 원장을 지우지 않는다" 고지 (정본 규칙 3·21)', () => {
-    const readme = fs.readFileSync(path.join(DRIVER, 'README.md'), 'utf8');
-    expect(readme).toContain('/plugin marketplace add commet/Argus');
-    expect(readme).toContain('/plugin install argus-driver@argus');
-    expect(readme).toContain('플러그인 제거가 절대 삭제하지 않는다');
+  it('statusline — 정본 단일 사본이 플러그인에 실린다 (driver 사본 시대 종료)', () => {
+    expect(fs.existsSync(path.join(PLUGIN, 'statusline', 'index.js'))).toBe(true);
+  });
+
+  it('README(en/ko) — 설치 2줄 + 제거-비삭제 고지, 두 번째 플러그인 언급 0', () => {
+    for (const [name, notice] of [
+      ['README.md', 'Uninstalling the plugin never deletes'],
+      ['README.ko.md', '플러그인 제거가 절대 삭제하지 않는다'],
+    ] as const) {
+      const readme = fs.readFileSync(path.join(PLUGIN, name), 'utf8');
+      expect(readme, name).toContain('/plugin marketplace add commet/Argus');
+      expect(readme, name).toContain('/plugin install argus@argus');
+      expect(readme, `${name}: 제거가 원장을 지우지 않는다는 고지 (정본 규칙 3·21)`).toContain(notice);
+      expect(readme, `${name}: 설치를 가르치는 문서에 두 번째 플러그인이 없어야 한다`).not.toContain('argus-driver');
+    }
   });
 });
 

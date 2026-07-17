@@ -8,14 +8,14 @@
   },
   "metadata": {
     "description": "Argus — keeps important decisions alive as courses.",
-    "version": "2.7.0"
+    "version": "2.8.0"
   },
   "plugins": [
     {
       "name": "argus",
       "source": "./argus-plugin-v2",
-      "description": "Pressure-tests an important decision and returns a one-screen summary: recommendation, why, biggest open risk, alternative passed on, next concrete action — plus one falsifiable prediction you settle against reality later.",
-      "version": "2.7.0",
+      "description": "Pressure-tests an important decision and returns a one-screen summary: recommendation, why, biggest open risk, alternative passed on, next concrete action — plus one falsifiable prediction you settle against reality later. One install also wires the argus-decision-mcp server automatically; the model never grades the user.",
+      "version": "2.8.0",
       "license": "MIT",
       "category": "productivity",
       "keywords": [
@@ -23,22 +23,9 @@
         "judgment-harness",
         "verification",
         "current-bearing",
-        "decision-contract"
-      ]
-    },
-    {
-      "name": "argus-driver",
-      "source": "./argus-driver",
-      "description": "Thin driver for argus-decision-mcp. Installing it wires the MCP automatically so users can clarify a decision, save a testable prediction, and later record what actually happened. The model never grades the user.",
-      "version": "0.2.0",
-      "license": "MIT",
-      "category": "productivity",
-      "keywords": [
-        "decision-making",
         "decision-contract",
         "mcp",
-        "statusline",
-        "accountability"
+        "statusline"
       ]
     }
   ]

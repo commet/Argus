@@ -30,7 +30,7 @@ import { renderLogbook } from './logbook.js';
 import type { BriefState } from './brief.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-const HOOK = path.resolve(here, '..', '..', '..', 'argus-driver', 'hooks', 'ambient-nudge.js');
+const HOOK = path.resolve(here, '..', '..', '..', 'argus-plugin-v2', 'hooks', 'ambient-nudge.js');
 
 const REPO_ID = '3f2504e0-4f89-41d3-9a0c-0305e82c3301';
 const ULID = '01JZXK5N8Q2W4E6R8T0Y2Z4A6B';

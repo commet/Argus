@@ -98,7 +98,9 @@ const EVIDENCE_O: Record<string, string[]> = {
     'argus-mcp/src/lib/__tests__/core-boundary.test.ts', // canonical append 단독 (O_APPEND census) + 경계 게이트
     'argus-mcp/src/lib/__tests__/cross-surface-contract.test.ts', // 같은 fixture → 3두뇌 동일 해석 + 쓰기 규율 계약
   ],
-  '공정 O3': [],
+  '공정 O3': [
+    'argus-mcp/src/v2/one-install.test.ts', // 하나의 설치 — marketplace 1항목 + .mcp.json·훅·doctor 번들 + driver 잔재 0
+  ],
   '공정 O4': [],
   '공정 O5': [],
 };

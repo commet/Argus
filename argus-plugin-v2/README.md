@@ -46,6 +46,30 @@ decision is actually happening.
 Supported documents: `pdf`, `md`, `txt`, `pptx`, `docx`, `hwpx`. For `xlsx` and
 legacy Office/HWP formats, export to CSV/PDF first.
 
+### What one install wires up
+
+Installing the plugin is the whole setup — there is no separate init step:
+
+- **Decision tools (MCP), wired automatically** — a bundled [`.mcp.json`](./.mcp.json)
+  registers the `argus-decision-mcp` stdio server (`npx -y argus-decision-mcp`), so
+  `argus_capture` / `argus_predict` / `argus_resolve` / `argus_check_in` /
+  `argus_patterns` / `argus_settings` are available immediately. (What gets wired is
+  the npm release; repo-only changes reach installs on the next `npm publish` from
+  `argus-mcp/`.)
+- **Quiet hooks** — a session-start check that mentions decisions whose check-by
+  date has arrived (and points a stale LOGBOOK view at `argus_check_in` for
+  regeneration), plus an ambient trigger that may ask about at most one due item
+  per session (4-hour cooldown across sessions; silence is the default). Opt out
+  with `{ "ambient": { "opt_out": true } }` in `~/.argus/config.json`.
+- **`/argus:doctor`** — a read-only self-diagnosis of the install and wiring. It
+  repairs nothing; each line names the public tool that can.
+- **Statusline (optional)** — [`statusline/index.js`](./statusline/index.js) reads
+  your decision ledgers. Enable it with one line in `~/.claude/settings.json`:
+  `"statusLine": { "type": "command", "command": "node ${CLAUDE_PLUGIN_ROOT}/statusline/index.js" }`
+
+Uninstalling the plugin never deletes your decision records — the ledgers under
+`.argus/` (and `~/.argus`) are your data, not the plugin's.
+
 ---
 
 ## What It Does

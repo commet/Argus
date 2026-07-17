@@ -20,7 +20,7 @@ v1이 여전히 정본이고, 모든 쓰기가 v2에 자동 복제되며(dual-wr
 |---|---|---|
 | CORE | 기록→상태→봉인→브리프→정산 | `v2/ledger.ts`(파일·락·registry) · `v2/events.ts`(이벤트 23종 스키마) · `v2/reducer.ts`(상태 접기+전이 가드) · `v2/brief.ts`(due·그물 파생) |
 | COMPANION | 후보·정리 | `v2/harvest.ts`(수확 처리) · `v2/queue.ts`(수확 큐) · `v2/gate.ts`(결정 발화 검출) · `tools/candidates.ts`(argus_candidates) |
-| DRIVER | Claude Code 접점 | `../argus-driver/`(플러그인: 훅·커맨드·statusline·doctor) |
+| DRIVER | Claude Code 접점 | `../argus-plugin-v2/`(argus 플러그인: 훅·커맨드·statusline·doctor — O3 방1에서 구 argus-driver 흡수) |
 | PROJECTION | 파생 화면 | `v2/logbook.ts`(LOGBOOK.md) · `v2/mirror.ts`의 `readV2Brief`(check_in 병기) · statusline |
 
 층 격리: COMPANION·PROJECTION의 어떤 실패도 CORE 쓰기를 막지 않는다
@@ -74,8 +74,8 @@ SessionStart 훅         transcript 경로를 큐에 넣기만 (추출 안 함)
    영원히 no-op. marker를 지우거나 우회하면 기록이 이중으로 접힌다.
 3. **측정본 = 배송본** — 게이트 eval 하네스는 배송되는 `v2/gate.ts` 함수
    자체를 잰다(스파이크는 재수출 껍데기). 검출기를 복제해 만들지 말 것.
-   statusline도 같다: 정본은 `argus-plugin-v2/statusline/index.js`,
-   `argus-driver`의 사본은 byte 동일(테스트가 대조).
+   statusline도 같다: 정본은 `argus-plugin-v2/statusline/index.js` 하나뿐
+   (구 argus-driver 사본은 O3 방1 통합으로 소멸 — 사본 대조 테스트도 함께 은퇴).
 4. **opt-in 전 흔적 0** — 수확 관련 파일은 opt-in 전에 절대 생기지 않는다.
 5. **원장이 정본, 화면은 파생** — LOGBOOK·statusline·brief는 언제 지워도
    원장에서 다시 만들어진다. 화면에만 쓰고 원장에 안 남는 데이터를 만들지
@@ -91,5 +91,5 @@ npm run copy                             # 사용자 문구 하우스 스타일 
 ARGUS_PERF_EVENTS=100000 npx vitest run src/v2/perf.test.ts   # 대용량 벤치
 ```
 
-문제가 있으면 사용자에게는 `/argus-driver:doctor`(읽기 전용 자가진단)가
+문제가 있으면 사용자에게는 `/argus:doctor`(읽기 전용 자가진단)가
 같은 지도를 훑어준다.
