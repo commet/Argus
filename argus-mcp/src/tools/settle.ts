@@ -11,6 +11,7 @@ import { renderReceipt } from '../lib/render-receipt.js';
 import { resolveResponseLocale, SURFACES, humanizeSyncReason, type SurfaceLocale } from '../lib/surfaces.js';
 import { accountPushId } from '../lib/install-id.js';
 import { resolvePremiseRef, receiptPremisesInfo } from '../lib/premises.js';
+import { replayLedger } from '../lib/ledger-replay.js';
 import { relatedOpenForPremise } from '../v2/connection-io.js';
 import type { RelatedDecision } from '../v2/connection.js';
 import { sanitizeLine } from '../v2/sanitize.js';
@@ -33,7 +34,7 @@ const inputSchema = z.strictObject({
 export const settle: ToolModule = {
   name: 'argus_settle',
   description:
-    'Settle a sealed decision against reality and issue a Judgment Receipt with zero AI verdict. Hard-errors if there is no prior seal. The outcome is the user\'s — recorded, never inferred.',
+    'Settle a sealed decision against reality and issue a Judgment Receipt with zero AI verdict. Hard-errors if there is no prior seal. The outcome is the user\'s — recorded, never inferred. On the ledger\'s FIRST completed settle, `surface` contains the full then-vs-now receipt — show it verbatim; it is the user\'s first payoff. Later settles return the short line and keep the receipt in data.receipt_text.',
   inputSchema,
   outputSchema: ENVELOPE_OUTPUT_SCHEMA,
   // openWorldHint: true — with ARGUS_TOKEN set, settling also mirrors to the account.
@@ -180,9 +181,24 @@ export const settle: ToolModule = {
           ? ''
           : T.sync_failed(humanizeSyncReason(String(sync.reason), locale));
 
+      // §9.7 O1 방3 — the FIRST settled receipt is the product's payoff moment
+      // (review P1-3: "then vs now, one screen, before any statistics").
+      // envelope() serializes the whole payload as JSON into the text content,
+      // so on hosts that surface only text the receipt sat inside an escaped
+      // string and reached the user only if the model chose to relay it —
+      // prose-dependent delivery of the one moment the product exists for.
+      // Structural fix: when this settle is the ledger's first completed one,
+      // the receipt IS the surface, shown verbatim. Later settles keep the
+      // light one-line confirmation (re-printing the plate every time would be
+      // ceremony); the receipt stays available in data.receipt_text and the
+      // argus://receipts/{id} resource.
+      const receiptText = renderReceipt(receipt, receiptPremisesInfo(current.entry), locale);
+      const firstReceipt = replayLedger(dir, today).stats.total_settled === 1;
+
       return envelope({
         ok: true, tool: 'argus_settle',
-        surface: T.settled(outcome as 'held' | 'avoided' | 'partial' | 'missed') + syncLine + connectionLine,
+        surface: T.settled(outcome as 'held' | 'avoided' | 'partial' | 'missed') + syncLine + connectionLine
+          + (firstReceipt ? `\n\n${receiptText}` : ''),
         next_actions: ['argus_patterns', 'stop'],
         data: {
           id, outcome, outcome_source: 'user_stated',
@@ -196,9 +212,10 @@ export const settle: ToolModule = {
           ai_verdict: null,
           account_synced: sync.synced,
           ...(sync.synced ? {} : { account_sync_reason: sync.reason }),
+          ...(firstReceipt ? { first_receipt: true } : {}),
           receipt,
           // The premise set is canonical — the receipt's summary renders from the fold (plan v5 §3.3).
-          receipt_text: renderReceipt(receipt, receiptPremisesInfo(current.entry), locale),
+          receipt_text: receiptText,
         },
       });
     } catch (e) {
