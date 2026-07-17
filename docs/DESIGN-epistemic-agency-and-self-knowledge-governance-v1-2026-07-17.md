@@ -822,3 +822,661 @@ Argus가 사용자를 객관적으로 안다는 것은 사용자를 하나의 �
 > 증거·반례·변화의 시간을 보존하는 도구다.**
 
 AI VERDICT ON THE USER ··································· NONE
+
+---
+
+## 15. O3 이후 continuation handoff — Progressive 경계화와 사용자 소유 아카이브
+
+> **상태: DEFERRED / HANDOFF ONLY.** 이 절은 E1/E2의 runtime 범위를 넓히지 않는다.
+> O3 방2가 병합되기 전에는 아래 구현 파일을 수정하지 않는다. 활성화는 반드시 최신
+> `main`에서 O3 방2의 실제 diff와 BLUEPRINT 현재 공정을 다시 읽고, 창업자가 별도
+> 후속 공정 착수를 확인한 뒤에만 한다.
+>
+> **왜 이 문서에 두는가:** 새 설계 정본을 하나 더 만들지 않고, E가 지켜야 하는
+> 저자성·출처·영향 권한과 Progressive/클라우드/로컬 아카이브의 저장 계약을 한곳에서
+> 잇기 위해서다. 이 절은 망각 방지용 continuation handoff이며, BLUEPRINT의 현재
+> 공정 또는 O3의 파일 소유권을 선점하지 않는다.
+
+### 15.1 창업자 확정 방향
+
+다음 판단은 후속 세션에서 다시 토론해 흐리지 않는다.
+
+1. 구형 웹 `Reframe → Recast → Rehearse → Synthesize` 편집 제품은 현행 핵심이
+   아니다. 기존 기록을 정직하게 보존 이관한 뒤 퇴역시킨다.
+2. 질문의 숨은 전제와 진짜 질문을 찾는 **framing 작용**은 현행 Progressive와
+   플러그인 `clarify` 안의 핵심 능력이다. 구형 제품과 함께 삭제하지 않고
+   `framing` / `real_question`처럼 중립적인 내부 언어로 분리한다.
+3. Telegram의 빠른 숨은 전제 점검은 별도 소형 표면으로 유지할 수 있다. 구형 웹
+   `ReframeStep`과 생명주기를 공유하지 않도록 공용 코어를 분리·개명한다.
+4. 로그인 웹의 기본은 **계정 클라우드 아카이브**다. Supabase는 내부 구현이며,
+   사용자가 별도 기술 연결을 할 필요가 없다. 로그인은 자동 동기화와 다기기 복구를
+   기대하는 행위다.
+5. 익명 웹은 브라우저 한정 저장으로 충분하되 `이 브라우저에만 저장됨`을 정직하게
+   표시한다. 판단 본문은 `localStorage`가 아니라 transactional browser store로
+   옮기고, `localStorage`는 가벼운 설정·feature flag 정도로 제한한다.
+6. MCP/플러그인은 **로컬 파일이 기본**이고 서버 연결은 명시적 선택이다. 로컬 도구를
+   쓰는 사람에게 계정 연결이나 서버 전송을 강제하지 않는다.
+7. 모든 표면은 완전한 export뿐 아니라 **완전한 restore**를 제공한다. 열람만 가능한
+   export는 백업이 아니다.
+8. AI 산출물, 사용자 원문, 사용자 수정·채택, 현실 정산, 자기지식 후보, endorse,
+   influence grant/trace를 저장 단계부터 구분한다. 같은 JSON blob 안에 섞여 있다는
+   이유로 같은 저자성이나 증거 지위를 얻지 않는다.
+
+### 15.2 `직접 읽지 않는다 / 직접 알지 않는다`의 뜻
+
+이 규칙은 데이터를 숨기거나 우회 계층을 늘리자는 뜻이 아니다. **바뀌는 이유가 다른
+부품끼리 서로의 내부 사정에 묶이지 않게 한다**는 뜻이다.
+
+현재 결합의 예:
+
+- `ProgressiveFlow`가 `useReframeStore`를 직접 import하면 구형 Reframe 저장 구조를
+  지울 때 현행 화면도 함께 깨진다.
+- UI가 Supabase 테이블과 컬럼을 직접 알면 테이블 이관·오프라인 저장·로컬 모드마다
+  화면 코드를 다시 고쳐야 한다.
+- LLM engine이 Zustand store를 직접 읽으면 같은 사고 엔진을 Telegram, MCP, 테스트,
+  서버 command에서 재사용할 수 없고 입력 누락이 전역 상태로 조용히 가려진다.
+- store가 LLM을 실행하면 순수 상태 전이와 네트워크 실패가 섞여 재시도·멱등성·테스트가
+  불가능해진다.
+
+목표 의존 방향:
+
+```text
+UI ──명령──▶ Application ──▶ Domain(event/command/reducer)
+ │                │                    │
+ │                ├──▶ AI Port         └──▶ 순수 projection
+ │                └──▶ Archive Port
+ │                         ├── browser IndexedDB adapter
+ │                         ├── Supabase account adapter
+ │                         └── local filesystem adapter
+ └── projection만 읽음
+```
+
+예를 들어 UI는 `supabase.from('progressive_sessions')`를 아는 대신
+`archive.save(command)`와 `syncState`만 안다. 실제 저장소를 바꿔도 UI의 의미는
+바뀌지 않는다. 반대로 Supabase adapter는 버튼·모달·항해 단계의 존재를 모른다.
+
+이 경계의 실용적 이득:
+
+1. 한 부품 교체가 다른 부품의 연쇄 수정으로 번지지 않는다.
+2. 같은 domain 규칙을 웹·MCP·플러그인·Telegram이 공유할 수 있다.
+3. 테스트에서 실제 DB나 LLM 없이 사용자 행동→사건→상태를 검증할 수 있다.
+4. 저장 실패·모델 실패·화면 오류를 서로 다른 오류로 정직하게 보여줄 수 있다.
+5. 구형 Reframe를 제거할 때 Progressive의 핵심 사고 작용을 함께 잃지 않는다.
+
+단, `직접 알지 않음`을 이유로 아무 의미 없는 wrapper를 여러 겹 만들지 않는다.
+경계는 **대체 가능성이 있거나 실패 규율이 다른 곳**에만 둔다. 작은 순수 formatter나
+같은 bounded context 안의 타입까지 인터페이스로 감싸지 않는다.
+
+### 15.3 2026-07-17 확인 기준선
+
+확인 시점:
+
+- E branch: `ed959c39`
+- 당시 최신 `origin/main`: `2e9d3c34` (PR #178, O3 방1 one-install 병합)
+- O3 방2: 다른 세션에서 착공, 아직 원격 branch/PR로 확인되지 않음
+
+크기:
+
+| 파일 | 줄 수 | 현재 섞인 책임 |
+|---|---:|---|
+| `ProgressiveFlow.tsx` | 3,947 | UI, orchestration, LLM stream, workers, review, seal, branch, legacy export |
+| `useProgressiveStore.ts` | 1,923 | persistence, migration, domain mutation, workers, drafts, checkpoints, branches |
+| `progressive-engine.ts` | 1,817 | route, question generation, scans, mix, review, final generation |
+| `progressive-prompts.ts` | 1,352 | 전 단계 prompt와 context 조립 |
+| `stores/types.ts` | 1,720 | 구형 4R, Progressive, project, plugin, review 타입 혼재 |
+| `ReframeStep.tsx` | 1,564 | 구형 웹 Reframe 전체 기능 |
+
+확인된 실제 결합:
+
+- `ProgressiveFlow.tsx`가 `useReframeStore`, `useRecastStore`를 직접 import한다.
+- Progressive 결과를 `exportProgressiveAsReframe/Recast`로 구형 store에 다시 쓴다.
+- `ProgressiveSession`에 `reframe_item_id`, `recast_item_id`가 남아 있다.
+- project page, QuickChatBar, checklist, context builder, project brief, agent spec 등 여러
+  소비자가 구형 `REFRAME_LIST` / `RECAST_LIST`를 직접 읽는다.
+- `/workspace`는 `?step=reframe|recast|rehearse|synthesize`면 구형 4-tab 모드를 연다.
+- Progressive session이 없는 기존 project도 구형 4-tab 화면으로 내려간다.
+- Telegram webhook은 `reframe-core.ts`를 실제 live 경로로 사용한다.
+- MCP 공개 도구와 plugin-v2 공개 명령에는 `/reframe` 제품 명령이 없다. plugin `clarify`
+  안에는 framing 작용과 `reframed_question` legacy 필드명이 남아 있다.
+
+현재 저장:
+
+- 익명 웹: 주요 판단 기록이 browser `localStorage`에만 존재한다.
+- 로그인 웹: localStorage-first + Supabase async merge/upsert다.
+- `progressive_sessions.data`는 전체 `ProgressiveSession` JSONB blob이다.
+- merge는 `updated_at` newer-wins이므로 동시 사용자 행위를 보존하는 사건 원장이 아니다.
+- 서버 export는 모든 user-scoped table을 담지만 현재 앱으로 restore할 수 없다.
+- E2 claim/grant/trace/review event는 shadow 기간 local-only다.
+- 사용자 BYOK API key는 현재 일반 settings 객체와 함께 `localStorage`에 저장된다.
+- `project_semantic_events`에는 append-only, idempotency, project advisory lock, exact retry,
+  partial retry refusal, service-only append gateway가 이미 구현돼 있다. 새 병렬 정본을
+  만들기보다 이 기반을 확장·재사용한다.
+
+MCP/플러그인 현재 사실:
+
+- 현행 BLUEPRINT상 쓰기 정본은 project v1 `.argus/ledger/ledger.jsonl`이다.
+- `~/.argus/projects/{repository_id}/ledger.jsonl`은 아직 durable projection이다.
+- plugin-only write가 durable projection에 즉시 없을 수 있으므로 소비자는 union fold한다.
+- writer에는 lock, torn-tail 격리, `O_APPEND`, `fsync`가 있으나 v1 writer는 lock 획득
+  실패 뒤 availability를 택해 진행하는 구간이 있다.
+- `LOGBOOK.md`, doctor, lifecycle export/import/backup 부품은 존재하지만 사용자에게
+  일관된 `폴더 열기/백업/복원` 표면으로 완성되지 않았다.
+- 2026-07-17 실제 `~/.argus/registry.json`에는 과거 격리 결함이 남긴 임시 test repo
+  22개가 있었고 project dirs는 비어 있었다. 현재 test-setup 격리는 해당 public repair
+  test 재실행 전후 registry hash와 dir count가 같아 새 오염을 막았지만, 기존 residue를
+  정리하는 공개 손잡이는 없다.
+
+### 15.4 Progressive 목표 경계
+
+줄 수를 줄이는 것 자체가 목표가 아니다. 아래 책임을 분리한 결과로 큰 파일이 작아져야
+한다.
+
+#### A. Domain
+
+- `JudgmentEvent`: 사용자·AI·시스템·현실 사건의 typed union
+- `JudgmentCommand`: 답변, 수정, 채택, 철회, 팀 배치, 봉인, 정산 등 의도
+- `JudgmentState`: reducer가 사건을 접어 만든 현재 상태
+- transition guard와 provenance/authority 검증
+- 날짜·locale·id 생성은 주입받고 전역 환경을 읽지 않음
+
+Domain은 React, Zustand, Supabase, LLM client, browser API를 import하지 않는다.
+
+#### B. Application
+
+- `startJudgment`
+- `answerQuestion`
+- `reviseFraming`
+- `deployTeam`
+- `recordHumanResponse`
+- `reviewDraft`
+- `sealJudgment`
+- `settleOutcome`
+- `endorseClaim` / `grantInfluence`는 E control plane을 통과
+
+각 use case는 필요한 입력을 명시적으로 받고 사건 또는 명시 오류를 반환한다.
+
+#### C. AI engine
+
+- framing/question
+- worker/debate
+- mix/synthesis
+- verification/honesty/lean scan
+- final artifact
+
+AI engine은 명시 입력→typed candidate만 반환한다. store를 읽거나 저장하지 않고,
+사용자 저자성 필드에 직접 쓰지 않는다. AI candidate가 사용자 행동으로 승격되는 것은
+Application command를 통해서만 가능하다.
+
+#### D. Archive
+
+- event append/read
+- immutable artifact put/get
+- projection load/save/rebuild
+- outbox retry/ack
+- export/import/delete
+
+Archive interface는 저장 기술을 숨기되, `pending`, `synced`, `conflict`, `corrupt`,
+`unauthorized` 같은 실패 의미를 숨기지 않는다.
+
+#### E. UI
+
+- `ProgressiveWorkspace`: session selection과 phase composition만
+- phase component: framing, questions, team, synthesis, review, seal, return
+- controller hook: use case 호출과 async 상태만
+- presentation component: projection만 렌더
+
+UI가 domain state를 임의 수정하거나 legacy store로 export하지 않는다.
+
+#### F. Legacy adapter
+
+- 구형 reframe/recast/rehearse/synthesize records read
+- 원문 손실 없는 archive projection
+- 새 domain으로 옮길 수 있는 필드와 옮길 수 없는 필드 구분
+- 구형 화면 신규 write 차단 뒤 한정 기간 read-only 지원
+
+Legacy adapter 외의 새 코드가 `ReframeItem`, `RecastItem`, `REFRAME_LIST`,
+`RECAST_LIST`, `reframe_items`, `recast_items`를 import하지 못하게 static gate를 둔다.
+
+### 15.5 저장 데이터 3분할
+
+모든 내용을 한 사건 원장이나 한 session blob에 밀어 넣지 않는다.
+
+#### 1. Semantic events — 작고 순서가 중요한 사실
+
+예:
+
+- 사용자가 문제 원문을 적음
+- 질문에 답함 / 답을 수정함
+- AI 후보를 그대로 사용 / 고쳐 사용 / 거절함
+- 결정을 봉인 / 수정 / 철회함
+- 현실 결과를 기록함
+- 자기지식 후보를 endorse / contest / retire함
+- influence grant를 부여 / 철회함
+- 실제 prompt 영향 trace가 생성됨
+
+사건은 append-only, idempotent, provenance·authority·time·project/account space를 가진다.
+
+#### 2. Immutable artifacts — 크고 버전이 중요한 내용
+
+예:
+
+- analysis snapshot
+- worker output
+- debate/mix/verification result
+- final deliverable
+- legacy session 원본
+- 업로드 문서에서 추출한 canonical artifact
+
+artifact는 content hash, schema version, producer/model lineage, source event를 갖는다.
+사건은 큰 본문을 반복 복사하지 않고 `artifact_id`를 참조한다.
+
+#### 3. Projections — 빠르게 보여주기 위한 재생성 가능 상태
+
+예:
+
+- 현재 Progressive session
+- project card/due strip
+- LOGBOOK
+- current bearing
+- self-knowledge review card
+- sync status
+
+projection은 지워져도 events+artifacts에서 다시 만들 수 있어야 한다. 현재
+`progressive_sessions.data`는 이 지위로 강등하고, 이관 중에는 legacy projection으로
+유지한다.
+
+### 15.6 웹 계정 아카이브 계약
+
+#### 익명
+
+- browser transactional store가 임시 정본
+- 문구: `이 브라우저에만 저장됨`
+- quota/eviction/write failure를 사용자에게 숨기지 않음
+- export와 import 가능
+- 로그인 전환 시 local archive 전체를 outbox에 넣고 서버 ack receipt를 받은 뒤에만
+  `계정으로 이동 완료` 표시
+
+#### 로그인
+
+- Supabase account archive가 durable home
+- browser store는 cache + write-ahead outbox
+- 사용자는 Supabase라는 기술을 연결하지 않는다. 로그인 후 자동 동기화
+- mutation은 local event append → 즉시 UI projection → server command → ack 순서
+- ack 전: `기기에 저장됨 · 동기화 대기`
+- ack 후: `계정에 저장됨 · 마지막 동기화 <time>`
+- 재시도는 같은 idempotency key 사용
+- 다른 기기에서 충돌한 두 사용자 행위를 timestamp last-write-wins으로 지우지 않음
+- projection merge가 아니라 event union + deterministic reducer 사용
+
+#### 기존 기반 재사용
+
+- project-scoped 판단 사건은 기존 `project_semantic_events`와 command gateway를 우선
+  확장한다.
+- account-wide E claim/grant/trace는 project stream에 억지로 넣지 않는다. E namespace의
+  account-level event space/schema를 E3 전에 확정한다.
+- 이름만 다른 두 canonical ledger를 새로 만들지 않는다.
+
+#### 사용자 데이터 화면
+
+설정 또는 account data surface에 최소 다음을 보여준다.
+
+- 저장 모드: 브라우저 한정 / 계정 동기화 / 동기화 대기 / 오류
+- 마지막 server ack 시각
+- 실패한 outbox event 수와 재시도
+- project별 archive 상태
+- `전체 아카이브 다운로드`
+- `아카이브 복원`
+- `계정 데이터 삭제`
+- integration별 전송 범위와 연결 해제
+
+#### 완전한 archive bundle
+
+```text
+Argus-archive-<date>.zip
+├─ README.md
+├─ manifest.json              # schema, app version, counts, hashes
+├─ account/
+│  ├─ SELF-KNOWLEDGE.md
+│  └─ epistemic-ledger.jsonl
+├─ projects/<friendly-name>--<short-id>/
+│  ├─ LOGBOOK.md
+│  ├─ judgment-ledger.jsonl
+│  ├─ sessions/
+│  └─ artifacts/
+└─ integrity/
+   └─ sha256sums.json
+```
+
+복원은 dry-run→schema validation→hash validation→conflict plan→명시 적용 순서다.
+동일 idempotency key의 동일 event는 no-op, 다른 payload면 충돌로 거절한다. 일부만
+조용히 복원하지 않는다.
+
+### 15.7 보안·프라이버시 출시 관문
+
+다음은 nice-to-have가 아니라 클라우드 아카이브의 exit 조건이다.
+
+#### 계정 격리와 권한
+
+- 모든 exposed user table에 RLS enabled
+- authenticated role과 `(select auth.uid()) = user_id` policy 명시
+- cross-account SELECT/INSERT/UPDATE/DELETE red test
+- service/secret key는 server-only, browser bundle·log·error response에 0
+- canonical append는 authenticated server command가 caller identity를 다시 확인
+- service role API는 user-provided `user_id`를 신뢰하지 않음
+
+#### 무결성과 동시성
+
+- event id + idempotency key uniqueness
+- atomic batch append
+- exact retry만 duplicate 성공
+- partial retry, altered payload, event-id reuse는 명시 conflict
+- concurrent tab/device/plugin writes property test
+- projection drift detector와 rebuild command
+- migration 전 자동 backup과 rollback marker
+
+#### 비밀정보
+
+- 사용자 BYOK API key를 generic settings/localStorage/content archive에서 제거
+- 선택지 A: session-only memory, 브라우저 종료 시 폐기
+- 선택지 B: server-side encrypted secret vault + 최소 권한 proxy
+- 어느 선택도 key 원문을 export, analytics, error log, prompt trace에 넣지 않음
+- plugin sync token은 원문 재표시 금지, hash 저장, scope·expiry·last-used·revoke 제공
+
+#### 내용 노출
+
+- 판단 원문과 자기지식을 analytics/server log/error tracker에 보내지 않음
+- LLM provider로 전달되는 정보 범위를 UI와 privacy 문서에 명시
+- Telegram/Slack/email 연결별로 전송되는 field allowlist
+- share link는 명시 생성, 만료·폐기·조회 범위 제공
+- export bundle에서 secret/token/credential 제외를 fixture로 고정
+
+#### 백업과 복구
+
+- production Supabase plan의 실제 backup retention을 문서화
+- DB backup과 Storage object backup을 별도로 다룸
+- 정기 logical off-site backup
+- restore rehearsal과 RPO/RTO 기록
+- user-level export/import가 infrastructure backup과 독립적으로 동작
+- 계정 삭제는 모든 user-scoped table + objects + auth identity를 receipt로 증명
+- retention이 필요한 audit와 즉시 삭제해야 하는 secret/cache를 구분
+
+#### XSS·주입·크기
+
+- user text는 React escaped rendering 기본
+- markdown/HTML rendering은 sanitizer 필수
+- canonical command에서 schema/size cap 재검증; UI `maxLength`만 신뢰하지 않음
+- uploaded artifact와 prompt context는 untrusted data로 취급
+- archive import path traversal/zip bomb/oversize 방어
+
+#### 정직한 암호화 문구
+
+- transport/at-rest encryption을 곧바로 zero-knowledge라고 부르지 않음
+- 서버 proxy가 LLM 분석을 수행하면 처리 순간 서버가 평문을 본다는 사실을 숨기지 않음
+- 향후 client-side private vault를 제공하려면 검색·서버 분석·복구 제약을 별도 mode로
+  명시한다. 구현 전 `종단간 암호화`를 약속하지 않는다.
+
+### 15.8 MCP/플러그인 로컬 아카이브 목표
+
+비개발자에게 보여야 할 모델은 두 문장이다.
+
+> 사용자 홈 또는 사용자가 선택한 `Argus Archive`가 안전한 원본이다.
+> 프로젝트 `.argus`는 그 원본을 찾아가고 현재 기록을 읽는 창구다.
+
+단, 이것은 **목표 상태**다. 현행 BLUEPRINT의 project v1 write-canonical 선언을
+즉시 뒤집지 않는다. 다음 관문을 모두 통과한 뒤에만 durable home을 read/write canonical로
+승격한다.
+
+1. plugin-only events catch-up 구현
+2. project v1과 durable home의 event set/ordering 대조
+3. 여러 worktree가 같은 repository archive를 찾는 fixture
+4. crash/concurrent write/partial migration fixture
+5. export→purge→restore roundtrip
+6. statusline/check_in/LOGBOOK 동일 projection 확인
+7. old project가 미바인딩이어도 데이터가 사라지지 않는 migration
+8. rollback 시 project v1에서 완전 복구 가능
+
+목표 폴더:
+
+```text
+<user-selected Argus Archive>/
+├─ registry.json
+├─ projects/<friendly-name>--<short-id>/
+│  ├─ project.json
+│  ├─ ledger.jsonl
+│  ├─ sessions/
+│  ├─ artifacts/
+│  ├─ LOGBOOK.md
+│  └─ backups/
+└─ identity/
+   ├─ SELF-KNOWLEDGE.md
+   └─ epistemic-ledger.jsonl
+
+<project>/.argus/
+├─ project.json               # archive binding
+├─ LOGBOOK.md                 # 재생성 가능한 읽기 화면
+└─ README.md                  # 원본 절대경로와 여는 법
+```
+
+UUID는 내부 식별자로 유지할 수 있지만 폴더·index에는 friendly project name, repo path,
+last activity, exact archive path를 보여준다.
+
+필수 사용자 손잡이:
+
+- `내 기록 폴더 열기`
+- `이 프로젝트 기록 열기`
+- `전체 로컬 백업 만들기`
+- `백업 복원 (먼저 dry-run)`
+- `저장 상태 검사`
+- `연결 복구`
+- `고아/테스트 residue 보기` (기본은 보고만, 명시 확인 뒤 정리)
+- `계정과 동기화` / `동기화 끊기`
+
+로컬→서버 sync는 JSON blob 덮어쓰기가 아니라 origin/event id가 있는 append-only
+replication이다. 서버 copy가 local 원본을 몰래 수정하지 않고, pull한 원격 event도
+별도 origin/authority를 보존한다. 충돌은 last-write-wins으로 숨기지 않는다.
+
+### 15.9 Reframe 퇴역과 데이터 이관
+
+#### 정체 구분
+
+- **퇴역:** 구형 웹 4-tab 제품, 신규 Reframe/Recast write, direct route/link, legacy
+  coaching/metrics dependence
+- **유지·개명:** load-bearing framing 작용, `real_question`, hidden premise check
+- **별도 유지 가능:** Telegram quick check
+- **과거 호환:** legacy records read-only archive
+
+#### 철거 순서
+
+1. direct dependency inventory를 fixture로 고정
+2. Progressive 앞에 Legacy Adapter 도입
+3. 신규 코드의 legacy type/store import를 static gate로 금지
+4. project/workspace의 신규 legacy 진입 링크 제거
+5. 구형 화면을 read-only archive로 전환
+6. 기존 record를 원문 그대로 immutable legacy artifact로 보관
+7. Telegram core를 `framing-core` 성격으로 분리·개명하고 web step 의존 제거
+8. Progressive의 `exportProgressiveAsReframe/Recast` 신규 쓰기 제거
+9. 모든 소비자를 new projection 또는 legacy adapter로 이동
+10. usage 0 + migration coverage + export/restore 확인 뒤 component/store/i18n 제거
+11. retention 기간 뒤 server table 제거 migration 또는 archive schema로 이전
+
+#### 거짓 이력 생성 금지
+
+구형 `ReframeItem`이나 monolithic `ProgressiveSession`에는 과거의 세밀한 사용자 행동
+순서가 없을 수 있다. migration이 현재 snapshot을 보고 `사용자가 그때 endorse했다`,
+`이 순서로 생각이 바뀌었다` 같은 사건을 역으로 발명하면 안 된다.
+
+원칙:
+
+- 원본 전체를 immutable `legacy_snapshot` artifact로 보존
+- `legacy_snapshot_imported` 한 사건에 source hash, old ids, imported_at 기록
+- 명확히 존재하는 user-authored 원문만 user provenance로 projection
+- AI generated/selected 여부가 불명확하면 `legacy_unknown`으로 유지
+- canonical event sequence는 migration 이후의 실제 새 행동부터 시작
+- legacy import는 E의 independent resolved case나 사용자 자기지식 증거로 자동 계산하지 않음
+
+### 15.10 단계별 구현 순서
+
+각 단계는 별도 PR이 원칙이다. 구조 추출, 저장 전환, UI 공예, 데이터 삭제를 한 PR에
+섞지 않는다.
+
+#### S0 — 재감사와 동작 동결
+
+- O3 방2 병합 뒤 최신 `main` checkout
+- O3 diff와 현재 BLUEPRINT 재독
+- Progressive/legacy/persistence dependency inventory 재생성
+- golden session fixtures: flat/open/validation/vent/crisis, team, branch, seal, restore
+- 현재 export/import/sync failure characterization
+- production row-count/manual evidence plan
+
+exit:
+
+- 현행 사용자 여정과 legacy 진입 조건이 fixture로 고정
+- O3 파일 overlap 0
+- 다음 PR의 file allowlist 확정
+
+#### S1 — 경계 추출, 거동 불변
+
+- domain command/event/reducer skeleton
+- AI port, archive port
+- Progressive controller와 presentation 분리 시작
+- Legacy Adapter 도입
+- 기존 store/engine을 adapter 뒤에 놓고 output parity 유지
+
+exit:
+
+- UI에서 Supabase direct call 0
+- domain에서 React/Zustand/Supabase/LLM import 0
+- Progressive의 legacy direct import 0
+- golden session output/route parity
+
+#### S2 — 웹 account archive shadow
+
+- IndexedDB outbox
+- existing `project_semantic_events` gateway 확장
+- immutable artifact store
+- reducer projection과 current JSONB projection shadow 비교
+- sync status ack/pending/error truth model
+- E2 server schema는 사용자 표면 전에 별도 확정
+
+exit:
+
+- offline→online exact retry loss/duplicate 0
+- concurrent device authorial loss 0
+- cross-account access 0
+- shadow projection mismatch 원인 100% 분류
+- legacy read canonical은 아직 유지
+
+#### S3 — 계정 이동성·백업·복원
+
+- anonymous→account transactional migration + receipt
+- complete archive bundle
+- import dry-run/conflict/integrity validation
+- export→delete→restore roundtrip
+- secrets exclusion
+- DB/object backup runbook + restore rehearsal
+
+exit:
+
+- 로그인 사용자의 server-only data restore 가능
+- user-scoped table/object 누락 0
+- export secret/token 원문 0
+- partial restore를 성공으로 표시하는 경로 0
+
+#### S4 — read canonical 전환과 Progressive 분해
+
+- event+artifact reducer를 logged-in web read canonical로 전환
+- `progressive_sessions.data`는 compatibility projection/cache
+- phase component와 use-case controller 분해
+- store는 ephemeral UI + projection subscription으로 축소
+- prompt files를 bounded purpose로 나누되 prompt single-source 유지
+
+exit:
+
+- 새 사용자 행동의 monolithic JSONB last-write-wins 의존 0
+- reload/cross-device/branch/checkpoint/seal parity
+- 사용자 저자성·AI 후보·influence trace 혼합 0
+- 거대 파일을 단순 잘라낸 circular import 0
+
+#### S5 — Reframe web 퇴역
+
+- 신규 legacy writes 0
+- old project read-only archive와 export/restore 확인
+- direct route/link 제거
+- legacy coaching/context fallback 제거
+- component/store/table cleanup
+
+exit:
+
+- 사용자 원문 손실 0
+- Telegram quick check regression 0
+- plugin clarify framing regression 0
+- `src/` legacy direct import 0 (Legacy Adapter/migrator allowlist 제외)
+
+#### S6 — MCP/플러그인 durable home 수렴 (O3 완료 뒤 별도)
+
+- catch-up, parity, lifecycle tools, friendly discovery
+- local canonical promotion gate
+- project `.argus` projection 전환
+- optional account event replication
+
+exit:
+
+- project 삭제/worktree 이동 뒤 archive 발견
+- local-only 사용의 network content egress 0
+- export→purge→restore byte/semantic parity
+- plugin/MCP/statusline/LOGBOOK 동일 fold
+
+### 15.11 Progressive 분해 시 금지하는 리팩터링
+
+- 3,947줄 파일을 의미 경계 없이 여러 component로 잘라 circular prop drilling만 만드는 일
+- store action 이름만 바꾸고 monolithic mutable session을 그대로 정본으로 두는 일
+- UI 개편과 canonical storage 전환을 같은 PR에서 하는 일
+- old JSON을 보고 존재하지 않았던 event history를 합성하는 일
+- `localStorage → IndexedDB`만 하고 클라우드 durability가 해결됐다고 말하는 일
+- Supabase DB backup을 사용자별 restore 기능이라고 부르는 일
+- export만 만들고 import/restore를 미루는 일
+- `encrypted at rest`를 zero-knowledge/E2EE라고 표현하는 일
+- AI artifact 수락 클릭을 사용자 독립 판단 표본으로 승격하는 일
+- O3가 확정한 명령·패키징·Boss 언어를 후속 저장 공정이 다시 이름 붙이는 일
+- K/E/O의 canonical schema를 복제한 새 평행 타입·테이블을 만드는 일
+
+### 15.12 후속 세션 시작 체크리스트
+
+후속 세션은 기억에 의존하지 않고 이 순서로 시작한다.
+
+1. `git fetch --all --prune`
+2. O3 방2 PR/merge commit과 changed files 확인
+3. 최신 `main`에서 새 branch 생성 (`codex/` prefix)
+4. `docs/ARGUS-BLUEPRINT.md` 현재 공정과 §8 대기 목록 확인
+5. 이 문서 §15의 기준선 수치를 다시 측정해 drift 기록
+6. PR #177의 E1/E2 control plane이 main에 존재하고 tests green인지 확인
+7. K active branch/PR과 `src/lib/semantic-v4/**`, `argus-mcp/src/v4/**` 소유권 확인
+8. O3 소유 `argus-plugin-v2/**`, MCP public tools, commands, install docs와 overlap 확인
+9. S0 외 구현에 들어가기 전에 file allowlist와 rollback point 확정
+10. 새 user-scoped table 추가 시 RLS, USER_DATA_TABLES, erasure/export coverage,
+    schema drift test를 같은 커밋에 포함
+11. 각 PR에서 `현재 정본`, `shadow`, `projection`, `legacy`를 본문에 명시
+12. 실제 Supabase 적용 전 staging migration, RLS adversarial test, backup receipt 확보
+
+O3 방2가 이 문서의 가정과 다른 구조를 확정했다면 O3를 억지로 되돌리지 않는다.
+실제 병합 코드를 다시 감사하고, 변한 가정과 이 handoff의 어느 절을 수정해야 하는지
+먼저 기록한 뒤 S0에서 수렴한다.
+
+### 15.13 성공의 최종 모습
+
+사용자는 저장 기술을 이해하지 않아도 다음을 정확히 안다.
+
+- 익명 웹: `이 브라우저에만 저장됨`
+- 로그인 웹: `계정에 저장됨`, 마지막 동기화와 실패 여부
+- MCP/플러그인: `내 컴퓨터의 이 폴더에 원본이 있음`, 폴더 열기
+- 모든 표면: 전체 기록 다운로드와 실제 복원
+- AI가 만든 말, 내가 한 말, 내가 고친 말, 내가 승인한 자기지식, 실제 미래 영향이
+  서로 다른 출처로 보임
+- 구형 Reframe 기록은 사라지지 않지만 새 제품의 구조를 계속 오염시키지 않음
+- Progressive는 하나의 거대한 블랙박스가 아니라 같은 판단 원장을 읽는 섬세한 화면
+- Supabase 장애, 브라우저 삭제, 프로젝트 이동, 플러그인 제거 중 하나가 곧바로
+  사용자의 사고 이력 소실로 이어지지 않음
+
+이 후속 공정의 목적은 코드를 예쁘게 나누는 것이 아니다. 사용자의 사고 과정이
+**어디에 있고, 누가 썼고, 무엇이 바뀌었고, 복구할 수 있는지**를 제품이 거짓 없이
+보장하게 만드는 것이다.
