@@ -7,7 +7,7 @@ root.
 
 ```text
 .argus/
-├── config.yaml                  # User plugin config: boss MBTI, locale
+├── config.yaml                  # User plugin config: locale, boss seat (role/owns/goals/authority + optional tone)
 ├── sessions/
 │   └── {session-id}/
 │       ├── session.json         # Top-level session record

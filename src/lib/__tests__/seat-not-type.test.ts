@@ -47,3 +47,44 @@ describe('R42 — webapp review prompt anchors to the seat on both locales', () 
     expect(review).toMatch(/더 크게/);
   });
 });
+
+describe('O3 방3 — the plugin boss STRUCTURE is seat-first, not type-first', () => {
+  // R42 fixed the prompt RULES; 방3 flips the remaining MBTI-first STRUCTURE
+  // (required config key, type-labeled report header, forced catch-phrase gate,
+  // minItems concern manufacturing). These pins keep it flipped.
+  const configSchema = JSON.parse(
+    readFileSync(join(process.cwd(), 'argus-plugin-v2/data/schemas/config.json'), 'utf8'),
+  ) as { properties: { boss: { required: string[]; properties: Record<string, { description?: string }> } } };
+  const dmSchema = JSON.parse(
+    readFileSync(join(process.cwd(), 'argus-plugin-v2/data/schemas/dm-feedback.json'), 'utf8'),
+  ) as { properties: { concerns: { minItems?: number; items: { required: string[] } } } };
+  const configure = readFileSync(join(process.cwd(), 'argus-plugin-v2/skills/configure/SKILL.md'), 'utf8');
+
+  it('config schema: boss no longer REQUIRES a type; seat fields exist; mbti_code is legacy tone alias', () => {
+    const bossSchema = configSchema.properties.boss;
+    expect(bossSchema.required).toEqual([]);
+    for (const f of ['role', 'owns', 'goals', 'authority', 'tone']) {
+      expect(bossSchema.properties[f], `boss.${f} must exist`).toBeDefined();
+    }
+    expect(bossSchema.properties['mbti_code']!.description).toMatch(/LEGACY/);
+  });
+
+  it('dm-feedback: empty concerns allowed (minItems concern-manufacturing retired), every concern carries seat_basis', () => {
+    expect(dmSchema.properties.concerns.minItems).toBeUndefined();
+    expect(dmSchema.properties.concerns.items.required).toContain('seat_basis');
+  });
+
+  it('boss step: seat block feeds the prompt; the report never surfaces the type label', () => {
+    expect(boss).toMatch(/You own: \{\{boss\.owns\}\}/);
+    expect(boss).toMatch(/Your authority: \{\{boss\.authority\}\}/);
+    expect(boss).not.toMatch(/\{\{mbti_code\}\} \{\{boss\.name\}\}/); // 구 헤더 부활 금지
+    expect(boss).not.toMatch(/literally the differentiator/); // 구 M7(MBTI=차별점) 부활 금지
+    expect(boss).not.toMatch(/MUST contain at least one exact phrase/); // 입버릇 복창 게이트 은퇴
+  });
+
+  it('configure: gathers the seat, never quizzes the user into a type', () => {
+    expect(configure).toMatch(/owns/);
+    expect(configure).toMatch(/authority/);
+    expect(configure).not.toMatch(/map to one of the 16/); // 2-question 성격 매퍼 은퇴
+  });
+});

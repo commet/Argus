@@ -10,7 +10,16 @@
     "persona_role": { "type": "string" },
     "mbti_type": {
       "type": ["string", "null"],
-      "description": "MBTI code (ISTJ, INTJ, etc.) from boss-types.yaml. null when the review ran in generic-stakeholder mode (no boss configured)."
+      "description": "TONE skin code (legacy field name kept for reader compat). Records boss.tone (or legacy boss.mbti_code); null when no tone was set or the review ran in generic-stakeholder mode. Storage metadata only — never surfaced in the report (R42)."
+    },
+    "seat": {
+      "type": "object",
+      "description": "The stakeholder seat this review spoke from (O3 방3) — echo of config boss.owns/goals/authority at review time.",
+      "properties": {
+        "owns": { "type": "string" },
+        "goals": { "type": "string" },
+        "authority": { "type": "string" }
+      }
     },
     "first_reaction": {
       "type": "string",
@@ -23,15 +32,19 @@
     },
     "concerns": {
       "type": "array",
-      "minItems": 1,
-      "description": "At least one concern is required — a zero-concern rubber-stamp is forbidden. A real stakeholder always has at least one reservation; if the scaffold is genuinely strong, raise the weakest point or a condition under which it fails.",
+      "description": "May be EMPTY: on a clean, reversible, verified scaffold, `concerns: []` plus one approval_condition is the correct honest output (R42 restraint / the mirror clause — a stakeholder who invents objections to seem rigorous is over-firing). The old minItems:1 rule forced concern manufacturing and is deliberately retired (O3 방3). When concerns exist, each must be anchored to the seat.",
       "items": {
         "type": "object",
-        "required": ["text", "severity", "fix_suggestion"],
+        "required": ["text", "seat_basis", "severity", "fix_suggestion"],
         "properties": {
           "text": {
             "type": "string",
             "description": "The concern — must point to WHERE (section/line)."
+          },
+          "seat_basis": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Which owned stake this concern threatens — the seat's objective function speaking (e.g. '배포 안정성 소유자로서'). The mechanical form of R42: no seat, no concern."
           },
           "severity": {
             "enum": ["critical", "important", "minor"],

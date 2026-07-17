@@ -4,6 +4,34 @@ All notable changes to the Argus plugin. Versioning follows
 [semver](https://semver.org); users receive an update only when the
 `version` in `.claude-plugin/plugin.json` is bumped.
 
+## 2.10.0 — 2026-07-17
+
+Boss review, seat-first (공정 O3 방3): the stakeholder pressure-check now draws
+its substance from the SEAT — role, what it owns, its goals and authority — and
+personality is demoted to an optional voice skin. Grounded in R42's head-to-head
+(all surviving value came from the seat; 0/5 from the MBTI type) and the product
+evaluation's "personality-test theater" warning.
+
+- **Config**: `boss` block is seat-first — `role` / `owns` / `goals` /
+  `authority` (+ `name`, `gender`). `tone` is an optional 16-preset voice skin;
+  legacy `mbti_code` still works as a tone alias, so existing configs keep
+  their voice. Nothing requires a type anymore.
+- **Prompt**: the seat block leads ("You own …", "Your authority … — speak only
+  within it"); the tone skin is injected only as voice, with the type code kept
+  out of the prompt entirely so it can never leak.
+- **Mechanical anchor**: every concern must carry `seat_basis` (schema-required)
+  — the old M2 catch-phrase mimicry gate is retired as theater; the new
+  deterministic check is "no seat, no concern". Report header no longer shows a
+  type label (fixes R42's own "never surface it" rule).
+- **Over-fire fix**: `dm-feedback.json` no longer forces `minItems: 1` concerns
+  — on a clean, verified, reversible scaffold, `concerns: []` plus one approval
+  condition is the honest output (the schema was contradicting the skill's own
+  R42 restraint rule).
+- **Configure**: gathers the seat in one compact turn; the two-question MBTI
+  quiz mapper is retired. `seat-not-type.test.ts` pins the structure (no
+  required type, seat fields present, no type label in the report, no concern
+  manufacturing).
+
 ## 2.9.0 — 2026-07-17
 
 Commands 20 → 5 (공정 O3 방2): one quiet product, five doors, and a structural

@@ -725,6 +725,16 @@ Desktop은 README 설정 그대로가 전 도구 실패, 영수증 렌더러는 
   statusline과 동형 fold; 흡수된 session-start 훅은 LOGBOOK 신선도·첫 안내·
   수확 큐만). activation-contract.test.ts가 메뉴 목록·문 잠금·fan-out 폐포·
   부활 금지·help 범위를 전부 CI로 고정.)
+  (방3 준공 2026-07-17 — Boss 교체: MBTI 성격극 → **자리(seat)-우선** 이해관계자
+  리뷰. config boss 블록의 정본 = role·owns·goals·authority(스키마 required에서
+  mbti_code 제거), 16타입은 선택 tone 스킨으로 강등(legacy mbti_code 키 = tone
+  별칭, 하위호환). 프롬프트는 자리 블록 선두 + 모든 우려에 seat_basis 필수 —
+  M2를 입버릇-복창 게이트에서 자리-앵커 결정론 검사로 교체, 보고 헤더의 타입
+  라벨 제거(R42 "never surfaced" 자기위반 수리), M7 재정의(차별점 = 책임).
+  dm-feedback의 minItems:1 우려-제조 강제도 폐기 — 깨끗한 스캐폴드엔
+  concerns:[]가 정직한 출력(스키마가 스킬의 R42 절제 규칙과 모순이었음).
+  seat-not-type.test.ts가 구조 회귀를 고정. 근거: R42 실측(가치는 전부 자리,
+  타입 0/5) + 평가 문서 §4.4 personality-theater 경고.)
 - exit: [x] fresh install 명령 1개 [x] activation 계약 테스트(자동 deep review 0)
 
 **공정 O4 · 증거 관문 (공정이 아니라 판정 — §6 준공 검사·P5 가치 관문과 한 몸)**

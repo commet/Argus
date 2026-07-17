@@ -24,9 +24,14 @@ were a stale design and are gone):
 
 - **`locale`** — `ko` | `en`. Language for prompts, AskUserQuestion options, and
   generated output. *(required)*
-- **`boss`** *(optional block)* — the stakeholder the boss step (`/argus:review`) pressure-checks
-  against: `mbti_code` (one of the 16 in `data/boss-types.yaml`), `name`, `gender`
-  (`남`/`여` or `male`/`female`), `role` (free text, default `팀장` / `Team Lead`).
+- **`boss`** *(optional block)* — the stakeholder the boss step (`/argus:review`)
+  pressure-checks against, defined SEAT-FIRST (R42 — the seat is the value, not a
+  personality type): `role` (the chair, default `팀장` / `Team Lead`), `owns`
+  (what the seat is accountable for — the highest-value field), `goals` (current
+  priorities), `authority` (what they can approve/refuse vs must escalate),
+  `name`, `gender` (`남`/`여` or `male`/`female`), and an optional voice skin
+  `tone` (one of the 16 presets in `data/boss-types.yaml`; legacy key
+  `mbti_code` still works and means the same thing — tone only).
 - **`archive.commit_sessions`** — `true`/`false`. Whether `/argus:versions` offers to
   git-commit `.argus/sessions/` when a decision completes. Default `false`.
 - **`team`** *(optional, advanced)* — `max_agents_override` (1–6), `preferred_agents`
@@ -46,16 +51,21 @@ Read `.argus/config.yaml`.
 **Ask 1 · Language** — `AskUserQuestion`: 한국어 / English. → `locale`. (If the user's
 language is obvious, offer the detected one first.)
 
-**Ask 2 · Boss persona?** — "Set up the stakeholder Argus pressure-checks your
-decisions against in the boss step of `/argus:review`? You can skip — a generic reviewer is used."
-- **Yes** → gather in ONE compact turn (one message, not four prompts):
-  - `name` — free text (e.g. `박 팀장`, `Alex`).
-  - `role` — free text; default `팀장` (ko) / `Team Lead` (en).
-  - `gender` — `남`/`여` (ko) or `male`/`female` (en).
-  - `mbti_code` — ask for the 4-letter code if they know it. If they don't, ask two
-    quick either/or questions (decisive vs. consensus-seeking; detail/process vs.
-    big-picture) and map to one of the 16. It **must** be a real code from
-    `data/boss-types.yaml` (ISTJ … ENTJ).
+**Ask 2 · Boss (stakeholder seat)?** — "Set up the stakeholder Argus
+pressure-checks your decisions against in the boss step of `/argus:review`?
+You can skip — a generic decision-owner review is used."
+- **Yes** → gather the SEAT in ONE compact turn (one message, not six prompts —
+  every field but `role` is skippable):
+  - `role` — the chair they sit in; default `팀장` (ko) / `Team Lead` (en).
+  - `owns` — "그분이 책임지는 것 한 줄이면요? (예: 팀 로드맵과 서비스 안정성)" —
+    the single highest-value answer; encourage but never require.
+  - `goals` — "요즘 그분의 최우선 목표는?" (one line).
+  - `authority` — "그분이 직접 승인/반려할 수 있는 범위는? 위로 올려야 하는 건?"
+  - `name` / `gender` — free text / `남`·`여` (`male`/`female`).
+  - `tone` *(optional, LAST, low-key)* — "말투 느낌을 정할까요? 아는 16-코드가
+    있으면 적어주세요 (예: ISTJ). 없으면 넘어가도 됩니다 — 말투일 뿐, 리뷰
+    내용에는 영향이 없습니다." Do NOT quiz the user into a type (the old
+    two-question mapper was personality theater — retired in O3 방3).
 - **Skip** → omit the entire `boss:` block (don't write an empty one).
 
 **Ask 3 · Commit session files?** — "When a decision ends, should `/argus:versions` offer
@@ -75,10 +85,13 @@ the user hand-added). Shape:
 ```yaml
 locale: ko
 boss:
-  mbti_code: ISTJ
   name: "박 팀장"
-  gender: 남
   role: "팀장"
+  owns: "팀 분기 로드맵과 서비스 안정성"
+  goals: "이번 분기 신뢰성 사고 0건, 일정 준수"
+  authority: "머지·배포 승인과 일정 조정. 예산·인사는 상신."
+  gender: 남
+  tone: ISTJ
 archive:
   commit_sessions: false
 ```
@@ -91,10 +104,10 @@ One short screen — the saved values + the path — then point onward:
 ```text
 ✓ Saved to .argus/config.yaml
   language        한국어
-  boss            박 팀장 · 팀장 · ISTJ      (omit line if skipped)
+  boss            박 팀장 · 팀장 · 소유: 서비스 안정성   (omit line if skipped; never print the tone code)
   commit sessions off
 
-Try: /argus:sail "<a real decision you're weighing>"
+Try: /argus:review "<a real decision you're weighing>"
 ```
 
 ## Forbidden patterns

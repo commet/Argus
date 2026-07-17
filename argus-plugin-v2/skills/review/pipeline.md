@@ -149,7 +149,7 @@ If `.argus/.gitignore` already exists but lacks the `ledger/` line (it predates 
 
 **Substitute the detected locale into the written config — do not leave the template's `locale: ko`.** The template defaults to Korean; if you write it verbatim, every downstream output is Korean regardless of the user. After detecting locale (below):
 - Set `locale:` in the written config to the detected value.
-- If detected locale is `en`, also replace the Korean boss persona with English defaults: `name: "Manager"`, `gender: male`, `role: "Manager"` (keep `mbti_code: ISTJ`). If `ko`, keep the template's `박 팀장`.
+- If detected locale is `en`, also replace the Korean boss persona with English defaults: `name: "Manager"`, `gender: male`, `role: "Manager"`, and translate the seat fields (`owns: "team roadmap & service reliability"`, `goals: "zero reliability incidents this quarter, ship on schedule"`, `authority: "approves merges/deploys and schedule changes; budget and hiring escalate"`; keep `tone: ISTJ`). If `ko`, keep the template's `박 팀장`.
 
 Print ONE line in the detected locale:
 - ko: "ℹ `.argus/config.yaml` 자동 생성 (ISTJ 박 팀장 기본). 다른 boss 원하면 그 파일 편집."
