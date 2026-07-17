@@ -86,7 +86,8 @@ export function evaluateE3BReleaseGate(
   if (receipt.verdict !== 'pass') return { open: false, reason: 'o4_verdict_not_passed' };
   if (!validDigest(receipt.evidence_digest)) return { open: false, reason: 'evidence_digest_invalid' };
   if (![receipt.thresholds_sealed_at, receipt.study_started_at, receipt.study_completed_at].every(validIso)
-    || Date.parse(receipt.thresholds_sealed_at) >= Date.parse(receipt.study_started_at)) {
+    || Date.parse(receipt.thresholds_sealed_at) >= Date.parse(receipt.study_started_at)
+    || Date.parse(receipt.study_completed_at) - Date.parse(receipt.study_started_at) < 21 * 24 * 60 * 60 * 1_000) {
     return { open: false, reason: 'thresholds_not_presealed' };
   }
   if (receipt.participant_count < 5 || receipt.observation_days < 21
@@ -94,7 +95,8 @@ export function evaluateE3BReleaseGate(
     return { open: false, reason: 'o4_protocol_incomplete' };
   }
   if (!nonIncreasingFunnel(receipt)
-    || receipt.funnel_counts.resolved < receipt.completed_lifecycle_count) {
+    || receipt.funnel_counts.resolved < receipt.completed_lifecycle_count
+    || receipt.funnel_counts.again < receipt.completed_lifecycle_count) {
     return { open: false, reason: 'funnel_invalid' };
   }
   const comprehension = receipt.comprehension;

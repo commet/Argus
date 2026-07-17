@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { commandSemanticFingerprint } from '@/lib/epistemic/domain/decide';
 import { emptyClaimAuthorityState, type AccountContinuityPolicy, type ClaimAuthorityState } from '@/lib/epistemic/domain/types';
-import { buildE3BAuthorityCommand, parseE3BReviewAction } from '@/lib/epistemic/server-review';
+import { buildE3BAuthorityCommand, parseE3BReviewAction, resolveCardSources } from '@/lib/epistemic/server-review';
+import type { ClaimReviewCardProjection, CanonicalSourceEventProjection } from '@/lib/epistemic/patterns-projection';
 
 const NOW = '2026-07-18T03:00:00.000Z';
 const state: ClaimAuthorityState = {
@@ -57,5 +58,30 @@ describe('JCR J9 surface actions', () => {
       user_id: 'user:1', state, policy: { ...policy, sync_origins: ['device:trusted'] }, now: NOW,
       action: { kind: 'endorse', action_id: 'action:3', claim_id: state.claim_id },
     })).toBeNull();
+  });
+
+  it('fails a review card closed unless every observation and resolution can be inspected', () => {
+    const card: ClaimReviewCardProjection = {
+      claim_id: state.claim_id, statement: 'A bounded pattern', claim_kind: 'descriptive_sequence',
+      lifecycle: 'candidate', support_state: 'supported', authority_epoch: 2, aggregate_version: 4,
+      scope: { domains: ['product'] }, counterexamples: [], limitations: [], limitations_en: [],
+      review_question: '맞나요?', review_question_en: 'Does it fit?', active_grants: [],
+      sources: [0, 1, 2].map((index) => ({
+        support_unit_id: `support:${index}`, case_id: `case:${index}`,
+        observation_ref: `observation:${index}`, resolution_event_ref: `resolution:${index}`,
+        observation_authority: 'user', source_cluster_id: `source:${index}`, causal_cluster_id: `causal:${index}`,
+      })),
+    };
+    const source = (event_id: string, event_type: string): CanonicalSourceEventProjection => ({
+      project_id: 'project:1', event_id, event_type, occurred_at: NOW, excerpt: event_id,
+    });
+    const sources = new Map<string, CanonicalSourceEventProjection>();
+    for (let index = 0; index < 3; index += 1) {
+      sources.set(`observation:${index}`, source(`event:observation:${index}`, 'observation_recorded'));
+      sources.set(`resolution:${index}`, source(`event:resolution:${index}`, 'resolution_asserted'));
+    }
+    expect(resolveCardSources(card, sources)?.sources.every((item) => item.drilldown)).toBe(true);
+    sources.delete('resolution:2');
+    expect(resolveCardSources(card, sources)).toBeNull();
   });
 });

@@ -3,12 +3,14 @@ import { commandSemanticFingerprint } from './domain/decide';
 import { projectRawAuthorityEvents } from './domain/upcasters';
 import type { AccountContinuityPolicy, ClaimAuthorityState, InfluenceEffect, InfluenceSurface } from './domain/types';
 import { executeServerAuthorityCommand, type ServerAuthorityResult } from './server-gateway';
+import { SemanticEventSchema, type SemanticEvent } from '@/lib/decision-kernel';
 import {
   projectClaimReviewCard,
   projectPublicPatterns,
   type ClaimReviewCardProjection,
   type ClaimReviewExclusionReason,
   type PublicPatternProjection,
+  type CanonicalSourceEventProjection,
 } from './patterns-projection';
 
 // Supabase is intentionally untyped in this repository. Keep it at the adapter edge.
@@ -36,7 +38,7 @@ export type E3BReviewActionInput = E3BReviewAction extends infer Action
 export interface ServerReviewSnapshot {
   review_cards: ClaimReviewCardProjection[];
   patterns: PublicPatternProjection[];
-  exclusions: Array<{ claim_id: string; reason: ClaimReviewExclusionReason | 'stream_invalid' | 'stream_unknown' }>;
+  exclusions: Array<{ claim_id: string; reason: ClaimReviewExclusionReason | 'stream_invalid' | 'stream_unknown' | 'source_unavailable' }>;
   source_stream_count: number;
 }
 
@@ -184,17 +186,80 @@ export function buildE3BAuthorityCommand(args: {
   return command;
 }
 
+function semanticExcerpt(event: SemanticEvent): string {
+  if ('text' in event) return event.text;
+  if ('statement' in event) return event.statement;
+  if ('review_question' in event) return event.review_question;
+  if ('resolution' in event) {
+    return event.resolution.kind === 'answered'
+      ? event.resolution.answer_summary
+      : event.resolution.reason;
+  }
+  if ('reason' in event && event.reason) return event.reason;
+  return event.event.replaceAll('_', ' ');
+}
+
+function semanticSource(projectId: string, event: SemanticEvent): CanonicalSourceEventProjection {
+  return {
+    project_id: projectId,
+    event_id: event.event_id,
+    event_type: event.event,
+    occurred_at: event.time.occurred_at ?? event.time.recorded_at,
+    excerpt: semanticExcerpt(event),
+  };
+}
+
+function semanticReferenceKeys(event: SemanticEvent): string[] {
+  return [
+    event.event_id,
+    ...('observation_id' in event ? [event.observation_id] : []),
+    ...('resolution_id' in event ? [event.resolution_id] : []),
+  ];
+}
+
+export function resolveCardSources(
+  card: ClaimReviewCardProjection,
+  semanticSources: ReadonlyMap<string, CanonicalSourceEventProjection>,
+): ClaimReviewCardProjection | null {
+  const sources = card.sources.map((source) => {
+    const observation = semanticSources.get(source.observation_ref);
+    const resolution = semanticSources.get(source.resolution_event_ref);
+    if (!observation || !resolution || observation.event_type !== 'observation_recorded'
+      || resolution.event_type !== 'resolution_asserted') return null;
+    return { ...source, drilldown: { observation, resolution } };
+  });
+  if (sources.some((source) => source === null)) return null;
+  return { ...card, sources: sources as ClaimReviewCardProjection['sources'] };
+}
+
 export async function readServerReviewSnapshot(
   admin: AdminClient,
   userId: string,
 ): Promise<ServerReviewSnapshot | null> {
-  const { data, error } = await admin.from('epistemic_authority_events')
-    .select('aggregate_id,event')
-    .eq('user_id', userId)
-    .order('aggregate_version', { ascending: true });
-  if (error) return null;
+  const [authorityRead, semanticRead] = await Promise.all([
+    admin.from('epistemic_authority_events')
+      .select('aggregate_id,event')
+      .eq('user_id', userId)
+      .order('aggregate_version', { ascending: true }),
+    admin.from('project_semantic_events')
+      .select('project_id,event')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: true })
+      .limit(5_001),
+  ]);
+  if (authorityRead.error || semanticRead.error || (semanticRead.data?.length ?? 0) > 5_000) return null;
+  const semanticSources = new Map<string, CanonicalSourceEventProjection>();
+  for (const row of semanticRead.data ?? []) {
+    const parsed = SemanticEventSchema.safeParse(row.event);
+    if (!parsed.success) continue;
+    const event = parsed.data as SemanticEvent;
+    const source = semanticSource(String(row.project_id), event);
+    for (const key of semanticReferenceKeys(event)) {
+      if (!semanticSources.has(key)) semanticSources.set(key, source);
+    }
+  }
   const streams = new Map<string, unknown[]>();
-  for (const row of data ?? []) {
+  for (const row of authorityRead.data ?? []) {
     const claimId = String(row.aggregate_id);
     streams.set(claimId, [...(streams.get(claimId) ?? []), row.event]);
   }
@@ -212,14 +277,29 @@ export async function readServerReviewSnapshot(
     }
     states.push(projection.state);
     const review = projectClaimReviewCard(projection.state);
-    if (review.eligible) reviewCards.push(review.card);
+    if (review.eligible) {
+      const resolved = resolveCardSources(review.card, semanticSources);
+      if (resolved) reviewCards.push(resolved);
+      else exclusions.push({ claim_id: claimId, reason: 'source_unavailable' });
+    }
     else if (projection.state.lifecycle === 'candidate') {
       exclusions.push({ claim_id: claimId, reason: review.reason });
     }
   }
+  const rawPatterns = projectPublicPatterns(states);
+  const patterns = rawPatterns.flatMap((pattern) => {
+    const claim = resolveCardSources(pattern.claim, semanticSources);
+    if (!claim) {
+      if (!exclusions.some((item) => item.claim_id === pattern.claim.claim_id)) {
+        exclusions.push({ claim_id: pattern.claim.claim_id, reason: 'source_unavailable' });
+      }
+      return [];
+    }
+    return [{ ...pattern, claim }];
+  });
   return {
     review_cards: reviewCards.sort((a, b) => a.claim_id.localeCompare(b.claim_id)),
-    patterns: projectPublicPatterns(states).sort((a, b) => a.claim.claim_id.localeCompare(b.claim.claim_id)),
+    patterns: patterns.sort((a, b) => a.claim.claim_id.localeCompare(b.claim.claim_id)),
     exclusions,
     source_stream_count: streams.size,
   };

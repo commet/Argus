@@ -69,8 +69,21 @@ export function ClaimReviewCard({
                   {card.sources.map((source, index) => (
                     <li key={source.support_unit_id} className="rounded-lg bg-[var(--bg)] p-3 text-[12px] leading-5 text-[var(--text-secondary)]">
                       <p className="font-semibold text-[var(--text-primary)]">{L(`해결 사례 ${index + 1}`, `Resolved case ${index + 1}`)}</p>
-                      <p className="mt-1 break-all">{L('관찰', 'Observation')}: {source.observation_ref}</p>
-                      <p className="break-all">{L('정산', 'Resolution')}: {source.resolution_event_ref}</p>
+                      {source.drilldown ? <>
+                        <div className="mt-2 border-l-2 border-[var(--accent)]/40 pl-2">
+                          <p className="font-semibold text-[var(--text-primary)]">{L('당시 관찰', 'Observation then')}</p>
+                          <p>{source.drilldown.observation.excerpt}</p>
+                          <p className="mt-1 break-all text-[10px] text-[var(--text-tertiary)]">{source.drilldown.observation.event_id} · {source.drilldown.observation.occurred_at}</p>
+                        </div>
+                        <div className="mt-2 border-l-2 border-[var(--primary)]/40 pl-2">
+                          <p className="font-semibold text-[var(--text-primary)]">{L('나중의 정산', 'Resolution later')}</p>
+                          <p>{source.drilldown.resolution.excerpt}</p>
+                          <p className="mt-1 break-all text-[10px] text-[var(--text-tertiary)]">{source.drilldown.resolution.event_id} · {source.drilldown.resolution.occurred_at}</p>
+                        </div>
+                      </> : <>
+                        <p className="mt-1 break-all">{L('관찰', 'Observation')}: {source.observation_ref}</p>
+                        <p className="break-all">{L('정산', 'Resolution')}: {source.resolution_event_ref}</p>
+                      </>}
                       <p className="break-all">{L('출처 묶음', 'Source cluster')}: {source.source_cluster_id}</p>
                     </li>
                   ))}

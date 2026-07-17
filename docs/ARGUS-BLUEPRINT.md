@@ -825,6 +825,8 @@ Judgment Recall, Context Compiler, portability/erasure의 구현 순서와 검�
   use receipt/trace 분리, artifact, sync, restore/erasure를 사용자 표면 없이 닫는다.
 - **E3B · 자기지식 검토 표면:** **O4 통과 후에만.** K C3 후보를 관찰·반례·범위·질문
   카드로 투영하며 endorse와 grant를 한 탭으로 합치지 않는다.
+  (2026-07-18 J9 구현은 closed gate 뒤 완료: canonical source fail-closed review,
+  분리 grant UX, 5차원 bounded projection. 실제 O4/comprehension receipt가 없어 공개 404 유지.)
 - **E4 · 합성 관점 방화벽 (선행조건 충족):** O3 Boss 교체가 PR #180으로 완료됐다.
   role-play 수렴을 현실 합의나 증거 가중치로 바꾸는 경로를 제거한다.
 

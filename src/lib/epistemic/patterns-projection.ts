@@ -15,6 +15,18 @@ export interface ClaimSourceProjection {
   valid_time?: string;
   source_cluster_id: string;
   causal_cluster_id: string;
+  drilldown?: {
+    observation: CanonicalSourceEventProjection;
+    resolution: CanonicalSourceEventProjection;
+  };
+}
+
+export interface CanonicalSourceEventProjection {
+  project_id: string;
+  event_id: string;
+  event_type: string;
+  occurred_at: string;
+  excerpt: string;
 }
 
 export interface CounterexampleProjection {

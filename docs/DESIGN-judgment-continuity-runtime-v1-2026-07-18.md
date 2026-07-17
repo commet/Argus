@@ -1654,6 +1654,10 @@ exit: export→delete→restore + account/local erasure receipts
 
 exit: E3B gate와 user comprehension study 통과
 
+2026-07-18 구현 메모: review/API/projection/UI와 receipt validator는 closed gate 뒤에
+완료했다. `docs/EVIDENCE-jcr-j9-e3b-gated-surface-2026-07-18.md`. 실제 O4 pass와
+comprehension study는 아직 수행되지 않았으므로 exit와 public activation은 미통과다.
+
 ### dependency
 
 ```text
