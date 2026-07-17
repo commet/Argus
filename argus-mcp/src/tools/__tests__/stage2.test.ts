@@ -49,7 +49,11 @@ describe('resources', () => {
     expect(receipt.outcome).toBe('held');
   });
 
-  it('degrades cleanly to unbound when ARGUS_DIR is not set', () => {
+  it('degrades cleanly to unbound when ARGUS_DIR is set but unexpanded', () => {
+    // No-env now resolves to the zero-config ~/.argus like tools do (§9.7 O1
+    // 방2 — full contract in lib/__tests__/resource-argus-dir.test.ts); the
+    // clean-degrade path that remains is a SET-but-invalid ARGUS_DIR.
+    process.env['ARGUS_DIR'] = '${CLAUDE_PROJECT_DIR}/.argus';
     const ledger = JSON.parse(readResource('argus://ledger').contents[0].text);
     expect(ledger.unbound).toBe(true);
   });

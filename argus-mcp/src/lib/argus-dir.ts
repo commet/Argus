@@ -4,17 +4,21 @@ import path from 'path';
 import { boundMarkerPath } from './layout.js';
 
 /**
- * argus_dir resolution + precedence (blueprint §4.0 + addendum A/B).
+ * argus_dir resolution + precedence (blueprint §4.0 + addendum A/B; §9.7 O1).
  *
  * The `${workspaceFolder}` config variable only expands in VS Code — Claude
  * Code expands `${CLAUDE_PROJECT_DIR}`, others expand nothing. So env
  * interpolation is the LEAST reliable channel and must come last. Tools always
  * receive a per-call `argus_dir`, which works on every host, so that wins.
  *
- * Precedence:
- *   1. per-call `argus_dir` argument            (works on every host)
- *   2. last dir written to `.bound` by argus_init (read-side for Resources)
- *   3. ARGUS_DIR env                            (host-dependent interpolation)
+ * Precedence (tools and resources must tell the same storage story):
+ *   tools:     1. per-call `argus_dir`  2. ARGUS_DIR env  3. ~/.argus default
+ *   resources: (no per-call channel)   1. ARGUS_DIR env  2. ~/.argus default
+ *
+ * One deliberate asymmetry: an ARGUS_DIR that is SET but invalid makes a tool
+ * THROW (requireArgusDir) but makes a resource return null/unbound — resources
+ * can't error usefully, and silently reading a ledger the user didn't
+ * configure would be worse than degrading.
  */
 
 export class ArgusDirError extends Error {
@@ -119,12 +123,25 @@ function readBoundList(argusDir: string): string[] {
 
 /**
  * Resolve argus_dir for a Resource read (no per-call arg available).
- * Returns null (unbound) rather than throwing — the Resource degrades cleanly.
+ *
+ * Mirrors the tool chain minus the per-call arg: ARGUS_DIR env, else the same
+ * zero-config `~/.argus` default that tools write to — so a zero-config
+ * install's passive attention surface reads the SAME ledger its tools use.
+ * (§9.7 O1 방2. Previously env-only, which left every zero-config install's
+ * `argus://attention` permanently `{unbound}` while argus_predict happily
+ * wrote to ~/.argus — the return loop's front door was dark.)
+ *
+ * Stays null (unbound, cleanly degraded) ONLY when ARGUS_DIR is set but
+ * invalid — unexpanded `${...}`/`%...%` or a relative path. Falling back to
+ * ~/.argus in that case would silently read a different ledger than the one
+ * the user configured; unbound-with-hint is the resource's honest-failure
+ * form of the requireArgusDir throw.
  */
 export function resolveArgusDirForResource(): string | null {
   const env = process.env['ARGUS_DIR'];
-  if (typeof env === 'string' && env.length > 0 && path.isAbsolute(env)) {
+  if (typeof env === 'string' && env.length > 0) {
+    if (/\$\{[^}]*\}|%[A-Za-z_]+%/.test(env) || !path.isAbsolute(env)) return null;
     return path.resolve(env);
   }
-  return null;
+  return path.join(os.homedir(), '.argus');
 }
