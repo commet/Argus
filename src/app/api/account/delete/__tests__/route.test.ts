@@ -12,7 +12,10 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 let tokenUser: { id: string } | null = { id: 'user-1' };
 let deleteError: { message: string } | null = null;
+let artifactReadError: { message: string } | null = null;
+let storageRemoveError: { message: string } | null = null;
 const deletedTables: string[] = [];
+const removedObjects: string[] = [];
 const deleteUserSpy = vi.fn(() => Promise.resolve({ error: null }));
 
 function authClient() {
@@ -24,6 +27,14 @@ function adminClient() {
   return {
     from(table: string) {
       return {
+        select: () => ({
+          eq: () => Promise.resolve({
+            data: table === 'epistemic_artifact_descriptors'
+              ? [{ object_locator: 'user-1/sha256/aa/hash', staging_locator: 'user-1/staging/a/tmp' }]
+              : [],
+            error: artifactReadError,
+          }),
+        }),
         delete: () => ({
           eq: () => {
             if (deleteError) return Promise.resolve({ count: null, error: deleteError });
@@ -32,6 +43,14 @@ function adminClient() {
           },
         }),
       };
+    },
+    storage: {
+      from: () => ({
+        remove: (paths: string[]) => {
+          removedObjects.push(...paths);
+          return Promise.resolve({ error: storageRemoveError });
+        },
+      }),
     },
     auth: { admin: { deleteUser: deleteUserSpy } },
   };
@@ -56,7 +75,10 @@ beforeEach(() => {
   vi.stubEnv('SUPABASE_SERVICE_ROLE_KEY', 'svc-key');
   tokenUser = { id: 'user-1' };
   deleteError = null;
+  artifactReadError = null;
+  storageRemoveError = null;
   deletedTables.length = 0;
+  removedObjects.length = 0;
   deleteUserSpy.mockClear();
 });
 afterEach(() => vi.unstubAllEnvs());
@@ -94,8 +116,19 @@ describe('POST /api/account/delete — auth + erasure receipt', () => {
     expect(json.ok).toBe(true);
     expect(json.identityDeleted).toBe(true);
     expect(deletedTables.length).toBeGreaterThan(0);
+    expect(removedObjects).toEqual(['user-1/sha256/aa/hash', 'user-1/staging/a/tmp']);
     expect(deleteUserSpy).toHaveBeenCalledWith('user-1');
     expect(json.receipt['auth.users']).toBe('deleted');
+  });
+
+  it('keeps descriptor rows and identity when object erasure fails', async () => {
+    storageRemoveError = { message: 'bucket unavailable' };
+    const res = await POST(req('good'));
+    const json = await res.json();
+    expect(res.status).toBe(500);
+    expect(deletedTables).toHaveLength(0);
+    expect(deleteUserSpy).not.toHaveBeenCalled();
+    expect(String(json.receipt['storage:epistemic-artifacts'])).toContain('bucket unavailable');
   });
 
   it('KEEPS the auth identity when any table delete fails (no orphaned data)', async () => {

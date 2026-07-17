@@ -22,7 +22,9 @@ import { USER_DATA_TABLES } from '../user-data-tables';
  */
 const LIVE_USER_SCOPED_TABLES = [
   'accuracy_ratings', 'agent_activities', 'agent_chains', 'agents',
-  'decision_items', 'decision_quality_scores', 'feedback_records', 'human_agent_messages',
+  'decision_items', 'decision_quality_scores', 'epistemic_account_policies',
+  'epistemic_artifact_descriptors', 'epistemic_authority_events', 'epistemic_command_receipts',
+  'epistemic_projection_outbox', 'epistemic_use_receipts', 'feedback_records', 'human_agent_messages',
   'judgment_records', 'outcome_records', 'personas', 'plugin_bearings',
   'plugin_decisions', 'plugin_events', 'plugin_tokens', 'progressive_sessions', 'project_semantic_events', 'projects',
   'quality_signals', 'rate_limits', 'recast_items', 'reframe_items',

@@ -120,13 +120,13 @@ describe('J6 known debt — capture has two brains and no production consumer', 
   });
 });
 
-describe('J4/J8 known debt — authority storage and portability are not live', () => {
-  it('exports server rows but has no restore contract or JCR tables yet', () => {
+describe('J4 closed / J8 known debt — authority rows exist but portability is not live', () => {
+  it('covers JCR server rows while keeping object export and restore visibly unsupported', () => {
     expect(accountExport).toContain('for (const table of USER_DATA_TABLES)');
     expect(accountExport).not.toContain('artifacts/sha256');
     expect(settings).toContain("Restoring it into the app isn't supported yet.");
-    expect(userDataTables).not.toContain('epistemic_authority_events');
-    expect(userDataTables).not.toContain('epistemic_use_receipts');
-    expect(userDataTables).not.toContain('artifact_descriptors');
+    expect(userDataTables).toContain('epistemic_authority_events');
+    expect(userDataTables).toContain('epistemic_use_receipts');
+    expect(userDataTables).toContain('epistemic_artifact_descriptors');
   });
 });
