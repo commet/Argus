@@ -2,8 +2,12 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
-import { spawnSync } from 'node:child_process';
+import { spawnSync, execFile } from 'node:child_process';
+import { promisify } from 'node:util';
 import { replayLedger } from '../ledger-replay.js';
+import { appendLedger } from '../ledger-append.js';
+
+const execFileP = promisify(execFile);
 
 /**
  * 교차-표면 계약 (§9.7 O2 exit: 같은 이벤트 fixture → 플러그인/MCP/statusline
@@ -108,5 +112,74 @@ describe('교차-표면 계약 — 세 두뇌, 같은 대답', () => {
     expect(r.stdout).toMatch(/1 decision contract|결정 계약/);
     expect(r.stdout).not.toContain('beta metric');
     expect(r.stdout).not.toMatch(/외 \d+건| 2 /); // one due, not more
+  });
+});
+
+/**
+ * 쓰기 규율 계약 (O2 방3) — 플러그인 CLI는 정본 writer(ledger-append.ts)의
+ * 규율(스탬프·torn-tail heal·O_APPEND·락)을 자기완결로 이식해 갖는다. 런타임
+ * 위임은 기각됐으므로(콜드 npx/오프라인에서 봉인 실패 + 폴백 writer = 경로 2개),
+ * 이 블록이 두 writer의 규율 동등성을 기계로 고정한다 — 어느 한쪽만 고치면
+ * 여기가 빨개진다.
+ */
+describe('쓰기 규율 계약 — 두 writer, 같은 규율 (O2 방3)', () => {
+  const CLI = path.join(REPO_ROOT, 'argus-plugin-v2', 'scripts', 'decision-ledger.js');
+
+  function pluginRepo(): string {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'argus-wparity-'));
+    fs.mkdirSync(path.join(dir, '.argus'), { recursive: true });
+    return dir;
+  }
+  const readLines = (dir: string) =>
+    fs.readFileSync(path.join(dir, '.argus', 'ledger', 'ledger.jsonl'), 'utf8');
+
+  it('스탬프 동형: 두 writer 모두 v·ts를 찍고, 개행으로 끝나며, 전 줄이 파스된다', async () => {
+    const repo = pluginRepo();
+    const r = spawnSync(process.execPath, [CLI, 'record', '--predicate', 'the pipeline stays under budget', '--id', 'wp1', '--check-by', '2099-01-01'], { cwd: repo, encoding: 'utf8' });
+    expect(r.status).toBe(0);
+    const cliRaw = readLines(repo);
+    expect(cliRaw.endsWith('\n')).toBe(true);
+    expect(cliRaw.includes('\r')).toBe(false);
+    const cliEvents = cliRaw.trim().split('\n').map((l) => JSON.parse(l) as Record<string, unknown>);
+    for (const ev of cliEvents) {
+      expect(ev['v']).toBe(1);
+      expect(typeof ev['ts']).toBe('string');
+    }
+
+    const mcpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'argus-wparity-mcp-'));
+    await appendLedger(mcpDir, [{ id: 'wp1', event: 'seal', predicate: 'the pipeline stays under budget', check_by: '2099-01-01' }], '2026-07-17T00:00:00.000Z');
+    const mcpRaw = fs.readFileSync(path.join(mcpDir, 'ledger', 'ledger.jsonl'), 'utf8');
+    expect(mcpRaw.endsWith('\n')).toBe(true);
+    const mcpEv = JSON.parse(mcpRaw.trim()) as Record<string, unknown>;
+    expect(mcpEv['v']).toBe(1);
+    expect(typeof mcpEv['ts']).toBe('string');
+    // 둘 다 상대 replay에서 깨끗하다 (교차 소비 가능 = 규율 동형의 정의)
+    expect(replayLedger(path.join(repo, '.argus'), '2026-07-17').integrity.dropped_lines).toBe(0);
+    expect(replayLedger(mcpDir, '2026-07-17').integrity.dropped_lines).toBe(0);
+  });
+
+  it('torn-tail heal: 개행 없는 손상 꼬리 뒤에 CLI가 append해도 새 이벤트는 살아남는다 (손상은 그 한 줄뿐)', () => {
+    const repo = pluginRepo();
+    const ledgerDir = path.join(repo, '.argus', 'ledger');
+    fs.mkdirSync(ledgerDir, { recursive: true });
+    fs.writeFileSync(path.join(ledgerDir, 'ledger.jsonl'), '{"torn cras'); // 종결자 없는 조각
+    const r = spawnSync(process.execPath, [CLI, 'record', '--predicate', 'the recovery path actually works', '--id', 'heal1', '--check-by', '2099-01-01'], { cwd: repo, encoding: 'utf8' });
+    expect(r.status).toBe(0);
+    const s = replayLedger(path.join(repo, '.argus'), '2026-07-17');
+    expect(s.integrity.dropped_lines).toBe(1); // 찢긴 조각 그 한 줄만
+    expect(s.contracts.get('heal1')?.status).toBe('sealed'); // 새 이벤트는 무사
+  });
+
+  it('동시 쓰기: 5개 CLI가 같은 원장에 동시에 써도 한 줄도 섞이거나 사라지지 않는다 (락)', async () => {
+    const repo = pluginRepo();
+    await Promise.all(
+      [1, 2, 3, 4, 5].map((n) =>
+        execFileP(process.execPath, [CLI, 'record', '--predicate', `concurrent write number ${n} lands intact`, '--id', `con${n}`, '--check-by', '2099-01-01'], { cwd: repo }),
+      ),
+    );
+    const s = replayLedger(path.join(repo, '.argus'), '2026-07-17');
+    expect(s.integrity.dropped_lines).toBe(0);
+    const sealed = [1, 2, 3, 4, 5].filter((n) => s.contracts.get(`con${n}`)?.status === 'sealed');
+    expect(sealed.length).toBe(5);
   });
 });
