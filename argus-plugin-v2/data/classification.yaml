@@ -3,7 +3,7 @@
 # Source: extracted from webapp's src/lib/task-classifier.ts + orchestrator-classify.ts
 # (2026-04-24).
 #
-# Purpose: Plugin skills (especially /argus:team) classify user input at runtime
+# Purpose: Plugin skills (especially the team step (review)) classify user input at runtime
 # via LLM reasoning (option (b) from planning). This file provides the DIMENSIONS
 # and REFERENCE SIGNALS — not deterministic rules. The skill prompt points at
 # this file so the LLM knows the vocabulary it should produce.
@@ -182,7 +182,7 @@ decision_types:
     framework_bias: [Pre-mortem, Kill Criteria, Break-even, SCQA]
 
 # ═══════════════════ Runtime Classification Instructions ═══════════════════
-# Embedded into /argus:team skill prompt.
+# Embedded into the team step (review) skill prompt.
 
 runtime_instructions: |
   When classifying a user task, produce the following JSON:

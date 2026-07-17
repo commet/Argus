@@ -143,7 +143,7 @@
     },
     "routing_decision": {
       "enum": ["proceed_to_boss", "ask_user", "revise_team", "stop_for_human_check"],
-      "description": "Next routing selected by /argus:verify. sail respects this unless the user explicitly overrides."
+      "description": "Next routing selected by the verify step (review). sail respects this unless the user explicitly overrides."
     },
     "user_choice": {
       "type": ["object", "null"],

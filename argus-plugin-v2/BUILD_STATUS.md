@@ -1,5 +1,11 @@
 # Plugin v2 Build Status — 2026-04-24
 
+> **HISTORICAL — frozen at O3 completion (2026-07-17).** This is the 2026-04-24
+> build snapshot; command names, the 16-MBTI boss framing, and file layout have
+> since changed (O3: commands 20→5, driver absorbed, boss seat-first with tone
+> demoted to voice). Kept as a build record; do not update. Current canon:
+> `docs/ARGUS-BLUEPRINT.md` + each skill's SKILL.md.
+
 Comprehensive self-audit of the plugin-v2 build, meta-check gate evaluation, and open items for next session.
 
 ## Files produced

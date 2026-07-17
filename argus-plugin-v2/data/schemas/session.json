@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "argus:session",
   "title": "Session",
-  "description": "A plugin session — one problem being worked through /argus:clarify → :team → :verify → :boss → :revise. Stored as .argus/sessions/{id}/session.json. TEAM-SAFE SKELETON: this file holds only small, slow-changing coordination state (identity, phase, routing, draft-tree pointers). The heavy per-run artifacts (analysis, workers, mix, verification, boss feedback, scaffold) live authoritatively and WRITE-ONCE in versions/{label}/*.json — they are NOT duplicated here, so two teammates committing sessions to git do not collide on a monolithic blob. Session ids carry a short author suffix (see clarify) so the same problem from two people becomes two non-colliding directories that still both travel via git.",
+  "description": "A plugin session — one problem being worked through the clarify step (review) → :team → :verify → :boss → :revise. Stored as .argus/sessions/{id}/session.json. TEAM-SAFE SKELETON: this file holds only small, slow-changing coordination state (identity, phase, routing, draft-tree pointers). The heavy per-run artifacts (analysis, workers, mix, verification, boss feedback, scaffold) live authoritatively and WRITE-ONCE in versions/{label}/*.json — they are NOT duplicated here, so two teammates committing sessions to git do not collide on a monolithic blob. Session ids carry a short author suffix (see clarify) so the same problem from two people becomes two non-colliding directories that still both travel via git.",
   "type": "object",
   "required": ["id", "problem_text", "phase", "created_at", "updated_at"],
   "properties": {
@@ -32,9 +32,14 @@
     },
     "boss_agent": {
       "type": "object",
-      "description": "Configured Boss for this session. Pulled from .argus/config.yaml.",
+      "description": "Configured Boss for this session, echoed from .argus/config.yaml at session start. Seat-first since O3 방3 — role/owns/goals/authority carry the substance; tone is voice only.",
       "properties": {
-        "mbti_code": { "type": "string" },
+        "role": { "type": "string" },
+        "owns": { "type": "string" },
+        "goals": { "type": "string" },
+        "authority": { "type": "string" },
+        "tone": { "type": "string", "description": "Optional voice-skin code (16 presets)." },
+        "mbti_code": { "type": "string", "description": "LEGACY alias of tone (pre-O3 sessions) — voice only, never the source of concerns (R42)." },
         "name": { "type": "string" },
         "gender": { "enum": ["남", "여", "male", "female"] },
         "locale": { "enum": ["ko", "en"] }
@@ -42,7 +47,7 @@
     },
     "phase": {
       "enum": ["analyzing", "conversing", "team_deploying", "verifying", "dm_feedback", "refining", "complete"],
-      "description": "Plugin phase. Verification is first-class: team output becomes a candidate until /argus:verify marks what is supported, challenged, or blocked."
+      "description": "Plugin phase. Verification is first-class: team output becomes a candidate until the verify step (review) marks what is supported, challenged, or blocked."
     },
     "round": {
       "type": "integer",
@@ -55,7 +60,7 @@
     },
     "classification": {
       "type": "object",
-      "description": "Output of /argus:team classification step. May be partially populated by /argus:sail Step 6b (user-confirmed stakes) before team runs.",
+      "description": "Output of the team step (review) classification step. May be partially populated by /argus:review Step 6b (user-confirmed stakes) before team runs.",
       "properties": {
         "stakes": { "enum": ["routine", "important", "critical"] },
         "stakes_confidence": {
@@ -66,7 +71,7 @@
         },
         "stakes_user_confirmed": {
           "type": "boolean",
-          "description": "True when sail Step 6b ran and the user explicitly chose the stakes level. When true, /argus:team Step 2 must NOT re-classify stakes — only fill steps_classified."
+          "description": "True when sail Step 6b ran and the user explicitly chose the stakes level. When true, the team step (review) Step 2 must NOT re-classify stakes — only fill steps_classified."
         },
         "decision_type": { "enum": ["known_path", "needs_analysis", "no_answer", "on_fire"] },
         "agent_count": { "type": "integer" },
@@ -89,12 +94,12 @@
     "revise_cycles": {
       "type": "integer",
       "minimum": 0,
-      "description": "How many --revise rework cycles have run for this session. Incremented by /argus:team at the start of each --revise run (the single chokepoint both the /argus:revise path and sail's revise_team routing cross). Bounds the automated revise loop together with max_revise_cycles."
+      "description": "How many --revise rework cycles have run for this session. Incremented by the team step (review) at the start of each --revise run (the single chokepoint both the the revise step (review) path and sail's revise_team routing cross). Bounds the automated revise loop together with max_revise_cycles."
     },
     "max_revise_cycles": {
       "type": "integer",
       "minimum": 1,
-      "description": "Hard cap on revise cycles (default 3). Set via /argus:revise --max-revisions <N>. When revise_cycles reaches it, verify routes stop_for_human_check and team writes remaining challenges to human_required_checkpoints (reason: max_revisions_reached) instead of looping."
+      "description": "Hard cap on revise cycles (default 3). Set via the revise step (review) --max-revisions <N>. When revise_cycles reaches it, verify routes stop_for_human_check and team writes remaining challenges to human_required_checkpoints (reason: max_revisions_reached) instead of looping."
     },
     "created_at": { "type": "string", "format": "date-time" },
     "updated_at": { "type": "string", "format": "date-time" }
