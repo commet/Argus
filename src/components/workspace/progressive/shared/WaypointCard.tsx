@@ -101,7 +101,9 @@ export function WaypointDetail({
           </div>
           <p className={`text-[11px] leading-[1.45] text-[var(--text-secondary)] ${dense ? 'line-clamp-2' : ''}`}>
             <span className="font-medium italic text-[var(--text-primary)]">{alt.label}</span>
-            {alt.why_abandoned && <span className="text-[var(--text-tertiary)]"> — {alt.why_abandoned}</span>}
+            {alt.why_abandoned && alt.why_abandoned_source === 'user' && (
+              <span className="text-[var(--text-tertiary)]"> — {alt.why_abandoned}</span>
+            )}
           </p>
           <button
             onClick={() => onTakeRoad(waypoint.checkpoint_id, alt.label)}

@@ -1414,7 +1414,11 @@ export type WaypointType =
  */
 export interface WaypointAlternative {
   label: string;          // short name of the path
-  why_abandoned: string;  // the captured reason it was set aside
+  /** Reason text retained for backward compatibility. It is user-authored only
+   *  when `why_abandoned_source === 'user'`; an absent source is legacy_unknown
+   *  and must not be rendered or exported as the user's reason (E-B3). */
+  why_abandoned: string;
+  why_abandoned_source?: 'user' | 'legacy_unknown';
   taken: boolean;         // the branch actually sailed
 }
 

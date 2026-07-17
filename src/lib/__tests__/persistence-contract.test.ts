@@ -46,6 +46,13 @@ const CONTRACT: Record<keyof typeof STORAGE_KEYS, Decl> = {
   AGENT_ACTIVITIES: { table: 'agent_activities' },
   DECISION_ITEMS: { table: 'decision_items' },
 
+  // E2는 사용자 표면이 없는 shadow control plane이다. 이 네 기록은 E3에서
+  // 서버 스키마·계정 이동성·삭제 정책을 함께 설계하기 전까지 로컬에서만
+  // 검증한다. 사용자에게 노출하기 전에 synced 계약으로 승격해야 한다.
+  SELF_KNOWLEDGE_CLAIMS: { localOnly: 'E2 shadow 검증 전용 — E3 사용자 표면 전에 서버 동기화·계정 이동성·삭제 정책을 함께 설계' },
+  INFLUENCE_GRANTS: { localOnly: 'E2 shadow 검증 전용 — E3 사용자 표면 전에 서버 동기화·계정 이동성·삭제 정책을 함께 설계' },
+  INFLUENCE_TRACES: { localOnly: 'E2 shadow 검증 전용 — E3 사용자 표면 전에 서버 동기화·감사 보존·삭제 정책을 함께 설계' },
+  CLAIM_REVIEW_EVENTS: { localOnly: 'E2 shadow 검증 전용 — E3 사용자 표면 전에 서버 동기화·검토 이력·삭제 정책을 함께 설계' },
   SETTINGS: { localOnly: 'API 키 포함 — 서버 전송 금지 (보안)' },
   EVAL_RECAST: { localOnly: '로컬 평가 픽스처 — 개인 데이터, 동기화 대상 아님' },
   EVAL_REHEARSAL: { localOnly: '로컬 평가 픽스처 — 개인 데이터, 동기화 대상 아님' },

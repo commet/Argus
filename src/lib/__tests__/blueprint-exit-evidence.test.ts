@@ -106,6 +106,26 @@ const EVIDENCE_O: Record<string, string[]> = {
   '공정 O5': [],
 };
 
+/** §9.8 자기지식·AI 영향 권한 트랙 E의 phase별 exit 증거. */
+const EVIDENCE_E: Record<string, string[]> = {
+  E0: [
+    'docs/EVIDENCE-epistemic-agency-e0-baseline-2026-07-17.md',
+    'src/lib/__tests__/epistemic-agency-e0-baseline.test.ts',
+    'docs/EVIDENCE-epistemic-agency-e0-baseline-2026-07-17.md',
+  ],
+  E1: [
+    'src/lib/__tests__/epistemic-agency-e0-baseline.test.ts',
+    'src/lib/__tests__/voyage-log.test.ts',
+    'src/lib/__tests__/voyage-log-export.test.ts',
+  ],
+  E2: [
+    'src/lib/__tests__/epistemic-agency-e2-control-plane.test.ts',
+    'src/lib/__tests__/epistemic-agency-e2-control-plane.test.ts',
+    'src/lib/__tests__/epistemic-agency-e2-control-plane.test.ts',
+    'src/lib/__tests__/epistemic-agency-e0-baseline.test.ts',
+  ],
+};
+
 function readBlueprintMTrackSections(): Map<string, string> {
   const md = readFileSync(join(process.cwd(), 'docs/ARGUS-BLUEPRINT.md'), 'utf8');
   const s9Start = md.indexOf('## §9.');
@@ -136,6 +156,14 @@ function readBlueprintOTrackSections(): Map<string, string> {
     sections.set(headings[i][1], s97.slice(start, end === -1 ? undefined : end));
   }
   return sections;
+}
+
+function readBlueprintETrackSection(): string {
+  const md = readFileSync(join(process.cwd(), 'docs/ARGUS-BLUEPRINT.md'), 'utf8');
+  const start = md.indexOf('### 9.8');
+  if (start === -1) return '';
+  const end = md.indexOf('\n---', start);
+  return md.slice(start, end === -1 ? undefined : end);
 }
 
 function readBlueprintProcessSections(): Map<string, string> {
@@ -240,6 +268,34 @@ describe('BLUEPRINT §9.7 O-트랙 exit 체크 증거 계약 (같은 규약)', (
           continue;
         }
         expect(existsSync(join(process.cwd(), entry)), `${name}의 증거 파일이 없음: ${entry}`).toBe(true);
+      }
+    }
+  });
+});
+
+describe('BLUEPRINT §9.8 E-트랙 exit 체크 증거 계약 (같은 규약)', () => {
+  const section = readBlueprintETrackSection();
+
+  it('§9.8 E 트랙과 완료된 E0~E2 exit를 찾는다', () => {
+    expect(section).toContain('병렬 권한 트랙 E');
+    for (const phase of Object.keys(EVIDENCE_E)) expect(section).toContain(`**${phase} exit:**`);
+  });
+
+  it.each(Object.keys(EVIDENCE_E))('%s: 체크된 exit 수 == 등록된 증거 수', (phase) => {
+    const start = section.indexOf(`**${phase} exit:**`);
+    const next = section.indexOf('\n\n**E', start + 1);
+    const body = section.slice(start, next === -1 ? undefined : next);
+    const checked = (body.match(/\[x\]/g) || []).length;
+    expect(
+      EVIDENCE_E[phase].length,
+      `${phase}의 [x]는 ${checked}개인데 EVIDENCE_E에는 ${EVIDENCE_E[phase].length}개 — 체크(또는 취소)와 같은 커밋에서 맵을 갱신할 것`,
+    ).toBe(checked);
+  });
+
+  it('E0~E2 기계·문서 증거 경로는 전부 리포에 실존한다', () => {
+    for (const [phase, entries] of Object.entries(EVIDENCE_E)) {
+      for (const entry of entries) {
+        expect(existsSync(join(process.cwd(), entry)), `${phase}의 증거 파일이 없음: ${entry}`).toBe(true);
       }
     }
   });

@@ -106,6 +106,9 @@ describe('deriveWaypoint — Chronicler salience gate', () => {
     expect(notTaken).toContain('무료로 풀고 나중에 과금');
     expect(notTaken).toContain('B2B 리셀러 경로');
     expect(wp?.alternatives?.find(x => x.taken)?.label).toContain('유료 구독');
+    // Generated option rationales are not the user's reason for declining a
+    // road. E-B3 keeps the reason empty until the user explicitly states it.
+    expect(wp?.alternatives?.every(x => x.why_abandoned === '')).toBe(true);
   });
 
   it('briefing with an unchanged real_question → suppressed (null)', () => {

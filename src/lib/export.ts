@@ -42,7 +42,8 @@ export function voyageLogToMarkdown(session: ProgressiveSession | null | undefin
     if (w.trigger) out.push(`   - ${ko ? '계기' : 'Trigger'}: ${w.trigger}`);
     if (w.significance) out.push(`   - ${ko ? '의미' : 'Why it matters'}: ${w.significance}`);
     (w.alternatives || []).filter(a => !a.taken).forEach(a => {
-      out.push(`   - ${ko ? '가지 않은 길' : 'Road not taken'}: ${a.label}${a.why_abandoned ? ` — ${a.why_abandoned}` : ''}`);
+      const userReason = a.why_abandoned_source === 'user' ? a.why_abandoned : '';
+      out.push(`   - ${ko ? '가지 않은 길' : 'Road not taken'}: ${a.label}${userReason ? ` — ${userReason}` : ''}`);
     });
   });
   return out.join('\n');

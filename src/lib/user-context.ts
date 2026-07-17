@@ -3,14 +3,14 @@
  *
  * 두 가지 원천을 통합:
  * 1. Explicit (설정 > 내 프로필): 이름, 역할, 경력, 자유 소개
- * 2. Observed (항해장/Navigator): 세션 수, 지배 전략, override율, DQ 추세, 티어
+ * 2. Observed (항해장/Navigator): 세션 수와 비평가적 사용 사실
  *
  * 프롬프트 빌더들은 이 모듈 하나만 호출하면 됨.
  */
 
 import { sanitizeForPrompt } from './persona-prompt';
-import type { Settings, DecisionQualityScore } from '@/stores/types';
-import type { NavigatorProfile } from './navigator';
+import type { Settings } from '@/stores/types';
+import type { NavigatorUsageFacts } from './navigator';
 
 // ── Types ──
 
@@ -23,11 +23,6 @@ export interface UserProfile {
 
 export interface UserObservations {
   sessionCount: number;
-  tier: 1 | 2 | 3;
-  overrideRate: number;
-  dominantStrategy: string | null;
-  dqTrend: 'improving' | 'stable' | 'declining' | 'not_enough_data';
-  avgPassRate: number;
 }
 
 export interface FullUserContext {
@@ -54,37 +49,24 @@ export function getUserProfile(): UserProfile {
 }
 
 /**
- * UI 전용 — 설정 페이지에서 "AI가 관찰한 패턴" 표시용.
- * 프롬프트에는 사용하지 않음 (시뮬레이션 리뷰어가 시스템 메트릭을 아는 건 부자연스러움).
+ * UI 전용 — 설정 페이지의 비평가적 사용 사실.
+ * 프롬프트에는 사용하지 않고, DQ/vitality 같은 절차 telemetry도 사람에 대한
+ * 의미 언어로 번역하지 않는다 (E-B12).
  */
 export function getUserObservations(): UserObservations {
   try {
     // Dynamic require: navigator chain이 무겁고 SSR에서 문제될 수 있어서 lazy load
-    const { buildNavigatorProfile } = require('./navigator') as { buildNavigatorProfile: () => NavigatorProfile };
-    const { analyzeDQTrend, getDQScores } = require('./decision-quality') as {
-      analyzeDQTrend: (scores: DecisionQualityScore[]) => { trend: string };
-      getDQScores: () => DecisionQualityScore[];
+    const { getNavigatorUsageFacts } = require('./navigator') as {
+      getNavigatorUsageFacts: () => NavigatorUsageFacts;
     };
-
-    const profile = buildNavigatorProfile();
-    const dq = analyzeDQTrend(getDQScores() || []);
+    const usage = getNavigatorUsageFacts();
 
     return {
-      sessionCount: profile.sessionCount,
-      tier: profile.tier,
-      overrideRate: profile.overrideRate,
-      dominantStrategy: profile.dominantStrategy,
-      dqTrend: dq.trend as UserObservations['dqTrend'],
-      avgPassRate: profile.avgPassRate,
+      sessionCount: usage.sessionCount,
     };
   } catch {
     return {
       sessionCount: 0,
-      tier: 1,
-      overrideRate: 0,
-      dominantStrategy: null,
-      dqTrend: 'not_enough_data',
-      avgPassRate: 0,
     };
   }
 }
@@ -186,8 +168,8 @@ export function buildUserContextForBoss(locale: 'ko' | 'en' = 'ko'): string {
 }
 
 /**
- * 설정 페이지 UI용: 관찰 데이터를 사용자가 이해할 수 있는 언어로 요약.
- * 내부 용어(DQ, override rate, tier) 대신 자연어 사용.
+ * 설정 페이지 UI용: 해석하지 않은 사용 사실만 요약.
+ * 자연어로 바꾼 점수도 여전히 평결이므로 DQ 추세·override 성향은 내보내지 않는다.
  */
 export function getObservationsSummary(locale: 'ko' | 'en' = 'ko'): {
   items: Array<{ label: string; value: string }>;
@@ -204,25 +186,6 @@ export function getObservationsSummary(locale: 'ko' | 'en' = 'ko'): {
     label: ko ? '사용 횟수' : 'Sessions',
     value: ko ? `${obs.sessionCount}회` : `${obs.sessionCount}`,
   });
-
-  // 판단 추세 — "잘하고 있다" vs "꾸준하다" (DQ 용어 제거)
-  const trendText = ko
-    ? { improving: '점점 나아지고 있어요', stable: '꾸준히 잘 하고 있어요', declining: '최근 좀 러프했어요', not_enough_data: '아직 데이터를 모으는 중이에요' }
-    : { improving: 'Getting better', stable: 'Consistently good', declining: 'Been rough lately', not_enough_data: 'Still collecting data' };
-  items.push({
-    label: ko ? '최근 추세' : 'Recent trend',
-    value: trendText[obs.dqTrend] || trendText.not_enough_data,
-  });
-
-  // AI 제안 수정 빈도 — 높을 때만 표시, 자연어로
-  if (obs.overrideRate > 0.2) {
-    items.push({
-      label: ko ? 'AI 제안 반영' : 'AI suggestion usage',
-      value: obs.overrideRate > 0.5
-        ? (ko ? '자주 직접 수정하는 편' : 'Often edits AI suggestions')
-        : (ko ? '가끔 직접 수정함' : 'Sometimes edits AI suggestions'),
-    });
-  }
 
   return { items, hasData: true };
 }

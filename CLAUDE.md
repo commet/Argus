@@ -5,7 +5,9 @@
 빌드 순서의 정본은 `docs/ARGUS-BLUEPRINT.md`다. 세션 시작 시 그 문서의
 §6 공정표에서 **현재 공정**을 확인하고, 그 공정의 항목만 진행한다.
 새 설계 문서(DESIGN-*, 감사, 계획서) 작성 금지 — 새 아이디어는 BLUEPRINT
-§8 대기 목록에 한 줄로 추가하고 짓지 않는다. 모든 PR 본문 첫 줄:
+§8 대기 목록에 한 줄로 추가하고 짓지 않는다. 단, **창업자가 독립 병렬 트랙과
+기존 공정 무접촉 경계를 명시적으로 승인하고 BLUEPRINT에 등록한 단일 정본 문서**는
+예외다. 예외 문서는 새 기능 표면을 곧바로 여는 허가가 아니다. 모든 PR 본문 첫 줄:
 `공정 N · 겨냥 퍼널 단계 X→Y`.
 
 exit 체크박스 `[x]`는 같은 커밋에서 `blueprint-exit-evidence.test.ts`의
@@ -44,9 +46,11 @@ Invariant design notes, kept privately):
    (skip / believe-all / use-as-is). The invariant is honest provenance, NOT a
    forced-typing gate (which ejects the tiredest user → zero ownership).
 2. **No user-facing verdict about who the user is.** Do not surface an
-   uncalibrated score/tier (e.g. Judgment Vitality `gamma`) to the user. Keep it
-   internal-routing-only or remove it. Meaning-language to the user comes only
-   from `patterns`' sample-size-scaled frequency statements.
+   uncalibrated score/tier (e.g. Judgment Vitality `gamma`) to the user. Such
+   metrics may diagnose the product pipeline, but must not route coaching,
+   personalize prompts, or become self-knowledge. Meaning-language about the
+   user must pass BLUEPRINT §9.8/E: provenance + independent cases + scope +
+   counterexample + user review; sample size alone is not permission.
 3. **Verification is not a chat.** No conclusion is verified by debating the model
    in-frame; verification is a single-shot commitment plus reality at settlement.
    This is an internal design invariant — do NOT turn it into landing copy.
@@ -211,8 +215,14 @@ SELECT column_name FROM information_schema.columns WHERE table_name = 'TABLE_NAM
 
 ## LLM Prompt Injection Guidelines
 
-- Pattern data is **reference only**, not directive: "참고: ..." not "반드시 ..."
-- Content-based judgment is always primary, user patterns are secondary
+- Derived pattern data is **excluded by default**. Calling it "참고" does not
+  neutralize its influence; BLUEPRINT §9.8 requires an active scoped grant.
+- Current-task content and user-authored in-scope constraints are primary. A
+  granted memory stays secondary and must produce an `InfluenceTrace`.
+- `src/lib/epistemic/control-plane.ts` is the sole derived-memory authority.
+  Endorsement is not a grant; scope, expiry, revoke, counterexamples, and
+  `ask_once` reuse are checked there. If the trace cannot be persisted, influence
+  must fail closed to zero — never add a second prompt-side bypass.
 - Keep injection concise — one line per insight, not paragraphs
 - Never inject blanket behavioral changes ("be conservative") — always scope to specific contexts
 - User data in system prompts MUST be wrapped in `<user-data>` tags and passed through `sanitizeForPrompt()` (see `persona-prompt.ts`)

@@ -4,9 +4,8 @@
  * Turns checkpoint transitions into typed waypoints (the 항해일지). Phase 2 is
  * the *deterministic salience gate*: it decides whether a transition is a real
  * turn worth logging and classifies it into one of the six WaypointTypes. The
- * prose (headline polish, significance, why-a-path-was-abandoned) is enriched
- * by an LLM pass later (Phase 5); this layer never invents — it only reads what
- * the checkpoint state already contains.
+ * interpretive `significance` prose may be enriched by an LLM pass later; the
+ * user's reason for not taking a path never is (E-B3).
  *
  * Two principles, enforced structurally:
  *
@@ -79,8 +78,9 @@ function strategicForkAlternatives(state: VoyageCheckpointState): WaypointAltern
   if (!meta || meta.tag !== 'strategic_fork' || !meta.options || meta.options.length < 2) return undefined;
   const chosen = a.value.trim();
   const alts: WaypointAlternative[] = meta.options.map((o) => {
-    const why = o.effect && 'rationale' in o.effect ? (o.effect.rationale || '') : '';
-    return { label: truncate(o.label, 80), why_abandoned: truncate(why, 80), taken: o.label.trim() === chosen };
+    // An option's generated rationale explains the option, not why the user
+    // declined it. Keep the user-reason field empty until they state one.
+    return { label: truncate(o.label, 80), why_abandoned: '', taken: o.label.trim() === chosen };
   });
   // Worth surfacing only if at least one direction was left untravelled.
   return alts.some((x) => !x.taken) ? alts : undefined;
@@ -149,7 +149,7 @@ export function deriveWaypoint(args: DeriveWaypointArgs): Waypoint | null {
       }
 
       // course_change: the real question turned. The prior framing becomes a
-      // road not taken (why_abandoned filled by the Phase 5 LLM pass).
+      // road not taken; its reason stays empty unless the user states one.
       if (prev && norm(cur.real_question) && norm(cur.real_question) !== norm(prev.real_question)) {
         const alternatives: WaypointAlternative[] | undefined = prev.real_question
           ? [

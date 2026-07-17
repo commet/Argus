@@ -301,7 +301,7 @@ describe('navigator', () => {
       expect(coaching[0].tone).toBe('challenge');
     });
 
-    it('returns override coaching for recast', () => {
+    it('does not turn override frequency into positive recast coaching', () => {
       mockGetStorage.mockReturnValue([
         { id: '1', type: 'actor_override', user_changed: true, decision: 'human', tool: 'recast', context: '', original_ai_suggestion: '', created_at: '' },
         { id: '2', type: 'actor_override', user_changed: true, decision: 'human', tool: 'recast', context: '', original_ai_suggestion: '', created_at: '' },
@@ -314,8 +314,7 @@ describe('navigator', () => {
       };
 
       const coaching = getStepCoaching('recast', profile);
-      expect(coaching.length).toBeGreaterThan(0);
-      expect(coaching[0].message).toContain('coaching.recast.overrideHigh');
+      expect(coaching.some((item) => item.message.includes('coaching.recast.overrideHigh'))).toBe(false);
     });
 
     it('returns empty array for recast with few judgments and no cross-stage data', () => {

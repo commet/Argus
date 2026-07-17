@@ -1,9 +1,15 @@
 import { getStorage, STORAGE_KEYS } from '@/lib/storage';
-import { getSignalsByType } from '@/lib/signal-recorder';
-import { getEvalSummary, getStageEvalSummary } from '@/lib/eval-engine';
-import type { JudgmentRecord, ReframeItem, RecastItem, SynthesizeItem, PersonaAccuracyRating, Project, OutcomeRecord } from '@/stores/types';
-import { getActionableInsights } from '@/lib/retrospective';
+import type { JudgmentRecord, ReframeItem, RecastItem, SynthesizeItem, PersonaAccuracyRating } from '@/stores/types';
 import { getCurrentLanguage } from '@/lib/i18n';
+import { buildStoredPromptInfluence } from '@/lib/epistemic/control-plane';
+import { generateId } from '@/lib/uuid';
+
+export interface EnhancedPromptInfluenceOptions {
+  callId?: string;
+  domain?: string;
+  sessionId?: string;
+  role?: string;
+}
 
 /**
  * Returns the LLM response-language directive.
@@ -17,28 +23,36 @@ function getLocaleDirective(): string {
 }
 
 /**
- * Builds an enhanced system prompt by injecting user patterns and project context.
- * This is the core "learning" mechanism — past judgments influence future AI suggestions.
+ * Adds explicit judgments from the current project to a system prompt.
+ * Derived cross-history memory remains quarantined until E2 can issue a
+ * revocable, scoped grant and record exactly what influenced the prompt.
  */
 export function buildEnhancedSystemPrompt(
   basePrompt: string,
   projectId?: string,
+  influence?: EnhancedPromptInfluenceOptions,
 ): string {
   const ko = getCurrentLanguage() === 'ko';
   const judgments = getStorage<JudgmentRecord[]>(STORAGE_KEYS.JUDGMENTS, []);
-  if (judgments.length === 0) return basePrompt + getLocaleDirective();
 
   const sections: string[] = [];
 
-  // 1. User pattern summary
-  const patterns = analyzePatterns(judgments);
-  if (patterns) {
-    sections.push(ko
-      ? `## 사용자 패턴 (과거 ${judgments.length}건의 판단 기반)\n${patterns}`
-      : `## User pattern (based on ${judgments.length} past judgments)\n${patterns}`);
-  }
+  // E2 single influence gate. With no explicitly user-authorized E grant this
+  // returns no prompt section. When it does return one, it has already written
+  // the corresponding used/excluded trace and stays ahead of the legacy 1200
+  // character context bound so a traced section cannot be silently truncated.
+  const eInfluence = buildStoredPromptInfluence({
+    call_id: influence?.callId ?? `web-prompt:${generateId()}`,
+    surface: 'web',
+    domain: influence?.domain,
+    project_id: projectId,
+    session_id: influence?.sessionId,
+    role: influence?.role,
+    prompt_budget_chars: 800,
+  });
+  sections.push(...eInfluence.prompt_sections);
 
-  // 2. Project-specific context
+  // Same-project user decisions are explicit context, not derived identity.
   if (projectId) {
     const projectContext = buildProjectContext(projectId, judgments);
     if (projectContext) {
@@ -48,75 +62,12 @@ export function buildEnhancedSystemPrompt(
     }
   }
 
-  // 3. Coda reflections from past projects (learning loop)
-  const codaInsights = buildCodaInsights(projectId);
-  if (codaInsights) {
-    sections.push(codaInsights);
-  }
-
-  // 4. (Removed) Convergence patterns from past refine loops —
-  //     legacy RefineStep path is gone. Intentionally no-op.
-
-  // 5. Outcome-based insights (Phase 1)
-  const outcomes = getStorage<OutcomeRecord[]>(STORAGE_KEYS.OUTCOME_RECORDS, []).filter(o => o.project_id !== projectId);
-  if (outcomes.length >= 2) {
-    const successCount = outcomes.filter(o => o.overall_success === 'exceeded' || o.overall_success === 'met').length;
-    const unspoken = outcomes.flatMap(o => o.materialized_risks).filter(r => r.category === 'unspoken');
-    const unspokenHit = unspoken.filter(r => r.actually_happened);
-    const lines = ko
-      ? [`## 과거 프로젝트 결과 학습`, `- 성공률: ${Math.round(successCount / outcomes.length * 100)}%`]
-      : [`## Learning from past project outcomes`, `- Success rate: ${Math.round(successCount / outcomes.length * 100)}%`];
-    if (unspoken.length >= 2 && unspokenHit.length / unspoken.length > 0.5) {
-      lines.push(ko
-        ? '- ⚠️ 침묵의 리스크가 자주 실현됩니다. unspoken 리스크에 더 주의하세요.'
-        : '- ⚠️ Unspoken risks materialize often. Pay extra attention to unspoken risks.');
-    }
-    sections.push(lines.join('\n'));
-  }
-
-  // 6. Retrospective actionable insights (Phase 2)
-  const retroInsights = getActionableInsights(projectId);
-  if (retroInsights.length > 0) {
-    const header = ko ? '## 이전 프로젝트 성찰 교훈\n' : '## Lessons from prior project retrospectives\n';
-    sections.push(header + retroInsights.map(i => `- "${i}"`).join('\n'));
-  }
-
-  // 7. Axis Fingerprint + Eval-based adaptation (Phase 3: Active Adaptation)
-  const adaptiveCtx = buildAdaptiveContext();
-  if (adaptiveCtx) sections.push(adaptiveCtx);
-
   if (sections.length === 0) return basePrompt + getLocaleDirective();
 
   // Append as a bounded context section
   const contextSection = sections.join('\n\n').slice(0, 1200);
 
   return `${basePrompt}\n\n---\n\n${contextSection}${getLocaleDirective()}`;
-}
-
-function analyzePatterns(judgments: JudgmentRecord[]): string | null {
-  if (judgments.length < 2) return null;
-
-  const lines: string[] = [];
-
-  // Actor/override patterns — LIGHT reference only, content-based judgment is primary
-  const overridesWithDirection = getSignalsByType('actor_override_direction');
-  if (overridesWithDirection.length >= 3) {
-    const aiToHuman = overridesWithDirection.filter(s => s.signal_data.from_actor === 'ai' && s.signal_data.to_actor === 'human').length;
-    const humanToAi = overridesWithDirection.filter(s => s.signal_data.from_actor === 'human' && s.signal_data.to_actor === 'ai').length;
-    if (aiToHuman > humanToAi * 2) {
-      lines.push(`- 참고: 이 사용자는 과거에 AI→사람 변경 ${aiToHuman}건. 내용에 따라 판단하되, 판단·전략 성격의 작업은 사람 배정을 고려.`);
-    } else if (humanToAi > aiToHuman * 2) {
-      lines.push(`- 참고: 이 사용자는 과거에 사람→AI 위임 ${humanToAi}건. AI 활용에 적극적.`);
-    }
-  }
-
-  // Hidden question preference
-  const questionSelections = judgments.filter((j) => j.type === 'hidden_question_selection' && j.user_changed);
-  if (questionSelections.length >= 2) {
-    lines.push('- 이 사용자는 AI가 제안한 질문을 자주 직접 수정합니다. 다양한 관점의 질문을 제안하세요.');
-  }
-
-  return lines.length > 0 ? lines.join('\n') : null;
 }
 
 function buildProjectContext(projectId: string, judgments: JudgmentRecord[]): string | null {
@@ -136,38 +87,6 @@ function buildProjectContext(projectId: string, judgments: JudgmentRecord[]): st
     return `- [${typeLabels[j.type] || j.type}] ${j.context}: "${j.decision}"`;
   });
 
-  return lines.join('\n');
-}
-
-/**
- * Build insights from past project coda reflections.
- * This closes the learning loop: coda → next project's AI prompt.
- */
-function buildCodaInsights(excludeProjectId?: string): string | null {
-  const projects = getStorage<Project[]>(STORAGE_KEYS.PROJECTS, []);
-  const withReflection = projects
-    .filter((p) => p.meta_reflection && p.id !== excludeProjectId)
-    .filter((p) => p.meta_reflection!.surprising_discovery || p.meta_reflection!.next_time_differently)
-    .sort((a, b) => (b.meta_reflection!.created_at || '').localeCompare(a.meta_reflection!.created_at || ''))
-    .slice(0, 3);
-
-  if (withReflection.length === 0) return null;
-
-  const ko = getCurrentLanguage() === 'ko';
-  const lines: string[] = [ko ? '## 이전 프로젝트에서의 깨달음' : '## Lessons from prior projects'];
-  for (const p of withReflection) {
-    const r = p.meta_reflection!;
-    if (r.surprising_discovery) {
-      lines.push(ko
-        ? `- ${p.name}: 놀라운 발견 — "${r.surprising_discovery}"`
-        : `- ${p.name}: surprising discovery — "${r.surprising_discovery}"`);
-    }
-    if (r.next_time_differently) {
-      lines.push(ko
-        ? `- ${p.name}: 다음에 다르게 — "${r.next_time_differently}"`
-        : `- ${p.name}: next time, differently — "${r.next_time_differently}"`);
-    }
-  }
   return lines.join('\n');
 }
 
@@ -291,88 +210,3 @@ export function buildPersonaAccuracyContext(personaId: string): string {
 
   return lines.join('\n');
 }
-
-/**
- * Build adaptive context from user's decision-making patterns.
- *
- * Phase 3: Active Adaptation — 피드백 루프를 닫는 핵심 함수.
- * Axis Fingerprint (T3) + Sliding Windows (T6) + eval 기반 약점을 주입한다.
- *
- * CLAUDE.md 가이드라인 준수:
- * - "참고: ..." (reference only, not directive)
- * - Content-based judgment is always primary
- * - 최대 5줄
- */
-function buildAdaptiveContext(): string | null {
-  const evalSummary = getEvalSummary();
-
-  // Gate: 5회 이상 사용 시에만 적응 시작 (premature adaptation 방지)
-  if (evalSummary.total_sessions < 5) return null;
-
-  const lines: string[] = ['## 적응형 컨텍스트 (이 사용자의 판단 패턴)'];
-
-  // ── Axis Fingerprint: 최근 10건의 가정 축 분포 (Sliding Window: process = last 10) ──
-  const reframeItems = getStorage<ReframeItem[]>(STORAGE_KEYS.REFRAME_LIST, []);
-  const doneItems = reframeItems.filter(d => d.status === 'done' && d.analysis);
-  const recentItems = doneItems.slice(-10);
-
-  if (recentItems.length >= 3) {
-    const axisCounts: Record<string, number> = {
-      customer_value: 0, feasibility: 0, business: 0, org_capacity: 0,
-    };
-    let total = 0;
-    for (const item of recentItems) {
-      for (const a of item.analysis!.hidden_assumptions || []) {
-        if (a.axis && a.axis in axisCounts) {
-          axisCounts[a.axis]++;
-          total++;
-        }
-      }
-    }
-
-    if (total >= 8) { // 최소 8개 가정이 있어야 축 분포를 신뢰 (과잉 해석 방지)
-      const axisLabels: Record<string, string> = {
-        customer_value: '고객 가치', feasibility: '실현 가능성',
-        business: '비즈니스', org_capacity: '조직 역량',
-      };
-      const avgPct = 25; // 4 axes = 25% each is balanced
-      const gaps = Object.entries(axisCounts)
-        .filter(([, count]) => (count / total) * 100 < avgPct * 0.5) // below half of average
-        .map(([axis]) => axisLabels[axis] || axis);
-
-      if (gaps.length > 0) {
-        lines.push(`- 참고: 최근 ${recentItems.length}건 분석에서 ${gaps.join(', ')} 관점의 가정이 탐색되지 않았습니다. 이 축에서도 가정을 생성해주세요.`);
-      }
-    }
-  }
-
-  // ── Reframe acceptance pattern (Sliding Window: process = last 10) ──
-  const recentDone = doneItems.slice(-8);
-  if (recentDone.length >= 5) {
-    const accepted = recentDone.filter(d => {
-      if (!d.analysis) return false;
-      return d.selected_question === d.analysis.reframed_question;
-    }).length;
-    const acceptRate = accepted / recentDone.length;
-    if (acceptRate > 0.8) {
-      lines.push(`- 참고: 이 사용자는 최근 ${recentDone.length}회 중 ${accepted}회에서 첫 reframe을 수락했습니다. 대안적 프레이밍을 더 강하게 제시해주세요.`);
-    }
-  }
-
-  // ── Eval 기반 약점 (전체 이력, blind spot = all-time) ──
-  const reframeSummary = getStageEvalSummary('reframe');
-  if (reframeSummary && reframeSummary.total_sessions >= 5) {
-    const rates = reframeSummary.per_eval_rates;
-    if (rates['assumptions_diverse'] !== undefined && rates['assumptions_diverse'] < 0.5) {
-      lines.push('- 참고: 가정의 다양성(다양한 축 커버)이 낮은 편입니다. 가정을 생성할 때 customer, feasibility, business, org 4축을 모두 고려하세요.');
-    }
-    if (rates['assumptions_engaged'] !== undefined && rates['assumptions_engaged'] < 0.5) {
-      lines.push('- 참고: 사용자가 가정 평가를 자주 건너뜁니다. 핵심 가정 2-3개를 특히 강조해서 평가를 유도하세요.');
-    }
-  }
-
-  // 최대 5줄 (header 제외)
-  if (lines.length <= 1) return null; // header만 있으면 의미 없음
-  return lines.slice(0, 6).join('\n'); // header + max 5 insight lines
-}
-

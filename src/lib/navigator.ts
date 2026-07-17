@@ -12,13 +12,11 @@
 
 import { getSessionInsights, getEvalSummary, analyzeStrategyPerformance } from '@/lib/eval-engine';
 import { getWorstPerformingEvals } from '@/lib/prompt-mutation';
-import { getStorage, STORAGE_KEYS } from '@/lib/storage';
-import { data, getLatestDone, getDoneItems } from '@/lib/storage-helpers';
+import { data } from '@/lib/storage-helpers';
 import { getDQScores, analyzeDQTrend } from '@/lib/decision-quality';
 import { getSignals } from '@/lib/signal-recorder';
 import { t } from '@/lib/i18n';
-import { analyzeVitalityTrend, getVitalityCoaching as getVitalityStepCoaching, generateInterventions } from '@/lib/judgment-vitality';
-import type { JudgmentRecord, Project, PersonaAccuracyRating, ReframeItem, RecastItem, DecisionQualityScore, VitalityAssessment } from '@/stores/types';
+import type { PersonaAccuracyRating } from '@/stores/types';
 import type { ReframingStrategy } from '@/lib/reframing-strategy';
 
 /* ────────────────────────────────────
@@ -52,6 +50,11 @@ export interface NavigatorProfile {
   avgPassRate: number;
   tier: 1 | 2 | 3;
   demoSeedData?: DemoSeedData;
+}
+
+export interface NavigatorUsageFacts {
+  sessionCount: number;
+  projectCount: number;
 }
 
 export type CoachingStep = 'reframe' | 'recast' | 'rehearse' | 'refine' | 'synthesize';
@@ -146,6 +149,14 @@ export function buildNavigatorProfile(): NavigatorProfile {
   };
 }
 
+/** Non-evaluative counts for settings and the quarantined legacy shell. */
+export function getNavigatorUsageFacts(): NavigatorUsageFacts {
+  return {
+    sessionCount: getEvalSummary().total_sessions,
+    projectCount: data.projects().length,
+  };
+}
+
 /* ────────────────────────────────────
    2. buildNavigatorInsights
    ──────────────────────────────────── */
@@ -216,25 +227,8 @@ export function buildNavigatorInsights(profile: NavigatorProfile): NavigatorInsi
       });
     }
 
-    // Override rate interpretation — frequency-fact only.
-    // The low-override branch ("critically reviewing AI suggestions would get
-    // you better results") was REMOVED 2026-07-03 (P0-3): lecturing the user
-    // about how they use AI is a verdict about the user, not a fact about the
-    // record (CLAUDE.md Zero-Judgment rule 2). Do not re-add a coaching branch
-    // here — only sample-size-explicit frequency statements are allowed.
-    if (profile.totalJudgments >= 3) {
-      const pct = Math.round(profile.overrideRate * 100);
-      if (profile.overrideRate > 0.4) {
-        insights.push({
-          id: 'override_rate_high',
-          category: 'pattern',
-          message: t('navigator.overrideHighMessage', { pct, count: profile.totalJudgments }),
-          detail: t('navigator.overrideHighDetail'),
-          tier: 2,
-          priority: priority++,
-        });
-      }
-    }
+    // Override frequency is an event count, not evidence of better thinking or
+    // permission to adapt future suggestions (E-B7). It stays out of insights.
   }
 
   // ── Tier 3: Cross-project + strategy performance ──
@@ -273,38 +267,6 @@ export function buildNavigatorInsights(profile: NavigatorProfile): NavigatorInsi
     }
   }
 
-  // ── Tier 2+: Vitality Engine insights ──
-  if (profile.tier >= 2) {
-    const vitalityAssessments = data.vitalityAssessments();
-    if (vitalityAssessments.length >= 3) {
-      const trend = analyzeVitalityTrend(vitalityAssessments);
-      if (trend.trend === 'declining') {
-        insights.push({
-          id: 'vitality_declining',
-          category: 'warning',
-          message: trend.insight,
-          tier: 2,
-          priority: priority++,
-        });
-      }
-      // Latest assessment warnings
-      const latest = vitalityAssessments[vitalityAssessments.length - 1];
-      if (latest && (latest.tier === 'performing' || latest.tier === 'dead')) {
-        const interventions = generateInterventions(latest.signals, vitalityAssessments.slice(0, -1));
-        for (const intervention of interventions.slice(0, 2)) {
-          insights.push({
-            id: `vitality_${intervention.target_signal}`,
-            category: 'warning',
-            message: intervention.message,
-            detail: intervention.detail,
-            tier: Math.min(intervention.tier, 3) as 1 | 2 | 3,
-            priority: priority++,
-          });
-        }
-      }
-    }
-  }
-
   // Filter by tier and sort by priority
   return insights
     .filter((i) => i.tier <= profile.tier)
@@ -340,20 +302,6 @@ export function getStepCoaching(step: CoachingStep, profile: NavigatorProfile): 
     default:
       candidates = [];
   }
-  // Vitality coaching — max 1, only if vitality concerns exist (tier 2+)
-  // Insert at front so it survives the slice(0, 2) truncation
-  if (profile.tier >= 2) {
-    const vitalityAssessments = data.vitalityAssessments();
-    const latest = vitalityAssessments[vitalityAssessments.length - 1];
-    if (latest && latest.signals?.length > 0) {
-      if (!['reframe', 'recast', 'rehearse', 'refine'].includes(step)) return candidates.slice(0, 2);
-      const vc = getVitalityStepCoaching(step as 'reframe' | 'recast' | 'rehearse' | 'refine', latest.signals, vitalityAssessments);
-      if (vc) {
-        candidates.unshift({ message: vc.message, detail: vc.detail, tone: vc.tone });
-      }
-    }
-  }
-
   // Max 2 coaching messages per step to avoid overwhelming the user
   return candidates.slice(0, 2);
 }
@@ -488,15 +436,6 @@ function getRecastCoaching(profile: NavigatorProfile): StepCoaching[] {
 
   const judgments = data.judgments();
   const actorOverrides = judgments.filter((j) => j.type === 'actor_override');
-
-  // Override rate > 40%
-  if (profile.overrideRate > 0.4) {
-    const pct = Math.round(profile.overrideRate * 100);
-    results.push({
-      message: t('coaching.recast.overrideHigh', { pct }),
-      tone: 'positive',
-    });
-  }
 
   // Actor preference — a sample-explicit frequency statement, NOT a character
   // verdict (CLAUDE.md Zero-Judgment rule 2: meaning-language only via

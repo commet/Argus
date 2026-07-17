@@ -1,21 +1,16 @@
 /**
- * Context Builder Simulation — 시스템 프롬프트 강화 + 맥락 주입 시뮬레이션
+ * Context Builder Simulation — 명시적 프로젝트 문맥 + E influence gate
  *
- * context-builder.ts의 핵심 함수 5개 + 내부 helper 검증:
- * 1. buildEnhancedSystemPrompt — 7개 섹션 조립, 1200자 제한
+ * context-builder.ts의 공개 함수와 격리 경계를 검증한다:
+ * 1. buildEnhancedSystemPrompt — E2 gate + 같은 프로젝트 판단, 1200자 제한
  * 2. buildProjectItemsContext — 프로젝트 아이템 크로스 참조
  * 3. buildPersonaAccuracyContext — 페르소나 행동 모델 보정
- * 4. buildConvergencePatterns — 수렴 패턴 학습
- * 5. (internal) analyzePatterns, buildCodaInsights, buildAdaptiveContext
  *
  * 아키타입:
  * - 빈 데이터 → 원본 prompt 그대로
- * - 판단 기록 풍부 → 패턴 분석 주입
  * - 프로젝트 컨텍스트 → 이전 판단 주입
- * - Coda reflection → 깨달음 주입
- * - Outcome records → 성공률/리스크 경고
- * - 모든 섹션 조합 → 1200자 상한
- * - 적응형 컨텍스트 (축 분포, reframe 수락률, eval 약점)
+ * - Coda/outcome/retro/global pattern/eval → grant 없이 주입 0
+ * - 프로젝트 문맥 + locale directive → 1200자 상한
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
@@ -184,7 +179,7 @@ describe('Context Builder Simulation', () => {
       });
     });
 
-    describe('Section 1: 사용자 패턴 분석', () => {
+    describe('E1: 승인되지 않은 사용자 패턴 격리', () => {
       it('judgment 1건 → 패턴 분석 불가', () => {
         setupStorage({ sot_judgments: [makeJudgment()] });
         const result = buildEnhancedSystemPrompt(BASE_PROMPT);
@@ -193,7 +188,7 @@ describe('Context Builder Simulation', () => {
         expect(result).not.toContain('사용자 패턴');
       });
 
-      it('AI→사람 변경 3건 이상 → 패턴 주입', () => {
+      it('AI→사람 변경 신호가 누적되어도 전역 성향으로 주입하지 않음', () => {
         const judgments = Array.from({ length: 3 }, () => makeJudgment());
         mockGetSignals.mockReturnValue([
           { signal_type: 'actor_override_direction', signal_data: { from_actor: 'ai', to_actor: 'human' }, created_at: '' },
@@ -203,11 +198,11 @@ describe('Context Builder Simulation', () => {
         setupStorage({ sot_judgments: judgments });
 
         const result = buildEnhancedSystemPrompt(BASE_PROMPT);
-        expect(result).toContain('AI→사람 변경');
-        expect(result).toContain('3건');
+        expect(result).not.toContain('AI→사람 변경');
+        expect(mockGetSignals).not.toHaveBeenCalled();
       });
 
-      it('사람→AI 위임 우세 → AI 활용 적극적', () => {
+      it('사람→AI 위임 신호가 누적되어도 AI 활용 성향으로 주입하지 않음', () => {
         const judgments = Array.from({ length: 3 }, () => makeJudgment());
         mockGetSignals.mockReturnValue([
           { signal_type: 'actor_override_direction', signal_data: { from_actor: 'human', to_actor: 'ai' }, created_at: '' },
@@ -217,10 +212,11 @@ describe('Context Builder Simulation', () => {
         setupStorage({ sot_judgments: judgments });
 
         const result = buildEnhancedSystemPrompt(BASE_PROMPT);
-        expect(result).toContain('AI 활용에 적극적');
+        expect(result).not.toContain('AI 활용에 적극적');
+        expect(mockGetSignals).not.toHaveBeenCalled();
       });
 
-      it('질문 수정 2건 이상 → 다양한 질문 제안 패턴', () => {
+      it('질문 수정 이력이 있어도 미래 프롬프트 정책으로 승격하지 않음', () => {
         const judgments = [
           makeJudgment({ type: 'hidden_question_selection', user_changed: true }),
           makeJudgment({ type: 'hidden_question_selection', user_changed: true }),
@@ -228,7 +224,7 @@ describe('Context Builder Simulation', () => {
         setupStorage({ sot_judgments: judgments });
 
         const result = buildEnhancedSystemPrompt(BASE_PROMPT);
-        expect(result).toContain('질문을 자주 직접 수정');
+        expect(result).not.toContain('질문을 자주 직접 수정');
       });
 
       it('AI↔사람 균형 → 어느 쪽도 언급 안함', () => {
@@ -287,8 +283,8 @@ describe('Context Builder Simulation', () => {
       });
     });
 
-    describe('Section 3: Coda 깨달음', () => {
-      it('meta_reflection 있는 프로젝트 → 깨달음 주입', () => {
+    describe('E1: Coda 깨달음 격리', () => {
+      it('meta_reflection이 있어도 승인 없이 다른 프롬프트에 주입하지 않음', () => {
         const projects = [
           makeProject('old-proj', {
             meta_reflection: {
@@ -304,9 +300,9 @@ describe('Context Builder Simulation', () => {
         });
 
         const result = buildEnhancedSystemPrompt(BASE_PROMPT, 'proj-A');
-        expect(result).toContain('이전 프로젝트에서의 깨달음');
-        expect(result).toContain('고객이 기능보다 속도를 원했다');
-        expect(result).toContain('프로토타입 테스트를 먼저');
+        expect(result).not.toContain('이전 프로젝트에서의 깨달음');
+        expect(result).not.toContain('고객이 기능보다 속도를 원했다');
+        expect(result).not.toContain('프로토타입 테스트를 먼저');
       });
 
       it('현재 프로젝트의 reflection은 제외', () => {
@@ -328,7 +324,7 @@ describe('Context Builder Simulation', () => {
         expect(result).not.toContain('내 프로젝트 깨달음');
       });
 
-      it('최근 3개만 포함', () => {
+      it('여러 프로젝트의 깨달음도 전부 격리', () => {
         const projects = Array.from({ length: 5 }, (_, i) =>
           makeProject(`old-${i}`, {
             meta_reflection: {
@@ -344,16 +340,15 @@ describe('Context Builder Simulation', () => {
         });
 
         const result = buildEnhancedSystemPrompt(BASE_PROMPT);
-        // Sorted by created_at desc, take first 3: discovery-4, discovery-3, discovery-2
-        expect(result).toContain('discovery-4');
-        expect(result).toContain('discovery-3');
-        expect(result).toContain('discovery-2');
+        expect(result).not.toContain('discovery-4');
+        expect(result).not.toContain('discovery-3');
+        expect(result).not.toContain('discovery-2');
         expect(result).not.toContain('discovery-0');
       });
     });
 
-    describe('Section 5: Outcome 학습', () => {
-      it('outcome 2건 이상 → 성공률 주입', () => {
+    describe('E1: Outcome 해석 격리', () => {
+      it('outcome이 누적되어도 성공률을 미래 프롬프트에 주입하지 않음', () => {
         const outcomes = [
           makeOutcome('other-1', 'met'),
           makeOutcome('other-2', 'failed'),
@@ -365,8 +360,9 @@ describe('Context Builder Simulation', () => {
         });
 
         const result = buildEnhancedSystemPrompt(BASE_PROMPT, 'proj-A');
-        expect(result).toContain('과거 프로젝트 결과 학습');
-        expect(result).toContain('성공률: 67%'); // 2/3
+        expect(result).not.toContain('과거 프로젝트 결과 학습');
+        expect(result).not.toContain('성공률: 67%');
+        expect(mockGetStorage).not.toHaveBeenCalledWith('sot_outcome_records', []);
       });
 
       it('현재 프로젝트의 outcome은 제외', () => {
@@ -384,7 +380,7 @@ describe('Context Builder Simulation', () => {
         expect(result).not.toContain('과거 프로젝트 결과 학습');
       });
 
-      it('unspoken 리스크 실현율 50% 초과 → 경고', () => {
+      it('unspoken 리스크 실현율이 높아도 승인 없이 경고를 주입하지 않음', () => {
         const outcomes = [
           {
             ...makeOutcome('o1', 'met'),
@@ -406,12 +402,12 @@ describe('Context Builder Simulation', () => {
         });
 
         const result = buildEnhancedSystemPrompt(BASE_PROMPT, 'proj-A');
-        expect(result).toContain('침묵의 리스크가 자주 실현');
+        expect(result).not.toContain('침묵의 리스크가 자주 실현');
       });
     });
 
-    describe('Section 6: Retrospective 교훈', () => {
-      it('actionable insights가 있으면 주입', () => {
+    describe('E1: Retrospective 교훈 격리', () => {
+      it('actionable insight가 있어도 승인 없이 주입하지 않음', () => {
         setupStorage({ sot_judgments: [makeJudgment()] });
         mockGetActionableInsights.mockReturnValue([
           '고객 인터뷰를 먼저 했어야 했다',
@@ -419,13 +415,14 @@ describe('Context Builder Simulation', () => {
         ]);
 
         const result = buildEnhancedSystemPrompt(BASE_PROMPT, 'proj-A');
-        expect(result).toContain('이전 프로젝트 성찰 교훈');
-        expect(result).toContain('고객 인터뷰를 먼저');
-        expect(result).toContain('기술 검증을 병렬로');
+        expect(result).not.toContain('이전 프로젝트 성찰 교훈');
+        expect(result).not.toContain('고객 인터뷰를 먼저');
+        expect(result).not.toContain('기술 검증을 병렬로');
+        expect(mockGetActionableInsights).not.toHaveBeenCalled();
       });
     });
 
-    describe('Section 7: 적응형 컨텍스트', () => {
+    describe('E1: 적응형 프로필 격리', () => {
       it('총 세션 < 5 → 적응형 컨텍스트 없음', () => {
         mockGetEvalSummary.mockReturnValue({ total_sessions: 3 } as unknown as ReturnType<typeof getEvalSummary>);
         setupStorage({ sot_judgments: [makeJudgment(), makeJudgment()] });
@@ -434,7 +431,7 @@ describe('Context Builder Simulation', () => {
         expect(result).not.toContain('적응형 컨텍스트');
       });
 
-      it('축 갭 감지 → 축 이름 주입', () => {
+      it('축 갭 후보가 있어도 사용자 프로필로 주입하지 않음', () => {
         mockGetEvalSummary.mockReturnValue({ total_sessions: 10 } as unknown as ReturnType<typeof getEvalSummary>);
         // Build reframe items with business gap
         const reframeItems = Array.from({ length: 5 }, () => ({
@@ -465,11 +462,12 @@ describe('Context Builder Simulation', () => {
         });
 
         const result = buildEnhancedSystemPrompt(BASE_PROMPT);
-        expect(result).toContain('비즈니스');
-        expect(result).toContain('탐색되지 않았습니다');
+        expect(result).not.toContain('비즈니스');
+        expect(result).not.toContain('탐색되지 않았습니다');
+        expect(mockGetEvalSummary).not.toHaveBeenCalled();
       });
 
-      it('reframe 수락률 > 80% → 대안 프레이밍 강화 제안', () => {
+      it('reframe 수락률이 높아도 미래 대안 정책으로 주입하지 않음', () => {
         mockGetEvalSummary.mockReturnValue({ total_sessions: 10 } as unknown as ReturnType<typeof getEvalSummary>);
         // 5+ items where selected_question === reframed_question
         const reframeItems = Array.from({ length: 6 }, () => ({
@@ -495,8 +493,9 @@ describe('Context Builder Simulation', () => {
         });
 
         const result = buildEnhancedSystemPrompt(BASE_PROMPT);
-        expect(result).toContain('첫 reframe을 수락');
-        expect(result).toContain('대안적 프레이밍');
+        expect(result).not.toContain('첫 reframe을 수락');
+        expect(result).not.toContain('대안적 프레이밍');
+        expect(mockGetEvalSummary).not.toHaveBeenCalled();
       });
     });
 
@@ -570,14 +569,17 @@ describe('Context Builder Simulation', () => {
       });
 
       it('구분자 ---로 컨텍스트 분리', () => {
-        setupStorage({ sot_judgments: [makeJudgment(), makeJudgment()] });
+        setupStorage({ sot_judgments: [
+          makeJudgment({ project_id: 'proj-A' }),
+          makeJudgment({ project_id: 'proj-A' }),
+        ] });
         mockGetSignals.mockReturnValue([
           { signal_type: 'actor_override_direction', signal_data: { from_actor: 'ai', to_actor: 'human' }, created_at: '' },
           { signal_type: 'actor_override_direction', signal_data: { from_actor: 'ai', to_actor: 'human' }, created_at: '' },
           { signal_type: 'actor_override_direction', signal_data: { from_actor: 'ai', to_actor: 'human' }, created_at: '' },
         ] as unknown as ReturnType<typeof getSignalsByType>);
 
-        const result = buildEnhancedSystemPrompt(BASE_PROMPT);
+        const result = buildEnhancedSystemPrompt(BASE_PROMPT, 'proj-A');
         expect(result).toContain('\n\n---\n\n');
       });
     });
@@ -832,7 +834,7 @@ describe('Context Builder Simulation', () => {
   // Cross-scenario
   // ═══════════════════════════════════════
   describe('Cross-scenario: CLAUDE.md 가이드라인 준수', () => {
-    it('모든 패턴 주입은 "참고:" 접두사 사용 (directive 아님)', () => {
+    it('승인되지 않은 파생 패턴은 참고 문구로도 주입하지 않음', () => {
       mockGetEvalSummary.mockReturnValue({ total_sessions: 10 } as unknown as ReturnType<typeof getEvalSummary>);
       const reframeItems = Array.from({ length: 5 }, () => ({
         id: `rf-${Math.random()}`,
@@ -866,15 +868,10 @@ describe('Context Builder Simulation', () => {
       ] as unknown as ReturnType<typeof getSignalsByType>);
 
       const result = buildEnhancedSystemPrompt(BASE_PROMPT);
-      // Extract all lines that start with "- " (bullet points with insights)
       const insightLines = result.split('\n').filter(l => l.trimStart().startsWith('- 참고:'));
-      // All pattern insights should start with "참고:"
-      // (Some lines like section headers or non-pattern lines are exempt)
-      expect(insightLines.length).toBeGreaterThan(0);
-      for (const line of insightLines) {
-        expect(line).toContain('참고:');
-        expect(line).not.toContain('반드시');
-      }
+      expect(insightLines).toEqual([]);
+      expect(mockGetSignals).not.toHaveBeenCalled();
+      expect(mockGetEvalSummary).not.toHaveBeenCalled();
     });
   });
 });
