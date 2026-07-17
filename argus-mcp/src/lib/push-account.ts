@@ -16,6 +16,8 @@
  *     ARGUS_API_URL  optional, defaults to https://argus.voyage
  */
 
+import { resolveAccountApiUrl, resolveAccountToken } from '../a0/account-credentials.js';
+
 export interface SealPush {
   action: 'seal';
   id: string;
@@ -103,7 +105,7 @@ export interface PullResult {
  * returns null → callers skip the send rather than leak the token over http.
  */
 function resolveApiBase(): string | null {
-  const raw = (process.env.ARGUS_API_URL || 'https://argus.voyage').replace(/\/+$/, '');
+  const raw = resolveAccountApiUrl().replace(/\/+$/, '');
   try {
     const u = new URL(raw);
     const localhost = u.hostname === 'localhost' || u.hostname === '127.0.0.1' || u.hostname === '::1';
@@ -116,7 +118,7 @@ function resolveApiBase(): string | null {
 
 /** Pull the account's receipts (the sync's read side). No token ⇒ empty. */
 export async function fetchAccountReceipts(): Promise<PullResult> {
-  const token = (process.env.ARGUS_TOKEN || '').trim();
+  const token = resolveAccountToken();
   if (!token || !token.startsWith('argus_pat_')) return { ok: false, reason: 'no_token', receipts: [] };
   const base = resolveApiBase();
   if (!base) return { ok: false, reason: 'insecure_api_url', receipts: [] };
@@ -138,7 +140,7 @@ export async function fetchAccountReceipts(): Promise<PullResult> {
 }
 
 export async function pushToAccount(payload: AccountPush): Promise<PushResult> {
-  const token = (process.env.ARGUS_TOKEN || '').trim();
+  const token = resolveAccountToken();
   if (!token) return { synced: false, reason: 'no_token' }; // local-only (default)
   if (!token.startsWith('argus_pat_')) return { synced: false, reason: 'bad_token_format' };
 
