@@ -79,7 +79,22 @@ J9의 코드·API·projection·UI·자동 검증은 구현됐다. 그러나 JCR 
 - `src/components/patterns/__tests__/e3b-separation.test.tsx`
 - `src/app/api/epistemic/review/__tests__/route.test.ts`
 
-검증 명령은 최종 J9 PR의 CI 및 본 문서 마지막 갱신에서 실제 결과로 기록한다.
+2026-07-18 최종 로컬 결과:
+
+| 검증 | 결과 |
+|---|---|
+| `npm run test:coverage` | 263 files passed, 1 skipped / 3402 tests passed, 10 skipped / ratchet pass |
+| J9 집중 fixture | 4 files / 12 tests pass |
+| `npm --prefix argus-mcp test` | 104 files / 1000 tests pass |
+| `npm run build` | Next.js production build + TypeScript pass, `/[locale]/patterns`와 API route 생성 확인 |
+| `npm run lint` | 0 errors, 기존 warning 127 (limit 145 이내) |
+| gates | `gates` pass, `gates:test` 29/29, `signals:test` 68/68, `eval:static` 16/16 |
+| plugin | validator pass, push script syntax pass |
+| diff | `git diff --check` pass |
+
+첫 coverage 실행은 J9 카드의 왼쪽 accent bar를 저장소의 영구 금지 디자인 fixture가
+탐지해 실패했다. 왼쪽 막대·source 세로선·grant 연결선을 모두 제거하고 배경 틴트와
+활자 위계로 교체한 뒤 전체 coverage를 재실행해 통과했다. fixture를 우회하지 않았다.
 
 ## 6. 외부 완료 절차
 

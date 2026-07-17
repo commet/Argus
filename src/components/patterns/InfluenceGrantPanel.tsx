@@ -38,7 +38,6 @@ export function InfluenceGrantPanel({
 
   return (
     <section className="relative mt-5 rounded-2xl border border-dashed border-[var(--accent)]/60 bg-[var(--accent)]/[0.035] p-5" aria-labelledby={`${claim.claim_id}-grant-title`}>
-      <div aria-hidden className="absolute -top-5 left-7 h-5 border-l border-dashed border-[var(--accent)]/60" />
       <div className="flex items-start gap-3">
         <div className="mt-0.5 rounded-xl bg-[var(--accent)]/10 p-2 text-[var(--accent)]"><KeyRound size={17} /></div>
         <div className="min-w-0 flex-1">

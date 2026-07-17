@@ -26,9 +26,7 @@ export function ClaimReviewCard({
 
   return (
     <article className="overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow-sm)]">
-      <div className="grid md:grid-cols-[8px_1fr]">
-        <div aria-hidden className="bg-[var(--accent)]" />
-        <div className="p-5 sm:p-6">
+      <div className="p-5 sm:p-6">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-2 text-[11px] font-semibold tracking-[0.12em] text-[var(--text-tertiary)] uppercase">
               <Scale size={14} className="text-[var(--accent)]" />
@@ -70,12 +68,12 @@ export function ClaimReviewCard({
                     <li key={source.support_unit_id} className="rounded-lg bg-[var(--bg)] p-3 text-[12px] leading-5 text-[var(--text-secondary)]">
                       <p className="font-semibold text-[var(--text-primary)]">{L(`해결 사례 ${index + 1}`, `Resolved case ${index + 1}`)}</p>
                       {source.drilldown ? <>
-                        <div className="mt-2 border-l-2 border-[var(--accent)]/40 pl-2">
+                        <div className="mt-2 rounded-md bg-[var(--accent)]/[0.06] px-2.5 py-2">
                           <p className="font-semibold text-[var(--text-primary)]">{L('당시 관찰', 'Observation then')}</p>
                           <p>{source.drilldown.observation.excerpt}</p>
                           <p className="mt-1 break-all text-[10px] text-[var(--text-tertiary)]">{source.drilldown.observation.event_id} · {source.drilldown.observation.occurred_at}</p>
                         </div>
-                        <div className="mt-2 border-l-2 border-[var(--primary)]/40 pl-2">
+                        <div className="mt-2 rounded-md bg-[var(--primary)]/[0.06] px-2.5 py-2">
                           <p className="font-semibold text-[var(--text-primary)]">{L('나중의 정산', 'Resolution later')}</p>
                           <p>{source.drilldown.resolution.excerpt}</p>
                           <p className="mt-1 break-all text-[10px] text-[var(--text-tertiary)]">{source.drilldown.resolution.event_id} · {source.drilldown.resolution.occurred_at}</p>
@@ -155,7 +153,6 @@ export function ClaimReviewCard({
               {L('여기서 ‘맞음’을 눌러도 미래 AI에 반영되지 않습니다. 영향 허용은 검토가 끝난 뒤 별도 단계입니다.', 'Choosing “Fits” does not affect future AI. Influence is a separate step after review.')}
             </p>
           </div>
-        </div>
       </div>
     </article>
   );

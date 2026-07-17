@@ -36,20 +36,22 @@ export function PatternCard({
         </div>
       </div>
 
-      <div className="mt-5 border-l border-[var(--border)] pl-5" aria-label={L('다섯 판단 차원', 'Five judgment dimensions')}>
+      <div className="mt-5 grid gap-2" aria-label={L('다섯 판단 차원', 'Five judgment dimensions')}>
         {pattern.dimensions.map((dimension, index) => {
           const labels = DIMENSION_COPY[dimension.dimension];
           return (
-            <div key={dimension.dimension} className="relative pb-5 last:pb-0">
-              <span className="absolute -left-[29px] top-0 bg-[var(--surface)] text-[var(--text-tertiary)]">
+            <div key={dimension.dimension} className={`grid grid-cols-[22px_1fr] gap-2 rounded-xl px-3 py-3 ${dimension.available ? 'bg-[var(--primary)]/[0.045]' : 'bg-[var(--bg)]'}`}>
+              <span className="pt-0.5 text-[var(--text-tertiary)]">
                 {dimension.available ? <CircleCheck size={17} className="text-[var(--primary)]" /> : <Circle size={17} />}
               </span>
-              <div className="flex items-baseline gap-2">
-                <span className="font-mono text-[10px] text-[var(--text-tertiary)]">{String(index + 1).padStart(2, '0')}</span>
-                <h3 className="text-[12px] font-bold text-[var(--text-primary)]">{labels[locale === 'ko' ? 0 : 1]}</h3>
-                {!dimension.available && <span className="text-[10px] text-[var(--text-tertiary)]">{L('미확인', 'not established')}</span>}
+              <div>
+                <div className="flex items-baseline gap-2">
+                  <span className="font-mono text-[10px] text-[var(--text-tertiary)]">{String(index + 1).padStart(2, '0')}</span>
+                  <h3 className="text-[12px] font-bold text-[var(--text-primary)]">{labels[locale === 'ko' ? 0 : 1]}</h3>
+                  {!dimension.available && <span className="text-[10px] text-[var(--text-tertiary)]">{L('미확인', 'not established')}</span>}
+                </div>
+                <p className="mt-1 text-[12px] leading-5 text-[var(--text-secondary)]">{locale === 'ko' ? dimension.summary : dimension.summary_en}</p>
               </div>
-              <p className="mt-1 text-[12px] leading-5 text-[var(--text-secondary)]">{locale === 'ko' ? dimension.summary : dimension.summary_en}</p>
             </div>
           );
         })}
