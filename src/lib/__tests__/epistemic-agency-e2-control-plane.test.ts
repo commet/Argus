@@ -3,7 +3,7 @@ import type { InfluenceGrant, InfluenceTrace, SelfKnowledgeClaim } from '@/lib/e
 
 const { memory, storageState } = vi.hoisted(() => ({
   memory: new Map<string, unknown>(),
-  storageState: { dropWrites: false, throwWrites: false },
+  storageState: { dropWrites: false, throwWrites: false, dropKeys: new Set<string>() },
 }));
 
 vi.mock('@/lib/storage', () => {
@@ -25,7 +25,11 @@ vi.mock('@/lib/storage', () => {
     getStorage: <T,>(key: string, fallback: T): T => (memory.has(key) ? memory.get(key) as T : fallback),
     setStorage: <T,>(key: string, value: T): void => {
       if (storageState.throwWrites) throw new Error('storage adapter failed');
-      if (!storageState.dropWrites) memory.set(key, value);
+      if (!storageState.dropWrites && !storageState.dropKeys.has(key)) memory.set(key, value);
+    },
+    removeStorage: (key: string): void => {
+      if (storageState.throwWrites) throw new Error('storage adapter failed');
+      if (!storageState.dropWrites && !storageState.dropKeys.has(key)) memory.delete(key);
     },
   };
 });
@@ -105,6 +109,9 @@ beforeEach(() => {
   memory.clear();
   storageState.dropWrites = false;
   storageState.throwWrites = false;
+  storageState.dropKeys.clear();
+  // Prune module-local fail-closed tombstones against an empty adapter.
+  getInfluenceRecords();
 });
 
 describe('E2 pure influence gate', () => {
@@ -222,7 +229,7 @@ describe('E2 stored lifecycle and prompt integration', () => {
   it('treats malformed top-level storage and trace entries as empty, never executable state', () => {
     memory.set('sot_epistemic_claims', { claim_id: 'not-an-array' });
     memory.set('sot_epistemic_influence_grants', grant());
-    expect(getInfluenceRecords()).toEqual({ claims: [], grants: [], traces: [] });
+    expect(getInfluenceRecords()).toEqual({ claims: [], grants: [], traces: [], review_events: [] });
 
     memory.set('sot_epistemic_claims', [claim()]);
     memory.set('sot_epistemic_influence_grants', [grant()]);
@@ -248,12 +255,13 @@ describe('E2 stored lifecycle and prompt integration', () => {
     }, NOW);
     expect(getInfluenceRecords().grants).toEqual([]);
 
-    const endorsed = reviewSelfKnowledgeClaim({ claim_id: candidate.claim_id, action: 'endorse', now: NOW });
+    expect(candidate).not.toBeNull();
+    const endorsed = reviewSelfKnowledgeClaim({ claim_id: candidate!.claim_id, action: 'endorse', now: NOW });
     expect(endorsed?.lifecycle).toBe('endorsed');
     expect(getInfluenceRecords().grants).toEqual([]);
 
     const storedGrant = recordUserAuthorizedGrant({
-      claim_id: candidate.claim_id,
+      claim_id: candidate!.claim_id,
       effect: 'ask_once',
       surfaces: ['web'],
       scope: { domain: 'product_launch', project_id: 'p1' },
@@ -261,6 +269,9 @@ describe('E2 stored lifecycle and prompt integration', () => {
       expires_at: '2026-08-01T00:00:00.000Z',
     });
     expect(storedGrant?.authorized_by).toBe('user');
+    expect(getInfluenceRecords().review_events).toEqual([
+      expect.objectContaining({ claim_id: candidate!.claim_id, action: 'endorse' }),
+    ]);
   });
 
   it('does not let a system-proposed personal principle become an influence grant without user wording', () => {
@@ -341,6 +352,77 @@ describe('E2 stored lifecycle and prompt integration', () => {
     expect(result.prompt_sections).toEqual([]);
     expect(result.trace.excluded[0].reason).toBe('contested');
     expect(getInfluenceRecords().claims).toHaveLength(1);
+    expect(getInfluenceRecords().grants[0].status).toBe('revoked');
+  });
+
+  it('fails closed when a revoke cannot be persisted', () => {
+    memory.set('sot_epistemic_claims', [claim()]);
+    memory.set('sot_epistemic_influence_grants', [grant()]);
+    storageState.dropWrites = true;
+    expect(revokeInfluenceGrant('grant:1')).toBeNull();
+    storageState.dropWrites = false;
+
+    const result = buildStoredPromptInfluence({
+      call_id: 'call:failed-revoke', surface: 'web', domain: 'product_launch', project_id: 'p1', now: NOW,
+    });
+    expect(result.prompt_sections).toEqual([]);
+    expect(result.trace.excluded[0].reason).toBe('revoked');
+  });
+
+  it('fails closed when a material counterexample cannot revoke its active grant', () => {
+    memory.set('sot_epistemic_claims', [claim()]);
+    memory.set('sot_epistemic_influence_grants', [grant()]);
+    storageState.dropKeys.add('sot_epistemic_influence_grants');
+    expect(addClaimCounterexample({
+      claim_id: 'claim:1', counterexample_ref: 'k:counterexample-write-failed', material: true, now: NOW,
+    })).toBeNull();
+    storageState.dropKeys.clear();
+
+    const result = buildStoredPromptInfluence({
+      call_id: 'call:failed-counterexample', surface: 'web', domain: 'product_launch', project_id: 'p1', now: NOW,
+    });
+    expect(result.prompt_sections).toEqual([]);
+    expect(result.trace.excluded[0].reason).toBe('revoked');
+  });
+
+  it('requires a fresh grant after any review instead of resurrecting old permission', () => {
+    memory.set('sot_epistemic_claims', [claim({
+      claim_kind: 'personal_principle', wording_source: 'user_authored', support_state: 'emerging',
+    })]);
+    memory.set('sot_epistemic_influence_grants', [grant()]);
+
+    expect(reviewSelfKnowledgeClaim({
+      claim_id: 'claim:1', action: 'reword', user_wording: '출시 전 운영 용량을 다시 확인한다.', now: NOW,
+    })?.lifecycle).toBe('endorsed');
+    expect(getInfluenceRecords().grants[0].status).toBe('revoked');
+
+    const stale = buildStoredPromptInfluence({
+      call_id: 'call:stale-grant', surface: 'web', domain: 'product_launch', project_id: 'p1', now: NOW,
+    });
+    expect(stale.prompt_sections).toEqual([]);
+    expect(stale.trace.excluded[0].reason).toBe('revoked');
+
+    const fresh = recordUserAuthorizedGrant({
+      claim_id: 'claim:1', effect: 'ask_once', surfaces: ['web'],
+      scope: { domain: 'product_launch', project_id: 'p1' }, starts_at: NOW,
+    });
+    expect(fresh?.authorized_by).toBe('user');
+  });
+
+  it('blocks influence if the review audit event cannot be persisted', () => {
+    memory.set('sot_epistemic_claims', [claim({
+      claim_kind: 'personal_principle', wording_source: 'user_authored', support_state: 'emerging',
+    })]);
+    memory.set('sot_epistemic_influence_grants', [grant()]);
+    storageState.dropKeys.add('sot_epistemic_claim_review_events');
+    expect(reviewSelfKnowledgeClaim({ claim_id: 'claim:1', action: 'endorse', now: NOW })).toBeNull();
+    storageState.dropKeys.clear();
+
+    const result = buildStoredPromptInfluence({
+      call_id: 'call:no-review-audit', surface: 'web', domain: 'product_launch', project_id: 'p1', now: NOW,
+    });
+    expect(result.prompt_sections).toEqual([]);
+    expect(result.trace.excluded[0].reason).toBe('contested');
   });
 
   it('the live context builder has zero influence by default and uses the single E gate when scoped', () => {

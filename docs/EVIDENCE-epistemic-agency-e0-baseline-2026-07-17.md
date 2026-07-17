@@ -206,6 +206,12 @@ E2는 사용자 화면을 열지 않고 다음 계약을 구현했다.
   `context-builder.ts`는 `buildStoredPromptInfluence()` 한 곳만 통과한다.
 - 철회·만료·범위 밖·미채택·근거 부족·material counterexample·`ask_once` 재사용·prompt
   budget 초과는 모두 fail-closed다.
+- claim을 endorse/reword/contest/retire/reopen하는 모든 review는 기존 active grant를
+  무효화한다. 따라서 문구나 상태를 다시 승인해도 예전 권한이 자동으로 살아나지 않고,
+  영향에는 새 grant 행위가 필요하다.
+- 철회·중대한 반례·review event 저장은 write 뒤 read-back으로 검증한다. 권한 축소 저장이
+  실패하면 grant 저장소 전체 삭제를 우선 시도하고 runtime tombstone도 남겨, 이전 active
+  grant가 다음 호출에 쓰이는 fail-open을 막는다. review event가 유실된 claim도 영향 0이다.
 - claim의 domain/project/time뿐 아니라 role 범위도 실제 호출 문맥과 대조한다. 저장된
   `supported` 표지를 신뢰하지 않고 support ref·독립 lineage·resolved case·반례 검색
   최소치를 gate에서 다시 계산한다.
@@ -229,8 +235,8 @@ E2는 사용자 화면을 열지 않고 다음 계약을 구현했다.
 핵심 기계 증거는 `src/lib/__tests__/epistemic-agency-e2-control-plane.test.ts`다.
 grant 0, endorse/grant 분리, domain/project/role in/out scope, 시작 전·만료·철회,
 ask-once, contested/retired, 반례, prompt budget, injection sanitation, 실제 최소 근거 재검증,
-손상된 local record·adapter throw, exact prompt trace, trace write fail-closed, 실제 context
-builder 연결을 검증한다.
+손상된 local record·adapter throw, exact prompt trace, trace write fail-closed, 철회·반례·review
+audit write 실패 시 영향 0, review 뒤 stale grant 비활성, 실제 context builder 연결을 검증한다.
 
 E2 경계 검증 명령:
 
@@ -245,9 +251,9 @@ npx vitest run src/lib/__tests__/persistence-contract.test.ts `
 
 ```text
 Test Files  4 passed (4)
-Tests       90 passed (90)
+Tests       94 passed (94)
 ```
 
-최종 전체 저장소 검증은 `npm test`에서 **251 files passed, 3217 tests passed**
+최종 전체 저장소 검증은 `npm test`에서 **251 files passed, 3221 tests passed**
 (기존 skip 1 file / 10 tests 유지)였다. `npx tsc --noEmit`도 통과했고,
 `npm run lint`는 error 0, 기존 warning 127개로 상한 145 이내다.

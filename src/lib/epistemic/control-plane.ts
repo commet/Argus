@@ -1,4 +1,4 @@
-import { getStorage, setStorage, STORAGE_KEYS } from '@/lib/storage';
+import { getStorage, removeStorage, setStorage, STORAGE_KEYS } from '@/lib/storage';
 import { generateId } from '@/lib/uuid';
 import type {
   ClaimReviewEvent,
@@ -24,7 +24,19 @@ export interface InfluenceRecords {
   claims: SelfKnowledgeClaim[];
   grants: InfluenceGrant[];
   traces: InfluenceTrace[];
+  review_events: ClaimReviewEvent[];
 }
+
+type InfluenceEvaluationRecords = Pick<InfluenceRecords, 'claims' | 'grants' | 'traces'>;
+
+/**
+ * A failed authority write must never leave an already-active grant usable in
+ * the current runtime. These in-memory tombstones are a last fail-closed layer
+ * for the shadow/local adapter; E3's durable store must replace them with a
+ * transactional revocation contract before any user surface opens.
+ */
+const failClosedClaimIds = new Set<string>();
+const failClosedGrantIds = new Set<string>();
 
 function nowIso(now?: string): string {
   return now ?? new Date().toISOString();
@@ -130,53 +142,109 @@ function isTrace(value: unknown): value is InfluenceTrace {
     && Number.isFinite(Date.parse(value.created_at));
 }
 
+function isReviewEvent(value: unknown): value is ClaimReviewEvent {
+  return isRecord(value)
+    && typeof value.event_id === 'string'
+    && typeof value.claim_id === 'string'
+    && ['endorse', 'reword', 'contest', 'retire', 'reopen'].includes(String(value.action))
+    && (value.user_wording === undefined || typeof value.user_wording === 'string')
+    && (value.reason === undefined || typeof value.reason === 'string')
+    && typeof value.occurred_at === 'string'
+    && Number.isFinite(Date.parse(value.occurred_at));
+}
+
 function readArray(key: string): unknown[] {
   const stored = getStorage<unknown>(key, []);
   return Array.isArray(stored) ? stored : [];
 }
 
 function readRecords(): InfluenceRecords {
-  return {
+  const records: InfluenceRecords = {
     claims: readArray(STORAGE_KEYS.SELF_KNOWLEDGE_CLAIMS).filter(isClaim),
     grants: readArray(STORAGE_KEYS.INFLUENCE_GRANTS).filter(isGrant),
     traces: readArray(STORAGE_KEYS.INFLUENCE_TRACES).filter(isTrace),
+    review_events: readArray(STORAGE_KEYS.CLAIM_REVIEW_EVENTS).filter(isReviewEvent),
   };
+  const claimIds = new Set(records.claims.map((claim) => claim.claim_id));
+  const grantIds = new Set(records.grants.map((grant) => grant.grant_id));
+  for (const claimId of failClosedClaimIds) {
+    if (!claimIds.has(claimId)) failClosedClaimIds.delete(claimId);
+  }
+  for (const grantId of failClosedGrantIds) {
+    if (!grantIds.has(grantId)) failClosedGrantIds.delete(grantId);
+  }
+  return records;
 }
 
 export function getInfluenceRecords(): InfluenceRecords {
   return readRecords();
 }
 
-function writeClaims(claims: SelfKnowledgeClaim[]): void {
-  setStorage(STORAGE_KEYS.SELF_KNOWLEDGE_CLAIMS, claims);
-}
-
-function writeGrants(grants: InfluenceGrant[]): void {
-  setStorage(STORAGE_KEYS.INFLUENCE_GRANTS, grants);
-}
-
-function appendTrace(trace: InfluenceTrace): boolean {
+function writeVerified<T>(
+  key: string,
+  values: T[],
+  guard: (value: unknown) => value is T,
+): boolean {
   try {
-    const traces = readArray(STORAGE_KEYS.INFLUENCE_TRACES).filter(isTrace);
-    setStorage(STORAGE_KEYS.INFLUENCE_TRACES, [...traces, trace]);
-    return readArray(STORAGE_KEYS.INFLUENCE_TRACES)
-      .filter(isTrace)
-      .some((stored) => stored.trace_id === trace.trace_id);
+    setStorage(key, values);
+    const stored = readArray(key).filter(guard);
+    return JSON.stringify(stored) === JSON.stringify(values);
   } catch {
     return false;
   }
 }
 
-function appendReviewEvent(event: ClaimReviewEvent): void {
-  const events = readArray(STORAGE_KEYS.CLAIM_REVIEW_EVENTS).filter(isRecord);
-  setStorage(STORAGE_KEYS.CLAIM_REVIEW_EVENTS, [...events, event]);
+function writeClaims(claims: SelfKnowledgeClaim[]): boolean {
+  return writeVerified(STORAGE_KEYS.SELF_KNOWLEDGE_CLAIMS, claims, isClaim);
+}
+
+function writeGrants(grants: InfluenceGrant[]): boolean {
+  return writeVerified(STORAGE_KEYS.INFLUENCE_GRANTS, grants, isGrant);
+}
+
+function purgeAllGrantsFailClosed(): boolean {
+  try {
+    removeStorage(STORAGE_KEYS.INFLUENCE_GRANTS);
+    return readArray(STORAGE_KEYS.INFLUENCE_GRANTS).length === 0;
+  } catch {
+    return false;
+  }
+}
+
+function appendTrace(trace: InfluenceTrace): boolean {
+  const traces = readArray(STORAGE_KEYS.INFLUENCE_TRACES).filter(isTrace);
+  return writeVerified(STORAGE_KEYS.INFLUENCE_TRACES, [...traces, trace], isTrace);
+}
+
+function appendReviewEvent(event: ClaimReviewEvent): boolean {
+  const events = readArray(STORAGE_KEYS.CLAIM_REVIEW_EVENTS).filter(isReviewEvent);
+  return writeVerified(STORAGE_KEYS.CLAIM_REVIEW_EVENTS, [...events, event], isReviewEvent);
+}
+
+/** Any claim review invalidates prior influence permission. */
+function revokeClaimGrants(records: InfluenceRecords, claimId: string): boolean {
+  const affected = records.grants.filter((grant) =>
+    grant.claim_id === claimId && grant.status === 'active');
+  if (affected.length === 0) return true;
+  const affectedIds = new Set(affected.map((grant) => grant.grant_id));
+  const next = records.grants.map((grant) =>
+    affectedIds.has(grant.grant_id) ? { ...grant, status: 'revoked' as const } : grant);
+  if (!writeGrants(next)) {
+    for (const grantId of affectedIds) failClosedGrantIds.add(grantId);
+    // Quota errors commonly reject a rewrite but still allow removal. Losing
+    // all grants is safer than letting one revoked grant survive a reload.
+    purgeAllGrantsFailClosed();
+    return false;
+  }
+  for (const grantId of affectedIds) failClosedGrantIds.delete(grantId);
+  return true;
 }
 
 /** Store a reviewable candidate. Creation can never endorse it or grant influence. */
 export function createSelfKnowledgeCandidate(
   input: NewSelfKnowledgeCandidate,
   now?: string,
-): SelfKnowledgeClaim {
+): SelfKnowledgeClaim | null {
   const records = readRecords();
   const supportRefs = unique(input.support_refs);
   const lineageIds = unique(input.independence.lineage_ids);
@@ -202,7 +270,7 @@ export function createSelfKnowledgeCandidate(
     lifecycle: 'candidate',
     created_at: nowIso(now),
   };
-  writeClaims([...records.claims, claim]);
+  if (!writeClaims([...records.claims, claim])) return null;
   return claim;
 }
 
@@ -252,8 +320,14 @@ export function reviewSelfKnowledgeClaim(args: {
   };
   const claims = [...records.claims];
   claims[index] = updated;
-  writeClaims(claims);
-  appendReviewEvent({
+  // A review changes the authority basis. Revoke old grants first so a
+  // reword/reopen/re-endorse sequence cannot silently resurrect permission.
+  if (!revokeClaimGrants(records, args.claim_id)) return null;
+  if (!writeClaims(claims)) {
+    failClosedClaimIds.add(args.claim_id);
+    return null;
+  }
+  const reviewWritten = appendReviewEvent({
     event_id: `review:${generateId()}`,
     claim_id: args.claim_id,
     action: args.action,
@@ -261,6 +335,11 @@ export function reviewSelfKnowledgeClaim(args: {
     reason: args.reason?.trim() || undefined,
     occurred_at: reviewedAt,
   });
+  if (!reviewWritten) {
+    failClosedClaimIds.add(args.claim_id);
+    return null;
+  }
+  failClosedClaimIds.delete(args.claim_id);
   return updated;
 }
 
@@ -271,14 +350,16 @@ export function reviewSelfKnowledgeClaim(args: {
 export function recordUserAuthorizedGrant(input: UserAuthorizedGrant): InfluenceGrant | null {
   const records = readRecords();
   const claim = records.claims.find((item) => item.claim_id === input.claim_id);
-  if (!claim || claim.lifecycle !== 'endorsed' || claim.support_state === 'contested') return null;
+  if (!claim || failClosedClaimIds.has(claim.claim_id)
+    || claim.lifecycle !== 'endorsed' || claim.support_state === 'contested') return null;
   if (claim.claim_kind !== 'personal_principle' && claim.support_state !== 'supported') return null;
   if (claim.claim_kind !== 'personal_principle' && !hasMinimumSupport(claim)) return null;
   if (claim.claim_kind === 'personal_principle' && claim.wording_source === 'system_proposed') return null;
   if (claim.claim_kind === 'causal_hypothesis'
     && claim.wording_source !== 'user_authored'
     && claim.support_refs.length === 0) return null;
-  if (input.surfaces.length === 0) return null;
+  if (input.surfaces.length === 0
+    || input.surfaces.some((surface) => !['web', 'mcp', 'plugin'].includes(surface))) return null;
   if (!Number.isFinite(Date.parse(input.starts_at))) return null;
   if (input.expires_at && (!Number.isFinite(Date.parse(input.expires_at))
     || Date.parse(input.expires_at) < Date.parse(input.starts_at))) return null;
@@ -295,7 +376,7 @@ export function recordUserAuthorizedGrant(input: UserAuthorizedGrant): Influence
     authorized_by: 'user',
     status: 'active',
   };
-  writeGrants([...records.grants, grant]);
+  if (!writeGrants([...records.grants, grant])) return null;
   return grant;
 }
 
@@ -306,7 +387,12 @@ export function revokeInfluenceGrant(grantId: string): InfluenceGrant | null {
   const updated: InfluenceGrant = { ...records.grants[index], status: 'revoked' };
   const grants = [...records.grants];
   grants[index] = updated;
-  writeGrants(grants);
+  if (!writeGrants(grants)) {
+    failClosedGrantIds.add(grantId);
+    purgeAllGrantsFailClosed();
+    return null;
+  }
+  failClosedGrantIds.delete(grantId);
   return updated;
 }
 
@@ -330,7 +416,12 @@ export function addClaimCounterexample(args: {
   };
   const claims = [...records.claims];
   claims[index] = updated;
-  writeClaims(claims);
+  if (args.material && !revokeClaimGrants(records, args.claim_id)) return null;
+  if (!writeClaims(claims)) {
+    if (args.material) failClosedClaimIds.add(args.claim_id);
+    return null;
+  }
+  if (args.material) failClosedClaimIds.delete(args.claim_id);
   return updated;
 }
 
@@ -408,7 +499,7 @@ function renderPromptSection(claim: SelfKnowledgeClaim, grant: InfluenceGrant): 
 }
 
 /** Pure evaluator: relevance never grants permission, and every decision is traceable. */
-export function evaluatePromptInfluence(args: InfluenceRecords & { context: InfluenceContext }): PromptInfluenceDecision {
+export function evaluatePromptInfluence(args: InfluenceEvaluationRecords & { context: InfluenceContext }): PromptInfluenceDecision {
   const used: InfluenceTrace['used'] = [];
   const excluded: InfluenceTrace['excluded'] = [];
   const promptSections: string[] = [];
@@ -491,7 +582,16 @@ export function evaluatePromptInfluence(args: InfluenceRecords & { context: Infl
 /** Single stored influence gate used immediately before live prompt assembly. */
 export function buildStoredPromptInfluence(context: InfluenceContext): PromptInfluenceDecision {
   const records = readRecords();
-  const decision = evaluatePromptInfluence({ ...records, context });
+  const failClosedRecords: InfluenceEvaluationRecords = {
+    claims: records.claims.map((claim) => failClosedClaimIds.has(claim.claim_id)
+      ? { ...claim, lifecycle: 'contested', support_state: 'contested' }
+      : claim),
+    grants: records.grants.map((grant) => failClosedGrantIds.has(grant.grant_id)
+      ? { ...grant, status: 'revoked' }
+      : grant),
+    traces: records.traces,
+  };
+  const decision = evaluatePromptInfluence({ ...failClosedRecords, context });
   // With no E records there is nothing to audit; once a claim exists every
   // allowed or denied prompt attempt receives a durable trace.
   if (records.claims.length > 0 && !appendTrace(decision.trace) && decision.trace.used.length > 0) {

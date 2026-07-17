@@ -718,6 +718,11 @@ gate는 domain/project/role/time을 모두 대조하고, 저장된 `supported` �
 최소 근거와 독립 lineage를 다시 검증한다. trace는 실제 삽입 section 전체를 보존하며,
 손상된 저장값이나 storage adapter 실패는 영향 0으로 닫힌다. 시스템 제안 상태인
 `personal_principle`은 사용자 재작성 또는 직접 작성 전에는 grant 대상이 될 수 없다.
+모든 claim review는 기존 active grant를 먼저 철회하므로 reword/reopen/re-endorse 뒤
+과거 권한이 자동으로 살아나지 않는다. 철회·중대한 반례·review audit의 저장은 read-back
+검증을 통과해야 하며, 권한 축소 write가 실패하면 전체 grant 저장소 삭제를 우선 시도하고
+현재 runtime tombstone으로도 영향을 0으로 닫는다. `ClaimReviewEvent` 역시 구조 검증된
+네 번째 저장소로 읽혀, claim 상태만 바뀌고 검토 이력이 사라지는 경우에는 영향이 막힌다.
 E2 저장 키는 persistence contract상 shadow 기간에만 local-only다. E3에서 사용자 표면을
 열기 전에 서버 동기화·계정 이동성·감사 보존·삭제 정책을 함께 설계하고 synced 계약으로
 승격하는 것을 필수 선행조건으로 둔다.
