@@ -642,7 +642,7 @@ describe('Scenario M: 프롬프트 주입 내용 검증', () => {
     expect(prompt).not.toContain('참고: 이 사용자');
   });
 
-  it('5회 이상 + org blind spot → 프롬프트에 축 갭이 주입되어야 한다', () => {
+  it('5회 이상 + org blind spot 후보도 승인 전에는 프롬프트에 주입하지 않는다', () => {
     setupScenario({
       sessions: 7, projects: 2,
       reframeItems: makeReframeItems(7, ['customer_value', 'customer_value', 'business']),
@@ -657,12 +657,11 @@ describe('Scenario M: 프롬프트 주입 내용 검증', () => {
     });
 
     const prompt = buildEnhancedSystemPrompt('기본 프롬프트');
-    // org_capacity와 feasibility가 모두 0이므로 하나 이상이 언급되어야 함
-    expect(prompt).toContain('참고:');
-    expect(prompt).toMatch(/조직 역량|실현 가능성/);
+    expect(prompt).not.toContain('참고:');
+    expect(prompt).not.toMatch(/조직 역량|실현 가능성/);
   });
 
-  it('assumptions_diverse eval이 낮으면 4축 고려 요청이 주입되어야 한다', () => {
+  it('assumptions_diverse eval이 낮아도 4축 지시를 자동 주입하지 않는다', () => {
     setupScenario({
       sessions: 6, projects: 2,
       reframeItems: makeReframeItems(6, ['customer_value', 'business', 'feasibility', 'org_capacity']),
@@ -674,10 +673,10 @@ describe('Scenario M: 프롬프트 주입 내용 검증', () => {
     });
 
     const prompt = buildEnhancedSystemPrompt('기본 프롬프트');
-    expect(prompt).toContain('customer');
-    expect(prompt).toContain('feasibility');
-    expect(prompt).toContain('business');
-    expect(prompt).toContain('org');
+    expect(prompt).not.toContain('customer');
+    expect(prompt).not.toContain('feasibility');
+    expect(prompt).not.toContain('business');
+    expect(prompt).not.toContain('org');
   });
 
   it('프롬프트 주입은 "참고:" 형식이어야 한다 (directive가 아닌 reference)', () => {
@@ -699,11 +698,11 @@ describe('Scenario M: 프롬프트 주입 내용 검증', () => {
 });
 
 // ══════════════════════════════════════
-// Scenario N: 과신 reframe 수락 패턴 → 프롬프트 주입 검증
-// 8회 중 7회 첫 reframe 수락 → LLM에 대안 제시 강화 요청
+// Scenario N: reframe 수락 사건을 사용자 성향으로 자동 승격하지 않음
+// 8회 중 7회 첫 reframe 수락도 E2 grant 전에는 미래 프롬프트 영향 0
 // ══════════════════════════════════════
 
-describe('Scenario N: 과신 수락 패턴 → 프롬프트 주입', () => {
+describe('Scenario N: reframe 수락 패턴 격리', () => {
   beforeEach(() => {
     setupScenario({
       sessions: 8, projects: 3,
@@ -716,10 +715,10 @@ describe('Scenario N: 과신 수락 패턴 → 프롬프트 주입', () => {
     });
   });
 
-  it('프롬프트에 reframe 수락 패턴이 언급되어야 한다', () => {
+  it('프롬프트에 reframe 수락 패턴과 대안 압력을 주입하지 않는다', () => {
     const prompt = buildEnhancedSystemPrompt('기본 프롬프트');
-    expect(prompt).toContain('수락');
-    expect(prompt).toContain('대안');
+    expect(prompt).not.toContain('수락');
+    expect(prompt).not.toContain('대안');
   });
 });
 

@@ -490,17 +490,16 @@ describe('Navigator Simulation', () => {
   // ───────────────────────────────────
   // Archetype 9: 비판적 사용자 (override율 60%+)
   // ───────────────────────────────────
-  describe('Archetype 9: 비판적 사용자 (override 60%)', () => {
+  describe('Archetype 9: 잦은 수정도 비판성 점수가 아님 (override 60%)', () => {
     beforeEach(() => setupProfile(6, 2, 15, 0.6));
 
-    it('recast: "AI 제안을 자주 수정" positive 코칭', () => {
+    it('recast: "AI 제안을 자주 수정" positive 코칭을 만들지 않음', () => {
       const profile = buildNavigatorProfile();
       expect(profile.overrideRate).toBe(0.6);
 
       const coaching = getStepCoaching('recast', profile);
       const overrideMsg = coaching.find(c => c.message.includes('coaching.recast.overrideHigh'));
-      expect(overrideMsg).toBeDefined();
-      expect(overrideMsg!.tone).toBe('positive');
+      expect(overrideMsg).toBeUndefined();
     });
   });
 

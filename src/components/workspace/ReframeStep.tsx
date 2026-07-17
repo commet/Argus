@@ -24,7 +24,7 @@ import { findSimilarItems } from '@/lib/similarity';
 import { useSettingsStore } from '@/stores/useSettingsStore';
 import { playSuccessTone, resumeAudioContext } from '@/lib/audio';
 import { NextStepGuide } from '@/components/ui/NextStepGuide';
-import { FileText, Trash2, Check, Pencil, Brain, AlertTriangle, ArrowRight, RotateCcw, Send, Loader2 } from 'lucide-react';
+import { FileText, Trash2, Check, Pencil, AlertTriangle, ArrowRight, RotateCcw, Send, Loader2 } from 'lucide-react';
 import { Graticule, ChartEdge } from '@/components/ui/VoyageElements';
 import { buildReframeContext, extractInterviewSignals } from '@/lib/context-chain';
 import { selectReframingStrategy, applyReframingStrategy, STRATEGY_LABELS, type ReframingStrategy } from '@/lib/reframing-strategy';
@@ -487,7 +487,7 @@ export function ReframeStep({ onNavigate }: ReframeStepProps) {
   const L = (ko: string, en: string) => locale === 'ko' ? ko : en;
   const CORE_STEPS = buildCoreSteps(L);
   const { items, currentId, loadItems, createItem, updateItem, deleteItem, setCurrentId, getCurrentItem } = useReframeStore();
-  const { judgments, addJudgment, loadJudgments } = useJudgmentStore();
+  const { addJudgment, loadJudgments } = useJudgmentStore();
   const { handoff, setHandoff, clearHandoff } = useHandoffStore();
   const { projects, loadProjects, getOrCreateProject, addRef } = useProjectStore();
   const { settings } = useSettingsStore();
@@ -533,7 +533,6 @@ export function ReframeStep({ onNavigate }: ReframeStepProps) {
   }, []); // Run once on mount
 
   const current = getCurrentItem();
-  const hasLearning = judgments.length >= 3;
 
   // Reset "touched" tracking whenever we switch to a different item.
   useEffect(() => { setTouchedAssumptions(new Set()); }, [currentId]);
@@ -926,12 +925,6 @@ export function ReframeStep({ onNavigate }: ReframeStepProps) {
         <p className="text-[13px] text-[var(--text-secondary)] mt-1">
           {L('전략의 핵심 — 숨은 가정을 찾고, 진짜 질문을 다시 세웁니다.', 'The heart of strategy — surface the hidden assumptions, reframe the real question.')}
         </p>
-        {hasLearning && (
-          <div className="flex items-center gap-1.5 text-[12px] text-[var(--text-tertiary)] mt-2">
-            <Brain size={12} />
-            <span>{L(`지난 판단 ${judgments.length}번이 반영돼요`, `Your last ${judgments.length} calls are factored in`)}</span>
-          </div>
-        )}
       </div>
 
       {/* ─── History tabs ─── */}

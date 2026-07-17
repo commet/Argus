@@ -314,8 +314,8 @@ interface ProgressiveState {
    *  branch that owns it, else fork a new course from it. Keeps the chart in
    *  sync with the branch model (no silent reassignment). */
   navigateToCheckpoint: (checkpointId: string) => void;
-  /** Merge Chronicler narration (significance / why_abandoned) into a waypoint.
-   *  Best-effort enrichment from the async LLM pass; no-op if not found. */
+  /** Merge Chronicler's interpretive `significance` into a waypoint.
+   *  It must never author the user's `why_abandoned` reason (E-B3). */
   enrichWaypoint: (waypointId: string, patch: Partial<Waypoint>) => void;
   /** @deprecated Use mixableWorkerResults instead */
   approvedWorkerResults: () => Array<{ task: string; result: string; type?: string; persona: string | null; agentName: string | null; agentRole: string | null }>;

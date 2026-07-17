@@ -4,8 +4,9 @@
  * useChronicler — drives the async narration pass for the ship's log.
  *
  * Watches the active session's waypoints and, for any narratable turn that lacks
- * `significance`, fires a best-effort LLM narration (once per waypoint) and
- * merges the result back via the store. Runs only while `enabled` (the caller
+ * `significance`, fires a best-effort LLM interpretation (once per waypoint) and
+ * merges that field back via the store. It never writes the user's reason for
+ * declining a path. Runs only while `enabled` (the caller
  * passes `!busy`) so it never competes with an in-flight analysis stream.
  *
  * Integration is one line in ProgressiveFlow; all the bookkeeping lives here so

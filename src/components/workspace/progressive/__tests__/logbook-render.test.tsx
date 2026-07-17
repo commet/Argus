@@ -38,7 +38,7 @@ const waypoints: Waypoint[] = [
     id: 'w2', checkpoint_id: 'c2', type: 'course_change', headline: '이탈의 진짜 원인은?',
     trigger: '질문: 누가 결정? → CFO', created_at: 'y',
     alternatives: [
-      { label: '챗봇 직접 제작', why_abandoned: '이탈 원인 미검증', taken: false },
+      { label: '챗봇 직접 제작', why_abandoned: '이탈 원인 미검증', why_abandoned_source: 'user', taken: false },
       { label: '이탈 원인 분석 선행', why_abandoned: '', taken: true },
     ],
   },

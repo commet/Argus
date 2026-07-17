@@ -31,7 +31,7 @@ describe('voyageLogToMarkdown', () => {
         id: 'w2', checkpoint_id: 'c2', type: 'course_change', headline: '이탈의 진짜 원인은?',
         trigger: 'CFO', significance: 'ROI 근거가 필요하다',
         alternatives: [
-          { label: '챗봇 직접 제작', why_abandoned: '이탈 원인 미검증', taken: false },
+          { label: '챗봇 직접 제작', why_abandoned: '이탈 원인 미검증', why_abandoned_source: 'user', taken: false },
           { label: '이탈 원인 분석', why_abandoned: '', taken: true },
         ],
         created_at: 'b',
@@ -53,6 +53,15 @@ describe('voyageLogToMarkdown', () => {
     expect(voyageLogToMarkdown(session([]), 'ko')).toBe('');
     expect(voyageLogToMarkdown(null, 'ko')).toBe('');
     expect(voyageLogToMarkdown(undefined, 'en')).toBe('');
+  });
+
+  it('does not export a legacy source-less reason as user-authored', () => {
+    const md = voyageLogToMarkdown(session([{
+      id: 'w2', checkpoint_id: 'c2', type: 'course_change', headline: '갈림길', created_at: 'b',
+      alternatives: [{ label: '옛 경로', why_abandoned: 'AI가 예전에 추정한 이유', taken: false }],
+    }]), 'ko');
+    expect(md).toContain('가지 않은 길: 옛 경로');
+    expect(md).not.toContain('AI가 예전에 추정한 이유');
   });
 
   it('only includes waypoints on the active branch path', () => {

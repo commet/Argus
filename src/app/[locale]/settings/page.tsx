@@ -1249,7 +1249,7 @@ function ObservationsBlock({ locale }: { locale: string }) {
           </div>
         ))}
       </div>
-      <p className="text-[10px] text-[var(--text-tertiary)] mt-2">{L('쓸수록 피드백이 점점 나에게 맞춰져요.', 'The more you use it, the more the feedback fits you.')}</p>
+      <p className="text-[10px] text-[var(--text-tertiary)] mt-2">{L('사용 기록만 보여줘요. 판단력이나 성향을 평가하지 않아요.', 'Usage facts only — this does not grade your judgment or personality.')}</p>
     </div>
   );
 }

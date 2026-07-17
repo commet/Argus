@@ -19,7 +19,7 @@ const wp: Waypoint = {
   trigger: '질문: 누가 결정? → CFO', significance: '가격이 아니라 신뢰가 원인일 수 있다',
   created_at: 'y',
   alternatives: [
-    { label: '챗봇 직접 제작', why_abandoned: '이탈 원인 미검증', taken: false },
+    { label: '챗봇 직접 제작', why_abandoned: '이탈 원인 미검증', why_abandoned_source: 'user', taken: false },
     { label: '이탈 원인 분석 선행', why_abandoned: '', taken: true },
   ],
 };
@@ -66,5 +66,17 @@ describe('WaypointCard', () => {
     expect(body).toContain('가지 않은 길');
     expect(body).not.toContain('지금');       // no eyebrow
     expect(body).not.toContain('항로 변경');    // no type chip
+  });
+
+  it('keeps a legacy source-less reason stored but does not present it as the user\'s reason', () => {
+    const legacy = {
+      ...wp,
+      alternatives: [{ label: '옛 경로', why_abandoned: 'AI가 예전에 추정한 이유', taken: false }],
+    } as Waypoint;
+    const body = renderToStaticMarkup(createElement(WaypointDetail, {
+      waypoint: legacy, assumptions: [], locked: false, onTakeRoad: () => {},
+    }));
+    expect(body).toContain('옛 경로');
+    expect(body).not.toContain('AI가 예전에 추정한 이유');
   });
 });
