@@ -72,8 +72,8 @@ describe('evidence.ts — 스파이크 계약의 졸업 재확인', () => {
   });
 });
 
-describe('runHarvestSweep — 결정론 수확 (모델 없음, haiku는 업그레이드 자리)', () => {
-  it('게이트 발화 발화만 byte-검증 후보가 되고, zod가 이벤트를 승인한다', () => {
+describe('runHarvestSweep — foreground와 같은 결정론 capture runtime', () => {
+  it('게이트 발화 발화만 byte-검증 후보가 되고, zod가 이벤트를 승인한다', async () => {
     const t = writeTranscript('t1.jsonl', [
       '오늘 날씨 얘기나 하자.',                    // silent
       '세션 저장은 postgres로 가기로 했다.',        // fire
@@ -81,7 +81,7 @@ describe('runHarvestSweep — 결정론 수확 (모델 없음, haiku는 업그�
     ]);
     enqueue(dataDir, { itemId: 'it-1', transcriptPath: t, sessionId: 'sess1' }, T0);
 
-    const r = runHarvestSweep(ctx(), dataDir, T0);
+    const r = await runHarvestSweep(ctx(), dataDir, T0);
     expect(r.ran).toBe(true);
     expect(r.utterances_scanned).toBe(3);
     expect(r.candidates_created).toHaveLength(1);
@@ -91,41 +91,41 @@ describe('runHarvestSweep — 결정론 수확 (모델 없음, haiku는 업그�
     expect(evs).toHaveLength(1);
     expect(evs[0]!['verification']).toBe('byte_verified');
     expect(ArgusEventSchema.safeParse(evs[0]).success, JSON.stringify(ArgusEventSchema.safeParse(evs[0]).error)).toBe(true);
-    expect(readQueue(dataDir).items).toHaveLength(0); // complete — 큐에서 제거
+    expect(readQueue(dataDir).items[0]).toMatchObject({ status: 'succeeded', candidate_ids: r.candidates_created });
   });
 
-  it(`주 ${WEEKLY_CANDIDATE_CAP}건 캡: 초과 발화는 capped로 정직 계수, 원장 실계수가 기준`, () => {
+  it(`주 ${WEEKLY_CANDIDATE_CAP}건 캡: 초과 발화는 capped로 정직 계수, 원장 실계수가 기준`, async () => {
     const t = writeTranscript('t2.jsonl', [
       'A는 postgres로 가기로 했다.',
       'B는 redis로 가기로 했다.',
       'C는 sqlite로 가기로 했다.',
     ]);
     enqueue(dataDir, { itemId: 'it-2', transcriptPath: t, sessionId: 'sess2' }, T0);
-    const r = runHarvestSweep(ctx(), dataDir, T0);
+    const r = await runHarvestSweep(ctx(), dataDir, T0);
     expect(r.candidates_created).toHaveLength(WEEKLY_CANDIDATE_CAP);
     expect(r.capped).toBe(1);
     expect(candidateEvents()).toHaveLength(WEEKLY_CANDIDATE_CAP);
   });
 
-  it('1일 1회: 같은 날 두 번째 호출은 클레임조차 안 한다', () => {
+  it('1일 1회: 같은 날 두 번째 호출은 클레임조차 안 한다', async () => {
     const t = writeTranscript('t3.jsonl', ['x로 가기로 했다.']);
     enqueue(dataDir, { itemId: 'it-3', transcriptPath: t, sessionId: 'sess3' }, T0);
-    runHarvestSweep(ctx(), dataDir, T0);
+    await runHarvestSweep(ctx(), dataDir, T0);
     enqueue(dataDir, { itemId: 'it-3b', transcriptPath: t, sessionId: 'sess3b' }, T0);
-    const r2 = runHarvestSweep(ctx(), dataDir, T0);
+    const r2 = await runHarvestSweep(ctx(), dataDir, T0);
     expect(r2).toMatchObject({ ran: false, skipped: 'already_ran_today' });
-    expect(readQueue(dataDir).items.map((i) => i.item_id)).toEqual(['it-3b']); // 미클레임 보존
+    expect(readQueue(dataDir).items.find((i) => i.item_id === 'it-3b')?.status).toBe('pending');
   });
 
-  it('주간 캡이 이미 원장에서 소진돼 있으면 큐를 건드리지 않는다 (marker 아닌 원장이 정본)', () => {
+  it('주간 캡이 이미 원장에서 소진돼 있으면 큐를 건드리지 않는다 (marker 아닌 원장이 정본)', async () => {
     const t = writeTranscript('t4.jsonl', ['A는 postgres로 가기로 했다.', 'B는 redis로 가기로 했다.']);
     enqueue(dataDir, { itemId: 'it-4', transcriptPath: t, sessionId: 'sess4' }, T0);
-    runHarvestSweep(ctx('2026-07-08'), dataDir, T0); // 화요일 — 2건 생성, 캡 소진
+    await runHarvestSweep(ctx('2026-07-08'), dataDir, T0); // 화요일 — 2건 생성, 캡 소진
     // 같은 주 다른 날, 다른 dataDir marker (marker 소실 시나리오)
     const freshData = fs.mkdtempSync(path.join(os.tmpdir(), 'argus-hv-data2-'));
     try {
       enqueue(freshData, { itemId: 'it-5', transcriptPath: t, sessionId: 'sess5' }, T0);
-      const r = runHarvestSweep(ctx('2026-07-09'), freshData, T0);
+      const r = await runHarvestSweep(ctx('2026-07-09'), freshData, T0);
       expect(r).toMatchObject({ ran: false, skipped: 'weekly_cap_exhausted' });
       expect(candidateEvents()).toHaveLength(2); // 캡 뚫리지 않음
     } finally {
@@ -133,9 +133,9 @@ describe('runHarvestSweep — 결정론 수확 (모델 없음, haiku는 업그�
     }
   });
 
-  it('transcript 부재 = 항목 보존 + last_error 기록 (규칙 4), 던지지 않는다', () => {
+  it('transcript 부재 = 항목 보존 + last_error 기록 (규칙 4), 던지지 않는다', async () => {
     enqueue(dataDir, { itemId: 'it-6', transcriptPath: '/no/such/file.jsonl', sessionId: 'sess6' }, T0);
-    const r = runHarvestSweep(ctx(), dataDir, T0);
+    const r = await runHarvestSweep(ctx(), dataDir, T0);
     expect(r.ran).toBe(true);
     expect(r.error).toContain('no such file');
     const q = readQueue(dataDir).items[0]!;

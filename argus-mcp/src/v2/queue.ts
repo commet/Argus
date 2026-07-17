@@ -18,7 +18,7 @@
  * 파일 파손은 빈 큐 + corrupt 플래그로 **정직하게** 읽힌다 — 임시 상태라
  * 데이터 복구를 시도하지 않지만, 파손 사실 자체는 숨기지 않는다.
  *
- * 이 모듈은 저장·상태 전이만 안다. "하루 1회·주 2건 캡·haiku·opt-in"
+ * 이 모듈은 저장·상태 전이만 안다. "하루 1회·주 2건 캡·추출기·opt-in"
  * (창업자 확정값)은 처리 단계(추출기)의 정책이지 큐의 정책이 아니다 —
  * 큐에 정책을 심으면 정책 변경마다 저장층이 흔들린다.
  */
@@ -26,6 +26,15 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 export const MAX_ATTEMPTS = 3;
+
+export type QueueItemStatus =
+  | 'pending'
+  | 'leased'
+  | 'succeeded'
+  | 'no_candidate'
+  | 'retryable_failed'
+  | 'exhausted'
+  | 'purged_by_user';
 
 export interface QueueItem {
   /** 중복 인입 방지 키 — 보통 session_id + transcript 경로에서 유도. */
@@ -36,6 +45,7 @@ export interface QueueItem {
   session_id: string;
   enqueued_at: string;
   attempts: number;
+  status: QueueItemStatus;
   /** 처리 단계가 잡은 임대 — 만료 전까지 다른 클레임에서 제외. */
   lease?: { nonce: string; claimed_at: string; expires_at: string };
   /** 마지막 실패 사유 (다음 시도·debrief가 읽는 정직 기록). */
@@ -43,6 +53,8 @@ export interface QueueItem {
   /** attempts가 MAX_ATTEMPTS에 닿음 — 자동 재시도 대상에서 제외되지만
    *  항목은 보존된다 (조용한 소실 금지; /argus:debrief가 수동 재개 가능). */
   exhausted?: boolean;
+  candidate_ids?: string[];
+  completed_at?: string;
 }
 
 export interface QueueState {
@@ -65,7 +77,11 @@ export function readQueue(dataDir: string): QueueState {
   try {
     const parsed = JSON.parse(raw) as { items?: unknown };
     if (!Array.isArray(parsed.items)) return { items: [], was_corrupt: true };
-    return { items: parsed.items as QueueItem[], was_corrupt: false };
+    const items = (parsed.items as QueueItem[]).map((item) => ({
+      ...item,
+      status: item.status ?? (item.exhausted ? 'exhausted' : item.lease ? 'leased' : 'pending'),
+    }));
+    return { items, was_corrupt: false };
   } catch {
     return { items: [], was_corrupt: true };
   }
@@ -89,7 +105,7 @@ export function enqueue(
   if (items.some((i) => i.item_id === a.itemId)) return 'duplicate';
   items.push({
     item_id: a.itemId, kind: 'harvest', transcript_path: a.transcriptPath,
-    session_id: a.sessionId, enqueued_at: nowIso, attempts: 0,
+    session_id: a.sessionId, enqueued_at: nowIso, attempts: 0, status: 'pending',
   });
   writeQueue(dataDir, items);
   return 'enqueued';
@@ -109,7 +125,8 @@ export function claim(
 ): QueueItem | null {
   const { items } = readQueue(dataDir);
   const target = items.find(
-    (i) => !i.exhausted && !leaseActive(i, nowIso) && i.attempts < MAX_ATTEMPTS,
+    (i) => ['pending', 'retryable_failed', 'leased'].includes(i.status)
+      && !i.exhausted && !leaseActive(i, nowIso) && i.attempts < MAX_ATTEMPTS,
   );
   if (!target) return null;
   target.lease = {
@@ -117,17 +134,27 @@ export function claim(
     claimed_at: nowIso,
     expires_at: new Date(Date.parse(nowIso) + leaseMs).toISOString(),
   };
+  target.status = 'leased';
   writeQueue(dataDir, items);
   return target;
 }
 
-/** 완료 — lease 보유자만. 항목은 제거된다: 진짜 결과(candidate_created)는
- *  원장에 이미 있으므로 큐에 사본을 남기지 않는다 (정본은 하나). */
-export function complete(dataDir: string, itemId: string, nonce: string): boolean {
+/** 완료 — lease 보유자만. 원문은 애초 큐에 없고, 결과 본문은 원장 하나만
+ * 정본으로 둔다. 큐에는 상태·후보 id·완료 시각만 남겨 사용자가 처리 여부를
+ * 확인하고 명시적으로 purge할 수 있게 한다. */
+export function complete(
+  dataDir: string,
+  itemId: string,
+  nonce: string,
+  outcome: { candidateIds?: string[]; noCandidate?: boolean; completedAt?: string } = {},
+): boolean {
   const { items } = readQueue(dataDir);
-  const idx = items.findIndex((i) => i.item_id === itemId && i.lease?.nonce === nonce);
-  if (idx < 0) return false; // lease 불일치 = 만료 후 남이 재클레임했다 — 손대지 않는다
-  items.splice(idx, 1);
+  const item = items.find((i) => i.item_id === itemId && i.lease?.nonce === nonce);
+  if (!item) return false; // lease 불일치 = 만료 후 남이 재클레임했다 — 손대지 않는다
+  delete item.lease;
+  item.status = outcome.noCandidate ? 'no_candidate' : 'succeeded';
+  item.candidate_ids = [...(outcome.candidateIds ?? [])];
+  item.completed_at = outcome.completedAt ?? new Date().toISOString();
   writeQueue(dataDir, items);
   return true;
 }
@@ -147,7 +174,11 @@ export function fail(
   delete item.lease;
   item.attempts += 1;
   item.last_error = error.slice(0, 400);
-  if (item.attempts >= MAX_ATTEMPTS) item.exhausted = true;
+  item.status = 'retryable_failed';
+  if (item.attempts >= MAX_ATTEMPTS) {
+    item.exhausted = true;
+    item.status = 'exhausted';
+  }
   writeQueue(dataDir, items);
   return true;
 }
@@ -161,6 +192,48 @@ export function revive(dataDir: string, itemId: string): boolean {
   item.attempts = 0;
   delete item.exhausted;
   delete item.lease;
+  item.status = 'pending';
   writeQueue(dataDir, items);
   return true;
+}
+
+/** Explicit privacy action: keep only a content-free lifecycle receipt. */
+export function purge(dataDir: string, itemId: string, nowIso: string): boolean {
+  const { items } = readQueue(dataDir);
+  const item = items.find((candidate) => candidate.item_id === itemId);
+  if (!item || item.status === 'leased') return false;
+  item.status = 'purged_by_user';
+  item.transcript_path = '';
+  item.session_id = '';
+  item.candidate_ids = [];
+  item.completed_at = nowIso;
+  delete item.last_error;
+  delete item.exhausted;
+  writeQueue(dataDir, items);
+  return true;
+}
+
+/** Bulk privacy action. Leased work is deliberately skipped: deleting a live
+ * worker's coordinates would make its eventual completion ambiguous. */
+export function purgeAll(dataDir: string, nowIso: string): { purged: number; leased_skipped: number } {
+  const { items } = readQueue(dataDir);
+  let purged = 0;
+  let leasedSkipped = 0;
+  for (const item of items) {
+    if (item.status === 'leased') {
+      leasedSkipped += 1;
+      continue;
+    }
+    if (item.status === 'purged_by_user') continue;
+    item.status = 'purged_by_user';
+    item.transcript_path = '';
+    item.session_id = '';
+    item.candidate_ids = [];
+    item.completed_at = nowIso;
+    delete item.last_error;
+    delete item.exhausted;
+    purged += 1;
+  }
+  writeQueue(dataDir, items);
+  return { purged, leased_skipped: leasedSkipped };
 }

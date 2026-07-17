@@ -37,9 +37,20 @@ export interface EvidencePointer {
 export function makeEvidencePointer(
   source: Buffer, sourceRef: string, quote: string, role: 'user' | 'assistant',
 ): EvidencePointer | null {
+  return makeEvidencePointerAt(source, sourceRef, quote, role, 0);
+}
+
+/** As above, but begins the exact byte search at a caller-owned cursor. */
+export function makeEvidencePointerAt(
+  source: Buffer,
+  sourceRef: string,
+  quote: string,
+  role: 'user' | 'assistant',
+  startAt: number,
+): EvidencePointer | null {
   const qb = Buffer.from(quote, 'utf8');
   if (qb.length === 0) return null;
-  const start = source.indexOf(qb);
+  const start = source.indexOf(qb, Math.max(0, startAt));
   if (start < 0) return null;
   const end = start + qb.length;
   return {

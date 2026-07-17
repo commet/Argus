@@ -14,6 +14,21 @@ async function main() {
     process.stdout.write('Local Argus account credential removed. Revoke the device in Settings to invalidate its server token.\n');
     return;
   }
+  if (process.argv[2] === 'capture-scan') {
+    const { runCaptureCli } = await import('./v2/capture-cli.js');
+    await runCaptureCli(process.argv.slice(3));
+    return;
+  }
+  if (process.argv[2] === 'capture-status') {
+    const { runCaptureStatusCli } = await import('./v2/capture-cli.js');
+    runCaptureStatusCli(process.argv.slice(3));
+    return;
+  }
+  if (process.argv[2] === 'capture-purge') {
+    const { runCapturePurgeCli } = await import('./v2/capture-cli.js');
+    runCapturePurgeCli(process.argv.slice(3));
+    return;
+  }
   const server = await createServer();
   const transport = new StdioServerTransport();
   await server.connect(transport);
@@ -23,4 +38,7 @@ async function main() {
   });
 }
 
-main().catch(console.error);
+main().catch((error: unknown) => {
+  console.error(error);
+  process.exitCode = 1;
+});

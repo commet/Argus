@@ -70,7 +70,12 @@ describe('registry — 발견 메커니즘 (II-D)', () => {
       fs.symlinkSync(gitCommonDir(), link, process.platform === 'win32' ? 'junction' : 'dir');
       expect(lookupRepository(home, link)).toBe(id); // 실경로 기준 — symlink 무관
     } finally {
-      fs.rmSync(link, { force: true });
+      // Node 24 on macOS can classify a directory symlink as a directory in
+      // rmSync and refuse it without recursive. unlink is the precise operation
+      // here and can never traverse into the temporary repository target.
+      try { fs.unlinkSync(link); } catch (error) {
+        if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
+      }
     }
   });
 

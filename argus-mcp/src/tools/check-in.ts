@@ -10,6 +10,7 @@ import { envelope } from '../lib/envelope.js';
 import { ENVELOPE_OUTPUT_SCHEMA, zArgusDir, zDate, type ToolModule } from './tool-types.js';
 import { handleToolException } from './errors.js';
 import { briefDivergence, readV2Brief } from '../v2/mirror.js';
+import { drainCaptureOnCheckIn } from '../v2/capture-runtime.js';
 
 /**
  * The watch anchor is the one surface a user cannot close: a contract has
@@ -47,6 +48,7 @@ export const checkIn: ToolModule = {
     try {
       const dir = resolveToolArgusDir(a['argus_dir']);
       const today = resolveToday({ override: a['today_override'] as string | undefined });
+      const captureStatus = await drainCaptureOnCheckIn(dir, today);
       const ledger = replayLedger(dir, today);
       const seeds = bearingContracts(dir, today, ledger);
 
@@ -249,7 +251,7 @@ export const checkIn: ToolModule = {
           ok: true, tool: 'argus_check_in',
           surface: mirrorLine + S.nothing_due + accountHint + upcomingLine + fleetLine + integrityLine,
           next_actions: ['stop'],
-          data: { due: [], due_count: 0, due_premises: [], due_premise_count: 0, due_open_questions: [], due_open_question_count: 0, ...(upDays > 0 ? { upcoming } : {}), ...(a['fleet'] === true ? { fleet: fleetRows } : {}), ...watchData, today, v2_brief: readV2Brief(dir, today), v2_divergence: briefDivergence([], readV2Brief(dir, today)) },
+          data: { due: [], due_count: 0, due_premises: [], due_premise_count: 0, due_open_questions: [], due_open_question_count: 0, ...(upDays > 0 ? { upcoming } : {}), ...(a['fleet'] === true ? { fleet: fleetRows } : {}), ...watchData, today, capture_status: captureStatus, v2_brief: readV2Brief(dir, today), v2_divergence: briefDivergence([], readV2Brief(dir, today)) },
         });
       }
 
@@ -298,7 +300,7 @@ export const checkIn: ToolModule = {
           ...(upDays > 0 ? { upcoming } : {}),
           ...(a['fleet'] === true ? { fleet: fleetRows } : {}),
           ...watchData,
-          today, integrity: ledger.integrity,
+          today, integrity: ledger.integrity, capture_status: captureStatus,
           // v2 병기 (P2-3): v1이 여전히 정본이고 surface는 무접촉 — 관찰용.
           // P2 읽기 전환 전에 두 원장의 답이 갈리는지 실사용에서 드러낸다.
           v2_brief: readV2Brief(dir, today),

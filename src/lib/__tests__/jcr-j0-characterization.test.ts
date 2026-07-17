@@ -97,7 +97,7 @@ describe('J2 protected — synthetic perspective firewall', () => {
 });
 
 describe('J6 known debt — capture has two brains and no production consumer', () => {
-  it('finds runHarvestSweep only at its definition outside tests', () => {
+  it('finds the bounded check-in consumer wired to runHarvestSweep', () => {
     const runtimeFiles = [
       ...walk(join(ROOT, 'argus-mcp/src')),
       ...walk(join(ROOT, 'argus-plugin-v2')),
@@ -106,17 +106,19 @@ describe('J6 known debt — capture has two brains and no production consumer', 
       .filter((path) => /\.(?:ts|js|mjs)$/.test(path))
       .filter((path) => readFileSync(path, 'utf8').includes('runHarvestSweep('))
       .map((path) => relative(ROOT, path));
-    expect(callers).toEqual(['argus-mcp/src/v2/harvest.ts']);
-    expect(sessionStart).toContain('처리는 작업을 방해하지 않게 뒤에서 진행합니다.');
+    expect(callers).toEqual([
+      'argus-mcp/src/v2/capture-runtime.ts',
+      'argus-mcp/src/v2/harvest.ts',
+    ]);
+    expect(sessionStart).toContain('다음 Argus check-in이 제한된 수만 처리합니다.');
   });
 
-  it('keeps foreground scan and background harvest on different extractors/writers today', () => {
-    expect(decisionLedger).toContain('async function detectDecisions');
-    expect(decisionLedger).toContain('const out = await callClaudeJson(prompt, opts)');
-    expect(decisionLedger).toContain('event: "harvest"');
-    expect(harvest).toContain('const verdict = detect(u)');
-    expect(harvest).toContain('harvestCandidateV2(ctx');
-    expect(harvest).toContain("source=harvest_sweep");
+  it('routes foreground scan and background queue through the canonical capture runtime', () => {
+    expect(decisionLedger).not.toContain('async function detectDecisions');
+    expect(decisionLedger).toContain('captureWithCanonicalRuntime');
+    expect(decisionLedger).toContain('capture-scan');
+    expect(harvest).toContain('captureTranscriptFile');
+    expect(harvest).not.toContain('harvestCandidateV2(ctx');
   });
 });
 
