@@ -38,9 +38,17 @@ export interface VisionSource {
   kind: 'pdf' | 'images';
   /** kind 'pdf' — the whole PDF, base64. */
   pdf_base64?: string;
-  /** kind 'images' — deck-embedded images, base64. */
-  images?: Array<{ media_type: 'image/png' | 'image/jpeg' | 'image/webp' | 'image/gif'; data: string }>;
+  /** kind 'images' — rendered PDF pages or deck-embedded images, base64. `page`
+   *  is the 1-based source page (set for rendered PDF pages) so the review can
+   *  anchor a finding to the real page even across multiple request batches. */
+  images?: Array<{ media_type: 'image/png' | 'image/jpeg' | 'image/webp' | 'image/gif'; data: string; page?: number }>;
+  /** total pages/slides in the source. */
   page_count?: number;
+  /** how many pages were actually sent to the model (the 'images' path may stop
+   *  at the page/byte budget). When < page_count, the review saw only a prefix —
+   *  disclosed honestly on the receipt. Undefined for the native 'pdf' path,
+   *  where the model renders every page itself. */
+  pages_seen?: number;
 }
 
 // Vision caps. The binding constraint is the server body ceiling (~4.4MB), so a
@@ -49,8 +57,8 @@ export interface VisionSource {
 // images instead (a fraction of the raw size), which is also the only way to
 // review a scanned PDF that carries no text layer at all.
 const VISION_DOC_BLOCK_MAX_BYTES = 3_200_000;   // raw PDF → base64 ~4.3MB, under the body cap
-const VISION_RENDER_MAX_PAGES = 40;             // bound cost/latency of a rendered review
-const VISION_RENDER_MAX_B64 = 3_600_000;        // total base64 budget for rendered pages (< body cap)
+const VISION_RENDER_MAX_PAGES = 100;            // Anthropic's page ceiling; the pipeline batches these into multiple requests
+const VISION_RENDER_MAX_B64 = 14_000_000;       // total render budget held in memory (~14MB base64); batching keeps each REQUEST small
 const VISION_RENDER_TARGET_WIDTH = 1100;        // px — legible to the model, small on the wire
 const VISION_MAX_IMAGES = 40;
 const VISION_IMG_MAX_BYTES = 5_000_000;    // ~5 MB per embedded deck image
@@ -74,6 +82,9 @@ export interface ExtractedText {
   quality: ExtractionQuality;
   /** honest one-liner shown to the user. */
   note?: string;
+  /** why extraction could not proceed (empty / too_large / encrypted / corrupt /
+   *  wrong_format) — set only on failure, for specific UX + programmatic checks. */
+  error_kind?: ExtractErrorKind;
   /** opt-in multimodal payload (PDF document / deck images) — see VisionSource. */
   vision?: VisionSource;
   /** extractor-side caps → feeds ReviewCoverage so a page/unit-capped file can't
@@ -85,12 +96,180 @@ export interface ExtractedText {
   units_capped?: boolean;
 }
 
+/** Hard ceiling for in-browser parsing. Beyond this a PDF/deck can hang or OOM
+ *  the tab before the server ever sees it; refuse honestly instead. */
+const MAX_EXTRACT_BYTES = 60_000_000; // 60 MB
+
+/** Why an extraction could not proceed — surfaced so the user gets a specific,
+ *  actionable reason instead of one generic "couldn't read this file". */
+export type ExtractErrorKind = 'empty' | 'too_large' | 'encrypted' | 'corrupt' | 'wrong_format' | 'unknown';
+
+/** Classify a thrown parser error into an honest, actionable note. pdf.js and
+ *  jszip throw named/patterned errors we can map; everything else degrades to a
+ *  generic-but-honest message. Never surfaces a raw stack to the user. */
+export function classifyExtractError(e: unknown, kind: SourceKind): { note: string; error_kind: ExtractErrorKind } {
+  const name = (e as { name?: string })?.name ?? '';
+  const msg = String((e as { message?: string })?.message ?? e ?? '');
+  const m = msg.toLowerCase();
+  // pdf.js: password-protected (PasswordException / NEED_PASSWORD | INCORRECT_PASSWORD).
+  if (name === 'PasswordException' || m.includes('password')) {
+    return { note: '이 PDF는 암호로 보호되어 있어 열 수 없어요. 암호를 해제해 다시 저장한 뒤 올려주세요.', error_kind: 'encrypted' };
+  }
+  // pdf.js: structurally broken PDF.
+  if (name === 'InvalidPDFException' || m.includes('invalid pdf') || m.includes('missing pdf')) {
+    return { note: 'PDF 파일이 손상된 것 같아요. 원본을 다시 내려받아 올리거나, 핵심 본문을 붙여넣어 주세요.', error_kind: 'corrupt' };
+  }
+  // jszip: not a real zip / truncated (docx & pptx are zips).
+  if (m.includes('end of central directory') || m.includes("can't find") || m.includes('corrupted zip') || m.includes('not a zip')) {
+    return { note: '파일이 손상됐거나 형식이 올바르지 않아요 (열 수 없는 문서 구조). 다시 저장해 올리거나 본문을 붙여넣어 주세요.', error_kind: 'corrupt' };
+  }
+  // A file whose extension lies about its real format usually fails the parser here.
+  const label = kind === 'pdf' ? 'PDF' : kind === 'docx' ? 'Word 문서' : kind === 'pptx' ? '슬라이드' : kind === 'image' ? '이미지' : '문서';
+  return { note: `이 ${label}에서 내용을 읽지 못했어요. 파일이 손상됐거나 형식이 확장자와 다를 수 있어요 — 다시 저장하거나 본문을 붙여넣어 주세요.`, error_kind: 'unknown' };
+}
+
 export async function extractFile(file: File, kind: SourceKind): Promise<ExtractedText> {
-  const buf = await file.arrayBuffer();
-  if (kind === 'docx') return extractDocx(buf);
-  if (kind === 'pptx') return extractPptx(buf);
-  if (kind === 'pdf') return extractPdf(buf);
-  return { text: '', quality: 'unsupported' };
+  if (kind !== 'docx' && kind !== 'pptx' && kind !== 'pdf' && kind !== 'image' && kind !== 'hwpx') {
+    return { text: '', quality: 'unsupported' };
+  }
+  // Guard size + emptiness BEFORE reading bytes into memory or invoking a parser,
+  // so a 0-byte or 200MB drop can't hang the tab — an honest note, not a spinner.
+  if (file.size === 0) {
+    return { text: '', quality: 'unsupported', note: '빈 파일이에요 (0바이트). 내용이 있는 파일을 올려주세요.', error_kind: 'empty' };
+  }
+  if (file.size > MAX_EXTRACT_BYTES) {
+    return {
+      text: '', quality: 'unsupported', error_kind: 'too_large',
+      note: `파일이 너무 커요 (${Math.round(file.size / 1_000_000)}MB, 한도 ${MAX_EXTRACT_BYTES / 1_000_000}MB). 핵심 부분만 잘라 올리거나 본문을 붙여넣어 주세요.`,
+    };
+  }
+  let buf: ArrayBuffer;
+  try {
+    buf = await file.arrayBuffer();
+  } catch {
+    return { text: '', quality: 'unsupported', note: '파일을 읽는 중 문제가 생겼어요. 다시 시도하거나 본문을 붙여넣어 주세요.', error_kind: 'unknown' };
+  }
+  // Each parser is wrapped so a corrupt/encrypted/mislabeled file returns an
+  // honest, specific reason — never an unhandled throw that reads as a crash.
+  try {
+    if (kind === 'docx') return await extractDocx(buf);
+    if (kind === 'pptx') return await extractPptx(buf);
+    if (kind === 'hwpx') return await extractHwpx(buf);
+    if (kind === 'image') return await extractImage(file, buf);
+    return await extractPdf(buf);
+  } catch (e) {
+    const { note, error_kind } = classifyExtractError(e, kind);
+    return { text: '', quality: 'unsupported', note, error_kind };
+  }
+}
+
+// --------------------------------------------------------------------------
+// IMAGE — a pure picture (png/jpg/webp/gif). No text to extract; it exists only
+// to be reviewed visually. Small images ride verbatim; a large photo/screenshot
+// is downscaled to Anthropic's max long edge and JPEG-encoded so it fits the
+// request body (a phone photo can be many MB). Always page 1 of 1.
+// --------------------------------------------------------------------------
+
+const IMAGE_MEDIA: Record<string, 'image/png' | 'image/jpeg' | 'image/webp' | 'image/gif'> = {
+  png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', webp: 'image/webp', gif: 'image/gif',
+};
+// Anthropic downsizes any image so its long edge ≤ 1568px, so we render to that
+// ourselves — we never ship pixels the model will only throw away, and a huge
+// photo becomes a small legible JPEG that fits the body.
+const IMAGE_LONG_EDGE = 1568;
+const IMAGE_PASSTHROUGH_MAX_BYTES = 1_400_000; // small enough to send verbatim (base64 ~1.9MB)
+const IMAGE_ENCODE_MAX_B64 = 3_300_000;        // re-encoded output must fit under the ~4.4MB body cap
+
+/** Resolve an uploaded image's Anthropic media type from its MIME, falling back
+ *  to the file extension (some drops arrive with an empty `type`). */
+function imageMediaType(file: File): 'image/png' | 'image/jpeg' | 'image/webp' | 'image/gif' | undefined {
+  const t = (file.type || '').toLowerCase();
+  if (t === 'image/png' || t === 'image/jpeg' || t === 'image/webp' || t === 'image/gif') return t;
+  if (t === 'image/jpg') return 'image/jpeg';
+  return IMAGE_MEDIA[(file.name.split('.').pop() || '').toLowerCase()];
+}
+
+async function extractImage(file: File, buf: ArrayBuffer): Promise<ExtractedText> {
+  const media_type = imageMediaType(file);
+  if (!media_type) {
+    return {
+      text: '', quality: 'unsupported', error_kind: 'wrong_format',
+      note: '지원하지 않는 이미지 형식이에요. PNG·JPG·WEBP·GIF만 검수할 수 있어요.',
+    };
+  }
+  const bytes = new Uint8Array(buf);
+  // Small enough to send as-is — best fidelity, no re-encode.
+  if (bytes.length <= IMAGE_PASSTHROUGH_MAX_BYTES) {
+    return {
+      text: '', quality: 'medium',
+      vision: { kind: 'images', images: [{ media_type, data: toBase64(bytes), page: 1 }], page_count: 1, pages_seen: 1 },
+    };
+  }
+  // Larger image → downscale to Anthropic's max long edge and JPEG-encode so it
+  // fits the request body (a scanned/exported/photo image can be many MB).
+  try {
+    const down = await downscaleImage(buf, media_type);
+    if (down) {
+      return {
+        text: '', quality: 'medium',
+        note: '이미지를 검수용으로 축소했어요 (원본 화질과 다를 수 있어요).',
+        vision: { kind: 'images', images: [{ media_type: 'image/jpeg', data: down, page: 1 }], page_count: 1, pages_seen: 1 },
+      };
+    }
+  } catch {
+    // rendering unavailable / decode failed → fall through to the honest refuse
+  }
+  return {
+    text: '', quality: 'unsupported', error_kind: 'too_large',
+    note: `이미지가 너무 커서 (${Math.round(bytes.length / 1_000_000)}MB) 검수 크기로 줄이지 못했어요. 더 작게 저장해 올려주세요.`,
+  };
+}
+
+/** Downscale an image to IMAGE_LONG_EDGE and JPEG-encode it, dropping quality
+ *  until it fits the body budget. Returns base64, or undefined if no canvas is
+ *  available (server/no-DOM) — the caller then refuses honestly. */
+async function downscaleImage(buf: ArrayBuffer, media_type: string): Promise<string | undefined> {
+  if (typeof createImageBitmap === 'undefined') return undefined;
+  const bitmap = await createImageBitmap(new Blob([buf], { type: media_type }));
+  try {
+    const longEdge = Math.max(bitmap.width, bitmap.height);
+    const scale = Math.min(1, IMAGE_LONG_EDGE / Math.max(1, longEdge));
+    const w = Math.max(1, Math.round(bitmap.width * scale));
+    const h = Math.max(1, Math.round(bitmap.height * scale));
+    let quality = 0.85;
+    for (;;) {
+      const data = await encodeCanvasJpeg(bitmap, w, h, quality);
+      if (!data) return undefined;
+      if (data.length <= IMAGE_ENCODE_MAX_B64 || quality <= 0.5) return data;
+      quality -= 0.15;
+    }
+  } finally {
+    bitmap.close?.();
+  }
+}
+
+/** Draw an ImageBitmap to a w×h canvas and JPEG-encode at `quality` → base64.
+ *  OffscreenCanvas when available, DOM canvas otherwise; undefined with no canvas. */
+async function encodeCanvasJpeg(source: ImageBitmap, w: number, h: number, quality: number): Promise<string | undefined> {
+  let blob: Blob;
+  if (typeof OffscreenCanvas !== 'undefined') {
+    const canvas = new OffscreenCanvas(w, h);
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return undefined;
+    ctx.drawImage(source, 0, 0, w, h);
+    blob = await canvas.convertToBlob({ type: 'image/jpeg', quality });
+  } else if (typeof document !== 'undefined') {
+    const canvas = document.createElement('canvas');
+    canvas.width = w; canvas.height = h;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return undefined;
+    ctx.drawImage(source, 0, 0, w, h);
+    blob = await new Promise<Blob>((res, rej) =>
+      canvas.toBlob((b) => (b ? res(b) : rej(new Error('toBlob failed'))), 'image/jpeg', quality));
+  } else {
+    return undefined;
+  }
+  return toBase64(new Uint8Array(await blob.arrayBuffer()));
 }
 
 // --------------------------------------------------------------------------
@@ -234,7 +413,87 @@ async function extractPptxImages(
     if (bytes.length === 0 || bytes.length > VISION_IMG_MAX_BYTES) continue;
     images.push({ media_type, data: toBase64(bytes) });
   }
-  return images.length ? { kind: 'images', images } : undefined;
+  return images.length ? { kind: 'images', images, pages_seen: images.length } : undefined;
+}
+
+// --------------------------------------------------------------------------
+// HWPX — Hancom's OWPML format: a zip of Contents/sectionN.xml. Text runs live
+// in <hp:t> elements grouped by <hp:p> paragraphs. We walk runs + paragraph
+// closings in document order so each paragraph becomes a line (tables flush per
+// cell). No page anchors — ingest's markdown extractor rebuilds line anchors.
+// (Old binary .hwp is a CFB blob with no in-browser parser — the UI degrades it
+// honestly before ever reaching here.)
+// --------------------------------------------------------------------------
+
+async function extractHwpx(buf: ArrayBuffer): Promise<ExtractedText> {
+  const JSZip = (await import('jszip')).default;
+  const zip = await JSZip.loadAsync(buf);
+  const sectionPaths = Object.keys(zip.files)
+    .filter((p) => /^Contents\/section\d+\.xml$/i.test(p))
+    .sort((a, b) => hwpxSectionNum(a) - hwpxSectionNum(b));
+  if (!sectionPaths.length) {
+    // A real .hwpx always has Contents/section0.xml — its absence means a
+    // mislabeled/old .hwp or a corrupt zip. Honest, specific reason.
+    return {
+      text: '', quality: 'unsupported', error_kind: 'wrong_format',
+      note: '한글 문서 구조를 찾지 못했어요. 구버전 .hwp이거나 파일이 손상됐을 수 있어요 — HWPX로 다시 저장하거나 본문을 붙여넣어 주세요.',
+    };
+  }
+  const lines: string[] = [];
+  for (const path of sectionPaths) {
+    const xml = await zip.files[path].async('string');
+    lines.push(...hwpxParagraphs(xml));
+    if (lines.length >= MAX_UNITS) break;
+  }
+  const text = lines.join('\n').trim();
+  if (text.length < 40) {
+    return { text: '', quality: 'low', note: '한글 문서에서 텍스트를 거의 찾지 못했습니다 (이미지 위주일 수 있습니다).' };
+  }
+  return { text, quality: 'medium', note: text.length < 400 ? '추출된 텍스트가 적습니다. 핵심 본문은 붙여넣으면 더 정확합니다.' : undefined };
+}
+
+function hwpxSectionNum(p: string): number {
+  return parseInt(/section(\d+)/i.exec(p)?.[1] ?? '0', 10);
+}
+
+/** Walk <hp:t> run contents and <hp:p> paragraph closings in document order.
+ *  Each paragraph boundary flushes its accumulated runs as one line. The prefix
+ *  is matched loosely (`(?:\w+:)?`) so a differently-namespaced OWPML still
+ *  parses. */
+function hwpxParagraphs(xml: string): string[] {
+  const lines: string[] = [];
+  let cur = '';
+  const re = /<(?:\w+:)?t\b[^>]*>([\s\S]*?)<\/(?:\w+:)?t>|<\/(?:\w+:)?p>/g;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(xml))) {
+    if (m[1] !== undefined) {
+      cur += decodeXmlEntities(m[1]);
+    } else {
+      const line = cur.replace(/\s+/g, ' ').trim();
+      if (line) lines.push(line);
+      cur = '';
+    }
+  }
+  const tail = cur.replace(/\s+/g, ' ').trim();
+  if (tail) lines.push(tail);
+  return lines;
+}
+
+/** Minimal XML entity decoder for run text (`&amp;` resolved last so it can't
+ *  double-decode an already-entity-escaped `&`). */
+function decodeXmlEntities(s: string): string {
+  return s
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'")
+    .replace(/&#x([0-9a-fA-F]+);/g, (_, h) => codePoint(parseInt(h, 16)))
+    .replace(/&#(\d+);/g, (_, d) => codePoint(parseInt(d, 10)))
+    .replace(/&amp;/g, '&');
+}
+
+function codePoint(n: number): string {
+  return Number.isFinite(n) && n > 0 && n <= 0x10ffff ? String.fromCodePoint(n) : '';
 }
 
 // --------------------------------------------------------------------------
@@ -328,7 +587,9 @@ async function buildPdfVision(doc: PdfDocLike, buf: ArrayBuffer): Promise<Vision
   }
   try {
     const images = await renderPdfPages(doc);
-    return images.length ? { kind: 'images', images, page_count: doc.numPages } : undefined;
+    return images.length
+      ? { kind: 'images', images, page_count: doc.numPages, pages_seen: images.length }
+      : undefined;
   } catch {
     return undefined; // rendering unavailable (no canvas) → text-only, honest
   }
@@ -366,9 +627,9 @@ async function renderPdfPages(doc: PdfDocLike): Promise<NonNullable<VisionSource
       throw new Error('no canvas');
     }
     const data = toBase64(new Uint8Array(await blob.arrayBuffer()));
-    if (b64Total + data.length > VISION_RENDER_MAX_B64) break; // budget spent — stop, disclose via page_count
+    if (b64Total + data.length > VISION_RENDER_MAX_B64) break; // memory budget spent — stop, disclose via pages_seen
     b64Total += data.length;
-    images.push({ media_type: 'image/jpeg', data });
+    images.push({ media_type: 'image/jpeg', data, page: p });
   }
   return images;
 }

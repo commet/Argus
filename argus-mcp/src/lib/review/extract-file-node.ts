@@ -22,11 +22,17 @@ import {
   slideNum,
 } from './extract-core.js';
 
+/** Why extraction could not proceed — mirrors the browser extractor so review.ts
+ *  can give an honest, specific reason (and NOT offer a "read it visually"
+ *  scaffold for a file the host can't open either, e.g. an encrypted PDF). */
+export type ExtractErrorKind = 'empty' | 'encrypted' | 'corrupt' | 'unknown';
+
 export interface ExtractedText {
   text: string;
   units?: ArtifactUnit[];
   quality: ExtractionQuality;
   note?: string;
+  error_kind?: ExtractErrorKind;
   pages_total?: number;
   pages_read?: number;
   slides_total?: number;
@@ -34,14 +40,47 @@ export interface ExtractedText {
   units_capped?: boolean;
 }
 
+function classifyExtractError(e: unknown, kind: SourceKind): { note: string; error_kind: ExtractErrorKind } {
+  const name = (e as { name?: string })?.name ?? '';
+  const m = String((e as { message?: string })?.message ?? e ?? '').toLowerCase();
+  if (name === 'PasswordException' || m.includes('password')) {
+    return { note: '이 PDF는 암호로 보호되어 있어 열 수 없습니다. 암호를 해제해 다시 저장한 뒤 검수하세요.', error_kind: 'encrypted' };
+  }
+  if (name === 'InvalidPDFException' || m.includes('invalid pdf') || m.includes('missing pdf')) {
+    return { note: 'PDF 파일이 손상된 것 같습니다. 원본을 다시 받아 검수하거나 본문을 붙여넣으세요.', error_kind: 'corrupt' };
+  }
+  if (m.includes('end of central directory') || m.includes("can't find") || m.includes('corrupted zip') || m.includes('not a zip')) {
+    return { note: '파일이 손상됐거나 형식이 올바르지 않습니다 (열 수 없는 문서 구조).', error_kind: 'corrupt' };
+  }
+  const label = kind === 'pdf' ? 'PDF' : kind === 'docx' ? 'Word 문서' : kind === 'pptx' ? '슬라이드' : kind === 'hwpx' ? '한글 문서' : '문서';
+  return { note: `이 ${label}에서 내용을 읽지 못했습니다. 파일이 손상됐거나 형식이 확장자와 다를 수 있습니다.`, error_kind: 'unknown' };
+}
+
 /** Extract a binary document at `filePath`. Only pdf/docx/pptx are handled here;
- *  text formats are read directly by the caller (review.ts). */
+ *  text formats are read directly by the caller (review.ts). Never throws — a
+ *  corrupt/encrypted/empty file returns an honest quality:'unsupported' + reason. */
 export async function extractFileFromPath(filePath: string, kind: SourceKind): Promise<ExtractedText> {
-  const buf = fs.readFileSync(filePath);
-  if (kind === 'docx') return extractDocx(buf);
-  if (kind === 'pptx') return extractPptx(buf);
-  if (kind === 'pdf') return extractPdf(buf);
-  return { text: '', quality: 'unsupported' };
+  if (kind !== 'docx' && kind !== 'pptx' && kind !== 'pdf' && kind !== 'hwpx') {
+    return { text: '', quality: 'unsupported' };
+  }
+  let buf: Buffer;
+  try {
+    buf = fs.readFileSync(filePath);
+  } catch {
+    return { text: '', quality: 'unsupported', note: '파일을 읽지 못했습니다.', error_kind: 'unknown' };
+  }
+  if (buf.length === 0) {
+    return { text: '', quality: 'unsupported', note: '빈 파일입니다 (0바이트).', error_kind: 'empty' };
+  }
+  try {
+    if (kind === 'docx') return await extractDocx(buf);
+    if (kind === 'pptx') return await extractPptx(buf);
+    if (kind === 'hwpx') return await extractHwpx(buf);
+    return await extractPdf(buf);
+  } catch (e) {
+    const { note, error_kind } = classifyExtractError(e, kind);
+    return { text: '', quality: 'unsupported', note, error_kind };
+  }
 }
 
 // --------------------------------------------------------------------------
@@ -146,6 +185,76 @@ async function extractPptx(buf: Buffer): Promise<ExtractedText> {
   const total = units.reduce((n, u) => n + u.text.length, 0);
   if (total < 40) return { text: '', units: [], quality: 'low', note: '슬라이드에서 텍스트를 거의 찾지 못했습니다 (이미지 위주의 deck일 수 있습니다).', ...caps };
   return { text: units.map((u) => u.text).join('\n'), units, quality: 'medium', ...caps };
+}
+
+// --------------------------------------------------------------------------
+// HWPX — Hancom OWPML: a zip of Contents/sectionN.xml. Text runs live in <hp:t>
+// grouped by <hp:p> paragraphs. Walk runs + paragraph closings in document order
+// so each paragraph becomes a line (parity with the browser extractor). Old
+// binary .hwp is a CFB blob with no Node parser — degrade honestly.
+// --------------------------------------------------------------------------
+
+async function extractHwpx(buf: Buffer): Promise<ExtractedText> {
+  const JSZip = (await import('jszip')).default;
+  const zip = await JSZip.loadAsync(buf);
+  const sectionPaths = Object.keys(zip.files)
+    .filter((p) => /^Contents\/section\d+\.xml$/i.test(p))
+    .sort((a, b) => hwpxSectionNum(a) - hwpxSectionNum(b));
+  if (!sectionPaths.length) {
+    return {
+      text: '', quality: 'unsupported', error_kind: 'corrupt',
+      note: '한글 문서 구조를 찾지 못했습니다. 구버전 .hwp이거나 파일이 손상됐을 수 있습니다 — HWPX로 다시 저장하거나 본문을 붙여넣으세요.',
+    };
+  }
+  const lines: string[] = [];
+  for (const path of sectionPaths) {
+    const xml = await zip.files[path].async('string');
+    lines.push(...hwpxParagraphs(xml));
+    if (lines.length >= MAX_UNITS) break;
+  }
+  const text = lines.join('\n').trim();
+  if (text.length < 40) {
+    return { text: '', quality: 'low', note: '한글 문서에서 텍스트를 거의 찾지 못했습니다 (이미지 위주일 수 있습니다).' };
+  }
+  return { text, quality: 'medium', note: text.length < 400 ? '추출된 텍스트가 적습니다. 핵심 본문은 붙여넣으면 더 정확합니다.' : undefined };
+}
+
+function hwpxSectionNum(p: string): number {
+  return parseInt(/section(\d+)/i.exec(p)?.[1] ?? '0', 10);
+}
+
+function hwpxParagraphs(xml: string): string[] {
+  const lines: string[] = [];
+  let cur = '';
+  const re = /<(?:\w+:)?t\b[^>]*>([\s\S]*?)<\/(?:\w+:)?t>|<\/(?:\w+:)?p>/g;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(xml))) {
+    if (m[1] !== undefined) {
+      cur += decodeXmlEntities(m[1]);
+    } else {
+      const line = cur.replace(/\s+/g, ' ').trim();
+      if (line) lines.push(line);
+      cur = '';
+    }
+  }
+  const tail = cur.replace(/\s+/g, ' ').trim();
+  if (tail) lines.push(tail);
+  return lines;
+}
+
+function decodeXmlEntities(s: string): string {
+  return s
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'")
+    .replace(/&#x([0-9a-fA-F]+);/g, (_, h) => codePoint(parseInt(h, 16)))
+    .replace(/&#(\d+);/g, (_, d) => codePoint(parseInt(d, 10)))
+    .replace(/&amp;/g, '&');
+}
+
+function codePoint(n: number): string {
+  return Number.isFinite(n) && n > 0 && n <= 0x10ffff ? String.fromCodePoint(n) : '';
 }
 
 // --------------------------------------------------------------------------

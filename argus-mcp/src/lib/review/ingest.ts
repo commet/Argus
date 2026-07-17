@@ -64,7 +64,7 @@ export interface IngestInput {
 }
 
 const TIER0: SourceKind[] = ['paste', 'markdown', 'txt', 'llm_answer', 'transcript', 'pr_diff'];
-const BINARY: SourceKind[] = ['pdf', 'docx', 'pptx'];
+const BINARY: SourceKind[] = ['pdf', 'docx', 'pptx', 'hwpx'];
 
 export function ingest(input: IngestInput): CanonicalArtifact {
   const privacy_mode: PrivacyMode = input.privacy_mode ?? 'receipt_only';
@@ -75,6 +75,15 @@ export function ingest(input: IngestInput): CanonicalArtifact {
   // parser's page/slide numbers rather than re-flattening to text.
   if (input.pre_extracted_units && input.pre_extracted_units.length > 0) {
     return fromUnits(input, title, privacy_mode, lang);
+  }
+
+  // A pure image has no text and no structure — it exists ONLY to be reviewed
+  // visually. Build a clean units-less artifact (never the discouraging
+  // `unsupported` degrade, which would trip Gate 0); the pipeline reviews it
+  // straight from the attached image via the vision path. Anchors are pages the
+  // model reads from the image itself, not extracted units.
+  if (input.source_kind === 'image') {
+    return imageArtifact(input, title, privacy_mode, lang);
   }
 
   // Binary format with no extracted text → honest degrade, data model intact.
@@ -166,6 +175,39 @@ function fromUnits(input: IngestInput, title: string, privacy_mode: PrivacyMode,
   };
 }
 
+/**
+ * A units-less artifact for a pure image (png/jpg/webp). It carries no text and
+ * no anchorable units — the review runs entirely through the vision path, where
+ * the model reads the image directly. Quality is `medium` (a real, reviewable
+ * input) rather than `unsupported` (which Gate 0 rejects). extraction_notes
+ * states plainly that this is a visual review so the receipt never implies text
+ * extraction happened.
+ */
+function imageArtifact(
+  input: IngestInput,
+  title: string,
+  privacy_mode: PrivacyMode,
+  lang: ReviewLocale,
+): CanonicalArtifact {
+  const note =
+    lang === 'en'
+      ? 'Reviewed the image visually (the model reads the image itself, not extracted text).'
+      : '이미지를 눈으로 검수했습니다 (텍스트 추출이 아니라 이미지를 직접 읽습니다).';
+  const fp = input.source_caps ? stableId('img', title, JSON.stringify(input.source_caps)) : stableId('img', title);
+  return {
+    artifact_id: `art_${fp}`,
+    source_kind: 'image',
+    source_title: title,
+    source_fingerprint: fp,
+    extraction_quality: input.extraction_quality ?? 'medium',
+    privacy_mode,
+    units: [],
+    detected_structure: { is_deck: false },
+    extraction_notes: [...(input.extraction_notes ?? []), note],
+    source_caps: input.source_caps,
+  };
+}
+
 function defaultTitle(kind: SourceKind, lang: ReviewLocale): string {
   const ko: Record<SourceKind, string> = {
     paste: '붙여넣은 문서',
@@ -174,6 +216,8 @@ function defaultTitle(kind: SourceKind, lang: ReviewLocale): string {
     pdf: 'PDF 문서',
     docx: 'DOCX 문서',
     pptx: '슬라이드 덱',
+    hwpx: '한글 문서',
+    image: '이미지',
     transcript: '회의록',
     mcp_file: '파일',
     pr_diff: 'PR diff',
@@ -186,6 +230,8 @@ function defaultTitle(kind: SourceKind, lang: ReviewLocale): string {
     pdf: 'PDF document',
     docx: 'DOCX document',
     pptx: 'Slide deck',
+    hwpx: 'Hangul document',
+    image: 'Image',
     transcript: 'Meeting notes',
     mcp_file: 'File',
     pr_diff: 'PR diff',
@@ -212,9 +258,13 @@ function degradedArtifact(
           ? (lang === 'en'
               ? 'This deck does not yet support automatic extraction. Paste the slide text and it can be reviewed.'
               : '이 deck은 아직 자동 추출을 지원하지 않습니다. 슬라이드 텍스트를 붙여넣으면 검수할 수 있습니다.')
-          : (lang === 'en'
-              ? 'This file does not yet support automatic text extraction. Please paste the body text.'
-              : '이 파일은 아직 자동 텍스트 추출을 지원하지 않습니다. 본문을 붙여넣어 주세요.');
+          : kind === 'hwpx'
+            ? (lang === 'en'
+                ? 'No text could be read from this Hangul document. Paste the body text and it can be reviewed.'
+                : '이 한글 문서에서 텍스트를 찾지 못했습니다. 본문을 붙여넣으면 검수할 수 있습니다.')
+            : (lang === 'en'
+                ? 'This file does not yet support automatic text extraction. Please paste the body text.'
+                : '이 파일은 아직 자동 텍스트 추출을 지원하지 않습니다. 본문을 붙여넣어 주세요.');
   return {
     artifact_id: `art_${stableId(kind, title, reason)}`,
     source_kind: kind,

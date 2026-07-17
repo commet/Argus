@@ -41,7 +41,10 @@ import {
 type Phase = 'list' | 'import' | 'running' | 'receipt' | 'failed';
 
 const TEXT_EXT = ['md', 'markdown', 'txt', 'text'];
-const BINARY_EXT: Record<string, SourceKind> = { pdf: 'pdf', docx: 'docx', pptx: 'pptx' };
+const BINARY_EXT: Record<string, SourceKind> = { pdf: 'pdf', docx: 'docx', pptx: 'pptx', hwpx: 'hwpx' };
+/** Raster image formats Anthropic vision can read — reviewed purely visually (no
+ *  text path), so they require a connected vision provider. */
+const IMAGE_EXT = ['png', 'jpg', 'jpeg', 'webp', 'gif'];
 
 /** Paste cap — matched to the server's MAX_MESSAGE_LENGTH (50_000, lib/llm-validation.ts)
  *  so a large paste degrades honestly (coverage note) instead of a hard 400. */
@@ -60,7 +63,15 @@ export function ReviewFlow() {
   const [sourceKind, setSourceKind] = useState<SourceKind>('paste');
   const [pendingBinary, setPendingBinary] = useState<SourceKind | null>(null);
   const [extractNote, setExtractNote] = useState<string | null>(null);
+  // A file we can't turn into a review (image with no vision provider, unusable
+  // image, legacy .hwp) — surfaced as an honest note instead of silently
+  // disabling the button. `needsKey` adds the Settings link (vision-only case).
+  const [uploadBlock, setUploadBlock] = useState<{ note: string; needsKey?: boolean } | null>(null);
   const [extracting, setExtracting] = useState(false);
+  // Drag-and-drop onto the import card. dragDepth counts enter/leave across child
+  // elements so the highlight doesn't flicker as the cursor crosses the textarea.
+  const [dragOver, setDragOver] = useState(false);
+  const dragDepth = useRef(0);
   const [preExtracted, setPreExtracted] = useState<ExtractedText | null>(null);
   const [concerns, setConcerns] = useState<ReviewConcern[]>(['full_judgment_review']);
   const [audienceHint, setAudienceHint] = useState('');
@@ -147,11 +158,57 @@ export function ReviewFlow() {
     setExtractNote(null);
     setPreExtracted(null);
     setUseVision(false);
+    setUploadBlock(null);
     if (TEXT_EXT.includes(ext)) {
       const content = await file.text();
       setText(content);
       setSourceKind(ext.startsWith('md') ? 'markdown' : 'txt');
       setPendingBinary(null);
+    } else if (ext === 'hwp') {
+      // Legacy binary 한글 (.hwp, a CFB blob) has no in-browser parser. Degrade
+      // honestly with the concrete fix (save as HWPX, or paste) instead of a
+      // silent no-op that leaves the button dead.
+      setSourceKind('paste');
+      setPendingBinary(null);
+      setUploadBlock({
+        note: L(
+          '구버전 한글(.hwp)은 바로 읽지 못해요. 한글에서 "다른 이름으로 저장 → HWPX(.hwpx)"로 저장해 올리거나, 본문을 붙여넣어 주세요.',
+          'Legacy Hangul (.hwp) can\'t be read directly. Save it as HWPX (.hwpx) in Hancom Office and upload that, or paste the text.',
+        ),
+      });
+    } else if (IMAGE_EXT.includes(ext)) {
+      // A pure image has no text to extract — it's reviewed entirely by a vision
+      // model. Without one connected there is NO path, so say so plainly rather
+      // than run an empty review.
+      setSourceKind('image');
+      setPendingBinary(null);
+      if (!visionCapable()) {
+        setUploadBlock({
+          note: L(
+            '이미지 검수는 시각 모델이 필요해요. 설정에서 Anthropic API 키를 연결하면 이미지를 눈으로 검수할 수 있어요.',
+            'Image review needs a vision model. Connect an Anthropic API key in Settings and the image can be reviewed visually.',
+          ),
+          needsKey: true,
+        });
+        return;
+      }
+      setExtracting(true);
+      setText('');
+      try {
+        const extracted = await extractFile(file, 'image');
+        if (extracted.vision) {
+          setPreExtracted(extracted);
+          setUseVision(true); // the only way to read an image
+          setExtractNote(extracted.note ?? null);
+        } else {
+          // Unsupported format / too large to downscale → honest, specific reason.
+          setUploadBlock({ note: extracted.note ?? L('이 이미지를 검수하지 못했어요.', 'Could not review this image.') });
+        }
+      } catch {
+        setUploadBlock({ note: L('이미지를 읽지 못했어요. 다시 시도해 주세요.', 'Could not read the image. Please try again.') });
+      } finally {
+        setExtracting(false);
+      }
     } else if (BINARY_EXT[ext]) {
       setSourceKind(BINARY_EXT[ext]);
       setExtracting(true);
@@ -186,6 +243,27 @@ export function ReviewFlow() {
       setSourceKind('txt');
       setPendingBinary(null);
     }
+  };
+
+  // Drop a file straight onto the card — same path as the upload button. Only the
+  // first file is taken (the flow reviews one document at a time).
+  const onDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    dragDepth.current = 0;
+    setDragOver(false);
+    const file = e.dataTransfer?.files?.[0];
+    if (file) onFile(file);
+  };
+  const onDragEnter = (e: React.DragEvent) => {
+    if (!Array.from(e.dataTransfer?.types ?? []).includes('Files')) return;
+    e.preventDefault();
+    dragDepth.current += 1;
+    setDragOver(true);
+  };
+  const onDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    dragDepth.current -= 1;
+    if (dragDepth.current <= 0) { dragDepth.current = 0; setDragOver(false); }
   };
 
   const toggleConcern = (id: ReviewConcern) => {
@@ -340,6 +418,8 @@ export function ReviewFlow() {
     setPendingBinary(null);
     setExtractNote(null);
     setPreExtracted(null);
+    setUploadBlock(null);
+    setUseVision(false);
     setJob(null);
     setPhase('import');
   };
@@ -681,7 +761,20 @@ export function ReviewFlow() {
         )}
       </div>
 
-      <Card>
+      <Card
+        onDragEnter={onDragEnter}
+        onDragOver={(e) => e.preventDefault()}
+        onDragLeave={onDragLeave}
+        onDrop={onDrop}
+        className={`relative transition-shadow ${dragOver ? 'ring-2 ring-[var(--accent)] ring-offset-2 ring-offset-[var(--bg)]' : ''}`}
+      >
+        {dragOver && (
+          <div className="absolute inset-0 z-10 flex items-center justify-center rounded-xl bg-[var(--accent)]/[0.06] pointer-events-none">
+            <p className="text-[13px] font-semibold text-[var(--accent)]">
+              {L('여기에 파일을 놓으세요 (pdf · docx · pptx · 이미지 · txt)', 'Drop your file here (pdf · docx · pptx · image · txt)')}
+            </p>
+          </div>
+        )}
         <textarea
           value={text}
           onChange={(e) => {
@@ -690,6 +783,7 @@ export function ReviewFlow() {
             setPendingBinary(null);
             setPreExtracted(null);
             setExtractNote(null);
+            setUploadBlock(null);
           }}
           maxLength={PASTE_CHAR_CAP}
           placeholder={L(
@@ -702,14 +796,14 @@ export function ReviewFlow() {
           <input
             ref={fileRef}
             type="file"
-            accept=".md,.markdown,.txt,.text,.pdf,.docx,.pptx"
+            accept=".md,.markdown,.txt,.text,.pdf,.docx,.pptx,.hwpx,.hwp,.png,.jpg,.jpeg,.webp,.gif"
             className="hidden"
             onChange={(e) => e.target.files?.[0] && onFile(e.target.files[0])}
           />
           <Button variant="ghost" size="sm" onClick={() => fileRef.current?.click()} disabled={extracting}>
             {extracting
-              ? L('텍스트 추출 중…', 'Extracting text…')
-              : L('파일 업로드 (md · txt · pdf · docx · pptx)', 'Upload a file (md · txt · pdf · docx · pptx)')}
+              ? L('읽는 중…', 'Reading…')
+              : L('파일 업로드 (md · txt · pdf · docx · pptx · 이미지)', 'Upload a file (md · txt · pdf · docx · pptx · image)')}
           </Button>
           <span className={`text-[11px] ${text.length >= PASTE_CHAR_CAP ? 'text-[var(--warning)] font-semibold' : 'text-[var(--text-tertiary)]'}`}>
             {text.length >= PASTE_CHAR_CAP
@@ -720,7 +814,15 @@ export function ReviewFlow() {
               : text.length > 0 ? L(`${text.length.toLocaleString()}자`, `${text.length.toLocaleString()} characters`) : ''}
           </span>
         </div>
-        {preExtracted && (() => {
+        {preExtracted && sourceKind === 'image' && (
+          <p className="mt-2 text-[12px] text-[var(--success)]">
+            {L(
+              `이미지를 눈으로 검수합니다${extractNote ? ` — ${extractNote}` : ''}.`,
+              `This image will be reviewed visually${extractNote ? ` — ${extractNote}` : ''}.`,
+            )}
+          </p>
+        )}
+        {preExtracted && sourceKind !== 'image' && (() => {
           // Show the real scope pulled from the file so the user knows how much
           // will be reviewed (a whole 40-page report vs. a title slide).
           const parts: string[] = [];
@@ -745,6 +847,19 @@ export function ReviewFlow() {
               `Not enough text could be read from the ${pendingBinary.toUpperCase()} file. Review it as is and Argus will first show what's missing; paste the text for a full review.`,
             )}
           </p>
+        )}
+        {uploadBlock && (
+          <div className="mt-2">
+            <p className="text-[12px] text-[var(--warning)]">{uploadBlock.note}</p>
+            {uploadBlock.needsKey && (
+              <a
+                href={`/${locale}/settings`}
+                className="inline-flex mt-1 text-[12px] font-medium text-[var(--accent)] hover:underline"
+              >
+                {L('설정에서 API 키 연결하기 →', 'Connect an API key in Settings →')}
+              </a>
+            )}
+          </div>
         )}
       </Card>
 
@@ -811,8 +926,9 @@ export function ReviewFlow() {
       </label>
 
       {/* Opt-in vision review — only when the extractor produced a visual payload
-          (a PDF, or a deck with embedded images) AND the provider can take it. */}
-      {!!preExtracted?.vision && visionCapable() && (
+          (a PDF, or a deck with embedded images) AND the provider can take it.
+          An image skips this: vision is its ONLY path, not an option to toggle. */}
+      {!!preExtracted?.vision && sourceKind !== 'image' && visionCapable() && (
         <label className="flex items-start gap-2 text-[12px] text-[var(--text-secondary)] cursor-pointer">
           <input type="checkbox" checked={useVision} onChange={(e) => setUseVision(e.target.checked)} className="mt-0.5" />
           <span>

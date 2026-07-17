@@ -258,7 +258,7 @@ Keep the result selective and concise:
 - Return 2 to 5 material findings; zero only when genuinely nothing is material. Do not manufacture one per lens.
 - Prefer findings that only the VISUAL reveals (a chart trend that contradicts a claim, a number shown only in an image) — that is the point of this pass.
 - A judgment obligation is a DECISION the human must make, NOT a restatement of a finding. Keep obligations distinct from each other and from the findings.
-- Reference locations in prose the human way ("slide 4의 시장규모 차트", "3쪽 표"). In the JSON, cite ${anchorWord} numbers in the "pages" array (e.g. [4] or [4,7]).
+- Each attached image is preceded by a "— Page N —" text label (a rendered PDF may arrive in several batches, so N is the ABSOLUTE page). Reference locations in prose the human way ("slide 4의 시장규모 차트", "3쪽 표") and, in the JSON, cite that page label's number in the "pages" array (e.g. [4] or [4,7]).
 - followup check_by must be a real date after ${today}. Return at most 3 obligations and 3 followups.
 
 ${langDirective(lang)}`;

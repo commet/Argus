@@ -72,6 +72,19 @@ describe('argus_review', () => {
     expect(String(res.structuredContent?.surface ?? '')).not.toMatch(/진행하세요|틀렸|추천/);
   });
 
+  it('does NOT offer a vision scaffold for a corrupt PDF — the host can\'t read it either', async () => {
+    // A structurally broken PDF is a HARD failure: the host cannot open it by eye,
+    // so the tool must report an honest reason, not tell the host to "read it visually".
+    const fixture = fileURLToPath(new URL('fixtures/corrupt.pdf', import.meta.url));
+    const res = await review.handler({ file_path: fixture });
+    expect(res.isError).toBeFalsy();
+    const d = data(res);
+    expect(d.vision_required).toBeFalsy();       // NOT the vision path
+    expect(d.needs_context).toBe(true);          // honest degrade
+    expect(d.error_kind).toBe('corrupt');
+    expect(res.structuredContent?.next_actions).toContain('skip');
+  });
+
   it('degrades honestly on empty input', async () => {
     const res = await review.handler({ text: '' });
     expect(res.isError).toBe(true);
