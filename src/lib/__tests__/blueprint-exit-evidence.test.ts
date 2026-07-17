@@ -94,7 +94,10 @@ const EVIDENCE_O: Record<string, string[]> = {
     'argus-mcp/src/lib/__tests__/os-locale-hint.test.ts', // 스위트 결정성 — env 규칙 매트릭스 + 격리 카나리아 (홈/로케일)
     'argus-mcp/src/lib/__tests__/locale-mismatch-note.test.ts', // 대화-언어 불일치 1회 확인
   ],
-  '공정 O2': [],
+  '공정 O2': [
+    'argus-mcp/src/lib/__tests__/core-boundary.test.ts', // canonical append 단독 (O_APPEND census) + 경계 게이트
+    'argus-mcp/src/lib/__tests__/cross-surface-contract.test.ts', // 같은 fixture → 3두뇌 동일 해석 + 쓰기 규율 계약
+  ],
   '공정 O3': [],
   '공정 O4': [],
   '공정 O5': [],

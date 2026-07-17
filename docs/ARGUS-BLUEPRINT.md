@@ -459,6 +459,9 @@ KEYSTONE §10의 봉인 그대로: **공개 후 30일 안에 외부인 1명이 �
   doctor/update/uninstall, managed block + dry-run + idempotent)
 - TUI due-inbox — 위젯 2종이 같은 일자리를 더 싸게 대체하므로 보류; 터미널-네이티브
   수요가 실측될 때만 재개 (PTY/CJK/resize 전장을 열지 않는다)
+- v2 미러 catch-up: 프로젝트 v1의 미미러 라인을 멱등 키로 재미러 (플러그인
+  쓰기 포함 v2 완전성 확보) — 구현·검증 후에만 v2를 read-canonical로 승격
+  (O2 방4의 2겹 정본 선언 참조; 그 전까지 v2 소비자는 프로젝트 v1과 union)
 
 ---
 
@@ -689,10 +692,18 @@ Desktop은 README 설정 그대로가 전 도구 실패, 영수증 렌더러는 
   마켓플레이스 산출물이 콜드 npx/오프라인에서 봉인 실패하게 되고, 폴백 로컬
   writer를 두면 쓰기 경로가 다시 2개가 된다 (방3 PR 기록).
 - Core 경계 추출(거동 불변) + CI 경계 게이트(core↛어댑터, 플러그인↛writer,
-  렌더러↛전이). 저장 정본 = v2 durable (v1 호환 리더, v3는 P5 HOLD ADR대로 동결).
-- exit: [ ] canonical append: argus-mcp 안 단독(O_APPEND census 게이트) +
+  렌더러↛전이).
+- 저장 정본 선언 (방4에서 현실 대조 후 2겹으로 확정): **쓰기 정본 = 공유
+  프로젝트 v1 파일**(.argus/ledger/ledger.jsonl — 두 writer 공용, MCP 도구
+  읽기도 여기). **v2 durable(~/.argus/projects/)은 파생 내구 projection** —
+  MCP 호출 안에서만 배치-멱등 미러되므로 플러그인 쓰기가 누락될 수 있고,
+  따라서 v2 소비자는 프로젝트 v1과 **union으로 접어야 한다**(statusline이
+  이 규칙의 첫 소비자 — 바인딩 repo에서 플러그인 봉인이 사라지던 드리프트
+  6호 수리). v2의 read-canonical 승격은 미러 catch-up 구현 후에만 (§8 대기).
+  v3는 P5 HOLD ADR대로 동결.
+- exit: [x] canonical append: argus-mcp 안 단독(O_APPEND census 게이트) +
   플러그인 writer는 동일 규율 이식·쓰기 규율 계약(스탬프/torn-heal/동시성)으로
-  고정 [ ] 같은 이벤트 fixture → 플러그인/MCP/statusline 동일 해석
+  고정 [x] 같은 이벤트 fixture → 플러그인/MCP/statusline 동일 해석
 
 **공정 O3 · 포장 통합 (M)**
 - driver + plugin-v2 → 사용자에게 하나의 `Argus` (기본 = 조용한 driver 거동,
