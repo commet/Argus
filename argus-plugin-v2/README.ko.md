@@ -45,6 +45,31 @@ Argus는 그 자료를 읽고 실제 일이 벌어지는 자리에서 판단을 
 지원 문서: `pdf`, `md`, `txt`, `pptx`, `docx`, `hwpx`. `xlsx`와 구형 Office/HWP
 파일은 CSV/PDF로 내보낸 뒤 쓰는 편이 안전합니다.
 
+### 설치 하나로 배선되는 것
+
+설치가 곧 설정 전부입니다 — 별도 초기화 명령은 없습니다.
+
+- **결정 도구(MCP) 자동 배선** — 동봉된 [`.mcp.json`](./.mcp.json)이
+  `argus-decision-mcp` stdio 서버를 등록합니다(`npx -y argus-decision-mcp`).
+  결정을 포착하고, 예측을 저장하고, 확인할 것을 보고, 실제 결과를 기록하는
+  6개 도구(`argus_capture` / `argus_predict` / `argus_resolve` / `argus_check_in`
+  / `argus_patterns` / `argus_settings`)를 바로 쓸 수 있습니다. (배선되는 것은
+  npm 출시본입니다 — 리포의 최신 시공분은 `argus-mcp/`에서 다음 `npm publish`
+  때 설치본에 반영됩니다.)
+- **조용한 훅 2개** — 세션 시작 때 확인일이 도달한 결정을 알려주는 점검(뒤처진
+  LOGBOOK은 `argus_check_in` 재생성으로 안내), 그리고 세션당 최대 1회(세션 밖
+  4시간 쿨다운) due 항목 하나만 묻는 ambient 방아쇠. 침묵이 기본값이고, 끄기는
+  `~/.argus/config.json`에 `{ "ambient": { "opt_out": true } }`.
+- **`/argus:doctor`** — 설치·배선 읽기 전용 자가진단. 아무것도 고치지 않으며,
+  각 줄에 고칠 수 있는 공개 도구 이름이 적혀 있습니다.
+- **statusline (선택)** — [`statusline/index.js`](./statusline/index.js)가 결정
+  원장을 읽습니다. 켜려면 `~/.claude/settings.json`에 1줄:
+  `"statusLine": { "type": "command", "command": "node ${CLAUDE_PLUGIN_ROOT}/statusline/index.js" }`
+
+결정 기록은 사용자 자산이라 **플러그인 제거가 절대 삭제하지 않는다**는 것이
+저장 계약입니다 — `.argus/`와 `~/.argus`의 원장은 플러그인을 지워도 그대로
+남습니다.
+
 ---
 
 ## 하는 일

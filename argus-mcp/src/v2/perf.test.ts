@@ -21,7 +21,7 @@ import { loadState } from './reducer.js';
 import { deriveBrief } from './brief.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-const HOOK = path.resolve(here, '..', '..', '..', 'argus-driver', 'hooks', 'session-start.js');
+const HOOK = path.resolve(here, '..', '..', '..', 'argus-plugin-v2', 'hooks', 'session-start.js');
 
 const N = Number(process.env['ARGUS_PERF_EVENTS'] ?? 10_000);
 const REPO_ID = '3f2504e0-4f89-41d3-9a0c-0305e82c3301';

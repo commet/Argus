@@ -1,5 +1,5 @@
 /**
- * P2-5 — argus-driver SessionStart 훅 spawn e2e.
+ * P2-5 — SessionStart 훅 spawn e2e (구 argus-driver, O3 방1에서 argus 플러그인으로 흡수).
  *
  * 훅은 감지·안내만 하는 zero-dep 스크립트다. 여기서 고정하는 계약:
  *  ① 바인딩 없는 워크스페이스 = 완전 침묵 (v2 미사용자에게 소음 0)
@@ -23,7 +23,7 @@ import { renderLogbook } from './logbook.js';
 import type { BriefState } from './brief.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-const HOOK = path.resolve(here, '..', '..', '..', 'argus-driver', 'hooks', 'session-start.js');
+const HOOK = path.resolve(here, '..', '..', '..', 'argus-plugin-v2', 'hooks', 'session-start.js');
 
 const REPO_ID = '3f2504e0-4f89-41d3-9a0c-0305e82c3301';
 const ULID = '01JZXK5N8Q2W4E6R8T0Y2Z4A6B';
@@ -70,7 +70,7 @@ function freshLogbook(over: Partial<BriefState>): void {
   fs.writeFileSync(path.join(repoDir, '.argus', 'LOGBOOK.md'), renderLogbook(brief, REPO_ID));
 }
 
-describe('argus-driver SessionStart 훅 (P2-5)', () => {
+describe('플러그인 SessionStart 훅 (P2-5, 구 driver)', () => {
   it('① 바인딩 없는 워크스페이스 — 완전 침묵, exit 0', () => {
     expect(run()).toBe('');
   });

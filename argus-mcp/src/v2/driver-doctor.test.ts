@@ -1,5 +1,5 @@
 /**
- * P2-6 — /argus-driver:doctor 스크립트 spawn e2e.
+ * P2-6 — /argus:doctor 스크립트 spawn e2e (구 argus-driver, O3 방1에서 흡수).
  *
  * doctor의 계약: 읽기 전용(아무것도 만들거나 고치지 않음), 어떤 파손에도
  * exit 0으로 사실 보고, 절대 경로 평문(규칙 18), predicate 본문 미출력
@@ -13,7 +13,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-const DOCTOR = path.resolve(here, '..', '..', '..', 'argus-driver', 'scripts', 'doctor.js');
+const DOCTOR = path.resolve(here, '..', '..', '..', 'argus-plugin-v2', 'scripts', 'doctor.js');
 
 const REPO_ID = '3f2504e0-4f89-41d3-9a0c-0305e82c3301';
 const ULID = '01JZXK5N8Q2W4E6R8T0Y2Z4A6B';
@@ -58,7 +58,7 @@ function bind(): void {
   fs.mkdirSync(path.join(home, 'projects', REPO_ID), { recursive: true });
 }
 
-describe('argus-driver doctor (P2-6)', () => {
+describe('argus doctor (P2-6)', () => {
   it('미바인딩 워크스페이스 — 사실 보고 + argus_settings 손잡이, exit 0', () => {
     fs.mkdirSync(home, { recursive: true });
     const out = run();

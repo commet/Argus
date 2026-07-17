@@ -4,6 +4,28 @@ All notable changes to the Argus plugin. Versioning follows
 [semver](https://semver.org); users receive an update only when the
 `version` in `.claude-plugin/plugin.json` is bumped.
 
+## 2.8.0 — 2026-07-17
+
+One install (공정 O3 방1): the separate `argus-driver` plugin is absorbed — the
+marketplace now lists exactly one plugin, and installing it is the whole setup.
+
+- **MCP wired by install**: bundled `.mcp.json` registers `argus-decision-mcp`
+  (npx, major-pinned `@^1`) — no separate driver plugin, no init command.
+- **Driver hooks absorbed**: the quiet SessionStart check (due decisions +
+  stale-LOGBOOK regeneration pointer) and the ambient one-question trigger
+  (session-once + 4h cooldown, silence default, `ambient.opt_out` respected)
+  now ship here, unchanged.
+- **`/argus:doctor` absorbed**: read-only install/wiring self-diagnosis.
+- **`argus-driver` retired**: directory and marketplace entry removed; its
+  statusline was a byte-copy of this plugin's (the canonical one) all along.
+  Existing driver installs keep working but stop receiving updates — uninstall
+  `argus-driver` and keep `argus`. Uninstalling never deletes decision records.
+- Structural guard moved with the merge: `one-install.test.ts` pins "exactly one
+  marketplace entry, bundle complete, README teaches one install command".
+  SessionStart now announces due items from both ledger planes (v1 contracts via
+  check-contracts.js, v2 LOGBOOK via session-start.js); single-owner
+  deduplication is deferred to the command-consolidation room (O3 방2).
+
 ## 2.7.0 — 2026-06-24
 
 Quality, measurement, and trust infrastructure — turning "we wrote the rules" into

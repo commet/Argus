@@ -707,10 +707,16 @@ Desktop은 README 설정 그대로가 전 도구 실패, 영수증 렌더러는 
 
 **공정 O3 · 포장 통합 (M)**
 - driver + plugin-v2 → 사용자에게 하나의 `Argus` (기본 = 조용한 driver 거동,
-  deep review는 `/argus:review`만 — auto-trigger는 CI 빨강).
+  deep review는 `/argus:review`만 — auto-trigger는 CI 빨강). (방1 준공
+  2026-07-17: argus 플러그인이 .mcp.json 자동 배선·조용한 훅 2개(session-start·
+  ambient-nudge)·doctor를 흡수, marketplace 항목 정확히 1개 + driver 디렉토리
+  소멸을 one-install.test.ts가 고정. statusline은 정본 단일 사본이 되어 바이트
+  대조 가드는 존재 이유와 함께 은퇴. SessionStart due 발화가 두 평면(v1
+  check-contracts · v2 session-start)에서 겹치는 것은 충실 이동으로 보존 —
+  단일 소유자 확정은 방2 activation 계약의 몫.)
 - 명령 20→5 (자연어 기본 + review/check/history/settings) · plain rename
   (+alias 2 minor 유지) · README/사이트 "어디서 쓰세요?" 문 구조 · Boss 교체.
-- exit: [ ] fresh install 명령 1개 [ ] activation 계약 테스트(자동 deep review 0)
+- exit: [x] fresh install 명령 1개 [ ] activation 계약 테스트(자동 deep review 0)
 
 **공정 O4 · 증거 관문 (공정이 아니라 판정 — §6 준공 검사·P5 가치 관문과 한 몸)**
 - 5명×21일 관찰, 7단계 퍼널(noticed→captured→accepted→surfaced→returned→
