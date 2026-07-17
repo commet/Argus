@@ -683,11 +683,16 @@ Desktop은 README 설정 그대로가 전 도구 실패, 영수증 렌더러는 
 - **O1 exit부터 실사용 코호트 가동 (O4 데이터 수집 시작 — 코드보다 사용이 주역).**
 
 **공정 O2 · 두뇌 수렴 (M)**
-- decision-ledger.js 내장 → MCP/Core 호출 교체 (Option A 2단계 — 스킬 prose 불변).
+- decision-ledger.js 내장: 정본 writer의 규율(락·torn-heal·O_APPEND·fsync·
+  v/ts 스탬프)을 **자기완결 이식 + 쓰기 규율 계약으로 기계 고정** (Option A
+  2단계 — 스킬 prose 불변). 런타임 위임(CLI→MCP subprocess)은 **기각**: zero-dep
+  마켓플레이스 산출물이 콜드 npx/오프라인에서 봉인 실패하게 되고, 폴백 로컬
+  writer를 두면 쓰기 경로가 다시 2개가 된다 (방3 PR 기록).
 - Core 경계 추출(거동 불변) + CI 경계 게이트(core↛어댑터, 플러그인↛writer,
   렌더러↛전이). 저장 정본 = v2 durable (v1 호환 리더, v3는 P5 HOLD ADR대로 동결).
-- exit: [ ] canonical append 구현이 Core 밖 0개 (경계 테스트) [ ] 같은 이벤트
-  fixture → 플러그인/MCP/statusline 동일 해석
+- exit: [ ] canonical append: argus-mcp 안 단독(O_APPEND census 게이트) +
+  플러그인 writer는 동일 규율 이식·쓰기 규율 계약(스탬프/torn-heal/동시성)으로
+  고정 [ ] 같은 이벤트 fixture → 플러그인/MCP/statusline 동일 해석
 
 **공정 O3 · 포장 통합 (M)**
 - driver + plugin-v2 → 사용자에게 하나의 `Argus` (기본 = 조용한 driver 거동,

@@ -81,6 +81,90 @@ function ensureLedgerIgnored() {
   fs.writeFileSync(gitignore, `${text}${prefix}# Argus: personal prediction ledger.\nledger/\n`);
 }
 
+// ── Disciplined JSONL append — MIRROR of argus-mcp/src/lib/ledger-append.ts
+// (lock → torn-tail heal → O_APPEND → fsync), same constants. The packages
+// cannot share code (this CLI ships self-contained in the marketplace
+// bundle), so the discipline is carried here and PINNED mechanically by the
+// write-discipline cases in argus-mcp/src/lib/__tests__/
+// cross-surface-contract.test.ts — edit either side only with that net green.
+// Runtime delegation to the MCP server was REJECTED (O2 방3): on a cold npx
+// cache or offline machine every seal/settle would fail, and adding a local
+// fallback writer would mean two write paths again — the exact drift O2 kills.
+const LOCK_TRIES = 120; // ~3s worst case (25ms steps)
+const LOCK_WAIT_MS = 25;
+const LOCK_STALE_MS = 5000; // a crash leftover is stolen after this
+
+function sleepSync(ms) {
+  try {
+    Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
+  } catch {
+    const until = Date.now() + ms;
+    while (Date.now() < until) { /* last-resort spin */ }
+  }
+}
+
+function withFileLockSync(file, fn) {
+  const lockPath = `${file}.lock`;
+  let acquired = false;
+  for (let i = 0; i < LOCK_TRIES && !acquired; i++) {
+    try {
+      const fd = fs.openSync(lockPath, fs.constants.O_CREAT | fs.constants.O_EXCL | fs.constants.O_WRONLY);
+      fs.writeSync(fd, String(process.pid), null, "utf8");
+      fs.closeSync(fd);
+      acquired = true;
+    } catch {
+      try {
+        const st = fs.statSync(lockPath);
+        if (Date.now() - st.mtimeMs > LOCK_STALE_MS) { fs.unlinkSync(lockPath); continue; }
+      } catch { continue; } // lock vanished between attempts — retry immediately
+      sleepSync(LOCK_WAIT_MS);
+    }
+  }
+  // Lock or no lock, the work proceeds (availability over strictness — same
+  // contract as the canonical writer: a stuck lock must never brick a seal).
+  try {
+    return fn();
+  } finally {
+    if (acquired) { try { fs.unlinkSync(lockPath); } catch { /* already gone */ } }
+  }
+}
+
+// A crash/ENOSPC mid-write can leave the final line unterminated; a naive
+// append then fuses its first event onto those bytes and replay drops BOTH
+// lines — the torn remnant silently eats the next event too. Heal with one
+// leading newline so a torn tail can only ever cost the one line it tore.
+function needsLeadingNewline(file) {
+  let fd;
+  try {
+    const size = fs.statSync(file).size;
+    if (size === 0) return false;
+    fd = fs.openSync(file, fs.constants.O_RDONLY);
+    const buf = Buffer.alloc(1);
+    fs.readSync(fd, buf, 0, 1, size - 1);
+    return buf[0] !== 0x0a; // '\n'
+  } catch {
+    return false; // no file yet — the append creates it
+  } finally {
+    if (fd !== undefined) { try { fs.closeSync(fd); } catch { /* already closed */ } }
+  }
+}
+
+function appendJsonlLine(file, obj) {
+  return withFileLockSync(file, () => {
+    const line = (needsLeadingNewline(file) ? "\n" : "") + JSON.stringify(obj) + "\n";
+    let fd;
+    try {
+      fd = fs.openSync(file, fs.constants.O_APPEND | fs.constants.O_CREAT | fs.constants.O_WRONLY);
+      fs.writeSync(fd, line, null, "utf8");
+      // The ledger is the product's only durable asset — fsync is what stands
+      // between a power loss and a lost settlement.
+      try { fs.fsyncSync(fd); } catch { /* fsync unsupported on this fs — the write landed */ }
+    } finally {
+      if (fd !== undefined) fs.closeSync(fd);
+    }
+  });
+}
+
 function appendEvent(event) {
   ensureLedgerIgnored();
   fs.mkdirSync(ledgerDir(), { recursive: true });
@@ -90,7 +174,7 @@ function appendEvent(event) {
   // corruption alarm on the MCP side and lost its settled date (O2 방1
   // findings ①⑤). `at` stays for existing plugin readers; same instant.
   const now = new Date().toISOString();
-  fs.appendFileSync(ledgerFile(), `${JSON.stringify({ v: 1, ...event, ts: now, at: now })}\n`);
+  appendJsonlLine(ledgerFile(), { v: 1, ...event, ts: now, at: now });
 }
 
 function itemsFile() {
@@ -116,7 +200,11 @@ function ensureItemsIgnored() {
 function appendItem(event) {
   ensureItemsIgnored();
   fs.mkdirSync(argusDir(), { recursive: true });
-  fs.appendFileSync(itemsFile(), `${JSON.stringify({ ...event, at: new Date().toISOString() })}\n`);
+  // items.jsonl is the plugin's OWN store (no MCP counterpart) but it carries
+  // the same durability discipline — a torn tail eating a premise alert would
+  // be the same silent loss, just in a different file.
+  const now = new Date().toISOString();
+  appendJsonlLine(itemsFile(), { v: 1, ...event, ts: now, at: now });
 }
 
 function loadLedger() {

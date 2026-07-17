@@ -110,6 +110,12 @@ function replayLedger(argusDir, today) {
           cur.status = "sealed";
           if (ev.predicate != null) cur.text = ev.predicate;
           cur.check_by = ev.check_by;
+        } else {
+          // Self-create on a bare seal (O2 방1 backlog ⑥): the MCP replay and
+          // the statusline both open an entry when seal arrives without a
+          // prior harvest — this reader silently skipped it, so such a bet
+          // could never fire the reminder while lighting other surfaces.
+          map.set(ev.id, { status: "sealed", text: ev.predicate || "", check_by: ev.check_by });
         }
         break;
       case "amend":

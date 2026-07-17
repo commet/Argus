@@ -135,6 +135,12 @@ t("MCP defer (still_pending re-arm) → silence until the NEW date (O2 방1 find
   assert(run(r) === "", "deferred contract must not keep nagging on the stale date");
 });
 
+t("bare seal (no prior harvest) still fires — parity with MCP replay & statusline (O2 backlog ⑥)", () => {
+  const r = repo();
+  ledger(r, [{ event: "seal", id: "bare0001", predicate: "bare seal must fire the reminder", check_by: iso(-2) }]);
+  assert(run(r).includes("/argus:resolve"), "a seal without harvest must still be tracked and fire");
+});
+
 t("dismissed contract → silence", () => {
   const r = repo();
   ledger(r, bet("aaaa0001", iso(-3), "기각된 결정", [{ event: "dismiss" }]));
