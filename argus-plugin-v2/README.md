@@ -206,10 +206,10 @@ session start.
 
 - Changelog: `CHANGELOG.md`
 - Agent roster: `data/agents.yaml`
-- Boss personas: `data/boss-types.yaml`
+- Boss tone skins (voice only — the review's substance is the configured seat): `data/boss-types.yaml`
 - Schemas: `data/schemas/*.json`
-- Build log: `BUILD_STATUS.md`
-- Test plan: `TEST_PLAN.md`
+- Build log (frozen historical record): `BUILD_STATUS.md`
+- Test plan (frozen historical record): `TEST_PLAN.md`
 
 ## License
 

@@ -4,12 +4,12 @@
 
 **Keeping Judgment Human.**
 
-**An important decision shouldn't end at an answer.**
+**AI took over the execution. Where does your judgment accumulate?**
 
-Argus keeps it alive as a **living course**.
-
-It's a judgment system that reframes the question, marks the forks, verifies the
-claims, shows your current bearing, and comes back when reality answers.
+Argus records the judgment *behind* a decision — the premises it rests on and a
+falsifiable prediction — then comes back when reality answers. Not a better
+answer: a **living record of your calls**, settled against what actually
+happened.
 
 ## ⚡ Install the MCP server (30 seconds)
 
@@ -50,144 +50,83 @@ chat, the **[MCP server](./argus-mcp/README.md)** is the one you want.
 
 ---
 
-## Why it's needed
+## Why it exists
 
-If you tell ChatGPT "analyze our competitors," the result is often plausible but
-unusable for an actual decision. **Because the question itself was wrong.**
+Ask an AI anything and a confident answer arrives in seconds. What never gets
+recorded is the part that was *yours*: what you actually decided, what you were
+betting on, and — months later — whether reality agreed.
 
-Tools like LangGraph and CrewAI deal with **how** to run AI agents.
-Argus deals with **what** should be run.
+Argus is not another answer tool. It keeps the judgment:
 
 ```
-Without Argus:   task → straight to AI → plausible but unusable result
-With Argus:      task → a structure for judgment → AI execution → a decision-usable result
+Without Argus:  decide → execute → the reasoning evaporates
+With Argus:     decide → seal a falsifiable prediction → reality settles it → your record grows
+```
+
+## One loop, three doors
+
+Everywhere Argus runs, the loop is the same:
+
+1. **Record** the decision and the premises it rests on — in your own words.
+2. **Seal** one falsifiable prediction with a check-by date.
+3. **Wait quietly.** No nagging; if a premise shifts or the date arrives, Argus
+   says so once.
+4. **Settle** against what actually happened. You answer; the model never grades.
+5. **Keep the receipt.** Settled predictions accumulate into your own track
+   record — calibration you can see, principles you choose to ratify.
+
+What that looks like per door:
+
+- **Web app** — write the decision in one line (or upload a strategy doc); Argus
+  reviews it from multiple angles, marks what only a human can call, and alerts
+  you when a premise changes.
+- **MCP server** — talk about a decision naturally in any chat; capture it,
+  seal the prediction, get pulled back on the check-by date.
+- **Claude Code plugin** — five commands over your real code and PRs:
+  `/argus:review` (deep pressure-test, explicit opt-in) · `/argus:check` ·
+  `/argus:history` · `/argus:settings` · `/argus:help`.
+
+The artifact at the end is a **Judgment Receipt**:
+
+```
+┌─ ARGUS · JUDGMENT RECEIPT ────────────────────────────────┐
+  Prediction saved 2026-04-02      Result recorded 2026-06-30
+
+  THE REAL QUESTION
+    Can we cut over without a maintenance window users notice?
+  THE UNVERIFIED ASSUMPTION
+    The index rebuild fits inside the replication lag budget.
+  HUMAN-ONLY CALL   Whether a 5-minute blip is acceptable.
+  …made by          Me. (not the model)
+
+  YOU PREDICTED   "Cutover downtime is under 5 minutes"   (check-by 2026-06-30)
+  WHAT HAPPENED   Cutover took 3 minutes, no customer reports.
+  ─────────────────────────────────────────────────────────
+  AI VERDICT ON THIS DECISION ······················  NONE
+  The model never graded you. Reality did.
+└──────────────────────────  argus · prediction → reality ─┘
 ```
 
 ---
 
-## The voyage to Ithaca
+## How it differs from answer tools
 
-From leaving the harbor to reaching Ithaca — four stages.
+| | Answer tools | **Argus** |
+|---|---|---|
+| Output | a more plausible answer | a **judgment receipt** — prediction → reality |
+| Who evaluates | the model (scores, confidence) | **nobody** — `AI VERDICT: NONE`; reality settles on the date you set |
+| After the chat ends | the reasoning evaporates | Argus **comes back** — check-by dates, premise-change alerts |
+| What accumulates | an implicit profile of you | **a record you own**: settled predictions, your calibration, principles *you* ratified |
 
-| Stage | Name | What it does |
-|-------|------|--------------|
-| 1 | **Reframe** · redefine the problem | Finds the task's hidden hypotheses, premises, and the real question. The thinking process itself gets narrated. |
-| 2 | **Crew** · design the execution | Splits AI/human roles and designs the workflow. The core assumptions and the captain's judgment points are made explicit. |
-| 3 | **Rehearsal** · pre-validation | Validates the output ahead of time from stakeholders' perspectives. Classifies risk as critical threat · manageable · silent risk. |
-| 4 | **Course correction** · fold in feedback | Iterates the course until it settles, incorporating validation results. Progress is tracked with a convergence index. |
+## An honest promise about your data
 
-The context found at each stage (hypotheses, premises, assumptions, risks)
-carries forward automatically to the next stage. You can watch this **accumulating
-context chain** with your own eyes.
-
----
-
-## You can see the thinking
-
-The core of Argus is showing you the AI's reasoning process itself.
-
-- **Context-chain visibility**: the chain in which a hidden premise from Reframe
-  becomes a core assumption in Crew, then a validation target in Rehearsal, is
-  shown in the UI.
-- **A trajectory of thought**: the output carries the narrative of "the original
-  task → the redefined question → the governing idea → risks → convergence."
-- **Three-way risk classification**: critical threat (🔴), manageable (🟡), and
-  silent risk (🟣) — surfacing even the danger nobody says out loud.
-- **The log (looking back)**: post-voyage reflection questions accumulate a
-  metacognitive asset.
-
-> "This process itself was worth more than the AI's output." — that's the
-> experience Argus is after.
-
----
-
-## A worked example
-
-**Situation**: the CEO says, "A competitor launched an AI chatbot, so build one
-fast."
-
-### 1. Reframe
-Pick 3 cards + one sentence of input → the AI analyzes:
-> The question isn't "should we build a chatbot?" but
-> **"what's the real cause of customer churn?"** — that's what needs answering first.
-
-Hidden hypotheses, unverified premises, and alternative perspectives are laid out
-together, and the AI's reasoning is narrated.
-
-### 2. Crew
-The AI designs a 7-step workflow automatically. The AI track and the human track
-are visualized in parallel:
-
-- 🤖 AI: gather market data, analyze customer reviews
-- 🧠 Human: interpret churn causes, make the final call
-- ⚑ Checkpoint: a human must validate at stage 3
-
-How the governing idea was derived from Reframe's hypotheses is shown as a link.
-The captain's judgment points, core assumptions, and critical path are made explicit.
-
-### 3. Rehearsal
-Register personas and simulate feedback on the output:
-
-> **CFO Kim** (influence: high): "Can't request budget without an ROI estimate."
-> **Premortem**: "If this plan fails, it's because we decided on a solution
-> without customer research."
-> **🔴 Critical threat**: "Proceeding with investment without validating market size"
-> **🟣 Silent risk**: "Resistance from the existing CS team — nobody says it, but
-> everyone knows it."
-
-High-influence stakeholders' concerns get handled first.
-
-### 4. Course correction
-Pick which concerns from the rehearsal to resolve → convert them into constraints
-→ re-analyze from stage 1. Convergence is tracked with an SVG chart:
-`0% → 45% → 78% → 92%`
-
-### The log: looking back
-After generating the output, answer three reflection questions:
-1. How did your understanding when you first got the instruction differ from your
-   understanding now?
-2. What was the most surprising discovery in this process?
-3. What would you do differently next time you meet a similar task?
-
-### Outputs
-From the same thinking process, export into four purpose-fit formats:
-
-- **The Log · Project Brief** — a decision record carrying the trajectory of thought
-- **Crew Orders · Prompt Chain** — a set of prompts to feed Claude/ChatGPT in
-  order (with context annotations)
-- **Full Chart · Agent Spec** — a design doc that becomes the starting point for a
-  LangGraph/CrewAI implementation (includes `context_chain`)
-- **Checklist · Execution Checklist** — a checklist with assumption-validation
-  checkpoints
-
----
-
-## How it differs from existing tools
-
-| | ChatGPT/Claude | LangGraph/CrewAI | **Argus** |
-|---|---|---|---|
-| Core question | run it now | how to run? | **what to run?** |
-| If the question is wrong? | a plausible useless answer | wrong result, faster | **corrects the question first** |
-| Reasoning process | invisible | only in the logs | **visualized as a context chain** |
-| Risk validation | none | none | **3-way classification + persona simulation** |
-| The more you use it? | from scratch every time | needs code changes | **learns your patterns automatically** |
-| Stakeholder validation? | none | none | **influence-based prioritization** |
-
----
-
-## It gets smarter the more you use it
-
-- **Judgment record**: your question choices, role changes, and issue calls are
-  recorded automatically.
-- **Pattern learning**: accumulated judgment patterns feed automatically into the
-  next AI analysis.
-- **Your judgment patterns**: it surfaces insights like "you revised 42% of the
-  AI's suggestions — mostly changing AI→human."
-- **Persona accuracy**: recording real reactions raises simulation accuracy.
-- **Similar-analysis suggestions**: when it finds a past project like your current
-  task, it offers it as reference.
-- **Log accumulation**: the more projects you run, the more your metacognitive
-  asset compounds.
+- **Local first.** The ledger lives in `~/.argus` (MCP/plugin) and your browser
+  (web). Uninstalling never deletes your records.
+- **No verdict — structurally.** There is no scoring tool to call. The receipt's
+  last line is the product's signature.
+- **No silent profiling.** Derived patterns about you are excluded from prompts
+  by default; anything that would use them needs your explicit, scoped,
+  revocable grant — and leaves a visible trace.
 
 ---
 
@@ -197,17 +136,30 @@ From the same thinking process, export into four purpose-fit formats:
 
 No install, straight in the browser — **[argus.voyage](https://argus.voyage)**
 
-### Claude Code plugin
+### MCP server
 
-Structure decisions inside a real codebase. An AI team is deployed as workers to
-build a **decision scaffold** over your code, PRs, and files (judgment, not code
-generation).
+Add Argus to any AI assistant that supports MCP (Claude Desktop, Claude Code,
+Cursor, …). The fastest path, in Claude Code:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/commet/Argus/main/argus-plugin-v2/install.sh | bash
+claude mcp add argus -- npx -y argus-decision-mcp
 ```
 
-After restarting Claude Code, from any repo:
+Zero config works — your ledger lives in `~/.argus`. For the full config (Claude
+Desktop, Windows, per-project ledgers, optional account sync) and the tool list,
+see **[argus-mcp/README.md](./argus-mcp/README.md)**.
+
+### Claude Code plugin
+
+One install wires everything (skills + the MCP server + quiet reminders). In
+Claude Code:
+
+```
+/plugin marketplace add commet/Argus
+/plugin install argus@argus
+```
+
+Restart Claude Code, then from any repo:
 
 ```
 /argus:review "the question you need to decide"
@@ -219,22 +171,16 @@ Commands (5): `/argus:review` (deep pressure-test, explicit opt-in) ·
 `/argus:help` — aliases kept: `/argus:sail`, `/argus:resolve`
 More → [argus-plugin-v2/README.md](./argus-plugin-v2/README.md)
 
-### MCP server
-
-Add Argus to any AI assistant that supports MCP (Claude Desktop, Claude Code,
-Cursor, …). It gives your AI a **decision-accountability** loop: seal a
-falsifiable prediction, then settle it against reality on a date you set — the
-model never grades you.
-
-The fastest path, in Claude Code:
+<details>
+<summary>Alternative: copy-install without the plugin system</summary>
 
 ```bash
-claude mcp add argus -- npx -y argus-decision-mcp
+curl -fsSL https://raw.githubusercontent.com/commet/Argus/main/argus-plugin-v2/install.sh | bash
 ```
 
-Zero config works — your ledger lives in `~/.argus`. For the full config (Claude
-Desktop, Windows, per-project ledgers, optional account sync) and the tool list,
-see **[argus-mcp/README.md](./argus-mcp/README.md)**.
+Flat-installed skills lose the `argus:` prefix and the automatic reminders —
+the plugin install above is the documented experience.
+</details>
 
 ### Local development
 
@@ -248,44 +194,25 @@ npm run dev
 Runs at `http://localhost:3000`. See [CONTRIBUTING.md](./CONTRIBUTING.md) for the
 repo layout, the CI checks, and the conventions reviewers look for.
 
-### API key setup (optional)
+### API key setup (optional, web)
 
-By default it works through a server proxy. To use it without rate limits, pick
-"direct API key" mode on the settings page and enter your Anthropic API key. The
-key is stored only in your browser's localStorage and is never sent to the server.
-
----
-
-## Tech stack
-
-- **Next.js 16** (App Router) + **TypeScript**
-- **Tailwind CSS v4** + **Pretendard Variable** (Korean font)
-- **Zustand** (state management + automatic localStorage persistence)
-- **Anthropic Claude API** (server proxy or direct call)
-- **Web Audio API** (transition-tone synthesis — silent by default)
-- **Lucide React** (icons)
+By default the web app works through a server proxy. To use it without rate
+limits, pick "Direct Key" mode on the settings page and enter your Anthropic API
+key. The key is stored only in your browser's localStorage and is never sent to
+the server.
 
 ---
 
-## Project structure
+## Repository layout
 
 ```
-src/
-├── app/
-│   ├── workspace/       # workspace (the main interface)
-│   ├── project/         # project overview + judgment-pattern dashboard
-│   └── settings/        # settings (LLM, audio)
-├── components/
-│   ├── workspace/       # the stage components + workflow graph
-│   ├── ui/              # shared UI (StepEntry, Card, Badge, OutputSelector, …)
-│   ├── tools/           # personas, feedback (incl. 3-way risk classification)
-│   └── landing/         # landing page (the voyage to Ithaca)
-├── stores/              # Zustand stores
-└── lib/                 # LLM calls, output generation, similarity engine, context builders, audio
+src/               # the web app (Next.js — argus.voyage)
+argus-mcp/         # the MCP server (npm: argus-decision-mcp, MIT)
+argus-plugin-v2/   # the Claude Code plugin (marketplace: argus, MIT)
+docs/ARGUS-BLUEPRINT.md   # the build canon (what gets built, in what order)
 ```
 
-For the top-level layout (the web app vs. the plugins vs. the MCP server), see
-[CONTRIBUTING.md](./CONTRIBUTING.md).
+Details → [CONTRIBUTING.md](./CONTRIBUTING.md).
 
 ---
 
@@ -310,7 +237,5 @@ covered by the licenses above.
 
 ---
 
-*Argus is a project that translates a way of thinking hidden inside the strategy-
-planning craft into a form anyone can use. The plugins and MCP are shared as open
-source; the web app is shared with its source open. This process itself is worth
-more than the AI's output.*
+*Argus translates a way of thinking hidden inside the strategy-planning craft
+into a form anyone can use — and keeps the judgment where it belongs: with you.*
