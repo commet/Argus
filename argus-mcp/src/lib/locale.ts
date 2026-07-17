@@ -22,11 +22,7 @@ const CONTENT_FIELDS = [
  */
 export function learnLocaleFromContent(argusDir: string | null | undefined, args: Record<string, unknown>): void {
   if (!argusDir) return;
-  const sample = CONTENT_FIELDS
-    .map((k) => args[k])
-    .filter((v): v is string => typeof v === 'string' && v.trim().length > 0)
-    .join('\n');
-  if (!sample || detectLocaleFromText(sample) !== 'ko') return;
+  if (contentLocaleFromArgs(args) !== 'ko') return;
   try {
     const p = configPath(argusDir);
     let cfg = '';
@@ -37,6 +33,22 @@ export function learnLocaleFromContent(argusDir: string | null | undefined, args
       : 'schema_version: 5\nlocale: ko\n';
     fs.writeFileSync(p, next);
   } catch { /* best-effort: a failed persist just means the next Korean surface re-sniffs from content */ }
+}
+
+/** The language the user is ACTUALLY speaking in this call, judged only from
+ *  their own content fields (never ids/env). Null when there is no confident
+ *  signal. Shared by learnLocaleFromContent (pins ko on a fresh config) and
+ *  the locale-mismatch once-note (§9.7 O1 — a pinned config that contradicts
+ *  the conversation language must be surfaced once, not silently obeyed
+ *  forever: the 2026-06-15 locale:en contamination stayed invisible for a
+ *  month precisely because nothing ever said "your config disagrees with
+ *  your words"). */
+export function contentLocaleFromArgs(args: Record<string, unknown>): Locale | null {
+  const sample = CONTENT_FIELDS
+    .map((k) => args[k])
+    .filter((v): v is string => typeof v === 'string' && v.trim().length > 0)
+    .join('\n');
+  return sample ? detectLocaleFromText(sample) : null;
 }
 
 /**

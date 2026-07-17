@@ -17,6 +17,7 @@ import { logError } from './lib/log.js';
 import { packageMeta } from './lib/package-meta.js';
 import { localizeToolResult } from './lib/localize-result.js';
 import { learnLocaleFromContent } from './lib/locale.js';
+import { appendLocaleMismatchNote } from './lib/locale-mismatch.js';
 import { resolveToolArgusDir } from './lib/argus-dir.js';
 import { recordServerStart, recordToolCall } from './lib/telemetry.js';
 
@@ -172,8 +173,13 @@ export async function createServer(): Promise<Server> {
       // in that language start to finish. Runs after the handler (auto-init has
       // created config by now) and before localize, so even this call's result
       // is localized to the just-learned locale.
-      learnLocaleFromContent(resolveToolArgusDir(callArgs['argus_dir']), callArgs);
-      const result = localizeToolResult(callArgs, raw);
+      const dirForLocale = resolveToolArgusDir(callArgs['argus_dir']);
+      learnLocaleFromContent(dirForLocale, callArgs);
+      // §9.7 O1: if an EXPLICIT pin contradicts the language the user is
+      // actually speaking, say so once (fact + argus_settings handle) — a pin
+      // is never silently overridden, but it must not be silently obeyed
+      // against the user's own words forever either.
+      const result = appendLocaleMismatchNote(dirForLocale, callArgs, localizeToolResult(callArgs, raw));
       // Opt-in usage signal: which tool ran + that it didn't crash. Carries no
       // arguments — never the decision content. Fire-and-forget (see telemetry.ts).
       recordToolCall(name, true);
