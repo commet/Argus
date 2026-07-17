@@ -246,9 +246,9 @@ describe('JCR J3 schema and storage primitives', () => {
   it('reserves ask_once independent of trace retention and allows only exact call retry', () => {
     const store = new LocalInfluenceUseReceiptStore();
     const input = {
-      user_id: 'user:1', receipt_id: 'receipt:1', claim_id: 'claim:1', grant_id: 'grant:1',
+      user_id: 'user:1', account_erasure_epoch: 0, receipt_id: 'receipt:1', claim_id: 'claim:1', grant_id: 'grant:1',
       authority_epoch: 2, grant_revision: 3, call_id: 'call:1', effect: 'ask_once' as const,
-      surface: 'web' as const, scope_hash: 'scope', capsule_hash: 'capsule', reserved_at: NOW,
+      surface: 'web' as const, scope: {}, scope_hash: 'scope', capsule_hash: 'capsule', reserved_at: NOW,
     };
     expect(store.reserve(input).status).toBe('reserved');
     expect(store.reserve(input).status).toBe('exact_retry');

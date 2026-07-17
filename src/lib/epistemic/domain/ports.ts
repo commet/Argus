@@ -17,8 +17,11 @@ export interface AuthorityCommandOutboxPort {
 }
 
 export interface InfluenceUseReceiptPort {
-  reserve(input: ReserveInfluenceUse): InfluenceUseReservation;
-  markDispatch(receiptId: string, state: 'dispatched' | 'provider_failed'): boolean;
+  reserve(input: ReserveInfluenceUse): InfluenceUseReservation | Promise<InfluenceUseReservation>;
+  markDispatch(
+    receiptId: string,
+    state: 'dispatched' | 'provider_failed',
+  ): boolean | Promise<boolean>;
 }
 
 export interface ArtifactGateway {

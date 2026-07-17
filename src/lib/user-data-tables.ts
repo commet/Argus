@@ -24,6 +24,7 @@ export const USER_DATA_TABLES = [
   'epistemic_artifact_descriptors',
   'epistemic_authority_events',
   'epistemic_command_receipts',
+  'epistemic_context_traces',
   'epistemic_projection_outbox',
   'epistemic_use_receipts',
   'feedback_records',

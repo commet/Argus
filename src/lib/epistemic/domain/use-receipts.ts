@@ -1,4 +1,4 @@
-import type { InfluenceEffect, InfluenceSurface } from './types';
+import type { AuthorityGrantScope, InfluenceEffect, InfluenceSurface } from './types';
 
 export type InfluenceDispatchState = 'reserved' | 'dispatched' | 'provider_failed';
 
@@ -21,6 +21,7 @@ export interface InfluenceUseReceipt {
 
 export interface ReserveInfluenceUse {
   user_id: string;
+  account_erasure_epoch: number;
   receipt_id: string;
   claim_id: string;
   grant_id: string;
@@ -29,6 +30,7 @@ export interface ReserveInfluenceUse {
   call_id: string;
   effect: InfluenceEffect;
   surface: InfluenceSurface;
+  scope: AuthorityGrantScope;
   scope_hash: string;
   capsule_hash: string;
   reserved_at: string;
