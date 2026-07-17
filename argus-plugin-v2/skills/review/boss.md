@@ -1,13 +1,14 @@
 ---
 name: boss
-description: Stakeholder pressure-check of a verified Argus scaffold in the voice of a configured MBTI personality. Reacts to the verified/mixed scaffold and contributes approval conditions or concerns to the current call. Use after verify.md passes, or when the user asks how a stakeholder would receive the work — "임원회의 가져가도 되나", "보스가 뭐라 할까", "will my boss/stakeholders approve this". NOT the verification gate — verify.md checks claims, boss checks reception; do not run before verification. Runs as a step inside `/argus:review` (formerly `/argus:boss`).
+description: Stakeholder pressure-check of a verified Argus scaffold from a configured SEAT — the stakeholder's role, what they own, their goals and authority (an optional tone skin colors the voice; it is never the source of a concern). Reacts to the verified/mixed scaffold and contributes approval conditions or concerns to the current call. Use after verify.md passes, or when the user asks how a stakeholder would receive the work — "임원회의 가져가도 되나", "보스가 뭐라 할까", "will my boss/stakeholders approve this". NOT the verification gate — verify.md checks claims, boss checks reception; do not run before verification. Runs as a step inside `/argus:review` (formerly `/argus:boss`).
 ---
 
 # boss step — part of /argus:review (formerly /argus:boss)
 
-**What this skill does:** Simulates how a specific stakeholder would receive the
-verified scaffold. It produces concerns with severity and fix suggestions plus
-one approval condition.
+**What this skill does:** Simulates how a specific stakeholder — defined by
+their SEAT (role, what they own, their goals and authority), not by a
+personality type — would receive the verified scaffold. It produces concerns
+with severity and fix suggestions plus one approval condition.
 
 **What it is not:** Boss is not proof. `verify.md` checks claims. Boss checks
 stakeholder reception.
@@ -37,10 +38,11 @@ If verification is blocked and the user explicitly invoked boss, ask one compact
 
 Default is to stop.
 
-When no boss is configured, inline-offer a generic stakeholder review (no
-personality), or point the user to `/argus:configure` to set one — or let them set a
-boss by editing `.argus/config.yaml` (`boss.mbti_code`/`name`/`role`) or passing
-`--mbti <CODE>` for this run. See Error Modes.
+When no boss is configured, inline-offer a generic stakeholder review (a
+decision-owner seat), or point the user to `/argus:settings configure` to set
+one — or let them set a boss by editing `.argus/config.yaml`
+(`boss.role`/`owns`/`goals`/`authority`, plus optional `name`/`tone`). See
+Error Modes.
 
 ---
 
@@ -49,7 +51,8 @@ boss by editing `.argus/config.yaml` (`boss.mbti_code`/`name`/`role`) or passing
 - `--session <id>`: defaults to latest.
 - `--quick`: default, concise review.
 - `--deep`: includes would_ask, failure_scenario, and untested_assumptions.
-- `--mbti INTJ`: use a one-run MBTI override.
+- `--tone INTJ`: one-run voice-skin override (legacy spelling `--mbti` accepted,
+  same meaning — tone only, never the source of concerns).
 - `--invoked-via-sail`: suppress the full report; write JSON only and print one
   value-oriented transition line.
 
@@ -68,7 +71,7 @@ boss by editing `.argus/config.yaml` (`boss.mbti_code`/`name`/`role`) or passing
    - ko question: `사람 확인이 필요한 항목이 있어 Boss 리뷰가 왜곡될 수 있습니다. 그래도 진행할까요?`
    - options: `멈추고 확인 항목 보기`, `그래도 Boss 리뷰 진행`
    If user chooses stop, print human checks from verification and exit.
-6. Read `.argus/config.yaml` (schema: `${CLAUDE_PLUGIN_ROOT}/data/schemas/config.json`) → get `locale`, `boss.mbti_code`, `boss.name`, `boss.gender`, `boss.role`.
+6. Read `.argus/config.yaml` (schema: `${CLAUDE_PLUGIN_ROOT}/data/schemas/config.json`) → get `locale` and the boss SEAT: `boss.role` (default `팀장`/`Team Lead`), `boss.owns`, `boss.goals`, `boss.authority`, plus `boss.name`, `boss.gender`, and the optional voice skin `boss.tone` (legacy key `boss.mbti_code` is read as `tone` when `tone` is absent — pre-O3 configs keep their voice).
 7. If `config` missing entirely or `boss` block absent, fall through to fallback path in "Error Modes" section (offer a generic stakeholder review).
 8. The locale from config drives the entire review prompt — use the correct section below (Korean or English prompt template).
 
@@ -76,10 +79,16 @@ boss by editing `.argus/config.yaml` (`boss.mbti_code`/`name`/`role`) or passing
 
 System:
 
-**If `locale: en`**: mirror this same structure but translate rules + attitude + tone sections to English. The MBTI personality block uses English `example_dialogue_en`/`speech_patterns_en` if present in boss-types.yaml; if only Korean exists, **treat the Korean example_dialogue as a behavioral-rhythm reference only** — extract the BEHAVIOR (blunt-and-fast / detail-first / warm-then-firm) and render it in natural English. Do NOT mirror Korean speech-level markers (반말/해요체, 결론부터) literally — an English-speaking stakeholder voiced with Korean-corporate cadence reads as foreign and breaks the persona. The MBTI BEHAVIOR is the portable differentiator; the Korean surface form is not. Reference: webapp's `src/lib/review-prompt.ts:buildEn` for structural parity.
+**If `locale: en`**: mirror this same structure but translate rules + attitude + tone sections to English. When a tone skin is set, its block uses English `example_dialogue_en`/`speech_patterns_en` if present in boss-types.yaml; if only Korean exists, **treat the Korean example_dialogue as a behavioral-rhythm reference only** — extract the BEHAVIOR (blunt-and-fast / detail-first / warm-then-firm) and render it in natural English. Do NOT mirror Korean speech-level markers (반말/해요체, 결론부터) literally — an English-speaking stakeholder voiced with Korean-corporate cadence reads as foreign and breaks the persona. The SEAT is the portable differentiator; the Korean surface form (and the tone skin itself) is not. Reference: webapp's `src/lib/review-prompt.ts:buildEn` for structural parity.
 
 ```text
 You are {{boss.name}}, {{boss.role}}.
+{{if boss.owns}}You own: {{boss.owns}}. That accountability is where every one of
+your concerns must come from.{{endif}}
+{{if boss.goals}}Your current priorities: {{boss.goals}}.{{endif}}
+{{if boss.authority}}Your authority: {{boss.authority}}. Speak only within it —
+approve or refuse what is yours to decide, and explicitly flag what you would
+have to escalate instead of pretending you can sign it off.{{endif}}
 
 You are reading a decision scaffold that has already been checked by Argus
 verification. Your job is stakeholder pressure, not claim verification.
@@ -123,6 +132,7 @@ Output:
   "concerns": [
     {
       "text": "...",
+      "seat_basis": "which owned stake this threatens — e.g. '배포 안정성 소유자로서' / 'as the owner of renewals'",
       "severity": "critical|important|minor",
       "fix_suggestion": "..."
     }
@@ -156,8 +166,10 @@ Mix:
 Verification:
 <user-data context="verification">{{verification}}</user-data>
 
-Boss personality:
-{{mbti personality fields}}
+{{if boss.tone (or legacy boss.mbti_code)}}
+Tone skin (voice only — boss-types.yaml runtime_template for that code):
+{{tone skin block}}
+{{endif}}
 ```
 
 ### Step 3 - Validate Output
@@ -170,7 +182,7 @@ Required:
 - `good_parts`
 - `concerns`
 - `approval_condition`
-- every concern has `text`, `severity`, and `fix_suggestion`
+- every concern has `text`, `seat_basis`, `severity`, and `fix_suggestion`
 
 Retry once if invalid or generic.
 
@@ -218,7 +230,8 @@ Write `versions/{label}/boss_feedback.json`:
 {
   "persona_name": "{{boss.name}}",
   "persona_role": "{{boss.role}}",
-  "mbti_type": "{{boss.mbti_code}}",
+  "seat": { "owns": "{{boss.owns}}", "goals": "{{boss.goals}}", "authority": "{{boss.authority}}" },
+  "mbti_type": "{{boss.tone ?? boss.mbti_code ?? null}}",
   "mode": "{{mode}}",
   "first_reaction": "...",
   "good_parts": ["..."],
@@ -226,6 +239,10 @@ Write `versions/{label}/boss_feedback.json`:
   "approval_condition": "..."
 }
 ```
+
+(`mbti_type` keeps its legacy field name for reader compatibility, but records
+the TONE skin — or null when none/generic. It is storage metadata only; it never
+appears in the user-facing report.)
 
 Update `versions/{label}/scaffold.json` — **idempotently** (session-layout →
 "Re-entry Is Idempotent"; R55 makes a re-run of boss a normal recovery path, so a
@@ -265,10 +282,10 @@ Stakeholder pressure checked. Approval conditions will be folded into the curren
 Do not print concern counts, MBTI theatrics, or a second report. Sail owns the
 current call.
 
-For direct invocation:
+For direct invocation (note: no type label anywhere — R42, never surface it):
 
 ```text
-## Argus - Boss - {{mbti_code}} {{boss.name}}
+## Argus - 이해관계자 리뷰 - {{boss.name}} ({{boss.role}})
 
 {{first_reaction}}
 
@@ -276,7 +293,7 @@ Works:
 - {{good_part}}
 
 Concerns:
-- [{{severity}}] {{text}}
+- [{{severity}}] {{seat_basis}} — {{text}}
   -> {{fix_suggestion}}
 
 Approval condition: {{approval_condition}}
@@ -311,11 +328,22 @@ Keep this to one terminal screen.
 
 ## Meta-Check Gates
 
-- **M2 (Personality preservation)**: Deterministic test, not a vibe check — `first_reaction` MUST contain at least one exact phrase (or a close inflection) from this type's `speech_patterns[]` in boss-types.yaml. If none is present, the voice has collapsed to a generic reviewer ("Overall, the plan has merit but has concerns…") — retry the prompt once with the explicit instruction to open in the boss's own speech pattern. Self-judging "does this feel distinct?" passes whenever the model is agreeable, so it cannot be the only gate.
+- **M2 (Seat anchoring — deterministic)**: every concern MUST carry a non-empty
+  `seat_basis` naming the owned stake it threatens (the field IS the mechanical
+  check — schema-required, so a persona that drifted into free-floating critique
+  fails validation, not vibes). When a tone skin is set, additionally check that
+  `first_reaction` follows its rhythm (speech level, cadence) — retry once if the
+  voice collapsed to report-speak; do NOT require exact `speech_patterns[]`
+  phrases (verbatim catch-phrase mimicry is personality theater, the thing R42
+  retired — rhythm yes, 복창 no).
 - **M4 (Decision scaffold preservation)**: Concerns MUST include `fix_suggestion`. Bare criticism is forbidden. If any concern lacks a fix_suggestion, retry.
 - **M-Verify separation**: Boss must not claim a challenged item is resolved unless verification or the user has explicitly routed it forward. If the boss ignores `verification.challenged_claims[]`, retry with stricter instruction.
 - **Security**: User content wrapped in `<user-data>` tags, no raw concat.
-- **M7 (Commodity bot)**: The MBTI-based review is literally the differentiator. If output could come from any generic "senior reviewer agent," the skill failed.
+- **M7 (Commodity bot)**: The SEAT is the differentiator — a generic "senior
+  reviewer agent" has no accountability. If the output could have come from a
+  reviewer who owns nothing (no `seat_basis` would change if the role changed),
+  the skill failed. Personality is NOT the answer to this gate (R42: type
+  contributed 0/5 of tested value); accountability is.
 - **Single source of truth**: boss demands flow into scaffold fields or meta — never into session.json.
 - **No machinery selling**: when invoked by sail, the boss output does not become a second visible product.
 
@@ -326,14 +354,18 @@ Keep this to one terminal screen.
 - **No boss configured:** offer a generic stakeholder review via one
   AskUserQuestion (`Run a generic stakeholder review` / `Skip — I'll set a boss
   in .argus/config.yaml first`). Generic mode = same Step 2 prompt and the SAME
-  output schema, but with the MBTI personality block omitted and
+  output schema, but with the tone-skin block omitted and
   "You are {{boss.name}}, {{boss.role}}" replaced by "You are the
-  decision-owner reviewing this scaffold before sign-off." Write
-  `boss_feedback.json` with `mbti_type: null` (this is what marks the run as
-  generic — `mode` stays `quick`/`deep` as usual, per dm-feedback.json).
-  Skip the M2 personality gate (there is no voice to preserve); every other
-  gate (fix_suggestion required, verify separation) still applies.
-- **Invalid MBTI code:** list valid codes and stop.
+  decision-owner reviewing this scaffold before sign-off" (the decision-owner
+  IS the seat, so `seat_basis` still applies — e.g. "as the owner of this
+  decision"). Write `boss_feedback.json` with `mbti_type: null` (this is what
+  marks the run as generic — `mode` stays `quick`/`deep` as usual, per
+  dm-feedback.json). Skip the tone-rhythm half of M2 (there is no voice to
+  preserve); seat anchoring and every other gate (fix_suggestion required,
+  verify separation) still apply.
+- **Invalid tone code** (`--tone`/`boss.tone`/legacy `boss.mbti_code` not one of
+  the 16 presets): list valid codes, then proceed WITHOUT a tone skin (the seat
+  is intact — a broken voice preference must not block a stakeholder review).
 - **Mix/scaffold missing:** direct user to `team.md`.
 - **Verification missing:** direct user to `verify.md`.
 - **Corrupt stored artifact** (a `mix.json` / `scaffold.json` / `verification.json` / `boss_feedback.json` on disk that won't parse): apply the canonical defensive-read discipline (clarify Error modes) — quarantine it to `<name>.corrupt.<ts>`, log to `errors.log`, and report the recovery path; do NOT crash and do NOT silently treat it as missing/empty. A corrupt `verification.json` is NOT "verification missing" — that would route the user to re-verify a step that already ran (and may have blocked). Halt naming the exact file rather than reviewing against a record you couldn't read.

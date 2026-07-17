@@ -13,13 +13,25 @@
     },
     "boss": {
       "type": "object",
-      "description": "Configured Boss (stakeholder) for /argus:boss. Optional — skill offers generic fallback if absent.",
-      "required": ["mbti_code"],
+      "description": "Configured stakeholder for the boss step of /argus:review. Optional — the skill offers a generic decision-owner review if absent. SEAT-FIRST (O3 방3, R42): the review's value comes from the seat — role, what it owns, its goals and authority — never from a personality type. A tone skin is optional coloring only.",
+      "required": [],
       "properties": {
-        "mbti_code": {
+        "role": {
           "type": "string",
-          "pattern": "^(ISTJ|ISFJ|INFJ|INTJ|ISTP|ISFP|INFP|INTP|ESTP|ESFP|ENFP|ENTP|ESTJ|ESFJ|ENFJ|ENTJ)$",
-          "description": "MBTI 4-letter code. Must match an entry in data/boss-types.yaml."
+          "default": "팀장",
+          "description": "The SEAT — what chair this stakeholder sits in. Default '팀장' (ko) / 'Team Lead' (en). The primary field: concerns must be anchored here."
+        },
+        "owns": {
+          "type": "string",
+          "description": "What this seat is accountable for — its objective function (e.g. '팀 분기 로드맵과 서비스 안정성', 'revenue & renewals'). Optional but the single highest-value field."
+        },
+        "goals": {
+          "type": "string",
+          "description": "Current priorities of the seat (e.g. '이번 분기 신뢰성 사고 0건, 일정 준수'). Optional."
+        },
+        "authority": {
+          "type": "string",
+          "description": "What this seat can approve or refuse, and what it must escalate (e.g. '머지·배포 승인, 일정 조정; 예산·인사는 상신'). Optional — the review must speak only within it."
         },
         "name": {
           "type": "string",
@@ -29,10 +41,15 @@
           "enum": ["남", "여", "male", "female"],
           "description": "Affects prompt pronouns in Korean mode."
         },
-        "role": {
+        "tone": {
           "type": "string",
-          "default": "팀장",
-          "description": "Role label. Default '팀장' (ko) or 'Team Lead' (en)."
+          "pattern": "^(ISTJ|ISFJ|INFJ|INTJ|ISTP|ISFP|INFP|INTP|ESTP|ESFP|ENFP|ENTP|ESTJ|ESFJ|ENFJ|ENTJ)$",
+          "description": "OPTIONAL voice skin — one of the 16 tone presets in data/boss-types.yaml. Colors HOW the review speaks; never the SOURCE of a concern (R42: type contributed 0/5 value; the seat carried all of it)."
+        },
+        "mbti_code": {
+          "type": "string",
+          "pattern": "^(ISTJ|ISFJ|INFJ|INTJ|ISTP|ISFP|INFP|INTP|ESTP|ESFP|ENFP|ENTP|ESTJ|ESFJ|ENFJ|ENTJ)$",
+          "description": "LEGACY alias of `tone` — kept so pre-O3 configs keep their voice. Read as a tone skin only; `tone` wins when both are set."
         }
       }
     },

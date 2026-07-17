@@ -43,7 +43,7 @@ For AskUserQuestion with binary choices:
 
 ## Bilingual boss types
 
-MBTI `example_dialogue` entries in `data/boss-types.yaml` are Korean-only. This is **intentional**: the archetype's rhythm is modeled on Korean workplace culture. For locale=en, the boss prompt keeps the structural personality fields (communicationStyle, feedbackStyle, triggers, speechPatterns, bossVibe) and translates them at prompt-build time; example_dialogue is referenced as "rhythm model" without requiring output in the same language.
+Tone-skin `example_dialogue` entries in `data/boss-types.yaml` are Korean-only. This is **intentional**: the preset's rhythm is modeled on Korean workplace culture. For locale=en, the boss prompt keeps the structural voice fields (communicationStyle, feedbackStyle, bossVibe) and translates them at prompt-build time; example_dialogue is referenced as "rhythm model" without requiring output in the same language. (Since O3 방3 these presets are voice only — the review's substance comes from the seat fields in config.)
 
 The webapp takes the same approach: `personality-types.ts` has `PERSONALITY_TYPES` (ko, full) and `PERSONALITY_TYPES_EN` (en, structural only). Plugin-v2 inherits this split.
 

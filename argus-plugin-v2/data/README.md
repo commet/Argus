@@ -7,7 +7,7 @@ This directory is the **reference data** consumed by plugin skills at runtime. I
 | File | Purpose | Source |
 |------|---------|--------|
 | `agents.yaml` | 17 agent profiles — identity, capabilities, frameworks, voice markers, worker-mode dialogues | `src/lib/agent-registry.ts`, `worker-personas.ts`, `agent-capabilities.ts`, `orchestrator-framework.ts` |
-| `boss-types.yaml` | 16 MBTI boss personality types | `src/lib/boss/personality-types.ts` |
+| `boss-types.yaml` | 16 boss TONE skins (구 MBTI archetypes — voice only since O3 방3; the review's substance comes from the config boss seat) | `src/lib/boss/personality-types.ts` |
 | `classification.yaml` | Task/domain/output vocab + stakes rules | `src/lib/task-classifier.ts`, `orchestrator-classify.ts` |
 | `schemas/*.json` | JSON Schema contracts for plugin artifacts | `src/stores/types.ts` |
 | `schemas/verification-ledger.json` | Plugin-native positive/negative validation ledger | Plugin v2.1, aligned with webapp worker validation direction |
@@ -29,7 +29,7 @@ The plugin holds **data copies**, not live references. Webapp can change indepen
 ## What's INTENTIONALLY different from webapp
 
 1. **No experience/observation system** — agents don't level up in plugin MVP. `agents.yaml` has no `level` or `observations[]` fields.
-2. **No daily mood / Saju** — boss simulation uses MBTI only. `boss-types.yaml` excludes `exampleDialogues` beyond one entry per type (space), and excludes `innerMonologueExample` entirely.
+2. **No daily mood / Saju** — the boss tone layer uses the 16 presets only (and only as voice; R42). `boss-types.yaml` excludes `exampleDialogues` beyond one entry per type (space), and excludes `innerMonologueExample` entirely.
 3. **Worker-mode dialogues** — agents' `worker_mode_examples[]` are NEW (written for plugin). Webapp has critic-mode persona prompts; plugin dialogues show agents PRODUCING artifacts in their voice. This is the M9 differentiator.
 4. **Stakes classification at runtime** — plugin skills classify via LLM using `classification.yaml` as vocabulary reference, NOT via deterministic regex. Webapp uses regex + LLM hybrid.
 5. **FinalScaffold** — plugin emits decision scaffold, NOT the markdown `final_deliverable` webapp produces. `data/schemas/final-scaffold.json` is plugin-only.

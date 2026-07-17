@@ -38,7 +38,7 @@ if [ ! -d "$CLAUDE_DIR" ]; then
 fi
 
 echo ""
-echo -e "${BOLD}  Argus v2.9${NC} - decision harness for Claude Code."
+echo -e "${BOLD}  Argus v2.10${NC} - decision harness for Claude Code."
 echo ""
 
 TEMP_DIR=""
@@ -240,7 +240,7 @@ fi
 echo ""
 
 if [ "$ERRORS" -eq 0 ]; then
-  echo -e "${GREEN}${BOLD}  Installed successfully (v2.9.0)${NC}"
+  echo -e "${GREEN}${BOLD}  Installed successfully (v2.10.0)${NC}"
   if [ "$LINK_MODE" = true ]; then
     echo -e "  ${DIM}Mode: linked to local repo. Restart Claude Code after editing skills.${NC}"
   fi

@@ -2,20 +2,25 @@
 # Copy to `.argus/config.yaml` in your repo and customize.
 # Schema: data/schemas/config.json (bundled with the Argus plugin)
 #
-# On first `/argus:sail` invocation, if .argus/config.yaml is missing, it is
-# silently auto-created from this template (NO setup dialog) and sail substitutes
-# the detected locale (and an English boss persona when locale resolves to "en").
-# Edit this file afterward to customize. There is intentionally no first-run prompt.
+# On first `/argus:review` invocation, if .argus/config.yaml is missing, it is
+# silently auto-created from this template (NO setup dialog) and the pipeline
+# substitutes the detected locale (and an English boss persona when locale
+# resolves to "en"). Edit this file afterward to customize. There is
+# intentionally no first-run prompt.
 
-locale: ko  # or "en" — sail Step 0 overwrites this with the detected locale on auto-create
+locale: ko  # or "en" — pipeline Step 0 overwrites this with the detected locale on auto-create
 
 boss:
-  mbti_code: ISTJ  # Must match an entry in the plugin's data/boss-types.yaml. See choices:
-                   # ISTJ, ISFJ, INFJ, INTJ, ISTP, ISFP, INFP, INTP,
-                   # ESTP, ESFP, ENFP, ENTP, ESTJ, ESFJ, ENFJ, ENTJ
+  # SEAT-FIRST (R42): the review's value comes from what this stakeholder is
+  # accountable for — never from a personality type.
   name: "박 팀장"
+  role: "팀장"     # The chair they sit in (free text)
+  owns: "팀 분기 로드맵과 서비스 안정성"        # What the seat is accountable for — highest-value field
+  goals: "이번 분기 신뢰성 사고 0건, 일정 준수"  # Current priorities (optional)
+  authority: "머지·배포 승인과 일정 조정. 예산·인사는 상신."  # Approve/refuse vs escalate (optional)
   gender: 남       # "남" | "여" (KR) or "male" | "female" (EN)
-  role: "팀장"     # Free-form role label
+  tone: ISTJ       # OPTIONAL voice skin from data/boss-types.yaml (16 codes) — HOW it speaks,
+                   # never WHY it objects. Legacy key `mbti_code` still works and means the same.
 
 team:
   # Optional overrides. Omit unless you need them.
