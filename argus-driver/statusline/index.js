@@ -184,6 +184,13 @@ function applyV2Line(e, map, acc) {
         if (val("check_by")) cur.check_by = val("check_by");
       }
       break;
+    case "defer":
+      // MCP-side still_pending re-arm: the check_by moves forward and the bet
+      // stays sealed/alive. Without this case a deferred decision kept its OLD
+      // date here and the statusline showed OVERDUE forever after the user had
+      // already answered "not yet" (O2 방1 cross-surface finding ②).
+      if (cur && val("check_by")) cur.check_by = val("check_by");
+      break;
     case "snooze":
       if (cur && typeof e.until === "string") cur.snoozed_until = e.until;
       break;

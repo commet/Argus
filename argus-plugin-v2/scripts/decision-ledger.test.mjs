@@ -161,5 +161,27 @@ function itemsLines(cwd) {
   rmSync(p, { recursive: true, force: true });
 }
 
+// --- settle: canonical outcome vocabulary (O2 방1 finding ④) -------------------
+// The ledger is SHARED with argus-decision-mcp whose canon is held/avoided/
+// partial/missed. `happened` (this CLI's legacy spelling) stays accepted as
+// INPUT but new lines are written in canon; every event carries v+ts so the
+// MCP replay never mistakes a plugin line for corruption (findings ①⑤).
+{
+  const p = freshProject();
+  run(p, ['record', '--predicate', 'a checkable sentence about reality', '--id', 's1', '--check-by', '2099-01-01']);
+  const legacy = run(p, ['settle', 's1', '--outcome', 'happened']);
+  ok('settle accepts legacy "happened"', legacy.status === 0);
+  const settled = ledgerLines(p).find((e) => e.event === 'settle' && e.id === 's1');
+  ok('…but WRITES canonical "held"', settled?.outcome === 'held');
+  ok('settle line carries the v stamp (MCP versioned-skip, not dropped)', settled?.v === 1);
+  ok('settle line carries ts (MCP settled_on source) alongside at', typeof settled?.ts === 'string' && typeof settled?.at === 'string');
+
+  run(p, ['record', '--predicate', 'another checkable sentence here', '--id', 's2', '--check-by', '2099-01-01']);
+  ok('settle accepts canonical "missed"', run(p, ['settle', 's2', '--outcome', 'missed']).status === 0);
+  ok('missed is written as-is', ledgerLines(p).some((e) => e.event === 'settle' && e.id === 's2' && e.outcome === 'missed'));
+  ok('settle rejects an unknown outcome', run(p, ['settle', 's2', '--outcome', 'sorta']).status !== 0);
+  rmSync(p, { recursive: true, force: true });
+}
+
 console.log(`\ndecision-ledger.test: ${pass} passed, ${fail} failed`);
 process.exit(fail === 0 ? 0 : 1);

@@ -118,6 +118,12 @@ function replayLedger(argusDir, today) {
           if (ev.check_by != null) cur.check_by = ev.check_by;
         }
         break;
+      case "defer":
+        // MCP-side still_pending re-arm — check_by moves forward, bet stays
+        // sealed. Without this case the reminder kept firing on the OLD date
+        // after the user already answered "not yet" (O2 방1 finding ③).
+        if (cur && ev.check_by != null) cur.check_by = ev.check_by;
+        break;
       case "dismiss":
         if (cur) cur.status = "dismissed";
         break;
