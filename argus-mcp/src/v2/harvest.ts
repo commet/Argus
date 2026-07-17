@@ -2,9 +2,9 @@
  * 수확 처리 단계 (P6-1) — 큐에서 클레임한 transcript를 결정론 게이트로 훑어
  * byte-검증 후보를 만든다.
  *
- * 이 판은 **모델이 없다.** 검출은 P3-1의 결정론 게이트(gate.ts floor)이고,
- * haiku 추출(창업자 확정 ③)은 이 파일의 `extractCandidates`를 교체하는
- * 업그레이드 자리다 — 큐·캡·증거·기록의 배관은 그대로 재사용된다.
+ * 이 판은 **모델이 없다.** foreground scan과 같은 CandidateExtractorPort의
+ * 결정론 floor를 사용한다. 추출기를 교체해도 큐·캡·증거·stable identity·
+ * canonical writer는 그대로 재사용된다.
  *
  * 창업자 확정 정책 (2026-07-11): **1일 1회 · 주 2건 캡 · opt-in.**
  *  - opt-in은 훅이 이미 지킨다 (opt-in 아니면 큐에 아무것도 없다).
@@ -22,9 +22,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { randomUUID } from 'node:crypto';
-import { harvestCandidateV2, type V2Context } from './bridge.js';
-import { makeEvidencePointer } from './evidence.js';
-import { detect } from './gate.js';
+import type { V2Context } from './bridge.js';
+import { captureTranscriptFile } from './candidate-capture.js';
 import { claim, complete, fail, type QueueItem } from './queue.js';
 import { readLedger } from './ledger.js';
 
@@ -41,12 +40,15 @@ export interface SweepResult {
   quote_not_found: number;
   /** 게이트는 발화했지만 주간 캡으로 만들지 않았다 (정직 계수). */
   capped: number;
+  sensitive_blocked: number;
+  sensitive_categories: string[];
   error?: string;
 }
 
 const empty = (skipped?: SweepResult['skipped']): SweepResult => ({
   ran: false, ...(skipped ? { skipped } : {}),
   utterances_scanned: 0, candidates_created: [], quote_not_found: 0, capped: 0,
+  sensitive_blocked: 0, sensitive_categories: [],
 });
 
 /** ISO 주의 월요일 (UTC) — 주간 캡의 경계. */
@@ -81,29 +83,12 @@ function markRanToday(dataDir: string, today: string): void {
   fs.renameSync(tmp, markerPath(dataDir));
 }
 
-/** transcript raw에서 user 발화와 함께 그대로 반환 — 게이트/증거 공용 입력.
- *  (userUtterances와 달리 raw buffer도 필요해서 여기서 한 번에 읽는다.) */
-function readTranscript(p: string): { raw: Buffer; utterances: string[] } {
-  const raw = fs.readFileSync(p);
-  const utterances: string[] = [];
-  for (const line of raw.toString('utf8').split('\n')) {
-    if (!line.trim()) continue;
-    try {
-      const rec = JSON.parse(line) as { type?: string; message?: { role?: string; content?: unknown } };
-      if (rec.type === 'user' && typeof rec.message?.content === 'string') {
-        utterances.push(rec.message.content);
-      }
-    } catch { /* 파손 줄 skip — crash 금지 */ }
-  }
-  return { raw, utterances };
-}
-
 /** 큐에서 1건 클레임 → 게이트 훑기 → byte-검증 후보 생성 → 완료/실패 기록.
  *  하루 1회·주 2건 캡. 절대 던지지 않는다. */
-export function runHarvestSweep(
+export async function runHarvestSweep(
   ctx: V2Context, dataDir: string, nowIso: string,
   opts: { leaseMs?: number } = {},
-): SweepResult {
+): Promise<SweepResult> {
   const today = ctx.today;
   if (alreadyRanToday(dataDir, today)) return empty('already_ran_today');
 
@@ -121,27 +106,28 @@ export function runHarvestSweep(
   const result: SweepResult = {
     ran: true, item_id: item.item_id,
     utterances_scanned: 0, candidates_created: [], quote_not_found: 0, capped: 0,
+    sensitive_blocked: 0, sensitive_categories: [],
   };
   try {
-    const { raw, utterances } = readTranscript(item.transcript_path);
-    for (const u of utterances) {
-      result.utterances_scanned += 1;
-      const verdict = detect(u); // 게이트 계측(gate_result)은 별도 경로 — 여기서는 판정만
-      if (!verdict.fire) continue;
-      if (budget <= 0) { result.capped += 1; continue; }
-      const quote = u.length > 2000 ? u.slice(0, 2000) : u;
-      const evidence = makeEvidencePointer(raw, item.transcript_path, quote, 'user');
-      if (!evidence) { result.quote_not_found += 1; continue; } // 강등 없는 정직 계수
-      const candidateId = `hv-${item.session_id}-${result.candidates_created.length + result.quote_not_found + result.capped}`;
-      harvestCandidateV2(ctx, {
-        candidateId, kind: 'decision', quote, quoteSpeaker: 'user',
-        evidence: evidence as unknown as Record<string, unknown>,
-        idempotencyKey: candidateId,
-      });
-      result.candidates_created.push(candidateId);
-      budget -= 1;
-    }
-    complete(dataDir, item.item_id, nonce);
+    const captured = await captureTranscriptFile({
+      ctx,
+      transcript_path: item.transcript_path,
+      session_id: item.session_id,
+      source_origin_id: `claude-code:${item.transcript_path}`,
+      trigger: 'background_queue',
+      max_candidates: budget,
+    });
+    result.utterances_scanned = captured.utterances_scanned;
+    result.candidates_created = captured.candidates_created;
+    result.quote_not_found = captured.quote_not_found;
+    result.capped = captured.capped;
+    result.sensitive_blocked = captured.sensitive_blocked;
+    result.sensitive_categories = captured.sensitive_categories;
+    complete(dataDir, item.item_id, nonce, {
+      candidateIds: captured.candidates_created,
+      noCandidate: captured.no_candidate,
+      completedAt: nowIso,
+    });
     markRanToday(dataDir, today);
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);

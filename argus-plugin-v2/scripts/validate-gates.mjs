@@ -111,6 +111,7 @@ export function checkVersion(dir) {
   const verif = firstExisting(dir, VERIF_NAMES);
   const analysis = firstExisting(dir, ANALYSIS_NAMES);
   const workers = firstExisting(dir, ['workers.json', 'worker_results.json', 'worker-results.json']);
+  const perspectiveSet = firstExisting(dir, ['perspective_set.json', 'synthetic-perspective-set.json']);
 
   const status = bearing.current_course?.status;
   const road = Array.isArray(bearing.road_not_taken) ? bearing.road_not_taken : [];
@@ -128,6 +129,26 @@ export function checkVersion(dir) {
     const execBlockingHuman = (verif.human_required_checks || []).some((h) => h.blocks === 'execution' || h.blocks === 'final_signoff');
     if (execBlockingHuman && executable) {
       v.push('VERIFY: a human_required_check that blocks execution/final_signoff exists but bearing is executable (blocked!=true)');
+    }
+  }
+
+  // ── E4 SYNTHETIC FIREWALL — only applies to new perspective-set writes.
+  // Missing perspective_set.json remains a legacy dual-read, but once the new
+  // artifact exists every structural honesty field is mandatory.
+  if (perspectiveSet) {
+    if (perspectiveSet.independence_units !== 1) {
+      v.push('E4: perspective_set independence_units must equal 1 — worker/model count is not independent reality support');
+    }
+    for (const field of ['generator_lineage', 'prompt_version', 'perspectives', 'convergent_simulated_concerns', 'team_contradictions', 'strongest_dissent', 'unknowns_that_block_judgment', 'reality_check_questions']) {
+      if (perspectiveSet[field] === undefined) v.push(`E4: perspective_set.${field} is missing`);
+    }
+    if (!verif) {
+      v.push('E4: a new perspective_set reached a bearing without verification.json');
+    } else {
+      if (verif.synthetic_independence_units !== 1) v.push('E4: verification synthetic_independence_units must equal 1');
+      for (const field of ['strongest_dissent', 'unknowns_that_block_judgment', 'reality_check_questions']) {
+        if (verif[field] === undefined) v.push(`E4: verification.${field} is missing`);
+      }
     }
   }
 

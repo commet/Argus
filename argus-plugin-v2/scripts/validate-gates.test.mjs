@@ -107,6 +107,35 @@ check('all workers clean passes', run({
   'analysis.json': { frame_status: 'load_bearing', request_type: 'open_decision' },
 }).length === 0);
 
+// 13b. E4: perspective/model multiplicity can never increase independence.
+check('E4 perspective count cannot inflate independence', run({
+  'current_bearing.json': cleanBearing,
+  'perspective_set.json': {
+    independence_units: 3,
+    generator_lineage: {}, prompt_version: 'v2', perspectives: [{}, {}, {}],
+    convergent_simulated_concerns: [], team_contradictions: [], strongest_dissent: {},
+    unknowns_that_block_judgment: [], reality_check_questions: [],
+  },
+  'verification.json': {
+    overall_status: 'verified', routing_decision: 'proceed_to_boss',
+    challenged_claims: [], human_required_checks: [], synthetic_independence_units: 3,
+    strongest_dissent: {}, unknowns_that_block_judgment: [], reality_check_questions: [],
+  },
+}).some((m) => m.startsWith('E4')));
+
+// 13c. E4: a new artifact cannot omit dissent/unknown/reality slots.
+check('E4 new perspective set requires honest-gap fields', run({
+  'current_bearing.json': cleanBearing,
+  'perspective_set.json': {
+    independence_units: 1, generator_lineage: {}, prompt_version: 'v2',
+    perspectives: [], convergent_simulated_concerns: [], team_contradictions: [],
+  },
+  'verification.json': {
+    overall_status: 'verified', routing_decision: 'proceed_to_boss',
+    challenged_claims: [], human_required_checks: [], synthetic_independence_units: 1,
+  },
+}).some((m) => m.startsWith('E4')));
+
 // ── SEED gate (port of argus-mcp validate-seal.ts)
 const goodSeed = {
   predicate: 'If we compress the crew to 5, 30-day first-run completion stays at or above the 62% baseline.',

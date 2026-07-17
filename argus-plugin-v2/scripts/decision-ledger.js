@@ -6,8 +6,8 @@
  *   /argus:review and /argus:history scan are entry points.
  *   /argus:check and /argus:resolve are common ledger state changes.
  *
- * This script absorbs the useful argus-watch scan/seal path into the plugin
- * bundle, so normal plugin users do not install a second CLI.
+ * Seal drafting remains an explicit Claude-assisted action. Transcript scan is
+ * delegated to the canonical MCP capture runtime shared with background capture.
  */
 const fs = require("fs");
 const path = require("path");
@@ -19,9 +19,6 @@ const args = process.argv.slice(2);
 const cmd = args[0];
 const flags = parseFlags(args.slice(1));
 const root = findProjectRoot();
-
-const TYPES = new Set(["direction", "scope", "kill", "adopt", "defer", "constraint", "approval"]);
-const STAKES = new Set(["high", "medium", "low"]);
 
 function parseFlags(items) {
   const out = { _: [] };
@@ -443,28 +440,6 @@ function parseTranscript(file) {
   return { sessionId, turns: merged };
 }
 
-function segmentTurns(turns, maxChars = 9000) {
-  const segments = [];
-  let current = [];
-  let size = 0;
-  for (const turn of turns) {
-    const len = turn.text.length + 30;
-    if (size + len > maxChars && current.length > 0 && turn.role === "USER") {
-      segments.push(current);
-      current = [];
-      size = 0;
-    }
-    current.push(turn);
-    size += len;
-  }
-  if (current.length) segments.push(current);
-  return segments.filter((segment) => segment.some((turn) => turn.role === "USER"));
-}
-
-function renderSegment(segment) {
-  return segment.map((turn) => `**[${turn.role}${turn.ts ? ` ${String(turn.ts).slice(0, 16)}` : ""}]** ${turn.text}`).join("\n\n");
-}
-
 function callClaude(prompt, { model = "sonnet", timeoutMs = 180000 } = {}) {
   const denied = "Bash,Edit,Write,Read,Glob,Grep,WebFetch,WebSearch,Agent,Task,NotebookEdit";
   return new Promise((resolve, reject) => {
@@ -557,35 +532,45 @@ async function pool(items, worker, concurrency) {
   return results;
 }
 
-async function detectDecisions(segmentText, opts) {
-  const prompt = `You are Argus's decision-moment detector.
+async function captureWithCanonicalRuntime(job) {
+  const binary = process.env.ARGUS_MCP_BIN || "argus-decision-mcp";
+  const argv = [
+    "capture-scan",
+    "--argus-dir", argusDir(),
+    "--transcript", job.file,
+    "--session-id", job.sessionId,
+    "--today", localToday(),
+  ];
+  return new Promise((resolve, reject) => {
+    execFile(binary, argv, { cwd: root, maxBuffer: 4 * 1024 * 1024 }, (error, stdout, stderr) => {
+      if (error) {
+        reject(new Error(`canonical capture runtime unavailable: ${stderr || error.message}`));
+        return;
+      }
+      try {
+        const parsed = JSON.parse(String(stdout).trim());
+        if (!Array.isArray(parsed.candidates_created)) throw new Error("invalid capture result");
+        resolve(parsed);
+      } catch (parseError) {
+        reject(new Error(`invalid canonical capture response: ${parseError.message}`));
+      }
+    });
+  });
+}
 
-Find only moments where the HUMAN user chose, approved, rejected, deferred, constrained, or changed a direction.
-
-Include:
-- choosing option A over B
-- adopting/killing/deferring a feature, plan, architecture, product direction, or scope
-- setting a durable constraint or policy
-- approving an assistant proposal as the direction to take
-
-Exclude:
-- ordinary questions, brainstorming, venting, or asking for advice
-- assistant-only implementation choices that the user did not approve
-- routine execution of an already-decided task
-- vague preferences with no direction fixed
-
-Return only JSON:
-{"decisions":[{"quote":"human words, <=200 chars","decision":"one sentence describing what was decided","type":"direction|scope|kill|adopt|defer|constraint|approval","stakes":"high|medium|low"}]}
-
-If no real decision was made, return {"decisions":[]}.
-
-<conversation>
-${segmentText}
-</conversation>`;
-  const out = await callClaudeJson(prompt, opts);
-  const arr = Array.isArray(out) ? out : out.decisions;
-  if (!Array.isArray(arr)) throw new Error("detector returned no decisions array");
-  return arr.filter((d) => d && typeof d.quote === "string" && typeof d.decision === "string" && TYPES.has(d.type) && STAKES.has(d.stakes));
+function captureQueueControl(command, itemId) {
+  const binary = process.env.ARGUS_MCP_BIN || "argus-decision-mcp";
+  const dataDir = process.env.CLAUDE_PLUGIN_DATA;
+  if (!dataDir) throw new Error("CLAUDE_PLUGIN_DATA is required for capture queue status or purge");
+  const argv = [command, "--data-dir", dataDir];
+  if (itemId) argv.push("--item-id", itemId);
+  return new Promise((resolve, reject) => {
+    execFile(binary, argv, { cwd: root, maxBuffer: 1024 * 1024 }, (error, stdout, stderr) => {
+      if (error) return reject(new Error(`canonical capture runtime unavailable: ${stderr || error.message}`));
+      try { resolve(JSON.parse(String(stdout).trim())); }
+      catch (parseError) { reject(new Error(`invalid canonical capture response: ${parseError.message}`)); }
+    });
+  });
 }
 
 async function draftSeal(decision, opts) {
@@ -613,6 +598,16 @@ Return only JSON:
 }
 
 async function cmdScan() {
+  if (flags.status) {
+    const status = await captureQueueControl("capture-status");
+    console.log(JSON.stringify(status, null, 2));
+    return;
+  }
+  if (flags.purge) {
+    const result = await captureQueueControl("capture-purge", String(flags.purge));
+    console.log(`Capture queue purge: ${result.purged} purged, ${result.leased_skipped} leased item(s) skipped.`);
+    return;
+  }
   if (flags.list) {
     cmdList("candidate");
     return;
@@ -627,7 +622,6 @@ async function cmdScan() {
   }
 
   const state = loadScanState();
-  const ledger = loadLedger();
   const jobs = [];
   const prevStates = new Map();
   let skipped = 0;
@@ -640,15 +634,8 @@ async function cmdScan() {
     }
     prevStates.set(item.file, prev);
     const { sessionId, turns } = parseTranscript(item.file);
-    const userIndexes = turns.map((turn, index) => (turn.role === "USER" ? index : -1)).filter((index) => index >= 0);
-    const prevUsers = prev ? (prev.userTurns || 0) : 0;
-    let fresh = [];
-    if (prevUsers === 0) fresh = turns;
-    else if (prevUsers < userIndexes.length) fresh = turns.slice(Math.max(0, userIndexes[prevUsers] - 1));
-    if (fresh.some((turn) => turn.role === "USER")) {
-      for (const segment of segmentTurns(fresh)) jobs.push({ ...item, sessionId, segment });
-    }
-    state.files[item.file] = { size: item.size, userTurns: userIndexes.length, scanned_at: new Date().toISOString() };
+    const userTurns = turns.filter((turn) => turn.role === "USER").length;
+    if (userTurns > 0) jobs.push({ ...item, sessionId, userTurns });
   }
 
   if (!jobs.length) {
@@ -657,49 +644,39 @@ async function cmdScan() {
     return;
   }
 
-  const model = String(flags.model || "sonnet");
   const concurrency = Number(flags.concurrency || 3);
-  console.log(`Scanning ${jobs.length} conversation segment(s) with Claude (${model})...`);
-  const results = await pool(jobs, (job) => detectDecisions(renderSegment(job.segment), { model }), concurrency);
+  console.log(`Scanning ${jobs.length} transcript(s) with the canonical Argus capture runtime...`);
+  const results = await pool(jobs, (job) => captureWithCanonicalRuntime(job), concurrency);
   let failed = 0;
   let written = 0;
 
-  results.forEach((decisions, index) => {
+  results.forEach((capture, index) => {
     const job = jobs[index];
-    if (!Array.isArray(decisions)) {
+    if (!capture || capture.__error || !Array.isArray(capture.candidates_created)) {
       failed += 1;
       return;
     }
-    for (const decision of decisions) {
-      const id = stableId(job.sessionId, decision.quote);
-      if (ledger.has(id)) continue;
-      const decidedAt = job.segment.find((turn) => turn.role === "USER")?.ts || null;
-      appendEvent({
-        event: "harvest",
-        id,
-        project: job.project,
-        session: job.sessionId,
-        decided_at: decidedAt,
-        ...decision,
-      });
-      ledger.set(id, { id, status: "candidate" });
+    state.files[job.file] = {
+      size: job.size,
+      userTurns: job.userTurns,
+      scanned_at: new Date().toISOString(),
+      capture_policy_major: capture.policy_major,
+    };
+    for (const id of capture.candidates_created) {
       written += 1;
-      console.log(`  ${id} [${decision.stakes}/${decision.type}] ${truncate(decision.decision)}`);
+      console.log(`  ${id} [candidate] byte-verified user decision`);
     }
   });
 
-  if (failed) {
-    const failedFiles = new Set(results.map((result, index) => (!Array.isArray(result) ? jobs[index].file : null)).filter(Boolean));
-    for (const file of failedFiles) {
-      const prev = prevStates.get(file);
-      if (prev) state.files[file] = prev;
-      else delete state.files[file];
-    }
+  if (failed) for (const [file, prev] of prevStates) {
+    if (state.files[file]) continue;
+    if (prev) state.files[file] = prev;
+    else delete state.files[file];
   }
   saveScanState(state);
 
   if (!written) console.log("Scan complete. No new decision candidates found.");
-  else console.log(`Scan complete. ${written} candidate(s) found. Next: /argus:check <id>`);
+  else console.log(`Scan complete. ${written} candidate(s) found. Next: use argus_patterns to review candidates.`);
   if (failed) console.log(`Skipped ${failed} segment(s) that failed detection; they will retry next scan.`);
 }
 
@@ -1151,7 +1128,7 @@ function cmdPremises() {
 const commands = { scan: cmdScan, seal: cmdSeal, settle: cmdSettle, record: cmdRecord, amend: cmdAmend, wake: cmdWake, premises: cmdPremises, list: () => cmdList(), status: cmdStatus };
 if (!cmd || !commands[cmd]) {
   console.log("Usage:");
-  console.log("  /argus:history scan [--since days] [--all-projects] [--model sonnet] [--list]");
+  console.log("  /argus:history scan [--since days] [--all-projects] [--list] [--status] [--purge <id|all>]");
   console.log("  /argus:check --list");
   console.log("  /argus:check <id>");
   console.log("  /argus:check --latest-seed");

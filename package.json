@@ -27,6 +27,7 @@
     "test:coverage": "vitest run --coverage",
     "eval": "node argus-plugin-v2/evals/run.mjs",
     "eval:static": "node argus-plugin-v2/evals/static-gate.test.mjs",
+    "jcr:recall-bench": "tsx scripts/benchmark-recall.ts",
     "gates": "node argus-plugin-v2/scripts/validate-gates.mjs",
     "gates:test": "node argus-plugin-v2/scripts/validate-gates.test.mjs",
     "signals:test": "node argus-plugin-v2/scripts/test-decision-signals.mjs",

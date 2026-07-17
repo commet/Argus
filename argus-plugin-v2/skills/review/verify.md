@@ -64,9 +64,16 @@ written in English; translate them naturally for `ko` (labels too: 지지됨 /
    - optional `versions/{label}/debate.json`
    - optional `versions/{label}/repo_context.json`
    - optional `versions/{label}/team_plan.json` — the `stages[]` map (which
-     worker ran in stage-1 vs stage-2). Needed for the cross-agent independence
-     check in Step 3 (a stage-2 critic read stage-1, so its agreement is not
-     independent corroboration). Absent → treat all workers as stage-1.
+     worker ran in stage-1 vs stage-2). Needed for the lineage echo check in
+     Step 3 (a stage-2 critic read stage-1, so its repetition is downstream).
+     Absent → treat all workers as stage-1 while still assigning zero reality
+     independence to the full synthetic set.
+   - `versions/{label}/perspective_set.json` for new writes. A missing file on a
+     pre-J2 version is a legacy read, not permission to synthesize lineage:
+     record `synthetic_independence_units: 1`, `strongest_dissent.kind:
+     "none_found"` with search method `"legacy artifact lacks dissent
+     provenance"`, and an unknown/reality-check item. New team writes without
+     this artifact are invalid and must route to repair.
    - `.argus/config.yaml`
 3. Set `session.phase = "verifying"` while the skill runs.
 
@@ -123,26 +130,31 @@ For each claim, ask:
 - **Evidence:** Does a worker cite a file path, PR artifact, data point, source,
   or explicit reasoning chain?
 - **Specificity:** Is the claim tied to this repo/problem?
-- **Cross-agent support:** Did another worker **actively, independently make the
-  same or a compatible claim** — its own affirmative statement of the same
-  direction? This requires a positive second assertion. **Silence is not support,
-  and non-contradiction is not support** — a claim no other worker mentioned, or
-  merely did not argue against, fails this check. (Treating absence-of-opposition
-  as support is exactly how generic prose with no second source launders itself
-  into `supported`; this check exists to stop that.)
-  - **Independence (stage-2 echo guard):** the corroborating worker must be one
-    that did NOT read the first worker's output before writing — i.e. a parallel
-    **stage-1** worker (per `team_plan.json.stages`). The **stage-2** critique
+- **Cross-agent consistency:** Did another worker **actively make the same or a
+  compatible claim**? This is useful for detecting drift and contradiction, but
+  it is a synthetic coverage check only. **It never supplies evidence, never
+  satisfies the required support condition, and never raises strength or
+  confidence.** Silence and non-contradiction are not even consistency signals.
+  - **Lineage echo guard:** a worker that did NOT read another worker before
+    writing is less contaminated for contradiction coverage, but is still not
+    independent reality evidence. A **stage-2** critique
     worker (e.g. donghyuk) is *given* stage-1 results as input (team Step 6), so
-    its *agreement* is downstream restatement, not independent corroboration, and
-    does NOT count as cross-agent support. Its *challenges* still count as
-    negative signal in Step 4 — only positive corroboration is excluded. (Without
-    this, a single stage-1 claim the critic happened to echo reads as two
-    independent sources and is laundered to `moderate`/`strong`.)
+    its matching statement is downstream restatement, not corroboration, and
+    is explicitly an echo. Its *challenges* still count as negative signal in
+    Step 4; its agreement adds no positive weight.
 - **Framework:** Does the worker's assigned framework visibly shape the output?
 - **Action clarity:** If it proposes action, are actor and next step clear?
 
-A claim is `supported` only if it passes **at least 2 of the 5 checks above, AND one of them is Evidence or Cross-agent support** (plausibility/specificity alone is not enough — that is how generic prose sneaks in). **A `claim_type: fact` is stricter — it reaches `supported` only via the *Evidence* check** (a cited file, data point, or source); cross-agent agreement alone never makes a fact true (two workers asserting a fact with no source is still zero sources). A claim from a worker flagged in Step 1 cannot be `supported`. Assign `strength`: `strong` (Evidence + cross-agent), `moderate` (Evidence or cross-agent + one more), `weak` (passes the minimum but on softer checks). **`weak` claims do NOT count toward the headline `supported` count** shown on the final card — list them separately so the card never inflates confidence.
+A claim is `supported` only if it passes **Evidence plus at least one other
+check**. Plausibility, specificity, framework quality, or repeated agent wording
+without a cited/inspectable basis is not support. A `claim_type: fact` still
+requires Evidence and cannot become true through worker agreement. A claim from
+a worker flagged in Step 1 cannot be `supported`. Assign `strength` from source
+quality and verification depth: `strong` requires direct evidence plus a second
+independent source/reality locator; `moderate` requires direct evidence plus one
+other non-count check; `weak` is bounded/indirect evidence. Worker count and
+cross-agent repetition never affect strength. **`weak` claims do NOT count
+toward the headline `supported` count** shown on the final card.
 
 **Qualifier fidelity (mix-laundering guard).** Claims were extracted from the
 *synthesized* `mix.sections[]`, not the worker's words. Before granting
@@ -295,6 +307,19 @@ Convert `debate.json` and `scaffold.team_contradictions[]` into
 
 Do not resolve a real conflict in this skill. Verification's job is to expose the unresolved axis and, when derivable, name the tie-breaking condition. `tie_breaking_condition` is carried by `debate.json` but is optional for tensions sourced from `scaffold.team_contradictions[]` (which doesn't store one) — set it when you can infer it, otherwise omit rather than invent.
 
+### Step 5.5 - Preserve dissent provenance and honest gaps
+
+Copy and validate the perspective firewall into the ledger:
+
+- `synthetic_independence_units` is always `1`.
+- Preserve `strongest_dissent.kind`, statement, source refs, and search method.
+  Never relabel an elicited counter-lens as observed dissent.
+- Write `unknowns_that_block_judgment[]` and `reality_check_questions[]` on every
+  ledger, even when empty after a documented search.
+- Add load-bearing external gaps found in Steps 3.5/4 even when the perspective
+  set missed them. Never remove a source unknown because several workers agreed.
+- These fields do not add claim support and never create an E SupportUnit.
+
 ### Step 6 - Human-Required Checks
 
 Create `human_required_checks[]` from:
@@ -354,6 +379,9 @@ Overall status (also ordered, first match wins):
 
 **Compute `confidence` (0-100), a REQUIRED ledger field — do not leave it unset** (boss and the final card read it; an absent value becomes a fabricated number). Derive it, e.g.: start at 100; subtract per challenged claim weighted by severity (critical −30, important −15, minor −5); subtract for each unresolved human-required blocker that **gates — `execution` OR `final_signoff`** (−20 each); floor at 0. **And when `overall_status == blocked`, cap `confidence` at 50** — a blocked result must never read as near-trustworthy (the bug this closes: `blocked (85/100)`, where a `final_signoff` blocker subtracted nothing). This is confidence in the verification result, not in the business decision. Record the formula inputs in `claim_tests[]` if helpful.
 
+Agent count, model diversity, recurring synthetic concerns, seat authority, and
+cross-agent agreement add exactly zero confidence points.
+
 ### Step 8 - Ask Human When Needed
 
 If routing is `ask_user` and `--no-prompt` is not set, use one compact
@@ -385,6 +413,9 @@ Write `versions/{label}/verification.json` conforming to
 `${CLAUDE_PLUGIN_ROOT}/data/schemas/verification-ledger.json`. Include `generated_at`
 (current ISO-8601 timestamp) — it is a required field and a downstream validator
 rejects a ledger without it.
+
+The ledger MUST include `synthetic_independence_units: 1`, `strongest_dissent`,
+`unknowns_that_block_judgment[]`, and `reality_check_questions[]` from Step 5.5.
 
 **Compute `root_crack`** — set it ONLY for the **gating** reality risk: the
 load-bearing, `external`, unconfirmed claim on a **high-stakes, hard-to-reverse**

@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { MAX_ATTEMPTS, claim, complete, enqueue, fail, queuePath, readQueue, revive } from './queue.js';
+import { MAX_ATTEMPTS, claim, complete, enqueue, fail, purge, purgeAll, queuePath, readQueue, revive } from './queue.js';
 
 let dir: string;
 const T0 = '2026-07-11T10:00:00.000Z';
@@ -49,11 +49,13 @@ describe('클레임 — lease 소유권 (규칙 4: 확인·클레임만, 즉시 
 });
 
 describe('완료와 실패 (규칙 4: 실패 시 항목 보존)', () => {
-  it('complete는 항목을 제거한다 — 결과의 정본은 원장이지 큐가 아니다', () => {
+  it('complete는 content-free lifecycle receipt와 candidate ids를 남긴다', () => {
     enqueue(dir, item(1), T0);
     claim(dir, T0, LEASE, 'n');
-    expect(complete(dir, 'it-1', 'n')).toBe(true);
-    expect(readQueue(dir).items).toHaveLength(0);
+    expect(complete(dir, 'it-1', 'n', { candidateIds: ['cap-1'], completedAt: T1 })).toBe(true);
+    expect(readQueue(dir).items[0]).toMatchObject({
+      status: 'succeeded', candidate_ids: ['cap-1'], completed_at: T1,
+    });
   });
 
   it('fail은 보존 + attempts 증가 + lease 해제 — 다음 클레임이 즉시 가능', () => {
@@ -63,6 +65,7 @@ describe('완료와 실패 (규칙 4: 실패 시 항목 보존)', () => {
     const q = readQueue(dir).items[0]!;
     expect(q.attempts).toBe(1);
     expect(q.last_error).toBe('model timeout');
+    expect(q.status).toBe('retryable_failed');
     expect(q.lease).toBeUndefined();
     expect(claim(dir, T1, LEASE, 'n2')?.item_id).toBe('it-1'); // 만료 대기 없이 재시도 가능
   });
@@ -75,8 +78,31 @@ describe('완료와 실패 (규칙 4: 실패 시 항목 보존)', () => {
     }
     const q = readQueue(dir).items[0]!;
     expect(q.exhausted).toBe(true);
+    expect(q.status).toBe('exhausted');
     expect(claim(dir, T2, LEASE, 'nx')).toBeNull(); // 자동 경로 제외
     expect(readQueue(dir).items).toHaveLength(1); // 보존
+  });
+
+  it('purge는 source path/session/candidate ids를 지우고 content-free receipt만 남긴다', () => {
+    enqueue(dir, item(1), T0);
+    claim(dir, T0, LEASE, 'n');
+    complete(dir, 'it-1', 'n', { candidateIds: ['cap-1'], completedAt: T1 });
+    expect(purge(dir, 'it-1', T2)).toBe(true);
+    expect(readQueue(dir).items[0]).toMatchObject({
+      status: 'purged_by_user', transcript_path: '', session_id: '', candidate_ids: [], completed_at: T2,
+    });
+  });
+
+  it('purgeAll은 비임대 항목만 지우고 live lease는 정직하게 건너뛴다', () => {
+    enqueue(dir, item(1), T0);
+    enqueue(dir, item(2), T0);
+    claim(dir, T0, LEASE, 'live');
+    expect(purgeAll(dir, T1)).toEqual({ purged: 1, leased_skipped: 1 });
+    const q = readQueue(dir).items;
+    expect(q.find((x) => x.item_id === 'it-1')?.status).toBe('leased');
+    expect(q.find((x) => x.item_id === 'it-2')).toMatchObject({
+      status: 'purged_by_user', transcript_path: '', session_id: '', candidate_ids: [],
+    });
   });
 
   it('revive(수동 재개)만이 exhausted를 되살린다', () => {
@@ -95,7 +121,7 @@ describe('저장 위생', () => {
     enqueue(dir, item(1), T0);
     const raw = fs.readFileSync(queuePath(dir), 'utf8');
     const fields = Object.keys((JSON.parse(raw) as { items: Record<string, unknown>[] }).items[0]!);
-    expect(fields.sort()).toEqual(['attempts', 'enqueued_at', 'item_id', 'kind', 'session_id', 'transcript_path']);
+    expect(fields.sort()).toEqual(['attempts', 'enqueued_at', 'item_id', 'kind', 'session_id', 'status', 'transcript_path']);
   });
 
   it('파손 파일은 빈 큐 + was_corrupt로 정직하게 읽힌다', () => {

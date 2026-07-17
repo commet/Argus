@@ -275,7 +275,8 @@ export interface DiscussionMessage {
   type: 'agreement' | 'disagreement' | 'elaboration' | 'question';
 }
 
-export interface StructuredSynthesis {
+/** Preserved read shape for Rehearse records written before E4/J2. Never rewrite in place. */
+export interface LegacyStructuredSynthesis {
   common_agreements: string[];
   key_conflicts: Array<{
     topic: string;
@@ -287,6 +288,51 @@ export interface StructuredSynthesis {
     priority: 'high' | 'medium';
   }>;
 }
+
+export interface SyntheticModelLineage {
+  provider: string;
+  model_family: string;
+  model_id: string;
+  prompt_version: string;
+  source_input_cluster_ids: string[];
+}
+
+export interface SyntheticPerspectiveSet {
+  artifact_kind: 'synthetic_perspective_set';
+  schema_version: 2;
+  set_id: string;
+  source_case_id: string;
+  generator_lineage: SyntheticModelLineage;
+  prompt_version: string;
+  /** Any number of agents/personas over the same source is one independence unit. */
+  independence_units: 1;
+  perspectives: Array<{
+    perspective_id: string;
+    seat: { owns: string; goals: string[]; authority: string };
+    model_lineage: SyntheticModelLineage;
+    concerns: string[];
+    source_claim_refs: string[];
+  }>;
+  convergent_simulated_concerns: Array<{
+    statement: string;
+    perspective_ids: string[];
+    source_refs: string[];
+  }>;
+  team_contradictions: Array<{
+    topic: string;
+    positions: Array<{ perspective_id: string; stance: string }>;
+  }>;
+  strongest_dissent: {
+    kind: 'observed' | 'elicited_counter_lens' | 'none_found';
+    statement: string;
+    source_refs: string[];
+    search_method: string;
+  };
+  unknowns_that_block_judgment: string[];
+  reality_check_questions: string[];
+}
+
+export type StructuredSynthesis = LegacyStructuredSynthesis | SyntheticPerspectiveSet;
 
 export interface FeedbackRecord {
   id: string;

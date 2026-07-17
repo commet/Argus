@@ -2,6 +2,10 @@
 
 > 상태: **창업자 승인 병렬 트랙의 설계 기준선**
 > 작성일: 2026-07-17
+> 저장·회수 실행 정본 승계: 2026-07-18 —
+> [`DESIGN-judgment-continuity-runtime-v1-2026-07-18.md`](./DESIGN-judgment-continuity-runtime-v1-2026-07-18.md)가
+> O3/E1/E2 이후 저장·회수·동기화·E3/E4 실행 구조와 PR 순서를 소유한다.
+> 이 문서는 E 불변식과 historical rationale의 헌법 정본으로 유지한다.
 > 트랙 코드: **E (Epistemic Agency)**
 > 범위: 자기지식의 승격, 기억의 미래 판단 영향, 철회·반박, AI 합성 다수의 증거 한계
 > 비범위: DKK v4 스키마, O2 Core/ledger, O3 패키징·Boss 교체, 웹 공정 5 UI 공예

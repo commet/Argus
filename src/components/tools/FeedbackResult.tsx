@@ -14,6 +14,11 @@ import {
 import { useAccuracyStore } from '@/stores/useAccuracyStore';
 import { useJudgmentStore } from '@/stores/useJudgmentStore';
 import { useLocale } from '@/hooks/useLocale';
+import {
+  isLegacyStructuredSynthesis,
+  isSyntheticPerspectiveSet,
+  projectLegacySynthesis,
+} from '@/lib/synthetic-perspective';
 
 interface FeedbackResultProps {
   record: FeedbackRecord;
@@ -30,6 +35,12 @@ export function FeedbackResult({ record, personas, onStartDiscussion, discussion
   const L = (ko: string, en: string) => locale === 'ko' ? ko : en;
   const [viewMode, setViewMode] = useState<ViewMode>('overview');
   const [selectedPersonaId, setSelectedPersonaId] = useState<string | null>(null);
+  const syntheticSet = isSyntheticPerspectiveSet(record.structured_synthesis)
+    ? record.structured_synthesis
+    : null;
+  const legacySynthesis = isLegacyStructuredSynthesis(record.structured_synthesis)
+    ? projectLegacySynthesis(record.structured_synthesis)
+    : null;
 
   const { addRating } = useAccuracyStore();
   const { addJudgment } = useJudgmentStore();
@@ -239,8 +250,8 @@ export function FeedbackResult({ record, personas, onStartDiscussion, discussion
                             ? `${record.discussion.length}건의 발언${record.discussion_takeaway ? ` — "${record.discussion_takeaway}"` : ''}`
                             : `${record.discussion.length} message${record.discussion.length === 1 ? '' : 's'}${record.discussion_takeaway ? ` — "${record.discussion_takeaway}"` : ''}`)
                         : (locale === 'ko'
-                            ? `${record.results.length}명의 이해관계자가 서로의 피드백에 반응하는 가상 토론을 생성합니다. 갈등 포인트와 합의점을 발견할 수 있습니다.`
-                            : `Generate a simulated discussion where ${record.results.length} stakeholders react to each other's feedback. Surfaces points of conflict and agreement.`)
+                            ? `${record.results.length}명의 이해관계자가 서로의 피드백에 반응하는 가상 토론을 생성합니다. 갈등과 반복되는 관점을 비교할 수 있습니다.`
+                            : `Generate a simulated discussion where ${record.results.length} stakeholders react to each other's feedback. Compare conflicts and recurring perspectives.`)
                       }
                     </p>
                     <Button size="sm" className="mt-2.5"
@@ -491,31 +502,56 @@ export function FeedbackResult({ record, personas, onStartDiscussion, discussion
             <ArrowLeft size={14} /> {L('전체 결과로', 'Back to results')}
           </button>
 
-          {record.structured_synthesis ? (
+          {syntheticSet ? (
             <div className="space-y-4">
-              {/* Common agreements */}
-              {record.structured_synthesis.common_agreements.length > 0 && (
-                <Card className="!border-l-4 !border-l-[var(--success)]">
-                  <p className="text-[13px] font-bold text-[var(--success)] mb-2">&#x2705; {L('공통 합의', 'Common agreements')}</p>
+              <div className="rounded-xl bg-[var(--ai)] px-4 py-3">
+                <p className="text-[13px] font-bold text-[var(--text-primary)]">
+                  {L('가상 관점 세트', 'Synthetic perspective set')}
+                </p>
+                <p className="text-[11px] text-[var(--text-secondary)] mt-1 leading-relaxed">
+                  {L(
+                    '같은 자료에서 생성된 관점들은 공통 결론이나 현실 증거가 아닙니다. 관점 수와 영향력은 진실성·우선순위를 높이지 않으며, 이 세트의 독립성 단위는 항상 1입니다.',
+                    'Perspectives generated from the same material are not a shared conclusion or reality evidence. Count and influence do not raise truth or priority; this set always has one independence unit.',
+                  )}
+                </p>
+              </div>
+
+              {syntheticSet.convergent_simulated_concerns.length > 0 && (
+                <Card className="bg-[var(--success)]/[0.04]">
+                  <p className="text-[13px] font-bold text-[var(--success)] mb-2">
+                    {L('반복된 가상 우려', 'Recurring simulated concerns')}
+                  </p>
                   <ul className="space-y-1.5">
-                    {record.structured_synthesis.common_agreements.map((a, i) => (
-                      <li key={i} className="text-[13px] text-[var(--text-primary)]">&#x2022; {a}</li>
+                    {syntheticSet.convergent_simulated_concerns.map((item, i) => (
+                      <li key={i} className="text-[13px] text-[var(--text-primary)]">&#x2022; {item.statement}</li>
                     ))}
                   </ul>
                 </Card>
               )}
 
-              {/* Key conflicts */}
-              {record.structured_synthesis.key_conflicts.length > 0 && (
-                <Card className="!border-l-4 !border-l-amber-400">
-                  <p className="text-[13px] font-bold text-[var(--warning)] mb-3">&#x26A1; {L('핵심 갈등', 'Key conflicts')}</p>
+              <Card className="bg-[var(--warning)]/[0.04]">
+                <p className="text-[13px] font-bold text-[var(--warning)] mb-2">
+                  {L('가장 강한 반대 렌즈', 'Strongest dissent lens')}
+                </p>
+                <p className="text-[13px] text-[var(--text-primary)]">
+                  {syntheticSet.strongest_dissent.statement || L('명시적으로 확인된 반대 렌즈가 없습니다.', 'No dissent lens was explicitly established.')}
+                </p>
+                <p className="text-[11px] text-[var(--text-tertiary)] mt-2">
+                  {syntheticSet.strongest_dissent.kind} · {syntheticSet.strongest_dissent.search_method}
+                </p>
+              </Card>
+
+              {syntheticSet.team_contradictions.length > 0 && (
+                <Card className="bg-[var(--warning)]/[0.04]">
+                  <p className="text-[13px] font-bold text-[var(--warning)] mb-3">&#x26A1; {L('관점 간 충돌', 'Perspective contradictions')}</p>
                   <div className="space-y-3">
-                    {record.structured_synthesis.key_conflicts.map((conflict, i) => (
+                    {syntheticSet.team_contradictions.map((conflict, i) => (
                       <div key={i} className="rounded-lg bg-[var(--bg)] p-3">
                         <p className="text-[12px] font-bold text-[var(--text-primary)] mb-2">{conflict.topic}</p>
                         <div className="space-y-1.5">
                           {conflict.positions.map((pos, j) => {
-                            const p = personas.find(pp => pp.id === pos.persona_id);
+                            const personaId = pos.perspective_id.replace(/^perspective:/, '');
+                            const p = personas.find(pp => pp.id === personaId);
                             return (
                               <div key={j} className="flex items-start gap-2">
                                 {p && <PersonaAvatar name={p.name} personaId={p.id} size={20} />}
@@ -532,25 +568,73 @@ export function FeedbackResult({ record, personas, onStartDiscussion, discussion
                 </Card>
               )}
 
-              {/* Priority actions */}
-              {record.structured_synthesis.priority_actions.length > 0 && (
-                <Card className="!border-l-4 !border-l-[var(--accent)]">
-                  <p className="text-[13px] font-bold text-[var(--accent)] mb-2">&#x1F3AF; {L('우선 수정 권고', 'Priority actions')}</p>
-                  <div className="space-y-2">
-                    {record.structured_synthesis.priority_actions.map((action, i) => (
-                      <div key={i} className="flex items-start gap-2 text-[13px]">
-                        <span className={`shrink-0 px-1.5 py-0.5 rounded text-[9px] font-bold ${
-                          action.priority === 'high' ? 'bg-[var(--danger)]/10 text-[var(--danger)]' : 'bg-[var(--checkpoint)] text-[var(--risk-manageable)]'
-                        }`}>
-                          {action.priority === 'high' ? L('긴급', 'Urgent') : L('권고', 'Recommended')}
-                        </span>
-                        <div>
-                          <span className="text-[var(--text-primary)]">{action.action}</span>
-                          <span className="text-[var(--text-tertiary)] text-[11px] ml-1">({action.requested_by})</span>
-                        </div>
-                      </div>
+              <Card className="bg-[var(--accent)]/[0.04]">
+                <p className="text-[13px] font-bold text-[var(--accent)] mb-2">
+                  {L('현실에서 확인할 것', 'Checks against reality')}
+                </p>
+                {syntheticSet.unknowns_that_block_judgment.length > 0 && (
+                  <ul className="space-y-1.5 mb-3">
+                    {syntheticSet.unknowns_that_block_judgment.map((item, i) => (
+                      <li key={i} className="text-[12px] text-[var(--text-secondary)]">? {item}</li>
                     ))}
-                  </div>
+                  </ul>
+                )}
+                <ul className="space-y-1.5">
+                  {syntheticSet.reality_check_questions.map((question, i) => (
+                    <li key={i} className="text-[13px] text-[var(--text-primary)]">&#x2022; {question}</li>
+                  ))}
+                </ul>
+              </Card>
+            </div>
+          ) : legacySynthesis ? (
+            <div className="space-y-4">
+              <div className="rounded-xl bg-[var(--warning)]/[0.06] px-4 py-3">
+                <p className="text-[13px] font-bold text-[var(--warning)]">
+                  {L('이전 형식의 가상 종합 기록', 'Legacy simulated synthesis')}
+                </p>
+                <p className="text-[11px] text-[var(--text-secondary)] mt-1">
+                  {L('원본은 보존하지만 아래 반복 항목을 공통 결론·사실·우선순위 증거로 사용하지 않습니다.', 'The original bytes are preserved, but recurring items below are not treated as a shared conclusion, fact, or priority evidence.')}
+                </p>
+              </div>
+              {legacySynthesis.legacy_simulated_convergence.length > 0 && (
+                <Card>
+                  <p className="text-[13px] font-bold text-[var(--text-primary)] mb-2">
+                    {L('레거시 가상 수렴', 'Legacy simulated convergence')}
+                  </p>
+                  <ul className="space-y-1.5">
+                    {legacySynthesis.legacy_simulated_convergence.map((item, i) => (
+                      <li key={i} className="text-[13px] text-[var(--text-primary)]">&#x2022; {item}</li>
+                    ))}
+                  </ul>
+                </Card>
+              )}
+              {legacySynthesis.team_contradictions.length > 0 && (
+                <Card>
+                  <p className="text-[13px] font-bold text-[var(--warning)] mb-2">
+                    {L('레거시 관점 간 충돌', 'Legacy perspective conflicts')}
+                  </p>
+                  {legacySynthesis.team_contradictions.map((conflict, i) => (
+                    <div key={i} className="mb-2 last:mb-0">
+                      <p className="text-[12px] font-bold text-[var(--text-primary)]">{conflict.topic}</p>
+                      {conflict.positions.map((position, j) => (
+                        <p key={j} className="text-[12px] text-[var(--text-secondary)]">
+                          &#x2022; {position.stance}
+                        </p>
+                      ))}
+                    </div>
+                  ))}
+                </Card>
+              )}
+              {legacySynthesis.review_items.length > 0 && (
+                <Card>
+                  <p className="text-[13px] font-bold text-[var(--accent)] mb-2">
+                    {L('직접 검토할 항목', 'Items for your review')}
+                  </p>
+                  {legacySynthesis.review_items.map((item, i) => (
+                    <p key={i} className="text-[13px] text-[var(--text-primary)] mb-1">
+                      &#x2022; {item.statement} <span className="text-[11px] text-[var(--text-tertiary)]">({item.source})</span>
+                    </p>
+                  ))}
                 </Card>
               )}
             </div>

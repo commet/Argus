@@ -62,7 +62,7 @@ function harvestQueueStep(payload, home) {
   if (sessionId && transcriptPath && !items.some((i) => i.item_id === `harvest-${sessionId}`)) {
     items.push({
       item_id: `harvest-${sessionId}`, kind: 'harvest', transcript_path: transcriptPath,
-      session_id: sessionId, enqueued_at: new Date().toISOString(), attempts: 0,
+      session_id: sessionId, enqueued_at: new Date().toISOString(), attempts: 0, status: 'pending',
     });
     fs.mkdirSync(dataDir, { recursive: true });
     const tmp = `${qPath}.tmp`;
@@ -73,10 +73,11 @@ function harvestQueueStep(payload, home) {
   // 확인만: 클레임 가능 항목 수 (자기 세션 제외 — 방금 넣은 건 아직 처리감이 아니다).
   const nowIso = new Date().toISOString();
   const claimable = items.filter((i) =>
-    i.item_id !== `harvest-${sessionId}` && !i.exhausted && i.attempts < 3 &&
+    i.item_id !== `harvest-${sessionId}` && ['pending', 'retryable_failed', 'leased'].includes(i.status || 'pending') &&
+    !i.exhausted && i.attempts < 3 &&
     !(i.lease && i.lease.expires_at > nowIso)).length;
   if (claimable > 0) {
-    return `Argus: 이전 세션에서 자동 포착할 기록 ${claimable}건이 대기 중입니다. 처리는 작업을 방해하지 않게 뒤에서 진행합니다.`;
+    return `Argus: 이전 세션에서 자동 포착할 기록 ${claimable}건이 대기 중입니다. 다음 Argus check-in이 제한된 수만 처리합니다.`;
   }
   return null;
 }

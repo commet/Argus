@@ -41,17 +41,57 @@ export async function POST(req: NextRequest) {
   const receipt: Record<string, number | string> = {};
   let hadError = false;
 
-  for (const table of USER_DATA_TABLES) {
-    const { count, error } = await admin
-      .from(table)
-      .delete({ count: 'exact' })
-      .eq('user_id', userId);
-    if (error) {
+  // Object bytes are outside Postgres and do not cascade with auth.users.
+  // Resolve canonical and staging locators while descriptor rows still exist.
+  // On failure keep all rows and identity so the erasure can be retried.
+  const { data: artifactRows, error: artifactReadError } = await admin
+    .from('epistemic_artifact_descriptors')
+    .select('object_locator, staging_locator')
+    .eq('user_id', userId);
+  if (artifactReadError) {
+    hadError = true;
+    receipt['storage:epistemic-artifacts'] = `error: ${artifactReadError.message}`;
+  } else {
+    const allLocators = (artifactRows ?? []).flatMap((row: {
+      object_locator?: unknown;
+      staging_locator?: unknown;
+    }) => [row.object_locator, row.staging_locator]
+      .filter((value): value is string => typeof value === 'string' && value.length > 0));
+    const invalidLocator = allLocators.find((value: string) => !value.startsWith(`${userId}/`));
+    const locators = [...new Set(allLocators.filter((value: string) => value.startsWith(`${userId}/`)))];
+    let removed = 0;
+    if (invalidLocator) {
       hadError = true;
-      receipt[table] = `error: ${error.message}`;
-    } else {
-      receipt[table] = count ?? 0;
+      receipt['storage:epistemic-artifacts'] = 'error: invalid cross-account artifact locator';
     }
+    for (let index = 0; !hadError && index < locators.length; index += 100) {
+      const chunk = locators.slice(index, index + 100);
+      const { error: removeError } = await admin.storage.from('epistemic-artifacts').remove(chunk);
+      if (removeError) {
+        hadError = true;
+        receipt['storage:epistemic-artifacts'] = `error: ${removeError.message}`;
+        break;
+      }
+      removed += chunk.length;
+    }
+    if (!hadError) receipt['storage:epistemic-artifacts'] = removed;
+  }
+
+  if (!hadError) {
+    for (const table of USER_DATA_TABLES) {
+      const { count, error } = await admin
+        .from(table)
+        .delete({ count: 'exact' })
+        .eq('user_id', userId);
+      if (error) {
+        hadError = true;
+        receipt[table] = `error: ${error.message}`;
+      } else {
+        receipt[table] = count ?? 0;
+      }
+    }
+  } else {
+    for (const table of USER_DATA_TABLES) receipt[table] = 'skipped (object erasure incomplete)';
   }
 
   // Only remove the auth identity once every row is gone — otherwise a partial

@@ -12,6 +12,10 @@ let tokenUser: { id: string; email: string; created_at: string } | null = {
   id: 'user-1', email: 'a@b.co', created_at: '2026-01-01T00:00:00Z',
 };
 const selectedFor: string[] = [];
+const archiveMocks = vi.hoisted(() => ({
+  collect: vi.fn().mockResolvedValue({ account_id: 'user-1' }),
+  create: vi.fn().mockResolvedValue(new Uint8Array([80, 75, 3, 4])),
+}));
 
 function authClient() {
   return {
@@ -28,6 +32,10 @@ function adminClient() {
 vi.mock('@supabase/supabase-js', () => ({
   createClient: (_url: string, key: string) => (key === 'svc-key' ? adminClient() : authClient()),
 }));
+vi.mock('@/lib/epistemic/server-judgment-archive', () => ({
+  collectServerJudgmentArchive: archiveMocks.collect,
+  createJudgmentArchive: archiveMocks.create,
+}));
 
 import { GET } from '../route';
 
@@ -41,6 +49,8 @@ beforeEach(() => {
   vi.stubEnv('SUPABASE_SERVICE_ROLE_KEY', 'svc-key');
   tokenUser = { id: 'user-1', email: 'a@b.co', created_at: '2026-01-01T00:00:00Z' };
   selectedFor.length = 0;
+  archiveMocks.collect.mockClear();
+  archiveMocks.create.mockClear();
 });
 afterEach(() => vi.unstubAllEnvs());
 
@@ -79,5 +89,16 @@ describe('GET /api/account/export — auth gate', () => {
     expect(new Set(selectedFor)).toEqual(new Set(['user-1']));
     const json = JSON.parse(await res.text());
     expect(json.user.id).toBe('user-1');
+  });
+
+  it('exports the signed portable archive branch from a native Request URL', async () => {
+    const request = new Request('https://argus.voyage/api/account/export?format=judgment-archive', {
+      headers: { authorization: 'Bearer good' },
+    }) as never;
+    const res = await GET(request);
+    expect(res.status).toBe(200);
+    expect(res.headers.get('content-type')).toBe('application/zip');
+    expect(new Uint8Array(await res.arrayBuffer())).toEqual(new Uint8Array([80, 75, 3, 4]));
+    expect(archiveMocks.collect).toHaveBeenCalledWith(expect.anything(), 'user-1');
   });
 });

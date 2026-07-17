@@ -2,7 +2,7 @@
 name: scan
 user-invocable: false
 description: "Recover decision candidates from past Claude Code conversations in this project. This is the ambient-capture entry point: it finds decisions that happened outside `/argus:sail`, writes them as local candidate ledger events, and does not seal anything automatically. Use when the user asks to scan past chats, recover decisions, harvest decisions, or asks what argus-watch scan used to do. Invoked as `/argus:scan`."
-argument-hint: "[--since days] [--all-projects] [--list]"
+argument-hint: "[--since days] [--all-projects] [--list] [--status] [--purge <id|all>]"
 ---
 
 # /argus:scan
@@ -25,9 +25,11 @@ turning into later-checkable contracts with `/argus:predict <id>`.
 - No args: scan this project for fresh transcript turns.
 - `--since <days>`: scan only recent transcript files.
 - `--all-projects`: scan all Claude Code project transcripts.
-- `--model sonnet|haiku|opus`: model for the detector; default `sonnet`.
 - `--concurrency <n>`: bounded parallel detector calls; default `3`.
 - `--list`: list current unsealed candidates without scanning.
+- `--status`: show content-free background capture queue lifecycle status.
+- `--purge <id|all>`: explicitly remove local transcript/session coordinates
+  from one or all non-leased queue receipts.
 
 ---
 
@@ -57,8 +59,9 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/decision-ledger.js" scan --list
 ## Relationship To argus-watch
 
 `argus-watch scan` was the prototype. `/argus:scan` is now the normal plugin
-path. It uses the user's existing Claude Code auth via headless `claude -p`; no
-webapp login and no API key are required.
+path. Foreground scan and opt-in background capture use the same deterministic
+extractor port, exact-source byte verification, stable identity, and canonical
+writer. No separate detector prompt, webapp login, or API key is involved.
 
 ---
 

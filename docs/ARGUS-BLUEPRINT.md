@@ -782,7 +782,11 @@ Desktop은 README 설정 그대로가 전 도구 실패, 영수증 렌더러는 
 
 ### 9.8 병렬 권한 트랙 E — 자기지식과 AI 영향의 거버넌스 (2026-07-17 신설, 창업자 승인)
 
-정본: `docs/DESIGN-epistemic-agency-and-self-knowledge-governance-v1-2026-07-17.md`.
+헌법 정본: `docs/DESIGN-epistemic-agency-and-self-knowledge-governance-v1-2026-07-17.md`.
+O3/E1/E2 이후 저장·회수·동기화·E3/E4 실행 정본:
+`docs/DESIGN-judgment-continuity-runtime-v1-2026-07-18.md` (**JCR**, 2026-07-18
+창업자 요청 등록). JCR은 E 불변식을 바꾸지 않고 authority aggregate, artifact,
+Judgment Recall, Context Compiler, portability/erasure의 구현 순서와 검증 gate를 소유한다.
 이 트랙은 K의 지식 그래프를 다시 만들지 않는다. **K가 판단 기록에서 후보 패턴을
 생산한다면, E는 그 패턴이 언제 ‘나에 대한 지식’으로 승격되고 언제 미래 AI의
 질문·검색·생성에 영향을 줄 자격을 얻는지 통제한다.**
@@ -817,10 +821,12 @@ Desktop은 README 설정 그대로가 전 도구 실패, 영수증 렌더러는 
   AI-authored 이유를 자기지식·프롬프트 영향 경로에서 분리한다.
 - **E2 · 영향 제어면 shadow:** SelfKnowledgeClaim/InfluenceGrant/InfluenceTrace를 E
   namespace에 기본 grant 0으로 두고, K 객체는 read-only 참조한다.
-- **E3 · 자기지식 검토 표면:** **O4 통과 후에만.** K C3 후보를 관찰·반례·범위·질문
+- **E3A · durable authority foundation (지금, shadow):** claim별 authority aggregate,
+  use receipt/trace 분리, artifact, sync, restore/erasure를 사용자 표면 없이 닫는다.
+- **E3B · 자기지식 검토 표면:** **O4 통과 후에만.** K C3 후보를 관찰·반례·범위·질문
   카드로 투영하며 endorse와 grant를 한 탭으로 합치지 않는다.
-- **E4 · 합성 관점 방화벽:** **O3 Boss 교체 후.** role-play 수렴을 현실 합의나 증거
-  가중치로 바꾸는 경로를 제거한다.
+- **E4 · 합성 관점 방화벽 (선행조건 충족):** O3 Boss 교체가 PR #180으로 완료됐다.
+  role-play 수렴을 현실 합의나 증거 가중치로 바꾸는 경로를 제거한다.
 
 **무접촉 경계:** O2의 ledger/Core/writer/statusline, O3의 driver·plugin·명령·설치
 문구·Boss 구현, K의 `argus-mcp/src/v4/**`와 `src/lib/semantic-v4/**`, 웹 공정 5의
