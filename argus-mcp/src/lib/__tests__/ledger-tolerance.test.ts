@@ -52,3 +52,39 @@ describe('replay tolerance for unknown versioned events', () => {
     expect(s.integrity).toEqual({ dropped_lines: 0, skipped_unknown: 0 });
   });
 });
+
+describe('plugin-written events on the SHARED ledger (O2 방1 cross-surface vocab)', () => {
+  it('a plugin wake event — even an OLD unstamped one — is known, not corruption', () => {
+    const dir = tmpArgusDir();
+    writeLedger(dir, [
+      seal('lean:s1'),
+      // pre-2026-07-17 plugin shape: no v, no ts, only at — used to count as dropped
+      JSON.stringify({ id: 'lean:s1', event: 'wake', lean_before: 'x', lean_after: 'y', at: '2026-07-02T00:00:00Z' }),
+    ]);
+    const s = replayLedger(dir, '2026-07-02');
+    expect(s.integrity.dropped_lines).toBe(0);
+    expect(s.contracts.get('lean:s1')?.status).toBe('sealed'); // wake is not a decision transition
+  });
+
+  it("legacy outcome 'happened' buckets as held — total_settled equals the bucket sum again", () => {
+    const dir = tmpArgusDir();
+    writeLedger(dir, [
+      seal('d1'),
+      JSON.stringify({ id: 'd1', event: 'settle', outcome: 'happened', at: '2026-07-02T10:00:00Z' }),
+    ]);
+    const s = replayLedger(dir, '2026-07-03');
+    expect(s.stats.total_settled).toBe(1);
+    expect(s.stats.held).toBe(1); // was 0 — the bucket silently missed plugin settles
+    expect(s.contracts.get('d1')?.outcome).toBe('happened'); // bytes stay honest; only the bucket aliases
+  });
+
+  it("a plugin settle stamped only with `at` still gets its settled date (ts/at dual read)", () => {
+    const dir = tmpArgusDir();
+    writeLedger(dir, [
+      seal('d2'),
+      JSON.stringify({ id: 'd2', event: 'settle', outcome: 'held', at: '2026-07-02T10:00:00Z' }),
+    ]);
+    const s = replayLedger(dir, '2026-07-03');
+    expect(s.contracts.get('d2')?.settled_on).toBe('2026-07-02');
+  });
+});

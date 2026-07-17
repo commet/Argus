@@ -184,6 +184,10 @@ function applyV2Line(e, map, acc) {
         if (val("check_by")) cur.check_by = val("check_by");
       }
       break;
+    // NOTE deliberately NO "defer" case here: v2 has no defer event by design —
+    // the mirror maps v1 defer → v2 amend(check_by) (argus-mcp/src/v2/mirror.ts),
+    // so the amend case above already covers re-arms. Adding a dead vocabulary
+    // branch here would be exactly the drift O2 exists to kill.
     case "snooze":
       if (cur && typeof e.until === "string") cur.snoozed_until = e.until;
       break;

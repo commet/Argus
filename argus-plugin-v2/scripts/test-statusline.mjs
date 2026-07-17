@@ -175,6 +175,14 @@ t("amend pushes check_by out of overdue", () => {
   assert(lines(run(r)).length === 1, "amended date should not be overdue");
 });
 
+t("MCP defer (still_pending re-arm) pushes check_by out of overdue too", () => {
+  // O2 방1 finding ②: without a defer case the statusline showed OVERDUE
+  // forever after the user had already answered "not yet" on the MCP side.
+  const r = repo();
+  ledger(r, bet("aaaa0001", iso(-5), "아직 모르는 결정", [{ event: "defer", from: iso(-5), check_by: iso(30) }]));
+  assert(lines(run(r)).length === 1, "deferred date should not be overdue");
+});
+
 t("fresh bearing → status + summary + fog", () => {
   const r = repo();
   bearing(r, {}, 0.1);

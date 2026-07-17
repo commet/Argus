@@ -129,6 +129,12 @@ t("amend pulls check_by into the past → fires", () => {
   assert(run(r).includes("/argus:resolve"), "amended-overdue must fire");
 });
 
+t("MCP defer (still_pending re-arm) → silence until the NEW date (O2 방1 finding ③)", () => {
+  const r = repo();
+  ledger(r, bet("aaaa0001", iso(-5), "아직 모르는 결정", [{ event: "defer", from: iso(-5), check_by: iso(14) }]));
+  assert(run(r) === "", "deferred contract must not keep nagging on the stale date");
+});
+
 t("dismissed contract → silence", () => {
   const r = repo();
   ledger(r, bet("aaaa0001", iso(-3), "기각된 결정", [{ event: "dismiss" }]));

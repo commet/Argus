@@ -203,9 +203,16 @@ export function replayLedger(argusDir: string, today: string): LedgerState {
         stats.total_settled++;
         const outcome = ev['outcome'] as string | undefined;
         cur.outcome = outcome;
-        if (typeof ev['ts'] === 'string' && ev['ts'].length >= 10) cur.settled_on = ev['ts'].slice(0, 10);
+        // Timestamp field is two-vocab across surfaces: this binary stamps `ts`,
+        // the plugin CLI stamps `at` — read both so a plugin-settled decision
+        // still gets its settled date on the receipt (O2 방1 finding ⑤).
+        const settledTs = typeof ev['ts'] === 'string' ? ev['ts'] : typeof ev['at'] === 'string' ? ev['at'] : undefined;
+        if (settledTs && settledTs.length >= 10) cur.settled_on = settledTs.slice(0, 10);
         if (typeof ev['broken_premise_id'] === 'string') cur.broken_premise_id = ev['broken_premise_id'];
-        if (outcome === 'held') stats.held++;
+        // `happened` is the plugin CLI's legacy spelling of `held` (pre plain-canon
+        // unification). Old ledgers keep their bytes — the alias lives at read time
+        // so the frequency buckets stay complete (total_settled == sum of buckets).
+        if (outcome === 'held' || outcome === 'happened') stats.held++;
         else if (outcome === 'avoided') stats.avoided++;
         else if (outcome === 'partial') stats.partial++;
         else if (outcome === 'still_pending') stats.still_pending++;
@@ -336,6 +343,16 @@ export function replayLedger(argusDir: string, today: string): LedgerState {
 
       case 'gate_input':
         break; // known meta event (over-fire gate audit) — not a state change, not corrupt
+
+      case 'wake':
+        // Plugin-side event (sail Step 7.5: the in-session 1st settlement of the
+        // BIND lean — did the user's own read hold once the reviewers were in?).
+        // Session-scoped, not part of the decision state machine; the plugin's
+        // own reducer folds it. Until 2026-07-17 this binary counted it as a
+        // DROPPED line (plugin events carried no `v` stamp), so a ledger shared
+        // between the plugin and the MCP raised a false corruption alarm on
+        // check_in (O2 방1 cross-surface finding ①).
+        break;
 
       // ── 당직 루프 (§9) — outside the decision state machine. No contract
       //    entry is created; nothing touches stats. Anchor is a note, not a bet.

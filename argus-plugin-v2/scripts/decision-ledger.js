@@ -84,7 +84,13 @@ function ensureLedgerIgnored() {
 function appendEvent(event) {
   ensureLedgerIgnored();
   fs.mkdirSync(ledgerDir(), { recursive: true });
-  fs.appendFileSync(ledgerFile(), `${JSON.stringify({ ...event, at: new Date().toISOString() })}\n`);
+  // v + ts: the ledger file is SHARED with argus-decision-mcp, whose replay
+  // treats an unknown event WITHOUT a `v` stamp as a corrupt line (dropped++)
+  // and reads timestamps from `ts` — an unstamped plugin event raised a false
+  // corruption alarm on the MCP side and lost its settled date (O2 방1
+  // findings ①⑤). `at` stays for existing plugin readers; same instant.
+  const now = new Date().toISOString();
+  fs.appendFileSync(ledgerFile(), `${JSON.stringify({ v: 1, ...event, ts: now, at: now })}\n`);
 }
 
 function itemsFile() {
@@ -817,15 +823,21 @@ function cmdStatus() {
 // stamps `at`. Reality answers; Argus never grades — so no score is recorded.
 function cmdSettle() {
   const id = flags._[0];
-  const outcome = String(flags.outcome || "");
-  const OUTCOMES = ["happened", "avoided", "partial"];
+  // Canonical outcome vocabulary is the MCP's (plain canon, §9.7): held /
+  // avoided / partial / missed. `happened` (this CLI's legacy spelling of
+  // `held`) stays ACCEPTED as input but is normalized at write time, so new
+  // ledger lines speak one vocabulary while old lines keep their bytes (the
+  // MCP replay aliases `happened`→held on read for those — O2 방1 finding ④).
+  const raw = String(flags.outcome || "");
+  const outcome = raw === "happened" ? "held" : raw;
+  const OUTCOMES = ["held", "avoided", "partial", "missed"];
   const BASES = ["reasoned", "luck", "external", "mixed"];
   if (!id) {
-    console.error('Usage: decision-ledger.js settle <id> --outcome happened|avoided|partial [--basis reasoned|luck|external|mixed] [--note "<one sentence>"]');
+    console.error('Usage: decision-ledger.js settle <id> --outcome held|avoided|partial|missed [--basis reasoned|luck|external|mixed] [--note "<one sentence>"]');
     process.exit(1);
   }
   if (!OUTCOMES.includes(outcome)) {
-    console.error(`--outcome must be one of ${OUTCOMES.join("|")}`);
+    console.error(`--outcome must be one of ${OUTCOMES.join("|")} (legacy alias: happened=held)`);
     process.exit(1);
   }
   const event = { event: "settle", id, outcome };
