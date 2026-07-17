@@ -11,6 +11,10 @@
     "challenged_claims",
     "unresolved_tensions",
     "human_required_checks",
+    "synthetic_independence_units",
+    "strongest_dissent",
+    "unknowns_that_block_judgment",
+    "reality_check_questions",
     "routing_decision",
     "generated_at"
   ],
@@ -27,7 +31,7 @@
     },
     "supported_claims": {
       "type": "array",
-      "description": "Positive validation: claims that are supported by worker evidence, code citations, source references, or cross-agent agreement.",
+      "description": "Positive validation backed by inspectable evidence, code citations, source references, or explicit reasoning. Cross-agent repetition alone is never support.",
       "items": {
         "type": "object",
         "required": ["claim", "support", "evidence_refs"],
@@ -127,6 +131,30 @@
           "estimated_effort": { "type": "string" }
         }
       }
+    },
+    "synthetic_independence_units": {
+      "const": 1,
+      "description": "All workers/perspectives over this source input form one synthetic unit. This count never raises verification confidence or claim support."
+    },
+    "strongest_dissent": {
+      "type": "object",
+      "required": ["kind", "statement", "source_refs", "search_method"],
+      "properties": {
+        "kind": { "enum": ["observed", "elicited_counter_lens", "none_found"] },
+        "statement": { "type": "string" },
+        "source_refs": { "type": "array", "items": { "type": "string" } },
+        "search_method": { "type": "string", "minLength": 1 }
+      }
+    },
+    "unknowns_that_block_judgment": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Missing reality or human facts that prevent a truth claim. Field is mandatory even when empty."
+    },
+    "reality_check_questions": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Concrete questions that can settle the unknowns outside the synthetic set. Field is mandatory even when empty."
     },
     "claim_tests": {
       "type": "array",

@@ -1,0 +1,116 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "argus:synthetic-perspective-set",
+  "title": "SyntheticPerspectiveSet",
+  "description": "A set of agent/persona perspectives over one source input. The set is one synthetic independence unit regardless of worker count; source-backed claims are verified separately.",
+  "type": "object",
+  "required": [
+    "artifact_kind",
+    "schema_version",
+    "set_id",
+    "source_case_id",
+    "generator_lineage",
+    "prompt_version",
+    "independence_units",
+    "perspectives",
+    "convergent_simulated_concerns",
+    "team_contradictions",
+    "strongest_dissent",
+    "unknowns_that_block_judgment",
+    "reality_check_questions"
+  ],
+  "properties": {
+    "artifact_kind": { "const": "synthetic_perspective_set" },
+    "schema_version": { "const": 2 },
+    "set_id": { "type": "string", "minLength": 1 },
+    "source_case_id": { "type": "string", "minLength": 1 },
+    "generator_lineage": { "$ref": "#/definitions/modelLineage" },
+    "prompt_version": { "type": "string", "minLength": 1 },
+    "independence_units": {
+      "const": 1,
+      "description": "Agent/model/persona multiplicity over one input never creates independent reality support."
+    },
+    "perspectives": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["perspective_id", "seat", "model_lineage", "concerns", "source_claim_refs"],
+        "properties": {
+          "perspective_id": { "type": "string", "minLength": 1 },
+          "seat": {
+            "type": "object",
+            "required": ["owns", "goals", "authority"],
+            "properties": {
+              "owns": { "type": "string" },
+              "goals": { "type": "array", "items": { "type": "string" } },
+              "authority": { "type": "string", "description": "Seat metadata only; never truth or evidence weight." }
+            }
+          },
+          "model_lineage": { "$ref": "#/definitions/modelLineage" },
+          "concerns": { "type": "array", "items": { "type": "string" } },
+          "source_claim_refs": { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    },
+    "convergent_simulated_concerns": {
+      "type": "array",
+      "description": "Recurring synthetic concerns. Recurrence is not consensus, truth, confidence, priority, or support.",
+      "items": {
+        "type": "object",
+        "required": ["statement", "perspective_ids", "source_refs"],
+        "properties": {
+          "statement": { "type": "string" },
+          "perspective_ids": { "type": "array", "minItems": 2, "uniqueItems": true, "items": { "type": "string" } },
+          "source_refs": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string" } }
+        }
+      }
+    },
+    "team_contradictions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["topic", "positions"],
+        "properties": {
+          "topic": { "type": "string" },
+          "positions": {
+            "type": "array",
+            "minItems": 2,
+            "items": {
+              "type": "object",
+              "required": ["perspective_id", "stance"],
+              "properties": {
+                "perspective_id": { "type": "string" },
+                "stance": { "type": "string" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "strongest_dissent": {
+      "type": "object",
+      "required": ["kind", "statement", "source_refs", "search_method"],
+      "properties": {
+        "kind": { "enum": ["observed", "elicited_counter_lens", "none_found"] },
+        "statement": { "type": "string" },
+        "source_refs": { "type": "array", "items": { "type": "string" } },
+        "search_method": { "type": "string", "minLength": 1 }
+      }
+    },
+    "unknowns_that_block_judgment": { "type": "array", "items": { "type": "string" } },
+    "reality_check_questions": { "type": "array", "items": { "type": "string" } }
+  },
+  "definitions": {
+    "modelLineage": {
+      "type": "object",
+      "required": ["provider", "model_family", "model_id", "prompt_version", "source_input_cluster_ids"],
+      "properties": {
+        "provider": { "type": "string" },
+        "model_family": { "type": "string" },
+        "model_id": { "type": "string" },
+        "prompt_version": { "type": "string" },
+        "source_input_cluster_ids": { "type": "array", "minItems": 1, "items": { "type": "string" } }
+      }
+    }
+  }
+}

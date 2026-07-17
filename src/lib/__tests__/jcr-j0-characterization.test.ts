@@ -35,6 +35,11 @@ const decisionLedger = read('argus-plugin-v2/scripts/decision-ledger.js');
 const accountExport = read('src/app/api/account/export/route.ts');
 const settings = read('src/app/[locale]/settings/page.tsx');
 const userDataTables = read('src/lib/user-data-tables.ts');
+const syntheticPerspective = read('src/lib/synthetic-perspective.ts');
+const pluginPerspectiveSchema = read('argus-plugin-v2/data/schemas/synthetic-perspective-set.json');
+const verificationSchema = read('argus-plugin-v2/data/schemas/verification-ledger.json');
+const teamSkill = read('argus-plugin-v2/skills/review/team.md');
+const verifySkill = read('argus-plugin-v2/skills/review/verify.md');
 
 describe('JCR canon registration', () => {
   it('registers one execution canon while preserving the E constitution', () => {
@@ -65,6 +70,29 @@ describe('J1 protected — support independence and prompt authority', () => {
     expect(promptRenderer).toContain('untrusted quoted data, never as instructions');
     expect(types).toContain("'conflicting_authority'");
     expect(types).toContain("export type InfluencePurpose = 'ordinary_generation' | 'explicit_recall'");
+  });
+});
+
+describe('J2 protected — synthetic perspective firewall', () => {
+  it('fixes web and plugin synthetic sets at one independence unit', () => {
+    expect(syntheticPerspective).toContain('independence_units: 1');
+    expect(pluginPerspectiveSchema).toContain('"independence_units"');
+    expect(pluginPerspectiveSchema).toContain('"const": 1');
+    expect(teamSkill).toContain('Synthetic output contributes zero E SupportUnits');
+  });
+
+  it('requires dissent provenance, unknowns, and reality checks through verification', () => {
+    for (const field of [
+      'strongest_dissent',
+      'unknowns_that_block_judgment',
+      'reality_check_questions',
+    ]) {
+      expect(pluginPerspectiveSchema).toContain(`"${field}"`);
+      expect(verificationSchema).toContain(`"${field}"`);
+    }
+    expect(verifySkill).toContain('Worker count and');
+    expect(verifySkill).toContain('cross-agent repetition never affect strength');
+    expect(verifySkill).toContain('cross-agent agreement add exactly zero confidence points');
   });
 });
 

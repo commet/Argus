@@ -141,6 +141,7 @@ for (const schema of [
   "analysis-snapshot.json",
   "worker-result.json",
   "verification-ledger.json",
+  "synthetic-perspective-set.json",
   "current-bearing.json",
   "mix-result.json",
   "dm-feedback.json",
@@ -196,6 +197,43 @@ if (finalScaffold) {
   check(
     finalScaffold.properties?.verification?.properties?.routing_decision?.enum?.includes("not_run"),
     "FinalScaffold verification routing_decision must include not_run"
+  );
+}
+
+const perspectiveSet = readJson(path.join(root, "data", "schemas", "synthetic-perspective-set.json"));
+if (perspectiveSet) {
+  for (const field of [
+    "generator_lineage",
+    "prompt_version",
+    "independence_units",
+    "perspectives",
+    "convergent_simulated_concerns",
+    "team_contradictions",
+    "strongest_dissent",
+    "unknowns_that_block_judgment",
+    "reality_check_questions",
+  ]) {
+    check(perspectiveSet.required?.includes(field), `SyntheticPerspectiveSet must require ${field}`);
+  }
+  check(
+    perspectiveSet.properties?.independence_units?.const === 1,
+    "SyntheticPerspectiveSet independence_units must be const 1"
+  );
+}
+
+const verificationLedger = readJson(path.join(root, "data", "schemas", "verification-ledger.json"));
+if (verificationLedger) {
+  for (const field of [
+    "synthetic_independence_units",
+    "strongest_dissent",
+    "unknowns_that_block_judgment",
+    "reality_check_questions",
+  ]) {
+    check(verificationLedger.required?.includes(field), `VerificationLedger must require ${field}`);
+  }
+  check(
+    verificationLedger.properties?.synthetic_independence_units?.const === 1,
+    "VerificationLedger synthetic_independence_units must be const 1"
   );
 }
 

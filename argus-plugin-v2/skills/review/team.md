@@ -464,6 +464,33 @@ Prompt yourself:
 
 Write result to `versions/{label}/mix.json`.
 
+### Step 8.5 — Write the SyntheticPerspectiveSet firewall
+
+Write `versions/{label}/perspective_set.json` conforming to
+`${CLAUDE_PLUGIN_ROOT}/data/schemas/synthetic-perspective-set.json`.
+
+- `source_case_id` is this session/version input cluster. Every worker that read
+  the same snapshot points to that same cluster.
+- `generator_lineage`, `prompt_version`, and every perspective's
+  `model_lineage` are mandatory. If the host does not report provider/model,
+  write `"unreported"`; never invent a model identity.
+- `independence_units` is exactly `1`, regardless of worker/model/agent count.
+- Each stage-1/stage-2 output is a perspective with source claim refs. A stage-2
+  echo is still the same unit, not new corroboration.
+- Recurring items go to `convergent_simulated_concerns[]`. Never call them
+  consensus, majority, confidence, proof, support, or priority.
+- Preserve debate axes in `team_contradictions[]`.
+- `strongest_dissent.kind` is `observed` only when the source output contains
+  the dissent, `elicited_counter_lens` when the pipeline deliberately constructs
+  a counter-lens, and `none_found` only with a named search method. Do not blend
+  observed and elicited dissent.
+- Always write `unknowns_that_block_judgment[]` and
+  `reality_check_questions[]` (empty arrays are allowed only after an explicit
+  search). Synthetic output contributes zero E SupportUnits.
+
+This artifact records perspective provenance; it does not replace source-backed
+worker evidence or `verification.json`.
+
 ### Step 9 — Build Candidate FinalScaffold (plugin-native output)
 
 This is the PLUGIN-SPECIFIC divergence from webapp. Webapp produces a markdown document; plugin produces a decision scaffold.
@@ -484,7 +511,7 @@ Write to `versions/{label}/scaffold.json`.
 
 ### Step 10 — Update session.json
 
-- Workers, stages, mix, and the scaffold are ALREADY written write-once to `versions/{label}/` (`workers.json`, `team_plan.json` stages, `mix.json`, `scaffold.json`) — do NOT also copy them into session.json. Duplicating them is exactly the monolithic-blob merge-conflict surface this model removes.
+- Workers, stages, perspective set, mix, and the scaffold are ALREADY written write-once to `versions/{label}/` (`workers.json`, `team_plan.json` stages, `perspective_set.json`, `mix.json`, `scaffold.json`) — do NOT also copy them into session.json. Duplicating them is exactly the monolithic-blob merge-conflict surface this model removes.
 - Update `session.classification` (small routing state — kept in the skeleton)
 - **Append a Draft to `session.drafts[]`** (schema: `${CLAUDE_PLUGIN_ROOT}/data/schemas/draft.json`) and set `session.active_draft_id` to it. Without this the version tree is permanently empty and `--checkout` / `--promote` / branching cannot work. **Concurrency (see session-layout → "the version dirs are authoritative"):** re-read `session.json` *immediately before* this write and append to the drafts[] you find *now* — never to the snapshot you loaded back in Step 1. A second `team --revise` (or another session) may have appended a sibling draft in between; appending to the stale snapshot would atomically erase it. Your `versions/{label}/` dir was created write-once under a unique label so it never collides — only this drafts[] index can lose an entry, and the re-read-then-union (dedup by `version_label`) prevents it. Shape:
   - `id`: stable draft id (e.g. `draft-{label}`)
@@ -558,6 +585,10 @@ User typed `team.md` directly without going through sail. Render the full block:
 - **M1 (Code-native)**: Did `repo_context.mode` match the invocation? If `mode == hypothetical` but the user provided a target (named in prose or via `@` — see clarify §Inputs), something broke. If `mode == repo_scan` but no worker cites a file path in its output, agents didn't actually use repo access — the output is de-facto hypothetical; flag it. **Do NOT flag `mode == document` as a failure** — a non-code decision with no repo is a legitimate, first-class path, not an M1 violation. M1 only governs questions that ARE about code.
 - **M9 (Worker not critic)**: Did each stage-1 worker PRODUCE an artifact in their domain? If any output reads as "I reviewed X and found issues" instead of "here's the X analysis," that's critic mode — reject and re-spawn.
 - **M3 (Contradiction preservation)**: **Only applies when debate ran.** If stakes is critical AND debate ran AND debate found disagreement, `scaffold.team_contradictions[]` MUST contain the debate entry. If debate ran and found no genuine disagreement, empty `team_contradictions[]` is correct and M3 passes. Do NOT fabricate contradiction to fill the array.
+- **M-E4 (Synthetic firewall)**: Does `perspective_set.json` exist with lineage,
+  `independence_units: 1`, strongest dissent provenance, unknowns, and reality
+  checks? Worker/model count must not change evidence weight, priority, or an E
+  SupportUnit count.
 - **M4 (Decision scaffold)**: Does scaffold have `key_trade_offs[]`, `hidden_assumptions[]`, `human_required_checkpoints[]`, `verification`, and `next_actions[]` all present (empty arrays are valid — the fields must EXIST)?
 - **M-Verify handoff**: Does scaffold.verification exist with `overall_status: "unverified"` and `routing_decision: "not_run"`? If absent, the team step is overstating certainty and the scaffold does not conform to schema.
 - **M6 (Agent relationship / stakes-driven)**: Did agent count match stakes budget? If critical stakes with only 2 agents, you under-budgeted.
@@ -579,6 +610,8 @@ User typed `team.md` directly without going through sail. Render the full block:
 - Running `team.md` without prior `clarify.md` session.
 - Spawning agents sequentially when they should be parallel (you MUST use multiple Task tool calls in a single message for stage-1 workers).
 - Collapsing team_contradictions into a "consensus" bullet.
+- Treating worker/model/agent count or repeated synthetic concern as evidence,
+  confidence, truth weight, priority, or independent support.
 - Letting stage-1 workers critique each other. They don't see each other's work until stage 2 (critical stakes only).
 - Using `devils-advocate` as a default agent. It's not in agents.yaml for a reason — critique is in-stage via donghyuk.
 - Writing a "final deliverable markdown document" à la webapp. Plugin emits FinalScaffold. The mix is internal.

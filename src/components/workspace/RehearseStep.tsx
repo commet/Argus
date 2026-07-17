@@ -10,13 +10,13 @@ import { PersonaCard } from '@/components/tools/PersonaCard';
 import { PersonaForm } from '@/components/tools/PersonaForm';
 import { FeedbackRequest } from '@/components/tools/FeedbackRequest';
 import { FeedbackResult } from '@/components/tools/FeedbackResult';
-import { callLLMJson, callLLM } from '@/lib/llm';
+import { callLLMJson } from '@/lib/llm';
 import { toDisplayError, isAuthError } from '@/lib/error-display';
 import { buildReviewPrompt } from '@/lib/review-prompt';
 import { getCurrentLanguage } from '@/lib/i18n';
 import { useAgentStore } from '@/stores/useAgentStore';
 import { useProgressiveStore } from '@/stores/useProgressiveStore';
-import type { Persona, FeedbackRecord, RehearsalResult, HiddenAssumption, StructuredSynthesis, DiscussionMessage } from '@/stores/types';
+import type { Persona, FeedbackRecord, RehearsalResult, HiddenAssumption, DiscussionMessage } from '@/stores/types';
 import { useHandoffStore } from '@/stores/useHandoffStore';
 import { useAccuracyStore } from '@/stores/useAccuracyStore';
 import { NextStepGuide } from '@/components/ui/NextStepGuide';
@@ -34,77 +34,16 @@ const lazyVitality = () => import('@/lib/judgment-vitality');
 import { recommendBlindSpotPersona } from '@/lib/auto-persona';
 import type { BlindSpotRecommendation } from '@/lib/auto-persona';
 import { useLocale } from '@/hooks/useLocale';
+import { generateId } from '@/lib/uuid';
+import {
+  buildSyntheticPerspectiveSet,
+  summarizeSyntheticPerspectiveSet,
+  syntheticPerspectiveSystem,
+} from '@/lib/synthetic-perspective';
 
 /* ────────────────────────────────────────────
    Synthesis & discussion prompts (locale-selected)
    ──────────────────────────────────────────── */
-
-const SYNTHESIS_SYSTEM_KO = `여러 이해관계자의 피드백을 종합 분석하세요.
-
-응답 형식 (JSON만 출력):
-{
-  "common_agreements": ["모든 이해관계자가 동의하는 포인트 1~3개"],
-  "key_conflicts": [
-    {
-      "topic": "갈등 주제",
-      "positions": [
-        {"persona_id": "해당 페르소나 ID", "stance": "이 사람의 입장 요약"}
-      ]
-    }
-  ],
-  "priority_actions": [
-    {
-      "action": "우선 수정해야 할 사항",
-      "requested_by": "요청한 이해관계자 이름",
-      "priority": "high 또는 medium"
-    }
-  ]
-}
-
-규칙:
-- 영향력 높은 이해관계자의 우려를 priority "high"로
-- 핵심 위협(critical)과 침묵의 리스크(unspoken)를 우선 반영
-- 한국어로 작성
-- 반드시 JSON만 응답`;
-
-const SYNTHESIS_SYSTEM_EN = `Synthesize and analyze feedback from multiple stakeholders.
-
-Response format (output JSON only):
-{
-  "common_agreements": ["1-3 points all stakeholders agree on"],
-  "key_conflicts": [
-    {
-      "topic": "the conflict topic",
-      "positions": [
-        {"persona_id": "the persona's ID", "stance": "a summary of this person's position"}
-      ]
-    }
-  ],
-  "priority_actions": [
-    {
-      "action": "the change to make first",
-      "requested_by": "the name of the stakeholder who requested it",
-      "priority": "high or medium"
-    }
-  ]
-}
-
-Rules:
-- Mark the concerns of high-influence stakeholders as priority "high"
-- Prioritize critical threats (critical) and unspoken risks (unspoken)
-- Write in English
-- Respond with JSON only`;
-
-function getSynthesisSystem(): string {
-  return getCurrentLanguage() === 'ko' ? SYNTHESIS_SYSTEM_KO : SYNTHESIS_SYSTEM_EN;
-}
-
-const SYNTHESIS_FALLBACK_SYSTEM_KO = '여러 이해관계자의 피드백을 종합하세요. 1) 공통 지적 사항 2) 페르소나별로 다른 반응 3) 우선 수정 권고. 한국어로 답변하세요.';
-const SYNTHESIS_FALLBACK_SYSTEM_EN = 'Synthesize feedback from multiple stakeholders. 1) Common points raised 2) Reactions that differ by persona 3) Recommended fixes in priority order. Answer in English.';
-
-function getSynthesisFallbackSystem(): string {
-  return getCurrentLanguage() === 'ko' ? SYNTHESIS_FALLBACK_SYSTEM_KO : SYNTHESIS_FALLBACK_SYSTEM_EN;
-}
 
 const DISCUSSION_SYSTEM_KO = `이해관계자들이 자료를 검토한 후 회의실에서 토론합니다.
 각 이해관계자의 개별 피드백을 보고, 서로의 의견에 반응하는 대화를 시뮬레이션하세요.
@@ -353,29 +292,47 @@ export function RehearseStep({ onNavigate }: RehearseStepProps) {
         throw new Error(L('모든 페르소나 피드백이 실패했습니다. 다시 시도해주세요.', 'All persona feedback failed. Please try again.'));
       }
 
-      let synthesis = '';
-      let structured_synthesis: StructuredSynthesis | undefined;
+      let synthesisOutput: Record<string, unknown> | undefined;
       if (results.length > 1) {
         const feedbackSummary = results.map((r) => {
           const p = getPersona(r.persona_id);
-          const influence = p?.influence || 'medium';
-          return `### ${p?.name} (ID: ${r.persona_id}, ${L('영향력', 'influence')}: ${influence})\n${L('질문', 'Questions')}: ${(r.first_questions || []).join('; ')}\n${L('칭찬', 'Praise')}: ${(r.praise || []).join('; ')}\n${L('우려', 'Concerns')}: ${(r.concerns || []).join('; ')}${r.classified_risks ? `\n${L('리스크', 'Risks')}: ${r.classified_risks.map(cr => `[${cr.category}] ${cr.text}`).join('; ')}` : ''}`;
+          return `### ${p?.name} (perspective_id: perspective:${r.persona_id})\n${L('질문', 'Questions')}: ${(r.first_questions || []).join('; ')}\n${L('칭찬', 'Praise')}: ${(r.praise || []).join('; ')}\n${L('우려', 'Concerns')}: ${(r.concerns || []).join('; ')}${r.classified_risks ? `\n${L('리스크', 'Risks')}: ${r.classified_risks.map(cr => `[${cr.category}] ${cr.text}`).join('; ')}` : ''}`;
         }).join('\n\n');
 
         try {
-          const synthResult = await callLLMJson<StructuredSynthesis>(
+          synthesisOutput = await callLLMJson<Record<string, unknown>>(
             [{ role: 'user', content: feedbackSummary }],
-            { system: getSynthesisSystem(), maxTokens: 1500, shape: { common_agreements: 'array', key_conflicts: 'array', priority_actions: 'array' } }
+            {
+              system: syntheticPerspectiveSystem(getCurrentLanguage()),
+              maxTokens: 1800,
+              shape: {
+                convergent_simulated_concerns: 'array',
+                team_contradictions: 'array',
+                strongest_dissent: 'object',
+                unknowns_that_block_judgment: 'array',
+                reality_check_questions: 'array',
+              },
+            }
           );
-          structured_synthesis = synthResult;
-          synthesis = L(`공통 합의: ${synthResult.common_agreements.join(', ')}. 핵심 갈등: ${synthResult.key_conflicts.map(c => c.topic).join(', ')}.`, `Common agreements: ${synthResult.common_agreements.join(', ')}. Key conflicts: ${synthResult.key_conflicts.map(c => c.topic).join(', ')}.`);
         } catch {
-          synthesis = await callLLM(
-            [{ role: 'user', content: feedbackSummary }],
-            { system: getSynthesisFallbackSystem(), maxTokens: 1500 }
-          );
+          // A failed synthesis must leave explicit unknowns, never a plausible
+          // free-text shared conclusion. The typed builder supplies that set.
         }
       }
+      const structured_synthesis = buildSyntheticPerspectiveSet({
+        setId: `perspective-set:${generateId()}`,
+        sourceCaseId: `rehearse-case:${generateId()}`,
+        results,
+        personas: results.flatMap((result) => {
+          const persona = getPersona(result.persona_id);
+          return persona ? [persona] : [];
+        }),
+        synthesisOutput,
+      });
+      const synthesis = summarizeSyntheticPerspectiveSet(
+        structured_synthesis,
+        getCurrentLanguage(),
+      );
 
       const recordId = addFeedbackRecord({
         document_title: data.documentTitle || L('제목 없음', 'Untitled'),

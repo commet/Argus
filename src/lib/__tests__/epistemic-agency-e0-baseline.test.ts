@@ -32,6 +32,8 @@ const decisionQuality = read('src/lib/decision-quality.ts');
 const narrate = read('src/lib/voyage-log-narrate.ts');
 const voyageLog = read('src/lib/voyage-log.ts');
 const rehearse = read('src/components/workspace/RehearseStep.tsx');
+const syntheticPerspective = read('src/lib/synthetic-perspective.ts');
+const feedbackResult = read('src/components/tools/FeedbackResult.tsx');
 const progressive = read('src/components/workspace/progressive/ProgressiveFlow.tsx');
 const workspacePage = read('src/app/[locale]/workspace/page.tsx');
 const settingsPage = read('src/app/[locale]/settings/page.tsx');
@@ -165,21 +167,28 @@ describe('E-B3 protected gate — AI interpretation cannot occupy a user-reason 
   });
 });
 
-describe('E-B4 baseline RED — synthetic lenses are rendered as stakeholder consensus', () => {
-  it('asks for what all stakeholders agree on and promotes high-influence concerns', () => {
-    expect(rehearse).toContain('모든 이해관계자가 동의하는 포인트 1~3개');
-    expect(rehearse).toContain('1-3 points all stakeholders agree on');
-    expect(rehearse).toContain('영향력 높은 이해관계자의 우려를 priority "high"로');
-    expect(rehearse).toContain("shape: { common_agreements: 'array', key_conflicts: 'array', priority_actions: 'array' }");
+describe('E-B4 protected — synthetic lenses cannot become stakeholder consensus or truth weight', () => {
+  it('writes a one-unit perspective set without influence-ranked actions', () => {
+    expect(rehearse).not.toContain('모든 이해관계자가 동의하는 포인트 1~3개');
+    expect(rehearse).not.toContain('1-3 points all stakeholders agree on');
+    expect(rehearse).not.toContain('영향력 높은 이해관계자의 우려를 priority "high"로');
+    expect(rehearse).not.toContain("shape: { common_agreements: 'array', key_conflicts: 'array', priority_actions: 'array' }");
+    expect(rehearse).toContain('buildSyntheticPerspectiveSet({');
+    expect(syntheticPerspective).toContain('independence_units: 1');
+    expect(syntheticPerspective).toContain('Persona count, repetition, and influence never increase evidence');
+    expect(feedbackResult).not.toContain('공통 합의');
+    expect(feedbackResult).not.toContain('Common agreements');
+    expect(feedbackResult).not.toContain('긴급');
   });
 });
 
-describe('E-B5 partial guard — conflicts exist, but strongest dissent and missing evidence are not mandatory', () => {
-  it('keeps a generic conflict field without a structural dissent/unknown slot', () => {
-    expect(rehearse).toContain('key_conflicts');
-    expect(rehearse).not.toContain('strongest_dissent');
-    expect(rehearse).not.toContain('missing_evidence');
-    expect(rehearse).not.toContain('unknowns_that_block_judgment');
+describe('E-B5 protected — dissent provenance, unknowns, and reality checks are structural', () => {
+  it('requires typed dissent and the two honest-gap fields on every new synthesis', () => {
+    expect(rehearse).toContain("strongest_dissent: 'object'");
+    expect(rehearse).toContain("unknowns_that_block_judgment: 'array'");
+    expect(rehearse).toContain("reality_check_questions: 'array'");
+    expect(types).toContain("'observed' | 'elicited_counter_lens' | 'none_found'");
+    expect(syntheticPerspective).toContain('legacy_simulated_convergence');
   });
 });
 
