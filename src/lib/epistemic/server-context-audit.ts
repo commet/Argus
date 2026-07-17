@@ -14,8 +14,12 @@ export class ServerContextAuditStore implements ContextAuditStore {
   constructor(
     private readonly admin: AdminClient,
     private readonly userId: string,
-    private readonly retentionMs = 7 * 24 * 60 * 60 * 1000,
-  ) {}
+    private readonly retentionMs: number,
+  ) {
+    if (!Number.isSafeInteger(retentionMs) || retentionMs <= 0) {
+      throw new Error('CONTEXT_RETENTION_POLICY_REQUIRED');
+    }
+  }
 
   private async isExactRetry(trace: ContextCompilerTrace, capsule: ContextCapsule | null): Promise<boolean | null> {
     const { data, error } = await this.admin

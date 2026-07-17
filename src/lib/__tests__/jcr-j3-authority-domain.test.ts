@@ -198,15 +198,25 @@ describe('JCR J3 authority aggregate', () => {
   it('purges sensitive aggregate content on hard forget', () => {
     const adapter = new LocalAuthorityAdapter({ user_id: 'user:1', clock: () => NOW });
     adapter.execute(propose('claim:forget'));
-    const receipt = adapter.execute(command({
+    const forgetCommand = command({
       type: 'ForgetClaim', claim_id: 'claim:forget', confirmation: authored('Forget this claim.'),
       expected_aggregate_version: 1, expected_authority_epoch: 1,
-    }));
+    });
+    const receipt = adapter.execute(forgetCommand);
     expect(receipt).toMatchObject({ status: 'applied', authority_epoch: 2 });
     expect(adapter.readState('claim:forget')).toMatchObject({
       lifecycle: 'forgotten', statement: null, scope: null, support_units: [], counterexamples: [],
     });
-    expect(JSON.stringify(adapter.readEvents('claim:forget').at(-1))).not.toContain('Forget this claim.');
+    expect(adapter.readEvents('claim:forget')).toEqual([]);
+    expect(adapter.listErasureReceipts()).toEqual([expect.objectContaining({
+      claim_id: 'claim:forget', content_purged: true,
+    })]);
+    expect(JSON.stringify(adapter.listErasureReceipts())).not.toContain('Forget this claim.');
+    expect(adapter.readPolicy().erasure_epoch).toBe(1);
+    expect(adapter.execute(forgetCommand)).toMatchObject({ status: 'exact_retry' });
+    expect(adapter.execute(propose('claim:new-after-forget'))).toMatchObject({
+      status: 'rejected', rejection: 'stale_erasure_epoch',
+    });
   });
 });
 

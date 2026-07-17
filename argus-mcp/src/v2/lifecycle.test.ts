@@ -9,7 +9,10 @@ import os from 'node:os';
 import path from 'node:path';
 import { lookupRepository, projectDir, registerRepository } from './ledger.js';
 import { loadState } from './reducer.js';
-import { doctorBackup, exportBundle, importBundle, purgeRepository } from './lifecycle.js';
+import {
+  doctorBackup, exportBundle, exportPortableLocalArchive, importBundle,
+  planOrPurgeRepository, purgeRepository, restorePortableLocalArchive,
+} from './lifecycle.js';
 
 let home: string;
 let repoDir: string;
@@ -115,5 +118,75 @@ describe('doctorBackup — 마이그레이션 전 백업 부품', () => {
     expect(p).toContain(path.join('backups', 'ledger-'));
     expect(fs.readFileSync(p, 'utf8')).toBe(LEDGER_LINE);
     expect(fs.readFileSync(path.join(projectDir(home, repoId), 'ledger.jsonl'), 'utf8')).toBe(LEDGER_LINE);
+  });
+});
+
+describe('JCR J8 portable archive v2', () => {
+  it('dry-run → exact purge → restore preserves reducer state, legacy marker, and registry binding', () => {
+    fs.writeFileSync(path.join(projectDir(home, repoId), 'v1-migration.json'), '{"status":"migrated"}\n');
+    const manifest = exportPortableLocalArchive(home, repoId, bundle, T0);
+    expect(manifest).toMatchObject({ bundle_version: 2, secrets_excluded: true });
+    expect(manifest.files.map((file) => file.path)).toContain('legacy/v1-migration.json');
+
+    const dryRestore = restorePortableLocalArchive(home, bundle, {
+      dryRun: true, repositoryConfirmation: repoId,
+    });
+    expect(dryRestore).toMatchObject({ applied: false, conflicts: [], corrupted: [], unsupported: [] });
+
+    const dryPurge = planOrPurgeRepository(home, repoId, { dryRun: true, confirmation: repoId });
+    expect(dryPurge).toMatchObject({ dry_run: true, removed_project_dir: false });
+    expect(dryPurge.registry_paths).toHaveLength(1);
+    expect(dryPurge.registry_paths[0]).toMatch(/\.git$/);
+    expect(fs.existsSync(path.join(projectDir(home, repoId), 'ledger.jsonl'))).toBe(true);
+
+    const purged = planOrPurgeRepository(home, repoId, { dryRun: false, confirmation: repoId });
+    expect(purged).toMatchObject({ removed_project_dir: true, removed_registry_entries: 1 });
+    const restored = restorePortableLocalArchive(home, bundle, {
+      dryRun: false, repositoryConfirmation: repoId, gitCommonDir: path.join(repoDir, '.git'),
+    });
+    expect(restored).toMatchObject({ applied: true, semantic_parity: true, registry_bound: true });
+    expect(loadState(home, repoId).decisions.get('d1')?.predicate?.value).toBe('왕복 후에도 남는다');
+    expect(fs.readFileSync(path.join(projectDir(home, repoId), 'v1-migration.json'), 'utf8')).toContain('migrated');
+    expect(lookupRepository(home, path.join(repoDir, '.git'))).toBe(repoId);
+  });
+
+  it('rejects corrupt, symlinked, unmanifested, secret-bearing, and misconfirmed input', () => {
+    exportPortableLocalArchive(home, repoId, bundle, T0);
+    expect(() => restorePortableLocalArchive(home, bundle, {
+      dryRun: true, repositoryConfirmation: 'wrong',
+    })).toThrow('CONFIRMATION_MISMATCH');
+    expect(() => planOrPurgeRepository(home, '../../outside', {
+      dryRun: false, confirmation: '../../outside',
+    })).toThrow('INVALID_REPOSITORY_ID');
+
+    fs.appendFileSync(path.join(bundle, `events/projects/${encodeURIComponent(repoId)}.jsonl`), '{}\n');
+    expect(restorePortableLocalArchive(home, bundle, {
+      dryRun: true, repositoryConfirmation: repoId,
+    }).corrupted).toContain(`events/projects/${encodeURIComponent(repoId)}.jsonl`);
+
+    fs.rmSync(bundle, { recursive: true, force: true });
+    fs.mkdirSync(bundle);
+    exportPortableLocalArchive(home, repoId, bundle, T0);
+    fs.writeFileSync(path.join(bundle, 'unexpected'), 'x');
+    expect(() => restorePortableLocalArchive(home, bundle, {
+      dryRun: true, repositoryConfirmation: repoId,
+    })).toThrow('ARCHIVE_UNMANIFESTED_OR_MISSING_FILE');
+
+    fs.rmSync(bundle, { recursive: true, force: true });
+    fs.mkdirSync(bundle);
+    exportPortableLocalArchive(home, repoId, bundle, T0);
+    const archivedStream = path.join(bundle, `events/projects/${encodeURIComponent(repoId)}.jsonl`);
+    fs.rmSync(archivedStream);
+    fs.symlinkSync(path.join(projectDir(home, repoId), 'ledger.jsonl'), archivedStream);
+    expect(() => restorePortableLocalArchive(home, bundle, {
+      dryRun: true, repositoryConfirmation: repoId,
+    })).toThrow('ARCHIVE_SYMLINK_FORBIDDEN');
+
+    fs.rmSync(bundle, { recursive: true, force: true });
+    fs.mkdirSync(bundle);
+    fs.appendFileSync(path.join(projectDir(home, repoId), 'ledger.jsonl'), LEDGER_LINE
+      .replace('k1', 'secret-key').replace('d1', 'secret-decision')
+      .replace('왕복 후에도 남는다', 'sk-proj-12345678901234567890'));
+    expect(() => exportPortableLocalArchive(home, repoId, bundle, T0)).toThrow('ARCHIVE_SECRET_BLOCKED');
   });
 });

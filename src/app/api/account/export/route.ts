@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { USER_DATA_TABLES } from '@/lib/user-data-tables';
+import { collectServerJudgmentArchive, createJudgmentArchive } from '@/lib/epistemic/server-judgment-archive';
 
 /**
  * Complete server-side export — every user-scoped row across all USER_DATA_TABLES
@@ -30,6 +31,24 @@ export async function GET(req: NextRequest) {
   }
 
   const admin = createClient(url, serviceKey);
+  if (new URL(req.url).searchParams.get('format') === 'judgment-archive') {
+    try {
+      const input = await collectServerJudgmentArchive(admin, user.id);
+      const archive = await createJudgmentArchive(input, {
+        key: process.env.ARGUS_EXPORT_SIGNING_KEY,
+        key_id: process.env.ARGUS_EXPORT_SIGNING_KEY_ID,
+      });
+      return new NextResponse(Buffer.from(archive), {
+        status: 200,
+        headers: {
+          'Content-Type': 'application/zip',
+          'Content-Disposition': `attachment; filename="argus-judgment-archive-${user.id.slice(0, 8)}.zip"`,
+        },
+      });
+    } catch {
+      return NextResponse.json({ error: 'Judgment archive export failed.' }, { status: 500 });
+    }
+  }
   const data: Record<string, unknown> = {
     exported_at: new Date().toISOString(),
     user: { id: user.id, email: user.email, created_at: user.created_at },

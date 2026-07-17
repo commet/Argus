@@ -173,7 +173,7 @@ export async function executeServerAuthorityCommand(
     const message = String(error.message ?? '');
     const known = [
       'IDEMPOTENCY_CONFLICT', 'STALE_ERASURE_EPOCH', 'STALE_AGGREGATE_VERSION',
-      'STALE_AUTHORITY_EPOCH', 'BLOCKED_ORIGIN', 'INVALID_EVENT_BATCH',
+      'STALE_AUTHORITY_EPOCH', 'BLOCKED_ORIGIN', 'INVALID_EVENT_BATCH', 'ERASED_SUBJECT',
     ].find((code) => message.includes(code));
     return { ok: false, code: known ?? 'APPEND_FAILED' };
   }

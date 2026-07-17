@@ -1,6 +1,6 @@
 import { authorityChecksum } from './domain/checksum';
 import { projectRawAuthorityEvents, readAuthorityEvent } from './domain/upcasters';
-import { SemanticEventSchema } from '../../../argus-mcp/src/v3/types';
+import { SemanticEventSchema } from '@/lib/decision-kernel';
 import type { RecallExecution, RecallQuery, RecallSearchPort } from './recall-types';
 import { executeRecallQuery } from './recall-index';
 import {

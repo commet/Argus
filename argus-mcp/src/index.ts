@@ -29,6 +29,11 @@ async function main() {
     runCapturePurgeCli(process.argv.slice(3));
     return;
   }
+  if (['archive-export', 'archive-restore', 'local-purge'].includes(process.argv[2] ?? '')) {
+    const { runLifecycleCli } = await import('./v2/lifecycle-cli.js');
+    runLifecycleCli(process.argv[2]!, process.argv.slice(3));
+    return;
+  }
   const server = await createServer();
   const transport = new StdioServerTransport();
   await server.connect(transport);

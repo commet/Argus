@@ -8,6 +8,7 @@ import { getCurrentLanguage } from './i18n';
 import { migrateLocalToAccount } from './account-migration';
 import type { User, Session } from '@supabase/supabase-js';
 import { localeFromPath, withLocale, type AppLocale } from './locale-path';
+import { purgeCurrentBrowserContinuity } from './epistemic/browser-lifecycle';
 
 interface AuthContextType {
   user: User | null;
@@ -189,6 +190,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = async () => {
     clearUserCache();
+    if (user?.id) {
+      try { await purgeCurrentBrowserContinuity(user.id); }
+      catch { /* explicit sign-out still clears known localStorage below */ }
+    }
     clearAllStorage();
     const { error } = await supabase.auth.signOut();
     if (error) {

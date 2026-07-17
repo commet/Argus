@@ -14,6 +14,7 @@ let tokenUser: { id: string } | null = { id: 'user-1' };
 let deleteError: { message: string } | null = null;
 let artifactReadError: { message: string } | null = null;
 let storageRemoveError: { message: string } | null = null;
+let artifactLocator = 'user-1/sha256/aa/hash';
 const deletedTables: string[] = [];
 const removedObjects: string[] = [];
 const deleteUserSpy = vi.fn(() => Promise.resolve({ error: null }));
@@ -30,7 +31,7 @@ function adminClient() {
         select: () => ({
           eq: () => Promise.resolve({
             data: table === 'epistemic_artifact_descriptors'
-              ? [{ object_locator: 'user-1/sha256/aa/hash', staging_locator: 'user-1/staging/a/tmp' }]
+              ? [{ object_locator: artifactLocator, staging_locator: 'user-1/staging/a/tmp' }]
               : [],
             error: artifactReadError,
           }),
@@ -77,6 +78,7 @@ beforeEach(() => {
   deleteError = null;
   artifactReadError = null;
   storageRemoveError = null;
+  artifactLocator = 'user-1/sha256/aa/hash';
   deletedTables.length = 0;
   removedObjects.length = 0;
   deleteUserSpy.mockClear();
@@ -140,5 +142,14 @@ describe('POST /api/account/delete — auth + erasure receipt', () => {
     expect(json.identityDeleted).toBe(false);
     expect(deleteUserSpy).not.toHaveBeenCalled();
     expect(String(json.receipt['auth.users'])).toContain('skipped');
+  });
+
+  it('fails closed before deletion when a descriptor points outside the account prefix', async () => {
+    artifactLocator = 'someone-else/sha256/aa/hash';
+    const res = await POST(req('good'));
+    expect(res.status).toBe(500);
+    expect(removedObjects).toEqual([]);
+    expect(deletedTables).toEqual([]);
+    expect(deleteUserSpy).not.toHaveBeenCalled();
   });
 });

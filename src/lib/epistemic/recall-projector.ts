@@ -1,5 +1,4 @@
-import { fold, projectJudgment } from '../../../argus-mcp/src/v3/reducer';
-import { SemanticEventSchema, type SemanticEvent } from '../../../argus-mcp/src/v3/types';
+import { fold, projectJudgment, SemanticEventSchema, type SemanticEvent } from '@/lib/decision-kernel';
 import { authorityChecksum } from './domain/checksum';
 import type { AuthorityEvent } from './domain/events';
 import { foldAuthorityEvents } from './domain/reducer';
@@ -82,7 +81,7 @@ export function projectJudgmentRecallDocuments(
 ): RecallDocument[] {
   const events = rawEvents.flatMap((raw) => {
     const parsed = SemanticEventSchema.safeParse(raw);
-    return parsed.success ? [parsed.data] : [];
+    return parsed.success ? [parsed.data as SemanticEvent] : [];
   });
   const state = fold(events);
   const documents: RecallDocument[] = [];
@@ -134,7 +133,7 @@ export interface TimelineEntry {
 export function buildJudgmentTimeline(rawEvents: readonly unknown[], judgmentId: string): TimelineEntry[] {
   const events = rawEvents.flatMap((raw) => {
     const parsed = SemanticEventSchema.safeParse(raw);
-    return parsed.success ? [parsed.data] : [];
+    return parsed.success ? [parsed.data as SemanticEvent] : [];
   });
   return relevantJudgmentEvents(events, judgmentId).map((event) => {
     let summary: string = event.event;
@@ -178,7 +177,7 @@ export function projectJudgmentCheckpoint(args: {
 }): JudgmentCheckpoint {
   const events = args.events.flatMap((raw) => {
     const parsed = SemanticEventSchema.safeParse(raw);
-    return parsed.success ? [parsed.data] : [];
+    return parsed.success ? [parsed.data as SemanticEvent] : [];
   });
   const state = fold(events);
   const active = [...state.judgments.values()].filter((judgment) =>

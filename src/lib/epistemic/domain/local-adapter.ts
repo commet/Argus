@@ -19,6 +19,16 @@ export interface LocalSafetyTombstone {
   canonical_status: 'pending' | 'acknowledged';
 }
 
+export interface LocalErasureReceipt {
+  claim_id: string;
+  command_id: string;
+  aggregate_version: number;
+  authority_epoch: number;
+  forgotten_at: string;
+  last_event_id: string;
+  content_purged: true;
+}
+
 interface StoredCommandReceipt {
   semantic_fingerprint: string;
   receipt: AuthorityCommandReceipt;
@@ -83,6 +93,7 @@ export class LocalAuthorityAdapter implements EpistemicAuthorityGateway {
   private readonly events = new Map<string, AuthorityEvent[]>();
   private readonly receipts = new Map<string, StoredCommandReceipt>();
   private readonly tombstones = new Map<string, LocalSafetyTombstone>();
+  private readonly erasureReceipts = new Map<string, LocalErasureReceipt>();
   private readonly clock: () => string;
   private policy: AccountContinuityPolicy;
 
@@ -98,6 +109,24 @@ export class LocalAuthorityAdapter implements EpistemicAuthorityGateway {
   }
 
   private state(claimId: string): ClaimAuthorityState {
+    const erased = this.erasureReceipts.get(claimId);
+    if (erased) {
+      return {
+        claim_id: claimId,
+        aggregate_version: erased.aggregate_version,
+        authority_epoch: erased.authority_epoch,
+        statement: null,
+        claim_kind: null,
+        scope: null,
+        support_units: [],
+        counterexamples: [],
+        lifecycle: 'forgotten',
+        support_state: 'insufficient',
+        grants: {},
+        forgotten_at: erased.forgotten_at,
+        last_event_id: erased.last_event_id,
+      };
+    }
     return foldAuthorityEvents(claimId, this.events.get(claimId) ?? []);
   }
 
@@ -145,14 +174,6 @@ export class LocalAuthorityAdapter implements EpistemicAuthorityGateway {
       || (this.policy.sync_origins.length > 0 && !this.policy.sync_origins.includes(command.origin_id))) {
       return this.reject(command, 'blocked_origin');
     }
-    if (command.account_erasure_epoch !== this.policy.erasure_epoch) {
-      return this.reject(command, 'stale_erasure_epoch');
-    }
-
-    // Safety intent is effective on this authenticated local origin before
-    // canonical append. A stale/offline rejection must not revive influence.
-    this.recordLocalSafety(command);
-
     const receiptKey = `${command.origin_id}:${command.idempotency_key}`;
     const prior = this.receipts.get(receiptKey);
     if (prior) {
@@ -161,6 +182,13 @@ export class LocalAuthorityAdapter implements EpistemicAuthorityGateway {
       }
       return { ...prior.receipt, status: 'exact_retry' };
     }
+    if (command.account_erasure_epoch !== this.policy.erasure_epoch) {
+      return this.reject(command, 'stale_erasure_epoch');
+    }
+
+    // Safety intent is effective on this authenticated local origin before
+    // canonical append. A stale/offline rejection must not revive influence.
+    this.recordLocalSafety(command);
 
     const state = this.state(command.claim_id);
     if (command.expected_aggregate_version !== state.aggregate_version) {
@@ -190,8 +218,26 @@ export class LocalAuthorityAdapter implements EpistemicAuthorityGateway {
     }
 
     const nextEvents = [...(this.events.get(command.claim_id) ?? []), ...batch];
-    this.events.set(command.claim_id, nextEvents);
     const nextState = foldAuthorityEvents(command.claim_id, nextEvents);
+    if (command.type === 'ForgetClaim') {
+      const last = batch.at(-1)!;
+      // Cryptographic erase is not available in the in-memory adapter, so the
+      // sensitive source events themselves are removed and only this minimal
+      // non-content receipt remains. The claim id tombstone prevents reuse.
+      this.events.delete(command.claim_id);
+      this.erasureReceipts.set(command.claim_id, {
+        claim_id: command.claim_id,
+        command_id: command.command_id,
+        aggregate_version: nextState.aggregate_version,
+        authority_epoch: nextState.authority_epoch,
+        forgotten_at: last.recorded_at,
+        last_event_id: last.event_id,
+        content_purged: true,
+      });
+      this.policy = { ...this.policy, erasure_epoch: this.policy.erasure_epoch + 1 };
+    } else {
+      this.events.set(command.claim_id, nextEvents);
+    }
     const receipt: AuthorityCommandReceipt = {
       command_id: command.command_id,
       claim_id: command.claim_id,
@@ -243,5 +289,9 @@ export class LocalAuthorityAdapter implements EpistemicAuthorityGateway {
 
   listSafetyTombstones(): LocalSafetyTombstone[] {
     return [...this.tombstones.values()].map((value) => ({ ...value }));
+  }
+
+  listErasureReceipts(): LocalErasureReceipt[] {
+    return [...this.erasureReceipts.values()].map((value) => ({ ...value }));
   }
 }

@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { commandSemanticFingerprint, type AuthorityCommand } from '@/lib/epistemic/domain';
 import {
   drainAuthorityCommandOutbox,
+  AUTHORITY_OUTBOX_MAX_ATTEMPTS,
   MemoryAuthorityCommandOutbox,
   type AuthorityOutboxStatus,
 } from '@/lib/epistemic/indexeddb-outbox';
@@ -150,6 +151,51 @@ describe('JCR J4 browser command outbox', () => {
     expect(await outbox.list('account:1', ['abandoned'])).toMatchObject([{
       command_id: 'command:hard', last_error: 'IDEMPOTENCY_CONFLICT',
     }]);
+  });
+
+  it('round-robins origins and moves repeated retry failure to exhausted terminal state', async () => {
+    const outbox = new MemoryAuthorityCommandOutbox();
+    const make = (id: string, origin: string, second: number) => {
+      const value = proposal(id);
+      value.idempotency_key = `idem:${id}`;
+      value.origin_id = origin;
+      value.semantic_fingerprint = commandSemanticFingerprint(value);
+      return outbox.enqueue('account:1', value, `2026-07-18T00:00:0${second}.000Z`).then(() => value);
+    };
+    const a1 = await make('command:a1', 'origin:a', 1);
+    await make('command:a2', 'origin:a', 2);
+    await make('command:a3', 'origin:a', 3);
+    const b1 = await make('command:b1', 'origin:b', 4);
+    const delivered: string[] = [];
+    await drainAuthorityCommandOutbox({
+      outbox, account_id: 'account:1', now: '2026-07-18T00:01:00.000Z', limit: 2,
+      deliver: async (value) => { delivered.push(value.command_id); return { ok: true }; },
+    });
+    expect(delivered).toEqual([a1.command_id, b1.command_id]);
+
+    const exhausted = await make('command:exhaust', 'origin:c', 5);
+    for (let attempt = 1; attempt < AUTHORITY_OUTBOX_MAX_ATTEMPTS; attempt += 1) {
+      await outbox.markAttempt(exhausted.command_id, NOW, 'OFFLINE');
+    }
+    const result = await drainAuthorityCommandOutbox({
+      outbox, account_id: 'account:1', now: '2026-07-18T00:02:00.000Z', limit: 20,
+      deliver: async (value) => value.command_id === exhausted.command_id
+        ? { ok: false, code: 'OFFLINE', retryable: true }
+        : { ok: true },
+    });
+    expect(result.abandoned).toBe(1);
+    expect(await outbox.list('account:1', ['abandoned'])).toContainEqual(expect.objectContaining({
+      command_id: exhausted.command_id, attempts: AUTHORITY_OUTBOX_MAX_ATTEMPTS,
+      last_error: 'RETRY_EXHAUSTED:OFFLINE',
+    }));
+  });
+
+  it('rejects a single command larger than the explicit byte budget', async () => {
+    const outbox = new MemoryAuthorityCommandOutbox();
+    const command = proposal('command:large');
+    command.statement.value = 'x'.repeat(4 * 1024 * 1024);
+    command.semantic_fingerprint = commandSemanticFingerprint(command);
+    await expect(outbox.enqueue('account:1', command, NOW)).rejects.toThrow('OUTBOX_COMMAND_TOO_LARGE');
   });
 });
 

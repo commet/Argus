@@ -8,7 +8,8 @@ import { Modal } from '@/components/ui/Modal';
 import { clearAllStorage, STORAGE_KEYS, getStorage } from '@/lib/storage';
 import { downloadJson } from '@/lib/export';
 import { toast } from '@/lib/toast';
-import { exportAccountData, deleteAccount } from '@/lib/api-account';
+import { exportAccountData, exportJudgmentArchive, deleteAccount } from '@/lib/api-account';
+import { purgeCurrentBrowserContinuity } from '@/lib/epistemic/browser-lifecycle';
 import { useAuth } from '@/lib/auth';
 import type { LLMMode, LLMProvider } from '@/stores/types';
 import { Download, Upload, Trash2, Eye, EyeOff, Server, Globe, Check, MessageSquare, Unlink, User, BarChart3, FlaskConical, Send, Copy, KeyRound, Loader2, ChevronRight } from 'lucide-react';
@@ -59,6 +60,7 @@ export default function SettingsPage() {
   const [resetModal, setResetModal] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [archiveExporting, setArchiveExporting] = useState(false);
   // Mirror the ambient drone play state — startAmbient/stopAmbient alone never re-render,
   // so the button label/style would stay frozen. Synced on mount (SSR-safe).
   const [ambientOn, setAmbientOn] = useState(false);
@@ -174,6 +176,17 @@ export default function SettingsPage() {
     }
   };
 
+  const handleArchiveExport = async () => {
+    setArchiveExporting(true);
+    try {
+      await exportJudgmentArchive();
+    } catch {
+      toast(L('연속성 아카이브를 만들지 못했어요. 다시 시도해 주세요.', 'Could not create the continuity archive. Please try again.'), 'error');
+    } finally {
+      setArchiveExporting(false);
+    }
+  };
+
   const handleReset = async () => {
     setDeleting(true);
     try {
@@ -185,8 +198,20 @@ export default function SettingsPage() {
           setDeleting(false);
           return;
         }
+        let localPurgeComplete = true;
+        try { await purgeCurrentBrowserContinuity(user.id); }
+        catch { localPurgeComplete = false; }
         clearAllStorage();
         await supabase.auth.signOut();
+        if (!localPurgeComplete) {
+          toast(L(
+            '서버 계정은 삭제됐지만 이 기기의 명령 대기열 일부를 확인하지 못했어요. 브라우저 사이트 데이터를 지워 주세요.',
+            'The server account was deleted, but some device queue data could not be verified. Clear this site’s browser data.',
+          ), 'error');
+          setDeleting(false);
+          setResetModal(false);
+          return;
+        }
         setResetModal(false);
         window.location.href = withLocale(locale, '/');
       } else {
@@ -546,11 +571,28 @@ export default function SettingsPage() {
               {exporting ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />} {L('내보내기', 'Export')}
             </Button>
           </div>
+          {user && (
+            <div className="flex items-center justify-between p-3 bg-[var(--bg)] rounded-lg gap-3">
+              <div className="min-w-0">
+                <p className="text-[13px] font-medium">{L('판단 연속성 아카이브', 'Judgment continuity archive')}</p>
+                <p className="text-[11px] text-[var(--text-secondary)]">
+                  {L('해시·스키마 검증과 복원 dry-run을 지원하는 ZIP', 'A hashed ZIP with schema checks and restore dry-run support')}
+                </p>
+              </div>
+              <Button variant="secondary" size="sm" onClick={handleArchiveExport} disabled={archiveExporting}>
+                {archiveExporting ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />} {L('아카이브', 'Archive')}
+              </Button>
+            </div>
+          )}
           {/* Import */}
           <div className="flex items-center justify-between p-3 bg-[var(--bg)] rounded-lg gap-3">
             <div className="min-w-0">
               <p className="text-[13px] font-medium">{L('백업 가져오기', 'Import backup')}</p>
-              <p className="text-[11px] text-[var(--text-secondary)]">{L('내보낸 JSON 파일에서 복원', 'Restore from an exported JSON file')}</p>
+              <p className="text-[11px] text-[var(--text-secondary)]">
+                {user
+                  ? L('이 브라우저의 로컬 JSON만 가져옵니다. 서버 전체 JSON은 열람용입니다.', 'Imports this browser’s local JSON only. The full server JSON is for inspection.')
+                  : L('내보낸 JSON 파일에서 복원', 'Restore from an exported JSON file')}
+              </p>
             </div>
             <label className="cursor-pointer shrink-0">
               <span className="inline-flex items-center justify-center gap-2 rounded-[10px] font-medium transition-all duration-150 active:scale-[0.98] bg-transparent border-[1.5px] border-[var(--border)] text-[var(--text-primary)] hover:bg-[var(--bg)] px-3 py-1.5 text-[13px]">
@@ -875,9 +917,7 @@ export default function SettingsPage() {
         </p>
         <p className="text-[12px] text-[var(--text-secondary)] mb-4">
           {user
-            // P1-C6: the server export is an archival copy, not a restorable
-            // backup — say so at the moment it matters most (right before delete).
-            ? L('되돌릴 수 없어요. 필요하면 먼저 “내보내기”로 사본을 받아두세요. (사본은 열람용이에요 — 앱으로 자동 복원되지는 않아요.)', 'This cannot be undone. Export a copy first if you might need it. (The copy is for viewing — it does not restore back into the app.)')
+            ? L('되돌릴 수 없어요. 전체 JSON은 열람용이고, “판단 연속성 아카이브”는 새 계정·프로젝트 매핑을 확인한 뒤 복원할 수 있어요.', 'This cannot be undone. The full JSON is for inspection; the judgment continuity archive can be restored after confirming the new account and project mapping.')
             : L('되돌릴 수 없어요.', 'This cannot be undone.')}
         </p>
         <div className="flex justify-end gap-2">

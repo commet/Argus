@@ -35,12 +35,66 @@ export interface AuthorityOutboxDrainResult {
   abandoned: number;
 }
 
+export const AUTHORITY_OUTBOX_MAX_RECORDS = 1_000;
+export const AUTHORITY_OUTBOX_MAX_BYTES = 4 * 1024 * 1024;
+export const AUTHORITY_OUTBOX_MAX_ATTEMPTS = 8;
+
 function nowIso(value?: string): string {
   return value ?? new Date().toISOString();
 }
 
 function clone(record: AuthorityOutboxRecord): AuthorityOutboxRecord {
   return structuredClone(record);
+}
+
+function recordBytes(record: AuthorityOutboxRecord): number {
+  return new TextEncoder().encode(JSON.stringify(record)).byteLength;
+}
+
+function capacityEvictions(records: readonly AuthorityOutboxRecord[], incoming: AuthorityOutboxRecord): string[] {
+  const incomingBytes = recordBytes(incoming);
+  if (incomingBytes > AUTHORITY_OUTBOX_MAX_BYTES) throw new Error('OUTBOX_COMMAND_TOO_LARGE');
+  let count = records.length + 1;
+  let bytes = records.reduce((sum, record) => sum + recordBytes(record), incomingBytes);
+  const terminal = records.filter((record) => record.status === 'succeeded' || record.status === 'abandoned')
+    .sort((a, b) => a.updated_at.localeCompare(b.updated_at) || a.command_id.localeCompare(b.command_id));
+  const evictions: string[] = [];
+  while ((count > AUTHORITY_OUTBOX_MAX_RECORDS || bytes > AUTHORITY_OUTBOX_MAX_BYTES) && terminal.length) {
+    const remove = terminal.shift()!;
+    evictions.push(remove.command_id);
+    count -= 1;
+    bytes -= recordBytes(remove);
+  }
+  if (count > AUTHORITY_OUTBOX_MAX_RECORDS || bytes > AUTHORITY_OUTBOX_MAX_BYTES) {
+    throw new Error('OUTBOX_CAPACITY_EXHAUSTED');
+  }
+  return evictions;
+}
+
+function safeDeliveryCode(value: unknown): string {
+  const text = typeof value === 'string' ? value : 'DELIVERY_FAILED';
+  return /^[A-Z0-9_:-]{1,128}$/.test(text) ? text : 'DELIVERY_FAILED';
+}
+
+function fairOldest(records: readonly AuthorityOutboxRecord[], limit: number): AuthorityOutboxRecord[] {
+  const groups = new Map<string, AuthorityOutboxRecord[]>();
+  for (const record of records) {
+    const origin = record.command.origin_id;
+    groups.set(origin, [...(groups.get(origin) ?? []), record]);
+  }
+  const result: AuthorityOutboxRecord[] = [];
+  while (result.length < limit) {
+    let progressed = false;
+    for (const queue of groups.values()) {
+      const next = queue.shift();
+      if (!next) continue;
+      result.push(next);
+      progressed = true;
+      if (result.length === limit) break;
+    }
+    if (!progressed) break;
+  }
+  return result;
 }
 
 export class MemoryAuthorityCommandOutbox implements AuthorityCommandOutbox {
@@ -66,6 +120,9 @@ export class MemoryAuthorityCommandOutbox implements AuthorityCommandOutbox {
       created_at: timestamp,
       updated_at: timestamp,
     };
+    for (const commandId of capacityEvictions(
+      [...this.records.values()].filter((value) => value.account_id === accountId), record,
+    )) this.records.delete(commandId);
     this.records.set(record.command_id, record);
     return clone(record);
   }
@@ -176,26 +233,33 @@ export class IndexedDbAuthorityCommandOutbox implements AuthorityCommandOutbox {
   }
 
   async enqueue(accountId: string, command: AuthorityCommand, now?: string): Promise<AuthorityOutboxRecord> {
-    return this.mutate(command.command_id, (existing) => {
-      if (existing) {
-        if (existing.account_id !== accountId
-          || existing.command.semantic_fingerprint !== command.semantic_fingerprint) {
-          throw new Error('OUTBOX_COMMAND_CONFLICT');
-        }
-        return existing;
+    const database = await this.open();
+    const transaction = database.transaction(STORE, 'readwrite');
+    const store = transaction.objectStore(STORE);
+    const existing = await requestResult(store.get(command.command_id)) as AuthorityOutboxRecord | undefined;
+    if (existing) {
+      if (existing.account_id !== accountId
+        || existing.command.semantic_fingerprint !== command.semantic_fingerprint) {
+        await transactionDone(transaction);
+        throw new Error('OUTBOX_COMMAND_CONFLICT');
       }
-      const timestamp = nowIso(now);
-      return {
-        account_id: accountId,
-        command_id: command.command_id,
-        command: structuredClone(command),
-        status: 'pending',
-        attempts: 0,
-        next_retry_at: timestamp,
-        created_at: timestamp,
-        updated_at: timestamp,
-      };
-    });
+      await transactionDone(transaction);
+      return clone(existing);
+    }
+    const timestamp = nowIso(now);
+    const record: AuthorityOutboxRecord = {
+      account_id: accountId, command_id: command.command_id, command: structuredClone(command),
+      status: 'pending', attempts: 0, next_retry_at: timestamp, created_at: timestamp, updated_at: timestamp,
+    };
+    const index = store.index('account_id');
+    const records = await requestResult(index.getAll(IDBKeyRange.only(accountId))) as AuthorityOutboxRecord[];
+    let evictions: string[];
+    try { evictions = capacityEvictions(records, record); }
+    catch (error) { await transactionDone(transaction); throw error; }
+    for (const commandId of evictions) store.delete(commandId);
+    store.put(record);
+    await transactionDone(transaction);
+    return clone(record);
   }
 
   async list(accountId: string, statuses?: readonly AuthorityOutboxStatus[]): Promise<AuthorityOutboxRecord[]> {
@@ -266,42 +330,49 @@ export async function drainAuthorityCommandOutbox(args: {
   limit?: number;
 }): Promise<AuthorityOutboxDrainResult> {
   const now = nowIso(args.now);
-  const due = (await args.outbox.list(args.account_id, ['pending', 'attempted']))
-    .filter((record) => Date.parse(record.next_retry_at) <= Date.parse(now))
-    .slice(0, args.limit ?? 20);
+  const due = fairOldest(
+    (await args.outbox.list(args.account_id, ['pending', 'attempted']))
+      .filter((record) => Date.parse(record.next_retry_at) <= Date.parse(now)),
+    args.limit ?? 20,
+  );
   const result: AuthorityOutboxDrainResult = {
     attempted: 0,
     succeeded: 0,
     retry_scheduled: 0,
     abandoned: 0,
   };
+  const retry = async (record: AuthorityOutboxRecord, rawCode: unknown): Promise<void> => {
+    const code = safeDeliveryCode(rawCode);
+    const backoffMs = Math.min(60_000, 1_000 * (2 ** Math.min(record.attempts, 6)));
+    await args.outbox.markAttempt(
+      record.command_id,
+      new Date(Date.parse(now) + backoffMs).toISOString(),
+      code,
+    );
+    if (record.attempts + 1 >= AUTHORITY_OUTBOX_MAX_ATTEMPTS) {
+      await args.outbox.abandon(record.command_id, `RETRY_EXHAUSTED:${code}`, now);
+      result.abandoned += 1;
+    } else {
+      result.retry_scheduled += 1;
+    }
+  };
   for (const record of due) {
     result.attempted += 1;
+    let delivery: Awaited<ReturnType<AuthorityCommandDelivery>>;
     try {
-      const delivery = await args.deliver(record.command);
-      if (delivery.ok) {
-        await args.outbox.acknowledge(record.command_id, now);
-        result.succeeded += 1;
-      } else if (!delivery.retryable) {
-        await args.outbox.abandon(record.command_id, delivery.code, now);
-        result.abandoned += 1;
-      } else {
-        const backoffMs = Math.min(60_000, 1_000 * (2 ** Math.min(record.attempts, 6)));
-        await args.outbox.markAttempt(
-          record.command_id,
-          new Date(Date.parse(now) + backoffMs).toISOString(),
-          delivery.code,
-        );
-        result.retry_scheduled += 1;
-      }
+      delivery = await args.deliver(record.command);
     } catch (error) {
-      const backoffMs = Math.min(60_000, 1_000 * (2 ** Math.min(record.attempts, 6)));
-      await args.outbox.markAttempt(
-        record.command_id,
-        new Date(Date.parse(now) + backoffMs).toISOString(),
-        error instanceof Error ? error.message : 'DELIVERY_FAILED',
-      );
-      result.retry_scheduled += 1;
+      await retry(record, error instanceof Error ? error.message : 'DELIVERY_FAILED');
+      continue;
+    }
+    if (delivery.ok) {
+      await args.outbox.acknowledge(record.command_id, now);
+      result.succeeded += 1;
+    } else if (!delivery.retryable) {
+      await args.outbox.abandon(record.command_id, safeDeliveryCode(delivery.code), now);
+      result.abandoned += 1;
+    } else {
+      await retry(record, delivery.code);
     }
   }
   return result;

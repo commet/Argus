@@ -52,14 +52,19 @@ export async function POST(req: NextRequest) {
     hadError = true;
     receipt['storage:epistemic-artifacts'] = `error: ${artifactReadError.message}`;
   } else {
-    const locators = [...new Set((artifactRows ?? []).flatMap((row: {
+    const allLocators = (artifactRows ?? []).flatMap((row: {
       object_locator?: unknown;
       staging_locator?: unknown;
     }) => [row.object_locator, row.staging_locator]
-      .filter((value): value is string => typeof value === 'string'
-        && value.startsWith(`${userId}/`))))];
+      .filter((value): value is string => typeof value === 'string' && value.length > 0));
+    const invalidLocator = allLocators.find((value: string) => !value.startsWith(`${userId}/`));
+    const locators = [...new Set(allLocators.filter((value: string) => value.startsWith(`${userId}/`)))];
     let removed = 0;
-    for (let index = 0; index < locators.length; index += 100) {
+    if (invalidLocator) {
+      hadError = true;
+      receipt['storage:epistemic-artifacts'] = 'error: invalid cross-account artifact locator';
+    }
+    for (let index = 0; !hadError && index < locators.length; index += 100) {
       const chunk = locators.slice(index, index + 100);
       const { error: removeError } = await admin.storage.from('epistemic-artifacts').remove(chunk);
       if (removeError) {
