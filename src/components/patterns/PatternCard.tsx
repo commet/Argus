@@ -51,6 +51,16 @@ export function PatternCard({
                   {!dimension.available && <span className="text-[10px] text-[var(--text-tertiary)]">{L('미확인', 'not established')}</span>}
                 </div>
                 <p className="mt-1 text-[12px] leading-5 text-[var(--text-secondary)]">{locale === 'ko' ? dimension.summary : dimension.summary_en}</p>
+                {dimension.source_refs.length > 0 && (
+                  <details className="mt-2 text-[10px] text-[var(--text-tertiary)]">
+                    <summary className="w-fit cursor-pointer font-semibold hover:text-[var(--text-secondary)]">
+                      {L(`근거 참조 ${dimension.source_refs.length}개`, `${dimension.source_refs.length} evidence references`)}
+                    </summary>
+                    <ul className="mt-1 grid gap-1 rounded-lg bg-[var(--surface)] p-2 font-mono">
+                      {dimension.source_refs.map((ref) => <li key={ref} className="break-all">{ref}</li>)}
+                    </ul>
+                  </details>
+                )}
               </div>
             </div>
           );

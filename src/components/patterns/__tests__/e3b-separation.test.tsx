@@ -4,6 +4,7 @@ import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ClaimReviewCard } from '../ClaimReviewCard';
 import { InfluenceGrantPanel } from '../InfluenceGrantPanel';
+import { PatternCard } from '../PatternCard';
 import type { ClaimReviewCardProjection } from '@/lib/epistemic/patterns-projection';
 
 const card: ClaimReviewCardProjection = {
@@ -14,6 +15,7 @@ const card: ClaimReviewCardProjection = {
   support_state: 'supported',
   authority_epoch: 1,
   aggregate_version: 2,
+  independent_source_count: 3,
   scope: { domains: ['product'] },
   sources: [0, 1, 2].map((index) => ({
     support_unit_id: `u:${index}`, case_id: `c:${index}`,
@@ -58,5 +60,22 @@ describe('E3B review and grant comprehension contract', () => {
     expect(host.textContent).toContain('미래 AI가 이 기억을 어떻게 다뤄도 될까요?');
     expect(host.textContent).toContain('이 범위만 허용');
     expect(host.textContent).not.toContain('맞음');
+  });
+
+  it('consumes dimension source references through an inspectable evidence affordance', () => {
+    act(() => root.render(createElement(PatternCard, {
+      pattern: {
+        claim: { ...card, lifecycle: 'endorsed' },
+        dimensions: [{
+          dimension: 'outcome_frequency', available: true,
+          summary: '세 사례', summary_en: 'Three cases',
+          source_refs: ['observation:1', 'resolution:1'],
+        }],
+      },
+      locale: 'ko', busy: false, onAction: vi.fn(),
+    })));
+    expect(host.textContent).toContain('근거 참조 2개');
+    expect(host.textContent).toContain('observation:1');
+    expect(host.textContent).toContain('resolution:1');
   });
 });

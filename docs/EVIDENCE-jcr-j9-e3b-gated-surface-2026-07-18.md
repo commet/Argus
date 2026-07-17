@@ -83,8 +83,8 @@ J9의 코드·API·projection·UI·자동 검증은 구현됐다. 그러나 JCR 
 
 | 검증 | 결과 |
 |---|---|
-| `npm run test:coverage` | 263 files passed, 1 skipped / 3402 tests passed, 10 skipped / ratchet pass |
-| J9 집중 fixture | 4 files / 12 tests pass |
+| `npm run test:coverage` | 264 files passed, 1 skipped / 3408 tests passed, 10 skipped / ratchet pass |
+| J9 집중 fixture | 5 files / 17 tests pass |
 | `npm --prefix argus-mcp test` | 104 files / 1000 tests pass |
 | `npm run build` | Next.js production build + TypeScript pass, `/[locale]/patterns`와 API route 생성 확인 |
 | `npm run lint` | 0 errors, 기존 warning 127 (limit 145 이내) |
@@ -95,6 +95,11 @@ J9의 코드·API·projection·UI·자동 검증은 구현됐다. 그러나 JCR 
 첫 coverage 실행은 J9 카드의 왼쪽 accent bar를 저장소의 영구 금지 디자인 fixture가
 탐지해 실패했다. 왼쪽 막대·source 세로선·grant 연결선을 모두 제거하고 배경 틴트와
 활자 위계로 교체한 뒤 전체 coverage를 재실행해 통과했다. fixture를 우회하지 않았다.
+
+PR #185 자동 리뷰의 actionable 5건도 전부 반영했다. dimension source refs 소비,
+unauthenticated/read-error/success-empty 분리, distinct source-cluster 계수, action별 exact-key
+allowlist와 non-empty grant scope, claim aggregate query 제한을 추가한 뒤 전체 coverage와
+production build를 다시 실행했다.
 
 ## 6. 외부 완료 절차
 

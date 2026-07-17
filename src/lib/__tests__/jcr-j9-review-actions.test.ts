@@ -23,6 +23,18 @@ describe('JCR J9 surface actions', () => {
       kind: 'grant', action_id: 'action:2', claim_id: 'claim:j9-action',
       effect: 'adapt_generation', surfaces: [], scope: {},
     })).toBeNull();
+    expect(parseE3BReviewAction({
+      kind: 'grant', action_id: 'action:empty', claim_id: 'claim:j9-action',
+      effect: 'ask_once', surfaces: ['web'], scope: {},
+    })).toBeNull();
+    expect(parseE3BReviewAction({
+      kind: 'reword', action_id: 'action:foreign', claim_id: 'claim:j9-action',
+      wording: 'My wording', effect: 'retrieve_only',
+    })).toBeNull();
+    expect(parseE3BReviewAction({
+      kind: 'grant', action_id: 'action:foreign-grant', claim_id: 'claim:j9-action',
+      effect: 'ask_once', surfaces: ['web'], scope: { domain: 'product' }, reason: 'not allowed',
+    })).toBeNull();
   });
 
   it('maps endorsement and future influence to separate authority commands', () => {
@@ -64,6 +76,7 @@ describe('JCR J9 surface actions', () => {
     const card: ClaimReviewCardProjection = {
       claim_id: state.claim_id, statement: 'A bounded pattern', claim_kind: 'descriptive_sequence',
       lifecycle: 'candidate', support_state: 'supported', authority_epoch: 2, aggregate_version: 4,
+      independent_source_count: 3,
       scope: { domains: ['product'] }, counterexamples: [], limitations: [], limitations_en: [],
       review_question: '맞나요?', review_question_en: 'Does it fit?', active_grants: [],
       sources: [0, 1, 2].map((index) => ({

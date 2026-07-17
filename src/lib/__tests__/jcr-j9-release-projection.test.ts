@@ -4,7 +4,7 @@ import {
   productionE3BReleaseDecision,
   type E3BReleaseReceipt,
 } from '@/lib/epistemic/e3b-release-gate';
-import { projectClaimReviewCard, projectPublicPatterns } from '@/lib/epistemic/patterns-projection';
+import { independentSourceCount, projectClaimReviewCard, projectPublicPatterns } from '@/lib/epistemic/patterns-projection';
 import { emptyClaimAuthorityState, type ClaimAuthorityState } from '@/lib/epistemic/domain/types';
 
 const NOW = '2026-07-18T00:00:00.000Z';
@@ -108,6 +108,7 @@ describe('JCR J9 review and public Patterns projections', () => {
     expect(projected.eligible).toBe(true);
     if (!projected.eligible) throw new Error('fixture must project');
     expect(projected.card.sources).toHaveLength(3);
+    expect(projected.card.independent_source_count).toBe(3);
     expect(projected.card.sources.every((source) =>
       source.observation_ref && source.resolution_event_ref && source.source_cluster_id)).toBe(true);
     expect(projected.card.counterexamples).toEqual([expect.objectContaining({
@@ -122,6 +123,15 @@ describe('JCR J9 review and public Patterns projections', () => {
       claim_id: state.claim_id,
       reason: 'independent_reality_support_below_three',
     });
+  });
+
+  it('reports distinct source clusters rather than raw support row count', () => {
+    const projected = projectClaimReviewCard(supportedState());
+    if (!projected.eligible) throw new Error('fixture must project');
+    expect(independentSourceCount([
+      ...projected.card.sources,
+      { ...projected.card.sources[0], support_unit_id: 'support:duplicate' },
+    ])).toBe(3);
   });
 
   it('never counts AI-only observations and only publishes endorsed claims', () => {

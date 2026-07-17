@@ -56,6 +56,7 @@ export interface ClaimReviewCardProjection {
   support_state: ClaimAuthorityState['support_state'];
   authority_epoch: number;
   aggregate_version: number;
+  independent_source_count: number;
   scope: NonNullable<ClaimAuthorityState['scope']>['value'];
   sources: ClaimSourceProjection[];
   counterexamples: CounterexampleProjection[];
@@ -97,6 +98,10 @@ export interface PublicPatternProjection {
 }
 
 const unique = (values: readonly string[]): string[] => [...new Set(values.filter(Boolean))];
+
+export function independentSourceCount(sources: readonly ClaimSourceProjection[]): number {
+  return new Set(sources.map((source) => source.source_cluster_id).filter(Boolean)).size;
+}
 
 function sourceProjection(unit: AuthoritySupportUnit): ClaimSourceProjection | null {
   if (unit.verification_state !== 'resolved' || unit.observation_authority === 'ai_only') return null;
@@ -160,6 +165,7 @@ function baseCard(state: ClaimAuthorityState): ClaimReviewCardProjection | null 
     support_state: state.support_state,
     authority_epoch: state.authority_epoch,
     aggregate_version: state.aggregate_version,
+    independent_source_count: independentSourceCount(sources),
     scope: state.scope.value,
     sources,
     counterexamples,
@@ -182,7 +188,7 @@ export function projectClaimReviewCard(state: ClaimAuthorityState): ClaimReviewP
   if (state.support_state !== 'supported') {
     return { eligible: false, claim_id: state.claim_id, reason: 'support_not_resolved' };
   }
-  if (!hasIndependentRealitySupport(state.support_units) || card.sources.length < 3) {
+  if (!hasIndependentRealitySupport(state.support_units) || card.independent_source_count < 3) {
     return {
       eligible: false,
       claim_id: state.claim_id,
@@ -199,9 +205,9 @@ function patternDimensions(card: ClaimReviewCardProjection): PatternDimensionPro
   return [
     {
       dimension: 'outcome_frequency',
-      available: card.sources.length >= 3,
-      summary: `서로 독립된 해결 사례 ${card.sources.length}건에서 관찰됐습니다.`,
-      summary_en: `Observed across ${card.sources.length} independent resolved cases.`,
+      available: card.independent_source_count >= 3,
+      summary: `서로 독립된 해결 사례 ${card.independent_source_count}건에서 관찰됐습니다.`,
+      summary_en: `Observed across ${card.independent_source_count} independent resolved cases.`,
       source_refs: refs,
     },
     {
@@ -249,7 +255,7 @@ export function projectPublicPatterns(states: readonly ClaimAuthorityState[]): P
     if (state.lifecycle !== 'endorsed' || state.support_state !== 'supported'
       || !hasIndependentRealitySupport(state.support_units)) return [];
     const claim = baseCard(state);
-    if (!claim || claim.sources.length < 3) return [];
+    if (!claim || claim.independent_source_count < 3) return [];
     return [{ claim, dimensions: patternDimensions(claim) }];
   });
 }

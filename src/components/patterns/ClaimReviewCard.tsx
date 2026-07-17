@@ -33,7 +33,7 @@ export function ClaimReviewCard({
               {L('검토할 표현', 'Wording to review')}
             </div>
             <span className="rounded-full border border-[var(--border)] px-2.5 py-1 text-[11px] text-[var(--text-secondary)]">
-              {L(`독립된 해결 사례 ${card.sources.length}건`, `${card.sources.length} independent resolved cases`)}
+              {L(`독립된 해결 사례 ${card.independent_source_count}건`, `${card.independent_source_count} independent resolved cases`)}
             </span>
           </div>
 

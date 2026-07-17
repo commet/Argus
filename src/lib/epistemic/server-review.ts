@@ -63,6 +63,11 @@ function optionalIso(value: unknown): value is string | undefined {
   return value === undefined || (typeof value === 'string' && Number.isFinite(Date.parse(value)));
 }
 
+function hasOnlyKeys(value: Record<string, unknown>, allowed: readonly string[]): boolean {
+  const keys = new Set(allowed);
+  return Object.keys(value).every((key) => keys.has(key));
+}
+
 export function parseE3BReviewAction(value: unknown): E3BReviewAction | null {
   if (!isRecord(value) || !validId(value.action_id) || !validId(value.claim_id)
     || (value.origin_id !== undefined && !validId(value.origin_id))
@@ -72,30 +77,35 @@ export function parseE3BReviewAction(value: unknown): E3BReviewAction | null {
     claim_id: value.claim_id,
     origin_id: typeof value.origin_id === 'string' ? value.origin_id : undefined,
   };
-  const carriesGrantFields = value.effect !== undefined || value.surfaces !== undefined
-    || value.scope !== undefined || value.expires_at !== undefined || value.grant_id !== undefined;
-  if (['endorse', 'retire', 'reopen'].includes(value.kind) && !carriesGrantFields
-    && value.wording === undefined && optionalText(value.reason)) {
+  const baseKeys = ['kind', 'action_id', 'claim_id', 'origin_id'];
+  if (['endorse', 'retire', 'reopen'].includes(value.kind)
+    && hasOnlyKeys(value, [...baseKeys, 'reason']) && optionalText(value.reason)) {
     return { ...base, kind: value.kind, reason: value.reason?.trim() } as E3BReviewAction;
   }
-  if (value.kind === 'reword' && typeof value.wording === 'string'
+  if (value.kind === 'reword' && hasOnlyKeys(value, [...baseKeys, 'wording', 'reason'])
+    && typeof value.wording === 'string'
     && value.wording.trim().length > 0 && value.wording.length <= 2_000 && optionalText(value.reason)) {
     return { ...base, kind: 'reword', wording: value.wording.trim(), reason: value.reason?.trim() };
   }
-  if (value.kind === 'contest' && typeof value.reason === 'string'
+  if (value.kind === 'contest' && hasOnlyKeys(value, [...baseKeys, 'reason'])
+    && typeof value.reason === 'string'
     && value.reason.trim().length > 0 && value.reason.length <= 1_000) {
     return { ...base, kind: 'contest', reason: value.reason.trim() };
   }
-  if (value.kind === 'revoke' && validId(value.grant_id) && optionalText(value.reason)) {
+  if (value.kind === 'revoke' && hasOnlyKeys(value, [...baseKeys, 'grant_id', 'reason'])
+    && validId(value.grant_id) && optionalText(value.reason)) {
     return { ...base, kind: 'revoke', grant_id: value.grant_id, reason: value.reason?.trim() };
   }
-  if (value.kind === 'grant' && ['retrieve_only', 'ask_once', 'adapt_generation'].includes(String(value.effect))
+  if (value.kind === 'grant' && hasOnlyKeys(value, [...baseKeys, 'effect', 'surfaces', 'scope', 'expires_at'])
+    && ['retrieve_only', 'ask_once', 'adapt_generation'].includes(String(value.effect))
     && Array.isArray(value.surfaces) && value.surfaces.length > 0
     && value.surfaces.every((surface) => ['web', 'mcp', 'plugin'].includes(String(surface)))
     && isRecord(value.scope) && optionalIso(value.expires_at)) {
     const scope = value.scope;
     const scopeEntries = ['domain', 'project_id', 'session_id'] as const;
-    if (scopeEntries.some((key) => scope[key] !== undefined
+    if (!hasOnlyKeys(scope, scopeEntries)
+      || scopeEntries.every((key) => scope[key] === undefined)
+      || scopeEntries.some((key) => scope[key] !== undefined
       && (typeof scope[key] !== 'string' || !String(scope[key]).trim()
         || String(scope[key]).length > 200))) return null;
     return {
@@ -240,6 +250,7 @@ export async function readServerReviewSnapshot(
     admin.from('epistemic_authority_events')
       .select('aggregate_id,event')
       .eq('user_id', userId)
+      .eq('aggregate_type', 'claim')
       .order('aggregate_version', { ascending: true }),
     admin.from('project_semantic_events')
       .select('project_id,event')
