@@ -1,5 +1,6 @@
 ---
 name: pull
+user-invocable: false
 description: Pull webapp-originated plugin events back into the local Argus ledger. Use after settling or deferring plugin decisions in the webapp, or whenever the user asks to sync webapp changes back to Claude Code. Invoked as `/argus:pull`.
 ---
 

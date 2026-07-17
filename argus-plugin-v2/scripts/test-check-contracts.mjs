@@ -141,6 +141,39 @@ t("bare seal (no prior harvest) still fires — parity with MCP replay & statusl
   assert(run(r).includes("/argus:resolve"), "a seal without harvest must still be tracked and fire");
 });
 
+t("bound repo: durable home AND project v1 are UNIONed — the due owner sees both planes (O3 방2)", () => {
+  // check-contracts는 SessionStart due 발화의 단독 소유자가 되면서 statusline
+  // loadLedger와 같은 union 규약을 얻었다(O2 방4 정본 2겹). 내구 창고에만 있는
+  // 봉인(v1 스냅샷)도, 프로젝트 v1에만 있는 봉인도 전부 리마인더를 켜야 한다.
+  const r = repo();
+  const home = repo();
+  mkdirSync(join(r, ".argus"), { recursive: true });
+  writeFileSync(join(r, ".argus", "project.json"), JSON.stringify({ repository_id: "unioncc1" }));
+  const dur = join(home, "projects", "unioncc1");
+  mkdirSync(dur, { recursive: true });
+  writeFileSync(join(dur, "ledger.v1.jsonl"), [
+    JSON.stringify({ event: "harvest", id: "durA", decision: "durable-only bet", quote: "durable-only bet" }),
+    JSON.stringify({ event: "seal", id: "durA", predicate: "durable-only bet — predicate", check_by: iso(-3) }),
+  ].join("\n") + "\n");
+  ledger(r, bet("projB", iso(-2), "plugin-written bet"));
+  const out = run(r, { ARGUS_HOME: home });
+  assert(out.includes("/argus:resolve"), `union fold must fire the reminder: ${out}`);
+  assert(out.includes("외 1건") || /2 decision contracts/.test(out), `both planes must fold into one count: ${out}`);
+});
+
+t("bound repo: durable v2 events (v:2, provenanced) fold too — an MCP-only seal fires (O3 방2)", () => {
+  const r = repo();
+  const home = repo();
+  mkdirSync(join(r, ".argus"), { recursive: true });
+  writeFileSync(join(r, ".argus", "project.json"), JSON.stringify({ repository_id: "unioncc2" }));
+  const dur = join(home, "projects", "unioncc2");
+  mkdirSync(dur, { recursive: true });
+  writeFileSync(join(dur, "ledger.jsonl"),
+    JSON.stringify({ v: 2, event: "seal", decision_id: "v2A", predicate: { value: "v2 mcp seal — predicate" }, check_by: { value: iso(-2) } }) + "\n");
+  const out = run(r, { ARGUS_HOME: home });
+  assert(out.includes("/argus:resolve"), `a v2 seal in the durable home must fire: ${out}`);
+});
+
 t("dismissed contract → silence", () => {
   const r = repo();
   ledger(r, bet("aaaa0001", iso(-3), "기각된 결정", [{ event: "dismiss" }]));
@@ -336,11 +369,11 @@ function premise(id, extra = {}) {
   return { event: "extract", id, decision_id: "d", type: "premise", text: "금리 동결", external: true, load_bearing: true, ...extra };
 }
 
-t("due monitored premise → one line with /argus:premises check", () => {
+t("due monitored premise → one line with /argus:check premises", () => {
   const r = repo();
   items(r, [premise("item_p1")]); // never re-checked → due
   const out = run(r);
-  assert(out.includes("/argus:premises check"), `missing re-check hint: ${out}`);
+  assert(out.includes("/argus:check premises"), `missing re-check hint: ${out}`);
   assert(!out.includes("\n"), `must be one line: ${out}`);
 });
 
@@ -365,7 +398,7 @@ t("premise re-checked recently (<7d) → silence", () => {
 t("premise re-checked 8+ days ago → fires", () => {
   const r = repo();
   items(r, [premise("item_p1"), { event: "recheck", id: "item_p1", last_value: "v", at: iso(-8) }]);
-  assert(run(r).includes("/argus:premises check"), "a stale re-check is due again");
+  assert(run(r).includes("/argus:check premises"), "a stale re-check is due again");
 });
 
 t("premise dismissed twice (back-off) → silence", () => {
@@ -391,7 +424,7 @@ t("overdue contract beats premise reminder — one line, settle only", () => {
   ledger(r, bet("aaaa0001", iso(-1), "지난 결정"));
   items(r, [premise("item_p1")]);
   const out = run(r);
-  assert(out.includes("/argus:resolve") && !out.includes("/argus:premises check"), `settle must win: ${out}`);
+  assert(out.includes("/argus:resolve") && !out.includes("/argus:check premises"), `settle must win: ${out}`);
   assert(!out.includes("\n"), `must be one line: ${out}`);
 });
 
@@ -400,7 +433,7 @@ t("premise reminder respects ko locale", () => {
   items(r, [premise("item_p1")]);
   writeFileSync(join(r, ".argus", "config.yaml"), "locale: ko\n");
   const out = run(r);
-  assert(out.includes("재확인할 전제") && out.includes("/argus:premises check"), `expected ko premise line: ${out}`);
+  assert(out.includes("재확인할 전제") && out.includes("/argus:check premises"), `expected ko premise line: ${out}`);
 });
 
 // ─── Cleanup & verdict ──────────────────────────────────

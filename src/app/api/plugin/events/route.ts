@@ -18,7 +18,7 @@ function parseLimit(value: string | null): number {
 export async function GET(req: NextRequest) {
   const authHeader = req.headers.get('authorization');
   if (!authHeader?.startsWith('Bearer ')) {
-    return NextResponse.json({ error: 'Missing token. Run: /argus:connect <pat>' }, { status: 401 });
+    return NextResponse.json({ error: 'Missing token. Run: /argus:settings connect <pat>' }, { status: 401 });
   }
 
   const raw = authHeader.slice(7).trim();

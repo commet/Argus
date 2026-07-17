@@ -19,7 +19,7 @@ import { join } from 'node:path';
  * suppress duplicates (never restate a generic concern louder in persona voice);
  * MBTI is a tone skin only, never the source, never surfaced as the type label.
  */
-const boss = readFileSync(join(process.cwd(), 'argus-plugin-v2/skills/boss/SKILL.md'), 'utf8');
+const boss = readFileSync(join(process.cwd(), 'argus-plugin-v2/skills/review/boss.md'), 'utf8');
 const review = readFileSync(join(process.cwd(), 'src/lib/review-prompt.ts'), 'utf8');
 
 describe('R42 — plugin boss anchors concerns to the SEAT, suppresses duplicates, demotes MBTI', () => {

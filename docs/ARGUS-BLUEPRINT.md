@@ -716,7 +716,16 @@ Desktop은 README 설정 그대로가 전 도구 실패, 영수증 렌더러는 
   단일 소유자 확정은 방2 activation 계약의 몫.)
 - 명령 20→5 (자연어 기본 + review/check/history/settings) · plain rename
   (+alias 2 minor 유지) · README/사이트 "어디서 쓰세요?" 문 구조 · Boss 교체.
-- exit: [x] fresh install 명령 1개 [ ] activation 계약 테스트(자동 deep review 0)
+  (방2 준공 2026-07-17: 공개 메뉴 = review·check·history·settings·help + alias
+  sail·resolve. deep review 문 2개는 disable-model-invocation — 모델이 자동으로
+  열 수 없는 **플랫폼 구조**로 0 달성, 구 단계 스킬(clarify/team/verify/boss/
+  revise)은 skills/review/ 안의 step 파일로 이주(디렉토리 부활 금지 게이트).
+  나머지 12 스킬은 본문 무변경 user-invocable:false — 타이핑하면 여전히 작동.
+  due 발화 단일 소유자 = check-contracts(프로젝트 v1 UNION 내구 원장,
+  statusline과 동형 fold; 흡수된 session-start 훅은 LOGBOOK 신선도·첫 안내·
+  수확 큐만). activation-contract.test.ts가 메뉴 목록·문 잠금·fan-out 폐포·
+  부활 금지·help 범위를 전부 CI로 고정.)
+- exit: [x] fresh install 명령 1개 [x] activation 계약 테스트(자동 deep review 0)
 
 **공정 O4 · 증거 관문 (공정이 아니라 판정 — §6 준공 검사·P5 가치 관문과 한 몸)**
 - 5명×21일 관찰, 7단계 퍼널(noticed→captured→accepted→surfaced→returned→

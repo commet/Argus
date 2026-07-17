@@ -1,5 +1,6 @@
 ---
 name: connect
+user-invocable: false
 description: Connect this local Argus plugin project to the Argus webapp using a personal push token issued in webapp Settings. Use when the user wants plugin results to appear in the webapp, says they have an argus_pat token, or asks how to sync/push Argus plugin records. Stores the token locally under .argus/ledger/push.json and makes sure it is git-ignored. Invoked as `/argus:connect`.
 argument-hint: "<argus_pat_...>"
 ---

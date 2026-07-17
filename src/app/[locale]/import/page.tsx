@@ -171,9 +171,9 @@ export default function ImportPage() {
       <div className="mb-6 px-3.5 py-3 rounded-lg bg-[var(--bg)] border border-[var(--border-subtle)]">
         <p className="text-[12.5px] text-[var(--text-secondary)]">
           {L('권장 흐름: 설정에서 push token을 발급한 뒤 플러그인에서 ', 'Recommended flow: issue a push token in Settings, then run ')}
-          <code className="text-[11.5px] font-mono bg-[var(--surface)] px-1.5 py-0.5 rounded">/argus:connect</code>
+          <code className="text-[11.5px] font-mono bg-[var(--surface)] px-1.5 py-0.5 rounded">/argus:settings connect</code>
           {L(' 후 ', ' and ')}
-          <code className="text-[11.5px] font-mono bg-[var(--surface)] px-1.5 py-0.5 rounded">/argus:sync</code>
+          <code className="text-[11.5px] font-mono bg-[var(--surface)] px-1.5 py-0.5 rounded">/argus:settings sync</code>
           {L('를 실행하세요. 파일을 직접 올리지 않아도 웹앱과 로컬 ledger가 왕복 동기화됩니다.', ' to sync both ways without manual upload.')}
         </p>
         <div className="mt-2 flex flex-wrap items-center gap-2 text-[12px]">
@@ -181,16 +181,16 @@ export default function ImportPage() {
             {L('토큰 발급하러 가기', 'Issue a token')}
           </LocaleLink>
           <span className="text-[var(--text-tertiary)]">{L('정산 후에는 로컬에서 ', 'After settling here, run ')}</span>
-          <code className="text-[11px] font-mono bg-[var(--surface)] px-1.5 py-0.5 rounded">/argus:sync</code>
+          <code className="text-[11px] font-mono bg-[var(--surface)] px-1.5 py-0.5 rounded">/argus:settings sync</code>
           <span className="text-[var(--text-tertiary)]">{L('를 실행하면 됩니다.', ' locally.')}</span>
         </div>
         <p className="text-[12px] text-[var(--text-tertiary)] mt-2">
-          {L('새 결정은 ', 'New decisions start with ')}
-          <code className="text-[11px] font-mono bg-[var(--surface)] px-1.5 py-0.5 rounded">/argus:sail</code>
+          {L('깊은 검토는 ', 'Deep review starts with ')}
+          <code className="text-[11px] font-mono bg-[var(--surface)] px-1.5 py-0.5 rounded">/argus:review</code>
           {L(', 과거 Claude Code 결정 회수는 ', '; past Claude Code decisions start with ')}
-          <code className="text-[11px] font-mono bg-[var(--surface)] px-1.5 py-0.5 rounded">/argus:scan</code>
+          <code className="text-[11px] font-mono bg-[var(--surface)] px-1.5 py-0.5 rounded">/argus:history scan</code>
           {L(' 후 ', ', then ')}
-          <code className="text-[11px] font-mono bg-[var(--surface)] px-1.5 py-0.5 rounded">/argus:predict</code>
+          <code className="text-[11px] font-mono bg-[var(--surface)] px-1.5 py-0.5 rounded">/argus:check</code>
           {L('입니다.', '.')}
         </p>
       </div>
@@ -321,7 +321,7 @@ export default function ImportPage() {
                         </div>
                       </>}
                       <p className="text-[11px] text-[var(--text-tertiary)] mt-2">
-                        {L('새 정본 이벤트는 다음 /argus:pull 또는 /argus:sync에서 로컬 semantic-v3 원장에 추가됩니다.', 'New canonical events append to the local semantic-v3 ledger on the next /argus:pull or /argus:sync.')}
+                        {L('새 정본 이벤트는 다음 /argus:settings pull 또는 /argus:settings sync에서 로컬 semantic-v3 원장에 추가됩니다.', 'New canonical events append to the local semantic-v3 ledger on the next /argus:settings pull or /argus:settings sync.')}
                       </p>
                     </div>
                   );

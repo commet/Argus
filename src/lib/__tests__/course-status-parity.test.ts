@@ -34,7 +34,7 @@ describe('course-status — webapp<->plugin schema parity (drift guard)', () => 
 
 describe('course-status — webapp<->plugin SKILL.md legend parity (drift guard)', () => {
   const skill = readFileSync(
-    join(PLUGIN_ROOT, 'skills/sail/SKILL.md'),
+    join(PLUGIN_ROOT, 'skills/review/pipeline.md'),
     'utf8',
   );
 

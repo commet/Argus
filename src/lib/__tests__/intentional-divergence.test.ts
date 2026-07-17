@@ -58,8 +58,8 @@ describe('intentional divergence — no name-collision regression', () => {
     // reappears in the plugin, that is a conscious decision (port the real kick,
     // or pick a non-colliding name) — this surfaces it instead of letting the
     // two meanings quietly diverge again.
-    const clarify = read('argus-plugin-v2/skills/clarify/SKILL.md');
-    const sail = read('argus-plugin-v2/skills/sail/SKILL.md');
+    const clarify = read('argus-plugin-v2/skills/review/clarify.md');
+    const sail = read('argus-plugin-v2/skills/review/pipeline.md');
     expect(/overreach/i.test(clarify)).toBe(false);
     expect(/overreach/i.test(sail)).toBe(false);
   });

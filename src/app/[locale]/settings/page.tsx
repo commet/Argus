@@ -1102,7 +1102,7 @@ function PluginTokenBlock({ locale }: { locale: string }) {
     <IntegrationSection title={L('동기화 토큰 (플러그인 · MCP)', 'Sync token (plugin · MCP)')} defaultOpen={tokens.length > 0}>
       <div className="flex items-center justify-between gap-3">
         <div>
-          <p className="text-[12px] text-[var(--text-secondary)]">{L('플러그인: /argus:connect 후 /argus:sync. MCP: 아래 ARGUS_TOKEN을 설정에 넣으면 봉인한 예측이 이메일과 대시보드로 돌아옵니다.', 'Plugin: /argus:connect then /argus:sync. MCP: put ARGUS_TOKEN below in your config so sealed predictions return by email + dashboard.')}</p>
+          <p className="text-[12px] text-[var(--text-secondary)]">{L('플러그인: /argus:settings connect 후 /argus:settings sync. MCP: 아래 ARGUS_TOKEN을 설정에 넣으면 봉인한 예측이 이메일과 대시보드로 돌아옵니다.', 'Plugin: /argus:settings connect then /argus:settings sync. MCP: put ARGUS_TOKEN below in your config so sealed predictions return by email + dashboard.')}</p>
         </div>
         <Button variant="secondary" size="sm" onClick={issue} disabled={busy}>
           {busy ? <Loader2 size={14} className="animate-spin" /> : <KeyRound size={14} />} {L('새 토큰 발급', 'Issue token')}
@@ -1122,12 +1122,12 @@ function PluginTokenBlock({ locale }: { locale: string }) {
           <div className="mt-3 rounded-md border border-[var(--border-subtle)] bg-[var(--bg)] p-2.5">
             <p className="text-[11px] text-[var(--text-tertiary)] mb-1">{L('플러그인에서 먼저 실행', 'Run first in the plugin')}</p>
             <div className="flex items-center gap-2">
-              <code className="flex-1 text-[11.5px] font-mono break-all">/argus:connect {issued}</code>
+              <code className="flex-1 text-[11.5px] font-mono break-all">/argus:settings connect {issued}</code>
               <Button
                 variant="secondary"
                 size="sm"
                 onClick={async () => {
-                  await navigator.clipboard.writeText(`/argus:connect ${issued}`);
+                  await navigator.clipboard.writeText(`/argus:settings connect ${issued}`);
                   setCopiedCommand(true);
                   setTimeout(() => setCopiedCommand(false), 2000);
                 }}
@@ -1137,7 +1137,7 @@ function PluginTokenBlock({ locale }: { locale: string }) {
             </div>
             <p className="text-[11px] text-[var(--text-tertiary)] mt-2">
               {L('그 다음부터는 로컬에서 ', 'Then use ')}
-              <code className="font-mono">/argus:sync</code>
+              <code className="font-mono">/argus:settings sync</code>
               {L('로 웹앱과 로컬 ledger를 맞추면 됩니다.', ' to keep the webapp and local ledger aligned.')}
             </p>
           </div>

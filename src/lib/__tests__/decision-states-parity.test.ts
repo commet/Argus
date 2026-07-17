@@ -53,7 +53,7 @@ const webappPrompt = readFileSync(
   'utf8',
 );
 const pluginClarify = readFileSync(
-  join(process.cwd(), 'argus-plugin-v2/skills/clarify/SKILL.md'),
+  join(process.cwd(), 'argus-plugin-v2/skills/review/clarify.md'),
   'utf8',
 );
 

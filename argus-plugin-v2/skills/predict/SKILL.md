@@ -1,5 +1,6 @@
 ---
 name: predict
+user-invocable: false
 description: "Seal a chosen Argus decision candidate or sail seed into a later-checkable contract. This is the common state transition after either entry point: `/argus:sail` can produce a seed, `/argus:scan` can produce candidates, and `/argus:predict` turns the selected item into a sealed ledger contract. Use when the user says seal this, commit this for later, remember this decision, or chooses a scan candidate id. Invoked as `/argus:predict`."
 argument-hint: "[<id>] [--latest-seed] [--list]"
 ---

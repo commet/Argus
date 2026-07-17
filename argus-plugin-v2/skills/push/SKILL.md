@@ -1,5 +1,6 @@
 ---
 name: push
+user-invocable: false
 description: Push this project's local Argus plugin records to the Argus webapp account paired by `/argus:connect`. Sends `.argus/ledger/ledger.jsonl` and `current_bearing.json` files through the webapp plugin ingest API. Use when the user wants to open plugin results in the webapp or run "push"; prefer `/argus:sync` for two-way sync. Invoked as `/argus:push`.
 ---
 

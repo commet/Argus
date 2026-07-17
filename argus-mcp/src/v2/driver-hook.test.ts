@@ -5,8 +5,8 @@
  *  ① 바인딩 없는 워크스페이스 = 완전 침묵 (v2 미사용자에게 소음 0)
  *  ② stale LOGBOOK = check_in 재생성 안내 (재생성 두뇌는 서버 하나 — 훅이
  *     직접 렌더하지 않는다)
- *  ③ fresh + due>0 = 건수·절대경로 한 줄 (predicate 본문은 절대 미주입 —
- *     정본 규칙 19)
+ *  ③ fresh + due>0 = 침묵 — due 발화는 check-contracts 훅이 단독 소유 (O3 방2:
+ *     같은 SessionStart에서 두뇌 둘이 세면 같은 due가 두 줄로 도착한다)
  *  ④ fresh + due 0 = 침묵 (빈 잔소리 없음)
  *  ⑤ 어떤 파손도 exit 0 (훅이 세션 시작을 막지 않는다)
  * fresh 픽스처는 진짜 renderLogbook으로 만든다 — 훅의 커서/건수 파싱이
@@ -86,7 +86,11 @@ describe('플러그인 SessionStart 훅 (P2-5, 구 driver)', () => {
     expect(run()).toContain('argus_check_in');
   });
 
-  it('③ fresh + due 2건 — 건수와 절대 경로만 주입, predicate 본문은 없다', () => {
+  it('③ fresh + due 2건 — 침묵: due 발화는 check-contracts 훅이 단독 소유 (O3 방2)', () => {
+    // 과거엔 여기서 건수+경로를 주입했다. 병합 플러그인에선 같은 SessionStart에
+    // check-contracts.js가 두 평면(프로젝트 v1 UNION 내구 원장)을 접어 due를
+    // 발화하므로, 이 훅도 세면 같은 due가 두 줄로 도착한다(over-fire). 이 훅의
+    // 몫은 LOGBOOK 신선도(②)·첫 안내·수확 큐까지다.
     bind();
     writeLedgerLine(ULID);
     freshLogbook({
@@ -95,12 +99,7 @@ describe('플러그인 SessionStart 훅 (P2-5, 구 driver)', () => {
         { decision_id: 'b', predicate: 'SECRET-PREDICATE-B', check_by: '2026-07-02', overdue_days: 9, suggest_dismiss: false },
       ],
     });
-    const out = run();
-    const context = JSON.parse(out).hookSpecificOutput.additionalContext as string;
-    expect(context).toContain('2건');
-    expect(context).toContain('argus_resolve'); // 공개 이름 (구 argus_settle)
-    expect(context).toContain(path.join(repoDir, '.argus', 'LOGBOOK.md')); // 규칙 18: 경로 1급 표면
-    expect(context).not.toContain('SECRET-PREDICATE'); // 규칙 19: 본문 미주입
+    expect(run()).toBe('');
   });
 
   it('④ fresh + due 0건 — 침묵 (빈 잔소리 없음)', () => {

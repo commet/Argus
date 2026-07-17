@@ -21,7 +21,7 @@ import { join } from 'node:path';
  * File-read guard.
  */
 const clarify = readFileSync(
-  join(process.cwd(), 'argus-plugin-v2/skills/clarify/SKILL.md'),
+  join(process.cwd(), 'argus-plugin-v2/skills/review/clarify.md'),
   'utf8',
 );
 

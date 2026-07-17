@@ -59,11 +59,11 @@ const ALL_CASES = JSON.parse(fs.readFileSync(path.join(__dirname, 'cases.json'),
 // to focus on the over-fire-sensitive cases without paying for the whole corpus 3x).
 const KINDS = (process.env.EVAL_KINDS || '').split(',').map((s) => s.trim()).filter(Boolean);
 const cases = KINDS.length ? ALL_CASES.filter((c) => KINDS.includes(c.kind)) : ALL_CASES;
-const sailSkill = fs.readFileSync(path.join(pluginRoot, 'skills', 'sail', 'SKILL.md'), 'utf8');
+const sailSkill = fs.readFileSync(path.join(pluginRoot, 'skills', 'review', 'pipeline.md'), 'utf8');
 // Fidelity: sail CHAINS clarify, and the spine-deciding gates (crisis Axis-0,
 // request-type, flat/load_bearing frame_status) live in clarify — feeding only
 // sail would miss exactly the gates we're testing. Feed both, as the real flow does.
-const clarifySkill = fs.readFileSync(path.join(pluginRoot, 'skills', 'clarify', 'SKILL.md'), 'utf8');
+const clarifySkill = fs.readFileSync(path.join(pluginRoot, 'skills', 'review', 'clarify.md'), 'utf8');
 
 const GEN_SYSTEM = `You are executing the Argus ":sail" skill, which runs ":clarify" first. Both skill definitions follow between <skill> tags. Follow them exactly — especially clarify's crisis screen (Axis 0), the request-type gate, the flat/load_bearing frame, the under-fire / restraint default, and the zero-judgment spine.
 

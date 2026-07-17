@@ -76,27 +76,100 @@ function readJson(file) {
   }
 }
 
+/** v2 바인딩(.argus/project.json)이 있으면 내구 원장 파일들을 돌려준다 —
+ *  statusline durableLedgerFiles와 같은 규약 (ARGUS_HOME 재지정 포함). */
+function durableLedgerFiles(argusDir) {
+  try {
+    const pj = JSON.parse(deBom(fs.readFileSync(path.join(argusDir, "project.json"), "utf8")));
+    if (!pj || typeof pj.repository_id !== "string" || !pj.repository_id) return null;
+    const home = process.env.ARGUS_HOME && process.env.ARGUS_HOME.trim()
+      ? process.env.ARGUS_HOME
+      : path.join(os.homedir(), ".argus");
+    const dir = path.join(home, "projects", pj.repository_id);
+    return [path.join(dir, "ledger.v1.jsonl"), path.join(dir, "ledger.jsonl")];
+  } catch { return null; }
+}
+
+/** v2 이벤트(v:2) 한 줄을 v1과 같은 bet 모형으로 접는다 — statusline
+ *  applyV2Line과 동형 (내구 원장을 접을 때만 만난다). provenanced 필드는
+ *  .value만 취한다. v2엔 defer가 설계상 없다: mirror가 v1 defer →
+ *  v2 amend(check_by)로 매핑하므로 amend가 재무장을 커버한다 (죽은 어휘
+ *  분기 금지 — O2 방0 ② 정정과 같은 NOTE). */
+function applyV2Line(e, map, ids, sealedPredicates) {
+  const id = e.decision_id;
+  if (!id) return;
+  ids.add(id);
+  const cur = map.get(id);
+  const val = (f) => (e[f] && typeof e[f].value === "string" ? e[f].value : undefined);
+  switch (e.event) {
+    case "harvest":
+      if (!cur) map.set(id, { status: "candidate", text: val("text") || "" });
+      break;
+    case "seal": {
+      const rec = cur || {};
+      rec.status = "sealed";
+      if (val("predicate")) { rec.text = val("predicate"); sealedPredicates.add(rec.text); }
+      if (val("check_by")) rec.check_by = val("check_by");
+      map.set(id, rec);
+      break;
+    }
+    case "amend":
+      if (cur) {
+        if (val("predicate")) cur.text = val("predicate");
+        if (val("check_by")) cur.check_by = val("check_by");
+      }
+      break;
+    case "dismiss":
+      if (cur) cur.status = "dismissed";
+      break;
+    case "settle":
+      if (cur) cur.status = "settled";
+      break;
+  }
+}
+
 /**
  * Replay the ledger per ledger.mjs semantics. Returns:
  *   overdue          — sealed bets with check_by ≤ today
  *   ids              — every id ever seen (seed-import dedup)
  *   sealedPredicates — every predicate ever sealed (dedup for seeds sealed
  *                      under a foreign id, e.g. manually via argus-watch)
+ *
+ * due 발화의 단일 소유자(O3 방2)로서 두 저장 평면을 전부 접는다: 바인딩된
+ * repo면 내구 원장(v1 스냅샷 + v2) UNION 프로젝트 v1 — statusline loadLedger와
+ * 같은 규약(O2 방4 정본 2겹: v2 소비자는 프로젝트 v1과 union으로 접는다).
+ * 같은 논리 이벤트의 중복 fold는 상태 설정이라 멱등. session-start 훅은 이제
+ * due 건수를 발화하지 않는다(LOGBOOK 신선도·첫 안내·수확 큐만) — 발화 두뇌가
+ * 둘이면 같은 due가 두 줄로 도착한다.
  */
 function replayLedger(argusDir, today) {
   const ids = new Set();
   const sealedPredicates = new Set();
   const map = new Map();
-  let raw;
-  try {
-    raw = deBom(fs.readFileSync(path.join(argusDir, "ledger", "ledger.jsonl"), "utf8"));
-  } catch {
-    return { overdue: [], ids, sealedPredicates };
+  const projectV1 = path.join(argusDir, "ledger", "ledger.jsonl");
+  const durable = durableLedgerFiles(argusDir);
+  const files = durable ? [...durable, projectV1] : [projectV1];
+  for (const file of files) {
+    let raw;
+    try { raw = deBom(fs.readFileSync(file, "utf8")); }
+    catch { continue; } // 없는 파일(예: v1 스냅샷 미존재)은 조용히 — 침묵이 계약
+    foldV1Raw(raw, map, ids, sealedPredicates);
   }
+  const overdue = [];
+  for (const item of map.values()) {
+    if (item.status !== "sealed") continue;
+    const date = asDate(item.check_by);
+    if (date && date <= today) overdue.push({ date, text: item.text || "" });
+  }
+  return { overdue, ids, sealedPredicates };
+}
+
+function foldV1Raw(raw, map, ids, sealedPredicates) {
   for (const line of raw.split("\n")) {
     if (!line.trim()) continue;
     let ev;
     try { ev = JSON.parse(line); } catch { continue; }
+    if (ev.v === 2) { applyV2Line(ev, map, ids, sealedPredicates); continue; }
     if (!ev.id) continue;
     ids.add(ev.id);
     const cur = map.get(ev.id);
@@ -138,13 +211,6 @@ function replayLedger(argusDir, today) {
         break;
     }
   }
-  const overdue = [];
-  for (const item of map.values()) {
-    if (item.status !== "sealed") continue;
-    const date = asDate(item.check_by);
-    if (date && date <= today) overdue.push({ date, text: item.text || "" });
-  }
-  return { overdue, ids, sealedPredicates };
 }
 
 function bearingContracts(argusDir, today, ledger) {
@@ -302,8 +368,8 @@ function main() {
       const locale = detectLocale(argusDir);
       process.stdout.write(
         locale === "ko"
-          ? `Argus: 재확인할 전제 ${nPrem}개 — 결정의 근거가 된 사실이 아직 맞는지 확인할 때가 됐어요 (/argus:premises check).`
-          : `Argus: ${nPrem} premise${nPrem > 1 ? "s" : ""} to re-check — time to see if the facts your decision rests on still hold (/argus:premises check).`,
+          ? `Argus: 재확인할 전제 ${nPrem}개 — 결정의 근거가 된 사실이 아직 맞는지 확인할 때가 됐어요 (/argus:check premises).`
+          : `Argus: ${nPrem} premise${nPrem > 1 ? "s" : ""} to re-check — time to see if the facts your decision rests on still hold (/argus:check premises).`,
       );
       return;
     }
@@ -315,11 +381,11 @@ function main() {
   const locale = detectLocale(argusDir);
   if (locale === "ko") {
     process.stdout.write(
-      "Argus 준비 완료: 결정을 정리하고, 나중에 확인할 기준을 남기고, 시간이 지난 뒤 실제로 어땠는지 묻습니다. 시작은 /argus:sail, 전체 안내는 /argus:help."
+      "Argus 준비 완료: 결정을 그냥 말하면 정리하고, 나중에 확인할 기준을 남기고, 시간이 지나면 실제로 어땠는지 묻습니다. 깊은 검토는 /argus:review, 전체 안내는 /argus:help."
     );
   } else {
     process.stdout.write(
-      "Argus ready: make a decision, save the check for later, then come back to reality. Start with /argus:sail. Full map: /argus:help."
+      "Argus ready: just talk about a decision — save the check for later, then come back to reality. Deep review: /argus:review. Full map: /argus:help."
     );
   }
 }

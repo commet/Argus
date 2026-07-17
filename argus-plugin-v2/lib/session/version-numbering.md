@@ -75,17 +75,17 @@ Note: the first (main-line) child of `v0.3` is `v0.4` — it does NOT start with
 
 Session starts with no drafts. Root `parentLabel` is `ROOT_LABEL = "v0"`.
 
-1. First `/argus:team` completes → draft added. `parentLabel = "v0"`, no existing children → `incrementLastTier("v0")` = `"v0.1"`. Draft labeled `v0.1`. This becomes the root of the draft tree (its own `parent_draft_id` is `null`).
+1. First `the team step (review)` completes → draft added. `parentLabel = "v0"`, no existing children → `incrementLastTier("v0")` = `"v0.1"`. Draft labeled `v0.1`. This becomes the root of the draft tree (its own `parent_draft_id` is `null`).
 
-2. User runs `/argus:revise` with a directive → new draft child of `v0.1`. `parentLabel = "v0.1"`, no existing children of `v0.1` → `incrementLastTier("v0.1")` = `"v0.2"`. Labeled `v0.2`.
+2. User runs `the revise step (review)` with a directive → new draft child of `v0.1`. `parentLabel = "v0.1"`, no existing children of `v0.1` → `incrementLastTier("v0.1")` = `"v0.2"`. Labeled `v0.2`.
 
-3. User explores an alternative: `/argus:versions --checkout v0.1` then `/argus:revise`. `parentLabel = "v0.1"`, existing children = [`"v0.2"`]. Not empty. `"v0.2"` doesn't start with `"v0.1."` → branchCount = 0 → new label = `"v0.1.1"`. Labeled `v0.1.1` (branch from v0.1).
+3. User explores an alternative: `/argus:versions --checkout v0.1` then `the revise step (review)`. `parentLabel = "v0.1"`, existing children = [`"v0.2"`]. Not empty. `"v0.2"` doesn't start with `"v0.1."` → branchCount = 0 → new label = `"v0.1.1"`. Labeled `v0.1.1` (branch from v0.1).
 
-4. User continues main line: `/argus:revise` on `v0.2` → new child. `parentLabel = "v0.2"`, no children → `"v0.3"`. Labeled `v0.3`.
+4. User continues main line: `the revise step (review)` on `v0.2` → new child. `parentLabel = "v0.2"`, no children → `"v0.3"`. Labeled `v0.3`.
 
 5. User promotes: `/argus:versions --promote v0.3` → `promoteToMajor("v0.3") = "v1.0"`. Draft relabeled, `released_draft_id` set.
 
-6. User continues: `/argus:revise` on `v1.0` → `incrementLastTier("v1.0")` = `"v1.1"`. Labeled `v1.1`.
+6. User continues: `the revise step (review)` on `v1.0` → `incrementLastTier("v1.0")` = `"v1.1"`. Labeled `v1.1`.
 
 ## Tree visualization
 

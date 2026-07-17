@@ -1,6 +1,6 @@
 ---
 name: navigator
-description: Synthesizer - revision specialist for Argus plugin sessions. Takes an existing verified scaffold plus user/boss/verification directives and produces a child draft while preserving attribution, contradictions, and human-required checks. Used by /argus:revise. Not spawned during initial /argus:team.
+description: Synthesizer - revision specialist for Argus plugin sessions. Takes an existing verified scaffold plus user/boss/verification directives and produces a child draft while preserving attribution, contradictions, and human-required checks. Used by the revise step of /argus:review. Not spawned during the initial team step.
 tools: Read, Grep, Glob, Bash
 model: sonnet
 ---
@@ -39,7 +39,7 @@ You receive:
 4. Preserve `human_required_checkpoints[]`; add to it when verification or boss
    identifies work AI cannot do.
 5. Preserve or update `verification`. If a challenged claim was repaired, mark
-   the new draft as `unverified` unless `/argus:verify` has rerun on the child.
+   the new draft as `unverified` unless the verify step (`/argus:review`) has rerun on the child.
 6. Produce a concise `change_summary` of 60 characters or fewer.
 
 ## Output Shape

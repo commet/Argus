@@ -1,15 +1,15 @@
 ---
 name: boss
-description: Stakeholder pressure-check of a verified Argus scaffold in the voice of a configured MBTI personality. Reacts to the verified/mixed scaffold and contributes approval conditions or concerns to the current call. Use after /argus:verify passes, or when the user asks how a stakeholder would receive the work — "임원회의 가져가도 되나", "보스가 뭐라 할까", "will my boss/stakeholders approve this". NOT the verification gate — /argus:verify checks claims, boss checks reception; do not run before verification. Invoked as `/argus:boss`.
+description: Stakeholder pressure-check of a verified Argus scaffold in the voice of a configured MBTI personality. Reacts to the verified/mixed scaffold and contributes approval conditions or concerns to the current call. Use after verify.md passes, or when the user asks how a stakeholder would receive the work — "임원회의 가져가도 되나", "보스가 뭐라 할까", "will my boss/stakeholders approve this". NOT the verification gate — verify.md checks claims, boss checks reception; do not run before verification. Runs as a step inside `/argus:review` (formerly `/argus:boss`).
 ---
 
-# /argus:boss
+# boss step — part of /argus:review (formerly /argus:boss)
 
 **What this skill does:** Simulates how a specific stakeholder would receive the
 verified scaffold. It produces concerns with severity and fix suggestions plus
 one approval condition.
 
-**What it is not:** Boss is not proof. `/argus:verify` checks claims. Boss checks
+**What it is not:** Boss is not proof. `verify.md` checks claims. Boss checks
 stakeholder reception.
 
 ---
@@ -18,7 +18,7 @@ stakeholder reception.
 
 Invoke after:
 
-- `/argus:verify` has written `verification.json`.
+- `verify.md` has written `verification.json`.
 - `verification.routing_decision == "proceed_to_boss"` or the user explicitly
   chose to proceed with verified parts.
 - The user explicitly asks for stakeholder review.
@@ -62,7 +62,7 @@ boss by editing `.argus/config.yaml` (`boss.mbti_code`/`name`/`role`) or passing
 1. Find session + latest version label from session.json.
 2. Read `versions/{label}/scaffold.json` (the FinalScaffold). If missing, halt — team hasn't run.
 3. Read `versions/{label}/mix.json` (for full document context).
-4. Read `versions/{label}/verification.json`. If missing, halt and direct user to `/argus:verify`.
+4. Read `versions/{label}/verification.json`. If missing, halt and direct user to `verify.md`.
 5. If `verification.overall_status == "blocked"` OR `routing_decision` in {`stop_for_human_check`, `ask_user`}, do not run boss by default. (`ask_user` means verify could not resolve the route — e.g. a `critical` challenged claim under `--no-prompt`; reviewing an unresolved critical challenge as a stakeholder would launder false confidence.) AskUserQuestion only if the user explicitly invoked boss:
    - ko title: `검증 보류 상태`
    - ko question: `사람 확인이 필요한 항목이 있어 Boss 리뷰가 왜곡될 수 있습니다. 그래도 진행할까요?`
@@ -239,7 +239,7 @@ second run must reproduce this scaffold, not a doubled one):
   concern id, replace-if-present, never blind-append.** A re-run re-derives the same
   routed entries and overwrites them in place; it must not add a second copy of an
   action/check it already routed. (Appending here was the latent re-entry bug: a
-  crash-then-resume, or a manual second `/argus:boss`, would double the routed
+  crash-then-resume, or a manual second `boss.md`, would double the routed
   actions.)
 
 Update `session.json` (keep the skeleton thin — the review lives write-once at
@@ -251,7 +251,7 @@ into `versions/{label}/scaffold.json` above; do NOT copy them into session.json)
   so the version tree shows this draft was reviewed. Do NOT set `reviewing_agent_id`
   (that marks who PRODUCED the draft — `navigator` for a revise child — not who
   reviewed it).
-- `phase = "refining"` (next natural step is `/argus:revise`).
+- `phase = "refining"` (next natural step is `revise.md`).
 - `updated_at = now`
 
 ### Step 7 - Report
@@ -296,13 +296,13 @@ Approval condition: {{approval_condition}}
 {{endif}}
 
 {{locale-aware footer — conditional on there being a concern worth applying}}
-- **If `concerns[]` is empty (or all rejected):** do NOT push `/argus:revise` —
+- **If `concerns[]` is empty (or all rejected):** do NOT push `revise.md` —
   there is nothing to revise. Offer the done-handle instead:
   - ko: `다음: 반영할 우려 없음 — 이대로 확정하려면 \`/argus:versions --promote\`.`
   - en: `Next: no concerns to apply — \`/argus:versions --promote\` to finalize as is.`
 - **If at least one concern is worth applying:**
-  - ko: `다음: 우려를 반영하려면 \`/argus:revise\` (선택한 우려로 자식 초안 생성 + 재검증). 현재 초안으로 확정하려면 \`/argus:versions --promote\`.`
-  - en: `Next: \`/argus:revise\` to apply the concerns (forks a child draft + re-verifies). Or \`/argus:versions --promote\` to finalize this draft.`
+  - ko: `다음: 우려를 반영하려면 \`revise.md\` (선택한 우려로 자식 초안 생성 + 재검증). 현재 초안으로 확정하려면 \`/argus:versions --promote\`.`
+  - en: `Next: \`revise.md\` to apply the concerns (forks a child draft + re-verifies). Or \`/argus:versions --promote\` to finalize this draft.`
 ```
 
 Keep this to one terminal screen.
@@ -334,8 +334,8 @@ Keep this to one terminal screen.
   Skip the M2 personality gate (there is no voice to preserve); every other
   gate (fix_suggestion required, verify separation) still applies.
 - **Invalid MBTI code:** list valid codes and stop.
-- **Mix/scaffold missing:** direct user to `/argus:team`.
-- **Verification missing:** direct user to `/argus:verify`.
+- **Mix/scaffold missing:** direct user to `team.md`.
+- **Verification missing:** direct user to `verify.md`.
 - **Corrupt stored artifact** (a `mix.json` / `scaffold.json` / `verification.json` / `boss_feedback.json` on disk that won't parse): apply the canonical defensive-read discipline (clarify Error modes) — quarantine it to `<name>.corrupt.<ts>`, log to `errors.log`, and report the recovery path; do NOT crash and do NOT silently treat it as missing/empty. A corrupt `verification.json` is NOT "verification missing" — that would route the user to re-verify a step that already ran (and may have blocked). Halt naming the exact file rather than reviewing against a record you couldn't read.
 - **Malformed LLM feedback** (the boss's OWN generated response won't parse — distinct from a corrupt stored file): retry once with stricter format enforcement.
 
@@ -344,11 +344,11 @@ Keep this to one terminal screen.
 ## Forbidden Patterns
 
 - **Manufacturing concerns on a clean, reversible scaffold** to seem rigorous,
-  or reflexively pushing `/argus:revise` when there is nothing worth applying
+  or reflexively pushing `revise.md` when there is nothing worth applying
   (over-fire — the mirror clause). `concerns: []` + one approval condition is a
   valid, honest stakeholder review.
 - Generic reviewer voice.
 - Applying every concern automatically.
 - Running without verification unless the user explicitly overrides.
-- Re-running `/argus:team` to improve before showing boss the actual scaffold.
+- Re-running `team.md` to improve before showing boss the actual scaffold.
 - Letting boss feedback replace verification.
