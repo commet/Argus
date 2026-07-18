@@ -22,7 +22,7 @@ Argus는 **MCP 서버**(Model Context Protocol — AI 어시스턴트가 도구�
 Code에서는 한 줄이면 끝:
 
 ```bash
-claude mcp add argus -- npx -y argus-decision-mcp
+claude mcp add argus "--" npx -y argus-decision-mcp
 ```
 
 **설정 불필요** — API 키도, 계정도 없이. 데이터는 `~/.argus`에 로컬로 남습니다.
@@ -41,7 +41,7 @@ claude mcp add argus -- npx -y argus-decision-mcp
 | | 이런 사람에게 | 시작하기 |
 |---|---|---|
 | 🌐 **웹앱** | 누구나. 설치·가입 불필요. | **[argus.voyage](https://argus.voyage)** 열기 |
-| 🧩 **MCP 서버** | MCP를 지원하는 모든 AI 어시스턴트 — Claude Desktop, Claude Code, Cursor 등. | `claude mcp add argus -- npx -y argus-decision-mcp` → [MCP 문서](./argus-mcp/README.md) |
+| 🧩 **MCP 서버** | MCP를 지원하는 모든 AI 어시스턴트 — Claude Desktop, Claude Code, Cursor 등. | `claude mcp add argus "--" npx -y argus-decision-mcp` → [MCP 문서](./argus-mcp/README.md) |
 | 🔌 **Claude Code 플러그인** | 코드베이스 *안에서* 결정할 때 (PR·파일 위에서). | `/plugin marketplace add commet/Argus`<br>`/plugin install argus@argus` → [플러그인 문서](./argus-plugin-v2/README.ko.md) |
 
 처음이라 잘 모르겠다면 **[웹앱](https://argus.voyage)부터 시작하세요** — 설치가
@@ -144,7 +144,7 @@ MCP를 지원하는 모든 AI 어시스턴트(Claude Desktop, Claude Code, Curso
 Argus를 붙입니다. Claude Code에서 가장 빠른 방법:
 
 ```bash
-claude mcp add argus -- npx -y argus-decision-mcp
+claude mcp add argus "--" npx -y argus-decision-mcp
 ```
 
 설정이 전혀 필요 없습니다 — 원장(ledger)은 `~/.argus`에 저장됩니다. 전체 설정
