@@ -58,6 +58,17 @@ next-env.d.ts
 
 # argus-watch + local working data: personal — never commit (repo is public)
 /.argus/
+
+# Private strategy/eval/roadmap notes — kept as local backup, never public (BLUEPRINT §3.3)
+/docs/ARGUS-PRODUCT-EVALUATION-2026-07-16.ko.md
+/docs/ARGUS-MCP-PLUGIN-OVERHAUL-REVIEW-2026-07-16.md
+/docs/ARGUS-MCP-V2-DESIGN-HISTORY.md
+/docs/ARGUS-REFLECTION-AND-CONNECTION-DESIGN-2026-07-13.md
+/docs/PROPOSAL-ARGUS-MULTIHOST-CORE-AND-DISTRIBUTION-2026-07-16.md
+# source-master video (shipped copies live in public/voyage/) + UI-loop dev exhaust
+/assets/hero-originals/
+/scripts/uiux-loop/LEDGER.md
+/scripts/uiux-loop/gallery-edge/
 /scripts/validation-output/
 .ds-sync/
 ds-bundle/
