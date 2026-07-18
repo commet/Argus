@@ -571,7 +571,7 @@ function LeadSynthesisCard({ synthesis }: { synthesis: LeadSynthesisResult }) {
                       limit at the product level, rather than claiming "we don't
                       judge". Quiet, once per card. */}
                   <p className="mt-2 pl-4 text-[10.5px] text-[var(--text-tertiary)] leading-[1.5]">
-                    {L('답이 아니라, 이 결정이 가장 크게 기대고 있는 질문이에요. 이런 질문은 그 자체로 어느 쪽을 살짝 가리킬 수 있는데 — 그건 저희가 못 지우는 한계일 뿐, 판단은 당신 몫이에요.',
+                    {L('답이 아니라, 이 결정을 가장 크게 좌우하는 질문 하나예요. 이런 질문은 그 자체로 어느 쪽을 살짝 가리킬 수 있는데 — 그건 저희가 못 지우는 한계일 뿐, 판단은 당신 몫이에요.',
                        "This is the one question it turns on, not an answer. The sharpest question can itself lean faintly one way — that's a limit we can't fully remove, not our verdict. The call is yours.")}
                   </p>
                 </div>

@@ -28,7 +28,13 @@ function clipped(text: string, n: number): string {
 export default async function Image({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
   const row = await fetchLink(token);
-  const title = clipped(row?.title || 'Judgment Receipt', 72);
+  const ko = /[가-힣ᄀ-ᇿ㄰-㆏]/.test(`${row?.title ?? ''}\n${row?.content ?? ''}`);
+  const title = clipped(row?.title || (ko ? '판단 영수증' : 'Judgment Receipt'), 72);
+  // The bare signature is a cipher on a shared card; one plain gloss says what
+  // NONE means (mirrors the page + Act2 wording, localized to the receipt).
+  const gloss = ko
+    ? '점수 없음 · AI 판정 없음 — 정한 날, 현실이 답합니다.'
+    : 'No score. No AI verdict — reality answers on the date you set.';
 
   return new ImageResponse(
     (

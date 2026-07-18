@@ -650,7 +650,7 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
                   mid-step. Same loop, same vocabulary (audit P0 #3). */}
               <div className="mb-5">
                 <h2 className="text-[19px] md:text-[23px] font-semibold text-[var(--text-primary)] leading-tight mb-2.5" style={{ fontFamily: 'var(--font-display)' }}>
-                  {L('지금 들고 있는 결정, 무엇에 기대고 있는지 봐 드릴게요', "That decision you're holding — let's see what it rests on")}
+                  {L('지금 들고 있는 결정, 어떤 전제가 깔려 있는지 봐 드릴게요', "That decision you're holding — let's see what it rests on")}
                 </h2>
                 <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5 text-[11px] text-[var(--text-tertiary)]">
                   {[
@@ -719,7 +719,7 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
                     title={L('한 줄만 시작해도 괜찮아요', 'A sentence is enough to begin')}
                     className="mb-3"
                   >
-                    {L('Argus가 곁에서, 이 결정이 기대는 질문을 같이 찾아볼게요.', "Argus will sit with it and help find the question it rests on.")}
+                    {L('Argus가 곁에서, 이 결정에 깔린 전제를 같이 찾아볼게요.', "Argus will sit with it and help find the question it rests on.")}
                   </MascotMoment>
                 )}
                 {/* PRIMARY input — lifted off the page with a soft shadow + a faint
