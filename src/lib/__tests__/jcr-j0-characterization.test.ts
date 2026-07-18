@@ -105,7 +105,7 @@ describe('J6 known debt — capture has two brains and no production consumer', 
     const callers = runtimeFiles
       .filter((path) => /\.(?:ts|js|mjs)$/.test(path))
       .filter((path) => readFileSync(path, 'utf8').includes('runHarvestSweep('))
-      .map((path) => relative(ROOT, path));
+      .map((path) => relative(ROOT, path).replace(/\\/g, '/')); // Windows 경로 구분자 정규화
     expect(callers).toEqual([
       'argus-mcp/src/v2/capture-runtime.ts',
       'argus-mcp/src/v2/harvest.ts',

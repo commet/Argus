@@ -177,10 +177,22 @@ describe('JCR J8 portable archive v2', () => {
     exportPortableLocalArchive(home, repoId, bundle, T0);
     const archivedStream = path.join(bundle, `events/projects/${encodeURIComponent(repoId)}.jsonl`);
     fs.rmSync(archivedStream);
-    fs.symlinkSync(path.join(projectDir(home, repoId), 'ledger.jsonl'), archivedStream);
-    expect(() => restorePortableLocalArchive(home, bundle, {
-      dryRun: true, repositoryConfirmation: repoId,
-    })).toThrow('ARCHIVE_SYMLINK_FORBIDDEN');
+    // Windows는 무권한 프로세스가 symlink를 만들 수 없다(EPERM — 관리자/개발자
+    // 모드 필요). 픽스처 생성이 불가능한 환경에서는 이 거부 케이스만 건너뛴다
+    // — 검증 대상(restore의 symlink 거부)이 아니라 테스트 준비물이 막힌 것.
+    let symlinkMade = false;
+    try {
+      fs.symlinkSync(path.join(projectDir(home, repoId), 'ledger.jsonl'), archivedStream);
+      symlinkMade = true;
+    } catch (e) {
+      if ((e as NodeJS.ErrnoException).code !== 'EPERM') throw e;
+      fs.writeFileSync(archivedStream, ''); // 다음 단계 준비를 위해 자리만 복원
+    }
+    if (symlinkMade) {
+      expect(() => restorePortableLocalArchive(home, bundle, {
+        dryRun: true, repositoryConfirmation: repoId,
+      })).toThrow('ARCHIVE_SYMLINK_FORBIDDEN');
+    }
 
     fs.rmSync(bundle, { recursive: true, force: true });
     fs.mkdirSync(bundle);
