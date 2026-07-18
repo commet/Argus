@@ -506,7 +506,7 @@ function LeadSynthesisCard({ synthesis }: { synthesis: LeadSynthesisResult }) {
   // Tier-1 de-wall: the integrated_analysis prose tends to run long and
   // quantitative ("매번 수학적으로 가는" — founder). It's the reasoning, not the
   // takeaway, so it hides behind its OWN nested toggle, below the value. The
-  // decision-useful parts (핵심 발견 / 갈리는 지점) lead when the card opens.
+  // decision-useful parts (핵심 발견 / 열린 질문) lead when the card opens.
   const [proseOpen, setProseOpen] = useState(false);
   // Collapsed-header teaser: the top finding (else the crux) shown as one line so
   // the user gets the takeaway WITHOUT expanding — value up front, wall on demand.
@@ -557,12 +557,12 @@ function LeadSynthesisCard({ synthesis }: { synthesis: LeadSynthesisResult }) {
                   </ul>
                 </div>
               )}
-              {/* ② 갈리는 지점 — the crux this decision turns on. */}
+              {/* ② 열린 질문 — the crux this decision turns on. */}
               {synthesis.open_question && (
                 <div className={synthesis.key_findings.length > 0 ? 'pt-1' : 'pt-4'}>
                   {/* Spine: the crux this turns on — a neutral question, not a
                       "what you'd advise" verdict (renamed from recommendation_direction). */}
-                  <p className="text-[10px] font-bold text-[var(--accent)] uppercase tracking-[0.15em] mb-2">{L('이 결정이 갈리는 지점', 'The open question')}</p>
+                  <p className="text-[10px] font-bold text-[var(--accent)] uppercase tracking-[0.15em] mb-2">{L('아직 열려 있는 질문', 'The open question')}</p>
                   <blockquote className="rounded-lg bg-[var(--accent)]/[0.04] px-3.5 py-2.5 text-[13px] text-[var(--text-secondary)] italic leading-relaxed">
                     {synthesis.open_question}
                   </blockquote>
@@ -571,7 +571,7 @@ function LeadSynthesisCard({ synthesis }: { synthesis: LeadSynthesisResult }) {
                       limit at the product level, rather than claiming "we don't
                       judge". Quiet, once per card. */}
                   <p className="mt-2 pl-4 text-[10.5px] text-[var(--text-tertiary)] leading-[1.5]">
-                    {L('답이 아니라 결정이 갈리는 한 지점이에요. 가장 중요한 질문은 그 자체로 어느 쪽을 살짝 가리킬 수 있는데 — 그건 저희가 못 지우는 한계일 뿐, 판단은 당신 몫이에요.',
+                    {L('답이 아니라, 이 결정이 가장 크게 기대고 있는 질문이에요. 이런 질문은 그 자체로 어느 쪽을 살짝 가리킬 수 있는데 — 그건 저희가 못 지우는 한계일 뿐, 판단은 당신 몫이에요.',
                        "This is the one question it turns on, not an answer. The sharpest question can itself lean faintly one way — that's a limit we can't fully remove, not our verdict. The call is yours.")}
                   </p>
                 </div>
@@ -932,7 +932,7 @@ export function MirrorBeat({ assumption }: { assumption: string }) {
  * No engine-weighted fork, no directional lean — just closure + the handle. */
 const TERMINAL_ROUTE_COPY: Record<string, { ko: string; en: string }> = {
   flat: {
-    ko: '어느 쪽을 골라도 결과가 크게 갈리지 않는 결정이에요. 억지로 갈림길을 만들기보다, 지금 정리된 내용을 그대로 남겨둘 수 있어요.',
+    ko: '어느 쪽을 골라도 결과가 크게 다르지 않은 결정이에요. 억지로 고민거리를 만들기보다, 지금 정리된 내용을 그대로 남겨둘 수 있어요.',
     en: 'This decision lands about the same whichever way you go. Rather than manufacture a fork, you can keep what\'s already laid out.',
   },
   vent: {
@@ -960,7 +960,7 @@ export function TerminalRouteCard({
 }) {
   const L = (ko: string, en: string) => locale === 'ko' ? ko : en;
   const copy = TERMINAL_ROUTE_COPY[route] ?? {
-    ko: '이 입력은 여러 갈래로 갈리지 않아서, 굳이 더 캐묻지 않고 위 내용으로 정리했어요.',
+    ko: '이 입력은 답이 자연스럽게 하나로 모여서, 굳이 더 캐묻지 않고 위 내용으로 정리했어요.',
     en: 'This input doesn\'t branch into competing paths, so we summarized it above instead of probing further.',
   };
   return (

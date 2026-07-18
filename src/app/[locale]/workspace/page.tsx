@@ -645,17 +645,17 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
 
               {/* Orientation — a short headline + the 3 steps, so first-timers know
                   what happens and "팀" isn't referenced cold in the input helper below. */}
-              {/* The landing sells the voyage ("어디서 갈리는지 보여드려요") —
-                  arriving on "기획안 생산 도구" copy broke that promise mid-step.
-                  Same loop, same vocabulary (audit P0 #3). */}
+              {/* The landing sells the voyage (알아봄 · the question the decision
+                  rests on) — arriving on "기획안 생산 도구" copy broke that promise
+                  mid-step. Same loop, same vocabulary (audit P0 #3). */}
               <div className="mb-5">
                 <h2 className="text-[19px] md:text-[23px] font-semibold text-[var(--text-primary)] leading-tight mb-2.5" style={{ fontFamily: 'var(--font-display)' }}>
-                  {L('지금 들고 있는 결정, 어디서 갈리는지 봐 드릴게요', "That decision you're holding — let's see where it forks")}
+                  {L('지금 들고 있는 결정, 무엇에 기대고 있는지 봐 드릴게요', "That decision you're holding — let's see what it rests on")}
                 </h2>
                 <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5 text-[11px] text-[var(--text-tertiary)]">
                   {[
                     L('상황을 적으면', 'Describe the situation'),
-                    L('AI 팀이 갈리는 자리를 보여드리고', 'an AI crew shows you where it forks'),
+                    L('AI 팀이 숨은 전제를 보여드리고', 'an AI crew surfaces the hidden premises'),
                     L('문서와 결론 요약 한 장(현재 방위)이 남아요', 'you leave with a document & a one-page Heading'),
                   ].map((step, i) => (
                     <React.Fragment key={i}>
@@ -719,7 +719,7 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
                     title={L('한 줄만 시작해도 괜찮아요', 'A sentence is enough to begin')}
                     className="mb-3"
                   >
-                    {L('Argus가 곁에서 갈리는 지점을 같이 찾아볼게요.', "Argus will sit with it and help find where the decision splits.")}
+                    {L('Argus가 곁에서, 이 결정이 기대는 질문을 같이 찾아볼게요.', "Argus will sit with it and help find the question it rests on.")}
                   </MascotMoment>
                 )}
                 {/* PRIMARY input — lifted off the page with a soft shadow + a faint

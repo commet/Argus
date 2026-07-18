@@ -165,7 +165,7 @@ export function MixPreview({ mix, dm, onDM, onSkip, busy, cmReview, debateResult
                     proceed/no-proceed verdict (renamed from `verdict`, 2026-07-04). */}
                 {cmReview.open_question && (
                   <div className="mt-3 pt-3 border-t border-dashed border-[var(--accent)]/15">
-                    <p className="text-[9px] font-bold text-[var(--accent)] uppercase tracking-[0.2em] mb-1.5">{L('아직 갈리는 지점', 'Still open')}</p>
+                    <p className="text-[9px] font-bold text-[var(--accent)] uppercase tracking-[0.2em] mb-1.5">{L('아직 열려 있는 질문', 'Still open')}</p>
                     <p className="text-[12.5px] text-[var(--text-secondary)] italic leading-relaxed">{cmReview.open_question}</p>
                   </div>
                 )}
