@@ -162,7 +162,7 @@ export function TrialSail({ paragraph }: { paragraph: string }) {
           (novice audit, a would-quit moment). */}
       <div>
         <p className="text-[13.5px] font-semibold text-[var(--text-primary)]">
-          {L(`적으신 내용을 AI 선원 ${N_EXECUTORS}명이 그대로 읽었어요`, `${N_EXECUTORS} AI crew members read your text, as-is`)}
+          {L(`적으신 내용을 AI 팀원 ${N_EXECUTORS}명이 그대로 읽었어요`, `${N_EXECUTORS} AI reviewers read your text, as-is`)}
         </p>
         <p className="text-[11.5px] text-[var(--text-tertiary)] mt-0.5">
           {L('같은 글을 따로따로 읽었어요 — 서로 다른 지시는 없었고, 내용은 분석에만 쓰여요.', 'Each read the same text separately — no differing instructions, and it stays inside the analysis.')}
@@ -207,7 +207,7 @@ export function TrialSail({ paragraph }: { paragraph: string }) {
                 // Honest no-show: a frozen skeleton reads as "loading stuck" —
                 // say plainly that this reading never arrived.
                 <p className="text-[11px] text-[var(--text-tertiary)] leading-[1.5]">
-                  {L('이 선원의 응답은 닿지 않았어요.', "This reading didn't arrive.")}
+                  {L('이 팀원의 응답을 받지 못했어요.', "This review didn't arrive.")}
                 </p>
               ) : (
                 <div className="space-y-1.5">
@@ -289,8 +289,8 @@ export function TrialSail({ paragraph }: { paragraph: string }) {
                 <Anchor size={12} className="text-[var(--text-tertiary)] mt-0.5 shrink-0" />
                 <p className="text-[12px] text-[var(--text-secondary)] leading-[1.55]">
                   {L(
-                    '선원들이 같은 곳으로 갔어요. 이 텍스트 안에서 잴 수 있는 갈림은 없었어요 — 남은 위험은 텍스트 밖이에요. 곧장 마무리로 가도 좋아요.',
-                    'The crew sailed to the same place. Nothing measurably forked inside this text — what risk remains lives outside it. Feel free to head straight for the finish.',
+                    'AI 팀원들이 같은 결론에 도달했어요. 이 글 안에서는 뚜렷한 갈림이 없었고, 남은 위험은 글 밖에서 확인해야 해요. 바로 마무리해도 괜찮아요.',
+                    'The AI reviewers reached the same conclusion. Nothing clearly forked inside this text; the remaining risk needs checking outside it. You can move straight to the finish.',
                   )}
                 </p>
               </div>

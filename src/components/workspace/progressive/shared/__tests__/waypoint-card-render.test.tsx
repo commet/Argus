@@ -36,7 +36,7 @@ describe('WaypointCard', () => {
 
   it('renders the type chip, eyebrow, and headline', () => {
     expect(html).toContain('지금');          // eyebrow
-    expect(html).toContain('항로 변경');       // type label (course_change, ko)
+    expect(html).toContain('방향 변경');       // type label (course_change, ko)
     expect(html).toContain('이탈의 진짜 원인은?'); // headline
   });
 
@@ -47,7 +47,7 @@ describe('WaypointCard', () => {
   });
 
   it('renders the road-not-taken with its fork handle, hiding the taken one', () => {
-    expect(html).toContain('가지 않은 길');
+    expect(html).toContain('보류한 선택지');
     expect(html).toContain('챗봇 직접 제작');
     expect(html).toContain('이 길 가보기');
     expect(html).not.toContain('이탈 원인 분석 선행'); // the taken alt is not a road-not-taken
@@ -63,9 +63,9 @@ describe('WaypointCard', () => {
     const body = renderToStaticMarkup(createElement(WaypointDetail, {
       waypoint: wp, assumptions: [], locked: false, onTakeRoad: () => {},
     }));
-    expect(body).toContain('가지 않은 길');
+    expect(body).toContain('보류한 선택지');
     expect(body).not.toContain('지금');       // no eyebrow
-    expect(body).not.toContain('항로 변경');    // no type chip
+    expect(body).not.toContain('방향 변경');    // no type chip
   });
 
   it('keeps a legacy source-less reason stored but does not present it as the user\'s reason', () => {

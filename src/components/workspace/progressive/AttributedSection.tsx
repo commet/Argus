@@ -83,7 +83,7 @@ export function AttributedSection({ section, index }: {
         <h3 className="text-[16px] md:text-[17px] font-bold text-[var(--text-primary)] leading-[1.35] flex-1 tracking-tight">{section.heading}</h3>
         {hasUnreviewed && (
           <span
-            title={L('이 부분에 기여한 선원 보고를 아직 직접 확인하지 않았어요. 위 "열어보기"에서 반영/제외할 수 있어요.', "You haven't reviewed the crew reports behind this section yet — open the reports above to apply/exclude them.")}
+            title={L('이 부분에 기여한 팀원 보고를 아직 직접 확인하지 않았어요. 위 "열어보기"에서 반영하거나 제외할 수 있어요.', "You haven't reviewed the AI reports behind this section yet — open the reports above to apply or exclude them.")}
             className="shrink-0 text-[9px] font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)] border border-[var(--border)] rounded-full px-1.5 py-0.5"
           >
             {L('검토 전', 'unreviewed')}
