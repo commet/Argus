@@ -30,6 +30,9 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  images: {
+    qualities: [75, 90],
+  },
   async redirects() {
     // Canonical-host guard. The Vercel project ("overture") also serves on its
     // default *.vercel.app alias, so an auth round-trip or a stale/bookmarked
