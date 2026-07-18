@@ -5,7 +5,7 @@ import { useAuth } from '@/lib/auth';
 import { useLocale } from '@/hooks/useLocale';
 import { supabase } from '@/lib/supabase';
 import { Card } from '@/components/ui/Card';
-import { Anchor, Compass, RefreshCw } from 'lucide-react';
+import { Compass, RefreshCw } from 'lucide-react';
 
 interface Metrics {
   generated_at: string;
@@ -137,7 +137,7 @@ export default function AdminPage() {
     <div className="max-w-4xl mx-auto px-6 py-10">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-[var(--text-primary)]">{L('계기판', 'Dashboard')}</h1>
+          <h1 className="text-2xl font-bold text-[var(--text-primary)]">{L('운영 지표', 'Operations')}</h1>
           {metrics && (
             <p className="text-[12px] text-[var(--text-tertiary)] mt-0.5">
               {L('기준', 'as of')} {new Date(metrics.generated_at).toLocaleString()}
@@ -156,25 +156,16 @@ export default function AdminPage() {
 
       {metrics && (
         <>
-          {/* The funnel — the spine: signup → uses it → makes a project → SEALS → settles */}
-          <h2 className="text-[12px] font-bold uppercase tracking-wider text-[var(--text-tertiary)] mb-2">{L('깔때기', 'Funnel')}</h2>
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-2">
+          {/* The funnel: signup → uses it → makes a project → seals → settles.
+              Numbers only — no coaching copy; the operator knows what 0 means. */}
+          <h2 className="text-[12px] font-bold uppercase tracking-wider text-[var(--text-tertiary)] mb-2">{L('퍼널', 'Funnel')}</h2>
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
             <Stat label={L('가입', 'Signups')} value={metrics.users_total} hint={`+${metrics.signups_30d} ${L('30일', '30d')}`} />
             <Stat label={L('프로젝트 보유', 'With project')} value={metrics.users_with_projects} />
             <Stat label={L('프로젝트', 'Projects')} value={metrics.projects_total} hint={`+${metrics.projects_30d} ${L('30일', '30d')}`} />
-            <Stat label={L('봉인된 결정', 'Sealed')} value={metrics.projects_sealed} accent hint={L('핵심 지표', 'the spine')} />
-            <Stat label={L('정산됨', 'Settled')} value={metrics.projects_settled} accent />
+            <Stat label={L('봉인', 'Sealed')} value={metrics.projects_sealed} accent />
+            <Stat label={L('정산', 'Settled')} value={metrics.projects_settled} accent />
           </div>
-
-          {metrics.projects_sealed === 0 && (
-            <Card variant="muted" className="!p-3 mb-6 flex items-start gap-2">
-              <Anchor size={14} className="mt-0.5 shrink-0 text-[var(--accent)]" />
-              <p className="text-[12.5px] text-[var(--text-secondary)] leading-snug">
-                {L('아직 봉인된 결정이 0건입니다 — 제품의 핵심 루프(결정 봉인→정산)가 실사용자에게서 한 번도 작동한 적이 없다는 뜻. 로그인해서 결정 한 건을 직접 봉인하면 이 숫자가 0→1이 됩니다.',
-                   'Zero sealed decisions yet — the core loop (seal→settle) has never run for a real user. Seal one decision while logged in to move this 0→1.')}
-              </p>
-            </Card>
-          )}
 
           {/* Return loop — the BEHAVIORAL funnel from user_events (anon-inclusive).
               The projects funnel above only sees logged-in users; anon seals/settles
@@ -217,20 +208,10 @@ export default function AdminPage() {
                   </div>
                 )}
 
-                {r.settled_total === 0 ? (
-                  <Card variant="muted" className="!p-3 mb-6 flex items-start gap-2">
-                    <Compass size={14} className="mt-0.5 shrink-0 text-[var(--accent)]" />
-                    <p className="text-[12.5px] text-[var(--text-secondary)] leading-snug">
-                      {L(`봉인 ${r.sealed_total}건 중 실제 정산(현실과 대조)까지 온 건 0건 — 귀환 루프가 아직 한 번도 닫히지 않았습니다. 이 숫자가 0→1 되는 순간이 해자가 처음 작동하는 증거입니다.`,
-                         `Of ${r.sealed_total} seals, 0 reached an actual settle — the return loop has never closed. The moment this goes 0→1 is the first proof the moat works.`)}
-                    </p>
-                  </Card>
-                ) : (
-                  <p className="text-[11px] text-[var(--text-tertiary)] mb-6 leading-snug">
-                    {L('참고: 익명 정산은 며칠 뒤 새 세션에서 일어나 세션 단위로는 과소집계됩니다 — 전환율 대신 원시 카운트를 봅니다.',
-                       'Note: anon settle happens days later in a new session, so session-based conversion undercounts — read raw counts, not a %.')}
-                  </p>
-                )}
+                <p className="text-[11px] text-[var(--text-tertiary)] mb-6 leading-snug">
+                  {L('익명 정산은 며칠 뒤 새 세션에서 일어나 세션 단위로는 과소집계됩니다 — 전환율 대신 원시 카운트를 봅니다.',
+                     'Anon settle happens days later in a new session, so session-based conversion undercounts — read raw counts, not a %.')}
+                </p>
               </>
             );
           })()}

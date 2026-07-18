@@ -21,9 +21,11 @@ export function Header() {
   const { locale, switchTo: handleLocaleChange } = useLocaleSwitch();
   const L = (ko: string, en: string) => locale === 'ko' ? ko : en;
 
-  // W1.3 단일 진입: first-line nav is [워크스페이스·프로젝트·설정] only.
-  // /agents·/boss·/guide routes are NOT deleted — they're reachable from
+  // W1.3 단일 진입: first-line nav is [워크스페이스·프로젝트·설정·가이드].
+  // /agents·/boss routes are NOT deleted — they're reachable from
   // inside the workspace (crew-roster row), just no longer top-level doors.
+  // /guide was promoted out of the overflow (창업자 2026-07-19): a first-run
+  // user needs the manual where they can see it, next to Settings.
   // /project is PUBLIC (public-paths.ts) and localStorage-first — it shows the user's
   // own (anon-included) decisions and the due-return strip. It must NOT wear a 🔒:
   // the seal promises anon users a dated return there, so a lock next to the due badge
@@ -33,6 +35,7 @@ export function Header() {
     { href: '/workspace', label: L('워크스페이스', 'Workspace'), primary: true },
     { href: '/project', label: L('프로젝트', 'Projects') },
     { href: '/settings', label: L('설정', 'Settings') },
+    { href: '/guide', label: L('가이드', 'Guide') },
   ];
 
   const pathname = stripLocale(usePathname());
@@ -48,15 +51,19 @@ export function Header() {
   // this flag only decides whether to surface the menu link.
   const isOperator = user?.app_metadata?.is_operator === true;
   const e3bReleased = clientE3BReleaseDecision().open;
-  const utilityItems: Array<{ href: string; label: string; icon: typeof Download }> = [
-    { href: '/import', label: L('가져오기', 'Import'), icon: Download },
-    { href: '/teams', label: L('팀', 'Teams'), icon: Users },
+  // Overflow menu, one hierarchy (창업자 2026-07-19): everyday tools first,
+  // then a separated operator section. Every item carries a one-line desc —
+  // shown in the menu AND reused verbatim by the command palette, so the two
+  // surfaces can't drift. Names say what the page does: /boss is a rehearsal,
+  // not a "설정" screen; /admin is operator metrics, not a cockpit.
+  const utilityItems: Array<{ href: string; label: string; desc: string; icon: typeof Download; section: 'tools' | 'operator' }> = [
+    { href: '/teams', label: L('팀', 'Teams'), desc: L('프로젝트를 함께 볼 팀원을 초대합니다.', 'Invite teammates to share projects with.'), icon: Users, section: 'tools' },
     // /boss moved here from the workspace idle chips (P0-7) — the route lives on,
     // only the extra doorway on the landing was removed.
-    { href: '/boss', label: L('보고 상대 설정', 'Set your reviewer'), icon: UserCheck },
-    { href: '/guide', label: L('사용 가이드', 'Guide'), icon: BookOpen },
-    ...(e3bReleased ? [{ href: '/patterns', label: 'Patterns', icon: Waves }] : []),
-    ...(isOperator ? [{ href: '/admin', label: L('계기판', 'Dashboard'), icon: BarChart3 }] : []),
+    { href: '/boss', label: L('보고 리허설', 'Report rehearsal'), desc: L('팀장 성격을 설정하고 보고를 미리 연습합니다.', "Set up your boss's personality and rehearse a report."), icon: UserCheck, section: 'tools' },
+    { href: '/import', label: L('기록 가져오기', 'Import records'), desc: L('터미널·MCP에서 봉인한 결정을 이 계정으로 모읍니다.', 'Gather decisions sealed in the terminal or MCP here.'), icon: Download, section: 'tools' },
+    ...(e3bReleased ? [{ href: '/patterns', label: 'Patterns', desc: L('근거와 반례를 검토하고 AI 영향 권한을 관리합니다.', 'Review evidence and manage AI influence grants.'), icon: Waves, section: 'operator' as const }] : []),
+    ...(isOperator ? [{ href: '/admin', label: L('운영 지표', 'Operations'), desc: L('가입·봉인·정산 퍼널과 테이블 행수를 확인합니다.', 'Signup, seal, and settle funnels plus table row counts.'), icon: BarChart3, section: 'operator' as const }] : []),
   ];
 
   const commandItems: CommandPaletteItem[] = [
@@ -84,20 +91,21 @@ export function Header() {
       keywords: ['preferences', 'model', '환경', '모델'],
       icon: Settings2,
     },
+    {
+      href: '/guide',
+      label: L('가이드', 'Guide'),
+      description: L('Argus의 흐름과 주요 기능을 빠르게 익힙니다.', 'Learn the Argus flow and its main features.'),
+      group: L('환경', 'System'),
+      keywords: ['help', 'manual', '도움말', '사용법'],
+      icon: BookOpen,
+    },
+    // Single source: the overflow menu's desc doubles as the palette description.
     ...utilityItems.map((item) => ({
-      ...item,
-      description: item.href === '/import'
-        ? L('기존 자료와 MCP 연결을 Argus로 가져옵니다.', 'Bring existing material and MCP connections into Argus.')
-        : item.href === '/teams'
-        ? L('분석에 참여할 관점과 팀 구성을 관리합니다.', 'Manage the perspectives and teams used for analysis.')
-        : item.href === '/boss'
-        ? L('내 결정을 검토할 상대의 관점을 설정합니다.', 'Set the perspective that will review your decisions.')
-        : item.href === '/guide'
-        ? L('Argus의 흐름과 주요 기능을 빠르게 익힙니다.', 'Learn the Argus flow and its main features.')
-        : item.href === '/patterns'
-        ? L('근거와 반례를 검토하고 미래 AI 영향 권한을 따로 관리합니다.', 'Review evidence and counterexamples, then manage future AI influence separately.')
-        : L('운영 지표와 제품 상태를 확인합니다.', 'Review product status and operating metrics.'),
-      group: L('도구', 'Tools'),
+      href: item.href,
+      label: item.label,
+      icon: item.icon,
+      description: item.desc,
+      group: item.section === 'operator' ? L('운영', 'Operate') : L('도구', 'Tools'),
       keywords: [],
     })),
   ];
@@ -266,20 +274,26 @@ export function Header() {
                   <MoreHorizontal size={16} />
                 </button>
                 {moreMenuOpen && (
-                  <div role="menu" className="absolute right-0 top-full mt-2 w-44 bg-[var(--surface)] rounded-xl border border-[var(--border)] shadow-[var(--shadow-lg)] overflow-hidden animate-fade-in py-1">
-                    {utilityItems.map((item) => {
+                  <div role="menu" className="absolute right-0 top-full mt-2 w-64 bg-[var(--surface)] rounded-xl border border-[var(--border)] shadow-[var(--shadow-lg)] overflow-hidden animate-fade-in py-1">
+                    {utilityItems.map((item, i) => {
                       const Icon = item.icon;
+                      const firstOperator = item.section === 'operator' && utilityItems[i - 1]?.section !== 'operator';
                       return (
-                        <LocaleLink
-                          key={item.href}
-                          href={item.href}
-                          role="menuitem"
-                          onClick={() => setMoreMenuOpen(false)}
-                          className="flex items-center gap-2.5 px-3 py-2 text-[13px] text-[var(--text-secondary)] hover:bg-[var(--bg)] hover:text-[var(--text-primary)] transition-colors"
-                        >
-                          <Icon size={14} strokeWidth={1.75} />
-                          {item.label}
-                        </LocaleLink>
+                        <div key={item.href}>
+                          {firstOperator && <div className="my-1 border-t border-[var(--border-subtle)]" role="separator" />}
+                          <LocaleLink
+                            href={item.href}
+                            role="menuitem"
+                            onClick={() => setMoreMenuOpen(false)}
+                            className="flex items-start gap-2.5 px-3 py-2 hover:bg-[var(--bg)] transition-colors group/util"
+                          >
+                            <Icon size={14} strokeWidth={1.75} className="mt-0.5 shrink-0 text-[var(--text-tertiary)] group-hover/util:text-[var(--text-primary)] transition-colors" />
+                            <span className="min-w-0">
+                              <span className="block text-[13px] text-[var(--text-secondary)] group-hover/util:text-[var(--text-primary)] transition-colors leading-tight">{item.label}</span>
+                              <span className="block text-[11px] text-[var(--text-tertiary)] leading-snug mt-0.5">{item.desc}</span>
+                            </span>
+                          </LocaleLink>
+                        </div>
                       );
                     })}
                   </div>
@@ -463,18 +477,21 @@ export function Header() {
             })}
             {/* Former sidebar utilities (H1-C4) — same list as the desktop overflow */}
             <div className="pt-1 mt-1 border-t border-[var(--border-subtle)]">
-              {utilityItems.map((item) => {
+              {utilityItems.map((item, i) => {
                 const Icon = item.icon;
+                const firstOperator = item.section === 'operator' && utilityItems[i - 1]?.section !== 'operator';
                 return (
-                  <LocaleLink
-                    key={item.href}
-                    href={item.href}
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="flex items-center gap-2.5 px-4 py-2.5 min-h-[44px] rounded-lg text-[14px] text-[var(--text-secondary)] hover:bg-[var(--bg)] hover:text-[var(--text-primary)] transition-colors"
-                  >
-                    <Icon size={15} strokeWidth={1.75} />
-                    {item.label}
-                  </LocaleLink>
+                  <div key={item.href}>
+                    {firstOperator && <div className="my-1 border-t border-[var(--border-subtle)]" role="separator" />}
+                    <LocaleLink
+                      href={item.href}
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="flex items-center gap-2.5 px-4 py-2.5 min-h-[44px] rounded-lg text-[14px] text-[var(--text-secondary)] hover:bg-[var(--bg)] hover:text-[var(--text-primary)] transition-colors"
+                    >
+                      <Icon size={15} strokeWidth={1.75} />
+                      {item.label}
+                    </LocaleLink>
+                  </div>
                 );
               })}
             </div>
