@@ -134,7 +134,7 @@ export default function ImportPage() {
       <div className="max-w-2xl mx-auto px-6 py-16">
         <Card variant="elevated">
           <h1 className="text-xl font-bold text-[var(--text-primary)] mb-2">
-            {L('플러그인 기록 가져오기', 'Import plugin records')}
+            {L('기록 가져오기', 'Import records')}
           </h1>
           <p className="text-[14px] text-[var(--text-secondary)] mb-5">
             {L(
@@ -147,7 +147,14 @@ export default function ImportPage() {
             <li>{L('2. 정한 날 계정 이메일이 먼저 옵니다.', '2. On the date you chose, your account email arrives first.')}</li>
             <li>{L('3. 여기서 실제 결과만 기록합니다.', '3. Come back here and record only what reality did.')}</li>
           </ol>
-          <McpInstallGuide locale={locale} />
+          <details className="mb-5">
+            <summary className="cursor-pointer text-[13px] font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)]">
+              {L('처음이라면 — MCP 설치 안내', 'First time? — MCP install guide')}
+            </summary>
+            <div className="mt-3">
+              <McpInstallGuide locale={locale} />
+            </div>
+          </details>
           <LocaleLink href="/login?redirect=/import">
             <Button variant="accent">{L('로그인', 'Log in')}</Button>
           </LocaleLink>
@@ -159,94 +166,124 @@ export default function ImportPage() {
   return (
     <div className="max-w-3xl mx-auto px-6 py-10">
       <h1 className="text-2xl font-bold text-[var(--text-primary)] mb-1">
-        {L('플러그인 기록', 'Plugin records')}
+        {L('기록 가져오기', 'Import records')}
       </h1>
-      <p className="text-[14px] text-[var(--text-secondary)] mb-3">
+      <p className="text-[14px] text-[var(--text-secondary)] mb-6">
         {L(
-          'Claude Code 플러그인의 .argus/ledger/ledger.jsonl과 current_bearing.json을 이 화면에서 열 수 있습니다.',
-          "Upload your Claude Code plugin's .argus/ledger/ledger.jsonl and current_bearing.json files to open them here.",
+          'Claude Code·텔레그램 등 다른 곳에서 봉인한 결정이 이 계정으로 모입니다. 여기서 확인일이 온 결정을 정산할 수 있어요.',
+          'Decisions sealed elsewhere — Claude Code, Telegram — gather into this account. Settle the ones whose check date has arrived, right here.',
         )}
       </p>
 
-      <div className="mb-6 px-3.5 py-3 rounded-lg bg-[var(--bg)] border border-[var(--border-subtle)]">
-        <p className="text-[12.5px] text-[var(--text-secondary)]">
-          {L('권장 흐름: 설정에서 push token을 발급한 뒤 플러그인에서 ', 'Recommended flow: issue a push token in Settings, then run ')}
-          <code className="text-[11.5px] font-mono bg-[var(--surface)] px-1.5 py-0.5 rounded">/argus:settings connect</code>
-          {L(' 후 ', ' and ')}
-          <code className="text-[11.5px] font-mono bg-[var(--surface)] px-1.5 py-0.5 rounded">/argus:settings sync</code>
-          {L('를 실행하세요. 파일을 직접 올리지 않아도 웹앱과 로컬 ledger가 왕복 동기화됩니다.', ' to sync both ways without manual upload.')}
+      {/* ① The one recommended path, in plain words. Everything technical folds below. */}
+      <Card variant="muted" className="mb-4">
+        <p className="text-[14px] font-semibold text-[var(--text-primary)] mb-2.5">
+          {L('연결하기 (한 번만 하면 됩니다)', 'Connect once — that’s it')}
         </p>
-        <div className="mt-2 flex flex-wrap items-center gap-2 text-[12px]">
-          <LocaleLink href="/settings" className="text-[var(--accent)] hover:underline">
-            {L('토큰 발급하러 가기', 'Issue a token')}
-          </LocaleLink>
-          <span className="text-[var(--text-tertiary)]">{L('정산 후에는 로컬에서 ', 'After settling here, run ')}</span>
+        <ol className="space-y-2 text-[13px] text-[var(--text-secondary)]">
+          <li className="flex gap-2">
+            <span className="shrink-0 w-5 h-5 rounded-full bg-[var(--accent)]/10 text-[var(--accent)] text-[11px] font-bold flex items-center justify-center">1</span>
+            <span>
+              <LocaleLink href="/settings" className="text-[var(--accent)] hover:underline font-medium">{L('설정에서 연결 토큰을 발급', 'Issue a connect token in Settings')}</LocaleLink>
+              {L('합니다.', '.')}
+            </span>
+          </li>
+          <li className="flex gap-2">
+            <span className="shrink-0 w-5 h-5 rounded-full bg-[var(--accent)]/10 text-[var(--accent)] text-[11px] font-bold flex items-center justify-center">2</span>
+            <span>
+              {L('터미널에서 ', 'In your terminal, run ')}
+              <code className="text-[11.5px] font-mono bg-[var(--surface)] px-1.5 py-0.5 rounded">/argus:settings connect</code>
+              {L('를 한 번 실행합니다.', ' once.')}
+            </span>
+          </li>
+        </ol>
+        <p className="text-[12.5px] text-[var(--text-tertiary)] mt-3">
+          {L('이후로는 ', 'From then on, ')}
           <code className="text-[11px] font-mono bg-[var(--surface)] px-1.5 py-0.5 rounded">/argus:settings sync</code>
-          <span className="text-[var(--text-tertiary)]">{L('를 실행하면 됩니다.', ' locally.')}</span>
-        </div>
-        <p className="text-[12px] text-[var(--text-tertiary)] mt-2">
-          {L('깊은 검토는 ', 'Deep review starts with ')}
-          <code className="text-[11px] font-mono bg-[var(--surface)] px-1.5 py-0.5 rounded">/argus:review</code>
-          {L(', 과거 Claude Code 결정 회수는 ', '; past Claude Code decisions start with ')}
-          <code className="text-[11px] font-mono bg-[var(--surface)] px-1.5 py-0.5 rounded">/argus:history scan</code>
-          {L(' 후 ', ', then ')}
-          <code className="text-[11px] font-mono bg-[var(--surface)] px-1.5 py-0.5 rounded">/argus:check</code>
-          {L('입니다.', '.')}
+          {L(' 한 번이면 로컬 기록과 이 화면이 왕복으로 맞춰집니다 — 파일을 올릴 필요가 없어요. 여기서 정산한 결과도 같은 명령으로 로컬에 돌아갑니다.', ' keeps your local records and this page in sync both ways — no file uploads needed. Settlements you record here travel back the same way.')}
         </p>
-      </div>
+      </Card>
 
-      <McpInstallGuide locale={locale} />
+      {/* ② First-time install — folded; facts and commands only (BLUEPRINT §9.5 M4). */}
+      <details className="mb-4 group/install">
+        <summary className="cursor-pointer list-none flex items-center justify-between rounded-lg border border-[var(--border-subtle)] bg-[var(--bg)] px-3.5 py-2.5">
+          <span className="text-[13px] font-medium text-[var(--text-secondary)]">
+            {L('처음이라면 — MCP 설치 안내', 'First time? — MCP install guide')}
+          </span>
+          <span className="text-[11px] text-[var(--text-tertiary)] group-open/install:hidden">{L('펼치기', 'Show')}</span>
+        </summary>
+        <div className="mt-3">
+          <McpInstallGuide locale={locale} />
+          <p className="text-[12px] text-[var(--text-tertiary)] px-1 -mt-3 mb-3">
+            {L('더 깊이: 문서 검토는 ', 'Going deeper: document review starts with ')}
+            <code className="text-[11px] font-mono bg-[var(--surface)] px-1.5 py-0.5 rounded">/argus:review</code>
+            {L(', 과거 Claude Code 결정 회수는 ', '; recovering past Claude Code decisions starts with ')}
+            <code className="text-[11px] font-mono bg-[var(--surface)] px-1.5 py-0.5 rounded">/argus:history scan</code>
+            {L('입니다.', '.')}
+          </p>
+        </div>
+      </details>
 
-      <Card variant="muted" className="mb-6">
-        <div className="flex items-center justify-between gap-4 flex-wrap">
-          <div className="flex items-center gap-3">
-            <Upload size={18} className="text-[var(--accent)]" />
+      {/* ③ Manual file upload — the legacy path, folded by default. */}
+      <details className="mb-6 group/upload">
+        <summary className="cursor-pointer list-none flex items-center justify-between rounded-lg border border-[var(--border-subtle)] bg-[var(--bg)] px-3.5 py-2.5">
+          <span className="text-[13px] font-medium text-[var(--text-secondary)] flex items-center gap-2">
+            <Upload size={14} className="text-[var(--text-tertiary)]" />
+            {L('파일로 직접 올리기 (연결 없이)', 'Upload files manually (without connecting)')}
+          </span>
+          <span className="text-[11px] text-[var(--text-tertiary)] group-open/upload:hidden">{L('펼치기', 'Show')}</span>
+        </summary>
+        <Card variant="muted" className="mt-3">
+          <div className="flex items-center justify-between gap-4 flex-wrap">
             <div>
-              <p className="text-[14px] font-semibold text-[var(--text-primary)]">
-                {L('파일 선택', 'Choose files')}
+              <p className="text-[13px] text-[var(--text-secondary)]">
+                {L('플러그인 폴더의 ', 'From the plugin folder: ')}
+                <code className="text-[11px] font-mono bg-[var(--surface)] px-1.5 py-0.5 rounded">.argus/ledger/ledger.jsonl</code>
+                {L('과 ', ' and ')}
+                <code className="text-[11px] font-mono bg-[var(--surface)] px-1.5 py-0.5 rounded">current_bearing.json</code>
               </p>
-              <p className="text-[12px] text-[var(--text-tertiary)]">
-                {L('.jsonl / .json, 여러 개 가능, 다시 올리면 중복 없이 갱신됩니다.', '.jsonl / .json, multiple files ok, re-upload updates without duplicates.')}
+              <p className="text-[12px] text-[var(--text-tertiary)] mt-1">
+                {L('여러 개 가능, 다시 올리면 중복 없이 갱신됩니다.', 'Multiple files ok; re-uploading updates without duplicates.')}
               </p>
             </div>
+            <input
+              ref={fileRef}
+              type="file"
+              accept=".jsonl,.json,application/json"
+              multiple
+              onChange={handleFiles}
+              className="hidden"
+              id="plugin-files"
+            />
+            <Button variant="secondary" onClick={() => fileRef.current?.click()} disabled={busy}>
+              {busy ? L('가져오는 중...', 'Importing...') : L('파일 올리기', 'Upload')}
+            </Button>
           </div>
-          <input
-            ref={fileRef}
-            type="file"
-            accept=".jsonl,.json,application/json"
-            multiple
-            onChange={handleFiles}
-            className="hidden"
-            id="plugin-files"
-          />
-          <Button variant="secondary" onClick={() => fileRef.current?.click()} disabled={busy}>
-            {busy ? L('가져오는 중...', 'Importing...') : L('파일 올리기', 'Upload')}
-          </Button>
-        </div>
 
-        {summary && (
-          <div className="mt-4 pt-4 border-t border-[var(--border-subtle)] text-[13px]">
-            {summary.error === 'too_large' ? (
-              <p className="text-[var(--danger)] flex items-center gap-1.5"><AlertTriangle size={14} />{L('파일이 너무 큽니다. 15MB 이하로 올려주세요.', 'Files too large. Keep the upload under 15MB.')}</p>
-            ) : summary.error && summary.error !== 'not_logged_in' ? (
-              <p className="text-[var(--danger)] flex items-center gap-1.5"><AlertTriangle size={14} />{L('저장 오류: ', 'Save error: ')}{summary.error}</p>
-            ) : (
-              <p className="text-[var(--text-primary)] flex items-center gap-1.5">
-                <CheckCircle2 size={14} className="text-[var(--primary)]" />
-                {L(
-                  `결정 ${summary.decisions.written}건, 항해 기록 ${summary.bearings.written}건을 가져왔습니다.`,
-                  `Imported ${summary.decisions.written} decisions, ${summary.bearings.written} bearings.`,
-                )}
-              </p>
-            )}
-            {summary.skipped.length > 0 && (
-              <ul className="mt-2 text-[12px] text-[var(--text-tertiary)] list-disc pl-5">
-                {summary.skipped.map((s, i) => <li key={i}>{s}</li>)}
-              </ul>
-            )}
-          </div>
-        )}
-      </Card>
+          {summary && (
+            <div className="mt-4 pt-4 border-t border-[var(--border-subtle)] text-[13px]">
+              {summary.error === 'too_large' ? (
+                <p className="text-[var(--danger)] flex items-center gap-1.5"><AlertTriangle size={14} />{L('파일이 너무 큽니다. 15MB 이하로 올려주세요.', 'Files too large. Keep the upload under 15MB.')}</p>
+              ) : summary.error && summary.error !== 'not_logged_in' ? (
+                <p className="text-[var(--danger)] flex items-center gap-1.5"><AlertTriangle size={14} />{L('저장 오류: ', 'Save error: ')}{summary.error}</p>
+              ) : (
+                <p className="text-[var(--text-primary)] flex items-center gap-1.5">
+                  <CheckCircle2 size={14} className="text-[var(--primary)]" />
+                  {L(
+                    `결정 ${summary.decisions.written}건, 항해 기록 ${summary.bearings.written}건을 가져왔습니다.`,
+                    `Imported ${summary.decisions.written} decisions, ${summary.bearings.written} bearings.`,
+                  )}
+                </p>
+              )}
+              {summary.skipped.length > 0 && (
+                <ul className="mt-2 text-[12px] text-[var(--text-tertiary)] list-disc pl-5">
+                  {summary.skipped.map((s, i) => <li key={i}>{s}</li>)}
+                </ul>
+              )}
+            </div>
+          )}
+        </Card>
+      </details>
 
       <section className="mb-8">
         <h2 className="text-[13px] font-bold uppercase tracking-wider text-[var(--text-tertiary)] mb-3 flex items-center gap-2">
@@ -303,9 +340,9 @@ export default function ImportPage() {
                     <div className="mt-3 pt-3 border-t border-[var(--border-subtle)]">
                       {!record ? <>
                         <p className="text-[11.5px] text-[var(--text-tertiary)] mb-2">
-                          {L('기존 플러그인 기록입니다. 과거 내용을 자동으로 승격하지 않습니다. 아래 확인은 오늘 이 내용을 정본 판단으로 다시 채택하는 명시적 행위입니다.', 'This is a legacy plugin record. It is never silently upgraded; the action below explicitly re-adopts it today as a canonical judgment.')}
+                          {L('예전 플러그인 기록이에요. 자동으로 옮겨 적지 않습니다 — 아래 버튼은 이 내용을 오늘 내 판단으로 다시 채택하는 행동이에요.', 'A legacy plugin record. It is never copied over silently — the button below re-adopts it today as your own judgment.')}
                         </p>
-                        <Button variant="accent" size="sm" onClick={() => reforge(d.id)} disabled={actingId === d.id}>{L('정본 판단으로 다시 기록', 'Reforge as canonical judgment')}</Button>
+                        <Button variant="accent" size="sm" onClick={() => reforge(d.id)} disabled={actingId === d.id}>{L('내 판단으로 다시 기록', 'Re-adopt as my judgment')}</Button>
                       </> : closed ? <>
                         <p className="text-[11.5px] text-[var(--text-tertiary)]">{L('답변과 별도 종결 확인이 모두 기록되었습니다.', 'The answer and the separate close confirmation are both recorded.')}</p>
                       </> : answered ? <>
@@ -321,7 +358,7 @@ export default function ImportPage() {
                         </div>
                       </>}
                       <p className="text-[11px] text-[var(--text-tertiary)] mt-2">
-                        {L('새 정본 이벤트는 다음 /argus:settings pull 또는 /argus:settings sync에서 로컬 semantic-v3 원장에 추가됩니다.', 'New canonical events append to the local semantic-v3 ledger on the next /argus:settings pull or /argus:settings sync.')}
+                        {L('여기서 기록한 내용은 다음 /argus:settings sync 때 로컬 기록에도 그대로 더해집니다.', 'What you record here is appended to your local records on the next /argus:settings sync.')}
                       </p>
                     </div>
                   );
