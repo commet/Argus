@@ -4,11 +4,11 @@ import { useState } from 'react';
 import { Card } from '@/components/ui/Card';
 import { ShareBar } from '@/components/ui/ShareBar';
 import { Button } from '@/components/ui/Button';
-import { FeedbackMessage, PersonaAvatar, getPersonaColor } from './FeedbackMessage';
+import { PersonaAvatar } from './FeedbackMessage';
 import { DiscussionThread } from './DiscussionThread';
 import type { Persona, FeedbackRecord } from '@/stores/types';
 import {
-  ThumbsUp, Search, Star, Check, RefreshCw,
+  ThumbsUp, Search, Star, Check,
   ShieldAlert, Shield, EyeOff, ArrowLeft, MessageSquare, Loader2, ArrowRight,
 } from 'lucide-react';
 import { useAccuracyStore } from '@/stores/useAccuracyStore';
@@ -19,6 +19,7 @@ import {
   isSyntheticPerspectiveSet,
   projectLegacySynthesis,
 } from '@/lib/synthetic-perspective';
+import { StakeholderClaimMatrix } from './StakeholderClaimMatrix';
 
 interface FeedbackResultProps {
   record: FeedbackRecord;
@@ -140,12 +141,20 @@ export function FeedbackResult({ record, personas, onStartDiscussion, discussion
       {/* ══════════════ OVERVIEW ══════════════ */}
       {viewMode === 'overview' && (
         <div className="space-y-4 animate-fade-in">
+          <StakeholderClaimMatrix
+            record={record}
+            personas={personas}
+            onOpenPersona={(personaId) => {
+              setSelectedPersonaId(personaId);
+              setViewMode('persona-detail');
+            }}
+          />
+
           {/* Persona reaction cards */}
           <div className={`grid gap-3 ${record.results.length === 1 ? 'grid-cols-1' : record.results.length === 2 ? 'grid-cols-1 md:grid-cols-2' : 'grid-cols-1 md:grid-cols-3'}`}>
             {record.results.map((result) => {
               const persona = personas.find(p => p.id === result.persona_id);
               if (!persona) return null;
-              const color = getPersonaColor(persona.id);
               const criticalCount = (result.classified_risks || []).filter(r => r.category === 'critical').length;
 
               return (

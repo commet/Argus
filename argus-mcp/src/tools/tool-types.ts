@@ -106,7 +106,7 @@ const KO_FIELD_DESCRIPTIONS: Record<string, string> = {
   view: '불러올 기록의 종류입니다.',
   due_only: '확인일이 된 기록만 표시합니다.',
   limit: '표시할 최대 기록 수입니다.',
-  import_settlements: '웹에서 기록한 실제 결과를 로컬 원장으로 가져옵니다.',
+  import_settlements: '웹에서 기록한 실제 결과를 로컬 판단 기록으로 가져옵니다.',
   push_local: '계정에 닿지 못한 로컬 변경을 다시 보냅니다.',
   dismiss_reason: '결정을 더는 추적하지 않는 이유입니다.',
   candidate_id: '포착된 결정 후보 id입니다.',
@@ -183,7 +183,7 @@ const EN_FIELD_DESCRIPTIONS: Record<string, string> = {
   ambient_mute: 'Hide due reminder lines during the session.',
   premise_sync: 'When explicitly enabled, sync tracked premises with the account.',
   due_only: 'Sync only records whose check date has arrived.',
-  import_settlements: 'Import results recorded on the web into the local ledger.',
+  import_settlements: 'Import results recorded on the web into the local decision record.',
   push_local: 'Retry local changes that have not reached the account.',
 };
 

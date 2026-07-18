@@ -4,7 +4,6 @@ import { useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import { stripLocale } from '@/lib/locale-path';
 import { AuthProvider } from '@/lib/auth';
-import { UnlockToast } from '@/components/agents/UnlockToast';
 import { AccountSyncToast } from '@/components/ui/AccountSyncToast';
 import { initErrorSensors } from '@/lib/error-sensors';
 import { useAgentStore } from '@/stores/useAgentStore';
@@ -42,7 +41,6 @@ export function Providers({ children }: { children: React.ReactNode }) {
     <AuthProvider>
       <StoreInitializer />
       {children}
-      <UnlockToast />
       <AccountSyncToast />
     </AuthProvider>
   );

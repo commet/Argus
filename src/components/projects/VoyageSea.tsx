@@ -355,6 +355,7 @@ export function VoyageSea({
   feedbackHistory,
   progressiveSessions,
   dueProjectIds,
+  attentionProjectIds = [],
   locale,
   onSelect,
   onReview,
@@ -370,6 +371,9 @@ export function VoyageSea({
   /** Due check-ins from useDueCount — the SAME source as the return strip and
    *  header badge, so the beacon can never disagree with the numbers below. */
   dueProjectIds: string[];
+  /** Projects with a due premise/open question. A small signal on the existing
+   *  ship preserves the sea as protagonist; the action list below owns detail. */
+  attentionProjectIds?: string[];
   locale: 'ko' | 'en';
   onSelect: (projectId: string) => void;
   /** Beacon CTA — routes to the settle surface (re-arms the settle question). */
@@ -379,6 +383,7 @@ export function VoyageSea({
   onSelectReceipt?: (receiptId: string) => void;
 }) {
   const L = (ko: string, en: string) => (locale === 'ko' ? ko : en);
+  const attentionSet = new Set(attentionProjectIds);
   // B (07-13): the chart is an operable control surface — a state filter that
   // isolates a slice of the fleet (null = whole fleet).
   const [filter, setFilter] = useState<string | null>(null);
@@ -724,6 +729,7 @@ export function VoyageSea({
   //    the axes/states become something you ACT on, not just read. ──
   const FILTERS: Array<{ key: string; ko: string; en: string; test: (s: SeaShip) => boolean; gold?: boolean; amber?: boolean }> = [
     { key: 'due', ko: '다시 볼 것', en: 'due', test: (s) => s.due, gold: true },
+    { key: 'signal', ko: '확인 신호', en: 'signals', test: (s) => s.kind === 'project' && attentionSet.has(s.id) && !s.due, amber: true },
     { key: 'idle', ko: '오래 방치', en: 'untended', test: (s) => s.state === 'adrift' || s.state === 'wrecked', amber: true },
     { key: 'sailing', ko: '항해 중', en: 'sailing', test: (s) => s.state === 'sailing' && !s.due },
     { key: 'home', ko: '항구·완료', en: 'in harbor', test: (s) => s.state === 'arrived' || s.state === 'verified' },
@@ -1148,7 +1154,8 @@ export function VoyageSea({
             const meta = VOYAGE_STATE_META[s.state];
             const stateLabel = s.beacon ? L('다시 볼 때', 'due back') : L(meta.ko, meta.en);
             const attention = s.state === 'adrift' || s.state === 'wrecked';
-            const size = s.beacon ? 40 : dense ? (attention ? 17 : 15) : 24;
+            const hasAttentionSignal = s.kind === 'project' && attentionSet.has(s.id) && !s.due;
+            const size = s.beacon ? 40 : dense ? (attention || hasAttentionSignal ? 17 : 15) : 24;
             // Persistent labels are KEYWORDS (short), never full sentences.
             // Sparse fleet → keyword on everyone. Dense fleet → keyword only on
             // the DUE decisions ("중요 과제 중심"; they scatter, so few collide).
@@ -1172,7 +1179,7 @@ export function VoyageSea({
             // you tap blind. So on mobile, still name the ships that are CALLING
             // (due + drifted): the few that need action get a keyword, the rest
             // stay gestalt + the list below. (창업자 07-13: 직관적 사용)
-            const showKeywordMobile = activeFilter ? matches : s.due || attention;
+            const showKeywordMobile = activeFilter ? matches : s.due || attention || hasAttentionSignal;
             return (
               <li
                 key={s.id}
@@ -1210,6 +1217,14 @@ export function VoyageSea({
                     />
                   </>
                 )}
+                {hasAttentionSignal && (
+                  <span
+                    data-testid="project-attention-signal"
+                    aria-hidden="true"
+                    className="vsea-pulse absolute left-1/2 top-[31%] -z-[1] rounded-full"
+                    style={{ width: size + 12, height: size + 12, border: `1.5px dashed ${N.amber}`, transform: 'translate(-50%,-50%)', opacity: 0.8 }}
+                  />
+                )}
                 {/* leverage highlight — a gold ring on the focused ground-group
                     so the standing-together reads at a glance. */}
                 {isLeverage && (
@@ -1238,7 +1253,7 @@ export function VoyageSea({
                   <span
                     className={`${showKeywordMobile ? 'block' : 'hidden'} ${showKeyword ? 'sm:block' : 'sm:hidden'} mt-1 max-w-[108px] text-center text-[9.5px] leading-[1.2] tracking-[0.01em] break-keep line-clamp-1 font-semibold rounded-full px-1.5 py-px`}
                     style={{
-                      color: s.due ? N.gold : attention ? N.amber : `${N.paper}bf`,
+                      color: s.due ? N.gold : attention || hasAttentionSignal ? N.amber : `${N.paper}bf`,
                       fontFamily: 'var(--font-display)',
                       background: `${N.card}cc`,
                       boxShadow: s.due
@@ -1328,6 +1343,11 @@ export function VoyageSea({
                 <p className="mt-2 text-[11px] leading-relaxed break-keep" style={{ color: `${N.paper}b0` }}>
                   <span className="font-mono text-[9px] uppercase tracking-[0.1em]" style={{ color: `${N.paper}70` }}>{L('봉인한 전제', 'sealed premise')}</span><br />
                   <em style={{ color: `${N.paper}d8` }}>「{s.premise.length > 60 ? `${s.premise.slice(0, 60)}…` : s.premise}」</em>
+                </p>
+              )}
+              {s.kind === 'project' && attentionSet.has(s.id) && !s.due && (
+                <p className="mt-2 text-[10.5px] leading-relaxed" style={{ color: N.amber }}>
+                  {L('다시 확인할 전제나 미결 질문이 있어요. 아래 목록에서 정확한 항목을 열 수 있습니다.', 'A premise or open question is due for review. Open the exact item from the list below.')}
                 </p>
               )}
               {/* LEVERAGE — the decisions standing on the very same premise. A

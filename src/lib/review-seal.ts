@@ -2,7 +2,7 @@
  * Review → DKK onramp bridge (ADR-2026-07-15-dkk-review-onramp).
  *
  * The document review is where a human ADOPTS one of the AI-surfaced judgment
- * obligations. That single "이 판단을 내가 소유하기" act is a DKK `seal`: it
+ * obligations. That single "내 판단으로 기록하기" act is a DKK `seal`: it
  * records the AI proposal, the human's sealed judgment, and the return contract
  * in one atomic batch on the canonical project ledger — after which the
  * judgment's lifecycle (observe / resolve / close) lives in DKK, not the local

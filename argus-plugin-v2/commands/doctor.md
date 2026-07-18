@@ -1,5 +1,5 @@
 ---
-description: Argus 설치·배선 자가진단 — 내구 원장, 바인딩, LOGBOOK 커서, 락 상태를 읽기 전용으로 점검
+description: Argus 설치·배선 자가진단 — 판단 기록, 바인딩, LOGBOOK 최신 상태, 잠금 상태를 읽기 전용으로 점검
 allowed-tools: Bash(node:*)
 ---
 

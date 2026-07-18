@@ -235,7 +235,7 @@ export const semanticRecord: ToolModule = {
           recovery: 'Read the record, then use the active ids and an explicit user authorization. Nothing was written.',
         });
       }
-      return toolError({ ok: false, tool: 'argus_record', error_code: 'INTERNAL_ERROR', message: String(error), recovery: 'Nothing was intentionally written; retry after checking the local ledger.' });
+      return toolError({ ok: false, tool: 'argus_record', error_code: 'INTERNAL_ERROR', message: String(error), recovery: 'Nothing was intentionally written; retry after checking the local decision record.' });
     }
   },
 };

@@ -345,10 +345,11 @@ export function SirenHero() {
               <div className="flex items-start gap-3">
                 <span className="relative mt-0.5 h-16 w-20 shrink-0 overflow-hidden border border-[var(--bp-ink-faint)] bg-[#171817]" aria-hidden="true">
                   <Image
-                    src="/images/evidence/workspace/evidence-dossier-v1.jpg"
+                    src="/images/evidence/workspace/evidence-dossier-v2.jpg"
                     alt=""
                     fill
                     sizes="80px"
+                    quality={90}
                     className="object-cover object-center transition-transform duration-500 ease-out motion-reduce:transition-none motion-safe:group-hover:scale-[1.025]"
                   />
                 </span>

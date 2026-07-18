@@ -15,7 +15,7 @@ tool and let it do the work — do NOT re-implement its logic here:
 | `configure` (+ args) | `configure` — language, boss/stakeholder persona, session-commit preference (interactive, writes `.argus/config.yaml`). |
 | `connect <token>` | `connect` with the token — pair this project with the user's webapp account (stores the token locally, git-ignored). |
 | `push` | `push` — send local plugin records to the paired webapp account. |
-| `pull` | `pull` — bring webapp-originated settle/defer events back into the local ledger. |
+| `pull` | `pull` — bring webapp-originated settle/defer events back into the local decision record. |
 | `sync` | `sync` — pull, then push (the two-way default; prefer this over bare push/pull). |
 | `doctor` | Point the user to `/argus:doctor` — the read-only install/wiring self-diagnosis is its own command. |
 

@@ -1,7 +1,7 @@
 ---
 name: pull
 user-invocable: false
-description: Pull webapp-originated plugin events back into the local Argus ledger. Use after settling or deferring plugin decisions in the webapp, or whenever the user asks to sync webapp changes back to Claude Code. Invoked as `/argus:pull`.
+description: Pull webapp-originated plugin events back into the local Argus decision record. Use after settling or deferring plugin decisions in the webapp, or whenever the user asks to sync webapp changes back to Claude Code. Invoked as `/argus:pull`.
 ---
 
 # /argus:pull
@@ -11,9 +11,9 @@ paired account and appends them to `.argus/ledger/ledger.jsonl`.
 
 This is the return path of the bridge:
 
-- `/argus:push` sends local ledger/read records to the webapp.
+- `/argus:push` sends local decision records to the webapp.
 - The webapp can settle or defer imported plugin decisions.
-- `/argus:pull` brings those webapp actions back into the local ledger.
+- `/argus:pull` brings those webapp actions back into the local decision record.
 
 ## Run
 
