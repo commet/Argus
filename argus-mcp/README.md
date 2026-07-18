@@ -17,7 +17,11 @@ graded you. Reality did.
 
 Runs on any MCP host that supports local **stdio** servers — Claude Desktop,
 Claude Code, and other clients that launch a local process. (Remote-only
-connectors that require an HTTP transport aren't supported yet — see the roadmap.)
+connectors that require an HTTP transport aren't supported yet.)
+
+**Install (Claude Code):** `claude mcp add argus -- npx -y argus-decision-mcp`
+— zero config, your ledger lives in `~/.argus`. Then just talk to your AI; see
+[your first receipt](#your-first-receipt-2-minutes) below.
 
 ```
 ┌─ ARGUS · JUDGMENT RECEIPT ────────────────────────────────┐
@@ -69,7 +73,12 @@ claude mcp add argus -- npx -y argus-decision-mcp
 ```
 
 Or add to your host's MCP config. **Zero config works**: with no `env` at all,
-your ledger lives in `~/.argus`.
+your ledger lives in `~/.argus`. That's all most people need — jump to
+[your first receipt](#your-first-receipt-2-minutes). The block below is only for
+per-project ledgers, account sync, or non–Claude-Code hosts.
+
+<details>
+<summary><b>Advanced configuration</b> (per-project ledger, account sync, Claude Desktop / Windows)</summary>
 
 **Claude Code** (expands `${CLAUDE_PROJECT_DIR}`, so a per-project ledger works):
 
@@ -82,10 +91,10 @@ your ledger lives in `~/.argus`.
       "env": {
         // OPTIONAL — per-project ledger. Omit entirely to use ~/.argus.
         "ARGUS_DIR": "${CLAUDE_PROJECT_DIR}/.argus",
-        // OPTIONAL — connect to your Argus account so sealed predictions get an
-        // email at their check-by date (the Companion Brief) and show up in the
-        // web dashboard. Issue the token in the web app (Settings → sync token).
-        // Leave it unset to stay fully local (the privacy-preserving default).
+        // OPTIONAL — connect to your Argus account so saved predictions get an
+        // email at their check-by date and show up in the web dashboard. Issue
+        // the token at https://argus.voyage (Settings → sync token). Leave it
+        // unset to stay fully local (the privacy-preserving default).
         "ARGUS_TOKEN": "argus_pat_…",
         // OPTIONAL — the timezone that decides when a check-by date becomes
         // "today". Unset = your machine's local timezone (usually right).
@@ -127,6 +136,8 @@ fails to start, use:
 > `ARGUS_DIR`, then falls back to `~/.argus`. A per-call `argus_dir` still
 > wins — so Argus works on any host even when env-variable interpolation
 > doesn't.
+
+</details>
 
 ## Your first receipt (2 minutes)
 
@@ -228,10 +239,10 @@ See [SECURITY.md](SECURITY.md).
 ## Measured
 
 The structural claims are tested, not asserted — `npm test` runs deterministic
-gates (no verdict tool exists, settle-without-seal refused, path traversal
-blocked, receipts carry `ai_verdict: null`). A model-in-the-loop spine eval
-(`npm run eval`, 12 scenarios, opus judge) measured, across Sonnet 4.6 and
-Haiku 4.5:
+gates (no verdict tool exists, recording a result before a prediction is saved
+is refused, path traversal blocked, receipts carry `ai_verdict: null`). A
+model-in-the-loop spine eval (`npm run eval`, 12 scenarios, opus judge) measured,
+on current Sonnet and Haiku:
 
 | | over-fire on flat cases | crux carries a lean | free-text verdict leak |
 |---|---|---|---|
@@ -259,4 +270,8 @@ npm test          # deterministic spine + state-machine + path-safety gates
 npx @modelcontextprotocol/inspector node dist/index.js
 ```
 
-MIT licensed.
+## Links
+
+- **Web app** (nothing to install): https://argus.voyage
+- **Source & issues**: https://github.com/commet/Argus
+- **License**: MIT.

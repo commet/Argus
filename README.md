@@ -13,9 +13,14 @@ happened.
 
 ## ⚡ Install the MCP server (30 seconds)
 
-Argus ships as an **MCP server** — drop it into Claude Code, Claude Desktop,
-Cursor, or any MCP host, and your AI gains a *decision-accountability* loop.
-In Claude Code, one line does it:
+> Never installed anything? The **[web app](https://argus.voyage)** needs zero
+> setup — decide right in the browser. The MCP server below is for using Argus
+> *inside* an AI assistant.
+
+Argus ships as an **MCP server** (Model Context Protocol — the open standard AI
+assistants use to load tools). Drop it into Claude Code, Claude Desktop, Cursor,
+or any MCP host, and your AI gains a *decision-accountability* loop. In Claude
+Code, one line does it:
 
 ```bash
 claude mcp add argus -- npx -y argus-decision-mcp
@@ -26,7 +31,7 @@ Then just tell your AI *"seal a prediction that … by <date>"* and it takes ove
 
 - 📦 npm: [`argus-decision-mcp`](https://www.npmjs.com/package/argus-decision-mcp)
 - 🛠️ Full setup (Claude Desktop, Windows, per-project ledger) + the tool list → **[argus-mcp/README.md](./argus-mcp/README.md)**
-- 🔌 Using **Claude Code**? There's also a native plugin with slash commands (`/argus:review`, `/argus:check`): `/plugin marketplace add commet/Argus` → **[plugin docs](./argus-plugin-v2/README.md)**
+- 🔌 Using **Claude Code**? There's also a native plugin with slash commands (`/argus:review`, `/argus:check`). Install is two lines: `/plugin marketplace add commet/Argus` then `/plugin install argus@argus` → **[plugin docs](./argus-plugin-v2/README.md)**
 
 ---
 
@@ -36,9 +41,9 @@ Pick the door that fits you — each one links to its own setup guide.
 
 | | Best for | Get started |
 |---|---|---|
-| 🌐 **Web app** | Anyone. Nothing to install. | Open **[argus.voyage](https://argus.voyage)** |
+| 🌐 **Web app** | Anyone. Nothing to install, no signup. | Open **[argus.voyage](https://argus.voyage)** |
 | 🧩 **MCP server** | Any AI assistant that speaks MCP — Claude Desktop, Claude Code, Cursor, and more. | `claude mcp add argus -- npx -y argus-decision-mcp` → [MCP docs](./argus-mcp/README.md) |
-| 🔌 **Claude Code plugin** | Deciding *inside* a codebase (over your PRs and files). | `/plugin marketplace add commet/Argus` → [plugin docs](./argus-plugin-v2/README.md) |
+| 🔌 **Claude Code plugin** | Deciding *inside* a codebase (over your PRs and files). | `/plugin marketplace add commet/Argus`<br>`/plugin install argus@argus` → [plugin docs](./argus-plugin-v2/README.md) |
 
 New here and not sure? **Start with the [web app](https://argus.voyage)** — it
 needs no setup. If you live in an AI assistant and want Argus available in every

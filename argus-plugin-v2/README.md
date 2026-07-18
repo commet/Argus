@@ -13,6 +13,7 @@ It helps you:
 ```text
 /plugin marketplace add commet/Argus
 /plugin install argus@argus
+# restart Claude Code, then:
 /argus:review "Should we ...?"
 ```
 
@@ -53,14 +54,12 @@ legacy Office/HWP formats, export to CSV/PDF first.
 Installing the plugin is the whole setup — there is no separate init step:
 
 - **Decision tools (MCP), wired automatically** — a bundled [`.mcp.json`](./.mcp.json)
-  registers the `argus-decision-mcp` stdio server (`npx -y argus-decision-mcp`), so
-  `argus_capture` / `argus_predict` / `argus_resolve` / `argus_check_in` /
-  `argus_patterns` / `argus_settings` are available immediately. (What gets wired is
-  the npm release; repo-only changes reach installs on the next `npm publish` from
-  `argus-mcp/`.)
+  registers the `argus-decision-mcp` stdio server (`npx -y argus-decision-mcp@^1`),
+  so the decision tools (capture, predict, check-in, resolve, patterns, settings)
+  are available to the model immediately.
 - **Quiet hooks** — a session-start check that mentions decisions whose check-by
-  date has arrived (and points a stale LOGBOOK view at `argus_check_in` for
-  regeneration), plus an ambient trigger that may ask about at most one due item
+  date has arrived (and refreshes a stale decision view), plus an ambient trigger
+  that may ask about at most one due item
   per session (4-hour cooldown across sessions; silence is the default). Opt out
   with `{ "ambient": { "opt_out": true } }` in `~/.argus/config.json`.
 - **`/argus:doctor`** — a read-only self-diagnosis of the install and wiring. It
@@ -116,7 +115,8 @@ not judge, settle, or sync automatically.
 
 The plugin is local-first. Webapp sync is optional.
 
-First connect this project once:
+First, create a push token in the webapp: **[argus.voyage](https://argus.voyage)
+→ Settings → Argus token**. Then connect this project once:
 
 ```text
 /argus:settings connect <argus_pat_...>
@@ -204,6 +204,7 @@ session start.
 
 ## Reference
 
+- Web app: https://argus.voyage · Source & issues: https://github.com/commet/Argus · MCP on npm: https://www.npmjs.com/package/argus-decision-mcp
 - Changelog: `CHANGELOG.md`
 - Agent roster: `data/agents.yaml`
 - Boss tone skins (voice only — the review's substance is the configured seat): `data/boss-types.yaml`

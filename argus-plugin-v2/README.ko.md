@@ -13,6 +13,7 @@ Argus는 Claude Code에서 쓰는 결정 루프입니다.
 ```text
 /plugin marketplace add commet/Argus
 /plugin install argus@argus
+# Claude Code를 다시 시작한 뒤:
 /argus:review "이걸 해야 할까?"
 ```
 
@@ -52,15 +53,11 @@ Claude Code를 다시 시작한 뒤:
 설치가 곧 설정 전부입니다 — 별도 초기화 명령은 없습니다.
 
 - **결정 도구(MCP) 자동 배선** — 동봉된 [`.mcp.json`](./.mcp.json)이
-  `argus-decision-mcp` stdio 서버를 등록합니다(`npx -y argus-decision-mcp`).
-  결정을 포착하고, 예측을 저장하고, 확인할 것을 보고, 실제 결과를 기록하는
-  6개 도구(`argus_capture` / `argus_predict` / `argus_resolve` / `argus_check_in`
-  / `argus_patterns` / `argus_settings`)를 바로 쓸 수 있습니다. (배선되는 것은
-  npm 출시본입니다 — 리포의 최신 시공분은 `argus-mcp/`에서 다음 `npm publish`
-  때 설치본에 반영됩니다.)
+  `argus-decision-mcp` stdio 서버를 등록합니다(`npx -y argus-decision-mcp@^1`).
+  결정 도구(포착·예측·확인·정산·기록·설정)를 모델이 바로 쓸 수 있습니다.
 - **조용한 훅 2개** — 세션 시작 때 확인일이 도달한 결정을 알려주는 점검(뒤처진
-  LOGBOOK은 `argus_check_in` 재생성으로 안내), 그리고 세션당 최대 1회(세션 밖
-  4시간 쿨다운) due 항목 하나만 묻는 ambient 방아쇠. 침묵이 기본값이고, 끄기는
+  결정 뷰는 새로 고침), 그리고 세션당 최대 1회(세션 밖 4시간 쿨다운) due 항목
+  하나만 묻는 ambient 방아쇠. 침묵이 기본값이고, 끄기는
   `~/.argus/config.json`에 `{ "ambient": { "opt_out": true } }`.
 - **`/argus:doctor`** — 설치·배선 읽기 전용 자가진단. 아무것도 고치지 않으며,
   각 줄에 고칠 수 있는 공개 도구 이름이 적혀 있습니다.
