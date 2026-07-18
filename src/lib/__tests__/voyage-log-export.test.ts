@@ -38,14 +38,14 @@ describe('voyageLogToMarkdown', () => {
       },
     ]), 'ko');
 
-    expect(md).toContain('## 항해일지');
-    expect(md).toContain('출항');
+    expect(md).toContain('## 결정 기록');
+    expect(md).toContain('시작');
     expect(md).toContain('경쟁사처럼 챗봇');
-    expect(md).toContain('항로 변경');
+    expect(md).toContain('방향 변경');
     expect(md).toContain('이탈의 진짜 원인은?');
     expect(md).toContain('계기: CFO');
     expect(md).toContain('의미: ROI 근거가 필요하다');
-    expect(md).toContain('가지 않은 길: 챗봇 직접 제작 — 이탈 원인 미검증');
+    expect(md).toContain('보류한 선택지: 챗봇 직접 제작 — 이탈 원인 미검증');
     expect(md).not.toContain('이탈 원인 분석'); // the taken path isn't a road-not-taken
   });
 
@@ -60,7 +60,7 @@ describe('voyageLogToMarkdown', () => {
       id: 'w2', checkpoint_id: 'c2', type: 'course_change', headline: '갈림길', created_at: 'b',
       alternatives: [{ label: '옛 경로', why_abandoned: 'AI가 예전에 추정한 이유', taken: false }],
     }]), 'ko');
-    expect(md).toContain('가지 않은 길: 옛 경로');
+    expect(md).toContain('보류한 선택지: 옛 경로');
     expect(md).not.toContain('AI가 예전에 추정한 이유');
   });
 

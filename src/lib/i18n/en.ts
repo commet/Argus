@@ -12,7 +12,7 @@ export const en: Record<TranslationKey, string> = {
 
   'tool.reframe': 'Set the Heading',
   'tool.reframe.subtitle': 'Problem Reframing',
-  'tool.recast': 'Crew Assignment',
+  'tool.recast': 'Execution Plan',
   'tool.recast.subtitle': 'Execution Design',
   'tool.rehearsal': 'Rehearsal',
   'tool.rehearsal.subtitle': 'Persona Feedback',
@@ -28,7 +28,7 @@ export const en: Record<TranslationKey, string> = {
   'reframe.aiLimitations': 'AI Limitations',
 
   'recast.placeholder': 'Select context and enter your goal',
-  'recast.analyzing': 'Assigning the crew...',
+  'recast.analyzing': 'Assigning execution roles...',
   'recast.governingIdea': 'Governing Idea',
   // recast.review removed (multi-lens review replaced by auto-persona + rehearsal)
 
@@ -180,8 +180,8 @@ export const en: Record<TranslationKey, string> = {
   'ui.recommended': 'Recommended',
   'ui.nextStep': 'Next step',
 
-  'nextStep.toRecast.label': 'Go to Crew Assignment',
-  'nextStep.toRecast.reason': "You've found the hidden question. Now design the execution plan that answers it — your assumptions and hypotheses become the foundation.",
+  'nextStep.toRecast.label': 'Go to Execution Plan',
+  'nextStep.toRecast.reason': "You've found the question to solve. Now design the execution plan that answers it — your assumptions and hypotheses become the foundation.",
   'nextStep.toRehearse.label': 'Go to Rehearsal',
   'nextStep.toRehearse.reason': "Your execution design is ready. Now perform it in front of stakeholders — verify core assumptions and catch missed risks.",
   'nextStep.toRefine.label': 'Go to Course Correction',
@@ -214,7 +214,7 @@ export const en: Record<TranslationKey, string> = {
   'slack.sendFailed': "The message didn't get through — try again.",
 
   'exec.hiddenPremise': 'Hidden premises found',
-  'exec.realQuestion': 'Real question defined',
+  'exec.realQuestion': 'Question to solve defined',
   'exec.aiHumanDesign': 'AI/human roles designed',
   'exec.stakeholderReview': 'Stakeholder validation',
   'exec.riskIdentification': 'Risks identified',
@@ -233,7 +233,7 @@ export const en: Record<TranslationKey, string> = {
   'exec.action.analyzeReframe': 'Analyze your challenge in Set the Heading',
   'exec.action.pickQuestion': 'Pick a question and confirm',
   'exec.action.runReframe': 'Run Set the Heading first',
-  'exec.action.designRecast': 'Design your workflow in Crew Assignment',
+  'exec.action.designRecast': 'Design your workflow in Execution Plan',
   'exec.action.addPersona': 'Add personas in Rehearsal and collect feedback',
   'exec.action.addOneMorePersona': 'Adding one more stakeholder is recommended',
 

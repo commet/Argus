@@ -85,15 +85,15 @@ export function CrewAtWork({ workers, onRetry, reportsOpen, onToggleReports, her
   // claim crew output flowed in — this is a human-judgment item.
   const headline = !allDone
     ? interrupted
-      ? L('선원 작업이 잠시 멈춰 있어요', 'The crew has paused')
-      : L('선원들이 일하고 있어요', 'The crew is at work')
+      ? L('AI 팀원 작업이 잠시 멈춰 있어요', 'The AI team has paused')
+      : L('AI 팀원이 살펴보고 있어요', 'AI reviewers are at work')
     : attentionCount > 0
       ? doneCount === 0
         ? L(`초안에 들어갈 AI 결과는 아직 없어요 · ${attentionCount}건 확인이 필요해요`, `No AI result is ready for the draft · ${attentionCount} item${attentionCount === 1 ? '' : 's'} need attention`)
         : L(`${doneCount}명 완료 · ${attentionCount}건은 별도 확인이 필요해요 — 완료된 결과만 초안에 들어갑니다`, `${doneCount} finished · ${attentionCount} need attention — only completed results enter the draft`)
       : doneCount === 0
         ? L('이 건은 사람이 판단할 항목이에요 — AI가 대신 정하지 않아요', "This one is yours to judge — AI doesn't decide it for you")
-        : L(`선원 ${doneCount}명의 작업이 끝났어요 — 전부 초안에 들어갑니다`, `${doneCount} crew finished — everything flows into the draft`);
+        : L(`AI 팀원 ${doneCount}명의 검토가 끝났어요 — 모두 초안에 반영됩니다`, `${doneCount} AI reviewers finished — all findings flow into the draft`);
 
   return (
     <motion.div
@@ -181,7 +181,7 @@ export function CrewAtWork({ workers, onRetry, reportsOpen, onToggleReports, her
           aria-expanded={reportsOpen}
           className="text-[11.5px] font-medium text-[var(--text-tertiary)] hover:text-[var(--accent)] cursor-pointer transition-colors"
         >
-          {reportsOpen ? L('보고 접기 ▴', 'Hide reports ▴') : L('선원 보고 열어보기 ▾', 'Open crew reports ▾')}
+          {reportsOpen ? L('보고 접기 ▴', 'Hide reports ▴') : L('팀원 보고 열어보기 ▾', 'Open reviewer reports ▾')}
         </button>
       )}
       {/* Privacy recap only — the always-visible orienting line above now teaches
@@ -206,7 +206,7 @@ export function CrewAtWork({ workers, onRetry, reportsOpen, onToggleReports, her
           const name = personaName
             || (at === 'self' ? L('나', 'You')
               : at === 'human' ? L('외부 담당자', 'External contact')
-              : L('AI 분석가', 'AI analyst'));
+              : L('AI 팀원', 'AI reviewer'));
           const emoji = w.persona?.emoji
             || (at === 'self' ? '🙋' : at === 'human' ? '✉️' : '🔍');
           const purpose = at === 'ai'
@@ -300,8 +300,8 @@ export function CrewAtWork({ workers, onRetry, reportsOpen, onToggleReports, her
                 })() : (w.status === 'error' || w.status === 'validation_failed') ? (
                   <p className="text-[11.5px] text-[var(--text-tertiary)] mt-1 leading-[1.5]">
                     {w.status === 'validation_failed'
-                      ? L('이 선원의 결과가 확인을 통과하지 못했어요.', "This crew member's result didn't pass the check.")
-                      : L('이 선원의 작업이 닿지 않았어요.', "This crew member's work didn't land.")}
+                      ? L('이 팀원의 결과를 확인하지 못했어요.', 'This review did not pass validation.')
+                      : L('이 팀원의 작업을 받지 못했어요.', 'This review did not arrive.')}
                     {onRetry && (
                       <button
                         onClick={() => onRetry(w.id)}

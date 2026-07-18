@@ -79,9 +79,9 @@ export function Logbook({ hideChartButton = false }: { hideChartButton?: boolean
   if (waypoints.length === 0) {
     if (!session) return null;
     return (
-      <aside className="px-4 py-4" aria-label={L('항해일지', "Ship's log")}>
+      <aside className="px-4 py-4" aria-label={L('결정 기록', 'Decision log')}>
         <h3 className="text-[12px] font-bold text-[var(--text-primary)] tracking-tight mb-2.5">
-          {L('항해일지', "Ship's log")}
+          {L('결정 기록', 'Decision log')}
         </h3>
         <div className="rounded-xl border border-dashed border-[var(--border-subtle)] px-3 py-4 space-y-1.5">
           <div className="flex items-center gap-1.5">
@@ -100,11 +100,11 @@ export function Logbook({ hideChartButton = false }: { hideChartButton?: boolean
   }
 
   return (
-    <aside className="px-4 py-4" aria-label={L('항해일지', "Ship's log")}>
+    <aside className="px-4 py-4" aria-label={L('결정 기록', 'Decision log')}>
       {/* Header */}
       <div className="flex items-center justify-between mb-2.5">
         <h3 className="text-[12px] font-bold text-[var(--text-primary)] tracking-tight">
-          {L('항해일지', "Ship's log")}
+          {L('결정 기록', 'Decision log')}
         </h3>
         {/* When embedded under the Voyage Map hero (which owns the chart), the
             hero's "전체 해도" button is the single chart entry point — suppress
@@ -239,7 +239,7 @@ export function LogbookDrawer({ offset }: { offset?: boolean }) {
         >
           <span className="flex items-center gap-2 text-[13px] font-semibold text-[var(--text-primary)]">
             <Compass size={15} className="text-[var(--accent)]" />
-            {L('항해일지', "Ship's log")}
+            {L('결정 기록', 'Decision log')}
             <span className="text-[11px] font-normal text-[var(--text-tertiary)] tabular-nums">{count}</span>
           </span>
           <ChevronUp size={16} className="text-[var(--text-tertiary)]" />

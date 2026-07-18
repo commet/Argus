@@ -77,13 +77,11 @@ import { withLocale } from '@/lib/locale-path';
 import { extractPredicatesFromSession, contractStatus, deriveOpenChecks } from '@/lib/decision-contract';
 import { deriveCurrentBearing } from '@/lib/current-bearing';
 import { EASE, SPRING } from './shared/constants';
-import { diffItems } from './shared/diffItems';
 import { parsePartialAnalysis, parsePartialDoc, parsePartialFeedback } from '@/lib/partial-analysis';
 import { AnalysisCard } from './shared/AnalysisCard';
 import { HonestyShaded } from './shared/HonestyShaded';
 import { locateFlag } from '@/lib/honesty-scan';
 import { neutralizeLeanText } from '@/lib/lean-scan';
-import { UpdateSummaryChip } from './shared/UpdateSummaryChip';
 import { QuestionCard } from './shared/QuestionCard';
 
 /* Reviewer 배지 — 저장된 팀장이 있으면 세션 내내 노출 */
@@ -271,8 +269,8 @@ function PhaseStatusBar({
   if (busy || phase === 'analyzing' || phase === 'mixing' || phase === 'lead_synthesizing') {
     mode = 'ai_working';
     if (phase === 'analyzing') {
-      label = L('상황을 분석하고 있어요', 'Analyzing the situation');
-      sub = workersRunning > 0 ? L(`에이전트 ${workersDone}/${workersTotal} 완료`, `Agents ${workersDone}/${workersTotal} done`) : '';
+      label = L('지금 답할 질문을 정리하고 있어요', 'Organizing the question to answer');
+      sub = workersRunning > 0 ? L(`AI 팀원 ${workersDone}/${workersTotal} 확인 완료`, `${workersDone}/${workersTotal} AI reviewers finished`) : '';
     } else if (phase === 'lead_synthesizing') {
       label = L(`${leadAgentName || '리드'}가 팀 결과를 통합하는 중`, `${leadAgentName || 'Lead'} is synthesizing findings`);
     } else if (phase === 'mixing') {
@@ -332,7 +330,7 @@ function PhaseStatusBar({
           <span className={`text-[13px] font-semibold ${
             showLongWait ? 'text-amber-700 dark:text-amber-300' : 'text-[var(--text-primary)]'
           }`}>
-            {showLongWait ? L('오래 걸리고 있어요 — 계속 진행 중', 'Taking longer than usual — still working') : label}
+            {showLongWait ? L('조금 더 확인하고 있어요 · 지금까지 내용은 저장됐어요', 'Taking another look · your work is saved') : label}
           </span>
           {!showLongWait && sub && (
             <span className="ml-2 text-[12px] text-[var(--text-tertiary)]">{sub}</span>
@@ -429,12 +427,12 @@ function StreamSnippet({ text, kind }: { text: string | null; kind: StreamKind }
     const p = parsePartialAnalysis(text);
     headline = p.real_question;
     headlineComplete = p.real_question_complete;
-    if (p.hidden_assumptions.length > 0) counts.push({ label: L('가정', 'assumptions'), value: p.hidden_assumptions.length });
-    if (p.skeleton.length > 0) counts.push({ label: L('뼈대', 'sections'), value: p.skeleton.length });
+    if (p.hidden_assumptions.length > 0) counts.push({ label: L('확인할 가정', 'assumptions to check'), value: p.hidden_assumptions.length });
+    if (p.skeleton.length > 0) counts.push({ label: L('문서 구성', 'document sections'), value: p.skeleton.length });
     stageLabel =
-      p.stage === 'skeleton' ? L('뼈대를 잡는 중', 'Drafting skeleton')
-      : p.stage === 'assumptions' ? L('가정을 점검하는 중', 'Checking assumptions')
-      : p.stage === 'question' ? L('진짜 질문을 다듬는 중', 'Sharpening the real question')
+      p.stage === 'skeleton' ? L('문서 구성을 잡는 중', 'Structuring the document')
+      : p.stage === 'assumptions' ? L('확인할 가정을 정리하는 중', 'Organizing assumptions to check')
+      : p.stage === 'question' ? L('지금 풀어야 할 질문을 다듬는 중', 'Sharpening the question to solve')
       : L('상황을 읽는 중', 'Reading the situation');
   } else if (kind === 'doc') {
     const p = parsePartialDoc(text);
@@ -526,7 +524,7 @@ function LeadSynthesisCard({ synthesis }: { synthesis: LeadSynthesisResult }) {
                 authored an opinion — mirror MixPreview's de-personification. The
                 work leads; the lead name is a quiet coverage signal (who pulled
                 the lenses together), never an authorial byline. */}
-            <span className="text-[13px] font-semibold text-[var(--text-primary)]">{L('통합 분석', 'Integrated Analysis')}</span>
+            <span className="text-[13px] font-semibold text-[var(--text-primary)]">{L('팀이 모은 결론', 'Team summary')}</span>
             {synthesis.lead_agent_name && (
               <span className="text-[11px] text-[var(--text-tertiary)] ml-2">· {synthesis.lead_agent_name}</span>
             )}
@@ -546,7 +544,7 @@ function LeadSynthesisCard({ synthesis }: { synthesis: LeadSynthesisResult }) {
               {/* ① 핵심 발견 leads — the one thing that changes the strategy. */}
               {synthesis.key_findings.length > 0 && (
                 <div className="pt-4">
-                  <p className="text-[10px] font-bold text-[var(--accent)] uppercase tracking-[0.15em] mb-2">{L('핵심 발견', 'Key Findings')}</p>
+                  <p className="text-[10px] font-bold text-[var(--accent)] uppercase tracking-[0.15em] mb-2">{L('결정에 중요한 발견', 'Decision-shaping findings')}</p>
                   <ul className="space-y-1.5">
                     {synthesis.key_findings.map((f, i) => (
                       <li key={i} className="flex gap-2 text-[13px] text-[var(--text-primary)]">
@@ -787,8 +785,8 @@ function VoyagePrepSummary({
               <div className="text-[10px] font-bold text-[var(--accent)] uppercase tracking-[0.15em] mb-1.5 flex items-center gap-1.5">
                 <Compass size={11} className="shrink-0" />
                 {safeInsight
-                  ? L('분석이 잡은 방향', 'The direction analysis landed on')
-                  : L('분석이 좁힌 질문', 'The question analysis narrowed to')}
+                  ? L('팀이 정리한 방향', 'The direction the team organized')
+                  : L('지금 풀어야 할 질문', 'The question to solve now')}
               </div>
               <p className="text-[15px] md:text-[16px] text-[var(--text-primary)] leading-relaxed font-medium">
                 {safeInsight
@@ -810,7 +808,7 @@ function VoyagePrepSummary({
                   <p className="text-[12px] text-[var(--text-tertiary)] leading-relaxed">
                     {/* Tag provenance — this premise was filled in by the AI, not
                         stated by the user (same honesty as MirrorBeat). */}
-                    <span className="text-[var(--text-secondary)] font-medium">{L('AI가 깔아둔 전제 · ', 'AI-supplied premise · ')}</span>
+                    <span className="text-[var(--text-secondary)] font-medium">{L('AI가 임시로 둔 전제 · ', 'Working premise from AI · ')}</span>
                     {topAssumption}
                   </p>
                 </div>
@@ -901,7 +899,7 @@ export function MirrorBeat({ assumption }: { assumption: string }) {
     >
       {/* Provenance label — the only gold here, small-caps. */}
       <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--accent)]/80 mb-2.5">
-        {L('AI가 채운 전제', 'A premise the AI filled in')}
+        {L('AI가 임시로 둔 전제', 'Working premise from AI')}
       </p>
       {/* The surfaced premise — a NOTE, not a headline. One display-serif
           headline per screen (the question below owns it); this reads as a
@@ -1028,7 +1026,7 @@ function FramingConfirmation({ snapshot, onConfirm, onReject, busy }: {
           {isLowConfidence ? <AlertTriangle size={11} className="text-[var(--warning)]" /> : <Check size={11} className="text-[var(--accent)]" />}
         </div>
         <div>
-          <p className="text-[13px] font-semibold text-[var(--text-primary)] leading-snug">{L('이 방향이 맞나요?', 'Is this the right direction?')}</p>
+          <p className="text-[13px] font-semibold text-[var(--text-primary)] leading-snug">{L('이 방향으로 정리할까요?', 'Should we continue in this direction?')}</p>
           {/* Measurement language, not a score: "확신도 N%" was verdict
               vocabulary — describe the state instead (P1 zero-verdict). */}
           <p className="text-[11px] text-[var(--text-tertiary)] mt-0.5">
@@ -1046,7 +1044,7 @@ function FramingConfirmation({ snapshot, onConfirm, onReject, busy }: {
             style={{ background: 'var(--gradient-gold)' }}>{L('맞아요', 'Correct')}</motion.button>
           <motion.button onClick={() => setRejectMode(true)} disabled={busy} whileTap={{ scale: 0.98 }}
             className="px-4 py-2 rounded-xl text-[12px] font-medium text-[var(--text-secondary)] border border-[var(--border-subtle)] hover:border-[var(--accent)]/30 cursor-pointer">
-            {L('다시 정의', 'Redefine')}</motion.button>
+            {L('방향 바꾸기', 'Change direction')}</motion.button>
         </div>
       ) : (
         <div className="pl-9 space-y-2">
@@ -1080,16 +1078,16 @@ function PipelineExitOptions({ onReframe, onRehearse }: {
   const L = (ko: string, en: string) => locale === 'ko' ? ko : en;
   return (
     <div className="flex flex-col gap-2.5 border-t border-dashed border-[var(--border-subtle)] pt-4 mt-2">
-      <p className="text-[12px] font-semibold text-[var(--text-secondary)]">{L('다른 도구로 전환', 'Switch to another tool')}</p>
+      <p className="text-[12px] font-semibold text-[var(--text-secondary)]">{L('다른 방식으로 이어가기', 'Continue another way')}</p>
       <div className="flex gap-2.5">
         <button onClick={onReframe}
           className="flex-1 text-left px-3.5 py-2.5 rounded-xl bg-[var(--bg)]/60 hover:bg-[var(--accent)]/5 border border-[var(--border-subtle)]/60 hover:border-[var(--accent)]/30 cursor-pointer transition-colors duration-300">
-          <p className="text-[13px] font-semibold text-[var(--text-primary)]">{L('→ 문제 재정의', '→ Reframe Problem')}</p>
+          <p className="text-[13px] font-semibold text-[var(--text-primary)]">{L('→ 문제 다시 정리하기', '→ Reframe the problem')}</p>
           <p className="text-[11px] text-[var(--text-tertiary)] mt-0.5">{L('더 깊이 들어가기', 'Dig deeper')}</p>
         </button>
         <button onClick={onRehearse}
           className="flex-1 text-left px-3.5 py-2.5 rounded-xl bg-[var(--bg)]/60 hover:bg-[var(--accent)]/5 border border-[var(--border-subtle)]/60 hover:border-[var(--accent)]/30 cursor-pointer transition-colors duration-300">
-          <p className="text-[13px] font-semibold text-[var(--text-primary)]">{L('→ 피드백 먼저', '→ Feedback First')}</p>
+          <p className="text-[13px] font-semibold text-[var(--text-primary)]">{L('→ 피드백부터 받기', '→ Get feedback first')}</p>
           <p className="text-[11px] text-[var(--text-tertiary)] mt-0.5">{L('이해관계자 반응 시뮬레이션', 'Simulate stakeholder reactions')}</p>
         </button>
       </div>
@@ -2476,7 +2474,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
     const md = mixToMarkdown(mix, locale === 'ko');
     // Skip keeps the original mix intact → attribution survives for FinalCard.
     store.setFinalDeliverable(md, mix);
-    store.recordCheckpoint('anchor', L('정박 (피드백 건너뜀)', 'Anchor (skipped review)'));
+    store.recordCheckpoint('anchor', L('완료 (피드백 건너뜀)', 'Complete (skipped review)'));
     setError(null);
     useAgentAttentionStore.getState().ping('final_done');
     scrollToRef(finalRef, 'top');
@@ -2753,10 +2751,10 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
             ? answered
             : Math.max(answered + (asking ? 1 : 0), Math.min(maxR, 3));
           const cps: RailCheckpoint[] = [
-            { key: 'situation', label: L('상황', 'Case'), state: 'done', group: '묶기', groupEn: 'Bind',
+            { key: 'situation', label: L('상황', 'Case'), state: 'done', group: '정리', groupEn: 'Frame',
               title: L('처음 적어주신 상황으로 돌아가 보기', 'Look back at your original case') },
-            { key: 'rope', label: L('밧줄', 'Rope'), state: 'done', group: '묶기', groupEn: 'Bind',
-              title: L('듣기 전에 남긴 당신의 기울기', 'The lean you tied before listening') },
+            { key: 'rope', label: L('처음 생각', 'Initial view'), state: 'done', group: '정리', groupEn: 'Frame',
+              title: L('답을 듣기 전에 남긴 처음 생각', 'Your initial view before hearing the answer') },
           ];
           for (let i = 0; i < qTotal; i++) {
             const isCur = asking && i === answered;
@@ -2767,18 +2765,18 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
               key: `q${i}`,
               label: isProbe ? L('갈림', 'Fork') : L(`질문${i + 1}`, `Q${i + 1}`),
               state: i < answered ? 'done' : (isCur ? 'current' : 'future'),
-              group: '묶기', groupEn: 'Bind',
+              group: '정리', groupEn: 'Frame',
               title: i < answered
                 ? (ansPreview ? L(`그때의 답: ${ansPreview}`, `Your answer: ${ansPreview}`) : undefined)
                 : isCur ? L('지금 답하고 있는 질문', 'The question you are answering')
-                : L('남은 질문 — 답할수록 항로가 다듬어져요', 'Remaining question — each answer refines the course'),
+                : L('남은 질문 — 답할수록 방향이 또렷해져요', 'Remaining question — each answer clarifies the direction'),
             });
           }
           cps.push({
             key: 'draft',
             label: L('초안', 'Draft'),
             state: (mix || rank >= 2) ? 'done' : (rank === 1 || (rank === 0 && crewRowing && !asking)) ? 'current' : 'future',
-            group: '듣기', groupEn: 'Listen',
+            group: '작성', groupEn: 'Draft',
             title: L('당신의 답 위에서 문서 초안을 만들어요', 'A draft is written on top of your answers'),
           });
           // 검토를 건너뛰고 완성한 경우엔 정직하게 '건너뜀'으로 — 안 한 검토를
@@ -2787,7 +2785,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
             key: 'review',
             label: L('검토', 'Review'),
             state: rank >= 4 ? (dmFb ? 'done' : 'skipped') : (rank === 2 || rank === 3) ? 'current' : 'future',
-            group: '듣기', groupEn: 'Listen',
+            group: '작성', groupEn: 'Draft',
             title: rank >= 4 && !dmFb
               ? L('검토 없이 진행했어요', 'Went ahead without a review')
               : L('의사결정권자의 눈으로 초안을 검토받아요', "The draft gets a decision-maker's read"),
@@ -2796,11 +2794,11 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
             key: 'check',
             label: L('시험', 'Test'),
             state: rank === 4 ? 'current' : 'future',
-            group: '닿기', groupEn: 'Land',
+            group: '확인', groupEn: 'Check',
             title: L('부풀린 성공 시나리오로 이 계획이 기대고 있는 전제를 시험해요', "Inflated success scenarios test the belief this plan leans on"),
           });
           cps.push({
-            key: 'seal', label: L('봉인', 'Seal'), state: 'future', group: '닿기', groupEn: 'Land',
+            key: 'seal', label: L('봉인', 'Seal'), state: 'future', group: '확인', groupEn: 'Check',
             title: L('확인일과 함께 판단을 봉인해요 — 그날 현실과 맞춰봐요', 'Seal the call with a check date — reality answers then'),
           });
           return (
@@ -3020,22 +3018,6 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
               you" = the MirrorBeat. assessConvergence stays for internal routing
               only (progressive-engine), never shown. */}
 
-          {/* Update summary chip — surfaces "what changed" at the user's eye level
-              (right above the next question). AnalysisCard lives further down,
-              so without this, users miss the evolution they just triggered. */}
-          {/* NOT behind the record gate: this one line IS the convergence
-              feedback ("your answer changed X"). With it hidden, answers
-              vanished into a black box until the end — the tightening promise
-              evaporated from the default screen (meaning audit A5). */}
-          {latest && snapshots.length > 1 && !final_ && phase === 'conversing' && !mix && (
-            <UpdateSummaryChip
-              snapshot={latest}
-              prevSnapshot={snapshots[snapshots.length - 2]}
-              onSeeDetail={() => { setRecordOpen(true); requestAnimationFrame(() => scrollToRef(analysisCardRef, 'top')); }}
-              locale={locale}
-            />
-          )}
-
           {/* When the current question IS a fork check, its evidence — the
               trial-sail theater — must sit right above it, not a screen below:
               the question quotes executors the user otherwise never saw. */}
@@ -3079,6 +3061,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
                 isActive={!mix}
                 showExecutionPlan
                 locale={locale}
+                answerCount={answers.length}
                 // On a terminal route the insight IS the deliverable, so show it
                 // in full rather than as a background peek behind the (now
                 // hidden) question.
@@ -3233,8 +3216,8 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
                     DOES and where the rating goes. One line, always visible. */}
                 <p className="text-[11.5px] text-[var(--text-tertiary)] px-1 leading-[1.5]">
                   {L(
-                    '반영 = 최종 문서에 들어가요 · 제외 = 빠져요 (언제든 번복 가능) · 아래 평가는 선원 기록에 남아 다음 항해 팀 구성에 참고돼요',
-                    'Apply = goes into the final doc · Exclude = left out (reversible anytime) · ratings go on the crew record for future voyages',
+                    '반영 = 최종 문서에 들어가요 · 제외 = 빠져요 (언제든 번복 가능) · 아래 평가는 팀원 기록에 남아 다음 AI 팀 구성에 참고돼요',
+                    'Apply = goes into the final doc · Exclude = left out (reversible anytime) · ratings stay on the reviewer record for future AI teams',
                   )}
                 </p>
                 {/* Progress — clickable dots + N/total */}
@@ -3411,6 +3394,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
                 isActive={!mix}
                 showExecutionPlan
                 locale={locale}
+                answerCount={answers.length}
                 // Collapse to a compact peek once the draft (mix) exists — the
                 // draft is the protagonist then, and this analysis is the
                 // supporting "course we plotted" reference. During conversing the

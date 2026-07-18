@@ -111,9 +111,11 @@ Your job (OPEN decisions only): In ONE pass, give them:
    The subtext should create ANTICIPATION — make the user feel "my answer to this will actually change the plan."
    ${locale === 'ko' ? 'Example subtext good: "이 하나가 기획안의 구조를 완전히 바꿔요"\nExample subtext bad: "이 정보가 필요해요" (사무적)' : 'Example subtext good: "This single answer completely changes the plan\'s structure"\nExample subtext bad: "We need this information" (administrative)'}
 
-5. Insight — ONE sharp sentence the user will remember. PRIORITIZE strategic reframing of their situation over analogies.
-   BEST: Reframe their situation — reveal what's really at stake or flip a weakness into a strength.
-   ${locale === 'ko' ? 'Best: "경쟁사의 발표가 바꾼 건 시장 자체보다, 지금 속도와 완성도 중 어느 쪽 비용이 더 커졌는지예요" (가르는 변수)\nBest: "추천이 증명한 신뢰와, 아직 증명해야 할 실행력의 경계를 먼저 나눠봐야 해요" (핵심 축소)\nGood: "기능 스펙 잡는 것과 비슷해요" (경험 연결)\nBad: "잘 계획하면 충분히 가능해요" (무의미한 격려)\nBad: "타이밍이 좋아요 / 반은 이겼어요" (사용자 대신 방향을 고름)' : 'Best: "The competitor announcement changes which cost is now larger: moving slowly or shipping before the evidence is ready" (deciding variable)\nBest: "Separate the trust the referral already proved from the execution you still have to prove" (scope reduction)\nGood: "It\'s like scoping a feature — why, what, how much" (experience analogy)\nBad: "With good planning, this is definitely doable" (meaningless encouragement)\nBad: "Your timing is perfect / you already won half" (picks the direction for the user)'}
+5. Insight — for an OPEN decision, write TWO concise sentences with distinct jobs.
+   - Sentence 1 is the takeaway: state what must be clarified or verified before choosing. Lead with the conclusion, not commentary about the user's wording.
+   - Sentence 2 is the reason: name the contrast that makes the conclusion matter.
+   PRIORITIZE strategic reframing of their situation over analogies. Never open with “X라는 표현이 핵심이에요” / “the phrase X is key,” and do not chain the two jobs with an em dash.
+   ${locale === 'ko' ? 'Best: "이직 여부보다, 지금 회사의 성장 한계가 실제인지 먼저 확인해야 해요. 막힘이 구조적 한계인지, 아직 기회를 제대로 요청해보지 않은 상태인지에 따라 결론이 달라집니다." (결론 → 이유)\nBest: "추천으로 증명된 신뢰와, 아직 증명해야 할 실행력을 먼저 나눠봐야 해요. 둘을 섞으면 이미 얻은 기회와 앞으로 채울 조건을 같은 문제로 보게 됩니다." (핵심 축소)\nBad: "‘막혀 있다’는 표현이 핵심이에요 — 실제 천장이 있는지 봐야 해요." (문장에 대한 해설로 시작)\nBad: "잘 계획하면 충분히 가능해요." (무의미한 격려)\nBad: "타이밍이 좋아요 / 반은 이겼어요." (사용자 대신 방향을 고름)' : 'Best: "Before deciding whether to leave, verify whether the growth ceiling at the current company is real. The answer changes depending on whether the constraint is structural or the opportunity has not yet been requested." (takeaway → reason)\nBest: "Separate the trust the referral already proved from the execution you still need to prove. Mixing them turns an opportunity already earned and a condition still unmet into the same problem." (scope reduction)\nBad: "The phrase ‘stuck’ is key — check whether the ceiling is real." (opens with commentary on the writing)\nBad: "With good planning, this is definitely doable." (meaningless encouragement)\nBad: "Your timing is perfect / you already won half." (picks the direction for the user)'}
 
 Respond in JSON. Concise — quality over volume.`,
 
@@ -140,7 +142,7 @@ JSON format:
     "sequence word — action + why",
     "sequence word — final action + why"
   ],
-  "insight": "One sharp sentence I'll remember (connect to my experience if possible)",
+  "insight": "For OPEN: two concise sentences — takeaway first, reason second. For other request types, follow the route rule above.",
   "next_question": {
     "text": "Situation-shaping question (NOT admin details)",
     "subtext": "Why this changes everything (1 line)",
@@ -194,7 +196,7 @@ CRITICAL: The user's latest answer is the MOST IMPORTANT new information. Everyt
 - The user should look at the updated analysis and think "Yes, my answer actually mattered."
 
 Your job each round:
-1. Insight — ONE sharp sentence about what their answer MEANS for the strategy. Not "you said X" but "X means Y." The user should think "I didn't see it that way — that's exactly right."
+1. Insight — TWO concise sentences about what their answer MEANS for the strategy. Sentence 1 states the updated takeaway; sentence 2 explains the deciding contrast. Not "you said X" but "X means Y." Never open with commentary such as “X라는 표현이 핵심이에요” / “the phrase X is key,” and do not join the two jobs with an em dash. The user should think "I didn't see it that way — that's exactly right."
 2. Update real_question — must stay a QUESTION (ends with ?). Should feel NOTICEABLY more specific than before because of the answer.
 3. Update hidden assumptions — only change what the answer resolved or revealed. Don't shuffle items for novelty.
 4. Update skeleton — only modify items DIRECTLY AFFECTED by the new answer. Keep stable items unchanged. Never exceed 5-6 items.
@@ -225,7 +227,7 @@ Update the analysis. The user should FEEL the plan getting sharper because of th
 
 JSON:
 {
-  "insight": "Sharp insight from this answer (1 memorable sentence)",
+  "insight": "Two concise sentences: updated takeaway first, deciding reason second",
   "real_question": "Updated question — more specific than before (natural sentence, ends with ?)",
   "hidden_assumptions": ["Realistic only, 2-3 items"],
   "skeleton": ["Only change items affected by the latest answer. Use natural sequence words. 5 items max."],

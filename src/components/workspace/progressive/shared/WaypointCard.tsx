@@ -33,13 +33,13 @@ import { useLocale } from '@/hooks/useLocale';
 import type { Waypoint, WaypointType } from '@/stores/types';
 
 export const WP_META: Record<WaypointType, { Icon: LucideIcon; color: string; ko: string; en: string }> = {
-  departure:     { Icon: Sailboat,      color: 'var(--text-secondary)', ko: '출항',      en: 'Departure' },
-  course_change: { Icon: Milestone,     color: 'var(--accent)',         ko: '항로 변경',  en: 'Course change' },
-  reef:          { Icon: AlertTriangle, color: '#b4541e',               ko: '암초',      en: 'Reef' },
-  sighting:      { Icon: Eye,           color: '#2d6b8a',               ko: '관측',      en: 'Sighting' },
-  headwind:      { Icon: Wind,          color: '#6b4c9a',               ko: '역풍',      en: 'Headwind' },
-  helm:          { Icon: Hand,          color: '#8a6d2d',               ko: '선장의 키',  en: 'Helm' },
-  anchorage:     { Icon: Anchor,        color: '#2d6b2d',               ko: '정박',      en: 'Anchorage' },
+  departure:     { Icon: Sailboat,      color: 'var(--text-secondary)', ko: '시작',       en: 'Start' },
+  course_change: { Icon: Milestone,     color: 'var(--accent)',         ko: '방향 변경',   en: 'Direction change' },
+  reef:          { Icon: AlertTriangle, color: '#b4541e',               ko: '위험',       en: 'Risk' },
+  sighting:      { Icon: Eye,           color: '#2d6b8a',               ko: '발견',       en: 'Finding' },
+  headwind:      { Icon: Wind,          color: '#6b4c9a',               ko: '제약',       en: 'Constraint' },
+  helm:          { Icon: Hand,          color: '#8a6d2d',               ko: '사용자 결정', en: 'User decision' },
+  anchorage:     { Icon: Anchor,        color: '#2d6b2d',               ko: '완료',       en: 'Completed' },
 };
 
 /* ── The narration body, shared by the timeline row (expanded) and the card ── */
@@ -97,7 +97,7 @@ export function WaypointDetail({
       {notTaken.map((alt, j) => (
         <div key={j} className="rounded-lg border border-[var(--border-subtle)] bg-[var(--bg)] px-2.5 py-2">
           <div className="mb-1 flex items-center gap-1 text-[9px] font-bold uppercase tracking-[0.1em] text-[var(--text-tertiary)]">
-            <CornerDownRight size={10} /> {L('가지 않은 길', 'Road not taken')}
+            <CornerDownRight size={10} /> {L('보류한 선택지', 'Options set aside')}
           </div>
           <p className={`text-[11px] leading-[1.45] text-[var(--text-secondary)] ${dense ? 'line-clamp-2' : ''}`}>
             <span className="font-medium italic text-[var(--text-primary)]">{alt.label}</span>

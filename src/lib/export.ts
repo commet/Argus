@@ -13,13 +13,13 @@ const actorLabels: Record<string, string> = {
  * product's "the process is the deliverable" promise. Returns '' when empty.
  */
 const WP_EXPORT: Record<WaypointType, { ko: string; en: string; glyph: string }> = {
-  departure:     { ko: '출항',      en: 'Departure',     glyph: '⚓' },
-  course_change: { ko: '항로 변경',  en: 'Course change', glyph: '↻' },
-  reef:          { ko: '암초',      en: 'Reef',          glyph: '⚠' },
-  sighting:      { ko: '관측',      en: 'Sighting',      glyph: '👁' },
-  headwind:      { ko: '역풍',      en: 'Headwind',      glyph: '🜨' },
-  helm:          { ko: '선장의 키',  en: 'Helm',          glyph: '🖐' },
-  anchorage:     { ko: '정박',      en: 'Anchorage',     glyph: '⚑' },
+  departure:     { ko: '시작',      en: 'Start',             glyph: '⚓' },
+  course_change: { ko: '방향 변경',  en: 'Direction change',  glyph: '↻' },
+  reef:          { ko: '위험',      en: 'Risk',              glyph: '⚠' },
+  sighting:      { ko: '발견',      en: 'Finding',           glyph: '👁' },
+  headwind:      { ko: '제약',      en: 'Constraint',        glyph: '🜨' },
+  helm:          { ko: '사용자 결정', en: 'User decision',    glyph: '🖐' },
+  anchorage:     { ko: '완료',      en: 'Completed',         glyph: '⚑' },
 };
 
 export function voyageLogToMarkdown(session: ProgressiveSession | null | undefined, locale: 'ko' | 'en'): string {
@@ -35,7 +35,7 @@ export function voyageLogToMarkdown(session: ProgressiveSession | null | undefin
   if (wps.length === 0) return '';
 
   const ko = locale === 'ko';
-  const out: string[] = [ko ? '## 항해일지 — 사고의 궤적' : "## Ship's log — the decision trail", ''];
+  const out: string[] = [ko ? '## 결정 기록 — 생각의 흐름' : '## Decision log — the reasoning trail', ''];
   wps.forEach((w, i) => {
     const m = WP_EXPORT[w.type];
     out.push(`${i + 1}. ${m.glyph} **${ko ? m.ko : m.en}** — ${w.headline}`);
@@ -43,7 +43,7 @@ export function voyageLogToMarkdown(session: ProgressiveSession | null | undefin
     if (w.significance) out.push(`   - ${ko ? '의미' : 'Why it matters'}: ${w.significance}`);
     (w.alternatives || []).filter(a => !a.taken).forEach(a => {
       const userReason = a.why_abandoned_source === 'user' ? a.why_abandoned : '';
-      out.push(`   - ${ko ? '가지 않은 길' : 'Road not taken'}: ${a.label}${userReason ? ` — ${userReason}` : ''}`);
+      out.push(`   - ${ko ? '보류한 선택지' : 'Option set aside'}: ${a.label}${userReason ? ` — ${userReason}` : ''}`);
     });
   });
   return out.join('\n');
@@ -68,9 +68,9 @@ export function reframeToMarkdown(item: ReframeItem): string {
       }).join('\n')
     : '';
 
-  let md = `## 항로 재설정 | 문제 재정의\n\n`;
+  let md = `## 문제 재정의\n\n`;
   md += `### 표면 과제\n${analysis.surface_task}\n\n`;
-  md += `### 재정의된 진짜 질문\n${selectedQ}\n\n`;
+  md += `### 지금 풀어야 할 질문\n${selectedQ}\n\n`;
 
   if (analysis.why_reframing_matters) {
     md += `${analysis.why_reframing_matters}\n\n`;
@@ -131,7 +131,7 @@ export function recastToMarkdown(item: RecastItem): string {
 
   const goal = item.analysis?.goal_summary || item.input_text;
 
-  let md = `## 선원 배치 | 실행 설계\n\n`;
+  let md = `## 실행 설계\n\n`;
 
   // Governing idea
   if (item.analysis?.governing_idea) {

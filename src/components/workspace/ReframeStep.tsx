@@ -923,7 +923,7 @@ export function ReframeStep({ onNavigate }: ReframeStepProps) {
           <span className="text-[14px] text-[var(--text-secondary)]">{t('tool.reframe.subtitle')}</span>
         </div>
         <p className="text-[13px] text-[var(--text-secondary)] mt-1">
-          {L('전략의 핵심 — 숨은 가정을 찾고, 진짜 질문을 다시 세웁니다.', 'The heart of strategy — surface the hidden assumptions, reframe the real question.')}
+          {L('전략의 핵심 — 숨은 가정을 찾고, 지금 풀어야 할 질문을 다시 세웁니다.', 'The heart of strategy — surface hidden assumptions and reframe the question to solve.')}
         </p>
       </div>
 
@@ -1333,7 +1333,7 @@ export function ReframeStep({ onNavigate }: ReframeStepProps) {
                         {analysis.reframed_question}
                       </p>
                       <p className="text-[12px] text-[var(--text-secondary)] mt-2.5 leading-relaxed">
-                        {L('이게 진짜 답할 질문인지는 — 당신이 정해요.', "Whether this is the real question to answer — that's yours to decide.")}
+                        {L('이 질문이 지금 풀어야 할 질문인지는 당신이 정해요.', "You decide whether this is the question to solve now.")}
                       </p>
                     </div>
 
@@ -1459,7 +1459,7 @@ export function ReframeStep({ onNavigate }: ReframeStepProps) {
                     <RotateCcw size={14} /> {L('가정 다시 평가', 'Re-evaluate assumptions')}
                   </Button>
                   <div className="flex gap-2">
-                    <ShareBar getText={() => reframeToMarkdown(current)} getTitle={() => L('항로 재설정 | ', 'Reframe | ') + (current.analysis?.surface_task || '')} />
+                    <ShareBar getText={() => reframeToMarkdown(current)} getTitle={() => L('문제 재정의 | ', 'Reframe | ') + (current.analysis?.surface_task || '')} />
                     <Button onClick={handleConfirm} disabled={!current.selected_question}>
                       <Check size={14} /> {t('common.confirm')}
                     </Button>
@@ -1483,7 +1483,7 @@ export function ReframeStep({ onNavigate }: ReframeStepProps) {
               <div className="relative z-10 p-6">
                 <div className="flex items-center gap-2 text-[var(--success)] text-[13px] font-bold mb-5">
                   <Check size={14} />
-                  <span>{L('항로 재설정 완료', 'Reframe complete')}</span>
+                  <span>{L('문제 재정의 완료', 'Reframe complete')}</span>
                   <ChartEdge height={16} className="ml-2" />
                   <span className="text-[var(--text-tertiary)] font-normal ml-1">{L('핵심 질문이 잡혔어요', 'The core question is set')}</span>
                 </div>
@@ -1531,7 +1531,7 @@ export function ReframeStep({ onNavigate }: ReframeStepProps) {
 
             <div className="flex items-center justify-between">
               <Button variant="secondary" size="sm" onClick={() => { setCurrentId(null); setInputText(''); }}>
-                <ArrowRight size={14} /> {L('새 항로 재설정', 'New reframe')}
+                <ArrowRight size={14} /> {L('새 문제 재정의', 'New reframe')}
               </Button>
               <div className="flex gap-2">
                 <Button
@@ -1548,9 +1548,9 @@ export function ReframeStep({ onNavigate }: ReframeStepProps) {
                     onNavigate('recast');
                   }}
                 >
-                  <Send size={14} /> {L('선원 배치로 보내기', 'Send to Recast')}
+                  <Send size={14} /> {L('실행 설계로 보내기', 'Send to Recast')}
                 </Button>
-                <ShareBar getText={() => reframeToMarkdown(current)} getTitle={() => L('항로 재설정 | ', 'Reframe | ') + (current.analysis?.surface_task || '')} />
+                <ShareBar getText={() => reframeToMarkdown(current)} getTitle={() => L('문제 재정의 | ', 'Reframe | ') + (current.analysis?.surface_task || '')} />
               </div>
             </div>
 

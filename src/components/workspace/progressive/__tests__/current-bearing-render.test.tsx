@@ -53,7 +53,7 @@ describe('CurrentBearingCard', () => {
   it('surfaces every populated bearing field', () => {
     mount({ bearing: full, label: 'v0.1' });
     const text = container.textContent ?? '';
-    expect(text).toContain('Current Heading');
+    expect(text).toContain('Decision summary');
     expect(text).toContain('v0.1');
     expect(text).toContain('Run a 4-hour migration spike');
     expect(text).toContain('Clear cost ceiling');
@@ -66,12 +66,12 @@ describe('CurrentBearingCard', () => {
 
   it('maps the course status to a state description, never a directional verdict', () => {
     mount({ bearing: full });
-    expect(container.textContent).toContain('Needs evidence · review');
+    expect(container.textContent).toContain('Evidence needed');
 
     // Spine rule 4(a): the chip must describe the review state ("no open
     // objections"), not stamp a "go" call above the user's decision.
     mount({ bearing: { ...full, current_course: { status: 'proceed', summary: 'go' } } });
-    expect(container.textContent).toContain('No open objections · review');
+    expect(container.textContent).toContain('No open issues');
     expect(container.textContent).not.toContain('Proceed');
   });
 
@@ -90,8 +90,8 @@ describe('CurrentBearingCard', () => {
     const text = container.textContent ?? '';
     expect(text).toContain('just the course');
     expect(text).toContain('one reason');
-    expect(text).not.toContain('Fog & reef');
-    expect(text).not.toContain('Road not taken');
+    expect(text).not.toContain('Risks to check');
+    expect(text).not.toContain('Options set aside');
     expect(text).not.toContain('Contract seed');
     expect(text).not.toContain('Next helm');
   });
