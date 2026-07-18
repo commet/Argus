@@ -65,6 +65,9 @@ next-env.d.ts
 /docs/ARGUS-MCP-V2-DESIGN-HISTORY.md
 /docs/ARGUS-REFLECTION-AND-CONNECTION-DESIGN-2026-07-13.md
 /docs/PROPOSAL-ARGUS-MULTIHOST-CORE-AND-DISTRIBUTION-2026-07-16.md
+/docs/DESIGN-decision-knowledge-kernel-v4-2026-07-14.md
+/docs/DKK-v6-CONTINUATION-HANDOFF-2026-07-14.md
+/docs/DKK-v6-IMPLEMENTATION-HANDOFF-2026-07-14.md
 # source-master video (shipped copies live in public/voyage/) + UI-loop dev exhaust
 /assets/hero-originals/
 /scripts/uiux-loop/LEDGER.md
