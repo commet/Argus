@@ -6,6 +6,14 @@
 > The `1.3.0` / `1.2.1` entries at the bottom are pre-rename `argus-mcp` history,
 > kept for reference — all of that work shipped inside the new-name 1.0.0.
 
+## 1.4.1 — update_fact actually fixed
+
+- The 1.4.0 handler-level `source` default ran AFTER schema validation, so the
+  concurrently-merged schema (which requires `source` on `update_fact`) still
+  rejected every source-less call. The default now lives in the schema itself
+  (`user_stated`), verified against the published artifact. One regression test
+  pins the public path.
+
 ## 1.4.0 — Real-usage fixes: project isolation, Korean error parity, honest flows
 
 Found by driving the published package like a real user (30+ scenarios, every

@@ -76,7 +76,10 @@ const decideSchema = z.discriminatedUnion('action', [
     finding: z.string().min(1).max(800).describe('현재 확인한 사실을 비교 가능한 한 문장으로 적습니다.'),
     numeric_value: z.number().describe('수치 사실의 현재 값을 명시적으로 전달합니다.').optional(),
     changed: z.boolean().describe('문장형 사실이 기준값에서 실질적으로 달라졌는지 표시합니다.').optional(),
-    source: z.enum(['url', 'user_stated', 'host_reported']).describe('현재 사실을 확인한 출처입니다.'),
+    // default user_stated: the runtime union validates BEFORE the handler-level
+    // default can apply, so a required source here made every real update_fact
+    // call fail with a baffling INVALID_INPUT (1.4.0 field finding).
+    source: z.enum(['url', 'user_stated', 'host_reported']).default('user_stated').describe('현재 사실을 확인한 출처입니다. 생략하면 user_stated입니다.'),
     source_detail: z.string().max(1000).describe('출처 URL 또는 짧은 인용 정보입니다.').optional(),
     apply_to_matching: z.boolean().default(false).describe('같은 사실을 추적하는 다른 결정에도 이 확인 결과를 적용합니다.'),
   }),
