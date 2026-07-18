@@ -26,8 +26,9 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
-import { Target, AlertTriangle, GitBranch, Check } from 'lucide-react';
+import { Target, AlertTriangle, GitBranch } from 'lucide-react';
 import { ArgusMascot } from '@/components/brand/ArgusMascot';
+import { ClosingAnchorMark } from '@/components/brand/ClosingAnchorMark';
 import { useLocale } from '@/hooks/useLocale';
 import { useProjectStore } from '@/stores/useProjectStore';
 import { useReviewStore } from '@/stores/useReviewStore';
@@ -562,10 +563,22 @@ export function SettlementModal({
                 animate={{ opacity: 1, y: 0 }}
                 className="space-y-2.5"
               >
-                <p className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-[var(--success)]">
-                  <Check size={14} strokeWidth={2.5} />
-                  {L('고리를 닫았어요. ⚓', 'Loop closed. ⚓')}
-                </p>
+                <motion.div
+                  initial={reducedMotion ? false : { opacity: 0, scale: 0.88, rotate: -4 }}
+                  animate={{ opacity: 1, scale: 1, rotate: 0 }}
+                  transition={{ duration: 0.55, ease: 'easeOut' }}
+                  className="flex items-center gap-3"
+                >
+                  <ClosingAnchorMark size={58} className="shrink-0 shadow-[0_8px_22px_rgba(6,38,36,0.22)]" />
+                  <div>
+                    <p className="text-[10px] font-mono uppercase tracking-[0.16em] text-[var(--text-tertiary)]">
+                      {L('현실 확인 완료', 'REALITY CHECK COMPLETE')}
+                    </p>
+                    <p className="mt-0.5 text-[15px] font-semibold text-[var(--success)]">
+                      {L('판단의 고리를 닫았어요', 'The decision loop is closed')}
+                    </p>
+                  </div>
+                </motion.div>
                 {/* 판단 액자 (P1-A1): the moment the loop closes is the moment
                     the frame goes up — the user's own two sentences, verbatim,
                     with date stamps. The diff between them is theirs to read;

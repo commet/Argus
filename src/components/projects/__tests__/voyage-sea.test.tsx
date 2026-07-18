@@ -126,6 +126,7 @@ describe('VoyageSea — spine gate (거울 조항, 항해 지도판)', () => {
     expect(container.textContent).not.toContain('다시 볼 때');
     // Calm caption, not urgency.
     expect(container.textContent).toContain('부를 배가 없어요');
+    expect(container.querySelector('img')?.getAttribute('src')).toContain('argus-sea-chart-v1.jpg');
   });
 
   it('the beacon exists only for a due check-in, and quotes the sealed bet verbatim', () => {
@@ -296,6 +297,8 @@ describe('VoyageSea — spine gate (거울 조항, 항해 지도판)', () => {
     act(() => dueBtn.click());
     const reviewBtn = container.querySelector('[data-testid="ship-action-review"]') as HTMLButtonElement;
     expect(reviewBtn).toBeTruthy(); // a due ship offers 정산·다시 보기
+    expect(container.querySelector('[role="dialog"]')?.getAttribute('data-edge-clamp'))
+      .toBe('116'); // 220px action card stays inside a 390px phone
     act(() => reviewBtn.click());
     expect(onReview).toHaveBeenCalledWith('due1');
 

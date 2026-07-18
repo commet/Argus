@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useProjectStore } from '@/stores/useProjectStore';
@@ -20,7 +21,6 @@ import { ExecutionReadiness } from '@/components/ui/ExecutionReadiness';
 import { LocaleLink } from '@/components/ui/LocaleLink';
 import { Layers, Map as MapIcon, Users, Check, ArrowRight, Download, Sparkles, Plus, Search, GitBranch, Scale, AlertTriangle, MessageSquare, LoaderCircle, CloudOff } from 'lucide-react';
 import { useLocale } from '@/hooks/useLocale';
-import { VoyageShip, Graticule } from '@/components/ui/VoyageElements';
 import { getVoyageState, VOYAGE_STATE_META, type VoyageLeg } from '@/lib/voyage-state';
 import { DecisionContractCard } from '@/components/projects/DecisionContractCard';
 import { DecisionItemsCard } from '@/components/projects/DecisionItemsCard';
@@ -30,6 +30,7 @@ import { isCheckpointDue } from '@/lib/checkpoint-core';
 import { RecordStrip } from '@/components/ui/RecordStrip';
 import { RetroOnlyNotice } from '@/components/ui/RetroOnlyNotice';
 import { VoyageSea } from '@/components/projects/VoyageSea';
+import { VoyageMarker } from '@/components/projects/VoyageMarker';
 import { ProjectAttentionList } from '@/components/projects/ProjectAttentionList';
 import { Logbook } from '@/components/projects/Logbook';
 import { useDueCount } from '@/hooks/useDueCount';
@@ -684,13 +685,26 @@ export default function ProjectPage() {
                   keeps the visual identity; this quiet list owns exact actions. */}
               <ProjectAttentionList items={attentionItems} />
 
-              <section id="fleet-roster" aria-labelledby="fleet-roster-heading" className="space-y-3 scroll-mt-6">
-                <div className="px-1">
-                  <h2 id="fleet-roster-heading" className="text-[15px] font-bold text-[var(--text-primary)]">
-                    {L('항해 명부', 'Voyage roster')}
-                  </h2>
-                  <p className="text-[12px] text-[var(--text-secondary)] mt-0.5">
-                    {L('확인이 필요한 결정부터 최근 순으로 정리했어요.', 'Decisions needing attention come first, followed by recent activity.')}
+              <section
+                id="fleet-roster"
+                aria-labelledby="fleet-roster-heading"
+                className="mt-5 space-y-4 scroll-mt-6 border-t border-[#123c3a]/20 pt-5"
+              >
+                <div className="flex flex-col gap-2 px-1 sm:flex-row sm:items-end sm:justify-between">
+                  <div>
+                    <p className="flex items-center gap-2 text-[9px] font-mono font-semibold uppercase tracking-[0.18em] text-[#2b615d]">
+                      <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-[#c49945]" />
+                      {L('항구 등록부 · 현재 항로', 'Harbor registry · current routes')}
+                    </p>
+                    <h2 id="fleet-roster-heading" className="mt-1 text-[18px] font-bold text-[var(--text-primary)]" style={{ fontFamily: 'var(--font-display)' }}>
+                      {L('항해 명부', 'Voyage roster')}
+                    </h2>
+                    <p className="mt-0.5 text-[12px] text-[var(--text-secondary)]">
+                      {L('위 해도의 배를 같은 표식으로 펼쳤어요. 확인할 결정부터 최근 순입니다.', 'The vessels above, opened into a registry. Attention first, then recent activity.')}
+                    </p>
+                  </div>
+                  <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-[var(--text-tertiary)] tabular-nums">
+                    {L(`${stats.total}척 등록`, `${stats.total} registered`)}
                   </p>
                 </div>
 
@@ -835,15 +849,28 @@ export default function ProjectPage() {
                             : 'border-[var(--border-subtle)] hover:border-[var(--text-secondary)]/30 hover:shadow-[var(--shadow-sm)]'
                         }`}
                       >
-                        {/* Chart vignette — the project as a ship on the sea chart */}
-                        <div className="relative -mx-4 -mt-4 mb-1 h-[92px] overflow-hidden rounded-t-xl border-b border-[var(--border-subtle)] bg-[var(--bp-paper)] flex items-end justify-center">
-                          <Graticule opacity={0.09} spacing={24} />
-                          <VoyageShip
-                            state={voyageState}
-                            size={84}
-                            title={cardStatusLabel}
-                            className="relative z-[1] mb-0.5 transition-transform duration-300 group-hover:scale-[1.04]"
+                        {/* The registry keeps the exact chart object from above:
+                            one sea crop + one state marker, not a second ship drawing. */}
+                        <div className="relative -mx-4 -mt-4 mb-1 flex h-[92px] items-center justify-center overflow-hidden rounded-t-xl border-b border-[#d7cdb9]/30 bg-[#082625]">
+                          <Image
+                            src="/images/voyage/argus-sea-chart-v1.jpg"
+                            alt=""
+                            fill
+                            sizes="(max-width: 768px) 100vw, 360px"
+                            quality={75}
+                            className="object-cover object-center opacity-80 transition-transform duration-500 group-hover:scale-[1.025]"
                           />
+                          <span aria-hidden className="absolute inset-0 bg-[linear-gradient(180deg,rgba(2,25,24,.06),rgba(2,22,21,.38))]" />
+                          <VoyageMarker
+                            state={voyageState}
+                            due={isDue}
+                            size={44}
+                            title={cardStatusLabel}
+                            className="relative z-[1] transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:scale-[1.04]"
+                          />
+                          <span className="absolute bottom-2 right-3 z-[1] font-mono text-[8px] uppercase tracking-[0.14em] text-[#f5f0e5]/70">
+                            {L('해도에서', 'from chart')}
+                          </span>
                         </div>
 
                         {/* Header: status pill + last-activity time */}
