@@ -165,7 +165,7 @@ export default function PrivacyPage() {
           <h2 className="text-[16px] font-bold mb-2">{L('10. 개인정보 보호책임자', '10. Data Protection Officer')}</h2>
           <p>{L('개인정보 관련 문의는 아래 연락처로 접수해주세요.', 'For privacy-related inquiries, please use the contact below.')}</p>
           <p className="mt-2 text-[var(--text-secondary)]">{L('회사명: Argus', 'Company: Argus')}</p>
-          <p className="text-[var(--text-secondary)]">{L('이메일: sayu.curator@gmail.com', 'Email: sayu.curator@gmail.com')}</p>
+          <p className="text-[var(--text-secondary)]">{L('이메일: sayucurator@gmail.com', 'Email: sayucurator@gmail.com')}</p>
         </section>
       </div>
     </div>
