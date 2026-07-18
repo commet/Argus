@@ -43,10 +43,10 @@ Current step: {step}
 
 Available actions:
 - navigate: Go to another step. params: { step: "reframe" | "recast" | "rehearse" }
-- update_actor: Change the owner of a step in Crew Assignment. params: { stepIndex: number, actor: "ai" | "human" | "both" }
-- add_step: Add a new step in Crew Assignment. params: { task: string }
-- remove_step: Remove a step in Crew Assignment. params: { stepIndex: number }
-- select_question: Select a question in Set the Heading. params: { questionIndex: number }
+- update_actor: Change the owner of a step in the execution plan. params: { stepIndex: number, actor: "ai" | "human" | "both" }
+- add_step: Add a new step to the execution plan. params: { task: string }
+- remove_step: Remove a step from the execution plan. params: { stepIndex: number }
+- select_question: Select a question in Reframe. params: { questionIndex: number }
 - message: Plain reply (no action). params: {}
 
 Respond with JSON only. The message field MUST be written in English:

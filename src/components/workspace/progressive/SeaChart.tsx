@@ -66,13 +66,13 @@ interface SeaChartProps {
 }
 
 const WP_LABEL: Record<WaypointType, { ko: string; en: string }> = {
-  departure:     { ko: '출항',     en: 'Departure' },
-  course_change: { ko: '항로 변경', en: 'Course change' },
-  reef:          { ko: '암초',     en: 'Reef' },
-  sighting:      { ko: '관측',     en: 'Sighting' },
-  headwind:      { ko: '역풍',     en: 'Headwind' },
-  helm:          { ko: '선장의 키', en: 'Helm' },
-  anchorage:     { ko: '정박',     en: 'Anchorage' },
+  departure:     { ko: '시작',       en: 'Start' },
+  course_change: { ko: '방향 변경',   en: 'Direction change' },
+  reef:          { ko: '위험',       en: 'Risk' },
+  sighting:      { ko: '발견',       en: 'Finding' },
+  headwind:      { ko: '제약',       en: 'Constraint' },
+  helm:          { ko: '사용자 결정', en: 'User decision' },
+  anchorage:     { ko: '완료',       en: 'Completed' },
 };
 
 type P = { x: number; y: number };

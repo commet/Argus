@@ -11,7 +11,7 @@ argument-hint: "<argus_pat_...>"
 webapp account for explicit sync. It does not log into Claude Code. It stores a
 webapp-issued personal push token locally, then `/argus:push` can send
 `ledger.jsonl` and `current_bearing.json` artifacts to the webapp account, while
-`/argus:pull` can bring webapp settle/defer events back into the local ledger.
+`/argus:pull` can bring webapp settle/defer events back into the local decision record.
 
 Use the bundled script. Do not ask the user to install `argus-watch`.
 

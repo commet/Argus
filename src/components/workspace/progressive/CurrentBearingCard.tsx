@@ -30,12 +30,12 @@ import { renderInline } from './shared/renderMd';
  * going to the captain. The "리뷰 기준/review" word doubles as the one-word
  * provenance tag: this is what the AI review saw, not what you decided. */
 const STATUS_META: Record<CourseStatus, { ko: string; en: string; caution: boolean }> = {
-  proceed: { ko: '이의 없음 · 리뷰 기준', en: 'No open objections · review', caution: false },
-  anchor: { ko: '정박', en: 'Anchor', caution: false },
-  fork: { ko: '분기', en: 'Fork', caution: false },
-  collect_evidence: { ko: '확인 필요 항목 있음 · 리뷰 기준', en: 'Needs evidence · review', caution: true },
-  hold: { ko: '미해결 쟁점 있음 · 리뷰 기준', en: 'Open issue · review', caution: true },
-  revise: { ko: '수정 제안 있음 · 리뷰 기준', en: 'Revision suggested · review', caution: true },
+  proceed: { ko: '열린 쟁점 없음', en: 'No open issues', caution: false },
+  anchor: { ko: '검토 의견 없음', en: 'No review signal', caution: false },
+  fork: { ko: '선택지 확인 필요', en: 'Choice to review', caution: false },
+  collect_evidence: { ko: '근거 확인 필요', en: 'Evidence needed', caution: true },
+  hold: { ko: '열린 쟁점 있음', en: 'Open issue', caution: true },
+  revise: { ko: '수정 제안 있음', en: 'Revision suggested', caution: true },
 };
 
 export function CurrentBearingCard({
@@ -102,7 +102,7 @@ export function CurrentBearingCard({
           <div className="flex min-w-0 items-center gap-2">
             <Compass size={15} className="text-[var(--accent)]" />
             <span className="text-[14px] font-semibold text-[var(--text-primary)]">
-              {L('현재 방위', 'Current Heading')}
+              {L('결정 요약', 'Decision summary')}
             </span>
             {label && (
               <span className="tabular-nums text-[10px] text-[var(--text-tertiary)]">
@@ -113,7 +113,7 @@ export function CurrentBearingCard({
           <div className="flex shrink-0 items-center gap-2">
             <button
               onClick={copyBearing}
-              aria-label={L('현재 방위 복사', 'Copy current heading')}
+              aria-label={L('결정 요약 복사', 'Copy decision summary')}
               className="inline-flex min-h-8 cursor-pointer items-center gap-1 px-1.5 text-[10.5px] font-medium text-[var(--text-tertiary)] transition-[color,scale] duration-150 hover:text-[var(--accent)] active:scale-[0.96]"
             >
               {copied ? <Check size={11} className="text-[var(--success)]" /> : <Copy size={11} />}
@@ -127,8 +127,8 @@ export function CurrentBearingCard({
 
         {/* 방위 카드의 정체 한 줄 (헤더 바로 아래) — 문서와 뭐가 다른지. */}
         <p className="mb-2 text-[12px] leading-snug text-[var(--text-secondary)]">
-          {L('이 결정이 지금 서 있는 자리 — 한눈 요약이에요. 나중엔 여기서 다시 이어가요.',
-             'Where this decision stands right now — a one-glance summary. You come back to this.')}
+          {L('지금까지 정리된 결론과 다음 단계를 한눈에 볼 수 있어요.',
+             'See the current conclusion and next step at a glance.')}
         </p>
         {/* renderInline: 엔진이 요약에 넣는 **핵심 강조**를 실제 굵게로 렌더한다.
             (F-2-1) 안 하면 리터럴 '**'가 노출됐고, 렌더하면 창업자 팁 —
@@ -177,7 +177,7 @@ export function CurrentBearingCard({
 
       <div className="space-y-4 px-5 py-4 md:px-6">
         {reasons.length > 0 && (
-          <Section title={L('왜 이 항로인가', 'Why this course')}>
+          <Section title={L('이 방향을 택한 이유', 'Why this direction')}>
             <ul className="space-y-1.5">
               {reasons.map((r, i) => (
                 <li key={i} className="flex items-start gap-2 text-[13px] leading-relaxed text-[var(--text-secondary)]">
@@ -191,7 +191,7 @@ export function CurrentBearingCard({
 
         {fog_or_reef?.issue && (
           <Section
-            title={L('안개와 암초', "Fog & reef")}
+            title={L('확인할 위험', 'Risks to check')}
             icon={<AlertTriangle size={12} style={{ color: 'var(--gold)' }} />}
           >
             <p className="text-[13px] leading-relaxed text-[var(--text-secondary)]">
@@ -208,7 +208,7 @@ export function CurrentBearingCard({
 
         {roads.length > 0 && (
           <Section
-            title={L('가지 않은 길', 'Road not taken')}
+            title={L('보류한 선택지', 'Options set aside')}
             icon={<GitFork size={12} className="text-[var(--text-tertiary)]" />}
           >
             {roads.map((r, i) => (
@@ -226,7 +226,7 @@ export function CurrentBearingCard({
           <div className="flex items-start gap-2 pt-1">
             <ArrowRight size={14} className="mt-0.5 shrink-0 text-[var(--accent)]" />
             <p className="text-[13px] font-medium leading-relaxed text-[var(--text-primary)]">
-              <span className="font-normal text-[var(--text-tertiary)]">{L('다음 조타: ', 'Next step: ')}</span>
+              <span className="font-normal text-[var(--text-tertiary)]">{L('다음 단계: ', 'Next step: ')}</span>
               {renderInline(next_helm)}
             </p>
           </div>
@@ -239,7 +239,7 @@ export function CurrentBearingCard({
             <Anchor size={12} className="mt-0.5 shrink-0 text-[var(--accent)]" />
             <p className="text-[12px] leading-relaxed text-[var(--text-secondary)]">
               <span className="font-semibold text-[var(--text-primary)]">
-                {L('나중에 확인할 것: ', 'To check later: ')}
+                {L('확인일에 볼 것: ', 'Check on the review date: ')}
               </span>
               {renderInline(contract_seed.predicate)}
             </p>

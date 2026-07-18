@@ -58,7 +58,7 @@ describe('ReceiptView — scannable by default', () => {
   it('shows the obligation decision + own button, hides why/evidence until tapped', () => {
     act(() => { root.render(createElement(ReceiptView, { receipt: RECEIPT })); });
     expect(container.textContent).toContain('예산 5억을 ROI 근거 없이 승인할지 결정');
-    expect(container.textContent).toContain('이 판단을 내가 소유하기');
+    expect(container.textContent).toContain('내 판단으로 기록하기');
     expect(container.textContent).not.toContain('재무 리스크는 사람이 감수');
     clickButtonContaining('왜 사람인가');
     expect(container.textContent).toContain('재무 리스크는 사람이 감수');

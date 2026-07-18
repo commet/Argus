@@ -113,7 +113,7 @@ export default function TeamsPage() {
       <div>
         <h1 className="text-[22px] font-bold tracking-tight text-[var(--text-primary)]">{L('팀', 'Teams')}</h1>
         <p className="text-[13px] text-[var(--text-secondary)] mt-1">
-          {L('팀원들과 함께 전략적 판단을 내릴 수 있습니다.', 'Make strategic decisions together with your teammates.')}
+          {L('팀을 만들고 팀원을 초대하면 프로젝트를 공유하고 서로의 결정에 피드백을 남길 수 있어요.', 'Create a team and invite members to share projects and leave feedback on each other’s decisions.')}
         </p>
       </div>
       {teamError && <p className="text-[12px] text-[var(--danger)]" role="alert">{teamError}</p>}

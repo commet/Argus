@@ -154,7 +154,7 @@ const settingsSchema = z.discriminatedUnion('action', [
     argus_dir: zArgusDir,
     action: z.literal('sync').describe('로컬 기록과 Argus 계정 기록을 지금 동기화합니다.'),
     due_only: z.boolean().default(false).describe('확인일이 된 기록만 가져옵니다.'),
-    import_settlements: z.boolean().default(true).describe('웹에서 기록한 실제 결과를 로컬 원장에 반영합니다.'),
+    import_settlements: z.boolean().default(true).describe('웹에서 기록한 실제 결과를 로컬 판단 기록에 반영합니다.'),
     push_local: z.boolean().default(true).describe('계정에 닿지 못한 로컬 변경을 다시 보냅니다.'),
   }),
 ]);
@@ -166,7 +166,7 @@ const settingsPublicSchema = z.strictObject({
   ambient_mute: z.boolean().describe('세션 중 확인일 알림 문장을 숨길지 정합니다.').optional(),
   premise_sync: z.boolean().describe('추적 전제를 계정과 동기화할지 명시적으로 선택합니다.').optional(),
   due_only: z.boolean().describe('동기화할 때 확인일이 된 기록만 가져옵니다.').optional(),
-  import_settlements: z.boolean().describe('웹에서 기록한 실제 결과를 로컬 원장에 반영합니다.').optional(),
+  import_settlements: z.boolean().describe('웹에서 기록한 실제 결과를 로컬 판단 기록에 반영합니다.').optional(),
   push_local: z.boolean().describe('계정에 닿지 못한 로컬 변경을 다시 보냅니다.').optional(),
 }).superRefine((value, ctx) => {
   const parsed = settingsSchema.safeParse(value);

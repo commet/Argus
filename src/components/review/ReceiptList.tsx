@@ -61,8 +61,8 @@ export function ReceiptList({
                 `${dueCount} prediction${dueCount === 1 ? ' is' : 's are'} due for a check-in.`,
               )
             : L(
-                '검수하고 봉인한 판단들이 여기 모입니다. 확인일이 오면 위로 올라옵니다.',
-                'Judgments you review and seal collect here. When a check-in date arrives, they rise to the top.',
+                '검수하고 기록한 판단들이 여기 모입니다. 확인일이 오면 위로 올라옵니다.',
+                'Judgments you review and record collect here. When a check-in date arrives, they rise to the top.',
               )}
         </p>
         {/* Workbench entry — two doors (design doc §Home/Workbench). The wedge is
@@ -87,8 +87,8 @@ export function ReceiptList({
           <p className="text-[14px] text-[var(--text-primary)]">{L('아직 검수한 문서가 없어요.', 'No documents reviewed yet.')}</p>
           <p className="mt-1 text-[13px] text-[var(--text-secondary)]">
             {L(
-              '전략안·기획안·AI 답변을 넣으면 첫 검수가 시작돼요 — 봉인한 판단은 확인일에 여기로 돌아와요.',
-              'Drop in a strategy doc, proposal, or AI answer to start your first review — sealed judgments return here on their check-in day.',
+              '전략안·기획안·AI 답변을 넣으면 첫 검수가 시작돼요 — 기록한 판단은 확인일에 여기로 돌아와요.',
+              'Drop in a strategy doc, proposal, or AI answer to start your first review — recorded judgments return here on their check-in day.',
             )}
           </p>
           <div className="mt-3">

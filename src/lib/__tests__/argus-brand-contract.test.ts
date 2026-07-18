@@ -79,7 +79,7 @@ describe('Argus brand canon', () => {
     expect(landing).toContain('<ArgusFaceMark');
     expect(landing).not.toContain('<ArgusMascot');
     expect(premise).toContain('<Eye');
-    expect(project).toContain('<BellRing');
+    expect(project).toContain('<ProjectAttentionList');
     expect(workspace).toContain('<BellRing');
     expect(premise).not.toContain('<ArgusFaceMark');
     expect(project).not.toContain('<ArgusFaceMark');

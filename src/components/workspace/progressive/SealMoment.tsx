@@ -544,7 +544,7 @@ export function SealMoment({
               </div>
             )}
             <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--text-tertiary)]">
-              {L('항해 기록 — 봉인', 'Voyage log — sealed')} · {sealedOnStr}
+              {L('결정 기록 · 봉인됨', 'Decision log · sealed')} · {sealedOnStr}
             </p>
             {typeof project?.name === 'string' && project.name.trim() && (
               <p className="mt-2 text-[15px] font-semibold text-[var(--text-primary)] leading-[1.4]">{project.name}</p>
@@ -796,7 +796,7 @@ export function SealMoment({
               ))}
             </ul>
             <p className="mt-2 text-[12px] text-[var(--text-tertiary)] leading-relaxed">
-              {L('정산일에 “확인해보셨어요?”로 다시 여쭤볼게요.', 'On the check-in date I’ll ask "did you check these?"')}
+              {L('확인일에 “확인해보셨어요?”라고 다시 여쭤볼게요.', 'On the review date I’ll ask "did you check these?"')}
             </p>
           </div>
         )}

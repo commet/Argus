@@ -12,7 +12,7 @@ export const ko = {
   // Tools
   'tool.reframe': '항로 재설정',
   'tool.reframe.subtitle': '문제 재정의',
-  'tool.recast': '선원 배치',
+  'tool.recast': '실행 설계',
   'tool.recast.subtitle': '실행 설계',
   'tool.rehearsal': '리허설',
   'tool.rehearsal.subtitle': '페르소나 피드백',
@@ -30,7 +30,7 @@ export const ko = {
 
   // Recast
   'recast.placeholder': '맥락을 선택하고 목표를 입력하세요',
-  'recast.analyzing': '선원을 배치하고 있습니다...',
+  'recast.analyzing': '실행 역할을 나누고 있습니다...',
   'recast.governingIdea': '핵심 방향',
   // recast.review removed (multi-lens review replaced by auto-persona + rehearsal)
 
@@ -99,7 +99,7 @@ export const ko = {
   'coaching.rehearse.firstUseDetail': '만약 리허설 전에 "가장 불편한 질문이 뭘까?"를 먼저 떠올려보면, 페르소나의 피드백을 더 깊이 받아들일 수 있습니다.',
   'coaching.rehearse.accuracyImproving': '페르소나 정확도가 향상되고 있습니다 ({from} → {to}).',
   'coaching.rehearse.accuracyImprovingDetail': '페르소나의 피드백을 반영한 결과, 시뮬레이션 품질이 올라가고 있습니다.',
-  'coaching.rehearse.keyAssumptions': '선원 배치에서 중요도 높은 가정 {count}건 — 페르소나에게 검증 요청하세요.',
+  'coaching.rehearse.keyAssumptions': '실행 설계에서 중요도 높은 가정 {count}건 — 페르소나에게 검증 요청하세요.',
   'coaching.rehearse.personaAccuracy': '페르소나 정확도 {score}/5 ({count}회 평가)',
 
   // Coaching — Refine
@@ -192,10 +192,10 @@ export const ko = {
   'ui.nextStep': '다음 단계',
 
   // NextStepGuide
-  'nextStep.toRecast.label': '선원 배치로',
-  'nextStep.toRecast.reason': '숨겨진 질문을 찾았습니다. 이제 이 질문에 답하는 실행 계획을 설계하세요. 발견한 전제와 가설이 선원 배치의 기초가 됩니다.',
+  'nextStep.toRecast.label': '실행 설계로',
+  'nextStep.toRecast.reason': '지금 풀어야 할 질문을 찾았습니다. 이제 이 질문에 답하는 실행 계획을 설계하세요. 발견한 전제와 가설이 실행 설계의 기초가 됩니다.',
   'nextStep.toRehearse.label': '리허설로',
-  'nextStep.toRehearse.reason': '실행 설계가 완성되었습니다. 이제 선원 회의를 열어 검증하세요. 핵심 가정이 맞는지, 놓친 리스크가 없는지 검증합니다.',
+  'nextStep.toRehearse.reason': '실행 설계가 완성되었습니다. 이제 이해관계자 반응을 미리 확인하세요. 핵심 가정이 맞는지, 놓친 위험이 없는지 검증합니다.',
   'nextStep.toRefine.label': '항로 수정으로',
   'nextStep.toRefine.reason': '이해관계자의 반응을 확인했습니다. 지적 사항을 제약조건으로 변환하여, 항로가 잡힐 때까지 반복해 다듬으세요.',
   'nextStep.toPerform.label': '출항 — 이타카로',
@@ -228,7 +228,7 @@ export const ko = {
 
   // Execution Readiness
   'exec.hiddenPremise': '숨겨진 전제 발견',
-  'exec.realQuestion': '진짜 질문 재정의',
+  'exec.realQuestion': '지금 풀어야 할 질문 정리',
   'exec.aiHumanDesign': 'AI/사람 역할 설계',
   'exec.stakeholderReview': '이해관계자 검증',
   'exec.riskIdentification': '리스크 식별',
@@ -247,7 +247,7 @@ export const ko = {
   'exec.action.analyzeReframe': '항로 재설정에서 과제를 분석하세요',
   'exec.action.pickQuestion': '질문을 선택하고 확정하세요',
   'exec.action.runReframe': '항로 재설정을 먼저 실행하세요',
-  'exec.action.designRecast': '선원 배치에서 워크플로우를 설계하세요',
+  'exec.action.designRecast': '실행 설계에서 워크플로를 구성하세요',
   'exec.action.addPersona': '리허설에서 페르소나를 등록하고 피드백을 받으세요',
   'exec.action.addOneMorePersona': '이해관계자 1명 추가를 권장합니다',
 
@@ -287,7 +287,7 @@ export const ko = {
   // Boss
   'boss.heroTitle': '팀장한테',
   'boss.heroAccent': '할 말 있어?',
-  'boss.heroSub': '미리 시뮬레이션 해봐. 진짜 뭐라 하는지.',
+  'boss.heroSub': '실제 대화 전, 예상 질문과 반응을 미리 연습해봐.',
   'boss.typeHint': '팀장 성격 설정 · 모르면 그대로 두셔도 됩니다',
   'boss.insideTitle': '속마음에 양념 더하기 (재미로 · 선택)',
   'boss.birthHintFull': '속마음에 ‘오늘의 기운’이 살짝 섞여요 (재미로)',
@@ -299,13 +299,13 @@ export const ko = {
   'boss.yearLabel': '출생 연도',
   'boss.monthLabel': '출생 월',
   'boss.disclaimer': 'AI 시뮬레이션 · 실제와 다를 수 있음',
-  'boss.summoning': '소환 중...',
+  'boss.summoning': '리허설 준비 중...',
   'boss.cta': '팀장 반응 보기',
-  'boss.verdict.approved': '승인',
-  'boss.verdict.conditional': '조건부 승인',
-  'boss.verdict.rejected': '반려',
-  'boss.verdict.conditionalShort': '조건부',
-  'boss.lastVerdict': '지난 결론',
+  'boss.verdict.approved': '예상: 긍정적',
+  'boss.verdict.conditional': '예상: 조건부',
+  'boss.verdict.rejected': '예상: 부정적',
+  'boss.verdict.conditionalShort': '조건부 예상',
+  'boss.lastVerdict': '지난 예상 반응',
   'boss.insideReveal': '{name} 팀장의 이면 공개',
   'boss.insideHint1': '말 안 한 속마음이 있어요 · 타고난 결이 배어나요',
   'boss.innerMonologuePrompt': '지금 자리에 돌아와서 혼잣말로 속마음을 써라.',
@@ -318,7 +318,7 @@ export const ko = {
   'boss.copyDone': '복사 완료! 카톡에 붙여넣기',
   'boss.shareKakao': '카톡에 공유하기',
   'boss.shareIntro': '{emoji} {typeCode} 팀장한테 "{situation}" 해봤는데',
-  'boss.shareVerdict': '{emoji} 결과: {label}',
+  'boss.shareVerdict': '{emoji} 예상 반응: {label}',
   'boss.shareInvite': '너네 팀장은 뭐 유형이야? ㅋㅋ',
   'boss.signatureLabel': '입버릇',
   'boss.kyeolLabel': '결',

@@ -68,7 +68,7 @@ const emptyLedgers = {
 
 function render(
   projects: Project[],
-  opts?: { dueProjectIds?: string[]; onSelect?: ReturnType<typeof vi.fn>; onReview?: ReturnType<typeof vi.fn> },
+  opts?: { dueProjectIds?: string[]; attentionProjectIds?: string[]; onSelect?: ReturnType<typeof vi.fn>; onReview?: ReturnType<typeof vi.fn> },
 ) {
   const onSelect = opts?.onSelect ?? vi.fn();
   const onReview = opts?.onReview ?? vi.fn();
@@ -78,6 +78,7 @@ function render(
         projects,
         ...emptyLedgers,
         dueProjectIds: opts?.dueProjectIds ?? [],
+        attentionProjectIds: opts?.attentionProjectIds ?? [],
         locale: 'ko' as const,
         onSelect,
         onReview,
@@ -241,6 +242,21 @@ describe('VoyageSea — spine gate (거울 조항, 항해 지도판)', () => {
     expect(other.style.opacity).toBe('0.1'); // the rest recede
     // and the chip reports its true count
     expect(chip.textContent).toContain('1');
+  });
+
+  it('marks premise attention quietly on the existing ship and exposes a real filter', () => {
+    render([
+      sealedProject('a', '2026-01-05T00:00:00.000Z'),
+      sealedProject('b', '2026-02-01T00:00:00.000Z'),
+    ], { attentionProjectIds: ['b'] });
+    expect(container.querySelectorAll('[data-testid="project-attention-signal"]')).toHaveLength(1);
+    const chip = Array.from(container.querySelectorAll('button')).find((button) => button.textContent?.includes('확인 신호'))!;
+    expect(chip.textContent).toContain('1');
+    act(() => chip.click());
+    const attentionShip = document.getElementById('voyage-ship-b')!;
+    const otherShip = document.getElementById('voyage-ship-a')!;
+    expect(attentionShip.style.opacity).toBe('1');
+    expect(otherShip.style.opacity).toBe('0.1');
   });
 
   it('leaks no score / % / grade / streak / comparison string', () => {

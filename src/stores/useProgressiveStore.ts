@@ -176,12 +176,12 @@ function defaultCheckpointLabel(stage: VoyageStage, round: number): string {
   const ko = lang === 'ko';
   switch (stage) {
     case 'origin':     return ko ? '출발' : 'Origin';
-    case 'briefing':   return ko ? `항해 준비 ${round}` : `Briefing ${round}`;
-    case 'crew_set':   return ko ? '선원 배정' : 'Crew assigned';
-    case 'crew_done':  return ko ? '선원 작업 완료' : 'Crew done';
-    case 'mix':        return ko ? '항해 보고서' : 'Mix';
+    case 'briefing':   return ko ? `질문 정리 ${round}` : `Question framing ${round}`;
+    case 'crew_set':   return ko ? 'AI 팀 구성' : 'AI team ready';
+    case 'crew_done':  return ko ? 'AI 팀원 검토 완료' : 'AI review complete';
+    case 'mix':        return ko ? '문서 초안' : 'Draft';
     case 'review':     return ko ? '리뷰어 검토' : 'Review';
-    case 'anchor':     return ko ? '정박' : 'Anchor';
+    case 'anchor':     return ko ? '완료' : 'Complete';
   }
 }
 

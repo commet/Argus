@@ -291,7 +291,6 @@ interface AgentState {
   agents: Agent[];
   chains: AgentChain[];
   activities: AgentActivity[];
-  lastUnlockedIds: string[];
 
   // Load
   loadAgents: () => void;
@@ -338,7 +337,6 @@ interface AgentState {
 
   // 해금
   checkUnlocks: () => string[];
-  clearUnlocked: () => void;
 
   // Seed + Migration
   seedBuiltinAgents: (opts?: { deferSync?: boolean }) => void;
@@ -349,7 +347,6 @@ export const useAgentStore = create<AgentState>((set, get) => ({
   agents: [],
   chains: [],
   activities: [],
-  lastUnlockedIds: [],
 
   // ─── Load ───
 
@@ -508,8 +505,8 @@ export const useAgentStore = create<AgentState>((set, get) => ({
   getUnlockedAgents: () => {
     // W1.5① 게이트 제거 (창업자 결정): the unlock gate no longer filters the
     // main flow — all 17 personas are available from the first session. The
-    // `unlocked` flag and XP/level survive as COSMETIC progression only
-    // (UnlockToast / CollectionProgress); they must never gate capability.
+    // `unlocked` flag and XP/level survive as cosmetic progression only; they
+    // must never gate capability.
     // Function name kept for API stability across ~10 call sites.
     return get().agents.filter(a => !a.archived);
   },
@@ -743,14 +740,10 @@ export const useAgentStore = create<AgentState>((set, get) => ({
 
     if (newlyUnlocked.length > 0) {
       persistAgents(updated);
-      set({ agents: updated, lastUnlockedIds: newlyUnlocked });
+      set({ agents: updated });
     }
 
     return newlyUnlocked;
-  },
-
-  clearUnlocked: () => {
-    set({ lastUnlockedIds: [] });
   },
 
   // ─── Seed ───

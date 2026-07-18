@@ -65,10 +65,10 @@ Installing the plugin is the whole setup — there is no separate init step:
 - **`/argus:doctor`** — a read-only self-diagnosis of the install and wiring. It
   repairs nothing; each line names the public tool that can.
 - **Statusline (optional)** — [`statusline/index.js`](./statusline/index.js) reads
-  your decision ledgers. Enable it with one line in `~/.claude/settings.json`:
+  your local decision records. Enable it with one line in `~/.claude/settings.json`:
   `"statusLine": { "type": "command", "command": "node ${CLAUDE_PLUGIN_ROOT}/statusline/index.js" }`
 
-Uninstalling the plugin never deletes your decision records — the ledgers under
+Uninstalling the plugin never deletes your decision records — the files under
 `.argus/` (and `~/.argus`) are your data, not the plugin's.
 
 ---
@@ -128,7 +128,7 @@ Then use:
 /argus:settings sync
 ```
 
-Sync first pulls webapp actions into the local ledger, then pushes the updated
+Sync first pulls webapp actions into the local decision record, then pushes the updated
 local records back to the webapp. Re-running it is safe.
 
 Nothing is sent to the webapp unless you run a sync or push yourself.

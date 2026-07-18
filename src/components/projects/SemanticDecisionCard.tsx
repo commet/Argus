@@ -225,7 +225,7 @@ export function SemanticDecisionCard({ project, onCancel }: { project: Project; 
             <Button variant="ghost" size="sm" disabled={loading || working} onClick={() => { setLoading(true); loadProjectSemanticEvents(project.id).then(setEvents).catch((cause) => setError(cause instanceof Error ? cause.message : 'LOAD_FAILED')).finally(() => setLoading(false)); }}><RefreshCw size={14} />{L('새로고침', 'Refresh')}</Button>
           </div>
 
-          {loading ? <p className="mt-3 text-[13px] text-[var(--text-secondary)]">{L('기록을 불러오는 중…', 'Loading the ledger…')}</p> : (
+          {loading ? <p className="mt-3 text-[13px] text-[var(--text-secondary)]">{L('기록을 불러오는 중…', 'Loading decision history…')}</p> : (
             <>
               <section className="mt-4 rounded-lg border border-[var(--border)] bg-[var(--bg)]/50 p-3">
                 <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--text-tertiary)]">{L('판단', 'Judgment')}</p>
@@ -295,7 +295,7 @@ function AuthorityNote({ ko }: { ko: boolean }) {
 
 function ErrorNote({ code }: { code: string }) {
   const message = code === 'NOT_SIGNED_IN'
-    ? 'Sign in to write to the account’s canonical ledger.'
+    ? 'Sign in to save this to your account decision record.'
     : `The record was not changed: ${code}.`;
   return <p role="alert" className="mt-3 text-[12px] text-[var(--risk-critical)]">{message}</p>;
 }

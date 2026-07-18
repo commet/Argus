@@ -22,7 +22,7 @@ import { SealStamp } from '@/components/workspace/progressive/SealStamp';
 import { SealModal } from './SealModal';
 import { SettleModal } from './SettleModal';
 import { extractFile, type ExtractedText, type SourcePreview } from '@/lib/review/extract-file';
-import { SourceEvidencePane } from './SourceEvidencePane';
+import { SourceEvidencePane, countEvidenceByPage } from './SourceEvidencePane';
 import { sealReviewObligation } from '@/lib/review-seal';
 import { useSettingsStore, hasOwnApiKey } from '@/stores/useSettingsStore';
 import { visionCapable } from '@/lib/llm';
@@ -462,12 +462,14 @@ export function ReviewFlow() {
     const pdfData = sessionSource?.id === receipt.receipt_id ? sessionSource.pdfData : undefined;
     const sourcePageCount = sessionSource?.id === receipt.receipt_id ? sessionSource.pageCount : undefined;
     const hasSourceEvidence = Boolean(original || sourcePreviews?.length || pdfData);
-    const anchorPages = Array.from(new Set([
+    const evidencePageCounts = countEvidenceByPage([
       ...receipt.findings,
       ...receipt.judgment_obligations,
       ...receipt.claim_ledger,
       ...receipt.hidden_assumptions,
-    ].flatMap((item) => item.anchors.map((anchor) => anchor.page)).filter((page): page is number => typeof page === 'number' && page > 0))).sort((a, b) => a - b);
+      ...receipt.forks,
+    ]);
+    const anchorPages = Object.keys(evidencePageCounts).map(Number).sort((a, b) => a - b);
     const revealAnchor = (anchor: { page?: number; slide?: number }) => {
       setActiveSourcePage(anchor.page ?? anchor.slide);
       setShowOriginal(true);
@@ -555,11 +557,11 @@ export function ReviewFlow() {
               <div className="flex items-center gap-3">
                 {stampDate && <SealStamp date={stampDate} size={44} className="shrink-0" />}
                 <div className="min-w-0">
-                  <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--accent)] mb-1">{L('봉인됨', 'Sealed')}</div>
+                  <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--accent)] mb-1">{L('기록됨', 'Recorded')}</div>
                   <p className="text-[13px] text-[var(--text-primary)]">
                     {L(
-                      '예측을 봉인했습니다. 확인일에 현실이 답할 때까지 이 판단은 살아 있습니다.',
-                      'Your prediction is sealed. This judgment stays live until reality answers on the check-in date.',
+                      '판단을 기록했습니다. 확인일에 실제 결과를 돌아볼 때까지 이 기록은 이어집니다.',
+                      'Your judgment is recorded. It stays active until you revisit the outcome on the check-in date.',
                     )}
                   </p>
                 </div>
@@ -627,6 +629,7 @@ export function ReviewFlow() {
                   pdfData={pdfData}
                   pageCount={sourcePageCount}
                   anchorPages={anchorPages}
+                  evidenceCounts={evidencePageCounts}
                   onPageChange={setActiveSourcePage}
                 />
                 <button type="button" onClick={returnToReceipt} className="mt-2 w-full rounded border border-[var(--border-subtle)] py-2 text-[12px] font-semibold text-[var(--text-secondary)] md:hidden">
@@ -672,9 +675,9 @@ export function ReviewFlow() {
                 track('receipt_sealed', { receipt_id: receipt.receipt_id });
                 setSealingObligation(null);
               } else if (res.code === 'NOT_SIGNED_IN') {
-                setSealError(L('봉인은 로그인이 필요해요. 로그인하면 이 판단이 내 결정 원장에 기록돼 확인일에 정산됩니다.', 'Sealing needs sign-in. Once signed in, this judgment is recorded in your decision ledger and settled on the check-in date.'));
+                setSealError(L('판단을 기록하려면 로그인이 필요해요. 로그인하면 이 판단이 내 판단 기록에 저장되고 확인일에 다시 볼 수 있습니다.', 'Sign in to record this judgment. It will be saved to your decision record and return on the check-in date.'));
               } else {
-                setSealError(L('봉인에 실패했어요. 잠시 후 다시 시도해 주세요.', 'Sealing failed. Please try again in a moment.'));
+                setSealError(L('판단을 기록하지 못했어요. 잠시 후 다시 시도해 주세요.', 'The judgment could not be recorded. Please try again in a moment.'));
               }
             }}
           />

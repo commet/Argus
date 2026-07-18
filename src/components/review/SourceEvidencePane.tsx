@@ -2,7 +2,16 @@
 
 import Image from 'next/image';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ChevronLeft, ChevronRight, FileSearch, LoaderCircle, ZoomIn, ZoomOut } from 'lucide-react';
+import {
+  ChevronLeft,
+  ChevronRight,
+  FileSearch,
+  LoaderCircle,
+  Maximize2,
+  Minimize2,
+  ZoomIn,
+  ZoomOut,
+} from 'lucide-react';
 import type { PDFDocumentLoadingTask, PDFDocumentProxy } from 'pdfjs-dist';
 import type { SourcePreview } from '@/lib/review/extract-file';
 import type { SourceKind } from '@/lib/review';
@@ -12,29 +21,148 @@ function previewSrc(preview: SourcePreview): string {
   return `data:${preview.media_type};base64,${preview.data}`;
 }
 
+type AnchoredItem = { anchors: Array<{ page?: number }> };
+
+/** Count receipt items per source page. Multiple anchors from one item on the
+ * same page count once, so the badge means "judgments tied here", not raw spans. */
+export function countEvidenceByPage(items: AnchoredItem[]): Record<number, number> {
+  const counts: Record<number, number> = {};
+  for (const item of items) {
+    const pages = new Set(item.anchors.map((anchor) => anchor.page).filter((page): page is number => typeof page === 'number' && page > 0));
+    for (const page of pages) counts[page] = (counts[page] ?? 0) + 1;
+  }
+  return counts;
+}
+
+export function adjacentEvidencePage(pages: number[], current: number, direction: -1 | 1): number | undefined {
+  const sorted = [...new Set(pages)].sort((a, b) => a - b);
+  return direction < 0
+    ? [...sorted].reverse().find((page) => page < current)
+    : sorted.find((page) => page > current);
+}
+
+function PdfThumbnail({
+  doc,
+  page,
+  active,
+  evidenceCount,
+  onSelect,
+  label,
+}: {
+  doc: PDFDocumentProxy;
+  page: number;
+  active: boolean;
+  evidenceCount: number;
+  onSelect: () => void;
+  label: string;
+}) {
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [visible, setVisible] = useState(active);
+
+  useEffect(() => {
+    if (active) setVisible(true);
+    const node = buttonRef.current;
+    if (!node || typeof IntersectionObserver === 'undefined') {
+      setVisible(true);
+      return;
+    }
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) {
+        setVisible(true);
+        observer.disconnect();
+      }
+    }, { rootMargin: '180px' });
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [active]);
+
+  useEffect(() => {
+    if (!visible || !canvasRef.current) return;
+    let cancelled = false;
+    let renderTask: { cancel(): void; promise: Promise<void> } | null = null;
+    void (async () => {
+      const pdfPage = await doc.getPage(page);
+      if (cancelled || !canvasRef.current) return;
+      const base = pdfPage.getViewport({ scale: 1 });
+      const viewport = pdfPage.getViewport({ scale: 52 / Math.max(1, base.width) });
+      const outputScale = Math.min(window.devicePixelRatio || 1, 1.5);
+      const canvas = canvasRef.current;
+      const context = canvas.getContext('2d');
+      if (!context) return;
+      canvas.width = Math.floor(viewport.width * outputScale);
+      canvas.height = Math.floor(viewport.height * outputScale);
+      canvas.style.width = `${Math.floor(viewport.width)}px`;
+      canvas.style.height = `${Math.floor(viewport.height)}px`;
+      renderTask = pdfPage.render({
+        canvas,
+        canvasContext: context,
+        viewport,
+        transform: outputScale === 1 ? undefined : [outputScale, 0, 0, outputScale, 0, 0],
+      });
+      await renderTask.promise;
+    })().catch((cause) => {
+      if ((cause as { name?: string })?.name !== 'RenderingCancelledException') setVisible(false);
+    });
+    return () => {
+      cancelled = true;
+      renderTask?.cancel();
+    };
+  }, [doc, page, visible]);
+
+  return (
+    <button
+      ref={buttonRef}
+      type="button"
+      data-pdf-page={page}
+      onClick={onSelect}
+      aria-label={evidenceCount > 0 ? `${label}, ${evidenceCount}` : label}
+      aria-current={active ? 'page' : undefined}
+      title={label}
+      className={`relative grid h-[78px] w-[58px] shrink-0 place-items-center overflow-hidden rounded border bg-white transition-colors ${
+        active ? 'border-[var(--accent)] ring-2 ring-[var(--accent)]/25' : 'border-black/10 hover:border-[var(--accent)]/55'
+      }`}
+    >
+      {visible ? <canvas ref={canvasRef} className="max-h-full max-w-full" aria-hidden="true" /> : <span className="h-10 w-7 animate-pulse bg-black/[0.06]" />}
+      {evidenceCount > 0 && (
+        <span className="absolute right-0.5 top-0.5 min-w-4 rounded-sm bg-[var(--accent)] px-1 py-px text-[8px] font-bold leading-3 text-white tabular-nums" aria-hidden="true">
+          {evidenceCount}
+        </span>
+      )}
+      <span className="absolute bottom-0.5 right-0.5 min-w-4 rounded-sm bg-black/70 px-1 py-px text-[8px] font-semibold leading-3 text-white tabular-nums" aria-hidden="true">
+        {page}
+      </span>
+    </button>
+  );
+}
+
 function PdfEvidenceViewer({
   data,
   page,
   pageCount,
   anchorPages,
+  evidenceCounts,
   onPageChange,
 }: {
   data: Uint8Array;
   page: number;
   pageCount?: number;
   anchorPages: number[];
+  evidenceCounts: Record<number, number>;
   onPageChange: (page: number) => void;
 }) {
   const locale = useLocale();
   const L = (ko: string, en: string) => locale === 'ko' ? ko : en;
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const viewportRef = useRef<HTMLDivElement>(null);
+  const thumbnailRailRef = useRef<HTMLDivElement>(null);
   const [doc, setDoc] = useState<PDFDocumentProxy | null>(null);
   const [resolvedPageCount, setResolvedPageCount] = useState(pageCount ?? 1);
   const [viewportWidth, setViewportWidth] = useState(0);
   const [zoom, setZoom] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const [fullscreen, setFullscreen] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -119,11 +247,57 @@ function PdfEvidenceViewer({
     };
   }, [doc, page, viewportWidth, zoom]);
 
+  useEffect(() => {
+    if (!doc) return;
+    thumbnailRailRef.current?.querySelector(`[data-pdf-page="${page}"]`)?.scrollIntoView({ block: 'nearest' });
+  }, [doc, page]);
+
+  useEffect(() => {
+    if (!fullscreen) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const close = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setFullscreen(false);
+    };
+    window.addEventListener('keydown', close);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener('keydown', close);
+    };
+  }, [fullscreen]);
+
   const go = (next: number) => onPageChange(Math.min(Math.max(1, next), resolvedPageCount));
-  const visibleAnchors = anchorPages.slice(0, 14);
+  const previousEvidence = adjacentEvidencePage(anchorPages, page, -1);
+  const nextEvidence = adjacentEvidencePage(anchorPages, page, 1);
+  const currentEvidenceCount = evidenceCounts[page] ?? 0;
+  const thumbnailPages = useMemo(() => Array.from({ length: resolvedPageCount }, (_, index) => index + 1), [resolvedPageCount]);
+
+  const onViewerKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (event.target instanceof HTMLInputElement) return;
+    if (event.key === 'ArrowLeft' || event.key === 'PageUp') {
+      event.preventDefault();
+      go(page - 1);
+    }
+    if (event.key === 'ArrowRight' || event.key === 'PageDown') {
+      event.preventDefault();
+      go(page + 1);
+    }
+  };
 
   return (
-    <div className="flex min-h-[360px] flex-col md:h-[66vh] md:max-h-[720px]">
+    <>
+      {fullscreen && <div className="fixed inset-0 z-[70] bg-black/70" aria-hidden="true" onClick={() => setFullscreen(false)} />}
+      <div
+        role={fullscreen ? 'dialog' : undefined}
+        aria-modal={fullscreen ? true : undefined}
+        aria-label={fullscreen ? L('PDF 원문 전체화면', 'PDF source fullscreen') : undefined}
+        onKeyDown={onViewerKeyDown}
+        className={`flex min-h-[360px] flex-col bg-[var(--surface)] ${
+          fullscreen
+            ? 'fixed inset-2 z-[80] h-[calc(100dvh-1rem)] overflow-hidden rounded-lg border border-[var(--border)] shadow-2xl md:inset-5 md:h-[calc(100dvh-2.5rem)]'
+            : 'md:h-[66vh] md:max-h-[720px]'
+        }`}
+      >
       <div className="flex min-h-10 flex-wrap items-center justify-between gap-2 border-b border-[var(--border-subtle)] bg-[var(--bg)]/65 px-2 py-1.5">
         <div className="flex items-center gap-1">
           <button type="button" onClick={() => go(page - 1)} disabled={page <= 1} aria-label={L('이전 페이지', 'Previous page')} title={L('이전 페이지', 'Previous page')} className="grid h-7 w-7 place-items-center rounded border border-[var(--border-subtle)] text-[var(--text-secondary)] disabled:opacity-35">
@@ -142,27 +316,50 @@ function PdfEvidenceViewer({
           <button type="button" onClick={() => setZoom((value) => Math.max(0.7, value - 0.15))} disabled={zoom <= 0.7} aria-label={L('축소', 'Zoom out')} title={L('축소', 'Zoom out')} className="grid h-7 w-7 place-items-center rounded border border-[var(--border-subtle)] text-[var(--text-secondary)] disabled:opacity-35"><ZoomOut size={14} /></button>
           <span className="w-10 text-center text-[10px] tabular-nums text-[var(--text-tertiary)]">{Math.round(zoom * 100)}%</span>
           <button type="button" onClick={() => setZoom((value) => Math.min(1.75, value + 0.15))} disabled={zoom >= 1.75} aria-label={L('확대', 'Zoom in')} title={L('확대', 'Zoom in')} className="grid h-7 w-7 place-items-center rounded border border-[var(--border-subtle)] text-[var(--text-secondary)] disabled:opacity-35"><ZoomIn size={14} /></button>
+          <button type="button" onClick={() => setFullscreen((value) => !value)} aria-label={fullscreen ? L('전체화면 닫기', 'Exit fullscreen') : L('전체화면으로 보기', 'View fullscreen')} title={fullscreen ? L('전체화면 닫기', 'Exit fullscreen') : L('전체화면으로 보기', 'View fullscreen')} className="ml-1 grid h-7 w-7 place-items-center rounded border border-[var(--border-subtle)] text-[var(--text-secondary)]">
+            {fullscreen ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
+          </button>
         </div>
       </div>
 
       {anchorPages.length > 0 && (
-        <div className="flex min-h-9 items-center gap-1.5 overflow-x-auto border-b border-[var(--border-subtle)] px-2 py-1.5">
-          <span className="shrink-0 text-[10px] font-semibold text-[var(--text-tertiary)]">{L('근거', 'Evidence')}</span>
-          {visibleAnchors.map((anchorPage) => (
-            <button key={anchorPage} type="button" onClick={() => go(anchorPage)} aria-pressed={page === anchorPage} className={`h-6 min-w-7 rounded border px-1.5 text-[10px] font-semibold tabular-nums ${page === anchorPage ? 'border-[var(--accent)] bg-[var(--accent)]/10 text-[var(--accent)]' : 'border-[var(--border-subtle)] text-[var(--text-secondary)] hover:border-[var(--accent)]/50'}`}>
-              {L(`${anchorPage}쪽`, `p.${anchorPage}`)}
-            </button>
-          ))}
-          {anchorPages.length > visibleAnchors.length && <span className="shrink-0 text-[10px] text-[var(--text-tertiary)]">+{anchorPages.length - visibleAnchors.length}</span>}
+        <div className="flex min-h-9 items-center justify-between gap-2 border-b border-[var(--border-subtle)] px-2 py-1.5">
+          <span className="min-w-0 truncate text-[10px] font-semibold text-[var(--text-tertiary)]">
+            {currentEvidenceCount > 0
+              ? L(`이 페이지에 연결된 판단 ${currentEvidenceCount}개`, `${currentEvidenceCount} judgments tied to this page`)
+              : L(`근거가 표시된 페이지 ${anchorPages.length}곳`, `Evidence marked on ${anchorPages.length} pages`)}
+          </span>
+          <div className="flex shrink-0 items-center gap-1">
+            <button type="button" onClick={() => previousEvidence && go(previousEvidence)} disabled={!previousEvidence} aria-label={L('이전 근거 페이지', 'Previous evidence page')} title={L('이전 근거 페이지', 'Previous evidence page')} className="grid h-6 w-6 place-items-center rounded border border-[var(--border-subtle)] text-[var(--text-secondary)] disabled:opacity-30"><ChevronLeft size={13} /></button>
+            <button type="button" onClick={() => nextEvidence && go(nextEvidence)} disabled={!nextEvidence} aria-label={L('다음 근거 페이지', 'Next evidence page')} title={L('다음 근거 페이지', 'Next evidence page')} className="grid h-6 w-6 place-items-center rounded border border-[var(--border-subtle)] text-[var(--text-secondary)] disabled:opacity-30"><ChevronRight size={13} /></button>
+          </div>
         </div>
       )}
 
-      <div ref={viewportRef} className="relative min-h-0 flex-1 overflow-auto bg-[#e8e6e0] p-3 dark:bg-[#11110f]">
-        <canvas ref={canvasRef} className="mx-auto block bg-white shadow-[0_10px_28px_rgba(24,20,14,0.14)]" aria-label={L(`PDF ${page}쪽`, `PDF page ${page}`)} />
-        {loading && <div className="absolute inset-0 grid place-items-center bg-[var(--surface)]/65"><LoaderCircle size={22} className="animate-spin text-[var(--accent)]" aria-label={L('페이지 불러오는 중', 'Loading page')} /></div>}
-        {error && !loading && <div className="absolute inset-0 grid place-items-center px-8 text-center text-[12px] text-[var(--text-secondary)]">{L('이 페이지를 화면에 그리지 못했어요. 다른 페이지로 이동하거나 파일을 다시 올려주세요.', 'This page could not be rendered. Try another page or upload the file again.')}</div>}
+      <div className="grid min-h-0 flex-1 grid-cols-[70px_minmax(0,1fr)]">
+        <div ref={thumbnailRailRef} className="flex min-h-0 flex-col items-center gap-2 overflow-y-auto border-r border-[var(--border-subtle)] bg-[var(--bg)]/65 px-1.5 py-2" aria-label={L('PDF 페이지 썸네일', 'PDF page thumbnails')}>
+          {doc ? thumbnailPages.map((thumbnailPage) => (
+            <PdfThumbnail
+              key={thumbnailPage}
+              doc={doc}
+              page={thumbnailPage}
+              active={page === thumbnailPage}
+              evidenceCount={evidenceCounts[thumbnailPage] ?? 0}
+              onSelect={() => go(thumbnailPage)}
+              label={L(`${thumbnailPage}쪽`, `Page ${thumbnailPage}`)}
+            />
+          )) : (
+            Array.from({ length: Math.min(resolvedPageCount, 4) }, (_, index) => <div key={index} className="h-[78px] w-[58px] animate-pulse rounded bg-black/[0.06] dark:bg-white/[0.07]" />)
+          )}
+        </div>
+        <div ref={viewportRef} tabIndex={0} className="relative min-h-0 overflow-auto bg-[#e8e6e0] p-3 outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--accent)] dark:bg-[#11110f]">
+          <canvas ref={canvasRef} className="mx-auto block bg-white shadow-[0_10px_28px_rgba(24,20,14,0.14)]" aria-label={L(`PDF ${page}쪽`, `PDF page ${page}`)} />
+          {loading && <div className="absolute inset-0 grid place-items-center bg-[var(--surface)]/65"><LoaderCircle size={22} className="animate-spin text-[var(--accent)] motion-reduce:animate-none" aria-label={L('페이지 불러오는 중', 'Loading page')} /></div>}
+          {error && !loading && <div className="absolute inset-0 grid place-items-center px-8 text-center text-[12px] text-[var(--text-secondary)]">{L('이 페이지를 화면에 그리지 못했어요. 다른 페이지로 이동하거나 파일을 다시 올려주세요.', 'This page could not be rendered. Try another page or upload the file again.')}</div>}
+        </div>
       </div>
-    </div>
+      </div>
+    </>
   );
 }
 
@@ -176,6 +373,7 @@ export function SourceEvidencePane({
   pdfData,
   pageCount,
   anchorPages = [],
+  evidenceCounts = {},
   onPageChange,
 }: {
   previews?: SourcePreview[];
@@ -187,6 +385,7 @@ export function SourceEvidencePane({
   pdfData?: Uint8Array;
   pageCount?: number;
   anchorPages?: number[];
+  evidenceCounts?: Record<number, number>;
   onPageChange?: (page: number) => void;
 }) {
   const locale = useLocale();
@@ -203,8 +402,8 @@ export function SourceEvidencePane({
   }, [activePage, pages]);
 
   useEffect(() => {
-    if (!pdfData) setPdfPage(pages[0]?.page ?? 1);
-  }, [pdfData, pages]);
+    if (!pdfData) setPdfPage(activePage ?? pages[0]?.page ?? 1);
+  }, [activePage, pdfData, pages]);
 
   const current = pages[selected] ?? pages[0];
   const pageLabel = (preview: SourcePreview, index: number) => {
@@ -232,6 +431,7 @@ export function SourceEvidencePane({
           page={pdfPage}
           pageCount={pageCount}
           anchorPages={anchorPages}
+          evidenceCounts={evidenceCounts}
           onPageChange={(nextPage) => {
             setPdfPage(nextPage);
             onPageChange?.(nextPage);

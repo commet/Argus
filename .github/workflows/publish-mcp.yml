@@ -1,0 +1,58 @@
+name: Publish to MCP Registry
+
+# One-tap release of argus-decision-mcp: publish the package to npm, then
+# register its metadata in the official MCP Registry (registry.modelcontextprotocol.io)
+# so hosts can discover it. Manual trigger only — press "Run workflow" in the
+# Actions tab.
+#
+# Auth:
+#   - npm      : NODE_AUTH_TOKEN from the NPM_TOKEN repo secret (an npm automation
+#                token). If the version in package.json is already on npm, the
+#                npm-publish step fails safely (409) and the registry step still
+#                sees the matching version.
+#   - registry : GitHub OIDC (login github-oidc). Because this workflow runs inside
+#                commet/argus, the registry accepts the io.github.commet/* namespace
+#                with no token or secret.
+on:
+  workflow_dispatch:
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write # Required for OIDC authentication to the registry
+      contents: read
+    defaults:
+      run:
+        working-directory: argus-mcp # package.json + server.json live here (monorepo subfolder)
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js (with npm registry auth)
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Install dependencies
+        run: npm ci
+
+      # npm publish runs the package's own prepublishOnly gate (typecheck + tests
+      # + audit) and prepack build. Re-publishing an existing version exits non-
+      # zero (409 Conflict); `|| true`-free on purpose so a real failure is loud,
+      # but the version bump is expected to be fresh on each release.
+      - name: Publish package to npm
+        run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Install mcp-publisher
+        run: |
+          curl -L "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_$(uname -s | tr '[:upper:]' '[:lower:]')_$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/').tar.gz" | tar xz mcp-publisher
+
+      - name: Authenticate to MCP Registry (GitHub OIDC)
+        run: ./mcp-publisher login github-oidc
+
+      - name: Publish server to MCP Registry
+        run: ./mcp-publisher publish

@@ -244,8 +244,8 @@ export function Falsification({
                   bet (not the AI's), and that's exactly the line we bring back on the
                   check-in date to compare against what actually happened. */}
               <p className="text-[12px] text-[var(--text-secondary)] leading-[1.55] mb-1.5">
-                {L('여기까진 AI가 짚은 거예요. 당신 말로 적으면 이게 당신의 베팅이 되고, 확인일에 실제 결과랑 같이 맞춰볼 수 있어요.',
-                   "Up to here it's what the AI surfaced. Put it in your own words and it becomes YOUR bet — the one we bring back on the check-in date to compare with what actually happened.")}
+                {L('여기까진 AI가 짚은 내용이에요. 당신 말로 적으면 확인할 예측으로 남고, 확인일에 실제 결과와 비교할 수 있어요.',
+                   "Up to here it's what the AI surfaced. Put it in your own words to save a prediction you can compare with the real outcome on the review date.")}
               </p>
               <label className="block text-[12.5px] font-semibold text-[var(--text-secondary)] mb-1.5">
                 {L('이 계획이 정말 기대고 있는 한 가지를 당신 말로 적어주세요', 'In your own words, what is this plan really resting on?')}
@@ -290,7 +290,7 @@ export function Falsification({
                   onClick={() => { if (surfaced) onResolve({ claims, flinched_id: noFlinch ? null : flinched!.id, surfaced_constraint: surfaced, real_bet: surfaced, real_bet_authored: 'ai_surfaced', no_flinch_fallback: noFlinch }); }}
                   className="text-[11px] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] underline underline-offset-2 cursor-pointer transition-colors"
                 >
-                  {L('직접 안 적을게요 — AI가 짚은 걸로 둘게요 (내 베팅으로는 안 세요)', "I won't write it — keep the AI's version (not counted as my bet)")}
+                  {L('직접 적지 않을게요 — AI가 짚은 내용으로만 둘게요', "I won't rewrite it — keep only the AI's version")}
                 </button>
               </div>
             </div>
