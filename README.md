@@ -1,97 +1,130 @@
-# Argus
+<p align="center">
+  <img src="public/voyage/voyage-poster.jpg" alt="Argus — a decision voyage" width="820">
+</p>
 
-*[한국어 → README.ko.md](./README.ko.md) · English (this document)*
+<h1 align="center">Argus</h1>
 
-**Keeping Judgment Human.**
+<p align="center"><strong>Keeping Judgment Human.</strong></p>
+<p align="center">AI took over the execution. Where does your judgment accumulate?</p>
 
-**AI took over the execution. Where does your judgment accumulate?**
+<p align="center">
+  <a href="https://www.npmjs.com/package/argus-decision-mcp"><img src="https://img.shields.io/npm/v/argus-decision-mcp?color=A8842F&label=npm%20%C2%B7%20argus-decision-mcp" alt="npm version"></a>
+  <img src="https://img.shields.io/badge/Claude%20Code%20plugin-argus%402.10.0-667572" alt="Claude Code plugin">
+  <img src="https://img.shields.io/badge/license-open--core-6E8261" alt="license: open-core">
+  <img src="https://img.shields.io/badge/local--first-no%20account%20needed-242321" alt="local-first">
+</p>
 
-Argus records the judgment *behind* a decision — the premises it rests on and a
-falsifiable prediction — then comes back when reality answers. Not a better
-answer: a **living record of your calls**, settled against what actually
-happened.
+<p align="center">
+  <a href="https://argus.voyage"><strong>Web app</strong></a> ·
+  <a href="#-try-it-in-30-seconds">Install</a> ·
+  <a href="#what-argus-does">What it does</a> ·
+  <a href="#the-judgment-receipt">The receipt</a> ·
+  <a href="#license">License</a> ·
+  <a href="./README.ko.md">한국어</a>
+</p>
 
-## ⚡ Install the MCP server (30 seconds)
-
-> Never installed anything? The **[web app](https://argus.voyage)** needs zero
-> setup — decide right in the browser. The MCP server below is for using Argus
-> *inside* an AI assistant.
-
-Argus ships as an **MCP server** (Model Context Protocol — the open standard AI
-assistants use to load tools). Drop it into Claude Code, Claude Desktop, Cursor,
-or any MCP host, and your AI gains a *decision-accountability* loop. In Claude
-Code, one line does it:
-
-```bash
-claude mcp add argus -- npx -y argus-decision-mcp
-```
-
-**Zero config** — no API key, no account, your data stays local in `~/.argus`.
-Then just tell your AI *"seal a prediction that … by <date>"* and it takes over.
-
-- 📦 npm: [`argus-decision-mcp`](https://www.npmjs.com/package/argus-decision-mcp)
-- 🛠️ Full setup (Claude Desktop, Windows, per-project ledger) + the tool list → **[argus-mcp/README.md](./argus-mcp/README.md)**
-- 🔌 Using **Claude Code**? There's also a native plugin with slash commands (`/argus:review`, `/argus:check`). Install is two lines: `/plugin marketplace add commet/Argus` then `/plugin install argus@argus` → **[plugin docs](./argus-plugin-v2/README.md)**
+Argus records the judgment *behind* a decision — the premises it rests on,
+**whose premise is whose** (yours vs. the AI's), and one falsifiable prediction —
+then comes back when reality answers. Not a better answer: a **living record of
+your calls**, settled against what actually happened.
 
 ---
 
-### Three ways to use Argus
+## Why "Argus"?
 
-Pick the door that fits you — each one links to its own setup guide.
+<img align="right" width="210" src="public/images/brand/argus-v2/argus-returning.jpg" alt="Argus — the hound who knew Odysseus beneath the disguise">
+
+Argus is the hound who, after twenty years, knew Odysseus beneath a beggar's
+rags — the one who recognized the true master under the disguise. Memory,
+recognition, and fidelity that outlast appearances.
+
+That's the whole product. Working alongside an AI, it is easy to let the model's
+smooth voice quietly become your memory of *why* you decided. Argus is the dog at
+the door. It **remembers what you believed** when you decided, **notices the
+hidden premise** under the fluent answer, **keeps watch** on the signals you
+chose, and **returns first** when reality has an answer.
+
+It never decides for you. `AI VERDICT` stays `NONE` — reality does the grading.
+
+---
+
+## ⚡ Try it in 30 seconds
+
+Three doors, one loop. Start with whichever fits.
 
 | | Best for | Get started |
 |---|---|---|
 | 🌐 **Web app** | Anyone. Nothing to install, no signup. | Open **[argus.voyage](https://argus.voyage)** |
-| 🧩 **MCP server** | Any AI assistant that speaks MCP — Claude Desktop, Claude Code, Cursor, and more. | `claude mcp add argus -- npx -y argus-decision-mcp` → [MCP docs](./argus-mcp/README.md) |
-| 🔌 **Claude Code plugin** | Deciding *inside* a codebase (over your PRs and files). | `/plugin marketplace add commet/Argus`<br>`/plugin install argus@argus` → [plugin docs](./argus-plugin-v2/README.md) |
+| 🧩 **MCP server** | Any AI assistant that speaks MCP — Claude Desktop, Claude Code, Cursor… | `claude mcp add argus -- npx -y argus-decision-mcp` |
+| 🔌 **Claude Code plugin** | Deciding *inside* a codebase, over real PRs and files. | `/plugin marketplace add commet/Argus`<br>`/plugin install argus@argus` |
 
-New here and not sure? **Start with the [web app](https://argus.voyage)** — it
-needs no setup. If you live in an AI assistant and want Argus available in every
-chat, the **[MCP server](./argus-mcp/README.md)** is the one you want.
-
-> *Argus* is the name of the dog who, after Odysseus returned in disguise twenty
-> years later, recognized his true master beneath the rags. An eye that sees
-> what's really there rather than the smooth surface — that's what Argus does.
+<sub>New and not sure? The **web app** needs zero setup. Want Argus in every AI chat? The **MCP server** is the one. (MCP = Model Context Protocol — the open standard assistants use to load tools.) Full setup + tool list in **[argus-mcp/README.md](./argus-mcp/README.md)** and **[argus-plugin-v2/README.md](./argus-plugin-v2/README.md)**.</sub>
 
 ---
 
-## Why it exists
+## What Argus does
 
-Ask an AI anything and a confident answer arrives in seconds. What never gets
-recorded is the part that was *yours*: what you actually decided, what you were
-betting on, and — months later — whether reality agreed.
+Two things — and the second is the one most tools skip.
 
-Argus is not another answer tool. It keeps the judgment:
+### ① While you decide — it keeps *your* judgment separate from the AI's
 
-```
-Without Argus:  decide → execute → the reasoning evaporates
-With Argus:     decide → seal a falsifiable prediction → reality settles it → your record grows
-```
+Work with an AI long enough and its assumptions quietly blend into yours. Argus
+pulls them apart and keeps them honest:
 
-## One loop, three doors
+- **Remember exactly.** Your words, your premises, your prediction — and *whose*
+  each one is. A sentence the machine surfaced is never silently filed as yours;
+  provenance is tagged, and derived guesses about you never leak into a prompt
+  without your explicit, revocable grant.
+- **Notice beneath the surface.** It surfaces the hidden premise and the real
+  question under the fluent answer — without choosing a side for you.
+
+### ② After you decide — it keeps watch and lets reality grade it
+
+- **Keep watch honestly.** It tracks only the signals *you* chose, and re-checks
+  the load-bearing premises against reality while the bet is still open. When one
+  rate hike breaks the premise under three of your decisions, that's **one**
+  re-check, not three.
+- **Return first.** It comes back on the date you set — or earlier, when a watched
+  premise materially moves.
+- **Stay without judging.** Reality answers, you record, Argus keeps the receipt.
+  `AI VERDICT` remains `NONE`.
+
+---
+
+## One loop
 
 Everywhere Argus runs, the loop is the same:
 
-1. **Record** the decision and the premises it rests on — in your own words.
+1. **Record & separate** — the decision, the premises it rests on, and whose each
+   premise is (yours vs. the AI's), in your own words.
 2. **Seal** one falsifiable prediction with a check-by date.
-3. **Wait quietly.** No nagging; if a premise shifts or the date arrives, Argus
-   says so once.
+3. **Wait quietly** — no nagging; if a watched premise shifts or the date arrives,
+   Argus says so once.
 4. **Settle** against what actually happened. You answer; the model never grades.
-5. **Keep the receipt.** Settled predictions accumulate into your own track
-   record — calibration you can see, principles you choose to ratify.
+5. **Keep the receipt** — settled predictions accumulate into your own track
+   record: calibration you can see, principles you choose to ratify.
 
-What that looks like per door:
+<details>
+<summary>What that looks like at each door</summary>
 
-- **Web app** — write the decision in one line (or upload a strategy doc); Argus
-  reviews it from multiple angles, marks what only a human can call, and alerts
+- **Web app** — write the decision in one line (or upload a strategy doc); an AI
+  crew surfaces the hidden premises, marks what only a human can call, and alerts
   you when a premise changes.
-- **MCP server** — talk about a decision naturally in any chat; capture it,
-  seal the prediction, get pulled back on the check-by date.
+- **MCP server** — talk about a decision naturally in any chat; Argus captures it,
+  seals the prediction, and pulls you back on the check-by date.
 - **Claude Code plugin** — five commands over your real code and PRs:
   `/argus:review` (deep pressure-test, explicit opt-in) · `/argus:check` ·
   `/argus:history` · `/argus:settings` · `/argus:help`.
 
-The artifact at the end is a **Judgment Receipt**:
+</details>
+
+---
+
+## The Judgment Receipt
+
+The artifact at the end. Notice the split: **what the AI assumed** (still
+unverified) sits apart from **the call only you could make** — and the model's
+verdict is, by design, `NONE`.
 
 ```
 ┌─ ARGUS · JUDGMENT RECEIPT ────────────────────────────────┐
@@ -99,7 +132,7 @@ The artifact at the end is a **Judgment Receipt**:
 
   THE REAL QUESTION
     Can we cut over without a maintenance window users notice?
-  THE UNVERIFIED ASSUMPTION
+  THE UNVERIFIED ASSUMPTION      (the AI's)
     The index rebuild fits inside the replication lag budget.
   HUMAN-ONLY CALL   Whether a 5-minute blip is acceptable.
   …made by          Me. (not the model)
@@ -119,29 +152,33 @@ The artifact at the end is a **Judgment Receipt**:
 | | Answer tools | **Argus** |
 |---|---|---|
 | Output | a more plausible answer | a **judgment receipt** — prediction → reality |
+| Whose reasoning it keeps | the model's answer | **yours** — your premises and prediction, tagged apart from the AI's |
 | Who evaluates | the model (scores, confidence) | **nobody** — `AI VERDICT: NONE`; reality settles on the date you set |
 | After the chat ends | the reasoning evaporates | Argus **comes back** — check-by dates, premise-change alerts |
 | What accumulates | an implicit profile of you | **a record you own**: settled predictions, your calibration, principles *you* ratified |
+
+---
 
 ## An honest promise about your data
 
 - **Local first.** The ledger lives in `~/.argus` (MCP/plugin) and your browser
   (web). Uninstalling never deletes your records.
 - **No verdict — structurally.** There is no scoring tool to call. The receipt's
-  last line is the product's signature.
-- **No silent profiling.** Derived patterns about you are excluded from prompts
-  by default; anything that would use them needs your explicit, scoped,
-  revocable grant — and leaves a visible trace.
+  last line is the product's signature, not a marketing slogan.
+- **No silent profiling.** Derived patterns about you are excluded from prompts by
+  default; anything that would use them needs your explicit, scoped, revocable
+  grant — and leaves a visible trace.
 
 ---
 
-## Getting started
+## Setup in detail
 
-### Web (use it right away)
+### 🌐 Web — use it right away
 
-No install, straight in the browser — **[argus.voyage](https://argus.voyage)**
+No install, straight in the browser: **[argus.voyage](https://argus.voyage)**.
+No account required.
 
-### MCP server
+### 🧩 MCP server
 
 Add Argus to any AI assistant that supports MCP (Claude Desktop, Claude Code,
 Cursor, …). The fastest path, in Claude Code:
@@ -151,30 +188,29 @@ claude mcp add argus -- npx -y argus-decision-mcp
 ```
 
 Zero config works — your ledger lives in `~/.argus`. For the full config (Claude
-Desktop, Windows, per-project ledgers, optional account sync) and the tool list,
+Desktop, Windows, per-project ledgers, optional account sync) and the six tools,
 see **[argus-mcp/README.md](./argus-mcp/README.md)**.
 
-### Claude Code plugin
+### 🔌 Claude Code plugin
 
-One install wires everything (skills + the MCP server + quiet reminders). In
-Claude Code:
+One install wires everything — the skills, the MCP server, and quiet reminders:
 
-```
+```text
 /plugin marketplace add commet/Argus
 /plugin install argus@argus
 ```
 
 Restart Claude Code, then from any repo:
 
-```
+```text
 /argus:review "the question you need to decide"
 ```
 
-Commands (5): `/argus:review` (deep pressure-test, explicit opt-in) ·
+**Commands (5):** `/argus:review` (deep pressure-test, explicit opt-in) ·
 `/argus:check` (settle what is due · seal · premises) · `/argus:history`
 (decision log · version tree · scan past chats) · `/argus:settings` ·
-`/argus:help` — aliases kept: `/argus:sail`, `/argus:resolve`
-More → [argus-plugin-v2/README.md](./argus-plugin-v2/README.md)
+`/argus:help`. Aliases kept: `/argus:sail`, `/argus:resolve`. More →
+**[argus-plugin-v2/README.md](./argus-plugin-v2/README.md)**.
 
 <details>
 <summary>Alternative: copy-install without the plugin system</summary>
@@ -183,28 +219,30 @@ More → [argus-plugin-v2/README.md](./argus-plugin-v2/README.md)
 curl -fsSL https://raw.githubusercontent.com/commet/Argus/main/argus-plugin-v2/install.sh | bash
 ```
 
-Flat-installed skills lose the `argus:` prefix and the automatic reminders —
-the plugin install above is the documented experience.
+Flat-installed skills lose the `argus:` prefix and the automatic reminders — the
+plugin install above is the documented experience.
+
 </details>
 
-### Local development
+<details>
+<summary>Local development &amp; optional API key</summary>
 
 ```bash
 git clone https://github.com/commet/Argus.git
 cd Argus
 npm install
-npm run dev
+npm run dev            # runs at http://localhost:3000
 ```
 
-Runs at `http://localhost:3000`. See [CONTRIBUTING.md](./CONTRIBUTING.md) for the
-repo layout, the CI checks, and the conventions reviewers look for.
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for the repo layout, the CI checks, and
+the conventions reviewers look for.
 
-### API key setup (optional, web)
+**API key (optional, web).** By default the web app works through a server proxy.
+To use it without rate limits, pick "Direct Key" mode on the settings page and
+enter your Anthropic API key — it is stored only in your browser's localStorage
+and is never sent to our server.
 
-By default the web app works through a server proxy. To use it without rate
-limits, pick "Direct Key" mode on the settings page and enter your Anthropic API
-key. The key is stored only in your browser's localStorage and is never sent to
-the server.
+</details>
 
 ---
 
@@ -214,6 +252,7 @@ the server.
 src/               # the web app (Next.js — argus.voyage)
 argus-mcp/         # the MCP server (npm: argus-decision-mcp, MIT)
 argus-plugin-v2/   # the Claude Code plugin (marketplace: argus, MIT)
+tools/argus-watch/ # a standalone decision-watch CLI
 docs/ARGUS-BLUEPRINT.md   # the build canon (what gets built, in what order)
 ```
 
@@ -242,5 +281,6 @@ covered by the licenses above.
 
 ---
 
-*Argus translates a way of thinking hidden inside the strategy-planning craft
-into a form anyone can use — and keeps the judgment where it belongs: with you.*
+<p align="center">
+  <em>Argus translates a way of thinking hidden inside the strategy-planning craft<br>into a form anyone can use — and keeps the judgment where it belongs: with you.</em>
+</p>
