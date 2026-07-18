@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '@/lib/auth';
 import { useLocaleSwitch } from '@/hooks/useLocaleSwitch';
 import { useDueCount } from '@/hooks/useDueCount';
-import { ArgusSigil } from '@/components/brand/ArgusSigil';
+import { ArgusFaceMark } from '@/components/brand/ArgusFaceMark';
 
 export function LandingHeader() {
   const { locale, switchTo: handleLocaleChange } = useLocaleSwitch();
@@ -42,7 +42,7 @@ export function LandingHeader() {
             className="flex items-center gap-2 group"
             style={{ padding: '12px 4px 12px 0', marginLeft: -4 }}
           >
-            <ArgusSigil size="sm" />
+            <ArgusFaceMark size="sm" />
             <span
               style={{
                 fontFamily: 'var(--font-display)',

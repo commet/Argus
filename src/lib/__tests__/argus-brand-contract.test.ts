@@ -68,20 +68,20 @@ describe('Argus brand canon', () => {
     expect(offenders).toEqual([]);
   });
 
-  it('uses the collar-tag sigil only for identity, never status controls', () => {
+  it('uses the canonical face crop only for identity, never status controls', () => {
     const logo = source.find((item) => item.rel === 'components/brand/Logo.tsx')?.text;
     const landing = source.find((item) => item.rel === 'components/landing/LandingHeader.tsx')?.text;
     const premise = source.find((item) => item.rel === 'components/review/PremiseTracker.tsx')?.text;
     const project = source.find((item) => item.rel === 'app/[locale]/project/page.tsx')?.text;
     const workspace = source.find((item) => item.rel === 'app/[locale]/workspace/page.tsx')?.text;
-    expect(logo).toContain('<ArgusSigil');
-    expect(landing).toContain('<ArgusSigil');
+    expect(logo).toContain('<ArgusFaceMark');
+    expect(landing).toContain('<ArgusFaceMark');
     expect(landing).not.toContain('<ArgusMascot');
     expect(premise).toContain('<Eye');
     expect(project).toContain('<BellRing');
     expect(workspace).toContain('<BellRing');
-    expect(premise).not.toContain('<ArgusSigil');
-    expect(project).not.toContain('<ArgusSigil');
-    expect(workspace).not.toContain('<ArgusSigil');
+    expect(premise).not.toContain('<ArgusFaceMark');
+    expect(project).not.toContain('<ArgusFaceMark');
+    expect(workspace).not.toContain('<ArgusFaceMark');
   });
 });
