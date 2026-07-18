@@ -54,6 +54,34 @@ describe('purpose-led public MCP surface', () => {
     expect(rows).toHaveLength(1);
   });
 
+  it('records supplied premises even on a low-stakes (restraint) open — record is never gated by ceremony', async () => {
+    // Regression: on a flat/low-stakes open the over-fire gate does NOT fire,
+    // and the premise-recording used to sit behind that gate → user premises
+    // were silently dropped (no error, nothing to re-check later).
+    const dir = tmpArgusDir();
+    const result = await decide.handler({
+      argus_dir: dir,
+      action: 'open',
+      id: 'ci-switch',
+      decision: 'switch CI to GitHub Actions',
+      stakes: 'low',
+      reversibility: 'easily_reversible',
+      status_quo: 'stay on the current CI',
+      premises: [{
+        text: 'our build stays under 10 minutes',
+        kind: 'premise',
+        external: true,
+        load_bearing: true,
+        source: 'user_stated',
+      }],
+      today_override: '2026-07-13',
+    });
+    expect(isError(result)).toBe(false);
+    const recalled = await history.handler({ argus_dir: dir, view: 'decision_context', id: 'ci-switch', today_override: '2026-07-13' });
+    const rows = ((body(recalled)['data'] as Record<string, unknown>)['premises'] as unknown[]);
+    expect(rows).toHaveLength(1); // must survive the restraint path
+  });
+
   it('updates locale through the one public settings tool', async () => {
     const dir = tmpArgusDir();
     const updated = await settings.handler({ argus_dir: dir, action: 'update', locale: 'en', ambient_mute: true });

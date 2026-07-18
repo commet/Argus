@@ -157,10 +157,35 @@ async function send(event: TelemetryEvent, env: TelemetryEnv): Promise<void> {
   }
 }
 
+/**
+ * Privacy-first, OPT-IN invite for users who have NOT enabled telemetry. Leads
+ * with the promise — nothing leaves your machine by default — and offers the
+ * opt-in as a quiet secondary. stderr only (never the stdout JSON-RPC channel),
+ * NO file written (an opted-out user's disk stays untouched, preserving the
+ * "nothing without consent" posture), never throws. Suppressed entirely under
+ * DO_NOT_TRACK — someone who globally opted out is never nudged.
+ */
+export function inviteTelemetryOptIn(env: TelemetryEnv = process.env): void {
+  const dnt = (env.DO_NOT_TRACK || '').trim().toLowerCase();
+  if (ON_VALUES.has(dnt)) return; // globally opted out — do not invite
+  try {
+    process.stderr.write(
+      'argus-decision-mcp: your decisions stay on your machine — this server makes no ' +
+        'network calls by default. Optional: to share anonymous usage counts (a random ' +
+        'install id + which tool ran + version — never your decisions), set ARGUS_TELEMETRY=1.\n',
+    );
+  } catch {
+    /* stderr unavailable — harmless */
+  }
+}
+
 /** Fire-and-forget process-activation signal. Never blocks, never throws. */
 export function recordServerStart(env: TelemetryEnv = process.env): void {
   try {
-    if (!telemetryEnabled(env)) return;
+    if (!telemetryEnabled(env)) {
+      inviteTelemetryOptIn(env); // once at startup: privacy promise + opt-in offer
+      return;
+    }
     maybeShowNotice();
     void send(buildEvent('server_start', telemetryInstallId()), env);
   } catch {

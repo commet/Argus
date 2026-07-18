@@ -285,7 +285,11 @@ export const decide: ToolModule = {
       const result = await runPublic('argus_capture', a, openDecision.handler);
       if (result.isError || !Array.isArray(a['premises'])) return result;
       const sc = result.structuredContent;
-      if (sc?.['over_fire_gate'] && (sc['over_fire_gate'] as Record<string, unknown>)['fired'] !== true) return result;
+      // Record the user's premises REGARDLESS of the over-fire gate. The gate
+      // governs manufactured CEREMONY (a crux/fork on a flat decision), never
+      // whether a user-supplied record is persisted — writing down what the user
+      // actually gave is record, not ceremony (open-decision.ts: 기록과 의식을
+      // 분리한다). Gating this silently dropped premises on low-stakes opens.
       const premiseResult = await premises.handler({
         argus_dir: a['argus_dir'],
         id: a['id'],

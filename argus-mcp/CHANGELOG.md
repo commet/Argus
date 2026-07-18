@@ -6,6 +6,24 @@
 > The `1.3.0` / `1.2.1` entries at the bottom are pre-rename `argus-mcp` history,
 > kept for reference — all of that work shipped inside the new-name 1.0.0.
 
+## 1.3.1 — Privacy-first telemetry invite + premise-recording fix
+
+- **Fix: user premises are now recorded on *every* `argus_capture` open, not
+  only high-stakes ones.** On a low-stakes / easily-reversible decision the
+  over-fire gate does not fire, and premise persistence used to sit behind that
+  gate — so a user-supplied premise was silently dropped (no error, nothing to
+  re-check later). The record is now always written; the gate governs only the
+  surface ceremony, never whether the user's own words are kept.
+- **A single privacy-first line at startup** for users who have not enabled
+  telemetry. It leads with the promise — *your decisions stay on your machine;
+  this server makes no network calls by default* — and offers an optional
+  opt-in (`ARGUS_TELEMETRY=1`) to share anonymous usage counts (a random install
+  id + which tool ran + version, **never your decisions**). It is stderr-only,
+  writes **no file** (an opted-out user's disk stays untouched), never touches
+  the stdout JSON-RPC channel, and is **fully suppressed under `DO_NOT_TRACK`**
+  so someone who globally opted out is never nudged. No default changed —
+  telemetry stays OFF unless you explicitly opt in.
+
 ## 1.3.0 — One purpose-led surface: capture · predict · resolve
 
 The tools are now named for the job you do, not the internal state machine. Six
