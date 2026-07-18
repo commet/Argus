@@ -40,13 +40,13 @@ const SHARE_COPY = {
     try: 'Argus 사용해 보기 →',
     og: '공유된 Argus 판단 기록',
     receipt: '판단 영수증',
-    // The bare "AI VERDICT -- NONE" signature reads as cryptic (or as a missing
-    // feature) without one plain line saying what NONE means. Mirrors the
-    // shipped Act2DecisionVoyage gloss.
-    verdictGloss: '모델은 채점하지 않습니다 — 정한 날, 현실이 답합니다.',
-    // Social preview text was literally "AI VERDICT -- NONE" — a link card that
-    // says only that is pure cipher. Make the preview self-explanatory.
-    verdictShare: 'AI 판정 없음 — 모델이 아니라 현실이 답한 판단 기록입니다.',
+    // The receipt's headline is the decision, not the absence of a verdict. This
+    // gloss says what the record IS (sealed prediction + reality's answer) so the
+    // quiet "AI VERDICT — NONE" mark below it needs no defending.
+    verdictGloss: '봉인한 예측과, 정한 날 현실이 답한 것 — 이 기록엔 그것만 남습니다.',
+    // Social preview leads with the substance (a decision settled by reality),
+    // never with "AI 판정 없음" — that mark is a signature, not a headline.
+    verdictShare: '봉인한 예측을 정한 날 현실과 대조한, Argus 판단의 기록.',
   },
   en: {
     record: 'shared decision record',
@@ -55,8 +55,8 @@ const SHARE_COPY = {
     try: 'Try Argus →',
     og: 'Shared Argus decision record',
     receipt: 'Judgment Receipt',
-    verdictGloss: "The model doesn't grade you — reality answers on the date you set.",
-    verdictShare: 'AI verdict: none — a judgment settled by reality, not a model.',
+    verdictGloss: "Your sealed prediction and what reality answered — that's all this record keeps.",
+    verdictShare: 'An Argus judgment record — a prediction sealed, then settled against reality.',
   },
 } as const;
 
@@ -168,12 +168,12 @@ function SharedReceipt({ title, content, locale }: { title: string; content: str
         {renderMd(stripReceiptHeading(content))}
       </div>
       <div className="border-t border-[var(--border-subtle)] px-5 sm:px-7 py-5 bg-[var(--bg)]">
-        <div className="font-mono text-[13px] sm:text-[14px] tracking-[0.08em] text-[var(--text-primary)]">
-          AI VERDICT -- NONE
-        </div>
-        <p className="mt-2 text-[12px] leading-[1.5] text-[var(--text-tertiary)]">
+        <p className="text-[12px] leading-[1.5] text-[var(--text-secondary)]">
           {SHARE_COPY[locale].verdictGloss}
         </p>
+        <div className="mt-2 font-mono text-[12px] tracking-[0.08em] text-[var(--text-tertiary)]">
+          AI VERDICT -- NONE
+        </div>
       </div>
     </article>
   );
