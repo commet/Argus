@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="public/voyage/voyage-poster.jpg" alt="Argus — a decision voyage" width="820">
+  <img src="public/voyage/voyage-mast.jpg" alt="Argus — Odysseus bound to the mast before the sirens' song" width="820">
 </p>
 
 <h1 align="center">Argus</h1>

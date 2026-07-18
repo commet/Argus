@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="public/voyage/voyage-poster.jpg" alt="Argus — 결정의 항해" width="820">
+  <img src="public/voyage/voyage-mast.jpg" alt="Argus — 세이렌의 노래 앞에서 돛대에 스스로를 묶는 오디세우스" width="820">
 </p>
 
 <h1 align="center">Argus</h1>
