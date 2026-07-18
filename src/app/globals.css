@@ -2834,13 +2834,13 @@ button, a, input, textarea {
   color: var(--bp-paper);
   transition: background 180ms var(--ease-wave), transform 180ms var(--ease-wave), box-shadow 180ms var(--ease-wave);
 }
+.bp-cta-gold::before { display: none; }
 .bp-cta-gold:hover {
   background: #6a5520;
   border-color: #6a5520;
   transform: translateY(-1px);
   box-shadow: 0 7px 18px rgba(122, 98, 36, 0.30);
 }
-.bp-cta-gold:hover::before { opacity: 0; }
 .bp-cta-gold:active {
   transform: translateY(0);
   box-shadow: 0 3px 9px rgba(122, 98, 36, 0.24);
