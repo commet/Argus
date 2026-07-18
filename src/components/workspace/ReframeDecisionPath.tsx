@@ -62,7 +62,7 @@ export function ReframeDecisionPath({
   ];
 
   return (
-    <nav className="border-y border-[var(--border-subtle)] py-3" aria-label={L('항로 재설정 판단 경로', 'Reframe decision path')}>
+    <nav className="border-y border-[var(--border-subtle)] py-3" aria-label={L('질문 재정리 판단 경로', 'Question reframing path')}>
       <div className="grid grid-cols-2 gap-2 md:grid-cols-[1fr_20px_1fr_20px_1fr_20px_1fr] md:items-stretch">
         {nodes.map((node, index) => {
           const Icon = node.Icon;

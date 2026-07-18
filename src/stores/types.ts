@@ -509,6 +509,8 @@ export interface Team {
   owner_id: string;
   created_at: string;
   updated_at: string;
+  /** Current user's membership role, enriched by the team API. */
+  my_role?: 'owner' | 'admin' | 'member';
 }
 
 export interface TeamMember {
@@ -530,6 +532,8 @@ export interface TeamInvite {
   invited_by: string;
   status: 'pending' | 'accepted' | 'declined';
   created_at: string;
+  /** Team name is included for invitations addressed to the current user. */
+  team_name?: string | null;
 }
 
 export interface TeamReviewInput {
@@ -546,6 +550,14 @@ export interface TeamReviewInput {
   created_at: string;
   // Client-side only
   user_name?: string;
+}
+
+/** A project shared with a human team, enriched with its owner and latest review session. */
+export interface TeamSharedProject extends Project {
+  user_id: string;
+  owner_email?: string | null;
+  owner_name?: string | null;
+  session?: ProgressiveSession | null;
 }
 
 // ─── Outcome Tracking (Phase 1) ───

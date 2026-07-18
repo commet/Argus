@@ -55,8 +55,8 @@ function getCopy(page: PageKey, ko: boolean, knewYou: boolean) {
       return {
         title: L('팀은 로그인이 필요해요', 'Teams need an account'),
         description: L(
-          '팀을 구성해서 여러 프로젝트에 일관된 검토자를 배치할 수 있어요.',
-          'Compose teams and assign consistent reviewers across multiple projects.',
+          '결정을 사람 팀과 공유하고, 각자 검토한 의견을 한 번에 모아볼 수 있어요.',
+          'Share decisions with people, collect independent feedback, and review it together.',
         ),
       };
     default:

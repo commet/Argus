@@ -386,7 +386,7 @@ export function TeamDeployBanner({
                   reveals the contact / self-input flow downstream. */}
               {adjusting && onSetGroupTrack && (() => {
                 const opts: { key: 'ai' | 'self' | 'human'; label: string; icon: typeof Sparkles }[] = [
-                  { key: 'ai', label: L('AI 팀원', 'AI teammate'), icon: Sparkles },
+                  { key: 'ai', label: L('AI 검토자', 'AI reviewer'), icon: Sparkles },
                   { key: 'self', label: L('내가 직접', 'I decide'), icon: Brain },
                   { key: 'human', label: L('사람에게', 'Ask a person'), icon: UserCheck },
                 ];

@@ -224,7 +224,7 @@ function ProgressiveLayout({ projectId, projectName, onReset }: { projectId: str
                   <>
                     {/* click-away backdrop */}
                     <div className="fixed inset-0 z-40" onClick={() => setBranchMenuOpen(false)} aria-hidden="true" />
-                    <div id="workspace-branch-listbox" role="listbox" aria-label={L('항로 선택', 'Choose a branch')} onKeyDown={handleBranchListKeyDown} className="absolute left-0 top-full z-50 mt-1 w-56 rounded-xl border border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow-lg)] p-1.5 space-y-0.5">
+                    <div id="workspace-branch-listbox" role="listbox" aria-label={L('결정 방향 선택', 'Choose a decision direction')} onKeyDown={handleBranchListKeyDown} className="absolute left-0 top-full z-50 mt-1 w-56 rounded-xl border border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow-lg)] p-1.5 space-y-0.5">
                       {sessionBranches.map((b, index) => {
                         const isActive = b.id === activeBranchId;
                         const disabled = branchingLocked && !isActive;
@@ -254,7 +254,7 @@ function ProgressiveLayout({ projectId, projectName, onReset }: { projectId: str
                       <p className="px-2.5 pt-1 pb-0.5 text-[10px] text-[var(--text-tertiary)] leading-[1.5]">
                         {branchingLocked
                           ? L('지금은 작업 중이라 갈아탈 수 없어요 — 끝나면 풀려요.', 'Switching is locked while work is running.')
-                          : L('갈아타도 지금 항로는 그대로 남아요.', 'Switching keeps this course intact.')}
+                          : L('다른 방향을 선택해도 지금 기록은 그대로 남아요.', 'Choosing another direction keeps this record intact.')}
                       </p>
                     </div>
                   </>
@@ -683,7 +683,7 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
                 <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5 text-[11px] text-[var(--text-tertiary)]">
                   {[
                     L('상황을 적으면', 'Describe the situation'),
-                    L('AI 팀원이 숨은 전제를 살펴보고', 'AI reviewers surface hidden premises'),
+                    L('AI 검토자가 숨은 전제를 살펴보고', 'AI reviewers surface hidden premises'),
                     L('완성된 문서와 결정 요약이 남아요', 'leave with a finished document and decision summary'),
                   ].map((step, i) => (
                     <React.Fragment key={i}>
@@ -1005,6 +1005,7 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
                                     alt=""
                                     fill
                                     sizes={muted ? '44px' : '(max-width: 639px) 112px, 220px'}
+                                    loading={muted ? 'lazy' : 'eager'}
                                     className="object-cover opacity-90 transition-[transform,opacity] duration-500 ease-out motion-reduce:transition-none group-hover:opacity-100 motion-safe:group-hover:scale-[1.02]"
                                   />
                                 </div>
@@ -1059,7 +1060,7 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
               {projects.length === 0 && (
                 <div className="mt-12 pt-8 border-t border-[var(--border-subtle)]/60 text-center">
                   <p className="text-[14px] md:text-[15px] text-[var(--text-secondary)] leading-relaxed max-w-md mx-auto">
-                    {locale === 'ko' ? <>상황을 알려주면 AI 팀원이 전제를 살펴보고, 초안을 만들고,<br className="hidden md:block" /> 의사결정권자의 반응까지 점검해요.</> : <>Share the situation and AI reviewers will surface premises, draft,<br className="hidden md:block" /> and test the decision-maker&apos;s likely response.</>}
+                    {locale === 'ko' ? <>상황을 알려주면 AI 검토자가 전제를 살펴보고, 초안을 만들고,<br className="hidden md:block" /> 의사결정권자의 반응까지 점검해요.</> : <>Share the situation and AI reviewers will surface premises, draft,<br className="hidden md:block" /> and test the decision-maker&apos;s likely response.</>}
                   </p>
                 </div>
               )}
@@ -1103,7 +1104,7 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
                   className="text-[11px] text-[var(--text-tertiary)] pt-1">
                   {/* Honest framing: the initial pass is a single read that finds the real
                       question; this crew does its individual work later, at the worker stage. */}
-                  {L('AI 팀원 4명이 이 상황을 따로 살펴보고 있어요 — 먼저 지금 풀어야 할 질문을 정리합니다...', 'Four AI reviewers are looking at this separately — first, organizing the question to solve...')}
+                  {L('AI 검토자 4명이 이 상황을 따로 살펴보고 있어요 — 먼저 지금 풀어야 할 질문을 정리합니다...', 'Four AI reviewers are looking at this separately — first, organizing the question to solve...')}
                 </motion.p>
               </div>
             </motion.div>
@@ -1520,7 +1521,7 @@ function SuspenseFallback() {
     <div className="min-h-[60vh] flex items-center justify-center">
       <div className="text-center space-y-3">
         <div className="w-8 h-8 rounded-full border-2 border-[var(--accent)] border-t-transparent animate-spin mx-auto" />
-        <p className="text-[13px] text-[var(--text-secondary)]">{L('항해 준비 중...', 'Preparing the voyage...')}</p>
+        <p className="text-[13px] text-[var(--text-secondary)]">{L('워크스페이스 준비 중...', 'Preparing your workspace...')}</p>
       </div>
     </div>
   );

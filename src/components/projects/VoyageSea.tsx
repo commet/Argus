@@ -395,7 +395,7 @@ export function VoyageSea({
       } else if (state === 'arrived') {
         sub = L('정산 대기', 'awaiting reckoning');
       } else if (state === 'docked') {
-        sub = L('출항 전', 'not yet under way');
+        sub = L('시작 전', 'not started');
       } else {
         sub = relativeDays(lastActivityAt, now, locale);
       }
@@ -454,7 +454,7 @@ export function VoyageSea({
         sub:
           state === 'verified'
             ? L('검수 · 정산 완료', 'review · reckoned')
-            : `${L('검수 봉인', 'review seal')} · ${relativeDays(r.updated_at || createdAt, now, locale)}`,
+            : `${L('검수 기록', 'review record')} · ${relativeDays(r.updated_at || createdAt, now, locale)}`,
         resolution: RESOLUTION[state],
         idleDays: (() => {
           const t = new Date(r.updated_at || createdAt).getTime();
@@ -610,9 +610,9 @@ export function VoyageSea({
     { key: 'due', ko: '다시 볼 것', en: 'due', test: (s) => s.due, gold: true },
     { key: 'signal', ko: '확인 신호', en: 'signals', test: (s) => s.kind === 'project' && attentionSet.has(s.id) && !s.due, amber: true },
     { key: 'idle', ko: '오래 방치', en: 'untended', test: (s) => s.state === 'adrift' || s.state === 'wrecked', amber: true },
-    { key: 'sailing', ko: '항해 중', en: 'sailing', test: (s) => s.state === 'sailing' && !s.due },
-    { key: 'home', ko: '항구·완료', en: 'in harbor', test: (s) => s.state === 'arrived' || s.state === 'verified' },
-    { key: 'docked', ko: '출항 전', en: 'docked', test: (s) => s.state === 'docked' && !s.due },
+    { key: 'sailing', ko: '진행 중', en: 'in progress', test: (s) => s.state === 'sailing' && !s.due },
+    { key: 'home', ko: '완료', en: 'complete', test: (s) => s.state === 'arrived' || s.state === 'verified' },
+    { key: 'docked', ko: '시작 전', en: 'not started', test: (s) => s.state === 'docked' && !s.due },
   ];
   const filterList = FILTERS.map((f) => ({ ...f, n: ships.filter(f.test).length })).filter((f) => f.n > 0);
   const activeFilter = FILTERS.find((f) => f.key === filter) || null;
@@ -705,7 +705,7 @@ export function VoyageSea({
 
 
   return (
-    <section aria-label={L('항해 지도 — 결정들의 현재 위치', 'Voyage chart — where each decision is now')}>
+    <section aria-label={L('결정 지도 — 각 결정의 현재 상태', 'Decision map — current status of each decision')}>
       {/* Component-scoped keyframes. Plain static CSS (no user data). */}
       <style>{`
         @keyframes vsea-bob { 0%,100% { transform: translateY(0) } 50% { transform: translateY(-4px) } }

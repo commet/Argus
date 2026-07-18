@@ -66,7 +66,7 @@ describe('VoyageMapRail — full (expanded)', () => {
     const html = renderToStaticMarkup(createElement(VoyageMapRail));
     expect(html).toContain('판단 지도');
     expect(html).toContain('근거');
-    expect(html).toContain('항로');
+    expect(html).toContain('갈래');
     expect(html).toContain('SEACHART_STUB');
     expect(html).not.toContain('EVIDENCE_MAP_STUB');
     // Crew activity is intentionally NOT in the rail anymore (it's duplicated by
@@ -80,7 +80,7 @@ describe('VoyageMapRail — full (expanded)', () => {
     state.session = { id: 's1', checkpoints: [], branches: [], waypoints: [] };
     const html = renderToStaticMarkup(createElement(VoyageMapRail));
     expect(html).not.toContain('EVIDENCE_MAP_STUB');
-    expect(html).toContain('항로');
+    expect(html).toContain('갈래');
     expect(html).not.toContain('SEACHART_STUB');
     expect(html).not.toContain('CREW_STUB');
   });

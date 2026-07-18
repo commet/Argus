@@ -142,7 +142,7 @@ export function TrialSail({ paragraph }: { paragraph: string }) {
     return (
       <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] px-4 py-3">
         <p className="text-[12px] text-[var(--text-tertiary)]">
-          {L('이번엔 결과를 받지 못했어요 — 이번 항해는 이 측정 없이 가요.', "No reading came back this time — this voyage continues without it.")}
+          {L('이번엔 결과를 받지 못했어요 — 이 측정 없이 계속할게요.', 'No reading came back this time — continuing without it.')}
         </p>
       </div>
     );
@@ -162,7 +162,7 @@ export function TrialSail({ paragraph }: { paragraph: string }) {
           (novice audit, a would-quit moment). */}
       <div>
         <p className="text-[13.5px] font-semibold text-[var(--text-primary)]">
-          {L(`적으신 내용을 AI 팀원 ${N_EXECUTORS}명이 그대로 읽었어요`, `${N_EXECUTORS} AI reviewers read your text, as-is`)}
+          {L(`적으신 내용을 AI 검토자 ${N_EXECUTORS}명이 그대로 읽었어요`, `${N_EXECUTORS} AI reviewers read your text, as-is`)}
         </p>
         <p className="text-[11.5px] text-[var(--text-tertiary)] mt-0.5">
           {L('같은 글을 따로따로 읽었어요 — 서로 다른 지시는 없었고, 내용은 분석에만 쓰여요.', 'Each read the same text separately — no differing instructions, and it stays inside the analysis.')}
@@ -289,7 +289,7 @@ export function TrialSail({ paragraph }: { paragraph: string }) {
                 <Anchor size={12} className="text-[var(--text-tertiary)] mt-0.5 shrink-0" />
                 <p className="text-[12px] text-[var(--text-secondary)] leading-[1.55]">
                   {L(
-                    'AI 팀원들이 같은 결론에 도달했어요. 이 글 안에서는 뚜렷한 갈림이 없었고, 남은 위험은 글 밖에서 확인해야 해요. 바로 마무리해도 괜찮아요.',
+                    'AI 검토자들이 같은 결론에 도달했어요. 이 글 안에서는 뚜렷한 갈림이 없었고, 남은 위험은 글 밖에서 확인해야 해요. 바로 마무리해도 괜찮아요.',
                     'The AI reviewers reached the same conclusion. Nothing clearly forked inside this text; the remaining risk needs checking outside it. You can move straight to the finish.',
                   )}
                 </p>
