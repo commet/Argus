@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback, useMemo, type ReactNode } from 'react';
+import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronRight, Sparkles, Check, ArrowRight, UserCheck, Loader2, ChevronDown } from 'lucide-react';
 import { WorkerAvatar } from './progressive/WorkerAvatar';
@@ -15,6 +16,7 @@ import { AnalysisCard } from './progressive/shared/AnalysisCard';
 import { UpdateSummaryChip } from './progressive/shared/UpdateSummaryChip';
 import { QuestionCard } from './progressive/shared/QuestionCard';
 import { TypingDots, AvatarRipple, ShimmerBar, tickersFor } from './progressive/shared/AgentVisuals';
+import { DEMO_SCENARIO_ART } from '@/lib/demo-scenario-art';
 
 /* ═══ Phase State Machine ═══ */
 type DemoPhase =
@@ -1712,9 +1714,18 @@ export function InteractiveDemo({ scenario, locale = 'ko', onStartReal, onBack }
         <button onClick={onBack} className="min-h-[44px] px-3 -ml-3 text-[12px] text-[var(--text-tertiary)] hover:text-[var(--accent)] cursor-pointer transition-colors">
           &larr; {L('돌아가기', 'Back')}
         </button>
-        <span className="text-[11px] text-[var(--text-tertiary)]">
-          {scenario.icon} {scenario.title} {L('데모', 'Demo')}
-        </span>
+        <div className="flex items-center gap-2 text-[11px] text-[var(--text-tertiary)]">
+          <span className="relative h-7 w-9 shrink-0 overflow-hidden rounded border border-[var(--border-subtle)] bg-[var(--bg)]" aria-hidden="true">
+            <Image
+              src={DEMO_SCENARIO_ART[scenario.id]}
+              alt=""
+              fill
+              sizes="36px"
+              className="object-cover"
+            />
+          </span>
+          <span>{scenario.title} · {L('데모', 'Demo')}</span>
+        </div>
         <div className="w-16" />
       </div>
 

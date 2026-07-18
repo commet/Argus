@@ -29,6 +29,7 @@
  */
 
 import { useEffect, useRef, useState } from 'react';
+import Image from 'next/image';
 import { useLocale } from '@/hooks/useLocale';
 import { useLocaleRouter } from '@/hooks/useLocaleRouter';
 import { LocaleLink } from '@/components/ui/LocaleLink';
@@ -341,14 +342,27 @@ export function SirenHero() {
                   {L('문서를 올린다', 'ON FILE · a document')}
                 </span>
               </div>
-              <div className={locale === 'ko' ? 'break-keep' : ''} style={{ color: 'var(--bp-ink)', fontSize: 15, fontWeight: 600, lineHeight: 1.4 }}>
-                {L('이미 써둔 문서가 있나요?', 'Already written it down?')}
-              </div>
-              <div className={locale === 'ko' ? 'break-keep' : ''} style={{ color: 'var(--bp-ink-soft)', fontSize: 12.5, marginTop: 4, lineHeight: 1.55 }}>
-                {L(
-                  '전략안·PDF·기획안을 올리면 근거가 약한 주장과 사람이 판단할 지점을 원문에서 표시합니다.',
-                  'Drop a memo, plan or PDF — weak evidence and the human’s-call points, flagged right on the source.',
-                )}
+              <div className="flex items-start gap-3">
+                <span className="relative mt-0.5 h-16 w-20 shrink-0 overflow-hidden border border-[var(--bp-ink-faint)] bg-[#171817]" aria-hidden="true">
+                  <Image
+                    src="/images/evidence/workspace/evidence-dossier-v1.jpg"
+                    alt=""
+                    fill
+                    sizes="80px"
+                    className="object-cover object-center transition-transform duration-500 ease-out motion-reduce:transition-none motion-safe:group-hover:scale-[1.025]"
+                  />
+                </span>
+                <div className="min-w-0">
+                  <div className={locale === 'ko' ? 'break-keep' : ''} style={{ color: 'var(--bp-ink)', fontSize: 15, fontWeight: 600, lineHeight: 1.4 }}>
+                    {L('이미 써둔 문서가 있나요?', 'Already written it down?')}
+                  </div>
+                  <div className={locale === 'ko' ? 'break-keep' : ''} style={{ color: 'var(--bp-ink-soft)', fontSize: 12.5, marginTop: 4, lineHeight: 1.55 }}>
+                    {L(
+                      '전략안·PDF·기획안을 올리면 근거가 약한 주장과 사람이 판단할 지점을 원문에서 표시합니다.',
+                      'Drop a memo, plan or PDF — weak evidence and the human’s-call points, flagged right on the source.',
+                    )}
+                  </div>
+                </div>
               </div>
               <span
                 className={`shrink-0 ${locale === 'ko' ? '' : 'bp-mono'}`}

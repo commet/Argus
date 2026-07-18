@@ -1,4 +1,6 @@
 import { ImageResponse } from 'next/og';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { adminClient } from '@/lib/share-guard';
 
 export const runtime = 'nodejs';
@@ -25,6 +27,15 @@ function clipped(text: string, n: number): string {
   return t.length > n ? `${t.slice(0, n - 1)}...` : t;
 }
 
+function argusFaceData(): string | null {
+  try {
+    const bytes = readFileSync(join(process.cwd(), 'public/images/brand/argus-v2/argus-face-mark-v3.jpg'));
+    return `data:image/jpeg;base64,${bytes.toString('base64')}`;
+  } catch {
+    return null;
+  }
+}
+
 export default async function Image({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
   const row = await fetchLink(token);
@@ -38,6 +49,7 @@ export default async function Image({ params }: { params: Promise<{ token: strin
     ? '봉인한 예측을 정한 날 현실과 대조한, 판단의 기록.'
     : 'A decision — its prediction sealed, then settled against reality.';
   const signature = ko ? 'AI 판정 —— 없음' : 'AI VERDICT —— NONE';
+  const face = argusFaceData();
 
   return new ImageResponse(
     (
@@ -64,8 +76,19 @@ export default async function Image({ params }: { params: Promise<{ token: strin
           }}
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div style={{ fontSize: 24, fontWeight: 800, color: '#8a6724', letterSpacing: '0.16em' }}>
-              ARGUS
+            <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+              {face && (
+                <img
+                  src={face}
+                  alt=""
+                  width={58}
+                  height={58}
+                  style={{ width: 58, height: 58, borderRadius: 8, objectFit: 'cover', border: '1px solid #d8c7a3' }}
+                />
+              )}
+              <div style={{ fontSize: 24, fontWeight: 800, color: '#8a6724', letterSpacing: '0.16em' }}>
+                ARGUS
+              </div>
             </div>
             <div style={{ fontSize: 18, color: '#8b8170', letterSpacing: '0.14em' }}>
               {kicker}
