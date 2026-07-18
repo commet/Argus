@@ -125,20 +125,20 @@ Argus가 어디서 돌든 루프는 같습니다.
 
 ```
 ┌─ ARGUS · JUDGMENT RECEIPT ────────────────────────────────┐
-  Prediction saved 2026-04-02      Result recorded 2026-06-30
+  예측 저장 2026-04-02              결과 기록 2026-06-30
 
-  THE REAL QUESTION
-    Can we cut over without a maintenance window users notice?
-  THE UNVERIFIED ASSUMPTION      (the AI's)
-    The index rebuild fits inside the replication lag budget.
-  HUMAN-ONLY CALL   Whether a 5-minute blip is acceptable.
-  …made by          Me. (not the model)
+  진짜 질문
+    사용자가 눈치채는 점검 시간 없이 전환할 수 있는가?
+  검증 안 된 가정          (AI의 것)
+    인덱스 재구축이 복제 지연 예산 안에 든다.
+  사람만이 할 판단   5분 정지가 허용 가능한가.
+  …판단한 사람       나. (모델이 아니라)
 
-  YOU PREDICTED   "Cutover downtime is under 5 minutes"   (check-by 2026-06-30)
-  WHAT HAPPENED   Cutover took 3 minutes, no customer reports.
+  나의 예측     "전환 다운타임 5분 미만"        (확인일 2026-06-30)
+  실제 결과     전환 3분, 고객 문의 0건.
   ─────────────────────────────────────────────────────────
-  AI VERDICT ON THIS DECISION ······················  NONE
-  The model never graded you. Reality did.
+  이 결정에 대한 AI의 평결 ······················  없음
+  모델은 당신을 채점하지 않았습니다. 현실이 답했습니다.
 └──────────────────────────  argus · prediction → reality ─┘
 ```
 
