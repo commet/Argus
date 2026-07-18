@@ -8,6 +8,7 @@ import {
   telemetryInstallId,
   recordToolCall,
   recordServerStart,
+  inviteTelemetryOptIn,
   type TelemetryEnv,
 } from '../telemetry.js';
 
@@ -87,5 +88,40 @@ describe('recorders never throw and no-op when disabled', () => {
 
   it('recordServerStart is a safe no-op when telemetry is off', () => {
     expect(() => recordServerStart(disabled)).not.toThrow();
+  });
+});
+
+describe('opt-in invite (privacy-first, no coercion)', () => {
+  function captureStderr(fn: () => void): string {
+    const orig = process.stderr.write;
+    let out = '';
+    (process.stderr as unknown as { write: (c: string) => boolean }).write = (chunk: string) => {
+      out += chunk;
+      return true;
+    };
+    try {
+      fn();
+    } finally {
+      process.stderr.write = orig;
+    }
+    return out;
+  }
+
+  it('leads with the privacy promise and offers the opt-in (never coercive)', () => {
+    const out = captureStderr(() => inviteTelemetryOptIn({}));
+    expect(out).toMatch(/no\s+network calls by default/i);
+    expect(out).toContain('ARGUS_TELEMETRY=1');
+    // never claims to send decision content
+    expect(out).toMatch(/never your decisions/i);
+  });
+
+  it('is fully suppressed under DO_NOT_TRACK — a globally opted-out user is never nudged', () => {
+    expect(captureStderr(() => inviteTelemetryOptIn({ DO_NOT_TRACK: '1' }))).toBe('');
+    expect(captureStderr(() => inviteTelemetryOptIn({ DO_NOT_TRACK: 'true' }))).toBe('');
+  });
+
+  it('recordServerStart surfaces the invite when telemetry is off', () => {
+    const out = captureStderr(() => recordServerStart({}));
+    expect(out).toContain('ARGUS_TELEMETRY=1');
   });
 });
