@@ -1,6 +1,10 @@
 <p align="center">
   <img src="public/voyage/voyage-mast.jpg" alt="Argus — Odysseus bound to the mast before the sirens' song" width="820">
 </p>
+<p align="center"><sub><em>
+Odysseus bound himself before the Sirens sang.<br>
+Argus binds a decision to its premises and prediction before fluency — or hindsight — can rewrite them.
+</em></sub></p>
 
 <h1 align="center">Argus</h1>
 
@@ -34,9 +38,11 @@ your calls**, settled against what actually happened.
 
 <img align="right" width="210" src="public/images/brand/argus-v2/argus-returning.jpg" alt="Argus — the hound who knew Odysseus beneath the disguise">
 
-Argus is the hound who, after twenty years, knew Odysseus beneath a beggar's
-rags — the one who recognized the true master under the disguise. Memory,
-recognition, and fidelity that outlast appearances.
+The mast above and the name **Argus** carry the two halves of the product.
+Odysseus bound himself before the Sirens could overtake his judgment. His hound,
+Argus, recognized him twenty years later beneath a beggar's rags. One holds a
+choice steady against persuasion; the other preserves memory, recognition, and
+fidelity beyond time and appearances.
 
 That's the whole product. Work with an AI long enough and its smooth voice
 quietly takes over your memory of *why* you decided. Argus is the dog at the
@@ -72,22 +78,22 @@ Work with an AI long enough and its assumptions quietly blend into yours. Argus
 pulls them apart and keeps them honest:
 
 - **Remember exactly.** Your words, your premises, your prediction — and *whose*
-  each one is. A sentence the AI surfaced never quietly becomes yours; provenance
-  is tagged, and derived guesses about you never reach a prompt without your
-  explicit, revocable grant.
+  each one is. Every premise stays tagged as yours or the AI's, so something the
+  model surfaced never quietly becomes your belief.
 - **Notice beneath the surface.** It surfaces the hidden premise and the real
   question under the fluent answer — without choosing a side for you.
 
 ### ② After you decide — it keeps watch and lets reality grade it
 
 - **Keep watch honestly.** It tracks only the signals *you* chose, and re-checks
-  the load-bearing premises against reality while the bet is still open. When one
-  rate hike breaks the premise under three of your decisions, that's **one**
-  re-check, not three.
+  the load-bearing premises while your decisions are still open. If several
+  decisions depend on the same premise, one material change brings them together
+  in a single re-check — showing the connection instead of stacking duplicate
+  alerts.
 - **Return first.** It comes back on the date you set — or earlier, when a watched
   premise materially moves.
-- **Stay without judging.** Reality answers, you record, Argus keeps the receipt.
-  `AI VERDICT` remains `NONE`.
+- **Keep the receipt, not a verdict.** Reality answers, you record, and Argus keeps
+  the receipt. `AI VERDICT` remains `NONE`.
 
 ---
 
@@ -101,8 +107,8 @@ Everywhere Argus runs, the loop is the same:
 3. **Wait quietly** — no nagging; if a watched premise shifts or the date arrives,
    Argus says so once.
 4. **Settle** against what actually happened. You answer; the model never grades.
-5. **Keep the receipt** — settled predictions accumulate into your own track
-   record: calibration you can see, principles you choose to ratify.
+5. **Keep the receipt** — settled predictions become a track record you can
+   inspect: how well calibrated you were, and which principles held up.
 
 <details>
 <summary>What that looks like at each door</summary>
@@ -155,7 +161,7 @@ verdict is, by design, `NONE`.
 | Whose reasoning it keeps | the model's answer | **yours** — your premises and prediction, tagged apart from the AI's |
 | Who evaluates | the model (scores, confidence) | **nobody** — `AI VERDICT: NONE`; reality settles on the date you set |
 | After the chat ends | the reasoning evaporates | Argus **comes back** — check-by dates, premise-change alerts |
-| What accumulates | an implicit profile of you | **a record you own**: settled predictions, your calibration, principles *you* ratified |
+| What accumulates | an implicit profile of you | **a record you own**: settled predictions, your calibration, principles that held up |
 
 ---
 
