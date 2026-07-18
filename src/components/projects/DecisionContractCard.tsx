@@ -102,7 +102,7 @@ export function verdictButtons(source: PredicateSource, ko: boolean): { value: V
 export function predicateQuestion(p: Predicate, ko: boolean): string {
   // user_lean: re-confront the user's OWN opening line as a bare neutral question
   // (the myth's "bind tighter" — their pre-AI lean is the anchor reality grades).
-  if (p.source === 'user_lean') return ko ? `출항 때 당신의 한 줄이 맞았나요 — ${p.text}` : `Did your opening lean hold — ${p.text}`;
+  if (p.source === 'user_lean') return ko ? `처음 적어둔 판단이 맞았나요 — ${p.text}` : `Did your initial judgment hold — ${p.text}`;
   if (p.source === 'governing_idea') return ko ? `핵심 가설이 맞았나요 — ${p.text}` : `Did the bet hold — ${p.text}`;
   if (p.source === 'actor') return ko ? `사람 판단이 필요했나요 — ${p.text}` : `Did this need human judgment — ${p.text}`;
   return ko ? `실제로 일어났나요 — ${p.text}` : `Did it happen — ${p.text}`;
@@ -329,7 +329,7 @@ export function DecisionContractCard({
           </div>
           <div className="flex-1 min-w-0">
             <h3 className="text-[15px] font-bold text-[var(--text-primary)]">
-              {L('검증된 항해', 'Verified voyage')}
+              {L('결과 확인 완료', 'Outcome checked')}
             </h3>
             <p className="text-[12.5px] text-[var(--text-secondary)] mt-1 leading-[1.55]">
               {parts.length > 0
@@ -388,7 +388,7 @@ export function DecisionContractCard({
           <h3 className="text-[15px] font-bold text-[var(--text-primary)]">
             {due
               ? L(`물어볼 게 ${status!.pending}개 있어요`, `${status!.pending} question${status!.pending === 1 ? '' : 's'} for you`)
-              : L('예측 봉인됨', 'Predictions sealed')}
+              : L('처음 판단 기록됨', 'Initial judgment recorded')}
           </h3>
           <p className="text-[12.5px] text-[var(--text-secondary)] mt-1 leading-[1.55]">
             {due
@@ -484,13 +484,13 @@ export function DecisionContractCard({
               <button
                 type="button"
                 onClick={() => {
-                  if (window.confirm(L('봉인을 취소할까요? 예측·확인일이 지워지고 다시 봉인할 수 있어요.', 'Unseal this? Its predictions & check-in date clear, and you can seal again.'))) {
+                  if (window.confirm(L('처음 판단 기록을 취소할까요? 예측과 확인일이 지워지고 다시 기록할 수 있어요.', 'Clear this initial judgment? Its predictions and check-in date will be removed so you can record it again.'))) {
                     updateProject(project.id, { decision_contract: undefined });
                   }
                 }}
                 className="text-[11.5px] text-[var(--text-tertiary)] hover:text-[var(--accent)] cursor-pointer transition-colors"
               >
-                {L('봉인 취소', 'Unseal')}
+                {L('처음 판단 기록 취소', 'Clear initial judgment')}
               </button>
             </div>
           )}

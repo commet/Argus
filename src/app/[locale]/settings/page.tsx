@@ -757,7 +757,7 @@ export default function SettingsPage() {
         <div className="flex items-center justify-between">
           <div>
             <p className="text-[13px] font-medium">{L('전환음', 'Transition Sound')}</p>
-            <p className="text-[11px] text-[var(--text-secondary)]">{L('단계 전환 시 잔잔한 항해 톤', 'A gentle voyage tone on step transitions')}</p>
+            <p className="text-[11px] text-[var(--text-secondary)]">{L('단계 전환 시 잔잔한 알림음', 'A gentle tone on step transitions')}</p>
           </div>
           <button
             role="switch"
@@ -844,13 +844,13 @@ export default function SettingsPage() {
           {([
             {
               key: 'new_arc_enabled' as const,
-              label: L('시험 항해 (실험 중)', 'Trial Sail (experimental)'),
+              label: L('중간 결과 확인 (실험 중)', 'Interim result check (experimental)'),
               desc: L('분석 단계에서 AI 실행자 여럿이 같은 글을 따로 읽고, 서로 다르게 읽은 지점을 보여줘요', 'In the analysis stage, several AI executors read the same text separately and show where their readings differ'),
             },
             {
               key: 'classic_session' as const,
               label: L('클래식 세션 보기', 'Classic session view'),
-              desc: L('단계별 확인 화면을 항상 펼쳐 둬요 (항해 지도는 이제 왼쪽에 늘 있어요)', 'Keep the per-step confirmation screens always open (the voyage map now lives on the left at all times)'),
+              desc: L('단계별 확인 화면을 항상 펼쳐 둬요 (결정 지도는 왼쪽에서 볼 수 있어요)', 'Keep per-step confirmation screens open (the decision map stays available on the left)'),
             },
             {
               key: 'all_output_formats' as const,
@@ -1142,7 +1142,7 @@ function PluginTokenBlock({ locale }: { locale: string }) {
     <IntegrationSection title={L('동기화 토큰 (플러그인 · MCP)', 'Sync token (plugin · MCP)')} defaultOpen={tokens.length > 0}>
       <div className="flex items-center justify-between gap-3">
         <div>
-          <p className="text-[12px] text-[var(--text-secondary)]">{L('플러그인: /argus:settings connect 후 /argus:settings sync. MCP: 아래 ARGUS_TOKEN을 설정에 넣으면 봉인한 예측이 이메일과 대시보드로 돌아옵니다.', 'Plugin: /argus:settings connect then /argus:settings sync. MCP: put ARGUS_TOKEN below in your config so sealed predictions return by email + dashboard.')}</p>
+          <p className="text-[12px] text-[var(--text-secondary)]">{L('플러그인: /argus:settings connect 후 /argus:settings sync. MCP: 아래 ARGUS_TOKEN을 설정에 넣으면 기록한 예측의 확인 알림을 이메일과 대시보드에서 받을 수 있어요.', 'Plugin: run /argus:settings connect, then /argus:settings sync. MCP: add the ARGUS_TOKEN below to receive check-in reminders for recorded predictions by email and in the dashboard.')}</p>
         </div>
         <Button variant="secondary" size="sm" onClick={issue} disabled={busy}>
           {busy ? <Loader2 size={14} className="animate-spin" /> : <KeyRound size={14} />} {L('새 토큰 발급', 'Issue token')}

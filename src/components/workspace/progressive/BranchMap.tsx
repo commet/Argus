@@ -67,7 +67,7 @@ export function BranchMap({
       // Nodes are interactive (pick to jump) — role="img" would prune them
       // from the a11y tree, so expose the chart as a group instead.
       role="group"
-      aria-label={L('항해 항로 차트', 'Voyage course chart')}
+      aria-label={L('결정 갈래 차트', 'Decision branch chart')}
     >
       <defs>
         <pattern id={gridId} width="20" height="20" patternUnits="userSpaceOnUse">

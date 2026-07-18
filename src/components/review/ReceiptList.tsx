@@ -53,7 +53,7 @@ export function ReceiptList({
   return (
     <div className="max-w-2xl mx-auto w-full flex flex-col gap-4">
       <div>
-        <h1 className="text-[20px] font-bold text-[var(--text-primary)]">{L('내 판단 항로', 'My judgment course')}</h1>
+        <h1 className="text-[20px] font-bold text-[var(--text-primary)]">{L('내 판단 기록', 'My decision record')}</h1>
         <p className="mt-1 text-[13px] text-[var(--text-secondary)]">
           {dueCount > 0
             ? L(

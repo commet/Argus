@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback, type ReactNode } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Check, AlertTriangle, Info, X } from 'lucide-react';
 import type { ToastVariant } from '@/lib/toast';
+import { useLocale } from '@/hooks/useLocale';
 
 interface ToastItem { id: number; message: string; variant: ToastVariant }
 
@@ -17,6 +18,7 @@ let seq = 0;
 
 /** Global toast renderer. Mount once (in Header, alongside the other toasts). */
 export function Toast() {
+  const locale = useLocale();
   const [items, setItems] = useState<ToastItem[]>([]);
   const remove = useCallback((id: number) => setItems((xs) => xs.filter((x) => x.id !== id)), []);
 
@@ -50,7 +52,7 @@ export function Toast() {
             >
               <span className="mt-0.5 shrink-0">{s.icon}</span>
               <span className="text-[12px] leading-snug flex-1">{t.message}</span>
-              <button onClick={() => remove(t.id)} aria-label="닫기" className="shrink-0 opacity-70 hover:opacity-100 cursor-pointer transition-opacity">
+              <button onClick={() => remove(t.id)} aria-label={locale === 'ko' ? '닫기' : 'Close'} className="shrink-0 opacity-70 hover:opacity-100 cursor-pointer transition-opacity">
                 <X size={12} />
               </button>
             </motion.div>

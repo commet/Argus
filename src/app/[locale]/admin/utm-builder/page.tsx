@@ -6,35 +6,37 @@ import { Card } from '@/components/ui/Card';
 import { CopyButton } from '@/components/ui/CopyButton';
 import { Link2, Copy, Trash2, Check } from 'lucide-react';
 import { LocaleLink } from '@/components/ui/LocaleLink';
+import { useLocale } from '@/hooks/useLocale';
 
 type Preset = {
   id: string;
-  label: string;
+  ko: string;
+  en: string;
   source: string;
   medium: string;
 };
 
 const PRESETS: Preset[] = [
-  { id: 'kakao', label: '카카오톡 톡방', source: 'kakao', medium: 'chat' },
-  { id: 'threads', label: 'Threads', source: 'threads', medium: 'social' },
-  { id: 'instagram', label: 'Instagram (스토리/포스트)', source: 'instagram', medium: 'social' },
-  { id: 'linkedin', label: 'LinkedIn', source: 'linkedin', medium: 'social' },
-  { id: 'x', label: 'X (Twitter)', source: 'x', medium: 'social' },
-  { id: 'discord', label: 'Discord', source: 'discord', medium: 'community' },
-  { id: 'facebook', label: '페이스북 그룹', source: 'facebook', medium: 'community' },
-  { id: 'reddit', label: 'Reddit', source: 'reddit', medium: 'community' },
-  { id: 'blog', label: '블로그 글', source: 'blog', medium: 'article' },
-  { id: 'email', label: '이메일 뉴스레터', source: 'email', medium: 'newsletter' },
-  { id: 'youtube', label: '유튜브 설명란', source: 'youtube', medium: 'video' },
-  { id: 'custom', label: '직접 입력', source: '', medium: '' },
+  { id: 'kakao', ko: '카카오톡 대화방', en: 'KakaoTalk chat', source: 'kakao', medium: 'chat' },
+  { id: 'threads', ko: 'Threads', en: 'Threads', source: 'threads', medium: 'social' },
+  { id: 'instagram', ko: 'Instagram (스토리/게시물)', en: 'Instagram (story/post)', source: 'instagram', medium: 'social' },
+  { id: 'linkedin', ko: 'LinkedIn', en: 'LinkedIn', source: 'linkedin', medium: 'social' },
+  { id: 'x', ko: 'X (Twitter)', en: 'X (Twitter)', source: 'x', medium: 'social' },
+  { id: 'discord', ko: 'Discord', en: 'Discord', source: 'discord', medium: 'community' },
+  { id: 'facebook', ko: 'Facebook 그룹', en: 'Facebook group', source: 'facebook', medium: 'community' },
+  { id: 'reddit', ko: 'Reddit', en: 'Reddit', source: 'reddit', medium: 'community' },
+  { id: 'blog', ko: '블로그 글', en: 'Blog post', source: 'blog', medium: 'article' },
+  { id: 'email', ko: '이메일 뉴스레터', en: 'Email newsletter', source: 'email', medium: 'newsletter' },
+  { id: 'youtube', ko: 'YouTube 설명란', en: 'YouTube description', source: 'youtube', medium: 'video' },
+  { id: 'custom', ko: '직접 입력', en: 'Custom', source: '', medium: '' },
 ];
 
 const PATHS = [
-  { value: '/', label: '홈 (/)' },
-  { value: '/demo', label: '데모 (/demo)' },
-  { value: '/workspace', label: 'Workspace (/workspace)' },
-  { value: '/boss', label: 'Boss 시뮬레이터 (/boss)' },
-  { value: '/agents', label: '에이전트 (/agents)' },
+  { value: '/', ko: '홈 (/)', en: 'Home (/)' },
+  { value: '/demo', ko: '데모 (/demo)', en: 'Demo (/demo)' },
+  { value: '/workspace', ko: '워크스페이스 (/workspace)', en: 'Workspace (/workspace)' },
+  { value: '/boss', ko: '팀장 대화 리허설 (/boss)', en: 'Manager conversation rehearsal (/boss)' },
+  { value: '/agents', ko: 'AI 팀원 (/agents)', en: 'AI reviewers (/agents)' },
 ];
 
 const BASE_URL = 'https://argus.voyage';
@@ -78,6 +80,8 @@ function saveHistory(entries: HistoryEntry[]) {
 }
 
 export default function UtmBuilderPage() {
+  const locale = useLocale();
+  const L = (ko: string, en: string) => locale === 'ko' ? ko : en;
   const { user, loading } = useAuth();
 
   const [presetId, setPresetId] = useState<string>('kakao');
@@ -102,19 +106,20 @@ export default function UtmBuilderPage() {
 
   const builtUrl = useMemo(() => {
     if (!source) return '';
-    const url = new URL(BASE_URL + path);
+    const localizedPath = `/${locale}${path === '/' ? '' : path}`;
+    const url = new URL(BASE_URL + localizedPath);
     url.searchParams.set('utm_source', source);
     if (medium) url.searchParams.set('utm_medium', medium);
     if (campaignSlug) url.searchParams.set('utm_campaign', campaignSlug);
     if (contentSlug) url.searchParams.set('utm_content', contentSlug);
     return url.toString();
-  }, [path, source, medium, campaignSlug, contentSlug]);
+  }, [locale, path, source, medium, campaignSlug, contentSlug]);
 
   const isReady = !!source && !!campaignSlug;
 
   const handleSaveToHistory = () => {
     if (!isReady || !builtUrl) return;
-    const label = `${preset.label}${campaign ? ' · ' + campaign : ''}${content ? ' / ' + content : ''}`;
+    const label = `${locale === 'ko' ? preset.ko : preset.en}${campaign ? ' · ' + campaign : ''}${content ? ' / ' + content : ''}`;
     const next = [
       { url: builtUrl, label, createdAt: Date.now() },
       ...history.filter(h => h.url !== builtUrl),
@@ -140,14 +145,14 @@ export default function UtmBuilderPage() {
   };
 
   if (loading) {
-    return <div className="min-h-screen flex items-center justify-center text-[var(--text-tertiary)]">Loading…</div>;
+    return <div className="min-h-screen flex items-center justify-center text-[var(--text-tertiary)]">{L('불러오는 중…', 'Loading…')}</div>;
   }
   if (!user) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Card className="p-8 max-w-sm">
-          <p className="text-[14px] text-[var(--text-secondary)]">로그인이 필요합니다.</p>
-          <LocaleLink href="/login" className="mt-4 inline-block text-[13px] text-[var(--accent)] underline">로그인 하러 가기</LocaleLink>
+          <p className="text-[14px] text-[var(--text-secondary)]">{L('로그인이 필요합니다.', 'Sign in is required.')}</p>
+          <LocaleLink href="/login" className="mt-4 inline-block text-[13px] text-[var(--accent)] underline">{L('로그인하기', 'Sign in')}</LocaleLink>
         </Card>
       </div>
     );
@@ -159,12 +164,10 @@ export default function UtmBuilderPage() {
         <header className="mb-8">
           <div className="flex items-center gap-2 mb-2">
             <Link2 size={20} className="text-[var(--accent)]" />
-            <h1 className="text-[22px] font-bold text-[var(--text-primary)]">UTM 링크 빌더</h1>
+            <h1 className="text-[22px] font-bold text-[var(--text-primary)]">{L('UTM 링크 만들기', 'UTM link builder')}</h1>
           </div>
           <p className="text-[13px] text-[var(--text-secondary)] leading-[1.6]">
-            공유하는 채널마다 다른 링크를 찍어주면 데일리 리포트의 <strong>유입 소스·캠페인</strong>별로 추적됩니다.
-            <br />
-            예: 카톡 A방용 / 카톡 B방용 / Threads용 — 각기 다른 URL로 만들어 뿌리세요.
+            {L('채널마다 다른 링크를 만들면 데일리 리포트에서 유입 소스와 캠페인별 성과를 구분할 수 있어요.', 'Create a distinct link for each channel so the daily report can separate traffic by source and campaign.')}
           </p>
         </header>
 
@@ -173,7 +176,7 @@ export default function UtmBuilderPage() {
           <div className="flex flex-col gap-5">
             {/* Channel */}
             <div>
-              <label className="block text-[13px] font-semibold text-[var(--text-primary)] mb-2">채널</label>
+              <label className="block text-[13px] font-semibold text-[var(--text-primary)] mb-2">{L('채널', 'Channel')}</label>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-1.5">
                 {PRESETS.map(p => (
                   <button
@@ -188,7 +191,7 @@ export default function UtmBuilderPage() {
                       }
                     `}
                   >
-                    {p.label}
+                    {locale === 'ko' ? p.ko : p.en}
                   </button>
                 ))}
               </div>
@@ -203,7 +206,7 @@ export default function UtmBuilderPage() {
                     type="text"
                     value={customSource}
                     onChange={e => setCustomSource(e.target.value)}
-                    placeholder="예: ponderly, hn"
+                    placeholder={L('예: ponderly, hn', 'e.g. ponderly, hn')}
                     className="w-full bg-[var(--bg)] border border-[var(--border)] rounded-lg px-3 py-2 text-[14px]"
                   />
                 </div>
@@ -213,7 +216,7 @@ export default function UtmBuilderPage() {
                     type="text"
                     value={customMedium}
                     onChange={e => setCustomMedium(e.target.value)}
-                    placeholder="예: newsletter, forum"
+                    placeholder={L('예: newsletter, forum', 'e.g. newsletter, forum')}
                     className="w-full bg-[var(--bg)] border border-[var(--border)] rounded-lg px-3 py-2 text-[14px]"
                   />
                 </div>
@@ -223,46 +226,46 @@ export default function UtmBuilderPage() {
             {/* Campaign (required) */}
             <div>
               <label className="block text-[13px] font-semibold text-[var(--text-primary)] mb-1.5">
-                캠페인 이름 <span className="text-[var(--accent)]">*</span>
+                {L('캠페인 이름', 'Campaign name')} <span className="text-[var(--accent)]">*</span>
               </label>
               <input
                 type="text"
                 value={campaign}
                 onChange={e => setCampaign(e.target.value)}
-                placeholder="예: vibecoding_kr, launch_april, designer_cafe"
+                placeholder={L('예: vibecoding_kr, launch_april', 'e.g. launch_april, design_community')}
                 className="w-full bg-[var(--bg)] border border-[var(--border)] rounded-lg px-3 py-2 text-[14px]"
               />
               <p className="text-[11px] text-[var(--text-tertiary)] mt-1">
-                리포트에서 이 값으로 그룹핑됩니다. 톡방마다 다르게 짓는 걸 추천.
+                {L('리포트에서 이 값으로 묶어 봅니다. 캠페인이나 그룹마다 구분해 주세요.', 'Reports group results by this value. Use a distinct name for each campaign or group.')}
               </p>
             </div>
 
             {/* Content (optional) */}
             <div>
               <label className="block text-[13px] font-semibold text-[var(--text-primary)] mb-1.5">
-                콘텐츠 <span className="text-[var(--text-tertiary)] font-normal">(선택)</span>
+                {L('콘텐츠', 'Content')} <span className="text-[var(--text-tertiary)] font-normal">{L('(선택)', '(optional)')}</span>
               </label>
               <input
                 type="text"
                 value={content}
                 onChange={e => setContent(e.target.value)}
-                placeholder="예: first_share, pinned_msg, v2"
+                placeholder={L('예: first_share, pinned_msg, v2', 'e.g. first_share, pinned_msg, v2')}
                 className="w-full bg-[var(--bg)] border border-[var(--border)] rounded-lg px-3 py-2 text-[14px]"
               />
               <p className="text-[11px] text-[var(--text-tertiary)] mt-1">
-                같은 캠페인 내에서 A/B 구분이 필요할 때.
+                {L('같은 캠페인 안에서 A/B 링크를 구분할 때 사용합니다.', 'Use this to distinguish A/B links within one campaign.')}
               </p>
             </div>
 
             {/* Destination */}
             <div>
-              <label className="block text-[13px] font-semibold text-[var(--text-primary)] mb-1.5">랜딩 페이지</label>
+              <label className="block text-[13px] font-semibold text-[var(--text-primary)] mb-1.5">{L('도착 페이지', 'Destination')}</label>
               <select
                 value={path}
                 onChange={e => setPath(e.target.value)}
                 className="w-full bg-[var(--bg)] border border-[var(--border)] rounded-lg px-3 py-2 text-[14px]"
               >
-                {PATHS.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
+                {PATHS.map(p => <option key={p.value} value={p.value}>{locale === 'ko' ? p.ko : p.en}</option>)}
               </select>
             </div>
           </div>
@@ -271,14 +274,14 @@ export default function UtmBuilderPage() {
         {/* ── Generated URL ── */}
         <Card variant={isReady ? 'elevated' : 'muted'} className="p-6 mb-6">
           <div className="flex items-center justify-between mb-3">
-            <p className="text-[11px] font-semibold text-[var(--text-tertiary)] uppercase tracking-wider">생성된 링크</p>
+            <p className="text-[11px] font-semibold text-[var(--text-tertiary)] uppercase tracking-wider">{L('생성된 링크', 'Generated link')}</p>
             {isReady && (
               <button
                 type="button"
                 onClick={handleSaveToHistory}
                 className="min-h-[44px] inline-flex items-center py-2 px-1 text-[12px] text-[var(--accent)] hover:underline"
               >
-                최근 목록에 저장
+                {L('최근 목록에 저장', 'Save to recent')}
               </button>
             )}
           </div>
@@ -289,14 +292,14 @@ export default function UtmBuilderPage() {
               </code>
             ) : (
               <p className="text-[13px] text-[var(--text-tertiary)]">
-                {!source && '채널을 선택하세요. '}
-                {!campaignSlug && '캠페인 이름을 입력하세요.'}
+                {!source && L('채널을 선택하세요. ', 'Choose a channel. ')}
+                {!campaignSlug && L('캠페인 이름을 입력하세요.', 'Enter a campaign name.')}
               </p>
             )}
           </div>
           {isReady && (
             <div className="mt-3 flex justify-end">
-              <CopyButton getText={() => builtUrl} label="링크 복사" />
+              <CopyButton getText={() => builtUrl} label={L('링크 복사', 'Copy link')} />
             </div>
           )}
         </Card>
@@ -304,7 +307,7 @@ export default function UtmBuilderPage() {
         {/* ── History ── */}
         {history.length > 0 && (
           <Card className="p-6 mb-6">
-            <p className="text-[11px] font-semibold text-[var(--text-tertiary)] uppercase tracking-wider mb-3">최근 저장한 링크</p>
+            <p className="text-[11px] font-semibold text-[var(--text-tertiary)] uppercase tracking-wider mb-3">{L('최근 저장한 링크', 'Recently saved links')}</p>
             <div className="flex flex-col gap-2">
               {history.map(h => (
                 <div
@@ -319,7 +322,7 @@ export default function UtmBuilderPage() {
                     type="button"
                     onClick={() => handleCopyHistory(h.url)}
                     className="flex-shrink-0 min-w-[44px] min-h-[44px] inline-flex items-center justify-center rounded-md hover:bg-[var(--border-subtle)] transition-colors"
-                    title="복사"
+                    title={L('복사', 'Copy')}
                   >
                     {justCopied === h.url ? (
                       <Check size={14} className="text-[var(--success)]" />
@@ -331,7 +334,7 @@ export default function UtmBuilderPage() {
                     type="button"
                     onClick={() => handleDeleteHistory(h.url)}
                     className="flex-shrink-0 min-w-[44px] min-h-[44px] inline-flex items-center justify-center rounded-md hover:bg-[var(--danger)]/10 transition-colors"
-                    title="삭제"
+                    title={L('삭제', 'Delete')}
                   >
                     <Trash2 size={14} className="text-[var(--text-tertiary)] hover:text-red-500" />
                   </button>
@@ -343,18 +346,17 @@ export default function UtmBuilderPage() {
 
         {/* ── Helper ── */}
         <Card variant="muted" className="p-5">
-          <p className="text-[11px] font-semibold text-[var(--text-tertiary)] uppercase tracking-wider mb-2">힌트</p>
+          <p className="text-[11px] font-semibold text-[var(--text-tertiary)] uppercase tracking-wider mb-2">{L('힌트', 'Guide')}</p>
           <ul className="text-[12px] text-[var(--text-secondary)] leading-[1.7] list-disc pl-4 space-y-1">
-            <li><strong>Source</strong>: 어느 플랫폼? (kakao, threads, linkedin …)</li>
-            <li><strong>Medium</strong>: 형태? (chat, social, community, newsletter …)</li>
-            <li><strong>Campaign</strong>: 구체적 목적/그룹. 톡방 이름이나 런치 이벤트명을 권장 (예: <code>vibecoding_foocafe</code>)</li>
-            <li><strong>Content</strong>: 같은 캠페인 내 A/B 구분이 필요할 때만 (예: pinned vs reply)</li>
-            <li>공유 시 URL이 길어 보이면 <a href="https://bit.ly" target="_blank" rel="noopener" className="underline">bit.ly</a> 같은 단축기도 OK — UTM은 리다이렉트 후에도 유지됨</li>
+            <li>{L('Source: 유입 플랫폼 (kakao, threads, linkedin 등)', 'Source: the referring platform (kakao, threads, linkedin, etc.)')}</li>
+            <li>{L('Medium: 링크의 형태 (chat, social, community 등)', 'Medium: the channel format (chat, social, community, etc.)')}</li>
+            <li>{L('Campaign: 구체적인 목적이나 배포 그룹', 'Campaign: the specific purpose or distribution group')}</li>
+            <li>{L('Content: 같은 캠페인 안의 A/B 구분', 'Content: an A/B distinction within one campaign')}</li>
           </ul>
         </Card>
 
         <p className="text-[11px] text-[var(--text-tertiary)] text-center mt-8">
-          생성된 링크는 공개 URL입니다. UTM 파라미터는 기능 변경 없이 추적용 라벨만 붙입니다.
+          {L('생성된 링크는 공개 URL이며, UTM 값은 추적용 라벨로만 사용됩니다.', 'Generated links are public URLs. UTM values are tracking labels only.')}
         </p>
       </div>
     </div>

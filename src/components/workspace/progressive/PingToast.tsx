@@ -34,7 +34,7 @@ function messageFor(source: PingSource | null, locale: string): { text: string; 
     case 'deploy':
       return { text: L('팀이 작업을 시작했어요', 'Team started working'), kind: 'input' };
     case 'workers_done':
-      return { text: L('팀 분석 완료 — 아래에서 확인', 'Team analysis ready — scroll down'), kind: 'output' };
+      return { text: L('AI 검토자의 결과가 준비됐어요', 'AI reviewer findings are ready'), kind: 'output' };
     case 'mix_done':
       return { text: L('초안이 준비됐어요', 'Draft ready'), kind: 'output' };
     case 'dm_ready':

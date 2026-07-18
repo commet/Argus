@@ -201,7 +201,7 @@ export function BindCard({
             this card (buffered by design); say so in one machine-status sentence.
             No spinner: the analysis stays buffered, this is orientation only. */}
         <p className="mt-4 text-[12px] leading-snug text-[var(--text-secondary)]">
-          {L('AI 팀원은 적어주신 내용을 이미 읽고 있어요. 다음 화면에서 정리한 질문을 보여드려요.',
+          {L('AI 검토자는 적어주신 내용을 이미 읽고 있어요. 다음 화면에서 정리한 질문을 보여드려요.',
              'AI reviewers are already reading what you wrote. The organized question appears next.')}
         </p>
       </div>

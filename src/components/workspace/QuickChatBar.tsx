@@ -236,14 +236,14 @@ export function QuickChatBar({ activeStep, onNavigate }: QuickChatBarProps) {
           onClick={handleSubmit}
           disabled={!input.trim() || loading}
           className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg bg-[var(--accent)] text-[var(--bg)] disabled:opacity-40 cursor-pointer hover:bg-[var(--accent-light)] transition-colors shrink-0"
-          aria-label="Send"
+          aria-label={locale === 'ko' ? '보내기' : 'Send'}
         >
           {loading ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
         </button>
         <button
           onClick={() => setIsOpen(false)}
           className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg text-[var(--text-secondary)] hover:bg-[var(--bg)] cursor-pointer transition-colors shrink-0"
-          aria-label="Close"
+          aria-label={locale === 'ko' ? '닫기' : 'Close'}
         >
           <X size={14} />
         </button>

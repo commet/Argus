@@ -270,8 +270,8 @@ export default function ImportPage() {
                 <p className="text-[var(--text-primary)] flex items-center gap-1.5">
                   <CheckCircle2 size={14} className="text-[var(--primary)]" />
                   {L(
-                    `결정 ${summary.decisions.written}건, 항해 기록 ${summary.bearings.written}건을 가져왔습니다.`,
-                    `Imported ${summary.decisions.written} decisions, ${summary.bearings.written} bearings.`,
+                    `결정 ${summary.decisions.written}건, 결정 방향 ${summary.bearings.written}건을 가져왔습니다.`,
+                    `Imported ${summary.decisions.written} decisions and ${summary.bearings.written} decision directions.`,
                   )}
                 </p>
               )}
@@ -371,10 +371,10 @@ export default function ImportPage() {
 
       <section>
         <h2 className="text-[13px] font-bold uppercase tracking-wider text-[var(--text-tertiary)] mb-3 flex items-center gap-2">
-          <Compass size={14} />{L('항해 기록', 'Bearings')} <span className="text-[var(--text-tertiary)]/70">({bearings.length})</span>
+          <Compass size={14} />{L('결정 방향', 'Decision directions')} <span className="text-[var(--text-tertiary)]/70">({bearings.length})</span>
         </h2>
         {loaded && !loadError && bearings.length === 0 ? (
-          <p className="text-[13px] text-[var(--text-tertiary)]">{L('아직 가져온 항해 기록이 없습니다.', 'No bearings imported yet.')}</p>
+          <p className="text-[13px] text-[var(--text-tertiary)]">{L('아직 가져온 결정 방향이 없습니다.', 'No decision directions imported yet.')}</p>
         ) : (
           <div className="space-y-2.5">
             {bearings.map((b) => (
