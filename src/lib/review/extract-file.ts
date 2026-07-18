@@ -51,6 +51,15 @@ export interface VisionSource {
   pages_seen?: number;
 }
 
+/** Small, transient source images for the human-facing evidence pane. They are
+ * never persisted with a receipt; the same pixels the review can inspect stay
+ * visible to the user for the current session. */
+export interface SourcePreview {
+  media_type: 'image/png' | 'image/jpeg' | 'image/webp' | 'image/gif';
+  data: string;
+  page?: number;
+}
+
 // Vision caps. The binding constraint is the server body ceiling (~4.4MB), so a
 // PDF only rides as a native document block when the RAW file is small enough
 // that its base64 fits; a bigger or scanned PDF is rendered to downscaled page
@@ -87,6 +96,11 @@ export interface ExtractedText {
   error_kind?: ExtractErrorKind;
   /** opt-in multimodal payload (PDF document / deck images) — see VisionSource. */
   vision?: VisionSource;
+  /** Human-facing page/image previews. Transient, never stored in the receipt. */
+  previews?: SourcePreview[];
+  /** Original PDF bytes for the in-session evidence viewer. Never persisted;
+   *  each renderer receives a copy because pdf.js transfers its input buffer. */
+  pdf_data?: Uint8Array;
   /** extractor-side caps → feeds ReviewCoverage so a page/unit-capped file can't
    *  masquerade as fully reviewed (see lib/review/coverage.ts). */
   pages_total?: number;
@@ -159,7 +173,7 @@ export async function extractFile(file: File, kind: SourceKind): Promise<Extract
     return await extractPdf(buf);
   } catch (e) {
     const { note, error_kind } = classifyExtractError(e, kind);
-    return { text: '', quality: 'unsupported', note, error_kind };
+    return { text: '', quality: 'unsupported', error_kind, note };
   }
 }
 
@@ -200,9 +214,11 @@ async function extractImage(file: File, buf: ArrayBuffer): Promise<ExtractedText
   const bytes = new Uint8Array(buf);
   // Small enough to send as-is — best fidelity, no re-encode.
   if (bytes.length <= IMAGE_PASSTHROUGH_MAX_BYTES) {
+    const data = toBase64(bytes);
     return {
       text: '', quality: 'medium',
-      vision: { kind: 'images', images: [{ media_type, data: toBase64(bytes), page: 1 }], page_count: 1, pages_seen: 1 },
+      vision: { kind: 'images', images: [{ media_type, data, page: 1 }], page_count: 1, pages_seen: 1 },
+      previews: [{ media_type, data, page: 1 }],
     };
   }
   // Larger image → downscale to Anthropic's max long edge and JPEG-encode so it
@@ -214,6 +230,7 @@ async function extractImage(file: File, buf: ArrayBuffer): Promise<ExtractedText
         text: '', quality: 'medium',
         note: '이미지를 검수용으로 축소했어요 (원본 화질과 다를 수 있어요).',
         vision: { kind: 'images', images: [{ media_type: 'image/jpeg', data: down, page: 1 }], page_count: 1, pages_seen: 1 },
+        previews: [{ media_type: 'image/jpeg', data: down, page: 1 }],
       };
     }
   } catch {
@@ -385,10 +402,11 @@ async function extractPptx(buf: ArrayBuffer): Promise<ExtractedText> {
   // (ppt/media/*) ARE the charts/diagrams the text extractor can't read. Send
   // those images so the model sees them — imperfect (no slide layout) but real.
   const vision = await extractPptxImages(zip);
+  const previews = vision?.images?.slice(0, 4);
 
   const total = units.reduce((n, u) => n + u.text.length, 0);
-  if (total < 40) return { text: '', units: [], quality: 'low', note: '슬라이드에서 텍스트를 거의 찾지 못했습니다 (이미지 위주의 deck일 수 있습니다).', vision, ...caps };
-  return { text: units.map((u) => u.text).join('\n'), units, quality: 'medium', vision, ...caps };
+  if (total < 40) return { text: '', units: [], quality: 'low', note: '슬라이드에서 텍스트를 거의 찾지 못했습니다 (이미지 위주의 deck일 수 있습니다).', vision, previews, ...caps };
+  return { text: units.map((u) => u.text).join('\n'), units, quality: 'medium', vision, previews, ...caps };
 }
 
 /** Pull a deck's embedded raster images (ppt/media/*.png|jpg|jpeg|gif) as base64
@@ -501,13 +519,13 @@ function codePoint(n: number): string {
 // --------------------------------------------------------------------------
 
 async function extractPdf(buf: ArrayBuffer): Promise<ExtractedText> {
-  const pdfjs = await import('pdfjs-dist');
-  // Worker asset resolved by the bundler; new URL keeps webpack/Turbopack happy.
-  pdfjs.GlobalWorkerOptions.workerSrc = new URL(
-    'pdfjs-dist/build/pdf.worker.min.mjs',
-    import.meta.url,
-  ).toString();
+  // The package entry creates a module Worker with a package-relative URL.
+  // Next.js can then emit the worker asset for both webpack and Turbopack.
+  const pdfjs = await import('pdfjs-dist/webpack.mjs');
 
+  // pdf.js transfers its input to the worker, detaching that ArrayBuffer. Keep
+  // a separate copy for the vision payload and human-facing page previews.
+  const sourceBytes = buf.slice(0);
   const doc = await pdfjs.getDocument({ data: buf }).promise;
   const units: ArtifactUnit[] = [];
   const pageCount = Math.min(doc.numPages, PAGE_CAP);
@@ -544,7 +562,11 @@ async function extractPdf(buf: ArrayBuffer): Promise<ExtractedText> {
   // Opt-in vision payload — computed the same way whether or not the PDF has a
   // text layer. A SCANNED PDF (no text) is exactly what vision is for, so it is
   // attached here too; the pipeline can review purely from the page images.
-  const vision = await buildPdfVision(doc as unknown as PdfDocLike, buf);
+  const vision = await buildPdfVision(doc as unknown as PdfDocLike, sourceBytes);
+  const pdf_data = new Uint8Array(sourceBytes);
+  const previews = vision?.kind === 'images'
+    ? vision.images?.slice(0, 4)
+    : await renderPdfPreviewPages(doc as unknown as PdfDocLike).catch(() => []);
 
   const total = units.reduce((n, u) => n + u.text.length, 0);
   if (total < 40) {
@@ -553,7 +575,7 @@ async function extractPdf(buf: ArrayBuffer): Promise<ExtractedText> {
     const note = vision
       ? '이 PDF는 텍스트가 없어(스캔 이미지) 비전 검수로만 읽을 수 있어요. "이미지까지 정밀 검수"를 켜고 실행하세요.'
       : '이 PDF에서 텍스트를 거의 추출하지 못했습니다 (스캔 이미지 PDF일 수 있습니다).';
-    return { text: '', units: [], quality: 'low', note, vision, ...caps };
+    return { text: '', units: [], quality: 'low', note, vision, previews, pdf_data, ...caps };
   }
   const layoutNote = multiColumn || hasTable
     ? '다단·표가 있어 일부 순서가 어긋날 수 있어요 — 핵심 본문은 붙여넣기가 더 정확합니다.'
@@ -564,6 +586,8 @@ async function extractPdf(buf: ArrayBuffer): Promise<ExtractedText> {
     quality: 'medium',
     note: total < 400 ? '추출된 텍스트가 적습니다. 핵심 본문은 붙여넣으면 더 정확합니다.' : layoutNote,
     vision,
+    previews,
+    pdf_data,
     ...caps,
   };
 }
@@ -632,4 +656,40 @@ async function renderPdfPages(doc: PdfDocLike): Promise<NonNullable<VisionSource
     images.push({ media_type: 'image/jpeg', data, page: p });
   }
   return images;
+}
+
+/** Render just the first four pages for the on-screen evidence pane. Small PDFs
+ * otherwise travel as a native PDF block, which left the human UI with no page
+ * pixels even though the model could see them. */
+async function renderPdfPreviewPages(doc: PdfDocLike): Promise<SourcePreview[]> {
+  const previews: SourcePreview[] = [];
+  const n = Math.min(doc.numPages, 4);
+  for (let p = 1; p <= n; p++) {
+    const page = await doc.getPage(p);
+    const base = page.getViewport({ scale: 1 });
+    const scale = Math.min(1.5, 420 / Math.max(1, base.width));
+    const viewport = page.getViewport({ scale });
+    const w = Math.max(1, Math.round(viewport.width));
+    const h = Math.max(1, Math.round(viewport.height));
+    let blob: Blob;
+    if (typeof OffscreenCanvas !== 'undefined') {
+      const canvas = new OffscreenCanvas(w, h);
+      const ctx = canvas.getContext('2d');
+      if (!ctx) break;
+      await page.render({ canvas, canvasContext: ctx, viewport }).promise;
+      blob = await canvas.convertToBlob({ type: 'image/jpeg', quality: 0.72 });
+    } else if (typeof document !== 'undefined') {
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) break;
+      await page.render({ canvas, canvasContext: ctx, viewport }).promise;
+      blob = await new Promise<Blob>((resolve, reject) =>
+        canvas.toBlob((value) => value ? resolve(value) : reject(new Error('toBlob failed')), 'image/jpeg', 0.72));
+    } else {
+      break;
+    }
+    previews.push({ media_type: 'image/jpeg', data: toBase64(new Uint8Array(await blob.arrayBuffer())), page: p });
+  }
+  return previews;
 }

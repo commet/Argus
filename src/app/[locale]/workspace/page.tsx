@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useRef, useState, Suspense } from 'react';
+import Image from 'next/image';
 import { useSearchParams } from 'next/navigation';
 import { useWorkspaceStore, type StepId } from '@/stores/useWorkspaceStore';
 import { useProjectStore } from '@/stores/useProjectStore';
@@ -41,6 +42,7 @@ import { InteractiveDemo } from '@/components/workspace/InteractiveDemo';
 import { RetroSeal } from '@/components/workspace/RetroSeal';
 import { getDemoScenarios } from '@/lib/demo-data';
 import type { DemoScenario } from '@/lib/demo-data';
+import { DEMO_SCENARIO_ART } from '@/lib/demo-scenario-art';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { WorkerPersona, DecisionContract, VoyageBranch } from '@/stores/types';
 import { ErrorBoundary } from '@/components/layout/ErrorBoundary';
@@ -769,8 +771,18 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
                     Secondary to the primary write input above; ink, never gold. */}
                 <LocaleLink
                   href="/tools/review"
-                  className="group mt-3 flex items-center justify-between gap-4 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface)] px-4 py-3 min-h-[44px] hover:border-[var(--accent)]/40 hover:shadow-[var(--shadow-sm)] transition-all"
+                  className="group mt-3 flex min-h-[88px] items-stretch overflow-hidden rounded-lg border border-[var(--border-subtle)] bg-[var(--surface)] hover:border-[var(--accent)]/40 hover:shadow-[var(--shadow-sm)] transition-all"
                 >
+                  <span className="relative w-24 shrink-0 overflow-hidden border-r border-[var(--border-subtle)] bg-[#171817]" aria-hidden="true">
+                    <Image
+                      src="/images/evidence/workspace/evidence-dossier-v1.jpg"
+                      alt=""
+                      fill
+                      sizes="96px"
+                      className="object-cover object-center transition-transform duration-500 ease-out motion-reduce:transition-none motion-safe:group-hover:scale-[1.025]"
+                    />
+                  </span>
+                  <div className="flex min-w-0 flex-1 items-center justify-between gap-3 px-3.5 py-3">
                   <div className="min-w-0">
                     <div className="flex items-center gap-1.5 mb-0.5">
                       <FileText size={13} className="text-[var(--text-tertiary)] shrink-0" />
@@ -781,9 +793,10 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
                     </div>
                   </div>
                   <span className="shrink-0 inline-flex items-center gap-1 text-[12.5px] font-semibold text-[var(--text-primary)]">
-                    {L('검수받기', 'Review')}
+                    <span className="hidden sm:inline">{L('검수받기', 'Review')}</span>
                     <ChevronRight size={13} className="transition-transform group-hover:translate-x-0.5" />
                   </span>
+                  </div>
                 </LocaleLink>
                 <p className="mt-2 text-[12px] text-[var(--text-tertiary)] leading-relaxed">
                   {L(
@@ -971,20 +984,40 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
                           : L('처음이라면 — 시나리오로 둘러보기', 'New here? — try a sample scenario')}
                       </p>
                       <div className={`grid grid-cols-1 sm:grid-cols-3 ${muted ? 'gap-2' : 'gap-3'}`}>
-                        {demoScenarios.map(s => (
-                          <button key={s.id} onClick={() => setDemoScenario(s)}
-                            className={`text-left rounded-xl border cursor-pointer transition-all duration-200 group ${
-                              muted
-                                ? 'p-3 border-[var(--border-subtle)]/50 bg-transparent hover:bg-[var(--surface)]/70 hover:border-[var(--accent)]/25'
-                                : 'p-4 border-[var(--border-subtle)] bg-[var(--surface)]/60 hover:bg-[var(--surface)] hover:border-[var(--accent)]/30 hover:shadow-[var(--shadow-md)] hover:-translate-y-0.5'
-                            }`}>
-                            <div className={`flex items-center gap-2 ${muted ? 'mb-1' : 'mb-2'}`}>
-                              <span className={muted ? 'text-[14px] opacity-70' : 'text-[18px]'}>{s.icon}</span>
-                              <span className={`font-semibold text-[var(--text-primary)] group-hover:text-[var(--accent)] transition-colors ${muted ? 'text-[12px]' : 'text-[13px]'}`}>{s.title}</span>
-                            </div>
-                            <p className={`text-[var(--text-tertiary)] leading-relaxed ${muted ? 'text-[11px] line-clamp-1' : 'text-[12px] line-clamp-2'}`}>&ldquo;{s.problemText}&rdquo;</p>
-                          </button>
-                        ))}
+                        {demoScenarios.map(s => {
+                          const art = DEMO_SCENARIO_ART[s.id];
+                          return (
+                            <button key={s.id} onClick={() => setDemoScenario(s)}
+                              className={`text-left overflow-hidden rounded-lg border cursor-pointer transition-all duration-200 group ${
+                                muted
+                                  ? 'flex items-center gap-3 p-2.5 border-[var(--border-subtle)]/50 bg-transparent hover:bg-[var(--surface)]/70 hover:border-[var(--accent)]/25'
+                                  : 'flex items-stretch sm:block border-[var(--border-subtle)] bg-[var(--surface)]/60 hover:bg-[var(--surface)] hover:border-[var(--accent)]/30 hover:shadow-[var(--shadow-md)] hover:-translate-y-0.5'
+                              }`}>
+                              {art && (
+                                <div className={`relative shrink-0 overflow-hidden bg-[var(--bg)] ${
+                                  muted
+                                    ? 'h-11 w-11 rounded-md border border-[var(--border-subtle)]/70'
+                                    : 'w-[112px] border-r border-[var(--border-subtle)] sm:aspect-[16/9] sm:w-full sm:border-r-0 sm:border-b'
+                                }`} aria-hidden="true">
+                                  <Image
+                                    src={art}
+                                    alt=""
+                                    fill
+                                    sizes={muted ? '44px' : '(max-width: 639px) 112px, 220px'}
+                                    className="object-cover transition-transform duration-500 ease-out motion-reduce:transition-none motion-safe:group-hover:scale-[1.025]"
+                                  />
+                                </div>
+                              )}
+                              <div className={muted ? 'min-w-0 flex-1' : 'min-w-0 flex-1 p-3.5 sm:p-3'}>
+                                <div className={`flex items-center justify-between gap-2 ${muted ? 'mb-0.5' : 'mb-1.5'}`}>
+                                  <span className={`font-semibold text-[var(--text-primary)] group-hover:text-[var(--accent)] transition-colors ${muted ? 'text-[12px]' : 'text-[13px]'}`}>{s.title}</span>
+                                  <ChevronRight size={muted ? 12 : 13} className="shrink-0 text-[var(--text-tertiary)] opacity-55 transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
+                                </div>
+                                <p className={`text-[var(--text-tertiary)] leading-relaxed ${muted ? 'text-[11px] line-clamp-1' : 'text-[12px] line-clamp-3 sm:line-clamp-2'}`}>&ldquo;{s.problemText}&rdquo;</p>
+                              </div>
+                            </button>
+                          );
+                        })}
                       </div>
                     </>
                   );

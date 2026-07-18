@@ -64,6 +64,14 @@ describe('ReceiptView — scannable by default', () => {
     expect(container.textContent).toContain('재무 리스크는 사람이 감수');
   });
 
+  it('keeps findings synchronized with the visible source page', () => {
+    act(() => { root.render(createElement(ReceiptView, { receipt: RECEIPT, activeSourcePage: 6, onAnchorSelect: vi.fn() })); });
+    expect(container.querySelectorAll('[aria-current="location"]')).toHaveLength(1);
+
+    act(() => { root.render(createElement(ReceiptView, { receipt: RECEIPT, activeSourcePage: 2, onAnchorSelect: vi.fn() })); });
+    expect(container.querySelectorAll('[aria-current="location"]')).toHaveLength(0);
+  });
+
   it('drops the redundant anchor tag on a single-image finding (never "1쪽")', () => {
     // The vision pass anchors a single-image finding to page 1. There is only one
     // image, so "(이미지)" on every line just repeats — render NO tag, and never

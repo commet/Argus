@@ -11,6 +11,7 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { useLocale } from '@/hooks/useLocale';
 import { type FalsifiableFollowup, type FollowupOutcome, type SettledOutcome } from '@/lib/review';
+import { ArgusMascot } from '@/components/brand/ArgusMascot';
 
 export function SettleModal({
   followup,
@@ -50,7 +51,13 @@ export function SettleModal({
       <div className="w-full max-w-lg max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
         <Card variant="elevated">
           <div className="flex items-center justify-between mb-3">
-            <h3 className="text-[16px] font-bold text-[var(--text-primary)]">{L('현실이 어떻게 답했나요?', 'How did reality answer?')}</h3>
+            <div className="flex items-center gap-3">
+              <ArgusMascot moment="returning" size="sm" alt="" />
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--text-tertiary)]">{L('약속한 날의 귀환', 'Return on the promised day')}</p>
+                <h3 className="text-[16px] font-bold text-[var(--text-primary)]">{L('현실이 어떻게 답했나요?', 'How did reality answer?')}</h3>
+              </div>
+            </div>
             <button onClick={onClose} className="text-[var(--text-tertiary)] text-[18px] leading-none">×</button>
           </div>
 

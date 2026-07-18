@@ -350,19 +350,21 @@ export function SettlementModal({
             moment weight: a medallion + a line that names what's happening, so the
             settle feels like arriving in port, not filling a dialog. Mirrors the
             SealMoment scene at the other end of the loop. */}
-        <div className="flex flex-col items-center text-center gap-2 pb-1">
+        <div className="flex flex-col items-center gap-3 pb-2 text-center sm:flex-row sm:items-center sm:text-left">
           {/* 돌아온 Argus가 직접 묻는다 — '제가 먼저 물어볼게요'의 그 감시자 */}
-          <ArgusMascot moment="returning" size="md" alt={L('약속한 날 돌아온 Argus', 'Argus, back on the promised day')} />
-          <p className="text-[15px] md:text-[16px] font-bold text-[var(--text-primary)] leading-[1.35]" style={{ fontFamily: 'var(--font-display)' }}>
-            {L('그때 건 예측을, 이제 현실과 맞춰봐요', 'Time to check your prediction against what happened')}
-          </p>
-          {/* [C2] 정산모달 표면의 「연습 · 회고」 상시 배지 — retro일 때만. */}
-          {isRetro && <RetroBadge ko={ko} />}
-          <p className="text-[12px] text-[var(--text-secondary)] leading-[1.5] max-w-[36ch]">
-            {sealedOn
-              ? L(`${sealedOn}에 봉인한 결정의 확인일이에요. 고리를 닫는 순간이에요.`, `The check-in day for the decision you sealed on ${sealedOn}. This is the loop closing.`)
-              : L('봉인했던 결정의 확인일이에요. 고리를 닫는 순간이에요.', 'The check-in day for the decision you sealed. This is the loop closing.')}
-          </p>
+          <ArgusMascot moment="returning" size="lg" alt={L('약속한 날 돌아온 Argus', 'Argus, back on the promised day')} className="max-sm:h-20 max-sm:w-20" />
+          <div className="min-w-0">
+            <p className="text-[15px] md:text-[17px] font-bold text-[var(--text-primary)] leading-[1.35]" style={{ fontFamily: 'var(--font-display)' }}>
+              {L('그때 건 예측을, 이제 현실과 맞춰봐요', 'Time to check your prediction against what happened')}
+            </p>
+            {/* [C2] 정산모달 표면의 「연습 · 회고」 상시 배지 — retro일 때만. */}
+            {isRetro && <div className="mt-2"><RetroBadge ko={ko} /></div>}
+            <p className="mt-1.5 text-[12px] text-[var(--text-secondary)] leading-[1.5] max-w-[42ch]">
+              {sealedOn
+                ? L(`${sealedOn}에 봉인한 결정의 확인일이에요. 고리를 닫는 순간이에요.`, `The check-in day for the decision you sealed on ${sealedOn}. This is the loop closing.`)
+                : L('봉인했던 결정의 확인일이에요. 고리를 닫는 순간이에요.', 'The check-in day for the decision you sealed. This is the loop closing.')}
+            </p>
+          </div>
         </div>
 
         {/* Judgment Receipt — 그때의 판단을 꺼내 보여준다. */}

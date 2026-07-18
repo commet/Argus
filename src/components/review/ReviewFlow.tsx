@@ -10,6 +10,7 @@
  */
 
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { FileUp } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { useLocale } from '@/hooks/useLocale';
@@ -20,7 +21,8 @@ import { PremiseTracker } from './PremiseTracker';
 import { SealStamp } from '@/components/workspace/progressive/SealStamp';
 import { SealModal } from './SealModal';
 import { SettleModal } from './SettleModal';
-import { extractFile, type ExtractedText } from '@/lib/review/extract-file';
+import { extractFile, type ExtractedText, type SourcePreview } from '@/lib/review/extract-file';
+import { SourceEvidencePane } from './SourceEvidencePane';
 import { sealReviewObligation } from '@/lib/review-seal';
 import { useSettingsStore, hasOwnApiKey } from '@/stores/useSettingsStore';
 import { visionCapable } from '@/lib/llm';
@@ -79,7 +81,14 @@ export function ReviewFlow() {
   const [storeSource, setStoreSource] = useState(false);
   const [useVision, setUseVision] = useState(false);
   const [showOriginal, setShowOriginal] = useState(false);
-  const [sessionSource, setSessionSource] = useState<{ id: string; text: string } | null>(null);
+  const [sourcePdfData, setSourcePdfData] = useState<Uint8Array | null>(null);
+  const [sessionSource, setSessionSource] = useState<{ id: string; text: string; previews?: SourcePreview[]; sourceKind: SourceKind; title: string; pdfData?: Uint8Array; pageCount?: number } | null>(null);
+  const [activeSourcePage, setActiveSourcePage] = useState<number | undefined>();
+  const sourcePaneRef = useRef<HTMLDivElement>(null);
+  const receiptPaneRef = useRef<HTMLDivElement>(null);
+  const reattachFileRef = useRef<HTMLInputElement>(null);
+  const [reattaching, setReattaching] = useState(false);
+  const [reattachError, setReattachError] = useState<string | null>(null);
   const [job, setJob] = useState<ReviewJob | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
   // Own & seal an obligation into the DKK ledger (unified action). null = closed.
@@ -154,6 +163,7 @@ export function ReviewFlow() {
 
   const onFile = async (file: File) => {
     const ext = (file.name.split('.').pop() || '').toLowerCase();
+    setSourcePdfData(null);
     setTitle(file.name);
     setExtractNote(null);
     setPreExtracted(null);
@@ -215,6 +225,7 @@ export function ReviewFlow() {
       setText('');
       try {
         const extracted = await extractFile(file, BINARY_EXT[ext]);
+        if (BINARY_EXT[ext] === 'pdf') setSourcePdfData(extracted.pdf_data ?? null);
         if (extracted.text.trim().length > 20) {
           // Parser succeeded — feed structured text straight into the pipeline.
           setPreExtracted(extracted);
@@ -394,7 +405,15 @@ export function ReviewFlow() {
         setStorage(STORAGE_KEYS.REVIEW_FREE_USED, true);
         setFreeUsed(true);
       }
-      setSessionSource({ id: r.receipt_id, text: effectiveText });
+      setSessionSource({
+        id: r.receipt_id,
+        text: effectiveText,
+        previews: preExtracted?.previews,
+        sourceKind,
+        title: title || r.source_title,
+        pdfData: sourceKind === 'pdf' ? sourcePdfData ?? undefined : undefined,
+        pageCount: preExtracted?.pages_total,
+      });
       setActiveId(r.receipt_id);
       setShowOriginal(false);
       track('review_completed', {
@@ -412,6 +431,7 @@ export function ReviewFlow() {
   };
 
   const resetImport = () => {
+    setSourcePdfData(null);
     setText('');
     setTitle('');
     setSourceKind('paste');
@@ -420,6 +440,8 @@ export function ReviewFlow() {
     setPreExtracted(null);
     setUploadBlock(null);
     setUseVision(false);
+    setActiveSourcePage(undefined);
+    setSessionSource(null);
     setJob(null);
     setPhase('import');
   };
@@ -436,6 +458,76 @@ export function ReviewFlow() {
   if (phase === 'receipt' && receipt) {
     const sealed = receipt.state === 'sealed';
     const original = receipt.source_text || (sessionSource?.id === receipt.receipt_id ? sessionSource.text : '');
+    const sourcePreviews = sessionSource?.id === receipt.receipt_id ? sessionSource.previews : undefined;
+    const pdfData = sessionSource?.id === receipt.receipt_id ? sessionSource.pdfData : undefined;
+    const sourcePageCount = sessionSource?.id === receipt.receipt_id ? sessionSource.pageCount : undefined;
+    const hasSourceEvidence = Boolean(original || sourcePreviews?.length || pdfData);
+    const anchorPages = Array.from(new Set([
+      ...receipt.findings,
+      ...receipt.judgment_obligations,
+      ...receipt.claim_ledger,
+      ...receipt.hidden_assumptions,
+    ].flatMap((item) => item.anchors.map((anchor) => anchor.page)).filter((page): page is number => typeof page === 'number' && page > 0))).sort((a, b) => a - b);
+    const revealAnchor = (anchor: { page?: number; slide?: number }) => {
+      setActiveSourcePage(anchor.page ?? anchor.slide);
+      setShowOriginal(true);
+      if (window.innerWidth < 768) {
+        window.setTimeout(() => sourcePaneRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60);
+      }
+    };
+    const returnToReceipt = () => {
+      setShowOriginal(false);
+      window.setTimeout(() => receiptPaneRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 40);
+    };
+    const canReattach = receipt.source_kind === 'pdf' || receipt.source_kind === 'docx' || receipt.source_kind === 'pptx' || receipt.source_kind === 'hwpx';
+    const reattachSource = async (file: File) => {
+      const ext = (file.name.split('.').pop() || '').toLowerCase();
+      const kind = BINARY_EXT[ext];
+      if (!kind || kind !== receipt.source_kind) {
+        setReattachError(L(`이 영수증은 ${receipt.source_kind.toUpperCase()} 원문을 기다리고 있어요.`, `This receipt expects its original ${receipt.source_kind.toUpperCase()} file.`));
+        return;
+      }
+      setReattaching(true);
+      setReattachError(null);
+      try {
+        const extracted = await extractFile(file, kind);
+        if (!extracted.text.trim() && !extracted.vision) throw new Error(extracted.note || 'EXTRACTION_FAILED');
+        const candidate = ingest({
+          source_kind: kind,
+          title: receipt.source_title,
+          text: '',
+          locale,
+          privacy_mode: 'receipt_only',
+          pre_extracted: extracted.text,
+          pre_extracted_units: extracted.units,
+          extraction_quality: extracted.quality,
+        });
+        if (candidate.source_fingerprint !== receipt.source_fingerprint) {
+          setReattachError(L('이 파일은 영수증을 만들 때 검수한 원문과 내용이 달라요.', 'This file does not match the source used to create this receipt.'));
+          return;
+        }
+        setSourcePdfData(extracted.pdf_data ?? null);
+        setSessionSource({
+          id: receipt.receipt_id,
+          text: extracted.text,
+          previews: extracted.previews,
+          sourceKind: kind,
+          title: receipt.source_title,
+          pdfData: extracted.pdf_data,
+          pageCount: extracted.pages_total,
+        });
+        setActiveSourcePage(anchorPages[0] ?? 1);
+        setShowOriginal(true);
+        track('review_source_reattached', { source_kind: kind, receipt_id: receipt.receipt_id });
+      } catch (cause) {
+        setReattachError(cause instanceof Error && cause.message !== 'EXTRACTION_FAILED'
+          ? cause.message
+          : L('원문을 다시 읽지 못했어요. 파일을 확인하고 다시 시도해 주세요.', 'Could not read the source again. Check the file and try once more.'));
+      } finally {
+        setReattaching(false);
+        if (reattachFileRef.current) reattachFileRef.current.value = '';
+      }
+    };
     const reReview = () => {
       if (original) setText(original);
       resetImport();
@@ -480,6 +572,8 @@ export function ReviewFlow() {
           onSealObligation={(o) => { setSealError(null); setSealingObligation(o); }}
           onSettle={(followupId) => setSettlingId(followupId)}
           onReReview={reReview}
+          onAnchorSelect={hasSourceEvidence ? revealAnchor : undefined}
+          activeSourcePage={activeSourcePage}
         />
         <div className="mt-4">
           <PremiseTracker receipt={receipt} />
@@ -488,34 +582,60 @@ export function ReviewFlow() {
     );
 
     return (
-      <div className={original ? 'max-w-6xl mx-auto w-full' : 'max-w-2xl mx-auto w-full'}>
-        <div className="mb-3 flex items-center justify-between">
+      <div className={hasSourceEvidence ? 'max-w-6xl mx-auto w-full' : 'max-w-2xl mx-auto w-full'}>
+        <div className="mb-3 flex items-center justify-between gap-3">
           <button onClick={backToList} className="text-[12px] text-[var(--text-tertiary)] hover:text-[var(--accent)]">
             {L('← 내 검수 기록', '← My review record')}
           </button>
-          {original && (
+          {!hasSourceEvidence && canReattach && (
+            <>
+              <input ref={reattachFileRef} type="file" accept={`.${receipt.source_kind}`} className="hidden" onChange={(event) => event.target.files?.[0] && void reattachSource(event.target.files[0])} />
+              <Button variant="ghost" size="sm" disabled={reattaching} onClick={() => reattachFileRef.current?.click()}>
+                <FileUp size={13} />
+                {reattaching ? L('원문 확인 중', 'Checking source') : L('원문 다시 연결', 'Reconnect source')}
+              </Button>
+            </>
+          )}
+          {hasSourceEvidence && (
             <button
-              onClick={() => setShowOriginal((v) => !v)}
+              onClick={() => {
+                if (showOriginal) returnToReceipt();
+                else {
+                  setShowOriginal(true);
+                  window.setTimeout(() => sourcePaneRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 40);
+                }
+              }}
               className="text-[12px] text-[var(--text-tertiary)] hover:text-[var(--accent)] md:hidden"
             >
-              {showOriginal ? L('원문 숨기기', 'Hide original') : L('원문 보기', 'Show original')}
+              {showOriginal ? L('영수증으로', 'Back to receipt') : L('원문 보기', 'Show original')}
             </button>
           )}
         </div>
+        {reattachError && <p role="alert" className="mb-3 text-right text-[12px] text-[var(--risk-critical)]">{reattachError}</p>}
 
-        {original ? (
+        {hasSourceEvidence ? (
           <div className="flex flex-col md:flex-row gap-5">
             {/* left: original document (Review Workspace §837) */}
-            <div className={`md:w-1/2 ${showOriginal ? '' : 'hidden md:block'}`}>
-              <Card variant="muted" className="md:sticky md:top-4">
-                <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--text-tertiary)] mb-2">{L('원문', 'Original')}</div>
-                <pre className="whitespace-pre-wrap break-words text-[12px] leading-[1.7] text-[var(--text-secondary)] max-h-[70vh] overflow-y-auto font-sans">
-                  {original}
-                </pre>
-              </Card>
+            <div ref={sourcePaneRef} className={`scroll-mt-3 md:w-1/2 ${showOriginal ? '' : 'hidden md:block'}`}>
+              <div className="md:sticky md:top-4">
+                <SourceEvidencePane
+                  previews={sourcePreviews}
+                  original={original}
+                  title={receipt.source_title}
+                  sourceKind={receipt.source_kind}
+                  activePage={activeSourcePage}
+                  pdfData={pdfData}
+                  pageCount={sourcePageCount}
+                  anchorPages={anchorPages}
+                  onPageChange={setActiveSourcePage}
+                />
+                <button type="button" onClick={returnToReceipt} className="mt-2 w-full rounded border border-[var(--border-subtle)] py-2 text-[12px] font-semibold text-[var(--text-secondary)] md:hidden">
+                  {L('영수증으로 돌아가기', 'Back to receipt')}
+                </button>
+              </div>
             </div>
             {/* right: receipt */}
-            <div className="md:w-1/2">{receiptPane}</div>
+            <div ref={receiptPaneRef} className="scroll-mt-3 md:w-1/2">{receiptPane}</div>
           </div>
         ) : (
           receiptPane
@@ -601,6 +721,17 @@ export function ReviewFlow() {
     ];
     return (
       <div className="max-w-2xl mx-auto w-full">
+        {preExtracted && (preExtracted.previews?.length || preExtracted.text) && (
+          <div className="mb-3">
+            <SourceEvidencePane
+              previews={preExtracted.previews}
+              original={preExtracted.text}
+              title={title}
+              sourceKind={sourceKind}
+              compact
+            />
+          </div>
+        )}
         <Card variant="elevated">
           <div className="flex items-center justify-between gap-3 mb-2">
             <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--accent)]">{L('검수 중', 'Reviewing')}</div>
@@ -775,23 +906,33 @@ export function ReviewFlow() {
             </p>
           </div>
         )}
-        <textarea
-          value={text}
-          onChange={(e) => {
-            setText(e.target.value);
-            if (sourceKind !== 'paste' && sourceKind !== 'markdown') setSourceKind('paste');
-            setPendingBinary(null);
-            setPreExtracted(null);
-            setExtractNote(null);
-            setUploadBlock(null);
-          }}
-          maxLength={PASTE_CHAR_CAP}
-          placeholder={L(
-            '검수할 문서를 붙여넣으세요. (전략 메모, 기획안, Claude/ChatGPT 답변 등)',
-            'Paste the document to review. (Strategy memo, proposal, Claude/ChatGPT answer, etc.)',
-          )}
-          className="w-full h-52 resize-y bg-transparent text-[14px] leading-[1.6] text-[var(--text-primary)] outline-none placeholder:text-[var(--text-tertiary)]"
-        />
+        {preExtracted ? (
+          <SourceEvidencePane
+            previews={preExtracted.previews}
+            original={preExtracted.text}
+            title={title}
+            sourceKind={sourceKind}
+            compact
+          />
+        ) : (
+          <textarea
+            value={text}
+            onChange={(e) => {
+              setText(e.target.value);
+              if (sourceKind !== 'paste' && sourceKind !== 'markdown') setSourceKind('paste');
+              setPendingBinary(null);
+              setPreExtracted(null);
+              setExtractNote(null);
+              setUploadBlock(null);
+            }}
+            maxLength={PASTE_CHAR_CAP}
+            placeholder={L(
+              '검수할 문서를 붙여넣으세요. (전략 메모, 기획안, Claude/ChatGPT 답변 등)',
+              'Paste the document to review. (Strategy memo, proposal, Claude/ChatGPT answer, etc.)',
+            )}
+            className="w-full h-52 resize-y bg-transparent text-[14px] leading-[1.6] text-[var(--text-primary)] outline-none placeholder:text-[var(--text-tertiary)]"
+          />
+        )}
         <div className="mt-2 flex items-center justify-between gap-2 border-t border-[var(--border-subtle)] pt-2">
           <input
             ref={fileRef}

@@ -97,6 +97,8 @@ export function ReceiptView({
   onSealObligation,
   onSettle,
   onReReview,
+  onAnchorSelect,
+  activeSourcePage,
 }: {
   receipt: JudgmentReceipt;
   /** Own & seal a judgment obligation into the DKK ledger (the single unified
@@ -105,6 +107,10 @@ export function ReceiptView({
   onSettle?: (followupId: string) => void;
   /** "더 검증하기" — re-run the review (design doc §Receipt Summary 3 actions). */
   onReReview?: () => void;
+  /** Reveal the exact source page/image for an anchored finding. */
+  onAnchorSelect?: (anchor: SourceAnchor) => void;
+  /** Current source page, used to keep the receipt synchronized with the document. */
+  activeSourcePage?: number;
 }) {
   const locale = useLocale();
   const L = (ko: string, en: string) => (locale === 'ko' ? ko : en);
@@ -132,6 +138,9 @@ export function ReceiptView({
   // shown as "C2" chips (the argument's load-bearing structure).
   const claimNumById = new Map(receipt.claim_ledger.map((c, i) => [c.claim_id, i + 1] as const));
   const claimTextById = new Map(receipt.claim_ledger.map((c) => [c.claim_id, c.text] as const));
+  const receiptDate = new Date(receipt.created_at).toLocaleDateString(locale === 'ko' ? 'ko-KR' : 'en-US', {
+    year: 'numeric', month: 'short', day: 'numeric',
+  });
 
   const copy = async () => {
     try {
@@ -146,12 +155,15 @@ export function ReceiptView({
   return (
     <div className="flex flex-col gap-4">
       {/* header */}
-      <div className="flex items-start justify-between gap-3">
+      <div className="flex items-start justify-between gap-3 border-y-[3px] border-double border-[var(--border)] py-3">
         <div className="min-w-0">
           <div className="text-[9px] font-bold uppercase tracking-[0.2em] text-[var(--text-tertiary)]">
             Judgment Receipt
           </div>
           <h2 className="text-[16px] font-bold text-[var(--text-primary)] truncate">{receipt.source_title}</h2>
+          <p className="mt-1 text-[9px] font-semibold uppercase tracking-[0.12em] text-[var(--text-tertiary)] tabular-nums">
+            {receipt.source_kind} · {receiptDate} · No. {receipt.receipt_id.slice(-8)}
+          </p>
         </div>
         <div className="flex items-center gap-1.5">
           <Button variant="ghost" size="sm" onClick={copy}>
@@ -255,7 +267,7 @@ export function ReceiptView({
           </div>
           <div className="space-y-2.5">
             {topObligations.map((o) => (
-              <ObligationRow key={o.obligation_id} o={o} onSealObligation={onSealObligation} isImage={isImage} />
+              <ObligationRow key={o.obligation_id} o={o} onSealObligation={onSealObligation} isImage={isImage} onAnchorSelect={onAnchorSelect} activeSourcePage={activeSourcePage} />
             ))}
           </div>
         </Card>
@@ -267,7 +279,7 @@ export function ReceiptView({
           <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--text-secondary)] mb-2">{L('주요 발견', 'Key findings')}</div>
           <div className="space-y-2.5">
             {topFindings.map((f) => (
-              <FindingRow key={f.finding_id} f={f} isImage={isImage} />
+              <FindingRow key={f.finding_id} f={f} isImage={isImage} onAnchorSelect={onAnchorSelect} activeSourcePage={activeSourcePage} />
             ))}
           </div>
         </Card>
@@ -351,7 +363,11 @@ export function ReceiptView({
                       </span>
                       <span className="text-[var(--text-primary)]">{c.text}</span>
                       {anchorLabel(L, c.anchors[0], isImage) && (
-                        <span className="ml-1 text-[11px] text-[var(--text-tertiary)]">({anchorLabel(L, c.anchors[0], isImage)})</span>
+                        onAnchorSelect ? (
+                          <button type="button" onClick={() => c.anchors[0] && onAnchorSelect(c.anchors[0])} className="ml-1 text-[11px] text-[var(--accent)] hover:underline underline-offset-2">({anchorLabel(L, c.anchors[0], isImage)})</button>
+                        ) : (
+                          <span className="ml-1 text-[11px] text-[var(--text-tertiary)]">({anchorLabel(L, c.anchors[0], isImage)})</span>
+                        )
                       )}
                     </div>
                     {c.evidence_needed && (
@@ -447,7 +463,7 @@ export function ReceiptView({
               </div>
               <div className="space-y-2.5">
                 {receipt.findings.slice(3).map((f) => (
-                  <FindingRow key={f.finding_id} f={f} isImage={isImage} />
+                  <FindingRow key={f.finding_id} f={f} isImage={isImage} onAnchorSelect={onAnchorSelect} activeSourcePage={activeSourcePage} />
                 ))}
               </div>
             </Card>
@@ -464,22 +480,31 @@ function ObligationRow({
   o,
   onSealObligation,
   isImage = false,
+  onAnchorSelect,
+  activeSourcePage,
 }: {
   o: JudgmentObligation;
   onSealObligation?: (obligation: JudgmentObligation) => void;
   isImage?: boolean;
+  onAnchorSelect?: (anchor: SourceAnchor) => void;
+  activeSourcePage?: number;
 }) {
   const locale = useLocale();
   const L = (ko: string, en: string) => (locale === 'ko' ? ko : en);
   const [open, setOpen] = useState(false);
   const hasWhy = Boolean(o.why_human || o.evidence_needed);
   const sealed = Boolean(o.sealed_judgment_id);
+  const sourceActive = activeSourcePage !== undefined && o.anchors.some((anchor) => (anchor.page ?? anchor.slide) === activeSourcePage);
   return (
-    <div className="border-b border-[#8b6914]/10 last:border-0 pb-2.5 last:pb-0">
+    <div className={`-mx-2 rounded px-2 py-2 transition-colors border-b border-[#8b6914]/10 last:border-0 ${sourceActive ? 'bg-[var(--accent)]/[0.07] ring-1 ring-inset ring-[var(--accent)]/20' : ''}`}>
       <p className="text-[14px] font-medium leading-snug text-[var(--text-primary)]">
         {o.statement}
         {anchorLabel(L, o.anchors[0], isImage) && (
-          <span className="ml-1 text-[11px] font-normal text-[var(--text-tertiary)]">({anchorLabel(L, o.anchors[0], isImage)})</span>
+          onAnchorSelect ? (
+            <button type="button" onClick={() => o.anchors[0] && onAnchorSelect(o.anchors[0])} className="ml-1 text-[11px] font-normal text-[var(--accent)] hover:underline underline-offset-2">({anchorLabel(L, o.anchors[0], isImage)})</button>
+          ) : (
+            <span className="ml-1 text-[11px] font-normal text-[var(--text-tertiary)]">({anchorLabel(L, o.anchors[0], isImage)})</span>
+          )
         )}
       </p>
       <div className="mt-2 flex items-center gap-2">
@@ -516,18 +541,25 @@ function ObligationRow({
 
 /** One finding — a scannable single line (severity · title · anchor); the detail
  *  and suggested action open on tap so the receipt reads at a glance. */
-function FindingRow({ f, isImage = false }: { f: Finding; isImage?: boolean }) {
+function FindingRow({ f, isImage = false, onAnchorSelect, activeSourcePage }: { f: Finding; isImage?: boolean; onAnchorSelect?: (anchor: SourceAnchor) => void; activeSourcePage?: number }) {
   const locale = useLocale();
   const L = (ko: string, en: string) => (locale === 'ko' ? ko : en);
   const [open, setOpen] = useState(false);
   const hasMore = Boolean(f.detail || f.suggested_action);
+  const anchor = f.anchors[0];
+  const interactive = hasMore || Boolean(anchor && onAnchorSelect);
+  const sourceActive = activeSourcePage !== undefined && f.anchors.some((item) => (item.page ?? item.slide) === activeSourcePage);
   return (
-    <div className="border-b border-[var(--border-subtle)] last:border-0 pb-2 last:pb-0">
+    <div className={`-mx-2 rounded px-2 py-2 transition-colors border-b border-[var(--border-subtle)] last:border-0 ${sourceActive ? 'bg-[var(--accent)]/[0.07] ring-1 ring-inset ring-[var(--accent)]/20' : ''}`}>
       <button
         type="button"
-        onClick={() => hasMore && setOpen((v) => !v)}
-        className={`w-full flex items-start gap-2 text-left ${hasMore ? 'cursor-pointer' : 'cursor-default'}`}
+        onClick={() => {
+          if (anchor) onAnchorSelect?.(anchor);
+          if (hasMore) setOpen((v) => !v);
+        }}
+        className={`w-full flex items-start gap-2 text-left ${interactive ? 'cursor-pointer' : 'cursor-default'}`}
         aria-expanded={hasMore ? open : undefined}
+        aria-current={sourceActive ? 'location' : undefined}
       >
         <span className={`shrink-0 mt-0.5 px-1.5 py-0.5 text-[10px] font-bold rounded border ${SEVERITY_CLS[f.severity]}`}>{severityLabel(f.severity, L)}</span>
         <span className="min-w-0 flex-1 text-[13px] font-medium leading-snug text-[var(--text-primary)]">
