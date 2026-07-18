@@ -30,6 +30,7 @@ const FULL_PRESENCE_SURFACES = new Set([
   'components/brand/ArgusCompanionNote.tsx',
   'components/landing/UseCases.tsx',
   'components/projects/SettlementModal.tsx',
+  'components/review/SettleModal.tsx',
   'components/ui/LoadingSteps.tsx',
   'components/workspace/InteractiveDemo.tsx',
   'components/workspace/progressive/SealMoment.tsx',

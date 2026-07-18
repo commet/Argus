@@ -358,7 +358,7 @@ export function SettlementModal({
               {L('그때 건 예측을, 이제 현실과 맞춰봐요', 'Time to check your prediction against what happened')}
             </p>
             {/* [C2] 정산모달 표면의 「연습 · 회고」 상시 배지 — retro일 때만. */}
-            {isRetro && <div className="mt-2"><RetroBadge ko={ko} /></div>}
+            {isRetro && <RetroBadge ko={ko} className="mt-2" />}
             <p className="mt-1.5 text-[12px] text-[var(--text-secondary)] leading-[1.5] max-w-[42ch]">
               {sealedOn
                 ? L(`${sealedOn}에 봉인한 결정의 확인일이에요. 고리를 닫는 순간이에요.`, `The check-in day for the decision you sealed on ${sealedOn}. This is the loop closing.`)
