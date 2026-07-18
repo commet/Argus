@@ -1,18 +1,19 @@
 name: Publish to MCP Registry
 
-# One-tap release of argus-decision-mcp: publish the package to npm, then
-# register its metadata in the official MCP Registry (registry.modelcontextprotocol.io)
-# so hosts can discover it. Manual trigger only — press "Run workflow" in the
-# Actions tab.
+# One-tap registration of argus-decision-mcp's metadata in the official MCP
+# Registry (registry.modelcontextprotocol.io) so hosts can discover it. Manual
+# trigger only — press "Run workflow" in the Actions tab.
 #
-# Auth:
-#   - npm      : NODE_AUTH_TOKEN from the NPM_TOKEN repo secret (an npm automation
-#                token). If the version in package.json is already on npm, the
-#                npm-publish step fails safely (409) and the registry step still
-#                sees the matching version.
-#   - registry : GitHub OIDC (login github-oidc). Because this workflow runs inside
-#                commet/argus, the registry accepts the io.github.commet/* namespace
-#                with no token or secret.
+# npm publishing is deliberately NOT done here. The npm account requires a 2FA
+# one-time password for publishing, which a CI token cannot supply (publishing
+# from CI failed with EOTP). So the release is split:
+#   1. Publish the package to npm out-of-band (locally, entering the OTP), OR via
+#      whatever release path already puts versions on npm.
+#   2. Run this workflow to register the matching version in the MCP Registry.
+# The registry validates that npm already has server.json's version, so step 1
+# must land before this runs. Auth here is GitHub OIDC (login github-oidc): the
+# workflow runs inside commet/argus, so the io.github.commet/* namespace is
+# accepted with no token or secret.
 on:
   workflow_dispatch:
 
@@ -24,28 +25,10 @@ jobs:
       contents: read
     defaults:
       run:
-        working-directory: argus-mcp # package.json + server.json live here (monorepo subfolder)
+        working-directory: argus-mcp # server.json lives here (monorepo subfolder)
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
-      - name: Set up Node.js (with npm registry auth)
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          registry-url: "https://registry.npmjs.org"
-
-      - name: Install dependencies
-        run: npm ci
-
-      # npm publish runs the package's own prepublishOnly gate (typecheck + tests
-      # + audit) and prepack build. Re-publishing an existing version exits non-
-      # zero (409 Conflict); `|| true`-free on purpose so a real failure is loud,
-      # but the version bump is expected to be fresh on each release.
-      - name: Publish package to npm
-        run: npm publish --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Install mcp-publisher
         run: |
