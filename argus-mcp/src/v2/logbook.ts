@@ -105,7 +105,7 @@ export function renderLogbook(brief: BriefState, repositoryId: string): string {
   if (brief.dropped_corrupt > 0) honesty.push(`파손 줄 ${brief.dropped_corrupt}건`);
   if (brief.skipped_unknown > 0) honesty.push(`미지 이벤트 ${brief.skipped_unknown}건 (신버전 기록, 데이터는 안전)`);
   if (honesty.length > 0) {
-    out.push('## 원장 상태');
+    out.push('## 기록 상태');
     out.push('');
     for (const h of honesty) out.push(`- ${h}`);
     out.push('');

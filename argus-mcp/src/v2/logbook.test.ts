@@ -86,7 +86,7 @@ describe('renderLogbook — 순수 렌더 (골든 단면)', () => {
     const md = renderLogbook(briefWith({ last_event_id: null }), REPO_ID);
     expect(md).toContain('오늘은 없습니다');
     expect(md).not.toContain('재확인 도래');
-    expect(md).not.toContain('원장 상태'); // 카운터 전부 0 → 섹션 자체가 없다
+    expect(md).not.toContain('기록 상태'); // 카운터 전부 0 → 섹션 자체가 없다
     expect(md).toContain('<!-- argus:last_event_id=none -->');
   });
 

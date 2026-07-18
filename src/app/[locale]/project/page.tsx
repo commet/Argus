@@ -9,6 +9,7 @@ import { useRecastStore } from '@/stores/useRecastStore';
 import { useSynthesizeStore } from '@/stores/useSynthesizeStore';
 import { usePersonaStore } from '@/stores/usePersonaStore';
 import { useProgressiveStore } from '@/stores/useProgressiveStore';
+import { useDecisionItemsStore } from '@/stores/useDecisionItemsStore';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
@@ -17,7 +18,7 @@ import { generateProjectBrief } from '@/lib/project-brief';
 import { OutputSelector } from '@/components/ui/OutputSelector';
 import { ExecutionReadiness } from '@/components/ui/ExecutionReadiness';
 import { LocaleLink } from '@/components/ui/LocaleLink';
-import { Layers, Map as MapIcon, Users, FileText, Check, ArrowRight, Download, Sparkles, Plus, Search, GitBranch, Scale, AlertTriangle, MessageSquare, LoaderCircle, CloudOff, BellRing } from 'lucide-react';
+import { Layers, Map as MapIcon, Users, Check, ArrowRight, Download, Sparkles, Plus, Search, GitBranch, Scale, AlertTriangle, MessageSquare, LoaderCircle, CloudOff } from 'lucide-react';
 import { useLocale } from '@/hooks/useLocale';
 import { VoyageShip, Graticule } from '@/components/ui/VoyageElements';
 import { getVoyageState, VOYAGE_STATE_META, type VoyageLeg } from '@/lib/voyage-state';
@@ -27,9 +28,9 @@ import { SettlementModal } from '@/components/projects/SettlementModal';
 import { contractStatus } from '@/lib/decision-contract';
 import { isCheckpointDue } from '@/lib/checkpoint-core';
 import { RecordStrip } from '@/components/ui/RecordStrip';
-import { SharedGroundCard } from '@/components/review/SharedGroundCard';
 import { RetroOnlyNotice } from '@/components/ui/RetroOnlyNotice';
 import { VoyageSea } from '@/components/projects/VoyageSea';
+import { ProjectAttentionList } from '@/components/projects/ProjectAttentionList';
 import { Logbook } from '@/components/projects/Logbook';
 import { useDueCount } from '@/hooks/useDueCount';
 import { VoyageEta } from '@/components/workspace/VoyageEta';
@@ -38,6 +39,9 @@ import { CurrentBearingCard } from '@/components/workspace/progressive/CurrentBe
 import { ArgusMascot } from '@/components/brand/ArgusMascot';
 import { track } from '@/lib/analytics';
 import { selectDueReturnProject, selectReturnProject } from '@/lib/project-return';
+import { buildProjectAttention } from '@/lib/project-attention';
+import { groundSpotlight } from '@/lib/judgment-graph';
+import { parseTraceLocator, TRACE_NAVIGATE_EVENT } from '@/lib/evidence-trace';
 
 // Hick's law (05 S7): filter chips + search only earn their place once the
 // list outgrows a single screen.
@@ -96,6 +100,8 @@ export default function ProjectPage() {
   const { items: synthesizeItems, loadItems: loadSynthesize } = useSynthesizeStore();
   const { feedbackHistory, loadData: loadPersona } = usePersonaStore();
   const { sessions: progressiveSessions, loadSessions: loadProgressive } = useProgressiveStore();
+  const decisionItems = useDecisionItemsStore((s) => s.items);
+  const loadDecisionItems = useDecisionItemsStore((s) => s.loadData);
   const [storesLoaded, setStoresLoaded] = useState(false);
   const [query, setQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
@@ -129,12 +135,13 @@ export default function ProjectPage() {
     loadSynthesize();
     loadPersona();
     loadProgressive();
+    loadDecisionItems();
     // Every loader hydrates localStorage synchronously before its optional
     // cloud merge. Until this effect has run, [] means "not read yet", not
     // "this user has no projects" — rendering the empty state here caused a
     // frightening false data-loss flash on every return.
     setStoresLoaded(true);
-  }, [loadProjects, loadReframe, loadRecast, loadSynthesize, loadPersona, loadProgressive]);
+  }, [loadProjects, loadReframe, loadRecast, loadSynthesize, loadPersona, loadProgressive, loadDecisionItems]);
 
   const currentProject = currentProjectId ? projects.find((p) => p.id === currentProjectId) : null;
 
@@ -352,6 +359,16 @@ export default function ProjectPage() {
   // string so they don't re-sort every render.
   const dueIds = new Set(dueProjects.map((p) => p.id));
   const dueKey = dueProjects.map((p) => p.id).sort().join('|');
+  const shiftedGround = useMemo(() => groundSpotlight(reviewReceipts), [reviewReceipts]);
+  const attentionItems = buildProjectAttention({
+    projects,
+    decisionItems,
+    dueProjectIds: dueProjects.map((project) => project.id),
+    dueReceipts,
+    shiftedGround,
+    now: Date.now(),
+  });
+  const attentionProjectIds = [...new Set(attentionItems.flatMap((item) => item.projectId ? [item.projectId] : []))];
 
   const sortedProjects = useMemo(() => {
     const dueIds = new Set(dueKey.split('|').filter(Boolean));
@@ -389,6 +406,46 @@ export default function ProjectPage() {
     lastOpenedProjectIdRef.current = projectId;
     setCurrentProjectId(projectId);
   }, [setCurrentProjectId]);
+  const [pendingAttentionAnchor, setPendingAttentionAnchor] = useState<{ projectId: string; elementId: string } | null>(null);
+
+  useEffect(() => {
+    const onAttentionNavigate = (event: Event) => {
+      const locator = (event as CustomEvent<{ locator?: string }>).detail?.locator;
+      if (!locator) return;
+      const target = parseTraceLocator(locator);
+      if (!target) return;
+      if (target.scope === 'review') {
+        const premise = target.premiseId ? `&premise=${encodeURIComponent(target.premiseId)}` : '';
+        router.push(`/${locale}/tools/review?receipt=${encodeURIComponent(target.receiptId)}${premise}`);
+        return;
+      }
+      if (target.scope !== 'project') return;
+      if (target.target === 'contract') {
+        setSettleDismissed((previous) => {
+          const next = new Set(previous);
+          next.delete(target.projectId);
+          return next;
+        });
+        setPendingAttentionAnchor({ projectId: target.projectId, elementId: `decision-contract-${target.projectId}` });
+      } else {
+        setPendingAttentionAnchor({ projectId: target.projectId, elementId: `decision-item-${target.targetId}` });
+      }
+      openProject(target.projectId);
+    };
+    window.addEventListener(TRACE_NAVIGATE_EVENT, onAttentionNavigate);
+    return () => window.removeEventListener(TRACE_NAVIGATE_EVENT, onAttentionNavigate);
+  }, [locale, openProject, router]);
+
+  useEffect(() => {
+    if (!pendingAttentionAnchor || currentProjectId !== pendingAttentionAnchor.projectId) return;
+    const timer = window.setTimeout(() => {
+      const element = document.getElementById(pendingAttentionAnchor.elementId);
+      element?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      element?.querySelector<HTMLElement>('button, input, textarea, [tabindex]:not([tabindex="-1"])')?.focus();
+      setPendingAttentionAnchor(null);
+    }, 60);
+    return () => window.clearTimeout(timer);
+  }, [currentProjectId, pendingAttentionAnchor]);
 
   const returnToProjectList = () => {
     returnFocusProjectIdRef.current = lastOpenedProjectIdRef.current ?? currentProjectId;
@@ -590,8 +647,7 @@ export default function ProjectPage() {
                   ② 행동   — 돌아올 결정 due-strip (여러 건·영수증의 행동
                             목록이자, 지도 미렌더(2척 미만) 시 유일한 귀환
                             표면 — 삭제하면 그 경우 사건이 무표면이 된다)
-                  ③ 원장   — SharedGroundCard: 지도 해류 통지의 상세 기록
-                            (플랫한 날 침묵)
+                  ③ 기록   — 전제 이동과 확인 위치를 주의 목록에서 연결
                   ④ 명부·항적 — 필터+그리드, 자차표·항해일지 (아카이브)
                   순서가 우선순위다 — 블록 추가는 이 위계에 자리를 정하고 넣는다. */}
 
@@ -606,6 +662,7 @@ export default function ProjectPage() {
                 feedbackHistory={feedbackHistory}
                 progressiveSessions={progressiveSessions}
                 dueProjectIds={dueProjects.map((p) => p.id)}
+                attentionProjectIds={attentionProjectIds}
                 locale={locale}
                 onSelect={openProject}
                 onReview={(id) => {
@@ -619,63 +676,13 @@ export default function ProjectPage() {
                   openProject(id);
                 }}
                 receipts={reviewReceipts}
-                onSelectReceipt={() => router.push(`/${locale}/tools/review`)}
+                onSelectReceipt={(id) => router.push(`/${locale}/tools/review?receipt=${encodeURIComponent(id)}`)}
               />
 
-              {/* ② 돌아올 결정 — the return strip. The loop's last leg: 귀환.
-                  Review receipts past check-by join the SAME strip (P0-6 ① —
-                  one harbor): same amber tone, a FileText mark to tell them
-                  apart, routing to /tools/review (ReceiptList sorts urgent
-                  first, so the destination doesn't lose them). No new
-                  settlement UI — the two existing surfaces stay (§5-11). */}
-              {dueProjects.length + dueReceipts.length > 0 && (
-                <section aria-labelledby="due-decisions-heading" className="rounded-xl border border-amber-500/30 bg-amber-500/[0.08] px-4 py-3 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
-                  <h2 id="due-decisions-heading" className="flex items-center gap-1.5 text-[13px] font-semibold text-[var(--text-primary)] shrink-0">
-                    <BellRing size={16} className="shrink-0 text-amber-600 dark:text-amber-400" aria-hidden="true" />
-                    <span>
-                      {locale === 'ko'
-                        ? `그래서, 어떻게 됐어요? — 돌아올 결정 ${dueProjects.length + dueReceipts.length}건`
-                        : `So, how did it go? — ${dueProjects.length + dueReceipts.length} decision${dueProjects.length + dueReceipts.length === 1 ? '' : 's'} to return to`}
-                    </span>
-                  </h2>
-                  <div className="flex flex-wrap gap-1.5">
-                    {dueProjects.map((p) => (
-                      <button
-                        type="button"
-                        key={p.id}
-                        aria-label={L(`${p.name} 결과 확인`, `Check in on ${p.name}`)}
-                        onClick={() => {
-                          // Re-arm the settle question even if dismissed earlier this visit.
-                          setSettleDismissed((prev) => {
-                            const next = new Set(prev);
-                            next.delete(p.id);
-                            return next;
-                          });
-                          openProject(p.id);
-                        }}
-                        className="max-w-full truncate px-2.5 py-1 rounded-lg text-[12px] font-medium border border-amber-500/40 text-amber-700 dark:text-amber-400 hover:bg-amber-500/15 transition-colors cursor-pointer"
-                      >
-                        {p.name}
-                      </button>
-                    ))}
-                    {(dueReceipts || []).map((r) => (
-                      <LocaleLink
-                        key={r.receipt_id}
-                        href="/tools/review"
-                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[12px] font-medium border border-amber-500/40 text-amber-700 dark:text-amber-400 hover:bg-amber-500/15 transition-colors cursor-pointer max-w-full"
-                      >
-                        <FileText size={12} className="shrink-0" />
-                        <span className="truncate">{r.source_title || L('검수한 문서', 'Reviewed document')}</span>
-                      </LocaleLink>
-                    ))}
-                  </div>
-                </section>
-              )}
-
-              {/* ③ 사건의 원장 — the drifted shared ground's full record (the
-                  map's drift notice is its echo-summary; this is the detail).
-                  Self-nulls on every flat day. */}
-              <SharedGroundCard />
+              {/* ② 해도 신호의 작업 목록 — check-ins, premise rechecks, deferred
+                  questions and moved shared ground share one derivation. The sea
+                  keeps the visual identity; this quiet list owns exact actions. */}
+              <ProjectAttentionList items={attentionItems} />
 
               <section id="fleet-roster" aria-labelledby="fleet-roster-heading" className="space-y-3 scroll-mt-6">
                 <div className="px-1">
@@ -981,7 +988,7 @@ export default function ProjectPage() {
                   배신처럼 안 보이게 하고, 실 봉인으로 한 번 가리킨다. */}
               <RetroOnlyNotice />
 
-              {/* 항해일지 (S6 · B4/B5) — 봉인·변침·정산을 시간순 세로 원장으로.
+              {/* 항해일지 (S6 · B4/B5) — 봉인·변침·정산을 시간순 세로 기록으로.
                   '문장만 보기' 토글이 인용벽(제안2 형태1)을 흡수한다. 이벤트 2개
                   미만이면 스스로 미렌더. 그리드 아래 접힌 보조 뷰. */}
               <Logbook projects={projects} locale={locale} />
@@ -1095,10 +1102,12 @@ export default function ProjectPage() {
 
           {/* Decision Contract — falsifiable closed loop (§0 KICK).
               Seal only offered once the voyage is finished (all legs done). */}
-          <DecisionContractCard
-            project={currentProject}
-            sealable={currentHasVoyage ? currentVoyageDone : completedSteps === steps.length}
-          />
+          <div id={`decision-contract-${currentProject.id}`} className="scroll-mt-24">
+            <DecisionContractCard
+              project={currentProject}
+              sealable={currentHasVoyage ? currentVoyageDone : completedSteps === steps.length}
+            />
+          </div>
 
           {/* Decision items — editable premises/phenomena + per-item change alerts
               (living-premises layer, internal design notes). */}

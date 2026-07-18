@@ -7,7 +7,7 @@ import { BehavioralToggle, type AnsweredAxes } from './BehavioralToggle';
 import { useBossStore } from '@/stores/useBossStore';
 import { AnimatedPlaceholder } from '@/components/ui/AnimatedPlaceholder';
 import { getLocalizedPersonalityType } from '@/lib/boss/personality-types';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, ChevronDown, SlidersHorizontal } from 'lucide-react';
 import { SajuPreview } from './SajuPreview';
 import { CollectionProgress } from './CollectionProgress';
 import { BossConfirmation } from './BossConfirmation';
@@ -95,6 +95,7 @@ export function BossSetup() {
   // Default to "easy" mode — workplace-language quiz. Power users / Korean MBTI fans
   // can flip to MBTI-direct toggle. Both modes share the same axis state.
   const [axisMode, setAxisMode] = useState<'easy' | 'mbti'>('easy');
+  const [showBossDetails, setShowBossDetails] = useState(false);
   // Lifted from BehavioralToggle so flipping Easy ↔ MBTI does not lose progress.
   const [answeredAxes, setAnsweredAxes] = useState<AnsweredAxes>({
     ei: false, sn: false, tf: false, jp: false,
@@ -199,6 +200,90 @@ export function BossSetup() {
 
   const isReady = situation.trim().length > 0;
 
+  const situationInput = (
+    <motion.div className="bs-input-block" variants={fadeUp}>
+      <label
+        htmlFor="bs-situation"
+        style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 6 }}
+      >
+        {locale === 'ko' ? '어떤 대화를 앞두고 있나요?' : 'What conversation are you preparing for?'}
+      </label>
+      <div className="bs-input-wrap">
+        <textarea
+          id="bs-situation"
+          value={situation}
+          onChange={(e) => { setSituation(e.target.value); if (crisis) setCrisis(null); }}
+          onKeyDown={handleKeyDown}
+          className="bs-textarea"
+          rows={3}
+          maxLength={500}
+        />
+        <AnimatedPlaceholder
+          texts={examples}
+          visible={!situation}
+          interval={2800}
+          className="bs-placeholder"
+        />
+      </div>
+
+      <div className="bs-hint-row">
+        <label className="bs-hint-label" htmlFor="bs-hint">
+          {locale === 'ko' ? '반응을 바꿀 팀장 특성 한 줄 (선택)' : 'One boss trait that may shape the response (optional)'}
+        </label>
+        <div className="bs-hint-wrap">
+          <input
+            id="bs-hint"
+            type="text"
+            value={userContextHint}
+            onChange={(e) => setUserContextHint(e.target.value.slice(0, 140))}
+            onBlur={(e) => {
+              const v = e.target.value.trim();
+              if (v.length > 0) track('boss_hint_typed', { length: v.length });
+            }}
+            className="bs-hint-input"
+            maxLength={140}
+            autoComplete="off"
+          />
+          <AnimatedPlaceholder
+            texts={hintExamples}
+            visible={!userContextHint}
+            interval={3400}
+            className="bs-hint-placeholder"
+          />
+        </div>
+      </div>
+      {crisis?.isCrisis && (
+        <CrisisConcernBanner
+          crisis={crisis}
+          locale={locale}
+          blocking={true}
+          onContinue={handleCrisisOverride}
+        />
+      )}
+      <div className="bs-cta-row">
+        <p className="bs-fine">{t('boss.disclaimer')}</p>
+        <motion.button
+          type="button"
+          onClick={handleSubmit}
+          disabled={!isReady || isLaunching}
+          className="bs-cta"
+          whileTap={isReady ? { scale: 0.97 } : {}}
+        >
+          {isLaunching ? (
+            <motion.span animate={{ opacity: [0.4, 1, 0.4] }} transition={{ repeat: Infinity, duration: 1.2 }}>
+              {t('boss.summoning')}
+            </motion.span>
+          ) : (
+            <>
+              {locale === 'ko' ? '대화 리허설 시작' : 'Start conversation rehearsal'}
+              <ArrowRight size={16} strokeWidth={2.5} />
+            </>
+          )}
+        </motion.button>
+      </div>
+    </motion.div>
+  );
+
   if (isLaunching && typeData) {
     return (
       <BossConfirmation
@@ -233,11 +318,36 @@ export function BossSetup() {
         <p className="bs-sub">{t('boss.heroSub')}</p>
       </motion.div>
 
-      {/* ── Collection progress ── */}
-      <CollectionProgress />
+      {situationInput}
 
-      {/* ── MBTI selector ── */}
-      <motion.div className="bs-type-section" variants={fadeUp}>
+      <motion.button
+        type="button"
+        className="bs-customize-toggle"
+        variants={fadeUp}
+        onClick={() => setShowBossDetails((open) => !open)}
+        aria-expanded={showBossDetails}
+      >
+        <SlidersHorizontal size={15} />
+        <span className="bs-customize-copy">
+          <strong>{locale === 'ko' ? '팀장 반응 더 현실적으로 맞추기' : 'Make the manager response more realistic'}</strong>
+          <small>{typeData ? `${typeData.name} · ${typeData.bossVibe}` : (locale === 'ko' ? '선택 설정' : 'Optional settings')}</small>
+        </span>
+        <ChevronDown size={15} className={showBossDetails ? 'rotate-180' : ''} />
+      </motion.button>
+
+      <AnimatePresence initial={false}>
+        {showBossDetails && (
+          <motion.div
+            key="boss-details"
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.24 }}
+            className="bs-customize-panel"
+          >
+            <CollectionProgress />
+            {/* ── MBTI selector ── */}
+            <motion.div className="bs-type-section" variants={fadeUp}>
         <div className="bs-mode-row">
           <p className="text-[12px] text-[var(--text-tertiary)]">{t('boss.typeHint')}</p>
           <div className="bs-mode-toggle" role="group" aria-label={locale === 'ko' ? '입력 방식' : 'Input mode'}>
@@ -370,94 +480,11 @@ export function BossSetup() {
             </motion.div>
           )}
         </AnimatePresence>
-      </motion.div>
-
-      {/* ── Input + CTA (one block, always visible) ── */}
-      <motion.div className="bs-input-block" variants={fadeUp}>
-        <label
-          htmlFor="bs-situation"
-          style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 6 }}
-        >
-          {locale === 'ko' ? '어떤 상황이에요?' : "What's the situation?"}
-        </label>
-        <div className="bs-input-wrap">
-          <textarea
-            id="bs-situation"
-            value={situation}
-            onChange={(e) => { setSituation(e.target.value); if (crisis) setCrisis(null); }}
-            onKeyDown={handleKeyDown}
-            className="bs-textarea"
-            rows={2}
-            maxLength={500}
-          />
-          <AnimatedPlaceholder
-            texts={examples}
-            visible={!situation}
-            interval={2800}
-            className="bs-placeholder"
-          />
-        </div>
-
-        {/* Optional one-liner hint about THIS boss — soft modulator, not a definition. */}
-        <div className="bs-hint-row">
-          <label className="bs-hint-label" htmlFor="bs-hint">
-            {locale === 'ko' ? '이 팀장에 대해 한 줄만 더 (선택)' : 'One more line about this boss (optional)'}
-          </label>
-          <div className="bs-hint-wrap">
-            <input
-              id="bs-hint"
-              type="text"
-              value={userContextHint}
-              onChange={(e) => setUserContextHint(e.target.value.slice(0, 140))}
-              onBlur={(e) => {
-                const v = e.target.value.trim();
-                if (v.length > 0) track('boss_hint_typed', { length: v.length });
-              }}
-              className="bs-hint-input"
-              maxLength={140}
-              autoComplete="off"
-            />
-            <AnimatedPlaceholder
-              texts={hintExamples}
-              visible={!userContextHint}
-              interval={3400}
-              className="bs-hint-placeholder"
-            />
-          </div>
-        </div>
-        {/* Crisis backstop surface — sits directly above the CTA so it meets the
-            eye on submit. While shown, the rehearsal (and its verdict) is held;
-            one conscious tap continues. */}
-        {crisis?.isCrisis && (
-          <CrisisConcernBanner
-            crisis={crisis}
-            locale={locale}
-            blocking={true}
-            onContinue={handleCrisisOverride}
-          />
+            </motion.div>
+          </motion.div>
         )}
-        <div className="bs-cta-row">
-          <p className="bs-fine">{t('boss.disclaimer')}</p>
-          <motion.button
-            type="button"
-            onClick={handleSubmit}
-            disabled={!isReady || isLaunching}
-            className="bs-cta"
-            whileTap={isReady ? { scale: 0.97 } : {}}
-          >
-            {isLaunching ? (
-              <motion.span animate={{ opacity: [0.4, 1, 0.4] }} transition={{ repeat: Infinity, duration: 1.2 }}>
-                {t('boss.summoning')}
-              </motion.span>
-            ) : (
-              <>
-                {t('boss.cta')}
-                <ArrowRight size={16} strokeWidth={2.5} />
-              </>
-            )}
-          </motion.button>
-        </div>
-      </motion.div>
+      </AnimatePresence>
+
     </motion.div>
   );
 }

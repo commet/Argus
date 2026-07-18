@@ -28,6 +28,9 @@ vi.mock('@/components/workspace/progressive/SeaChart', () => ({
   SeaChart: () => createElement('div', null, 'SEACHART_STUB'),
 }));
 vi.mock('@/components/workspace/progressive/VoyageChart', () => ({ VoyageChart: () => null }));
+vi.mock('@/components/workspace/progressive/DecisionEvidenceMap', () => ({
+  DecisionEvidenceMap: () => createElement('div', null, 'EVIDENCE_MAP_STUB'),
+}));
 vi.mock('@/components/workspace/progressive/AgentSidebar', () => ({
   AgentSidebar: () => createElement('div', null, 'CREW_STUB'),
   isWorkingStatus: (s: string) => s === 'running',
@@ -56,34 +59,30 @@ const charted: Partial<ProgressiveSession> = {
 };
 
 describe('VoyageMapRail — full (expanded)', () => {
-  it('renders the rail header, 해도 hero, and the inline branch-graph when charted', () => {
+  it('opens on the sea route and keeps evidence as a peer view', () => {
     state.collapsed = false;
     state.workers = [{ id: 'wk1', status: 'running' } as WorkerTask];
     state.session = charted;
     const html = renderToStaticMarkup(createElement(VoyageMapRail));
-    expect(html).toContain('항해 지도');     // rail header
-    expect(html).toContain('해도');           // hero eyebrow
-    expect(html).toContain('전체 해도');       // full-chart entry (hasChart)
-    expect(html).toContain('SEACHART_STUB'); // the inline graph hero
-    // Step 4: the parallel Logbook list is gone — a turn's narration now renders
-    // in ONE WaypointCard below the chart (the current turn by default).
-    expect(html).toContain('지금');           // current-turn card eyebrow
-    expect(html).toContain('출항');           // the current waypoint's type, in the card
+    expect(html).toContain('판단 지도');
+    expect(html).toContain('근거');
+    expect(html).toContain('항로');
+    expect(html).toContain('SEACHART_STUB');
+    expect(html).not.toContain('EVIDENCE_MAP_STUB');
     // Crew activity is intentionally NOT in the rail anymore (it's duplicated by
     // the left-column "선원들이 일하고 있어요" header), so the rail must not render it.
     expect(html).not.toContain('CREW_STUB');
   });
 
-  it('shows the empty-chart identity (no graph) before the first fork is logged', () => {
+  it('keeps the empty sea chart as the first-view identity before a route is logged', () => {
     state.collapsed = false;
     state.workers = [];
     state.session = { id: 's1', checkpoints: [], branches: [], waypoints: [] };
     const html = renderToStaticMarkup(createElement(VoyageMapRail));
-    expect(html).toContain('해도');                 // hero still present
-    expect(html).toContain('갈림길이 여기 해도로');  // empty-state copy
-    expect(html).not.toContain('SEACHART_STUB');   // no graph yet
-    expect(html).not.toContain('전체 해도');         // no full-chart entry yet
-    expect(html).not.toContain('CREW_STUB');        // no crew
+    expect(html).not.toContain('EVIDENCE_MAP_STUB');
+    expect(html).toContain('항로');
+    expect(html).not.toContain('SEACHART_STUB');
+    expect(html).not.toContain('CREW_STUB');
   });
 });
 
@@ -96,7 +95,7 @@ describe('VoyageMapRail — collapsed spine', () => {
       { id: 'w2', checkpoint_id: 'c1', type: 'course_change', headline: '항로', created_at: 'y' },
     ] };
     const html = renderToStaticMarkup(createElement(VoyageMapRail));
-    expect(html).toContain('항해 지도');        // vertical label
+    expect(html).toContain('판단 지도');        // vertical label
     expect(html).toContain('>2<');              // waypoint count badge
     expect(html).not.toContain('SEACHART_STUB'); // graph not rendered while collapsed
   });

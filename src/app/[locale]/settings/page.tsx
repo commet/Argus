@@ -1178,7 +1178,7 @@ function PluginTokenBlock({ locale }: { locale: string }) {
             <p className="text-[11px] text-[var(--text-tertiary)] mt-2">
               {L('그 다음부터는 로컬에서 ', 'Then use ')}
               <code className="font-mono">/argus:settings sync</code>
-              {L('로 웹앱과 로컬 ledger를 맞추면 됩니다.', ' to keep the webapp and local ledger aligned.')}
+              {L('로 웹앱과 로컬 판단 기록을 맞추면 됩니다.', ' to keep the web app and local decision record aligned.')}
             </p>
           </div>
           {/* MCP: env var for argus-decision-mcp config */}

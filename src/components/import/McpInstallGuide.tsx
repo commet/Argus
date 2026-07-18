@@ -27,7 +27,7 @@ export function McpInstallGuide({ locale }: { locale: string }) {
           <code className={CODE}>claude mcp add argus -- npx -y argus-decision-mcp</code>
         </li>
         <li>
-          {L('2. 기록 위치는 설정 없이도 ', '2. With zero config your ledger lives in ')}
+          {L('2. 기록 위치는 설정 없이도 ', '2. With zero config your decision record lives in ')}
           <code className={CODE}>~/.argus</code>
           {L('에 생깁니다. Claude Desktop은 ', '. Claude Desktop does not expand ')}
           <code className={CODE}>{'${...}'}</code>

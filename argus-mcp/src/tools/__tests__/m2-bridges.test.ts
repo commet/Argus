@@ -96,7 +96,7 @@ describe('M2 · capture → 봉인 → 정산 승격 여정', () => {
   });
 });
 
-describe('M2 · 발산 0 — 웹 정산이 로컬 원장으로 돌아온다', () => {
+describe('M2 · 발산 0 — 웹 정산이 로컬 판단 기록으로 돌아온다', () => {
   it('import_settlements mirrors the web-recorded outcome and check_in stops nudging', async () => {
     const dir = tmpArgusDir();
     await seal.handler({

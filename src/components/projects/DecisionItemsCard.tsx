@@ -170,7 +170,8 @@ export function DecisionItemsCard({
                       return (
                         <li
                           key={item.id}
-                          className="rounded-lg border border-[var(--border)] p-2.5 bg-[var(--surface)]"
+                          id={`decision-item-${item.id}`}
+                          className="scroll-mt-24 rounded-lg border border-[var(--border)] p-2.5 bg-[var(--surface)]"
                         >
                           {editing ? (
                             <div className="space-y-2">

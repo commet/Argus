@@ -333,7 +333,7 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
     },
     checkin: {
       nothing_due: 'Nothing is due right now.',
-      account_hint: ' This screen reads the local ledger only. Predictions saved in your account show up with argus_settings action=sync.',
+      account_hint: ' This screen reads the local decision record only. Predictions saved in your account show up with argus_settings action=sync.',
       upcoming: (n, days) => ` ${n} coming due within ${days} day(s). Informational; no result is due yet.`,
       due_contracts: (n) => `${n} saved prediction(s) past check-by. Time to record what happened (argus_resolve).`,
       anchor_mirror: (days, n, words) =>
@@ -484,7 +484,7 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
     },
     checkin: {
       nothing_due: '지금 확인할 차례가 된 것은 없습니다.',
-      account_hint: ' 이 화면은 로컬 원장만 읽습니다. 계정에 저장한 예측은 argus_settings action=sync로 가져올 수 있습니다.',
+      account_hint: ' 이 화면은 로컬 판단 기록만 읽습니다. 계정에 저장한 예측은 argus_settings action=sync로 가져올 수 있습니다.',
       upcoming: (n, days) => ` ${days}일 안에 확인일이 오는 예측이 ${n}건 있습니다. 아직 결과를 기록할 때는 아닙니다.`,
       due_contracts: (n) => `저장한 예측 ${n}건이 확인일을 지났습니다. 실제 결과를 기록할 차례입니다 (argus_resolve).`,
       anchor_mirror: (days, n, words) =>
@@ -495,7 +495,7 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
         `${days === null ? '얼마 전' : `${days}일 전`}에 미결로 남겨둔 질문입니다: '${q}' 지금 답할 수 있으면 답하고, 그대로 열어두어도 괜찮습니다 (argus_capture).`,
       reconsider_more: (n) => `미결로 남겨둔 질문 ${n}건을 다시 볼 차례입니다 (argus_capture).`,
       dropped_lines: (n) =>
-        ` 원장에서 읽지 못한 줄이 ${n}개 있습니다 (크래시 흔적일 수 있습니다). 기록은 추가만 하는 방식이라 나머지는 안전합니다. ledger.jsonl을 백업해 두세요.`,
+        ` 판단 기록에서 읽지 못한 줄이 ${n}개 있습니다 (크래시 흔적일 수 있습니다). 기록은 추가만 하는 방식이라 나머지는 안전합니다. ledger.jsonl을 백업해 두세요.`,
       watch_mirror: (date, text) =>
         `${date}에 이렇게 적으셨습니다: '${text}' 그 뒤로 어떻게 됐나요?`,
       fleet_summary: (projects, due) =>
@@ -506,11 +506,11 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
         `계정에 살아 있는 예측 ${total}개 중 ${due}개가 확인할 차례입니다. ` +
         '터미널에서 저장한 예측은 local_id와 argus_resolve로 결과를 기록하고, 웹에서 저장한 예측은 웹 대시보드에서 기록하세요.',
       live_no_due: (total) => `계정에 살아 있는 예측 ${total}개. 확인할 차례가 된 것은 없습니다.`,
-      settled_on_web: (n) => ` 웹에서 이미 결과를 기록한 예측이 ${n}건 있습니다. argus_settings action=sync에 import_settlements:true를 주면 웹 기록을 이 원장으로 옮겨옵니다 (argus_resolve로 직접 적어도 됩니다).`,
+      settled_on_web: (n) => ` 웹에서 이미 결과를 기록한 예측이 ${n}건 있습니다. argus_settings action=sync에 import_settlements:true를 주면 웹 기록을 로컬 판단 기록으로 가져옵니다 (argus_resolve로 직접 적어도 됩니다).`,
       unclear_on_web: (n) => ` 계정에서 ${n}건이 "불분명"으로 표시돼 있습니다. 현실이 아직 답하지 않아 가져오지 않았습니다. 결과가 기록되기 전까지 여기서는 계속 확인 대상입니다.`,
       pushed_up: (n) => ` 계정이 못 받은 변경 ${n}건을 올려보냈습니다. 결과를 기록했거나, 접었거나, 날짜를 옮긴 것들입니다. 이미 처리한 건에 대해 더는 알림이 오지 않습니다.`,
       push_up_failed: (n) => ` 로컬 변경 ${n}건이 아직 계정에 닿지 않았습니다. 그 건들에 대해 메일이 계속 올 수 있습니다. 여기 기록은 그대로 유효하니, 온라인일 때 argus_settings action=sync를 다시 실행하세요.`,
-      imported: (n) => ` 웹에서 기록한 결과 ${n}건을 이 원장으로 옮겨왔습니다. 당신이 적은 그대로입니다.`,
+      imported: (n) => ` 웹에서 기록한 결과 ${n}건을 로컬 판단 기록으로 가져왔습니다. 당신이 적은 그대로입니다.`,
       truncation: (shown, matched) => `${matched}개 중 ${shown}개만 표시합니다. limit을 올리거나 due_only로 좁히세요.`,
     },
     seal: {

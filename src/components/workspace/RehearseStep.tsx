@@ -20,7 +20,8 @@ import type { Persona, FeedbackRecord, RehearsalResult, HiddenAssumption, Discus
 import { useHandoffStore } from '@/stores/useHandoffStore';
 import { useAccuracyStore } from '@/stores/useAccuracyStore';
 import { NextStepGuide } from '@/components/ui/NextStepGuide';
-import { Plus, Pencil, Trash2, Loader2, Users, RotateCcw, Check, AlertTriangle } from 'lucide-react';
+import { LocaleLink } from '@/components/ui/LocaleLink';
+import { Plus, Pencil, Trash2, Loader2, Users, RotateCcw, Check, AlertTriangle, MessageCircleMore } from 'lucide-react';
 import { useReframeStore } from '@/stores/useReframeStore';
 import { useRecastStore } from '@/stores/useRecastStore';
 import { LoadingSteps } from '@/components/ui/LoadingSteps';
@@ -463,6 +464,10 @@ ${L('리스크', 'Risks')}: ${(r.classified_risks || []).map(cr => `[${cr.catego
         <p className="text-[13px] text-[var(--text-secondary)] mt-1">
           {L('보내기 전에, 받는 사람 입장에서 미리 들어봐요.', 'Before you send it, hear it from the receiver\'s side first.')}
         </p>
+        <LocaleLink href="/boss" className="mt-2 inline-flex items-center gap-1.5 text-[11px] font-semibold text-[var(--text-secondary)] hover:text-[var(--accent)]">
+          <MessageCircleMore size={13} />
+          {L('문서 검토가 아니라 팀장과의 1:1 대화를 연습하려면', 'Rehearse a 1:1 manager conversation instead of a document review')}
+        </LocaleLink>
         <div className="mt-2">
           <NavigatorInline step="rehearse" />
         </div>

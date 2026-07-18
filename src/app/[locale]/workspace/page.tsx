@@ -16,6 +16,7 @@ import { ProgressiveFlow } from '@/components/workspace/progressive/ProgressiveF
 import { WorkerDrawer, useWorkers } from '@/components/workspace/progressive/WorkerPanel';
 import { LogbookDrawer } from '@/components/workspace/progressive/Logbook';
 import { VoyageMapRail } from '@/components/workspace/progressive/VoyageMapRail';
+import { DecisionEvidenceMap } from '@/components/workspace/progressive/DecisionEvidenceMap';
 import { QuickChatBar } from '@/components/workspace/QuickChatBar';
 import { NavigatorStrip } from '@/components/workspace/NavigatorStrip';
 import { useSettingsStore } from '@/stores/useSettingsStore';
@@ -25,7 +26,7 @@ import { runInitialAnalysis } from '@/lib/progressive-engine';
 import { buildEarlyContract, summarizeRecord } from '@/lib/decision-contract';
 import { recordCompactLine } from '@/lib/record-summary';
 import { VoyageEta } from '@/components/workspace/VoyageEta';
-import { Sparkles, ChevronRight, MessageSquare, Sliders, UserCheck, RefreshCw, FolderOpen, ChevronDown, AlertTriangle, Layers, History, Compass, FileText, BellRing } from 'lucide-react';
+import { Sparkles, ChevronRight, MessageSquare, Sliders, UserCheck, RefreshCw, FolderOpen, ChevronDown, AlertTriangle, Layers, History, Compass, FileText, BellRing, SearchCheck } from 'lucide-react';
 import { useDueCount } from '@/hooks/useDueCount';
 import { shouldShowLantern, localYMD } from '@/lib/lantern';
 import { getStorage, setStorage, STORAGE_KEYS } from '@/lib/storage';
@@ -49,6 +50,7 @@ import { ErrorBoundary } from '@/components/layout/ErrorBoundary';
 import { parsePartialAnalysis } from '@/lib/partial-analysis';
 import { DAILY_LIMIT } from '@/lib/quota-config';
 import { ArgusCompanionNote } from '@/components/brand/ArgusCompanionNote';
+import { Modal } from '@/components/ui/Modal';
 
 /** Stable empty-array fallback for the sessionBranches selector — a fresh `[]`
  *  literal on every render makes zustand see a new snapshot each time → React's
@@ -137,6 +139,7 @@ function ProgressiveLayout({ projectId, projectName, onReset }: { projectId: str
   const switchBranch = useProgressiveStore(s => s.switchBranch);
   const branchingLocked = useProgressiveStore(s => s.isBranchingLocked());
   const [branchMenuOpen, setBranchMenuOpen] = useState(false);
+  const [mobileEvidenceOpen, setMobileEvidenceOpen] = useState(false);
   const branchTriggerRef = useRef<HTMLButtonElement>(null);
   const branchOptionRefs = useRef<Array<HTMLButtonElement | null>>([]);
 
@@ -263,6 +266,27 @@ function ProgressiveLayout({ projectId, projectName, onReset }: { projectId: str
             {L('새 프로젝트', 'New Project')}
           </button>
         </div>
+
+        {showMap && (
+          <div className="mb-3 flex justify-end xl:hidden">
+            <button
+              type="button"
+              onClick={() => setMobileEvidenceOpen(true)}
+              className="inline-flex min-h-10 items-center gap-1.5 border-b border-[var(--border)] px-1 text-[12px] font-semibold text-[var(--text-secondary)] transition-colors hover:text-[var(--accent)]"
+            >
+              <SearchCheck size={14} className="text-[var(--accent)]" />
+              {L('판단 지도', 'Decision map')}
+            </button>
+            <Modal
+              open={mobileEvidenceOpen}
+              onClose={() => setMobileEvidenceOpen(false)}
+              title={L('판단 지도 · 근거', 'Decision map · Evidence')}
+              widthClass="max-w-lg"
+            >
+              <DecisionEvidenceMap onNavigate={() => setMobileEvidenceOpen(false)} />
+            </Modal>
+          </div>
+        )}
 
             <ErrorBoundary renderFallback={(reset) => <StepErrorFallback onRetry={reset} />}>
               <ProgressiveFlow projectId={projectId} />

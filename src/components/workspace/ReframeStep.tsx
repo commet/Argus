@@ -33,6 +33,7 @@ import type { EntryStep } from '@/components/ui/StepEntry';
 const lazyEvalEngine = () => import('@/lib/eval-engine');
 import { applyPromptMutations } from '@/lib/prompt-mutation';
 import { NavigatorInline } from '@/components/workspace/NavigatorInline';
+import { ReframeDecisionPath } from '@/components/workspace/ReframeDecisionPath';
 import { useT } from '@/contexts/LocaleProvider';
 import { recordSignal } from '@/lib/signal-recorder';
 import { useLocale } from '@/hooks/useLocale';
@@ -1143,11 +1144,23 @@ export function ReframeStep({ onNavigate }: ReframeStepProps) {
         return (
           <div className="phrase-entrance space-y-5">
 
+            <ReframeDecisionPath
+              assumptionCount={analysis.hidden_assumptions.length}
+              reviewedCount={touchedAssumptions.size}
+              hasQuestion={Boolean(analysis.reframed_question)}
+              hasDirection={Boolean(current.selected_question)}
+              onJump={(target) => {
+                const element = document.getElementById(`reframe-${target}`);
+                element?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                window.setTimeout(() => element?.focus(), 350);
+              }}
+            />
+
             {/* ═══ Stage 1: 전제 점검 (사용자 판단) ═══ */}
             {reviewStage === 'evaluate' && (
               <>
                 {/* 과제 요약 */}
-                <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--surface)] px-5 py-4">
+                <div id="reframe-source" tabIndex={-1} className="scroll-mt-24 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface)] px-5 py-4 focus:outline-none">
                   <div className="flex items-center justify-between mb-2">
                     <p className="text-[11px] font-semibold text-[var(--text-tertiary)] tracking-wide">{L('STEP 1 — 가정 점검', 'STEP 1 — Assumption check')}</p>
                     {currentStrategy && (
@@ -1170,7 +1183,7 @@ export function ReframeStep({ onNavigate }: ReframeStepProps) {
                 </div>
 
                 {/* 전제 평가 */}
-                <div>
+                <div id="reframe-assumptions" tabIndex={-1} className="scroll-mt-24 focus:outline-none">
                   <div className="mb-3">
                     <p className="text-[14px] font-bold text-[var(--text-primary)]">
                       {L('이 과제의 숨은 가정', "This task's hidden assumptions")}
@@ -1291,9 +1304,12 @@ export function ReframeStep({ onNavigate }: ReframeStepProps) {
               <>
                 {/* 재정의된 질문 — 통합 카드 */}
                 {analysis.reframed_question && (
-                  <div className="rounded-[20px] overflow-hidden border border-[var(--border-subtle)]">
+                  <div id="reframe-question" tabIndex={-1} className="scroll-mt-24 rounded-[20px] overflow-hidden border border-[var(--border-subtle)] focus:outline-none">
                     {/* 전제 평가 요약 — 상단 */}
-                    <div className="px-5 py-3 bg-[var(--bg)] border-b border-[var(--border-subtle)]">
+                    <div id="reframe-assumptions" className="px-5 py-3 bg-[var(--bg)] border-b border-[var(--border-subtle)]">
+                      <p id="reframe-source" className="mb-2 text-[10px] leading-relaxed text-[var(--text-tertiary)]">
+                        <span className="font-bold">{L('처음 과제', 'Original task')} </span>{analysis.surface_task}
+                      </p>
                       <p className="text-[12px] font-medium text-[var(--text-secondary)] mb-2">{L('당신의 가정 평가 결과', 'Your assumption evaluations')}</p>
                       <div className="space-y-1">
                         {analysis.hidden_assumptions.map((a, i) => {
@@ -1352,7 +1368,7 @@ export function ReframeStep({ onNavigate }: ReframeStepProps) {
 
                 {/* 방향 선택 */}
                 {analysis.hidden_questions.length > 0 && (
-                  <div>
+                  <div id="reframe-direction" tabIndex={-1} className="scroll-mt-24 focus:outline-none">
                     <div className="flex items-center gap-3 mb-5">
                       <div className="h-px flex-1 bg-[var(--border-subtle)]" />
                       <p className="text-[15px] font-bold text-[var(--text-primary)]">{directionLabel}</p>

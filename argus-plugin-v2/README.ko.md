@@ -61,12 +61,12 @@ Claude Code를 다시 시작한 뒤:
   `~/.argus/config.json`에 `{ "ambient": { "opt_out": true } }`.
 - **`/argus:doctor`** — 설치·배선 읽기 전용 자가진단. 아무것도 고치지 않으며,
   각 줄에 고칠 수 있는 공개 도구 이름이 적혀 있습니다.
-- **statusline (선택)** — [`statusline/index.js`](./statusline/index.js)가 결정
-  원장을 읽습니다. 켜려면 `~/.claude/settings.json`에 1줄:
+- **statusline (선택)** — [`statusline/index.js`](./statusline/index.js)가 로컬 판단
+  기록을 읽습니다. 켜려면 `~/.claude/settings.json`에 1줄:
   `"statusLine": { "type": "command", "command": "node ${CLAUDE_PLUGIN_ROOT}/statusline/index.js" }`
 
 결정 기록은 사용자 자산이라 **플러그인 제거가 절대 삭제하지 않는다**는 것이
-저장 계약입니다 — `.argus/`와 `~/.argus`의 원장은 플러그인을 지워도 그대로
+저장 계약입니다 — `.argus/`와 `~/.argus`의 판단 기록 파일은 플러그인을 지워도 그대로
 남습니다.
 
 ---

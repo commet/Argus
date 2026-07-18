@@ -83,6 +83,7 @@ import { HonestyShaded } from './shared/HonestyShaded';
 import { locateFlag } from '@/lib/honesty-scan';
 import { neutralizeLeanText } from '@/lib/lean-scan';
 import { QuestionCard } from './shared/QuestionCard';
+import { parseTraceLocator, TRACE_NAVIGATE_EVENT } from '@/lib/evidence-trace';
 
 /* Reviewer 배지 — 저장된 팀장이 있으면 세션 내내 노출 */
 function ReviewerBadge({ reviewerId }: { reviewerId: string | null }) {
@@ -1330,6 +1331,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
   const statusBarRef = useRef<HTMLDivElement>(null);
   const questionRef = useRef<HTMLDivElement>(null);
   const workerSectionRef = useRef<HTMLDivElement>(null);
+  const problemRef = useRef<HTMLButtonElement>(null);
   const mixPreviewRef = useRef<HTMLDivElement>(null);
   const dmFeedbackRef = useRef<HTMLDivElement>(null);
   const finalRef = useRef<HTMLDivElement>(null);
@@ -1338,6 +1340,40 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
   const teamDeployRef = useRef<HTMLDivElement>(null);
   // Report step is a one-at-a-time stepper (not a long scroll of all drafts).
   const [reviewCursor, setReviewCursor] = useState(0);
+
+  useEffect(() => {
+    const scrollToTraceTarget = (ref: React.RefObject<HTMLElement | null>) => {
+      ref.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    };
+    const onTraceNavigate = (event: Event) => {
+      const locator = (event as CustomEvent<{ locator?: string }>).detail?.locator;
+      if (!locator || !session) return;
+      const target = parseTraceLocator(locator);
+      if (!target || target.scope !== 'workspace' || target.sessionId !== session.id) return;
+
+      if (target.target === 'input') {
+        setProblemExpanded(true);
+        requestAnimationFrame(() => scrollToTraceTarget(problemRef));
+        return;
+      }
+      if (target.target === 'answer') {
+        const index = session.answers.findIndex((answer) => answer.question_id === target.targetId);
+        if (index < 0) return;
+        setRecordOpen(true);
+        setRailQFocus((previous) => ({ index, nonce: (previous?.nonce ?? 0) + 1 }));
+        requestAnimationFrame(() => scrollToTraceTarget(answeredPillsRef));
+        return;
+      }
+      const ordered = [...session.workers].sort((a, b) => a.step_index - b.step_index);
+      const index = ordered.findIndex((worker) => worker.id === target.targetId);
+      if (index < 0) return;
+      setReportsOpen(true);
+      setReviewCursor(index);
+      requestAnimationFrame(() => scrollToTraceTarget(workerSectionRef));
+    };
+    window.addEventListener(TRACE_NAVIGATE_EVENT, onTraceNavigate);
+    return () => window.removeEventListener(TRACE_NAVIGATE_EVENT, onTraceNavigate);
+  }, [session]);
 
   useEffect(() => {
     if (!previewDraftId) return;
@@ -2930,10 +2966,11 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
           <div className="flex flex-col gap-2 items-start">
             {/* no `layout` prop: it re-measured on every streaming re-render */}
             <motion.button
+              ref={problemRef}
               type="button"
               onClick={() => setProblemExpanded((o) => !o)}
               title={problemExpanded ? undefined : L('눌러서 전체 보기', 'Tap to expand')}
-              className="flex items-start gap-2.5 max-w-full text-left cursor-pointer group"
+              className="flex scroll-mt-24 items-start gap-2.5 max-w-full text-left cursor-pointer group"
             >
               {/* "나" as a small label, not a chip-in-a-box — marks the user's
                   own words without another bordered pill. */}
@@ -3211,7 +3248,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
             const remainingToReview = ordered.filter(w => !handled(w) && w.status === 'done').length;
             const advance = () => setReviewCursor(c => Math.min(c + 1, total - 1));
             return (
-              <div ref={workerSectionRef} className="space-y-3">
+              <div ref={workerSectionRef} className="scroll-mt-24 space-y-3">
                 {/* W1.6 ④: the chips finally explain themselves — what 반영/제외
                     DOES and where the rating goes. One line, always visible. */}
                 <p className="text-[11.5px] text-[var(--text-tertiary)] px-1 leading-[1.5]">
@@ -3492,7 +3529,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
               VoyagePrepSummary's "Revisit my answers" link to scroll back
               to the Q&A history without disrupting the user's flow. */}
           {(showRecord || phase !== 'conversing') && !final_ && (
-            <div ref={answeredPillsRef}>
+            <div ref={answeredPillsRef} className="scroll-mt-24">
               <AnsweredPills
                 qaPairs={qaPairs}
                 canRevisit={(i) => !busy && !store.isBranchingLocked() && !!checkpointBeforeAnswer(i)}
