@@ -5,7 +5,6 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '@/lib/auth';
 import { useLocaleSwitch } from '@/hooks/useLocaleSwitch';
 import { useDueCount } from '@/hooks/useDueCount';
-import { ArgusMark } from '@/components/brand/ArgusMark';
 
 export function LandingHeader() {
   const { locale, switchTo: handleLocaleChange } = useLocaleSwitch();
@@ -39,10 +38,9 @@ export function LandingHeader() {
           {/* Wordmark — min 44px hit area for mobile */}
           <LocaleLink
             href="/"
-            className="flex items-center gap-2 group"
+            className="flex items-baseline gap-2 group"
             style={{ padding: '12px 4px 12px 0', marginLeft: -4 }}
           >
-            <ArgusMark size="sm" tone="ink" framed={false} style={{ color: 'var(--bp-ink)' }} />
             <span
               style={{
                 fontFamily: 'var(--font-display)',

@@ -70,11 +70,12 @@ poses, animation, and copy are implementation details of the state, not the API.
 
 ### Mark and illustration hierarchy
 
-- Below `64px`, use the Argus mark, never a shrunken full illustration.
+- Below `64px`, use typography or a conventional functional icon, never a
+  shrunken illustration or a miniature dog face.
 - Use a full illustration only when the state carries emotional or temporal
   meaning. One full Argus per viewport is the default maximum.
-- The mark may live in the logo, due badges, email stamps, premise-watch state,
-  and host surfaces that cannot carry illustration.
+- Persistent chrome uses the Argus wordmark and restrained `A` monogram. Due and
+  watch states use conventional functional icons; the dog is not an app icon.
 - The full dog never replaces a spinner for ordinary loading and never decorates
   a dense analysis result.
 - Paper-blend treatment is light-register only. In dark mode, preserve the warm
@@ -115,5 +116,4 @@ states what changed with provenance, and names its own limits plainly.
 - `public/images/brand/argus-v2/argus-companion.jpg`
 - `public/images/brand/argus-v2/argus-watching.jpg`
 - `public/images/brand/argus-v2/argus-returning.jpg`
-- `src/components/brand/ArgusMark.tsx`
 - `src/components/brand/ArgusMascot.tsx`
