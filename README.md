@@ -23,7 +23,7 @@ or any MCP host, and your AI gains a *decision-accountability* loop. In Claude
 Code, one line does it:
 
 ```bash
-claude mcp add argus -- npx -y argus-decision-mcp
+claude mcp add argus "--" npx -y argus-decision-mcp
 ```
 
 **Zero config** — no API key, no account, your data stays local in `~/.argus`.
@@ -42,7 +42,7 @@ Pick the door that fits you — each one links to its own setup guide.
 | | Best for | Get started |
 |---|---|---|
 | 🌐 **Web app** | Anyone. Nothing to install, no signup. | Open **[argus.voyage](https://argus.voyage)** |
-| 🧩 **MCP server** | Any AI assistant that speaks MCP — Claude Desktop, Claude Code, Cursor, and more. | `claude mcp add argus -- npx -y argus-decision-mcp` → [MCP docs](./argus-mcp/README.md) |
+| 🧩 **MCP server** | Any AI assistant that speaks MCP — Claude Desktop, Claude Code, Cursor, and more. | `claude mcp add argus "--" npx -y argus-decision-mcp` → [MCP docs](./argus-mcp/README.md) |
 | 🔌 **Claude Code plugin** | Deciding *inside* a codebase (over your PRs and files). | `/plugin marketplace add commet/Argus`<br>`/plugin install argus@argus` → [plugin docs](./argus-plugin-v2/README.md) |
 
 New here and not sure? **Start with the [web app](https://argus.voyage)** — it
@@ -147,7 +147,7 @@ Add Argus to any AI assistant that supports MCP (Claude Desktop, Claude Code,
 Cursor, …). The fastest path, in Claude Code:
 
 ```bash
-claude mcp add argus -- npx -y argus-decision-mcp
+claude mcp add argus "--" npx -y argus-decision-mcp
 ```
 
 Zero config works — your ledger lives in `~/.argus`. For the full config (Claude

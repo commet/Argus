@@ -19,7 +19,7 @@ Runs on any MCP host that supports local **stdio** servers — Claude Desktop,
 Claude Code, and other clients that launch a local process. (Remote-only
 connectors that require an HTTP transport aren't supported yet.)
 
-**Install (Claude Code):** `claude mcp add argus -- npx -y argus-decision-mcp`
+**Install (Claude Code):** `claude mcp add argus "--" npx -y argus-decision-mcp`
 — zero config, your ledger lives in `~/.argus`. Then just talk to your AI; see
 [your first receipt](#your-first-receipt-2-minutes) below.
 
@@ -69,7 +69,7 @@ promised in prose:
 Claude Code:
 
 ```bash
-claude mcp add argus -- npx -y argus-decision-mcp
+claude mcp add argus "--" npx -y argus-decision-mcp
 ```
 
 Or add to your host's MCP config. **Zero config works**: with no `env` at all,
