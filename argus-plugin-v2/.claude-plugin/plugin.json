@@ -6,7 +6,7 @@
   "description": "Pressure-tests an important decision and returns a one-screen summary: the recommendation, why, the biggest open risk, the alternative you passed on, and the next concrete action — plus one falsifiable prediction you resolve against reality later (/argus:resolve). Runs an agent review team on your real code, PRs, and files to verify claims before you commit. Installing also wires the argus-decision-mcp server automatically (one install, no separate init).",
   "author": {
     "name": "Argus",
-    "email": "yclee913@gmail.com",
+    "email": "sayucurator@gmail.com",
     "url": "https://github.com/commet"
   },
   "homepage": "https://github.com/commet/Argus",
