@@ -122,8 +122,7 @@ helm 8 · track 6. Each command also has: its skill directory, frontmatter
 - `README.md`, `README.ko.md`
 - web app: `src/app/[locale]/import/page.tsx`, `src/lib/ledger-schema.ts`
 - MCP: `argus-mcp/src/v2/brief.ts`
-- docs: `docs/ARGUS-REPO-MAP.md`, `docs/ARGUS-MCP-V2-SPEC.md`,
-  `docs/ARGUS-MCP-V2-DESIGN-HISTORY.md`
+- docs: `docs/ARGUS-REPO-MAP.md`, `docs/ARGUS-MCP-V2-SPEC.md`
 
 ## Execution + verification (one focused sweep)
 1. Lock the command/term map above (founder approves the FOUNDER-CALL rows).

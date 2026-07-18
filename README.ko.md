@@ -57,7 +57,7 @@ Argus는 20년 만에 거지 행색으로 돌아온 오디세우스를, 누더�
 | | 이런 분께 | 시작하기 |
 |---|---|---|
 | 🌐 **웹앱** | 누구나. 설치·가입 필요 없음. | **[argus.voyage](https://argus.voyage)** 열기 |
-| 🧩 **MCP 서버** | MCP를 지원하는 AI 어시스턴트라면 어디든 — Claude Desktop, Claude Code, Cursor… | `claude mcp add argus -- npx -y argus-decision-mcp` |
+| 🧩 **MCP 서버** | MCP를 지원하는 AI 어시스턴트라면 어디든 — Claude Desktop, Claude Code, Cursor… | `claude mcp add argus "--" npx -y argus-decision-mcp` |
 | 🔌 **Claude Code 플러그인** | 코드베이스 *안에서*, 실제 PR·파일 위에서 결정할 때. | `/plugin marketplace add commet/Argus`<br>`/plugin install argus@argus` |
 
 <sub>잘 모르겠으면 **웹앱**이 제일 편합니다 — 아무것도 설치 안 해도 됩니다. 모든 AI 대화에서 쓰고 싶다면 **MCP 서버**가 답이고요. (MCP = Model Context Protocol, 어시스턴트가 도구를 불러올 때 쓰는 공개 표준입니다.) 자세한 설정과 도구 목록은 **[argus-mcp/README.md](./argus-mcp/README.md)**, **[argus-plugin-v2/README.ko.md](./argus-plugin-v2/README.ko.md)** 를 보세요.</sub>
@@ -183,7 +183,7 @@ MCP를 지원하는 어시스턴트라면 어디든 붙습니다(Claude Desktop,
 Cursor …). Claude Code에서는 이 한 줄이 가장 빠릅니다:
 
 ```bash
-claude mcp add argus -- npx -y argus-decision-mcp
+claude mcp add argus "--" npx -y argus-decision-mcp
 ```
 
 설정은 필요 없습니다. 원장은 `~/.argus`에 쌓이고요. 자세한 설정(Claude Desktop,

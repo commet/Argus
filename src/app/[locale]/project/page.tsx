@@ -17,7 +17,7 @@ import { generateProjectBrief } from '@/lib/project-brief';
 import { OutputSelector } from '@/components/ui/OutputSelector';
 import { ExecutionReadiness } from '@/components/ui/ExecutionReadiness';
 import { LocaleLink } from '@/components/ui/LocaleLink';
-import { Layers, Map as MapIcon, Users, FileText, Check, ArrowRight, Download, Sparkles, Plus, Search, GitBranch, Scale, AlertTriangle, MessageSquare, LoaderCircle, CloudOff } from 'lucide-react';
+import { Layers, Map as MapIcon, Users, FileText, Check, ArrowRight, Download, Sparkles, Plus, Search, GitBranch, Scale, AlertTriangle, MessageSquare, LoaderCircle, CloudOff, BellRing } from 'lucide-react';
 import { useLocale } from '@/hooks/useLocale';
 import { VoyageShip, Graticule } from '@/components/ui/VoyageElements';
 import { getVoyageState, VOYAGE_STATE_META, type VoyageLeg } from '@/lib/voyage-state';
@@ -36,7 +36,6 @@ import { VoyageEta } from '@/components/workspace/VoyageEta';
 import { deriveCurrentBearing } from '@/lib/current-bearing';
 import { CurrentBearingCard } from '@/components/workspace/progressive/CurrentBearingCard';
 import { ArgusMascot } from '@/components/brand/ArgusMascot';
-import { ArgusMark } from '@/components/brand/ArgusMark';
 import { track } from '@/lib/analytics';
 import { selectDueReturnProject, selectReturnProject } from '@/lib/project-return';
 
@@ -632,7 +631,7 @@ export default function ProjectPage() {
               {dueProjects.length + dueReceipts.length > 0 && (
                 <section aria-labelledby="due-decisions-heading" className="rounded-xl border border-amber-500/30 bg-amber-500/[0.08] px-4 py-3 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
                   <h2 id="due-decisions-heading" className="flex items-center gap-1.5 text-[13px] font-semibold text-[var(--text-primary)] shrink-0">
-                    <ArgusMark size="sm" tone="gold" label={L('돌아온 Argus', 'Argus returned')} />
+                    <BellRing size={16} className="shrink-0 text-amber-600 dark:text-amber-400" aria-hidden="true" />
                     <span>
                       {locale === 'ko'
                         ? `그래서, 어떻게 됐어요? — 돌아올 결정 ${dueProjects.length + dueReceipts.length}건`

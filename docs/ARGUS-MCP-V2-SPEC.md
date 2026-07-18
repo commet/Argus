@@ -216,5 +216,5 @@ elicited_user, 채팅 Reword는 host_reported).
 
 # Part III · 설계 계보 — 별도 파일로 물리 분리됨
 
-> 구현 맥락 오염 방지를 위해 비정본 계보 전체를 `docs/ARGUS-MCP-V2-DESIGN-HISTORY.md`로
-> 이전했다. 이 파일(Part I·II)만이 정본이다.
+> 구현 맥락 오염 방지를 위해 비정본 계보 전체를 비공개 백업으로 분리했다.
+> 이 파일(Part I·II)만이 정본이다.

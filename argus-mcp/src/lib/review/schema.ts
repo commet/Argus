@@ -2,10 +2,9 @@
  * Argus Document Judgment Review — Phase 0 Schema Lock.
  *
  * Single source of truth for the intermediate objects that the review
- * pipeline produces. Per the design doc
- * (docs/strategy/argus-product-loop-ux-subtask-b-2026-07-01.md → "구현 순서 /
- * Phase 0: Schema Lock"): fix the objects BEFORE the pipeline and the UI, so
- * the same `JudgmentReceipt` can be produced by the webapp and the MCP/plugin.
+ * pipeline produces. Per the Phase 0 "Schema Lock" design decision: fix the
+ * objects BEFORE the pipeline and the UI, so the same `JudgmentReceipt` can be
+ * produced by the webapp and the MCP/plugin.
  *
  * Design invariants encoded here (do not weaken without revisiting the doc):
  *  - Every high-confidence finding MUST be able to carry a `source_anchor`.

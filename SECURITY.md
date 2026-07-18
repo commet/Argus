@@ -5,7 +5,7 @@
 Argus uses a **client-first architecture** with Supabase as the backend:
 
 - **Authentication**: Google OAuth + Email/Password via Supabase Auth
-- **Authorization**: Row Level Security (RLS) on all 9 tables — `auth.uid() = user_id`
+- **Authorization**: Row Level Security (RLS) on every user-data table — `auth.uid() = user_id`
 - **API Protection**: JWT verification + atomic rate limiting via Supabase RPC
 - **Session Management**: Supabase JS client (client-side) + middleware (server-side)
 
@@ -33,6 +33,12 @@ Argus uses a **client-first architecture** with Supabase as the backend:
 | `GET /api/slack/callback` | HMAC state | No | Slack OAuth callback |
 | `GET /api/cron/daily-report` | CRON_SECRET | No | Daily report email |
 
+> This table is **representative, not exhaustive** — the authoritative, current
+> list is `src/app/api/**/route.ts`. Newer surfaces (plugin/MCP token issuance
+> and sync, account export/deletion, and notification webhooks) follow the same
+> rule: a route that touches user data verifies a JWT or a scoped token and
+> relies on RLS.
+
 ## Known limitations & trade-offs
 
 1. **localStorage as primary storage**: Data is stored in localStorage first, then synced to Supabase asynchronously. If sync fails, data exists only in the browser. This trade-off prioritizes speed and offline capability over durability.
@@ -51,4 +57,11 @@ Argus uses a **client-first architecture** with Supabase as the backend:
 
 ## Reporting vulnerabilities
 
-If you discover a security vulnerability, please email the maintainer directly rather than opening a public issue.
+If you discover a security vulnerability, please report it **privately** rather
+than opening a public issue — either:
+
+- **Email:** sayucurator@gmail.com
+- **GitHub:** open a [private security advisory](https://github.com/commet/Argus/security/advisories/new)
+
+Please include steps to reproduce and the affected surface (web, MCP, or
+plugin). We aim to acknowledge reports within a few days.

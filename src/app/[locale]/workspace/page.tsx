@@ -24,7 +24,7 @@ import { runInitialAnalysis } from '@/lib/progressive-engine';
 import { buildEarlyContract, summarizeRecord } from '@/lib/decision-contract';
 import { recordCompactLine } from '@/lib/record-summary';
 import { VoyageEta } from '@/components/workspace/VoyageEta';
-import { Sparkles, ChevronRight, MessageSquare, Sliders, UserCheck, RefreshCw, FolderOpen, ChevronDown, AlertTriangle, Layers, History, Compass, FileText } from 'lucide-react';
+import { Sparkles, ChevronRight, MessageSquare, Sliders, UserCheck, RefreshCw, FolderOpen, ChevronDown, AlertTriangle, Layers, History, Compass, FileText, BellRing } from 'lucide-react';
 import { useDueCount } from '@/hooks/useDueCount';
 import { shouldShowLantern, localYMD } from '@/lib/lantern';
 import { getStorage, setStorage, STORAGE_KEYS } from '@/lib/storage';
@@ -46,7 +46,6 @@ import type { WorkerPersona, DecisionContract, VoyageBranch } from '@/stores/typ
 import { ErrorBoundary } from '@/components/layout/ErrorBoundary';
 import { parsePartialAnalysis } from '@/lib/partial-analysis';
 import { DAILY_LIMIT } from '@/lib/quota-config';
-import { ArgusMark } from '@/components/brand/ArgusMark';
 import { ArgusCompanionNote } from '@/components/brand/ArgusCompanionNote';
 
 /** Stable empty-array fallback for the sessionBranches selector — a fresh `[]`
@@ -678,7 +677,7 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
               {lanternOn && (
                 <div className="mb-5 rounded-xl border border-amber-500/30 bg-amber-500/[0.08] px-4 py-3 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
                   <p className="flex items-center gap-1.5 text-[13px] font-semibold text-[var(--text-primary)] min-w-0 flex-1">
-                    <ArgusMark size="sm" tone="gold" label={L('돌아온 Argus', 'Argus returned')} />
+                    <BellRing size={16} className="shrink-0 text-amber-600 dark:text-amber-400" aria-hidden="true" />
                     <span>
                       {locale === 'ko'
                         ? `그래서, 어떻게 됐어요? — 돌아올 결정 ${dueCount}건`

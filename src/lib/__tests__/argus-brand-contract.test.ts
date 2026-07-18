@@ -43,6 +43,7 @@ describe('Argus brand canon', () => {
     expect(joined).not.toMatch(/<ArgusMascot[^>]+variant=/);
     expect(joined).not.toMatch(/<ArgusMascot[^>]+size=["']xs["']/);
     expect(joined).not.toMatch(/<ArgusMascot[^>]+playful/);
+    expect(joined).not.toContain('ArgusMark');
     expect(mascot).toContain("sm: 'w-16 h-20'");
     expect(mascot).toContain("sm: 'w-16 h-16'");
     expect(mascot).toContain("sm: 'w-28 h-16'");
@@ -67,16 +68,20 @@ describe('Argus brand canon', () => {
     expect(offenders).toEqual([]);
   });
 
-  it('uses the small mark at identity and watch/return anchors', () => {
-    for (const rel of [
-      'components/brand/Logo.tsx',
-      'components/landing/LandingHeader.tsx',
-      'components/review/PremiseTracker.tsx',
-      'app/[locale]/workspace/page.tsx',
-      'app/[locale]/project/page.tsx',
-    ]) {
-      const file = source.find((item) => item.rel === rel);
-      expect(file?.text, `${rel} must carry the small Argus mark`).toContain('<ArgusMark');
-    }
+  it('uses the canonical face crop only for identity, never status controls', () => {
+    const logo = source.find((item) => item.rel === 'components/brand/Logo.tsx')?.text;
+    const landing = source.find((item) => item.rel === 'components/landing/LandingHeader.tsx')?.text;
+    const premise = source.find((item) => item.rel === 'components/review/PremiseTracker.tsx')?.text;
+    const project = source.find((item) => item.rel === 'app/[locale]/project/page.tsx')?.text;
+    const workspace = source.find((item) => item.rel === 'app/[locale]/workspace/page.tsx')?.text;
+    expect(logo).toContain('<ArgusFaceMark');
+    expect(landing).toContain('<ArgusFaceMark');
+    expect(landing).not.toContain('<ArgusMascot');
+    expect(premise).toContain('<Eye');
+    expect(project).toContain('<BellRing');
+    expect(workspace).toContain('<BellRing');
+    expect(premise).not.toContain('<ArgusFaceMark');
+    expect(project).not.toContain('<ArgusFaceMark');
+    expect(workspace).not.toContain('<ArgusFaceMark');
   });
 });
