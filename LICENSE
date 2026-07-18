@@ -6,8 +6,8 @@ Copyright © 2026 commet. All rights reserved except as expressly granted below.
 This repository is covered by MORE THAN ONE license. Which license applies
 depends on which directory a file lives in:
 
-  • argus-plugin/  argus-plugin-v2/  argus-mcp/   →   MIT License
-        (the open-source Claude Code plugins and the MCP server; each of
+  • argus-plugin-v2/  argus-mcp/   →   MIT License
+        (the open-source Claude Code plugin and the MCP server; each of
          those directories contains its own MIT LICENSE file)
 
   • everything else — the Argus web application (src/, app code, server
