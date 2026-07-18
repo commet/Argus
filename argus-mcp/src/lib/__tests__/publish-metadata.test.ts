@@ -45,4 +45,11 @@ describe('publish metadata is internally consistent', () => {
     expect(pkg.version).toMatch(/^\d+\.\d+\.\d+$/);
     expect(pkg.version).not.toBe('1.0.0'); // 1.0.0 is taken on npm — never re-publish it
   });
+
+  it('server.json description fits the registry limit (<= 100 chars)', () => {
+    // The MCP registry rejects publish with 422 if body.description > 100. This
+    // silently broke a real publish (a 170-char description). Guard it loud so a
+    // future edit that overshoots fails here, not at the publish step.
+    expect(server.description.length).toBeLessThanOrEqual(100);
+  });
 });
