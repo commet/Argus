@@ -20,9 +20,9 @@ type Lang = 'ko' | 'en';
 const META_STRINGS: Record<Lang, { title: string; description: string; descriptionShort: string; descriptionTwitter: string; ogLocale: string }> = {
   ko: {
     title: 'Argus — 그래서, 어떻게 됐어요?',
-    description: '중요한 결정을 그대로 적으면, 판단이 기대고 있는 질문을 비추고 — 정한 날짜에 먼저 돌아와 묻습니다.',
-    descriptionShort: '중요한 결정을 그대로 적으면, 판단이 기대고 있는 질문을 비추고 — 정한 날짜에 먼저 돌아와 묻습니다.',
-    descriptionTwitter: '중요한 결정을 그대로 적으면, 판단이 기대고 있는 질문을 비추고 — 정한 날짜에 돌아와 묻습니다.',
+    description: '중요한 결정을 그대로 적으면, 그 안에 깔린 숨은 전제를 짚어주고 — 정한 날짜에 먼저 돌아와 묻습니다.',
+    descriptionShort: '중요한 결정을 그대로 적으면, 그 안에 깔린 숨은 전제를 짚어주고 — 정한 날짜에 먼저 돌아와 묻습니다.',
+    descriptionTwitter: '중요한 결정을 그대로 적으면, 그 안에 깔린 숨은 전제를 짚어주고 — 정한 날짜에 돌아와 묻습니다.',
     ogLocale: 'ko_KR',
   },
   en: {

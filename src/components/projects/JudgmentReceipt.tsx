@@ -191,6 +191,12 @@ export function JudgmentReceipt(props: Props) {
         <p className="mt-1 text-[10px] font-semibold tracking-[0.14em] text-[var(--text-tertiary)]">
           AI VERDICT -- NONE
         </p>
+        {/* The signature is terse by design; without this gloss a first-time
+            reader can't tell whether NONE is a value or a missing feature. One
+            quiet plain line, mirroring Act2DecisionVoyage's shipped wording. */}
+        <p className="mt-2 text-[11px] leading-[1.5] text-[var(--text-tertiary)]">
+          {L('모델은 채점하지 않습니다 — 정한 날, 현실이 답합니다.', "The model doesn't grade you — reality answers on the date you set.")}
+        </p>
       </div>
     </div>
   );

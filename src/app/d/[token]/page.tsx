@@ -40,6 +40,13 @@ const SHARE_COPY = {
     try: 'Argus 사용해 보기 →',
     og: '공유된 Argus 판단 기록',
     receipt: '판단 영수증',
+    // The bare "AI VERDICT -- NONE" signature reads as cryptic (or as a missing
+    // feature) without one plain line saying what NONE means. Mirrors the
+    // shipped Act2DecisionVoyage gloss.
+    verdictGloss: '모델은 채점하지 않습니다 — 정한 날, 현실이 답합니다.',
+    // Social preview text was literally "AI VERDICT -- NONE" — a link card that
+    // says only that is pure cipher. Make the preview self-explanatory.
+    verdictShare: 'AI 판정 없음 — 모델이 아니라 현실이 답한 판단 기록입니다.',
   },
   en: {
     record: 'shared decision record',
@@ -48,6 +55,8 @@ const SHARE_COPY = {
     try: 'Try Argus →',
     og: 'Shared Argus decision record',
     receipt: 'Judgment Receipt',
+    verdictGloss: "The model doesn't grade you — reality answers on the date you set.",
+    verdictShare: 'AI verdict: none — a judgment settled by reality, not a model.',
   },
 } as const;
 
@@ -64,7 +73,7 @@ export async function generateMetadata({ params }: { params: Promise<{ token: st
     openGraph: {
       title,
       description: row?.context === 'review_receipt'
-        ? 'AI VERDICT -- NONE'
+        ? copy.verdictShare
         : copy.og,
       images: [{ url: `/d/${token}/opengraph-image`, width: 1200, height: 630 }],
     },
@@ -72,7 +81,7 @@ export async function generateMetadata({ params }: { params: Promise<{ token: st
       card: 'summary_large_image',
       title,
       description: row?.context === 'review_receipt'
-        ? 'AI VERDICT -- NONE'
+        ? copy.verdictShare
         : copy.og,
       images: [`/d/${token}/opengraph-image`],
     },
@@ -162,6 +171,9 @@ function SharedReceipt({ title, content, locale }: { title: string; content: str
         <div className="font-mono text-[13px] sm:text-[14px] tracking-[0.08em] text-[var(--text-primary)]">
           AI VERDICT -- NONE
         </div>
+        <p className="mt-2 text-[12px] leading-[1.5] text-[var(--text-tertiary)]">
+          {SHARE_COPY[locale].verdictGloss}
+        </p>
       </div>
     </article>
   );
