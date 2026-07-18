@@ -6,8 +6,14 @@
 > The `1.3.0` / `1.2.1` entries at the bottom are pre-rename `argus-mcp` history,
 > kept for reference — all of that work shipped inside the new-name 1.0.0.
 
-## 1.3.1 — Privacy-first telemetry invite
+## 1.3.1 — Privacy-first telemetry invite + premise-recording fix
 
+- **Fix: user premises are now recorded on *every* `argus_capture` open, not
+  only high-stakes ones.** On a low-stakes / easily-reversible decision the
+  over-fire gate does not fire, and premise persistence used to sit behind that
+  gate — so a user-supplied premise was silently dropped (no error, nothing to
+  re-check later). The record is now always written; the gate governs only the
+  surface ceremony, never whether the user's own words are kept.
 - **A single privacy-first line at startup** for users who have not enabled
   telemetry. It leads with the promise — *your decisions stay on your machine;
   this server makes no network calls by default* — and offers an optional
