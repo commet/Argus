@@ -163,6 +163,8 @@ ledger (verbatim predicates and outcomes) stays local by default.
 ```text
 ## Argus - Settle
 
+⚓ Loop closed
+
 ✓ "{{predicate clipped 70}}" → {{outcome}}
 {{if contract came from a read seed AND that read has fog_or_reef}}
   당시 짚었던 위험: "{{fog_or_reef.issue clipped 60}}" — 현실의 답: {{outcome}}
@@ -174,6 +176,10 @@ Track record: {{S}} sealed · {{T}} settled — held {{h}} · missed {{a}} · pa
 {{if remaining due}}{{N}} more due — run /argus:resolve again.{{endif}}
 {{if T >= 3}}Patterns across your decisions: /argus:journal{{endif}}
 ```
+
+The anchor line is the terminal form of Argus's closing-loop mark. Print it
+only when at least one contract was actually settled; do not print it for an
+empty due list, a skipped contract, or a date extension.
 
 **Settlement is reality-only — do NOT auto-offer `/argus:sail` on a missed or
 partial outcome.** A missed bet does not mean the decision should be re-opened;
