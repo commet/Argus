@@ -63,18 +63,18 @@ export default function GuidePage() {
   const flowSteps = getFlowSteps(locale);
 
   // The voyage's four beats (05 S4) — the quick start teaches the CURRENT flow:
-  // write → tie the rope → see where it forks → return and answer.
+  // write → tie the rope → see what it rests on → return and answer.
   const quickStartSteps = locale === 'ko'
     ? [
         '상황을 한 줄 적어요 → 진짜 질문과 숨은 가정이 드러납니다',
         '듣기 전에 내 예상을 밧줄로 묶어요 → 안 적어도 됩니다. 적어두면 나중에 같이 맞춰봐요',
-        'AI 팀이 어디서 갈리는지 보여줘요 → 필요한 곳만 수정 요청, 현재 방위 한 화면으로',
+        'AI 팀이 숨은 전제와 열린 질문을 보여줘요 → 필요한 곳만 수정 요청, 현재 방위 한 화면으로',
         '정한 날 돌아와 “그래서 어떻게 됐는지” 답해요 → 기록이 쌓입니다',
       ]
     : [
         'Write the situation in one line → the real question and hidden assumptions surface',
         "Tie your own lean before you listen → optional; jot it down and we'll check back together",
-        'The AI crew shows where things fork → request changes only where needed, one Current Heading',
+        'The AI crew surfaces hidden premises and open questions → request changes only where needed, one Current Heading',
         'Come back on the date you set and answer "so, how did it go?" → the record accrues',
       ];
 
@@ -110,7 +110,7 @@ export default function GuidePage() {
             ? [
                 {
                   q: '질문은 왜 하나요?',
-                  a: "답이 분석을 구체화하고, 갈리는 지점을 좁혀요. 언제든 '그만 묻고 초안 만들기'로 건너뛸 수 있어요.",
+                  a: "답이 분석을 구체화하고, 열린 질문을 좁혀요. 언제든 '그만 묻고 초안 만들기'로 건너뛸 수 있어요.",
                 },
                 {
                   q: '내가 쓴 내용은 어디로 가나요?',
@@ -141,7 +141,7 @@ export default function GuidePage() {
             : [
                 {
                   q: 'Why does it ask me questions?',
-                  a: 'Your answers sharpen the analysis and narrow where things fork. You can skip anytime with "stop asking, draft now."',
+                  a: 'Your answers sharpen the analysis and narrow the open questions. You can skip anytime with "stop asking, draft now."',
                 },
                 {
                   q: 'Where does what I write go?',

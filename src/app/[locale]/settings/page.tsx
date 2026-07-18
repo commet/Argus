@@ -845,7 +845,7 @@ export default function SettingsPage() {
             {
               key: 'new_arc_enabled' as const,
               label: L('시험 항해 (실험 중)', 'Trial Sail (experimental)'),
-              desc: L('분석 단계에서 AI 실행자 여럿이 같은 글을 따로 읽고, 갈리는 지점을 측정해 보여줘요', 'In the analysis stage, several AI executors read the same text separately and show where they diverge'),
+              desc: L('분석 단계에서 AI 실행자 여럿이 같은 글을 따로 읽고, 서로 다르게 읽은 지점을 보여줘요', 'In the analysis stage, several AI executors read the same text separately and show where their readings differ'),
             },
             {
               key: 'classic_session' as const,

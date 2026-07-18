@@ -20,8 +20,8 @@
  *
  * Copy rules (FRAMEWORK §7): measurement is never the headline — 알아봄 and
  * 귀환 are. No scores, no verdict vocabulary, no 내기/반증 on the surface. The
- * how-it-works line admits the honest null-fork case ("갈리는 자리가 있으면")
- * so the CTA never writes a check the product must decline.
+ * how-it-works line admits the honest null-fork case so the CTA never
+ * writes a check the product must decline.
  *
  * The original three acts are preserved untouched below the fold; this
  * screen's only job is that a new visitor sees the question and a place to

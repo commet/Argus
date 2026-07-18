@@ -169,7 +169,7 @@ describe('TerminalRouteCard — closure + forward action on a terminal route', (
     // Names why the flow landed here (measurement language, not a verdict) and
     // gives closure — the session is no longer a silent dead-end.
     expect(container.textContent).toContain('여기서 마쳐도 돼요');
-    expect(container.textContent).toContain('크게 갈리지 않는');
+    expect(container.textContent).toContain('크게 다르지 않은');
     click(byText('이대로 문서로 정리하기'));
     expect(onDraft).toHaveBeenCalledTimes(1);
     click(byText('그래도 더 짚어볼래요'));

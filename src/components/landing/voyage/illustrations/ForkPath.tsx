@@ -122,7 +122,7 @@ export function ForkPath({ className, label }: { className?: string; label?: str
       {/* annotations — navy ink, so gold stays singular */}
       <g className="bf-soft" style={{ ['--g' as string]: '1620ms' }}>
         <line x1={fork.x} y1={fork.y - 26} x2={fork.x} y2="118" stroke="var(--bp-ink-soft)" strokeWidth="0.9" opacity="0.6" />
-        <text x={fork.x} y="106" textAnchor="middle" className="bp-mono" fill="var(--bp-ink)" style={{ fontSize: 16, fontWeight: 800 }}>{L('여기서 길이 갈려요', 'This is where it forks')}</text>
+        <text x={fork.x} y="106" textAnchor="middle" className="bp-mono" fill="var(--bp-ink)" style={{ fontSize: 16, fontWeight: 800 }}>{L('여기서 항로가 정해져요', 'This is where the course is set')}</text>
         <text x={fork.x} y="128" textAnchor="middle" className="bp-mono" fill="var(--bp-ink-soft)" style={{ fontSize: 13 }}>{L('아직 비워둔 판단입니다', 'the judgment you left blank')}</text>
       </g>
       <text x={O.x - 2} y={O.y - 20} className="bp-mono" fill="var(--bp-ink)" style={{ fontSize: 14, fontWeight: 800 }}>{L('당신의 계획', 'Your plan')}</text>

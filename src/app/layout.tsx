@@ -20,16 +20,16 @@ type Lang = 'ko' | 'en';
 const META_STRINGS: Record<Lang, { title: string; description: string; descriptionShort: string; descriptionTwitter: string; ogLocale: string }> = {
   ko: {
     title: 'Argus — 그래서, 어떻게 됐어요?',
-    description: '중요한 결정을 그대로 적으면, 갈리는 자리를 보여주고 — 정한 날짜에 먼저 돌아와 묻습니다.',
-    descriptionShort: '중요한 결정을 그대로 적으면, 갈리는 자리를 보여주고 — 정한 날짜에 먼저 돌아와 묻습니다.',
-    descriptionTwitter: '중요한 결정을 그대로 적으면, 갈리는 자리를 보여주고 — 정한 날짜에 돌아와 묻습니다.',
+    description: '중요한 결정을 그대로 적으면, 판단이 기대고 있는 질문을 비추고 — 정한 날짜에 먼저 돌아와 묻습니다.',
+    descriptionShort: '중요한 결정을 그대로 적으면, 판단이 기대고 있는 질문을 비추고 — 정한 날짜에 먼저 돌아와 묻습니다.',
+    descriptionTwitter: '중요한 결정을 그대로 적으면, 판단이 기대고 있는 질문을 비추고 — 정한 날짜에 돌아와 묻습니다.',
     ogLocale: 'ko_KR',
   },
   en: {
     title: 'Argus — So, how did it go?',
-    description: 'Write down a decision that matters, as-is — Argus shows you where things fork, and comes back first on the date you set to ask.',
-    descriptionShort: 'Write down a decision that matters, as-is — Argus shows you where things fork, and comes back on the date you set to ask.',
-    descriptionTwitter: 'Argus shows you where your decision forks — and comes back on the date you set to ask.',
+    description: 'Write down a decision that matters, as-is — Argus surfaces the question it rests on, and comes back first on the date you set to ask.',
+    descriptionShort: 'Write down a decision that matters, as-is — Argus surfaces the question it rests on, and comes back on the date you set to ask.',
+    descriptionTwitter: 'Argus surfaces the question your decision rests on — and comes back on the date you set to ask.',
     ogLocale: 'en_US',
   },
 };
