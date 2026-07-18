@@ -29,7 +29,7 @@ export function ArgusFaceMark({
       style={style}
     >
       <Image
-        src="/images/brand/argus-v2/argus-face-mark-v2.jpg"
+        src="/images/brand/argus-v2/argus-face-mark-v3.jpg"
         alt=""
         fill
         loading="eager"

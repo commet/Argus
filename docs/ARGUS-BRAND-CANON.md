@@ -118,6 +118,6 @@ states what changed with provenance, and names its own limits plainly.
 - `public/images/brand/argus-v2/argus-companion.jpg`
 - `public/images/brand/argus-v2/argus-watching.jpg`
 - `public/images/brand/argus-v2/argus-returning.jpg`
-- `public/images/brand/argus-v2/argus-face-mark-v2.jpg`
+- `public/images/brand/argus-v2/argus-face-mark-v3.jpg`
 - `src/components/brand/ArgusFaceMark.tsx`
 - `src/components/brand/ArgusMascot.tsx`
