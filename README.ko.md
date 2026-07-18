@@ -6,15 +6,20 @@
 
 **AI가 실행을 가져갑니다. 판단은 어디에 쌓입니까?**
 
-Argus는 결정 *뒤에 있던* 판단을 기록합니다 — 그 결정이 기대는 전제와, 반증
+Argus는 결정 *뒤에 있던* 판단을 기록합니다 — 그 결정에 깔린 전제와, 반증
 가능한 예측을 남기고, 현실이 답할 때 다시 돌아옵니다. 더 나은 답이 아니라,
 **실제로 어떻게 됐는지로 정산되는, 살아 있는 판단의 기록**입니다.
 
 ## ⚡ MCP 서버 설치 (30초)
 
-Argus는 **MCP 서버**로 제공됩니다 — Claude Code, Claude Desktop, Cursor 등
-MCP 호스트에 넣으면 AI가 *결정 책임(decision-accountability)* 루프를 갖게
-됩니다. Claude Code에서는 한 줄이면 끝:
+> 아무것도 설치하기 싫다면? **[웹앱](https://argus.voyage)** 은 설치가 전혀
+> 필요 없습니다 — 브라우저에서 바로 결정하세요. 아래 MCP 서버는 Argus를 AI
+> 어시스턴트 *안에서* 쓰는 방법입니다.
+
+Argus는 **MCP 서버**(Model Context Protocol — AI 어시스턴트가 도구를 불러오는
+공개 표준)로 제공됩니다. Claude Code, Claude Desktop, Cursor 등 MCP 호스트에
+넣으면 AI가 *결정 책임(decision-accountability)* 루프를 갖게 됩니다. Claude
+Code에서는 한 줄이면 끝:
 
 ```bash
 claude mcp add argus -- npx -y argus-decision-mcp
@@ -25,7 +30,7 @@ claude mcp add argus -- npx -y argus-decision-mcp
 
 - 📦 npm: [`argus-decision-mcp`](https://www.npmjs.com/package/argus-decision-mcp)
 - 🛠️ 전체 설정(Claude Desktop, Windows, 프로젝트별 원장) + 툴 목록 → **[argus-mcp/README.md](./argus-mcp/README.md)**
-- 🔌 **Claude Code** 사용자라면 슬래시 명령(`/argus:review`, `/argus:check`)이 있는 네이티브 플러그인도 있습니다: `/plugin marketplace add commet/Argus` → **[플러그인 문서](./argus-plugin-v2/README.ko.md)**
+- 🔌 **Claude Code** 사용자라면 슬래시 명령(`/argus:review`, `/argus:check`)이 있는 네이티브 플러그인도 있습니다. 설치는 두 줄: `/plugin marketplace add commet/Argus` 다음 `/plugin install argus@argus` → **[플러그인 문서](./argus-plugin-v2/README.ko.md)**
 
 ---
 
@@ -35,9 +40,9 @@ claude mcp add argus -- npx -y argus-decision-mcp
 
 | | 이런 사람에게 | 시작하기 |
 |---|---|---|
-| 🌐 **웹앱** | 누구나. 설치 불필요. | **[argus.voyage](https://argus.voyage)** 열기 |
+| 🌐 **웹앱** | 누구나. 설치·가입 불필요. | **[argus.voyage](https://argus.voyage)** 열기 |
 | 🧩 **MCP 서버** | MCP를 지원하는 모든 AI 어시스턴트 — Claude Desktop, Claude Code, Cursor 등. | `claude mcp add argus -- npx -y argus-decision-mcp` → [MCP 문서](./argus-mcp/README.md) |
-| 🔌 **Claude Code 플러그인** | 코드베이스 *안에서* 결정할 때 (PR·파일 위에서). | `/plugin marketplace add commet/Argus` → [플러그인 문서](./argus-plugin-v2/README.ko.md) |
+| 🔌 **Claude Code 플러그인** | 코드베이스 *안에서* 결정할 때 (PR·파일 위에서). | `/plugin marketplace add commet/Argus`<br>`/plugin install argus@argus` → [플러그인 문서](./argus-plugin-v2/README.ko.md) |
 
 처음이라 잘 모르겠다면 **[웹앱](https://argus.voyage)부터 시작하세요** — 설치가
 필요 없습니다. AI 어시스턴트 안에서 살고, 모든 대화에서 Argus를 쓰고 싶다면
@@ -213,7 +218,9 @@ docs/ARGUS-BLUEPRINT.md   # 빌드 정본 (무엇을 어떤 순서로 짓는가)
 
 ## 라이선스
 
-이 저장소는 **부분마다 라이선스가 다릅니다** (자세한 설명 → [LICENSING.md](./LICENSING.md)):
+Argus는 **오픈코어(open-core)** 입니다: 널리 퍼져야 할 부분은 오픈소스로, 제품
+자체는 소스공개(source-available)로 둡니다. 이 저장소는 **부분마다 라이선스가
+다릅니다** (자세한 설명 → [LICENSING.md](./LICENSING.md)):
 
 | 부분 | 라이선스 | 상업적 이용 |
 |---|---|---|
