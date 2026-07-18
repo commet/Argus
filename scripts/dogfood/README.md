@@ -19,8 +19,7 @@ TypeScript port of the production RPC**
 **Is not:** proof of any production Definition-of-done box. A green local run
 proves structural/command-level conformance. It is NOT the live web/Telegram/
 plugin lifecycle, NOT export/erasure verification, NOT P5 baseline/dkk_v6
-evidence, and it must never be reported as those (handoff:
-`docs/DKK-v6-CONTINUATION-HANDOFF-2026-07-14.md` §Read this first).
+evidence, and it must never be reported as those.
 
 ## Run
 
