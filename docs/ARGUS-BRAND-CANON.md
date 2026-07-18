@@ -74,8 +74,9 @@ poses, animation, and copy are implementation details of the state, not the API.
   shrunken illustration or a miniature dog face.
 - Use a full illustration only when the state carries emotional or temporal
   meaning. One full Argus per viewport is the default maximum.
-- Persistent chrome uses the Argus wordmark and restrained `A` monogram. Due and
-  watch states use conventional functional icons; the dog is not an app icon.
+- Persistent chrome uses the Argus wordmark and collar-tag sigil. The sigil is
+  the one small-format identity: no face and no letterform. Due and watch states
+  use conventional functional icons; the sigil never doubles as status UI.
 - The full dog never replaces a spinner for ordinary loading and never decorates
   a dense analysis result.
 - Paper-blend treatment is light-register only. In dark mode, preserve the warm
@@ -116,4 +117,5 @@ states what changed with provenance, and names its own limits plainly.
 - `public/images/brand/argus-v2/argus-companion.jpg`
 - `public/images/brand/argus-v2/argus-watching.jpg`
 - `public/images/brand/argus-v2/argus-returning.jpg`
+- `src/components/brand/ArgusSigil.tsx`
 - `src/components/brand/ArgusMascot.tsx`
