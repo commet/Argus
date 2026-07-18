@@ -34,6 +34,7 @@
 import { useLocale } from '@/hooks/useLocale';
 import { useScrollReveal } from '@/hooks/useScrollReveal';
 import { PaperGrain } from './voyage/atmosphere/PaperGrain';
+import { ArgusMascot } from '@/components/brand/ArgusMascot';
 
 type Origin = 'write' | 'file';
 type Tone = 'risk' | 'green'; // did the world break the bet, or open the window?
@@ -229,19 +230,43 @@ export function UseCases() {
           </span>
         </div>
 
-        {/* heading — lead with the recognizable feeling, not the mechanism */}
-        <h2
-          className={bk}
-          style={{ fontFamily: 'var(--font-display)', color: 'var(--bp-ink)', fontSize: 'clamp(22px, 3.2vw, 32px)', fontWeight: 700, lineHeight: 1.28, letterSpacing: '-0.01em', maxWidth: 680 }}
-        >
-          {L('정하고 나면, 세상은 말없이 바뀝니다.', 'You decide — then the world quietly moves on.')}
-        </h2>
-        <p className={bk} style={{ color: 'var(--bp-ink-soft)', fontSize: 'clamp(13.5px, 1.5vw, 15px)', lineHeight: 1.65, maxWidth: 620, marginTop: 12 }}>
-          {L(
-            '믿고 정했던 것이 흔들리거나, 기다리던 때가 오는 순간 — 대개는 아무도 알려주지 않죠. 그때 Argus가 먼저 당신에게 돌아옵니다. 실제로 이런 순간들이에요.',
-            'What your decision rested on shifts — or the moment you were waiting for finally lands. Usually no one tells you. That’s when Argus comes back to you. Real ones:',
-          )}
-        </p>
+        <div className="flex items-end justify-between gap-8">
+          <div>
+            {/* heading — lead with the recognizable feeling, not the mechanism */}
+            <h2
+              className={bk}
+              style={{ fontFamily: 'var(--font-display)', color: 'var(--bp-ink)', fontSize: 'clamp(22px, 3.2vw, 32px)', fontWeight: 700, lineHeight: 1.28, letterSpacing: '-0.01em', maxWidth: 680 }}
+            >
+              {L('정하고 나면, 세상은 말없이 바뀝니다.', 'You decide — then the world quietly moves on.')}
+            </h2>
+            <p className={bk} style={{ color: 'var(--bp-ink-soft)', fontSize: 'clamp(13.5px, 1.5vw, 15px)', lineHeight: 1.65, maxWidth: 620, marginTop: 12 }}>
+              {L(
+                '믿고 정했던 것이 흔들리거나, 기다리던 때가 오는 순간 — 대개는 아무도 알려주지 않죠. 그때 Argus가 먼저 당신에게 돌아옵니다. 실제로 이런 순간들이에요.',
+                'What your decision rested on shifts — or the moment you were waiting for finally lands. Usually no one tells you. That’s when Argus comes back to you. Real ones:',
+              )}
+            </p>
+          </div>
+          <div className="hidden sm:block">
+            <ArgusMascot
+              moment="watching"
+              size="md"
+              motion="still"
+              plate={false}
+              alt={L('세상의 변화를 지켜보는 Argus', 'Argus keeping watch as the world changes')}
+              className="argus-landing-watch opacity-85"
+            />
+          </div>
+        </div>
+        <div className="mt-5 sm:hidden">
+          <ArgusMascot
+            moment="watching"
+            size="sm"
+            motion="still"
+            plate={false}
+            alt={L('세상의 변화를 지켜보는 Argus', 'Argus keeping watch as the world changes')}
+            className="argus-landing-watch opacity-85"
+          />
+        </div>
 
         {/* three light cards — a recognition gallery, not a loop diagram */}
         <div ref={ref} className="mt-9 flex flex-col md:flex-row md:items-stretch gap-5">

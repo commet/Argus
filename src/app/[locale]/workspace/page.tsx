@@ -46,8 +46,8 @@ import type { WorkerPersona, DecisionContract, VoyageBranch } from '@/stores/typ
 import { ErrorBoundary } from '@/components/layout/ErrorBoundary';
 import { parsePartialAnalysis } from '@/lib/partial-analysis';
 import { DAILY_LIMIT } from '@/lib/quota-config';
-import { ArgusMascot } from '@/components/brand/ArgusMascot';
-import { MascotMoment } from '@/components/brand/MascotMoment';
+import { ArgusMark } from '@/components/brand/ArgusMark';
+import { ArgusCompanionNote } from '@/components/brand/ArgusCompanionNote';
 
 /** Stable empty-array fallback for the sessionBranches selector — a fresh `[]`
  *  literal on every render makes zustand see a new snapshot each time → React's
@@ -678,7 +678,7 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
               {lanternOn && (
                 <div className="mb-5 rounded-xl border border-amber-500/30 bg-amber-500/[0.08] px-4 py-3 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
                   <p className="flex items-center gap-1.5 text-[13px] font-semibold text-[var(--text-primary)] min-w-0 flex-1">
-                    <ArgusMascot variant="head" size="xs" animate className="ring-amber-500/25" />
+                    <ArgusMark size="sm" tone="gold" label={L('돌아온 Argus', 'Argus returned')} />
                     <span>
                       {locale === 'ko'
                         ? `그래서, 어떻게 됐어요? — 돌아올 결정 ${dueCount}건`
@@ -713,14 +713,14 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
                   {L('분야·형식 상관없어요. 떠오르는 대로 편하게 적어주세요 — 나머지는 팀이 정리해요.', 'Any field or format — just describe it however it comes to mind. The team handles the rest.')}
                 </p>
                 {projects.length === 0 && (
-                  <MascotMoment
-                    variant="sitting"
+                  <ArgusCompanionNote
+                    moment="companion"
                     compact
                     title={L('한 줄만 시작해도 괜찮아요', 'A sentence is enough to begin')}
                     className="mb-3"
                   >
                     {L('Argus가 곁에서, 이 결정에 깔린 전제를 같이 찾아볼게요.', "Argus will sit with it and help find the question it rests on.")}
-                  </MascotMoment>
+                  </ArgusCompanionNote>
                 )}
                 {/* PRIMARY input — lifted off the page with a soft shadow + a faint
                     accent border so it reads as THE thing to do, not just one more

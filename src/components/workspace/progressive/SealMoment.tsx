@@ -512,7 +512,7 @@ export function SealMoment({
         </div>
         <div className="mt-7 flex flex-col items-center gap-2.5">
           {/* '제가 먼저 물어볼게요' — 약속하는 그 Argus가 직접 */}
-          <ArgusMascot variant="head" size="sm" animate playful alt={L('Argus', 'Argus')} />
+          <ArgusMascot moment="witness" size="md" alt={L('약속을 기억하는 Argus', 'Argus remembering the promise')} />
           <p className="seal-line-write text-[15px] font-semibold text-[var(--text-primary)] leading-[1.5]">
             {L(`봉인했어요 — ${checkDateStr}에 제가 먼저 물어볼게요.`, `Sealed — I'll ask you first on ${checkDateStr}.`)}
           </p>

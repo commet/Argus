@@ -3,71 +3,111 @@
 import Image from 'next/image';
 import type { CSSProperties } from 'react';
 
-export type ArgusMascotVariant = 'head' | 'sitting' | 'watching';
-export type ArgusMascotSize = 'xs' | 'sm' | 'md' | 'lg';
+export type ArgusMoment = 'companion' | 'witness' | 'watching' | 'returning' | 'settled';
+export type ArgusMascotSize = 'sm' | 'md' | 'lg' | 'hero';
 
-const SRC: Record<ArgusMascotVariant, string> = {
-  head: '/images/brand/argus/argus-head.png',
-  sitting: '/images/brand/argus/argus-sitting.png',
-  watching: '/images/brand/argus/argus-watching.png',
+const MOMENT: Record<ArgusMoment, { src: string; shape: 'portrait' | 'square' | 'wide'; position: string; motion: string }> = {
+  companion: {
+    src: '/images/brand/argus-v2/argus-companion.jpg',
+    shape: 'portrait',
+    position: 'object-center',
+    motion: 'argus-presence-breathe',
+  },
+  witness: {
+    src: '/images/brand/argus-v2/argus-canon.jpg',
+    shape: 'square',
+    position: 'object-center',
+    motion: 'argus-presence-acknowledge',
+  },
+  watching: {
+    src: '/images/brand/argus-v2/argus-watching.jpg',
+    shape: 'wide',
+    position: 'object-center',
+    motion: 'argus-presence-breathe',
+  },
+  returning: {
+    src: '/images/brand/argus-v2/argus-returning.jpg',
+    shape: 'square',
+    position: 'object-center',
+    motion: 'argus-presence-return',
+  },
+  settled: {
+    src: '/images/brand/argus-v2/argus-returning.jpg',
+    shape: 'square',
+    position: 'object-center',
+    motion: 'argus-presence-settle',
+  },
 };
 
-const SIZE: Record<ArgusMascotSize, string> = {
-  xs: 'w-9 h-9',
-  sm: 'w-12 h-12',
-  md: 'w-16 h-16',
-  lg: 'w-24 h-24',
+const SIZE: Record<'portrait' | 'square' | 'wide', Record<ArgusMascotSize, string>> = {
+  portrait: {
+    sm: 'w-16 h-20',
+    md: 'w-20 h-24',
+    lg: 'w-28 h-36',
+    hero: 'w-36 h-48',
+  },
+  square: {
+    sm: 'w-16 h-16',
+    md: 'w-20 h-20',
+    lg: 'w-28 h-28',
+    hero: 'w-36 h-36',
+  },
+  wide: {
+    sm: 'w-28 h-16',
+    md: 'w-36 h-20',
+    lg: 'w-48 h-28',
+    hero: 'w-64 h-36',
+  },
 };
 
+/**
+ * Canonical full Argus presence. Call sites choose a product moment, never an
+ * image filename or a generic emotion; pose and motion follow the brand canon.
+ */
 export function ArgusMascot({
-  variant = 'head',
-  size = 'sm',
+  moment,
+  size = 'md',
   alt,
-  framed = true,
-  animate = false,
-  playful = false,
+  motion = 'auto',
+  plate = true,
+  interactive = false,
+  loading = 'lazy',
   className = '',
   style,
 }: {
-  variant?: ArgusMascotVariant;
+  moment: ArgusMoment;
   size?: ArgusMascotSize;
   alt?: string;
-  framed?: boolean;
-  animate?: boolean;
-  /** Warm "moment" surfaces (seal / settle): a periodic cute wag instead of the
-   *  calm breathe. Implies animate. Honors prefers-reduced-motion. */
-  playful?: boolean;
+  motion?: 'auto' | 'still';
+  plate?: boolean;
+  interactive?: boolean;
+  loading?: 'eager' | 'lazy';
   className?: string;
   style?: CSSProperties;
 }) {
-  const isWide = variant === 'watching';
-  const wrapperSize = isWide
-    ? size === 'lg' ? 'w-36 h-16' : size === 'md' ? 'w-28 h-12' : size === 'sm' ? 'w-24 h-10' : 'w-20 h-9'
-    : SIZE[size];
-
+  const config = MOMENT[moment];
   return (
     <span
       className={[
-        'argus-mascot relative inline-flex shrink-0 overflow-hidden',
-        // 마스코트 PNG는 불투명(크림 양피지 배경이 구워진 RGB)이라 흰 박스+링에
-        // 얹으면 '스티커'처럼 뜬다. 그림의 크림(#ECE3D5)에 맞춘 따뜻한 판 위에 올려
-        // 액자가 아니라 '의도된 일러스트 판'으로 읽히게. 밝은 그림이므로 다크모드에도
-        // 어두운 박스가 아니라 같은 따뜻한 판을 유지한다(광택 인셋 하이라이트 제거).
-        framed ? 'rounded-xl bg-[#ece3d4] ring-1 ring-black/[0.05] shadow-[0_4px_14px_rgba(70,52,30,0.12)]' : '',
-        playful ? 'argus-mascot-wiggle' : animate ? 'argus-mascot-breathe' : '',
-        wrapperSize,
+        'argus-presence relative inline-flex shrink-0 overflow-hidden',
+        plate ? 'rounded-[14px] bg-[#e9e3d8] shadow-[0_5px_18px_rgba(49,38,23,0.10)]' : '',
+        motion === 'auto' ? config.motion : '',
+        interactive ? 'argus-presence-interactive' : '',
+        SIZE[config.shape][size],
         className,
       ].filter(Boolean).join(' ')}
+      data-argus-moment={moment}
+      data-interactive={interactive || undefined}
       style={style}
     >
       <Image
-        src={SRC[variant]}
+        src={config.src}
         alt={alt ?? ''}
         aria-hidden={alt ? undefined : true}
         fill
-        loading={size === 'lg' ? 'eager' : 'lazy'}
-        sizes={size === 'lg' ? '144px' : size === 'md' ? '112px' : size === 'sm' ? '96px' : '80px'}
-        className={variant === 'sitting' ? 'object-contain' : 'object-cover'}
+        loading={loading}
+        sizes={config.shape === 'wide' ? '(max-width: 768px) 144px, 256px' : '(max-width: 768px) 112px, 144px'}
+        className={`object-cover ${config.position}`}
         draggable={false}
       />
     </span>

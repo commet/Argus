@@ -352,7 +352,7 @@ export function SettlementModal({
             SealMoment scene at the other end of the loop. */}
         <div className="flex flex-col items-center text-center gap-2 pb-1">
           {/* 돌아온 Argus가 직접 묻는다 — '제가 먼저 물어볼게요'의 그 감시자 */}
-          <ArgusMascot variant="head" size="sm" animate playful alt={L('돌아온 Argus', 'Argus, back')} />
+          <ArgusMascot moment="returning" size="md" alt={L('약속한 날 돌아온 Argus', 'Argus, back on the promised day')} />
           <p className="text-[15px] md:text-[16px] font-bold text-[var(--text-primary)] leading-[1.35]" style={{ fontFamily: 'var(--font-display)' }}>
             {L('그때 건 예측을, 이제 현실과 맞춰봐요', 'Time to check your prediction against what happened')}
           </p>

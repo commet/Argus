@@ -49,7 +49,7 @@ New here and not sure? **Start with the [web app](https://argus.voyage)** — it
 needs no setup. If you live in an AI assistant and want Argus available in every
 chat, the **[MCP server](./argus-mcp/README.md)** is the one you want.
 
-> *Argus* is the name of the dog who, after Odysseus returned in disguise ten
+> *Argus* is the name of the dog who, after Odysseus returned in disguise twenty
 > years later, recognized his true master beneath the rags. An eye that sees
 > what's really there rather than the smooth surface — that's what Argus does.
 

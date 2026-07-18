@@ -17,7 +17,7 @@ import { generateProjectBrief } from '@/lib/project-brief';
 import { OutputSelector } from '@/components/ui/OutputSelector';
 import { ExecutionReadiness } from '@/components/ui/ExecutionReadiness';
 import { LocaleLink } from '@/components/ui/LocaleLink';
-import { Layers, Map as MapIcon, Users, FileText, Check, ArrowRight, Download, Sparkles, Plus, Search, GitBranch, Scale, AlertTriangle, MessageSquare } from 'lucide-react';
+import { Layers, Map as MapIcon, Users, FileText, Check, ArrowRight, Download, Sparkles, Plus, Search, GitBranch, Scale, AlertTriangle, MessageSquare, LoaderCircle, CloudOff } from 'lucide-react';
 import { useLocale } from '@/hooks/useLocale';
 import { VoyageShip, Graticule } from '@/components/ui/VoyageElements';
 import { getVoyageState, VOYAGE_STATE_META, type VoyageLeg } from '@/lib/voyage-state';
@@ -36,6 +36,7 @@ import { VoyageEta } from '@/components/workspace/VoyageEta';
 import { deriveCurrentBearing } from '@/lib/current-bearing';
 import { CurrentBearingCard } from '@/components/workspace/progressive/CurrentBearingCard';
 import { ArgusMascot } from '@/components/brand/ArgusMascot';
+import { ArgusMark } from '@/components/brand/ArgusMark';
 import { track } from '@/lib/analytics';
 import { selectDueReturnProject, selectReturnProject } from '@/lib/project-return';
 
@@ -533,14 +534,14 @@ export default function ProjectPage() {
         <div className="space-y-5">
           {!storesLoaded ? (
             <Card className="text-center py-12" role="status" aria-live="polite">
-              <ArgusMascot variant="head" size="lg" animate className="mx-auto mb-4" />
+              <LoaderCircle size={24} className="mx-auto mb-4 animate-spin text-[var(--accent)]" aria-hidden="true" />
               <p className="text-[13px] text-[var(--text-secondary)] font-medium">
                 {L('항해 기록을 불러오는 중이에요', 'Loading your voyages')}
               </p>
             </Card>
           ) : projects.length === 0 && fromCheckin ? (
             <Card className="text-center py-12">
-              <ArgusMascot variant="head" size="lg" animate className="mx-auto mb-4" />
+              <CloudOff size={26} className="mx-auto mb-4 text-[var(--text-tertiary)]" aria-hidden="true" />
               <p className="text-[14px] text-[var(--text-secondary)] font-medium">
                 {L('봉인해 둔 결정이 이 기기엔 없어요', 'Your sealed decision isn’t on this device')}
               </p>
@@ -558,7 +559,7 @@ export default function ProjectPage() {
             </Card>
           ) : projects.length === 0 ? (
             <Card className="text-center py-12">
-              <ArgusMascot variant="sitting" size="lg" animate className="mx-auto mb-4" />
+              <ArgusMascot moment="companion" size="lg" loading="eager" alt={L('항구를 지키는 Argus', 'Argus waiting at the harbor')} className="mx-auto mb-4" />
               <p className="text-[14px] text-[var(--text-secondary)] font-medium">{L('아직 항해 전이에요', 'Before the first voyage')}</p>
               <p className="text-[12px] text-[var(--text-secondary)] mt-1 max-w-sm mx-auto break-keep">
                 {L('워크스페이스에서 첫 결정을 적으면, 여기가 그 결정이 돌아올 ', 'Write your first decision in the workspace and this becomes its ')}
@@ -631,7 +632,7 @@ export default function ProjectPage() {
               {dueProjects.length + dueReceipts.length > 0 && (
                 <section aria-labelledby="due-decisions-heading" className="rounded-xl border border-amber-500/30 bg-amber-500/[0.08] px-4 py-3 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
                   <h2 id="due-decisions-heading" className="flex items-center gap-1.5 text-[13px] font-semibold text-[var(--text-primary)] shrink-0">
-                    <ArgusMascot variant="head" size="xs" animate className="ring-amber-500/25" />
+                    <ArgusMark size="sm" tone="gold" label={L('돌아온 Argus', 'Argus returned')} />
                     <span>
                       {locale === 'ko'
                         ? `그래서, 어떻게 됐어요? — 돌아올 결정 ${dueProjects.length + dueReceipts.length}건`

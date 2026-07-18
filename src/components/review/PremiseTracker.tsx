@@ -29,6 +29,7 @@ import {
   type PremiseState,
 } from '@/lib/premises-core';
 import { sharedGroundCount } from '@/lib/judgment-graph';
+import { ArgusMark } from '@/components/brand/ArgusMark';
 
 type LFn = (ko: string, en: string) => string;
 type RecheckConfidence = NonNullable<PremiseState['last_recheck']>['confidence'];
@@ -201,8 +202,9 @@ export function PremiseTracker({ receipt }: { receipt: JudgmentReceipt }) {
                   <div className="mt-1.5 pl-7 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px]">
                     <button
                       onClick={() => store.setAutoWatch(receipt.receipt_id, p.premise_id, !p.auto_watch)}
-                      className={`px-2 py-0.5 rounded-full border ${p.auto_watch ? 'border-[var(--accent)] text-[var(--accent)]' : 'border-[var(--border-subtle)] text-[var(--text-tertiary)]'}`}
+                      className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full border ${p.auto_watch ? 'border-[var(--accent)] text-[var(--accent)]' : 'border-[var(--border-subtle)] text-[var(--text-tertiary)]'}`}
                     >
+                      <ArgusMark size="xs" tone={p.auto_watch ? 'signal' : 'muted'} framed={false} />
                       {p.auto_watch
                         ? (isOpenQ ? L('✓ Argus가 새 정보 확인 중', '✓ Argus is watching for news') : L('✓ Argus가 대신 확인 중', '✓ Argus is watching'))
                         : (isOpenQ ? L('Argus가 새 정보 확인', 'Watch for new info') : L('Argus가 대신 확인', 'Let Argus watch'))}

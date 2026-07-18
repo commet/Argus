@@ -85,12 +85,11 @@ export function LoadingSteps({ steps, intervalMs = 2500 }: LoadingStepsProps) {
           {note}
         </p>
         {showCompanion && (
-          <div className="mt-4 argus-mascot-enter">
+          <div className="mt-4">
             <ArgusMascot
-              variant="watching"
+              moment="watching"
               size="md"
-              animate
-              alt={L('기다리는 Argus', 'Argus waiting')}
+              alt={L('작업을 함께 기다리는 Argus', 'Argus keeping watch while the work continues')}
               className="opacity-90"
             />
           </div>
