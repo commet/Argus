@@ -38,11 +38,11 @@ Argus is the hound who, after twenty years, knew Odysseus beneath a beggar's
 rags — the one who recognized the true master under the disguise. Memory,
 recognition, and fidelity that outlast appearances.
 
-That's the whole product. Working alongside an AI, it is easy to let the model's
-smooth voice quietly become your memory of *why* you decided. Argus is the dog at
-the door. It **remembers what you believed** when you decided, **notices the
-hidden premise** under the fluent answer, **keeps watch** on the signals you
-chose, and **returns first** when reality has an answer.
+That's the whole product. Work with an AI long enough and its smooth voice
+quietly takes over your memory of *why* you decided. Argus is the dog at the
+door. It **remembers what you believed** when you decided, **notices the hidden
+premise** under the fluent answer, **keeps watch** on the signals you chose, and
+**returns first** when reality has an answer.
 
 It never decides for you. `AI VERDICT` stays `NONE` — reality does the grading.
 
@@ -72,9 +72,9 @@ Work with an AI long enough and its assumptions quietly blend into yours. Argus
 pulls them apart and keeps them honest:
 
 - **Remember exactly.** Your words, your premises, your prediction — and *whose*
-  each one is. A sentence the machine surfaced is never silently filed as yours;
-  provenance is tagged, and derived guesses about you never leak into a prompt
-  without your explicit, revocable grant.
+  each one is. A sentence the AI surfaced never quietly becomes yours; provenance
+  is tagged, and derived guesses about you never reach a prompt without your
+  explicit, revocable grant.
 - **Notice beneath the surface.** It surfaces the hidden premise and the real
   question under the fluent answer — without choosing a side for you.
 
