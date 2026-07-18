@@ -85,7 +85,7 @@ describe('argus_settle still_pending → defer (re-arm, not settle)', () => {
     expect(receiptText).toContain(CHECK_BY); // "originally due 2026-07-01"
   });
 
-  it('still_pending BEFORE the check-by is refused (nothing to defer yet)', async () => {
+  it('still_pending BEFORE the check-by is refused (defer lives at due; recovery says exactly that)', async () => {
     const dir = tmpArgusDir();
     await sealDue(dir);
     const r = body(await settle.handler({
@@ -93,6 +93,8 @@ describe('argus_settle still_pending → defer (re-arm, not settle)', () => {
       what_happened: 'not due', defer_to: NEW_DATE, today_override: '2026-06-15', // before CHECK_BY
     }));
     expect(r['error_code']).toBe('PREMATURE_SETTLE');
+    // 1.4.0: the refusal must TEACH the path, not dead-end (real-usage finding).
+    expect(String(r['recovery'])).toContain('defer_to');
   });
 
   it('still_pending with no defer_to and no picker asks for a date (never terminal-settles)', async () => {

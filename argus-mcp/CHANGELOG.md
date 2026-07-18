@@ -6,6 +6,36 @@
 > The `1.3.0` / `1.2.1` entries at the bottom are pre-rename `argus-mcp` history,
 > kept for reference — all of that work shipped inside the new-name 1.0.0.
 
+## 1.4.0 — Real-usage fixes: project isolation, Korean error parity, honest flows
+
+Found by driving the published package like a real user (30+ scenarios, every
+surface read end-to-end) plus an adversarial correctness review.
+
+- **Project isolation: cross-project leak closed.** `argus_check_in`'s payload
+  carried a machine-global `v2_brief` — decisions from OTHER projects (their
+  full text) leaked into every project's tool output, and with it into the
+  model's context. The v2 shadow diagnostics (`v2_brief`, `v2_divergence`,
+  `capture_status`) are now emitted only under `ARGUS_V2_DEBUG=1`. This also
+  shrinks an empty project's check_in from ~3.6 KB to a few hundred bytes.
+- **Korean error parity.** `NO_PRIOR_SEAL`, `BAD_CHECK_BY`, `ILLEGAL_TRANSITION`,
+  `ALREADY_SETTLED`, `DECISION_CLOSED`, `GOALPOST_MOVED`, `NO_SUCH_PREMISE` now
+  have first-class Korean messages with the same actionable recovery the English
+  ones always had (previously: a generic "요청을 처리하지 못했습니다").
+  `PREMATURE_SETTLE` now includes the dates in Korean too (확인일 · 오늘).
+- **Early still_pending now teaches the path instead of dead-ending.** Before
+  the check-by date, `PREMATURE_SETTLE` explains exactly what to do on the day
+  (`outcome="still_pending"` + `defer_to`), in both locales with the dates
+  included. (Allowing pre-due deferral itself touches the state machine's
+  goalpost guard and is deferred to a spine review.)
+- **`update_fact` un-broken.** The public action failed every call with a
+  baffling `source: 값을 확인해 주세요` (an internal required field the public
+  schema never surfaced). It now defaults to `user_stated`.
+- **No more instructions that don't exist.** Premise surfaces advertised
+  `op=amend` — internal syntax a public caller cannot use. Reworded to plain
+  language; corrections still land on the record.
+- Schema copy: `reconsider_cadence_days` no longer describes itself as an alias
+  of a misspelled internal field.
+
 ## 1.3.1 — Privacy-first telemetry invite + premise-recording fix
 
 - **Fix: user premises are now recorded on *every* `argus_capture` open, not

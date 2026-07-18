@@ -24,6 +24,9 @@ beforeEach(() => {
   argusDir = path.join(repoDir, '.argus');
   savedHome = process.env['ARGUS_HOME'];
   process.env['ARGUS_HOME'] = home;
+  // v2 관찰 채널은 1.4.0부터 옵트인 디버그(교차-프로젝트 노출 차단) — 이
+  // 테스트는 그 채널 자체를 검증하므로 명시적으로 켠다.
+  process.env['ARGUS_V2_DEBUG'] = '1';
 });
 afterEach(() => {
   if (savedHome === undefined) delete process.env['ARGUS_HOME'];

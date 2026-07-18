@@ -30,7 +30,16 @@ const KO_ERRORS: Record<string, ErrorCopy> = {
   EXTRACT_FAILED: { message: '문서에서 텍스트를 추출하지 못했습니다.', recovery: '문서 내용을 text에 붙여 넣거나 markdown/txt로 변환하세요.' },
   EMPTY: { message: '검수할 수 있는 문서 내용이 없습니다.', recovery: '20자 이상의 text 또는 읽을 수 있는 file_path를 전달하세요.' },
   OUTCOME_REQUIRED: { message: '현실에서 실제로 어떻게 됐는지 결과가 필요합니다.', recovery: '사용자에게 결과를 물어 outcome에 전달하세요. 결과를 추론하지 마세요.' },
-  PREMATURE_SETTLE: { message: '아직 확인일이 되지 않았습니다.', recovery: '확인일까지 기다리거나 일정이 바뀌었다면 확인일을 수정하세요.' },
+  PREMATURE_SETTLE: { message: '아직 확인일이 되지 않았습니다.', recovery: '확인일까지 기다리세요. 일정이 바뀌었다면 outcome="still_pending"에 defer_to로 새 확인일을 전달하면 됩니다.' },
+  // ko/en 패리티: 아래 코드들은 en에서만 상세했고 ko는 제네릭 폴백이었다 —
+  // 한국어 사용자가 같은 품질의 복구 안내를 받도록 전용 문구를 둔다.
+  NO_PRIOR_SEAL: { message: '이 id로 저장된 예측이 없습니다.', recovery: 'argus_predict로 반증 가능한 예측과 확인일을 먼저 저장하세요. (id가 argus_settings sync에서 온 "mcp_" 접두사라면 접두사를 뗀 id를 쓰세요.)' },
+  BAD_CHECK_BY: { message: '확인일이 오늘 이후의 날짜(YYYY-MM-DD)가 아닙니다.', recovery: 'check_by를 오늘 이후 날짜로 다시 전달하세요.' },
+  ILLEGAL_TRANSITION: { message: '지금 상태에서는 할 수 없는 작업입니다.', recovery: 'argus_patterns view="all"로 이 결정의 현재 상태를 확인한 뒤 맞는 도구를 사용하세요.' },
+  ALREADY_SETTLED: { message: '이미 실제 결과가 기록된 결정입니다.', recovery: '영수증은 argus_patterns view="receipt"로 볼 수 있습니다. 새 결정이면 새 id로 여세요.' },
+  DECISION_CLOSED: { message: '접힌(닫힌) 결정이라 더 진행할 수 없습니다.', recovery: '필요하면 새 id로 다시 여세요. 닫힌 기록은 그대로 남습니다.' },
+  GOALPOST_MOVED: { message: '봉인된 예측 문장은 확인일 전에 바꿀 수 없습니다.', recovery: '일정 변경은 outcome="still_pending"과 defer_to로, 예측 자체가 달라졌다면 새 결정으로 여세요.' },
+  NO_SUCH_PREMISE: { message: '해당 번호의 전제를 찾지 못했습니다.', recovery: 'argus_patterns view="decision_context"로 전제 목록과 번호를 확인하세요.' },
   WHAT_HAPPENED_REQUIRED: { message: '실제로 일어난 일을 기록해야 합니다.', recovery: '사용자에게 실제 결과를 물어 what_happened에 그대로 전달하세요.' },
   DEFER_DATE_REQUIRED: { message: '다시 확인할 날짜가 필요합니다.', recovery: '사용자에게 날짜를 물어 defer_to에 YYYY-MM-DD로 전달하세요. 더는 중요하지 않다면 argus_capture action="close"를 사용하세요.' },
   NOT_CONNECTED: { message: '이 터미널은 Argus 계정과 연결돼 있지 않습니다.', recovery: '웹 설정에서 동기화 토큰을 발급하고 MCP 설정의 ARGUS_TOKEN에 넣으세요.' },
@@ -119,12 +128,17 @@ export function localizeToolResult(
   const sc = result.structuredContent;
   if (!sc || sc['ok'] !== false) return result;
   const code = String(sc['error_code'] ?? 'INTERNAL_ERROR');
-  const copy = code === 'INVALID_INPUT' && Array.isArray(sc['invalid_fields'])
+  let copy = code === 'INVALID_INPUT' && Array.isArray(sc['invalid_fields'])
     ? localizeInvalidInput(sc['invalid_fields'] as InvalidField[])
     : KO_ERRORS[code] ?? {
       message: '요청을 처리하지 못했습니다.',
       recovery: '입력값과 현재 결정 상태를 확인한 뒤 다시 시도하세요.',
     };
+  // en에만 있던 날짜 상세를 ko에서도 보존 — "언제가 확인일인데?"에 답이 되도록.
+  if (code === 'PREMATURE_SETTLE') {
+    const m = String(sc['message'] ?? '').match(/check-by (\d{4}-\d{2}-\d{2}), today (\d{4}-\d{2}-\d{2})/);
+    if (m) copy = { message: `아직 확인일이 되지 않았습니다 (확인일 ${m[1]} · 오늘 ${m[2]}).`, recovery: copy.recovery };
+  }
   const localized = {
     ...sc,
     message: copy.message,

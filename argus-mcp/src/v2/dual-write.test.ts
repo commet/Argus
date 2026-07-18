@@ -24,6 +24,8 @@ beforeEach(() => {
   repoDir = fs.mkdtempSync(path.join(os.tmpdir(), 'argus-dw-repo-'));
   fs.mkdirSync(path.join(repoDir, '.git'), { recursive: true });
   argusDir = path.join(repoDir, '.argus');
+  // v2 관찰 채널은 1.4.0부터 ARGUS_V2_DEBUG=1 옵트인 (교차-프로젝트 노출 차단).
+  process.env['ARGUS_V2_DEBUG'] = '1';
   savedHome = process.env['ARGUS_HOME'];
   process.env['ARGUS_HOME'] = home;
 });

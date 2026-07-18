@@ -318,7 +318,10 @@ export const decide: ToolModule = {
     if (action === 'keep_question_open') {
       return runPublic('argus_capture', { ...a, op: 'still_open', reponder_cadence_days: a['reconsider_cadence_days'] }, premises.handler);
     }
-    if (action === 'update_fact') return runPublic('argus_capture', a, recheck.handler);
+    // recheck internally REQUIRES a source; the public update_fact schema never
+    // surfaced it, so every real call died with a baffling "source: 값을 확인해
+    // 주세요". Default to user_stated — the user telling us what they verified.
+    if (action === 'update_fact') return runPublic('argus_capture', { ...a, source: a['source'] ?? 'user_stated' }, recheck.handler);
     if (action === 'change_prediction') return runPublic('argus_capture', a, amend.handler);
     return runPublic('argus_capture', a, dismiss.handler);
   },

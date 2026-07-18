@@ -95,11 +95,14 @@ export const settle: ToolModule = {
       // the decision off check_in forever, while the surface lied "what actually
       // happened". Instead: DEFER — re-arm with a new check-by so it comes back.
       if (outcome === 'still_pending') {
+        // 조기 defer 허용은 상태기계의 defer-lives-in-due 설계(goalpost 방지)와
+        // 충돌한다 — 1.4.x에서 스파인 검토 후에만. 지금은 문구가 정직하게:
+        // 확인일이 되면 still_pending+defer_to로 연기할 수 있다고 안내한다.
         if (checkBy && checkBy > today) {
           return toolError({
             ok: false, tool: 'argus_settle', error_code: 'PREMATURE_SETTLE',
             message: `Not due yet (check-by ${checkBy}, today ${today}).`,
-            recovery: 'Wait for the check-by date, or amend the date if the timeline changed.',
+            recovery: `Nothing to record before the check-by date. On ${checkBy}, if reality still has no answer, call again with outcome="still_pending" and defer_to to pick a new date.`,
           });
         }
         return await deferStillPending({ dir, id, today, now, locale, T, current, whatHappened: a['what_happened'] as string | undefined, deferTo: a['defer_to'] as string | undefined });

@@ -80,7 +80,7 @@ const KO_FIELD_DESCRIPTIONS: Record<string, string> = {
   load_bearing: '틀리면 결정이 바뀌는 핵심 전제인지 표시합니다.',
   recheck_cadence_days: '전제 사실을 다시 확인할 간격(일)입니다.',
   reponder_cadence_days: '미결 질문을 다시 볼 간격(일)입니다.',
-  reconsider_cadence_days: 'reponder_cadence_days의 호환 별칭입니다.',
+  reconsider_cadence_days: '미결 질문을 다시 살펴볼 간격(일)입니다.',
   predicate: '현실이 참/거짓으로 확인할 수 있는 예측입니다.',
   check_by: '예측을 현실과 대조할 미래 확인일(YYYY-MM-DD)입니다.',
   predicate_owner: '예측 문장의 작성 주체입니다. 출처를 꾸미지 않습니다.',
