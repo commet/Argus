@@ -6,6 +6,14 @@
 > The `1.3.0` / `1.2.1` entries at the bottom are pre-rename `argus-mcp` history,
 > kept for reference — all of that work shipped inside the new-name 1.0.0.
 
+## 1.4.2 — Closing-loop anchor identity
+
+- `argus_resolve` now advertises the canonical Argus closing-loop anchor through
+  the MCP tool `icons` field. Supporting clients render the same mark used when
+  a web decision returns to reality; older clients safely ignore the metadata.
+- The icon URLs point to production assets and are covered by the public
+  tool-surface test.
+
 ## 1.4.1 — update_fact actually fixed
 
 - The 1.4.0 handler-level `source` default ran AFTER schema validation, so the

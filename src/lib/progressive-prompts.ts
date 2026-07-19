@@ -19,6 +19,11 @@ import { GLOBAL_QUESTION_INSTRUCTION } from './question-rules';
 
 type Locale = 'ko' | 'en';
 
+const ARGUS_PRODUCT_FACTS = `ARGUS PRODUCT-FACT HONESTY:
+- argus_predict saves to the local .argus directory by default. It does NOT, by itself, write directly into the Argus web workspace or arm account email.
+- Web/account records and reminders require an explicit account bridge: ARGUS_TOKEN in MCP configuration, or an argus_settings connect/sync flow.
+- Never invent, imply, or recommend an Argus integration behavior beyond those facts. If the user's task does not require product instructions, omit them entirely.`;
+
 // ─── 1. Initial Analysis (skeleton in 30 seconds) ───
 
 export function buildInitialAnalysisPrompt(problemText: string, locale: Locale = 'en'): {
@@ -117,6 +122,8 @@ Your job (OPEN decisions only): In ONE pass, give them:
    PRIORITIZE strategic reframing of their situation over analogies. Never open with “X라는 표현이 핵심이에요” / “the phrase X is key,” and do not chain the two jobs with an em dash.
    ${locale === 'ko' ? 'Best: "이직 여부보다, 지금 회사의 성장 한계가 실제인지 먼저 확인해야 해요. 막힘이 구조적 한계인지, 아직 기회를 제대로 요청해보지 않은 상태인지에 따라 결론이 달라집니다." (결론 → 이유)\nBest: "추천으로 증명된 신뢰와, 아직 증명해야 할 실행력을 먼저 나눠봐야 해요. 둘을 섞으면 이미 얻은 기회와 앞으로 채울 조건을 같은 문제로 보게 됩니다." (핵심 축소)\nBad: "‘막혀 있다’는 표현이 핵심이에요 — 실제 천장이 있는지 봐야 해요." (문장에 대한 해설로 시작)\nBad: "잘 계획하면 충분히 가능해요." (무의미한 격려)\nBad: "타이밍이 좋아요 / 반은 이겼어요." (사용자 대신 방향을 고름)' : 'Best: "Before deciding whether to leave, verify whether the growth ceiling at the current company is real. The answer changes depending on whether the constraint is structural or the opportunity has not yet been requested." (takeaway → reason)\nBest: "Separate the trust the referral already proved from the execution you still need to prove. Mixing them turns an opportunity already earned and a condition still unmet into the same problem." (scope reduction)\nBad: "The phrase ‘stuck’ is key — check whether the ceiling is real." (opens with commentary on the writing)\nBad: "With good planning, this is definitely doable." (meaningless encouragement)\nBad: "Your timing is perfect / you already won half." (picks the direction for the user)'}
 
+${ARGUS_PRODUCT_FACTS}
+
 Respond in JSON. Concise — quality over volume.`,
 
     user: `My situation:
@@ -210,7 +217,9 @@ QUESTION RULES (critical — this determines the quality of the entire session):
   BAD: "What format should the document be?" / "Who's the audience?"
   GOOD: "Why did they choose your team for this?" / "What happens if this doesn't work?"
 - Offer 3-4 concrete options. Each option should lead to a DIFFERENT strategy.
-- Keep concise — this is a conversation, not an essay.`,
+- Keep concise — this is a conversation, not an essay.
+
+${ARGUS_PRODUCT_FACTS}`,
 
     user: `Original problem:
 <user-data>${sanitize(problemText)}</user-data>
@@ -286,7 +295,9 @@ SIZE THE CREW TO THE DECISION (default to restraint). Most decisions need ONE st
 - For "human" steps: add question_to_human (the question to send) and human_contact_hint (role like "CTO" or "고객")
 Rule: EVERY "ai" step must have self_scope — explain what the user should review about the AI result.
 Rule: EVERY "self" step should have ai_scope — how AI can help (generate options, comparison, data).
-- depends_on: the 0-based indices of EARLIER steps whose OUTPUT this step genuinely needs before it can run (a real producer→consumer chain — e.g. "model the unit economics" [1] truly needs "size the market" [0], so step 1 has depends_on:[0]). DEFAULT is [] — most steps are independent and should run in parallel. Declare a dependency ONLY when the later step literally cannot be written without the earlier one's result. Do NOT serialize steps that could run side by side, and never create a cycle.${personaBlock}${leadContext ? '\n' + leadContext : ''}${teamBlock}`,
+- depends_on: the 0-based indices of EARLIER steps whose OUTPUT this step genuinely needs before it can run (a real producer→consumer chain — e.g. "model the unit economics" [1] truly needs "size the market" [0], so step 1 has depends_on:[0]). DEFAULT is [] — most steps are independent and should run in parallel. Declare a dependency ONLY when the later step literally cannot be written without the earlier one's result. Do NOT serialize steps that could run side by side, and never create a cycle.${personaBlock}${leadContext ? '\n' + leadContext : ''}${teamBlock}
+
+${ARGUS_PRODUCT_FACTS}`,
 
     user: `Original problem:
 <user-data>${sanitize(problemText)}</user-data>
@@ -408,6 +419,7 @@ Keep the deliverable within roughly ${wordBudget} words instead of padding for c
   // 6. Core rules
   systemParts.push(`\nAlways respond in ${lang}. Produce ready-to-use deliverables.
 ${who === 'both' ? 'Note: This is a human-AI collaboration task. Aim for 80% completion, and mark sections requiring human judgment with [DECISION NEEDED].' : ''}`);
+  systemParts.push(`\n${ARGUS_PRODUCT_FACTS}`);
 
   // ─── User prompt: adaptive context strategy ───
   // Context type and volume varies by task type
@@ -616,8 +628,10 @@ ${aiResults.filter(w => w.name).map(w => `- ${sanitize(w.name!)}`).join('\n') ||
     }`
     : `{"heading": "Section heading", "content": "Section content (2-3 sentences, specific)"}`;
 
+  const guardedSystemPrompt = `${systemPrompt}\n\n${ARGUS_PRODUCT_FACTS}`;
+
   return {
-    system: systemPrompt,
+    system: guardedSystemPrompt,
 
     user: `Original problem: <user-data>${sanitize(problemText)}</user-data>
 

@@ -57,11 +57,11 @@ export function Header() {
   // surfaces can't drift. Names say what the page does: /boss is a rehearsal,
   // not a "설정" screen; /admin is operator metrics, not a cockpit.
   const utilityItems: Array<{ href: string; label: string; desc: string; icon: typeof Download; section: 'tools' | 'operator' }> = [
-    { href: '/teams', label: L('팀', 'Teams'), desc: L('프로젝트를 함께 볼 팀원을 초대합니다.', 'Invite teammates to share projects with.'), icon: Users, section: 'tools' },
+    { href: '/teams', label: L('사람 팀', 'People teams'), desc: L('결정을 공유하고 함께 검토할 사람을 초대합니다.', 'Invite people to review shared decisions.'), icon: Users, section: 'tools' },
     // /boss moved here from the workspace idle chips (P0-7) — the route lives on,
     // only the extra doorway on the landing was removed.
-    { href: '/boss', label: L('팀장 대화 리허설', 'Manager conversation rehearsal'), desc: L('실제 1:1 전에 팀장의 반응과 다음 질문을 미리 연습합니다.', "Rehearse a manager's response and follow-up questions before a real 1:1."), icon: UserCheck, section: 'tools' },
-    { href: '/import', label: L('기록 가져오기', 'Import records'), desc: L('터미널·MCP에서 봉인한 결정을 이 계정으로 모읍니다.', 'Gather decisions sealed in the terminal or MCP here.'), icon: Download, section: 'tools' },
+    { href: '/boss', label: L('팀장 시뮬레이터', 'Boss Simulator'), desc: L('실제 1:1 전에 팀장의 반응과 다음 질문을 미리 연습합니다.', "Rehearse a manager's response and follow-up questions before a real 1:1."), icon: UserCheck, section: 'tools' },
+    { href: '/import', label: L('기록 가져오기', 'Import records'), desc: L('터미널·MCP에서 기록한 결정을 이 계정으로 모읍니다.', 'Gather decisions recorded in the terminal or MCP here.'), icon: Download, section: 'tools' },
     ...(e3bReleased ? [{ href: '/patterns', label: 'Patterns', desc: L('근거와 반례를 검토하고 AI 영향 권한을 관리합니다.', 'Review evidence and manage AI influence grants.'), icon: Waves, section: 'operator' as const }] : []),
     ...(isOperator ? [{ href: '/admin', label: L('운영 지표', 'Operations'), desc: L('가입·봉인·정산 퍼널과 테이블 행수를 확인합니다.', 'Signup, seal, and settle funnels plus table row counts.'), icon: BarChart3, section: 'operator' as const }] : []),
   ];
@@ -70,7 +70,7 @@ export function Header() {
     {
       href: '/workspace',
       label: L('워크스페이스', 'Workspace'),
-      description: L('새 결정을 시작하거나 진행 중인 항해로 돌아갑니다.', 'Start a decision or return to an active voyage.'),
+      description: L('새 결정을 시작하거나 진행 중인 작업으로 돌아갑니다.', 'Start a decision or return to work in progress.'),
       group: L('핵심', 'Core'),
       keywords: ['decision', 'voyage', '결정', '항해'],
       icon: Compass,
@@ -344,7 +344,7 @@ export function Header() {
               <button
                 onClick={toggleTheme}
                 className="p-2 rounded-full text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface)] transition-colors cursor-pointer"
-                title={darkMode ? 'Light mode' : 'Dark mode'}
+                title={darkMode ? L('라이트 모드', 'Light mode') : L('다크 모드', 'Dark mode')}
                 aria-label={darkMode ? L('라이트 모드로 전환', 'Switch to light mode') : L('다크 모드로 전환', 'Switch to dark mode')}
                 aria-pressed={darkMode}
               >

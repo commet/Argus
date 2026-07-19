@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useProjectStore } from '@/stores/useProjectStore';
@@ -20,7 +21,6 @@ import { ExecutionReadiness } from '@/components/ui/ExecutionReadiness';
 import { LocaleLink } from '@/components/ui/LocaleLink';
 import { Layers, Map as MapIcon, Users, Check, ArrowRight, Download, Sparkles, Plus, Search, GitBranch, Scale, AlertTriangle, MessageSquare, LoaderCircle, CloudOff } from 'lucide-react';
 import { useLocale } from '@/hooks/useLocale';
-import { VoyageShip, Graticule } from '@/components/ui/VoyageElements';
 import { getVoyageState, VOYAGE_STATE_META, type VoyageLeg } from '@/lib/voyage-state';
 import { DecisionContractCard } from '@/components/projects/DecisionContractCard';
 import { DecisionItemsCard } from '@/components/projects/DecisionItemsCard';
@@ -30,6 +30,7 @@ import { isCheckpointDue } from '@/lib/checkpoint-core';
 import { RecordStrip } from '@/components/ui/RecordStrip';
 import { RetroOnlyNotice } from '@/components/ui/RetroOnlyNotice';
 import { VoyageSea } from '@/components/projects/VoyageSea';
+import { VoyageMarker } from '@/components/projects/VoyageMarker';
 import { ProjectAttentionList } from '@/components/projects/ProjectAttentionList';
 import { Logbook } from '@/components/projects/Logbook';
 import { useDueCount } from '@/hooks/useDueCount';
@@ -548,10 +549,10 @@ export default function ProjectPage() {
     : !!currentProject?.decision_contract);
   const currentProjectIsDue = !!currentProject && dueIds.has(currentProject.id);
   const currentVoyageStatusLabel = currentContractAllGraded
-    ? L('검증된 항해', 'Verified voyage')
+    ? L('결과 확인 완료', 'Outcome checked')
     : currentProjectIsDue
       ? L('결과 확인할 때', 'Check-in due')
-      : currentVoyageDone ? L('항해 완료', 'Voyage complete') : L('항해 진행 중', 'Voyage under way');
+      : currentVoyageDone ? L('결정 완료', 'Decision complete') : L('진행 중', 'In progress');
   const currentVoyageStatusClass = currentContractAllGraded
     ? 'bg-[var(--collab)] text-[var(--success)]'
     : currentProjectIsDue
@@ -592,17 +593,17 @@ export default function ProjectPage() {
             <Card className="text-center py-12" role="status" aria-live="polite">
               <LoaderCircle size={24} className="mx-auto mb-4 animate-spin text-[var(--accent)]" aria-hidden="true" />
               <p className="text-[13px] text-[var(--text-secondary)] font-medium">
-                {L('항해 기록을 불러오는 중이에요', 'Loading your voyages')}
+                {L('결정 기록을 불러오는 중이에요', 'Loading your decisions')}
               </p>
             </Card>
           ) : projects.length === 0 && fromCheckin ? (
             <Card className="text-center py-12">
               <CloudOff size={26} className="mx-auto mb-4 text-[var(--text-tertiary)]" aria-hidden="true" />
               <p className="text-[14px] text-[var(--text-secondary)] font-medium">
-                {L('봉인해 둔 결정이 이 기기엔 없어요', 'Your sealed decision isn’t on this device')}
+                {L('이 기기에 저장된 결정이 없어요', 'No decisions are stored on this device')}
               </p>
               <p className="text-[12px] text-[var(--text-secondary)] mt-1 max-w-xs mx-auto">
-                {L('봉인할 때 쓴 계정으로 로그인하면 바로 보여요.', 'Sign in with the account you sealed it with and it’s right here.')}
+                {L('결정을 기록할 때 사용한 계정으로 로그인하면 다시 볼 수 있어요.', 'Sign in with the account used to record the decision.')}
               </p>
               <div className="mt-4 flex items-center justify-center">
                 <LocaleLink
@@ -616,7 +617,7 @@ export default function ProjectPage() {
           ) : projects.length === 0 ? (
             <Card className="text-center py-12">
               <ArgusMascot moment="companion" size="lg" loading="eager" alt={L('항구를 지키는 Argus', 'Argus waiting at the harbor')} className="mx-auto mb-4" />
-              <p className="text-[14px] text-[var(--text-secondary)] font-medium">{L('아직 항해 전이에요', 'Before the first voyage')}</p>
+              <p className="text-[14px] text-[var(--text-secondary)] font-medium">{L('아직 시작한 결정이 없어요', 'No decisions started yet')}</p>
               <p className="text-[12px] text-[var(--text-secondary)] mt-1 max-w-sm mx-auto break-keep">
                 {L('워크스페이스에서 첫 결정을 적으면, 여기가 그 결정이 돌아올 ', 'Write your first decision in the workspace and this becomes its ')}
                 <span className="whitespace-nowrap">{L('모항이 돼요.', 'home port.')}</span>{' '}
@@ -684,13 +685,26 @@ export default function ProjectPage() {
                   keeps the visual identity; this quiet list owns exact actions. */}
               <ProjectAttentionList items={attentionItems} />
 
-              <section id="fleet-roster" aria-labelledby="fleet-roster-heading" className="space-y-3 scroll-mt-6">
-                <div className="px-1">
-                  <h2 id="fleet-roster-heading" className="text-[15px] font-bold text-[var(--text-primary)]">
-                    {L('항해 명부', 'Voyage roster')}
-                  </h2>
-                  <p className="text-[12px] text-[var(--text-secondary)] mt-0.5">
-                    {L('확인이 필요한 결정부터 최근 순으로 정리했어요.', 'Decisions needing attention come first, followed by recent activity.')}
+              <section
+                id="fleet-roster"
+                aria-labelledby="fleet-roster-heading"
+                className="mt-5 space-y-4 scroll-mt-6 border-t border-[#123c3a]/20 pt-5"
+              >
+                <div className="flex flex-col gap-2 px-1 sm:flex-row sm:items-end sm:justify-between">
+                  <div>
+                    <p className="flex items-center gap-2 text-[9px] font-mono font-semibold uppercase tracking-[0.18em] text-[#2b615d]">
+                      <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-[#c49945]" />
+                      {L('결정 기록 · 현재 상태', 'Decision record · current status')}
+                    </p>
+                    <h2 id="fleet-roster-heading" className="mt-1 text-[18px] font-bold text-[var(--text-primary)]" style={{ fontFamily: 'var(--font-display)' }}>
+                      {L('결정 목록', 'Decisions')}
+                    </h2>
+                    <p className="mt-0.5 text-[12px] text-[var(--text-secondary)]">
+                      {L('확인이 필요한 결정부터 최근 활동 순으로 정리했어요.', 'Decisions needing attention come first, followed by recent activity.')}
+                    </p>
+                  </div>
+                  <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-[var(--text-tertiary)] tabular-nums">
+                    {L(`${stats.total}건`, `${stats.total} decisions`)}
                   </p>
                 </div>
 
@@ -759,7 +773,7 @@ export default function ProjectPage() {
               {/* Project grid — rich cards */}
               {filteredProjects.length === 0 ? (
                 <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-[var(--border)] bg-[var(--surface)]/40 px-6 py-12 text-center">
-                  <p className="text-[13px] text-[var(--text-secondary)]">{L('조건에 맞는 항해가 없어요.', 'No voyages match these filters.')}</p>
+                  <p className="text-[13px] text-[var(--text-secondary)]">{L('조건에 맞는 결정이 없어요.', 'No decisions match these filters.')}</p>
                   <button
                     type="button"
                     onClick={() => { setQuery(''); setStatusFilter('all'); }}
@@ -804,7 +818,7 @@ export default function ProjectPage() {
                     // ship-state machine intact while naming the user's actual
                     // artifact state consistently with the detail view.
                     const cardStatusLabel = m.contractAllGraded
-                      ? L('검증된 항해', 'Verified')
+                      ? L('결과 확인 완료', 'Outcome checked')
                       : isDue
                         ? L('확인할 때', 'Check-in due')
                         : m.contractSealed
@@ -835,15 +849,28 @@ export default function ProjectPage() {
                             : 'border-[var(--border-subtle)] hover:border-[var(--text-secondary)]/30 hover:shadow-[var(--shadow-sm)]'
                         }`}
                       >
-                        {/* Chart vignette — the project as a ship on the sea chart */}
-                        <div className="relative -mx-4 -mt-4 mb-1 h-[92px] overflow-hidden rounded-t-xl border-b border-[var(--border-subtle)] bg-[var(--bp-paper)] flex items-end justify-center">
-                          <Graticule opacity={0.09} spacing={24} />
-                          <VoyageShip
-                            state={voyageState}
-                            size={84}
-                            title={cardStatusLabel}
-                            className="relative z-[1] mb-0.5 transition-transform duration-300 group-hover:scale-[1.04]"
+                        {/* The registry keeps the exact chart object from above:
+                            one sea crop + one state marker, not a second ship drawing. */}
+                        <div className="relative -mx-4 -mt-4 mb-1 flex h-[92px] items-center justify-center overflow-hidden rounded-t-xl border-b border-[#d7cdb9]/30 bg-[#082625]">
+                          <Image
+                            src="/images/voyage/argus-sea-chart-v1.jpg"
+                            alt=""
+                            fill
+                            sizes="(max-width: 768px) 100vw, 360px"
+                            quality={75}
+                            className="object-cover object-center opacity-80 transition-transform duration-500 group-hover:scale-[1.025]"
                           />
+                          <span aria-hidden className="absolute inset-0 bg-[linear-gradient(180deg,rgba(2,25,24,.06),rgba(2,22,21,.38))]" />
+                          <VoyageMarker
+                            state={voyageState}
+                            due={isDue}
+                            size={44}
+                            title={cardStatusLabel}
+                            className="relative z-[1] transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:scale-[1.04]"
+                          />
+                          <span className="absolute bottom-2 right-3 z-[1] font-mono text-[8px] uppercase tracking-[0.14em] text-[#f5f0e5]/70">
+                            {L('해도에서', 'from chart')}
+                          </span>
                         </div>
 
                         {/* Header: status pill + last-activity time */}
@@ -885,7 +912,7 @@ export default function ProjectPage() {
                           </p>
                         ) : !m.startedEff ? (
                           <p className="text-[12px] text-[var(--text-tertiary)] italic leading-[1.55]">
-                            {L('아직 출항 전 — 워크스페이스에서 시작해 보세요.', 'Not yet under way — start in the workspace.')}
+                            {L('아직 시작 전이에요 — 워크스페이스에서 시작해 보세요.', 'Not started yet — begin in the workspace.')}
                           </p>
                         ) : null}
 
@@ -1086,7 +1113,7 @@ export default function ProjectPage() {
                       {currentVoyageStatusLabel}
                     </p>
                     <p className="text-[12px] text-[var(--text-secondary)] mt-0.5">
-                      {L('이 프로젝트는 워크스페이스 항해로 진행됐어요.', 'This project ran as a workspace voyage.')}
+                      {L('이 프로젝트는 단계별 워크스페이스에서 진행했어요.', 'This project used the step-by-step workspace.')}
                     </p>
                   </div>
                   <LocaleLink

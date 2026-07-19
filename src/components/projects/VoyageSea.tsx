@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   getVoyageState,
@@ -14,6 +15,7 @@ import {
 import { contractStatus } from '@/lib/decision-contract';
 import { sharedGrounds, groundSpotlight } from '@/lib/judgment-graph';
 import { normalizePremiseText } from '@/lib/premises-core';
+import { VoyageMarker } from './VoyageMarker';
 import type { JudgmentReceipt } from '@/lib/review';
 import type {
   Project,
@@ -54,27 +56,23 @@ import type {
  *  - Quiet sea = quiet sheet: with nothing due there is no beacon, no notice,
  *    and the caption says "부를 배가 없어요" — restraint, not manufactured urgency.
  *
- * CRAFT constraints: no hand-authored SVG art — the scene is pure CSS geometry
- * (clip-path sails, gradient water). 2026-07-13 (창업자: "밝게 가자, 답답하다"):
- * the plate is now a LIGHT day-chart — a parchment sea with dark-ink vessels,
- * an airy scatter you can read at a glance. The night-lighthouse-beam gimmick
- * is gone; the due decision is marked by a calm gold ship + soft ring, not a
- * sweeping searchlight. Palette is committed (theme-stable) so the chart reads
- * the same on either page theme — a lit chart-table, dark ink on light water.
+ * CRAFT: the functional scatter is laid over the canonical Argus sea-chart
+ * image. The image carries atmosphere; HTML carries every datum, label, current,
+ * and action so the chart stays accessible and testable. One shared instrument
+ * marker is reused in the chart and the harbor register below: position means
+ * state, while the marker's brass/ivory finish provides identity without turning
+ * a decision record into an illustrated game.
  */
 
-// ── day-chart plate palette (internal, committed light) ──
-// `paper` is the INK/line color (dark on light water) — kept the name so the
-// many `${N.paper}<alpha>` faint-line usages still read as "the etched line".
+// ── canonical sea-chart palette (theme-stable) ──
 const N = {
-  seaHi: '#eae2d1', // haze near the horizon (lightest water, top)
-  sea: '#ded1b4', // open water
-  seaDeep: '#cebf9e', // deep water toward the harbour (bottom)
-  land: '#bdae87', // the harbour shore
-  paper: '#2b2620', // ink — vessels, hairlines, text
-  gold: '#8a6a1e', // deep gold, readable on light (fills / text) — the DONE hue
-  goldGlow: '#c39a34', // brighter gold for the due ship's soft ring
-  amber: '#bd6a1c', // burnt amber — the DRIFT hue (a fact of attention, never a
+  paper: '#f5f0e5', // bone-white chart ink over the living sea
+  ink: '#16211f', // copy on parchment notices
+  gold: '#d8ad55', // antique brass — due / closed
+  goldInk: '#80601f', // accessible brass text on parchment
+  goldGlow: '#f0c86e',
+  amber: '#e39a56', // DRIFT attention, never a verdict
+  amberInk: '#974a1d', // accessible attention text on parchment
   //                    verdict; distinct from the olive `gold` of completion)
   card: '#f8f2e4', // near-white parchment — floating notices, pops off the sea
 };
@@ -204,20 +202,9 @@ function relativeDays(iso: string, now: number, locale: 'ko' | 'en'): string {
   return d <= 0 ? 'today' : d === 1 ? 'yesterday' : `${d}d ago`;
 }
 
-/** The ship silhouette — pure CSS geometry (hull crescent, mast, clip-path
- *  sails). State changes posture and finish, never adds badges:
- *  sailing = full canvas · adrift = luffing, heeled, faded · wrecked = bare
- *  heeled hull, half-lost · docked/arrived = furled at moorings · verified =
- *  furled + a fleck of gold at the masthead · beacon = gold canvas + halo.
- *
- *  Craft (07-12 고급화):
- *  - Every floating ship casts a REFLECTION on the water (mirrored silhouette,
- *    masked fade). Moored ships reflect more sharply than ships under way —
- *    calm water against the quay. Wrecks, aground on the shoal, cast none.
- *  - `heading` (deterministic per-ship, ±3°) breaks the stamped-fleet look.
- *  - The ENSIGN tells the door the vessel sailed from — an honest fact, not a
- *    grade: project voyages fly a triangular pennant, review/MCP receipts a
- *    small rectangular flag. */
+/** Compatibility wrapper around the shared chart instrument. Keeping the name
+ * local avoids perturbing the chart's data/layout logic while the visual object
+ * itself remains canonical across the sea and harbor register. */
 function ShipMark({
   state,
   due,
@@ -234,116 +221,8 @@ function ShipMark({
   /** Key/legend usage — silhouette only, no wake and no reflection. */
   plain?: boolean;
 }) {
-  const w = size;
-  const h = Math.round(size * 1.12);
-  // ── the at-a-glance STATE SYSTEM (창업자 07-13: "상태별 구분 직관적으로") ──
-  // Three orthogonal cues, each readable even at 15px dense size:
-  //   1) COLOR family — gold = 결착(verified/done), amber = 표류(drift, a fact),
-  //      ink = 진행/귀항. The due ship is gold (the beacon).
-  //   2) POSTURE — sailing upright-full-sail, adrift heeled-slack, wrecked
-  //      sunk-bare, moored ships upright-furled.
-  //   3) GLYPH — separates the three furled look-alikes: docked flies nothing
-  //      (⚓ anchored, never sailed), arrived flies a pennant (came home),
-  //      verified flies a gold pennant + gold canvas (reckoned).
-  const drift = state === 'adrift' || state === 'wrecked';
-  const ink = due ? N.gold : state === 'verified' ? N.gold : drift ? N.amber : N.paper;
-  const sail = ink;
-  const heel = state === 'adrift' ? -11 : heading;
-
-  if (state === 'wrecked') {
-    // Long untended, aground on the shoal: heeled bare hull + stump of mast,
-    // half-sunk. Amber (a fact of neglect), dimmed — never enlarged, never
-    // colored as failure (거울 조항). No reflection: she is out of the water.
-    return (
-      <span aria-hidden className="relative block" style={{ width: w, height: h, opacity: 0.62 }}>
-        <span className="absolute block" style={{ left: '8%', right: '8%', bottom: '18%', height: '17%', background: ink, borderRadius: '2px 2px 12px 12px / 2px 2px 100% 100%', transform: 'rotate(21deg)' }} />
-        <span className="absolute block" style={{ left: '52%', bottom: '30%', width: 1.5, height: '34%', background: ink, transform: 'rotate(28deg)' }} />
-      </span>
-    );
-  }
-
-  const furled = state === 'docked' || state === 'arrived' || state === 'verified';
-  const silhouette = (
-    <>
-      {/* hull — filled for a home vessel (arrived/verified), open for one still
-          out (sailing/docked-at-pier), so "closed the loop" reads as a solid
-          hull vs an outline even before you clock the sails. */}
-      <span
-        className="absolute block"
-        style={{
-          left: '6%', right: '6%', bottom: 0, height: '16%',
-          background: state === 'arrived' || state === 'verified' ? ink : 'transparent',
-          boxShadow: `inset 0 0 0 1.4px ${ink}`,
-          borderRadius: '2px 2px 12px 12px / 2px 2px 100% 100%',
-        }}
-      />
-      {/* mast */}
-      <span className="absolute block" style={{ left: '50%', bottom: '14%', width: 1.5, height: '74%', background: ink, transform: 'translateX(-50%)' }} />
-      {furled ? (
-        // canvas struck and lashed along the boom — a ship at her moorings.
-        <>
-          <span className="absolute block" style={{ left: '34%', bottom: '30%', width: '34%', height: '8%', background: sail, opacity: 0.9, borderRadius: 2 }} />
-          <span className="absolute block" style={{ left: '42%', bottom: '40%', width: '22%', height: '5%', background: sail, opacity: 0.6, borderRadius: 2 }} />
-        </>
-      ) : (
-        <>
-          {/* mainsail — vertical luff on the mast, clew trailing aft. Adrift =
-              luffing (slack + amber), so a drifted ship reads as "sail lost the
-              wind", not "under way". */}
-          <span
-            className="absolute block"
-            style={{
-              left: '52%', bottom: '22%', width: '42%', height: '64%',
-              background: sail, opacity: state === 'adrift' ? 0.45 : 0.95,
-              clipPath: state === 'adrift'
-                ? 'polygon(0% 0%, 0% 100%, 78% 90%)' // collapsed, spilling wind
-                : 'polygon(0% 0%, 0% 100%, 100% 96%)',
-            }}
-          />
-          {/* jib — set only when she has the wind (struck when adrift) */}
-          {state !== 'adrift' && (
-            <span
-              className="absolute block"
-              style={{
-                right: '52%', bottom: '22%', width: '30%', height: '46%',
-                background: sail, opacity: 0.8,
-                clipPath: 'polygon(100% 0%, 100% 100%, 0% 96%)',
-              }}
-            />
-          )}
-        </>
-      )}
-      {/* masthead ensign. Receipt door → rectangular flag (honest fact of which
-          door she sailed from). Home vessels fly a pennant — gold for a reckoned
-          (verified) decision, ink for one arrived-and-awaiting-you. A docked
-          ship that never sailed flies nothing but drops an anchor (below). */}
-      {kind === 'receipt' ? (
-        <span className="absolute block" style={{ left: '52%', top: '2%', width: '26%', height: '9%', background: sail, opacity: 0.85, borderRadius: 0.5 }} />
-      ) : state === 'verified' || state === 'arrived' ? (
-        <span className="absolute block" style={{ left: '51%', top: '1%', width: '30%', height: '7%', background: ink, clipPath: 'polygon(0 0, 100% 0, 78% 50%, 100% 100%, 0 100%)' }} />
-      ) : null}
-      {/* anchor — only the docked vessel (moored, never sailed) drops one. A
-          small stock-and-shank hanging at the bow: reads "parked at the pier". */}
-      {state === 'docked' && (
-        <>
-          <span className="absolute block" style={{ left: '50%', bottom: '2%', width: 1.2, height: '16%', background: ink, transform: 'translateX(-50%)', opacity: 0.85 }} />
-          <span className="absolute block" style={{ left: '50%', bottom: '2%', width: '26%', height: 1.2, background: ink, transform: 'translateX(-50%)', opacity: 0.85, borderRadius: 2 }} />
-        </>
-      )}
-    </>
-  );
-
   return (
-    <span aria-hidden className="relative block" style={{ width: w, height: h, transform: heel ? `rotate(${heel}deg)` : undefined }}>
-      {/* wake — only a ship under way leaves one */}
-      {state === 'sailing' && !plain && (
-        <>
-          <span className="absolute block" style={{ left: '-52%', bottom: '9%', width: '48%', height: 1, background: `linear-gradient(to right, transparent, ${N.paper}66)` }} />
-          <span className="absolute block" style={{ left: '-34%', bottom: '3%', width: '30%', height: 1, background: `linear-gradient(to right, transparent, ${N.paper}44)` }} />
-        </>
-      )}
-      {silhouette}
-    </span>
+    <VoyageMarker state={state} due={due} size={size} kind={kind} heading={heading} plain={plain} />
   );
 }
 
@@ -516,7 +395,7 @@ export function VoyageSea({
       } else if (state === 'arrived') {
         sub = L('정산 대기', 'awaiting reckoning');
       } else if (state === 'docked') {
-        sub = L('출항 전', 'not yet under way');
+        sub = L('시작 전', 'not started');
       } else {
         sub = relativeDays(lastActivityAt, now, locale);
       }
@@ -575,7 +454,7 @@ export function VoyageSea({
         sub:
           state === 'verified'
             ? L('검수 · 정산 완료', 'review · reckoned')
-            : `${L('검수 봉인', 'review seal')} · ${relativeDays(r.updated_at || createdAt, now, locale)}`,
+            : `${L('검수 기록', 'review record')} · ${relativeDays(r.updated_at || createdAt, now, locale)}`,
         resolution: RESOLUTION[state],
         idleDays: (() => {
           const t = new Date(r.updated_at || createdAt).getTime();
@@ -731,9 +610,9 @@ export function VoyageSea({
     { key: 'due', ko: '다시 볼 것', en: 'due', test: (s) => s.due, gold: true },
     { key: 'signal', ko: '확인 신호', en: 'signals', test: (s) => s.kind === 'project' && attentionSet.has(s.id) && !s.due, amber: true },
     { key: 'idle', ko: '오래 방치', en: 'untended', test: (s) => s.state === 'adrift' || s.state === 'wrecked', amber: true },
-    { key: 'sailing', ko: '항해 중', en: 'sailing', test: (s) => s.state === 'sailing' && !s.due },
-    { key: 'home', ko: '항구·완료', en: 'in harbor', test: (s) => s.state === 'arrived' || s.state === 'verified' },
-    { key: 'docked', ko: '출항 전', en: 'docked', test: (s) => s.state === 'docked' && !s.due },
+    { key: 'sailing', ko: '진행 중', en: 'in progress', test: (s) => s.state === 'sailing' && !s.due },
+    { key: 'home', ko: '완료', en: 'complete', test: (s) => s.state === 'arrived' || s.state === 'verified' },
+    { key: 'docked', ko: '시작 전', en: 'not started', test: (s) => s.state === 'docked' && !s.due },
   ];
   const filterList = FILTERS.map((f) => ({ ...f, n: ships.filter(f.test).length })).filter((f) => f.n > 0);
   const activeFilter = FILTERS.find((f) => f.key === filter) || null;
@@ -826,7 +705,7 @@ export function VoyageSea({
 
 
   return (
-    <section aria-label={L('항해 지도 — 결정들의 현재 위치', 'Voyage chart — where each decision is now')}>
+    <section aria-label={L('결정 지도 — 각 결정의 현재 상태', 'Decision map — current status of each decision')}>
       {/* Component-scoped keyframes. Plain static CSS (no user data). */}
       <style>{`
         @keyframes vsea-bob { 0%,100% { transform: translateY(0) } 50% { transform: translateY(-4px) } }
@@ -852,23 +731,23 @@ export function VoyageSea({
       {beacon && (
         <div className="mb-2.5 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 rounded-xl px-4 py-3" style={{ background: `linear-gradient(105deg, ${N.gold}14 0%, ${N.card} 34%)`, border: `1px solid ${N.gold}30`, boxShadow: `0 1px 2px ${N.paper}0d` }}>
           <div className="min-w-0 flex-1">
-            <p className="flex items-center gap-2 text-[10px] font-mono uppercase tracking-[0.16em] font-semibold" style={{ color: N.gold }}>
+            <p className="flex items-center gap-2 text-[10px] font-mono uppercase tracking-[0.16em] font-semibold" style={{ color: N.goldInk }}>
               <span aria-hidden className="vsea-pulse inline-block w-1.5 h-1.5 rounded-full" style={{ background: N.gold }} />
               {L('그래서, 어떻게 됐어요?', 'So, how did it go?')}
               {dueShips.length > 1 && (
                 <span className="font-normal opacity-70">· {L(`${dueShips.length}건`, `${dueShips.length} due`)}</span>
               )}
             </p>
-            <p className="mt-1 text-[15px] font-bold leading-snug break-keep" style={{ color: N.paper, fontFamily: 'var(--font-display)' }}>
+            <p className="mt-1 text-[15px] font-bold leading-snug break-keep" style={{ color: N.ink, fontFamily: 'var(--font-display)' }}>
               {beacon.name}
             </p>
             {beacon.premise ? (
-              <p className="mt-0.5 text-[12px] leading-relaxed break-keep" style={{ color: `${N.paper}a8` }}>
+              <p className="mt-0.5 text-[12px] leading-relaxed break-keep" style={{ color: `${N.ink}a8` }}>
                 {L('봉인한 내기 — ', 'Sealed bet — ')}
-                <em style={{ color: `${N.paper}d0` }}>「{beacon.premise.length > 52 ? `${beacon.premise.slice(0, 52)}…` : beacon.premise}」</em>
+                <em style={{ color: `${N.ink}d0` }}>「{beacon.premise.length > 52 ? `${beacon.premise.slice(0, 52)}…` : beacon.premise}」</em>
               </p>
             ) : (
-              <p className="mt-0.5 text-[12px] leading-relaxed break-keep" style={{ color: `${N.paper}a1` }}>
+              <p className="mt-0.5 text-[12px] leading-relaxed break-keep" style={{ color: `${N.ink}a1` }}>
                 {L('약속한 확인일이 왔어요. 봉인할 때의 눈으로 지금을 재볼 시간.', 'The check-in you promised has arrived — reread it with the eyes you sealed it with.')}
               </p>
             )}
@@ -877,83 +756,44 @@ export function VoyageSea({
             type="button"
             onClick={() => onReview(beacon.id)}
             className="shrink-0 self-start sm:self-center inline-flex items-center gap-1.5 rounded-full px-3.5 py-2 text-[12px] font-mono font-semibold cursor-pointer transition-[gap] duration-300 hover:gap-2.5"
-            style={{ background: N.gold, color: N.card }}
+            style={{ background: N.gold, color: N.ink }}
           >
             {L('다시 보기', 'Revisit')} <span aria-hidden>→</span>
           </button>
         </div>
       )}
 
-      {/* ── the day-sea plate (committed light — a parchment sea-chart) ── */}
+      {/* The living sea is a real image; the chart furniture and decisions stay
+          separate, exact UI layers. That keeps the scene rich without letting
+          generated art invent or move a single user fact. */}
       <div className="relative">
       <div
         className="relative overflow-hidden rounded-2xl min-h-[380px] sm:min-h-0 sm:aspect-[16/7.2]"
         style={{
-          // Deeper tonal RANGE = the water has presence instead of reading as a
-          // flat pale rectangle (07-13: 흐리멍덩 저대비 지적). A firmer frame +
-          // shadow makes the map the dominant panel, not one more beige box.
-          background: `linear-gradient(180deg, ${N.seaHi} 0%, ${N.sea} 44%, ${N.seaDeep} 82%, ${N.land} 100%)`,
-          boxShadow: `inset 0 0 0 1px ${N.paper}22, 0 6px 20px -8px ${N.paper}33`,
+          background: '#082625',
+          boxShadow: 'inset 0 0 0 1px rgba(245,240,229,.22), 0 18px 46px -22px rgba(2,24,23,.78)',
         }}
       >
-        {/* corner registration ticks — the plate signature */}
-        {(['top-2 left-2 border-t border-l', 'top-2 right-2 border-t border-r', 'bottom-2 left-2 border-b border-l', 'bottom-2 right-2 border-b border-r'] as const).map((pos) => (
-          <span key={pos} aria-hidden className={`absolute w-2.5 h-2.5 z-[2] pointer-events-none ${pos}`} style={{ borderColor: `${N.paper}30` }} />
-        ))}
-        {/* swell — engraved hairlines in perspective (tight near the horizon,
-            wider in the foreground). A touch firmer now so the water has real
-            texture instead of reading as blank paper. */}
+        <Image
+          src="/images/voyage/argus-sea-chart-v1.jpg"
+          alt=""
+          fill
+          sizes="(max-width: 640px) 100vw, 1120px"
+          quality={90}
+          className="object-cover object-[58%_center] sm:object-center"
+        />
         <div
           aria-hidden
           className="absolute inset-0"
           style={{
-            background: `repeating-linear-gradient(180deg, transparent 0 30px, ${N.paper}0f 30px 31px)`,
-            maskImage: 'linear-gradient(180deg, transparent 8%, black 30%, black 84%, transparent 100%)',
-            WebkitMaskImage: 'linear-gradient(180deg, transparent 8%, black 30%, black 84%, transparent 100%)',
+            background: 'linear-gradient(180deg, rgba(1,21,21,.12) 0%, rgba(1,21,21,.04) 44%, rgba(1,17,17,.26) 100%)',
+            boxShadow: 'inset 0 0 54px rgba(0,12,12,.42)',
           }}
         />
-        {/* a crisp horizon line — structure, not fog. Sits high, gives the open
-            sea an edge so the top isn't a featureless pale field. */}
-        <div aria-hidden className="absolute inset-x-0 pointer-events-none" style={{ top: '13%', height: 1, background: `linear-gradient(90deg, transparent, ${N.paper}20 14%, ${N.paper}20 86%, transparent)` }} />
-        {/* depth toward the deep water — a soft DARK gather at the lower band
-            (opposite of the pale fog that washed it out): the sea gains weight
-            as it nears the harbour. */}
-        <div aria-hidden className="absolute inset-x-0 bottom-[12%] h-[34%] pointer-events-none" style={{ background: `linear-gradient(180deg, transparent 0%, ${N.paper}0e 100%)` }} />
-
-        {/* the shoal — hatched shallows in the far corner where wrecks lie */}
-        <div
-          aria-hidden
-          className="absolute left-0 bottom-[11%] w-[24%] h-[14%]"
-          style={{
-            background: `repeating-linear-gradient(45deg, transparent 0 5px, ${N.paper}0a 5px 6px)`,
-            borderRadius: '0 60% 45% 0 / 0 80% 60% 0',
-            borderTop: `1px solid ${N.paper}14`,
-          }}
-        />
-
-        {/* ── the home quay — a timber wharf, not a flat bar (창업자 07-13).
-              A planked band + a lip highlight + a run of mooring bollards, and
-              a short stone jetty carrying the harbour light. ── */}
-        <div aria-hidden className="absolute inset-x-0 bottom-0 h-[12%]" style={{ background: N.land, borderTop: `1.5px solid ${N.paper}33` }}>
-          {/* deck planking */}
-          <div className="absolute inset-0" style={{ background: `repeating-linear-gradient(90deg, transparent 0 17px, ${N.paper}12 17px 18px)` }} />
-          {/* a second, deeper plank line + waterline lip highlight */}
-          <div className="absolute inset-x-0 top-0 h-px" style={{ background: N.card, opacity: 0.55 }} />
-          <div className="absolute inset-x-0" style={{ top: '46%', height: 1, background: `${N.paper}1c` }} />
-        </div>
-        {/* mooring bollards — short capped posts standing along the quay edge */}
-        <div aria-hidden className="absolute inset-x-0 flex justify-around px-[7%] pointer-events-none" style={{ bottom: 'calc(12% - 3px)' }}>
-          {Array.from({ length: 11 }).map((_, i) => (
-            <span key={i} className="rounded-t-sm" style={{ width: 3, height: 7, background: `${N.paper}${i % 2 ? '9a' : 'b0'}` }} />
-          ))}
-        </div>
-        {/* the jetty — a short stone mole reaching out of the quay, its lamp the
-            calm harbour light (no sweeping beam). Offset from centre so it
-            doesn't sit under the fleet. */}
-        <div aria-hidden className="absolute" style={{ left: '43%', bottom: '12%', width: 7, height: '10%', transform: 'translateX(-50%)', background: `repeating-linear-gradient(180deg, ${N.paper}3a 0 4px, ${N.paper}22 4px 8px)`, borderRadius: '2px 2px 0 0', boxShadow: `inset 0 0 0 1px ${N.paper}2a` }} />
-        <div aria-hidden className="absolute" style={{ left: '43%', bottom: 'calc(22% + 1px)', width: 2, height: 9, background: `${N.paper}88`, transform: 'translateX(-50%)' }} />
-        <div aria-hidden className="absolute rounded-full" style={{ left: '43%', bottom: 'calc(22% + 9px)', width: 5.5, height: 5.5, background: N.goldGlow, transform: 'translateX(-50%)', boxShadow: `0 0 8px 2px ${N.goldGlow}88` }} />
-
+        {/* corner registration ticks — the plate signature */}
+        {(['top-2 left-2 border-t border-l', 'top-2 right-2 border-t border-r', 'bottom-2 left-2 border-b border-l', 'bottom-2 right-2 border-b border-r'] as const).map((pos) => (
+          <span key={pos} aria-hidden className={`absolute w-2.5 h-2.5 z-[2] pointer-events-none ${pos}`} style={{ borderColor: `${N.paper}30` }} />
+        ))}
         {/* ── the axes, drawn as chart furniture so position reads as data ──
               Y = resolution (먼바다 위 → 항구 아래), X = activity recency
               (오래 방치 왼쪽 → 최근 오른쪽). A faint graticule + edge captions
@@ -1017,8 +857,8 @@ export function VoyageSea({
             aria-pressed={filter === 'sailing'}
             className="absolute top-[5.5%] right-[2.5%] z-[4] items-center gap-1.5 rounded-full pl-2.5 pr-2.5 py-1 cursor-pointer transition-colors hidden sm:inline-flex"
             style={filter === 'sailing'
-              ? { background: N.paper, color: N.card }
-              : { background: `${N.card}e0`, color: `${N.paper}b0`, boxShadow: `inset 0 0 0 1px ${N.paper}2e` }}
+              ? { background: N.paper, color: N.ink }
+              : { background: `${N.card}e0`, color: `${N.ink}b0`, boxShadow: `inset 0 0 0 1px ${N.ink}2e` }}
           >
             <span className="text-[10.5px] font-semibold" style={{ fontFamily: 'var(--font-display)' }}>{L('진행 중', 'in progress')}</span>
             <span className="text-[10.5px] font-mono tabular-nums font-bold">{sailingN}</span>
@@ -1033,9 +873,9 @@ export function VoyageSea({
           onClick={() => setShowKey((v) => !v)}
           aria-expanded={showKey}
           className="absolute bottom-2 right-2 z-[6] inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-mono uppercase tracking-[0.1em] cursor-pointer transition-colors"
-          style={{ background: `${N.card}e6`, color: `${N.paper}b0`, boxShadow: `inset 0 0 0 1px ${N.paper}22` }}
+          style={{ background: `${N.card}ed`, color: `${N.ink}c8`, boxShadow: `inset 0 0 0 1px ${N.ink}22` }}
         >
-          <span aria-hidden className="inline-flex items-center justify-center rounded-full text-[9px] font-bold" style={{ width: 13, height: 13, background: `${N.paper}1a` }}>?</span>
+          <span aria-hidden className="inline-flex items-center justify-center rounded-full text-[9px] font-bold" style={{ width: 13, height: 13, background: `${N.ink}1a` }}>?</span>
           {showKey ? L('닫기', 'Close') : L('읽는 법', 'Legend')}
         </button>
         {showKey && (
@@ -1045,39 +885,39 @@ export function VoyageSea({
               role="group"
               aria-label={L('지도 읽는 법', 'How to read the chart')}
               className="absolute bottom-10 right-2 z-[7] w-[248px] rounded-xl p-3.5 text-left"
-              style={{ background: N.card, boxShadow: `0 8px 28px ${N.paper}2e, inset 0 0 0 1px ${N.paper}1f` }}
+              style={{ background: N.card, boxShadow: `0 8px 28px ${N.ink}42, inset 0 0 0 1px ${N.ink}1f` }}
             >
               {/* Lead with the payoff — what to LOOK for — then the mechanism.
                   Plain decision-language, not the nautical metaphor. */}
-              <p className="text-[11.5px] font-semibold leading-snug mb-1" style={{ color: N.paper, fontFamily: 'var(--font-display)' }}>
+              <p className="text-[11.5px] font-semibold leading-snug mb-1" style={{ color: N.ink, fontFamily: 'var(--font-display)' }}>
                 {L('배 하나 = 결정 하나.', 'Each ship is one decision.')}
               </p>
-              <p className="text-[10.5px] leading-relaxed mb-2.5" style={{ color: `${N.paper}b0` }}>
+              <p className="text-[10.5px] leading-relaxed mb-2.5" style={{ color: `${N.ink}b0` }}>
                 {L('왼쪽 위로 갈수록 오래 방치됐고 아직 안 끝난 — 놓치기 쉬운 결정이에요.', 'The higher-left a ship sits, the more it is both long-untended and unfinished — the easy-to-miss ones.')}
               </p>
               {/* the two axes — named by what each MEASURES, then its two ends */}
               <div className="space-y-1.5 mb-2.5">
-                <p className="text-[10.5px] leading-tight" style={{ color: `${N.paper}c8` }}>
+                <p className="text-[10.5px] leading-tight" style={{ color: `${N.ink}c8` }}>
                   <span className="font-semibold">{L('세로 ', 'Up/down ')}</span>
-                  <span style={{ color: `${N.paper}90` }}>{L('얼마나 끝났나', 'how finished')}</span>
+                  <span style={{ color: `${N.ink}90` }}>{L('얼마나 끝났나', 'how finished')}</span>
                   {L(' — 위 진행 중 · 아래 끝나서 항구', ' — top: in progress · bottom: arrived')}
                 </p>
-                <p className="text-[10.5px] leading-tight" style={{ color: `${N.paper}c8` }}>
+                <p className="text-[10.5px] leading-tight" style={{ color: `${N.ink}c8` }}>
                   <span className="font-semibold">{L('가로 ', 'Left/right ')}</span>
-                  <span style={{ color: `${N.paper}90` }}>{L('언제 마지막에 봤나', 'last touched')}</span>
+                  <span style={{ color: `${N.ink}90` }}>{L('언제 마지막에 봤나', 'last touched')}</span>
                   {L(' — 왼쪽 오래 전 · 오른쪽 최근', ' — left: long ago · right: recent')}
                 </p>
               </div>
               {/* state marks — the very same ShipMarks drawn on the water, named
                   in plain terms (색으로도 구분: 금 끝남 · 주황 방치) */}
-              <div className="grid grid-cols-2 gap-x-2 gap-y-1.5 mb-2.5 pt-2.5" style={{ borderTop: `1px solid ${N.paper}12` }}>
+              <div className="grid grid-cols-2 gap-x-2 gap-y-1.5 mb-2.5 pt-2.5" style={{ borderTop: `1px solid ${N.ink}12` }}>
                 {([
                   { st: 'sailing', ko: '진행 중', en: 'in progress' },
                   { st: 'adrift', ko: '표류 — 방치됨', en: 'adrift' },
                   { st: 'verified', ko: '확인까지 끝', en: 'reckoned' },
                   { st: 'docked', ko: '아직 시작 전', en: 'not started' },
                 ] as const).map((r) => (
-                  <span key={r.st} className="flex items-center gap-1.5 text-[10px]" style={{ color: `${N.paper}c8` }}>
+                  <span key={r.st} className="flex items-center gap-1.5 text-[10px]" style={{ color: `${N.ink}c8` }}>
                     <span className="inline-flex items-end justify-center shrink-0" style={{ width: 20, height: 20 }}>
                       <ShipMark state={r.st} due={false} size={17} plain />
                     </span>
@@ -1085,7 +925,7 @@ export function VoyageSea({
                   </span>
                 ))}
               </div>
-              <p className="text-[10px] pt-2 flex items-center gap-1.5" style={{ color: `${N.paper}9a`, borderTop: `1px solid ${N.paper}12` }}>
+              <p className="text-[10px] pt-2 flex items-center gap-1.5" style={{ color: `${N.ink}9a`, borderTop: `1px solid ${N.ink}12` }}>
                 <span aria-hidden style={{ color: N.gold }}>◆</span>
                 {L('배를 누르면 바로 처리해요 — 열기·정산.', 'Tap a ship to act — open or settle, right here.')}
               </p>
@@ -1253,12 +1093,12 @@ export function VoyageSea({
                   <span
                     className={`${showKeywordMobile ? 'block' : 'hidden'} ${showKeyword ? 'sm:block' : 'sm:hidden'} mt-1 max-w-[108px] text-center text-[9.5px] leading-[1.2] tracking-[0.01em] break-keep line-clamp-1 font-semibold rounded-full px-1.5 py-px`}
                     style={{
-                      color: s.due ? N.gold : attention || hasAttentionSignal ? N.amber : `${N.paper}bf`,
+                      color: s.due ? N.goldInk : attention || hasAttentionSignal ? N.amberInk : `${N.ink}d8`,
                       fontFamily: 'var(--font-display)',
                       background: `${N.card}cc`,
                       boxShadow: s.due
                         ? `inset 0 0 0 1px ${N.gold}4d`
-                        : `inset 0 0 0 1px ${N.paper}12`,
+                        : `inset 0 0 0 1px ${N.ink}18`,
                     }}
                   >
                     {kw}
@@ -1275,7 +1115,7 @@ export function VoyageSea({
                     <span className="text-center text-[11px] leading-[1.3] break-keep line-clamp-3 font-medium" style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-display)' }}>
                       {s.name}
                     </span>
-                    <span className="text-[8px] font-mono uppercase tracking-[0.08em] whitespace-nowrap" style={{ color: s.due ? N.gold : 'var(--text-tertiary)' }}>
+                    <span className="text-[8px] font-mono uppercase tracking-[0.08em] whitespace-nowrap" style={{ color: s.due ? N.goldInk : 'var(--text-tertiary)' }}>
                       {stateLabel} · {s.sub}
                     </span>
                   </span>
@@ -1298,9 +1138,10 @@ export function VoyageSea({
         const stateLabel = s.due ? L('다시 볼 때', 'due back') : L(meta.ko, meta.en);
         const open = () => { if (s.kind === 'receipt') onSelectReceipt?.(s.id); else onSelect(s.id); setActionShip(null); };
         const review = () => { onReview(s.id); setActionShip(null); };
-        // clamp horizontally so the 220px card never leaves the plate; flip above
-        // the ship when it sits low so the card doesn't fall off the bottom.
-        const leftPct = Math.max(15, Math.min(85, s.x));
+        // Clamp by the card's real half-width, not a percentage. A 15% clamp
+        // still put 220px cards offscreen on a 390px phone when a ship hugged
+        // the western shoal.
+        const clampedLeft = `clamp(116px, ${s.x}%, calc(100% - 116px))`;
         const below = s.y < 52;
         return (
           <>
@@ -1309,14 +1150,15 @@ export function VoyageSea({
               ref={actionCardRef}
               id={`voyage-action-${s.id}`}
               role="dialog"
+              data-edge-clamp="116"
               aria-label={s.name}
               className="absolute z-[45] w-[220px] rounded-xl p-3"
               style={{
-                left: `${leftPct}%`,
+                left: clampedLeft,
                 [below ? 'top' : 'bottom']: below ? `calc(${s.y}% + 22px)` : `calc(${100 - s.y}% + 22px)`,
                 transform: 'translateX(-50%)',
                 background: N.card,
-                boxShadow: `0 10px 30px ${N.paper}33, inset 0 0 0 1px ${N.paper}1f`,
+                boxShadow: `0 10px 30px ${N.ink}4a, inset 0 0 0 1px ${N.ink}1f`,
               }}
             >
               <button
@@ -1327,22 +1169,22 @@ export function VoyageSea({
                 }}
                 aria-label={L('행동 카드 닫기', 'Close action card')}
                 className="absolute right-2 top-2 inline-flex h-7 w-7 items-center justify-center rounded-md text-[16px] cursor-pointer transition-colors hover:bg-white/10"
-                style={{ color: `${N.paper}9a` }}
+                style={{ color: `${N.ink}9a` }}
               >
                 <span aria-hidden>×</span>
               </button>
-              <p className="pr-7 text-[13px] font-semibold leading-snug break-keep line-clamp-2" style={{ color: N.paper, fontFamily: 'var(--font-display)' }}>
+              <p className="pr-7 text-[13px] font-semibold leading-snug break-keep line-clamp-2" style={{ color: N.ink, fontFamily: 'var(--font-display)' }}>
                 {s.name}
               </p>
-              <p className="mt-0.5 text-[10.5px] font-mono uppercase tracking-[0.06em] flex items-center gap-1.5" style={{ color: s.due ? N.gold : (s.state === 'adrift' || s.state === 'wrecked') ? N.amber : `${N.paper}88` }}>
+              <p className="mt-0.5 text-[10.5px] font-mono uppercase tracking-[0.06em] flex items-center gap-1.5" style={{ color: s.due ? N.gold : (s.state === 'adrift' || s.state === 'wrecked') ? N.amber : `${N.ink}88` }}>
                 <span className="inline-flex items-end" style={{ width: 15, height: 15 }}><ShipMark state={s.state} due={s.due} size={13} plain /></span>
                 {stateLabel} · {s.sub}
               </p>
               {/* the sealed bet this decision rests on — its own words. */}
               {s.premise && (
-                <p className="mt-2 text-[11px] leading-relaxed break-keep" style={{ color: `${N.paper}b0` }}>
-                  <span className="font-mono text-[9px] uppercase tracking-[0.1em]" style={{ color: `${N.paper}70` }}>{L('봉인한 전제', 'sealed premise')}</span><br />
-                  <em style={{ color: `${N.paper}d8` }}>「{s.premise.length > 60 ? `${s.premise.slice(0, 60)}…` : s.premise}」</em>
+                <p className="mt-2 text-[11px] leading-relaxed break-keep" style={{ color: `${N.ink}b0` }}>
+                  <span className="font-mono text-[9px] uppercase tracking-[0.1em]" style={{ color: `${N.ink}70` }}>{L('봉인한 전제', 'sealed premise')}</span><br />
+                  <em style={{ color: `${N.ink}d8` }}>「{s.premise.length > 60 ? `${s.premise.slice(0, 60)}…` : s.premise}」</em>
                 </p>
               )}
               {s.kind === 'project' && attentionSet.has(s.id) && !s.due && (
@@ -1372,13 +1214,13 @@ export function VoyageSea({
                         type="button"
                         onClick={() => setActionShip(sib.id)}
                         className="text-left text-[11px] leading-snug break-keep line-clamp-1 hover:underline cursor-pointer"
-                        style={{ color: `${N.paper}c0`, fontFamily: 'var(--font-display)' }}
+                        style={{ color: `${N.ink}c0`, fontFamily: 'var(--font-display)' }}
                       >
                         · {sib.name}
                       </button>
                     ))}
                     {leverageSibs.length > 4 && (
-                      <span className="text-[10px]" style={{ color: `${N.paper}80` }}>{L(`외 ${leverageSibs.length - 4}척`, `+${leverageSibs.length - 4} more`)}</span>
+                      <span className="text-[10px]" style={{ color: `${N.ink}80` }}>{L(`외 ${leverageSibs.length - 4}척`, `+${leverageSibs.length - 4} more`)}</span>
                     )}
                   </div>
                 </div>
@@ -1391,7 +1233,7 @@ export function VoyageSea({
                     data-autofocus="true"
                     onClick={review}
                     className="flex-1 inline-flex items-center justify-center gap-1 rounded-lg px-2.5 py-2 text-[12px] font-semibold cursor-pointer transition-opacity hover:opacity-90"
-                    style={{ background: N.gold, color: N.card }}
+                    style={{ background: N.gold, color: N.ink }}
                   >
                     {L('정산·다시 보기', 'Settle')}
                   </button>
@@ -1402,7 +1244,7 @@ export function VoyageSea({
                   data-autofocus={s.due && s.kind !== 'receipt' ? undefined : 'true'}
                   onClick={open}
                   className="flex-1 inline-flex items-center justify-center gap-1 rounded-lg px-2.5 py-2 text-[12px] font-semibold cursor-pointer transition-colors"
-                  style={{ background: `${N.paper}0d`, color: N.paper, boxShadow: `inset 0 0 0 1px ${N.paper}22` }}
+                  style={{ background: `${N.ink}0d`, color: N.ink, boxShadow: `inset 0 0 0 1px ${N.ink}22` }}
                 >
                   {L('열기', 'Open')}
                 </button>
@@ -1433,7 +1275,7 @@ export function VoyageSea({
             <span className="text-[9.5px] font-mono uppercase tracking-[0.12em] font-semibold shrink-0" style={{ color: 'var(--warning)' }}>
               {L('전제 이동', 'GROUND MOVED')}
             </span>
-            <span className="text-[11px] truncate" style={{ color: `${N.paper}d0`, fontFamily: 'var(--font-display)' }}>
+            <span className="text-[11px] truncate" style={{ color: `${N.ink}d0`, fontFamily: 'var(--font-display)' }}>
               「{spotlight.text.length > 22 ? `${spotlight.text.slice(0, 22)}…` : spotlight.text}」
             </span>
             {spotGauge && (
@@ -1448,7 +1290,7 @@ export function VoyageSea({
                 · {L(`그 위 ${driftExposed}척`, `${driftExposed} on it`)}
               </span>
             )}
-            <span aria-hidden className="text-[11px] shrink-0" style={{ color: `${N.paper}80` }}>→</span>
+            <span aria-hidden className="text-[11px] shrink-0" style={{ color: `${N.ink}80` }}>→</span>
           </button>
       )}
       </div>
@@ -1478,9 +1320,9 @@ export function VoyageSea({
                 style={
                   on
                     ? f.gold
-                      ? { background: N.gold, color: N.card }
+                      ? { background: N.gold, color: N.ink }
                       : f.amber
-                        ? { background: N.amber, color: N.card }
+                        ? { background: N.amber, color: N.ink }
                         : { background: 'var(--text-primary)', color: 'var(--bg)' }
                     : { color: f.gold ? N.gold : f.amber ? N.amber : 'var(--text-secondary)' }
                 }

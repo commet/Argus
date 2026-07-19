@@ -138,14 +138,14 @@ export default function ImportPage() {
           </h1>
           <p className="text-[14px] text-[var(--text-secondary)] mb-5">
             {L(
-              'AI 대화에서 저장한 예측을 계정에 연결하면, 정한 날 이메일을 받고 여기서 실제 결과를 기록할 수 있습니다.',
-              'Connect a prediction saved in an AI chat to your account, get an email on the date you chose, then record what happened here.',
+              'argus_predict로 남긴 예측은 먼저 그 대화가 실행되는 기기의 .argus에 저장됩니다. 계정 연결을 한 번 설정하면 이 화면과 동기화되고, 정한 날 알림을 받을 수 있어요.',
+              'A prediction saved with argus_predict first lives in .argus on the machine running that chat. Connect your account once to sync it here and receive a reminder on the date you chose.',
             )}
           </p>
           <ol className="mb-5 space-y-2 text-[13px] text-[var(--text-secondary)]">
-            <li>{L('1. AI 대화에서 argus_predict로 예측을 저장합니다.', '1. Save a prediction in an AI chat with argus_predict.')}</li>
-            <li>{L('2. 정한 날 계정 이메일이 먼저 옵니다.', '2. On the date you chose, your account email arrives first.')}</li>
-            <li>{L('3. 여기서 실제 결과만 기록합니다.', '3. Come back here and record only what reality did.')}</li>
+            <li>{L('1. AI 대화에서 argus_predict로 로컬 예측을 저장합니다.', '1. Save a local prediction in an AI chat with argus_predict.')}</li>
+            <li>{L('2. 로그인한 뒤 연결 토큰을 한 번 설정하고 동기화합니다.', '2. Log in, configure a connect token once, then sync.')}</li>
+            <li>{L('3. 동기화된 예측은 정한 날 알림을 받고 여기서 실제 결과를 기록합니다.', '3. Synced predictions get a reminder on the chosen date and can be resolved here.')}</li>
           </ol>
           <details className="mb-5">
             <summary className="cursor-pointer text-[13px] font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)]">
@@ -270,8 +270,8 @@ export default function ImportPage() {
                 <p className="text-[var(--text-primary)] flex items-center gap-1.5">
                   <CheckCircle2 size={14} className="text-[var(--primary)]" />
                   {L(
-                    `결정 ${summary.decisions.written}건, 항해 기록 ${summary.bearings.written}건을 가져왔습니다.`,
-                    `Imported ${summary.decisions.written} decisions, ${summary.bearings.written} bearings.`,
+                    `결정 ${summary.decisions.written}건, 결정 방향 ${summary.bearings.written}건을 가져왔습니다.`,
+                    `Imported ${summary.decisions.written} decisions and ${summary.bearings.written} decision directions.`,
                   )}
                 </p>
               )}
@@ -371,10 +371,10 @@ export default function ImportPage() {
 
       <section>
         <h2 className="text-[13px] font-bold uppercase tracking-wider text-[var(--text-tertiary)] mb-3 flex items-center gap-2">
-          <Compass size={14} />{L('항해 기록', 'Bearings')} <span className="text-[var(--text-tertiary)]/70">({bearings.length})</span>
+          <Compass size={14} />{L('결정 방향', 'Decision directions')} <span className="text-[var(--text-tertiary)]/70">({bearings.length})</span>
         </h2>
         {loaded && !loadError && bearings.length === 0 ? (
-          <p className="text-[13px] text-[var(--text-tertiary)]">{L('아직 가져온 항해 기록이 없습니다.', 'No bearings imported yet.')}</p>
+          <p className="text-[13px] text-[var(--text-tertiary)]">{L('아직 가져온 결정 방향이 없습니다.', 'No decision directions imported yet.')}</p>
         ) : (
           <div className="space-y-2.5">
             {bearings.map((b) => (

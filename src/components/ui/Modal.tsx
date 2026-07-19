@@ -3,6 +3,7 @@
 import { ReactNode, type RefObject, useEffect, useId, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
+import { useLocale } from '@/hooks/useLocale';
 
 interface ModalProps {
   open: boolean;
@@ -34,7 +35,9 @@ function unlockScroll() {
   if (scrollLockCount === 0) document.body.style.overflow = previousBodyOverflow;
 }
 
-export function Modal({ open, onClose, title, children, widthClass = 'max-w-lg', initialFocusRef, closeLabel = 'Close' }: ModalProps) {
+export function Modal({ open, onClose, title, children, widthClass = 'max-w-lg', initialFocusRef, closeLabel }: ModalProps) {
+  const locale = useLocale();
+  const effectiveCloseLabel = closeLabel ?? (locale === 'ko' ? '닫기' : 'Close');
   const titleId = useId();
   const dialogRef = useRef<HTMLDivElement>(null);
   const closeBtnRef = useRef<HTMLButtonElement>(null);
@@ -133,7 +136,7 @@ export function Modal({ open, onClose, title, children, widthClass = 'max-w-lg',
             ref={closeBtnRef}
             type="button"
             onClick={onClose}
-            aria-label={closeLabel}
+            aria-label={effectiveCloseLabel}
             className="flex items-center justify-center -mr-1.5 min-h-[44px] min-w-[44px] hover:bg-[var(--bg)] rounded-lg transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
           >
             <X size={16} strokeWidth={1.5} />

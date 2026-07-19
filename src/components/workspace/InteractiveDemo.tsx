@@ -185,7 +185,7 @@ function TeamEntrance({ scenario, onDone, locale = 'ko' }: { scenario: DemoScena
 
   return (
     <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease: EASE }}
-      className="rounded-xl bg-[var(--accent)]/[0.03] border border-[var(--accent)]/10 p-4 space-y-2.5">
+      className="border-y border-[var(--border-subtle)] px-1 py-4 space-y-2.5">
       {scenario.team.map((p, i) => (
         <motion.div key={p.id} initial={{ opacity: 0, x: -16 }} animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.2 + i * 0.3, duration: 0.4, ease: EASE }}
@@ -197,7 +197,7 @@ function TeamEntrance({ scenario, onDone, locale = 'ko' }: { scenario: DemoScena
       ))}
       <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.2, duration: 0.4 }}
         className="text-[11px] text-[var(--text-tertiary)] pt-1">
-        {locale === 'ko' ? '팀이 모였어요. 상황을 살펴볼게요...' : 'Team assembled. Analyzing the situation...'}
+        {locale === 'ko' ? 'AI 검토자들이 각자 다른 관점에서 검토를 시작해요.' : 'AI reviewers are starting from different perspectives.'}
       </motion.p>
     </motion.div>
   );
