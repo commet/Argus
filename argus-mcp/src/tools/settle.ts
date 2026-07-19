@@ -138,22 +138,29 @@ export const settle: ToolModule = {
         brokenPremiseText = p.text;
       }
 
-      // Deferral history → a neutral fact on the receipt ("originally due X ·
-      // deferred N×"). defer_history[0].from is the ORIGINAL check-by.
-      const deferCount = current.entry?.defer_count ?? 0;
-      const originallyDue = current.entry?.defer_history?.[0]?.from;
       // §9.4 두 기기 안전: the settle write is a read-check-append sequence —
       // re-guard UNDER the ledger lock so two concurrent sessions can't both
       // pass the check above and double-count the record (the loser sees
       // ALREADY_SETTLED, exactly as if it had arrived second sequentially).
+      // Everything the receipt records is read from THIS under-lock snapshot
+      // (`fresh`), never the pre-lock `current`: a concurrent amend that moved
+      // the predicate/check_by between the two reads would otherwise settle the
+      // NEW contract yet print the OLD prediction on the keepsake — a receipt
+      // that silently disagrees with the ledger (split-brain).
+      let fresh!: ReturnType<typeof resolveContract>;
       const { receipt, v2Mirror } = await withLedgerLock(dir, async () => {
-        const fresh = resolveContract(dir, id, today);
+        fresh = resolveContract(dir, id, today);
         guardTransition(fresh.state, 'settle');
+        // Deferral history → a neutral fact on the receipt ("originally due X ·
+        // deferred N×"). defer_history[0].from is the ORIGINAL check-by. Read
+        // from `fresh` so a concurrent defer is reflected on the receipt too.
+        const deferCount = fresh.entry?.defer_count ?? 0;
+        const originallyDue = fresh.entry?.defer_history?.[0]?.from;
         const appended = await appendLedger(dir, [{ id, event: 'settle', outcome, decision: a['what_happened'] as string, ...(brokenPremiseId ? { broken_premise_id: brokenPremiseId } : {}) }], now);
         return { v2Mirror: appended.v2_mirror, receipt: await writeSettleReceipt(dir, id, {
           what_happened: String(a['what_happened']), outcome, settled_at: now,
           ...(deferCount > 0 ? { deferred_times: deferCount, ...(originallyDue ? { originally_due: originallyDue } : {}) } : {}),
-        }, { predicate: current.predicate, check_by: current.check_by }) };
+        }, { predicate: fresh.predicate, check_by: fresh.check_by }) };
       });
       const v2Write = asV2WriteField(v2Mirror);
 
@@ -201,12 +208,17 @@ export const settle: ToolModule = {
       // light one-line confirmation (re-printing the plate every time would be
       // ceremony); the receipt stays available in data.receipt_text and the
       // argus://receipts/{id} resource.
-      const receiptText = renderReceipt(receipt, receiptPremisesInfo(current.entry), locale);
+      const receiptText = renderReceipt(receipt, receiptPremisesInfo(fresh.entry), locale);
       const firstReceipt = replayLedger(dir, today).stats.total_settled === 1;
+      // On the FIRST settle the full receipt below already names the prediction;
+      // on later settles only the one-liner shows, so echo the predicate there —
+      // else a wrong-id or fabricated settle reads as a bare "Result recorded:
+      // held" the user can't catch (LLM-glue: keep the semantic pick visible).
+      const echoPred = firstReceipt ? '' : sanitizeLine(fresh.predicate ?? '', 90);
 
       return envelope({
         ok: true, tool: 'argus_settle',
-        surface: T.settled(outcome as 'held' | 'avoided' | 'partial' | 'missed') + syncLine + connectionLine
+        surface: T.settled(outcome as 'held' | 'avoided' | 'partial' | 'missed', echoPred) + syncLine + connectionLine
           + (firstReceipt ? `\n\n${receiptText}` : ''),
         next_actions: ['argus_patterns', 'stop'],
         data: {

@@ -234,9 +234,10 @@ export const checkIn: ToolModule = {
       // Ledger-corruption disclosure (11 P2-8): dropped_lines was counted in
       // data.integrity but never SAID. Silence is not kindness — one factual
       // sentence + the backup handle. No blame, no gate.
-      const integrityLine = ledger.integrity.dropped_lines > 0
-        ? S.dropped_lines(ledger.integrity.dropped_lines)
-        : '';
+      const undatedIds = ledger.integrity.undated_seals ?? [];
+      const integrityLine =
+        (ledger.integrity.dropped_lines > 0 ? S.dropped_lines(ledger.integrity.dropped_lines) : '')
+        + (undatedIds.length > 0 ? S.undated_seals(undatedIds) : '');
 
       // Living premises: monitored facts due for a reality re-check, grouped so
       // the same fact under several decisions is ONE re-check (plan v5 P1/P5).
@@ -290,7 +291,7 @@ export const checkIn: ToolModule = {
           ok: true, tool: 'argus_check_in',
           surface: mirrorLine + S.nothing_due + accountHint + upcomingLine + fleetLine + integrityLine,
           next_actions: ['stop'],
-          data: { due: [], due_count: 0, due_premises: [], due_premise_count: 0, due_open_questions: [], due_open_question_count: 0, ...(openWatch.length ? { open_predictions: openWatch } : {}), ...(upDays > 0 ? { upcoming } : {}), ...(a['fleet'] === true ? { fleet: fleetRows } : {}), ...watchData, today, ...(process.env['ARGUS_V2_DEBUG'] === '1' ? { capture_status: captureStatus, v2_brief: readV2Brief(dir, today), v2_divergence: briefDivergence([], readV2Brief(dir, today)) } : {}) },
+          data: { due: [], due_count: 0, due_premises: [], due_premise_count: 0, due_open_questions: [], due_open_question_count: 0, ...(openWatch.length ? { open_predictions: openWatch } : {}), ...(upDays > 0 ? { upcoming } : {}), ...(a['fleet'] === true ? { fleet: fleetRows } : {}), ...watchData, today, integrity: ledger.integrity, ...(process.env['ARGUS_V2_DEBUG'] === '1' ? { capture_status: captureStatus, v2_brief: readV2Brief(dir, today), v2_divergence: briefDivergence([], readV2Brief(dir, today)) } : {}) },
         });
       }
 

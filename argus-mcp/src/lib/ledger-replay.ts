@@ -28,6 +28,11 @@ export interface ContractEntry {
   predicate?: string;
   check_by?: string;
   outcome?: string;
+  /** What reality did, in the user's words, retained from the settle event's
+   *  `decision`/`what_happened` field. The receipt file is the primary keepsake,
+   *  but the fold keeps this too so a LOST receipt on a settled decision can be
+   *  reconstructed honestly instead of misreported as "no prediction" (recall). */
+  what_happened?: string;
   basis?: string;
   amend_history: Array<{ predicate?: string; check_by?: string; ts?: string }>;
   dismiss_reason?: string;
@@ -106,6 +111,11 @@ export interface LedgerState {
      *  — kept separate from dropped_lines so forward-compat never reads as a
      *  false integrity alarm (plan v5 §6.3). */
     skipped_unknown: number;
+    /** Sealed contracts whose check_by is missing or unparseable (only reachable
+     *  via a foreign writer / hand-edit — the MCP seal path validates the date).
+     *  Such a seal can NEVER become `due`, so without this it is silently stuck
+     *  and invisible to every channel. Listed here so a channel can say so. */
+    undated_seals?: string[];
   };
 }
 
@@ -211,6 +221,13 @@ export function replayLedger(argusDir: string, today: string): LedgerState {
         cur.status = 'settled';
         const outcome = ev['outcome'] as string | undefined;
         cur.outcome = outcome;
+        // Retain what-reality-did from the settle line. This binary writes it as
+        // `decision`; the plugin CLI writes `what_happened` — read both (same
+        // dual-vocab tolerance as ts/at below) so a lost receipt is honestly
+        // reconstructable from the fold, whatever surface settled it.
+        const wh = typeof ev['decision'] === 'string' ? ev['decision']
+          : typeof ev['what_happened'] === 'string' ? (ev['what_happened'] as string) : undefined;
+        if (wh) cur.what_happened = wh;
         // Timestamp field is two-vocab across surfaces: this binary stamps `ts`,
         // the plugin CLI stamps `at` — read both so a plugin-settled decision
         // still gets its settled date on the receipt (O2 방1 finding ⑤).
@@ -420,14 +437,16 @@ export function replayLedger(argusDir: string, today: string): LedgerState {
   }
 
   const overdue: Array<{ id: string; date: string; text: string }> = [];
+  const undatedSeals: string[] = [];
   for (const [id, item] of map.entries()) {
     if (item.status !== 'sealed') continue;
     const date = asDate(item.check_by);
-    if (date && date <= today) overdue.push({ id, date, text: item.text || '' });
+    if (!date) { undatedSeals.push(id); continue; } // sealed but no valid check-by → can never come due; surface it, don't lose it
+    if (date <= today) overdue.push({ id, date, text: item.text || '' });
   }
   overdue.sort((a, b) => (a.date < b.date ? -1 : 1));
 
-  return { today, overdue, ids, sealedPredicates, contracts: map, stats, watch, oldest_ts: oldestTs, integrity: { dropped_lines: dropped, skipped_unknown: skippedUnknown } };
+  return { today, overdue, ids, sealedPredicates, contracts: map, stats, watch, oldest_ts: oldestTs, integrity: { dropped_lines: dropped, skipped_unknown: skippedUnknown, ...(undatedSeals.length ? { undated_seals: undatedSeals } : {}) } };
 }
 
 /**

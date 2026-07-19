@@ -146,6 +146,9 @@ export interface SurfaceStrings {
     reconsider_more: (n: number) => string;
     /** ledger-corruption disclosure (11 P2-8): counted silently before — say it. */
     dropped_lines: (n: number) => string;
+    /** sealed-but-undated disclosure: a foreign-written seal with no valid
+     *  check_by can never come due, so it would be silently stuck. Name it. */
+    undated_seals: (ids: string[]) => string;
     /** 당직 미러 (§9.1): the most recent PRIOR day's anchor, mirrored back as a
      *  question. 세 문장 문법 — 인용, 사실(날짜), 손잡이. Never an evaluation,
      *  never a completion check. */
@@ -298,7 +301,7 @@ export interface SurfaceStrings {
       sync_failed: (reason: string) => string;
     };
     settle: {
-      settled: (outcome: 'held' | 'avoided' | 'partial' | 'missed') => string;
+      settled: (outcome: 'held' | 'avoided' | 'partial' | 'missed', predicate: string) => string;
       sync_failed: (reason: string) => string;
       /** still_pending re-arm (defer): honest "not settled — reality hasn't
        *  answered; I'll bring it back on {date}". Never says "settled". */
@@ -373,6 +376,8 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
       reconsider_more: (n) => `${n} open question(s) you left unresolved are up for another look (argus_capture).`,
       dropped_lines: (n) =>
         ` ${n} ledger line(s) could not be read (possibly a crash artifact). The record is append-only, so the rest is intact. Keep a backup of ledger.jsonl.`,
+      undated_seals: (ids) =>
+        ` ${ids.length} saved prediction(s) have no valid check-by date, so they can't come due on their own: ${ids.slice(0, 5).join(', ')}${ids.length > 5 ? ` (+${ids.length - 5} more)` : ''}. Re-save with a date, or settle directly with argus_resolve.`,
       watch_mirror: (date, text) =>
         `On ${date} you wrote: '${text}' So how did it go?`,
       fleet_summary: (projects, due) =>
@@ -474,7 +479,7 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
         sync_failed: (reason) => ` (Account sync didn't go through. ${reason}. Your prediction is safe locally, but the email reminder won't fire until it syncs. Try argus_settings action=sync later.)`,
       },
       settle: {
-        settled: (outcome) => `Result recorded: ${outcome}. The receipt keeps your prediction beside what actually happened. No grade.`,
+        settled: (outcome, predicate) => `Result recorded: ${outcome}.${predicate ? ` (You predicted: "${predicate}".)` : ''} The receipt keeps your prediction beside what actually happened. No grade.`,
         sync_failed: (reason) => ` (Account sync didn't go through. ${reason}. Your result is safe locally, but the account may keep listing this as due until it syncs. Try argus_settings action=sync later.)`,
         deferred: (newDate) => `No result recorded. Reality hasn't answered yet, so nothing was graded. I'll bring this back on ${newDate}.`,
         defer_dismissed: 'Set aside. This one no longer needs an answer. Nothing was graded.',
@@ -532,6 +537,8 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
       reconsider_more: (n) => `미결로 남겨둔 질문 ${n}건을 다시 볼 차례입니다 (argus_capture).`,
       dropped_lines: (n) =>
         ` 판단 기록에서 읽지 못한 줄이 ${n}개 있습니다 (크래시 흔적일 수 있습니다). 기록은 추가만 하는 방식이라 나머지는 안전합니다. ledger.jsonl을 백업해 두세요.`,
+      undated_seals: (ids) =>
+        ` 저장된 예측 ${ids.length}건에 확인일이 없어, 저절로 확인일이 오지 못합니다: ${ids.slice(0, 5).join(', ')}${ids.length > 5 ? ` 외 ${ids.length - 5}건` : ''}. 확인일을 넣어 다시 저장하거나, argus_resolve로 바로 결과를 기록하세요.`,
       watch_mirror: (date, text) =>
         `${date}에 이렇게 적으셨습니다: '${text}' 그 뒤로 어떻게 됐나요?`,
       fleet_summary: (projects, due) =>
@@ -634,7 +641,7 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
         sync_failed: (reason) => ` (계정 동기화가 안 됐습니다. ${reason}. 예측은 로컬에 안전합니다. 동기화되기 전까지는 이메일 알림이 오지 않습니다. 나중에 argus_settings action=sync를 시도하세요.)`,
       },
       settle: {
-        settled: (outcome) => `실제 결과를 기록했습니다: ${({ held: '예측대로 됐다', avoided: '걱정한 일은 안 일어났다', partial: '일부만 맞았다', missed: '예측이 빗나갔다' })[outcome]}. 영수증에 예측과 실제가 나란히 남습니다. 평가는 없습니다.`,
+        settled: (outcome, predicate) => `실제 결과를 기록했습니다: ${({ held: '예측대로 됐다', avoided: '걱정한 일은 안 일어났다', partial: '일부만 맞았다', missed: '예측이 빗나갔다' })[outcome]}.${predicate ? ` (예측: "${predicate}".)` : ''} 영수증에 예측과 실제가 나란히 남습니다. 평가는 없습니다.`,
         sync_failed: (reason) => ` (계정 동기화가 안 됐습니다. ${reason}. 결과는 로컬에 안전합니다. 동기화되기 전까지 계정은 이걸 계속 "확인 필요"로 표시할 수 있습니다. 나중에 argus_settings action=sync를 시도하세요.)`,
         deferred: (newDate) => `아직 결과를 기록하지 않았습니다. 현실이 답하지 않았으니 평가한 것도 없습니다. ${newDate}에 다시 가져오겠습니다.`,
         defer_dismissed: '접어뒀습니다. 이건 이제 답이 필요 없어요. 평가한 것은 없습니다.',

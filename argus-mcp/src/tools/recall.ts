@@ -79,6 +79,29 @@ export const recall: ToolModule = {
           const contract = replayLedger(dir, today).contracts.get(id);
           if (contract) {
             const locale = resolveResponseLocale(dir, contract.predicate || contract.text || null);
+            // A SETTLED decision whose receipt FILE is missing (e.g. the receipt
+            // write failed after the ledger append already landed). The fold
+            // still holds the outcome and what-happened, so reconstruct the
+            // record honestly and NAME the loss — never fall through to "no
+            // saved prediction yet", which misreports a decision the user DID
+            // settle (LLM-glue: an honest gap, not a plausible-wrong fill).
+            if (contract.status === 'settled') {
+              const snip = (s: unknown, n: number): string => { const t = String(s ?? '').trim(); return t.length > n ? `${t.slice(0, n)}…` : t; };
+              const oword = (locale === 'ko'
+                ? { held: '예측대로 됨', avoided: '걱정 피함', partial: '일부', missed: '빗나감' }
+                : { held: 'held', avoided: 'avoided', partial: 'partial', missed: 'missed' }
+              )[(contract.outcome ?? '') as 'held' | 'avoided' | 'partial' | 'missed'] ?? (locale === 'ko' ? '기록됨' : 'recorded');
+              const pred = snip(contract.predicate || contract.text || '', 160);
+              const wh = contract.what_happened ? snip(contract.what_happened, 160) : '';
+              return envelope({
+                ok: true, tool: 'argus_recall',
+                surface: locale === 'ko'
+                  ? `이 결정은 결과까지 기록됐습니다 (${oword}). 다만 영수증 파일을 지금 불러올 수 없습니다. 기록에 남은 예측: "${pred}"${wh ? `, 실제로 일어난 일: "${wh}"` : ''}.`
+                  : `This decision was settled (${oword}), but its receipt file can't be loaded right now. On record — you predicted: "${pred}"${wh ? `; what happened: "${wh}"` : ''}.`,
+                next_actions: ['argus_patterns', 'stop'],
+                data: { id, status: 'settled', outcome: contract.outcome, receipt_missing: true, ...(contract.check_by ? { check_by: contract.check_by } : {}) },
+              });
+            }
             const sealed = contract.status === 'sealed';
             return envelope({
               ok: true, tool: 'argus_recall',
