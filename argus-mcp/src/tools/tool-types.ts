@@ -45,7 +45,7 @@ export const zDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'must be YYYY-MM-DD
 const KO_FIELD_DESCRIPTIONS: Record<string, string> = {
   argus_dir: '프로젝트의 .argus 절대 경로입니다. 생략하면 MCP 설정의 ARGUS_DIR을 사용합니다.',
   id: '결정 식별자입니다.',
-  decision: '사용자가 실제로 마주한 선택 또는 사용자가 직접 내린 판단입니다.',
+  decision: '사용자가 실제로 마주한 선택, 또는 사용자가 직접 내린 판단입니다. AI가 대신 작성하지 않고 사용자의 말 그대로 씁니다.',
   stakes: '틀렸을 때의 비용입니다.',
   reversibility: '결정을 되돌릴 수 있는 정도입니다.',
   status_quo: '아무것도 하지 않을 때 일어나는 일입니다.',
@@ -134,7 +134,7 @@ const KO_FIELD_DESCRIPTIONS: Record<string, string> = {
 const EN_FIELD_DESCRIPTIONS: Record<string, string> = {
   argus_dir: 'Absolute path to the project .argus directory. Omit it to use ARGUS_DIR from the MCP configuration.',
   id: 'Stable identifier for the decision.',
-  decision: 'The choice the user is facing, or the user’s own answer to an open question.',
+  decision: 'The choice the user is facing, or the user’s own answer to an open question. Never drafted by the model; use the user’s own words.',
   stakes: 'Cost of being wrong.',
   reversibility: 'How difficult the decision is to reverse.',
   status_quo: 'What happens if nothing changes.',

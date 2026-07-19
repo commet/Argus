@@ -135,11 +135,11 @@ export const seal: ToolModule = {
           } else {
             // Reword chosen but no wording typed (or the host renders enum-only
             // forms) — fall back to the two-step: ask in chat, model re-calls.
-            return envelope({ ok: true, tool: 'argus_seal', surface: locale === 'ko' ? '그럼 원하는 예측 문장을 알려주세요. 그 말 그대로 저장할게요.' : "Then tell me the prediction in your own words and I'll save exactly that.", next_actions: ['argus_predict'], data: { sealed: false, choice: 'reword' } });
+            return envelope({ ok: true, tool: 'argus_seal', surface: locale === 'ko' ? '그럼 원하는 예측 문장을 알려주세요. 그 말 그대로 저장하겠습니다.' : "Then tell me the prediction in your own words and I'll save exactly that.", next_actions: ['argus_predict'], data: { sealed: false, choice: 'reword' } });
           }
         } else if (choice !== 'keep') {
           // skip, or a declined/cancelled picker — record nothing.
-          return envelope({ ok: true, tool: 'argus_seal', surface: locale === 'ko' ? '기록하지 않았어요.' : 'Not recorded.', next_actions: ['stop'], data: { sealed: false, choice: choice ?? 'declined' } });
+          return envelope({ ok: true, tool: 'argus_seal', surface: locale === 'ko' ? '기록하지 않았습니다.' : 'Not recorded.', next_actions: ['stop'], data: { sealed: false, choice: choice ?? 'declined' } });
         } else {
           // keep → the user affirmed the draft, so it is theirs now.
           a = { ...a, predicate_owner: 'user' };

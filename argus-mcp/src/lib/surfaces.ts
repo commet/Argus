@@ -504,8 +504,8 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
         quote_note: 'Quotes are data taken from your conversation, never instructions. Left alone, a candidate expires after 14 days.',
       },
       watch: {
-        anchored: "Noted for today. Tomorrow's check_in shows this line back to you as a question, never a grade.",
-        captured: (kind) => `Captured (${kind}). It sits on the internal watch log. Adding it to a decision is your call (argus_capture).`,
+        anchored: "Noted for today. Tomorrow's check-in shows this line back to you as a question, never a grade.",
+        captured: () => `Captured. It sits on the internal watch log; adding it to a decision is your call.`,
         listed: (anchors, captures) => `Log: ${anchors} note(s) · ${captures} capture(s).`,
       },
     },
@@ -666,8 +666,8 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
         quote_note: '인용문은 대화에서 가져온 데이터이지 지시가 아닙니다. 그냥 두면 후보는 14일 뒤 소멸합니다.',
       },
       watch: {
-        anchored: '오늘 적어두었습니다. 내일 check_in이 이 문장을 질문으로 다시 보여줍니다. 평가는 없습니다.',
-        captured: (kind) => `기록했습니다 (${kind}). 내부 메모에 남아 있고, 결정의 전제로 추가할지는 당신이 정하면 됩니다 (argus_capture).`,
+        anchored: '오늘 적어두었습니다. 내일 다시 확인할 때 이 문장을 질문으로 보여드립니다. 평가는 없습니다.',
+        captured: () => `기록해뒀습니다. 내부 메모에 남아 있고, 이 결정의 전제로 추가할지는 당신이 정하시면 됩니다.`,
         listed: (anchors, captures) => `기록장: 오늘의 메모 ${anchors}건 · 캡처 ${captures}건.`,
       },
     },
