@@ -386,8 +386,8 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
       answers_label: 'Reality answers',
       days_out: (n) => `(${n} day${n === 1 ? '' : 's'} out)`,
       closing: [
-        'This prediction stays unchanged until then. What gets written next',
-        'is not a grade. It is what actually happened.',
+        'This prediction stays unchanged until then. What gets',
+        'written next is not a grade. It is what actually happened.',
       ],
       footer: 'argus · prediction saved → result recorded ⚓',
     },

@@ -103,12 +103,12 @@ export const seal: ToolModule = {
           { type: 'object', required: ['choice'], properties: {
             choice: {
               type: 'string', enum: ['keep', 'reword', 'skip'],
-              enumNames: locale === 'ko' ? ['그대로 기록', '내가 다시 쓸게', '안 할래'] : ['Keep it', 'Let me reword', 'Skip'],
+              enumNames: locale === 'ko' ? ['그대로 기록', '직접 고쳐 쓰기', '건너뛰기'] : ['Keep it', 'Let me reword', 'Skip'],
               description: locale === 'ko' ? '이 예측을 기록할지 고르세요.' : 'Whether to record this prediction.',
             },
             your_wording: {
               type: 'string',
-              description: locale === 'ko' ? '"내가 다시 쓸게"를 골랐다면, 원하는 예측 문장을 여기에 적어 주세요. 그 말 그대로 저장됩니다.' : 'If you chose "Let me reword", type your prediction here. It is saved exactly as written.',
+              description: locale === 'ko' ? '"직접 고쳐 쓰기"를 골랐다면, 원하는 예측 문장을 여기에 적어 주세요. 그 말 그대로 저장됩니다.' : 'If you chose "Let me reword", type your prediction here. It is saved exactly as written.',
             },
           } },
         );

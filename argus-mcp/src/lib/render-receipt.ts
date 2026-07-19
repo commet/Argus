@@ -187,7 +187,10 @@ export function renderWake(
   const mmdd = (d?: string) => (d && d.length >= 10 ? d.slice(5, 10) : d || '—');
   const label = (c: WakeContractRow) => {
     const raw = (c.predicate || c.text || '').replace(/\s+/g, ' ').trim();
-    return raw.length > 24 ? raw.slice(0, 23) + '…' : raw;
+    // Truncate by DISPLAY width, not codepoints: a Korean label counts 1 per char
+    // in .length but renders 2 cols, so a 23-char slice spilled ~46 cols past the
+    // frame. Budget in columns keeps both scripts inside the bracket.
+    return truncDw(raw, 28);
   };
   const idCol = (id: string) => (id.length > 10 ? id.slice(0, 9) + '…' : id).padEnd(10);
 
@@ -245,6 +248,22 @@ function dw(s: string): number {
   let w = 0;
   for (const ch of s) w += WIDE.test(ch) ? 2 : 1;
   return w;
+}
+
+/** Truncate to a DISPLAY-column budget (CJK counts as 2), appending '…' only
+ *  when the string actually exceeds it. Codepoint slicing overflowed the frame
+ *  for Korean and over-cut Latin; this keeps both inside one budget. */
+function truncDw(s: string, maxCols: number): string {
+  if (dw(s) <= maxCols) return s;
+  let w = 0;
+  let out = '';
+  for (const ch of s) {
+    const cw = WIDE.test(ch) ? 2 : 1;
+    if (w + cw > maxCols - 1) break; // reserve 1 col for the ellipsis
+    w += cw;
+    out += ch;
+  }
+  return out + '…';
 }
 
 function wrap(s: string, width = 54): string {

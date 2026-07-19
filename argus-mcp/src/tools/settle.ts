@@ -69,7 +69,7 @@ export const settle: ToolModule = {
               enumNames: pickerLocale === 'ko'
                 ? ['그렇게 됐다', '피했다', '부분적으로', '아직 불분명', '빗나갔다 (내 예측이 틀렸다)']
                 : ['It held', 'Avoided', 'Partially', 'Still unclear', 'Missed: my read was wrong'],
-              description: pickerLocale === 'ko' ? '봉인한 예측에 현실이 어떻게 답했는지 고르세요.' : 'What reality did to your sealed prediction.',
+              description: pickerLocale === 'ko' ? '저장한 예측에 현실이 어떻게 답했는지 고르세요.' : 'What reality did to your sealed prediction.',
             },
           },
           required: ['outcome'],
@@ -275,7 +275,7 @@ async function deferStillPending(args: {
       { type: 'object', required: ['when'], properties: { when: {
         type: 'string', enum: ['week', 'month', 'quarter', 'dismiss'],
         enumNames: locale === 'ko'
-          ? ['약 1주 뒤', '약 1달 뒤', '약 3달 뒤', '이제 상관없어 (접기)']
+          ? ['약 1주 뒤', '약 1달 뒤', '약 3달 뒤', '이제 필요 없음 (접기)']
           : ['In about a week', 'In about a month', 'In about 3 months', 'It no longer matters (set aside)'],
         description: locale === 'ko' ? '언제 다시 확인할지 고르세요.' : 'When to check this again.',
       } } },
