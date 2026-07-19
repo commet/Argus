@@ -106,7 +106,7 @@ export function PatternsSurface() {
   return (
     <main className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6 sm:py-12">
       <header className="max-w-3xl">
-        <p className="text-[11px] font-bold tracking-[0.17em] text-[var(--accent)] uppercase">Patterns</p>
+        <p className="text-[11px] font-bold tracking-[0.17em] text-[var(--accent)] uppercase">{L('판단 패턴', 'Decision patterns')}</p>
         <h1 className="mt-3 text-[28px] font-bold leading-tight tracking-[-0.025em] text-[var(--text-primary)] sm:text-[36px]">
           {L('기록은 결론이 아니라, 내가 검토할 수 있는 표현입니다.', 'A record is not a verdict. It is wording I can review.')}
         </h1>
@@ -161,7 +161,7 @@ export function PatternsSurface() {
 
       {snapshot && (
         <p className="mt-10 text-center font-mono text-[10px] text-[var(--text-tertiary)]">
-          {locale === 'ko' ? '패턴 배포 기록' : 'pattern release record'} · {snapshot.release_receipt_id}
+          {L('검토 데이터 버전', 'Review data version')} · {snapshot.release_receipt_id}
         </p>
       )}
     </main>

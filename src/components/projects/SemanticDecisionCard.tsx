@@ -208,7 +208,7 @@ export function SemanticDecisionCard({ project, onCancel }: { project: Project; 
             </span>
             <div className="min-w-0">
               <p className="text-[11px] font-bold tracking-[0.08em] text-[var(--accent)]">{L('판단 추적', 'Decision follow-up')}</p>
-              <h3 className="mt-1 text-[18px] font-bold leading-7 text-[var(--text-primary)]">{L('지금 판단을 저장하고, 다시 볼 날짜를 정해요', 'Save today’s decision and choose when to revisit it')}</h3>
+              <h2 className="mt-1 text-[18px] font-bold leading-7 text-[var(--text-primary)]">{L('지금 판단을 저장하고, 다시 볼 날짜를 정해요', 'Save today’s decision and choose when to revisit it')}</h2>
               <p className="mt-1 text-[13px] leading-6 text-[var(--text-secondary)]">
                 {L('결정 이후 새로 알게 된 근거와 실제 결과를 같은 기록에 이어서 남길 수 있습니다.', 'Keep later evidence and the actual outcome connected to this decision.')}
               </p>
@@ -263,9 +263,9 @@ export function SemanticDecisionCard({ project, onCancel }: { project: Project; 
             <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[var(--surface)] text-[var(--accent)] shadow-sm"><FileCheck2 size={20} /></span>
             <div className="min-w-0">
               <p className="text-[11px] font-bold tracking-[0.08em] text-[var(--accent)]">{L('판단 추적', 'Decision follow-up')}</p>
-              <h3 className="mt-1 text-[18px] font-bold leading-7 text-[var(--text-primary)]">
+              <h2 className="mt-1 text-[18px] font-bold leading-7 text-[var(--text-primary)]">
                 {recordUnavailable ? L('계정 판단 기록을 불러오지 못했어요', 'Could not load the account decision record') : statusCopy(projection?.lifecycle, ko)}
-              </h3>
+              </h2>
               <p className="mt-0.5 text-[12px] leading-5 text-[var(--text-secondary)]">{L('처음 판단부터 새 근거와 결과까지 시간순으로 이어집니다.', 'Your initial decision, later evidence, and outcome stay connected in time.')}</p>
             </div>
           </div>
@@ -296,7 +296,7 @@ export function SemanticDecisionCard({ project, onCancel }: { project: Project; 
             <section className="border-b border-[var(--border-subtle)] p-5 md:border-r md:border-b-0 md:p-6">
               <div className="flex items-center gap-2">
                 <History size={16} className="text-[var(--accent)]" />
-                <h4 className="text-[13px] font-bold text-[var(--text-primary)]">{L('지금까지의 기록', 'History')}</h4>
+                <h3 className="text-[13px] font-bold text-[var(--text-primary)]">{L('지금까지의 기록', 'History')}</h3>
               </div>
               <ol className="mt-4 space-y-4">
                 {events.map((raw, index) => {
@@ -319,7 +319,7 @@ export function SemanticDecisionCard({ project, onCancel }: { project: Project; 
                   <div className="flex items-start gap-3">
                     <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[var(--ai)] text-[var(--accent)]"><Plus size={15} /></span>
                     <div>
-                      <h4 className="text-[13px] font-bold text-[var(--text-primary)]">{L('1. 새로 알게 된 근거 추가', '1. Add new evidence')}</h4>
+                      <h3 className="text-[13px] font-bold text-[var(--text-primary)]">{L('1. 새로 알게 된 근거 추가', '1. Add new evidence')}</h3>
                       <p className="mt-0.5 text-[11.5px] leading-5 text-[var(--text-secondary)]">{L('결정 이후 확인한 사실, 수치, 사건이나 출처를 남기세요.', 'Add a fact, number, event, or source you learned after the decision.')}</p>
                     </div>
                   </div>
@@ -334,7 +334,7 @@ export function SemanticDecisionCard({ project, onCancel }: { project: Project; 
                   <div className="flex items-start gap-3">
                     <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[var(--bg)] text-[var(--accent)]"><CheckCircle2 size={15} /></span>
                     <div>
-                      <h4 className="text-[13px] font-bold text-[var(--text-primary)]">{L('2. 확인 결과 남기기', '2. Record the outcome')}</h4>
+                      <h3 className="text-[13px] font-bold text-[var(--text-primary)]">{L('2. 확인 결과 남기기', '2. Record the outcome')}</h3>
                       <p className="mt-0.5 text-[11.5px] leading-5 text-[var(--text-secondary)]">{L('처음 적어둔 질문에 지금 답할 수 있는지 선택하세요.', 'Choose whether the original question can be answered now.')}</p>
                     </div>
                   </div>
@@ -357,7 +357,7 @@ export function SemanticDecisionCard({ project, onCancel }: { project: Project; 
                 </div>}
 
                 {resolutionId && <div className="rounded-xl bg-[var(--ai)]/55 p-4">
-                  <h4 className="text-[13px] font-bold text-[var(--text-primary)]">{L('3. 기록 마치기', '3. Finish the review')}</h4>
+                  <h3 className="text-[13px] font-bold text-[var(--text-primary)]">{L('3. 기록 마치기', '3. Finish the review')}</h3>
                   <p className="mt-1 text-[12px] leading-5 text-[var(--text-secondary)]">{L('확인 결과가 저장됐습니다. 더 추가할 근거가 없다면 이 기록을 마칠 수 있어요.', 'The outcome is saved. If there is no more evidence to add, you can finish this review.')}</p>
                   <Button className="mt-3" variant="accent" size="sm" disabled={working} onClick={closeRecord}><CheckCircle2 size={14} />{L('이 결과로 기록 마치기', 'Finish with this outcome')}</Button>
                 </div>}

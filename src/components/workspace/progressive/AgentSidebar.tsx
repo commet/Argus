@@ -34,7 +34,7 @@ function StatusBadge({ worker, locale }: { worker: WorkerTask; locale: string })
     return (
       <span className="inline-flex items-center gap-1.5 shrink-0 px-2 py-0.5 rounded-full bg-[var(--accent)]/12 text-[var(--accent)]">
         <Loader2 size={10} className="animate-spin" />
-        <span className="text-[10px] font-semibold">live</span>
+        <span className="text-[10px] font-semibold">{L('진행 중', 'Live')}</span>
       </span>
     );
   }

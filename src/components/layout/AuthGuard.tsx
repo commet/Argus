@@ -45,7 +45,7 @@ function getCopy(page: PageKey, ko: boolean, knewYou: boolean) {
       };
     case 'agents':
       return {
-        title: L('에이전트는 로그인이 필요해요', 'Agents need an account'),
+        title: L('AI 검토자는 로그인이 필요해요', 'AI reviewers need an account'),
         description: L(
           '로그인하면 나만의 리뷰어 팀을 저장하고, 워크스페이스에서 바로 쓸 수 있어요.',
           'Sign in to save your own reviewer team and use them directly in the workspace.',
@@ -55,7 +55,7 @@ function getCopy(page: PageKey, ko: boolean, knewYou: boolean) {
       return {
         title: L('팀은 로그인이 필요해요', 'Teams need an account'),
         description: L(
-          '결정을 사람 팀과 공유하고, 각자 검토한 의견을 한 번에 모아볼 수 있어요.',
+          '결정을 팀원과 공유하고, 각자 검토한 의견을 한 번에 모아볼 수 있어요.',
           'Share decisions with people, collect independent feedback, and review it together.',
         ),
       };
@@ -113,7 +113,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
             </LocaleLink>
             <LocaleLink
               href="/workspace"
-              className="text-[12px] text-[var(--text-tertiary)] hover:text-[var(--accent)] transition-colors"
+              className="inline-flex min-h-11 items-center text-[12px] text-[var(--text-tertiary)] hover:text-[var(--accent)] transition-colors"
             >
               {L('로그인 없이 워크스페이스 써보기 →', 'Try the workspace without signing in →')}
             </LocaleLink>

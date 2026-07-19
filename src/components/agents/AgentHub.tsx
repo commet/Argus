@@ -93,7 +93,7 @@ export function AgentHub() {
           crew sail from the first voyage; XP/level is progression flavor. */}
       <h1 className="agent-hub-title">{L('AI 검토자', 'AI reviewers')}</h1>
       <p className="agent-hub-subtitle">
-        {L('결정을 서로 다른 관점에서 살펴보는 AI 역할들이에요. 실제 사람 팀은 사람 팀 메뉴에서 따로 관리합니다.', 'These AI roles review decisions from different perspectives. Manage real collaborators separately under People teams.')}
+        {L('결정을 서로 다른 관점에서 살펴보는 AI 역할들이에요. 실제 협업 팀은 팀 메뉴에서 따로 관리합니다.', 'These AI roles review decisions from different perspectives. Manage collaborators separately under Teams.')}
       </p>
 
       {/* 체인 에이전트: 리서치 */}

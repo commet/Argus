@@ -74,7 +74,7 @@ describe('ProjectAttentionList', () => {
       onFocusItem,
     })));
 
-    const locate = container.querySelector('[aria-label="전제 재확인 해도에서 찾기"]') as HTMLButtonElement;
+    const locate = container.querySelector('[aria-label="전제 재확인 결정 지도에서 찾기"]') as HTMLButtonElement;
     expect(locate.getAttribute('aria-pressed')).toBe('true');
     act(() => locate.click());
     expect(onFocusItem).toHaveBeenCalledWith(item, 'p-focus');

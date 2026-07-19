@@ -717,7 +717,7 @@ export function VoyageSea({
 
 
   return (
-    <section id="decision-sea" className="scroll-mt-5" aria-label={L('결정 해도 — 각 결정의 현재 상태', 'Decision chart — current status of each decision')}>
+    <section id="decision-sea" className="scroll-mt-5" aria-label={L('결정 지도 — 각 결정의 현재 상태', 'Decision map — current status of each decision')}>
       {/* Component-scoped keyframes. Plain static CSS (no user data). */}
       <style>{`
         @keyframes vsea-bob { 0%,100% { transform: translateY(0) } 50% { transform: translateY(-4px) } }
@@ -781,7 +781,7 @@ export function VoyageSea({
       <div
         className="mb-2 flex items-center gap-1 overflow-x-auto border-y px-1 py-1.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         role="group"
-        aria-label={L('결정 해도 상태 필터', 'Decision chart status filter')}
+        aria-label={L('결정 지도 상태 필터', 'Decision map status filter')}
         style={{ borderColor: `${N.ink}1c` }}
       >
         <button
