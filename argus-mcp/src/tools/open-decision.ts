@@ -169,7 +169,6 @@ export const openDecision: ToolModule = {
             connections: connections.map((c) => c.decision_id),
             connection_reasons: connections.map((c) => ({ id: c.decision_id, reason: c.reason, ...(c.via ? { via: c.via } : {}) })),
           } : {}),
-          lean_disclosure: T.lean_disclosure,
         },
       });
     } catch (e) {

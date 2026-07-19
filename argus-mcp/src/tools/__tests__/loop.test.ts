@@ -125,9 +125,9 @@ describe('explicit skip trace (spine: escape kept, omission honest)', () => {
     const s = body(await seal.handler({ argus_dir: dir, id: 'bare', predicate: 'Signups exceed 100 in a month', check_by: FUTURE, predicate_owner: 'user' }));
     expect(s['ok']).toBe(true);
     expect((s['data'] as Record<string, unknown>)['skipped']).toContain('unverified_assumption');
-    // the seal offers to name the assumption as an INVITATION, not a "you
-    // skipped it" deficiency report (experience loop, amender)
-    expect(String(s['surface'])).toContain('assumption');
+    // The seal no longer nags OR sets homework — naming an assumption is
+    // Claude's in-flow job, not a seal-surface line (표면 정화). A blank is honest.
+    expect(String(s['surface'])).not.toContain('Optionally');
     expect(String(s['surface'])).not.toContain('without naming');
 
     const settled = body(await settle.handler({ argus_dir: dir, id: 'bare', outcome: 'held', outcome_source: 'user_stated', what_happened: 'got 140' }));

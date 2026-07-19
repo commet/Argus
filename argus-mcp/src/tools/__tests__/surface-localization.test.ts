@@ -30,14 +30,14 @@ describe('M4 surface localization — the 6 dogfood tools', () => {
       stakes: 'high', reversibility: 'one_way_door', status_quo: 'keep the current design', today_override: TODAY,
     });
     expect(isError(rEn)).toBe(false);
-    expect(surface(rEn)).toContain('Opened.');
+    expect(surface(rEn)).toContain('on record');
 
     const dirKo = tmpArgusDir(); pin(dirKo, 'ko');
     const rKo = await openDecision.handler({
       argus_dir: dirKo, id: 'd1', decision: '리디자인을 지금 낼지 기다릴지',
       stakes: 'high', reversibility: 'one_way_door', status_quo: '현재 디자인 유지', today_override: TODAY,
     });
-    expect(surface(rKo)).toContain('열었습니다');
+    expect(surface(rKo)).toContain('기록해뒀어요');
   });
 
   it('open_decision (RESTRAINT) — ko reason + coda', async () => {

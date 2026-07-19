@@ -76,7 +76,7 @@ describe('argus_check_in with due premises', () => {
   it('a brand-new (empty) ledger shows the first-run on-ramp, not the veteran dead-end', async () => {
     const dir = tmpArgusDir();
     const r = body(await checkIn.handler({ argus_dir: dir, today_override: TODAY }));
-    expect(String(r['surface'])).toContain('Argus is ready'); // on-ramp, not "Nothing is due"
+    expect(String(r['surface'])).toContain('talk through a decision'); // on-ramp, not "Nothing is due"
     expect(r['next_actions']).toContain('argus_capture'); // a handle, not stop
     expect((r['data'] as Record<string, unknown>)['first_run']).toBe(true);
   });
