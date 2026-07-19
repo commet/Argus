@@ -1,10 +1,10 @@
 <p align="center">
   <img src="public/voyage/voyage-mast.jpg" alt="Argus — Odysseus bound to the mast before the sirens' song" width="820">
 </p>
-<p align="center"><sub><em>
+<p align="center"><em>
 Odysseus bound himself before the Sirens sang.<br>
 Argus binds a decision to its premises and prediction before fluency — or hindsight — can rewrite them.
-</em></sub></p>
+</em></p>
 
 <h1 align="center">Argus</h1>
 

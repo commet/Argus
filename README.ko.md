@@ -1,10 +1,10 @@
 <p align="center">
   <img src="public/voyage/voyage-mast.jpg" alt="Argus — 세이렌의 노래 앞에서 돛대에 스스로를 묶는 오디세우스" width="820">
 </p>
-<p align="center"><sub><em>
+<p align="center"><em>
 오디세우스는 세이렌의 노래를 듣기 전에 스스로를 묶었습니다.<br>
 Argus는 유창한 답이나 사후 확신이 덮어쓰기 전에, 결정을 그 전제와 예측에 묶어 둡니다.
-</em></sub></p>
+</em></p>
 
 <h1 align="center">Argus</h1>
 
