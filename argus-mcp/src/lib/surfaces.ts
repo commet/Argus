@@ -119,6 +119,9 @@ export interface SurfaceStrings {
   };
   checkin: {
     nothing_due: string;
+    /** first-run on-ramp: shown when the ledger is EMPTY (never recorded), so a
+     *  brand-new user isn't stranded on the same "nothing due" a veteran sees. */
+    first_run: string;
     /** appended when ARGUS_TOKEN is set and nothing is due locally (P1-E4 ③). */
     account_hint: string;
     upcoming: (n: number, days: number) => string;
@@ -336,6 +339,7 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
     },
     checkin: {
       nothing_due: 'Nothing is due right now.',
+      first_run: 'Argus is ready. Tell me a decision you are weighing. I can clarify what it rests on, save a prediction with a check-by date, and record what actually happened when that date arrives. Nothing is tracked yet; describe a decision to begin.',
       account_hint: ' This screen reads the local decision record only. Predictions saved in your account show up with argus_settings action=sync.',
       upcoming: (n, days) => ` ${n} coming due within ${days} day(s). Informational; no result is due yet.`,
       due_contracts: (n) => `${n} saved prediction(s) past check-by. Time to record what happened (argus_resolve).`,
@@ -488,6 +492,7 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
     },
     checkin: {
       nothing_due: '지금 확인할 차례가 된 것은 없습니다.',
+      first_run: 'Argus가 준비됐습니다. 지금 고민 중인 결정을 하나 말해 주세요. 그 결정이 어떤 전제 위에 서 있는지 정리하고, 예측과 확인일을 저장한 뒤, 그 날이 오면 실제로 어떻게 됐는지 기록합니다. 아직 기록된 것은 없습니다. 결정을 말하면 시작합니다.',
       account_hint: ' 이 화면은 로컬 판단 기록만 읽습니다. 계정에 저장한 예측은 argus_settings action=sync로 가져올 수 있습니다.',
       upcoming: (n, days) => ` ${days}일 안에 확인일이 오는 예측이 ${n}건 있습니다. 아직 결과를 기록할 때는 아닙니다.`,
       due_contracts: (n) => `저장한 예측 ${n}건이 확인일을 지났습니다. 실제 결과를 기록할 차례입니다 (argus_resolve).`,

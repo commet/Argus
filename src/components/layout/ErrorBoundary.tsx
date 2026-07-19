@@ -56,7 +56,7 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
           <div className="max-w-md text-center space-y-4">
             <div className="text-4xl">⚠</div>
             <h2 className="text-lg font-semibold text-[var(--text-primary)]">
-              {ko ? '여기서 암초에 걸렸어요' : 'We hit a reef here'}
+              {ko ? '이 구역에 문제가 생겼어요' : 'Something went wrong in this section'}
             </h2>
             <p className="text-sm text-[var(--text-secondary)]">
               {ko
@@ -66,7 +66,7 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
             <div className="flex flex-col items-center gap-2.5">
               <button
                 onClick={this.handleRetry}
-                className="px-4 py-2 text-sm font-medium rounded-lg bg-[var(--accent)] text-[var(--bg)] hover:shadow-[var(--shadow-sm)] hover:-translate-y-[1px] active:translate-y-0 transition-all"
+                className="min-h-11 px-4 py-2 text-sm font-medium rounded-lg bg-[var(--accent)] text-[var(--bg)] hover:shadow-[var(--shadow-sm)] hover:-translate-y-[1px] active:translate-y-0 transition-all"
               >
                 {ko ? '다시 시도' : 'Try again'}
               </button>
@@ -76,7 +76,7 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
                   <a> (full reload) is intentional here. */}
               <a
                 href={workspaceHref}
-                className="text-xs text-[var(--text-tertiary)] underline underline-offset-2 hover:text-[var(--text-secondary)] transition-colors"
+                className="inline-flex min-h-11 items-center text-xs text-[var(--text-tertiary)] underline underline-offset-2 hover:text-[var(--text-secondary)] transition-colors"
               >
                 {ko ? '워크스페이스로 돌아가기' : 'Back to workspace'}
               </a>

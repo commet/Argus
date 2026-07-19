@@ -21,8 +21,8 @@ const STATUS_TONE: Record<string, string> = {
 };
 
 const STATUS_LABELS = {
-  ko: { candidate: '후보', sealed: '봉인됨', settled: '정산됨', dismissed: '제외됨' },
-  en: { candidate: 'candidate', sealed: 'sealed', settled: 'settled', dismissed: 'dismissed' },
+  ko: { candidate: '후보', sealed: '결과 확인 대기', settled: '결과 기록 완료', dismissed: '제외됨' },
+  en: { candidate: 'candidate', sealed: 'awaiting outcome', settled: 'outcome recorded', dismissed: 'dismissed' },
 } as const;
 
 const OUTCOME_LABELS = {
@@ -85,7 +85,7 @@ export default function ImportPage() {
     try {
       await recordDecisionAnswer(id, outcome);
     } catch (error) {
-      setActionError(error instanceof Error ? error.message : L('정산을 저장하지 못했습니다.', 'Could not save the settlement.'));
+      setActionError(error instanceof Error ? error.message : L('실제 결과를 저장하지 못했습니다.', 'Could not save the outcome.'));
     } finally {
       setActingId(null);
     }
@@ -109,7 +109,7 @@ export default function ImportPage() {
     try {
       await reforgeDecision(id);
     } catch (error) {
-      setActionError(error instanceof Error ? error.message : L('정본 기록을 만들지 못했습니다.', 'Could not create the canonical record.'));
+      setActionError(error instanceof Error ? error.message : L('판단 기록을 만들지 못했습니다.', 'Could not create the decision record.'));
     } finally {
       setActingId(null);
     }
@@ -134,18 +134,18 @@ export default function ImportPage() {
       <div className="max-w-2xl mx-auto px-6 py-16">
         <Card variant="elevated">
           <h1 className="text-xl font-bold text-[var(--text-primary)] mb-2">
-            {L('기록 가져오기', 'Import records')}
+            {L('MCP 판단 기록 연결', 'Connect MCP decision records')}
           </h1>
           <p className="text-[14px] text-[var(--text-secondary)] mb-5">
             {L(
-              'argus_predict로 남긴 예측은 먼저 그 대화가 실행되는 기기의 .argus에 저장됩니다. 계정 연결을 한 번 설정하면 이 화면과 동기화되고, 정한 날 알림을 받을 수 있어요.',
-              'A prediction saved with argus_predict first lives in .argus on the machine running that chat. Connect your account once to sync it here and receive a reminder on the date you chose.',
+              'Claude Code나 텔레그램에서 기록한 판단을 웹에서도 이어 보려면 계정을 연결하세요. 로그인한 뒤 한 번만 연결하면 됩니다.',
+              'Connect your account to continue decisions recorded in Claude Code or Telegram on the web. After signing in, setup is only required once.',
             )}
           </p>
           <ol className="mb-5 space-y-2 text-[13px] text-[var(--text-secondary)]">
-            <li>{L('1. AI 대화에서 argus_predict로 로컬 예측을 저장합니다.', '1. Save a local prediction in an AI chat with argus_predict.')}</li>
-            <li>{L('2. 로그인한 뒤 연결 토큰을 한 번 설정하고 동기화합니다.', '2. Log in, configure a connect token once, then sync.')}</li>
-            <li>{L('3. 동기화된 예측은 정한 날 알림을 받고 여기서 실제 결과를 기록합니다.', '3. Synced predictions get a reminder on the chosen date and can be resolved here.')}</li>
+            <li>{L('1. MCP나 플러그인에서 판단과 확인일을 기록합니다.', '1. Record a decision and review date in the MCP or plugin.')}</li>
+            <li>{L('2. 웹에 로그인한 뒤 연결 토큰을 한 번 설정합니다.', '2. Sign in on the web and configure a connection token once.')}</li>
+            <li>{L('3. 이후 기록이 동기화되고, 확인일에 실제 결과를 이어서 적을 수 있습니다.', '3. Records then sync, and you can add the actual outcome on the review date.')}</li>
           </ol>
           <details className="mb-5">
             <summary className="cursor-pointer text-[13px] font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)]">
@@ -166,12 +166,12 @@ export default function ImportPage() {
   return (
     <div className="max-w-3xl mx-auto px-6 py-10">
       <h1 className="text-2xl font-bold text-[var(--text-primary)] mb-1">
-        {L('기록 가져오기', 'Import records')}
+        {L('MCP 판단 기록 연결', 'Connect MCP decision records')}
       </h1>
       <p className="text-[14px] text-[var(--text-secondary)] mb-6">
         {L(
-          'Claude Code·텔레그램 등 다른 곳에서 봉인한 결정이 이 계정으로 모입니다. 여기서 확인일이 온 결정을 정산할 수 있어요.',
-          'Decisions sealed elsewhere — Claude Code, Telegram — gather into this account. Settle the ones whose check date has arrived, right here.',
+          'Claude Code·텔레그램 등 다른 곳에서 저장한 판단이 이 계정으로 모입니다. 확인일이 오면 여기서 실제 결과를 기록할 수 있어요.',
+          'Decisions saved in Claude Code, Telegram, and other surfaces gather here. When a review date arrives, record the actual outcome here.',
         )}
       </p>
 
@@ -200,7 +200,7 @@ export default function ImportPage() {
         <p className="text-[12.5px] text-[var(--text-tertiary)] mt-3">
           {L('이후로는 ', 'From then on, ')}
           <code className="text-[11px] font-mono bg-[var(--surface)] px-1.5 py-0.5 rounded">/argus:settings sync</code>
-          {L(' 한 번이면 로컬 기록과 이 화면이 왕복으로 맞춰집니다 — 파일을 올릴 필요가 없어요. 여기서 정산한 결과도 같은 명령으로 로컬에 돌아갑니다.', ' keeps your local records and this page in sync both ways — no file uploads needed. Settlements you record here travel back the same way.')}
+          {L(' 한 번이면 로컬 기록과 이 화면이 왕복으로 맞춰집니다 — 파일을 올릴 필요가 없어요. 여기서 기록한 결과도 같은 명령으로 로컬에 돌아갑니다.', ' keeps your local records and this page in sync both ways — no file uploads needed. Outcomes recorded here travel back the same way.')}
         </p>
       </Card>
 
@@ -300,7 +300,7 @@ export default function ImportPage() {
           </p>
         )}
         {loaded && !loadError && decisions.length === 0 ? (
-          <p className="text-[13px] text-[var(--text-tertiary)]">{L('아직 가져온 결정이 없어요. 플러그인·텔레그램에서 봉인한 결정이 이 계정으로 모여요.', 'No decisions imported yet. Decisions sealed in the plugin or Telegram gather into this account here.')}</p>
+          <p className="text-[13px] text-[var(--text-tertiary)]">{L('아직 가져온 결정이 없어요. 플러그인·텔레그램에서 저장한 판단이 이 계정으로 모여요.', 'No decisions imported yet. Decisions saved in the plugin or Telegram gather into this account here.')}</p>
         ) : (
           <div className="space-y-2.5">
             {decisions.map((d) => (
@@ -322,7 +322,7 @@ export default function ImportPage() {
                 </div>
                 {d.predicate && (
                   <p className="text-[12.5px] text-[var(--text-secondary)] mt-1.5">
-                    <span className="text-[var(--text-tertiary)]">{L('베팅: ', 'Bet: ')}</span>{d.predicate}
+                <span className="text-[var(--text-tertiary)]">{L('확인 질문: ', 'Follow-up question: ')}</span>{d.predicate}
                   </p>
                 )}
                 <div className="flex items-center gap-3 mt-2 text-[11.5px] text-[var(--text-tertiary)] flex-wrap">
@@ -381,7 +381,7 @@ export default function ImportPage() {
               <Card key={b.id} variant="default" className="!p-4">
                 <div className="flex items-center gap-2 mb-1">
                   <FileText size={13} className="text-[var(--accent)]" />
-                  <span className="text-[12px] font-semibold text-[var(--text-primary)]">{b.label || b.version_label || L('항해', 'Voyage')}</span>
+                  <span className="text-[12px] font-semibold text-[var(--text-primary)]">{b.label || b.version_label || L('판단 기록', 'Decision record')}</span>
                   {b.current_course?.status && (
                     <span className="text-[10px] uppercase tracking-wider text-[var(--text-tertiary)]">{b.current_course.status}</span>
                   )}
@@ -390,7 +390,7 @@ export default function ImportPage() {
                   <p className="text-[13px] text-[var(--text-secondary)] leading-snug">{b.current_course.summary}</p>
                 )}
                 {b.contract_seed?.predicate && (
-                  <p className="text-[12px] text-[var(--text-tertiary)] mt-1.5">{L('씨앗 베팅: ', 'Seed bet: ')}{b.contract_seed.predicate}</p>
+                    <p className="text-[12px] text-[var(--text-tertiary)] mt-1.5">{L('처음 세운 확인 질문: ', 'Initial follow-up question: ')}{b.contract_seed.predicate}</p>
                 )}
               </Card>
             ))}

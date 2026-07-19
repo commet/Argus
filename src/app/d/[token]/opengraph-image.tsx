@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import { adminClient } from '@/lib/share-guard';
 
 export const runtime = 'nodejs';
-export const alt = 'Argus judgment receipt';
+export const alt = 'Argus decision record';
 export const size = { width: 1200, height: 630 };
 export const contentType = 'image/png';
 
@@ -40,14 +40,14 @@ export default async function Image({ params }: { params: Promise<{ token: strin
   const { token } = await params;
   const row = await fetchLink(token);
   const ko = /[가-힣ᄀ-ᇿ㄰-㆏]/.test(`${row?.title ?? ''}\n${row?.content ?? ''}`);
-  const title = clipped(row?.title || (ko ? '판단 영수증' : 'Judgment Receipt'), 72);
+  const title = clipped(row?.title || (ko ? '판단 기록' : 'Decision Record'), 72);
   // The decision is the hero of the card — not the absence of a verdict. The
   // subtitle says what this record IS (a sealed prediction settled by reality);
   // "AI VERDICT — NONE" rides at the foot as a quiet signature, never the lead.
-  const kicker = ko ? '판단 영수증' : 'JUDGMENT RECEIPT';
+  const kicker = ko ? '판단 기록' : 'DECISION RECORD';
   const subtitle = ko
-    ? '봉인한 예측을 정한 날 현실과 대조한, 판단의 기록.'
-    : 'A decision — its prediction sealed, then settled against reality.';
+    ? '그때의 판단과 나중에 확인한 실제 결과를 함께 남긴 기록.'
+    : 'The original decision, recorded beside the actual outcome reviewed later.';
   const signature = ko ? 'AI 판정 —— 없음' : 'AI VERDICT —— NONE';
   const face = argusFaceData();
 

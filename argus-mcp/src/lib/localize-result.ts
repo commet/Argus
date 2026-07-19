@@ -8,7 +8,7 @@ const KO_ERRORS: Record<string, ErrorCopy> = {
   INVALID_LOCALE: { message: '지원하지 않는 언어입니다.', recovery: 'locale에는 "ko" 또는 "en"을 사용하세요.' },
   ALREADY_CLOSED: { message: '이미 진행 중이거나 닫힌 결정입니다.', recovery: '실제 결과를 기록하려면 argus_resolve를 사용하세요. 닫힌 결정은 다시 열지 않습니다.' },
   CAPTURE_NOT_FOUND: { message: '일치하는 내부 메모를 찾지 못했습니다.', recovery: '전제 문장을 text에 직접 전달하세요.' },
-  AMBIGUOUS_REF: { message: '여러 내부 메모와 일치해 대상을 정할 수 없습니다.', recovery: '전제 문장을 text에 직접 전달하세요.' },
+  AMBIGUOUS_REF: { message: '참조가 여러 항목과 일치합니다.', recovery: 'P1 같은 서수(번호)로 정확히 지정하세요. 번호는 argus_patterns view="decision_context"에서 볼 수 있습니다.' },
   PROVENANCE_REQUIRED: { message: '문장의 출처를 확인해야 합니다.', recovery: '사용자가 쓴 문장이면 user_stated, AI가 제기한 문장이면 ai_surfaced와 원문을 전달하세요.' },
   PREMISES_REQUIRED: { message: '추가할 전제가 없습니다.', recovery: 'text, kind, external, load_bearing, source를 포함한 전제 1~5개를 전달하세요.' },
   PREMISE_ID_COLLISION: { message: '다른 전제가 같은 식별자를 사용하고 있습니다.', recovery: '전제 문장을 조금 다르게 표현한 뒤 다시 추가하세요.' },
@@ -34,12 +34,15 @@ const KO_ERRORS: Record<string, ErrorCopy> = {
   // ko/en 패리티: 아래 코드들은 en에서만 상세했고 ko는 제네릭 폴백이었다 —
   // 한국어 사용자가 같은 품질의 복구 안내를 받도록 전용 문구를 둔다.
   NO_PRIOR_SEAL: { message: '이 id로 저장된 예측이 없습니다.', recovery: 'argus_predict로 반증 가능한 예측과 확인일을 먼저 저장하세요. (id가 argus_settings sync에서 온 "mcp_" 접두사라면 접두사를 뗀 id를 쓰세요.)' },
-  BAD_CHECK_BY: { message: '확인일이 오늘 이후의 날짜(YYYY-MM-DD)가 아닙니다.', recovery: 'check_by를 오늘 이후 날짜로 다시 전달하세요.' },
-  ILLEGAL_TRANSITION: { message: '지금 상태에서는 할 수 없는 작업입니다.', recovery: 'argus_patterns view="all"로 이 결정의 현재 상태를 확인한 뒤 맞는 도구를 사용하세요.' },
+  BAD_CHECK_BY: { message: '확인일이 오늘 이후의 실제 달력 날짜(YYYY-MM-DD)가 아닙니다 (예: 2026-13-01처럼 없는 달·날짜는 불가).', recovery: '오늘 이후의 올바른 날짜를 YYYY-MM-DD로 다시 전달하세요.' },
+  ILLEGAL_TRANSITION: { message: '이 결정에 지금은 할 수 없는 작업입니다 (id 오타이거나, 이미 저장·정산·종료된 상태일 수 있습니다).', recovery: 'argus_patterns view="all"로 id와 현재 상태를 확인하세요. 없는 id면 argus_capture 또는 argus_predict로 새로 시작하세요.' },
+  PREMISE_LOCKED: { message: '확인일이 지나 전제를 더는 바꿀 수 없습니다.', recovery: '먼저 argus_resolve로 실제 결과를 기록하세요. 확인일이 온 뒤에는 전제/예측을 고칠 수 없습니다.' },
+  ARGUS_DIR_INVALID: { message: 'Argus 기록 경로(argus_dir / ARGUS_DIR)가 올바르지 않습니다.', recovery: '절대 경로여야 하고 ".."을 포함할 수 없습니다. MCP 설정에서 절대 경로(예: C:\\Users\\이름\\.argus, /Users/이름/.argus)로 바꾸거나 ARGUS_DIR을 지워 기본값(~/.argus)을 쓰세요. ${...} 같은 변수는 호스트가 확장하지 못할 수 있습니다.' },
+  EMPTY_PREDICATE: { message: '확인 가능한 예측 문장이 필요합니다 (공백 제외 최소 8자).', recovery: '현실이 참/거짓으로 확인할 수 있는 문장으로 다시 적으세요. 예: "컷오버 다운타임 5분 미만".' },
   ALREADY_SETTLED: { message: '이미 실제 결과가 기록된 결정입니다.', recovery: '영수증은 argus_patterns view="receipt"로 볼 수 있습니다. 새 결정이면 새 id로 여세요.' },
   DECISION_CLOSED: { message: '접힌(닫힌) 결정이라 더 진행할 수 없습니다.', recovery: '필요하면 새 id로 다시 여세요. 닫힌 기록은 그대로 남습니다.' },
   GOALPOST_MOVED: { message: '봉인된 예측 문장은 확인일 전에 바꿀 수 없습니다.', recovery: '일정 변경은 outcome="still_pending"과 defer_to로, 예측 자체가 달라졌다면 새 결정으로 여세요.' },
-  NO_SUCH_PREMISE: { message: '해당 번호의 전제를 찾지 못했습니다.', recovery: 'argus_patterns view="decision_context"로 전제 목록과 번호를 확인하세요.' },
+  NO_SUCH_PREMISE: { message: '해당 번호의 전제를 찾지 못했습니다 (이 결정에 아직 전제가 없을 수 있습니다).', recovery: 'argus_patterns view="decision_context"로 목록과 번호를 확인하고, 전제가 없으면 argus_capture action="add_context"로 먼저 추가하세요.' },
   WHAT_HAPPENED_REQUIRED: { message: '실제로 일어난 일을 기록해야 합니다.', recovery: '사용자에게 실제 결과를 물어 what_happened에 그대로 전달하세요.' },
   DEFER_DATE_REQUIRED: { message: '다시 확인할 날짜가 필요합니다.', recovery: '사용자에게 날짜를 물어 defer_to에 YYYY-MM-DD로 전달하세요. 더는 중요하지 않다면 argus_capture action="close"를 사용하세요.' },
   NOT_CONNECTED: { message: '이 터미널은 Argus 계정과 연결돼 있지 않습니다.', recovery: '웹 설정에서 동기화 토큰을 발급하고 MCP 설정의 ARGUS_TOKEN에 넣으세요.' },
@@ -62,10 +65,31 @@ interface InvalidField {
   origin?: string;
 }
 
+// The allowed values for each enum field, so a wrong guess (stakes="medium",
+// outcome="success", …) TEACHES the model the valid set instead of a bare "not
+// allowed". Keyed by the field's LAST path segment (so premises.0.kind → kind).
+const ENUM_HINTS: Record<string, string> = {
+  stakes: 'trivial · low · moderate · high',
+  reversibility: 'one_way_door · costly_to_reverse · easily_reversible',
+  outcome: 'held · avoided · partial · still_pending · missed',
+  outcome_source: 'user_stated',
+  view: 'active · all · receipt · decision_context · timeline · reflection',
+  action: 'open · add_context · answer_question · keep_question_open · update_fact · change_prediction · close',
+  locale: 'ko · en',
+  basis: 'judgment · luck · mixed · unsure',
+  kind: 'premise · open_question',
+  predicate_owner: 'user · ai_surfaced',
+  source: 'user_stated · ai_surfaced (update_fact에서는 url · user_stated · host_reported)',
+  dismiss_reason: 'became_irrelevant · decided_elsewhere · superseded · user_declined',
+};
+const DATE_FIELDS = new Set(['check_by', 'defer_to', 'today_override', 'snooze_until']);
+
 /** Translate one Zod issue into a Korean, actionable reason. Keeps the English
  *  argument NAME (models and users see arg names in English), but says in Korean
- *  WHY it failed — the piece the generic message threw away. */
-function koReason(issue: InvalidField): string {
+ *  WHY it failed — the piece the generic message threw away. Field-aware so an id
+ *  regex failure isn't told to "use YYYY-MM-DD" and an enum lists its values. */
+function koReason(issue: InvalidField, field: string): string {
+  const key = field.split('.').pop() || field;
   const unit = issue.origin === 'string' ? '자' : issue.origin === 'array' ? '개' : '';
   switch (issue.code) {
     case 'too_small':
@@ -79,14 +103,21 @@ function koReason(issue: InvalidField): string {
     case 'invalid_type':
       return issue.expected === undefined ? '형식이 올바르지 않습니다' : `필수이거나 형식이 올바르지 않습니다 (${issue.expected} 필요)`;
     case 'invalid_value':
-    case 'invalid_enum_value':
-      return '허용되지 않는 값입니다';
+    case 'invalid_enum_value': {
+      const hint = ENUM_HINTS[key];
+      return hint ? `허용되지 않는 값입니다 (가능: ${hint})` : '허용되지 않는 값입니다';
+    }
     case 'unrecognized_keys':
       return '알 수 없는 항목입니다';
     case 'invalid_format':
     case 'invalid_string':
-      return '형식이 올바르지 않습니다 (예: 날짜는 YYYY-MM-DD)';
+      if (key === 'id') return '영문·숫자와 . _ - 만 쓸 수 있습니다 (한글·공백·특수문자 불가 — 예: "career-move")';
+      if (DATE_FIELDS.has(key)) return 'YYYY-MM-DD 형식의 날짜여야 합니다';
+      return '형식이 올바르지 않습니다';
     default:
+      // Same text as the invalid_format id case so the two issues the id regex +
+      // superRefine both raise dedup to a single line.
+      if (key === 'id') return '영문·숫자와 . _ - 만 쓸 수 있습니다 (한글·공백·특수문자 불가 — 예: "career-move")';
       return '값을 확인해 주세요';
   }
 }
@@ -94,7 +125,16 @@ function koReason(issue: InvalidField): string {
 /** Korean INVALID_INPUT that NAMES each offending argument and why. */
 function localizeInvalidInput(fields: InvalidField[]): ErrorCopy {
   if (!fields.length) return KO_ERRORS.INVALID_INPUT!;
-  const parts = fields.slice(0, 4).map((f) => `${f.field === '(root)' ? '요청' : f.field}: ${koReason(f)}`);
+  const seen = new Set<string>();
+  const parts: string[] = [];
+  for (const f of fields) {
+    const name = f.field === '(root)' ? '요청' : f.field;
+    const part = `${name}: ${koReason(f, f.field)}`;
+    if (seen.has(part)) continue; // dedup "id: …, id: …" (regex + superRefine both fire)
+    seen.add(part);
+    parts.push(part);
+    if (parts.length >= 4) break;
+  }
   return {
     message: `입력값이 올바르지 않습니다 — ${parts.join(', ')}.`,
     recovery: '위에 표시된 인자를 고친 뒤 같은 도구를 다시 호출하세요. 사용자가 정해야 할 값은 추측하지 마세요.',

@@ -79,7 +79,7 @@ export default function GuidePage() {
     {
       href: '/teams',
       icon: Users,
-      label: L('사람 팀', 'People teams'),
+      label: L('팀', 'Teams'),
       desc: L('결정을 공유하고 함께 검토할 사람을 초대합니다.', 'Invite people to review shared decisions.'),
     },
     {
@@ -239,14 +239,14 @@ export default function GuidePage() {
           <div className="w-9 h-9 rounded-lg flex items-center justify-center bg-[var(--accent)]/10">
             <HelpCircle size={18} className="text-[var(--accent)]" />
           </div>
-          <h2 className="text-[18px] font-bold text-[var(--text-primary)]">{L('자주 묻는 것', 'Common questions')}</h2>
+          <h2 className="text-[18px] font-bold text-[var(--text-primary)]">{L('자주 묻는 질문', 'Frequently asked questions')}</h2>
         </div>
         <div className="space-y-4">
           {(locale === 'ko'
             ? [
                 {
-                  q: '질문은 왜 하나요?',
-                  a: "답이 분석을 구체화하고, 열린 질문을 좁혀요. 언제든 '그만 묻고 초안 만들기'로 건너뛸 수 있어요.",
+                  q: '왜 바로 답하지 않고 먼저 물어보나요?',
+                  a: "상황을 더 정확히 이해하고, 아직 정해지지 않은 쟁점을 줄이기 위해서예요. 언제든 '그만 묻고 초안 만들기'로 건너뛸 수 있어요.",
                 },
                 {
                   q: '내가 쓴 내용은 어디로 가나요?',
@@ -260,7 +260,7 @@ export default function GuidePage() {
                   q: "'물어봐 준다'는 게 어떻게 오나요?",
                   // 약속 정합(P1-B4): 이 답은 SealMoment의 채널 고지 문장과 복사 일치 —
                   // 알림 채널이 늘거나 줄면 SealMoment.tsx와 여기(ko/en)를 같이 고칠 것.
-                  a: '정한 날짜에 프로젝트 페이지에 오시면 제가 먼저 물어요. 텔레그램을 연결해 두셨다면 그날 메시지로도 가볍게 알려드려요 — 광고성 메일은 보내지 않아요. 원하면 캘린더 파일로 약속을 넣을 수 있어요.',
+                  a: '정한 날짜에 프로젝트 페이지에 오시면 제가 먼저 물어요. 텔레그램을 연결해 두셨다면 그날 메시지로도 가볍게 알려드려요. 원하면 캘린더 파일로 약속을 넣을 수 있어요.',
                 },
                 {
                   q: '결정 요약에는 무엇이 들어가나요?',

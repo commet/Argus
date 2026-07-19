@@ -653,10 +653,19 @@ export const DEFAULT_BUDGET: Record<AnalysisBudget['depth'], AnalysisBudget> = {
   // Five is the complete judgment spine (question, evidence, assumptions,
   // human judgment, falsifiable follow-up). Four silently dropped the return
   // hook, while seven made even a short pasted memo wait on nine model calls.
-  quick: { max_units: 60, max_tokens: 8000, max_lens_calls: 5, depth: 'quick' },
+  quick: { max_units: 80, max_tokens: 8000, max_lens_calls: 5, depth: 'quick' },
   standard: { max_units: 160, max_tokens: 16000, max_lens_calls: 7, depth: 'standard' },
   deep: { max_units: 400, max_tokens: 32000, max_lens_calls: 9, depth: 'deep' },
 };
+
+/** Keep short reports and small decks on the single-call quick path. PDF line
+ * extraction creates many small units, so the old 20-unit cutoff sent even a
+ * few-page document through extraction + seven lens calls + synthesis. */
+export function selectReviewBudget(sourceChars: number, unitCount: number): AnalysisBudget {
+  return sourceChars <= 12_000 && unitCount <= DEFAULT_BUDGET.quick.max_units
+    ? DEFAULT_BUDGET.quick
+    : DEFAULT_BUDGET.standard;
+}
 
 // ---------------------------------------------------------------------------
 // Reviewability banding helper (pure — safe to import anywhere).

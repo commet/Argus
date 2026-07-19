@@ -125,13 +125,13 @@ function renderVals(t: number, L: (ko: string, en: string) => string) {
   R.oProg = { position: 'absolute', left: '0', bottom: '0', height: '3px', width: (t / TOTAL * 100).toFixed(1) + '%', background: 'linear-gradient(90deg,#c2933f,#e2bf6e)', boxShadow: '0 0 8px rgba(216,178,94,.5)' };
 
   const ph: Array<[number, number, string]> = [
-    [0, 2000, L('항해도 펼침', 'Unrolling the chart')],
+    [0, 2000, L('판단 흐름 펼침', 'Opening the decision history')],
     [2000, 6200, L('결정 ① · 예산을 더 태울까', 'Decision ① · spend more?')],
     [6200, 10400, L('결정 ② · 이탈을 어디서 막나', 'Decision ② · where to stop churn')],
     [10400, 14600, L('결정 ③ · 가치를 어떻게 느끼게 하나', 'Decision ③ · make the value land')],
     [14600, 18800, L('결정 ④ · 확장은 언제', 'Decision ④ · when to scale')],
-    [18800, 22600, L('현재 방위 도달', 'Reached the current heading')],
-    [22600, 33000, L('전체 항해도 · 가지 않은 길까지', 'The whole chart · roads not taken')],
+    [18800, 22600, L('현재 결론 도달', 'Reached the current conclusion')],
+    [22600, 33000, L('전체 판단 흐름 · 선택하지 않은 길까지', 'The full decision history · including roads not taken')],
   ];
   let pc = ph.length - 1; for (let i = 0; i < ph.length; i++) if (t >= ph[i][0] && t < ph[i][1]) { pc = i; break; }
   const p = ph[pc]; const pOp = clamp((t - p[0]) / 240, 0, 1) * clamp((p[1] - t) / 240, 0, 1);
@@ -248,7 +248,7 @@ export function VoyageMapFilm() {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, padding: '0 4px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 11 }}>
           <span style={{ width: 22, height: 1, background: '#a87d31' }} />
-          <span style={{ whiteSpace: 'nowrap', font: `600 11px/1 ${MONO}`, letterSpacing: '.24em', textTransform: 'uppercase', color: '#a87d31' }}>{L('Argus · 전체 항해도 The Grand Chart', 'Argus · The Grand Chart')}</span>
+          <span style={{ whiteSpace: 'nowrap', font: `600 11px/1 ${MONO}`, letterSpacing: '.24em', textTransform: 'uppercase', color: '#a87d31' }}>{L('Argus · 전체 판단 흐름', 'Argus · Decision History')}</span>
         </div>
         {animating && (
           <span style={s('oPhase')}>
@@ -355,9 +355,9 @@ export function VoyageMapFilm() {
           {/* current bearing cartouche */}
           <div style={{ position: 'absolute', left: 1612, top: 150, width: 244, zIndex: 9 }}><div style={s('labCur')}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 4, padding: '12px 15px', borderRadius: 13, background: 'radial-gradient(130% 120% at 0% 0%,#33291b,#1d1610)', border: '1px solid #7d5a22', boxShadow: '0 0 0 1px rgba(226,191,110,.16) inset,0 14px 30px rgba(24,18,8,.4)' }}>
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, font: `700 11px/1 ${MONO}`, letterSpacing: '.12em', textTransform: 'uppercase', color: '#e2bf6e' }}><span style={{ width: 6, height: 6, borderRadius: '50%', background: '#1f8a5b', boxShadow: '0 0 0 3px rgba(31,138,91,.28)' }} />{L('현재 방위', 'Current heading')}</span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, font: `700 11px/1 ${MONO}`, letterSpacing: '.12em', textTransform: 'uppercase', color: '#e2bf6e' }}><span style={{ width: 6, height: 6, borderRadius: '50%', background: '#1f8a5b', boxShadow: '0 0 0 3px rgba(31,138,91,.28)' }} />{L('현재 결론', 'Current conclusion')}</span>
               <span style={{ font: `600 18.5px/1.3 ${SERIF}`, color: '#f8efda', wordBreak: 'keep-all' }}>{L('남는 사용자 위에서 성장', 'Grow on the users who stay')}</span>
-              <span style={{ font: `400 13px/1.45 ${MONO}`, color: '#cdbb8e', wordBreak: 'keep-all' }}>{L('네 번의 결정이 만든 항로 위,', 'On a course four decisions made,')}<br />{L('다섯 번째 항해 중', 'now on the fifth leg')}</span>
+              <span style={{ font: `400 13px/1.45 ${MONO}`, color: '#cdbb8e', wordBreak: 'keep-all' }}>{L('앞선 네 번의 결정 기록 위에서,', 'Building on four earlier decisions,')}<br />{L('다섯 번째 판단 검토 중', 'now reviewing the fifth')}</span>
             </div>
           </div></div>
 

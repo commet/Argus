@@ -31,7 +31,7 @@ import { track } from '@/lib/analytics';
 import {
   ingest,
   runDocumentReview,
-  DEFAULT_BUDGET,
+  selectReviewBudget,
   diffReceipts,
   type ReviewJob,
   type SourceKind,
@@ -209,8 +209,8 @@ export function ReviewFlow() {
       if (!visionCapable()) {
         setUploadBlock({
           note: L(
-            '이미지 검수는 시각 모델이 필요해요. 설정에서 Anthropic API 키를 연결하면 이미지를 눈으로 검수할 수 있어요.',
-            'Image review needs a vision model. Connect an Anthropic API key in Settings and the image can be reviewed visually.',
+            '이미지 확인은 Anthropic 모델에서만 지원해요. 설정에서 AI 제공자를 Anthropic으로 바꿔 주세요.',
+            'Image review is supported only with the Anthropic provider. Switch the AI provider to Anthropic in Settings.',
           ),
           needsKey: true,
         });
@@ -354,9 +354,7 @@ export function ReviewFlow() {
     const deadline = setTimeout(() => {
       if (abortRef.current) { abortReasonRef.current = 'deadline'; abortRef.current.abort(); }
     }, deadlineMs);
-    const budget = sourceLength <= 6_000 && artifact.units.length <= 20
-      ? DEFAULT_BUDGET.quick
-      : DEFAULT_BUDGET.standard;
+    const budget = selectReviewBudget(sourceLength, artifact.units.length);
     const { job: finalJob, receipt: r } = await runDocumentReview(artifact, {
       context: ctx,
       budget,
@@ -377,10 +375,10 @@ export function ReviewFlow() {
           progress_label: L('검수 시간 초과', 'Review timed out'),
           error: {
             kind: 'model_error',
-            message: L('검수가 예상보다 오래 걸려 중단했어요.', 'The review took longer than expected, so we stopped it.'),
+            message: L('모델 응답이 제한 시간 안에 끝나지 않아 중단했어요.', 'The model did not finish within the time limit, so the review stopped.'),
             recovery: L(
-              '문서를 더 짧게 나눠서 넣거나, 핵심 부분만 붙여넣어 다시 시도해 주세요.',
-              'Try splitting the document into shorter pieces, or paste just the key section and run it again.',
+              '텍스트 검토는 최대 2분 30초~5분, 이미지 검토는 최대 5분까지 기다립니다. 핵심 쪽만 나눠 올리거나 본문을 붙여넣어 다시 시도해 주세요.',
+              'Text reviews wait up to 2.5–5 minutes and visual reviews up to 5 minutes. Retry with the key pages or paste the relevant text.',
             ),
           },
         });
@@ -504,7 +502,7 @@ export function ReviewFlow() {
       const ext = (file.name.split('.').pop() || '').toLowerCase();
       const kind = BINARY_EXT[ext];
       if (!kind || kind !== receipt.source_kind) {
-        setReattachError(L(`이 영수증은 ${receipt.source_kind.toUpperCase()} 원문을 기다리고 있어요.`, `This receipt expects its original ${receipt.source_kind.toUpperCase()} file.`));
+      setReattachError(L(`이 검수 기록은 ${receipt.source_kind.toUpperCase()} 원문을 기다리고 있어요.`, `This review record expects its original ${receipt.source_kind.toUpperCase()} file.`));
         return;
       }
       setReattaching(true);
@@ -523,7 +521,7 @@ export function ReviewFlow() {
           extraction_quality: extracted.quality,
         });
         if (candidate.source_fingerprint !== receipt.source_fingerprint) {
-          setReattachError(L('이 파일은 영수증을 만들 때 검수한 원문과 내용이 달라요.', 'This file does not match the source used to create this receipt.'));
+      setReattachError(L('이 파일은 검수 기록을 만들 때 사용한 원문과 내용이 달라요.', 'This file does not match the source used to create this review record.'));
           return;
         }
         setSourcePdfData(extracted.pdf_data ?? null);
@@ -614,7 +612,7 @@ export function ReviewFlow() {
       <div className={hasSourceEvidence ? 'max-w-6xl mx-auto w-full' : 'max-w-2xl mx-auto w-full'}>
         <div className="mb-3 flex items-center justify-between gap-3">
           <button onClick={backToList} className="text-[12px] text-[var(--text-tertiary)] hover:text-[var(--accent)]">
-            {L('← 내 검수 기록', '← My review record')}
+            {L('← 문서 검수 기록', '← Document review records')}
           </button>
           {!hasSourceEvidence && canReattach && (
             <>
@@ -636,7 +634,7 @@ export function ReviewFlow() {
               }}
               className="text-[12px] text-[var(--text-tertiary)] hover:text-[var(--accent)] md:hidden"
             >
-              {showOriginal ? L('영수증으로', 'Back to receipt') : L('원문 보기', 'Show original')}
+              {showOriginal ? L('검수 결과로', 'Back to review') : L('원문 보기', 'Show original')}
             </button>
           )}
         </div>
@@ -664,7 +662,7 @@ export function ReviewFlow() {
                   }}
                 />
                 <button type="button" onClick={returnToReceipt} className="mt-2 w-full rounded border border-[var(--border-subtle)] py-2 text-[12px] font-semibold text-[var(--text-secondary)] md:hidden">
-                  {L('영수증으로 돌아가기', 'Back to receipt')}
+                  {L('검수 결과로 돌아가기', 'Back to review')}
                 </button>
               </div>
             </div>
@@ -737,7 +735,7 @@ export function ReviewFlow() {
   }
 
   if (phase === 'running') {
-    const longWait = elapsed >= 75;
+    const longWait = elapsed >= 45;
     const longSource = (preExtracted?.text || text).length > 12_000
       || (preExtracted?.pages_read ?? 0) > 20
       || (preExtracted?.slides_read ?? 0) > 30;
@@ -747,11 +745,11 @@ export function ReviewFlow() {
     // stageIndex). The live progress_label above carries the detail; these are
     // the milestones so the user can see *where* in the review they are.
     const REVIEW_STAGES: { id: string; label: string }[] = [
-      { id: 'profiling', label: L('읽기', 'Read') },
-      { id: 'mapping', label: L('판단 지도', 'Map') },
-      { id: 'routing', label: L('범위', 'Scope') },
-      { id: 'reviewing', label: L('검수', 'Review') },
-      { id: 'synthesizing', label: L('영수증', 'Receipt') },
+      { id: 'profiling', label: L('문서 읽기', 'Read') },
+      { id: 'mapping', label: L('핵심 주장 찾기', 'Find claims') },
+      { id: 'routing', label: L('검토 기준 정하기', 'Choose checks') },
+      { id: 'reviewing', label: L('주장별 근거 확인', 'Check evidence') },
+      { id: 'synthesizing', label: L('결과 정리', 'Results') },
     ];
     return (
       <div className="max-w-2xl mx-auto w-full">
@@ -768,7 +766,7 @@ export function ReviewFlow() {
         )}
         <Card variant="elevated">
           <div className="flex items-center justify-between gap-3 mb-2">
-            <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--accent)]">{L('검수 중', 'Reviewing')}</div>
+            <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--accent)]">{L('문서 확인 중', 'Analyzing document')}</div>
             <span className="text-[11px] tabular-nums text-[var(--text-tertiary)]">
               {mm > 0 ? `${mm}:${ss}` : L(`${elapsed}초`, `${elapsed}s`)}
             </span>
@@ -818,7 +816,7 @@ export function ReviewFlow() {
             return (
               <div className="mt-4">
                 <div className="text-[11px] text-[var(--text-tertiary)] mb-1.5">
-                  {L('지금 문서가 깔고 있는 전제를 살펴보는 중', 'Looking at a premise the document rests on')}
+                  {L('문서에 적힌 전제를 확인하는 중', 'Checking a premise stated in the document')}
                 </div>
                 <div key={idx} className="animate-fade-in rounded-lg bg-[var(--accent)]/[0.04] px-4 py-3">
                   <p className="text-[13px] leading-[1.6] text-[var(--text-secondary)]">
@@ -846,11 +844,11 @@ export function ReviewFlow() {
             <p className="mt-3 text-[12px] text-[var(--text-secondary)] leading-[1.6]">
               {L(
                 longSource
-                  ? '긴 문서를 계속 읽고 있어요. 기다리기 어렵다면 취소하고 더 짧게 나눠도 돼요.'
-                  : '검수를 계속하고 있어요. 취소해도 입력 내용은 그대로 남아 있어요.',
+                  ? '긴 문서는 1분 이상 걸릴 수 있어요. 계속 확인 중이며, 기다리기 어렵다면 취소하고 더 짧게 나눠 올려주세요.'
+                  : '모델 응답 속도에 따라 1분 이상 걸릴 수 있어요. 계속 확인 중이며, 취소해도 입력 내용은 그대로 남아 있어요.',
                 longSource
-                  ? 'Still reading this longer document. You can cancel and review it in smaller pieces.'
-                  : 'The review is still running. You can cancel without losing your input.',
+                  ? 'Long documents can take over a minute. It is still running; you can cancel and review it in smaller pieces.'
+                  : 'Depending on model response time, this can take over a minute. It is still running, and you can cancel without losing your input.',
               )}
             </p>
           )}
@@ -877,7 +875,7 @@ export function ReviewFlow() {
           )}
           <div className="mt-4 flex gap-2">
             <Button variant="accent" size="sm" onClick={resetImport}>
-              {L('본문 붙여넣어 다시 검수', 'Paste the text and retry')}
+              {L('파일·본문 다시 선택', 'Choose a file or text again')}
             </Button>
             {store.receipts.length > 0 && (
               <Button variant="ghost" size="sm" onClick={backToList}>
@@ -921,7 +919,7 @@ export function ReviewFlow() {
         </div>
         {store.receipts.length > 0 && (
           <Button variant="ghost" size="sm" onClick={backToList}>
-            {L('내 검수 기록', 'My review record')}
+            {L('문서 검수 기록', 'Document review records')}
           </Button>
         )}
       </div>
@@ -936,7 +934,7 @@ export function ReviewFlow() {
         {dragOver && (
           <div className="absolute inset-0 z-10 flex items-center justify-center rounded-xl bg-[var(--accent)]/[0.06] pointer-events-none">
             <p className="text-[13px] font-semibold text-[var(--accent)]">
-              {L('여기에 파일을 놓으세요 (pdf · docx · pptx · 이미지 · txt)', 'Drop your file here (pdf · docx · pptx · image · txt)')}
+              {L('여기에 파일을 놓으세요', 'Drop your file here')}
             </p>
           </div>
         )}
@@ -971,14 +969,14 @@ export function ReviewFlow() {
           <input
             ref={fileRef}
             type="file"
-            accept=".md,.markdown,.txt,.text,.pdf,.docx,.pptx,.hwpx,.hwp,.png,.jpg,.jpeg,.webp,.gif"
+            accept=".md,.markdown,.txt,.text,.pdf,.docx,.pptx,.hwpx,.png,.jpg,.jpeg,.webp,.gif"
             className="hidden"
             onChange={(e) => e.target.files?.[0] && onFile(e.target.files[0])}
           />
           <Button variant="ghost" size="sm" onClick={() => fileRef.current?.click()} disabled={extracting}>
             {extracting
               ? L('읽는 중…', 'Reading…')
-              : L('파일 업로드 (md · txt · pdf · docx · pptx · 이미지)', 'Upload a file (md · txt · pdf · docx · pptx · image)')}
+              : L('파일 선택', 'Choose file')}
           </Button>
           <span className={`text-[11px] ${text.length >= PASTE_CHAR_CAP ? 'text-[var(--warning)] font-semibold' : 'text-[var(--text-tertiary)]'}`}>
             {text.length >= PASTE_CHAR_CAP
@@ -988,6 +986,13 @@ export function ReviewFlow() {
                 )
               : text.length > 0 ? L(`${text.length.toLocaleString()}자`, `${text.length.toLocaleString()} characters`) : ''}
           </span>
+        </div>
+        <div className="mt-3 space-y-1.5 rounded-lg bg-[var(--bg)] px-3 py-2.5 text-[12px] leading-[1.55] text-[var(--text-secondary)]">
+          <p className="font-semibold text-[var(--text-primary)]">{L('파일 지원 범위', 'File support')}</p>
+          <p><span className="font-semibold">{L('텍스트', 'Text')}</span> · PDF, DOCX, PPTX, HWPX, MD, TXT</p>
+          <p><span className="font-semibold">{L('이미지·도표', 'Visuals')}</span> · {L('스캔 PDF와 PNG/JPG/WEBP/GIF는 Anthropic 모델 연결 시 지원합니다.', 'Scanned PDFs and PNG/JPG/WEBP/GIF require an Anthropic model.')}</p>
+          <p><span className="font-semibold">PPTX</span> · {L('텍스트와 삽입 이미지를 읽습니다. 슬라이드 전체 배치는 PDF로 바꿔 올려주세요.', 'Reads text and embedded images. Export to PDF to review full slide layouts.')}</p>
+          <p className="text-[var(--text-tertiary)]">{L('구형 HWP는 지원하지 않습니다. HWPX로 저장하거나 본문을 붙여넣어 주세요.', 'Legacy HWP is not supported. Save as HWPX or paste the text.')}</p>
         </div>
         {preExtracted && sourceKind === 'image' && (
           <p className="mt-2 text-[12px] text-[var(--success)]">
@@ -1008,8 +1013,8 @@ export function ReviewFlow() {
           return (
             <p className="mt-2 text-[12px] text-[var(--success)]">
               {L(
-                `${sourceKind.toUpperCase()}에서 텍스트를 추출했습니다${scope}${extractNote ? ` — ${extractNote}` : ''}. 문서 전체를 검수합니다.`,
-                `Extracted text from the ${sourceKind.toUpperCase()}${scope}${extractNote ? ` — ${extractNote}` : ''}. The whole document will be reviewed.`,
+                `${sourceKind.toUpperCase()}에서 텍스트를 추출했습니다${scope}${extractNote ? ` — ${extractNote}` : ''}. 읽어온 범위를 검토합니다.`,
+                `Extracted text from the ${sourceKind.toUpperCase()}${scope}${extractNote ? ` — ${extractNote}` : ''}. The extracted scope will be reviewed.`,
               )}
             </p>
           );
@@ -1094,7 +1099,7 @@ export function ReviewFlow() {
                 )
               : L(
                   '기본은 결과 요약만 저장해요(원문은 저장 안 함) — 판단과 확인 조건만 남깁니다.',
-                  'By default only the receipt is stored — never your document text. Just the judgments and check conditions remain.',
+                  'By default only the review summary is stored — never your document text. Just the judgments and follow-up conditions remain.',
                 )}
           </span>
         </span>
@@ -1108,8 +1113,8 @@ export function ReviewFlow() {
           <input type="checkbox" checked={useVision} onChange={(e) => setUseVision(e.target.checked)} className="mt-0.5" />
           <span>
             {preExtracted.vision.kind === 'pdf'
-              ? L('이미지·차트·표까지 눈으로 정밀 검수 (비전)', 'Read images, charts and tables visually (vision)')
-              : L('덱에 담긴 이미지·차트까지 함께 검수 (비전)', 'Also review the deck’s embedded images/charts (vision)')}
+              ? L('이미지·차트·표도 함께 확인', 'Also check images, charts, and tables')
+              : L('덱에 담긴 이미지·차트도 함께 확인', 'Also check the deck’s embedded images and charts')}
             <span className="block text-[11px] text-[var(--text-tertiary)]">
               {L(
                 '문서를 이미지로도 모델에 보여줘, 텍스트만으로는 놓치는 그래프·표·레이아웃을 잡아냅니다. 토큰을 더 쓰니 무료 1회를 소모해요.',
@@ -1131,6 +1136,10 @@ export function ReviewFlow() {
           )}
         </p>
       )}
+
+      <p className="text-[11px] leading-[1.6] text-[var(--text-tertiary)]">
+        {L('예상 시간: 보통 1~3분 · 긴 문서나 이미지·도표 검토는 최대 5분', 'Typical time: 1–3 minutes · long documents or visual review can take up to 5 minutes')}
+      </p>
 
       {gateBlocked && (
         <Card variant="muted" className="border border-[var(--border-subtle)]">

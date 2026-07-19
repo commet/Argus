@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { ArrowUpRight, CircleHelp, Clock3, FileSearch, Radar, UserCheck, Waves } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { ArrowUpRight, CircleHelp, Clock3, FileSearch, LocateFixed, Radar, UserCheck, Waves } from 'lucide-react';
 import { useLocale } from '@/hooks/useLocale';
 import { openTraceLocator } from '@/lib/evidence-trace';
 import type { ProjectAttentionItem, ProjectAttentionKind } from '@/lib/project-attention';
@@ -15,10 +15,43 @@ const ICONS: Record<ProjectAttentionKind, typeof Clock3> = {
   stakeholder_check: UserCheck,
 };
 
-export function ProjectAttentionList({ items }: { items: ProjectAttentionItem[] }) {
+function decisionIdFor(item: ProjectAttentionItem): string | null {
+  if (item.projectId) return item.projectId;
+  const reviewTarget = item.affected.find((entry) => entry.scope === 'review');
+  return reviewTarget?.id ?? null;
+}
+
+export function ProjectAttentionList({
+  items,
+  focusedDecisionId,
+  focusedAttentionId,
+  scrollToFocused = false,
+  onFocusItem,
+}: {
+  items: ProjectAttentionItem[];
+  focusedDecisionId?: string | null;
+  focusedAttentionId?: string | null;
+  scrollToFocused?: boolean;
+  onFocusItem?: (item: ProjectAttentionItem, decisionId: string | null) => void;
+}) {
   const locale = useLocale();
   const L = (ko: string, en: string) => (locale === 'ko' ? ko : en);
   const [expanded, setExpanded] = useState(false);
+  const focusedIndex = focusedAttentionId ? items.findIndex((item) => item.id === focusedAttentionId) : -1;
+
+  useEffect(() => {
+    if (!focusedAttentionId || focusedIndex < 0) return;
+    if (focusedIndex >= 5) setExpanded(true);
+    if (!scrollToFocused) return;
+    const frame = window.requestAnimationFrame(() => {
+      document.getElementById(`project-attention-${focusedAttentionId}`)?.scrollIntoView({
+        behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+        block: 'nearest',
+      });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [focusedAttentionId, focusedIndex, scrollToFocused]);
+
   if (items.length === 0) return null;
   const visible = expanded ? items : items.slice(0, 5);
 
@@ -49,16 +82,27 @@ export function ProjectAttentionList({ items }: { items: ProjectAttentionItem[] 
         {visible.map((item) => {
           const Icon = ICONS[item.kind];
           const affected = item.affected;
+          const decisionId = decisionIdFor(item);
+          const selected = focusedAttentionId === item.id
+            || (!!focusedDecisionId && focusedDecisionId === decisionId);
           return (
-            <li key={item.id} className="group flex items-start gap-3 px-1 py-3">
+            <li
+              key={item.id}
+              id={`project-attention-${item.id}`}
+              data-attention-selected={selected ? 'true' : 'false'}
+              className={`group flex items-stretch gap-2 px-1 py-1.5 transition-colors ${selected ? 'bg-[var(--accent)]/[0.07]' : ''}`}
+            >
               <span className="mt-0.5 inline-flex h-7 w-7 shrink-0 items-center justify-center text-amber-700 dark:text-amber-400" aria-hidden="true">
                 <Icon size={15} />
               </span>
               <button
                 type="button"
-                onClick={() => openTraceLocator(item.locator)}
-                className="flex min-w-0 flex-1 items-center gap-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50"
-                aria-label={L(`${kindLabel(item.kind)} 원문 위치 열기`, `Open source for ${kindLabel(item.kind)}`)}
+                onClick={() => onFocusItem ? onFocusItem(item, decisionId) : openTraceLocator(item.locator)}
+                className="flex min-h-14 min-w-0 flex-1 items-center gap-3 py-1.5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50"
+                aria-pressed={selected}
+                aria-label={onFocusItem
+                  ? L(`${kindLabel(item.kind)} 결정 지도에서 찾기`, `Locate ${kindLabel(item.kind)} on the decision map`)
+                  : L(`${kindLabel(item.kind)} 원문 위치 열기`, `Open source for ${kindLabel(item.kind)}`)}
               >
                 <span className="min-w-0 flex-1">
                   <span className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
@@ -72,8 +116,19 @@ export function ProjectAttentionList({ items }: { items: ProjectAttentionItem[] 
                     {affected.length <= 3 && <span className="truncate text-[var(--text-tertiary)]">· {affected.map((entry) => entry.label).join(' · ')}</span>}
                   </span>
                 </span>
-                <ArrowUpRight size={15} className="shrink-0 text-[var(--text-tertiary)] transition-colors group-hover:text-[var(--accent)]" aria-hidden="true" />
+                {onFocusItem && <LocateFixed size={15} className={`shrink-0 transition-colors ${selected ? 'text-[var(--accent)]' : 'text-[var(--text-tertiary)] group-hover:text-[var(--accent)]'}`} aria-hidden="true" />}
               </button>
+              {onFocusItem && (
+                <button
+                  type="button"
+                  onClick={() => openTraceLocator(item.locator)}
+                  title={L('정확한 근거 위치 열기', 'Open the exact source')}
+                  aria-label={L(`${kindLabel(item.kind)} 정확한 근거 위치 열기`, `Open exact source for ${kindLabel(item.kind)}`)}
+                  className="my-auto inline-flex h-10 w-10 shrink-0 items-center justify-center text-[var(--text-tertiary)] transition-colors hover:text-[var(--accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50"
+                >
+                  <ArrowUpRight size={16} aria-hidden="true" />
+                </button>
+              )}
             </li>
           );
         })}

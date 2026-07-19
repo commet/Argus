@@ -10,10 +10,10 @@ export function Footer() {
   return (
     <footer className="border-t border-[var(--border-subtle)] py-10 px-4 text-center">
       <p className="text-[13px] font-medium text-[var(--text-secondary)] tracking-[0.08em]">
-        Keeping Judgment Human
+        {L('판단의 주인은 사람입니다', 'Keeping Judgment Human')}
       </p>
       <p className="text-[12px] text-[var(--text-tertiary)] tracking-wide">
-        Argus — {L('내기 전에, 판단부터', 'Think before you commit')}
+        Argus — {L('결정하기 전에, 판단부터', 'Think before you commit')}
       </p>
       {/* Identity + legal, one quiet row. Each link gets a 44px tap height and
           12px text (was 11px, sub-44px). Middot separators are aria-hidden. */}

@@ -28,6 +28,7 @@ vi.mock('@/lib/storage', () => ({
     PERSONAS: 'sot_personas',
     JUDGMENTS: 'sot_judgments',
     SYNTHESIZE_LIST: 'sot_synthesize_list',
+    PROGRESSIVE_SESSIONS: 'sot_progressive_sessions',
     SETTINGS: 'sot_settings',
   },
 }));
@@ -334,6 +335,70 @@ describe('Document Generators Simulation', () => {
       expect(result).toContain('우려A');
       expect(result).toContain('칭찬A');
       expect(result).toContain('종합 분석 텍스트');
+    });
+
+    it('새 항해 프로젝트의 실제 결과물과 요약을 포함', () => {
+      mockStorage = {
+        sot_reframe_list: [],
+        sot_recast_list: [],
+        sot_feedback_history: [],
+        sot_synthesize_list: [],
+        sot_progressive_sessions: [{
+          id: 'session-1',
+          project_id: 'proj-1',
+          problem_text: 'AI 시대의 물류 전략을 정한다',
+          decision_maker: '전략 책임자',
+          phase: 'complete',
+          round: 2,
+          max_rounds: 3,
+          questions: [],
+          answers: [],
+          snapshots: [],
+          workers: [],
+          worker_deploy_phase: 'none',
+          mix: {
+            title: '물류 전략',
+            executive_summary: '자동화보다 데이터 표준화를 먼저 진행한다.',
+            sections: [],
+            key_assumptions: ['화주 데이터 연동이 가능하다'],
+            next_steps: ['핵심 고객 3곳과 인터뷰한다'],
+          },
+          dm_feedback: null,
+          final_deliverable: '# 실행안\n\n첫 90일 계획',
+          created_at: '2026-01-01T00:00:00Z',
+          updated_at: '2026-01-02T00:00:00Z',
+        }],
+      };
+
+      const result = generateProjectBrief(makeProject());
+
+      expect(result).toContain('## 프로젝트 요약');
+      expect(result).toContain('자동화보다 데이터 표준화를 먼저 진행한다.');
+      expect(result).toContain('## 최종 결과물');
+      expect(result).toContain('첫 90일 계획');
+    });
+
+    it('프로젝트의 판단과 확인 계획을 포함', () => {
+      const result = generateProjectBrief(makeProject({
+        decision_contract: {
+          id: 'contract-1',
+          project_id: 'proj-1',
+          created_at: '2026-01-01T00:00:00Z',
+          check_in_at: '2026-07-26T00:00:00Z',
+          predicates: [{ id: 'p-1', source: 'governing_idea', text: '3개월 안에 물류비가 10% 줄어든다', verdict: 'pending' }],
+          judgment_receipt: {
+            real_question: '실제로 비용이 줄었는가?',
+            unverified_assumption: '데이터 연동이 가능하다',
+            human_only: '최종 투자 판단',
+            human_judgment: '데이터 표준화를 먼저 한다',
+          },
+        },
+      }));
+
+      expect(result).toContain('## 판단과 확인 계획');
+      expect(result).toContain('데이터 표준화를 먼저 한다');
+      expect(result).toContain('실제로 비용이 줄었는가?');
+      expect(result).toContain('3개월 안에 물류비가 10% 줄어든다');
     });
 
     it('analysis null인 reframe은 내부 콘텐츠 없음', () => {

@@ -15,13 +15,11 @@ import { SynthesizeStep } from '@/components/workspace/SynthesizeStep';
 import { ProgressiveFlow } from '@/components/workspace/progressive/ProgressiveFlow';
 import { WorkerDrawer, useWorkers } from '@/components/workspace/progressive/WorkerPanel';
 import { LogbookDrawer } from '@/components/workspace/progressive/Logbook';
-import { VoyageMapRail } from '@/components/workspace/progressive/VoyageMapRail';
-import { DecisionEvidenceMap } from '@/components/workspace/progressive/DecisionEvidenceMap';
+import { VoyageMapRail, VoyageMapViews } from '@/components/workspace/progressive/VoyageMapRail';
 import { QuickChatBar } from '@/components/workspace/QuickChatBar';
 import { NavigatorStrip } from '@/components/workspace/NavigatorStrip';
 import { useSettingsStore } from '@/stores/useSettingsStore';
 import { useLocale } from '@/hooks/useLocale';
-import { playTransitionTone, resumeAudioContext } from '@/lib/audio';
 import { runInitialAnalysis } from '@/lib/progressive-engine';
 import { buildEarlyContract, summarizeRecord } from '@/lib/decision-contract';
 import { recordCompactLine } from '@/lib/record-summary';
@@ -139,7 +137,7 @@ function ProgressiveLayout({ projectId, projectName, onReset }: { projectId: str
   const switchBranch = useProgressiveStore(s => s.switchBranch);
   const branchingLocked = useProgressiveStore(s => s.isBranchingLocked());
   const [branchMenuOpen, setBranchMenuOpen] = useState(false);
-  const [mobileEvidenceOpen, setMobileEvidenceOpen] = useState(false);
+  const [mobileMapOpen, setMobileMapOpen] = useState(false);
   const branchTriggerRef = useRef<HTMLButtonElement>(null);
   const branchOptionRefs = useRef<Array<HTMLButtonElement | null>>([]);
 
@@ -271,19 +269,19 @@ function ProgressiveLayout({ projectId, projectName, onReset }: { projectId: str
           <div className="mb-3 flex justify-end xl:hidden">
             <button
               type="button"
-              onClick={() => setMobileEvidenceOpen(true)}
+              onClick={() => setMobileMapOpen(true)}
               className="inline-flex min-h-10 items-center gap-1.5 border-b border-[var(--border)] px-1 text-[12px] font-semibold text-[var(--text-secondary)] transition-colors hover:text-[var(--accent)]"
             >
               <SearchCheck size={14} className="text-[var(--accent)]" />
-              {L('판단 지도', 'Decision map')}
+              {L('현재 판단 경로', 'Decision path')}
             </button>
             <Modal
-              open={mobileEvidenceOpen}
-              onClose={() => setMobileEvidenceOpen(false)}
-              title={L('판단 지도 · 근거', 'Decision map · Evidence')}
-              widthClass="max-w-lg"
+              open={mobileMapOpen}
+              onClose={() => setMobileMapOpen(false)}
+              title={L('현재 판단 경로', 'Current decision path')}
+              widthClass="max-w-2xl"
             >
-              <DecisionEvidenceMap onNavigate={() => setMobileEvidenceOpen(false)} />
+              <VoyageMapViews surface="modal" onNavigate={() => setMobileMapOpen(false)} />
             </Modal>
           </div>
         )}
@@ -322,12 +320,15 @@ function ProgressiveLayout({ projectId, projectName, onReset }: { projectId: str
 /* ─── HeroFlow: idle → assembling → analyzing → ready ─── */
 type HeroPhase = 'idle' | 'retro' | 'binding' | 'assembling' | 'analyzing' | 'ready';
 
-function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: {
+function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem, freshStart = false }: {
   onReady: (projectId: string) => void;
   projects: Array<{ id: string; name: string; updated_at?: string; created_at?: string; decision_contract?: DecisionContract }>;
   user: unknown;
   reviewerAgentId?: string;
   initialProblem?: string;
+  /** Explicit ?new=1 entry: keep the page focused on a blank input instead of
+   *  immediately resurfacing the project the user just left. */
+  freshStart?: boolean;
 }) {
   const locale = useLocale();
   const L = (ko: string, en: string) => locale === 'ko' ? ko : en;
@@ -665,7 +666,7 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
                         Speak in the user's unit: decisions. */}
                     <span className="text-[var(--text-secondary)]">{locale === 'ko' ? <>로그인 없이 <strong className="text-[var(--text-primary)]">하루 결정 2~3개</strong>를 살펴볼 수 있어요</> : <>Explore <strong className="text-[var(--text-primary)]">2–3 decisions a day</strong> without logging in</>}</span>
                   </div>
-                  <LocaleLink href="/login" className="group shrink-0 inline-flex items-center gap-1 text-[12px] font-semibold text-[var(--accent)] hover:text-[var(--text-primary)] transition-colors">
+                  <LocaleLink href="/login" className="group -mr-2 inline-flex min-h-11 shrink-0 items-center gap-1 px-2 text-[12px] font-semibold text-[var(--accent)] hover:text-[var(--text-primary)] transition-colors">
                     {L('로그인', 'Log in')} <ChevronRight size={12} className="transition-transform group-hover:translate-x-0.5" />
                   </LocaleLink>
                 </div>
@@ -703,7 +704,7 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
                   Renders NOTHING at due 0; "나중에 할게요" snoozes for today
                   only. No absence-length greetings — the waiting decision is
                   the only recognition. */}
-              {lanternOn && (
+              {lanternOn && !freshStart && (
                 <div className="mb-5 rounded-xl border border-amber-500/30 bg-amber-500/[0.08] px-4 py-3 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
                   <p className="flex items-center gap-1.5 text-[13px] font-semibold text-[var(--text-primary)] min-w-0 flex-1">
                     <BellRing size={16} className="shrink-0 text-amber-600 dark:text-amber-400" aria-hidden="true" />
@@ -895,7 +896,7 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
               {/* Returning user: previous projects — compact rows. Sits BELOW the
                   primary input so the workspace opens on "what's the situation?" not
                   on a history list; past projects stay reachable in the middle. */}
-              {projects.length > 0 && (() => {
+              {projects.length > 0 && !freshStart && (() => {
                 // P1-A4: due voyages surface first (same due-first rule as
                 // /project) so a promised return isn't buried under fold #4.
                 const dueIdSet = new Set(dueProjects.map((d) => d.id));
@@ -976,7 +977,7 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
                   returning user (projects exist) this is a quiet "or browse" footer
                   under their own work; for a first-timer it's the main thing to try,
                   so the heading carries real weight and no divider buries it. */}
-              <div className={projects.length > 0 ? 'mt-9 pt-7 border-t border-[var(--border-subtle)]/60' : 'mt-7'}>
+              {!freshStart && <div className={projects.length > 0 ? 'mt-9 pt-7 border-t border-[var(--border-subtle)]/60' : 'mt-7'}>
                 {(() => {
                   // Returning users already have "이어서 작업" above as the main act,
                   // so the demos drop to a muted footer — smaller, flatter, single-
@@ -1024,7 +1025,7 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
                     </>
                   );
                 })()}
-              </div>
+              </div>}
 
               {/* 회고 봉인 진입 (베팅③ 1-A, W2) — a DEMO-EQUAL option in the empty
                   state: run the seal→settle loop once on a past decision you already
@@ -1239,7 +1240,7 @@ function WorkspaceContent() {
   const searchParams = useSearchParams();
   const { activeStep, setActiveStep } = useWorkspaceStore();
   const { projects, currentProjectId, setCurrentProjectId, loadProjects } = useProjectStore();
-  const { settings, loadSettings } = useSettingsStore();
+  const { loadSettings } = useSettingsStore();
   const { user } = useAuth();
   const progressiveStore = useProgressiveStore();
   const [projectMenuOpen, setProjectMenuOpen] = useState(false);
@@ -1299,10 +1300,6 @@ function WorkspaceContent() {
     const stepId = step.replace('/tools/', '') as StepId;
     setActiveStep(stepId);
     window.history.pushState(null, '', `${window.location.pathname}?step=${stepId}`);
-    if (settings.audio_enabled) {
-      resumeAudioContext();
-      playTransitionTone(settings.audio_volume);
-    }
   };
 
   const currentProject = currentProjectId ? projects.find(p => p.id === currentProjectId) : null;
@@ -1344,6 +1341,7 @@ function WorkspaceContent() {
         user={user}
         reviewerAgentId={reviewerParam || undefined}
         initialProblem={queryProblem || undefined}
+        freshStart={forceNew}
       />
     );
   }

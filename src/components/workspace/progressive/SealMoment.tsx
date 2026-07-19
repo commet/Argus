@@ -514,7 +514,7 @@ export function SealMoment({
           {/* '제가 먼저 물어볼게요' — 약속하는 그 Argus가 직접 */}
           <ArgusMascot moment="witness" size="md" alt={L('약속을 기억하는 Argus', 'Argus remembering the promise')} />
           <p className="seal-line-write text-[15px] font-semibold text-[var(--text-primary)] leading-[1.5]">
-            {L(`봉인했어요 — ${checkDateStr}에 제가 먼저 물어볼게요.`, `Sealed — I'll ask you first on ${checkDateStr}.`)}
+            {L(`기록했어요 — ${checkDateStr}에 제가 먼저 물어볼게요.`, `Saved — I'll ask you first on ${checkDateStr}.`)}
           </p>
         </div>
       </motion.div>
@@ -544,7 +544,7 @@ export function SealMoment({
               </div>
             )}
             <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--text-tertiary)]">
-              {L('결정 기록 · 봉인됨', 'Decision log · sealed')} · {sealedOnStr}
+              {L('판단 기록 · 저장됨', 'Decision record · saved')} · {sealedOnStr}
             </p>
             {typeof project?.name === 'string' && project.name.trim() && (
               <p className="mt-2 text-[15px] font-semibold text-[var(--text-primary)] leading-[1.4]">{project.name}</p>
@@ -735,15 +735,15 @@ export function SealMoment({
             Promise parity (P1-B4): the guide FAQ ("'물어봐 준다'는 게 어떻게 오나요?",
             guide/page.tsx) mirrors this sentence — if channels change, update both. */}
         <p className="mt-2 text-[12px] leading-relaxed text-[var(--text-secondary)] max-w-md mx-auto">
-          {L('그날 프로젝트 페이지에 오시면 제가 먼저 물어요. 텔레그램을 연결해 두셨다면, 그날 메시지로도 가볍게 알려드려요 — 광고성 메일은 보내지 않아요.', "On that day, I'll ask first when you open the projects page. If you've connected Telegram, I'll send a gentle nudge there too on the day — never marketing email.")}
+          {L('그날 프로젝트 페이지에 오시면 제가 먼저 물어요. 텔레그램을 연결해 두셨다면, 그날 메시지로도 가볍게 알려드려요.', "On that day, I'll ask first when you open the projects page. If you've connected Telegram, I'll send a gentle nudge there too on the day.")}
         </p>
         {/* P2-6 honesty: an anonymous seal lives in localStorage only. Don't let the
             "comes back to you" promise read as a lie when it can vanish on this device.
             Not a gate — they can still seal locally; just told the truth + the way out. */}
         {!user && (
           <p className="mt-1.5 text-[12px] leading-relaxed text-[var(--accent)]/90 max-w-md mx-auto">
-            {L('지금은 로그인 전이라 이 결정은 이 기기에만 저장돼요 — 캐시를 지우거나 다른 기기에선 사라질 수 있어요. 봉인한 다음 로그인하면 계정으로 옮겨가 어디서나 돌아올 수 있어요.',
-               'Not logged in yet, so this is saved on this device only — it can be lost if you clear your cache or switch devices. Seal it, then sign in and it moves to your account, reachable anywhere.')}
+            {L('지금은 로그인 전이라 이 결정은 이 기기에만 저장돼요 — 캐시를 지우거나 다른 기기에선 사라질 수 있어요. 저장한 다음 로그인하면 계정으로 옮겨가 어디서나 다시 볼 수 있어요.',
+               'Not logged in yet, so this is saved on this device only — it can be lost if you clear your cache or switch devices. Save it, then sign in to move it to your account and revisit it anywhere.')}
           </p>
         )}
 
@@ -774,7 +774,7 @@ export function SealMoment({
         {keptChecks.length > 0 && (
           <div className="mt-6 text-left rounded-lg bg-[var(--accent)]/[0.04] px-4 py-3">
             <p className="text-[12px] font-semibold text-[var(--text-secondary)] mb-2">
-              {L('봉인 전에 — 확인하고 가면 좋은 것', 'Before you seal — worth checking')}
+              {L('기록 전에 — 확인하면 좋은 것', 'Before saving — worth checking')}
             </p>
             <ul className="space-y-1.5">
               {keptChecks.map((c) => (

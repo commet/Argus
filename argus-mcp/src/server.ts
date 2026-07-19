@@ -168,18 +168,22 @@ export async function createServer(): Promise<Server> {
         ? { ...(parsed.data as Record<string, unknown>), today_override: rawArgs['today_override'] }
         : parsed.data as Record<string, unknown>;
       const raw = await serialize(() => tool.handler(callArgs));
+      let result = localizeToolResult(callArgs, raw);
       // Learn the session's language from the user's OWN words (never env), so
       // every later surface — including contentless ones (errors, recall) — stays
-      // in that language start to finish. Runs after the handler (auto-init has
-      // created config by now) and before localize, so even this call's result
-      // is localized to the just-learned locale.
-      const dirForLocale = resolveToolArgusDir(callArgs['argus_dir']);
-      learnLocaleFromContent(dirForLocale, callArgs);
-      // §9.7 O1: if an EXPLICIT pin contradicts the language the user is
-      // actually speaking, say so once (fact + argus_settings handle) — a pin
-      // is never silently overridden, but it must not be silently obeyed
-      // against the user's own words forever either.
-      const result = appendLocaleMismatchNote(dirForLocale, callArgs, localizeToolResult(callArgs, raw));
+      // in that language start to finish. This is BEST-EFFORT: a bad argus_dir
+      // (relative / unexpanded ${VAR} — the #1 setup mistake) already surfaced a
+      // proper, localized error from the handler; re-resolving it here to learn
+      // the locale must NOT re-throw and clobber that with a raw INTERNAL_ERROR.
+      try {
+        const dirForLocale = resolveToolArgusDir(callArgs['argus_dir']);
+        learnLocaleFromContent(dirForLocale, callArgs);
+        // §9.7 O1: if an EXPLICIT pin contradicts the language the user is
+        // actually speaking, say so once (fact + argus_settings handle) — a pin
+        // is never silently overridden, but it must not be silently obeyed
+        // against the user's own words forever either.
+        result = appendLocaleMismatchNote(dirForLocale, callArgs, result);
+      } catch { /* invalid argus_dir — the handler already surfaced it; skip locale learning */ }
       // Opt-in usage signal: which tool ran + that it didn't crash. Carries no
       // arguments — never the decision content. Fire-and-forget (see telemetry.ts).
       recordToolCall(name, true);

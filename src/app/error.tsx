@@ -38,12 +38,12 @@ export default function RootError({
             ERROR
           </span>
           <div className="absolute inset-0 flex items-end justify-center pb-3">
-            <VoyageShip state="wrecked" size={195} title={L('암초에 부딪힌 배', 'A ship on a reef')} />
+            <VoyageShip state="wrecked" size={195} title={L('문제가 생긴 안내 그림', 'Something went wrong illustration')} />
           </div>
         </div>
 
         <h1 className="text-[22px] font-bold text-[var(--text-primary)] tracking-tight mt-8">
-          {L('암초에 부딪혔어요', 'We hit a reef')}
+          {L('문제가 생겼어요', 'Something went wrong')}
         </h1>
         <p className="text-[14px] text-[var(--text-secondary)] leading-relaxed mt-2">
           {L(
@@ -60,14 +60,14 @@ export default function RootError({
         <div className="flex items-center justify-center gap-3 mt-7">
           <button
             onClick={reset}
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-[var(--accent-fg)] text-[13px] font-semibold hover:shadow-[var(--shadow-md)] transition-all cursor-pointer"
+            className="inline-flex min-h-11 items-center gap-1.5 px-4 py-2 rounded-xl text-[var(--accent-fg)] text-[13px] font-semibold hover:shadow-[var(--shadow-md)] transition-all cursor-pointer"
             style={{ background: 'var(--gradient-gold)' }}
           >
             <RotateCcw size={14} /> {L('다시 시도', 'Try again')}
           </button>
           <Link
             href="/workspace"
-            className="text-[13px] font-semibold text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors px-2 py-2"
+            className="inline-flex min-h-11 items-center text-[13px] font-semibold text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors px-2 py-2"
           >
             {L('워크스페이스로', 'Back to workspace')}
           </Link>

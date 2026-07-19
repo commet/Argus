@@ -6,6 +6,48 @@
 > The `1.3.0` / `1.2.1` entries at the bottom are pre-rename `argus-mcp` history,
 > kept for reference — all of that work shipped inside the new-name 1.0.0.
 
+## 1.4.6 — Real-user-mistake pass: the errors a fumbling user actually hits
+
+Found by triggering ~45 misuse cases in a Korean session and reading every
+message a confused user (or the model acting for them) sees, plus two source
+reviews of error-UX and first-run ergonomics. The guiding question: does each
+error name what went wrong, why, and the exact fix — in the user's language?
+
+The worst two (both hit a Korean user constantly)
+- **A Korean id was rejected with a "use YYYY-MM-DD date" hint.** A model naming
+  a decision `이직-결정` (Korean) got `id: 형식이 올바르지 않습니다 (예: 날짜는
+  YYYY-MM-DD)` — a date hint on an id field. Now: `id: 영문·숫자와 . _ - 만 쓸 수
+  있습니다 (한글·공백·특수문자 불가 — 예: "career-move")`.
+- **A bad argus_dir (relative / unexpanded `${VAR}`) surfaced as a raw
+  INTERNAL_ERROR** with no recovery — the #1 setup mistake. Root cause: after the
+  handler produced a proper error, the dispatch re-resolved argus_dir for
+  locale-learning and re-threw, clobbering it. It now returns a localized message
+  naming the fix (absolute path, or drop ARGUS_DIR for the ~/.argus default).
+
+Wrong-value errors now teach
+- Enum mistakes (`stakes:"medium"`, `outcome:"success"`, `view:"history"`,
+  `action:"settle"`) now list the valid values, so the model self-corrects
+  instead of retrying blind.
+- Korean messages added / fixed for `ILLEGAL_TRANSITION` (a typo'd id was
+  mislabeled a "wrong state"), `BAD_CHECK_BY` (a calendar-invalid date was called
+  "not future"), `AMBIGUOUS_REF` (told you to "pass text" for a field that has
+  none), `NO_SUCH_PREMISE` (dead-end when the decision has no premises),
+  `PREMISE_LOCKED`, `ARGUS_DIR_INVALID`, `EMPTY_PREDICATE`, and reserved/aliasing
+  ids. `outcome_source` now defaults so a model can't fail on the constant.
+
+Cold-start ergonomics
+- **The session-start `argus_check_in` no longer dead-ends a new user.** A truly
+  empty ledger now shows an on-ramp ("describe a decision to begin") with an
+  `argus_capture` handle, instead of the same "Nothing is due" a caught-up
+  veteran sees. Empty `argus_patterns` views likewise return a capture handle,
+  not `stop`.
+- **The five settle outcomes are now defined** in the tool schema (held = it
+  happened; avoided = the predicted risk didn't; partial = mixed; missed = wrong;
+  still_pending = not yet) — a blind `held`-vs-`avoided` pick was silently
+  corrupting the calibration record.
+- `argus_settings action=update` with no writable field now says "no setting was
+  changed" (with the supported list) instead of the opposite "Config read."
+
 ## 1.4.5 — Guru pass: injection channels, the ledger lock, schema conformance
 
 A deeper hunt — a runtime harness (corrupt ledgers, terminal-escape injection,

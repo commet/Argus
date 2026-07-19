@@ -47,7 +47,7 @@ vi.mock('@/stores/useProgressiveStore', () => ({
     sel({ sessions: [state.session], currentSessionId: 's1', forkBranch: () => null, isBranchingLocked: () => false }),
 }));
 
-import { VoyageMapRail } from '@/components/workspace/progressive/VoyageMapRail';
+import { VoyageMapRail, VoyageMapViews } from '@/components/workspace/progressive/VoyageMapRail';
 
 const charted: Partial<ProgressiveSession> = {
   id: 's1',
@@ -64,14 +64,23 @@ describe('VoyageMapRail — full (expanded)', () => {
     state.workers = [{ id: 'wk1', status: 'running' } as WorkerTask];
     state.session = charted;
     const html = renderToStaticMarkup(createElement(VoyageMapRail));
-    expect(html).toContain('판단 지도');
-    expect(html).toContain('근거');
-    expect(html).toContain('갈래');
+    expect(html).toContain('현재 판단 경로');
+    expect(html).toContain('근거 연결');
+    expect(html).toContain('data-testid="route-reading-strip"');
     expect(html).toContain('SEACHART_STUB');
     expect(html).not.toContain('EVIDENCE_MAP_STUB');
     // Crew activity is intentionally NOT in the rail anymore (it's duplicated by
     // the left-column "선원들이 일하고 있어요" header), so the rail must not render it.
     expect(html).not.toContain('CREW_STUB');
+  });
+
+  it('uses the same route/evidence switcher in the mobile modal surface', () => {
+    state.session = charted;
+    const html = renderToStaticMarkup(createElement(VoyageMapViews, { surface: 'modal' }));
+    expect(html).toContain('현재 판단 경로');
+    expect(html).toContain('근거 연결');
+    expect(html).toContain('min-h-[300px]');
+    expect(html).toContain('SEACHART_STUB');
   });
 
   it('keeps the empty sea chart as the first-view identity before a route is logged', () => {
@@ -80,7 +89,7 @@ describe('VoyageMapRail — full (expanded)', () => {
     state.session = { id: 's1', checkpoints: [], branches: [], waypoints: [] };
     const html = renderToStaticMarkup(createElement(VoyageMapRail));
     expect(html).not.toContain('EVIDENCE_MAP_STUB');
-    expect(html).toContain('갈래');
+    expect(html).toContain('현재 판단 경로');
     expect(html).not.toContain('SEACHART_STUB');
     expect(html).not.toContain('CREW_STUB');
   });
@@ -95,7 +104,7 @@ describe('VoyageMapRail — collapsed spine', () => {
       { id: 'w2', checkpoint_id: 'c1', type: 'course_change', headline: '항로', created_at: 'y' },
     ] };
     const html = renderToStaticMarkup(createElement(VoyageMapRail));
-    expect(html).toContain('판단 지도');        // vertical label
+    expect(html).toContain('판단 경로');        // vertical label
     expect(html).toContain('>2<');              // waypoint count badge
     expect(html).not.toContain('SEACHART_STUB'); // graph not rendered while collapsed
   });

@@ -77,6 +77,58 @@ describe('extractFile — guards run before any parser, never throw', () => {
     expect(r.note).toMatch(/PNG|형식/);
   });
 
+  it('extracts slide text and slide anchors from a PPTX', async () => {
+    const zip = new JSZip();
+    zip.file(
+      'ppt/slides/slide1.xml',
+      '<p:sld xmlns:a="a" xmlns:p="p"><p:cSld><a:p><a:r><a:t>시장 진입 전략</a:t></a:r></a:p>' +
+        '<a:p><a:r><a:t>첫 분기에는 핵심 고객군을 검증하고 전환율을 측정합니다.</a:t></a:r></a:p></p:cSld></p:sld>',
+    );
+    zip.file(
+      'ppt/slides/slide2.xml',
+      '<p:sld xmlns:a="a" xmlns:p="p"><p:cSld><a:p><a:r><a:t>실행 계획</a:t></a:r></a:p>' +
+        '<a:p><a:r><a:t>두 번째 분기에는 검증된 채널에 예산을 집중합니다.</a:t></a:r></a:p></p:cSld></p:sld>',
+    );
+    const buf = await zip.generateAsync({ type: 'arraybuffer' });
+    const r = await extractFile(new File([buf], 'strategy.pptx'), 'pptx');
+    expect(r.quality).toBe('medium');
+    expect(r.text).toContain('시장 진입 전략');
+    expect(r.text).toContain('실행 계획');
+    expect(r.slides_total).toBe(2);
+    expect(r.slides_read).toBe(2);
+    expect(r.units?.some((unit) => unit.source_anchor.slide === 2)).toBe(true);
+  });
+
+  it('extracts paragraphs from a DOCX', async () => {
+    const zip = new JSZip();
+    zip.file(
+      '[Content_Types].xml',
+      '<?xml version="1.0"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">' +
+        '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>' +
+        '<Default Extension="xml" ContentType="application/xml"/>' +
+        '<Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>' +
+        '</Types>',
+    );
+    zip.file(
+      '_rels/.rels',
+      '<?xml version="1.0"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+        '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>' +
+        '</Relationships>',
+    );
+    zip.file(
+      'word/document.xml',
+      '<?xml version="1.0"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>' +
+        '<w:p><w:r><w:t>가격 정책 검토 문서입니다.</w:t></w:r></w:p>' +
+        '<w:p><w:r><w:t>고객 반응과 매출 영향을 함께 확인해야 합니다.</w:t></w:r></w:p>' +
+        '</w:body></w:document>',
+    );
+    const buf = await zip.generateAsync({ type: 'arraybuffer' });
+    const r = await extractFile(new File([buf], 'pricing.docx'), 'docx');
+    expect(r.quality).toBe('medium');
+    expect(r.text).toContain('가격 정책 검토 문서입니다.');
+    expect(r.text).toContain('고객 반응과 매출 영향을 함께 확인해야 합니다.');
+  });
+
   it('extracts text from an HWPX (Contents/sectionN.xml, runs joined + entities decoded)', async () => {
     const zip = new JSZip();
     zip.file(

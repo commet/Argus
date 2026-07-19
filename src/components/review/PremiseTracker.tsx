@@ -152,7 +152,7 @@ export function PremiseTracker({ receipt }: { receipt: JudgmentReceipt }) {
                   <span className="inline-block px-1 py-0.5 mt-0.5 text-[10px] rounded border border-[var(--border-subtle)] text-[var(--text-tertiary)] tabular-nums shrink-0">P{p.ordinal}</span>
                   <div className="min-w-0 flex-1">
                     <span className="text-[var(--text-primary)]">{p.text}</span>
-                    {p.load_bearing && <span className="ml-1.5 text-[10px] text-[var(--accent)]">{L('핵심', 'load-bearing')}</span>}
+                    {p.load_bearing && <span className="ml-1.5 text-[10px] text-[var(--accent)]">{L('핵심', 'critical')}</span>}
                     {isOpenQ && <span className="ml-1.5 text-[10px] text-[var(--text-tertiary)]">{L('미결', 'open')}</span>}
                     {due && (
                       <span className="ml-1.5 text-[10px] px-1 py-0.5 rounded bg-[var(--warning)]/10 text-[var(--warning)] border border-[var(--warning)]/30">{L('확인할 때', 'due')}</span>
@@ -172,7 +172,7 @@ export function PremiseTracker({ receipt }: { receipt: JudgmentReceipt }) {
                         </p>
                         <div className="grid gap-1 sm:grid-cols-2">
                           <p>
-                            <span className="font-semibold text-[var(--text-secondary)]">{L('봉인 당시 값', 'Sealed value')}:</span>{' '}
+                            <span className="font-semibold text-[var(--text-secondary)]">{L('기록 당시 값', 'Value when recorded')}:</span>{' '}
                             {valueText(last.baseline_numeric_value, last.baseline_finding) ?? (last.baseline_only ? L('첫 기준값', 'First baseline') : L('표시 없음', 'Not shown'))}
                           </p>
                           <p>

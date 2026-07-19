@@ -13,7 +13,7 @@ export function receiptToMarkdown(r: JudgmentReceipt): string {
   }
 
   const lines: string[] = [];
-  lines.push(`# Judgment Receipt -- ${r.source_title}`);
+  lines.push(`# Document Review Record -- ${r.source_title}`);
   lines.push('');
   lines.push(`- 상태: ${r.state} · 검토 가능성: ${r.reviewability.score}/100`);
   lines.push(`- 문서 유형: ${r.profile.document_type} · 이해관계: ${r.profile.stakes}`);
@@ -70,7 +70,7 @@ export function receiptToMarkdown(r: JudgmentReceipt): string {
       if (f.fail_condition) lines.push(`  - 틀림: ${f.fail_condition}`);
       if (f.lean) lines.push(`  - 그때의 내 판단: ${f.lean}`);
       if (f.settled_at) {
-        lines.push(`  - 정산: ${f.outcome || 'recorded'}${f.what_happened ? ` -- ${f.what_happened}` : ''}`);
+        lines.push(`  - 실제 결과: ${f.outcome || 'recorded'}${f.what_happened ? ` -- ${f.what_happened}` : ''}`);
       }
     });
     lines.push('');
@@ -88,12 +88,12 @@ function isJudgmentMirror(r: JudgmentReceipt): boolean {
 
 function judgmentMirrorToMarkdown(r: JudgmentReceipt): string {
   const lines: string[] = [];
-  lines.push(`# Judgment Receipt -- ${r.source_title}`);
+  lines.push(`# Decision Record -- ${r.source_title}`);
   lines.push('');
   lines.push(`- State: ${r.state}`);
   lines.push('- AI verdict: none');
   lines.push('');
-  lines.push('## Sealed judgment');
+  lines.push('## Recorded judgment');
   lines.push(r.core_question || '(no question recorded)');
   lines.push('');
 
@@ -116,7 +116,7 @@ function judgmentMirrorToMarkdown(r: JudgmentReceipt): string {
   }
 
   lines.push('---');
-  lines.push('This is a user-sealed judgment mirror, not a document review.');
+  lines.push('This is a user-recorded decision, not a document review.');
   return lines.join('\n');
 }
 

@@ -175,7 +175,7 @@ function LoginContent() {
         <div className="text-center mb-6">
           <div className="mb-3"><Logo size="lg" /></div>
           <p className="text-[14px] text-[var(--text-secondary)]">
-            {L('결정의 궤적을 이어가려면 — 로그인해 주세요', "Pick up your decision's trail — sign in.")}
+          {L('저장한 결정 기록을 이어서 보려면 로그인해 주세요', 'Sign in to continue with your saved decision records.')}
           </p>
         </div>
 
@@ -405,22 +405,22 @@ function LoginContent() {
           {!isSignUp && !isReset && (
             <button
               onClick={() => { setIsReset(true); setError(''); setMessage(''); }}
-              className="w-full text-center text-[12px] text-[var(--text-tertiary)] hover:text-[var(--accent)] cursor-pointer transition-colors"
+              className="inline-flex min-h-11 w-full items-center justify-center text-center text-[12px] text-[var(--text-tertiary)] hover:text-[var(--accent)] cursor-pointer transition-colors"
             >
               {L('비밀번호를 잊으셨나요?', 'Forgot your password?')}
             </button>
           )}
 
           {/* Toggle Sign Up / Sign In / Reset */}
-          <p className="text-center text-[13px] text-[var(--text-secondary)]">
-            {isReset
+          <div className="flex min-h-11 items-center justify-center text-center text-[13px] text-[var(--text-secondary)]">
+            <span>{isReset
               ? L('비밀번호가 기억나셨나요?', 'Remembered your password?')
               : isSignUp
                 ? L('이미 계정이 있으신가요?', 'Already have an account?')
-                : L('처음이신가요?', 'New here?')}
+                : L('처음이신가요?', 'New here?')}</span>
             <button
               onClick={() => { setIsSignUp(isReset ? false : !isSignUp); setIsReset(false); setError(''); setMessage(''); }}
-              className="ml-1.5 text-[var(--accent)] font-semibold hover:underline cursor-pointer"
+              className="ml-0.5 inline-flex min-h-11 items-center px-1 text-[var(--accent)] font-semibold hover:underline cursor-pointer"
             >
               {isReset
                 ? L('로그인', 'Sign in')
@@ -428,7 +428,7 @@ function LoginContent() {
                   ? L('로그인', 'Sign in')
                   : L('회원가입', 'Sign up')}
             </button>
-          </p>
+          </div>
           </div>
         </div>
 
@@ -436,7 +436,7 @@ function LoginContent() {
         <div className="text-center mt-5">
           <LocaleLink
             href="/workspace"
-            className="text-[12px] text-[var(--text-tertiary)] hover:text-[var(--accent)] transition-colors"
+            className="inline-flex min-h-11 items-center text-[12px] text-[var(--text-tertiary)] hover:text-[var(--accent)] transition-colors"
           >
             {L('로그인 없이 계속 → 하루 결정 2~3개 분량 무료', 'Continue without login → about 2–3 decisions/day free')}
           </LocaleLink>

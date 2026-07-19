@@ -45,12 +45,12 @@ const LEGS: Leg[] = [
     leg: { ko: '제1구간', en: 'Leg I' },
     name: { ko: '묶기', en: 'Bind' },
     essence: {
-      ko: '노래를 듣기 전에, 당신의 밧줄을 먼저 묶습니다.',
-      en: 'Before the song, you tie your own rope.',
+      ko: 'AI의 의견을 보기 전에, 지금 생각을 먼저 적습니다.',
+      en: 'Write down your current thinking before reading AI opinions.',
     },
     detail: {
       ko: '현재의 판단과 확인할 날짜를 기록합니다. 판단은 고정하되, 다른 의견은 계속 듣습니다.',
-      en: 'Seal your current lean and a date to check it. Hands bound — ears open.',
+      en: 'Record your current view and a date to check the outcome. Keep listening as evidence changes.',
     },
     img: 'bind',
     source: 'The Siren Vase',
@@ -59,8 +59,8 @@ const LEGS: Leg[] = [
     leg: { ko: '제2구간', en: 'Leg II' },
     name: { ko: '듣기', en: 'Listen' },
     essence: {
-      ko: '크루가 노를 젓습니다. 많은 답을 만들 수 있지만 방향을 결정하지는 않습니다.',
-      en: 'The crew rows — they generate plenty, but never take the helm.',
+      ko: '여러 AI 검토자가 다른 관점과 빠진 근거를 보여줍니다.',
+      en: 'Several AI reviewers surface different perspectives and missing evidence.',
     },
     detail: {
       ko: 'AI가 대신 결정하지 않습니다. 최종 판단은 사용자가 확인합니다.',
@@ -74,8 +74,8 @@ const LEGS: Leg[] = [
     leg: { ko: '제3구간', en: 'Leg III' },
     name: { ko: '닿기', en: 'Land' },
     essence: {
-      ko: '정한 날, 봉인한 판단을 현실에 대고 다시 봅니다.',
-      en: 'On your date, you check the sealed call against reality.',
+      ko: '정한 날, 저장한 판단을 실제 결과와 다시 비교합니다.',
+      en: 'On your review date, compare the saved decision with the actual outcome.',
     },
     detail: {
       ko: '되돌리기 어려운 결정은 AI의 답이 아니라 현실의 행동에서 완성됩니다.',

@@ -50,8 +50,8 @@ export default function AuthCallbackPage() {
 
   return (
     <div className="flex-1 flex items-center justify-center">
-      <div className="text-center space-y-3">
-        <div className="w-6 h-6 border-2 border-[var(--accent)] border-t-transparent rounded-full animate-spin mx-auto" />
+      <div className="text-center space-y-3" role="status" aria-live="polite">
+        <div aria-hidden="true" className="w-6 h-6 border-2 border-[var(--accent)] border-t-transparent rounded-full animate-spin mx-auto" />
         <p className="text-[14px] text-[var(--text-secondary)]">{locale === 'ko' ? '로그인 중...' : 'Signing in...'}</p>
       </div>
     </div>

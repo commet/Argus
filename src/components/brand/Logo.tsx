@@ -30,7 +30,7 @@ export function Logo({
     </span>
   );
   return href ? (
-    <LocaleLink href={href} className="group inline-flex items-center">
+    <LocaleLink href={href} className="group inline-flex min-h-11 items-center">
       {mark}
     </LocaleLink>
   ) : (

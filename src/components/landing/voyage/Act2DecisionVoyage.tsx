@@ -93,10 +93,10 @@ export function Act2DecisionVoyage() {
           {/* Lead-in — ties the film's voyage to the artifact it leaves behind, so
               the receipt reads as "what you walk away with," not an orphaned card. */}
           <p className={`text-center ${locale === 'ko' ? 'break-keep' : ''}`} style={{ color: 'var(--bp-ink-soft)', fontSize: 'clamp(13px, 1vw, 14.5px)', lineHeight: 1.6, marginBottom: 14 }}>
-            {L('그 항해가 끝나면, 이렇게 한 장이 남아요.', 'When the voyage ends, a page like this remains.')}
+            {L('검토가 끝나면, 판단과 확인 계획이 한 장으로 남아요.', 'When the review ends, your decision and follow-up plan remain on one page.')}
           </p>
           <div
-            aria-label={L('판단 영수증 예시', 'Judgment receipt example')}
+            aria-label={L('판단 기록 예시', 'Decision record example')}
             style={{
               border: '1px solid var(--bp-ink-faint)',
               borderRadius: 4,
@@ -116,7 +116,7 @@ export function Act2DecisionVoyage() {
                   fontWeight: 600,
                 }}
               >
-                Judgment Receipt
+                Decision Record
               </div>
               <h3
                 className={locale === 'ko' ? 'break-keep' : ''}
@@ -129,7 +129,7 @@ export function Act2DecisionVoyage() {
                   fontWeight: 700,
                 }}
               >
-                {L('‘예산 2배’ 결정을 어떻게 봉인했나', 'How the “double the budget” call was sealed')}
+                {L('‘예산 2배’ 판단과 확인 계획', 'The “double the budget” decision and follow-up plan')}
               </h3>
             </div>
             <div
@@ -168,7 +168,7 @@ export function Act2DecisionVoyage() {
                 {L('AI 판정 —— 없음', 'AI VERDICT —— NONE')}
               </div>
               <p className={locale === 'ko' ? 'break-keep' : ''} style={{ margin: '12px auto 0', maxWidth: 480, textAlign: 'center', color: 'var(--bp-ink-soft)', fontSize: 12.5, lineHeight: 1.55 }}>
-                {L('AI는 판정하지 않습니다. 사용자가 기록한 판단과 이후의 현실만 이 한 장에 남습니다.', 'The AI renders no verdict — only your sealed call and later reality stay on this page.')}
+                {L('AI는 대신 결론을 내리지 않습니다. 사용자가 기록한 판단과 이후의 실제 결과만 이 한 장에 남습니다.', 'AI does not decide for you. Only your recorded decision and the later outcome remain on this page.')}
               </p>
             </div>
           </div>

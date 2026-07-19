@@ -210,7 +210,7 @@ export function VoyageChart({ onNavigated }: { onNavigated?: () => void } = {}) 
 
       {/* Selection panel (slides in below the chart for the picked node). The
           picked turn's full story renders in the SAME WaypointCard the rail
-          uses, plus a "이 지점에서 항해" rewind action. Active-node clicks just
+          uses, plus a "이 지점에서 다시 시작" rewind action. Active-node clicks just
           close — no empty panel. */}
       <AnimatePresence>
         {selectedId && (() => {
@@ -227,7 +227,7 @@ export function VoyageChart({ onNavigated }: { onNavigated?: () => void } = {}) 
               className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded text-[11px] font-semibold text-[var(--accent)] border border-[var(--accent)]/35 hover:bg-[var(--accent)]/10 transition-colors cursor-pointer min-h-[36px]"
             >
               <RotateCcw size={11} />
-              {L('이 지점에서 항해', 'Sail from here')}
+              {L('이 지점에서 다시 시작', 'Restart from here')}
               <ChevronRight size={10} />
             </button>
           );

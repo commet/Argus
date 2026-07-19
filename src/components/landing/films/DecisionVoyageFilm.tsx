@@ -439,7 +439,7 @@ function renderVals(t: number, L: (ko: string, en: string) => string) {
     [6500, 10000, act === 0 ? L('갈림길 · 예 / 아니오', 'Fork · yes / no') : L('갈림길 · 세 갈래', 'Fork · three ways')],
     [10000, 13000, L('선택 · 당신이 정한다', 'Choice · you decide')],
     [13000, 16400, L('전진 · 배가 나아간다', 'Advance · the ship moves')],
-    [16400, 19400, L('현재 방위 · 결정의 의미', 'Current Heading · what the decision means')],
+    [16400, 19400, L('결정 요약 · 결정의 의미', 'Decision summary · what the decision means')],
     [19400, 22000, L('다음 세션으로', 'On to the next session')],
   ];
   let pc = 6;
@@ -743,7 +743,7 @@ export function DecisionVoyageFilm({ speed = 1 }: DecisionVoyageFilmProps) {
               </svg>
               <span style={{ font: `700 10.5px/1 ${MONO}`, letterSpacing: '.12em', textTransform: 'uppercase', color: '#f0d68a', whiteSpace: 'nowrap' }}>{L('숨은 전제 · Argus가 짚어냄', 'Hidden premise · surfaced by Argus')}</span>
             </div>
-            <h4 style={{ margin: 0, font: `600 16px/1.4 ${SERIF}`, color: '#f4ecd6', wordBreak: 'keep-all' }}>{txt('premText')}</h4>
+            <h3 style={{ margin: 0, font: `600 16px/1.4 ${SERIF}`, color: '#f4ecd6', wordBreak: 'keep-all' }}>{txt('premText')}</h3>
             <p style={{ margin: 0, fontSize: 11.5, lineHeight: 1.45, color: '#cabb95', wordBreak: 'keep-all' }}>{txt('premSub')}</p>
           </div>
 
@@ -751,9 +751,9 @@ export function DecisionVoyageFilm({ speed = 1 }: DecisionVoyageFilmProps) {
           <div style={s('cA')}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
               <span style={{ font: `700 9.5px/1 ${MONO}`, letterSpacing: '.06em', textTransform: 'uppercase', color: txt('aEyeColor') }}>{txt('aEye')}</span>
-              <span style={s('aStamp')}>{L('현재 방위', 'Current Heading')}</span>
+              <span style={s('aStamp')}>{L('결정 요약', 'Decision Summary')}</span>
             </div>
-            <h4 style={{ margin: 0, font: `600 15px ${SERIF}`, color: '#1c1812', wordBreak: 'keep-all' }}>{txt('aTitle')}</h4>
+            <h3 style={{ margin: 0, font: `600 15px ${SERIF}`, color: '#1c1812', wordBreak: 'keep-all' }}>{txt('aTitle')}</h3>
             <p style={{ margin: 0, fontSize: 11, lineHeight: 1.45, color: '#6b5c38', wordBreak: 'keep-all' }}>{txt('aImpl')}</p>
             <span style={s('aPick')}>
               {L('여기로 정함 · 당신의 선택', 'You set the heading here')}
@@ -763,9 +763,9 @@ export function DecisionVoyageFilm({ speed = 1 }: DecisionVoyageFilmProps) {
           <div style={s('cB')}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
               <span style={{ font: `700 9.5px/1 ${MONO}`, letterSpacing: '.06em', textTransform: 'uppercase', color: txt('bEyeColor') }}>{txt('bEye')}</span>
-              <span style={s('bStamp')}>{L('현재 방위', 'Current Heading')}</span>
+              <span style={s('bStamp')}>{L('결정 요약', 'Decision Summary')}</span>
             </div>
-            <h4 style={{ margin: 0, font: `600 15px ${SERIF}`, color: '#1c1812', wordBreak: 'keep-all' }}>{txt('bTitle')}</h4>
+            <h3 style={{ margin: 0, font: `600 15px ${SERIF}`, color: '#1c1812', wordBreak: 'keep-all' }}>{txt('bTitle')}</h3>
             <p style={{ margin: 0, fontSize: 11, lineHeight: 1.45, color: '#6b5c38', wordBreak: 'keep-all' }}>{txt('bImpl')}</p>
             <span style={s('bPick')}>
               {L('여기로 정함 · 당신의 선택', 'You set the heading here')}
@@ -777,7 +777,7 @@ export function DecisionVoyageFilm({ speed = 1 }: DecisionVoyageFilmProps) {
               <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#8f3d33', boxShadow: '0 0 0 3px rgba(143,61,51,.18)' }} />
               <span style={{ font: `700 9px/1 ${MONO}`, letterSpacing: '.06em', textTransform: 'uppercase', color: '#8f3d33' }}>{txt('cEye')}</span>
             </div>
-            <h4 style={{ margin: 0, font: `600 14px ${SERIF}`, color: '#5a3a30', wordBreak: 'keep-all' }}>{txt('cTitle')}</h4>
+            <h3 style={{ margin: 0, font: `600 14px ${SERIF}`, color: '#5a3a30', wordBreak: 'keep-all' }}>{txt('cTitle')}</h3>
             <p style={{ margin: 0, fontSize: 10.5, lineHeight: 1.4, color: '#7a5b4e', wordBreak: 'keep-all' }}>{txt('cImpl')}</p>
           </div>
 
@@ -804,7 +804,7 @@ export function DecisionVoyageFilm({ speed = 1 }: DecisionVoyageFilmProps) {
           </div>
 
           <div style={s('oPlate')}>
-            <span style={{ flex: 'none', display: 'inline-flex', alignItems: 'center', font: `600 9.5px/1 ${MONO}`, letterSpacing: '.06em', textTransform: 'uppercase', color: '#8c6526', padding: '7px 11px', borderRadius: 8, border: '1px solid rgba(168,125,49,.34)', background: 'rgba(168,125,49,.12)' }}>{L('현재 방위', 'Current Heading')}</span>
+            <span style={{ flex: 'none', display: 'inline-flex', alignItems: 'center', font: `600 9.5px/1 ${MONO}`, letterSpacing: '.06em', textTransform: 'uppercase', color: '#8c6526', padding: '7px 11px', borderRadius: 8, border: '1px solid rgba(168,125,49,.34)', background: 'rgba(168,125,49,.12)' }}>{L('결정 요약', 'Decision Summary')}</span>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 3, minWidth: 0 }}>
               <h3 style={{ margin: 0, font: `600 15px/1.3 ${SERIF}`, color: '#1c1812', wordBreak: 'keep-all' }}>{txt('plateTitle')}</h3>
               <span style={{ fontSize: 11.5, lineHeight: 1.4, color: '#6b5c38', wordBreak: 'keep-all' }}>{txt('plateSub')}</span>
