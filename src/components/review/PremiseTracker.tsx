@@ -142,7 +142,12 @@ export function PremiseTracker({ receipt }: { receipt: JudgmentReceipt }) {
             const res = result?.id === p.premise_id ? result.status : null;
             const surface = res ? recheckSurface(res, p.ordinal, L) : null;
             return (
-              <div id={`premise-${p.premise_id}`} key={p.premise_id} className="text-[13px] border-b border-[var(--border-subtle)] last:border-0 pb-2.5 last:pb-0">
+              <div
+                id={`premise-${p.premise_id}`}
+                key={p.premise_id}
+                tabIndex={-1}
+                className="text-[13px] border-b border-[var(--border-subtle)] last:border-0 pb-2.5 last:pb-0 scroll-mt-24 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/40"
+              >
                 <div className="flex items-start gap-2">
                   <span className="inline-block px-1 py-0.5 mt-0.5 text-[10px] rounded border border-[var(--border-subtle)] text-[var(--text-tertiary)] tabular-nums shrink-0">P{p.ordinal}</span>
                   <div className="min-w-0 flex-1">

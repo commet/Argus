@@ -85,6 +85,7 @@ import { useRefineStore } from '@/stores/useRefineStore';
 import { useProjectStore } from '@/stores/useProjectStore';
 import { upsertToSupabase, softDeleteFromSupabase } from '@/lib/db';
 import { setStorage, __resetStore } from '@/lib/storage';
+import type { FeedbackRecord } from '@/stores/types';
 
 const mockUpsert = vi.mocked(upsertToSupabase);
 const mockDelete = vi.mocked(softDeleteFromSupabase);
@@ -219,6 +220,47 @@ describe('usePersonaStore mutations', () => {
     expect(updatedLogs[0].context).toBe('Log B');
 
     expect(mockUpsert).toHaveBeenCalledTimes(1);
+  });
+
+  it('updateFeedbackRecord — persists stakeholder reality checks locally and to Supabase', () => {
+    const record = {
+      id: 'feedback-1',
+      document_title: '가격 정책 검토',
+      document_text: '유료 전환율 목표는 12%다.',
+      feedback_perspective: 'stakeholder',
+      feedback_intensity: 'balanced',
+      results: [{
+        persona_id: 'persona-1',
+        overall_reaction: '근거를 먼저 확인하겠습니다.',
+        first_questions: [],
+        praise: [],
+        concerns: [],
+        approval_conditions: [],
+        classified_risks: [],
+      }],
+      created_at: '2026-07-19T00:00:00.000Z',
+    } as FeedbackRecord;
+    usePersonaStore.setState({ feedbackHistory: [record] });
+
+    const realityChecks = [{
+      id: 'reality-1',
+      statement_id: 'statement-1',
+      claim_id: 'claim-1',
+      statement: '고객 인터뷰 수를 확인해야 합니다.',
+      question: '실제 인터뷰는 몇 건이었나요?',
+      status: 'confirmed' as const,
+      note: '인터뷰 기록 18건 확인',
+      created_at: '2026-07-19T00:00:00.000Z',
+      checked_at: '2026-07-19T01:00:00.000Z',
+    }];
+    const results = [{ ...record.results[0], reality_checks: realityChecks }];
+
+    usePersonaStore.getState().updateFeedbackRecord(record.id, { results });
+
+    const updated = usePersonaStore.getState().feedbackHistory[0];
+    expect(updated.results[0].reality_checks).toEqual(realityChecks);
+    expect(mockSetStorage).toHaveBeenCalledWith('sot_feedback_history', [updated]);
+    expect(mockUpsert).toHaveBeenCalledWith('feedback_records', updated);
   });
 });
 

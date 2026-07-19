@@ -6,8 +6,11 @@ import {
   CircleAlert,
   CircleCheck,
   CircleDashed,
+  Clock3,
   FileText,
   ListFilter,
+  Plus,
+  XCircle,
 } from 'lucide-react';
 import { Modal } from '@/components/ui/Modal';
 import { useLocale } from '@/hooks/useLocale';
@@ -16,12 +19,18 @@ import {
   type DocumentClaimUnit,
   type StakeholderStatement,
 } from '@/lib/stakeholder-validation';
-import type { FeedbackRecord, Persona } from '@/stores/types';
+import type {
+  FeedbackRecord,
+  Persona,
+  StakeholderRealityCheck,
+  StakeholderRealityCheckStatus,
+} from '@/stores/types';
 
 interface StakeholderClaimMatrixProps {
   record: FeedbackRecord;
   personas: Persona[];
   onOpenPersona: (personaId: string) => void;
+  onUpdateRealityChecks?: (personaId: string, checks: StakeholderRealityCheck[]) => void;
 }
 
 type Selection =
@@ -43,12 +52,13 @@ function ToneIcon({ tone }: { tone: keyof typeof toneStyles }) {
   return <CircleDashed size={14} />;
 }
 
-export function StakeholderClaimMatrix({ record, personas, onOpenPersona }: StakeholderClaimMatrixProps) {
+export function StakeholderClaimMatrix({ record, personas, onOpenPersona, onUpdateRealityChecks }: StakeholderClaimMatrixProps) {
   const locale = useLocale();
   const L = (ko: string, en: string) => locale === 'ko' ? ko : en;
   const matrix = useMemo(() => buildStakeholderValidationMatrix(record, personas), [record, personas]);
   const [selection, setSelection] = useState<Selection | null>(null);
   const [sourceClaim, setSourceClaim] = useState<DocumentClaimUnit | null>(null);
+  const [draftNotes, setDraftNotes] = useState<Record<string, string>>({});
 
   if (matrix.claims.length === 0) {
     return (
@@ -68,6 +78,45 @@ export function StakeholderClaimMatrix({ record, personas, onOpenPersona }: Stak
     : selection.type === 'cell'
       ? selectedRow.cells[selection.claimIndex].statements
       : selectedRow.unmapped;
+  const checkRows = record.results.flatMap((result) => {
+    const persona = personas.find((item) => item.id === result.persona_id);
+    return (result.reality_checks ?? []).map((check) => ({
+      ...check,
+      personaId: result.persona_id,
+      personaName: persona?.name || result.persona_id,
+    }));
+  });
+  const completedChecks = checkRows.filter((check) => check.status !== 'pending').length;
+
+  const checksFor = (personaId: string) => record.results.find((result) => result.persona_id === personaId)?.reality_checks ?? [];
+  const saveChecks = (personaId: string, checks: StakeholderRealityCheck[]) => onUpdateRealityChecks?.(personaId, checks);
+  const checkIdFor = (statement: StakeholderStatement, claim?: DocumentClaimUnit | null) =>
+    `reality:${record.id}:${statement.id}:${claim?.id ?? 'unmapped'}`;
+  const addRealityCheck = (statement: StakeholderStatement) => {
+    if (!selectedRow || !onUpdateRealityChecks) return;
+    const existing = checksFor(selectedRow.personaId);
+    const id = checkIdFor(statement, selectedClaim);
+    if (existing.some((check) => check.id === id)) return;
+    saveChecks(selectedRow.personaId, [...existing, {
+      id,
+      statement_id: statement.id,
+      ...(selectedClaim ? { claim_id: selectedClaim.id } : {}),
+      statement: statement.text,
+      question: `${selectedRow.name}: ${statement.text}`,
+      status: 'pending',
+      created_at: new Date().toISOString(),
+    }]);
+  };
+  const updateRealityCheck = (personaId: string, checkId: string, patch: Partial<StakeholderRealityCheck>) => {
+    const now = new Date().toISOString();
+    saveChecks(personaId, checksFor(personaId).map((check) => check.id === checkId
+      ? {
+          ...check,
+          ...patch,
+          ...(patch.status ? { checked_at: patch.status === 'pending' ? undefined : now } : {}),
+        }
+      : check));
+  };
 
   const kindLabel = (kind: StakeholderStatement['kind']) => ({
     concern: L('우려', 'Concern'),
@@ -100,9 +149,10 @@ export function StakeholderClaimMatrix({ record, personas, onOpenPersona }: Stak
             {L('가상 반응입니다. 원문과 직접 연결된 반응만 표시하며, 실제 확인 전에는 확정하지 않습니다.', 'These are simulated responses. Only direct source links are shown; nothing is confirmed until checked with real stakeholders.')}
           </p>
         </div>
-        <p className="text-[10px] text-[var(--text-tertiary)]">
-          {L('셀을 눌러 발언과 원문을 함께 확인', 'Select a cell to compare response and source')}
-        </p>
+        <div className="text-right text-[10px] text-[var(--text-tertiary)]">
+          <p>{L('셀을 눌러 발언과 원문을 함께 확인', 'Select a cell to compare response and source')}</p>
+          {checkRows.length > 0 && <p className="mt-0.5 font-semibold tabular-nums text-[var(--accent)]">{L(`실제 확인 ${completedChecks}/${checkRows.length}`, `Reality checks ${completedChecks}/${checkRows.length}`)}</p>}
+        </div>
       </div>
 
       <div className="overflow-x-auto border border-[var(--border-subtle)]">
@@ -211,12 +261,72 @@ export function StakeholderClaimMatrix({ record, personas, onOpenPersona }: Stak
                   <div key={statement.id} className="border-l-2 border-[var(--border)] pl-2.5">
                     <p className="text-[9px] font-bold text-[var(--text-tertiary)]">{kindLabel(statement.kind)}</p>
                     <p className="mt-0.5 text-[12px] leading-relaxed text-[var(--text-primary)]">{statement.text}</p>
+                    {onUpdateRealityChecks && (() => {
+                      const id = checkIdFor(statement, selectedClaim);
+                      const tracked = checksFor(selectedRow.personaId).find((check) => check.id === id);
+                      return tracked ? (
+                        <p className="mt-1 inline-flex items-center gap-1 text-[10px] font-semibold text-[var(--accent)]"><Clock3 size={11} /> {L('실제 확인 목록에 있음', 'Added to reality checks')}</p>
+                      ) : (
+                        <button type="button" onClick={() => addRealityCheck(statement)} className="mt-1 inline-flex min-h-7 items-center gap-1 text-[10px] font-semibold text-[var(--accent)] hover:underline">
+                          <Plus size={11} /> {L('실제 확인에 추가', 'Add reality check')}
+                        </button>
+                      );
+                    })()}
                   </div>
                 ))}
               </div>
             </div>
           </div>
         </div>
+      )}
+
+      {checkRows.length > 0 && (
+        <section className="mt-4 border-t border-[var(--border-subtle)] pt-4" aria-labelledby="stakeholder-reality-checks-title">
+          <div className="flex items-end justify-between gap-3">
+            <div>
+              <h5 id="stakeholder-reality-checks-title" className="text-[13px] font-bold text-[var(--text-primary)]">{L('실제 확인 목록', 'Reality-check list')}</h5>
+              <p className="mt-0.5 text-[10.5px] text-[var(--text-secondary)]">{L('가상 반응을 실제 당사자에게 확인한 결과를 남깁니다.', 'Record what the real stakeholder actually confirms or disputes.')}</p>
+            </div>
+            <span className="shrink-0 text-[10px] tabular-nums text-[var(--text-tertiary)]">{completedChecks}/{checkRows.length}</span>
+          </div>
+          <div className="mt-3 divide-y divide-[var(--border-subtle)] border-y border-[var(--border-subtle)]">
+            {checkRows.map((check) => (
+              <article key={check.id} className="py-3">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[10px] font-bold text-[var(--text-tertiary)]">{check.personaName} · {L('확인할 발언', 'Statement to verify')}</p>
+                    <p className="mt-0.5 text-[12px] leading-relaxed text-[var(--text-primary)]">{check.statement}</p>
+                  </div>
+                  <div role="group" aria-label={L(`${check.personaName} 실제 확인 상태`, `Reality-check status for ${check.personaName}`)} className="inline-flex shrink-0 border border-[var(--border-subtle)] bg-[var(--bg)] p-0.5">
+                    {([
+                      { value: 'pending' as const, label: L('대기', 'Pending'), Icon: Clock3 },
+                      { value: 'confirmed' as const, label: L('확인됨', 'Confirmed'), Icon: CircleCheck },
+                      { value: 'contradicted' as const, label: L('달랐음', 'Disputed'), Icon: XCircle },
+                    ]).map(({ value, label, Icon }) => (
+                      <button
+                        key={value}
+                        type="button"
+                        aria-pressed={check.status === value}
+                        onClick={() => updateRealityCheck(check.personaId, check.id, { status: value as StakeholderRealityCheckStatus })}
+                        className={`inline-flex min-h-7 items-center gap-1 px-2 text-[9.5px] font-semibold ${check.status === value ? 'bg-[var(--surface)] text-[var(--accent)] shadow-sm' : 'text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]'}`}
+                      >
+                        <Icon size={11} /> {label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <input
+                  type="text"
+                  value={draftNotes[check.id] ?? check.note ?? ''}
+                  onChange={(event) => setDraftNotes((current) => ({ ...current, [check.id]: event.target.value }))}
+                  onBlur={(event) => updateRealityCheck(check.personaId, check.id, { note: event.target.value.trim() || undefined })}
+                  placeholder={L('실제 답변이나 확인 경로 메모', 'Note the real response or verification path')}
+                  className="mt-2 w-full border border-[var(--border-subtle)] bg-[var(--surface)] px-2.5 py-1.5 text-[11px] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:border-[var(--accent)] focus:outline-none"
+                />
+              </article>
+            ))}
+          </div>
+        </section>
       )}
 
       <Modal

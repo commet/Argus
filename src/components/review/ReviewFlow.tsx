@@ -91,6 +91,8 @@ export function ReviewFlow() {
   const [reattachError, setReattachError] = useState<string | null>(null);
   const [job, setJob] = useState<ReviewJob | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [requestedReceiptId, setRequestedReceiptId] = useState<string | null>(null);
+  const [requestedPremiseId, setRequestedPremiseId] = useState<string | null>(null);
   // Own & seal an obligation into the DKK ledger (unified action). null = closed.
   const [sealingObligation, setSealingObligation] = useState<JudgmentObligation | null>(null);
   const [sealBusy, setSealBusy] = useState(false);
@@ -130,22 +132,32 @@ export function ReviewFlow() {
     const receipts = useReviewStore.getState().receipts;
     const params = new URLSearchParams(window.location.search);
     const requestedReceipt = params.get('receipt');
-    if (requestedReceipt && receipts.some((r) => r.receipt_id === requestedReceipt)) {
-      setActiveId(requestedReceipt);
-      setPhase('receipt');
-      return;
-    }
+    setRequestedReceiptId(requestedReceipt);
+    setRequestedPremiseId(params.get('premise'));
     setPhase(receipts.length > 0 ? 'list' : 'import');
   }, []);
 
+  // A signed-in receipt can arrive after the first local render when cloud
+  // merge completes. Keep the deep link armed until that exact receipt exists;
+  // then consume it once so later store updates do not pull the user back.
   useEffect(() => {
-    if (phase !== 'receipt') return;
-    const premiseId = new URLSearchParams(window.location.search).get('premise');
-    if (!premiseId) return;
-    window.setTimeout(() => {
-      document.getElementById(`premise-${premiseId}`)?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    if (!requestedReceiptId) return;
+    if (!store.receipts.some((item) => item.receipt_id === requestedReceiptId)) return;
+    setActiveId(requestedReceiptId);
+    setPhase('receipt');
+    setRequestedReceiptId(null);
+  }, [requestedReceiptId, store.receipts]);
+
+  useEffect(() => {
+    if (phase !== 'receipt' || !activeId || !requestedPremiseId) return;
+    const timer = window.setTimeout(() => {
+      const premise = document.getElementById(`premise-${requestedPremiseId}`);
+      premise?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      premise?.focus({ preventScroll: true });
+      setRequestedPremiseId(null);
     }, 50);
-  }, [phase]);
+    return () => window.clearTimeout(timer);
+  }, [activeId, phase, requestedPremiseId]);
 
   // Elapsed counter while a review runs — turns the otherwise static spinner
   // into live feedback (and gates the "오래 걸리고 있어요" reassurance below).

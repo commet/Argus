@@ -72,6 +72,16 @@ describe('ReceiptView — scannable by default', () => {
     expect(container.querySelectorAll('[aria-current="location"]')).toHaveLength(0);
   });
 
+  it('sends the exact source anchor when a finding is opened', () => {
+    const onAnchorSelect = vi.fn();
+    act(() => { root.render(createElement(ReceiptView, { receipt: RECEIPT, onAnchorSelect })); });
+    clickButtonContaining('예산 ROI 근거 없음');
+    expect(onAnchorSelect).toHaveBeenCalledWith(expect.objectContaining({
+      page: 6,
+      section_path: ['6. 예산'],
+    }));
+  });
+
   it('drops the redundant anchor tag on a single-image finding (never "1쪽")', () => {
     // The vision pass anchors a single-image finding to page 1. There is only one
     // image, so "(이미지)" on every line just repeats — render NO tag, and never
