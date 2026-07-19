@@ -13,15 +13,15 @@ import { localizedErrorCopy } from '../lib/localized-message.js';
 export function handleToolException(tool: string, e: unknown): McpToolResult {
   if (e instanceof ArgusDirError) {
     const copy = localizedErrorCopy(null, undefined, {
-      en: { message: e.message, recovery: 'Pass an absolute .argus path with no "..".' },
-      ko: { message: 'Argus 기록 경로가 올바르지 않습니다.', recovery: '".."이 없는 절대 .argus 경로를 전달하세요.' },
+      en: { message: e.message, recovery: 'Set ARGUS_DIR (or the per-call argus_dir) to an absolute path with no "..", e.g. C:\\Users\\you\\.argus or /Users/you/.argus — or remove ARGUS_DIR to use the default ~/.argus. A ${VAR} may be passed through unexpanded by your host.' },
+      ko: { message: 'Argus 기록 경로(argus_dir / ARGUS_DIR)가 올바르지 않습니다.', recovery: '절대 경로여야 하고 ".."을 포함할 수 없습니다. MCP 설정에서 절대 경로(예: C:\\Users\\이름\\.argus, /Users/이름/.argus)로 바꾸거나 ARGUS_DIR을 지워 기본값(~/.argus)을 쓰세요. ${...} 같은 변수는 호스트가 확장하지 못할 수 있습니다.' },
     });
     return toolError({ ok: false, tool, error_code: e.code, ...copy });
   }
   if (e instanceof PathSafetyError) {
     const copy = localizedErrorCopy(null, undefined, {
-      en: { message: e.message, recovery: 'Use ids/labels matching [A-Za-z0-9._-] only.' },
-      ko: { message: '안전하지 않은 id 또는 label입니다.', recovery: 'id와 label에는 [A-Za-z0-9._-] 문자만 사용하세요.' },
+      en: { message: e.message, recovery: 'Use A-Za-z0-9._- only, with no trailing dot or space, and avoid reserved device names (con, nul, com1…). Example: "career-move".' },
+      ko: { message: '이 id 또는 label은 쓸 수 없습니다.', recovery: '영문·숫자·. _ - 만 쓰되, 끝에 마침표나 공백을 두지 말고 con·nul·com1 같은 예약어는 피하세요. 예: "career-move".' },
     });
     return toolError({ ok: false, tool, error_code: e.code, ...copy });
   }

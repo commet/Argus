@@ -154,6 +154,20 @@ export const config: ToolModule = {
       const existing = readConfig(dir) ?? { schema_version: SCHEMA_VERSION, locale: detectLocale(dir), boss: null, team: null, archive: null };
 
       if (writeKeys.length === 0) {
+        // action=update with no writable field is a MISTAKE (a read is
+        // action=status). Saying "Config read." reports the OPPOSITE operation
+        // as a success and hides that nothing changed — name the supported set.
+        if (a['action'] === 'update') {
+          return envelope({
+            ok: true, tool: 'argus_config',
+            surface: localizedMessage(dir, undefined, {
+              en: 'No setting was changed. Supported fields: locale (ko/en), ambient_mute (true/false), premise_sync (true/false).',
+              ko: '변경된 설정이 없습니다. 바꿀 수 있는 항목: locale(ko/en), ambient_mute(true/false), premise_sync(true/false).',
+            }),
+            next_actions: ['stop'],
+            data: { config: existing, existed: !!readConfig(dir), changed: [] },
+          });
+        }
         return envelope({
           ok: true,
           tool: 'argus_config',

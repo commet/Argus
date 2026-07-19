@@ -65,8 +65,20 @@ describe('argus_check_in with due premises', () => {
 
   it('stays fully silent when nothing at all is due', async () => {
     const dir = tmpArgusDir();
+    // A sealed-but-far-future decision → the ledger has history and nothing is
+    // due, so check_in stays silent. (An EMPTY ledger now shows the first-run
+    // on-ramp instead — see the next test — so this uses a non-empty ledger.)
+    await seal.handler({ argus_dir: dir, id: 'far', predicate: 'ships before the deadline', check_by: '2099-01-01', predicate_owner: 'user', today_override: TODAY });
     const r = await checkIn.handler({ argus_dir: dir, today_override: TODAY });
     expect(String(body(r)['surface'])).toBe('Nothing is due right now.');
+  });
+
+  it('a brand-new (empty) ledger shows the first-run on-ramp, not the veteran dead-end', async () => {
+    const dir = tmpArgusDir();
+    const r = body(await checkIn.handler({ argus_dir: dir, today_override: TODAY }));
+    expect(String(r['surface'])).toContain('Argus is ready'); // on-ramp, not "Nothing is due"
+    expect(r['next_actions']).toContain('argus_capture'); // a handle, not stop
+    expect((r['data'] as Record<string, unknown>)['first_run']).toBe(true);
   });
 });
 

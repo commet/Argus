@@ -18,6 +18,7 @@ import { checkIn } from './check-in.js';
 import { settle } from './settle.js';
 import { detectLocaleFromText } from '../lib/locale.js';
 import { gitCommonDirOf } from '../v2/git-discovery.js';
+import { handleToolException } from './errors.js';
 
 const premiseInput = z.strictObject({
   text: z.string().min(3).max(400).describe('결정이 기대는 사실 또는 아직 답하지 못한 질문입니다. 사용자의 표현을 그대로 씁니다.').optional(),
@@ -271,9 +272,18 @@ async function runPublic(
   args: Record<string, unknown>,
   handler: (args: Record<string, unknown>) => Promise<McpToolResult>,
 ): Promise<McpToolResult> {
-  const initError = await ensureInitialized(args);
-  if (initError) return rewriteResult(initError, publicName);
-  return rewriteResult(await handler(args), publicName);
+  try {
+    const initError = await ensureInitialized(args);
+    if (initError) return rewriteResult(initError, publicName);
+    return rewriteResult(await handler(args), publicName);
+  } catch (e) {
+    // ensureInitialized() → resolveToolArgusDir() THROWS ArgusDirError on a
+    // relative or unexpanded-${VAR} argus_dir — the #1 setup mistake. Without
+    // this catch the throw escaped to the server's String(e) fallback, so the
+    // user saw a raw "INTERNAL_ERROR: ArgusDirError: …" with no recovery. Route
+    // it through the typed handler to get the localized message + fix.
+    return rewriteResult(handleToolException(publicName, e), publicName);
+  }
 }
 
 export const decide: ToolModule = {

@@ -219,8 +219,13 @@ export const recall: ToolModule = {
         const shown = all.slice(0, 60);
         const locale = readVoice(dir, ledger, all[0]?.predicate);
         const wake = wakeText(ledger, today, dir);
+        // Empty ledger → an on-ramp with a capture handle, not "0 decision(s)" +
+        // stop (a "show me my decisions" newcomer must get a next move).
+        const allSurface = all.length === 0
+          ? (locale === 'ko' ? '아직 기록에 남은 결정이 없습니다. 고민 중인 결정을 말하면 argus_capture로 시작합니다.' : 'No decisions on record yet. Describe a decision you are weighing and argus_capture begins it.')
+          : (locale === 'ko' ? `기록에 남은 결정 ${all.length}건.` : `${all.length} decision(s) on record.`);
         return envelope({
-          ok: true, tool: 'argus_recall', surface: locale === 'ko' ? `기록에 남은 결정 ${all.length}건.` : `${all.length} decision(s) on record.`, next_actions: ['stop'],
+          ok: true, tool: 'argus_recall', surface: allSurface, next_actions: all.length === 0 ? ['argus_capture'] : ['stop'],
           data: { contracts: shown, ...(all.length > shown.length ? { truncated: all.length - shown.length } : {}), today, ...(wake ? { wake_text: wake } : {}) },
         });
       }
@@ -261,7 +266,7 @@ export const recall: ToolModule = {
         return envelope({
           ok: true, tool: 'argus_recall',
           surface: rn > 0 ? `${framing} ${rfreq}` : framing,
-          next_actions: ['stop'],
+          next_actions: ledger.ids.size === 0 ? ['argus_capture'] : ['stop'], // empty ledger → a handle, not a dead end
           data: {
             judgment_tier: null, judgment_score: null, // spine rule 2 — never a verdict about who you are
             reflections, reflection_count: reflections.length,
@@ -298,7 +303,7 @@ export const recall: ToolModule = {
       return envelope({
         ok: true, tool: 'argus_recall',
         surface: premiseAttribution ? `${freq} ${premiseAttribution}` : freq,
-        next_actions: ['stop'],
+        next_actions: ledger.ids.size === 0 ? ['argus_capture'] : ['stop'], // empty ledger → a handle, not a dead end
         data: {
           judgment_tier: null, judgment_score: null, // drift-guard asserts these stay null
           frequency_statement: freq,

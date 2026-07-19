@@ -247,6 +247,9 @@ describe('check_in and today override', () => {
 
   it('hints at account-sealed judgments when nothing is due locally but a token is set (P1-E4 ③, no network)', async () => {
     const dir = tmpArgusDir();
+    // a far-future seal so the ledger has history (nothing due) — this tests the
+    // caught-up "nothing due" surface, not the brand-new empty-ledger on-ramp.
+    await seal.handler({ argus_dir: dir, id: 'far', predicate: 'ships before the deadline', check_by: FUTURE, predicate_owner: 'user', today_override: '2026-07-01' });
     const orig = process.env.ARGUS_TOKEN;
     try {
       process.env.ARGUS_TOKEN = 'argus_pat_test';
