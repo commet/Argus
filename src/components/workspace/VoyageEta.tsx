@@ -14,7 +14,7 @@
  * ATA  = when it actually settles (graded_at) — surfaced elsewhere; here we just
  * mark "arrived" once allGraded.
  */
-import { Anchor, Sparkles } from 'lucide-react';
+import { CalendarCheck, CalendarClock } from 'lucide-react';
 import { contractStatus } from '@/lib/decision-contract';
 import type { DecisionContract } from '@/stores/types';
 import { useLocale } from '@/hooks/useLocale';
@@ -44,10 +44,10 @@ export function VoyageEta({
   if (cs.checkInDue) {
     return (
       <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10.5px] font-bold bg-amber-500/15 text-amber-700 dark:text-amber-400 ${className}`}>
-        <Sparkles size={10} className="shrink-0" />
+        <CalendarCheck size={10} className="shrink-0" />
         {cs.pending > 0
-          ? L(`지금 다시 보기 · ${cs.pending}개`, `Look back now · ${cs.pending}`)
-          : L('도착 — 다시 보기', 'Arrived — look back')}
+          ? L(`결과 확인 필요 · ${cs.pending}개`, `Outcome review due · ${cs.pending}`)
+          : L('결과 확인 필요', 'Outcome review due')}
       </span>
     );
   }
@@ -61,10 +61,10 @@ export function VoyageEta({
       <span
         className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10.5px] font-semibold ${className}`}
         style={{ color: 'var(--accent)', background: 'var(--gold-muted)' }}
-        title={L(`도착 예정 ${n}일 남음`, `${n} day${n === 1 ? '' : 's'} until arrival`)}
+        title={L(`확인일까지 ${n}일 남음`, `${n} day${n === 1 ? '' : 's'} until review`)}
       >
-        <Anchor size={10} className="shrink-0" />
-        {L(`도착 예정 D-${n}`, `ETA D-${n}`)}
+        <CalendarClock size={10} className="shrink-0" />
+        {L(`확인일까지 D-${n}`, `Review in ${n}d`)}
       </span>
     );
   }
@@ -76,8 +76,8 @@ export function VoyageEta({
         className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10.5px] font-semibold text-[var(--text-tertiary)] ${className}`}
         style={{ fontFamily: 'var(--font-mono)' }}
       >
-        <Anchor size={10} className="shrink-0" />
-        {L('도착 완료', 'Arrived')}
+        <CalendarCheck size={10} className="shrink-0" />
+        {L('결과 확인 완료', 'Outcome reviewed')}
       </span>
     );
   }

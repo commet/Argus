@@ -123,7 +123,7 @@ export function SharedGroundCard() {
           {baseline != null && current != null ? (
             <div className="mt-3.5 flex items-end gap-4 tabular-nums">
               <span className="text-right leading-none">
-                <span className="block text-[11px] text-[var(--text-tertiary)] mb-1.5">{L('봉인 당시', 'at seal')}</span>
+                <span className="block text-[11px] text-[var(--text-tertiary)] mb-1.5">{L('기록 당시', 'when recorded')}</span>
                 <span className="block text-[22px] font-semibold tracking-[-0.01em] text-[var(--text-secondary)]">{baseline}</span>
               </span>
               <span aria-hidden="true" className="flex items-center flex-1 max-w-[240px] min-w-[80px] pb-[8px]">

@@ -12,8 +12,10 @@ describe('document review latency contract', () => {
   });
 
   it('routes short pasted documents through the quick budget', () => {
-    expect(flow).toContain('sourceLength <= 6_000 && artifact.units.length <= 20');
-    expect(flow).toContain('? DEFAULT_BUDGET.quick');
+    const schema = fs.readFileSync(path.resolve('src/lib/review/schema.ts'), 'utf8');
+    expect(flow).toContain('selectReviewBudget(sourceLength, artifact.units.length)');
+    expect(schema).toContain('sourceChars <= 12_000 && unitCount <= DEFAULT_BUDGET.quick.max_units');
+    expect(schema).toContain('? DEFAULT_BUDGET.quick');
   });
 
   it('bounds pipeline stages — high enough for specific findings, low enough to stay fast', () => {

@@ -351,13 +351,17 @@ export function DecisionContractCard({
             <div className="mt-3">
               <PredicateList predicates={predicates} ko={ko} showVerdict />
             </div>
-            <button
-              type="button"
-              onClick={() => setSemanticSetupOpen(true)}
-              className="mt-3 text-[11.5px] text-[var(--text-tertiary)] hover:text-[var(--accent)] cursor-pointer transition-colors"
-            >
-              {L('정본 판단 기록으로 전환', 'Start canonical decision record')}
-            </button>
+            <div className="mt-4 rounded-xl bg-[var(--bg)]/70 px-3.5 py-3">
+              <p className="text-[12px] font-semibold text-[var(--text-primary)]">{L('이 결정의 근거와 결과도 이어서 남기기', 'Keep evidence and outcomes with this decision')}</p>
+              <p className="mt-0.5 text-[11px] leading-5 text-[var(--text-secondary)]">{L('새로 알게 된 사실과 최종 결과를 시간순으로 연결할 수 있어요.', 'Connect later evidence and the final outcome in time order.')}</p>
+              <button
+                type="button"
+                onClick={() => setSemanticSetupOpen(true)}
+                className="mt-2 text-[12px] font-semibold text-[var(--accent)] hover:underline cursor-pointer"
+              >
+                {L('근거 기록 시작', 'Start evidence follow-up')}
+              </button>
+            </div>
             <button
               type="button"
               onClick={() => setGradeOpen(true)}
@@ -428,13 +432,17 @@ export function DecisionContractCard({
           {/* Change the check-in date BEFORE it's due (was only possible as an
               "아직"-extend AFTER the date arrived). amendCheckIn keeps the old date in
               history (변침도 기록이다). */}
-          <button
-            type="button"
-            onClick={() => setSemanticSetupOpen(true)}
-            className="mt-3 text-[11.5px] text-[var(--text-tertiary)] hover:text-[var(--accent)] cursor-pointer transition-colors"
-          >
-            {L('정본 판단 기록으로 전환', 'Start canonical decision record')}
-          </button>
+          <div className="mt-4 rounded-xl bg-[var(--bg)]/70 px-3.5 py-3">
+            <p className="text-[12px] font-semibold text-[var(--text-primary)]">{L('결정 뒤에 알게 된 근거도 함께 남길까요?', 'Want to keep later evidence with this decision?')}</p>
+            <p className="mt-0.5 text-[11px] leading-5 text-[var(--text-secondary)]">{L('지금 판단과 확인 날짜를 연결해 두면, 나중에 근거와 결과를 같은 흐름에서 확인할 수 있어요.', 'Connect this decision and its review date so later evidence and outcomes stay together.')}</p>
+            <button
+              type="button"
+              onClick={() => setSemanticSetupOpen(true)}
+              className="mt-2 text-[12px] font-semibold text-[var(--accent)] hover:underline cursor-pointer"
+            >
+              {L('근거 기록 시작', 'Start evidence follow-up')}
+            </button>
+          </div>
 
           {!due && !showGrades && (
             <div className="mt-2">

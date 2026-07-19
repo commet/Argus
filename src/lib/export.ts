@@ -197,8 +197,40 @@ export function recastToMarkdown(item: RecastItem): string {
   return md;
 }
 
-export function copyToClipboard(text: string): Promise<void> {
-  return navigator.clipboard.writeText(text);
+function copyWithSelection(text: string): void {
+  const input = document.createElement('textarea');
+  const focused = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+  input.value = text;
+  input.setAttribute('readonly', '');
+  input.style.position = 'fixed';
+  input.style.left = '-9999px';
+  document.body.appendChild(input);
+  input.select();
+  input.setSelectionRange(0, input.value.length);
+  const copied = document.execCommand('copy');
+  input.remove();
+  focused?.focus();
+  if (!copied) throw new Error('CLIPBOARD_COPY_FAILED');
+}
+
+export async function copyToClipboard(text: string): Promise<void> {
+  if (navigator.clipboard?.writeText) {
+    try {
+      await new Promise<void>((resolve, reject) => {
+        const timeoutId = window.setTimeout(() => reject(new Error('CLIPBOARD_TIMEOUT')), 1500);
+        navigator.clipboard.writeText(text).then(
+          () => { window.clearTimeout(timeoutId); resolve(); },
+          (error) => { window.clearTimeout(timeoutId); reject(error); },
+        );
+      });
+      return;
+    } catch {
+      // Permission policies and embedded browsers can reject or indefinitely
+      // defer the async clipboard API. The selection fallback still preserves
+      // the user's explicit click without changing the exported text.
+    }
+  }
+  copyWithSelection(text);
 }
 
 const MAILTO_BODY_LIMIT = 1800;

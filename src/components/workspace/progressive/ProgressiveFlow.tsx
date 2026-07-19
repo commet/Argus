@@ -30,7 +30,6 @@ import { exportProgressiveAsReframe, exportProgressiveAsRecast } from '@/lib/pro
 import { useAgentStore } from '@/stores/useAgentStore';
 import { usePersonaStore } from '@/stores/usePersonaStore';
 import { useReframeStore } from '@/stores/useReframeStore';
-import { playTransitionTone, resumeAudioContext } from '@/lib/audio';
 import { useRecastStore } from '@/stores/useRecastStore';
 import { useProjectStore } from '@/stores/useProjectStore';
 import { useAgentAttentionStore, useAttributionClickOutside } from '@/stores/useAgentAttentionStore';
@@ -1528,19 +1527,6 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
   }, [session?.id, session?.workers?.filter(w => w.agent_type === 'human' && (w.status === 'sent' || w.status === 'waiting_response')).length]);
 
   const phase = session?.phase ?? 'input';
-  // Transition tone — the settings toggle existed but nothing in the
-  // progressive flow ever played it (hollow-shell audit C10). One soft tone
-  // per phase transition, only when enabled.
-  const audioEnabled = useSettingsStore((s) => s.settings.audio_enabled);
-  const audioVolume = useSettingsStore((s) => s.settings.audio_volume);
-  const prevPhaseRef = useRef<string | null>(null);
-  useEffect(() => {
-    if (prevPhaseRef.current !== null && prevPhaseRef.current !== phase && audioEnabled) {
-      resumeAudioContext();
-      playTransitionTone(audioVolume);
-    }
-    prevPhaseRef.current = phase;
-  }, [phase, audioEnabled, audioVolume]);
   const snapshots = session?.snapshots ?? [];
   const questions = session?.questions ?? [];
   const answers = session?.answers ?? [];
@@ -2809,8 +2795,8 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
             title: L('부풀린 성공 시나리오로 이 계획이 기대고 있는 전제를 시험해요', "Inflated success scenarios test the belief this plan leans on"),
           });
           cps.push({
-            key: 'seal', label: L('봉인', 'Seal'), state: 'future', group: '확인', groupEn: 'Check',
-            title: L('확인일과 함께 판단을 봉인해요 — 그날 현실과 맞춰봐요', 'Seal the call with a check date — reality answers then'),
+            key: 'seal', label: L('확인 계획', 'Follow-up'), state: 'future', group: '확인', groupEn: 'Check',
+            title: L('판단과 확인일을 기록해요 — 그날 실제 결과를 다시 봐요', 'Save the decision with a review date, then compare it with the actual outcome'),
           });
           return (
             <CheckpointRail
@@ -3573,7 +3559,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
               />
             ) : session?.falsification ? (
               <TestRecover
-                label={L('예측은 봉인됐어요. 최종 문서만 다시 만들면 돼요.', 'Your predictions are sealed — only the document needs regenerating.')}
+                label={L('확인 계획은 저장됐어요. 최종 문서만 다시 만들면 돼요.', 'Your follow-up plan is saved — only the document needs regenerating.')}
                 cta={L('최종 문서 다시 만들기', 'Regenerate the document')}
                 onClick={onFinalize}
               />

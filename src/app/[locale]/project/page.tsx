@@ -19,7 +19,7 @@ import { generateProjectBrief } from '@/lib/project-brief';
 import { OutputSelector } from '@/components/ui/OutputSelector';
 import { ExecutionReadiness } from '@/components/ui/ExecutionReadiness';
 import { LocaleLink } from '@/components/ui/LocaleLink';
-import { Layers, Map as MapIcon, Users, Check, ArrowRight, Download, Sparkles, Plus, Search, GitBranch, Scale, AlertTriangle, MessageSquare, LoaderCircle, CloudOff } from 'lucide-react';
+import { Layers, Map as MapIcon, Users, Check, ArrowLeft, ArrowRight, Download, Sparkles, Plus, Search, GitBranch, Scale, AlertTriangle, MessageSquare, LoaderCircle, CloudOff } from 'lucide-react';
 import { useLocale } from '@/hooks/useLocale';
 import { getVoyageState, VOYAGE_STATE_META, type VoyageLeg } from '@/lib/voyage-state';
 import { DecisionContractCard } from '@/components/projects/DecisionContractCard';
@@ -581,7 +581,7 @@ export default function ProjectPage() {
     ? L('결과 확인 완료', 'Outcome checked')
     : currentProjectIsDue
       ? L('결과 확인할 때', 'Check-in due')
-      : currentVoyageDone ? L('결정 완료', 'Decision complete') : L('진행 중', 'In progress');
+      : currentVoyageDone ? L('결정 기록됨', 'Decision recorded') : L('진행 중', 'In progress');
   const currentVoyageStatusClass = currentContractAllGraded
     ? 'bg-[var(--collab)] text-[var(--success)]'
     : currentProjectIsDue
@@ -599,12 +599,12 @@ export default function ProjectPage() {
           <div>
             <h1 ref={listHeadingRef} tabIndex={-1} className="text-[22px] font-bold text-[var(--text-primary)] tracking-tight outline-none">{L('프로젝트', 'Projects')}</h1>
             <p className="text-[13px] text-[var(--text-secondary)] mt-1">
-              {L('떠난 결정과 돌아올 결정을 한눈에.', 'Decisions that set out, and decisions coming back — at a glance.')}
+              {L('진행 중인 결정과 결과를 확인할 기록을 한눈에 봅니다.', 'See decisions in progress and records due for outcome review at a glance.')}
             </p>
           </div>
           {projects.length > 0 && (
             <LocaleLink
-              href="/workspace"
+              href="/workspace?new=1"
               onClick={() => setCurrentProjectId(null)}
               className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-[var(--accent-fg)] text-[12.5px] font-semibold hover:shadow-[var(--shadow-md)] transition-all cursor-pointer self-start sm:self-auto"
               style={{ background: 'var(--gradient-gold)' }}
@@ -645,12 +645,11 @@ export default function ProjectPage() {
             </Card>
           ) : projects.length === 0 ? (
             <Card className="text-center py-12">
-              <ArgusMascot moment="companion" size="lg" loading="eager" alt={L('항구를 지키는 Argus', 'Argus waiting at the harbor')} className="mx-auto mb-4" />
+              <ArgusMascot moment="companion" size="lg" loading="eager" alt={L('첫 결정을 기다리는 Argus', 'Argus waiting for your first decision')} className="mx-auto mb-4" />
               <p className="text-[14px] text-[var(--text-secondary)] font-medium">{L('아직 시작한 결정이 없어요', 'No decisions started yet')}</p>
               <p className="text-[12px] text-[var(--text-secondary)] mt-1 max-w-sm mx-auto break-keep">
-                {L('워크스페이스에서 첫 결정을 적으면, 여기가 그 결정이 돌아올 ', 'Write your first decision in the workspace and this becomes its ')}
-                <span className="whitespace-nowrap">{L('모항이 돼요.', 'home port.')}</span>{' '}
-                {L('확인일이 오면 이 페이지가 먼저 물어요 — ', 'When the check-in day comes, this page asks first — ')}
+                {L('워크스페이스에서 첫 결정을 적으면, 이곳에서 진행 상태와 확인일을 이어서 볼 수 있어요. ', 'Write your first decision in the workspace, then track its progress and review date here. ')}
+                {L('확인일이 오면 이 페이지가 먼저 물어요 — ', 'When the review date comes, this page asks — ')}
                 <span className="whitespace-nowrap">{L('그래서, 어떻게 됐어요?', 'so, how did it go?')}</span>
               </p>
               <div className="mt-4 flex items-center justify-center gap-2 flex-wrap">
@@ -906,7 +905,7 @@ export default function ProjectPage() {
                             className="relative z-[1] transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:scale-[1.04]"
                           />
                           <span className="absolute bottom-2 right-3 z-[1] font-mono text-[8px] uppercase tracking-[0.14em] text-[#f5f0e5]/70">
-                            {L('해도에서', 'from chart')}
+                            {L('프로젝트 상태', 'project status')}
                           </span>
                         </div>
 
@@ -1064,9 +1063,14 @@ export default function ProjectPage() {
       {/* Project detail */}
       {currentProject && (
         <div className="space-y-6 animate-fade-in">
-          <header className="space-y-3 border-b border-[var(--border-subtle)] pb-5">
-            <button type="button" onClick={returnToProjectList} className="inline-flex items-center min-h-8 text-[12px] font-semibold text-[var(--accent)] hover:underline cursor-pointer">
-              {L('← 프로젝트 목록', '← Project list')}
+          <header className="space-y-4 border-b border-[var(--border-subtle)] pb-6">
+            <button
+              type="button"
+              onClick={returnToProjectList}
+              className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3.5 text-[13px] font-semibold text-[var(--text-primary)] shadow-sm transition-[transform,border-color,box-shadow] hover:-translate-y-px hover:border-[var(--accent)]/45 hover:shadow-md cursor-pointer"
+            >
+              <ArrowLeft size={15} aria-hidden="true" />
+              {L('모든 프로젝트', 'All projects')}
             </button>
             <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
               <div className="min-w-0">
@@ -1086,12 +1090,13 @@ export default function ProjectPage() {
                     : currentContractAllGraded
                       ? L('예측과 실제 결과를 모두 확인한 결정입니다.', 'This decision has been checked against its actual outcome.')
                       : currentHasVoyage
-                        ? L('이 결정의 현재 방향과 근거, 다음 확인 약속을 모아 봅니다.', 'Review this decision’s current bearing, evidence, and next check-in.')
+                        ? L('이 결정의 현재 방향과 근거, 다음 확인 약속을 모아 봅니다.', 'Review this decision’s current direction, evidence, and next check-in.')
                         : L('진행 내용과 결과물을 한곳에서 이어서 관리합니다.', 'Continue the work and manage its outputs in one place.')}
                 </p>
               </div>
-              <div className="flex items-center gap-2 shrink-0 self-start">
-                <CopyButton getText={() => generateProjectBrief(currentProject)} label={L('브리프 복사', 'Copy brief')} />
+              <div className="shrink-0 self-start">
+                <div className="flex flex-wrap items-center gap-2">
+                <CopyButton getText={() => generateProjectBrief(currentProject)} label={L('프로젝트 요약 복사', 'Copy project summary')} />
                 <Button variant="secondary" size="sm" onClick={() => {
                   const brief = generateProjectBrief(currentProject);
                   const blob = new Blob([brief], { type: 'text/markdown' });
@@ -1107,8 +1112,12 @@ export default function ProjectPage() {
                   a.click();
                   window.setTimeout(() => URL.revokeObjectURL(url), 0);
                 }}>
-                  <Download size={14} /> {L('다운로드', 'Download')}
+                  <Download size={14} /> {L('요약 파일 (.md)', 'Summary file (.md)')}
                 </Button>
+                </div>
+                <p className="mt-1.5 text-[11px] leading-5 text-[var(--text-tertiary)] sm:text-right">
+                  {L('현재 판단·확인 계획·최종 결과물을 담습니다.', 'Includes the current decision, follow-up plan, and final deliverable.')}
+                </p>
               </div>
             </div>
             {!currentHasVoyage && (

@@ -29,8 +29,8 @@ function getCopy(page: PageKey, ko: boolean, knewYou: boolean) {
     return {
       title: L('다시 오셨네요 — 로그인만 다시 해주세요', 'Welcome back — just sign in again'),
       description: L(
-        '기록은 계정에 그대로 있어요. 로그인하면 봉인해 둔 결정들과 다시 만나요.',
-        'Your records are safe in your account. Sign in to meet the decisions you sealed.',
+        '기록은 계정에 그대로 있어요. 로그인하면 저장한 결정과 확인 일정을 다시 볼 수 있어요.',
+        'Your records are safe in your account. Sign in to see your saved decisions and review dates.',
       ),
     };
   }

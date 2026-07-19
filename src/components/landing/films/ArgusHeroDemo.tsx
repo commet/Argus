@@ -144,7 +144,7 @@ function renderVals(t: number, reduced: boolean, grain: boolean, captionBar: boo
   const statuses: Array<[string, string]> = [
     [L('상황 읽는 중', 'Reading the situation'), 'var(--accent)'],
     [L('크루 소환', 'Summoning crew'), 'var(--accent)'],
-    [L('해도 분석 중', 'Reading the chart'), 'var(--accent)'],
+    [L('결정 분석 중', 'Analyzing the decision'), 'var(--accent)'],
     [L('확인 필요', 'Needs your check'), '#c9852f'],
     [L('크루 작업 중', 'Crew at work'), 'var(--accent)'],
     [L('초안 완성', 'Draft ready'), 'var(--success)'],
@@ -669,7 +669,7 @@ export function ArgusHeroDemo({
               <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', gap: 13 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--accent)', animation: 'argglow 1.6s ease-in-out infinite' }} />
-                  <span style={{ font: `600 10px/1 ${MONO}`, letterSpacing: '.16em', textTransform: 'uppercase', color: '#8c6526', whiteSpace: 'nowrap' }}>{L('해도 분석 중', 'Reading the chart')}</span>
+                  <span style={{ font: `600 10px/1 ${MONO}`, letterSpacing: '.16em', textTransform: 'uppercase', color: '#8c6526', whiteSpace: 'nowrap' }}>{L('결정 분석 중', 'Analyzing the decision')}</span>
                 </div>
                 <div style={R.cd0}>
                   <div style={{ padding: '15px 17px', borderRadius: 12, background: 'linear-gradient(180deg,#fffdf8,#f7eed9)', border: '1px solid #e0cfa6', boxShadow: '0 2px 4px rgba(60,44,18,.16),0 14px 28px rgba(60,44,18,.16),inset 0 1px 0 rgba(255,255,255,.9)' }}>
@@ -775,7 +775,7 @@ export function ArgusHeroDemo({
             <div style={{ width: '100%', maxWidth: 620, display: 'flex', gap: 22, alignItems: 'center', flexWrap: 'wrap' }}>
               <div style={{ flex: 1, minWidth: 230, display: 'flex', flexDirection: 'column', gap: 13 }}>
                 <div>
-                  <Badge variant="gold">{L('현재 방위', 'Current Heading')}</Badge>
+                  <Badge variant="gold">{L('결정 요약', 'Decision Summary')}</Badge>
                 </div>
                 <h3 style={{ margin: 0, font: `600 23px/1.28 ${DISPLAY}`, color: '#1c1812', letterSpacing: '-.01em', wordBreak: 'keep-all' }}>{L('1차 진입 기획안 완성', 'First entry plan, ready')}</h3>
                 <p style={{ margin: 0, fontSize: 13.5, lineHeight: 1.65, color: 'var(--text-secondary)', wordBreak: 'keep-all' }}>

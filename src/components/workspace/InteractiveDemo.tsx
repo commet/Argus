@@ -1386,16 +1386,16 @@ function DemoSealCard({ scenario, decisionLine, onSealed, locale = 'ko' }: {
         <div className="p-6 md:p-9 space-y-6">
           <div className="flex items-center gap-2">
             <span className="text-[18px]">⚓</span>
-            <span className="text-[10px] font-bold text-[var(--accent)] uppercase tracking-[0.16em]">{L('봉인 — 결정을 예측으로', 'Seal — turn it into a prediction')}</span>
+            <span className="text-[10px] font-bold text-[var(--accent)] uppercase tracking-[0.16em]">{L('확인 계획 — 결과를 확인할 질문과 날짜', 'Follow-up plan — a question and date to review')}</span>
           </div>
 
           <div>
-            <p className="text-[11px] font-bold text-[var(--text-tertiary)] uppercase tracking-wider mb-1.5">{L('봉인할 결정', 'The decision to seal')}</p>
+            <p className="text-[11px] font-bold text-[var(--text-tertiary)] uppercase tracking-wider mb-1.5">{L('기록할 판단', 'Decision to record')}</p>
             <p className="text-[16px] md:text-[17px] text-[var(--text-primary)] font-medium leading-[1.5]">&ldquo;{decisionLine}&rdquo;</p>
           </div>
 
           <div className="rounded-xl bg-[var(--accent)]/[0.05] border border-[var(--accent)]/15 p-4">
-            <p className="text-[10px] font-bold text-[var(--accent)] uppercase tracking-wider mb-1.5">{L('가장 약한 고리를 시험할 예측 · 확인일에 판가름', 'Tests the weakest link this rests on · settles on the check-in day')}</p>
+            <p className="text-[10px] font-bold text-[var(--accent)] uppercase tracking-wider mb-1.5">{L('핵심 가정을 확인할 질문 · 확인일에 실제 결과와 비교', 'Question that tests the key assumption · compare with the outcome on the review date')}</p>
             <p className="text-[14px] md:text-[15px] text-[var(--text-primary)] leading-[1.55]">{scenario.seal.prediction}</p>
             <div className="mt-3 flex items-center gap-1.5 text-[12px] text-[var(--text-secondary)]">
               <span>📅</span>
@@ -1409,7 +1409,7 @@ function DemoSealCard({ scenario, decisionLine, onSealed, locale = 'ko' }: {
                 initial={{ opacity: 1 }} exit={{ opacity: 0 }}
                 className="w-full flex items-center justify-center gap-2 px-6 py-4 text-[var(--accent-fg)] rounded-2xl text-[15px] font-semibold shadow-[var(--shadow-sm)] cursor-pointer"
                 style={{ background: 'var(--gradient-gold)' }}>
-                {L('봉인하기', 'Seal it')} <ChevronRight size={15} />
+                {L('판단과 확인일 기록', 'Save decision and review date')} <ChevronRight size={15} />
               </motion.button>
             ) : (
               <motion.div key="seal-done" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease: EASE }}
@@ -1418,7 +1418,7 @@ function DemoSealCard({ scenario, decisionLine, onSealed, locale = 'ko' }: {
                   <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0" style={{ background: 'var(--gradient-gold)' }}>
                     <Check size={15} className="text-white" />
                   </div>
-                  <p className="text-[14px] font-semibold text-[var(--text-primary)] min-w-0">{L(`봉인했어요 — ${checkDate}에 제가 먼저 물어볼게요.`, `Sealed — I'll ask you first on ${checkDate}.`)}</p>
+                  <p className="text-[14px] font-semibold text-[var(--text-primary)] min-w-0">{L(`기록했어요 — ${checkDate}에 결과를 다시 물어볼게요.`, `Saved — I'll ask about the outcome on ${checkDate}.`)}</p>
                 </div>
                 <button onClick={go}
                   className="w-full flex items-center justify-center gap-1.5 py-2 rounded-lg text-[13px] font-medium text-[var(--accent)] hover:bg-[var(--accent)]/[0.06] cursor-pointer transition-colors">
@@ -1496,7 +1496,7 @@ function DemoSettleCard({ scenario, locale = 'ko' }: { scenario: DemoScenario; l
 
                 <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.9, duration: 0.5 }}
                   className="text-[12px] text-[var(--text-tertiary)] leading-relaxed pt-3 border-t border-[var(--border-subtle)]">
-                  {L('예측은 그럴듯했지만, 답은 현실만 갖고 있었어요. 이게 한 고리예요 — 결정을 내고, 봉인하고, 그날 돌아와 맞춰보는 것.', 'The prediction felt right — but only reality had the answer. That’s one loop: make the call, seal it, and return that day to check.')}
+                  {L('예측은 그럴듯했지만, 답은 실제 결과에 있었어요. 결정을 기록하고, 정한 날 돌아와 결과를 확인하면 한 번의 기록이 완성됩니다.', 'The prediction felt right, but the outcome held the answer. Record the decision, then return on the review date to complete the record.')}
                 </motion.p>
               </motion.div>
             )}
@@ -1753,11 +1753,11 @@ export function InteractiveDemo({ scenario, locale = 'ko', onStartReal, onBack }
     },
     {
       key: 'seal',
-      label: L('봉인', 'Seal'),
+      label: L('확인 계획', 'Follow-up'),
       state: phase === 'final' || phase === 'seal' ? 'current' : isDone ? 'done' : 'future',
       group: '확인',
       groupEn: 'Check',
-      title: L('결정과 예측을 봉인', 'Seal the decision and prediction'),
+      title: L('판단과 확인일 기록', 'Save the decision and review date'),
     },
     {
       key: 'settle',
@@ -1893,7 +1893,7 @@ export function InteractiveDemo({ scenario, locale = 'ko', onStartReal, onBack }
                 <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 1.0, duration: 0.5, ease: EASE }}
                   className="text-center py-6">
                   <p className="text-[13px] text-[var(--text-secondary)] mb-3">
-                    {L('초안이 나왔어요. 봉인하기 전에, 이걸 받아볼 사람은 뭐라고 할지 먼저 들어볼까요?', 'The draft is ready. Before you seal it — want to hear how the person who receives this would react?')}
+                    {L('초안이 나왔어요. 기록하기 전에, 이걸 받아볼 사람은 뭐라고 할지 먼저 들어볼까요?', 'The draft is ready. Before you save it, want to hear how the recipient might react?')}
                   </p>
                   <motion.button
                     onClick={() => setPhase('matching')}
@@ -1936,17 +1936,17 @@ export function InteractiveDemo({ scenario, locale = 'ko', onStartReal, onBack }
                 {/* Page divider */}
                 <div className="flex items-center gap-4 py-4 mb-2">
                   <div className="flex-1 h-px bg-gradient-to-r from-transparent via-[var(--accent)]/20 to-transparent" />
-                  <span className="text-[10px] font-bold text-[var(--accent)] uppercase tracking-widest">{L('봉인 전 점검', 'Before sealing')}</span>
+                  <span className="text-[10px] font-bold text-[var(--accent)] uppercase tracking-widest">{L('기록 전 점검', 'Before saving')}</span>
                   <div className="flex-1 h-px bg-gradient-to-r from-transparent via-[var(--accent)]/20 to-transparent" />
                 </div>
 
                 <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25, duration: 0.5, ease: EASE }}
                   className="text-center pb-4">
                   <h3 className="text-[20px] md:text-[22px] font-bold text-[var(--text-primary)] tracking-tight">
-                    {L('봉인 전 마지막 점검', 'One last check before you seal')}
+                    {L('기록 전 마지막 점검', 'One last check before you save')}
                   </h3>
                   <p className="text-[13px] text-[var(--text-secondary)] mt-1.5">
-                    {L('이 결정을 받아볼 사람은 이렇게 반응해요 — 반영할 건 반영하고 봉인해요', 'Here’s how the person who receives this reacts — fold in what matters, then seal')}
+                    {L('이 결정을 받아볼 사람은 이렇게 반응해요 — 필요한 내용을 반영한 뒤 기록하세요.', 'Here is how the recipient might react. Apply what matters, then save the decision.')}
                   </p>
                 </motion.div>
                 <DemoDMFeedback
@@ -2005,13 +2005,13 @@ export function InteractiveDemo({ scenario, locale = 'ko', onStartReal, onBack }
               <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6, duration: 0.5, ease: EASE }}
                 className="text-center py-6">
                 <p className="text-[13px] text-[var(--text-secondary)] mb-3">
-                  {L('문서는 도구일 뿐이에요. 진짜는 이 결정을 봉인하고 — 확인일에 맞춰보는 거예요.', 'The document is just a tool. The real thing is sealing this decision — and checking it on the day.')}
+                  {L('문서는 도구일 뿐이에요. 판단과 확인일을 기록하고, 그날 실제 결과를 다시 확인하세요.', 'The document is a tool. Save the decision and review date, then check the actual outcome on that day.')}
                 </p>
                 <motion.button onClick={() => setPhase('seal')} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
                   className="inline-flex items-center gap-2.5 px-6 py-3.5 rounded-2xl text-[15px] font-semibold text-[var(--accent-fg)] cursor-pointer shadow-lg hover:shadow-xl transition-shadow"
                   style={{ background: 'var(--gradient-gold)' }}>
                   <span className="text-[16px]">⚓</span>
-                  {L('이 결정을 봉인하기', 'Seal this decision')}
+                  {L('판단과 확인일 기록하기', 'Save decision and review date')}
                   <ChevronRight size={15} />
                 </motion.button>
               </motion.div>

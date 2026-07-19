@@ -91,7 +91,7 @@ describe('SettlementModal date-only close', () => {
     });
 
     const closeButton = Array.from(document.body.querySelectorAll('button'))
-      .find((button) => button.textContent?.includes('Looked back'));
+      .find((button) => button.textContent?.includes('Finish recording the outcome'));
     expect(closeButton).toBeTruthy();
 
     await act(async () => {

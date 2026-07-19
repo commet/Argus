@@ -263,7 +263,7 @@ export function Logbook({
                     <span className="text-[var(--bp-ink)] leading-snug">
                       {e.kind === 'seal' && (
                         <>
-                          <span className="font-semibold">{L('봉인', 'Sealed')}</span>
+                          <span className="font-semibold">{L('처음 판단 저장', 'Decision saved')}</span>
                           {' — '}
                           <span className="text-[var(--bp-ink-soft)]">
                             {L('「', '“')}
@@ -274,7 +274,7 @@ export function Logbook({
                       )}
                       {e.kind === 'amend' && (
                         <>
-                          <span className="font-semibold">{L('변침', 'Course change')}</span>
+                          <span className="font-semibold">{L('확인일 변경', 'Review date changed')}</span>
                           {' — '}
                           <span className="text-[var(--bp-ink-soft)]">
                             {e.amendTo
@@ -285,7 +285,7 @@ export function Logbook({
                       )}
                       {e.kind === 'settle' && (
                         <>
-                          <span className="font-semibold">{L('다시 봄', 'Looked back')}</span>
+                          <span className="font-semibold">{L('결과 확인', 'Outcome reviewed')}</span>
                           {' — '}
                           <span className="text-[var(--bp-ink-soft)]">{e.settleCounts}</span>
                         </>

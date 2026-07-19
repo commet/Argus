@@ -403,9 +403,9 @@ export function VoyageSea({
             ? L(`${idle}일째 잠잠`, `quiet for ${idle}d`)
             : L(meta.ko, meta.en);
       } else if (state === 'verified') {
-        sub = L('정산 완료', 'reckoned');
+        sub = L('결과 확인 완료', 'outcome recorded');
       } else if (state === 'arrived') {
-        sub = L('정산 대기', 'awaiting reckoning');
+        sub = L('결과 확인 대기', 'awaiting outcome');
       } else if (state === 'docked') {
         sub = L('시작 전', 'not started');
       } else {
@@ -415,8 +415,8 @@ export function VoyageSea({
         const d = cs.daysUntilCheckIn;
         sub =
           d === 0
-            ? L('확인일 오늘', 'check-in today')
-            : L(`확인일 ${-d}일 지남`, `check-in ${-d}d past`);
+        ? L('오늘 결과 확인', 'review outcome today')
+        : L('결과 확인 필요', 'outcome review due');
       }
 
       list.push({
@@ -465,7 +465,7 @@ export function VoyageSea({
         premise: null,
         sub:
           state === 'verified'
-            ? L('검수 · 정산 완료', 'review · reckoned')
+            ? L('검수 · 결과 확인 완료', 'review · outcome recorded')
             : `${L('검수 기록', 'review record')} · ${relativeDays(r.updated_at || createdAt, now, locale)}`,
         resolution: RESOLUTION[state],
         idleDays: (() => {
@@ -621,7 +621,7 @@ export function VoyageSea({
   const FILTERS: Array<{ key: string; ko: string; en: string; test: (s: SeaShip) => boolean; gold?: boolean; amber?: boolean }> = [
     { key: 'due', ko: '다시 볼 것', en: 'due', test: (s) => s.due, gold: true },
     { key: 'signal', ko: '확인 신호', en: 'signals', test: (s) => s.kind === 'project' && attentionSet.has(s.id) && !s.due, amber: true },
-    { key: 'idle', ko: '오래 방치', en: 'untended', test: (s) => s.state === 'adrift' || s.state === 'wrecked', amber: true },
+    { key: 'idle', ko: '업데이트 필요', en: 'update needed', test: (s) => s.state === 'adrift' || s.state === 'wrecked', amber: true },
     { key: 'sailing', ko: '진행 중', en: 'in progress', test: (s) => s.state === 'sailing' && !s.due },
     { key: 'home', ko: '완료', en: 'complete', test: (s) => s.state === 'arrived' || s.state === 'verified' },
     { key: 'docked', ko: '시작 전', en: 'not started', test: (s) => s.state === 'docked' && !s.due },
@@ -635,8 +635,8 @@ export function VoyageSea({
   //    left = old" into "left of this labeled line = adrift/wrecked water" —
   //    real structure, not fake precision (kills critique #4). ──
   const thresholds = [
-    { d: DRIFT_DAYS, label: L(`${DRIFT_DAYS}일 · 표류`, `${DRIFT_DAYS}d · adrift`) },
-    { d: WRECK_DAYS, label: L(`${WRECK_DAYS}일 · 난파`, `${WRECK_DAYS}d · wrecked`) },
+      { d: DRIFT_DAYS, label: L(`${DRIFT_DAYS}일 · 업데이트 필요`, `${DRIFT_DAYS}d · update needed`) },
+      { d: WRECK_DAYS, label: L(`${WRECK_DAYS}일 · 진행 중단`, `${WRECK_DAYS}d · paused`) },
   ]
     .map((t) => ({ ...t, x: logMax > 0 ? 88 - (Math.log1p(t.d) / logMax) * 76 : -1 }))
     .filter((t) => t.x > 9 && t.x < 85);
@@ -702,17 +702,17 @@ export function VoyageSea({
   // Honest caption — plain facts in the calm register, no manufactured urgency.
   const caption = beacon
     ? L(
-        `지금 다시 볼 결정 ${dueShips.length}건 — 등대가 비추고 있어요.`,
-        `${dueShips.length} decision${dueShips.length === 1 ? '' : 's'} to revisit — the light is on ${dueShips.length === 1 ? 'it' : 'them'}.`,
+        `결과를 확인할 결정이 ${dueShips.length}건 있어요.`,
+        `${dueShips.length} decision${dueShips.length === 1 ? ' is' : 's are'} ready for outcome review.`,
       )
     : untended > 0
       ? L(
-          `왼쪽 위 ${untended}척이 오래 손을 놓았어요 — 열면 다시 뜹니다.`,
-          `${untended} ship${untended === 1 ? '' : 's'} sit long-untended, top-left — open one and it refloats.`,
+          `업데이트가 필요한 결정이 ${untended}건 있어요.`,
+          `${untended} decision${untended === 1 ? '' : 's'} need an update.`,
         )
       : L(
-          `부를 배가 없어요. ${ships.length}척 모두 제 항로에 있어요.`,
-          `Nothing calls you back. All ${ships.length} ships are on course.`,
+          `지금 확인이 필요한 결정은 없어요. 총 ${ships.length}건이 기록되어 있습니다.`,
+          `No decisions need attention right now. ${ships.length} total are recorded.`,
         );
 
 
@@ -755,12 +755,12 @@ export function VoyageSea({
             </p>
             {beacon.premise ? (
               <p className="mt-0.5 text-[12px] leading-relaxed break-keep" style={{ color: `${N.ink}a8` }}>
-                {L('봉인한 내기 — ', 'Sealed bet — ')}
+                {L('처음 기록한 판단 — ', 'Saved decision — ')}
                 <em style={{ color: `${N.ink}d0` }}>「{beacon.premise.length > 52 ? `${beacon.premise.slice(0, 52)}…` : beacon.premise}」</em>
               </p>
             ) : (
               <p className="mt-0.5 text-[12px] leading-relaxed break-keep" style={{ color: `${N.ink}a1` }}>
-                {L('약속한 확인일이 왔어요. 봉인할 때의 눈으로 지금을 재볼 시간.', 'The check-in you promised has arrived — reread it with the eyes you sealed it with.')}
+                {L('약속한 확인일이 왔어요. 처음 판단과 실제 결과를 비교해 보세요.', 'The review date is here — compare your initial decision with what actually happened.')}
               </p>
             )}
           </div>
@@ -827,10 +827,10 @@ export function VoyageSea({
             onFocusDecision?.(next.id, next.kind);
             setActionShip(next.id);
           }}
-          aria-label={L('해도에서 결정 찾기', 'Find a decision on the chart')}
+          aria-label={L('결정 목록에서 찾기', 'Find a decision')}
           className="min-w-0 flex-1 bg-transparent py-1.5 text-[13px] font-medium text-[var(--text-primary)] outline-none"
         >
-          <option value="">{L('이름으로 배 선택', 'Choose by name')}</option>
+          <option value="">{L('이름으로 결정 선택', 'Choose a decision by name')}</option>
           {ships.map((ship) => (
             <option key={ship.id} value={ship.id}>{ship.name}</option>
           ))}
@@ -853,7 +853,7 @@ export function VoyageSea({
           alt=""
           fill
           sizes="(max-width: 640px) 100vw, 1120px"
-          quality={90}
+          quality={75}
           priority
           className="object-cover object-[58%_center] sm:object-center"
         />
@@ -921,7 +921,7 @@ export function VoyageSea({
               : { background: `${N.card}e0`, color: N.amber, boxShadow: `inset 0 0 0 1px ${N.amber}59` }}
           >
             <span aria-hidden className="w-1.5 h-1.5 rounded-full" style={{ background: filter === 'idle' ? N.card : N.amber }} />
-            <span className="text-[11.5px] font-semibold" style={{ fontFamily: 'var(--font-display)' }}>{L('놓치는 중', 'slipping')}</span>
+            <span className="text-[11.5px] font-semibold" style={{ fontFamily: 'var(--font-display)' }}>{L('확인 필요', 'needs attention')}</span>
             <span className="text-[11px] font-mono tabular-nums font-bold">{untended}</span>
           </button>
         )}
@@ -958,24 +958,24 @@ export function VoyageSea({
             <div aria-hidden className="absolute inset-0 z-[6]" style={{ background: `${N.paper}0a` }} onClick={() => setShowKey(false)} />
             <div
               role="group"
-              aria-label={L('지도 읽는 법', 'How to read the chart')}
+              aria-label={L('결정 상태 보기 설명', 'How to read the decision status view')}
               className="absolute bottom-20 right-2 z-[7] w-[280px] max-w-[calc(100%_-_1rem)] rounded-lg p-3.5 text-left"
               style={{ background: N.card, boxShadow: `0 8px 28px ${N.ink}42, inset 0 0 0 1px ${N.ink}1f` }}
             >
               {/* Lead with the payoff — what to LOOK for — then the mechanism.
                   Plain decision-language, not the nautical metaphor. */}
               <p className="text-[11.5px] font-semibold leading-snug mb-1" style={{ color: N.ink, fontFamily: 'var(--font-display)' }}>
-                {L('배 하나 = 결정 하나.', 'Each ship is one decision.')}
+                  {L('표식 하나는 결정 하나를 뜻합니다.', 'Each marker represents one decision.')}
               </p>
               <p className="text-[10.5px] leading-relaxed mb-2.5" style={{ color: `${N.ink}b0` }}>
-                {L('왼쪽 위로 갈수록 오래 방치됐고 아직 안 끝난 — 놓치기 쉬운 결정이에요.', 'The higher-left a ship sits, the more it is both long-untended and unfinished — the easy-to-miss ones.')}
+                {L('왼쪽 위로 갈수록 마지막 활동이 오래됐고 아직 진행 중인 결정입니다.', 'Markers toward the upper left are older and still in progress.')}
               </p>
               {/* the two axes — named by what each MEASURES, then its two ends */}
               <div className="space-y-1.5 mb-2.5">
                 <p className="text-[10.5px] leading-tight" style={{ color: `${N.ink}c8` }}>
                   <span className="font-semibold">{L('세로 ', 'Up/down ')}</span>
                   <span style={{ color: `${N.ink}90` }}>{L('얼마나 끝났나', 'how finished')}</span>
-                  {L(' — 위 진행 중 · 아래 끝나서 항구', ' — top: in progress · bottom: arrived')}
+                    {L(' — 위 진행 중 · 아래 완료', ' — top: in progress · bottom: complete')}
                 </p>
                 <p className="text-[10.5px] leading-tight" style={{ color: `${N.ink}c8` }}>
                   <span className="font-semibold">{L('가로 ', 'Left/right ')}</span>
@@ -988,8 +988,8 @@ export function VoyageSea({
               <div className="grid grid-cols-2 gap-x-2 gap-y-1.5 mb-2.5 pt-2.5" style={{ borderTop: `1px solid ${N.ink}12` }}>
                 {([
                   { st: 'sailing', ko: '진행 중', en: 'in progress' },
-                  { st: 'adrift', ko: '표류 — 방치됨', en: 'adrift' },
-                  { st: 'verified', ko: '확인까지 끝', en: 'reckoned' },
+                  { st: 'adrift', ko: '오래 확인하지 않음', en: 'not checked recently' },
+                  { st: 'verified', ko: '결과 확인 완료', en: 'outcome checked' },
                   { st: 'docked', ko: '아직 시작 전', en: 'not started' },
                 ] as const).map((r) => (
                   <span key={r.st} className="flex items-center gap-1.5 text-[10px]" style={{ color: `${N.ink}c8` }}>
@@ -1002,7 +1002,7 @@ export function VoyageSea({
               </div>
               <p className="text-[10px] pt-2 flex items-center gap-1.5" style={{ color: `${N.ink}9a`, borderTop: `1px solid ${N.ink}12` }}>
                 <span aria-hidden style={{ color: N.gold }}>◆</span>
-                {L('배를 누르면 바로 처리해요 — 열기·정산.', 'Tap a ship to act — open or settle, right here.')}
+                {L('표식을 누르면 결정을 열거나 결과를 확인할 수 있어요.', 'Select a marker to open the decision or review its outcome.')}
               </p>
             </div>
           </>
@@ -1278,7 +1278,7 @@ export function VoyageSea({
               {/* the sealed bet this decision rests on — its own words. */}
               {s.premise && (
                 <p className="mt-2 text-[11px] leading-relaxed break-keep" style={{ color: `${N.ink}b0` }}>
-                  <span className="font-mono text-[9px] uppercase tracking-[0.1em]" style={{ color: `${N.ink}70` }}>{L('봉인한 전제', 'sealed premise')}</span><br />
+                  <span className="font-mono text-[9px] uppercase tracking-[0.1em]" style={{ color: `${N.ink}70` }}>{L('처음 기록한 전제', 'saved premise')}</span><br />
                   <em style={{ color: `${N.ink}d8` }}>「{s.premise.length > 60 ? `${s.premise.slice(0, 60)}…` : s.premise}」</em>
                 </p>
               )}
@@ -1294,7 +1294,7 @@ export function VoyageSea({
                 <div className="mt-2 rounded-lg px-2.5 py-2" style={{ background: `${leverageHue}14` }}>
                   <p className="text-[10.5px] font-semibold flex items-center gap-1.5" style={{ color: leverageHue }}>
                     <span aria-hidden>⚭</span>
-                    {L(`같은 전제 위 ${leverageSibs.length + 1}척 — 하나 흔들리면 같이`, `${leverageSibs.length + 1} on this same premise — one moves, all move`)}
+                    {L(`같은 전제를 쓰는 결정 ${leverageSibs.length + 1}개`, `${leverageSibs.length + 1} decisions share this premise`)}
                   </p>
                   {leverageShaky && (
                     <p className="mt-1 text-[10.5px] leading-snug flex items-start gap-1.5" style={{ color: N.amber }}>
@@ -1318,7 +1318,7 @@ export function VoyageSea({
                       </button>
                     ))}
                     {leverageSibs.length > 4 && (
-                      <span className="text-[10px]" style={{ color: `${N.ink}80` }}>{L(`외 ${leverageSibs.length - 4}척`, `+${leverageSibs.length - 4} more`)}</span>
+                        <span className="text-[10px]" style={{ color: `${N.ink}80` }}>{L(`외 ${leverageSibs.length - 4}개`, `+${leverageSibs.length - 4} more`)}</span>
                     )}
                   </div>
                 </div>
@@ -1333,7 +1333,7 @@ export function VoyageSea({
                     className="flex-1 inline-flex items-center justify-center gap-1 rounded-lg px-2.5 py-2 text-[12px] font-semibold cursor-pointer transition-opacity hover:opacity-90"
                     style={{ background: N.gold, color: N.ink }}
                   >
-                    {L('정산·다시 보기', 'Settle')}
+                    {L('결과 확인·다시 보기', 'Review outcome')}
                   </button>
                 )}
                 <button
@@ -1385,7 +1385,7 @@ export function VoyageSea({
                 premise. Turns a drift notice into "N of your calls are exposed." */}
             {driftExposed >= 2 && (
               <span className="text-[10px] font-semibold shrink-0" style={{ color: N.amber }}>
-                · {L(`그 위 ${driftExposed}척`, `${driftExposed} on it`)}
+              · {L(`연결된 결정 ${driftExposed}개`, `${driftExposed} linked`)}
               </span>
             )}
             <span aria-hidden className="text-[11px] shrink-0" style={{ color: `${N.ink}80` }}>→</span>

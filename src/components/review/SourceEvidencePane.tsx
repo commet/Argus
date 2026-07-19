@@ -506,7 +506,7 @@ export function SourceEvidencePane({
         </pre>
       ) : (
         <div className="flex h-40 items-center justify-center px-6 text-center text-[12px] text-[var(--text-tertiary)]">
-          {L('원문은 저장하지 않았어요. 판단과 근거 위치만 영수증에 남아 있습니다.', 'The source was not stored. The receipt keeps only the judgment and evidence locations.')}
+          {L('원문은 저장하지 않았어요. 검수 결과와 근거 위치만 기록에 남아 있습니다.', 'The source was not stored. The record keeps only the review result and evidence locations.')}
         </div>
       )}
     </section>

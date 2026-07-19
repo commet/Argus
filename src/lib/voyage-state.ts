@@ -91,12 +91,12 @@ interface StateMeta {
 }
 
 export const VOYAGE_STATE_META: Record<VoyageState, StateMeta> = {
-  docked:   { ko: '출항 전',     en: 'Docked',   tone: 'neutral' },
-  sailing:  { ko: '항해 중',     en: 'Sailing',  tone: 'active' },
-  adrift:   { ko: '표류',        en: 'Adrift',   tone: 'warning' },
-  wrecked:  { ko: '난파',        en: 'Wrecked',  tone: 'danger' },
-  arrived:  { ko: '입항',        en: 'Arrived',  tone: 'arrived' },
-  verified: { ko: '검증된 항해', en: 'Verified', tone: 'gold' },
+  docked:   { ko: '시작 전',       en: 'Not started',     tone: 'neutral' },
+  sailing:  { ko: '검토 중',       en: 'In review',       tone: 'active' },
+  adrift:   { ko: '업데이트 필요', en: 'Update needed',   tone: 'warning' },
+  wrecked:  { ko: '진행 중단',     en: 'Paused',          tone: 'danger' },
+  arrived:  { ko: '결정 기록됨',   en: 'Decision saved',  tone: 'arrived' },
+  verified: { ko: '결과 확인 완료', en: 'Outcome reviewed', tone: 'gold' },
 };
 
 const LEG_LABELS: Record<VoyageLeg, { ko: string; en: string }> = {

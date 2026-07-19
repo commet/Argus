@@ -58,7 +58,7 @@ function ConnectApproval() {
       <main className="min-h-screen grid place-items-center px-6">
         <section className="w-full max-w-md rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-7 text-center">
           <h1 className="text-xl font-bold text-[var(--text-primary)]">{L('Argus 계정 연결', 'Connect your Argus account')}</h1>
-          <p className="mt-3 text-sm leading-6 text-[var(--text-secondary)]">{L(`${clientName}에서 봉인한 판단을 계정과 동기화하려면 먼저 로그인하세요.`, `Sign in to sync judgments sealed by ${clientName} with your account.`)}</p>
+          <p className="mt-3 text-sm leading-6 text-[var(--text-secondary)]">{L(`${clientName}에서 기록한 판단을 계정과 동기화하려면 먼저 로그인하세요.`, `Sign in to sync decisions recorded by ${clientName} with your account.`)}</p>
           <LocaleLink href={`/login?redirect=${encodeURIComponent(returnPath)}`} className="mt-6 inline-flex rounded-lg bg-[var(--accent)] px-5 py-2.5 text-sm font-semibold text-[var(--accent-fg)]">
             {L('로그인하고 계속', 'Sign in and continue')}
           </LocaleLink>

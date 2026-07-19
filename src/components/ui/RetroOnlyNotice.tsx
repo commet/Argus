@@ -64,7 +64,7 @@ export function RetroOnlyNotice({ className }: { className?: string }) {
       <History size={14} className="text-[var(--text-tertiary)] shrink-0 mt-0.5" />
       <p className="text-[12.5px] text-[var(--text-secondary)] leading-[1.55]">
         {L(
-          '연습 고리(회고)는 여기 기록에 쌓이지 않아요 — 결과를 알고 되짚은 거니까요. 실제 기록은 결과를 모르는 채로 거는 진짜 봉인부터 시작돼요.',
+          '회고 연습은 실제 판단 기록 수에 포함하지 않아요. 실제 기록은 결과를 모르는 시점에 남긴 결정부터 시작됩니다.',
           "Practice loops (retro) don't build this record — they look back on outcomes you already knew. Your real record starts with the first real seal, one made before you know how it turns out.",
         )}
       </p>

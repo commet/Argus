@@ -70,13 +70,13 @@ export function recordStripLine(
   const reviewSettled = review?.settled ?? 0;
   const parts: string[] = [];
   if (record.loops > 0) {
-    parts.push(ko ? `닫은 고리 ${record.loops}개` : `${record.loops} loop${record.loops === 1 ? '' : 's'} closed`);
+    parts.push(ko ? `결과 확인 완료 ${record.loops}건` : `${record.loops} outcome${record.loops === 1 ? '' : 's'} reviewed`);
     if (record.betsHeld > 0) parts.push(ko ? `적중한 가설 ${record.betsHeld}개` : `${record.betsHeld} bet${record.betsHeld === 1 ? '' : 's'} held`);
     if (record.risksAvoided > 0) parts.push(ko ? `비켜 간 위험 ${record.risksAvoided}개` : `${record.risksAvoided} risk${record.risksAvoided === 1 ? '' : 's'} steered past`);
     if (record.goodOutcomesOnLuck > 0) parts.push(ko ? `그중 운으로 본 게 ${record.goodOutcomesOnLuck}개` : `${record.goodOutcomesOnLuck} marked as luck`);
   }
   if (reviewSettled > 0) {
-    parts.push(ko ? `검수 예측 ${reviewSettled}개 정산` : `${reviewSettled} review prediction${reviewSettled === 1 ? '' : 's'} settled`);
+    parts.push(ko ? `문서 검수 결과 확인 ${reviewSettled}건` : `${reviewSettled} document-review outcome${reviewSettled === 1 ? '' : 's'} recorded`);
   }
   return parts.join(' · ');
 }
@@ -94,12 +94,12 @@ export function recordCompactLine(
 ): string | null {
   const ko = locale === 'ko';
   if (record.loops > 0) {
-    return ko ? `⚓ 닫은 고리 ${record.loops}개` : `⚓ ${record.loops} loop${record.loops === 1 ? '' : 's'} closed`;
+    return ko ? `결과 확인 완료 ${record.loops}건` : `${record.loops} outcome${record.loops === 1 ? '' : 's'} reviewed`;
   }
   if (sealedCount > 0) {
     return ko
-      ? `⚓ 봉인 ${sealedCount}개 — 첫 확인일이 오면 기록이 시작돼요`
-      : `⚓ ${sealedCount} sealed — the record starts on the first check-in day`;
+      ? `확인 대기 ${sealedCount}건 — 확인일이 오면 결과를 이어서 기록해요`
+      : `${sealedCount} awaiting review — add the outcome on the review date`;
   }
   return null;
 }
@@ -147,8 +147,8 @@ export function firstVoyageInscription(
   // Whole elapsed weeks — floor, clamped at 0 (a same-day seal reads "0주째").
   const weeks = Math.max(0, Math.floor((now - then) / (7 * 86_400_000)));
   return locale === 'ko'
-    ? `첫 항해 ${since} · 오늘로 ${weeks}주째`
-    : `First voyage ${since} · week ${weeks} today`;
+    ? `기록 시작 ${since} · ${weeks}주 경과`
+    : `Record started ${since} · ${weeks} weeks ago`;
 }
 
 /**

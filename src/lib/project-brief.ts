@@ -1,6 +1,38 @@
 import { getStorage, STORAGE_KEYS } from './storage';
 import { getCurrentLanguage } from '@/lib/i18n';
-import type { Project, ReframeItem, RecastItem, SynthesizeItem, FeedbackRecord, HiddenAssumption } from '@/stores/types';
+import type {
+  Project,
+  ReframeItem,
+  RecastItem,
+  SynthesizeItem,
+  FeedbackRecord,
+  HiddenAssumption,
+  ProgressiveSession,
+} from '@/stores/types';
+
+function latestProgressiveSession(projectId: string): ProgressiveSession | null {
+  const sessions = getStorage<ProgressiveSession[]>(STORAGE_KEYS.PROGRESSIVE_SESSIONS, [])
+    .filter((session) => session.project_id === projectId);
+  return sessions.sort((a, b) => {
+    const aTime = new Date(a.updated_at || a.created_at || 0).getTime();
+    const bTime = new Date(b.updated_at || b.created_at || 0).getTime();
+    return aTime - bTime;
+  }).at(-1) ?? null;
+}
+
+function resolveSessionText(session: ProgressiveSession, value: string | null | undefined): string {
+  if (!value) return '';
+  if (!value.startsWith('@cpblob:')) return value;
+  return session.checkpoint_blobs?.[value.slice('@cpblob:'.length)] ?? value;
+}
+
+function exportedDraft(session: ProgressiveSession): { label?: string; text: string } {
+  const drafts = Array.isArray(session.drafts) ? session.drafts : [];
+  const selected = drafts.find((draft) => draft.id === session.released_draft_id)
+    ?? drafts.find((draft) => draft.id === session.active_draft_id);
+  const text = resolveSessionText(session, selected?.final_text || session.final_deliverable);
+  return { label: selected?.version_label, text: text.trim() };
+}
 
 export function generateProjectBrief(project: Project | null): string {
   if (!project) return '';
@@ -15,6 +47,7 @@ export function generateProjectBrief(project: Project | null): string {
     .filter((s) => s.project_id === project.id && s.status === 'done');
   const feedbacks = getStorage<FeedbackRecord[]>(STORAGE_KEYS.FEEDBACK_HISTORY, [])
     .filter((f) => f.project_id === project.id);
+  const progressive = latestProgressiveSession(project.id);
 
   const sections: string[] = [];
   const dateStr = new Date().toLocaleDateString(ko ? 'ko-KR' : 'en-US', ko ? undefined : { year: 'numeric', month: 'short', day: 'numeric' });
@@ -23,6 +56,100 @@ export function generateProjectBrief(project: Project | null): string {
   sections.push(`# ${project.name}`);
   sections.push(`> Argus Project Brief — ${dateStr}`);
   sections.push('');
+
+  if (project.description?.trim()) {
+    sections.push(project.description.trim());
+    sections.push('');
+  }
+
+  // The main web flow now stores its work in ProgressiveSession. The previous
+  // exporter only read the four legacy tool stores, so a completed voyage
+  // downloaded as a title plus empty markdown headings. Keep the legacy export
+  // below, but lead with the data the project page actually renders.
+  if (progressive) {
+    const mix = progressive.final_mix ?? progressive.mix;
+    const draft = exportedDraft(progressive);
+
+    sections.push(L('## 프로젝트 요약', '## Project summary'));
+    if (progressive.problem_text?.trim()) {
+      sections.push(L(`**시작 질문**: ${progressive.problem_text.trim()}`, `**Starting question**: ${progressive.problem_text.trim()}`));
+    }
+    if (progressive.decision_maker?.trim()) {
+      sections.push(L(`**결정 담당자**: ${progressive.decision_maker.trim()}`, `**Decision owner**: ${progressive.decision_maker.trim()}`));
+    }
+    if (mix?.executive_summary?.trim()) {
+      sections.push('');
+      sections.push(L('### 핵심 요약', '### Executive summary'));
+      sections.push(mix.executive_summary.trim());
+    }
+    if ((mix?.key_assumptions || []).length > 0) {
+      sections.push('');
+      sections.push(L('### 확인이 필요한 전제', '### Assumptions to verify'));
+      mix!.key_assumptions.forEach((assumption) => sections.push(`- ${assumption}`));
+    }
+    if ((mix?.next_steps || []).length > 0) {
+      sections.push('');
+      sections.push(L('### 다음 행동', '### Next actions'));
+      mix!.next_steps.forEach((step) => sections.push(`- ${step}`));
+    }
+    sections.push('');
+
+    if (draft.text) {
+      sections.push(L(
+        `## 최종 결과물${draft.label ? ` · ${draft.label}` : ''}`,
+        `## Final deliverable${draft.label ? ` · ${draft.label}` : ''}`,
+      ));
+      sections.push(draft.text);
+      sections.push('');
+    } else if ((mix?.sections || []).length > 0) {
+      sections.push(L('## 작업 결과', '## Work product'));
+      mix!.sections.forEach((section) => {
+        sections.push(`### ${section.heading}`);
+        sections.push(section.content);
+        sections.push('');
+      });
+    }
+  }
+
+  const contract = project.decision_contract;
+  if (contract) {
+    const receipt = contract.judgment_receipt;
+    const predicates = Array.isArray(contract.predicates) ? contract.predicates : [];
+    sections.push(L('## 판단과 확인 계획', '## Decision and follow-up'));
+    if (receipt?.human_judgment?.trim()) {
+      sections.push(L('### 기록한 판단', '### Saved decision'));
+      sections.push(receipt.human_judgment.trim());
+      sections.push('');
+    }
+    if (receipt?.real_question?.trim()) {
+      sections.push(L('### 나중에 확인할 질문', '### Question to revisit'));
+      sections.push(receipt.real_question.trim());
+      sections.push('');
+    }
+    if (contract.check_in_at) {
+      const checkIn = new Date(contract.check_in_at);
+      if (!Number.isNaN(checkIn.getTime())) {
+        sections.push(L(
+          `**확인 예정일**: ${checkIn.toLocaleDateString('ko-KR')}`,
+          `**Review date**: ${checkIn.toLocaleDateString('en-US')}`,
+        ));
+      }
+    }
+    if (predicates.length > 0) {
+      sections.push('');
+      sections.push(L('### 확인할 항목', '### Checks'));
+      predicates.forEach((predicate) => {
+        const checked = predicate.verdict && predicate.verdict !== 'pending' ? 'x' : ' ';
+        sections.push(`- [${checked}] ${predicate.text}`);
+      });
+    }
+    if (receipt?.what_happened?.trim()) {
+      sections.push('');
+      sections.push(L('### 실제로 확인한 결과', '### What actually happened'));
+      sections.push(receipt.what_happened.trim());
+    }
+    sections.push('');
+  }
 
   // 0. Thought trajectory
   if (decompositions.length > 0) {

@@ -85,9 +85,9 @@ const FIXTURES: Record<string, string[]> = {
   ],
   'components/projects/SettlementModal.tsx': [
     '그래서, 어떻게 됐어요?',
-    '봉인한 결정의 확인일이 왔어요. 어땠는지 간단히 기록하고 고리를 닫아주세요.',
+    '그때 건 예측을, 이제 현실과 맞춰봐요',
     '무엇이 어떻게 되었나요?',
-    '돌아보고 고리 닫기',
+    '결과 기록 마치기',
   ],
   'components/workspace/progressive/SealMoment.tsx': [
     '마지막으로',

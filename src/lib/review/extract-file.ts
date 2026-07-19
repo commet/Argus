@@ -295,23 +295,30 @@ async function encodeCanvasJpeg(source: ImageBitmap, w: number, h: number, quali
 
 async function extractDocx(buf: ArrayBuffer): Promise<ExtractedText> {
   const mammoth = await import('mammoth');
+  // Mammoth exposes different input keys in its Node and browser bundles. Next
+  // swaps in the browser unzipper (`arrayBuffer`), while Vitest/SSR resolves the
+  // Node unzipper (`buffer`). Select the matching shape so DOCX extraction is
+  // reliable in both environments instead of depending on bundler aliasing.
+  const mammothInput = typeof Buffer === 'undefined'
+    ? { arrayBuffer: buf }
+    : { buffer: Buffer.from(buf) };
   // Markdown (not raw text) so Word headings/lists/tables survive into the same
   // markdown-aware ingest path. extractRawText flattened every docx into
   // structureless prose — headings lost, findings anchorable only to a line.
   // convertToMarkdown exists at runtime (mammoth 1.x) but is missing from the
   // shipped types, so reach it through a typed cast and fall back to raw text.
   const toMarkdown = (mammoth as unknown as {
-    convertToMarkdown?: (i: { arrayBuffer: ArrayBuffer }) => Promise<{ value: string; messages: { type: string }[] }>;
+    convertToMarkdown?: (i: { arrayBuffer: ArrayBuffer } | { buffer: Buffer }) => Promise<{ value: string; messages: { type: string }[] }>;
   }).convertToMarkdown;
   let messages: { type: string }[] = [];
   let text = '';
   if (toMarkdown) {
-    const r = await toMarkdown({ arrayBuffer: buf });
+    const r = await toMarkdown(mammothInput);
     messages = r.messages;
     text = stripDocxMarkdownNoise(r.value || '');
   }
   if (text.length < 40) {
-    const raw = await mammoth.extractRawText({ arrayBuffer: buf });
+    const raw = await mammoth.extractRawText(mammothInput);
     text = (raw.value || '').trim();
     messages = raw.messages;
   }
