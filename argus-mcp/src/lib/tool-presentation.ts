@@ -10,7 +10,7 @@ const KO_TOOL_PRESENTATION: Record<string, ToolPresentation> = {
   argus_capture: { titleKo: '결정 다루기', descriptionKo: '결정을 대신 내리지 않고, 그 결정이 어떤 전제 위에 서 있는지와 아직 열린 질문을 사용자의 말 그대로 포착합니다. 기록된 결정의 전제·현재 사실·예측 문장·상태도 관리합니다.' },
   argus_predict: { titleKo: '예측 저장', descriptionKo: '현실이 확인할 수 있는 예측과 확인일을 저장하고 작성 주체를 정직하게 기록합니다.' },
   argus_resolve: { titleKo: '실제 결과 기록', descriptionKo: '확인일이 된 예측에 실제로 일어난 일을 기록합니다. Argus는 결과를 평가하지 않습니다.' },
-  argus_patterns: { titleKo: '판단 기록 보기', descriptionKo: '진행 중인 결정, 전체 계약, 판단 영수증, 전제, 누적 기록을 읽고, 당신이 쓴 예측·전제와 그 결과를 되읽는 reflection을 봅니다.' },
+  argus_patterns: { titleKo: '판단 기록 보기', descriptionKo: '진행 중인 결정, 전체 기록, 판단 영수증, 전제, 누적 기록을 읽고, 당신이 쓴 예측·전제와 그 결과를 되읽는 회고를 봅니다.' },
   argus_open_decision: { titleKo: '결정 열기', descriptionKo: '중요하고 되돌리기 어려운 진짜 결정인지 확인하고, 맞다면 중립적인 핵심 질문 하나로 결정을 엽니다.' },
   argus_review: { titleKo: '문서 판단 검수', descriptionKo: '기존 문서의 주장·근거·숨은 전제·사람이 판단할 지점을 원문 위치에 연결해 검수합니다.' },
   argus_premises: { titleKo: '결정 전제 추적', descriptionKo: '결정이 딛고 선 사실과 미결 질문을 출처와 함께 추가·수정·정리합니다.' },

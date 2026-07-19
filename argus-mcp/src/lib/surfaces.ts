@@ -503,7 +503,7 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
     },
     checkin: {
       nothing_due: '지금 확인할 차례가 된 것은 없습니다.',
-      first_run: 'Argus가 준비됐습니다. 지금 고민 중인 결정을 하나 말해 주세요. 그 결정이 어떤 전제 위에 서 있는지 정리하고, 예측과 확인일을 저장한 뒤, 그 날이 오면 실제로 어떻게 됐는지 기록합니다. 아직 기록된 것은 없습니다. 결정을 말하면 시작합니다.',
+      first_run: 'Argus가 준비됐습니다. 지금 고민 중인 결정을 하나 말해 주세요. 그 결정이 어떤 전제 위에 서 있는지 정리하고, 예측과 확인일을 저장한 뒤, 그날이 오면 실제로 어떻게 됐는지 기록합니다. 아직 기록된 것은 없습니다. 결정을 말하면 시작합니다.',
       account_hint: ' 이 화면은 로컬 판단 기록만 읽습니다. 계정에 저장한 예측은 argus_settings action=sync로 가져올 수 있습니다.',
       upcoming: (n, days) => ` ${days}일 안에 확인일이 오는 예측이 ${n}건 있습니다. 아직 결과를 기록할 때는 아닙니다.`,
       due_contracts: (n) => `저장한 예측 ${n}건이 확인일을 지났습니다. 실제 결과를 기록할 차례입니다 (argus_resolve).`,
@@ -538,7 +538,7 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
       owner_user: '이 문장은 당신의 것입니다.',
       owner_ai: 'Argus가 초안한 문장입니다. 아직 당신이 확언하지 않았습니다.',
       sealed_label: '저장한 예측',
-      answers_label: '실제 결과',
+      answers_label: '확인일',
       days_out: (n) => `(${n}일 뒤)`,
       closing: [
         '확인일까지 이 예측은 바뀌지 않습니다. 그날 여기 기록될 것은',
@@ -555,7 +555,7 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
       overdue_hint: '← argus_resolve',
       days_past: (n) => `${n}일 경과`,
       waiting_group: (n) => `결과를 기다리는 중 (${n})`,
-      answer_on: (date) => `답 ${date}`,
+      answer_on: (date) => `확인 ${date}`,
       settled_group: (n, held, avoided, partial, missed) => `결과 기록됨 (${n}): 그렇게 됨 ${held} · 피함 ${avoided} · 부분 ${partial} · 빗나감 ${missed}`,
       outcome_label: (o) => ({ held: '그렇게 됨', avoided: '피함', partial: '부분', missed: '빗나감', still_pending: '대기' })[o] ?? o,
       more: (n) => `… (+${n})`,

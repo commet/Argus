@@ -47,8 +47,8 @@ describe('validateSeal — Korean vibe heuristic (12 P1-4)', () => {
     const err = validateSeal('잘 될 것 같다 아마도', '2026-08-01', TODAY);
     expect(err?.code).toBe('NOT_FALSIFIABLE');
     expect(err?.weak).toBe(true);
-    expect(err?.message).toContain('기분');
-    expect(err?.recovery).toContain('휴리스틱');
+    expect(err?.message).toContain('막연한 느낌');
+    expect(err?.recovery).toContain('예외가 있을 수');
   });
 
   it('passes a checkable Korean predicate', () => {

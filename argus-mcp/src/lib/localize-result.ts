@@ -40,7 +40,7 @@ const KO_ERRORS: Record<string, ErrorCopy> = {
   ARGUS_DIR_INVALID: { message: 'Argus 기록 경로(argus_dir / ARGUS_DIR)가 올바르지 않습니다.', recovery: '절대 경로여야 하고 ".."을 포함할 수 없습니다. MCP 설정에서 절대 경로(예: C:\\Users\\이름\\.argus, /Users/이름/.argus)로 바꾸거나 ARGUS_DIR을 지워 기본값(~/.argus)을 쓰세요. ${...} 같은 변수는 호스트가 확장하지 못할 수 있습니다.' },
   EMPTY_PREDICATE: { message: '확인 가능한 예측 문장이 필요합니다 (공백 제외 최소 8자).', recovery: '현실이 참/거짓으로 확인할 수 있는 문장으로 다시 적으세요. 예: "컷오버 다운타임 5분 미만".' },
   ALREADY_SETTLED: { message: '이미 실제 결과가 기록된 결정입니다.', recovery: '영수증은 argus_patterns view="receipt"로 볼 수 있습니다. 새 결정이면 새 id로 여세요.' },
-  DECISION_CLOSED: { message: '접힌(닫힌) 결정이라 더 진행할 수 없습니다.', recovery: '필요하면 새 id로 다시 여세요. 닫힌 기록은 그대로 남습니다.' },
+  DECISION_CLOSED: { message: '닫힌 결정이라 더 진행할 수 없습니다.', recovery: '필요하면 새 id로 다시 여세요. 닫힌 기록은 그대로 남습니다.' },
   GOALPOST_MOVED: { message: '봉인된 예측 문장은 확인일 전에 바꿀 수 없습니다.', recovery: '일정 변경은 outcome="still_pending"과 defer_to로, 예측 자체가 달라졌다면 새 결정으로 여세요.' },
   NO_SUCH_PREMISE: { message: '해당 번호의 전제를 찾지 못했습니다 (이 결정에 아직 전제가 없을 수 있습니다).', recovery: 'argus_patterns view="decision_context"로 목록과 번호를 확인하고, 전제가 없으면 argus_capture action="add_context"로 먼저 추가하세요.' },
   WHAT_HAPPENED_REQUIRED: { message: '실제로 일어난 일을 기록해야 합니다.', recovery: '사용자에게 실제 결과를 물어 what_happened에 그대로 전달하세요.' },
@@ -83,6 +83,7 @@ const ENUM_HINTS: Record<string, string> = {
   dismiss_reason: 'became_irrelevant · decided_elsewhere · superseded · user_declined · changed_mind · other',
 };
 const DATE_FIELDS = new Set(['check_by', 'defer_to', 'today_override', 'snooze_until']);
+const TYPE_KO: Record<string, string> = { string: '문자열', number: '숫자', boolean: '참/거짓', array: '목록', object: '객체', integer: '정수' };
 
 /** The REAL allowed values, parsed from Zod's own English message
  *  ("… expected one of "a"|"b"|"c""). Lets the Korean surface show the ACTUAL
@@ -119,7 +120,7 @@ function koReason(issue: InvalidField, field: string): string {
       if (issue.origin === 'array') return `항목이 너무 많습니다 (최대 ${issue.maximum}개)`;
       return `너무 큽니다 (최대 ${issue.maximum}${unit})`;
     case 'invalid_type':
-      return issue.expected === undefined ? '형식이 올바르지 않습니다' : `필수이거나 형식이 올바르지 않습니다 (${issue.expected} 필요)`;
+      return issue.expected === undefined ? '형식이 올바르지 않습니다' : `필수이거나 형식이 올바르지 않습니다 (${TYPE_KO[issue.expected] ?? issue.expected} 형식 필요)`;
     case 'invalid_value':
     case 'invalid_enum_value': {
       const vals = enumValuesFromMessage(issue.message);
