@@ -81,6 +81,33 @@ function anchorLabel(L: LFn, a?: SourceAnchor, isImage = false): string {
   return '';
 }
 
+/** Match the semantic source span, not merely its page. PDF extraction often
+ * yields several findings on one page, each tied to a different section. */
+export function sameSourceAnchor(a: SourceAnchor, b: SourceAnchor): boolean {
+  if ((a.page ?? a.slide) !== (b.page ?? b.slide)) return false;
+
+  const aSection = a.section_path?.join('\u001f');
+  const bSection = b.section_path?.join('\u001f');
+  if (aSection !== undefined || bSection !== undefined) return aSection === bSection;
+
+  if (a.line_start !== undefined || b.line_start !== undefined) {
+    return a.line_start === b.line_start && a.line_end === b.line_end;
+  }
+  if (a.paragraph_index !== undefined || b.paragraph_index !== undefined) {
+    return a.paragraph_index === b.paragraph_index;
+  }
+  if (a.char_start !== undefined || b.char_start !== undefined) {
+    return a.char_start === b.char_start && a.char_end === b.char_end;
+  }
+  if (a.shape_id !== undefined || b.shape_id !== undefined) return a.shape_id === b.shape_id;
+  return true;
+}
+
+function isSourceActive(anchors: SourceAnchor[], activeAnchor?: SourceAnchor, activePage?: number): boolean {
+  if (activeAnchor) return anchors.some((anchor) => sameSourceAnchor(anchor, activeAnchor));
+  return activePage !== undefined && anchors.some((anchor) => (anchor.page ?? anchor.slide) === activePage);
+}
+
 function claimStatusLabel(status: string, L: LFn): string {
   const map: Record<string, string> = {
     supported: L('근거 있음', 'Supported'),
@@ -99,6 +126,7 @@ export function ReceiptView({
   onReReview,
   onAnchorSelect,
   activeSourcePage,
+  activeSourceAnchor,
 }: {
   receipt: JudgmentReceipt;
   /** Own & seal a judgment obligation into the DKK ledger (the single unified
@@ -111,6 +139,8 @@ export function ReceiptView({
   onAnchorSelect?: (anchor: SourceAnchor) => void;
   /** Current source page, used to keep the receipt synchronized with the document. */
   activeSourcePage?: number;
+  /** Exact receipt anchor selected by the user. Disambiguates findings on the same page. */
+  activeSourceAnchor?: SourceAnchor;
 }) {
   const locale = useLocale();
   const L = (ko: string, en: string) => (locale === 'ko' ? ko : en);
@@ -267,7 +297,7 @@ export function ReceiptView({
           </div>
           <div className="space-y-2.5">
             {topObligations.map((o) => (
-              <ObligationRow key={o.obligation_id} o={o} onSealObligation={onSealObligation} isImage={isImage} onAnchorSelect={onAnchorSelect} activeSourcePage={activeSourcePage} />
+              <ObligationRow key={o.obligation_id} o={o} onSealObligation={onSealObligation} isImage={isImage} onAnchorSelect={onAnchorSelect} activeSourcePage={activeSourcePage} activeSourceAnchor={activeSourceAnchor} />
             ))}
           </div>
         </Card>
@@ -279,7 +309,7 @@ export function ReceiptView({
           <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--text-secondary)] mb-2">{L('주요 발견', 'Key findings')}</div>
           <div className="space-y-2.5">
             {topFindings.map((f) => (
-              <FindingRow key={f.finding_id} f={f} isImage={isImage} onAnchorSelect={onAnchorSelect} activeSourcePage={activeSourcePage} />
+              <FindingRow key={f.finding_id} f={f} isImage={isImage} onAnchorSelect={onAnchorSelect} activeSourcePage={activeSourcePage} activeSourceAnchor={activeSourceAnchor} />
             ))}
           </div>
         </Card>
@@ -463,7 +493,7 @@ export function ReceiptView({
               </div>
               <div className="space-y-2.5">
                 {receipt.findings.slice(3).map((f) => (
-                  <FindingRow key={f.finding_id} f={f} isImage={isImage} onAnchorSelect={onAnchorSelect} activeSourcePage={activeSourcePage} />
+                  <FindingRow key={f.finding_id} f={f} isImage={isImage} onAnchorSelect={onAnchorSelect} activeSourcePage={activeSourcePage} activeSourceAnchor={activeSourceAnchor} />
                 ))}
               </div>
             </Card>
@@ -482,19 +512,21 @@ function ObligationRow({
   isImage = false,
   onAnchorSelect,
   activeSourcePage,
+  activeSourceAnchor,
 }: {
   o: JudgmentObligation;
   onSealObligation?: (obligation: JudgmentObligation) => void;
   isImage?: boolean;
   onAnchorSelect?: (anchor: SourceAnchor) => void;
   activeSourcePage?: number;
+  activeSourceAnchor?: SourceAnchor;
 }) {
   const locale = useLocale();
   const L = (ko: string, en: string) => (locale === 'ko' ? ko : en);
   const [open, setOpen] = useState(false);
   const hasWhy = Boolean(o.why_human || o.evidence_needed);
   const sealed = Boolean(o.sealed_judgment_id);
-  const sourceActive = activeSourcePage !== undefined && o.anchors.some((anchor) => (anchor.page ?? anchor.slide) === activeSourcePage);
+  const sourceActive = isSourceActive(o.anchors, activeSourceAnchor, activeSourcePage);
   return (
     <div className={`-mx-2 rounded px-2 py-2 transition-colors border-b border-[#8b6914]/10 last:border-0 ${sourceActive ? 'bg-[var(--accent)]/[0.07] ring-1 ring-inset ring-[var(--accent)]/20' : ''}`}>
       <p className="text-[14px] font-medium leading-snug text-[var(--text-primary)]">
@@ -541,14 +573,14 @@ function ObligationRow({
 
 /** One finding — a scannable single line (severity · title · anchor); the detail
  *  and suggested action open on tap so the receipt reads at a glance. */
-function FindingRow({ f, isImage = false, onAnchorSelect, activeSourcePage }: { f: Finding; isImage?: boolean; onAnchorSelect?: (anchor: SourceAnchor) => void; activeSourcePage?: number }) {
+function FindingRow({ f, isImage = false, onAnchorSelect, activeSourcePage, activeSourceAnchor }: { f: Finding; isImage?: boolean; onAnchorSelect?: (anchor: SourceAnchor) => void; activeSourcePage?: number; activeSourceAnchor?: SourceAnchor }) {
   const locale = useLocale();
   const L = (ko: string, en: string) => (locale === 'ko' ? ko : en);
   const [open, setOpen] = useState(false);
   const hasMore = Boolean(f.detail || f.suggested_action);
   const anchor = f.anchors[0];
   const interactive = hasMore || Boolean(anchor && onAnchorSelect);
-  const sourceActive = activeSourcePage !== undefined && f.anchors.some((item) => (item.page ?? item.slide) === activeSourcePage);
+  const sourceActive = isSourceActive(f.anchors, activeSourceAnchor, activeSourcePage);
   return (
     <div className={`-mx-2 rounded px-2 py-2 transition-colors border-b border-[var(--border-subtle)] last:border-0 ${sourceActive ? 'bg-[var(--accent)]/[0.07] ring-1 ring-inset ring-[var(--accent)]/20' : ''}`}>
       <button

@@ -53,6 +53,7 @@ export type ParsedTraceLocator =
   | { scope: 'review'; receiptId: string; premiseId?: string }
   | { scope: 'rehearse'; recordId: string; target: 'document'; line: number }
   | { scope: 'rehearse'; recordId: string; target: 'feedback'; personaId: string; kind: string; index: number }
+  | { scope: 'rehearse'; recordId: string; target: 'reality_check'; checkId: string }
   | { scope: 'synthesize'; itemId: string; target: 'source'; sourceIndex: number; line: number }
   | { scope: 'synthesize'; itemId: string; target: 'conflict'; conflictId: string }
   | { scope: 'url'; url: string };
@@ -73,6 +74,7 @@ export const traceLocators = {
   reviewPremise: (receiptId: string, premiseId: string) => `argus://review/${enc(receiptId)}/premise/${enc(premiseId)}`,
   rehearseDocument: (recordId: string, line: number) => `argus://rehearse/${enc(recordId)}/document/line/${Math.max(1, Math.trunc(line))}`,
   rehearseFeedback: (recordId: string, personaId: string, kind: string, index: number) => `argus://rehearse/${enc(recordId)}/persona/${enc(personaId)}/${enc(kind)}/${Math.max(0, Math.trunc(index))}`,
+  rehearseRealityCheck: (recordId: string, checkId: string) => `argus://rehearse/${enc(recordId)}/reality-check/${enc(checkId)}`,
   synthesizeSource: (itemId: string, sourceIndex: number, line: number) => `argus://synthesize/${enc(itemId)}/source/${Math.max(0, Math.trunc(sourceIndex))}/line/${Math.max(1, Math.trunc(line))}`,
   synthesizeConflict: (itemId: string, conflictId: string) => `argus://synthesize/${enc(itemId)}/conflict/${enc(conflictId)}`,
   url: (url: string) => url,
@@ -112,6 +114,9 @@ export function parseTraceLocator(locator: string): ParsedTraceLocator | null {
       return { scope: 'review', receiptId: parts[0], premiseId: parts[1] === 'premise' ? parts[2] : undefined };
     }
     if (url.hostname === 'rehearse' && parts[0]) {
+      if (parts[1] === 'reality-check' && parts[2]) {
+        return { scope: 'rehearse', recordId: parts[0], target: 'reality_check', checkId: parts[2] };
+      }
       if (parts[1] === 'document' && parts[2] === 'line') {
         const line = Number.parseInt(parts[3], 10);
         if (Number.isFinite(line) && line >= 1) return { scope: 'rehearse', recordId: parts[0], target: 'document', line };

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { createItem, markRechecked } from '@/lib/decision-items';
 import { buildProjectAttention } from '@/lib/project-attention';
-import type { Project } from '@/stores/types';
+import type { FeedbackRecord, Project } from '@/stores/types';
 
 const NOW = new Date('2026-07-19T00:00:00.000Z').getTime();
 const OLD = new Date('2026-01-01T00:00:00.000Z').getTime();
@@ -69,6 +69,46 @@ describe('project attention derivation', () => {
       kind: 'ground_shift',
       context: '기준금리가 올랐다',
       locator: 'argus://review/r%2F1/premise/p%201',
+    });
+  });
+
+  it('surfaces only pending stakeholder reality checks and returns to the exact rehearsal check', () => {
+    const feedback = {
+      id: 'feedback/one',
+      project_id: 'a',
+      document_title: '출시 계획',
+      document_text: '본문',
+      persona_ids: ['cfo'],
+      feedback_perspective: '',
+      feedback_intensity: '',
+      synthesis: '',
+      created_at: '2026-07-18T00:00:00.000Z',
+      results: [{
+        persona_id: 'cfo', overall_reaction: '', failure_scenario: '', untested_assumptions: [],
+        classified_risks: [], first_questions: [], praise: [], concerns: [], wants_more: [], approval_conditions: [],
+        reality_checks: [
+          { id: 'check pending', statement_id: 's1', statement: '재무팀이 가격안을 승인할 것이다', question: '실제로 승인했나?', status: 'pending', created_at: '2026-07-18T00:00:00.000Z' },
+          { id: 'check-done', statement_id: 's2', statement: '법무 검토가 끝났다', question: '끝났나?', status: 'confirmed', created_at: '2026-07-17T00:00:00.000Z', checked_at: '2026-07-18T00:00:00.000Z' },
+        ],
+      }],
+    } as FeedbackRecord;
+
+    const rows = buildProjectAttention({
+      projects: [project('a', '요금제 출시')],
+      decisionItems: [],
+      dueProjectIds: [],
+      dueReceipts: [],
+      feedbackHistory: [feedback],
+      now: NOW,
+    });
+
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({
+      kind: 'stakeholder_check',
+      title: '재무팀이 가격안을 승인할 것이다',
+      context: '요금제 출시 · 출시 계획',
+      locator: 'argus://rehearse/feedback%2Fone/reality-check/check%20pending',
+      projectId: 'a',
     });
   });
 });

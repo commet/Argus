@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ArrowRight,
   CircleAlert,
@@ -31,6 +31,7 @@ interface StakeholderClaimMatrixProps {
   personas: Persona[];
   onOpenPersona: (personaId: string) => void;
   onUpdateRealityChecks?: (personaId: string, checks: StakeholderRealityCheck[]) => void;
+  focusRealityCheckId?: string;
 }
 
 type Selection =
@@ -52,13 +53,34 @@ function ToneIcon({ tone }: { tone: keyof typeof toneStyles }) {
   return <CircleDashed size={14} />;
 }
 
-export function StakeholderClaimMatrix({ record, personas, onOpenPersona, onUpdateRealityChecks }: StakeholderClaimMatrixProps) {
+export function StakeholderClaimMatrix({ record, personas, onOpenPersona, onUpdateRealityChecks, focusRealityCheckId }: StakeholderClaimMatrixProps) {
   const locale = useLocale();
   const L = (ko: string, en: string) => locale === 'ko' ? ko : en;
   const matrix = useMemo(() => buildStakeholderValidationMatrix(record, personas), [record, personas]);
   const [selection, setSelection] = useState<Selection | null>(null);
   const [sourceClaim, setSourceClaim] = useState<DocumentClaimUnit | null>(null);
   const [draftNotes, setDraftNotes] = useState<Record<string, string>>({});
+  const lastFocusedCheckRef = useRef<string | null>(null);
+  const checkRows = useMemo(() => record.results.flatMap((result) => {
+    const persona = personas.find((item) => item.id === result.persona_id);
+    return (result.reality_checks ?? []).map((check) => ({
+      ...check,
+      personaId: result.persona_id,
+      personaName: persona?.name || result.persona_id,
+    }));
+  }), [personas, record.results]);
+
+  useEffect(() => {
+    if (!focusRealityCheckId || lastFocusedCheckRef.current === focusRealityCheckId) return;
+    if (!checkRows.some((check) => check.id === focusRealityCheckId)) return;
+    const timer = window.setTimeout(() => {
+      const target = document.getElementById(`stakeholder-reality-check-${focusRealityCheckId}`);
+      target?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      target?.focus({ preventScroll: true });
+      if (target) lastFocusedCheckRef.current = focusRealityCheckId;
+    }, 60);
+    return () => window.clearTimeout(timer);
+  }, [checkRows, focusRealityCheckId]);
 
   if (matrix.claims.length === 0) {
     return (
@@ -78,14 +100,6 @@ export function StakeholderClaimMatrix({ record, personas, onOpenPersona, onUpda
     : selection.type === 'cell'
       ? selectedRow.cells[selection.claimIndex].statements
       : selectedRow.unmapped;
-  const checkRows = record.results.flatMap((result) => {
-    const persona = personas.find((item) => item.id === result.persona_id);
-    return (result.reality_checks ?? []).map((check) => ({
-      ...check,
-      personaId: result.persona_id,
-      personaName: persona?.name || result.persona_id,
-    }));
-  });
   const completedChecks = checkRows.filter((check) => check.status !== 'pending').length;
 
   const checksFor = (personaId: string) => record.results.find((result) => result.persona_id === personaId)?.reality_checks ?? [];
@@ -291,7 +305,12 @@ export function StakeholderClaimMatrix({ record, personas, onOpenPersona, onUpda
           </div>
           <div className="mt-3 divide-y divide-[var(--border-subtle)] border-y border-[var(--border-subtle)]">
             {checkRows.map((check) => (
-              <article key={check.id} className="py-3">
+              <article
+                id={`stakeholder-reality-check-${check.id}`}
+                key={check.id}
+                tabIndex={-1}
+                className="scroll-mt-24 py-3 outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--accent)]/45"
+              >
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                   <div className="min-w-0 flex-1">
                     <p className="text-[10px] font-bold text-[var(--text-tertiary)]">{check.personaName} · {L('확인할 발언', 'Statement to verify')}</p>

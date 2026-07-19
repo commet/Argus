@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { ArrowUpRight, CircleHelp, Clock3, FileSearch, Radar, Waves } from 'lucide-react';
+import { ArrowUpRight, CircleHelp, Clock3, FileSearch, Radar, UserCheck, Waves } from 'lucide-react';
 import { useLocale } from '@/hooks/useLocale';
 import { openTraceLocator } from '@/lib/evidence-trace';
 import type { ProjectAttentionItem, ProjectAttentionKind } from '@/lib/project-attention';
@@ -12,6 +12,7 @@ const ICONS: Record<ProjectAttentionKind, typeof Clock3> = {
   open_question: CircleHelp,
   receipt_check_in: FileSearch,
   ground_shift: Waves,
+  stakeholder_check: UserCheck,
 };
 
 export function ProjectAttentionList({ items }: { items: ProjectAttentionItem[] }) {
@@ -27,6 +28,7 @@ export function ProjectAttentionList({ items }: { items: ProjectAttentionItem[] 
     open_question: L('미결 다시 보기', 'Revisit open question'),
     receipt_check_in: L('문서 판단 확인', 'Check document judgment'),
     ground_shift: L('공통 전제 이동', 'Shared premise moved'),
+    stakeholder_check: L('이해관계자 실제 확인', 'Stakeholder reality check'),
   }[kind]);
 
   return (

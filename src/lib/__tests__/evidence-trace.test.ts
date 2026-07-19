@@ -55,6 +55,9 @@ describe('workspace decision trace', () => {
     expect(parseTraceLocator(traceLocators.rehearseFeedback('feedback/one', 'persona 1', 'concern', 2))).toEqual({
       scope: 'rehearse', recordId: 'feedback/one', target: 'feedback', personaId: 'persona 1', kind: 'concern', index: 2,
     });
+    expect(parseTraceLocator(traceLocators.rehearseRealityCheck('feedback/one', 'check 1'))).toEqual({
+      scope: 'rehearse', recordId: 'feedback/one', target: 'reality_check', checkId: 'check 1',
+    });
     expect(parseTraceLocator(traceLocators.synthesizeSource('synthesis/one', 0, 12))).toEqual({
       scope: 'synthesize', itemId: 'synthesis/one', target: 'source', sourceIndex: 0, line: 12,
     });

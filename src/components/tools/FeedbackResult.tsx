@@ -28,11 +28,12 @@ interface FeedbackResultProps {
   onStartDiscussion?: () => void;
   discussionLoading?: boolean;
   onStartDebate?: () => void;
+  focusRealityCheckId?: string;
 }
 
 type ViewMode = 'overview' | 'persona-detail' | 'discussion' | 'synthesis';
 
-export function FeedbackResult({ record, personas, onUpdateRecord, onStartDiscussion, discussionLoading, onStartDebate }: FeedbackResultProps) {
+export function FeedbackResult({ record, personas, onUpdateRecord, onStartDiscussion, discussionLoading, onStartDebate, focusRealityCheckId }: FeedbackResultProps) {
   const locale = useLocale();
   const L = (ko: string, en: string) => locale === 'ko' ? ko : en;
   const [viewMode, setViewMode] = useState<ViewMode>('overview');
@@ -145,6 +146,7 @@ export function FeedbackResult({ record, personas, onUpdateRecord, onStartDiscus
           <StakeholderClaimMatrix
             record={record}
             personas={personas}
+            focusRealityCheckId={focusRealityCheckId}
             onUpdateRealityChecks={(personaId, realityChecks: StakeholderRealityCheck[]) => {
               onUpdateRecord?.({
                 results: record.results.map((result) => result.persona_id === personaId

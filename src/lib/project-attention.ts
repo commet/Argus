@@ -8,10 +8,10 @@ import {
 import { normalizePremiseText } from '@/lib/premises-core';
 import type { SharedGround } from '@/lib/judgment-graph';
 import type { JudgmentReceipt } from '@/lib/review';
-import type { Project } from '@/stores/types';
+import type { FeedbackRecord, Project } from '@/stores/types';
 import { traceLocators } from '@/lib/evidence-trace';
 
-export type ProjectAttentionKind = 'check_in' | 'premise_recheck' | 'open_question' | 'receipt_check_in' | 'ground_shift';
+export type ProjectAttentionKind = 'check_in' | 'premise_recheck' | 'open_question' | 'receipt_check_in' | 'ground_shift' | 'stakeholder_check';
 
 export interface ProjectAttentionItem {
   id: string;
@@ -29,6 +29,7 @@ export function buildProjectAttention(input: {
   decisionItems: DecisionItem[];
   dueProjectIds: string[];
   dueReceipts: JudgmentReceipt[];
+  feedbackHistory?: FeedbackRecord[];
   shiftedGround?: SharedGround | null;
   now: number;
 }): ProjectAttentionItem[] {
@@ -106,6 +107,27 @@ export function buildProjectAttention(input: {
       affected: [{ id: receipt.receipt_id, label: receipt.source_title, scope: 'review' }],
       priority: 0,
     });
+  }
+
+  for (const record of input.feedbackHistory || []) {
+    if (!record.project_id) continue;
+    const project = projectById.get(record.project_id);
+    if (!project) continue;
+    for (const result of record.results || []) {
+      for (const check of result.reality_checks || []) {
+        if (check.status !== 'pending') continue;
+        rows.push({
+          id: `stakeholder:${record.id}:${check.id}`,
+          kind: 'stakeholder_check',
+          title: check.statement,
+          context: `${project.name} · ${record.document_title}`,
+          locator: traceLocators.rehearseRealityCheck(record.id, check.id),
+          projectId: project.id,
+          affected: [{ id: project.id, label: project.name, scope: 'project' }],
+          priority: 1,
+        });
+      }
+    }
   }
 
   const ground = input.shiftedGround;

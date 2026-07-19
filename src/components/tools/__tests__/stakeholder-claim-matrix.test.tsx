@@ -38,6 +38,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  vi.useRealTimers();
   act(() => root.unmount());
   container.remove();
   document.body.querySelector('[role="dialog"]')?.remove();
@@ -118,5 +119,34 @@ describe('StakeholderClaimMatrix', () => {
       note.dispatchEvent(new FocusEvent('focusout', { bubbles: true }));
     });
     expect(onUpdateRealityChecks.mock.calls.at(-1)?.[1][0].note).toBe('실제 CFO 인터뷰에서 반대 확인');
+  });
+
+  it('focuses the exact persisted reality check requested by a project deep link', () => {
+    vi.useFakeTimers();
+    const scrollIntoView = vi.fn();
+    Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', { configurable: true, value: scrollIntoView });
+    const linkedRecord: FeedbackRecord = {
+      ...record,
+      results: [{
+        ...record.results[0],
+        reality_checks: [
+          { id: 'check-one', statement_id: 's1', statement: '첫 번째 확인', question: '첫 번째인가?', status: 'pending', created_at: '' },
+          { id: 'check-two', statement_id: 's2', statement: '재무팀이 실제로 승인했는가', question: '승인했는가?', status: 'pending', created_at: '' },
+        ],
+      }],
+    };
+
+    act(() => root.render(createElement(StakeholderClaimMatrix, {
+      record: linkedRecord,
+      personas: [persona],
+      onOpenPersona: vi.fn(),
+      focusRealityCheckId: 'check-two',
+    })));
+    act(() => vi.advanceTimersByTime(60));
+
+    const target = container.querySelector('#stakeholder-reality-check-check-two') as HTMLElement;
+    expect(document.activeElement).toBe(target);
+    expect(target.textContent).toContain('재무팀이 실제로 승인했는가');
+    expect(scrollIntoView).toHaveBeenCalledTimes(1);
   });
 });

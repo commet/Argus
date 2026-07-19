@@ -36,6 +36,7 @@ import {
   type ReviewJob,
   type SourceKind,
   type ReviewConcern,
+  type SourceAnchor,
   type UserReviewContext,
   type JudgmentObligation,
 } from '@/lib/review';
@@ -82,8 +83,9 @@ export function ReviewFlow() {
   const [useVision, setUseVision] = useState(false);
   const [showOriginal, setShowOriginal] = useState(false);
   const [sourcePdfData, setSourcePdfData] = useState<Uint8Array | null>(null);
-  const [sessionSource, setSessionSource] = useState<{ id: string; text: string; previews?: SourcePreview[]; sourceKind: SourceKind; title: string; pdfData?: Uint8Array; pageCount?: number } | null>(null);
+  const [sessionSource, setSessionSource] = useState<{ id: string; text: string; previews?: SourcePreview[]; sourceKind: SourceKind; title: string; pdfData?: Uint8Array; pageCount?: number; extracted?: ExtractedText } | null>(null);
   const [activeSourcePage, setActiveSourcePage] = useState<number | undefined>();
+  const [activeSourceAnchor, setActiveSourceAnchor] = useState<SourceAnchor | undefined>();
   const sourcePaneRef = useRef<HTMLDivElement>(null);
   const receiptPaneRef = useRef<HTMLDivElement>(null);
   const reattachFileRef = useRef<HTMLInputElement>(null);
@@ -425,6 +427,7 @@ export function ReviewFlow() {
         title: title || r.source_title,
         pdfData: sourceKind === 'pdf' ? sourcePdfData ?? undefined : undefined,
         pageCount: preExtracted?.pages_total,
+        extracted: preExtracted ?? undefined,
       });
       setActiveId(r.receipt_id);
       setShowOriginal(false);
@@ -453,6 +456,7 @@ export function ReviewFlow() {
     setUploadBlock(null);
     setUseVision(false);
     setActiveSourcePage(undefined);
+    setActiveSourceAnchor(undefined);
     setSessionSource(null);
     setJob(null);
     setPhase('import');
@@ -460,6 +464,7 @@ export function ReviewFlow() {
 
   const backToList = () => {
     setActiveId(null);
+    setActiveSourceAnchor(undefined);
     setJob(null);
     setPhase('list');
   };
@@ -482,7 +487,8 @@ export function ReviewFlow() {
       ...receipt.forks,
     ]);
     const anchorPages = Object.keys(evidencePageCounts).map(Number).sort((a, b) => a - b);
-    const revealAnchor = (anchor: { page?: number; slide?: number }) => {
+    const revealAnchor = (anchor: SourceAnchor) => {
+      setActiveSourceAnchor(anchor);
       setActiveSourcePage(anchor.page ?? anchor.slide);
       setShowOriginal(true);
       if (window.innerWidth < 768) {
@@ -521,6 +527,7 @@ export function ReviewFlow() {
           return;
         }
         setSourcePdfData(extracted.pdf_data ?? null);
+        setPreExtracted(extracted);
         setSessionSource({
           id: receipt.receipt_id,
           text: extracted.text,
@@ -529,8 +536,10 @@ export function ReviewFlow() {
           title: receipt.source_title,
           pdfData: extracted.pdf_data,
           pageCount: extracted.pages_total,
+          extracted,
         });
         setActiveSourcePage(anchorPages[0] ?? 1);
+        setActiveSourceAnchor(undefined);
         setShowOriginal(true);
         track('review_source_reattached', { source_kind: kind, receipt_id: receipt.receipt_id });
       } catch (cause) {
@@ -543,8 +552,13 @@ export function ReviewFlow() {
       }
     };
     const reReview = () => {
-      if (original) setText(original);
+      const source = sessionSource?.id === receipt.receipt_id ? sessionSource : null;
       resetImport();
+      setText(original);
+      setTitle(receipt.source_title);
+      setSourceKind(receipt.source_kind);
+      setPreExtracted(source?.extracted ?? null);
+      setSourcePdfData(source?.pdfData ?? null);
     };
     const receiptPane = (
       <>
@@ -588,6 +602,7 @@ export function ReviewFlow() {
           onReReview={reReview}
           onAnchorSelect={hasSourceEvidence ? revealAnchor : undefined}
           activeSourcePage={activeSourcePage}
+          activeSourceAnchor={activeSourceAnchor}
         />
         <div className="mt-4">
           <PremiseTracker receipt={receipt} />
@@ -638,11 +653,15 @@ export function ReviewFlow() {
                   title={receipt.source_title}
                   sourceKind={receipt.source_kind}
                   activePage={activeSourcePage}
+                  activeAnchor={activeSourceAnchor}
                   pdfData={pdfData}
                   pageCount={sourcePageCount}
                   anchorPages={anchorPages}
                   evidenceCounts={evidencePageCounts}
-                  onPageChange={setActiveSourcePage}
+                  onPageChange={(page) => {
+                    setActiveSourcePage(page);
+                    setActiveSourceAnchor(undefined);
+                  }}
                 />
                 <button type="button" onClick={returnToReceipt} className="mt-2 w-full rounded border border-[var(--border-subtle)] py-2 text-[12px] font-semibold text-[var(--text-secondary)] md:hidden">
                   {L('영수증으로 돌아가기', 'Back to receipt')}
