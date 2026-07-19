@@ -29,54 +29,43 @@ export function renderReceipt(r: Receipt, premises?: ReceiptPremisesInfo, locale
   const top = '┌─ ' + R.header + ' ' + '─'.repeat(Math.max(2, RW - 5 - dw(R.header))) + '┐';
   const bottom = '└' + '─'.repeat(Math.max(2, RW - 6 - dw(R.footer))) + '  ' + R.footer + ' ─┘';
 
-  L.push(top);
-  L.push(`  ${R.sealed_label} ${sealed}      ${R.settled_label} ${settled}`);
-  // Deferral fact (still_pending re-arms): "originally due X · deferred N×".
-  // A fact about the record's timeline, not a grade of the user.
-  if (r.deferred_times && r.deferred_times > 0) {
-    L.push(`  ${R.deferred_fact(r.deferred_times, r.originally_due ?? sealed)}`);
-  }
+  // A block header: label on the left, date tag right-aligned to the interior.
+  // dw keeps Korean (2 cols/char) from pushing the tag past the frame.
+  const head = (label: string, tag: string): string =>
+    '  ' + label + ' '.repeat(Math.max(2, RW - 4 - dw(label) - dw(tag))) + tag;
   const skipped = new Set(r.skipped ?? []);
-  const show = (v: string, field: string): string => (skipped.has(field) ? R.skipped : wrap(v));
 
+  L.push(top);
   L.push('');
-  const assumptionSkipped = skipped.has('unverified_assumption');
-  // A data-minimal settle used to render THREE "(none)" placeholder sections —
-  // more placeholder than record (1.4.6 re-diagnosis). When every optional
-  // section is empty, state that once, neutrally, in one line.
-  const allEmpty = skipped.has('real_question') && assumptionSkipped && !premises?.headline
-    && !(premises && premises.tracked > 0) && skipped.has('human_only');
-  const labelWidth = Math.max(R.human_only.length, R.made_by_label.length, R.called_as.length) + 3;
-  if (allEmpty) {
-    L.push(`  ${R.nothing_recorded}`);
-  } else {
-    L.push(`  ${R.real_question}`);
-    L.push(`    ${show(r.real_question, 'real_question')}`);
-    L.push(`  ${R.unverified_assumption}`);
-    if (assumptionSkipped && premises?.headline) {
-      // The premise set is canonical — a tracked load-bearing premise stands in
-      // for a skipped seal-time field (plan v5 §5.4).
-      L.push(`    ${wrap(premises.headline)}`);
-    } else {
-      L.push(`    ${show(r.unverified_assumption, 'unverified_assumption')}`);
-    }
-    if (premises && premises.tracked > 0) {
-      L.push(`    ${R.premises_note(premises.tracked, premises.changed_at_recheck)}`);
-    }
-    L.push(`  ${R.human_only.padEnd(labelWidth)}${show(r.human_only, 'human_only')}`);
-  }
-  L.push(`  ${R.made_by_label.padEnd(labelWidth)}${R.made_by}`);
-  if (r.basis) {
-    L.push(`  ${R.called_as.padEnd(labelWidth)}${R.basis_label(r.basis)}`);
-  }
+  // ── what I predicted: the user's own sentence as a block, wrapped to the frame ──
+  L.push(head(R.you_predicted, `${sealed} ${R.saved_suffix}`));
+  for (const line of wrapLines(`"${r.predicate}"`, 54)) L.push('    ' + line);
+  L.push('    ' + R.check_by(r.check_by));
   L.push('');
-  L.push(`  ${R.you_predicted}   "${wrap(r.predicate)}"   ${R.check_by(r.check_by)}`);
-  if (r.what_happened) {
-    L.push(`  ${R.what_happened}   ${wrap(r.what_happened)}`);
-  }
-  L.push('  ─────────────────────────────────────────────────────────');
-  L.push(`  ${R.verdict_line}`);
-  L.push(`  ${R.closing}`);
+  // ── what reality did ──
+  L.push(head(R.what_happened, r.settled_at ? `${settled} ${R.settled_suffix}` : R.not_settled));
+  if (r.what_happened) for (const line of wrapLines(r.what_happened, 54)) L.push('    ' + line);
+  // Deferral fact (still_pending re-arms) — a timeline fact, never a grade.
+  if (r.deferred_times && r.deferred_times > 0) L.push('    ' + R.deferred_fact(r.deferred_times, r.originally_due ?? sealed));
+  L.push('');
+  // ── whose call, and any reasoning the user CHOSE to record. Optional fields
+  //    render only when present: a data-minimal settle stays clean instead of a
+  //    wall of "(none)" placeholders (1.4.6 re-diagnosis, carried into redesign). ──
+  L.push('  ' + R.made_by_line);
+  if (r.basis) L.push('  ' + R.called_as + ' ' + R.basis_label(r.basis));
+  const assumption = (!skipped.has('unverified_assumption') && r.unverified_assumption)
+    ? r.unverified_assumption
+    : (premises?.headline ?? null);
+  if (assumption) for (const line of wrapLines(`${R.unverified_assumption}: ${assumption}`, 58)) L.push('  ' + line);
+  if (!skipped.has('real_question') && r.real_question)
+    for (const line of wrapLines(`${R.real_question}: ${r.real_question}`, 58)) L.push('  ' + line);
+  if (!skipped.has('human_only') && r.human_only)
+    for (const line of wrapLines(`${R.human_only}: ${r.human_only}`, 58)) L.push('  ' + line);
+  if (premises && premises.tracked > 0) L.push('  ' + R.premises_note(premises.tracked, premises.changed_at_recheck));
+  L.push('');
+  L.push('  ' + '─'.repeat(RW - 9));
+  L.push('  ' + R.verdict_line);
+  L.push('  ' + R.closing);
   L.push(bottom);
   return L.join('\n');
 }
@@ -266,21 +255,22 @@ function truncDw(s: string, maxCols: number): string {
   return out + '…';
 }
 
-function wrap(s: string, width = 54): string {
-  // Defense in depth: a corrupt receipt field could be non-string (readReceipt
-  // rejects a non-object file, but a wrong-typed field inside a valid object
-  // would still reach here) — coerce so .split never throws on the keepsake.
-  const words = String(s ?? '').split(/\s+/);
+function wrapLines(s: string, width = 54): string[] {
+  // Defense in depth: a corrupt receipt field could be non-string — coerce so
+  // .split never throws on the keepsake. Wrap by DISPLAY width (dw), not
+  // codepoints, so a Korean line (2 cols/char) stays inside the frame.
+  const words = String(s ?? '').split(/\s+/).filter(Boolean);
   const lines: string[] = [];
   let cur = '';
   for (const w of words) {
-    if ((cur + ' ' + w).trim().length > width) {
-      lines.push(cur.trim());
-      cur = w;
-    } else {
-      cur += ' ' + w;
-    }
+    const cand = cur ? cur + ' ' + w : w;
+    if (cur && dw(cand) > width) { lines.push(cur); cur = w; }
+    else cur = cand;
   }
-  if (cur.trim()) lines.push(cur.trim());
-  return lines.join('\n    ');
+  if (cur) lines.push(cur);
+  return lines.length ? lines : [''];
+}
+
+function wrap(s: string, width = 54): string {
+  return wrapLines(s, width).join('\n    ');
 }

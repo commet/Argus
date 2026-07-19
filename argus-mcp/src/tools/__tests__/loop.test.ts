@@ -133,12 +133,13 @@ describe('explicit skip trace (spine: escape kept, omission honest)', () => {
     const settled = body(await settle.handler({ argus_dir: dir, id: 'bare', outcome: 'held', outcome_source: 'user_stated', what_happened: 'got 140' }));
     const receipt = (settled['data'] as Record<string, unknown>)['receipt'] as Record<string, unknown>;
     expect(receipt['unverified_assumption']).toBe('(skipped)');
-    // skipped fields render neutrally now (no "you skipped" completeness nag);
-    // when EVERY optional section is empty they collapse into one factual line
-    // instead of three "(none)" placeholder rows (1.4.7 re-diagnosis).
+    // Empty/skipped optional sections are simply OMITTED in the redesigned receipt
+    // — no "(none)"/"(skipped)" placeholder rows, no completeness nag. The receipt
+    // still renders its core (predict block + ownership line), never blank.
     const rt = String((settled['data'] as Record<string, unknown>)['receipt_text']);
-    expect(rt).toContain('No question or premise was recorded');
+    expect(rt).toContain('What I predicted');
     expect(rt).not.toContain('(none)');
+    expect(rt).not.toContain('(skipped)');
     expect(rt).not.toContain('you skipped');
   });
 });

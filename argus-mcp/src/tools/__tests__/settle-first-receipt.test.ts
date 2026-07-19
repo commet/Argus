@@ -28,14 +28,14 @@ describe('argus_settle first-receipt payoff (then-vs-now in the surface)', () =>
     const dir = tmpArgusDir();
     const r = await sealAndSettle(dir, 'first', 'the report ships before the deadline');
     const surface = String(r['surface']);
-    expect(surface).toContain('YOU PREDICTED');           // then
+    expect(surface).toContain('What I predicted');           // then
     expect(surface).toContain('it did happen');           // vs now
     expect(surface).toContain('AI VERDICT');              // and the spine, in the same screen
     expect(surface).toContain('NONE');
     const data = r['data'] as Record<string, unknown>;
     expect(data['first_receipt']).toBe(true);
     expect(data['ai_verdict']).toBeNull();
-    expect(String(data['receipt_text'])).toContain('YOU PREDICTED'); // data contract unchanged
+    expect(String(data['receipt_text'])).toContain('What I predicted'); // data contract unchanged
   });
 
   it('change_prediction before settle: the receipt shows the AMENDED prediction, never the stale seal-time one', async () => {
@@ -59,11 +59,11 @@ describe('argus_settle first-receipt payoff (then-vs-now in the surface)', () =>
     await sealAndSettle(dir, 'first', 'the report ships before the deadline');
     const r = await sealAndSettle(dir, 'second', 'the migration finishes under the window');
     const surface = String(r['surface']);
-    expect(surface).not.toContain('YOU PREDICTED');
+    expect(surface).not.toContain('What I predicted');
     expect(surface).not.toContain('┌─');
     const data = r['data'] as Record<string, unknown>;
     expect(data['first_receipt']).toBeUndefined();
-    expect(String(data['receipt_text'])).toContain('YOU PREDICTED'); // still available in data
+    expect(String(data['receipt_text'])).toContain('What I predicted'); // still available in data
   });
 
   it('speaks the user\'s language: a Korean first settle renders the Korean receipt in surface', async () => {
@@ -72,7 +72,7 @@ describe('argus_settle first-receipt payoff (then-vs-now in the surface)', () =>
     expect((s['data'] as Record<string, unknown>)['status']).toBe('sealed');
     const r = body(await settle.handler({ argus_dir: dir, id: 'ko1', outcome: 'held', outcome_source: 'user_stated', what_happened: '실제로 발송됐다', today_override: '2026-09-02' }));
     const surface = String(r['surface']);
-    expect(surface).toContain('당신의 예측');
+    expect(surface).toContain('내가 예측한 것');
     expect(surface).toContain('실제로 발송됐다');
   });
 });

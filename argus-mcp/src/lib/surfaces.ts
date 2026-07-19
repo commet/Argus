@@ -223,6 +223,14 @@ export interface SurfaceStrings {
     sealed_label: string;
     settled_label: string;
     not_settled: string;
+    /** Right-aligned date tags in the two block headers: "… 2026-07-20 저장" and
+     *  "… 2026-07-25 확인". Redesign (founder-approved): predict/reality are blocks,
+     *  not a cramped two-date top row. */
+    saved_suffix: string;
+    settled_suffix: string;
+    /** One standalone ownership line ("이 판단을 내린 사람: 나 (모델 아님)") that
+     *  replaces the old "…내린 사람  나. (모델이 아니라)" label+value with the ellipsis. */
+    made_by_line: string;
     real_question: string;
     unverified_assumption: string;
     human_only: string;
@@ -409,12 +417,15 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
       sealed_label: 'Prediction saved',
       settled_label: 'Result',
       not_settled: 'not recorded yet',
+      saved_suffix: 'saved',
+      settled_suffix: 'recorded',
+      made_by_line: 'This call was mine. Not the model\'s.',
       real_question: 'THE REAL QUESTION',
       unverified_assumption: 'THE UNVERIFIED ASSUMPTION',
       human_only: 'HUMAN-ONLY CALL',
       made_by_label: '…made by',
       made_by: 'Me. (not the model)',
-      called_as: '…looking back',
+      called_as: 'Looking back,',
       basis_label: (v) => ({ judgment: 'mostly my judgment', luck: 'mostly luck', mixed: 'a mix of both', unsure: 'not sure' })[v] ?? v,
       // A blank field, stated neutrally — "you skipped naming this" read as a
       // nag about the user's completeness on a receipt they wanted plain
@@ -426,9 +437,9 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
         `(+${tracked} ${tracked === 1 ? 'premise' : 'premises'} tracked · ${changed} changed at re-check · argus_patterns view=decision_context)`,
       deferred_fact: (times, originallyDue) =>
         `Originally due ${originallyDue} · deferred ${times}×`,
-      you_predicted: 'YOU PREDICTED',
-      check_by: (date) => `(check-by ${date})`,
-      what_happened: 'WHAT HAPPENED',
+      you_predicted: 'What I predicted',
+      check_by: (date) => `check-by ${date}`,
+      what_happened: 'What actually happened',
       verdict_line: 'AI VERDICT ON THIS DECISION ······················  NONE',
       closing: 'The model never graded you. Reality did.',
       footer: 'argus · prediction saved → result recorded ⚓',
@@ -566,12 +577,15 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
       sealed_label: '저장한 예측',
       settled_label: '실제 결과',
       not_settled: '기록 전',
+      saved_suffix: '저장',
+      settled_suffix: '확인',
+      made_by_line: '이 판단을 내린 사람: 나 (모델 아님)',
       real_question: '진짜 질문',
       unverified_assumption: '검증 안 된 전제',
       human_only: '사람만의 판단',
       made_by_label: '…내린 사람',
       made_by: '나. (모델이 아니라)',
-      called_as: '…돌아보니',
+      called_as: '돌아보니',
       basis_label: (v) => ({ judgment: '판단이 컸다', luck: '운이 컸다', mixed: '판단 반 운 반', unsure: '잘 모르겠다' })[v] ?? v,
       // 빈 칸을 사실 그대로. "이름 붙이지 않고 넘어갔습니다"는 사용자의 완성도를
       // 지적하는 잔소리로 읽혔다 (experience loop, settler).
@@ -581,8 +595,8 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
         `(추적한 전제 ${tracked}건 · 재확인에서 바뀐 것 ${changed}건 · argus_patterns view=decision_context)`,
       deferred_fact: (times, originallyDue) =>
         `원래 확인일 ${originallyDue} · ${times}번 미룸`,
-      you_predicted: '당신의 예측',
-      check_by: (date) => `(확인일 ${date})`,
+      you_predicted: '내가 예측한 것',
+      check_by: (date) => `확인일 ${date}`,
       what_happened: '실제로 일어난 일',
       // 브랜드 DNA — 웹 OG 이미지와 동일하게 이 줄만은 영문 유지 (§9.3)
       verdict_line: 'AI VERDICT ON THIS DECISION ······················  NONE',

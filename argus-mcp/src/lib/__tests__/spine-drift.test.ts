@@ -117,7 +117,7 @@ describe('settlement receipt copy', () => {
       skipped: [],
     });
 
-    expect(text).toContain('Result not recorded yet');
+    expect(text).toContain('not recorded yet');
     expect(text).not.toContain('Settled (open)');
   });
 });
