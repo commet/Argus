@@ -37,16 +37,27 @@ export function renderReturnCalendarEvent(args: {
   predicate: string;
   check_by: string;
   created_at: string;
+  /** the language the prediction was sealed in — the alarm rings in it. A
+   *  Korean user who sealed in Korean used to get an English phone alarm that
+   *  told them to "run argus_check_in" (a tool name, not a human instruction). */
+  locale?: 'ko' | 'en';
 }): string {
   const start = ymdCompact(args.check_by);
   const end = ymdCompact(addOneDay(args.check_by));
   const stamp = args.created_at.replace(/[-:]/g, '').replace(/\.\d{3}Z$/, 'Z');
-  const summary = `Argus return: ${args.predicate.slice(0, 80)}`;
-  const description = [
-    'An Argus prediction has reached its check date.',
-    `Predicate: ${args.predicate}`,
-    'Open your terminal and run argus_check_in, then argus_resolve if reality is clear.',
-  ].join('\n');
+  const ko = args.locale === 'ko';
+  const summary = ko ? `Argus 확인일: ${args.predicate.slice(0, 80)}` : `Argus return: ${args.predicate.slice(0, 80)}`;
+  const description = ko
+    ? [
+        '예측의 확인일이 됐습니다.',
+        `예측: ${args.predicate}`,
+        'Claude에서 Argus에게 "지금 확인할 것 있어?"라고 물어보고, 현실이 분명하면 실제 결과를 기록하세요.',
+      ].join('\n')
+    : [
+        'An Argus prediction has reached its check date.',
+        `Predicate: ${args.predicate}`,
+        'Ask Argus "what\'s due?" in your assistant, then record what actually happened.',
+      ].join('\n');
   const lines = [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
@@ -81,6 +92,7 @@ export async function writeReturnCalendarEvent(argusDir: string, args: {
   predicate: string;
   check_by: string;
   created_at: string;
+  locale?: 'ko' | 'en';
 }): Promise<string> {
   const file = calendarPath(argusDir, args.id);
   await fs.mkdir(path.dirname(file), { recursive: true });

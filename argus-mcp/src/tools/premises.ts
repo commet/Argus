@@ -415,9 +415,14 @@ async function opResolve(
   if (!decision) {
     // MCP-native elicitation: ask the USER directly. The question replays their
     // own open question verbatim and takes free text — no options, no leans.
+    // Localize like the rest of the tool — a Korean user closing their own
+    // Korean question used to get an English form. Voice follows the question.
+    const qLocale = resolveResponseLocale(dir, premise.text);
     const got = await elicit(
-      `Your open question on this decision: "${premise.text}". What is your call now, in your own words? (You can also leave it open.)`,
-      { type: 'object', properties: { decision: { type: 'string', maxLength: 400, description: 'Your call, your words.' } }, required: ['decision'] },
+      qLocale === 'ko'
+        ? `이 결정에 남겨둔 질문입니다: "${premise.text}". 지금은 어떻게 판단하시나요? 당신의 말로 적어주세요. (그대로 열어둬도 됩니다.)`
+        : `Your open question on this decision: "${premise.text}". What is your call now, in your own words? (You can also leave it open.)`,
+      { type: 'object', properties: { decision: { type: 'string', maxLength: 400, description: qLocale === 'ko' ? '당신의 판단, 당신의 표현.' : 'Your call, your words.' } }, required: ['decision'] },
     );
     decision = typeof got?.['decision'] === 'string' ? (got['decision'] as string).trim() : '';
   }

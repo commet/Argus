@@ -206,7 +206,7 @@ export const seal: ToolModule = {
         await atomicWriteJson(bearingPath(dir, id), {
           v: SCHEMA_VERSION, id, contract_seed: { predicate, check_by: checkBy }, predicate_owner: a['predicate_owner'],
         });
-        const calendarPathW = await writeReturnCalendarEvent(dir, { id, predicate, check_by: checkBy, created_at: now });
+        const calendarPathW = await writeReturnCalendarEvent(dir, { id, predicate, check_by: checkBy, created_at: now, locale });
         // 미러 힌트: 원장 이벤트에 없는 elicit 목격 여부 + 영수증 필드만 —
         // 미러 자체는 appendLedger의 단일 관문이 수행한다 (mirror.ts).
         const appended = await appendLedger(dir, events, now, { seal: {
@@ -276,7 +276,7 @@ export const seal: ToolModule = {
       // dumping the absolute path — and the English label "Calendar file:" — into
       // a one-line surface was noise, and broke the Korean voice (copy-audit /
       // loop find). Mention it briefly, localized; keep the path in data.
-      const calNote = locale === 'ko' ? ' 달력 리마인더(.ics)도 저장했어요.' : ' Saved a calendar reminder (.ics).';
+      const calNote = locale === 'ko' ? ' 달력 리마인더(.ics)도 저장했습니다.' : ' Saved a calendar reminder (.ics).';
       return envelope({
         ok: true, tool: 'argus_seal',
         surface: `${T.sealed(predicate, checkBy)}${calNote}${nudge}${syncLine}`,

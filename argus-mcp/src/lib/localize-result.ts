@@ -128,12 +128,18 @@ export function localizeToolResult(
   const sc = result.structuredContent;
   if (!sc || sc['ok'] !== false) return result;
   const code = String(sc['error_code'] ?? 'INTERNAL_ERROR');
+  // Some handlers already return a hand-written Korean message (e.g.
+  // NOT_FALSIFIABLE: "이건 기분이지 확인 가능한 예측이 아닙니다"). If this code
+  // isn't in KO_ERRORS, the generic fallback used to DESTROY that Korean copy.
+  // Preserve any message that already contains Hangul instead of overwriting it.
+  const existingMsg = typeof sc['message'] === 'string' ? sc['message'] : '';
+  const existingRec = typeof sc['recovery'] === 'string' ? sc['recovery'] : '';
+  const genericFallback = /[가-힣]/.test(existingMsg)
+    ? { message: existingMsg, ...(existingRec ? { recovery: existingRec } : {}) }
+    : { message: '요청을 처리하지 못했습니다.', recovery: '입력값과 현재 결정 상태를 확인한 뒤 다시 시도하세요.' };
   let copy = code === 'INVALID_INPUT' && Array.isArray(sc['invalid_fields'])
     ? localizeInvalidInput(sc['invalid_fields'] as InvalidField[])
-    : KO_ERRORS[code] ?? {
-      message: '요청을 처리하지 못했습니다.',
-      recovery: '입력값과 현재 결정 상태를 확인한 뒤 다시 시도하세요.',
-    };
+    : KO_ERRORS[code] ?? genericFallback;
   // en에만 있던 날짜 상세를 ko에서도 보존 — "언제가 확인일인데?"에 답이 되도록.
   if (code === 'PREMATURE_SETTLE') {
     const m = String(sc['message'] ?? '').match(/check-by (\d{4}-\d{2}-\d{2}), today (\d{4}-\d{2}-\d{2})/);

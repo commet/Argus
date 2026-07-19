@@ -56,14 +56,20 @@ export const settle: ToolModule = {
       // without elicitation.
       let outcome = a['outcome'] as 'held' | 'avoided' | 'partial' | 'still_pending' | 'missed' | undefined;
       if (!outcome && canElicit()) {
-        const picked = await elicit('현실이 어떻게 답했나요? (What did reality do?)', {
+        // Localize the picker like every other elicitation (ambient-elicit does):
+        // a bilingual "그렇게 됐다 (held)" mishmash showed to BOTH a Korean and an
+        // English user. Voice follows the language the decision was sealed in.
+        const pickerLocale = resolveResponseLocale(dir, current.predicate ?? null);
+        const picked = await elicit(pickerLocale === 'ko' ? '현실이 어떻게 답했나요?' : 'What did reality do?', {
           type: 'object',
           properties: {
             outcome: {
               type: 'string',
               enum: ['held', 'avoided', 'partial', 'still_pending', 'missed'],
-              enumNames: ['그렇게 됐다 (held)', '피했다 (avoided)', '부분적으로 (partial)', '아직 불분명 (still pending)', '빗나갔다 (missed — my read was wrong)'],
-              description: 'What reality did to your sealed prediction.',
+              enumNames: pickerLocale === 'ko'
+                ? ['그렇게 됐다', '피했다', '부분적으로', '아직 불분명', '빗나갔다 (내 예측이 틀렸다)']
+                : ['It held', 'Avoided', 'Partially', 'Still unclear', 'Missed — my read was wrong'],
+              description: pickerLocale === 'ko' ? '봉인한 예측에 현실이 어떻게 답했는지 고르세요.' : 'What reality did to your sealed prediction.',
             },
           },
           required: ['outcome'],

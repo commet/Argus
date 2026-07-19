@@ -203,7 +203,10 @@ export interface SurfaceStrings {
     /** counts-only settled header: `held 1 · avoided 1 · partial 1` — outcome
      *  words are the user's own picks (user_stated), so naming them is not a
      *  verdict; a ratio or % here would be. */
-    settled_group: (n: number, held: number, avoided: number, partial: number) => string;
+    settled_group: (n: number, held: number, avoided: number, partial: number, missed: number) => string;
+    /** the settled row's outcome word — the user's own pick, localized. A raw
+     *  enum ("missed"/"held") in a Korean box was a machine token leak. */
+    outcome_label: (outcome: string) => string;
     more: (n: number) => string;
     record_since: (date: string) => string;
   };
@@ -383,7 +386,8 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
       days_past: (n) => `${n}d past`,
       waiting_group: (n) => `waiting for the outcome (${n})`,
       answer_on: (date) => `due ${date}`,
-      settled_group: (n, held, avoided, partial) => `results recorded (${n}): held ${held} · avoided ${avoided} · partial ${partial}`,
+      settled_group: (n, held, avoided, partial, missed) => `results recorded (${n}): held ${held} · avoided ${avoided} · partial ${partial} · missed ${missed}`,
+      outcome_label: (o) => ({ held: 'held', avoided: 'avoided', partial: 'partial', missed: 'missed', still_pending: 'pending' })[o] ?? o,
       more: (n) => `… (+${n})`,
       record_since: (date) => `on record since ${date}`,
     },
@@ -397,8 +401,8 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
       human_only: 'HUMAN-ONLY CALL',
       made_by_label: '…made by',
       made_by: 'Me. (not the model)',
-      called_as: '…called it',
-      basis_label: (v) => ({ judgment: 'judgment', luck: 'luck', mixed: 'a mix of both', unsure: 'not sure' })[v] ?? v,
+      called_as: '…looking back',
+      basis_label: (v) => ({ judgment: 'mostly my judgment', luck: 'mostly luck', mixed: 'a mix of both', unsure: 'not sure' })[v] ?? v,
       // A blank field, stated neutrally — "you skipped naming this" read as a
       // nag about the user's completeness on a receipt they wanted plain
       // (experience loop, settler: a zero-judgment surface must not grade even
@@ -430,7 +434,7 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
         watch_exit: ' Leaving it unrecorded is fine.',
         reconfirm: 'These signals look contradictory (high stakes yet easily reversible). Re-confirm stakes and reversibility before going further.',
         opened_with_crux: (crux) => `Opened. The one question that decides this: ${crux}`,
-        opened_bare: 'Opened. Surface exactly ONE neutral crux question (a question, not a fork or a lean), then save a falsifiable prediction.',
+        opened_bare: 'Opened. If one neutral question decides this, naming it is the next step. Then save a falsifiable prediction.',
       },
       seal: {
         sealed: (predicate, checkBy) => `Prediction saved. "${predicate}" Check-by is ${checkBy}. Come back then with argus_resolve to record what happened.`,
@@ -534,9 +538,10 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
       days_past: (n) => `${n}일 경과`,
       waiting_group: (n) => `결과를 기다리는 중 (${n})`,
       answer_on: (date) => `답 ${date}`,
-      settled_group: (n, held, avoided, partial) => `결과 기록됨 (${n}): 그렇게 됨 ${held} · 피함 ${avoided} · 부분 ${partial}`,
+      settled_group: (n, held, avoided, partial, missed) => `결과 기록됨 (${n}): 그렇게 됨 ${held} · 피함 ${avoided} · 부분 ${partial} · 빗나감 ${missed}`,
+      outcome_label: (o) => ({ held: '그렇게 됨', avoided: '피함', partial: '부분', missed: '빗나감', still_pending: '대기' })[o] ?? o,
       more: (n) => `… (+${n})`,
-      record_since: (date) => `기록 시작 ${date} 부터`,
+      record_since: (date) => `${date}부터 기록`,
     },
     receipt: {
       header: 'ARGUS · 판단 영수증',
@@ -548,8 +553,8 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
       human_only: '사람만의 판단',
       made_by_label: '…내린 사람',
       made_by: '나. (모델이 아니라)',
-      called_as: '…판단한 내용',
-      basis_label: (v) => ({ judgment: '판단', luck: '운', mixed: '반반', unsure: '모르겠음' })[v] ?? v,
+      called_as: '…돌아보니',
+      basis_label: (v) => ({ judgment: '판단이 컸다', luck: '운이 컸다', mixed: '판단 반 운 반', unsure: '잘 모르겠다' })[v] ?? v,
       // 빈 칸을 사실 그대로. "이름 붙이지 않고 넘어갔습니다"는 사용자의 완성도를
       // 지적하는 잔소리로 읽혔다 (experience loop, settler).
       skipped: '— (없음)',
@@ -568,23 +573,23 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
     tools: {
       open_decision: {
         reason: {
-          vent: '이건 소리 내어 말할 일이지, 억지로 만들 갈림길이 아닙니다.',
+          vent: '이건 소리 내어 말할 일이지, 억지로 결정으로 만들 일이 아닙니다.',
           factual: '이건 답이 있는 질문이지, 열어둘 결정이 아닙니다.',
           already_closed: '이미 내린 결정입니다. Argus는 이걸 다시 열지 않습니다.',
           flat: '선택지가 거의 대등합니다. 억지로 만들 핵심 질문이 없습니다.',
           reversible_low_stakes: '되돌리기 쉽고 걸린 것도 적습니다. 직접 해보는 것이 곧 검증입니다.',
           low_stakes: '걸린 것이 별로 없습니다. 그대로 두는 편이 무난합니다.',
         },
-        reason_fallback: '여기서 지어낼 갈림길은 없습니다.',
+        reason_fallback: '여기서 억지로 지어낼 결정은 없습니다.',
         leave_coda: '그대로 두는 것도 여전히 진짜 선택지입니다.',
         watch_exit: ' 기록하지 않고 그대로 두어도 괜찮습니다.',
-        reconfirm: '신호가 서로 어긋납니다 (걸린 것은 큰데 되돌리기는 쉽습니다). 더 나아가기 전에 stakes와 reversibility를 다시 확인하세요.',
-        opened_with_crux: (crux) => `열었습니다. 이걸 가르는 단 하나의 질문: ${crux}`,
-        opened_bare: '열었습니다. 중립적인 핵심 질문 딱 하나만 꺼내세요(갈림길도 기울임도 아닌 질문). 그다음 반증 가능한 예측을 저장하세요.',
+        reconfirm: '신호가 서로 어긋납니다 (걸린 것은 큰데 되돌리기는 쉽습니다). 더 나아가기 전에 이 둘을 다시 짚어 보세요.',
+        opened_with_crux: (crux) => `열었습니다. 이 결정을 좌우하는 단 하나의 질문: ${crux}`,
+        opened_bare: '열었습니다. 이 결정을 좌우하는 핵심 질문 하나가 있다면 그걸 짚어 보는 게 다음 단계입니다. 그다음 반증 가능한 예측을 저장하면 됩니다.',
       },
       seal: {
         sealed: (predicate, checkBy) => `예측을 저장했습니다. "${predicate}" 확인일은 ${checkBy}입니다. 그날 argus_resolve로 실제로 어땠는지 기록하세요.`,
-        nudge_assumption: ' 원하면 핵심 전제를 적어 나중에 같이 확인할 수 있어요.',
+        nudge_assumption: ' 원하면 핵심 전제를 적어두면 나중에 같이 확인합니다.',
         synced: ' 계정에 동기화했습니다. 확인일이 오면 이메일로 알려드립니다.',
         sync_failed: (reason) => ` (계정 동기화가 안 됐습니다. ${reason}. 예측은 로컬에 안전합니다. 동기화되기 전까지는 이메일 알림이 오지 않습니다. 나중에 argus_settings action=sync를 시도하세요.)`,
       },

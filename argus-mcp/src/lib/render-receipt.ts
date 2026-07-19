@@ -25,8 +25,9 @@ export function renderReceipt(r: Receipt, premises?: ReceiptPremisesInfo, locale
   const sealed = r.created_at ? r.created_at.slice(0, 10) : '—';
   const settled = r.settled_at ? r.settled_at.slice(0, 10) : R.not_settled;
 
-  const top = '┌─ ' + R.header + ' ' + '─'.repeat(Math.max(2, 56 - R.header.length)) + '┐';
-  const bottom = '└' + '─'.repeat(Math.max(2, 52 - R.footer.length)) + '  ' + R.footer + ' ─┘';
+  const RW = 64; // target display columns — top and bottom derive from one width
+  const top = '┌─ ' + R.header + ' ' + '─'.repeat(Math.max(2, RW - 5 - dw(R.header))) + '┐';
+  const bottom = '└' + '─'.repeat(Math.max(2, RW - 6 - dw(R.footer))) + '  ' + R.footer + ' ─┘';
 
   L.push(top);
   L.push(`  ${R.sealed_label} ${sealed}      ${R.settled_label} ${settled}`);
@@ -102,8 +103,9 @@ export function renderSeal(opts: {
   const S = SURFACES[opts.locale].seal;
   const L: string[] = [];
 
-  const top = '┌─ ' + S.header + ' ' + '─'.repeat(Math.max(2, 56 - S.header.length)) + '┐';
-  const bottom = '└' + '─'.repeat(Math.max(2, 54 - S.footer.length)) + '  ' + S.footer + ' ─┘';
+  const SW = 64; // target display columns — top and bottom derive from one width
+  const top = '┌─ ' + S.header + ' ' + '─'.repeat(Math.max(2, SW - 5 - dw(S.header))) + '┐';
+  const bottom = '└' + '─'.repeat(Math.max(2, SW - 6 - dw(S.footer))) + '  ' + S.footer + ' ─┘';
 
   L.push(top);
   L.push('');
@@ -111,9 +113,11 @@ export function renderSeal(opts: {
   // sit inside the opening quote)
   L.push(`  "${wrap(opts.predicate, 50).split('\n    ').join('\n   ')}"`);
   L.push('');
-  const ownerLine = `  ${opts.predicate_owner === 'user' ? S.owner_user : S.owner_ai}`;
-  const ownerTag = `(predicate_owner: ${opts.predicate_owner})`;
-  L.push(ownerLine.length >= 40 ? `${ownerLine}   ${ownerTag}` : ownerLine.padEnd(40) + ownerTag);
+  // The prose already states provenance honestly ("these words are yours" /
+  // "Argus drafted these"). The raw `(predicate_owner: user)` machine tag beside
+  // it was plumbing on the keepsake certificate — the honest-provenance sentence
+  // carries the meaning; the token stays in `data`, off the rendered card.
+  L.push(`  ${opts.predicate_owner === 'user' ? S.owner_user : S.owner_ai}`);
   L.push('');
   const labelWidth = Math.max(S.sealed_label.length, S.answers_label.length) + 4;
   const days = Math.round((Date.parse(opts.check_by) - Date.parse(opts.today)) / 86400000);
@@ -155,7 +159,7 @@ const WAKE_TOP = 5; // per-group visible lines — the due_premises TOP=5 conven
 
 export function renderWake(
   contracts: WakeContractRow[],
-  stats: { held: number; avoided: number; partial: number },
+  stats: { held: number; avoided: number; partial: number; missed: number },
   today: string,
   locale: SurfaceLocale,
   /** YYYY-MM-DD of the oldest ledger event (LedgerState.oldest_ts). */
@@ -181,7 +185,13 @@ export function renderWake(
   const L: string[] = [];
   const headText = W.header + ' ';
   const countText = ' ' + W.counts(contracts.length, sealed.length, settled.length) + ' ';
-  L.push('┌─ ' + headText + '─'.repeat(Math.max(2, WIDTH - 5 - headText.length - countText.length)) + countText + '─┐');
+  // The header+counts row can exceed WIDTH (Korean counts are wide); when it
+  // does, the top must GROW rather than clamp its dashes to a floor while the
+  // short footer sits at WIDTH — that was the 1-column top/bottom mismatch. Both
+  // edges derive from one barWidth: WIDTH, or wider if the top needs it.
+  const topFixed = 3 + dw(headText) + dw(countText) + 2; // everything but the dashes
+  const barWidth = Math.max(WIDTH, topFixed + 2);
+  L.push('┌─ ' + headText + '─'.repeat(barWidth - topFixed) + countText + '─┐');
 
   const pushGroup = (rows: WakeContractRow[], head: string, line: (c: WakeContractRow) => string, hint?: string) => {
     if (rows.length === 0) return;
@@ -206,14 +216,26 @@ export function renderWake(
 
   pushGroup(
     settled,
-    W.settled_group(settled.length, stats.held, stats.avoided, stats.partial),
-    (c) => `"${label(c)}"   ${(c.outcome || '—')}  ${mmdd(c.settled_on || c.check_by)}  ·  ${c.id}`,
+    W.settled_group(settled.length, stats.held, stats.avoided, stats.partial, stats.missed),
+    (c) => `"${label(c)}"   ${c.outcome ? W.outcome_label(c.outcome) : '—'}  ${mmdd(c.settled_on || c.check_by)}  ·  ${c.id}`,
   );
 
   L.push('');
   const foot = recordSince ? ' ' + W.record_since(recordSince) + ' ' : '';
-  L.push('└' + '─'.repeat(Math.max(2, WIDTH - 2 - foot.length)) + foot + '─┘');
+  L.push('└' + '─'.repeat(Math.max(2, barWidth - 3 - dw(foot))) + foot + '─┘');
   return L.join('\n');
+}
+
+// Display width: Hangul/CJK/fullwidth and the ⚓ anchor render as TWO terminal
+// columns while String.length counts them as one. Every box border was built
+// from `.length`, so a Korean header/footer made the top and bottom edges
+// disagree by several columns — the keepsake's frame did not close. Both edges
+// are now derived from one target WIDTH using this measure.
+const WIDE = /[ᄀ-ᇿ⺀-鿿ꥠ-꥿가-힣豈-﫿︰-﹏＀-｠￠-￦⚓]/;
+function dw(s: string): number {
+  let w = 0;
+  for (const ch of s) w += WIDE.test(ch) ? 2 : 1;
+  return w;
 }
 
 function wrap(s: string, width = 54): string {
