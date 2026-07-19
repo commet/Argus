@@ -432,7 +432,7 @@ export function SealMoment({
             {L(`이 결정, ${dateFor(interval)}에 어떻게 됐는지 확인해 드릴까요?`, `Want me to check back on this on ${dateFor(interval)}?`)}
           </h3>
           <p className="mt-2.5 text-[13px] text-[var(--text-secondary)] leading-[1.5] max-w-sm mx-auto">
-            {L('따로 잡아둔 예측은 없지만, 그날 돌아와 어떻게 됐는지 확인할 수 있어요.', "No separate prediction to track, but you can still return that day and see how it went.")}
+            {L('그날 돌아와 어떻게 됐는지 확인할 수 있어요.', 'You can return that day and see how it went.')}
           </p>
           <div className="mt-7 flex flex-col sm:flex-row gap-3 justify-center">
             <button
@@ -575,14 +575,11 @@ export function SealMoment({
           transition={{ delay: 0.25, duration: 0.4 }}
           className="mt-5 text-center"
         >
+          {/* The certificate above already carries the date + "그래서, 어떻게
+              됐어요?". One line here, and only the NEW bit: where it comes back
+              (the project page). The old second <p> just re-poeticized the cert. */}
           <p className="text-[14px] font-semibold text-[var(--text-primary)] leading-[1.5]">
-            {L(
-              `좋아요. ${checkDateStr}에 물어볼게요 — 프로젝트 페이지에 오시면 제가 먼저 물어요.`,
-              `Done. I'll ask on ${checkDateStr} — come to the project page and I'll bring it up first.`,
-            )}
-          </p>
-          <p className="mt-1.5 text-[13px] text-[var(--text-secondary)] leading-[1.55]">
-            {L('"그래서, 어떻게 됐어요?" — 그날 이 결정으로 돌아옵니다.', '"So, how did it go?" — this decision comes back to you that day.')}
+            {L('좋아요 — 그날 프로젝트 페이지에서 제가 먼저 물어볼게요.', "Done — I'll bring it up first on the project page that day.")}
           </p>
 
           {/* Peak-ownership conversion: the artifact was just minted on THIS device.
@@ -782,9 +779,6 @@ export function SealMoment({
                 </li>
               ))}
             </ul>
-            <p className="mt-2 text-[12px] text-[var(--text-tertiary)] leading-relaxed">
-              {L('확인일에 “확인해보셨어요?”라고 다시 여쭤볼게요.', 'On the review date I’ll ask "did you check these?"')}
-            </p>
           </div>
         )}
 

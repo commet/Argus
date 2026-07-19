@@ -229,17 +229,10 @@ export function AnalysisCard({
                 </button>
               )}
             </div>
-            {/* First-snapshot sub-line — explains why the card exists and
-                what happens next. Hidden after round 1 since by then the
-                user already knows the pattern. */}
-            {!prevSnapshot && (
-              <p className="text-[12px] text-[var(--text-secondary)] leading-relaxed mb-3">
-                {isActive
-                  ? L('지금까지의 내용으로 정리한 방향이에요. 다음 답변에 따라 계속 조정됩니다.', 'This is the direction clarified so far. It will keep adjusting as you answer.')
-                  : L('지금까지의 답변으로 정리한 방향이에요.', 'This direction reflects your answers so far.')}
-              </p>
-            )}
-            {prevSnapshot && <div className="mb-2" />}
+            {/* (The first-snapshot sub-line was removed: it restated the eyebrow
+                "우리가 정리한 방향" and the status line's "…정리한 방향" verbatim —
+                three near-identical lines within ~40px. The eyebrow + status carry it.) */}
+            <div className="mb-2" />
 
             {/* Real question — single source of truth, no line-through. */}
             <div className="mb-5">

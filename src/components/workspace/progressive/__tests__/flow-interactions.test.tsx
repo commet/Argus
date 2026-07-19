@@ -253,7 +253,8 @@ describe('DMFeedback — batch apply / skip', () => {
     const switches = Array.from(container.querySelectorAll('[role="switch"]'));
     expect(switches).toHaveLength(3);
     expect(switches[0].getAttribute('aria-checked')).toBe('true');
-    expect(container.textContent).toContain('수정 제안 3건 중 2건 선택');
+    // The selected count is shown once, by the pill (the duplicate sentence was removed).
+    expect(container.textContent).toContain('2/3');
     expect(byText('선택한 2건 반영하고 완성')).toBeTruthy();
   });
 });

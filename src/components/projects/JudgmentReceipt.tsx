@@ -73,10 +73,6 @@ export function JudgmentReceipt(props: Props) {
             <div className="rounded-lg bg-[var(--accent)]/[0.04] px-3 py-2">
               <p className="text-[var(--text-primary)]">
                 {unverified_assumption}
-                {' '}
-                <span className="text-[var(--text-warning)] font-medium text-[11px]">
-                  {L('아직 확인되지 않음', 'unverified')}
-                </span>
               </p>
             </div>
           </div>

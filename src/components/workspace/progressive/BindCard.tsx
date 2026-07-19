@@ -111,8 +111,7 @@ export function BindCard({
         {/* First-meeting metaphor bridge (06 S3) — half a sentence tying '밧줄/묶기'
             to its reason. Copy only; the SPINE INVARIANTS above are untouched. */}
         <p className="text-[12.5px] text-[var(--text-tertiary)] mt-1.5 leading-snug">
-          {L('선택사항이에요. 지금 생각을 남겨두면 확인일에 실제 결과와 비교할 수 있어요.',
-             'Optional. Leave your current view so you can compare it with the outcome on the review date.')}
+          {L('선택이에요 — 건너뛰어도 돼요.', 'Optional — you can skip this.')}
         </p>
 
         {/* The user's own words are the hero of this screen (우정 1조: 네가 한 말을
@@ -201,8 +200,7 @@ export function BindCard({
             this card (buffered by design); say so in one machine-status sentence.
             No spinner: the analysis stays buffered, this is orientation only. */}
         <p className="mt-4 text-[12px] leading-snug text-[var(--text-secondary)]">
-          {L('AI 검토자는 적어주신 내용을 이미 읽고 있어요. 다음 화면에서 정리한 질문을 보여드려요.',
-             'AI reviewers are already reading what you wrote. The organized question appears next.')}
+          {L('AI 검토자가 이미 읽고 있어요.', 'AI reviewers are already reading this.')}
         </p>
       </div>
     </motion.div>
