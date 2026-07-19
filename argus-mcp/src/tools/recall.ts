@@ -24,7 +24,7 @@ function frequencyStatement(s: LedgerState['stats'], locale: SurfaceLocale): str
   const n = s.total_settled;
   if (n === 0) return locale === 'ko' ? '아직 결과를 기록한 결정이 없습니다. 요약할 것이 없습니다.' : 'No settled decisions yet; nothing to summarize.';
   return locale === 'ko'
-    ? `결과 기록 ${n}건 중: 그렇게 됨 ${s.held} · 피함 ${s.avoided} · 부분 ${s.partial} · 빗나감 ${s.missed}.`
+    ? `결과 기록 ${n}건 중: 예측대로 ${s.held} · 걱정 피함 ${s.avoided} · 일부 ${s.partial} · 빗나감 ${s.missed}.`
     : `Of ${n} settled: ${s.held} held, ${s.avoided} avoided, ${s.partial} partial, ${s.missed} missed.`;
 }
 
@@ -110,7 +110,7 @@ export const recall: ToolModule = {
         // 부분/대기, so the receipt-recall surface must match (was 부분적/아직 —
         // three words for `partial` in one decision's lifecycle).
         const label = receiptLocale === 'ko'
-          ? { held: '그렇게 됨', avoided: '피함', partial: '부분', missed: '빗나감', still_pending: '대기' }
+          ? { held: '예측대로', avoided: '걱정 피함', partial: '일부', missed: '빗나감', still_pending: '대기' }
           : { held: 'held', avoided: 'avoided', partial: 'partial', missed: 'missed', still_pending: 'still pending' };
         const outcomeKey = (r.outcome ?? 'still_pending') as keyof typeof label;
         const receiptSurface = receiptLocale === 'ko'

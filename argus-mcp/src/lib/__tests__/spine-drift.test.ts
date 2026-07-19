@@ -159,7 +159,7 @@ describe('wake_text spine (renderWake)', () => {
 
   it('settled group is a count list of user-stated outcomes, never a rate', () => {
     const ko = renderWake(fixture, stats, TODAY, 'ko', '2026-07-03');
-    expect(ko).toContain('결과 기록됨 (3): 그렇게 됨 1 · 피함 1 · 부분 1');
+    expect(ko).toContain('결과 기록됨 (3): 예측대로 1 · 걱정 피함 1 · 일부 1');
     const en = renderWake(fixture, stats, TODAY, 'en', '2026-07-03');
     expect(en).toContain('results recorded (3): held 1 · avoided 1 · partial 1');
   });

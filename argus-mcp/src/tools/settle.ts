@@ -67,7 +67,7 @@ export const settle: ToolModule = {
               type: 'string',
               enum: ['held', 'avoided', 'partial', 'still_pending', 'missed'],
               enumNames: pickerLocale === 'ko'
-                ? ['그렇게 됐다', '피했다', '부분적으로', '아직 불분명', '빗나갔다 (내 예측이 틀렸다)']
+                ? ['예측대로 됐다', '걱정한 일은 안 일어났다', '일부만 맞았다', '아직 불분명', '예측이 빗나갔다']
                 : ['It held', 'Avoided', 'Partially', 'Still unclear', 'Missed: my read was wrong'],
               description: pickerLocale === 'ko' ? '저장한 예측에 현실이 어떻게 답했는지 고르세요.' : 'What reality did to your sealed prediction.',
             },
