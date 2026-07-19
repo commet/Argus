@@ -346,7 +346,7 @@ export function SeaChart({
         // role="img" prunes children from the a11y tree — correct for the
         // glanceable chart, wrong when nodes are interactive (keyboard pick).
         role={onPick ? 'group' : 'img'}
-        aria-label={L('결정 항해 해도', 'Decision voyage chart')}
+        aria-label={L('결정 갈래 지도', 'Decision branch map')}
         onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp}
         onPointerLeave={onPointerUp} onWheel={onWheel}
         style={{ display: 'block', touchAction: full ? 'none' : undefined, cursor: full ? (drag.current ? 'grabbing' : 'grab') : undefined }}>
@@ -535,7 +535,7 @@ export function SeaChart({
                 onClick={handlePick ? () => handlePick(n.id) : undefined}
                 role={handlePick ? 'button' : undefined}
                 tabIndex={handlePick ? 0 : undefined}
-                aria-label={handlePick ? (wp?.headline || L('항로 지점으로 이동', 'Go to this waypoint')) : undefined}
+                aria-label={handlePick ? (wp?.headline || L('이 결정 지점으로 이동', 'Go to this decision point')) : undefined}
                 onKeyDown={handlePick ? (e) => {
                   if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handlePick(n.id); }
                 } : undefined}>

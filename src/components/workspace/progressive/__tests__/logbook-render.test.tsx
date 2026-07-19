@@ -67,9 +67,9 @@ import { Logbook, LogbookDrawer } from '@/components/workspace/progressive/Logbo
 describe('Logbook render', () => {
   const html = renderToStaticMarkup(createElement(Logbook));
 
-  it('renders the ship\'s-log header and the full-chart entry point', () => {
+  it('renders the decision-log header and the full-map entry point', () => {
     expect(html).toContain('결정 기록');
-    expect(html).toContain('전체 해도');
+    expect(html).toContain('전체 결정 지도');
   });
 
   it('renders typed waypoints with their headlines', () => {

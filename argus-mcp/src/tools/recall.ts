@@ -22,9 +22,9 @@ const byCheckBy = (a: { check_by?: string }, b: { check_by?: string }) =>
  *  and reflection so the two reads can never drift into two different claims. */
 function frequencyStatement(s: LedgerState['stats'], locale: SurfaceLocale): string {
   const n = s.total_settled;
-  if (n === 0) return locale === 'ko' ? '아직 정산된 결정이 없습니다 — 요약할 것이 없습니다.' : 'No settled decisions yet — nothing to summarize.';
+  if (n === 0) return locale === 'ko' ? '아직 결과를 기록한 결정이 없습니다 — 요약할 것이 없습니다.' : 'No settled decisions yet — nothing to summarize.';
   return locale === 'ko'
-    ? `정산 ${n}건 중: 그렇게 됨 ${s.held} · 피함 ${s.avoided} · 부분 ${s.partial} · 빗나감 ${s.missed}.`
+    ? `결과 기록 ${n}건 중: 그렇게 됨 ${s.held} · 피함 ${s.avoided} · 부분 ${s.partial} · 빗나감 ${s.missed}.`
     : `Of ${n} settled: ${s.held} held, ${s.avoided} avoided, ${s.partial} partial, ${s.missed} missed.`;
 }
 

@@ -49,8 +49,8 @@ export function AgentHub() {
   if (agents.length === 0) {
     return (
       <div className="agent-hub" aria-busy="true" aria-live="polite">
-        <h1 className="agent-hub-title">{L('선원 명부', 'Crew Roster')}</h1>
-        <p className="agent-hub-subtitle">{L('함께 항해해 온 선원들이에요. 모두 첫 항해부터 함께했어요.', 'Your crew — all aboard since the first voyage.')}</p>
+        <h1 className="agent-hub-title">{L('AI 검토자', 'AI reviewers')}</h1>
+        <p className="agent-hub-subtitle">{L('결정을 서로 다른 관점에서 살펴보는 AI 역할들이에요.', 'These AI roles review decisions from different perspectives.')}</p>
         <div className="mt-6 space-y-8">
           {[0, 1, 2].map((sectionIdx) => (
             <section key={sectionIdx} className="space-y-3">
@@ -91,9 +91,9 @@ export function AgentHub() {
     <div className="agent-hub">
       {/* W1.5④ 선원 명부 — a roster you BROWSE, not a page you manage. All
           crew sail from the first voyage; XP/level is progression flavor. */}
-      <h1 className="agent-hub-title">{L('선원 명부', 'Crew Roster')}</h1>
+      <h1 className="agent-hub-title">{L('AI 검토자', 'AI reviewers')}</h1>
       <p className="agent-hub-subtitle">
-        {L('함께 항해해 온 선원들이에요. 모두 첫 항해부터 함께했어요.', 'Your crew — all aboard since the first voyage.')}
+        {L('결정을 서로 다른 관점에서 살펴보는 AI 역할들이에요. 실제 사람 팀은 사람 팀 메뉴에서 따로 관리합니다.', 'These AI roles review decisions from different perspectives. Manage real collaborators separately under People teams.')}
       </p>
 
       {/* 체인 에이전트: 리서치 */}

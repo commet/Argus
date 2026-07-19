@@ -146,7 +146,7 @@ describe('wake_text spine (renderWake)', () => {
     // never rendered as a group
     row({ id: 'dec-12', status: 'dismissed' }),
   ];
-  const stats = { held: 1, avoided: 1, partial: 1 };
+  const stats = { held: 1, avoided: 1, partial: 1, missed: 0 };
 
   it('no %/ratio/tier/score/streak vocabulary in either locale', () => {
     for (const locale of ['ko', 'en'] as const) {
@@ -174,7 +174,7 @@ describe('wake_text spine (renderWake)', () => {
     expect(ko).not.toContain('경과');
     expect(ko).toContain('답 08-01');
     expect(ko).toContain('결정 12 · 예측 저장 8 · 결과 기록 3');
-    expect(ko).toContain('기록 시작 2026-07-03 부터');
+    expect(ko).toContain('2026-07-03부터 기록');
   });
 
   it('waiting lines sort by check_by ascending (dec-08 before dec-07)', () => {
@@ -183,7 +183,7 @@ describe('wake_text spine (renderWake)', () => {
   });
 
   it('empty groups vanish instead of rendering hollow frames', () => {
-    const one = renderWake([row({ id: 'only-one', check_by: '2026-09-01' })], { held: 0, avoided: 0, partial: 0 }, TODAY, 'ko');
+    const one = renderWake([row({ id: 'only-one', check_by: '2026-09-01' })], { held: 0, avoided: 0, partial: 0, missed: 0 }, TODAY, 'ko');
     expect(one).toContain('결과를 기다리는 중 (1)');
     expect(one).not.toContain('확인일 지남');
     expect(one).not.toContain('정산됨');

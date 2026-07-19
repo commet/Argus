@@ -656,7 +656,7 @@ export function ReframeStep({ onNavigate }: ReframeStepProps) {
       if (isAuthError(err)) {
         setError('LOGIN_REQUIRED');
       } else {
-        setError(de.message || L('항로를 그릴 수 없었습니다. 다시 시도하거나 더 구체적으로 입력해보세요.', 'Could not set the heading. Try again or be more specific.'));
+        setError(de.message || L('방향을 정리하지 못했습니다. 다시 시도하거나 상황을 더 구체적으로 적어보세요.', 'Could not clarify the direction. Try again or add more detail.'));
       }
       updateItem(id, { status: 'input' });
     }
@@ -873,7 +873,7 @@ export function ReframeStep({ onNavigate }: ReframeStepProps) {
       if (isAuthError(err)) {
         setError('LOGIN_REQUIRED');
       } else {
-        setError(de.message || L('항로를 다시 그릴 수 없었습니다. 다시 시도해보세요.', 'Could not re-chart the heading. Try again.'));
+        setError(de.message || L('방향을 다시 정리하지 못했습니다. 다시 시도해보세요.', 'Could not revise the direction. Try again.'));
       }
       updateItem(currentId, { status: 'review' });
     }

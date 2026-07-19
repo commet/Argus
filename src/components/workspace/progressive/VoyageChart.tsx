@@ -112,7 +112,7 @@ export function VoyageChart({ onNavigated }: { onNavigated?: () => void } = {}) 
       <div className="flex items-center gap-2 px-4 py-3 border-b border-[var(--border-subtle)]/60">
         <Compass size={12} className="text-[var(--accent)]" />
         <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--accent)]">
-          {L('해도', 'Chart')}
+          {L('결정 갈래 지도', 'Decision branch map')}
         </span>
         <span className="ml-auto text-[10px] text-[var(--text-tertiary)]">
           {L(
@@ -127,7 +127,7 @@ export function VoyageChart({ onNavigated }: { onNavigated?: () => void } = {}) 
         <div className="flex items-center gap-1.5 px-4 py-2 border-b border-[var(--border-subtle)]/40 text-[10px]">
           <span className="w-2 h-2 rounded-full shrink-0" style={{ background: activeBranch.color }} />
           <span className="font-semibold text-[var(--text-primary)] truncate max-w-[130px]">{activeBranch.name}</span>
-          <span className="ml-auto text-[var(--text-tertiary)]">{L(`항로 ${branches.length}개`, `${branches.length} courses`)}</span>
+          <span className="ml-auto text-[var(--text-tertiary)]">{L(`결정 갈래 ${branches.length}개`, `${branches.length} decision branches`)}</span>
         </div>
       )}
 
@@ -167,7 +167,7 @@ export function VoyageChart({ onNavigated }: { onNavigated?: () => void } = {}) 
         <div className="text-[10px] text-[var(--text-tertiary)] mt-2 px-1 leading-tight">
           {branches.length <= 1
             ? L('기점을 클릭하면 그 시점으로 돌아가 다른 답으로 가볼 수 있어요. · 끌어서 이동, +/− 로 확대·축소.', 'Click a waypoint to step back there and try a different answer. · Drag to pan, +/− to zoom.')
-            : L('기점이나 항로를 클릭해 그 시점으로 돌아갈 수 있어요. · 끌어서 이동, +/− 로 확대·축소.', 'Click a waypoint or course to step back there. · Drag to pan, +/− to zoom.')}
+            : L('기점이나 갈래를 클릭해 그 시점으로 돌아갈 수 있어요. · 끌어서 이동, +/− 로 확대·축소.', 'Click a point or branch to return there. · Drag to pan, +/− to zoom.')}
         </div>
 
         {/* Course list — the paths you've explored (incl. freshly-forked ones
@@ -176,7 +176,7 @@ export function VoyageChart({ onNavigated }: { onNavigated?: () => void } = {}) 
         {branches.length > 1 && (
           <div className="mt-3 pt-3 border-t border-[var(--border-subtle)]/40 space-y-0.5">
             <div className="text-[9px] font-bold uppercase tracking-[0.16em] text-[var(--text-tertiary)] mb-1">
-              {L('항로 목록', 'Courses')}
+              {L('결정 갈래', 'Decision branches')}
             </div>
             {branches.map(b => {
               const isActive = b.id === activeBranch?.id;
@@ -287,15 +287,15 @@ export function VoyageChart({ onNavigated }: { onNavigated?: () => void } = {}) 
           const isSwitch = nav.action === 'switch';
           const title = isSwitch
             ? L('가봤던 이 길로 돌아갈까요?', 'Return to this course?')
-            : L('여기서 새 항로 잡을까요?', 'Set a new course from here?');
+            : L('여기서 다른 답으로 다시 시작할까요?', 'Restart here with a different answer?');
           const body = isSwitch
             ? L(
                 `이미 가봤던 '${target.label}' 시점으로 돌아갑니다. 지금 작업은 따로 보존돼요.`,
                 `Returns to '${target.label}', a course you already sailed. Your current work is preserved separately.`,
               )
             : L(
-                `'${target.label}' 시점으로 돌아갑니다. 현재 진행한 작업은 다른 항로로 보존돼요.`,
-                `Rewinds to '${target.label}'. Your current work is preserved as a separate course.`,
+                `'${target.label}' 시점으로 돌아갑니다. 현재 진행한 작업은 다른 결정 갈래로 보존돼요.`,
+                `Returns to '${target.label}'. Your current work stays as a separate decision branch.`,
               );
           return (
             <>
@@ -346,7 +346,7 @@ export function VoyageChart({ onNavigated }: { onNavigated?: () => void } = {}) 
                       className="flex-1 px-3 py-2.5 rounded-lg text-[12.5px] font-semibold text-[var(--accent-fg)] shadow-[var(--shadow-sm)] cursor-pointer"
                       style={{ background: 'var(--gradient-gold)' }}
                     >
-                      {isSwitch ? L('이 길로', 'Go') : L('이 항로로', 'Set course')}
+                      {isSwitch ? L('이 갈래로', 'Open branch') : L('여기서 다시 시작', 'Restart here')}
                     </button>
                   </div>
                 </div>

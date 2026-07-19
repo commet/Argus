@@ -36,21 +36,21 @@ interface FlowStep {
 function getFlowSteps(locale: Locale): FlowStep[] {
   if (locale === 'ko') {
     return [
-      { icon: Edit3, label: '적기', desc: '상황을 한 줄로 적습니다. 그 순간 항해가 시작돼요.', tone: 'you' },
+      { icon: Edit3, label: '적기', desc: '상황을 한 줄로 적으면 바로 질문 정리가 시작돼요.', tone: 'you' },
       { icon: MessageCircle, label: '명료화', desc: '질문 2~3개에 답하면 분석이 구체화됩니다. 언제든 건너뛸 수 있어요.', tone: 'you' },
       { icon: Search, label: '분석', desc: 'AI가 숨은 전제와 열린 질문을 찾아냅니다. 결론을 내려주는 게 아니라, 결정이 기대고 있는 것을 보여줘요.', tone: 'ai' },
-      { icon: Compass, label: '현재 방위', desc: '결론·근거·남은 확인거리가 한 화면으로 모입니다. 필요한 곳만 수정을 요청하세요.', tone: 'ai' },
-      { icon: Anchor, label: '봉인', desc: '내 예상을 한 줄로 묶고 확인 날짜를 정합니다. 안 적어도 되지만, 적어두면 나중에 같이 맞춰봐요.', tone: 'you' },
-      { icon: Check, label: '귀환', desc: '정한 날 돌아와 "그래서 어떻게 됐어요?"에 답합니다. 이 기록이 쌓이는 게 Argus의 전부예요.', tone: 'done' },
+      { icon: Compass, label: '결정 요약', desc: '결론·근거·남은 확인거리가 한 화면으로 모입니다. 필요한 곳만 수정을 요청하세요.', tone: 'ai' },
+      { icon: Anchor, label: '확인 약속', desc: '내 예상을 한 줄 남기고 결과를 확인할 날짜를 정합니다. 둘 다 선택사항이에요.', tone: 'you' },
+      { icon: Check, label: '결과 확인', desc: '정한 날 돌아와 실제로 어떻게 됐는지 기록합니다. 이 기록이 다음 판단의 근거가 됩니다.', tone: 'done' },
     ];
   }
   return [
-    { icon: Edit3, label: 'Write', desc: 'Put the situation in one line. That starts the voyage.', tone: 'you' },
+    { icon: Edit3, label: 'Write', desc: 'Put the situation in one line and question clarification starts.', tone: 'you' },
     { icon: MessageCircle, label: 'Clarify', desc: 'Answer 2–3 questions to sharpen the analysis. Skip anytime.', tone: 'you' },
     { icon: Search, label: 'Analyze', desc: "The AI surfaces hidden premises and open questions — it shows what the decision rests on, it doesn't hand you a verdict.", tone: 'ai' },
-    { icon: Compass, label: 'Current Heading', desc: 'Conclusion, reasoning, and what remains to check — one page. Ask for changes only where needed.', tone: 'ai' },
-    { icon: Anchor, label: 'Seal', desc: "Tie your own one-line expectation and pick a check date. Optional — but if you write it down, we'll check it together later.", tone: 'you' },
-    { icon: Check, label: 'Return', desc: 'Come back on that date and answer "so, how did it go?" That accruing record is the whole point.', tone: 'done' },
+    { icon: Compass, label: 'Decision summary', desc: 'Conclusion, reasoning, and what remains to check — one page. Ask for changes only where needed.', tone: 'ai' },
+    { icon: Anchor, label: 'Check-in', desc: 'Leave a one-line expectation and choose when to check the result. Both are optional.', tone: 'you' },
+    { icon: Check, label: 'Outcome', desc: 'Come back on that date and record what actually happened. That record informs the next decision.', tone: 'done' },
   ];
 }
 
@@ -64,40 +64,40 @@ export default function GuidePage() {
   const quickStartSteps = locale === 'ko'
     ? [
         '상황을 한 줄 적어요 → 진짜 질문과 숨은 가정이 드러납니다',
-        '듣기 전에 내 예상을 밧줄로 묶어요 → 안 적어도 됩니다. 적어두면 나중에 같이 맞춰봐요',
-        'AI 팀이 숨은 전제와 열린 질문을 보여줘요 → 필요한 곳만 수정 요청, 현재 방위 한 화면으로',
-        '정한 날 돌아와 “그래서 어떻게 됐는지” 답해요 → 기록이 쌓입니다',
+        'AI 의견을 보기 전에 내 예상을 한 줄 남겨요 → 선택사항이며, 나중에 실제 결과와 비교해요',
+        'AI 검토자가 숨은 전제와 열린 질문을 보여줘요 → 필요한 곳만 수정하고 결정 요약으로 정리해요',
+        '정한 날 돌아와 실제로 어떻게 됐는지 기록해요 → 다음 판단에 쓸 근거가 쌓입니다',
       ]
     : [
         'Write the situation in one line → the real question and hidden assumptions surface',
-        "Tie your own lean before you listen → optional; jot it down and we'll check back together",
-        'The AI crew surfaces hidden premises and open questions → request changes only where needed, one Current Heading',
-        'Come back on the date you set and answer "so, how did it go?" → the record accrues',
+        'Leave your initial expectation before seeing the AI view → optional, and useful for later comparison',
+        'AI reviewers surface hidden premises and open questions → revise only what needs work, then review the decision summary',
+        'Come back on the date you set and record what happened → the evidence carries into your next decision',
       ];
 
   const moreTools = [
     {
       href: '/teams',
       icon: Users,
-      label: L('팀', 'Teams'),
-      desc: L('프로젝트를 함께 볼 팀원을 초대합니다.', 'Invite teammates to share projects with.'),
+      label: L('사람 팀', 'People teams'),
+      desc: L('결정을 공유하고 함께 검토할 사람을 초대합니다.', 'Invite people to review shared decisions.'),
     },
     {
       href: '/boss',
       icon: UserCheck,
-      label: L('보고 리허설', 'Report rehearsal'),
-      desc: L('팀장 성격을 설정하고 보고를 미리 연습합니다. MBTI를 몰라도 상황 퀴즈로 설정할 수 있어요.', "Set up your boss's personality and rehearse a report. No MBTI knowledge needed — a situation quiz fills it in."),
+      label: L('팀장 시뮬레이터', 'Boss Simulator'),
+      desc: L('실제 1:1 전에 팀장의 반응을 미리 연습합니다. MBTI를 몰라도 상황 퀴즈로 설정할 수 있어요.', "Rehearse a manager's response before a real 1:1. No MBTI knowledge needed — a situation quiz fills it in."),
     },
     {
       href: '/import',
       icon: Download,
       label: L('기록 가져오기', 'Import records'),
-      desc: L('터미널·MCP에서 봉인한 결정을 이 계정으로 모읍니다.', 'Gather decisions sealed in the terminal or MCP into this account.'),
+      desc: L('터미널·MCP에서 기록한 결정을 이 계정으로 모읍니다.', 'Gather decisions recorded in the terminal or MCP into this account.'),
     },
     {
       href: '/agents',
       icon: Bot,
-      label: L('선원 명부', 'Crew roster'),
+      label: L('AI 검토자', 'AI reviewers'),
       desc: L('분석 단계에서 병렬로 일하는 전문 에이전트들을 구경할 수 있어요.', 'Meet the specialist agents that work in parallel during analysis.'),
     },
   ];
@@ -111,8 +111,8 @@ export default function GuidePage() {
         </h1>
         <p className="text-[14px] text-[var(--text-secondary)] mt-2 leading-relaxed max-w-2xl">
           {L(
-            '결정 하나를 적으면 항해가 시작됩니다. 분석이 현재 방위 한 화면으로 모이고 — 결정을 봉인하면, 정한 날짜에 돌아와 물어요. "그래서, 어떻게 됐어요?" 처음이라면 아래 빠른 시작만 봐도 충분해요.',
-            'Write down one decision and the voyage begins. The analysis converges into a single Current Heading — and once you seal the decision, Argus comes back on the date you chose to ask: "So, how did it go?" New here? The Quick Start below is all you need.',
+            '결정 하나를 적으면 질문 정리부터 검토까지 이어집니다. 분석은 결정 요약 한 화면으로 모이고, 확인 날짜를 정하면 그날 실제 결과를 기록할 수 있어요. 처음이라면 아래 빠른 시작만 봐도 충분해요.',
+            'Write down one decision and Argus takes it from question clarification through review. The analysis converges into one decision summary, and an optional check-in lets you record the actual outcome later. New here? The Quick Start below is all you need.',
           )}
         </p>
       </div>
@@ -263,8 +263,8 @@ export default function GuidePage() {
                   a: '정한 날짜에 프로젝트 페이지에 오시면 제가 먼저 물어요. 텔레그램을 연결해 두셨다면 그날 메시지로도 가볍게 알려드려요 — 광고성 메일은 보내지 않아요. 원하면 캘린더 파일로 약속을 넣을 수 있어요.',
                 },
                 {
-                  q: '현재 방위가 뭔가요?',
-                  a: '이 결정이 지금 향하는 방향을 한 장으로 압축한 요약이에요 — 결론·이유·남은 확인거리·다음 할 일.',
+                  q: '결정 요약에는 무엇이 들어가나요?',
+                  a: '현재 결론·이유·남은 확인거리·다음 할 일을 한 화면에 모아 보여줘요.',
                 },
                 // The one product-level faint-lean disclosure (spine rule 4,
                 // rounds 5–8): name the limit here, once — never as a
@@ -295,8 +295,8 @@ export default function GuidePage() {
                   a: "Visit your project page on the date you set and Argus asks first. If you've connected Telegram, a light message arrives that day too — no marketing emails, ever. You can add the appointment as a calendar file if you like.",
                 },
                 {
-                  q: 'What is a Current Heading?',
-                  a: "A one-page summary of where this decision is headed right now — conclusion, reasoning, what's left to check, and what to do next.",
+                  q: 'What is in the decision summary?',
+                  a: 'One page with the current conclusion, reasoning, remaining checks, and next action.',
                 },
                 {
                   q: "Doesn't the AI quietly lean one way?",

@@ -212,7 +212,7 @@ function AnsweredPills({ qaPairs, canRevisit, onRevisit, focusIndex, focusNonce 
           {canRevisit?.(openIdx!) && onRevisit ? (
             <div className="flex items-center justify-between gap-3 pt-1">
               <span className="text-[10.5px] text-[var(--text-tertiary)]">
-                {locale === 'ko' ? '지금까지의 항로는 가지로 그대로 남아요' : 'Your current course stays preserved as a branch'}
+                {locale === 'ko' ? '지금까지 정리한 방향은 다른 갈래로 그대로 남아요' : 'The direction so far stays available as another branch'}
               </span>
               <button
                 onClick={() => { onRevisit(openIdx!); setOpenIdx(null); }}
@@ -252,7 +252,7 @@ function PhaseStatusBar({
   // Optional fine-grained step for long async work (e.g. mix pipeline has 4
   // serial LLM calls — surface which one is running now, not just "Drafting…").
   substage?: string | null;
-  // True once the current LLM call has been running ≥30s — triggers a softer
+  // True once the current LLM call has been running ≥75s — triggers a softer
   // reassurance message and reveals the cancel button.
   isLongWait?: boolean;
   onCancel?: () => void;
@@ -271,7 +271,7 @@ function PhaseStatusBar({
     mode = 'ai_working';
     if (phase === 'analyzing') {
       label = L('지금 답할 질문을 정리하고 있어요', 'Organizing the question to answer');
-      sub = workersRunning > 0 ? L(`AI 팀원 ${workersDone}/${workersTotal} 확인 완료`, `${workersDone}/${workersTotal} AI reviewers finished`) : '';
+      sub = workersRunning > 0 ? L(`AI 검토 ${workersDone}/${workersTotal} 완료`, `${workersDone}/${workersTotal} AI reviewers finished`) : '';
     } else if (phase === 'lead_synthesizing') {
       label = L(`${leadAgentName || '리드'}가 팀 결과를 통합하는 중`, `${leadAgentName || 'Lead'} is synthesizing findings`);
     } else if (phase === 'mixing') {
@@ -308,7 +308,6 @@ function PhaseStatusBar({
 
   const showLongWait = mode === 'ai_working' && isLongWait;
   // Everything below is the ai_working bar (your_turn returned null above).
-  const shipTone = showLongWait ? 'text-amber-500' : 'text-[var(--accent)]';
   return (
     <motion.div
       role="status"
@@ -316,25 +315,21 @@ function PhaseStatusBar({
       aria-atomic="true"
       initial={{ opacity: 0, y: -8 }}
       animate={{ opacity: 1, y: 0 }}
-      // No box — the bar blends into the page and lets a small ship carry the
-      // "we're under way" signal. A voyage app should look like it's sailing
-      // while it waits: the hull crossing left→right IS the progress metaphor,
-      // kept quiet (one accent tone, a gentle bob — no spectacle). Long-wait
-      // keeps a faint amber wash because that state is worth flagging.
-      className={`relative mx-auto mb-3 px-5 py-2.5 overflow-hidden transition-colors duration-500 ${
-        showLongWait ? 'rounded-2xl bg-amber-50/40 dark:bg-amber-900/10' : ''
-      }`}
+      // This status belongs to the page rather than floating above it: two
+      // quiet rules, stable typography, and one thin activity line.
+      className="relative mx-auto mb-3 border-y border-[var(--border-subtle)] px-1 py-3 overflow-hidden"
     >
       {/* Row 1 — which stage is under way · elapsed time · cancel */}
       <div className="flex items-center gap-3">
         <div className="flex-1 min-w-0">
-          <span className={`text-[13px] font-semibold ${
-            showLongWait ? 'text-amber-700 dark:text-amber-300' : 'text-[var(--text-primary)]'
-          }`}>
-            {showLongWait ? L('조금 더 확인하고 있어요 · 지금까지 내용은 저장됐어요', 'Taking another look · your work is saved') : label}
+          <span className="text-[13px] font-semibold text-[var(--text-primary)]">
+            {showLongWait ? L('계속 확인하고 있어요', 'Still working through it') : label}
           </span>
-          {!showLongWait && sub && (
+          {sub && (
             <span className="ml-2 text-[12px] text-[var(--text-tertiary)]">{sub}</span>
+          )}
+          {showLongWait && (
+            <span className="ml-2 text-[11px] text-[var(--text-tertiary)]">{L('지금까지 내용은 저장됐어요', 'Your work so far is saved')}</span>
           )}
           {substage && (
             <AnimatePresence mode="wait">
@@ -352,20 +347,15 @@ function PhaseStatusBar({
           )}
         </div>
         {elapsedLabel && (
-          <span className={`text-[11px] tabular-nums shrink-0 ${showLongWait ? 'text-amber-700 dark:text-amber-300 font-semibold' : 'text-[var(--text-tertiary)]'}`}>{elapsedLabel}</span>
+          <span className="text-[11px] tabular-nums shrink-0 text-[var(--text-tertiary)]">{elapsedLabel}</span>
         )}
-        {/* Cancel is ALWAYS reachable while the AI works — a quiet tertiary
-            action that turns amber once the wait gets long. */}
+        {/* Cancel is always reachable while the AI works. */}
         {onCancel && (
           <motion.button
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             onClick={onCancel}
-            className={`shrink-0 inline-flex items-center gap-1 px-2.5 py-1.5 min-h-[44px] md:min-h-[32px] rounded-full text-[11px] font-semibold transition-colors cursor-pointer ${
-              showLongWait
-                ? 'text-amber-700 dark:text-amber-300 border border-amber-300/50 hover:bg-amber-100/60 dark:hover:bg-amber-900/30'
-                : 'text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] border border-transparent hover:border-[var(--border)]'
-            }`}
+            className="shrink-0 inline-flex items-center gap-1 px-2.5 py-1.5 min-h-[44px] md:min-h-[32px] rounded-full text-[11px] font-semibold text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] border border-transparent hover:border-[var(--border)] transition-colors cursor-pointer"
             aria-label={L('취소', 'Cancel')}
           >
             <XIcon size={10} />
@@ -374,31 +364,15 @@ function PhaseStatusBar({
         )}
       </div>
 
-      {/* Row 2 — the sea lane. A ship sails the full width on a loop with a
-          faint wake; this replaces the spinner. Decorative, so aria-hidden —
-          the stage label above carries the meaning for screen readers. */}
-      <div className="relative mt-2 h-[18px]" aria-hidden>
-        <div className="absolute inset-x-0 bottom-[3px] h-px bg-[var(--border-subtle)]" />
+      {/* Decorative activity line. It communicates motion without creating a
+          second visual theme or pretending to know percentage completion. */}
+      <div className="relative mt-2 h-px overflow-hidden bg-[var(--border-subtle)]" aria-hidden>
         <motion.div
-          className="absolute bottom-0"
-          initial={{ left: '-6%' }}
-          animate={{ left: ['-6%', '104%'], y: [0, -1.5, 0, -1, 0], rotate: [-2.5, 1.5, -2.5] }}
-          transition={{
-            left: { duration: showLongWait ? 6 : 4, repeat: Infinity, ease: 'linear' },
-            y: { duration: 1.8, repeat: Infinity, ease: 'easeInOut' },
-            rotate: { duration: 2.6, repeat: Infinity, ease: 'easeInOut' },
-          }}
-        >
-          <div className="relative">
-            {/* wake — a short fading streak trailing the hull */}
-            <div className={`absolute right-full bottom-[2px] w-8 h-px bg-gradient-to-l to-transparent ${showLongWait ? 'from-amber-400/40' : 'from-[var(--accent)]/40'}`} />
-            <svg width="20" height="17" viewBox="0 0 20 17" fill="none" className={shipTone}>
-              <path d="M10 1 L10 10 L3 10 Z" fill="currentColor" opacity="0.9" />
-              <path d="M10.8 3.5 L10.8 10 L16 10 Z" fill="currentColor" opacity="0.5" />
-              <path d="M2 11 L18 11 L15.5 15 L4.5 15 Z" fill="currentColor" />
-            </svg>
-          </div>
-        </motion.div>
+          className="absolute inset-y-0 w-1/4 bg-[var(--accent)]/65"
+          initial={{ x: '-110%' }}
+          animate={{ x: ['-110%', '410%'] }}
+          transition={{ duration: showLongWait ? 3.8 : 2.8, repeat: Infinity, ease: 'linear' }}
+        />
       </div>
     </motion.div>
   );
@@ -1603,7 +1577,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
   const elapsedLabel = phaseStartTime
     ? (elapsedSec < 60 ? `${elapsedSec}s` : `${Math.floor(elapsedSec / 60)}m ${elapsedSec % 60}s`)
     : '';
-  const isLongWait = elapsedSec >= 30;
+  const isLongWait = elapsedSec >= 75;
 
   // ── Post-complete draft tree derivations ──
   const drafts = useMemo<Draft[]>(() => session?.drafts ?? [], [session?.drafts]);
@@ -1826,7 +1800,8 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
         } else {
           store.updateWorker(id, { status: 'done', result, stream_text: '', completion_note: note, completed_at: new Date().toISOString(), ...validationFields });
         }
-        scroll();
+        // Each AI reviewer finishes independently. Updating the standing team
+        // status must not move the user's reading position.
       },
       onError: (id: string, error: string) => {
         // For SELF/HUMAN workers the AI step is only an optional preliminary —
@@ -3142,8 +3117,8 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
                     to what comes after (team → draft), not just say "answer us". */}
                 <p className="text-[12.5px] text-[var(--text-secondary)] leading-[1.55]">
                   {locale === 'ko'
-                    ? <>방금 상황을 읽고 위에 <strong className="text-[var(--text-primary)]">임시 항로</strong>를 잡았어요. 질문 <strong className="text-[var(--text-primary)]">두세 개</strong>에 답할수록 항로가 다듬어지고, 그다음 어울리는 <strong className="text-[var(--text-primary)]">팀이 초안</strong>을 만들어요.</>
-                    : <>We read your situation and plotted a <strong className="text-[var(--text-primary)]">working course</strong> above. <strong className="text-[var(--text-primary)]">A couple of answers</strong> refine it — then the right <strong className="text-[var(--text-primary)]">team drafts</strong> from it.</>}
+                    ? <>방금 상황을 읽고 위에 <strong className="text-[var(--text-primary)]">일단의 방향</strong>을 정리했어요. 질문 <strong className="text-[var(--text-primary)]">두세 개</strong>에 답할수록 방향이 더 뚜렷해지고, 그다음 <strong className="text-[var(--text-primary)]">AI 검토자들이 초안</strong>을 만들어요.</>
+                    : <>We read your situation and clarified a <strong className="text-[var(--text-primary)]">working direction</strong> above. <strong className="text-[var(--text-primary)]">A couple of answers</strong> refine it — then <strong className="text-[var(--text-primary)]">AI reviewers draft</strong> from it.</>}
                 </p>
               </motion.div>
             )}
@@ -3253,8 +3228,8 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
                     DOES and where the rating goes. One line, always visible. */}
                 <p className="text-[11.5px] text-[var(--text-tertiary)] px-1 leading-[1.5]">
                   {L(
-                    '반영 = 최종 문서에 들어가요 · 제외 = 빠져요 (언제든 번복 가능) · 아래 평가는 팀원 기록에 남아 다음 AI 팀 구성에 참고돼요',
-                    'Apply = goes into the final doc · Exclude = left out (reversible anytime) · ratings stay on the reviewer record for future AI teams',
+                    '반영 = 최종 문서에 들어가요 · 제외 = 빠져요 (언제든 번복 가능) · 아래 평가는 검토자 기록에 남아 다음 AI 검토자 선정에 참고돼요',
+                    'Apply = goes into the final doc · Exclude = left out (reversible anytime) · ratings stay on the reviewer record for future reviewer selection',
                   )}
                 </p>
                 {/* Progress — clickable dots + N/total */}

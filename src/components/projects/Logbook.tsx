@@ -189,7 +189,7 @@ export function Logbook({
 
   return (
     <ChartPlate
-      label={L('항구 기록보관소 · HARBOR ARCHIVE', 'HARBOR ARCHIVE · 항구 기록보관소')}
+      label={L('결정 이력 · DECISION HISTORY', 'DECISION HISTORY · 결정 이력')}
       coordinate={inscription}
       compact
       className="!rounded-xl !border-[#123c3a]/20 !shadow-none"
@@ -198,7 +198,7 @@ export function Logbook({
         <div className="flex items-center justify-between gap-3 mb-2 pt-1">
           <div>
             <p className="text-[15px] font-semibold text-[var(--bp-ink)]" style={{ fontFamily: 'var(--font-display)' }}>
-              {L('항해일지', 'Voyage log')}
+              {L('결정 기록', 'Decision log')}
             </p>
             {inscription ? (
             <span className="text-[10px] font-mono uppercase tracking-[0.14em] text-[var(--bp-ink-soft)]/80 tabular-nums">

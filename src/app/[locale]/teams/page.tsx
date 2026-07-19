@@ -1,333 +1,496 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import type { TeamInvite } from '@/stores/types';
-import { useTeamStore } from '@/stores/useTeamStore';
-import { Card } from '@/components/ui/Card';
+import { useEffect, useMemo, useState } from 'react';
+import {
+  ArrowLeft,
+  Check,
+  ChevronDown,
+  ChevronUp,
+  Mail,
+  Plus,
+  Send,
+  Trash2,
+  UserRound,
+  UsersRound,
+  X,
+} from 'lucide-react';
 import { Button } from '@/components/ui/Button';
-import { Badge } from '@/components/ui/Badge';
-import { Modal } from '@/components/ui/Modal';
-import { Plus, Users, Mail, Check, X, Crown, Shield, User, Trash2, ArrowLeft } from 'lucide-react';
-import { useLocale } from '@/hooks/useLocale';
 import { LocaleLink } from '@/components/ui/LocaleLink';
+import { Modal } from '@/components/ui/Modal';
+import { useLocale } from '@/hooks/useLocale';
+import { deriveCurrentBearing } from '@/lib/current-bearing';
+import { useProjectStore } from '@/stores/useProjectStore';
+import type { TeamInvite, TeamSharedProject } from '@/stores/types';
+import { useTeamStore } from '@/stores/useTeamStore';
+
+type ReviewKind = 'concern' | 'endorsement' | 'alternative';
 
 export default function TeamsPage() {
   const locale = useLocale();
   const L = (ko: string, en: string) => locale === 'ko' ? ko : en;
+  const projects = useProjectStore((state) => state.projects);
+  const loadProjects = useProjectStore((state) => state.loadProjects);
   const {
-    teams, members, invites, currentTeamId, loadError,
-    loadTeams, createTeam, setCurrentTeam,
-    loadMembers, inviteMember, removeMember,
-    loadInvites, loadMyInvites, acceptInvite, declineInvite,
+    teams,
+    currentTeamId,
+    members,
+    invites,
+    teamProjects,
+    reviewInputs,
+    reviewHiddenCount,
+    loadError,
+    busy,
+    loadTeams,
+    createTeam,
+    setCurrentTeam,
+    loadMembers,
+    inviteMember,
+    removeMember,
+    loadMyInvites,
+    acceptInvite,
+    declineInvite,
+    loadTeamProjects,
+    shareProject,
+    unshareProject,
+    loadReviewInputs,
+    submitReviewInput,
+    revealInputs,
+    isTeamManager,
   } = useTeamStore();
 
-  const [showCreate, setShowCreate] = useState(false);
-  const [newTeamName, setNewTeamName] = useState('');
+  const [myInvites, setMyInvites] = useState<TeamInvite[]>([]);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [teamName, setTeamName] = useState('');
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteRole, setInviteRole] = useState<'member' | 'admin'>('member');
-  const [inviteLoading, setInviteLoading] = useState(false);
-  const [inviteSuccess, setInviteSuccess] = useState('');
-  const [inviteError, setInviteError] = useState('');
-  const [myInvites, setMyInvites] = useState<TeamInvite[]>([]);
-  const [creating, setCreating] = useState(false);
-  const [teamError, setTeamError] = useState('');
+  const [shareProjectId, setShareProjectId] = useState('');
+  const [expandedProjectId, setExpandedProjectId] = useState<string | null>(null);
+  const [reviewKind, setReviewKind] = useState<ReviewKind>('concern');
+  const [reviewRating, setReviewRating] = useState<number | null>(null);
+  const [reviewComment, setReviewComment] = useState('');
+  const [notice, setNotice] = useState('');
 
   useEffect(() => {
-    loadTeams();
-    loadMyInvites().then(setMyInvites);
-  }, [loadTeams, loadMyInvites]);
+    loadProjects();
+    void loadTeams();
+    void loadMyInvites().then(setMyInvites);
+  }, [loadMyInvites, loadProjects, loadTeams]);
 
   useEffect(() => {
-    if (currentTeamId) {
-      // loadInvites checks admin/owner against the members list — load members
-      // first, or the check runs against an empty list on first selection.
-      loadMembers(currentTeamId).then(() => loadInvites(currentTeamId));
-    }
-  }, [currentTeamId, loadMembers, loadInvites]);
+    if (!currentTeamId) return;
+    void Promise.all([loadMembers(currentTeamId), loadTeamProjects(currentTeamId)]);
+    setExpandedProjectId(null);
+  }, [currentTeamId, loadMembers, loadTeamProjects]);
 
-  const currentTeam = teams.find(t => t.id === currentTeamId);
+  const currentTeam = teams.find((team) => team.id === currentTeamId);
+  const manager = isTeamManager();
+  const ownProjectIds = useMemo(() => new Set(projects.map((project) => project.id)), [projects]);
+  const shareCandidates = projects.filter((project) => !project.team_id && !teamProjects.some((shared) => shared.id === project.id));
 
-  const handleCreateTeam = async () => {
-    if (!newTeamName.trim()) return;
-    setCreating(true);
-    try {
-      const team = await createTeam(newTeamName.trim());
-      if (!team) {
-        setTeamError(L('팀을 만들지 못했습니다. 서버 상태를 확인한 뒤 다시 시도해 주세요.', 'Could not create the team. Please try again after checking the connection.'));
-        return;
-      }
-      setTeamError('');
-      setNewTeamName('');
-      setShowCreate(false);
-    } finally {
-      setCreating(false);
-    }
-  };
+  async function handleCreate() {
+    if (!teamName.trim()) return;
+    const team = await createTeam(teamName.trim());
+    if (!team) return;
+    setTeamName('');
+    setCreateOpen(false);
+    setNotice(L('사람 팀을 만들었어요.', 'Team created.'));
+  }
 
-  const handleInvite = async () => {
-    if (!inviteEmail.trim() || !currentTeamId) return;
-    setInviteLoading(true);
-    const ok = await inviteMember(currentTeamId, inviteEmail.trim(), inviteRole);
-    setInviteLoading(false);
-    if (ok) {
-      setInviteSuccess(inviteEmail.trim());
-      setInviteError('');
-      setInviteEmail('');
-      setTimeout(() => setInviteSuccess(''), 3000);
+  async function handleInvite() {
+    if (!currentTeamId || !inviteEmail.trim()) return;
+    const result = await inviteMember(currentTeamId, inviteEmail, inviteRole, locale);
+    if (!result) return;
+    setInviteEmail('');
+    if (result.delivery === 'email') {
+      setNotice(L('초대 메일을 보냈어요.', 'Invitation email sent.'));
     } else {
-      setInviteError(L('초대를 보내지 못했습니다. 이메일을 확인해주세요.', "Couldn't send the invite. Please check the email address."));
-      setTimeout(() => setInviteError(''), 4000);
+      await navigator.clipboard?.writeText(result.inviteUrl).catch(() => undefined);
+      setNotice(L('초대를 저장하고 초대 링크를 복사했어요.', 'Invitation saved and link copied.'));
     }
-  };
+  }
 
-  const handleAcceptInvite = async (inviteId: string) => {
-    const ok = await acceptInvite(inviteId);
-    if (ok) {
-      setMyInvites(prev => prev.filter(i => i.id !== inviteId));
+  async function handleShare() {
+    if (!currentTeamId || !shareProjectId) return;
+    if (await shareProject(currentTeamId, shareProjectId)) {
+      setShareProjectId('');
+      setNotice(L('결정을 팀에 공유했어요.', 'Decision shared with the team.'));
     }
-  };
+  }
 
-  const roleIcon = (role: string) => {
-    if (role === 'owner') return <Crown size={12} className="text-[var(--gold)]" />;
-    if (role === 'admin') return <Shield size={12} className="text-[var(--accent)]" />;
-    return <User size={12} className="text-[var(--text-tertiary)]" />;
-  };
+  async function toggleProject(project: TeamSharedProject) {
+    const next = expandedProjectId === project.id ? null : project.id;
+    setExpandedProjectId(next);
+    if (next && currentTeamId) await loadReviewInputs(currentTeamId, project.id);
+  }
 
-  const roleLabel = (role: string) => {
-    if (role === 'owner') return 'Owner';
-    if (role === 'admin') return 'Admin';
-    return 'Member';
-  };
+  async function handleReview(projectId: string) {
+    if (!currentTeamId || (!reviewRating && !reviewComment.trim())) return;
+    const ok = await submitReviewInput({
+      teamId: currentTeamId,
+      projectId,
+      inputType: reviewKind,
+      rating: reviewRating,
+      comment: reviewComment,
+    });
+    if (!ok) return;
+    setReviewRating(null);
+    setReviewComment('');
+    setNotice(L('의견을 따로 보관했어요. 관리자가 공개하기 전까지 다른 팀원에게 보이지 않아요.', 'Feedback saved privately. Other teammates cannot see it until a manager publishes the round.'));
+  }
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-8 space-y-8">
-      {/* Back to the workspace — /teams is reached from the workspace's secondary
-          links and had no way back, stranding the user here (G-design feedback). */}
-      <LocaleLink
-        href="/workspace"
-        className="inline-flex items-center gap-1.5 text-[13px] font-medium text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors -mb-2"
-      >
-        <ArrowLeft size={14} />
-        {L('워크스페이스로 돌아가기', 'Back to workspace')}
+    <div className="mx-auto max-w-5xl pb-16">
+      <LocaleLink href="/workspace" className="inline-flex min-h-11 items-center gap-1.5 text-[13px] font-medium text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)]">
+        <ArrowLeft size={14} aria-hidden="true" />
+        {L('워크스페이스로', 'Back to workspace')}
       </LocaleLink>
-      <div>
-        <h1 className="text-[22px] font-bold tracking-tight text-[var(--text-primary)]">{L('팀', 'Teams')}</h1>
-        <p className="text-[13px] text-[var(--text-secondary)] mt-1">
-          {L('팀을 만들고 팀원을 초대하면 프로젝트를 공유하고 서로의 결정에 피드백을 남길 수 있어요.', 'Create a team and invite members to share projects and leave feedback on each other’s decisions.')}
-        </p>
-      </div>
-      {teamError && <p className="text-[12px] text-[var(--danger)]" role="alert">{teamError}</p>}
-      {loadError && <p className="text-[12px] text-[var(--danger)]" role="alert">{L('팀 정보를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.', 'Could not load team data. Please try again shortly.')}</p>}
 
-      {/* ── Incoming invites ── */}
-      {myInvites.length > 0 && (
-        <div className="space-y-2">
-          <p className="text-[12px] font-semibold text-[var(--accent)]">
-            {L(`받은 초대 ${myInvites.length}건`, `${myInvites.length} invite${myInvites.length === 1 ? '' : 's'}`)}
-          </p>
-          {myInvites.map((invite) => (
-            <div key={invite.id} className="flex items-center justify-between p-3 rounded-xl border border-[var(--accent)] bg-[var(--ai)]">
-              <div>
-                <p className="text-[13px] font-medium text-[var(--text-primary)]">
-                  {L('팀 초대', 'Team invite')}
-                </p>
-                <p className="text-[12px] text-[var(--text-secondary)]">
-                  {L(`${invite.role === 'admin' ? 'Admin' : 'Member'}으로 초대됨`, `Invited as ${invite.role === 'admin' ? 'Admin' : 'Member'}`)}
-                </p>
-              </div>
-              <div className="flex gap-2">
-                <Button size="sm" onClick={() => handleAcceptInvite(invite.id)}>
-                  <Check size={12} /> {L('수락', 'Accept')}
-                </Button>
-                <Button variant="secondary" size="sm" onClick={async () => {
-                  const ok = await declineInvite(invite.id);
-                  if (ok) setMyInvites(prev => prev.filter(i => i.id !== invite.id));
-                }}>
-                  <X size={12} />
-                </Button>
-              </div>
-            </div>
-          ))}
+      <header className="mt-5 max-w-2xl">
+        <p className="text-[11px] font-semibold tracking-[0.12em] text-[var(--accent)]">{L('사람과 함께 검토', 'REVIEW WITH PEOPLE')}</p>
+        <h1 className="mt-2 text-[28px] font-bold tracking-[-0.035em] text-[var(--text-primary)]">{L('팀의 시선을 한곳에 모으세요', 'Bring the team’s perspectives together')}</h1>
+        <p className="mt-2 text-[14px] leading-7 text-[var(--text-secondary)]">
+          {L('결정을 공유하고, 서로의 답을 보기 전에 각자 의견을 남긴 뒤 한꺼번에 공개할 수 있어요. AI 검토자와 달리 이곳의 팀은 초대한 실제 사람들입니다.', 'Share a decision, let each person respond independently, then publish the round together. Unlike AI reviewers, these teams are made of people you invite.')}
+        </p>
+      </header>
+
+      {notice && (
+        <div className="mt-6 flex items-start justify-between gap-3 border-y border-[var(--border-subtle)] py-3 text-[13px] text-[var(--text-secondary)]" role="status">
+          <span className="flex items-center gap-2"><Check size={14} className="text-[var(--success)]" aria-hidden="true" />{notice}</span>
+          <button type="button" onClick={() => setNotice('')} className="min-h-8 min-w-8 text-[var(--text-tertiary)]" aria-label={L('알림 닫기', 'Dismiss notice')}><X size={14} /></button>
         </div>
       )}
+      {loadError && <p className="mt-4 text-[13px] text-[var(--danger)]" role="alert">{L('요청을 처리하지 못했어요. 연결을 확인하고 다시 시도해 주세요.', 'The request could not be completed. Check your connection and try again.')}</p>}
 
-      {/* ── Team list ── */}
-      <div className="space-y-3">
-        {teams.length === 0 && !showCreate ? (
-          <Card className="text-center py-16">
-            <Users size={28} className="mx-auto text-[var(--text-tertiary)] mb-4" />
-            <p className="text-[15px] font-semibold text-[var(--text-primary)] mb-1">{L('아직 팀이 없습니다', 'No teams yet')}</p>
-            <p className="text-[13px] text-[var(--text-secondary)] max-w-xs mx-auto mb-6">
-              {L('팀을 만들면 프로젝트를 공유하고, 팀원들의 구조화된 피드백을 받을 수 있습니다.', 'Create a team to share projects and get structured feedback from your teammates.')}
-            </p>
-            <Button onClick={() => setShowCreate(true)}>
-              <Plus size={14} /> {L('첫 팀 만들기', 'Create your first team')}
-            </Button>
-          </Card>
-        ) : (
-          <>
-            <div className="flex items-center justify-between">
-              <p className="text-[12px] font-semibold text-[var(--text-secondary)]">{L('내 팀', 'My teams')}</p>
-              <Button variant="secondary" size="sm" onClick={() => setShowCreate(true)}>
-                <Plus size={12} /> {L('새 팀', 'New team')}
-              </Button>
-            </div>
-            {teams.map((team) => (
-              <div
-                key={team.id}
-                onClick={() => setCurrentTeam(team.id)}
-                className={`p-4 rounded-xl border cursor-pointer transition-all duration-200 ${
-                  currentTeamId === team.id
-                    ? 'border-[var(--accent)] bg-[var(--ai)] shadow-sm'
-                    : 'border-[var(--border-subtle)] hover:border-[var(--border)]'
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-xl bg-[var(--accent)] flex items-center justify-center text-white text-[14px] font-bold">
-                      {team.name.charAt(0).toUpperCase()}
-                    </div>
-                    <div>
-                      <p className="text-[14px] font-semibold text-[var(--text-primary)]">{team.name}</p>
-                      <p className="text-[11px] text-[var(--text-tertiary)]">
-                        {team.slug}
-                      </p>
-                    </div>
-                  </div>
-                  {currentTeamId === team.id && (
-                    <Badge variant="ai">{L('선택됨', 'Selected')}</Badge>
-                  )}
+      {myInvites.length > 0 && (
+        <section className="mt-8 border-y border-[var(--border)] py-4" aria-labelledby="incoming-heading">
+          <div className="flex items-baseline justify-between gap-4">
+            <h2 id="incoming-heading" className="text-[14px] font-bold text-[var(--text-primary)]">{L('받은 초대', 'Invitations')}</h2>
+            <span className="text-[12px] text-[var(--text-tertiary)]">{myInvites.length}</span>
+          </div>
+          <div className="mt-2 divide-y divide-[var(--border-subtle)]">
+            {myInvites.map((invite) => (
+              <div key={invite.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
+                <div>
+                  <p className="text-[14px] font-semibold text-[var(--text-primary)]">{invite.team_name || L('이름 없는 팀', 'Unnamed team')}</p>
+                  <p className="mt-0.5 text-[12px] text-[var(--text-tertiary)]">{invite.role === 'admin' ? L('관리자로 초대됨', 'Invited as manager') : L('멤버로 초대됨', 'Invited as member')}</p>
+                </div>
+                <div className="flex gap-2">
+                  <Button size="sm" onClick={async () => {
+                    if (await acceptInvite(invite.id)) setMyInvites((list) => list.filter((item) => item.id !== invite.id));
+                  }}>{L('참여', 'Join')}</Button>
+                  <Button size="sm" variant="ghost" onClick={async () => {
+                    if (await declineInvite(invite.id)) setMyInvites((list) => list.filter((item) => item.id !== invite.id));
+                  }}>{L('거절', 'Decline')}</Button>
                 </div>
               </div>
             ))}
-          </>
-        )}
-      </div>
+          </div>
+        </section>
+      )}
 
-      {/* ── Team create modal ── */}
-      <Modal open={showCreate} onClose={() => setShowCreate(false)} title={L('새 팀 만들기', 'Create a new team')}>
-        <div className="space-y-4">
-          <div>
-            <label className="block text-[12px] font-medium text-[var(--text-secondary)] mb-1.5">{L('팀 이름', 'Team name')}</label>
-            <input
-              type="text"
-              value={newTeamName}
-              onChange={(e) => setNewTeamName(e.target.value)}
-              placeholder={L('전략기획팀', 'Strategy team')}
-              maxLength={50}
-              className="w-full px-3 py-2.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[14px] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:outline-none focus:border-[var(--accent)]"
-              autoFocus
-              onKeyDown={(e) => e.key === 'Enter' && handleCreateTeam()}
-            />
-          </div>
-          <div className="flex justify-end gap-2">
-            <Button variant="secondary" onClick={() => setShowCreate(false)}>{L('취소', 'Cancel')}</Button>
-            <Button onClick={handleCreateTeam} disabled={!newTeamName.trim() || creating}>
-              {creating ? L('생성 중...', 'Creating...') : L('팀 만들기', 'Create team')}
-            </Button>
-          </div>
+      <section className="mt-10" aria-labelledby="team-list-heading">
+        <div className="flex items-center justify-between gap-4">
+          <h2 id="team-list-heading" className="text-[13px] font-bold text-[var(--text-primary)]">{L('내 사람 팀', 'My people teams')}</h2>
+          <button type="button" onClick={() => setCreateOpen(true)} className="inline-flex min-h-11 items-center gap-1.5 text-[13px] font-semibold text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)]">
+            <Plus size={14} aria-hidden="true" /> {L('새 팀', 'New team')}
+          </button>
         </div>
-      </Modal>
 
-      {/* ── Selected team detail ── */}
-      {currentTeam && (
-        <div className="space-y-6 animate-fade-in">
-          {/* Members */}
-          <div>
-            <div className="flex items-center justify-between mb-3">
-              <p className="text-[14px] font-bold text-[var(--text-primary)]">{L('멤버', 'Members')}</p>
-              <span className="text-[12px] text-[var(--text-tertiary)]">
-                {L(`${members.length}명`, `${members.length} member${members.length === 1 ? '' : 's'}`)}
-              </span>
-            </div>
-            <div className="space-y-1.5">
-              {members.map((member) => (
-                <div key={member.id} className="flex items-center justify-between px-3 py-2.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface)]">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-7 h-7 rounded-full bg-[var(--bg)] flex items-center justify-center">
-                      {roleIcon(member.role)}
-                    </div>
-                    <div>
-                      <p className="text-[13px] font-medium text-[var(--text-primary)]">
-                        {member.email || L('멤버 (초대됨)', 'Member (invited)')}
-                      </p>
-                      <p className="text-[11px] text-[var(--text-tertiary)]">{roleLabel(member.role)}</p>
-                    </div>
-                  </div>
-                  {member.role !== 'owner' && (
-                    <button
-                      onClick={async () => {
-                        const ok = await removeMember(member.id);
-                        if (!ok) setTeamError(L('멤버를 삭제하지 못했습니다. 멤버는 그대로 유지됩니다.', 'Could not remove the member. They remain on the team.'));
-                        else setTeamError('');
+        {teams.length === 0 ? (
+          <div className="mt-3 border-y border-[var(--border)] py-10 text-center">
+            <UsersRound size={26} className="mx-auto text-[var(--text-tertiary)]" aria-hidden="true" />
+            <p className="mt-3 text-[15px] font-semibold text-[var(--text-primary)]">{L('아직 만든 팀이 없어요', 'No team yet')}</p>
+            <p className="mx-auto mt-1 max-w-md text-[13px] leading-6 text-[var(--text-secondary)]">{L('함께 결정을 검토할 사람을 초대해 보세요. 팀을 만든 뒤 기존 결정을 선택해 공유할 수 있어요.', 'Invite people who should review decisions with you. Once the team exists, choose an existing decision to share.')}</p>
+            <Button className="mt-5" onClick={() => setCreateOpen(true)}><Plus size={14} />{L('첫 팀 만들기', 'Create first team')}</Button>
+          </div>
+        ) : (
+          <div className="mt-2 flex gap-1 overflow-x-auto border-b border-[var(--border)]" role="tablist" aria-label={L('팀 선택', 'Choose team')}>
+            {teams.map((team) => (
+              <button
+                key={team.id}
+                type="button"
+                role="tab"
+                aria-selected={team.id === currentTeamId}
+                onClick={() => setCurrentTeam(team.id)}
+                className={`relative min-h-12 shrink-0 px-4 text-[13px] font-semibold transition-colors ${team.id === currentTeamId ? 'text-[var(--text-primary)]' : 'text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]'}`}
+              >
+                {team.name}
+                {team.id === currentTeamId && <span className="absolute inset-x-3 bottom-0 h-0.5 bg-[var(--accent)]" aria-hidden="true" />}
+              </button>
+            ))}
+          </div>
+        )}
+      </section>
+
+      {currentTeam && currentTeamId && (
+        <div className="mt-9 grid gap-12 lg:grid-cols-[minmax(0,1fr)_250px]">
+          <main className="min-w-0">
+            <section aria-labelledby="shared-heading">
+              <div className="flex flex-wrap items-end justify-between gap-4">
+                <div>
+                  <h2 id="shared-heading" className="text-[18px] font-bold tracking-[-0.02em] text-[var(--text-primary)]">{L('함께 보는 결정', 'Shared decisions')}</h2>
+                  <p className="mt-1 text-[13px] text-[var(--text-secondary)]">{L('팀에는 결정 요약과 검토에 필요한 근거만 보여요.', 'The team sees the decision summary and the evidence needed for review.')}</p>
+                </div>
+                <span className="text-[12px] text-[var(--text-tertiary)]">{teamProjects.length}{L('건', '')}</span>
+              </div>
+
+              <div className="mt-5 flex flex-col gap-2 border-y border-[var(--border)] py-4 sm:flex-row">
+                <label className="sr-only" htmlFor="share-project">{L('공유할 결정', 'Decision to share')}</label>
+                <select id="share-project" value={shareProjectId} onChange={(event) => setShareProjectId(event.target.value)} className="min-h-11 flex-1 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 text-[13px] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/25">
+                  <option value="">{shareCandidates.length ? L('공유할 결정을 선택하세요', 'Choose a decision to share') : L('공유할 수 있는 결정이 없어요', 'No decisions available to share')}</option>
+                  {shareCandidates.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}
+                </select>
+                <Button size="sm" disabled={!shareProjectId} onClick={handleShare}>{L('팀에 공유', 'Share with team')}</Button>
+              </div>
+
+              {teamProjects.length === 0 ? (
+                <div className="py-12 text-center">
+                  <p className="text-[14px] font-semibold text-[var(--text-primary)]">{L('아직 공유된 결정이 없어요', 'Nothing shared yet')}</p>
+                  <p className="mt-1 text-[13px] text-[var(--text-secondary)]">{L('위에서 기존 결정을 고르면 바로 함께 검토할 수 있어요.', 'Choose an existing decision above to start a team review.')}</p>
+                </div>
+              ) : (
+                <div className="divide-y divide-[var(--border)]">
+                  {teamProjects.map((project) => (
+                    <SharedDecision
+                      key={project.id}
+                      project={project}
+                      expanded={expandedProjectId === project.id}
+                      locale={locale}
+                      canUnshare={manager || ownProjectIds.has(project.id)}
+                      manager={manager}
+                      reviewInputs={expandedProjectId === project.id ? reviewInputs : []}
+                      hiddenCount={expandedProjectId === project.id ? reviewHiddenCount : 0}
+                      reviewKind={reviewKind}
+                      reviewRating={reviewRating}
+                      reviewComment={reviewComment}
+                      onToggle={() => void toggleProject(project)}
+                      onUnshare={async () => {
+                        if (await unshareProject(currentTeamId, project.id)) setNotice(L('팀 공유를 해제했어요.', 'Decision removed from the team.'));
                       }}
-                      className="-m-1.5 min-w-[44px] min-h-[44px] inline-flex items-center justify-center rounded-lg text-[var(--text-tertiary)] hover:text-red-500 hover:bg-[var(--danger)]/10 transition-colors cursor-pointer"
-                    >
-                      <Trash2 size={13} />
+                      onKind={setReviewKind}
+                      onRating={setReviewRating}
+                      onComment={setReviewComment}
+                      onSubmit={() => void handleReview(project.id)}
+                      onReveal={async () => {
+                        if (await revealInputs(currentTeamId, project.id)) setNotice(L('이번 검토 의견을 팀에 공개했어요.', 'This review round is now visible to the team.'));
+                      }}
+                    />
+                  ))}
+                </div>
+              )}
+            </section>
+          </main>
+
+          <aside className="border-t border-[var(--border)] pt-5 lg:border-t-0 lg:border-l lg:pl-7 lg:pt-0" aria-labelledby="people-heading">
+            <div className="flex items-baseline justify-between">
+              <h2 id="people-heading" className="text-[15px] font-bold text-[var(--text-primary)]">{L('사람', 'People')}</h2>
+              <span className="text-[12px] text-[var(--text-tertiary)]">{members.length}</span>
+            </div>
+            <div className="mt-3 divide-y divide-[var(--border-subtle)]">
+              {members.map((member) => (
+                <div key={member.id} className="group flex items-center justify-between gap-2 py-3">
+                  <div className="min-w-0">
+                    <p className="truncate text-[13px] font-semibold text-[var(--text-primary)]">{member.display_name || member.email || L('팀원', 'Teammate')}</p>
+                    <p className="mt-0.5 truncate text-[11px] text-[var(--text-tertiary)]">{roleLabel(member.role, locale)}{member.display_name && member.email ? ` · ${member.email}` : ''}</p>
+                  </div>
+                  {manager && member.role !== 'owner' && (
+                    <button type="button" onClick={() => void removeMember(member.id)} className="flex min-h-10 min-w-10 items-center justify-center text-[var(--text-tertiary)] opacity-70 transition-colors hover:text-[var(--danger)] sm:opacity-0 sm:group-hover:opacity-100 sm:focus-visible:opacity-100" aria-label={L(`${member.display_name || member.email || '팀원'} 내보내기`, `Remove ${member.display_name || member.email || 'teammate'}`)}>
+                      <Trash2 size={14} aria-hidden="true" />
                     </button>
                   )}
                 </div>
               ))}
             </div>
-          </div>
 
-          {/* Invite */}
-          <div>
-            <p className="text-[14px] font-bold text-[var(--text-primary)] mb-3">{L('팀원 초대', 'Invite teammates')}</p>
-            <div className="flex flex-wrap gap-2">
-              <input
-                type="email"
-                value={inviteEmail}
-                onChange={(e) => setInviteEmail(e.target.value)}
-                placeholder="teammate@company.com"
-                maxLength={254}
-                className="flex-1 min-w-0 px-3 py-2.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[13px] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:outline-none focus:border-[var(--accent)]"
-                onKeyDown={(e) => e.key === 'Enter' && handleInvite()}
-              />
-              <select
-                value={inviteRole}
-                onChange={(e) => setInviteRole(e.target.value as 'member' | 'admin')}
-                className="px-3 py-2.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[13px] text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)]"
-              >
-                <option value="member">Member</option>
-                <option value="admin">Admin</option>
-              </select>
-              <Button onClick={handleInvite} disabled={inviteLoading || !inviteEmail.trim()}>
-                <Mail size={14} /> {L('초대', 'Invite')}
-              </Button>
+            {manager && (
+              <div className="mt-7 border-t border-[var(--border)] pt-5">
+                <h3 className="text-[13px] font-bold text-[var(--text-primary)]">{L('사람 초대', 'Invite a person')}</h3>
+                <p className="mt-1 text-[11px] leading-5 text-[var(--text-tertiary)]">{L('메일 전송을 사용할 수 없으면 초대 링크가 복사됩니다.', 'If email delivery is unavailable, the invitation link is copied.')}</p>
+                <input type="email" value={inviteEmail} onChange={(event) => setInviteEmail(event.target.value)} placeholder="name@company.com" className="mt-3 min-h-11 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 text-[13px] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/25" />
+                <div className="mt-2 flex gap-2">
+                  <select value={inviteRole} onChange={(event) => setInviteRole(event.target.value as 'member' | 'admin')} className="min-h-10 min-w-0 flex-1 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-2 text-[12px] text-[var(--text-primary)]">
+                    <option value="member">{L('멤버', 'Member')}</option>
+                    <option value="admin">{L('관리자', 'Manager')}</option>
+                  </select>
+                  <Button size="sm" onClick={handleInvite} disabled={busy || !inviteEmail.trim()} aria-label={L('초대 보내기', 'Send invitation')}><Mail size={13} /></Button>
+                </div>
+                {invites.length > 0 && (
+                  <div className="mt-5">
+                    <p className="text-[11px] font-semibold text-[var(--text-tertiary)]">{L('응답 대기', 'Awaiting response')} · {invites.length}</p>
+                    <ul className="mt-1 divide-y divide-[var(--border-subtle)]">
+                      {invites.map((invite) => <li key={invite.id} className="truncate py-2 text-[11px] text-[var(--text-secondary)]">{invite.email}</li>)}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            )}
+          </aside>
+        </div>
+      )}
+
+      <Modal open={createOpen} onClose={() => setCreateOpen(false)} title={L('사람 팀 만들기', 'Create a people team')} closeLabel={L('닫기', 'Close')}>
+        <label htmlFor="team-name" className="block text-[12px] font-semibold text-[var(--text-secondary)]">{L('팀 이름', 'Team name')}</label>
+        <input id="team-name" value={teamName} onChange={(event) => setTeamName(event.target.value)} onKeyDown={(event) => event.key === 'Enter' && void handleCreate()} maxLength={50} autoFocus placeholder={L('예: 제품 전략팀', 'e.g. Product strategy')} className="mt-2 min-h-11 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 text-[14px] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/25" />
+        <div className="mt-6 flex justify-end gap-2">
+          <Button variant="ghost" onClick={() => setCreateOpen(false)}>{L('취소', 'Cancel')}</Button>
+          <Button onClick={handleCreate} disabled={busy || !teamName.trim()}>{L('만들기', 'Create')}</Button>
+        </div>
+      </Modal>
+    </div>
+  );
+}
+
+function SharedDecision({
+  project,
+  expanded,
+  locale,
+  canUnshare,
+  manager,
+  reviewInputs,
+  hiddenCount,
+  reviewKind,
+  reviewRating,
+  reviewComment,
+  onToggle,
+  onUnshare,
+  onKind,
+  onRating,
+  onComment,
+  onSubmit,
+  onReveal,
+}: {
+  project: TeamSharedProject;
+  expanded: boolean;
+  locale: 'ko' | 'en';
+  canUnshare: boolean;
+  manager: boolean;
+  reviewInputs: ReturnType<typeof useTeamStore.getState>['reviewInputs'];
+  hiddenCount: number;
+  reviewKind: ReviewKind;
+  reviewRating: number | null;
+  reviewComment: string;
+  onToggle: () => void;
+  onUnshare: () => void;
+  onKind: (kind: ReviewKind) => void;
+  onRating: (rating: number | null) => void;
+  onComment: (value: string) => void;
+  onSubmit: () => void;
+  onReveal: () => void;
+}) {
+  const L = (ko: string, en: string) => locale === 'ko' ? ko : en;
+  const bearing = project.session ? deriveCurrentBearing(project.session) : null;
+  const publicInputs = reviewInputs.filter((input) => input.visible);
+  const privateInputs = reviewInputs.filter((input) => !input.visible);
+
+  return (
+    <article>
+      <button type="button" onClick={onToggle} className="flex w-full items-start justify-between gap-5 py-5 text-left">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+            <h3 className="text-[15px] font-bold text-[var(--text-primary)]">{project.name}</h3>
+            <span className="text-[11px] text-[var(--text-tertiary)]">{project.owner_name || project.owner_email || L('팀원', 'Teammate')}</span>
+          </div>
+          <p className="mt-1 line-clamp-2 text-[13px] leading-6 text-[var(--text-secondary)]">{bearing?.current_course.summary || project.description || L('결정 요약이 아직 준비되지 않았어요.', 'The decision summary is not ready yet.')}</p>
+        </div>
+        {expanded ? <ChevronUp size={16} className="mt-1 shrink-0 text-[var(--text-tertiary)]" /> : <ChevronDown size={16} className="mt-1 shrink-0 text-[var(--text-tertiary)]" />}
+      </button>
+
+      {expanded && (
+        <div className="pb-8 pl-0 sm:pl-5">
+          {bearing && (
+            <div className="grid gap-x-8 gap-y-5 border-y border-[var(--border-subtle)] py-5 sm:grid-cols-2">
+              <SummaryField label={L('정리한 방향', 'Clarified direction')} value={bearing.current_course.summary} />
+              <SummaryField label={L('다음 행동', 'Next action')} value={bearing.next_helm || L('아직 정하지 않았어요.', 'Not set yet.')} />
+              <SummaryField label={L('주요 근거', 'Key reasons')} value={bearing.why_this_course.map((reason) => reason.point).join(' · ') || L('표시할 근거가 없어요.', 'No reasons surfaced.')} />
+              <SummaryField label={L('확인할 위험', 'Risk to check')} value={bearing.fog_or_reef?.issue || L('별도로 표시된 위험이 없어요.', 'No specific risk surfaced.')} />
             </div>
-            {inviteSuccess && (
-              <p className="text-[12px] text-[var(--success)] mt-2 flex items-center gap-1">
-                <Check size={12} /> {L(`${inviteSuccess}님의 초대를 기록했어요 — 상대에게 이 페이지 링크를 직접 전달해 주세요.`, `Invite recorded for ${inviteSuccess} — share this page's link with them directly.`)}
-              </p>
-            )}
-            {inviteError && (
-              <p className="text-[12px] text-red-500 mt-2 flex items-center gap-1">
-                <X size={12} /> {inviteError}
-              </p>
-            )}
+          )}
+
+          {project.session?.final_deliverable && (
+            <details className="border-b border-[var(--border-subtle)] py-4">
+              <summary className="cursor-pointer text-[12px] font-semibold text-[var(--text-secondary)]">{L('최종 문서 펼쳐보기', 'View final document')}</summary>
+              <div className="mt-4 max-h-80 overflow-y-auto whitespace-pre-wrap text-[12px] leading-6 text-[var(--text-secondary)]">{project.session.final_deliverable}</div>
+            </details>
+          )}
+
+          <div className="mt-6">
+            <div className="flex flex-wrap items-baseline justify-between gap-2">
+              <div>
+                <h4 className="text-[14px] font-bold text-[var(--text-primary)]">{L('내 의견 먼저 남기기', 'Respond independently')}</h4>
+                <p className="mt-1 text-[12px] leading-5 text-[var(--text-tertiary)]">{L('공개 전에는 다른 사람의 미공개 의견을 볼 수 없어요.', 'Unpublished responses stay hidden from other reviewers.')}</p>
+              </div>
+              {hiddenCount > 0 && <span className="text-[11px] font-semibold text-[var(--accent)]">{manager ? L(`공개 대기 ${hiddenCount}건`, `${hiddenCount} awaiting publication`) : L('내 의견 공개 대기', 'Your response is private')}</span>}
+            </div>
+
+            <div className="mt-4 flex flex-wrap gap-2" role="group" aria-label={L('의견 유형', 'Feedback type')}>
+              {([
+                ['concern', L('우려', 'Concern')],
+                ['endorsement', L('동의', 'Support')],
+                ['alternative', L('다른 선택', 'Alternative')],
+              ] as Array<[ReviewKind, string]>).map(([kind, label]) => (
+                <button key={kind} type="button" onClick={() => onKind(kind)} className={`min-h-9 rounded-full border px-3 text-[12px] font-semibold ${reviewKind === kind ? 'border-[var(--accent)] text-[var(--text-primary)]' : 'border-[var(--border)] text-[var(--text-tertiary)]'}`}>{label}</button>
+              ))}
+            </div>
+            <div className="mt-3 flex items-center gap-1" aria-label={L('확신 점수', 'Confidence rating')}>
+              <span className="mr-2 text-[11px] text-[var(--text-tertiary)]">{L('확신', 'Confidence')}</span>
+              {[1, 2, 3, 4, 5].map((rating) => (
+                <button key={rating} type="button" onClick={() => onRating(reviewRating === rating ? null : rating)} aria-pressed={reviewRating === rating} className={`h-8 w-8 rounded-full text-[12px] font-semibold ${reviewRating === rating ? 'bg-[var(--primary)] text-[var(--bg)]' : 'border border-[var(--border)] text-[var(--text-tertiary)]'}`}>{rating}</button>
+              ))}
+            </div>
+            <textarea value={reviewComment} onChange={(event) => onComment(event.target.value)} maxLength={2000} rows={3} placeholder={L('어떤 점을 확인하거나 다르게 보고 있나요?', 'What should the team check, or what do you see differently?')} className="mt-3 w-full resize-y rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 text-[13px] leading-6 text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/25" />
+            <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
+              <span className="text-[11px] text-[var(--text-tertiary)]">{L('제출 직후에는 나만 볼 수 있어요.', 'Only you can see it immediately after submitting.')}</span>
+              <Button size="sm" onClick={onSubmit} disabled={!reviewRating && !reviewComment.trim()}><Send size={13} />{L('의견 보관', 'Save response')}</Button>
+            </div>
           </div>
 
-          {/* Pending invites */}
-          {invites.filter(i => i.status === 'pending').length > 0 && (
-            <div>
-              <p className="text-[12px] font-semibold text-[var(--text-secondary)] mb-2">{L('대기 중인 초대', 'Pending invites')}</p>
-              <div className="space-y-1.5">
-                {invites.filter(i => i.status === 'pending').map((invite) => (
-                  <div key={invite.id} className="flex items-center justify-between px-3 py-2 rounded-lg border border-dashed border-[var(--border)] text-[12px]">
-                    <div className="flex items-center gap-2">
-                      <Mail size={12} className="text-[var(--text-tertiary)]" />
-                      <span className="text-[var(--text-primary)]">{invite.email}</span>
-                      <Badge variant="default">{invite.role}</Badge>
+          {(publicInputs.length > 0 || privateInputs.length > 0) && (
+            <div className="mt-7 border-t border-[var(--border)] pt-5">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <h4 className="text-[13px] font-bold text-[var(--text-primary)]">{L('모인 의견', 'Collected feedback')}</h4>
+                {manager && hiddenCount > 0 && <Button size="sm" variant="secondary" onClick={onReveal}>{L(`이번 의견 ${hiddenCount}건 공개`, `Publish ${hiddenCount} response${hiddenCount === 1 ? '' : 's'}`)}</Button>}
+              </div>
+              <div className="mt-2 divide-y divide-[var(--border-subtle)]">
+                {[...publicInputs, ...privateInputs].map((input) => (
+                  <div key={input.id} className="py-3">
+                    <div className="flex flex-wrap items-center gap-2 text-[11px] text-[var(--text-tertiary)]">
+                      <UserRound size={12} aria-hidden="true" />
+                      <span>{input.user_name || L('팀원', 'Teammate')}</span>
+                      <span>·</span>
+                      <span>{reviewTypeLabel(input.input_type, locale)}</span>
+                      {input.rating && <span>· {L(`확신 ${input.rating}/5`, `Confidence ${input.rating}/5`)}</span>}
+                      {!input.visible && <span className="font-semibold text-[var(--accent)]">{L('나에게만 보임', 'Private to you')}</span>}
                     </div>
-                    <span className="text-[var(--text-tertiary)]">{L('대기 중', 'Pending')}</span>
+                    {input.comment && <p className="mt-1.5 text-[13px] leading-6 text-[var(--text-secondary)]">{input.comment}</p>}
                   </div>
                 ))}
               </div>
             </div>
           )}
+
+          {canUnshare && (
+            <div className="mt-7 flex justify-end border-t border-[var(--border-subtle)] pt-3">
+              <button type="button" onClick={onUnshare} className="inline-flex min-h-10 items-center gap-1.5 text-[11px] text-[var(--text-tertiary)] transition-colors hover:text-[var(--danger)]"><Trash2 size={12} />{L('팀 공유 해제', 'Remove from team')}</button>
+            </div>
+          )}
         </div>
       )}
-    </div>
+    </article>
   );
+}
+
+function SummaryField({ label, value }: { label: string; value: string }) {
+  return <div><p className="text-[10px] font-bold tracking-[0.08em] text-[var(--accent)]">{label}</p><p className="mt-1.5 text-[13px] leading-6 text-[var(--text-secondary)]">{value}</p></div>;
+}
+
+function roleLabel(role: 'owner' | 'admin' | 'member', locale: 'ko' | 'en') {
+  if (locale === 'ko') return role === 'owner' ? '소유자' : role === 'admin' ? '관리자' : '멤버';
+  return role === 'owner' ? 'Owner' : role === 'admin' ? 'Manager' : 'Member';
+}
+
+function reviewTypeLabel(type: string, locale: 'ko' | 'en') {
+  const labels = locale === 'ko'
+    ? { concern: '우려', endorsement: '동의', alternative: '다른 선택', rating: '점수' }
+    : { concern: 'Concern', endorsement: 'Support', alternative: 'Alternative', rating: 'Rating' };
+  return labels[type as keyof typeof labels] || type;
 }

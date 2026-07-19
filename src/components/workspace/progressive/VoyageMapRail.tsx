@@ -53,8 +53,8 @@ function EmptyChart() {
         <Compass size={26} strokeWidth={1.4} />
       </motion.div>
       <p className="text-[11px] leading-[1.55] text-[var(--text-tertiary)] max-w-[180px]">
-        {L('이 결정의 갈림길이 여기 해도로 그려져요. 답을 고르고 항로를 바꿀 때마다 길이 이어져요.',
-           "This decision's forks chart here. Each answer and course-change extends the route.")}
+        {L('답을 고르거나 이전 답으로 돌아가면 결정의 갈래가 여기에 기록돼요.',
+           'Decision branches appear here as you answer or return to an earlier choice.')}
       </p>
     </div>
   );
@@ -111,15 +111,15 @@ function VoyageMapHero() {
       {/* Eyebrow + full-chart entry */}
       <div className="flex items-center justify-between mb-2">
         <span className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--accent)]">
-          <Compass size={11} /> {L('해도', 'Chart')}
+          <Compass size={11} /> {L('결정 갈래', 'Decision branches')}
         </span>
         {hasChart && (
           <button
             onClick={() => setChartOpen(true)}
-            title={L('전체 해도 — 지나온 길의 어느 지점으로든 되돌아가기', 'Full chart — step back to any point on the route')}
+            title={L('전체 결정 지도 — 이전 지점으로 돌아가기', 'Full decision map — return to an earlier point')}
             className="inline-flex items-center gap-1 text-[10px] text-[var(--text-tertiary)] hover:text-[var(--accent)] transition-colors cursor-pointer"
           >
-            <Maximize2 size={10} /> {L('전체 해도', 'Full chart')}
+            <Maximize2 size={10} /> {L('전체 결정 지도', 'Full decision map')}
           </button>
         )}
       </div>
@@ -188,12 +188,12 @@ function VoyageMapHero() {
       {/* Single-course nudge → toward the product's core "take another path". */}
       {hasChart && !multiBranch && waypoints.length > 0 && (
         <p className="mt-2 px-0.5 text-[10px] leading-[1.5] text-[var(--text-tertiary)]">
-          {L('아직 한 갈래예요. 위 해도에서 갈림길로 돌아가 다른 길을 내볼 수 있어요.',
-             'One course so far. Step back to a fork on the chart above to try another path.')}
+          {L('아직 한 갈래예요. 위 지도에서 이전 지점으로 돌아가 다른 답을 선택할 수 있어요.',
+             'There is one branch so far. Return to an earlier point above to try a different answer.')}
         </p>
       )}
 
-      <Modal open={chartOpen} onClose={() => setChartOpen(false)} title={L('전체 해도', 'Full chart')} widthClass="max-w-2xl">
+      <Modal open={chartOpen} onClose={() => setChartOpen(false)} title={L('전체 결정 지도', 'Full decision map')} widthClass="max-w-2xl">
         <VoyageChart onNavigated={() => setChartOpen(false)} />
       </Modal>
     </div>
@@ -244,13 +244,13 @@ function CollapsedSpine({ onExpand }: { onExpand: () => void }) {
           </span>
         )}
         {branchCount > 1 && (
-          <span className="flex flex-col items-center gap-0.5" title={L('항로 갈래', 'Courses')}>
+          <span className="flex flex-col items-center gap-0.5" title={L('결정 갈래', 'Decision branches')}>
             <GitBranch size={12} className="text-[var(--accent)]/70" />
             <span className="text-[9px] font-semibold text-[var(--text-secondary)] tabular-nums">{branchCount}</span>
           </span>
         )}
         {running > 0 && (
-          <span className="relative flex items-center justify-center" title={L('분석 중인 팀원', 'Crew analyzing')}>
+          <span className="relative flex items-center justify-center" title={L('분석 중인 AI 검토자', 'AI reviewers working')}>
             <span className="absolute w-3 h-3 rounded-full bg-[var(--accent)]/25 animate-ping" />
             <span className="w-2 h-2 rounded-full bg-[var(--accent)]" />
           </span>
@@ -307,7 +307,7 @@ export function VoyageMapRail() {
           onClick={() => setView('route')}
           className={`inline-flex min-h-10 items-center justify-center gap-1.5 border-b-2 text-[11px] font-semibold transition-colors ${view === 'route' ? 'border-[var(--accent)] text-[var(--text-primary)]' : 'border-transparent text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]'}`}
         >
-          <MapIcon size={12} /> {L('항로', 'Route')}
+          <MapIcon size={12} /> {L('갈래', 'Branches')}
         </button>
         <button
           type="button"

@@ -718,7 +718,7 @@ export function ReviewFlow() {
   }
 
   if (phase === 'running') {
-    const longWait = elapsed >= 25;
+    const longWait = elapsed >= 75;
     const longSource = (preExtracted?.text || text).length > 12_000
       || (preExtracted?.pages_read ?? 0) > 20
       || (preExtracted?.slides_read ?? 0) > 30;
@@ -827,11 +827,11 @@ export function ReviewFlow() {
             <p className="mt-3 text-[12px] text-[var(--text-secondary)] leading-[1.6]">
               {L(
                 longSource
-                  ? '긴 문서라 평소보다 오래 걸리고 있어요 — 계속 읽는 중입니다. 기다리기 어렵다면 취소하고 더 짧게 나눠도 돼요.'
-                  : '예상보다 오래 걸리고 있지만 계속 검수 중이에요. 기다리기 어렵다면 취소해도 입력 내용은 그대로 남아 있어요.',
+                  ? '긴 문서를 계속 읽고 있어요. 기다리기 어렵다면 취소하고 더 짧게 나눠도 돼요.'
+                  : '검수를 계속하고 있어요. 취소해도 입력 내용은 그대로 남아 있어요.',
                 longSource
-                  ? "This is a long document, so it's taking longer than usual. You can cancel and review it in smaller pieces."
-                  : "This is taking longer than expected, but the review is still running. You can cancel without losing your input.",
+                  ? 'Still reading this longer document. You can cancel and review it in smaller pieces.'
+                  : 'The review is still running. You can cancel without losing your input.',
               )}
             </p>
           )}

@@ -46,7 +46,7 @@ const KO_FIELD_DESCRIPTIONS: Record<string, string> = {
   reversibility: '결정을 되돌릴 수 있는 정도입니다.',
   status_quo: '아무것도 하지 않을 때 일어나는 일입니다.',
   already_decided: '이미 결정을 내렸는지 여부입니다.',
-  crux_question: '결정을 가르는 중립적인 핵심 질문 하나입니다.',
+  crux_question: '결정을 좌우하는 중립적인 핵심 질문 하나입니다.',
   load_bearing_assumption: '결정이 가장 크게 기대는 전제 하나입니다.',
   related_to: '사용자가 비슷하다고 본 과거 결정 id입니다.',
   today_override: '테스트 또는 명시적 기준일에만 사용하는 오늘 날짜입니다.',
@@ -203,7 +203,16 @@ export function toolJsonSchema(schema: ToolInputSchema): Record<string, unknown>
         if (ko) {
           const existing = typeof field['description'] === 'string' ? field['description'].trim() : '';
           const en = EN_FIELD_DESCRIPTIONS[key] ?? existing;
-          field['description'] = en ? `${ko}\n\n${en}` : ko;
+          const base = en ? `${ko}\n\n${en}` : ko;
+          // A richer Zod .describe() (e.g. the argus_patterns `view` enum-value
+          // glossary) must not be dropped by the short bilingual map — append it
+          // when it carries more than the base already says. Never append a
+          // describe that references an internal tool name (argus_*): the
+          // bilingual map masks those on purpose, and re-surfacing one leaks an
+          // internal name into tools/list (public-surface-names guard).
+          field['description'] = existing.length > base.length && !base.includes(existing) && !/argus_/.test(existing)
+            ? `${base}\n\n${existing}`
+            : base;
         }
         visit(field);
       }

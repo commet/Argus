@@ -67,9 +67,9 @@ export function LoadingSteps({ steps, intervalMs = 2500 }: LoadingStepsProps) {
   const note = retryNote
     ? retryNote
     : lingering
-      ? L('아직 항해 중이에요 — 단계 표시는 대략적인 안내예요', 'Still sailing — the phase list is an approximate guide')
+      ? L('아직 처리 중이에요 — 단계 표시는 대략적인 안내예요', 'Still working — the phase list is an approximate guide')
       : elapsed >= 4
-        ? L(`${elapsed}초째 항해 중`, `${elapsed}s underway`)
+        ? L(`${elapsed}초째 처리 중`, `Working for ${elapsed}s`)
         : '';
   const showCompanion = lingering || elapsed >= 12;
 

@@ -121,11 +121,11 @@ export function AnalysisCard({
   const refinementStatus = answerCount > 0
     ? isActive
       ? L(`${answerCount}개 답변 반영 · 계속 조정 중`, `${answerCount} answers reflected · still refining`)
-      : L(`${answerCount}개 답변 반영 · 항로 정리됨`, `${answerCount} answers reflected · course set`)
+      : L(`${answerCount}개 답변 반영 · 방향 정리됨`, `${answerCount} answers reflected · direction clarified`)
     : hasChanges
       ? isActive
         ? L('방금 답변 반영 · 계속 조정 중', 'Latest answer reflected · still refining')
-        : L('답변 반영 · 항로 정리됨', 'Answer reflected · course set')
+        : L('답변 반영 · 방향 정리됨', 'Answer reflected · direction clarified')
       : L('현재까지의 내용으로 잡은 방향', 'Direction based on what we know so far');
 
   // Compact peek — used during Q&A loop so the card doesn't dominate
@@ -137,7 +137,7 @@ export function AnalysisCard({
       <motion.button
         type="button"
         onClick={() => setCollapsed(false)}
-        aria-label={L('우리가 잡은 항로: 근거와 계획 보기', 'Course we plotted: view rationale and plan')}
+        aria-label={L('우리가 정리한 방향: 근거와 계획 보기', 'Direction we clarified: view rationale and plan')}
         initial={{ opacity: 0, y: 6 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, ease: EASE }}
@@ -149,7 +149,7 @@ export function AnalysisCard({
             <span className="size-1 rounded-full bg-[var(--accent)]/75" />
           </div>
           <div className={`text-[10px] font-bold text-[var(--accent)] ${locale === 'ko' ? 'tracking-[0.02em]' : 'uppercase tracking-[0.14em]'}`}>
-            {L('우리가 잡은 항로', 'Course we plotted')}
+            {L('우리가 정리한 방향', 'Direction we clarified')}
           </div>
           <p className="mt-1 text-[10.5px] text-[var(--text-tertiary)] leading-[1.5] tabular-nums">
             {refinementStatus}
@@ -201,9 +201,9 @@ export function AnalysisCard({
       initial={prevSnapshot ? { opacity: 0.85 } : { opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: prevSnapshot ? 0.3 : 0.6, ease: EASE }}
-      className="rounded-2xl">
-      <div className={`rounded-2xl p-[1px] ${isActive ? 'bg-gradient-to-b from-[var(--accent)]/20 to-[var(--accent)]/5' : 'bg-[var(--border-subtle)]'}`}>
-        <div className="rounded-[calc(1rem-1px)] bg-[var(--surface)] shadow-[inset_0_1px_1px_rgba(255,255,255,0.5)]">
+      className="border-y border-[var(--border)]">
+      <div>
+        <div>
           <div className="p-5 md:p-7">
             {/* Eyebrow + collapse toggle. Eyebrow names the card so the
                 user knows what they're looking at; metaphor labels carry
@@ -211,7 +211,7 @@ export function AnalysisCard({
             <div className="flex items-start justify-between gap-3 mb-1.5">
               <div>
                 <div className={`text-[10px] font-bold text-[var(--accent)] ${locale === 'ko' ? 'tracking-[0.02em]' : 'uppercase tracking-[0.15em]'}`}>
-                  {L('우리가 잡은 항로', 'Course we plotted')}
+                  {L('우리가 정리한 방향', 'Direction we clarified')}
                 </div>
                 <p className="mt-1 text-[10.5px] text-[var(--text-tertiary)] tabular-nums">
                   {refinementStatus}
@@ -222,10 +222,10 @@ export function AnalysisCard({
                   type="button"
                   onClick={() => setCollapsed(true)}
                   className="shrink-0 inline-flex items-center gap-0.5 text-[10px] text-[var(--text-tertiary)] hover:text-[var(--accent)] transition-colors -mt-0.5"
-                  aria-label={L('항로 요약으로 접기', 'Collapse to course summary')}
+                  aria-label={L('방향 요약으로 접기', 'Collapse to direction summary')}
                 >
                   <ChevronUp size={11} />
-                  <span>{L('항로 요약으로', 'Course summary')}</span>
+                  <span>{L('방향 요약으로', 'Direction summary')}</span>
                 </button>
               )}
             </div>
@@ -235,8 +235,8 @@ export function AnalysisCard({
             {!prevSnapshot && (
               <p className="text-[12px] text-[var(--text-secondary)] leading-relaxed mb-3">
                 {isActive
-                  ? L('지금까지의 내용으로 잡은 방향이에요. 다음 답변에 따라 계속 조정됩니다.', 'This is the direction so far. It will keep adjusting as you answer.')
-                  : L('지금까지의 답변으로 정리한 항로예요.', 'This is the course shaped by your answers.')}
+                  ? L('지금까지의 내용으로 정리한 방향이에요. 다음 답변에 따라 계속 조정됩니다.', 'This is the direction clarified so far. It will keep adjusting as you answer.')
+                  : L('지금까지의 답변으로 정리한 방향이에요.', 'This direction reflects your answers so far.')}
               </p>
             )}
             {prevSnapshot && <div className="mb-2" />}
@@ -259,7 +259,7 @@ export function AnalysisCard({
               {safeInsight && (
                 <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
                   transition={{ duration: 0.4, ease: EASE }} className="overflow-hidden mb-6">
-                  <div className="rounded-lg bg-[var(--accent)]/[0.04] px-4 py-3">
+                  <div className="border-t border-[var(--border-subtle)] pt-4">
                     <div className="text-[10px] font-bold text-[var(--accent)] uppercase tracking-[0.15em] mb-1.5">
                       {L('핵심', 'Key Insight')}
                     </div>
@@ -294,7 +294,7 @@ export function AnalysisCard({
               <motion.div
                 initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.4, ease: EASE }}
-                className="mb-7 rounded-xl bg-[var(--bg)]/50 overflow-hidden">
+                className="mb-7 border-y border-[var(--border-subtle)] overflow-hidden">
                 {/* Callout header — neutral tone, no team avatars
                     (team belongs in worker panel, not inside this block) */}
                 <div className="flex items-center gap-2 px-4 pt-3.5 pb-2">
