@@ -1,5 +1,5 @@
 import { resolveToolArgusDir } from '../lib/argus-dir.js';
-import { resolveToday, asDate } from '../lib/resolve-today.js';
+import { resolveToday, asDate, logicalNow } from '../lib/resolve-today.js';
 import { resolveContract } from '../lib/resolve-contract.js';
 import { guardTransition } from '../lib/state-machine.js';
 import { appendLedger, withLedgerLock } from '../lib/ledger-append.js';
@@ -94,9 +94,7 @@ export const settle: ToolModule = {
       // Korea (UTC+9) user settling at 08:00 KST gets a receipt dated yesterday
       // (raw UTC). Keep the real UTC time-of-day for ordering; stamp the logical
       // date. (Same fix as seal.ts; recheck.ts fixed it for premise cadences.)
-      const now = a['today_override']
-        ? `${today}T12:00:00.000Z`
-        : `${today}T${new Date().toISOString().slice(11)}`;
+      const now = logicalNow(today, !!a['today_override']);
 
       // still_pending = reality has NOT answered yet. This is NOT a settlement —
       // filing it as `settled` (terminal) silently closed the loop and dropped

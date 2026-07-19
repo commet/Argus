@@ -605,7 +605,7 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
         reconfirm: '신호가 서로 어긋납니다 (걸린 것은 큰데 되돌리기는 쉽습니다). 더 나아가기 전에 이 둘을 다시 짚어 보세요.',
         opened_with_crux: (crux) => `열었습니다. 이 결정을 좌우하는 단 하나의 질문: ${crux}`,
         opened_bare: '열었습니다. 이 결정을 좌우하는 핵심 질문 하나가 있다면 그걸 짚어 보는 게 다음 단계입니다. 그다음 반증 가능한 예측을 저장하면 됩니다.',
-        lean_disclosure: '하중이 실린 질문을 짚는 것 자체가 뒤집힘 쪽을 희미하게 가리킬 수 있습니다. 그 잔여 기울기는 알려진 한계이지, 이 결정에 대한 평가가 아닙니다.',
+        lean_disclosure: '핵심 질문을 짚는 것 자체가 뒤집히는 쪽을 희미하게 가리킬 수 있습니다. 그렇게 남는 쏠림은 알려진 한계일 뿐, 이 결정에 대한 평가가 아닙니다.',
       },
       seal: {
         sealed: (predicate, checkBy) => `예측을 저장했습니다. "${predicate}" 확인일은 ${checkBy}입니다. 그날 실제로 어땠는지 알려주시면 결과로 기록합니다.`,

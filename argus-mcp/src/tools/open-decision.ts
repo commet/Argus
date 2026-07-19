@@ -1,7 +1,7 @@
 import { atomicWriteJson } from '../lib/atomic-write.js';
 import { sessionFilePath } from '../lib/layout.js';
 import { resolveToolArgusDir } from '../lib/argus-dir.js';
-import { resolveToday } from '../lib/resolve-today.js';
+import { resolveToday, logicalNow } from '../lib/resolve-today.js';
 import { resolveContract } from '../lib/resolve-contract.js';
 import { overfireGate, type Stakes, type Reversibility } from '../lib/overfire-gate.js';
 import { validateCrux } from '../lib/validate-crux.js';
@@ -82,7 +82,9 @@ export const openDecision: ToolModule = {
         return toolError({ ok: false, tool: 'argus_open_decision', error_code: cruxErr.code, message: cruxErr.message, recovery: cruxErr.recovery });
       }
 
-      const now = new Date().toISOString();
+      // Logical-date stamp (not raw UTC), so the open — usually the OLDEST event —
+      // dates on the same basis as seals; else "record since" reads a day early.
+      const now = logicalNow(today, !!a['today_override']);
       // Always log the gate inputs for post-hoc accuracy measurement (M2).
       await appendLedger(dir, [{ id, event: 'gate_input', gate: { ...signals, verdict: gate.reason } }], now);
 

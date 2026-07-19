@@ -1,7 +1,7 @@
 import { atomicWriteJson } from '../lib/atomic-write.js';
 import { bearingPath } from '../lib/layout.js';
 import { resolveToolArgusDir } from '../lib/argus-dir.js';
-import { resolveToday } from '../lib/resolve-today.js';
+import { resolveToday, logicalNow } from '../lib/resolve-today.js';
 import { resolveContract } from '../lib/resolve-contract.js';
 import { guardTransition } from '../lib/state-machine.js';
 import { validateSeal } from '../lib/validate-seal.js';
@@ -78,9 +78,7 @@ export const seal: ToolModule = {
       // the tool's own `today` disagreeing with the date it printed. recheck.ts
       // already fixed this same class for premise cadences. Keep the real UTC
       // time-of-day for intra-day ordering, but stamp the logical date.
-      const now = a['today_override']
-        ? `${today}T12:00:00.000Z`
-        : `${today}T${new Date().toISOString().slice(11)}`;
+      const now = logicalNow(today, !!a['today_override']);
       // Response voice follows the predicate (M4): config > text > env.
       let locale = resolveResponseLocale(dir, predicate);
       let T = SURFACES[locale].tools.seal;
