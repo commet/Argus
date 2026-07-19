@@ -88,6 +88,35 @@ describe('dispatch-level MCP error localization', () => {
     expect(message).not.toContain('요청:');
   });
 
+  it('humanizes raw English INVALID_INPUT — names the arg, drops raw Zod', () => {
+    const result = localizeToolResult(
+      { decision: 'change my settings today' }, // English sample → EN path
+      toolError({
+        ok: false, tool: 'argus_predict', error_code: 'INVALID_INPUT',
+        message: 'Invalid arguments. check_by: Invalid input: expected string, received undefined',
+        invalid_fields: [{ field: 'check_by', code: 'invalid_type', expected: 'string', message: 'Invalid input: expected string, received undefined' }],
+        recovery: 'x',
+      } as never),
+    );
+    const message = String(body(result)['message']);
+    expect(message).toContain('check_by is required');
+    expect(message).not.toContain('received undefined');
+  });
+
+  it('humanizes English ILLEGAL_TRANSITION — no raw state-machine jargon', () => {
+    const result = localizeToolResult(
+      { decision: 'dismiss this booth decision' },
+      toolError({
+        ok: false, tool: 'argus_capture', error_code: 'ILLEGAL_TRANSITION',
+        message: "A 'dismiss' is not allowed from state 'absent'.",
+        recovery: 'x',
+      } as never),
+    );
+    const message = String(body(result)['message']);
+    expect(message).not.toContain("state 'absent'");
+    expect(message).toContain('id may be a typo');
+  });
+
   it('falls back to the generic Korean INVALID_INPUT when no invalid_fields are present', () => {
     const result = localizeToolResult({ decision: '이 결정' }, errorResult('INVALID_INPUT'));
     expect(body(result)['message']).toBe('입력값이 올바르지 않습니다.');

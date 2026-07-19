@@ -287,6 +287,10 @@ export interface SurfaceStrings {
     seal: {
       /** the core confirmation: quote + check-by + come-back handle. */
       sealed: (predicate: string, checkBy: string) => string;
+      /** ai_surfaced predicate saved on a host WITHOUT a confirm picker: the
+       *  surface must say it is a draft awaiting the user's ok, never imply the
+       *  user already affirmed it (honest authorship). */
+      sealed_draft: (predicate: string, checkBy: string) => string;
       /** appended when the assumption was skipped (recorded, not hidden). */
       nudge_assumption: string;
       /** account-sync voice (3-state): success speaks, no_token stays silent. */
@@ -464,6 +468,7 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
       },
       seal: {
         sealed: (predicate, checkBy) => `Prediction saved. "${predicate}" Check-by is ${checkBy}. Come back that day and tell me what actually happened, and I'll record the result.`,
+        sealed_draft: (predicate, checkBy) => `I drafted this prediction for you: "${predicate}" Check-by is ${checkBy}. Keep it as it stands, or tell me how to reword it.`,
         nudge_assumption: ' Optionally, name the key assumption so Argus can re-check it later.',
         synced: ' Synced to your account. You\'ll get an email when it comes due.',
         sync_failed: (reason) => ` (Account sync didn't go through. ${reason}. Your prediction is safe locally, but the email reminder won't fire until it syncs. Try argus_settings action=sync later.)`,
@@ -623,6 +628,7 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
       },
       seal: {
         sealed: (predicate, checkBy) => `예측을 저장했습니다. "${predicate}" 확인일은 ${checkBy}입니다. 그날 실제로 어땠는지 알려주시면 결과로 기록합니다.`,
+        sealed_draft: (predicate, checkBy) => `이렇게 예측을 적어봤습니다: "${predicate}" 확인일은 ${checkBy}입니다. 이대로 두셔도 되고, 고칠 문장이 있으면 말씀해 주세요.`,
         nudge_assumption: ' 원하면 핵심 전제도 적어두세요. 나중에 같이 확인합니다.',
         synced: ' 계정에 동기화했습니다. 확인일이 오면 이메일로 알려드립니다.',
         sync_failed: (reason) => ` (계정 동기화가 안 됐습니다. ${reason}. 예측은 로컬에 안전합니다. 동기화되기 전까지는 이메일 알림이 오지 않습니다. 나중에 argus_settings action=sync를 시도하세요.)`,

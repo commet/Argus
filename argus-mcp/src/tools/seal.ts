@@ -280,7 +280,7 @@ export const seal: ToolModule = {
       const calNote = locale === 'ko' ? ' 달력 리마인더(.ics)도 저장했습니다.' : ' Saved a calendar reminder (.ics).';
       return envelope({
         ok: true, tool: 'argus_seal',
-        surface: `${T.sealed(predicate, checkBy)}${calNote}${nudge}${syncLine}`,
+        surface: `${(a['predicate_owner'] === 'ai_surfaced' ? T.sealed_draft : T.sealed)(predicate, checkBy)}${calNote}${nudge}${syncLine}`,
         next_actions: ['argus_check_in', 'stop'],
         data: {
           id, predicate, check_by: checkBy, predicate_owner: a['predicate_owner'],

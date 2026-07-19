@@ -172,6 +172,80 @@ function localizeInvalidInput(fields: InvalidField[]): ErrorCopy {
   };
 }
 
+/** English mirror of koReason: a plain reason for one Zod issue, so an EN user
+ *  sees "check_by is required" instead of raw "expected string, received undefined". */
+function enReason(issue: InvalidField): string {
+  const key = issue.field.split('.').pop() || issue.field;
+  switch (issue.code) {
+    case 'too_small':
+      if (issue.origin === 'string') return `is too short (min ${issue.minimum} characters)`;
+      if (issue.origin === 'array') return `needs at least ${issue.minimum} item${issue.minimum === 1 ? '' : 's'}`;
+      return `is too small (min ${issue.minimum})`;
+    case 'too_big':
+      if (issue.origin === 'string') return `is too long (max ${issue.maximum} characters)`;
+      if (issue.origin === 'array') return `has too many items (max ${issue.maximum})`;
+      return `is too big (max ${issue.maximum})`;
+    case 'invalid_type':
+      return issue.expected ? `is required (expected ${issue.expected})` : 'has the wrong format';
+    case 'invalid_value':
+    case 'invalid_enum_value': {
+      const vals = enumValuesFromMessage(issue.message);
+      return vals.length ? `must be one of ${vals.join(', ')}` : 'is not an allowed value';
+    }
+    case 'invalid_format':
+    case 'invalid_string':
+      if (key === 'id') return 'may use only letters, digits and . _ - (no spaces or other characters, e.g. "career-move")';
+      if (DATE_FIELDS.has(key)) return 'must be a YYYY-MM-DD date';
+      return 'has the wrong format';
+    default:
+      if (key === 'id') return 'may use only letters, digits and . _ - (no spaces or other characters, e.g. "career-move")';
+      return 'needs checking';
+  }
+}
+
+/** English INVALID_INPUT that NAMES the offending argument(s), instead of raw
+ *  Zod ("(root): Unrecognized key", "expected string, received undefined"). */
+function englishInvalidInput(fields: InvalidField[]): ErrorCopy {
+  const recovery = 'Fix the named argument(s) and call the same tool again. Do not infer missing user-owned fields.';
+  if (!fields.length) return { message: 'Invalid input.', recovery };
+  const seen = new Set<string>();
+  const parts: string[] = [];
+  for (const f of fields) {
+    let part: string;
+    if (f.code === 'unrecognized_keys') {
+      const keys = keysFromMessage(f.message);
+      part = keys.length
+        ? `${keys.map((k) => `"${k}"`).join(', ')} ${keys.length === 1 ? "isn't a field" : "aren't fields"} this tool accepts`
+        : 'an unexpected field was passed';
+    } else {
+      const name = f.field === '(root)' ? 'the request' : f.field;
+      part = `${name} ${enReason(f)}`;
+    }
+    if (seen.has(part)) continue;
+    seen.add(part);
+    parts.push(part);
+    if (parts.length >= 4) break;
+  }
+  return { message: `Invalid input: ${parts.join('; ')}.`, recovery };
+}
+
+/** Friendly English for the codes whose handler/guard message otherwise leaks
+ *  internal machinery (raw Zod, state-machine states). Codes NOT listed keep
+ *  their handler's already-fine English. */
+const EN_FRIENDLY: Record<string, ErrorCopy> = {
+  ILLEGAL_TRANSITION: {
+    message: "This isn't a step you can take on this decision right now (the id may be a typo, or it may already be saved, settled, or closed).",
+    recovery: 'Check the id and its state with argus_patterns view="all". If no such id exists, start fresh with argus_capture or argus_predict.',
+  },
+};
+
+function englishHumanize(code: string, sc: Record<string, unknown>): ErrorCopy | null {
+  if (code === 'INVALID_INPUT' && Array.isArray(sc['invalid_fields'])) {
+    return englishInvalidInput(sc['invalid_fields'] as InvalidField[]);
+  }
+  return EN_FRIENDLY[code] ?? null;
+}
+
 const REPRESENTATIVE_FIELDS = [
   'decision', 'predicate', 'what_happened', 'finding', 'text', 'question',
   'human_judgment', 'note', 'title', 'biggest_worry',
@@ -195,10 +269,20 @@ export function localizeToolResult(
   args: Record<string, unknown>,
   result: McpToolResult,
 ): McpToolResult {
-  if (!result.isError || responseLocale(args) !== 'ko') return result;
+  if (!result.isError) return result;
   const sc = result.structuredContent;
   if (!sc || sc['ok'] !== false) return result;
   const code = String(sc['error_code'] ?? 'INTERNAL_ERROR');
+  if (responseLocale(args) !== 'ko') {
+    // English path: handler prose is already English — humanize ONLY the codes
+    // that otherwise leak raw Zod / state-machine internals to the user.
+    const en = englishHumanize(code, sc);
+    if (!en) return result;
+    const enLocalized = { ...sc, message: en.message, ...(en.recovery ? { recovery: en.recovery } : {}) };
+    result.structuredContent = enLocalized;
+    result.content = [{ type: 'text' as const, text: JSON.stringify(enLocalized, null, 2) }];
+    return result;
+  }
   // Some handlers already return a hand-written Korean message (e.g.
   // NOT_FALSIFIABLE: "이건 기분이지 확인 가능한 예측이 아닙니다"). If this code
   // isn't in KO_ERRORS, the generic fallback used to DESTROY that Korean copy.
