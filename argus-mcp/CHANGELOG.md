@@ -6,6 +6,56 @@
 > The `1.3.0` / `1.2.1` entries at the bottom are pre-rename `argus-mcp` history,
 > kept for reference — all of that work shipped inside the new-name 1.0.0.
 
+## 1.4.5 — Guru pass: injection channels, the ledger lock, schema conformance
+
+A deeper hunt — a runtime harness (corrupt ledgers, terminal-escape injection,
+real multi-process concurrency, scale) plus three source reviews (ledger
+durability, untrusted-content/terminal safety, MCP protocol conformance). The
+harness confirmed the core is robust (ANSI/backspace stripped from surfaces,
+concurrency correct, 8 corruption shapes crash-free, 60-decision check_in in
+6 ms); the reviews found what runtime alone could not.
+
+Injection & terminal safety (the envelope sanitizer's blind spots)
+- **Terminal-escape + AI-verdict spoof through the elicitation prompt (HIGH).**
+  The elicitation `message` is a separate request that bypasses the envelope
+  sanitizer; a raw predicate/premise interpolated into it (fires automatically
+  for an `ai_surfaced` predicate) could carry `\x1b[2J…AI VERDICT: MISSED` and a
+  terminal host would clear the screen and paint a forged verdict — the exact
+  thing the spine exists to make unreachable. Sanitized now at the one seam
+  inside `elicit()`.
+- **MCP Resources** echoed raw bidi/zero-width (U+202E/U+200B) — JSON.stringify
+  doesn't escape those. Run through the same sanitizer now.
+- The due-note tail (appended after the envelope) is sanitized; the sanitizer
+  now also covers C1 controls (U+0080–U+009F) and U+2028/U+2029.
+
+Ledger durability
+- **The lock could be stolen from a live holder (HIGH).** A >5s critical section
+  (large fsync, network FS) made another session treat the live lock as stale
+  and steal it — two writers then both appended, double-counting calibration.
+  Ported the proven atomic primitive from the v2 store: create via an atomic
+  hardlink (no empty window), steal only a lock whose pid is dead or that is
+  >10 min old, steal via rename (one winner), release only our own nonce.
+- A `settle` with an unknown or `still_pending` outcome no longer breaks
+  `total_settled == sum(buckets)`; a per-line BOM (concat / PowerShell
+  co-writer) no longer drops the adjacent event; a corrupt (non-object) receipt
+  file degrades to null instead of crashing the render.
+
+MCP schema conformance
+- **Defaulted fields were advertised as REQUIRED (HIGH).** `z.toJSONSchema`
+  defaults to output mode, marking every `.default()` field required — so a
+  strict host / the MCP Inspector would reject `argus_check_in {}` (the mandated
+  session-start call), `argus_patterns {}`, and a premise without
+  kind/external/load_bearing. Fixed with `io:'input'`.
+- `argus_check_in` / `argus_patterns` now declare `readOnlyHint:false` (they
+  auto-initialize `.argus/` on first use — the hint must not lie); the envelope
+  output schema now declares the `recovery` / `invalid_fields` that error
+  results carry.
+
+Deferred (noted): v1 replay counters are per-event not state-derived, so a
+hand-edited/merged ledger with duplicate or out-of-order events can inflate
+counts (external-file only); the LOGBOOK/candidates repo-scoped projection
+(monorepo sibling-workspace exposure); `local-purge` v1-store coverage.
+
 ## 1.4.4 — Relentless bug hunt: record integrity, dates, paths, calendar
 
 Found by a multi-angle hunt — an aggressive runtime fuzz (concurrency, unicode

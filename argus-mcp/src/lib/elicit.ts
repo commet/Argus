@@ -10,6 +10,8 @@
  * the text flow — no crash, no dead end.
  */
 
+import { stripUnsafeChars } from './untrusted.js';
+
 export interface ElicitResult {
   action: 'accept' | 'decline' | 'cancel';
   content?: Record<string, unknown>;
@@ -42,7 +44,14 @@ export function canElicit(): boolean {
 export async function elicit(message: string, requestedSchema: Record<string, unknown>): Promise<Record<string, unknown> | null> {
   if (!_elicit) return null;
   try {
-    const res = await _elicit(message, requestedSchema);
+    // The elicitation `message` is a SEPARATE server→client request — it does NOT
+    // pass through envelope()/sanitizeOutput, so a raw predicate/premise
+    // interpolated into it (seal.ts, premises.ts) could carry ANSI escapes or a
+    // forged "AI VERDICT" line that a terminal host renders (screen-clear +
+    // spine spoof). Sanitize here, at the one seam every picker passes through,
+    // so no call site can forget. stripUnsafeChars keeps \n and \t (a message
+    // like `Record this?\n"…"` needs the newline).
+    const res = await _elicit(stripUnsafeChars(message), requestedSchema);
     return res.action === 'accept' && res.content ? res.content : null;
   } catch {
     return null; // host declared support but failed — fall back to text

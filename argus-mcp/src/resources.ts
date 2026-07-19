@@ -5,6 +5,7 @@ import { readReceipt } from './lib/receipt.js';
 import { safeSegment } from './lib/safe-path.js';
 import { logDebug } from './lib/log.js';
 import { duePremises, groupDuePremises, isMonitored, isDueForRecheck } from './lib/premises.js';
+import { sanitizeOutput } from './lib/untrusted.js';
 
 /**
  * MCP Resources (blueprint §4.3). Read-only context the host can auto-inject —
@@ -64,7 +65,11 @@ export function readResource(uri: string): { contents: Array<{ uri: string; mime
     return { contents: [unbound(uri)] };
   }
   const today = resolveToday({});
-  const payload = computePayload(uri, dir, today);
+  // Resources are model-facing (auto-injected context) and bypass the envelope()
+  // sanitizer. JSON.stringify escapes C0/ANSI but NOT bidi (U+202E) / zero-width
+  // (U+200B) — the "human and model see different strings" gap. Run the same
+  // chokepoint sanitizer over the payload first.
+  const payload = sanitizeOutput(computePayload(uri, dir, today));
   return { contents: [{ uri, mimeType: JSON_MIME, text: JSON.stringify(payload, null, 2) }] };
 }
 

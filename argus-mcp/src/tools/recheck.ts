@@ -13,6 +13,26 @@ import { ENVELOPE_OUTPUT_SCHEMA, zArgusDir, zId, zDate, type ToolModule } from '
 import { handleToolException } from './errors.js';
 
 /**
+ * The materiality engine's `uncertain` reasons are hard-coded Korean and used to
+ * splice STRAIGHT into the English recheck surface (`T.uncertain(reason)`) — an
+ * English user rechecking an ambiguous numeric premise saw a Korean sentence
+ * mid-line. Localize at the surface: map each known reason to an English hint,
+ * and fall back to a generic "define a rule" line so no Korean can ever leak.
+ * (The raw `reason` stays in `data.reason` for diagnostics.)
+ */
+function localizeUncertainReason(reason: string, locale: 'ko' | 'en'): string {
+  if (locale === 'ko') return reason;
+  if (reason.includes('비율(%)')) return 'this reads as a percentage — say whether the change is in percentage-points or on the complement (100 − value) axis';
+  if (reason.includes('near-zero')) return 'the values sit near zero — set a rule (a delta or a safety floor) so this can be judged mechanically';
+  if (reason.includes('임계 경계')) return 'the relative change sits right on the threshold — set a rule or a dead-band';
+  if (reason.includes('zero_meaningful') || reason.includes('부호 전환')) return 'the sign flipped, but whether zero is meaningful is undeclared — set a rule';
+  if (reason.includes('boundary') || reason.includes('경계 도달')) return 'the value reached the threshold line, but inclusive/exclusive is unspecified — set the boundary';
+  if (reason.includes('기준값 0')) return 'the baseline is 0, so a relative rule cannot apply — set a delta rule';
+  if (reason.includes('canonical scale') || reason.includes('비수치')) return 'this label is non-numeric — set a canonical scale so it can be judged mechanically';
+  return 'this change is ambiguous under the current rule — define a materiality rule so it can be judged mechanically';
+}
+
+/**
  * argus_recheck — re-check one premise against reality (plan v5 §2, §7.1).
  *
  * The HOST does the research (web search, a document, the user's report); this
@@ -168,7 +188,7 @@ export const recheck: ToolModule = {
           : status === 'uncertain'
             // M2 §4/§7: uncertain surfaces the FACT only — no handle, no fork. The
             // user decides whether to define a rule or leave it.
-            ? `${T.uncertain(premise.ordinal, reason)}${heuristicNote}`
+            ? `${T.uncertain(premise.ordinal, localizeUncertainReason(reason, rLocale))}${heuristicNote}`
             : T.unchanged(premise.ordinal, srcLabel);
 
       // ── SPINE (M2 §4, mirror clause): the handle auto-attaches ONLY on

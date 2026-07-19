@@ -6,6 +6,7 @@ import { checkIn } from '../check-in.js';
 import { watch } from '../watch.js';
 import { hasUnsafeChars, quoteInline, sanitizeOutput } from '../../lib/untrusted.js';
 import { lintEnvelope } from '../../lib/surface-lint.js';
+import { elicit, setElicitor } from '../../lib/elicit.js';
 
 /**
  * Recorded text is echoed into `surface` and `data`, which the host model reads
@@ -76,6 +77,25 @@ describe('untrusted text cannot smuggle control characters into the model contex
     const raw = (await import('fs')).readFileSync(`${dir}/ledger/ledger.jsonl`, 'utf8');
     // storage is honest: we did not quietly rewrite what they wrote
     expect(raw.includes(ZWSP) || raw.includes('\\u200b')).toBe(true);
+  });
+});
+
+describe('the elicitation message channel (a separate request that bypasses envelope) is sanitized', () => {
+  it('strips ANSI/CR/bidi from an elicit message so a poisoned predicate cannot spoof the picker prompt', async () => {
+    let captured = '';
+    // seal.ts / premises.ts interpolate a raw predicate/premise into the elicit
+    // message; that message is NOT part of the tool-result envelope, so the
+    // chokepoint lives in elicit() itself.
+    setElicitor((message) => { captured = message; return Promise.resolve({ action: 'decline' }); });
+    try {
+      await elicit(`이 예측으로 기록할까요?\n"${NASTY}"`, { type: 'object', properties: {} });
+      expect(hasUnsafeChars(captured)).toBe(false); // no ESC/CR/bidi/zero-width reached the host
+      expect(captured).not.toContain(ESC);
+      expect(captured).not.toContain(RLO);
+      expect(captured).toContain('\n'); // the intended newline survives (message is multi-line)
+    } finally {
+      setElicitor(null);
+    }
   });
 });
 

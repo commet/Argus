@@ -43,7 +43,11 @@ export const checkIn: ToolModule = {
     'Return decision contracts whose check-by date has arrived (and optionally upcoming ones). A return nudge — reads and routes to argus_settle. If nothing is due, it says so and stops; it does not manufacture engagement.',
   inputSchema,
   outputSchema: ENVELOPE_OUTPUT_SCHEMA,
-  annotations: { title: 'Check what is due', readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+  // readOnlyHint:false — honest: the FIRST call on an un-initialized dir routes
+  // through ensureInitialized, which creates .argus/ (dirs, config, .gitignore,
+  // bound marker, v2 registry). "read-only" must not lie (hardening principle),
+  // even though every subsequent call is a pure read.
+  annotations: { title: 'Check what is due', readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
   handler: async (a) => {
     try {
       const dir = resolveToolArgusDir(a['argus_dir']);

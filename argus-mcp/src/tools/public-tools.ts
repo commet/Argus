@@ -335,7 +335,9 @@ export const history: ToolModule = {
   description: 'Read decisions already on record: what is open, all contracts, one Judgment Receipt, one decision’s premises, the accumulated timeline, or a reflection that replays your own past predictions and premises next to what reality did. Read-only.',
   inputSchema: historySchema,
   outputSchema: ENVELOPE_OUTPUT_SCHEMA,
-  annotations: { title: 'View judgment history', readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+  // readOnlyHint:false — like argus_check_in, the first call auto-initializes
+  // .argus/ via ensureInitialized, so it can write on first use (honest hint).
+  annotations: { title: 'View judgment history', readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
   handler: (a) => {
     const viewMap: Record<string, string> = {
       active: 'bearing',
