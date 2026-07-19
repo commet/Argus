@@ -156,19 +156,20 @@ export default function AdminPage() {
 
       {metrics && (
         <>
-          {/* The funnel: signup → uses it → makes a project → seals → settles.
-              Numbers only — no coaching copy; the operator knows what 0 means. */}
-          <h2 className="text-[12px] font-bold uppercase tracking-wider text-[var(--text-tertiary)] mb-2">{L('퍼널', 'Funnel')}</h2>
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
-            <Stat label={L('가입', 'Signups')} value={metrics.users_total} hint={`+${metrics.signups_30d} ${L('30일', '30d')}`} />
-            <Stat label={L('프로젝트 보유', 'With project')} value={metrics.users_with_projects} />
-            <Stat label={L('프로젝트', 'Projects')} value={metrics.projects_total} hint={`+${metrics.projects_30d} ${L('30일', '30d')}`} />
-            <Stat label={L('봉인', 'Sealed')} value={metrics.projects_sealed} accent />
-            <Stat label={L('정산', 'Settled')} value={metrics.projects_settled} accent />
-          </div>
+          {/* IA (창업자 2026-07-19 재설계): lead with the ONE question the
+              blueprint's 준공 검사 asks — is anyone completing opened→sealed→
+              returned→settled, on which surface? Growth vanity moves below. */}
+          {metrics.surface_funnel && (
+            <>
+              <h2 className="text-[12px] font-bold uppercase tracking-wider text-[var(--text-tertiary)] mb-2">
+                {L('표면별 4단 퍼널', 'Four-stage funnel by surface')}
+              </h2>
+              <SurfaceFunnel rows={metrics.surface_funnel} L={L} />
+            </>
+          )}
 
           {/* Return loop — the BEHAVIORAL funnel from user_events (anon-inclusive).
-              The projects funnel above only sees logged-in users; anon seals/settles
+              The account funnel below only sees logged-in users; anon seals/settles
               live only as events. This is where the first real settle 0→1 shows up. */}
           {metrics.return_loop && (() => {
             const r = metrics.return_loop!;
@@ -216,16 +217,24 @@ export default function AdminPage() {
             );
           })()}
 
-          {metrics.surface_funnel && (
-            <>
-              <h2 className="text-[12px] font-bold uppercase tracking-wider text-[var(--text-tertiary)] mb-2">
-                {L('표면별 4단 퍼널', 'Four-stage funnel by surface')}
-              </h2>
-              <SurfaceFunnel rows={metrics.surface_funnel} L={L} />
-            </>
-          )}
+          {/* Accounts & growth — context, not the spine. One merged block:
+              the old page said "funnel" twice and scattered 7d/30d deltas
+              across three grids. */}
+          <h2 className="text-[12px] font-bold uppercase tracking-wider text-[var(--text-tertiary)] mb-2">{L('계정 · 성장', 'Accounts & growth')}</h2>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-2">
+            <Stat label={L('가입', 'Signups')} value={metrics.users_total} hint={`+${metrics.signups_7d} ${L('7일', '7d')} · +${metrics.signups_30d} ${L('30일', '30d')}`} />
+            <Stat label={L('프로젝트 보유 계정', 'Accounts w/ project')} value={metrics.users_with_projects} />
+            <Stat label={L('프로젝트', 'Projects')} value={metrics.projects_total} hint={`+${metrics.projects_7d} ${L('7일', '7d')} · +${metrics.projects_30d} ${L('30일', '30d')}`} />
+            <Stat label={L('최근 프로젝트', 'Latest project')} value={fmtDate(metrics.latest_project)} />
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+            <Stat label={L('봉인 (계정 기준)', 'Sealed (accounts)')} value={metrics.projects_sealed} />
+            <Stat label={L('정산 (계정 기준)', 'Settled (accounts)')} value={metrics.projects_settled} />
+            <Stat label={L('플러그인 결정', 'Plugin decisions')} value={metrics.tables.plugin_decisions ?? 0} />
+          </div>
 
-          {/* Per-table row counts — "did the data actually arrive" */}
+          {/* Per-table row counts — "did the data actually arrive" (지속성 원칙:
+              UI가 멀쩡한 것과 행이 늘어난 것은 다른 사실) */}
           <h2 className="text-[12px] font-bold uppercase tracking-wider text-[var(--text-tertiary)] mb-2">{L('테이블별 행수', 'Rows per table')}</h2>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mb-6">
             {Object.entries(metrics.tables).map(([name, count]) => (
@@ -237,13 +246,6 @@ export default function AdminPage() {
                 <span className="shrink-0 text-[13px] font-semibold text-[var(--text-primary)]">{count}</span>
               </div>
             ))}
-          </div>
-
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <Stat label={L('최근 프로젝트', 'Latest project')} value={fmtDate(metrics.latest_project)} />
-            <Stat label={L('가입 7일', 'Signups 7d')} value={metrics.signups_7d} />
-            <Stat label={L('프로젝트 7일', 'Projects 7d')} value={metrics.projects_7d} />
-            <Stat label={L('플러그인 결정', 'Plugin decisions')} value={metrics.tables.plugin_decisions ?? 0} />
           </div>
         </>
       )}

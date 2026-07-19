@@ -10,6 +10,8 @@ import { Modal } from '@/components/ui/Modal';
 import { Plus, Users, Mail, Check, X, Crown, Shield, User, Trash2, ArrowLeft } from 'lucide-react';
 import { useLocale } from '@/hooks/useLocale';
 import { LocaleLink } from '@/components/ui/LocaleLink';
+import { getSessionWithTimeout } from '@/lib/supabase';
+import { timeoutSignal } from '@/lib/timeout-signal';
 
 export default function TeamsPage() {
   const locale = useLocale();
@@ -28,6 +30,7 @@ export default function TeamsPage() {
   const [inviteLoading, setInviteLoading] = useState(false);
   const [inviteSuccess, setInviteSuccess] = useState('');
   const [inviteError, setInviteError] = useState('');
+  const [inviteMailed, setInviteMailed] = useState(false);
   const [myInvites, setMyInvites] = useState<TeamInvite[]>([]);
   const [creating, setCreating] = useState(false);
   const [teamError, setTeamError] = useState('');
@@ -67,17 +70,40 @@ export default function TeamsPage() {
   const handleInvite = async () => {
     if (!inviteEmail.trim() || !currentTeamId) return;
     setInviteLoading(true);
-    const ok = await inviteMember(currentTeamId, inviteEmail.trim(), inviteRole);
-    setInviteLoading(false);
-    if (ok) {
-      setInviteSuccess(inviteEmail.trim());
-      setInviteError('');
-      setInviteEmail('');
-      setTimeout(() => setInviteSuccess(''), 3000);
-    } else {
+    const email = inviteEmail.trim();
+    const ok = await inviteMember(currentTeamId, email, inviteRole);
+    if (!ok) {
+      setInviteLoading(false);
       setInviteError(L('초대를 보내지 못했습니다. 이메일을 확인해주세요.', "Couldn't send the invite. Please check the email address."));
       setTimeout(() => setInviteError(''), 4000);
+      return;
     }
+    // The invite row is saved; now try to actually NOTIFY the invitee. If the
+    // email leg fails (unconfigured deployment, rate limit), the invite still
+    // stands — fall back to the honest "hand them the link" instruction
+    // instead of pretending a mail went out.
+    let mailed = false;
+    try {
+      const session = await getSessionWithTimeout();
+      const token = session?.access_token;
+      if (token) {
+        const res = await fetch('/api/email/team-invite', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ teamId: currentTeamId, email, locale }),
+          signal: timeoutSignal(),
+        });
+        mailed = res.ok;
+      }
+    } catch {
+      mailed = false;
+    }
+    setInviteLoading(false);
+    setInviteMailed(mailed);
+    setInviteSuccess(email);
+    setInviteError('');
+    setInviteEmail('');
+    setTimeout(() => setInviteSuccess(''), 6000);
   };
 
   const handleAcceptInvite = async (inviteId: string) => {
@@ -298,7 +324,10 @@ export default function TeamsPage() {
             </div>
             {inviteSuccess && (
               <p className="text-[12px] text-[var(--success)] mt-2 flex items-center gap-1">
-                <Check size={12} /> {L(`${inviteSuccess}님의 초대를 기록했어요 — 상대에게 이 페이지 링크를 직접 전달해 주세요.`, `Invite recorded for ${inviteSuccess} — share this page's link with them directly.`)}
+                <Check size={12} />{' '}
+                {inviteMailed
+                  ? L(`${inviteSuccess}님께 초대 메일을 보냈어요 — 그 주소로 로그인하면 초대가 보여요.`, `Invite email sent to ${inviteSuccess} — the invite appears when they sign in with that address.`)
+                  : L(`${inviteSuccess}님의 초대를 기록했어요 — 메일이 닿지 못해, 이 페이지 링크를 직접 전달해 주세요.`, `Invite recorded for ${inviteSuccess} — the email didn't go out, so share this page's link with them directly.`)}
               </p>
             )}
             {inviteError && (
