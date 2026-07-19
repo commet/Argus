@@ -53,6 +53,41 @@ describe('dispatch-level MCP error localization', () => {
     expect(result.content[0]?.text).not.toContain('English recovery detail');
   });
 
+  it('shows the ACTUAL per-tool enum values, not a field-name-keyed guess', () => {
+    // argus_settings.action ∈ {status,update,sync}; the old ENUM_HINTS keyed by
+    // the field NAME "action" wrongly showed argus_capture's action set to a
+    // Korean user who misused settings. The real values live in Zod's own
+    // message — parse them so the Korean surface is correct per tool.
+    const result = localizeToolResult(
+      { decision: '설정을 바꾼다' },
+      toolError({
+        ok: false, tool: 'argus_settings', error_code: 'INVALID_INPUT',
+        message: 'Invalid arguments. action: Invalid option: expected one of "status"|"update"|"sync"',
+        invalid_fields: [{ field: 'action', code: 'invalid_value', message: 'Invalid option: expected one of "status"|"update"|"sync"' }],
+        recovery: 'x',
+      } as never),
+    );
+    const message = String(body(result)['message']);
+    expect(message).toContain('status · update · sync');
+    expect(message).not.toContain('add_context'); // never another tool's action set
+  });
+
+  it('names the unrecognized key instead of a blank "요청:"', () => {
+    const result = localizeToolResult(
+      { decision: '전제를 추가한다' },
+      toolError({
+        ok: false, tool: 'argus_capture', error_code: 'INVALID_INPUT',
+        message: 'Invalid arguments. (root): Unrecognized key: "text"',
+        invalid_fields: [{ field: '(root)', code: 'unrecognized_keys', message: 'Unrecognized key: "text"' }],
+        recovery: 'x',
+      } as never),
+    );
+    const message = String(body(result)['message']);
+    expect(message).toContain('"text"');
+    expect(message).toContain('받지 않는 항목');
+    expect(message).not.toContain('요청:');
+  });
+
   it('falls back to the generic Korean INVALID_INPUT when no invalid_fields are present', () => {
     const result = localizeToolResult({ decision: '이 결정' }, errorResult('INVALID_INPUT'));
     expect(body(result)['message']).toBe('입력값이 올바르지 않습니다.');

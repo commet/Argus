@@ -452,13 +452,13 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
         lean_disclosure: 'Naming the load-bearing question points faintly at the flip; that residual lean is a known limit, not a verdict.',
       },
       seal: {
-        sealed: (predicate, checkBy) => `Prediction saved. "${predicate}" Check-by is ${checkBy}. Come back then with argus_resolve to record what happened.`,
+        sealed: (predicate, checkBy) => `Prediction saved. "${predicate}" Check-by is ${checkBy}. Come back that day and tell me what actually happened, and I'll record the result.`,
         nudge_assumption: ' Optionally, name the key assumption so Argus can re-check it later.',
         synced: ' Synced to your account. You\'ll get an email when it comes due.',
         sync_failed: (reason) => ` (Account sync didn't go through. ${reason}. Your prediction is safe locally, but the email reminder won't fire until it syncs. Try argus_settings action=sync later.)`,
       },
       settle: {
-        settled: (outcome) => `Result recorded: ${outcome}. The receipt keeps your prediction beside what actually happened. No grade. (argus_patterns view=receipt)`,
+        settled: (outcome) => `Result recorded: ${outcome}. The receipt keeps your prediction beside what actually happened. No grade.`,
         sync_failed: (reason) => ` (Account sync didn't go through. ${reason}. Your result is safe locally, but the account may keep listing this as due until it syncs. Try argus_settings action=sync later.)`,
         deferred: (newDate) => `No result recorded. Reality hasn't answered yet, so nothing was graded. I'll bring this back on ${newDate}.`,
         defer_dismissed: 'Set aside. This one no longer needs an answer. Nothing was graded.',
@@ -608,13 +608,13 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
         lean_disclosure: '하중이 실린 질문을 짚는 것 자체가 뒤집힘 쪽을 희미하게 가리킬 수 있습니다. 그 잔여 기울기는 알려진 한계이지, 이 결정에 대한 평가가 아닙니다.',
       },
       seal: {
-        sealed: (predicate, checkBy) => `예측을 저장했습니다. "${predicate}" 확인일은 ${checkBy}입니다. 그날 argus_resolve로 실제로 어땠는지 기록하세요.`,
+        sealed: (predicate, checkBy) => `예측을 저장했습니다. "${predicate}" 확인일은 ${checkBy}입니다. 그날 실제로 어땠는지 알려주시면 결과로 기록합니다.`,
         nudge_assumption: ' 원하면 핵심 전제도 적어두세요. 나중에 같이 확인합니다.',
         synced: ' 계정에 동기화했습니다. 확인일이 오면 이메일로 알려드립니다.',
         sync_failed: (reason) => ` (계정 동기화가 안 됐습니다. ${reason}. 예측은 로컬에 안전합니다. 동기화되기 전까지는 이메일 알림이 오지 않습니다. 나중에 argus_settings action=sync를 시도하세요.)`,
       },
       settle: {
-        settled: (outcome) => `실제 결과를 기록했습니다: ${({ held: '그렇게 됨', avoided: '피함', partial: '부분', missed: '빗나감' })[outcome]}. 영수증에 예측과 실제가 나란히 남습니다. 평가는 없습니다. (argus_patterns view=receipt)`,
+        settled: (outcome) => `실제 결과를 기록했습니다: ${({ held: '그렇게 됨', avoided: '피함', partial: '부분', missed: '빗나감' })[outcome]}. 영수증에 예측과 실제가 나란히 남습니다. 평가는 없습니다.`,
         sync_failed: (reason) => ` (계정 동기화가 안 됐습니다. ${reason}. 결과는 로컬에 안전합니다. 동기화되기 전까지 계정은 이걸 계속 "확인 필요"로 표시할 수 있습니다. 나중에 argus_settings action=sync를 시도하세요.)`,
         deferred: (newDate) => `아직 결과를 기록하지 않았습니다. 현실이 답하지 않았으니 평가한 것도 없습니다. ${newDate}에 다시 가져오겠습니다.`,
         defer_dismissed: '접어뒀습니다. 이건 이제 답이 필요 없어요. 평가한 것은 없습니다.',

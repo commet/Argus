@@ -80,9 +80,27 @@ const ENUM_HINTS: Record<string, string> = {
   kind: 'premise · open_question',
   predicate_owner: 'user · ai_surfaced',
   source: 'user_stated · ai_surfaced (update_fact에서는 url · user_stated · host_reported)',
-  dismiss_reason: 'became_irrelevant · decided_elsewhere · superseded · user_declined',
+  dismiss_reason: 'became_irrelevant · decided_elsewhere · superseded · user_declined · changed_mind · other',
 };
 const DATE_FIELDS = new Set(['check_by', 'defer_to', 'today_override', 'snooze_until']);
+
+/** The REAL allowed values, parsed from Zod's own English message
+ *  ("… expected one of "a"|"b"|"c""). Lets the Korean surface show the ACTUAL
+ *  per-tool enum instead of a hardcoded guess — ENUM_HINTS is keyed by field
+ *  NAME, so `action` in argus_settings (status·update·sync) was being told the
+ *  argus_capture action set. The message carries the truth per call; use it. */
+function enumValuesFromMessage(msg?: string): string[] {
+  const m = msg?.match(/expected one of (.+)$/i);
+  if (!m) return [];
+  return (m[1].match(/"([^"]+)"|'([^']+)'/g) ?? []).map((s) => s.replace(/["']/g, ''));
+}
+
+/** The offending key name(s) from Zod's "Unrecognized key(s): "x"" message, so
+ *  the Korean surface can NAME what to remove instead of a blank "요청:". */
+function keysFromMessage(msg?: string): string[] {
+  if (!msg || !/unrecognized key/i.test(msg)) return [];
+  return (msg.match(/"([^"]+)"|'([^']+)'/g) ?? []).map((s) => s.replace(/["']/g, ''));
+}
 
 /** Translate one Zod issue into a Korean, actionable reason. Keeps the English
  *  argument NAME (models and users see arg names in English), but says in Korean
@@ -104,6 +122,8 @@ function koReason(issue: InvalidField, field: string): string {
       return issue.expected === undefined ? '형식이 올바르지 않습니다' : `필수이거나 형식이 올바르지 않습니다 (${issue.expected} 필요)`;
     case 'invalid_value':
     case 'invalid_enum_value': {
+      const vals = enumValuesFromMessage(issue.message);
+      if (vals.length) return `허용되지 않는 값입니다 (가능: ${vals.join(' · ')})`;
       const hint = ENUM_HINTS[key];
       return hint ? `허용되지 않는 값입니다 (가능: ${hint})` : '허용되지 않는 값입니다';
     }
@@ -128,8 +148,18 @@ function localizeInvalidInput(fields: InvalidField[]): ErrorCopy {
   const seen = new Set<string>();
   const parts: string[] = [];
   for (const f of fields) {
-    const name = f.field === '(root)' ? '요청' : f.field;
-    const part = `${name}: ${koReason(f, f.field)}`;
+    let part: string;
+    if (f.code === 'unrecognized_keys') {
+      // The field path is just '(root)'; the useful info is WHICH key. Name it,
+      // and drop the meaningless "요청:" prefix that told the user nothing.
+      const keys = keysFromMessage(f.message);
+      part = keys.length
+        ? `${keys.map((k) => `"${k}"`).join(', ')}: 이 도구가 받지 않는 항목입니다`
+        : '이 도구가 받지 않는 항목입니다';
+    } else {
+      const name = f.field === '(root)' ? '요청' : f.field;
+      part = `${name}: ${koReason(f, f.field)}`;
+    }
     if (seen.has(part)) continue; // dedup "id: …, id: …" (regex + superRefine both fire)
     seen.add(part);
     parts.push(part);

@@ -84,11 +84,11 @@ export const recall: ToolModule = {
               ok: true, tool: 'argus_recall',
               surface: locale === 'ko'
                 ? (sealed
-                    ? `이 예측은 저장됐고 아직 결과 기록 전입니다 (확인일 ${contract.check_by}). 그날 argus_resolve로 실제 결과를 적으면 영수증이 완성됩니다.`
-                    : '이 결정에는 아직 저장한 예측이 없습니다. argus_predict로 예측을 저장하면 판단 영수증이 생깁니다.')
+                    ? `이 예측은 저장됐고 아직 결과 기록 전입니다 (확인일 ${contract.check_by}). 그날 실제 결과를 알려주시면 영수증이 완성됩니다.`
+                    : '이 결정에는 아직 저장한 예측이 없습니다. 반증 가능한 예측을 하나 저장하면 판단 영수증이 생깁니다.')
                 : (sealed
-                    ? `This prediction is saved and waiting on its check-by (${contract.check_by}). Record what happened with argus_resolve then, and the receipt completes.`
-                    : 'This decision has no saved prediction yet. Save one with argus_predict and a Judgment Receipt begins.'),
+                    ? `This prediction is saved and waiting on its check-by (${contract.check_by}). Tell me what happened then, and the receipt completes.`
+                    : 'This decision has no saved prediction yet. Save a falsifiable prediction and a Judgment Receipt begins.'),
               next_actions: sealed ? ['argus_resolve', 'argus_patterns'] : ['argus_predict', 'argus_patterns'],
               data: { id, status: contract.status, ...(contract.check_by ? { check_by: contract.check_by } : {}) },
             });
@@ -147,8 +147,8 @@ export const recall: ToolModule = {
           return envelope({
             ok: true, tool: 'argus_recall',
             surface: locale === 'ko'
-              ? '이 결정에 기록된 전제가 없습니다. 필요하면 argus_capture action="add_context"로 추가할 수 있습니다.'
-              : 'No premises tracked on this decision. Add them with argus_capture action="add_context" if needed.',
+              ? '이 결정에 아직 기록된 전제가 없습니다. 이 결정이 딛고 선 전제를 원할 때 적어둘 수 있습니다.'
+              : 'No premises tracked on this decision yet. You can add the ones it rests on whenever you like.',
             next_actions: ['leave_as_is'],
             data: { id, premises: [], today },
           });
@@ -222,7 +222,7 @@ export const recall: ToolModule = {
         // Empty ledger → an on-ramp with a capture handle, not "0 decision(s)" +
         // stop (a "show me my decisions" newcomer must get a next move).
         const allSurface = all.length === 0
-          ? (locale === 'ko' ? '아직 기록에 남은 결정이 없습니다. 고민 중인 결정을 말하면 argus_capture로 시작합니다.' : 'No decisions on record yet. Describe a decision you are weighing and argus_capture begins it.')
+          ? (locale === 'ko' ? '아직 기록에 남은 결정이 없습니다. 고민 중인 결정을 말씀해 주시면 거기서 시작합니다.' : 'No decisions on record yet. Describe a decision you are weighing and we\'ll begin there.')
           : (locale === 'ko' ? `기록에 남은 결정 ${all.length}건.` : `${all.length} decision(s) on record.`);
         return envelope({
           ok: true, tool: 'argus_recall', surface: allSurface, next_actions: all.length === 0 ? ['argus_capture'] : ['stop'],
