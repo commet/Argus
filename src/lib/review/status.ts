@@ -70,7 +70,7 @@ const LABELS: Record<DerivedStatus, string> = {
   owned: '내 판단으로 기록됨',
   sealed: '기록됨 · 결과 기다리는 중',
   due: '확인할 차례',
-  settled: '정산 완료',
+  settled: '결과 확인 완료',
 };
 
 /**

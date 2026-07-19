@@ -316,7 +316,7 @@ export function SettlementModal({
       <Modal open onClose={onClose} title={L('그래서, 어떻게 됐어요?', 'So, how did it go?')}>
         <div className="space-y-4">
           <p className="text-[13px] text-[var(--text-secondary)] leading-[1.6]">
-            {L('봉인한 결정의 확인일이 왔어요. 어땠는지 간단히 기록하고 고리를 닫아주세요.', 'This sealed decision is due. Capture what happened and close the loop.')}
+            {L('다시 보기로 한 날짜가 왔어요. 실제로 어떻게 됐는지 간단히 기록해 주세요.', 'The review date is here. Record what actually happened.')}
           </p>
           <textarea
             aria-label={L('실제로 일어난 일', 'What actually happened')}
@@ -333,7 +333,7 @@ export function SettlementModal({
               onClick={closeDateOnlyLoop}
               className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[var(--primary)] text-[var(--bg)] text-[13px] font-semibold cursor-pointer"
             >
-              {L('돌아보고 고리 닫기', 'Looked back and closed')}
+              {L('결과 기록 마치기', 'Finish recording the outcome')}
             </button>
           </div>
         </div>
@@ -362,8 +362,8 @@ export function SettlementModal({
             {isRetro && <RetroBadge ko={ko} className="mt-2" />}
             <p className="mt-1.5 text-[12px] text-[var(--text-secondary)] leading-[1.5] max-w-[42ch]">
               {sealedOn
-                ? L(`${sealedOn}에 봉인한 결정의 확인일이에요. 고리를 닫는 순간이에요.`, `The check-in day for the decision you sealed on ${sealedOn}. This is the loop closing.`)
-                : L('봉인했던 결정의 확인일이에요. 고리를 닫는 순간이에요.', 'The check-in day for the decision you sealed. This is the loop closing.')}
+                ? L(`${sealedOn}에 기록한 판단을 실제 결과와 비교해 보세요.`, `Compare the decision saved on ${sealedOn} with what actually happened.`)
+                : L('처음 기록한 판단을 실제 결과와 비교해 보세요.', 'Compare your saved decision with what actually happened.')}
             </p>
           </div>
         </div>
@@ -383,8 +383,8 @@ export function SettlementModal({
         {!contract.judgment_receipt && (
           <p className="text-[12.5px] text-[var(--text-secondary)] leading-[1.5] -mt-1">
             {sealedOn
-              ? L(`${sealedOn}에 봉인한 결정이에요 — `, `You sealed this decision on ${sealedOn} — `)
-              : L('그때 이 결정을 봉인하셨어요 — ', 'You sealed this decision — ')}
+              ? L(`${sealedOn}에 기록한 결정이에요 — `, `You saved this decision on ${sealedOn} — `)
+              : L('그때 기록한 결정이에요 — ', 'This is the decision you saved — ')}
             <span className="font-semibold text-[var(--text-primary)]">{project.name}</span>
           </p>
         )}
@@ -516,7 +516,7 @@ export function SettlementModal({
         {openChecks.length > 0 && (
           <div className="space-y-2">
             <p className="text-[12px] font-semibold text-[var(--text-secondary)]">
-              {L('봉인할 때 확인이 필요했던 것 — 확인해보셨어요?', 'Things worth verifying at seal — did you check them?')}
+              {L('처음 기록할 때 확인이 필요했던 것 — 확인해 보셨나요?', 'Things that needed checking when you saved the decision — did you check them?')}
             </p>
             {openChecks.map((c) => (
               <div key={c.id} className="rounded-xl border border-[var(--border)] p-3 bg-[var(--surface)]">
@@ -600,8 +600,8 @@ export function SettlementModal({
                     회상편향이 태생적인 회고엔 절대 안 붙인다(C4). */}
                 {isRetro && (
                   <p className="text-[12.5px] text-[var(--text-secondary)] leading-[1.55]">
-                    {L('연습 고리를 한 번 닫아봤어요 — 봉인부터 다시 보기까지 어떤 느낌인지 보셨죠. 실제 기록은 결과를 모르는 채로 거는 진짜 봉인부터 쌓여요.',
-                       "You closed a practice loop — you've felt the seal-through-settle shape. Your real record starts building from the first real seal, one made before you know how it turns out.")}
+                    {L('연습으로 처음 판단부터 결과 확인까지 한 번 기록해 봤어요. 실제 기록은 결과를 알기 전에 남긴 판단부터 쌓입니다.',
+                       'You practiced the full path from an initial decision to an outcome review. Your real record starts with a decision saved before you know the result.')}
                   </p>
                 )}
                 {!isRetro && record && (

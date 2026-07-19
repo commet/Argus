@@ -45,7 +45,7 @@ describe('PremiseTracker', () => {
 
     const html = renderToStaticMarkup(<PremiseTracker receipt={receipt} />);
 
-    expect(html).toContain('Sealed value');
+    expect(html).toContain('Value when recorded');
     expect(html).toContain('3.5');
     expect(html).toContain('Current value');
     expect(html).toContain('4');

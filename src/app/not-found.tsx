@@ -41,15 +41,15 @@ export default function NotFound() {
             className="bp-mono absolute top-3 right-4"
             style={{ fontSize: 10, letterSpacing: '0.26em', color: 'var(--text-tertiary)' }}
           >
-            {L('표류', 'ADRIFT')}
+            {L('페이지 없음', 'NOT FOUND')}
           </span>
           <div className="absolute inset-0 flex items-end justify-center pb-3">
-            <VoyageShip state="adrift" size={195} title={L('표류 중인 배', 'A ship adrift')} />
+            <VoyageShip state="adrift" size={195} title={L('페이지를 찾지 못한 안내 그림', 'Page not found illustration')} />
           </div>
         </div>
 
         <h1 className="text-[22px] font-bold text-[var(--text-primary)] tracking-tight mt-8">
-          {L('해도에 없는 바다예요', 'Off the chart')}
+          {L('페이지를 찾을 수 없어요', 'Page not found')}
         </h1>
         <p className="text-[14px] text-[var(--text-secondary)] leading-relaxed mt-2">
           {L('주소가 바뀌었거나, 처음부터 없던 곳이에요.', 'This page moved, or never existed.')}
@@ -61,7 +61,7 @@ export default function NotFound() {
             className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-[var(--accent-fg)] text-[13px] font-semibold hover:shadow-[var(--shadow-md)] transition-all"
             style={{ background: 'var(--gradient-gold)' }}
           >
-            {L('워크스페이스로', 'Back to workspace')} <ArrowRight size={14} />
+            {L('워크스페이스로 돌아가기', 'Back to workspace')} <ArrowRight size={14} />
           </Link>
           <Link
             href={`/${locale}`}

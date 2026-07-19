@@ -13,7 +13,7 @@ export function Footer() {
         Keeping Judgment Human
       </p>
       <p className="text-[12px] text-[var(--text-tertiary)] tracking-wide">
-        Argus — {L('내기 전에, 판단부터', 'Think before you commit')}
+        Argus — {L('결정하기 전에, 판단부터', 'Think before you commit')}
       </p>
       {/* Identity + legal, one quiet row. Each link gets a 44px tap height and
           12px text (was 11px, sub-44px). Middot separators are aria-hidden. */}

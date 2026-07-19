@@ -172,7 +172,7 @@ export function PremiseTracker({ receipt }: { receipt: JudgmentReceipt }) {
                         </p>
                         <div className="grid gap-1 sm:grid-cols-2">
                           <p>
-                            <span className="font-semibold text-[var(--text-secondary)]">{L('봉인 당시 값', 'Sealed value')}:</span>{' '}
+                            <span className="font-semibold text-[var(--text-secondary)]">{L('기록 당시 값', 'Value when recorded')}:</span>{' '}
                             {valueText(last.baseline_numeric_value, last.baseline_finding) ?? (last.baseline_only ? L('첫 기준값', 'First baseline') : L('표시 없음', 'Not shown'))}
                           </p>
                           <p>

@@ -31,7 +31,7 @@ export function RetroBadge({ ko, className = '' }: { ko: boolean; className?: st
       className={`inline-flex items-center gap-1 align-middle text-[10px] font-semibold text-[var(--text-tertiary)] border border-[var(--border)] rounded px-1.5 py-px ${className}`}
       title={
         ko
-          ? '이미 끝난 일을 되짚은 연습이에요 — 진짜 봉인은 결과를 모르는 채로 거는 거고요.'
+          ? '이미 끝난 일을 되짚어 보는 연습이에요. 실제 판단 기록은 결과를 모르는 시점에 남긴 결정부터 시작됩니다.'
           : "A practice on something that already played out — a real seal is one you make before you know the outcome."
       }
     >

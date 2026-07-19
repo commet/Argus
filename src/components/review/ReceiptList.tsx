@@ -53,7 +53,7 @@ export function ReceiptList({
   return (
     <div className="max-w-2xl mx-auto w-full flex flex-col gap-4">
       <div>
-        <h1 className="text-[20px] font-bold text-[var(--text-primary)]">{L('내 판단 기록', 'My decision record')}</h1>
+        <h1 className="text-[20px] font-bold text-[var(--text-primary)]">{L('문서 검수 기록', 'Document review records')}</h1>
         <p className="mt-1 text-[13px] text-[var(--text-secondary)]">
           {dueCount > 0
             ? L(
@@ -71,7 +71,7 @@ export function ReceiptList({
           <Button variant="accent" size="sm" onClick={onNew}>
             {L('기존 문서 검수하기', 'Review an existing document')}
           </Button>
-          <LocaleLink href="/workspace">
+          <LocaleLink href="/workspace?new=1">
             <Button variant="secondary" size="sm">{L('초안 만들기', 'Create a draft')}</Button>
           </LocaleLink>
         </div>
@@ -128,8 +128,8 @@ export function ReceiptList({
                   {s.sealed_count > 0 && (
                     <span>
                       {L(
-                        `예측 ${s.settled_count}/${s.sealed_count} 정산`,
-                        `${s.settled_count}/${s.sealed_count} predictions settled`,
+                        `결과 확인 ${s.settled_count}/${s.sealed_count}`,
+                        `${s.settled_count}/${s.sealed_count} outcomes reviewed`,
                       )}
                     </span>
                   )}

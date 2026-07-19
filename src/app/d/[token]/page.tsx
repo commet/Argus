@@ -35,28 +35,28 @@ function shareLocale(row: { title: string | null; content: string }): ShareLocal
 const SHARE_COPY = {
   ko: {
     record: '공유된 판단 기록',
-    defaultReceipt: '판단 영수증',
+    defaultReceipt: '판단 기록',
     madeWith: 'Argus로 만든 판단 기록',
     try: 'Argus 사용해 보기 →',
     og: '공유된 Argus 판단 기록',
-    receipt: '판단 영수증',
+    receipt: '판단 기록',
     // The receipt's headline is the decision, not the absence of a verdict. This
     // gloss says what the record IS (sealed prediction + reality's answer) so the
     // quiet "AI VERDICT — NONE" mark below it needs no defending.
-    verdictGloss: '봉인한 예측과, 정한 날 현실이 답한 것 — 이 기록엔 그것만 남습니다.',
+    verdictGloss: '그때 기록한 판단과, 정한 날 확인한 실제 결과를 함께 남긴 기록입니다.',
     // Social preview leads with the substance (a decision settled by reality),
     // never with "AI 판정 없음" — that mark is a signature, not a headline.
-    verdictShare: '봉인한 예측을 정한 날 현실과 대조한, Argus 판단의 기록.',
+    verdictShare: '그때의 판단과 나중의 실제 결과를 함께 남긴 Argus 판단 기록.',
   },
   en: {
     record: 'shared decision record',
-    defaultReceipt: 'Judgment Receipt',
+    defaultReceipt: 'Decision Record',
     madeWith: 'Made with Argus — the decision harness for AI',
     try: 'Try Argus →',
     og: 'Shared Argus decision record',
-    receipt: 'Judgment Receipt',
-    verdictGloss: "Your sealed prediction and what reality answered — that's all this record keeps.",
-    verdictShare: 'An Argus judgment record — a prediction sealed, then settled against reality.',
+    receipt: 'Decision Record',
+    verdictGloss: 'A record of the decision you made then and the actual outcome you reviewed later.',
+    verdictShare: 'An Argus decision record that keeps the original judgment beside the later outcome.',
   },
 } as const;
 
@@ -182,7 +182,7 @@ function SharedReceipt({ title, content, locale }: { title: string; content: str
 function stripReceiptHeading(content: string): string {
   const lines = content.split('\n');
   const firstLine = lines[0] || '';
-  if (/^#\s+Judgment Receipt\b/i.test(firstLine)) {
+  if (/^#\s+(?:Judgment Receipt|Document Review Record|Decision Record)\b/i.test(firstLine)) {
     return lines.slice(1).join('\n').replace(/^\n+/, '');
   }
   return content;

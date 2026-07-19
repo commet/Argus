@@ -161,7 +161,7 @@ export function PatternsSurface() {
 
       {snapshot && (
         <p className="mt-10 text-center font-mono text-[10px] text-[var(--text-tertiary)]">
-          release receipt · {snapshot.release_receipt_id}
+          {locale === 'ko' ? '패턴 배포 기록' : 'pattern release record'} · {snapshot.release_receipt_id}
         </p>
       )}
     </main>

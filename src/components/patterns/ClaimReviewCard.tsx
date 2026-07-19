@@ -74,13 +74,13 @@ export function ClaimReviewCard({
                           <p className="mt-1 break-all text-[10px] text-[var(--text-tertiary)]">{source.drilldown.observation.event_id} · {source.drilldown.observation.occurred_at}</p>
                         </div>
                         <div className="mt-2 rounded-md bg-[var(--primary)]/[0.06] px-2.5 py-2">
-                          <p className="font-semibold text-[var(--text-primary)]">{L('나중의 정산', 'Resolution later')}</p>
+                          <p className="font-semibold text-[var(--text-primary)]">{L('나중에 확인한 결과', 'Outcome reviewed later')}</p>
                           <p>{source.drilldown.resolution.excerpt}</p>
                           <p className="mt-1 break-all text-[10px] text-[var(--text-tertiary)]">{source.drilldown.resolution.event_id} · {source.drilldown.resolution.occurred_at}</p>
                         </div>
                       </> : <>
                         <p className="mt-1 break-all">{L('관찰', 'Observation')}: {source.observation_ref}</p>
-                        <p className="break-all">{L('정산', 'Resolution')}: {source.resolution_event_ref}</p>
+                        <p className="break-all">{L('결과 기록', 'Outcome record')}: {source.resolution_event_ref}</p>
                       </>}
                       <p className="break-all">{L('출처 묶음', 'Source cluster')}: {source.source_cluster_id}</p>
                     </li>

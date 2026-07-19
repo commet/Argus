@@ -188,7 +188,7 @@ export function ReceiptView({
       <div className="flex items-start justify-between gap-3 border-y-[3px] border-double border-[var(--border)] py-3">
         <div className="min-w-0">
           <div className="text-[9px] font-bold uppercase tracking-[0.2em] text-[var(--text-tertiary)]">
-            Judgment Receipt
+            {L('문서 검수 기록', 'Document Review Record')}
           </div>
           <h2 className="text-[16px] font-bold text-[var(--text-primary)] truncate">{receipt.source_title}</h2>
           <p className="mt-1 text-[9px] font-semibold uppercase tracking-[0.12em] text-[var(--text-tertiary)] tabular-nums">
@@ -209,7 +209,7 @@ export function ReceiptView({
         open={shareOpen}
         onClose={() => setShareOpen(false)}
         getText={() => receiptToMarkdown(receipt)}
-        getTitle={() => receipt.source_title || L('판단 영수증', 'Judgment receipt')}
+        getTitle={() => receipt.source_title || L('문서 검수 기록', 'Document review record')}
         shareContext="review_receipt"
       />
 
@@ -227,8 +227,8 @@ export function ReceiptView({
           </ul>
           <p className="mt-1.5 text-[11px] text-[var(--text-secondary)]">
             {L(
-              '이 영수증은 위 범위에 한정된 판단입니다. 전체를 검수하려면 문서를 나눠 넣거나 핵심 부분을 붙여넣어 주세요.',
-              'This receipt covers only the scope above. To review everything, split the document into pieces or paste the key section.',
+              '이 검수 결과는 위 범위만 다룹니다. 전체를 검수하려면 문서를 나눠 넣거나 핵심 부분을 붙여넣어 주세요.',
+              'This review covers only the scope above. To review everything, split the document into pieces or paste the key section.',
             )}
           </p>
         </Card>
@@ -452,7 +452,7 @@ export function ReceiptView({
                     <p className="text-[var(--text-primary)]">{f.predicate}</p>
                     <p className="text-[11px] text-[var(--text-tertiary)]">
                       {L(`확인일 ${f.check_by}`, `Check by ${f.check_by}`)} · {L('맞음', 'Pass')}: {f.pass_condition || '—'} · {L('틀림', 'Fail')}: {f.fail_condition || '—'}
-                      {f.predicate_owner === 'user' && ` · ${L('내가 봉인함', 'Sealed by me')}`}
+                      {f.predicate_owner === 'user' && ` · ${L('내가 기록함', 'Recorded by me')}`}
                       {f.revise_count ? ` · ${L(`${f.revise_count}회 미룸`, `Postponed ${f.revise_count} time${f.revise_count === 1 ? '' : 's'}`)}` : ''}
                       {f.first_check_by ? ` · ${L(`원래 ${f.first_check_by}`, `originally ${f.first_check_by}`)}` : ''}
                     </p>
@@ -467,13 +467,13 @@ export function ReceiptView({
                     )}
                     {f.settled_at ? (
                       <p className="mt-1 text-[12px] text-[var(--success)]">
-                        {L('정산됨', 'Settled')}: {settlementLabel(L, f.outcome)}{f.what_happened ? ` — ${f.what_happened}` : ''}
+                        {L('결과 확인 완료', 'Outcome reviewed')}: {settlementLabel(L, f.outcome)}{f.what_happened ? ` — ${f.what_happened}` : ''}
                         {f.learned ? <span className="block text-[var(--text-secondary)]">{L('배운 점', 'What I learned')}: {f.learned}</span> : null}
                       </p>
                     ) : f.sealed_at && onSettle ? (
                       <div className="mt-1.5">
                         <Button variant="secondary" size="sm" onClick={() => onSettle(f.followup_id)}>
-                          {L('정산하기 (현실 기록)', 'Settle (record reality)')}
+                          {L('실제 결과 기록', 'Record actual outcome')}
                         </Button>
                       </div>
                     ) : null}

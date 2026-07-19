@@ -10,8 +10,8 @@ import { useState, type ReactNode } from 'react';
 import { motion } from 'framer-motion';
 import {
   AlertTriangle,
-  Anchor,
   ArrowRight,
+  CalendarCheck,
   Check,
   Compass,
   Copy,
@@ -156,8 +156,8 @@ export function CurrentBearingCard({
                 className="inline-flex min-h-10 items-center gap-1.5 rounded-lg px-3 text-[12px] font-semibold text-[var(--accent-fg)] transition-[scale,filter] duration-150 hover:brightness-[1.02] active:scale-[0.96]"
                 style={{ background: 'var(--gradient-gold)' }}
               >
-                <Anchor size={13} />
-                {L('결정으로 봉인', 'Seal this call')}
+                <CalendarCheck size={13} />
+                {L('판단과 확인일 기록', 'Save decision and review date')}
               </button>
             )}
           </div>
@@ -168,8 +168,8 @@ export function CurrentBearingCard({
         {showActions && canSeal && onSeal && (
           <p className="mt-2 text-[12px] leading-relaxed text-[var(--text-secondary)]">
             {L(
-              '봉인 = 이 결정을 여기 남겨두고, 정한 날에 “그래서, 어떻게 됐어요?”를 물어드리는 거예요.',
-              'Sealing keeps this call here — and on the date you pick, we ask "so, how did it go?"',
+              '지금의 판단과 확인할 날짜를 함께 저장합니다. 정한 날에 “그래서, 어떻게 됐어요?”를 다시 물어드려요.',
+              'Save your current decision with a review date. On that date, we ask “so, how did it go?”',
             )}
           </p>
         )}
@@ -236,7 +236,7 @@ export function CurrentBearingCard({
       {contract_seed?.predicate && (
         <div className="px-5 py-3 md:px-6" style={{ background: 'color-mix(in srgb, var(--accent) 4%, transparent)' }}>
           <div className="flex items-start gap-2">
-            <Anchor size={12} className="mt-0.5 shrink-0 text-[var(--accent)]" />
+            <CalendarCheck size={12} className="mt-0.5 shrink-0 text-[var(--accent)]" />
             <p className="text-[12px] leading-relaxed text-[var(--text-secondary)]">
               <span className="font-semibold text-[var(--text-primary)]">
                 {L('확인일에 볼 것: ', 'Check on the review date: ')}

@@ -175,7 +175,7 @@ function LoginContent() {
         <div className="text-center mb-6">
           <div className="mb-3"><Logo size="lg" /></div>
           <p className="text-[14px] text-[var(--text-secondary)]">
-            {L('결정의 궤적을 이어가려면 — 로그인해 주세요', "Pick up your decision's trail — sign in.")}
+          {L('저장한 결정 기록을 이어서 보려면 로그인해 주세요', 'Sign in to continue with your saved decision records.')}
           </p>
         </div>
 

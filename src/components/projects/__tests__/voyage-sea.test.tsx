@@ -134,7 +134,7 @@ describe('VoyageSea — spine gate (거울 조항, 항해 지도판)', () => {
     expect(container.textContent).not.toContain('그래서, 어떻게 됐어요?');
     expect(container.textContent).not.toContain('다시 볼 때');
     // Calm caption, not urgency.
-    expect(container.textContent).toContain('부를 배가 없어요');
+    expect(container.textContent).toContain('지금 확인이 필요한 결정은 없어요');
     expect(container.querySelector('img')?.getAttribute('src')).toContain('argus-sea-chart-v1.jpg');
   });
 
@@ -154,7 +154,7 @@ describe('VoyageSea — spine gate (거울 조항, 항해 지도판)', () => {
     expect(container.textContent).toContain('그래서, 어떻게 됐어요?');
     // Honest provenance: the user's own words, verbatim, marked as theirs.
     expect(container.textContent).toContain('2주 안에 시연하면 계약이 이어진다');
-    expect(container.textContent).toContain('봉인한 내기');
+    expect(container.textContent).toContain('처음 기록한 판단');
   });
 
   it('a due contract with no sealed words says so honestly instead of inventing a quote', () => {
@@ -169,7 +169,7 @@ describe('VoyageSea — spine gate (거울 조항, 항해 지도판)', () => {
     });
     render([due, sealedProject('b', '2026-02-01T00:00:00.000Z')], { dueProjectIds: ['due2'] });
     expect(container.textContent).toContain('약속한 확인일이 왔어요');
-    expect(container.textContent).not.toContain('봉인한 내기 —');
+    expect(container.textContent).not.toContain('처음 기록한 판단 —');
   });
 
   it('a wrecked ship is dimmed, never enlarged, and carries no verdict vocabulary', () => {
@@ -208,7 +208,7 @@ describe('VoyageSea — spine gate (거울 조항, 항해 지도판)', () => {
       );
     });
     const text = container.textContent || '';
-    expect(text).toContain('난파');
+    expect(text).toContain('진행 중단');
     expect(text).not.toMatch(/실패|망했|망함/);
     // The wrecked ship's button is not the enlarged one (only a due beacon is).
     const wreckedBtn = Array.from(container.querySelectorAll('li > button')).find((el) =>
@@ -293,7 +293,7 @@ describe('VoyageSea — spine gate (거울 조항, 항해 지도판)', () => {
       sealedProject('b', '2026-02-01T00:00:00.000Z'),
     ], { onFocusDecision });
 
-    const finder = container.querySelector('[aria-label="해도에서 결정 찾기"]') as HTMLSelectElement;
+    const finder = container.querySelector('[aria-label="결정 목록에서 찾기"]') as HTMLSelectElement;
     act(() => {
       finder.value = 'b';
       finder.dispatchEvent(new Event('change', { bubbles: true }));
@@ -388,14 +388,14 @@ describe('VoyageSea — spine gate (거울 조항, 항해 지도판)', () => {
     const shipA = items.find((el) => (el.getAttribute('aria-label') || '').includes('voyage-a'))!;
     act(() => shipA.click());
     const card = container.querySelector('[role="dialog"]')!;
-    expect(card.textContent).toContain('같은 전제 위 2척'); // a + b stand together
+    expect(card.textContent).toContain('같은 전제를 쓰는 결정 2개'); // a + b stand together
     expect(card.textContent).toContain('voyage-b'); // the sibling is named
     expect(card.textContent).not.toContain('voyage-c'); // different premise → no invented link
 
     // A decision whose premise nobody shares shows NO leverage callout (restraint).
     act(() => (container.querySelector('[aria-label="행동 카드 닫기"]') as HTMLButtonElement).click());
     act(() => (items.find((el) => (el.getAttribute('aria-label') || '').includes('voyage-c'))!).click());
-    expect(container.querySelector('[role="dialog"]')!.textContent).not.toContain('같은 전제 위');
+    expect(container.querySelector('[role="dialog"]')!.textContent).not.toContain('같은 전제를 쓰는 결정');
   });
 });
 
@@ -518,14 +518,14 @@ describe('one sea — receipt vessels and undersea currents', () => {
       );
     });
     // the drift chip quantifies the blast radius — 2 charted decisions on GROUND
-    expect(container.textContent).toContain('그 위 2척');
+    expect(container.textContent).toContain('연결된 결정 2개');
     // tapping one exposes the group AND flags the moved ground (a fact, amber)
     const shipG = Array.from(container.querySelectorAll('li > button')).find((el) =>
       (el.getAttribute('aria-label') || '').includes('voyage-pg1'),
     ) as HTMLButtonElement;
     act(() => shipG.click());
     const card = container.querySelector('[role="dialog"]')!;
-    expect(card.textContent).toContain('같은 전제 위 2척');
+    expect(card.textContent).toContain('같은 전제를 쓰는 결정 2개');
     expect(card.textContent).toContain('이 전제가 최근 흔들렸어요'); // drift → warning
   });
 

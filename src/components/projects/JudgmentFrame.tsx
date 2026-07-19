@@ -64,7 +64,7 @@ export function JudgmentFrame({
           </div>
         )}
         <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--text-tertiary)]">
-          {ko ? '봉인 당시' : 'At the seal'}
+          {ko ? '처음 기록할 때' : 'When first saved'}
           {sealedOn ? ` — ${sealedOn}` : ''}
         </p>
         <p className="mt-1.5 text-[14px] text-[var(--text-primary)] leading-[1.65]" style={{ fontFamily: 'var(--font-voice, serif)' }}>
@@ -73,7 +73,7 @@ export function JudgmentFrame({
         {happened && (
           <>
             <p className="mt-4 text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--text-tertiary)]">
-              {ko ? '돌아와서' : 'Coming back'}
+              {ko ? '결과를 확인한 뒤' : 'After reviewing the outcome'}
               {settledOn ? ` — ${settledOn}` : ''}
             </p>
             <p className="mt-1.5 text-[14px] text-[var(--text-primary)] leading-[1.65]" style={{ fontFamily: 'var(--font-voice, serif)' }}>

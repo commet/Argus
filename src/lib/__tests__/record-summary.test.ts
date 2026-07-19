@@ -86,13 +86,13 @@ describe('CROSS test (08 S8): web strip and telegram markdown render the same nu
 
     // Web strip — the review-settled digit is the SAME number
     const strip = recordStripLine(webRecord, counts, 'ko');
-    expect(strip).toContain(`검수 예측 ${counts.settled}개 정산`);
-    expect(strip).toContain('닫은 고리 2개');
+    expect(strip).toContain(`문서 검수 결과 확인 ${counts.settled}건`);
+    expect(strip).toContain('결과 확인 완료 2건');
     expect(strip).toContain('적중한 가설 2개');
 
     // digit-level identity: telegram's settled digit === web's settled digit
     const tgSettled = md.match(/정산 완료: \*\*(\d+)\*\*/)?.[1];
-    const webSettled = strip.match(/검수 예측 (\d+)개 정산/)?.[1];
+    const webSettled = strip.match(/문서 검수 결과 확인 (\d+)건/)?.[1];
     expect(tgSettled).toBe(webSettled);
 
     // spine: counts only — no percentage on either surface
@@ -113,21 +113,21 @@ describe('recordStripLine (the shared sentence)', () => {
   it('omits zero clauses instead of zero-padding a thin record', () => {
     const thin: CrossProjectRecord = { loops: 1, betsHeld: 0, risksAvoided: 0, betsBroke: 0, risksHappened: 0, goodOutcomesOnLuck: 0 };
     const line = recordStripLine(thin, { open: 0, settled: 0, happened: 0, avoided: 0, partial: 0 }, 'ko');
-    expect(line).toBe('닫은 고리 1개');
+    expect(line).toBe('결과 확인 완료 1건');
   });
 
   it('renders review-only records (the ON FILE cohort finally counts)', () => {
     const none: CrossProjectRecord = { loops: 0, betsHeld: 0, risksAvoided: 0, betsBroke: 0, risksHappened: 0, goodOutcomesOnLuck: 0 };
     const line = recordStripLine(none, { open: 1, settled: 2, happened: 2, avoided: 0, partial: 0 }, 'ko');
-    expect(line).toBe('검수 예측 2개 정산');
+    expect(line).toBe('문서 검수 결과 확인 2건');
   });
 });
 
 describe('recordCompactLine (workspace header one-liner)', () => {
   it('loops → closed-loop count; sealed-only → honest forming fact; empty → null', () => {
     const rec = (loops: number): CrossProjectRecord => ({ loops, betsHeld: 0, risksAvoided: 0, betsBroke: 0, risksHappened: 0, goodOutcomesOnLuck: 0 });
-    expect(recordCompactLine(rec(4), 6, 'ko')).toBe('⚓ 닫은 고리 4개');
-    expect(recordCompactLine(rec(0), 2, 'ko')).toBe('⚓ 봉인 2개 — 첫 확인일이 오면 기록이 시작돼요');
+    expect(recordCompactLine(rec(4), 6, 'ko')).toBe('결과 확인 완료 4건');
+    expect(recordCompactLine(rec(0), 2, 'ko')).toBe('확인 대기 2건 — 확인일이 오면 결과를 이어서 기록해요');
     expect(recordCompactLine(rec(0), 0, 'ko')).toBeNull();
   });
 });

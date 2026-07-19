@@ -57,7 +57,7 @@ export function JudgmentReceipt(props: Props) {
         {real_question && (
           <div className="px-4 py-3 border-b border-[var(--border)]">
             <p className="text-[11px] text-[var(--text-tertiary)] mb-1">
-              {L('AI가 읽은 진짜 질문', 'The real question AI read')}
+              {L('문서에서 읽힌 핵심 질문', 'Core question found in the document')}
             </p>
             <p className="text-[var(--text-primary)] font-medium" style={{ fontFamily: 'var(--font-voice, serif)' }}>
               &ldquo;{real_question}&rdquo;
@@ -68,10 +68,9 @@ export function JudgmentReceipt(props: Props) {
         {unverified_assumption && (
           <div className="px-4 py-3 border-b border-[var(--border)] bg-[var(--surface)]">
             <p className="text-[11px] text-[var(--text-tertiary)] mb-1">
-              {L('AI는 이렇게 가정했다', 'AI assumed')}
+              {L('아직 확인되지 않은 가정', 'Assumption not yet verified')}
             </p>
-            <div className="flex gap-2 items-start">
-              <div className="w-0.5 self-stretch bg-[var(--border-strong)] rounded shrink-0 mt-0.5" />
+            <div className="rounded-lg bg-[var(--accent)]/[0.04] px-3 py-2">
               <p className="text-[var(--text-primary)]">
                 {unverified_assumption}
                 {' '}
@@ -86,7 +85,7 @@ export function JudgmentReceipt(props: Props) {
         {human_only && (
           <div className="px-4 py-3 border-b border-[var(--border)]">
             <p className="text-[11px] text-[var(--text-tertiary)] mb-1">
-              {L('AI가 대신할 수 없는 것', 'What only you can judge')}
+              {L('사용자가 직접 판단할 것', 'What you need to judge')}
             </p>
             <p className="text-[var(--text-secondary)]">{human_only}</p>
           </div>
@@ -120,7 +119,7 @@ export function JudgmentReceipt(props: Props) {
     <div className="rounded-xl border border-[var(--border)] overflow-hidden text-[13px] leading-[1.6]">
       <div className="px-4 py-2.5 bg-[var(--surface)] border-b border-[var(--border)]">
         <p className="text-[11px] text-[var(--text-muted)]">
-          {L(`${sealedOn}에 봉인한 판단`, `Judgment sealed on ${sealedOn}`)}
+          {L(`${sealedOn}에 기록한 판단`, `Decision saved on ${sealedOn}`)}
         </p>
       </div>
 
@@ -140,8 +139,7 @@ export function JudgmentReceipt(props: Props) {
           <p className="text-[11px] text-[var(--text-tertiary)] mb-1">
             {L('그때 검증되지 않았던 가정', 'The unverified assumption then')}
           </p>
-          <div className="flex gap-2 items-start">
-            <div className="w-0.5 self-stretch bg-[var(--border-strong)] rounded shrink-0 mt-0.5" />
+          <div className="rounded-lg bg-[var(--accent)]/[0.04] px-3 py-2">
             <p className="text-[var(--text-secondary)]">{receipt.unverified_assumption}</p>
           </div>
         </div>
@@ -195,7 +193,7 @@ export function JudgmentReceipt(props: Props) {
             not with the absence of a verdict — the NONE mark above then needs no
             defending. Positive framing, one quiet line. */}
         <p className="mt-2 text-[11px] leading-[1.5] text-[var(--text-tertiary)]">
-          {L('봉인한 예측과, 정한 날 현실이 답한 것 — 이 기록엔 그것만 남습니다.', "Your sealed prediction and what reality answered — that's all this record keeps.")}
+          {L('처음 기록한 판단과, 확인일에 실제로 일어난 일 — 이 기록에는 두 내용을 함께 남깁니다.', 'Your initial decision and what actually happened on the review date stay together in this record.')}
         </p>
       </div>
     </div>

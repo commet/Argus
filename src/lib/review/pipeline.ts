@@ -195,8 +195,8 @@ export async function runDocumentReview(
       if (batches.length) {
         const isDeck = artifact.detected_structure?.is_deck === true || artifact.source_kind === 'pptx';
         emit('reviewing', batches.length > 1
-          ? t(`문서를 이미지 ${batches.length}묶음으로 나눠 전체 검수하는 중`, `Reviewing the whole document visually across ${batches.length} batches`)
-          : t('문서를 이미지까지 함께 정밀 검수하는 중', 'Reviewing the document — including its images — closely'));
+          ? t(`문서를 이미지 ${batches.length}묶음으로 나눠 전체 확인하는 중`, `Checking the whole document visually across ${batches.length} batches`)
+          : t('문서의 이미지와 본문을 함께 확인하는 중', 'Checking the document text and images together'));
         const resolvePageAnchors = (ids: unknown): SourceAnchor[] => {
           if (!Array.isArray(ids)) return [];
           const out: SourceAnchor[] = [];
@@ -308,7 +308,7 @@ export async function runDocumentReview(
     // Pack units ONCE under both the count cap and the prompt char budget, so a
     // large document degrades to "fewer units + a coverage note" instead of
     // hard-failing the server's per-message limit — and so coverage is honest.
-    emit('profiling', t('주장을 분석하는 중', 'Analyzing the claims'));
+    emit('profiling', t('문서의 핵심 주장과 근거를 찾는 중', 'Finding the document\'s key claims and evidence'));
     const packed = packUnitsForPrompt(artifact.units, budget.max_units);
     const unitsReviewed = packed.units.length;
     const coverage = computeCoverage(artifact, unitsReviewed);
@@ -318,7 +318,11 @@ export async function runDocumentReview(
     // but asks for its map, findings, obligations, and follow-ups in one bounded
     // structured response. Standard/deep reviews retain the multi-stage path.
     if (budget.depth === 'quick') {
-      emit('reviewing', t('핵심 판단 5가지를 한 번에 검수하는 중', 'Reviewing the five core judgments in one pass'));
+      // The single model call does the reading and analysis together. Keep the
+      // first milestone active while it is actually waiting; marking `reviewing`
+      // here made the UI claim that claim organization and check selection were
+      // already finished before the response had even arrived.
+      emit('profiling', t('핵심 주장과 근거를 한 번에 확인하는 중', 'Checking the key claims and evidence in one pass'));
       const quickPrompt = buildQuickReviewPrompt(packed.units, ctx, packed.units.length, today, lang);
       promptParts.push(quickPrompt.system);
       const raw = await llm.json<Record<string, unknown>>({
@@ -345,14 +349,14 @@ export async function runDocumentReview(
 
       const profile = normalizeProfile(raw['profile'], ctx);
       const map = normalizeMap(raw, resolveAnchors, lang);
-      emit('mapping', t('판단 지도와 근거 위치를 정리하는 중', 'Laying out the judgment map and where the evidence sits'));
+      emit('mapping', t('주장과 근거 위치를 정리하는 중', 'Organizing the claims and evidence locations'));
       const reviewability = scoreReviewability(artifact, map, lang);
       const routing = routeLenses(profile, artifact, {
         concerns: ctx.concerns,
         maxLensCalls: budget.max_lens_calls,
         lang,
       });
-      emit('routing', t('검수 범위를 확인하는 중', 'Confirming the review scope'));
+      emit('routing', t('확인할 항목을 고르는 중', 'Choosing what to check'));
 
       if (reviewabilityBand(reviewability.score) === 'insufficient') {
         const receipt = assembleReceipt({
@@ -366,6 +370,7 @@ export async function runDocumentReview(
       }
 
       const allowedLenses = new Set<LensId>(routing.selected);
+      emit('reviewing', t('주장별 근거를 확인하는 중', 'Checking the evidence for each claim'));
       const rawFindings = Array.isArray(raw['findings']) ? raw['findings'] : [];
       const normalizedFindings = rawFindings.flatMap((finding) => {
         if (!finding || typeof finding !== 'object') return [];
@@ -375,7 +380,7 @@ export async function runDocumentReview(
       }).slice(0, 5);
       const findings = supplementQuickFindings(normalizedFindings, map, lang);
 
-      emit('synthesizing', t('Judgment Receipt를 정리하는 중', 'Assembling your Judgment Receipt'));
+      emit('synthesizing', t('분석 결과를 정리하는 중', 'Organizing the analysis results'));
       const obligations = normalizeObligations(raw['judgment_obligations'], resolveAnchors, lang).slice(0, 3);
       const followups = normalizeFollowups(raw['followups'], today);
       const currentHeading = String(raw['current_heading'] || '').trim() || neutralHeading(map, lang);
@@ -400,7 +405,7 @@ export async function runDocumentReview(
     const chunked = chunkUnitsForReview(artifact.units, maxChunks);
     if (chunked.chunks.length > 1) {
       const chunks = chunked.chunks;
-      emit('profiling', t(`문서를 ${chunks.length}개 구간으로 나눠 전체를 검수하는 중`, `Splitting the document into ${chunks.length} sections to review all of it`));
+      emit('profiling', t(`문서를 ${chunks.length}개 구간으로 나눠 전체를 확인하는 중`, `Splitting the document into ${chunks.length} sections to check all of it`));
       let mapDone = 0;
       // Whole-document outline computed ONCE from every unit — the contextual
       // header each isolated chunk needs to catch cross-section conflicts.
@@ -514,7 +519,7 @@ export async function runDocumentReview(
       // by anchor so one dense section can't crowd every other slide out of the 10.
       findings = diversifyByAnchor(rankFindings(findings)).slice(0, 10);
 
-      emit('synthesizing', t('Judgment Receipt를 만드는 중', 'Building your Judgment Receipt'));
+      emit('synthesizing', t('분석 결과를 정리하는 중', 'Organizing the analysis results'));
       const mapSummary = summarizeMap(map);
       const synPrompt = buildSynthesisPrompt(mapSummary, summarizeFindings(findings), ctx, today, lang);
       promptParts.push(synPrompt.system);
@@ -573,7 +578,7 @@ export async function runDocumentReview(
     const profile = normalizeProfile(raw['profile'], ctx);
     const map = normalizeMap(raw, resolveAnchors, lang);
 
-    emit('mapping', t('사람이 판단할 지점을 찾는 중', 'Finding the points a human must judge'));
+    emit('mapping', t('사람이 직접 결정할 부분을 찾는 중', 'Finding the parts a person must decide'));
 
     // --- Stage 2: reviewability + routing ---------------------------------
     const reviewability = scoreReviewability(artifact, map, lang);
@@ -582,7 +587,7 @@ export async function runDocumentReview(
       maxLensCalls: budget.max_lens_calls,
       lang,
     });
-    emit('routing', t('문서 유형에 맞는 검수 렌즈를 고르는 중', 'Choosing review lenses for this document type'));
+    emit('routing', t('문서 유형에 맞는 확인 항목을 고르는 중', 'Choosing checks for this document type'));
 
     // Insufficient reviewability → produce a "what is missing" receipt, no lenses.
     if (reviewabilityBand(reviewability.score) === 'insufficient') {
@@ -610,7 +615,7 @@ export async function runDocumentReview(
     // claims) so the longest stage shows specific work on the user's material —
     // verbatim source text, never a verdict about it (see ReviewJob.examining).
     const examining = sampleExaminingPremises(map);
-    emit('reviewing', lensTotal > 0 ? t(`근거 확인 중 (렌즈 0/${lensTotal})`, `Checking evidence (lens 0/${lensTotal})`) : t('근거가 약한 곳을 확인하는 중', 'Checking where the evidence is weak'), { examining });
+    emit('reviewing', lensTotal > 0 ? t(`주장별 근거 확인 중 (0/${lensTotal})`, `Checking claim evidence (0/${lensTotal})`) : t('근거가 약한 곳을 확인하는 중', 'Checking where the evidence is weak'), { examining });
     const mapSummary = summarizeMap(map);
     const lensResults = await Promise.allSettled(
       routing.selected.map(async (lensId) => {
@@ -632,7 +637,7 @@ export async function runDocumentReview(
           return normalizeFindings(out.findings, lensId, resolveAnchors, lang);
         } finally {
           lensDone++;
-          emit('reviewing', t(`근거 확인 중 (렌즈 ${lensDone}/${lensTotal})`, `Checking evidence (lens ${lensDone}/${lensTotal})`), { examining });
+          emit('reviewing', t(`주장별 근거 확인 중 (${lensDone}/${lensTotal})`, `Checking claim evidence (${lensDone}/${lensTotal})`), { examining });
         }
       }),
     );
@@ -664,7 +669,7 @@ export async function runDocumentReview(
     // whole review. The findings above are the load-bearing output; obligations
     // and follow-ups are additive. A bare await here turned one truncated JSON
     // into a total model_error with zero findings shown.
-    emit('synthesizing', t('Judgment Receipt를 만드는 중', 'Building your Judgment Receipt'));
+    emit('synthesizing', t('분석 결과를 정리하는 중', 'Organizing the analysis results'));
     const synPrompt = buildSynthesisPrompt(mapSummary, summarizeFindings(findings), ctx, today, lang);
     promptParts.push(synPrompt.system);
     let syn: Record<string, unknown> = {};

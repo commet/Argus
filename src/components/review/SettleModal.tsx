@@ -54,8 +54,8 @@ export function SettleModal({
             <div className="flex items-center gap-3">
               <ArgusMascot moment="returning" size="sm" alt="" />
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--text-tertiary)]">{L('약속한 날의 귀환', 'Return on the promised day')}</p>
-                <h3 className="text-[16px] font-bold text-[var(--text-primary)]">{L('현실이 어떻게 답했나요?', 'How did reality answer?')}</h3>
+                <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--text-tertiary)]">{L('결과 확인', 'Outcome review')}</p>
+                <h3 className="text-[16px] font-bold text-[var(--text-primary)]">{L('실제로 어떻게 됐나요?', 'What actually happened?')}</h3>
               </div>
             </div>
             <button onClick={onClose} className="text-[var(--text-tertiary)] text-[18px] leading-none">×</button>
@@ -64,7 +64,7 @@ export function SettleModal({
           {/* the past prediction — shown, not graded */}
           <Card variant="muted" className="mb-4">
             <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--text-tertiary)] mb-1">
-              {L(`그때 봉인한 예측 · 확인일 ${followup.check_by}`, `The prediction you sealed · check by ${followup.check_by}`)}
+              {L(`그때 기록한 예측 · 확인일 ${followup.check_by}`, `The prediction you recorded · check by ${followup.check_by}`)}
             </div>
             <p className="text-[13px] text-[var(--text-primary)]">{followup.predicate}</p>
             {(followup.pass_condition || followup.fail_condition) && (
@@ -125,8 +125,8 @@ export function SettleModal({
             <div className="mt-4 rounded-lg bg-[var(--accent)]/[0.04] px-4 py-3">
               <p className="text-[12px] text-[var(--text-secondary)] mb-2">
                 {L(
-                  '정산하지 않습니다. 현실이 아직 답하지 않았으니, 언제 다시 볼지만 정하세요.',
-                  'Nothing gets settled. Reality has not answered — just choose when to look again.',
+                  '결과를 완료로 기록하지 않습니다. 아직 확인할 수 없으니, 언제 다시 볼지만 정하세요.',
+                  'The outcome will stay open. It cannot be confirmed yet, so choose when to look again.',
                 )}
               </p>
               <div className="flex items-center gap-2">
@@ -149,7 +149,7 @@ export function SettleModal({
                 disabled={!outcome}
                 style={outcome ? undefined : { opacity: 0.5 }}
               >
-                {L('정산하기', 'Settle')}
+                {L('결과 기록 완료', 'Save outcome')}
               </Button>
             )}
             <Button variant="ghost" size="md" onClick={onClose}>

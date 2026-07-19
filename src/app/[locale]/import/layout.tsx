@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 
 const META = {
-  ko: { title: '기록 가져오기 — Argus', description: '터미널·MCP에서 봉인한 판단 기록을 Argus 계정에 연결합니다.' },
+  ko: { title: 'MCP 판단 기록 연결 — Argus', description: '터미널·MCP에서 기록한 판단을 Argus 계정에 연결합니다.' },
   en: { title: 'Import records — Argus', description: 'Connect judgments sealed in the terminal or MCP to your Argus account.' },
 } as const;
 
