@@ -724,20 +724,15 @@ export function SealMoment({
             `Want me to ask you on ${dateFor(interval)} how this decision turned out?`,
           )}
         </h3>
-        {/* One tight line — how the ask arrives. The old 2-3 loose centered
-            paragraphs (the "판단의 고리를 닫는" line just restated the question)
-            read as filler. Promise parity (P1-B4) with the guide FAQ: keep the
-            channels named, cut the length. If channels change, update both. */}
-        <p className="mt-2.5 text-[13px] leading-[1.5] text-[var(--text-secondary)] max-w-sm mx-auto">
-          {L('그날 프로젝트 페이지에서 먼저 여쭤봐요. 텔레그램을 연결해 두셨다면 메시지로도 — 광고 메일은 없어요.', "I'll ask on the projects page that day. Connected Telegram? A nudge there too — never marketing email.")}
-        </p>
-        {/* P2-6 honesty: an anon seal lives in localStorage only. One tight line,
-            demoted to tertiary — a caveat, not a second headline. */}
-        {!user && (
-          <p className="mt-1.5 text-[12px] leading-[1.5] text-[var(--text-tertiary)] max-w-sm mx-auto">
-            {L('로그인 전이라 이 기기에만 저장돼요. 봉인 후 로그인하면 계정으로 옮겨가요.', 'On this device only until you sign in — seal, then sign in to keep it on your account.')}
-          </p>
-        )}
+        {/* Nothing between the question and the choice (cleared 2026-07-20).
+            The old pre-consent paragraphs — the channel ("프로젝트 페이지·텔레그램·
+            광고 메일 없음") and the anon caveat ("이 기기에만 저장돼요…") — both
+            said what the SEALED scene below already says at the right moment:
+            post-seal it reads "좋아요, {date}에 물어볼게요 — 프로젝트 페이지에 오시면
+            먼저 물어요" and offers anon a one-tap "로그인하고 어디서나 이어보기".
+            Explaining delivery + device-scope BEFORE the yes was pure friction;
+            the honest disclosure lands after commitment, framed as action not
+            alarm. Here the user just chooses. */}
 
         {/* Judgment Receipt — seal과 settle을 하나의 오브젝트로 묶는 진입점.
             사용자가 human_judgment를 작성하면 봉인 시 함께 저장된다. */}
