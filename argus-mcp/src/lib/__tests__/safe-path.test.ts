@@ -8,6 +8,14 @@ describe('safeSegment', () => {
     expect(safeSegment('migrate-db_2026.07')).toBe('migrate-db_2026.07');
   });
 
+  // Windows aliasing / reserved device names → silent data loss or cryptic FS
+  // failure. NUL.ics resolves to the null device (write vanishes); "build."
+  // aliases to "build" (overwrite). All must be refused loud.
+  it.each(['CON', 'con', 'nul', 'NUL.ics', 'aux', 'prn', 'com1', 'lpt9', 'build.', 'trail ', '...'])(
+    'rejects reserved/aliasing segment %s',
+    (seg) => { expect(() => safeSegment(seg)).toThrow(PathSafetyError); },
+  );
+
   it.each(['..', '.', 'a/b', 'a\\b', '..\\..\\x', '../../etc', '%2e%2e', '%2f', 'a%5cb', '', 'a'.repeat(129), 'x\0y'])(
     'rejects %s',
     (bad) => {

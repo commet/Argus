@@ -90,11 +90,13 @@ export const settle: ToolModule = {
       const locale = resolveResponseLocale(dir, a['what_happened'] as string | undefined);
       const T = SURFACES[locale].tools.settle;
 
-      // Settle at the LOGICAL day under a today_override (sims/tests), else real
-      // wall-clock — the receipt's settled date should match the user's timeline,
-      // not the simulator's clock (experience loop, settler). Real use has no
-      // override, so settled_at stays the true write time.
-      const now = a['today_override'] ? `${today}T12:00:00.000Z` : new Date().toISOString();
+      // The DATE part of `now` must equal the tz-aware logical `today`, else a
+      // Korea (UTC+9) user settling at 08:00 KST gets a receipt dated yesterday
+      // (raw UTC). Keep the real UTC time-of-day for ordering; stamp the logical
+      // date. (Same fix as seal.ts; recheck.ts fixed it for premise cadences.)
+      const now = a['today_override']
+        ? `${today}T12:00:00.000Z`
+        : `${today}T${new Date().toISOString().slice(11)}`;
 
       // still_pending = reality has NOT answered yet. This is NOT a settlement —
       // filing it as `settled` (terminal) silently closed the loop and dropped

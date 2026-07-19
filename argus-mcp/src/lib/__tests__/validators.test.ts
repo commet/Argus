@@ -62,3 +62,20 @@ describe('validateSeal — Korean vibe heuristic (12 P1-4)', () => {
     expect(err?.message).toContain('vibe');
   });
 });
+
+describe('validateSeal — calendar-invalid check_by is refused (fuzz F3)', () => {
+  const good = '월간 매출이 1억을 넘는다';
+  it('rejects month > 12 even when it sorts as a future date', () => {
+    // "2026-13-01" > today lexically, so it slid past the "must be future" gate
+    // and sealed a malformed .ics (DTSTART:20261301).
+    expect(validateSeal(good, '2026-13-01', TODAY)?.code).toBe('BAD_CHECK_BY');
+  });
+  it('rejects an impossible day-of-month in a future month', () => {
+    expect(validateSeal(good, '2026-09-31', TODAY)?.code).toBe('BAD_CHECK_BY'); // Sept has 30
+    expect(validateSeal(good, '2026-02-30', TODAY)?.code).toBe('BAD_CHECK_BY');
+  });
+  it('still accepts a real future date', () => {
+    expect(validateSeal(good, '2026-08-31', TODAY)).toBeNull();
+    expect(validateSeal(good, '2028-02-29', TODAY)).toBeNull(); // 2028 is a leap year
+  });
+});

@@ -35,7 +35,11 @@ export const zArgusDir = z
   .string()
   .describe('Absolute path to the .argus directory (no ".."). Omit to use the ARGUS_DIR env var from your MCP config.')
   .optional();
-export const zId = z.string().regex(/^[A-Za-z0-9._-]+$/, 'id may only contain A-Z a-z 0-9 . _ -');
+// The single id type: 1–128 chars, [A-Za-z0-9._-]. The bound lives here so
+// every tool (predict/amend/dismiss/recheck) advertises the SAME limit the
+// runtime path guard enforces — previously bare `zId` promised an unbounded id
+// that then threw a PathSafetyError deep in the write path.
+export const zId = z.string().min(1).max(128).regex(/^[A-Za-z0-9._-]+$/, 'id may only contain A-Z a-z 0-9 . _ -');
 export const zDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'must be YYYY-MM-DD');
 
 const KO_FIELD_DESCRIPTIONS: Record<string, string> = {
@@ -135,7 +139,7 @@ const EN_FIELD_DESCRIPTIONS: Record<string, string> = {
   reversibility: 'How difficult the decision is to reverse.',
   status_quo: 'What happens if nothing changes.',
   already_decided: 'Whether the user has already made the decision.',
-  crux_question: 'One neutral question that separates the decision paths.',
+  crux_question: 'The one neutral, load-bearing question the decision turns on.',
   load_bearing_assumption: 'The single assumption the decision depends on most.',
   related_to: 'Past decision ids the user considers related.',
   action: 'The operation to perform.',

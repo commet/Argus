@@ -124,6 +124,15 @@ export async function writeSettleReceipt(
 
   const merged: Receipt = {
     ...base,
+    // The ledger is the source of truth for the sealed prediction and its date.
+    // A change_prediction (amend) updates the CONTRACT but not the seal-time
+    // receipt file on disk, so `base.predicate`/`check_by` can be STALE — the
+    // receipt then contradicts every list view (dogfood: receipt printed the
+    // pre-amend "8월" predicate while the record showed the amended "9월" one).
+    // Prefer the current contract values the settle handler resolved from the
+    // fold, so the keepsake can never disagree with the ledger.
+    ...(fallback?.predicate ? { predicate: fallback.predicate } : {}),
+    ...(fallback?.check_by ? { check_by: fallback.check_by } : {}),
     settled_at: patch.settled_at,
     what_happened: patch.what_happened,
     outcome: patch.outcome,

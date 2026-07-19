@@ -1,6 +1,6 @@
 {
   "name": "argus-decision-mcp",
-  "version": "1.4.3",
+  "version": "1.4.4",
   "description": "Argus decision-accountability MCP server — clarify a decision, save a falsifiable prediction, and record what reality did. The model never grades you.",
   "type": "module",
   "main": "dist/index.js",

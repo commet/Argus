@@ -51,6 +51,24 @@ export function asDate(value: unknown): string | null {
   return m ? `${m[1]}-${m[2]}-${m[3]}` : null;
 }
 
+/**
+ * asDate matches the digit SHAPE but never the calendar: "2026-13-01" (month 13)
+ * and "2026-09-31" (Sept has 30 days) both pass its regex. A calendar-invalid
+ * check_by used to seal — comparisons are lexical, so a future-looking bad date
+ * slid past the "must be in the future" gate — producing a malformed .ics
+ * (DTSTART:20261301) and a wrong due date. isRealDate rejects impossible
+ * month/day so the seal gate can fail loud instead.
+ */
+export function isRealDate(value: unknown): boolean {
+  if (typeof value !== 'string') return false;
+  const m = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!m) return false;
+  const y = Number(m[1]), mo = Number(m[2]), d = Number(m[3]);
+  if (mo < 1 || mo > 12 || d < 1 || d > 31) return false;
+  const dt = new Date(Date.UTC(y, mo - 1, d));
+  return dt.getUTCFullYear() === y && dt.getUTCMonth() === mo - 1 && dt.getUTCDate() === d;
+}
+
 export function isFutureDate(check: string, today: string): boolean {
   const c = asDate(check);
   return !!c && c > today;

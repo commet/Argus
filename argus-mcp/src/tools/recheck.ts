@@ -33,7 +33,7 @@ const inputSchema = z.strictObject({
   id: zId.describe('The decision id.'),
   ref: z.string().max(64).describe('Which premise — ordinal ("P1"), premise_id, or unambiguous prefix.'),
   finding: z.string().min(3).max(400).describe('The CURRENT state of the fact, one literal comparable sentence. e.g. "base rate 3.75% after a 25bp hike".'),
-  numeric_value: z.number().optional().describe('The fact\'s current number, named EXPLICITLY (e.g. 3.75). Never extracted from prose by regex. When present, drift is decided mechanically (>=10% move or sign flip).'),
+  numeric_value: z.number().finite().optional().describe('The fact\'s current number, named EXPLICITLY (e.g. 3.75). Never extracted from prose by regex. When present, drift is decided mechanically (>=10% move or sign flip).'),
   changed: z.boolean().optional().describe('Text premises only: has the FACT materially changed vs the recorded baseline? A research finding about external reality (provenance required) — never a judgment of the user.'),
   source: z.enum(['url', 'user_stated', 'host_reported']).describe('Where the finding comes from. host_reported = the model\'s own research without a citation — recorded honestly as such.'),
   source_detail: z.string().max(300).optional().describe('URL or short citation when source="url".'),
@@ -71,8 +71,16 @@ export const recheck: ToolModule = {
 
       const finding = String(a['finding']);
       // Response voice follows the finding sentence (M4): config > text > env.
-      const T = SURFACES[resolveResponseLocale(dir, String(a['finding']))].tools.recheck;
+      const rLocale = resolveResponseLocale(dir, String(a['finding']));
+      const T = SURFACES[rLocale].tools.recheck;
       const source = String(a['source']);
+      // Localize the source enum before it reaches the surface — a recheck line
+      // printed the raw "(host_reported)" / "(user_stated)" token to the user.
+      const SOURCE_LABEL: Record<string, Record<string, string>> = {
+        ko: { url: '출처 링크', user_stated: '당신이 확인함', host_reported: '어시스턴트 조사' },
+        en: { url: 'from a cited source', user_stated: 'as you reported it', host_reported: "from the assistant's own research" },
+      };
+      const srcLabel = SOURCE_LABEL[rLocale]?.[source] ?? source;
       const sourceDetail = a['source_detail'] as string | undefined;
       const numericValue = a['numeric_value'] as number | undefined;
       const changed = a['changed'] as boolean | undefined;
@@ -154,14 +162,14 @@ export const recheck: ToolModule = {
         : '';
 
       const surface = baselineOnly
-        ? T.baseline(premise.ordinal, finding, source, recheckCadenceDays(premise))
+        ? T.baseline(premise.ordinal, finding, srcLabel, recheckCadenceDays(premise))
         : status === 'material'
-          ? T.material(premise.ordinal, prior!.finding, finding, source)
+          ? T.material(premise.ordinal, prior!.finding, finding, srcLabel)
           : status === 'uncertain'
             // M2 §4/§7: uncertain surfaces the FACT only — no handle, no fork. The
             // user decides whether to define a rule or leave it.
             ? `${T.uncertain(premise.ordinal, reason)}${heuristicNote}`
-            : T.unchanged(premise.ordinal, source);
+            : T.unchanged(premise.ordinal, srcLabel);
 
       // ── SPINE (M2 §4, mirror clause): the handle auto-attaches ONLY on
       //    `material`. `uncertain` (depends / boundary / rule-uncovered) NEVER

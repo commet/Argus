@@ -7,6 +7,34 @@ import { calendarPath } from '../layout.js';
 import { renderReturnCalendarEvent, writeReturnCalendarEvent } from '../calendar.js';
 
 describe('return calendar export', () => {
+  it('folds on UTF-8 octets without splitting a codepoint (emoji + long Korean)', () => {
+    // The old length-based fold cut between a surrogate pair (emoji → U+FFFD)
+    // and let Korean lines blow the RFC 5545 75-octet cap.
+    const ics = renderReturnCalendarEvent({
+      id: 'e1',
+      predicate: '가'.repeat(50) + '😀 마침내 출시된다',
+      check_by: '2026-09-01',
+      created_at: '2026-07-01T00:00:00.000Z',
+    });
+    expect(ics).not.toContain('�'); // no surrogate-split corruption
+    for (const line of ics.split('\r\n')) {
+      expect(Buffer.byteLength(line, 'utf8')).toBeLessThanOrEqual(75);
+    }
+  });
+
+  it("neutralizes a lone CR / control char in the predicate (no raw control byte in the file)", () => {
+    const cr = String.fromCharCode(13), lf = String.fromCharCode(10), bel = String.fromCharCode(7);
+    const ics = renderReturnCalendarEvent({
+      id: "e2",
+      predicate: "ship it" + cr + "now" + bel + "and it is done, really",
+      check_by: "2026-09-01", created_at: "2026-07-01T00:00:00.000Z",
+    });
+    // every CR must be part of a CRLF pair (no bare CR leaked from the predicate)
+    const chars = Array.from(ics);
+    expect(chars.every((ch, i) => ch !== cr || chars[i + 1] === lf)).toBe(true);
+    expect(ics).not.toContain(bel); // BEL stripped
+  });
+
   it('renders a dependency-free all-day .ics event for the check-by date', () => {
     const ics = renderReturnCalendarEvent({
       id: 'd1',
