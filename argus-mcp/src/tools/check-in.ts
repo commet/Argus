@@ -251,6 +251,25 @@ export const checkIn: ToolModule = {
         const accountHint = (process.env.ARGUS_TOKEN || '').trim()
           ? S.account_hint
           : '';
+        // First-run vs caught-up: SERVER_INSTRUCTIONS routes EVERY session start
+        // to check_in, so a brand-new user used to land on the same "nothing due"
+        // + stop a veteran sees — a dead end at the flagship cold-start. Fire the
+        // on-ramp ONLY when the surface would otherwise be a BARE "nothing due":
+        // no decisions, no watch mirror, no account, no upcoming/fleet/integrity.
+        // Anything else (a caught-up veteran, a watch anchor, an account seal)
+        // keeps nothing_due, so the mirror/silence contracts are untouched.
+        // `!ledger.oldest_ts` = the ledger has NO events at all (not just no
+        // decisions — no watch anchors either), the one true "brand new" signal.
+        // Excluded under ARGUS_V2_DEBUG (the v2 observation channel expects its
+        // diagnostic payload even on an empty v1 ledger).
+        if (!ledger.oldest_ts && !mirrorLine && !accountHint && !upcomingLine && !fleetLine && !integrityLine && process.env['ARGUS_V2_DEBUG'] !== '1') {
+          return envelope({
+            ok: true, tool: 'argus_check_in',
+            surface: S.first_run,
+            next_actions: ['argus_capture'],
+            data: { due: [], due_count: 0, due_premises: [], due_premise_count: 0, due_open_questions: [], due_open_question_count: 0, first_run: true, today },
+          });
+        }
         return envelope({
           ok: true, tool: 'argus_check_in',
           surface: mirrorLine + S.nothing_due + accountHint + upcomingLine + fleetLine + integrityLine,
