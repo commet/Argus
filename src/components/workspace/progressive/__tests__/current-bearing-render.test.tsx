@@ -75,6 +75,18 @@ describe('CurrentBearingCard', () => {
     expect(container.textContent).not.toContain('Proceed');
   });
 
+  it('sealHandlesRisk drops the risk beat (the seal receipt states it once) but keeps the rest', () => {
+    mount({ bearing: full, sealHandlesRisk: true });
+    const text = container.textContent ?? '';
+    // The fog/risk is NOT repeated here — the closing seal card owns it.
+    expect(text).not.toContain('plugin depth is unproven');
+    // Everything else still renders: headline, do-now, check-later, why.
+    expect(text).toContain('Run a 4-hour migration spike');
+    expect(text).toContain('pull DAU split by surface'); // next_helm
+    expect(text).toContain('plugin DAU stays above X after 30 days'); // contract_seed
+    expect(text).toContain('Clear cost ceiling'); // reason
+  });
+
   it('omits optional sections that are empty without crashing', () => {
     mount({
       bearing: {

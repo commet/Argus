@@ -3705,7 +3705,15 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
             {/* ② Current Bearing — the compressed one-screen orientation, now
                 sitting just under the document it summarizes (W1.1 order). */}
             <div className="mt-4">
-              <CurrentBearingCard bearing={currentBearing} label={activeDraft?.version_label ?? null} />
+              {/* sealHandlesRisk: the closing SealMoment below renders the same
+                  uncertainty as its honest "what the AI assumed" receipt, so the
+                  bearing drops its risk beat here — stated once, not twice. Match
+                  the exact condition the closing seal card renders under. */}
+              <CurrentBearingCard
+                bearing={currentBearing}
+                label={activeDraft?.version_label ?? null}
+                sealHandlesRisk={!!contractProject && !contractDue}
+              />
             </div>
 
             {/* (The standalone dissent card was removed: the bearing's

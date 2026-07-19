@@ -166,6 +166,7 @@ interface DeepeningResponse {
 
 interface MixResponse {
   title: string;
+  decision_read?: string;
   executive_summary: string;
   sections: {
     heading: string;
@@ -196,6 +197,7 @@ interface DMFeedbackResponse {
 
 interface FinalResponse {
   title: string;
+  decision_read?: string;
   executive_summary: string;
   sections: { heading: string; content: string }[];
   key_assumptions: string[];
@@ -1264,6 +1266,7 @@ export async function runMix(
 
   return {
     title: result.title || (locale === 'ko' ? '기획안' : 'Proposal'),
+    decision_read: typeof result.decision_read === 'string' ? result.decision_read.trim() : '',
     executive_summary: result.executive_summary || '',
     sections,
     key_assumptions: result.key_assumptions || [],
@@ -1559,6 +1562,9 @@ export async function runFinalDeliverable(
 
   const finalMix: MixResult = {
     title: result.title || mix.title,
+    decision_read: (typeof result.decision_read === 'string' && result.decision_read.trim())
+      ? result.decision_read.trim()
+      : mix.decision_read,
     executive_summary: result.executive_summary || mix.executive_summary,
     sections: rewrittenSections,
     key_assumptions: result.key_assumptions || mix.key_assumptions,

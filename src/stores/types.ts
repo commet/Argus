@@ -1596,6 +1596,10 @@ export interface Falsification {
 
 export interface MixResult {
   title: string;
+  /** The one-line "read first" — action + the one reason, plain, no hedging.
+   *  Feeds current_course.summary (the shared bearing's "one sentence" contract).
+   *  Optional: old sessions predate it and fall back to executive_summary. */
+  decision_read?: string;
   executive_summary: string;
   sections: {
     heading: string;

@@ -179,7 +179,20 @@ export function deriveCurrentBearing(s: BearingInput): CurrentBearing | null {
   const finalMix = s.final_mix ?? s.mix ?? null;
   if (!finalMix) return null;
 
-  const summary = cap(finalMix.executive_summary || finalMix.title, SUMMARY_CAP);
+  // The shared bearing schema defines current_course.summary as ONE sentence
+  // ("the current read"). Prefer the crisp decision_read; fall back to the
+  // executive_summary's first sentence, then the whole summary/title, so old
+  // sessions (pre decision_read) still render.
+  const firstSentence = (t: string): string => {
+    const m = t.trim().match(/^[\s\S]*?[.!?。](?=['")\]\s]|$)/);
+    return (m ? m[0] : t).trim();
+  };
+  const summary = cap(
+    finalMix.decision_read
+      || (finalMix.executive_summary ? firstSentence(finalMix.executive_summary) : '')
+      || finalMix.title,
+    SUMMARY_CAP,
+  );
   if (!summary) return null;
 
   const concerns = [...(s.dm_feedback?.concerns ?? [])].sort(
