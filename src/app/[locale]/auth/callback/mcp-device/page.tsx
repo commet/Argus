@@ -37,21 +37,21 @@ function DeviceApproval() {
     }
   };
 
-  if (loading) return <main className="min-h-screen grid place-items-center text-sm text-[var(--text-secondary)]">{L('계정을 확인하고 있습니다…', 'Checking your account…')}</main>;
+  if (loading) return <div role="status" className="min-h-screen grid place-items-center text-sm text-[var(--text-secondary)]">{L('계정을 확인하고 있습니다…', 'Checking your account…')}</div>;
   if (!user) {
     return (
-      <main className="min-h-screen grid place-items-center px-6">
+      <div className="min-h-screen grid place-items-center px-6">
         <section className="w-full max-w-md rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-7 text-center">
           <h1 className="text-xl font-bold text-[var(--text-primary)]">{L('기기 코드 승인', 'Approve a device code')}</h1>
           <p className="mt-3 text-sm text-[var(--text-secondary)]">{L('먼저 로그인한 뒤 이 기기가 표시한 코드를 승인하세요.', 'Sign in, then approve the code shown on your device.')}</p>
-          <LocaleLink href={`/login?redirect=${encodeURIComponent(returnPath)}`} className="mt-6 inline-flex rounded-lg bg-[var(--accent)] px-5 py-2.5 text-sm font-semibold text-[var(--accent-fg)]">{L('로그인하고 계속', 'Sign in and continue')}</LocaleLink>
+          <LocaleLink href={`/login?redirect=${encodeURIComponent(returnPath)}`} className="mt-6 inline-flex min-h-11 items-center rounded-lg bg-[var(--accent)] px-5 py-2.5 text-sm font-semibold text-[var(--accent-fg)]">{L('로그인하고 계속', 'Sign in and continue')}</LocaleLink>
         </section>
-      </main>
+      </div>
     );
   }
 
   return (
-    <main className="min-h-screen grid place-items-center px-6">
+    <div className="min-h-screen grid place-items-center px-6">
       <section className="w-full max-w-md rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-7">
         <p className="text-xs font-semibold uppercase tracking-wider text-[var(--accent)]">Argus</p>
         <h1 className="mt-2 text-xl font-bold text-[var(--text-primary)]">{L('기기 연결', 'Connect a device')}</h1>
@@ -67,7 +67,7 @@ function DeviceApproval() {
           </>
         )}
       </section>
-    </main>
+    </div>
   );
 }
 

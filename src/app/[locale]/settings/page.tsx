@@ -268,15 +268,15 @@ export default function SettingsPage() {
             설명이 어절 단위로 끊긴다 (단어 중간 줄바꿈 방지). */}
         <div className="space-y-6 min-w-0 mt-4 lg:mt-0 break-keep">
 
-      <section id="engine" className="scroll-mt-28">
+      <section id="engine" className="scroll-mt-40 lg:scroll-mt-28">
       {/* ── 1. AI Engine (provider + mode + key merged) ── */}
       <Card>
         <div className="flex items-center gap-2 mb-1">
           <Server size={16} className="text-[var(--accent)]" />
-          <h3 className="text-[15px] font-bold">{L('AI 엔진', 'AI Engine')}</h3>
+          <h2 className="text-[15px] font-bold">{L('AI 엔진', 'AI Engine')}</h2>
         </div>
         <p className="text-[12px] text-[var(--text-secondary)] mb-4">
-          {L('어떤 AI로 판단을 생성할지 정해요.', 'Choose which AI generates your judgments.')}
+          {L('결정을 분석할 때 사용할 AI를 정해요.', 'Choose which AI helps analyze your decisions.')}
         </p>
 
         {/* Provider — 한 층위(브랜드) 세그먼트. 'GPT-4o' 같은 특정 모델명을 버튼에
@@ -445,12 +445,12 @@ export default function SettingsPage() {
       </Card>
       </section>
 
-      <section id="integrations" className="scroll-mt-28">
+      <section id="integrations" className="scroll-mt-40 lg:scroll-mt-28">
       {/* ── 2. Integrations & Data ── */}
       <Card>
         <div className="flex items-center gap-2 mb-4">
           <MessageSquare size={16} className="text-[var(--accent)]" />
-          <h3 className="text-[15px] font-bold">{L('연동 · 데이터', 'Integrations & Data')}</h3>
+          <h2 className="text-[15px] font-bold">{L('연동 · 데이터', 'Integrations & Data')}</h2>
         </div>
 
         {/* Slack — folded by default (05 S8); held open when returning from the
@@ -605,12 +605,12 @@ export default function SettingsPage() {
       </Card>
       </section>
 
-      <section id="profile" className="scroll-mt-28">
+      <section id="profile" className="scroll-mt-40 lg:scroll-mt-28">
       {/* ── 3. My Profile ── */}
       <Card>
         <div className="flex items-center gap-2 mb-4">
           <User size={16} className="text-[var(--accent)]" />
-          <h3 className="text-[15px] font-bold">{L('내 프로필', 'My Profile')}</h3>
+          <h2 className="text-[15px] font-bold">{L('내 프로필', 'My Profile')}</h2>
         </div>
         <p className="text-[12px] text-[var(--text-secondary)] mb-4">
           {L('검토 피드백(상사 시점)의 톤과 깊이를 정하는 데 써요.', 'Tunes the tone and depth of your review feedback.')}
@@ -684,12 +684,12 @@ export default function SettingsPage() {
       </Card>
       </section>
 
-      <section id="prefs" className="scroll-mt-28">
+      <section id="prefs" className="scroll-mt-40 lg:scroll-mt-28">
       {/* ── 4. Preferences (Language + Sound) ── */}
       <Card>
         <div className="flex items-center gap-2 mb-4">
           <Globe size={16} className="text-[var(--accent)]" />
-          <h3 className="text-[15px] font-bold">{L('환경 설정', 'Preferences')}</h3>
+          <h2 className="text-[15px] font-bold">{L('환경 설정', 'Preferences')}</h2>
         </div>
 
         {/* Language */}
@@ -797,8 +797,8 @@ export default function SettingsPage() {
             </div>
             <div className="flex items-center justify-between pt-2 border-t border-[var(--border-subtle)]">
               <div>
-                <p className="text-[13px] font-medium">{L('앰비언트 드론', 'Ambient Drone')}</p>
-                <p className="text-[11px] text-[var(--text-secondary)]">{L('출항 전 항구의 따뜻한 잔향', 'The warm hum of the harbor before setting sail')}</p>
+                <p className="text-[13px] font-medium">{L('잔잔한 배경음', 'Ambient sound')}</p>
+                <p className="text-[11px] text-[var(--text-secondary)]">{L('집중할 때 은은하게 재생되는 배경음이에요.', 'A quiet background sound for focused work.')}</p>
               </div>
               <button
                 onClick={() => {
@@ -828,12 +828,12 @@ export default function SettingsPage() {
       </Card>
       </section>
 
-      <section id="labs" className="scroll-mt-28">
+      <section id="labs" className="scroll-mt-40 lg:scroll-mt-28">
       {/* ── 5. Labs ── */}
       <Card>
         <div className="flex items-center gap-2 mb-1">
           <FlaskConical size={16} className="text-[var(--accent)]" />
-          <h3 className="text-[15px] font-bold">{L('실험실', 'Labs')}</h3>
+          <h2 className="text-[15px] font-bold">{L('실험실', 'Labs')}</h2>
         </div>
         <details className="group">
           <summary className="flex items-center gap-1.5 cursor-pointer select-none list-none text-[12px] text-[var(--text-secondary)] [&::-webkit-details-marker]:hidden">
@@ -888,9 +888,9 @@ export default function SettingsPage() {
 
       {/* ── Danger zone — deliberately isolated at the bottom, never mixed
           with everyday settings (A1). ── */}
-      <section id="danger" className="scroll-mt-28">
+      <section id="danger" className="scroll-mt-40 lg:scroll-mt-28">
         <Card variant="danger">
-          <h3 className="text-[15px] font-bold text-[var(--danger)] mb-3">{L('위험 구역', 'Danger zone')}</h3>
+          <h2 className="text-[15px] font-bold text-[var(--danger)] mb-3">{L('위험 구역', 'Danger zone')}</h2>
           <div className="flex items-center justify-between gap-3">
             <div className="min-w-0">
               <p className="text-[13px] font-medium text-[var(--danger)]">
@@ -965,15 +965,15 @@ function SettingsNav({ items, ariaLabel }: {
       aria-label={ariaLabel}
       className="sticky top-16 lg:top-24 z-10 -mx-4 px-4 lg:mx-0 lg:px-0 bg-[var(--bg)]/95 backdrop-blur-sm lg:bg-transparent lg:backdrop-blur-none"
     >
-      <ul className="flex lg:flex-col gap-1 overflow-x-auto lg:overflow-visible whitespace-nowrap py-2 lg:py-0">
+      <ul className="grid grid-cols-3 gap-1 py-2 lg:flex lg:flex-col lg:overflow-visible lg:whitespace-nowrap lg:py-0">
         {items.map((it) => {
           const on = active === it.id;
           return (
-            <li key={it.id} className="shrink-0">
+            <li key={it.id} className="min-w-0 lg:shrink-0">
               <a
                 href={`#${it.id}`}
                 aria-current={on ? 'true' : undefined}
-                className={`flex items-center rounded-lg px-3 min-h-[40px] text-[13px] font-medium transition-colors ${
+                className={`flex min-h-[44px] items-center justify-center rounded-lg px-2 text-center text-[12px] font-medium leading-tight whitespace-normal transition-colors lg:min-h-[40px] lg:justify-start lg:px-3 lg:text-left lg:text-[13px] lg:whitespace-nowrap ${
                   it.danger
                     ? on
                       ? 'text-[var(--danger)] bg-[var(--danger)]/10'

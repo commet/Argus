@@ -666,7 +666,7 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem, fr
                         Speak in the user's unit: decisions. */}
                     <span className="text-[var(--text-secondary)]">{locale === 'ko' ? <>로그인 없이 <strong className="text-[var(--text-primary)]">하루 결정 2~3개</strong>를 살펴볼 수 있어요</> : <>Explore <strong className="text-[var(--text-primary)]">2–3 decisions a day</strong> without logging in</>}</span>
                   </div>
-                  <LocaleLink href="/login" className="group shrink-0 inline-flex items-center gap-1 text-[12px] font-semibold text-[var(--accent)] hover:text-[var(--text-primary)] transition-colors">
+                  <LocaleLink href="/login" className="group -mr-2 inline-flex min-h-11 shrink-0 items-center gap-1 px-2 text-[12px] font-semibold text-[var(--accent)] hover:text-[var(--text-primary)] transition-colors">
                     {L('로그인', 'Log in')} <ChevronRight size={12} className="transition-transform group-hover:translate-x-0.5" />
                   </LocaleLink>
                 </div>

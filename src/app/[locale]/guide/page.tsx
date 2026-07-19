@@ -79,7 +79,7 @@ export default function GuidePage() {
     {
       href: '/teams',
       icon: Users,
-      label: L('사람 팀', 'People teams'),
+      label: L('팀', 'Teams'),
       desc: L('결정을 공유하고 함께 검토할 사람을 초대합니다.', 'Invite people to review shared decisions.'),
     },
     {

@@ -644,14 +644,15 @@ function DemoAgentCompactBar({ workers, phase, visibleWorkers, locale = 'ko' }: 
    DRAFT CARD — mix preview
    ═══════════════════════════════════════════════════════════ */
 
-function DemoDraftCard({ draft }: { draft: DemoScenario['draft'] }) {
+function DemoDraftCard({ draft, locale }: { draft: DemoScenario['draft']; locale: 'ko' | 'en' }) {
+  const L = (ko: string, en: string) => locale === 'ko' ? ko : en;
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, ease: EASE }}>
       <div className="rounded-2xl p-[1px] bg-gradient-to-b from-[var(--accent)]/20 to-transparent">
         <div className="rounded-[calc(1rem-1px)] bg-[var(--surface)]">
           <div className="h-[2px]" style={{ background: 'var(--gradient-gold)' }} />
           <div className="p-5 md:p-8 space-y-5">
-            <span className="text-[9px] font-bold text-[var(--accent)] uppercase tracking-[0.2em] bg-[var(--accent)]/8 px-3 py-1 rounded-full">Draft</span>
+            <span className="text-[9px] font-bold text-[var(--accent)] uppercase tracking-[0.2em] bg-[var(--accent)]/8 px-3 py-1 rounded-full">{L('초안', 'Draft')}</span>
             <h2 className="text-[20px] md:text-[24px] font-bold text-[var(--text-primary)] leading-tight">{draft.title}</h2>
             <blockquote className="rounded-lg bg-[var(--accent)]/[0.04] px-4 py-3 text-[14px] text-[var(--text-secondary)] italic leading-relaxed">
               {renderInline(draft.executive_summary)}
@@ -751,7 +752,7 @@ function DemoDraftCardV2({
             )}
 
             <div>
-              <span className="text-[9px] font-bold text-[var(--accent)] uppercase tracking-[0.2em] bg-[var(--accent)]/8 px-3 py-1 rounded-full inline-block mb-3">Draft</span>
+              <span className="text-[9px] font-bold text-[var(--accent)] uppercase tracking-[0.2em] bg-[var(--accent)]/8 px-3 py-1 rounded-full inline-block mb-3">{L('초안', 'Draft')}</span>
               <h2 className="text-[20px] md:text-[24px] font-bold text-[var(--text-primary)] leading-tight">{draft.title}</h2>
             </div>
 
@@ -1886,7 +1887,7 @@ export function InteractiveDemo({ scenario, locale = 'ko', onStartReal, onBack }
                     locale={locale}
                   />
                 ) : (
-                  <DemoDraftCard draft={scenario.draft} />
+                  <DemoDraftCard draft={scenario.draft} locale={locale} />
                 )}
 
                 {/* CTA to enter DM feedback */}

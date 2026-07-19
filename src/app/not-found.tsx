@@ -58,14 +58,14 @@ export default function NotFound() {
         <div className="flex items-center justify-center gap-3 mt-7">
           <Link
             href={withLocale(locale, '/workspace')}
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-[var(--accent-fg)] text-[13px] font-semibold hover:shadow-[var(--shadow-md)] transition-all"
+            className="inline-flex min-h-11 items-center gap-1.5 px-4 py-2 rounded-xl text-[var(--accent-fg)] text-[13px] font-semibold hover:shadow-[var(--shadow-md)] transition-all"
             style={{ background: 'var(--gradient-gold)' }}
           >
             {L('워크스페이스로 돌아가기', 'Back to workspace')} <ArrowRight size={14} />
           </Link>
           <Link
             href={`/${locale}`}
-            className="text-[13px] font-semibold text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors px-2 py-2"
+            className="inline-flex min-h-11 items-center text-[13px] font-semibold text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors px-2 py-2"
           >
             {L('처음으로', 'Home')}
           </Link>

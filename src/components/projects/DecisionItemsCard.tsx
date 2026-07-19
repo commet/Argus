@@ -142,11 +142,11 @@ export function DecisionItemsCard({
           <ListChecks size={18} />
         </div>
         <div className="flex-1 min-w-0">
-          <h3 className="text-[15px] font-bold text-[var(--text-primary)]">
-            {L('결정 항목', 'Decision items')}
-          </h3>
+          <h2 className="text-[15px] font-bold text-[var(--text-primary)]">
+            {L('확인할 전제와 쟁점', 'Assumptions and issues to review')}
+          </h2>
           <p className="text-[12.5px] text-[var(--text-secondary)] mt-1 leading-[1.55]">
-            {L('AI가 뽑았어요. 틀린 건 고치세요.', 'AI extracted these. Fix anything that is wrong.')}
+            {L('AI가 현재 기록에서 전제와 쟁점을 정리했어요. 실제 내용과 다르면 수정해 주세요.', 'AI organized these from the current record. Edit anything that does not match the situation.')}
           </p>
 
           {mine.length === 0 ? (
@@ -176,7 +176,7 @@ export function DecisionItemsCard({
                           {editing ? (
                             <div className="space-y-2">
                               <textarea
-                                aria-label={L('결정 항목 수정', 'Edit decision item')}
+                                aria-label={L('전제 또는 쟁점 수정', 'Edit assumption or issue')}
                                 value={draft}
                                 onChange={(e) => setDraft(e.target.value)}
                                 rows={2}

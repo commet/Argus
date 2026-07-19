@@ -93,7 +93,7 @@ export default function TeamsPage() {
     if (!team) return;
     setTeamName('');
     setCreateOpen(false);
-    setNotice(L('사람 팀을 만들었어요.', 'Team created.'));
+    setNotice(L('팀을 만들었어요.', 'Team created.'));
   }
 
   async function handleInvite() {
@@ -190,7 +190,7 @@ export default function TeamsPage() {
 
       <section className="mt-10" aria-labelledby="team-list-heading">
         <div className="flex items-center justify-between gap-4">
-          <h2 id="team-list-heading" className="text-[13px] font-bold text-[var(--text-primary)]">{L('내 사람 팀', 'My people teams')}</h2>
+          <h2 id="team-list-heading" className="text-[13px] font-bold text-[var(--text-primary)]">{L('내 팀', 'My teams')}</h2>
           <button type="button" onClick={() => setCreateOpen(true)} className="inline-flex min-h-11 items-center gap-1.5 text-[13px] font-semibold text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)]">
             <Plus size={14} aria-hidden="true" /> {L('새 팀', 'New team')}
           </button>
@@ -224,7 +224,7 @@ export default function TeamsPage() {
 
       {currentTeam && currentTeamId && (
         <div className="mt-9 grid gap-12 lg:grid-cols-[minmax(0,1fr)_250px]">
-          <main className="min-w-0">
+          <div className="min-w-0">
             <section aria-labelledby="shared-heading">
               <div className="flex flex-wrap items-end justify-between gap-4">
                 <div>
@@ -279,7 +279,7 @@ export default function TeamsPage() {
                 </div>
               )}
             </section>
-          </main>
+          </div>
 
           <aside className="border-t border-[var(--border)] pt-5 lg:border-t-0 lg:border-l lg:pl-7 lg:pt-0" aria-labelledby="people-heading">
             <div className="flex items-baseline justify-between">
@@ -328,7 +328,7 @@ export default function TeamsPage() {
         </div>
       )}
 
-      <Modal open={createOpen} onClose={() => setCreateOpen(false)} title={L('사람 팀 만들기', 'Create a people team')} closeLabel={L('닫기', 'Close')}>
+      <Modal open={createOpen} onClose={() => setCreateOpen(false)} title={L('팀 만들기', 'Create a team')} closeLabel={L('닫기', 'Close')}>
         <label htmlFor="team-name" className="block text-[12px] font-semibold text-[var(--text-secondary)]">{L('팀 이름', 'Team name')}</label>
         <input id="team-name" value={teamName} onChange={(event) => setTeamName(event.target.value)} onKeyDown={(event) => event.key === 'Enter' && void handleCreate()} maxLength={50} autoFocus placeholder={L('예: 제품 전략팀', 'e.g. Product strategy')} className="mt-2 min-h-11 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 text-[14px] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/25" />
         <div className="mt-6 flex justify-end gap-2">

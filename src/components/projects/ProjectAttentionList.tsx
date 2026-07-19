@@ -101,7 +101,7 @@ export function ProjectAttentionList({
                 className="flex min-h-14 min-w-0 flex-1 items-center gap-3 py-1.5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50"
                 aria-pressed={selected}
                 aria-label={onFocusItem
-                  ? L(`${kindLabel(item.kind)} 해도에서 찾기`, `Locate ${kindLabel(item.kind)} on the chart`)
+                  ? L(`${kindLabel(item.kind)} 결정 지도에서 찾기`, `Locate ${kindLabel(item.kind)} on the decision map`)
                   : L(`${kindLabel(item.kind)} 원문 위치 열기`, `Open source for ${kindLabel(item.kind)}`)}
               >
                 <span className="min-w-0 flex-1">

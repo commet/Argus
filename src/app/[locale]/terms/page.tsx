@@ -11,7 +11,7 @@ export default function TermsPage() {
 
   return (
     <div className="max-w-2xl mx-auto px-5 py-12">
-      <LocaleLink href="/login" className="inline-flex items-center gap-1 text-[13px] text-[var(--accent)] hover:underline mb-6">
+      <LocaleLink href="/login" className="mb-6 inline-flex min-h-11 items-center gap-1 text-[13px] text-[var(--accent)] hover:underline">
         <ArrowLeft size={14} /> {L('돌아가기', 'Back')}
       </LocaleLink>
 

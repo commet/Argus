@@ -78,9 +78,9 @@ const disabledDepth: React.CSSProperties = {
 };
 
 const sizeStyles: Record<string, string> = {
-  sm: 'px-3.5 py-1.5 text-[13px] rounded-lg',
-  md: 'px-5 py-2.5 text-[14px] rounded-xl',
-  lg: 'px-7 py-3 text-[15px] rounded-xl',
+  sm: 'min-h-[44px] sm:min-h-[36px] px-3.5 py-1.5 text-[13px] rounded-lg',
+  md: 'min-h-[44px] px-5 py-2.5 text-[14px] rounded-xl',
+  lg: 'min-h-[44px] px-7 py-3 text-[15px] rounded-xl',
 };
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
