@@ -6,6 +6,39 @@
 > The `1.3.0` / `1.2.1` entries at the bottom are pre-rename `argus-mcp` history,
 > kept for reference — all of that work shipped inside the new-name 1.0.0.
 
+## 1.4.3 — Surface content pass: the receipt, the Korean voice, the calendar
+
+Found by reading every surface of the published package out loud (not just
+running tests). All user-facing content, no behavior change.
+
+- **The wake tally added up wrong.** `results recorded (2): held 1 · avoided 0 ·
+  partial 0` sat above a visibly `missed` row — the `missed` count was dropped
+  from the summary and the row printed the raw enum (`missed`/`held`) instead of
+  the localized word. Both fixed; the counts now include 빗나감/missed.
+- **The keepsake's frame didn't close.** Receipt / seal / wake box borders were
+  built from `String.length`, which counts each Korean character as one column
+  while a terminal renders it as two — so top and bottom edges disagreed by
+  several columns. All three now derive both edges from one display width.
+- **The .ics calendar reminder — the only return channel without an account —
+  was English-only** and told the user to "run argus_check_in" (a tool name). It
+  now speaks the language the prediction was sealed in.
+- **Korean voice:** removed the banned 갈림길/가르는 family from live copy;
+  stopped the gate surface leaking a model-directed imperative to the user;
+  unified 정산 → 결과 기록; fixed the detached 부터 particle; smoothed the
+  receipt basis line (`…판단한 내용 판단` → `…돌아보니 판단이 컸다`); dropped the
+  `(predicate_owner: …)` machine tag off the prose; unified the seal register.
+- **The settle picker** ("그렇게 됐다 (held) …") was a bilingual mishmash shown
+  to every user; it now localizes like every other elicitation, as does the
+  open-question closing prompt.
+- **Korean errors no longer get overwritten:** a hand-written Korean message
+  (e.g. the not-falsifiable refusal) is preserved instead of replaced by a
+  generic line. The `argus_patterns` view glossary survives in tools/list.
+- Removed the raw `%%` / `stakes와 reversibility` tokens from user-facing lines.
+
+Deferred (noted, not silently dropped): the numeric-materiality reason strings
+still mix locales (needs a reason-code layer); the webapp-guarded review lenses
+keep 가른다 until fixed webapp-side; receipt empty-row condensing.
+
 ## 1.4.2 — Closing-loop anchor identity
 
 - `argus_resolve` now advertises the canonical Argus closing-loop anchor through

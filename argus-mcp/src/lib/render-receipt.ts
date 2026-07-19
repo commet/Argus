@@ -113,9 +113,11 @@ export function renderSeal(opts: {
   // sit inside the opening quote)
   L.push(`  "${wrap(opts.predicate, 50).split('\n    ').join('\n   ')}"`);
   L.push('');
-  const ownerLine = `  ${opts.predicate_owner === 'user' ? S.owner_user : S.owner_ai}`;
-  const ownerTag = `(predicate_owner: ${opts.predicate_owner})`;
-  L.push(ownerLine.length >= 40 ? `${ownerLine}   ${ownerTag}` : ownerLine.padEnd(40) + ownerTag);
+  // The prose already states provenance honestly ("these words are yours" /
+  // "Argus drafted these"). The raw `(predicate_owner: user)` machine tag beside
+  // it was plumbing on the keepsake certificate — the honest-provenance sentence
+  // carries the meaning; the token stays in `data`, off the rendered card.
+  L.push(`  ${opts.predicate_owner === 'user' ? S.owner_user : S.owner_ai}`);
   L.push('');
   const labelWidth = Math.max(S.sealed_label.length, S.answers_label.length) + 4;
   const days = Math.round((Date.parse(opts.check_by) - Date.parse(opts.today)) / 86400000);
@@ -183,7 +185,13 @@ export function renderWake(
   const L: string[] = [];
   const headText = W.header + ' ';
   const countText = ' ' + W.counts(contracts.length, sealed.length, settled.length) + ' ';
-  L.push('┌─ ' + headText + '─'.repeat(Math.max(2, WIDTH - 5 - dw(headText) - dw(countText))) + countText + '─┐');
+  // The header+counts row can exceed WIDTH (Korean counts are wide); when it
+  // does, the top must GROW rather than clamp its dashes to a floor while the
+  // short footer sits at WIDTH — that was the 1-column top/bottom mismatch. Both
+  // edges derive from one barWidth: WIDTH, or wider if the top needs it.
+  const topFixed = 3 + dw(headText) + dw(countText) + 2; // everything but the dashes
+  const barWidth = Math.max(WIDTH, topFixed + 2);
+  L.push('┌─ ' + headText + '─'.repeat(barWidth - topFixed) + countText + '─┐');
 
   const pushGroup = (rows: WakeContractRow[], head: string, line: (c: WakeContractRow) => string, hint?: string) => {
     if (rows.length === 0) return;
@@ -214,7 +222,7 @@ export function renderWake(
 
   L.push('');
   const foot = recordSince ? ' ' + W.record_since(recordSince) + ' ' : '';
-  L.push('└' + '─'.repeat(Math.max(2, WIDTH - 3 - dw(foot))) + foot + '─┘');
+  L.push('└' + '─'.repeat(Math.max(2, barWidth - 3 - dw(foot))) + foot + '─┘');
   return L.join('\n');
 }
 
