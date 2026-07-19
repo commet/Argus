@@ -482,7 +482,7 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
       recheck: {
         baseline: (ref, finding, source, cadenceDays) => `Baseline recorded for P${ref}: "${finding}" (${source}). Worth another check in about ${cadenceDays} days.`,
         material: (ref, before, after, source) => `The fact under P${ref} changed: "${before}" → "${after}" (${source}). Whether to revisit this decision is your call.`,
-        uncertain: (ref, reason) => `P${ref}: this change is too close to call automatically under the rule (${reason}). Only the fact the host confirmed is recorded. Whether to set a rule or leave it is your call.`,
+        uncertain: (ref, reason) => `P${ref}: this change is too close to call automatically under the rule (${reason}). Only the fact your assistant confirmed is recorded. Whether to set a rule or leave it is your call.`,
         uncertain_heuristic_note: ' No rule was set for this premise, so a default heuristic was used. Pinning which move matters here would make it sharper.',
         unchanged: (ref, source) => `P${ref} unchanged (${source}).`,
       },
@@ -644,7 +644,7 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
         // 어휘 1벌 (공정 3 상환): 웹 T2 이메일(companion-brief)과 같은 문장 —
         // "결정을 다시 볼지는 당신의 몫" — 표면 존대만 다르고 어휘는 동일하다.
         material: (ref, before, after, source) => `P${ref}이 딛고 선 사실이 바뀌었습니다: "${before}" → "${after}" (${source}). 결정을 다시 볼지는 당신의 몫입니다.`,
-        uncertain: (ref, reason) => `P${ref}: 규칙상 자동으로 판정하기 애매한 변화입니다 (${reason}). host가 확인한 사실만 적어두었습니다. 규칙을 정할지 그냥 둘지는 당신의 몫입니다.`,
+        uncertain: (ref, reason) => `P${ref}: 규칙상 자동으로 판정하기 애매한 변화입니다 (${reason}). 어시스턴트가 확인한 사실만 적어두었습니다. 규칙을 정할지 그냥 둘지는 당신의 몫입니다.`,
         uncertain_heuristic_note: ' 규칙을 따로 정하지 않아 기본값(휴리스틱)으로 판단했습니다. 이 전제에서 어떤 변화가 중요한지 정해두면 더 정확해집니다.',
         unchanged: (ref, source) => `P${ref}은 그대로입니다 (${source}).`,
       },

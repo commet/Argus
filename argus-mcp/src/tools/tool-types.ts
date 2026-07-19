@@ -51,7 +51,7 @@ const KO_FIELD_DESCRIPTIONS: Record<string, string> = {
   status_quo: '아무것도 하지 않을 때 일어나는 일입니다.',
   already_decided: '이미 결정을 내렸는지 여부입니다.',
   crux_question: '결정을 좌우하는 중립적인 핵심 질문 하나입니다.',
-  load_bearing_assumption: '결정이 가장 크게 기대는 전제 하나입니다.',
+  load_bearing_assumption: '결정이 가장 크게 딛고 선 전제 하나입니다.',
   related_to: '사용자가 비슷하다고 본 과거 결정 id입니다.',
   today_override: '테스트 또는 명시적 기준일에만 사용하는 오늘 날짜입니다.',
   text: '사용자가 작성한 원문입니다. 고치거나 요약하지 않습니다.',

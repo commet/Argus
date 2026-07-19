@@ -21,7 +21,7 @@ import { gitCommonDirOf } from '../v2/git-discovery.js';
 import { handleToolException } from './errors.js';
 
 const premiseInput = z.strictObject({
-  text: z.string().min(3).max(400).describe('결정이 기대는 사실 또는 아직 답하지 못한 질문입니다. 사용자의 표현을 그대로 씁니다.').optional(),
+  text: z.string().min(3).max(400).describe('결정이 딛고 선 사실 또는 아직 답하지 못한 질문입니다. 사용자의 표현을 그대로 씁니다.').optional(),
   kind: z.enum(['premise', 'open_question']).default('premise').describe('premise는 확인할 전제, open_question은 사용자가 아직 답하지 않은 질문입니다.'),
   external: z.boolean().default(false).describe('외부 현실에서 나중에 다시 확인할 수 있는 사실인지 표시합니다.'),
   load_bearing: z.boolean().default(false).describe('틀리면 결정이 바뀌는 핵심 전제인지 표시합니다.'),
@@ -45,13 +45,13 @@ const decideSchema = z.discriminatedUnion('action', [
     reversibility: z.enum(['one_way_door', 'costly_to_reverse', 'easily_reversible']).describe('결정을 되돌릴 수 있는 정도입니다.'),
     status_quo: z.string().min(1).max(300).describe('아무것도 하지 않을 때 일어나는 일입니다.'),
     already_decided: z.boolean().default(false).describe('사용자가 이미 결정을 끝냈는지 표시합니다.'),
-    load_bearing_assumption: z.string().max(400).describe('결정이 가장 크게 기대는 전제 하나입니다.').optional(),
+    load_bearing_assumption: z.string().max(400).describe('결정이 가장 크게 딛고 선 전제 하나입니다.').optional(),
     related_to: z.array(zId).max(20).describe('사용자가 비슷하다고 본 과거 결정 id입니다.').optional(),
-    premises: z.array(premiseInput).min(1).max(5).describe('결정이 기대는 전제와 미결 질문입니다. 선택 사항이며, 있으면 결정과 함께 기록합니다.').optional(),
+    premises: z.array(premiseInput).min(1).max(5).describe('결정이 딛고 선 전제와 미결 질문입니다. 선택 사항이며, 있으면 결정과 함께 기록합니다.').optional(),
   }),
   z.strictObject({
     ...common,
-    action: z.literal('add_context').describe('결정이 기대는 전제나 미결 질문을 추가합니다.'),
+    action: z.literal('add_context').describe('결정이 딛고 선 전제나 미결 질문을 추가합니다.'),
     id: zId.describe('대상 결정 id입니다.'),
     premises: z.array(premiseInput).min(1).max(5).describe('추가할 전제와 미결 질문입니다.'),
   }),
@@ -71,7 +71,7 @@ const decideSchema = z.discriminatedUnion('action', [
   }),
   z.strictObject({
     ...common,
-    action: z.literal('update_fact').describe('결정이 기대는 외부 사실을 현재 현실과 다시 확인합니다.'),
+    action: z.literal('update_fact').describe('결정이 딛고 선 외부 사실을 현재 현실과 다시 확인합니다.'),
     id: zId.describe('대상 결정 id입니다.'),
     ref: z.string().max(64).describe('재확인할 전제 번호 또는 id입니다.'),
     finding: z.string().min(1).max(800).describe('현재 확인한 사실을 비교 가능한 한 문장으로 적습니다.'),
@@ -113,7 +113,7 @@ const decidePublicSchema = z.strictObject({
   reversibility: z.enum(['one_way_door', 'costly_to_reverse', 'easily_reversible']).describe('결정을 되돌릴 수 있는 정도입니다. 새 결정을 열 때 사용합니다.').optional(),
   status_quo: z.string().min(1).max(300).describe('아무것도 하지 않을 때 일어나는 일입니다. 새 결정을 열 때 사용합니다.').optional(),
   already_decided: z.boolean().describe('사용자가 이미 결정을 끝냈는지 표시합니다.').optional(),
-  load_bearing_assumption: z.string().max(400).describe('결정이 가장 크게 기대는 전제 하나입니다.').optional(),
+  load_bearing_assumption: z.string().max(400).describe('결정이 가장 크게 딛고 선 전제 하나입니다.').optional(),
   related_to: z.array(zId).max(20).describe('사용자가 비슷하다고 본 과거 결정 id입니다.').optional(),
   premises: z.array(premiseInput).min(1).max(5).describe('추가할 전제와 미결 질문입니다.').optional(),
   ref: z.string().max(64).describe('답하거나 재확인할 전제 또는 미결 질문 번호입니다.').optional(),
