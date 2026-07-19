@@ -27,6 +27,12 @@ const VIBE = /\b(go well|be fine|be good|be great|work out|feel right|be success
 // congratulated — because the list was English-only. Same weak/advisory status;
 // no \b (word boundaries don't work for Hangul). NOT a hard gate (§5-14).
 const VIBE_KO = /(잘\s*될|잘\s*풀릴|괜찮을|좋아질|나아질)\s*(것|거)\s*(같|이)|아마도|어떻게든\s*(될|되)/;
+// A predicate carrying an observable anchor (a number, a date, a threshold or
+// comparison, a concrete completion verb) is checkable even when vibe wording
+// rides along ("아마도 2월에 이미 1억 넘는다"). The vibe regexes exist to catch
+// PURE feelings; without this bypass a single "아마도" hard-blocked legit
+// numeric predicates (1.4.6 backlog: weak heuristic acting as a hard gate).
+const OBSERVABLE_ANCHOR = /\d|[%<>=≤≥]|(이상|이하|미만|초과|넘는|넘긴|도달|달성|출시|배포|계약|완료|체결)|\b(at least|more than|less than|by |ship|launch|sign|complete|release)\b/i;
 
 export function validateSeal(predicate: unknown, checkBy: unknown, today: string): SealValidationError | null {
   if (typeof predicate !== 'string' || predicate.trim().length < 8) {
@@ -52,15 +58,17 @@ export function validateSeal(predicate: unknown, checkBy: unknown, today: string
     return {
       code: 'BAD_CHECK_BY',
       message: `check_by (${date}) must be in the future (today is ${today}).`,
-      recovery: 'Pick a future date — the check-by is when you will come back to settle.',
+      recovery: 'Pick a future date. The check-by is when you will come back to settle.',
     };
   }
+
+  if (OBSERVABLE_ANCHOR.test(predicate)) return null; // checkable despite any vibe wording
 
   if (VIBE_KO.test(predicate)) {
     return {
       code: 'NOT_FALSIFIABLE',
       message: '이건 기분이지 확인 가능한 예측이 아닙니다.',
-      recovery: '숫자·임계값·관찰 가능한 사건으로 다시 적어주세요. (휴리스틱 — 놓칠 수 있음)',
+      recovery: '숫자·임계값·관찰 가능한 사건으로 다시 적어주세요. (휴리스틱이라 놓칠 수 있습니다.)',
       weak: true,
     };
   }
@@ -68,7 +76,7 @@ export function validateSeal(predicate: unknown, checkBy: unknown, today: string
     return {
       code: 'NOT_FALSIFIABLE',
       message: 'This reads like a vibe, not a checkable prediction.',
-      recovery: 'Re-state it with a number, threshold, or observable event. (Heuristic — may miss cases.)',
+      recovery: 'Re-state it with a number, threshold, or observable event. (A heuristic; it may miss cases.)',
       weak: true,
     };
   }

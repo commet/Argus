@@ -61,6 +61,14 @@ describe('validateSeal — Korean vibe heuristic (12 P1-4)', () => {
     expect(err?.weak).toBe(true);
     expect(err?.message).toContain('vibe');
   });
+
+  it('an observable anchor defuses the vibe heuristic (over-fire fix, 1.4.7)', () => {
+    // "아마도" 한 단어가 숫자 임계값이 있는 예측을 하드블록했던 케이스.
+    expect(validateSeal('아마도 2월엔 월 매출이 1억을 넘는다', '2026-08-01', TODAY)).toBeNull();
+    expect(validateSeal('signups will be fine, at least 1000 by March', '2026-08-01', TODAY)).toBeNull();
+    // 앵커가 없는 순수 기분은 여전히 잡는다.
+    expect(validateSeal('어떻게든 잘 될 것 같다', '2026-08-01', TODAY)?.code).toBe('NOT_FALSIFIABLE');
+  });
 });
 
 describe('validateSeal — calendar-invalid check_by is refused (fuzz F3)', () => {

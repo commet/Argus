@@ -11,7 +11,7 @@ import { lookupRepository, projectDir, registerRepository } from './ledger.js';
 import { loadState } from './reducer.js';
 import {
   doctorBackup, exportBundle, exportPortableLocalArchive, importBundle,
-  planOrPurgeRepository, purgeRepository, restorePortableLocalArchive,
+  planOrPurgeRepository, planOrPurgeV1Store, purgeRepository, restorePortableLocalArchive,
 } from './lifecycle.js';
 
 let home: string;
@@ -109,6 +109,43 @@ describe('purge — confirm 원문 강제', () => {
   it('confirm이 repository_id 원문이 아니면 거절, 아무것도 삭제 안 됨', () => {
     expect(() => purgeRepository(home, repoId, 'yes')).toThrow('PURGE_CONFIRM_MISMATCH');
     expect(fs.existsSync(path.join(projectDir(home, repoId), 'ledger.jsonl'))).toBe(true);
+  });
+});
+
+describe('planOrPurgeV1Store — v1 워크스페이스 스토어 (erasure coverage, 1.4.7)', () => {
+  const mkV1 = (): string => {
+    const v1 = path.join(home, 'v1-store');
+    for (const d of ['ledger', 'calendar', path.join('sessions', 'd1')]) fs.mkdirSync(path.join(v1, d), { recursive: true });
+    fs.writeFileSync(path.join(v1, 'ledger', 'ledger.jsonl'), '{"id":"d1"}\n');
+    fs.writeFileSync(path.join(v1, 'calendar', 'd1.ics'), 'BEGIN:VCALENDAR\n');
+    fs.writeFileSync(path.join(v1, 'sessions', 'd1', 'receipt.json'), '{}\n');
+    fs.writeFileSync(path.join(v1, 'config.yaml'), 'locale: ko\n');
+    return v1;
+  };
+
+  it('confirm 원문 불일치·상대경로는 거절, 아무것도 안 지움', () => {
+    const v1 = mkV1();
+    expect(() => planOrPurgeV1Store(v1, { dryRun: false, confirmation: 'yes' })).toThrow('PURGE_CONFIRM_MISMATCH');
+    expect(() => planOrPurgeV1Store('relative/.argus', { dryRun: false, confirmation: 'relative/.argus' })).toThrow('V1_PURGE_DIR_NOT_ABSOLUTE');
+    expect(fs.existsSync(path.join(v1, 'ledger', 'ledger.jsonl'))).toBe(true);
+  });
+
+  it('dryRun은 대상 목록만 보고하고 아무것도 지우지 않는다', () => {
+    const v1 = mkV1();
+    const plan = planOrPurgeV1Store(v1, { dryRun: true, confirmation: v1 });
+    expect(plan.targets.length).toBe(3);
+    expect(plan.removed).toBe(0);
+    expect(fs.existsSync(path.join(v1, 'ledger'))).toBe(true);
+  });
+
+  it('실행은 ledger/calendar/sessions만 지우고 config.yaml은 남긴다', () => {
+    const v1 = mkV1();
+    const res = planOrPurgeV1Store(v1, { dryRun: false, confirmation: v1 });
+    expect(res.removed).toBe(3);
+    expect(fs.existsSync(path.join(v1, 'ledger'))).toBe(false);
+    expect(fs.existsSync(path.join(v1, 'calendar'))).toBe(false);
+    expect(fs.existsSync(path.join(v1, 'sessions'))).toBe(false);
+    expect(fs.existsSync(path.join(v1, 'config.yaml'))).toBe(true);
   });
 });
 

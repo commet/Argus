@@ -210,7 +210,7 @@ describe('seal promotion (§5.4 — the assumption field is an alias into the pr
 
     // receipt renders the premises summary from the fold
     const receipt = await recall.handler({ argus_dir: dir, view: 'receipt', id: 'promo', today_override: TODAY });
-    expect(String((body(receipt)['data'] as Record<string, unknown>)['receipt_text'])).toContain('+1 premise(s) tracked');
+    expect(String((body(receipt)['data'] as Record<string, unknown>)['receipt_text'])).toContain('+1 premise tracked');
   });
 
   it('a skipped assumption promotes nothing; re-sealing the same text never duplicates', async () => {

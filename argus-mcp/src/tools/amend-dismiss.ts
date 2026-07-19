@@ -48,7 +48,7 @@ export const amend: ToolModule = {
       if (a['predicate'] != null && (current.entry?.defer_count ?? 0) > 0) {
         return toolError({
           ok: false, tool: 'argus_amend', error_code: 'GOALPOST_MOVED',
-          message: 'Cannot rewrite the prediction after the decision was deferred — its original check-by has passed.',
+          message: 'Cannot rewrite the prediction after the decision was deferred; its original check-by has passed.',
           recovery: 'Re-schedule the date if the timeline moved, or settle it against reality. The claim itself is locked once its check-by first arrived.',
         });
       }
@@ -111,7 +111,12 @@ export const dismiss: ToolModule = {
   inputSchema: z.strictObject({
     argus_dir: zArgusDir,
     id: zId,
-    dismiss_reason: z.enum(['became_irrelevant', 'decided_elsewhere', 'changed_mind', 'other']),
+    // Superset of the PUBLIC façade's advertised enum (public-tools.ts:
+    // became_irrelevant · decided_elsewhere · superseded · user_declined) plus
+    // the legacy internal values. The public schema advertised values this
+    // internal validator then refused — a model following the advertised
+    // contract got INVALID_INPUT (1.4.6 backlog: enum divergence).
+    dismiss_reason: z.enum(['became_irrelevant', 'decided_elsewhere', 'superseded', 'user_declined', 'changed_mind', 'other']),
     note: z.string().max(300).optional(),
     today_override: zDate.optional(),
   }),

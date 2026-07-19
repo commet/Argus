@@ -145,8 +145,8 @@ export const openDecision: ToolModule = {
         const shown = connections.slice(0, 3).map((c) => c.decision_id);
         const extra = connections.length - shown.length;
         connectionLine = locale === 'ko'
-          ? `\n이 결정이 기댄 전제와 같은 가정이나 근거에 선 다른 열린 결정: ${shown.join(', ')}${extra > 0 ? ` 외 ${extra}개` : ''}. argus_check_in으로 함께 볼 수 있어요.`
-          : `\nOther open decisions rest on the same assumption or fact this one leans on: ${shown.join(', ')}${extra > 0 ? ` (+${extra} more)` : ''}. Review them together with argus_check_in.`;
+          ? `\n이 결정과 같은 전제 위에 선 다른 열린 결정: ${shown.join(', ')}${extra > 0 ? ` 외 ${extra}개` : ''}. argus_check_in으로 함께 볼 수 있어요.`
+          : `\nOther open decisions stand on the same assumption or fact: ${shown.join(', ')}${extra > 0 ? ` (+${extra} more)` : ''}. Review them together with argus_check_in.`;
       }
 
       return envelope({
@@ -167,7 +167,7 @@ export const openDecision: ToolModule = {
             connections: connections.map((c) => c.decision_id),
             connection_reasons: connections.map((c) => ({ id: c.decision_id, reason: c.reason, ...(c.via ? { via: c.via } : {}) })),
           } : {}),
-          lean_disclosure: 'Naming the load-bearing question points faintly at the flip; that residual lean is a known limit, not a verdict.',
+          lean_disclosure: T.lean_disclosure,
         },
       });
     } catch (e) {

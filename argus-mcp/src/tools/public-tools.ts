@@ -288,7 +288,7 @@ async function runPublic(
 
 export const decide: ToolModule = {
   name: 'argus_capture',
-  description: 'Capture the reasoning behind a decision in the user\'s own words — the premises it rests on and the questions still open — without deciding for the user. Use action=open for a new decision; add_context, answer_question, keep_question_open, update_fact, change_prediction, or close for a decision already on record.',
+  description: 'Capture the reasoning behind a decision in the user\'s own words — the premises it rests on and the questions still open — without deciding for the user. Use action=open for a new decision; add_context, answer_question, keep_question_open, update_fact, change_prediction, or close for a decision already on record. To save a checkable PREDICTION with a check-by date, use argus_predict instead (capture alone sets no check date, so nothing will come due).',
   inputSchema: decidePublicSchema,
   outputSchema: ENVELOPE_OUTPUT_SCHEMA,
   annotations: { title: 'Work with a decision', readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
@@ -400,6 +400,6 @@ function publicWrapper(tool: ToolModule, name: string, description: string): Too
   };
 }
 
-export const publicSeal = publicWrapper(seal, 'argus_predict', 'Make a falsifiable prediction and the date when reality can answer it. Use the user\'s own wording whenever possible.');
+export const publicSeal = publicWrapper(seal, 'argus_predict', 'Make a falsifiable prediction and the date when reality can answer it. Use the user\'s own wording whenever possible. Works directly with a fresh id; no prior argus_capture call is needed.');
 export const publicCheckIn = publicWrapper(checkIn, 'argus_check_in', 'Show only decisions, facts, and open questions that need attention now. Read-only.');
 export const publicSettle = publicWrapper(settle, 'argus_resolve', 'Record what actually happened after a prediction reaches its check date. Reality supplies the result; Argus does not grade it.');

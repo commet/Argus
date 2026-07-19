@@ -22,14 +22,14 @@ import { handleToolException } from './errors.js';
  */
 function localizeUncertainReason(reason: string, locale: 'ko' | 'en'): string {
   if (locale === 'ko') return reason;
-  if (reason.includes('비율(%)')) return 'this reads as a percentage — say whether the change is in percentage-points or on the complement (100 − value) axis';
-  if (reason.includes('near-zero')) return 'the values sit near zero — set a rule (a delta or a safety floor) so this can be judged mechanically';
-  if (reason.includes('임계 경계')) return 'the relative change sits right on the threshold — set a rule or a dead-band';
-  if (reason.includes('zero_meaningful') || reason.includes('부호 전환')) return 'the sign flipped, but whether zero is meaningful is undeclared — set a rule';
-  if (reason.includes('boundary') || reason.includes('경계 도달')) return 'the value reached the threshold line, but inclusive/exclusive is unspecified — set the boundary';
-  if (reason.includes('기준값 0')) return 'the baseline is 0, so a relative rule cannot apply — set a delta rule';
-  if (reason.includes('canonical scale') || reason.includes('비수치')) return 'this label is non-numeric — set a canonical scale so it can be judged mechanically';
-  return 'this change is ambiguous under the current rule — define a materiality rule so it can be judged mechanically';
+  if (reason.includes('비율(%)')) return 'this reads as a percentage; say whether the change is in percentage-points or on the complement (100 − value) axis';
+  if (reason.includes('near-zero')) return 'the values sit near zero; set a rule (a delta or a safety floor) so this can be judged mechanically';
+  if (reason.includes('임계 경계')) return 'the relative change sits right on the threshold; set a rule or a dead-band';
+  if (reason.includes('zero_meaningful') || reason.includes('부호 전환')) return 'the sign flipped, but whether zero is meaningful is undeclared; set a rule';
+  if (reason.includes('boundary') || reason.includes('경계 도달')) return 'the value reached the threshold line, but inclusive/exclusive is unspecified; set the boundary';
+  if (reason.includes('기준값 0')) return 'the baseline is 0, so a relative rule cannot apply; set a delta rule';
+  if (reason.includes('canonical scale') || reason.includes('비수치')) return 'this label is non-numeric; set a canonical scale so it can be judged mechanically';
+  return 'this change is ambiguous under the current rule; define a materiality rule so it can be judged mechanically';
 }
 
 /**
@@ -83,7 +83,7 @@ export const recheck: ToolModule = {
 
       const premise = resolvePremiseRef(entry?.premises ?? [], String(a['ref']));
       if (premise.kind !== 'premise') {
-        return toolError({ ok: false, tool: 'argus_recheck', error_code: 'NOT_RECHECKABLE', message: `P${premise.ordinal} is an open question — it is resolved by you, not re-checked against reality.`, recovery: 'Use argus_capture action="answer_question" with your own call.' });
+        return toolError({ ok: false, tool: 'argus_recheck', error_code: 'NOT_RECHECKABLE', message: `P${premise.ordinal} is an open question; it is resolved by you, not re-checked against reality.`, recovery: 'Use argus_capture action="answer_question" with your own call.' });
       }
       if (premise.status !== 'active') {
         return toolError({ ok: false, tool: 'argus_recheck', error_code: 'PREMISE_RETIRED', message: `P${premise.ordinal} is ${premise.status}.`, recovery: 'Only active premises are re-checked. See argus_patterns view="decision_context".' });
@@ -126,14 +126,14 @@ export const recheck: ToolModule = {
           reason = m.reason;
           lowConfidence = m.low_confidence === true;
           if (typeof changed === 'boolean' && changed !== drifted && status !== 'uncertain') {
-            integrityNote = `numeric materiality (${reason}) disagrees with the asserted changed=${changed} — the numbers win; both are on the record.`;
+            integrityNote = `numeric materiality (${reason}) disagrees with the asserted changed=${changed}; the numbers win, and both are on the record.`;
           }
         } else if (typeof changed === 'boolean') {
           status = changed ? 'material' : 'unchanged';
           drifted = changed;
           reason = changed ? 'the host asserts the fact changed (see source)' : 'the host asserts the fact is unchanged';
           if (changed && normalizePremiseText(finding) === normalizePremiseText(prior.finding)) {
-            integrityNote = 'asserted changed=true but the finding text is identical to the recorded baseline — recorded as asserted, flagged here.';
+            integrityNote = 'asserted changed=true but the finding text is identical to the recorded baseline; recorded as asserted, flagged here.';
           }
         } else {
           return toolError({

@@ -238,12 +238,12 @@ export const review: ToolModule = {
                 notes: bx.note ? [bx.note] : [],
                 lenses: vlenses,
                 protocol: ko ? [
-                  `1) "${filePath}" 파일을 직접 열어 페이지를 눈으로 읽어라 — 너의 파일 읽기/비전 능력을 쓴다. 이 문서는 추출 가능한 텍스트가 없어 반드시 눈으로 봐야 한다.`,
+                  `1) "${filePath}" 파일을 직접 열어 페이지를 눈으로 읽어라. 너의 파일 읽기/비전 능력을 쓴다. 이 문서는 추출 가능한 텍스트가 없어 반드시 눈으로 봐야 한다.`,
                   `2) 본 것(차트·표·수치·도표·레이아웃)을 근거로 아래 lenses를 적용해 판단 지도(claims/assumptions/decision_points)와 finding을 만든다. 모든 finding은 위치("${isDeck ? 'slide 4' : '3쪽'}")에 앵커한다.`,
                   '3) 사람이 직접 판단해야 할 항목을 분리한다. 문서에 평결("틀렸다/진행하라")을 내리지 않는다. 짧고 날카롭게, 지적 유형을 다양하게(모순·미검증 가정·미충족 선결조건·수치 불일치·이해관계자 반론).',
                   '4) 현실이 pass/fail로 답할 반증 가능한 예측 1개를 찾고, 사용자가 원하면 argus_predict로 저장한다. 예측·조건·check_by는 사용자의 것이다.',
                 ] : [
-                  `1) Open the file at "${filePath}" and read its pages by eye — use your own file-reading / vision capability. This document has no extractable text, so you MUST read it visually.`,
+                  `1) Open the file at "${filePath}" and read its pages by eye; use your own file-reading / vision capability. This document has no extractable text, so you MUST read it visually.`,
                   `2) Apply the lenses below to what you SEE (charts, tables, figures, numbers-in-images, layout): build the judgment map (claims/assumptions/decision points) and findings. Anchor every finding to a location ("${isDeck ? 'slide 4' : 'page 3'}").`,
                   '3) Separate the points that require human judgment. Do not deliver a verdict. Keep findings short and sharp, and vary their TYPE (a contradiction, an untested assumption, an unmet precondition, a number that does not add up, a stakeholder objection).',
                   '4) Find one falsifiable prediction reality can answer pass/fail; save it with argus_predict only if the user wants. The prediction, conditions, and check_by belong to the user.',
@@ -355,8 +355,8 @@ export const review: ToolModule = {
       // vision pass), anchored by page/slide.
       const visualHint = (inferredKind === 'pdf' || inferredKind === 'pptx') && filePathSafe
         ? (ko
-            ? `이 문서는 ${inferredKind === 'pptx' ? '덱' : 'PDF'}입니다 — 차트·도표·표가 있으면 "${filePath}"를 직접 열어 눈으로도 확인하고 판단에 반영하세요(그 finding은 ${inferredKind === 'pptx' ? 'slide' : '쪽'}에 앵커).`
-            : `This is a ${inferredKind === 'pptx' ? 'deck' : 'PDF'} — if it contains charts or figures, also open "${filePath}" and read them by eye, factoring them into the review (anchor those findings by ${inferredKind === 'pptx' ? 'slide' : 'page'}).`)
+            ? `이 문서는 ${inferredKind === 'pptx' ? '덱' : 'PDF'}입니다. 차트·도표·표가 있으면 "${filePath}"를 직접 열어 눈으로도 확인하고 판단에 반영하세요(그 finding은 ${inferredKind === 'pptx' ? 'slide' : '쪽'}에 앵커).`
+            : `This is a ${inferredKind === 'pptx' ? 'deck' : 'PDF'}; if it contains charts or figures, also open "${filePath}" and read them by eye, factoring them into the review (anchor those findings by ${inferredKind === 'pptx' ? 'slide' : 'page'}).`)
         : undefined;
       return envelope({
         ok: true, tool: 'argus_review',
@@ -375,8 +375,8 @@ export const review: ToolModule = {
             selected: routing.selected,
             disclosure: routing.disclosure,
             note: ko
-              ? '라우팅은 기본 프로파일 기준의 제안입니다 — 추출 단계에서 문서 프로파일을 확정하면 렌즈를 조정하세요.'
-              : 'Routing is a suggestion based on the default profile — adjust the lenses after confirming the document profile during extraction.',
+              ? '라우팅은 기본 프로파일 기준의 제안입니다. 추출 단계에서 문서 프로파일을 확정하면 렌즈를 조정하세요.'
+              : 'Routing is a suggestion based on the default profile; adjust the lenses after confirming the document profile during extraction.',
           },
           lenses,
           // The SSOT extraction prompt already embeds the anchored units + the

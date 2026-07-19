@@ -32,7 +32,11 @@ export function resetCheckInSession(): void {
 
 const inputSchema = z.strictObject({
   argus_dir: zArgusDir,
-  include_upcoming_days: z.number().int().min(0).max(30).default(0).describe('Also list sealed contracts coming due within N days (informational — nothing to settle yet).'),
+  // max(365), not max(30): the handler clamps the WINDOW to 30 days, but the
+  // schema must not hard-refuse a model that passes 60 for "show me two months"
+  // — an advertised-then-rejected argument is the 1.4.6 backlog's enum-divergence
+  // class. Values above 30 are accepted and clamped.
+  include_upcoming_days: z.number().int().min(0).max(365).default(0).describe('Also list sealed contracts coming due within N days (informational; nothing to settle yet). Values above 30 are clamped to 30.'),
   fleet: z.boolean().default(false).describe('Also report due counts across your OTHER Argus projects (every dir argus_init registered on this machine). Facts and counts only; settle each in its own project.'),
   today_override: zDate.optional(),
 });

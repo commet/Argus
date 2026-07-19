@@ -40,22 +40,31 @@ export function renderReceipt(r: Receipt, premises?: ReceiptPremisesInfo, locale
   const show = (v: string, field: string): string => (skipped.has(field) ? R.skipped : wrap(v));
 
   L.push('');
-  L.push(`  ${R.real_question}`);
-  L.push(`    ${show(r.real_question, 'real_question')}`);
-  L.push(`  ${R.unverified_assumption}`);
   const assumptionSkipped = skipped.has('unverified_assumption');
-  if (assumptionSkipped && premises?.headline) {
-    // The premise set is canonical — a tracked load-bearing premise stands in
-    // for a skipped seal-time field (plan v5 §5.4).
-    L.push(`    ${wrap(premises.headline)}`);
-  } else {
-    L.push(`    ${show(r.unverified_assumption, 'unverified_assumption')}`);
-  }
-  if (premises && premises.tracked > 0) {
-    L.push(`    ${R.premises_note(premises.tracked, premises.changed_at_recheck)}`);
-  }
+  // A data-minimal settle used to render THREE "(none)" placeholder sections —
+  // more placeholder than record (1.4.6 re-diagnosis). When every optional
+  // section is empty, state that once, neutrally, in one line.
+  const allEmpty = skipped.has('real_question') && assumptionSkipped && !premises?.headline
+    && !(premises && premises.tracked > 0) && skipped.has('human_only');
   const labelWidth = Math.max(R.human_only.length, R.made_by_label.length, R.called_as.length) + 3;
-  L.push(`  ${R.human_only.padEnd(labelWidth)}${show(r.human_only, 'human_only')}`);
+  if (allEmpty) {
+    L.push(`  ${R.nothing_recorded}`);
+  } else {
+    L.push(`  ${R.real_question}`);
+    L.push(`    ${show(r.real_question, 'real_question')}`);
+    L.push(`  ${R.unverified_assumption}`);
+    if (assumptionSkipped && premises?.headline) {
+      // The premise set is canonical — a tracked load-bearing premise stands in
+      // for a skipped seal-time field (plan v5 §5.4).
+      L.push(`    ${wrap(premises.headline)}`);
+    } else {
+      L.push(`    ${show(r.unverified_assumption, 'unverified_assumption')}`);
+    }
+    if (premises && premises.tracked > 0) {
+      L.push(`    ${R.premises_note(premises.tracked, premises.changed_at_recheck)}`);
+    }
+    L.push(`  ${R.human_only.padEnd(labelWidth)}${show(r.human_only, 'human_only')}`);
+  }
   L.push(`  ${R.made_by_label.padEnd(labelWidth)}${R.made_by}`);
   if (r.basis) {
     L.push(`  ${R.called_as.padEnd(labelWidth)}${R.basis_label(r.basis)}`);

@@ -128,6 +128,9 @@ export function replayLedger(argusDir: string, today: string): LedgerState {
   let dropped = 0;
   let skippedUnknown = 0;
   let oldestTs: string | undefined;
+  // Ids that ever saw a seal EVENT — survives settle/dismiss so total_sealed
+  // means "ever sealed", derived per-id (not per-line) below.
+  const everSealed = new Set<string>();
   const watch: WatchState = { anchors: new Map(), captures: [] };
 
   let raw: string;
@@ -182,7 +185,7 @@ export function replayLedger(argusDir: string, today: string): LedgerState {
         cur.check_by = ev['check_by'] as string | undefined;
         if (typeof ev['basis'] === 'string') cur.basis = ev['basis'];
         cur.status = 'sealed';
-        stats.total_sealed++;
+        everSealed.add(id);
         break;
       }
 
@@ -214,24 +217,9 @@ export function replayLedger(argusDir: string, today: string): LedgerState {
         const settledTs = typeof ev['ts'] === 'string' ? ev['ts'] : typeof ev['at'] === 'string' ? ev['at'] : undefined;
         if (settledTs && settledTs.length >= 10) cur.settled_on = settledTs.slice(0, 10);
         if (typeof ev['broken_premise_id'] === 'string') cur.broken_premise_id = ev['broken_premise_id'];
-        // `happened` is the plugin CLI's legacy spelling of `held` (pre plain-canon
-        // unification). Old ledgers keep their bytes — the alias lives at read time.
-        // total_settled is incremented HERE, together with the bucket, so the
-        // invariant total_settled == sum(buckets) always holds. A settle event
-        // with an UNKNOWN outcome (a corrupt or externally-synced ledger — the
-        // zod enum blocks it on the MCP write path) still marks the decision
-        // settled, but is not counted into a calibration frequency it can't be
-        // categorized into (it used to inflate total_settled, so the surface read
-        // "N settled: 0 · 0 · 0 · 0" — a settle that vanished from its own breakdown).
-        if (outcome === 'held' || outcome === 'happened') { stats.held++; stats.total_settled++; }
-        else if (outcome === 'avoided') { stats.avoided++; stats.total_settled++; }
-        else if (outcome === 'partial') { stats.partial++; stats.total_settled++; }
-        else if (outcome === 'missed') { stats.missed++; stats.total_settled++; }
-        // 'still_pending' is NOT a terminal outcome — the MCP settle tool routes
-        // it to a `defer` event, never a `settle`. A settle+still_pending is
-        // therefore external/legacy only; it is not counted (the displayed
-        // breakdown shows four buckets, so counting it would make the visible
-        // line under-sum: "1 settled: 0 · 0 · 0 · 0"). v2 rejects it likewise.
+        // Buckets are NOT counted here — stats derive from the FOLDED STATE
+        // after the loop (see below), so a duplicated or reordered settle line
+        // in an externally-edited ledger cannot double-count a calibration.
         break;
       }
 
@@ -412,6 +400,23 @@ export function replayLedger(argusDir: string, today: string): LedgerState {
         else dropped++;
         break;
     }
+  }
+
+  // Stats are DERIVED from the folded state, never counted per event line
+  // (state-derivation, 1.4.6 backlog): a hand-edited/merged ledger with a
+  // duplicated seal or settle line folds to the same state, so it must fold to
+  // the same calibration. Invariant preserved: total_settled == sum of the four
+  // buckets; a settled contract with an unknown/legacy outcome ('still_pending',
+  // corrupt) is settled but uncounted, exactly as before. `happened` stays the
+  // plugin CLI's legacy alias of `held` (old ledgers keep their bytes).
+  stats.total_sealed = everSealed.size;
+  for (const c of map.values()) {
+    if (c.status !== 'settled') continue;
+    const o = c.outcome === 'happened' ? 'held' : c.outcome;
+    if (o === 'held') { stats.held++; stats.total_settled++; }
+    else if (o === 'avoided') { stats.avoided++; stats.total_settled++; }
+    else if (o === 'partial') { stats.partial++; stats.total_settled++; }
+    else if (o === 'missed') { stats.missed++; stats.total_settled++; }
   }
 
   const overdue: Array<{ id: string; date: string; text: string }> = [];

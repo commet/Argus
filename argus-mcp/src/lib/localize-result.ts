@@ -111,13 +111,13 @@ function koReason(issue: InvalidField, field: string): string {
       return '알 수 없는 항목입니다';
     case 'invalid_format':
     case 'invalid_string':
-      if (key === 'id') return '영문·숫자와 . _ - 만 쓸 수 있습니다 (한글·공백·특수문자 불가 — 예: "career-move")';
+      if (key === 'id') return '영문·숫자와 . _ - 만 쓸 수 있습니다 (한글·공백·특수문자 불가, 예: "career-move")';
       if (DATE_FIELDS.has(key)) return 'YYYY-MM-DD 형식의 날짜여야 합니다';
       return '형식이 올바르지 않습니다';
     default:
       // Same text as the invalid_format id case so the two issues the id regex +
       // superRefine both raise dedup to a single line.
-      if (key === 'id') return '영문·숫자와 . _ - 만 쓸 수 있습니다 (한글·공백·특수문자 불가 — 예: "career-move")';
+      if (key === 'id') return '영문·숫자와 . _ - 만 쓸 수 있습니다 (한글·공백·특수문자 불가, 예: "career-move")';
       return '값을 확인해 주세요';
   }
 }
@@ -136,7 +136,7 @@ function localizeInvalidInput(fields: InvalidField[]): ErrorCopy {
     if (parts.length >= 4) break;
   }
   return {
-    message: `입력값이 올바르지 않습니다 — ${parts.join(', ')}.`,
+    message: `입력값이 올바르지 않습니다: ${parts.join(', ')}.`,
     recovery: '위에 표시된 인자를 고친 뒤 같은 도구를 다시 호출하세요. 사용자가 정해야 할 값은 추측하지 마세요.',
   };
 }
@@ -180,6 +180,25 @@ export function localizeToolResult(
   let copy = code === 'INVALID_INPUT' && Array.isArray(sc['invalid_fields'])
     ? localizeInvalidInput(sc['invalid_fields'] as InvalidField[])
     : KO_ERRORS[code] ?? genericFallback;
+  // A handler-authored KOREAN message is at least as specific as the generic
+  // map — KO_ERRORS exists to replace ENGLISH copy, not better Korean. Without
+  // this, errors.ts's "내부 오류가 발생했습니다: EACCES …" lost its detail to
+  // the generic '내부 오류가 발생했습니다.' (1.4.6 backlog: ko detail loss).
+  // Quoted spans are stripped BEFORE the Hangul test: an English template that
+  // merely embeds the user's Korean predicate ('already sealed: "매출 1억…"')
+  // is still English-authored and must still be replaced.
+  const authoredKo = (s: string): boolean => /[가-힣]/.test(s.replace(/"[^"]*"|'[^']*'|「[^」]*」/g, ''));
+  if (code !== 'INVALID_INPUT' && authoredKo(existingMsg)) {
+    copy = {
+      message: existingMsg,
+      ...(existingRec && authoredKo(existingRec) ? { recovery: existingRec } : copy.recovery ? { recovery: copy.recovery } : {}),
+    };
+  } else if (code === 'INTERNAL_ERROR') {
+    // English-authored internal error: carry the diagnostic detail across the
+    // language switch instead of discarding it.
+    const d = existingMsg.match(/^Internal error: ([\s\S]+)$/);
+    if (d) copy = { message: `내부 오류가 발생했습니다: ${d[1]}`, ...(copy.recovery ? { recovery: copy.recovery } : {}) };
+  }
   // en에만 있던 날짜 상세를 ko에서도 보존 — "언제가 확인일인데?"에 답이 되도록.
   if (code === 'PREMATURE_SETTLE') {
     const m = String(sc['message'] ?? '').match(/check-by (\d{4}-\d{2}-\d{2}), today (\d{4}-\d{2}-\d{2})/);

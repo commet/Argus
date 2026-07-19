@@ -68,7 +68,7 @@ export const settle: ToolModule = {
               enum: ['held', 'avoided', 'partial', 'still_pending', 'missed'],
               enumNames: pickerLocale === 'ko'
                 ? ['그렇게 됐다', '피했다', '부분적으로', '아직 불분명', '빗나갔다 (내 예측이 틀렸다)']
-                : ['It held', 'Avoided', 'Partially', 'Still unclear', 'Missed — my read was wrong'],
+                : ['It held', 'Avoided', 'Partially', 'Still unclear', 'Missed: my read was wrong'],
               description: pickerLocale === 'ko' ? '봉인한 예측에 현실이 어떻게 답했는지 고르세요.' : 'What reality did to your sealed prediction.',
             },
           },
@@ -293,7 +293,11 @@ async function deferStillPending(args: {
     const mirrorDD = await withLedgerLock(dir, async () => {
       const fresh = resolveContract(dir, id, today);
       guardTransition(fresh.state, 'dismiss');
-      return (await appendLedger(dir, [{ id, event: 'dismiss', dismiss_reason: 'no longer relevant (still_pending at check-by)' }], now)).v2_mirror;
+      // Canonical enum value, not free text — recall/patterns expose
+      // dismiss_reason raw, so a prose reason leaked English into ko sessions
+      // and diverged from every advertised enum. The mechanism note rides in
+      // `decision` (the dismiss event's note field), same as argus_dismiss.
+      return (await appendLedger(dir, [{ id, event: 'dismiss', dismiss_reason: 'became_irrelevant', decision: 'still_pending at check-by' }], now)).v2_mirror;
     });
     const v2Write = asV2WriteField(mirrorDD);
     // Tell the account too — a dismissal via this picker is a real dismissal.
@@ -309,7 +313,7 @@ async function deferStillPending(args: {
   if (!newDate) {
     return toolError({
       ok: false, tool: 'argus_settle', error_code: 'DEFER_DATE_REQUIRED',
-      message: "Reality hasn't answered yet — this needs a new check-by, not a settlement.",
+      message: "Reality hasn't answered yet. This needs a new check-by, not a settlement.",
       recovery: 'Ask the user when to look again and pass it as `defer_to` (YYYY-MM-DD). If the prediction no longer matters, close it with argus_capture action="close".',
     });
   }

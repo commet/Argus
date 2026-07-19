@@ -46,7 +46,7 @@ export function humanizeSyncReason(reason: string, locale: SurfaceLocale): strin
     if (reason === 'insecure_api_url') return 'API 주소가 https가 아니라 토큰을 보내지 않았습니다';
     if (reason === 'network') return '네트워크에 닿지 못했습니다';
     if (http) return http[1] === '401' || http[1] === '403'
-      ? `토큰이 거부됐습니다 (HTTP ${http[1]}) — 만료됐을 수 있으니 웹 설정에서 새 토큰을 발급하세요`
+      ? `토큰이 거부됐습니다 (HTTP ${http[1]}). 만료됐을 수 있으니 웹 설정에서 새 토큰을 발급하세요`
       : `서버가 ${http[1]}로 응답했습니다`;
     return reason;
   }
@@ -54,7 +54,7 @@ export function humanizeSyncReason(reason: string, locale: SurfaceLocale): strin
   if (reason === 'insecure_api_url') return 'the API URL is not https, so the token was not sent';
   if (reason === 'network') return 'the network was unreachable';
   if (http) return http[1] === '401' || http[1] === '403'
-    ? `the token was rejected (HTTP ${http[1]}) — it may be expired; issue a new one in web Settings`
+    ? `the token was rejected (HTTP ${http[1]}); it may be expired, so issue a new one in web Settings`
     : `the server answered ${http[1]}`;
   return reason;
 }
@@ -233,6 +233,11 @@ export interface SurfaceStrings {
      *  "…콜한 내용  judgment" mixed EN into a KO receipt (experience-loop find). */
     basis_label: (v: string) => string;
     skipped: string;
+    /** When real question + assumption + human-only call are ALL skipped and no
+     *  premise is tracked, the three per-section "(none)" rows collapse into
+     *  this ONE neutral line — a data-minimal settle should not render a
+     *  receipt that is mostly placeholders. */
+    nothing_recorded: string;
     premises_note: (tracked: number, changed: number) => string;
     /** Neutral timeline fact when the record was deferred (still_pending re-armed)
      *  before it finally settled: "originally due X · deferred N×". Never a grade. */
@@ -266,6 +271,10 @@ export interface SurfaceStrings {
       opened_with_crux: (crux: string) => string;
       /** FIRE, no crux: instruct exactly ONE neutral crux question. */
       opened_bare: string;
+      /** The product-level disclosure of the irreducible residual lean (spine
+       *  mirror clause): naming the load-bearing question faintly points at the
+       *  flip. A KNOWN-LIMIT statement, never a verdict — rides in data. */
+      lean_disclosure: string;
     };
     seal: {
       /** the core confirmation: quote + check-by + come-back handle. */
@@ -384,7 +393,7 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
     },
     wake: {
       header: 'ARGUS · YOUR DECISIONS',
-      counts: (total, sealed, settled) => `decisions ${total} · predictions saved ${sealed} · results recorded ${settled}`,
+      counts: (total, sealed, settled) => `decisions ${total} · awaiting check ${sealed} · results recorded ${settled}`,
       overdue_group: (n) => `past check-by (${n})`,
       overdue_hint: '← argus_resolve',
       days_past: (n) => `${n}d past`,
@@ -412,8 +421,9 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
       // (experience loop, settler: a zero-judgment surface must not grade even
       // the act of leaving a field empty).
       skipped: '— (none)',
+      nothing_recorded: 'No question or premise was recorded with this decision.',
       premises_note: (tracked, changed) =>
-        `(+${tracked} premise(s) tracked · ${changed} changed at re-check · argus_patterns view=decision_context)`,
+        `(+${tracked} ${tracked === 1 ? 'premise' : 'premises'} tracked · ${changed} changed at re-check · argus_patterns view=decision_context)`,
       deferred_fact: (times, originallyDue) =>
         `Originally due ${originallyDue} · deferred ${times}×`,
       you_predicted: 'YOU PREDICTED',
@@ -439,6 +449,7 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
         reconfirm: 'These signals look contradictory (high stakes yet easily reversible). Re-confirm stakes and reversibility before going further.',
         opened_with_crux: (crux) => `Opened. The one question that decides this: ${crux}`,
         opened_bare: 'Opened. If one neutral question decides this, naming it is the next step. Then save a falsifiable prediction.',
+        lean_disclosure: 'Naming the load-bearing question points faintly at the flip; that residual lean is a known limit, not a verdict.',
       },
       seal: {
         sealed: (predicate, checkBy) => `Prediction saved. "${predicate}" Check-by is ${checkBy}. Come back then with argus_resolve to record what happened.`,
@@ -537,7 +548,9 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
     },
     wake: {
       header: 'ARGUS · 결정 기록',
-      counts: (total, sealed, settled) => `결정 ${total} · 예측 저장 ${sealed} · 결과 기록 ${settled}`,
+      // "예측 저장 0"은 정산이 끝나면 0으로 줄어 "저장한 적 없음"처럼 읽혔다
+      // (1.4.6 재진단): 이 칸의 의미는 '지금 확인일을 기다리는 것'이다.
+      counts: (total, sealed, settled) => `결정 ${total} · 확인 대기 ${sealed} · 결과 기록 ${settled}`,
       overdue_group: (n) => `확인일 지남 (${n})`,
       overdue_hint: '← argus_resolve',
       days_past: (n) => `${n}일 경과`,
@@ -563,6 +576,7 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
       // 빈 칸을 사실 그대로. "이름 붙이지 않고 넘어갔습니다"는 사용자의 완성도를
       // 지적하는 잔소리로 읽혔다 (experience loop, settler).
       skipped: '— (없음)',
+      nothing_recorded: '이 결정에 함께 적어둔 질문이나 전제는 없습니다.',
       premises_note: (tracked, changed) =>
         `(추적한 전제 ${tracked}건 · 재확인에서 바뀐 것 ${changed}건 · argus_patterns view=decision_context)`,
       deferred_fact: (times, originallyDue) =>
@@ -591,10 +605,11 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
         reconfirm: '신호가 서로 어긋납니다 (걸린 것은 큰데 되돌리기는 쉽습니다). 더 나아가기 전에 이 둘을 다시 짚어 보세요.',
         opened_with_crux: (crux) => `열었습니다. 이 결정을 좌우하는 단 하나의 질문: ${crux}`,
         opened_bare: '열었습니다. 이 결정을 좌우하는 핵심 질문 하나가 있다면 그걸 짚어 보는 게 다음 단계입니다. 그다음 반증 가능한 예측을 저장하면 됩니다.',
+        lean_disclosure: '하중이 실린 질문을 짚는 것 자체가 뒤집힘 쪽을 희미하게 가리킬 수 있습니다. 그 잔여 기울기는 알려진 한계이지, 이 결정에 대한 평가가 아닙니다.',
       },
       seal: {
         sealed: (predicate, checkBy) => `예측을 저장했습니다. "${predicate}" 확인일은 ${checkBy}입니다. 그날 argus_resolve로 실제로 어땠는지 기록하세요.`,
-        nudge_assumption: ' 원하면 핵심 전제를 적어두면 나중에 같이 확인합니다.',
+        nudge_assumption: ' 원하면 핵심 전제도 적어두세요. 나중에 같이 확인합니다.',
         synced: ' 계정에 동기화했습니다. 확인일이 오면 이메일로 알려드립니다.',
         sync_failed: (reason) => ` (계정 동기화가 안 됐습니다. ${reason}. 예측은 로컬에 안전합니다. 동기화되기 전까지는 이메일 알림이 오지 않습니다. 나중에 argus_settings action=sync를 시도하세요.)`,
       },
@@ -608,7 +623,7 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
         baseline: (ref, finding, source, cadenceDays) => `P${ref} 기준값을 기록했습니다: "${finding}" (${source}). ${cadenceDays}일 뒤에 다시 확인하길 권합니다.`,
         // 어휘 1벌 (공정 3 상환): 웹 T2 이메일(companion-brief)과 같은 문장 —
         // "결정을 다시 볼지는 당신의 몫" — 표면 존대만 다르고 어휘는 동일하다.
-        material: (ref, before, after, source) => `P${ref}이 기댄 사실이 바뀌었습니다: "${before}" → "${after}" (${source}). 결정을 다시 볼지는 당신의 몫입니다.`,
+        material: (ref, before, after, source) => `P${ref}이 딛고 선 사실이 바뀌었습니다: "${before}" → "${after}" (${source}). 결정을 다시 볼지는 당신의 몫입니다.`,
         uncertain: (ref, reason) => `P${ref}: 규칙상 자동으로 판정하기 애매한 변화입니다 (${reason}). host가 확인한 사실만 적어두었습니다. 규칙을 정할지 그냥 둘지는 당신의 몫입니다.`,
         uncertain_heuristic_note: ' 규칙을 따로 정하지 않아 기본값(휴리스틱)으로 판단했습니다. 이 전제에서 어떤 변화가 중요한지 정해두면 더 정확해집니다.',
         unchanged: (ref, source) => `P${ref}은 그대로입니다 (${source}).`,

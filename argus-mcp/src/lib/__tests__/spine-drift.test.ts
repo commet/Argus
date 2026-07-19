@@ -173,7 +173,7 @@ describe('wake_text spine (renderWake)', () => {
     // overdue shows the check-by date, no running day-count (no shame counter)
     expect(ko).not.toContain('경과');
     expect(ko).toContain('답 08-01');
-    expect(ko).toContain('결정 12 · 예측 저장 8 · 결과 기록 3');
+    expect(ko).toContain('결정 12 · 확인 대기 8 · 결과 기록 3');
     expect(ko).toContain('2026-07-03부터 기록');
   });
 

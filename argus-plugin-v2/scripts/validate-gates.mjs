@@ -64,6 +64,10 @@ function firstExisting(dir, names) {
 // for Hangul).
 const VIBE = /\b(go well|be fine|be good|be great|work out|feel right|be successful|do better|improve somehow)\b/i;
 const VIBE_KO = /(잘\s*될|잘\s*풀릴|괜찮을|좋아질|나아질)\s*(것|거)\s*(같|이)|아마도|어떻게든\s*(될|되)/;
+// Hand-synced with validate-seal.ts: an observable anchor (number, date,
+// threshold, concrete completion verb) makes the predicate checkable even when
+// vibe wording rides along — the vibe lists catch PURE feelings only.
+const OBSERVABLE_ANCHOR = /\d|[%<>=≤≥]|(이상|이하|미만|초과|넘는|넘긴|도달|달성|출시|배포|계약|완료|체결)|\b(at least|more than|less than|by |ship|launch|sign|complete|release)\b/i;
 
 function asDate(value) {
   if (typeof value !== 'string') return null;
@@ -192,7 +196,7 @@ export function checkVersion(dir) {
       const predicate = seed.predicate;
       if (typeof predicate !== 'string' || predicate.trim().length < 8) {
         v.push('SEED: contract_seed.predicate is empty or under 8 chars — a seal needs a statement reality can mark true or false');
-      } else if (VIBE.test(predicate) || VIBE_KO.test(predicate)) {
+      } else if (!OBSERVABLE_ANCHOR.test(predicate) && (VIBE.test(predicate) || VIBE_KO.test(predicate))) {
         v.push('SEED: contract_seed.predicate reads like a vibe, not a checkable prediction — restate with a number, threshold, or observable event (weak heuristic; may miss cases)');
       }
       for (const part of ['pass_condition', 'fail_condition']) {

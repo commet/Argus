@@ -54,6 +54,23 @@ describe('replay tolerance for unknown versioned events', () => {
     expect(s.contracts.get('d2')?.status).toBe('settled'); // d2 still marked settled
   });
 
+  it('a DUPLICATED settle line folds to ONE counted settle (state-derived stats, 1.4.7)', () => {
+    // 외부 편집/병합으로 같은 settle 줄이 두 번 들어가도, fold 상태는 하나이므로
+    // 캘리브레이션도 하나여야 한다 (이벤트-계수는 2로 부풀렸다).
+    const dir = tmpArgusDir();
+    const settleLine = JSON.stringify({ v: 1, ts: '2026-07-01T01:00:00Z', id: 'd1', event: 'settle', outcome: 'held' });
+    writeLedger(dir, [seal('d1'), settleLine, settleLine]);
+    const s = replayLedger(dir, '2026-07-02');
+    expect(s.stats.held).toBe(1);
+    expect(s.stats.total_settled).toBe(1);
+  });
+
+  it('a DUPLICATED seal line folds to ONE total_sealed', () => {
+    const dir = tmpArgusDir();
+    writeLedger(dir, [seal('d1'), seal('d1')]);
+    expect(replayLedger(dir, '2026-07-02').stats.total_sealed).toBe(1);
+  });
+
   it('a terminal settle with outcome still_pending is NOT counted (four-bucket display reconciles, F3)', () => {
     const dir = tmpArgusDir();
     writeLedger(dir, [

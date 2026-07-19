@@ -105,7 +105,7 @@ const KO_FIELD_DESCRIPTIONS: Record<string, string> = {
   what_happened: '실제로 일어난 일을 사용자의 말로 기록합니다.',
   broken_premise_ref: '결과에 영향을 줬다고 사용자가 지목한 전제입니다.',
   defer_to: '현실이 아직 답하지 않았을 때 다시 확인할 미래 날짜입니다.',
-  include_upcoming_days: '며칠 안에 확인일이 오는 예측까지 함께 표시합니다.',
+  include_upcoming_days: '며칠 안에 확인일이 오는 예측까지 함께 표시합니다 (최대 30일까지 반영).',
   fleet: '이 컴퓨터의 다른 Argus 프로젝트에 있는 확인 건수도 함께 봅니다.',
   view: '불러올 기록의 종류입니다.',
   due_only: '확인일이 된 기록만 표시합니다.',

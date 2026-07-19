@@ -32,6 +32,18 @@ describe('dismiss', () => {
     const reopen = await seal.handler({ argus_dir: dir, id: 'd1', predicate: 'A real prediction here', check_by: FUTURE, predicate_owner: 'user' });
     expect(body(reopen)['error_code']).toBe('DECISION_CLOSED');
   });
+
+  it('accepts every reason the PUBLIC façade advertises (enum divergence fix, 1.4.7)', async () => {
+    // 공개 스키마가 광고한 superseded/user_declined를 내부 검증이 거부해
+    // 광고-후-거절이 나던 케이스.
+    for (const reason of ['superseded', 'user_declined'] as const) {
+      const dir = tmpArgusDir();
+      await openDecision.handler({ argus_dir: dir, id: 'd1', decision: 'x', stakes: 'high', reversibility: 'one_way_door', status_quo: 'y' });
+      const r = await dismiss.handler({ argus_dir: dir, id: 'd1', dismiss_reason: reason });
+      expect(isError(r)).toBe(false);
+      expect(body(r)['data']).toMatchObject({ dismiss_reason: reason });
+    }
+  });
 });
 
 describe('resources', () => {

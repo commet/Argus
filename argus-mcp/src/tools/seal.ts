@@ -108,7 +108,7 @@ export const seal: ToolModule = {
             },
             your_wording: {
               type: 'string',
-              description: locale === 'ko' ? '"내가 다시 쓸게"를 골랐다면, 원하는 예측 문장을 여기에 — 그 말 그대로 저장됩니다.' : 'If you chose "Let me reword", type your prediction here — it is saved exactly as written.',
+              description: locale === 'ko' ? '"내가 다시 쓸게"를 골랐다면, 원하는 예측 문장을 여기에 적어 주세요. 그 말 그대로 저장됩니다.' : 'If you chose "Let me reword", type your prediction here. It is saved exactly as written.',
             },
           } },
         );

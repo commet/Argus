@@ -22,7 +22,7 @@ const byCheckBy = (a: { check_by?: string }, b: { check_by?: string }) =>
  *  and reflection so the two reads can never drift into two different claims. */
 function frequencyStatement(s: LedgerState['stats'], locale: SurfaceLocale): string {
   const n = s.total_settled;
-  if (n === 0) return locale === 'ko' ? '아직 결과를 기록한 결정이 없습니다 — 요약할 것이 없습니다.' : 'No settled decisions yet — nothing to summarize.';
+  if (n === 0) return locale === 'ko' ? '아직 결과를 기록한 결정이 없습니다. 요약할 것이 없습니다.' : 'No settled decisions yet; nothing to summarize.';
   return locale === 'ko'
     ? `결과 기록 ${n}건 중: 그렇게 됨 ${s.held} · 피함 ${s.avoided} · 부분 ${s.partial} · 빗나감 ${s.missed}.`
     : `Of ${n} settled: ${s.held} held, ${s.avoided} avoided, ${s.partial} partial, ${s.missed} missed.`;
@@ -272,7 +272,7 @@ export const recall: ToolModule = {
             reflections, reflection_count: reflections.length,
             frequency_statement: rfreq,
             sample_size: rn,
-            sample_size_caveat: rn > 0 && rn < 10 ? (rl === 'ko' ? '표본이 작습니다 — 당신에 대한 패턴이 아니라 기록으로 읽으세요.' : 'Sample is small — read this as history, not a pattern about you.') : undefined,
+            sample_size_caveat: rn > 0 && rn < 10 ? (rl === 'ko' ? '표본이 작습니다. 당신에 대한 패턴이 아니라 기록으로 읽으세요.' : 'Sample is small. Read this as history, not a pattern about you.') : undefined,
             today,
           },
         });
@@ -309,7 +309,7 @@ export const recall: ToolModule = {
           frequency_statement: freq,
           ...(premiseAttribution ? { premise_attribution: premiseAttribution, premise_attribution_counts: { not_held: missedOrPartial.length, with_named_broken_premise: withBroken.length } } : {}),
           sample_size: n,
-          sample_size_caveat: n < 10 ? (trackLocale === 'ko' ? '표본이 작습니다 — 당신에 대한 패턴이 아니라 기록으로 읽으세요.' : 'Sample is small — read this as history, not a pattern about you.') : undefined,
+          sample_size_caveat: n < 10 ? (trackLocale === 'ko' ? '표본이 작습니다. 당신에 대한 패턴이 아니라 기록으로 읽으세요.' : 'Sample is small. Read this as history, not a pattern about you.') : undefined,
           stats: s,
         },
       });

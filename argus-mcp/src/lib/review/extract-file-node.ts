@@ -203,7 +203,7 @@ async function extractHwpx(buf: Buffer): Promise<ExtractedText> {
   if (!sectionPaths.length) {
     return {
       text: '', quality: 'unsupported', error_kind: 'corrupt',
-      note: '한글 문서 구조를 찾지 못했습니다. 구버전 .hwp이거나 파일이 손상됐을 수 있습니다 — HWPX로 다시 저장하거나 본문을 붙여넣으세요.',
+      note: '한글 문서 구조를 찾지 못했습니다. 구버전 .hwp이거나 파일이 손상됐을 수 있습니다. HWPX로 다시 저장하거나 본문을 붙여넣으세요.',
     };
   }
   const lines: string[] = [];
@@ -301,7 +301,7 @@ async function extractPdf(buf: Buffer): Promise<ExtractedText> {
     return { text: '', units: [], quality: 'low', note: '이 PDF에서 텍스트를 거의 추출하지 못했습니다 (스캔 이미지 PDF일 수 있습니다).', ...caps };
   }
   const layoutNote = multiColumn || hasTable
-    ? '다단·표가 있어 일부 순서가 어긋날 수 있어요 — 핵심 본문은 붙여넣기가 더 정확합니다.'
+    ? '다단·표가 있어 일부 순서가 어긋날 수 있어요. 핵심 본문은 붙여넣기가 더 정확합니다.'
     : undefined;
   return {
     text: units.map((u) => u.text).join('\n'),
