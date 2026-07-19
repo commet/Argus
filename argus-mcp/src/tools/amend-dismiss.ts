@@ -8,6 +8,7 @@ import { validateSeal } from '../lib/validate-seal.js';
 import { appendLedger, withLedgerLock } from '../lib/ledger-append.js';
 import { pushToAccount } from '../lib/push-account.js';
 import { accountPushId } from '../lib/install-id.js';
+import { writeReturnCalendarEvent } from '../lib/calendar.js';
 import { resolveResponseLocale, SURFACES, humanizeSyncReason } from '../lib/surfaces.js';
 import { SCHEMA_VERSION } from '../lib/spine.js';
 import { z } from 'zod';
@@ -38,6 +39,20 @@ export const amend: ToolModule = {
       const current = resolveContract(dir, id, today);
       guardTransition(current.state, 'amend'); // GOALPOST_MOVED / DECISION_CLOSED / ILLEGAL_TRANSITION
 
+      // Goalpost guard, extended past the `due` state: a still_pending defer
+      // re-arms the contract to `sealed`, which the state machine then treats
+      // like a never-due decision — so due→defer→sealed→amend let the PREDICATE
+      // be rewritten AFTER the original check-by had already arrived (reality had
+      // begun answering). Re-scheduling the date via defer stays legitimate;
+      // rewriting the claim does not. Refuse only the predicate change post-defer.
+      if (a['predicate'] != null && (current.entry?.defer_count ?? 0) > 0) {
+        return toolError({
+          ok: false, tool: 'argus_amend', error_code: 'GOALPOST_MOVED',
+          message: 'Cannot rewrite the prediction after the decision was deferred — its original check-by has passed.',
+          recovery: 'Re-schedule the date if the timeline moved, or settle it against reality. The claim itself is locked once its check-by first arrived.',
+        });
+      }
+
       const predicate = (a['predicate'] as string | undefined) ?? current.predicate;
       const checkBy = (a['check_by'] as string | undefined) ?? current.check_by;
       if (a['check_by'] != null || a['predicate'] != null) {
@@ -58,6 +73,14 @@ export const amend: ToolModule = {
 
       // Response voice follows the (new or existing) predicate (M4).
       const locale = resolveResponseLocale(dir, predicate);
+
+      // Regenerate the .ics so the return reminder rings on the AMENDED date /
+      // text. amend used to update the ledger + bearing + account but leave the
+      // on-disk calendar file — the only account-free return channel — pointing
+      // at the OLD check-by, so the reminder fired on the stale date.
+      if ((a['check_by'] != null || a['predicate'] != null) && predicate && checkBy) {
+        await writeReturnCalendarEvent(dir, { id, predicate, check_by: checkBy, created_at: now, locale });
+      }
       const T = SURFACES[locale].tools.amend;
 
       // Tell the ACCOUNT the date moved. Without this, argus_amend was silent to

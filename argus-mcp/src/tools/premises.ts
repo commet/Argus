@@ -4,7 +4,7 @@ import { replayLedger } from '../lib/ledger-replay.js';
 import { resolveToday } from '../lib/resolve-today.js';
 import { resolveContract } from '../lib/resolve-contract.js';
 import { guardTransition } from '../lib/state-machine.js';
-import { appendLedger, type LedgerEventInput } from '../lib/ledger-append.js';
+import { appendLedger, withLedgerLock, type LedgerEventInput } from '../lib/ledger-append.js';
 import {
   premiseId, resolvePremiseRef, isMonitored, normalizePremiseText,
   MAX_ACTIVE_PREMISES, MAX_LOAD_BEARING,
@@ -268,7 +268,20 @@ async function opAdd(
     // premise added under a today_override in real use.
     anchor_date: today,
   }));
-  if (events.length > 0) await appendLedger(dir, events, now);
+  if (events.length > 0) {
+    // §9.4 두 기기 안전: the ordinal base was read OUTSIDE any lock, so two
+    // concurrent sessions adding premises to the same decision both saw max=4
+    // and both assigned ordinal 5 — a DUPLICATE P5 whose second premise is
+    // unreferenceable (resolvePremiseRef returns only the first). Re-derive the
+    // ordinals under the ledger lock from a fresh fold, then append — the same
+    // read-check-append-under-lock discipline seal/settle use.
+    await withLedgerLock(dir, async () => {
+      const freshPremises = replayLedger(dir, today).contracts.get(id)?.premises ?? [];
+      let ord = freshPremises.reduce((m, p) => Math.max(m, p.ordinal), 0) + 1;
+      for (const e of events) e.ordinal = ord++;
+      await appendLedger(dir, events, now);
+    });
+  }
 
   // Full echo — the silent-premise defense: the host always has the material to
   // show the user exactly what was recorded (plan v5 §2).

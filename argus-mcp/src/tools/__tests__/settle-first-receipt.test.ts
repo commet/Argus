@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { tmpArgusDir, body } from '../../test-helpers.js';
 import { seal } from '../seal.js';
 import { settle } from '../settle.js';
+import { amend } from '../amend-dismiss.js';
 
 /**
  * §9.7 O1 방3 — the first settled receipt must REACH the user.
@@ -35,6 +36,22 @@ describe('argus_settle first-receipt payoff (then-vs-now in the surface)', () =>
     expect(data['first_receipt']).toBe(true);
     expect(data['ai_verdict']).toBeNull();
     expect(String(data['receipt_text'])).toContain('YOU PREDICTED'); // data contract unchanged
+  });
+
+  it('change_prediction before settle: the receipt shows the AMENDED prediction, never the stale seal-time one', async () => {
+    // Split-brain regression (fuzz F1): amend updated the contract + bearing but
+    // NOT the seal-time receipt file; settle read that stale file, so the receipt
+    // printed the pre-amend "8월" predicate while every list showed the amended
+    // "9월" one. The receipt now takes predicate/check_by from the ledger fold.
+    const dir = tmpArgusDir();
+    await seal.handler({ argus_dir: dir, id: 'sb', predicate: '8월 말까지 오퍼 1건이 나간다', check_by: '2026-09-01', predicate_owner: 'user', today_override: TODAY });
+    await amend.handler({ argus_dir: dir, id: 'sb', predicate: '9월 말까지 오퍼 1건이 나간다', check_by: '2026-10-01', today_override: TODAY });
+    const r = await settle.handler({ argus_dir: dir, id: 'sb', outcome: 'held', outcome_source: 'user_stated', what_happened: '9월에 나감', today_override: '2026-10-02' });
+    const data = body(r)['data'] as Record<string, unknown>;
+    const receipt = data['receipt'] as Record<string, unknown>;
+    expect(receipt['predicate']).toBe('9월 말까지 오퍼 1건이 나간다'); // ledger truth
+    expect(receipt['check_by']).toBe('2026-10-01');
+    expect(String(data['receipt_text'])).not.toContain('8월'); // stale predicate gone
   });
 
   it('the SECOND settle stays light — no receipt plate in surface, no ceremony', async () => {

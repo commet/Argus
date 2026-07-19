@@ -1,4 +1,4 @@
-import { asDate } from './resolve-today.js';
+import { asDate, isRealDate } from './resolve-today.js';
 
 /**
  * Seal validation (blueprint §3.1). The STRONG gates are structural: an empty
@@ -38,10 +38,13 @@ export function validateSeal(predicate: unknown, checkBy: unknown, today: string
   }
 
   const date = asDate(checkBy);
-  if (!date) {
+  if (!date || !isRealDate(date)) {
+    // A calendar-invalid but digit-shaped date (2026-13-01, 2026-09-31) must be
+    // refused here: it would otherwise seal a malformed .ics and a wrong due
+    // date, and only be caught by luck if it happened to sort before today.
     return {
       code: 'BAD_CHECK_BY',
-      message: 'check_by must be a real date in YYYY-MM-DD form.',
+      message: 'check_by must be a real calendar date in YYYY-MM-DD form.',
       recovery: 'Pick the date when reality will answer, e.g. "2026-09-01".',
     };
   }

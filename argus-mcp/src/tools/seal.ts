@@ -72,12 +72,15 @@ export const seal: ToolModule = {
 
       let predicate = String(a['predicate']);
       const checkBy = String(a['check_by']);
-      // Stamp the seal at the LOGICAL day when a today_override is given (sims,
-      // tests), else real wall-clock. Without this the receipt showed a
-      // wall-clock sealed date that diverged from the simulated timeline and
-      // read as "the record misstates my dates" (experience loop, settler). Real
-      // use passes no override, so created_at stays the true write time.
-      const now = a['today_override'] ? `${today}T12:00:00.000Z` : new Date().toISOString();
+      // The DATE part of `now` must equal the tz-aware logical `today`. Plain
+      // new Date().toISOString() is always UTC, so a Korea (UTC+9) user sealing
+      // at 08:00 KST (= 23:00Z the day before) got a receipt dated YESTERDAY —
+      // the tool's own `today` disagreeing with the date it printed. recheck.ts
+      // already fixed this same class for premise cadences. Keep the real UTC
+      // time-of-day for intra-day ordering, but stamp the logical date.
+      const now = a['today_override']
+        ? `${today}T12:00:00.000Z`
+        : `${today}T${new Date().toISOString().slice(11)}`;
       // Response voice follows the predicate (M4): config > text > env.
       let locale = resolveResponseLocale(dir, predicate);
       let T = SURFACES[locale].tools.seal;

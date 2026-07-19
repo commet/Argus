@@ -14,6 +14,12 @@ import fs from 'fs';
 // A single path segment: letters, digits, dot, underscore, hyphen.
 // Rejects separators (/ \), '..', '.', percent-encoding, NUL, etc.
 const SEGMENT = /^[A-Za-z0-9._-]+$/;
+// Windows reserved device basenames (CON, NUL, COM1…). Case-insensitive and
+// matched on the name up to the first dot, so `nul` and `nul.ics` both hit.
+// On Windows `calendar/NUL.ics` resolves to the null device → the write
+// "succeeds" but the bytes vanish (silent reminder loss); `sessions/con`
+// throws a cryptic EINVAL. Reject the whole family loudly instead.
+const WIN_RESERVED = /^(con|prn|aux|nul|com[1-9]|lpt[1-9])(\.|$)/i;
 
 export function safeSegment(raw: unknown, kind = 'segment'): string {
   if (typeof raw !== 'string' || raw.length === 0 || raw.length > 128) {
@@ -21,6 +27,16 @@ export function safeSegment(raw: unknown, kind = 'segment'): string {
   }
   if (raw === '.' || raw === '..' || !SEGMENT.test(raw)) {
     throw new PathSafetyError(`invalid_${kind}`, `${kind} must match [A-Za-z0-9._-] and not be '.'/'..'`);
+  }
+  // A trailing dot or space is stripped by Windows at path-resolution time, so
+  // "build." and "build" alias to ONE directory → the second decision silently
+  // overwrites the first. assertInside can't catch it (the aliasing happens in
+  // the OS at write time, invisible to a lexical check). Reject it here.
+  if (/[. ]$/.test(raw)) {
+    throw new PathSafetyError(`invalid_${kind}`, `${kind} must not end with a '.' or space`);
+  }
+  if (WIN_RESERVED.test(raw)) {
+    throw new PathSafetyError(`invalid_${kind}`, `${kind} must not be a reserved device name (CON, NUL, COM1…)`);
   }
   // Defense in depth: reject any percent-encoded or NUL byte that slipped the regex.
   if (raw.includes('\0') || /%2e/i.test(raw) || /%2f/i.test(raw) || /%5c/i.test(raw)) {

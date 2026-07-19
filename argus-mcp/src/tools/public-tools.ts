@@ -74,7 +74,7 @@ const decideSchema = z.discriminatedUnion('action', [
     id: zId.describe('대상 결정 id입니다.'),
     ref: z.string().max(64).describe('재확인할 전제 번호 또는 id입니다.'),
     finding: z.string().min(1).max(800).describe('현재 확인한 사실을 비교 가능한 한 문장으로 적습니다.'),
-    numeric_value: z.number().describe('수치 사실의 현재 값을 명시적으로 전달합니다.').optional(),
+    numeric_value: z.number().finite().describe('수치 사실의 현재 값을 명시적으로 전달합니다.').optional(),
     changed: z.boolean().describe('문장형 사실이 기준값에서 실질적으로 달라졌는지 표시합니다.').optional(),
     // default user_stated: the runtime union validates BEFORE the handler-level
     // default can apply, so a required source here made every real update_fact
@@ -118,7 +118,7 @@ const decidePublicSchema = z.strictObject({
   ref: z.string().max(64).describe('답하거나 재확인할 전제 또는 미결 질문 번호입니다.').optional(),
   reconsider_cadence_days: z.number().int().min(1).max(365).describe('미결 질문을 다시 볼 간격(일)입니다.').optional(),
   finding: z.string().min(1).max(800).describe('현재 확인한 사실을 비교 가능한 한 문장으로 적습니다.').optional(),
-  numeric_value: z.number().describe('수치 사실의 현재 값을 명시적으로 전달합니다.').optional(),
+  numeric_value: z.number().finite().describe('수치 사실의 현재 값을 명시적으로 전달합니다.').optional(),
   changed: z.boolean().describe('문장형 사실이 기준값에서 실질적으로 달라졌는지 표시합니다.').optional(),
   source: z.enum(['url', 'user_stated', 'host_reported']).describe('현재 사실을 확인한 출처입니다.').optional(),
   source_detail: z.string().max(1000).describe('출처 URL 또는 짧은 인용 정보입니다.').optional(),

@@ -6,6 +6,62 @@
 > The `1.3.0` / `1.2.1` entries at the bottom are pre-rename `argus-mcp` history,
 > kept for reference — all of that work shipped inside the new-name 1.0.0.
 
+## 1.4.4 — Relentless bug hunt: record integrity, dates, paths, calendar
+
+Found by a multi-angle hunt — an aggressive runtime fuzz (concurrency, unicode
+ids, boundary dates, illegal sequences) plus four adversarial source reviews
+(state machine, input safety, i18n, data lifecycle). All confirmed by executing
+the real handlers.
+
+Record integrity
+- **The settled receipt could show a STALE prediction.** After
+  `change_prediction`, the receipt kept the pre-amend predicate while every list
+  showed the amended one — the keepsake contradicted the ledger. The receipt now
+  takes its prediction/date from the ledger fold.
+- **Goalpost hole via defer closed.** `due → still_pending(defer) → sealed`
+  re-armed a contract so the state machine treated it as never-due, letting the
+  **prediction be rewritten after its original check-by had passed**. Re-dating
+  via defer stays allowed; rewriting the claim is now refused.
+- **Duplicate premise ordinals under concurrency.** The premise-add path
+  assigned ordinals outside any lock, so two sessions could both create "P5"
+  (the second unreferenceable). Ordinals are now derived under the ledger lock.
+
+Dates
+- **Receipts no longer show "yesterday".** seal/settle stamped the date in raw
+  UTC while every comparison uses the tz-aware `today`, so a Korea-time morning
+  seal was dated to the previous day. The stored date now matches `today`.
+- **Calendar-invalid dates refused.** `2026-13-01` / `2026-09-31` passed
+  validation (only lexical "is it future" was checked) and sealed a malformed
+  `.ics`; a real calendar check now rejects them.
+
+Calendar (.ics) — the only account-free return channel
+- **`change_prediction` now rewrites the `.ics`** so the reminder rings on the
+  amended date, not the stale one.
+- **Fold on UTF-8 octets, never mid-codepoint** (emoji were corrupted to U+FFFD;
+  Korean lines blew the RFC 75-octet limit); **a lone CR / control char** is now
+  neutralized instead of written raw; the Korean reminder is **host-neutral**
+  (was hardcoded to "Claude").
+
+Paths & input
+- **Windows reserved names (CON, NUL, COM1…) and trailing-dot/space ids are
+  refused** — they aliased to one file or the null device (silent data loss).
+- `id` now advertises its 1–128 bound everywhere (was unbounded on
+  predict/amend); `numeric_value` must be finite (was stored as `null`).
+
+Korean voice
+- Localized the `source` enum in recheck surfaces (was raw `host_reported`);
+  unified `partial`→부분 / `still_pending`→대기 across the flow; removed the last
+  banned 갈림길 from a legacy tool description; reworded the EN crux description
+  off fork framing.
+
+Deferred (noted, not silently dropped): the numeric-materiality reason strings
+still surface Korean in an English recheck (needs a reason-code layer); the
+LOGBOOK/candidates repo-scoped projection can expose a sibling workspace's
+decisions when two workspaces share one git root; `local-purge` erases only the
+v2 durable store, not the v1 workspace ledger/receipts; the v2 durable outbox is
+unwired; legacy/pilot surfaces (candidates, watch, semantic-record) and EN
+pluralization polish.
+
 ## 1.4.3 — Surface content pass: the receipt, the Korean voice, the calendar
 
 Found by reading every surface of the published package out loud (not just

@@ -106,8 +106,11 @@ export const recall: ToolModule = {
         // don't render it. The full formatted card stays in data.receipt_text as
         // the keepsake. (User-value review, 2026-07-14.)
         const clip = (s: unknown, n: number): string => { const t = String(s ?? '').trim(); return t.length > n ? `${t.slice(0, n)}…` : t; };
+        // One word per outcome across the whole flow: surfaces.ts settle uses
+        // 부분/대기, so the receipt-recall surface must match (was 부분적/아직 —
+        // three words for `partial` in one decision's lifecycle).
         const label = receiptLocale === 'ko'
-          ? { held: '그렇게 됨', avoided: '피함', partial: '부분적', missed: '빗나감', still_pending: '아직' }
+          ? { held: '그렇게 됨', avoided: '피함', partial: '부분', missed: '빗나감', still_pending: '대기' }
           : { held: 'held', avoided: 'avoided', partial: 'partial', missed: 'missed', still_pending: 'still pending' };
         const outcomeKey = (r.outcome ?? 'still_pending') as keyof typeof label;
         const receiptSurface = receiptLocale === 'ko'

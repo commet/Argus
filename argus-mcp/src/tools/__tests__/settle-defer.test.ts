@@ -2,6 +2,7 @@ import { describe, it, expect, afterEach } from 'vitest';
 import { tmpArgusDir, body } from '../../test-helpers.js';
 import { seal } from '../seal.js';
 import { settle } from '../settle.js';
+import { amend } from '../amend-dismiss.js';
 import { checkIn } from '../check-in.js';
 import { setElicitor } from '../../lib/elicit.js';
 
@@ -83,6 +84,20 @@ describe('argus_settle still_pending → defer (re-arm, not settle)', () => {
     const receiptText = String(D(r)['receipt_text']);
     expect(receiptText).toContain('deferred 1×');
     expect(receiptText).toContain(CHECK_BY); // "originally due 2026-07-01"
+  });
+
+  it('after a defer, the PREDICATE cannot be rewritten but the DATE still can (goalpost past original check-by)', async () => {
+    const dir = tmpArgusDir();
+    await sealDue(dir); // sealed 'paywall' at CHECK_BY
+    // on DUE_DAY it is due; the user says still_pending and defers to NEW_DATE
+    await settle.handler({ argus_dir: dir, id: 'paywall', outcome: 'still_pending', outcome_source: 'user_stated', what_happened: 'not yet', defer_to: NEW_DATE, today_override: DUE_DAY });
+    // now re-armed (sealed) at NEW_DATE. A predicate rewrite is a goalpost move —
+    // the original check-by already arrived — so it is refused...
+    const bad = body(await amend.handler({ argus_dir: dir, id: 'paywall', predicate: 'a far easier claim to hit for sure', today_override: DUE_DAY }));
+    expect(bad['error_code']).toBe('GOALPOST_MOVED');
+    // ...but re-scheduling the date stays legitimate.
+    const okDate = body(await amend.handler({ argus_dir: dir, id: 'paywall', check_by: '2026-09-01', today_override: DUE_DAY }));
+    expect(okDate['ok']).toBe(true);
   });
 
   it('still_pending BEFORE the check-by is refused (defer lives at due; recovery says exactly that)', async () => {
