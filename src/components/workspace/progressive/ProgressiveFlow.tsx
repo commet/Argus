@@ -543,9 +543,10 @@ function LeadSynthesisCard({ synthesis }: { synthesis: LeadSynthesisResult }) {
                       judge". Quiet, once per card. */}
                   <p className="mt-2 pl-4 text-[10.5px] text-[var(--text-tertiary)] leading-[1.5]">
                     {/* Spine F5 (CLAUDE.md): keep naming the faint lean as a known
-                        limit — no-machinery-leak.test pins this. Tightened, not cut. */}
-                    {L('이 결정이 가장 크게 걸리는 질문이에요. 희미한 기울기가 남는 건 저희가 못 지우는 한계고 — 판단은 당신 몫이에요.',
-                       "The one question it turns on. A faint lean is a limit we can't fully remove — the call is yours.")}
+                        limit — no-machinery-leak.test pins this. "기울기" was jargon;
+                        "은근히 한쪽으로 치우칠 수 있다" is the plain-language version. */}
+                    {L('이 결정이 가장 크게 걸리는 질문이에요. 이런 질문은 은근히 한쪽으로 치우칠 수 있고, 그건 저희가 못 지우는 한계예요 — 판단은 당신 몫이에요.',
+                       "The one question it turns on. A question like this can subtly lean one way — a limit we can't fully remove, and the call is yours.")}
                   </p>
                 </div>
               )}

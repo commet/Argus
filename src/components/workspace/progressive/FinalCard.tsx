@@ -97,8 +97,9 @@ export function FinalCard({
               <div className="w-7 h-7 rounded-full flex items-center justify-center bg-[var(--bg)] border border-[var(--border-subtle)]">
                 <Check size={13} className="text-[var(--text-secondary)]" />
               </div>
-              {/* 역할 부제 (F-1-1): '완성된 문서'와 '현재 방위'가 무슨 차이인지
-                  안 보인다는 3회 지적 — 이 카드는 "가져가는 결과물"임을 명시. */}
+              {/* 역할 부제 (F-1-1): '완성된 문서'와 '결정 요약'(아래 카드)의 차이가
+                  안 보인다는 지적 — 이 카드는 "가져가는 결과물"임을 명시. (옛 이름
+                  '현재 방위'는 '결정 요약'으로 개명됨.) */}
               <div>
                 <span id={cardTitleId} className="text-[14px] font-semibold text-[var(--text-primary)]">{L('완성된 문서', 'Final Document')}</span>
                 <span className="block text-[11.5px] text-[var(--text-tertiary)] mt-0.5 leading-snug">{L('복사해서 바로 쓰는 결과물', 'The artifact you copy and use')}</span>
