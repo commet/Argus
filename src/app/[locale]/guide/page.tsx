@@ -85,7 +85,7 @@ export default function GuidePage() {
     {
       href: '/boss',
       icon: UserCheck,
-      label: L('팀장 대화 리허설', 'Manager conversation rehearsal'),
+      label: L('팀장 시뮬레이터', 'Boss Simulator'),
       desc: L('실제 1:1 전에 팀장의 반응을 미리 연습합니다. MBTI를 몰라도 상황 퀴즈로 설정할 수 있어요.', "Rehearse a manager's response before a real 1:1. No MBTI knowledge needed — a situation quiz fills it in."),
     },
     {
