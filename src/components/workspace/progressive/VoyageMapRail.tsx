@@ -1,18 +1,9 @@
 'use client';
 
 /**
- * VoyageMapRail — the left-hand voyage companion. Restores (and elevates) the
- * decision-fork map + crew-activity surface that the W1.6 focus-mode demoted to
- * a complete-only right rail (the "사라진 지도"). Three stacked sections, each a
- * window onto the SAME voyage object — never a re-statement:
- *
- *   1. 해도 (Chart)   — an INLINE branching course-graph (the spatial fork map):
- *                       where the decision split, which lane you're on, and the
- *                       entry point to the full interactive chart (step back to
- *                       any point on the route). This is the hero.
- *   2. 항해일지 (Trail) — the Logbook narrative: the turns you took, the roads
- *                       not taken, and the one-tap "다른 길로" handles.
- *   3. 분석 팀 (Crew)   — live agent activity (status, stream, results).
+ * VoyageMapRail — the standing decision companion. It has two peer views:
+ * evidence traces the current claim to user input, team material, and explicitly
+ * unverified assumptions; route preserves the spatial checkpoint/fork chart.
  *
  * Why a rail and not a modal: the user asked to *see, at a glance and at all
  * times*, "어느 갈림길에서 어떤 결정을 내리며 가고 있는지" — and to be able to
@@ -33,7 +24,7 @@ import { useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import {
   Compass, Map as MapIcon, Maximize2, PanelLeftClose, PanelLeftOpen,
-  Milestone, GitBranch, ArrowLeft,
+  Milestone, GitBranch, ArrowLeft, SearchCheck,
 } from 'lucide-react';
 import { useProgressiveStore } from '@/stores/useProgressiveStore';
 import { useSettingsStore } from '@/stores/useSettingsStore';
@@ -46,6 +37,7 @@ import { WaypointCard } from './shared/WaypointCard';
 import { isWorkingStatus } from './AgentSidebar';
 import { useWorkers } from './WorkerPanel';
 import { EASE } from './shared/constants';
+import { DecisionEvidenceMap } from './DecisionEvidenceMap';
 
 /* ─── Empty chart — the map has an identity before the first fork is logged ─── */
 function EmptyChart() {
@@ -61,8 +53,8 @@ function EmptyChart() {
         <Compass size={26} strokeWidth={1.4} />
       </motion.div>
       <p className="text-[11px] leading-[1.55] text-[var(--text-tertiary)] max-w-[180px]">
-        {L('이 결정의 갈림길이 여기 해도로 그려져요. 답을 고르고 항로를 바꿀 때마다 길이 이어져요.',
-           "This decision's forks chart here. Each answer and course-change extends the route.")}
+        {L('답을 고르거나 이전 답으로 돌아가면 결정의 갈래가 여기에 기록돼요.',
+           'Decision branches appear here as you answer or return to an earlier choice.')}
       </p>
     </div>
   );
@@ -119,15 +111,15 @@ function VoyageMapHero() {
       {/* Eyebrow + full-chart entry */}
       <div className="flex items-center justify-between mb-2">
         <span className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--accent)]">
-          <Compass size={11} /> {L('해도', 'Chart')}
+          <Compass size={11} /> {L('결정 갈래', 'Decision branches')}
         </span>
         {hasChart && (
           <button
             onClick={() => setChartOpen(true)}
-            title={L('전체 해도 — 지나온 길의 어느 지점으로든 되돌아가기', 'Full chart — step back to any point on the route')}
+            title={L('전체 결정 지도 — 이전 지점으로 돌아가기', 'Full decision map — return to an earlier point')}
             className="inline-flex items-center gap-1 text-[10px] text-[var(--text-tertiary)] hover:text-[var(--accent)] transition-colors cursor-pointer"
           >
-            <Maximize2 size={10} /> {L('전체 해도', 'Full chart')}
+            <Maximize2 size={10} /> {L('전체 결정 지도', 'Full decision map')}
           </button>
         )}
       </div>
@@ -196,12 +188,12 @@ function VoyageMapHero() {
       {/* Single-course nudge → toward the product's core "take another path". */}
       {hasChart && !multiBranch && waypoints.length > 0 && (
         <p className="mt-2 px-0.5 text-[10px] leading-[1.5] text-[var(--text-tertiary)]">
-          {L('아직 한 갈래예요. 위 해도에서 갈림길로 돌아가 다른 길을 내볼 수 있어요.',
-             'One course so far. Step back to a fork on the chart above to try another path.')}
+          {L('아직 한 갈래예요. 위 지도에서 이전 지점으로 돌아가 다른 답을 선택할 수 있어요.',
+             'There is one branch so far. Return to an earlier point above to try a different answer.')}
         </p>
       )}
 
-      <Modal open={chartOpen} onClose={() => setChartOpen(false)} title={L('전체 해도', 'Full chart')} widthClass="max-w-2xl">
+      <Modal open={chartOpen} onClose={() => setChartOpen(false)} title={L('전체 결정 지도', 'Full decision map')} widthClass="max-w-2xl">
         <VoyageChart onNavigated={() => setChartOpen(false)} />
       </Modal>
     </div>
@@ -231,8 +223,8 @@ function CollapsedSpine({ onExpand }: { onExpand: () => void }) {
   return (
     <button
       onClick={onExpand}
-      title={L('항해 지도 펼치기', 'Expand voyage map')}
-      aria-label={L('항해 지도 펼치기', 'Expand voyage map')}
+      title={L('판단 지도 펼치기', 'Expand decision map')}
+      aria-label={L('판단 지도 펼치기', 'Expand decision map')}
       className="w-12 h-full flex flex-col items-center pt-4 gap-4 cursor-pointer group hover:bg-[var(--accent)]/[0.04] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--accent)]/50"
     >
       <span className="w-9 h-9 rounded-lg flex items-center justify-center text-[var(--text-tertiary)] group-hover:text-[var(--accent)] transition-colors">
@@ -240,7 +232,7 @@ function CollapsedSpine({ onExpand }: { onExpand: () => void }) {
       </span>
 
       <span className="text-[9px] font-bold uppercase tracking-[0.2em] text-[var(--text-tertiary)] group-hover:text-[var(--accent)] [writing-mode:vertical-rl] rotate-180 transition-colors">
-        {L('항해 지도', 'Voyage map')}
+        {L('판단 지도', 'Decision map')}
       </span>
 
       {/* Glanceable counts */}
@@ -252,13 +244,13 @@ function CollapsedSpine({ onExpand }: { onExpand: () => void }) {
           </span>
         )}
         {branchCount > 1 && (
-          <span className="flex flex-col items-center gap-0.5" title={L('항로 갈래', 'Courses')}>
+          <span className="flex flex-col items-center gap-0.5" title={L('결정 갈래', 'Decision branches')}>
             <GitBranch size={12} className="text-[var(--accent)]/70" />
             <span className="text-[9px] font-semibold text-[var(--text-secondary)] tabular-nums">{branchCount}</span>
           </span>
         )}
         {running > 0 && (
-          <span className="relative flex items-center justify-center" title={L('분석 중인 팀원', 'Crew analyzing')}>
+          <span className="relative flex items-center justify-center" title={L('분석 중인 AI 검토자', 'AI reviewers working')}>
             <span className="absolute w-3 h-3 rounded-full bg-[var(--accent)]/25 animate-ping" />
             <span className="w-2 h-2 rounded-full bg-[var(--accent)]" />
           </span>
@@ -274,6 +266,7 @@ export function VoyageMapRail() {
   const L = (ko: string, en: string) => (locale === 'ko' ? ko : en);
   const collapsed = useSettingsStore(s => s.settings.voyage_map_collapsed ?? false);
   const updateSettings = useSettingsStore(s => s.updateSettings);
+  const [view, setView] = useState<'evidence' | 'route'>('route');
 
   if (collapsed) {
     return (
@@ -289,31 +282,53 @@ export function VoyageMapRail() {
       animate={{ opacity: 1, x: 0 }}
       transition={{ duration: 0.4, ease: EASE }}
       className="w-72 xl:w-80 h-full overflow-y-auto border-r border-[var(--border-subtle)]/50 bg-[var(--bg)]/40 pb-8"
-      aria-label={L('항해 지도', 'Voyage map')}
+      aria-label={L('판단 지도', 'Decision map')}
     >
       {/* Rail header */}
       <div className="flex items-center justify-between px-4 pt-4 sticky top-0 z-10 bg-[var(--bg)]/80 backdrop-blur-sm pb-2">
         <span className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.14em] text-[var(--text-secondary)]">
-          <MapIcon size={13} className="text-[var(--accent)]" /> {L('항해 지도', 'Voyage map')}
+          <SearchCheck size={13} className="text-[var(--accent)]" /> {L('판단 지도', 'Decision map')}
         </span>
         <button
           onClick={() => updateSettings({ voyage_map_collapsed: true })}
-          title={L('지도 접기', 'Collapse map')}
-          aria-label={L('지도 접기', 'Collapse map')}
+          title={L('판단 지도 접기', 'Collapse decision map')}
+          aria-label={L('판단 지도 접기', 'Collapse decision map')}
           className="w-7 h-7 rounded-lg flex items-center justify-center text-[var(--text-tertiary)] hover:text-[var(--accent)] hover:bg-[var(--accent)]/8 transition-colors cursor-pointer"
         >
           <PanelLeftClose size={14} />
         </button>
       </div>
 
-      {/* The unified map: chart + the tapped-turn card. The parallel Logbook
+      <div className="mx-4 mb-3 grid grid-cols-2 border-b border-[var(--border-subtle)]" role="tablist" aria-label={L('판단 지도 보기', 'Decision map view')}>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={view === 'route'}
+          onClick={() => setView('route')}
+          className={`inline-flex min-h-10 items-center justify-center gap-1.5 border-b-2 text-[11px] font-semibold transition-colors ${view === 'route' ? 'border-[var(--accent)] text-[var(--text-primary)]' : 'border-transparent text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]'}`}
+        >
+          <MapIcon size={12} /> {L('갈래', 'Branches')}
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={view === 'evidence'}
+          onClick={() => setView('evidence')}
+          className={`inline-flex min-h-10 items-center justify-center gap-1.5 border-b-2 text-[11px] font-semibold transition-colors ${view === 'evidence' ? 'border-[var(--accent)] text-[var(--text-primary)]' : 'border-transparent text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]'}`}
+        >
+          <SearchCheck size={12} /> {L('근거', 'Evidence')}
+        </button>
+      </div>
+
+      {/* Route remains the visual first view; evidence is its operational peer.
+          The route keeps the chart + tapped turn card. The parallel Logbook
           list was removed here (voyage redesign step 4) — it re-stated the same
           waypoints the chart already shows. A turn's narration now lives in one
           place: tap its point on the chart. The full vertical trail survives as
           the mobile bottom-drawer (LogbookDrawer) where there's no room for a
           map. Crew activity stays out of the rail too (duplicated by the
           left-column "선원들이 일하고 있어요" header). */}
-      <VoyageMapHero />
+      {view === 'evidence' ? <DecisionEvidenceMap /> : <VoyageMapHero />}
     </motion.aside>
   );
 }

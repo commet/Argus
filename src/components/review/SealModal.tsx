@@ -13,6 +13,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useReducedMotion } from 'framer-motion';
+import { ChevronDown, X } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { SealStamp } from '@/components/workspace/progressive/SealStamp';
@@ -50,6 +51,7 @@ export function SealModal({
   const [pass, setPass] = useState(selected?.pass_condition ?? '');
   const [fail, setFail] = useState(selected?.fail_condition ?? '');
   const [checkBy, setCheckBy] = useState(selected?.check_by ?? '');
+  const [showCriteria, setShowCriteria] = useState(false);
 
   const pickFollowup = (f: FalsifiableFollowup) => {
     setSelectedId(f.followup_id);
@@ -71,6 +73,18 @@ export function SealModal({
   const reducedMotion = useReducedMotion();
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => () => { if (timerRef.current) clearTimeout(timerRef.current); }, []);
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && !stamping && !busy) onClose();
+    };
+    document.body.style.overflow = 'hidden';
+    window.addEventListener('keydown', closeOnEscape);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener('keydown', closeOnEscape);
+    };
+  }, [busy, onClose, stamping]);
   const stampDate = /^\d{4}-\d{2}-\d{2}$/.test(checkBy)
     ? `${Number(checkBy.slice(5, 7))}.${Number(checkBy.slice(8, 10))}`
     : '';
@@ -81,117 +95,154 @@ export function SealModal({
     onSeal(selected?.followup_id ?? '', { predicate, lean, key_assumption: assumption, pass_condition: pass, fail_condition: fail, check_by: checkBy });
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40" onClick={stamping ? undefined : onClose}>
-      <div className="relative w-full max-w-lg max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 p-3 backdrop-blur-[2px] sm:p-5" onClick={stamping ? undefined : onClose}>
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="record-judgment-title"
+        aria-describedby="record-judgment-description"
+        className="relative w-full max-w-xl max-h-[calc(100dvh-1.5rem)] overflow-y-auto sm:max-h-[90vh]"
+        onClick={(e) => e.stopPropagation()}
+      >
         {stamping && (
-          <div className="absolute inset-0 z-10 flex items-center justify-center rounded-2xl bg-[var(--surface)]/85">
+          <div className="absolute inset-0 z-10 flex items-center justify-center rounded-lg bg-[var(--surface)]/85">
             <SealStamp animate date={stampDate} />
           </div>
         )}
         <Card variant="elevated">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-[16px] font-bold text-[var(--text-primary)]">{L('이 판단을 내가 소유하기', 'Own this judgment')}</h3>
-            <button onClick={onClose} className="text-[var(--text-tertiary)] text-[18px] leading-none">×</button>
+          <div className="mb-4 flex items-start justify-between gap-4">
+            <div>
+              <h3 id="record-judgment-title" className="text-[18px] font-bold text-[var(--text-primary)]">
+                {L('내 판단으로 기록하기', 'Record as my judgment')}
+              </h3>
+              <p id="record-judgment-description" className="mt-1 text-[12px] leading-relaxed text-[var(--text-secondary)]">
+                {L(
+                  '확인할 질문과 날짜만 정하면 됩니다. 그날 Argus가 다시 가져올게요.',
+                  'Choose one question and a date. Argus will bring it back then.',
+                )}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={stamping || busy}
+              aria-label={L('닫기', 'Close')}
+              title={L('닫기', 'Close')}
+              className="grid h-8 w-8 shrink-0 place-items-center rounded text-[var(--text-tertiary)] hover:bg-black/[0.04] hover:text-[var(--text-primary)] disabled:opacity-40 dark:hover:bg-white/[0.06]"
+            >
+              <X size={17} />
+            </button>
           </div>
           {obligation && (
-            <div className="mb-3 rounded-lg bg-[var(--accent)]/[0.05] px-3 py-2">
-              <div className="text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--accent)] mb-0.5">{L('내가 소유하는 판단', 'The judgment I own')}</div>
-              <p className="text-[13px] leading-snug text-[var(--text-primary)]">{obligation.statement}</p>
+            <div className="mb-4 rounded-sm bg-[var(--accent)]/[0.045] px-3 py-2.5">
+              <div className="mb-1 text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--accent)]">
+                {L('기록할 판단', 'Judgment to record')}
+              </div>
+              <p className="text-[13px] leading-relaxed text-[var(--text-primary)]">{obligation.statement}</p>
             </div>
           )}
-          <p className="text-[12px] text-[var(--text-secondary)] mb-1.5">
-            {obligation
-              ? L(
-                  '이 판단을 내 것으로 봉인하고, 나중에 현실이 맞다/틀리다로 답할 확인 예측을 하나 겁니다. Argus가 판단하지 않습니다 — 확인일에 당신이 정산합니다.',
-                  "Own this judgment, and commit to one prediction reality will later answer. Argus does not judge — you settle it on the check-in date.",
-                )
-              : L(
-                  '나중에 현실이 맞다/틀리다로 답할 예측을 하나 봉인합니다. Argus가 판단하지 않습니다 — 확인일에 당신이 정산합니다.',
-                  "Seal one prediction that reality will later answer as right or wrong. Argus does not judge — you settle it on the check-in date.",
-                )}
-          </p>
-          {/* Email disclosure (04 S5): the Companion Brief mails this prediction on
-              its check-in date — say so BEFORE the seal, not after the send. */}
-          <p className="text-[11.5px] text-[var(--text-tertiary)] mb-4">
-            {L(
-              '확인일이 오면 이 예측을 이메일로 돌려드려요 — 정산을 위한 한 통이고, 그 외 메일은 없어요.',
-              'When the check-in date arrives, this prediction comes back to you by email — one message for the settlement, nothing else.',
-            )}
-          </p>
 
           {followups.length > 1 && (
-            <div className="flex flex-wrap gap-1.5 mb-3">
-              {followups.map((f) => (
-                <button
-                  key={f.followup_id}
-                  onClick={() => pickFollowup(f)}
-                  className={`px-2 py-1 text-[11px] rounded-full border ${
-                    f.followup_id === selectedId
-                      ? 'border-[var(--accent)] text-[var(--accent)]'
-                      : 'border-[var(--border-subtle)] text-[var(--text-secondary)]'
-                  }`}
-                >
-                  {f.predicate.slice(0, 18)}…
-                </button>
-              ))}
+            <div className="mb-3">
+              <label htmlFor="followup-suggestion" className="mb-1 block text-[11px] font-semibold text-[var(--text-secondary)]">
+                {L('Argus가 찾은 확인 질문', 'Check-in question suggested by Argus')}
+              </label>
+              <select
+                id="followup-suggestion"
+                value={selectedId}
+                onChange={(event) => {
+                  const followup = followups.find((item) => item.followup_id === event.target.value);
+                  if (followup) pickFollowup(followup);
+                }}
+                className="w-full rounded border border-[var(--border-subtle)] bg-[var(--surface)] px-3 py-2 text-[12px] text-[var(--text-primary)] outline-none focus:border-[var(--accent)]"
+              >
+                {followups.map((followup) => <option key={followup.followup_id} value={followup.followup_id}>{followup.predicate}</option>)}
+              </select>
             </div>
           )}
 
-          <label className="block text-[11px] font-bold text-[var(--text-secondary)] mb-1">
-            {L('내가 책임질 예측', 'The prediction I own')} {selected?.predicate_owner === 'ai_surfaced' && <span className="text-[var(--text-tertiary)] font-normal">{L('(Argus 초안 — 당신 말로 고쳐 쓰세요)', "(Argus draft — rewrite it in your own words)")}</span>}
+          <label htmlFor="record-predicate" className="mb-1 block text-[12px] font-bold text-[var(--text-primary)]">
+            {L('나중에 무엇을 확인할까요?', 'What should we check later?')}
           </label>
+          <p className="mb-2 text-[11px] leading-relaxed text-[var(--text-tertiary)]">
+            {selected?.predicate_owner === 'ai_surfaced'
+              ? L('Argus가 문서에서 뽑은 초안입니다. 실제로 답할 수 있는 질문이 되도록 고쳐도 됩니다.', 'This is an Argus draft from the document. Edit it into a question reality can answer.')
+              : L('결과를 보고 분명하게 답할 수 있는 질문으로 적어주세요.', 'Write a question the outcome can answer clearly.')}
+          </p>
           <textarea
+            id="record-predicate"
             value={predicate}
             onChange={(e) => setPredicate(e.target.value)}
             maxLength={400}
-            className="w-full h-20 resize-y px-3 py-2 rounded-lg border border-[var(--border-subtle)] bg-transparent text-[13px] outline-none"
+            className="h-20 w-full resize-y rounded border border-[var(--border-subtle)] bg-transparent px-3 py-2 text-[13px] leading-relaxed outline-none focus:border-[var(--accent)]"
           />
 
-          {/* The user writes their own lean + assumption. Argus never fills a
-              pole here — that would tilt the judgment (spine §Ownership Modal). */}
-          <div className="grid grid-cols-1 gap-2 mt-3">
-            <div>
-              <label className="block text-[11px] font-bold text-[var(--text-secondary)] mb-1">
-                {L('지금 내 예상', 'My lean right now')} <span className="text-[var(--text-tertiary)] font-normal">{L('(내 판단 — 당신이 직접)', '(your judgment — in your own words)')}</span>
-              </label>
-              <input value={lean} onChange={(e) => setLean(e.target.value)} maxLength={200}
-                placeholder={L('예: 그래도 이번 분기엔 리빌드가 맞다고 본다', 'e.g. I still think the rebuild is right this quarter')}
-                className="w-full px-3 py-2 rounded-lg border border-[var(--border-subtle)] bg-transparent text-[13px] outline-none placeholder:text-[var(--text-tertiary)]" />
-            </div>
-            <div>
-              <label className="block text-[11px] font-bold text-[var(--text-secondary)] mb-1">
-                {L('내가 믿고 있는 핵심 가정', 'The key assumption I am relying on')}
-              </label>
-              <input value={assumption} onChange={(e) => setAssumption(e.target.value)} maxLength={200}
-                placeholder={L('예: 이탈의 주원인이 온보딩 복잡도라는 것', 'e.g. that onboarding complexity is the main cause of churn')}
-                className="w-full px-3 py-2 rounded-lg border border-[var(--border-subtle)] bg-transparent text-[13px] outline-none placeholder:text-[var(--text-tertiary)]" />
-            </div>
+          <div className="mt-3">
+            <label htmlFor="record-check-date" className="mb-1 block text-[12px] font-bold text-[var(--text-primary)]">
+              {L('언제 다시 확인할까요?', 'When should we check again?')}
+            </label>
+            <input
+              id="record-check-date"
+              type="date"
+              value={checkBy}
+              min={today}
+              onChange={(e) => setCheckBy(e.target.value)}
+              className="w-full rounded border border-[var(--border-subtle)] bg-transparent px-3 py-2 text-[13px] outline-none focus:border-[var(--accent)] sm:w-52"
+            />
           </div>
 
-          <div className="grid grid-cols-1 gap-2 mt-3">
-            <div>
-              <label className="block text-[11px] font-bold text-[var(--text-secondary)] mb-1">{L('맞았다고 볼 조건', 'What counts as right')}</label>
-              <input value={pass} onChange={(e) => setPass(e.target.value)} maxLength={200}
-                className="w-full px-3 py-2 rounded-lg border border-[var(--border-subtle)] bg-transparent text-[13px] outline-none" />
+          <button
+            type="button"
+            onClick={() => setShowCriteria((value) => !value)}
+            aria-expanded={showCriteria}
+            className="mt-4 flex w-full items-center justify-between border-y border-[var(--border-subtle)] py-2.5 text-left text-[12px] font-semibold text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+          >
+            <span>{L('판단 기준 더하기', 'Add judgment criteria')} <span className="font-normal text-[var(--text-tertiary)]">{L('(선택)', '(optional)')}</span></span>
+            <ChevronDown size={15} className={`transition-transform ${showCriteria ? 'rotate-180' : ''}`} />
+          </button>
+
+          {showCriteria && (
+            <div className="mt-3 grid grid-cols-1 gap-3 border-b border-[var(--border-subtle)] pb-4 sm:grid-cols-2">
+              <div>
+                <label htmlFor="record-pass" className="mb-1 block text-[11px] font-bold text-[var(--text-secondary)]">{L('이 정도면 맞았다고 봄', 'This would count as right')}</label>
+                <input id="record-pass" value={pass} onChange={(e) => setPass(e.target.value)} maxLength={200}
+                  className="w-full rounded border border-[var(--border-subtle)] bg-transparent px-3 py-2 text-[12px] outline-none focus:border-[var(--accent)]" />
+              </div>
+              <div>
+                <label htmlFor="record-fail" className="mb-1 block text-[11px] font-bold text-[var(--text-secondary)]">{L('이러면 다시 생각해야 함', 'This would make me reconsider')}</label>
+                <input id="record-fail" value={fail} onChange={(e) => setFail(e.target.value)} maxLength={200}
+                  className="w-full rounded border border-[var(--border-subtle)] bg-transparent px-3 py-2 text-[12px] outline-none focus:border-[var(--accent)]" />
+              </div>
+              {!obligation && (
+                <>
+                  <div>
+                    <label htmlFor="record-lean" className="mb-1 block text-[11px] font-bold text-[var(--text-secondary)]">{L('지금 내 예상', 'My expectation now')}</label>
+                    <input id="record-lean" value={lean} onChange={(e) => setLean(e.target.value)} maxLength={200}
+                      className="w-full rounded border border-[var(--border-subtle)] bg-transparent px-3 py-2 text-[12px] outline-none focus:border-[var(--accent)]" />
+                  </div>
+                  <div>
+                    <label htmlFor="record-assumption" className="mb-1 block text-[11px] font-bold text-[var(--text-secondary)]">{L('기대고 있는 가정', 'Assumption I rely on')}</label>
+                    <input id="record-assumption" value={assumption} onChange={(e) => setAssumption(e.target.value)} maxLength={200}
+                      className="w-full rounded border border-[var(--border-subtle)] bg-transparent px-3 py-2 text-[12px] outline-none focus:border-[var(--accent)]" />
+                  </div>
+                </>
+              )}
             </div>
-            <div>
-              <label className="block text-[11px] font-bold text-[var(--text-secondary)] mb-1">{L('틀렸다고 볼 조건', 'What counts as wrong')}</label>
-              <input value={fail} onChange={(e) => setFail(e.target.value)} maxLength={200}
-                className="w-full px-3 py-2 rounded-lg border border-[var(--border-subtle)] bg-transparent text-[13px] outline-none" />
-            </div>
-            <div>
-              <label className="block text-[11px] font-bold text-[var(--text-secondary)] mb-1">{L('확인 날짜', 'Check-in date')}</label>
-              <input type="date" value={checkBy} min={today} onChange={(e) => setCheckBy(e.target.value)}
-                className="w-full px-3 py-2 rounded-lg border border-[var(--border-subtle)] bg-transparent text-[13px] outline-none" />
-            </div>
-          </div>
+          )}
+
+          <p className="mt-4 text-[11px] leading-relaxed text-[var(--text-tertiary)]">
+            {L(
+              '확인 날짜에 이 질문을 이메일로 한 번 보내드려요. 결과는 Argus가 판정하지 않고, 당신이 직접 기록합니다.',
+              'On the check-in date, we send this question once by email. Argus does not grade it; you record the outcome.',
+            )}
+          </p>
 
           {error && <p className="mt-3 text-[12px] text-red-600">{error}</p>}
-          <div className="flex gap-2 mt-5">
+          <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row">
             <Button
               variant="accent"
               size="md"
-              className="transition-transform duration-150 active:scale-[0.96]"
+              className="transition-transform duration-150 active:scale-[0.98]"
               onClick={() => {
                 if (stamping || busy) return;
                 // Obligation seal is a network commit — go straight to it (the
@@ -202,9 +253,8 @@ export function SealModal({
                 timerRef.current = setTimeout(commitSeal, 480);
               }}
               disabled={!canSeal || stamping || busy}
-              style={canSeal ? undefined : { opacity: 0.5 }}
             >
-              {busy ? L('봉인 중…', 'Sealing…') : obligation ? L('봉인하기', 'Own & seal') : L('봉인하기', 'Seal')}
+              {busy ? L('기록 중…', 'Recording…') : L('이 판단 기록하기', 'Record this judgment')}
             </Button>
             <Button variant="ghost" size="md" onClick={onClose} disabled={stamping || busy}>
               {L('취소', 'Cancel')}

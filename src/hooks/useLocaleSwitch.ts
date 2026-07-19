@@ -26,13 +26,13 @@ export function useLocaleSwitch() {
     if (next === locale) return;
 
     // A locale switch navigates and remounts; confirm before discarding any
-    // in-flight voyage work (engine streaming / workers running).
+    // in-flight decision work (engine streaming / reviewers running).
     const inFlight = useProgressiveStore.getState().isBranchingLocked();
     if (inFlight && typeof window !== 'undefined') {
       const ok = window.confirm(
         locale === 'ko'
-          ? '진행 중인 항해가 있어요. 언어를 바꾸면 페이지를 새로 불러와 진행 중인 작업이 중단됩니다. 계속할까요?'
-          : 'A voyage is in progress. Switching language reloads the page and interrupts the running work. Continue?',
+          ? '진행 중인 분석이 있어요. 언어를 바꾸면 페이지를 새로 불러와 작업이 중단됩니다. 계속할까요?'
+          : 'An analysis is in progress. Switching language reloads the page and interrupts it. Continue?',
       );
       if (!ok) return;
     }

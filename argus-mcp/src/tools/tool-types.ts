@@ -80,7 +80,7 @@ const KO_FIELD_DESCRIPTIONS: Record<string, string> = {
   load_bearing: '틀리면 결정이 바뀌는 핵심 전제인지 표시합니다.',
   recheck_cadence_days: '전제 사실을 다시 확인할 간격(일)입니다.',
   reponder_cadence_days: '미결 질문을 다시 볼 간격(일)입니다.',
-  reconsider_cadence_days: 'reponder_cadence_days의 호환 별칭입니다.',
+  reconsider_cadence_days: '미결 질문을 다시 살펴볼 간격(일)입니다.',
   predicate: '현실이 참/거짓으로 확인할 수 있는 예측입니다.',
   check_by: '예측을 현실과 대조할 미래 확인일(YYYY-MM-DD)입니다.',
   predicate_owner: '예측 문장의 작성 주체입니다. 출처를 꾸미지 않습니다.',
@@ -106,7 +106,7 @@ const KO_FIELD_DESCRIPTIONS: Record<string, string> = {
   view: '불러올 기록의 종류입니다.',
   due_only: '확인일이 된 기록만 표시합니다.',
   limit: '표시할 최대 기록 수입니다.',
-  import_settlements: '웹에서 기록한 실제 결과를 로컬 원장으로 가져옵니다.',
+  import_settlements: '웹에서 기록한 실제 결과를 로컬 판단 기록으로 가져옵니다.',
   push_local: '계정에 닿지 못한 로컬 변경을 다시 보냅니다.',
   dismiss_reason: '결정을 더는 추적하지 않는 이유입니다.',
   candidate_id: '포착된 결정 후보 id입니다.',
@@ -183,7 +183,7 @@ const EN_FIELD_DESCRIPTIONS: Record<string, string> = {
   ambient_mute: 'Hide due reminder lines during the session.',
   premise_sync: 'When explicitly enabled, sync tracked premises with the account.',
   due_only: 'Sync only records whose check date has arrived.',
-  import_settlements: 'Import results recorded on the web into the local ledger.',
+  import_settlements: 'Import results recorded on the web into the local decision record.',
   push_local: 'Retry local changes that have not reached the account.',
 };
 

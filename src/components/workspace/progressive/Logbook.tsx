@@ -9,7 +9,7 @@
  *   - switch  — branch chips (when more than one course-line exists)
  *   - fork    — "이 길 가보기" on a course-change's road-not-taken
  *   - anchor  — "이 항로로 확정" once you've explored alternatives
- *   - 전체 해도 — opens the spatial VoyageChart in a modal (the exploration view)
+ *   - 전체 결정 지도 — opens the spatial VoyageChart in a modal (the exploration view)
  *
  * Branch membership is derived (not stored) via the shared `getActivePath`.
  * Branch mutations are blocked while the engine is mid-stream (working phase) to
@@ -79,20 +79,20 @@ export function Logbook({ hideChartButton = false }: { hideChartButton?: boolean
   if (waypoints.length === 0) {
     if (!session) return null;
     return (
-      <aside className="px-4 py-4" aria-label={L('항해일지', "Ship's log")}>
+      <aside className="px-4 py-4" aria-label={L('결정 기록', 'Decision log')}>
         <h3 className="text-[12px] font-bold text-[var(--text-primary)] tracking-tight mb-2.5">
-          {L('항해일지', "Ship's log")}
+          {L('결정 기록', 'Decision log')}
         </h3>
         <div className="rounded-xl border border-dashed border-[var(--border-subtle)] px-3 py-4 space-y-1.5">
           <div className="flex items-center gap-1.5">
             <Compass size={13} className="text-[var(--accent)]/60 shrink-0" />
             <span className="text-[11.5px] font-medium text-[var(--text-secondary)]">
-              {L('아직 항해 기록이 없어요', 'No log entries yet')}
+              {L('아직 결정 기록이 없어요', 'No decision entries yet')}
             </span>
           </div>
           <p className="text-[10.5px] leading-[1.5] text-[var(--text-tertiary)]">
-            {L('분석이 진행되면 결정의 흐름 — 항로를 바꾼 순간들 — 이 여기 차곡차곡 쌓여요.',
-               'As the analysis unfolds, your decision trail — the moments you changed course — collects here.')}
+            {L('분석이 진행되면 결정의 흐름 — 방향을 바꾼 순간들 — 이 여기 차곡차곡 쌓여요.',
+               'As the analysis unfolds, your decision trail — the moments you changed direction — collects here.')}
           </p>
         </div>
       </aside>
@@ -100,21 +100,21 @@ export function Logbook({ hideChartButton = false }: { hideChartButton?: boolean
   }
 
   return (
-    <aside className="px-4 py-4" aria-label={L('항해일지', "Ship's log")}>
+    <aside className="px-4 py-4" aria-label={L('결정 기록', 'Decision log')}>
       {/* Header */}
       <div className="flex items-center justify-between mb-2.5">
         <h3 className="text-[12px] font-bold text-[var(--text-primary)] tracking-tight">
-          {L('항해일지', "Ship's log")}
+          {L('결정 기록', 'Decision log')}
         </h3>
         {/* When embedded under the Voyage Map hero (which owns the chart), the
-            hero's "전체 해도" button is the single chart entry point — suppress
+            hero's "전체 결정 지도" button is the single chart entry point — suppress
             this duplicate. Standalone (mobile drawer, classic) keeps it. */}
         {!hideChartButton && (
           <button
             onClick={() => setChartOpen(true)}
             className="inline-flex items-center gap-1 text-[10.5px] text-[var(--text-tertiary)] hover:text-[var(--accent)] transition-colors cursor-pointer"
           >
-            <MapIcon size={11} /> {L('전체 해도', 'Full chart')}
+            <MapIcon size={11} /> {L('전체 결정 지도', 'Full decision map')}
           </button>
         )}
       </div>
@@ -206,7 +206,7 @@ export function Logbook({ hideChartButton = false }: { hideChartButton?: boolean
           owns the single chart entry point), nothing can open this Modal, so we
           don't mount it — the hero's chart is the one source of truth. */}
       {!hideChartButton && (
-        <Modal open={chartOpen} onClose={() => setChartOpen(false)} title={L('전체 해도', 'Full chart')}>
+        <Modal open={chartOpen} onClose={() => setChartOpen(false)} title={L('전체 결정 지도', 'Full decision map')}>
           <VoyageChart onNavigated={() => setChartOpen(false)} />
         </Modal>
       )}
@@ -239,7 +239,7 @@ export function LogbookDrawer({ offset }: { offset?: boolean }) {
         >
           <span className="flex items-center gap-2 text-[13px] font-semibold text-[var(--text-primary)]">
             <Compass size={15} className="text-[var(--accent)]" />
-            {L('항해일지', "Ship's log")}
+            {L('결정 기록', 'Decision log')}
             <span className="text-[11px] font-normal text-[var(--text-tertiary)] tabular-nums">{count}</span>
           </span>
           <ChevronUp size={16} className="text-[var(--text-tertiary)]" />

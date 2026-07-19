@@ -117,7 +117,7 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/decision-ledger.js" record \
 - **쓰기 검증**: 명령 성공 후 `/argus:predict --list`(또는 `status`)로 방금 봉인이
   잡히는지 확인. 실패했다면 다시 실행 — CLI는 append-only라 재실행이 안전하다.
 - `.argus/ledger/` 생성 시 `.argus/.gitignore`에 `ledger/` 줄이 있는지 확인하고
-  없으면 추가 (sail Step 0 프라이버시 기본값 — preapprove이 원장을 처음 만드는
+  없으면 추가 (sail Step 0 프라이버시 기본값 — preapprove이 판단 기록을 처음 만드는
   경우도 있으므로 여기서도 보장한다).
 - 거절은 1탭, 무손실. 재촉 금지.
 
@@ -127,7 +127,7 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/decision-ledger.js" record \
 시작에 한 줄: `지난번 그 계획 — 그래서, 어떻게 됐어요?` → `/argus:resolve` 안내
 (플러그인의 정산 스킬 — 같은 ledger를 읽고 쓴다). pending = check_by 연장
 (amend, 이력 보존). `argus-watch` CLI가 설치된 환경에서는 `argus-watch settle
-<id>`도 같은 결과를 낸다 — 어느 쪽이든 원장은 하나다.
+<id>`도 같은 결과를 낸다 — 어느 쪽이든 판단 기록은 하나다.
 
 ## --full (opt-in 전용) — C 분기 탐침
 

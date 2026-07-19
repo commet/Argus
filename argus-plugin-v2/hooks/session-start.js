@@ -167,8 +167,8 @@ function main(input) {
   const fresh = cursor !== null && cursor[1] === (lastEventId ?? 'none');
 
   if (!fresh) {
-    lines.push('Argus: 이 워크스페이스의 LOGBOOK projection이 원장보다 뒤처져 있거나 없습니다. ' +
-      '`argus_check_in`을 호출하면 자동 재생성됩니다 (원장이 정본, LOGBOOK은 언제든 다시 태어납니다).');
+    lines.push('Argus: 이 워크스페이스의 LOGBOOK이 최신 판단 기록보다 뒤처져 있거나 없습니다. ' +
+      '`argus_check_in`을 호출하면 자동 재생성됩니다 (판단 기록은 보존되고, LOGBOOK은 언제든 다시 만들 수 있습니다).');
   }
   // fresh일 때 due 건수는 여기서 발화하지 않는다 (O3 방2): SessionStart의 due
   // 발화 소유자는 check-contracts.js 하나다 — 그쪽이 두 평면(프로젝트 v1 UNION

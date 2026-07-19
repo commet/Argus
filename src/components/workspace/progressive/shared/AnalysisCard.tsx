@@ -39,6 +39,38 @@ function firstSentence(text: string): string {
   return (m ? m[0] : text).trim();
 }
 
+/**
+ * Turn an insight into an editorial headline + supporting line.
+ *
+ * Older snapshots sometimes begin with model commentary such as
+ * "'막혀 있다'는 표현이 핵심이에요 — …". That describes the writing instead
+ * of helping the user read the decision, so strip that preamble at render time.
+ * New prompts already ask for two clean sentences, but this keeps saved sessions
+ * readable too.
+ */
+function splitCourseSummary(text: string): { thesis: string; support: string | null } {
+  const metaLead = /(?:표현|말|단어).{0,18}(?:핵심|중요)|(?:phrase|word).{0,20}(?:key|important)/i;
+  const dashParts = text.trim().split(/\s+[—–]\s+/).filter(Boolean);
+  const cleaned = dashParts.length > 1 && metaLead.test(dashParts[0])
+    ? dashParts.slice(1).join(' — ')
+    : text.trim();
+
+  const sentences = cleaned.match(/^([\s\S]*?[.!?])(?:\s+)([\s\S]+)$/);
+  if (sentences && sentences[2].trim()) {
+    return { thesis: sentences[1].trim(), support: sentences[2].trim() };
+  }
+
+  const semanticParts = cleaned.split(/\s+[—–]\s+/).filter(Boolean);
+  if (semanticParts.length > 1) {
+    return {
+      thesis: semanticParts[0].trim(),
+      support: semanticParts.slice(1).join(' — ').trim(),
+    };
+  }
+
+  return { thesis: cleaned, support: null };
+}
+
 interface AnalysisCardProps {
   snapshot: AnalysisSnapshot;
   prevSnapshot: AnalysisSnapshot | null;
@@ -49,6 +81,8 @@ interface AnalysisCardProps {
    *  toggle. Used during the Q&A loop so the user isn't buried in
    *  accumulating analysis cards while still answering. */
   defaultCollapsed?: boolean;
+  /** Number of user answers already reflected in this snapshot. */
+  answerCount?: number;
 }
 
 export function AnalysisCard({
@@ -58,9 +92,10 @@ export function AnalysisCard({
   showExecutionPlan = false,
   locale = 'ko',
   defaultCollapsed = false,
+  answerCount = 0,
 }: AnalysisCardProps) {
   const L = (ko: string, en: string) => locale === 'ko' ? ko : en;
-  const hasChanges = prevSnapshot && snapshot.version > (prevSnapshot.version ?? 0);
+  const hasChanges = !!prevSnapshot && snapshot.version > (prevSnapshot.version ?? 0);
   const [collapsed, setCollapsed] = useState(defaultCollapsed);
   // Expanded card defaults to a SCANNABLE summary — key insight + step
   // headlines only. The full per-step explanations, the assumptions block,
@@ -81,65 +116,79 @@ export function AnalysisCard({
     : initialOpenInsight;
   const visibleSkeleton = snapshot.version === 0 ? [] : snapshot.skeleton;
   const visibleAssumptions = snapshot.version === 0 ? [] : snapshot.hidden_assumptions;
+  const summaryLine = safeInsight || snapshot.real_question;
+  const courseSummary = splitCourseSummary(summaryLine);
+  const refinementStatus = answerCount > 0
+    ? isActive
+      ? L(`${answerCount}개 답변 반영 · 계속 조정 중`, `${answerCount} answers reflected · still refining`)
+      : L(`${answerCount}개 답변 반영 · 방향 정리됨`, `${answerCount} answers reflected · direction clarified`)
+    : hasChanges
+      ? isActive
+        ? L('방금 답변 반영 · 계속 조정 중', 'Latest answer reflected · still refining')
+        : L('답변 반영 · 방향 정리됨', 'Answer reflected · direction clarified')
+      : L('현재까지의 내용으로 잡은 방향', 'Direction based on what we know so far');
 
   // Compact peek — used during Q&A loop so the card doesn't dominate
   // while the user is still answering. Tap to expand.
   if (collapsed) {
     const stepCount = visibleSkeleton.length;
     const assumeCount = visibleAssumptions.length;
-    // Show the DOCUMENT, not the question. real_question == the question the user
-    // is answering right below it, so echoing it here read as "질문이 두 개".
-    // Lead with the insight (a statement, not a question) + what's accrued so far,
-    // so the collapsed course = a peek at the deliverable, distinct from the Q.
-    const summaryLine = safeInsight || snapshot.real_question;
     return (
       <motion.button
         type="button"
         onClick={() => setCollapsed(false)}
+        aria-label={L('우리가 정리한 방향: 근거와 계획 보기', 'Direction we clarified: view rationale and plan')}
         initial={{ opacity: 0, y: 6 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, ease: EASE }}
-        // No line, no box — whitespace-grouped. The course is something you READ;
-        // it sits a step down the type scale from the question and is set off by
-        // spacing alone. Hover dims slightly to signal it opens.
-        className="w-full text-left flex items-start gap-3 py-1 cursor-pointer group transition-opacity hover:opacity-70"
+        className="w-full text-left grid gap-3 sm:grid-cols-[120px_minmax(0,1fr)] sm:gap-7 py-3 cursor-pointer group rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/35 focus-visible:ring-offset-4 focus-visible:ring-offset-[var(--bg)]"
       >
-        <div className="flex-1 min-w-0">
-          {/* 공정 5-3: the label names its ROLE, not just its title — a first-
-              timer must know this is a hypothesis their answers keep refining. */}
-          <div className={`text-[10px] font-semibold text-[var(--accent)]/85 mb-1.5 ${locale === 'ko' ? 'tracking-[0.02em]' : 'uppercase tracking-[0.14em]'}`}>
-            {L('우리가 잡은 항로', 'Course we plotted')}
-            <span className="ml-1.5 font-normal text-[var(--text-tertiary)] normal-case tracking-normal">
-              {L('· 답할수록 다듬어지는 가설', '· a hypothesis your answers refine')}
+        <div className="min-w-0 sm:pt-0.5">
+          <div className="flex items-center gap-2 mb-1.5" aria-hidden>
+            <span className="h-px w-7 bg-[var(--accent)]/60 transition-[width] duration-300 group-hover:w-9" />
+            <span className="size-1 rounded-full bg-[var(--accent)]/75" />
+          </div>
+          <div className={`text-[10px] font-bold text-[var(--accent)] ${locale === 'ko' ? 'tracking-[0.02em]' : 'uppercase tracking-[0.14em]'}`}>
+            {L('우리가 정리한 방향', 'Direction we clarified')}
+          </div>
+          <p className="mt-1 text-[10.5px] text-[var(--text-tertiary)] leading-[1.5] tabular-nums">
+            {refinementStatus}
+          </p>
+        </div>
+
+        <div className="min-w-0">
+          <p className="text-[17px] md:text-[18px] font-semibold text-[var(--text-primary)] leading-[1.48] tracking-[-0.012em] line-clamp-3" style={{ fontFamily: 'var(--font-display)' }}>
+            {renderText(courseSummary.thesis)}
+          </p>
+          {courseSummary.support && (
+            <p className="mt-1.5 max-w-[65ch] text-[12.5px] md:text-[13px] text-[var(--text-secondary)] leading-[1.65] line-clamp-3">
+              {renderText(courseSummary.support)}
+            </p>
+          )}
+
+          <div className="mt-3 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[11px] tabular-nums">
+            {(stepCount > 0 || assumeCount > 0) && (
+              <div className="flex items-center gap-2 text-[var(--text-tertiary)]">
+                {stepCount > 0 && <span>{L(`계획 ${stepCount}단계`, `${stepCount}-step plan`)}</span>}
+                {stepCount > 0 && assumeCount > 0 && <span aria-hidden>·</span>}
+                {assumeCount > 0 && <span>{L(`확인할 가정 ${assumeCount}개`, `${assumeCount} assumptions to verify`)}</span>}
+              </div>
+            )}
+            <span className="inline-flex items-center gap-1 font-semibold text-[var(--text-secondary)] transition-colors group-hover:text-[var(--accent)]">
+              {L('근거와 계획 보기', 'View rationale and plan')}
+              <ChevronDown size={12} aria-hidden />
             </span>
           </div>
-          {/* This is the screen's MAIN line (the course). It was 14-15px — smaller
-              than the question below it. Anchor it a step up so it reads as the
-              deliverable, and don't clamp a single sentence mid-word. */}
-          <p className="text-[16px] md:text-[17px] text-[var(--text-primary)] leading-[1.5] line-clamp-3" style={{ fontFamily: 'var(--font-display)' }}>
-            {renderText(summaryLine)}
-          </p>
-          {(stepCount > 0 || assumeCount > 0) && (
-            <div className="mt-2 flex items-center gap-2 text-[11px] text-[var(--text-tertiary)] tabular-nums">
-              {stepCount > 0 && <span>{L(`${stepCount}단계 계획`, `${stepCount}-step plan`)}</span>}
-              {stepCount > 0 && assumeCount > 0 && <span aria-hidden>·</span>}
-              {assumeCount > 0 && <span>{L(`가정 ${assumeCount}개`, `${assumeCount} assumptions`)}</span>}
-            </div>
-          )}
-        </div>
-        <div className="shrink-0 flex items-center gap-1 text-[10px] text-[var(--text-tertiary)] mt-0.5 group-hover:text-[var(--accent)] transition-colors">
-          <span>{L('펼치기', 'Expand')}</span>
-          <ChevronDown size={12} />
         </div>
       </motion.button>
     );
   }
 
   const skeletonDiff = hasChanges
-    ? diffItems(prevSnapshot.skeleton, visibleSkeleton)
+    ? diffItems(prevSnapshot!.skeleton, visibleSkeleton)
     : visibleSkeleton.map(s => ({ text: s, status: 'same' as const }));
   const assumptionDiff = hasChanges
-    ? diffItems(prevSnapshot.hidden_assumptions, visibleAssumptions)
+    ? diffItems(prevSnapshot!.hidden_assumptions, visibleAssumptions)
     : visibleAssumptions.map(a => ({ text: a, status: 'same' as const }));
 
   const activeAssumptions = assumptionDiff.filter(d => d.status !== 'removed');
@@ -152,26 +201,31 @@ export function AnalysisCard({
       initial={prevSnapshot ? { opacity: 0.85 } : { opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: prevSnapshot ? 0.3 : 0.6, ease: EASE }}
-      className="rounded-2xl">
-      <div className={`rounded-2xl p-[1px] ${isActive ? 'bg-gradient-to-b from-[var(--accent)]/20 to-[var(--accent)]/5' : 'bg-[var(--border-subtle)]'}`}>
-        <div className="rounded-[calc(1rem-1px)] bg-[var(--surface)] shadow-[inset_0_1px_1px_rgba(255,255,255,0.5)]">
+      className="border-y border-[var(--border)]">
+      <div>
+        <div>
           <div className="p-5 md:p-7">
             {/* Eyebrow + collapse toggle. Eyebrow names the card so the
                 user knows what they're looking at; metaphor labels carry
                 the new "voyage" framing without overcommitting. */}
             <div className="flex items-start justify-between gap-3 mb-1.5">
-              <div className={`text-[10px] font-bold text-[var(--accent)] ${locale === 'ko' ? 'tracking-[0.02em]' : 'uppercase tracking-[0.15em]'}`}>
-                {L('우리가 잡은 항로', 'Course we plotted')}
+              <div>
+                <div className={`text-[10px] font-bold text-[var(--accent)] ${locale === 'ko' ? 'tracking-[0.02em]' : 'uppercase tracking-[0.15em]'}`}>
+                  {L('우리가 정리한 방향', 'Direction we clarified')}
+                </div>
+                <p className="mt-1 text-[10.5px] text-[var(--text-tertiary)] tabular-nums">
+                  {refinementStatus}
+                </p>
               </div>
               {defaultCollapsed && (
                 <button
                   type="button"
                   onClick={() => setCollapsed(true)}
                   className="shrink-0 inline-flex items-center gap-0.5 text-[10px] text-[var(--text-tertiary)] hover:text-[var(--accent)] transition-colors -mt-0.5"
-                  aria-label={L('접기', 'Collapse')}
+                  aria-label={L('방향 요약으로 접기', 'Collapse to direction summary')}
                 >
                   <ChevronUp size={11} />
-                  <span>{L('접기', 'Collapse')}</span>
+                  <span>{L('방향 요약으로', 'Direction summary')}</span>
                 </button>
               )}
             </div>
@@ -180,13 +234,14 @@ export function AnalysisCard({
                 user already knows the pattern. */}
             {!prevSnapshot && (
               <p className="text-[12px] text-[var(--text-secondary)] leading-relaxed mb-3">
-                {L('이 방향이 맞나요? 한 번 더 짚어볼게요.', "Does this heading look right? We'll check once more.")}
+                {isActive
+                  ? L('지금까지의 내용으로 정리한 방향이에요. 다음 답변에 따라 계속 조정됩니다.', 'This is the direction clarified so far. It will keep adjusting as you answer.')
+                  : L('지금까지의 답변으로 정리한 방향이에요.', 'This direction reflects your answers so far.')}
               </p>
             )}
             {prevSnapshot && <div className="mb-2" />}
 
-            {/* Real question — single source of truth, no line-through
-                (previous version lives in UpdateSummaryChip above). */}
+            {/* Real question — single source of truth, no line-through. */}
             <div className="mb-5">
               <AnimatePresence mode="wait">
                 <motion.h2 key={snapshot.real_question} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }}
@@ -198,19 +253,24 @@ export function AnalysisCard({
               </AnimatePresence>
             </div>
 
-            {/* Insight — pull-quote style. Left rail alone carries the visual
-                cue; no sparkle icon needed. */}
+            {/* Insight — editorial thesis + support. A quiet tint separates the
+                thought without introducing another ornamental card. */}
             <AnimatePresence>
               {safeInsight && (
                 <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
                   transition={{ duration: 0.4, ease: EASE }} className="overflow-hidden mb-6">
-                  <div className="rounded-lg bg-[var(--accent)]/[0.04] px-4 py-3">
+                  <div className="border-t border-[var(--border-subtle)] pt-4">
                     <div className="text-[10px] font-bold text-[var(--accent)] uppercase tracking-[0.15em] mb-1.5">
                       {L('핵심', 'Key Insight')}
                     </div>
-                    <p className="text-[15px] md:text-[16px] text-[var(--text-primary)] leading-[1.6] font-medium">
-                      {renderText(safeInsight)}
+                    <p className="text-[15px] md:text-[16px] text-[var(--text-primary)] leading-[1.6] font-semibold">
+                      {renderText(courseSummary.thesis)}
                     </p>
+                    {courseSummary.support && (
+                      <p className="mt-1.5 text-[13px] md:text-[14px] text-[var(--text-secondary)] leading-[1.65]">
+                        {renderText(courseSummary.support)}
+                      </p>
+                    )}
                   </div>
                 </motion.div>
               )}
@@ -234,12 +294,12 @@ export function AnalysisCard({
               <motion.div
                 initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.4, ease: EASE }}
-                className="mb-7 rounded-xl bg-[var(--bg)]/50 overflow-hidden">
+                className="mb-7 border-y border-[var(--border-subtle)] overflow-hidden">
                 {/* Callout header — neutral tone, no team avatars
                     (team belongs in worker panel, not inside this block) */}
                 <div className="flex items-center gap-2 px-4 pt-3.5 pb-2">
                   <span className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-[0.15em]">
-                    {L('알아둘 것', 'Worth knowing')}
+                    {L('확인할 가정', 'Assumptions to verify')}
                   </span>
                 </div>
                 {/* Compact numbered items */}
@@ -276,7 +336,7 @@ export function AnalysisCard({
             {activeSkeleton.length > 0 && (
               <div>
                 {/* Quiet section label so the numbered list reads as "the plan",
-                    matching the card's existing eyebrow system (핵심 / 알아둘 것). */}
+                    matching the card's existing eyebrow system (핵심 / 확인할 가정). */}
                 <div className={`text-[10px] font-bold text-[var(--text-tertiary)] mb-2 ${locale === 'ko' ? 'tracking-[0.02em]' : 'uppercase tracking-[0.15em]'}`}>
                   {L('단계', 'Steps')}
                 </div>
@@ -344,10 +404,10 @@ export function AnalysisCard({
                   <>{L('요약만 보기', 'Summary only')} <ChevronUp size={13} /></>
                 ) : (
                   <>
-                    {L('단계별 자세히 보기', 'Read the full detail')}
+                    {L('근거와 계획 보기', 'View rationale and plan')}
                     {activeAssumptions.length > 0 && (
                       <span className="text-[var(--text-tertiary)] font-normal">
-                        {L(`· 알아둘 것 ${activeAssumptions.length}개`, `· ${activeAssumptions.length} to know`)}
+                        {L(`· 확인할 가정 ${activeAssumptions.length}개`, `· ${activeAssumptions.length} assumptions to verify`)}
                       </span>
                     )}
                     <ChevronDown size={13} />

@@ -30,6 +30,17 @@ export const V3_PILOT_TOOLS: ToolModule[] = [semanticRecord];
 
 export const TOOL_MAP: Map<string, ToolModule> = new Map([...TOOLS, ...PUBLIC_TOOLS].map((t) => [t.name, t]));
 
+/** MCP 2025-11-25 tool icons. Clients that implement the optional icon field
+ * show the same closing-loop anchor used by the web app; older clients simply
+ * ignore the field. The image is deliberately attached only to resolve — the
+ * mark means a return to reality was completed, not generic Argus decoration. */
+const PUBLIC_TOOL_ICONS: Record<string, Array<{ src: string; mimeType: string; sizes: string[] }>> = {
+  argus_resolve: [
+    { src: 'https://argus.voyage/images/voyage/closing-anchor-icon-48.png', mimeType: 'image/png', sizes: ['48x48'] },
+    { src: 'https://argus.voyage/images/voyage/closing-anchor-icon-96.png', mimeType: 'image/png', sizes: ['96x96'] },
+  ],
+};
+
 /**
  * The exact tool descriptors returned by tools/list — single source shared by
  * the server and the host-surface guard test. inputSchema runs through
@@ -49,6 +60,7 @@ export function servedPublicTools(): Record<string, unknown>[] {
       inputSchema: publicCopy(toolJsonSchema(t.inputSchema)),
       ...(t.outputSchema ? { outputSchema: t.outputSchema } : {}),
       ...(t.annotations ? { annotations: t.annotations } : {}),
+      ...(PUBLIC_TOOL_ICONS[t.name] ? { icons: PUBLIC_TOOL_ICONS[t.name] } : {}),
     };
   });
 }

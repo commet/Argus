@@ -10,11 +10,11 @@ import type { DemoScenario } from '@/lib/demo-data';
 import { applyPatch, buildFinal } from '@/lib/demo-data';
 import type { AnalysisSnapshot, DMConcern } from '@/stores/types';
 import { track } from '@/lib/analytics';
-import { EASE, SPRING } from './progressive/shared/constants';
+import { EASE } from './progressive/shared/constants';
 import { renderInline, renderMd } from './progressive/shared/renderMd';
 import { AnalysisCard } from './progressive/shared/AnalysisCard';
-import { UpdateSummaryChip } from './progressive/shared/UpdateSummaryChip';
 import { QuestionCard } from './progressive/shared/QuestionCard';
+import { CheckpointRail, type RailCheckpoint } from './progressive/CheckpointRail';
 import { TypingDots, AvatarRipple, ShimmerBar, tickersFor } from './progressive/shared/AgentVisuals';
 import { DEMO_SCENARIO_ART } from '@/lib/demo-scenario-art';
 
@@ -151,11 +151,11 @@ function TypingInput({ text, highlights, onDone, locale = 'ko' }: {
       tabIndex={isTyping ? 0 : undefined}
       onKeyDown={isTyping ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); skip(); } } : undefined}
       aria-label={isTyping ? (locale === 'ko' ? '클릭해서 건너뛰기' : 'Click to skip') : undefined}
-      className={`relative flex items-start gap-3 px-5 py-3.5 rounded-2xl bg-[var(--surface)] border border-[var(--border-subtle)] w-full ${isTyping ? 'cursor-pointer hover:border-[var(--accent)]/30 transition-colors' : ''}`}>
-      <div className="w-6 h-6 rounded-full bg-[var(--text-primary)] flex items-center justify-center shrink-0 mt-0.5">
-        <span className="text-[var(--bg)] text-[10px] font-bold">{locale === 'ko' ? '나' : 'Me'}</span>
-      </div>
-      <p className="flex-1 text-[14px] text-[var(--text-primary)] leading-relaxed">
+      className={`relative flex items-start gap-2.5 px-1 py-1 w-full ${isTyping ? 'cursor-pointer group' : ''}`}>
+      <span className="shrink-0 mt-[3px] text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--text-tertiary)]">
+        {locale === 'ko' ? '나' : 'Me'}
+      </span>
+      <p className={`flex-1 text-[14px] leading-relaxed transition-colors ${isTyping ? 'text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]' : 'text-[var(--text-primary)]'}`}>
         {ranges.length > 0
           ? renderTypedWithHighlights(text, typed, ranges)
           : text.slice(0, typed)}
@@ -185,7 +185,7 @@ function TeamEntrance({ scenario, onDone, locale = 'ko' }: { scenario: DemoScena
 
   return (
     <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease: EASE }}
-      className="rounded-xl bg-[var(--accent)]/[0.03] border border-[var(--accent)]/10 p-4 space-y-2.5">
+      className="border-y border-[var(--border-subtle)] px-1 py-4 space-y-2.5">
       {scenario.team.map((p, i) => (
         <motion.div key={p.id} initial={{ opacity: 0, x: -16 }} animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.2 + i * 0.3, duration: 0.4, ease: EASE }}
@@ -197,7 +197,7 @@ function TeamEntrance({ scenario, onDone, locale = 'ko' }: { scenario: DemoScena
       ))}
       <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.2, duration: 0.4 }}
         className="text-[11px] text-[var(--text-tertiary)] pt-1">
-        {locale === 'ko' ? '팀이 모였어요. 상황을 살펴볼게요...' : 'Team assembled. Analyzing the situation...'}
+        {locale === 'ko' ? 'AI 검토자들이 각자 다른 관점에서 검토를 시작해요.' : 'AI reviewers are starting from different perspectives.'}
       </motion.p>
     </motion.div>
   );
@@ -869,11 +869,12 @@ function DemoDraftCardV2({
    DM FEEDBACK — with interactive toggles
    ═══════════════════════════════════════════════════════════ */
 
-function DemoDMFeedback({ fb, onToggle, onDone, showDoneButton = true, locale = 'ko' }: {
+function DemoDMFeedback({ fb, onToggle, onDone, showDoneButton = true, readOnly = false, locale = 'ko' }: {
   fb: DemoScenario['dmVariants'][string];
   onToggle: (i: number) => void;
   onDone: () => void;
   showDoneButton?: boolean;
+  readOnly?: boolean;
   locale?: 'ko' | 'en';
 }) {
   const L = (ko: string, en: string) => locale === 'ko' ? ko : en;
@@ -906,7 +907,9 @@ function DemoDMFeedback({ fb, onToggle, onDone, showDoneButton = true, locale = 
                   {L('수정 요청', 'Revisions')} <span className="text-[var(--text-tertiary)]/60">({fb.concerns.length})</span>
                 </h4>
                 <span className="text-[11px] text-[var(--text-tertiary)]">
-                  {appliedCount > 0
+                  {readOnly && appliedCount === 0
+                    ? L('검토 완료', 'Review complete')
+                    : appliedCount > 0
                     ? L(`${appliedCount}건 반영됨`, `${appliedCount} applied`)
                     : L('반영할 항목을 선택하세요', 'Select to apply')}
                 </span>
@@ -915,11 +918,14 @@ function DemoDMFeedback({ fb, onToggle, onDone, showDoneButton = true, locale = 
                 {fb.concerns.map((c: DMConcern, i: number) => (
                   <button
                     key={i}
+                    type="button"
                     onClick={() => onToggle(i)}
-                    className={`group w-full text-left rounded-2xl border p-4 md:p-5 cursor-pointer transition-all duration-500 ${
+                    disabled={readOnly}
+                    aria-pressed={c.applied}
+                    className={`group w-full text-left rounded-2xl border p-4 md:p-5 transition-all duration-500 ${readOnly ? 'cursor-default' : 'cursor-pointer'} ${
                       c.applied
                         ? 'border-[var(--accent)]/30 bg-[var(--accent)]/[0.04]'
-                        : 'border-[var(--border-subtle)] bg-[var(--bg)] hover:border-[var(--accent)]/30 hover:bg-[var(--accent)]/[0.02]'
+                        : `border-[var(--border-subtle)] bg-[var(--bg)] ${readOnly ? '' : 'hover:border-[var(--accent)]/30 hover:bg-[var(--accent)]/[0.02]'}`
                     }`}
                     style={{ transitionTimingFunction: 'cubic-bezier(0.32,0.72,0,1)' }}
                   >
@@ -1563,7 +1569,7 @@ export function InteractiveDemo({ scenario, locale = 'ko', onStartReal, onBack }
   }, []);
 
   useEffect(() => {
-    const key = `${phase}-${visibleWorkers}`;
+    const key = phase;
     if (key === lastScrollPhase.current) return;
     lastScrollPhase.current = key;
     // Snapshot updated (Q1/Q2 answered): scroll to AnalysisCard top so user starts reading from real_question
@@ -1583,10 +1589,10 @@ export function InteractiveDemo({ scenario, locale = 'ko', onStartReal, onBack }
       setTimeout(() => sealRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 200);
     } else if (phase === 'settle') {
       setTimeout(() => settleRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 200);
-    } else {
+    } else if (phase !== 'workers') {
       scrollToBottom();
     }
-  }, [phase, visibleWorkers, scrollToBottom]);
+  }, [phase, scrollToBottom]);
 
   // Auto-advance for non-interactive phases
   const advance = useCallback((nextPhase: DemoPhase, delay: number) => {
@@ -1626,12 +1632,16 @@ export function InteractiveDemo({ scenario, locale = 'ko', onStartReal, onBack }
     setVisibleWorkers(0);
     const total = runtimeWorkers.length;
     const timers: ReturnType<typeof setTimeout>[] = [];
-    const delays = [800, 1600, 2400]; // stagger (세 번째 워커는 합류 뉘앙스를 주려고 조금 길게)
+    // Q1 can add a fourth teammate. Derive the cadence from the actual team
+    // size so an out-of-range delay never skips the worker-results beat.
+    const delays = Array.from({ length: total }, (_, i) => 600 + i * 650);
     for (let i = 0; i < total; i++) {
       timers.push(setTimeout(() => setVisibleWorkers(i + 1), delays[i]));
     }
-    // 마지막 워커 등장 후 1.8초 여유 → Q2로
-    timers.push(setTimeout(() => setPhase('q2'), delays[total - 1] + 1800));
+    // Keep the completed team visible briefly, then move to Q2. There is no
+    // per-worker auto-scroll, so these updates never pull the user's viewport.
+    const lastReveal = delays[total - 1] ?? 0;
+    timers.push(setTimeout(() => setPhase('q2'), lastReveal + 1100));
     return () => timers.forEach(clearTimeout);
   }, [phase, runtimeWorkers.length]);
 
@@ -1700,6 +1710,64 @@ export function InteractiveDemo({ scenario, locale = 'ko', onStartReal, onBack }
   const prevSnapshot = snapshots.length > 1 ? snapshots[snapshots.length - 2] : null;
   const dm = scenario.dmVariants[dmKey];
   const isDone = phase === 'settle';
+  const demoCheckpoints: RailCheckpoint[] = [
+    {
+      key: 'situation',
+      label: L('상황', 'Context'),
+      state: phaseGte(phase, 'q1') ? 'done' : 'current',
+      group: '정리',
+      groupEn: 'Frame',
+      title: L('지금 풀어야 할 상황', 'The situation to work through'),
+    },
+    {
+      key: 'question-1',
+      label: L('질문1', 'Question 1'),
+      state: phase === 'q1' ? 'current' : phaseGte(phase, 'update1') ? 'done' : 'future',
+      group: '정리',
+      groupEn: 'Frame',
+      title: L('첫 번째 확인 질문', 'First framing question'),
+    },
+    {
+      key: 'question-2',
+      label: L('질문2', 'Question 2'),
+      state: phase === 'q2' ? 'current' : phaseGte(phase, 'update2') ? 'done' : 'future',
+      group: '정리',
+      groupEn: 'Frame',
+      title: L('마지막 확인 질문', 'Final framing question'),
+    },
+    {
+      key: 'draft',
+      label: L('초안', 'Draft'),
+      state: phase === 'draft' || phase === 'matching' ? 'current' : phaseGte(phase, 'dm') ? 'done' : 'future',
+      group: '작성',
+      groupEn: 'Draft',
+      title: L('팀의 관점을 모은 초안', 'A draft shaped by the team'),
+    },
+    {
+      key: 'review',
+      label: L('검토', 'Review'),
+      state: phase === 'dm' ? 'current' : phaseGte(phase, 'final') ? 'done' : 'future',
+      group: '작성',
+      groupEn: 'Draft',
+      title: L('받는 사람의 관점으로 검토', 'Review from the recipient’s perspective'),
+    },
+    {
+      key: 'seal',
+      label: L('봉인', 'Seal'),
+      state: phase === 'final' || phase === 'seal' ? 'current' : isDone ? 'done' : 'future',
+      group: '확인',
+      groupEn: 'Check',
+      title: L('결정과 예측을 봉인', 'Seal the decision and prediction'),
+    },
+    {
+      key: 'settle',
+      label: L('결과 확인', 'Review outcome'),
+      state: isDone ? 'current' : 'future',
+      group: '확인',
+      groupEn: 'Check',
+      title: L('현실에서 무엇이 맞았는지 확인', 'Check what reality showed'),
+    },
+  ];
   // 봉인 카드는 '정본' 결정에 고정한다. 봉인/정산은 스크립트 고정이라, Q1 분기
   // 결정을 여기 끌어오면 (결정·예측·정산) 삼각이 겉돌 수 있다(예: 기획안의
   // '기존vs신사업' 가지). 정본 삼각으로 종막을 항상 일관되게 한다 — 분기가 만든
@@ -1735,6 +1803,8 @@ export function InteractiveDemo({ scenario, locale = 'ko', onStartReal, onBack }
         <div ref={scrollRef} className="flex-1 h-full overflow-y-auto">
           <div className="max-w-2xl mx-auto px-5 md:px-6 py-6 space-y-5">
 
+            <CheckpointRail checkpoints={demoCheckpoints} />
+
             {/* 1. Typing input */}
             {phaseGte(phase, 'typing') && (
               <TypingInput text={scenario.problemText} highlights={scenario.problemHighlights} onDone={() => setPhase('team')} locale={locale} />
@@ -1742,7 +1812,7 @@ export function InteractiveDemo({ scenario, locale = 'ko', onStartReal, onBack }
 
             {/* 2. Team entrance — sidebar replaces this on desktop, keep for mobile timing */}
             <div className="lg:hidden">
-              {phaseGte(phase, 'team') && (
+              {phase === 'team' && (
                 <TeamEntrance scenario={scenario} onDone={() => setPhase('analysis')} locale={locale} />
               )}
             </div>
@@ -1754,7 +1824,14 @@ export function InteractiveDemo({ scenario, locale = 'ko', onStartReal, onBack }
             {/* 3. Analysis card (v0) */}
             {phaseGte(phase, 'analysis') && currentSnapshot && (
               <div ref={analysisRef} className="scroll-mt-4">
-                <AnalysisCard snapshot={currentSnapshot} prevSnapshot={prevSnapshot} locale={locale} />
+                <AnalysisCard
+                  snapshot={currentSnapshot}
+                  prevSnapshot={prevSnapshot}
+                  isActive={!phaseGte(phase, 'draft')}
+                  answerCount={[q1Answer, q2Answer].filter(Boolean).length}
+                  defaultCollapsed
+                  locale={locale}
+                />
               </div>
             )}
 
@@ -1772,75 +1849,9 @@ export function InteractiveDemo({ scenario, locale = 'ko', onStartReal, onBack }
                 onAnswer={handleQ1}
                 allowFreeText={false}
                 locale={locale}
+                meta={L('질문 1/2 · 선택', 'Question 1/2 · choose one')}
               />
             )}
-
-            {/* Q1 answer pill + team flow indicator */}
-            {q1Answer && phaseGte(phase, 'update1') && (
-              <div className="flex items-center gap-2 flex-wrap">
-                <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={SPRING}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[var(--surface)] border border-[var(--border-subtle)] text-[11px]">
-                  <Check size={10} className="text-[var(--accent)]" />
-                  <span className="text-[var(--text-primary)] font-medium">{q1Answer}</span>
-                </motion.div>
-                <motion.span initial={{ opacity: 0, x: -4 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3 }}
-                  className="text-[10px] text-[var(--accent)]/60 flex items-center gap-1">
-                  <ArrowRight size={9} /> {L('팀 분석에 반영', 'sent to team')}
-                </motion.span>
-              </div>
-            )}
-
-          {/* 5. Team status bar — workers working / done */}
-          <AnimatePresence mode="wait">
-            {phase === 'workers' && (
-              <motion.div key="team-working"
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -6, transition: { duration: 0.25 } }}
-                transition={{ duration: 0.4, ease: EASE }}
-                className="flex items-center gap-3 px-4 py-3 rounded-xl bg-[var(--accent)]/[0.04] border border-[var(--accent)]/15"
-              >
-                <Loader2 size={14} className="animate-spin text-[var(--accent)] shrink-0" />
-                <span className="text-[13px] text-[var(--text-primary)] font-medium">
-                  {L('당신의 답변을 바탕으로 팀이 분석 중이에요', 'Team is analyzing based on your answers')}
-                </span>
-                <span className="text-[11px] text-[var(--accent)] font-semibold shrink-0">{visibleWorkers}/{runtimeWorkers.length}</span>
-              </motion.div>
-            )}
-            {phaseGte(phase, 'q2') && !phaseGte(phase, 'draft') && (
-              <motion.div key="team-done"
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, transition: { duration: 0.2 } }}
-                transition={{ duration: 0.4, ease: EASE }}
-                className="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-[var(--surface)] border border-[var(--border-subtle)]"
-              >
-                <div className="flex -space-x-1.5">
-                  {runtimeWorkers.map(w => (
-                    <div key={w.persona.id} className="w-5 h-5 rounded-full flex items-center justify-center text-[8px] border-2 border-[var(--surface)]"
-                      style={{ backgroundColor: w.persona.color + '20' }}>{w.persona.emoji}</div>
-                  ))}
-                </div>
-                <span className="text-[12px] text-[var(--text-secondary)] flex-1">
-                  {L('팀 분석 완료 — 다음 단계를 골라주세요', 'Analysis complete — pick next step')}
-                </span>
-                <Check size={12} className="text-emerald-500" />
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          {/* Update summary chip — surfaces Q1 result at user's eye level
-              so the evolution in AnalysisCard above doesn't get missed. */}
-          {snapshots.length > 1 && phaseGte(phase, 'workers') && !phaseGte(phase, 'draft') && (
-            <UpdateSummaryChip
-              snapshot={snapshots[snapshots.length - 1]}
-              prevSnapshot={snapshots[snapshots.length - 2]}
-              onSeeDetail={() =>
-                analysisRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-              }
-              locale={locale}
-            />
-          )}
 
           {/* 6. Q2 — workers 결과를 본 후 검증 방법 선택 */}
           {phase === 'q2' && (
@@ -1849,22 +1860,8 @@ export function InteractiveDemo({ scenario, locale = 'ko', onStartReal, onBack }
               onAnswer={handleQ2}
               allowFreeText={false}
               locale={locale}
+              meta={L('질문 2/2 · 마지막 질문이에요', 'Question 2/2 · last question')}
             />
-          )}
-
-          {/* Q2 answer pill */}
-          {q2Answer && phaseGte(phase, 'update2') && (
-            <div className="flex items-center gap-2 flex-wrap">
-              <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={SPRING}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[var(--surface)] border border-[var(--border-subtle)] text-[11px]">
-                <Check size={10} className="text-[var(--accent)]" />
-                <span className="text-[var(--text-primary)] font-medium">{q2Answer}</span>
-              </motion.div>
-              <motion.span initial={{ opacity: 0, x: -4 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3 }}
-                className="text-[10px] text-[var(--accent)]/60 flex items-center gap-1">
-                <ArrowRight size={9} /> {L('기획안에 반영', 'added to draft')}
-              </motion.span>
-            </div>
           )}
 
           {/* 7-8. Draft → DM page transition (single AnimatePresence for sync) */}
@@ -1960,7 +1957,8 @@ export function InteractiveDemo({ scenario, locale = 'ko', onStartReal, onBack }
                   }}
                   onToggle={handleToggle}
                   onDone={handleDMDone}
-                  showDoneButton={phase !== 'final'}
+                  showDoneButton={phase === 'dm'}
+                  readOnly={phase !== 'dm'}
                   locale={locale}
                 />
               </motion.div>
@@ -2045,7 +2043,7 @@ export function InteractiveDemo({ scenario, locale = 'ko', onStartReal, onBack }
             initial={{ opacity: 0, x: 16 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.3, duration: 0.5, ease: EASE }}
-            className="hidden lg:flex w-[280px] xl:w-[300px] shrink-0 h-full overflow-y-auto border-l border-[var(--border-subtle)] bg-[var(--bg)]/30 flex-col"
+            className="hidden lg:flex w-[300px] xl:w-[320px] shrink-0 h-full overflow-y-auto border-l border-[var(--border-subtle)] bg-[var(--bg)]/30 flex-col"
           >
             <div className="p-4">
               <DemoAgentSidebar scenario={scenario} workers={runtimeWorkers} phase={phase} visibleWorkers={visibleWorkers} locale={locale} />
@@ -2058,24 +2056,7 @@ export function InteractiveDemo({ scenario, locale = 'ko', onStartReal, onBack }
       <div className={`shrink-0 border-t border-[var(--border-subtle)] bg-[var(--surface)] transition-all duration-500 ${
         isDone ? 'shadow-[var(--glow-gold)]' : ''
       }`}>
-        {/* Phase progress dots */}
-        <div className="max-w-2xl mx-auto px-5 pt-3 flex items-center justify-center gap-1.5">
-          {(locale === 'ko' ? ['상황', '팀', '초안', '점검', '봉인', '정산'] : ['Analysis', 'Team', 'Draft', 'Check', 'Seal', 'Settle']).map((label, i) => {
-            const milestones: DemoPhase[] = ['analysis', 'workers', 'draft', 'dm', 'seal', 'settle'];
-            const reached = phaseGte(phase, milestones[i]);
-            const current = i === milestones.findIndex(m => !phaseGte(phase, m)) || (isDone && i === milestones.length - 1);
-            return (
-              <div key={i} className="flex items-center gap-1.5">
-                {i > 0 && <div className={`w-4 h-px transition-colors duration-500 ${reached ? 'bg-[var(--accent)]/40' : 'bg-[var(--border-subtle)]'}`} />}
-                <div className={`flex items-center gap-1 transition-all duration-300 ${current ? 'opacity-100' : reached ? 'opacity-60' : 'opacity-25'}`}>
-                  <div className={`w-1.5 h-1.5 rounded-full transition-colors duration-500 ${reached ? 'bg-[var(--accent)]' : 'bg-[var(--text-tertiary)]'}`} />
-                  <span className={`hidden sm:inline text-[9px] ${current ? 'text-[var(--accent)] font-semibold' : 'text-[var(--text-tertiary)]'}`}>{label}</span>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-        <div className="max-w-2xl mx-auto px-5 pb-3 pt-2.5 flex items-center justify-between gap-3">
+        <div className="max-w-2xl mx-auto px-5 py-3 flex items-center justify-between gap-3">
           <p className="text-[12px] text-[var(--text-secondary)]">
             {isDone
               ? L('방금 본 고리를, 내 진짜 결정으로 돌려봐요.', 'Now run that same loop on a real decision of your own.')
@@ -2083,7 +2064,7 @@ export function InteractiveDemo({ scenario, locale = 'ko', onStartReal, onBack }
           </p>
           <button onClick={onStartReal}
             className={`inline-flex items-center gap-2 px-6 py-3 text-white rounded-full text-[14px] font-semibold cursor-pointer min-h-[44px] transition-all duration-300 ${
-              isDone ? 'shadow-[var(--glow-gold-intense)] hover:-translate-y-[1px]' : 'opacity-60 hover:opacity-90'
+              isDone ? 'shadow-[var(--glow-gold-intense)] hover:-translate-y-[1px]' : 'opacity-80 hover:opacity-100'
             }`}
             style={{ background: 'var(--gradient-gold)' }}>
             {L('내 상황으로 시작하기', 'Start with my situation')} <ChevronRight size={14} />

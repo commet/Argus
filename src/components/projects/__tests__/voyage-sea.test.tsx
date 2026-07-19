@@ -68,7 +68,7 @@ const emptyLedgers = {
 
 function render(
   projects: Project[],
-  opts?: { dueProjectIds?: string[]; onSelect?: ReturnType<typeof vi.fn>; onReview?: ReturnType<typeof vi.fn> },
+  opts?: { dueProjectIds?: string[]; attentionProjectIds?: string[]; onSelect?: ReturnType<typeof vi.fn>; onReview?: ReturnType<typeof vi.fn> },
 ) {
   const onSelect = opts?.onSelect ?? vi.fn();
   const onReview = opts?.onReview ?? vi.fn();
@@ -78,6 +78,7 @@ function render(
         projects,
         ...emptyLedgers,
         dueProjectIds: opts?.dueProjectIds ?? [],
+        attentionProjectIds: opts?.attentionProjectIds ?? [],
         locale: 'ko' as const,
         onSelect,
         onReview,
@@ -125,6 +126,7 @@ describe('VoyageSea — spine gate (거울 조항, 항해 지도판)', () => {
     expect(container.textContent).not.toContain('다시 볼 때');
     // Calm caption, not urgency.
     expect(container.textContent).toContain('부를 배가 없어요');
+    expect(container.querySelector('img')?.getAttribute('src')).toContain('argus-sea-chart-v1.jpg');
   });
 
   it('the beacon exists only for a due check-in, and quotes the sealed bet verbatim', () => {
@@ -243,6 +245,21 @@ describe('VoyageSea — spine gate (거울 조항, 항해 지도판)', () => {
     expect(chip.textContent).toContain('1');
   });
 
+  it('marks premise attention quietly on the existing ship and exposes a real filter', () => {
+    render([
+      sealedProject('a', '2026-01-05T00:00:00.000Z'),
+      sealedProject('b', '2026-02-01T00:00:00.000Z'),
+    ], { attentionProjectIds: ['b'] });
+    expect(container.querySelectorAll('[data-testid="project-attention-signal"]')).toHaveLength(1);
+    const chip = Array.from(container.querySelectorAll('button')).find((button) => button.textContent?.includes('확인 신호'))!;
+    expect(chip.textContent).toContain('1');
+    act(() => chip.click());
+    const attentionShip = document.getElementById('voyage-ship-b')!;
+    const otherShip = document.getElementById('voyage-ship-a')!;
+    expect(attentionShip.style.opacity).toBe('1');
+    expect(otherShip.style.opacity).toBe('0.1');
+  });
+
   it('leaks no score / % / grade / streak / comparison string', () => {
     render([
       sealedProject('a', '2026-01-05T00:00:00.000Z'),
@@ -280,6 +297,8 @@ describe('VoyageSea — spine gate (거울 조항, 항해 지도판)', () => {
     act(() => dueBtn.click());
     const reviewBtn = container.querySelector('[data-testid="ship-action-review"]') as HTMLButtonElement;
     expect(reviewBtn).toBeTruthy(); // a due ship offers 정산·다시 보기
+    expect(container.querySelector('[role="dialog"]')?.getAttribute('data-edge-clamp'))
+      .toBe('116'); // 220px action card stays inside a 390px phone
     act(() => reviewBtn.click());
     expect(onReview).toHaveBeenCalledWith('due1');
 

@@ -9,7 +9,7 @@ describe('project return hydration guard', () => {
   it('does not claim the project list is empty before local storage has loaded', () => {
     expect(source).toContain('const [storesLoaded, setStoresLoaded] = useState(false)');
     expect(source).toMatch(/!storesLoaded[\s\S]*projects\.length === 0 && fromCheckin/);
-    expect(source).toContain("L('항해 기록을 불러오는 중이에요', 'Loading your voyages')");
+    expect(source).toContain("L('결정 기록을 불러오는 중이에요', 'Loading your decisions')");
   });
 
   it('names a completed document independently from the optional check-in loop', () => {

@@ -66,13 +66,13 @@ interface SeaChartProps {
 }
 
 const WP_LABEL: Record<WaypointType, { ko: string; en: string }> = {
-  departure:     { ko: '출항',     en: 'Departure' },
-  course_change: { ko: '항로 변경', en: 'Course change' },
-  reef:          { ko: '암초',     en: 'Reef' },
-  sighting:      { ko: '관측',     en: 'Sighting' },
-  headwind:      { ko: '역풍',     en: 'Headwind' },
-  helm:          { ko: '선장의 키', en: 'Helm' },
-  anchorage:     { ko: '정박',     en: 'Anchorage' },
+  departure:     { ko: '시작',       en: 'Start' },
+  course_change: { ko: '방향 변경',   en: 'Direction change' },
+  reef:          { ko: '위험',       en: 'Risk' },
+  sighting:      { ko: '발견',       en: 'Finding' },
+  headwind:      { ko: '제약',       en: 'Constraint' },
+  helm:          { ko: '사용자 결정', en: 'User decision' },
+  anchorage:     { ko: '완료',       en: 'Completed' },
 };
 
 type P = { x: number; y: number };
@@ -346,7 +346,7 @@ export function SeaChart({
         // role="img" prunes children from the a11y tree — correct for the
         // glanceable chart, wrong when nodes are interactive (keyboard pick).
         role={onPick ? 'group' : 'img'}
-        aria-label={L('결정 항해 해도', 'Decision voyage chart')}
+        aria-label={L('결정 갈래 지도', 'Decision branch map')}
         onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp}
         onPointerLeave={onPointerUp} onWheel={onWheel}
         style={{ display: 'block', touchAction: full ? 'none' : undefined, cursor: full ? (drag.current ? 'grabbing' : 'grab') : undefined }}>
@@ -535,7 +535,7 @@ export function SeaChart({
                 onClick={handlePick ? () => handlePick(n.id) : undefined}
                 role={handlePick ? 'button' : undefined}
                 tabIndex={handlePick ? 0 : undefined}
-                aria-label={handlePick ? (wp?.headline || L('항로 지점으로 이동', 'Go to this waypoint')) : undefined}
+                aria-label={handlePick ? (wp?.headline || L('이 결정 지점으로 이동', 'Go to this decision point')) : undefined}
                 onKeyDown={handlePick ? (e) => {
                   if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handlePick(n.id); }
                 } : undefined}>

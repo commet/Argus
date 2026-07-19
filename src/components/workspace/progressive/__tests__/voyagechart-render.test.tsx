@@ -43,7 +43,7 @@ describe('VoyageChart render', () => {
     const html = renderToStaticMarkup(createElement(VoyageChart));
     expect(html.length).toBeGreaterThan(100);
     expect(html).toContain('<circle');             // chart nodes + compass rose
-    expect(html).toContain('결정 항해 해도');        // SeaChart aria-label
+    expect(html).toContain('결정 갈래 지도');        // SeaChart aria-label
     expect(html).toContain('#2d4a7c');             // main branch color (course list dot)
     expect(html).toContain('#8b6914');             // fork branch color (course list dot)
   });
@@ -51,12 +51,12 @@ describe('VoyageChart render', () => {
   it('shows the active-course summary when multiple branches exist', () => {
     const html = renderToStaticMarkup(createElement(VoyageChart));
     expect(html).toContain('본 항로');      // active branch name
-    expect(html).toContain('항로 2개');     // course count
+    expect(html).toContain('결정 갈래 2개');     // branch count
   });
 
   it('lists explored courses with only the "return to this path" control — no branch ceremony', () => {
     const html = renderToStaticMarkup(createElement(VoyageChart));
-    expect(html).toContain('항로 목록');       // course list header
+    expect(html).toContain('결정 갈래');       // branch list header
     expect(html).toContain('챗봇 분기');       // the non-active explored course
     expect(html).toContain('지금 이 길');       // current-course marker
     expect(html).toContain('이 길로');          // the one kept control: return to this path

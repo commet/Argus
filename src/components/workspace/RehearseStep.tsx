@@ -20,7 +20,8 @@ import type { Persona, FeedbackRecord, RehearsalResult, HiddenAssumption, Discus
 import { useHandoffStore } from '@/stores/useHandoffStore';
 import { useAccuracyStore } from '@/stores/useAccuracyStore';
 import { NextStepGuide } from '@/components/ui/NextStepGuide';
-import { Plus, Pencil, Trash2, Loader2, Users, RotateCcw, Check, AlertTriangle } from 'lucide-react';
+import { LocaleLink } from '@/components/ui/LocaleLink';
+import { Plus, Pencil, Trash2, Loader2, Users, RotateCcw, Check, AlertTriangle, MessageCircleMore } from 'lucide-react';
 import { useReframeStore } from '@/stores/useReframeStore';
 import { useRecastStore } from '@/stores/useRecastStore';
 import { LoadingSteps } from '@/components/ui/LoadingSteps';
@@ -207,7 +208,7 @@ export function RehearseStep({ onNavigate }: RehearseStepProps) {
   useEffect(() => {
     if (handoff) {
       setHandoffContent(handoff.content || '');
-      setHandoffTitle(`${handoff.from === 'reframe' ? L('항로 재설정', 'Reframe') : handoff.from === 'recast' ? L('선원 배치', 'Recast') : L('리허설', 'Rehearse')} ${L('결과물', 'result')}`);
+      setHandoffTitle(`${handoff.from === 'reframe' ? L('문제 재정의', 'Reframe') : handoff.from === 'recast' ? L('실행 설계', 'Recast') : L('리허설', 'Rehearse')} ${L('결과물', 'result')}`);
       setPendingProjectId(handoff.projectId);
       if (handoff.autoPersonaIds && handoff.autoPersonaIds.length > 0) {
         setAutoPersonaIds(handoff.autoPersonaIds);
@@ -463,6 +464,10 @@ ${L('리스크', 'Risks')}: ${(r.classified_risks || []).map(cr => `[${cr.catego
         <p className="text-[13px] text-[var(--text-secondary)] mt-1">
           {L('보내기 전에, 받는 사람 입장에서 미리 들어봐요.', 'Before you send it, hear it from the receiver\'s side first.')}
         </p>
+        <LocaleLink href="/boss" className="mt-2 inline-flex items-center gap-1.5 text-[11px] font-semibold text-[var(--text-secondary)] hover:text-[var(--accent)]">
+          <MessageCircleMore size={13} />
+          {L('문서 검토가 아니라 팀장과의 1:1 대화를 연습하려면', 'Rehearse a 1:1 manager conversation instead of a document review')}
+        </LocaleLink>
         <div className="mt-2">
           <NavigatorInline step="rehearse" />
         </div>
@@ -536,7 +541,7 @@ ${L('리스크', 'Risks')}: ${(r.classified_risks || []).map(cr => `[${cr.catego
           {autoPersonaIds.length > 0 && (
             <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[var(--ai)]">
               <Check size={14} className="text-[var(--accent)]" />
-              <span className="text-[12px] font-medium text-[var(--ai-fg)]">{L(`선원 배치에서 찾은 이해관계자 ${autoPersonaIds.length}명이 선택되었습니다`, `${autoPersonaIds.length} stakeholder${autoPersonaIds.length === 1 ? '' : 's'} from Recast selected`)}</span>
+              <span className="text-[12px] font-medium text-[var(--ai-fg)]">{L(`실행 설계에서 찾은 이해관계자 ${autoPersonaIds.length}명이 선택되었습니다`, `${autoPersonaIds.length} stakeholder${autoPersonaIds.length === 1 ? '' : 's'} from Recast selected`)}</span>
             </div>
           )}
 
@@ -644,7 +649,7 @@ ${L('리스크', 'Risks')}: ${(r.classified_risks || []).map(cr => `[${cr.catego
           <LoadingSteps steps={[
             L('이해관계자가 문서를 읽는 중이에요...', 'Stakeholders are reading the document...'),
             L('잘한 점과 고칠 점을 정리하는 중이에요...', 'Organizing strengths and areas to improve...'),
-            L('통과 조건을 확인하는 중이에요...', 'Checking approval conditions...'),
+            L('반영 기준을 확인하는 중이에요...', 'Checking revision criteria...'),
           ]} />
         </Card>
       )}
@@ -672,14 +677,14 @@ ${L('리스크', 'Risks')}: ${(r.classified_risks || []).map(cr => `[${cr.catego
             }
             if (recast?.analysis?.key_assumptions && recast.analysis.key_assumptions.length > 0) {
               items.push({
-                label: L('선원 배치의 핵심 가정', 'Key assumptions from Recast'),
+                label: L('실행 설계의 핵심 가정', 'Key assumptions from Recast'),
                 count: recast.analysis.key_assumptions.length,
                 details: recast.analysis.key_assumptions.map(ka => ka.assumption),
               });
             }
             const summary = reframe?.analysis
-              ? L(`항로 재설정에서 발견한 핵심 질문: ${reframe.selected_question || reframe.analysis.surface_task}`, `Key question found in Reframe: ${reframe.selected_question || reframe.analysis.surface_task}`)
-              : L(`선원 배치의 핵심 가정 ${recast?.analysis?.key_assumptions?.length || 0}건을 이 리허설에서 검증합니다.`, `Validating ${recast?.analysis?.key_assumptions?.length || 0} key assumption${(recast?.analysis?.key_assumptions?.length || 0) === 1 ? '' : 's'} from Recast in this rehearsal.`);
+              ? L(`문제 재정의에서 찾은 핵심 질문: ${reframe.selected_question || reframe.analysis.surface_task}`, `Key question found in Reframe: ${reframe.selected_question || reframe.analysis.surface_task}`)
+              : L(`실행 설계의 핵심 가정 ${recast?.analysis?.key_assumptions?.length || 0}건을 이 리허설에서 검증합니다.`, `Validating ${recast?.analysis?.key_assumptions?.length || 0} key assumption${(recast?.analysis?.key_assumptions?.length || 0) === 1 ? '' : 's'} from Recast in this rehearsal.`);
             return <ContextChainBlock summary={summary} items={items} />;
           })()}
 

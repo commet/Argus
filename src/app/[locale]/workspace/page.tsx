@@ -16,6 +16,7 @@ import { ProgressiveFlow } from '@/components/workspace/progressive/ProgressiveF
 import { WorkerDrawer, useWorkers } from '@/components/workspace/progressive/WorkerPanel';
 import { LogbookDrawer } from '@/components/workspace/progressive/Logbook';
 import { VoyageMapRail } from '@/components/workspace/progressive/VoyageMapRail';
+import { DecisionEvidenceMap } from '@/components/workspace/progressive/DecisionEvidenceMap';
 import { QuickChatBar } from '@/components/workspace/QuickChatBar';
 import { NavigatorStrip } from '@/components/workspace/NavigatorStrip';
 import { useSettingsStore } from '@/stores/useSettingsStore';
@@ -25,7 +26,7 @@ import { runInitialAnalysis } from '@/lib/progressive-engine';
 import { buildEarlyContract, summarizeRecord } from '@/lib/decision-contract';
 import { recordCompactLine } from '@/lib/record-summary';
 import { VoyageEta } from '@/components/workspace/VoyageEta';
-import { Sparkles, ChevronRight, MessageSquare, Sliders, UserCheck, RefreshCw, FolderOpen, ChevronDown, AlertTriangle, Layers, History, Compass, FileText, BellRing } from 'lucide-react';
+import { Sparkles, ChevronRight, MessageSquare, Sliders, UserCheck, RefreshCw, FolderOpen, ChevronDown, AlertTriangle, Layers, History, Compass, FileText, BellRing, SearchCheck } from 'lucide-react';
 import { useDueCount } from '@/hooks/useDueCount';
 import { shouldShowLantern, localYMD } from '@/lib/lantern';
 import { getStorage, setStorage, STORAGE_KEYS } from '@/lib/storage';
@@ -49,6 +50,7 @@ import { ErrorBoundary } from '@/components/layout/ErrorBoundary';
 import { parsePartialAnalysis } from '@/lib/partial-analysis';
 import { DAILY_LIMIT } from '@/lib/quota-config';
 import { ArgusCompanionNote } from '@/components/brand/ArgusCompanionNote';
+import { Modal } from '@/components/ui/Modal';
 
 /** Stable empty-array fallback for the sessionBranches selector — a fresh `[]`
  *  literal on every render makes zustand see a new snapshot each time → React's
@@ -137,6 +139,7 @@ function ProgressiveLayout({ projectId, projectName, onReset }: { projectId: str
   const switchBranch = useProgressiveStore(s => s.switchBranch);
   const branchingLocked = useProgressiveStore(s => s.isBranchingLocked());
   const [branchMenuOpen, setBranchMenuOpen] = useState(false);
+  const [mobileEvidenceOpen, setMobileEvidenceOpen] = useState(false);
   const branchTriggerRef = useRef<HTMLButtonElement>(null);
   const branchOptionRefs = useRef<Array<HTMLButtonElement | null>>([]);
 
@@ -221,7 +224,7 @@ function ProgressiveLayout({ projectId, projectName, onReset }: { projectId: str
                   <>
                     {/* click-away backdrop */}
                     <div className="fixed inset-0 z-40" onClick={() => setBranchMenuOpen(false)} aria-hidden="true" />
-                    <div id="workspace-branch-listbox" role="listbox" aria-label={L('항로 선택', 'Choose a branch')} onKeyDown={handleBranchListKeyDown} className="absolute left-0 top-full z-50 mt-1 w-56 rounded-xl border border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow-lg)] p-1.5 space-y-0.5">
+                    <div id="workspace-branch-listbox" role="listbox" aria-label={L('결정 방향 선택', 'Choose a decision direction')} onKeyDown={handleBranchListKeyDown} className="absolute left-0 top-full z-50 mt-1 w-56 rounded-xl border border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow-lg)] p-1.5 space-y-0.5">
                       {sessionBranches.map((b, index) => {
                         const isActive = b.id === activeBranchId;
                         const disabled = branchingLocked && !isActive;
@@ -251,7 +254,7 @@ function ProgressiveLayout({ projectId, projectName, onReset }: { projectId: str
                       <p className="px-2.5 pt-1 pb-0.5 text-[10px] text-[var(--text-tertiary)] leading-[1.5]">
                         {branchingLocked
                           ? L('지금은 작업 중이라 갈아탈 수 없어요 — 끝나면 풀려요.', 'Switching is locked while work is running.')
-                          : L('갈아타도 지금 항로는 그대로 남아요.', 'Switching keeps this course intact.')}
+                          : L('다른 방향을 선택해도 지금 기록은 그대로 남아요.', 'Choosing another direction keeps this record intact.')}
                       </p>
                     </div>
                   </>
@@ -263,6 +266,27 @@ function ProgressiveLayout({ projectId, projectName, onReset }: { projectId: str
             {L('새 프로젝트', 'New Project')}
           </button>
         </div>
+
+        {showMap && (
+          <div className="mb-3 flex justify-end xl:hidden">
+            <button
+              type="button"
+              onClick={() => setMobileEvidenceOpen(true)}
+              className="inline-flex min-h-10 items-center gap-1.5 border-b border-[var(--border)] px-1 text-[12px] font-semibold text-[var(--text-secondary)] transition-colors hover:text-[var(--accent)]"
+            >
+              <SearchCheck size={14} className="text-[var(--accent)]" />
+              {L('판단 지도', 'Decision map')}
+            </button>
+            <Modal
+              open={mobileEvidenceOpen}
+              onClose={() => setMobileEvidenceOpen(false)}
+              title={L('판단 지도 · 근거', 'Decision map · Evidence')}
+              widthClass="max-w-lg"
+            >
+              <DecisionEvidenceMap onNavigate={() => setMobileEvidenceOpen(false)} />
+            </Modal>
+          </div>
+        )}
 
             <ErrorBoundary renderFallback={(reset) => <StepErrorFallback onRetry={reset} />}>
               <ProgressiveFlow projectId={projectId} />
@@ -613,7 +637,7 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
       {/* Top heading rung for the document outline — the shell was built from
           spans + h2s with no h1, so screen-reader heading nav started mid-level.
           Visually hidden; the real orientation stays the on-screen h2 below. */}
-      <h1 className="sr-only">{L('워크스페이스 — 결정 항해', 'Workspace — decision voyage')}</h1>
+      <h1 className="sr-only">{L('워크스페이스 — 결정 정리', 'Workspace — decision workspace')}</h1>
       <div className="absolute inset-0 pointer-events-none" style={{ background: 'var(--gradient-concert-hall)' }} />
       <div className="absolute inset-0 pointer-events-none" style={{ background: 'var(--gradient-warm-vignette)' }} />
       <Graticule opacity={0.03} spacing={14} />
@@ -630,17 +654,20 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
             <motion.div key="idle" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, y: -20 }}
               transition={{ duration: 0.4, ease: EASE }}>
 
-              {/* Anonymous trial banner — compact, only critical info */}
+              {/* Anonymous trial note — utility copy stays on the page rather than
+                  becoming the first of several stacked cards. */}
               {!user && (
-                <div className="mb-5 flex items-center justify-between gap-3 px-4 py-2.5 rounded-xl bg-[var(--accent)]/8 border border-[var(--accent)]/15">
+                <div className="mb-5 flex items-center justify-between gap-3 border-b border-[var(--border-subtle)]/70 pb-3">
                   <div className="flex items-center gap-2 text-[12px]">
                     <Sparkles size={12} className="text-[var(--accent)] shrink-0" />
                     {/* "회" counts LLM calls, not sessions — a session uses 6–9.
                         Selling "30회" as 30 tries read as a lie by session 3.
                         Speak in the user's unit: decisions. */}
-                    <span className="text-[var(--text-primary)]">{locale === 'ko' ? <>로그인 없이 <strong>하루 결정 2~3개 분량 무료</strong> · 로그인하면 더 넉넉해요</> : <><strong>2–3 decisions/day free</strong> without login · more with login</>}</span>
+                    <span className="text-[var(--text-secondary)]">{locale === 'ko' ? <>로그인 없이 <strong className="text-[var(--text-primary)]">하루 결정 2~3개</strong>를 살펴볼 수 있어요</> : <>Explore <strong className="text-[var(--text-primary)]">2–3 decisions a day</strong> without logging in</>}</span>
                   </div>
-                  <LocaleLink href="/login" className="shrink-0 px-3 py-1 rounded-lg bg-[var(--accent)] text-[var(--bg)] text-[12px] font-semibold hover:shadow-[var(--shadow-sm)] transition-all">{L('로그인', 'Log in')}</LocaleLink>
+                  <LocaleLink href="/login" className="group shrink-0 inline-flex items-center gap-1 text-[12px] font-semibold text-[var(--accent)] hover:text-[var(--text-primary)] transition-colors">
+                    {L('로그인', 'Log in')} <ChevronRight size={12} className="transition-transform group-hover:translate-x-0.5" />
+                  </LocaleLink>
                 </div>
               )}
 
@@ -651,13 +678,13 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
                   mid-step. Same loop, same vocabulary (audit P0 #3). */}
               <div className="mb-5">
                 <h2 className="text-[19px] md:text-[23px] font-semibold text-[var(--text-primary)] leading-tight mb-2.5" style={{ fontFamily: 'var(--font-display)' }}>
-                  {L('지금 들고 있는 결정, 어떤 가정 위에 서 있는지 봐 드릴게요', "That decision you're holding — let's see what it rests on")}
+                  {L('지금 들고 있는 결정은 어떤 가정 위에 서 있을까요?', "What assumptions does the decision you're holding rest on?")}
                 </h2>
                 <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5 text-[11px] text-[var(--text-tertiary)]">
                   {[
                     L('상황을 적으면', 'Describe the situation'),
-                    L('AI 팀이 숨은 전제를 보여드리고', 'an AI crew surfaces the hidden premises'),
-                    L('문서와 결론 요약 한 장(현재 방위)이 남아요', 'you leave with a document & a one-page Heading'),
+                    L('AI 검토자가 숨은 전제를 살펴보고', 'AI reviewers surface hidden premises'),
+                    L('완성된 문서와 결정 요약이 남아요', 'leave with a finished document and decision summary'),
                   ].map((step, i) => (
                     <React.Fragment key={i}>
                       {i > 0 && <ChevronRight size={11} className="text-[var(--text-tertiary)]/50 shrink-0" />}
@@ -710,23 +737,25 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
                 <label htmlFor="workspace-decision-input" className="block text-[15px] md:text-[16px] font-semibold text-[var(--text-primary)] mb-1.5">
                   {L('어떤 상황인가요?', "What's the situation?")}
                 </label>
-                <p id="workspace-decision-help" className="text-[13px] text-[var(--text-secondary)] mb-3 leading-relaxed">
-                  {L('분야·형식 상관없어요. 떠오르는 대로 편하게 적어주세요 — 나머지는 팀이 정리해요.', 'Any field or format — just describe it however it comes to mind. The team handles the rest.')}
+                <p id="workspace-decision-help" className="text-[13px] text-[var(--text-secondary)] mb-2 leading-relaxed">
+                  {L('분야나 형식은 상관없어요. 떠오르는 대로 적어주세요.', 'Any field or format is fine. Describe it however it comes to mind.')}
                 </p>
                 {projects.length === 0 && (
                   <ArgusCompanionNote
                     moment="companion"
                     compact
-                    title={L('한 줄만 시작해도 괜찮아요', 'A sentence is enough to begin')}
+                    bare
+                    mascotClassName="!h-14 !w-11"
+                    title={L('한 문장이면 충분해요.', 'One sentence is enough.')}
                     className="mb-3"
                   >
-                    {L('Argus가 곁에서, 이 결정에 깔린 전제를 같이 찾아볼게요.', "Argus will sit with it and help find the question it rests on.")}
+                    {L('상황 속 전제와 지금 풀어야 할 질문을 함께 정리해요.', 'We will organize the premises and the question to solve now.')}
                   </ArgusCompanionNote>
                 )}
                 {/* PRIMARY input — lifted off the page with a soft shadow + a faint
                     accent border so it reads as THE thing to do, not just one more
                     same-toned card among the demo tiles below. */}
-                <div className="rounded-2xl border border-[var(--accent)]/20 bg-[var(--surface)] overflow-hidden shadow-[var(--shadow-md)] focus-within:border-[var(--accent)]/50 focus-within:shadow-[var(--shadow-lg)] transition-all">
+                <div className="rounded-2xl border border-[var(--accent)]/25 bg-[var(--surface)]/90 overflow-hidden shadow-[var(--shadow-sm)] focus-within:border-[var(--accent)]/55 focus-within:shadow-[var(--shadow-md)] transition-all">
                   {justFromDemo && (
                     <div className="px-4 md:px-5 py-2.5 bg-[var(--accent)]/8 border-b border-[var(--accent)]/15 text-[12px] text-[var(--accent)] flex items-center gap-2">
                       <Sparkles size={12} className="shrink-0" />
@@ -752,7 +781,7 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
                             {L('Enter로 시작 · Shift+Enter로 줄바꿈', 'Enter to start · Shift+Enter for newline')}
                           </span>
                         : <span className="text-[11px] text-[var(--text-tertiary)]">
-                            {L('한 줄만 적어도 시작할 수 있어요', 'A sentence is enough to begin')}
+                            {L('내용은 시작한 뒤에도 다듬을 수 있어요', 'You can refine this after you start')}
                           </span>}
                       {/* Shared Button, accent variant (H1-C3): the raw inline-gold
                           button had no active/hover depth and its disabled state
@@ -765,45 +794,27 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
                   </div>
                 </div>
 
-                {/* ON FILE — the second door, mirroring the landing hero's two
-                    entry modes (write vs upload) so the journey stays consistent:
-                    if the decision is already written up, bring the doc to Review.
-                    Secondary to the primary write input above; ink, never gold. */}
+                {/* Existing-document review is a secondary path, not another card. */}
                 <LocaleLink
                   href="/tools/review"
-                  className="group mt-3 flex min-h-[88px] items-stretch overflow-hidden rounded-lg border border-[var(--border-subtle)] bg-[var(--surface)] hover:border-[var(--accent)]/40 hover:shadow-[var(--shadow-sm)] transition-all"
+                  className="group mt-2 flex items-center justify-between gap-3 border-b border-[var(--border-subtle)]/70 px-1 py-3.5 text-left"
                 >
-                  <span className="relative w-24 shrink-0 overflow-hidden border-r border-[var(--border-subtle)] bg-[#171817]" aria-hidden="true">
-                    <Image
-                      src="/images/evidence/workspace/evidence-dossier-v1.jpg"
-                      alt=""
-                      fill
-                      sizes="96px"
-                      className="object-cover object-center transition-transform duration-500 ease-out motion-reduce:transition-none motion-safe:group-hover:scale-[1.025]"
-                    />
-                  </span>
-                  <div className="flex min-w-0 flex-1 items-center justify-between gap-3 px-3.5 py-3">
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-1.5 mb-0.5">
-                      <FileText size={13} className="text-[var(--text-tertiary)] shrink-0" />
-                      <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--text-tertiary)]">{L('서류 · 이미 써둔 문서', 'ON FILE · a document you wrote')}</span>
-                    </div>
-                    <div className="text-[13.5px] text-[var(--text-secondary)] leading-snug">
-                      {L('전략안·기획안·PDF·PPT가 있다면, 올려서 검수받으세요.', 'Got a strategy memo, plan, PDF or deck? Upload it for review.')}
+                  <div className="flex min-w-0 items-center gap-2.5">
+                    <FileText size={15} className="shrink-0 text-[var(--accent)]" />
+                    <div className="min-w-0">
+                      <p className="text-[13px] font-semibold text-[var(--text-primary)] group-hover:text-[var(--accent)] transition-colors">
+                        {L('이미 작성한 문서가 있나요?', 'Already have a document?')}
+                      </p>
+                      <p className="mt-0.5 text-[12px] leading-snug text-[var(--text-tertiary)]">
+                        {L('전략안·기획안·PDF·PPT를 바로 검토할 수 있어요.', 'Review a strategy memo, plan, PDF, or deck.')}
+                      </p>
                     </div>
                   </div>
-                  <span className="shrink-0 inline-flex items-center gap-1 text-[12.5px] font-semibold text-[var(--text-primary)]">
-                    <span className="hidden sm:inline">{L('검수받기', 'Review')}</span>
+                  <span className="shrink-0 inline-flex items-center gap-1 text-[12px] font-semibold text-[var(--accent)]">
+                    <span className="hidden sm:inline">{L('문서 검토하기', 'Review document')}</span>
                     <ChevronRight size={13} className="transition-transform group-hover:translate-x-0.5" />
                   </span>
-                  </div>
                 </LocaleLink>
-                <p className="mt-2 text-[12px] text-[var(--text-tertiary)] leading-relaxed">
-                  {L(
-                    'AI 대화에서 남긴 예측은 MCP의 argus_predict로 바로 기록할 수 있어요. 첫 사용 설정은 자동입니다.',
-                    'In an AI chat, save a prediction directly with argus_predict. First-use setup is automatic.',
-                  )}
-                </p>
 
                 {/* (P0-7) The 4 side-path chips (/agents /boss /teams /guide)
                     are gone: teams·guide were pure duplicates of the Header
@@ -931,12 +942,10 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
                         <span className="tabular-nums shrink-0">{L(`${sorted.length}개`, `${sorted.length}`)}</span>
                       </span>
                     </div>
-                    {/* Each past voyage rests as a real, bordered surface (not a bare
-                        hover-row) so the list reads as a stack of openable cards. */}
-                    <div className="space-y-1.5">
+                    <div className="divide-y divide-[var(--border-subtle)]/70 border-y border-[var(--border-subtle)]/70">
                       {shown.map((p) => (
                         <button key={p.id} onClick={() => onReady(p.id)}
-                          className="w-full text-left flex items-center gap-2.5 px-3.5 py-3 md:py-2.5 min-h-[44px] rounded-xl border border-[var(--border-subtle)]/70 bg-[var(--surface)]/50 hover:bg-[var(--surface)] hover:border-[var(--accent)]/30 hover:shadow-[var(--shadow-sm)] cursor-pointer transition-all group">
+                          className="w-full text-left flex items-center gap-2.5 px-1 py-3 min-h-[44px] hover:bg-[var(--surface)]/45 cursor-pointer transition-colors group">
                           <FolderOpen size={14} className="text-[var(--accent)] shrink-0" />
                           <span className="text-[14px] text-[var(--text-primary)] truncate group-hover:text-[var(--accent)] transition-colors">{p.name}</span>
                           <span className="ml-auto flex items-center gap-2 shrink-0">
@@ -981,34 +990,27 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
                         <Compass size={muted ? 13 : 15} className="text-[var(--text-tertiary)]" />
                         {muted
                           ? L('다른 예시도 둘러보기', 'Or browse a few examples')
-                          : L('처음이라면 — 시나리오로 둘러보기', 'New here? — try a sample scenario')}
+                          : L('처음이라면, 예시로 시작해보세요', 'New here? Start with an example')}
                       </p>
-                      <div className={`grid grid-cols-1 sm:grid-cols-3 ${muted ? 'gap-2' : 'gap-3'}`}>
+                      <div className="grid grid-cols-1 divide-y divide-[var(--border-subtle)]/70 border-y border-[var(--border-subtle)]/70 sm:grid-cols-3 sm:divide-x sm:divide-y-0">
                         {demoScenarios.map(s => {
                           const art = DEMO_SCENARIO_ART[s.id];
                           return (
                             <button key={s.id} onClick={() => setDemoScenario(s)}
-                              className={`text-left overflow-hidden rounded-lg border cursor-pointer transition-all duration-200 group ${
-                                muted
-                                  ? 'flex items-center gap-3 p-2.5 border-[var(--border-subtle)]/50 bg-transparent hover:bg-[var(--surface)]/70 hover:border-[var(--accent)]/25'
-                                  : 'flex items-stretch sm:block border-[var(--border-subtle)] bg-[var(--surface)]/60 hover:bg-[var(--surface)] hover:border-[var(--accent)]/30 hover:shadow-[var(--shadow-md)] hover:-translate-y-0.5'
-                              }`}>
+                              className="group flex min-w-0 cursor-pointer items-center gap-3 py-3 text-left transition-colors hover:bg-[var(--surface)]/45 sm:block sm:px-3 sm:py-4 first:sm:pl-0 last:sm:pr-0">
                               {art && (
-                                <div className={`relative shrink-0 overflow-hidden bg-[var(--bg)] ${
-                                  muted
-                                    ? 'h-11 w-11 rounded-md border border-[var(--border-subtle)]/70'
-                                    : 'w-[112px] border-r border-[var(--border-subtle)] sm:aspect-[16/9] sm:w-full sm:border-r-0 sm:border-b'
-                                }`} aria-hidden="true">
+                                <div className={`relative shrink-0 overflow-hidden bg-[var(--bg)] ${muted ? 'h-11 w-11' : 'h-[72px] w-[112px] sm:aspect-[16/9] sm:h-auto sm:w-full'}`} aria-hidden="true">
                                   <Image
                                     src={art}
                                     alt=""
                                     fill
                                     sizes={muted ? '44px' : '(max-width: 639px) 112px, 220px'}
-                                    className="object-cover transition-transform duration-500 ease-out motion-reduce:transition-none motion-safe:group-hover:scale-[1.025]"
+                                    loading={muted ? 'lazy' : 'eager'}
+                                    className="object-cover opacity-90 transition-[transform,opacity] duration-500 ease-out motion-reduce:transition-none group-hover:opacity-100 motion-safe:group-hover:scale-[1.02]"
                                   />
                                 </div>
                               )}
-                              <div className={muted ? 'min-w-0 flex-1' : 'min-w-0 flex-1 p-3.5 sm:p-3'}>
+                              <div className="min-w-0 flex-1 pt-0 sm:pt-2.5">
                                 <div className={`flex items-center justify-between gap-2 ${muted ? 'mb-0.5' : 'mb-1.5'}`}>
                                   <span className={`font-semibold text-[var(--text-primary)] group-hover:text-[var(--accent)] transition-colors ${muted ? 'text-[12px]' : 'text-[13px]'}`}>{s.title}</span>
                                   <ChevronRight size={muted ? 12 : 13} className="shrink-0 text-[var(--text-tertiary)] opacity-55 transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
@@ -1031,21 +1033,24 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
                   beside the demos, and the primary input above is always the main
                   door. Empty state only (a returning user has their own record). */}
               {projects.length === 0 && (
-                <div className="mt-4">
+                <div className="mt-1">
                   <button
                     onClick={() => setPhase('retro')}
-                    className="w-full text-left rounded-xl border border-[var(--accent)]/20 bg-[var(--surface)]/60 p-4 cursor-pointer transition-all duration-200 hover:bg-[var(--surface)] hover:border-[var(--accent)]/40 hover:shadow-[var(--shadow-md)] group"
+                    className="group flex w-full cursor-pointer items-start justify-between gap-4 border-b border-[var(--border-subtle)]/70 px-1 py-4 text-left transition-colors hover:bg-[var(--surface)]/40"
                   >
-                    <div className="flex items-center gap-2 mb-1.5">
-                      <History size={16} className="text-[var(--accent)]" />
-                      <span className="text-[13px] font-semibold text-[var(--text-primary)] group-hover:text-[var(--accent)] transition-colors">
-                        {L('연습으로 — 지난 결정 하나로 고리를 돌려보기', "Practice — run the loop on a past decision")}
-                      </span>
+                    <div className="flex min-w-0 items-start gap-2.5">
+                      <History size={16} className="mt-0.5 shrink-0 text-[var(--accent)]" />
+                      <div>
+                        <span className="text-[13px] font-semibold text-[var(--text-primary)] group-hover:text-[var(--accent)] transition-colors">
+                          {L('지난 결정으로 결과 확인 연습하기', 'Practice with a past decision')}
+                        </span>
+                        <p className="mt-1 text-[12px] text-[var(--text-tertiary)] leading-relaxed">
+                          {L('이미 결과를 아는 결정 하나로, 결정을 남기고 결과를 확인하는 과정을 3분 안에 경험해보세요.',
+                             'Use a decision whose outcome you already know to save the call and review the result in about three minutes.')}
+                        </p>
+                      </div>
                     </div>
-                    <p className="text-[12px] text-[var(--text-tertiary)] leading-relaxed">
-                      {L('데모가 아니라 당신의 진짜 지난 결정으로, 봉인부터 다시 보기까지 3분 안에 한 번 돌려봐요. 이미 결과를 아는 결정이라 지금 바로 맞춰볼 수 있어요.',
-                         'Your own real past decision — not a demo — run seal to settle in 3 minutes. You already know how it turned out, so you can check it right now.')}
-                    </p>
+                    <ChevronRight size={14} className="mt-0.5 shrink-0 text-[var(--text-tertiary)] transition-transform group-hover:translate-x-0.5 group-hover:text-[var(--accent)]" />
                   </button>
                 </div>
               )}
@@ -1055,7 +1060,7 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
               {projects.length === 0 && (
                 <div className="mt-12 pt-8 border-t border-[var(--border-subtle)]/60 text-center">
                   <p className="text-[14px] md:text-[15px] text-[var(--text-secondary)] leading-relaxed max-w-md mx-auto">
-                    {locale === 'ko' ? <>상황을 알려주시면 AI 팀이 분석하고, 초안을 만들고,<br className="hidden md:block" /> 의사결정권자 반응까지 시뮬레이션합니다.</> : <>Tell us the situation — an AI team will analyze, draft,<br className="hidden md:block" /> and simulate decision-maker reactions.</>}
+                    {locale === 'ko' ? <>상황을 알려주면 AI 검토자가 전제를 살펴보고, 초안을 만들고,<br className="hidden md:block" /> 의사결정권자의 반응까지 점검해요.</> : <>Share the situation and AI reviewers will surface premises, draft,<br className="hidden md:block" /> and test the decision-maker&apos;s likely response.</>}
                   </p>
                 </div>
               )}
@@ -1099,7 +1104,7 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
                   className="text-[11px] text-[var(--text-tertiary)] pt-1">
                   {/* Honest framing: the initial pass is a single read that finds the real
                       question; this crew does its individual work later, at the worker stage. */}
-                  {L('AI 팀원 4명이 이 건을 따로따로 봐요 — 먼저 상황을 읽고 진짜 질문을 찾는 중...', 'Four AI teammates take this on separately — first, reading the situation to find the real question...')}
+                  {L('AI 검토자 4명이 이 상황을 따로 살펴보고 있어요 — 먼저 지금 풀어야 할 질문을 정리합니다...', 'Four AI reviewers are looking at this separately — first, organizing the question to solve...')}
                 </motion.p>
               </div>
             </motion.div>
@@ -1111,9 +1116,9 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
             const stageLabel = (() => {
               switch (partial.stage) {
                 case 'reading': return L('상황을 읽는 중', 'Reading the situation');
-                case 'question': return L('진짜 질문을 찾는 중', 'Finding the real question');
-                case 'assumptions': return L('숨은 가정을 분석하는 중', 'Analyzing hidden assumptions');
-                case 'skeleton': return L('뼈대를 작성하는 중', 'Drafting the skeleton');
+                case 'question': return L('지금 풀어야 할 질문을 정리하는 중', 'Organizing the question to solve');
+                case 'assumptions': return L('확인할 가정을 살펴보는 중', 'Reviewing assumptions to check');
+                case 'skeleton': return L('문서 구성을 잡는 중', 'Structuring the document');
               }
             })();
             const hasQuestion = !!partial.real_question;
@@ -1160,7 +1165,7 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
                   className="rounded-2xl border border-[var(--accent)]/15 bg-[var(--surface)] p-5 md:p-6 mb-3"
                 >
                   <div className="text-[10px] font-bold text-[var(--accent)] uppercase tracking-[0.15em] mb-2.5">
-                    {L('우리가 읽은 진짜 질문', 'The real question we read')}
+                    {L('지금 풀어야 할 질문', 'The question to solve now')}
                   </div>
                   <div className="text-[17px] md:text-[19px] leading-[1.45] text-[var(--text-primary)] whitespace-pre-wrap break-words min-h-[28px]" style={{ fontFamily: 'var(--font-display)' }}>
                     {hasQuestion ? partial.real_question : <span className="text-[var(--text-tertiary)] text-[13px]" style={{ fontFamily: 'inherit' }}>{L('찾는 중...', 'Searching...')}</span>}
@@ -1180,11 +1185,11 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
                   >
                     <div className="flex items-center gap-3 text-[11.5px] text-[var(--text-tertiary)] tabular-nums">
                       <span className={hasAssumptions ? 'text-[var(--text-secondary)]' : ''}>
-                        {L(`숨은 가정 ${partial.hidden_assumptions.length}`, `${partial.hidden_assumptions.length} assumptions`)}
+                        {L(`확인할 가정 ${partial.hidden_assumptions.length}`, `${partial.hidden_assumptions.length} assumptions to check`)}
                       </span>
                       <span aria-hidden>·</span>
                       <span className={hasSkeleton ? 'text-[var(--text-secondary)]' : ''}>
-                        {L(`문서 뼈대 ${partial.skeleton.length}`, `${partial.skeleton.length} sections`)}
+                        {L(`문서 구성 ${partial.skeleton.length}`, `${partial.skeleton.length} document sections`)}
                       </span>
                       <span className="text-[var(--text-tertiary)]/70">{L('— 분석이 끝나면 전문이 열려요', '— full text opens when analysis lands')}</span>
                     </div>
@@ -1516,7 +1521,7 @@ function SuspenseFallback() {
     <div className="min-h-[60vh] flex items-center justify-center">
       <div className="text-center space-y-3">
         <div className="w-8 h-8 rounded-full border-2 border-[var(--accent)] border-t-transparent animate-spin mx-auto" />
-        <p className="text-[13px] text-[var(--text-secondary)]">{L('항해 준비 중...', 'Preparing the voyage...')}</p>
+        <p className="text-[13px] text-[var(--text-secondary)]">{L('워크스페이스 준비 중...', 'Preparing your workspace...')}</p>
       </div>
     </div>
   );

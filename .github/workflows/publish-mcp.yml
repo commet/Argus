@@ -1,0 +1,67 @@
+name: Publish to MCP Registry
+
+# Fully automated release. Push a version tag (e.g. v1.5.0) and this workflow:
+#   1. publishes the package to npm via npm Trusted Publishing (OIDC) — no token,
+#      no OTP, and it bypasses the account's 2FA-for-publish requirement because
+#      it authenticates as this trusted workflow, not as a token;
+#   2. registers the matching version in the official MCP Registry (also OIDC).
+# Still runnable by hand from the Actions tab (workflow_dispatch).
+#
+# ONE-TIME SETUP on npmjs.com (without it, step 1 fails as "untrusted"):
+#   argus-decision-mcp → Settings → Trusted Publisher → GitHub Actions →
+#     Organization or user: commet
+#     Repository:           Argus
+#     Workflow filename:    publish-mcp.yml
+#     Action:               npm publish
+on:
+  push:
+    tags: ["v*"] # e.g. v1.5.0
+  workflow_dispatch:
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write # OIDC — used for BOTH npm trusted publishing and the MCP registry
+      contents: read
+    defaults:
+      run:
+        working-directory: argus-mcp # package.json + server.json live here (monorepo subfolder)
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24 # >= 22.14 required for trusted publishing
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Upgrade npm (trusted publishing needs >= 11.5.1)
+        run: npm install -g npm@latest
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Publish to npm via OIDC trusted publishing (no token; provenance is added
+      # automatically for this public repo). Skip if the version is already on npm
+      # so a re-run or a tag on an existing version doesn't 409-fail and block the
+      # registry step below.
+      - name: Publish package to npm (OIDC trusted publishing)
+        run: |
+          VERSION="$(node -p "require('./package.json').version")"
+          if npm view "argus-decision-mcp@$VERSION" version >/dev/null 2>&1; then
+            echo "argus-decision-mcp@$VERSION already on npm — skipping publish."
+          else
+            npm publish
+          fi
+
+      - name: Install mcp-publisher
+        run: |
+          curl -L "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_$(uname -s | tr '[:upper:]' '[:lower:]')_$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/').tar.gz" | tar xz mcp-publisher
+
+      - name: Authenticate to MCP Registry (GitHub OIDC)
+        run: ./mcp-publisher login github-oidc
+
+      - name: Publish server to MCP Registry
+        run: ./mcp-publisher publish

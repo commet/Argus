@@ -56,7 +56,7 @@ describe('MirrorBeat — front-of-voyage recognition (North-Star B)', () => {
     // The surfaced premise itself.
     expect(text).toContain('이탈은 가격 때문이다');
     // Honest provenance — marked as the machine's read, not the user's words.
-    expect(text).toContain('AI가 채운 전제');
+    expect(text).toContain('AI가 임시로 둔 전제');
     // Hands control back — recognition that returns the handle, not a verdict.
     expect(text).toContain('바로잡으면');
   });

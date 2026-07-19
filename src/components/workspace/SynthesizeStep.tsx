@@ -24,7 +24,8 @@ import { extractPredicatesFromSynthesis } from '@/lib/decision-contract';
 import { buildEnhancedSystemPrompt } from '@/lib/context-builder';
 import { NextStepGuide } from '@/components/ui/NextStepGuide';
 import { NavigatorInline } from '@/components/workspace/NavigatorInline';
-import { Sparkles, Loader2, FileText, Trash2, Check, PlusCircle, X, AlertTriangle, ArrowRight, RotateCcw, Bot, Scale, Send } from 'lucide-react';
+import { SynthesisAlignmentMap } from '@/components/workspace/SynthesisAlignmentMap';
+import { Sparkles, Loader2, FileText, Trash2, Check, PlusCircle, X, AlertTriangle, ArrowRight, RotateCcw, Scale, Send } from 'lucide-react';
 import { useLocale } from '@/hooks/useLocale';
 import { getCurrentLanguage } from '@/lib/i18n';
 
@@ -479,33 +480,14 @@ export function SynthesizeStep({ onNavigate }: SynthesizeStepProps) {
       {/* ─── STEP 2: Review ─── */}
       {current?.status === 'review' && current.analysis && (
         <div className="space-y-6 animate-fade-in">
-          {/* Sources summary */}
-          <div>
-            <div className="flex items-center gap-2 mb-3">
-              <Bot size={14} className="text-[var(--ai-fg)]" />
-              <h3 className="text-[16px] font-bold text-[var(--text-primary)]">{L('소스별 핵심 주장', 'Core claims by source')}</h3>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              {current.analysis.sources_summary.map((s, i) => (
-                <Card key={i} className="!bg-[var(--ai)] !p-3">
-                  <p className="text-[12px] font-bold text-[var(--ai-fg)] mb-1">{s.name}</p>
-                  <p className="text-[13px] text-[var(--text-primary)]">{s.core_claim}</p>
-                </Card>
-              ))}
-            </div>
-          </div>
-
-          {/* Agreements */}
-          {current.analysis.agreements.length > 0 && (
-            <Card className="!bg-[var(--collab)]">
-              <h3 className="text-[14px] font-bold text-[var(--both-fg)] mb-2">{L('합의점', 'Agreements')}</h3>
-              <ul className="space-y-1">
-                {current.analysis.agreements.map((a, i) => (
-                  <li key={i} className="text-[13px] text-[var(--both-fg)]">✓ {a}</li>
-                ))}
-              </ul>
-            </Card>
-          )}
+          <SynthesisAlignmentMap
+            item={current}
+            onSelectConflict={(conflictId) => {
+              const target = document.getElementById(`synthesis-conflict-${conflictId}`);
+              target?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              window.setTimeout(() => target?.querySelector<HTMLTextAreaElement>('textarea')?.focus(), 350);
+            }}
+          />
 
           {/* Conflicts - JUDGMENT POINTS */}
           {current.analysis.conflicts.length > 0 && (
@@ -518,7 +500,7 @@ export function SynthesizeStep({ onNavigate }: SynthesizeStepProps) {
                 {L('쟁점마다 당신의 판단을 적어주세요. AI가 아니라 당신 상황에서 결정하는 거예요.', 'Make your call on each point — you decide from your situation, not the AI’s.')}
               </p>
               {current.analysis.conflicts.map((conflict) => (
-                <Card key={conflict.id} className={`space-y-3 ${conflict.user_judgment ? '!border-[var(--success)]' : '!border-[var(--warning)]/30'}`}>
+                <Card id={`synthesis-conflict-${conflict.id}`} key={conflict.id} className={`scroll-mt-24 space-y-3 ${conflict.user_judgment ? '!border-[var(--success)]' : '!border-[var(--warning)]/30'}`}>
                   <div className="flex items-center gap-2">
                     <Scale size={14} className="text-[var(--warning)]" />
                     <h4 className="text-[14px] font-bold text-[var(--text-primary)]">{conflict.topic}</h4>
@@ -599,6 +581,12 @@ export function SynthesizeStep({ onNavigate }: SynthesizeStepProps) {
       {/* ─── Done ─── */}
       {current?.status === 'done' && current.analysis && (
         <div className="space-y-4 animate-fade-in">
+          <SynthesisAlignmentMap
+            item={current}
+            onSelectConflict={(conflictId) => {
+              document.getElementById(`synthesis-done-conflict-${conflictId}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }}
+          />
           <Card className="!border-[var(--success)] !border-2">
             <div className="flex items-center gap-2 text-[var(--success)] text-[13px] font-bold mb-3">
               <Check size={14} /> {L('조율 완료', 'Synthesis complete')}
@@ -611,7 +599,7 @@ export function SynthesizeStep({ onNavigate }: SynthesizeStepProps) {
               <div>
                 <h4 className="font-bold mb-1">{L('쟁점별 판단', 'Judgment per conflict')}</h4>
                 {current.analysis.conflicts.filter((c) => c.user_judgment).map((c) => (
-                  <div key={c.id} className="mb-2">
+                  <div id={`synthesis-done-conflict-${c.id}`} key={c.id} className="mb-2 scroll-mt-24">
                     <p className="font-medium">{c.topic}</p>
                     <p className="text-[var(--text-secondary)]">{c.user_judgment}</p>
                   </div>

@@ -236,24 +236,24 @@ export function bearingToMarkdown(b: CurrentBearing, locale: 'ko' | 'en' = 'ko')
   const ko = locale === 'ko';
   const t = (k: string, e: string) => (ko ? k : e);
   const lines: string[] = [];
-  lines.push(`## ${t('현재 방위', 'Current Heading')}`);
+  lines.push(`## ${t('결정 요약', 'Decision Summary')}`);
   lines.push(b.current_course.summary);
   if (b.why_this_course.length) {
-    lines.push('', `**${t('왜 이 항로인가', 'Why this course')}**`);
+    lines.push('', `**${t('이 방향을 택한 이유', 'Why this direction')}**`);
     for (const r of b.why_this_course) lines.push(`- ${r.point}`);
   }
   if (b.fog_or_reef?.issue) {
-    lines.push('', `**${t('안개·암초', 'Fog & reef')}**`);
+    lines.push('', `**${t('확인할 위험', 'Risks to check')}**`);
     lines.push(`- ${b.fog_or_reef.issue}`);
     if (b.fog_or_reef.required_check) lines.push(`  - ${t('확인할 것', 'Check')}: ${b.fog_or_reef.required_check}`);
   }
   if (b.road_not_taken.length) {
-    lines.push('', `**${t('가지 않은 길', 'Road not taken')}**`);
+    lines.push('', `**${t('보류한 선택지', 'Options set aside')}**`);
     for (const r of b.road_not_taken) lines.push(`- ~~${r.option}~~ — ${r.why_not_now}`);
   }
   if (b.next_helm) lines.push('', `**${t('다음 할 일', 'Next step')}**: ${b.next_helm}`);
   if (b.contract_seed?.predicate) {
-    lines.push('', `**${t('나중에 확인할 것', 'To check later')}**: ${b.contract_seed.predicate}`);
+    lines.push('', `**${t('확인일에 볼 것', 'Check on the review date')}**: ${b.contract_seed.predicate}`);
   }
   return lines.join('\n');
 }

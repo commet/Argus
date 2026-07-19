@@ -155,7 +155,7 @@ export function OutputSelector({ project }: OutputSelectorProps) {
   return (
     <div className="space-y-3">
       <h3 className="text-[14px] font-bold text-[var(--text-primary)]">{L('산출물 — 가져가실 것', 'Outputs — yours to take')}</h3>
-      <p className="text-[12px] text-[var(--text-secondary)]">{L('한 번의 항해에서, 필요한 형식으로 골라 내보내요.', 'One voyage, exported in whatever format you need.')}</p>
+      <p className="text-[12px] text-[var(--text-secondary)]">{L('이 결정을 필요한 형식으로 골라 내보내요.', 'Export this decision in the format you need.')}</p>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
         {formats.map((format) => (
@@ -216,15 +216,15 @@ export function OutputSelector({ project }: OutputSelectorProps) {
           {codaOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
           {/* 08 P2-3: '항해일지' is reserved for the ship's-log rail — this legacy
               coda only looks back on ONE voyage, so its label says exactly that. */}
-          {L('이 항해 돌아보기', 'Look back on this voyage')}
+          {L('이 결정 돌아보기', 'Reflect on this decision')}
           {codaSaved && <span className="text-[10px] text-[var(--success)] font-medium ml-1">{L('저장됨', 'Saved')}</span>}
         </button>
         {codaOpen && (
           <div className="mt-4 space-y-4 animate-fade-in">
             <p className="text-[12px] text-[var(--text-secondary)] leading-relaxed">
               {L(
-                '항해가 끝났어요. 지나온 항로를 한 번 짚어보면 다음 항해가 한결 수월해져요.',
-                "The voyage is done. Looking back at the route makes the next one easier.",
+                '결정을 마쳤어요. 생각이 어떻게 바뀌었는지 짚어보면 다음 판단에 도움이 돼요.',
+                'The decision is complete. Looking back at how your thinking changed can improve the next one.',
               )}
             </p>
             <div className="space-y-3">

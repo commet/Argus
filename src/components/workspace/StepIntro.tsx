@@ -25,10 +25,10 @@ function getCopy(stepKey: StepKey, ko: boolean): Copy {
       return {
         emoji: '🧭',
         Icon: Compass,
-        title: L('항로 재설정 — Reframe', 'Reframe — Set the Heading'),
+        title: L('문제 재정의 — Reframe', 'Reframe — Find the Question'),
         purpose: L(
-          '주어진 과제 뒤에 숨은 진짜 질문을 찾고, 검증되지 않은 전제를 짚어냅니다.',
-          'Find the real question behind the brief and surface the assumptions no one has checked.',
+          '주어진 과제 뒤에서 지금 풀어야 할 질문을 찾고, 검증되지 않은 전제를 짚어냅니다.',
+          'Find the question the brief needs to solve and surface the assumptions no one has checked.',
         ),
         example: L(
           '"보고서 빨리 써야 해" → "어떤 결정을 위한 보고서인지부터 정의되지 않았다"',
@@ -39,7 +39,7 @@ function getCopy(stepKey: StepKey, ko: boolean): Copy {
       return {
         emoji: '🚣',
         Icon: Layers,
-        title: L('선원 배치 — Recast', 'Recast — Crew Assignment'),
+        title: L('실행 설계 — Recast', 'Recast — Execution Plan'),
         purpose: L(
           '결정된 질문을 실행 가능한 단계로 풀어내고, AI/사람/협업으로 누가 무엇을 할지 배정합니다.',
           'Decompose the decided question into executable steps and assign each to AI / human / both.',
@@ -67,7 +67,7 @@ function getCopy(stepKey: StepKey, ko: boolean): Copy {
       return {
         emoji: '🪶',
         Icon: Sparkles,
-        title: L('이타카 — Synthesize', 'Synthesize — Final Judgment'),
+        title: L('최종 정리 — Synthesize', 'Synthesize — Final Synthesis'),
         purpose: L(
           '여러 페르소나의 의견 충돌을 정리하고, 최종 판단을 직접 내려서 문서로 만듭니다.',
           'Resolve conflicting persona feedback, render your own judgment, and assemble it into a final document.',

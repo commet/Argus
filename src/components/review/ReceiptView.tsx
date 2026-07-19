@@ -5,7 +5,7 @@
  * 데려가기"). Shows only: Core Question, Reviewability, Top Judgment
  * Obligations, Top Findings, Applied lenses. Everything else is behind "펼쳐보기".
  *
- * The central click is "이 판단을 내가 소유하기" on an obligation — more
+ * The central click is "내 판단으로 기록하기" on an obligation — more
  * important than save/share/export. It never fills a verdict; the user owns it.
  */
 
@@ -290,8 +290,8 @@ export function ReceiptView({
         <div className="text-[12px] text-[var(--text-tertiary)] leading-[1.6]">{receipt.routing.disclosure}</div>
       )}
 
-      {/* actions — sealing now happens on an obligation above ("이 판단을 내가
-          소유하기"), which owns + seals into the DKK ledger in one act. Here:
+      {/* actions — recording now happens on an obligation above. It promotes the
+          reviewed obligation into the canonical decision record in one act. Here:
           문서 수정안 / 더 검증하기. */}
       <div className="flex flex-wrap gap-2">
         {fixes.length > 0 && (
@@ -307,7 +307,7 @@ export function ReceiptView({
           </Button>
         )}
         <Button variant="ghost" size="sm" onClick={() => setExpanded((v) => !v)}>
-          {expanded ? L('접기', 'Collapse') : L('더 보기 (주장 원장 · 가정 · 후속)', 'More (claim ledger · assumptions · follow-ups)')}
+          {expanded ? L('접기', 'Collapse') : L('더 보기 (주장과 근거 · 가정 · 후속)', 'More (claims & evidence · assumptions · follow-ups)')}
         </Button>
       </div>
 
@@ -332,7 +332,7 @@ export function ReceiptView({
         <div className="flex flex-col gap-4 pt-1">
           {receipt.claim_ledger.length > 0 && (
             <Card>
-              <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--text-secondary)] mb-2">{L('주장 원장', 'Claim ledger')}</div>
+              <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--text-secondary)] mb-2">{L('주장과 근거', 'Claims & evidence')}</div>
               {/* status filter (design doc §Claim Ledger) */}
               {claimStatuses.length > 1 && (
                 <div className="flex flex-wrap gap-1 mb-2.5">
@@ -510,11 +510,11 @@ function ObligationRow({
       <div className="mt-2 flex items-center gap-2">
         {sealed ? (
           <span className="inline-flex items-center gap-1 text-[12px] font-medium text-green-700">
-            ✓ {L('내가 소유·봉인함 — 확인일에 정산', 'Owned & sealed — settle on the check-in date')}
+            ✓ {L('기록됨 · 확인일에 다시 보기', 'Recorded · revisit on the check-in date')}
           </span>
         ) : (
           <Button variant="accent" size="sm" onClick={() => onSealObligation?.(o)}>
-            {L('이 판단을 내가 소유하기', 'Own this judgment')}
+            {L('내 판단으로 기록하기', 'Record as my judgment')}
           </Button>
         )}
         {hasWhy && (

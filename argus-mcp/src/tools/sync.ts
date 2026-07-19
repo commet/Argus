@@ -30,7 +30,7 @@ const inputSchema = z.strictObject({
   due_only: z.boolean().default(false).describe('List only receipts whose check-by date has arrived.'),
   limit: z.number().int().min(1).max(MAX_LIMIT).default(DEFAULT_LIMIT).describe(`Max receipts to list (default ${DEFAULT_LIMIT}). Due items are ordered first.`),
   import_settlements: z.boolean().default(false).describe(
-    'Mirror settlements the user already recorded on the WEB into this local ledger (their own outcome + words, verbatim — never an inferred outcome). Fixes the local record still listing a web-settled judgment as due. Only affects terminal-sealed (mcp_) judgments that are sealed locally but settled in the account.'),
+    'Mirror settlements the user already recorded on the WEB into this local decision record (their own outcome + words, verbatim — never an inferred outcome). Fixes the local record still listing a web-settled judgment as due. Only affects terminal-sealed (mcp_) judgments that are sealed locally but settled in the account.'),
   push_local: z.boolean().default(true).describe(
     'Send local changes the account never received — a settle, a dismiss, or a moved check-by whose one push failed (offline, or the token was added later). Default true: without it the account keeps listing a closed decision as due and the Companion Brief keeps emailing it. Pass false to inspect the account without writing to it.'),
 });

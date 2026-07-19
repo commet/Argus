@@ -76,7 +76,10 @@ const decideSchema = z.discriminatedUnion('action', [
     finding: z.string().min(1).max(800).describe('현재 확인한 사실을 비교 가능한 한 문장으로 적습니다.'),
     numeric_value: z.number().describe('수치 사실의 현재 값을 명시적으로 전달합니다.').optional(),
     changed: z.boolean().describe('문장형 사실이 기준값에서 실질적으로 달라졌는지 표시합니다.').optional(),
-    source: z.enum(['url', 'user_stated', 'host_reported']).describe('현재 사실을 확인한 출처입니다.'),
+    // default user_stated: the runtime union validates BEFORE the handler-level
+    // default can apply, so a required source here made every real update_fact
+    // call fail with a baffling INVALID_INPUT (1.4.0 field finding).
+    source: z.enum(['url', 'user_stated', 'host_reported']).default('user_stated').describe('현재 사실을 확인한 출처입니다. 생략하면 user_stated입니다.'),
     source_detail: z.string().max(1000).describe('출처 URL 또는 짧은 인용 정보입니다.').optional(),
     apply_to_matching: z.boolean().default(false).describe('같은 사실을 추적하는 다른 결정에도 이 확인 결과를 적용합니다.'),
   }),
@@ -154,7 +157,7 @@ const settingsSchema = z.discriminatedUnion('action', [
     argus_dir: zArgusDir,
     action: z.literal('sync').describe('로컬 기록과 Argus 계정 기록을 지금 동기화합니다.'),
     due_only: z.boolean().default(false).describe('확인일이 된 기록만 가져옵니다.'),
-    import_settlements: z.boolean().default(true).describe('웹에서 기록한 실제 결과를 로컬 원장에 반영합니다.'),
+    import_settlements: z.boolean().default(true).describe('웹에서 기록한 실제 결과를 로컬 판단 기록에 반영합니다.'),
     push_local: z.boolean().default(true).describe('계정에 닿지 못한 로컬 변경을 다시 보냅니다.'),
   }),
 ]);
@@ -166,7 +169,7 @@ const settingsPublicSchema = z.strictObject({
   ambient_mute: z.boolean().describe('세션 중 확인일 알림 문장을 숨길지 정합니다.').optional(),
   premise_sync: z.boolean().describe('추적 전제를 계정과 동기화할지 명시적으로 선택합니다.').optional(),
   due_only: z.boolean().describe('동기화할 때 확인일이 된 기록만 가져옵니다.').optional(),
-  import_settlements: z.boolean().describe('웹에서 기록한 실제 결과를 로컬 원장에 반영합니다.').optional(),
+  import_settlements: z.boolean().describe('웹에서 기록한 실제 결과를 로컬 판단 기록에 반영합니다.').optional(),
   push_local: z.boolean().describe('계정에 닿지 못한 로컬 변경을 다시 보냅니다.').optional(),
 }).superRefine((value, ctx) => {
   const parsed = settingsSchema.safeParse(value);
@@ -318,7 +321,10 @@ export const decide: ToolModule = {
     if (action === 'keep_question_open') {
       return runPublic('argus_capture', { ...a, op: 'still_open', reponder_cadence_days: a['reconsider_cadence_days'] }, premises.handler);
     }
-    if (action === 'update_fact') return runPublic('argus_capture', a, recheck.handler);
+    // recheck internally REQUIRES a source; the public update_fact schema never
+    // surfaced it, so every real call died with a baffling "source: 값을 확인해
+    // 주세요". Default to user_stated — the user telling us what they verified.
+    if (action === 'update_fact') return runPublic('argus_capture', { ...a, source: a['source'] ?? 'user_stated' }, recheck.handler);
     if (action === 'change_prediction') return runPublic('argus_capture', a, amend.handler);
     return runPublic('argus_capture', a, dismiss.handler);
   },

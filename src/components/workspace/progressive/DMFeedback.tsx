@@ -144,7 +144,7 @@ export function DMFeedback({ fb, onToggle, onFinalize, onDeepen, busy }: { fb: D
             {/* Approval condition — one compact line riding right above the CTA
                 (it IS the CTA's justification, not a separate chapter). */}
             <div className="flex items-baseline gap-2.5 rounded-lg bg-[var(--accent)]/[0.04] px-3.5 py-2.5">
-              <span className="text-[9px] font-bold text-[var(--accent)] uppercase tracking-[0.18em] shrink-0">{L('통과 조건', 'To pass')}</span>
+              <span className="text-[9px] font-bold text-[var(--accent)] uppercase tracking-[0.18em] shrink-0">{L('반영 기준', 'What to change')}</span>
               <p className="text-[13.5px] text-[var(--text-primary)] font-semibold leading-snug">{fb.approval_condition}</p>
             </div>
 

@@ -115,7 +115,7 @@ describe('Falsification', () => {
     click(buttonByText('Bolder win'));
     // Skip-writing link copy is now provenance-honest ("keep the AI's version,
     // not counted as my bet") — match on its stable fragment.
-    click(buttonByText("keep the AI's version"));
+    click(buttonByText("keep only the AI's version"));
     expect(onResolve).toHaveBeenCalledTimes(1);
     expect(onResolve.mock.calls[0][0]).toMatchObject({
       flinched_id: 'c2',

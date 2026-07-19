@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState } from 'react';
 import type { RecastStep as StepType, RecastAnalysis, ActorRelationship } from '@/stores/types';
 import { Bot, Brain, Handshake, ArrowRight, Flag, Clock, Package, Zap, Trash2 } from 'lucide-react';
 import { useLocale } from '@/hooks/useLocale';
@@ -35,7 +35,19 @@ import { extractOptions } from '@/lib/extract-options';
    Role Distribution Dashboard
    ──────────────────────────────────── */
 
-function RoleDashboard({ steps, checkpoints, totalTime }: { steps: StepType[]; checkpoints?: number; totalTime?: string }) {
+function RoleDashboard({
+  steps,
+  checkpoints,
+  totalTime,
+  onJumpActor,
+  onJumpCheckpoint,
+}: {
+  steps: StepType[];
+  checkpoints?: number;
+  totalTime?: string;
+  onJumpActor: (actor: ActorRelationship | 'human-involved') => void;
+  onJumpCheckpoint: () => void;
+}) {
   const locale = useLocale();
   const L = (ko: string, en: string) => locale === 'ko' ? ko : en;
   const total = steps.length || 1;
@@ -43,60 +55,43 @@ function RoleDashboard({ steps, checkpoints, totalTime }: { steps: StepType[]; c
   steps.forEach(s => { counts[s.actor] = (counts[s.actor] || 0) + 1; });
   const collaborativeCnt = counts.both + counts['human→ai'] + counts['ai→human'];
   const humanPct = Math.round(((counts.human + collaborativeCnt) / total) * 100);
+  const actorOrder: ActorRelationship[] = ['ai', 'ai→human', 'human→ai', 'both', 'human'];
 
   return (
     <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--surface)] p-4 mb-5">
-      {/* Unified ratio bar — tall enough to show numbers */}
-      <div className="flex h-6 rounded-lg overflow-hidden mb-3 text-[11px] font-bold text-white">
-        {counts.ai > 0 && (
-          <div
-            className="transition-all duration-500 flex items-center justify-center gap-1"
-            style={{ width: `${(counts.ai / total) * 100}%`, backgroundColor: ACTORS.ai.color }}
-          >
-            AI {counts.ai}
-          </div>
-        )}
-        {counts['ai→human'] > 0 && (
-          <div
-            className="transition-all duration-500 flex items-center justify-center gap-1"
-            style={{ width: `${(counts['ai→human'] / total) * 100}%`, backgroundColor: ACTORS['ai→human'].color }}
-          >
-            {L('AI→사람', 'AI→Human')} {counts['ai→human']}
-          </div>
-        )}
-        {counts['human→ai'] > 0 && (
-          <div
-            className="transition-all duration-500 flex items-center justify-center gap-1"
-            style={{ width: `${(counts['human→ai'] / total) * 100}%`, backgroundColor: ACTORS['human→ai'].color }}
-          >
-            {L('사람→AI', 'Human→AI')} {counts['human→ai']}
-          </div>
-        )}
-        {counts.both > 0 && (
-          <div
-            className="transition-all duration-500 flex items-center justify-center gap-1"
-            style={{ width: `${(counts.both / total) * 100}%`, backgroundColor: ACTORS.both.color }}
-          >
-            {L('협업', 'Collab')} {counts.both}
-          </div>
-        )}
-        {counts.human > 0 && (
-          <div
-            className="transition-all duration-500 flex items-center justify-center gap-1"
-            style={{ width: `${(counts.human / total) * 100}%`, backgroundColor: ACTORS.human.color }}
-          >
-            {L('사람', 'Human')} {counts.human}
-          </div>
-        )}
+      <div className="flex h-2 overflow-hidden bg-[var(--bg)]" aria-hidden="true">
+        {actorOrder.filter((actor) => counts[actor] > 0).map((actor) => (
+          <span key={actor} className="transition-[width] duration-500" style={{ width: `${(counts[actor] / total) * 100}%`, backgroundColor: ACTORS[actor].color }} />
+        ))}
+      </div>
+
+      <div className="mt-3 flex flex-wrap gap-x-3 gap-y-2">
+        {actorOrder.filter((actor) => counts[actor] > 0).map((actor) => {
+          const actorInfo = ACTORS[actor];
+          return (
+            <button
+              key={actor}
+              type="button"
+              onClick={() => onJumpActor(actor)}
+              className="inline-flex min-h-[28px] items-center gap-1.5 text-[11px] font-bold text-[var(--text-secondary)] hover:text-[var(--text-primary)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+              aria-label={L(`${actorLabel(actor, locale)} 단계 ${counts[actor]}개 중 첫 단계로 이동`, `Go to the first of ${counts[actor]} ${actorLabel(actor, locale)} steps`)}
+            >
+              <span className="h-2.5 w-2.5 shrink-0" style={{ backgroundColor: actorInfo.color }} />
+              {actorLabel(actor, locale)} <span className="tabular-nums text-[var(--text-tertiary)]">{counts[actor]}</span>
+            </button>
+          );
+        })}
       </div>
 
       {/* Stats — compact */}
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[12px]">
-        <span className="text-[var(--text-primary)] font-semibold">{L(`사람 개입 ${humanPct}%`, `Human ${humanPct}%`)}</span>
+      <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-[var(--border-subtle)] pt-2 text-[12px]">
+        <button type="button" onClick={() => onJumpActor('human-involved')} className="font-semibold text-[var(--text-primary)] hover:text-[var(--accent)]">
+          {L(`사람 개입 ${humanPct}%`, `Human ${humanPct}%`)}
+        </button>
         {checkpoints !== undefined && checkpoints > 0 && (
           <>
             <span className="text-[var(--text-tertiary)]">|</span>
-            <span className="text-[var(--warning)] font-semibold"><Flag size={10} className="inline mr-0.5" />{L(`체크포인트 ${checkpoints}`, `${checkpoints} checkpoint${checkpoints === 1 ? '' : 's'}`)} <span className="font-normal text-[var(--text-secondary)]">{L('(사람 확인 필수)', '(human review required)')}</span></span>
+            <button type="button" onClick={onJumpCheckpoint} className="font-semibold text-[var(--warning)] hover:underline"><Flag size={10} className="inline mr-0.5" />{L(`체크포인트 ${checkpoints}`, `${checkpoints} checkpoint${checkpoints === 1 ? '' : 's'}`)} <span className="font-normal text-[var(--text-secondary)]">{L('(사람 확인 필수)', '(human review required)')}</span></button>
           </>
         )}
         {totalTime && (
@@ -175,9 +170,19 @@ export function WorkflowGraph({
   const [expandedSteps, setExpandedSteps] = useState<Set<number>>(new Set());
   const toggleStep = (i: number) => setExpandedSteps(prev => {
     const next = new Set(prev);
-    next.has(i) ? next.delete(i) : next.add(i);
+    if (next.has(i)) next.delete(i);
+    else next.add(i);
     return next;
   });
+  const jumpToStep = (index: number) => {
+    if (index < 0) return;
+    setExpandedSteps((previous) => new Set(previous).add(index));
+    window.setTimeout(() => {
+      const target = document.getElementById(`recast-step-${index}`);
+      target?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      target?.focus();
+    }, 0);
+  };
 
   return (
     <div>
@@ -186,6 +191,8 @@ export function WorkflowGraph({
         steps={steps}
         checkpoints={steps.filter(s => s.checkpoint).length}
         totalTime={analysis?.total_estimated_time}
+        onJumpActor={(actor) => jumpToStep(steps.findIndex((step) => actor === 'human-involved' ? step.actor !== 'ai' : step.actor === actor))}
+        onJumpCheckpoint={() => jumpToStep(steps.findIndex((step) => step.checkpoint))}
       />
 
       {/* ── Lane headers — large, centered in each half ── */}
@@ -223,7 +230,7 @@ export function WorkflowGraph({
             const hasInput = !!(step.user_ai_guide?.trim() || step.user_decision?.trim());
 
             return (
-              <div key={i} className={`relative ${laneClass}`}>
+              <div id={`recast-step-${i}`} tabIndex={-1} key={i} className={`relative scroll-mt-24 focus:outline-none ${laneClass}`}>
                 <div
                   className={`rounded-xl overflow-hidden transition-all cursor-pointer bg-[var(--surface)] ${
                     isCritical ? 'ring-1 ring-red-200' : ''

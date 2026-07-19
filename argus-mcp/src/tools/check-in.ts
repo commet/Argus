@@ -251,7 +251,7 @@ export const checkIn: ToolModule = {
           ok: true, tool: 'argus_check_in',
           surface: mirrorLine + S.nothing_due + accountHint + upcomingLine + fleetLine + integrityLine,
           next_actions: ['stop'],
-          data: { due: [], due_count: 0, due_premises: [], due_premise_count: 0, due_open_questions: [], due_open_question_count: 0, ...(upDays > 0 ? { upcoming } : {}), ...(a['fleet'] === true ? { fleet: fleetRows } : {}), ...watchData, today, capture_status: captureStatus, v2_brief: readV2Brief(dir, today), v2_divergence: briefDivergence([], readV2Brief(dir, today)) },
+          data: { due: [], due_count: 0, due_premises: [], due_premise_count: 0, due_open_questions: [], due_open_question_count: 0, ...(upDays > 0 ? { upcoming } : {}), ...(a['fleet'] === true ? { fleet: fleetRows } : {}), ...watchData, today, ...(process.env['ARGUS_V2_DEBUG'] === '1' ? { capture_status: captureStatus, v2_brief: readV2Brief(dir, today), v2_divergence: briefDivergence([], readV2Brief(dir, today)) } : {}) },
         });
       }
 
@@ -300,13 +300,16 @@ export const checkIn: ToolModule = {
           ...(upDays > 0 ? { upcoming } : {}),
           ...(a['fleet'] === true ? { fleet: fleetRows } : {}),
           ...watchData,
-          today, integrity: ledger.integrity, capture_status: captureStatus,
-          // v2 병기 (P2-3): v1이 여전히 정본이고 surface는 무접촉 — 관찰용.
-          // P2 읽기 전환 전에 두 원장의 답이 갈리는지 실사용에서 드러낸다.
-          v2_brief: readV2Brief(dir, today),
-          // 발산 감지 (M-잔여-1): due id 집합의 대칭차 — 관찰 기간 발산 0이
-          // 읽기 전환의 조건이다. dueAll(전수)로 대조, 표시 상한과 무관.
-          v2_divergence: briefDivergence(dueAll.map((d) => d.id), readV2Brief(dir, today)),
+          today, integrity: ledger.integrity,
+          // v2 병기/진단은 ARGUS_V2_DEBUG=1 뒤로. 공개 payload에 싣던 v2_brief가
+          // 머신-전역 durable-home 저장소를 읽어 다른 프로젝트의 결정 원문을
+          // 모든 프로젝트 대화에 노출했다(교차-프로젝트 누출) — 관찰용 진단은
+          // 옵트인 디버그로만. capture_status도 사용자-무의미 진단이라 동거.
+          ...(process.env['ARGUS_V2_DEBUG'] === '1' ? {
+            capture_status: captureStatus,
+            v2_brief: readV2Brief(dir, today),
+            v2_divergence: briefDivergence(dueAll.map((d) => d.id), readV2Brief(dir, today)),
+          } : {}),
         },
       });
     } catch (e) {

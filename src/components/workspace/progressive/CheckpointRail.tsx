@@ -8,7 +8,7 @@
  * 무의미 — 묶어라"(창업자 4차)가 됐다. 합의점은 순수 3은유도, 평면 N노드도
  * 아닌 — 그룹으로 묶되 지금 있는 그룹의 실단계는 다 보이는 중간이다.
  *
- * 그래서 레일은 3개 밴드(묶기/듣기/닿기)로 묶고, "지금 정박한" 밴드만 실단계
+ * 그래서 레일은 3개 밴드(정리/작성/확인)로 묶고, 현재 밴드만 실단계
  * 노드를 펼친다:
  *   - 활성 밴드   = 실단계 노드가 전부 펼쳐지고 배가 현재 노드 위에 있음
  *   - 지나온 밴드 = 손잡이 하나로 접힘 (클릭 → 그 그룹 산출물로 회항)
@@ -37,8 +37,8 @@ export interface RailCheckpoint {
   label: string;
   state: CheckpointState;
   /** 묶기/듣기/닿기 그룹 (밴드 묶음 + eyebrow 표기) */
-  group: '묶기' | '듣기' | '닿기';
-  groupEn: 'Bind' | 'Listen' | 'Land';
+  group: '정리' | '작성' | '확인';
+  groupEn: 'Frame' | 'Draft' | 'Check';
   /** hover 설명 — done이면 그때의 내용 미리보기, 미래면 그 단계가 뭘 하는지. */
   title?: string;
 }
@@ -111,8 +111,8 @@ export function CheckpointRail({ checkpoints, onJump }: {
       className="mb-6 px-1 mt-1"
       role="navigation"
       aria-label={L(
-        `여정 ${curIdx + 1}/${checkpoints.length} 정거장: ${locale === 'ko' ? activeBand.group : activeBand.groupEn} · ${cur?.label ?? ''}`,
-        `Voyage stop ${curIdx + 1}/${checkpoints.length}: ${activeBand.groupEn} · ${cur?.label ?? ''}`,
+        `진행 ${curIdx + 1}/${checkpoints.length}: ${locale === 'ko' ? activeBand.group : activeBand.groupEn} · ${cur?.label ?? ''}`,
+        `Progress ${curIdx + 1}/${checkpoints.length}: ${activeBand.groupEn} · ${cur?.label ?? ''}`,
       )}
     >
       {/* Eyebrow — 그룹 · 현재 실단계 · 전체 중 몇 번째, 그리고 다음 정거장 */}
@@ -235,19 +235,30 @@ export function CheckpointRail({ checkpoints, onJump }: {
           /* ── 지나온 밴드: 손잡이 칩 (클릭 → 그 그룹 마지막 산출물로 회항) ── */
           if (band.bandState === 'done') {
             const rep = band.nodes[band.nodes.length - 1];
+            const label = L(`${band.group} 단계로 돌아가 보기`, `Look back at the ${band.groupEn} stage`);
+            const chipContent = (
+              <>
+                {locale === 'ko' ? band.group : band.groupEn}
+                <Check size={9} strokeWidth={3.5} className="opacity-80" />
+              </>
+            );
             return (
               <div key={band.group} className="contents">
-                <button
-                  type="button"
-                  onClick={onJump ? () => onJump(rep.key) : undefined}
-                  disabled={!onJump}
-                  title={L(`${band.group} 단계로 돌아가 보기`, `Look back at ${band.groupEn}`)}
-                  aria-label={L(`${band.group} 단계로 돌아가 보기`, `Look back at the ${band.groupEn} stage`)}
-                  className="flex-none self-center inline-flex items-center gap-1 rounded-full border border-[var(--accent)]/30 bg-[var(--accent)]/[0.05] px-2.5 py-1.5 text-[10px] font-semibold text-[var(--accent)]/90 hover:bg-[var(--accent)]/[0.1] transition-colors cursor-pointer"
-                >
-                  {locale === 'ko' ? band.group : band.groupEn}
-                  <Check size={9} strokeWidth={3.5} className="opacity-80" />
-                </button>
+                {onJump ? (
+                  <button
+                    type="button"
+                    onClick={() => onJump(rep.key)}
+                    title={label}
+                    aria-label={label}
+                    className="flex-none self-center inline-flex items-center gap-1 rounded-full border border-[var(--accent)]/30 bg-[var(--accent)]/[0.05] px-2.5 py-1.5 text-[10px] font-semibold text-[var(--accent)]/90 hover:bg-[var(--accent)]/[0.1] transition-colors cursor-pointer"
+                  >
+                    {chipContent}
+                  </button>
+                ) : (
+                  <div className="flex-none self-center inline-flex items-center gap-1 rounded-full border border-[var(--accent)]/30 bg-[var(--accent)]/[0.05] px-2.5 py-1.5 text-[10px] font-semibold text-[var(--accent)]/90">
+                    {chipContent}
+                  </div>
+                )}
                 {chevron}
               </div>
             );

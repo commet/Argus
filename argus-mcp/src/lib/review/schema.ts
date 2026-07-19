@@ -408,7 +408,7 @@ export interface JudgmentObligation {
   decision_needed_by?: string;
   evidence_needed?: string;
   anchors: SourceAnchor[];
-  /** set true when the user clicks "이 판단을 내가 소유하기". */
+  /** set true when the user records this as their own judgment. */
   owned_by_user: boolean;
   /** the DKK canonical judgment this obligation was sealed into (via the review
    *  onramp). Once set, the obligation's lifecycle lives in the DKK ledger

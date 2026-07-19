@@ -50,4 +50,16 @@ describe('호스트-대면 표면에 내부 이름 누수 없음', () => {
       'argus_predict', 'argus_resolve', 'argus_settings',
     ]);
   });
+
+  it('종결 도구는 웹과 같은 닫는 고리 닻 아이콘을 광고한다', () => {
+    const resolve = servedPublicTools().find((tool) => tool['name'] === 'argus_resolve');
+    expect(resolve?.['icons']).toEqual([
+      expect.objectContaining({
+        src: 'https://argus.voyage/images/voyage/closing-anchor-icon-48.png',
+        mimeType: 'image/png',
+        sizes: ['48x48'],
+      }),
+      expect.objectContaining({ sizes: ['96x96'] }),
+    ]);
+  });
 });

@@ -43,10 +43,10 @@ Current step: {step}
 
 Available actions:
 - navigate: Go to another step. params: { step: "reframe" | "recast" | "rehearse" }
-- update_actor: Change the owner of a step in Crew Assignment. params: { stepIndex: number, actor: "ai" | "human" | "both" }
-- add_step: Add a new step in Crew Assignment. params: { task: string }
-- remove_step: Remove a step in Crew Assignment. params: { stepIndex: number }
-- select_question: Select a question in Set the Heading. params: { questionIndex: number }
+- update_actor: Change the owner of a step in the execution plan. params: { stepIndex: number, actor: "ai" | "human" | "both" }
+- add_step: Add a new step to the execution plan. params: { task: string }
+- remove_step: Remove a step from the execution plan. params: { stepIndex: number }
+- select_question: Select a question in Reframe. params: { questionIndex: number }
 - message: Plain reply (no action). params: {}
 
 Respond with JSON only. The message field MUST be written in English:
@@ -236,14 +236,14 @@ export function QuickChatBar({ activeStep, onNavigate }: QuickChatBarProps) {
           onClick={handleSubmit}
           disabled={!input.trim() || loading}
           className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg bg-[var(--accent)] text-[var(--bg)] disabled:opacity-40 cursor-pointer hover:bg-[var(--accent-light)] transition-colors shrink-0"
-          aria-label="Send"
+          aria-label={locale === 'ko' ? '보내기' : 'Send'}
         >
           {loading ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
         </button>
         <button
           onClick={() => setIsOpen(false)}
           className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg text-[var(--text-secondary)] hover:bg-[var(--bg)] cursor-pointer transition-colors shrink-0"
-          aria-label="Close"
+          aria-label={locale === 'ko' ? '닫기' : 'Close'}
         >
           <X size={14} />
         </button>

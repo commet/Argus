@@ -307,10 +307,10 @@ async function opAdd(
       // count + ref range (echoing five sentences would bury the confirmation).
       : (events.length === 1
           ? (ko
-              ? `방금 적어뒀어요: '${oneLine(echo[0]?.text ?? '')}'. 고칠 게 있으면 op=amend로 바꿀 수 있어요.${monitoredNote}`
+              ? `방금 적어뒀어요: '${oneLine(echo[0]?.text ?? '')}'. 잘못 적혔으면 그대로 말해 주세요 — 바로잡은 내용도 기록에 남아요.${monitoredNote}`
               : `Noted: "${oneLine(echo[0]?.text ?? '')}". Fix anything wrong with argus_capture.${monitoredNote}`)
           : (ko
-              ? `전제 ${events.length}건을 기록했습니다 (${refRange}). 틀린 것이 있으면 op=amend로 고치세요. 고친 내용도 기록에 남습니다.${monitoredNote}`
+              ? `전제 ${events.length}건을 기록했습니다 (${refRange}). 틀린 것이 있으면 말해 주세요 — 바로잡은 내용도 기록에 남습니다.${monitoredNote}`
               : `${events.length} premise(s) recorded (${refRange}). Fix anything wrong with argus_capture; your correction stays on the record too.${monitoredNote}`));
 
   return envelope({

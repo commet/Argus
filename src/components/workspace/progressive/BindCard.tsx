@@ -93,7 +93,7 @@ export function BindCard({
         {recognition && (
           <div className="mb-5 rounded-xl border border-[var(--accent)]/20 bg-[var(--ai)]/40 px-4 py-3">
             <p className="text-[10.5px] font-semibold uppercase tracking-[0.16em] text-[var(--accent)] mb-1.5">
-              {L('우리가 읽은 진짜 질문', 'The real question we read')}
+              {L('지금 풀어야 할 질문', 'The question to solve now')}
             </p>
             <p className="text-[14.5px] font-semibold leading-snug text-[var(--text-primary)]" style={{ fontFamily: 'var(--font-display)' }}>
               {recognition}
@@ -101,18 +101,18 @@ export function BindCard({
           </div>
         )}
         <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-[var(--text-tertiary)] mb-2">
-          {L('출항 전 · 밧줄 묶기', 'Before you sail · tie the rope')}
+          {L('답을 듣기 전', 'Before you hear the answer')}
         </p>
         <h2 className="text-[19px] font-bold leading-snug text-[var(--text-primary)]" style={{ fontFamily: 'var(--font-display)' }}>
           {recognition
-            ? L('이게 진짜 질문이라면 — 지금 마음은 어디로 기울어요?', "If that's the real question — where are you leaning right now?")
-            : L('답을 듣기 전에 — 지금 마음은 어디로 기울어요?', 'Before you hear the answer — where are you leaning right now?')}
+            ? L('이 질문을 두고 지금 마음은 어디로 기울어요?', 'Where are you leaning on this question right now?')
+            : L('지금 마음은 어디로 기울어요?', 'Where are you leaning right now?')}
         </h2>
         {/* First-meeting metaphor bridge (06 S3) — half a sentence tying '밧줄/묶기'
             to its reason. Copy only; the SPINE INVARIANTS above are untouched. */}
         <p className="text-[12.5px] text-[var(--text-tertiary)] mt-1.5 leading-snug">
-          {L('세이렌 앞에서 몸을 묶은 오디세우스처럼 — 듣기 전에 내 판단을 한 줄 남겨두는 거예요. 안 적어도 됩니다. 적어두면 나중에 “그래서 어떻게 됐는지” 같이 맞춰봐요.',
-             "Like Odysseus tied to the mast — you leave one line of your own before you listen. Optional. If you jot it down, we'll check back later on how it actually went.")}
+          {L('선택사항이에요. 지금 생각을 남겨두면 확인일에 실제 결과와 비교할 수 있어요.',
+             'Optional. Leave your current view so you can compare it with the outcome on the review date.')}
         </p>
 
         {/* The user's own words are the hero of this screen (우정 1조: 네가 한 말을
@@ -192,7 +192,7 @@ export function BindCard({
                 : 'cursor-default bg-[var(--surface-2)] text-[var(--text-tertiary)] opacity-50'
             }`}
           >
-            {L('묶고 계속', 'Tie it & continue')}
+            {L('생각 남기고 계속', 'Save view & continue')}
             <ArrowRight size={15} />
           </button>
         </div>
@@ -201,8 +201,8 @@ export function BindCard({
             this card (buffered by design); say so in one machine-status sentence.
             No spinner: the analysis stays buffered, this is orientation only. */}
         <p className="mt-4 text-[12px] leading-snug text-[var(--text-secondary)]">
-          {L('적어주신 내용은 그동안 뒤에서 이미 읽고 있어요 — 이 다음 화면에서 결과가 나와요.',
-             "We're already reading what you wrote — the result comes right after this.")}
+          {L('AI 검토자는 적어주신 내용을 이미 읽고 있어요. 다음 화면에서 정리한 질문을 보여드려요.',
+             'AI reviewers are already reading what you wrote. The organized question appears next.')}
         </p>
       </div>
     </motion.div>

@@ -54,6 +54,22 @@ describe('purpose-led public MCP surface', () => {
     expect(rows).toHaveLength(1);
   });
 
+  it('update_fact works WITHOUT source — schema defaults to user_stated (1.4.1 regression)', async () => {
+    // The runtime union validates before the handler-level default can apply, so
+    // a required `source` made every real update_fact call fail INVALID_INPUT.
+    const dir = tmpArgusDir();
+    await decide.handler({
+      argus_dir: dir, action: 'open', id: 'uf-src', decision: '재확인 스키마 테스트',
+      status_quo: '그대로', stakes: 'low', reversibility: 'easily_reversible',
+      premises: [{ text: '재료 수급이 안정적이다', kind: 'premise', external: true, load_bearing: true, source: 'user_stated' }],
+    });
+    const r = await decide.handler({
+      argus_dir: dir, action: 'update_fact', id: 'uf-src', ref: 'P1',
+      finding: '하루 지연되지만 기한 안에는 도착', changed: false,
+    });
+    expect(isError(r)).toBe(false);
+  });
+
   it('records supplied premises even on a low-stakes (restraint) open — record is never gated by ceremony', async () => {
     // Regression: on a flat/low-stakes open the over-fire gate does NOT fire,
     // and the premise-recording used to sit behind that gate → user premises

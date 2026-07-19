@@ -67,14 +67,14 @@ import { Logbook, LogbookDrawer } from '@/components/workspace/progressive/Logbo
 describe('Logbook render', () => {
   const html = renderToStaticMarkup(createElement(Logbook));
 
-  it('renders the ship\'s-log header and the full-chart entry point', () => {
-    expect(html).toContain('항해일지');
-    expect(html).toContain('전체 해도');
+  it('renders the decision-log header and the full-map entry point', () => {
+    expect(html).toContain('결정 기록');
+    expect(html).toContain('전체 결정 지도');
   });
 
   it('renders typed waypoints with their headlines', () => {
-    expect(html).toContain('출항');
-    expect(html).toContain('항로 변경');
+    expect(html).toContain('시작');
+    expect(html).toContain('방향 변경');
     expect(html).toContain('경쟁사처럼 챗봇 만들기');
     expect(html).toContain('이탈의 진짜 원인은?');
   });
@@ -88,7 +88,7 @@ describe('Logbook render', () => {
   });
 
   it('renders the road-not-taken with a fork affordance on the open course-change', () => {
-    expect(html).toContain('가지 않은 길');
+    expect(html).toContain('보류한 선택지');
     expect(html).toContain('챗봇 직접 제작');
     expect(html).toContain('이 길 가보기');
     // the "taken" alternative is not shown as a road not taken
@@ -109,7 +109,7 @@ describe('Logbook render', () => {
 describe('LogbookDrawer (mobile)', () => {
   it('renders a collapsed bar with the waypoint count', () => {
     const html = renderToStaticMarkup(createElement(LogbookDrawer, { offset: false }));
-    expect(html).toContain('항해일지');
+    expect(html).toContain('결정 기록');
     expect(html).toContain('>2<'); // waypoint count badge
   });
 });
