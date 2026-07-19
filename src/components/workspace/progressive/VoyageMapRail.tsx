@@ -65,7 +65,7 @@ function EmptyChart() {
    surface; tapping a logged point shows THAT turn's story in one card below
    (defaulting to the current position). No parallel Logbook list — the card IS
    the log, read one turn at a time, spatially. */
-function VoyageMapHero() {
+function VoyageMapHero({ surface = 'rail' }: { surface?: 'rail' | 'modal' }) {
   const locale = useLocale();
   const L = (ko: string, en: string) => (locale === 'ko' ? ko : en);
   const session = useProgressiveStore(s => s.sessions.find(ss => ss.id === s.currentSessionId));
@@ -98,6 +98,7 @@ function VoyageMapHero() {
   const shownCp = (pickedCp && wpByCp.has(pickedCp)) ? pickedCp : activeId;
   const shownWp = shownCp ? wpByCp.get(shownCp) ?? null : null;
   const isCurrent = shownCp === activeId;
+  const currentAssumptions = activeId ? assumptionsByCp.get(activeId)?.length ?? 0 : 0;
 
   // Take the road not taken — fork from the point *before* the turn so the user
   // re-decides at that fork (same rule the trail used).
@@ -107,22 +108,41 @@ function VoyageMapHero() {
   };
 
   return (
-    <div className="px-4 pt-4">
+    <div className={surface === 'rail' ? 'px-4 pt-3' : 'pt-3'}>
       {/* Eyebrow + full-chart entry */}
       <div className="flex items-center justify-between mb-2">
-        <span className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--accent)]">
-          <Compass size={11} /> {L('결정 갈래', 'Decision branches')}
+        <span className="inline-flex items-center gap-1.5 text-[11.5px] font-bold text-[var(--accent)]">
+          <Compass size={13} /> {L('현재 판단 경로', 'Current decision path')}
         </span>
         {hasChart && (
           <button
             onClick={() => setChartOpen(true)}
             title={L('전체 결정 지도 — 이전 지점으로 돌아가기', 'Full decision map — return to an earlier point')}
-            className="inline-flex items-center gap-1 text-[10px] text-[var(--text-tertiary)] hover:text-[var(--accent)] transition-colors cursor-pointer"
+            className="inline-flex min-h-9 items-center gap-1 text-[11px] text-[var(--text-tertiary)] hover:text-[var(--accent)] transition-colors cursor-pointer"
           >
             <Maximize2 size={10} /> {L('전체 결정 지도', 'Full decision map')}
           </button>
         )}
       </div>
+
+      {hasChart && (
+        <div data-testid="route-reading-strip" className="mb-2.5 flex items-center border-y border-[var(--border-subtle)] py-2 text-[11px]">
+          <span className="min-w-0 flex-1 pr-2 text-[var(--text-secondary)]">
+            <span className="block text-[9.5px] font-bold text-[var(--text-tertiary)]">{L('지금', 'Now')}</span>
+            <strong className="block truncate text-[12px] font-semibold text-[var(--text-primary)]" title={shownWp?.headline}>
+              {shownWp?.headline || L('현재 지점', 'Current point')}
+            </strong>
+          </span>
+          <span className="shrink-0 border-l border-[var(--border-subtle)] px-2 text-center text-[var(--text-tertiary)]">
+            <strong className="block font-mono text-[13px] text-[var(--text-primary)]">{branches.length}</strong>
+            {L('갈래', 'paths')}
+          </span>
+          <span className="shrink-0 border-l border-[var(--border-subtle)] pl-2 text-center text-[var(--text-tertiary)]">
+            <strong className={`block font-mono text-[13px] ${currentAssumptions > 0 ? 'text-amber-700 dark:text-amber-400' : 'text-[var(--text-primary)]'}`}>{currentAssumptions}</strong>
+            {L('확인할 전제', 'assumptions')}
+          </span>
+        </div>
+      )}
 
       {/* The chart card — an antique sea-chart (SeaChart self-frames: parchment +
           neatline + shadow). Tapping a node picks that turn for the card below;
@@ -132,7 +152,7 @@ function VoyageMapHero() {
           in view; before, a route taller than the box scrolled "you are here"
           off the bottom. */}
       {hasChart ? (
-        <div className="relative block w-full h-[300px] rounded-[10px] ring-1 ring-[rgba(120,90,30,0.20)]">
+        <div className={`relative block w-full rounded-lg ring-1 ring-[rgba(120,90,30,0.20)] ${surface === 'modal' ? 'h-[min(52vh,420px)] min-h-[300px]' : 'h-[300px]'}`}>
           <SeaChart
             variant="compact"
             checkpoints={checkpoints}
@@ -149,7 +169,7 @@ function VoyageMapHero() {
 
       {/* Compact legend — the SVG marks can't explain themselves */}
       {hasChart && (
-        <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 mt-2 px-0.5 text-[9px] text-[var(--text-tertiary)]">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-2 px-0.5 text-[10.5px] text-[var(--text-tertiary)]">
           <span className="inline-flex items-center gap-1">
             <span className="w-1.5 h-1.5 rounded-full" style={{ background: 'var(--accent)' }} />
             {L('기록된 결정', 'Logged turn')}
@@ -158,7 +178,7 @@ function VoyageMapHero() {
             <span className="w-1.5 h-1.5 rounded-full" style={{ background: 'var(--accent)', outline: '1px solid var(--accent)', outlineOffset: '1.5px' }} />
             {L('현재', 'Here')}
           </span>
-          <span className="text-[var(--text-tertiary)]/70">· {L('점을 탭하면 그 결정이 아래에 펼쳐져요', 'Tap a point to read that turn below')}</span>
+          <span className="basis-full text-[var(--text-tertiary)]/80">{L('점을 누르면 그때의 판단이 아래에 펼쳐집니다.', 'Select a point to read that turn below.')}</span>
         </div>
       )}
 
@@ -177,7 +197,7 @@ function VoyageMapHero() {
           {!isCurrent && (
             <button
               onClick={() => setPickedCp(null)}
-              className="mt-1.5 inline-flex items-center gap-1 text-[10px] font-medium text-[var(--text-tertiary)] hover:text-[var(--accent)] transition-colors cursor-pointer"
+              className="mt-1.5 inline-flex min-h-9 items-center gap-1 text-[11px] font-medium text-[var(--text-tertiary)] hover:text-[var(--accent)] transition-colors cursor-pointer"
             >
               <ArrowLeft size={10} /> {L('지금 위치로', 'Back to current')}
             </button>
@@ -187,7 +207,7 @@ function VoyageMapHero() {
 
       {/* Single-course nudge → toward the product's core "take another path". */}
       {hasChart && !multiBranch && waypoints.length > 0 && (
-        <p className="mt-2 px-0.5 text-[10px] leading-[1.5] text-[var(--text-tertiary)]">
+        <p className="mt-2 px-0.5 text-[11px] leading-[1.5] text-[var(--text-tertiary)]">
           {L('아직 한 갈래예요. 위 지도에서 이전 지점으로 돌아가 다른 답을 선택할 수 있어요.',
              'There is one branch so far. Return to an earlier point above to try a different answer.')}
         </p>
@@ -223,8 +243,8 @@ function CollapsedSpine({ onExpand }: { onExpand: () => void }) {
   return (
     <button
       onClick={onExpand}
-      title={L('판단 지도 펼치기', 'Expand decision map')}
-      aria-label={L('판단 지도 펼치기', 'Expand decision map')}
+      title={L('현재 판단 경로 펼치기', 'Expand current decision path')}
+      aria-label={L('현재 판단 경로 펼치기', 'Expand current decision path')}
       className="w-12 h-full flex flex-col items-center pt-4 gap-4 cursor-pointer group hover:bg-[var(--accent)]/[0.04] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--accent)]/50"
     >
       <span className="w-9 h-9 rounded-lg flex items-center justify-center text-[var(--text-tertiary)] group-hover:text-[var(--accent)] transition-colors">
@@ -232,7 +252,7 @@ function CollapsedSpine({ onExpand }: { onExpand: () => void }) {
       </span>
 
       <span className="text-[9px] font-bold uppercase tracking-[0.2em] text-[var(--text-tertiary)] group-hover:text-[var(--accent)] [writing-mode:vertical-rl] rotate-180 transition-colors">
-        {L('판단 지도', 'Decision map')}
+        {L('판단 경로', 'Decision path')}
       </span>
 
       {/* Glanceable counts */}
@@ -260,13 +280,52 @@ function CollapsedSpine({ onExpand }: { onExpand: () => void }) {
   );
 }
 
+export function VoyageMapViews({
+  surface = 'rail',
+  onNavigate,
+}: {
+  surface?: 'rail' | 'modal';
+  onNavigate?: () => void;
+}) {
+  const locale = useLocale();
+  const L = (ko: string, en: string) => (locale === 'ko' ? ko : en);
+  const [view, setView] = useState<'evidence' | 'route'>('route');
+
+  return (
+    <div className={surface === 'rail' ? '' : 'min-w-0'}>
+      <div className={`${surface === 'rail' ? 'mx-4' : ''} mb-2 grid grid-cols-2 border-b border-[var(--border-subtle)]`} role="tablist" aria-label={L('판단 경로 보기', 'Decision path view')}>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={view === 'route'}
+          onClick={() => setView('route')}
+          className={`inline-flex min-h-11 items-center justify-center gap-1.5 border-b-2 text-[12px] font-semibold transition-colors ${view === 'route' ? 'border-[var(--accent)] text-[var(--text-primary)]' : 'border-transparent text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]'}`}
+        >
+          <MapIcon size={13} /> {L('현재 판단 경로', 'Decision path')}
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={view === 'evidence'}
+          onClick={() => setView('evidence')}
+          className={`inline-flex min-h-11 items-center justify-center gap-1.5 border-b-2 text-[12px] font-semibold transition-colors ${view === 'evidence' ? 'border-[var(--accent)] text-[var(--text-primary)]' : 'border-transparent text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]'}`}
+        >
+          <SearchCheck size={13} /> {L('근거 연결', 'Evidence links')}
+        </button>
+      </div>
+      {view === 'evidence'
+        ? <DecisionEvidenceMap onNavigate={onNavigate} />
+        : <VoyageMapHero surface={surface} />}
+    </div>
+  );
+}
+
 /* ═══ The rail ═══ */
 export function VoyageMapRail() {
   const locale = useLocale();
   const L = (ko: string, en: string) => (locale === 'ko' ? ko : en);
   const collapsed = useSettingsStore(s => s.settings.voyage_map_collapsed ?? false);
   const updateSettings = useSettingsStore(s => s.updateSettings);
-  const [view, setView] = useState<'evidence' | 'route'>('route');
 
   if (collapsed) {
     return (
@@ -282,41 +341,20 @@ export function VoyageMapRail() {
       animate={{ opacity: 1, x: 0 }}
       transition={{ duration: 0.4, ease: EASE }}
       className="w-72 xl:w-80 h-full overflow-y-auto border-r border-[var(--border-subtle)]/50 bg-[var(--bg)]/40 pb-8"
-      aria-label={L('판단 지도', 'Decision map')}
+      aria-label={L('현재 판단 경로', 'Current decision path')}
     >
       {/* Rail header */}
       <div className="flex items-center justify-between px-4 pt-4 sticky top-0 z-10 bg-[var(--bg)]/80 backdrop-blur-sm pb-2">
-        <span className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.14em] text-[var(--text-secondary)]">
-          <SearchCheck size={13} className="text-[var(--accent)]" /> {L('판단 지도', 'Decision map')}
+        <span className="inline-flex items-center gap-1.5 text-[12px] font-bold text-[var(--text-secondary)]">
+          <SearchCheck size={14} className="text-[var(--accent)]" /> {L('현재 판단 경로', 'Current decision path')}
         </span>
         <button
           onClick={() => updateSettings({ voyage_map_collapsed: true })}
-          title={L('판단 지도 접기', 'Collapse decision map')}
-          aria-label={L('판단 지도 접기', 'Collapse decision map')}
+          title={L('현재 판단 경로 접기', 'Collapse current decision path')}
+          aria-label={L('현재 판단 경로 접기', 'Collapse current decision path')}
           className="w-7 h-7 rounded-lg flex items-center justify-center text-[var(--text-tertiary)] hover:text-[var(--accent)] hover:bg-[var(--accent)]/8 transition-colors cursor-pointer"
         >
           <PanelLeftClose size={14} />
-        </button>
-      </div>
-
-      <div className="mx-4 mb-3 grid grid-cols-2 border-b border-[var(--border-subtle)]" role="tablist" aria-label={L('판단 지도 보기', 'Decision map view')}>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={view === 'route'}
-          onClick={() => setView('route')}
-          className={`inline-flex min-h-10 items-center justify-center gap-1.5 border-b-2 text-[11px] font-semibold transition-colors ${view === 'route' ? 'border-[var(--accent)] text-[var(--text-primary)]' : 'border-transparent text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]'}`}
-        >
-          <MapIcon size={12} /> {L('갈래', 'Branches')}
-        </button>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={view === 'evidence'}
-          onClick={() => setView('evidence')}
-          className={`inline-flex min-h-10 items-center justify-center gap-1.5 border-b-2 text-[11px] font-semibold transition-colors ${view === 'evidence' ? 'border-[var(--accent)] text-[var(--text-primary)]' : 'border-transparent text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]'}`}
-        >
-          <SearchCheck size={12} /> {L('근거', 'Evidence')}
         </button>
       </div>
 
@@ -328,7 +366,7 @@ export function VoyageMapRail() {
           the mobile bottom-drawer (LogbookDrawer) where there's no room for a
           map. Crew activity stays out of the rail too (duplicated by the
           left-column "선원들이 일하고 있어요" header). */}
-      {view === 'evidence' ? <DecisionEvidenceMap /> : <VoyageMapHero />}
+      <VoyageMapViews />
     </motion.aside>
   );
 }

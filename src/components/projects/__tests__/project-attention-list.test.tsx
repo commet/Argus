@@ -52,4 +52,36 @@ describe('ProjectAttentionList', () => {
     expect((listener.mock.calls[0][0] as CustomEvent).detail).toEqual({ locator: 'argus://project/p6/item/i6' });
     window.removeEventListener('argus:trace-navigate', listener);
   });
+
+  it('locates a decision on the chart while keeping exact-source navigation separate', () => {
+    const item: ProjectAttentionItem = {
+      id: 'row-focus',
+      kind: 'premise_recheck',
+      title: '온보딩 이탈률 전제',
+      context: '리텐션 결정',
+      locator: 'argus://project/p-focus/item/i-focus',
+      projectId: 'p-focus',
+      affected: [{ id: 'p-focus', label: '리텐션 결정', scope: 'project' }],
+    };
+    const onFocusItem = vi.fn();
+    const listener = vi.fn();
+    window.addEventListener('argus:trace-navigate', listener);
+
+    act(() => root.render(createElement(ProjectAttentionList, {
+      items: [item],
+      focusedDecisionId: 'p-focus',
+      focusedAttentionId: 'row-focus',
+      onFocusItem,
+    })));
+
+    const locate = container.querySelector('[aria-label="전제 재확인 해도에서 찾기"]') as HTMLButtonElement;
+    expect(locate.getAttribute('aria-pressed')).toBe('true');
+    act(() => locate.click());
+    expect(onFocusItem).toHaveBeenCalledWith(item, 'p-focus');
+
+    const source = container.querySelector('[aria-label="전제 재확인 정확한 근거 위치 열기"]') as HTMLButtonElement;
+    act(() => source.click());
+    expect((listener.mock.calls[0][0] as CustomEvent).detail).toEqual({ locator: item.locator });
+    window.removeEventListener('argus:trace-navigate', listener);
+  });
 });

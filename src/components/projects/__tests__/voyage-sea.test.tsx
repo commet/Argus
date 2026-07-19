@@ -68,7 +68,14 @@ const emptyLedgers = {
 
 function render(
   projects: Project[],
-  opts?: { dueProjectIds?: string[]; attentionProjectIds?: string[]; onSelect?: ReturnType<typeof vi.fn>; onReview?: ReturnType<typeof vi.fn> },
+  opts?: {
+    dueProjectIds?: string[];
+    attentionProjectIds?: string[];
+    onSelect?: ReturnType<typeof vi.fn>;
+    onReview?: ReturnType<typeof vi.fn>;
+    focusedDecisionId?: string | null;
+    onFocusDecision?: ReturnType<typeof vi.fn>;
+  },
 ) {
   const onSelect = opts?.onSelect ?? vi.fn();
   const onReview = opts?.onReview ?? vi.fn();
@@ -82,6 +89,8 @@ function render(
         locale: 'ko' as const,
         onSelect,
         onReview,
+        focusedDecisionId: opts?.focusedDecisionId,
+        onFocusDecision: opts?.onFocusDecision,
       }),
     );
   });
@@ -258,6 +267,39 @@ describe('VoyageSea — spine gate (거울 조항, 항해 지도판)', () => {
     const otherShip = document.getElementById('voyage-ship-a')!;
     expect(attentionShip.style.opacity).toBe('1');
     expect(otherShip.style.opacity).toBe('0.1');
+  });
+
+  it('shares a persistent, readable selection with the action list', () => {
+    const onFocusDecision = vi.fn();
+    render([
+      sealedProject('a', '2026-01-05T00:00:00.000Z'),
+      sealedProject('b', '2026-02-01T00:00:00.000Z'),
+    ], { focusedDecisionId: 'b', onFocusDecision });
+
+    const selected = document.getElementById('voyage-ship-b') as HTMLButtonElement;
+    const other = document.getElementById('voyage-ship-a') as HTMLButtonElement;
+    expect(selected.getAttribute('aria-pressed')).toBe('true');
+    expect(selected.querySelector('[data-testid="voyage-selection-ring"]')).toBeTruthy();
+    expect(other.style.opacity).toBe('0.38');
+
+    act(() => selected.click());
+    expect(onFocusDecision).toHaveBeenCalledWith('b', 'project');
+  });
+
+  it('offers a direct mobile decision finder and opens the chosen vessel', () => {
+    const onFocusDecision = vi.fn();
+    render([
+      sealedProject('a', '2026-01-05T00:00:00.000Z'),
+      sealedProject('b', '2026-02-01T00:00:00.000Z'),
+    ], { onFocusDecision });
+
+    const finder = container.querySelector('[aria-label="해도에서 결정 찾기"]') as HTMLSelectElement;
+    act(() => {
+      finder.value = 'b';
+      finder.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+    expect(onFocusDecision).toHaveBeenCalledWith('b', 'project');
+    expect(container.querySelector('[role="dialog"]')?.getAttribute('aria-label')).toBe('voyage-b');
   });
 
   it('leaks no score / % / grade / streak / comparison string', () => {
