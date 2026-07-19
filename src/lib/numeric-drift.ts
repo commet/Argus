@@ -233,7 +233,7 @@ export function evaluateMateriality(
   if (axis === 'ratio') {
     return {
       status: 'uncertain',
-      reason: '값이 비율/%% — %p(delta)로 볼지 complement 축으로 볼지 정해주세요',
+      reason: '값이 비율(%)입니다 — %p(퍼센트포인트)로 볼지 여집합(100−값) 축으로 볼지 정해주세요',
       low_confidence: true,
     };
   }
@@ -287,7 +287,7 @@ function evaluateDeclaredRule(
   // then it's uncertain, never a manufactured alert. (threshold/band/step/map
   // are axis-agnostic — a crossed line is a crossed line.)
   if (mod?.unit_axis === 'ratio' && (rule.type === 'relative' || rule.type === 'delta')) {
-    return { status: 'uncertain', reason: '값이 비율/%% — %p(delta)로 볼지 complement 축으로 볼지 정해주세요', low_confidence: true };
+    return { status: 'uncertain', reason: '값이 비율(%)입니다 — %p(퍼센트포인트)로 볼지 여집합(100−값) 축으로 볼지 정해주세요', low_confidence: true };
   }
 
   // sign-flip modifier (§2.3 / §6.5): dead-band AND, never "always material".

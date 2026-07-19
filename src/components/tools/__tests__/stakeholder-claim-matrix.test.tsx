@@ -70,4 +70,53 @@ describe('StakeholderClaimMatrix', () => {
     act(() => detail.click());
     expect(onOpenPersona).toHaveBeenCalledWith('cfo');
   });
+
+  it('promotes a simulated statement into a persisted reality check and records the real outcome', () => {
+    const onUpdateRealityChecks = vi.fn();
+    const render = (nextRecord: FeedbackRecord) => act(() => root.render(createElement(StakeholderClaimMatrix, {
+      record: nextRecord,
+      personas: [persona],
+      onOpenPersona: vi.fn(),
+      onUpdateRealityChecks,
+    })));
+
+    render(record);
+    act(() => (container.querySelector('button[aria-label="재무 책임자: 반론·위험 1"]') as HTMLButtonElement).click());
+    const add = Array.from(container.querySelectorAll('button')).find((button) => button.textContent?.includes('실제 확인에 추가'))!;
+    act(() => add.click());
+
+    const added = onUpdateRealityChecks.mock.calls[0][1];
+    expect(added).toHaveLength(1);
+    expect(added[0]).toMatchObject({
+      statement_id: 'cfo:risk:0',
+      statement: '유료 전환율 12%의 산출 근거가 부족하다.',
+      status: 'pending',
+    });
+    expect(added[0].claim_id).toContain('claim:feedback-one:3');
+
+    const persistedRecord: FeedbackRecord = {
+      ...record,
+      results: [{ ...record.results[0], reality_checks: added }],
+    };
+    onUpdateRealityChecks.mockClear();
+    render(persistedRecord);
+    expect(container.textContent).toContain('실제 확인 0/1');
+
+    const disputed = Array.from(container.querySelectorAll('button')).find((button) => button.textContent?.includes('달랐음'))!;
+    act(() => disputed.click());
+    const disputedChecks = onUpdateRealityChecks.mock.calls[0][1];
+    expect(disputedChecks[0].status).toBe('contradicted');
+    expect(disputedChecks[0].checked_at).toBeTruthy();
+
+    onUpdateRealityChecks.mockClear();
+    render({ ...persistedRecord, results: [{ ...persistedRecord.results[0], reality_checks: disputedChecks }] });
+    const note = container.querySelector('input[placeholder="실제 답변이나 확인 경로 메모"]') as HTMLInputElement;
+    act(() => {
+      const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')?.set;
+      setter?.call(note, ' 실제 CFO 인터뷰에서 반대 확인 ');
+      note.dispatchEvent(new Event('input', { bubbles: true }));
+      note.dispatchEvent(new FocusEvent('focusout', { bubbles: true }));
+    });
+    expect(onUpdateRealityChecks.mock.calls.at(-1)?.[1][0].note).toBe('실제 CFO 인터뷰에서 반대 확인');
+  });
 });

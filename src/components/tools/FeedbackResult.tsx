@@ -6,7 +6,7 @@ import { ShareBar } from '@/components/ui/ShareBar';
 import { Button } from '@/components/ui/Button';
 import { PersonaAvatar } from './FeedbackMessage';
 import { DiscussionThread } from './DiscussionThread';
-import type { Persona, FeedbackRecord } from '@/stores/types';
+import type { Persona, FeedbackRecord, StakeholderRealityCheck } from '@/stores/types';
 import {
   ThumbsUp, Search, Star, Check,
   ShieldAlert, Shield, EyeOff, ArrowLeft, MessageSquare, Loader2, ArrowRight,
@@ -24,6 +24,7 @@ import { StakeholderClaimMatrix } from './StakeholderClaimMatrix';
 interface FeedbackResultProps {
   record: FeedbackRecord;
   personas: Persona[];
+  onUpdateRecord?: (patch: Partial<FeedbackRecord>) => void;
   onStartDiscussion?: () => void;
   discussionLoading?: boolean;
   onStartDebate?: () => void;
@@ -31,7 +32,7 @@ interface FeedbackResultProps {
 
 type ViewMode = 'overview' | 'persona-detail' | 'discussion' | 'synthesis';
 
-export function FeedbackResult({ record, personas, onStartDiscussion, discussionLoading, onStartDebate }: FeedbackResultProps) {
+export function FeedbackResult({ record, personas, onUpdateRecord, onStartDiscussion, discussionLoading, onStartDebate }: FeedbackResultProps) {
   const locale = useLocale();
   const L = (ko: string, en: string) => locale === 'ko' ? ko : en;
   const [viewMode, setViewMode] = useState<ViewMode>('overview');
@@ -144,6 +145,13 @@ export function FeedbackResult({ record, personas, onStartDiscussion, discussion
           <StakeholderClaimMatrix
             record={record}
             personas={personas}
+            onUpdateRealityChecks={(personaId, realityChecks: StakeholderRealityCheck[]) => {
+              onUpdateRecord?.({
+                results: record.results.map((result) => result.persona_id === personaId
+                  ? { ...result, reality_checks: realityChecks }
+                  : result),
+              });
+            }}
             onOpenPersona={(personaId) => {
               setSelectedPersonaId(personaId);
               setViewMode('persona-detail');

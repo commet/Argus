@@ -727,6 +727,10 @@ ${L('리스크', 'Risks')}: ${(r.classified_risks || []).map(cr => `[${cr.catego
           <FeedbackResult
             record={latestFeedback}
             personas={personas}
+            onUpdateRecord={(patch) => {
+              setLatestFeedback((current) => current ? { ...current, ...patch } : current);
+              updateFeedbackRecord(latestFeedback.id, patch);
+            }}
             onStartDiscussion={handleStartDiscussion}
             discussionLoading={discussionLoading}
           />

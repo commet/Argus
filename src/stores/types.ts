@@ -253,6 +253,20 @@ export interface ClassifiedRisk {
   category: 'critical' | 'manageable' | 'unspoken';
 }
 
+export type StakeholderRealityCheckStatus = 'pending' | 'confirmed' | 'contradicted';
+
+export interface StakeholderRealityCheck {
+  id: string;
+  statement_id: string;
+  claim_id?: string;
+  statement: string;
+  question: string;
+  status: StakeholderRealityCheckStatus;
+  note?: string;
+  created_at: string;
+  checked_at?: string;
+}
+
 export interface RehearsalResult {
   persona_id: string;
   overall_reaction: string;
@@ -266,6 +280,9 @@ export interface RehearsalResult {
   approval_conditions: string[];
   /** Phase 1: step-level translation of approval conditions */
   translated_approvals?: TranslatedApproval[];
+  /** Real-world follow-through for simulated reactions. Stored inside the
+   * existing results JSON column so local-first and cloud sync stay aligned. */
+  reality_checks?: StakeholderRealityCheck[];
 }
 
 export interface DiscussionMessage {
