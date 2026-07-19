@@ -79,14 +79,14 @@ export default function GuidePage() {
     {
       href: '/teams',
       icon: Users,
-      label: L('팀', 'Teams'),
-      desc: L('프로젝트를 함께 볼 팀원을 초대합니다.', 'Invite teammates to share projects with.'),
+      label: L('사람 팀', 'People teams'),
+      desc: L('결정을 공유하고 함께 검토할 사람을 초대합니다.', 'Invite people to review shared decisions.'),
     },
     {
       href: '/boss',
       icon: UserCheck,
-      label: L('보고 리허설', 'Report rehearsal'),
-      desc: L('팀장 성격을 설정하고 보고를 미리 연습합니다. MBTI를 몰라도 상황 퀴즈로 설정할 수 있어요.', "Set up your boss's personality and rehearse a report. No MBTI knowledge needed — a situation quiz fills it in."),
+      label: L('팀장 대화 리허설', 'Manager conversation rehearsal'),
+      desc: L('실제 1:1 전에 팀장의 반응을 미리 연습합니다. MBTI를 몰라도 상황 퀴즈로 설정할 수 있어요.', "Rehearse a manager's response before a real 1:1. No MBTI knowledge needed — a situation quiz fills it in."),
     },
     {
       href: '/import',
