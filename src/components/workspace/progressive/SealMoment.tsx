@@ -424,15 +424,15 @@ export function SealMoment({
           <span className="text-[11px] font-medium tracking-wide uppercase">{L('마지막으로', 'One last thing')}</span>
           <div className="h-px flex-1 bg-[var(--border-subtle)]" />
         </div>
-        <div className="rounded-3xl border border-[var(--accent)]/30 bg-[var(--surface)] px-6 py-8 md:px-10 md:py-10 text-center">
-          <div className="w-12 h-12 rounded-2xl mx-auto flex items-center justify-center bg-[var(--ai)] text-[var(--accent)]">
-            <Anchor size={22} />
+        <div className="rounded-3xl border border-[var(--accent)]/30 bg-[var(--surface)] px-6 py-7 md:px-10 md:py-9 text-center">
+          <div className="w-11 h-11 rounded-2xl mx-auto flex items-center justify-center bg-[var(--ai)] text-[var(--accent)]">
+            <Anchor size={20} />
           </div>
-          <h3 className="mt-5 text-[18px] md:text-[20px] font-bold text-[var(--text-primary)] leading-[1.4] max-w-md mx-auto">
+          <h3 className="mt-4 text-[18px] md:text-[20px] font-bold text-[var(--text-primary)] leading-[1.35] max-w-md mx-auto">
             {L(`이 결정, ${dateFor(interval)}에 어떻게 됐는지 확인해 드릴까요?`, `Want me to check back on this on ${dateFor(interval)}?`)}
           </h3>
-          <p className="mt-3 text-[13.5px] text-[var(--text-secondary)] leading-[1.6] max-w-md mx-auto">
-            {L('따로 잡아둔 예측은 없지만, 그날 이 결정으로 돌아와 어떻게 됐는지 직접 확인할 수 있어요.', "There's no separate prediction to track, but you can still return to this decision that day and see, for yourself, how it went.")}
+          <p className="mt-2.5 text-[13px] text-[var(--text-secondary)] leading-[1.5] max-w-sm mx-auto">
+            {L('따로 잡아둔 예측은 없지만, 그날 돌아와 어떻게 됐는지 확인할 수 있어요.', "No separate prediction to track, but you can still return that day and see how it went.")}
           </p>
           <div className="mt-7 flex flex-col sm:flex-row gap-3 justify-center">
             <button
@@ -714,38 +714,25 @@ export function SealMoment({
         <div className="h-px flex-1 bg-[var(--border-subtle)]" />
       </div>
 
-      <div className="rounded-3xl border border-[var(--accent)]/30 bg-[var(--surface)] px-6 py-9 md:px-10 md:py-12 text-center">
-        <div className="w-12 h-12 rounded-2xl mx-auto flex items-center justify-center bg-[var(--ai)] text-[var(--accent)]">
-          <Anchor size={22} />
+      <div className="rounded-3xl border border-[var(--accent)]/30 bg-[var(--surface)] px-6 py-7 md:px-10 md:py-9 text-center">
+        <div className="w-11 h-11 rounded-2xl mx-auto flex items-center justify-center bg-[var(--ai)] text-[var(--accent)]">
+          <Anchor size={20} />
         </div>
-        <h3 className="mt-5 text-[19px] md:text-[21px] font-bold text-[var(--text-primary)] leading-[1.4] max-w-md mx-auto">
+        <h3 className="mt-4 text-[19px] md:text-[21px] font-bold text-[var(--text-primary)] leading-[1.35] max-w-md mx-auto">
           {L(
             `이 결정, ${dateFor(interval)}에 어떻게 됐는지 물어봐 드릴까요?`,
             `Want me to ask you on ${dateFor(interval)} how this decision turned out?`,
           )}
         </h3>
-        <p className="mt-3 text-[13.5px] text-[var(--text-secondary)] leading-[1.6] max-w-md mx-auto">
-          {L(
-            '그날 이 결정으로 한 번 돌아와, 실제로 어떻게 됐는지 직접 확인하는 거예요. 판단의 고리를 닫는 일이죠.',
-            "That day, you'll come back to this one decision and check, for yourself, how it actually went — closing the loop on your own call.",
-          )}
-        </p>
-        {/* Channel disclosure BEFORE consent — a suspicious user won't say yes
-            without knowing HOW the asking happens ("이메일? 스팸?").
-            Promise parity (P1-B4): the guide FAQ ("'물어봐 준다'는 게 어떻게 오나요?",
-            guide/page.tsx) mirrors this sentence — if channels change, update both. */}
-        <p className="mt-2 text-[12px] leading-relaxed text-[var(--text-secondary)] max-w-md mx-auto">
-          {L('그날 프로젝트 페이지에 오시면 제가 먼저 물어요. 텔레그램을 연결해 두셨다면, 그날 메시지로도 가볍게 알려드려요.', "On that day, I'll ask first when you open the projects page. If you've connected Telegram, I'll send a gentle nudge there too on the day.")}
-        </p>
-        {/* P2-6 honesty: an anonymous seal lives in localStorage only. Don't let the
-            "comes back to you" promise read as a lie when it can vanish on this device.
-            Not a gate — they can still seal locally; just told the truth + the way out. */}
-        {!user && (
-          <p className="mt-1.5 text-[12px] leading-relaxed text-[var(--accent)]/90 max-w-md mx-auto">
-            {L('지금은 로그인 전이라 이 결정은 이 기기에만 저장돼요 — 캐시를 지우거나 다른 기기에선 사라질 수 있어요. 저장한 다음 로그인하면 계정으로 옮겨가 어디서나 다시 볼 수 있어요.',
-               'Not logged in yet, so this is saved on this device only — it can be lost if you clear your cache or switch devices. Save it, then sign in to move it to your account and revisit it anywhere.')}
-          </p>
-        )}
+        {/* Nothing between the question and the choice (cleared 2026-07-20).
+            The old pre-consent paragraphs — the channel ("프로젝트 페이지·텔레그램·
+            광고 메일 없음") and the anon caveat ("이 기기에만 저장돼요…") — both
+            said what the SEALED scene below already says at the right moment:
+            post-seal it reads "좋아요, {date}에 물어볼게요 — 프로젝트 페이지에 오시면
+            먼저 물어요" and offers anon a one-tap "로그인하고 어디서나 이어보기".
+            Explaining delivery + device-scope BEFORE the yes was pure friction;
+            the honest disclosure lands after commitment, framed as action not
+            alarm. Here the user just chooses. */}
 
         {/* Judgment Receipt — seal과 settle을 하나의 오브젝트로 묶는 진입점.
             사용자가 human_judgment를 작성하면 봉인 시 함께 저장된다. */}

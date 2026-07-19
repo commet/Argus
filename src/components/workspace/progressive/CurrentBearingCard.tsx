@@ -44,12 +44,18 @@ export function CurrentBearingCard({
   onShowEvidence,
   onSeal,
   canSeal = false,
+  sealHandlesRisk = false,
 }: {
   bearing: CurrentBearing | null;
   label?: string | null;
   onShowEvidence?: () => void;
   onSeal?: () => void;
   canSeal?: boolean;
+  /** On the final screen the seal card below carries the same uncertainty as
+   *  the honest "what the AI assumed" receipt. Pass true there so this card
+   *  drops its "가장 큰 위험" beat and the risk isn't stated twice on one screen.
+   *  Off (project record view) keeps the full triad. */
+  sealHandlesRisk?: boolean;
 }) {
   const locale = useLocale();
   const L = (ko: string, en: string) => (locale === 'ko' ? ko : en);
@@ -125,15 +131,11 @@ export function CurrentBearingCard({
           </div>
         </div>
 
-        {/* 방위 카드의 정체 한 줄 (헤더 바로 아래) — 문서와 뭐가 다른지. */}
-        <p className="mb-2 text-[12px] leading-snug text-[var(--text-secondary)]">
-          {L('지금까지 정리된 결론과 다음 단계를 한눈에 볼 수 있어요.',
-             'See the current conclusion and next step at a glance.')}
-        </p>
-        {/* renderInline: 엔진이 요약에 넣는 **핵심 강조**를 실제 굵게로 렌더한다.
-            (F-2-1) 안 하면 리터럴 '**'가 노출됐고, 렌더하면 창업자 팁 —
-            긴 요약에서 하중 실린 어구가 스캔되게 — 이 자동으로 산다. */}
-        <p className="text-[15px] font-medium leading-snug text-[var(--text-primary)] text-balance md:text-[16px]">
+        {/* Headline — the one-line "read first" (decision_read). summary now
+            carries a single crisp sentence (the shared bearing contract), so
+            it reads as a conclusion you scan in one glance, not a paragraph to
+            re-summarize. renderInline turns the engine's **emphasis** into bold. */}
+        <p className="text-[18px] md:text-[20px] font-medium leading-[1.4] text-[var(--text-primary)] text-balance" style={{ fontFamily: 'var(--font-display)' }}>
           {renderInline(current_course.summary)}
         </p>
 
@@ -175,91 +177,102 @@ export function CurrentBearingCard({
         )}
       </div>
 
-      <div className="space-y-4 px-5 py-4 md:px-6">
-        {reasons.length > 0 && (
-          <Section title={L('이 방향을 택한 이유', 'Why this direction')}>
-            <ul className="space-y-1.5">
-              {reasons.map((r, i) => (
-                <li key={i} className="flex items-start gap-2 text-[13px] leading-relaxed text-[var(--text-secondary)]">
-                  <span className="mt-[7px] h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--accent)]" />
-                  <span>{renderInline(r.point)}</span>
-                </li>
-              ))}
-            </ul>
-          </Section>
-        )}
-
-        {fog_or_reef?.issue && (
-          <Section
-            title={L('확인할 위험', 'Risks to check')}
-            icon={<AlertTriangle size={12} style={{ color: 'var(--gold)' }} />}
-          >
-            <p className="text-[13px] leading-relaxed text-[var(--text-secondary)]">
-              {renderInline(fog_or_reef.issue)}
-            </p>
-            {fog_or_reef.required_check && (
-              <p className="mt-1 text-[12px] leading-relaxed text-[var(--text-tertiary)]">
-                <span className="font-medium">{L('확인: ', 'Check: ')}</span>
-                {renderInline(fog_or_reef.required_check)}
-              </p>
-            )}
-          </Section>
-        )}
-
-        {roads.length > 0 && (
-          <Section
-            title={L('보류한 선택지', 'Options set aside')}
-            icon={<GitFork size={12} className="text-[var(--text-tertiary)]" />}
-          >
-            {roads.map((r, i) => (
-              <div key={i} className="text-[13px] leading-relaxed">
-                <span className="text-[var(--text-secondary)] line-through decoration-[var(--text-tertiary)]/50">
-                  {r.option}
-                </span>
-                <span className="text-[var(--text-tertiary)]"> — {r.why_not_now}</span>
-              </div>
-            ))}
-          </Section>
-        )}
-
-        {next_helm && (
-          <div className="flex items-start gap-2 pt-1">
-            <ArrowRight size={14} className="mt-0.5 shrink-0 text-[var(--accent)]" />
-            <p className="text-[13px] font-medium leading-relaxed text-[var(--text-primary)]">
-              <span className="font-normal text-[var(--text-tertiary)]">{L('다음 단계: ', 'Next step: ')}</span>
+      {/* At-a-glance triad — 지금 할 일 / 가장 큰 위험 / 확인일에 볼 것. Each is
+          an existing bearing field (next_helm / fog / contract_seed); the fixed
+          label column makes the screen scannable in one pass instead of a
+          paragraph wall. This is the content redesign, not a fold. */}
+      {(next_helm || (fog_or_reef?.issue && !sealHandlesRisk) || contract_seed?.predicate) && (
+        <div className="border-t border-[var(--border-subtle)] px-5 md:px-6">
+          {next_helm && (
+            <Beat
+              label={L('지금 할 일', 'Do now')}
+              icon={<ArrowRight size={13} />}
+              tone="var(--accent)"
+            >
               {renderInline(next_helm)}
-            </p>
-          </div>
-        )}
-      </div>
-
-      {contract_seed?.predicate && (
-        <div className="px-5 py-3 md:px-6" style={{ background: 'color-mix(in srgb, var(--accent) 4%, transparent)' }}>
-          <div className="flex items-start gap-2">
-            <CalendarCheck size={12} className="mt-0.5 shrink-0 text-[var(--accent)]" />
-            <p className="text-[12px] leading-relaxed text-[var(--text-secondary)]">
-              <span className="font-semibold text-[var(--text-primary)]">
-                {L('확인일에 볼 것: ', 'Check on the review date: ')}
-              </span>
+            </Beat>
+          )}
+          {fog_or_reef?.issue && !sealHandlesRisk && (
+            <Beat
+              label={L('가장 큰 위험', 'Biggest risk')}
+              icon={<AlertTriangle size={13} />}
+              tone="var(--gold)"
+            >
+              {renderInline(fog_or_reef.issue)}
+              {fog_or_reef.required_check && (
+                <span className="mt-1 block text-[12px] text-[var(--text-tertiary)]">
+                  <span className="font-medium">{L('확인: ', 'Check: ')}</span>
+                  {renderInline(fog_or_reef.required_check)}
+                </span>
+              )}
+            </Beat>
+          )}
+          {contract_seed?.predicate && (
+            <Beat
+              label={L('확인일에 볼 것', 'Check later')}
+              icon={<CalendarCheck size={13} />}
+              tone="var(--text-secondary)"
+            >
               {renderInline(contract_seed.predicate)}
-            </p>
-          </div>
+            </Beat>
+          )}
+        </div>
+      )}
+
+      {/* Rationale — why this direction, and roads set aside. Demoted BELOW the
+          triad (secondary to "what to do / watch / check"), but not hidden. */}
+      {(reasons.length > 0 || roads.length > 0) && (
+        <div className="space-y-3 border-t border-[var(--border-subtle)] bg-[var(--bg)]/40 px-5 py-4 md:px-6">
+          {reasons.length > 0 && (
+            <div>
+              <p className="mb-1.5 text-[9px] font-bold uppercase tracking-[0.2em] text-[var(--text-tertiary)]">
+                {L('이 방향을 택한 이유', 'Why this direction')}
+              </p>
+              <ul className="space-y-1">
+                {reasons.map((r, i) => (
+                  <li key={i} className="flex items-start gap-2 text-[12.5px] leading-relaxed text-[var(--text-secondary)]">
+                    <span className="mt-[7px] h-1 w-1 shrink-0 rounded-full bg-[var(--text-tertiary)]" />
+                    <span>{renderInline(r.point)}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {roads.length > 0 && (
+            <div>
+              <p className="mb-1.5 flex items-center gap-1.5 text-[9px] font-bold uppercase tracking-[0.2em] text-[var(--text-tertiary)]">
+                <GitFork size={11} className="text-[var(--text-tertiary)]" />
+                {L('보류한 선택지', 'Options set aside')}
+              </p>
+              {roads.map((r, i) => (
+                <div key={i} className="text-[12.5px] leading-relaxed">
+                  <span className="text-[var(--text-secondary)] line-through decoration-[var(--text-tertiary)]/50">{r.option}</span>
+                  <span className="text-[var(--text-tertiary)]"> — {r.why_not_now}</span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
     </motion.div>
   );
 }
 
-function Section({ title, icon, children }: { title: string; icon?: ReactNode; children: ReactNode }) {
+/* One row of the at-a-glance triad: a fixed-width colored label + one phrase.
+   The label column is what makes three lines scan as a table, not a paragraph. */
+function Beat({ label, icon, tone, children }: { label: string; icon: ReactNode; tone: string; children: ReactNode }) {
   return (
-    <div>
-      <div className="mb-1.5 flex items-center gap-1.5">
+    <div className="flex gap-3 border-b border-[var(--border-subtle)] py-3 last:border-b-0">
+      <div
+        className="flex w-[92px] shrink-0 items-center gap-1.5 pt-px text-[11.5px] font-semibold"
+        style={{ color: tone }}
+      >
         {icon}
-        <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-[var(--text-tertiary)]">
-          {title}
-        </p>
+        <span>{label}</span>
       </div>
-      {children}
+      <div className="min-w-0 flex-1 text-[13.5px] leading-[1.55] text-[var(--text-primary)]">
+        {children}
+      </div>
     </div>
   );
 }

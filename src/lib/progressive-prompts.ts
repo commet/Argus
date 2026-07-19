@@ -647,7 +647,8 @@ ${leadSynthesis ? 'Format the lead expert\'s synthesis into a polished professio
 JSON format:
 {
   "title": "Document title (specific, reflects the situation)",
-  "executive_summary": "Executive summary in 2-3 sentences",
+  "decision_read": "The single line the user reads FIRST — a headline, not a summary. HARD RULES, follow all: (1) ONE short sentence, max ~18 words. (2) ONE action only — if you're joining two actions with '그리고/하고/,/—/and', you've failed: pick the ONE that matters most and cut the rest (the others live in next_steps). (3) State the action, and at most ONE reason, plainly. (4) NO hedging ('~할 수 있어요','~하는 게 좋아요','might','consider','it may be worth'), NO topic label, NO restating the question. In the user's language. GOOD (ko): 'PT 전에 진짜 결재권자부터 확인하세요 — 승부처는 슬라이드가 아닙니다.' BAD (run-on, two actions joined): '오늘 사전 통화를 요청하고, 내일 확인 미팅으로 뭘 보여줄지 확정하세요 — 이 둘이 빠지면 …'. If yours reads like the BAD one, rewrite it shorter.",
+  "executive_summary": "The document's own 2-3 sentence summary (fuller than decision_read; leads the document body, not the headline).",
   "sections": [
     ${sectionSchema}
   ],
@@ -931,7 +932,8 @@ Apply the fixes and produce the final document.
 JSON format:
 {
   "title": "Final title",
-  "executive_summary": "Final summary",
+  "decision_read": "The single line read FIRST — a headline. HARD RULES: ONE short sentence, max ~18 words; ONE action only (no '그리고/하고/,/—/and' joining two actions — pick the most important); at most one reason; no hedging; user's language. GOOD: 'PT 전에 진짜 결재권자부터 확인하세요 — 승부처는 슬라이드가 아닙니다.' Update it if the applied fixes changed the call; otherwise keep the prior one.",
+  "executive_summary": "Final summary (2-3 sentences, document body)",
   "sections": [{"heading": "...", "content": "..."}],
   "key_assumptions": ["..."],
   "next_steps": ["..."],
