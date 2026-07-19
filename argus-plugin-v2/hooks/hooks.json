@@ -50,6 +50,15 @@
             "timeout": 5
           }
         ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/sense-signal.js\"",
+            "timeout": 5
+          }
+        ]
       }
     ],
     "PreToolUse": [
