@@ -176,9 +176,11 @@ async function fire(dir: string, todayOverride?: string): Promise<void> {
             outcome: {
               type: 'string',
               enum: ['held', 'avoided', 'partial', 'still_pending', 'missed'],
+              // Same labels as the in-band settle picker (settle.ts) — 풀어쓰기.
+              // (Duplicated across the two picker sites; keep them in lockstep.)
               enumNames: ko
-                ? ['그렇게 됐다 (held)', '피했다 (avoided)', '부분적으로 (partial)', '아직 불분명 (still pending)', '빗나갔다 (missed)']
-                : ['It held', 'Avoided it', 'Partially', 'Still pending', 'Missed: my read was wrong'],
+                ? ['예측대로 됐다', '걱정한 일은 안 일어났다', '일부만 맞았다', '아직 불분명', '예측이 빗나갔다']
+                : ['It held', 'Avoided', 'Partially', 'Still unclear', 'Missed: my read was wrong'],
               description: ko ? '봉인한 예측에 현실이 어떻게 답했는지.' : 'What reality did to your sealed prediction.',
             },
           },
