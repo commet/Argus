@@ -137,7 +137,13 @@ export function replayLedger(argusDir: string, today: string): LedgerState {
     return { today, overdue: [], ids, sealedPredicates, contracts: map, stats, watch, integrity: { dropped_lines: 0, skipped_unknown: 0 } };
   }
 
-  for (const line of raw.split('\n')) {
+  for (const rawLine of raw.split('\n')) {
+    // Strip a per-LINE BOM: deBom only removes one at byte 0, but a U+FEFF can
+    // ride the first line of a concatenated second file, or be prepended per
+    // append by a Windows PowerShell co-writer (>>/Out-File) sharing the ledger.
+    // JSON.parse('﻿{…}') throws, so without this a real settle line would
+    // be dropped and its outcome vanish from calibration.
+    const line = rawLine.charCodeAt(0) === 0xfeff ? rawLine.slice(1) : rawLine;
     if (!line.trim()) continue;
     let ev: Record<string, unknown>;
     try {
@@ -200,7 +206,6 @@ export function replayLedger(argusDir: string, today: string): LedgerState {
       case 'settle': {
         if (!cur) { cur = freshEntry(id); map.set(id, cur); } // B1: self-create
         cur.status = 'settled';
-        stats.total_settled++;
         const outcome = ev['outcome'] as string | undefined;
         cur.outcome = outcome;
         // Timestamp field is two-vocab across surfaces: this binary stamps `ts`,
@@ -210,13 +215,23 @@ export function replayLedger(argusDir: string, today: string): LedgerState {
         if (settledTs && settledTs.length >= 10) cur.settled_on = settledTs.slice(0, 10);
         if (typeof ev['broken_premise_id'] === 'string') cur.broken_premise_id = ev['broken_premise_id'];
         // `happened` is the plugin CLI's legacy spelling of `held` (pre plain-canon
-        // unification). Old ledgers keep their bytes — the alias lives at read time
-        // so the frequency buckets stay complete (total_settled == sum of buckets).
-        if (outcome === 'held' || outcome === 'happened') stats.held++;
-        else if (outcome === 'avoided') stats.avoided++;
-        else if (outcome === 'partial') stats.partial++;
-        else if (outcome === 'still_pending') stats.still_pending++;
-        else if (outcome === 'missed') stats.missed++;
+        // unification). Old ledgers keep their bytes — the alias lives at read time.
+        // total_settled is incremented HERE, together with the bucket, so the
+        // invariant total_settled == sum(buckets) always holds. A settle event
+        // with an UNKNOWN outcome (a corrupt or externally-synced ledger — the
+        // zod enum blocks it on the MCP write path) still marks the decision
+        // settled, but is not counted into a calibration frequency it can't be
+        // categorized into (it used to inflate total_settled, so the surface read
+        // "N settled: 0 · 0 · 0 · 0" — a settle that vanished from its own breakdown).
+        if (outcome === 'held' || outcome === 'happened') { stats.held++; stats.total_settled++; }
+        else if (outcome === 'avoided') { stats.avoided++; stats.total_settled++; }
+        else if (outcome === 'partial') { stats.partial++; stats.total_settled++; }
+        else if (outcome === 'missed') { stats.missed++; stats.total_settled++; }
+        // 'still_pending' is NOT a terminal outcome — the MCP settle tool routes
+        // it to a `defer` event, never a `settle`. A settle+still_pending is
+        // therefore external/legacy only; it is not counted (the displayed
+        // breakdown shows four buckets, so counting it would make the visible
+        // line under-sum: "1 settled: 0 · 0 · 0 · 0"). v2 rejects it likewise.
         break;
       }
 

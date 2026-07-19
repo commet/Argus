@@ -4,6 +4,7 @@ import { resolveToolArgusDir } from './argus-dir.js';
 import { resolveToday } from './resolve-today.js';
 import { configPath } from './layout.js';
 import { ambientDueFromState, ambientLine } from './ambient-due.js';
+import { stripUnsafeChars } from './untrusted.js';
 import type { McpToolResult } from './envelope.js';
 
 /**
@@ -87,7 +88,11 @@ export function appendDueNote(
 
     // ── channel 2: the surface tail — session-once, mute-respecting, localized ──
     if (!ambientShownFor.has(dir) && !ambientMuted(dir)) {
-      const line = ambientLine(dir, due, state); // state lends the ledger's own voice
+      // This tail is appended AFTER envelope() already ran sanitizeOutput, so it
+      // must be sanitized itself — ambientLine reads ledger text (via `state`),
+      // and one future change that quotes the ledger's words would otherwise
+      // inject past the sanitizer.
+      const line = stripUnsafeChars(ambientLine(dir, due, state));
       if (line && typeof sc['surface'] === 'string') {
         sc['surface'] = String(sc['surface']) + line;
         data['ambient_shown'] = true;

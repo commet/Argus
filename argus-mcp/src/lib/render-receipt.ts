@@ -239,7 +239,10 @@ function dw(s: string): number {
 }
 
 function wrap(s: string, width = 54): string {
-  const words = s.split(/\s+/);
+  // Defense in depth: a corrupt receipt field could be non-string (readReceipt
+  // rejects a non-object file, but a wrong-typed field inside a valid object
+  // would still reach here) — coerce so .split never throws on the keepsake.
+  const words = String(s ?? '').split(/\s+/);
   const lines: string[] = [];
   let cur = '';
   for (const w of words) {

@@ -149,7 +149,13 @@ export async function writeSettleReceipt(
 
 export function readReceipt(argusDir: string, id: string): Receipt | null {
   try {
-    return JSON.parse(deBom(fs.readFileSync(receiptPath(argusDir, id), 'utf8'))) as Receipt;
+    const parsed: unknown = JSON.parse(deBom(fs.readFileSync(receiptPath(argusDir, id), 'utf8')));
+    // A hand-edited / corrupt receipt could be a primitive, null, or an array;
+    // renderReceipt does r.predicate.split(...) unguarded and writeSettleReceipt
+    // spreads `base`, so a non-object would crash the render / drop every field.
+    // Reject anything but a plain object — a corrupt keepsake degrades, not dies.
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return null;
+    return parsed as Receipt;
   } catch {
     return null;
   }

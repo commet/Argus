@@ -1,5 +1,6 @@
 import fs from 'fs';
 import fsP from 'fs/promises';
+import { randomUUID } from 'crypto';
 import { ledgerPath, ledgerDir } from './layout.js';
 import { SCHEMA_VERSION } from './spine.js';
 import type { LedgerEventType } from './state-machine.js';
@@ -70,34 +71,94 @@ export interface LedgerEventInput {
  * counting the calibration record. O_EXCL create is the atomic primitive;
  * a lock older than STALE_MS is treated as a crash leftover and stolen.
  */
-const LOCK_STALE_MS = 5000;
 const LOCK_WAIT_MS = 25;
-const LOCK_TRIES = 120; // ~3s worst case
+const LOCK_TRIES = 120; // ~3s worst case before failing OPEN (availability > strictness)
+// A normal critical section is milliseconds. 10 min = a zombie / reused pid, or a
+// lock synced in from a now-offline machine — the only cases old enough to steal
+// when we can't prove the holder is dead by pid.
+const LOCK_HELD_TOO_LONG_MS = 10 * 60_000;
+
+interface LockBody { nonce: string; pid: number; started_at: string }
+
+function pidAlive(pid: number): boolean {
+  try { process.kill(pid, 0); return true; }
+  catch (e) { return (e as NodeJS.ErrnoException).code === 'EPERM'; } // EPERM = alive but not ours; ESRCH = dead
+}
+
+/**
+ * A held lock is stealable ONLY if its holder is provably gone: the pid is dead
+ * (same machine) or it has been held absurdly long. The old code stole any lock
+ * older than 5s by mtime, which let a LIVE holder inside a slow critical section
+ * (large ledger fsync, network FS) be robbed — two writers then both believed
+ * they held the lock and both appended, double-counting the calibration record.
+ */
+function lockStealable(lockPath: string): boolean {
+  try {
+    let body: unknown = null;
+    try { body = JSON.parse(fs.readFileSync(lockPath, 'utf8')); } catch { /* legacy/torn — fall to mtime */ }
+    if (body && typeof body === 'object') {
+      const b = body as Partial<LockBody>;
+      const started = typeof b.started_at === 'string' ? Date.parse(b.started_at) : NaN;
+      if (Number.isFinite(started) && Date.now() - started > LOCK_HELD_TOO_LONG_MS) return true;
+      if (typeof b.pid === 'number') return !pidAlive(b.pid);
+    }
+    // legacy bare-pid or malformed body: fall back to a GENEROUS mtime age.
+    return Date.now() - fs.statSync(lockPath).mtimeMs > LOCK_HELD_TOO_LONG_MS;
+  } catch {
+    return true; // vanished between attempts — retry create
+  }
+}
 
 export async function withLedgerLock<T>(argusDir: string, fn: () => Promise<T>): Promise<T> {
   await fsP.mkdir(ledgerDir(argusDir), { recursive: true });
   const lockPath = ledgerPath(argusDir) + '.lock';
+  const nonce = randomUUID();
+  const bodyStr = JSON.stringify({ nonce, pid: process.pid, started_at: new Date().toISOString() } satisfies LockBody);
+  const tmp = `${lockPath}.${nonce}.tmp`;
   let acquired = false;
   for (let i = 0; i < LOCK_TRIES && !acquired; i++) {
     try {
-      const fd = fs.openSync(lockPath, fs.constants.O_CREAT | fs.constants.O_EXCL | fs.constants.O_WRONLY);
-      fs.writeSync(fd, String(process.pid), null, 'utf8');
-      fs.closeSync(fd);
+      // Complete the body first, then create the lock via an ATOMIC hardlink —
+      // the lock file exists only ever with a full body (no empty window a racer
+      // could misread as "crashed mid-write"), and EEXIST means someone holds it.
+      fs.writeFileSync(tmp, bodyStr, 'utf8');
+      fs.linkSync(tmp, lockPath);
       acquired = true;
-    } catch {
-      try {
-        const st = fs.statSync(lockPath);
-        if (Date.now() - st.mtimeMs > LOCK_STALE_MS) { fs.unlinkSync(lockPath); continue; } // crash leftover
-      } catch { continue; } // lock vanished between attempts — retry immediately
-      await new Promise((r) => setTimeout(r, LOCK_WAIT_MS));
+    } catch (e) {
+      const code = (e as NodeJS.ErrnoException).code;
+      if (code !== 'EEXIST') {
+        // linkSync unsupported on this FS (rare) — degrade to O_EXCL create.
+        try {
+          const fd = fs.openSync(lockPath, fs.constants.O_CREAT | fs.constants.O_EXCL | fs.constants.O_WRONLY);
+          fs.writeSync(fd, bodyStr, null, 'utf8'); fs.closeSync(fd); acquired = true;
+        } catch { /* held — fall through to steal/wait */ }
+      }
+      if (!acquired) {
+        if (lockStealable(lockPath)) {
+          // Steal ATOMICALLY via rename — exactly one racer's rename wins; the
+          // loser throws (already moved) and retries. (unlink+recreate let two
+          // stealers both delete then both create — the double-steal race.)
+          try { const grave = `${lockPath}.stale-${nonce}`; fs.renameSync(lockPath, grave); fs.unlinkSync(grave); }
+          catch { /* lost the steal to another racer — just retry create */ }
+          continue; // retry immediately
+        }
+        await new Promise((r) => setTimeout(r, LOCK_WAIT_MS));
+      }
+    } finally {
+      try { fs.unlinkSync(tmp); } catch { /* linked away on success, or never created */ }
     }
   }
-  // Lock or no lock, the work proceeds (availability over strictness — a stuck
-  // lock must never brick the ledger; the steal above bounds the wait).
+  // Fail OPEN if never acquired (availability > strictness — a stuck lock must
+  // never brick the ledger; the steal logic bounds the wait to ~3s).
   try {
     return await fn();
   } finally {
-    if (acquired) { try { fs.unlinkSync(lockPath); } catch { /* already gone */ } }
+    if (acquired) {
+      // Release only our OWN lock (nonce match) — never delete a lock a later
+      // holder created after ours was legitimately stolen (ABA guard).
+      try { const cur = JSON.parse(fs.readFileSync(lockPath, 'utf8')) as Partial<LockBody>; if (cur.nonce === nonce) fs.unlinkSync(lockPath); }
+      catch { /* gone, or not ours */ }
+    }
   }
 }
 

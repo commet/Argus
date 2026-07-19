@@ -37,7 +37,7 @@
  * escape sequences.
  */
 // eslint-disable-next-line no-control-regex
-const CONTROL_CHARS = /[\u0000-\u0008\u000B-\u001F\u007F]/g;
+const CONTROL_CHARS = /[\u0000-\u0008\u000B-\u001F\u007F-\u009F]/g;
 
 /**
  * Invisible and direction-controlling characters: zero-width space/joiners,
@@ -45,7 +45,7 @@ const CONTROL_CHARS = /[\u0000-\u0008\u000B-\u001F\u007F]/g;
  * reverse the surrounding text) for the human while the model reads them intact
  * - the classic "the human and the model see different strings" gap.
  */
-const INVISIBLE_CHARS = /[\u200B-\u200F\u202A-\u202E\u2066-\u2069\uFEFF]/g;
+const INVISIBLE_CHARS = /[\u200B-\u200F\u202A-\u202E\u2028\u2029\u2066-\u2069\uFEFF]/g;
 
 /** Strip the mechanical-injection vectors from one string. Newlines and tabs
  *  survive (a rendered receipt is multi-line ASCII art). */
@@ -56,7 +56,7 @@ export function stripUnsafeChars(s: string): string {
 /** True when the string carries anything stripUnsafeChars would remove. The
  *  surface lint uses this so a raw path fails loudly in CI. */
 export function hasUnsafeChars(s: string): boolean {
-  return /[\u0000-\u0008\u000B-\u001F\u007F\u200B-\u200F\u202A-\u202E\u2066-\u2069\uFEFF]/.test(s);
+  return /[\u0000-\u0008\u000B-\u001F\u007F-\u009F\u200B-\u200F\u202A-\u202E\u2028\u2029\u2066-\u2069\uFEFF]/.test(s);
 }
 
 /**

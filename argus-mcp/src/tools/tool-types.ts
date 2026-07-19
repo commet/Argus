@@ -193,7 +193,14 @@ const EN_FIELD_DESCRIPTIONS: Record<string, string> = {
 
 /** JSON Schema for tools/list, generated from the Zod source (drop $schema noise). */
 export function toolJsonSchema(schema: ToolInputSchema): Record<string, unknown> {
-  const json = z.toJSONSchema(schema) as Record<string, unknown>;
+  // io:'input' — this schema describes the tool's ARGUMENTS. Zod v4 defaults
+  // z.toJSONSchema to io:'output', which marks every `.default()` field as
+  // REQUIRED (while still emitting its default) — so a strict host / the MCP
+  // Inspector would reject `argus_check_in {}` (the mandated session-start call),
+  // `argus_patterns {}`, and a premise without kind/external/load_bearing, even
+  // though the runtime validator fills those defaults. Input mode advertises them
+  // as optional; additionalProperties:false (strictObject) is preserved.
+  const json = z.toJSONSchema(schema, { io: 'input' }) as Record<string, unknown>;
   delete json['$schema'];
   const visit = (node: unknown): void => {
     if (!node || typeof node !== 'object') return;
@@ -242,6 +249,12 @@ export const ENVELOPE_OUTPUT_SCHEMA = {
     over_fire_gate: { type: 'object' },
     error_code: { type: 'string' },
     message: { type: 'string' },
+    // error results also carry these — declared so a host that validates
+    // structuredContent against outputSchema on ERROR results (the SDK does, even
+    // when isError) would still pass if the schema were ever hardened to
+    // additionalProperties:false.
+    recovery: { type: 'string' },
+    invalid_fields: { type: 'array', items: { type: 'object' } },
   },
   required: ['ok', 'tool'],
 } as const;
