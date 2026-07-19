@@ -106,6 +106,9 @@ export default function ProjectPage() {
   const [storesLoaded, setStoresLoaded] = useState(false);
   const [query, setQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+  const [focusedDecisionId, setFocusedDecisionId] = useState<string | null>(null);
+  const [focusedAttentionId, setFocusedAttentionId] = useState<string | null>(null);
+  const [focusOrigin, setFocusOrigin] = useState<'sea' | 'attention' | null>(null);
   const lastOpenedProjectIdRef = useRef<string | null>(null);
   const returnFocusProjectIdRef = useRef<string | null>(null);
   const listHeadingRef = useRef<HTMLHeadingElement>(null);
@@ -371,6 +374,27 @@ export default function ProjectPage() {
     now: Date.now(),
   });
   const attentionProjectIds = [...new Set(attentionItems.flatMap((item) => item.projectId ? [item.projectId] : []))];
+  const attentionDecisionId = (item: (typeof attentionItems)[number]) =>
+    item.projectId ?? item.affected.find((entry) => entry.scope === 'review')?.id ?? null;
+
+  const focusDecisionFromSea = (decisionId: string) => {
+    setFocusOrigin('sea');
+    setFocusedDecisionId(decisionId);
+    const matchingItem = attentionItems.find((item) => attentionDecisionId(item) === decisionId);
+    setFocusedAttentionId(matchingItem?.id ?? null);
+  };
+
+  const focusDecisionFromAttention = (item: (typeof attentionItems)[number], decisionId: string | null) => {
+    setFocusOrigin('attention');
+    setFocusedAttentionId(item.id);
+    setFocusedDecisionId(decisionId);
+    if (!decisionId) return;
+    window.requestAnimationFrame(() => {
+      const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      document.getElementById('decision-sea')?.scrollIntoView({ behavior: reducedMotion ? 'auto' : 'smooth', block: 'start' });
+      window.setTimeout(() => document.getElementById(`voyage-ship-${decisionId}`)?.focus({ preventScroll: true }), reducedMotion ? 0 : 420);
+    });
+  };
 
   const sortedProjects = useMemo(() => {
     const dueIds = new Set(dueKey.split('|').filter(Boolean));
@@ -683,12 +707,20 @@ export default function ProjectPage() {
                 }}
                 receipts={reviewReceipts}
                 onSelectReceipt={(id) => router.push(`/${locale}/tools/review?receipt=${encodeURIComponent(id)}`)}
+                focusedDecisionId={focusedDecisionId}
+                onFocusDecision={focusDecisionFromSea}
               />
 
               {/* ② 해도 신호의 작업 목록 — check-ins, premise rechecks, deferred
                   questions and moved shared ground share one derivation. The sea
                   keeps the visual identity; this quiet list owns exact actions. */}
-              <ProjectAttentionList items={attentionItems} />
+              <ProjectAttentionList
+                items={attentionItems}
+                focusedDecisionId={focusedDecisionId}
+                focusedAttentionId={focusedAttentionId}
+                scrollToFocused={focusOrigin === 'sea'}
+                onFocusItem={focusDecisionFromAttention}
+              />
 
               <section
                 id="fleet-roster"

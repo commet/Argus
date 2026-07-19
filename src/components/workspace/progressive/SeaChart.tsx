@@ -280,6 +280,10 @@ export function SeaChart({
   }
 
   const { placed, byId, W, H, activePath, aheadPath } = layout;
+  // The narrow rail used to render every compact node as an anonymous dot.
+  // Keep only the last three turns labelled: enough temporal context to read
+  // the current route without turning the miniature into a wall of text.
+  const compactLabelIds = new Set(activePath.slice(-3).map((node) => node.id));
 
   // ── Zoom / pan plumbing (full only) ──
   const clientToSvg = (clientX: number, clientY: number) => {
@@ -598,6 +602,27 @@ export function SeaChart({
                       {L(WP_LABEL[wp.type].ko, WP_LABEL[wp.type].en)}
                     </text>
                     <text x={lx} y={n.py + 9} fontSize={12.5} fill={PAPER.ink} fontFamily={CHART_FONT} fontStyle="italic" fontWeight={500}>{text}</text>
+                  </g>
+                );
+              })()}
+
+              {!full && wp && compactLabelIds.has(n.id) && (() => {
+                const text = wp.headline.length > 15 ? `${wp.headline.slice(0, 14)}…` : wp.headline;
+                const lx = n.px + (isActiveCp ? 12 : r + 7);
+                return (
+                  <g opacity={isActiveCp ? 1 : 0.72} pointerEvents="none">
+                    <rect
+                      x={lx - 2}
+                      y={n.py - 7.5}
+                      width={Math.min(72, Math.max(30, text.length * 5.4))}
+                      height={12}
+                      rx={2}
+                      fill={PAPER.paper0}
+                      fillOpacity={0.86}
+                    />
+                    <text x={lx + 1} y={n.py + 1} fontSize={7.2} fill={PAPER.ink} fontFamily={CHART_FONT} fontWeight={isActiveCp ? 700 : 600}>
+                      {text}
+                    </text>
                   </g>
                 );
               })()}

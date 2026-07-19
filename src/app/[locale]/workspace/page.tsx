@@ -15,8 +15,7 @@ import { SynthesizeStep } from '@/components/workspace/SynthesizeStep';
 import { ProgressiveFlow } from '@/components/workspace/progressive/ProgressiveFlow';
 import { WorkerDrawer, useWorkers } from '@/components/workspace/progressive/WorkerPanel';
 import { LogbookDrawer } from '@/components/workspace/progressive/Logbook';
-import { VoyageMapRail } from '@/components/workspace/progressive/VoyageMapRail';
-import { DecisionEvidenceMap } from '@/components/workspace/progressive/DecisionEvidenceMap';
+import { VoyageMapRail, VoyageMapViews } from '@/components/workspace/progressive/VoyageMapRail';
 import { QuickChatBar } from '@/components/workspace/QuickChatBar';
 import { NavigatorStrip } from '@/components/workspace/NavigatorStrip';
 import { useSettingsStore } from '@/stores/useSettingsStore';
@@ -139,7 +138,7 @@ function ProgressiveLayout({ projectId, projectName, onReset }: { projectId: str
   const switchBranch = useProgressiveStore(s => s.switchBranch);
   const branchingLocked = useProgressiveStore(s => s.isBranchingLocked());
   const [branchMenuOpen, setBranchMenuOpen] = useState(false);
-  const [mobileEvidenceOpen, setMobileEvidenceOpen] = useState(false);
+  const [mobileMapOpen, setMobileMapOpen] = useState(false);
   const branchTriggerRef = useRef<HTMLButtonElement>(null);
   const branchOptionRefs = useRef<Array<HTMLButtonElement | null>>([]);
 
@@ -271,19 +270,19 @@ function ProgressiveLayout({ projectId, projectName, onReset }: { projectId: str
           <div className="mb-3 flex justify-end xl:hidden">
             <button
               type="button"
-              onClick={() => setMobileEvidenceOpen(true)}
+              onClick={() => setMobileMapOpen(true)}
               className="inline-flex min-h-10 items-center gap-1.5 border-b border-[var(--border)] px-1 text-[12px] font-semibold text-[var(--text-secondary)] transition-colors hover:text-[var(--accent)]"
             >
               <SearchCheck size={14} className="text-[var(--accent)]" />
-              {L('판단 지도', 'Decision map')}
+              {L('현재 판단 경로', 'Decision path')}
             </button>
             <Modal
-              open={mobileEvidenceOpen}
-              onClose={() => setMobileEvidenceOpen(false)}
-              title={L('판단 지도 · 근거', 'Decision map · Evidence')}
-              widthClass="max-w-lg"
+              open={mobileMapOpen}
+              onClose={() => setMobileMapOpen(false)}
+              title={L('현재 판단 경로', 'Current decision path')}
+              widthClass="max-w-2xl"
             >
-              <DecisionEvidenceMap onNavigate={() => setMobileEvidenceOpen(false)} />
+              <VoyageMapViews surface="modal" onNavigate={() => setMobileMapOpen(false)} />
             </Modal>
           </div>
         )}

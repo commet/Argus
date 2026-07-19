@@ -240,6 +240,8 @@ export function VoyageSea({
   onReview,
   receipts,
   onSelectReceipt,
+  focusedDecisionId,
+  onFocusDecision,
 }: {
   projects: Project[];
   reframeItems: ReframeItem[];
@@ -260,6 +262,10 @@ export function VoyageSea({
   /** Sealed review/MCP receipts join the same sea (one harbor, P0-6 ①). */
   receipts?: JudgmentReceipt[];
   onSelectReceipt?: (receiptId: string) => void;
+  /** Shared selection with the attention list below. The chart remains the
+   *  visual locator; the list remains the exact-action surface. */
+  focusedDecisionId?: string | null;
+  onFocusDecision?: (decisionId: string, kind: SeaShip['kind']) => void;
 }) {
   const L = (ko: string, en: string) => (locale === 'ko' ? ko : en);
   const attentionSet = new Set(attentionProjectIds);
@@ -305,6 +311,12 @@ export function VoyageSea({
     document.addEventListener('keydown', closeLegendOnEscape);
     return () => document.removeEventListener('keydown', closeLegendOnEscape);
   }, [showKey]);
+
+  // A selection arriving from the action list must stay visible even when a
+  // previous chart filter would have hidden it.
+  useEffect(() => {
+    if (focusedDecisionId) setFilter(null);
+  }, [focusedDecisionId]);
 
   // Same signal brain as projectMetricsMap / the old FleetChart — the ONE
   // derived-state source (getVoyageState). Two deliberate departures from
@@ -705,7 +717,7 @@ export function VoyageSea({
 
 
   return (
-    <section aria-label={L('결정 지도 — 각 결정의 현재 상태', 'Decision map — current status of each decision')}>
+    <section id="decision-sea" className="scroll-mt-5" aria-label={L('결정 해도 — 각 결정의 현재 상태', 'Decision chart — current status of each decision')}>
       {/* Component-scoped keyframes. Plain static CSS (no user data). */}
       <style>{`
         @keyframes vsea-bob { 0%,100% { transform: translateY(0) } 50% { transform: translateY(-4px) } }
@@ -763,6 +775,68 @@ export function VoyageSea({
         </div>
       )}
 
+      {/* One instrument strip, attached to the chart. These are the chart's
+          existing real filters promoted into the primary reading order: first
+          see the fleet's shape, then isolate the slice that needs work. */}
+      <div
+        className="mb-2 flex items-center gap-1 overflow-x-auto border-y px-1 py-1.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        role="group"
+        aria-label={L('결정 해도 상태 필터', 'Decision chart status filter')}
+        style={{ borderColor: `${N.ink}1c` }}
+      >
+        <button
+          type="button"
+          onClick={() => setFilter(null)}
+          aria-pressed={!activeFilter}
+          className="inline-flex min-h-9 shrink-0 items-center gap-1.5 px-2.5 text-[12px] font-semibold transition-colors"
+          style={!activeFilter ? { color: N.goldInk, boxShadow: `inset 0 -2px ${N.gold}` } : { color: 'var(--text-secondary)' }}
+        >
+          {L('전체', 'All')} <span className="font-mono text-[10.5px] tabular-nums opacity-70">{ships.length}</span>
+        </button>
+        {filterList.map((f) => {
+          const on = activeFilter?.key === f.key;
+          return (
+            <button
+              key={f.key}
+              type="button"
+              onClick={() => setFilter(on ? null : f.key)}
+              aria-pressed={on}
+              className="inline-flex min-h-9 shrink-0 items-center gap-1.5 px-2.5 text-[12px] font-semibold transition-colors"
+              style={{
+                color: on ? (f.amber ? N.amberInk : N.goldInk) : f.gold ? N.goldInk : f.amber ? N.amberInk : 'var(--text-secondary)',
+                boxShadow: on ? `inset 0 -2px ${f.amber ? N.amber : f.gold ? N.gold : N.ink}` : undefined,
+              }}
+            >
+              {(f.gold || f.amber) && <span aria-hidden className="h-1.5 w-1.5 rounded-full" style={{ background: f.amber ? N.amber : N.gold }} />}
+              {L(f.ko, f.en)} <span className="font-mono text-[10.5px] tabular-nums opacity-70">{f.n}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Phones cannot afford six sentence labels on 326px of water. A native
+          finder makes every vessel directly reachable without blind taps; the
+          chart then spends its scarce label space on the selected vessel. */}
+      <label className="mb-2 flex min-h-11 items-center gap-2 border-b px-1 pb-2 sm:hidden" style={{ borderColor: `${N.ink}1c` }}>
+        <span className="shrink-0 text-[11px] font-semibold text-[var(--text-tertiary)]">{L('결정 찾기', 'Find decision')}</span>
+        <select
+          value={focusedDecisionId ?? ''}
+          onChange={(event) => {
+            const next = ships.find((ship) => ship.id === event.target.value);
+            if (!next) return;
+            onFocusDecision?.(next.id, next.kind);
+            setActionShip(next.id);
+          }}
+          aria-label={L('해도에서 결정 찾기', 'Find a decision on the chart')}
+          className="min-w-0 flex-1 bg-transparent py-1.5 text-[13px] font-medium text-[var(--text-primary)] outline-none"
+        >
+          <option value="">{L('이름으로 배 선택', 'Choose by name')}</option>
+          {ships.map((ship) => (
+            <option key={ship.id} value={ship.id}>{ship.name}</option>
+          ))}
+        </select>
+      </label>
+
       {/* The living sea is a real image; the chart furniture and decisions stay
           separate, exact UI layers. That keeps the scene rich without letting
           generated art invent or move a single user fact. */}
@@ -780,6 +854,7 @@ export function VoyageSea({
           fill
           sizes="(max-width: 640px) 100vw, 1120px"
           quality={90}
+          priority
           className="object-cover object-[58%_center] sm:object-center"
         />
         <div
@@ -802,8 +877,8 @@ export function VoyageSea({
               is still out (미해소), below it it's home (항구·완료). Placed at the
               resolution boundary between sailing and docked. */}
         <div aria-hidden className="absolute left-0 right-0 pointer-events-none" style={{ top: '62%', height: 1, background: `linear-gradient(90deg, transparent, ${N.paper}22 8%, ${N.paper}22 92%, transparent)` }} />
-        <span aria-hidden className="absolute right-[2%] text-[7.5px] font-mono uppercase tracking-[0.14em] pointer-events-none hidden sm:block" style={{ top: 'calc(62% + 3px)', color: `${N.paper}44` }}>
-          {L('↑ 아직 밖 · 아래 항구', '↑ still out · home below')}
+        <span aria-hidden className="absolute right-[2%] rounded-sm px-1.5 py-0.5 text-[10px] sm:text-[11px] font-mono pointer-events-none" style={{ top: 'calc(62% + 4px)', color: `${N.paper}d0`, background: 'rgba(2,28,27,.58)' }}>
+          {L('↑ 아직 열려 있음 · 아래 결론에 가까움', '↑ still open · closer to conclusion below')}
         </span>
         {/* danger-zone tint — the upper-LEFT quadrant (unresolved + slipping).
             A fact of attention, never a verdict (거울 조항); shown only when
@@ -817,17 +892,17 @@ export function VoyageSea({
         {thresholds.map((t) => (
           <div key={t.d} aria-hidden className="absolute top-[12%] pointer-events-none" style={{ left: `${t.x}%`, bottom: '30%' }}>
             <div className="absolute inset-y-0" style={{ width: 1, background: `repeating-linear-gradient(180deg, ${N.paper}2e 0 4px, transparent 4px 8px)` }} />
-            <span className="absolute -top-0.5 left-1 whitespace-nowrap text-[7.5px] font-mono uppercase tracking-[0.1em]" style={{ color: `${N.paper}66` }}>{t.label}</span>
+            <span className="absolute -top-1 left-1 whitespace-nowrap rounded-sm px-1 py-0.5 text-[9.5px] sm:text-[10px] font-mono" style={{ color: `${N.paper}c4`, background: 'rgba(2,28,27,.52)' }}>{t.label}</span>
           </div>
         ))}
 
         {/* X-axis captions — the horizontal meaning (the home line + zone tags
             carry the vertical). Kept quiet; the "읽는 법" key does the teaching. */}
-        <span className="absolute top-[30%] -translate-y-1/2 left-[2%] text-[8.5px] font-mono uppercase tracking-[0.14em] pointer-events-none hidden sm:block" style={{ color: `${N.paper}4d` }}>
-          ← {L('오래 방치', 'LONG UNTENDED')}
+        <span className="absolute bottom-2.5 left-[2%] z-[3] rounded-sm px-1.5 py-0.5 text-[10px] sm:text-[11px] font-mono pointer-events-none" style={{ color: `${N.paper}d0`, background: 'rgba(2,28,27,.58)' }}>
+          ← {L('오래 살피지 않음', 'long untended')}
         </span>
-        <span className="absolute top-[30%] -translate-y-1/2 right-[2%] text-[8.5px] font-mono uppercase tracking-[0.14em] text-right pointer-events-none hidden sm:block" style={{ color: `${N.paper}4d` }}>
-          {L('최근 활동', 'RECENT')} →
+        <span className="absolute bottom-2.5 right-[2%] z-[3] rounded-sm px-1.5 py-0.5 text-[10px] sm:text-[11px] font-mono text-right pointer-events-none" style={{ color: `${N.paper}d0`, background: 'rgba(2,28,27,.58)' }}>
+          {L('최근 확인', 'recently checked')} →
         </span>
 
         {/* ── ZONE TAGS — the board's control surface. Each names a diagnostic
@@ -840,14 +915,14 @@ export function VoyageSea({
             type="button"
             onClick={() => setFilter(filter === 'idle' ? null : 'idle')}
             aria-pressed={filter === 'idle'}
-            className="absolute top-[5.5%] left-[2.5%] z-[4] items-center gap-1.5 rounded-full pl-2 pr-2.5 py-1 cursor-pointer transition-colors hidden sm:inline-flex"
+            className="absolute top-[5.5%] left-[2.5%] z-[4] items-center gap-1.5 rounded-full pl-2.5 pr-3 py-1.5 cursor-pointer transition-colors hidden sm:inline-flex"
             style={filter === 'idle'
               ? { background: N.amber, color: N.card }
               : { background: `${N.card}e0`, color: N.amber, boxShadow: `inset 0 0 0 1px ${N.amber}59` }}
           >
             <span aria-hidden className="w-1.5 h-1.5 rounded-full" style={{ background: filter === 'idle' ? N.card : N.amber }} />
-            <span className="text-[10.5px] font-semibold" style={{ fontFamily: 'var(--font-display)' }}>{L('놓치는 중', 'slipping')}</span>
-            <span className="text-[10.5px] font-mono tabular-nums font-bold">{untended}</span>
+            <span className="text-[11.5px] font-semibold" style={{ fontFamily: 'var(--font-display)' }}>{L('놓치는 중', 'slipping')}</span>
+            <span className="text-[11px] font-mono tabular-nums font-bold">{untended}</span>
           </button>
         )}
         {sailingN > 0 && (
@@ -855,13 +930,13 @@ export function VoyageSea({
             type="button"
             onClick={() => setFilter(filter === 'sailing' ? null : 'sailing')}
             aria-pressed={filter === 'sailing'}
-            className="absolute top-[5.5%] right-[2.5%] z-[4] items-center gap-1.5 rounded-full pl-2.5 pr-2.5 py-1 cursor-pointer transition-colors hidden sm:inline-flex"
+            className="absolute top-[5.5%] right-[2.5%] z-[4] items-center gap-1.5 rounded-full pl-3 pr-3 py-1.5 cursor-pointer transition-colors hidden sm:inline-flex"
             style={filter === 'sailing'
               ? { background: N.paper, color: N.ink }
               : { background: `${N.card}e0`, color: `${N.ink}b0`, boxShadow: `inset 0 0 0 1px ${N.ink}2e` }}
           >
-            <span className="text-[10.5px] font-semibold" style={{ fontFamily: 'var(--font-display)' }}>{L('진행 중', 'in progress')}</span>
-            <span className="text-[10.5px] font-mono tabular-nums font-bold">{sailingN}</span>
+            <span className="text-[11.5px] font-semibold" style={{ fontFamily: 'var(--font-display)' }}>{L('진행 중', 'in progress')}</span>
+            <span className="text-[11px] font-mono tabular-nums font-bold">{sailingN}</span>
           </button>
         )}
 
@@ -872,7 +947,7 @@ export function VoyageSea({
           type="button"
           onClick={() => setShowKey((v) => !v)}
           aria-expanded={showKey}
-          className="absolute bottom-2 right-2 z-[6] inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-mono uppercase tracking-[0.1em] cursor-pointer transition-colors"
+          className="absolute bottom-11 right-2 z-[6] inline-flex min-h-9 items-center gap-1 rounded-full px-2.5 py-1 text-[11.5px] font-mono cursor-pointer transition-colors"
           style={{ background: `${N.card}ed`, color: `${N.ink}c8`, boxShadow: `inset 0 0 0 1px ${N.ink}22` }}
         >
           <span aria-hidden className="inline-flex items-center justify-center rounded-full text-[9px] font-bold" style={{ width: 13, height: 13, background: `${N.ink}1a` }}>?</span>
@@ -884,7 +959,7 @@ export function VoyageSea({
             <div
               role="group"
               aria-label={L('지도 읽는 법', 'How to read the chart')}
-              className="absolute bottom-10 right-2 z-[7] w-[248px] rounded-xl p-3.5 text-left"
+              className="absolute bottom-20 right-2 z-[7] w-[280px] max-w-[calc(100%_-_1rem)] rounded-lg p-3.5 text-left"
               style={{ background: N.card, boxShadow: `0 8px 28px ${N.ink}42, inset 0 0 0 1px ${N.ink}1f` }}
             >
               {/* Lead with the payoff — what to LOOK for — then the mechanism.
@@ -1007,9 +1082,13 @@ export function VoyageSea({
             const matches = matchOf(s);
             const hasGround = siblingsOf.has(s.id); // stands on shared premise
             const shaky = hasGround && !!s.premise && driftedKeys.has(normalizePremiseText(s.premise));
+            const selected = focusedDecisionId === s.id;
             // Filter dims non-matches; a leverage focus dims everything off the
             // shared-ground group so the standing-together reads instantly.
-            const dimmed = (!!activeFilter && !matches) || (!!leverageSet && !leverageSet.has(s.id));
+            const filterDimmed = !!activeFilter && !matches && !selected;
+            const leverageDimmed = !!leverageSet && !leverageSet.has(s.id);
+            const focusDimmed = !!focusedDecisionId && !selected;
+            const dimmed = filterDimmed || leverageDimmed;
             const isLeverage = !!leverageSet && leverageSet.has(s.id);
             const groundHue = shaky ? N.amber : N.gold;
             // A filter turns the map into a work slice: matches light up AND
@@ -1019,7 +1098,7 @@ export function VoyageSea({
             // you tap blind. So on mobile, still name the ships that are CALLING
             // (due + drifted): the few that need action get a keyword, the rest
             // stay gestalt + the list below. (창업자 07-13: 직관적 사용)
-            const showKeywordMobile = activeFilter ? matches : s.due || attention || hasAttentionSignal;
+            const showKeywordMobile = selected || (!!activeFilter && matches && filterList.find((entry) => entry.key === activeFilter.key)?.n === 1);
             return (
               <li
                 key={s.id}
@@ -1031,17 +1110,33 @@ export function VoyageSea({
                   id={`voyage-ship-${s.id}`}
                   aria-haspopup="dialog"
                   aria-expanded={actionShip === s.id}
+                  aria-pressed={selected}
                   aria-controls={actionShip === s.id ? `voyage-action-${s.id}` : undefined}
                   disabled={dimmed}
                   onClick={(e) => {
                     e.stopPropagation();
+                    onFocusDecision?.(s.id, s.kind);
                     setActionShip((prev) => (prev === s.id ? null : s.id));
                   }}
                   title={`${s.name} — ${stateLabel} · ${s.sub}`}
                   aria-label={`${s.name} — ${stateLabel} · ${s.sub}`}
                   className={`vsea-in relative -translate-x-1/2 -translate-y-1/2 flex flex-col items-center gap-1 p-1.5 sm:p-2 rounded-lg cursor-pointer group focus-visible:z-40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)] transition-[transform,opacity] duration-300 ${dimmed ? 'pointer-events-none' : 'hover:z-40 hover:-translate-y-[calc(50%+3px)]'}`}
-                  style={{ animationDelay: `${Math.min(i, 8) * 70}ms`, opacity: dimmed ? 0.1 : 1 }}
+                  data-voyage-selected={selected ? 'true' : 'false'}
+                  style={{ animationDelay: `${Math.min(i, 8) * 70}ms`, opacity: dimmed ? 0.1 : focusDimmed ? 0.38 : 1 }}
                 >
+                {selected && (
+                  <span
+                    data-testid="voyage-selection-ring"
+                    aria-hidden
+                    className="absolute left-1/2 top-[36%] -z-[1] rounded-full"
+                    style={{
+                      width: size + 22,
+                      height: size + 22,
+                      transform: 'translate(-50%,-50%)',
+                      boxShadow: `0 0 0 2px ${N.paper}, 0 0 0 4px ${N.gold}, 0 0 22px 4px ${N.gold}66`,
+                    }}
+                  />
+                )}
                 {s.beacon && (
                   <>
                     <span
@@ -1091,7 +1186,7 @@ export function VoyageSea({
                     card carries the name. */}
                 {(showKeyword || showKeywordMobile) && !s.beacon && (
                   <span
-                    className={`${showKeywordMobile ? 'block' : 'hidden'} ${showKeyword ? 'sm:block' : 'sm:hidden'} mt-1 max-w-[108px] text-center text-[9.5px] leading-[1.2] tracking-[0.01em] break-keep line-clamp-1 font-semibold rounded-full px-1.5 py-px`}
+                    className={`${showKeywordMobile || selected ? 'block' : 'hidden'} ${showKeyword || selected ? 'sm:block' : 'sm:hidden'} mt-1 max-w-[128px] text-center text-[11px] sm:text-[11.5px] leading-[1.25] break-keep line-clamp-1 font-semibold rounded-full px-2 py-0.5`}
                     style={{
                       color: s.due ? N.goldInk : attention || hasAttentionSignal ? N.amberInk : `${N.ink}d8`,
                       fontFamily: 'var(--font-display)',
@@ -1112,10 +1207,10 @@ export function VoyageSea({
                     className="hidden sm:flex flex-col items-center gap-0.5 absolute top-[calc(100%+3px)] left-1/2 -translate-x-1/2 w-max max-w-[200px] px-2.5 py-1.5 rounded-md opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity pointer-events-none z-40 shadow-[var(--shadow-md)]"
                     style={{ background: 'var(--surface)', border: '1px solid var(--border-subtle)' }}
                   >
-                    <span className="text-center text-[11px] leading-[1.3] break-keep line-clamp-3 font-medium" style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-display)' }}>
+                    <span className="text-center text-[12.5px] leading-[1.35] break-keep line-clamp-3 font-medium" style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-display)' }}>
                       {s.name}
                     </span>
-                    <span className="text-[8px] font-mono uppercase tracking-[0.08em] whitespace-nowrap" style={{ color: s.due ? N.goldInk : 'var(--text-tertiary)' }}>
+                    <span className="text-[10px] font-mono whitespace-nowrap" style={{ color: s.due ? N.goldInk : 'var(--text-tertiary)' }}>
                       {stateLabel} · {s.sub}
                     </span>
                   </span>
@@ -1212,7 +1307,10 @@ export function VoyageSea({
                       <button
                         key={sib.id}
                         type="button"
-                        onClick={() => setActionShip(sib.id)}
+                        onClick={() => {
+                          onFocusDecision?.(sib.id, sib.kind);
+                          setActionShip(sib.id);
+                        }}
                         className="text-left text-[11px] leading-snug break-keep line-clamp-1 hover:underline cursor-pointer"
                         style={{ color: `${N.ink}c0`, fontFamily: 'var(--font-display)' }}
                       >
@@ -1295,46 +1393,8 @@ export function VoyageSea({
       )}
       </div>
 
-      {/* ── under the plate: the OPERABLE filter bar (the control surface) +
-            a live caption. Clicking a chip isolates that slice of the fleet. ── */}
-      <div className="mt-3 px-1 flex flex-col gap-2">
-        <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label={L('함대 필터', 'Fleet filter')}>
-          <button
-            type="button"
-            onClick={() => setFilter(null)}
-            aria-pressed={!activeFilter}
-            className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium border cursor-pointer transition-colors ${!activeFilter ? 'bg-[var(--text-primary)] text-[var(--bg)] border-transparent' : 'text-[var(--text-secondary)] border-[var(--border-subtle)] hover:border-[var(--text-secondary)]/40'}`}
-          >
-            {L('전체', 'All')}
-            <span className="tabular-nums text-[10px] opacity-70">{ships.length}</span>
-          </button>
-          {filterList.map((f) => {
-            const on = activeFilter?.key === f.key;
-            return (
-              <button
-                key={f.key}
-                type="button"
-                onClick={() => setFilter(on ? null : f.key)}
-                aria-pressed={on}
-                className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium border cursor-pointer transition-colors ${on ? 'border-transparent' : 'border-[var(--border-subtle)] hover:border-[var(--text-secondary)]/40'}`}
-                style={
-                  on
-                    ? f.gold
-                      ? { background: N.gold, color: N.ink }
-                      : f.amber
-                        ? { background: N.amber, color: N.ink }
-                        : { background: 'var(--text-primary)', color: 'var(--bg)' }
-                    : { color: f.gold ? N.gold : f.amber ? N.amber : 'var(--text-secondary)' }
-                }
-              >
-                {f.gold && !on && <span aria-hidden className="w-1.5 h-1.5 rounded-full" style={{ background: N.gold }} />}
-                {f.amber && !on && <span aria-hidden className="w-1.5 h-1.5 rounded-full" style={{ background: N.amber }} />}
-                {L(f.ko, f.en)}
-                <span className="tabular-nums text-[10px] opacity-70">{f.n}</span>
-              </button>
-            );
-          })}
-        </div>
+      {/* The chart speaks one live sentence after every filter or selection. */}
+      <div className="mt-3 px-1">
         <p className="text-[12px] text-[var(--text-secondary)]" role="status" aria-live="polite" aria-atomic="true">
           {activeFilter
             ? L(
