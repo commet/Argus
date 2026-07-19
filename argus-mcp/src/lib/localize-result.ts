@@ -33,11 +33,12 @@ const KO_ERRORS: Record<string, ErrorCopy> = {
   PREMATURE_SETTLE: { message: '아직 확인일이 되지 않았습니다.', recovery: '확인일까지 기다리세요. 일정이 바뀌었다면 outcome="still_pending"에 defer_to로 새 확인일을 전달하면 됩니다.' },
   // ko/en 패리티: 아래 코드들은 en에서만 상세했고 ko는 제네릭 폴백이었다 —
   // 한국어 사용자가 같은 품질의 복구 안내를 받도록 전용 문구를 둔다.
-  NO_PRIOR_SEAL: { message: '이 id로 저장된 예측이 없습니다.', recovery: 'argus_predict로 반증 가능한 예측과 확인일을 먼저 저장하세요. (id가 argus_settings sync에서 온 "mcp_" 접두사라면 접두사를 뗀 id를 쓰세요.)' },
+  NO_PRIOR_SEAL: { message: '이 id로 저장된 예측이 없습니다.', recovery: 'argus_predict로 나중에 확인할 수 있는 예측과 확인일을 먼저 저장하세요. (id가 argus_settings sync에서 온 "mcp_" 접두사라면 접두사를 뗀 id를 쓰세요.)' },
   BAD_CHECK_BY: { message: '확인일이 오늘 이후의 실제 달력 날짜(YYYY-MM-DD)가 아닙니다 (예: 2026-13-01처럼 없는 달·날짜는 불가).', recovery: '오늘 이후의 올바른 날짜를 YYYY-MM-DD로 다시 전달하세요.' },
   ILLEGAL_TRANSITION: { message: '이 결정에 지금은 할 수 없는 작업입니다 (id 오타이거나, 이미 저장·정산·종료된 상태일 수 있습니다).', recovery: 'argus_patterns view="all"로 id와 현재 상태를 확인하세요. 없는 id면 argus_capture 또는 argus_predict로 새로 시작하세요.' },
   PREMISE_LOCKED: { message: '확인일이 지나 전제를 더는 바꿀 수 없습니다.', recovery: '먼저 argus_resolve로 실제 결과를 기록하세요. 확인일이 온 뒤에는 전제/예측을 고칠 수 없습니다.' },
   ARGUS_DIR_INVALID: { message: 'Argus 기록 경로(argus_dir / ARGUS_DIR)가 올바르지 않습니다.', recovery: '절대 경로여야 하고 ".."을 포함할 수 없습니다. MCP 설정에서 절대 경로(예: C:\\Users\\이름\\.argus, /Users/이름/.argus)로 바꾸거나 ARGUS_DIR을 지워 기본값(~/.argus)을 쓰세요. ${...} 같은 변수는 호스트가 확장하지 못할 수 있습니다.' },
+  ARGUS_DIR_UNWRITABLE: { message: 'Argus가 기록 폴더를 만들거나 쓰지 못했습니다.', recovery: 'ARGUS_DIR(또는 argus_dir)을 실제로 있고 쓸 수 있는 폴더로 바꿔 주세요. 실제 드라이브의 절대 경로여야 하고 ".."은 넣을 수 없습니다. 그다음 다시 시도하세요.' },
   EMPTY_PREDICATE: { message: '확인 가능한 예측 문장이 필요합니다 (공백 제외 최소 8자).', recovery: '현실이 참/거짓으로 확인할 수 있는 문장으로 다시 적으세요. 예: "컷오버 다운타임 5분 미만".' },
   ALREADY_SETTLED: { message: '이미 실제 결과가 기록된 결정입니다.', recovery: '영수증은 argus_patterns view="receipt"로 볼 수 있습니다. 새 결정이면 새 id로 여세요.' },
   DECISION_CLOSED: { message: '닫힌 결정이라 더 진행할 수 없습니다.', recovery: '필요하면 새 id로 다시 여세요. 닫힌 기록은 그대로 남습니다.' },

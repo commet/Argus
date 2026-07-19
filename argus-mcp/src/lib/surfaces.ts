@@ -438,7 +438,7 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
       skipped: '— (none)',
       nothing_recorded: 'No question or premise was recorded with this decision.',
       premises_note: (tracked, changed) =>
-        `(+${tracked} ${tracked === 1 ? 'premise' : 'premises'} tracked · ${changed} changed at re-check · argus_patterns view=decision_context)`,
+        `(+${tracked} ${tracked === 1 ? 'premise' : 'premises'} tracked · ${changed} changed at re-check)`,
       deferred_fact: (times, originallyDue) =>
         `Originally due ${originallyDue} · deferred ${times}×`,
       you_predicted: 'What I predicted',
@@ -463,7 +463,7 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
         watch_exit: ' Leaving it unrecorded is fine.',
         reconfirm: 'These signals look contradictory (high stakes yet easily reversible). Re-confirm stakes and reversibility before going further.',
         opened_with_crux: (crux) => `Opened. The one question that decides this: ${crux}`,
-        opened_bare: 'Opened. If one neutral question decides this, naming it is the next step. Then save a falsifiable prediction.',
+        opened_bare: 'Opened. If one neutral question decides this, naming it is the next step. Then save a prediction reality can later check.',
         lean_disclosure: 'Naming the load-bearing question points faintly at the flip; that residual lean is a known limit, not a verdict.',
       },
       seal: {
@@ -597,7 +597,7 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
       skipped: '— (없음)',
       nothing_recorded: '이 결정에 함께 적어둔 질문이나 전제는 없습니다.',
       premises_note: (tracked, changed) =>
-        `(추적한 전제 ${tracked}건 · 재확인에서 바뀐 것 ${changed}건 · argus_patterns view=decision_context)`,
+        `(추적한 전제 ${tracked}건 · 재확인에서 바뀐 것 ${changed}건)`,
       deferred_fact: (times, originallyDue) =>
         `원래 확인일 ${originallyDue} · ${times}번 미룸`,
       you_predicted: '내가 예측한 것',
@@ -623,7 +623,7 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
         watch_exit: ' 기록하지 않고 그대로 두어도 괜찮습니다.',
         reconfirm: '신호가 서로 어긋납니다 (걸린 것은 큰데 되돌리기는 쉽습니다). 더 나아가기 전에 이 둘을 다시 짚어 보세요.',
         opened_with_crux: (crux) => `열었습니다. 이 결정을 좌우하는 단 하나의 질문: ${crux}`,
-        opened_bare: '열었습니다. 이 결정을 좌우하는 핵심 질문 하나가 있다면 그걸 짚어 보는 게 다음 단계입니다. 그다음 반증 가능한 예측을 저장하면 됩니다.',
+        opened_bare: '열었습니다. 이 결정을 좌우하는 핵심 질문 하나가 있다면 그걸 짚어 보는 게 다음 단계입니다. 그다음 나중에 맞았는지 확인할 수 있는 예측을 저장하면 됩니다.',
         lean_disclosure: '핵심 질문을 짚는 것 자체가 뒤집히는 쪽을 희미하게 가리킬 수 있습니다. 그렇게 남는 쏠림은 알려진 한계일 뿐, 이 결정에 대한 평가가 아닙니다.',
       },
       seal: {

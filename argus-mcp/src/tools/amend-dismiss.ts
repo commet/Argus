@@ -1,7 +1,7 @@
 import { atomicWriteJson } from '../lib/atomic-write.js';
 import { bearingPath } from '../lib/layout.js';
 import { resolveToolArgusDir } from '../lib/argus-dir.js';
-import { resolveToday } from '../lib/resolve-today.js';
+import { resolveToday, logicalNow } from '../lib/resolve-today.js';
 import { resolveContract } from '../lib/resolve-contract.js';
 import { guardTransition } from '../lib/state-machine.js';
 import { validateSeal } from '../lib/validate-seal.js';
@@ -60,7 +60,7 @@ export const amend: ToolModule = {
         if (vErr) return toolError({ ok: false, tool: 'argus_amend', error_code: vErr.code, message: vErr.message, recovery: vErr.recovery });
       }
 
-      const now = new Date().toISOString();
+      const now = logicalNow(today, !!a['today_override']);
       const mirrorAmend = await withLedgerLock(dir, async () => {
         const fresh = resolveContract(dir, id, today);
         guardTransition(fresh.state, 'amend'); // re-guard: the check-by may have arrived meanwhile
@@ -132,7 +132,7 @@ export const dismiss: ToolModule = {
       const current = resolveContract(dir, id, today);
       guardTransition(current.state, 'dismiss');
 
-      const now = new Date().toISOString();
+      const now = logicalNow(today, !!a['today_override']);
       const mirrorDismiss = await withLedgerLock(dir, async () => {
         const fresh = resolveContract(dir, id, today);
         guardTransition(fresh.state, 'dismiss');

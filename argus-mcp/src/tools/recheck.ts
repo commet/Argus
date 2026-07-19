@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { resolveToolArgusDir } from '../lib/argus-dir.js';
-import { resolveToday } from '../lib/resolve-today.js';
+import { resolveToday, logicalNow } from '../lib/resolve-today.js';
 import { replayLedger } from '../lib/ledger-replay.js';
 import { deriveState, guardTransition } from '../lib/state-machine.js';
 import { appendLedger, type LedgerEventInput } from '../lib/ledger-append.js';
@@ -95,7 +95,7 @@ export const recheck: ToolModule = {
       const dir = resolveToolArgusDir(a['argus_dir']);
       const id = String(a['id'] ?? '');
       const today = resolveToday({ override: a['today_override'] as string | undefined });
-      const now = new Date().toISOString();
+      const now = logicalNow(today, !!a['today_override']);
 
       const state = replayLedger(dir, today);
       const entry = state.contracts.get(id);

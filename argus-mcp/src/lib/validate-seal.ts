@@ -67,8 +67,8 @@ export function validateSeal(predicate: unknown, checkBy: unknown, today: string
   if (VIBE_KO.test(predicate)) {
     return {
       code: 'NOT_FALSIFIABLE',
-      message: '이건 막연한 느낌이지 확인 가능한 예측이 아닙니다.',
-      recovery: '숫자·임계값·관찰 가능한 사건으로 다시 적어주세요. (자동으로 판단한 것이라 예외가 있을 수 있습니다.)',
+      message: '이건 아직 막연한 느낌에 가까워서, 나중에 맞았는지 확인하기 어렵습니다.',
+      recovery: '숫자나 눈에 보이는 사건으로 다시 적어주세요. (자동으로 판단한 것이라 예외가 있을 수 있습니다.)',
       weak: true,
     };
   }

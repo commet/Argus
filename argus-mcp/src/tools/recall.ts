@@ -85,10 +85,10 @@ export const recall: ToolModule = {
               surface: locale === 'ko'
                 ? (sealed
                     ? `이 예측은 저장됐고 아직 결과 기록 전입니다 (확인일 ${contract.check_by}). 그날 실제 결과를 알려주시면 영수증이 완성됩니다.`
-                    : '이 결정에는 아직 저장한 예측이 없습니다. 반증 가능한 예측을 하나 저장하면 판단 영수증이 생깁니다.')
+                    : '이 결정에는 아직 저장한 예측이 없습니다. 나중에 맞았는지 확인할 수 있는 예측을 하나 저장하면 판단 영수증이 생깁니다.')
                 : (sealed
                     ? `This prediction is saved and waiting on its check-by (${contract.check_by}). Tell me what happened then, and the receipt completes.`
-                    : 'This decision has no saved prediction yet. Save a falsifiable prediction and a Judgment Receipt begins.'),
+                    : 'This decision has no saved prediction yet. Save a prediction reality can later check, and a Judgment Receipt begins.'),
               next_actions: sealed ? ['argus_resolve', 'argus_patterns'] : ['argus_predict', 'argus_patterns'],
               data: { id, status: contract.status, ...(contract.check_by ? { check_by: contract.check_by } : {}) },
             });

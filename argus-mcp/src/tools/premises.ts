@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { resolveToolArgusDir } from '../lib/argus-dir.js';
 import { replayLedger } from '../lib/ledger-replay.js';
-import { resolveToday } from '../lib/resolve-today.js';
+import { resolveToday, logicalNow } from '../lib/resolve-today.js';
 import { resolveContract } from '../lib/resolve-contract.js';
 import { guardTransition } from '../lib/state-machine.js';
 import { appendLedger, withLedgerLock, type LedgerEventInput } from '../lib/ledger-append.js';
@@ -105,7 +105,9 @@ export const premises: ToolModule = {
       const id = String(a['id'] ?? '');
       const today = resolveToday({ override: a['today_override'] as string | undefined });
       const op = String(a['op']);
-      const now = new Date().toISOString();
+      // Logical-date stamp so a premise added "today" is not dated yesterday by
+      // raw UTC — else it can become the oldest event and skew "record since".
+      const now = logicalNow(today, !!a['today_override']);
 
       // Alias normalization (§9.4 경계 수리): `reponder_cadence_days` is the
       // historical (misspelled) field a model reasoning from the description
