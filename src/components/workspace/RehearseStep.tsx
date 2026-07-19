@@ -173,6 +173,8 @@ export function RehearseStep({ onNavigate }: RehearseStepProps) {
   const [lastFeedbackData, setLastFeedbackData] = useState<{ documentTitle: string; documentText: string; personaIds: string[]; perspective: string; intensity: string } | null>(null);
   const [blindSpotRec, setBlindSpotRec] = useState<BlindSpotRecommendation | null>(null);
   const [blindSpotDismissed, setBlindSpotDismissed] = useState(false);
+  const [requestedRecordId, setRequestedRecordId] = useState<string | null>(null);
+  const [requestedRealityCheckId, setRequestedRealityCheckId] = useState<string | null>(null);
 
   // Compute blind spot recommendation
   useEffect(() => {
@@ -188,6 +190,24 @@ export function RehearseStep({ onNavigate }: RehearseStepProps) {
     loadReframe();
     loadRecast();
   }, [loadData, loadSettings, loadRatings, loadReframe, loadRecast]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    setRequestedRecordId(params.get('record'));
+    setRequestedRealityCheckId(params.get('check'));
+  }, []);
+
+  // Local records are available synchronously, while signed-in records can
+  // arrive after the Supabase merge. Keep the request armed until the exact
+  // rehearsal appears instead of falling back to the newest history item.
+  useEffect(() => {
+    if (!requestedRecordId) return;
+    const record = feedbackHistory.find((item) => item.id === requestedRecordId);
+    if (!record) return;
+    setLatestFeedback(record);
+    setPhase('results');
+    setRequestedRecordId(null);
+  }, [feedbackHistory, requestedRecordId]);
 
   // Seed default example personas on first use
   useEffect(() => {
@@ -389,6 +409,7 @@ export function RehearseStep({ onNavigate }: RehearseStepProps) {
                 translated_approvals: translated.filter(ta => ta.persona_id === r.persona_id),
               }));
               updateFeedbackRecord(record.id, { results: updatedResults });
+              setLatestFeedback((current) => current?.id === record.id ? { ...current, results: updatedResults } : current);
             }
           }
         } catch { /* non-critical */ }
@@ -727,6 +748,7 @@ ${L('리스크', 'Risks')}: ${(r.classified_risks || []).map(cr => `[${cr.catego
           <FeedbackResult
             record={latestFeedback}
             personas={personas}
+            focusRealityCheckId={requestedRealityCheckId ?? undefined}
             onUpdateRecord={(patch) => {
               setLatestFeedback((current) => current ? { ...current, ...patch } : current);
               updateFeedbackRecord(latestFeedback.id, patch);

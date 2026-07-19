@@ -366,6 +366,7 @@ export default function ProjectPage() {
     decisionItems,
     dueProjectIds: dueProjects.map((project) => project.id),
     dueReceipts,
+    feedbackHistory,
     shiftedGround,
     now: Date.now(),
   });
@@ -418,6 +419,10 @@ export default function ProjectPage() {
       if (target.scope === 'review') {
         const premise = target.premiseId ? `&premise=${encodeURIComponent(target.premiseId)}` : '';
         router.push(`/${locale}/tools/review?receipt=${encodeURIComponent(target.receiptId)}${premise}`);
+        return;
+      }
+      if (target.scope === 'rehearse' && target.target === 'reality_check') {
+        router.push(`/${locale}/tools/rehearse?record=${encodeURIComponent(target.recordId)}&check=${encodeURIComponent(target.checkId)}`);
         return;
       }
       if (target.scope !== 'project') return;

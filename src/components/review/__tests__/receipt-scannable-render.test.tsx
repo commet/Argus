@@ -72,6 +72,28 @@ describe('ReceiptView — scannable by default', () => {
     expect(container.querySelectorAll('[aria-current="location"]')).toHaveLength(0);
   });
 
+  it('highlights only the exact selected finding when several share one PDF page', () => {
+    const samePageReceipt = {
+      ...RECEIPT,
+      judgment_obligations: [],
+      findings: [
+        ...RECEIPT.findings,
+        { ...RECEIPT.findings[0], finding_id: 'f2', title: '채용비 산정 근거 없음', anchors: [{ page: 6, section_path: ['7. 인력'] }] },
+      ],
+    } as unknown as JudgmentReceipt;
+
+    act(() => { root.render(createElement(ReceiptView, {
+      receipt: samePageReceipt,
+      activeSourcePage: 6,
+      activeSourceAnchor: { page: 6, section_path: ['7. 인력'] },
+      onAnchorSelect: vi.fn(),
+    })); });
+
+    const selected = container.querySelectorAll('[aria-current="location"]');
+    expect(selected).toHaveLength(1);
+    expect(selected[0].textContent).toContain('채용비 산정 근거 없음');
+  });
+
   it('sends the exact source anchor when a finding is opened', () => {
     const onAnchorSelect = vi.fn();
     act(() => { root.render(createElement(ReceiptView, { receipt: RECEIPT, onAnchorSelect })); });

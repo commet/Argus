@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 import type { PDFDocumentLoadingTask, PDFDocumentProxy } from 'pdfjs-dist';
 import type { SourcePreview } from '@/lib/review/extract-file';
-import type { SourceKind } from '@/lib/review';
+import type { SourceAnchor, SourceKind } from '@/lib/review';
 import { useLocale } from '@/hooks/useLocale';
 
 function previewSrc(preview: SourcePreview): string {
@@ -39,6 +39,19 @@ export function adjacentEvidencePage(pages: number[], current: number, direction
   return direction < 0
     ? [...sorted].reverse().find((page) => page < current)
     : sorted.find((page) => page > current);
+}
+
+export function sourceAnchorPosition(anchor: SourceAnchor, locale: 'ko' | 'en'): string {
+  const parts: string[] = [];
+  if (anchor.slide !== undefined) parts.push(locale === 'ko' ? `슬라이드 ${anchor.slide}` : `Slide ${anchor.slide}`);
+  else if (anchor.page !== undefined) parts.push(locale === 'ko' ? `${anchor.page}쪽` : `Page ${anchor.page}`);
+  if (anchor.section_path?.length) parts.push(anchor.section_path.join(' › '));
+  else if (anchor.line_start !== undefined) {
+    parts.push(anchor.line_end && anchor.line_end !== anchor.line_start ? `L${anchor.line_start}–${anchor.line_end}` : `L${anchor.line_start}`);
+  } else if (anchor.paragraph_index !== undefined) {
+    parts.push(locale === 'ko' ? `${anchor.paragraph_index + 1}번째 문단` : `Paragraph ${anchor.paragraph_index + 1}`);
+  }
+  return parts.join(' · ');
 }
 
 function PdfThumbnail({
@@ -369,6 +382,7 @@ export function SourceEvidencePane({
   title,
   sourceKind,
   activePage,
+  activeAnchor,
   compact = false,
   pdfData,
   pageCount,
@@ -381,6 +395,7 @@ export function SourceEvidencePane({
   title?: string;
   sourceKind: SourceKind;
   activePage?: number;
+  activeAnchor?: SourceAnchor;
   compact?: boolean;
   pdfData?: Uint8Array;
   pageCount?: number;
@@ -424,6 +439,14 @@ export function SourceEvidencePane({
         </div>
         {(current || pdfData) && <span className="shrink-0 text-[10px] tabular-nums text-[var(--text-tertiary)]">{pdfData && sourceKind === 'pdf' ? L(`${pdfPage} / ${pageCount ?? (pages.length || 1)}쪽`, `Page ${pdfPage} / ${pageCount ?? (pages.length || 1)}`) : current ? pageLabel(current, selected) : ''}</span>}
       </div>
+
+      {activeAnchor && (
+        <div role="status" className="flex min-h-9 items-center gap-2 border-b border-[var(--accent)]/20 bg-[var(--accent)]/[0.06] px-3 py-1.5">
+          <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--accent)]" aria-hidden="true" />
+          <span className="shrink-0 text-[10px] font-semibold text-[var(--accent)]">{L('연결된 근거', 'Linked evidence')}</span>
+          <strong className="min-w-0 truncate text-[11px] font-medium text-[var(--text-primary)]">{sourceAnchorPosition(activeAnchor, locale)}</strong>
+        </div>
+      )}
 
       {pdfData && sourceKind === 'pdf' && !compact ? (
         <PdfEvidenceViewer
