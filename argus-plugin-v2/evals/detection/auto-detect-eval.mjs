@@ -113,7 +113,10 @@ Return ONLY JSON:
 Rules: 6–12 turns, mixing user/assistant, starting with a user turn. 1–3 planted signals + at least 2 filler user turns. turn indices are 0-based over the WHOLE turns array and must point at role:"user" turns. Vary domain and language (some Korean, some English). Keep it plausible — a real session, not a quiz.`;
 
 export async function generateScenario(callModel, seedHint) {
-  const data = await callModel({ system: GEN_SYSTEM, messages: [{ role: 'user', content: `Generate scenario #${seedHint}. Make it distinct from typical examples.` }], max_tokens: 1600 });
+  // max_tokens 4000: 6~12턴 대화 + planted 매니페스트 JSON은 1600에 잘려 파싱
+  // 실패(야간 첫 run이 0 시나리오였던 근본 원인 — 절단된 JSON은 extractJson에서
+  // 중괄호 불균형으로 null). 넉넉히 준다.
+  const data = await callModel({ system: GEN_SYSTEM, messages: [{ role: 'user', content: `Generate scenario #${seedHint}. Make it distinct from typical examples.` }], max_tokens: 4000 });
   const obj = extractJson(textOf(data));
   if (!obj || !Array.isArray(obj.turns) || !Array.isArray(obj.planted)) return null;
   obj.filler_user_turns = Array.isArray(obj.filler_user_turns) ? obj.filler_user_turns : [];
@@ -236,6 +239,12 @@ async function main() {
 
   const raw = await runPool(Array.from({ length: N }), oneScenario, CONC);
   const results = raw.filter((r) => r && r.scenario && r.modes);
+  // 생성기 건강 — 0 시나리오는 조용히 성공한 척하면 안 된다(LLM-glue 함정: eval이
+  // '통과'했지만 아무것도 안 함). 루프가 이 라인을 grep해 생성기 결함을 잡는다.
+  const genErrors = raw.filter((r) => r && r.error).map((r) => r.error);
+  console.log(`\nGENERATOR_HEALTH: ok=${results.length} err=${genErrors.length}/${N}`);
+  if (genErrors.length) console.log(`  gen 오류 표본: ${[...new Set(genErrors)].slice(0, 3).join(' | ')}`);
+  if (results.length === 0) console.log('GENERATOR_BROKEN: 0 usable scenarios — 합성 볼륨이 죽음. 생성기 수리 필요.');
 
   // 모드별 집계 — perScenario를 모드별 뷰로 접는다.
   const report = { at: process.env.RUN_STAMP || null, models: { genModel, detModel, judgeModel }, scenarios: results.length, byMode: {} };
