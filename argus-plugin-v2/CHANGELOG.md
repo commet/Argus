@@ -4,6 +4,34 @@ All notable changes to the Argus plugin. Versioning follows
 [semver](https://semver.org); users receive an update only when the
 `version` in `.claude-plugin/plugin.json` is bumped.
 
+## 2.11.0 — 2026-07-20
+
+Detection, from scratch: the sense hook now delegates DETECTION to the model's
+meaning-judgment and keeps rules only as a cheap prefilter + an unshakable floor.
+A rule can flag a marked "as long as / ~니까" premise (the easy 10%); it can never
+extract the UNSTATED assumption a decision rests on (the valuable 90%) — that is
+generative work only the model can do. So the trigger stays code (a deterministic
+every-turn hook), but the detection moves to the model.
+
+- **`sense-signal.js` rewritten.** On every turn the hook injects a three-sense
+  diagnosis instruction (a checkable prediction · an outcome, pronoun references
+  included · the single load-bearing, often unstated, assumption) and hands the
+  model only what it cannot see itself: the ledger's open predictions and the
+  verbatim rule-candidate spans (a floor, not the detector).
+- **Scan window covers both sides.** The hook now reads the previous assistant
+  turn from `transcript_path` alongside the user message — premises and
+  predictions surface in the answer as much as in the ask.
+- **`prefilterTurn()`** — a high-recall disjunction gate that decides only whether
+  a turn is worth a diagnosis injection (a cost gate, not the detector). Firing
+  policy: diagnosis at most 3×/session; outcome-only re-injection is separate
+  (the old single once-per-session gate silently blocked settlements too).
+  User-facing restraint is enforced by the instruction (offer once, a skip is
+  final, silence on a flat/reversible/closed call, never two asks in one reply).
+- **Measurement first.** `evals/detection/` adds a 31-case labeled corpus (ko/en,
+  four labels + negatives) with a CI hard-gate: the prefilter must never skip a
+  labeled positive (a skipped positive is a silent blind spot). Plus a live
+  detection eval, an MCP-firing simulation, and a real-transcript recall harness.
+
 ## 2.10.0 — 2026-07-17
 
 Boss review, seat-first (공정 O3 방3): the stakeholder pressure-check now draws
