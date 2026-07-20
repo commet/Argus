@@ -71,6 +71,17 @@ jobs:
       - name: Argus enforcement gates
         run: node argus-plugin-v2/scripts/validate-gates.test.mjs
 
+      # Detection prefilter skip-safety — the labeled-corpus gate. The prefilter may
+      # never skip a labeled positive (a skipped positive = a turn where the AI
+      # diagnosis is never injected = a silent detection blind spot).
+      - name: Argus detection corpus gate
+        run: node argus-plugin-v2/evals/detection/measure.test.mjs
+
+      # Every-turn conversation-diagnosis hook (sense-signal): injection contract,
+      # transcript window, caps, outcome-only path, opt-out.
+      - name: Argus sense hook
+        run: node argus-plugin-v2/scripts/sense-signal.test.mjs
+
       # Enforcement is a HARD BLOCK, not advisory (CLI exits non-zero on a violation).
       - name: Argus enforcement hard-block
         run: node argus-plugin-v2/scripts/enforcement-hardblock.test.mjs

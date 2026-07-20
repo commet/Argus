@@ -79,6 +79,17 @@ export const SERVER_INSTRUCTIONS = [
   'Argus captures the user\'s own reasoning in their words and records what reality does with it; it does not grade. The one assumption it drafts is a candidate for the user to correct, never a verdict.',
 ].join('\n');
 
+/**
+ * 감각 갱신 한 줄 — check_in이 열린 예측을 돌려줄 때 결과 data에 실어 재주입한다
+ * (2026-07-20 연구: raw MCP엔 "매 턴" 방아쇠가 프로토콜에 없다 — initialize
+ * instructions는 1회, sampling은 미지원이고 차기 스펙에서 폐기 예정. 서버가
+ * 접속 후 모델 컨텍스트에 다시 닿는 통로는 툴 설명(상시)과 툴 결과(호출 시)
+ * 뿐이므로, Argus 툴이 불릴 때마다 이 한 줄이 배경감각을 되살린다). 지침이지
+ * 평결이 아니며, SERVER_INSTRUCTIONS의 3감각과 같은 내용의 압축이다.
+ */
+export const STANDING_SENSE_REFRESH =
+  'Background sense from here on: the open predictions above are unsettled. If the user\'s ongoing words reveal what reality did to one — even in passing, even by pronoun ("그거 결국 잘 됐어") — record it with argus_resolve in their words THEN; never infer an outcome they did not state. Keep noticing new checkable claims (argus_predict, offer once on a consequential one) and the load-bearing assumption a decision rests on — often unstated (argus_capture, at most one, as your ai_surfaced draft).';
+
 /** The schema version stamped on every persisted record (addendum N1). */
 export const SCHEMA_VERSION = 1;
 
