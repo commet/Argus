@@ -1,0 +1,45 @@
+name: Auto detection eval (nightly)
+
+# 생성 → 감지 → 판정 루프를 무인으로 돌린다. 현실적 다중 턴 대화를 대량 생성하고
+# 실제 MCP 감지 메커니즘(서버 instructions + 진짜 툴 + tool_choice auto)에 흘려
+# recall·over-fire·숨은전제 매치를 잰다. 라이브 키가 필요하므로 nightly + 수동.
+# 결정론 스코어러는 auto-detect-eval.test.mjs가 매 PR(ci.yml 밖 수동)로 고정.
+on:
+  schedule:
+    - cron: '0 7 * * *' # 07:00 UTC nightly (argus-eval 06:00과 분리)
+  workflow_dispatch:
+    inputs:
+      scenarios:
+        description: '생성할 시나리오 수'
+        default: '20'
+
+jobs:
+  auto-eval:
+    runs-on: ubuntu-latest
+    # 키 시크릿이 없으면 조용히 스킵 (argus-eval와 동일 관례).
+    if: ${{ github.event_name == 'workflow_dispatch' || vars.AUTO_DETECT_ENABLED == 'true' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      # 순수 로직 먼저 검증 (fixture, 키 불요) — 라이브 전 회귀 차단.
+      - name: Scorer unit test
+        run: node argus-plugin-v2/evals/detection/auto-detect-eval.test.mjs
+      - name: Run auto detection eval
+        run: node argus-plugin-v2/evals/detection/auto-detect-eval.mjs
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          AUTO_SCENARIOS: ${{ github.event.inputs.scenarios || '20' }}
+          RUN_STAMP: ${{ github.run_id }}
+      - name: Upload report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: auto-detect-report
+          path: |
+            argus-plugin-v2/evals/detection/auto-detect-report.json
+            argus-plugin-v2/evals/detection/auto-detect-trend.jsonl
+          retention-days: 30
