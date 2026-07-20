@@ -20,6 +20,21 @@ export function resolveToday(opts?: { override?: string | null; tz?: string | nu
   return formatInTz(new Date(), tz);
 }
 
+/**
+ * A ledger timestamp whose DATE is the tz-aware logical `today` (from
+ * resolveToday), with the real UTC time-of-day appended for intra-day ordering
+ * — or a fixed noon when `deterministic` (an explicit today_override, for tests).
+ *
+ * A bare `new Date().toISOString()` is always UTC, so near midnight in Korea
+ * (UTC+9) an event lands a DAY EARLIER than the local date the user sees on
+ * seals and receipts — which is why "record since" showed yesterday. Every
+ * event-appending site must stamp through here so one date basis holds across
+ * opens, seals, and settles.
+ */
+export function logicalNow(today: string, deterministic = false): string {
+  return deterministic ? `${today}T12:00:00.000Z` : `${today}T${new Date().toISOString().slice(11)}`;
+}
+
 export function resolveDefaultTimeZone(): string {
   try {
     return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';

@@ -426,6 +426,39 @@ export interface RepositoryPurgePlan extends PurgeResult {
   dry_run: boolean;
 }
 
+export interface V1StorePurgePlan {
+  argus_dir: string;
+  /** data subpaths that exist and would be (dry run) / were removed */
+  targets: string[];
+  removed: number;
+  dry_run: boolean;
+}
+
+/**
+ * v1 workspace-store purge (erasure coverage, 1.4.6 backlog): local-purge only
+ * removed the v2 durable home, so the v1 `.argus/` store — ledger/, calendar/
+ * (.ics), sessions/ (bearings + receipts) — survived a purge that claimed to be
+ * complete. Removes ONLY those known data subpaths: never the directory itself
+ * and never config.yaml (settings are not user decision data), so a mistyped
+ * path cannot take out anything beyond Argus's own data files. Same
+ * confirm-verbatim contract as the repository purge: `confirmation` must equal
+ * the absolute path exactly.
+ */
+export function planOrPurgeV1Store(argusDir: string, opts: { dryRun: boolean; confirmation: string }): V1StorePurgePlan {
+  if (!path.isAbsolute(argusDir)) throw new Error('V1_PURGE_DIR_NOT_ABSOLUTE');
+  if (opts.confirmation !== argusDir) throw new Error('PURGE_CONFIRM_MISMATCH');
+  const targets = ['ledger', 'calendar', 'sessions']
+    .map((name) => path.join(argusDir, name))
+    .filter((p) => fs.existsSync(p));
+  if (opts.dryRun) return { argus_dir: argusDir, targets, removed: 0, dry_run: true };
+  let removed = 0;
+  for (const target of targets) {
+    fs.rmSync(target, { recursive: true, force: true });
+    removed++;
+  }
+  return { argus_dir: argusDir, targets, removed, dry_run: false };
+}
+
 export function planOrPurgeRepository(
   home: string, repositoryId: string, opts: { dryRun: boolean; confirmation: string },
 ): RepositoryPurgePlan {

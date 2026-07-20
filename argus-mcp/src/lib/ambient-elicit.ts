@@ -167,8 +167,8 @@ async function fire(dir: string, todayOverride?: string): Promise<void> {
     const picked = await withTimeout(
       elicit(
         ko
-          ? `Argus — 확인일이 지난 예측이 있어요: "${text}" (확인일 ${first.date}). 현실이 어떻게 답했나요? 지금 어려우면 닫아도 됩니다 — 다시 조르지 않아요.`
-          : `Argus — a prediction passed its check-by: "${text}" (due ${first.date}). What did reality do? Dismiss if now is a bad time — no re-asking.`,
+          ? `Argus: 확인일이 지난 예측이 있어요. "${text}" (확인일 ${first.date}). 현실이 어떻게 답했나요? 지금 어려우면 닫아도 됩니다. 다시 조르지 않아요.`
+          : `Argus: a prediction passed its check-by. "${text}" (due ${first.date}). What did reality do? Dismiss if now is a bad time; no re-asking.`,
         {
           type: 'object',
           required: ['outcome'],
@@ -176,9 +176,11 @@ async function fire(dir: string, todayOverride?: string): Promise<void> {
             outcome: {
               type: 'string',
               enum: ['held', 'avoided', 'partial', 'still_pending', 'missed'],
+              // Same labels as the in-band settle picker (settle.ts) — 풀어쓰기.
+              // (Duplicated across the two picker sites; keep them in lockstep.)
               enumNames: ko
-                ? ['그렇게 됐다 (held)', '피했다 (avoided)', '부분적으로 (partial)', '아직 불분명 (still pending)', '빗나갔다 (missed)']
-                : ['It held', 'Avoided it', 'Partially', 'Still pending', 'Missed — my read was wrong'],
+                ? ['예측대로 됐다', '걱정한 일은 안 일어났다', '일부만 맞았다', '아직 불분명', '예측이 빗나갔다']
+                : ['It held', 'Avoided', 'Partially', 'Still unclear', 'Missed: my read was wrong'],
               description: ko ? '봉인한 예측에 현실이 어떻게 답했는지.' : 'What reality did to your sealed prediction.',
             },
           },
@@ -199,7 +201,7 @@ async function fire(dir: string, todayOverride?: string): Promise<void> {
       const wh = await withTimeout(
         elicit(
           ko
-            ? '실제로 무슨 일이 있었나요? 한 줄이면 됩니다 — 당신의 말 그대로 기록됩니다.'
+            ? '실제로 무슨 일이 있었나요? 한 줄이면 됩니다. 당신의 말 그대로 기록됩니다.'
             : 'What actually happened, in one line? Recorded verbatim, in your words.',
           {
             type: 'object',

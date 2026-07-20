@@ -125,17 +125,21 @@ describe('explicit skip trace (spine: escape kept, omission honest)', () => {
     const s = body(await seal.handler({ argus_dir: dir, id: 'bare', predicate: 'Signups exceed 100 in a month', check_by: FUTURE, predicate_owner: 'user' }));
     expect(s['ok']).toBe(true);
     expect((s['data'] as Record<string, unknown>)['skipped']).toContain('unverified_assumption');
-    // the seal offers to name the assumption as an INVITATION, not a "you
-    // skipped it" deficiency report (experience loop, amender)
-    expect(String(s['surface'])).toContain('assumption');
+    // The seal no longer nags OR sets homework — naming an assumption is
+    // Claude's in-flow job, not a seal-surface line (표면 정화). A blank is honest.
+    expect(String(s['surface'])).not.toContain('Optionally');
     expect(String(s['surface'])).not.toContain('without naming');
 
     const settled = body(await settle.handler({ argus_dir: dir, id: 'bare', outcome: 'held', outcome_source: 'user_stated', what_happened: 'got 140' }));
     const receipt = (settled['data'] as Record<string, unknown>)['receipt'] as Record<string, unknown>;
     expect(receipt['unverified_assumption']).toBe('(skipped)');
-    // skipped fields render neutrally now (no "you skipped" completeness nag)
+    // Empty/skipped optional sections are simply OMITTED in the redesigned receipt
+    // — no "(none)"/"(skipped)" placeholder rows, no completeness nag. The receipt
+    // still renders its core (predict block + ownership line), never blank.
     const rt = String((settled['data'] as Record<string, unknown>)['receipt_text']);
-    expect(rt).toContain('(none)');
+    expect(rt).toContain('What I predicted');
+    expect(rt).not.toContain('(none)');
+    expect(rt).not.toContain('(skipped)');
     expect(rt).not.toContain('you skipped');
   });
 });

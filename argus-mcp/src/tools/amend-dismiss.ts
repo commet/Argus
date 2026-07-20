@@ -1,7 +1,7 @@
 import { atomicWriteJson } from '../lib/atomic-write.js';
 import { bearingPath } from '../lib/layout.js';
 import { resolveToolArgusDir } from '../lib/argus-dir.js';
-import { resolveToday } from '../lib/resolve-today.js';
+import { resolveToday, logicalNow } from '../lib/resolve-today.js';
 import { resolveContract } from '../lib/resolve-contract.js';
 import { guardTransition } from '../lib/state-machine.js';
 import { validateSeal } from '../lib/validate-seal.js';
@@ -48,7 +48,7 @@ export const amend: ToolModule = {
       if (a['predicate'] != null && (current.entry?.defer_count ?? 0) > 0) {
         return toolError({
           ok: false, tool: 'argus_amend', error_code: 'GOALPOST_MOVED',
-          message: 'Cannot rewrite the prediction after the decision was deferred — its original check-by has passed.',
+          message: 'Cannot rewrite the prediction after the decision was deferred; its original check-by has passed.',
           recovery: 'Re-schedule the date if the timeline moved, or settle it against reality. The claim itself is locked once its check-by first arrived.',
         });
       }
@@ -60,7 +60,7 @@ export const amend: ToolModule = {
         if (vErr) return toolError({ ok: false, tool: 'argus_amend', error_code: vErr.code, message: vErr.message, recovery: vErr.recovery });
       }
 
-      const now = new Date().toISOString();
+      const now = logicalNow(today, !!a['today_override']);
       const mirrorAmend = await withLedgerLock(dir, async () => {
         const fresh = resolveContract(dir, id, today);
         guardTransition(fresh.state, 'amend'); // re-guard: the check-by may have arrived meanwhile
@@ -111,7 +111,12 @@ export const dismiss: ToolModule = {
   inputSchema: z.strictObject({
     argus_dir: zArgusDir,
     id: zId,
-    dismiss_reason: z.enum(['became_irrelevant', 'decided_elsewhere', 'changed_mind', 'other']),
+    // Superset of the PUBLIC façade's advertised enum (public-tools.ts:
+    // became_irrelevant · decided_elsewhere · superseded · user_declined) plus
+    // the legacy internal values. The public schema advertised values this
+    // internal validator then refused — a model following the advertised
+    // contract got INVALID_INPUT (1.4.6 backlog: enum divergence).
+    dismiss_reason: z.enum(['became_irrelevant', 'decided_elsewhere', 'superseded', 'user_declined', 'changed_mind', 'other']),
     note: z.string().max(300).optional(),
     today_override: zDate.optional(),
   }),
@@ -127,7 +132,7 @@ export const dismiss: ToolModule = {
       const current = resolveContract(dir, id, today);
       guardTransition(current.state, 'dismiss');
 
-      const now = new Date().toISOString();
+      const now = logicalNow(today, !!a['today_override']);
       const mirrorDismiss = await withLedgerLock(dir, async () => {
         const fresh = resolveContract(dir, id, today);
         guardTransition(fresh.state, 'dismiss');

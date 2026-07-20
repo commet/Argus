@@ -48,7 +48,7 @@ describe('return calendar export', () => {
     expect(ics).toContain('UID:d1@argus.local');
     expect(ics).toContain('DTSTART;VALUE=DATE:20260801');
     expect(ics).toContain('DTEND;VALUE=DATE:20260802');
-    expect(ics).toContain('SUMMARY:Argus return: conversion stays above 4%\\, no exceptions');
+    expect(ics).toContain('SUMMARY:Argus check-in: conversion stays above 4%\\, no exceptions');
     expect(ics).toContain('BEGIN:VALARM');
     // The alarm must ring on the MORNING OF the check-by, not the afternoon
     // before it. DTSTART is local midnight of an all-day event, so the offset has

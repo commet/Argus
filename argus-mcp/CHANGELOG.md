@@ -6,6 +6,67 @@
 > The `1.3.0` / `1.2.1` entries at the bottom are pre-rename `argus-mcp` history,
 > kept for reference — all of that work shipped inside the new-name 1.0.0.
 
+## 1.4.7 — Re-diagnosis pass: the accumulated backlog, closed
+
+Re-ran the full 1.4.6 verification battery (misuse / fuzz / guru / surface-content
+harnesses: all 0 flags), then fixed everything the four rounds had deferred plus
+what the surface re-read found.
+
+Advertised-then-rejected contracts (the worst class: the schema promises what the
+validator refuses)
+- **`dismiss_reason` enum divergence**: the public façade advertised
+  `superseded` / `user_declined`, but the internal validator only accepted the
+  legacy set — a model following the advertised contract got INVALID_INPUT. The
+  internal enum is now the superset; the settle picker's "no longer matters"
+  path also writes the canonical `became_irrelevant` instead of free English
+  prose that leaked raw into `argus_patterns` payloads.
+- **`include_upcoming_days` > 30 hard-errored** even though the handler clamps
+  the window to 30. The schema now accepts up to 365 and documents the clamp.
+
+Over-fire and lost detail
+- **NOT_FALSIFIABLE over-fire**: a single "아마도" hard-blocked predicates that
+  carry a number, date, or threshold ("아마도 2월엔 매출 1억을 넘는다"). An
+  observable-anchor bypass now limits the vibe heuristic to PURE feelings; the
+  plugin's SEED-gate copy is hand-synced.
+- **INTERNAL_ERROR lost its diagnostic detail in Korean**: the ko localization
+  overwrote handler-authored Korean messages (e.g. `내부 오류: EACCES …`) with
+  the generic line. Handler-authored Korean is now preserved (quoted user text
+  doesn't count as "authored Korean"), and English `Internal error: <detail>`
+  carries its detail across the language switch.
+
+Calibration integrity + erasure coverage
+- **Replay stats are now state-derived, not event-counted**: a duplicated or
+  reordered seal/settle line in a hand-edited/merged ledger can no longer
+  inflate the calibration record. Invariant total_settled == sum(buckets) holds.
+- **`local-purge` now covers the v1 workspace store**: `--argus-dir <abs>` +
+  `--confirm-argus-dir <abs>` removes `ledger/`, `calendar/`, `sessions/`
+  (receipts) under a v1 `.argus/` dir — dry-run first, confirm-verbatim, never
+  the directory itself or config.yaml. Purging only the v2 home had left v1
+  decision data behind.
+
+Surface re-read fixes (the "실제 내용" pass)
+- **Wake header "예측 저장 0" misread**: after settling, the count dropped to 0
+  and read as "nothing was ever saved". The slot now says what it means:
+  `확인 대기 N` / `awaiting check N`.
+- **Data-minimal receipts were mostly placeholders**: three "(없음)" section
+  rows collapse into one neutral line when nothing optional was recorded.
+- **Em-dash cadence swept from every inline user-facing string** outside the
+  SURFACES tree (elicit pickers, error recoveries, telemetry notices, review
+  surfaces, numeric-drift reasons…) — the ban was CI-enforced only on SURFACES
+  leaves, so a new gate (`surface-no-em-dash-inline.test.ts`) now scans inline
+  literals too.
+- **capture ↔ predict cross-reference** in both tool descriptions (the
+  "capture-vs-predict" confusion: predict works with a fresh id, no prior
+  capture needed; capture alone sets no check date).
+- The over-fire gate's `lean_disclosure` is now a localized SURFACES leaf (it
+  was a fixed English sentence in Korean sessions), and the "기대-" phrasings
+  the founder flagged are gone from user-visible copy (딛고 선 / 위에 서 있는지).
+- EN pluralization: "premise(s)" / "decision(s)" render as real singular/plural.
+
+Deferred (with reasons, unchanged): argus_watch reminder path (needs a public
+surface design), LOGBOOK/candidates monorepo sibling-workspace scoping (repo
+boundary decision), v2 outbox wiring, legacy/pilot surface enums (low exposure).
+
 ## 1.4.6 — Real-user-mistake pass: the errors a fumbling user actually hits
 
 Found by triggering ~45 misuse cases in a Korean session and reading every

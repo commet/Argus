@@ -38,7 +38,7 @@ export function validateCrux(crux: unknown): CruxError | null {
   if (LEAN.test(t)) {
     return {
       code: 'CRUX_CARRIES_LEAN',
-      message: 'The crux carries a directional lean — that is a verdict in disguise.',
+      message: 'The crux carries a directional lean; that is a verdict in disguise.',
       recovery: 'Name the assumption neutrally as a question; do not say which side is stronger.',
     };
   }
@@ -52,7 +52,7 @@ export function validateCrux(crux: unknown): CruxError | null {
   if (CONFIRM_EN.test(t) || CONFIRM_KO.test(t)) {
     return {
       code: 'CRUX_CARRIES_LEAN',
-      message: 'The crux is a leading confirmation ("is this right?") — a verdict in disguise.',
+      message: 'The crux is a leading confirmation ("is this right?"), a verdict in disguise.',
       recovery: 'Ask the single neutral question, not whether the current direction is correct.',
     };
   }
@@ -60,7 +60,7 @@ export function validateCrux(crux: unknown): CruxError | null {
     return {
       code: 'CRUX_ADMIN_ONLY',
       message: 'The crux asks an administrative/logistics detail, not the load-bearing question.',
-      recovery: 'Ask the premise or fork that changes the judgment — not the deadline, format, decision-maker, or which section to fill.',
+      recovery: 'Ask the premise or fork that changes the judgment, not the deadline, format, decision-maker, or which section to fill.',
     };
   }
   return null;

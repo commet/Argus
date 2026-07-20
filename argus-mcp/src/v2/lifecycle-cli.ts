@@ -3,6 +3,7 @@ import { argusHome } from './ledger.js';
 import {
   exportPortableLocalArchive,
   planOrPurgeRepository,
+  planOrPurgeV1Store,
   restorePortableLocalArchive,
 } from './lifecycle.js';
 
@@ -40,12 +41,25 @@ export function runLifecycleCli(command: string, args: readonly string[]): void 
   }
   if (command === 'local-purge') {
     const repositoryId = flag(args, '--repository-id');
-    const confirmation = flag(args, '--confirm-repository');
-    if (!repositoryId || !confirmation) throw new Error('--repository-id and --confirm-repository are required');
-    const result = planOrPurgeRepository(home, repositoryId, {
-      dryRun: args.includes('--dry-run'), confirmation,
-    });
-    process.stdout.write(JSON.stringify(result) + '\n');
+    const v1Dir = flag(args, '--argus-dir');
+    // v1 store coverage (1.4.6 backlog): purging only the v2 durable home left
+    // the v1 `.argus/` ledger/receipts/calendar behind. Either target may be
+    // purged alone, or both in one call; each keeps its own confirm-verbatim.
+    if (!repositoryId && !v1Dir) throw new Error('--repository-id (v2 home) and/or --argus-dir (v1 store) is required');
+    const dryRun = args.includes('--dry-run');
+    const out: Record<string, unknown> = {};
+    if (repositoryId) {
+      const confirmation = flag(args, '--confirm-repository');
+      if (!confirmation) throw new Error('--confirm-repository is required');
+      out['repository'] = planOrPurgeRepository(home, repositoryId, { dryRun, confirmation });
+    }
+    if (v1Dir) {
+      const v1Confirm = flag(args, '--confirm-argus-dir');
+      if (!v1Confirm) throw new Error('--confirm-argus-dir is required (repeat the exact absolute path)');
+      out['v1_store'] = planOrPurgeV1Store(v1Dir, { dryRun, confirmation: v1Confirm });
+    }
+    // Back-compat: a repository-only call keeps the original flat output shape.
+    process.stdout.write(JSON.stringify(repositoryId && !v1Dir ? out['repository'] : out) + '\n');
     return;
   }
   throw new Error(`unknown lifecycle command: ${command}`);

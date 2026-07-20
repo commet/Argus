@@ -218,7 +218,16 @@ export async function appendLedger(
       // The ledger is the product's only durable asset. A rename-based atomic
       // write can't be used on an append, so fsync is the one thing standing
       // between a power loss and a lost settlement.
-      try { fs.fsyncSync(fd); } catch { /* fsync unsupported on this fs — the write still landed */ }
+      try { fs.fsyncSync(fd); } catch (e) {
+        // fsync legitimately fails as "unsupported" on some filesystems/handles
+        // (EINVAL/ENOTSUP/EOPNOTSUPP — tmpfs, pipes, certain network mounts):
+        // there the write still landed, so swallow. But EIO / ENOSPC / EBADF are
+        // REAL flush failures — the settlement is NOT durable. Rethrow so the
+        // tool returns isError instead of a false "saved!" (fail loud, never
+        // report a durability we don't have).
+        const code = (e as NodeJS.ErrnoException)?.code;
+        if (code !== 'EINVAL' && code !== 'ENOTSUP' && code !== 'EOPNOTSUPP') throw e;
+      }
       resolve();
     } catch (e) {
       reject(e);

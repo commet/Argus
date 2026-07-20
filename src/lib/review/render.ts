@@ -57,7 +57,7 @@ export function receiptToMarkdown(r: JudgmentReceipt): string {
   if (r.hidden_assumptions.length) {
     lines.push('## 그대로 진행하면 위험한 가정');
     r.hidden_assumptions.slice(0, 3).forEach((a) => {
-      lines.push(`- ${a.text}${a.if_false ? ` — 틀리면: ${a.if_false}` : ''}`);
+      lines.push(`- ${a.text}${a.if_false ? ` · 틀리면: ${a.if_false}` : ''}`);
     });
     lines.push('');
   }

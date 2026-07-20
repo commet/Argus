@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { resolveToolArgusDir } from '../lib/argus-dir.js';
-import { resolveToday } from '../lib/resolve-today.js';
+import { resolveToday, logicalNow } from '../lib/resolve-today.js';
 import { replayLedger } from '../lib/ledger-replay.js';
 import { deriveState, guardTransition } from '../lib/state-machine.js';
 import { appendLedger, type LedgerEventInput } from '../lib/ledger-append.js';
@@ -21,15 +21,35 @@ import { handleToolException } from './errors.js';
  * (The raw `reason` stays in `data.reason` for diagnostics.)
  */
 function localizeUncertainReason(reason: string, locale: 'ko' | 'en'): string {
-  if (locale === 'ko') return reason;
-  if (reason.includes('비율(%)')) return 'this reads as a percentage — say whether the change is in percentage-points or on the complement (100 − value) axis';
-  if (reason.includes('near-zero')) return 'the values sit near zero — set a rule (a delta or a safety floor) so this can be judged mechanically';
-  if (reason.includes('임계 경계')) return 'the relative change sits right on the threshold — set a rule or a dead-band';
-  if (reason.includes('zero_meaningful') || reason.includes('부호 전환')) return 'the sign flipped, but whether zero is meaningful is undeclared — set a rule';
-  if (reason.includes('boundary') || reason.includes('경계 도달')) return 'the value reached the threshold line, but inclusive/exclusive is unspecified — set the boundary';
-  if (reason.includes('기준값 0')) return 'the baseline is 0, so a relative rule cannot apply — set a delta rule';
-  if (reason.includes('canonical scale') || reason.includes('비수치')) return 'this label is non-numeric — set a canonical scale so it can be judged mechanically';
-  return 'this change is ambiguous under the current rule — define a materiality rule so it can be judged mechanically';
+  // BOTH locales get curated copy — the raw engine string (full of code/math
+  // tokens: %p, zero_meaningful, canonical scale) is kept only in data.reason.
+  // KO used to return `reason` verbatim, so a Korean re-check of a % premise saw
+  // "여집합(100−값) 축으로 볼지" — worse than the English surface. Mirror it.
+  const ko = locale === 'ko';
+  if (reason.includes('비율(%)')) return ko
+    ? '이 값은 비율(%)이라 자동 판정이 어렵습니다. 퍼센트포인트(%p)로 볼지, 100에서 뺀 값을 기준으로 볼지 정해 주세요.'
+    : 'this reads as a percentage; say whether the change is in percentage-points or on the complement (100 − value) axis';
+  if (reason.includes('near-zero')) return ko
+    ? '값이 0에 가까워 자동 판정이 어렵습니다. 기준(변화폭이나 안전선)을 정해 주세요.'
+    : 'the values sit near zero; set a rule (a delta or a safety floor) so this can be judged mechanically';
+  if (reason.includes('임계 경계')) return ko
+    ? '상대 변화가 임계값에 딱 걸쳐 있습니다. 기준이나 여유 구간을 정해 주세요.'
+    : 'the relative change sits right on the threshold; set a rule or a dead-band';
+  if (reason.includes('zero_meaningful') || reason.includes('부호 전환')) return ko
+    ? '부호가 바뀌었는데 0을 의미 있게 볼지 정해지지 않았습니다. 기준을 정해 주세요.'
+    : 'the sign flipped, but whether zero is meaningful is undeclared; set a rule';
+  if (reason.includes('boundary') || reason.includes('경계 도달')) return ko
+    ? '값이 임계선에 닿았는데 포함할지 뺄지 정해지지 않았습니다. 경계를 정해 주세요.'
+    : 'the value reached the threshold line, but inclusive/exclusive is unspecified; set the boundary';
+  if (reason.includes('기준값 0')) return ko
+    ? '기준값이 0이라 상대 비교 규칙을 쓸 수 없습니다. 변화폭 기준을 정해 주세요.'
+    : 'the baseline is 0, so a relative rule cannot apply; set a delta rule';
+  if (reason.includes('canonical scale') || reason.includes('비수치')) return ko
+    ? '숫자가 아닌 값이라 자동 판정이 어렵습니다. 기준 척도를 정해 주세요.'
+    : 'this label is non-numeric; set a canonical scale so it can be judged mechanically';
+  return ko
+    ? '지금 기준으로는 판정이 애매합니다. 판정 규칙을 정하면 자동으로 확인할 수 있습니다.'
+    : 'this change is ambiguous under the current rule; define a materiality rule so it can be judged mechanically';
 }
 
 /**
@@ -75,7 +95,7 @@ export const recheck: ToolModule = {
       const dir = resolveToolArgusDir(a['argus_dir']);
       const id = String(a['id'] ?? '');
       const today = resolveToday({ override: a['today_override'] as string | undefined });
-      const now = new Date().toISOString();
+      const now = logicalNow(today, !!a['today_override']);
 
       const state = replayLedger(dir, today);
       const entry = state.contracts.get(id);
@@ -83,7 +103,7 @@ export const recheck: ToolModule = {
 
       const premise = resolvePremiseRef(entry?.premises ?? [], String(a['ref']));
       if (premise.kind !== 'premise') {
-        return toolError({ ok: false, tool: 'argus_recheck', error_code: 'NOT_RECHECKABLE', message: `P${premise.ordinal} is an open question — it is resolved by you, not re-checked against reality.`, recovery: 'Use argus_capture action="answer_question" with your own call.' });
+        return toolError({ ok: false, tool: 'argus_recheck', error_code: 'NOT_RECHECKABLE', message: `P${premise.ordinal} is an open question; it is resolved by you, not re-checked against reality.`, recovery: 'Use argus_capture action="answer_question" with your own call.' });
       }
       if (premise.status !== 'active') {
         return toolError({ ok: false, tool: 'argus_recheck', error_code: 'PREMISE_RETIRED', message: `P${premise.ordinal} is ${premise.status}.`, recovery: 'Only active premises are re-checked. See argus_patterns view="decision_context".' });
@@ -126,14 +146,14 @@ export const recheck: ToolModule = {
           reason = m.reason;
           lowConfidence = m.low_confidence === true;
           if (typeof changed === 'boolean' && changed !== drifted && status !== 'uncertain') {
-            integrityNote = `numeric materiality (${reason}) disagrees with the asserted changed=${changed} — the numbers win; both are on the record.`;
+            integrityNote = `numeric materiality (${reason}) disagrees with the asserted changed=${changed}; the numbers win, and both are on the record.`;
           }
         } else if (typeof changed === 'boolean') {
           status = changed ? 'material' : 'unchanged';
           drifted = changed;
           reason = changed ? 'the host asserts the fact changed (see source)' : 'the host asserts the fact is unchanged';
           if (changed && normalizePremiseText(finding) === normalizePremiseText(prior.finding)) {
-            integrityNote = 'asserted changed=true but the finding text is identical to the recorded baseline — recorded as asserted, flagged here.';
+            integrityNote = 'asserted changed=true but the finding text is identical to the recorded baseline; recorded as asserted, flagged here.';
           }
         } else {
           return toolError({

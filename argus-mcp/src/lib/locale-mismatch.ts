@@ -41,8 +41,8 @@ export function appendLocaleMismatchNote(
     if (!sc || sc['ok'] !== true || typeof sc['surface'] !== 'string') return result; // never decorate errors
     fs.writeFileSync(marker, new Date().toISOString());
     const note = spoken === 'ko'
-      ? '\n(설정 언어가 English로 고정되어 있어요. 한국어로 바꾸려면 argus_settings에 locale="ko" 한 번이면 돼요 — 이 안내는 다시 나오지 않아요.)'
-      : '\n(Your saved language is Korean. To switch, call argus_settings with locale="en" once — this note will not appear again.)';
+      ? '\n(설정 언어가 English로 고정되어 있어요. 한국어로 바꾸려면 argus_settings에 locale="ko" 한 번이면 돼요. 이 안내는 다시 나오지 않아요.)'
+      : '\n(Your saved language is Korean. To switch, call argus_settings with locale="en" once; this note will not appear again.)';
     const next = { ...sc, surface: `${sc['surface'] as string}${note}` };
     result.structuredContent = next;
     result.content = [{ type: 'text', text: JSON.stringify(next, null, 2) }];

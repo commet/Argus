@@ -79,11 +79,11 @@ export function routeLenses(
   for (const id of ALL_LENS_IDS) {
     if (selected.includes(id)) continue;
     if (cutForBudget.includes(id)) {
-      skipped.push({ id, reason: t('분석 예산(렌즈 수) 초과로 이번엔 제외', 'Skipped this time — over the analysis budget (lens count)') });
+      skipped.push({ id, reason: t('분석 예산(렌즈 수) 초과로 이번엔 제외', 'Skipped this time: over the analysis budget (lens count)') });
     } else if (!applies(LENSES[id], profile, isDeck)) {
       skipped.push({ id, reason: skipReason(id, profile, isDeck, lang) });
     } else {
-      skipped.push({ id, reason: t('이 문서에는 우선순위가 낮아 제외', 'Lower priority for this document — skipped') });
+      skipped.push({ id, reason: t('이 문서에는 우선순위가 낮아 제외', 'Skipped: lower priority for this document') });
     }
   }
 
@@ -128,11 +128,11 @@ function orderByPriority(ids: LensId[], concerns: ReviewConcern[]): LensId[] {
 
 function skipReason(id: LensId, profile: DocumentProfile, isDeck: boolean, lang: ReviewLocale): string {
   const t = (ko: string, en: string) => (lang === 'en' ? en : ko);
-  if (id === 'deck_narrative' && !isDeck) return t('덱이 아니어서 제외', 'Skipped — not a deck');
-  if (id === 'reversibility') return t('되돌림 판단이 핵심이 아닌 문서 유형이어서 제외', 'Skipped — reversibility is not central to this document type');
-  if (id === 'stakeholder_objection') return t('이해관계/stakes가 낮아 제외', 'Skipped — low stakes / stakeholder exposure');
+  if (id === 'deck_narrative' && !isDeck) return t('덱이 아니어서 제외', 'Skipped: not a deck');
+  if (id === 'reversibility') return t('되돌림 판단이 핵심이 아닌 문서 유형이어서 제외', 'Skipped: reversibility is not central to this document type');
+  if (id === 'stakeholder_objection') return t('이해관계/stakes가 낮아 제외', 'Skipped: low stakes / stakeholder exposure');
   void profile;
-  return t('이 문서에 해당하지 않아 제외', 'Skipped — does not apply to this document');
+  return t('이 문서에 해당하지 않아 제외', 'Skipped: does not apply to this document');
 }
 
 function buildDisclosure(selected: LensId[], profile: DocumentProfile, lang: ReviewLocale): string {

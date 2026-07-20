@@ -46,10 +46,10 @@ describe('M0 · the Korean journey ends in a Korean receipt (FC-2)', () => {
     expect(settled['ok']).toBe(true);
     const text = String((settled['data'] as Record<string, unknown>)['receipt_text']);
     expect(text).toContain('판단 영수증');
-    expect(text).toContain('당신의 예측');
+    expect(text).toContain('내가 예측한 것');
     expect(text).toContain('실제로 일어난 일');
     expect(text).toContain('확인일');
-    expect(text).not.toContain('YOU PREDICTED');
+    expect(text).not.toContain('What I predicted');
     expect(text).not.toContain('you skipped naming this');
     // Brand DNA stays English in every locale (§9.3) — the OG centerpiece line.
     expect(text).toContain('AI VERDICT ON THIS DECISION');
@@ -79,7 +79,7 @@ describe('M0 · the Korean journey ends in a Korean receipt (FC-2)', () => {
     }));
     const text = String((settled['data'] as Record<string, unknown>)['receipt_text']);
     expect(text).toContain('ARGUS · JUDGMENT RECEIPT');
-    expect(text).toContain('YOU PREDICTED');
+    expect(text).toContain('What I predicted');
     expect(text).toContain('The model never graded you. Reality did.');
   });
 });

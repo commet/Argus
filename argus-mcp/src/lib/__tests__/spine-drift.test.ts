@@ -117,7 +117,7 @@ describe('settlement receipt copy', () => {
       skipped: [],
     });
 
-    expect(text).toContain('Result not recorded yet');
+    expect(text).toContain('not recorded yet');
     expect(text).not.toContain('Settled (open)');
   });
 });
@@ -159,7 +159,7 @@ describe('wake_text spine (renderWake)', () => {
 
   it('settled group is a count list of user-stated outcomes, never a rate', () => {
     const ko = renderWake(fixture, stats, TODAY, 'ko', '2026-07-03');
-    expect(ko).toContain('결과 기록됨 (3): 그렇게 됨 1 · 피함 1 · 부분 1');
+    expect(ko).toContain('결과 기록됨 (3): 예측대로 1 · 걱정 피함 1 · 일부 1');
     const en = renderWake(fixture, stats, TODAY, 'en', '2026-07-03');
     expect(en).toContain('results recorded (3): held 1 · avoided 1 · partial 1');
   });
@@ -172,8 +172,8 @@ describe('wake_text spine (renderWake)', () => {
     expect(ko).toContain('결과를 기다리는 중 (2)');
     // overdue shows the check-by date, no running day-count (no shame counter)
     expect(ko).not.toContain('경과');
-    expect(ko).toContain('답 08-01');
-    expect(ko).toContain('결정 12 · 예측 저장 8 · 결과 기록 3');
+    expect(ko).toContain('확인 08-01');
+    expect(ko).toContain('결정 12 · 확인 대기 8 · 결과 기록 3');
     expect(ko).toContain('2026-07-03부터 기록');
   });
 

@@ -110,7 +110,7 @@ function maybeShowNotice(baseDir: string = argusHome()): void {
   }
   process.stderr.write(
     'argus-decision-mcp: anonymous telemetry is ON (ARGUS_TELEMETRY=1). It sends a random ' +
-      'install id + which tool ran + version/platform — never your decisions, titles, file ' +
+      'install id + which tool ran + version/platform, and never your decisions, titles, file ' +
       'paths, or account token. Turn it off with ARGUS_TELEMETRY=0 (or DO_NOT_TRACK=1).\n',
   );
   try {
@@ -170,9 +170,9 @@ export function inviteTelemetryOptIn(env: TelemetryEnv = process.env): void {
   if (ON_VALUES.has(dnt)) return; // globally opted out — do not invite
   try {
     process.stderr.write(
-      'argus-decision-mcp: your decisions stay on your machine — this server makes no ' +
+      'argus-decision-mcp: your decisions stay on your machine; this server makes no ' +
         'network calls by default. Optional: to share anonymous usage counts (a random ' +
-        'install id + which tool ran + version — never your decisions), set ARGUS_TELEMETRY=1.\n',
+        'install id + which tool ran + version, never your decisions), set ARGUS_TELEMETRY=1.\n',
     );
   } catch {
     /* stderr unavailable — harmless */

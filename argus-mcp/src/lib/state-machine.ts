@@ -139,7 +139,7 @@ export function guardTransition(
       );
     }
     if (current === 'settled') {
-      throw new GuardError('ALREADY_SETTLED', 'This decision already has a recorded result (append-only — no re-judging).', 'Use argus_patterns view="receipt" to read it.');
+      throw new GuardError('ALREADY_SETTLED', 'This decision already has a recorded result (append-only; no re-judging).', 'Use argus_patterns view="receipt" to read it.');
     }
     if (current === 'dismissed') {
       throw new GuardError('DECISION_CLOSED', 'This decision was dismissed.', 'Open a new decision if reality changed.');
@@ -163,7 +163,7 @@ export function guardTransition(
   }
 
   if ((current === 'settled' || current === 'dismissed')) {
-    throw new GuardError('DECISION_CLOSED', `This decision is ${current}; it cannot accept ${eventArticle(event)} ${event}.`, 'Open a new decision instead — closed decisions are not reopened.');
+    throw new GuardError('DECISION_CLOSED', `This decision is ${current}; it cannot accept ${eventArticle(event)} ${event}.`, 'Open a new decision instead; closed decisions are not reopened.');
   }
 
   if (!ALLOWED[current].has(event)) {

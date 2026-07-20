@@ -27,6 +27,20 @@ const VIBE = /\b(go well|be fine|be good|be great|work out|feel right|be success
 // congratulated — because the list was English-only. Same weak/advisory status;
 // no \b (word boundaries don't work for Hangul). NOT a hard gate (§5-14).
 const VIBE_KO = /(잘\s*될|잘\s*풀릴|괜찮을|좋아질|나아질)\s*(것|거)\s*(같|이)|아마도|어떻게든\s*(될|되)/;
+// A predicate carrying an observable anchor (a number, a date, a threshold or
+// comparison, a concrete completion verb) is checkable even when vibe wording
+// rides along ("아마도 2월에 이미 1억 넘는다"). The vibe regexes exist to catch
+// PURE feelings; without this bypass a single "아마도" hard-blocked legit
+// numeric predicates (1.4.6 backlog: weak heuristic acting as a hard gate).
+// HARD only. A bare completion WORD (ship/launch/출시/배포…) must NOT defuse the
+// vibe check: those words appear as NOUNS inside genuinely vague sentences —
+// "The launch will probably go well", "이번 출시는 잘 될 것 같다 아마도" — so
+// treating them as anchors let PURE vibes through the falsifiability gate (CI
+// caught both, 2026-07-20). Only a gradeable magnitude/threshold rescues a
+// predicate that carries vibe wording. This does NOT re-open the 1.4.6
+// over-fire: the vibe check only runs when vibe wording is actually present, so
+// a plain "we ship the app by Friday" still passes untouched.
+const HARD_ANCHOR = /\d|[%<>=≤≥]|(이상|이하|미만|초과)|\b(at least|more than|less than|no more than)\b/i;
 
 export function validateSeal(predicate: unknown, checkBy: unknown, today: string): SealValidationError | null {
   if (typeof predicate !== 'string' || predicate.trim().length < 8) {
@@ -52,15 +66,17 @@ export function validateSeal(predicate: unknown, checkBy: unknown, today: string
     return {
       code: 'BAD_CHECK_BY',
       message: `check_by (${date}) must be in the future (today is ${today}).`,
-      recovery: 'Pick a future date — the check-by is when you will come back to settle.',
+      recovery: 'Pick a future date. The check-by is when you will come back to settle.',
     };
   }
+
+  if (HARD_ANCHOR.test(predicate)) return null; // gradeable despite any vibe wording
 
   if (VIBE_KO.test(predicate)) {
     return {
       code: 'NOT_FALSIFIABLE',
-      message: '이건 기분이지 확인 가능한 예측이 아닙니다.',
-      recovery: '숫자·임계값·관찰 가능한 사건으로 다시 적어주세요. (휴리스틱 — 놓칠 수 있음)',
+      message: '이건 아직 막연한 느낌에 가까워서, 나중에 맞았는지 확인하기 어렵습니다.',
+      recovery: '숫자나 눈에 보이는 사건으로 다시 적어주세요. (자동으로 판단한 것이라 예외가 있을 수 있습니다.)',
       weak: true,
     };
   }
@@ -68,7 +84,7 @@ export function validateSeal(predicate: unknown, checkBy: unknown, today: string
     return {
       code: 'NOT_FALSIFIABLE',
       message: 'This reads like a vibe, not a checkable prediction.',
-      recovery: 'Re-state it with a number, threshold, or observable event. (Heuristic — may miss cases.)',
+      recovery: 'Re-state it with a number, threshold, or observable event. (A heuristic; it may miss cases.)',
       weak: true,
     };
   }

@@ -81,19 +81,19 @@ describe('O1 통합 여정 — 설치→봉인→재시작→귀환→정산', (
       predicate: 'the report ships before the deadline',
       whatHappened: 'it shipped two days early',
     });
-    expect(surface).toContain('YOU PREDICTED');
+    expect(surface).toContain('What I predicted');
     expect(surface).toContain('it shipped two days early');
     expect(surface).toContain('AI VERDICT');
     expect(surface).toContain('NONE');
   });
 
-  it('ko: 같은 루프가 한국어로 닫힌다 (당신의 예측 · 실제 결과 · AI 판정 없음)', async () => {
+  it('ko: 같은 루프가 한국어로 닫힌다 (내가 예측한 것 · 실제 결과 · AI 판정 없음)', async () => {
     const surface = await runJourney({
       id: 'journey-ko',
       predicate: '보고서가 마감 전에 발송된다',
       whatHappened: '이틀 먼저 발송됐다',
     });
-    expect(surface).toContain('당신의 예측');
+    expect(surface).toContain('내가 예측한 것');
     expect(surface).toContain('이틀 먼저 발송됐다');
     expect(surface).toContain('NONE');
   });
