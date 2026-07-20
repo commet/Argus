@@ -55,16 +55,41 @@ export const TOOLS = [
 export const WANT = { prediction: 'argus_predict', outcome: 'argus_resolve', assumption: 'argus_capture', hidden_assumption: 'argus_capture' };
 
 /* ── LLM 호출 (주입 가능) ─────────────────────────────────────────────────── */
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 export function makeAnthropicCaller(key, model) {
   return async function callModel({ system, messages, tools, tool_choice, max_tokens = 1200 }) {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01' },
-      body: JSON.stringify({ model, max_tokens, system, messages, ...(tools ? { tools } : {}), ...(tool_choice ? { tool_choice } : {}) }),
-    });
-    if (!res.ok) throw new Error(`API ${res.status}: ${(await res.text()).slice(0, 200)}`);
-    return res.json();
+    // 무인 야간 실행 견고성: 429/5xx는 지수 백오프 재시도(일시적 rate limit이
+    // 시나리오를 죽이지 않게). 지속 오류만 던진다.
+    let lastErr;
+    for (let attempt = 0; attempt < 5; attempt++) {
+      try {
+        const res = await fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01' },
+          body: JSON.stringify({ model, max_tokens, system, messages, ...(tools ? { tools } : {}), ...(tool_choice ? { tool_choice } : {}) }),
+        });
+        if (res.ok) return res.json();
+        if (res.status === 429 || res.status >= 500) { lastErr = new Error(`API ${res.status}`); await sleep(2000 * 2 ** attempt); continue; }
+        throw new Error(`API ${res.status}: ${(await res.text()).slice(0, 200)}`);
+      } catch (e) { lastErr = e; await sleep(2000 * 2 ** attempt); }
+    }
+    throw lastErr;
   };
+}
+
+// 제한 동시성 실행 — throughput을 위해 시나리오를 병렬로. C개까지 동시.
+export async function runPool(items, worker, concurrency) {
+  const results = new Array(items.length);
+  let next = 0;
+  async function lane() {
+    while (true) {
+      const i = next++;
+      if (i >= items.length) return;
+      try { results[i] = await worker(items[i], i); } catch (e) { results[i] = { error: String(e && e.message) }; }
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(concurrency, items.length) }, lane));
+  return results;
 }
 const textOf = (data) => (data.content || []).filter((b) => b.type === 'text').map((b) => b.text).join('');
 const toolUsesOf = (data) => (data.content || []).filter((b) => b.type === 'tool_use').map((b) => ({ name: b.name, input: b.input || {} }));
@@ -95,17 +120,31 @@ export async function generateScenario(callModel, seedHint) {
   return obj;
 }
 
-/* ── 감지기 (진짜 메커니즘) ───────────────────────────────────────────────── */
-// 각 USER 턴에서, 그 턴까지의 대화를 messages로 주고 tool_choice:auto로 발동 여부.
-export async function runDetector(callModel, instructions, scenario) {
+/* ── 감지기 (진짜 메커니즘, 2모드) ─────────────────────────────────────────
+ * mode 'mcp'    = raw MCP: SERVER_INSTRUCTIONS(system) + 툴 + auto. 훅 없음.
+ * mode 'plugin' = 플러그인: 위에 더해, 매 USER 턴에 훅이 주입하는 3감각 진단
+ *   지시를 컨텍스트로 덧붙인다(sense-signal이 additionalContext로 하는 그대로).
+ *   둘의 차이 = 훅의 값어치. 같은 시나리오에 둘 다 돌려 A/B. */
+export const PLUGIN_AUGMENT = [
+  '[Argus sense — every-turn diagnosis injected by the plugin hook. Judge by MEANING, not keywords.]',
+  'Diagnose THIS turn: (1) a checkable PREDICTION (direction/target + horizon or number)? (2) an OUTCOME resolving a tracked prediction (pronoun references included)? (3) the single load-bearing ASSUMPTION the decision rests on — often UNSTATED, surface what was not said. If consequential, call the matching Argus tool (predict/resolve/capture) in the user\'s words — at most one, never a verdict; on a flat/trivial/reversible turn, stay silent (call nothing).',
+].join('\n');
+
+export async function runDetector(callModel, instructions, scenario, opts = {}) {
+  const augment = opts.augment || null;
   const fires = {};    // turnIndex -> [toolNames]
   const captures = {}; // turnIndex -> the captured load_bearing_assumption text (if any)
   const msgs = [];
   for (let i = 0; i < scenario.turns.length; i++) {
     const t = scenario.turns[i];
-    msgs.push({ role: t.role === 'assistant' ? 'assistant' : 'user', content: t.text });
+    const base = { role: t.role === 'assistant' ? 'assistant' : 'user', content: t.text };
+    msgs.push(base);
     if (t.role !== 'user') continue;
-    const data = await callModel({ system: instructions, tools: TOOLS, tool_choice: { type: 'auto' }, messages: msgs.slice(-8) });
+    // 플러그인 모드: 이 턴에 한해 진단 지시를 덧붙인 사본으로 호출(대화 원문은 안 오염).
+    const sendMsgs = augment
+      ? [...msgs.slice(-8, -1), { role: 'user', content: `${t.text}\n\n${augment}` }]
+      : msgs.slice(-8);
+    const data = await callModel({ system: instructions, tools: TOOLS, tool_choice: { type: 'auto' }, messages: sendMsgs });
     const uses = toolUsesOf(data);
     fires[i] = [...new Set(uses.map((u) => u.name))];
     const cap = uses.find((u) => u.name === 'argus_capture');
@@ -171,51 +210,55 @@ async function main() {
   const det = makeAnthropicCaller(key, detModel);
   const jud = makeAnthropicCaller(key, judgeModel);
 
-  const perScenario = [];
-  for (let i = 0; i < N; i++) {
-    let scenario; try { scenario = await generateScenario(gen, i + 1); } catch (e) { console.log(`  gen#${i} ERR ${e.message}`); continue; }
-    if (!scenario) { console.log(`  gen#${i} parse-fail`); continue; }
-    let detected; try { detected = await runDetector(det, instructions, scenario); } catch (e) { console.log(`  det#${i} ERR ${e.message}`); continue; }
-    const { fires, captures } = detected;
-    const score = scoreScenario(scenario, fires);
-    const hiddenJudged = [];
-    for (const r of score.planted.filter((p) => p.kind === 'hidden_assumption')) {
-      // 실제로 잡은 전제 텍스트(captures[turn])를 심은 gist와 대조 — 발동만으로는
-      // '같은 위험을 잡았나'를 알 수 없으므로 판정기 B가 적대적으로 대조한다.
-      const capturedText = captures[r.turn] || '';
-      const verdict = capturedText ? await judgeHidden(jud, r.gist, capturedText) : { match: false, why: 'not captured' };
-      hiddenJudged.push({ turn: r.turn, captured: capturedText.slice(0, 200), ...verdict });
+  const CONC = Number(process.env.AUTO_CONCURRENCY || 5);
+  const MODES = [{ key: 'mcp', augment: null }, { key: 'plugin', augment: PLUGIN_AUGMENT }];
+
+  // 시나리오 하나당: 생성 1회 → 두 모드로 감지 → 각 모드 숨은전제 판정.
+  async function oneScenario(_item, i) {
+    let scenario; try { scenario = await generateScenario(gen, i + 1); } catch (e) { return { error: 'gen ' + e.message }; }
+    if (!scenario) return { error: 'gen parse-fail' };
+    const out = { scenario, modes: {} };
+    for (const m of MODES) {
+      let detected; try { detected = await runDetector(det, instructions, scenario, { augment: m.augment }); } catch (e) { out.modes[m.key] = { error: 'det ' + e.message }; continue; }
+      const score = scoreScenario(scenario, detected.fires);
+      const hiddenJudged = [];
+      for (const r of score.planted.filter((p) => p.kind === 'hidden_assumption')) {
+        const capturedText = detected.captures[r.turn] || '';
+        const verdict = capturedText ? await judgeHidden(jud, r.gist, capturedText) : { match: false, why: 'not captured' };
+        hiddenJudged.push({ turn: r.turn, captured: capturedText.slice(0, 200), ...verdict });
+      }
+      out.modes[m.key] = { score, hiddenJudged };
     }
-    perScenario.push({ scenario, score, hiddenJudged });
-    const pr = score.planted.filter((p) => p.hit).length;
-    console.log(`  scenario ${i + 1}/${N}: planted ${score.planted.length} → hit ${pr} · over-fire ${score.overfire.length}/${(scenario.filler_user_turns || []).length}`);
+    const line = MODES.map((m) => { const s = out.modes[m.key]; return s.score ? `${m.key} hit ${s.score.planted.filter((p) => p.hit).length}/${s.score.planted.length} of ${s.score.overfire.length}` : `${m.key} ERR`; }).join(' · ');
+    console.log(`  scenario ${i + 1}/${N}: ${line}`);
+    return out;
   }
 
-  const agg = aggregate(perScenario);
-  console.log('\n=== 자동 감지 eval 집계 ===');
-  console.log(JSON.stringify(agg, null, 2));
+  const raw = await runPool(Array.from({ length: N }), oneScenario, CONC);
+  const results = raw.filter((r) => r && r.scenario && r.modes);
 
-  // 실패 케이스를 마커 사이에 압축 출력 — 무인 개선 루프가 job 로그에서 이 블록만
-  // 파싱해 무엇을·왜 놓쳤는지 분석하고 고친다. 최대 40건으로 상한(로그 폭주 방지).
-  const failures = [];
-  for (const s of perScenario) {
-    const turnText = (i) => (s.scenario.turns[i]?.text || '').slice(0, 240);
-    for (const r of s.score.planted.filter((p) => !p.hit)) {
-      failures.push({ type: 'miss', kind: r.kind, want: WANT[r.kind], fired: r.fired, gist: r.gist, user_turn: turnText(r.turn) });
-    }
-    for (const o of s.score.overfire) {
-      failures.push({ type: 'over_fire', fired: o.fired, user_turn: turnText(o.turn) });
-    }
-    for (const h of (s.hiddenJudged || []).filter((m) => !m.match && m.why !== 'not fired' && m.why !== 'not captured')) {
-      failures.push({ type: 'hidden_mismatch', gist: s.score.planted.find((p) => p.turn === h.turn)?.gist, captured: h.captured, why: h.why });
+  // 모드별 집계 — perScenario를 모드별 뷰로 접는다.
+  const report = { at: process.env.RUN_STAMP || null, models: { genModel, detModel, judgeModel }, scenarios: results.length, byMode: {} };
+  const findings = [];
+  for (const m of MODES) {
+    const per = results.filter((r) => r.modes[m.key] && r.modes[m.key].score)
+      .map((r) => ({ scenario: r.scenario, score: r.modes[m.key].score, hiddenJudged: r.modes[m.key].hiddenJudged }));
+    report.byMode[m.key] = aggregate(per);
+    for (const s of per) {
+      const turnText = (i) => (s.scenario.turns[i]?.text || '').slice(0, 240);
+      for (const r of s.score.planted.filter((p) => !p.hit)) findings.push({ mode: m.key, type: 'miss', kind: r.kind, want: WANT[r.kind], fired: r.fired, gist: r.gist, user_turn: turnText(r.turn) });
+      for (const o of s.score.overfire) findings.push({ mode: m.key, type: 'over_fire', fired: o.fired, user_turn: turnText(o.turn) });
+      for (const h of (s.hiddenJudged || []).filter((x) => !x.match && x.why !== 'not fired' && x.why !== 'not captured')) findings.push({ mode: m.key, type: 'hidden_mismatch', gist: s.score.planted.find((p) => p.turn === h.turn)?.gist, captured: h.captured, why: h.why });
     }
   }
+
+  console.log('\n=== 자동 감지 eval 집계 (MCP vs 플러그인) ===');
+  console.log(JSON.stringify(report.byMode, null, 2));
   console.log('\n===AUTO_FINDINGS_START===');
-  console.log(JSON.stringify({ agg, failures: failures.slice(0, 40), failure_total: failures.length }));
+  console.log(JSON.stringify({ byMode: report.byMode, failures: findings.slice(0, 50), failure_total: findings.length }));
   console.log('===AUTO_FINDINGS_END===');
-  fs.writeFileSync(path.join(HERE, 'auto-detect-report.json'), JSON.stringify({ at: process.env.RUN_STAMP || null, models: { genModel, detModel, judgeModel }, agg, perScenario }, null, 2));
-  // 추이 1줄 append (시간은 CI가 RUN_STAMP로 주입 — 스크립트는 Date 불가 환경 대비)
-  fs.appendFileSync(path.join(HERE, 'auto-detect-trend.jsonl'), JSON.stringify({ at: process.env.RUN_STAMP || null, ...agg }) + '\n');
+  fs.writeFileSync(path.join(HERE, 'auto-detect-report.json'), JSON.stringify({ ...report, perScenario: results }, null, 2));
+  fs.appendFileSync(path.join(HERE, 'auto-detect-trend.jsonl'), JSON.stringify({ at: report.at, scenarios: report.scenarios, byMode: report.byMode }) + '\n');
   console.log('\n리포트: auto-detect-report.json · 추이: auto-detect-trend.jsonl');
 }
 
