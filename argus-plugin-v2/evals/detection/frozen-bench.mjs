@@ -51,15 +51,19 @@ export function corpusToScenarios(corpus = CORPUS) {
   });
 }
 
-/** 래칫 비교 (순수): 어느 모드든 정발동 하락 or 과발동 상승 = 회귀. */
-export function compareFrozen(baseline, current) {
+/** 래칫 비교 (순수). 실 API 감지는 run마다 요동하므로(같은 고정 코퍼스도
+ *  20/0 → 21/1) 정확 임계 비교는 샘플링 노이즈에 오작동한다. 톨러런스 밴드(TOL)
+ *  안의 변화는 노이즈로 허용하고, 그를 넘는 하락/상승만 회귀로 잡는다. TOL은
+ *  n≈24 정발동·n=8 filler 규모의 1-2 이벤트 요동을 흡수하되 3+ 실회귀는 잡는 값.
+ *  FROZEN_TOL 환경변수로 조정 가능(기본 2). */
+export function compareFrozen(baseline, current, tol = Number(process.env.FROZEN_TOL || 2)) {
   const reasons = [];
   for (const mode of ['mcp', 'plugin']) {
     const b = baseline?.byMode?.[mode];
     const c = current?.byMode?.[mode];
     if (!b || !c) continue;
-    if (c.fired_correct < b.fired_correct) reasons.push(`${mode}: fired_correct ${b.fired_correct}→${c.fired_correct}`);
-    if ((c.over_fire?.fired ?? 0) > (b.over_fire?.fired ?? 0)) reasons.push(`${mode}: over_fire ${b.over_fire.fired}→${c.over_fire.fired}`);
+    if (c.fired_correct < b.fired_correct - tol) reasons.push(`${mode}: fired_correct ${b.fired_correct}→${c.fired_correct} (>${tol} 하락)`);
+    if ((c.over_fire?.fired ?? 0) > (b.over_fire?.fired ?? 0) + tol) reasons.push(`${mode}: over_fire ${b.over_fire.fired}→${c.over_fire.fired} (>${tol} 상승)`);
   }
   return { ok: reasons.length === 0, reasons };
 }

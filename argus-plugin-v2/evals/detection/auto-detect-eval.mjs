@@ -130,7 +130,8 @@ export async function generateScenario(callModel, seedHint) {
  *   둘의 차이 = 훅의 값어치. 같은 시나리오에 둘 다 돌려 A/B. */
 export const PLUGIN_AUGMENT = [
   '[Argus sense — every-turn diagnosis injected by the plugin hook. Judge by MEANING, not keywords.]',
-  'Diagnose THIS turn: (1) a checkable PREDICTION (direction/target + horizon or number)? (2) an OUTCOME resolving a tracked prediction (pronoun references included)? (3) the single load-bearing ASSUMPTION the decision rests on — often UNSTATED, surface what was not said. If consequential, call the matching Argus tool (predict/resolve/capture) in the user\'s words — at most one, never a verdict; on a flat/trivial/reversible turn, stay silent (call nothing).',
+  'Diagnose THIS turn: (1) a checkable PREDICTION (direction/target + horizon or number)? (2) an OUTCOME resolving a tracked prediction (pronoun references included)? (3) the single load-bearing ASSUMPTION the decision rests on — often UNSTATED, surface what was not said. If consequential, call the matching Argus tool (predict/resolve/capture) in the user\'s words — at most one, never a verdict.',
+  'RESTRAINT (over-fire is a spine violation): a turn that only asks you to DO a task (write, review, summarize, configure, debug, draft), a logistics / scheduling / booking / recommendation question, or small talk is NOT a decision, prediction, or assumption — call NOTHING and just help. Fire only when the user is actually making a consequential call reality will later judge. When unsure, call nothing.',
 ].join('\n');
 
 export async function runDetector(callModel, instructions, scenario, opts = {}) {
