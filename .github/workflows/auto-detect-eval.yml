@@ -38,6 +38,13 @@ jobs:
           AUTO_SCENARIOS: ${{ github.event.inputs.scenarios || '40' }}
           AUTO_CONCURRENCY: ${{ github.event.inputs.concurrency || '6' }}
           RUN_STAMP: ${{ github.run_id }}
+      # 고정 벤치마크 + 래칫 — 매 라운드 같은 31케이스(사람 라벨)로 양 모드 실측.
+      # 베이스라인 대비 회귀면 exit 2 → job이 loud하게 빨간불, 루프가 revert.
+      - name: Frozen benchmark ratchet (fixed 31-case corpus, both modes)
+        run: node argus-plugin-v2/evals/detection/frozen-bench.mjs
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          RUN_STAMP: ${{ github.run_id }}
       - name: Upload report
         if: always()
         uses: actions/upload-artifact@v4
@@ -46,4 +53,5 @@ jobs:
           path: |
             argus-plugin-v2/evals/detection/auto-detect-report.json
             argus-plugin-v2/evals/detection/auto-detect-trend.jsonl
+            argus-plugin-v2/evals/detection/frozen-bench-report.json
           retention-days: 30
