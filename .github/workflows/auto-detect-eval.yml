@@ -11,10 +11,10 @@ on:
     inputs:
       scenarios:
         description: '생성할 시나리오 수 (모드별 A/B로 각각 감지)'
-        default: '40'
+        default: '25'
       concurrency:
-        description: '동시 시나리오 수 (throughput)'
-        default: '6'
+        description: '동시 시나리오 수 (낮게 — rate limit 회피)'
+        default: '3'
 
 jobs:
   auto-eval:
@@ -35,8 +35,8 @@ jobs:
         run: node argus-plugin-v2/evals/detection/auto-detect-eval.mjs
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-          AUTO_SCENARIOS: ${{ github.event.inputs.scenarios || '40' }}
-          AUTO_CONCURRENCY: ${{ github.event.inputs.concurrency || '6' }}
+          AUTO_SCENARIOS: ${{ github.event.inputs.scenarios || '25' }}
+          AUTO_CONCURRENCY: ${{ github.event.inputs.concurrency || '3' }}
           RUN_STAMP: ${{ github.run_id }}
       # 고정 벤치마크 + 래칫 — 매 라운드 같은 31케이스(사람 라벨)로 양 모드 실측.
       # 베이스라인 대비 회귀면 exit 2 → job이 loud하게 빨간불, 루프가 revert.

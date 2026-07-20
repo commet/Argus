@@ -62,6 +62,9 @@ export function compareFrozen(baseline, current, tol = Number(process.env.FROZEN
     const b = baseline?.byMode?.[mode];
     const c = current?.byMode?.[mode];
     if (!b || !c) continue;
+    // 이 모드가 0 시나리오면 rate-limit/인프라 실패 — 회귀로 오판 금지(스킵).
+    // scenarios===0만 검사(실 집계는 항상 이 필드를 채운다; 명시적 0만 빈 run).
+    if (c.scenarios === 0) continue;
     if (c.fired_correct < b.fired_correct - tol) reasons.push(`${mode}: fired_correct ${b.fired_correct}→${c.fired_correct} (>${tol} 하락)`);
     if ((c.over_fire?.fired ?? 0) > (b.over_fire?.fired ?? 0) + tol) reasons.push(`${mode}: over_fire ${b.over_fire.fired}→${c.over_fire.fired} (>${tol} 상승)`);
   }
@@ -79,7 +82,7 @@ async function main() {
   const det = makeAnthropicCaller(key, process.env.AUTO_DETECT_MODEL || 'claude-opus-4-8');
   const instructions = await serverInstructions();
   const scenarios = corpusToScenarios();
-  const CONC = Number(process.env.FROZEN_CONCURRENCY || 6);
+  const CONC = Number(process.env.FROZEN_CONCURRENCY || 3);
 
   const byMode = {};
   for (const m of [{ key: 'mcp', augment: null }, { key: 'plugin', augment: PLUGIN_AUGMENT }]) {
@@ -99,6 +102,14 @@ async function main() {
   console.log('===FROZEN_BENCH_START===');
   console.log(JSON.stringify(current));
   console.log('===FROZEN_BENCH_END===');
+
+  // 빈 run 가드: 양 모드 모두 0 시나리오면 감지 회귀가 아니라 rate-limit/인프라
+  // 실패다. 래칫을 빨간불로 만들지 말고(회귀 오판), 인프라 실패로 알리고 통과.
+  const totalScored = (byMode.mcp?.scenarios ?? 0) + (byMode.plugin?.scenarios ?? 0);
+  if (totalScored === 0) {
+    console.log('FROZEN_BENCH_EMPTY: 0 scored scenarios — rate limit/API 과부하로 추정. 래칫 스킵(회귀 아님). 다음 run에서 재측정.');
+    return;
+  }
 
   if (fs.existsSync(BASELINE_PATH)) {
     const verdict = compareFrozen(JSON.parse(fs.readFileSync(BASELINE_PATH, 'utf8')), current);

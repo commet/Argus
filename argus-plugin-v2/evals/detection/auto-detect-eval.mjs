@@ -214,7 +214,7 @@ async function main() {
   const det = makeAnthropicCaller(key, detModel);
   const jud = makeAnthropicCaller(key, judgeModel);
 
-  const CONC = Number(process.env.AUTO_CONCURRENCY || 5);
+  const CONC = Number(process.env.AUTO_CONCURRENCY || 3);
   const MODES = [{ key: 'mcp', augment: null }, { key: 'plugin', augment: PLUGIN_AUGMENT }];
 
   // 시나리오 하나당: 생성 1회 → 두 모드로 감지 → 각 모드 숨은전제 판정.

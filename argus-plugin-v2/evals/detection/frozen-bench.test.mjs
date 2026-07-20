@@ -75,5 +75,14 @@ test('래칫: 베이스라인 없는 모드는 건너뛴다', () => {
   assert.equal(compareFrozen({ byMode: {} }, base).ok, true);
 });
 
+test('래칫: 0-시나리오 현재값은 rate-limit로 보고 회귀 오판 안 함', () => {
+  // 실 사례: rate limit로 프로즌이 20→0을 냈으나 회귀가 아니라 인프라 실패.
+  const empty = { byMode: {
+    mcp: { scenarios: 0, planted_total: 0, fired_correct: 0, over_fire: { fired: 0 } },
+    plugin: { scenarios: 0, planted_total: 0, fired_correct: 0, over_fire: { fired: 0 } },
+  } };
+  assert.equal(compareFrozen(base, empty).ok, true);
+});
+
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);
