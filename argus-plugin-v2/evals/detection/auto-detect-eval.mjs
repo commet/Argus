@@ -194,6 +194,25 @@ async function main() {
   const agg = aggregate(perScenario);
   console.log('\n=== 자동 감지 eval 집계 ===');
   console.log(JSON.stringify(agg, null, 2));
+
+  // 실패 케이스를 마커 사이에 압축 출력 — 무인 개선 루프가 job 로그에서 이 블록만
+  // 파싱해 무엇을·왜 놓쳤는지 분석하고 고친다. 최대 40건으로 상한(로그 폭주 방지).
+  const failures = [];
+  for (const s of perScenario) {
+    const turnText = (i) => (s.scenario.turns[i]?.text || '').slice(0, 240);
+    for (const r of s.score.planted.filter((p) => !p.hit)) {
+      failures.push({ type: 'miss', kind: r.kind, want: WANT[r.kind], fired: r.fired, gist: r.gist, user_turn: turnText(r.turn) });
+    }
+    for (const o of s.score.overfire) {
+      failures.push({ type: 'over_fire', fired: o.fired, user_turn: turnText(o.turn) });
+    }
+    for (const h of (s.hiddenJudged || []).filter((m) => !m.match && m.why !== 'not fired' && m.why !== 'not captured')) {
+      failures.push({ type: 'hidden_mismatch', gist: s.score.planted.find((p) => p.turn === h.turn)?.gist, captured: h.captured, why: h.why });
+    }
+  }
+  console.log('\n===AUTO_FINDINGS_START===');
+  console.log(JSON.stringify({ agg, failures: failures.slice(0, 40), failure_total: failures.length }));
+  console.log('===AUTO_FINDINGS_END===');
   fs.writeFileSync(path.join(HERE, 'auto-detect-report.json'), JSON.stringify({ at: process.env.RUN_STAMP || null, models: { genModel, detModel, judgeModel }, agg, perScenario }, null, 2));
   // 추이 1줄 append (시간은 CI가 RUN_STAMP로 주입 — 스크립트는 Date 불가 환경 대비)
   fs.appendFileSync(path.join(HERE, 'auto-detect-trend.jsonl'), JSON.stringify({ at: process.env.RUN_STAMP || null, ...agg }) + '\n');
