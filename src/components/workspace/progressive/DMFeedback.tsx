@@ -158,31 +158,21 @@ export function DMFeedback({ fb, onToggle, onFinalize, onDeepen, busy }: { fb: D
 
             {/* Actions — primary + secondary path */}
             <div className="space-y-3">
+              {/* One count, not two: the pill owns the fraction. The old sub-line
+                  restated "N건 중 M건 선택" right next to the "M/N" pill, and a
+                  third centered nudge told the user to press the glowing button
+                  below — all removed. */}
               <div className="flex items-center justify-between rounded-xl bg-[var(--bg)]/70 px-3.5 py-3" aria-live="polite">
                 <div>
-                  <p className="text-[12px] font-semibold text-[var(--text-primary)]">{L('최종본 반영 예정', 'Ready for final document')}</p>
-                  <p className="mt-0.5 text-[11px] text-[var(--text-tertiary)]">
-                    {fb.concerns.length > 0
-                      ? L(`수정 제안 ${fb.concerns.length}건 중 ${appliedCount}건 선택`, `${appliedCount} of ${fb.concerns.length} revisions selected`)
-                      : L('추가로 반영할 수정 제안이 없어요', 'No additional revisions to apply')}
-                  </p>
+                  <p className="text-[12px] font-semibold text-[var(--text-primary)]">{L('반영할 수정 제안', 'Revisions to apply')}</p>
+                  {fb.concerns.length === 0 && (
+                    <p className="mt-0.5 text-[11px] text-[var(--text-tertiary)]">{L('추가로 반영할 게 없어요', 'Nothing more to apply')}</p>
+                  )}
                 </div>
                 <span className="rounded-full bg-[var(--surface)] px-2.5 py-1 text-[11px] font-semibold tabular-nums text-[var(--accent)]">
                   {fb.concerns.length > 0 ? `${appliedCount}/${fb.concerns.length}` : L('확인 완료', 'Checked')}
                 </span>
               </div>
-              {hasChanges && !busy && (
-                <motion.p
-                  initial={{ opacity: 0, y: 4 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.3, ease: EASE }}
-                  className="text-center text-[12px] text-[var(--accent)] font-medium"
-                >
-                  {locale === 'ko'
-                    ? `변경 ${changedCount}건 — 아래 버튼을 눌러 최종본에 반영하세요`
-                    : `${changedCount} pending change${changedCount === 1 ? '' : 's'} — press below to apply to the final doc`}
-                </motion.p>
-              )}
               <motion.button
                 type="button"
                 onClick={onFinalize}

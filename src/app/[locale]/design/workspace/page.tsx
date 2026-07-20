@@ -135,7 +135,7 @@ export default function WorkspacePage() {
                   <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: 'linear-gradient(90deg,#a87d31,#e2bf6e,#a87d31)', borderRadius: '13px 13px 0 0' }} />
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
                     <span style={{ font: `600 10px/1 ${MONO}`, letterSpacing: '.16em', textTransform: 'uppercase', color: '#a87d31' }}>Route A · 채택</span>
-                    <span style={{ font: `600 9.5px/1 ${MONO}`, color: '#3a2a10', padding: '4px 8px', borderRadius: 6, border: '1px solid #7d5a22', background: 'linear-gradient(180deg,#e2bf6e,#b8893a)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,.4)' }}>현재 방위</span>
+                    <span style={{ font: `600 9.5px/1 ${MONO}`, color: '#3a2a10', padding: '4px 8px', borderRadius: 6, border: '1px solid #7d5a22', background: 'linear-gradient(180deg,#e2bf6e,#b8893a)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,.4)' }}>결정 요약</span>
                   </div>
                   <h4 style={{ margin: 0, font: `600 15px ${SERIF}`, color: '#221e19' }}>북서 항로로 전환</h4>
                   <p style={{ margin: 0, fontSize: 12, lineHeight: 1.55, color: '#6b5c38' }}>바람은 거슬러도 가장 빠른 도착. 위험 관리 가능.</p>

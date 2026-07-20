@@ -203,7 +203,7 @@ function ProgressiveLayout({ projectId, projectName, onReset }: { projectId: str
             </span>
             {branchInfo && (
               <span className="relative min-w-0 pl-2 ml-0.5 border-l border-[var(--border-subtle)]">
-                {/* '현재 방위'(결과 카드)와의 동음이의 해소 — 이 칩은 세션 갈래 전환기다 (06 S1) */}
+                {/* '결정 요약'(결과 카드, 옛 이름 '현재 방위')과의 혼동 방지 — 이 칩은 세션 갈래 전환기다 (06 S1) */}
                 <button
                   ref={branchTriggerRef}
                   type="button"

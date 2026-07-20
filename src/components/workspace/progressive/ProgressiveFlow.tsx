@@ -118,9 +118,8 @@ function ReviewerBadge({ reviewerId }: { reviewerId: string | null }) {
           {code}
         </span>
       )}
-      <span className="text-[10px] text-[var(--text-tertiary)] hidden sm:inline">
-        {L('· 이 기획을 봅니다', '· will review this plan')}
-      </span>
+      {/* (Removed "· 이 기획을 봅니다" — the badge's title tooltip already says
+          the reviewer reviews this plan; the visible caption re-narrated it.) */}
     </motion.div>
   );
 }
@@ -543,8 +542,11 @@ function LeadSynthesisCard({ synthesis }: { synthesis: LeadSynthesisResult }) {
                       limit at the product level, rather than claiming "we don't
                       judge". Quiet, once per card. */}
                   <p className="mt-2 pl-4 text-[10.5px] text-[var(--text-tertiary)] leading-[1.5]">
-                    {L('답이 아니라, 이 결정을 가장 크게 좌우하는 질문 하나예요. 이런 질문은 그 자체로 어느 쪽을 살짝 가리킬 수 있는데 — 그건 저희가 못 지우는 한계일 뿐, 판단은 당신 몫이에요.',
-                       "This is the one question it turns on, not an answer. The sharpest question can itself lean faintly one way — that's a limit we can't fully remove, not our verdict. The call is yours.")}
+                    {/* Spine F5 (CLAUDE.md): keep naming the faint lean as a known
+                        limit — no-machinery-leak.test pins this. "기울기" was jargon;
+                        "은근히 한쪽으로 치우칠 수 있다" is the plain-language version. */}
+                    {L('이 결정이 가장 크게 걸리는 질문이에요. 이런 질문은 은근히 한쪽으로 치우칠 수 있고, 그건 저희가 못 지우는 한계예요 — 판단은 당신 몫이에요.',
+                       "The one question it turns on. A question like this can subtly lean one way — a limit we can't fully remove, and the call is yours.")}
                   </p>
                 </div>
               )}
@@ -881,10 +883,11 @@ export function MirrorBeat({ assumption }: { assumption: string }) {
       <p className="text-[13.5px] text-[var(--text-primary)] leading-[1.6] max-w-[60ch]">
         {assumption}
       </p>
-      {/* Recognition, not a question. Hand control back; no 맞나요?, no fork. */}
+      {/* Recognition, not a question. Hand control back; no 맞나요?, no fork.
+          (First sentence dropped: the "AI가 임시로 둔 전제" label already says
+          the AI placed it — the body only needs the "you can fix it" half.) */}
       <p className="text-[12.5px] text-[var(--text-secondary)] leading-[1.6] mt-2.5">
-        {L('당신이 말한 게 아니라 분석이 대신 깔아둔 거예요. 틀렸다면 아래 답에서 바로잡으면 돼요.',
-           'You didn\'t say this — the analysis laid it down. If it\'s off, just correct it in your next answer.')}
+        {L('틀렸다면 아래 답에서 바로잡으면 돼요.', "If it's off, just correct it in your next answer.")}
       </p>
     </motion.div>
   );
@@ -902,22 +905,25 @@ export function MirrorBeat({ assumption }: { assumption: string }) {
  *   1. Draft the deliverable as-is (the natural next artifact).
  *   2. Keep digging — re-open the full Q&A flow (restraint default = off).
  * No engine-weighted fork, no directional lean — just closure + the handle. */
+// Diagnostic line only — the heading ("여기서 마쳐도 돼요") + the two buttons
+// (draft / dig in) carry the "you can stop or keep going" half, so each route's
+// second sentence was cut as a restatement.
 const TERMINAL_ROUTE_COPY: Record<string, { ko: string; en: string }> = {
   flat: {
-    ko: '어느 쪽을 골라도 결과가 크게 다르지 않은 결정이에요. 억지로 고민거리를 만들기보다, 지금 정리된 내용을 그대로 남겨둘 수 있어요.',
-    en: 'This decision lands about the same whichever way you go. Rather than manufacture a fork, you can keep what\'s already laid out.',
+    ko: '어느 쪽을 골라도 결과가 크게 다르지 않은 결정이에요.',
+    en: 'This decision lands about the same whichever way you go.',
   },
   vent: {
-    ko: '지금은 무언가를 결정하기보다 상황을 정리하는 쪽에 가까워 보여요. 아래 정리를 그대로 두거나, 원하면 더 파고들 수 있어요.',
-    en: 'This reads more like laying the situation out than deciding something. Keep the summary below as-is, or dig deeper if you want.',
+    ko: '지금은 결정하기보다 상황을 정리하는 쪽에 가까워 보여요.',
+    en: 'This reads more like laying the situation out than deciding something.',
   },
   validation: {
-    ko: '방향은 이미 잡혀 있고, 확인이 필요한 상황으로 보여요. 아래 정리로 마무리하거나 더 짚어볼 수 있어요.',
-    en: 'The direction already looks set — this reads as needing confirmation. Wrap up with the summary below, or press further.',
+    ko: '방향은 이미 잡혀 있고, 확인이 필요한 상황으로 보여요.',
+    en: 'The direction already looks set — this reads as needing confirmation.',
   },
   info: {
-    ko: '결정이라기보다 정보를 정리하는 요청에 가까워요. 아래 정리가 그 답이에요.',
-    en: 'This is closer to organizing information than making a decision — the summary below is that answer.',
+    ko: '결정이라기보다 정보를 정리하는 요청에 가까워요.',
+    en: 'This is closer to organizing information than making a decision.',
   },
 };
 
@@ -1001,13 +1007,14 @@ function FramingConfirmation({ snapshot, onConfirm, onReject, busy }: {
         </div>
         <div>
           <p className="text-[13px] font-semibold text-[var(--text-primary)] leading-snug">{L('이 방향으로 정리할까요?', 'Should we continue in this direction?')}</p>
-          {/* Measurement language, not a score: "확신도 N%" was verdict
-              vocabulary — describe the state instead (P1 zero-verdict). */}
-          <p className="text-[11px] text-[var(--text-tertiary)] mt-0.5">
-            {isLowConfidence
-              ? L('이 문제는 여러 방향으로 읽힐 수 있어요 — 해석이 흔들릴 여지가 있어요.', 'This problem reads in more than one way — the framing could still shift.')
-              : L('분석 방향을 확인하고 다음으로 넘어가요.', 'Confirm the analysis direction to proceed.')}
-          </p>
+          {/* Only the low-confidence case earns a subline — and without the
+              "흔들릴 여지가 있어요" clause that undercut the analysis mid-confirm.
+              The high-confidence subline just restated the heading + buttons. */}
+          {isLowConfidence && (
+            <p className="text-[11px] text-[var(--text-tertiary)] mt-0.5">
+              {L('이 문제는 여러 방향으로 읽힐 수 있어요.', 'This problem reads in more than one way.')}
+            </p>
+          )}
         </div>
       </div>
 
@@ -3098,13 +3105,12 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
                 className="flex items-start gap-2.5 px-4 py-3 mb-4 rounded-xl bg-[var(--accent)]/[0.05] border border-[var(--accent)]/20"
               >
                 <span className="text-[15px] shrink-0 leading-none mt-0.5">💬</span>
-                {/* 공정 5-3: this line is the screen's ONLY narrator — it must
-                    connect the blocks above (전제·항로) to the question below and
-                    to what comes after (team → draft), not just say "answer us". */}
+                {/* One line, not the whole pipeline: the analysis above + the
+                    question below already show what's happening. */}
                 <p className="text-[12.5px] text-[var(--text-secondary)] leading-[1.55]">
                   {locale === 'ko'
-                    ? <>방금 상황을 읽고 위에 <strong className="text-[var(--text-primary)]">일단의 방향</strong>을 정리했어요. 질문 <strong className="text-[var(--text-primary)]">두세 개</strong>에 답할수록 방향이 더 뚜렷해지고, 그다음 <strong className="text-[var(--text-primary)]">AI 검토자들이 초안</strong>을 만들어요.</>
-                    : <>We read your situation and clarified a <strong className="text-[var(--text-primary)]">working direction</strong> above. <strong className="text-[var(--text-primary)]">A couple of answers</strong> refine it — then <strong className="text-[var(--text-primary)]">AI reviewers draft</strong> from it.</>}
+                    ? <>답할수록 방향이 <strong className="text-[var(--text-primary)]">뚜렷</strong>해져요.</>
+                    : <>Each answer sharpens the <strong className="text-[var(--text-primary)]">direction</strong>.</>}
                 </p>
               </motion.div>
             )}
@@ -3214,8 +3220,8 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
                     DOES and where the rating goes. One line, always visible. */}
                 <p className="text-[11.5px] text-[var(--text-tertiary)] px-1 leading-[1.5]">
                   {L(
-                    '반영 = 최종 문서에 들어가요 · 제외 = 빠져요 (언제든 번복 가능) · 아래 평가는 검토자 기록에 남아 다음 AI 검토자 선정에 참고돼요',
-                    'Apply = goes into the final doc · Exclude = left out (reversible anytime) · ratings stay on the reviewer record for future reviewer selection',
+                    '반영 = 문서에 포함 · 제외 = 빠짐 (언제든 번복 가능)',
+                    'Apply = included · Exclude = left out (reversible anytime)',
                   )}
                 </p>
                 {/* Progress — clickable dots + N/total */}
@@ -3886,7 +3892,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
                     {L('종합자에게 수정 요청', 'Ask Synthesizer to revise')}
                   </h3>
                   <p className="text-[11px] text-[var(--text-tertiary)] mt-0.5">
-                    {L('종합자는 팀 결과를 통합한 에이전트예요', 'The synthesizer integrates the whole team’s work')} · {L('현재 버전', 'Current version')} <span className="font-semibold">{activeDraft.version_label}</span>
+                    {L('현재 버전', 'Current version')} <span className="font-semibold">{activeDraft.version_label}</span>
                   </p>
                 </div>
               </div>

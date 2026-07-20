@@ -91,7 +91,7 @@ const FIXTURES: Record<string, string[]> = {
   ],
   'components/workspace/progressive/SealMoment.tsx': [
     '마지막으로',
-    '"그래서, 어떻게 됐어요?" — 그날 이 결정으로 돌아옵니다.',
+    '좋아요 — 그날 프로젝트 페이지에서 제가 먼저 물어볼게요.',
     '캘린더에 약속 넣기',
     '날짜·예측 손보기',
   ],
