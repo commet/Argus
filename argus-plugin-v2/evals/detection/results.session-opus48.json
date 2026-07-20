@@ -1,0 +1,37 @@
+[
+  { "id": "pred-ko-measurable", "detected": { "prediction": true, "outcome": false, "assumption_stated": false, "hidden_assumption": null } },
+  { "id": "pred-en-measurable", "detected": { "prediction": true, "outcome": false, "assumption_stated": false, "hidden_assumption": null } },
+  { "id": "pred-en-completion", "detected": { "prediction": true, "outcome": false, "assumption_stated": false, "hidden_assumption": null } },
+  { "id": "pred-ko-completion", "detected": { "prediction": true, "outcome": false, "assumption_stated": false, "hidden_assumption": "배포가 느린 병목이 인력 부족이고, 이 채용이 그 병목을 실제로 푼다" }, "hidden_ok": true },
+  { "id": "pred-ko-vague-horizon", "detected": { "prediction": true, "outcome": false, "assumption_stated": false, "hidden_assumption": "예상되는 무리가 실제로 오더라도 그때 감당하거나 되돌릴 수 있다" } },
+  { "id": "pred-en-contraction", "detected": { "prediction": true, "outcome": false, "assumption_stated": false, "hidden_assumption": "현재 용량 추정이 실제 런칭 트래픽과 맞다" } },
+  { "id": "pred-ko-yearend", "detected": { "prediction": true, "outcome": false, "assumption_stated": false, "hidden_assumption": "개입이 없으면 지금 리텐션 추세가 그대로 이어진다" } },
+  { "id": "pred-ko-mixed-done", "detected": { "prediction": true, "outcome": false, "assumption_stated": false, "hidden_assumption": "마이그레이션에 이번 주를 넘길 숨은 복잡도가 없다" } },
+  { "id": "pred-assistant-latency", "detected": { "prediction": true, "outcome": false, "assumption_stated": false, "hidden_assumption": "p95 레이턴시의 실제 병목이 이 인덱스가 겨냥하는 쿼리다" } },
+
+  { "id": "out-ko-explicit", "detected": { "prediction": false, "outcome": true, "assumption_stated": false, "hidden_assumption": null } },
+  { "id": "out-en-explicit", "detected": { "prediction": false, "outcome": true, "assumption_stated": false, "hidden_assumption": null } },
+  { "id": "out-ko-pronoun", "detected": { "prediction": false, "outcome": true, "assumption_stated": false, "hidden_assumption": null } },
+  { "id": "out-en-pronoun", "detected": { "prediction": false, "outcome": true, "assumption_stated": false, "hidden_assumption": null } },
+  { "id": "out-ko-failed", "detected": { "prediction": false, "outcome": true, "assumption_stated": false, "hidden_assumption": null } },
+
+  { "id": "asm-en-marked", "detected": { "prediction": false, "outcome": false, "assumption_stated": true, "hidden_assumption": null } },
+  { "id": "asm-ko-marked", "detected": { "prediction": false, "outcome": false, "assumption_stated": true, "hidden_assumption": null } },
+  { "id": "asm-assistant-marked", "detected": { "prediction": false, "outcome": false, "assumption_stated": true, "hidden_assumption": null } },
+
+  { "id": "hid-ko-freetier", "detected": { "prediction": false, "outcome": false, "assumption_stated": false, "hidden_assumption": "무료를 없애면 그 사용자가 이탈하지 않고 유료로 전환하며, 무료가 신규 유입·입소문 동력이 아니다" }, "hidden_ok": true },
+  { "id": "hid-en-freetier", "detected": { "prediction": false, "outcome": false, "assumption_stated": false, "hidden_assumption": "free 사용자를 없애면 이탈이 아니라 유료 전환으로 이어지고, free가 획득 채널이 아니다" }, "hidden_ok": true },
+  { "id": "hid-ko-pricing", "detected": { "prediction": false, "outcome": false, "assumption_stated": false, "hidden_assumption": "구매 결정의 주된 변수가 가격이고, 그 경쟁사가 실제 비교 기준이며, 2배 인상에도 수요가 크게 줄지 않는다" }, "hidden_ok": true },
+  { "id": "hid-ko-defer", "detected": { "prediction": false, "outcome": false, "assumption_stated": false, "hidden_assumption": "지금 결제 기능이 없어도 이번 스프린트 동안 잃는 사용자나 매출이 없다" }, "hidden_ok": true },
+  { "id": "hid-en-pivot", "detected": { "prediction": false, "outcome": false, "assumption_stated": false, "hidden_assumption": "우리 팀이 엔터프라이즈 세일즈를 실행할 수 있고, SSO가 실제 구매 차단 요인이며, 기존 B2C 자산이 B2B로 전이된다" }, "hidden_ok": true },
+  { "id": "hid-en-hiring", "detected": { "prediction": false, "outcome": false, "assumption_stated": true, "hidden_assumption": "파이프라인이 얇은 진짜 병목이 인력이며(제품·타겟팅이 아니라), 새 렙이 충분히 빨리 생산성을 낸다" }, "hidden_ok": true },
+
+  { "id": "neg-weather", "detected": { "prediction": false, "outcome": false, "assumption_stated": false, "hidden_assumption": null } },
+  { "id": "neg-explain", "detected": { "prediction": false, "outcome": false, "assumption_stated": false, "hidden_assumption": null } },
+  { "id": "neg-refactor", "detected": { "prediction": false, "outcome": false, "assumption_stated": false, "hidden_assumption": null } },
+  { "id": "neg-run-tests", "detected": { "prediction": false, "outcome": false, "assumption_stated": false, "hidden_assumption": null } },
+  { "id": "neg-thanks-en", "detected": { "prediction": false, "outcome": false, "assumption_stated": false, "hidden_assumption": null } },
+  { "id": "neg-thanks-ko", "detected": { "prediction": false, "outcome": false, "assumption_stated": false, "hidden_assumption": null } },
+  { "id": "neg-meeting-digit", "detected": { "prediction": false, "outcome": false, "assumption_stated": false, "hidden_assumption": null } },
+  { "id": "neg-because-tired", "detected": { "prediction": false, "outcome": false, "assumption_stated": false, "hidden_assumption": null } }
+]

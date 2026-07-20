@@ -5,7 +5,7 @@ import { duePremises, groupDuePremises, dueOpenQuestions } from '../lib/premises
 import { readReceipt, SKIPPED } from '../lib/receipt.js';
 import { SURFACES, resolveResponseLocale, surfaceLocale } from '../lib/surfaces.js';
 import { z } from 'zod';
-import type { NextAction } from '../lib/spine.js';
+import { STANDING_SENSE_REFRESH, type NextAction } from '../lib/spine.js';
 import { envelope } from '../lib/envelope.js';
 import { ENVELOPE_OUTPUT_SCHEMA, zArgusDir, zDate, type ToolModule } from './tool-types.js';
 import { handleToolException } from './errors.js';
@@ -291,7 +291,7 @@ export const checkIn: ToolModule = {
           ok: true, tool: 'argus_check_in',
           surface: mirrorLine + S.nothing_due + accountHint + upcomingLine + fleetLine + integrityLine,
           next_actions: ['stop'],
-          data: { due: [], due_count: 0, due_premises: [], due_premise_count: 0, due_open_questions: [], due_open_question_count: 0, ...(openWatch.length ? { open_predictions: openWatch } : {}), ...(upDays > 0 ? { upcoming } : {}), ...(a['fleet'] === true ? { fleet: fleetRows } : {}), ...watchData, today, integrity: ledger.integrity, ...(process.env['ARGUS_V2_DEBUG'] === '1' ? { capture_status: captureStatus, v2_brief: readV2Brief(dir, today), v2_divergence: briefDivergence([], readV2Brief(dir, today)) } : {}) },
+          data: { due: [], due_count: 0, due_premises: [], due_premise_count: 0, due_open_questions: [], due_open_question_count: 0, ...(openWatch.length ? { open_predictions: openWatch, standing_sense: STANDING_SENSE_REFRESH } : {}), ...(upDays > 0 ? { upcoming } : {}), ...(a['fleet'] === true ? { fleet: fleetRows } : {}), ...watchData, today, integrity: ledger.integrity, ...(process.env['ARGUS_V2_DEBUG'] === '1' ? { capture_status: captureStatus, v2_brief: readV2Brief(dir, today), v2_divergence: briefDivergence([], readV2Brief(dir, today)) } : {}) },
         });
       }
 
@@ -340,7 +340,7 @@ export const checkIn: ToolModule = {
           ...(upDays > 0 ? { upcoming } : {}),
           ...(a['fleet'] === true ? { fleet: fleetRows } : {}),
           ...watchData,
-          ...(openWatch.length ? { open_predictions: openWatch } : {}),
+          ...(openWatch.length ? { open_predictions: openWatch, standing_sense: STANDING_SENSE_REFRESH } : {}),
           today, integrity: ledger.integrity,
           // v2 병기/진단은 ARGUS_V2_DEBUG=1 뒤로. 공개 payload에 싣던 v2_brief가
           // 머신-전역 durable-home 저장소를 읽어 다른 프로젝트의 결정 원문을

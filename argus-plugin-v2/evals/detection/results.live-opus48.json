@@ -1,0 +1,281 @@
+[
+  {
+    "id": "pred-ko-measurable",
+    "detected": {
+      "prediction": true,
+      "outcome": false,
+      "assumption_stated": false,
+      "hidden_assumption": "Current market conditions and growth drivers will continue on their present trajectory through next quarter."
+    }
+  },
+  {
+    "id": "pred-en-measurable",
+    "detected": {
+      "prediction": true,
+      "outcome": false,
+      "assumption_stated": false,
+      "hidden_assumption": "The actions the team plans to take will actually reduce churn rather than leave it flat or rising."
+    }
+  },
+  {
+    "id": "pred-en-completion",
+    "detected": {
+      "prediction": true,
+      "outcome": false,
+      "assumption_stated": false,
+      "hidden_assumption": "No blocking issues (e.g., App Store review, build failures, or unfinished features) will prevent submission before Friday."
+    }
+  },
+  {
+    "id": "pred-ko-completion",
+    "detected": {
+      "prediction": true,
+      "outcome": false,
+      "assumption_stated": false,
+      "hidden_assumption": "The new hires' bottleneck is the deployment process itself, and adding people will speed it up rather than slow it down with onboarding overhead."
+    }
+  },
+  {
+    "id": "pred-ko-vague-horizon",
+    "detected": {
+      "prediction": true,
+      "outcome": false,
+      "assumption_stated": false,
+      "hidden_assumption": "The current course can be corrected or the strain absorbed before it actually becomes a real problem."
+    }
+  },
+  {
+    "id": "pred-en-contraction",
+    "detected": {
+      "prediction": true,
+      "outcome": false,
+      "assumption_stated": false,
+      "hidden_assumption": "Actual traffic at launch will not exceed the capacity that has been provisioned."
+    }
+  },
+  {
+    "id": "pred-ko-yearend",
+    "detected": {
+      "prediction": true,
+      "outcome": false,
+      "assumption_stated": true,
+      "hidden_assumption": "Current retention trends and user behavior will continue on their present trajectory without any intervening changes."
+    }
+  },
+  {
+    "id": "pred-ko-mixed-done",
+    "detected": {
+      "prediction": true,
+      "outcome": false,
+      "assumption_stated": false,
+      "hidden_assumption": "The migration to Redis has no unforeseen blockers that would push it past this week."
+    }
+  },
+  {
+    "id": "pred-assistant-latency",
+    "detected": {
+      "prediction": true,
+      "outcome": false,
+      "assumption_stated": false,
+      "hidden_assumption": "The query workload is read-heavy enough that the added index's read speedup outweighs its write/maintenance cost."
+    }
+  },
+  {
+    "id": "out-ko-explicit",
+    "detected": {
+      "prediction": false,
+      "outcome": true,
+      "assumption_stated": false,
+      "hidden_assumption": "무중단으로 끝났다는 것은 다운타임이 전혀 없었다는 의미와 동일하다"
+    }
+  },
+  {
+    "id": "out-en-explicit",
+    "detected": {
+      "prediction": false,
+      "outcome": true,
+      "assumption_stated": false,
+      "hidden_assumption": null
+    }
+  },
+  {
+    "id": "out-ko-pronoun",
+    "detected": {
+      "prediction": false,
+      "outcome": true,
+      "assumption_stated": false,
+      "hidden_assumption": "\"잘 됐다\"는 것은 서버 이전 후에도 다운타임이 없었다는 의미다."
+    }
+  },
+  {
+    "id": "out-en-pronoun",
+    "detected": {
+      "prediction": false,
+      "outcome": true,
+      "assumption_stated": false,
+      "hidden_assumption": "\"that\" refers to the hire getting the team to weekly deploys, and \"working out fine\" means that prediction came true"
+    }
+  },
+  {
+    "id": "out-ko-failed",
+    "detected": {
+      "prediction": false,
+      "outcome": true,
+      "assumption_stated": false,
+      "hidden_assumption": "'그 계약'은 기록에 있는 '6월 안에 물류 계약 체결' 건을 가리킨다."
+    }
+  },
+  {
+    "id": "asm-en-marked",
+    "detected": {
+      "prediction": true,
+      "outcome": false,
+      "assumption_stated": true,
+      "hidden_assumption": "The vendor API will actually stay under 200ms in practice."
+    }
+  },
+  {
+    "id": "asm-ko-marked",
+    "detected": {
+      "prediction": true,
+      "outcome": false,
+      "assumption_stated": true,
+      "hidden_assumption": "The new hire, once onboarded, will have enough deployment-relevant capacity and skill to actually support the increased weekly release cadence."
+    }
+  },
+  {
+    "id": "asm-assistant-marked",
+    "detected": {
+      "prediction": true,
+      "outcome": false,
+      "assumption_stated": true,
+      "hidden_assumption": "The current traffic level will actually stay flat rather than grow."
+    }
+  },
+  {
+    "id": "hid-ko-freetier",
+    "detected": {
+      "prediction": true,
+      "outcome": false,
+      "assumption_stated": false,
+      "hidden_assumption": "Free users are failing to convert because they are satisfied with the free tier, rather than because the paid tier lacks value or the audience simply won't pay."
+    }
+  },
+  {
+    "id": "hid-en-freetier",
+    "detected": {
+      "prediction": true,
+      "outcome": false,
+      "assumption_stated": true,
+      "hidden_assumption": "Free users who lose the free tier will convert to paid rather than leave entirely."
+    }
+  },
+  {
+    "id": "hid-ko-pricing",
+    "detected": {
+      "prediction": true,
+      "outcome": false,
+      "assumption_stated": true,
+      "hidden_assumption": "Customers will keep buying at the higher price because it is still cheaper than competitors."
+    }
+  },
+  {
+    "id": "hid-ko-defer",
+    "detected": {
+      "prediction": false,
+      "outcome": false,
+      "assumption_stated": false,
+      "hidden_assumption": "There will be a next sprint with enough capacity to absorb the deferred payment integration work."
+    }
+  },
+  {
+    "id": "hid-en-pivot",
+    "detected": {
+      "prediction": true,
+      "outcome": false,
+      "assumption_stated": false,
+      "hidden_assumption": "Enterprise buyers' primary blocker to closing is the lack of SSO, rather than pricing, procurement, security review, or sales relationships."
+    }
+  },
+  {
+    "id": "hid-en-hiring",
+    "detected": {
+      "prediction": true,
+      "outcome": false,
+      "assumption_stated": true,
+      "hidden_assumption": "The thin pipeline is caused by insufficient sales headcount rather than by targeting, product fit, or conversion problems."
+    }
+  },
+  {
+    "id": "neg-weather",
+    "detected": {
+      "prediction": false,
+      "outcome": false,
+      "assumption_stated": false,
+      "hidden_assumption": "The person being asked has access to today's weather information for the user's location."
+    }
+  },
+  {
+    "id": "neg-explain",
+    "detected": {
+      "prediction": false,
+      "outcome": false,
+      "assumption_stated": false,
+      "hidden_assumption": "The function's code was actually provided or is accessible in this context."
+    }
+  },
+  {
+    "id": "neg-refactor",
+    "detected": {
+      "prediction": false,
+      "outcome": false,
+      "assumption_stated": false,
+      "hidden_assumption": "There is specific code/context in scope that the assistant can access and refactor."
+    }
+  },
+  {
+    "id": "neg-run-tests",
+    "detected": {
+      "prediction": false,
+      "outcome": false,
+      "assumption_stated": false,
+      "hidden_assumption": "The tests exist and are runnable in the current environment."
+    }
+  },
+  {
+    "id": "neg-thanks-en",
+    "detected": {
+      "prediction": false,
+      "outcome": false,
+      "assumption_stated": false,
+      "hidden_assumption": "The work being approved actually meets the requirements it will be used for."
+    }
+  },
+  {
+    "id": "neg-thanks-ko",
+    "detected": {
+      "prediction": false,
+      "outcome": false,
+      "assumption_stated": false,
+      "hidden_assumption": "The thing delivered actually matches what the user needed, not just what they think they wanted right now."
+    }
+  },
+  {
+    "id": "neg-meeting-digit",
+    "detected": {
+      "prediction": false,
+      "outcome": false,
+      "assumption_stated": false,
+      "hidden_assumption": "There is exactly one meeting and one calendar entry that the assistant can unambiguously identify to reschedule."
+    }
+  },
+  {
+    "id": "neg-because-tired",
+    "detected": {
+      "prediction": false,
+      "outcome": false,
+      "assumption_stated": false,
+      "hidden_assumption": "There was a prior topic or thread the conversation can resume from."
+    }
+  }
+]

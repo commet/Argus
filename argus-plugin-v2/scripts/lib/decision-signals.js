@@ -77,6 +77,31 @@ function readTail(p, maxBytes) {
   }
 }
 
+// The most recent REAL assistant utterance in a transcript tail (text blocks
+// only — tool_use noise dropped). Returns "" if none found. This is what lets a
+// hook's scan window cover BOTH sides of the conversation: assumptions and
+// predictions surface in the assistant's answer as much as in the user's ask
+// (2026-07-20 근원 분석 §3.3 — "진단 시점이 반쪽"의 수리).
+function lastAssistantText(tail, partial) {
+  const lines = tail.split("\n");
+  if (partial && lines.length) lines.shift(); // drop the (likely broken) first line
+  for (let i = lines.length - 1; i >= 0; i--) {
+    const ln = lines[i].trim();
+    if (!ln) continue;
+    let o;
+    try { o = JSON.parse(ln); } catch { continue; }
+    const role = o.type || (o.message && o.message.role);
+    if (role !== "assistant") continue;
+    const c = o.message ? o.message.content : o.content;
+    const txt = (typeof c === "string"
+      ? c
+      : Array.isArray(c) ? c.filter((x) => x && x.type === "text").map((x) => x.text).join(" ") : ""
+    ).trim();
+    if (txt) return txt;
+  }
+  return "";
+}
+
 // The most recent REAL user utterance in a transcript tail (skip tool_results,
 // meta lines, slash-commands). Returns "" if none found.
 function lastUserText(tail, partial) {
@@ -258,6 +283,60 @@ function detectSignals(text, opts = {}) {
 }
 const CUE_GROUPS = { FUTURE, MEASURABLE, COMPLETION, RESOLVED, CONDITIONAL };
 
+/* ─────────────────────────────────────────────────────────────────────────────
+ * PREFILTER — 2026-07-20 설계 교정 §3.2의 시공. 규칙은 감지기가 될 수 없다
+ * (숨은 전제는 정의상 표지가 없다). 그래서 규칙의 역할은 두 가지로 강등된다:
+ *   1. 사전필터 — "이 턴에 AI 진단 지시를 주입할 가치가 있는가"만 정한다.
+ *      감지가 아니라 비용 게이트다. 그래서 위 detectSignals(conjunction,
+ *      정밀)와 달리 DISJUNCTION(단서 하나면 통과)으로 최대 리콜을 잡는다.
+ *   2. 최저선 — detectSignals가 잡은 스팬은 AI 진단 지시에 "후보"로 동봉되어
+ *      리콜의 못 흔들리는 바닥이 된다 (규칙이 잡은 걸 AI가 놓칠 수 없게).
+ * 실제 감지(의미 판단·대명사 해석·숨은 전제 추출)는 주입된 지시를 받은 호스트
+ * 모델이 한다 — 모델은 이미 대화 전체를 컨텍스트에 들고 있다. 훅이 주는 것은
+ * 대화가 아니라 (a) 매 턴 결정론적 진단 명령, (b) 모델이 못 보는 원장 상태
+ * (열린 예측 목록), (c) 규칙 후보다.
+ *
+ * evals/detection/의 코퍼스가 이 함수의 skip-safety를 CI에서 고정한다:
+ * 라벨된 양성(예측/결과/전제/숨은 전제)을 스킵하면 CI가 빨간불이다.
+ * 사전필터의 오탐(none인데 통과)은 토큰 비용일 뿐 사용자에게 안 닿는다 —
+ * 발화 절제는 주입되는 지시문 자체가 (min fire 규칙으로) 진다.
+ * ──────────────────────────────────────────────────────────────────────────── */
+
+// 의도·제안 마커 — 결정이 형성되는 턴의 단서. 숨은 전제는 표지가 없지만 결정
+// 자체는 대개 이런 형태로 발화된다. detectSignals의 그룹이 아니라 사전필터
+// 전용이므로 TS 미러/드리프트 가드 대상이 아니다 (MCP 서버는 대화를 못 보므로
+// 서버-측 사전필터는 dead wire — honest-structure 불변식대로 짓지 않는다).
+const PROPOSAL = [
+  /\blet'?s\b/i, /\bwe (should|could|need to|have to|might)\b/i,
+  /\b(i|we)'?ll\b/i, /\bi'?m (going to|planning|thinking of)\b/i,
+  /\bplan is\b/i, /\bswitch(ing)? to\b/i, /\bdrop(ping)? the\b/i, /\bpivot\b/i,
+  /(하자|합시다|해야겠|해야지|해보자|해볼게|하기로|할게|할래|할까 하는데|하려고|하려 한다|할 생각)/,
+  /(가자|가야겠|없애자|버리자|줄이자|늘리자|올리자|내리자|바꾸자|뽑자|미루자|접자|넣자|빼자)/,
+  /(아마|어쩌면|아무래도)/, /\b(probably|might|maybe|perhaps)\b/i, /'ll\b/i,
+];
+
+/**
+ * prefilterTurn — 이 턴(사용자 메시지 + 직전 어시스턴트 발화 창)에 AI 진단
+ * 지시를 주입할지 정하는 고-리콜 disjunction 스캔. 순수·결정론.
+ * 반환: { pass, cues } — cues는 어떤 그룹이 걸렸는지(발사 경로 선택에 쓰임).
+ */
+function prefilterTurn(text) {
+  if (typeof text !== "string") return { pass: false, cues: [] };
+  const t = text.trim();
+  if (t.length < 12) return { pass: false, cues: [] }; // 초단문 — 명백한 비후보
+  const groups = {
+    future: FUTURE, measurable: MEASURABLE, completion: COMPLETION,
+    resolved: RESOLVED, conditional: CONDITIONAL, proposal: PROPOSAL,
+  };
+  const cues = [];
+  for (const [name, res] of Object.entries(groups)) {
+    if (res.some((re) => re.test(t))) cues.push(name);
+  }
+  if (hasStartSignal(t)) cues.push("start");
+  if (hasDoneSignal(t)) cues.push("done");
+  return { pass: cues.length > 0, cues };
+}
+
 module.exports = {
   configDir,
   START_PATTERNS,
@@ -266,6 +345,8 @@ module.exports = {
   hasDoneSignal,
   readTail,
   lastUserText,
+  lastAssistantText,
+  prefilterTurn,
   trackRecord,
   pruneMarkers,
   isIrreversible,

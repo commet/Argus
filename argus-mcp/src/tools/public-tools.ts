@@ -288,7 +288,7 @@ async function runPublic(
 
 export const decide: ToolModule = {
   name: 'argus_capture',
-  description: 'Capture the reasoning behind a decision in the user\'s own words — the premises it rests on and the questions still open — without deciding for the user. Use action=open for a new decision; add_context, answer_question, keep_question_open, update_fact, change_prediction, or close for a decision already on record. To save a checkable PREDICTION with a check-by date, use argus_predict instead (capture alone sets no check date, so nothing will come due).',
+  description: 'Capture the reasoning behind a decision in the user\'s own words — the premises it rests on and the questions still open — without deciding for the user. Use action=open for a new decision; add_context, answer_question, keep_question_open, update_fact, change_prediction, or close for a decision already on record. To save a checkable PREDICTION with a check-by date, use argus_predict instead (capture alone sets no check date, so nothing will come due). Standing sense: a consequential decision rests on a load-bearing assumption, and the valuable one is usually UNSTATED — you may surface at most one as your ai_surfaced draft for the user to confirm or correct; never more, never as a verdict.',
   inputSchema: decidePublicSchema,
   outputSchema: ENVELOPE_OUTPUT_SCHEMA,
   annotations: { title: 'Work with a decision', readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
@@ -400,6 +400,9 @@ function publicWrapper(tool: ToolModule, name: string, description: string): Too
   };
 }
 
-export const publicSeal = publicWrapper(seal, 'argus_predict', 'Make a falsifiable prediction and the date when reality can answer it. Use the user\'s own wording whenever possible. Works directly with a fresh id; no prior argus_capture call is needed.');
-export const publicCheckIn = publicWrapper(checkIn, 'argus_check_in', 'Show only decisions, facts, and open questions that need attention now. Read-only.');
-export const publicSettle = publicWrapper(settle, 'argus_resolve', 'Record what actually happened after a prediction reaches its check date. Reality supplies the result; Argus does not grade it.');
+// 툴 설명은 접속 후 유일하게 "항상 컨텍스트에 있는" 서버 발화다 (instructions는
+// initialize 1회, 툴 결과는 호출할 때만). 그래서 세 감각의 tell을 여기 한 줄씩
+// 심는다 — 모델이 대화 중 알아채는 확률을 매 턴 받쳐주는 상시 지침 통로.
+export const publicSeal = publicWrapper(seal, 'argus_predict', 'Make a falsifiable prediction and the date when reality can answer it. Use the user\'s own wording whenever possible. Works directly with a fresh id; no prior argus_capture call is needed. Standing sense: users rarely say "predict". A working claim that pairs a direction or target with a horizon or number ("이번 주엔 끝날 거야", "churn should drop once we launch") IS a prediction; on a consequential one, offer once with confirm_draft:true.');
+export const publicCheckIn = publicWrapper(checkIn, 'argus_check_in', 'Show only decisions, facts, and open questions that need attention now. Read-only. Call at session start and keep the open predictions it returns as a background sense for the whole conversation — they are what lets you recognize an outcome when it surfaces mid-work.');
+export const publicSettle = publicWrapper(settle, 'argus_resolve', 'Record what actually happened to a tracked prediction. Reality supplies the result; Argus does not grade it. Standing sense: when the conversation reveals the outcome, even in passing or by pronoun ("그거 결국 잘 됐어"), record it THEN, in the user\'s own words. Do not wait for the check date, and never infer an outcome the user did not state.');

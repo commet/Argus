@@ -1,0 +1,179 @@
+{
+  "model": "claude-opus-4-8",
+  "positives": 23,
+  "negatives": 8,
+  "fired_correct": 18,
+  "fired_any": 19,
+  "over_fire": [],
+  "missed": [
+    "pred-ko-completion(silent)",
+    "pred-ko-vague-horizon(argus_capture)",
+    "pred-en-contraction(silent)",
+    "pred-ko-yearend(silent)",
+    "hid-ko-defer(silent)"
+  ],
+  "raw": [
+    {
+      "id": "pred-ko-measurable",
+      "calls": [
+        "argus_predict"
+      ]
+    },
+    {
+      "id": "pred-en-measurable",
+      "calls": [
+        "argus_predict"
+      ]
+    },
+    {
+      "id": "pred-en-completion",
+      "calls": [
+        "argus_predict"
+      ]
+    },
+    {
+      "id": "pred-ko-completion",
+      "calls": []
+    },
+    {
+      "id": "pred-ko-vague-horizon",
+      "calls": [
+        "argus_capture"
+      ]
+    },
+    {
+      "id": "pred-en-contraction",
+      "calls": []
+    },
+    {
+      "id": "pred-ko-yearend",
+      "calls": []
+    },
+    {
+      "id": "pred-ko-mixed-done",
+      "calls": [
+        "argus_predict"
+      ]
+    },
+    {
+      "id": "pred-assistant-latency",
+      "calls": [
+        "argus_predict"
+      ]
+    },
+    {
+      "id": "out-ko-explicit",
+      "calls": [
+        "argus_resolve"
+      ]
+    },
+    {
+      "id": "out-en-explicit",
+      "calls": [
+        "argus_resolve"
+      ]
+    },
+    {
+      "id": "out-ko-pronoun",
+      "calls": [
+        "argus_resolve"
+      ]
+    },
+    {
+      "id": "out-en-pronoun",
+      "calls": [
+        "argus_resolve"
+      ]
+    },
+    {
+      "id": "out-ko-failed",
+      "calls": [
+        "argus_resolve"
+      ]
+    },
+    {
+      "id": "asm-en-marked",
+      "calls": [
+        "argus_capture"
+      ]
+    },
+    {
+      "id": "asm-ko-marked",
+      "calls": [
+        "argus_capture"
+      ]
+    },
+    {
+      "id": "asm-assistant-marked",
+      "calls": [
+        "argus_capture"
+      ]
+    },
+    {
+      "id": "hid-ko-freetier",
+      "calls": [
+        "argus_capture"
+      ]
+    },
+    {
+      "id": "hid-en-freetier",
+      "calls": [
+        "argus_capture"
+      ]
+    },
+    {
+      "id": "hid-ko-pricing",
+      "calls": [
+        "argus_capture"
+      ]
+    },
+    {
+      "id": "hid-ko-defer",
+      "calls": []
+    },
+    {
+      "id": "hid-en-pivot",
+      "calls": [
+        "argus_capture"
+      ]
+    },
+    {
+      "id": "hid-en-hiring",
+      "calls": [
+        "argus_capture"
+      ]
+    },
+    {
+      "id": "neg-weather",
+      "calls": []
+    },
+    {
+      "id": "neg-explain",
+      "calls": []
+    },
+    {
+      "id": "neg-refactor",
+      "calls": []
+    },
+    {
+      "id": "neg-run-tests",
+      "calls": []
+    },
+    {
+      "id": "neg-thanks-en",
+      "calls": []
+    },
+    {
+      "id": "neg-thanks-ko",
+      "calls": []
+    },
+    {
+      "id": "neg-meeting-digit",
+      "calls": []
+    },
+    {
+      "id": "neg-because-tired",
+      "calls": []
+    }
+  ]
+}
