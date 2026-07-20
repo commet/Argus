@@ -58,8 +58,11 @@ export const WANT = { prediction: 'argus_predict', outcome: 'argus_resolve', ass
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 export function makeAnthropicCaller(key, model) {
   return async function callModel({ system, messages, tools, tool_choice, max_tokens = 1200 }) {
-    // 무인 야간 실행 견고성: 429/5xx는 지수 백오프 재시도(일시적 rate limit이
-    // 시나리오를 죽이지 않게). 지속 오류만 던진다.
+    // 페이싱(rate limit의 진짜 해법): 재시도로 버티는 게 아니라 콜 사이 간격을 둬
+    // 애초에 한도 아래로 유지한다. 저-tier 키가 동시성 3에도 429 storm으로 0을
+    // 내던 야간 사례 → 콜당 최소 지연. 느려도 완주 > 빠르고 0.
+    await sleep(Number(process.env.AUTO_MIN_DELAY_MS || 1500));
+    // 429/5xx는 지수 백오프 재시도(일시적 초과 흡수). 지속 오류만 던진다.
     let lastErr;
     for (let attempt = 0; attempt < 5; attempt++) {
       try {
@@ -214,7 +217,7 @@ async function main() {
   const det = makeAnthropicCaller(key, detModel);
   const jud = makeAnthropicCaller(key, judgeModel);
 
-  const CONC = Number(process.env.AUTO_CONCURRENCY || 3);
+  const CONC = Number(process.env.AUTO_CONCURRENCY || 1);
   const MODES = [{ key: 'mcp', augment: null }, { key: 'plugin', augment: PLUGIN_AUGMENT }];
 
   // 시나리오 하나당: 생성 1회 → 두 모드로 감지 → 각 모드 숨은전제 판정.

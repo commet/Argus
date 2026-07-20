@@ -82,7 +82,7 @@ async function main() {
   const det = makeAnthropicCaller(key, process.env.AUTO_DETECT_MODEL || 'claude-opus-4-8');
   const instructions = await serverInstructions();
   const scenarios = corpusToScenarios();
-  const CONC = Number(process.env.FROZEN_CONCURRENCY || 3);
+  const CONC = Number(process.env.FROZEN_CONCURRENCY || 1);
 
   const byMode = {};
   for (const m of [{ key: 'mcp', augment: null }, { key: 'plugin', augment: PLUGIN_AUGMENT }]) {
