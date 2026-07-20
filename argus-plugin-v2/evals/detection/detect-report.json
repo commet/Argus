@@ -1,0 +1,471 @@
+{
+  "n": 31,
+  "prediction": {
+    "n": 9,
+    "hit": 9,
+    "missed": []
+  },
+  "outcome": {
+    "n": 5,
+    "hit": 5,
+    "missed": []
+  },
+  "assumption_stated": {
+    "n": 4,
+    "hit": 4,
+    "missed": []
+  },
+  "hidden_assumption": {
+    "n": 6,
+    "surfaced_nonnull": 6,
+    "surfaced_ids": [
+      "hid-ko-freetier",
+      "hid-en-freetier",
+      "hid-ko-pricing",
+      "hid-ko-defer",
+      "hid-en-pivot",
+      "hid-en-hiring"
+    ],
+    "missed_ids": [],
+    "meaning_ok_ids": [
+      "hid-ko-freetier",
+      "hid-en-freetier",
+      "hid-ko-pricing",
+      "hid-ko-defer",
+      "hid-en-pivot",
+      "hid-en-hiring"
+    ],
+    "recall_surface": 1,
+    "recall_meaning": 1
+  },
+  "negatives": {
+    "n": 8,
+    "false_fire_ids": []
+  },
+  "rows": [
+    {
+      "id": "pred-ko-measurable",
+      "user": "다음 분기까지 매출 20% 성장할 것으로 예상합니다.",
+      "labels": [
+        "prediction"
+      ],
+      "detected": {
+        "prediction": true,
+        "outcome": false,
+        "assumption_stated": false,
+        "hidden_assumption": null
+      }
+    },
+    {
+      "id": "pred-en-measurable",
+      "user": "We will cut churn below 3% by Q3.",
+      "labels": [
+        "prediction"
+      ],
+      "detected": {
+        "prediction": true,
+        "outcome": false,
+        "assumption_stated": false,
+        "hidden_assumption": null
+      }
+    },
+    {
+      "id": "pred-en-completion",
+      "user": "We are going to ship to TestFlight by Friday.",
+      "labels": [
+        "prediction"
+      ],
+      "detected": {
+        "prediction": true,
+        "outcome": false,
+        "assumption_stated": false,
+        "hidden_assumption": null
+      }
+    },
+    {
+      "id": "pred-ko-completion",
+      "user": "이번 채용으로 배포가 주 1회로 빨라질 거예요.",
+      "labels": [
+        "prediction"
+      ],
+      "detected": {
+        "prediction": true,
+        "outcome": false,
+        "assumption_stated": false,
+        "hidden_assumption": "배포가 느린 병목이 인력 부족이고, 이 채용이 그 병목을 실제로 푼다"
+      }
+    },
+    {
+      "id": "pred-ko-vague-horizon",
+      "user": "이 방향이면 나중에 무리가 올 것 같긴 한데, 일단 갑니다.",
+      "labels": [
+        "prediction"
+      ],
+      "note": "숫자·완료동사 없음 — 규칙 미스, 의미상 판정 가능",
+      "detected": {
+        "prediction": true,
+        "outcome": false,
+        "assumption_stated": false,
+        "hidden_assumption": "예상되는 무리가 실제로 오더라도 그때 감당하거나 되돌릴 수 있다"
+      }
+    },
+    {
+      "id": "pred-en-contraction",
+      "user": "We'll probably be fine on capacity when it goes live.",
+      "labels": [
+        "prediction"
+      ],
+      "note": "'ll/probably — FUTURE 그룹 밖",
+      "detected": {
+        "prediction": true,
+        "outcome": false,
+        "assumption_stated": false,
+        "hidden_assumption": "현재 용량 추정이 실제 런칭 트래픽과 맞다"
+      }
+    },
+    {
+      "id": "pred-ko-yearend",
+      "user": "이대로면 연말쯤 리텐션이 심각해질 거예요.",
+      "labels": [
+        "prediction"
+      ],
+      "detected": {
+        "prediction": true,
+        "outcome": false,
+        "assumption_stated": false,
+        "hidden_assumption": "개입이 없으면 지금 리텐션 추세가 그대로 이어진다"
+      }
+    },
+    {
+      "id": "pred-ko-mixed-done",
+      "user": "Redis로 가기로 했어. 마이그레이션은 이번 주 안에 끝날 거야.",
+      "labels": [
+        "prediction"
+      ],
+      "note": "결정 종결 + 예측 혼합 턴",
+      "detected": {
+        "prediction": true,
+        "outcome": false,
+        "assumption_stated": false,
+        "hidden_assumption": "마이그레이션에 이번 주를 넘길 숨은 복잡도가 없다"
+      }
+    },
+    {
+      "id": "pred-assistant-latency",
+      "assistant": "이 인덱스를 추가하면 p95 레이턴시가 절반 아래로 내려갈 겁니다.",
+      "user": "좋아, 그렇게 가자.",
+      "labels": [
+        "prediction"
+      ],
+      "note": "예측은 어시스턴트가 말했고 사용자는 채택만 — 사용자-단독 스캔은 못 잡는다",
+      "detected": {
+        "prediction": true,
+        "outcome": false,
+        "assumption_stated": false,
+        "hidden_assumption": "p95 레이턴시의 실제 병목이 이 인덱스가 겨냥하는 쿼리다"
+      }
+    },
+    {
+      "id": "out-ko-explicit",
+      "user": "서버 이전은 결국 무중단으로 끝났어요.",
+      "open": [
+        "서버 이전 후에도 다운타임은 없다"
+      ],
+      "labels": [
+        "outcome"
+      ],
+      "detected": {
+        "prediction": false,
+        "outcome": true,
+        "assumption_stated": false,
+        "hidden_assumption": null
+      }
+    },
+    {
+      "id": "out-en-explicit",
+      "user": "Turns out the hire really did get us to weekly deploys.",
+      "open": [
+        "this hire gets us to weekly deploys"
+      ],
+      "labels": [
+        "outcome"
+      ],
+      "detected": {
+        "prediction": false,
+        "outcome": true,
+        "assumption_stated": false,
+        "hidden_assumption": null
+      }
+    },
+    {
+      "id": "out-ko-pronoun",
+      "user": "아 그거 결국 잘 됐어요.",
+      "open": [
+        "서버 이전 후에도 다운타임은 없다"
+      ],
+      "labels": [
+        "outcome"
+      ],
+      "note": "\"그거\"=서버 이전 — 맥락 해석 필요",
+      "detected": {
+        "prediction": false,
+        "outcome": true,
+        "assumption_stated": false,
+        "hidden_assumption": null
+      }
+    },
+    {
+      "id": "out-en-pronoun",
+      "user": "yeah that ended up working out fine.",
+      "open": [
+        "this hire gets us to weekly deploys"
+      ],
+      "labels": [
+        "outcome"
+      ],
+      "detected": {
+        "prediction": false,
+        "outcome": true,
+        "assumption_stated": false,
+        "hidden_assumption": null
+      }
+    },
+    {
+      "id": "out-ko-failed",
+      "user": "그 계약 결국 무산됐어요.",
+      "open": [
+        "6월 안에 물류 계약 체결"
+      ],
+      "labels": [
+        "outcome"
+      ],
+      "note": "부정 결과 — 겹침 토큰 1개뿐",
+      "detected": {
+        "prediction": false,
+        "outcome": true,
+        "assumption_stated": false,
+        "hidden_assumption": null
+      }
+    },
+    {
+      "id": "asm-en-marked",
+      "user": "This only works as long as the vendor API stays under 200ms.",
+      "labels": [
+        "assumption"
+      ],
+      "detected": {
+        "prediction": false,
+        "outcome": false,
+        "assumption_stated": true,
+        "hidden_assumption": null
+      }
+    },
+    {
+      "id": "asm-ko-marked",
+      "user": "배포를 주 1회로 늘리는 건 새 채용이 6월까지 온보딩된다는 전제로 가능해요.",
+      "labels": [
+        "assumption"
+      ],
+      "detected": {
+        "prediction": false,
+        "outcome": false,
+        "assumption_stated": true,
+        "hidden_assumption": null
+      }
+    },
+    {
+      "id": "asm-assistant-marked",
+      "assistant": "Postgres로 가면 됩니다 — 트래픽이 지금 수준을 유지하는 한 단일 인스턴스로 충분해요.",
+      "user": "ㅇㅋ 그걸로 진행하자.",
+      "labels": [
+        "assumption"
+      ],
+      "note": "전제를 어시스턴트가 말했다 — 창이 없으면 미스",
+      "detected": {
+        "prediction": false,
+        "outcome": false,
+        "assumption_stated": true,
+        "hidden_assumption": null
+      }
+    },
+    {
+      "id": "hid-ko-freetier",
+      "user": "무료 플랜 없애자. 결제 전환이 낮은 건 무료가 너무 넉넉해서예요.",
+      "labels": [
+        "hidden_assumption"
+      ],
+      "note": "숨은 전제: 무료 사용자가 조이면 유료로 전환한다 / 무료가 신규 유입 동력이 아니다",
+      "detected": {
+        "prediction": false,
+        "outcome": false,
+        "assumption_stated": false,
+        "hidden_assumption": "무료를 없애면 그 사용자가 이탈하지 않고 유료로 전환하며, 무료가 신규 유입·입소문 동력이 아니다"
+      }
+    },
+    {
+      "id": "hid-en-freetier",
+      "user": "Let's drop the free tier — conversion is low because free is too generous.",
+      "labels": [
+        "hidden_assumption"
+      ],
+      "detected": {
+        "prediction": false,
+        "outcome": false,
+        "assumption_stated": false,
+        "hidden_assumption": "free 사용자를 없애면 이탈이 아니라 유료 전환으로 이어지고, free가 획득 채널이 아니다"
+      }
+    },
+    {
+      "id": "hid-ko-pricing",
+      "user": "가격 두 배로 올리자 — 경쟁사보다 아직 싸니까.",
+      "labels": [
+        "hidden_assumption"
+      ],
+      "note": "숨은 전제: 구매 결정 변수가 가격이다 / 비교 대상이 그 경쟁사다",
+      "detected": {
+        "prediction": false,
+        "outcome": false,
+        "assumption_stated": false,
+        "hidden_assumption": "구매 결정의 주된 변수가 가격이고, 그 경쟁사가 실제 비교 기준이며, 2배 인상에도 수요가 크게 줄지 않는다"
+      }
+    },
+    {
+      "id": "hid-ko-defer",
+      "user": "결제 연동은 다음 스프린트로 미루자.",
+      "labels": [
+        "hidden_assumption"
+      ],
+      "note": "숨은 전제: 지금 결제가 없어도 잃는 사용자가 없다",
+      "detected": {
+        "prediction": false,
+        "outcome": false,
+        "assumption_stated": false,
+        "hidden_assumption": "지금 결제 기능이 없어도 이번 스프린트 동안 잃는 사용자나 매출이 없다"
+      }
+    },
+    {
+      "id": "hid-en-pivot",
+      "user": "We should pivot to B2B — enterprise deals close themselves once you have SSO.",
+      "labels": [
+        "hidden_assumption"
+      ],
+      "detected": {
+        "prediction": false,
+        "outcome": false,
+        "assumption_stated": false,
+        "hidden_assumption": "우리 팀이 엔터프라이즈 세일즈를 실행할 수 있고, SSO가 실제 구매 차단 요인이며, 기존 B2C 자산이 B2B로 전이된다"
+      }
+    },
+    {
+      "id": "hid-en-hiring",
+      "user": "Let's hire two more sales reps — pipeline is thin because we don't have enough hands.",
+      "labels": [
+        "assumption",
+        "hidden_assumption"
+      ],
+      "note": "표시된 전제(손이 모자라다) 뒤에 숨은 전제(병목이 인력이다)",
+      "detected": {
+        "prediction": false,
+        "outcome": false,
+        "assumption_stated": true,
+        "hidden_assumption": "파이프라인이 얇은 진짜 병목이 인력이며(제품·타겟팅이 아니라), 새 렙이 충분히 빨리 생산성을 낸다"
+      }
+    },
+    {
+      "id": "neg-weather",
+      "user": "오늘 날씨 어때?",
+      "labels": [],
+      "expectSkip": true,
+      "detected": {
+        "prediction": false,
+        "outcome": false,
+        "assumption_stated": false,
+        "hidden_assumption": null
+      }
+    },
+    {
+      "id": "neg-explain",
+      "user": "이 함수가 뭐 하는 건지 설명해줘.",
+      "labels": [],
+      "expectSkip": true,
+      "detected": {
+        "prediction": false,
+        "outcome": false,
+        "assumption_stated": false,
+        "hidden_assumption": null
+      }
+    },
+    {
+      "id": "neg-refactor",
+      "user": "리팩토링 해줘",
+      "labels": [],
+      "expectSkip": true,
+      "detected": {
+        "prediction": false,
+        "outcome": false,
+        "assumption_stated": false,
+        "hidden_assumption": null
+      }
+    },
+    {
+      "id": "neg-run-tests",
+      "user": "run the tests and show me the output",
+      "labels": [],
+      "expectSkip": true,
+      "detected": {
+        "prediction": false,
+        "outcome": false,
+        "assumption_stated": false,
+        "hidden_assumption": null
+      }
+    },
+    {
+      "id": "neg-thanks-en",
+      "user": "thanks, looks good!",
+      "labels": [],
+      "expectSkip": true,
+      "detected": {
+        "prediction": false,
+        "outcome": false,
+        "assumption_stated": false,
+        "hidden_assumption": null
+      }
+    },
+    {
+      "id": "neg-thanks-ko",
+      "user": "고마워요 딱 원하던 거네요.",
+      "labels": [],
+      "expectSkip": true,
+      "detected": {
+        "prediction": false,
+        "outcome": false,
+        "assumption_stated": false,
+        "hidden_assumption": null
+      }
+    },
+    {
+      "id": "neg-meeting-digit",
+      "user": "회의 3시로 옮겨줘, 캘린더도 같이.",
+      "labels": [],
+      "note": "숫자 단서로 오통과 허용 — AI가 flat 판정 후 침묵",
+      "detected": {
+        "prediction": false,
+        "outcome": false,
+        "assumption_stated": false,
+        "hidden_assumption": null
+      }
+    },
+    {
+      "id": "neg-because-tired",
+      "user": "I skipped lunch because I was tired, anyway where were we.",
+      "labels": [],
+      "note": "because 오통과 허용",
+      "detected": {
+        "prediction": false,
+        "outcome": false,
+        "assumption_stated": false,
+        "hidden_assumption": null
+      }
+    }
+  ]
+}
