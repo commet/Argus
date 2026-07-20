@@ -32,7 +32,15 @@ const VIBE_KO = /(잘\s*될|잘\s*풀릴|괜찮을|좋아질|나아질)\s*(것|�
 // rides along ("아마도 2월에 이미 1억 넘는다"). The vibe regexes exist to catch
 // PURE feelings; without this bypass a single "아마도" hard-blocked legit
 // numeric predicates (1.4.6 backlog: weak heuristic acting as a hard gate).
-const OBSERVABLE_ANCHOR = /\d|[%<>=≤≥]|(이상|이하|미만|초과|넘는|넘긴|도달|달성|출시|배포|계약|완료|체결)|\b(at least|more than|less than|by |ship|launch|sign|complete|release)\b/i;
+// HARD only. A bare completion WORD (ship/launch/출시/배포…) must NOT defuse the
+// vibe check: those words appear as NOUNS inside genuinely vague sentences —
+// "The launch will probably go well", "이번 출시는 잘 될 것 같다 아마도" — so
+// treating them as anchors let PURE vibes through the falsifiability gate (CI
+// caught both, 2026-07-20). Only a gradeable magnitude/threshold rescues a
+// predicate that carries vibe wording. This does NOT re-open the 1.4.6
+// over-fire: the vibe check only runs when vibe wording is actually present, so
+// a plain "we ship the app by Friday" still passes untouched.
+const HARD_ANCHOR = /\d|[%<>=≤≥]|(이상|이하|미만|초과)|\b(at least|more than|less than|no more than)\b/i;
 
 export function validateSeal(predicate: unknown, checkBy: unknown, today: string): SealValidationError | null {
   if (typeof predicate !== 'string' || predicate.trim().length < 8) {
@@ -62,7 +70,7 @@ export function validateSeal(predicate: unknown, checkBy: unknown, today: string
     };
   }
 
-  if (OBSERVABLE_ANCHOR.test(predicate)) return null; // checkable despite any vibe wording
+  if (HARD_ANCHOR.test(predicate)) return null; // gradeable despite any vibe wording
 
   if (VIBE_KO.test(predicate)) {
     return {

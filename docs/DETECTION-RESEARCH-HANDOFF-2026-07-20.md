@@ -211,6 +211,37 @@ Argus의 가치는 **표시되지 않은 90%**다. 숨은 전제는 정의상 �
 
 ---
 
+## 5.5 ⚠️ 세션 종료 시점의 미완 상태 (다음 세션 최우선)
+
+**PR #227 CI가 빨간불이고, 그 수정이 커밋되지 않은 채 워킹트리에 있다.**
+
+- **실패:** `argus-plugin-v2/scripts/validate-gates.test.mjs` 의 2건 —
+  `vibe predicate (en) fails`, `vibe predicate (ko) fails` (27 passed, 2 failed).
+- **원인(확정):** 1.4.7의 "관찰 앵커 우회"가 **완료-단어의 명사형까지 매칭**해서,
+  진짜 모호한 예측이 falsifiability 게이트를 통과했다.
+  - `"The launch will probably go well for the team."` → **"launch"**(명사)가 앵커로 매칭
+  - `"이번 출시는 잘 될 것 같다 아마도"` → **"출시"**가 앵커로 매칭
+  - 즉 완료-단어 하나가 명시적 얼버무림("probably/아마도/것 같다")을 무력화.
+- **적용한 수정(워킹트리, 미커밋):** 앵커를 **HARD/SOFT로 분리**하고 **HARD만**
+  vibe 검사를 무력화하도록 변경. 손-동기화 미러 **양쪽 모두** 수정:
+  - `argus-mcp/src/lib/validate-seal.ts` (정본): `OBSERVABLE_ANCHOR` → `HARD_ANCHOR`
+  - `argus-plugin-v2/scripts/validate-gates.mjs` (미러): 동일
+  - `HARD_ANCHOR = /\d|[%<>=≤≥]|(이상|이하|미만|초과)|\b(at least|more than|less than|no more than)\b/i`
+  - 완료 단어(ship/launch/출시/배포/계약/완료/체결/도달/달성/넘는…)는 앵커에서 제외.
+- **1.4.6 과발화 재발 아님:** vibe 검사는 vibe 문구가 **있을 때만** 돌므로,
+  `"we ship the app by Friday"`처럼 vibe 없는 완료형 예측은 그대로 통과한다.
+- **손 검증 완료(실행은 못 함 — 세션 말 도구 불능):** 플러그인 29 케이스와 MCP
+  `validators.test.ts` 6건 + `seal-confirm-draft.test.ts:81`을 대조해 전부 양립 확인.
+  나머지 케이스는 `goodSeed.predicate`(vibe 문구 없음)를 써서 영향 없음.
+
+**다음 세션이 할 일 (순서대로):**
+1. `node argus-plugin-v2/scripts/validate-gates.test.mjs` → 29/29 확인
+2. `cd argus-mcp && npm test` → 1062 확인
+3. 커밋 → 푸시 → **CI 초록 확인 후** PR #227 머지
+   (빨간불 머지 금지 — 이 실패는 실재하는 스파인 결함이었다)
+
+---
+
 ## 6. 재개 방법
 
 1. 이 문서 §3(설계 교정)과 §4.1(MCP 3갈래)부터 읽는다.
