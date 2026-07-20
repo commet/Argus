@@ -6,6 +6,35 @@
 > The `1.3.0` / `1.2.1` entries at the bottom are pre-rename `argus-mcp` history,
 > kept for reference — all of that work shipped inside the new-name 1.0.0.
 
+## 1.5.0 — Standing sense: the always-on detection channel
+
+The MCP server can never see the raw conversation (JSON-RPC carries only
+structured tool arguments), and Claude does not support server-driven sampling —
+so "the model will notice a passing prediction / a surfacing outcome / an
+unstated assumption" was a goodwill dependency. This release strengthens the two
+channels that DO reach the model every session, without overclaiming a per-turn
+trigger the protocol does not provide.
+
+- **Tool descriptions carry a standing sense.** A tool's description is the only
+  server text that is ALWAYS in context after connect (instructions load once at
+  initialize; results only on a call). `argus_predict` / `argus_resolve` /
+  `argus_capture` / `argus_check_in` now each carry one line of the sense they
+  serve — a working claim with a horizon IS a prediction; an outcome surfacing by
+  pronoun ("그거 결국 잘 됐어") should be resolved THEN; the load-bearing
+  assumption a decision rests on is usually UNSTATED (surface at most one, as an
+  ai_surfaced draft).
+- **`argus_resolve` description corrected.** It no longer implies waiting for the
+  check-by date — when reality answers in the conversation, record it then.
+- **`check_in` re-injects the sense with open predictions.** When it returns open
+  predictions, it now carries `standing_sense` (single source: `spine.ts`
+  `STANDING_SENSE_REFRESH`) so the background sense is refreshed on each call —
+  the tool-result channel, since the protocol has no every-turn trigger.
+
+Measured (see `argus-plugin-v2/evals/detection`): with server instructions + tool
+definitions and NO hook, the model fired the correct tool on 18/23 warranting
+turns and over-fired on 0/8 chitchat turns — raw MCP detection is not a coin flip.
+Behavior of the ledger, seal, and settle loop is unchanged.
+
 ## 1.4.7 — Re-diagnosis pass: the accumulated backlog, closed
 
 Re-ran the full 1.4.6 verification battery (misuse / fuzz / guru / surface-content
