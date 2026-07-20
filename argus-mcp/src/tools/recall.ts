@@ -22,9 +22,9 @@ const byCheckBy = (a: { check_by?: string }, b: { check_by?: string }) =>
  *  and reflection so the two reads can never drift into two different claims. */
 function frequencyStatement(s: LedgerState['stats'], locale: SurfaceLocale): string {
   const n = s.total_settled;
-  if (n === 0) return locale === 'ko' ? '아직 결과를 기록한 결정이 없습니다 — 요약할 것이 없습니다.' : 'No settled decisions yet — nothing to summarize.';
+  if (n === 0) return locale === 'ko' ? '아직 결과를 기록한 결정이 없습니다. 요약할 것이 없습니다.' : 'No settled decisions yet; nothing to summarize.';
   return locale === 'ko'
-    ? `결과 기록 ${n}건 중: 그렇게 됨 ${s.held} · 피함 ${s.avoided} · 부분 ${s.partial} · 빗나감 ${s.missed}.`
+    ? `결과 기록 ${n}건 중: 예측대로 ${s.held} · 걱정 피함 ${s.avoided} · 일부 ${s.partial} · 빗나감 ${s.missed}.`
     : `Of ${n} settled: ${s.held} held, ${s.avoided} avoided, ${s.partial} partial, ${s.missed} missed.`;
 }
 
@@ -79,16 +79,39 @@ export const recall: ToolModule = {
           const contract = replayLedger(dir, today).contracts.get(id);
           if (contract) {
             const locale = resolveResponseLocale(dir, contract.predicate || contract.text || null);
+            // A SETTLED decision whose receipt FILE is missing (e.g. the receipt
+            // write failed after the ledger append already landed). The fold
+            // still holds the outcome and what-happened, so reconstruct the
+            // record honestly and NAME the loss — never fall through to "no
+            // saved prediction yet", which misreports a decision the user DID
+            // settle (LLM-glue: an honest gap, not a plausible-wrong fill).
+            if (contract.status === 'settled') {
+              const snip = (s: unknown, n: number): string => { const t = String(s ?? '').trim(); return t.length > n ? `${t.slice(0, n)}…` : t; };
+              const oword = (locale === 'ko'
+                ? { held: '예측대로 됨', avoided: '걱정 피함', partial: '일부', missed: '빗나감' }
+                : { held: 'held', avoided: 'avoided', partial: 'partial', missed: 'missed' }
+              )[(contract.outcome ?? '') as 'held' | 'avoided' | 'partial' | 'missed'] ?? (locale === 'ko' ? '기록됨' : 'recorded');
+              const pred = snip(contract.predicate || contract.text || '', 160);
+              const wh = contract.what_happened ? snip(contract.what_happened, 160) : '';
+              return envelope({
+                ok: true, tool: 'argus_recall',
+                surface: locale === 'ko'
+                  ? `이 결정은 결과까지 기록됐습니다 (${oword}). 다만 영수증 파일을 지금 불러올 수 없습니다. 기록에 남은 예측: "${pred}"${wh ? `, 실제로 일어난 일: "${wh}"` : ''}.`
+                  : `This decision was settled (${oword}), but its receipt file can't be loaded right now. On record — you predicted: "${pred}"${wh ? `; what happened: "${wh}"` : ''}.`,
+                next_actions: ['argus_patterns', 'stop'],
+                data: { id, status: 'settled', outcome: contract.outcome, receipt_missing: true, ...(contract.check_by ? { check_by: contract.check_by } : {}) },
+              });
+            }
             const sealed = contract.status === 'sealed';
             return envelope({
               ok: true, tool: 'argus_recall',
               surface: locale === 'ko'
                 ? (sealed
-                    ? `이 예측은 저장됐고 아직 결과 기록 전입니다 (확인일 ${contract.check_by}). 그날 argus_resolve로 실제 결과를 적으면 영수증이 완성됩니다.`
-                    : '이 결정에는 아직 저장한 예측이 없습니다. argus_predict로 예측을 저장하면 판단 영수증이 생깁니다.')
+                    ? `이 예측은 저장됐고 아직 결과 기록 전입니다 (확인일 ${contract.check_by}). 그날 실제 결과를 알려주시면 영수증이 완성됩니다.`
+                    : '이 결정에는 아직 저장한 예측이 없습니다. 나중에 맞았는지 확인할 수 있는 예측을 하나 저장하면 판단 영수증이 생깁니다.')
                 : (sealed
-                    ? `This prediction is saved and waiting on its check-by (${contract.check_by}). Record what happened with argus_resolve then, and the receipt completes.`
-                    : 'This decision has no saved prediction yet. Save one with argus_predict and a Judgment Receipt begins.'),
+                    ? `This prediction is saved and waiting on its check-by (${contract.check_by}). Tell me what happened then, and the receipt completes.`
+                    : 'This decision has no saved prediction yet. Save a prediction reality can later check, and a Judgment Receipt begins.'),
               next_actions: sealed ? ['argus_resolve', 'argus_patterns'] : ['argus_predict', 'argus_patterns'],
               data: { id, status: contract.status, ...(contract.check_by ? { check_by: contract.check_by } : {}) },
             });
@@ -110,7 +133,7 @@ export const recall: ToolModule = {
         // 부분/대기, so the receipt-recall surface must match (was 부분적/아직 —
         // three words for `partial` in one decision's lifecycle).
         const label = receiptLocale === 'ko'
-          ? { held: '그렇게 됨', avoided: '피함', partial: '부분', missed: '빗나감', still_pending: '대기' }
+          ? { held: '예측대로', avoided: '걱정 피함', partial: '일부', missed: '빗나감', still_pending: '대기' }
           : { held: 'held', avoided: 'avoided', partial: 'partial', missed: 'missed', still_pending: 'still pending' };
         const outcomeKey = (r.outcome ?? 'still_pending') as keyof typeof label;
         const receiptSurface = receiptLocale === 'ko'
@@ -147,8 +170,8 @@ export const recall: ToolModule = {
           return envelope({
             ok: true, tool: 'argus_recall',
             surface: locale === 'ko'
-              ? '이 결정에 기록된 전제가 없습니다. 필요하면 argus_capture action="add_context"로 추가할 수 있습니다.'
-              : 'No premises tracked on this decision. Add them with argus_capture action="add_context" if needed.',
+              ? '이 결정에 아직 기록된 전제가 없습니다. 이 결정이 딛고 선 전제를 원할 때 적어둘 수 있습니다.'
+              : 'No premises tracked on this decision yet. You can add the ones it rests on whenever you like.',
             next_actions: ['leave_as_is'],
             data: { id, premises: [], today },
           });
@@ -222,7 +245,7 @@ export const recall: ToolModule = {
         // Empty ledger → an on-ramp with a capture handle, not "0 decision(s)" +
         // stop (a "show me my decisions" newcomer must get a next move).
         const allSurface = all.length === 0
-          ? (locale === 'ko' ? '아직 기록에 남은 결정이 없습니다. 고민 중인 결정을 말하면 argus_capture로 시작합니다.' : 'No decisions on record yet. Describe a decision you are weighing and argus_capture begins it.')
+          ? (locale === 'ko' ? '아직 기록에 남은 결정이 없습니다. 고민 중인 결정을 말씀해 주시면 거기서 시작합니다.' : 'No decisions on record yet. Describe a decision you are weighing and we\'ll begin there.')
           : (locale === 'ko' ? `기록에 남은 결정 ${all.length}건.` : `${all.length} decision(s) on record.`);
         return envelope({
           ok: true, tool: 'argus_recall', surface: allSurface, next_actions: all.length === 0 ? ['argus_capture'] : ['stop'],
@@ -272,7 +295,7 @@ export const recall: ToolModule = {
             reflections, reflection_count: reflections.length,
             frequency_statement: rfreq,
             sample_size: rn,
-            sample_size_caveat: rn > 0 && rn < 10 ? (rl === 'ko' ? '표본이 작습니다 — 당신에 대한 패턴이 아니라 기록으로 읽으세요.' : 'Sample is small — read this as history, not a pattern about you.') : undefined,
+            sample_size_caveat: rn > 0 && rn < 10 ? (rl === 'ko' ? '표본이 작습니다. 당신에 대한 패턴이 아니라 기록으로 읽으세요.' : 'Sample is small. Read this as history, not a pattern about you.') : undefined,
             today,
           },
         });
@@ -309,7 +332,7 @@ export const recall: ToolModule = {
           frequency_statement: freq,
           ...(premiseAttribution ? { premise_attribution: premiseAttribution, premise_attribution_counts: { not_held: missedOrPartial.length, with_named_broken_premise: withBroken.length } } : {}),
           sample_size: n,
-          sample_size_caveat: n < 10 ? (trackLocale === 'ko' ? '표본이 작습니다 — 당신에 대한 패턴이 아니라 기록으로 읽으세요.' : 'Sample is small — read this as history, not a pattern about you.') : undefined,
+          sample_size_caveat: n < 10 ? (trackLocale === 'ko' ? '표본이 작습니다. 당신에 대한 패턴이 아니라 기록으로 읽으세요.' : 'Sample is small. Read this as history, not a pattern about you.') : undefined,
           stats: s,
         },
       });

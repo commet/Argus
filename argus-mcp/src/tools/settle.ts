@@ -1,5 +1,5 @@
 import { resolveToolArgusDir } from '../lib/argus-dir.js';
-import { resolveToday, asDate } from '../lib/resolve-today.js';
+import { resolveToday, asDate, logicalNow } from '../lib/resolve-today.js';
 import { resolveContract } from '../lib/resolve-contract.js';
 import { guardTransition } from '../lib/state-machine.js';
 import { appendLedger, withLedgerLock } from '../lib/ledger-append.js';
@@ -67,9 +67,9 @@ export const settle: ToolModule = {
               type: 'string',
               enum: ['held', 'avoided', 'partial', 'still_pending', 'missed'],
               enumNames: pickerLocale === 'ko'
-                ? ['그렇게 됐다', '피했다', '부분적으로', '아직 불분명', '빗나갔다 (내 예측이 틀렸다)']
-                : ['It held', 'Avoided', 'Partially', 'Still unclear', 'Missed — my read was wrong'],
-              description: pickerLocale === 'ko' ? '봉인한 예측에 현실이 어떻게 답했는지 고르세요.' : 'What reality did to your sealed prediction.',
+                ? ['예측대로 됐다', '걱정한 일은 안 일어났다', '일부만 맞았다', '아직 불분명', '예측이 빗나갔다']
+                : ['It held', 'Avoided', 'Partially', 'Still unclear', 'Missed: my read was wrong'],
+              description: pickerLocale === 'ko' ? '저장한 예측에 현실이 어떻게 답했는지 고르세요.' : 'What reality did to your sealed prediction.',
             },
           },
           required: ['outcome'],
@@ -94,9 +94,7 @@ export const settle: ToolModule = {
       // Korea (UTC+9) user settling at 08:00 KST gets a receipt dated yesterday
       // (raw UTC). Keep the real UTC time-of-day for ordering; stamp the logical
       // date. (Same fix as seal.ts; recheck.ts fixed it for premise cadences.)
-      const now = a['today_override']
-        ? `${today}T12:00:00.000Z`
-        : `${today}T${new Date().toISOString().slice(11)}`;
+      const now = logicalNow(today, !!a['today_override']);
 
       // still_pending = reality has NOT answered yet. This is NOT a settlement —
       // filing it as `settled` (terminal) silently closed the loop and dropped
@@ -140,22 +138,29 @@ export const settle: ToolModule = {
         brokenPremiseText = p.text;
       }
 
-      // Deferral history → a neutral fact on the receipt ("originally due X ·
-      // deferred N×"). defer_history[0].from is the ORIGINAL check-by.
-      const deferCount = current.entry?.defer_count ?? 0;
-      const originallyDue = current.entry?.defer_history?.[0]?.from;
       // §9.4 두 기기 안전: the settle write is a read-check-append sequence —
       // re-guard UNDER the ledger lock so two concurrent sessions can't both
       // pass the check above and double-count the record (the loser sees
       // ALREADY_SETTLED, exactly as if it had arrived second sequentially).
+      // Everything the receipt records is read from THIS under-lock snapshot
+      // (`fresh`), never the pre-lock `current`: a concurrent amend that moved
+      // the predicate/check_by between the two reads would otherwise settle the
+      // NEW contract yet print the OLD prediction on the keepsake — a receipt
+      // that silently disagrees with the ledger (split-brain).
+      let fresh!: ReturnType<typeof resolveContract>;
       const { receipt, v2Mirror } = await withLedgerLock(dir, async () => {
-        const fresh = resolveContract(dir, id, today);
+        fresh = resolveContract(dir, id, today);
         guardTransition(fresh.state, 'settle');
+        // Deferral history → a neutral fact on the receipt ("originally due X ·
+        // deferred N×"). defer_history[0].from is the ORIGINAL check-by. Read
+        // from `fresh` so a concurrent defer is reflected on the receipt too.
+        const deferCount = fresh.entry?.defer_count ?? 0;
+        const originallyDue = fresh.entry?.defer_history?.[0]?.from;
         const appended = await appendLedger(dir, [{ id, event: 'settle', outcome, decision: a['what_happened'] as string, ...(brokenPremiseId ? { broken_premise_id: brokenPremiseId } : {}) }], now);
         return { v2Mirror: appended.v2_mirror, receipt: await writeSettleReceipt(dir, id, {
           what_happened: String(a['what_happened']), outcome, settled_at: now,
           ...(deferCount > 0 ? { deferred_times: deferCount, ...(originallyDue ? { originally_due: originallyDue } : {}) } : {}),
-        }, { predicate: current.predicate, check_by: current.check_by }) };
+        }, { predicate: fresh.predicate, check_by: fresh.check_by }) };
       });
       const v2Write = asV2WriteField(v2Mirror);
 
@@ -203,12 +208,17 @@ export const settle: ToolModule = {
       // light one-line confirmation (re-printing the plate every time would be
       // ceremony); the receipt stays available in data.receipt_text and the
       // argus://receipts/{id} resource.
-      const receiptText = renderReceipt(receipt, receiptPremisesInfo(current.entry), locale);
+      const receiptText = renderReceipt(receipt, receiptPremisesInfo(fresh.entry), locale);
       const firstReceipt = replayLedger(dir, today).stats.total_settled === 1;
+      // On the FIRST settle the full receipt below already names the prediction;
+      // on later settles only the one-liner shows, so echo the predicate there —
+      // else a wrong-id or fabricated settle reads as a bare "Result recorded:
+      // held" the user can't catch (LLM-glue: keep the semantic pick visible).
+      const echoPred = firstReceipt ? '' : sanitizeLine(fresh.predicate ?? '', 90);
 
       return envelope({
         ok: true, tool: 'argus_settle',
-        surface: T.settled(outcome as 'held' | 'avoided' | 'partial' | 'missed') + syncLine + connectionLine
+        surface: T.settled(outcome as 'held' | 'avoided' | 'partial' | 'missed', echoPred) + syncLine + connectionLine
           + (firstReceipt ? `\n\n${receiptText}` : ''),
         next_actions: ['argus_patterns', 'stop'],
         data: {
@@ -275,7 +285,7 @@ async function deferStillPending(args: {
       { type: 'object', required: ['when'], properties: { when: {
         type: 'string', enum: ['week', 'month', 'quarter', 'dismiss'],
         enumNames: locale === 'ko'
-          ? ['약 1주 뒤', '약 1달 뒤', '약 3달 뒤', '이제 상관없어 (접기)']
+          ? ['약 1주 뒤', '약 1달 뒤', '약 3달 뒤', '이제 필요 없음 (접기)']
           : ['In about a week', 'In about a month', 'In about 3 months', 'It no longer matters (set aside)'],
         description: locale === 'ko' ? '언제 다시 확인할지 고르세요.' : 'When to check this again.',
       } } },
@@ -293,7 +303,11 @@ async function deferStillPending(args: {
     const mirrorDD = await withLedgerLock(dir, async () => {
       const fresh = resolveContract(dir, id, today);
       guardTransition(fresh.state, 'dismiss');
-      return (await appendLedger(dir, [{ id, event: 'dismiss', dismiss_reason: 'no longer relevant (still_pending at check-by)' }], now)).v2_mirror;
+      // Canonical enum value, not free text — recall/patterns expose
+      // dismiss_reason raw, so a prose reason leaked English into ko sessions
+      // and diverged from every advertised enum. The mechanism note rides in
+      // `decision` (the dismiss event's note field), same as argus_dismiss.
+      return (await appendLedger(dir, [{ id, event: 'dismiss', dismiss_reason: 'became_irrelevant', decision: 'still_pending at check-by' }], now)).v2_mirror;
     });
     const v2Write = asV2WriteField(mirrorDD);
     // Tell the account too — a dismissal via this picker is a real dismissal.
@@ -309,7 +323,7 @@ async function deferStillPending(args: {
   if (!newDate) {
     return toolError({
       ok: false, tool: 'argus_settle', error_code: 'DEFER_DATE_REQUIRED',
-      message: "Reality hasn't answered yet — this needs a new check-by, not a settlement.",
+      message: "Reality hasn't answered yet. This needs a new check-by, not a settlement.",
       recovery: 'Ask the user when to look again and pass it as `defer_to` (YYYY-MM-DD). If the prediction no longer matters, close it with argus_capture action="close".',
     });
   }

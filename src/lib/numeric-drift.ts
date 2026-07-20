@@ -173,7 +173,7 @@ export function evaluateMateriality(
       if (normStr(pl) === normStr(nl)) return { status: 'unchanged', reason: '라벨 동일 (정규화 후)' };
       return {
         status: 'uncertain',
-        reason: '비수치/미정규 라벨 — canonical scale를 지정하면 기계 판정 가능 (host 판정 레인)',
+        reason: '비수치/미정규 라벨. canonical scale를 지정하면 기계 판정 가능 (host 판정 레인)',
         low_confidence: true,
       };
     }
@@ -181,7 +181,7 @@ export function evaluateMateriality(
     pv = asNumber(prev);
     nv = asNumber(next);
     if (pv === null || nv === null) {
-      return { status: 'unchanged', reason: 'non-finite input — not comparable' };
+      return { status: 'unchanged', reason: 'non-finite input; not comparable' };
     }
     // unit canonicalization before comparing (§3.2)
     if (ctx?.unit_from) {
@@ -222,7 +222,7 @@ export function evaluateMateriality(
       }
       return {
         status: 'uncertain',
-        reason: '부호 전환이나 0의 의미(zero_meaningful) 미선언 — 규칙을 정해주세요',
+        reason: '부호 전환이나 0의 의미(zero_meaningful) 미선언. 규칙을 정해주세요',
         low_confidence: true,
       };
     }
@@ -233,7 +233,7 @@ export function evaluateMateriality(
   if (axis === 'ratio') {
     return {
       status: 'uncertain',
-      reason: '값이 비율(%)입니다 — %p(퍼센트포인트)로 볼지 여집합(100−값) 축으로 볼지 정해주세요',
+      reason: '값이 비율(%)입니다. %p(퍼센트포인트)로 볼지 여집합(100−값) 축으로 볼지 정해주세요',
       low_confidence: true,
     };
   }
@@ -255,7 +255,7 @@ export function evaluateMateriality(
     }
     return rel >= BIG_MULT
       ? { status: 'material', reason: `near-zero ${rel.toFixed(1)}배 이동: ${pv} → ${nv}` }
-      : { status: 'uncertain', reason: 'near-zero 애매 — 규칙(delta/safety_floor)을 정해주세요', low_confidence: true };
+      : { status: 'uncertain', reason: 'near-zero 애매. 규칙(delta/safety_floor)을 정해주세요', low_confidence: true };
   }
 
   // 4b/4c. general scale-free: knife-edge FIRST (exactly-at-threshold is the
@@ -263,7 +263,7 @@ export function evaluateMateriality(
   const rel = Math.abs(nv - pv) / Math.abs(pv);
   const P = REL_DEFAULT;
   if (Math.abs(rel - P) <= EPS) {
-    return { status: 'uncertain', reason: `상대변화가 임계 경계에 걸침 (${Math.round(rel * 100)}%) — 규칙/밴드를 정해주세요`, low_confidence: true };
+    return { status: 'uncertain', reason: `상대변화가 임계 경계에 걸침 (${Math.round(rel * 100)}%). 규칙/밴드를 정해주세요`, low_confidence: true };
   }
   if (rel >= P) {
     return { status: 'material', reason: `${Math.round(rel * 100)}% 이동: ${pv} → ${nv}` };
@@ -287,7 +287,7 @@ function evaluateDeclaredRule(
   // then it's uncertain, never a manufactured alert. (threshold/band/step/map
   // are axis-agnostic — a crossed line is a crossed line.)
   if (mod?.unit_axis === 'ratio' && (rule.type === 'relative' || rule.type === 'delta')) {
-    return { status: 'uncertain', reason: '값이 비율(%)입니다 — %p(퍼센트포인트)로 볼지 여집합(100−값) 축으로 볼지 정해주세요', low_confidence: true };
+    return { status: 'uncertain', reason: '값이 비율(%)입니다. %p(퍼센트포인트)로 볼지 여집합(100−값) 축으로 볼지 정해주세요', low_confidence: true };
   }
 
   // sign-flip modifier (§2.3 / §6.5): dead-band AND, never "always material".
@@ -299,7 +299,7 @@ function evaluateDeclaredRule(
     if (Math.abs(pv) >= floor && Math.abs(nv) >= floor) {
       return mod.zero_meaningful === true
         ? { status: 'material', reason: `부호 전환: ${pv} → ${nv}` }
-        : { status: 'uncertain', reason: '부호 전환이나 0의 의미(zero_meaningful) 미선언 — 규칙을 정해주세요', low_confidence: true };
+        : { status: 'uncertain', reason: '부호 전환이나 0의 의미(zero_meaningful) 미선언. 규칙을 정해주세요', low_confidence: true };
     }
     return { status: 'unchanged', reason: 'dead-band 안 왕복 = 노이즈' };
   }
@@ -324,7 +324,7 @@ function evaluateDeclaredRule(
       if (!boundary && direction !== 'cross') {
         // boundary undefined and it matters near the line → uncertain (§1.4)
         const atLine = pv === line || nv === line;
-        if (atLine) return { status: 'uncertain', reason: 'threshold 경계 도달인데 boundary(inclusive/exclusive) 미지정 — 정해주세요', low_confidence: true };
+        if (atLine) return { status: 'uncertain', reason: 'threshold 경계 도달인데 boundary(inclusive/exclusive) 미지정. 정해주세요', low_confidence: true };
       }
       const incl = boundary === 'inclusive';
       const crossed = (() => {
@@ -361,10 +361,10 @@ function evaluateDeclaredRule(
 
     case 'relative': {
       const P = numParam(rule.params['P'], REL_DEFAULT);
-      if (pv === 0) return { status: 'uncertain', reason: 'relative 기준값 0 — delta 규칙이 필요합니다', low_confidence: true };
+      if (pv === 0) return { status: 'uncertain', reason: 'relative 기준값 0. delta 규칙이 필요합니다', low_confidence: true };
       const rel = Math.abs(nv - pv) / Math.abs(pv);
       if (Math.abs(rel - P) <= EPS) {
-        return { status: 'uncertain', reason: `상대변화가 임계 경계에 걸침 (${Math.round(rel * 100)}%) — 규칙/밴드를 정해주세요`, low_confidence: true };
+        return { status: 'uncertain', reason: `상대변화가 임계 경계에 걸침 (${Math.round(rel * 100)}%). 규칙/밴드를 정해주세요`, low_confidence: true };
       }
       return rel >= P
         ? dirGate({ status: 'material', reason: `${Math.round(rel * 100)}% 이동: ${pv} → ${nv}` })
@@ -387,7 +387,7 @@ function evaluateDeclaredRule(
       // v1: opt-in only, and this numeric path sees just two snapshots — it cannot
       // observe a window. Honest: surface as uncertain (path/volatility not decidable
       // from prev→next alone), never fabricate a peak/crossing verdict (§1.3, §10.5).
-      return { status: 'uncertain', reason: 'stateful(경로/변동성)은 두 스냅샷으로 판정 불가 — 관측 이력이 필요합니다', low_confidence: true };
+      return { status: 'uncertain', reason: 'stateful(경로/변동성)은 두 스냅샷으로 판정 불가. 관측 이력이 필요합니다', low_confidence: true };
 
     case 'map':
       // handled in the label path; a numeric map here means mis-typed rule.
@@ -411,7 +411,7 @@ function evaluateMap(prevLabel: string, nextLabel: string, rule: MaterialityRule
   }
   return {
     status: 'uncertain',
-    reason: `상태 전이이나 등록된 material 상태집합 밖: ${prevLabel} → ${nextLabel} — 규칙 정할지 당신 몫`,
+    reason: `상태 전이이나 등록된 material 상태집합 밖: ${prevLabel} → ${nextLabel}. 규칙 정할지 당신 몫`,
     low_confidence: true,
   };
 }

@@ -21,11 +21,11 @@ import { gitCommonDirOf } from '../v2/git-discovery.js';
 import { handleToolException } from './errors.js';
 
 const premiseInput = z.strictObject({
-  text: z.string().min(3).max(400).describe('결정이 기대는 사실 또는 아직 답하지 못한 질문입니다. 사용자의 표현을 그대로 씁니다.').optional(),
+  text: z.string().min(3).max(400).describe('결정이 딛고 선 사실 또는 아직 답하지 못한 질문입니다. 사용자의 표현을 그대로 씁니다.').optional(),
   kind: z.enum(['premise', 'open_question']).default('premise').describe('premise는 확인할 전제, open_question은 사용자가 아직 답하지 않은 질문입니다.'),
   external: z.boolean().default(false).describe('외부 현실에서 나중에 다시 확인할 수 있는 사실인지 표시합니다.'),
   load_bearing: z.boolean().default(false).describe('틀리면 결정이 바뀌는 핵심 전제인지 표시합니다.'),
-  source: z.enum(['user_stated', 'ai_surfaced']).describe('문장을 말한 주체입니다. 사용자의 말을 AI의 말로, AI의 말을 사용자의 말로 바꾸지 않습니다.').optional(),
+  source: z.enum(['user_stated', 'ai_surfaced']).describe('필수: 이 문장을 말한 주체입니다. user_stated=사용자의 말, ai_surfaced=AI가 제시한 말(이때 ai_original도 함께). 사용자의 말을 AI의 말로 바꾸지 않습니다.'),
   ai_original: z.string().max(400).describe('source가 ai_surfaced일 때 AI가 처음 제시한 원문입니다.').optional(),
   recheck_cadence_days: z.number().int().min(1).max(365).describe('이 사실을 다시 확인할 간격(일)입니다.').optional(),
   reconsider_cadence_days: z.number().int().min(1).max(365).describe('미결 질문을 다시 볼 간격(일)입니다.').optional(),
@@ -45,13 +45,13 @@ const decideSchema = z.discriminatedUnion('action', [
     reversibility: z.enum(['one_way_door', 'costly_to_reverse', 'easily_reversible']).describe('결정을 되돌릴 수 있는 정도입니다.'),
     status_quo: z.string().min(1).max(300).describe('아무것도 하지 않을 때 일어나는 일입니다.'),
     already_decided: z.boolean().default(false).describe('사용자가 이미 결정을 끝냈는지 표시합니다.'),
-    load_bearing_assumption: z.string().max(400).describe('결정이 가장 크게 기대는 전제 하나입니다.').optional(),
+    load_bearing_assumption: z.string().max(400).describe('결정이 가장 크게 딛고 선 전제 하나입니다.').optional(),
     related_to: z.array(zId).max(20).describe('사용자가 비슷하다고 본 과거 결정 id입니다.').optional(),
-    premises: z.array(premiseInput).min(1).max(5).describe('결정이 기대는 전제와 미결 질문입니다. 선택 사항이며, 있으면 결정과 함께 기록합니다.').optional(),
+    premises: z.array(premiseInput).min(1).max(5).describe('결정이 딛고 선 전제와 미결 질문입니다. 선택 사항이며, 있으면 결정과 함께 기록합니다.').optional(),
   }),
   z.strictObject({
     ...common,
-    action: z.literal('add_context').describe('결정이 기대는 전제나 미결 질문을 추가합니다.'),
+    action: z.literal('add_context').describe('결정이 딛고 선 전제나 미결 질문을 추가합니다.'),
     id: zId.describe('대상 결정 id입니다.'),
     premises: z.array(premiseInput).min(1).max(5).describe('추가할 전제와 미결 질문입니다.'),
   }),
@@ -71,7 +71,7 @@ const decideSchema = z.discriminatedUnion('action', [
   }),
   z.strictObject({
     ...common,
-    action: z.literal('update_fact').describe('결정이 기대는 외부 사실을 현재 현실과 다시 확인합니다.'),
+    action: z.literal('update_fact').describe('결정이 딛고 선 외부 사실을 현재 현실과 다시 확인합니다.'),
     id: zId.describe('대상 결정 id입니다.'),
     ref: z.string().max(64).describe('재확인할 전제 번호 또는 id입니다.'),
     finding: z.string().min(1).max(800).describe('현재 확인한 사실을 비교 가능한 한 문장으로 적습니다.'),
@@ -95,7 +95,7 @@ const decideSchema = z.discriminatedUnion('action', [
     ...common,
     action: z.literal('close').describe('더는 답이 필요 없는 결정을 평결 없이 닫습니다.'),
     id: zId.describe('대상 결정 id입니다.'),
-    dismiss_reason: z.enum(['became_irrelevant', 'decided_elsewhere', 'superseded', 'user_declined']).describe('결정을 더는 추적하지 않는 이유입니다.'),
+    dismiss_reason: z.enum(['became_irrelevant', 'decided_elsewhere', 'superseded', 'user_declined', 'changed_mind', 'other']).describe('결정을 더는 추적하지 않는 이유입니다.'),
     note: z.string().max(500).describe('선택적인 사용자 메모입니다.').optional(),
   }),
 ]);
@@ -113,7 +113,7 @@ const decidePublicSchema = z.strictObject({
   reversibility: z.enum(['one_way_door', 'costly_to_reverse', 'easily_reversible']).describe('결정을 되돌릴 수 있는 정도입니다. 새 결정을 열 때 사용합니다.').optional(),
   status_quo: z.string().min(1).max(300).describe('아무것도 하지 않을 때 일어나는 일입니다. 새 결정을 열 때 사용합니다.').optional(),
   already_decided: z.boolean().describe('사용자가 이미 결정을 끝냈는지 표시합니다.').optional(),
-  load_bearing_assumption: z.string().max(400).describe('결정이 가장 크게 기대는 전제 하나입니다.').optional(),
+  load_bearing_assumption: z.string().max(400).describe('결정이 가장 크게 딛고 선 전제 하나입니다.').optional(),
   related_to: z.array(zId).max(20).describe('사용자가 비슷하다고 본 과거 결정 id입니다.').optional(),
   premises: z.array(premiseInput).min(1).max(5).describe('추가할 전제와 미결 질문입니다.').optional(),
   ref: z.string().max(64).describe('답하거나 재확인할 전제 또는 미결 질문 번호입니다.').optional(),
@@ -126,7 +126,7 @@ const decidePublicSchema = z.strictObject({
   apply_to_matching: z.boolean().describe('같은 사실을 추적하는 다른 결정에도 적용합니다.').optional(),
   predicate: z.string().min(8).max(500).describe('수정할 예측 문장입니다.').optional(),
   check_by: zDate.describe('수정할 미래 확인일입니다.').optional(),
-  dismiss_reason: z.enum(['became_irrelevant', 'decided_elsewhere', 'superseded', 'user_declined']).describe('결정을 더는 추적하지 않는 이유입니다.').optional(),
+  dismiss_reason: z.enum(['became_irrelevant', 'decided_elsewhere', 'superseded', 'user_declined', 'changed_mind', 'other']).describe('결정을 더는 추적하지 않는 이유입니다.').optional(),
   note: z.string().max(500).describe('선택적인 사용자 메모입니다.').optional(),
 }).superRefine((value, ctx) => {
   const parsed = decideSchema.safeParse(value);
@@ -138,7 +138,7 @@ const decidePublicSchema = z.strictObject({
 
 const historySchema = z.strictObject({
   argus_dir: zArgusDir,
-  view: z.enum(['active', 'all', 'receipt', 'decision_context', 'timeline', 'reflection']).default('active').describe('active는 진행 중인 결정, all은 전체 기록, receipt는 판단 영수증, decision_context는 결정의 전제와 미결 질문, timeline은 시간순 기록, reflection은 당신이 쓴 예측·전제와 그 결과를 되읽는 기록입니다.'),
+  view: z.enum(['active', 'all', 'receipt', 'decision_context', 'timeline', 'reflection']).default('active').describe('active는 진행 중인 결정, all은 전체 기록, receipt는 판단 영수증, decision_context는 결정의 전제와 미결 질문, timeline은 누적 정산 결과 요약(예측대로·걱정 피함·일부·빗나감 빈도), reflection은 당신이 쓴 예측·전제와 그 결과를 되읽는 기록입니다.'),
   id: zId.describe('receipt 또는 decision_context를 볼 때 필요한 결정 id입니다.').optional(),
 });
 
@@ -288,7 +288,7 @@ async function runPublic(
 
 export const decide: ToolModule = {
   name: 'argus_capture',
-  description: 'Capture the reasoning behind a decision in the user\'s own words — the premises it rests on and the questions still open — without deciding for the user. Use action=open for a new decision; add_context, answer_question, keep_question_open, update_fact, change_prediction, or close for a decision already on record.',
+  description: 'Capture the reasoning behind a decision in the user\'s own words — the premises it rests on and the questions still open — without deciding for the user. Use action=open for a new decision; add_context, answer_question, keep_question_open, update_fact, change_prediction, or close for a decision already on record. To save a checkable PREDICTION with a check-by date, use argus_predict instead (capture alone sets no check date, so nothing will come due).',
   inputSchema: decidePublicSchema,
   outputSchema: ENVELOPE_OUTPUT_SCHEMA,
   annotations: { title: 'Work with a decision', readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
@@ -400,6 +400,6 @@ function publicWrapper(tool: ToolModule, name: string, description: string): Too
   };
 }
 
-export const publicSeal = publicWrapper(seal, 'argus_predict', 'Make a falsifiable prediction and the date when reality can answer it. Use the user\'s own wording whenever possible.');
+export const publicSeal = publicWrapper(seal, 'argus_predict', 'Make a falsifiable prediction and the date when reality can answer it. Use the user\'s own wording whenever possible. Works directly with a fresh id; no prior argus_capture call is needed.');
 export const publicCheckIn = publicWrapper(checkIn, 'argus_check_in', 'Show only decisions, facts, and open questions that need attention now. Read-only.');
 export const publicSettle = publicWrapper(settle, 'argus_resolve', 'Record what actually happened after a prediction reaches its check date. Reality supplies the result; Argus does not grade it.');

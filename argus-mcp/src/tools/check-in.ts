@@ -32,7 +32,11 @@ export function resetCheckInSession(): void {
 
 const inputSchema = z.strictObject({
   argus_dir: zArgusDir,
-  include_upcoming_days: z.number().int().min(0).max(30).default(0).describe('Also list sealed contracts coming due within N days (informational — nothing to settle yet).'),
+  // max(365), not max(30): the handler clamps the WINDOW to 30 days, but the
+  // schema must not hard-refuse a model that passes 60 for "show me two months"
+  // — an advertised-then-rejected argument is the 1.4.6 backlog's enum-divergence
+  // class. Values above 30 are accepted and clamped.
+  include_upcoming_days: z.number().int().min(0).max(365).default(0).describe('Also list sealed contracts coming due within N days (informational; nothing to settle yet). Values above 30 are clamped to 30.'),
   fleet: z.boolean().default(false).describe('Also report due counts across your OTHER Argus projects (every dir argus_init registered on this machine). Facts and counts only; settle each in its own project.'),
   today_override: zDate.optional(),
 });
@@ -70,6 +74,18 @@ export const checkIn: ToolModule = {
       const DUE_TOP = 20;
       const due = dueAll.slice(0, DUE_TOP);
       const dueTruncated = dueAll.length - due.length;
+
+      // The full OPEN watch-list (sealed, not yet settled), so the model — once it
+      // holds this from the session-start check_in — can settle a prediction the
+      // MOMENT its outcome surfaces in conversation, even before the check-by date
+      // (SERVER_INSTRUCTIONS §2: notice the outcome as it surfaces). Bounded; data
+      // only, never surfaced — it is context for the model's noticing, not a list
+      // shown to the user.
+      const openWatch = [...ledger.contracts.values()]
+        .filter((c) => c.status === 'sealed')
+        .sort((x, y) => ((x.check_by || '') < (y.check_by || '') ? -1 : 1))
+        .slice(0, 40)
+        .map((c) => ({ id: c.id, predicate: c.predicate, check_by: c.check_by }));
 
       // 당직 미러 (§9.1): the most recent PRIOR day's anchor comes back first,
       // as a question — recognition, never a completion check. Today's own
@@ -218,9 +234,10 @@ export const checkIn: ToolModule = {
       // Ledger-corruption disclosure (11 P2-8): dropped_lines was counted in
       // data.integrity but never SAID. Silence is not kindness — one factual
       // sentence + the backup handle. No blame, no gate.
-      const integrityLine = ledger.integrity.dropped_lines > 0
-        ? S.dropped_lines(ledger.integrity.dropped_lines)
-        : '';
+      const undatedIds = ledger.integrity.undated_seals ?? [];
+      const integrityLine =
+        (ledger.integrity.dropped_lines > 0 ? S.dropped_lines(ledger.integrity.dropped_lines) : '')
+        + (undatedIds.length > 0 ? S.undated_seals(undatedIds) : '');
 
       // Living premises: monitored facts due for a reality re-check, grouped so
       // the same fact under several decisions is ONE re-check (plan v5 P1/P5).
@@ -274,7 +291,7 @@ export const checkIn: ToolModule = {
           ok: true, tool: 'argus_check_in',
           surface: mirrorLine + S.nothing_due + accountHint + upcomingLine + fleetLine + integrityLine,
           next_actions: ['stop'],
-          data: { due: [], due_count: 0, due_premises: [], due_premise_count: 0, due_open_questions: [], due_open_question_count: 0, ...(upDays > 0 ? { upcoming } : {}), ...(a['fleet'] === true ? { fleet: fleetRows } : {}), ...watchData, today, ...(process.env['ARGUS_V2_DEBUG'] === '1' ? { capture_status: captureStatus, v2_brief: readV2Brief(dir, today), v2_divergence: briefDivergence([], readV2Brief(dir, today)) } : {}) },
+          data: { due: [], due_count: 0, due_premises: [], due_premise_count: 0, due_open_questions: [], due_open_question_count: 0, ...(openWatch.length ? { open_predictions: openWatch } : {}), ...(upDays > 0 ? { upcoming } : {}), ...(a['fleet'] === true ? { fleet: fleetRows } : {}), ...watchData, today, integrity: ledger.integrity, ...(process.env['ARGUS_V2_DEBUG'] === '1' ? { capture_status: captureStatus, v2_brief: readV2Brief(dir, today), v2_divergence: briefDivergence([], readV2Brief(dir, today)) } : {}) },
         });
       }
 
@@ -323,6 +340,7 @@ export const checkIn: ToolModule = {
           ...(upDays > 0 ? { upcoming } : {}),
           ...(a['fleet'] === true ? { fleet: fleetRows } : {}),
           ...watchData,
+          ...(openWatch.length ? { open_predictions: openWatch } : {}),
           today, integrity: ledger.integrity,
           // v2 병기/진단은 ARGUS_V2_DEBUG=1 뒤로. 공개 payload에 싣던 v2_brief가
           // 머신-전역 durable-home 저장소를 읽어 다른 프로젝트의 결정 원문을

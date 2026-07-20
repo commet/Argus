@@ -47,8 +47,8 @@ describe('validateSeal — Korean vibe heuristic (12 P1-4)', () => {
     const err = validateSeal('잘 될 것 같다 아마도', '2026-08-01', TODAY);
     expect(err?.code).toBe('NOT_FALSIFIABLE');
     expect(err?.weak).toBe(true);
-    expect(err?.message).toContain('기분');
-    expect(err?.recovery).toContain('휴리스틱');
+    expect(err?.message).toContain('막연한 느낌');
+    expect(err?.recovery).toContain('예외가 있을 수');
   });
 
   it('passes a checkable Korean predicate', () => {
@@ -60,6 +60,14 @@ describe('validateSeal — Korean vibe heuristic (12 P1-4)', () => {
     expect(err?.code).toBe('NOT_FALSIFIABLE');
     expect(err?.weak).toBe(true);
     expect(err?.message).toContain('vibe');
+  });
+
+  it('an observable anchor defuses the vibe heuristic (over-fire fix, 1.4.7)', () => {
+    // "아마도" 한 단어가 숫자 임계값이 있는 예측을 하드블록했던 케이스.
+    expect(validateSeal('아마도 2월엔 월 매출이 1억을 넘는다', '2026-08-01', TODAY)).toBeNull();
+    expect(validateSeal('signups will be fine, at least 1000 by March', '2026-08-01', TODAY)).toBeNull();
+    // 앵커가 없는 순수 기분은 여전히 잡는다.
+    expect(validateSeal('어떻게든 잘 될 것 같다', '2026-08-01', TODAY)?.code).toBe('NOT_FALSIFIABLE');
   });
 });
 

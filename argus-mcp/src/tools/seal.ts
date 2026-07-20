@@ -1,7 +1,7 @@
 import { atomicWriteJson } from '../lib/atomic-write.js';
 import { bearingPath } from '../lib/layout.js';
 import { resolveToolArgusDir } from '../lib/argus-dir.js';
-import { resolveToday } from '../lib/resolve-today.js';
+import { resolveToday, logicalNow } from '../lib/resolve-today.js';
 import { resolveContract } from '../lib/resolve-contract.js';
 import { guardTransition } from '../lib/state-machine.js';
 import { validateSeal } from '../lib/validate-seal.js';
@@ -78,9 +78,7 @@ export const seal: ToolModule = {
       // the tool's own `today` disagreeing with the date it printed. recheck.ts
       // already fixed this same class for premise cadences. Keep the real UTC
       // time-of-day for intra-day ordering, but stamp the logical date.
-      const now = a['today_override']
-        ? `${today}T12:00:00.000Z`
-        : `${today}T${new Date().toISOString().slice(11)}`;
+      const now = logicalNow(today, !!a['today_override']);
       // Response voice follows the predicate (M4): config > text > env.
       let locale = resolveResponseLocale(dir, predicate);
       let T = SURFACES[locale].tools.seal;
@@ -103,12 +101,12 @@ export const seal: ToolModule = {
           { type: 'object', required: ['choice'], properties: {
             choice: {
               type: 'string', enum: ['keep', 'reword', 'skip'],
-              enumNames: locale === 'ko' ? ['그대로 기록', '내가 다시 쓸게', '안 할래'] : ['Keep it', 'Let me reword', 'Skip'],
+              enumNames: locale === 'ko' ? ['그대로 기록', '직접 고쳐 쓰기', '건너뛰기'] : ['Keep it', 'Let me reword', 'Skip'],
               description: locale === 'ko' ? '이 예측을 기록할지 고르세요.' : 'Whether to record this prediction.',
             },
             your_wording: {
               type: 'string',
-              description: locale === 'ko' ? '"내가 다시 쓸게"를 골랐다면, 원하는 예측 문장을 여기에 — 그 말 그대로 저장됩니다.' : 'If you chose "Let me reword", type your prediction here — it is saved exactly as written.',
+              description: locale === 'ko' ? '"직접 고쳐 쓰기"를 골랐다면, 원하는 예측 문장을 여기에 적어 주세요. 그 말 그대로 저장됩니다.' : 'If you chose "Let me reword", type your prediction here. It is saved exactly as written.',
             },
           } },
         );
@@ -137,11 +135,11 @@ export const seal: ToolModule = {
           } else {
             // Reword chosen but no wording typed (or the host renders enum-only
             // forms) — fall back to the two-step: ask in chat, model re-calls.
-            return envelope({ ok: true, tool: 'argus_seal', surface: locale === 'ko' ? '그럼 원하는 예측 문장을 알려주세요. 그 말 그대로 저장할게요.' : "Then tell me the prediction in your own words and I'll save exactly that.", next_actions: ['argus_predict'], data: { sealed: false, choice: 'reword' } });
+            return envelope({ ok: true, tool: 'argus_seal', surface: locale === 'ko' ? '그럼 원하는 예측 문장을 알려주세요. 그 말 그대로 저장하겠습니다.' : "Then tell me the prediction in your own words and I'll save exactly that.", next_actions: ['argus_predict'], data: { sealed: false, choice: 'reword' } });
           }
         } else if (choice !== 'keep') {
           // skip, or a declined/cancelled picker — record nothing.
-          return envelope({ ok: true, tool: 'argus_seal', surface: locale === 'ko' ? '기록하지 않았어요.' : 'Not recorded.', next_actions: ['stop'], data: { sealed: false, choice: choice ?? 'declined' } });
+          return envelope({ ok: true, tool: 'argus_seal', surface: locale === 'ko' ? '기록하지 않았습니다.' : 'Not recorded.', next_actions: ['stop'], data: { sealed: false, choice: choice ?? 'declined' } });
         } else {
           // keep → the user affirmed the draft, so it is theirs now.
           a = { ...a, predicate_owner: 'user' };
@@ -282,7 +280,7 @@ export const seal: ToolModule = {
       const calNote = locale === 'ko' ? ' 달력 리마인더(.ics)도 저장했습니다.' : ' Saved a calendar reminder (.ics).';
       return envelope({
         ok: true, tool: 'argus_seal',
-        surface: `${T.sealed(predicate, checkBy)}${calNote}${nudge}${syncLine}`,
+        surface: `${(a['predicate_owner'] === 'ai_surfaced' ? T.sealed_draft : T.sealed)(predicate, checkBy)}${calNote}${nudge}${syncLine}`,
         next_actions: ['argus_check_in', 'stop'],
         data: {
           id, predicate, check_by: checkBy, predicate_owner: a['predicate_owner'],

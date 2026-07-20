@@ -28,6 +28,11 @@ export interface ContractEntry {
   predicate?: string;
   check_by?: string;
   outcome?: string;
+  /** What reality did, in the user's words, retained from the settle event's
+   *  `decision`/`what_happened` field. The receipt file is the primary keepsake,
+   *  but the fold keeps this too so a LOST receipt on a settled decision can be
+   *  reconstructed honestly instead of misreported as "no prediction" (recall). */
+  what_happened?: string;
   basis?: string;
   amend_history: Array<{ predicate?: string; check_by?: string; ts?: string }>;
   dismiss_reason?: string;
@@ -106,6 +111,11 @@ export interface LedgerState {
      *  — kept separate from dropped_lines so forward-compat never reads as a
      *  false integrity alarm (plan v5 §6.3). */
     skipped_unknown: number;
+    /** Sealed contracts whose check_by is missing or unparseable (only reachable
+     *  via a foreign writer / hand-edit — the MCP seal path validates the date).
+     *  Such a seal can NEVER become `due`, so without this it is silently stuck
+     *  and invisible to every channel. Listed here so a channel can say so. */
+    undated_seals?: string[];
   };
 }
 
@@ -128,6 +138,9 @@ export function replayLedger(argusDir: string, today: string): LedgerState {
   let dropped = 0;
   let skippedUnknown = 0;
   let oldestTs: string | undefined;
+  // Ids that ever saw a seal EVENT — survives settle/dismiss so total_sealed
+  // means "ever sealed", derived per-id (not per-line) below.
+  const everSealed = new Set<string>();
   const watch: WatchState = { anchors: new Map(), captures: [] };
 
   let raw: string;
@@ -182,7 +195,7 @@ export function replayLedger(argusDir: string, today: string): LedgerState {
         cur.check_by = ev['check_by'] as string | undefined;
         if (typeof ev['basis'] === 'string') cur.basis = ev['basis'];
         cur.status = 'sealed';
-        stats.total_sealed++;
+        everSealed.add(id);
         break;
       }
 
@@ -208,30 +221,22 @@ export function replayLedger(argusDir: string, today: string): LedgerState {
         cur.status = 'settled';
         const outcome = ev['outcome'] as string | undefined;
         cur.outcome = outcome;
+        // Retain what-reality-did from the settle line. This binary writes it as
+        // `decision`; the plugin CLI writes `what_happened` — read both (same
+        // dual-vocab tolerance as ts/at below) so a lost receipt is honestly
+        // reconstructable from the fold, whatever surface settled it.
+        const wh = typeof ev['decision'] === 'string' ? ev['decision']
+          : typeof ev['what_happened'] === 'string' ? (ev['what_happened'] as string) : undefined;
+        if (wh) cur.what_happened = wh;
         // Timestamp field is two-vocab across surfaces: this binary stamps `ts`,
         // the plugin CLI stamps `at` — read both so a plugin-settled decision
         // still gets its settled date on the receipt (O2 방1 finding ⑤).
         const settledTs = typeof ev['ts'] === 'string' ? ev['ts'] : typeof ev['at'] === 'string' ? ev['at'] : undefined;
         if (settledTs && settledTs.length >= 10) cur.settled_on = settledTs.slice(0, 10);
         if (typeof ev['broken_premise_id'] === 'string') cur.broken_premise_id = ev['broken_premise_id'];
-        // `happened` is the plugin CLI's legacy spelling of `held` (pre plain-canon
-        // unification). Old ledgers keep their bytes — the alias lives at read time.
-        // total_settled is incremented HERE, together with the bucket, so the
-        // invariant total_settled == sum(buckets) always holds. A settle event
-        // with an UNKNOWN outcome (a corrupt or externally-synced ledger — the
-        // zod enum blocks it on the MCP write path) still marks the decision
-        // settled, but is not counted into a calibration frequency it can't be
-        // categorized into (it used to inflate total_settled, so the surface read
-        // "N settled: 0 · 0 · 0 · 0" — a settle that vanished from its own breakdown).
-        if (outcome === 'held' || outcome === 'happened') { stats.held++; stats.total_settled++; }
-        else if (outcome === 'avoided') { stats.avoided++; stats.total_settled++; }
-        else if (outcome === 'partial') { stats.partial++; stats.total_settled++; }
-        else if (outcome === 'missed') { stats.missed++; stats.total_settled++; }
-        // 'still_pending' is NOT a terminal outcome — the MCP settle tool routes
-        // it to a `defer` event, never a `settle`. A settle+still_pending is
-        // therefore external/legacy only; it is not counted (the displayed
-        // breakdown shows four buckets, so counting it would make the visible
-        // line under-sum: "1 settled: 0 · 0 · 0 · 0"). v2 rejects it likewise.
+        // Buckets are NOT counted here — stats derive from the FOLDED STATE
+        // after the loop (see below), so a duplicated or reordered settle line
+        // in an externally-edited ledger cannot double-count a calibration.
         break;
       }
 
@@ -414,15 +419,34 @@ export function replayLedger(argusDir: string, today: string): LedgerState {
     }
   }
 
+  // Stats are DERIVED from the folded state, never counted per event line
+  // (state-derivation, 1.4.6 backlog): a hand-edited/merged ledger with a
+  // duplicated seal or settle line folds to the same state, so it must fold to
+  // the same calibration. Invariant preserved: total_settled == sum of the four
+  // buckets; a settled contract with an unknown/legacy outcome ('still_pending',
+  // corrupt) is settled but uncounted, exactly as before. `happened` stays the
+  // plugin CLI's legacy alias of `held` (old ledgers keep their bytes).
+  stats.total_sealed = everSealed.size;
+  for (const c of map.values()) {
+    if (c.status !== 'settled') continue;
+    const o = c.outcome === 'happened' ? 'held' : c.outcome;
+    if (o === 'held') { stats.held++; stats.total_settled++; }
+    else if (o === 'avoided') { stats.avoided++; stats.total_settled++; }
+    else if (o === 'partial') { stats.partial++; stats.total_settled++; }
+    else if (o === 'missed') { stats.missed++; stats.total_settled++; }
+  }
+
   const overdue: Array<{ id: string; date: string; text: string }> = [];
+  const undatedSeals: string[] = [];
   for (const [id, item] of map.entries()) {
     if (item.status !== 'sealed') continue;
     const date = asDate(item.check_by);
-    if (date && date <= today) overdue.push({ id, date, text: item.text || '' });
+    if (!date) { undatedSeals.push(id); continue; } // sealed but no valid check-by → can never come due; surface it, don't lose it
+    if (date <= today) overdue.push({ id, date, text: item.text || '' });
   }
   overdue.sort((a, b) => (a.date < b.date ? -1 : 1));
 
-  return { today, overdue, ids, sealedPredicates, contracts: map, stats, watch, oldest_ts: oldestTs, integrity: { dropped_lines: dropped, skipped_unknown: skippedUnknown } };
+  return { today, overdue, ids, sealedPredicates, contracts: map, stats, watch, oldest_ts: oldestTs, integrity: { dropped_lines: dropped, skipped_unknown: skippedUnknown, ...(undatedSeals.length ? { undated_seals: undatedSeals } : {}) } };
 }
 
 /**

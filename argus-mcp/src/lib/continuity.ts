@@ -25,11 +25,11 @@ export function computeContinuity(argusDir: string, relatedIds: string[]): {
   }
   const frequency_statement = settled === 0
     ? 'No settled history among the decisions you tagged as similar.'
-    : `Of ${settled} similar decision(s) you settled: ${held} held, ${settled - held} did not.`;
+    : `Of ${settled} similar ${settled === 1 ? 'decision' : 'decisions'} you settled: ${held} held, ${settled - held} did not.`;
   return {
     related,
     frequency_statement,
     sample_size: settled,
-    sample_size_caveat: settled > 0 && settled < 10 ? 'Sample is small — read this as history, not a pattern about you.' : undefined,
+    sample_size_caveat: settled > 0 && settled < 10 ? 'Sample is small. Read this as history, not a pattern about you.' : undefined,
   };
 }

@@ -36,7 +36,7 @@ async function sealThenSettle(locale: 'ko' | 'en', outcome: 'held' | 'avoided' |
 }
 
 const OUTCOMES = ['held', 'avoided', 'partial', 'missed'] as const;
-const KO_WORD = { held: '그렇게 됨', avoided: '피함', partial: '부분', missed: '빗나감' };
+const KO_WORD = { held: '예측대로 됐다', avoided: '걱정한 일은 안 일어났다', partial: '일부만 맞았다', missed: '예측이 빗나갔다' };
 
 describe('정산 surface는 outcome을 명명한다 (F1 회귀 방지)', () => {
   it('en: 네 outcome이 서로 다른 문구를 내고, 각자 그 결과를 명명한다', async () => {

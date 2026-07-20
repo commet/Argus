@@ -64,6 +64,17 @@ function firstExisting(dir, names) {
 // for Hangul).
 const VIBE = /\b(go well|be fine|be good|be great|work out|feel right|be successful|do better|improve somehow)\b/i;
 const VIBE_KO = /(잘\s*될|잘\s*풀릴|괜찮을|좋아질|나아질)\s*(것|거)\s*(같|이)|아마도|어떻게든\s*(될|되)/;
+// Hand-synced with validate-seal.ts: an observable anchor (number, date,
+// threshold, concrete completion verb) makes the predicate checkable even when
+// vibe wording rides along — the vibe lists catch PURE feelings only.
+// HARD only. A bare completion WORD (ship/launch/출시/배포…) must NOT defuse the
+// vibe check: those words appear as NOUNS inside genuinely vague sentences —
+// "The launch will probably go well", "이번 출시는 잘 될 것 같다 아마도" — so
+// treating them as anchors let PURE vibes through the falsifiability gate (this
+// test caught both, 2026-07-20). Only a gradeable magnitude/threshold rescues a
+// predicate carrying vibe wording; a plain "we ship by Friday" has no vibe
+// wording so it passes untouched (the 1.4.6 over-fire fix is preserved).
+const HARD_ANCHOR = /\d|[%<>=≤≥]|(이상|이하|미만|초과)|\b(at least|more than|less than|no more than)\b/i;
 
 function asDate(value) {
   if (typeof value !== 'string') return null;
@@ -192,7 +203,7 @@ export function checkVersion(dir) {
       const predicate = seed.predicate;
       if (typeof predicate !== 'string' || predicate.trim().length < 8) {
         v.push('SEED: contract_seed.predicate is empty or under 8 chars — a seal needs a statement reality can mark true or false');
-      } else if (VIBE.test(predicate) || VIBE_KO.test(predicate)) {
+      } else if (!HARD_ANCHOR.test(predicate) && (VIBE.test(predicate) || VIBE_KO.test(predicate))) {
         v.push('SEED: contract_seed.predicate reads like a vibe, not a checkable prediction — restate with a number, threshold, or observable event (weak heuristic; may miss cases)');
       }
       for (const part of ['pass_condition', 'fail_condition']) {

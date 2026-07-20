@@ -53,7 +53,7 @@ export const candidates: ToolModule = {
     .refine((a) => a.action === 'list' || a.candidate_id !== undefined,
       { message: 'candidate_id is required for promote/drop/snooze' })
     .refine((a) => a.action !== 'promote' || a.decision_id !== undefined,
-      { message: 'promote links a candidate to an existing saved prediction — pass decision_id (save it first with argus_predict)' })
+      { message: 'promote links a candidate to an existing saved prediction; pass decision_id (save it first with argus_predict)' })
     .refine((a) => a.action !== 'snooze' || a.snooze_until !== undefined,
       { message: 'snooze requires snooze_until (YYYY-MM-DD)' }),
   outputSchema: ENVELOPE_OUTPUT_SCHEMA,

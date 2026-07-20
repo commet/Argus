@@ -46,7 +46,7 @@ export function humanizeSyncReason(reason: string, locale: SurfaceLocale): strin
     if (reason === 'insecure_api_url') return 'API 주소가 https가 아니라 토큰을 보내지 않았습니다';
     if (reason === 'network') return '네트워크에 닿지 못했습니다';
     if (http) return http[1] === '401' || http[1] === '403'
-      ? `토큰이 거부됐습니다 (HTTP ${http[1]}) — 만료됐을 수 있으니 웹 설정에서 새 토큰을 발급하세요`
+      ? `토큰이 거부됐습니다 (HTTP ${http[1]}). 만료됐을 수 있으니 웹 설정에서 새 토큰을 발급하세요`
       : `서버가 ${http[1]}로 응답했습니다`;
     return reason;
   }
@@ -54,7 +54,7 @@ export function humanizeSyncReason(reason: string, locale: SurfaceLocale): strin
   if (reason === 'insecure_api_url') return 'the API URL is not https, so the token was not sent';
   if (reason === 'network') return 'the network was unreachable';
   if (http) return http[1] === '401' || http[1] === '403'
-    ? `the token was rejected (HTTP ${http[1]}) — it may be expired; issue a new one in web Settings`
+    ? `the token was rejected (HTTP ${http[1]}); it may be expired, so issue a new one in web Settings`
     : `the server answered ${http[1]}`;
   return reason;
 }
@@ -146,6 +146,9 @@ export interface SurfaceStrings {
     reconsider_more: (n: number) => string;
     /** ledger-corruption disclosure (11 P2-8): counted silently before — say it. */
     dropped_lines: (n: number) => string;
+    /** sealed-but-undated disclosure: a foreign-written seal with no valid
+     *  check_by can never come due, so it would be silently stuck. Name it. */
+    undated_seals: (ids: string[]) => string;
     /** 당직 미러 (§9.1): the most recent PRIOR day's anchor, mirrored back as a
      *  question. 세 문장 문법 — 인용, 사실(날짜), 손잡이. Never an evaluation,
      *  never a completion check. */
@@ -223,6 +226,14 @@ export interface SurfaceStrings {
     sealed_label: string;
     settled_label: string;
     not_settled: string;
+    /** Right-aligned date tags in the two block headers: "… 2026-07-20 저장" and
+     *  "… 2026-07-25 확인". Redesign (founder-approved): predict/reality are blocks,
+     *  not a cramped two-date top row. */
+    saved_suffix: string;
+    settled_suffix: string;
+    /** One standalone ownership line ("이 판단을 내린 사람: 나 (모델 아님)") that
+     *  replaces the old "…내린 사람  나. (모델이 아니라)" label+value with the ellipsis. */
+    made_by_line: string;
     real_question: string;
     unverified_assumption: string;
     human_only: string;
@@ -233,6 +244,11 @@ export interface SurfaceStrings {
      *  "…콜한 내용  judgment" mixed EN into a KO receipt (experience-loop find). */
     basis_label: (v: string) => string;
     skipped: string;
+    /** When real question + assumption + human-only call are ALL skipped and no
+     *  premise is tracked, the three per-section "(none)" rows collapse into
+     *  this ONE neutral line — a data-minimal settle should not render a
+     *  receipt that is mostly placeholders. */
+    nothing_recorded: string;
     premises_note: (tracked: number, changed: number) => string;
     /** Neutral timeline fact when the record was deferred (still_pending re-armed)
      *  before it finally settled: "originally due X · deferred N×". Never a grade. */
@@ -266,10 +282,18 @@ export interface SurfaceStrings {
       opened_with_crux: (crux: string) => string;
       /** FIRE, no crux: instruct exactly ONE neutral crux question. */
       opened_bare: string;
+      /** The product-level disclosure of the irreducible residual lean (spine
+       *  mirror clause): naming the load-bearing question faintly points at the
+       *  flip. A KNOWN-LIMIT statement, never a verdict — rides in data. */
+      lean_disclosure: string;
     };
     seal: {
       /** the core confirmation: quote + check-by + come-back handle. */
       sealed: (predicate: string, checkBy: string) => string;
+      /** ai_surfaced predicate saved on a host WITHOUT a confirm picker: the
+       *  surface must say it is a draft awaiting the user's ok, never imply the
+       *  user already affirmed it (honest authorship). */
+      sealed_draft: (predicate: string, checkBy: string) => string;
       /** appended when the assumption was skipped (recorded, not hidden). */
       nudge_assumption: string;
       /** account-sync voice (3-state): success speaks, no_token stays silent. */
@@ -277,7 +301,7 @@ export interface SurfaceStrings {
       sync_failed: (reason: string) => string;
     };
     settle: {
-      settled: (outcome: 'held' | 'avoided' | 'partial' | 'missed') => string;
+      settled: (outcome: 'held' | 'avoided' | 'partial' | 'missed', predicate: string) => string;
       sync_failed: (reason: string) => string;
       /** still_pending re-arm (defer): honest "not settled — reality hasn't
        *  answered; I'll bring it back on {date}". Never says "settled". */
@@ -339,10 +363,10 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
     },
     checkin: {
       nothing_due: 'Nothing is due right now.',
-      first_run: 'Argus is ready. Tell me a decision you are weighing. I can clarify what it rests on, save a prediction with a check-by date, and record what actually happened when that date arrives. Nothing is tracked yet; describe a decision to begin.',
+      first_run: 'Just talk through a decision you\'re weighing. I\'ll follow along, and if something is worth checking later, I\'ll note it. Nothing is tracked yet.',
       account_hint: ' This screen reads the local decision record only. Predictions saved in your account show up with argus_settings action=sync.',
       upcoming: (n, days) => ` ${n} coming due within ${days} day(s). Informational; no result is due yet.`,
-      due_contracts: (n) => `${n} saved prediction(s) past check-by. Time to record what happened (argus_resolve).`,
+      due_contracts: (n) => `${n} saved prediction(s) past check-by. Tell me how each turned out and I'll record it.`,
       anchor_mirror: (days, n, words) =>
         `${days} day(s) since you saved this, and ${n} prediction(s) are past check-by. Back then you wrote: '${words}' All that's left is to record what actually happened (argus_resolve).`,
       due_premises: (n, staleDays, sinceAdd) =>
@@ -352,6 +376,8 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
       reconsider_more: (n) => `${n} open question(s) you left unresolved are up for another look (argus_capture).`,
       dropped_lines: (n) =>
         ` ${n} ledger line(s) could not be read (possibly a crash artifact). The record is append-only, so the rest is intact. Keep a backup of ledger.jsonl.`,
+      undated_seals: (ids) =>
+        ` ${ids.length} saved prediction(s) have no valid check-by date, so they can't come due on their own: ${ids.slice(0, 5).join(', ')}${ids.length > 5 ? ` (+${ids.length - 5} more)` : ''}. Re-save with a date, or settle directly with argus_resolve.`,
       watch_mirror: (date, text) =>
         `On ${date} you wrote: '${text}' So how did it go?`,
       fleet_summary: (projects, due) =>
@@ -377,14 +403,14 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
       answers_label: 'Reality answers',
       days_out: (n) => `(${n} day${n === 1 ? '' : 's'} out)`,
       closing: [
-        'This prediction stays unchanged until then. What gets written next',
-        'is not a grade. It is what actually happened.',
+        'This prediction stays unchanged until then. What gets',
+        'written next is not a grade. It is what actually happened.',
       ],
       footer: 'argus · prediction saved → result recorded ⚓',
     },
     wake: {
       header: 'ARGUS · YOUR DECISIONS',
-      counts: (total, sealed, settled) => `decisions ${total} · predictions saved ${sealed} · results recorded ${settled}`,
+      counts: (total, sealed, settled) => `decisions ${total} · awaiting check ${sealed} · results recorded ${settled}`,
       overdue_group: (n) => `past check-by (${n})`,
       overdue_hint: '← argus_resolve',
       days_past: (n) => `${n}d past`,
@@ -400,25 +426,29 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
       sealed_label: 'Prediction saved',
       settled_label: 'Result',
       not_settled: 'not recorded yet',
+      saved_suffix: 'saved',
+      settled_suffix: 'recorded',
+      made_by_line: 'This call was mine. Not the model\'s.',
       real_question: 'THE REAL QUESTION',
       unverified_assumption: 'THE UNVERIFIED ASSUMPTION',
       human_only: 'HUMAN-ONLY CALL',
       made_by_label: '…made by',
       made_by: 'Me. (not the model)',
-      called_as: '…looking back',
+      called_as: 'Looking back,',
       basis_label: (v) => ({ judgment: 'mostly my judgment', luck: 'mostly luck', mixed: 'a mix of both', unsure: 'not sure' })[v] ?? v,
       // A blank field, stated neutrally — "you skipped naming this" read as a
       // nag about the user's completeness on a receipt they wanted plain
       // (experience loop, settler: a zero-judgment surface must not grade even
       // the act of leaving a field empty).
       skipped: '— (none)',
+      nothing_recorded: 'No question or premise was recorded with this decision.',
       premises_note: (tracked, changed) =>
-        `(+${tracked} premise(s) tracked · ${changed} changed at re-check · argus_patterns view=decision_context)`,
+        `(+${tracked} ${tracked === 1 ? 'premise' : 'premises'} tracked · ${changed} changed at re-check)`,
       deferred_fact: (times, originallyDue) =>
         `Originally due ${originallyDue} · deferred ${times}×`,
-      you_predicted: 'YOU PREDICTED',
-      check_by: (date) => `(check-by ${date})`,
-      what_happened: 'WHAT HAPPENED',
+      you_predicted: 'What I predicted',
+      check_by: (date) => `check-by ${date}`,
+      what_happened: 'What actually happened',
       verdict_line: 'AI VERDICT ON THIS DECISION ······················  NONE',
       closing: 'The model never graded you. Reality did.',
       footer: 'argus · prediction saved → result recorded ⚓',
@@ -430,7 +460,7 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
           factual: 'This is a question with an answer, not a decision to open.',
           already_closed: 'You already made this call. Argus does not reopen it.',
           flat: 'The options are close to even. There is no load-bearing question to force here.',
-          reversible_low_stakes: 'Cheap to undo and little at stake, so trying it is the test.',
+          reversible_low_stakes: 'Cheap to undo and little at stake.',
           low_stakes: 'Little rides on this, so the steady move is to leave it as is.',
         },
         reason_fallback: 'There is no real fork to open here.',
@@ -438,16 +468,18 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
         watch_exit: ' Leaving it unrecorded is fine.',
         reconfirm: 'These signals look contradictory (high stakes yet easily reversible). Re-confirm stakes and reversibility before going further.',
         opened_with_crux: (crux) => `Opened. The one question that decides this: ${crux}`,
-        opened_bare: 'Opened. If one neutral question decides this, naming it is the next step. Then save a falsifiable prediction.',
+        opened_bare: 'This decision is on record.',
+        lean_disclosure: 'Naming the load-bearing question points faintly at the flip; that residual lean is a known limit, not a verdict.',
       },
       seal: {
-        sealed: (predicate, checkBy) => `Prediction saved. "${predicate}" Check-by is ${checkBy}. Come back then with argus_resolve to record what happened.`,
-        nudge_assumption: ' Optionally, name the key assumption so Argus can re-check it later.',
+        sealed: (predicate, checkBy) => `Prediction saved. "${predicate}" Check-by is ${checkBy}. I'll bring it back that day to see how it went.`,
+        sealed_draft: (predicate, checkBy) => `I drafted this prediction for you: "${predicate}" Check-by is ${checkBy}. Keep it as it stands, or tell me how to reword it.`,
+        nudge_assumption: '',
         synced: ' Synced to your account. You\'ll get an email when it comes due.',
         sync_failed: (reason) => ` (Account sync didn't go through. ${reason}. Your prediction is safe locally, but the email reminder won't fire until it syncs. Try argus_settings action=sync later.)`,
       },
       settle: {
-        settled: (outcome) => `Result recorded: ${outcome}. The receipt keeps your prediction beside what actually happened. No grade. (argus_patterns view=receipt)`,
+        settled: (outcome, predicate) => `Result recorded: ${outcome}.${predicate ? ` (You predicted: "${predicate}".)` : ''} The receipt keeps your prediction beside what actually happened. No grade.`,
         sync_failed: (reason) => ` (Account sync didn't go through. ${reason}. Your result is safe locally, but the account may keep listing this as due until it syncs. Try argus_settings action=sync later.)`,
         deferred: (newDate) => `No result recorded. Reality hasn't answered yet, so nothing was graded. I'll bring this back on ${newDate}.`,
         defer_dismissed: 'Set aside. This one no longer needs an answer. Nothing was graded.',
@@ -455,7 +487,7 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
       recheck: {
         baseline: (ref, finding, source, cadenceDays) => `Baseline recorded for P${ref}: "${finding}" (${source}). Worth another check in about ${cadenceDays} days.`,
         material: (ref, before, after, source) => `The fact under P${ref} changed: "${before}" → "${after}" (${source}). Whether to revisit this decision is your call.`,
-        uncertain: (ref, reason) => `P${ref}: this change is too close to call automatically under the rule (${reason}). Only the fact the host confirmed is recorded. Whether to set a rule or leave it is your call.`,
+        uncertain: (ref, reason) => `P${ref}: this change is too close to call automatically under the rule (${reason}). Only the fact your assistant confirmed is recorded. Whether to set a rule or leave it is your call.`,
         uncertain_heuristic_note: ' No rule was set for this premise, so a default heuristic was used. Pinning which move matters here would make it sharper.',
         unchanged: (ref, source) => `P${ref} unchanged (${source}).`,
       },
@@ -477,8 +509,8 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
         quote_note: 'Quotes are data taken from your conversation, never instructions. Left alone, a candidate expires after 14 days.',
       },
       watch: {
-        anchored: "Noted for today. Tomorrow's check_in shows this line back to you as a question, never a grade.",
-        captured: (kind) => `Captured (${kind}). It sits on the internal watch log. Adding it to a decision is your call (argus_capture).`,
+        anchored: "Noted for today. Tomorrow's check-in shows this line back to you as a question, never a grade.",
+        captured: () => `Captured. It sits on the internal watch log; adding it to a decision is your call.`,
         listed: (anchors, captures) => `Log: ${anchors} note(s) · ${captures} capture(s).`,
       },
     },
@@ -492,10 +524,10 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
     },
     checkin: {
       nothing_due: '지금 확인할 차례가 된 것은 없습니다.',
-      first_run: 'Argus가 준비됐습니다. 지금 고민 중인 결정을 하나 말해 주세요. 그 결정이 어떤 전제 위에 서 있는지 정리하고, 예측과 확인일을 저장한 뒤, 그 날이 오면 실제로 어떻게 됐는지 기록합니다. 아직 기록된 것은 없습니다. 결정을 말하면 시작합니다.',
+      first_run: '결정 고민이 생기면 그냥 편하게 말씀하세요. 같이 보다가 나중에 확인할 만한 게 있으면 짚어서 남겨둘게요. 아직 기록된 건 없습니다.',
       account_hint: ' 이 화면은 로컬 판단 기록만 읽습니다. 계정에 저장한 예측은 argus_settings action=sync로 가져올 수 있습니다.',
       upcoming: (n, days) => ` ${days}일 안에 확인일이 오는 예측이 ${n}건 있습니다. 아직 결과를 기록할 때는 아닙니다.`,
-      due_contracts: (n) => `저장한 예측 ${n}건이 확인일을 지났습니다. 실제 결과를 기록할 차례입니다 (argus_resolve).`,
+      due_contracts: (n) => `저장한 예측 ${n}건이 확인일을 지났습니다. 실제로 어떻게 됐는지 알려주시면 남겨드릴게요.`,
       anchor_mirror: (days, n, words) =>
         `예측을 저장한 지 ${days}일이 지났고, ${n}건이 확인일을 넘겼습니다. 그때 당신은 이렇게 적었습니다: '${words}' 실제로 어떻게 됐는지만 기록하면 됩니다 (argus_resolve).`,
       due_premises: (n, staleDays, sinceAdd) =>
@@ -505,6 +537,8 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
       reconsider_more: (n) => `미결로 남겨둔 질문 ${n}건을 다시 볼 차례입니다 (argus_capture).`,
       dropped_lines: (n) =>
         ` 판단 기록에서 읽지 못한 줄이 ${n}개 있습니다 (크래시 흔적일 수 있습니다). 기록은 추가만 하는 방식이라 나머지는 안전합니다. ledger.jsonl을 백업해 두세요.`,
+      undated_seals: (ids) =>
+        ` 저장된 예측 ${ids.length}건에 확인일이 없어, 저절로 확인일이 오지 못합니다: ${ids.slice(0, 5).join(', ')}${ids.length > 5 ? ` 외 ${ids.length - 5}건` : ''}. 확인일을 넣어 다시 저장하거나, argus_resolve로 바로 결과를 기록하세요.`,
       watch_mirror: (date, text) =>
         `${date}에 이렇게 적으셨습니다: '${text}' 그 뒤로 어떻게 됐나요?`,
       fleet_summary: (projects, due) =>
@@ -527,7 +561,7 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
       owner_user: '이 문장은 당신의 것입니다.',
       owner_ai: 'Argus가 초안한 문장입니다. 아직 당신이 확언하지 않았습니다.',
       sealed_label: '저장한 예측',
-      answers_label: '실제 결과',
+      answers_label: '확인일',
       days_out: (n) => `(${n}일 뒤)`,
       closing: [
         '확인일까지 이 예측은 바뀌지 않습니다. 그날 여기 기록될 것은',
@@ -537,14 +571,16 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
     },
     wake: {
       header: 'ARGUS · 결정 기록',
-      counts: (total, sealed, settled) => `결정 ${total} · 예측 저장 ${sealed} · 결과 기록 ${settled}`,
+      // "예측 저장 0"은 정산이 끝나면 0으로 줄어 "저장한 적 없음"처럼 읽혔다
+      // (1.4.6 재진단): 이 칸의 의미는 '지금 확인일을 기다리는 것'이다.
+      counts: (total, sealed, settled) => `결정 ${total} · 확인 대기 ${sealed} · 결과 기록 ${settled}`,
       overdue_group: (n) => `확인일 지남 (${n})`,
       overdue_hint: '← argus_resolve',
       days_past: (n) => `${n}일 경과`,
       waiting_group: (n) => `결과를 기다리는 중 (${n})`,
-      answer_on: (date) => `답 ${date}`,
-      settled_group: (n, held, avoided, partial, missed) => `결과 기록됨 (${n}): 그렇게 됨 ${held} · 피함 ${avoided} · 부분 ${partial} · 빗나감 ${missed}`,
-      outcome_label: (o) => ({ held: '그렇게 됨', avoided: '피함', partial: '부분', missed: '빗나감', still_pending: '대기' })[o] ?? o,
+      answer_on: (date) => `확인 ${date}`,
+      settled_group: (n, held, avoided, partial, missed) => `결과 기록됨 (${n}): 예측대로 ${held} · 걱정 피함 ${avoided} · 일부 ${partial} · 빗나감 ${missed}`,
+      outcome_label: (o) => ({ held: '예측대로', avoided: '걱정 피함', partial: '일부', missed: '빗나감', still_pending: '대기' })[o] ?? o,
       more: (n) => `… (+${n})`,
       record_since: (date) => `${date}부터 기록`,
     },
@@ -553,22 +589,26 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
       sealed_label: '저장한 예측',
       settled_label: '실제 결과',
       not_settled: '기록 전',
+      saved_suffix: '저장',
+      settled_suffix: '확인',
+      made_by_line: '이 판단을 내린 사람: 나 (모델 아님)',
       real_question: '진짜 질문',
       unverified_assumption: '검증 안 된 전제',
       human_only: '사람만의 판단',
       made_by_label: '…내린 사람',
       made_by: '나. (모델이 아니라)',
-      called_as: '…돌아보니',
+      called_as: '돌아보니',
       basis_label: (v) => ({ judgment: '판단이 컸다', luck: '운이 컸다', mixed: '판단 반 운 반', unsure: '잘 모르겠다' })[v] ?? v,
       // 빈 칸을 사실 그대로. "이름 붙이지 않고 넘어갔습니다"는 사용자의 완성도를
       // 지적하는 잔소리로 읽혔다 (experience loop, settler).
       skipped: '— (없음)',
+      nothing_recorded: '이 결정에 함께 적어둔 질문이나 전제는 없습니다.',
       premises_note: (tracked, changed) =>
-        `(추적한 전제 ${tracked}건 · 재확인에서 바뀐 것 ${changed}건 · argus_patterns view=decision_context)`,
+        `(추적한 전제 ${tracked}건 · 재확인에서 바뀐 것 ${changed}건)`,
       deferred_fact: (times, originallyDue) =>
         `원래 확인일 ${originallyDue} · ${times}번 미룸`,
-      you_predicted: '당신의 예측',
-      check_by: (date) => `(확인일 ${date})`,
+      you_predicted: '내가 예측한 것',
+      check_by: (date) => `확인일 ${date}`,
       what_happened: '실제로 일어난 일',
       // 브랜드 DNA — 웹 OG 이미지와 동일하게 이 줄만은 영문 유지 (§9.3)
       verdict_line: 'AI VERDICT ON THIS DECISION ······················  NONE',
@@ -582,7 +622,7 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
           factual: '이건 답이 있는 질문이지, 열어둘 결정이 아닙니다.',
           already_closed: '이미 내린 결정입니다. Argus는 이걸 다시 열지 않습니다.',
           flat: '선택지가 거의 대등합니다. 억지로 만들 핵심 질문이 없습니다.',
-          reversible_low_stakes: '되돌리기 쉽고 걸린 것도 적습니다. 직접 해보는 것이 곧 검증입니다.',
+          reversible_low_stakes: '되돌리기 쉽고 크게 걸린 것도 없는 결정이에요.',
           low_stakes: '걸린 것이 별로 없습니다. 그대로 두는 편이 무난합니다.',
         },
         reason_fallback: '여기서 억지로 지어낼 결정은 없습니다.',
@@ -590,16 +630,18 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
         watch_exit: ' 기록하지 않고 그대로 두어도 괜찮습니다.',
         reconfirm: '신호가 서로 어긋납니다 (걸린 것은 큰데 되돌리기는 쉽습니다). 더 나아가기 전에 이 둘을 다시 짚어 보세요.',
         opened_with_crux: (crux) => `열었습니다. 이 결정을 좌우하는 단 하나의 질문: ${crux}`,
-        opened_bare: '열었습니다. 이 결정을 좌우하는 핵심 질문 하나가 있다면 그걸 짚어 보는 게 다음 단계입니다. 그다음 반증 가능한 예측을 저장하면 됩니다.',
+        opened_bare: '이 결정, 기록해뒀어요.',
+        lean_disclosure: '핵심 질문을 짚는 것 자체가 뒤집히는 쪽을 희미하게 가리킬 수 있습니다. 그렇게 남는 쏠림은 알려진 한계일 뿐, 이 결정에 대한 평가가 아닙니다.',
       },
       seal: {
-        sealed: (predicate, checkBy) => `예측을 저장했습니다. "${predicate}" 확인일은 ${checkBy}입니다. 그날 argus_resolve로 실제로 어땠는지 기록하세요.`,
-        nudge_assumption: ' 원하면 핵심 전제를 적어두면 나중에 같이 확인합니다.',
+        sealed: (predicate, checkBy) => `예측을 저장했습니다. "${predicate}" 확인일은 ${checkBy}입니다. 그날 다시 꺼내서 어떻게 됐는지 같이 볼게요.`,
+        sealed_draft: (predicate, checkBy) => `이렇게 예측을 적어봤습니다: "${predicate}" 확인일은 ${checkBy}입니다. 이대로 두셔도 되고, 고칠 문장이 있으면 말씀해 주세요.`,
+        nudge_assumption: '',
         synced: ' 계정에 동기화했습니다. 확인일이 오면 이메일로 알려드립니다.',
         sync_failed: (reason) => ` (계정 동기화가 안 됐습니다. ${reason}. 예측은 로컬에 안전합니다. 동기화되기 전까지는 이메일 알림이 오지 않습니다. 나중에 argus_settings action=sync를 시도하세요.)`,
       },
       settle: {
-        settled: (outcome) => `실제 결과를 기록했습니다: ${({ held: '그렇게 됨', avoided: '피함', partial: '부분', missed: '빗나감' })[outcome]}. 영수증에 예측과 실제가 나란히 남습니다. 평가는 없습니다. (argus_patterns view=receipt)`,
+        settled: (outcome, predicate) => `실제 결과를 기록했습니다: ${({ held: '예측대로 됐다', avoided: '걱정한 일은 안 일어났다', partial: '일부만 맞았다', missed: '예측이 빗나갔다' })[outcome]}.${predicate ? ` (예측: "${predicate}".)` : ''} 영수증에 예측과 실제가 나란히 남습니다. 평가는 없습니다.`,
         sync_failed: (reason) => ` (계정 동기화가 안 됐습니다. ${reason}. 결과는 로컬에 안전합니다. 동기화되기 전까지 계정은 이걸 계속 "확인 필요"로 표시할 수 있습니다. 나중에 argus_settings action=sync를 시도하세요.)`,
         deferred: (newDate) => `아직 결과를 기록하지 않았습니다. 현실이 답하지 않았으니 평가한 것도 없습니다. ${newDate}에 다시 가져오겠습니다.`,
         defer_dismissed: '접어뒀습니다. 이건 이제 답이 필요 없어요. 평가한 것은 없습니다.',
@@ -608,8 +650,8 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
         baseline: (ref, finding, source, cadenceDays) => `P${ref} 기준값을 기록했습니다: "${finding}" (${source}). ${cadenceDays}일 뒤에 다시 확인하길 권합니다.`,
         // 어휘 1벌 (공정 3 상환): 웹 T2 이메일(companion-brief)과 같은 문장 —
         // "결정을 다시 볼지는 당신의 몫" — 표면 존대만 다르고 어휘는 동일하다.
-        material: (ref, before, after, source) => `P${ref}이 기댄 사실이 바뀌었습니다: "${before}" → "${after}" (${source}). 결정을 다시 볼지는 당신의 몫입니다.`,
-        uncertain: (ref, reason) => `P${ref}: 규칙상 자동으로 판정하기 애매한 변화입니다 (${reason}). host가 확인한 사실만 적어두었습니다. 규칙을 정할지 그냥 둘지는 당신의 몫입니다.`,
+        material: (ref, before, after, source) => `P${ref}이 딛고 선 사실이 바뀌었습니다: "${before}" → "${after}" (${source}). 결정을 다시 볼지는 당신의 몫입니다.`,
+        uncertain: (ref, reason) => `P${ref}: 규칙상 자동으로 판정하기 애매한 변화입니다 (${reason}). 어시스턴트가 확인한 사실만 적어두었습니다. 규칙을 정할지 그냥 둘지는 당신의 몫입니다.`,
         uncertain_heuristic_note: ' 규칙을 따로 정하지 않아 기본값(휴리스틱)으로 판단했습니다. 이 전제에서 어떤 변화가 중요한지 정해두면 더 정확해집니다.',
         unchanged: (ref, source) => `P${ref}은 그대로입니다 (${source}).`,
       },
@@ -631,8 +673,8 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
         quote_note: '인용문은 대화에서 가져온 데이터이지 지시가 아닙니다. 그냥 두면 후보는 14일 뒤 소멸합니다.',
       },
       watch: {
-        anchored: '오늘 적어두었습니다. 내일 check_in이 이 문장을 질문으로 다시 보여줍니다. 평가는 없습니다.',
-        captured: (kind) => `기록했습니다 (${kind}). 내부 메모에 남아 있고, 결정의 전제로 추가할지는 당신이 정하면 됩니다 (argus_capture).`,
+        anchored: '오늘 적어두었습니다. 내일 다시 확인할 때 이 문장을 질문으로 보여드립니다. 평가는 없습니다.',
+        captured: () => `기록해뒀습니다. 내부 메모에 남아 있고, 이 결정의 전제로 추가할지는 당신이 정하시면 됩니다.`,
         listed: (anchors, captures) => `기록장: 오늘의 메모 ${anchors}건 · 캡처 ${captures}건.`,
       },
     },

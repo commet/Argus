@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { resolveToolArgusDir } from '../lib/argus-dir.js';
 import { replayLedger } from '../lib/ledger-replay.js';
-import { resolveToday } from '../lib/resolve-today.js';
+import { resolveToday, logicalNow } from '../lib/resolve-today.js';
 import { resolveContract } from '../lib/resolve-contract.js';
 import { guardTransition } from '../lib/state-machine.js';
 import { appendLedger, withLedgerLock, type LedgerEventInput } from '../lib/ledger-append.js';
@@ -105,7 +105,9 @@ export const premises: ToolModule = {
       const id = String(a['id'] ?? '');
       const today = resolveToday({ override: a['today_override'] as string | undefined });
       const op = String(a['op']);
-      const now = new Date().toISOString();
+      // Logical-date stamp so a premise added "today" is not dated yesterday by
+      // raw UTC — else it can become the oldest event and skew "record since".
+      const now = logicalNow(today, !!a['today_override']);
 
       // Alias normalization (§9.4 경계 수리): `reponder_cadence_days` is the
       // historical (misspelled) field a model reasoning from the description
@@ -320,11 +322,11 @@ async function opAdd(
       // count + ref range (echoing five sentences would bury the confirmation).
       : (events.length === 1
           ? (ko
-              ? `방금 적어뒀어요: '${oneLine(echo[0]?.text ?? '')}'. 잘못 적혔으면 그대로 말해 주세요 — 바로잡은 내용도 기록에 남아요.${monitoredNote}`
+              ? `방금 적어뒀습니다: '${oneLine(echo[0]?.text ?? '')}'. 잘못 적혔으면 그대로 말씀해 주세요. 바로잡은 내용도 기록에 남습니다.${monitoredNote}`
               : `Noted: "${oneLine(echo[0]?.text ?? '')}". Fix anything wrong with argus_capture.${monitoredNote}`)
           : (ko
-              ? `전제 ${events.length}건을 기록했습니다 (${refRange}). 틀린 것이 있으면 말해 주세요 — 바로잡은 내용도 기록에 남습니다.${monitoredNote}`
-              : `${events.length} premise(s) recorded (${refRange}). Fix anything wrong with argus_capture; your correction stays on the record too.${monitoredNote}`));
+              ? `전제 ${events.length}건을 기록했습니다 (${refRange}). 틀린 것이 있으면 말해 주세요. 바로잡은 내용도 기록에 남습니다.${monitoredNote}`
+              : `${events.length} premises recorded (${refRange}). Fix anything wrong with argus_capture; your correction stays on the record too.${monitoredNote}`));
 
   return envelope({
     ok: true, tool: 'argus_premises',

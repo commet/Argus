@@ -140,7 +140,7 @@ function trackRecord(cwd) {
 function pruneMarkers(maxAgeMs) {
   const base = configDir();
   const cutoff = Date.now() - maxAgeMs;
-  for (const name of ["argus-anchored", "argus-seen", "argus-waked", "argus-recalled"]) {
+  for (const name of ["argus-anchored", "argus-seen", "argus-waked", "argus-recalled", "argus-sensed"]) {
     const dir = path.join(base, name);
     let entries;
     try { entries = fs.readdirSync(dir); } catch { continue; }
@@ -175,6 +175,89 @@ function isDangerousTool(name) {
   return DANGEROUS_TOOLS.some((t) => name === t || name.endsWith("_" + t) || name.endsWith("__" + t));
 }
 
+/* ─────────────────────────────────────────────────────────────────────────────
+ * Layer-2 deterministic signal detection — the CJS mirror of
+ * argus-mcp/src/lib/detect-signals.ts. Kept verbatim-identical in patterns; a
+ * behavioral drift guard (argus-mcp detect-signals-drift.test) runs BOTH over a
+ * shared corpus and fails CI if they diverge. Widens the anchor hooks from
+ * "decision START only" to the three senses Argus lives on: a passing
+ * prediction, a surfacing outcome, a load-bearing assumption. NO LLM — rules a
+ * test can pin (the whole point: plausible cannot masquerade as correct).
+ * Spine: HIGH-RECALL here; restraint is the firing gate's job (max detect, min fire).
+ * ──────────────────────────────────────────────────────────────────────────── */
+const FUTURE = [
+  /\bwill\b/i, /\bwon'?t\b/i, /\bgoing to\b/i, /\bgonna\b/i, /\bshall\b/i,
+  /\bexpect(s|ed|ing)?\b/i, /\bshould\b/i, /\blikely\b/i, /\bplan(ning)? to\b/i,
+  /\bby (mon|tue|wed|thu|fri|sat|sun)\w*/i,
+  /\bby (jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\w*/i,
+  /\bby \d/i, /\bwithin \d+\s*(day|week|month|quarter)/i,
+  /\bnext (week|month|quarter|year|sprint)\b/i,
+  /(할|될|갈|낼|올|줄)\s*(것|거|게|걸)/, /하겠|되겠|시키겠/, /(ㄹ|를|을)\s*거(다|예요|야|임)/,
+  /예상|전망|목표|계획|할 예정|될 예정/, /까지(는|\b|\s)/, /안에|이내(에)?/,
+  /다음\s*(주|달|분기|해|스프린트)/, /(유지|달성|돌파|출시|완료)(할|될|하겠|되겠|한다|된다)/,
+  /(거예요|거에요|거야|겁니다|거고|건데|건가|것으로|것입니다|것이다|것\s*같)/, /(ㄹ|을|를)\s*것\b/,
+];
+const MEASURABLE = [
+  /\d/, /%|percent|퍼센트|프로/i, /\$|원\b|달러|억|만원|USD|KRW/i,
+  /\b(faster|slower|lower|higher|cheaper|under|over|below|above|less than|more than|at least|no more than)\b/i,
+  /이하|이상|미만|초과|아래|위(로)?|밑(으로)?|이내|보다\s*(빠|느|싸|비|많|적|높|낮)/,
+  /\b(mon|tue|wed|thu|fri|sat|sun)\w*/i,
+  /\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\w*/i, /\d{4}-\d{2}-\d{2}/,
+];
+const COMPLETION = [
+  /\b(ship|launch|release|deliver|deploy|close|hire|sign|land|finish|complete|onboard|migrate|cut over)\b/i,
+  /출시|배포|출고|런칭|납품|마감|채용|계약|체결|완료|오픈|이전|전환|성사|입사|합류/,
+];
+const RESOLVED = [
+  /\bturn(s|ed)? out\b/i, /\bended up\b/i, /\bcame in at\b/i, /\bended at\b/i,
+  /\bwe (shipped|launched|missed|hit|closed|hired|signed|landed|deployed)\b/i,
+  /\bit (went|held|worked|failed|slipped|held up)\b/i,
+  /\bdidn'?t (happen|work|ship|hold|land)\b/i, /\b(hit|missed|beat|met) (the|our) (target|number|deadline|goal)\b/i,
+  /됐(어|다|고|는데|네|음)|됐다|성사(됐|했)|끝났|출시했|배포했|이전했|전환했/,
+  /안\s*(됐|나|됐어|됐다)|못\s*(했|했다|해서|이룬)|실패(했|함)|무산(됐|됨)/,
+  /결국|실제로(는)?|막상|나왔(다|어|고)|나온|드러났|밝혀졌|판명/,
+];
+const CONDITIONAL = [
+  /\bbecause\b/i, /\bsince\b/i, /\bassuming\b/i, /\bas long as\b/i, /\bdepends on\b/i,
+  /\bonly if\b/i, /\bprovided that\b/i, /\bbanking on\b/i, /\bhinges? on\b/i,
+  /\bcontingent on\b/i, /\bthe (key|whole thing) (is|hinges|rests|depends)\b/i,
+  /니까|때문에|덕분에|탓에/, /(라|다)면\b|(으|)ㄴ다면|는다면/, /는\s*한(에서)?|한(에서만)?/,
+  /(에|에게)\s*달렸|달려\s*있|전제로|가정하(면|고)|관건은|핵심은|믿고\s*있/,
+];
+const _any = (groups, s) => groups.some((re) => re.test(s));
+const _which = (name, groups, s) => (groups.some((re) => re.test(s)) ? name : null);
+function _clauses(text) {
+  return text.split(/(?<=[.!?。！？])\s+|\n+/).map((c) => c.trim()).filter((c) => c.length >= 6 && c.length <= 400);
+}
+function _overlaps(a, b) {
+  const tok = (s) => s.toLowerCase().replace(/[^\p{L}\p{N}\s]/gu, " ").split(/\s+/).filter((t) => t.length >= 2);
+  const A = tok(a), B = tok(b);
+  if (A.length === 0 || B.length === 0) return false;
+  let hit = 0;
+  for (const x of A) { for (const y of B) { if (x === y || x.startsWith(y) || y.startsWith(x)) { hit++; break; } } }
+  return hit >= 2;
+}
+/** Pure detector — mirror of detect-signals.ts detectSignals. */
+function detectSignals(text, opts = {}) {
+  if (typeof text !== "string" || text.trim().length < 6) return [];
+  const openPredicates = (opts.openPredicates || []).filter((p) => typeof p === "string" && p.trim());
+  const max = typeof opts.max === "number" && opts.max > 0 ? opts.max : 4;
+  const out = [], seen = new Set();
+  const push = (kind, span, cues) => { const k = kind + ":" + span; if (seen.has(k)) return; seen.add(k); out.push({ kind, span, cues }); };
+  for (const c of _clauses(text)) {
+    const future = _which("future", FUTURE, c);
+    const measurable = _which("measurable", MEASURABLE, c);
+    const completion = _which("completion", COMPLETION, c);
+    if (future && (measurable || completion)) push("prediction", c, [future, measurable, completion].filter(Boolean));
+    const conditional = _which("conditional", CONDITIONAL, c);
+    if (conditional && (measurable || completion || future)) push("assumption", c, [conditional, measurable, completion, future].filter(Boolean));
+    const resolved = _which("resolved", RESOLVED, c);
+    if (resolved && openPredicates.some((p) => _overlaps(c, p))) push("outcome", c, [resolved, "matches-open-prediction"]);
+  }
+  return out.slice(0, max);
+}
+const CUE_GROUPS = { FUTURE, MEASURABLE, COMPLETION, RESOLVED, CONDITIONAL };
+
 module.exports = {
   configDir,
   START_PATTERNS,
@@ -187,4 +270,6 @@ module.exports = {
   pruneMarkers,
   isIrreversible,
   isDangerousTool,
+  detectSignals,
+  CUE_GROUPS,
 };
