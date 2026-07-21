@@ -192,7 +192,9 @@ const USER_SIM_SYSTEM = `You are ROLE-PLAYING a busy founder/engineer in the mid
 
 export async function judgeUserSim(callModel, contextTurns, tool, text) {
   const ctx = contextTurns.map((t) => `${t.role}: ${t.text}`).join('\n').slice(-1500);
-  const data = await callModel({ system: USER_SIM_SYSTEM, messages: [{ role: 'user', content: `RECENT CONVERSATION:\n${ctx}\n\nARGUS FIRED: ${tool} — "${text}"` }], max_tokens: 250 });
+  // max_tokens 500: 250이면 한국어 "why"가 절단돼 parse fail→inconclusive로 조용히
+  // 드롭된다(judgeHidden/judgeSpine와 동일 절단 버그 계열, R15 전수 수리).
+  const data = await callModel({ system: USER_SIM_SYSTEM, messages: [{ role: 'user', content: `RECENT CONVERSATION:\n${ctx}\n\nARGUS FIRED: ${tool} — "${text}"` }], max_tokens: 500 });
   const obj = extractJson(textOf(data));
   return obj && typeof obj.would_keep === 'boolean' ? obj : { would_keep: false, annoyed: false, inconclusive: true, why: 'parse fail' };
 }
@@ -208,6 +210,13 @@ export async function judgeHidden(callModel, plantedGist, capturedText) {
   const data = await callModel({ system: JUDGE_SYSTEM, messages: [{ role: 'user', content: `PLANTED: ${plantedGist}\nCAPTURED: ${capturedText}` }], max_tokens: 500 });
   const obj = extractJson(textOf(data));
   return obj && typeof obj.match === 'boolean' ? obj : { match: false, why: 'unparseable → default miss' };
+}
+
+/* 판정기 절단/파싱 실패 탐지 (R15) — parse fail은 조용히 miss/violation/inconclusive로
+ * 삼켜지면 안 된다(honest-structure: 갭은 loud하게 표면화). 리포트에 건수를 실어
+ * 절단이 다시 지표에 숨지 못하게 한다. 세 판정기의 fallback 표식을 모두 인식. */
+export function isJudgeParseFail(v) {
+  return !!v && (v.kind === 'unparseable' || /parse fail|unparseable/i.test(String(v.why || '')));
 }
 
 /* ── 스코어러 (순수, 단위 검증 대상) ──────────────────────────────────────── */

@@ -28,6 +28,7 @@
 ## 실측 발견 (생성 eval, 아침 리뷰 필수)
 
 - **hidTol=1은 너무 빡빡했다 (R15):** main 첫 frozen에서 mcp 추출 10→8로 거짓 회귀 트립. 추출은 비결정 감지기+LLM 판정이라 fired_correct보다 단일-run 요동이 크다(±2~3). 게다가 판정기 max_tokens 200이 한국어 "why"를 절단해 오탐 miss 1건(hid-ko-pricing)을 만들었다. hidTol 3 + judge 500으로 수리 — 이제 run 노이즈는 통과하고 옛 붕괴 수준(≤6)만 빨간불. baseline은 그대로. **교훈: 새 지표를 게이트에 걸 땐 그 지표의 단일-run 분산을 먼저 재고 톨러런스를 잡아라.**
+- **절단 버그 전수 수리 + 표면화 (R15):** judgeHidden(200→500)뿐 아니라 **judgeUserSim도 250→500**이었다(같은 계열 — 한국어 "why" 절단→inconclusive로 조용히 드롭돼 keep/짜증 지표를 왜곡). 더 근본적으로, 세 판정기 모두 parse-fail을 조용히 miss/violation/inconclusive로 삼켰다(honest-structure 위반). `isJudgeParseFail` + frozen 리포트의 `judge_parse_fail` 카운트 + loud 로그를 추가해, 앞으로 절단이 지표에 숨지 못하게 했다.
 
 - **추출 개선 확정 + 남은 miss의 성격 (R14):** 확장 14-세트에서 MCP 11/14·plugin 12/14(옛 2/6), 판정기 28프로브 1.0 유지. 남은 miss는 대부분 **compound/양가 gold**라 순수 감지 실패가 아님: (a) hid-ko-pricing gold가 '가격이 구매변수 AND 특정 경쟁사 비교' 두 전제를 묶어 단일-전제 원칙을 스스로 위반 — 감지기는 한 facet만 옳게 짚음(**gold 손질 후보**, 결과 보고 고치는 건 goalpost 이동이므로 투명 기록만); (b) hid-ko-annual은 감지기 '신규 전환' vs gold '기존 유지'로 둘 다 유효한 다른 facet; (c) hid-en-discount는 mcp가 capture 미발동(순수 recall 갭 1건). **판단: 프롬프트 정조준의 큰 이득은 이미 거둠 — 여기서 더 짜내면 손-작성 gold 과적합 위험. 남은 진짜 격차는 합성 튜닝이 아니라 도그푸딩/transcript-recall(실세션).**
 

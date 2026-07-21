@@ -26,7 +26,7 @@ import { fileURLToPath } from 'node:url';
 import { CORPUS } from './corpus.mjs';
 import {
   runDetector, scoreScenario, aggregate, makeAnthropicCaller, serverInstructions,
-  PLUGIN_AUGMENT, runPool, judgeHidden,
+  PLUGIN_AUGMENT, runPool, judgeHidden, isJudgeParseFail,
 } from './auto-detect-eval.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
@@ -131,8 +131,13 @@ async function main() {
     // 놓친 케이스만 진단으로 남긴다(전수 대신 실패에 집중 — 다음 레버 찾기용).
     hiddenDetail[m.key] = per.flatMap((r) => r.hiddenJudged).filter((h) => !h.match)
       .map((h) => ({ id: h.id, why: h.why, gold: h.gold, captured: h.captured }));
+    // 판정기 parse-fail을 표면화(R15) — 조용히 miss로 삼켜지지 않게. >0이면 이 run의
+    // 추출 수치는 그만큼 신뢰가 낮다(절단 의심). 리포트에 실어 아침 리뷰가 본다.
+    const parseFails = per.flatMap((r) => r.hiddenJudged).filter(isJudgeParseFail).length;
+    byMode[m.key].judge_parse_fail = parseFails;
     const he = byMode[m.key].hidden_extraction;
-    console.log(`  ${m.key}: 정발동 ${byMode[m.key].fired_correct}/${byMode[m.key].planted_total} · 과발동 ${byMode[m.key].over_fire.fired}/${byMode[m.key].over_fire.filler_total} · 추출매치 ${he.matched}/${he.judged}`);
+    console.log(`  ${m.key}: 정발동 ${byMode[m.key].fired_correct}/${byMode[m.key].planted_total} · 과발동 ${byMode[m.key].over_fire.fired}/${byMode[m.key].over_fire.filler_total} · 추출매치 ${he.matched}/${he.judged}${parseFails ? ` · ⚠판정기절단 ${parseFails}` : ''}`);
+    if (parseFails) console.log(`  ⚠ ${m.key}: 판정기 parse-fail ${parseFails}건 — 추출 수치 신뢰 낮음(절단 의심). max_tokens/판정기 확인.`);
     if (hiddenDetail[m.key].length) for (const d of hiddenDetail[m.key]) console.log(`    MISS[${m.key}] ${d.id}: ${d.why}`);
   }
 
