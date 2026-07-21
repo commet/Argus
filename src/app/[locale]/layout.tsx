@@ -6,6 +6,7 @@ import { Analytics } from '@/components/layout/Analytics';
 import { ErrorBoundary } from '@/components/layout/ErrorBoundary';
 import { E2EMotionKill } from '@/components/E2EMotionKill';
 import { LocaleProvider } from '@/contexts/LocaleProvider';
+import { SkipLink } from '@/components/layout/SkipLink';
 
 export function generateStaticParams() {
   return [{ locale: 'en' }, { locale: 'ko' }];
@@ -26,6 +27,7 @@ export default async function LocaleLayout({
       <Providers>
         <E2EMotionKill />
         <Analytics />
+        <SkipLink locale={locale} />
         <ErrorBoundary>
           <div className="min-h-screen flex flex-col">
             <Header />

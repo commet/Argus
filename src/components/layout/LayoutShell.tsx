@@ -26,7 +26,7 @@ function LayoutShellInner({ children }: { children: React.ReactNode }) {
 
   // Login & callback — no chrome, no auth guard
   if (isLogin || isCallback) {
-    return <main className="flex-1 w-full">{children}</main>;
+    return <main id="main-content" tabIndex={-1} className="flex-1 w-full focus:outline-none">{children}</main>;
   }
 
   // Landing & design showcase — full width, no auth, no app chrome.
@@ -34,7 +34,7 @@ function LayoutShellInner({ children }: { children: React.ReactNode }) {
   // headers, so they get the same bare full-width shell as the landing.
   if (isLanding || isDesign) {
     return (
-      <main className="flex-1 w-full animate-fade-in">
+      <main id="main-content" tabIndex={-1} className="flex-1 w-full animate-fade-in focus:outline-none">
         {children}
       </main>
     );
@@ -51,15 +51,15 @@ function LayoutShellInner({ children }: { children: React.ReactNode }) {
   // viewport, which iOS Safari resolves by zooming out. min-w-0 lets it shrink
   // to the viewport so descendants wrap/clip instead of overflowing.
   if (isWorkspace) {
-    return <main className="flex-1 min-w-0">{content}</main>;
+    return <main id="main-content" tabIndex={-1} className="flex-1 min-w-0 focus:outline-none">{content}</main>;
   }
   const isBoss = pathname.startsWith('/boss');
   if (isBoss) {
-    return <div className="flex-1 min-w-0">{content}</div>;
+    return <div id="main-content" tabIndex={-1} className="flex-1 min-w-0 focus:outline-none">{content}</div>;
   }
   const isPatterns = pathname.startsWith('/patterns');
   if (isPatterns) {
-    return <div className="flex-1 min-w-0">{content}</div>;
+    return <div id="main-content" tabIndex={-1} className="flex-1 min-w-0 focus:outline-none">{content}</div>;
   }
 
   // The 224px <Sidebar /> that used to render here is gone (Argus 2.0 H1-C4):
@@ -68,7 +68,7 @@ function LayoutShellInner({ children }: { children: React.ReactNode }) {
   // into the Header overflow menu, personas to /teams via that menu, and the
   // current-project label to the /project page itself.
   return (
-    <main className="flex-1 p-4 md:p-6 lg:p-8 max-w-5xl mx-auto w-full animate-fade-in">
+    <main id="main-content" tabIndex={-1} className="flex-1 p-4 md:p-6 lg:p-8 max-w-5xl mx-auto w-full animate-fade-in focus:outline-none">
       {content}
     </main>
   );
