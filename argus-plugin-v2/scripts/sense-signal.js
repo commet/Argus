@@ -157,7 +157,7 @@ function buildDiagnosis(preds, candidates) {
     lines.push(`[Deterministic scan flagged a candidate ${c.kind}: "${String(c.span).slice(0, 220)}" — confirm or reject it by meaning; it is a floor, not the detector.]`);
   }
   lines.push(
-    'Restraint (spine): offer at most ONCE per distinct decision — a skip on that decision is FINAL for it. Space offers out: never two replies in a row, and if the user has skipped two offers this session, stay silent for the rest of it. (Recording an outcome the user themselves stated is neutral bookkeeping and always allowed.) If another Argus instruction in this turn already has you ask the user something (e.g. an anchor lean question), fold into it — never two asks in one reply. Flat / trivial / easily-reversible / already-closed → total silence. Never grade the decision.',
+    'Restraint (spine): offer at most ONCE per distinct decision — a skip on that decision is FINAL for it. Space offers out: never two replies in a row, and if the user has skipped two offers this session, stay silent for the rest of it. (Recording an outcome the user themselves stated is neutral bookkeeping and always allowed.) If another Argus instruction in this turn already has you ask the user something (e.g. an anchor lean question), fold into it — never two asks in one reply. Record on the turn where the signal APPEARS — once the user has moved on to another topic, the moment has passed: stay silent rather than firing late. Flat / trivial / easily-reversible / already-closed → total silence. Never grade the decision.',
     MCP_GUARD,
   );
   return lines.join('\n');
