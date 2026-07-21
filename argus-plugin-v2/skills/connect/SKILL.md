@@ -14,6 +14,10 @@ resulting credential locally, then `/argus:push` can send
 `ledger.jsonl` and `current_bearing.json` artifacts to the webapp account, while
 `/argus:pull` can bring webapp settle/defer events back into the local decision record.
 
+After connecting, each seal auto-syncs to the webapp (the approve click was the
+opt-in). The user can turn that off any time with `/argus:push --auto off`, and
+back on with `--auto on`; an explicit `/argus:push` always works regardless.
+
 Use the bundled script. Do not ask the user to install `argus-watch`.
 
 ---

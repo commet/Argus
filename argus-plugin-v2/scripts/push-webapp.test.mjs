@@ -114,6 +114,36 @@ try {
     rmSync(p, { recursive: true, force: true });
   }
 
+  // 3b. Opt-out switch (founder correction): auto-sync is ON by default after the
+  // first connect, and `--auto off` silences ONLY the automatic post-seal path;
+  // an explicit /argus:push still works. `--auto on` re-enables. The connect
+  // credential must survive the toggle.
+  {
+    const p = freshProject();
+    const cfgPath = join(p, '.argus', 'ledger', 'push.json');
+    writeFileSync(cfgPath, JSON.stringify({ token: 'argus_pat_existing', url: URL_BASE }));
+    writeFileSync(join(p, '.argus', 'ledger', 'ledger.jsonl'), `${JSON.stringify({ event: 'seal', id: 'y:v1', predicate: 'p', check_by: '2099-01-01', at: '2026-01-01T00:00:00Z' })}\n`);
+
+    await run(p, ['push', '--auto', 'off']);
+    ok('--auto off persists auto:false in push.json', JSON.parse(readFileSync(cfgPath, 'utf8')).auto === false);
+    ok('--auto off keeps the credential', JSON.parse(readFileSync(cfgPath, 'utf8')).token === 'argus_pat_existing');
+
+    hits.ingest = 0;
+    await run(p, ['push', '--ensure-connect', '--headless', '--url', URL_BASE]);
+    ok('auto off → the automatic post-seal path is a silent no-op', hits.ingest === 0);
+
+    hits.ingest = 0;
+    await run(p, ['push', '--url', URL_BASE]);
+    ok('auto off → an EXPLICIT push still syncs', hits.ingest >= 1);
+
+    await run(p, ['push', '--auto', 'on']);
+    ok('--auto on re-enables', JSON.parse(readFileSync(cfgPath, 'utf8')).auto === true);
+    hits.ingest = 0;
+    await run(p, ['push', '--ensure-connect', '--headless', '--url', URL_BASE]);
+    ok('auto on → the automatic post-seal path syncs again', hits.ingest >= 1);
+    rmSync(p, { recursive: true, force: true });
+  }
+
   // 4. Explicit connect clears a prior decline (user changed their mind).
   {
     const p = freshProject();

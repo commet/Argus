@@ -105,15 +105,31 @@ function loadConfig() {
   return {
     token: flags.token || process.env.ARGUS_PUSH_TOKEN || saved.token || null,
     url: String(flags.url || process.env.ARGUS_PUSH_URL || saved.url || "https://argus.voyage").replace(/\/$/, ""),
+    // Auto-sync is ON by default once connected (the first approve IS the opt-in).
+    // `auto:false` is the opt-out switch: it silences the automatic post-seal push
+    // (--ensure-connect) while an explicit /argus:push still works.
+    auto: saved.auto !== false,
   };
 }
 
 function saveConfig(token, url) {
   ensureLedgerIgnored();
   fs.mkdirSync(ledgerDir(), { recursive: true });
-  fs.writeFileSync(configFile(), JSON.stringify({ token, url }, null, 2));
+  // Preserve other fields (e.g. the `auto` opt-out) across reconnects.
+  let prev = {};
+  try { prev = JSON.parse(fs.readFileSync(configFile(), "utf8")); } catch { prev = {}; }
+  fs.writeFileSync(configFile(), JSON.stringify({ ...prev, token, url }, null, 2));
   // A real connection clears any prior decline — the user changed their mind.
   try { fs.unlinkSync(connectDeclinedFile()); } catch { /* never declined */ }
+}
+
+// Opt-out switch for automatic post-seal sync. Persisted in push.json.
+function setAuto(on) {
+  ensureLedgerIgnored();
+  fs.mkdirSync(ledgerDir(), { recursive: true });
+  let prev = {};
+  try { prev = JSON.parse(fs.readFileSync(configFile(), "utf8")); } catch { prev = {}; }
+  fs.writeFileSync(configFile(), JSON.stringify({ ...prev, auto: !!on }, null, 2));
 }
 
 function loadPullState() {
@@ -440,13 +456,28 @@ async function connect() {
     process.exit(1);
   }
   saveConfig(token, url);
-  console.log("연결됐어요. 이제 판단 기록이 웹앱 항구에 닿습니다.");
+  console.log("연결됐어요. 이제 봉인할 때마다 판단 기록이 자동으로 웹앱 항구에 닿습니다.");
   console.log(`토큰은 ${path.relative(root, configFile()).replace(/\\/g, "/")} 에 로컬 저장되고 git에서 제외됩니다.`);
-  console.log("다음: /argus:push (또는 첫 seal에서 자동).");
+  console.log("자동 전송을 끄려면 /argus:push --auto off (언제든 다시 --auto on).");
 }
 
 async function push() {
-  let { token, url } = loadConfig();
+  const config = loadConfig();
+  let { token, url } = config;
+
+  // Opt-out toggle: `/argus:push --auto off` silences the automatic post-seal
+  // sync (an explicit /argus:push still works); `--auto on` re-enables it.
+  if (flags.auto === "on" || flags.auto === "off") {
+    setAuto(flags.auto === "on");
+    console.log(flags.auto === "on"
+      ? "자동 동기화 켜짐 — 봉인할 때마다 웹앱으로 자동 전송."
+      : "자동 동기화 꺼짐 — /argus:push 로 수동 전송하세요.");
+    return;
+  }
+
+  // The AUTOMATIC path (called after each seal via --ensure-connect). If the user
+  // turned auto-sync off, this is a silent no-op; explicit /argus:push is unaffected.
+  if (flags["ensure-connect"] && config.auto === false) return;
 
   // Auto-trigger (BLUEPRINT §9.9 V1): the seal path calls `push --ensure-connect`.
   // First seal with no credential → open the approve tab once. The approve click
@@ -459,6 +490,7 @@ async function push() {
       token = flags.headless ? await connectWithDevice(url) : await connectWithBrowser(url);
       saveConfig(token, url);
       console.log("연결됐어요. 방금 봉인한 결정을 웹앱으로 보냅니다.");
+      console.log("이후 봉인은 자동으로 전송돼요. 끄려면 /argus:push --auto off.");
     } catch (error) {
       try { fs.writeFileSync(connectDeclinedFile(), new Date().toISOString()); } catch { /* best effort */ }
       console.log(`웹앱 연동은 건너뜁니다 (${error.message}). 결정은 로컬에 안전히 봉인됐고, 언제든 /argus:connect 로 이어붙일 수 있어요.`);
