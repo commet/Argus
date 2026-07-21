@@ -1,44 +1,36 @@
 'use client';
 
-/**
- * 404 — a ship adrift on an empty chart.
- *
- * Replaces the unstyled Next.js default. Uses the sea-chart design system
- * (Graticule + VoyageShip 'adrift') so even a dead end speaks the product's
- * language: you're off the chart, not in trouble.
- */
-
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { ArrowRight } from 'lucide-react';
 import { VoyageShip, Graticule } from '@/components/ui/VoyageElements';
-import { withLocale } from '@/lib/locale-path';
+import { localeFromPath, withLocale } from '@/lib/locale-path';
 
 export default function NotFound() {
   const [locale, setLocale] = useState<'ko' | 'en'>('ko');
+
   useEffect(() => {
-    const documentLocale = document.documentElement.lang;
-    if (documentLocale === 'ko' || documentLocale === 'en') setLocale(documentLocale);
+    setLocale(localeFromPath(window.location.pathname) ?? 'ko');
   }, []);
+
   const L = (ko: string, en: string) => (locale === 'ko' ? ko : en);
 
   return (
-    <div className="flex-1 flex items-center justify-center px-6 py-16">
+    <div className="flex flex-1 items-center justify-center px-4 py-12 sm:px-6 sm:py-16">
       <div className="w-full max-w-md text-center">
-        {/* Chart panel — the adrift ship, lost in the graticule */}
         <div
-          className="relative mx-auto rounded-2xl overflow-hidden border border-[var(--border-subtle)] shadow-[var(--shadow-sm)]"
-          style={{ background: 'var(--bp-paper)', height: 230 }}
+          className="relative mx-auto h-[210px] overflow-hidden rounded-2xl border border-[var(--border-subtle)] shadow-[var(--shadow-sm)] sm:h-[230px]"
+          style={{ background: 'var(--bp-paper)' }}
         >
           <Graticule opacity={0.11} spacing={26} />
           <span
-            className="bp-mono absolute top-3 left-4"
+            className="bp-mono absolute left-4 top-3"
             style={{ fontSize: 10, letterSpacing: '0.26em', color: 'var(--text-tertiary)' }}
           >
             404
           </span>
           <span
-            className="bp-mono absolute top-3 right-4"
+            className="bp-mono absolute right-4 top-3"
             style={{ fontSize: 10, letterSpacing: '0.26em', color: 'var(--text-tertiary)' }}
           >
             {L('페이지 없음', 'NOT FOUND')}
@@ -48,24 +40,24 @@ export default function NotFound() {
           </div>
         </div>
 
-        <h1 className="text-[22px] font-bold text-[var(--text-primary)] tracking-tight mt-8">
+        <h1 className="mt-8 text-[22px] font-bold tracking-tight text-[var(--text-primary)]">
           {L('페이지를 찾을 수 없어요', 'Page not found')}
         </h1>
-        <p className="text-[14px] text-[var(--text-secondary)] leading-relaxed mt-2">
+        <p className="mt-2 text-[14px] leading-relaxed text-[var(--text-secondary)]">
           {L('주소가 바뀌었거나, 처음부터 없던 곳이에요.', 'This page moved, or never existed.')}
         </p>
 
-        <div className="flex items-center justify-center gap-3 mt-7">
+        <div className="mt-7 flex flex-col items-stretch justify-center gap-2 sm:flex-row sm:items-center sm:gap-3">
           <Link
             href={withLocale(locale, '/workspace')}
-            className="inline-flex min-h-11 items-center gap-1.5 px-4 py-2 rounded-xl text-[var(--accent-fg)] text-[13px] font-semibold hover:shadow-[var(--shadow-md)] transition-all"
+            className="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-xl px-4 py-2 text-[13px] font-semibold text-[var(--accent-fg)] transition-all hover:shadow-[var(--shadow-md)]"
             style={{ background: 'var(--gradient-gold)' }}
           >
-            {L('워크스페이스로 돌아가기', 'Back to workspace')} <ArrowRight size={14} />
+            {L('워크스페이스로 돌아가기', 'Back to workspace')} <ArrowRight size={14} aria-hidden="true" />
           </Link>
           <Link
-            href={`/${locale}`}
-            className="inline-flex min-h-11 items-center text-[13px] font-semibold text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors px-2 py-2"
+            href={withLocale(locale, '/')}
+            className="inline-flex min-h-11 items-center justify-center px-4 py-2 text-[13px] font-semibold text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)]"
           >
             {L('처음으로', 'Home')}
           </Link>
