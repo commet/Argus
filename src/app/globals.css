@@ -3325,6 +3325,10 @@ button, a, input, textarea {
 .ds-showcase button:not(:disabled):active { transform: translateY(1px); filter: brightness(.99); }
 .ds-showcase .ds-lift { transition: transform .18s ease, filter .18s ease; }
 .ds-showcase .ds-lift:hover { transform: translateY(-3px); filter: brightness(1.02); }
+.ds-showcase .ds-chart-scroll:focus-visible {
+  outline: 2px solid #a87d31 !important;
+  outline-offset: 3px;
+}
 @media (prefers-reduced-motion: reduce) {
   .ds-showcase button:not(:disabled), .ds-showcase .ds-lift { transition: none; }
   .ds-showcase button:not(:disabled):hover, .ds-showcase button:not(:disabled):active,

@@ -86,7 +86,7 @@ export default function FoundryPage() {
               <button style={{ display: 'inline-flex', alignItems: 'center', gap: 6, font: `600 14px/1 ${SANS}`, color: '#a87d31', padding: '11px 6px', border: 'none', background: 'none', cursor: 'pointer', textDecoration: 'underline', textUnderlineOffset: 4, textDecorationThickness: '1.5px', textDecorationColor: 'rgba(168,125,49,.5)' }}>기록 전체 보기</button>
             </div>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(300px,1fr))', gap: 16 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(300px,100%),1fr))', gap: 16 }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14, padding: 22, background: '#fbf8f1', border: '1px solid #e7ddc9', borderRadius: 14, boxShadow: '0 1px 2px rgba(43,39,34,.05),0 6px 18px rgba(43,39,34,.05)' }}>
               <span style={panelLabel}>Sizes</span>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center' }}>
@@ -125,7 +125,7 @@ export default function FoundryPage() {
         {/* CARDS */}
         <section style={{ display: 'flex', flexDirection: 'column', gap: 28 }}>
           <SectionHead kicker="02 · Surfaces" title="카드 — 세 단계의 높이" body="평평함 → 떠오름 → 봉인. 그림자 깊이와 상단 황동 엣지로 한눈에 위계가 읽힙니다. 시맨틱 표면은 색 띠와 카르투슈로 의미를 부여합니다." />
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(240px,1fr))', gap: 18 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(240px,100%),1fr))', gap: 18 }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: 22, background: '#fbf8f1', border: '1px solid #e7ddc9', borderRadius: 14 }}>
               <span style={{ ...panelLabel, letterSpacing: '.16em' }}>Flat · 기본</span>
               <h3 style={{ margin: '2px 0 0', font: `600 16px ${SERIF}`, color: '#221e19' }}>평면 표면</h3>
@@ -153,7 +153,7 @@ export default function FoundryPage() {
             </div>
           </div>
           {/* semantic cards */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(220px,1fr))', gap: 16 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(220px,100%),1fr))', gap: 16 }}>
             {[
               { bar: 'linear-gradient(90deg,#5b6b7a,#8597a6)', bg: 'linear-gradient(180deg,#f3f6f9,#eaeff4)', border: '#d3dde6', dot: '#5b6b7a', dotRadius: 2, label: 'AI 작업', labelColor: '#5b6b7a', title: '자동 항법', titleColor: '#27313a', body: 'AI가 생성한 경로. 검토 전까지 임시.', bodyColor: '#5a6671', sh: '0 1px 2px rgba(43,39,34,.05),0 7px 18px rgba(60,80,100,.08),inset 0 1px 0 rgba(255,255,255,.8)' },
               { bar: 'linear-gradient(90deg,#a8843f,#d8b25e)', bg: 'linear-gradient(180deg,#fbf4e6,#f6ecd6)', border: '#e6d6b4', dot: '#a8843f', dotRadius: 2, label: '사람 판단', labelColor: '#a8843f', title: '선장의 결정', titleColor: '#3a2c12', body: '사람이 직접 방향을 정한 구간.', bodyColor: '#6e5c38', sh: '0 1px 2px rgba(43,39,34,.05),0 7px 18px rgba(140,101,38,.09),inset 0 1px 0 rgba(255,255,255,.8)' },
@@ -204,7 +204,7 @@ export default function FoundryPage() {
         {/* FIELDS */}
         <section style={{ display: 'flex', flexDirection: 'column', gap: 28 }}>
           <SectionHead kicker="04 · Inputs" title="입력 — 종이에 각인" body="눌러 새긴 듯한 내부 음영(inset), 포커스 시 황동 링, 명확한 에러 상태." />
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(260px,1fr))', gap: 18, padding: 26, background: 'linear-gradient(180deg,#fbf8f1,#f4ecdb)', border: '1px solid #e2d8c3', borderRadius: 16, boxShadow: '0 1px 2px rgba(43,39,34,.05),0 8px 22px rgba(43,39,34,.06)' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(260px,100%),1fr))', gap: 18, padding: 26, background: 'linear-gradient(180deg,#fbf8f1,#f4ecdb)', border: '1px solid #e2d8c3', borderRadius: 16, boxShadow: '0 1px 2px rgba(43,39,34,.05),0 8px 22px rgba(43,39,34,.06)' }}>
             <label style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
               <span style={{ ...panelLabel, letterSpacing: '.16em' }}>결정 제목</span>
               <input defaultValue="북서 항로로 전환" style={{ font: `400 14px ${SANS}`, color: '#2b2722', padding: '11px 13px', borderRadius: 10, border: '1px solid #d6cbb4', background: '#fffdf8', boxShadow: 'inset 0 1px 3px rgba(43,39,34,.1),inset 0 0 0 1px rgba(43,39,34,.02)', outline: 'none' }} />
@@ -214,7 +214,7 @@ export default function FoundryPage() {
               <span style={{ ...panelLabel, letterSpacing: '.16em' }}>봉인 날짜</span>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '11px 13px', borderRadius: 10, border: '1px solid #d6cbb4', background: '#fffdf8', boxShadow: 'inset 0 1px 3px rgba(43,39,34,.1)' }}>
                 <svg width="15" height="15" viewBox="0 0 16 16" style={{ flex: 'none' }}><rect x="2.5" y="3.5" width="11" height="10" rx="1.5" stroke="#a87d31" strokeWidth="1.3" fill="none" /><path d="M2.5 6.5h11M5.5 2v2.5M10.5 2v2.5" stroke="#a87d31" strokeWidth="1.3" strokeLinecap="round" /></svg>
-                <input defaultValue="2026-07-01" style={{ flex: 1, font: `400 14px ${MONO}`, color: '#2b2722', border: 'none', background: 'none', outline: 'none' }} />
+                <input defaultValue="2026-07-01" style={{ flex: 1, minWidth: 0, font: `400 14px ${MONO}`, color: '#2b2722', border: 'none', background: 'none', outline: 'none' }} />
               </div>
               <span style={{ fontSize: 11.5, color: '#9a917f' }}>이 날 Argus가 결과를 묻습니다.</span>
             </label>

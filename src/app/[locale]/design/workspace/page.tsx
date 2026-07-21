@@ -45,7 +45,13 @@ export default function WorkspacePage() {
           </div>
 
           {/* 3D scene */}
-          <div style={{ display: 'flex', justifyContent: 'center', padding: '24px 0 48px', perspective: '1500px', perspectiveOrigin: '50% 30%' }}>
+          <div
+            className="ds-chart-scroll"
+            role="region"
+            aria-label="결정 해도 — 좌우로 스크롤"
+            tabIndex={0}
+            style={{ display: 'flex', justifyContent: 'center', padding: '24px 0 48px', perspective: '1500px', perspectiveOrigin: '50% 30%', overflowX: 'auto', overflowY: 'hidden', overscrollBehaviorInline: 'contain', outline: 'none' }}
+          >
             <div style={{ position: 'relative', width: 900, maxWidth: '100%' }}>
               <div style={{ position: 'absolute', left: '6%', right: '6%', top: '58%', height: 120, background: 'radial-gradient(ellipse at center,rgba(60,44,18,.34),rgba(60,44,18,0) 70%)', filter: 'blur(14px)' }} />
 
