@@ -60,6 +60,7 @@ const CONTRACT: Record<keyof typeof STORAGE_KEYS, Decl> = {
   WORKER_PERSONAS: { localOnly: '세션 내 파생 캐시 — 세션 data에 동승' },
   EXECUTION_TRANSCRIPTS: { localOnly: '대용량 실행 로그 — 로컬 전용 (용량)' },
   BOSS_COLLECTION: { localOnly: '코스메틱 수집 상태 — 유실 무해' },
+  BOSS_DRAFT: { localOnly: '작성 중인 보스 대화 초안 — 민감한 기기 전용 데이터로 30일 뒤 자동 만료' },
   REVIEW_RECEIPTS: { table: 'review_receipts' },
   REVIEW_FREE_USED: { localOnly: '문서 검수 무료 1회 소진 플래그(부울 1개, 개인정보 없음) — 기기별 상태, 유실 시 무료 1회가 복원될 뿐 무해(실비용 상한은 서버측 일일 레이트리밋이 지킴)' },
   LANTERN_SNOOZE: { localOnly: '워크스페이스 등불 당일 스누즈 날짜 — 기기별 UI 상태, 유실 무해(다음날 재렌더)' },

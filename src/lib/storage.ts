@@ -26,6 +26,7 @@ export const STORAGE_KEYS = {
   AGENT_ACTIVITIES: 'sot_agent_activities',
   EXECUTION_TRANSCRIPTS: 'sot_execution_transcripts',
   BOSS_COLLECTION: 'sot_boss_collection',
+  BOSS_DRAFT: 'sot_boss_draft',
   DECISION_ITEMS: 'sot_decision_items',
   REVIEW_RECEIPTS: 'sot_review_receipts',
   // 문서 업로드 검수 무료 1회 소진 플래그 (BYOK 유도). 자기 API 키를 연결하지
