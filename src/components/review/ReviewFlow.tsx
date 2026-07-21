@@ -1059,7 +1059,7 @@ export function ReviewFlow() {
               type="button"
               aria-pressed={concerns.includes(c.id)}
               onClick={() => toggleConcern(c.id)}
-              className={`min-h-11 px-3 py-1 text-[12px] rounded-full border transition-colors sm:min-h-9 sm:px-2.5 ${
+              className={`min-h-11 px-3 py-1 text-[12px] rounded-full border transition-colors sm:px-2.5 lg:min-h-9 ${
                 concerns.includes(c.id)
                   ? 'border-[var(--accent)] bg-[var(--accent)]/10 text-[var(--accent)]'
                   : 'border-[var(--border-subtle)] text-[var(--text-secondary)]'

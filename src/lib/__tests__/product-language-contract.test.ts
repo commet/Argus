@@ -99,7 +99,7 @@ describe('plain product-language contract', () => {
 
   it('keeps narrow-screen navigation and primary tap targets reachable', () => {
     expect(MOBILE_UI_FILES).toContain('grid grid-cols-3 gap-1 py-2');
-    expect(MOBILE_UI_FILES).toContain('min-h-[44px] sm:min-h-[36px]');
+    expect(MOBILE_UI_FILES).toContain('min-h-[44px] lg:min-h-[36px]');
     expect(MOBILE_UI_FILES).toContain('group inline-flex min-h-11 items-center');
     expect(MOBILE_UI_FILES).toContain('inline-flex min-h-11 items-center');
   });
