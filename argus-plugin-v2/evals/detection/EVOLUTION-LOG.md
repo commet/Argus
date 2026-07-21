@@ -15,8 +15,11 @@
 | R7 (키 부활 확인) | run 29790676163 | frozen 22/24 of0 · 생성: 정발동 32/45, 과발동 16/37(43%), 정산 7/14 | frozen 22/24 of0 · 생성: 38/45, 과발동 11/37(30%), 정산 11/14 | 측정만(구코드 run). R2 절제가 실전 과발동을 MCP 58%→43%·플러그인 52%→30%로 내림 + recall 유지 확인. hidden_mismatch 패턴 발견: 일반적 손익 전제를 잡고 특정 운영 리스크(호환성·커버리지·인프라 준비)를 놓침 | RATCHET_OK (MCP frozen 20→22) |
 | R8 (거울 첫 실측) | run 29792802867 | 26/36·of43%·keep92%·짜증18% | 34/36·of32%·keep91%·짜증14% | 스파인 '위반 29'는 28건이 판정기 JSON 절단(unparseable) — 실질 위반 1건(전제 2개 쌓기). 수리: ①판정기 max_tokens 200→500+why 10단어 ②늦은-발사 금지(짜증·과발동의 공통 원인 = 신호 턴이 아니라 다음 턴에 발사) — spine.ts·sense-signal·AUGMENT 3곳 ③capture 단일절 규칙 | keep 91~92% 첫 실측 |
 | R9 (R8 검증) | run 29798197156 | frozen 20/24 of0 | frozen 22/24 of0 | R8 수리 후 회귀 없음(RATCHET_OK), 프로즌 과발동 양 모드 0 복귀. 상세 spine/keep 수치는 run artifact(auto-detect-report)에 | 출시 청신호 유지 |
+| R10 (세션 복원·loop 재개) | run 29807610931 | frozen 20/24 of0 · 생성(N=3): 과발동 3/6·짜증 4/14·hidden매치 1/3 | frozen 23/24 of0 · 생성: 과발동 2/6·짜증 0/9·hidden매치 0/3 | 수리 없음(검증 run). 새 세션에서 loop를 CI-dispatch로 재개(하트비트 trig_01VD7eRdEedbZ45KHQBQn1VY 이관). 회귀 없음(RATCHET_OK), 플러그인 frozen 22→23 미세 개선. 생성 스파인 플래그 6건 중 실질 4건(전제 2개 쌓기 ×3·전제를 사실로 제시 ×1)+파싱 2건 — 단 N=3 노이즈 큼 | — |
 
 ## 실측 발견 (생성 eval, 아침 리뷰 필수)
+
+- **hidden-extraction 품질이 frozen 래칫 게이트 밖(R10 확인):** frozen-bench는 hidden_extraction judged:0 — 숨은 전제에 '발동했나'만 재고 '옳게 짚었나'는 안 잰다. 생성 eval에선 judged되지만 매치가 낮다(R10 N=3: MCP 1/3·플러그인 0/3). 즉 추출 품질이 무너져도 래칫이 안 걸린다. 간판 기능의 회귀 가드 공백 — 도그푸딩/transcript-recall 전까지 미검증 항목으로 남긴다.
 
 - **과발동이 실전에서 심각(R2 run):** MCP 52/90 · 플러그인 47/90. 손코퍼스(0/8)와 정반대 — 결정 밀도 높은 대화에선 무관 작업요청·일정·잡담에 argus_predict/capture가 마구 발사됨. **출시 전 최우선 스파인 문제.** R2에서 절제 지시 강화, 다음 run이 효과 측정.
 - **MCP 정산 recall 낮음:** 13/38 — 정산 턴('업데이트: churn 8%로 올랐어')에 resolve 대신 check_in 발사. 열린 예측을 손에 안 쥔 raw MCP의 약점. 플러그인은 34/38로 훨씬 나음. R3에서 resolve 지시 강화 예정.
