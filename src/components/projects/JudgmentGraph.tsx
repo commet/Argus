@@ -5,7 +5,7 @@ import { Check, FileText } from 'lucide-react';
 import type { JudgmentReceipt } from '@/lib/review';
 import { sharedGrounds } from '@/lib/judgment-graph';
 import { blastRadius } from '@/lib/judgment-graph-layout';
-import { judgmentPortfolioGraph, type PortfolioGraph } from '@/lib/judgment-portfolio-graph';
+import { judgmentPortfolioGraph, type PortfolioGraph, type DecisionOrigin } from '@/lib/judgment-portfolio-graph';
 import { portfolioLayout, type PortfolioLayoutNode } from '@/lib/judgment-portfolio-layout';
 import { VoyageMarker } from './VoyageMarker';
 
@@ -69,6 +69,25 @@ function clip(s: string, n: number): string {
   return s.length > n ? `${s.slice(0, n - 1)}…` : s;
 }
 
+/** SOURCE axis label — honest scope (웹 / MCP·CLI / 미상). 미상 is shown, never
+ *  hidden, so the disclosed gap stays visible (honest gap over fabrication). */
+function originLabel(o: DecisionOrigin, ko: boolean): string {
+  if (o === 'web') return ko ? '웹' : 'web';
+  if (o === 'mcp_cli') return 'MCP·CLI';
+  return ko ? '미상' : 'unknown';
+}
+
+/** RECENCY axis label — "N일 전 점검". Pure fact; the map computes it client-side
+ *  (the graph lib stays Date-free). Null when no activity ts was recorded. */
+function daysAgoLabel(iso: string | undefined, now: number, ko: boolean): string | null {
+  if (!iso) return null;
+  const t = new Date(iso).getTime();
+  if (Number.isNaN(t)) return null;
+  const d = Math.max(0, Math.floor((now - t) / 86_400_000));
+  if (d === 0) return ko ? '오늘 점검' : 'checked today';
+  return ko ? `${d}일 전 점검` : `checked ${d}d ago`;
+}
+
 /**
  * A DECISION node — a rounded-square "sealed record" tile, mirroring
  * VoyageMarker's plate finish (same gradient/border/shadow) but square, so a
@@ -118,6 +137,8 @@ export function JudgmentGraph({
   locale?: 'ko' | 'en';
 }) {
   const L = (ko: string, en: string) => (locale === 'ko' ? ko : en);
+  const ko = locale === 'ko';
+  const now = Date.now();
   const [hubsOnly, setHubsOnly] = useState(false);
   const [focusKey, setFocusKey] = useState<string | null>(null);
   // Hover-to-trace: pointing at any node lights its own edges + neighbours and
@@ -270,22 +291,39 @@ export function JudgmentGraph({
               const lit = isLit(node.id);
 
               if (node.kind === 'decision') {
+                const origin = node.decision!.origin;
+                const recency = daysAgoLabel(node.decision!.lastActivity, now, ko);
+                const decTitle = `${title} · ${originLabel(origin, ko)}${recency ? ` · ${recency}` : ''}`;
                 return (
                   <div
                     key={node.id}
                     className="jg-node absolute z-[2] flex flex-col items-center"
                     style={{ left: `${node.x}%`, top: `${node.y}%`, transform: 'translate(-50%,-50%)', opacity: lit ? 1 : 0.22 }}
-                    title={title}
+                    title={decTitle}
                     onMouseEnter={() => setHovered(node.id)}
                     onMouseLeave={() => setHovered((h) => (h === node.id ? null : h))}
                   >
-                    <DecisionTile size={node.size} completed={!node.decision!.live} title={title} />
+                    <DecisionTile size={node.size} completed={!node.decision!.live} title={decTitle} />
                     {showsLabel(node) && (
                       <span
                         className="mt-1 max-w-[110px] text-center text-[10px] leading-tight"
                         style={{ color: '#f5f0e5b0' }}
                       >
                         {clip(label, 26)}
+                      </span>
+                    )}
+                    {/* SOURCE axis — a quiet honest tag (웹 / MCP·CLI / 미상). Text,
+                        not a new colour/shape channel, so the circle-vs-square
+                        distinction stays the load-bearing one. */}
+                    {showsLabel(node) && (
+                      <span
+                        className="mt-0.5 rounded-sm px-1 text-[8.5px] font-mono uppercase tracking-wide"
+                        style={{
+                          color: origin === 'unknown' ? '#f5f0e566' : '#d8ad55c0',
+                          background: '#f5f0e50f',
+                        }}
+                      >
+                        {originLabel(origin, ko)}
                       </span>
                     )}
                   </div>
@@ -298,6 +336,7 @@ export function JudgmentGraph({
                 d && typeof d.baseline_numeric === 'number' && typeof d.current_numeric === 'number'
                   ? `${d.baseline_numeric} → ${d.current_numeric}`
                   : null;
+              const recency = daysAgoLabel(node.premise!.lastActivity, now, ko);
 
               return (
                 <button
@@ -332,6 +371,13 @@ export function JudgmentGraph({
                       「{clip(label, isHub ? 40 : 22)}」
                     </span>
                   )}
+                  {/* RECENCY axis — a quiet "N일 전 점검" on the load-bearing hubs
+                      only (leaves stay uncluttered). A fact, not a verdict. */}
+                  {showsLabel(node) && isHub && recency && (
+                    <span className="mt-0.5 text-center text-[8.5px] tabular-nums" style={{ color: '#f5f0e566' }}>
+                      {recency}
+                    </span>
+                  )}
                 </button>
               );
             })}
@@ -358,14 +404,21 @@ export function JudgmentGraph({
           >
             ← {L('전체 지도로', 'Back to the whole map')}
           </button>
-          {focus.ground.record && (
-            <p className="text-[11px] leading-relaxed" style={{ color: 'var(--text-tertiary)' }}>
-              {L(
-                `✓ 지켜짐 ${focus.ground.record.held} · ✗ 깨짐 ${focus.ground.record.broke}${focus.ground.record.mixed ? ` · ~ 혼재 ${focus.ground.record.mixed}` : ''} — 사실, 평가가 아닙니다.`,
-                `✓ held ${focus.ground.record.held} · ✗ broke ${focus.ground.record.broke}${focus.ground.record.mixed ? ` · ~ mixed ${focus.ground.record.mixed}` : ''} — facts, not a grade.`,
-              )}
-            </p>
-          )}
+          <div className="flex flex-col items-end gap-0.5 text-right">
+            {daysAgoLabel(focus.ground.last_activity, now, ko) && (
+              <p className="text-[11px] tabular-nums" style={{ color: 'var(--text-tertiary)' }}>
+                {L('마지막으로 ', 'last ')}{daysAgoLabel(focus.ground.last_activity, now, ko)}
+              </p>
+            )}
+            {focus.ground.record && (
+              <p className="text-[11px] leading-relaxed" style={{ color: 'var(--text-tertiary)' }}>
+                {L(
+                  `✓ 지켜짐 ${focus.ground.record.held} · ✗ 깨짐 ${focus.ground.record.broke}${focus.ground.record.mixed ? ` · ~ 혼재 ${focus.ground.record.mixed}` : ''} — 사실, 평가가 아닙니다.`,
+                  `✓ held ${focus.ground.record.held} · ✗ broke ${focus.ground.record.broke}${focus.ground.record.mixed ? ` · ~ mixed ${focus.ground.record.mixed}` : ''} — facts, not a grade.`,
+                )}
+              </p>
+            )}
+          </div>
         </div>
       ) : (
         <div className="mt-2 flex flex-col gap-1.5">
@@ -383,6 +436,12 @@ export function JudgmentGraph({
               {L('호박색 = 봉인 뒤 현실이 그만큼 움직임', 'amber = reality moved it since sealing')}
             </span>
           </div>
+          <p className="text-[11px] leading-relaxed" style={{ color: 'var(--text-tertiary)' }}>
+            {L(
+              '결정 밑 작은 표: 웹 = 웹에서 올린 문서 · MCP·CLI = 터미널에서 온 것 · 미상 = 출처를 알 수 없음(아직 Claude Code↔Codex 구분은 없어요). 허브 밑 “N일 전 점검”은 그 전제를 마지막으로 확인한 때.',
+              'The tag under a decision: web = uploaded on the web · MCP·CLI = came from a terminal · unknown = surface not recorded (Claude Code vs Codex isn’t distinguished yet). "checked Nd ago" under a hub is when that premise was last verified.',
+            )}
+          </p>
           <p className="text-[11px] leading-relaxed" style={{ color: 'var(--text-tertiary)' }}>
             {L(
               '점에 마우스를 올리면 무엇과 연결됐는지 밝아지고, 전제를 누르면 그 위에 선 열린 내기가 열립니다. 색은 사실만 — 호박색도 “틀렸다”가 아니라 “여기 봐라”입니다.',

@@ -88,6 +88,12 @@ export interface SharedGround {
   /** Settled outcomes of the bets on this ground (execution tier). Absent when
    *  nothing has settled yet — an honest gap, never a fabricated 0-of-0 grade. */
   record?: GroundRecord;
+  /** RECENCY axis (BLUEPRINT §9.9 V2, axis #3): the most recent ISO timestamp
+   *  this ground was touched — the latest re-check among its member premises,
+   *  falling back to a premise's own add-time. Absent = never re-checked and no
+   *  add-time recorded (an honest gap; the surface computes "N일 전" from it, and
+   *  this module stays pure — no Date.now here). A fact, never a verdict. */
+  last_activity?: string;
 }
 
 /** The armed rule — same expression as review-sync.ts / PremiseTracker.tsx.
@@ -198,6 +204,15 @@ export function sharedGrounds(
       }
     }
     if (held + broke + mixed > 0) g.record = { settled: held + broke + mixed, held, broke, mixed };
+
+    // RECENCY (axis #3): latest touch on this ground — most recent member
+    // re-check ts, else a member's add-time. Pure string max (ISO sorts lexically).
+    let lastActivity = '';
+    for (const m of g.members) {
+      const t = m.premise.last_recheck?.ts || m.premise.added_ts || '';
+      if (t > lastActivity) lastActivity = t;
+    }
+    if (lastActivity) g.last_activity = lastActivity;
 
     grounds.push(g);
   }
