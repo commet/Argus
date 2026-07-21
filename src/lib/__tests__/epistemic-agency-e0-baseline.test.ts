@@ -117,9 +117,12 @@ describe('E0 surface inventory — default and legacy are not conflated', () => 
   });
 
   it('cross-history prompt injection and persona synthesis remain legacy call paths', () => {
-    expect(workspacePage).toContain("import { ReframeStep } from '@/components/workspace/ReframeStep'");
-    expect(workspacePage).toContain("import { RehearseStep } from '@/components/workspace/RehearseStep'");
-    expect(workspacePage).toContain("import { ProgressiveFlow } from '@/components/workspace/progressive/ProgressiveFlow'");
+    expect(workspacePage).toContain("import('@/components/workspace/ReframeStep')");
+    expect(workspacePage).toContain("import('@/components/workspace/RehearseStep')");
+    expect(workspacePage).toContain("import('@/components/workspace/progressive/ProgressiveFlow')");
+    expect(workspacePage).toContain('<ReframeStep onNavigate={handleNavigate} />');
+    expect(workspacePage).toContain('<RehearseStep onNavigate={handleNavigate} />');
+    expect(workspacePage).toContain('<ProgressiveFlow projectId={projectId} />');
     expect(progressive).not.toContain('buildEnhancedSystemPrompt(');
     expect(progressive).not.toContain('common_agreements');
   });
