@@ -12,11 +12,11 @@ describe('document review import accessibility', () => {
     }
   });
 
-  it('groups review modes and keeps their mobile targets touch sized', () => {
+  it('groups review modes and keeps touch targets sized through tablet widths', () => {
     expect(source).toContain('<fieldset>');
     expect(source).toContain('<legend');
     expect(source).toContain('aria-pressed={concerns.includes(c.id)}');
     expect(source).toContain('min-h-11 px-3');
-    expect(source).toContain('sm:min-h-9 sm:px-2.5');
+    expect(source).toContain('sm:px-2.5 lg:min-h-9');
   });
 });

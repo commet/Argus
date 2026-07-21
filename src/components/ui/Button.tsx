@@ -78,7 +78,7 @@ const disabledDepth: React.CSSProperties = {
 };
 
 const sizeStyles: Record<string, string> = {
-  sm: 'min-h-[44px] sm:min-h-[36px] px-3.5 py-1.5 text-[13px] rounded-lg',
+  sm: 'min-h-[44px] lg:min-h-[36px] px-3.5 py-1.5 text-[13px] rounded-lg',
   md: 'min-h-[44px] px-5 py-2.5 text-[14px] rounded-xl',
   lg: 'min-h-[44px] px-7 py-3 text-[15px] rounded-xl',
 };
