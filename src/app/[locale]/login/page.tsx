@@ -57,6 +57,16 @@ function LoginContent() {
   const [agreedPrivacy, setAgreedPrivacy] = useState(false);
   const [captchaToken, setCaptchaToken] = useState<string>('');
   const turnstileRef = useRef<TurnstileInstance>(null);
+  const authTitle = isReset
+    ? L('비밀번호 재설정', 'Reset your password')
+    : isSignUp
+      ? L('Argus 시작하기', 'Create your Argus account')
+      : L('Argus에 로그인', 'Sign in to Argus');
+  const authDescription = isReset
+    ? L('이메일로 안전한 재설정 링크를 보내드려요.', 'We’ll email you a secure reset link.')
+    : isSignUp
+      ? L('결정 기록을 저장하고 어디서든 이어가세요.', 'Save your decision records and continue anywhere.')
+      : L('저장한 결정 기록을 이어서 보려면 로그인해 주세요.', 'Sign in to continue with your saved decision records.');
 
   // Handle error/redirect params from middleware or callback
   useEffect(() => {
@@ -174,8 +184,9 @@ function LoginContent() {
         {/* Logo — 단일 정본 컴포넌트 (Header와 동일 락업) */}
         <div className="text-center mb-6">
           <div className="mb-3"><Logo size="lg" /></div>
+          <h1 className="text-[20px] font-bold text-[var(--text-primary)]">{authTitle}</h1>
           <p className="text-[14px] text-[var(--text-secondary)]">
-          {L('저장한 결정 기록을 이어서 보려면 로그인해 주세요', 'Sign in to continue with your saved decision records.')}
+            {authDescription}
           </p>
         </div>
 
@@ -220,7 +231,7 @@ function LoginContent() {
             onClick={() => signInWithGoogle(searchParams.get('redirect') || undefined)}
             className="w-full flex items-center justify-center gap-3 px-4 py-3 rounded-xl border border-[var(--border)] shadow-[var(--shadow-xs)] hover:shadow-[var(--shadow-sm)] hover:border-[var(--accent)] hover:bg-[var(--ai)]/30 transition-all cursor-pointer text-[14px] font-semibold text-[var(--text-primary)]"
           >
-            <svg width="18" height="18" viewBox="0 0 24 24">
+            <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24">
               <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/>
               <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
               <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
@@ -247,9 +258,13 @@ function LoginContent() {
           <form onSubmit={handleEmailAuth} className="space-y-3">
             {isSignUp && (
               <div>
+                <label htmlFor="auth-name" className="mb-1.5 block px-1 text-[12px] font-semibold text-[var(--text-secondary)]">
+                  {L('이름 (선택)', 'Name (optional)')}
+                </label>
                 <div className="relative group">
                   <User size={16} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--text-tertiary)] transition-colors group-focus-within:text-[var(--accent)]" />
                   <input
+                    id="auth-name"
                     type="text"
                     maxLength={40}
                     autoComplete="name"
@@ -265,10 +280,10 @@ function LoginContent() {
               </div>
             )}
             {isSignUp && (
-              <div>
-                <p className="mb-1.5 px-1 text-[12px] text-[var(--text-secondary)]">
+              <fieldset>
+                <legend className="mb-1.5 px-1 text-[12px] text-[var(--text-secondary)]">
                   {L('무슨 일을 하세요? (선택 — 건너뛰어도 돼요)', 'What do you do? (optional — feel free to skip)')}
-                </p>
+                </legend>
                 <div className="grid grid-cols-3 gap-1.5">
                   {SIGNUP_ROLES.map((r) => {
                     const active = role === r.id;
@@ -289,41 +304,55 @@ function LoginContent() {
                     );
                   })}
                 </div>
-              </div>
+              </fieldset>
             )}
-            <div className="relative group">
-              <Mail size={16} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--text-tertiary)] transition-colors group-focus-within:text-[var(--accent)]" />
-              <input
-                type="email"
-                required
-                maxLength={254}
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder={L('이메일', 'Email')}
-                className="w-full pl-11 pr-4 py-3 rounded-xl border-[1.5px] border-[var(--border)] bg-[var(--bg)] text-[14px] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] shadow-[inset_0_1px_2px_rgba(0,0,0,0.04)] focus:outline-none focus:border-[var(--accent)] focus:shadow-[0_0_0_3px_var(--gold-muted),var(--glow-accent)] transition-all"
-              />
-            </div>
-            {!isReset && (
+            <div>
+              <label htmlFor="auth-email" className="mb-1.5 block px-1 text-[12px] font-semibold text-[var(--text-secondary)]">
+                {L('이메일', 'Email')}
+              </label>
               <div className="relative group">
-                <Lock size={16} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--text-tertiary)] transition-colors group-focus-within:text-[var(--accent)]" />
+                <Mail size={16} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--text-tertiary)] transition-colors group-focus-within:text-[var(--accent)]" />
                 <input
-                  type="password"
+                  id="auth-email"
+                  type="email"
                   required
-                  minLength={8}
-                  maxLength={128}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder={L('비밀번호 (8자 이상)', 'Password (8+ characters)')}
+                  maxLength={254}
+                  autoComplete="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder={L('이메일', 'Email')}
                   className="w-full pl-11 pr-4 py-3 rounded-xl border-[1.5px] border-[var(--border)] bg-[var(--bg)] text-[14px] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] shadow-[inset_0_1px_2px_rgba(0,0,0,0.04)] focus:outline-none focus:border-[var(--accent)] focus:shadow-[0_0_0_3px_var(--gold-muted),var(--glow-accent)] transition-all"
                 />
+              </div>
+            </div>
+            {!isReset && (
+              <div>
+                <label htmlFor="auth-password" className="mb-1.5 block px-1 text-[12px] font-semibold text-[var(--text-secondary)]">
+                  {L('비밀번호', 'Password')}
+                </label>
+                <div className="relative group">
+                  <Lock size={16} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--text-tertiary)] transition-colors group-focus-within:text-[var(--accent)]" />
+                  <input
+                    id="auth-password"
+                    type="password"
+                    required
+                    minLength={8}
+                    maxLength={128}
+                    autoComplete={isSignUp ? 'new-password' : 'current-password'}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder={L('8자 이상', '8+ characters')}
+                    className="w-full pl-11 pr-4 py-3 rounded-xl border-[1.5px] border-[var(--border)] bg-[var(--bg)] text-[14px] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] shadow-[inset_0_1px_2px_rgba(0,0,0,0.04)] focus:outline-none focus:border-[var(--accent)] focus:shadow-[0_0_0_3px_var(--gold-muted),var(--glow-accent)] transition-all"
+                  />
+                </div>
               </div>
             )}
 
             {error && (
-              <p className="text-[12px] text-[var(--danger)] bg-[var(--danger)]/10 border border-[var(--danger)]/25 rounded-lg px-3 py-2">{error}</p>
+              <p role="alert" className="text-[12px] text-[var(--danger)] bg-[var(--danger)]/10 border border-[var(--danger)]/25 rounded-lg px-3 py-2">{error}</p>
             )}
             {message && (
-              <p className="text-[12px] text-[var(--success)] bg-[var(--success)]/10 border border-[var(--success)]/25 rounded-lg px-3 py-2">{message}</p>
+              <p role="status" aria-live="polite" className="text-[12px] text-[var(--success)] bg-[var(--success)]/10 border border-[var(--success)]/25 rounded-lg px-3 py-2">{message}</p>
             )}
 
             {/* Terms agreement on sign-up */}
@@ -388,6 +417,7 @@ function LoginContent() {
 
             <button
               type="submit"
+              aria-busy={submitting}
               disabled={submitting || (isSignUp && (!agreedTerms || !agreedPrivacy || (!!TURNSTILE_SITE_KEY && !captchaToken)))}
               className="w-full px-4 py-3 rounded-xl bg-[var(--primary)] text-[var(--bg)] text-[14px] font-semibold hover:bg-[var(--primary-light)] hover:shadow-[var(--shadow-sm)] disabled:opacity-50 disabled:hover:shadow-none transition-all cursor-pointer"
             >
@@ -404,6 +434,7 @@ function LoginContent() {
           {/* Forgot password link (login mode only) */}
           {!isSignUp && !isReset && (
             <button
+              type="button"
               onClick={() => { setIsReset(true); setError(''); setMessage(''); }}
               className="inline-flex min-h-11 w-full items-center justify-center text-center text-[12px] text-[var(--text-tertiary)] hover:text-[var(--accent)] cursor-pointer transition-colors"
             >
@@ -419,6 +450,7 @@ function LoginContent() {
                 ? L('이미 계정이 있으신가요?', 'Already have an account?')
                 : L('처음이신가요?', 'New here?')}</span>
             <button
+              type="button"
               onClick={() => { setIsSignUp(isReset ? false : !isSignUp); setIsReset(false); setError(''); setMessage(''); }}
               className="ml-0.5 inline-flex min-h-11 items-center px-1 text-[var(--accent)] font-semibold hover:underline cursor-pointer"
             >
