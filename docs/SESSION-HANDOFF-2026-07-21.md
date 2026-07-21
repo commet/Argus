@@ -4,23 +4,43 @@
 > "대화 중 결정 감지" 재설계 + 야간 자기-진화 루프 + v1.6.0/2.12.0 출시의
 > 인계 문서. 새 세션은 이 문서 하나로 전체 맥락을 복원할 수 있어야 한다.
 > 참고: 직전 인계본은 `docs/DETECTION-RESEARCH-HANDOFF-2026-07-20.md` (리서치 단계).
+>
+> **2026-07-21 05:30 UTC 갱신**: v1.6.0 출시가 완전히 끝났다(npm + MCP 레지스트리).
+> §1이 아래에서 "출시 완료"로 갱신됨. 새 세션의 첫 할 일은 더 이상 발행 확인이
+> 아니라 §4 트리거 정리 → §5 도그푸딩이다.
 
-## 1. 지금 상태 (스냅샷, 2026-07-21 04:55 UTC)
+## 1. 지금 상태 (스냅샷, 2026-07-21 05:30 UTC — 출시 완료)
 
 | 항목 | 상태 |
 |---|---|
 | PR #234 (감지 개선 전체) | **머지 완료** — merge commit `dafc6b38`, main 반영 |
 | 플러그인 2.12.0 | **출시 완료** — marketplace가 main 참조, `/plugin update argus`로 전파 |
 | MCP 1.6.0 태그 | `v1.6.0` 푸시 완료, 정확히 `dafc6b38`에 찍힘 |
-| **publish-mcp 워크플로** | ⚠️ **미결** — run `29802147731`이 러너 기동 실패(잡이 시작 못 하고 4초 만에 failure), 재실행 걸어둠(현재 queued). npm은 아직 1.5.0 |
+| **MCP 1.6.0 발행** | **완료** — npm `argus-decision-mcp@1.6.0` (latest) + MCP 레지스트리 `io.github.commet/argus-decision-mcp @ 1.6.0` 등록 확인. |
+| PR #235 (직전 인계 문서) | **머지 완료** — merge commit `499c716` |
 | 로컬/원격 작업 브랜치 | `claude/argus-detection-review-j3p5wk` = origin/main에서 재시작됨 (머지된 PR에 새 커밋 금지 규칙 적용됨) |
 
-### 새 세션이 가장 먼저 할 일 (미결 1건)
+### 출시 마무리 기록 (2026-07-21 세션 처리 내역 — 재litigate 금지)
 
-1. run `29802147731` (publish-mcp.yml, ref v1.6.0) 결과 확인:
-   - 성공 → `npm view argus-decision-mcp version`이 1.6.0인지 + MCP 레지스트리 등록 확인 → 창업자에게 출시 완료 보고.
-   - 또 러너 기동 실패 → 재실행 1회 더. 계속 실패하면 `workflow_dispatch`로 main에서 트리거해도 동일 (워크플로가 checkout된 ref의 package.json 버전을 읽고, 이미 npm에 있는 버전은 스킵하므로 안전).
-2. 확인 SQL 아님, 확인 명령: `npm view argus-decision-mcp version` → `1.6.0`이면 끝.
+발행이 미결이었던 이유와 해결 방법. 같은 증상 재발 시 이 순서 그대로:
+
+- **증상**: 태그 `v1.6.0` 푸시로 자동 발동된 publish-mcp run `29802147731`이
+  35분+ 동안 `queued`에 멈춤(정상은 ~1분). job이 0개 생성됨.
+- **진단**: 코드/태그/버전 문제 아님. 같은 시간대 다른 CI run들은 정상 성공했고
+  GitHub Actions status도 operational → **전역 장애 아님, 그 run 하나만 러너
+  배정을 못 받고 큐에서 wedged된 좀비 상태**(GitHub 인프라 글리치).
+- **함정**: 이 좀비 run은 `cancel`/`force-cancel`/`delete` 모두 GitHub이 거부
+  (409 "Cannot cancel a workflow re-run that has not yet queued", 403 delete).
+  즉 제거 불가.
+- **해결**: 멈춘 run을 건드리는 대신 **`workflow_dispatch`로 태그 `v1.6.0`
+  기준 새 run을 발동** → `gh workflow run publish-mcp.yml -R commet/Argus --ref v1.6.0`.
+  즉시 러너 배정, 57초 만에 전 step success. (워크플로는 checkout된 ref의
+  package.json 버전을 읽고, 이미 npm에 있는 버전은 스킵하므로 재실행 안전.)
+  성공 run: `29803946676`.
+- **남은 잔재**: 좀비 run `29802147731`은 여전히 `queued`로 남아 있고 삭제
+  불가. 실행할 러너가 없어 무해하나, 만에 하나 un-wedge되면 npm은 스킵·MCP는
+  중복 발행으로 스퍼리어스 red가 뜰 수 있음 → 그때는 무시하면 됨.
+- **검증 명령**: `npm view argus-decision-mcp version` → `1.6.0`이면 확정.
 
 ## 2. 이번 사이클에서 만든 것 (인덱스)
 
@@ -59,7 +79,7 @@
 ## 4. 자동화 상태 (새 세션에서 이어받을 것)
 
 - **nightly eval**: `.github/workflows/auto-detect-eval.yml`이 매일 07:00 UTC 자동 실행. 결과 아티팩트 업로드. 실패/회귀 시 EVOLUTION-LOG에 라운드 추가하고 수리하는 것이 루프의 본체.
-- **시간별 하트비트 cron**: trigger id `trig_01LLSZCnKP1yAN1toptLY5xZ` (이전 원격 세션에 바인딩). **새 세션에서는 이 트리거가 옛 세션을 깨우므로, 필요 없으면 `delete_trigger`로 정리하거나 새 세션에 재바인딩할 것.**
+- **시간별 하트비트 cron**: trigger id `trig_01LLSZCnKP1yAN1toptLY5xZ` (이전 원격 세션에 바인딩). **새 세션에서는 이 트리거가 옛 세션을 깨우므로, 필요 없으면 `delete_trigger`로 정리하거나 새 세션에 재바인딩할 것.** ← loop를 새 세션에서 이어가려면 반드시 먼저 처리.
 - 루프 재개 명령: `node argus-plugin-v2/evals/detection/auto-detect-eval.mjs` (env: `ANTHROPIC_API_KEY`, `AUTO_MIN_DELAY_MS=1500` 권장, 동시성 1).
 
 ## 5. 남은 로드맵 (창업자 확정 방향)
@@ -79,6 +99,7 @@
 
 ## 7. 이 문서의 소비법
 
-새 세션 시작 시: §1 미결 1건 처리 → §4 트리거 정리 → §5 로드맵 순서로.
+새 세션 시작 시 (출시가 끝났으므로 순서 변경): §4 트리거 정리(loop를 새 세션으로 이관) → §5 로드맵(도그푸딩 → transcript-recall) 순서로.
+§1의 발행 미결 항목은 **이미 해결됨** — 발행 확인부터 시작하지 말 것.
 과거 "왜"가 필요하면 `EVOLUTION-LOG.md`, 리서치 근거가 필요하면
 `DETECTION-RESEARCH-HANDOFF-2026-07-20.md`.
