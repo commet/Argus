@@ -6,6 +6,29 @@
 > The `1.3.0` / `1.2.1` entries at the bottom are pre-rename `argus-mcp` history,
 > kept for reference — all of that work shipped inside the new-name 1.0.0.
 
+## 1.6.0 — Settlement by structure, restraint by measurement
+
+The overnight self-evolution loop (synthetic multi-turn conversations, real API,
+adversarial judges — see `argus-plugin-v2/evals/detection/EVOLUTION-LOG.md`)
+surfaced two real defects and this release fixes both:
+
+- **Settlement recall was structurally capped.** Raw-MCP sessions missed
+  settlements (13/38 in the first mass run) because the model only held the
+  open-predictions list if it had called `check_in`. Now EVERY public tool
+  result carries the open predictions (top 10) plus the standing sense line —
+  any Argus call re-arms the background sense. Structure first; the prompt is
+  the assist. (Rider in `runPublic`; failures degrade silently, never breaking
+  the primary result.)
+- **Over-fire in dense conversations.** In realistic work sessions the model
+  fired on task requests, scheduling, and chitchat (58% of no-signal turns).
+  `SERVER_INSTRUCTIONS` restraint now names the non-decision turn types
+  explicitly (do a task / logistics / small talk → record nothing; unsure → do
+  nothing) — measured effect: 58% → 43% over-fire with recall unchanged, and
+  the loop keeps grinding it down. Restraint also moved from per-session to
+  per-decision: offer once per distinct decision, a skip is final for it.
+
+Ledger, seal, and settle behavior is unchanged.
+
 ## 1.5.0 — Standing sense: the always-on detection channel
 
 The MCP server can never see the raw conversation (JSON-RPC carries only
