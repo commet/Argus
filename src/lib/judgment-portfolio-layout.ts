@@ -40,6 +40,11 @@ export interface PortfolioLayoutNode {
 
 export interface PortfolioLayoutEdge {
   id: string;
+  /** PremiseNode id — carried through so the component can highlight a node's
+   *  own edges on hover without re-parsing ids. */
+  premise: string;
+  /** DecisionNode id. */
+  decision: string;
   x1: number;
   y1: number;
   x2: number;
@@ -202,7 +207,7 @@ export function portfolioLayout(graph: PortfolioGraph, aspect = 16 / 9): Portfol
   const layoutEdges: PortfolioLayoutEdge[] = edges.map((e) => {
     const a = posById.get(e.premise)!;
     const b = posById.get(e.decision)!;
-    return { id: e.id, x1: a.x, y1: a.y, x2: b.x, y2: b.y, hot: e.hot };
+    return { id: e.id, premise: e.premise, decision: e.decision, x1: a.x, y1: a.y, x2: b.x, y2: b.y, hot: e.hot };
   });
 
   return { nodes, edges: layoutEdges, overflow };

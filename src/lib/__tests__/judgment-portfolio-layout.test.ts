@@ -58,6 +58,11 @@ describe('portfolioLayout — bipartite fidelity', () => {
     expect(r.edges).toHaveLength(2);
     expect(r.edges.find((e) => e.id === 'r2::a')!.hot).toBe(true);
     expect(r.edges.find((e) => e.id === 'r1::a')!.hot).toBe(false);
+    // edges carry their endpoint ids so the component can trace a node's own
+    // connections on hover without re-parsing id strings.
+    const e2 = r.edges.find((e) => e.id === 'r2::a')!;
+    expect(e2.premise).toBe('premise:a');
+    expect(e2.decision).toBe('decision:r2');
   });
 
   it('a decision with no edges into the graph never appears as a node', () => {

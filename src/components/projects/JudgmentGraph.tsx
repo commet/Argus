@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import { Check, FileText } from 'lucide-react';
 import type { JudgmentReceipt } from '@/lib/review';
 import { sharedGrounds } from '@/lib/judgment-graph';
 import { blastRadius } from '@/lib/judgment-graph-layout';
@@ -20,8 +21,16 @@ import { VoyageMarker } from './VoyageMarker';
  *
  * This is a CHART, not an illustration: the fixed dark plate carries mood,
  * every datum is an exact HTML/SVG layer on top, and position IS data (the
- * force layout's rests-on topology). VoyageMarker is reused so a premise or
- * decision here is the same visual object as a ship on the sea.
+ * force layout's rests-on topology).
+ *
+ * TWO NODE FAMILIES, one strong categorical channel (founder review 2026-07-22:
+ * "구분이 더 직관적으로"): a PREMISE is a ROUND node (the reused VoyageMarker —
+ * the ground you stand on), a DECISION is a ROUNDED-SQUARE tile (a discrete
+ * sealed record / receipt). Circle-vs-square reads at a glance with no legend;
+ * the palette stays ink+foam with amber reserved solely for drift, so we add a
+ * shape channel without adding a colour channel. The square tile deliberately
+ * diverges from the sea's all-round vessels because THIS surface's whole job is
+ * to tell the two node types apart — a distinction the sea never had to make.
  *
  * SPINE (CLAUDE.md §Zero-Judgment, BLUEPRINT §9.8/§9.9):
  *  - Facts + counts only. The settled record in focus mode renders as a bare
@@ -60,6 +69,38 @@ function clip(s: string, n: number): string {
   return s.length > n ? `${s.slice(0, n - 1)}…` : s;
 }
 
+/**
+ * A DECISION node — a rounded-square "sealed record" tile, mirroring
+ * VoyageMarker's plate finish (same gradient/border/shadow) but square, so a
+ * decision is instantly distinct from a round premise. A settled decision wears
+ * a brass check; a live one, a foam document glyph.
+ */
+function DecisionTile({ size, completed, title }: { size: number; completed: boolean; title: string }) {
+  const glyph = Math.max(10, Math.round(size * 0.5));
+  return (
+    <span
+      aria-label={title}
+      className="relative inline-flex shrink-0 items-center justify-center"
+      style={{
+        width: size,
+        height: size,
+        borderRadius: Math.round(size * 0.28),
+        background: completed
+          ? 'radial-gradient(circle at 35% 28%, #174845 0%, #082a29 58%, #051b1b 100%)'
+          : 'radial-gradient(circle at 35% 28%, #123c3a 0%, #072625 58%, #041918 100%)',
+        border: `1px solid ${completed ? N.brass : N.foam}`,
+        boxShadow: `inset 0 0 0 1px ${N.foam}16, 0 2px 7px #00100fb8`,
+      }}
+    >
+      {completed ? (
+        <Check size={glyph} color={N.brass} strokeWidth={2.4} aria-hidden />
+      ) : (
+        <FileText size={glyph} color={N.foam} strokeWidth={1.9} aria-hidden />
+      )}
+    </span>
+  );
+}
+
 function hubsOnlyGraph(graph: PortfolioGraph): PortfolioGraph {
   const hubs = new Set(graph.premises.filter((p) => p.degree >= 2).map((p) => p.id));
   const premises = graph.premises.filter((p) => hubs.has(p.id));
@@ -79,6 +120,10 @@ export function JudgmentGraph({
   const L = (ko: string, en: string) => (locale === 'ko' ? ko : en);
   const [hubsOnly, setHubsOnly] = useState(false);
   const [focusKey, setFocusKey] = useState<string | null>(null);
+  // Hover-to-trace: pointing at any node lights its own edges + neighbours and
+  // dims the rest, so "what connects to what" is explorable without committing
+  // to focus mode. Presentation-only; the graph data never changes.
+  const [hovered, setHovered] = useState<string | null>(null);
 
   const graph = useMemo(() => judgmentPortfolioGraph(receipts), [receipts]);
   const hasHub = graph.premises.some((p) => p.degree >= 2);
@@ -106,8 +151,33 @@ export function JudgmentGraph({
   );
   const showsLabel = (node: PortfolioLayoutNode) => !dense || topHubIds.has(node.id);
 
+  // The traced node (hover) and everything one edge away from it. Empty set ⇒
+  // nothing is dimmed (the resting state shows the whole map).
+  const litNodes = new Set<string>();
+  if (hovered) {
+    litNodes.add(hovered);
+    for (const e of layout.edges) {
+      if (e.premise === hovered || e.decision === hovered) {
+        litNodes.add(e.premise);
+        litNodes.add(e.decision);
+      }
+    }
+  }
+  const isLit = (id: string) => litNodes.size === 0 || litNodes.has(id);
+  const edgeLit = (e: { premise: string; decision: string }) =>
+    litNodes.size === 0 || e.premise === hovered || e.decision === hovered;
+
   return (
     <section aria-labelledby="portfolio-map-h" className="mt-10">
+      {/* Static component-scoped keyframes (no user data). A hot edge's dashes
+          crawl outward from the moved premise — the movement it caused is
+          literally travelling down to the bets that rest on it. */}
+      <style>{`
+        @keyframes jg-flow { to { stroke-dashoffset: -10 } }
+        .jg-hot-edge { animation: jg-flow 1.1s linear infinite }
+        .jg-node { transition: opacity .2s ease }
+        @media (prefers-reduced-motion: reduce) { .jg-hot-edge { animation: none } }
+      `}</style>
       <header className="mb-3 flex flex-wrap items-start justify-between gap-2">
         <div>
           <h2
@@ -171,44 +241,45 @@ export function JudgmentGraph({
           <FocusPlate focus={focus} locale={locale} />
         ) : (
           <>
-            {/* rests-on edges — hot (amber) when the premise drifted */}
+            {/* rests-on edges. Cold = quiet dashed hairline; hot = amber
+                dashes crawling outward from the moved premise. Edges not
+                touching the traced node dim so a hover reads as one clean web. */}
             <svg aria-hidden viewBox="0 0 100 100" preserveAspectRatio="none" className="absolute inset-0 z-[1] h-full w-full">
               {layout.edges.map((e) => (
                 <line
                   key={e.id}
+                  className={e.hot ? 'jg-hot-edge' : undefined}
                   x1={e.x1}
                   y1={e.y1}
                   x2={e.x2}
                   y2={e.y2}
                   stroke={e.hot ? N.edgeHot : N.edge}
-                  strokeWidth={e.hot ? 1.1 : 0.7}
-                  strokeDasharray={e.hot ? undefined : '1.5 2'}
+                  strokeWidth={e.hot ? 1.3 : 0.8}
+                  strokeDasharray={e.hot ? '3 2.2' : '1.5 2'}
                   vectorEffect="non-scaling-stroke"
+                  style={{ opacity: edgeLit(e) ? 1 : 0.1, transition: 'opacity .2s ease' }}
                 />
               ))}
             </svg>
 
-            {/* premise + decision nodes */}
+            {/* premise (round) + decision (square) nodes */}
             {layout.nodes.map((node) => {
               const label =
                 node.kind === 'premise' ? node.premise!.text : node.decision!.title;
               const title = node.kind === 'premise' ? `「${label}」` : label;
-              const isHub = node.kind === 'premise' && node.premise!.degree >= 2;
+              const lit = isLit(node.id);
 
               if (node.kind === 'decision') {
                 return (
                   <div
                     key={node.id}
-                    className="absolute z-[2] flex flex-col items-center"
-                    style={{ left: `${node.x}%`, top: `${node.y}%`, transform: 'translate(-50%,-50%)' }}
+                    className="jg-node absolute z-[2] flex flex-col items-center"
+                    style={{ left: `${node.x}%`, top: `${node.y}%`, transform: 'translate(-50%,-50%)', opacity: lit ? 1 : 0.22 }}
                     title={title}
+                    onMouseEnter={() => setHovered(node.id)}
+                    onMouseLeave={() => setHovered((h) => (h === node.id ? null : h))}
                   >
-                    <VoyageMarker
-                      state={node.decision!.live ? 'sailing' : 'arrived'}
-                      size={node.size}
-                      kind="receipt"
-                      title={title}
-                    />
+                    <DecisionTile size={node.size} completed={!node.decision!.live} title={title} />
                     {showsLabel(node) && (
                       <span
                         className="mt-1 max-w-[110px] text-center text-[10px] leading-tight"
@@ -221,16 +292,37 @@ export function JudgmentGraph({
                 );
               }
 
+              const isHub = node.premise!.degree >= 2;
+              const d = node.premise!.drift;
+              const delta =
+                d && typeof d.baseline_numeric === 'number' && typeof d.current_numeric === 'number'
+                  ? `${d.baseline_numeric} → ${d.current_numeric}`
+                  : null;
+
               return (
                 <button
                   key={node.id}
                   type="button"
                   onClick={() => setFocusKey(node.premise!.key)}
+                  onMouseEnter={() => setHovered(node.id)}
+                  onMouseLeave={() => setHovered((h) => (h === node.id ? null : h))}
+                  onFocus={() => setHovered(node.id)}
+                  onBlur={() => setHovered((h) => (h === node.id ? null : h))}
                   title={title}
                   aria-label={L(`전제 집중: ${label}`, `Focus premise: ${label}`)}
-                  className="absolute z-[3] flex flex-col items-center bg-transparent cursor-pointer"
-                  style={{ left: `${node.x}%`, top: `${node.y}%`, transform: 'translate(-50%,-50%)' }}
+                  className="jg-node absolute z-[3] flex flex-col items-center bg-transparent cursor-pointer"
+                  style={{ left: `${node.x}%`, top: `${node.y}%`, transform: 'translate(-50%,-50%)', opacity: lit ? 1 : 0.22 }}
                 >
+                  {/* the drift value, inline — so "현실에서 움직였다" reads without
+                      a click: this footing's number went baseline → today. */}
+                  {node.hot && delta && (
+                    <span
+                      className="mb-1 whitespace-nowrap rounded-full px-1.5 py-0.5 text-[9.5px] font-semibold tabular-nums"
+                      style={{ background: '#e39a561f', color: N.amber, border: '1px solid #e39a5640' }}
+                    >
+                      {delta}
+                    </span>
+                  )}
                   <VoyageMarker state={node.hot ? 'adrift' : 'docked'} size={node.size} title={title} />
                   {showsLabel(node) && (
                     <span
@@ -276,12 +368,28 @@ export function JudgmentGraph({
           )}
         </div>
       ) : (
-        <p className="mt-2 text-[11px] leading-relaxed" style={{ color: 'var(--text-tertiary)' }}>
-          {L(
-            '점을 눌러 그 전제 위에 선 열린 내기를 봅니다. 색은 사실만 나타냅니다 — 호박색은 전제가 움직였다는 뜻, 평가가 아닙니다.',
-            'Click a premise to see the open bets standing on it. Color is fact-only — amber means the premise moved, never a verdict.',
-          )}
-        </p>
+        <div className="mt-2 flex flex-col gap-1.5">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px]" style={{ color: 'var(--text-secondary)' }}>
+            <span className="inline-flex items-center gap-1.5">
+              <span aria-hidden className="inline-block h-3 w-3 rounded-full" style={{ border: '1.5px solid var(--text-secondary)' }} />
+              {L('동그라미 = 전제(딛고 선 자리)', 'circle = premise (the footing)')}
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <span aria-hidden className="inline-block h-3 w-3" style={{ border: '1.5px solid var(--text-secondary)', borderRadius: 3 }} />
+              {L('사각 = 결정(기록)', 'square = decision (a record)')}
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <span aria-hidden className="inline-block h-3 w-3 rounded-full" style={{ background: N.amber }} />
+              {L('호박색 = 봉인 뒤 현실이 그만큼 움직임', 'amber = reality moved it since sealing')}
+            </span>
+          </div>
+          <p className="text-[11px] leading-relaxed" style={{ color: 'var(--text-tertiary)' }}>
+            {L(
+              '점에 마우스를 올리면 무엇과 연결됐는지 밝아지고, 전제를 누르면 그 위에 선 열린 내기가 열립니다. 색은 사실만 — 호박색도 “틀렸다”가 아니라 “여기 봐라”입니다.',
+              'Hover any point to light what it connects to; click a premise to open the bets standing on it. Color is fact-only — amber says “look here,” never “you were wrong.”',
+            )}
+          </p>
+        </div>
       )}
     </section>
   );
