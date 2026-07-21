@@ -96,6 +96,14 @@ jobs:
       - name: Argus ledger writers
         run: node argus-plugin-v2/scripts/decision-ledger.test.mjs
 
+      # Effortless webapp connect (BLUEPRINT §9.9 V1): the plugin `connect` runs an
+      # OAuth device/browser flow instead of a pasted PAT, and `push --ensure-connect`
+      # auto-opens the approve tab on first seal. Black-box test drives the device
+      # flow against a fake OAuth+ingest server and pins the spine restraint (a
+      # declined auto-tab is never re-opened; explicit connect clears the decline).
+      - name: Argus webapp connect flow
+        run: node argus-plugin-v2/scripts/push-webapp.test.mjs
+
       # SessionStart reminder hook (check-contracts.js): the overdue-contract and
       # living-premises reminders. Gated so a command rename can't silently rot the
       # reminder copy again (this test lagged the settle→resolve / track→premises

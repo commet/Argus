@@ -63,6 +63,17 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/decision-ledger.js" seal --latest-seed
 5. Relay the compact result: id, predicate clipped if long, and check-by date.
 Do not over-explain the ledger internals.
 
+6. Send the sealed decision to the webapp so the return loop (settle reminders,
+   voyage map) can reach it. On the FIRST seal with no connection this opens a
+   one-tap browser approve tab; after that it just syncs; if the user declined
+   once it stays silent. The decision is already safe in the local ledger either way.
+
+```bash
+node "${CLAUDE_PLUGIN_ROOT}/scripts/push-webapp.js" push --ensure-connect
+```
+
+   Relay the connect/push result in one line. Never print the credential.
+
 ---
 
 ## Product Model

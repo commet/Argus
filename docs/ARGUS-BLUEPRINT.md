@@ -863,6 +863,36 @@ Chronicler처럼 공정 5와 맞닿는 runtime 수정은 활성 PR 종료 뒤 �
 gap 0이다. E-B4·B5는 O3 Boss 교체 뒤 E4 합성 관점 방화벽에서 처리한다. E2는
 shadow라 사용자 자기지식 표면을 열지 않았고, 기존 live callsite의 영향은 0이다.
 
+### 9.9 병렬 트랙 V — 판단 지식의 연동·시각화 (2026-07-21 신설, 창업자 승인)
+
+한 줄 정의: **플러그인/MCP의 판단 기록이 무념(승인 탭 1회)으로 웹앱에 닿고,
+흩어진 결정·전제·정산이 하나의 병합된 항해 지도로 보이게 하는 연동·투영 트랙.**
+새 두뇌·새 정본을 만들지 않는다 — 기존 트랙 E(§9.8, JCR)와 K(§9.7), P6 web
+canonical ledger에 **묶여** 실행되는 배관·투영 트랙이다.
+
+- **V1 · 무념 연동 + 점화 (게이트 없음, 지금):** 플러그인에 MCP의 브라우저-승인
+  (PKCE loopback + device 폴백) 흐름을 이식하고 — `account-connect.ts`가 정본 —
+  자격 없을 때 첫 seal에서 **자동으로 승인 탭**을 띄운다. PAT 복붙 경로 제거.
+  승인 클릭 1회 = opt-in(§9.4 "sync opt-in 전 egress 0" 불변식 준수 — 클릭 0
+  무단 업로드는 짓지 않는다). 점화 축(순간 하중 전제)이 신규 사용자 첫 결정에서
+  작동함을 확인하되, **공정 5 progressive UI 공예와 무접촉**.
+- **V2 · 병합 지도 (마이그레이션 게이트):** `project_semantic_events`(P6) 배포
+  후 — VoyageSea가 웹+플러그인/MCP **병합 스트림**을 렌더하고, `judgment-graph.ts`에
+  축 3개를 얹는다: per-ground 정산 track record 조인 · 출처 태그(Claude Code/
+  Codex/웹) · 최근점검. 사실+카운트 표시는 허용(§9.8 스파인), 사용자 대면
+  **평결형 자기지식 표면은 E의 O4 게이트를 상속**한다.
+- **V3 · recall (O4 게이트):** 다음 결정에 판단을 push하는 표면 = **E3B/JCR J7**.
+  E의 게이트를 그대로 상속하며 새 표면을 열지 않는다.
+
+**무접촉 경계:** 공정 5 progressive UI 공예, O2의 ledger/Core/writer/statusline,
+K의 `argus-mcp/src/v4/**`·`src/lib/semantic-v4/**`, E의 O4-gated 자기지식 표면
+(E3B). V1은 플러그인 bridge(`scripts/push-webapp.js`)와 `a0/account-*`만 만지고,
+V2 데이터 축은 `src/lib/judgment-graph.ts`·`voyage-state.ts`·VoyageSea에 국한한다.
+
+**이 등록은 사용자 표면 개방 허가가 아니다(§7.4).** V3와 V2의 평결형 표면은
+O4 통과 전 비공개. V1 exit: [ ] 플러그인 승인 탭 1클릭 연동(복붙 0) [ ] 첫
+seal 자동 트리거 [ ] 실주행에서 `plugin_bearings` 0→1 실측(§7.5 행수 확인).
+
 ---
 
 ## 마지막 장 — 이 설계도의 봉인

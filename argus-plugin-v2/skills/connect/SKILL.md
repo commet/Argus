@@ -1,15 +1,16 @@
 ---
 name: connect
 user-invocable: false
-description: Connect this local Argus plugin project to the Argus webapp using a personal push token issued in webapp Settings. Use when the user wants plugin results to appear in the webapp, says they have an argus_pat token, or asks how to sync/push Argus plugin records. Stores the token locally under .argus/ledger/push.json and makes sure it is git-ignored. Invoked as `/argus:connect`.
-argument-hint: "<argus_pat_...>"
+description: Connect this local Argus plugin project to the Argus webapp with one approve tap in the browser — no token to copy-paste. Use when the user wants plugin results to appear in the webapp, or asks how to sync/push Argus plugin records. Runs a PKCE browser-approve flow (device-code fallback), stores the resulting credential locally under .argus/ledger/push.json, and makes sure it is git-ignored. Invoked as `/argus:connect`.
+argument-hint: "(no argument — a browser approve tab opens; --token <argus_pat_...> for CI)"
 ---
 
 # /argus:connect
 
 **What this skill does:** Pairs this local `.argus/` project with the user's
-webapp account for explicit sync. It does not log into Claude Code. It stores a
-webapp-issued personal push token locally, then `/argus:push` can send
+webapp account for explicit sync. It does not log into Claude Code. It runs a
+one-tap browser approve flow (PKCE, device-code fallback) and stores the
+resulting credential locally, then `/argus:push` can send
 `ledger.jsonl` and `current_bearing.json` artifacts to the webapp account, while
 `/argus:pull` can bring webapp settle/defer events back into the local decision record.
 
@@ -19,17 +20,16 @@ Use the bundled script. Do not ask the user to install `argus-watch`.
 
 ## Inputs
 
-- Token argument: `argus_pat_...`
-- Optional URL: `--url https://...` for staging/dev webapp deployments.
+- **No argument needed** — a browser approve tab opens (PKCE). The user clicks
+  "approve" once; the credential comes back over a localhost loopback (never
+  pasted). That single approve click IS the sync opt-in.
+- `--headless` for environments with no browser: prints a short user-code + URL
+  to enter (OAuth device flow), then polls until approved.
+- Optional `--url https://...` for staging/dev webapp deployments.
+- Advanced/CI only: `--token argus_pat_...` still works (skips the browser).
 
-If no token is present, print:
-
-```text
-Issue a plugin push token in the Argus webapp Settings, then run:
-  /argus:connect <argus_pat_...>
-```
-
-Stop. Do not invent a token.
+Do NOT ask the user to issue or paste a token in the normal flow — just run the
+script; the approve tab does the rest.
 
 ---
 
@@ -37,13 +37,13 @@ Stop. Do not invent a token.
 
 1. Resolve `${CLAUDE_PLUGIN_ROOT}` per sail Path Resolution. The canonical script
    is `${CLAUDE_PLUGIN_ROOT}/scripts/push-webapp.js`.
-2. Run:
+2. Run (no token — the browser approve tab opens):
 
 ```bash
-node "${CLAUDE_PLUGIN_ROOT}/scripts/push-webapp.js" connect --token "<token>" [--url "<url>"]
+node "${CLAUDE_PLUGIN_ROOT}/scripts/push-webapp.js" connect [--headless] [--url "<url>"]
 ```
 
-3. Relay the script's short result. Do not print the full token back to the user.
+3. Relay the script's short result. Never print the credential back to the user.
 
 The script writes `.argus/ledger/push.json` and appends `ledger/` to
 `.argus/.gitignore` if needed. That is intentional: the push token and

@@ -107,6 +107,27 @@ test('규칙이 못 잡는 애매-지평 예측도 진단은 주입된다 (규�
   assert.ok(!/Deterministic scan flagged/.test(ctx), 'no rule candidate for this turn');
 });
 
+// ── 2b. 점화 축 (BLUEPRINT §9.9 V1b) — 신규 사용자 첫 결정에서 작동 ──────────
+// 콜드스타트의 dead-wire 가드: 이력 0(원장 파일 없음)·세션 상태 0인 사용자의
+// 첫 결정에서도 하중 전제(점화) 감각이 주입돼야 한다. 이력에 의존하면 신규
+// 사용자는 아무것도 못 받고 이탈한다 — 제품의 첫인상 가치가 바로 이 축이다.
+test('신규 사용자(빈 원장·무상태) 첫 결정 → 점화(하중 전제) 주입, 정산 감각은 skip', () => {
+  const cwd = tmp('argus-sense-new-');
+  mkdirSync(join(cwd, '.argus', 'ledger'), { recursive: true }); // 원장 파일 없음 = 이력 0
+  const { out } = runSense({ session_id: 'new1', cwd, prompt: '다음 분기까지 매출 20% 성장할 것으로 예상합니다.' });
+  const ctx = context(out);
+  assert.ok(ctx, 'ignition must fire for a brand-new user with zero history');
+  assert.match(ctx, /LOAD-BEARING ASSUMPTION/); // 점화 축이 이력 없이도 뜬다
+  assert.match(ctx, /No predictions are open on record/); // 빈 원장 → 정산 감각은 정직하게 skip
+});
+
+test('신규 사용자 첫 턴이 flat → 침묵 (점화는 결정에만, 잡일엔 아님)', () => {
+  const cwd = tmp('argus-sense-newflat-');
+  mkdirSync(join(cwd, '.argus', 'ledger'), { recursive: true });
+  const { out } = runSense({ session_id: 'new2', cwd, prompt: '이 로그 좀 같이 봐줄래? 어디가 문제인지 모르겠네.' });
+  assert.equal(out.trim(), '', 'a flat first turn must stay silent — restraint, not manufactured urgency');
+});
+
 // ── 3. 열린 예측 목록 동봉 ──────────────────────────────────────────────────
 test('열린 예측이 지시문에 동봉된다 (대명사 정산은 AI의 일)', () => {
   const cwd = ledgerWith([
