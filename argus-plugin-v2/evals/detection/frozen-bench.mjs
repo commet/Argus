@@ -14,8 +14,11 @@
  *   ANTHROPIC_API_KEY=... node frozen-bench.mjs        # 실측 + 래칫
  *   node frozen-bench.mjs --convert-only               # 변환 확인(키 불요)
  *
- * 숨은전제 판정기(B)는 여기선 안 돈다 — 고정 벤치는 발동(fired_correct)과
- * 절제(over_fire)만 잰다. 빠르고 결정적 비교가 목적.
+ * Stage 2(2026-07-21, 창업자 지시)부터 숨은전제 추출 품질 판정기(judgeHidden)가
+ * 여기서도 돈다 — 고정 벤치가 '발동했나(fired_correct)'와 '절제(over_fire)'에 더해
+ * '옳게 짚었나(hidden_extraction.matched)'까지 잰다. 코퍼스의 gold(특정 하중 전제)를
+ * 기준으로 대조하며, 이 매치의 하락을 래칫이 회귀로 잡는다(간판 기능 회귀 가드).
+ * 판정기 신뢰 자체는 validate-judge.mjs가 별도로 검증한다(gold→매치, counter→기각).
  */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -23,7 +26,7 @@ import { fileURLToPath } from 'node:url';
 import { CORPUS } from './corpus.mjs';
 import {
   runDetector, scoreScenario, aggregate, makeAnthropicCaller, serverInstructions,
-  PLUGIN_AUGMENT, runPool,
+  PLUGIN_AUGMENT, runPool, judgeHidden,
 } from './auto-detect-eval.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
@@ -44,7 +47,12 @@ export function corpusToScenarios(corpus = CORPUS) {
     return {
       id: c.id,
       turns,
-      planted: c.labels.map((kind) => ({ turn: userIdx, kind, gist: c.note || c.user.slice(0, 120) })),
+      planted: c.labels.map((kind) => ({
+        turn: userIdx,
+        kind,
+        // 숨은 전제는 gold(특정 하중 전제)를 기준 정답으로 — 판정기가 이걸로 대조.
+        gist: kind === 'hidden_assumption' ? (c.gold || c.note || c.user.slice(0, 120)) : (c.note || c.user.slice(0, 120)),
+      })),
       filler_user_turns: c.labels.length ? [] : [userIdx],
       open: c.open || [],
     };
@@ -67,6 +75,13 @@ export function compareFrozen(baseline, current, tol = Number(process.env.FROZEN
     if (c.scenarios === 0) continue;
     if (c.fired_correct < b.fired_correct - tol) reasons.push(`${mode}: fired_correct ${b.fired_correct}→${c.fired_correct} (>${tol} 하락)`);
     if ((c.over_fire?.fired ?? 0) > (b.over_fire?.fired ?? 0) + tol) reasons.push(`${mode}: over_fire ${b.over_fire.fired}→${c.over_fire.fired} (>${tol} 상승)`);
+    // Stage 2: 추출 품질 회귀 가드. 베이스라인과 현재 모두 judged>0인 '확립된 지표'일 때만
+    // 비교한다 — 베이스라인이 judged:0(미측정)이면 새 지표라 회귀가 아니고(첫 도입 run은
+    // 통과 후 베이스라인 갱신), 현재 judged:0이면 인프라 실패라 회귀 오판 금지.
+    const bh = b.hidden_extraction, ch = c.hidden_extraction;
+    if (bh?.judged > 0 && ch?.judged > 0 && ch.matched < bh.matched - tol) {
+      reasons.push(`${mode}: hidden_extraction.matched ${bh.matched}→${ch.matched} (>${tol} 하락)`);
+    }
   }
   return { ok: reasons.length === 0, reasons };
 }
@@ -80,6 +95,7 @@ async function main() {
   const key = process.env.ANTHROPIC_API_KEY;
   if (!key) { console.log('키 없음 — 변환 확인만: node frozen-bench.mjs --convert-only'); process.exit(0); }
   const det = makeAnthropicCaller(key, process.env.AUTO_DETECT_MODEL || 'claude-opus-4-8');
+  const jud = makeAnthropicCaller(key, process.env.AUTO_JUDGE_MODEL || 'claude-sonnet-5');
   const instructions = await serverInstructions();
   const scenarios = corpusToScenarios();
   const CONC = Number(process.env.FROZEN_CONCURRENCY || 1);
@@ -91,10 +107,19 @@ async function main() {
         ? `${instructions}\n\nAlready on record (open predictions you are tracking):\n${s.open.map((p) => `- "${p}"`).join('\n')}`
         : instructions;
       const detected = await runDetector(det, sys, s, { augment: m.augment });
-      return { scenario: s, score: scoreScenario(s, detected.fires) };
+      // Stage 2: 숨은 전제 추출 품질 — gold 기준으로 '옳게 짚었나' 판정(발동 여부가 아님).
+      // 각 hidden 케이스마다 1건씩 기록(캡처 못 하면 match:false). judged는 안정적(=hidden 수).
+      const hiddenJudged = [];
+      for (const p of s.planted.filter((x) => x.kind === 'hidden_assumption')) {
+        const cap = detected.captures[p.turn] || '';
+        const verdict = cap ? await judgeHidden(jud, p.gist, cap) : { match: false, why: 'not captured' };
+        hiddenJudged.push({ id: s.id, captured: cap.slice(0, 200), ...verdict });
+      }
+      return { scenario: s, score: scoreScenario(s, detected.fires), hiddenJudged };
     }, CONC)).filter((r) => r && r.score);
-    byMode[m.key] = aggregate(per.map((r) => ({ scenario: r.scenario, score: r.score, hiddenJudged: [] })));
-    console.log(`  ${m.key}: 정발동 ${byMode[m.key].fired_correct}/${byMode[m.key].planted_total} · 과발동 ${byMode[m.key].over_fire.fired}/${byMode[m.key].over_fire.filler_total}`);
+    byMode[m.key] = aggregate(per.map((r) => ({ scenario: r.scenario, score: r.score, hiddenJudged: r.hiddenJudged })));
+    const he = byMode[m.key].hidden_extraction;
+    console.log(`  ${m.key}: 정발동 ${byMode[m.key].fired_correct}/${byMode[m.key].planted_total} · 과발동 ${byMode[m.key].over_fire.fired}/${byMode[m.key].over_fire.filler_total} · 추출매치 ${he.matched}/${he.judged}`);
   }
 
   const current = { at: process.env.RUN_STAMP || null, byMode };

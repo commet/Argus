@@ -66,33 +66,58 @@ export const CORPUS = [
   },
 
   // ── HIDDEN ASSUMPTION — 표지 없음: 규칙로는 원리적으로 추출 불가 (핵심 90%) ─
+  // 각 케이스에 기계-대조용 정답 3종을 심는다 (Stage 2, 2026-07-21):
+  //   gold        — 이 결정이 딛고 선 '특정' 하중 전제 (판정기가 대조할 기준 정답).
+  //   gold_para   — gold의 충실한 패러프레이즈 (판정기 recall 프로브: match여야 함).
+  //   counter     — 같은 주제지만 하중 전제가 '아닌' 그럴듯한 오답. 대개 발화에 이미
+  //                 적힌 이유를 되풀이하거나(전제 아님) 일반적 참을 말한다. 판정기가
+  //                 이걸 기각 못 하면(match) hidden_extraction 지표는 theater —
+  //                 validate-judge.mjs가 이 기각 실패를 CI 빨간불로 잡는다.
   {
     id: 'hid-ko-freetier', user: '무료 플랜 없애자. 결제 전환이 낮은 건 무료가 너무 넉넉해서예요.',
     labels: ['hidden_assumption'],
     note: '숨은 전제: 무료 사용자가 조이면 유료로 전환한다 / 무료가 신규 유입 동력이 아니다',
+    gold: '무료 사용자를 압박하면 유료로 전환한다 — 즉 무료 티어가 신규 유입·바이럴의 동력이 아니라는 전제',
+    gold_para: '무료를 없애도 신규 유입은 안 줄고, 조여진 무료 사용자들이 돈을 내기 시작할 것이다',
+    counter: '무료 플랜은 서버·지원 비용을 발생시킨다',
   },
   {
     id: 'hid-en-freetier', user: "Let's drop the free tier — conversion is low because free is too generous.",
     labels: ['hidden_assumption'],
+    gold: 'squeezing free users converts them to paid — i.e. the free tier is not what drives signups / top-of-funnel',
+    gold_para: 'killing free will not shrink new signups, and the squeezed free users will start paying',
+    counter: 'the free tier is expensive to operate',
   },
   {
     id: 'hid-ko-pricing', user: '가격 두 배로 올리자 — 경쟁사보다 아직 싸니까.',
     labels: ['hidden_assumption'],
     note: '숨은 전제: 구매 결정 변수가 가격이다 / 비교 대상이 그 경쟁사다',
+    gold: '구매 결정을 좌우하는 변수가 가격이고, 고객이 우리를 하필 그 경쟁사와 비교한다는 전제',
+    gold_para: '고객은 가격으로 산다 — 그리고 그 경쟁사가 고객의 실제 비교 기준이다',
+    counter: '가격을 올리면 건당 매출이 오른다',
   },
   {
     id: 'hid-ko-defer', user: '결제 연동은 다음 스프린트로 미루자.',
     labels: ['hidden_assumption'],
     note: '숨은 전제: 지금 결제가 없어도 잃는 사용자가 없다',
+    gold: '지금 결제 연동이 없어도 이탈하는 사용자가 없다 — 미루는 동안 잃는 게 없다는 전제',
+    gold_para: '결제를 늦춰도 그 사이 떠나는 고객은 없다',
+    counter: '다음 스프린트에 결제 연동을 할 여력(엔지니어링 시간)이 있다',
   },
   {
     id: 'hid-en-pivot', user: 'We should pivot to B2B — enterprise deals close themselves once you have SSO.',
     labels: ['hidden_assumption'],
+    gold: 'enterprise deals close on their own once SSO exists — i.e. SSO is the binding constraint and little sales motion is needed',
+    gold_para: 'having SSO is what unblocks enterprise deals, and they will largely close without a sales team',
+    counter: 'enterprise customers pay more than B2C customers',
   },
   {
     id: 'hid-en-hiring', user: "Let's hire two more sales reps — pipeline is thin because we don't have enough hands.",
     labels: ['assumption', 'hidden_assumption'],
     note: '표시된 전제(손이 모자라다) 뒤에 숨은 전제(병목이 인력이다)',
+    gold: 'the pipeline bottleneck is headcount (more reps → more pipeline), not lead quality, targeting, or the product',
+    gold_para: 'adding sales headcount is what grows pipeline — the constraint is hands, not lead quality or fit',
+    counter: 'the sales team is currently understaffed',
   },
 
   // ── 음성 — 사전필터가 스킵해야 비용이 절약되는 면 (스킵 기대) ────────────

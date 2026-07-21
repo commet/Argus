@@ -113,7 +113,12 @@ Return ONLY JSON:
  "planted": [{"turn": <index of a USER turn>, "kind":"prediction"|"outcome"|"hidden_assumption", "gist":"one sentence: for hidden_assumption, the unstated premise itself; for outcome, which planted prediction it settles"}],
  "filler_user_turns": [<indices of USER turns with NO signal>]
 }
-Rules: 6–12 turns, mixing user/assistant, starting with a user turn. 1–3 planted signals + at least 2 filler user turns. turn indices are 0-based over the WHOLE turns array and must point at role:"user" turns. Vary domain and language (some Korean, some English). Keep it plausible — a real session, not a quiz.`;
+FIDELITY — it must read like a REAL captured session, not a test (this is the whole point: a synthetic env that behaves like a human user):
+- Pick a concrete PERSONA (e.g. solo SaaS founder, platform-eng lead, growth PM, clinic operator, indie game dev, agency owner) and a specific DOMAIN with real texture — actual metrics, tools, dates, names. Keep the SAME persona across all turns.
+- Real work has interruptions, half-thoughts, corrections, and turns that are pure logistics or venting. EMBED the planted signals inside that texture; never announce them. The load-bearing assumption should be genuinely UNSTATED — a premise the persona would not think to say out loud.
+- Vary register (terse Slack-style vs. thinking-out-loud) and language (some Korean, some English). Make each scenario number a DIFFERENT persona/domain so the set is diverse.
+
+Rules: 6–12 turns, mixing user/assistant, starting with a user turn. 1–3 planted signals + at least 2 filler user turns. turn indices are 0-based over the WHOLE turns array and must point at role:"user" turns. Keep it plausible — a real session, not a quiz.`;
 
 export async function generateScenario(callModel, seedHint) {
   // max_tokens 4000: 6~12턴 대화 + planted 매니페스트 JSON은 1600에 잘려 파싱

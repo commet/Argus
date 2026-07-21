@@ -75,6 +75,26 @@ test('래칫: 베이스라인 없는 모드는 건너뛴다', () => {
   assert.equal(compareFrozen({ byMode: {} }, base).ok, true);
 });
 
+test('추출 래칫: 베이스라인 judged:0(미측정)이면 매치가 낮아도 회귀 아님(새 지표 도입)', () => {
+  const b = { byMode: { mcp: { fired_correct: 18, over_fire: { fired: 0 }, hidden_extraction: { judged: 0, matched: 0 } }, plugin: base.byMode.plugin } };
+  const c = { byMode: { mcp: { fired_correct: 18, over_fire: { fired: 0 }, hidden_extraction: { judged: 6, matched: 1 } }, plugin: base.byMode.plugin } };
+  assert.equal(compareFrozen(b, c).ok, true, '구지표 baseline엔 추출 회귀를 안 건다');
+});
+
+test('추출 래칫: 확립된 지표(judged>0)에서 매치가 TOL 초과 하락하면 회귀', () => {
+  const b = { byMode: { mcp: { fired_correct: 18, over_fire: { fired: 0 }, hidden_extraction: { judged: 6, matched: 5 } }, plugin: base.byMode.plugin } };
+  const c = { byMode: { mcp: { fired_correct: 18, over_fire: { fired: 0 }, hidden_extraction: { judged: 6, matched: 2 } }, plugin: base.byMode.plugin } };
+  const v = compareFrozen(b, c);
+  assert.equal(v.ok, false);
+  assert.match(v.reasons.join(' '), /hidden_extraction\.matched 5→2/);
+});
+
+test('추출 래칫: 현재 judged:0(인프라 실패)이면 매치 회귀로 오판 안 함', () => {
+  const b = { byMode: { mcp: { fired_correct: 18, over_fire: { fired: 0 }, hidden_extraction: { judged: 6, matched: 5 } }, plugin: base.byMode.plugin } };
+  const c = { byMode: { mcp: { fired_correct: 18, over_fire: { fired: 0 }, hidden_extraction: { judged: 0, matched: 0 } }, plugin: base.byMode.plugin } };
+  assert.equal(compareFrozen(b, c).ok, true, '현재 judged:0은 회귀 아님(스킵)');
+});
+
 test('래칫: 0-시나리오 현재값은 rate-limit로 보고 회귀 오판 안 함', () => {
   // 실 사례: rate limit로 프로즌이 20→0을 냈으나 회귀가 아니라 인프라 실패.
   const empty = { byMode: {
