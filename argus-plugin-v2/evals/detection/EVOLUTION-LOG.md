@@ -25,8 +25,13 @@
 
 | R15 (거짓 회귀 수리) | run 29840176601 (main·frozen-only) | 추출 10→8 (거짓 트립) | 추출 11→12 (↑) | main 첫 측정에서 프로즌 래칫 트립 — 진단: **코드 회귀 아님**. mcp 추출 6 miss 중 1건은 판정기 절단(hid-ko-pricing "unparseable"→오탐), 나머지는 compound 케이스 run 노이즈. 수리: ①judgeHidden max_tokens 200→500(R8 judgeSpine와 동일 버그 계열) ②추출 hidTol 1→3(비결정 지표 ±2~3 요동 흡수, 4칸+ 실붕괴만 잡음). 판정기 검증 1.0 유지, baseline(10/11) 유지. | **추출 게이트 노이즈-강건화** |
 | R16 (판정기 게이트 API-오류 강건화) | run 29865387115 (529 crash) | — | — | main full run이 judge-validation 게이트에서 `Error: API 529`(Anthropic overloaded)로 crash(exit 1) → run 실패. 진단: **품질/판정기 문제 아님** — 전이적 API 과부하가 재시도(5회 백오프) 소진 후 throw. 수리: validate-judge가 프로브별 API 오류를 catch해 미채점 처리(scoreJudge 분모 제외), 20%↑ 미채점이면 게이트 스킵(exit 0 = 인프라 실패, 회귀 아님). frozen의 '빈 run ≠ 회귀'와 동일 원칙. 이 run은 게이트 전에서 죽어 품질은 미측정 — 재run 필요. | 게이트가 API 과부하에 crash 안 함 |
+| R17 (스택 금지 정조준) | run 29868768984 (첫 full 완주) | 생성: over 5/13 · spine 위반 12/32 · hidden 4/6 | 생성: over 1/13 · spine 11/25 · hidden 4/6 | **첫 완전 full run 실측.** spine 위반 23건 중 **21건이 kind:multiple**(한 콜에 2개 스택 — "ship AND close deals", "spec matches SO hit March 15"). 스파인 "정확히 하나" 규칙을 predict+capture에, 3곳(spine.ts·sense-signal·PLUGIN_AUGMENT)에 스택 tell(and/so/둘째 날짜·수)로 강화. frozen 래칫 OK(mcp 10·plugin 12·pf0), 판정기 recall/spec 1.0, convo-sim 정산 양 모드 4/4. | **스택(multiple) 위반 정조준** |
 
 ## 실측 발견 (생성 eval, 아침 리뷰 필수)
+
+- **spine 위반의 정체 = 스태킹 (R17):** 첫 완전 full run에서 spine 위반 23건 중 **21건이 `multiple`**(예측/전제를 한 콜에 둘 쌓음). verdict/lean은 거의 없음 — 즉 감지기는 평결은 안 하는데 "A and B / A so B"로 두 개를 뭉친다. R17에서 predict도 "하나만" 규칙 + 스택 tell로 정조준. 다음 run이 위반율 하락 측정.
+- **MCP 절제가 약하다 (R17):** 생성 현실 대화에서 MCP over_fire 5/13(38%) vs 플러그인 1/13(8%). MCP(raw instructions, 매 턴 재주입 없음)가 더 마구 발사. 다음 레버 후보(SERVER_INSTRUCTIONS 절제 강화 — 단 recall 유지 균형).
+- **MCP 정산 1/6은 하네스 아티팩트 (R17):** 생성 eval의 runDetector는 단발(라이더 되먹임 없음)이라 raw MCP가 열린 예측을 못 봐서 outcome 1/6. **convo-sim(진짜 루프+라이더)에선 양 모드 정산 4/4** — 즉 제품은 정상, 생성-하네스 MCP 모드의 충실도 한계. 향후 생성 eval MCP도 라이더 루프로 올릴지 검토.
 
 - **판정기 게이트가 API 529에 crash했다 (R16):** validate-judge는 runPool을 안 써서 판정 호출이 throw하면 그대로 crash(exit 1) → full run 전체 실패. 전이적 Anthropic 과부하(529)를 품질 실패로 오판한 셈. 이제 인프라 오류는 미채점으로 격리하고 과다하면 게이트 스킵. **교훈: 라이브 게이트는 전부 API 오류를 인프라(회귀 아님)로 처리해야 한다 — 크래시로 run을 죽이면 안 된다.**
 
