@@ -1,26 +1,24 @@
 'use client';
 
-import { useEffect, useState, Suspense } from 'react';
+import { useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
 import { BossSetup } from '@/components/boss/BossSetup';
 import { BossChat } from '@/components/boss/BossChat';
 import { useBossStore } from '@/stores/useBossStore';
 import { useAgentStore } from '@/stores/useAgentStore';
-import type { Agent } from '@/stores/agent-types';
 import { useLocale } from '@/hooks/useLocale';
 import { track } from '@/lib/analytics';
 
 function SavedBossList() {
   const locale = useLocale();
   const L = (ko: string, en: string) => locale === 'ko' ? ko : en;
-  const [bosses, setBosses] = useState<Agent[]>([]);
+  const agents = useAgentStore((state) => state.agents);
+  const bosses = agents.filter((agent) => agent.origin === 'boss_sim' && !agent.archived);
   const loadBossFromAgent = useBossStore(s => s.loadBossFromAgent);
 
   useEffect(() => {
-    const store = useAgentStore.getState();
-    if (store.agents.length === 0) store.loadAgents();
-    setBosses(store.agents.filter(a => a.origin === 'boss_sim' && !a.archived));
+    if (useAgentStore.getState().agents.length === 0) useAgentStore.getState().loadAgents();
   }, []);
 
   if (bosses.length === 0) return null;
@@ -41,7 +39,9 @@ function SavedBossList() {
           const obsCount = boss.observations?.length ?? 0;
           return (
             <button
+              type="button"
               key={boss.id}
+              aria-label={L(`${boss.name} 불러오기`, `Load ${boss.name}`)}
               onClick={() => {
                 track('boss_loaded_from_agent', {
                   source: 'saved_list',
@@ -52,7 +52,7 @@ function SavedBossList() {
                 loadBossFromAgent(boss.id);
               }}
               className="agent-card"
-              style={{ padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 12, minWidth: 0, textAlign: 'left', width: '100%' }}
+              style={{ minHeight: 48, padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 12, minWidth: 0, textAlign: 'left', width: '100%' }}
             >
               <span style={{ fontSize: 22, flexShrink: 0 }}>{boss.emoji}</span>
               <div style={{ minWidth: 0, flex: 1, display: 'flex', flexDirection: 'column', gap: 3 }}>
@@ -173,11 +173,54 @@ function AutoDemo() {
 
 function BossPageContent() {
   const phase = useBossStore((s) => s.phase);
+  const draftRecovered = useBossStore((s) => s.draftRecovered);
+  const hydrateDraft = useBossStore((s) => s.hydrateDraft);
+  const dismissDraftNotice = useBossStore((s) => s.dismissDraftNotice);
+  const reset = useBossStore((s) => s.reset);
+  const searchParams = useSearchParams();
+  const locale = useLocale();
+  const L = (ko: string, en: string) => (locale === 'ko' ? ko : en);
+
+  useEffect(() => {
+    if (searchParams?.get('agent') || searchParams?.get('demo')) return;
+    hydrateDraft();
+  }, [searchParams, hydrateDraft]);
 
   return (
     <main className="boss-page">
       <AutoLoadAgent />
       <AutoDemo />
+      {draftRecovered && (
+        <div
+          role="status"
+          className="mt-4 flex flex-col gap-3 rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] p-4 shadow-[var(--shadow-sm)] sm:flex-row sm:items-center"
+        >
+          <div className="min-w-0 flex-1">
+            <p className="text-[13px] font-bold text-[var(--text-primary)]">
+              {L('지난 보스 연습을 복구했어요', 'Your previous rehearsal was restored')}
+            </p>
+            <p className="mt-1 text-[12px] leading-relaxed text-[var(--text-secondary)]">
+              {L('이 브라우저에 저장된 초안에서 이어갑니다. 초안은 30일 뒤 자동으로 만료돼요.', 'Continue from the draft saved in this browser. Drafts expire automatically after 30 days.')}
+            </p>
+          </div>
+          <div className="flex shrink-0 gap-2">
+            <button
+              type="button"
+              onClick={reset}
+              className="inline-flex min-h-11 flex-1 items-center justify-center rounded-xl px-3 text-[12px] font-semibold text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] sm:flex-none"
+            >
+              {L('초안 버리기', 'Discard')}
+            </button>
+            <button
+              type="button"
+              onClick={dismissDraftNotice}
+              className="inline-flex min-h-11 flex-1 items-center justify-center rounded-xl bg-[var(--primary)] px-3 text-[12px] font-semibold text-[var(--bg)] sm:flex-none"
+            >
+              {L('계속하기', 'Continue')}
+            </button>
+          </div>
+        </div>
+      )}
       <AnimatePresence mode="wait">
         {phase === 'setup' ? (
           <div key="setup-wrapper">

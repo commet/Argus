@@ -9,6 +9,7 @@ import { useAgentStore } from '@/stores/useAgentStore';
 import { summarizeBossChatTopic, extractBossChatObservation } from '@/lib/observation-engine';
 import type { BossChatTurn } from '@/stores/agent-types';
 import { getCurrentLanguage } from '@/lib/i18n';
+import { clearBossDraft, loadBossDraft, saveBossDraft } from '@/lib/boss/boss-draft';
 
 // ━━━ Types ━━━
 
@@ -63,6 +64,10 @@ interface BossState {
   // Demo path: when an AutoDemo writes here, BossSetup picks it up on mount,
   // pre-fills the situation textarea, and auto-submits. Cleared on consumption.
   demoSituation: string | null;
+  /** Conversation text being prepared before chat starts. Persisted for reload recovery. */
+  setupSituation: string;
+  draftRecovered: boolean;
+  draftSavedAt: number | null;
 
   // Actions
   setAxis: (key: 'ei' | 'sn' | 'tf' | 'jp', value: string) => void;
@@ -70,6 +75,9 @@ interface BossState {
   setBirth: (y: number, m?: number, d?: number) => void;
   setUserContextHint: (v: string) => void;
   setDemoSituation: (v: string | null) => void;
+  setSetupSituation: (v: string) => void;
+  hydrateDraft: () => void;
+  dismissDraftNotice: () => void;
   loadSaju: () => Promise<void>;
   startChat: () => void;
   addUserMessage: (content: string) => void;
@@ -115,6 +123,9 @@ const INITIAL_STATE = {
   lastSituation: '',
   userContextHint: '',
   demoSituation: null as string | null,
+  setupSituation: '',
+  draftRecovered: false,
+  draftSavedAt: null as number | null,
 };
 
 export const useBossStore = create<BossState>((set, get) => ({
@@ -128,6 +139,35 @@ export const useBossStore = create<BossState>((set, get) => ({
   setUserContextHint: (v) => set({ userContextHint: v }),
 
   setDemoSituation: (v) => set({ demoSituation: v }),
+
+  setSetupSituation: (v) => set({ setupSituation: v.slice(0, 500) }),
+
+  hydrateDraft: () => {
+    const draft = loadBossDraft();
+    if (!draft) return;
+    const validYear = draft.birthYear >= 1940 && draft.birthYear <= 2006;
+    const validMonth = draft.birthMonth >= 1 && draft.birthMonth <= 12 ? draft.birthMonth : undefined;
+    const validDay = draft.birthDay >= 1 && draft.birthDay <= 31 ? draft.birthDay : undefined;
+    set({
+      axes: draft.axes,
+      gender: draft.gender,
+      birthYear: draft.birthYear,
+      birthMonth: draft.birthMonth,
+      birthDay: draft.birthDay,
+      yearMonthProfile: validYear ? buildYearMonthProfile(draft.birthYear, validMonth) : null,
+      zodiacProfile: validYear ? buildZodiacProfile(draft.birthYear, validMonth, validDay) : null,
+      messages: draft.messages,
+      phase: draft.phase,
+      lastSituation: draft.lastSituation,
+      loadedAgentId: draft.loadedAgentId,
+      userContextHint: draft.userContextHint,
+      setupSituation: draft.setupSituation,
+      draftRecovered: true,
+      draftSavedAt: draft.savedAt,
+    });
+  },
+
+  dismissDraftNotice: () => set({ draftRecovered: false }),
 
   setBirth: (y, m?, d?) => {
     const yearNum = isNaN(y) ? 0 : Math.floor(y);
@@ -250,6 +290,7 @@ export const useBossStore = create<BossState>((set, get) => ({
   },
 
   reset: () => {
+    clearBossDraft();
     set({ ...INITIAL_STATE });
   },
 
@@ -361,6 +402,30 @@ export const useBossStore = create<BossState>((set, get) => ({
       lastSituation: lastUserTurn?.content || '',
       loadedAgentId: agentId,
       userContextHint: agent.user_context_hint || '',
+      draftRecovered: false,
     });
   },
 }));
+
+if (typeof window !== 'undefined') {
+  let lastSerialized = '';
+  useBossStore.subscribe((state) => {
+    const input = {
+      setupSituation: state.setupSituation,
+      axes: state.axes,
+      gender: state.gender,
+      birthYear: state.birthYear,
+      birthMonth: state.birthMonth,
+      birthDay: state.birthDay,
+      messages: state.messages.map(({ id, role, content, timestamp }) => ({ id, role, content, timestamp })).slice(-40),
+      phase: state.phase,
+      lastSituation: state.lastSituation,
+      loadedAgentId: state.loadedAgentId,
+      userContextHint: state.userContextHint,
+    };
+    const serialized = JSON.stringify(input);
+    if (serialized === lastSerialized) return;
+    lastSerialized = serialized;
+    saveBossDraft(input);
+  });
+}

@@ -9,8 +9,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 const bossState = {
   axes: { ei: 'E', sn: 'S', tf: 'T', jp: 'J' },
   gender: '남', birthYear: 0, birthMonth: 0, birthDay: 0, sajuLoading: false,
-  userContextHint: '', demoSituation: null,
-  setGender: vi.fn(), setBirth: vi.fn(), setUserContextHint: vi.fn(), setDemoSituation: vi.fn(),
+  userContextHint: '', demoSituation: null, setupSituation: '',
+  setGender: vi.fn(), setBirth: vi.fn(), setUserContextHint: vi.fn(), setDemoSituation: vi.fn(), setSetupSituation: vi.fn(),
   loadSaju: vi.fn(), startChat: vi.fn(), addUserMessage: vi.fn(),
 };
 

@@ -82,8 +82,7 @@ const HINT_EXAMPLES_EN = [
 export function BossSetup() {
   const t = useT();
   const locale = useLocale();
-  const { axes, gender, birthYear, birthMonth, birthDay, sajuLoading, userContextHint, demoSituation, setGender, setBirth, setUserContextHint, setDemoSituation, loadSaju, startChat, addUserMessage } = useBossStore();
-  const [situation, setSituation] = useState('');
+  const { axes, gender, birthYear, birthMonth, birthDay, sajuLoading, userContextHint, demoSituation, setupSituation: situation, setGender, setBirth, setUserContextHint, setDemoSituation, setSetupSituation: setSituation, loadSaju, startChat, addUserMessage } = useBossStore();
   const [isLaunching, setIsLaunching] = useState(false);
   const [confirmedSituation, setConfirmedSituation] = useState('');
   // Crisis backstop (crisis-gate.ts): the boss must not issue an authority verdict
@@ -180,7 +179,7 @@ export function BossSetup() {
       void _;
     }, 250);
     return () => clearTimeout(t);
-  }, [demoSituation, demoConsumedRef, setDemoSituation, isLaunching, addUserMessage, loadSaju, typeCode]);
+  }, [demoSituation, demoConsumedRef, setDemoSituation, setSituation, isLaunching, addUserMessage, loadSaju, typeCode]);
 
   const handleConfirmContinue = useCallback(() => {
     track('boss_chat_initiated', {
@@ -261,7 +260,14 @@ export function BossSetup() {
         />
       )}
       <div className="bs-cta-row">
-        <p className="bs-fine">{t('boss.disclaimer')}</p>
+        <p className="bs-fine">
+          {t('boss.disclaimer')}
+          <span className="block mt-1">
+            {locale === 'ko'
+              ? '작성 중인 초안은 이 브라우저에 30일 동안 자동 저장됩니다.'
+              : 'Your draft is saved in this browser for up to 30 days.'}
+          </span>
+        </p>
         <motion.button
           type="button"
           onClick={handleSubmit}
