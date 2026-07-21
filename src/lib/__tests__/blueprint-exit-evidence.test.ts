@@ -134,6 +134,12 @@ const EVIDENCE_V: Record<string, string[]> = {
     'argus-plugin-v2/scripts/push-webapp.test.mjs', // 첫 seal 자동 트리거(--ensure-connect) + decline restraint
     'manual: 2026-07-21 창업자 실주행 — argus.voyage device 승인 후 push, admin의 plugin_bearings·plugin_decisions 0→1 육안 확인',
   ],
+  V2: [
+    'src/lib/__tests__/judgment-graph.test.ts', // 정산 track record 축 — per-ground held/broke/mixed
+    'src/lib/__tests__/judgment-portfolio-graph.test.ts', // 출처 축(정직 라벨) — decisionOrigin web/mcp_cli/unknown
+    'src/lib/__tests__/judgment-portfolio-graph.test.ts', // 최근점검 축 — premise/decision lastActivity
+    'src/components/projects/__tests__/voyage-sea.test.tsx', // VoyageSea 병합 — sealed MCP/review receipts join the same sea
+  ],
 };
 
 function readBlueprintMTrackSections(): Map<string, string> {
@@ -322,14 +328,17 @@ describe('BLUEPRINT §9.8 E-트랙 exit 체크 증거 계약 (같은 규약)', (
 describe('BLUEPRINT §9.9 V-트랙 exit 체크 증거 계약 (같은 규약)', () => {
   const section = readBlueprintVTrackSection();
 
-  it('§9.9 V 트랙과 V1 exit를 찾는다', () => {
+  it('§9.9 V 트랙과 V1·V2 exit를 찾는다', () => {
     expect(section).toContain('병렬 트랙 V');
-    expect(section).toContain('**V1 exit:**');
+    for (const phase of Object.keys(EVIDENCE_V)) expect(section).toContain(`**${phase} exit:**`);
   });
 
   it.each(Object.keys(EVIDENCE_V))('%s: 체크된 exit 수 == 등록된 증거 수', (phase) => {
     const start = section.indexOf(`**${phase} exit:**`);
-    const body = section.slice(start); // V1 exit는 절의 마지막 문단 — 뒤에 다른 [x] 없음
+    // 각 exit 블록은 빈 줄로 구분된다 — 다음 **V… exit 헤딩 앞에서 끊어
+    // 한 phase의 [x]가 다음 phase 것까지 세지 않게 한다 (E-트랙과 같은 규약).
+    const next = section.indexOf('\n\n**V', start + 1);
+    const body = section.slice(start, next === -1 ? undefined : next);
     const checked = (body.match(/\[x\]/g) || []).length;
     expect(
       EVIDENCE_V[phase].length,

@@ -897,6 +897,18 @@ O4 통과 전 비공개.
 **V1 exit:** [x] 플러그인 승인 탭 1클릭 연동(복붙 0) [x] 첫 seal 자동 트리거
 [x] 실주행에서 `plugin_bearings` 0→1 실측(§7.5 행수 확인) — 2026-07-21 창업자 실주행 준공.
 
+**V2 exit:** [x] 정산 track record 축 — per-ground held/broke/mixed 조인(`GroundRecord`),
+사실 카운트만(평결 0). [x] 출처 축 — **정직 라벨**(웹 / MCP·CLI / 미상); 진짜
+"Claude Code↔Codex" 세분은 어떤 영수증에도 표면 신호가 없어(source_kind는 문서
+종류일 뿐) '미상'으로 표기하는 **disclosed gap** — 그 신호를 실제로 배선하려면
+push→ingest→schema를 건드려 V2 무접촉 경계를 넘으므로 별도 승인 트랙으로 남긴다
+(창업자 2026-07-22 "정직 라벨, 경계 안" 결정). [x] 최근점검 축 — 전제/결정의
+`last_activity`(멤버 recheck ts / 영수증 updated_at) → "N일 전 점검", 없으면 정직한
+미표시(honest gap). [x] VoyageSea 병합 스트림 — 웹 프로젝트 + `review_receipts`
+(MCP/review `JudgmentReceipt`)가 한 바다에 vessel로 병합 렌더(실측 테스트); 플러그인
+브리지 `plugin_decisions`(usePluginStore) 병합은 경계 밖 gap으로 기록.
+— 2026-07-22 트랙 V2 준공(스크린샷 도구 세션 장애로 DOM/인라인 스타일 대체 검증).
+
 ---
 
 ## 마지막 장 — 이 설계도의 봉인

@@ -7,7 +7,7 @@
 import { describe, it, expect } from 'vitest';
 import type { JudgmentReceipt } from '@/lib/review';
 import type { PremiseState } from '@/lib/premises-core';
-import { judgmentPortfolioGraph } from '@/lib/judgment-portfolio-graph';
+import { judgmentPortfolioGraph, decisionOrigin } from '@/lib/judgment-portfolio-graph';
 
 let seq = 0;
 function premise(text: string, over: Partial<PremiseState> = {}): PremiseState {
@@ -82,5 +82,49 @@ describe('judgmentPortfolioGraph — the browsable bipartite map', () => {
     expect(g.premises).toHaveLength(0);
     expect(g.decisions).toHaveLength(0);
     expect(g.edges).toHaveLength(0);
+  });
+});
+
+describe('SOURCE axis (V2 #2) — honest origin, never guessed', () => {
+  it('decisionOrigin maps only what source_kind honestly discloses', () => {
+    expect(decisionOrigin('pdf')).toBe('web');
+    expect(decisionOrigin('paste')).toBe('web');
+    expect(decisionOrigin('transcript')).toBe('web');
+    expect(decisionOrigin('mcp_file')).toBe('mcp_cli');
+    // ambiguous / absent → unknown, never a guessed surface (honest gap)
+    expect(decisionOrigin('pr_diff')).toBe('unknown');
+    expect(decisionOrigin('llm_answer')).toBe('unknown');
+    expect(decisionOrigin(undefined)).toBe('unknown');
+  });
+
+  it('decision nodes carry the honest origin from their receipt', () => {
+    const g = judgmentPortfolioGraph([
+      receipt('r1', '웹 문서', [premise(SHARED)], { source_kind: 'pdf' }),
+      receipt('r2', 'MCP 파일', [premise(SHARED)], { source_kind: 'mcp_file' }),
+      receipt('r3', 'PR diff', [premise(SHARED)], { source_kind: 'pr_diff' }),
+    ]);
+    const origin = (rid: string) => g.decisions.find((d) => d.receiptId === rid)!.origin;
+    expect(origin('r1')).toBe('web');
+    expect(origin('r2')).toBe('mcp_cli');
+    expect(origin('r3')).toBe('unknown');
+  });
+});
+
+describe('RECENCY axis (V2 #3) — latest touch, honest gap when none', () => {
+  it('premise carries the latest member re-check ts as lastActivity', () => {
+    const g = judgmentPortfolioGraph([
+      receipt('r1', 'a', [drifted()]), // drifted() sets last_recheck.ts = 2026-07-18
+      receipt('r2', 'b', [premise(SHARED)]),
+    ]);
+    const hub = g.premises.find((p) => p.text === SHARED)!;
+    expect(hub.lastActivity).toBe('2026-07-18T00:00:00Z');
+  });
+
+  it('decision carries its receipt updated_at as lastActivity', () => {
+    const g = judgmentPortfolioGraph([
+      receipt('r1', 'a', [premise(SHARED)], { updated_at: '2026-07-20T00:00:00Z' }),
+      receipt('r2', 'b', [premise(SHARED)]),
+    ]);
+    expect(g.decisions.find((d) => d.receiptId === 'r1')!.lastActivity).toBe('2026-07-20T00:00:00Z');
   });
 });

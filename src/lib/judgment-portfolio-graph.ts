@@ -19,8 +19,43 @@
  * SPINE: facts + counts only (degree, live bets, held/broke tally, drift).
  * Nothing here computes a grade or a verdict about the user.
  */
-import type { JudgmentReceipt } from '@/lib/review';
+import type { JudgmentReceipt, SourceKind } from '@/lib/review';
 import { sharedGrounds, receiptIsLive, type GroundDrift, type GroundRecord } from './judgment-graph';
+
+/**
+ * SOURCE axis (BLUEPRINT §9.9 V2, axis #2) — HONEST scope (founder 2026-07-22:
+ * "정직 라벨, 경계 안"). The blueprint asked for a Claude Code / Codex / web
+ * tag, but no agent-surface signal exists on a receipt (only `source_kind`, a
+ * document-input discriminator) and wiring a real one would cross V2's 무접촉
+ * 경계 (plugin/MCP/schema). So we surface only what the data honestly supports:
+ *   - `web`     — a document pasted/uploaded through the web review door.
+ *   - `mcp_cli` — came in through the MCP/CLI door (`mcp_file`).
+ *   - `unknown` — the input kind doesn't disclose a surface (`pr_diff`,
+ *                 `llm_answer`, or absent). NEVER guessed.
+ * The finer Claude Code vs Codex split is a DISCLOSED GAP, blocked on an
+ * upstream signal outside this track. Honest gap over fabrication.
+ */
+export type DecisionOrigin = 'web' | 'mcp_cli' | 'unknown';
+
+export function decisionOrigin(sourceKind?: SourceKind): DecisionOrigin {
+  switch (sourceKind) {
+    case 'mcp_file':
+      return 'mcp_cli';
+    case 'paste':
+    case 'markdown':
+    case 'txt':
+    case 'pdf':
+    case 'docx':
+    case 'pptx':
+    case 'hwpx':
+    case 'image':
+    case 'transcript':
+      return 'web';
+    // 'pr_diff' / 'llm_answer' / undefined → the surface is genuinely unknown.
+    default:
+      return 'unknown';
+  }
+}
 
 export interface PremiseNode {
   id: string;
@@ -33,6 +68,9 @@ export interface PremiseNode {
   liveBets: number;
   drift?: GroundDrift;
   record?: GroundRecord;
+  /** RECENCY axis: latest ISO ts this ground was touched (from its members'
+   *  re-check / add-time). Absent = honest gap. The surface prints "N일 전". */
+  lastActivity?: string;
 }
 
 export interface DecisionNode {
@@ -42,6 +80,10 @@ export interface DecisionNode {
   title: string;
   /** sealed or carrying an open bet — vs fully settled. */
   live: boolean;
+  /** SOURCE axis (honest): which door this decision came through. */
+  origin: DecisionOrigin;
+  /** RECENCY axis: the receipt's last-updated ISO ts. Absent = honest gap. */
+  lastActivity?: string;
 }
 
 export type PortfolioNode = PremiseNode | DecisionNode;
@@ -83,6 +125,7 @@ export function judgmentPortfolioGraph(receipts: JudgmentReceipt[]): PortfolioGr
       liveBets: g.live_bets.length,
       drift: g.drift,
       record: g.record,
+      lastActivity: g.last_activity,
     });
     for (const m of g.members) {
       if (!titleByReceipt.has(m.receipt_id)) titleByReceipt.set(m.receipt_id, m.source_title);
@@ -107,6 +150,8 @@ export function judgmentPortfolioGraph(receipts: JudgmentReceipt[]): PortfolioGr
       receiptId: rid,
       title: r?.source_title || titleByReceipt.get(rid) || rid,
       live: r ? receiptIsLive(r) : false,
+      origin: decisionOrigin(r?.source_kind),
+      lastActivity: r?.updated_at || undefined,
     });
   }
 
