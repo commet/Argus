@@ -17,7 +17,7 @@ export default function RootError({
   const L = (ko: string, en: string) => (locale === 'ko' ? ko : en);
 
   return (
-    <div className="flex flex-1 items-center justify-center px-4 py-12 sm:px-6 sm:py-16">
+    <main id="main-content" tabIndex={-1} className="flex flex-1 items-center justify-center px-4 py-12 focus:outline-none sm:px-6 sm:py-16">
       <div className="w-full max-w-md text-center">
         <div
           className="relative mx-auto h-[210px] overflow-hidden rounded-2xl border border-[var(--border-subtle)] shadow-[var(--shadow-sm)] sm:h-[230px]"
@@ -67,6 +67,6 @@ export default function RootError({
           </Link>
         </div>
       </div>
-    </div>
+    </main>
   );
 }

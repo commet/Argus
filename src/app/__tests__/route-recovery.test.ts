@@ -22,6 +22,8 @@ describe('route recovery UX', () => {
     expect(notFound).toContain("withLocale(locale, '/')");
     expect(error).toContain('min-h-11');
     expect(notFound).toContain('min-h-11');
+    expect(error).toContain('<main id="main-content"');
+    expect(notFound).toContain('<main id="main-content"');
   });
 
   it('provides an accessible reduced-motion route loading boundary', () => {

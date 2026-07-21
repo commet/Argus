@@ -59,7 +59,7 @@ function LayoutShellInner({ children }: { children: React.ReactNode }) {
   }
   const isPatterns = pathname.startsWith('/patterns');
   if (isPatterns) {
-    return <div id="main-content" tabIndex={-1} className="flex-1 min-w-0 focus:outline-none">{content}</div>;
+    return <main id="main-content" tabIndex={-1} className="flex-1 min-w-0 focus:outline-none">{content}</main>;
   }
 
   // The 224px <Sidebar /> that used to render here is gone (Argus 2.0 H1-C4):

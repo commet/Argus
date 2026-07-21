@@ -4,7 +4,7 @@
  * it: locale-less pages redirect to the resolved locale, the root avoids the
  * trailing-slash triple-hop, and /api + metadata routes are never locale-prefixed.
  */
-import { describe, it, expect } from 'vitest';
+import { afterEach, describe, it, expect, vi } from 'vitest';
 import { NextRequest } from 'next/server';
 import { proxy } from '@/proxy';
 
@@ -23,6 +23,10 @@ function redirectTo(res: Response): string | null {
   const loc = res.headers.get('location');
   return loc ? new URL(loc, BASE).pathname : null;
 }
+
+afterEach(() => {
+  vi.unstubAllEnvs();
+});
 
 describe('proxy — locale redirect of locale-less page paths', () => {
   it('redirects a locale-less page to the Accept-Language locale', () => {
@@ -76,5 +80,18 @@ describe('proxy — CSP is always attached', () => {
   it('sets a nonce-based Content-Security-Policy on both redirect and pass-through', () => {
     expect(proxy(req('/workspace')).headers.get('content-security-policy')).toMatch(/script-src[^;]*nonce-/);
     expect(proxy(req('/en/workspace')).headers.get('content-security-policy')).toMatch(/script-src[^;]*nonce-/);
+  });
+});
+
+describe('proxy — internal design references', () => {
+  it('rewrites localized design routes to a missing route in production', () => {
+    vi.stubEnv('NODE_ENV', 'production');
+    const res = proxy(req('/en/design/foundry'));
+    expect(res.headers.get('x-middleware-rewrite')).toContain('/en/__internal_design_not_found__');
+  });
+
+  it('keeps design references available to local development', () => {
+    vi.stubEnv('NODE_ENV', 'development');
+    expect(proxy(req('/en/design/foundry')).headers.get('x-middleware-rewrite')).toBeNull();
   });
 });

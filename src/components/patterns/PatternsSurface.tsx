@@ -86,7 +86,7 @@ export function PatternsSurface() {
   );
 
   if (readError || !snapshot) return (
-    <main className="mx-auto flex min-h-[55vh] w-full max-w-2xl items-center px-4 py-12">
+    <div className="mx-auto flex min-h-[55vh] w-full max-w-2xl items-center px-4 py-12">
       <div role="alert" className="w-full rounded-2xl border border-[var(--risk-critical)]/30 bg-[var(--surface)] p-6 text-center">
         <AlertTriangle size={20} className="mx-auto text-[var(--risk-critical)]" />
         <h1 className="mt-3 text-[17px] font-bold text-[var(--text-primary)]">{L('기록을 불러오지 못했습니다.', 'Could not load your records.')}</h1>
@@ -100,11 +100,11 @@ export function PatternsSurface() {
         </button>
         <p className="mt-3 font-mono text-[10px] text-[var(--text-tertiary)]">{readError}</p>
       </div>
-    </main>
+    </div>
   );
 
   return (
-    <main className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6 sm:py-12">
+    <div className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6 sm:py-12">
       <header className="max-w-3xl">
         <p className="text-[11px] font-bold tracking-[0.17em] text-[var(--accent)] uppercase">{L('판단 패턴', 'Decision patterns')}</p>
         <h1 className="mt-3 text-[28px] font-bold leading-tight tracking-[-0.025em] text-[var(--text-primary)] sm:text-[36px]">
@@ -164,7 +164,7 @@ export function PatternsSurface() {
           {L('검토 데이터 버전', 'Review data version')} · {snapshot.release_receipt_id}
         </p>
       )}
-    </main>
+    </div>
   );
 }
 
