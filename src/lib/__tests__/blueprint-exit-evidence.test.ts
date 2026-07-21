@@ -126,6 +126,16 @@ const EVIDENCE_E: Record<string, string[]> = {
   ],
 };
 
+/** §9.9 병렬 트랙 V(연동·시각화)의 phase별 exit 증거 — 같은 규약. V-트랙을
+ *  사각지대로 두면 M/O/E와 똑같이 완료 선언이 부풀 수 있으므로 함께 감시한다. */
+const EVIDENCE_V: Record<string, string[]> = {
+  V1: [
+    'argus-plugin-v2/scripts/push-webapp.test.mjs', // 승인 탭 1클릭 연동(복붙 0) — device/browser 흐름 블랙박스
+    'argus-plugin-v2/scripts/push-webapp.test.mjs', // 첫 seal 자동 트리거(--ensure-connect) + decline restraint
+    'manual: 2026-07-21 창업자 실주행 — argus.voyage device 승인 후 push, admin의 plugin_bearings·plugin_decisions 0→1 육안 확인',
+  ],
+};
+
 function readBlueprintMTrackSections(): Map<string, string> {
   const md = readFileSync(join(process.cwd(), 'docs/ARGUS-BLUEPRINT.md'), 'utf8');
   const s9Start = md.indexOf('## §9.');
@@ -161,6 +171,14 @@ function readBlueprintOTrackSections(): Map<string, string> {
 function readBlueprintETrackSection(): string {
   const md = readFileSync(join(process.cwd(), 'docs/ARGUS-BLUEPRINT.md'), 'utf8');
   const start = md.indexOf('### 9.8');
+  if (start === -1) return '';
+  const end = md.indexOf('\n---', start);
+  return md.slice(start, end === -1 ? undefined : end);
+}
+
+function readBlueprintVTrackSection(): string {
+  const md = readFileSync(join(process.cwd(), 'docs/ARGUS-BLUEPRINT.md'), 'utf8');
+  const start = md.indexOf('### 9.9');
   if (start === -1) return '';
   const end = md.indexOf('\n---', start);
   return md.slice(start, end === -1 ? undefined : end);
@@ -295,6 +313,37 @@ describe('BLUEPRINT §9.8 E-트랙 exit 체크 증거 계약 (같은 규약)', (
   it('E0~E2 기계·문서 증거 경로는 전부 리포에 실존한다', () => {
     for (const [phase, entries] of Object.entries(EVIDENCE_E)) {
       for (const entry of entries) {
+        expect(existsSync(join(process.cwd(), entry)), `${phase}의 증거 파일이 없음: ${entry}`).toBe(true);
+      }
+    }
+  });
+});
+
+describe('BLUEPRINT §9.9 V-트랙 exit 체크 증거 계약 (같은 규약)', () => {
+  const section = readBlueprintVTrackSection();
+
+  it('§9.9 V 트랙과 V1 exit를 찾는다', () => {
+    expect(section).toContain('병렬 트랙 V');
+    expect(section).toContain('**V1 exit:**');
+  });
+
+  it.each(Object.keys(EVIDENCE_V))('%s: 체크된 exit 수 == 등록된 증거 수', (phase) => {
+    const start = section.indexOf(`**${phase} exit:**`);
+    const body = section.slice(start); // V1 exit는 절의 마지막 문단 — 뒤에 다른 [x] 없음
+    const checked = (body.match(/\[x\]/g) || []).length;
+    expect(
+      EVIDENCE_V[phase].length,
+      `${phase}의 [x]는 ${checked}개인데 EVIDENCE_V에는 ${EVIDENCE_V[phase].length}개 — 체크(또는 취소)와 같은 커밋에서 맵을 갱신할 것`,
+    ).toBe(checked);
+  });
+
+  it('V-트랙 증거 경로는 전부 리포에 실존한다', () => {
+    for (const [phase, entries] of Object.entries(EVIDENCE_V)) {
+      for (const entry of entries) {
+        if (entry.startsWith('manual: ')) {
+          expect(entry.length, `${phase}의 manual 증거는 무엇을/누가 확인했는지 적어야 함`).toBeGreaterThan(20);
+          continue;
+        }
         expect(existsSync(join(process.cwd(), entry)), `${phase}의 증거 파일이 없음: ${entry}`).toBe(true);
       }
     }
