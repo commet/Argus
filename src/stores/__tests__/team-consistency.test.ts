@@ -82,4 +82,20 @@ describe('team API state consistency', () => {
     expect(useTeamStore.getState().reviewInputs).toHaveLength(1);
     expect(useTeamStore.getState().reviewHiddenCount).toBe(4);
   });
+
+  it('does not let a successful sibling read hide a failed team detail request', async () => {
+    useTeamStore.setState({ currentTeamId: 'team-1' });
+    fetchMock.mockImplementation((url: string) => {
+      if (url.endsWith('/api/teams/team-1')) return response(503, { error: 'members unavailable' });
+      if (url.endsWith('/api/teams/team-1/projects')) return response(200, { projects: [] });
+      return response(404, { error: 'unexpected request' });
+    });
+
+    await Promise.all([
+      useTeamStore.getState().loadMembers('team-1'),
+      useTeamStore.getState().loadTeamProjects('team-1'),
+    ]);
+
+    expect(useTeamStore.getState().loadError).toBe('members unavailable');
+  });
 });
