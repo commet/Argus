@@ -18,8 +18,12 @@
 | R10 (세션 복원·loop 재개) | run 29807610931 | frozen 20/24 of0 · 생성(N=3): 과발동 3/6·짜증 4/14·hidden매치 1/3 | frozen 23/24 of0 · 생성: 과발동 2/6·짜증 0/9·hidden매치 0/3 | 수리 없음(검증 run). 새 세션에서 loop를 CI-dispatch로 재개(하트비트 trig_01VD7eRdEedbZ45KHQBQn1VY 이관). 회귀 없음(RATCHET_OK), 플러그인 frozen 22→23 미세 개선. 생성 스파인 플래그 6건 중 실질 4건(전제 2개 쌓기 ×3·전제를 사실로 제시 ×1)+파싱 2건 — 단 N=3 노이즈 큼 | — |
 
 | R11 (Stage 2·3 착수) | 코드 랜딩(라이브=다음 run) | — | — | 창업자 지시("정답까지 채점·현실 시뮬·극한"): ①convo-sim 신설 — 진짜 다중 턴 루프+정산 라이더 되먹임(단발이 못 재던 라이더 효과 측정) ②frozen 래칫에 hidden_extraction(gold 대조 '옳게 짚었나') 편입+회귀 가드 ③validate-judge 신설 — 판정기를 gold/counter로 검증(theater 방지) ④GEN_SYSTEM 페르소나·텍스처 격상 ⑤CI 배선(판정기 게이트→eval→frozen→convo-sim). 키-free 단위검증 전수 초록 | 간판 기능(추출 품질)이 게이트에 진입 |
+| R12 (추출 래칫 발효) | run 29811300850 | frozen 20/24 of0 · 추출 2/6 | frozen 22/24 of0 · 추출 2/6 | 판정기 검증 recall/spec **1.0** 통과(6/6 gold 매치·6/6 counter 기각 → 지표가 theater 아님 확인) → baseline에 hidden_extraction{judged:6,matched:2} 병합, hidTol=1로 발효(2→0 붕괴를 회귀로 잡음). convo-sim 라이더 정산 첫 실측: 양 모드 outcome 4/4·settled 4~5 | **추출 매치가 회귀 게이트에 발효** |
 
 ## 실측 발견 (생성 eval, 아침 리뷰 필수)
+
+- **추출 품질의 정직한 바닥 = 2/6 (R12):** 판정기가 신뢰(1.0/1.0)되는 상태에서 잰 간판 기능 실측 — 숨은 전제에 발동은 하지만 '특정' 하중 전제를 옳게 짚는 건 6건 중 2건(양 모드). 이후 라운드 1순위 개선 대상: 감지 프롬프트가 일반적 손익 전제 대신 특정 운영 리스크를 짚도록. 래칫이 이 2를 바닥으로 잠갔다(hidTol=1: 2→0이면 빨간불).
+- **라이더 정산 첫 실증 (R12):** convo-sim(진짜 다중 턴 루프 + 툴 결과 되먹임)에서 양 모드 outcome 4/4·settled 4~5. 단발 하네스의 raw MCP 정산 13/38(R7)이 '툴 결과를 대화에 안 되돌린' 탓이었음을 확인 — 라이더가 실제로 정산을 살린다. N=4라 규모는 작으나 방향은 명확. 다음: convo-sim에도 래칫을 붙일지 검토(현재는 측정만).
 
 - **추출 게이트는 베이스라인 갱신 후 발효(R11):** frozen-bench-baseline.json의 hidden_extraction은 judged:0(구지표)이다. compareFrozen은 baseline judged>0일 때만 추출 회귀를 잡으므로, 첫 라이브 run은 judged>0(hidden 6건×2모드)을 내되 래칫은 통과한다(새 지표 도입, 회귀 아님). 그 run의 추출 숫자로 baseline을 갱신 커밋해야 이후 추출 하락이 exit 2로 잡힌다. **다음 라이브 run 아침 리뷰의 필수 조치.**
 - **정직한 상한(R11):** convo-sim의 목 원장·user-sim 짜증률은 합성 프록시다. 최종 정답은 transcript-recall(실세션)이며 "인간과 99.99% 일치"는 주장하지 않는다 — 합성 충실도를 실사용에 가깝게 끌어올릴 뿐, 잔여 격차는 도그푸딩으로만 닫힌다.

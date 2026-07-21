@@ -63,8 +63,15 @@ export function corpusToScenarios(corpus = CORPUS) {
  *  20/0 → 21/1) 정확 임계 비교는 샘플링 노이즈에 오작동한다. 톨러런스 밴드(TOL)
  *  안의 변화는 노이즈로 허용하고, 그를 넘는 하락/상승만 회귀로 잡는다. TOL은
  *  n≈24 정발동·n=8 filler 규모의 1-2 이벤트 요동을 흡수하되 3+ 실회귀는 잡는 값.
- *  FROZEN_TOL 환경변수로 조정 가능(기본 2). */
-export function compareFrozen(baseline, current, tol = Number(process.env.FROZEN_TOL || 2)) {
+ *  FROZEN_TOL 환경변수로 조정 가능(기본 2).
+ *  추출 매치는 n=6(hidden 케이스)로 스케일이 작아 별도 톨러런스(hidTol, 기본 1)를
+ *  쓴다 — TOL=2를 그대로 쓰면 matched=2 베이스라인이 0으로 붕괴해도 안 잡혀 게이트가
+ *  무력해진다. hidTol=1은 판정기 ±1 노이즈만 허용하고 2칸 이상 하락은 회귀로 잡는다. */
+export function compareFrozen(
+  baseline, current,
+  tol = Number(process.env.FROZEN_TOL || 2),
+  hidTol = Number(process.env.FROZEN_HID_TOL || 1),
+) {
   const reasons = [];
   for (const mode of ['mcp', 'plugin']) {
     const b = baseline?.byMode?.[mode];
@@ -79,8 +86,8 @@ export function compareFrozen(baseline, current, tol = Number(process.env.FROZEN
     // 비교한다 — 베이스라인이 judged:0(미측정)이면 새 지표라 회귀가 아니고(첫 도입 run은
     // 통과 후 베이스라인 갱신), 현재 judged:0이면 인프라 실패라 회귀 오판 금지.
     const bh = b.hidden_extraction, ch = c.hidden_extraction;
-    if (bh?.judged > 0 && ch?.judged > 0 && ch.matched < bh.matched - tol) {
-      reasons.push(`${mode}: hidden_extraction.matched ${bh.matched}→${ch.matched} (>${tol} 하락)`);
+    if (bh?.judged > 0 && ch?.judged > 0 && ch.matched < bh.matched - hidTol) {
+      reasons.push(`${mode}: hidden_extraction.matched ${bh.matched}→${ch.matched} (>${hidTol} 하락)`);
     }
   }
   return { ok: reasons.length === 0, reasons };
