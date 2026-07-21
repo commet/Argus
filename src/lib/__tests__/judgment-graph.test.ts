@@ -142,6 +142,59 @@ describe('sharedGrounds — grouping by normalized text', () => {
   });
 });
 
+describe('sharedGrounds — settled track-record (execution tier, facts only)', () => {
+  type Outcome = 'happened' | 'avoided' | 'partial' | 'missed' | 'unclear';
+  function settledFollowup(id: string, outcome: Outcome) {
+    return {
+      followup_id: id,
+      predicate: `bet ${id}`,
+      predicate_owner: 'user' as const,
+      pass_condition: 'a',
+      fail_condition: 'b',
+      check_by: '2026-06-01',
+      sealed_at: '2026-05-01T00:00:00Z',
+      settled_at: '2026-06-02T00:00:00Z',
+      outcome,
+    };
+  }
+
+  it('tallies held/broke/mixed across the ground’s member receipts', () => {
+    const r1 = receipt('r1', 'a', [premise(GROUND)], {
+      state: 'settled',
+      falsifiable_followups: [settledFollowup('f1', 'happened'), settledFollowup('f2', 'missed')],
+    });
+    const r2 = receipt('r2', 'b', [premise(GROUND)], {
+      state: 'settled',
+      falsifiable_followups: [settledFollowup('f3', 'avoided'), settledFollowup('f4', 'partial')],
+    });
+    const gs = sharedGrounds([r1, r2]);
+    expect(gs).toHaveLength(1);
+    // happened+avoided→held, missed→broke, partial→mixed. Neutral tally, no grade.
+    expect(gs[0].record).toEqual({ settled: 4, held: 2, broke: 1, mixed: 1 });
+  });
+
+  it('excludes unclear and still-open bets — an honest gap, never a fabricated 0-of-0', () => {
+    const r1 = receipt('r1', 'a', [premise(GROUND)], {
+      falsifiable_followups: [
+        settledFollowup('f1', 'unclear'),
+        {
+          followup_id: 'f2',
+          predicate: 'still open',
+          predicate_owner: 'user' as const,
+          pass_condition: 'a',
+          fail_condition: 'b',
+          check_by: '2026-09-01',
+          sealed_at: '2026-07-01T00:00:00Z',
+        },
+      ],
+    });
+    const r2 = receipt('r2', 'b', [premise(GROUND)]); // default open followup
+    const gs = sharedGrounds([r1, r2]);
+    expect(gs).toHaveLength(1);
+    expect(gs[0].record).toBeUndefined();
+  });
+});
+
 describe('groundSpotlight — fires on a real event, silent on a flat day', () => {
   const drifted = premise(GROUND, {
     last_recheck: {
