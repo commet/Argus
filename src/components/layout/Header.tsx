@@ -225,7 +225,7 @@ export function Header() {
         <div className="h-16 flex items-center justify-between">
           <Logo size="md" href="/" />
 
-          <div className="hidden md:flex items-center gap-3">
+          <div className="hidden lg:flex items-center gap-3">
             {/* Desktop nav */}
             <nav className="flex items-center gap-0.5 bg-[var(--surface)] rounded-full px-1.5 py-1 border border-[var(--border-subtle)] shadow-[var(--shadow-xs)]">
               {navItems.map((item) => {
@@ -239,8 +239,8 @@ export function Header() {
                 return (
                   <LocaleLink
                     key={item.href}
-                    href={item.href}
-                    className={`relative px-3.5 py-1.5 rounded-full text-[13px] font-medium transition-all duration-200 flex items-center gap-1.5 ${
+                    href={showReturnBadge ? dueTarget : item.href}
+                    className={`relative min-h-9 px-3.5 py-1.5 rounded-full text-[13px] font-medium transition-all duration-200 flex items-center gap-1.5 ${
                       isActive
                         ? 'bg-[var(--surface)] text-[var(--primary)] shadow-sm ring-1 ring-[var(--accent)]/15'
                         : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
@@ -252,8 +252,7 @@ export function Header() {
                     {showReturnBadge && (
                       <span
                         aria-label={L(`돌아올 결정 ${dueCount}건`, `${dueCount} decision(s) to revisit`)}
-                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); router.push(`/${locale}${dueTarget}`); }}
-                        className="absolute -top-0.5 -right-1 min-w-[14px] h-[14px] px-[3px] rounded-full flex items-center justify-center text-[9px] font-bold text-white leading-none cursor-pointer"
+                        className="pointer-events-none absolute -top-0.5 -right-1 min-w-[14px] h-[14px] px-[3px] rounded-full flex items-center justify-center text-[9px] font-bold text-white leading-none"
                         style={{ background: 'var(--gold)' }}
                       >
                         {dueCount}
@@ -265,8 +264,9 @@ export function Header() {
               {/* Overflow — the sidebar's former utility links (H1-C4) */}
               <div className="relative" ref={moreMenuRef}>
                 <button
+                  type="button"
                   onClick={() => setMoreMenuOpen(!moreMenuOpen)}
-                  className="px-2.5 py-1.5 rounded-full text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors cursor-pointer flex items-center"
+                  className="min-h-9 min-w-9 px-2.5 py-1.5 rounded-full text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors cursor-pointer flex items-center justify-center"
                   aria-label={L('더보기 메뉴', 'More menu')}
                   aria-haspopup="menu"
                   aria-expanded={moreMenuOpen}
@@ -317,8 +317,9 @@ export function Header() {
             <div className="flex items-center gap-2">
               <div className="flex items-center rounded-full bg-[var(--surface)]/60 border border-[var(--border-subtle)] overflow-hidden" role="group" aria-label="Language">
                 <button
+                  type="button"
                   onClick={() => handleLocaleChange('ko')}
-                  className={`px-2.5 py-1 text-[11px] font-bold transition-colors cursor-pointer ${
+                  className={`inline-flex min-h-9 items-center px-2.5 py-1 text-[11px] font-bold transition-colors cursor-pointer ${
                     locale === 'ko'
                       ? 'bg-[var(--primary)] text-[var(--bg)]'
                       : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
@@ -329,8 +330,9 @@ export function Header() {
                   KO
                 </button>
                 <button
+                  type="button"
                   onClick={() => handleLocaleChange('en')}
-                  className={`px-2.5 py-1 text-[11px] font-bold transition-colors cursor-pointer ${
+                  className={`inline-flex min-h-9 items-center px-2.5 py-1 text-[11px] font-bold transition-colors cursor-pointer ${
                     locale === 'en'
                       ? 'bg-[var(--primary)] text-[var(--bg)]'
                       : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
@@ -342,8 +344,9 @@ export function Header() {
                 </button>
               </div>
               <button
+                type="button"
                 onClick={toggleTheme}
-                className="p-2 rounded-full text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface)] transition-colors cursor-pointer"
+                className="inline-flex min-h-9 min-w-9 items-center justify-center p-2 rounded-full text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface)] transition-colors cursor-pointer"
                 title={darkMode ? L('라이트 모드', 'Light mode') : L('다크 모드', 'Dark mode')}
                 aria-label={darkMode ? L('라이트 모드로 전환', 'Switch to light mode') : L('다크 모드로 전환', 'Switch to dark mode')}
                 aria-pressed={darkMode}
@@ -369,8 +372,9 @@ export function Header() {
               user ? (
                 <div className="relative" ref={userMenuRef}>
                   <button
+                    type="button"
                     onClick={() => setUserMenuOpen(!userMenuOpen)}
-                    className="flex items-center gap-2 px-2 py-1 rounded-full hover:bg-[var(--surface)] transition-colors cursor-pointer"
+                    className="flex min-h-9 items-center gap-2 px-2 py-1 rounded-full hover:bg-[var(--surface)] transition-colors cursor-pointer"
                     aria-label={L('계정 메뉴', 'Account menu')}
                     aria-haspopup="menu"
                     aria-expanded={userMenuOpen}
@@ -397,9 +401,10 @@ export function Header() {
                         <p className="text-[11px] text-[var(--text-tertiary)] truncate">{user.email}</p>
                       </div>
                       <button
+                        type="button"
                         role="menuitem"
                         onClick={handleSignOut}
-                        className="w-full flex items-center gap-2 px-3 py-2 text-[13px] text-[var(--text-secondary)] hover:bg-[var(--bg)] hover:text-[var(--danger)] transition-colors cursor-pointer"
+                        className="min-h-11 w-full flex items-center gap-2 px-3 py-2 text-[13px] text-[var(--text-secondary)] hover:bg-[var(--bg)] hover:text-[var(--danger)] transition-colors cursor-pointer"
                       >
                         <LogOut size={14} />
                         {L('로그아웃', 'Sign Out')}
@@ -410,7 +415,7 @@ export function Header() {
               ) : (
                 <LocaleLink
                   href="/login"
-                  className="px-3.5 py-1.5 rounded-full text-[13px] font-semibold text-[var(--accent)] hover:bg-[var(--ai)]/50 transition-colors"
+                  className="inline-flex min-h-9 items-center px-3.5 py-1.5 rounded-full text-[13px] font-semibold text-[var(--accent)] hover:bg-[var(--ai)]/50 transition-colors"
                 >
                   {L('로그인', 'Sign In')}
                 </LocaleLink>
@@ -420,7 +425,8 @@ export function Header() {
 
           {/* Mobile menu button */}
           <button
-            className="md:hidden min-w-[44px] min-h-[44px] inline-flex items-center justify-center p-2.5 hover:bg-[var(--surface)] rounded-lg cursor-pointer transition-colors"
+            type="button"
+            className="lg:hidden min-w-[44px] min-h-[44px] inline-flex items-center justify-center p-2.5 hover:bg-[var(--surface)] rounded-lg cursor-pointer transition-colors"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             aria-label={mobileMenuOpen ? L('메뉴 닫기', 'Close menu') : L('메뉴 열기', 'Open menu')}
             aria-expanded={mobileMenuOpen}
@@ -432,9 +438,10 @@ export function Header() {
 
       {/* Mobile menu */}
       {mobileMenuOpen && (
-        <nav className="md:hidden border-t border-[var(--border-subtle)] bg-[var(--surface)] animate-slide-down">
+        <nav className="lg:hidden border-t border-[var(--border-subtle)] bg-[var(--surface)] animate-slide-down">
           <div className="px-4 py-2 space-y-0.5">
             <button
+              type="button"
               onClick={() => { setMobileMenuOpen(false); setCommandPaletteOpen(true); }}
               className="mb-2 flex min-h-[44px] w-full items-center gap-3 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg)] px-4 text-left text-[13px] text-[var(--text-secondary)]"
               aria-haspopup="dialog"
@@ -450,7 +457,7 @@ export function Header() {
               return (
                 <LocaleLink
                   key={item.href}
-                  href={item.href}
+                    href={showReturnBadge ? dueTarget : item.href}
                   onClick={() => setMobileMenuOpen(false)}
                   className={`flex items-center gap-2 px-4 py-2.5 min-h-[44px] rounded-lg text-[14px] font-medium transition-colors ${
                     pathname === item.href
@@ -463,8 +470,7 @@ export function Header() {
                     {showReturnBadge && (
                       <span
                         aria-label={L(`돌아올 결정 ${dueCount}건`, `${dueCount} decision(s) to revisit`)}
-                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); setMobileMenuOpen(false); router.push(`/${locale}${dueTarget}`); }}
-                        className="absolute -top-1.5 -right-4 min-w-[14px] h-[14px] px-[3px] rounded-full flex items-center justify-center text-[9px] font-bold text-white leading-none cursor-pointer"
+                        className="pointer-events-none absolute -top-1.5 -right-4 min-w-[14px] h-[14px] px-[3px] rounded-full flex items-center justify-center text-[9px] font-bold text-white leading-none"
                         style={{ background: 'var(--gold)' }}
                       >
                         {dueCount}
@@ -500,6 +506,7 @@ export function Header() {
               <span className="text-[11px] font-semibold text-[var(--text-tertiary)] uppercase tracking-wider">{L('언어', 'Language')}</span>
               <div className="flex items-center rounded-full bg-[var(--bg)] border border-[var(--border-subtle)] overflow-hidden ml-auto">
                 <button
+                  type="button"
                   onClick={() => handleLocaleChange('ko')}
                   className={`px-4 min-h-[44px] inline-flex items-center text-[12px] font-bold transition-colors cursor-pointer ${
                     locale === 'ko' ? 'bg-[var(--primary)] text-[var(--bg)]' : 'text-[var(--text-secondary)]'
@@ -509,6 +516,7 @@ export function Header() {
                   KO
                 </button>
                 <button
+                  type="button"
                   onClick={() => handleLocaleChange('en')}
                   className={`px-4 min-h-[44px] inline-flex items-center text-[12px] font-bold transition-colors cursor-pointer ${
                     locale === 'en' ? 'bg-[var(--primary)] text-[var(--bg)]' : 'text-[var(--text-secondary)]'
@@ -524,8 +532,9 @@ export function Header() {
               <div className="pt-1 mt-1 border-t border-[var(--border-subtle)]">
                 {user ? (
                   <button
+                    type="button"
                     onClick={() => { setMobileMenuOpen(false); handleSignOut(); }}
-                    className="w-full flex items-center gap-2 px-4 py-2.5 rounded-lg text-[14px] font-medium text-[var(--text-secondary)] hover:bg-[var(--bg)] hover:text-[var(--danger)] transition-colors cursor-pointer"
+                    className="min-h-11 w-full flex items-center gap-2 px-4 py-2.5 rounded-lg text-[14px] font-medium text-[var(--text-secondary)] hover:bg-[var(--bg)] hover:text-[var(--danger)] transition-colors cursor-pointer"
                   >
                     <LogOut size={14} />
                     {L('로그아웃', 'Sign Out')} ({displayName})
@@ -534,7 +543,7 @@ export function Header() {
                   <LocaleLink
                     href="/login"
                     onClick={() => setMobileMenuOpen(false)}
-                    className="block px-4 py-2.5 rounded-lg text-[14px] font-semibold text-[var(--accent)]"
+                    className="flex min-h-11 items-center px-4 py-2.5 rounded-lg text-[14px] font-semibold text-[var(--accent)]"
                   >
                     {L('로그인', 'Sign In')}
                   </LocaleLink>
