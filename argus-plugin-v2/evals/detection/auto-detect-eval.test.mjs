@@ -8,8 +8,18 @@
  */
 import assert from 'node:assert/strict';
 import {
-  scoreScenario, aggregate, runDetector, generateScenario, judgeHidden, judgeSpine, judgeUserSim, extractJson, WANT,
+  scoreScenario, aggregate, runDetector, generateScenario, judgeHidden, judgeSpine, judgeUserSim, extractJson, WANT, isJudgeParseFail,
 } from './auto-detect-eval.mjs';
+
+// ── isJudgeParseFail: 세 판정기의 절단/파싱 실패 표식을 모두 인식 (R15) ──────
+test('isJudgeParseFail: 정상 판정은 false, 세 판정기의 parse-fail fallback은 true', () => {
+  assert.equal(isJudgeParseFail({ match: true, why: 'same risk' }), false);
+  assert.equal(isJudgeParseFail({ match: false, why: 'no capture' }), false);
+  assert.equal(isJudgeParseFail({ match: false, why: 'unparseable → default miss' }), true, 'judgeHidden fallback');
+  assert.equal(isJudgeParseFail({ violation: true, kind: 'unparseable', why: 'judge parse fail → flag' }), true, 'judgeSpine fallback');
+  assert.equal(isJudgeParseFail({ would_keep: false, inconclusive: true, why: 'parse fail' }), true, 'judgeUserSim fallback');
+  assert.equal(isJudgeParseFail(null), false);
+});
 
 let pass = 0, fail = 0;
 function test(name, fn) {

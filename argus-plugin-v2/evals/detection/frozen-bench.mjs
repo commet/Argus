@@ -26,7 +26,7 @@ import { fileURLToPath } from 'node:url';
 import { CORPUS } from './corpus.mjs';
 import {
   runDetector, scoreScenario, aggregate, makeAnthropicCaller, serverInstructions,
-  PLUGIN_AUGMENT, runPool, judgeHidden,
+  PLUGIN_AUGMENT, runPool, judgeHidden, isJudgeParseFail,
 } from './auto-detect-eval.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
@@ -64,13 +64,15 @@ export function corpusToScenarios(corpus = CORPUS) {
  *  안의 변화는 노이즈로 허용하고, 그를 넘는 하락/상승만 회귀로 잡는다. TOL은
  *  n≈24 정발동·n=8 filler 규모의 1-2 이벤트 요동을 흡수하되 3+ 실회귀는 잡는 값.
  *  FROZEN_TOL 환경변수로 조정 가능(기본 2).
- *  추출 매치는 n=6(hidden 케이스)로 스케일이 작아 별도 톨러런스(hidTol, 기본 1)를
- *  쓴다 — TOL=2를 그대로 쓰면 matched=2 베이스라인이 0으로 붕괴해도 안 잡혀 게이트가
- *  무력해진다. hidTol=1은 판정기 ±1 노이즈만 허용하고 2칸 이상 하락은 회귀로 잡는다. */
+ *  추출 매치는 별도 톨러런스(hidTol, 기본 3)를 쓴다. 이 지표는 비결정 감지기+LLM
+ *  판정이라 단일 run 요동이 fired_correct보다 크다 — R15에서 mcp 10→8(그중 1건은
+ *  판정기 절단 오탐)로 hidTol=1이 거짓 회귀를 냈다. hidTol=3은 ±3 run 노이즈를
+ *  흡수하되, 바닥(예: 10) 대비 4칸 이상 하락(=옛 붕괴 수준으로의 실회귀)은 잡는다.
+ *  FROZEN_HID_TOL로 조정 가능. */
 export function compareFrozen(
   baseline, current,
   tol = Number(process.env.FROZEN_TOL || 2),
-  hidTol = Number(process.env.FROZEN_HID_TOL || 1),
+  hidTol = Number(process.env.FROZEN_HID_TOL || 3),
 ) {
   const reasons = [];
   for (const mode of ['mcp', 'plugin']) {
@@ -129,8 +131,13 @@ async function main() {
     // 놓친 케이스만 진단으로 남긴다(전수 대신 실패에 집중 — 다음 레버 찾기용).
     hiddenDetail[m.key] = per.flatMap((r) => r.hiddenJudged).filter((h) => !h.match)
       .map((h) => ({ id: h.id, why: h.why, gold: h.gold, captured: h.captured }));
+    // 판정기 parse-fail을 표면화(R15) — 조용히 miss로 삼켜지지 않게. >0이면 이 run의
+    // 추출 수치는 그만큼 신뢰가 낮다(절단 의심). 리포트에 실어 아침 리뷰가 본다.
+    const parseFails = per.flatMap((r) => r.hiddenJudged).filter(isJudgeParseFail).length;
+    byMode[m.key].judge_parse_fail = parseFails;
     const he = byMode[m.key].hidden_extraction;
-    console.log(`  ${m.key}: 정발동 ${byMode[m.key].fired_correct}/${byMode[m.key].planted_total} · 과발동 ${byMode[m.key].over_fire.fired}/${byMode[m.key].over_fire.filler_total} · 추출매치 ${he.matched}/${he.judged}`);
+    console.log(`  ${m.key}: 정발동 ${byMode[m.key].fired_correct}/${byMode[m.key].planted_total} · 과발동 ${byMode[m.key].over_fire.fired}/${byMode[m.key].over_fire.filler_total} · 추출매치 ${he.matched}/${he.judged}${parseFails ? ` · ⚠판정기절단 ${parseFails}` : ''}`);
+    if (parseFails) console.log(`  ⚠ ${m.key}: 판정기 parse-fail ${parseFails}건 — 추출 수치 신뢰 낮음(절단 의심). max_tokens/판정기 확인.`);
     if (hiddenDetail[m.key].length) for (const d of hiddenDetail[m.key]) console.log(`    MISS[${m.key}] ${d.id}: ${d.why}`);
   }
 
