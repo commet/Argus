@@ -81,22 +81,24 @@ test('추출 래칫: 베이스라인 judged:0(미측정)이면 매치가 낮아�
   assert.equal(compareFrozen(b, c).ok, true, '구지표 baseline엔 추출 회귀를 안 건다');
 });
 
-test('추출 래칫: 확립된 지표(judged>0)에서 매치가 TOL 초과 하락하면 회귀', () => {
-  const b = { byMode: { mcp: { fired_correct: 18, over_fire: { fired: 0 }, hidden_extraction: { judged: 6, matched: 5 } }, plugin: base.byMode.plugin } };
-  const c = { byMode: { mcp: { fired_correct: 18, over_fire: { fired: 0 }, hidden_extraction: { judged: 6, matched: 2 } }, plugin: base.byMode.plugin } };
-  const v = compareFrozen(b, c);
+test('추출 래칫: 확립된 지표(judged>0)에서 매치가 hidTol 초과 하락하면 회귀', () => {
+  const b = { byMode: { mcp: { fired_correct: 18, over_fire: { fired: 0 }, hidden_extraction: { judged: 14, matched: 11 } }, plugin: base.byMode.plugin } };
+  const c = { byMode: { mcp: { fired_correct: 18, over_fire: { fired: 0 }, hidden_extraction: { judged: 14, matched: 6 } }, plugin: base.byMode.plugin } };
+  const v = compareFrozen(b, c); // 11→6 = 5칸 하락 > hidTol(3)
   assert.equal(v.ok, false);
-  assert.match(v.reasons.join(' '), /hidden_extraction\.matched 5→2/);
+  assert.match(v.reasons.join(' '), /hidden_extraction\.matched 11→6/);
 });
 
-test('추출 래칫: hidTol=1 — matched 2→1은 노이즈 허용, 2→0은 회귀(게이트 유효)', () => {
-  const b = { byMode: { mcp: { fired_correct: 20, over_fire: { fired: 0 }, hidden_extraction: { judged: 6, matched: 2 } }, plugin: base.byMode.plugin } };
-  const noise = { byMode: { mcp: { fired_correct: 20, over_fire: { fired: 0 }, hidden_extraction: { judged: 6, matched: 1 } }, plugin: base.byMode.plugin } };
-  assert.equal(compareFrozen(b, noise).ok, true, '2→1은 판정기 ±1 노이즈로 허용');
-  const collapse = { byMode: { mcp: { fired_correct: 20, over_fire: { fired: 0 }, hidden_extraction: { judged: 6, matched: 0 } }, plugin: base.byMode.plugin } };
-  const v = compareFrozen(b, collapse);
-  assert.equal(v.ok, false, '2→0 붕괴는 회귀로 잡힌다');
-  assert.match(v.reasons.join(' '), /hidden_extraction\.matched 2→0/);
+test('추출 래칫: hidTol=3(기본) — matched 10→8은 run 노이즈 허용, 10→6은 회귀', () => {
+  // R15: 비결정 감지기+LLM 판정이라 단일 run ±2~3 요동. 10→8(2칸)은 노이즈로 통과해야
+  // 거짓 회귀를 안 낸다(hidTol=1이 정확히 이 지점에서 거짓 회귀를 냈다).
+  const b = { byMode: { mcp: { fired_correct: 29, over_fire: { fired: 0 }, hidden_extraction: { judged: 14, matched: 10 } }, plugin: base.byMode.plugin } };
+  const noise = { byMode: { mcp: { fired_correct: 27, over_fire: { fired: 0 }, hidden_extraction: { judged: 14, matched: 8 } }, plugin: base.byMode.plugin } };
+  assert.equal(compareFrozen(b, noise).ok, true, '10→8(2칸)은 노이즈로 허용');
+  const collapse = { byMode: { mcp: { fired_correct: 29, over_fire: { fired: 0 }, hidden_extraction: { judged: 14, matched: 6 } }, plugin: base.byMode.plugin } };
+  const v = compareFrozen(b, collapse); // 10→6 = 4칸 > 3
+  assert.equal(v.ok, false, '10→6(4칸) 실회귀는 잡힌다');
+  assert.match(v.reasons.join(' '), /hidden_extraction\.matched 10→6/);
 });
 
 test('추출 래칫: 현재 judged:0(인프라 실패)이면 매치 회귀로 오판 안 함', () => {
