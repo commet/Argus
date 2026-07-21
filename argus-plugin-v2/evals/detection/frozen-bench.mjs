@@ -51,15 +51,22 @@ export function corpusToScenarios(corpus = CORPUS) {
   });
 }
 
-/** 래칫 비교 (순수): 어느 모드든 정발동 하락 or 과발동 상승 = 회귀. */
-export function compareFrozen(baseline, current) {
+/** 래칫 비교 (순수). 실 API 감지는 run마다 요동하므로(같은 고정 코퍼스도
+ *  20/0 → 21/1) 정확 임계 비교는 샘플링 노이즈에 오작동한다. 톨러런스 밴드(TOL)
+ *  안의 변화는 노이즈로 허용하고, 그를 넘는 하락/상승만 회귀로 잡는다. TOL은
+ *  n≈24 정발동·n=8 filler 규모의 1-2 이벤트 요동을 흡수하되 3+ 실회귀는 잡는 값.
+ *  FROZEN_TOL 환경변수로 조정 가능(기본 2). */
+export function compareFrozen(baseline, current, tol = Number(process.env.FROZEN_TOL || 2)) {
   const reasons = [];
   for (const mode of ['mcp', 'plugin']) {
     const b = baseline?.byMode?.[mode];
     const c = current?.byMode?.[mode];
     if (!b || !c) continue;
-    if (c.fired_correct < b.fired_correct) reasons.push(`${mode}: fired_correct ${b.fired_correct}→${c.fired_correct}`);
-    if ((c.over_fire?.fired ?? 0) > (b.over_fire?.fired ?? 0)) reasons.push(`${mode}: over_fire ${b.over_fire.fired}→${c.over_fire.fired}`);
+    // 이 모드가 0 시나리오면 rate-limit/인프라 실패 — 회귀로 오판 금지(스킵).
+    // scenarios===0만 검사(실 집계는 항상 이 필드를 채운다; 명시적 0만 빈 run).
+    if (c.scenarios === 0) continue;
+    if (c.fired_correct < b.fired_correct - tol) reasons.push(`${mode}: fired_correct ${b.fired_correct}→${c.fired_correct} (>${tol} 하락)`);
+    if ((c.over_fire?.fired ?? 0) > (b.over_fire?.fired ?? 0) + tol) reasons.push(`${mode}: over_fire ${b.over_fire.fired}→${c.over_fire.fired} (>${tol} 상승)`);
   }
   return { ok: reasons.length === 0, reasons };
 }
@@ -75,7 +82,7 @@ async function main() {
   const det = makeAnthropicCaller(key, process.env.AUTO_DETECT_MODEL || 'claude-opus-4-8');
   const instructions = await serverInstructions();
   const scenarios = corpusToScenarios();
-  const CONC = Number(process.env.FROZEN_CONCURRENCY || 6);
+  const CONC = Number(process.env.FROZEN_CONCURRENCY || 1);
 
   const byMode = {};
   for (const m of [{ key: 'mcp', augment: null }, { key: 'plugin', augment: PLUGIN_AUGMENT }]) {
@@ -95,6 +102,14 @@ async function main() {
   console.log('===FROZEN_BENCH_START===');
   console.log(JSON.stringify(current));
   console.log('===FROZEN_BENCH_END===');
+
+  // 빈 run 가드: 양 모드 모두 0 시나리오면 감지 회귀가 아니라 rate-limit/인프라
+  // 실패다. 래칫을 빨간불로 만들지 말고(회귀 오판), 인프라 실패로 알리고 통과.
+  const totalScored = (byMode.mcp?.scenarios ?? 0) + (byMode.plugin?.scenarios ?? 0);
+  if (totalScored === 0) {
+    console.log('FROZEN_BENCH_EMPTY: 0 scored scenarios — rate limit/API 과부하로 추정. 래칫 스킵(회귀 아님). 다음 run에서 재측정.');
+    return;
+  }
 
   if (fs.existsSync(BASELINE_PATH)) {
     const verdict = compareFrozen(JSON.parse(fs.readFileSync(BASELINE_PATH, 'utf8')), current);

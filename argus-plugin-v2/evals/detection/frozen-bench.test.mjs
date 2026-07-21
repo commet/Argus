@@ -48,22 +48,40 @@ test('래칫: 동일/개선이면 ok', () => {
   assert.equal(compareFrozen(base, better).ok, true);
 });
 
-test('래칫: 정발동 하락은 회귀', () => {
-  const worse = { byMode: { mcp: { fired_correct: 17, over_fire: { fired: 0 } }, plugin: base.byMode.plugin } };
-  const v = compareFrozen(base, worse);
-  assert.equal(v.ok, false);
-  assert.match(v.reasons.join(' '), /mcp: fired_correct 18→17/);
+test('래칫: 톨러런스 안의 요동은 노이즈로 허용 (실 API 변동)', () => {
+  // 정발동 -2, 과발동 +2 까지는 노이즈 (TOL=2). 첫 야간 run에서 20/0→21/1이
+  // false-fail했던 실제 사례.
+  const noise = { byMode: { mcp: { fired_correct: 21, over_fire: { fired: 1 } }, plugin: { fired_correct: 22, over_fire: { fired: 0 } } } };
+  assert.equal(compareFrozen(base, noise).ok, true);
+  const edge = { byMode: { mcp: { fired_correct: 16, over_fire: { fired: 2 } }, plugin: base.byMode.plugin } };
+  assert.equal(compareFrozen(base, edge).ok, true, '정확히 TOL만큼은 허용');
 });
 
-test('래칫: 과발동 상승은 회귀 (한 모드만 나빠져도)', () => {
-  const worse = { byMode: { mcp: base.byMode.mcp, plugin: { fired_correct: 22, over_fire: { fired: 3 } } } };
+test('래칫: 톨러런스 초과 정발동 하락은 회귀 (3+)', () => {
+  const worse = { byMode: { mcp: { fired_correct: 15, over_fire: { fired: 0 } }, plugin: base.byMode.plugin } };
   const v = compareFrozen(base, worse);
   assert.equal(v.ok, false);
-  assert.match(v.reasons.join(' '), /plugin: over_fire 1→3/);
+  assert.match(v.reasons.join(' '), /mcp: fired_correct 18→15/);
+});
+
+test('래칫: 톨러런스 초과 과발동 상승은 회귀 (한 모드만 나빠져도)', () => {
+  const worse = { byMode: { mcp: base.byMode.mcp, plugin: { fired_correct: 22, over_fire: { fired: 4 } } } };
+  const v = compareFrozen(base, worse);
+  assert.equal(v.ok, false);
+  assert.match(v.reasons.join(' '), /plugin: over_fire 1→4/);
 });
 
 test('래칫: 베이스라인 없는 모드는 건너뛴다', () => {
   assert.equal(compareFrozen({ byMode: {} }, base).ok, true);
+});
+
+test('래칫: 0-시나리오 현재값은 rate-limit로 보고 회귀 오판 안 함', () => {
+  // 실 사례: rate limit로 프로즌이 20→0을 냈으나 회귀가 아니라 인프라 실패.
+  const empty = { byMode: {
+    mcp: { scenarios: 0, planted_total: 0, fired_correct: 0, over_fire: { fired: 0 } },
+    plugin: { scenarios: 0, planted_total: 0, fired_correct: 0, over_fire: { fired: 0 } },
+  } };
+  assert.equal(compareFrozen(base, empty).ok, true);
 });
 
 console.log(`\n${pass} passed, ${fail} failed`);

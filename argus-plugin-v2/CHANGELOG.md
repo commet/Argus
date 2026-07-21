@@ -4,6 +4,29 @@ All notable changes to the Argus plugin. Versioning follows
 [semver](https://semver.org); users receive an update only when the
 `version` in `.claude-plugin/plugin.json` is bumped.
 
+## 2.12.0 — 2026-07-21
+
+Long sessions stop starving; the mirror gets measured. Driven by the overnight
+self-evolution loop (real-API synthetic eval + adversarial judges; round log in
+`evals/detection/EVOLUTION-LOG.md`).
+
+- **Sense caps reworked for long sessions.** The every-turn diagnosis budget
+  moves from a hard 3-per-session to a sliding window: up to 3 injections per
+  2-hour window, session ceiling 12. Outcome-only re-injection cap 4 → 8
+  (settlement is bookkeeping). State file migrates old formats conservatively.
+- **Offers are per-decision, not per-session.** Offer at most once per distinct
+  decision — a skip is final for that decision; never two replies in a row, and
+  two skips in a session means silence for the rest of it.
+- **Restraint sharpened against measured over-fire.** Task requests, logistics/
+  scheduling, and small talk are named as non-decisions in the injected
+  diagnosis (measured: over-fire down 52% → 30% on dense synthetic sessions
+  with recall unchanged).
+- **Eval: mirror quality enters the objective.** New spine judge (does a fired
+  capture read as a verdict/fork/lean?) and a role-played busy-user judge
+  (would they tap Keep? are they annoyed?) — acceptance/annoyance are now
+  measured alongside recall, so the loop cannot optimize firing at the spine's
+  expense.
+
 ## 2.11.0 — 2026-07-20
 
 Detection, from scratch: the sense hook now delegates DETECTION to the model's
