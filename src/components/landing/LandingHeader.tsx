@@ -113,6 +113,8 @@ export function LandingHeader() {
                     textTransform: 'uppercase',
                     padding: '12px 6px',
                     minHeight: 44,
+                    minWidth: 44,
+                    justifyContent: 'center',
                   }}
                 >
                   {dueCount > 0 && (
@@ -141,6 +143,8 @@ export function LandingHeader() {
                     textTransform: 'uppercase',
                     padding: '12px 6px',
                     minHeight: 44,
+                    minWidth: 44,
+                    justifyContent: 'center',
                   }}
                 >
                   {L('로그인', 'Sign In')}
