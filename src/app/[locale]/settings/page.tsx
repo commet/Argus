@@ -256,6 +256,9 @@ export default function SettingsPage() {
       <div>
         <h1 className="text-[22px] font-bold text-[var(--text-primary)]">{L('설정', 'Settings')}</h1>
         <p className="text-[13px] text-[var(--text-secondary)] mt-1">{L('AI 엔진 · 연동 · 프로필 · 환경 설정', 'AI engine · integrations · profile · preferences')}</p>
+        <p className="text-[11px] text-[var(--text-tertiary)] mt-1">
+          {L('변경 사항은 이 브라우저에 자동 저장됩니다.', 'Changes save automatically in this browser.')}
+        </p>
       </div>
 
       {/* A1 IA: left sticky section-nav (desktop) / sticky horizontal chip row
@@ -281,11 +284,14 @@ export default function SettingsPage() {
 
         {/* Provider — 한 층위(브랜드) 세그먼트. 'GPT-4o' 같은 특정 모델명을 버튼에
             섞지 않는다 — 구체 모델은 아래 detail 줄이 말한다. */}
-        <label className="text-[12px] font-semibold text-[var(--text-secondary)] mb-1.5 block">{L('제공자', 'Provider')}</label>
+        <fieldset>
+        <legend className="text-[12px] font-semibold text-[var(--text-secondary)] mb-1.5 block">{L('제공자', 'Provider')}</legend>
         <div className="flex gap-1.5">
           {llmProviders.map((provider) => (
             <button
               key={provider.value}
+              type="button"
+              aria-pressed={(settings.llm_provider || 'anthropic') === provider.value}
               onClick={() => handleProviderChange(provider.value)}
               className={`flex-1 min-h-[44px] py-3 rounded-lg text-[13px] font-semibold border text-center transition-colors cursor-pointer ${
                 (settings.llm_provider || 'anthropic') === provider.value
@@ -306,15 +312,18 @@ export default function SettingsPage() {
             </p>
           );
         })()}
+        </fieldset>
 
         {/* Anthropic connection mode — compact segmented control */}
         {(settings.llm_provider || 'anthropic') === 'anthropic' && (
-          <div className="animate-fade-in mt-4">
-            <label className="text-[12px] font-semibold text-[var(--text-secondary)] mb-1.5 block">{L('연결 방식', 'Connection Mode')}</label>
+          <fieldset className="animate-fade-in mt-4">
+            <legend className="text-[12px] font-semibold text-[var(--text-secondary)] mb-1.5 block">{L('연결 방식', 'Connection Mode')}</legend>
             <div className="flex gap-1.5">
               {llmModes.filter((mode) => mode.available).map((mode) => (
                 <button
                   key={mode.value}
+                  type="button"
+                  aria-pressed={settings.llm_mode === mode.value}
                   onClick={() => handleModeChange(mode.value)}
                   className={`flex-1 min-h-[44px] py-3 rounded-lg text-[12px] font-medium border text-center transition-colors cursor-pointer ${
                     settings.llm_mode === mode.value
@@ -329,15 +338,16 @@ export default function SettingsPage() {
             <p className="text-[11px] text-[var(--text-tertiary)] mt-1.5">
               {llmModes.find(m => m.value === settings.llm_mode)?.description}
             </p>
-          </div>
+          </fieldset>
         )}
 
         {/* Anthropic API Key */}
         {(settings.llm_provider || 'anthropic') === 'anthropic' && settings.llm_mode === 'direct' && (
           <div className="animate-fade-in mt-4">
-            <label className="text-[12px] font-semibold text-[var(--text-secondary)] mb-1.5 block">Anthropic API Key</label>
+            <label htmlFor="settings-anthropic-api-key" className="text-[12px] font-semibold text-[var(--text-secondary)] mb-1.5 block">Anthropic API Key</label>
             <div className="relative">
               <input
+                id="settings-anthropic-api-key"
                 type={showKey ? 'text' : 'password'}
                 value={settings.anthropic_api_key}
                 onChange={(e) => updateSettings({ anthropic_api_key: e.target.value })}
@@ -346,9 +356,10 @@ export default function SettingsPage() {
                 data-1p-ignore
                 data-lpignore="true"
                 spellCheck={false}
-                className="w-full bg-[var(--bg)] border-[1.5px] border-[var(--border)] rounded-[10px] px-3.5 py-2.5 text-[14px] font-mono focus:outline-none focus:border-[var(--accent)] pr-10"
+                className="min-h-11 w-full bg-[var(--bg)] border-[1.5px] border-[var(--border)] rounded-[10px] px-3.5 py-2.5 text-[14px] font-mono focus:outline-none focus:border-[var(--accent)] pr-10"
               />
               <button
+                type="button"
                 onClick={() => setShowKey(!showKey)}
                 className="absolute inset-y-0 right-0 flex items-center justify-center w-11 text-[var(--text-secondary)] hover:text-[var(--accent)] cursor-pointer transition-colors"
                 aria-label={showKey ? L('키 숨기기', 'Hide key') : L('키 보기', 'Show key')}
@@ -363,9 +374,10 @@ export default function SettingsPage() {
         {/* OpenAI API Key + Model */}
         {(settings.llm_provider || 'anthropic') === 'openai' && (
           <div className="animate-fade-in mt-4">
-            <label className="text-[12px] font-semibold text-[var(--text-secondary)] mb-1.5 block">OpenAI API Key</label>
+            <label htmlFor="settings-openai-api-key" className="text-[12px] font-semibold text-[var(--text-secondary)] mb-1.5 block">OpenAI API Key</label>
             <div className="relative">
               <input
+                id="settings-openai-api-key"
                 type={showKey ? 'text' : 'password'}
                 value={settings.openai_api_key || ''}
                 onChange={(e) => updateSettings({ openai_api_key: e.target.value })}
@@ -374,9 +386,10 @@ export default function SettingsPage() {
                 data-1p-ignore
                 data-lpignore="true"
                 spellCheck={false}
-                className="w-full bg-[var(--bg)] border-[1.5px] border-[var(--border)] rounded-[10px] px-3.5 py-2.5 text-[14px] font-mono focus:outline-none focus:border-[var(--accent)] pr-10"
+                className="min-h-11 w-full bg-[var(--bg)] border-[1.5px] border-[var(--border)] rounded-[10px] px-3.5 py-2.5 text-[14px] font-mono focus:outline-none focus:border-[var(--accent)] pr-10"
               />
               <button
+                type="button"
                 onClick={() => setShowKey(!showKey)}
                 className="absolute inset-y-0 right-0 flex items-center justify-center w-11 text-[var(--text-secondary)] hover:text-[var(--accent)] cursor-pointer transition-colors"
                 aria-label={showKey ? L('키 숨기기', 'Hide key') : L('키 보기', 'Show key')}
@@ -386,11 +399,12 @@ export default function SettingsPage() {
               </button>
             </div>
             <div className="mt-3">
-              <label className="text-[12px] text-[var(--text-secondary)] mb-1 block">{L('모델', 'Model')}</label>
+              <label htmlFor="settings-openai-model" className="text-[12px] text-[var(--text-secondary)] mb-1 block">{L('모델', 'Model')}</label>
               <select
+                id="settings-openai-model"
                 value={settings.openai_model || DEFAULT_OPENAI_MODEL}
                 onChange={(e) => updateSettings({ openai_model: e.target.value })}
-                className="w-full bg-[var(--bg)] border-[1.5px] border-[var(--border)] rounded-[10px] px-3.5 py-2.5 text-[14px] focus:outline-none focus:border-[var(--accent)] cursor-pointer"
+                className="min-h-11 w-full bg-[var(--bg)] border-[1.5px] border-[var(--border)] rounded-[10px] px-3.5 py-2.5 text-[14px] focus:outline-none focus:border-[var(--accent)] cursor-pointer"
               >
                 <option value="gpt-4o">GPT-4o — {L('균형 (추천)', 'Balanced (recommended)')}</option>
                 <option value="gpt-4o-mini">GPT-4o Mini — {L('빠르고 저렴', 'Fast & cheap')}</option>
@@ -406,9 +420,10 @@ export default function SettingsPage() {
         {/* Gemini API Key + Model */}
         {(settings.llm_provider || 'anthropic') === 'gemini' && (
           <div className="animate-fade-in mt-4">
-            <label className="text-[12px] font-semibold text-[var(--text-secondary)] mb-1.5 block">Google AI API Key</label>
+            <label htmlFor="settings-gemini-api-key" className="text-[12px] font-semibold text-[var(--text-secondary)] mb-1.5 block">Google AI API Key</label>
             <div className="relative">
               <input
+                id="settings-gemini-api-key"
                 type={showKey ? 'text' : 'password'}
                 value={settings.gemini_api_key || ''}
                 onChange={(e) => updateSettings({ gemini_api_key: e.target.value })}
@@ -417,9 +432,10 @@ export default function SettingsPage() {
                 data-1p-ignore
                 data-lpignore="true"
                 spellCheck={false}
-                className="w-full bg-[var(--bg)] border-[1.5px] border-[var(--border)] rounded-[10px] px-3.5 py-2.5 text-[14px] font-mono focus:outline-none focus:border-[var(--accent)] pr-10"
+                className="min-h-11 w-full bg-[var(--bg)] border-[1.5px] border-[var(--border)] rounded-[10px] px-3.5 py-2.5 text-[14px] font-mono focus:outline-none focus:border-[var(--accent)] pr-10"
               />
               <button
+                type="button"
                 onClick={() => setShowKey(!showKey)}
                 className="absolute inset-y-0 right-0 flex items-center justify-center w-11 text-[var(--text-secondary)] hover:text-[var(--accent)] cursor-pointer transition-colors"
                 aria-label={showKey ? L('키 숨기기', 'Hide key') : L('키 보기', 'Show key')}
@@ -429,11 +445,12 @@ export default function SettingsPage() {
               </button>
             </div>
             <div className="mt-3">
-              <label className="text-[12px] text-[var(--text-secondary)] mb-1 block">{L('모델', 'Model')}</label>
+              <label htmlFor="settings-gemini-model" className="text-[12px] text-[var(--text-secondary)] mb-1 block">{L('모델', 'Model')}</label>
               <select
+                id="settings-gemini-model"
                 value={settings.gemini_model || DEFAULT_GEMINI_MODEL}
                 onChange={(e) => updateSettings({ gemini_model: e.target.value })}
-                className="w-full bg-[var(--bg)] border-[1.5px] border-[var(--border)] rounded-[10px] px-3.5 py-2.5 text-[14px] focus:outline-none focus:border-[var(--accent)] cursor-pointer"
+                className="min-h-11 w-full bg-[var(--bg)] border-[1.5px] border-[var(--border)] rounded-[10px] px-3.5 py-2.5 text-[14px] focus:outline-none focus:border-[var(--accent)] cursor-pointer"
               >
                 <option value="gemini-2.5-flash">Gemini 2.5 Flash — {L('빠르고 저렴 (추천)', 'Fast & cheap (recommended)')}</option>
                 <option value="gemini-2.5-pro">Gemini 2.5 Pro — {L('고품질', 'High quality')}</option>
@@ -594,11 +611,11 @@ export default function SettingsPage() {
                   : L('내보낸 JSON 파일에서 복원', 'Restore from an exported JSON file')}
               </p>
             </div>
-            <label className="cursor-pointer shrink-0">
-              <span className="inline-flex items-center justify-center gap-2 rounded-[10px] font-medium transition-all duration-150 active:scale-[0.98] bg-transparent border-[1.5px] border-[var(--border)] text-[var(--text-primary)] hover:bg-[var(--bg)] px-3 py-1.5 text-[13px]">
+            <label htmlFor="settings-import-backup" className="cursor-pointer shrink-0">
+              <input id="settings-import-backup" type="file" accept=".json" onChange={handleImport} className="peer sr-only" />
+              <span className="inline-flex min-h-11 items-center justify-center gap-2 rounded-[10px] font-medium transition-all duration-150 active:scale-[0.98] bg-transparent border-[1.5px] border-[var(--border)] text-[var(--text-primary)] hover:bg-[var(--bg)] px-3 py-1.5 text-[13px] peer-focus-visible:outline-none peer-focus-visible:ring-2 peer-focus-visible:ring-[var(--accent)] peer-focus-visible:ring-offset-2">
                 <Upload size={14} /> {L('가져오기', 'Import')}
               </span>
-              <input type="file" accept=".json" onChange={handleImport} className="hidden" />
             </label>
           </div>
         </div>
@@ -616,34 +633,37 @@ export default function SettingsPage() {
           {L('검토 피드백(상사 시점)의 톤과 깊이를 정하는 데 써요.', 'Tunes the tone and depth of your review feedback.')}
         </p>
         <div className="space-y-3">
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div>
-              <label className="text-[12px] font-semibold text-[var(--text-secondary)] mb-1 block">{L('이름', 'Name')}</label>
+              <label htmlFor="settings-user-name" className="text-[12px] font-semibold text-[var(--text-secondary)] mb-1 block">{L('이름', 'Name')}</label>
               <input
+                id="settings-user-name"
                 type="text"
                 value={settings.user_name || ''}
                 onChange={(e) => updateSettings({ user_name: e.target.value })}
                 placeholder={L('홍길동', 'Your name')}
                 maxLength={30}
-                className="w-full bg-[var(--bg)] border-[1.5px] border-[var(--border)] rounded-[10px] px-3 py-2 text-[14px] focus:outline-none focus:border-[var(--accent)]"
+                autoComplete="name"
+                className="min-h-11 w-full bg-[var(--bg)] border-[1.5px] border-[var(--border)] rounded-[10px] px-3 py-2 text-[14px] focus:outline-none focus:border-[var(--accent)]"
               />
             </div>
             <div>
-              <label className="text-[12px] font-semibold text-[var(--text-secondary)] mb-1 block">{L('역할', 'Role')}</label>
+              <label htmlFor="settings-user-role" className="text-[12px] font-semibold text-[var(--text-secondary)] mb-1 block">{L('역할', 'Role')}</label>
               <input
+                id="settings-user-role"
                 type="text"
                 value={settings.user_role || ''}
                 onChange={(e) => updateSettings({ user_role: e.target.value })}
                 placeholder={L('마케터, 개발자, 기획자...', 'Marketer, Developer...')}
                 maxLength={50}
-                className="w-full bg-[var(--bg)] border-[1.5px] border-[var(--border)] rounded-[10px] px-3 py-2 text-[14px] focus:outline-none focus:border-[var(--accent)]"
+                className="min-h-11 w-full bg-[var(--bg)] border-[1.5px] border-[var(--border)] rounded-[10px] px-3 py-2 text-[14px] focus:outline-none focus:border-[var(--accent)]"
               />
             </div>
           </div>
 
-          <div>
-            <label className="text-[12px] font-semibold text-[var(--text-secondary)] mb-1.5 block">{L('경력', 'Experience')}</label>
-            <div className="flex gap-1.5">
+          <fieldset>
+            <legend className="text-[12px] font-semibold text-[var(--text-secondary)] mb-1.5 block">{L('경력', 'Experience')}</legend>
+            <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-4">
               {([
                 { value: 'junior' as const, label: L('1-3년차', '1-3 yrs') },
                 { value: 'mid' as const, label: L('4-7년차', '4-7 yrs') },
@@ -653,6 +673,7 @@ export default function SettingsPage() {
                 <button
                   key={opt.value}
                   type="button"
+                  aria-pressed={settings.user_seniority === opt.value}
                   onClick={() => updateSettings({ user_seniority: settings.user_seniority === opt.value ? undefined : opt.value })}
                   className={`flex-1 min-h-[44px] py-3 rounded-lg text-[12px] font-medium border text-center transition-colors cursor-pointer ${
                     settings.user_seniority === opt.value
@@ -664,11 +685,12 @@ export default function SettingsPage() {
                 </button>
               ))}
             </div>
-          </div>
+          </fieldset>
 
           <div>
-            <label className="text-[12px] font-semibold text-[var(--text-secondary)] mb-1 block">{L('자유 소개', 'About me')}</label>
+            <label htmlFor="settings-user-context" className="text-[12px] font-semibold text-[var(--text-secondary)] mb-1 block">{L('자유 소개', 'About me')}</label>
             <textarea
+              id="settings-user-context"
               value={settings.user_context || ''}
               onChange={(e) => updateSettings({ user_context: e.target.value })}
               placeholder={L('예: 스타트업에서 B2B SaaS 마케팅을 담당하고 있어요. 데이터 분석은 좀 약한 편이라 숫자 근거를 잘 챙겨주면 좋겠어요.', 'e.g., I handle B2B SaaS marketing at a startup. I\'m not great with data analysis, so I appreciate help with numbers.')}
@@ -693,9 +715,8 @@ export default function SettingsPage() {
         </div>
 
         {/* Language */}
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-[13px] font-medium text-[var(--text-primary)]">{L('언어', 'Language')}</span>
-        </div>
+        <fieldset>
+        <legend className="text-[13px] font-medium text-[var(--text-primary)] mb-2">{L('언어', 'Language')}</legend>
         <div className="flex gap-2">
           {[
             { value: 'ko' as const, label: '한국어' },
@@ -703,6 +724,8 @@ export default function SettingsPage() {
           ].map((lang) => (
             <button
               key={lang.value}
+              type="button"
+              aria-pressed={locale === lang.value}
               onClick={() => switchTo(lang.value)}
               className={`flex-1 min-h-[44px] py-3 rounded-lg text-[13px] font-medium border text-center transition-colors cursor-pointer ${
                 locale === lang.value
@@ -717,12 +740,12 @@ export default function SettingsPage() {
         <p className="text-[11px] text-[var(--text-tertiary)] mt-1.5">
           {L('일부 UI는 아직 한국어로만 나와요.', 'Some UI text is still Korean-only.')}
         </p>
+        </fieldset>
 
         {/* Appearance / theme (option C) */}
         <div className="border-t border-[var(--border-subtle)] my-4" />
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-[13px] font-medium text-[var(--text-primary)]">{L('화면 테마', 'Appearance')}</span>
-        </div>
+        <fieldset>
+        <legend className="text-[13px] font-medium text-[var(--text-primary)] mb-2">{L('화면 테마', 'Appearance')}</legend>
         <div className="flex gap-2">
           {[
             { value: 'light' as const, label: L('라이트', 'Light') },
@@ -731,6 +754,8 @@ export default function SettingsPage() {
           ].map((opt) => (
             <button
               key={opt.value}
+              type="button"
+              aria-pressed={themePref === opt.value}
               onClick={() => applyTheme(opt.value)}
               className={`flex-1 min-h-[44px] py-3 rounded-lg text-[13px] font-medium border text-center transition-colors cursor-pointer ${
                 themePref === opt.value
@@ -745,11 +770,12 @@ export default function SettingsPage() {
         <p className="text-[11px] text-[var(--text-tertiary)] mt-1.5">
           {L('시스템은 기기 설정을 따라가요. 첫 방문(홈)은 라이트로 시작합니다.', 'System follows your device. The landing page starts in light.')}
         </p>
+        </fieldset>
 
         {/* Sound — folded by default (05 S8: order/fold only, no feature change) */}
         <div className="border-t border-[var(--border-subtle)] my-4" />
         <details className="group">
-          <summary className="flex items-center gap-1.5 cursor-pointer select-none list-none text-[13px] font-medium text-[var(--text-primary)] [&::-webkit-details-marker]:hidden">
+          <summary className="flex min-h-11 items-center gap-1.5 cursor-pointer select-none list-none text-[13px] font-medium text-[var(--text-primary)] [&::-webkit-details-marker]:hidden">
             <ChevronRight size={14} className="text-[var(--text-tertiary)] transition-transform duration-200 group-open:rotate-90" />
             {L('소리', 'Sound')}
           </summary>
@@ -760,6 +786,7 @@ export default function SettingsPage() {
             <p className="text-[11px] text-[var(--text-secondary)]">{L('단계 전환 시 잔잔한 알림음', 'A gentle tone on step transitions')}</p>
           </div>
           <button
+            type="button"
             role="switch"
             aria-checked={settings.audio_enabled}
             aria-label={L('전환음', 'Transition Sound')}
@@ -783,13 +810,15 @@ export default function SettingsPage() {
         {settings.audio_enabled && (
           <div className="space-y-3 mt-3 animate-fade-in">
             <div className="flex items-center gap-3">
-              <span className="text-[12px] text-[var(--text-secondary)] w-10 shrink-0">{L('볼륨', 'Vol.')}</span>
+              <label htmlFor="settings-audio-volume" className="text-[12px] text-[var(--text-secondary)] w-10 shrink-0">{L('볼륨', 'Vol.')}</label>
               <input
+                id="settings-audio-volume"
                 type="range"
                 min="0"
                 max="0.5"
                 step="0.05"
                 value={settings.audio_volume}
+                aria-valuetext={`${Math.round(settings.audio_volume * 200)}%`}
                 onChange={(e) => updateSettings({ audio_volume: parseFloat(e.target.value) })}
                 className="flex-1 accent-[var(--accent)]"
               />
@@ -801,6 +830,7 @@ export default function SettingsPage() {
                 <p className="text-[11px] text-[var(--text-secondary)]">{L('집중할 때 은은하게 재생되는 배경음이에요.', 'A quiet background sound for focused work.')}</p>
               </div>
               <button
+                type="button"
                 onClick={() => {
                   resumeAudioContext();
                   if (ambientOn) {
@@ -812,7 +842,7 @@ export default function SettingsPage() {
                   }
                 }}
                 aria-pressed={ambientOn}
-                className={`px-3 py-1.5 rounded-lg text-[12px] font-medium border cursor-pointer transition-colors ${
+                className={`min-h-11 px-3 py-1.5 rounded-lg text-[12px] font-medium border cursor-pointer transition-colors ${
                   ambientOn
                     ? 'border-[var(--accent)] bg-[var(--ai)] text-[var(--accent)]'
                     : 'border-[var(--border)] text-[var(--text-secondary)] hover:border-[var(--accent)]'
@@ -836,7 +866,7 @@ export default function SettingsPage() {
           <h2 className="text-[15px] font-bold">{L('실험실', 'Labs')}</h2>
         </div>
         <details className="group">
-          <summary className="flex items-center gap-1.5 cursor-pointer select-none list-none text-[12px] text-[var(--text-secondary)] [&::-webkit-details-marker]:hidden">
+          <summary className="flex min-h-11 items-center gap-1.5 cursor-pointer select-none list-none text-[12px] text-[var(--text-secondary)] [&::-webkit-details-marker]:hidden">
             <ChevronRight size={14} className="shrink-0 text-[var(--text-tertiary)] transition-transform duration-200 group-open:rotate-90" />
             {L('아직 다듬는 중인 기능이에요. 언제든 켜고 끌 수 있어요.', 'Features still being polished. Toggle anytime.')}
           </summary>
@@ -866,6 +896,7 @@ export default function SettingsPage() {
                   <p className="text-[11px] text-[var(--text-secondary)]">{lab.desc}</p>
                 </div>
                 <button
+                  type="button"
                   role="switch"
                   aria-checked={on}
                   aria-label={lab.label}
@@ -1003,7 +1034,7 @@ function IntegrationSection({ title, defaultOpen, children }: {
 }) {
   return (
     <details open={defaultOpen} className="group">
-      <summary className="flex items-center gap-1.5 cursor-pointer select-none list-none min-h-[36px] text-[13px] font-medium text-[var(--text-primary)] [&::-webkit-details-marker]:hidden">
+      <summary className="flex min-h-11 items-center gap-1.5 cursor-pointer select-none list-none text-[13px] font-medium text-[var(--text-primary)] [&::-webkit-details-marker]:hidden">
         <ChevronRight size={14} className="text-[var(--text-tertiary)] transition-transform duration-200 group-open:rotate-90" />
         {title}
       </summary>
@@ -1209,7 +1240,7 @@ function PluginTokenBlock({ locale }: { locale: string }) {
               <span className="text-[var(--text-secondary)]">
                 {t.label || 'CLI'} · <span className="text-[var(--text-tertiary)]">{t.last_used_at ? L('최근 사용 ', 'used ') + t.last_used_at.slice(0, 10) : L('미사용', 'unused')}</span>
               </span>
-              <button onClick={() => revoke(t.id)} className="text-[var(--text-tertiary)] hover:text-[var(--danger)] cursor-pointer transition-colors">
+              <button type="button" onClick={() => revoke(t.id)} className="min-h-11 px-2 text-[var(--text-tertiary)] hover:text-[var(--danger)] cursor-pointer transition-colors">
                 {L('해지', 'Revoke')}
               </button>
             </div>
@@ -1258,7 +1289,7 @@ function SharedLinksBlock({ locale }: { locale: string }) {
               <a href={`${origin}/d/${l.token}`} target="_blank" rel="noopener noreferrer" className="truncate text-[var(--text-secondary)] hover:text-[var(--accent)]">
                 {l.title || '/d/' + l.token} <span className="text-[var(--text-tertiary)]">· {L('조회', 'views')} {l.view_count}</span>
               </a>
-              <button onClick={() => revoke(l.id)} className="shrink-0 text-[var(--text-tertiary)] hover:text-[var(--danger)] cursor-pointer transition-colors">
+              <button type="button" onClick={() => revoke(l.id)} className="min-h-11 shrink-0 px-2 text-[var(--text-tertiary)] hover:text-[var(--danger)] cursor-pointer transition-colors">
                 {L('취소', 'Revoke')}
               </button>
             </div>
