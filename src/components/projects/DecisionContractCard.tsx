@@ -30,6 +30,7 @@ import { Sparkles, Check, Clock, Target, AlertTriangle, GitBranch, ChevronDown }
 import { useLocale } from '@/hooks/useLocale';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { useProjectStore } from '@/stores/useProjectStore';
 import { usePersonaStore } from '@/stores/usePersonaStore';
 import { getStorage, STORAGE_KEYS } from '@/lib/storage';
@@ -162,6 +163,7 @@ export function DecisionContractCard({
   const [gradeOpen, setGradeOpen] = useState(false);
   const [rescheduleOpen, setRescheduleOpen] = useState(false); // change the check-in date before it's due
   const [semanticSetupOpen, setSemanticSetupOpen] = useState(false);
+  const [confirmClearOpen, setConfirmClearOpen] = useState(false);
 
   const contract = project.decision_contract ?? null;
 
@@ -491,11 +493,7 @@ export function DecisionContractCard({
                   falls back to its SEAL state if predicates are still derivable. */}
               <button
                 type="button"
-                onClick={() => {
-                  if (window.confirm(L('처음 판단 기록을 취소할까요? 예측과 확인일이 지워지고 다시 기록할 수 있어요.', 'Clear this initial judgment? Its predictions and check-in date will be removed so you can record it again.'))) {
-                    updateProject(project.id, { decision_contract: undefined });
-                  }
-                }}
+                onClick={() => setConfirmClearOpen(true)}
                 className="text-[11.5px] text-[var(--text-tertiary)] hover:text-[var(--accent)] cursor-pointer transition-colors"
               >
                 {L('처음 판단 기록 취소', 'Clear initial judgment')}
@@ -585,6 +583,19 @@ export function DecisionContractCard({
           )}
         </div>
       </div>
+      <ConfirmDialog
+        open={confirmClearOpen}
+        title={L('처음 판단 기록을 취소할까요?', 'Clear initial judgment?')}
+        description={L('예측과 확인일이 지워지고 다시 기록할 수 있게 됩니다. 이미 남긴 프로젝트 내용은 그대로 유지돼요.', 'Predictions and the check-in date will be removed so you can record them again. The rest of the project remains unchanged.')}
+        confirmLabel={L('판단 기록 취소', 'Clear judgment')}
+        cancelLabel={L('그대로 두기', 'Keep it')}
+        onCancel={() => setConfirmClearOpen(false)}
+        onConfirm={() => {
+          updateProject(project.id, { decision_contract: undefined });
+          setConfirmClearOpen(false);
+        }}
+        dangerous
+      />
     </Card>
   );
 }

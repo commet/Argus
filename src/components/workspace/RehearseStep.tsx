@@ -25,6 +25,7 @@ import { Plus, Pencil, Trash2, Loader2, Users, RotateCcw, Check, AlertTriangle, 
 import { useReframeStore } from '@/stores/useReframeStore';
 import { useRecastStore } from '@/stores/useRecastStore';
 import { LoadingSteps } from '@/components/ui/LoadingSteps';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { playSuccessTone, resumeAudioContext } from '@/lib/audio';
 import { ContextChainBlock } from './ContextChainBlock';
 import { NavigatorInline } from '@/components/workspace/NavigatorInline';
@@ -175,6 +176,7 @@ export function RehearseStep({ onNavigate }: RehearseStepProps) {
   const [blindSpotDismissed, setBlindSpotDismissed] = useState(false);
   const [requestedRecordId, setRequestedRecordId] = useState<string | null>(null);
   const [requestedRealityCheckId, setRequestedRealityCheckId] = useState<string | null>(null);
+  const [pendingPersonaDelete, setPendingPersonaDelete] = useState<Persona | null>(null);
 
   // Compute blind spot recommendation
   useEffect(() => {
@@ -627,11 +629,13 @@ ${L('리스크', 'Risks')}: ${(r.classified_risks || []).map(cr => `[${cr.catego
                   )}
                   <div className="absolute top-3 right-3 flex gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity z-10">
                     <button onClick={() => { setEditingPersona(p); setShowPersonaForm(true); }}
-                      className="p-1.5 bg-[var(--surface)] rounded-lg shadow-sm border border-[var(--border-subtle)] text-[var(--text-secondary)] hover:text-[var(--accent)] cursor-pointer transition-colors">
+                      aria-label={L(`${p.name} 역할 편집`, `Edit ${p.name} role`)}
+                      className="flex min-h-11 min-w-11 items-center justify-center bg-[var(--surface)] rounded-lg shadow-sm border border-[var(--border-subtle)] text-[var(--text-secondary)] hover:text-[var(--accent)] cursor-pointer transition-colors">
                       <Pencil size={11} />
                     </button>
-                    <button onClick={() => { if (confirm(L('정말 삭제할까요?', 'Really delete?'))) deletePersona(p.id); }}
-                      className="p-1.5 bg-[var(--surface)] rounded-lg shadow-sm border border-[var(--border-subtle)] text-[var(--text-secondary)] hover:text-red-500 cursor-pointer transition-colors">
+                    <button type="button" onClick={() => setPendingPersonaDelete(p)}
+                      aria-label={L(`${p.name} 역할 삭제`, `Delete ${p.name} role`)}
+                      className="flex min-h-11 min-w-11 items-center justify-center bg-[var(--surface)] rounded-lg shadow-sm border border-[var(--border-subtle)] text-[var(--text-secondary)] hover:text-red-500 cursor-pointer transition-colors">
                       <Trash2 size={11} />
                     </button>
                   </div>
@@ -775,6 +779,21 @@ ${L('리스크', 'Risks')}: ${(r.classified_risks || []).map(cr => `[${cr.catego
           )}
         </div>
       )}
+      <ConfirmDialog
+        open={pendingPersonaDelete !== null}
+        title={L('검토 역할을 삭제할까요?', 'Delete reviewer role?')}
+        description={pendingPersonaDelete
+          ? L(`‘${pendingPersonaDelete.name}’ 역할이 이후 검토에서 제거됩니다. 기존 검토 결과는 그대로 남아요.`, `“${pendingPersonaDelete.name}” will be removed from future reviews. Existing review results will remain.`)
+          : ''}
+        confirmLabel={L('역할 삭제', 'Delete role')}
+        cancelLabel={L('취소', 'Cancel')}
+        onCancel={() => setPendingPersonaDelete(null)}
+        onConfirm={() => {
+          if (pendingPersonaDelete) deletePersona(pendingPersonaDelete.id);
+          setPendingPersonaDelete(null);
+        }}
+        dangerous
+      />
     </div>
   );
 }
