@@ -947,23 +947,29 @@ export function ReviewFlow() {
             compact
           />
         ) : (
-          <textarea
-            value={text}
-            onChange={(e) => {
-              setText(e.target.value);
-              if (sourceKind !== 'paste' && sourceKind !== 'markdown') setSourceKind('paste');
-              setPendingBinary(null);
-              setPreExtracted(null);
-              setExtractNote(null);
-              setUploadBlock(null);
-            }}
-            maxLength={PASTE_CHAR_CAP}
-            placeholder={L(
-              '검수할 문서를 붙여넣으세요. (전략 메모, 기획안, Claude/ChatGPT 답변 등)',
-              'Paste the document to review. (Strategy memo, proposal, Claude/ChatGPT answer, etc.)',
-            )}
-            className="w-full h-52 resize-y bg-transparent text-[14px] leading-[1.6] text-[var(--text-primary)] outline-none placeholder:text-[var(--text-tertiary)]"
-          />
+          <div>
+            <label htmlFor="review-document-text" className="mb-2 block text-[12px] font-semibold text-[var(--text-secondary)]">
+              {L('검수할 문서 본문', 'Document to review')}
+            </label>
+            <textarea
+              id="review-document-text"
+              value={text}
+              onChange={(e) => {
+                setText(e.target.value);
+                if (sourceKind !== 'paste' && sourceKind !== 'markdown') setSourceKind('paste');
+                setPendingBinary(null);
+                setPreExtracted(null);
+                setExtractNote(null);
+                setUploadBlock(null);
+              }}
+              maxLength={PASTE_CHAR_CAP}
+              placeholder={L(
+                '전략 메모, 기획안, Claude/ChatGPT 답변 등을 붙여넣으세요.',
+                'Paste a strategy memo, proposal, Claude/ChatGPT answer, or similar document.',
+              )}
+              className="w-full h-52 resize-y bg-transparent text-[14px] leading-[1.6] text-[var(--text-primary)] outline-none placeholder:text-[var(--text-tertiary)]"
+            />
+          </div>
         )}
         <div className="mt-2 flex items-center justify-between gap-2 border-t border-[var(--border-subtle)] pt-2">
           <input
@@ -1044,14 +1050,16 @@ export function ReviewFlow() {
       </Card>
 
       {/* concern chips */}
-      <div>
-        <div className="text-[11px] font-bold text-[var(--text-secondary)] mb-1.5">{L('어떤 검수를 원하세요?', 'What kind of review do you want?')}</div>
+      <fieldset>
+        <legend className="text-[11px] font-bold text-[var(--text-secondary)] mb-1.5">{L('어떤 검수를 원하세요?', 'What kind of review do you want?')}</legend>
         <div className="flex flex-wrap gap-1.5">
           {CONCERN_CHIPS.map((c) => (
             <button
               key={c.id}
+              type="button"
+              aria-pressed={concerns.includes(c.id)}
               onClick={() => toggleConcern(c.id)}
-              className={`min-h-[36px] px-2.5 py-1 text-[12px] rounded-full border transition-colors ${
+              className={`min-h-11 px-3 py-1 text-[12px] rounded-full border transition-colors sm:min-h-9 sm:px-2.5 ${
                 concerns.includes(c.id)
                   ? 'border-[var(--accent)] bg-[var(--accent)]/10 text-[var(--accent)]'
                   : 'border-[var(--border-subtle)] text-[var(--text-secondary)]'
@@ -1061,7 +1069,7 @@ export function ReviewFlow() {
             </button>
           ))}
         </div>
-      </div>
+      </fieldset>
 
       {/* optional minimal context */}
       <details className="text-[13px]">
@@ -1069,20 +1077,32 @@ export function ReviewFlow() {
           {L('맥락 3가지 (선택 — 비워도 됩니다)', 'A little context (optional — fine to leave blank)')}
         </summary>
         <div className="mt-2 flex flex-col gap-2">
-          <input
-            value={audienceHint}
-            onChange={(e) => setAudienceHint(e.target.value)}
-            maxLength={120}
-            placeholder={L('누구에게 보여줄 문서인가요? (예: 경영진, 투자자)', 'Who will see this document? (e.g. leadership, investors)')}
-            className="w-full px-3 py-2 rounded-lg border border-[var(--border-subtle)] bg-transparent text-[13px] outline-none"
-          />
-          <input
-            value={worry}
-            onChange={(e) => setWorry(e.target.value)}
-            maxLength={200}
-            placeholder={L('지금 가장 불안한 부분은 무엇인가요?', 'What worries you most right now?')}
-            className="w-full px-3 py-2 rounded-lg border border-[var(--border-subtle)] bg-transparent text-[13px] outline-none"
-          />
+          <div>
+            <label htmlFor="review-audience" className="mb-1 block text-[11px] font-semibold text-[var(--text-secondary)]">
+              {L('이 문서를 볼 사람', 'Audience')}
+            </label>
+            <input
+              id="review-audience"
+              value={audienceHint}
+              onChange={(e) => setAudienceHint(e.target.value)}
+              maxLength={120}
+              placeholder={L('예: 경영진, 투자자', 'e.g. leadership, investors')}
+              className="min-h-11 w-full px-3 py-2 rounded-lg border border-[var(--border-subtle)] bg-transparent text-[13px] outline-none"
+            />
+          </div>
+          <div>
+            <label htmlFor="review-worry" className="mb-1 block text-[11px] font-semibold text-[var(--text-secondary)]">
+              {L('가장 불안한 부분', 'Main concern')}
+            </label>
+            <input
+              id="review-worry"
+              value={worry}
+              onChange={(e) => setWorry(e.target.value)}
+              maxLength={200}
+              placeholder={L('예: 근거가 약한 숫자', 'e.g. numbers with weak evidence')}
+              className="min-h-11 w-full px-3 py-2 rounded-lg border border-[var(--border-subtle)] bg-transparent text-[13px] outline-none"
+            />
+          </div>
         </div>
       </details>
 
