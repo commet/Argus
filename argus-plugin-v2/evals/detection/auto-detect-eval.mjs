@@ -202,7 +202,11 @@ const JUDGE_SYSTEM = `You are a STRICT adversarial judge. A detector was suppose
 
 export async function judgeHidden(callModel, plantedGist, capturedText) {
   if (!capturedText) return { match: false, why: 'no capture' };
-  const data = await callModel({ system: JUDGE_SYSTEM, messages: [{ role: 'user', content: `PLANTED: ${plantedGist}\nCAPTURED: ${capturedText}` }], max_tokens: 200 });
+  // max_tokens 500: judgeSpine과 대칭. 200이면 한국어 why 서술이 절단돼 JSON이
+  // 깨지고 unparseable→default miss로 처리되는데, 그 미스가 frozen-bench 래칫에
+  // 감지 회귀로 잡혀 false-fail을 낸다(판정기 절단을 감지 실패로 오판). 절단만
+  // 없애면 hidden_extraction.matched 요동이 줄고 게이트가 정확해진다.
+  const data = await callModel({ system: JUDGE_SYSTEM, messages: [{ role: 'user', content: `PLANTED: ${plantedGist}\nCAPTURED: ${capturedText}` }], max_tokens: 500 });
   const obj = extractJson(textOf(data));
   return obj && typeof obj.match === 'boolean' ? obj : { match: false, why: 'unparseable → default miss' };
 }
