@@ -6,6 +6,20 @@
 > The `1.3.0` / `1.2.1` entries at the bottom are pre-rename `argus-mcp` history,
 > kept for reference — all of that work shipped inside the new-name 1.0.0.
 
+## 1.6.1 — Load-bearing assumption, aimed at the specific unstated premise
+
+The self-evolution loop's new hidden-extraction gate (does Argus surface the
+*right* unstated premise, not merely fire?) measured the flagship sense at 2/6.
+Root cause: it captured the surface reason the user already stated instead of the
+deeper premise the decision actually reverses on.
+
+- **Sense #3 sharpened (SERVER_INSTRUCTIONS).** The load-bearing assumption is
+  usually NOT the reason said out loud; it is the specific, often-unstated fact
+  the decision REVERSES on if false — named concretely, never a restatement of
+  the stated rationale. Spine invariants unchanged (single clause, ai_surfaced
+  provenance, no verdict / fork / lean); precision only. Frozen-bench extraction
+  2/6 → 11/14, judge validated at recall/specificity 1.0 across 28 probes.
+
 ## 1.6.0 — Settlement by structure, restraint by measurement
 
 The overnight self-evolution loop (synthetic multi-turn conversations, real API,
