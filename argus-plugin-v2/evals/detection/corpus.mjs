@@ -66,33 +66,118 @@ export const CORPUS = [
   },
 
   // ── HIDDEN ASSUMPTION — 표지 없음: 규칙로는 원리적으로 추출 불가 (핵심 90%) ─
+  // 각 케이스에 기계-대조용 정답 3종을 심는다 (Stage 2, 2026-07-21):
+  //   gold        — 이 결정이 딛고 선 '특정' 하중 전제 (판정기가 대조할 기준 정답).
+  //   gold_para   — gold의 충실한 패러프레이즈 (판정기 recall 프로브: match여야 함).
+  //   counter     — 같은 주제지만 하중 전제가 '아닌' 그럴듯한 오답. 대개 발화에 이미
+  //                 적힌 이유를 되풀이하거나(전제 아님) 일반적 참을 말한다. 판정기가
+  //                 이걸 기각 못 하면(match) hidden_extraction 지표는 theater —
+  //                 validate-judge.mjs가 이 기각 실패를 CI 빨간불로 잡는다.
   {
     id: 'hid-ko-freetier', user: '무료 플랜 없애자. 결제 전환이 낮은 건 무료가 너무 넉넉해서예요.',
     labels: ['hidden_assumption'],
     note: '숨은 전제: 무료 사용자가 조이면 유료로 전환한다 / 무료가 신규 유입 동력이 아니다',
+    gold: '무료 사용자를 압박하면 유료로 전환한다 — 즉 무료 티어가 신규 유입·바이럴의 동력이 아니라는 전제',
+    gold_para: '무료를 없애도 신규 유입은 안 줄고, 조여진 무료 사용자들이 돈을 내기 시작할 것이다',
+    counter: '무료 플랜은 서버·지원 비용을 발생시킨다',
   },
   {
     id: 'hid-en-freetier', user: "Let's drop the free tier — conversion is low because free is too generous.",
     labels: ['hidden_assumption'],
+    gold: 'squeezing free users converts them to paid — i.e. the free tier is not what drives signups / top-of-funnel',
+    gold_para: 'killing free will not shrink new signups, and the squeezed free users will start paying',
+    counter: 'the free tier is expensive to operate',
   },
   {
     id: 'hid-ko-pricing', user: '가격 두 배로 올리자 — 경쟁사보다 아직 싸니까.',
     labels: ['hidden_assumption'],
     note: '숨은 전제: 구매 결정 변수가 가격이다 / 비교 대상이 그 경쟁사다',
+    gold: '구매 결정을 좌우하는 변수가 가격이고, 고객이 우리를 하필 그 경쟁사와 비교한다는 전제',
+    gold_para: '고객은 가격으로 산다 — 그리고 그 경쟁사가 고객의 실제 비교 기준이다',
+    counter: '가격을 올리면 건당 매출이 오른다',
   },
   {
     id: 'hid-ko-defer', user: '결제 연동은 다음 스프린트로 미루자.',
     labels: ['hidden_assumption'],
     note: '숨은 전제: 지금 결제가 없어도 잃는 사용자가 없다',
+    gold: '지금 결제 연동이 없어도 이탈하는 사용자가 없다 — 미루는 동안 잃는 게 없다는 전제',
+    gold_para: '결제를 늦춰도 그 사이 떠나는 고객은 없다',
+    counter: '다음 스프린트에 결제 연동을 할 여력(엔지니어링 시간)이 있다',
   },
   {
     id: 'hid-en-pivot', user: 'We should pivot to B2B — enterprise deals close themselves once you have SSO.',
     labels: ['hidden_assumption'],
+    gold: 'enterprise deals close on their own once SSO exists — i.e. SSO is the binding constraint and little sales motion is needed',
+    gold_para: 'having SSO is what unblocks enterprise deals, and they will largely close without a sales team',
+    counter: 'enterprise customers pay more than B2C customers',
   },
   {
     id: 'hid-en-hiring', user: "Let's hire two more sales reps — pipeline is thin because we don't have enough hands.",
     labels: ['assumption', 'hidden_assumption'],
     note: '표시된 전제(손이 모자라다) 뒤에 숨은 전제(병목이 인력이다)',
+    gold: 'the pipeline bottleneck is headcount (more reps → more pipeline), not lead quality, targeting, or the product',
+    gold_para: 'adding sales headcount is what grows pipeline — the constraint is hands, not lead quality or fit',
+    counter: 'the sales team is currently understaffed',
+  },
+
+  // ── HIDDEN ASSUMPTION 확장 (R14, 2026-07-21) — 표면 이유 함정의 다양한 변주.
+  // N=6→14로 키워 추출 지표 신뢰를 높이고 새 실패 패턴을 발굴한다. 각 counter는
+  // "발화된 이유 되풀이" 또는 "일반적 참"으로, 옳은 급소가 아니다(판정기가 기각해야).
+  {
+    id: 'hid-ko-annual', user: '요금제를 연간 결제로 다 바꾸자 — 어차피 다들 오래 쓸 거니까.',
+    labels: ['hidden_assumption'],
+    gold: '지금 고객이 1년을 이탈 없이 유지한다 — 월간의 유연성이 그들이 남는 이유가 아니라는 전제',
+    gold_para: '연 단위로 묶어도 지금 고객들이 중간에 떠나지 않는다',
+    counter: '연간 결제가 현금흐름에 유리하다',
+  },
+  {
+    id: 'hid-en-deprecate', user: "Let's deprecate the v1 API next month — barely anyone is still on it.",
+    labels: ['hidden_assumption'],
+    gold: 'the few accounts still on v1 are not high-value or hard-to-migrate ones we cannot afford to break',
+    gold_para: 'the handful left on v1 are not critical customers whose breakage would hurt us',
+    counter: 'maintaining v1 costs engineering time',
+  },
+  {
+    id: 'hid-ko-rto', user: '전원 사무실 복귀로 돌리자 — 원격에서 생산성이 떨어졌잖아.',
+    labels: ['hidden_assumption'],
+    gold: '생산성 저하의 원인이 원격 근무 자체다 — 채용·온보딩·특정 인력 이슈 등 다른 원인이 아니라는 전제',
+    gold_para: '떨어진 생산성이 원격 탓이지 다른 요인 때문이 아니다',
+    counter: '사무실 복귀는 임대료 부담을 늘린다',
+  },
+  {
+    id: 'hid-en-discount', user: 'We should run a 50% launch discount — it will get us the volume we need.',
+    labels: ['hidden_assumption'],
+    gold: 'discount-acquired users retain and convert like normal ones, not bargain-hunters who churn after the promo',
+    gold_para: 'the people who come for the 50% off will stick and pay full price later',
+    counter: 'a 50% discount lowers per-unit revenue',
+  },
+  {
+    id: 'hid-ko-inhouse', user: '결제 시스템은 직접 구축하자 — 수수료 아끼게.',
+    labels: ['hidden_assumption'],
+    gold: '구축·유지·규정준수(PCI/사기대응)의 총비용과 리스크가 아끼는 수수료보다 작다는 전제',
+    gold_para: '직접 만들어 굴리는 총비용이 결국 수수료보다 싸게 먹힌다',
+    counter: '결제 수수료가 매출의 약 3%를 차지한다',
+  },
+  {
+    id: 'hid-en-logo', user: "Let's chase that enterprise logo even at a loss — the case study will pay for itself.",
+    labels: ['hidden_assumption'],
+    gold: 'this logo actually drives enough future deals (brand halo converts) to justify the loss, not a one-off money-loser',
+    gold_para: 'landing this name will bring in later deals that more than cover taking it at a loss',
+    counter: 'enterprise deals take longer to close than SMB',
+  },
+  {
+    id: 'hid-ko-ads', user: '인스타 광고 예산을 세 배로 올리자 — CAC가 채널 중 제일 좋으니까.',
+    labels: ['hidden_assumption'],
+    gold: '현재 CAC가 예산 3배 규모에서도 유지된다 — 그 채널이 그 지출에서 포화하지 않는다는 전제',
+    gold_para: '지출을 세 배로 늘려도 획득단가가 지금처럼 좋게 유지된다',
+    counter: '인스타가 지금 채널 중 CAC가 가장 낮다',
+  },
+  {
+    id: 'hid-en-chatbot', user: "Let's move all support to chatbot-only — tickets are mostly repetitive.",
+    labels: ['hidden_assumption'],
+    gold: 'the repetitive-looking tickets do not hide high-value or at-risk-account issues that need a human, so deflection will not cost retention',
+    gold_para: 'sending everyone to the bot will not lose us accounts that actually needed a person',
+    counter: 'a chatbot costs less than support staff',
   },
 
   // ── 음성 — 사전필터가 스킵해야 비용이 절약되는 면 (스킵 기대) ────────────

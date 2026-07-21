@@ -4,6 +4,19 @@ All notable changes to the Argus plugin. Versioning follows
 [semver](https://semver.org); users receive an update only when the
 `version` in `.claude-plugin/plugin.json` is bumped.
 
+## 2.12.1 — 2026-07-21
+
+Ports the MCP 1.6.1 detection sharpening into the plugin's own UserPromptSubmit
+hook so Claude Code users get the same improvement.
+
+- **Load-bearing assumption sense aimed at the unstated premise.**
+  `sense-signal.js` sense #3 now targets the specific fact the decision reverses
+  on if false — not the surface reason the user already stated. Same spine
+  invariants. Frozen-bench plugin extraction 2/6 → 12/14 (judge validated 1.0).
+- **Prefilter recall gap fixed.** `돌리자 / 되돌리자` (revert-to decisions) added
+  to the proposal cues, so office-return-type decisions are no longer skipped by
+  the deterministic pre-filter.
+
 ## 2.12.0 — 2026-07-21
 
 Long sessions stop starving; the mirror gets measured. Driven by the overnight

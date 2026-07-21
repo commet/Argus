@@ -311,7 +311,7 @@ const PROPOSAL = [
   /\b(i|we)'?ll\b/i, /\bi'?m (going to|planning|thinking of)\b/i,
   /\bplan is\b/i, /\bswitch(ing)? to\b/i, /\bdrop(ping)? the\b/i, /\bpivot\b/i,
   /(하자|합시다|해야겠|해야지|해보자|해볼게|하기로|할게|할래|할까 하는데|하려고|하려 한다|할 생각)/,
-  /(가자|가야겠|없애자|버리자|줄이자|늘리자|올리자|내리자|바꾸자|뽑자|미루자|접자|넣자|빼자)/,
+  /(가자|가야겠|없애자|버리자|줄이자|늘리자|올리자|내리자|바꾸자|뽑자|미루자|접자|넣자|빼자|돌리자|되돌리자)/,
   /(아마|어쩌면|아무래도)/, /\b(probably|might|maybe|perhaps)\b/i, /'ll\b/i,
 ];
 

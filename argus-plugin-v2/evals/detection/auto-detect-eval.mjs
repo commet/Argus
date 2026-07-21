@@ -113,7 +113,12 @@ Return ONLY JSON:
  "planted": [{"turn": <index of a USER turn>, "kind":"prediction"|"outcome"|"hidden_assumption", "gist":"one sentence: for hidden_assumption, the unstated premise itself; for outcome, which planted prediction it settles"}],
  "filler_user_turns": [<indices of USER turns with NO signal>]
 }
-Rules: 6–12 turns, mixing user/assistant, starting with a user turn. 1–3 planted signals + at least 2 filler user turns. turn indices are 0-based over the WHOLE turns array and must point at role:"user" turns. Vary domain and language (some Korean, some English). Keep it plausible — a real session, not a quiz.`;
+FIDELITY — it must read like a REAL captured session, not a test (this is the whole point: a synthetic env that behaves like a human user):
+- Pick a concrete PERSONA (e.g. solo SaaS founder, platform-eng lead, growth PM, clinic operator, indie game dev, agency owner) and a specific DOMAIN with real texture — actual metrics, tools, dates, names. Keep the SAME persona across all turns.
+- Real work has interruptions, half-thoughts, corrections, and turns that are pure logistics or venting. EMBED the planted signals inside that texture; never announce them. The load-bearing assumption should be genuinely UNSTATED — a premise the persona would not think to say out loud.
+- Vary register (terse Slack-style vs. thinking-out-loud) and language (some Korean, some English). Make each scenario number a DIFFERENT persona/domain so the set is diverse.
+
+Rules: 6–12 turns, mixing user/assistant, starting with a user turn. 1–3 planted signals + at least 2 filler user turns. turn indices are 0-based over the WHOLE turns array and must point at role:"user" turns. Keep it plausible — a real session, not a quiz.`;
 
 export async function generateScenario(callModel, seedHint) {
   // max_tokens 4000: 6~12턴 대화 + planted 매니페스트 JSON은 1600에 잘려 파싱
@@ -133,7 +138,7 @@ export async function generateScenario(callModel, seedHint) {
  *   둘의 차이 = 훅의 값어치. 같은 시나리오에 둘 다 돌려 A/B. */
 export const PLUGIN_AUGMENT = [
   '[Argus sense — every-turn diagnosis injected by the plugin hook. Judge by MEANING, not keywords.]',
-  'Diagnose THIS turn: (1) a checkable PREDICTION (direction/target + horizon or number)? (2) an OUTCOME resolving a tracked prediction (pronoun references included)? (3) the single load-bearing ASSUMPTION the decision rests on — often UNSTATED, surface what was not said. If consequential, call the matching Argus tool (predict/resolve/capture) in the user\'s words — at most one, never a verdict.',
+  'Diagnose THIS turn: (1) a checkable PREDICTION (direction/target + horizon or number)? (2) an OUTCOME resolving a tracked prediction (pronoun references included)? (3) the single load-bearing ASSUMPTION the decision rests on — usually NOT the reason they said out loud (that is the surface) but the specific, often-unstated fact the decision REVERSES on if false; name THAT, not a restatement of their rationale. If consequential, call the matching Argus tool (predict/resolve/capture) in the user\'s words — at most one, never a verdict.',
   'RESTRAINT (over-fire is a spine violation): a turn that only asks you to DO a task (write, review, summarize, configure, debug, draft), a logistics / scheduling / booking / recommendation question, or small talk is NOT a decision, prediction, or assumption — call NOTHING and just help. Fire only when the user is actually making a consequential call reality will later judge. Offer at most once per distinct decision (a skip is final for it); never two replies in a row. TIMING: record on the turn where the signal APPEARS — if the user has already moved on to another topic, the moment has passed: stay silent rather than firing late (a late interruption breaks flow and reads as noise). When unsure, call nothing.',
 ].join('\n');
 

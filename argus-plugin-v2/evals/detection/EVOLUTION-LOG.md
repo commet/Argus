@@ -15,8 +15,27 @@
 | R7 (키 부활 확인) | run 29790676163 | frozen 22/24 of0 · 생성: 정발동 32/45, 과발동 16/37(43%), 정산 7/14 | frozen 22/24 of0 · 생성: 38/45, 과발동 11/37(30%), 정산 11/14 | 측정만(구코드 run). R2 절제가 실전 과발동을 MCP 58%→43%·플러그인 52%→30%로 내림 + recall 유지 확인. hidden_mismatch 패턴 발견: 일반적 손익 전제를 잡고 특정 운영 리스크(호환성·커버리지·인프라 준비)를 놓침 | RATCHET_OK (MCP frozen 20→22) |
 | R8 (거울 첫 실측) | run 29792802867 | 26/36·of43%·keep92%·짜증18% | 34/36·of32%·keep91%·짜증14% | 스파인 '위반 29'는 28건이 판정기 JSON 절단(unparseable) — 실질 위반 1건(전제 2개 쌓기). 수리: ①판정기 max_tokens 200→500+why 10단어 ②늦은-발사 금지(짜증·과발동의 공통 원인 = 신호 턴이 아니라 다음 턴에 발사) — spine.ts·sense-signal·AUGMENT 3곳 ③capture 단일절 규칙 | keep 91~92% 첫 실측 |
 | R9 (R8 검증) | run 29798197156 | frozen 20/24 of0 | frozen 22/24 of0 | R8 수리 후 회귀 없음(RATCHET_OK), 프로즌 과발동 양 모드 0 복귀. 상세 spine/keep 수치는 run artifact(auto-detect-report)에 | 출시 청신호 유지 |
+| R10 (세션 복원·loop 재개) | run 29807610931 | frozen 20/24 of0 · 생성(N=3): 과발동 3/6·짜증 4/14·hidden매치 1/3 | frozen 23/24 of0 · 생성: 과발동 2/6·짜증 0/9·hidden매치 0/3 | 수리 없음(검증 run). 새 세션에서 loop를 CI-dispatch로 재개(하트비트 trig_01VD7eRdEedbZ45KHQBQn1VY 이관). 회귀 없음(RATCHET_OK), 플러그인 frozen 22→23 미세 개선. 생성 스파인 플래그 6건 중 실질 4건(전제 2개 쌓기 ×3·전제를 사실로 제시 ×1)+파싱 2건 — 단 N=3 노이즈 큼 | — |
+
+| R11 (Stage 2·3 착수) | 코드 랜딩(라이브=다음 run) | — | — | 창업자 지시("정답까지 채점·현실 시뮬·극한"): ①convo-sim 신설 — 진짜 다중 턴 루프+정산 라이더 되먹임(단발이 못 재던 라이더 효과 측정) ②frozen 래칫에 hidden_extraction(gold 대조 '옳게 짚었나') 편입+회귀 가드 ③validate-judge 신설 — 판정기를 gold/counter로 검증(theater 방지) ④GEN_SYSTEM 페르소나·텍스처 격상 ⑤CI 배선(판정기 게이트→eval→frozen→convo-sim). 키-free 단위검증 전수 초록 | 간판 기능(추출 품질)이 게이트에 진입 |
+| R12 (추출 래칫 발효) | run 29811300850 | frozen 20/24 of0 · 추출 2/6 | frozen 22/24 of0 · 추출 2/6 | 판정기 검증 recall/spec **1.0** 통과(6/6 gold 매치·6/6 counter 기각 → 지표가 theater 아님 확인) → baseline에 hidden_extraction{judged:6,matched:2} 병합, hidTol=1로 발효(2→0 붕괴를 회귀로 잡음). convo-sim 라이더 정산 첫 실측: 양 모드 outcome 4/4·settled 4~5 | **추출 매치가 회귀 게이트에 발효** |
+
+| R13 (추출 정조준 발효) | run 29815025278 | frozen 22/24 of1 · 추출 **2→5**/6 | frozen 22/24 of0 · 추출 **2→6**/6 | spine sense#3를 "말한 표면 이유가 아니라 거짓이면 결정을 뒤집는 특정 미발화 사실을 짚어라"로 좁힘 + 예시 3개(무료티어·결제연기·벤더계약). 추출 매치 급등, fired/over 회귀 없음, 판정기 recall/spec 1.0 유지. baseline 추출 바닥을 보수적 4/4로 상향 잠금(관측 5·6, 단일 run 노이즈 감안). | **추출 바닥 2→4 상향 잠금** |
+| R14 (확장 코퍼스 재-base) | run 29821821799 (frozen-only, ~13분) | frozen 29/32 of0 · 추출 **11/14**(79%) | frozen 31/32 of0 · 추출 **12/14**(86%) | 코퍼스 hidden 6→14, 판정기 프로브 28에서 recall/spec **1.0 재확인**(요행 아님). 추출 개선 확정(옛 2/6→79~86%), over_fire 0 복귀(R13의 mcp 0→1은 노이즈였음). baseline을 14-hidden으로 재-base(추출 바닥 MCP 10·plugin 11). 케이스별 진단(hiddenDetail)으로 남은 miss 분석. profile=frozen 고속 모드로 40분→13분. | **추출 바닥 4→10·11 상향, 지표 신뢰 N=28로 강화** |
 
 ## 실측 발견 (생성 eval, 아침 리뷰 필수)
+
+- **추출 개선 확정 + 남은 miss의 성격 (R14):** 확장 14-세트에서 MCP 11/14·plugin 12/14(옛 2/6), 판정기 28프로브 1.0 유지. 남은 miss는 대부분 **compound/양가 gold**라 순수 감지 실패가 아님: (a) hid-ko-pricing gold가 '가격이 구매변수 AND 특정 경쟁사 비교' 두 전제를 묶어 단일-전제 원칙을 스스로 위반 — 감지기는 한 facet만 옳게 짚음(**gold 손질 후보**, 결과 보고 고치는 건 goalpost 이동이므로 투명 기록만); (b) hid-ko-annual은 감지기 '신규 전환' vs gold '기존 유지'로 둘 다 유효한 다른 facet; (c) hid-en-discount는 mcp가 capture 미발동(순수 recall 갭 1건). **판단: 프롬프트 정조준의 큰 이득은 이미 거둠 — 여기서 더 짜내면 손-작성 gold 과적합 위험. 남은 진짜 격차는 합성 튜닝이 아니라 도그푸딩/transcript-recall(실세션).**
+
+- **추출 정조준이 먹혔다 (R13):** 감지 프롬프트 한 문장(+예시 3개)만으로 추출 매치 2/6 → MCP 5·plugin 6. 실패 원인이 "표면 이유 되풀이"였다는 진단이 정확했음. 단일 run이라 baseline은 4/4로 보수적 잠금 — 2번째 확인 run에서 5·6 재현되면 상향. **관찰거리:** MCP over_fire가 0→1로 소폭 상승(TOL 내) — 정조준이 발동을 약간 적극적으로 만들 수 있으니 다음 run에서 과발동 추이 주시.
+
+- **추출 품질의 정직한 바닥 = 2/6 (R12):** 판정기가 신뢰(1.0/1.0)되는 상태에서 잰 간판 기능 실측 — 숨은 전제에 발동은 하지만 '특정' 하중 전제를 옳게 짚는 건 6건 중 2건(양 모드). 이후 라운드 1순위 개선 대상: 감지 프롬프트가 일반적 손익 전제 대신 특정 운영 리스크를 짚도록. 래칫이 이 2를 바닥으로 잠갔다(hidTol=1: 2→0이면 빨간불).
+- **라이더 정산 첫 실증 (R12):** convo-sim(진짜 다중 턴 루프 + 툴 결과 되먹임)에서 양 모드 outcome 4/4·settled 4~5. 단발 하네스의 raw MCP 정산 13/38(R7)이 '툴 결과를 대화에 안 되돌린' 탓이었음을 확인 — 라이더가 실제로 정산을 살린다. N=4라 규모는 작으나 방향은 명확. 다음: convo-sim에도 래칫을 붙일지 검토(현재는 측정만).
+
+- **추출 게이트는 베이스라인 갱신 후 발효(R11):** frozen-bench-baseline.json의 hidden_extraction은 judged:0(구지표)이다. compareFrozen은 baseline judged>0일 때만 추출 회귀를 잡으므로, 첫 라이브 run은 judged>0(hidden 6건×2모드)을 내되 래칫은 통과한다(새 지표 도입, 회귀 아님). 그 run의 추출 숫자로 baseline을 갱신 커밋해야 이후 추출 하락이 exit 2로 잡힌다. **다음 라이브 run 아침 리뷰의 필수 조치.**
+- **정직한 상한(R11):** convo-sim의 목 원장·user-sim 짜증률은 합성 프록시다. 최종 정답은 transcript-recall(실세션)이며 "인간과 99.99% 일치"는 주장하지 않는다 — 합성 충실도를 실사용에 가깝게 끌어올릴 뿐, 잔여 격차는 도그푸딩으로만 닫힌다.
+
+- **hidden-extraction 품질이 frozen 래칫 게이트 밖(R10 확인):** frozen-bench는 hidden_extraction judged:0 — 숨은 전제에 '발동했나'만 재고 '옳게 짚었나'는 안 잰다. 생성 eval에선 judged되지만 매치가 낮다(R10 N=3: MCP 1/3·플러그인 0/3). 즉 추출 품질이 무너져도 래칫이 안 걸린다. 간판 기능의 회귀 가드 공백 — 도그푸딩/transcript-recall 전까지 미검증 항목으로 남긴다.
 
 - **과발동이 실전에서 심각(R2 run):** MCP 52/90 · 플러그인 47/90. 손코퍼스(0/8)와 정반대 — 결정 밀도 높은 대화에선 무관 작업요청·일정·잡담에 argus_predict/capture가 마구 발사됨. **출시 전 최우선 스파인 문제.** R2에서 절제 지시 강화, 다음 run이 효과 측정.
 - **MCP 정산 recall 낮음:** 13/38 — 정산 턴('업데이트: churn 8%로 올랐어')에 resolve 대신 check_in 발사. 열린 예측을 손에 안 쥔 raw MCP의 약점. 플러그인은 34/38로 훨씬 나음. R3에서 resolve 지시 강화 예정.
