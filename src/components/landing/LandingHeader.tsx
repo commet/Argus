@@ -6,9 +6,16 @@ import { useAuth } from '@/lib/auth';
 import { useLocaleSwitch } from '@/hooks/useLocaleSwitch';
 import { useDueCount } from '@/hooks/useDueCount';
 import { ArgusFaceMark } from '@/components/brand/ArgusFaceMark';
+import { LocaleSwitchConfirmation } from '@/components/ui/LocaleSwitchConfirmation';
 
 export function LandingHeader() {
-  const { locale, switchTo: handleLocaleChange } = useLocaleSwitch();
+  const {
+    locale,
+    switchTo: handleLocaleChange,
+    pendingLocale,
+    confirmSwitch,
+    cancelSwitch,
+  } = useLocaleSwitch();
   const L = (ko: string, en: string) => (locale === 'ko' ? ko : en);
   const { user, loading } = useAuth();
   // 03 S7: the landing's one quiet recognition — a single gold dot (no number)
@@ -154,6 +161,12 @@ export function LandingHeader() {
           </div>
         </div>
       </div>
+      <LocaleSwitchConfirmation
+        locale={locale}
+        pendingLocale={pendingLocale}
+        onConfirm={confirmSwitch}
+        onCancel={cancelSwitch}
+      />
     </header>
   );
 }

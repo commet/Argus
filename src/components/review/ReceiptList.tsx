@@ -14,6 +14,8 @@ import { Button } from '@/components/ui/Button';
 import { LocaleLink } from '@/components/ui/LocaleLink';
 import { RecordStrip } from '@/components/ui/RecordStrip';
 import { useLocale } from '@/hooks/useLocale';
+import { useState } from 'react';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import {
   type JudgmentReceipt,
   summarizeReceipt,
@@ -47,6 +49,7 @@ export function ReceiptList({
   const locale = useLocale();
   const L = (ko: string, en: string) => (locale === 'ko' ? ko : en);
   const today = todayYMD();
+  const [pendingRemoveId, setPendingRemoveId] = useState<string | null>(null);
   const ordered = sortByUrgency(receipts, today);
   const dueCount = ordered.filter((r) => summarizeReceipt(r, today).urgent).length;
 
@@ -136,11 +139,13 @@ export function ReceiptList({
                   <span>{(r.updated_at || r.created_at || '').slice(0, 10)}</span>
                   {onRemove && (
                     <button
+                      type="button"
                       className="ml-auto min-w-[44px] min-h-[44px] px-2 -my-3 inline-flex items-center justify-center text-[var(--text-tertiary)] hover:text-[var(--danger)]"
                       onClick={(e) => {
                         e.stopPropagation();
-                        if (confirm(L('이 검수 기록을 지울까요?', 'Delete this review record?'))) onRemove(r.receipt_id);
+                        setPendingRemoveId(r.receipt_id);
                       }}
+                      aria-label={L(`${r.source_title || '문서'} 검수 기록 삭제`, `Delete review record for ${r.source_title || 'document'}`)}
                     >
                       {L('삭제', 'Delete')}
                     </button>
@@ -151,6 +156,19 @@ export function ReceiptList({
           })}
         </div>
       )}
+      <ConfirmDialog
+        open={pendingRemoveId !== null}
+        title={L('검수 기록을 지울까요?', 'Delete review record?')}
+        description={L('저장된 검수 결과와 확인 일정이 이 브라우저에서 삭제됩니다. 이 작업은 되돌릴 수 없어요.', 'The saved review result and its check-in schedule will be removed from this browser. This cannot be undone.')}
+        confirmLabel={L('기록 삭제', 'Delete record')}
+        cancelLabel={L('취소', 'Cancel')}
+        onCancel={() => setPendingRemoveId(null)}
+        onConfirm={() => {
+          if (pendingRemoveId) onRemove?.(pendingRemoveId);
+          setPendingRemoveId(null);
+        }}
+        dangerous
+      />
     </div>
   );
 }

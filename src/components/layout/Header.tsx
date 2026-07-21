@@ -15,10 +15,17 @@ import { Toast } from '@/components/ui/Toast';
 import { useLocaleSwitch } from '@/hooks/useLocaleSwitch';
 import { stripLocale } from '@/lib/locale-path';
 import { CommandPalette, type CommandPaletteItem } from '@/components/ui/CommandPalette';
+import { LocaleSwitchConfirmation } from '@/components/ui/LocaleSwitchConfirmation';
 import { clientE3BReleaseDecision } from '@/lib/epistemic/e3b-release-gate';
 
 export function Header() {
-  const { locale, switchTo: handleLocaleChange } = useLocaleSwitch();
+  const {
+    locale,
+    switchTo: handleLocaleChange,
+    pendingLocale,
+    confirmSwitch,
+    cancelSwitch,
+  } = useLocaleSwitch();
   const L = (ko: string, en: string) => locale === 'ko' ? ko : en;
 
   // W1.3 단일 진입: first-line nav is [워크스페이스·프로젝트·설정·가이드].
@@ -558,6 +565,12 @@ export function Header() {
         onClose={() => setCommandPaletteOpen(false)}
         locale={locale}
         items={commandItems}
+      />
+      <LocaleSwitchConfirmation
+        locale={locale}
+        pendingLocale={pendingLocale}
+        onConfirm={confirmSwitch}
+        onCancel={cancelSwitch}
       />
     </header>
   );

@@ -23,6 +23,7 @@ import { timeoutSignal } from '@/lib/timeout-signal';
 import { useLocale } from '@/hooks/useLocale';
 import { useLocaleSwitch } from '@/hooks/useLocaleSwitch';
 import { withLocale } from '@/lib/locale-path';
+import { LocaleSwitchConfirmation } from '@/components/ui/LocaleSwitchConfirmation';
 
 function buildLlmProviders(L: (ko: string, en: string) => string) {
   // 버튼 라벨은 모두 '제공자 브랜드' 한 층위로 통일한다 (Claude / GPT / Gemini).
@@ -49,7 +50,7 @@ function buildLlmModes(L: (ko: string, en: string) => string) {
 
 export default function SettingsPage() {
   const locale = useLocale();
-  const { switchTo } = useLocaleSwitch();
+  const { switchTo, pendingLocale, confirmSwitch, cancelSwitch } = useLocaleSwitch();
   const L = (ko: string, en: string) => locale === 'ko' ? ko : en;
   const llmProviders = buildLlmProviders(L);
   const llmModes = buildLlmModes(L);
@@ -958,6 +959,12 @@ export default function SettingsPage() {
           </Button>
         </div>
       </Modal>
+      <LocaleSwitchConfirmation
+        locale={locale}
+        pendingLocale={pendingLocale}
+        onConfirm={confirmSwitch}
+        onCancel={cancelSwitch}
+      />
         </div>
       </div>
     </div>
