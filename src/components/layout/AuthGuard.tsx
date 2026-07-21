@@ -1,7 +1,7 @@
 'use client';
 
 import { LocaleLink } from '@/components/ui/LocaleLink';
-import { usePathname } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import { useAuth, hasKnownUser } from '@/lib/auth';
 import { useLocale } from '@/hooks/useLocale';
 import { stripLocale } from '@/lib/locale-path';
@@ -73,6 +73,7 @@ function getCopy(page: PageKey, ko: boolean, knewYou: boolean) {
 export function AuthGuard({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const locale = useLocale();
   const ko = locale === 'ko';
   const L = (k: string, e: string) => (ko ? k : e);
@@ -80,8 +81,8 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
   if (loading) {
     return (
       <div className="flex-1 flex items-center justify-center py-20">
-        <div className="text-center">
-          <div className="w-5 h-5 border-2 border-[var(--accent)] border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+        <div className="text-center" role="status" aria-live="polite">
+          <div aria-hidden="true" className="w-5 h-5 border-2 border-[var(--accent)] border-t-transparent rounded-full animate-spin motion-reduce:animate-none mx-auto mb-3" />
           {/* 09 S7: a silent circle reads as a hang — one line of machine-state fact. */}
           <p className="text-[13px] text-[var(--text-secondary)]">{L('세션을 확인하는 중이에요…', 'Checking your session…')}</p>
         </div>
@@ -93,7 +94,8 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
     const page = detectPage(stripLocale(pathname || '/'));
     const { title, description } = getCopy(page, ko, hasKnownUser());
     // Keep the full locale-prefixed path so login returns the user to it.
-    const redirectTo = encodeURIComponent(pathname || '/');
+    const query = searchParams.toString();
+    const redirectTo = encodeURIComponent(`${pathname || '/'}${query ? `?${query}` : ''}`);
 
     return (
       <div className="flex-1 flex items-center justify-center py-16 px-4">
@@ -106,7 +108,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
           <div className="flex flex-col gap-2 items-center">
             <LocaleLink
               href={`/login?redirect=${redirectTo}`}
-              className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl text-[var(--accent-fg)] text-[14px] font-semibold transition-all hover:shadow-[var(--shadow-sm)]"
+              className="inline-flex min-h-11 items-center gap-1.5 px-5 py-2.5 rounded-xl text-[var(--accent-fg)] text-[14px] font-semibold transition-all hover:shadow-[var(--shadow-sm)]"
               style={{ background: 'var(--gradient-gold)' }}
             >
               {L('로그인하고 계속하기', 'Sign in to continue')} <ChevronRight size={14} />

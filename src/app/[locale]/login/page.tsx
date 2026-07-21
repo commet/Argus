@@ -9,6 +9,7 @@ import { useLocale } from '@/hooks/useLocale';
 import { useLocaleRouter } from '@/hooks/useLocaleRouter';
 import { Zap, FolderOpen, Users, MessageSquare, MailCheck, Mail, Lock, User, Check } from 'lucide-react';
 import { Logo } from '@/components/brand/Logo';
+import { safePostAuthRedirect } from '@/lib/auth-redirect';
 
 const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
 
@@ -79,10 +80,7 @@ function LoginContent() {
 
   useEffect(() => {
     if (!loading && user) {
-      const raw = searchParams.get('redirect') || '/workspace';
-      // Prevent open redirect — only allow relative paths on the same origin
-      const safeRedirect = raw.startsWith('/') && !raw.startsWith('//') ? raw : '/workspace';
-      router.replace(safeRedirect);
+      router.replace(safePostAuthRedirect(searchParams.get('redirect')));
     }
   }, [user, loading, router, searchParams]);
 
@@ -125,8 +123,8 @@ function LoginContent() {
   if (loading) {
     return (
       <div className="flex-1 flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-5 h-5 border-2 border-[var(--accent)] border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+        <div className="text-center" role="status" aria-live="polite">
+          <div aria-hidden="true" className="w-5 h-5 border-2 border-[var(--accent)] border-t-transparent rounded-full animate-spin motion-reduce:animate-none mx-auto mb-3" />
           {/* 09 S7: a silent circle reads as a hang — one line of machine-state fact. */}
           <p className="text-[13px] text-[var(--text-secondary)]">{L('세션을 확인하는 중이에요…', 'Checking your session…')}</p>
         </div>
@@ -137,8 +135,8 @@ function LoginContent() {
   if (user) {
     return (
       <div className="flex-1 flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-5 h-5 border-2 border-[var(--accent)] border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+        <div className="text-center" role="status" aria-live="polite">
+          <div aria-hidden="true" className="w-5 h-5 border-2 border-[var(--accent)] border-t-transparent rounded-full animate-spin motion-reduce:animate-none mx-auto mb-3" />
           <p className="text-[13px] text-[var(--text-secondary)]">{L('워크스페이스로 이동 중...', 'Taking you to the workspace...')}</p>
         </div>
       </div>
@@ -228,7 +226,7 @@ function LoginContent() {
           <div className="p-6 space-y-5">
           {/* Google OAuth */}
           <button
-            onClick={() => signInWithGoogle(searchParams.get('redirect') || undefined)}
+            onClick={() => signInWithGoogle(safePostAuthRedirect(searchParams.get('redirect')))}
             className="w-full flex items-center justify-center gap-3 px-4 py-3 rounded-xl border border-[var(--border)] shadow-[var(--shadow-xs)] hover:shadow-[var(--shadow-sm)] hover:border-[var(--accent)] hover:bg-[var(--ai)]/30 transition-all cursor-pointer text-[14px] font-semibold text-[var(--text-primary)]"
           >
             <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24">
