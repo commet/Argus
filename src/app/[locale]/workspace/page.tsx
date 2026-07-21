@@ -2,17 +2,13 @@
 
 import React, { useEffect, useRef, useState, Suspense } from 'react';
 import Image from 'next/image';
+import dynamic from 'next/dynamic';
 import { useSearchParams } from 'next/navigation';
 import { useWorkspaceStore, type StepId } from '@/stores/useWorkspaceStore';
 import { useProjectStore } from '@/stores/useProjectStore';
 import { useProgressiveStore } from '@/stores/useProgressiveStore';
 import { useShallow } from 'zustand/react/shallow';
 import { useAgentStore } from '@/stores/useAgentStore';
-import { ReframeStep } from '@/components/workspace/ReframeStep';
-import { RecastStep } from '@/components/workspace/RecastStep';
-import { RehearseStep } from '@/components/workspace/RehearseStep';
-import { SynthesizeStep } from '@/components/workspace/SynthesizeStep';
-import { ProgressiveFlow } from '@/components/workspace/progressive/ProgressiveFlow';
 import { WorkerDrawer, useWorkers } from '@/components/workspace/progressive/WorkerPanel';
 import { LogbookDrawer } from '@/components/workspace/progressive/Logbook';
 import { VoyageMapRail, VoyageMapViews } from '@/components/workspace/progressive/VoyageMapRail';
@@ -20,7 +16,6 @@ import { QuickChatBar } from '@/components/workspace/QuickChatBar';
 import { NavigatorStrip } from '@/components/workspace/NavigatorStrip';
 import { useSettingsStore } from '@/stores/useSettingsStore';
 import { useLocale } from '@/hooks/useLocale';
-import { runInitialAnalysis } from '@/lib/progressive-engine';
 import { buildEarlyContract, summarizeRecord } from '@/lib/decision-contract';
 import { recordCompactLine } from '@/lib/record-summary';
 import { VoyageEta } from '@/components/workspace/VoyageEta';
@@ -37,8 +32,6 @@ import { EASE } from '@/components/workspace/progressive/shared/constants';
 import { getPersonaPool } from '@/lib/worker-personas';
 import { WorkerAvatar, AvatarRow } from '@/components/workspace/progressive/WorkerAvatar';
 import { BindCard, type BindResult } from '@/components/workspace/progressive/BindCard';
-import { InteractiveDemo } from '@/components/workspace/InteractiveDemo';
-import { RetroSeal } from '@/components/workspace/RetroSeal';
 import { getDemoScenarios } from '@/lib/demo-data';
 import type { DemoScenario } from '@/lib/demo-data';
 import { DEMO_SCENARIO_ART } from '@/lib/demo-scenario-art';
@@ -49,6 +42,28 @@ import { parsePartialAnalysis } from '@/lib/partial-analysis';
 import { DAILY_LIMIT } from '@/lib/quota-config';
 import { ArgusCompanionNote } from '@/components/brand/ArgusCompanionNote';
 import { Modal } from '@/components/ui/Modal';
+
+type InitialAnalysisResult = Awaited<ReturnType<typeof import('@/lib/progressive-engine').runInitialAnalysis>>;
+
+function WorkspaceChunkLoading() {
+  const locale = useLocale();
+  return (
+    <div role="status" aria-live="polite" className="flex min-h-[45vh] items-center justify-center px-4 py-16">
+      <div className="flex items-center gap-3 text-[13px] text-[var(--text-secondary)]">
+        <span aria-hidden="true" className="h-5 w-5 animate-spin rounded-full border-2 border-[var(--accent)] border-t-transparent motion-reduce:animate-none" />
+        {locale === 'ko' ? '작업 화면을 준비하고 있어요…' : 'Preparing your workspace…'}
+      </div>
+    </div>
+  );
+}
+
+const ReframeStep = dynamic(() => import('@/components/workspace/ReframeStep').then((module) => module.ReframeStep), { loading: WorkspaceChunkLoading });
+const RecastStep = dynamic(() => import('@/components/workspace/RecastStep').then((module) => module.RecastStep), { loading: WorkspaceChunkLoading });
+const RehearseStep = dynamic(() => import('@/components/workspace/RehearseStep').then((module) => module.RehearseStep), { loading: WorkspaceChunkLoading });
+const SynthesizeStep = dynamic(() => import('@/components/workspace/SynthesizeStep').then((module) => module.SynthesizeStep), { loading: WorkspaceChunkLoading });
+const ProgressiveFlow = dynamic(() => import('@/components/workspace/progressive/ProgressiveFlow').then((module) => module.ProgressiveFlow), { loading: WorkspaceChunkLoading });
+const InteractiveDemo = dynamic(() => import('@/components/workspace/InteractiveDemo').then((module) => module.InteractiveDemo), { loading: WorkspaceChunkLoading });
+const RetroSeal = dynamic(() => import('@/components/workspace/RetroSeal').then((module) => module.RetroSeal), { loading: WorkspaceChunkLoading });
 
 /** Stable empty-array fallback for the sessionBranches selector — a fresh `[]`
  *  literal on every render makes zustand see a new snapshot each time → React's
@@ -352,14 +367,14 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem, fr
   const autoStartedRef = React.useRef(false);
   // Phase 1 BIND: the in-flight (buffered) initial analysis and the submitted text,
   // so the bind card can be shown WHILE the analysis runs and finalize after the rope.
-  const analysisRef = React.useRef<Promise<{ result?: Awaited<ReturnType<typeof runInitialAnalysis>>; error?: unknown }> | null>(null);
+  const analysisRef = React.useRef<Promise<{ result?: InitialAnalysisResult; error?: unknown }> | null>(null);
   // The settled value, the moment it exists. proceedAfterBind uses this to SKIP
   // the assembling beat when the buffered analysis already finished (usually:
   // failed fast on a quota 429) — entering assembling and leaving it within the
   // same beat produced back-to-back AnimatePresence(mode=wait) swaps that the
   // production bundle wedges on (재실사 2026-07-08: 429 사용자 화면이 '팀을
   // 꾸리는 중'에서 영구 동결). One swap, no race.
-  const analysisSettledRef = React.useRef<{ result?: Awaited<ReturnType<typeof runInitialAnalysis>>; error?: unknown } | null>(null);
+  const analysisSettledRef = React.useRef<{ result?: InitialAnalysisResult; error?: unknown } | null>(null);
   const pendingTextRef = React.useRef<string>('');
   const searchParams = useSearchParams();
 
@@ -452,7 +467,7 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem, fr
   };
 
   const startAnalysis = (text: string, controller: AbortController) =>
-    runInitialAnalysis(text, (token) => {
+    import('@/lib/progressive-engine').then(({ runInitialAnalysis }) => runInitialAnalysis(text, (token) => {
       setStreamingText(token);
       if (phaseRef.current === 'assembling') {
         if (timerRef.current) clearTimeout(timerRef.current);
@@ -468,7 +483,7 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem, fr
       if (last?.id === replacesId && s.answers.length < s.questions.length) {
         progressiveStore.replaceLatestQuestion(typedQ);
       }
-    }).then((result) => ({ result })).catch((error) => ({ error }));
+    })).then((result) => ({ result })).catch((error) => ({ error }));
 
   // Called by BindCard. `bind` = the rope (lean + check-in) or null on skip.
   const proceedAfterBind = async (bind: BindResult | null) => {
@@ -500,7 +515,7 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem, fr
     }
 
     const settled = preSettled ?? await (analysisRef.current ?? Promise.resolve(
-      { error: new Error('no analysis') } as { result?: Awaited<ReturnType<typeof runInitialAnalysis>>; error?: unknown },
+      { error: new Error('no analysis') } as { result?: InitialAnalysisResult; error?: unknown },
     ));
 
     try {
