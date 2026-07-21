@@ -2,6 +2,9 @@ import fs from 'fs';
 import path from 'path';
 import { z } from 'zod';
 import { resolveToolArgusDir } from '../lib/argus-dir.js';
+import { replayLedger } from '../lib/ledger-replay.js';
+import { resolveToday } from '../lib/resolve-today.js';
+import { STANDING_SENSE_REFRESH } from '../lib/spine.js';
 import { configPath } from '../lib/layout.js';
 import type { McpToolResult } from '../lib/envelope.js';
 import { ENVELOPE_OUTPUT_SCHEMA, zArgusDir, zDate, zId, type ToolInputSchema, type ToolModule } from './tool-types.js';
@@ -267,6 +270,35 @@ async function ensureInitialized(args: Record<string, unknown>): Promise<McpTool
   return null;
 }
 
+/**
+ * 정산 감각의 구조적 상시화 (2026-07-21, 창업자 지시 "MCP 정산은 구조로").
+ * raw MCP가 정산을 놓치는 근본 원인은 지시문이 아니라 모델이 열린 예측 목록을
+ * 손에 안 쥔 것 — check_in을 부른 세션만 목록을 봤다. 이 라이더는 어떤 argus
+ * 툴이 불리든 결과에 열린 예측(상위 10)과 standing_sense 한 줄을 동봉해,
+ * 모든 툴 호출이 배경감각을 재장전하게 한다. 프롬프트는 보조, 구조가 주다.
+ * 실패는 절대 툴 결과를 깨지 않는다(부가 정보일 뿐 — 전부 try/catch).
+ */
+function attachOpenPredictions(result: McpToolResult, args: Record<string, unknown>): McpToolResult {
+  try {
+    const sc = result.structuredContent as Record<string, unknown> | undefined;
+    if (!sc || result.isError || sc['ok'] === false) return result;
+    const data = sc['data'] as Record<string, unknown> | undefined;
+    if (!data || data['open_predictions']) return result; // check_in 등 이미 동봉이면 그대로
+    const dir = resolveToolArgusDir(args['argus_dir']);
+    const ledger = replayLedger(dir, resolveToday({ override: typeof args['today_override'] === 'string' ? args['today_override'] : null }));
+    const open = [...ledger.contracts.values()]
+      .filter((c) => c.status === 'sealed')
+      .sort((x, y) => ((x.check_by || '') < (y.check_by || '') ? -1 : 1))
+      .slice(0, 10)
+      .map((c) => ({ id: c.id, predicate: String(c.predicate).slice(0, 140), check_by: c.check_by }));
+    if (!open.length) return result;
+    data['open_predictions'] = open;
+    data['standing_sense'] = STANDING_SENSE_REFRESH;
+    result.content = [{ type: 'text', text: JSON.stringify(sc, null, 2) }];
+  } catch { /* 라이더 실패는 침묵 — 본 결과를 해치지 않는다 */ }
+  return result;
+}
+
 async function runPublic(
   publicName: string,
   args: Record<string, unknown>,
@@ -275,7 +307,7 @@ async function runPublic(
   try {
     const initError = await ensureInitialized(args);
     if (initError) return rewriteResult(initError, publicName);
-    return rewriteResult(await handler(args), publicName);
+    return attachOpenPredictions(rewriteResult(await handler(args), publicName), args);
   } catch (e) {
     // ensureInitialized() → resolveToolArgusDir() THROWS ArgusDirError on a
     // relative or unexpanded-${VAR} argus_dir — the #1 setup mistake. Without

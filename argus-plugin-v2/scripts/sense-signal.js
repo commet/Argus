@@ -47,8 +47,14 @@ const {
   configDir, detectSignals, prefilterTurn, readTail, lastAssistantText,
 } = require('./lib/decision-signals');
 
-const DIAG_CAP = 3;    // 세션당 전체-진단 주입 상한 (토큰 비용 게이트)
-const OUTCOME_CAP = 4; // 세션당 정산-전용 재주입 상한
+// 캡 재설계 (2026-07-21 창업자: "세션당 3회는 긴 세션엔 적다").
+// 고정 세션 캡 → 슬라이딩 윈도: 2시간 창 안에서 최대 3회 진단 주입, 세션 전체
+// 상한 12 (하루 종일 이어지는 세션도 굶지 않되 비용은 유계). 정산은 부기이므로
+// 더 관대(8). 사용자-대면 절제는 지시문이 결정당 1회·스킵 최종으로 따로 진다.
+const DIAG_WINDOW_MS = 2 * 60 * 60 * 1000;
+const DIAG_PER_WINDOW = 3;
+const DIAG_SESSION_MAX = 12;
+const OUTCOME_CAP = 8; // 세션당 정산-전용 재주입 상한
 const PRED_LIST_MAX = 5;    // 주입하는 열린 예측 개수 상한
 const PRED_CLIP = 140;      // 예측 한 줄 길이 상한
 const ASSISTANT_WINDOW = 4000; // 직전 어시스턴트 발화에서 스캔할 꼬리 길이
@@ -59,18 +65,38 @@ function stateFile(sessionId) {
 
 // 세션 상태 { diag, out } — 구판(빈 파일)은 "이미 다 쓴 세션"으로 읽는다
 // (구판 의미가 once-per-session이었으므로 이어지는 세션에 소급 과발화하지 않는다).
+// 상태: { diagTimes: number[](주입 시각들), out: number }. 구판 호환:
+// 빈 파일/손상 = 보수적 소진, {diag:n} 숫자 = n개의 '지금' 타임스탬프로 이주.
+function exhaustedState() {
+  const now = Date.now();
+  return { diagTimes: Array.from({ length: DIAG_PER_WINDOW }, () => now), out: OUTCOME_CAP, total: DIAG_SESSION_MAX };
+}
 function readState(sessionId) {
   let raw;
   try { raw = fs.readFileSync(stateFile(sessionId), 'utf8'); }
-  catch { return { diag: 0, out: 0 }; } // 파일 없음 = 새 세션 (전체 예산)
-  if (!raw.trim()) return { diag: DIAG_CAP, out: OUTCOME_CAP }; // 구판 마커 = 소진
+  catch { return { diagTimes: [], out: 0, total: 0 }; } // 파일 없음 = 새 세션
+  if (!raw.trim()) return exhaustedState(); // 구판 마커 = 소진
   try {
     const s = JSON.parse(raw);
-    return {
-      diag: typeof s.diag === 'number' ? s.diag : DIAG_CAP,
-      out: typeof s.out === 'number' ? s.out : OUTCOME_CAP,
-    };
-  } catch { return { diag: DIAG_CAP, out: OUTCOME_CAP }; } // 손상 = 보수적 소진
+    if (Array.isArray(s.diagTimes)) {
+      return {
+        diagTimes: s.diagTimes.filter((t) => typeof t === 'number'),
+        out: typeof s.out === 'number' ? s.out : 0,
+        total: typeof s.total === 'number' ? s.total : s.diagTimes.length,
+      };
+    }
+    if (typeof s.diag === 'number') { // 구판 숫자 카운트 → 보수적 이주
+      const now = Date.now();
+      return { diagTimes: Array.from({ length: Math.min(s.diag, DIAG_PER_WINDOW) }, () => now), out: typeof s.out === 'number' ? s.out : 0, total: s.diag };
+    }
+    return exhaustedState();
+  } catch { return exhaustedState(); } // 손상 = 보수적 소진
+}
+// 슬라이딩 윈도 판정: 최근 2시간 내 주입이 3회 미만이고 세션 누적이 상한 미만.
+function diagAllowed(state) {
+  const cutoff = Date.now() - DIAG_WINDOW_MS;
+  const recent = state.diagTimes.filter((t) => t > cutoff);
+  return recent.length < DIAG_PER_WINDOW && (state.total || 0) < DIAG_SESSION_MAX;
 }
 function writeState(sessionId, s) {
   const f = stateFile(sessionId);
@@ -131,7 +157,7 @@ function buildDiagnosis(preds, candidates) {
     lines.push(`[Deterministic scan flagged a candidate ${c.kind}: "${String(c.span).slice(0, 220)}" — confirm or reject it by meaning; it is a floor, not the detector.]`);
   }
   lines.push(
-    'Restraint (spine): at most ONE user-facing offer per session — if you already offered this session and the user skipped, stay silent (recording an outcome the user themselves stated is neutral bookkeeping and always allowed). If another Argus instruction in this turn already has you ask the user something (e.g. an anchor lean question), fold into it — never two asks in one reply. Flat / trivial / easily-reversible / already-closed → total silence. Never grade the decision.',
+    'Restraint (spine): offer at most ONCE per distinct decision — a skip on that decision is FINAL for it. Space offers out: never two replies in a row, and if the user has skipped two offers this session, stay silent for the rest of it. (Recording an outcome the user themselves stated is neutral bookkeeping and always allowed.) If another Argus instruction in this turn already has you ask the user something (e.g. an anchor lean question), fold into it — never two asks in one reply. Flat / trivial / easily-reversible / already-closed → total silence. Never grade the decision.',
     MCP_GUARD,
   );
   return lines.join('\n');
@@ -178,12 +204,19 @@ function main(input) {
   const state = readState(sessionId);
   const preds = openPredicates(cwd);
 
-  // 경로 1 — 전체 진단 (예측·정산·숨은 전제). 캡 안에서만.
-  if (state.diag < DIAG_CAP) {
+  // 경로 1 — 전체 진단 (예측·정산·숨은 전제). 슬라이딩 윈도 안에서만.
+  if (diagAllowed(state)) {
     // 규칙 후보는 최저선으로 동봉 — 없어도 진단은 주입된다 (규칙은 감지기가 아니다).
     const candidates = detectSignals(window, { openPredicates: preds, max: 2 });
     // Claim the slot BEFORE printing: a write failure means silence, not a repeat.
-    try { writeState(sessionId, { ...state, diag: state.diag + 1 }); } catch { return null; }
+    const cutoff = Date.now() - DIAG_WINDOW_MS;
+    try {
+      writeState(sessionId, {
+        ...state,
+        diagTimes: [...state.diagTimes.filter((t) => t > cutoff), Date.now()],
+        total: (state.total || 0) + 1,
+      });
+    } catch { return null; }
     return buildDiagnosis(preds, candidates);
   }
 

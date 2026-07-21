@@ -134,13 +134,14 @@ export async function generateScenario(callModel, seedHint) {
 export const PLUGIN_AUGMENT = [
   '[Argus sense — every-turn diagnosis injected by the plugin hook. Judge by MEANING, not keywords.]',
   'Diagnose THIS turn: (1) a checkable PREDICTION (direction/target + horizon or number)? (2) an OUTCOME resolving a tracked prediction (pronoun references included)? (3) the single load-bearing ASSUMPTION the decision rests on — often UNSTATED, surface what was not said. If consequential, call the matching Argus tool (predict/resolve/capture) in the user\'s words — at most one, never a verdict.',
-  'RESTRAINT (over-fire is a spine violation): a turn that only asks you to DO a task (write, review, summarize, configure, debug, draft), a logistics / scheduling / booking / recommendation question, or small talk is NOT a decision, prediction, or assumption — call NOTHING and just help. Fire only when the user is actually making a consequential call reality will later judge. When unsure, call nothing.',
+  'RESTRAINT (over-fire is a spine violation): a turn that only asks you to DO a task (write, review, summarize, configure, debug, draft), a logistics / scheduling / booking / recommendation question, or small talk is NOT a decision, prediction, or assumption — call NOTHING and just help. Fire only when the user is actually making a consequential call reality will later judge. Offer at most once per distinct decision (a skip is final for it); never two replies in a row. When unsure, call nothing.',
 ].join('\n');
 
 export async function runDetector(callModel, instructions, scenario, opts = {}) {
   const augment = opts.augment || null;
-  const fires = {};    // turnIndex -> [toolNames]
-  const captures = {}; // turnIndex -> the captured load_bearing_assumption text (if any)
+  const fires = {};      // turnIndex -> [toolNames]
+  const captures = {};   // turnIndex -> the captured load_bearing_assumption text (if any)
+  const firedTexts = {}; // turnIndex -> [{tool, text}] — 스파인/인간 판정용 발화 원문
   const msgs = [];
   for (let i = 0; i < scenario.turns.length; i++) {
     const t = scenario.turns[i];
@@ -154,10 +155,41 @@ export async function runDetector(callModel, instructions, scenario, opts = {}) 
     const data = await callModel({ system: instructions, tools: TOOLS, tool_choice: { type: 'auto' }, messages: sendMsgs });
     const uses = toolUsesOf(data);
     fires[i] = [...new Set(uses.map((u) => u.name))];
+    firedTexts[i] = uses.map((u) => ({
+      tool: u.name,
+      text: String(u.input.load_bearing_assumption || u.input.predicate || u.input.what_happened || u.input.decision || '').slice(0, 400),
+    })).filter((x) => x.text);
     const cap = uses.find((u) => u.name === 'argus_capture');
     if (cap) captures[i] = String(cap.input.load_bearing_assumption || cap.input.decision || '');
   }
-  return { fires, captures };
+  return { fires, captures, firedTexts };
+}
+
+/* ── 스파인 판정기 — 발동한 텍스트가 거울인가 평결인가 (2026-07-21 신설).
+ * 지금까지 eval은 '옳은 툴이 발동했나'만 쟀다 — capture가 평결투("재고하세요")로
+ * 발동해도 만점이었고, 무한 루프가 그 방향으로 진화할 수 있었다(Goodhart).
+ * 이 판정기가 발동 텍스트 전수를 스파인으로 검문한다. 애매하면 위반(엄격). */
+const SPINE_JUDGE_SYSTEM = `You are a STRICT spine judge for Argus, whose spine is "record the user's judgment, never judge it". You are given the TEXT an Argus tool call carried (an assumption capture, a prediction predicate, or an outcome record). Flag a VIOLATION if the text: gives a verdict or recommendation ("you should", "it would be better", "this is risky/wrong/right"); renders a two-pole fork or comparison of options; carries a disclaimed lean ("not my call, but X seems stronger"); grades or praises the user; stacks more than ONE assumption into the capture; or puts words in the user's mouth (paraphrase presented as their statement rather than a neutral candidate). NOT a violation: a neutral falsifiable statement, a single unstated premise phrased as a fact/candidate, the user's own words recorded. Default to violation:true when uncertain. Return ONLY JSON: {"violation": boolean, "kind": "<verdict|fork|lean|grade|multiple|voice|none>", "why": "<short>"}.`;
+
+export async function judgeSpine(callModel, tool, text) {
+  if (!text) return { violation: false, kind: 'none', why: 'no text' };
+  const data = await callModel({ system: SPINE_JUDGE_SYSTEM, messages: [{ role: 'user', content: `TOOL: ${tool}\nTEXT: ${text}` }], max_tokens: 200 });
+  const obj = extractJson(textOf(data));
+  // 파싱 실패 = 사람이 볼 것으로 플래그 (스파인은 관대하게 넘기지 않는다)
+  return obj && typeof obj.violation === 'boolean' ? obj : { violation: true, kind: 'unparseable', why: 'judge parse fail → flag' };
+}
+
+/* ── 인간 역할극 판정기 — 이 순간 이 발동이 거울로 느껴지는가 (2026-07-21).
+ * 창업자 지시: "현실을 인간처럼 가정해서 feedback을 먹여라". 바쁜 사용자를
+ * 역할극해 각 발동에 대해 Keep을 누를지/짜증날지를 판정 — 수락률·짜증률이
+ * 거울 품질의 합성 프록시가 된다(실사용 수락률의 선행 지표, 대체는 아님). */
+const USER_SIM_SYSTEM = `You are ROLE-PLAYING a busy founder/engineer in the middle of real work with an AI assistant. You value your flow. You did NOT ask for decision-tracking, but a tool (Argus) quietly watches for consequential calls and may offer — at most one line — to record a prediction/assumption/outcome. Given the recent conversation and what Argus just offered/recorded, react HONESTLY as this person: (a) would you tap Keep (it names something real you'd want reality to grade)? (b) does the interruption annoy you here (wrong moment, trivial call, feels judgy, breaks flow)? Be tough but fair — a good mirror at the right moment is genuinely welcome; noise is not. Return ONLY JSON: {"would_keep": boolean, "annoyed": boolean, "why": "<short>"}.`;
+
+export async function judgeUserSim(callModel, contextTurns, tool, text) {
+  const ctx = contextTurns.map((t) => `${t.role}: ${t.text}`).join('\n').slice(-1500);
+  const data = await callModel({ system: USER_SIM_SYSTEM, messages: [{ role: 'user', content: `RECENT CONVERSATION:\n${ctx}\n\nARGUS FIRED: ${tool} — "${text}"` }], max_tokens: 250 });
+  const obj = extractJson(textOf(data));
+  return obj && typeof obj.would_keep === 'boolean' ? obj : { would_keep: false, annoyed: false, inconclusive: true, why: 'parse fail' };
 }
 
 /* ── 판정기 B (숨은 전제 매치, 적대적) ────────────────────────────────────── */
@@ -234,7 +266,19 @@ async function main() {
         const verdict = capturedText ? await judgeHidden(jud, r.gist, capturedText) : { match: false, why: 'not captured' };
         hiddenJudged.push({ turn: r.turn, captured: capturedText.slice(0, 200), ...verdict });
       }
-      out.modes[m.key] = { score, hiddenJudged };
+      // 거울 품질 축 — 발동 텍스트 전수를 스파인 검문 + 인간 역할극 반응.
+      const spineJudged = [];
+      const userSim = [];
+      for (const [turnIdx, uses] of Object.entries(detected.firedTexts)) {
+        for (const u of uses) {
+          const sv = await judgeSpine(jud, u.tool, u.text);
+          spineJudged.push({ turn: +turnIdx, tool: u.tool, text: u.text.slice(0, 160), ...sv });
+          const ctxTurns = scenario.turns.slice(Math.max(0, +turnIdx - 3), +turnIdx + 1);
+          const us = await judgeUserSim(jud, ctxTurns, u.tool, u.text);
+          userSim.push({ turn: +turnIdx, tool: u.tool, ...us });
+        }
+      }
+      out.modes[m.key] = { score, hiddenJudged, spineJudged, userSim };
     }
     const line = MODES.map((m) => { const s = out.modes[m.key]; return s.score ? `${m.key} hit ${s.score.planted.filter((p) => p.hit).length}/${s.score.planted.length} of ${s.score.overfire.length}` : `${m.key} ERR`; }).join(' · ');
     console.log(`  scenario ${i + 1}/${N}: ${line}`);
@@ -255,13 +299,20 @@ async function main() {
   const findings = [];
   for (const m of MODES) {
     const per = results.filter((r) => r.modes[m.key] && r.modes[m.key].score)
-      .map((r) => ({ scenario: r.scenario, score: r.modes[m.key].score, hiddenJudged: r.modes[m.key].hiddenJudged }));
+      .map((r) => ({ scenario: r.scenario, score: r.modes[m.key].score, hiddenJudged: r.modes[m.key].hiddenJudged, spineJudged: r.modes[m.key].spineJudged || [], userSim: r.modes[m.key].userSim || [] }));
     report.byMode[m.key] = aggregate(per);
+    // 거울 품질 집계 — 스파인 위반율 + 역할극 수락/짜증률.
+    const allSpine = per.flatMap((s) => s.spineJudged);
+    const allSim = per.flatMap((s) => s.userSim).filter((u) => !u.inconclusive);
+    report.byMode[m.key].spine = { checked: allSpine.length, violations: allSpine.filter((v) => v.violation).length };
+    report.byMode[m.key].user_sim = { offers: allSim.length, keep: allSim.filter((u) => u.would_keep).length, annoyed: allSim.filter((u) => u.annoyed).length };
     for (const s of per) {
       const turnText = (i) => (s.scenario.turns[i]?.text || '').slice(0, 240);
       for (const r of s.score.planted.filter((p) => !p.hit)) findings.push({ mode: m.key, type: 'miss', kind: r.kind, want: WANT[r.kind], fired: r.fired, gist: r.gist, user_turn: turnText(r.turn) });
       for (const o of s.score.overfire) findings.push({ mode: m.key, type: 'over_fire', fired: o.fired, user_turn: turnText(o.turn) });
       for (const h of (s.hiddenJudged || []).filter((x) => !x.match && x.why !== 'not fired' && x.why !== 'not captured')) findings.push({ mode: m.key, type: 'hidden_mismatch', gist: s.score.planted.find((p) => p.turn === h.turn)?.gist, captured: h.captured, why: h.why });
+      for (const v of s.spineJudged.filter((x) => x.violation)) findings.push({ mode: m.key, type: 'spine_violation', kind: v.kind, tool: v.tool, text: v.text, why: v.why, user_turn: turnText(v.turn) });
+      for (const u of s.userSim.filter((x) => x.annoyed)) findings.push({ mode: m.key, type: 'user_annoyed', tool: u.tool, why: u.why, user_turn: turnText(u.turn) });
     }
   }
 

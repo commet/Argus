@@ -135,8 +135,8 @@ test('어시스턴트 발화의 예측 단서만으로도 주입된다 (창 확�
   assert.ok(context(out), 'assistant-turn cue must trigger the diagnosis');
 });
 
-// ── 5. 캡과 정산-전용 경로 ──────────────────────────────────────────────────
-test('진단은 세션당 3회 캡, 이후 종결 단서 + 열린 예측이면 정산-전용 재주입', () => {
+// ── 5. 캡(슬라이딩 윈도)과 정산-전용 경로 ───────────────────────────────────
+test('진단은 2시간 창에 3회 캡, 이후 종결 단서 + 열린 예측이면 정산-전용 재주입', () => {
   const cfg = tmp('argus-sense-cap-');
   const cwd = ledgerWith([{ id: 'd1', event: 'seal', predicate: '서버 이전 후에도 다운타임은 없다' }]);
   const predTurn = { session_id: 'cap', cwd, prompt: '다음 분기까지 매출 20% 성장할 것으로 예상합니다.' };
@@ -144,9 +144,9 @@ test('진단은 세션당 3회 캡, 이후 종결 단서 + 열린 예측이면 �
     const { out } = runSense(predTurn, { configDir: cfg });
     assert.ok(context(out), `diagnosis ${i + 1}/3 must fire`);
   }
-  // 4번째 예측 턴: 진단 캡 소진 + 종결 단서 없음 → 침묵
+  // 같은 창 안의 4번째 예측 턴 → 침묵
   const fourth = runSense(predTurn, { configDir: cfg });
-  assert.equal(fourth.out.trim(), '', 'diagnosis cap must hold');
+  assert.equal(fourth.out.trim(), '', 'in-window diagnosis cap must hold');
   // 종결 단서가 있는 턴: 정산-전용 재주입은 캡과 별도로 열려 있다
   const settle = runSense({ session_id: 'cap', cwd, prompt: '그거 결국 잘 됐어요, 무중단이었어요.' }, { configDir: cfg });
   const ctx = context(settle.out);
@@ -156,20 +156,37 @@ test('진단은 세션당 3회 캡, 이후 종결 단서 + 열린 예측이면 �
   assert.ok(!/LOAD-BEARING/.test(ctx), 'outcome-only nudge carries no full diagnosis');
 });
 
-test('정산-전용도 캡(4회)이 있다', () => {
+test('창이 지나면 진단이 다시 열린다 (긴 세션이 굶지 않음)', () => {
+  const cfg = tmp('argus-sense-win-');
+  mkdirSync(join(cfg, 'argus-sensed'), { recursive: true });
+  const threeHoursAgo = Date.now() - 3 * 60 * 60 * 1000;
+  writeFileSync(join(cfg, 'argus-sensed', 'win'), JSON.stringify({ diagTimes: [threeHoursAgo, threeHoursAgo, threeHoursAgo], out: 0, total: 3 }));
+  const { out } = runSense({ session_id: 'win', prompt: '다음 분기까지 매출 20% 성장할 것으로 예상합니다.' }, { configDir: cfg });
+  assert.ok(context(out), 'stale window must refresh the diagnosis budget');
+});
+
+test('세션 누적 상한(12)은 창과 무관하게 최종', () => {
+  const cfg = tmp('argus-sense-max-');
+  mkdirSync(join(cfg, 'argus-sensed'), { recursive: true });
+  const old = Date.now() - 3 * 60 * 60 * 1000;
+  writeFileSync(join(cfg, 'argus-sensed', 'max'), JSON.stringify({ diagTimes: [old], out: 0, total: 12 }));
+  const { out } = runSense({ session_id: 'max', prompt: '다음 분기까지 매출 20% 성장할 것으로 예상합니다.' }, { configDir: cfg });
+  assert.equal(out.trim(), '', 'session ceiling must hold even with a fresh window');
+});
+
+test('정산-전용도 캡(8회)이 있다 · 구판 {diag:3} 상태 이주', () => {
   const cfg = tmp('argus-sense-ocap-');
   const cwd = ledgerWith([{ id: 'd1', event: 'seal', predicate: '서버 이전 후에도 다운타임은 없다' }]);
-  writeFileSync(join(cfg, 'argus-sensed-init'), ''); // ensure dir parent exists via state write below
-  // 소진된 진단 상태를 미리 심는다
   mkdirSync(join(cfg, 'argus-sensed'), { recursive: true });
+  // 구판 숫자 상태 → 이주되어 진단은 창 안 소진, 정산 경로만 열림
   writeFileSync(join(cfg, 'argus-sensed', 'ocap'), JSON.stringify({ diag: 3, out: 0 }));
   const turn = { session_id: 'ocap', cwd, prompt: '그거 결국 잘 됐어요, 무중단이었어요.' };
-  for (let i = 0; i < 4; i++) {
+  for (let i = 0; i < 8; i++) {
     const { out } = runSense(turn, { configDir: cfg });
-    assert.ok(context(out), `outcome nudge ${i + 1}/4 must fire`);
+    assert.ok(context(out), `outcome nudge ${i + 1}/8 must fire`);
   }
-  const fifth = runSense(turn, { configDir: cfg });
-  assert.equal(fifth.out.trim(), '', 'outcome cap must hold');
+  const ninth = runSense(turn, { configDir: cfg });
+  assert.equal(ninth.out.trim(), '', 'outcome cap must hold');
 });
 
 // ── 6. 구판 마커 호환 ───────────────────────────────────────────────────────
@@ -193,13 +210,14 @@ test('ambient 옵트아웃이면 침묵 (스위치는 하나)', () => {
 });
 
 // ── 8. 상태 파일 형식 ───────────────────────────────────────────────────────
-test('상태 파일은 {diag,out} JSON으로 기록된다', () => {
+test('상태 파일은 {diagTimes[],out,total} JSON으로 기록된다', () => {
   const cfg = tmp('argus-sense-state-');
   runSense({ session_id: 'st', prompt: '다음 분기까지 매출 20% 성장할 것으로 예상합니다.' }, { configDir: cfg });
   const f = join(cfg, 'argus-sensed', 'st');
   assert.ok(existsSync(f));
   const s = JSON.parse(readFileSync(f, 'utf8'));
-  assert.equal(s.diag, 1);
+  assert.equal(s.diagTimes.length, 1);
+  assert.equal(s.total, 1);
 });
 
 console.log(`\n${pass} passed, ${fail} failed`);

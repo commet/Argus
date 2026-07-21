@@ -8,7 +8,7 @@
  */
 import assert from 'node:assert/strict';
 import {
-  scoreScenario, aggregate, runDetector, generateScenario, judgeHidden, extractJson, WANT,
+  scoreScenario, aggregate, runDetector, generateScenario, judgeHidden, judgeSpine, judgeUserSim, extractJson, WANT,
 } from './auto-detect-eval.mjs';
 
 let pass = 0, fail = 0;
@@ -118,6 +118,48 @@ test('judgeHidden: 판정기 match:true를 전달', async () => {
 test('extractJson: 앞뒤 산문 무시', () => {
   assert.deepEqual(extractJson('sure: {"a":1} done'), { a: 1 });
   assert.equal(extractJson('none'), null);
+});
+
+
+// ── 거울 품질 판정기: 기본값이 엄격/정직한가 ─────────────────────────────────
+test('judgeSpine: 파싱 실패는 위반으로 플래그(스파인은 관대하게 안 넘김)', async () => {
+  const garbage = async () => ({ content: [{ type: 'text', text: 'no json' }] });
+  const v = await judgeSpine(garbage, 'argus_capture', 'some capture');
+  assert.equal(v.violation, true);
+  assert.equal(v.kind, 'unparseable');
+});
+
+test('judgeSpine: 텍스트 없으면 검사 대상 아님', async () => {
+  const v = await judgeSpine(async () => ({}), 'argus_check_in', '');
+  assert.equal(v.violation, false);
+});
+
+test('judgeSpine: 판정 JSON 전달', async () => {
+  const yes = async () => ({ content: [{ type: 'text', text: '{"violation":true,"kind":"verdict","why":"says should"}' }] });
+  const v = await judgeSpine(yes, 'argus_capture', 'you should reconsider');
+  assert.equal(v.violation, true);
+  assert.equal(v.kind, 'verdict');
+});
+
+test('judgeUserSim: 파싱 실패는 inconclusive(수락률 부풀리기 금지)', async () => {
+  const garbage = async () => ({ content: [{ type: 'text', text: 'nah' }] });
+  const u = await judgeUserSim(garbage, [{ role: 'user', text: 'hi' }], 'argus_predict', 'p');
+  assert.equal(u.inconclusive, true);
+  assert.equal(u.would_keep, false);
+});
+
+test('judgeUserSim: 역할극 반응 전달', async () => {
+  const yes = async () => ({ content: [{ type: 'text', text: '{"would_keep":true,"annoyed":false,"why":"real call"}' }] });
+  const u = await judgeUserSim(yes, [{ role: 'user', text: 'x' }], 'argus_capture', 'premise');
+  assert.equal(u.would_keep, true);
+  assert.equal(u.annoyed, false);
+});
+
+test('runDetector: firedTexts에 predict predicate도 수집', async () => {
+  const fake = async () => ({ content: [{ type: 'tool_use', name: 'argus_predict', input: { predicate: 'churn drops below 3% by Q3' } }] });
+  const { firedTexts } = await runDetector(fake, 'SYS', { turns: [{ role: 'user', text: 'we will cut churn' }] });
+  assert.equal(firedTexts[0][0].tool, 'argus_predict');
+  assert.match(firedTexts[0][0].text, /churn drops/);
 });
 
 // 비동기 test들 완료 대기 후 요약
