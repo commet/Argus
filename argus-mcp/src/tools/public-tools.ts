@@ -2,6 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { z } from 'zod';
 import { resolveToolArgusDir } from '../lib/argus-dir.js';
+import { sanitizeOutput } from '../lib/untrusted.js';
 import { replayLedger } from '../lib/ledger-replay.js';
 import { resolveToday } from '../lib/resolve-today.js';
 import { STANDING_SENSE_REFRESH } from '../lib/spine.js';
@@ -292,7 +293,10 @@ function attachOpenPredictions(result: McpToolResult, args: Record<string, unkno
       .slice(0, 10)
       .map((c) => ({ id: c.id, predicate: String(c.predicate).slice(0, 140), check_by: c.check_by }));
     if (!open.length) return result;
-    data['open_predictions'] = open;
+    // 신뢰 경계: 이 라이더는 envelope()의 sanitizeOutput 깔때기 '이후'에 실행되므로
+    // 원장 predicate(사용자 저작 텍스트)를 직접 세탁해야 한다 — 안 하면 ANSI/bidi/
+    // zero-width 벡터가 세탁 안 된 채 모델에 직행하는 새 경로가 된다.
+    data['open_predictions'] = sanitizeOutput(open);
     data['standing_sense'] = STANDING_SENSE_REFRESH;
     result.content = [{ type: 'text', text: JSON.stringify(sc, null, 2) }];
   } catch { /* 라이더 실패는 침묵 — 본 결과를 해치지 않는다 */ }
