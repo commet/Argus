@@ -124,7 +124,13 @@ function driftOf(p: PremiseState): GroundDrift | null {
  *
  * Sort: drifted grounds first, then most live bets, then widest membership.
  */
-export function sharedGrounds(receipts: JudgmentReceipt[]): SharedGround[] {
+export function sharedGrounds(
+  receipts: JudgmentReceipt[],
+  opts: { minMembers?: number } = {},
+): SharedGround[] {
+  // Default ≥2 (a SHARED ground). The portfolio graph passes 1 to get EVERY
+  // premise as a node — a degree-1 premise is a leaf, a shared one is a hub.
+  const minMembers = opts.minMembers ?? 2;
   const byKey = new Map<string, SharedGround>();
 
   for (const r of receipts ?? []) {
@@ -144,7 +150,7 @@ export function sharedGrounds(receipts: JudgmentReceipt[]): SharedGround[] {
   const grounds: SharedGround[] = [];
   for (const g of byKey.values()) {
     const distinct = new Set(g.members.map((m) => m.receipt_id));
-    if (distinct.size < 2) continue;
+    if (distinct.size < minMembers) continue;
 
     // Live bets standing on this ground (dedup receipts; a receipt can carry
     // several open predicates — each is its own bet).
