@@ -21,8 +21,11 @@
 | R12 (추출 래칫 발효) | run 29811300850 | frozen 20/24 of0 · 추출 2/6 | frozen 22/24 of0 · 추출 2/6 | 판정기 검증 recall/spec **1.0** 통과(6/6 gold 매치·6/6 counter 기각 → 지표가 theater 아님 확인) → baseline에 hidden_extraction{judged:6,matched:2} 병합, hidTol=1로 발효(2→0 붕괴를 회귀로 잡음). convo-sim 라이더 정산 첫 실측: 양 모드 outcome 4/4·settled 4~5 | **추출 매치가 회귀 게이트에 발효** |
 
 | R13 (추출 정조준 발효) | run 29815025278 | frozen 22/24 of1 · 추출 **2→5**/6 | frozen 22/24 of0 · 추출 **2→6**/6 | spine sense#3를 "말한 표면 이유가 아니라 거짓이면 결정을 뒤집는 특정 미발화 사실을 짚어라"로 좁힘 + 예시 3개(무료티어·결제연기·벤더계약). 추출 매치 급등, fired/over 회귀 없음, 판정기 recall/spec 1.0 유지. baseline 추출 바닥을 보수적 4/4로 상향 잠금(관측 5·6, 단일 run 노이즈 감안). | **추출 바닥 2→4 상향 잠금** |
+| R14 (확장 코퍼스 재-base) | run 29821821799 (frozen-only, ~13분) | frozen 29/32 of0 · 추출 **11/14**(79%) | frozen 31/32 of0 · 추출 **12/14**(86%) | 코퍼스 hidden 6→14, 판정기 프로브 28에서 recall/spec **1.0 재확인**(요행 아님). 추출 개선 확정(옛 2/6→79~86%), over_fire 0 복귀(R13의 mcp 0→1은 노이즈였음). baseline을 14-hidden으로 재-base(추출 바닥 MCP 10·plugin 11). 케이스별 진단(hiddenDetail)으로 남은 miss 분석. profile=frozen 고속 모드로 40분→13분. | **추출 바닥 4→10·11 상향, 지표 신뢰 N=28로 강화** |
 
 ## 실측 발견 (생성 eval, 아침 리뷰 필수)
+
+- **추출 개선 확정 + 남은 miss의 성격 (R14):** 확장 14-세트에서 MCP 11/14·plugin 12/14(옛 2/6), 판정기 28프로브 1.0 유지. 남은 miss는 대부분 **compound/양가 gold**라 순수 감지 실패가 아님: (a) hid-ko-pricing gold가 '가격이 구매변수 AND 특정 경쟁사 비교' 두 전제를 묶어 단일-전제 원칙을 스스로 위반 — 감지기는 한 facet만 옳게 짚음(**gold 손질 후보**, 결과 보고 고치는 건 goalpost 이동이므로 투명 기록만); (b) hid-ko-annual은 감지기 '신규 전환' vs gold '기존 유지'로 둘 다 유효한 다른 facet; (c) hid-en-discount는 mcp가 capture 미발동(순수 recall 갭 1건). **판단: 프롬프트 정조준의 큰 이득은 이미 거둠 — 여기서 더 짜내면 손-작성 gold 과적합 위험. 남은 진짜 격차는 합성 튜닝이 아니라 도그푸딩/transcript-recall(실세션).**
 
 - **추출 정조준이 먹혔다 (R13):** 감지 프롬프트 한 문장(+예시 3개)만으로 추출 매치 2/6 → MCP 5·plugin 6. 실패 원인이 "표면 이유 되풀이"였다는 진단이 정확했음. 단일 run이라 baseline은 4/4로 보수적 잠금 — 2번째 확인 run에서 5·6 재현되면 상향. **관찰거리:** MCP over_fire가 0→1로 소폭 상승(TOL 내) — 정조준이 발동을 약간 적극적으로 만들 수 있으니 다음 run에서 과발동 추이 주시.
 

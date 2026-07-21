@@ -1,8 +1,8 @@
 {
-  "at": "29815025278",
-  "note": "R13(2026-07-21) 추출 정조준 발효 — spine sense#3를 '표면 이유가 아닌 뒤집히는 특정 미발화 전제'로 좁힌 뒤 run 29815025278에서 추출 매치가 2/6→MCP 5·plugin 6으로 급등(판정기 recall/spec 1.0 유지, fired/over 회귀 없음). 단일 run·N=6 노이즈 감안해 baseline은 보수적 matched:4로 잠금(관측 5·6). 2번째 확인 run 재현 시 상향. hidden_extraction.matched 하락(hidTol=1)·fired_correct 하락·over_fire 상승이 회귀.",
+  "at": "29821821799",
+  "note": "R14(2026-07-21) 확장 코퍼스(hidden 6→14) 재-base. run 29821821799(profile=frozen)에서 추출 매치 MCP 11/14·plugin 12/14, 판정기 28프로브 recall/spec 1.0, over_fire 0. 옛 2/6→79~86%로 확정(5/6이 요행 아님). hidden_extraction.matched 바닥은 관측-1의 보수적 floor(MCP 10·plugin 11, hidTol=1과 합쳐 2단계 노이즈 허용). fired_correct/over_fire/recall은 이 run 실측. hidden_extraction.matched 하락·fired_correct 하락·over_fire 상승이 회귀.",
   "byMode": {
-    "mcp": { "scenarios": 31, "recall": { "prediction": { "n": 9, "hit": 6 }, "outcome": { "n": 5, "hit": 5 }, "assumption": { "n": 4, "hit": 4 }, "hidden_assumption": { "n": 6, "hit": 5 } }, "planted_total": 24, "fired_correct": 20, "over_fire": { "filler_total": 8, "fired": 0 }, "hidden_extraction": { "judged": 6, "matched": 4 } },
-    "plugin": { "scenarios": 31, "recall": { "prediction": { "n": 9, "hit": 7 }, "outcome": { "n": 5, "hit": 5 }, "assumption": { "n": 4, "hit": 4 }, "hidden_assumption": { "n": 6, "hit": 6 } }, "planted_total": 24, "fired_correct": 22, "over_fire": { "filler_total": 8, "fired": 0 }, "hidden_extraction": { "judged": 6, "matched": 4 } }
+    "mcp": { "scenarios": 39, "recall": { "prediction": { "n": 9, "hit": 7 }, "outcome": { "n": 5, "hit": 5 }, "assumption": { "n": 4, "hit": 4 }, "hidden_assumption": { "n": 14, "hit": 13 } }, "planted_total": 32, "fired_correct": 29, "over_fire": { "filler_total": 8, "fired": 0 }, "hidden_extraction": { "judged": 14, "matched": 10 } },
+    "plugin": { "scenarios": 39, "recall": { "prediction": { "n": 9, "hit": 8 }, "outcome": { "n": 5, "hit": 5 }, "assumption": { "n": 4, "hit": 4 }, "hidden_assumption": { "n": 14, "hit": 14 } }, "planted_total": 32, "fired_correct": 31, "over_fire": { "filler_total": 8, "fired": 0 }, "hidden_extraction": { "judged": 14, "matched": 11 } }
   }
 }
