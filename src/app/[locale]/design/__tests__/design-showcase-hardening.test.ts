@@ -6,12 +6,11 @@ const designRoot = join(__dirname, '..');
 const read = (path: string) => readFileSync(join(designRoot, path), 'utf8');
 
 describe('internal design showcases', () => {
-  it('are unavailable to production visitors and search crawlers', () => {
+  it('tells search crawlers not to index the development references', () => {
     const layout = read('layout.tsx');
-    expect(layout).toContain("process.env.NODE_ENV === 'production'");
-    expect(layout).toContain('notFound()');
     expect(layout).toContain('index: false');
     expect(layout).toContain('follow: false');
+    expect(layout).not.toContain('notFound()');
   });
 
   it('lets foundry grids shrink within a narrow container', () => {

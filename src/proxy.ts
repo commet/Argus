@@ -48,6 +48,11 @@ function isReservedRootSeg(seg: string | undefined): boolean {
   return RESERVED_ROOT_PATHS.has(seg) || seg.includes('.');
 }
 
+function isInternalDesignPath(pathname: string, firstSeg: string | undefined): boolean {
+  if (!isLocale(firstSeg)) return false;
+  return pathname === `/${firstSeg}/design` || pathname.startsWith(`/${firstSeg}/design/`);
+}
+
 function buildCsp(nonce: string): string {
   // Dev only: React dev-mode uses eval() for debugging features (callstack
   // reconstruction) and logs a console error under a strict CSP. Production
@@ -102,6 +107,22 @@ export function proxy(req: NextRequest) {
   // Already locale-prefixed — proceed, expose the locale + the locale-less path
   // to layouts (the latter so generateMetadata can build a per-page canonical /
   // hreflang instead of inheriting the homepage's).
+  // The design foundry is a local development reference, not a production
+  // product surface. Rewriting to a guaranteed-missing localized route lets
+  // Next serve its real 404 document and status. In Next 16, notFound() thrown
+  // from the nested design layout is caught by the recoverable error boundary.
+  if (process.env.NODE_ENV === 'production' && isInternalDesignPath(pathname, firstSeg)) {
+    const requestHeaders = new Headers(req.headers);
+    requestHeaders.set('x-nonce', nonce);
+    requestHeaders.set('x-locale', firstSeg);
+    requestHeaders.set('x-pathname', pathname.slice(firstSeg.length + 1) || '');
+    const target = req.nextUrl.clone();
+    target.pathname = `/${firstSeg}/__internal_design_not_found__`;
+    const response = NextResponse.rewrite(target, { request: { headers: requestHeaders } });
+    response.headers.set('Content-Security-Policy', csp);
+    return response;
+  }
+
   if (isLocale(firstSeg)) {
     const requestHeaders = new Headers(req.headers);
     requestHeaders.set('x-nonce', nonce);
