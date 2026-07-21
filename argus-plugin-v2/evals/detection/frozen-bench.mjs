@@ -108,6 +108,7 @@ async function main() {
   const CONC = Number(process.env.FROZEN_CONCURRENCY || 1);
 
   const byMode = {};
+  const hiddenDetail = {}; // R14: 케이스별 진단(무엇을 짚었고 왜 틀렸나) — 다음 수정을 감이 아니라 데이터로.
   for (const m of [{ key: 'mcp', augment: null }, { key: 'plugin', augment: PLUGIN_AUGMENT }]) {
     const per = (await runPool(scenarios, async (s) => {
       const sys = s.open.length
@@ -120,16 +121,20 @@ async function main() {
       for (const p of s.planted.filter((x) => x.kind === 'hidden_assumption')) {
         const cap = detected.captures[p.turn] || '';
         const verdict = cap ? await judgeHidden(jud, p.gist, cap) : { match: false, why: 'not captured' };
-        hiddenJudged.push({ id: s.id, captured: cap.slice(0, 200), ...verdict });
+        hiddenJudged.push({ id: s.id, gold: String(p.gist).slice(0, 160), captured: cap.slice(0, 200), ...verdict });
       }
       return { scenario: s, score: scoreScenario(s, detected.fires), hiddenJudged };
     }, CONC)).filter((r) => r && r.score);
     byMode[m.key] = aggregate(per.map((r) => ({ scenario: r.scenario, score: r.score, hiddenJudged: r.hiddenJudged })));
+    // 놓친 케이스만 진단으로 남긴다(전수 대신 실패에 집중 — 다음 레버 찾기용).
+    hiddenDetail[m.key] = per.flatMap((r) => r.hiddenJudged).filter((h) => !h.match)
+      .map((h) => ({ id: h.id, why: h.why, gold: h.gold, captured: h.captured }));
     const he = byMode[m.key].hidden_extraction;
     console.log(`  ${m.key}: 정발동 ${byMode[m.key].fired_correct}/${byMode[m.key].planted_total} · 과발동 ${byMode[m.key].over_fire.fired}/${byMode[m.key].over_fire.filler_total} · 추출매치 ${he.matched}/${he.judged}`);
+    if (hiddenDetail[m.key].length) for (const d of hiddenDetail[m.key]) console.log(`    MISS[${m.key}] ${d.id}: ${d.why}`);
   }
 
-  const current = { at: process.env.RUN_STAMP || null, byMode };
+  const current = { at: process.env.RUN_STAMP || null, byMode, hiddenDetail };
   fs.writeFileSync(path.join(HERE, 'frozen-bench-report.json'), JSON.stringify(current, null, 2));
   console.log('===FROZEN_BENCH_START===');
   console.log(JSON.stringify(current));

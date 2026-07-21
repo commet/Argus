@@ -120,6 +120,66 @@ export const CORPUS = [
     counter: 'the sales team is currently understaffed',
   },
 
+  // ── HIDDEN ASSUMPTION 확장 (R14, 2026-07-21) — 표면 이유 함정의 다양한 변주.
+  // N=6→14로 키워 추출 지표 신뢰를 높이고 새 실패 패턴을 발굴한다. 각 counter는
+  // "발화된 이유 되풀이" 또는 "일반적 참"으로, 옳은 급소가 아니다(판정기가 기각해야).
+  {
+    id: 'hid-ko-annual', user: '요금제를 연간 결제로 다 바꾸자 — 어차피 다들 오래 쓸 거니까.',
+    labels: ['hidden_assumption'],
+    gold: '지금 고객이 1년을 이탈 없이 유지한다 — 월간의 유연성이 그들이 남는 이유가 아니라는 전제',
+    gold_para: '연 단위로 묶어도 지금 고객들이 중간에 떠나지 않는다',
+    counter: '연간 결제가 현금흐름에 유리하다',
+  },
+  {
+    id: 'hid-en-deprecate', user: "Let's deprecate the v1 API next month — barely anyone is still on it.",
+    labels: ['hidden_assumption'],
+    gold: 'the few accounts still on v1 are not high-value or hard-to-migrate ones we cannot afford to break',
+    gold_para: 'the handful left on v1 are not critical customers whose breakage would hurt us',
+    counter: 'maintaining v1 costs engineering time',
+  },
+  {
+    id: 'hid-ko-rto', user: '전원 사무실 복귀로 돌리자 — 원격에서 생산성이 떨어졌잖아.',
+    labels: ['hidden_assumption'],
+    gold: '생산성 저하의 원인이 원격 근무 자체다 — 채용·온보딩·특정 인력 이슈 등 다른 원인이 아니라는 전제',
+    gold_para: '떨어진 생산성이 원격 탓이지 다른 요인 때문이 아니다',
+    counter: '사무실 복귀는 임대료 부담을 늘린다',
+  },
+  {
+    id: 'hid-en-discount', user: 'We should run a 50% launch discount — it will get us the volume we need.',
+    labels: ['hidden_assumption'],
+    gold: 'discount-acquired users retain and convert like normal ones, not bargain-hunters who churn after the promo',
+    gold_para: 'the people who come for the 50% off will stick and pay full price later',
+    counter: 'a 50% discount lowers per-unit revenue',
+  },
+  {
+    id: 'hid-ko-inhouse', user: '결제 시스템은 직접 구축하자 — 수수료 아끼게.',
+    labels: ['hidden_assumption'],
+    gold: '구축·유지·규정준수(PCI/사기대응)의 총비용과 리스크가 아끼는 수수료보다 작다는 전제',
+    gold_para: '직접 만들어 굴리는 총비용이 결국 수수료보다 싸게 먹힌다',
+    counter: '결제 수수료가 매출의 약 3%를 차지한다',
+  },
+  {
+    id: 'hid-en-logo', user: "Let's chase that enterprise logo even at a loss — the case study will pay for itself.",
+    labels: ['hidden_assumption'],
+    gold: 'this logo actually drives enough future deals (brand halo converts) to justify the loss, not a one-off money-loser',
+    gold_para: 'landing this name will bring in later deals that more than cover taking it at a loss',
+    counter: 'enterprise deals take longer to close than SMB',
+  },
+  {
+    id: 'hid-ko-ads', user: '인스타 광고 예산을 세 배로 올리자 — CAC가 채널 중 제일 좋으니까.',
+    labels: ['hidden_assumption'],
+    gold: '현재 CAC가 예산 3배 규모에서도 유지된다 — 그 채널이 그 지출에서 포화하지 않는다는 전제',
+    gold_para: '지출을 세 배로 늘려도 획득단가가 지금처럼 좋게 유지된다',
+    counter: '인스타가 지금 채널 중 CAC가 가장 낮다',
+  },
+  {
+    id: 'hid-en-chatbot', user: "Let's move all support to chatbot-only — tickets are mostly repetitive.",
+    labels: ['hidden_assumption'],
+    gold: 'the repetitive-looking tickets do not hide high-value or at-risk-account issues that need a human, so deflection will not cost retention',
+    gold_para: 'sending everyone to the bot will not lose us accounts that actually needed a person',
+    counter: 'a chatbot costs less than support staff',
+  },
+
   // ── 음성 — 사전필터가 스킵해야 비용이 절약되는 면 (스킵 기대) ────────────
   { id: 'neg-weather', user: '오늘 날씨 어때?', labels: [], expectSkip: true },
   { id: 'neg-explain', user: '이 함수가 뭐 하는 건지 설명해줘.', labels: [], expectSkip: true },

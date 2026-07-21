@@ -15,6 +15,9 @@ on:
       concurrency:
         description: '동시 시나리오 수 (낮게 — rate limit 회피)'
         default: '1'
+      profile:
+        description: "full=전체, frozen=고정 벤치+판정기만(빠른 반복, 생성 eval·convo-sim 생략)"
+        default: 'full'
 
 jobs:
   auto-eval:
@@ -44,6 +47,7 @@ jobs:
           AUTO_MIN_DELAY_MS: '2500'
           RUN_STAMP: ${{ github.run_id }}
       - name: Run auto detection eval
+        if: ${{ github.event.inputs.profile != 'frozen' }}
         run: node argus-plugin-v2/evals/detection/auto-detect-eval.mjs
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
@@ -62,6 +66,7 @@ jobs:
       # 진짜 다중 턴 루프 + 정산 라이더 시뮬(Stage 1) — 단발 하네스가 못 재던
       # 라이더 정산 효과를 실측. 래칫은 아직 없음(측정치 수집 단계).
       - name: Convo-sim (real multi-turn loop + settlement rider)
+        if: ${{ github.event.inputs.profile != 'frozen' }}
         run: node argus-plugin-v2/evals/detection/convo-sim.mjs
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
