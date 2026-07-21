@@ -55,6 +55,27 @@ export interface GroundDrift {
   ts?: string;
 }
 
+/**
+ * The SETTLED track-record of the bets standing on this ground — the EXECUTION
+ * tier (what already resolved), kept distinct from `live_bets`' STRUCTURAL tier
+ * (what could still break). BLUEPRINT §9.9 V2 axis #1.
+ *
+ * SPINE: facts + counts ONLY. This is "of the decisions resting on this ground,
+ * N settled — held/broke/mixed" — a neutral tally, NEVER a grade, tier, score,
+ * or verdict about the user. The graph layer renders these as a bare "2✓ / 1✗"
+ * string; it must never compute a quality judgment from them.
+ */
+export interface GroundRecord {
+  /** held + broke + mixed (settled bets on this ground; excludes open/unclear). */
+  settled: number;
+  /** outcome happened | avoided — the bet held. */
+  held: number;
+  /** outcome missed — the bet broke. */
+  broke: number;
+  /** outcome partial — mixed. */
+  mixed: number;
+}
+
 export interface SharedGround {
   /** normalizePremiseText key — the identity of the ground. */
   key: string;
@@ -64,6 +85,9 @@ export interface SharedGround {
   /** Sealed, unsettled predicates on member receipts — what stands on this ground. */
   live_bets: LiveBet[];
   drift?: GroundDrift;
+  /** Settled outcomes of the bets on this ground (execution tier). Absent when
+   *  nothing has settled yet — an honest gap, never a fabricated 0-of-0 grade. */
+  record?: GroundRecord;
 }
 
 /** The armed rule — same expression as review-sync.ts / PremiseTracker.tsx.
@@ -100,7 +124,13 @@ function driftOf(p: PremiseState): GroundDrift | null {
  *
  * Sort: drifted grounds first, then most live bets, then widest membership.
  */
-export function sharedGrounds(receipts: JudgmentReceipt[]): SharedGround[] {
+export function sharedGrounds(
+  receipts: JudgmentReceipt[],
+  opts: { minMembers?: number } = {},
+): SharedGround[] {
+  // Default ≥2 (a SHARED ground). The portfolio graph passes 1 to get EVERY
+  // premise as a node — a degree-1 premise is a leaf, a shared one is a hub.
+  const minMembers = opts.minMembers ?? 2;
   const byKey = new Map<string, SharedGround>();
 
   for (const r of receipts ?? []) {
@@ -120,7 +150,7 @@ export function sharedGrounds(receipts: JudgmentReceipt[]): SharedGround[] {
   const grounds: SharedGround[] = [];
   for (const g of byKey.values()) {
     const distinct = new Set(g.members.map((m) => m.receipt_id));
-    if (distinct.size < 2) continue;
+    if (distinct.size < minMembers) continue;
 
     // Live bets standing on this ground (dedup receipts; a receipt can carry
     // several open predicates — each is its own bet).
@@ -149,6 +179,25 @@ export function sharedGrounds(receipts: JudgmentReceipt[]): SharedGround[] {
       if (d && (!drift || (d.ts ?? '') > (drift.ts ?? ''))) drift = d;
     }
     if (drift) g.drift = drift;
+
+    // Settled track-record (execution tier) — count settled outcomes of the bets
+    // on this ground's distinct member receipts. Facts only; map the settle
+    // vocabulary → held/broke/mixed. unclear/unsettled are excluded (honest gap).
+    const recSeen = new Set<string>();
+    let held = 0, broke = 0, mixed = 0;
+    for (const m of g.members) {
+      if (recSeen.has(m.receipt_id)) continue;
+      recSeen.add(m.receipt_id);
+      const r = (receipts ?? []).find((x) => x.receipt_id === m.receipt_id);
+      if (!r) continue;
+      for (const f of r.falsifiable_followups ?? []) {
+        if (!f.settled_at || !f.outcome || f.outcome === 'unclear') continue;
+        if (f.outcome === 'happened' || f.outcome === 'avoided') held += 1;
+        else if (f.outcome === 'missed') broke += 1;
+        else if (f.outcome === 'partial') mixed += 1;
+      }
+    }
+    if (held + broke + mixed > 0) g.record = { settled: held + broke + mixed, held, broke, mixed };
 
     grounds.push(g);
   }
