@@ -24,8 +24,11 @@
 | R14 (확장 코퍼스 재-base) | run 29821821799 (frozen-only, ~13분) | frozen 29/32 of0 · 추출 **11/14**(79%) | frozen 31/32 of0 · 추출 **12/14**(86%) | 코퍼스 hidden 6→14, 판정기 프로브 28에서 recall/spec **1.0 재확인**(요행 아님). 추출 개선 확정(옛 2/6→79~86%), over_fire 0 복귀(R13의 mcp 0→1은 노이즈였음). baseline을 14-hidden으로 재-base(추출 바닥 MCP 10·plugin 11). 케이스별 진단(hiddenDetail)으로 남은 miss 분석. profile=frozen 고속 모드로 40분→13분. | **추출 바닥 4→10·11 상향, 지표 신뢰 N=28로 강화** |
 
 | R15 (거짓 회귀 수리) | run 29840176601 (main·frozen-only) | 추출 10→8 (거짓 트립) | 추출 11→12 (↑) | main 첫 측정에서 프로즌 래칫 트립 — 진단: **코드 회귀 아님**. mcp 추출 6 miss 중 1건은 판정기 절단(hid-ko-pricing "unparseable"→오탐), 나머지는 compound 케이스 run 노이즈. 수리: ①judgeHidden max_tokens 200→500(R8 judgeSpine와 동일 버그 계열) ②추출 hidTol 1→3(비결정 지표 ±2~3 요동 흡수, 4칸+ 실붕괴만 잡음). 판정기 검증 1.0 유지, baseline(10/11) 유지. | **추출 게이트 노이즈-강건화** |
+| R16 (판정기 게이트 API-오류 강건화) | run 29865387115 (529 crash) | — | — | main full run이 judge-validation 게이트에서 `Error: API 529`(Anthropic overloaded)로 crash(exit 1) → run 실패. 진단: **품질/판정기 문제 아님** — 전이적 API 과부하가 재시도(5회 백오프) 소진 후 throw. 수리: validate-judge가 프로브별 API 오류를 catch해 미채점 처리(scoreJudge 분모 제외), 20%↑ 미채점이면 게이트 스킵(exit 0 = 인프라 실패, 회귀 아님). frozen의 '빈 run ≠ 회귀'와 동일 원칙. 이 run은 게이트 전에서 죽어 품질은 미측정 — 재run 필요. | 게이트가 API 과부하에 crash 안 함 |
 
 ## 실측 발견 (생성 eval, 아침 리뷰 필수)
+
+- **판정기 게이트가 API 529에 crash했다 (R16):** validate-judge는 runPool을 안 써서 판정 호출이 throw하면 그대로 crash(exit 1) → full run 전체 실패. 전이적 Anthropic 과부하(529)를 품질 실패로 오판한 셈. 이제 인프라 오류는 미채점으로 격리하고 과다하면 게이트 스킵. **교훈: 라이브 게이트는 전부 API 오류를 인프라(회귀 아님)로 처리해야 한다 — 크래시로 run을 죽이면 안 된다.**
 
 - **hidTol=1은 너무 빡빡했다 (R15):** main 첫 frozen에서 mcp 추출 10→8로 거짓 회귀 트립. 추출은 비결정 감지기+LLM 판정이라 fired_correct보다 단일-run 요동이 크다(±2~3). 게다가 판정기 max_tokens 200이 한국어 "why"를 절단해 오탐 miss 1건(hid-ko-pricing)을 만들었다. hidTol 3 + judge 500으로 수리 — 이제 run 노이즈는 통과하고 옛 붕괴 수준(≤6)만 빨간불. baseline은 그대로. **교훈: 새 지표를 게이트에 걸 땐 그 지표의 단일-run 분산을 먼저 재고 톨러런스를 잡아라.**
 - **절단 버그 전수 수리 + 표면화 (R15):** judgeHidden(200→500)뿐 아니라 **judgeUserSim도 250→500**이었다(같은 계열 — 한국어 "why" 절단→inconclusive로 조용히 드롭돼 keep/짜증 지표를 왜곡). 더 근본적으로, 세 판정기 모두 parse-fail을 조용히 miss/violation/inconclusive로 삼켰다(honest-structure 위반). `isJudgeParseFail` + frozen 리포트의 `judge_parse_fail` 카운트 + loud 로그를 추가해, 앞으로 절단이 지표에 숨지 못하게 했다.

@@ -62,6 +62,21 @@ test('scoreJudge: 너무 관대(counter를 통과) → specificity 하락 · 게
   assert.deepEqual(s.false_positive_ids, ['a']);
 });
 
+test('scoreJudge: API 오류로 미채점된 프로브(r.error)는 분모에서 제외 (R16)', () => {
+  const results = [
+    { id: 'a', kind: 'positive', match: true },
+    { id: 'b', kind: 'positive', error: 'API 529' }, // 미채점 — 분모에서 빠져야
+    { id: 'a', kind: 'negative', match: false },
+    { id: 'b', kind: 'negative', error: 'API 529' },
+  ];
+  const s = scoreJudge(results);
+  assert.equal(s.positives, 1, '에러 프로브 제외 → positive 1개만');
+  assert.equal(s.negatives, 1);
+  assert.equal(s.recall, 1, '채점된 것만으로 recall 1');
+  assert.equal(s.specificity, 1);
+  assert.equal(s.ok, true, '인프라 오류가 품질 점수를 안 깎는다');
+});
+
 test('scoreJudge: 너무 엄격(gold_para를 miss) → recall 하락 · 게이트 실패', () => {
   const results = [
     { id: 'a', kind: 'positive', match: false }, // 충실한 캡처를 놓침

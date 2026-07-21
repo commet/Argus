@@ -39,10 +39,13 @@ export function judgeProbes(corpus = CORPUS) {
   return probes;
 }
 
-/** 순수 스코어러 — 프로브 결과(match 판정)에서 recall/specificity 계산 + 게이트. */
+/** 순수 스코어러 — 프로브 결과(match 판정)에서 recall/specificity 계산 + 게이트.
+ *  API 오류로 미채점된 프로브(r.error)는 분모에서 제외한다 — 인프라 실패가 판정기
+ *  품질 점수를 끌어내리면 안 된다(R16: 529 overloaded로 프로브가 throw했던 사례). */
 export function scoreJudge(results, recMin = REC_MIN, specMin = SPEC_MIN) {
-  const pos = results.filter((r) => r.kind === 'positive');
-  const neg = results.filter((r) => r.kind === 'negative');
+  const scored = results.filter((r) => !r.error);
+  const pos = scored.filter((r) => r.kind === 'positive');
+  const neg = scored.filter((r) => r.kind === 'negative');
   const matchedPos = pos.filter((r) => r.match === true).length;
   const rejectedNeg = neg.filter((r) => r.match === false).length;
   const recall = pos.length ? matchedPos / pos.length : 1;
@@ -71,10 +74,30 @@ async function main() {
   const jud = makeAnthropicCaller(key, process.env.AUTO_JUDGE_MODEL || 'claude-sonnet-5');
 
   const results = [];
+  let errored = 0;
   for (const p of probes) {
-    const v = await judgeHidden(jud, p.gold, p.captured);
+    let v;
+    try {
+      v = await judgeHidden(jud, p.gold, p.captured);
+    } catch (e) {
+      // API 오류(예: 529 overloaded)로 재시도까지 소진 → 이 프로브는 미채점.
+      // crash(exit 1)로 run 전체를 죽이지 않는다 — 인프라 실패는 품질 판정과 별개.
+      errored++;
+      const msg = String(e && e.message).slice(0, 60);
+      results.push({ ...p, match: null, error: msg });
+      console.log(`  ${p.id.padEnd(18)} [${p.kind}] → API 오류(${msg}) — 미채점(인프라)`);
+      continue;
+    }
     results.push({ ...p, match: v.match, why: v.why });
     console.log(`  ${p.id.padEnd(18)} [${p.kind}] expect ${p.expect} → judge ${v.match} ${v.match === p.expect ? 'OK' : '✗ MISCLASSIFIED'}`);
+  }
+  // 인프라 가드: API 오류로 20%↑ 프로브가 미채점이면 판정기 품질을 신뢰성 있게 잴 수
+  // 없다 → 게이트를 빨간불로 만들지 말고(품질 회귀 아님) 스킵하고 통과. 다음 run 재측정.
+  // (frozen-bench의 '빈 run ≠ 회귀'와 같은 원칙. R16: 529로 gate가 crash했던 수리.)
+  if (probes.length && errored / probes.length > 0.2) {
+    console.log(`JUDGE_VALIDATION_SKIPPED: ${errored}/${probes.length} 프로브가 API 오류로 미채점(인프라 실패 추정, 예: 529 overloaded). 게이트 스킵 — 품질 회귀 아님. 다음 run에서 재측정.`);
+    fs.writeFileSync(path.join(HERE, 'validate-judge-report.json'), JSON.stringify({ at: process.env.RUN_STAMP || null, skipped: true, errored, probes: probes.length, results }, null, 2));
+    return;
   }
   const score = scoreJudge(results);
   console.log('\n=== 판정기 검증 (judgeHidden) ===');
