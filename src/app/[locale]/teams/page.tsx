@@ -8,6 +8,8 @@ import {
   ChevronUp,
   Mail,
   Plus,
+  Copy,
+  RefreshCw,
   Send,
   Trash2,
   UserRound,
@@ -69,23 +71,76 @@ export default function TeamsPage() {
   const [reviewRating, setReviewRating] = useState<number | null>(null);
   const [reviewComment, setReviewComment] = useState('');
   const [notice, setNotice] = useState('');
+  const [initialLoading, setInitialLoading] = useState(true);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [inviteLink, setInviteLink] = useState('');
 
   useEffect(() => {
+    let active = true;
     loadProjects();
-    void loadTeams();
-    void loadMyInvites().then(setMyInvites);
+    setInitialLoading(true);
+    void (async () => {
+      try {
+        // Keep reads ordered so a later successful request cannot erase an
+        // earlier failure while the page still shows incomplete data.
+        await loadTeams();
+        const pending = await loadMyInvites();
+        if (active) setMyInvites(pending);
+      } finally {
+        if (active) setInitialLoading(false);
+      }
+    })();
+    return () => { active = false; };
   }, [loadMyInvites, loadProjects, loadTeams]);
 
   useEffect(() => {
-    if (!currentTeamId) return;
-    void Promise.all([loadMembers(currentTeamId), loadTeamProjects(currentTeamId)]);
+    if (!currentTeamId) {
+      setDetailLoading(false);
+      return;
+    }
+    let active = true;
+    setDetailLoading(true);
+    void Promise.all([loadMembers(currentTeamId), loadTeamProjects(currentTeamId)])
+      .finally(() => { if (active) setDetailLoading(false); });
     setExpandedProjectId(null);
+    return () => { active = false; };
   }, [currentTeamId, loadMembers, loadTeamProjects]);
 
   const currentTeam = teams.find((team) => team.id === currentTeamId);
   const manager = isTeamManager();
   const ownProjectIds = useMemo(() => new Set(projects.map((project) => project.id)), [projects]);
   const shareCandidates = projects.filter((project) => !project.team_id && !teamProjects.some((shared) => shared.id === project.id));
+
+  async function retryTeamData() {
+    setInitialLoading(true);
+    try {
+      await loadTeams();
+      const pending = await loadMyInvites();
+      setMyInvites(pending);
+      const selected = useTeamStore.getState().currentTeamId;
+      if (selected) {
+        setDetailLoading(true);
+        await Promise.all([loadMembers(selected), loadTeamProjects(selected)]);
+      }
+    } finally {
+      setDetailLoading(false);
+      setInitialLoading(false);
+    }
+  }
+
+  async function copyInviteLink(url: string) {
+    try {
+      if (!navigator.clipboard?.writeText) throw new Error('clipboard unavailable');
+      await navigator.clipboard.writeText(url);
+      setInviteLink('');
+      setNotice(L('초대 링크를 복사했어요.', 'Invitation link copied.'));
+      return true;
+    } catch {
+      setInviteLink(url);
+      setNotice(L('초대는 저장했지만 링크를 자동으로 복사하지 못했어요.', 'The invitation was saved, but the link could not be copied automatically.'));
+      return false;
+    }
+  }
 
   async function handleCreate() {
     if (!teamName.trim()) return;
@@ -98,14 +153,14 @@ export default function TeamsPage() {
 
   async function handleInvite() {
     if (!currentTeamId || !inviteEmail.trim()) return;
+    setInviteLink('');
     const result = await inviteMember(currentTeamId, inviteEmail, inviteRole, locale);
     if (!result) return;
     setInviteEmail('');
     if (result.delivery === 'email') {
       setNotice(L('초대 메일을 보냈어요.', 'Invitation email sent.'));
     } else {
-      await navigator.clipboard?.writeText(result.inviteUrl).catch(() => undefined);
-      setNotice(L('초대를 저장하고 초대 링크를 복사했어요.', 'Invitation saved and link copied.'));
+      await copyInviteLink(result.inviteUrl);
     }
   }
 
@@ -139,7 +194,7 @@ export default function TeamsPage() {
   }
 
   return (
-    <div className="mx-auto max-w-5xl pb-16">
+    <div className="mx-auto w-full min-w-0 max-w-5xl pb-16">
       <LocaleLink href="/workspace" className="inline-flex min-h-11 items-center gap-1.5 text-[13px] font-medium text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)]">
         <ArrowLeft size={14} aria-hidden="true" />
         {L('워크스페이스로', 'Back to workspace')}
@@ -155,11 +210,25 @@ export default function TeamsPage() {
 
       {notice && (
         <div className="mt-6 flex items-start justify-between gap-3 border-y border-[var(--border-subtle)] py-3 text-[13px] text-[var(--text-secondary)]" role="status">
-          <span className="flex items-center gap-2"><Check size={14} className="text-[var(--success)]" aria-hidden="true" />{notice}</span>
+          <span className="flex min-w-0 items-start gap-2 break-words"><Check size={14} className="mt-0.5 shrink-0 text-[var(--success)]" aria-hidden="true" />{notice}</span>
           <button type="button" onClick={() => setNotice('')} className="min-h-8 min-w-8 text-[var(--text-tertiary)]" aria-label={L('알림 닫기', 'Dismiss notice')}><X size={14} /></button>
         </div>
       )}
-      {loadError && <p className="mt-4 text-[13px] text-[var(--danger)]" role="alert">{L('요청을 처리하지 못했어요. 연결을 확인하고 다시 시도해 주세요.', 'The request could not be completed. Check your connection and try again.')}</p>}
+      {inviteLink && (
+        <div className="mt-3 rounded-xl border border-[var(--warning)]/30 bg-[var(--warning)]/10 p-3" role="status">
+          <label htmlFor="team-invite-link" className="text-[12px] font-semibold text-[var(--text-primary)]">{L('직접 복사할 초대 링크', 'Invitation link to copy manually')}</label>
+          <div className="mt-2 flex flex-col gap-2 sm:flex-row">
+            <input id="team-invite-link" readOnly value={inviteLink} onFocus={(event) => event.currentTarget.select()} className="min-h-11 min-w-0 flex-1 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 text-[12px] text-[var(--text-secondary)]" />
+            <Button size="sm" variant="secondary" onClick={() => void copyInviteLink(inviteLink)}><Copy size={13} aria-hidden="true" />{L('다시 복사', 'Copy again')}</Button>
+          </div>
+        </div>
+      )}
+      {loadError && (
+        <div className="mt-4 flex flex-col items-start justify-between gap-3 border-y border-[var(--danger)]/25 py-3 text-[13px] text-[var(--danger)] sm:flex-row sm:items-center" role="alert">
+          <p className="min-w-0 break-words">{L('요청을 처리하지 못했어요. 연결을 확인하고 다시 시도해 주세요.', 'The request could not be completed. Check your connection and try again.')}</p>
+          <Button size="sm" variant="secondary" disabled={initialLoading} onClick={() => void retryTeamData()}><RefreshCw size={13} className={initialLoading ? 'animate-spin motion-reduce:animate-none' : ''} aria-hidden="true" />{L('다시 불러오기', 'Try again')}</Button>
+        </div>
+      )}
 
       {myInvites.length > 0 && (
         <section className="mt-8 border-y border-[var(--border)] py-4" aria-labelledby="incoming-heading">
@@ -170,8 +239,8 @@ export default function TeamsPage() {
           <div className="mt-2 divide-y divide-[var(--border-subtle)]">
             {myInvites.map((invite) => (
               <div key={invite.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
-                <div>
-                  <p className="text-[14px] font-semibold text-[var(--text-primary)]">{invite.team_name || L('이름 없는 팀', 'Unnamed team')}</p>
+                <div className="min-w-0 flex-1">
+                  <p className="[overflow-wrap:anywhere] text-[14px] font-semibold text-[var(--text-primary)]">{invite.team_name || L('이름 없는 팀', 'Unnamed team')}</p>
                   <p className="mt-0.5 text-[12px] text-[var(--text-tertiary)]">{invite.role === 'admin' ? L('관리자로 초대됨', 'Invited as manager') : L('멤버로 초대됨', 'Invited as member')}</p>
                 </div>
                 <div className="flex gap-2">
@@ -196,14 +265,22 @@ export default function TeamsPage() {
           </button>
         </div>
 
-        {teams.length === 0 ? (
+        {initialLoading ? (
+          <div className="mt-3 border-y border-[var(--border)] py-8" role="status" aria-live="polite" aria-label={L('팀을 불러오는 중', 'Loading teams')}>
+            <div className="mx-auto max-w-md space-y-3" aria-hidden="true">
+              <div className="h-4 w-2/5 animate-pulse motion-reduce:animate-none rounded bg-[var(--border-subtle)]" />
+              <div className="h-12 animate-pulse motion-reduce:animate-none rounded-xl bg-[var(--surface)]" />
+              <div className="h-12 animate-pulse motion-reduce:animate-none rounded-xl bg-[var(--surface)]" />
+            </div>
+          </div>
+        ) : teams.length === 0 && !loadError ? (
           <div className="mt-3 border-y border-[var(--border)] py-10 text-center">
             <UsersRound size={26} className="mx-auto text-[var(--text-tertiary)]" aria-hidden="true" />
             <p className="mt-3 text-[15px] font-semibold text-[var(--text-primary)]">{L('아직 만든 팀이 없어요', 'No team yet')}</p>
             <p className="mx-auto mt-1 max-w-md text-[13px] leading-6 text-[var(--text-secondary)]">{L('함께 결정을 검토할 사람을 초대해 보세요. 팀을 만든 뒤 기존 결정을 선택해 공유할 수 있어요.', 'Invite people who should review decisions with you. Once the team exists, choose an existing decision to share.')}</p>
             <Button className="mt-5" onClick={() => setCreateOpen(true)}><Plus size={14} />{L('첫 팀 만들기', 'Create first team')}</Button>
           </div>
-        ) : (
+        ) : teams.length > 0 ? (
           <div className="mt-2 flex gap-1 overflow-x-auto border-b border-[var(--border)]" role="tablist" aria-label={L('팀 선택', 'Choose team')}>
             {teams.map((team) => (
               <button
@@ -212,18 +289,19 @@ export default function TeamsPage() {
                 role="tab"
                 aria-selected={team.id === currentTeamId}
                 onClick={() => setCurrentTeam(team.id)}
-                className={`relative min-h-12 shrink-0 px-4 text-[13px] font-semibold transition-colors ${team.id === currentTeamId ? 'text-[var(--text-primary)]' : 'text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]'}`}
+                title={team.name}
+                className={`relative min-h-12 max-w-[min(18rem,75vw)] shrink-0 truncate px-4 text-[13px] font-semibold transition-colors ${team.id === currentTeamId ? 'text-[var(--text-primary)]' : 'text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]'}`}
               >
                 {team.name}
                 {team.id === currentTeamId && <span className="absolute inset-x-3 bottom-0 h-0.5 bg-[var(--accent)]" aria-hidden="true" />}
               </button>
             ))}
           </div>
-        )}
+        ) : null}
       </section>
 
       {currentTeam && currentTeamId && (
-        <div className="mt-9 grid gap-12 lg:grid-cols-[minmax(0,1fr)_250px]">
+        <div className="mt-9 grid min-w-0 gap-12 lg:grid-cols-[minmax(0,1fr)_250px]">
           <div className="min-w-0">
             <section aria-labelledby="shared-heading">
               <div className="flex flex-wrap items-end justify-between gap-4">
@@ -243,7 +321,11 @@ export default function TeamsPage() {
                 <Button size="sm" disabled={!shareProjectId} onClick={handleShare}>{L('팀에 공유', 'Share with team')}</Button>
               </div>
 
-              {teamProjects.length === 0 ? (
+              {detailLoading ? (
+                <div className="space-y-3 py-8" role="status" aria-live="polite" aria-label={L('공유된 결정을 불러오는 중', 'Loading shared decisions')}>
+                  {[0, 1].map((item) => <div key={item} aria-hidden="true" className="h-16 animate-pulse motion-reduce:animate-none rounded-xl bg-[var(--surface)]" />)}
+                </div>
+              ) : teamProjects.length === 0 ? (
                 <div className="py-12 text-center">
                   <p className="text-[14px] font-semibold text-[var(--text-primary)]">{L('아직 공유된 결정이 없어요', 'Nothing shared yet')}</p>
                   <p className="mt-1 text-[13px] text-[var(--text-secondary)]">{L('위에서 기존 결정을 고르면 바로 함께 검토할 수 있어요.', 'Choose an existing decision above to start a team review.')}</p>
@@ -281,13 +363,15 @@ export default function TeamsPage() {
             </section>
           </div>
 
-          <aside className="border-t border-[var(--border)] pt-5 lg:border-t-0 lg:border-l lg:pl-7 lg:pt-0" aria-labelledby="people-heading">
+          <aside className="min-w-0 border-t border-[var(--border)] pt-5 lg:border-t-0 lg:border-l lg:pl-7 lg:pt-0" aria-labelledby="people-heading">
             <div className="flex items-baseline justify-between">
               <h2 id="people-heading" className="text-[15px] font-bold text-[var(--text-primary)]">{L('사람', 'People')}</h2>
               <span className="text-[12px] text-[var(--text-tertiary)]">{members.length}</span>
             </div>
-            <div className="mt-3 divide-y divide-[var(--border-subtle)]">
-              {members.map((member) => (
+            <div className="mt-3 divide-y divide-[var(--border-subtle)]" aria-busy={detailLoading}>
+              {detailLoading ? [0, 1].map((item) => (
+                <div key={item} aria-hidden="true" className="h-14 animate-pulse motion-reduce:animate-none border-b border-[var(--border-subtle)] bg-[var(--surface)]/50" />
+              )) : members.map((member) => (
                 <div key={member.id} className="group flex items-center justify-between gap-2 py-3">
                   <div className="min-w-0">
                     <p className="truncate text-[13px] font-semibold text-[var(--text-primary)]">{member.display_name || member.email || L('팀원', 'Teammate')}</p>
@@ -305,10 +389,11 @@ export default function TeamsPage() {
             {manager && (
               <div className="mt-7 border-t border-[var(--border)] pt-5">
                 <h3 className="text-[13px] font-bold text-[var(--text-primary)]">{L('사람 초대', 'Invite a person')}</h3>
-                <p className="mt-1 text-[11px] leading-5 text-[var(--text-tertiary)]">{L('메일 전송을 사용할 수 없으면 초대 링크가 복사됩니다.', 'If email delivery is unavailable, the invitation link is copied.')}</p>
-                <input type="email" value={inviteEmail} onChange={(event) => setInviteEmail(event.target.value)} placeholder="name@company.com" className="mt-3 min-h-11 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 text-[13px] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/25" />
+                <p className="mt-1 text-[11px] leading-5 text-[var(--text-tertiary)]">{L('메일 전송이 안 되면 링크를 복사하고, 복사가 막히면 직접 선택할 수 있게 보여드려요.', 'If email delivery is unavailable, we copy a link or show it for manual selection.')}</p>
+                <label htmlFor="team-invite-email" className="sr-only">{L('초대할 이메일 주소', 'Email address to invite')}</label>
+                <input id="team-invite-email" type="email" inputMode="email" autoComplete="email" maxLength={254} value={inviteEmail} onChange={(event) => setInviteEmail(event.target.value)} placeholder="name@company.com" className="mt-3 min-h-11 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 text-[13px] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/25" />
                 <div className="mt-2 flex gap-2">
-                  <select value={inviteRole} onChange={(event) => setInviteRole(event.target.value as 'member' | 'admin')} className="min-h-10 min-w-0 flex-1 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-2 text-[12px] text-[var(--text-primary)]">
+                  <select aria-label={L('초대할 역할', 'Role to invite')} value={inviteRole} onChange={(event) => setInviteRole(event.target.value as 'member' | 'admin')} className="min-h-11 min-w-0 flex-1 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-2 text-[12px] text-[var(--text-primary)]">
                     <option value="member">{L('멤버', 'Member')}</option>
                     <option value="admin">{L('관리자', 'Manager')}</option>
                   </select>
@@ -387,8 +472,8 @@ function SharedDecision({
       <button type="button" onClick={onToggle} className="flex w-full items-start justify-between gap-5 py-5 text-left">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-            <h3 className="text-[15px] font-bold text-[var(--text-primary)]">{project.name}</h3>
-            <span className="text-[11px] text-[var(--text-tertiary)]">{project.owner_name || project.owner_email || L('팀원', 'Teammate')}</span>
+            <h3 className="[overflow-wrap:anywhere] text-[15px] font-bold text-[var(--text-primary)]">{project.name}</h3>
+            <span className="[overflow-wrap:anywhere] text-[11px] text-[var(--text-tertiary)]">{project.owner_name || project.owner_email || L('팀원', 'Teammate')}</span>
           </div>
           <p className="mt-1 line-clamp-2 text-[13px] leading-6 text-[var(--text-secondary)]">{bearing?.current_course.summary || project.description || L('결정 요약이 아직 준비되지 않았어요.', 'The decision summary is not ready yet.')}</p>
         </div>
@@ -437,9 +522,10 @@ function SharedDecision({
                 <button key={rating} type="button" onClick={() => onRating(reviewRating === rating ? null : rating)} aria-pressed={reviewRating === rating} className={`h-8 w-8 rounded-full text-[12px] font-semibold ${reviewRating === rating ? 'bg-[var(--primary)] text-[var(--bg)]' : 'border border-[var(--border)] text-[var(--text-tertiary)]'}`}>{rating}</button>
               ))}
             </div>
-            <textarea value={reviewComment} onChange={(event) => onComment(event.target.value)} maxLength={2000} rows={3} placeholder={L('어떤 점을 확인하거나 다르게 보고 있나요?', 'What should the team check, or what do you see differently?')} className="mt-3 w-full resize-y rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 text-[13px] leading-6 text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/25" />
+            <label htmlFor={`team-review-${project.id}`} className="sr-only">{L(`${project.name}에 대한 검토 의견`, `Review comment for ${project.name}`)}</label>
+            <textarea id={`team-review-${project.id}`} value={reviewComment} onChange={(event) => onComment(event.target.value)} maxLength={2000} rows={3} placeholder={L('어떤 점을 확인하거나 다르게 보고 있나요?', 'What should the team check, or what do you see differently?')} className="mt-3 w-full resize-y rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 text-[13px] leading-6 text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/25" />
             <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
-              <span className="text-[11px] text-[var(--text-tertiary)]">{L('제출 직후에는 나만 볼 수 있어요.', 'Only you can see it immediately after submitting.')}</span>
+              <span className="text-[11px] text-[var(--text-tertiary)]">{L('제출 직후에는 나만 볼 수 있어요.', 'Only you can see it immediately after submitting.')} · {reviewComment.length}/2000</span>
               <Button size="sm" onClick={onSubmit} disabled={!reviewRating && !reviewComment.trim()}><Send size={13} />{L('의견 보관', 'Save response')}</Button>
             </div>
           </div>
@@ -461,7 +547,7 @@ function SharedDecision({
                       {input.rating && <span>· {L(`확신 ${input.rating}/5`, `Confidence ${input.rating}/5`)}</span>}
                       {!input.visible && <span className="font-semibold text-[var(--accent)]">{L('나에게만 보임', 'Private to you')}</span>}
                     </div>
-                    {input.comment && <p className="mt-1.5 text-[13px] leading-6 text-[var(--text-secondary)]">{input.comment}</p>}
+                    {input.comment && <p className="mt-1.5 [overflow-wrap:anywhere] whitespace-pre-wrap text-[13px] leading-6 text-[var(--text-secondary)]">{input.comment}</p>}
                   </div>
                 ))}
               </div>
@@ -480,7 +566,7 @@ function SharedDecision({
 }
 
 function SummaryField({ label, value }: { label: string; value: string }) {
-  return <div><p className="text-[10px] font-bold tracking-[0.08em] text-[var(--accent)]">{label}</p><p className="mt-1.5 text-[13px] leading-6 text-[var(--text-secondary)]">{value}</p></div>;
+  return <div className="min-w-0"><p className="text-[10px] font-bold tracking-[0.08em] text-[var(--accent)]">{label}</p><p className="mt-1.5 [overflow-wrap:anywhere] whitespace-pre-wrap text-[13px] leading-6 text-[var(--text-secondary)]">{value}</p></div>;
 }
 
 function roleLabel(role: 'owner' | 'admin' | 'member', locale: 'ko' | 'en') {

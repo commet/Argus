@@ -147,7 +147,6 @@ export const useTeamStore = create<TeamState>((set, get) => ({
         teams: get().teams.map((team) => team.id === teamId ? result.team : team),
         members: result.members,
         invites: result.invites,
-        loadError: null,
       });
     } catch (error) {
       if (get().currentTeamId === teamId) set({ members: [], invites: [], loadError: message(error) });
@@ -226,7 +225,9 @@ export const useTeamStore = create<TeamState>((set, get) => ({
   loadTeamProjects: async (teamId) => {
     try {
       const { projects } = await teamApi<{ projects: TeamSharedProject[] }>(`/api/teams/${teamId}/projects`);
-      if (get().currentTeamId === teamId) set({ teamProjects: projects, loadError: null });
+      // Do not clear a sibling read failure: members and projects load in
+      // parallel, and one successful response must not hide the other error.
+      if (get().currentTeamId === teamId) set({ teamProjects: projects });
     } catch (error) {
       if (get().currentTeamId === teamId) set({ teamProjects: [], loadError: message(error) });
     }
