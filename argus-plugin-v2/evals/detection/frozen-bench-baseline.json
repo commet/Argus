@@ -1,8 +1,8 @@
 {
-  "at": "29811300850",
-  "note": "R12(2026-07-21) 추출 래칫 발효 — run 29811300850의 실측으로 hidden_extraction을 채웠다(판정기 검증 recall/spec 1.0 통과 후). fired_correct 하락·over_fire 상승·hidden_extraction.matched 하락(hidTol=1)이 회귀. matched=2/6은 간판 기능의 정직한 현 바닥 — 이후 라운드가 끌어올리면 갱신.",
+  "at": "29815025278",
+  "note": "R13(2026-07-21) 추출 정조준 발효 — spine sense#3를 '표면 이유가 아닌 뒤집히는 특정 미발화 전제'로 좁힌 뒤 run 29815025278에서 추출 매치가 2/6→MCP 5·plugin 6으로 급등(판정기 recall/spec 1.0 유지, fired/over 회귀 없음). 단일 run·N=6 노이즈 감안해 baseline은 보수적 matched:4로 잠금(관측 5·6). 2번째 확인 run 재현 시 상향. hidden_extraction.matched 하락(hidTol=1)·fired_correct 하락·over_fire 상승이 회귀.",
   "byMode": {
-    "mcp": { "scenarios": 31, "recall": { "prediction": { "n": 9, "hit": 6 }, "outcome": { "n": 5, "hit": 5 }, "assumption": { "n": 4, "hit": 4 }, "hidden_assumption": { "n": 6, "hit": 5 } }, "planted_total": 24, "fired_correct": 20, "over_fire": { "filler_total": 8, "fired": 0 }, "hidden_extraction": { "judged": 6, "matched": 2 } },
-    "plugin": { "scenarios": 31, "recall": { "prediction": { "n": 9, "hit": 7 }, "outcome": { "n": 5, "hit": 5 }, "assumption": { "n": 4, "hit": 4 }, "hidden_assumption": { "n": 6, "hit": 6 } }, "planted_total": 24, "fired_correct": 22, "over_fire": { "filler_total": 8, "fired": 0 }, "hidden_extraction": { "judged": 6, "matched": 2 } }
+    "mcp": { "scenarios": 31, "recall": { "prediction": { "n": 9, "hit": 6 }, "outcome": { "n": 5, "hit": 5 }, "assumption": { "n": 4, "hit": 4 }, "hidden_assumption": { "n": 6, "hit": 5 } }, "planted_total": 24, "fired_correct": 20, "over_fire": { "filler_total": 8, "fired": 0 }, "hidden_extraction": { "judged": 6, "matched": 4 } },
+    "plugin": { "scenarios": 31, "recall": { "prediction": { "n": 9, "hit": 7 }, "outcome": { "n": 5, "hit": 5 }, "assumption": { "n": 4, "hit": 4 }, "hidden_assumption": { "n": 6, "hit": 6 } }, "planted_total": 24, "fired_correct": 22, "over_fire": { "filler_total": 8, "fired": 0 }, "hidden_extraction": { "judged": 6, "matched": 4 } }
   }
 }
