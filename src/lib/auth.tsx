@@ -9,6 +9,7 @@ import { migrateLocalToAccount } from './account-migration';
 import type { User, Session } from '@supabase/supabase-js';
 import { localeFromPath, withLocale, type AppLocale } from './locale-path';
 import { purgeCurrentBrowserContinuity } from './epistemic/browser-lifecycle';
+import { safePostAuthRedirect } from './auth-redirect';
 
 interface AuthContextType {
   user: User | null;
@@ -141,9 +142,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     track('login_attempt', { method: 'google' });
     // Supabase OAuth takes a full-page redirect, so sessionStorage survives the round-trip.
     // auth/callback consumes + clears the key.
-    if (redirectAfter && redirectAfter.startsWith('/') && !redirectAfter.startsWith('//')) {
-      sessionStorage.setItem('argus:postAuthRedirect', redirectAfter);
-    }
+    if (redirectAfter) sessionStorage.setItem('argus:postAuthRedirect', safePostAuthRedirect(redirectAfter));
     await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
