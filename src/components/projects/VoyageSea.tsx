@@ -501,8 +501,8 @@ export function VoyageSea({
 
   // ── the drifted current's VOICE — computed BEFORE placement so the slots
   //    can clear the water under the notice. Same single-event restraint
-  //    brain as SharedGroundCard (groundSpotlight: fires only when shared
-  //    ground actually drifted AND live bets stand on it; flat day → null).
+  //    brain as the portfolio judgment map (groundSpotlight: fires only when
+  //    shared ground actually drifted AND live bets stand on it; flat → null).
   const spotlight = receipts?.length ? groundSpotlight(receipts) : null;
   const spotGauge = (() => {
     if (!spotlight?.drift) return null;
@@ -1011,7 +1011,7 @@ export function VoyageSea({
         {/* ── undersea currents — beneath the ships, above the water. A line
               exists only where two charted vessels literally stand on the same
               normalized premise. Desktop-only: at mobile density the chords
-              read as clutter, and the SharedGroundCard (①) carries the event. */}
+              read as clutter, and the portfolio judgment map carries the event. */}
         {currents.length > 0 && (
           <div aria-hidden className="absolute inset-0 z-[1] hidden sm:block">
             {currents.map((c) =>
@@ -1354,7 +1354,7 @@ export function VoyageSea({
 
       {/* ── drift chip — the amber current's voice, kept to the sky band so it
             never occludes ships. Fires ONLY on the groundSpotlight event;
-            silent on flat days. The full ledger lives below (SharedGroundCard).
+            silent on flat days. The full ledger lives below (the portfolio map).
             Amber is a fact color, never a verdict (거울 조항). ── */}
       {spotlight && (
           <button
