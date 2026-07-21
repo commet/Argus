@@ -15,6 +15,9 @@ on:
       concurrency:
         description: '동시 시나리오 수 (낮게 — rate limit 회피)'
         default: '1'
+      profile:
+        description: "full=전체, frozen=고정 벤치+판정기만(빠른 반복, 생성 eval·convo-sim 생략)"
+        default: 'full'
 
 jobs:
   auto-eval:
@@ -29,9 +32,22 @@ jobs:
           cache: npm
       - run: npm ci
       # 순수 로직 먼저 검증 (fixture, 키 불요) — 라이브 전 회귀 차단.
-      - name: Scorer unit test
-        run: node argus-plugin-v2/evals/detection/auto-detect-eval.test.mjs
+      - name: Unit tests (scorer + loop wiring + judge scoring, key-free)
+        run: |
+          node argus-plugin-v2/evals/detection/auto-detect-eval.test.mjs
+          node argus-plugin-v2/evals/detection/convo-sim.test.mjs
+          node argus-plugin-v2/evals/detection/validate-judge.test.mjs
+      # 판정기부터 검증한다(Stage 2): hidden_extraction 지표를 신뢰하려면 채점자가
+      # gold를 match하고 counter를 reject해야 한다. 임계 미달이면 exit 2 → 이 run의
+      # 추출 숫자를 믿지 말고 판정기부터 고치라는 신호(theater 방지). 게이트라 먼저.
+      - name: Validate the judge (gold→match, counter→reject)
+        run: node argus-plugin-v2/evals/detection/validate-judge.mjs
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          AUTO_MIN_DELAY_MS: '2500'
+          RUN_STAMP: ${{ github.run_id }}
       - name: Run auto detection eval
+        if: ${{ github.event.inputs.profile != 'frozen' }}
         run: node argus-plugin-v2/evals/detection/auto-detect-eval.mjs
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
@@ -40,11 +56,23 @@ jobs:
           AUTO_MIN_DELAY_MS: '2500'
           RUN_STAMP: ${{ github.run_id }}
       # 고정 벤치마크 + 래칫 — 매 라운드 같은 31케이스(사람 라벨)로 양 모드 실측.
+      # Stage 2부터 추출 품질(hidden_extraction.matched)도 gold 대조로 재고 래칫한다.
       # 베이스라인 대비 회귀면 exit 2 → job이 loud하게 빨간불, 루프가 revert.
       - name: Frozen benchmark ratchet (fixed 31-case corpus, both modes)
         run: node argus-plugin-v2/evals/detection/frozen-bench.mjs
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          RUN_STAMP: ${{ github.run_id }}
+      # 진짜 다중 턴 루프 + 정산 라이더 시뮬(Stage 1) — 단발 하네스가 못 재던
+      # 라이더 정산 효과를 실측. 래칫은 아직 없음(측정치 수집 단계).
+      - name: Convo-sim (real multi-turn loop + settlement rider)
+        if: ${{ github.event.inputs.profile != 'frozen' }}
+        run: node argus-plugin-v2/evals/detection/convo-sim.mjs
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          CONVO_SCENARIOS: '4'
+          CONVO_CONCURRENCY: '1'
+          AUTO_MIN_DELAY_MS: '2500'
           RUN_STAMP: ${{ github.run_id }}
       - name: Upload report
         if: always()
@@ -55,4 +83,6 @@ jobs:
             argus-plugin-v2/evals/detection/auto-detect-report.json
             argus-plugin-v2/evals/detection/auto-detect-trend.jsonl
             argus-plugin-v2/evals/detection/frozen-bench-report.json
+            argus-plugin-v2/evals/detection/validate-judge-report.json
+            argus-plugin-v2/evals/detection/convo-sim-report.json
           retention-days: 30
