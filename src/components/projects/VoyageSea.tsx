@@ -24,6 +24,7 @@ import type {
   SynthesizeItem,
   FeedbackRecord,
   ProgressiveSession,
+  PluginDecision,
 } from '@/stores/types';
 
 /**
@@ -85,9 +86,10 @@ const STEP_IDX_TO_LEG: ReadonlyArray<VoyageLeg> = ['reframe', 'recast', 'rehears
 interface SeaShip {
   id: string;
   name: string;
-  /** Which harbor the vessel sailed from — a project voyage or a sealed
-   *  review/MCP receipt. One sea; the kind only routes the click. */
-  kind: 'project' | 'receipt';
+  /** Which harbor the vessel sailed from — a project voyage, a sealed review/MCP
+   *  receipt, or a plugin-bridge decision (`argus push` → plugin_decisions). One
+   *  sea; the kind only routes the click. */
+  kind: 'project' | 'receipt' | 'plugin';
   state: VoyageState;
   /** The one promised return: this ship's check-in date has arrived. */
   due: boolean;
@@ -240,6 +242,8 @@ export function VoyageSea({
   onReview,
   receipts,
   onSelectReceipt,
+  pluginDecisions,
+  onSelectPlugin,
   focusedDecisionId,
   onFocusDecision,
 }: {
@@ -262,6 +266,11 @@ export function VoyageSea({
   /** Sealed review/MCP receipts join the same sea (one harbor, P0-6 ①). */
   receipts?: JudgmentReceipt[];
   onSelectReceipt?: (receiptId: string) => void;
+  /** Plugin-bridge decisions (`argus push` → plugin_decisions) join the same sea
+   *  — the unified stream (§9.9 V2, 창업자 2026-07-22 "본체 켜기"). Without this the
+   *  plugin/MCP decisions were stored in Supabase but never drawn on any map. */
+  pluginDecisions?: PluginDecision[];
+  onSelectPlugin?: (id: string) => void;
   /** Shared selection with the attention list below. The chart remains the
    *  visual locator; the list remains the exact-action surface. */
   focusedDecisionId?: string | null;
@@ -476,11 +485,54 @@ export function VoyageSea({
       });
     }
 
+    // Plugin-bridge decisions (`argus push` → plugin_decisions) are vessels too
+    // — the unified stream. Same derived-state brain; a plugin bet carries no
+    // tracked premises (so it never enters the bipartite premise map) but it is
+    // a committed decision and belongs on the one sea. Only SEALED ones sail
+    // (a candidate isn't a voyage yet); dismissed ones stay ashore.
+    for (const d of pluginDecisions ?? []) {
+      const status = d.status ?? (d.sealed_at ? 'sealed' : 'candidate');
+      if (status !== 'sealed' && status !== 'settled') continue;
+      const settled = status === 'settled' || !!d.settled_at;
+      const createdAt = d.sealed_at || d.decided_at || d.created_at || '';
+      const lastAt = d.settled_at || d.updated_at || createdAt;
+      const state = getVoyageState(
+        {
+          started: true,
+          completedAllLegs: true,
+          lastActivityAt: lastAt,
+          hasCoda: settled,
+          lastLeg: null,
+          outcomeVerdict: settled ? 'mixed' : 'pending',
+        },
+        now,
+      );
+      list.push({
+        id: `plugin:${d.id}`,
+        name: d.decision || d.predicate || d.quote || L('플러그인 결정', 'Plugin decision'),
+        kind: 'plugin',
+        state,
+        due: false,
+        dueDays: null,
+        premise: d.predicate || null,
+        sub:
+          state === 'verified'
+            ? L('터미널 · 결과 확인 완료', 'terminal · outcome recorded')
+            : `${L('터미널 기록', 'terminal record')} · ${relativeDays(lastAt, now, locale)}`,
+        resolution: RESOLUTION[state],
+        idleDays: (() => {
+          const t = new Date(lastAt).getTime();
+          return Number.isNaN(t) ? 0 : Math.max(0, Math.floor((now - t) / DAY_MS));
+        })(),
+        createdAt,
+      });
+    }
+
     // Stable assignment order inside each zone: oldest voyage first.
     list.sort((a, b) => (a.createdAt || '').localeCompare(b.createdAt || ''));
     return list;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [projects, reframeItems, recastItems, synthesizeItems, feedbackHistory, progressiveSessions, dueProjectIds, receipts, locale]);
+  }, [projects, reframeItems, recastItems, synthesizeItems, feedbackHistory, progressiveSessions, dueProjectIds, receipts, pluginDecisions, locale]);
 
   // Below two ships there is no sea to chart — the page's list carries it.
   if (ships.length < 2) return null;
@@ -1170,7 +1222,7 @@ export function VoyageSea({
                     state={s.state}
                     due={s.due}
                     size={size}
-                    kind={s.kind}
+                    kind={s.kind === 'plugin' ? 'receipt' : s.kind}
                     plain={dense && !s.beacon}
                     // deterministic per-ship heading (±3°) — a fleet, not a stamp
                     heading={s.state === 'sailing' ? (([...s.id].reduce((a, c) => a + c.charCodeAt(0), 0) % 7) - 3) : 0}
@@ -1231,7 +1283,12 @@ export function VoyageSea({
         if (!s) return null;
         const meta = VOYAGE_STATE_META[s.state];
         const stateLabel = s.due ? L('다시 볼 때', 'due back') : L(meta.ko, meta.en);
-        const open = () => { if (s.kind === 'receipt') onSelectReceipt?.(s.id); else onSelect(s.id); setActionShip(null); };
+        const open = () => {
+          if (s.kind === 'plugin') onSelectPlugin?.(s.id.replace(/^plugin:/, ''));
+          else if (s.kind === 'receipt') onSelectReceipt?.(s.id);
+          else onSelect(s.id);
+          setActionShip(null);
+        };
         const review = () => { onReview(s.id); setActionShip(null); };
         // Clamp by the card's real half-width, not a percentage. A 15% clamp
         // still put 220px cards offscreen on a 390px phone when a ship hugged

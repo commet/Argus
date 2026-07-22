@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useProjectStore } from '@/stores/useProjectStore';
 import { useReviewStore } from '@/stores/useReviewStore';
+import { usePluginStore } from '@/stores/usePluginStore';
 import { useReframeStore } from '@/stores/useReframeStore';
 import { useRecastStore } from '@/stores/useRecastStore';
 import { useSynthesizeStore } from '@/stores/useSynthesizeStore';
@@ -97,6 +98,8 @@ export default function ProjectPage() {
   const L = (ko: string, en: string) => locale === 'ko' ? ko : en;
   const { projects, currentProjectId, loadProjects, setCurrentProjectId, updateProject } = useProjectStore();
   const reviewReceipts = useReviewStore((s) => s.receipts);
+  const pluginDecisions = usePluginStore((s) => s.decisions);
+  const loadPlugin = usePluginStore((s) => s.loadData);
   const { items: reframeItems, loadItems: loadReframe } = useReframeStore();
   const { items: recastItems, loadItems: loadRecast } = useRecastStore();
   const { items: synthesizeItems, loadItems: loadSynthesize } = useSynthesizeStore();
@@ -141,12 +144,16 @@ export default function ProjectPage() {
     loadPersona();
     loadProgressive();
     loadDecisionItems();
+    // Plugin-bridge decisions (argus push → plugin_decisions in Supabase) —
+    // loaded here so the terminal/MCP stream reaches the voyage map. Without
+    // this the decisions were stored but never drawn (§9.9 V2 "본체 켜기").
+    loadPlugin();
     // Every loader hydrates localStorage synchronously before its optional
     // cloud merge. Until this effect has run, [] means "not read yet", not
     // "this user has no projects" — rendering the empty state here caused a
     // frightening false data-loss flash on every return.
     setStoresLoaded(true);
-  }, [loadProjects, loadReframe, loadRecast, loadSynthesize, loadPersona, loadProgressive, loadDecisionItems]);
+  }, [loadProjects, loadReframe, loadRecast, loadSynthesize, loadPersona, loadProgressive, loadDecisionItems, loadPlugin]);
 
   const currentProject = currentProjectId ? projects.find((p) => p.id === currentProjectId) : null;
 
@@ -707,6 +714,8 @@ export default function ProjectPage() {
                 }}
                 receipts={reviewReceipts}
                 onSelectReceipt={(id) => router.push(`/${locale}/tools/review?receipt=${encodeURIComponent(id)}`)}
+                pluginDecisions={pluginDecisions}
+                onSelectPlugin={() => router.push(`/${locale}/import`)}
                 focusedDecisionId={focusedDecisionId}
                 onFocusDecision={focusDecisionFromSea}
               />

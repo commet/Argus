@@ -24,8 +24,16 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, createElement } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
-import type { Project } from '@/stores/types';
+import type { Project, PluginDecision } from '@/stores/types';
 import { VoyageSea } from '@/components/projects/VoyageSea';
+
+function pluginDecision(id: string, over: Partial<PluginDecision> = {}): PluginDecision {
+  return {
+    id, source: 'push', ledger_id: `lg_${id}`, decision: `플러그인 결정 ${id}`,
+    predicate: `${id} 예상대로 된다`, status: 'sealed', sealed_at: '2026-01-05T00:00:00.000Z',
+    check_by: '2099-01-01', created_at: '2026-01-05T00:00:00.000Z', updated_at: '2026-01-05T00:00:00.000Z', ...over,
+  };
+}
 
 (globalThis as unknown as { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -75,6 +83,8 @@ function render(
     onReview?: ReturnType<typeof vi.fn>;
     focusedDecisionId?: string | null;
     onFocusDecision?: ReturnType<typeof vi.fn>;
+    pluginDecisions?: PluginDecision[];
+    onSelectPlugin?: ReturnType<typeof vi.fn>;
   },
 ) {
   const onSelect = opts?.onSelect ?? vi.fn();
@@ -89,6 +99,8 @@ function render(
         locale: 'ko' as const,
         onSelect,
         onReview,
+        pluginDecisions: opts?.pluginDecisions,
+        onSelectPlugin: opts?.onSelectPlugin ?? vi.fn(),
         focusedDecisionId: opts?.focusedDecisionId,
         onFocusDecision: opts?.onFocusDecision,
       }),
@@ -116,6 +128,26 @@ describe('VoyageSea — spine gate (거울 조항, 항해 지도판)', () => {
   it('renders nothing below two ships', () => {
     render([sealedProject('a', '2026-01-01T00:00:00.000Z')]);
     expect(container.textContent).toBe('');
+  });
+
+  it('plugin-bridge decisions join the same sea (unified stream — 본체 켜기)', () => {
+    // One project alone is below-two-ships → null. A sealed plugin decision is a
+    // real vessel, so 1 project + 2 plugin bets clears the guard and sails them.
+    render([sealedProject('a', '2026-01-01T00:00:00.000Z')], {
+      pluginDecisions: [pluginDecision('p1'), pluginDecision('p2')],
+    });
+    expect(container.textContent).not.toBe('');
+    // the mobile decision-finder lists every vessel by full name → the plugin
+    // decision is provably on the sea, not silently dropped.
+    expect(container.textContent).toContain('플러그인 결정 p1');
+  });
+
+  it('a candidate (unsealed) plugin decision does NOT sail — only committed bets', () => {
+    render(
+      [sealedProject('a', '2026-01-01T00:00:00.000Z'), sealedProject('b', '2026-01-02T00:00:00.000Z')],
+      { pluginDecisions: [pluginDecision('c1', { status: 'candidate', sealed_at: undefined })] },
+    );
+    expect(container.textContent).not.toContain('플러그인 결정 c1');
   });
 
   it('retro (practice) voyages never sail on the map', () => {
