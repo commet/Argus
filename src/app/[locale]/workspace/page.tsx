@@ -586,7 +586,13 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem, fr
       setError(errMsg || L('분석이 끝까지 가지 못했어요. 적어주신 내용은 그대로 있어요 — 다시 시도해 주세요.', "The analysis didn't finish. What you wrote is still here — please try again."));
       setPhase('idle');
       setStreamingText('');
-      track('workspace_start_error', { error: errMsg, is_rate_limit: isRateLimit, needs_login: needsLogin });
+      // Keep failure telemetry diagnostic but never persist the provider's raw
+      // message: upstream errors can echo user material or internal details.
+      track('workspace_start_error', {
+        category: needsLogin ? 'login_required' : isRateLimit ? 'rate_limit' : err instanceof Error ? err.name : 'unknown',
+        is_rate_limit: isRateLimit,
+        needs_login: needsLogin,
+      });
       if (needsLogin || isRateLimit) {
         track('quota_blocked', { reason: needsLogin ? 'anon_quota' : 'auth_quota', anonymous: !user });
       }

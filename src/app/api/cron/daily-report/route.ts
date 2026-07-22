@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { Resend } from 'resend';
+import { classifyAnalyticsSignal } from '@/lib/analytics-reporting';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -386,24 +387,23 @@ export async function GET(req: Request) {
   const funnelTop = funnelCounts[0].sessions || 1;
 
   // ─── 10. Errors ───
-  const errorEvents = new Set([
-    'error',
-    'unhandled_error',
-    'unhandled_rejection',
-    'llm_error',
-    'server_llm_error',
-    'workspace_start_error',
-    'review_timeout',
-    'server_rate_limited',
-    'server_captcha_rejected',
-  ]);
   const errorBreakdown = new Map<string, number>();
+  const guardrailBreakdown = new Map<string, number>();
   for (const event of extYAll) {
-    if (!errorEvents.has(event.event_name)) continue;
-    errorBreakdown.set(event.event_name, (errorBreakdown.get(event.event_name) || 0) + 1);
+    const signal = classifyAnalyticsSignal(event.event_name, event.properties);
+    if (signal === 'operational_error') {
+      errorBreakdown.set(event.event_name, (errorBreakdown.get(event.event_name) || 0) + 1);
+    } else if (signal === 'guardrail') {
+      guardrailBreakdown.set(event.event_name, (guardrailBreakdown.get(event.event_name) || 0) + 1);
+    }
   }
   const errorCount = [...errorBreakdown.values()].reduce((sum, count) => sum + count, 0);
   const errorSummary = [...errorBreakdown.entries()]
+    .sort(([, a], [, b]) => b - a)
+    .map(([name, count]) => `${name} ${count}`)
+    .join(' · ');
+  const guardrailCount = [...guardrailBreakdown.values()].reduce((sum, count) => sum + count, 0);
+  const guardrailSummary = [...guardrailBreakdown.entries()]
     .sort(([, a], [, b]) => b - a)
     .map(([name, count]) => `${name} ${count}`)
     .join(' · ');
@@ -591,6 +591,14 @@ export async function GET(req: Request) {
     <tr><td style="padding: 16px 20px;">
       <p style="font-size: 14px; color: ${C.decline}; margin: 0 0 4px; font-weight: 700;">에러 ${errorCount}건</p>
       <p style="font-size: 12px; color: ${C.muted}; margin: 0;">${escHtml(errorSummary)}</p>
+    </td></tr>
+  </table>` : ''}
+
+  ${guardrailCount > 0 ? `
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background: ${C.warmBg}; border: 1px solid #fde68a; border-radius: 14px; margin-bottom: 16px;">
+    <tr><td style="padding: 16px 20px;">
+      <p style="font-size: 14px; color: ${C.warm}; margin: 0 0 4px; font-weight: 700;">정상 보호 동작 ${guardrailCount}건</p>
+      <p style="font-size: 12px; color: ${C.muted}; margin: 0;">${escHtml(guardrailSummary)}</p>
     </td></tr>
   </table>` : ''}
 

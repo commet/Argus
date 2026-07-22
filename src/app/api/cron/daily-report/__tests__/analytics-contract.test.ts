@@ -19,6 +19,12 @@ describe('daily analytics contract', () => {
     expect(source('src/app/api/cron/daily-report/route.ts')).toContain("e.session_id !== 'server'");
   });
 
+  it('separates expected guardrails from operational failures', () => {
+    const route = source('src/app/api/cron/daily-report/route.ts');
+    expect(route).toContain('classifyAnalyticsSignal(event.event_name, event.properties)');
+    expect(route).toContain('정상 보호 동작');
+  });
+
   it('requires delivery and owner-filter configuration before sending', () => {
     const route = source('src/app/api/cron/daily-report/route.ts');
     expect(route).toContain("['REPORT_EMAIL', isValidEmailAddress(REPORT_EMAIL) ? 'configured' : '']");

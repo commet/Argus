@@ -19,4 +19,9 @@ describe('document review import accessibility', () => {
     expect(source).toContain('min-h-11 px-3');
     expect(source).toContain('sm:px-2.5 lg:min-h-9');
   });
+
+  it('keeps a top-level heading while running and after failure', () => {
+    expect(source).toContain('<h1 className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--accent)]">');
+    expect(source).toContain('<h1 className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--danger)] mb-2">');
+  });
 });
