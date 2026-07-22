@@ -1,0 +1,8 @@
+{
+  "_comment": "R29 관측(run 29896083461, 11케이스). 품질 축 합(overload.hit+technical.hit+pacing.ok)의 붕괴만 감지: compareAgentic collapseFrac 0.5 → 현재가 baseline합의 절반 미만이면 REGRESS. 비결정+저-N이라 per-point 아닌 붕괴 게이트(R30). 상승분 지키되 노이즈 false-trip 회피.",
+  "at": "29896083461",
+  "byMode": {
+    "mcp": { "overload": { "hit": 0 }, "technical": { "hit": 2 }, "pacing": { "ok": 1 } },
+    "plugin": { "overload": { "hit": 2 }, "technical": { "hit": 3 }, "pacing": { "ok": 2 } }
+  }
+}

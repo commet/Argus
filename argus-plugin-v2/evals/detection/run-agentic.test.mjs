@@ -8,6 +8,7 @@
 import assert from 'node:assert/strict';
 import {
   scorePacing, scoreTiming, scoreEthical, scoreOverload, scoreTechnical, foldCase, aggregateAgentic,
+  qualityTotal, compareAgentic,
 } from './run-agentic.mjs';
 
 const tests = [];
@@ -78,6 +79,27 @@ test('foldCase + aggregateAgentic: 두 케이스를 모드별로 접는다', () 
   assert.equal(agg.mcp.pacing.ok, 1);
   assert.equal(agg.mcp.timing.ok, 1);
   assert.equal(agg.mcp.ethical.clean, 1);
+});
+
+test('qualityTotal: overload.hit + technical.hit + pacing.ok 합', () => {
+  assert.equal(qualityTotal({ overload: { hit: 2 }, technical: { hit: 3 }, pacing: { ok: 2 } }), 7);
+  assert.equal(qualityTotal({ technical: { hit: 2 }, pacing: { ok: 1 } }), 3); // overload 없는 모드
+  assert.equal(qualityTotal(null), 0);
+});
+
+test('compareAgentic: 노이즈(±1~2)는 OK, 절반 미만 붕괴만 REGRESS', () => {
+  const base = { byMode: { mcp: { overload: { hit: 0 }, technical: { hit: 2 }, pacing: { ok: 1 } }, plugin: { overload: { hit: 2 }, technical: { hit: 3 }, pacing: { ok: 2 } } } };
+  // 동일 → OK
+  assert.equal(compareAgentic(base, base).ok, true);
+  // plugin 7→4 (노이즈성 하락, floor 3.5 이상) → OK
+  const noisy = { byMode: { mcp: { overload: { hit: 0 }, technical: { hit: 1 }, pacing: { ok: 1 } }, plugin: { overload: { hit: 1 }, technical: { hit: 2 }, pacing: { ok: 1 } } } };
+  assert.equal(compareAgentic(base, noisy).ok, true, 'mcp 3→2·plugin 7→4는 floor 위 = 노이즈 통과');
+  // plugin 붕괴 7→3 (floor 3.5 미만) → REGRESS
+  const collapse = { byMode: { mcp: { overload: { hit: 0 }, technical: { hit: 2 }, pacing: { ok: 1 } }, plugin: { overload: { hit: 0 }, technical: { hit: 2 }, pacing: { ok: 1 } } } };
+  const c = compareAgentic(base, collapse);
+  assert.equal(c.ok, false);
+  assert.equal(c.modes.plugin.regress, true);
+  assert.equal(c.modes.mcp.regress, false);
 });
 
 let pass = 0, fail = 0;
