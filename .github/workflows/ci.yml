@@ -77,6 +77,12 @@ jobs:
       - name: Argus detection corpus gate
         run: node argus-plugin-v2/evals/detection/measure.test.mjs
 
+      # Agentic coding-session corpus integrity — the deep-eval tier's gold labels
+      # (overload/pacing/technical/timing/ethical) must stay well-formed so the
+      # live judge harness (next round) can trust them. Key-free structural gate.
+      - name: Argus agentic corpus integrity
+        run: node argus-plugin-v2/evals/detection/corpus-agentic.test.mjs
+
       # Every-turn conversation-diagnosis hook (sense-signal): injection contract,
       # transcript window, caps, outcome-only path, opt-out.
       - name: Argus sense hook
