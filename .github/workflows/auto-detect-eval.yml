@@ -37,6 +37,8 @@ jobs:
           node argus-plugin-v2/evals/detection/auto-detect-eval.test.mjs
           node argus-plugin-v2/evals/detection/convo-sim.test.mjs
           node argus-plugin-v2/evals/detection/validate-judge.test.mjs
+          node argus-plugin-v2/evals/detection/run-agentic.test.mjs
+          node argus-plugin-v2/evals/detection/validate-agentic.test.mjs
       # 판정기부터 검증한다(Stage 2): hidden_extraction 지표를 신뢰하려면 채점자가
       # gold를 match하고 counter를 reject해야 한다. 임계 미달이면 exit 2 → 이 run의
       # 추출 숫자를 믿지 말고 판정기부터 고치라는 신호(theater 방지). 게이트라 먼저.
@@ -74,6 +76,29 @@ jobs:
           CONVO_CONCURRENCY: '1'
           AUTO_MIN_DELAY_MS: '2500'
           RUN_STAMP: ${{ github.run_id }}
+      # ── 깊은 agentic 축 (R24, 정보용·비게이팅) ──────────────────────────────
+      # overload/technical 판정기가 이 코퍼스의 distractor/counter를 기각하는지
+      # 먼저 검증(theater 방지). continue-on-error: 새 축이라 아직 게이팅 안 함 —
+      # 첫 실측 후 R25에서 baseline+래칫으로 승격. API 오류는 스크립트가 스킵.
+      - name: Agentic judge validation (informational)
+        if: ${{ github.event.inputs.profile != 'frozen' }}
+        continue-on-error: true
+        run: node argus-plugin-v2/evals/detection/validate-agentic.mjs
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          AUTO_MIN_DELAY_MS: '2500'
+          RUN_STAMP: ${{ github.run_id }}
+      # 깊은 세션을 실제 감지기에 흘려 5개 축(overload/technical/pacing/timing/
+      # ethical)을 실측. 비게이팅 — 첫 숫자를 얻어 R25에서 래칫 편입.
+      - name: Agentic axes (informational)
+        if: ${{ github.event.inputs.profile != 'frozen' }}
+        continue-on-error: true
+        run: node argus-plugin-v2/evals/detection/run-agentic.mjs
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          AUTO_MIN_DELAY_MS: '2500'
+          AGENTIC_CONCURRENCY: '1'
+          RUN_STAMP: ${{ github.run_id }}
       - name: Upload report
         if: always()
         uses: actions/upload-artifact@v4
@@ -85,4 +110,5 @@ jobs:
             argus-plugin-v2/evals/detection/frozen-bench-report.json
             argus-plugin-v2/evals/detection/validate-judge-report.json
             argus-plugin-v2/evals/detection/convo-sim-report.json
+            argus-plugin-v2/evals/detection/agentic-report.json
           retention-days: 30

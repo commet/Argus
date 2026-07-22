@@ -83,6 +83,13 @@ jobs:
       - name: Argus agentic corpus integrity
         run: node argus-plugin-v2/evals/detection/corpus-agentic.test.mjs
 
+      # Agentic axis scorers + judge-probe construction (deep-eval R24) — pure
+      # logic, key-free. The live judged run lives in auto-detect-eval.yml.
+      - name: Argus agentic scorers
+        run: |
+          node argus-plugin-v2/evals/detection/run-agentic.test.mjs
+          node argus-plugin-v2/evals/detection/validate-agentic.test.mjs
+
       # Every-turn conversation-diagnosis hook (sense-signal): injection contract,
       # transcript window, caps, outcome-only path, opt-out.
       - name: Argus sense hook
