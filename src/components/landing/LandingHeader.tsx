@@ -7,6 +7,7 @@ import { useLocaleSwitch } from '@/hooks/useLocaleSwitch';
 import { useDueCount } from '@/hooks/useDueCount';
 import { ArgusFaceMark } from '@/components/brand/ArgusFaceMark';
 import { LocaleSwitchConfirmation } from '@/components/ui/LocaleSwitchConfirmation';
+import { track } from '@/lib/analytics';
 
 export function LandingHeader() {
   const {
@@ -112,6 +113,7 @@ export function LandingHeader() {
               user ? (
                 <LocaleLink
                   href="/workspace"
+                  onClick={() => track('landing_cta_click', { cta: 'header_workspace' })}
                   className="bp-mono transition-opacity hover:opacity-70 inline-flex items-center"
                   style={{
                     color: 'var(--bp-ink)',
@@ -142,6 +144,7 @@ export function LandingHeader() {
               ) : (
                 <LocaleLink
                   href="/login"
+                  onClick={() => track('landing_signin_click', { cta: 'header_signin' })}
                   className="bp-mono transition-opacity hover:opacity-70 inline-flex items-center"
                   style={{
                     color: 'var(--bp-ink-soft)',

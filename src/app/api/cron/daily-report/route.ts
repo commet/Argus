@@ -35,6 +35,10 @@ function escHtml(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
+function isValidEmailAddress(value: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+}
+
 function safeCompare(a: string, b: string): boolean {
   const lengthMismatch = a.length !== b.length ? 1 : 0;
   const compareTarget = lengthMismatch ? a : b;
@@ -116,6 +120,18 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  const missingConfig = [
+    ['NEXT_PUBLIC_SUPABASE_URL', process.env.NEXT_PUBLIC_SUPABASE_URL],
+    ['SUPABASE_SERVICE_ROLE_KEY', process.env.SUPABASE_SERVICE_ROLE_KEY],
+    ['RESEND_API_KEY', process.env.RESEND_API_KEY],
+    ['REPORT_EMAIL', isValidEmailAddress(REPORT_EMAIL) ? 'configured' : ''],
+    ['OWNER_EMAILS', OWNER_EMAILS.length > 0 && OWNER_EMAILS.every(isValidEmailAddress) ? 'configured' : ''],
+  ].filter(([, value]) => !value).map(([name]) => name);
+  if (missingConfig.length > 0) {
+    console.error('[daily-report] missing configuration:', missingConfig.join(', '));
+    return NextResponse.json({ error: 'Report delivery is not configured' }, { status: 503 });
+  }
+
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -146,30 +162,53 @@ export async function GET(req: Request) {
   const userById = new Map(externalUsers.map(u => [u.id, u]));
 
   // ─── 2. Events: yesterday (detailed) + last 14 days (rollup for WoW comparison) ───
-  const { data: yesterdayRaw } = await supabase
-    .from('user_events')
-    .select('session_id, event_name, properties, user_id, page_path, referrer, created_at')
-    .gte('created_at', yesterday.start)
-    .lte('created_at', yesterday.end)
-    .limit(20000);
+  // Page explicitly instead of silently truncating once traffic exceeds a
+  // fixed daily/fortnightly limit. Supabase projects often cap each response,
+  // so a large `.limit()` is not a reliable production rollup.
+  const loadEvents = async (columns: string, start: string, end: string) => {
+    const rows: Record<string, unknown>[] = [];
+    const pageSize = 1000;
+    for (let offset = 0; ; offset += pageSize) {
+      const { data, error } = await supabase
+        .from('user_events')
+        .select(columns)
+        .gte('created_at', start)
+        .lte('created_at', end)
+        .order('created_at', { ascending: true })
+        .range(offset, offset + pageSize - 1);
+      if (error) throw new Error(`user_events query failed: ${error.message}`);
+      const batch = (data || []) as unknown as Record<string, unknown>[];
+      rows.push(...batch);
+      if (batch.length < pageSize) break;
+    }
+    return rows;
+  };
 
-  const { data: twoWeekRaw } = await supabase
-    .from('user_events')
-    .select('session_id, user_id, event_name, created_at')
-    .gte('created_at', twoWeeksAgo.start)
-    .lte('created_at', yesterday.end)
-    .limit(200000);
+  let yesterdayRaw: Record<string, unknown>[];
+  let twoWeekRaw: Record<string, unknown>[];
+  try {
+    [yesterdayRaw, twoWeekRaw] = await Promise.all([
+      loadEvents('session_id, event_name, properties, user_id, page_path, referrer, created_at', yesterday.start, yesterday.end),
+      loadEvents('session_id, user_id, event_name, created_at', twoWeeksAgo.start, yesterday.end),
+    ]);
+  } catch (err) {
+    console.error('[daily-report] analytics query error:', err);
+    return NextResponse.json({ error: 'Failed to load analytics' }, { status: 500 });
+  }
 
-  const yesterdayEvents: EventRow[] = (yesterdayRaw || []) as EventRow[];
-  const twoWeekEvents = (twoWeekRaw || []) as Pick<EventRow, 'session_id' | 'user_id' | 'event_name' | 'created_at'>[];
+  const yesterdayEvents = yesterdayRaw as unknown as EventRow[];
+  const twoWeekEvents = twoWeekRaw as unknown as Pick<EventRow, 'session_id' | 'user_id' | 'event_name' | 'created_at'>[];
 
   // Owner session filter: any session that has an owner user_id event
   const ownerSessionIds = new Set<string>();
   for (const e of yesterdayEvents) if (e.user_id && ownerIds.has(e.user_id)) ownerSessionIds.add(e.session_id);
   for (const e of twoWeekEvents) if (e.user_id && ownerIds.has(e.user_id)) ownerSessionIds.add(e.session_id);
 
-  const extY = yesterdayEvents.filter(e => !ownerSessionIds.has(e.session_id));
-  const ext14 = twoWeekEvents.filter(e => !ownerSessionIds.has(e.session_id));
+  const extYAll = yesterdayEvents.filter(e => !ownerSessionIds.has(e.session_id));
+  // Server-side telemetry uses one synthetic "server" session. Keep it for the
+  // error digest, but never count it as a person, session, source, or funnel hit.
+  const extY = extYAll.filter(e => e.session_id !== 'server');
+  const ext14 = twoWeekEvents.filter(e => !ownerSessionIds.has(e.session_id) && e.session_id !== 'server');
 
   // ─── 3. All-time cumulative stats ───
   const { count: totalUsers } = await supabase
@@ -347,7 +386,27 @@ export async function GET(req: Request) {
   const funnelTop = funnelCounts[0].sessions || 1;
 
   // ─── 10. Errors ───
-  const errorCount = extY.filter(e => e.event_name === 'error').length;
+  const errorEvents = new Set([
+    'error',
+    'unhandled_error',
+    'unhandled_rejection',
+    'llm_error',
+    'server_llm_error',
+    'workspace_start_error',
+    'review_timeout',
+    'server_rate_limited',
+    'server_captcha_rejected',
+  ]);
+  const errorBreakdown = new Map<string, number>();
+  for (const event of extYAll) {
+    if (!errorEvents.has(event.event_name)) continue;
+    errorBreakdown.set(event.event_name, (errorBreakdown.get(event.event_name) || 0) + 1);
+  }
+  const errorCount = [...errorBreakdown.values()].reduce((sum, count) => sum + count, 0);
+  const errorSummary = [...errorBreakdown.entries()]
+    .sort(([, a], [, b]) => b - a)
+    .map(([name, count]) => `${name} ${count}`)
+    .join(' · ');
 
   // ───── Build HTML ─────
 
@@ -531,7 +590,7 @@ export async function GET(req: Request) {
   <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background: ${C.declineBg}; border: 1px solid #fecaca; border-radius: 14px; margin-bottom: 16px;">
     <tr><td style="padding: 16px 20px;">
       <p style="font-size: 14px; color: ${C.decline}; margin: 0 0 4px; font-weight: 700;">에러 ${errorCount}건</p>
-      <p style="font-size: 12px; color: ${C.muted}; margin: 0;">Supabase SQL에서 <code>event_name='error'</code>로 확인하세요.</p>
+      <p style="font-size: 12px; color: ${C.muted}; margin: 0;">${escHtml(errorSummary)}</p>
     </td></tr>
   </table>` : ''}
 
@@ -543,12 +602,13 @@ export async function GET(req: Request) {
   `.trim();
 
   try {
-    await resend.emails.send({
+    const { error: sendError } = await resend.emails.send({
       from: `Argus <hello@${process.env.EMAIL_FROM_DOMAIN || 'argus.voyage'}>`,
       to: REPORT_EMAIL,
       subject: `[Argus] ${kstDate} — 유저 ${usersY.size} · 신규 ${signupDetails.length} · 누적 완주 ${cumulativeCompletions}`,
       html,
     });
+    if (sendError) throw new Error(`Resend rejected the daily report: ${sendError.message}`);
     return NextResponse.json({
       ok: true,
       date: kstDate,
