@@ -106,6 +106,31 @@ export function aggregateAgentic(perCaseByMode) {
   return out;
 }
 
+/* ── agentic 래칫 (붕괴 감지, R30) ─────────────────────────────────────────
+ * agentic 축은 비결정 + 저-N이라(overload 5·technical 7) run 간 ±1~2 요동이
+ * 정상(R25/27/29: 0→1→2). 그래서 per-point 하드 게이트는 false-trip 위험 —
+ * 대신 품질 축(overload.hit + technical.hit + pacing.ok) 합이 baseline의
+ * collapseFrac(기본 0.5) 아래로 '붕괴'할 때만 REGRESS. 노이즈는 통과, 진짜
+ * 프롬프트 회귀(억제 재발·능력 상실)만 빨간불. timing/ethical(near-ceiling
+ * 절제 축)은 합산에서 제외 — 추출 품질 신호를 희석하지 않게. */
+export function qualityTotal(modeAgg) {
+  if (!modeAgg) return 0;
+  return (modeAgg.overload?.hit || 0) + (modeAgg.technical?.hit || 0) + (modeAgg.pacing?.ok || 0);
+}
+export function compareAgentic(baseline, current, collapseFrac = 0.5) {
+  const modes = {};
+  let ok = true;
+  for (const mode of ['mcp', 'plugin']) {
+    const base = qualityTotal(baseline.byMode?.[mode]);
+    const cur = qualityTotal(current.byMode?.[mode]);
+    const floor = base * collapseFrac;
+    const regress = cur < floor; // strictly below half = 붕괴
+    if (regress) ok = false;
+    modes[mode] = { base, cur, floor, regress };
+  }
+  return { ok, modes };
+}
+
 /* ── 라이브 오케스트레이션 ────────────────────────────────────────────────── */
 async function judgeCase(jud, caseObj, detected) {
   const judged = { technical: [] };
@@ -154,6 +179,19 @@ async function main() {
   console.log(JSON.stringify({ byMode: agg, perCase }));
   console.log('===AGENTIC_FINDINGS_END===');
   try { fs.writeFileSync(path.join(HERE, 'agentic-report.json'), JSON.stringify({ at: process.env.RUN_STAMP || null, byMode: agg, perCase }, null, 2)); } catch { /* best-effort */ }
+
+  // 래칫 (붕괴 감지) — baseline이 있으면 품질 축 합을 대조해 loud하게 보고한다.
+  // 비게이팅(로그 신호): 저-N 비결정 지표라 아직 하드 게이트 안 함 — REGRESS면
+  // 분석 라운드가 revert/재조정. 변이 폭이 더 쌓이면 게이팅으로 승격 검토.
+  try {
+    const basePath = path.join(HERE, 'agentic-baseline.json');
+    if (fs.existsSync(basePath)) {
+      const baseline = JSON.parse(fs.readFileSync(basePath, 'utf8'));
+      const cmp = compareAgentic(baseline, { byMode: agg });
+      const detail = Object.entries(cmp.modes).map(([m, r]) => `${m} ${r.cur}/${r.base}(floor ${r.floor})`).join(' · ');
+      console.log(`\nAGENTIC_RATCHET_${cmp.ok ? 'OK' : 'REGRESS'} (품질축합 overload.hit+technical.hit+pacing.ok): ${detail}`);
+    }
+  } catch { /* best-effort */ }
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) main();
