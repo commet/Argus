@@ -50,4 +50,11 @@ describe('document review latency contract', () => {
     expect(flow).toContain('취소해도 입력 내용은 그대로 남아 있어요');
     expect(flow).toContain('longSource');
   });
+
+  it('records wall-clock duration for timeout, cancel, and failed outcomes', () => {
+    expect(flow).toContain("track('review_timeout', { elapsed_s: elapsedSecondsSince(startedAt) })");
+    expect(flow).toContain("track('review_cancelled', { elapsed_s: elapsedSecondsSince(startedAt) })");
+    expect(flow).toContain("track('review_failed'");
+    expect(flow).not.toMatch(/elapsed_s:\s*elapsed[,}]/);
+  });
 });

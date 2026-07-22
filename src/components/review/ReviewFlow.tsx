@@ -28,6 +28,7 @@ import { useSettingsStore, hasOwnApiKey } from '@/stores/useSettingsStore';
 import { visionCapable } from '@/lib/llm';
 import { getStorage, setStorage, STORAGE_KEYS } from '@/lib/storage';
 import { track } from '@/lib/analytics';
+import { elapsedSecondsSince } from '@/lib/elapsed-time';
 import {
   ingest,
   runDocumentReview,
@@ -307,6 +308,7 @@ export function ReviewFlow() {
       setFreeUsed(true);
       return;
     }
+    const startedAt = Date.now();
     const ctx: UserReviewContext = {
       audience_hint: audienceHint.trim() || undefined,
       biggest_worry: worry.trim() || undefined,
@@ -383,13 +385,13 @@ export function ReviewFlow() {
           },
         });
         setPhase('failed');
-        track('review_timeout', { elapsed_s: elapsed });
+        track('review_timeout', { elapsed_s: elapsedSecondsSince(startedAt) });
         return;
       }
       // User cancelled → return to import quietly (their text is preserved).
       setJob(null);
       setPhase('import');
-      track('review_cancelled', { elapsed_s: elapsed });
+      track('review_cancelled', { elapsed_s: elapsedSecondsSince(startedAt) });
       return;
     }
     setJob(finalJob);
@@ -440,6 +442,10 @@ export function ReviewFlow() {
       setPhase('receipt');
     } else {
       setPhase('failed');
+      track('review_failed', {
+        elapsed_s: elapsedSecondsSince(startedAt),
+        kind: finalJob.error?.kind || 'unknown',
+      });
     }
   };
 
@@ -766,7 +772,7 @@ export function ReviewFlow() {
         )}
         <Card variant="elevated">
           <div className="flex items-center justify-between gap-3 mb-2">
-            <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--accent)]">{L('문서 확인 중', 'Analyzing document')}</div>
+            <h1 className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--accent)]">{L('문서 확인 중', 'Analyzing document')}</h1>
             <span className="text-[11px] tabular-nums text-[var(--text-tertiary)]">
               {mm > 0 ? `${mm}:${ss}` : L(`${elapsed}초`, `${elapsed}s`)}
             </span>
@@ -866,7 +872,7 @@ export function ReviewFlow() {
     return (
       <div className="max-w-2xl mx-auto w-full">
         <Card variant="danger">
-          <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--danger)] mb-2">{L('검수 어려움', 'Unable to review')}</div>
+          <h1 className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--danger)] mb-2">{L('검수 어려움', 'Unable to review')}</h1>
           <p className="text-[14px] text-[var(--text-primary)]">
             {job?.error?.message ?? L('이 문서는 지금 상태로는 검수하기 어렵습니다.', 'This document is hard to review in its current form.')}
           </p>
