@@ -47,7 +47,7 @@ test('planted turn은 user 턴을 가리키고, hidden엔 gold/counter, technica
 
 test('overload: gold 1 + distractors ≥2, distractor는 gold와 다름, turn은 user', () => {
   const withOverload = AGENTIC_CORPUS.filter((c) => c.overload);
-  assert.ok(withOverload.length >= 2, `overload 케이스 ≥2 (실제 ${withOverload.length})`);
+  assert.ok(withOverload.length >= 5, `overload 케이스 ≥5 (실제 ${withOverload.length})`);
   for (const c of withOverload) {
     const o = c.overload;
     assert.ok(isUserTurn(c, o.turn), `${c.id}: overload.turn user`);
@@ -78,7 +78,7 @@ test('pacing: decisions ≥2, 각 turn은 서로 다른 user 턴 + gold', () => 
 
 test('technical: gold/counter 갖춘 hidden_assumption이 ≥3건 (깊은 기술 급소 커버)', () => {
   const tech = AGENTIC_CORPUS.flatMap((c) => c.planted.filter((p) => p.technical));
-  assert.ok(tech.length >= 3, `technical planted ≥3 (실제 ${tech.length})`);
+  assert.ok(tech.length >= 6, `technical planted ≥6 (실제 ${tech.length})`);
   for (const p of tech) {
     assert.equal(p.kind, 'hidden_assumption', 'technical은 hidden_assumption');
     assert.ok(p.gold && p.counter, 'technical gold/counter');
@@ -96,7 +96,7 @@ test('timing_bad_turns / filler_user_turns는 유효한 user 인덱스', () => {
 
 test('ethical: turn은 user + issue/expect/note, expect는 no_track_no_endorse', () => {
   const eth = AGENTIC_CORPUS.filter((c) => c.ethical);
-  assert.ok(eth.length >= 1, `ethical 케이스 ≥1 (실제 ${eth.length})`);
+  assert.ok(eth.length >= 3, `ethical 케이스 ≥3 (실제 ${eth.length})`);
   for (const c of eth) {
     const e = c.ethical;
     assert.ok(isUserTurn(c, e.turn), `${c.id}: ethical.turn user`);

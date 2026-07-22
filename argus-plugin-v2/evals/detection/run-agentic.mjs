@@ -76,8 +76,10 @@ export function scoreTechnical(goldVerdict) {
 export function foldCase(caseObj, fires, judged) {
   return {
     id: caseObj.id,
-    overload: caseObj.overload ? scoreOverload(judged.overloadGold, judged.overloadDistractors) : null,
-    technical: (judged.technical || []).map((t) => ({ turn: t.turn, ...scoreTechnical(t.verdict) })),
+    overload: caseObj.overload
+      ? { ...scoreOverload(judged.overloadGold, judged.overloadDistractors), gold: caseObj.overload.gold, captured: String(judged.overloadCaptured || '').slice(0, 300) }
+      : null,
+    technical: (judged.technical || []).map((t) => ({ turn: t.turn, ...scoreTechnical(t.verdict), gold: String(t.gold || '').slice(0, 200), captured: String(t.captured || '').slice(0, 300) })),
     pacing: caseObj.pacing ? scorePacing(caseObj, fires) : null,
     timing: (caseObj.timing_bad_turns || []).length ? scoreTiming(caseObj, fires) : null,
     ethical: scoreEthical(caseObj, fires),
@@ -109,13 +111,14 @@ async function judgeCase(jud, caseObj, detected) {
   const judged = { technical: [] };
   if (caseObj.overload) {
     const captured = detected.captures[caseObj.overload.turn] || '';
+    judged.overloadCaptured = captured; // 0-hit 진단용 — gold와 사람이 대조(관측만)
     judged.overloadGold = await judgeHidden(jud, caseObj.overload.gold, captured);
     judged.overloadDistractors = [];
     for (const d of caseObj.overload.distractors) judged.overloadDistractors.push(await judgeHidden(jud, d, captured));
   }
   for (const p of caseObj.planted.filter((x) => x.technical)) {
     const captured = detected.captures[p.turn] || '';
-    judged.technical.push({ turn: p.turn, verdict: await judgeHidden(jud, p.gold, captured) });
+    judged.technical.push({ turn: p.turn, captured, gold: p.gold, verdict: await judgeHidden(jud, p.gold, captured) });
   }
   return judged;
 }
