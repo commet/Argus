@@ -127,4 +127,16 @@ describe('RECENCY axis (V2 #3) — latest touch, honest gap when none', () => {
     ]);
     expect(g.decisions.find((d) => d.receiptId === 'r1')!.lastActivity).toBe('2026-07-20T00:00:00Z');
   });
+
+  it('ETA: a re-checked premise carries a recheckDue date (nextRecheckDue)', () => {
+    const g = judgmentPortfolioGraph([
+      receipt('r1', 'a', [drifted()]), // last_recheck.ts = 2026-07-18 → due = ts + cadence
+      receipt('r2', 'b', [premise(SHARED)]),
+    ]);
+    const hub = g.premises.find((p) => p.text === SHARED)!;
+    expect(hub.recheckDue).toBeDefined();
+    // due is a plain YYYY-MM-DD strictly after the last re-check (cadence forward)
+    expect(hub.recheckDue! > '2026-07-18').toBe(true);
+    expect(hub.recheckDue).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+  });
 });

@@ -103,9 +103,9 @@ describe('JudgmentGraph — the three V2 axes render as facts', () => {
     expect(tags).toContain('미상'); // r3 = pr_diff → surface unknown, never guessed
   });
 
-  it('RECENCY: the drifted hub shows "N일 전 점검" (2026-07-18 → 4일 전)', () => {
+  it('ETA: a hub with a re-check cadence shows a voyage ETA (D-N / 기한 지남)', () => {
     render(sharedFixture());
-    expect(container.textContent).toContain('4일 전 점검');
+    expect(container.textContent).toMatch(/다음 확인 D-\d+|확인 기한 \d+일 지남|오늘 확인 예정/);
   });
 
   it('DRIFT: the moved premise shows its baseline→today delta inline', () => {
