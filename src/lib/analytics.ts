@@ -80,6 +80,28 @@ import { reportSyncFailure } from './sync-health';
 
 let _sessionId: string | null = null;
 
+function normalizedHostname(value: string): string {
+  return value.trim().toLowerCase().replace(/^www\./, '');
+}
+
+/**
+ * Client analytics are intentionally production-host only. Preview deployments
+ * and local production builds can share Supabase credentials, so relying on
+ * NODE_ENV would silently mix QA traffic into the founder report.
+ */
+export function isAnalyticsHostname(
+  hostname: string,
+  siteUrl = process.env.NEXT_PUBLIC_SITE_URL,
+): boolean {
+  if (!siteUrl) return false;
+  try {
+    const canonical = new URL(siteUrl).hostname;
+    return normalizedHostname(hostname) === normalizedHostname(canonical);
+  } catch {
+    return false;
+  }
+}
+
 function getSessionId(): string {
   if (_sessionId) return _sessionId;
   if (typeof window === 'undefined') return 'ssr';
@@ -116,10 +138,18 @@ function getSourceMeta(): Record<string, unknown> {
   if (typeof window === 'undefined') return {};
   const cached = sessionStorage.getItem('ov_src');
   if (cached) {
-    try { return JSON.parse(cached); } catch { /* fall through — recompute */ }
+    try {
+      return {
+        ...JSON.parse(cached),
+        app_host: window.location.hostname,
+        analytics_environment: 'production',
+      };
+    } catch { /* fall through — recompute */ }
   }
   const params = new URLSearchParams(window.location.search);
   const meta: Record<string, unknown> = {
+    app_host: window.location.hostname,
+    analytics_environment: 'production',
     initial_referrer: document.referrer || null,
     initial_path: window.location.pathname,
     utm_source: params.get('utm_source'),
@@ -170,6 +200,7 @@ function maybeEmitSessionStart() {
 
 export function track(event: string, properties?: Record<string, unknown>) {
   if (typeof window === 'undefined') return;
+  if (!isAnalyticsHostname(window.location.hostname)) return;
 
   // First event of the session → emit session_start first (flag is set inside
   // maybeEmitSessionStart before the recursive track() call, so no infinite loop)

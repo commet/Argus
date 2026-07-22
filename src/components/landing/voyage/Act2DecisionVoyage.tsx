@@ -17,6 +17,7 @@ import { PaperGrain } from './atmosphere/PaperGrain';
 import { PlateLabel } from './ui/PlateLabel';
 import { DecisionVoyageFilm } from '@/components/landing/films/DecisionVoyageFilm';
 import { ScaleToFit } from '@/components/landing/films/ScaleToFit';
+import { track } from '@/lib/analytics';
 
 type Locale = 'ko' | 'en';
 
@@ -181,6 +182,7 @@ export function Act2DecisionVoyage() {
               and an arrow that slides on hover. */}
           <LocaleLink
             href="/workspace?new=1"
+            onClick={() => track('landing_cta_click', { cta: 'voyage_mid' })}
             className="group inline-flex items-center gap-2 text-[var(--bp-ink)] hover:text-[var(--bp-gold-deep)] transition-colors"
             style={{ fontWeight: 700, fontSize: 'clamp(15px, 1.5vw, 17px)', letterSpacing: '0.01em', minHeight: 44 }}
           >

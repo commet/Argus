@@ -35,6 +35,7 @@ import { useLocaleRouter } from '@/hooks/useLocaleRouter';
 import { LocaleLink } from '@/components/ui/LocaleLink';
 import { PaperGrain } from './voyage/atmosphere/PaperGrain';
 import { VoyageFilm } from './films/VoyageFilm';
+import { track } from '@/lib/analytics';
 
 export function SirenHero() {
   const locale = useLocale();
@@ -77,6 +78,7 @@ export function SirenHero() {
   function sail() {
     const t = text.trim();
     if (!t) return;
+    track('landing_hero_submit', { text_length: t.length });
     router.push(`/workspace?q=${encodeURIComponent(t)}`);
   }
 
@@ -325,6 +327,7 @@ export function SirenHero() {
             {/* RIGHT DOOR · ON FILE (review an existing document) */}
             <LocaleLink
               href="/tools/review"
+              onClick={() => track('landing_cta_click', { cta: 'hero_document_review' })}
               onMouseEnter={() => setHoverSide('file')}
               onMouseLeave={() => setHoverSide(null)}
               onFocus={() => setHoverSide('file')}
