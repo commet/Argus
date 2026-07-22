@@ -24,11 +24,15 @@ export function agenticProbes() {
   for (const c of AGENTIC_CORPUS) {
     if (c.overload) {
       probes.push({ id: `${c.id}:ov`, kind: 'positive', planted: c.overload.gold, captured: c.overload.gold, expect: true });
+      (c.overload.gold_alt || []).forEach((a, i) =>
+        probes.push({ id: `${c.id}:ov-alt${i}`, kind: 'positive', planted: a, captured: a, expect: true }));
       c.overload.distractors.forEach((d, i) =>
         probes.push({ id: `${c.id}:ov-d${i}`, kind: 'negative', planted: d, captured: c.overload.gold, expect: false }));
     }
     for (const p of c.planted.filter((x) => x.technical)) {
       probes.push({ id: `${c.id}:tech`, kind: 'positive', planted: p.gold, captured: p.gold, expect: true });
+      (p.gold_alt || []).forEach((a, i) =>
+        probes.push({ id: `${c.id}:tech-alt${i}`, kind: 'positive', planted: a, captured: a, expect: true }));
       probes.push({ id: `${c.id}:tech-c`, kind: 'negative', planted: p.counter, captured: p.gold, expect: false });
     }
   }

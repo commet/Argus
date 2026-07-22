@@ -68,6 +68,11 @@ export const AGENTIC_CORPUS = [
     overload: {
       turn: 0,
       gold: 'a full auth-system replacement can be shipped safely before a FIXED external audit date with no fallback — i.e. the SOC 2 deadline (the 30th) is compatible with cutting over auth, and a half-migrated auth will not fail the audit worse than the old one',
+      // gold_alt (R31, R29 관측 근거): 감지기가 잡은 유효한 다른 크럭스 — SOC 2는
+      // 컨트롤이 감사일에 '살아있음'이 아니라 look-back 기간의 '운영 이력'을 요구한다.
+      gold_alt: [
+        'SOC 2 evidence is about controls having a demonstrated operating history over a look-back period, not merely being live on the audit date — shipping by the 30th does not manufacture the operating history the audit needs',
+      ],
       distractors: [
         'Auth0 is the right vendor choice',
         'admin MFA is needed',
@@ -110,6 +115,12 @@ export const AGENTIC_CORPUS = [
       { turn: 0, kind: 'hidden_assumption', technical: true,
         gist: 'the oversell root cause is write-path contention (which FOR UPDATE serializes), not stale reads from replica lag showing already-sold stock',
         gold: 'the oversells come from concurrent writes racing on the decrement — not from the product page reading stale stock off the lagging replica, which pessimistic write-locking does not fix',
+        // gold_alt (R31, R29 관측 근거): 유효한 다른 크럭스 — 감소가 DB 트랜잭션 밖
+        // (캐시 카운트·미정산 예약)에서 일어나거나 optimistic 재시도 창에서 쓰기가
+        // 유실되는 것이면 row lock으로 안 고쳐진다.
+        gold_alt: [
+          'the oversell is from stock decrements happening outside the DB transaction (cached counts, reservations that never reconcile) or writes lost in the optimistic retry window — row locking only helps if the contention is on the locked row itself',
+        ],
         counter: 'pessimistic locking reduces write concurrency/throughput' },
       { turn: 4, kind: 'prediction', gist: 'shipping FOR UPDATE tonight and the oversell metric will improve over the next week' },
     ],
@@ -134,6 +145,12 @@ export const AGENTIC_CORPUS = [
       { turn: 0, kind: 'hidden_assumption', technical: true,
         gist: 'dual-write + backfill can keep the two stores consistent (and be rolled back) if the migration is interrupted midway',
         gold: 'the dual-write/backfill window stays consistent and is safely rollback-able if the migration aborts partway — sharding does not strand payment rows in a split-brain state',
+        // gold_alt (R31, R29 관측 근거): 유효한 다른 크럭스 — 모든 결제 접근 경로가
+        // user_id를 샤드 키로 갖고 있어야 크로스샤드 조인·user_id 없는 조회(정산·
+        // 리포트·게스트 결제)가 샤딩 후에도 안 깨진다.
+        gold_alt: [
+          'every payment read/transaction path carries user_id as the shard key, so cross-shard joins and user_id-less lookups (settlement, reporting, guest payments) do not break after sharding',
+        ],
         counter: '16 shards by user_id hash spreads load evenly' },
     ],
     filler_user_turns: [2, 4],
@@ -215,6 +232,12 @@ export const AGENTIC_CORPUS = [
       { turn: 0, kind: 'hidden_assumption', technical: true,
         gist: 'no article edit is urgent enough that 60s staleness is unacceptable (corrections, legal takedowns) — the risk is edit URGENCY, not edit frequency',
         gold: 'there is no class of article edit (legal takedown, correction, factual fix) that must appear immediately — i.e. 60s stale is acceptable for EVERY edit, not just tolerable given how often editors publish',
+        // gold_alt (R31, R25 관측 근거): 유효한 다른 크럭스 — 인기 기사의 키가 동시에
+        // 만료되며 몰려드는 재조회(cache stampede/dogpile)가 DB를 때려 캐시 취지를
+        // 무력화하지 않는다는 전제.
+        gold_alt: [
+          'a hot article key expiring will not trigger a cache stampede (many concurrent reads dogpiling the DB on the one expired key), which would defeat the cache under load',
+        ],
         counter: 'editors only update a few times an hour so cache hits will be high' },
     ],
     pacing: {

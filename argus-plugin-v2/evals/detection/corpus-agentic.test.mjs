@@ -57,6 +57,27 @@ test('overload: gold 1 + distractors ≥2, distractor는 gold와 다름, turn은
       assert.ok(d && d.length > 5, `${c.id}: distractor 내용`);
       assert.notEqual(d, o.gold, `${c.id}: distractor≠gold`);
     }
+    for (const a of o.gold_alt || []) {
+      assert.ok(a && a.length > 10, `${c.id}: overload gold_alt 내용`);
+      assert.ok(!o.distractors.includes(a), `${c.id}: gold_alt는 distractor 아님`);
+    }
+  }
+});
+
+test('gold_alt(있으면): 유효한 다른 크럭스 — len>10, counter/distractor와 다름', () => {
+  const withAlt = AGENTIC_CORPUS.flatMap((c) => [
+    ...(c.overload?.gold_alt || []),
+    ...c.planted.flatMap((p) => p.gold_alt || []),
+  ]);
+  assert.ok(withAlt.length >= 3, `gold_alt ≥3 (R31 다면 크럭스, 실제 ${withAlt.length})`);
+  for (const c of AGENTIC_CORPUS) {
+    for (const p of c.planted) {
+      for (const a of p.gold_alt || []) {
+        assert.ok(a.length > 10, `${c.id}: technical gold_alt 내용`);
+        assert.notEqual(a, p.counter, `${c.id}: gold_alt≠counter`);
+        assert.notEqual(a, p.gold, `${c.id}: gold_alt≠gold`);
+      }
+    }
   }
 });
 

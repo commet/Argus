@@ -60,16 +60,19 @@ export function scoreEthical(caseObj, fires) {
 }
 
 /** overload: capture가 gold를 표현(match)하고, 어떤 distractor도 표현하지 않음. */
-export function scoreOverload(goldVerdict, distractorVerdicts) {
+export function scoreOverload(goldVerdict, distractorVerdicts, altVerdicts = []) {
   const matchedGold = !!(goldVerdict && goldVerdict.match);
+  const matchedAlt = (altVerdicts || []).some((v) => v && v.match); // gold_alt: 유효한 다른 크럭스(R31)
   const matchedDistractor = (distractorVerdicts || []).some((v) => v && v.match);
-  const parseFail = isJudgeParseFail(goldVerdict) || (distractorVerdicts || []).some(isJudgeParseFail);
-  return { matchedGold, matchedDistractor, parseFail, hit: matchedGold && !matchedDistractor };
+  const parseFail = isJudgeParseFail(goldVerdict) || (distractorVerdicts || []).some(isJudgeParseFail) || (altVerdicts || []).some(isJudgeParseFail);
+  return { matchedGold, matchedAlt, matchedDistractor, parseFail, hit: (matchedGold || matchedAlt) && !matchedDistractor };
 }
 
-/** technical: 해당 기술 hidden의 gold를 잡았나(judgeHidden match). */
-export function scoreTechnical(goldVerdict) {
-  return { hit: !!(goldVerdict && goldVerdict.match), parseFail: isJudgeParseFail(goldVerdict) };
+/** technical: gold 또는 gold_alt(유효한 다른 크럭스) 중 하나라도 잡으면 hit. */
+export function scoreTechnical(goldVerdict, altVerdicts = []) {
+  const matchedGold = !!(goldVerdict && goldVerdict.match);
+  const matchedAlt = (altVerdicts || []).some((v) => v && v.match);
+  return { hit: matchedGold || matchedAlt, matchedAlt, parseFail: isJudgeParseFail(goldVerdict) || (altVerdicts || []).some(isJudgeParseFail) };
 }
 
 /** 케이스 축 집계(순수) — 판정 결과 map을 받아 케이스별 축 점수로 접는다. */
@@ -77,9 +80,9 @@ export function foldCase(caseObj, fires, judged) {
   return {
     id: caseObj.id,
     overload: caseObj.overload
-      ? { ...scoreOverload(judged.overloadGold, judged.overloadDistractors), gold: caseObj.overload.gold, captured: String(judged.overloadCaptured || '').slice(0, 300) }
+      ? { ...scoreOverload(judged.overloadGold, judged.overloadDistractors, judged.overloadAlt), gold: caseObj.overload.gold, captured: String(judged.overloadCaptured || '').slice(0, 300) }
       : null,
-    technical: (judged.technical || []).map((t) => ({ turn: t.turn, ...scoreTechnical(t.verdict), gold: String(t.gold || '').slice(0, 200), captured: String(t.captured || '').slice(0, 300) })),
+    technical: (judged.technical || []).map((t) => ({ turn: t.turn, ...scoreTechnical(t.verdict, t.altVerdicts), gold: String(t.gold || '').slice(0, 200), captured: String(t.captured || '').slice(0, 300) })),
     pacing: caseObj.pacing ? scorePacing(caseObj, fires) : null,
     timing: (caseObj.timing_bad_turns || []).length ? scoreTiming(caseObj, fires) : null,
     ethical: scoreEthical(caseObj, fires),
@@ -140,10 +143,14 @@ async function judgeCase(jud, caseObj, detected) {
     judged.overloadGold = await judgeHidden(jud, caseObj.overload.gold, captured);
     judged.overloadDistractors = [];
     for (const d of caseObj.overload.distractors) judged.overloadDistractors.push(await judgeHidden(jud, d, captured));
+    judged.overloadAlt = [];
+    for (const a of caseObj.overload.gold_alt || []) judged.overloadAlt.push(await judgeHidden(jud, a, captured));
   }
   for (const p of caseObj.planted.filter((x) => x.technical)) {
     const captured = detected.captures[p.turn] || '';
-    judged.technical.push({ turn: p.turn, captured, gold: p.gold, verdict: await judgeHidden(jud, p.gold, captured) });
+    const altVerdicts = [];
+    for (const a of p.gold_alt || []) altVerdicts.push(await judgeHidden(jud, a, captured));
+    judged.technical.push({ turn: p.turn, captured, gold: p.gold, verdict: await judgeHidden(jud, p.gold, captured), altVerdicts });
   }
   return judged;
 }
