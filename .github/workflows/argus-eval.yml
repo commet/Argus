@@ -2,11 +2,12 @@ name: Argus spine eval (live)
 
 # Behavioral eval that GENERATES bearings from the real sail SKILL.md and scores
 # them (static gate + LLM judge) for over-fire / tilt / crisis off-ramp. Needs a
-# live API key, so it runs nightly + on demand rather than on every PR. The
-# deterministic static layer runs on every PR inside ci.yml.
+# live API key, so it runs on demand rather than on every PR. The deterministic
+# static layer runs on every PR inside ci.yml.
+#
+# 비용 통제(2026-07-22): 무인 nightly 크론 제거 — 라이브 키를 태우는 자동 트리거였다
+# (가드로 스킵 중이었지만 잔존 위험 제거). 이제 수동 workflow_dispatch로만 실행된다.
 on:
-  schedule:
-    - cron: '0 6 * * *' # 06:00 UTC nightly
   workflow_dispatch:
     inputs:
       repeat:
