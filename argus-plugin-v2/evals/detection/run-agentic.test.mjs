@@ -64,6 +64,16 @@ test('scoreTechnical: gold match면 hit', () => {
   assert.equal(scoreTechnical({ match: false }).hit, false);
 });
 
+test('gold_alt(R31): gold 놓쳐도 유효한 다른 크럭스(alt) 잡으면 hit', () => {
+  // technical: gold miss + alt match → hit
+  assert.equal(scoreTechnical({ match: false }, [{ match: true }]).hit, true);
+  assert.equal(scoreTechnical({ match: false }, [{ match: false }]).hit, false);
+  // overload: alt match & no distractor → hit (gold 놓쳐도)
+  assert.equal(scoreOverload({ match: false }, [{ match: false }], [{ match: true }]).hit, true);
+  // 단 distractor 잡으면 alt match여도 hit 아님(급소 아닌 곁가지 뭉침)
+  assert.equal(scoreOverload({ match: false }, [{ match: true }], [{ match: true }]).hit, false);
+});
+
 test('foldCase + aggregateAgentic: 두 케이스를 모드별로 접는다', () => {
   const caseA = { id: 'a', overload: { turn: 0, gold: 'g', distractors: ['d'] }, planted: [], pacing: { decisions: [{ turn: 0 }] }, timing_bad_turns: [1], ethical: { turn: 2 } };
   const firesGood = { 0: ['argus_capture'], 1: [], 2: [] };
