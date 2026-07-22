@@ -4,9 +4,11 @@ name: Auto detection eval (nightly)
 # 실제 MCP 감지 메커니즘(서버 instructions + 진짜 툴 + tool_choice auto)에 흘려
 # recall·over-fire·숨은전제 매치를 잰다. 라이브 키가 필요하므로 nightly + 수동.
 # 결정론 스코어러는 auto-detect-eval.test.mjs가 매 PR(ci.yml 밖 수동)로 고정.
+#
+# 비용 통제(2026-07-22): 무인 nightly 크론 제거 — 라이브 키를 태우는 유일한
+# 자동 트리거였다. 이제 **수동 workflow_dispatch로만** 실행되며, 사람이 명시적으로
+# 눌러야 API 비용이 발생한다. 자동으로 다시 켜지는 경로 없음.
 on:
-  schedule:
-    - cron: '0 7 * * *' # 07:00 UTC nightly (argus-eval 06:00과 분리)
   workflow_dispatch:
     inputs:
       scenarios:
