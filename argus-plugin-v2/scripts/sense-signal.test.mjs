@@ -230,6 +230,36 @@ test('ambient 옵트아웃이면 침묵 (스위치는 하나)', () => {
   assert.equal(out.trim(), '');
 });
 
+// ── 7b. 감도(sensitivity) 다이얼 ────────────────────────────────────────────
+test('감도 low → 창당 1회로 조인다 (2번째 예측 턴은 침묵)', () => {
+  const cfg = tmp('argus-sense-lo-');
+  const home = tmp('argus-sense-lohome-');
+  writeFileSync(join(home, 'config.json'), JSON.stringify({ ambient: { sensitivity: 'low' } }));
+  const turn = { session_id: 'lo', prompt: '다음 분기까지 매출 20% 성장할 것으로 예상합니다.' };
+  const first = runSense(turn, { configDir: cfg, argusHome: home });
+  assert.ok(context(first.out), 'low: 첫 발동은 뜬다');
+  const second = runSense(turn, { configDir: cfg, argusHome: home });
+  assert.equal(second.out.trim(), '', 'low: 창당 1회 → 2번째는 침묵');
+});
+
+test('감도 high → normal(3)이 멈추는 4번째도 발동한다', () => {
+  const cfg = tmp('argus-sense-hi-');
+  const home = tmp('argus-sense-hihome-');
+  writeFileSync(join(home, 'config.json'), JSON.stringify({ ambient: { sensitivity: 'high' } }));
+  const turn = { session_id: 'hi', prompt: '다음 분기까지 매출 20% 성장할 것으로 예상합니다.' };
+  for (let i = 0; i < 4; i++) {
+    const { out } = runSense(turn, { configDir: cfg, argusHome: home });
+    assert.ok(context(out), `high: ${i + 1}번째 발동 (normal이면 4번째는 멈춤)`);
+  }
+});
+
+test('감도 off → opt_out과 동일하게 완전 침묵', () => {
+  const home = tmp('argus-sense-off-');
+  writeFileSync(join(home, 'config.json'), JSON.stringify({ ambient: { sensitivity: 'off' } }));
+  const { out } = runSense({ session_id: 'off', prompt: '다음 분기까지 매출 20% 성장할 것으로 예상합니다.' }, { argusHome: home });
+  assert.equal(out.trim(), '', 'off는 침묵');
+});
+
 // ── 8. 상태 파일 형식 ───────────────────────────────────────────────────────
 test('상태 파일은 {diagTimes[],out,total} JSON으로 기록된다', () => {
   const cfg = tmp('argus-sense-state-');

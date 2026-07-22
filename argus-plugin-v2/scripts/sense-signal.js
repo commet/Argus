@@ -52,12 +52,34 @@ const {
 // 상한 12 (하루 종일 이어지는 세션도 굶지 않되 비용은 유계). 정산은 부기이므로
 // 더 관대(8). 사용자-대면 절제는 지시문이 결정당 1회·스킵 최종으로 따로 진다.
 const DIAG_WINDOW_MS = 2 * 60 * 60 * 1000;
-const DIAG_PER_WINDOW = 3;
-const DIAG_SESSION_MAX = 12;
-const OUTCOME_CAP = 8; // 세션당 정산-전용 재주입 상한
+// 감도(sensitivity) 다이얼 (2026-07-22 창업자: "질문 빈도를 사용자가 조절").
+// 진단 주입 캡을 단계 스케일 — 사용자가 자기 경험을 조율하는 것이라 스파인
+// 위반이 아니다(zero-judgment은 사용자를 심판 안 함이지, 사용자가 자기 다이얼을
+// 못 쥔다가 아니다). 'off'/opt_out은 완전 침묵. 기본 normal(기존 3/12).
+// ★정산(OUTCOME_CAP)은 감도와 무관 — 부기라 조이면 놓친 정산이 루프를 죽인다.
+const SENSITIVITY = {
+  low: { perWindow: 1, sessionMax: 4 },
+  normal: { perWindow: 3, sessionMax: 12 },
+  high: { perWindow: 5, sessionMax: 20 },
+};
+const OUTCOME_CAP = 8; // 세션당 정산-전용 재주입 상한 (감도 무관)
 const PRED_LIST_MAX = 5;    // 주입하는 열린 예측 개수 상한
 const PRED_CLIP = 140;      // 예측 한 줄 길이 상한
 const ASSISTANT_WINDOW = 4000; // 직전 어시스턴트 발화에서 스캔할 꼬리 길이
+
+// ~/.argus/config.json의 ambient 선호를 읽어 {optOut, caps}로 정규화한다.
+// opt_out:true 또는 sensitivity:'off' → 완전 침묵. sensitivity low|normal|high →
+// 캡 스케일. 없거나 손상되면 기본 normal(조용한 실패 = 켜짐 기본).
+function ambientPrefs() {
+  try {
+    const home = process.env.ARGUS_HOME || path.join(require('os').homedir(), '.argus');
+    const cfg = JSON.parse(fs.readFileSync(path.join(home, 'config.json'), 'utf8'));
+    const amb = (cfg && cfg.ambient) || {};
+    if (amb.opt_out === true || amb.sensitivity === 'off') return { optOut: true, caps: SENSITIVITY.normal };
+    const level = ['low', 'normal', 'high'].includes(amb.sensitivity) ? amb.sensitivity : 'normal';
+    return { optOut: false, caps: SENSITIVITY[level] };
+  } catch { return { optOut: false, caps: SENSITIVITY.normal }; } // no config = default on
+}
 
 function stateFile(sessionId) {
   return path.join(configDir(), 'argus-sensed', String(sessionId));
@@ -67,15 +89,15 @@ function stateFile(sessionId) {
 // (구판 의미가 once-per-session이었으므로 이어지는 세션에 소급 과발화하지 않는다).
 // 상태: { diagTimes: number[](주입 시각들), out: number }. 구판 호환:
 // 빈 파일/손상 = 보수적 소진, {diag:n} 숫자 = n개의 '지금' 타임스탬프로 이주.
-function exhaustedState() {
+function exhaustedState(caps) {
   const now = Date.now();
-  return { diagTimes: Array.from({ length: DIAG_PER_WINDOW }, () => now), out: OUTCOME_CAP, total: DIAG_SESSION_MAX };
+  return { diagTimes: Array.from({ length: caps.perWindow }, () => now), out: OUTCOME_CAP, total: caps.sessionMax };
 }
-function readState(sessionId) {
+function readState(sessionId, caps) {
   let raw;
   try { raw = fs.readFileSync(stateFile(sessionId), 'utf8'); }
   catch { return { diagTimes: [], out: 0, total: 0 }; } // 파일 없음 = 새 세션
-  if (!raw.trim()) return exhaustedState(); // 구판 마커 = 소진
+  if (!raw.trim()) return exhaustedState(caps); // 구판 마커 = 소진
   try {
     const s = JSON.parse(raw);
     if (Array.isArray(s.diagTimes)) {
@@ -87,16 +109,17 @@ function readState(sessionId) {
     }
     if (typeof s.diag === 'number') { // 구판 숫자 카운트 → 보수적 이주
       const now = Date.now();
-      return { diagTimes: Array.from({ length: Math.min(s.diag, DIAG_PER_WINDOW) }, () => now), out: typeof s.out === 'number' ? s.out : 0, total: s.diag };
+      return { diagTimes: Array.from({ length: Math.min(s.diag, caps.perWindow) }, () => now), out: typeof s.out === 'number' ? s.out : 0, total: s.diag };
     }
-    return exhaustedState();
-  } catch { return exhaustedState(); } // 손상 = 보수적 소진
+    return exhaustedState(caps);
+  } catch { return exhaustedState(caps); } // 손상 = 보수적 소진
 }
-// 슬라이딩 윈도 판정: 최근 2시간 내 주입이 3회 미만이고 세션 누적이 상한 미만.
-function diagAllowed(state) {
+// 슬라이딩 윈도 판정: 최근 2시간 내 주입이 caps.perWindow 미만이고 세션 누적이
+// caps.sessionMax 미만 (둘 다 감도 단계에 따라 스케일).
+function diagAllowed(state, caps) {
   const cutoff = Date.now() - DIAG_WINDOW_MS;
   const recent = state.diagTimes.filter((t) => t > cutoff);
-  return recent.length < DIAG_PER_WINDOW && (state.total || 0) < DIAG_SESSION_MAX;
+  return recent.length < caps.perWindow && (state.total || 0) < caps.sessionMax;
 }
 function writeState(sessionId, s) {
   const f = stateFile(sessionId);
@@ -183,12 +206,10 @@ function main(input) {
   if (!sessionId || typeof prompt !== 'string') return null;
   if (prompt.trim().startsWith('/')) return null; // slash command — not conversation
 
-  // opt-out — same escape hatch as the ambient nudge (one switch, not two).
-  try {
-    const home = process.env.ARGUS_HOME || path.join(require('os').homedir(), '.argus');
-    const cfg = JSON.parse(fs.readFileSync(path.join(home, 'config.json'), 'utf8'));
-    if (cfg && cfg.ambient && cfg.ambient.opt_out === true) return null;
-  } catch { /* no config = default on */ }
+  // ambient 선호 — opt_out/'off'는 완전 침묵, 아니면 감도 단계별 캡을 얻는다.
+  const prefs = ambientPrefs();
+  if (prefs.optOut) return null;
+  const caps = prefs.caps;
 
   // 스캔 창 = 직전 어시스턴트 발화 + 이번 사용자 메시지 (양쪽 다 — §3.3).
   let assistant = '';
@@ -201,11 +222,11 @@ function main(input) {
   const pre = prefilterTurn(window);
   if (!pre.pass) return null; // 명백한 비후보 — 주입 없음 (비용 절약, 침묵)
 
-  const state = readState(sessionId);
+  const state = readState(sessionId, caps);
   const preds = openPredicates(cwd);
 
   // 경로 1 — 전체 진단 (예측·정산·숨은 전제). 슬라이딩 윈도 안에서만.
-  if (diagAllowed(state)) {
+  if (diagAllowed(state, caps)) {
     // 규칙 후보는 최저선으로 동봉 — 없어도 진단은 주입된다 (규칙은 감지기가 아니다).
     const candidates = detectSignals(window, { openPredicates: preds, max: 2 });
     // Claim the slot BEFORE printing: a write failure means silence, not a repeat.
