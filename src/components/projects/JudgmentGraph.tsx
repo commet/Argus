@@ -88,6 +88,22 @@ function daysAgoLabel(iso: string | undefined, now: number, ko: boolean): string
   return ko ? `${d}일 전 점검` : `checked ${d}d ago`;
 }
 
+/** ETA axis label — the re-check due date read as a voyage ETA. Forward-looking
+ *  (the alarm the raw age couldn't give): "다음 확인 D-N" ahead, "확인 기한 N일
+ *  지남" past. `overdue` drives the brass (due-to-act) tone — distinct from the
+ *  amber DRIFT tone, so the two attention signals never collide. Null = no due
+ *  date (honest gap: no cadence/anchor yet → no manufactured alarm). */
+function etaLabel(dueISO: string | undefined, now: number, ko: boolean): { text: string; overdue: boolean } | null {
+  if (!dueISO) return null;
+  const due = new Date(`${dueISO}T00:00:00`).getTime();
+  if (Number.isNaN(due)) return null;
+  const today = new Date(new Date(now).toISOString().slice(0, 10) + 'T00:00:00').getTime();
+  const d = Math.round((due - today) / 86_400_000);
+  if (d > 0) return { text: ko ? `다음 확인 D-${d}` : `next check in ${d}d`, overdue: false };
+  if (d === 0) return { text: ko ? '오늘 확인 예정' : 'check due today', overdue: true };
+  return { text: ko ? `확인 기한 ${-d}일 지남` : `check ${-d}d overdue`, overdue: true };
+}
+
 /**
  * A DECISION node — a rounded-square "sealed record" tile, mirroring
  * VoyageMarker's plate finish (same gradient/border/shadow) but square, so a
@@ -336,7 +352,7 @@ export function JudgmentGraph({
                 d && typeof d.baseline_numeric === 'number' && typeof d.current_numeric === 'number'
                   ? `${d.baseline_numeric} → ${d.current_numeric}`
                   : null;
-              const recency = daysAgoLabel(node.premise!.lastActivity, now, ko);
+              const eta = etaLabel(node.premise!.recheckDue, now, ko);
 
               return (
                 <button
@@ -371,11 +387,15 @@ export function JudgmentGraph({
                       「{clip(label, isHub ? 40 : 22)}」
                     </span>
                   )}
-                  {/* RECENCY axis — a quiet "N일 전 점검" on the load-bearing hubs
-                      only (leaves stay uncluttered). A fact, not a verdict. */}
-                  {showsLabel(node) && isHub && recency && (
-                    <span className="mt-0.5 text-center text-[8.5px] tabular-nums" style={{ color: '#f5f0e566' }}>
-                      {recency}
+                  {/* ETA axis — the re-check due read as a voyage ETA, on the
+                      load-bearing hubs only. Brass when overdue (due to act),
+                      quiet ivory when still ahead. A fact, not a verdict. */}
+                  {showsLabel(node) && isHub && eta && (
+                    <span
+                      className="mt-0.5 text-center text-[8.5px] font-medium tabular-nums"
+                      style={{ color: eta.overdue ? N.brass : '#f5f0e566' }}
+                    >
+                      {eta.text}
                     </span>
                   )}
                 </button>
@@ -405,11 +425,18 @@ export function JudgmentGraph({
             ← {L('전체 지도로', 'Back to the whole map')}
           </button>
           <div className="flex flex-col items-end gap-0.5 text-right">
-            {daysAgoLabel(focus.ground.last_activity, now, ko) && (
-              <p className="text-[11px] tabular-nums" style={{ color: 'var(--text-tertiary)' }}>
-                {L('마지막으로 ', 'last ')}{daysAgoLabel(focus.ground.last_activity, now, ko)}
-              </p>
-            )}
+            {(() => {
+              const last = daysAgoLabel(focus.ground.last_activity, now, ko);
+              const eta = etaLabel(focus.ground.recheck_due, now, ko);
+              if (!last && !eta) return null;
+              return (
+                <p className="text-[11px] tabular-nums" style={{ color: eta?.overdue ? undefined : 'var(--text-tertiary)' }}>
+                  {last && <span style={{ color: 'var(--text-tertiary)' }}>{L('마지막으로 ', 'last ')}{last}</span>}
+                  {last && eta && <span style={{ color: 'var(--text-tertiary)' }}> · </span>}
+                  {eta && <span style={{ color: eta.overdue ? 'var(--warning)' : 'var(--text-tertiary)', fontWeight: eta.overdue ? 600 : 400 }}>{eta.text}</span>}
+                </p>
+              );
+            })()}
             {focus.ground.record && (
               <p className="text-[11px] leading-relaxed" style={{ color: 'var(--text-tertiary)' }}>
                 {L(
@@ -438,8 +465,8 @@ export function JudgmentGraph({
           </div>
           <p className="text-[11px] leading-relaxed" style={{ color: 'var(--text-tertiary)' }}>
             {L(
-              '결정 밑 작은 표: 웹 = 웹에서 올린 문서 · MCP·CLI = 터미널에서 온 것 · 미상 = 출처를 알 수 없음(아직 Claude Code↔Codex 구분은 없어요). 허브 밑 “N일 전 점검”은 그 전제를 마지막으로 확인한 때.',
-              'The tag under a decision: web = uploaded on the web · MCP·CLI = came from a terminal · unknown = surface not recorded (Claude Code vs Codex isn’t distinguished yet). "checked Nd ago" under a hub is when that premise was last verified.',
+              '결정 밑 작은 표: 웹 = 웹에서 올린 문서 · MCP·CLI = 터미널에서 온 것 · 미상 = 출처를 알 수 없음(아직 Claude Code↔Codex 구분은 없어요). 허브 밑 “다음 확인 D-N”은 그 전제를 다시 확인할 항해 ETA — 기한이 지나면 브라스색 “확인 기한 지남”으로 바뀝니다.',
+              'The tag under a decision: web = uploaded on the web · MCP·CLI = came from a terminal · unknown = surface not recorded (Claude Code vs Codex isn’t distinguished yet). "next check in N days" under a hub is that premise’s re-check ETA — it turns brass ("check overdue") once the date passes.',
             )}
           </p>
           <p className="text-[11px] leading-relaxed" style={{ color: 'var(--text-tertiary)' }}>

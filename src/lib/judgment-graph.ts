@@ -24,6 +24,7 @@
 import type { JudgmentReceipt, FalsifiableFollowup } from '@/lib/review';
 import {
   isMonitored,
+  nextRecheckDue,
   normalizePremiseText,
   type PremiseState,
 } from '@/lib/premises-core';
@@ -94,6 +95,12 @@ export interface SharedGround {
    *  add-time recorded (an honest gap; the surface computes "N일 전" from it, and
    *  this module stays pure — no Date.now here). A fact, never a verdict. */
   last_activity?: string;
+  /** ETA axis (BLUEPRINT §9.9 V2, founder 2026-07-22 항해 ETA): the SOONEST
+   *  YYYY-MM-DD any premise on this ground next comes due for a reality re-check
+   *  (nextRecheckDue, the pinned cadence). The surface renders it as a voyage
+   *  ETA — "다음 확인 D-N" ahead, "확인 기한 지남" past. Absent = no cadence/anchor
+   *  yet (honest gap, no manufactured alarm). Pure date arithmetic, no clock read. */
+  recheck_due?: string;
 }
 
 /** The armed rule — same expression as review-sync.ts / PremiseTracker.tsx.
@@ -213,6 +220,15 @@ export function sharedGrounds(
       if (t > lastActivity) lastActivity = t;
     }
     if (lastActivity) g.last_activity = lastActivity;
+
+    // ETA: the soonest next re-check due among members — the most urgent
+    // reality-check this ground owes. (Date-only strings sort lexically.)
+    let due = '';
+    for (const m of g.members) {
+      const d = nextRecheckDue(m.premise);
+      if (d && (!due || d < due)) due = d;
+    }
+    if (due) g.recheck_due = due;
 
     grounds.push(g);
   }

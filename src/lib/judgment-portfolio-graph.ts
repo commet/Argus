@@ -71,6 +71,9 @@ export interface PremiseNode {
   /** RECENCY axis: latest ISO ts this ground was touched (from its members'
    *  re-check / add-time). Absent = honest gap. The surface prints "N일 전". */
   lastActivity?: string;
+  /** ETA axis: the soonest YYYY-MM-DD this ground is next due for a re-check.
+   *  The surface renders it as a voyage ETA ("다음 확인 D-N" / "확인 기한 지남"). */
+  recheckDue?: string;
 }
 
 export interface DecisionNode {
@@ -126,6 +129,7 @@ export function judgmentPortfolioGraph(receipts: JudgmentReceipt[]): PortfolioGr
       drift: g.drift,
       record: g.record,
       lastActivity: g.last_activity,
+      recheckDue: g.recheck_due,
     });
     for (const m of g.members) {
       if (!titleByReceipt.has(m.receipt_id)) titleByReceipt.set(m.receipt_id, m.source_title);
