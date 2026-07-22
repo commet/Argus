@@ -35,6 +35,10 @@ function escHtml(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
+function isValidEmailAddress(value: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+}
+
 function safeCompare(a: string, b: string): boolean {
   const lengthMismatch = a.length !== b.length ? 1 : 0;
   const compareTarget = lengthMismatch ? a : b;
@@ -120,8 +124,8 @@ export async function GET(req: Request) {
     ['NEXT_PUBLIC_SUPABASE_URL', process.env.NEXT_PUBLIC_SUPABASE_URL],
     ['SUPABASE_SERVICE_ROLE_KEY', process.env.SUPABASE_SERVICE_ROLE_KEY],
     ['RESEND_API_KEY', process.env.RESEND_API_KEY],
-    ['REPORT_EMAIL', REPORT_EMAIL],
-    ['OWNER_EMAILS', OWNER_EMAILS.length > 0 ? 'configured' : ''],
+    ['REPORT_EMAIL', isValidEmailAddress(REPORT_EMAIL) ? 'configured' : ''],
+    ['OWNER_EMAILS', OWNER_EMAILS.length > 0 && OWNER_EMAILS.every(isValidEmailAddress) ? 'configured' : ''],
   ].filter(([, value]) => !value).map(([name]) => name);
   if (missingConfig.length > 0) {
     console.error('[daily-report] missing configuration:', missingConfig.join(', '));

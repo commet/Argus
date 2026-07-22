@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isAnalyticsHostname } from '../analytics';
+import { isAnalyticsHostname, isAnalyticsMetadata } from '../analytics';
 import { isServerAnalyticsEnabled } from '../server-events';
 
 describe('analytics environment guards', () => {
@@ -20,5 +20,12 @@ describe('analytics environment guards', () => {
     expect(isServerAnalyticsEnabled('preview')).toBe(false);
     expect(isServerAnalyticsEnabled('development')).toBe(false);
     expect(isServerAnalyticsEnabled(undefined)).toBe(false);
+  });
+
+  it('accepts only flat scalar source metadata from session storage', () => {
+    expect(isAnalyticsMetadata({ utm_source: 'newsletter', returning: true, visits: 2, ref: null })).toBe(true);
+    expect(isAnalyticsMetadata(null)).toBe(false);
+    expect(isAnalyticsMetadata([])).toBe(false);
+    expect(isAnalyticsMetadata({ nested: { unsafe: true } })).toBe(false);
   });
 });

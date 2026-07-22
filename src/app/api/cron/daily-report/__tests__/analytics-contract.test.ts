@@ -21,8 +21,8 @@ describe('daily analytics contract', () => {
 
   it('requires delivery and owner-filter configuration before sending', () => {
     const route = source('src/app/api/cron/daily-report/route.ts');
-    expect(route).toContain("['REPORT_EMAIL', REPORT_EMAIL]");
-    expect(route).toContain("['OWNER_EMAILS', OWNER_EMAILS.length > 0 ? 'configured' : '']");
+    expect(route).toContain("['REPORT_EMAIL', isValidEmailAddress(REPORT_EMAIL) ? 'configured' : '']");
+    expect(route).toContain('OWNER_EMAILS.every(isValidEmailAddress)');
   });
 
   it('turns provider-level email rejection into a failed cron response', () => {

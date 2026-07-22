@@ -102,6 +102,13 @@ export function isAnalyticsHostname(
   }
 }
 
+export function isAnalyticsMetadata(value: unknown): value is Record<string, string | number | boolean | null> {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  return Object.values(value).every((item) => (
+    item === null || ['string', 'number', 'boolean'].includes(typeof item)
+  ));
+}
+
 function getSessionId(): string {
   if (_sessionId) return _sessionId;
   if (typeof window === 'undefined') return 'ssr';
@@ -139,8 +146,10 @@ function getSourceMeta(): Record<string, unknown> {
   const cached = sessionStorage.getItem('ov_src');
   if (cached) {
     try {
+      const parsed: unknown = JSON.parse(cached);
+      if (!isAnalyticsMetadata(parsed)) throw new Error('Invalid analytics metadata cache');
       return {
-        ...JSON.parse(cached),
+        ...parsed,
         app_host: window.location.hostname,
         analytics_environment: 'production',
       };
