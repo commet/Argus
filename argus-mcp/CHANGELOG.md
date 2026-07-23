@@ -6,6 +6,27 @@
 > The `1.3.0` / `1.2.1` entries at the bottom are pre-rename `argus-mcp` history,
 > kept for reference — all of that work shipped inside the new-name 1.0.0.
 
+## 1.7.0 — Sharper firing boundary: stack, ask-vs-commit, stale, plan+work
+
+Four rounds of the self-evolution loop tightened *when* and *how* the senses
+fire, cutting over-fire without losing recall. Spine invariants unchanged
+(single clause, `ai_surfaced` provenance, no verdict / fork / lean).
+
+- **No stacking (R17).** Predict and capture each surface exactly one call —
+  never two premises fused as "A and B" / "A so B" in a single output. Measured
+  spine-stacking violations −57%.
+- **Ask ≠ commit (R19).** A question the user puts to *you* (which is better,
+  will this work, write me X) is soliciting help, not a prediction — answer it
+  and stay out. A positive restraint gate fires only when the user is COMMITTING
+  to a consequential call, not asking for advice, a fact, or a task. Frozen-bench
+  over-fire 1/8 → 0/8.
+- **Current-turn only (R21).** A new prediction/premise must come from the user's
+  latest message; never reach back to re-surface a past turn's claim mid-new-topic.
+- **Plan handed as work still counts (R28).** "Here is the plan, start with X" is
+  still a plan — the execution request does not cancel the load-bearing call
+  underneath it. Restores hard-case capture that the R19/R21 restraint had
+  over-suppressed, with no over-fire regression.
+
 ## 1.6.1 — Load-bearing assumption, aimed at the specific unstated premise
 
 The self-evolution loop's new hidden-extraction gate (does Argus surface the
