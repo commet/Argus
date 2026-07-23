@@ -6,6 +6,36 @@
 > The `1.3.0` / `1.2.1` entries at the bottom are pre-rename `argus-mcp` history,
 > kept for reference — all of that work shipped inside the new-name 1.0.0.
 
+## 1.8.0 — The ask becomes structural: premise picker, honest wire, one dial
+
+The founder's activation invariant — an AI draft must be SHOWN to the user
+before it lands, via a real picker, not narrated past them — extended from
+predictions to every surfaced draft, plus honest surfacing of the two silent
+failure modes dogfooding exposed.
+
+- **Premise one-tap confirm.** An `ai_surfaced` load-bearing premise (single
+  draft, `argus_capture add_context`) now fires the same Keep / Reword / Skip
+  picker `argus_predict` drafts get. Keep records it with provenance
+  `ai_surfaced` unchanged (a tap approves the recording; it does not transfer
+  authorship — predictions differ deliberately: a bet must become the user's).
+  Reword typed in the form is saved verbatim as `user_stated` with the draft
+  preserved as `ai_original`. Skip / declined / no-elicitation host → the
+  friction escape stays.
+- **Picker availability is visible.** `argus_check_in` now returns
+  `data.picker: "one_tap" | "text_fallback"` so a session (and `/doctor`) can
+  distinguish "host shows real pickers" from "asks fall back to text" — the gap
+  that made a working install look broken.
+- **Plan+work turns un-suppressed for raw MCP.** The standing-sense refresh
+  (re-injected with every tool result) repeated "stay silent on task turns"
+  without the plan-handed-as-work exception, re-suppressing R28's fix on every
+  call — the diagnosed reason raw MCP lagged the plugin on hard cases. The
+  refresh now carries the exception; a drift test pins it.
+- **Sensitivity dial, MCP half.** The refresh now reads the SAME
+  `~/.argus/config.json` `ambient.sensitivity` / `ambient.opt_out` the plugin
+  dial writes, appending an enum-gated one-line bias (low / high / off).
+  Off never silences outcome bookkeeping the user states. Values are never
+  interpolated raw into instructions.
+
 ## 1.7.0 — Sharper firing boundary: stack, ask-vs-commit, stale, plan+work
 
 Four rounds of the self-evolution loop tightened *when* and *how* the senses

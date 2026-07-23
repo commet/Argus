@@ -96,7 +96,8 @@ test('예측 단서 → 3감각 진단 지시 주입 (규칙 후보 동봉)', ()
   assert.match(ctx, /UNSTATED/); // 숨은 전제가 핵심 감각임을 지시
   assert.match(ctx, /Deterministic scan flagged/); // 규칙 후보 = 최저선
   assert.match(ctx, /매출 20% 성장/); // 후보는 사용자의 말 그대로
-  assert.match(ctx, /ignore this entirely/); // MCP 부재 가드
+  assert.match(ctx, /the Argus wire is broken/); // MCP 부재 = 침묵 은폐가 아니라 1회 정직 표면화
+  assert.match(ctx, /said this once this session, stay completely silent/); // 단 1회 — 잔소리 금지
 });
 
 test('규칙이 못 잡는 애매-지평 예측도 진단은 주입된다 (규칙은 감지기가 아니다)', () => {

@@ -5,7 +5,7 @@ import { resolveToolArgusDir } from '../lib/argus-dir.js';
 import { sanitizeOutput } from '../lib/untrusted.js';
 import { replayLedger } from '../lib/ledger-replay.js';
 import { resolveToday } from '../lib/resolve-today.js';
-import { STANDING_SENSE_REFRESH } from '../lib/spine.js';
+import { tunedStandingSense } from '../lib/ambient-prefs.js';
 import { configPath } from '../lib/layout.js';
 import type { McpToolResult } from '../lib/envelope.js';
 import { ENVELOPE_OUTPUT_SCHEMA, zArgusDir, zDate, zId, type ToolInputSchema, type ToolModule } from './tool-types.js';
@@ -297,7 +297,7 @@ function attachOpenPredictions(result: McpToolResult, args: Record<string, unkno
     // 원장 predicate(사용자 저작 텍스트)를 직접 세탁해야 한다 — 안 하면 ANSI/bidi/
     // zero-width 벡터가 세탁 안 된 채 모델에 직행하는 새 경로가 된다.
     data['open_predictions'] = sanitizeOutput(open);
-    data['standing_sense'] = STANDING_SENSE_REFRESH;
+    data['standing_sense'] = tunedStandingSense();
     result.content = [{ type: 'text', text: JSON.stringify(sc, null, 2) }];
   } catch { /* 라이더 실패는 침묵 — 본 결과를 해치지 않는다 */ }
   return result;

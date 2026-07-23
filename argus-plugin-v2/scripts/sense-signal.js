@@ -149,7 +149,10 @@ function openPredicates(cwd) {
 }
 
 const SRC = '[Argus sense — a deterministic every-turn hook. The judgment below is YOURS: diagnose meaning, not keywords. Speak to the user in their language. Mirror, never verdict.]';
-const MCP_GUARD = 'If the Argus tools (argus_predict / argus_resolve / argus_capture) are NOT in your tool list right now, ignore this entirely and do not mention it.';
+// Honest-gap surface (LLM-glue invariant): a broken wire must not fail silent.
+// If the MCP tools are missing the model says so ONCE — the user can then fix
+// the connection (/mcp) instead of reading weeks of silence as "restraint".
+const MCP_GUARD = 'If the Argus tools (argus_predict / argus_resolve / argus_capture) are NOT in your tool list right now, the Argus wire is broken — do not silently skip: tell the user ONCE, in one brief line in their language, that the Argus plugin is active but its MCP server is not connected (run /mcp to check, /doctor to diagnose). If you have already said this once this session, stay completely silent about it and ignore the rest of this instruction.';
 
 function predList(preds) {
   return preds.slice(0, PRED_LIST_MAX)
