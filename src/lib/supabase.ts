@@ -86,6 +86,58 @@ export function clearUserCache() {
 }
 
 /**
+ * A "real" (non-anonymous) auth user. Anonymous sessions exist only to give a
+ * logged-out voyager a server identity so their log persists (see ensureUserId);
+ * they must NOT count as signed-in for the app's UX gates (soft wall, header,
+ * migration, session-expiry). `is_anonymous` is set by Supabase on anon users.
+ */
+export function isRealUser(user: { is_anonymous?: boolean } | null | undefined): boolean {
+  return !!user && !user.is_anonymous;
+}
+
+// Anonymous-auth attempt state. signInAnonymously requires the project's
+// "Allow anonymous sign-ins" setting; if it's off (or offline) the call errors.
+// We attempt once per page-load and remember failure so a disabled provider
+// doesn't re-fire a sign-in on every commitment.
+let _anonAttempted = false;
+let _anonInFlight: Promise<string | null> | null = null;
+
+/**
+ * Return the current user id, creating a durable ANONYMOUS auth session if the
+ * visitor has none. This is what lets a logged-out voyager's log reach the
+ * server — RLS needs a real `auth.uid()`. The anonymous user is a first-class
+ * auth row (`is_anonymous = true`) that a later real sign-in supersedes (local
+ * work then migrates into the account via migrateLocalToAccount).
+ *
+ * Call this ONLY at a meaningful commitment (a submitted problem), never on a
+ * bare page view, so crawlers/bounces never mint an identity.
+ *
+ * Fails soft: if anonymous sign-in is disabled or unreachable, returns null and
+ * the app stays local-first, exactly as before.
+ */
+export async function ensureUserId(): Promise<string | null> {
+  const existing = await getCurrentUserId();
+  if (existing) return existing;
+  if (_anonInFlight) return _anonInFlight;
+  if (_anonAttempted) return null;
+  _anonAttempted = true;
+  _anonInFlight = (async () => {
+    try {
+      const { data, error } = await supabase.auth.signInAnonymously();
+      if (error || !data.user) return null;
+      _cachedUserId = data.user.id;
+      _cacheTs = Date.now();
+      return data.user.id;
+    } catch {
+      return null;
+    } finally {
+      _anonInFlight = null;
+    }
+  })();
+  return _anonInFlight;
+}
+
+/**
  * Helper for safe DB operations with user context.
  */
 export async function withUser<T>(fn: (userId: string) => Promise<T>): Promise<T | null> {

@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useContext, useEffect, useState } from 'react';
-import { supabase, clearUserCache, getSessionWithTimeout } from './supabase';
+import { supabase, clearUserCache, getSessionWithTimeout, isRealUser } from './supabase';
 import { clearAllStorage, STORAGE_KEYS } from './storage';
 import { setAnalyticsUser, track } from './analytics';
 import { getCurrentLanguage } from './i18n';
@@ -96,17 +96,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // signed-out instead of an endless boot spinner. onAuthStateChange below is
     // the safety net — a real session re-fills user/session moments later.
     getSessionWithTimeout().then((session) => {
+      // Anonymous sessions (durable server identity for logged-out voyagers) are
+      // NOT a signed-in user for the app's UX — only a real account is.
+      const realUser = isRealUser(session?.user) ? session!.user : null;
       setSession(session);
-      setUser(session?.user ?? null);
-      setAnalyticsUser(session?.user?.id ?? null);
+      setUser(realUser);
+      setAnalyticsUser(realUser?.id ?? null);
       setLoading(false);
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       clearUserCache();
+      // Anonymous sessions are server-identity plumbing, not a signed-in user —
+      // keep every real-account gate (wall/header/migration/expiry) keyed on a
+      // real user so anon auth changes nothing about the logged-out experience.
+      const realUser = isRealUser(session?.user) ? session!.user : null;
       setSession(session);
-      setUser(session?.user ?? null);
-      setAnalyticsUser(session?.user?.id ?? null);
+      setUser(realUser);
+      setAnalyticsUser(realUser?.id ?? null);
       setLoading(false);
 
       // P0-5 session-expiry honesty: remember (boolean only) that this browser
@@ -114,17 +121,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // (token expiry — explicit sign-out clears the flag FIRST via
       // clearAllStorage), announce it once so the silence doesn't read as
       // "everything is still backing up". Consumed by SessionExpiredToast.
+      // An anonymous session is neither a real sign-in nor an expiry, so it must
+      // not set the flag or fire the expiry signal.
       try {
-        if (session?.user) {
+        if (realUser) {
           localStorage.setItem(STORAGE_KEYS.KNEW_YOU, '1');
-        } else if (localStorage.getItem(STORAGE_KEYS.KNEW_YOU) === '1') {
+        } else if (localStorage.getItem(STORAGE_KEYS.KNEW_YOU) === '1' && !session?.user) {
           window.dispatchEvent(new CustomEvent('argus:session-expired'));
         }
       } catch { /* storage unavailable — skip the courtesy signal */ }
 
       // On a genuine sign-in, eagerly migrate local-first work into the account
       // and confirm it (local-first → "your thinking follows you when you sign up").
-      if (_event === 'SIGNED_IN' && session?.user) {
+      if (_event === 'SIGNED_IN' && realUser) {
         migrateLocalToAccount()
           .then(({ projects, partial }) => {
             if (projects > 0 && typeof window !== 'undefined') {

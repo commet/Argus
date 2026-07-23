@@ -25,6 +25,7 @@ import { shouldShowLantern, localYMD } from '@/lib/lantern';
 import { getStorage, setStorage, STORAGE_KEYS } from '@/lib/storage';
 import { track } from '@/lib/analytics';
 import { useAuth, hasKnownUser } from '@/lib/auth';
+import { ensureUserId } from '@/lib/supabase';
 import { LocaleLink } from '@/components/ui/LocaleLink';
 import { Button } from '@/components/ui/Button';
 import { Graticule } from '@/components/ui/VoyageElements';
@@ -545,6 +546,12 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem, fr
 
       // 분석 성공 — 프로젝트 + (Phase 1 rope) + 세션 생성.
       if (elapsedTimerRef.current) clearInterval(elapsedTimerRef.current);
+      // Persist even for logged-out voyagers: establish a durable anonymous auth
+      // identity at the moment of commitment (a real submitted problem, past any
+      // crawler) so the project + early seal + session reach the server. RLS
+      // needs a real auth.uid(); this fails soft to local-only if anon sign-in
+      // is disabled. A later real sign-in supersedes it (migrateLocalToAccount).
+      await ensureUserId();
       const pid = createProject(text.slice(0, 40));
       // Tie the rope at OPEN: seal the user's own lean + check-in BEFORE the song,
       // so a contract exists even if the user abandons mid-pipeline (the 47/0 fix).
