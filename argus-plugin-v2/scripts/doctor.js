@@ -176,6 +176,24 @@ for (const p of [path.join(cwd, '.argus', 'ledger', 'ledger.jsonl'), path.join(h
     } catch { say('    마지막 자동 포착 실행일: 기록 없음'); }
   }
 }
+// 9. 감지 발사 사슬 — "침묵이 절제인지 고장인지"를 구별 가능하게 (honest-gap).
+//    이 스크립트가 결정론적으로 볼 수 있는 건 감도 설정까지다. MCP 연결과
+//    픽커(elicitation) 지원은 호스트 세션 안에서만 보이므로 doctor.md가 모델에게
+//    딱 그 두 가지만 추가 확인시킨다 (argus_check_in의 data.picker가 정본).
+{
+  say('[9] 감지 감도 (ambient sensitivity):');
+  let amb = null;
+  try {
+    const cfg = JSON.parse(fs.readFileSync(path.join(home, 'config.json'), 'utf8'));
+    amb = cfg && typeof cfg.ambient === 'object' ? cfg.ambient : null;
+  } catch { /* 설정 없음 = 기본 */ }
+  if (amb && amb.opt_out === true) {
+    say('    ⚠ ambient.opt_out=true — 감지가 의도적으로 꺼져 있다. 질문이 안 오는 게 이 설정 때문일 수 있다. 켜려면 /configure 또는 config.json에서 opt_out 제거.');
+  } else {
+    const lv = amb && typeof amb.sensitivity === 'string' ? amb.sensitivity : 'normal(기본)';
+    say(`    감도 ${lv} — (${path.join(home, 'config.json')} ambient.sensitivity: low/normal/high)`);
+  }
+}
 say('');
 say('진단 끝. 이 스크립트는 아무것도 고치지 않았다 — 수리 손잡이는 각 줄에 적힌 도구다.');
 

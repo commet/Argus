@@ -5,8 +5,10 @@ import { duePremises, groupDuePremises, dueOpenQuestions } from '../lib/premises
 import { readReceipt, SKIPPED } from '../lib/receipt.js';
 import { SURFACES, resolveResponseLocale, surfaceLocale } from '../lib/surfaces.js';
 import { z } from 'zod';
-import { STANDING_SENSE_REFRESH, type NextAction } from '../lib/spine.js';
+import { type NextAction } from '../lib/spine.js';
+import { tunedStandingSense } from '../lib/ambient-prefs.js';
 import { envelope } from '../lib/envelope.js';
+import { canElicit } from '../lib/elicit.js';
 import { ENVELOPE_OUTPUT_SCHEMA, zArgusDir, zDate, type ToolModule } from './tool-types.js';
 import { handleToolException } from './errors.js';
 import { briefDivergence, readV2Brief } from '../v2/mirror.js';
@@ -284,14 +286,14 @@ export const checkIn: ToolModule = {
             ok: true, tool: 'argus_check_in',
             surface: S.first_run,
             next_actions: ['argus_capture'],
-            data: { due: [], due_count: 0, due_premises: [], due_premise_count: 0, due_open_questions: [], due_open_question_count: 0, first_run: true, today },
+            data: { due: [], due_count: 0, due_premises: [], due_premise_count: 0, due_open_questions: [], due_open_question_count: 0, first_run: true, today, picker: canElicit() ? 'one_tap' : 'text_fallback' },
           });
         }
         return envelope({
           ok: true, tool: 'argus_check_in',
           surface: mirrorLine + S.nothing_due + accountHint + upcomingLine + fleetLine + integrityLine,
           next_actions: ['stop'],
-          data: { due: [], due_count: 0, due_premises: [], due_premise_count: 0, due_open_questions: [], due_open_question_count: 0, ...(openWatch.length ? { open_predictions: openWatch, standing_sense: STANDING_SENSE_REFRESH } : {}), ...(upDays > 0 ? { upcoming } : {}), ...(a['fleet'] === true ? { fleet: fleetRows } : {}), ...watchData, today, integrity: ledger.integrity, ...(process.env['ARGUS_V2_DEBUG'] === '1' ? { capture_status: captureStatus, v2_brief: readV2Brief(dir, today), v2_divergence: briefDivergence([], readV2Brief(dir, today)) } : {}) },
+          data: { due: [], due_count: 0, due_premises: [], due_premise_count: 0, due_open_questions: [], due_open_question_count: 0, picker: canElicit() ? 'one_tap' : 'text_fallback', ...(openWatch.length ? { open_predictions: openWatch, standing_sense: tunedStandingSense() } : {}), ...(upDays > 0 ? { upcoming } : {}), ...(a['fleet'] === true ? { fleet: fleetRows } : {}), ...watchData, today, integrity: ledger.integrity, ...(process.env['ARGUS_V2_DEBUG'] === '1' ? { capture_status: captureStatus, v2_brief: readV2Brief(dir, today), v2_divergence: briefDivergence([], readV2Brief(dir, today)) } : {}) },
         });
       }
 
@@ -331,6 +333,7 @@ export const checkIn: ToolModule = {
         surface: mirrorLine + parts.join(' ') + upcomingLine + fleetLine + integrityLine,
         next_actions: next,
         data: {
+          picker: canElicit() ? 'one_tap' : 'text_fallback',
           due: dueEnriched, due_count: dueAll.length,
           ...(dueTruncated > 0 ? { due_truncated: `${dueAll.length} due, showing ${DUE_TOP} oldest` } : {}),
           due_premises: duePrem, due_premise_count: premiseGroups.length,
@@ -340,7 +343,7 @@ export const checkIn: ToolModule = {
           ...(upDays > 0 ? { upcoming } : {}),
           ...(a['fleet'] === true ? { fleet: fleetRows } : {}),
           ...watchData,
-          ...(openWatch.length ? { open_predictions: openWatch, standing_sense: STANDING_SENSE_REFRESH } : {}),
+          ...(openWatch.length ? { open_predictions: openWatch, standing_sense: tunedStandingSense() } : {}),
           today, integrity: ledger.integrity,
           // v2 병기/진단은 ARGUS_V2_DEBUG=1 뒤로. 공개 payload에 싣던 v2_brief가
           // 머신-전역 durable-home 저장소를 읽어 다른 프로젝트의 결정 원문을

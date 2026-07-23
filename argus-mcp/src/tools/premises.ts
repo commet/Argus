@@ -10,7 +10,7 @@ import {
   MAX_ACTIVE_PREMISES, MAX_LOAD_BEARING,
   type PremiseState,
 } from '../lib/premises.js';
-import { elicit } from '../lib/elicit.js';
+import { elicit, canElicit } from '../lib/elicit.js';
 import { resolveResponseLocale } from '../lib/surfaces.js';
 import { envelope, toolError } from '../lib/envelope.js';
 import { ENVELOPE_OUTPUT_SCHEMA, zArgusDir, zId, zDate, type ToolModule } from './tool-types.js';
@@ -207,6 +207,61 @@ async function opAdd(
     }
   }
 
+  // One-tap confirm for a DRAFTED premise — seal's picker, mirrored (the ask
+  // must be a structural picker, not prose the model may skip). Fires only in
+  // the sense's canonical case: exactly ONE ai_surfaced draft in the call
+  // (multi-premise structured flows confirm in their own conversation). Keep
+  // records it with provenance ai_surfaced UNCHANGED — a tap approves the
+  // recording, it does not transfer authorship (predictions differ: a bet must
+  // become the user's; a premise is a mirror observation whose honest tag IS
+  // the invariant). Reword typed in the form → the user's words, user_stated,
+  // with the draft preserved as ai_original. Skip / declined / no elicitation
+  // → the friction escape stays: nothing forced, no dead end.
+  {
+    const aiDrafts = inputs.filter((p) => normalizePremiseSource(p.source) === 'ai_surfaced');
+    if (aiDrafts.length === 1 && canElicit()) {
+      const draft = aiDrafts[0];
+      const dLocale = resolveResponseLocale(dir, draft.text);
+      const picked = await elicit(
+        dLocale === 'ko'
+          ? `이 결정이 딛고 선 전제로 기록할까요?\n"${draft.text}"`
+          : `Record this as a premise the decision rests on?\n"${draft.text}"`,
+        { type: 'object', required: ['choice'], properties: {
+          choice: {
+            type: 'string', enum: ['keep', 'reword', 'skip'],
+            enumNames: dLocale === 'ko' ? ['그대로 기록', '직접 고쳐 쓰기', '건너뛰기'] : ['Keep it', 'Let me reword', 'Skip'],
+            description: dLocale === 'ko' ? '이 전제를 기록할지 고르세요.' : 'Whether to record this premise.',
+          },
+          your_wording: {
+            type: 'string',
+            description: dLocale === 'ko' ? '"직접 고쳐 쓰기"를 골랐다면 원하는 문장을 여기에 적어 주세요. 그 말 그대로 저장됩니다.' : 'If you chose "Let me reword", type the premise here. It is saved exactly as written.',
+          },
+        } },
+      );
+      const choice = picked?.['choice'];
+      if (choice === 'reword') {
+        const wording = typeof picked?.['your_wording'] === 'string' ? (picked['your_wording'] as string).trim() : '';
+        if (wording.length >= 4 && wording.length <= 400) {
+          draft.ai_original = draft.ai_original ?? draft.text;
+          draft.text = wording;
+          draft.source = 'user_stated';
+        } else {
+          // Reword chosen but no usable wording (or an enum-only form) — the
+          // two-step fallback: ask in chat, the model re-calls with their words.
+          return envelope({ ok: true, tool: 'argus_premises', surface: dLocale === 'ko' ? '그럼 그 전제를 원하는 문장으로 알려주세요. 그 말 그대로 기록하겠습니다.' : 'Then tell me the premise in your own words and I will record exactly that.', next_actions: ['argus_capture'], data: { recorded: false, choice: 'reword' } });
+        }
+      } else if (choice !== 'keep') {
+        // skip, or a declined/cancelled picker — drop ONLY the draft; the
+        // user's own premises in the same call still record below.
+        inputs.splice(inputs.indexOf(draft), 1);
+        if (inputs.length === 0) {
+          return envelope({ ok: true, tool: 'argus_premises', surface: dLocale === 'ko' ? '기록하지 않았습니다.' : 'Not recorded.', next_actions: ['stop'], data: { recorded: false, choice: choice ?? 'declined' } });
+        }
+      }
+      // keep → recorded as drafted below, provenance ai_surfaced intact.
+    }
+  }
+
   // Dedup against the ledger by stable id. Three cases, kept distinct so a
   // re-add is never silently swallowed behind a misleading "already recorded":
   //  - collides with an ACTIVE premise (same text)     → true idempotent dup (skip)
@@ -290,6 +345,7 @@ async function opAdd(
   const echo = events.map((e) => ({
     ref: `P${e.ordinal}`, premise_id: e.premise_id, kind: e.kind, text: e.text,
     external: e.external, load_bearing: e.load_bearing, source: e.source,
+    ...(e['ai_original'] ? { ai_original: e['ai_original'] } : {}),
     monitored: e.kind === 'premise' && e.external === true && e.load_bearing === true,
   }));
   const monitoredCount = echo.filter((p) => p.monitored).length;

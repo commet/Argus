@@ -10,6 +10,17 @@ allowed-tools: Bash(node:*)
 node "${CLAUDE_PLUGIN_ROOT}/scripts/doctor.js"
 ```
 
-출력 후, ⚠ 줄이 있으면 그 줄에 적힌 공개 복구 도구(예: `argus_settings`,
+출력 후, 스크립트가 원리상 볼 수 없는 **발사 사슬 두 가지**만 네가 직접 확인해
+한 줄씩 덧붙여라 (이 둘은 호스트 세션 안에서만 보인다):
+
+1. **MCP 연결**: 네 툴 목록에 `argus_predict`/`argus_capture`/`argus_resolve`가
+   있는가? 없으면 — "⚠ Argus MCP 서버 미연결 — 감지가 도구를 잃었다. `/mcp`로
+   연결 상태를 확인하라." 한 줄을 출력하라.
+2. **픽커(원탭 확인) 지원**: 툴이 있으면 `argus_check_in`을 호출하고(읽기 전용)
+   `data.picker`를 전달하라 — `one_tap`이면 "픽커 OK — AI 초안 예측은
+   Keep/Reword/Skip 원탭으로 확인받는다", `text_fallback`이면 "⚠ 이 호스트는
+   elicitation 미지원 — 확인은 대화 텍스트로 폴백된다(기능은 동작)".
+
+그 외에는, ⚠ 줄이 있으면 그 줄에 적힌 공개 복구 도구(예: `argus_settings`,
 `argus_check_in`)를 실행할지 사용자에게 물어라 — 대신 실행하지 말 것.
 ⚠가 없으면 "정상"이라고 덧붙이지 말고 출력만 전달하라 (스크립트가 이미 말했다).
