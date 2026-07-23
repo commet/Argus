@@ -196,7 +196,7 @@ type EventRow = {
   created_at: string;
 };
 
-type UserRow = { id: string; email: string | null; created_at: string; user_metadata: Record<string, unknown> | null };
+type UserRow = { id: string; email: string | null; created_at: string; user_metadata: Record<string, unknown> | null; is_anonymous: boolean };
 
 // ───── Handler ─────
 
@@ -231,7 +231,7 @@ export async function GET(req: Request) {
 
   // ─── 1. Auth users + owner ids ───
   // Paginate — a single perPage:1000 page silently undercounts past 1000 users.
-  const authUsers: { id: string; email?: string; created_at: string; user_metadata?: Record<string, unknown> }[] = [];
+  const authUsers: { id: string; email?: string; created_at: string; user_metadata?: Record<string, unknown>; is_anonymous?: boolean }[] = [];
   for (let page = 1; page <= 50; page++) {
     const { data: pageData } = await supabase.auth.admin.listUsers({ page, perPage: 1000 });
     const batch = pageData?.users || [];
@@ -243,9 +243,13 @@ export async function GET(req: Request) {
     email: u.email || null,
     created_at: u.created_at,
     user_metadata: (u.user_metadata as Record<string, unknown>) || null,
+    is_anonymous: u.is_anonymous === true,
   }));
   const ownerIds = new Set(allUsers.filter(u => OWNER_EMAILS.includes((u.email || '').toLowerCase())).map(u => u.id));
-  const externalUsers = allUsers.filter(u => !ownerIds.has(u.id));
+  // Anonymous auth users are durable identities for logged-out voyagers, NOT
+  // signups — exclude them from "가입 유저"/신규/Top-user counts. Their sessions
+  // still surface as anonymous humans (their events carry user_id = null).
+  const externalUsers = allUsers.filter(u => !ownerIds.has(u.id) && !u.is_anonymous);
   const userById = new Map(externalUsers.map(u => [u.id, u]));
 
   // ─── 2. Events: yesterday (detailed) + last 14 days (rollup for WoW comparison) ───
@@ -459,8 +463,11 @@ export async function GET(req: Request) {
   const rankedUsers = Object.entries(weekActivity)
     .map(([uid, a]) => ({ uid, score: a.p + a.j * 2 + a.pg + a.f * 2 + a.completions * 5, ...a }))
     .sort((a, b) => b.score - a.score);
-  const topUser = rankedUsers[0] ? userById.get(rankedUsers[0].uid) : null;
-  const topUserActivity = rankedUsers[0];
+  // Only real accounts (in userById) can be the week's top user — an anonymous
+  // voyager's activity is real but has no identity to surface.
+  const topRanked = rankedUsers.find(r => userById.has(r.uid)) ?? null;
+  const topUser = topRanked ? userById.get(topRanked.uid) : null;
+  const topUserActivity = topRanked;
 
   // ─── 9. Funnel ───
   const funnelStages = [
