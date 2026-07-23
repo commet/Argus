@@ -1,7 +1,13 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { Resend } from 'resend';
-import { classifyAnalyticsSignal } from '@/lib/analytics-reporting';
+import {
+  classifyAnalyticsSignal,
+  classifySource,
+  classifyAnonSession,
+  referrerHost,
+  type AnonBucket,
+} from '@/lib/analytics-reporting';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -63,32 +69,112 @@ function kstRange(daysAgo: number): { start: string; end: string; label: string 
   return { start, end, label };
 }
 
-function classifySource(initialReferrer: string | null | undefined, utmSource: string | null | undefined): string {
-  if (utmSource) {
-    const u = utmSource.toLowerCase();
-    if (u === 'ig' || u.includes('instagram')) return 'Instagram';
-    if (u.includes('linkedin')) return 'LinkedIn';
-    if (u.includes('threads')) return 'Threads';
-    if (u === 'fb' || u.includes('facebook')) return 'Facebook';
-    if (u.includes('kakao')) return 'KakaoTalk';
-    if (u === 'x' || u.includes('twitter')) return 'X (Twitter)';
-    if (u.includes('discord')) return 'Discord';
-    if (u.includes('reddit')) return 'Reddit';
-    if (u.includes('youtube')) return 'YouTube';
-    if (u.includes('email') || u.includes('newsletter')) return 'Email';
-    return utmSource;
+// Events that mean the visitor actually did decision work (not just browsed).
+const REAL_WORK_EVENTS = new Set([
+  'workspace_problem_submit',
+  'first_project_created',
+  'progressive_draft_promoted',
+  'flow_done',
+  'loop_converged',
+  'decision_sealed',
+  'review_completed',
+]);
+// Subset that specifically means "reached the finish line".
+const COMPLETION_EVENTS = new Set(['flow_done', 'progressive_draft_promoted', 'loop_converged']);
+
+type SessionAgg = {
+  sessionId: string;
+  userId: string | null;
+  events: number;
+  eventNames: Set<string>;
+  pages: Set<string>;
+  locales: Set<string>;
+  entryPage: string | null;
+  referrer: string | null;
+  utmSource: string | null;
+  visitedAdmin: boolean;
+  visitedPrivacy: boolean;
+  visitedTerms: boolean;
+  didRealWork: boolean;
+  reachedWorkspace: boolean;
+  completed: boolean;
+  firstAt: string;
+  lastAt: string;
+};
+
+/**
+ * Fold an event list (ordered oldest-first) into per-session aggregates rich
+ * enough to classify traffic. Works for any window whose rows carry
+ * page_path / referrer / properties.
+ */
+function aggregateSessions(events: EventRow[]): Map<string, SessionAgg> {
+  const map = new Map<string, SessionAgg>();
+  for (const e of events) {
+    let a = map.get(e.session_id);
+    if (!a) {
+      a = {
+        sessionId: e.session_id,
+        userId: e.user_id ?? null,
+        events: 0,
+        eventNames: new Set(),
+        pages: new Set(),
+        locales: new Set(),
+        entryPage: e.page_path ?? null,
+        referrer: null,
+        utmSource: null,
+        visitedAdmin: false,
+        visitedPrivacy: false,
+        visitedTerms: false,
+        didRealWork: false,
+        reachedWorkspace: false,
+        completed: false,
+        firstAt: e.created_at,
+        lastAt: e.created_at,
+      };
+      map.set(e.session_id, a);
+    }
+    a.events++;
+    a.eventNames.add(e.event_name);
+    if (e.user_id && !a.userId) a.userId = e.user_id;
+    if (e.page_path) {
+      a.pages.add(e.page_path);
+      const loc = e.page_path.match(/^\/(ko|en)(?:\/|$)/);
+      if (loc) a.locales.add(loc[1]);
+      if (e.page_path.includes('/admin')) a.visitedAdmin = true;
+      if (e.page_path.includes('/privacy')) a.visitedPrivacy = true;
+      if (e.page_path.includes('/terms')) a.visitedTerms = true;
+    }
+    const props = e.properties || {};
+    if (e.event_name === 'session_start') {
+      const ir = (props.initial_referrer as string) || e.referrer || null;
+      if (ir) a.referrer = ir;
+      if (props.utm_source) a.utmSource = String(props.utm_source);
+    }
+    if (!a.referrer && e.referrer) a.referrer = e.referrer;
+    if (e.event_name === 'workspace_enter') a.reachedWorkspace = true;
+    if (REAL_WORK_EVENTS.has(e.event_name)) a.didRealWork = true;
+    if (COMPLETION_EVENTS.has(e.event_name)) a.completed = true;
+    if (e.created_at < a.firstAt) a.firstAt = e.created_at;
+    if (e.created_at > a.lastAt) a.lastAt = e.created_at;
   }
-  if (!initialReferrer) return 'Direct';
-  const host = initialReferrer.replace(/^https?:\/\//, '').replace(/^android-app:\/\//, '').split('/')[0];
-  if (host.includes('linkedin')) return 'LinkedIn';
-  if (host.includes('threads')) return 'Threads';
-  if (host.includes('instagram')) return 'Instagram';
-  if (host.includes('facebook') || host === 'm.facebook.com') return 'Facebook';
-  if (host.includes('google') || host.includes('bing') || host.includes('duckduckgo')) return 'Search';
-  if (host.includes('accounts.google')) return 'Google OAuth';
-  if (host.includes('vercel')) return 'Vercel';
-  if (host.includes('argus') || host.includes('localhost')) return 'Internal';
-  return host;
+  return map;
+}
+
+/**
+ * Final bucket for a session. Logged-in non-owner = a real human by definition
+ * (they authenticated). Anonymous sessions go through the shared heuristic.
+ */
+function bucketSession(a: SessionAgg, ownerIds: Set<string>): AnonBucket {
+  if (a.userId) return ownerIds.has(a.userId) ? 'internal' : 'human';
+  return classifyAnonSession({
+    events: a.events,
+    distinctEvents: a.eventNames.size,
+    distinctPages: a.pages.size,
+    referrer: a.referrer,
+    visitedAdmin: a.visitedAdmin,
+    localesTouched: a.locales.size,
+    visitedLegalPair: a.visitedPrivacy && a.visitedTerms,
+  });
 }
 
 function deltaLabel(current: number, baseline: number): { text: string; color: string; arrow: string } {
@@ -190,7 +276,7 @@ export async function GET(req: Request) {
   try {
     [yesterdayRaw, twoWeekRaw] = await Promise.all([
       loadEvents('session_id, event_name, properties, user_id, page_path, referrer, created_at', yesterday.start, yesterday.end),
-      loadEvents('session_id, user_id, event_name, created_at', twoWeeksAgo.start, yesterday.end),
+      loadEvents('session_id, event_name, properties, user_id, page_path, referrer, created_at', twoWeeksAgo.start, yesterday.end),
     ]);
   } catch (err) {
     console.error('[daily-report] analytics query error:', err);
@@ -198,7 +284,7 @@ export async function GET(req: Request) {
   }
 
   const yesterdayEvents = yesterdayRaw as unknown as EventRow[];
-  const twoWeekEvents = twoWeekRaw as unknown as Pick<EventRow, 'session_id' | 'user_id' | 'event_name' | 'created_at'>[];
+  const twoWeekEvents = twoWeekRaw as unknown as EventRow[];
 
   // Owner session filter: any session that has an owner user_id event
   const ownerSessionIds = new Set<string>();
@@ -239,17 +325,38 @@ export async function GET(req: Request) {
   // Ignore the unused first `totalUsers` query — we use externalUsers.length for accuracy
   void totalUsers;
 
-  // ─── 4. Yesterday top-line ───
-  const sessionsY = new Set(extY.map(e => e.session_id));
-  const usersY = new Set(extY.filter(e => e.user_id).map(e => e.user_id!));
-  const anonSessionsY = new Set(extY.filter(e => !e.user_id).map(e => e.session_id));
+  // ─── 3.5 Classify every external session: human / bot / internal ───
+  // Referrer-spam crawlers and the founder's own anonymous QA sweeps used to be
+  // counted as people. Bucket them once here; humans drive the top line and
+  // funnel, bots/internal are quarantined into a diagnostic line.
+  const aggY = aggregateSessions(extY);
+  const bucketY = new Map<string, AnonBucket>();
+  for (const [sid, a] of aggY) bucketY.set(sid, bucketSession(a, ownerIds));
 
-  // ─── 5. 7-day trend (daily session count, external) + WoW comparison ───
+  const humanAggY = [...aggY.values()].filter(a => bucketY.get(a.sessionId) === 'human');
+  const humanSessionIds = new Set(humanAggY.map(a => a.sessionId));
+
+  // Anonymous-only slices (no user_id), split three ways for the detail card.
+  const anonAggY = [...aggY.values()].filter(a => !a.userId);
+  const anonHuman = anonAggY.filter(a => bucketY.get(a.sessionId) === 'human');
+  const anonBot = anonAggY.filter(a => bucketY.get(a.sessionId) === 'bot');
+  const anonInternal = anonAggY.filter(a => bucketY.get(a.sessionId) === 'internal');
+
+  // ─── 4. Yesterday top-line (humans only) ───
+  const sessionsY = humanSessionIds;
+  const usersY = new Set(humanAggY.filter(a => a.userId).map(a => a.userId!));
+  const anonSessionsY = new Set(anonHuman.map(a => a.sessionId));
+
+  // ─── 5. 7-day trend (daily HUMAN session count) + WoW comparison ───
+  // Classify the whole fortnight the same way, then count each human session
+  // once on the day it started — so bot/QA spikes don't distort the trend.
+  const agg14 = aggregateSessions(ext14);
   const daily: Record<string, Set<string>> = {};
-  for (const e of ext14) {
-    const date = kstDateString(new Date(e.created_at));
+  for (const a of agg14.values()) {
+    if (bucketSession(a, ownerIds) !== 'human') continue;
+    const date = kstDateString(new Date(a.firstAt));
     if (!daily[date]) daily[date] = new Set();
-    daily[date].add(e.session_id);
+    daily[date].add(a.sessionId);
   }
   const last14Dates: string[] = [];
   for (let i = 13; i >= 0; i--) last14Dates.push(kstRange(i + 1).label);
@@ -261,29 +368,13 @@ export async function GET(req: Request) {
   const wowDelta = deltaLabel(thisWeekAvg, lastWeekAvg);
   const yesterdayVsWeekAvg = deltaLabel(sessionsY.size, thisWeekAvg);
 
-  // ─── 6. Source breakdown + per-source completion ───
-  const sessionStarts = extY.filter(e => e.event_name === 'session_start');
-  const seenInStart = new Set(sessionStarts.map(e => e.session_id));
-  // Map session_id → source
-  const sessionSource = new Map<string, string>();
-  for (const e of sessionStarts) {
-    const props = e.properties || {};
-    sessionSource.set(e.session_id, classifySource((props.initial_referrer as string) || e.referrer, props.utm_source as string));
-  }
-  for (const sid of sessionsY) {
-    if (seenInStart.has(sid)) continue;
-    const first = extY.find(e => e.session_id === sid);
-    sessionSource.set(sid, classifySource(first?.referrer || null, null));
-  }
-  // Sessions that reached "완주" (by event)
-  const completionEvents = new Set(['flow_done', 'progressive_draft_promoted', 'loop_converged']);
-  const completedSessions = new Set(extY.filter(e => completionEvents.has(e.event_name)).map(e => e.session_id));
-  // Bucket counts + conversion
+  // ─── 6. Source breakdown + per-source completion (humans only) ───
   const sourceStats: Record<string, { sessions: number; completions: number }> = {};
-  for (const [sid, src] of sessionSource) {
+  for (const a of humanAggY) {
+    const src = classifySource(a.referrer, a.utmSource);
     if (!sourceStats[src]) sourceStats[src] = { sessions: 0, completions: 0 };
     sourceStats[src].sessions++;
-    if (completedSessions.has(sid)) sourceStats[src].completions++;
+    if (a.completed) sourceStats[src].completions++;
   }
 
   // ─── 7. New signups + drilldown ───
@@ -381,7 +472,9 @@ export async function GET(req: Request) {
     { label: '완주', keys: ['flow_done', 'progressive_draft_promoted', 'loop_converged'] },
   ];
   const funnelCounts = funnelStages.map(stage => {
-    const sid = new Set(extY.filter(e => stage.keys.includes(e.event_name)).map(e => e.session_id));
+    const sid = new Set(extY
+      .filter(e => stage.keys.includes(e.event_name) && humanSessionIds.has(e.session_id))
+      .map(e => e.session_id));
     return { label: stage.label, sessions: sid.size };
   });
   const funnelTop = funnelCounts[0].sessions || 1;
@@ -408,6 +501,31 @@ export async function GET(req: Request) {
     .map(([name, count]) => `${name} ${count}`)
     .join(' · ');
 
+  // ─── 11. Anonymous-visit detail (finer sensor) ───
+  const anonHumanCount = anonHuman.length;
+  const anonHumanSources: Record<string, number> = {};
+  const anonEntryPages: Record<string, number> = {};
+  let anonReachedWorkspace = 0;
+  let anonSubmitted = 0;
+  let anonCompleted = 0;
+  let anonBounced = 0;
+  let anonEventsTotal = 0;
+  for (const a of anonHuman) {
+    const src = classifySource(a.referrer, a.utmSource);
+    anonHumanSources[src] = (anonHumanSources[src] || 0) + 1;
+    const entry = a.entryPage || '(unknown)';
+    anonEntryPages[entry] = (anonEntryPages[entry] || 0) + 1;
+    if (a.reachedWorkspace) anonReachedWorkspace++;
+    if (a.eventNames.has('workspace_problem_submit')) anonSubmitted++;
+    if (a.completed) anonCompleted++;
+    if (a.events <= 2) anonBounced++;
+    anonEventsTotal += a.events;
+  }
+  const anonAvgEvents = anonHumanCount ? anonEventsTotal / anonHumanCount : 0;
+  const anonSourceEntries = Object.entries(anonHumanSources).sort(([, a], [, b]) => b - a).slice(0, 6);
+  const anonEntryEntries = Object.entries(anonEntryPages).sort(([, a], [, b]) => b - a).slice(0, 6);
+  const anonBotHosts = [...new Set(anonBot.map(a => referrerHost(a.referrer)).filter(Boolean))].slice(0, 8);
+
   // ───── Build HTML ─────
 
   const kstDate = yesterday.label;
@@ -426,10 +544,10 @@ export async function GET(req: Request) {
       <p style="color: rgba(255,255,255,0.6); font-size: 11px; margin: 0 0 2px; letter-spacing: 0.1em; text-transform: uppercase;">Argus Daily · ${kstDate} KST</p>
       <div style="display: flex; align-items: baseline; gap: 16px; flex-wrap: wrap; margin-top: 8px;">
         <div>
-          <p style="color: #fff; font-size: 40px; font-weight: 800; margin: 0; letter-spacing: -0.02em; line-height: 1;">${usersY.size}<span style="color: rgba(255,255,255,0.5); font-size: 20px; font-weight: 600;"> 유저</span></p>
+          <p style="color: #fff; font-size: 40px; font-weight: 800; margin: 0; letter-spacing: -0.02em; line-height: 1;">${sessionsY.size}<span style="color: rgba(255,255,255,0.5); font-size: 20px; font-weight: 600;"> 사람 세션</span></p>
         </div>
         <div>
-          <p style="color: rgba(255,255,255,0.9); font-size: 28px; font-weight: 700; margin: 0; line-height: 1;">${sessionsY.size}<span style="color: rgba(255,255,255,0.5); font-size: 16px; font-weight: 600;"> 세션</span></p>
+          <p style="color: rgba(255,255,255,0.9); font-size: 28px; font-weight: 700; margin: 0; line-height: 1;">${usersY.size}<span style="color: rgba(255,255,255,0.5); font-size: 16px; font-weight: 600;"> 로그인</span></p>
         </div>
         <div>
           <p style="color: rgba(255,255,255,0.9); font-size: 28px; font-weight: 700; margin: 0; line-height: 1;">${signupDetails.length}<span style="color: rgba(255,255,255,0.5); font-size: 16px; font-weight: 600;"> 신규</span></p>
@@ -437,7 +555,10 @@ export async function GET(req: Request) {
       </div>
       <p style="color: rgba(255,255,255,0.75); font-size: 13px; margin: 16px 0 0;">
         <span style="color: ${yesterdayVsWeekAvg.color === C.growth ? '#86efac' : yesterdayVsWeekAvg.color === C.decline ? '#fca5a5' : 'rgba(255,255,255,0.6)'}; font-weight: 700;">${yesterdayVsWeekAvg.arrow}${yesterdayVsWeekAvg.text}</span>
-        <span style="color: rgba(255,255,255,0.6);"> 지난 7일 평균 세션 대비</span>
+        <span style="color: rgba(255,255,255,0.6);"> 지난 7일 평균 사람 세션 대비</span>
+      </p>
+      <p style="color: rgba(255,255,255,0.55); font-size: 11px; margin: 8px 0 0;">
+        이 중 익명 사람 ${anonHuman.length} · 로그인 ${usersY.size} · <span style="color: rgba(255,255,255,0.4);">봇 ${anonBot.length} · 내부/QA ${anonInternal.length} 제외됨</span>
       </p>
     </td></tr>
   </table>
@@ -464,6 +585,59 @@ export async function GET(req: Request) {
       </table>
     </td></tr>
   </table>
+
+  <!-- ════════ ANONYMOUS DETAIL ════════ -->
+  ${anonAggY.length > 0 ? `
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background: ${C.card}; border: 1px solid ${C.border}; border-radius: 14px; margin-bottom: 16px;">
+    <tr><td style="padding: 20px;">
+      <p style="font-size: 10px; font-weight: 700; color: ${C.faint}; margin: 0 0 14px; letter-spacing: 0.12em; text-transform: uppercase;">익명 방문 상세 · 어제</p>
+      <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+        <tr>
+          <td style="width: 33.33%; text-align: center; padding: 0 8px;">
+            <p style="font-size: 30px; font-weight: 800; color: ${C.primary}; margin: 0; letter-spacing: -0.02em;">${anonHumanCount}</p>
+            <p style="font-size: 11px; color: ${C.muted}; margin: 4px 0 0; font-weight: 600;">사람 (추정)</p>
+          </td>
+          <td style="width: 33.33%; text-align: center; padding: 0 8px; border-left: 1px solid ${C.borderSubtle}; border-right: 1px solid ${C.borderSubtle};">
+            <p style="font-size: 30px; font-weight: 800; color: ${C.faint}; margin: 0; letter-spacing: -0.02em;">${anonBot.length}</p>
+            <p style="font-size: 11px; color: ${C.muted}; margin: 4px 0 0; font-weight: 600;">봇 / 스팸</p>
+          </td>
+          <td style="width: 33.33%; text-align: center; padding: 0 8px;">
+            <p style="font-size: 30px; font-weight: 800; color: ${C.faint}; margin: 0; letter-spacing: -0.02em;">${anonInternal.length}</p>
+            <p style="font-size: 11px; color: ${C.muted}; margin: 4px 0 0; font-weight: 600;">내부 / QA</p>
+          </td>
+        </tr>
+      </table>
+      ${anonHumanCount > 0 ? `
+      <div style="margin-top: 16px; padding: 12px 14px; background: ${C.borderSubtle}; border-radius: 10px;">
+        <p style="font-size: 12px; color: ${C.text}; margin: 0; line-height: 1.7;">
+          <strong>익명 사람 참여</strong> · 워크스페이스 진입 <strong>${anonReachedWorkspace}</strong>
+          · 문제 제출 <strong>${anonSubmitted}</strong>
+          · 완주 <strong style="color: ${anonCompleted > 0 ? C.growth : C.text};">${anonCompleted}</strong>
+          · 바운스 <strong>${anonBounced}</strong>
+          · 평균 <strong>${anonAvgEvents.toFixed(1)}</strong> 이벤트
+        </p>
+      </div>
+      ${anonSourceEntries.length > 0 ? `
+      <p style="font-size: 10px; font-weight: 700; color: ${C.faint}; margin: 16px 0 6px; letter-spacing: 0.1em; text-transform: uppercase;">유입 소스 (익명 사람)</p>
+      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="font-size: 12px;">
+        ${anonSourceEntries.map(([src, n]) => `<tr style="border-top: 1px solid ${C.borderSubtle};">
+          <td style="padding: 6px 0; font-weight: 600; color: ${src === 'Bot/Spam' || src === 'Internal' || src === 'Google OAuth' ? C.faint : C.text};">${escHtml(src)}</td>
+          <td style="padding: 6px 0; text-align: right; color: ${C.muted};">${n}</td>
+        </tr>`).join('')}
+      </table>` : ''}
+      ${anonEntryEntries.length > 0 ? `
+      <p style="font-size: 10px; font-weight: 700; color: ${C.faint}; margin: 16px 0 6px; letter-spacing: 0.1em; text-transform: uppercase;">진입 페이지 (익명 사람)</p>
+      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="font-size: 12px;">
+        ${anonEntryEntries.map(([pg, n]) => `<tr style="border-top: 1px solid ${C.borderSubtle};">
+          <td style="padding: 6px 0; font-family: 'SF Mono', Menlo, monospace; font-size: 11px; color: ${C.muted};">${escHtml(pg)}</td>
+          <td style="padding: 6px 0; text-align: right; color: ${C.muted};">${n}</td>
+        </tr>`).join('')}
+      </table>` : ''}
+      ` : `<p style="font-size: 12px; color: ${C.faint}; margin: 14px 0 0;">어제 익명 사람 세션은 없었습니다.</p>`}
+      ${anonBotHosts.length > 0 ? `<p style="font-size: 11px; color: ${C.faint}; margin: 14px 0 0;">봇 리퍼러: ${anonBotHosts.map(h => escHtml(h)).join(' · ')}</p>` : ''}
+      <p style="font-size: 10px; color: ${C.faint}; margin: 12px 0 0; line-height: 1.5;">봇 = 알려진 리퍼러 스팸 도메인. 내부/QA = localhost·/admin·다중 로케일·전 페이지 훑기 등 개발/합성 시그니처. 사람 수치에서 제외됨.</p>
+    </td></tr>
+  </table>` : ''}
 
   <!-- ════════ NEW SIGNUPS ════════ -->
   ${signupDetails.length > 0 ? `
@@ -613,7 +787,7 @@ export async function GET(req: Request) {
     const { error: sendError } = await resend.emails.send({
       from: `Argus <hello@${process.env.EMAIL_FROM_DOMAIN || 'argus.voyage'}>`,
       to: REPORT_EMAIL,
-      subject: `[Argus] ${kstDate} — 유저 ${usersY.size} · 신규 ${signupDetails.length} · 누적 완주 ${cumulativeCompletions}`,
+      subject: `[Argus] ${kstDate} — 사람세션 ${sessionsY.size} · 익명사람 ${anonHuman.length} · 신규 ${signupDetails.length} · 누적 완주 ${cumulativeCompletions}`,
       html,
     });
     if (sendError) throw new Error(`Resend rejected the daily report: ${sendError.message}`);
@@ -623,6 +797,9 @@ export async function GET(req: Request) {
       users_yesterday: usersY.size,
       sessions_yesterday: sessionsY.size,
       anon_sessions_yesterday: anonSessionsY.size,
+      anon_human_yesterday: anonHuman.length,
+      anon_bot_yesterday: anonBot.length,
+      anon_internal_yesterday: anonInternal.length,
       signups: signupDetails.length,
       cumulative_users: cumulativeUsers,
       cumulative_projects: cumulativeProjects ?? 0,

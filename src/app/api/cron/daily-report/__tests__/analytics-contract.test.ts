@@ -41,4 +41,30 @@ describe('daily analytics contract', () => {
     expect(route).not.toContain('.limit(20000)');
     expect(route).not.toContain('.limit(200000)');
   });
+
+  it('classifies traffic through the shared, unit-tested helpers', () => {
+    const route = source('src/app/api/cron/daily-report/route.ts');
+    // No copy-pasted classifier in the route — it imports the single source.
+    expect(route).toContain("from '@/lib/analytics-reporting'");
+    expect(route).toContain('classifyAnonSession');
+    expect(route).not.toContain('function classifySource(');
+  });
+
+  it('drives the top line and funnel off human sessions, quarantining bots/internal', () => {
+    const route = source('src/app/api/cron/daily-report/route.ts');
+    expect(route).toContain('bucketSession(');
+    expect(route).toContain('const sessionsY = humanSessionIds');
+    // Funnel must be scoped to human sessions, not all external traffic.
+    expect(route).toContain('humanSessionIds.has(e.session_id)');
+  });
+
+  it('renders the anonymous-visit detail section in the email', () => {
+    const route = source('src/app/api/cron/daily-report/route.ts');
+    expect(route).toContain('익명 방문 상세');
+    // The three-way split is surfaced to the founder, nothing silently dropped.
+    expect(route).toContain('봇 / 스팸');
+    expect(route).toContain('내부 / QA');
+    expect(route).toContain('유입 소스 (익명 사람)');
+    expect(route).toContain('진입 페이지 (익명 사람)');
+  });
 });
