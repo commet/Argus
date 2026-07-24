@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, Quote } from 'lucide-react';
 import { useLocale } from '@/hooks/useLocale';
 import type { CheckInInterval } from '@/stores/types';
 
@@ -47,7 +47,7 @@ export function BindCard({
 }: {
   /** null = full skip (no rope, write nothing). A BindResult = tie the rope. */
   onProceed: (bind: BindResult | null) => void;
-  /** The problem the user just submitted — shown small, for orientation only. */
+  /** The problem the user just submitted — this remains the visual source record. */
   problem?: string;
   /** First-run only (#9): the buffered analysis's reframed crux question, shown as a
    *  READ-ONLY mirror so a cold first-timer gets recognition BEFORE the commitment
@@ -88,10 +88,10 @@ export function BindCard({
       transition={{ duration: 0.25 }}
       className="mx-auto w-full max-w-xl"
     >
-      <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] px-6 py-7 shadow-sm">
+      <div className="overflow-hidden rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] shadow-sm">
         {/* First-run recognition mirror — read-only, never seeds the lean. */}
         {recognition && (
-          <div className="mb-5 rounded-xl border border-[var(--accent)]/20 bg-[var(--ai)]/40 px-4 py-3">
+          <div className="mx-6 mt-6 rounded-xl border border-[var(--accent)]/20 bg-[var(--ai)]/40 px-4 py-3">
             <p className="text-[10.5px] font-semibold uppercase tracking-[0.16em] text-[var(--accent)] mb-1.5">
               {L('지금 풀어야 할 질문', 'The question to solve now')}
             </p>
@@ -100,45 +100,52 @@ export function BindCard({
             </p>
           </div>
         )}
-        <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-[var(--text-tertiary)] mb-2">
-          {L('답을 듣기 전', 'Before you hear the answer')}
-        </p>
-        <h2 className="text-[19px] font-bold leading-snug text-[var(--text-primary)]" style={{ fontFamily: 'var(--font-display)' }}>
-          {recognition
-            ? L('이 질문을 두고 지금 마음은 어디로 기울어요?', 'Where are you leaning on this question right now?')
-            : L('지금 마음은 어디로 기울어요?', 'Where are you leaning right now?')}
-        </h2>
-        {/* First-meeting metaphor bridge (06 S3) — half a sentence tying '밧줄/묶기'
-            to its reason. Copy only; the SPINE INVARIANTS above are untouched. */}
-        <p className="text-[12.5px] text-[var(--text-tertiary)] mt-1.5 leading-snug">
-          {L('선택이에요 — 건너뛰어도 돼요.', 'Optional — you can skip this.')}
-        </p>
-
-        {/* The user's own words are the hero of this screen (우정 1조: 네가 한 말을
-            그대로 기억한다) — quote treatment, not a footnote. */}
+        {/* The user's own words come first. The previous layout asked for a lean
+            before visually re-establishing what the person had actually said,
+            making the machine's prompt feel like the subject. */}
         {problem && (
-          <blockquote className="mt-4 rounded-lg bg-[var(--ai)]/40 px-4 py-3 text-[15px] font-medium leading-snug text-[var(--text-primary)] line-clamp-3" style={{ fontFamily: 'var(--font-display)' }}>
-            {problem}
-          </blockquote>
+          <figure className={`${recognition ? 'mt-5' : ''} border-y border-[var(--border-subtle)] bg-[var(--bg)]/55 px-6 py-5`}>
+            <figcaption className="mb-2 flex items-center gap-2 text-[10px] font-bold tracking-[0.12em] text-[var(--accent)]">
+              <Quote size={12} aria-hidden />
+              {L('내가 적은 결정 · 원문', 'My decision · original')}
+            </figcaption>
+            <blockquote className="text-[17px] font-semibold leading-[1.55] text-[var(--text-primary)] line-clamp-4" style={{ fontFamily: 'var(--font-display)' }}>
+              {problem}
+            </blockquote>
+          </figure>
         )}
 
-        {/* One neutral optional line — never prefilled, never a fork. */}
-        <textarea
-          autoFocus
-          value={lean}
-          maxLength={MAX_LEAN}
-          onChange={(e) => setLean(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-              e.preventDefault();
-              // Enter never blocks: with no commitment it skips; with one it ties.
-              hasCommitment ? tie() : skip();
-            }
-          }}
-          rows={2}
-          placeholder={L('예: 연기하는 쪽으로 기운다 — 리스크가 더 커 보여서', 'e.g. leaning toward deferring — the risk looks bigger')}
-          className="mt-4 w-full resize-none rounded-xl border border-[var(--border-subtle)] bg-[var(--bg)] px-3.5 py-3 text-[14px] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:border-[var(--primary)] focus:outline-none"
-        />
+        <div className="px-6 py-6">
+          <p className="text-[10px] font-bold tracking-[0.12em] text-[var(--text-tertiary)]">
+            {L('답을 듣기 전 · 선택', 'Before the answer · optional')}
+          </p>
+          <h2 className="mt-1.5 text-[20px] font-bold leading-snug text-[var(--text-primary)]" style={{ fontFamily: 'var(--font-display)' }}>
+            {recognition
+              ? L('이 질문을 두고, 지금 생각은 어디에 가까워요?', 'Where is your thinking on this question right now?')
+              : L('지금 생각은 어디에 가까워요?', 'Where is your thinking right now?')}
+          </h2>
+          <p className="mt-1.5 text-[12.5px] leading-snug text-[var(--text-tertiary)]">
+            {L('남기면 나중에 그대로 돌려드려요. 아직이면 건너뛰어도 돼요.', 'Leave a note and it will return unchanged later. Skip it if you are not sure yet.')}
+          </p>
+
+          {/* One neutral optional line — never prefilled, never a fork. */}
+          <textarea
+            autoFocus
+            value={lean}
+            maxLength={MAX_LEAN}
+            onChange={(e) => setLean(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                // Enter never blocks: with no commitment it skips; with one it ties.
+                if (hasCommitment) tie();
+                else skip();
+              }
+            }}
+            rows={2}
+            placeholder={L('예: 지금은 연기하는 쪽에 가깝다 — 리스크가 더 커 보여서', 'e.g. I am closer to deferring — the risk looks bigger')}
+            className="mt-4 w-full resize-none rounded-xl border border-[var(--border-subtle)] bg-[var(--bg)] px-3.5 py-3 text-[14px] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:border-[var(--primary)] focus:outline-none"
+          />
 
         {/* Check-in window — none preselected; an untapped default is never a commitment.
             Each chip shows its resolved date; "직접" picks a specific known day. */}
@@ -202,6 +209,7 @@ export function BindCard({
         <p className="mt-4 text-[12px] leading-snug text-[var(--text-secondary)]">
           {L('AI 검토자가 이미 읽고 있어요.', 'AI reviewers are already reading this.')}
         </p>
+        </div>
       </div>
     </motion.div>
   );

@@ -32,6 +32,7 @@ import { QuestionCard } from '@/components/workspace/progressive/shared/Question
 import { VerificationGate, TeamDeployBanner, DMFeedback, FinalCard, TerminalRouteCard } from '@/components/workspace/progressive/ProgressiveFlow';
 import { CrewAtWork } from '@/components/workspace/progressive/CrewAtWork';
 import { MixPreview } from '@/components/workspace/progressive/MixPreview';
+import { BindCard } from '@/components/workspace/progressive/BindCard';
 import { VersionHistoryDrawer } from '@/components/workspace/VersionHistoryDrawer';
 import type { WorkerTask, WorkerPersona, DMFeedbackResult, MixResult } from '@/stores/types';
 
@@ -78,6 +79,21 @@ const mix: MixResult = {
   key_assumptions: ['초기 고객 수요'],
   next_steps: ['고객 5명 인터뷰'],
 };
+
+describe('BindCard — authorship before commitment', () => {
+  it('shows the user original before the optional AI-era commitment prompt', () => {
+    const onProceed = vi.fn();
+    render(createElement(BindCard, {
+      problem: '내가 직접 적은 원래 결정',
+      onProceed,
+    }));
+    const text = container.textContent || '';
+    expect(text).toContain('내가 적은 결정 · 원문');
+    expect(text.indexOf('내가 직접 적은 원래 결정')).toBeLessThan(text.indexOf('지금 생각은 어디에 가까워요?'));
+    click(byText('아직 잘 모르겠어요'));
+    expect(onProceed).toHaveBeenCalledWith(null);
+  });
+});
 
 describe('QuestionCard — meta + skip', () => {
   it('connects the visible question and free-text field to accessible names', () => {
@@ -250,6 +266,8 @@ describe('DMFeedback — batch apply / skip', () => {
 
   it('exposes each revision as a switch and names the final action with the selected count', () => {
     render(createElement(DMFeedback, { fb: fb([true, false, true]), onToggle: vi.fn(), onFinalize: vi.fn(), busy: false }));
+    expect(container.textContent).toContain('AI가 맡은 검토 관점');
+    expect(container.textContent).toContain('실제 당사자의 의견이 아니에요');
     const switches = Array.from(container.querySelectorAll('[role="switch"]'));
     expect(switches).toHaveLength(3);
     expect(switches[0].getAttribute('aria-checked')).toBe('true');

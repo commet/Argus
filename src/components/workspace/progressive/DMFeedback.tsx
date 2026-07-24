@@ -34,15 +34,29 @@ export function DMFeedback({ fb, onToggle, onFinalize, onDeepen, busy }: { fb: D
       <div className="rounded-2xl p-[1px] bg-[var(--border-subtle)]">
         <div className="rounded-[calc(1rem-1px)] bg-[var(--surface)] shadow-[inset_0_1px_1px_rgba(255,255,255,0.5)]">
           <div className="p-5 md:p-6 space-y-5">
-            {/* Reviewer — one compact identity row (avatar + name·role inline) */}
+            {/* This is a simulated seat, never an independent human opinion.
+                Naming the provenance here prevents a fluent model quotation
+                from masquerading as feedback the actual stakeholder gave. */}
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 rounded-full bg-[var(--accent)]/8 flex items-center justify-center text-[15px] font-bold text-[var(--accent)]">{initial}</div>
-              <p className="text-[14px] text-[var(--text-primary)]">
-                <span className="font-bold">{fb.persona_name}</span>
-                <span className="mx-1.5 text-[var(--text-tertiary)]">·</span>
-                <span className="text-[13px] text-[var(--text-tertiary)]">{fb.persona_role}</span>
-              </p>
+              <div className="min-w-0">
+                <p className="text-[10px] font-bold tracking-[0.12em] text-[var(--accent)]">
+                  {L('AI가 맡은 검토 관점', 'AI-simulated review lens')}
+                </p>
+                <p className="mt-0.5 truncate text-[14px] text-[var(--text-primary)]">
+                  <span className="font-bold">{fb.persona_name}</span>
+                  {fb.persona_role && fb.persona_role !== fb.persona_name && (
+                    <>
+                      <span className="mx-1.5 text-[var(--text-tertiary)]">·</span>
+                      <span className="text-[13px] text-[var(--text-tertiary)]">{fb.persona_role}</span>
+                    </>
+                  )}
+                </p>
+              </div>
             </div>
+            <p className="-mt-2 text-[11.5px] leading-[1.55] text-[var(--text-tertiary)]">
+              {L('실제 당사자의 의견이 아니에요. 이 자리가 먼저 물을 질문을 미리 점검합니다.', 'This is not the real stakeholder’s opinion. It previews the questions this seat may ask.')}
+            </p>
 
             {/* First reaction — impactful blockquote */}
             <blockquote className="text-[17px] md:text-[18px] text-[var(--text-primary)] leading-[1.6] italic">

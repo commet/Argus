@@ -48,7 +48,7 @@ describe('AnalysisCard 접힌 항로 — 결론, 이유, 근거가 한 흐름', 
         locale="ko"
       />,
     );
-    expect(html).toContain('우리가 정리한 방향');
+    expect(html).toContain('Argus가 찾은 진짜 질문');
     expect(html).toContain('2개 답변 반영 · 계속 조정 중');
     expect(html).toContain('이직 여부보다, 지금 회사의 성장 한계가 실제인지 먼저 확인해야 해요.');
     expect(html).toContain('막힘이 구조적 한계인지, 아직 기회를 제대로 요청해보지 않은 상태인지에 따라 결론이 달라집니다.');

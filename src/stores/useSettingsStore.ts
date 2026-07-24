@@ -20,7 +20,10 @@ const DEFAULT_SETTINGS: Settings = {
   all_output_formats: false,
   new_arc_enabled: false,
   classic_session: false,
-  voyage_map_collapsed: false,
+  // The decision map is supporting evidence, not the first task. Fresh users
+  // begin with the slim spine and can expand it when they want to retrace.
+  // Returning users keep their explicit stored choice.
+  voyage_map_collapsed: true,
 };
 
 /**
