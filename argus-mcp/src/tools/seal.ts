@@ -38,8 +38,8 @@ const inputSchema = z.strictObject({
   id: zId.describe('A short slug you pick for this decision (e.g. "q3-cutover"). A fresh id starts the record on its own.'),
   predicate: z.string().min(8).max(400).describe('A prediction reality can mark true/false. Good: "cutover downtime < 5 min". Bad: "it will go well".'),
   check_by: zDate.describe('YYYY-MM-DD, a real future date when the result can be checked.'),
-  predicate_owner: z.enum(['user', 'ai_surfaced']).describe('Provenance. Never forge. "user" = the user wrote or affirmed it. "ai_surfaced" = Argus drafted, unconfirmed — on a host with a picker this AUTOMATICALLY shows one-tap Keep/Reword/Skip before saving.'),
-  confirm_draft: z.boolean().optional().describe('Optional extra confirmation: force the one-tap picker even for a "user" predicate. ai_surfaced predicates get the picker automatically on supporting hosts. In the picker, Keep affirms and saves it as theirs, Reword saves the wording the user types (or asks in chat if left blank), Skip records nothing. Without picker support, saving proceeds — confirm in your own message first.'),
+  predicate_owner: z.enum(['user', 'ai_surfaced']).describe('Provenance. Never forge. "user" = the user wrote or affirmed it. "ai_surfaced" = Argus drafted, unconfirmed — on a host with a picker this AUTOMATICALLY shows a one-tap confirm before saving.'),
+  confirm_draft: z.boolean().optional().describe('Optional extra confirmation: force the one-tap confirm even for a "user" predicate. ai_surfaced predicates get it automatically on supporting hosts. The picker maps to the host\'s native Accept/Decline: Accept with both fields blank keeps the draft as theirs, Accept with `reword` saves the user\'s wording, Accept with `check_by` adjusts the date, Decline records nothing. Without picker support, saving proceeds — confirm in your own message first.'),
   basis: z.enum(['judgment', 'luck', 'mixed', 'unsure']).optional(),
   real_question: z.string().max(400).describe('The real question behind the answer (receipt).').optional(),
   unverified_assumption: z.string().max(400).describe('The core assumption not yet verified (receipt).').optional(),
@@ -71,7 +71,7 @@ export const seal: ToolModule = {
       }
 
       let predicate = String(a['predicate']);
-      const checkBy = String(a['check_by']);
+      let checkBy = String(a['check_by']);
       // The DATE part of `now` must equal the tz-aware logical `today`. Plain
       // new Date().toISOString() is always UTC, so a Korea (UTC+9) user sealing
       // at 08:00 KST (= 23:00Z the day before) got a receipt dated YESTERDAY —
@@ -84,66 +84,63 @@ export const seal: ToolModule = {
       let T = SURFACES[locale].tools.seal;
 
       // One-tap confirm for a DRAFTED predicate (the activation fix; §9.7 O1
-      // 방4): show the draft with Keep / Reword / Skip before it lands.
-      // Keep = the user affirmed it → record as THEIRS. Reword with wording
-      // typed in the same form = record THAT, user-authored, one round-trip.
-      // Reword without wording / Skip / a declined picker = record nothing
-      // (respect the non-yes). STRUCTURAL trigger: an ai_surfaced predicate
-      // fires the picker on any capable host even when the model forgot
-      // confirm_draft — "the draft was confirmed" must not depend on prose
-      // compliance. On a host with no elicitation, this is skipped and the
-      // seal proceeds with honest ai_surfaced provenance (the friction escape
+      // 방4). Design (2026-07-24, 창업자 도그푸딩): the picker maps to
+      // elicitation's NATIVE Accept/Decline instead of a required 3-way enum —
+      // a required enum forced "expand → pick → Accept" (3-4 keystrokes) and
+      // rendered as an unset field the user had to hunt for. Now:
+      //   Accept, both fields blank → KEEP the draft (the user affirmed it → theirs)
+      //   Accept + `reword`         → record the user's wording (user_stated)
+      //   Accept + `check_by`       → adjust the horizon inline (the "그 날짜 쎄"
+      //                               escape — keep the statement, fix only the date)
+      //   Decline / cancel          → SKIP (record nothing)
+      // Both edit fields are OPTIONAL, so Accept is actionable in one keystroke.
+      // STRUCTURAL trigger: an ai_surfaced predicate fires the picker on any
+      // capable host even if the model forgot confirm_draft. No elicitation →
+      // the seal proceeds with honest ai_surfaced provenance (friction escape
       // stays; forced typing is NOT the invariant — honest provenance is).
-      let elicitedKeep = false; // v2 provenance용: elicit 채널로 확인된 것만 elicited_user (II-B) — Keep 또는 폼에 직접 쓴 reword
+      let elicitedKeep = false; // v2 provenance: only elicit-channel confirmation counts as elicited_user (II-B)
       if ((a['confirm_draft'] === true || a['predicate_owner'] === 'ai_surfaced') && canElicit()) {
         const picked = await elicit(
-          locale === 'ko' ? `이 예측으로 기록할까요?\n"${predicate}" (확인일 ${checkBy})` : `Record this prediction?\n"${predicate}" (check-by ${checkBy})`,
-          { type: 'object', required: ['choice'], properties: {
-            choice: {
-              type: 'string', enum: ['keep', 'reword', 'skip'],
-              enumNames: locale === 'ko' ? ['그대로 기록', '직접 고쳐 쓰기', '건너뛰기'] : ['Keep it', 'Let me reword', 'Skip'],
-              description: locale === 'ko' ? '이 예측을 기록할지 고르세요.' : 'Whether to record this prediction.',
-            },
-            your_wording: {
+          locale === 'ko'
+            ? `이 예측으로 기록할까요?\n"${predicate}"\n확인일 ${checkBy}\n\n그대로면 Accept · 문장이나 날짜를 고치려면 아래 칸에 쓰고 Accept · 기록 안 하려면 Decline.`
+            : `Record this prediction?\n"${predicate}"\ncheck-by ${checkBy}\n\nAccept to keep · to change the wording or date, fill a field below and Accept · Decline to skip.`,
+          { type: 'object', properties: {
+            reword: {
               type: 'string',
-              description: locale === 'ko' ? '"직접 고쳐 쓰기"를 골랐다면, 원하는 예측 문장을 여기에 적어 주세요. 그 말 그대로 저장됩니다.' : 'If you chose "Let me reword", type your prediction here. It is saved exactly as written.',
+              description: locale === 'ko' ? '예측 문장을 고쳐 쓰려면 여기에 적으세요. 비우면 위 문장 그대로 기록합니다.' : 'To reword the prediction, type it here. Leave blank to keep the statement above.',
+            },
+            check_by: {
+              type: 'string',
+              description: locale === 'ko' ? `확인일을 바꾸려면 YYYY-MM-DD로 적으세요. 비우면 ${checkBy} 그대로.` : `To change the check-by date, type YYYY-MM-DD. Leave blank to keep ${checkBy}.`,
             },
           } },
         );
-        const choice = picked?.['choice'];
-        if (choice === 'reword') {
-          const wording = typeof picked?.['your_wording'] === 'string' ? (picked['your_wording'] as string).trim() : '';
-          if (wording) {
-            // One-shot reword: the user's own words replace the draft — but they
-            // pass the SAME falsifiability gate as any predicate (a vibe typed by
-            // the user is still unsettleable; refusing honestly beats recording a
-            // dead reminder).
-            if (wording.length < 8 || wording.length > 400) {
-              return toolError({ ok: false, tool: 'argus_seal', error_code: 'SEAL_INVALID', message: locale === 'ko' ? `다시 쓴 예측이 너무 ${wording.length < 8 ? '짧습니다' : '깁니다'} (8~400자).` : `The reworded prediction is too ${wording.length < 8 ? 'short' : 'long'} (8–400 chars).`, recovery: locale === 'ko' ? '예측 문장을 8~400자로 다시 알려주세요.' : 'Give the prediction again in 8–400 characters.' });
-            }
-            const rErr = validateSeal(wording, checkBy, today);
-            if (rErr) {
-              return toolError({ ok: false, tool: 'argus_seal', error_code: rErr.code, message: rErr.message, recovery: rErr.recovery });
-            }
-            predicate = wording;
-            a = { ...a, predicate: wording, predicate_owner: 'user' };
-            elicitedKeep = true; // typed through the elicit channel — evidenced user input
-            // The voice follows the USER's wording now (they may have reworded
-            // an English draft in Korean).
-            locale = resolveResponseLocale(dir, predicate);
-            T = SURFACES[locale].tools.seal;
-          } else {
-            // Reword chosen but no wording typed (or the host renders enum-only
-            // forms) — fall back to the two-step: ask in chat, model re-calls.
-            return envelope({ ok: true, tool: 'argus_seal', surface: locale === 'ko' ? '그럼 원하는 예측 문장을 알려주세요. 그 말 그대로 저장하겠습니다.' : "Then tell me the prediction in your own words and I'll save exactly that.", next_actions: ['argus_predict'], data: { sealed: false, choice: 'reword' } });
+        if (!picked) {
+          // Decline / cancel / no-accept → record nothing (respect the non-yes).
+          return envelope({ ok: true, tool: 'argus_seal', surface: locale === 'ko' ? '기록하지 않았습니다.' : 'Not recorded.', next_actions: ['stop'], data: { sealed: false, choice: 'declined' } });
+        }
+        // Accept. Apply any optional edits, then re-gate through validateSeal —
+        // a vibe typed by the user is still unsettleable; refusing honestly beats
+        // recording a dead reminder.
+        const rw = typeof picked['reword'] === 'string' ? (picked['reword'] as string).trim() : '';
+        const cbEdit = typeof picked['check_by'] === 'string' ? (picked['check_by'] as string).trim() : '';
+        if (rw) predicate = rw;
+        if (cbEdit) checkBy = cbEdit;
+        if (rw && rw.length > 400) {
+          return toolError({ ok: false, tool: 'argus_seal', error_code: 'SEAL_INVALID', message: locale === 'ko' ? '다시 쓴 예측이 너무 깁니다 (최대 400자).' : 'The reworded prediction is too long (max 400 chars).', recovery: locale === 'ko' ? '예측 문장을 400자 이내로 다시 알려주세요.' : 'Give the prediction again within 400 characters.' });
+        }
+        if (rw || cbEdit) {
+          const rErr = validateSeal(predicate, checkBy, today);
+          if (rErr) {
+            return toolError({ ok: false, tool: 'argus_seal', error_code: rErr.code, message: rErr.message, recovery: rErr.recovery });
           }
-        } else if (choice !== 'keep') {
-          // skip, or a declined/cancelled picker — record nothing.
-          return envelope({ ok: true, tool: 'argus_seal', surface: locale === 'ko' ? '기록하지 않았습니다.' : 'Not recorded.', next_actions: ['stop'], data: { sealed: false, choice: choice ?? 'declined' } });
-        } else {
-          // keep → the user affirmed the draft, so it is theirs now.
-          a = { ...a, predicate_owner: 'user' };
-          elicitedKeep = true;
+        }
+        // Accept (blank or edited) = the user affirmed it → it is theirs now.
+        a = { ...a, predicate, check_by: checkBy, predicate_owner: 'user' };
+        elicitedKeep = true;
+        if (rw) { // voice follows the user's wording (they may have reworded EN→KO)
+          locale = resolveResponseLocale(dir, predicate);
+          T = SURFACES[locale].tools.seal;
         }
       }
 

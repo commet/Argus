@@ -222,43 +222,40 @@ async function opAdd(
     if (aiDrafts.length === 1 && canElicit()) {
       const draft = aiDrafts[0];
       const dLocale = resolveResponseLocale(dir, draft.text);
+      // Native Accept/Decline (2026-07-24), mirroring seal: Accept blank → keep
+      // (provenance ai_surfaced intact), Accept + reword → the user's words
+      // (user_stated, draft kept as ai_original), Decline → skip. One keystroke
+      // to keep — no required enum to expand.
       const picked = await elicit(
         dLocale === 'ko'
-          ? `이 결정이 딛고 선 전제로 기록할까요?\n"${draft.text}"`
-          : `Record this as a premise the decision rests on?\n"${draft.text}"`,
-        { type: 'object', required: ['choice'], properties: {
-          choice: {
-            type: 'string', enum: ['keep', 'reword', 'skip'],
-            enumNames: dLocale === 'ko' ? ['그대로 기록', '직접 고쳐 쓰기', '건너뛰기'] : ['Keep it', 'Let me reword', 'Skip'],
-            description: dLocale === 'ko' ? '이 전제를 기록할지 고르세요.' : 'Whether to record this premise.',
-          },
-          your_wording: {
+          ? `이 결정이 딛고 선 전제로 기록할까요?\n"${draft.text}"\n\n그대로면 Accept · 고치려면 아래 칸에 쓰고 Accept · 기록 안 하려면 Decline.`
+          : `Record this as a premise the decision rests on?\n"${draft.text}"\n\nAccept to keep · to reword, type it below and Accept · Decline to skip.`,
+        { type: 'object', properties: {
+          reword: {
             type: 'string',
-            description: dLocale === 'ko' ? '"직접 고쳐 쓰기"를 골랐다면 원하는 문장을 여기에 적어 주세요. 그 말 그대로 저장됩니다.' : 'If you chose "Let me reword", type the premise here. It is saved exactly as written.',
+            description: dLocale === 'ko' ? '전제를 고쳐 쓰려면 여기에 적으세요. 비우면 위 문장 그대로 기록합니다.' : 'To reword the premise, type it here. Leave blank to keep the statement above.',
           },
         } },
       );
-      const choice = picked?.['choice'];
-      if (choice === 'reword') {
-        const wording = typeof picked?.['your_wording'] === 'string' ? (picked['your_wording'] as string).trim() : '';
-        if (wording.length >= 4 && wording.length <= 400) {
+      if (!picked) {
+        // Decline / cancel → drop ONLY the draft; the user's own premises in the
+        // same call still record below.
+        inputs.splice(inputs.indexOf(draft), 1);
+        if (inputs.length === 0) {
+          return envelope({ ok: true, tool: 'argus_premises', surface: dLocale === 'ko' ? '기록하지 않았습니다.' : 'Not recorded.', next_actions: ['stop'], data: { recorded: false, choice: 'declined' } });
+        }
+      } else {
+        const wording = typeof picked['reword'] === 'string' ? (picked['reword'] as string).trim() : '';
+        if (wording) {
+          if (wording.length < 4 || wording.length > 400) {
+            return envelope({ ok: true, tool: 'argus_premises', surface: dLocale === 'ko' ? '그럼 그 전제를 원하는 문장으로 알려주세요 (4~400자). 그 말 그대로 기록하겠습니다.' : 'Then tell me the premise in your own words (4–400 chars) and I will record exactly that.', next_actions: ['argus_capture'], data: { recorded: false, choice: 'reword' } });
+          }
           draft.ai_original = draft.ai_original ?? draft.text;
           draft.text = wording;
           draft.source = 'user_stated';
-        } else {
-          // Reword chosen but no usable wording (or an enum-only form) — the
-          // two-step fallback: ask in chat, the model re-calls with their words.
-          return envelope({ ok: true, tool: 'argus_premises', surface: dLocale === 'ko' ? '그럼 그 전제를 원하는 문장으로 알려주세요. 그 말 그대로 기록하겠습니다.' : 'Then tell me the premise in your own words and I will record exactly that.', next_actions: ['argus_capture'], data: { recorded: false, choice: 'reword' } });
         }
-      } else if (choice !== 'keep') {
-        // skip, or a declined/cancelled picker — drop ONLY the draft; the
-        // user's own premises in the same call still record below.
-        inputs.splice(inputs.indexOf(draft), 1);
-        if (inputs.length === 0) {
-          return envelope({ ok: true, tool: 'argus_premises', surface: dLocale === 'ko' ? '기록하지 않았습니다.' : 'Not recorded.', next_actions: ['stop'], data: { recorded: false, choice: choice ?? 'declined' } });
-        }
+        // Accept blank → keep as drafted, provenance ai_surfaced intact.
       }
-      // keep → recorded as drafted below, provenance ai_surfaced intact.
     }
   }
 
