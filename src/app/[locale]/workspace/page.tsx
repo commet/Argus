@@ -495,7 +495,12 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem, fr
     // Bind funnel (P1-8): every submit shows the bind, so submit→bind_resolved gives
     // the rope-vs-skip rate; decision_sealed(source:bind_open) fires only on a tied
     // rope. Captured (data > dashboard) so the conversion tradeoff is observable.
-    track('bind_resolved', { committed: !!bind, has_lean: !!bind?.lean, has_date: !!bind?.interval, anonymous: !user });
+    track('bind_resolved', {
+      committed: !!bind,
+      has_lean: !!bind?.lean,
+      has_date: !!(bind?.interval || bind?.check_in_at),
+      anonymous: !user,
+    });
 
     // Reveal the team-assembling → analyzing beat ONLY while we genuinely wait.
     // If the buffered analysis already settled (typical: a quota 429 that failed

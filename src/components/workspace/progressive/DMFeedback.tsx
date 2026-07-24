@@ -58,10 +58,16 @@ export function DMFeedback({ fb, onToggle, onFinalize, onDeepen, busy }: { fb: D
               {L('실제 당사자의 의견이 아니에요. 이 자리가 먼저 물을 질문을 미리 점검합니다.', 'This is not the real stakeholder’s opinion. It previews the questions this seat may ask.')}
             </p>
 
-            {/* First reaction — impactful blockquote */}
-            <blockquote className="text-[17px] md:text-[18px] text-[var(--text-primary)] leading-[1.6] italic">
-              &ldquo;{fb.first_reaction}&rdquo;
-            </blockquote>
+            {/* A model projection is not a quotation. Keep it prominent without
+                borrowing the visual grammar of something a real person said. */}
+            <div className="rounded-xl bg-[var(--ai)]/45 px-4 py-3.5">
+              <p className="mb-1.5 text-[9.5px] font-bold uppercase tracking-[0.16em] text-[var(--accent)]">
+                {L('AI 예상 첫 반응', 'AI-predicted first reaction')}
+              </p>
+              <p className="text-[17px] leading-[1.6] text-[var(--text-primary)] md:text-[18px]">
+                {fb.first_reaction}
+              </p>
+            </div>
 
             {/* Good parts — praise is context, not action: folded to one line so
                 the fix list below owns the screen. */}

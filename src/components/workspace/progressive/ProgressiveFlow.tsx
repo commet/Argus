@@ -2468,7 +2468,13 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
       const personas2 = usePersonaStore.getState().personas.filter(p => !p.is_example && !p.deleted_at).map(p => ({ name: p.name, role: p.role, hasContact: !!(p.contact?.email || p.contact?.slack_id) }));
       const r = await runDeepening(session!.problem_text, latest, qa, round, round + 2, snapshots, (text) => setStreamingText(text), abortRef.current.signal, moreLeadCtx, personas2.length > 0 ? personas2 : undefined, onTypedUpgrade);
       setStreamingText(null);
-      r.question ? (store.addQuestion(r.question), store.setPhase('conversing')) : (setShowMix(true), store.setPhase('conversing'));
+      if (r.question) {
+        store.addQuestion(r.question);
+        store.setPhase('conversing');
+      } else {
+        setShowMix(true);
+        store.setPhase('conversing');
+      }
     } catch (e) { setStreamingText(null); if (!(e instanceof DOMException && e.name === 'AbortError')) setError(e instanceof Error ? e.message : L('여기서 잠깐 막혔어요 — 지금까지 작업은 그대로 있어요. 다시 시도해 주세요.', 'Hit a brief snag — your work so far is safe. Please try again.')); store.setPhase('conversing'); setShowMix(true); }
     finally { setBusy(false); abortRef.current = null; scroll(); }
   };
@@ -2941,7 +2947,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
             >
               <span className="flex items-center justify-between gap-3">
                 <span className="text-[10px] font-bold tracking-[0.12em] text-[var(--accent)]">
-                  {L('내가 가져온 결정 · 원문', 'My decision · original')}
+                  {L('내가 적은 상황 · 원문', 'What I wrote · original')}
                 </span>
                 <span className="text-[10px] text-[var(--text-tertiary)]">
                   {problemExpanded ? L('접기', 'Collapse') : L('전체 보기', 'Read all')}
@@ -3536,17 +3542,22 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
               />
             )}
           </div>
-          <div ref={dmFeedbackRef}>
+          <div ref={dmFeedbackRef} className="scroll-mt-24">
             {dmFb && !final_ && phase !== 'testing' && (
-              // Stable key per review — rebuilds the baseline snapshot only
-              // when a new review arrives, not when toggleFix rebuilds the
-              // fb object. first_reaction is effectively unique per review.
+              // Stable key per generated review — rebuilds the baseline snapshot
+              // when deep review changes its substance, but not when toggleFix
+              // only flips applied flags.
               // The draft card already offers the stress test as an explicit
               // optional path. After a stakeholder review, "Apply and Finalize"
               // must do exactly that — routing back through onTest made the
               // optional step mandatory and added another generation + form.
               <DMFeedback
-                key={`${dmFb.persona_name}::${dmFb.first_reaction}`}
+                key={[
+                  dmFb.persona_name,
+                  dmFb.first_reaction,
+                  dmFb.approval_condition,
+                  ...dmFb.concerns.flatMap((concern) => [concern.text, concern.fix_suggestion || '']),
+                ].join('::')}
                 fb={dmFb}
                 onToggle={(i) => store.toggleFix(i)}
                 onFinalize={onFinalize}
