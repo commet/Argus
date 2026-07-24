@@ -672,7 +672,7 @@ ${L('리스크', 'Risks')}: ${(r.classified_risks || []).map(cr => `[${cr.catego
       {phase === 'running' && (
         <Card>
           <LoadingSteps steps={[
-            L('이해관계자가 문서를 읽는 중이에요...', 'Stakeholders are reading the document...'),
+            L('AI가 지정한 역할의 관점에서 문서를 읽는 중이에요...', 'AI is reading from each assigned stakeholder perspective...'),
             L('잘한 점과 고칠 점을 정리하는 중이에요...', 'Organizing strengths and areas to improve...'),
             L('반영 기준을 확인하는 중이에요...', 'Checking revision criteria...'),
           ]} />
@@ -728,7 +728,7 @@ ${L('리스크', 'Risks')}: ${(r.classified_risks || []).map(cr => `[${cr.catego
 
             return (
               <div className="rounded-xl border border-[var(--accent)]/20 bg-[var(--ai)] p-4 reward-entrance">
-                <p className="text-[12px] font-bold text-[var(--text-primary)] mb-3">{L(`${personaCount}명의 이해관계자가 검토했습니다`, `${personaCount} stakeholder${personaCount === 1 ? '' : 's'} reviewed`)}</p>
+                <p className="text-[12px] font-bold text-[var(--text-primary)] mb-3">{L(`AI가 ${personaCount}개의 이해관계자 관점을 시뮬레이션했어요`, `AI simulated ${personaCount} stakeholder perspective${personaCount === 1 ? '' : 's'}`)}</p>
 
                 <div className="flex flex-wrap gap-2 mb-2">
                   {praiseCount > 0 && <span className="text-[11px] px-2.5 py-1 rounded-full bg-[var(--success)]/10 border border-[var(--success)]/25 text-[var(--success)] font-medium">{L(`긍정 평가 ${praiseCount}건`, `${praiseCount} positive${praiseCount === 1 ? '' : 's'}`)}</span>}
@@ -739,11 +739,11 @@ ${L('리스크', 'Risks')}: ${(r.classified_risks || []).map(cr => `[${cr.catego
                 </div>
                 {(critical > 0 || unspoken > 0) && (
                   <p className="text-[11px] text-[var(--text-secondary)] mt-1">
-                    {L('아래에서 각 이해관계자의 의견을 확인하고, 반영할 부분을 골라보세요.', 'Review each stakeholder\'s feedback below and choose what to incorporate.')}
+                    {L('아래에서 각 모의 관점의 질문을 확인하고, 직접 검증할 부분을 골라보세요.', 'Review each simulated perspective below and choose what to verify or incorporate.')}
                   </p>
                 )}
                 {critical === 0 && unspoken === 0 && (
-                  <p className="text-[11px] text-[var(--success)] font-medium">{L('큰 위협 없이 통과했습니다. 실행 준비가 되었습니다.', 'Passed without major threats. Ready to execute.')}</p>
+                  <p className="text-[11px] text-[var(--success)] font-medium">{L('이번 시뮬레이션에서는 큰 위험을 찾지 못했어요. 실행 전 실제 근거와 당사자에게 다시 확인하세요.', 'This simulation surfaced no major risk. Verify the evidence and check with the actual people before execution.')}</p>
                 )}
               </div>
             );

@@ -98,15 +98,19 @@ export function FeedbackResult({ record, personas, onUpdateRecord, onStartDiscus
 
   // ── Copy helper ──
   const getFullText = () => {
-    const heading = L('## 리허설 결과', '## Rehearsal Results');
+    const heading = L('## AI 모의 리허설 결과', '## AI-simulated rehearsal results');
+    const disclosure = L(
+      '> 실제 이해관계자의 발언이나 검토가 아닙니다. AI가 지정된 역할의 관점에서 예상 질문과 반응을 시뮬레이션했습니다.',
+      '> This is not a real stakeholder statement or review. AI simulated likely questions and reactions from the assigned perspective.',
+    );
     const docLabel = L('자료', 'Document');
     const persLabel = L('관점', 'Perspective');
     const intLabel = L('강도', 'Intensity');
-    let text = `${heading}\n\n**${docLabel}**: ${record.document_title}\n**${persLabel}**: ${record.feedback_perspective} | **${intLabel}**: ${record.feedback_intensity}\n\n`;
+    let text = `${heading}\n\n${disclosure}\n\n**${docLabel}**: ${record.document_title}\n**${persLabel}**: ${record.feedback_perspective} | **${intLabel}**: ${record.feedback_intensity}\n\n`;
     for (const result of record.results) {
       const p = personas.find((persona) => persona.id === result.persona_id);
       text += `### ${p?.name || L('페르소나', 'Persona')} (${p?.role || ''})\n\n`;
-      text += `**${L('전반적 반응', 'Overall reaction')}**: ${result.overall_reaction}\n\n`;
+      text += `**${L('AI 예상 반응', 'AI-predicted reaction')}**: ${result.overall_reaction}\n\n`;
       if (result.failure_scenario) text += `**${L('이 계획이 실패한다면?', 'If this plan fails?')}**\n${result.failure_scenario}\n\n`;
       if (result.classified_risks?.length > 0) {
         for (const r of result.classified_risks) text += `**[${r.category}]** ${r.text}\n`;
@@ -115,7 +119,7 @@ export function FeedbackResult({ record, personas, onUpdateRecord, onStartDiscus
       text += `**${L('질문', 'Questions')}**\n${result.first_questions.map(q => `- ${q}`).join('\n')}\n\n`;
       text += `**${L('칭찬', 'Praise')}**\n${result.praise.map(p => `- ${p}`).join('\n')}\n\n`;
       text += `**${L('우려', 'Concerns')}**\n${result.concerns.map(c => `- ${c}`).join('\n')}\n\n`;
-      if (result.approval_conditions?.length > 0) text += `**${L('승인 조건', 'Approval conditions')}**\n${result.approval_conditions.map(c => `- ${c}`).join('\n')}\n\n`;
+      if (result.approval_conditions?.length > 0) text += `**${L('예상 승인 조건', 'Possible approval conditions')}**\n${result.approval_conditions.map(c => `- ${c}`).join('\n')}\n\n`;
     }
     if (record.synthesis) text += `### ${L('종합 분석', 'Synthesis')}\n${record.synthesis}\n`;
     return text;
@@ -136,8 +140,19 @@ export function FeedbackResult({ record, personas, onUpdateRecord, onStartDiscus
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="text-[16px] font-bold text-[var(--text-primary)]">{L('피드백 결과', 'Feedback results')}</h3>
-        <ShareBar getText={getFullText} getTitle={() => L('리허설 결과', 'Rehearsal Results')} />
+        <h3 className="text-[16px] font-bold text-[var(--text-primary)]">{L('AI 모의 검토 결과', 'AI-simulated review')}</h3>
+        <ShareBar getText={getFullText} getTitle={() => L('AI 모의 리허설 결과', 'AI-simulated rehearsal results')} />
+      </div>
+      <div className="rounded-xl border border-[var(--accent)]/20 bg-[var(--ai)]/45 px-4 py-3">
+        <p className="text-[10px] font-bold tracking-[0.12em] text-[var(--accent)]">
+          {L('출처 · AI 역할 시뮬레이션', 'Source · AI role simulation')}
+        </p>
+        <p className="mt-1 text-[12px] leading-[1.6] text-[var(--text-secondary)]">
+          {L(
+            '실제 이해관계자가 말하거나 검토한 내용이 아니에요. 지정한 역할에서 나올 법한 질문을 미리 점검한 뒤, 중요한 항목은 당사자와 직접 확인하세요.',
+            'No real stakeholder said or reviewed this. It previews questions that may arise from each assigned role; verify important items with the actual people.',
+          )}
+        </p>
       </div>
 
       {/* ══════════════ OVERVIEW ══════════════ */}
@@ -190,9 +205,13 @@ export function FeedbackResult({ record, personas, onUpdateRecord, onStartDiscus
                     )}
                   </div>
 
-                  {/* Speech bubble */}
-                  <div className="relative rounded-xl rounded-tl-sm px-3 py-2.5 bg-[var(--bg)] text-[13px] text-[var(--text-primary)] leading-relaxed">
-                    &ldquo;{result.overall_reaction}&rdquo;
+                  <div className="rounded-xl bg-[var(--bg)] px-3 py-2.5">
+                    <p className="mb-1 text-[9px] font-bold uppercase tracking-[0.14em] text-[var(--accent)]">
+                      {L('AI 예상 반응', 'AI-predicted reaction')}
+                    </p>
+                    <p className="text-[13px] leading-relaxed text-[var(--text-primary)]">
+                      {result.overall_reaction}
+                    </p>
                   </div>
 
                   {/* Risk indicators */}
@@ -230,7 +249,7 @@ export function FeedbackResult({ record, personas, onUpdateRecord, onStartDiscus
             if (allConditions.length === 0) return null;
             return (
               <div className="px-4 py-3 rounded-xl border border-[var(--accent-light)]/20 bg-[var(--checkpoint)]">
-                <p className="text-[11px] font-bold text-[var(--accent)] mb-2">{L('승인 조건 (고영향력)', 'Approval conditions (high-influence)')}</p>
+                <p className="text-[11px] font-bold text-[var(--accent)] mb-2">{L('예상 승인 조건 · 직접 확인 필요', 'Possible approval conditions · verify directly')}</p>
                 <div className="space-y-1">
                   {allConditions.map((ac, i) => (
                     <div key={i} className="flex items-start gap-2 text-[12px]">
@@ -261,7 +280,7 @@ export function FeedbackResult({ record, personas, onUpdateRecord, onStartDiscus
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-[13px] font-bold text-[var(--text-primary)]">
-                      {record.discussion ? L('이해관계자 토론', 'Stakeholder discussion') : L('이해관계자 토론 시뮬레이션', 'Simulate stakeholder discussion')}
+                      {record.discussion ? L('AI 모의 이해관계자 토론', 'AI-simulated stakeholder discussion') : L('이해관계자 토론 시뮬레이션', 'Simulate stakeholder discussion')}
                     </p>
                     <p className="text-[11px] text-[var(--text-secondary)] mt-0.5 leading-relaxed">
                       {record.discussion
@@ -306,8 +325,11 @@ export function FeedbackResult({ record, personas, onUpdateRecord, onStartDiscus
 
           {/* ── 전반적 반응 (한 줄 요약) ── */}
           <div className="rounded-xl bg-[var(--ai)] px-4 py-3">
+            <p className="mb-1 text-[9px] font-bold uppercase tracking-[0.14em] text-[var(--accent)]">
+              {L('AI 예상 반응', 'AI-predicted reaction')}
+            </p>
             <p className="text-[14px] font-medium text-[var(--text-primary)] leading-relaxed">
-              &ldquo;{selectedResult.overall_reaction}&rdquo;
+              {selectedResult.overall_reaction}
             </p>
           </div>
 
@@ -343,7 +365,7 @@ export function FeedbackResult({ record, personas, onUpdateRecord, onStartDiscus
           {/* ── OK 조건 (highlighted, like web app) ── */}
           {(selectedResult.approval_conditions?.length ?? 0) > 0 && (
             <div className="rounded-xl bg-[var(--accent)]/[0.04] border border-[var(--accent)]/10 px-4 py-3.5">
-              <p className="text-[11px] font-bold text-[var(--accent)] uppercase tracking-wider mb-2">{L('통과 조건', 'Approval conditions')}</p>
+              <p className="text-[11px] font-bold text-[var(--accent)] uppercase tracking-wider mb-2">{L('예상 승인 조건 · 직접 확인 필요', 'Possible approval conditions · verify directly')}</p>
               <ul className="space-y-1">
                 {selectedResult.approval_conditions!.map((c, i) => (
                   <li key={i} className="text-[14px] text-[var(--text-primary)] font-medium leading-relaxed flex items-start gap-2">
@@ -376,7 +398,7 @@ export function FeedbackResult({ record, personas, onUpdateRecord, onStartDiscus
                     {/* 질문 */}
                     {(selectedResult.first_questions || []).length > 0 && (
                       <div>
-                        <p className="text-[11px] font-bold text-[var(--text-secondary)] mb-1.5">{L('물어볼 질문', 'Questions they would ask')}</p>
+                        <p className="text-[11px] font-bold text-[var(--text-secondary)] mb-1.5">{L('이 관점이 예상한 질문', 'Questions predicted by this lens')}</p>
                         <ul className="space-y-1.5">
                           {selectedResult.first_questions.map((q, i) => (
                             <li key={i} className="text-[13px] text-[var(--text-primary)] px-3 py-2 rounded-lg bg-[var(--bg)]">{q}</li>

@@ -25,6 +25,16 @@ type TableName = 'projects' | 'personas' | 'reframe_items' | 'recast_items'
 type SoftDeletableTable = 'projects' | 'personas' | 'reframe_items' | 'recast_items' | 'synthesize_items' | 'review_receipts';
 
 /**
+ * Built-in agents and chains deliberately use stable semantic IDs (for example
+ * "hayoon" and "research") on every account. Their database identity is
+ * therefore (id, user_id), not id alone. Keeping this in one helper prevents
+ * one write path from quietly reverting to the global-ID assumption.
+ */
+function upsertConflictTarget(table: TableName): string {
+  return table === 'agents' || table === 'agent_chains' ? 'id,user_id' : 'id';
+}
+
+/**
  * Strip fields that must only be set by the server/database.
  *
  * - user_id: always set by getCurrentUserId(), never from client
@@ -153,7 +163,10 @@ async function loadAndMergeUncached<T extends Timestamped>(
     if (localOnly.length > 0) {
       await supabase
         .from(table)
-        .upsert(localOnly.map(item => ({ ...sanitizeItem(item), user_id: userId })), { onConflict: 'id' })
+        .upsert(
+          localOnly.map(item => ({ ...sanitizeItem(item), user_id: userId })),
+          { onConflict: upsertConflictTarget(table) },
+        )
         .then(({ error }) => { if (error) { log.error(`push local-only to ${table}: ${error.message}`, { context: 'db' }); reportSyncFailure(`push:${table}`, { message: error.message }); } });
     }
 
@@ -182,7 +195,7 @@ export async function syncToSupabase(table: TableName, localItems: any[]): Promi
 
     const { error } = await supabase
       .from(table)
-      .upsert(itemsWithUser, { onConflict: 'id' });
+      .upsert(itemsWithUser, { onConflict: upsertConflictTarget(table) });
 
     if (error) {
       log.error(`sync to ${table} failed: ${error.message}`, { context: 'db' });
@@ -235,7 +248,10 @@ export async function upsertToSupabase(table: TableName, item: any): Promise<voi
   try {
     const { error } = await supabase
       .from(table)
-      .upsert({ ...sanitizeItem(item), user_id: userId }, { onConflict: 'id' });
+      .upsert(
+        { ...sanitizeItem(item), user_id: userId },
+        { onConflict: upsertConflictTarget(table) },
+      );
 
     if (error) {
       log.error(`upsert to ${table} failed: ${error.message}`, { context: 'db' });

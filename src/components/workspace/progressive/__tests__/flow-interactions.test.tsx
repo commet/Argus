@@ -81,17 +81,50 @@ const mix: MixResult = {
 };
 
 describe('BindCard — authorship before commitment', () => {
-  it('shows the user original before the optional AI-era commitment prompt', () => {
+  it('shows the user original before both the AI reframing and commitment prompt', () => {
+    const onProceed = vi.fn();
+    render(createElement(BindCard, {
+      problem: '내가 직접 적은 원래 결정',
+      recognition: 'AI가 새로 찾은 질문',
+      onProceed,
+    }));
+    const text = container.textContent || '';
+    expect(text).toContain('내가 적은 상황 · 원문');
+    expect(text.indexOf('내가 직접 적은 원래 결정')).toBeLessThan(text.indexOf('AI가 새로 찾은 질문'));
+    expect(text.indexOf('내가 직접 적은 원래 결정')).toBeLessThan(text.indexOf('지금 생각은 어디에 가까워요?'));
+    expect(container.querySelector('textarea')?.hasAttribute('autofocus')).toBe(false);
+  });
+
+  it('does not proceed during IME composition and resolves only once on repeated input', () => {
     const onProceed = vi.fn();
     render(createElement(BindCard, {
       problem: '내가 직접 적은 원래 결정',
       onProceed,
     }));
-    const text = container.textContent || '';
-    expect(text).toContain('내가 적은 결정 · 원문');
-    expect(text.indexOf('내가 직접 적은 원래 결정')).toBeLessThan(text.indexOf('지금 생각은 어디에 가까워요?'));
+    const textarea = container.querySelector('textarea')!;
+    pressOn(textarea, 'Enter', true);
+    expect(onProceed).not.toHaveBeenCalled();
+    click(byText('아직 잘 모르겠어요'));
     click(byText('아직 잘 모르겠어요'));
     expect(onProceed).toHaveBeenCalledWith(null);
+    expect(onProceed).toHaveBeenCalledTimes(1);
+  });
+
+  it('lets long source text expand and exposes review-date controls accessibly', () => {
+    const problem = '긴 원문 '.repeat(50);
+    render(createElement(BindCard, { problem, onProceed: vi.fn() }));
+    const quote = container.querySelector('blockquote')!;
+    expect(quote.className).toContain('line-clamp-4');
+    const expand = byText('전체 보기');
+    expect(expand.getAttribute('aria-expanded')).toBe('false');
+    click(expand);
+    expect(quote.className).not.toContain('line-clamp-4');
+    expect(byText('접기').getAttribute('aria-expanded')).toBe('true');
+
+    const interval = byText('1일');
+    expect(interval.getAttribute('aria-pressed')).toBe('false');
+    const customDate = container.querySelector('input[type="date"]');
+    expect(customDate?.getAttribute('aria-label')).toContain('직접 확인일');
   });
 });
 
@@ -268,6 +301,8 @@ describe('DMFeedback — batch apply / skip', () => {
     render(createElement(DMFeedback, { fb: fb([true, false, true]), onToggle: vi.fn(), onFinalize: vi.fn(), busy: false }));
     expect(container.textContent).toContain('AI가 맡은 검토 관점');
     expect(container.textContent).toContain('실제 당사자의 의견이 아니에요');
+    expect(container.textContent).toContain('AI 예상 첫 반응');
+    expect(container.querySelector('blockquote')).toBeNull();
     const switches = Array.from(container.querySelectorAll('[role="switch"]'));
     expect(switches).toHaveLength(3);
     expect(switches[0].getAttribute('aria-checked')).toBe('true');

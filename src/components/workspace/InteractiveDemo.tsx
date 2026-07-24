@@ -890,15 +890,30 @@ function DemoDMFeedback({ fb, onToggle, onDone, showDoneButton = true, readOnly 
             <div className="w-7 h-7 rounded-full bg-[var(--accent)]/8 flex items-center justify-center">
               <UserCheck size={13} className="text-[var(--accent)]" />
             </div>
-            <span className="font-semibold text-[13px] text-[var(--text-primary)]">{fb.persona_name}</span>
-            <span className="text-[var(--text-tertiary)]">·</span>
-            <span>{fb.persona_role}</span>
+            <div className="min-w-0">
+              <p className="text-[10px] font-bold tracking-[0.12em] text-[var(--accent)]">
+                {L('AI가 맡은 검토 관점', 'AI-simulated review lens')}
+              </p>
+              <p className="truncate">
+                <span className="font-semibold text-[13px] text-[var(--text-primary)]">{fb.persona_name}</span>
+                <span className="mx-1.5 text-[var(--text-tertiary)]">·</span>
+                <span>{fb.persona_role}</span>
+              </p>
+            </div>
           </div>
 
-          {/* The reaction — main quote, no border decoration */}
-          <blockquote className="text-[19px] md:text-[21px] text-[var(--text-primary)] leading-[1.55] font-medium tracking-[-0.005em]">
-            &ldquo;{fb.first_reaction}&rdquo;
-          </blockquote>
+          <p className="-mt-3 text-[11.5px] leading-relaxed text-[var(--text-tertiary)]">
+            {L('실제 당사자의 의견이 아니라, 이 관점에서 먼저 물을 질문을 미리 점검한 결과예요.', 'This is not the real stakeholder’s opinion. It previews questions this perspective may raise.')}
+          </p>
+
+          <div className="rounded-xl bg-[var(--ai)]/45 px-4 py-3.5">
+            <p className="mb-1.5 text-[9.5px] font-bold uppercase tracking-[0.16em] text-[var(--accent)]">
+              {L('AI 예상 첫 반응', 'AI-predicted first reaction')}
+            </p>
+            <p className="text-[19px] font-medium leading-[1.55] tracking-[-0.005em] text-[var(--text-primary)] md:text-[21px]">
+              {fb.first_reaction}
+            </p>
+          </div>
 
           {/* Concerns — the work area */}
           {fb.concerns.length > 0 && (

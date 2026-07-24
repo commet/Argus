@@ -12,7 +12,7 @@ vi.mock('@/lib/error-handler', () => ({
   handleError: vi.fn(),
 }));
 
-import { mergeByTimestamp, loadAndMerge } from '@/lib/db';
+import { mergeByTimestamp, loadAndMerge, syncToSupabase, upsertToSupabase } from '@/lib/db';
 import { supabase, getCurrentUserId } from '@/lib/supabase';
 import { getStorage, setStorage } from '@/lib/storage';
 
@@ -197,5 +197,67 @@ describe('loadAndMerge — tombstone propagation (P1-C7)', () => {
     expect(upsert).toHaveBeenCalledTimes(1);
     const pushed = upsert.mock.calls[0][0] as Array<{ id: string }>;
     expect(pushed.map(p => p.id)).toEqual(['offline-new']);
+  });
+});
+
+describe('user-scoped agent identity', () => {
+  afterEach(() => {
+    vi.mocked(getCurrentUserId).mockImplementation(() => Promise.resolve(null));
+    vi.mocked(getStorage).mockImplementation((_key: string, fallback: unknown) => fallback);
+    vi.mocked(setStorage).mockClear();
+    vi.mocked(supabase.from).mockReset();
+  });
+
+  it('uses (id,user_id) when loadAndMerge pushes stable built-in agent IDs', async () => {
+    vi.mocked(getCurrentUserId).mockResolvedValue('user-2');
+    vi.mocked(getStorage).mockImplementation(() => ([
+      { id: 'hayoon', name: 'Riley', updated_at: '2026-07-24T00:00:00Z' },
+    ]));
+
+    const upsert = vi.fn().mockResolvedValue({ error: null });
+    const order = vi.fn().mockResolvedValue({ data: [], error: null });
+    const eq = vi.fn(() => ({ order }));
+    const select = vi.fn(() => ({ eq }));
+    vi.mocked(supabase.from).mockReturnValue({ select, upsert } as never);
+
+    await loadAndMerge<TestItem>('agents', 'sot_agents');
+
+    expect(upsert).toHaveBeenCalledWith(
+      [expect.objectContaining({ id: 'hayoon', user_id: 'user-2' })],
+      { onConflict: 'id,user_id' },
+    );
+  });
+
+  it('uses (id,user_id) for bulk agent-chain sync and single agent upserts', async () => {
+    vi.mocked(getCurrentUserId).mockResolvedValue('user-3');
+    const upsert = vi.fn().mockResolvedValue({ error: null });
+    vi.mocked(supabase.from).mockReturnValue({ upsert } as never);
+
+    await syncToSupabase('agent_chains', [{ id: 'research', name: 'Research' }]);
+    await upsertToSupabase('agents', { id: 'hayoon', name: 'Riley' });
+
+    expect(upsert).toHaveBeenNthCalledWith(
+      1,
+      [expect.objectContaining({ id: 'research', user_id: 'user-3' })],
+      { onConflict: 'id,user_id' },
+    );
+    expect(upsert).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({ id: 'hayoon', user_id: 'user-3' }),
+      { onConflict: 'id,user_id' },
+    );
+  });
+
+  it('keeps globally unique record tables on id-only conflicts', async () => {
+    vi.mocked(getCurrentUserId).mockResolvedValue('user-4');
+    const upsert = vi.fn().mockResolvedValue({ error: null });
+    vi.mocked(supabase.from).mockReturnValue({ upsert } as never);
+
+    await upsertToSupabase('projects', { id: 'project-1', name: 'Launch' });
+
+    expect(upsert).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'project-1', user_id: 'user-4' }),
+      { onConflict: 'id' },
+    );
   });
 });

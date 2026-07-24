@@ -35,6 +35,8 @@ const rehearse = read('src/components/workspace/RehearseStep.tsx');
 const syntheticPerspective = read('src/lib/synthetic-perspective.ts');
 const feedbackResult = read('src/components/tools/FeedbackResult.tsx');
 const progressive = read('src/components/workspace/progressive/ProgressiveFlow.tsx');
+const progressiveDmFeedback = read('src/components/workspace/progressive/DMFeedback.tsx');
+const interactiveDemo = read('src/components/workspace/InteractiveDemo.tsx');
 const workspacePage = read('src/app/[locale]/workspace/page.tsx');
 const settingsPage = read('src/app/[locale]/settings/page.tsx');
 const types = read('src/stores/types.ts');
@@ -182,6 +184,30 @@ describe('E-B4 protected — synthetic lenses cannot become stakeholder consensu
     expect(feedbackResult).not.toContain('공통 합의');
     expect(feedbackResult).not.toContain('Common agreements');
     expect(feedbackResult).not.toContain('긴급');
+  });
+});
+
+describe('E-B4 presentation gate — simulated seats cannot masquerade as real stakeholder speech', () => {
+  it('labels provenance on every user-facing stakeholder simulation surface', () => {
+    expect(progressiveDmFeedback).toContain('AI가 맡은 검토 관점');
+    expect(progressiveDmFeedback).toContain('실제 당사자의 의견이 아니에요');
+    expect(progressiveDmFeedback).not.toContain('&ldquo;{fb.first_reaction}&rdquo;');
+    expect(progressive).toContain('<div ref={dmFeedbackRef} className="scroll-mt-24">');
+
+    expect(interactiveDemo).toContain('AI-simulated review lens');
+    expect(interactiveDemo).toContain('This is not the real stakeholder’s opinion');
+    expect(interactiveDemo).not.toContain('&ldquo;{fb.first_reaction}&rdquo;');
+
+    expect(feedbackResult).toContain('Source · AI role simulation');
+    expect(feedbackResult).toContain('No real stakeholder said or reviewed this');
+    expect(feedbackResult).not.toContain('&ldquo;{result.overall_reaction}&rdquo;');
+    expect(feedbackResult).not.toContain('&ldquo;{selectedResult.overall_reaction}&rdquo;');
+  });
+
+  it('never turns a clean simulation into execution approval', () => {
+    expect(rehearse).not.toContain('큰 위협 없이 통과했습니다. 실행 준비가 되었습니다.');
+    expect(rehearse).not.toContain('Passed without major threats. Ready to execute.');
+    expect(rehearse).toContain('실행 전 실제 근거와 당사자에게 다시 확인하세요.');
   });
 });
 

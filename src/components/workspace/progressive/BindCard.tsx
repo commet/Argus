@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { ArrowRight, Quote } from 'lucide-react';
 import { useLocale } from '@/hooks/useLocale';
@@ -39,6 +39,14 @@ const INTERVALS: { value: CheckInInterval; ko: string; en: string }[] = [
 const INTERVAL_DAYS: Record<CheckInInterval, number> = { '1d': 1, '3d': 3, '1w': 7, '2w': 14, '1m': 30 };
 
 const MAX_LEAN = 140;
+const COLLAPSE_PROBLEM_AT = 160;
+
+function toLocalDateInputValue(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
 
 export function BindCard({
   onProceed,
@@ -62,24 +70,46 @@ export function BindCard({
   const [lean, setLean] = useState('');
   const [interval, setInterval] = useState<CheckInInterval | null>(null);
   const [customDate, setCustomDate] = useState(''); // a specific picked date (yyyy-mm-dd)
+  const [problemExpanded, setProblemExpanded] = useState(false);
+  const [proceeding, setProceeding] = useState(false);
+  const proceedingRef = useRef(false);
+  const leanRef = useRef<HTMLTextAreaElement>(null);
+
+  // Desktop users can type immediately. On touch devices, auto-focus would
+  // open the software keyboard before the person has read their own source
+  // record, obscuring the very first checkpoint.
+  useEffect(() => {
+    if (window.matchMedia?.('(pointer: fine)').matches) {
+      leanRef.current?.focus({ preventScroll: true });
+    }
+  }, []);
 
   const trimmed = lean.trim();
   const hasCommitment = trimmed.length > 0 || interval !== null || customDate !== '';
 
-  const tie = () => onProceed(hasCommitment
+  const proceedOnce = (result: BindResult | null) => {
+    if (proceedingRef.current) return;
+    proceedingRef.current = true;
+    setProceeding(true);
+    onProceed(result);
+  };
+  const tie = () => proceedOnce(hasCommitment
     ? {
         lean: trimmed || undefined,
         interval: customDate ? undefined : (interval ?? undefined),
         check_in_at: customDate ? new Date(customDate).toISOString() : undefined,
       }
     : null);
-  const skip = () => onProceed(null);
+  const skip = () => proceedOnce(null);
 
   // Resolve a relative interval to a concrete date so "2주" reads as "2주 · 7월 8일".
   const dateLabel = (iv: CheckInInterval) => {
     const d = new Date(Date.now() + INTERVAL_DAYS[iv] * 86_400_000);
     return d.toLocaleDateString(ko ? 'ko-KR' : 'en-US', { month: 'short', day: 'numeric' });
   };
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const minimumCustomDate = toLocalDateInputValue(tomorrow);
 
   return (
     <motion.div
@@ -89,30 +119,47 @@ export function BindCard({
       className="mx-auto w-full max-w-xl"
     >
       <div className="overflow-hidden rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] shadow-sm">
-        {/* First-run recognition mirror — read-only, never seeds the lean. */}
+        {/* The user's own words come first. The previous layout asked for a lean
+            before visually re-establishing what the person had actually said,
+            making the machine's prompt feel like the subject. */}
+        {problem && (
+          <figure className="border-b border-[var(--border-subtle)] bg-[var(--bg)]/55 px-6 py-5">
+            <figcaption className="mb-2 flex items-center justify-between gap-3 text-[10px] font-bold tracking-[0.12em] text-[var(--accent)]">
+              <span className="flex items-center gap-2">
+                <Quote size={12} aria-hidden />
+                {L('내가 적은 상황 · 원문', 'What I wrote · original')}
+              </span>
+              {problem.length > COLLAPSE_PROBLEM_AT && (
+                <button
+                  type="button"
+                  onClick={() => setProblemExpanded((expanded) => !expanded)}
+                  aria-expanded={problemExpanded}
+                  className="shrink-0 font-medium tracking-normal text-[var(--text-tertiary)] hover:text-[var(--text-primary)]"
+                >
+                  {problemExpanded ? L('접기', 'Collapse') : L('전체 보기', 'Read all')}
+                </button>
+              )}
+            </figcaption>
+            <blockquote
+              className={`text-[17px] font-semibold leading-[1.55] text-[var(--text-primary)] ${problemExpanded ? 'whitespace-pre-wrap break-words' : 'line-clamp-4'}`}
+              style={{ fontFamily: 'var(--font-display)' }}
+            >
+              {problem}
+            </blockquote>
+          </figure>
+        )}
+        {/* First-run recognition mirror — read-only, never seeds the lean.
+            Even when present, it follows the source record so an AI reframing
+            can never visually precede what the person actually wrote. */}
         {recognition && (
-          <div className="mx-6 mt-6 rounded-xl border border-[var(--accent)]/20 bg-[var(--ai)]/40 px-4 py-3">
-            <p className="text-[10.5px] font-semibold uppercase tracking-[0.16em] text-[var(--accent)] mb-1.5">
-              {L('지금 풀어야 할 질문', 'The question to solve now')}
+          <div className="mx-6 mt-5 rounded-xl border border-[var(--accent)]/20 bg-[var(--ai)]/40 px-4 py-3">
+            <p className="mb-1.5 text-[10.5px] font-semibold uppercase tracking-[0.16em] text-[var(--accent)]">
+              {L('Argus가 찾은 진짜 질문', 'The real question Argus surfaced')}
             </p>
             <p className="text-[14.5px] font-semibold leading-snug text-[var(--text-primary)]" style={{ fontFamily: 'var(--font-display)' }}>
               {recognition}
             </p>
           </div>
-        )}
-        {/* The user's own words come first. The previous layout asked for a lean
-            before visually re-establishing what the person had actually said,
-            making the machine's prompt feel like the subject. */}
-        {problem && (
-          <figure className={`${recognition ? 'mt-5' : ''} border-y border-[var(--border-subtle)] bg-[var(--bg)]/55 px-6 py-5`}>
-            <figcaption className="mb-2 flex items-center gap-2 text-[10px] font-bold tracking-[0.12em] text-[var(--accent)]">
-              <Quote size={12} aria-hidden />
-              {L('내가 적은 결정 · 원문', 'My decision · original')}
-            </figcaption>
-            <blockquote className="text-[17px] font-semibold leading-[1.55] text-[var(--text-primary)] line-clamp-4" style={{ fontFamily: 'var(--font-display)' }}>
-              {problem}
-            </blockquote>
-          </figure>
         )}
 
         <div className="px-6 py-6">
@@ -130,11 +177,13 @@ export function BindCard({
 
           {/* One neutral optional line — never prefilled, never a fork. */}
           <textarea
-            autoFocus
+            ref={leanRef}
             value={lean}
             maxLength={MAX_LEAN}
+            disabled={proceeding}
             onChange={(e) => setLean(e.target.value)}
             onKeyDown={(e) => {
+              if (e.nativeEvent.isComposing) return;
               if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
                 // Enter never blocks: with no commitment it skips; with one it ties.
@@ -156,6 +205,8 @@ export function BindCard({
               key={iv.value}
               type="button"
               onClick={() => { setInterval(interval === iv.value ? null : iv.value); setCustomDate(''); }}
+              disabled={proceeding}
+              aria-pressed={interval === iv.value && !customDate}
               className={`rounded-full border px-3 py-1 text-[12.5px] transition-colors ${
                 interval === iv.value && !customDate
                   ? 'border-[var(--primary)] bg-[var(--primary)] text-[var(--bg)]'
@@ -168,11 +219,13 @@ export function BindCard({
           <input
             type="date"
             value={customDate}
-            min={new Date(Date.now() + 86_400_000).toISOString().slice(0, 10)}
+            min={minimumCustomDate}
+            disabled={proceeding}
             onChange={(e) => { setCustomDate(e.target.value); if (e.target.value) setInterval(null); }}
             className={`rounded-full border px-2.5 py-1 text-[12px] bg-[var(--bg)] cursor-pointer ${
               customDate ? 'border-[var(--primary)] text-[var(--primary)]' : 'border-[var(--border-subtle)] text-[var(--text-secondary)]'
             }`}
+            aria-label={L('직접 확인일 고르기', 'Pick a custom review date')}
             title={L('직접 고르기', 'Pick a date')}
           />
         </div>
@@ -182,7 +235,8 @@ export function BindCard({
           <button
             type="button"
             onClick={skip}
-            className="text-[13.5px] font-semibold text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+            disabled={proceeding}
+            className="text-[13.5px] font-semibold text-[var(--text-secondary)] hover:text-[var(--text-primary)] disabled:cursor-wait disabled:opacity-50"
           >
             {L('아직 잘 모르겠어요 →', "I'm not sure yet →")}
           </button>
@@ -191,9 +245,9 @@ export function BindCard({
           <button
             type="button"
             onClick={tie}
-            disabled={!hasCommitment}
+            disabled={!hasCommitment || proceeding}
             className={`inline-flex items-center gap-1.5 rounded-xl px-4 py-2 text-[13.5px] font-semibold transition-opacity ${
-              hasCommitment
+              hasCommitment && !proceeding
                 ? 'bg-[var(--primary)] text-[var(--bg)]'
                 : 'cursor-default bg-[var(--surface-2)] text-[var(--text-tertiary)] opacity-50'
             }`}
