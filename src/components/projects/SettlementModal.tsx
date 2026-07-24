@@ -40,6 +40,8 @@ import {
   setPredicateBasis,
   amendCheckIn,
   isResolved,
+  isUserOwnedPredicate,
+  requiredSettlementPredicates,
   summarizeRecord,
   CHECK_IN_MS,
 } from '@/lib/decision-contract';
@@ -111,8 +113,12 @@ export function SettlementModal({
     () => (Array.isArray(contract?.predicates) ? contract!.predicates : []),
     [contract],
   );
-  const resolvedCount = predicates.filter(isResolved).length;
-  const allResolved = predicates.length > 0 && resolvedCount === predicates.length;
+  const requiredPredicates = useMemo(
+    () => contract ? requiredSettlementPredicates(contract) : [],
+    [contract],
+  );
+  const resolvedCount = requiredPredicates.filter(isResolved).length;
+  const allResolved = requiredPredicates.length > 0 && resolvedCount === requiredPredicates.length;
 
   // Judgment-checkpoint v2 (§7): the primary checkpoint gets the focused 4-tap
   // card at the top; its predicate is then excluded from the per-predicate list
@@ -124,6 +130,8 @@ export function SettlementModal({
     : null;
   const showCheckpoint = !!(primaryCheckpoint && primaryPred);
   const listPredicates = showCheckpoint ? predicates.filter((p) => p.id !== primaryPred!.id) : predicates;
+  const requiredRemainder = listPredicates.filter(isUserOwnedPredicate);
+  const optionalPredicates = listPredicates.filter((p) => !isUserOwnedPredicate(p));
   // loop-17 B — the unverified facts carried from seal. At settle we ASK whether they
   // held (mirror, not verdict): held / broke / not-yet. A 'broke' leaves a light
   // learning note — a false premise the decision rested on is the highest-value recall.
@@ -373,7 +381,7 @@ export function SettlementModal({
           <ArgusMascot moment="returning" size="md" alt={L('약속한 날 돌아온 Argus', 'Argus, back on the promised day')} className="shrink-0 max-sm:h-16 max-sm:w-16" />
           <div className="min-w-0">
             <p className="text-[15px] md:text-[17px] font-bold text-[var(--text-primary)] leading-[1.35]" style={{ fontFamily: 'var(--font-display)' }}>
-              {L('그때 건 예측을, 이제 현실과 맞춰봐요', 'Time to check your prediction against what happened')}
+              {L('그때 남긴 판단을, 이제 현실과 맞춰봐요', 'Time to check the judgment you kept against reality')}
             </p>
             {/* [C2] 정산모달 표면의 「연습 · 회고」 상시 배지 — retro일 때만. */}
             {isRetro && <RetroBadge ko={ko} className="mt-2" />}
@@ -429,9 +437,9 @@ export function SettlementModal({
           />
         )}
 
-        {listPredicates.length > 0 && (
+        {requiredRemainder.length > 0 && (
         <div className="space-y-2.5">
-          {listPredicates.map((p) => {
+          {requiredRemainder.map((p) => {
             const Icon = SOURCE_ICON[p.source] ?? AlertTriangle;
             return (
               <div key={p.id} className="rounded-xl border border-[var(--border)] p-3 bg-[var(--surface)]">
@@ -526,6 +534,66 @@ export function SettlementModal({
             );
           })}
         </div>
+        )}
+
+        {optionalPredicates.length > 0 && (
+          <details className="group rounded-xl border border-[var(--border)] bg-[var(--bg)]/35">
+            <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 px-3.5 py-2.5 text-[12px] font-semibold text-[var(--text-secondary)]">
+              <span>
+                {L(
+                  `Argus가 짚었던 전제 ${optionalPredicates.length}개도 확인하기 · 선택`,
+                  `Check ${optionalPredicates.length} assumption${optionalPredicates.length === 1 ? '' : 's'} Argus surfaced · optional`,
+                )}
+              </span>
+              <span aria-hidden className="text-[var(--text-tertiary)] transition-transform group-open:rotate-45">+</span>
+            </summary>
+            <div className="space-y-2.5 border-t border-[var(--border)] p-3">
+              {optionalPredicates.map((p) => {
+                const Icon = SOURCE_ICON[p.source] ?? AlertTriangle;
+                return (
+                  <div key={p.id} className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3">
+                    <div className="flex items-start gap-2">
+                      <Icon size={13} className="mt-0.5 shrink-0 text-[var(--text-tertiary)]" />
+                      <p className="min-w-0 flex-1 text-[13px] leading-[1.5] text-[var(--text-primary)]">
+                        {predicateQuestion(p, ko)}
+                        <span className="ml-1.5 inline-block rounded border border-[var(--border)] px-1 py-px align-middle text-[10px] font-semibold text-[var(--text-tertiary)]">
+                          {L('AI가 짚음', 'AI-surfaced')}
+                        </span>
+                      </p>
+                    </div>
+                    <div className="mt-2 flex flex-wrap gap-1.5 pl-[21px]">
+                      {verdictButtons(p.source, ko)
+                        .filter((v) => v.value !== 'unknown')
+                        .map((v) => {
+                          const selected = p.verdict === v.value;
+                          return (
+                            <button
+                              type="button"
+                              key={v.value}
+                              onClick={() => grade(p.id, selected ? 'pending' : v.value)}
+                              aria-pressed={selected}
+                              className={`rounded-lg border px-2.5 py-1 text-[12px] font-semibold transition-colors ${
+                                selected
+                                  ? 'border-[var(--accent)] bg-[var(--accent)] text-[var(--accent-fg)]'
+                                  : 'border-[var(--border)] text-[var(--text-tertiary)] hover:border-[var(--accent)]/40'
+                              }`}
+                            >
+                              {v.label}
+                            </button>
+                          );
+                        })}
+                    </div>
+                  </div>
+                );
+              })}
+              <p className="text-[11px] leading-[1.5] text-[var(--text-tertiary)]">
+                {L(
+                  '이 항목은 판단 기록을 닫는 데 필요하지 않고, 당신의 예측으로 집계되지 않아요.',
+                  'These do not block completion and are not counted as your predictions.',
+                )}
+              </p>
+            </div>
+          </details>
         )}
 
         {/* Optional reality context follows the structured outcome tap. A tap
@@ -740,7 +808,7 @@ export function SettlementModal({
                   </button>
                 </div>
               </motion.div>
-            ) : showCheckpoint && listPredicates.length === 0 ? (
+            ) : showCheckpoint && requiredRemainder.length === 0 ? (
               // The primary checkpoint IS the only thing to settle — the card's
               // 4-tap (incl. "아직 판단하기 어렵다") drives it, so no duplicate
               // contract-level extend chips here.
@@ -765,7 +833,7 @@ export function SettlementModal({
                   ))}
                   {resolvedCount > 0 && (
                     <span className="ml-auto text-[11px] text-[var(--text-tertiary)] tabular-nums">
-                      {L(`${resolvedCount}/${predicates.length} 확인했어요`, `${resolvedCount}/${predicates.length} checked`)}
+                      {L(`${resolvedCount}/${requiredPredicates.length} 확인했어요`, `${resolvedCount}/${requiredPredicates.length} checked`)}
                     </span>
                   )}
                 </div>

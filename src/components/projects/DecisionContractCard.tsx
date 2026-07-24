@@ -31,6 +31,7 @@ import { useLocale } from '@/hooks/useLocale';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { LocaleLink } from '@/components/ui/LocaleLink';
 import { useProjectStore } from '@/stores/useProjectStore';
 import { usePersonaStore } from '@/stores/usePersonaStore';
 import { getStorage, STORAGE_KEYS } from '@/lib/storage';
@@ -56,6 +57,8 @@ import {
   setPredicateBasis,
   contractStatus,
   summarizeGrades,
+  requiredSettlementPredicates,
+  isUserOwnedPredicate,
   type PredicateSources,
 } from '@/lib/decision-contract';
 
@@ -142,6 +145,7 @@ export function DecisionContractCard({
   project,
   sealable = true,
   livePredicates,
+  onCheckNow,
 }: {
   project: Project;
   /** Only offer to SEAL once the voyage is actually finished. */
@@ -151,6 +155,9 @@ export function DecisionContractCard({
    *  reading the legacy recast/feedback storage (which the live voyage never
    *  writes). Absent → legacy /project behavior (read from storage). */
   livePredicates?: Predicate[] | null;
+  /** Project harbor: route both scheduled and manual review through the same
+   *  settlement ceremony. The workspace fallback keeps the compact inline form. */
+  onCheckNow?: () => void;
 }) {
   const locale = useLocale();
   const ko = locale === 'ko';
@@ -307,20 +314,94 @@ export function DecisionContractCard({
 
   const predicates = Array.isArray(contract!.predicates) ? contract!.predicates : [];
 
+  // The opening BIND is a pre-review baseline, not a completed seal. If someone
+  // leaves mid-review, preserve the line and the date without pretending there
+  // is already a final prediction to grade.
+  if (!contract!.closed_at) {
+    const baseline = contract!.judgment_receipt?.baseline_judgment
+      || predicates.find((p) => p.source === 'user_lean')?.text
+      || '';
+    return (
+      <Card className="border-[var(--border)]">
+        <div className="flex items-start gap-3">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[var(--bg)] text-[var(--text-secondary)]">
+            <Clock size={18} />
+          </div>
+          <div className="min-w-0 flex-1">
+            <h3 className="text-[15px] font-bold text-[var(--text-primary)]">
+              {L('검토 전 기준점이 남아 있어요', 'Your pre-review baseline is saved')}
+            </h3>
+            <p className="mt-1 text-[12.5px] leading-[1.55] text-[var(--text-secondary)]">
+              {L(
+                '아직 최종 판단을 확정한 것은 아니에요. 검토를 마치면 처음 생각과 달라진 점을 보고, 그때의 판단을 따로 확정합니다.',
+                'This is not the final seal. Finish the review, see what changed from this starting point, then confirm the judgment you want to keep.',
+              )}
+            </p>
+            {baseline && (
+              <div className="mt-3 rounded-lg bg-[var(--bg)]/70 px-3.5 py-3">
+                <p className="text-[10.5px] font-semibold uppercase tracking-[0.12em] text-[var(--text-tertiary)]">
+                  {L('검토 전 내가 남긴 말', 'What I thought before the review')}
+                </p>
+                <p className="mt-1 text-[13.5px] leading-[1.55] text-[var(--text-primary)]" style={{ fontFamily: 'var(--font-voice, serif)' }}>
+                  &ldquo;{baseline}&rdquo;
+                </p>
+              </div>
+            )}
+            {contract!.check_in_at && (
+              <p className="mt-2 text-[11.5px] text-[var(--text-tertiary)]">
+                {L(
+                  `처음 고른 확인일 · ${fmtDate(contract!.check_in_at)}`,
+                  `Original check-in choice · ${fmtDate(contract!.check_in_at)}`,
+                )}
+              </p>
+            )}
+            <div className="mt-3 flex flex-wrap items-center gap-3">
+              <LocaleLink href="/workspace" className="text-[12.5px] font-semibold text-[var(--accent)] hover:underline">
+                {L('검토 이어가기 →', 'Continue the review →')}
+              </LocaleLink>
+              <button
+                type="button"
+                onClick={() => setConfirmClearOpen(true)}
+                className="text-[11.5px] text-[var(--text-tertiary)] hover:text-[var(--accent)]"
+              >
+                {L('기준점 지우기', 'Clear baseline')}
+              </button>
+            </div>
+          </div>
+        </div>
+        <ConfirmDialog
+          open={confirmClearOpen}
+          title={L('검토 전 기준점을 지울까요?', 'Clear the pre-review baseline?')}
+          description={L('처음 생각과 확인일만 지워집니다. 프로젝트와 검토 내용은 그대로 유지돼요.', 'Only the baseline and its date are removed. The project and review stay intact.')}
+          confirmLabel={L('기준점 지우기', 'Clear baseline')}
+          cancelLabel={L('취소', 'Cancel')}
+          dangerous
+          onCancel={() => setConfirmClearOpen(false)}
+          onConfirm={() => {
+            updateProject(project.id, { decision_contract: undefined });
+            setConfirmClearOpen(false);
+          }}
+        />
+      </Card>
+    );
+  }
+
   // ════ State 4: VERIFIED ════
   // P2: allow re-grading a mistaken verdict — when gradeOpen, fall through to the
   // grade panel below instead of the read-only verified card (gradePredicate already
   // supports re-grading back to pending).
   if (status!.allGraded && !gradeOpen) {
     const g = summarizeGrades(contract!);
+    const requiredPredicates = requiredSettlementPredicates(contract!);
+    const optionalAiPredicates = predicates.filter((p) => !isUserOwnedPredicate(p));
     const parts = [
       g.risksAvoided > 0 && L(`위험 ${g.risksAvoided}개 회피`, `${g.risksAvoided} risk${g.risksAvoided === 1 ? '' : 's'} avoided`),
       g.risksHappened > 0 && L(`${g.risksHappened}개 발생`, `${g.risksHappened} hit`),
       g.betsHeld > 0 && L(`가설 ${g.betsHeld}개 적중`, `${g.betsHeld} bet${g.betsHeld === 1 ? '' : 's'} held`),
       // The user's own read — a lucky win isn't a judgment win (R17).
       g.goodOutcomesOnLuck > 0 && L(`그중 운 ${g.goodOutcomesOnLuck}개`, `${g.goodOutcomesOnLuck} on luck`),
-      // Draft-accepted verdicts disclosed — a rubber-stamped win isn't self-verified.
-      (g.betsHeldAiDrafted + g.risksAvoidedAiDrafted) > 0 && L(`그중 초안 ${g.betsHeldAiDrafted + g.risksAvoidedAiDrafted}개`, `${g.betsHeldAiDrafted + g.risksAvoidedAiDrafted} from a draft`),
+      // AI-surfaced checks stay disclosed but never read as the user's score.
+      (g.betsHeldAiDrafted + g.risksAvoidedAiDrafted) > 0 && L(`AI 제안 확인 ${g.betsHeldAiDrafted + g.risksAvoidedAiDrafted}개`, `${g.betsHeldAiDrafted + g.risksAvoidedAiDrafted} AI-suggested checked`),
       g.unknown > 0 && L(`${g.unknown}개 미정`, `${g.unknown} unresolved`),
     ].filter(Boolean);
     return (
@@ -337,8 +418,8 @@ export function DecisionContractCard({
               {parts.length > 0
                 ? parts.join(' · ')
                 : L(
-                    `예측 ${predicates.length}개 확인 완료`,
-                    `${predicates.length} prediction${predicates.length === 1 ? '' : 's'} checked`,
+                    `판단 기록 확인 완료`,
+                    `Judgment record checked`,
                   )}
             </p>
             {/* 판단 액자 (P1-A1): the user's own seal-time line + settlement
@@ -354,8 +435,21 @@ export function DecisionContractCard({
               ko={ko}
             />
             <div className="mt-3">
-              <PredicateList predicates={predicates} ko={ko} showVerdict />
+              <PredicateList predicates={requiredPredicates} ko={ko} showVerdict />
             </div>
+            {optionalAiPredicates.length > 0 && (
+              <details className="mt-3 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5">
+                <summary className="cursor-pointer text-[11.5px] font-semibold text-[var(--text-secondary)]">
+                  {L(
+                    `Argus가 짚었던 전제 ${optionalAiPredicates.length}개 · 사용자 점수와 분리`,
+                    `${optionalAiPredicates.length} premise${optionalAiPredicates.length === 1 ? '' : 's'} Argus surfaced · separate from your score`,
+                  )}
+                </summary>
+                <div className="mt-2">
+                  <PredicateList predicates={optionalAiPredicates} ko={ko} showVerdict />
+                </div>
+              </details>
+            )}
             <div className="mt-4 rounded-xl bg-[var(--bg)]/70 px-3.5 py-3">
               <p className="text-[12px] font-semibold text-[var(--text-primary)]">{L('이 결정의 근거와 결과도 이어서 남기기', 'Keep evidence and outcomes with this decision')}</p>
               <p className="mt-0.5 text-[11px] leading-5 text-[var(--text-secondary)]">{L('새로 알게 된 사실과 최종 결과를 시간순으로 연결할 수 있어요.', 'Connect later evidence and the final outcome in time order.')}</p>
@@ -369,7 +463,7 @@ export function DecisionContractCard({
             </div>
             <button
               type="button"
-              onClick={() => setGradeOpen(true)}
+              onClick={() => (onCheckNow ? onCheckNow() : setGradeOpen(true))}
               className="mt-2 text-[11.5px] text-[var(--text-tertiary)] hover:text-[var(--accent)] cursor-pointer transition-colors"
             >
               {L('결과 다시 고르기', 'Change this outcome')}
@@ -382,7 +476,7 @@ export function DecisionContractCard({
 
   // ════ States 2 & 3: WAITING / GRADE ════
   const due = status!.checkInDue;
-  const showGrades = due || gradeOpen;
+  const showGrades = !onCheckNow && (due || gradeOpen);
   return (
     <Card className={due ? 'border-[var(--accent)]/50' : 'border-[var(--border)]'}>
       <div className="flex items-start gap-3">
@@ -401,15 +495,15 @@ export function DecisionContractCard({
           </h3>
           <p className="text-[12.5px] text-[var(--text-secondary)] mt-1 leading-[1.55]">
             {due
-              ? L('그때 이렇게 예측했죠. 실제로는 어땠나요?', 'Here is what you predicted. How did it actually turn out?')
+              ? L('그때 남긴 판단을 현실과 확인할 때예요.', 'It is time to check the judgment you kept against reality.')
               : contract!.check_in_at
               ? L(
-                  `${fmtDate(contract!.check_in_at)}에 확인 예정 · 예측 ${predicates.length}개`,
-                  `Check-in ${fmtDate(contract!.check_in_at)} · ${predicates.length} prediction${predicates.length === 1 ? '' : 's'}`,
+                  `${fmtDate(contract!.check_in_at)}에 확인 예정 · 내가 확정한 판단`,
+                  `Check-in ${fmtDate(contract!.check_in_at)} · the judgment you chose`,
                 )
               : L(
-                  `예측 ${predicates.length}개 · 언제든 확인`,
-                  `${predicates.length} prediction${predicates.length === 1 ? '' : 's'} · check anytime`,
+                  `내가 확정한 판단 · 언제든 확인`,
+                  `The judgment you chose · check anytime`,
                 )}
           </p>
 
@@ -489,7 +583,7 @@ export function DecisionContractCard({
             <div className="mt-3 flex items-center gap-3 flex-wrap">
               <button
                 type="button"
-                onClick={() => setGradeOpen(true)}
+                onClick={() => (onCheckNow ? onCheckNow() : setGradeOpen(true))}
                 className="text-[12.5px] font-semibold text-[var(--accent)] hover:underline inline-flex items-center gap-1 cursor-pointer"
               >
                 {L('지금 확인하기', 'Check now')} <ChevronDown size={14} />
@@ -592,7 +686,7 @@ export function DecisionContractCard({
       <ConfirmDialog
         open={confirmClearOpen}
         title={L('처음 판단 기록을 취소할까요?', 'Clear initial judgment?')}
-        description={L('예측과 확인일이 지워지고 다시 기록할 수 있게 됩니다. 이미 남긴 프로젝트 내용은 그대로 유지돼요.', 'Predictions and the check-in date will be removed so you can record them again. The rest of the project remains unchanged.')}
+        description={L('판단 기록과 확인일이 지워지고 다시 남길 수 있게 됩니다. 프로젝트의 다른 내용은 그대로 유지돼요.', 'The judgment record and check-in date will be removed so you can save them again. The rest of the project remains unchanged.')}
         confirmLabel={L('판단 기록 취소', 'Clear judgment')}
         cancelLabel={L('그대로 두기', 'Keep it')}
         onCancel={() => setConfirmClearOpen(false)}

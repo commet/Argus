@@ -1,419 +1,263 @@
 'use client';
 
 /**
- * SirenHero — the single first screen (W1.3 세이렌 1화면).
+ * SirenHero — one thesis, one entry, one proof.
  *
- * The money screen, and therefore the strongest expression of the logbook
- * identity — not the most templated. Hero grammar, top to bottom (2026-07-09 —
- * restructured so the INPUT is the first-screen focal point, not the film):
- *   headline (the lonely question, verbatim) → a one-line product promise →
- *   the unified entry: ONE chart-field with TWO doors (WRITE a decision / open
- *   what's ON FILE), the divider gliding toward whichever door the visitor leans
- *   into, then the quiet expectation line (free · ~30s · analysis only) → the
- *   Odyssey film DEMOTED below as an optional "why we go this far" watch
- *   (VoyageFilm — tap to open a dimmed lightbox) → scroll cue.
- *
- * Gold is spent exactly once on this screen — on the WRITE submit, a user
- * action — because the value moment is recognition, not the click. The ON
- * FILE door stays ink; the input is a ruled field with corner ticks; no drop
- * shadows, no fat radii, no second gold — ink physics, not screen glass.
- *
- * Copy rules (FRAMEWORK §7): measurement is never the headline — 알아봄 and
- * 귀환 are. No scores, no verdict vocabulary, no 내기/반증 on the surface. The
- * how-it-works line admits the honest null-fork case so the CTA never
- * writes a check the product must decline.
- *
- * The original three acts are preserved untouched below the fold; this
- * screen's only job is that a new visitor sees the question and a place to
- * type without scrolling.
+ * The hero must show why Argus is more than a reminder: a raw decision is
+ * sharpened around one load-bearing question, the user owns the closing line,
+ * and that exact record later meets reality. Document review remains a quiet
+ * feeder, never a competing first-screen product.
  */
 
 import { useEffect, useRef, useState } from 'react';
-import Image from 'next/image';
+import { ArrowRight, FileSearch } from 'lucide-react';
 import { useLocale } from '@/hooks/useLocale';
 import { useLocaleRouter } from '@/hooks/useLocaleRouter';
 import { LocaleLink } from '@/components/ui/LocaleLink';
 import { PaperGrain } from './voyage/atmosphere/PaperGrain';
-import { VoyageFilm } from './films/VoyageFilm';
 import { track } from '@/lib/analytics';
 
 export function SirenHero() {
   const locale = useLocale();
-  const L = (ko: string, en: string) => (locale === 'ko' ? ko : en);
+  const ko = locale === 'ko';
+  const L = (k: string, e: string) => (ko ? k : e);
   const router = useLocaleRouter();
   const [text, setText] = useState('');
-  const [focused, setFocused] = useState(false);
-  // Which of the two doors the visitor is leaning into (hover/focus). Drives
-  // the A/B slide: the divider glides toward whichever door is active.
-  const [hoverSide, setHoverSide] = useState<'write' | 'file' | null>(null);
-
-  // Cold-start cure: rotate the empty field through real held-decision
-  // examples so a first-timer is never staring at a blank canvas wondering
-  // "what do I even type?". Pauses while focused or once they start typing,
-  // and stays static under prefers-reduced-motion.
-  const PROMPTS = [
-    L('예)  다니던 회사를 그만두고, 작은 가게를 열까 해요.', 'e.g.  Leave my job to open a small shop?'),
-    L('예)  받은 이직 제안, 받아들여도 될지 고민이에요.', 'e.g.  Take the job offer I just got?'),
-    L('예)  이 기능, 이번 분기에 낼까 더 다듬을까.', 'e.g.  Ship this feature this quarter, or polish it more?'),
-    L('예)  지금 이 투자를 집행해도 괜찮을까요.', 'e.g.  Should we make this investment now?'),
+  const prompts = [
+    L('예) 받은 이직 제안, 받아들일까?', 'e.g. Take the job offer I just got?'),
+    L('예) 이 기능, 이번 분기에 낼까?', 'e.g. Ship this feature this quarter?'),
+    L('예) 다음 달 마케팅 예산을 늘릴까?', 'e.g. Increase the marketing budget next month?'),
   ];
-  const [promptIdx, setPromptIdx] = useState(0);
-  const reduceMotion = useRef(false);
+  const [promptIndex, setPromptIndex] = useState(0);
+  const reducedMotion = useRef(false);
+
   useEffect(() => {
-    reduceMotion.current =
-      typeof window !== 'undefined' &&
-      window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-    if (reduceMotion.current) {
-      // No animation — but still surface a concrete example (the cold-start
-      // cure) rather than leaving the generic instruction at index 0.
-      setPromptIdx(1);
-      return;
-    }
-    const id = setInterval(() => {
-      setPromptIdx((i) => (i + 1) % PROMPTS.length);
-    }, 4500);
-    return () => clearInterval(id);
+    reducedMotion.current = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
+    if (reducedMotion.current) return;
+    const timer = window.setInterval(() => setPromptIndex((i) => (i + 1) % prompts.length), 4600);
+    return () => window.clearInterval(timer);
+    // Prompts are locale-derived and intentionally restart when locale changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [locale]);
-  function sail() {
-    const t = text.trim();
-    if (!t) return;
-    track('landing_hero_submit', { text_length: t.length });
-    router.push(`/workspace?q=${encodeURIComponent(t)}`);
-  }
 
-  // Focus wins over hover for the A/B slide (typing commits the WRITE door).
-  const lean: 'write' | 'file' | null = focused ? 'write' : hoverSide;
-  const writeGrow = lean === 'file' ? 0.72 : lean === 'write' ? 1.32 : 1;
-  const fileGrow = lean === 'file' ? 1.32 : lean === 'write' ? 0.72 : 1;
+  function begin() {
+    const value = text.trim();
+    if (!value) return;
+    track('landing_hero_submit', { text_length: value.length });
+    router.push(`/workspace?q=${encodeURIComponent(value)}`);
+  }
 
   return (
     <section
-      className="relative bp-root overflow-hidden"
+      className="bp-root relative overflow-hidden"
       aria-labelledby="siren-heading"
       style={{
         background: 'var(--bp-paper)',
-        // Natural height: flows from the top (the input is the focal point),
-        // not centred in 100svh.
-        paddingTop: 'clamp(48px, 7vh, 92px)',
-        paddingBottom: 'clamp(24px, 3.5vh, 44px)',
+        paddingTop: 'clamp(38px, 5.5vh, 76px)',
+        paddingBottom: 'clamp(44px, 7vh, 86px)',
       }}
     >
-      <PaperGrain opacity={0.05} />
+      <PaperGrain opacity={0.045} />
 
-      {/* Marginalia — the plate notes a logbook page carries. Decorative,
-          desktop-only (space), faint. A generic page cannot fake these. */}
-      <span
-        aria-hidden="true"
-        className="bp-mono hidden md:block"
-        style={{
-          position: 'absolute', left: 28, bottom: 22,
-          color: 'var(--bp-ink-soft)', opacity: 0.42,
-          fontSize: 9.5, letterSpacing: '0.28em', textTransform: 'uppercase',
-        }}
-      >
-        § 0 · {L('세이렌', 'The Siren')}
-      </span>
-
-      <div className="relative w-full max-w-3xl mx-auto px-6 md:px-10 text-center">
-        {/* Headline — candidate 1, verbatim (FRAMEWORK §7). The focal point. */}
-        <h1
-          id="siren-heading"
-          className={`bp-fade-up ${locale === 'ko' ? 'break-keep' : ''}`}
-          style={{
-            fontFamily: 'var(--font-display)',
-            color: 'var(--bp-ink)',
-            fontSize: 'clamp(27px, 4.8vw, 45px)',
-            fontWeight: 700,
-            lineHeight: 1.22,
-            letterSpacing: '-0.015em',
-            animationDelay: '60ms',
-          }}
-        >
-          {locale === 'ko' ? (
-            <>AI가 실행을 가져간다.<br />판단은 어디에 쌓이나?</>
-          ) : (
-            <>Decisions pass.<br />Judgment compounds.</>
-          )}
-        </h1>
-
-        {/* Product promise first; the film below deepens it through the Siren voyage. */}
-        <p
-          className={`bp-fade-up mx-auto mt-4 max-w-xl ${locale === 'ko' ? 'break-keep' : ''}`}
-          style={{
-            color: 'var(--bp-ink-soft)',
-            fontSize: 'clamp(14px, 1.55vw, 16px)',
-            lineHeight: 1.65,
-            animationDelay: '140ms',
-          }}
-        >
-          {locale === 'ko' ? (
-            <>결정 전의 판단과 전제를 기록하세요.<br />Argus가 여러 관점으로 검토하고, 전제가 바뀌면 다시 알려드립니다.</>
-          ) : (
-            <>Record your judgment and premises before you decide.<br />Argus reviews them from multiple angles and alerts you when a premise changes.</>
-          )}
-        </p>
-
-        {/* ── Unified entry: one chart-field, two doors ──────────────────
-            WRITE (left) and ON FILE (right) live in ONE split box. The divider
-            glides toward whichever door the visitor leans into (focus/hover) —
-            an A/B-style reveal — so the two ways to use Argus read as a single
-            choice on one log page. Stacks on mobile. Gold is still spent only
-            on the WRITE submit (a user action); the ON FILE door stays ink. */}
-        <div className="bp-fade-up mt-8 mx-auto" style={{ animationDelay: '180ms', maxWidth: 680 }}>
-          <div
-            className="relative flex flex-col sm:flex-row sm:items-stretch"
+      <div className="relative mx-auto grid w-full max-w-6xl items-center gap-9 px-5 sm:px-7 lg:grid-cols-[minmax(0,1.02fr)_minmax(390px,.98fr)] lg:gap-14 lg:px-10">
+        <div className="text-center lg:text-left">
+          <p
+            className="bp-fade-up bp-mono"
             style={{
-              background: 'linear-gradient(180deg, var(--bp-paper) 0%, var(--bp-paper-deep) 100%)',
-              borderRadius: 4,
-              boxShadow: (focused || hoverSide)
-                ? '0 14px 38px -12px rgba(48,34,14,0.28), inset 0 1px 0 rgba(255,255,255,0.5)'
-                : '0 9px 30px -12px rgba(48,34,14,0.20), inset 0 1px 0 rgba(255,255,255,0.45)',
-              transition: 'box-shadow 260ms ease',
-              overflow: 'hidden',
+              color: 'var(--bp-gold-deep)',
+              fontSize: 10,
+              fontWeight: 700,
+              letterSpacing: ko ? '0.11em' : '0.22em',
+              textTransform: 'uppercase',
             }}
           >
-            {/* corner registration ticks (whole plate) — inset so the box's
-                clipped corners don't hide them; darken when either door is active */}
-            {([
-              { k: 'tl', s: { top: 5, left: 5, borderTopStyle: 'solid', borderTopWidth: 1.5, borderLeftStyle: 'solid', borderLeftWidth: 1.5 } },
-              { k: 'tr', s: { top: 5, right: 5, borderTopStyle: 'solid', borderTopWidth: 1.5, borderRightStyle: 'solid', borderRightWidth: 1.5 } },
-              { k: 'bl', s: { bottom: 5, left: 5, borderBottomStyle: 'solid', borderBottomWidth: 1.5, borderLeftStyle: 'solid', borderLeftWidth: 1.5 } },
-              { k: 'br', s: { bottom: 5, right: 5, borderBottomStyle: 'solid', borderBottomWidth: 1.5, borderRightStyle: 'solid', borderRightWidth: 1.5 } },
-            ] as const).map(({ k, s }) => {
-              const tick = (focused || hoverSide) ? 'var(--bp-ink)' : 'var(--bp-ink-soft)';
-              return (
-                <span
-                  key={k}
-                  aria-hidden="true"
-                  style={{
-                    position: 'absolute', width: 12, height: 12, zIndex: 2,
-                    borderTopColor: tick, borderRightColor: tick, borderBottomColor: tick, borderLeftColor: tick,
-                    opacity: (focused || hoverSide) ? 0.9 : 0.6,
-                    transition: 'border-color 220ms ease, opacity 220ms ease',
-                    ...s,
-                  }}
-                />
-              );
-            })}
+            {L('판단을 벼리고 · 전제를 남기고 · 현실로 확인한다', 'Sharpen · keep the assumptions · check against reality')}
+          </p>
 
-            {/* LEFT DOOR · WRITE */}
-            <div
-              onMouseEnter={() => setHoverSide('write')}
-              onMouseLeave={() => setHoverSide(null)}
-              className="relative text-left"
-              style={{
-                flexGrow: writeGrow, flexShrink: 1, flexBasis: 0, minWidth: 0,
-                padding: '16px 20px 13px',
-                transition: 'flex-grow 380ms cubic-bezier(.22,.61,.36,1)',
-              }}
-            >
-              <div className="flex items-center gap-2" style={{ marginBottom: 10 }}>
-                <span aria-hidden="true" style={{ width: 16, height: 1, background: 'var(--bp-ink-soft)', opacity: 0.55 }} />
-                <span className="bp-mono" style={{ color: 'var(--bp-ink-soft)', fontSize: 11, letterSpacing: locale === 'ko' ? '0.1em' : '0.22em', textTransform: 'uppercase', fontWeight: 500 }}>
-                  {/* KO leads with Korean (06 P2-6) — mono register stays, first glance lands on 한국어. */}
-                  {L('결정을 적는다', 'WRITE · a decision')}
-                </span>
-              </div>
+          <h1
+            id="siren-heading"
+            className={`bp-fade-up mt-4 ${ko ? 'break-keep' : ''}`}
+            style={{
+              color: 'var(--bp-ink)',
+              fontFamily: 'var(--font-display)',
+              fontSize: 'clamp(31px, 5vw, 52px)',
+              fontWeight: 700,
+              lineHeight: ko ? 1.2 : 1.08,
+              letterSpacing: '-0.025em',
+              animationDelay: '60ms',
+            }}
+          >
+            {ko ? (
+              <>AI가 실행을 가져간다.<br />판단은 어디에 쌓이나?</>
+            ) : (
+              <>Decisions pass.<br />Judgment compounds.</>
+            )}
+          </h1>
 
-              {/* Pen-prompt overlay: blinking ink caret leads the rotating
-                  example so the field reads as "waiting for you to write". */}
-              {!text && !focused && (
-                <div
-                  aria-hidden="true"
-                  className={locale === 'ko' ? 'break-keep' : ''}
-                  style={{
-                    position: 'absolute', left: 20, right: 20, zIndex: 0,
-                    pointerEvents: 'none', display: 'flex', alignItems: 'flex-start', gap: 8,
-                    color: 'var(--bp-ink-soft)', opacity: 0.82, fontStyle: 'italic', fontSize: 17, lineHeight: 1.6,
-                  }}
-                >
-                  <span className="bp-caret" style={{ height: 20, marginTop: 2 }} />
-                  <span style={{ flex: 1, minWidth: 0 }}>{PROMPTS[promptIdx]}</span>
-                </div>
-              )}
-              <textarea
-                value={text}
-                onChange={(e) => setText(e.target.value)}
-                onFocus={() => setFocused(true)}
-                onBlur={() => setFocused(false)}
-                aria-label={L('지금 들고 있는 결정이나 계획', "The decision or plan you're holding right now")}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    sail();
-                  }
+          <p
+            className={`bp-fade-up mx-auto mt-5 max-w-xl lg:mx-0 ${ko ? 'break-keep' : ''}`}
+            style={{
+              color: 'var(--bp-ink-soft)',
+              fontSize: 'clamp(14.5px, 1.45vw, 16.5px)',
+              lineHeight: 1.68,
+              animationDelay: '120ms',
+            }}
+          >
+            {L(
+              '결정 전에 생각을 한 번 벼리고, 그 판단을 움직인 전제를 남기세요. Argus는 답을 대신 내리지 않고, 현실이 답할 때 그 기록을 다시 엽니다.',
+              "Sharpen the thinking before the call and keep the assumptions that moved it. Argus doesn't decide for you; it reopens the record when reality can answer.",
+            )}
+          </p>
+
+          <div
+            className="bp-fade-up relative mx-auto mt-7 max-w-xl overflow-hidden rounded-[4px] lg:mx-0"
+            style={{
+              animationDelay: '180ms',
+              background: 'linear-gradient(180deg, var(--bp-paper) 0%, var(--bp-paper-deep) 100%)',
+              boxShadow: '0 14px 38px -18px rgba(48,34,14,0.34), inset 0 1px 0 rgba(255,255,255,.55)',
+            }}
+          >
+            <div className="px-4 pb-4 pt-3.5 sm:px-5 sm:pb-5 sm:pt-4">
+              <label
+                htmlFor="hero-decision"
+                className="bp-mono flex items-center gap-2 text-left"
+                style={{
+                  color: 'var(--bp-ink-soft)',
+                  fontSize: 10.5,
+                  fontWeight: 600,
+                  letterSpacing: ko ? '0.09em' : '0.2em',
+                  textTransform: 'uppercase',
                 }}
-                placeholder={!text && !focused ? '' : PROMPTS[0]}
+              >
+                <span aria-hidden style={{ width: 18, height: 1, background: 'var(--bp-ink-soft)', opacity: 0.55 }} />
+                {L('지금 붙잡고 싶은 결정 하나', 'One decision worth examining')}
+              </label>
+              <textarea
+                id="hero-decision"
+                value={text}
+                maxLength={600}
                 rows={2}
-                maxLength={5000}
-                className={`bp-hero-input w-full bg-transparent resize-none focus:outline-none ${locale === 'ko' ? 'break-keep' : ''}`}
-                style={{ color: 'var(--bp-ink)', fontSize: 17, lineHeight: 1.6, padding: 0, position: 'relative', zIndex: 1 }}
+                onChange={(event) => setText(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.nativeEvent.isComposing) return;
+                  if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') begin();
+                }}
+                placeholder={prompts[promptIndex]}
+                className="mt-3 w-full resize-none border-0 border-b bg-transparent px-1 pb-3 text-[16px] leading-7 text-[var(--bp-ink)] outline-none placeholder:italic placeholder:text-[var(--bp-ink-soft)]/75 focus:ring-0"
+                style={{ borderColor: 'var(--bp-ink-faint)', fontFamily: 'var(--font-display)' }}
               />
-              {/* baseline rule: static hairline + ink rule that inks-in on focus */}
-              <div style={{ position: 'relative', height: 1.5, marginTop: 4 }}>
-                <span aria-hidden="true" style={{ position: 'absolute', inset: 0, background: 'var(--bp-ink-soft)', opacity: 0.5 }} />
-                <span
-                  aria-hidden="true"
-                  style={{
-                    position: 'absolute', inset: 0, background: 'var(--bp-ink)',
-                    transform: focused ? 'scaleX(1)' : 'scaleX(0)', transformOrigin: 'left',
-                    transition: 'transform 320ms cubic-bezier(.22,.61,.36,1)',
-                  }}
-                />
-              </div>
-              <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2.5" style={{ paddingTop: 11, paddingBottom: 2 }}>
-                <span style={{ color: 'var(--bp-ink-soft)', fontSize: 12.5, letterSpacing: '0.005em', lineHeight: 1.4 }}>
-                  {text.trim()
-                    ? L('⏎ 로 보내기 · Shift+⏎ 줄바꿈', '⏎ to send · Shift+⏎ for newline')
-                    : L('⏎ 한 줄이면 충분합니다', '⏎ one line is enough')}
+              <div className="mt-3 flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
+                <span className="text-left text-[11.5px] leading-5 text-[var(--bp-ink-soft)]">
+                  {L('한 줄이면 충분해요 · 기록할 내용은 직접 확인합니다', 'One line is enough · you choose what becomes part of the record')}
                 </span>
                 <button
-                  onClick={sail}
+                  type="button"
+                  onClick={begin}
                   disabled={!text.trim()}
-                  className={`shrink-0 ${locale === 'ko' ? '' : 'bp-mono'}`}
-                  style={{
-                    display: 'inline-flex', alignItems: 'center', gap: 7, minHeight: 44,
-                    padding: '9px 18px', border: '1px solid',
-                    borderColor: text.trim() ? 'var(--bp-gold)' : 'var(--bp-ink-soft)',
-                    background: text.trim() ? 'var(--bp-gold)' : 'transparent',
-                    color: text.trim() ? 'var(--bp-paper)' : 'var(--bp-ink-soft)',
-                    fontFamily: locale === 'ko' ? "'Pretendard Variable', Pretendard, system-ui, sans-serif" : undefined,
-                    fontSize: locale === 'ko' ? 13 : 12,
-                    fontWeight: locale === 'ko' ? 600 : undefined,
-                    letterSpacing: locale === 'ko' ? '0.01em' : '0.12em',
-                    cursor: text.trim() ? 'pointer' : 'not-allowed',
-                    transition: 'background 220ms ease, border-color 220ms ease, color 220ms ease',
-                    borderRadius: 0,
-                  }}
+                  className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-[2px] px-4 text-[12.5px] font-semibold transition-[transform,opacity] active:scale-[.98] disabled:cursor-default disabled:opacity-40"
+                  style={{ background: 'var(--bp-gold)', color: 'var(--bp-ink)' }}
                 >
-                  {L('내 결정 검토하기', 'Review my decision')}
+                  {L('가장 중요한 질문 찾기', 'Find the question that matters')}
+                  <ArrowRight size={14} aria-hidden />
                 </button>
               </div>
-              {/* Expectation-setting marginalia (06 S2): free/no-login/time/privacy in
-                  one quiet line. "30초 안팎" is measured, not aspirational — 2026-07-03
-                  production smoke: first streamed token ~2.8s, full first read 16–30s. */}
-              <p
-                className={locale === 'ko' ? 'break-keep' : ''}
-                style={{ margin: '7px 0 0', color: 'var(--bp-ink-soft)', fontSize: 12, lineHeight: 1.5, letterSpacing: '0.005em' }}
-              >
-                {L(
-                  '로그인 없이 무료 · 30초면 첫 분석 · 내용은 분석에만',
-                  'Free, no login · first read in ~30s · analysis only',
-                )}
-              </p>
             </div>
+          </div>
 
-            {/* DIVIDER — a hairline with an "또는 / or" chip. On desktop it is the
-                seam the two doors slide around; on mobile it becomes a thin row. */}
-            <div aria-hidden="true" className="hidden sm:flex" style={{ position: 'relative', flex: 'none', width: 1, background: 'var(--bp-ink-faint)', alignItems: 'center', justifyContent: 'center' }}>
-              <span
-                className="bp-mono"
-                style={{
-                  position: 'absolute', background: 'var(--bp-paper)', padding: '4px 0',
-                  color: 'var(--bp-ink-soft)', fontSize: 9.5, letterSpacing: '0.12em', textTransform: 'uppercase', fontWeight: 500,
-                  writingMode: 'vertical-rl',
-                }}
-              >
-                {L('또는', 'or')}
-              </span>
-            </div>
-            <div aria-hidden="true" className="flex sm:hidden items-center gap-3" style={{ padding: '0 20px' }}>
-              <span style={{ flex: 1, height: 1, background: 'var(--bp-ink-faint)' }} />
-              <span className="bp-mono" style={{ color: 'var(--bp-ink-soft)', fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', fontWeight: 500 }}>{L('또는', 'or')}</span>
-              <span style={{ flex: 1, height: 1, background: 'var(--bp-ink-faint)' }} />
-            </div>
-
-            {/* RIGHT DOOR · ON FILE (review an existing document) */}
+          <div className="bp-fade-up mt-4 flex justify-center lg:justify-start" style={{ animationDelay: '230ms' }}>
             <LocaleLink
               href="/tools/review"
               onClick={() => track('landing_cta_click', { cta: 'hero_document_review' })}
-              onMouseEnter={() => setHoverSide('file')}
-              onMouseLeave={() => setHoverSide(null)}
-              onFocus={() => setHoverSide('file')}
-              onBlur={() => setHoverSide(null)}
-              className="group relative flex flex-col justify-center text-left"
-              style={{
-                flexGrow: fileGrow, flexShrink: 1, flexBasis: 0, minWidth: 0,
-                padding: '16px 20px',
-                transition: 'flex-grow 380ms cubic-bezier(.22,.61,.36,1)',
-              }}
+              className="inline-flex min-h-10 items-center gap-2 text-[12px] font-medium text-[var(--bp-ink-soft)] underline-offset-4 hover:text-[var(--bp-ink)] hover:underline"
             >
-              <div className="flex items-center gap-2" style={{ marginBottom: 10 }}>
-                <span aria-hidden="true" style={{ width: 16, height: 1, background: 'var(--bp-ink-soft)', opacity: 0.55 }} />
-                <span className="bp-mono" style={{ color: 'var(--bp-ink-soft)', fontSize: 11, letterSpacing: locale === 'ko' ? '0.1em' : '0.22em', textTransform: 'uppercase', fontWeight: 500 }}>
-                  {L('문서를 올린다', 'ON FILE · a document')}
-                </span>
-              </div>
-              <div className="flex items-start gap-3">
-                <span className="relative mt-0.5 h-16 w-20 shrink-0 overflow-hidden border border-[var(--bp-ink-faint)] bg-[#171817]" aria-hidden="true">
-                  <Image
-                    src="/images/evidence/workspace/evidence-dossier-v2.jpg"
-                    alt=""
-                    fill
-                    sizes="80px"
-                    quality={90}
-                    className="object-cover object-center transition-transform duration-500 ease-out motion-reduce:transition-none motion-safe:group-hover:scale-[1.025]"
-                  />
-                </span>
-                <div className="min-w-0">
-                  <div className={locale === 'ko' ? 'break-keep' : ''} style={{ color: 'var(--bp-ink)', fontSize: 15, fontWeight: 600, lineHeight: 1.4 }}>
-                    {L('이미 써둔 문서가 있나요?', 'Already written it down?')}
-                  </div>
-                  <div className={locale === 'ko' ? 'break-keep' : ''} style={{ color: 'var(--bp-ink-soft)', fontSize: 12.5, marginTop: 4, lineHeight: 1.55 }}>
-                    {L(
-                      '전략안·PDF·기획안을 올리면 근거가 약한 주장과 사람이 판단할 지점을 원문에서 표시합니다.',
-                      'Drop a memo, plan or PDF — weak evidence and the human’s-call points, flagged right on the source.',
-                    )}
-                  </div>
-                </div>
-              </div>
-              <span
-                className={`shrink-0 ${locale === 'ko' ? '' : 'bp-mono'}`}
-                style={{
-                  marginTop: 12, color: 'var(--bp-ink)',
-                  fontSize: locale === 'ko' ? 12.5 : 11.5,
-                  fontWeight: locale === 'ko' ? 600 : undefined,
-                  letterSpacing: locale === 'ko' ? '0.01em' : '0.14em',
-                  whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: 6,
-                }}
-              >
-                {L('문서에서 판단 지점 찾기', 'Find judgment calls')}
-                <span aria-hidden="true" className="transition-transform group-hover:translate-x-1" style={{ transition: 'transform 220ms ease' }}>→</span>
-              </span>
+              <FileSearch size={14} aria-hidden />
+              {L('이미 문서가 있다면, 문서 속 판단 지점 찾기', 'Already have a document? Find the judgment calls inside it')}
             </LocaleLink>
           </div>
         </div>
 
-        {/* Demoted story beat — the input is the first-screen focal point now, so
-            the Odyssey film sits BELOW it: an optional "why we go this far" watch,
-            a resting poster that opens the lightbox on tap (it never autoplays). */}
-        <div className="bp-fade-up mt-14 flex flex-col items-center" style={{ animationDelay: '360ms' }}>
-          <div className="flex items-center gap-3" style={{ marginBottom: 14 }}>
-            <span aria-hidden="true" style={{ width: 22, height: 1, background: 'var(--bp-ink-faint)' }} />
-            <span className="bp-mono" style={{ color: 'var(--bp-ink-soft)', fontSize: 10.5, letterSpacing: locale === 'ko' ? '0.1em' : '0.2em', textTransform: 'uppercase', fontWeight: 500 }}>
-              {L('왜 이렇게까지? · 3천 년 된 이야기', 'Why go this far · a 3,000-year story')}
+        {/* Signature object: not a receipt alone, but the transformation a
+            reminder cannot provide. Each row declares who contributed it. */}
+        <article
+          className="bp-fade-up mx-auto w-full max-w-[520px] overflow-hidden rounded-[6px] border text-left"
+          style={{
+            animationDelay: '230ms',
+            borderColor: 'var(--bp-ink-faint)',
+            background: 'color-mix(in srgb, var(--bp-paper) 92%, white)',
+            boxShadow: '0 22px 55px -34px rgba(48,34,14,.46)',
+          }}
+          aria-label={L('한 결정이 판단 기록으로 남는 예시', 'Example of one decision becoming a judgment record')}
+        >
+          <header className="flex items-center justify-between gap-4 border-b px-4 py-3 sm:px-5" style={{ borderColor: 'var(--bp-ink-faint)' }}>
+            <p className="bp-mono text-[9.5px] font-semibold uppercase tracking-[0.18em] text-[var(--bp-ink-soft)]">
+              {L('예시 · 한 결정이 남는 방식', 'Example · what Argus keeps')}
+            </p>
+            <span className="bp-mono shrink-0 text-[9px] uppercase tracking-[0.12em] text-[var(--bp-gold-deep)]">
+              {L('판정 없음', 'No verdict')}
             </span>
-            <span aria-hidden="true" style={{ width: 22, height: 1, background: 'var(--bp-ink-faint)' }} />
-          </div>
-          <div className="w-full" style={{ maxWidth: 480 }}>
-            <VoyageFilm />
-          </div>
-        </div>
+          </header>
 
-        {/* Scroll cue — a clickable "sounding line" down to the Trail. */}
-        <div className="bp-fade-up mt-10 flex justify-center" style={{ animationDelay: '420ms' }}>
-          <a
-            href="#navigate"
-            aria-label={L('결정 하나를 끝까지 항해하는 과정 보기', 'Watch one decision navigated end to end')}
-            className="bp-sounding inline-flex flex-col items-center gap-2"
+          <div className="px-4 py-3.5 sm:px-5 sm:py-4">
+            <div>
+              <div className="flex items-center justify-between gap-3">
+                <p className="bp-mono text-[9.5px] font-semibold uppercase tracking-[0.13em] text-[var(--bp-ink-soft)]">
+                  {L('내가 적은 상황 · 원문', 'What I wrote · original')}
+                </p>
+                <span className="text-[9.5px] text-[var(--bp-ink-soft)]">{L('사용자', 'User')}</span>
+              </div>
+              <p className="mt-1.5 text-[13.5px] leading-[1.55] text-[var(--bp-ink)]" style={{ fontFamily: 'var(--font-display)' }}>
+                {L(
+                  '“2주차 재방문율이 25%를 넘으면 다음 달 예산을 두 배로 늘린다.”',
+                  '“If week-two retention clears 25%, double next month’s budget.”',
+                )}
+              </p>
+            </div>
+
+            <div className="my-3 flex items-center gap-3" aria-hidden>
+              <span className="h-px flex-1" style={{ background: 'var(--bp-ink-faint)' }} />
+              <span className="bp-mono text-[9px] tracking-[0.16em] text-[var(--bp-gold-deep)]">{L('한 번 벼림', 'ONE CRUX')}</span>
+              <span className="h-px flex-1" style={{ background: 'var(--bp-ink-faint)' }} />
+            </div>
+
+            <div className="rounded-[3px] px-3 py-2.5" style={{ background: 'color-mix(in srgb, var(--bp-gold) 8%, transparent)' }}>
+              <div className="flex items-center justify-between gap-3">
+                <p className="bp-mono text-[9.5px] font-semibold uppercase tracking-[0.13em] text-[var(--bp-gold-deep)]">
+                  {L('Argus가 짚은 한 질문', 'The crux Argus surfaced')}
+                </p>
+                <span className="text-[9.5px] text-[var(--bp-ink-soft)]">AI</span>
+              </div>
+              <p className="mt-1 text-[13px] font-semibold leading-[1.5] text-[var(--bp-ink)]">
+                {L(
+                  '25%는 의미 있는 기준인가, 증액을 정당화하기 위해 고른 숫자인가?',
+                  'Is 25% a meaningful baseline, or a number chosen to justify the increase?',
+                )}
+              </p>
+            </div>
+
+            <div className="mt-3 border-t pt-3" style={{ borderColor: 'var(--bp-ink-faint)' }}>
+              <div className="flex items-center justify-between gap-3">
+                <p className="bp-mono text-[9.5px] font-semibold uppercase tracking-[0.13em] text-[var(--bp-ink-soft)]">
+                  {L('검토 뒤 내가 확정한 판단', 'My judgment after the review')}
+                </p>
+                <span className="text-[9.5px] text-[var(--bp-ink-soft)]">{L('사용자', 'User')}</span>
+              </div>
+              <p className="mt-1.5 text-[14px] font-semibold leading-[1.55] text-[var(--bp-ink)]" style={{ fontFamily: 'var(--font-display)' }}>
+                {L(
+                  '“25%의 의미와 CAC 한도를 확인한 뒤 증액한다.”',
+                  '“Increase only after validating the 25% baseline and the CAC limit.”',
+                )}
+              </p>
+            </div>
+          </div>
+
+          <footer
+            className="flex items-center justify-between gap-4 border-t px-4 py-3 sm:px-5"
+            style={{ borderColor: 'var(--bp-ink-faint)', background: 'var(--bp-paper-deep)' }}
           >
-            <span className="bp-mono" style={{ color: 'var(--bp-ink-soft)', fontSize: 11, letterSpacing: locale === 'ko' ? '0.1em' : '0.22em', textTransform: 'uppercase', fontWeight: 500 }}>
-              {L('실제로 어떻게 되는지', 'See it work')}
-            </span>
-            <span aria-hidden="true" className="bp-sounding-line" />
-          </a>
-        </div>
+            <span className="text-[11px] font-semibold text-[var(--bp-ink)]">{L('8월 1일 · 현실과 확인', 'August 1 · check against reality')}</span>
+            <span aria-hidden className="bp-mono text-[9px] tracking-[0.14em] text-[var(--bp-gold-deep)]">RETURN →</span>
+          </footer>
+        </article>
       </div>
     </section>
   );

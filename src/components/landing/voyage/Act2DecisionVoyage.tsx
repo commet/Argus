@@ -197,7 +197,7 @@ export function Act2DecisionVoyage() {
             className="mt-4"
             style={{ color: 'var(--bp-ink-soft)', fontSize: 12.5, letterSpacing: '0.01em' }}
           >
-            {L('로그인 없이 무료 · 30초 안에 첫 분석', 'Free, no login · first read in 30 seconds')}
+            {L('로그인 없이 시작 · 기록할 내용은 직접 확인', 'No login required · you choose what enters the record')}
           </p>
         </div>
       </div>

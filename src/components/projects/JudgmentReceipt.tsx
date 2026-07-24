@@ -11,6 +11,7 @@
  */
 
 import type { JudgmentReceipt as JudgmentReceiptType } from '@/stores/types';
+import { JudgmentAttributionLine } from './JudgmentAttributionLine';
 
 export function deriveReceiptFields(predicates: { source: string; text: string; authored?: string }[], projectName: string) {
   const governing = predicates.find((p) => p.source === 'governing_idea' || p.source === 'user_lean');
@@ -31,6 +32,7 @@ interface SealProps {
   check_by: string;
   onJudgmentChange: (value: string) => void;
   humanJudgment: string;
+  baselineJudgment?: string;
   locale: 'ko' | 'en';
 }
 
@@ -56,13 +58,23 @@ export function JudgmentReceipt(props: Props) {
   const L = (k: string, e: string) => (ko ? k : e);
 
   if (props.mode === 'seal') {
-    const { real_question, unverified_assumption, human_only, check_by, humanJudgment, onJudgmentChange } = props;
+    const { real_question, unverified_assumption, human_only, check_by, humanJudgment, baselineJudgment, onJudgmentChange } = props;
     return (
       <div className="rounded-xl border border-[var(--border)] overflow-hidden text-[13px] leading-[1.6]">
+        {baselineJudgment && (
+          <div className="px-4 py-3 border-b border-[var(--border)] bg-[var(--bg)]/55">
+            <p className="text-[11px] text-[var(--text-tertiary)] mb-1">
+              {L('검토 전에 남긴 기준점 · 평가하지 않음', 'Your pre-review baseline · not scored')}
+            </p>
+            <p className="text-[var(--text-secondary)]" style={{ fontFamily: 'var(--font-voice, serif)' }}>
+              &ldquo;{baselineJudgment}&rdquo;
+            </p>
+          </div>
+        )}
         {real_question && (
           <div className="px-4 py-3 border-b border-[var(--border)]">
             <p className="text-[11px] text-[var(--text-tertiary)] mb-1">
-              {L('문서에서 읽힌 핵심 질문', 'Core question found in the document')}
+              {L('Argus가 짚은 핵심 질문', 'The crux Argus surfaced')}
             </p>
             <p className="text-[var(--text-primary)] font-medium" style={{ fontFamily: 'var(--font-voice, serif)' }}>
               &ldquo;{real_question}&rdquo;
@@ -94,7 +106,7 @@ export function JudgmentReceipt(props: Props) {
 
         <div className="px-4 py-3">
           <p className="text-[12px] text-[var(--text-secondary)] mb-1.5">
-            {L(`지금의 판단 — ${check_by}에 꺼냅니다`, `Your judgment — opened again on ${check_by}`)}
+            {L(`검토 뒤 내가 확정하는 판단 · ${check_by}에 다시 확인`, `The judgment I am choosing after review · checked again on ${check_by}`)}
           </p>
           <input
             type="text"
@@ -102,12 +114,20 @@ export function JudgmentReceipt(props: Props) {
             value={humanJudgment}
             onChange={(e) => onJudgmentChange(e.target.value)}
             placeholder={L(
-              '한 줄로: 나는 ___라고 판단했다',
-              'One line: I judged that ___',
+              '한 줄로: 나는 ___라고 판단한다',
+              'One line: I judge that ___',
             )}
             maxLength={280}
             className="w-full text-[13px] px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface-2)] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)]"
           />
+          {baselineJudgment && !humanJudgment.trim() && (
+            <p className="mt-1.5 text-[10.5px] leading-[1.45] text-[var(--text-tertiary)]">
+              {L(
+                '비워두면 검토 전 기준점을 그대로 최종 판단으로 남겨요.',
+                'Leave this blank to keep your pre-review baseline as the final judgment.',
+              )}
+            </p>
+          )}
         </div>
       </div>
     );
@@ -153,6 +173,11 @@ export function JudgmentReceipt(props: Props) {
               <p className="text-[14px] leading-[1.55] text-[var(--text-primary)] font-medium" style={{ fontFamily: 'var(--font-voice, serif)' }}>
                 &ldquo;{receipt.human_judgment}&rdquo;
               </p>
+              <JudgmentAttributionLine
+                attribution={receipt.judgment_attribution}
+                locale={props.locale}
+                className="mt-2"
+              />
             </div>
           )}
 

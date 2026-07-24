@@ -104,15 +104,15 @@ describe('summarizeGrades — separates lucky wins from skill wins', () => {
       { source: 'governing_idea', verdict: 'happened' },                          // legacy/untagged → user's own
     ]);
     const g = summarizeGrades(c);
-    expect(g.betsHeld).toBe(3);              // still counted as held bets overall
+    expect(g.betsHeld).toBe(2);              // user-owned held bets only
     expect(g.betsHeldAiSurfaced).toBe(1);    // but only the machine-surfaced one is segregated
   });
 
   it('a held bet on luck AND machine-surfaced lands in both buckets, not as clean judgment', () => {
     const c = contractWith([{ source: 'governing_idea', verdict: 'happened', basis: 'luck', authored: 'ai_surfaced' }]);
     const g = summarizeGrades(c);
-    expect(g.betsHeld).toBe(1);
-    expect(g.goodOutcomesOnLuck).toBe(1);
+    expect(g.betsHeld).toBe(0);
+    expect(g.goodOutcomesOnLuck).toBe(0);
     expect(g.betsHeldAiSurfaced).toBe(1);
   });
 });

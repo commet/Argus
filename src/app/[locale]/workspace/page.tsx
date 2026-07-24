@@ -492,9 +492,9 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem, fr
     const controller = analyzeAbortRef.current;
     if (!text || !controller) { setPhase('idle'); return; }
 
-    // Bind funnel (P1-8): every submit shows the bind, so submit→bind_resolved gives
-    // the rope-vs-skip rate; decision_sealed(source:bind_open) fires only on a tied
-    // rope. Captured (data > dashboard) so the conversion tradeoff is observable.
+    // The opening capture is a PRE-REVIEW BASELINE, not the closing seal. Keep
+    // its analytics separate so the funnel cannot count one decision as sealed
+    // twice or teach the UI the wrong mental model.
     track('bind_resolved', {
       committed: !!bind,
       has_lean: !!bind?.lean,
@@ -557,15 +557,20 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem, fr
       // needs a real auth.uid(); this fails soft to local-only if anon sign-in
       // is disabled. A later real sign-in supersedes it (migrateLocalToAccount).
       await ensureUserId();
-      const pid = createProject(text.slice(0, 40));
-      // Tie the rope at OPEN: seal the user's own lean + check-in BEFORE the song,
-      // so a contract exists even if the user abandons mid-pipeline (the 47/0 fix).
+      const normalizedTitle = text.replace(/\s+/g, ' ').trim();
+      const projectTitle = normalizedTitle.length > 72
+        ? `${normalizedTitle.slice(0, 69).trimEnd()}…`
+        : normalizedTitle;
+      const pid = createProject(projectTitle);
+      // Keep the pre-review baseline before analysis is revealed. The final seal
+      // later replaces its scoreable user_lean predicate with the user's closing
+      // judgment while preserving this baseline in the receipt.
       // Skip (bind === null) writes nothing — honest-empty, identical to before.
       if (bind) {
         const early = buildEarlyContract(pid, bind, Date.now());
         if (early) {
           updateProject(pid, { decision_contract: early });
-          track('decision_sealed', { source: 'bind_open', anonymous: !user, has_lean: !!bind.lean, has_date: !!(bind.interval || bind.check_in_at) });
+          track('decision_baseline_captured', { source: 'bind_open', anonymous: !user, has_lean: !!bind.lean, has_date: !!(bind.interval || bind.check_in_at) });
         }
       }
       progressiveStore.createSession(pid, text, reviewerAgentId);

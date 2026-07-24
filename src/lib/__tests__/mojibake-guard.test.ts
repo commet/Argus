@@ -85,7 +85,7 @@ const FIXTURES: Record<string, string[]> = {
   ],
   'components/projects/SettlementModal.tsx': [
     '그래서, 어떻게 됐어요?',
-    '그때 건 예측을, 이제 현실과 맞춰봐요',
+    '그때 남긴 판단을, 이제 현실과 맞춰봐요',
     '무엇이 어떻게 되었나요?',
     '결과 기록 마치기',
   ],

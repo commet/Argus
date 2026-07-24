@@ -4,6 +4,8 @@ import {
   augmentContract,
   summarizeGrades,
   contractStatus,
+  gradePredicate,
+  requiredSettlementPredicates,
   stablePredicateId,
   CHECK_IN_MS,
 } from '../decision-contract';
@@ -19,6 +21,12 @@ describe('buildEarlyContract — Phase 1 BIND (rope at OPEN)', () => {
     const p = c.predicates[0];
     expect(p.source).toBe('user_lean');
     expect(p.authored).toBe('user');
+    expect(p.attribution).toMatchObject({
+      wording_source: 'user_direct',
+      authority: 'user_asserted',
+      surface: 'web',
+      source_ref: 'workspace:pre_review_baseline',
+    });
     expect(p.text).toBe('나는 연기 쪽으로 기운다');
     expect(p.id).toBe(stablePredicateId('user_lean', '나는 연기 쪽으로 기운다'));
     expect(c.check_in_at).toBe(new Date(T0 + CHECK_IN_MS['2w']).toISOString());
@@ -60,6 +68,25 @@ describe('buildEarlyContract — Phase 1 BIND (rope at OPEN)', () => {
     expect(c).not.toBeNull();
     expect(c.predicates).toHaveLength(0);
     expect(c.check_in_at).toBe(iso);
+  });
+});
+
+describe('settlement ownership — AI watch items never hold the user loop open', () => {
+  it('requires the explicit user judgment and leaves AI-surfaced premises optional', () => {
+    const contract: DecisionContract = {
+      id: 'owned',
+      project_id: 'p',
+      created_at: new Date(T0).toISOString(),
+      predicates: [
+        { id: 'mine', text: '내가 확정한 판단', source: 'user_lean', authored: 'user' },
+        { id: 'ai', text: 'AI가 짚은 전제', source: 'governing_idea', authored: 'ai_surfaced' },
+      ],
+    };
+    expect(requiredSettlementPredicates(contract).map((p) => p.id)).toEqual(['mine']);
+    const settled = gradePredicate(contract, 'mine', 'happened', T0 + 1000);
+    expect(settled.graded_at).toBeTruthy();
+    expect(settled.predicates.find((p) => p.id === 'ai')?.verdict).toBeUndefined();
+    expect(contractStatus(settled, T0 + 2000).allGraded).toBe(true);
   });
 });
 
@@ -113,7 +140,7 @@ describe('summarizeGrades — a held user_lean is the user\'s own skill-win', ()
       ],
     };
     const g = summarizeGrades(c);
-    expect(g.betsHeld).toBe(2);            // both held
+    expect(g.betsHeld).toBe(1);            // only the user's own held bet
     expect(g.betsHeldAiSurfaced).toBe(1);  // only the ai_surfaced one
   });
 

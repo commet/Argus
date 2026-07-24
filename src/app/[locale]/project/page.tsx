@@ -1101,9 +1101,9 @@ export default function ProjectPage() {
                 </div>
                 <p className="text-[12.5px] text-[var(--text-secondary)] mt-1.5 leading-relaxed">
                   {currentProjectIsDue
-                    ? L('확인일이 왔어요. 그때의 예측과 실제 결과를 나란히 확인해 보세요.', 'The check-in day is here. Compare what you predicted with what actually happened.')
+                    ? L('확인일이 왔어요. 그때 남긴 판단과 실제 결과를 나란히 확인해 보세요.', 'The check-in day is here. Compare the judgment you kept with what actually happened.')
                     : currentContractAllGraded
-                      ? L('예측과 실제 결과를 모두 확인한 결정입니다.', 'This decision has been checked against its actual outcome.')
+                      ? L('그때의 판단과 실제 결과를 함께 확인한 결정입니다.', 'This judgment has been checked against its actual outcome.')
                       : currentHasVoyage
                         ? L('이 결정의 현재 방향과 근거, 다음 확인 약속을 모아 봅니다.', 'Review this decision’s current direction, evidence, and next check-in.')
                         : L('진행 내용과 결과물을 한곳에서 이어서 관리합니다.', 'Continue the work and manage its outputs in one place.')}
@@ -1149,6 +1149,17 @@ export default function ProjectPage() {
             )}
           </header>
 
+          {/* Harbor spine: the user's exact judgment + return handle comes
+              before any generated brief. The long analysis is supporting
+              material, not the project's identity. */}
+          <div id={`decision-contract-${currentProject.id}`} className="scroll-mt-24">
+            <DecisionContractCard
+              project={currentProject}
+              sealable={currentHasVoyage ? currentVoyageDone : completedSteps === steps.length}
+              onCheckNow={() => setSettleOpenId(currentProject.id)}
+            />
+          </div>
+
           {/* The decision itself — the Current Bearing IS the content of a
               voyage project (the long document stays in the workspace).
               Falls back to the plain status row when no bearing derives
@@ -1187,15 +1198,6 @@ export default function ProjectPage() {
               </Card>
             )
           )}
-
-          {/* Decision Contract — falsifiable closed loop (§0 KICK).
-              Seal only offered once the voyage is finished (all legs done). */}
-          <div id={`decision-contract-${currentProject.id}`} className="scroll-mt-24">
-            <DecisionContractCard
-              project={currentProject}
-              sealable={currentHasVoyage ? currentVoyageDone : completedSteps === steps.length}
-            />
-          </div>
 
           {/* Decision items — editable premises/phenomena + per-item change alerts
               (living-premises layer, internal design notes). */}

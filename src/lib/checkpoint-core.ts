@@ -107,7 +107,24 @@ export function deriveExpectation(source: PredicateSource, checkPrompt: string):
  *  else the first. */
 export function pickPrimaryPredicate<T extends { source: PredicateSource }>(predicates: T[]): T | undefined {
   if (!predicates || predicates.length === 0) return undefined;
-  return predicates.find((p) => p.source === 'governing_idea') ?? predicates[0];
+  const attributed = predicates as Array<T & {
+    authored?: 'user' | 'ai_surfaced';
+    attribution?: { authority?: string };
+  }>;
+  // A return question must prefer a judgment the user actually owns. The old
+  // governing-first order routinely selected an AI-surfaced premise and the UI
+  // then called it "the call you made".
+  return attributed.find((p) =>
+    p.source === 'user_lean'
+    && p.authored !== 'ai_surfaced'
+    && p.attribution?.authority !== 'ai_suggested')
+    ?? attributed.find((p) =>
+      p.source === 'governing_idea'
+      && p.authored !== 'ai_surfaced'
+      && p.attribution?.authority !== 'ai_suggested')
+    ?? attributed.find((p) => p.source === 'user_lean')
+    ?? attributed.find((p) => p.source === 'governing_idea')
+    ?? attributed[0];
 }
 
 /**
@@ -148,7 +165,13 @@ export function derivePrimaryCheckpoint(
     negative_signal: seed?.negative_signal,
     return_handle: handle,
     linked_premise_ids: linked,
-    authorship: seed?.authorship ?? 'ai_suggested',
+    authorship: seed?.authorship
+      ?? ((top as { authored?: string; attribution?: { authority?: string } }).authored === 'user'
+        || ['user_asserted', 'user_adopted'].includes(
+          (top as { attribution?: { authority?: string } }).attribution?.authority ?? '',
+        )
+        ? 'user_authored'
+        : 'ai_suggested'),
     type,
     expectation: seed?.expectation ?? deriveExpectation(top.source, seed?.check_prompt ?? top.text),
   };

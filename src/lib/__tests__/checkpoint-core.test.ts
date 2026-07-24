@@ -115,6 +115,18 @@ describe('derivePrimaryCheckpoint (§12 Phase 0)', () => {
     expect(cp!.return_handle.kind).toBe('event');
     expect(cp!.check_prompt).toBe('이사회가 승인하나');
   });
+  it('prefers the user-owned line over an AI governing premise', () => {
+    const cp = derivePrimaryCheckpoint({
+      predicates: [
+        pred({ id: 'ai', text: 'AI가 짚은 전제', authored: 'ai_surfaced' }),
+        pred({ id: 'mine', text: '내가 확정한 판단', source: 'user_lean', authored: 'user' }),
+      ],
+      check_in_at: '2026-09-01T00:00:00Z',
+    });
+    expect(cp!.predicate_id).toBe('mine');
+    expect(cp!.check_prompt).toBe('내가 확정한 판단');
+    expect(cp!.authorship).toBe('user_authored');
+  });
 });
 
 describe('nextAmbiguityHandle (§7.3) + defensive expectation', () => {

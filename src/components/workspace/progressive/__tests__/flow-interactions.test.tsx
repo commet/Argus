@@ -91,7 +91,7 @@ describe('BindCard — authorship before commitment', () => {
     const text = container.textContent || '';
     expect(text).toContain('내가 적은 상황 · 원문');
     expect(text.indexOf('내가 직접 적은 원래 결정')).toBeLessThan(text.indexOf('AI가 새로 찾은 질문'));
-    expect(text.indexOf('내가 직접 적은 원래 결정')).toBeLessThan(text.indexOf('지금 생각은 어디에 가까워요?'));
+    expect(text.indexOf('내가 직접 적은 원래 결정')).toBeLessThan(text.indexOf('검토하기 전, 지금의 생각은 무엇인가요?'));
     expect(container.querySelector('textarea')?.hasAttribute('autofocus')).toBe(false);
   });
 
@@ -114,7 +114,7 @@ describe('BindCard — authorship before commitment', () => {
     const problem = '긴 원문 '.repeat(50);
     render(createElement(BindCard, { problem, onProceed: vi.fn() }));
     const quote = container.querySelector('blockquote')!;
-    expect(quote.className).toContain('line-clamp-4');
+    expect(quote.className).toContain('line-clamp-3');
     const expand = byText('전체 보기');
     expect(expand.getAttribute('aria-expanded')).toBe('false');
     click(expand);

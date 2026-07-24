@@ -85,15 +85,15 @@ export function CrewAtWork({ workers, onRetry, reportsOpen, onToggleReports, her
   // claim crew output flowed in — this is a human-judgment item.
   const headline = !allDone
     ? interrupted
-      ? L('AI 검토가 잠시 멈춰 있어요', 'AI review is paused')
-      : L('AI 검토자가 살펴보고 있어요', 'AI reviewers are at work')
+      ? L('완료된 검토는 보존됐어요', 'Completed review work is saved')
+      : L('Argus가 전제를 확인하고 있어요', 'Argus is checking the assumptions')
     : attentionCount > 0
       ? doneCount === 0
-        ? L(`초안에 들어갈 AI 결과는 아직 없어요 · ${attentionCount}건 확인이 필요해요`, `No AI result is ready for the draft · ${attentionCount} item${attentionCount === 1 ? '' : 's'} need attention`)
-        : L(`${doneCount}명 완료 · ${attentionCount}건은 별도 확인이 필요해요 — 완료된 결과만 초안에 들어갑니다`, `${doneCount} finished · ${attentionCount} need attention — only completed results enter the draft`)
+        ? L('확인하지 못한 부분은 초안에 넣지 않아요', 'Unverified work will stay out of the draft')
+        : L('도착한 결과만 보존하고, 빠진 부분은 따로 표시해요', 'Only arrived findings are saved; gaps stay visible')
       : doneCount === 0
         ? L('이 건은 사람이 판단할 항목이에요 — AI가 대신 정하지 않아요', "This one is yours to judge — AI doesn't decide it for you")
-        : L(`AI 검토자 ${doneCount}명의 검토가 끝났어요 — 모든 결과를 초안에 반영해요`, `${doneCount} AI reviewers finished — all findings flow into the draft`);
+        : L('핵심 전제 확인이 끝났어요', 'The assumption check is complete');
 
   return (
     <motion.div
@@ -115,26 +115,12 @@ export function CrewAtWork({ workers, onRetry, reportsOpen, onToggleReports, her
         aria-controls={panelId}
         className="w-full flex items-center justify-between gap-3 text-left cursor-pointer"
       >
-        <div className="flex items-center gap-2.5 min-w-0">
-          <div className="flex -space-x-1 shrink-0">
-            {ordered.slice(0, 5).map((w, i) => (
-              <span
-                key={w.id}
-                className={`${hero ? 'w-7 h-7 text-[13px]' : 'w-5 h-5 text-[10px]'} rounded-full bg-[var(--bg)] border border-[var(--surface)] flex items-center justify-center leading-none`}
-                style={{ zIndex: 5 - i }}
-                aria-hidden
-              >
-                {w.persona?.emoji || '⚓'}
-              </span>
-            ))}
-          </div>
+        <div className="flex min-w-0 items-center gap-2.5">
+          <span className={`shrink-0 rounded-full ${allDone ? 'bg-[var(--success)]' : interrupted ? 'bg-amber-500' : 'animate-pulse bg-[var(--accent)]'} h-2 w-2`} aria-hidden />
           <p className={`${hero ? 'text-[14.5px] md:text-[15.5px] font-bold' : 'text-[12.5px] font-semibold'} text-[var(--text-primary)] truncate`}>{headline}</p>
         </div>
-        <span className="shrink-0 flex items-center gap-1.5 text-[11px] text-[var(--text-tertiary)]">
-          {!allDone && !interrupted && <span className="inline-block w-1.5 h-1.5 rounded-full bg-[var(--accent)] animate-pulse" aria-hidden />}
-          <span className="tabular-nums" aria-label={L(`${ordered.length}건 중 ${settledCount}건 처리`, `${settledCount} of ${ordered.length} settled`)}>{settledCount}/{ordered.length}</span>
-          {/* Learn-more cue so the row reads as "tap to understand", not passive status. */}
-          {!open && <span className="text-[var(--accent)]">{L('이게 뭐예요?', 'What is this?')}</span>}
+        <span className="flex shrink-0 items-center gap-1.5 text-[11px] text-[var(--text-tertiary)]">
+          {!open && <span>{L('검토 과정 보기', 'See review details')}</span>}
           <ChevronDown size={13} className={`transition-transform ${open ? 'rotate-180' : ''}`} />
         </span>
       </button>
@@ -144,32 +130,24 @@ export function CrewAtWork({ workers, onRetry, reportsOpen, onToggleReports, her
           at first contact — the definition used to be trapped inside the collapsed
           panel. One line only, to respect the ④보조 / "진행 막대 수준" constraint. */}
       <p className="mt-2 text-[11px] text-[var(--text-tertiary)] leading-[1.5]">
-        {L('AI 검토자들이 이 결정을 서로 다른 관점에서 살펴봐요 · 최종 판단은 당신이 해요.', 'AI reviewers are looking at this decision from different angles — the final call stays yours.')}
+        {interrupted
+          ? L('남은 부분만 이어서 확인할 수 있어요. 이미 끝난 검토는 다시 실행하지 않아요.', 'You can continue only the missing work. Finished reviews will not run again.')
+          : L('서로 다른 관점은 뒤에서 합쳐지고, 화면에는 판단을 바꿀 수 있는 내용만 남아요.', 'Different lenses are combined in the background; only decision-changing findings stay on the page.')}
       </p>
-
-      <div className="mt-2 flex items-center gap-2" aria-live="polite">
-        <div
-          role="progressbar"
-          aria-label={L('AI 검토 진행 상태', 'AI review progress')}
-          aria-valuemin={0}
-          aria-valuemax={ordered.length}
-          aria-valuenow={settledCount}
-          aria-valuetext={L(`${ordered.length}건 중 ${settledCount}건 처리 · 결과 ${doneCount}건 완료`, `${settledCount} of ${ordered.length} settled · ${doneCount} completed`)}
-          className="h-1.5 flex-1 overflow-hidden rounded-full bg-[var(--border-subtle)]"
-        >
-          <motion.div
-            className="h-full rounded-full bg-[var(--accent)]"
-            initial={false}
-            animate={{ width: `${ordered.length > 0 ? (settledCount / ordered.length) * 100 : 0}%` }}
-            transition={{ duration: 0.45, ease: 'easeOut' }}
-          />
-        </div>
-        <span className="shrink-0 text-[10.5px] tabular-nums text-[var(--text-tertiary)]">
-          {attentionCount > 0
-            ? L(`완료 ${doneCount} · 확인 필요 ${attentionCount}`, `${doneCount} done · ${attentionCount} needs attention`)
-            : L(`${doneCount}명 완료`, `${doneCount} done`)}
-        </span>
-      </div>
+      {/* Exact machine progress remains available to assistive technology and
+          tests, without becoming the visual hierarchy of the main journey. */}
+      <span
+        role="progressbar"
+        aria-label={L('AI 검토 진행 상태', 'AI review progress')}
+        aria-valuemin={0}
+        aria-valuemax={ordered.length}
+        aria-valuenow={settledCount}
+        className="sr-only"
+      >
+        {attentionCount > 0
+          ? L(`완료 ${doneCount} · 확인 필요 ${attentionCount}`, `${doneCount} done · ${attentionCount} needs attention`)
+          : L(`${doneCount}명 완료`, `${doneCount} done`)}
+      </span>
 
       {!open ? null : (
       <div id={panelId} className="mt-3 space-y-2.5">
