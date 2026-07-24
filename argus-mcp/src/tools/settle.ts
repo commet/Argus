@@ -71,11 +71,26 @@ export const settle: ToolModule = {
                 : ['It held', 'Avoided', 'Partially', 'Still unclear', 'Missed: my read was wrong'],
               description: pickerLocale === 'ko' ? '저장한 예측에 현실이 어떻게 답했는지 고르세요.' : 'What reality did to your sealed prediction.',
             },
+            // Capture what-happened in the SAME picker so a settle that reached
+            // the picker doesn't dead-end on WHAT_HAPPENED_REQUIRED after the user
+            // already answered. Optional: if the model already passed what_happened
+            // from the conversation, the user can leave this blank. What the user
+            // types here is THEIR words (spine-safe — never model-inferred).
+            what_happened: {
+              type: 'string',
+              description: pickerLocale === 'ko' ? '무슨 일이 있었는지 당신의 말로 한 줄. (아직 불분명이면 비워도 됩니다.)' : "One line on what actually happened, in your words. (Leave blank if still unclear.)",
+            },
           },
           required: ['outcome'],
         });
         const v = picked?.['outcome'];
         if (v === 'held' || v === 'avoided' || v === 'partial' || v === 'still_pending' || v === 'missed') outcome = v;
+        // If the model didn't already supply what_happened, take the user's
+        // picker text (their own words) so the settle completes in one round.
+        const pickedWhat = typeof picked?.['what_happened'] === 'string' ? (picked['what_happened'] as string).trim() : '';
+        if (pickedWhat && !(typeof a['what_happened'] === 'string' && (a['what_happened'] as string).trim())) {
+          a = { ...a, what_happened: pickedWhat };
+        }
       }
       if (!outcome) {
         return toolError({

@@ -6,6 +6,31 @@
 > The `1.3.0` / `1.2.1` entries at the bottom are pre-rename `argus-mcp` history,
 > kept for reference — all of that work shipped inside the new-name 1.0.0.
 
+## 1.9.0 — The picker stops fighting the user (native Accept/Decline)
+
+Dogfooding exposed the confirm picker as clunky: it used a REQUIRED three-way
+`choice` enum, so a host rendered it as an unset field the user had to expand,
+pick, then Accept — 3-4 keystrokes for what is a yes. Redesigned to the host's
+native Accept/Decline plus optional edit fields, verified end-to-end against a
+real stdio server (`evals/e2e-picker.mjs`, now a CI gate) and against the
+published tarball installed as a user would.
+
+- **Predict confirm → one keystroke.** Accept with both fields blank keeps the
+  draft (recorded as the user's); Accept with `reword` saves their wording;
+  **Accept with `check_by` adjusts the horizon inline** (the "that date feels
+  off" escape — keep the statement, fix only the date); Decline records nothing.
+  No required enum to hunt for.
+- **Premise confirm → same native shape.** Accept keeps (provenance ai_surfaced
+  intact), Accept + reword saves the user's words (draft kept as ai_original),
+  Decline drops just that draft.
+- **Settle picker is self-sufficient.** The outcome picker now also carries an
+  optional what-happened field, so a settle that reaches the picker no longer
+  dead-ends on WHAT_HAPPENED_REQUIRED after the user already answered — it
+  completes in one round. Model-supplied words still win; the picker text only
+  fills the gap. What the user types is their own words (spine-safe).
+- Tool/prompt descriptions updated to describe the Accept/Decline picker, so the
+  model narrates the real interaction instead of a Keep/Reword/Skip menu.
+
 ## 1.8.0 — The ask becomes structural: premise picker, honest wire, one dial
 
 The founder's activation invariant — an AI draft must be SHOWN to the user

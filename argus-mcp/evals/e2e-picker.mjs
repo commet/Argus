@@ -28,7 +28,9 @@ const argusDir = path.join(work, '.argus');
 fs.mkdirSync(argusDir, { recursive: true });
 
 let elicitCount = 0;
-let nextChoice = { choice: 'keep' };
+// native Accept/Decline model: keep = accept w/ empty content, reword/date =
+// accept w/ that field, skip = decline.
+let nextResp = { action: 'accept', content: {} };
 let lastElicitMessage = '';
 
 const client = new Client({ name: 'e2e-picker', version: '1.0.0' }, { capabilities: { elicitation: {} } });
@@ -37,7 +39,7 @@ client.setRequestHandler(
   async (req) => {
     elicitCount++;
     lastElicitMessage = String(req.params?.message ?? '');
-    return { action: 'accept', content: { ...nextChoice } };
+    return nextResp;
   },
 );
 
@@ -63,29 +65,34 @@ const ci = await callData('argus_check_in', {});
 check('check_in data.picker=one_tap (호스트가 픽커 지원)', ci?.data?.picker === 'one_tap', String(ci?.data?.picker));
 
 // 3. 예측 픽커: ai_surfaced → elicitation 실발사 → keep → sealed, owner=user
-elicitCount = 0; nextChoice = { choice: 'keep' };
+elicitCount = 0; nextResp = { action: 'accept', content: {} };
 const seal = await callData('argus_predict', { id: 'e2e-pred', predicate: 'signup conversion passes 5% within two weeks', check_by: '2026-09-01', predicate_owner: 'ai_surfaced' });
 check('예측 픽커 실발사 (elicitation 왕복)', elicitCount === 1, `count=${elicitCount} msg="${lastElicitMessage.slice(0, 50)}"`);
 check('keep → sealed + owner=user', seal?.data?.status === 'sealed' && seal?.data?.predicate_owner === 'user', JSON.stringify({ st: seal?.data?.status, ow: seal?.data?.predicate_owner }));
 
 // 4. 전제 픽커: open → add_context(ai_surfaced) → keep → 기록 + ai_surfaced 유지
 await callData('argus_capture', { action: 'open', id: 'e2e-dec', decision: 'migrate payment routing this sprint with no rollback', stakes: 'high', reversibility: 'one_way_door', status_quo: 'keep current router' });
-elicitCount = 0; nextChoice = { choice: 'keep' };
+elicitCount = 0; nextResp = { action: 'accept', content: {} };
 const prem = await callData('argus_capture', { action: 'add_context', id: 'e2e-dec', premises: [{ text: 'the old router can be re-enabled within an hour if the migration fails', kind: 'premise', external: true, load_bearing: true, source: 'ai_surfaced', ai_original: 'the old router can be re-enabled within an hour if the migration fails' }] });
 check('전제 픽커 실발사', elicitCount === 1, `count=${elicitCount} msg="${lastElicitMessage.slice(0, 50)}"`);
 const echo1 = prem?.data?.premises?.[0];
 check('keep → 기록 + provenance ai_surfaced 유지', prem?.ok === true && echo1?.source === 'ai_surfaced', JSON.stringify(echo1 ? { src: echo1.source } : prem?.error_code));
 
 // 5. reword 왕복: 폼 입력이 그대로 user_stated로
-elicitCount = 0; nextChoice = { choice: 'reword', your_wording: '옛 라우터로 1시간 안에 되돌릴 수 있다 (스위치 검증됨)' };
+elicitCount = 0; nextResp = { action: 'accept', content: { reword: '옛 라우터로 1시간 안에 되돌릴 수 있다 (스위치 검증됨)' } };
 const prem2 = await callData('argus_capture', { action: 'add_context', id: 'e2e-dec', premises: [{ text: 'traffic can be replayed against the new router before cutover', kind: 'premise', external: true, load_bearing: true, source: 'ai_surfaced', ai_original: 'traffic can be replayed against the new router before cutover' }] });
 const echo2 = prem2?.data?.premises?.[0];
 check('reword → 그 말 그대로 user_stated + ai_original 보존', echo2?.text === '옛 라우터로 1시간 안에 되돌릴 수 있다 (스위치 검증됨)' && echo2?.source === 'user_stated' && !!echo2?.ai_original, JSON.stringify(echo2 ? { t: echo2.text?.slice(0, 20), s: echo2.source } : prem2?.error_code));
 
 // 6. skip: 기록 없음
-elicitCount = 0; nextChoice = { choice: 'skip' };
+elicitCount = 0; nextResp = { action: 'decline' };
 const prem3 = await callData('argus_capture', { action: 'add_context', id: 'e2e-dec', premises: [{ text: 'the payment provider sandbox mirrors production behavior', kind: 'premise', external: true, load_bearing: true, source: 'ai_surfaced', ai_original: 'the payment provider sandbox mirrors production behavior' }] });
 check('skip → 기록 안 됨 (정직한 no)', prem3?.data?.recorded === false, JSON.stringify(prem3?.data));
+
+// 7. 날짜 조정: Accept + check_by → 문장 유지, 확인일만 이동 (그 날짜 쎄 탈출구)
+elicitCount = 0; nextResp = { action: 'accept', content: { check_by: '2027-03-01' } };
+const seal2 = await callData('argus_predict', { id: 'e2e-date', predicate: 'weekly active users climb above 10k', check_by: '2026-10-01', predicate_owner: 'ai_surfaced' });
+check('날짜 조정 → 문장 유지 + 확인일 이동', seal2?.data?.status === 'sealed' && String(seal2?.data?.check_by) === '2027-03-01' && seal2?.data?.predicate === 'weekly active users climb above 10k', JSON.stringify({ cb: seal2?.data?.check_by, p: (seal2?.data?.predicate||'').slice(0,20) }));
 
 await client.close();
 const fails = results.filter((r) => !r.ok).length;

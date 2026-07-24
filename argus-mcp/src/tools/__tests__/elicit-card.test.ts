@@ -43,9 +43,10 @@ const SEAL_ARGS = {
 } as const;
 
 describe('elicitation 카드 발사 (봉인 confirm_draft)', () => {
-  it('카드가 예측 문구를 담아, keep/reword/skip 선택지 스키마로 발사된다', async () => {
+  it('카드가 예측 문구·확인일을 담아, 네이티브 Accept/Decline 스키마(선택 reword·check_by)로 발사된다', async () => {
     let seen: { message: string; schema: Record<string, unknown> } | null = null;
-    setElicitor(async (message, schema) => { seen = { message, schema }; return { action: 'accept', content: { choice: 'keep' } }; });
+    // 새 설계(2026-07-24): Accept(빈칸)=keep. 필수 enum 없음.
+    setElicitor(async (message, schema) => { seen = { message, schema }; return { action: 'accept', content: {} }; });
 
     await call(init, { argus_dir: argusDir });
     const res = await call(seal, { argus_dir: argusDir, ...SEAL_ARGS });
@@ -55,17 +56,20 @@ describe('elicitation 카드 발사 (봉인 confirm_draft)', () => {
     const s = seen!;
     expect(s.message).toContain('cutover downtime stays under five minutes'); // 예측 원문
     expect(s.message).toContain('2099-01-01'); // 확인일
-    const choice = (s.schema as { properties: { choice: { enum: string[] } } }).properties.choice;
-    expect(choice.enum).toEqual(['keep', 'reword', 'skip']); // 세 갈래 (스파인: 크럭스 fork 아님, 예측 확인)
+    const schema = s.schema as { required?: string[]; properties: Record<string, { type: string }> };
+    // 필수 항목 0 → Accept 한 번이 곧 keep (클런키한 3지선다 enum 제거).
+    expect(schema.required ?? []).toEqual([]);
+    expect(schema.properties['reword'].type).toBe('string'); // 선택: 고쳐 쓰기
+    expect(schema.properties['check_by'].type).toBe('string'); // 선택: 확인일 조정
 
-    // keep → 사용자가 확언 → 그의 것으로 봉인.
+    // Accept(빈칸) → 사용자가 확언 → 그의 것으로 봉인.
     expect(res.ok).toBe(true);
     expect(res.data['status']).toBe('sealed');
     expect(res.data['predicate_owner']).toBe('user');
   });
 
-  it('skip → 아무것도 기록하지 않는다 (비-yes 존중)', async () => {
-    setElicitor(async () => ({ action: 'accept', content: { choice: 'skip' } }));
+  it('Decline → 아무것도 기록하지 않는다 (비-yes 존중)', async () => {
+    setElicitor(async () => ({ action: 'decline' }));
     await call(init, { argus_dir: argusDir });
     const res = await call(seal, { argus_dir: argusDir, ...SEAL_ARGS });
     expect(res.ok).toBe(true);
