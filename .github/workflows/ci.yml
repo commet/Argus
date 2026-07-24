@@ -35,6 +35,17 @@ jobs:
           npm audit --omit=dev
           npm pack --dry-run
 
+      # 진짜 끝단 게이트 (2026-07-24, 창업자 지시 "기본이 안 됐던 걸 잡아라"):
+      # 단위테스트는 모킹된 픽커만 본다 — 이 스텝은 실제 서버 프로세스를 stdio로
+      # spawn하고 elicitation capability를 선언한 진짜 MCP 클라이언트로 예측/전제
+      # 픽커 왕복(keep·reword·skip)과 check_in picker 가시화를 실증한다. 이게
+      # 빨간불이면 "테스트는 초록인데 실물이 침묵"하는 그 실패가 재발한 것이다.
+      - name: E2E picker round-trip (real stdio server + real elicitation)
+        run: |
+          cd argus-mcp
+          npm run build
+          node evals/e2e-picker.mjs node "$PWD/dist/index.js"
+
       - name: TypeScript
         run: npx tsc --noEmit
 
