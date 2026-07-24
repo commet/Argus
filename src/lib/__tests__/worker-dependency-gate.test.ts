@@ -99,4 +99,15 @@ describe('dependency ready-gate', () => {
     expect(started).toContain('B');   // no deadlock
     expect(blocked).toHaveLength(0);  // AI-missing degrades, never blocks
   });
+
+  it('keeps completed stage output in context when a pipeline resumes', async () => {
+    const workers = [
+      mk({ id: 'A', who: 'ai', agent_type: 'ai', stage_id: 'stage_1', status: 'done', result: 'already completed evidence' }),
+      mk({ id: 'B', who: 'ai', agent_type: 'ai', stage_id: 'stage_2', depends_on: ['A'] }),
+    ];
+    const { started } = await run(workers);
+    expect(started).not.toContain('A');
+    expect(started).toContain('B');
+    expect(seenPrompts.some((prompt) => prompt.includes('already completed evidence'))).toBe(true);
+  });
 });

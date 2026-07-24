@@ -672,6 +672,20 @@ export interface Predicate {
    *  track record separates it, same principle as luck-vs-judgment basis (R17).
    *  Absent (typed/adopted bet, or non-bet predicate) = the user's own. */
   authored?: 'user' | 'ai_surfaced';
+  /** Field-level influence record. `authored` remains as the compact legacy
+   *  compatibility bit; this object keeps three facts separate:
+   *  who phrased the sentence, whether the user adopted it as their own call,
+   *  and where/when Argus received it. A tap that merely keeps an AI draft does
+   *  not rewrite `wording_source` to user. */
+  attribution?: JudgmentAttribution;
+}
+
+export interface JudgmentAttribution {
+  wording_source: 'user_direct' | 'user_reworded' | 'ai_surfaced' | 'imported' | 'legacy_unknown';
+  authority: 'user_asserted' | 'user_adopted' | 'ai_suggested' | 'unconfirmed' | 'legacy_unknown';
+  surface: 'web' | 'mcp' | 'plugin' | 'telegram' | 'document_import' | 'legacy_unknown';
+  recorded_at: string;
+  source_ref?: string;
 }
 
 export type CheckInInterval = '1d' | '3d' | '1w' | '2w' | '1m';
@@ -692,7 +706,13 @@ export interface JudgmentReceipt {
   real_question: string;
   unverified_assumption: string;
   human_only: string;
+  /** The user's pre-review baseline. It is deliberately not scored: settlement
+   *  grades the final human_judgment, while this line makes any change in view
+   *  legible instead of pretending the two capture moments were the same seal. */
+  baseline_judgment?: string;
   human_judgment: string;
+  /** Explicit provenance for the final line. Optional on legacy receipts. */
+  judgment_attribution?: JudgmentAttribution;
   what_happened?: string;
   assumption_held?: boolean | null;
   settled_at?: string;

@@ -3011,9 +3011,16 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
               <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2 text-[13px] text-amber-600 dark:text-amber-400">
                   <span>⟳</span>
-                  <span>{L('중단된 작업이 있어요', 'Interrupted tasks found')}</span>
-                  <span className="text-[var(--text-tertiary)]">
-                    ({workers.filter(w => w.status === 'done').length}/{workers.length} {L('완료', 'done')})
+                  <span>
+                    {workers.some(w => w.status === 'done')
+                      ? L(
+                          `도착한 검토 ${workers.filter(w => w.status === 'done').length}건은 보존됐어요 · 남은 부분만 이어갑니다`,
+                          `${workers.filter(w => w.status === 'done').length} completed review${workers.filter(w => w.status === 'done').length === 1 ? '' : 's'} are saved · continue only the missing work`,
+                        )
+                      : L(
+                          '아직 도착한 검토가 없어요 · 남은 부분을 다시 연결합니다',
+                          'No review has arrived yet · reconnect the remaining work',
+                        )}
                   </span>
                 </div>
                 <button onClick={onResumeWorkers}
@@ -3022,8 +3029,8 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
                   {workers.some(w => w.status === 'running' || w.status === 'ai_preparing')
                     ? L('실행 중…', 'Running…')
                     : workers.some(w => w.status === 'done')
-                      ? L('이어서 실행', 'Resume')
-                      : L('다시 실행', 'Restart')}
+                      ? L('남은 검토 이어가기', 'Continue missing work')
+                      : L('다시 연결', 'Reconnect')}
                 </button>
               </div>
             </motion.div>

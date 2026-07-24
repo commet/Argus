@@ -58,8 +58,11 @@ describe('extractPredicatesFromSynthesis (North-Star C — tools terminus)', () 
     expect(preds.map((p) => p.source)).toEqual(['governing_idea', 'governing_idea']);
     expect(preds[0].text).toBe('가격 정책: 프리미엄으로 간다');
     expect(preds[1].text).toBe('Launch timing: Ship in Q3');
-    // The user's own words — never machine-surfaced.
-    expect(preds.every((p) => p.authored === undefined)).toBe(true);
+    // The user's own words are explicit rather than relying on a legacy absence.
+    expect(preds.every((p) => p.authored === 'user')).toBe(true);
+    expect(preds.every((p) => p.attribution?.wording_source === 'user_direct')).toBe(true);
+    expect(preds.every((p) => p.attribution?.authority === 'user_asserted')).toBe(true);
+    expect(preds.every((p) => p.attribution?.surface === 'web')).toBe(true);
   });
 
   it('skips conflicts the user left unresolved and dedupes', () => {

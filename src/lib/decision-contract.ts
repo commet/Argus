@@ -32,6 +32,7 @@ import type {
   DMConcern,
   Falsification,
   OpenCheck,
+  JudgmentAttribution,
 } from '@/stores/types';
 import type { HonestyFlag } from './honesty-scan';
 import { generateId } from './uuid';
@@ -98,6 +99,30 @@ export function stablePredicateId(source: PredicateSource, text: string): string
   let h = 5381;
   for (let i = 0; i < key.length; i++) h = ((h << 5) + h + key.charCodeAt(i)) >>> 0;
   return `pred_${h.toString(36)}`;
+}
+
+export function webUserAttribution(
+  now: number,
+  sourceRef: string,
+  wordingSource: JudgmentAttribution['wording_source'] = 'user_direct',
+): JudgmentAttribution {
+  return {
+    wording_source: wordingSource,
+    authority: 'user_asserted',
+    surface: 'web',
+    recorded_at: new Date(now).toISOString(),
+    source_ref: sourceRef,
+  };
+}
+
+export function webAiAttribution(now: number, sourceRef: string): JudgmentAttribution {
+  return {
+    wording_source: 'ai_surfaced',
+    authority: 'ai_suggested',
+    surface: 'web',
+    recorded_at: new Date(now).toISOString(),
+    source_ref: sourceRef,
+  };
 }
 
 /** Stable id for an open check (djb2 of its text) — the settle-verdict join key. */
@@ -303,7 +328,7 @@ function falsificationBetText(f?: Falsification | null): string {
  *   - dm_feedback.concerns (critical first)        → source 'risk'
  *   - debate weakestClaim (the team's own dissent) → source 'risk'
  */
-export function extractPredicatesFromSession(s: SessionPredicateInput): Predicate[] {
+export function extractPredicatesFromSession(s: SessionPredicateInput, recordedAt = Date.now()): Predicate[] {
   const byId = new Map<string, Predicate>();
   const add = (p: Omit<Predicate, 'id'>): Predicate | null => {
     const text = p.text.trim();
@@ -327,7 +352,12 @@ export function extractPredicatesFromSession(s: SessionPredicateInput): Predicat
   // → never dropped at cap.
   const decisionLine = s.user_judgment?.decision_line?.trim();
   if (decisionLine) {
-    const p = add({ text: decisionLine, source: 'user_lean' });
+    const p = add({
+      text: decisionLine,
+      source: 'user_lean',
+      authored: 'user',
+      attribution: webUserAttribution(recordedAt, 'workspace:decision_line'),
+    });
     if (p) governing.push(p);
   }
   const betText = falsificationBetText(s.falsification);
@@ -335,14 +365,29 @@ export function extractPredicatesFromSession(s: SessionPredicateInput): Predicat
     // Carry the flinch bet's authorship (R57) so calibration can tell the user's
     // own prediction from a machine-surfaced belief the skip stood in (R58).
     const authored = s.falsification?.real_bet_authored === 'ai_surfaced' ? 'ai_surfaced' as const : undefined;
-    const p = add({ text: betText, source: 'governing_idea', ...(authored ? { authored } : {}) });
+    const p = add({
+      text: betText,
+      source: 'governing_idea',
+      ...(authored ? {
+        authored,
+        attribution: webAiAttribution(recordedAt, 'workspace:falsification'),
+      } : {
+        authored: 'user' as const,
+        attribution: webUserAttribution(recordedAt, 'workspace:falsification'),
+      }),
+    });
     if (p) governing.push(p);
   }
   for (const a of finalMix?.key_assumptions ?? []) {
     if (governing.length >= MAX_LIVE_GOVERNING) break;
     // key_assumptions are AI-authored (the mix draft) — tag them ai_surfaced so a held
     // machine assumption never inflates the user's own skill-wins in summarizeGrades (R58).
-    const p = add({ text: a, source: 'governing_idea', authored: 'ai_surfaced' });
+    const p = add({
+      text: a,
+      source: 'governing_idea',
+      authored: 'ai_surfaced',
+      attribution: webAiAttribution(recordedAt, 'workspace:mix_assumption'),
+    });
     if (p) governing.push(p);
   }
 
@@ -354,7 +399,13 @@ export function extractPredicatesFromSession(s: SessionPredicateInput): Predicat
   );
   const risks: Predicate[] = [];
   for (const c of concerns) {
-    const p = add({ text: c.text, source: 'risk', category: SEVERITY_TO_CATEGORY[c.severity] });
+    const p = add({
+      text: c.text,
+      source: 'risk',
+      category: SEVERITY_TO_CATEGORY[c.severity],
+      authored: 'ai_surfaced',
+      attribution: webAiAttribution(recordedAt, 'workspace:simulated_review'),
+    });
     if (p) risks.push(p);
   }
   const weakest = s.debate_result?.weakestClaim;
@@ -363,6 +414,8 @@ export function extractPredicatesFromSession(s: SessionPredicateInput): Predicat
       text: weakest,
       source: 'risk',
       category: DEBATE_SEVERITY_TO_CATEGORY[s.debate_result?.severity ?? ''] ?? 'manageable',
+      authored: 'ai_surfaced',
+      attribution: webAiAttribution(recordedAt, 'workspace:crew_dissent'),
     });
     if (p) risks.push(p);
   }
@@ -376,11 +429,11 @@ export function extractPredicatesFromSession(s: SessionPredicateInput): Predicat
  * Tools path (synthesize): the user's committed call on each conflict IS their
  * governing judgment — the bet they're making. Map each resolved conflict to a
  * governing_idea predicate so a synthesize project can seal + settle like the
- * voyage (North-Star C). These are the user's OWN words, never machine-surfaced —
- * `authored` is left absent, which the track record reads as the user's own.
+ * voyage (North-Star C). These are the user's OWN words, never machine-surfaced.
  */
 export function extractPredicatesFromSynthesis(
   conflicts: { topic?: string; user_judgment?: string }[],
+  recordedAt = Date.now(),
 ): Predicate[] {
   const byId = new Map<string, Predicate>();
   for (const c of conflicts) {
@@ -390,7 +443,13 @@ export function extractPredicatesFromSynthesis(
     const text = topic ? `${topic}: ${judgment}` : judgment;
     const id = stablePredicateId('governing_idea', text);
     if (byId.has(id)) continue;
-    byId.set(id, { id, text, source: 'governing_idea' });
+    byId.set(id, {
+      id,
+      text,
+      source: 'governing_idea',
+      authored: 'user',
+      attribution: webUserAttribution(recordedAt, 'workspace:synthesis_judgment'),
+    });
   }
   return [...byId.values()].slice(0, MAX_PREDICATES);
 }
@@ -458,7 +517,13 @@ export function buildEarlyContract(
   if (!hasLean && !hasCheckIn) return null; // honest-empty: nothing committed
 
   const predicates: Predicate[] = hasLean
-    ? [{ id: stablePredicateId('user_lean', lean!), text: lean!, source: 'user_lean', authored: 'user' }]
+    ? [{
+        id: stablePredicateId('user_lean', lean!),
+        text: lean!,
+        source: 'user_lean',
+        authored: 'user',
+        attribution: webUserAttribution(now, 'workspace:pre_review_baseline'),
+      }]
     : [];
 
   const base: DecisionContract = {
@@ -530,6 +595,25 @@ export function isResolved(p: Predicate): boolean {
   return !!p.verdict && p.verdict !== 'pending';
 }
 
+/** AI-surfaced premises remain useful watch items, but only a judgment the user
+ *  explicitly owns is required to close the return loop. */
+export function isUserOwnedPredicate(p: Predicate): boolean {
+  if (p.attribution?.authority === 'user_asserted' || p.attribution?.authority === 'user_adopted') return true;
+  if (p.attribution?.authority === 'ai_suggested' || p.attribution?.authority === 'unconfirmed') return false;
+  if (p.authored === 'user') return true;
+  if (p.authored === 'ai_surfaced') return false;
+  // Defensive legacy fallback: user_lean was the only source guaranteed to come
+  // directly from a human field before the richer attribution object existed.
+  return p.source === 'user_lean';
+}
+
+export function requiredSettlementPredicates(contract: Pick<DecisionContract, 'predicates'>): Predicate[] {
+  const predicates = Array.isArray(contract.predicates) ? contract.predicates : [];
+  const userOwned = predicates.filter(isUserOwnedPredicate);
+  // Preserve old records that have no attribution at all.
+  return userOwned.length > 0 ? userOwned : predicates;
+}
+
 /** Grade one predicate (immutable). Stamps graded_at; finalizes the contract once
  *  all are resolved. Re-tapping a verdict CLEARS any prior `basis` — the "why"
  *  no longer applies once the outcome itself changed. */
@@ -545,7 +629,8 @@ export function gradePredicate(
       ? { ...p, verdict, graded_at: verdict === 'pending' ? undefined : iso, basis: undefined }
       : p,
   );
-  const allResolved = predicates.length > 0 && predicates.every(isResolved);
+  const required = requiredSettlementPredicates({ predicates });
+  const allResolved = required.length > 0 && required.every(isResolved);
   return { ...contract, predicates, graded_at: allResolved ? iso : undefined };
 }
 
@@ -588,7 +673,7 @@ export interface ContractStatus {
 export function contractStatus(contract: DecisionContract, now: number): ContractStatus {
   // Defensive: remote/old/merged data may carry a malformed contract
   // (missing or non-array predicates). Never throw mid-render.
-  const preds = Array.isArray(contract?.predicates) ? contract.predicates : [];
+  const preds = requiredSettlementPredicates(contract);
   const total = preds.length;
   const graded = preds.filter(isResolved).length;
   const pending = total - graded;
@@ -672,25 +757,32 @@ export function summarizeGrades(contract: DecisionContract): GradeSummary {
       s.unknown++;
       continue;
     }
+    const aiSuggested = p.authored === 'ai_surfaced'
+      || p.attribution?.authority === 'ai_suggested'
+      || p.attribution?.authority === 'unconfirmed';
     if (p.source === 'risk') {
       if (p.verdict === 'avoided') {
-        s.risksAvoided++;
-        if (isLuckBasis(p.basis)) s.goodOutcomesOnLuck++;
-        if (p.authored === 'ai_surfaced') s.risksAvoidedAiDrafted++;
+        if (aiSuggested) {
+          s.risksAvoidedAiDrafted++;
+        } else {
+          s.risksAvoided++;
+          if (isLuckBasis(p.basis)) s.goodOutcomesOnLuck++;
+        }
       }
-      else if (p.verdict === 'happened') s.risksHappened++;
+      else if (p.verdict === 'happened' && !aiSuggested) s.risksHappened++;
     } else if (p.source === 'governing_idea' || p.source === 'user_lean') {
       // user_lean is the user's own pre-AI bet; it grades like a governing bet
       // (held → betsHeld). It is authored:'user', so it never counts as ai_surfaced.
       if (p.verdict === 'happened') {
-        s.betsHeld++;
-        if (isLuckBasis(p.basis)) s.goodOutcomesOnLuck++;
-        if (p.authored === 'ai_surfaced') {
+        if (aiSuggested) {
           s.betsHeldAiSurfaced++;
           s.betsHeldAiDrafted++;
+        } else {
+          s.betsHeld++;
+          if (isLuckBasis(p.basis)) s.goodOutcomesOnLuck++;
         }
       }
-      else if (p.verdict === 'avoided') s.betsBroke++;
+      else if (p.verdict === 'avoided' && !aiSuggested) s.betsBroke++;
     } else if (p.source === 'actor') {
       if (p.verdict === 'happened') s.rolesConfirmed++;
     }

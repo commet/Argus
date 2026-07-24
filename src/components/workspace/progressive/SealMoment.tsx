@@ -29,7 +29,7 @@
  * contract is read defensively so legacy localStorage sessions never crash.
  */
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { LocaleLink } from '@/components/ui/LocaleLink';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { Anchor, CalendarPlus, Check, ChevronDown, Target, AlertTriangle, GitBranch } from 'lucide-react';
@@ -38,7 +38,7 @@ import { useLocale } from '@/hooks/useLocale';
 import { useAuth } from '@/lib/auth';
 import { useProjectStore } from '@/stores/useProjectStore';
 import type { Project, Predicate, PredicateSource, CheckInInterval, OpenCheck } from '@/stores/types';
-import { contractFromPredicates, withCheckIn, augmentContract, shouldSealContract, buildEarlyContract, CHECK_IN_MS, DEFAULT_CHECK_IN_INTERVAL, intervalFromExistingContract } from '@/lib/decision-contract';
+import { contractFromPredicates, withCheckIn, augmentContract, shouldSealContract, buildEarlyContract, CHECK_IN_MS, DEFAULT_CHECK_IN_INTERVAL, intervalFromExistingContract, stablePredicateId, webUserAttribution } from '@/lib/decision-contract';
 import { derivePrimaryCheckpoint } from '@/lib/checkpoint-core';
 import { buildAutoTrackedPremiseItems } from '@/lib/auto-track-premises';
 import { useDecisionItemsStore } from '@/stores/useDecisionItemsStore';
@@ -49,6 +49,7 @@ import { withLocale } from '@/lib/locale-path';
 import { track } from '@/lib/analytics';
 import { getStorage, setStorage, STORAGE_KEYS } from '@/lib/storage';
 import { DecisionContractCard } from '@/components/projects/DecisionContractCard';
+import { JudgmentAttributionLine } from '@/components/projects/JudgmentAttributionLine';
 import { JudgmentReceipt, deriveReceiptFields } from '@/components/projects/JudgmentReceipt';
 import { RetroBadge } from '@/components/projects/RetroBadge';
 import { SealStamp } from './SealStamp';
@@ -168,6 +169,7 @@ export function SealMoment({
   const [dismissedLocally, setDismissedLocally] = useState(false);
   const dismissed = dismissedLocally || !!persistedDismissedAt;
   const [humanJudgment, setHumanJudgment] = useState('');
+  const sealedSceneRef = useRef<HTMLDivElement>(null);
 
   // Ceremony clock — the press lands ~380ms, the ink line finishes ~1650ms,
   // the certificate crossfades in at 1700ms. Cleanup guards unmount mid-scene.
@@ -179,6 +181,19 @@ export function SealMoment({
 
   // Defensive: legacy sessions may carry a malformed contract.
   const contract = project?.decision_contract ?? null;
+  const baselineJudgment = (contract?.judgment_receipt?.baseline_judgment
+    || contract?.predicates?.find((p) => p.source === 'user_lean')?.text
+    || '').trim();
+
+  // The certificate is the completion beat. Keep its first line below the sticky
+  // header instead of preserving a stale scroll position from the long document.
+  useEffect(() => {
+    if (scene !== 'sealed') return;
+    const frame = requestAnimationFrame(() => {
+      sealedSceneRef.current?.scrollIntoView({ behavior: reducedMotion ? 'auto' : 'smooth', block: 'start' });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [scene, reducedMotion]);
 
   // A genuinely flat decision (routine + reversible) is where NOT sealing is the
   // correct, spine-mandated restraint (P3 / over-fire clause). Everything else is a
@@ -263,7 +278,30 @@ export function SealMoment({
     setDismissedLocally(false);
     setSealPromptDismissed(false);
     const receiptFields = deriveReceiptFields(toSeal, typeof project.name === 'string' ? project.name : '');
-    const check_by = next.check_in_at ? new Date(next.check_in_at).toLocaleDateString(ko ? 'ko-KR' : 'en-US', { month: 'long', day: 'numeric' }) : '';
+    const finalJudgment = humanJudgment.trim() || baselineJudgment;
+    if (!humanJudgment.trim() && finalJudgment) setHumanJudgment(finalJudgment);
+    // The pre-review baseline is evidence of change, not the final prediction to
+    // score. When the user writes a closing judgment, replace the baseline
+    // predicate with that exact line and make it the primary return checkpoint.
+    const finalPredicate = finalJudgment
+      ? {
+          id: stablePredicateId('user_lean', finalJudgment),
+          text: finalJudgment,
+          source: 'user_lean' as const,
+          authored: 'user' as const,
+          attribution: webUserAttribution(now, 'workspace:closing_judgment'),
+        }
+      : null;
+    const finalized = finalPredicate
+      ? {
+          ...next,
+          predicates: [
+            finalPredicate,
+            ...(next.predicates || []).filter((p) => p.source !== 'user_lean' && p.id !== finalPredicate.id),
+          ].slice(0, 6),
+        }
+      : next;
+    const check_by = finalized.check_in_at ? new Date(finalized.check_in_at).toLocaleDateString(ko ? 'ko-KR' : 'en-US', { month: 'long', day: 'numeric' }) : '';
     // ALWAYS attach the receipt. The machine-derived fields (그때의 진짜 질문 /
     // 검증 안 된 가정) are computed regardless; only human_judgment is optional.
     // Previously the whole receipt was gated on the user typing a line, so the
@@ -271,30 +309,44 @@ export function SealMoment({
     // bare date + verdict chip with no then↔now to re-verify against. Empty
     // human_judgment renders nothing in JudgmentReceipt, so this costs the user
     // zero extra work while keeping the premise recall alive at settlement.
-    const judgment_receipt = { ...receiptFields, human_judgment: humanJudgment.trim(), check_by };
+    const judgment_receipt = {
+      ...receiptFields,
+      baseline_judgment: baselineJudgment || undefined,
+      human_judgment: finalJudgment,
+      judgment_attribution: finalPredicate?.attribution,
+      check_by,
+    };
     // Closing seal (닫는 봉인): stamp closed_at so a later reload shows the calm
     // contract card instead of re-playing the ceremony (the 298 gate reads it).
     const closed_at = closing ? new Date(now).toISOString() : next.closed_at;
     // checkpoints v2 §12 Phase 0 (W1): designate the primary checkpoint at seal —
     // preserve a carried one, else auto-construct from the top predicate + the
     // date handle. jsonb-nested (no migration); the return loop focuses here.
-    const primary_checkpoint = next.primary_checkpoint ?? derivePrimaryCheckpoint(next, undefined, new Date(now).toISOString().slice(0, 10)) ?? undefined;
+    const primary_checkpoint = derivePrimaryCheckpoint(
+      finalized,
+      finalPredicate ? {
+        predicate_id: finalPredicate.id,
+        check_prompt: finalPredicate.text,
+        authorship: 'user_authored',
+      } : finalized.primary_checkpoint,
+      new Date(now).toISOString().slice(0, 10),
+    ) ?? undefined;
     // loop-17 B — carry the kept open checks (preserve any already sealed on a re-seal).
-    const open_checks = next.open_checks ?? (keptChecks.length ? keptChecks : undefined);
-    updateProject(project.id, { decision_contract: { ...next, judgment_receipt, closed_at, primary_checkpoint, open_checks } });
+    const open_checks = finalized.open_checks ?? (keptChecks.length ? keptChecks : undefined);
+    updateProject(project.id, { decision_contract: { ...finalized, judgment_receipt, closed_at, primary_checkpoint, open_checks } });
     autoTrackPremises(now);
     // Cross-surface return loop: if this logged-in user connected Telegram, mirror
     // the sealed contract into the one push channel that actually fires on the date
     // (the daily cron reads telegram_decisions, which web seals never wrote). Server
     // no-ops for unconnected users; fire-and-forget so it never blocks the seal.
-    const sharp = next.predicates[0]?.text;
-    if (user && session?.access_token && next.check_in_at && sharp) {
+    const sharp = finalized.predicates[0]?.text;
+    if (user && session?.access_token && finalized.check_in_at && sharp) {
       syncSealToTelegram({
         accessToken: session.access_token,
         projectId: project.id,
         decision: typeof project.name === 'string' ? project.name : '',
         predicate: sharp,
-        checkInAt: next.check_in_at,
+        checkInAt: finalized.check_in_at,
       });
     }
     setInterval(iv);
@@ -307,9 +359,9 @@ export function SealMoment({
     // nothing. Accepting the seal is the strongest engagement signal the
     // product has. Not already sealed → only count the first seal.
     if (firstSeal) {
-      recordSignal({ project_id: project.id, tool: 'voyage', signal_type: 'seal_accepted', signal_data: { interval: iv, predicates: next.predicates.length } });
+      recordSignal({ project_id: project.id, tool: 'voyage', signal_type: 'seal_accepted', signal_data: { interval: iv, predicates: finalized.predicates.length } });
       // Also in the main funnel (user_events) — this is the activation north-star.
-      track('decision_sealed', { interval: iv, predicates: next.predicates.length, augmented: !!existing, mode: decision.mode });
+      track('decision_sealed', { interval: iv, predicates: finalized.predicates.length, augmented: !!existing, mode: decision.mode });
       // Retro→real conversion signal (항목10): only if a retro loop was settled first.
       fireFirstRealSealAfterRetro();
     }
@@ -333,31 +385,65 @@ export function SealMoment({
       ? augmentContract(existing, [], now, iv)
       : buildEarlyContract(project.id, { lean: summary, interval: iv }, now);
     if (!c) return;
+    const baselineJudgment = c.judgment_receipt?.baseline_judgment
+      || c.predicates.find((p) => p.source === 'user_lean')?.text
+      || '';
+    const finalJudgment = humanJudgment.trim() || baselineJudgment || summary;
+    const finalPredicate = {
+      id: stablePredicateId('user_lean', finalJudgment),
+      text: finalJudgment,
+      source: 'user_lean' as const,
+      authored: 'user' as const,
+      attribution: webUserAttribution(now, 'workspace:closing_judgment_recovery'),
+    };
+    const finalized = {
+      ...c,
+      predicates: [
+        finalPredicate,
+        ...c.predicates.filter((p) => p.source !== 'user_lean' && p.id !== finalPredicate.id),
+      ].slice(0, 6),
+    };
     setDismissedLocally(false);
     setSealPromptDismissed(false);
-    const check_by = c.check_in_at ? new Date(c.check_in_at).toLocaleDateString(ko ? 'ko-KR' : 'en-US', { month: 'long', day: 'numeric' }) : '';
+    const check_by = finalized.check_in_at ? new Date(finalized.check_in_at).toLocaleDateString(ko ? 'ko-KR' : 'en-US', { month: 'long', day: 'numeric' }) : '';
     // ALWAYS attach the receipt (match the main seal path) so this recovery seal
     // also keeps a then↔now anchor at settlement; human_judgment stays optional.
-    const judgment_receipt = { real_question: summary, unverified_assumption: '', human_only: '', human_judgment: humanJudgment.trim(), check_by };
-    const closed_at = closing ? new Date(now).toISOString() : c.closed_at;
-    const primary_checkpoint = c.primary_checkpoint ?? derivePrimaryCheckpoint(c, undefined, new Date(now).toISOString().slice(0, 10)) ?? undefined;
-    const open_checks = c.open_checks ?? (keptChecks.length ? keptChecks : undefined);
-    updateProject(project.id, { decision_contract: { ...c, judgment_receipt, closed_at, primary_checkpoint, open_checks } });
+    const judgment_receipt = {
+      real_question: summary,
+      unverified_assumption: '',
+      human_only: '',
+      baseline_judgment: baselineJudgment || undefined,
+      human_judgment: finalJudgment,
+      judgment_attribution: finalPredicate.attribution,
+      check_by,
+    };
+    const closed_at = closing ? new Date(now).toISOString() : finalized.closed_at;
+    const primary_checkpoint = derivePrimaryCheckpoint(
+      finalized,
+      {
+        predicate_id: finalPredicate.id,
+        check_prompt: finalPredicate.text,
+        authorship: 'user_authored',
+      },
+      new Date(now).toISOString().slice(0, 10),
+    ) ?? undefined;
+    const open_checks = finalized.open_checks ?? (keptChecks.length ? keptChecks : undefined);
+    updateProject(project.id, { decision_contract: { ...finalized, judgment_receipt, closed_at, primary_checkpoint, open_checks } });
     autoTrackPremises(now);
-    const sharp = c.predicates[0]?.text;
-    if (user && session?.access_token && c.check_in_at && sharp) {
+    const sharp = finalized.predicates[0]?.text;
+    if (user && session?.access_token && finalized.check_in_at && sharp) {
       syncSealToTelegram({
         accessToken: session.access_token,
         projectId: project.id,
         decision: summary,
         predicate: sharp,
-        checkInAt: c.check_in_at,
+        checkInAt: finalized.check_in_at,
       });
     }
     setInterval(iv);
     setScene(reducedMotion ? 'sealed' : 'sealing');
-    recordSignal({ project_id: project.id, tool: 'voyage', signal_type: 'seal_accepted', signal_data: { interval: iv, predicates: c.predicates.length, mode: 'manual_recovery' } });
-    track('decision_sealed', { interval: iv, predicates: c.predicates.length, mode: 'manual_recovery' });
+    recordSignal({ project_id: project.id, tool: 'voyage', signal_type: 'seal_accepted', signal_data: { interval: iv, predicates: finalized.predicates.length, mode: 'manual_recovery' } });
+    track('decision_sealed', { interval: iv, predicates: finalized.predicates.length, mode: 'manual_recovery' });
     // Retro→real conversion signal (항목10): only if a retro loop was settled first.
     fireFirstRealSealAfterRetro();
   }
@@ -485,6 +571,7 @@ export function SealMoment({
   // promoted to look user-authored (CLAUDE.md rule 1).
   const certQuote = (contract?.judgment_receipt?.human_judgment || humanJudgment).trim();
   const certPredicate = (contract?.predicates?.[0]?.text || kept[0]?.text || '').trim();
+  const certAttribution = contract?.judgment_receipt?.judgment_attribution;
 
   // ════ ASK → SEALING → SEALED — one keyed scene under AnimatePresence, so the
   //      ask card exits like paper being pressed away instead of vanishing. ════
@@ -527,7 +614,8 @@ export function SealMoment({
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, ease: EASE }}
-        className="mt-10"
+        ref={sealedSceneRef}
+        className="mt-10 scroll-mt-24"
       >
         {/* ── 증서 플레이트 — the object worth keeping ── */}
         <div className="relative overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 md:p-8 text-left">
@@ -550,9 +638,30 @@ export function SealMoment({
               <p className="mt-2 text-[15px] font-semibold text-[var(--text-primary)] leading-[1.4]">{project.name}</p>
             )}
             {certQuote ? (
-              <p className="mt-3 text-[16px] text-[var(--text-primary)] leading-[1.6]" style={{ fontFamily: 'var(--font-voice, serif)' }}>
-                &ldquo;{certQuote}&rdquo;
-              </p>
+              baselineJudgment && baselineJudgment !== certQuote ? (
+                <div className="mt-4 space-y-3">
+                  <div>
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--text-tertiary)]">
+                      {L('검토 전 기준점', 'Before the review')}
+                    </p>
+                    <p className="mt-1 text-[13px] leading-[1.55] text-[var(--text-secondary)]" style={{ fontFamily: 'var(--font-voice, serif)' }}>
+                      &ldquo;{baselineJudgment}&rdquo;
+                    </p>
+                  </div>
+                  <div className="border-t border-[var(--border)] pt-3">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--accent)]">
+                      {L('검토 뒤 내가 확정한 판단', 'My judgment after the review')}
+                    </p>
+                    <p className="mt-1 text-[16px] leading-[1.6] text-[var(--text-primary)]" style={{ fontFamily: 'var(--font-voice, serif)' }}>
+                      &ldquo;{certQuote}&rdquo;
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <p className="mt-3 text-[16px] text-[var(--text-primary)] leading-[1.6]" style={{ fontFamily: 'var(--font-voice, serif)' }}>
+                  &ldquo;{certQuote}&rdquo;
+                </p>
+              )
             ) : certPredicate ? (
               <div className="mt-3">
                 <p className="text-[10.5px] text-[var(--text-tertiary)]">{L('AI가 대신 적어둔 확인 질문', 'A check question Argus drafted for you')}</p>
@@ -561,6 +670,13 @@ export function SealMoment({
                 </p>
               </div>
             ) : null}
+            {certQuote && (
+              <JudgmentAttributionLine
+                attribution={certAttribution}
+                locale={ko ? 'ko' : 'en'}
+                className="mt-2"
+              />
+            )}
           </div>
           <p className="relative mt-5 pt-3 border-t border-[var(--border)] text-[13px] text-[var(--text-secondary)] leading-[1.6]">
             {L(`이 판단의 답은 이제 현실만 갖고 있어요 — ${checkDateStr}, 「그래서, 어떻게 됐어요?」 ⚓`,
@@ -704,10 +820,11 @@ export function SealMoment({
       transition={{ duration: 0.6, ease: EASE }}
       className="mt-12"
     >
-      {/* A divider that reads as a scene change — "one last thing". */}
+      {/* This is not a second copy of the opening capture. The opening line was
+          the pre-review baseline; this closes the reviewed judgment. */}
       <div className="flex items-center gap-3 mb-8 text-[var(--text-tertiary)]/50">
         <div className="h-px flex-1 bg-[var(--border-subtle)]" />
-        <span className="text-[11px] font-medium tracking-wide uppercase">{L('마지막으로', 'One last thing')}</span>
+        <span className="text-[11px] font-medium tracking-wide uppercase">{L('검토의 끝 · 판단 기록', 'Close the review · decision record')}</span>
         <div className="h-px flex-1 bg-[var(--border-subtle)]" />
       </div>
 
@@ -717,8 +834,8 @@ export function SealMoment({
         </div>
         <h3 className="mt-4 text-[19px] md:text-[21px] font-bold text-[var(--text-primary)] leading-[1.35] max-w-md mx-auto">
           {L(
-            `이 결정, ${dateFor(interval)}에 어떻게 됐는지 물어봐 드릴까요?`,
-            `Want me to ask you on ${dateFor(interval)} how this decision turned out?`,
+            `검토 뒤의 판단을 남기고, ${dateFor(interval)}에 현실과 확인할까요?`,
+            `Keep the judgment after this review and check it against reality on ${dateFor(interval)}?`,
           )}
         </h3>
         {/* Nothing between the question and the choice (cleared 2026-07-20).
@@ -744,6 +861,7 @@ export function SealMoment({
                 unverified_assumption={rf.unverified_assumption}
                 human_only={rf.human_only}
                 check_by={check_by}
+                baselineJudgment={baselineJudgment}
                 humanJudgment={humanJudgment}
                 onJudgmentChange={setHumanJudgment}
                 locale={ko ? 'ko' : 'en'}
@@ -790,7 +908,7 @@ export function SealMoment({
             style={{ background: 'var(--gradient-gold)' }}
           >
             <Check size={15} />
-            {L(`네 — ${dateFor(interval)}에 물어봐 주세요`, `Yes — ask me on ${dateFor(interval)}`)}
+            {L(`판단 기록 확정 · ${dateFor(interval)}에 확인`, `Confirm this judgment · check on ${dateFor(interval)}`)}
           </button>
           <button
             onClick={() => {
@@ -812,7 +930,7 @@ export function SealMoment({
           onClick={() => setDrawerOpen((o) => !o)}
           className="mt-5 inline-flex items-center gap-1 text-[12px] font-medium text-[var(--text-tertiary)] hover:text-[var(--accent)] transition-colors cursor-pointer"
         >
-          {L(`날짜 바꾸기 · 예측 ${kept.length}개 보기`, `Change date · review ${kept.length} prediction${kept.length === 1 ? '' : 's'}`)}
+          {L(`확인일 바꾸기 · Argus가 짚은 항목 보기`, `Change date · see what Argus surfaced`)}
           <ChevronDown size={13} className={`transition-transform ${drawerOpen ? 'rotate-180' : ''}`} />
         </button>
 

@@ -505,8 +505,16 @@ export async function runPipeline(
       };
     }
 
-    // 현재 스테이지의 결과 수집용
+    // Current-stage results start with READY outputs from before the retry.
+    // Previously a resumed pipeline seeded them globally, then overwrote the
+    // stage with an empty map after runAllAIWorkers correctly skipped completed
+    // workers. Downstream stages therefore saw completed work as MISSING and
+    // either fabricated around the gap or failed again.
     const currentStageResults = new Map<string, string>();
+    for (const worker of stageWorkers) {
+      const output = readyOutput(worker);
+      if (output) currentStageResults.set(worker.id, output);
+    }
 
     // 기존 runAllAIWorkers 패턴으로 스테이지 내 병렬 실행 (게이트 통과한 워커만)
     await runAllAIWorkers(runnableWorkers, enrichedContext, {

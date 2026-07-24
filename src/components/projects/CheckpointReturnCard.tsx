@@ -55,6 +55,7 @@ export function CheckpointReturnCard({
   const ko = locale === 'ko';
   const L = (k: string, e: string) => (ko ? k : e);
   const expectation = checkpoint.expectation ?? 'occur';
+  const userOwned = checkpoint.authorship === 'user_authored' || checkpoint.authorship === 'user_edited';
 
   // Which tap is currently reflected by the stored verdict (for the selected ring).
   const selectedTap: ReturnTap | null =
@@ -79,8 +80,12 @@ export function CheckpointReturnCard({
         </span>
       </div>
 
-      {/* 그때의 판단 — verbatim, never re-summarized (W4). */}
-      <p className="text-[11px] font-semibold text-[var(--text-tertiary)]">{L('그때의 판단', 'The call you made')}</p>
+      {/* Do not transfer authorship merely because the user kept an AI draft. */}
+      <p className="text-[11px] font-semibold text-[var(--text-tertiary)]">
+        {userOwned
+          ? L('그때 내가 확정한 판단', 'The judgment you chose')
+          : L('Argus가 함께 확인하자고 제안한 항목', 'A check Argus suggested')}
+      </p>
       <p className="text-[13.5px] text-[var(--text-primary)] leading-[1.5] mt-0.5">{checkpoint.check_prompt}</p>
 
       {checkpoint.expected_signal && (
@@ -90,7 +95,11 @@ export function CheckpointReturnCard({
         </>
       )}
 
-      <p className="text-[12px] text-[var(--text-secondary)] mt-3 mb-1.5">{L('지금 보기엔 어땠나요?', 'How does it look now?')}</p>
+      <p className="text-[12px] text-[var(--text-secondary)] mt-3 mb-1.5">
+        {userOwned
+          ? L('현실과 대조해 보면 어땠나요?', 'How did it hold up against reality?')
+          : L('지금 확인해 보면 이 전제는 어땠나요?', 'What happened to this assumption?')}
+      </p>
       <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:gap-1.5">
         {TAPS.map((t) => {
           const selected = t.value === 'unclear' ? showReasons || selectedTap === 'unclear' : selectedTap === t.value;

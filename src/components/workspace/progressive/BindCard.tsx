@@ -118,13 +118,13 @@ export function BindCard({
       transition={{ duration: 0.25 }}
       className="mx-auto w-full max-w-xl"
     >
-      <div className="overflow-hidden rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] shadow-sm">
+      <div className="overflow-hidden rounded-[18px] border border-[var(--border-subtle)] bg-[var(--surface)] shadow-sm">
         {/* The user's own words come first. The previous layout asked for a lean
             before visually re-establishing what the person had actually said,
             making the machine's prompt feel like the subject. */}
         {problem && (
-          <figure className="border-b border-[var(--border-subtle)] bg-[var(--bg)]/55 px-6 py-5">
-            <figcaption className="mb-2 flex items-center justify-between gap-3 text-[10px] font-bold tracking-[0.12em] text-[var(--accent)]">
+          <figure className="border-b border-[var(--border-subtle)] bg-[var(--bg)]/55 px-4 py-3.5 sm:px-5">
+            <figcaption className="mb-1.5 flex items-center justify-between gap-3 text-[10px] font-bold tracking-[0.12em] text-[var(--accent)]">
               <span className="flex items-center gap-2">
                 <Quote size={12} aria-hidden />
                 {L('내가 적은 상황 · 원문', 'What I wrote · original')}
@@ -141,7 +141,7 @@ export function BindCard({
               )}
             </figcaption>
             <blockquote
-              className={`text-[17px] font-semibold leading-[1.55] text-[var(--text-primary)] ${problemExpanded ? 'whitespace-pre-wrap break-words' : 'line-clamp-4'}`}
+              className={`text-[15.5px] font-semibold leading-[1.5] text-[var(--text-primary)] ${problemExpanded ? 'whitespace-pre-wrap break-words' : 'line-clamp-3'}`}
               style={{ fontFamily: 'var(--font-display)' }}
             >
               {problem}
@@ -152,27 +152,28 @@ export function BindCard({
             Even when present, it follows the source record so an AI reframing
             can never visually precede what the person actually wrote. */}
         {recognition && (
-          <div className="mx-6 mt-5 rounded-xl border border-[var(--accent)]/20 bg-[var(--ai)]/40 px-4 py-3">
-            <p className="mb-1.5 text-[10.5px] font-semibold uppercase tracking-[0.16em] text-[var(--accent)]">
-              {L('Argus가 찾은 진짜 질문', 'The real question Argus surfaced')}
+          <div className="mx-4 mt-3 rounded-xl border border-[var(--accent)]/20 bg-[var(--ai)]/35 px-3.5 py-2.5 sm:mx-5">
+            <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--accent)]">
+              {L('Argus가 먼저 짚은 한 질문 · AI', 'One question Argus surfaced · AI')}
             </p>
-            <p className="text-[14.5px] font-semibold leading-snug text-[var(--text-primary)]" style={{ fontFamily: 'var(--font-display)' }}>
+            <p className="line-clamp-2 text-[13.5px] font-semibold leading-[1.45] text-[var(--text-primary)]" style={{ fontFamily: 'var(--font-display)' }}>
               {recognition}
             </p>
           </div>
         )}
 
-        <div className="px-6 py-6">
+        <div className="px-4 py-4 sm:px-5 sm:py-5">
           <p className="text-[10px] font-bold tracking-[0.12em] text-[var(--text-tertiary)]">
-            {L('답을 듣기 전 · 선택', 'Before the answer · optional')}
+            {L('검토 전 기준점 · 선택', 'Before-review baseline · optional')}
           </p>
-          <h2 className="mt-1.5 text-[20px] font-bold leading-snug text-[var(--text-primary)]" style={{ fontFamily: 'var(--font-display)' }}>
-            {recognition
-              ? L('이 질문을 두고, 지금 생각은 어디에 가까워요?', 'Where is your thinking on this question right now?')
-              : L('지금 생각은 어디에 가까워요?', 'Where is your thinking right now?')}
+          <h2 className="mt-1 text-[18px] font-bold leading-snug text-[var(--text-primary)] sm:text-[19px]" style={{ fontFamily: 'var(--font-display)' }}>
+            {L('검토하기 전, 지금의 생각은 무엇인가요?', 'Before the review, what do you think right now?')}
           </h2>
-          <p className="mt-1.5 text-[12.5px] leading-snug text-[var(--text-tertiary)]">
-            {L('남기면 나중에 그대로 돌려드려요. 아직이면 건너뛰어도 돼요.', 'Leave a note and it will return unchanged later. Skip it if you are not sure yet.')}
+          <p className="mt-1 text-[12px] leading-[1.5] text-[var(--text-tertiary)]">
+            {L(
+              '이 문장은 검토 전 기준점으로만 남아요. 마지막에는 무엇이 바뀌었는지 보고 최종 판단을 따로 확정합니다.',
+              'This is only your pre-review baseline. At the end, you will see what changed and confirm a separate final judgment.',
+            )}
           </p>
 
           {/* One neutral optional line — never prefilled, never a fork. */}
@@ -193,13 +194,13 @@ export function BindCard({
             }}
             rows={2}
             placeholder={L('예: 지금은 연기하는 쪽에 가깝다 — 리스크가 더 커 보여서', 'e.g. I am closer to deferring — the risk looks bigger')}
-            className="mt-4 w-full resize-none rounded-xl border border-[var(--border-subtle)] bg-[var(--bg)] px-3.5 py-3 text-[14px] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:border-[var(--primary)] focus:outline-none"
+            className="mt-3 w-full resize-none rounded-xl border border-[var(--border-subtle)] bg-[var(--bg)] px-3.5 py-2.5 text-[14px] leading-6 text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:border-[var(--primary)] focus:outline-none"
           />
 
         {/* Check-in window — none preselected; an untapped default is never a commitment.
             Each chip shows its resolved date; "직접" picks a specific known day. */}
-        <div className="mt-3 flex items-center gap-2 flex-wrap">
-          <span className="text-[12px] text-[var(--text-tertiary)]">{L('확인일:', 'Check back:')}</span>
+        <div className="mt-2.5 flex items-center gap-1.5 overflow-x-auto pb-1">
+          <span className="shrink-0 text-[11.5px] text-[var(--text-tertiary)]">{L('현실과 확인:', 'Check reality:')}</span>
           {INTERVALS.map((iv) => (
             <button
               key={iv.value}
@@ -207,7 +208,7 @@ export function BindCard({
               onClick={() => { setInterval(interval === iv.value ? null : iv.value); setCustomDate(''); }}
               disabled={proceeding}
               aria-pressed={interval === iv.value && !customDate}
-              className={`rounded-full border px-3 py-1 text-[12.5px] transition-colors ${
+              className={`shrink-0 rounded-full border px-2.5 py-1 text-[11.5px] transition-colors ${
                 interval === iv.value && !customDate
                   ? 'border-[var(--primary)] bg-[var(--primary)] text-[var(--bg)]'
                   : 'border-[var(--border-subtle)] text-[var(--text-secondary)] hover:border-[var(--text-tertiary)]'
@@ -222,7 +223,7 @@ export function BindCard({
             min={minimumCustomDate}
             disabled={proceeding}
             onChange={(e) => { setCustomDate(e.target.value); if (e.target.value) setInterval(null); }}
-            className={`rounded-full border px-2.5 py-1 text-[12px] bg-[var(--bg)] cursor-pointer ${
+            className={`w-[116px] shrink-0 rounded-full border bg-[var(--bg)] px-2 py-1 text-[11px] cursor-pointer ${
               customDate ? 'border-[var(--primary)] text-[var(--primary)]' : 'border-[var(--border-subtle)] text-[var(--text-secondary)]'
             }`}
             aria-label={L('직접 확인일 고르기', 'Pick a custom review date')}
@@ -230,15 +231,15 @@ export function BindCard({
           />
         </div>
 
-        <div className="mt-6 flex items-center justify-between gap-3">
+        <div className="mt-4 flex items-center justify-between gap-3">
           {/* Dominant, unconditional skip. */}
           <button
             type="button"
             onClick={skip}
             disabled={proceeding}
-            className="text-[13.5px] font-semibold text-[var(--text-secondary)] hover:text-[var(--text-primary)] disabled:cursor-wait disabled:opacity-50"
+            className="min-h-11 text-left text-[12.5px] font-semibold text-[var(--text-secondary)] hover:text-[var(--text-primary)] disabled:cursor-wait disabled:opacity-50"
           >
-            {L('아직 잘 모르겠어요 →', "I'm not sure yet →")}
+            {L('아직 잘 모르겠어요 · 건너뛰기', "I'm not sure yet · skip")}
           </button>
 
           {/* Secondary — only meaningful once there's something to tie. */}
@@ -246,22 +247,19 @@ export function BindCard({
             type="button"
             onClick={tie}
             disabled={!hasCommitment || proceeding}
-            className={`inline-flex items-center gap-1.5 rounded-xl px-4 py-2 text-[13.5px] font-semibold transition-opacity ${
+            className={`inline-flex min-h-11 items-center justify-center gap-1.5 rounded-xl px-3.5 py-2 text-[12.5px] font-semibold transition-opacity ${
               hasCommitment && !proceeding
                 ? 'bg-[var(--primary)] text-[var(--bg)]'
                 : 'cursor-default bg-[var(--surface-2)] text-[var(--text-tertiary)] opacity-50'
             }`}
           >
-            {L('생각 남기고 계속', 'Save view & continue')}
+            {L('기준점 남기고 계속', 'Keep baseline & continue')}
             <ArrowRight size={15} />
           </button>
         </div>
 
-        {/* Progress signal (06 S3) — the read the user asked for IS running behind
-            this card (buffered by design); say so in one machine-status sentence.
-            No spinner: the analysis stays buffered, this is orientation only. */}
-        <p className="mt-4 text-[12px] leading-snug text-[var(--text-secondary)]">
-          {L('AI 검토자가 이미 읽고 있어요.', 'AI reviewers are already reading this.')}
+        <p className="mt-2 text-[11.5px] leading-[1.45] text-[var(--text-tertiary)]">
+          {L('다음에는 결론을 바꿀 수 있는 한 가지 질문부터 봅니다.', 'Next, start with the one question that could change the call.')}
         </p>
         </div>
       </div>
