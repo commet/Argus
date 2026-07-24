@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { DecisionContract } from '@/stores/types';
 import { gradePredicate } from '../decision-contract';
-import { applySettlementReceipt, settlementWhatHappenedLine } from '../settlement-receipt';
+import { applySettlementReceipt } from '../settlement-receipt';
 
 const contract: DecisionContract = {
   id: 'c1',
@@ -19,19 +19,19 @@ const contract: DecisionContract = {
 };
 
 describe('settlement receipt contract', () => {
-  it('fills WHAT HAPPENED on the same tap that records the verdict', () => {
+  it('records settlement time without inventing a description of reality', () => {
     const now = Date.UTC(2026, 6, 7, 9);
     const graded = gradePredicate(contract, 'pred_1', 'missed', now);
-    const settled = applySettlementReceipt(graded, 'missed', new Date(now).toISOString(), 'ko');
+    const settled = applySettlementReceipt(graded, 'missed', new Date(now).toISOString());
 
     expect(settled.predicates[0].verdict).toBe('missed');
-    expect(settled.judgment_receipt?.what_happened).toBe('빗나갔다');
+    expect(settled.judgment_receipt?.what_happened).toBeUndefined();
     expect(settled.judgment_receipt?.settled_at).toBe('2026-07-07T09:00:00.000Z');
     expect(settled.judgment_receipt).not.toHaveProperty('ai_verdict');
   });
 
   it('keeps a user narrative if they typed one before tapping', () => {
-    const settled = applySettlementReceipt(contract, 'partial', '2026-07-07T09:00:00.000Z', 'ko', 'conversion landed at 3.2%');
+    const settled = applySettlementReceipt(contract, 'partial', '2026-07-07T09:00:00.000Z', 'conversion landed at 3.2%');
 
     expect(settled.judgment_receipt?.what_happened).toBe('conversion landed at 3.2%');
   });
@@ -41,10 +41,17 @@ describe('settlement receipt contract', () => {
       .toBeUndefined();
   });
 
-  it('maps the four visible taps into neutral receipt lines', () => {
-    expect(settlementWhatHappenedLine('happened', 'ko')).toBe('대체로 맞았다');
-    expect(settlementWhatHappenedLine('missed', 'ko')).toBe('빗나갔다');
-    expect(settlementWhatHappenedLine('partial', 'ko')).toBe('부분적으로 맞았다');
-    expect(settlementWhatHappenedLine('unknown', 'ko')).toBe('아직 판단하기 어렵다');
+  it('preserves an earlier user narrative when the structured verdict changes', () => {
+    const withNarrative: DecisionContract = {
+      ...contract,
+      judgment_receipt: {
+        ...contract.judgment_receipt!,
+        what_happened: 'conversion landed at 3.2%',
+      },
+    };
+    const settled = applySettlementReceipt(withNarrative, 'missed', '2026-07-08T09:00:00.000Z');
+
+    expect(settled.judgment_receipt?.what_happened).toBe('conversion landed at 3.2%');
+    expect(settled.judgment_receipt?.settled_at).toBe('2026-07-08T09:00:00.000Z');
   });
 });

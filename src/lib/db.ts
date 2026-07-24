@@ -157,17 +157,31 @@ async function loadAndMergeUncached<T extends Timestamped>(
     // Save merged back to localStorage
     setStorage(storageKey, merged);
 
-    // Push any local-only items to Supabase
-    const remoteIds = new Set(remote.map(r => r.id));
-    const localOnly = merged.filter(m => !remoteIds.has(m.id));
-    if (localOnly.length > 0) {
-      await supabase
+    // Retry everything whose local timestamp is newer, not just brand-new IDs.
+    // A failed write for an EXISTING decision used to survive the merge locally
+    // but was excluded from `localOnly`, leaving cloud backup pending forever
+    // until the user happened to edit it again.
+    const remoteById = new Map(remote.map((item) => [item.id, item]));
+    const pendingUpload = merged.filter((item) => {
+      const remoteItem = remoteById.get(item.id);
+      if (!remoteItem) return true;
+      const localTime = item.updated_at || item.created_at || '';
+      const remoteTime = remoteItem.updated_at || remoteItem.created_at || '';
+      return localTime > remoteTime;
+    });
+    if (pendingUpload.length > 0) {
+      const { error: pushError } = await supabase
         .from(table)
         .upsert(
-          localOnly.map(item => ({ ...sanitizeItem(item), user_id: userId })),
+          pendingUpload.map(item => ({ ...sanitizeItem(item), user_id: userId })),
           { onConflict: upsertConflictTarget(table) },
-        )
-        .then(({ error }) => { if (error) { log.error(`push local-only to ${table}: ${error.message}`, { context: 'db' }); reportSyncFailure(`push:${table}`, { message: error.message }); } });
+        );
+      if (pushError) {
+        log.error(`push pending local rows to ${table}: ${pushError.message}`, { context: 'db' });
+        reportSyncFailure(`push:${table}`, { message: pushError.message });
+      } else {
+        reportSyncSuccess();
+      }
     }
 
     return merged;
@@ -264,6 +278,7 @@ export async function upsertToSupabase(table: TableName, item: any): Promise<voi
     } else { reportSyncSuccess(); } // P1-C1: green badge only after a confirmed write
   } catch (err) {
     handleError(err, `db.upsert:${table}`);
+    reportSyncFailure(`upsert:${table}`, { message: err instanceof Error ? err.message : 'unknown' });
   }
 }
 

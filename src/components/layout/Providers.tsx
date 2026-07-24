@@ -5,6 +5,9 @@ import { usePathname } from 'next/navigation';
 import { stripLocale } from '@/lib/locale-path';
 import { AuthProvider } from '@/lib/auth';
 import { AccountSyncToast } from '@/components/ui/AccountSyncToast';
+import { SessionExpiredToast } from '@/components/ui/SessionExpiredToast';
+import { StorageErrorToast } from '@/components/ui/StorageErrorToast';
+import { Toast } from '@/components/ui/Toast';
 import { initErrorSensors } from '@/lib/error-sensors';
 import { useAgentStore } from '@/stores/useAgentStore';
 import { useSettingsStore } from '@/stores/useSettingsStore';
@@ -33,6 +36,17 @@ function StoreInitializer() {
     loadPersonas();
   }, [isMarketing, loadAgents, loadSettings, loadProjects, loadPersonas]);
 
+  useEffect(() => {
+    const retrySync = () => {
+      // The visible retry is deliberately scoped to decision records. Loading
+      // unrelated stores in parallel can emit a success that masks a failed
+      // project upload. loadAndMerge retries locally-newer project rows.
+      loadProjects();
+    };
+    window.addEventListener('argus:sync-retry', retrySync);
+    return () => window.removeEventListener('argus:sync-retry', retrySync);
+  }, [loadProjects]);
+
   return null;
 }
 
@@ -42,6 +56,12 @@ export function Providers({ children }: { children: React.ReactNode }) {
       <StoreInitializer />
       {children}
       <AccountSyncToast />
+      {/* System alerts must exist on every viewport. They used to sit inside
+          Header's desktop-only controls, so mobile storage failures and lapsed
+          sessions were completely silent. */}
+      <StorageErrorToast />
+      <SessionExpiredToast />
+      <Toast />
     </AuthProvider>
   );
 }

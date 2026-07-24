@@ -7,6 +7,10 @@ import { useAuth, hasKnownUser } from '@/lib/auth';
 
 type SyncState = 'idle' | 'synced' | 'syncing' | 'offline' | 'error' | 'backup_pending';
 
+function canRetryDecisionSync(context: string | null): boolean {
+  return !!context && /^(upsert|push|pull):projects$/.test(context);
+}
+
 /**
  * Sync status indicator — shows Supabase sync health.
  * Listens to custom events dispatched by db operations.
@@ -21,10 +25,11 @@ type SyncState = 'idle' | 'synced' | 'syncing' | 'offline' | 'error' | 'backup_p
  */
 export function SyncStatus() {
   const locale = useLocale();
-  const L = (ko: string, en: string) => locale === 'ko' ? ko : en;
+  const L = useCallback((ko: string, en: string) => locale === 'ko' ? ko : en, [locale]);
   const { user, loading: authLoading } = useAuth();
   const [state, setState] = useState<SyncState>('idle');
   const [lastError, setLastError] = useState<string | null>(null);
+  const [lastContext, setLastContext] = useState<string | null>(null);
   // Read in an effect (not during render) to avoid a hydration mismatch.
   const [knewYou, setKnewYou] = useState(false);
   useEffect(() => { setKnewYou(hasKnownUser()); }, [user]);
@@ -36,16 +41,25 @@ export function SyncStatus() {
     } else if (detail?.status === 'synced') {
       setState('synced');
       setLastError(null);
+      setLastContext(null);
     } else if (detail?.status === 'error') {
       setState('error');
       setLastError(detail?.message || L('동기화 실패', 'Sync failed'));
+      setLastContext(typeof detail?.context === 'string' ? detail.context : null);
     }
   }, [L]);
 
   useEffect(() => {
     // Detect online/offline. Coming back online returns to 'idle', not
     // 'synced' — we haven't confirmed a successful write yet (state facts only).
-    const handleOnline = () => setState(prev => prev === 'offline' ? 'idle' : prev);
+    const handleOnline = () => {
+      setState(prev => prev === 'offline' ? 'idle' : prev);
+      // Re-read local-first stores when connectivity returns. loadAndMerge
+      // retries locally-newer rows and emits a confirmed success/failure event.
+      if (user && canRetryDecisionSync(lastContext)) {
+        window.dispatchEvent(new CustomEvent('argus:sync-retry', { detail: { context: lastContext } }));
+      }
+    };
     const handleOffline = () => setState('offline');
 
     window.addEventListener('online', handleOnline);
@@ -59,7 +73,7 @@ export function SyncStatus() {
       window.removeEventListener('offline', handleOffline);
       window.removeEventListener('argus:sync', handleSyncEvent);
     };
-  }, [handleSyncEvent]);
+  }, [handleSyncEvent, lastContext, user]);
 
   // P2 honesty: a failed cloud write must NOT auto-flip to a green "Synced" — that's
   // a lie about the user's most important data (the sealed contract may not be in the
@@ -134,10 +148,32 @@ export function SyncStatus() {
     },
   }[state as Exclude<SyncState, 'idle'>]; // 'idle' returned null above
 
+  const retryable = (state === 'error' || state === 'backup_pending') && canRetryDecisionSync(lastContext);
+  const className = `inline-flex items-center gap-1.5 text-[11px] px-2 py-0.5 rounded-full border ${config.color} ${config.bg} ${config.border}`;
+
+  if (retryable) {
+    return (
+      <button
+        type="button"
+        className={`${className} min-h-8 cursor-pointer hover:brightness-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]`}
+        title={lastError || L('클라우드 백업 다시 시도', 'Retry cloud backup')}
+        onClick={() => {
+          setState('syncing');
+          window.dispatchEvent(new CustomEvent('argus:sync-retry', { detail: { context: lastContext } }));
+        }}
+      >
+        {config.icon}
+        <span>{config.label} · {L('다시 시도', 'Retry')}</span>
+      </button>
+    );
+  }
+
   return (
     <div
-      className={`inline-flex items-center gap-1.5 text-[11px] px-2 py-0.5 rounded-full border ${config.color} ${config.bg} ${config.border}`}
+      className={className}
       title={lastError || config.label}
+      role="status"
+      aria-live="polite"
     >
       {config.icon}
       <span>{config.label}</span>

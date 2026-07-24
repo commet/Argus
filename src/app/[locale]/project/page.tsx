@@ -754,7 +754,7 @@ export default function ProjectPage() {
                     </p>
                   </div>
                   <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-[var(--text-tertiary)] tabular-nums">
-                    {L(`${stats.total}건`, `${stats.total} decisions`)}
+                    {L(`${stats.total}건`, `${stats.total} decision${stats.total === 1 ? '' : 's'}`)}
                   </p>
                 </div>
 
@@ -834,7 +834,7 @@ export default function ProjectPage() {
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {filteredProjects.map((project) => {
+                  {filteredProjects.map((project, projectIndex) => {
                     const m = projectMetricsMap.get(project.id);
                     if (!m) return null;
                     const labels = locale === 'ko' ? STEP_LABELS_KO : STEP_LABELS_EN;
@@ -908,6 +908,7 @@ export default function ProjectPage() {
                             fill
                             sizes="(max-width: 768px) 100vw, 360px"
                             quality={75}
+                            priority={projectIndex < 3}
                             className="object-cover object-center opacity-80 transition-transform duration-500 group-hover:scale-[1.025]"
                           />
                           <span aria-hidden className="absolute inset-0 bg-[linear-gradient(180deg,rgba(2,25,24,.06),rgba(2,22,21,.38))]" />

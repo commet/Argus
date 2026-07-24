@@ -41,7 +41,12 @@ interface SettleProps {
   onWhatHappenedChange: (value: string) => void;
   whatHappened: string;
   onSave?: (whatHappened: string) => void;
+  onClear?: () => void;
   locale: 'ko' | 'en';
+  /** Split the return receipt around the single outcome tap. */
+  section?: 'all' | 'anchor' | 'outcome';
+  /** A structured outcome tap has already been persisted. */
+  outcomeRecorded?: boolean;
 }
 
 type Props = SealProps | SettleProps;
@@ -109,89 +114,142 @@ export function JudgmentReceipt(props: Props) {
   }
 
   // mode === 'settle'
-  const { receipt, sealedOn, whatHappened, onWhatHappenedChange, onSave } = props;
-  const visibleWhatHappened = whatHappened || receipt.what_happened || '';
+  const {
+    receipt,
+    sealedOn,
+    whatHappened,
+    onWhatHappenedChange,
+    onSave,
+    onClear,
+    section = 'all',
+    outcomeRecorded = false,
+  } = props;
+  // The parent initializes this draft from the saved receipt. Using `||` here
+  // made an intentionally-cleared input snap back to the stored value.
+  const visibleWhatHappened = whatHappened;
+  const showAnchor = section !== 'outcome';
+  const showOutcome = section !== 'anchor';
+  const hasSavedContext = !!(
+    receipt.real_question?.trim()
+    || receipt.unverified_assumption?.trim()
+    || receipt.human_only?.trim()
+  );
+
   return (
     <div className="rounded-xl border border-[var(--border)] overflow-hidden text-[13px] leading-[1.6]">
-      <div className="px-4 py-2.5 bg-[var(--surface)] border-b border-[var(--border)]">
-        <p className="text-[11px] text-[var(--text-muted)]">
-          {L(`${sealedOn}에 기록한 판단`, `Decision saved on ${sealedOn}`)}
-        </p>
-      </div>
-
-      {receipt.real_question && (
-        <div className="px-4 py-3 border-b border-[var(--border)]">
-          <p className="text-[11px] text-[var(--text-tertiary)] mb-1">
-            {L('그때의 진짜 질문', 'The real question then')}
-          </p>
-          <p className="text-[var(--text-primary)] font-medium" style={{ fontFamily: 'var(--font-voice, serif)' }}>
-            &ldquo;{receipt.real_question}&rdquo;
-          </p>
-        </div>
-      )}
-
-      {receipt.unverified_assumption && (
-        <div className="px-4 py-3 border-b border-[var(--border)]">
-          <p className="text-[11px] text-[var(--text-tertiary)] mb-1">
-            {L('그때 검증되지 않았던 가정', 'The unverified assumption then')}
-          </p>
-          <div className="rounded-lg bg-[var(--accent)]/[0.04] px-3 py-2">
-            <p className="text-[var(--text-secondary)]">{receipt.unverified_assumption}</p>
+      {showAnchor && (
+        <>
+          <div className="px-4 py-2.5 bg-[var(--surface)] border-b border-[var(--border)]">
+            <p className="text-[11px] text-[var(--text-muted)]">
+              {L(`${sealedOn}에 기록한 판단`, `Decision saved on ${sealedOn}`)}
+            </p>
           </div>
-        </div>
+
+          {receipt.human_judgment && (
+            <div className="px-4 py-3 bg-[var(--surface)]">
+              <p className="text-[11px] text-[var(--text-tertiary)] mb-1">
+                {L('그때 당신이 내린 판단', 'Your judgment then')}
+              </p>
+              <p className="text-[14px] leading-[1.55] text-[var(--text-primary)] font-medium" style={{ fontFamily: 'var(--font-voice, serif)' }}>
+                &ldquo;{receipt.human_judgment}&rdquo;
+              </p>
+            </div>
+          )}
+
+          {hasSavedContext && (
+            <details className="group border-t border-[var(--border)]">
+              <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 px-4 py-2 text-[11.5px] font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)]">
+                <span>{L('그날의 질문과 가정도 보기', 'See the question and assumptions saved that day')}</span>
+                <span aria-hidden className="text-[var(--text-tertiary)] transition-transform group-open:rotate-45">+</span>
+              </summary>
+              <div className="border-t border-[var(--border)] bg-[var(--bg)]/45 px-4 py-3 space-y-3">
+                {receipt.real_question && (
+                  <div>
+                    <p className="text-[10.5px] text-[var(--text-tertiary)] mb-1">
+                      {L('그때의 진짜 질문', 'The real question then')}
+                    </p>
+                    <p className="text-[var(--text-primary)] font-medium" style={{ fontFamily: 'var(--font-voice, serif)' }}>
+                      &ldquo;{receipt.real_question}&rdquo;
+                    </p>
+                  </div>
+                )}
+                {receipt.unverified_assumption && (
+                  <div>
+                    <p className="text-[10.5px] text-[var(--text-tertiary)] mb-1">
+                      {L('그때 검증되지 않았던 가정', 'The unverified assumption then')}
+                    </p>
+                    <p className="text-[var(--text-secondary)]">{receipt.unverified_assumption}</p>
+                  </div>
+                )}
+                {receipt.human_only && (
+                  <div>
+                    <p className="text-[10.5px] text-[var(--text-tertiary)] mb-1">
+                      {L('사람이 직접 판단하기로 한 것', 'What remained yours to judge')}
+                    </p>
+                    <p className="text-[var(--text-secondary)]">{receipt.human_only}</p>
+                  </div>
+                )}
+              </div>
+            </details>
+          )}
+        </>
       )}
 
-      {receipt.human_judgment && (
-        <div className="px-4 py-3 border-b border-[var(--border)] bg-[var(--surface)]">
+      {showOutcome && (
+        <div className={`px-4 py-3 ${showAnchor ? 'border-t border-[var(--border)]' : ''}`}>
           <p className="text-[11px] text-[var(--text-tertiary)] mb-1">
-            {L('그때 당신의 판단', 'Your judgment then')}
+            {outcomeRecorded
+              ? L('선택 사항 · 실제로 일어난 일', 'Optional · what actually happened')
+              : L('선택 사항 · 결과와 함께 남길 한 줄', 'Optional · one line to keep with your outcome')}
           </p>
-          <p className="text-[var(--text-primary)] font-medium">&ldquo;{receipt.human_judgment}&rdquo;</p>
-        </div>
-      )}
-
-      <div className="px-4 py-3">
-        <p className="text-[11px] text-[var(--text-tertiary)] mb-1.5">
-          {L('실제로 어떻게 됐나요?', 'What actually happened?')}
-        </p>
-        <div className="flex gap-2">
-          <input
-            type="text"
-            aria-label={L('실제로 일어난 일', 'What actually happened')}
-            value={visibleWhatHappened}
-            onChange={(e) => onWhatHappenedChange(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && !e.nativeEvent.isComposing && visibleWhatHappened.trim() && onSave) {
-                onSave(visibleWhatHappened.trim());
-              }
-            }}
-            placeholder={L('한 줄로 적어주세요', 'One line summary')}
-            maxLength={280}
-            className="flex-1 text-[13px] px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface-2)] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)]"
-          />
-          {onSave && visibleWhatHappened.trim() && visibleWhatHappened.trim() !== (receipt.what_happened || '').trim() && (
+          <p className="mb-2 text-[11px] leading-[1.45] text-[var(--text-muted)]">
+            {outcomeRecorded
+              ? L('결과 선택은 이미 저장됐어요. 나중에 기억할 구체적인 사실이 있다면 덧붙이세요.', 'Your outcome choice is already saved. Add a concrete fact only if it will help later.')
+              : L('이 메모는 필수가 아니에요. 결과 선택만으로도 기록은 남습니다.', 'This note is not required. The outcome tap is enough to keep the record.')}
+          </p>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              aria-label={L('실제로 일어난 일', 'What actually happened')}
+              value={visibleWhatHappened}
+              onChange={(e) => onWhatHappenedChange(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.nativeEvent.isComposing && visibleWhatHappened.trim() && onSave) {
+                  onSave(visibleWhatHappened.trim());
+                }
+              }}
+              placeholder={L('예: 2주차 재방문율은 24%였다', 'For example: week-two retention was 24%')}
+              maxLength={280}
+              className="min-w-0 flex-1 text-[13px] px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface-2)] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)]"
+            />
+            {onSave && visibleWhatHappened.trim() && visibleWhatHappened.trim() !== (receipt.what_happened || '').trim() && (
+              <button
+                type="button"
+                onClick={() => onSave(visibleWhatHappened.trim())}
+                className="min-h-11 px-3 py-2 rounded-lg text-[12px] font-medium border border-[var(--accent)] text-[var(--accent)] hover:bg-[var(--accent)] hover:text-white transition-colors shrink-0"
+              >
+                {L('저장', 'Save')}
+              </button>
+            )}
+          </div>
+          <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[10px] font-semibold tracking-[0.12em] text-[var(--text-tertiary)]">
+            <span>WHAT HAPPENED -- {visibleWhatHappened.trim() || (ko ? '비어 있음' : 'EMPTY')}</span>
+            <span>AI VERDICT -- NONE</span>
+          </div>
+          {onClear && receipt.what_happened?.trim() && (
             <button
               type="button"
-              onClick={() => onSave(visibleWhatHappened.trim())}
-              className="px-3 py-2 rounded-lg text-[12px] font-medium border border-[var(--accent)] text-[var(--accent)] hover:bg-[var(--accent)] hover:text-white transition-colors shrink-0"
+              onClick={onClear}
+              className="mt-2 text-[11px] text-[var(--text-tertiary)] underline underline-offset-2 hover:text-[var(--danger)] cursor-pointer transition-colors"
             >
-              {L('저장', 'Save')}
+              {L('이 메모 지우기', 'Remove this note')}
             </button>
           )}
+          <p className="mt-2 text-[11px] leading-[1.5] text-[var(--text-tertiary)]">
+            {L('처음 기록한 판단과 확인일에 실제로 일어난 일이 같은 기록에 함께 남습니다.', 'Your initial decision and what actually happened on the review date stay together in this record.')}
+          </p>
         </div>
-        <p className="mt-2 text-[10px] font-semibold tracking-[0.14em] text-[var(--text-tertiary)]">
-          WHAT HAPPENED -- {visibleWhatHappened.trim() || (ko ? '아직 비어 있음' : 'EMPTY')}
-        </p>
-        <p className="mt-1 text-[10px] font-semibold tracking-[0.14em] text-[var(--text-tertiary)]">
-          AI VERDICT -- NONE
-        </p>
-        {/* Lead with what the record IS (sealed prediction + reality's answer),
-            not with the absence of a verdict — the NONE mark above then needs no
-            defending. Positive framing, one quiet line. */}
-        <p className="mt-2 text-[11px] leading-[1.5] text-[var(--text-tertiary)]">
-          {L('처음 기록한 판단과, 확인일에 실제로 일어난 일 — 이 기록에는 두 내용을 함께 남깁니다.', 'Your initial decision and what actually happened on the review date stay together in this record.')}
-        </p>
-      </div>
+      )}
     </div>
   );
 }

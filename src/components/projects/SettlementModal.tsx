@@ -100,8 +100,10 @@ export function SettlementModal({
   const updateProject = useProjectStore((s) => s.updateProject);
   const projects = useProjectStore((s) => s.projects);
 
-  const [whatHappened, setWhatHappened] = useState('');
   const contract = project.decision_contract ?? null;
+  const [whatHappened, setWhatHappened] = useState(
+    () => contract?.judgment_receipt?.what_happened ?? '',
+  );
   // 회고(연습) 계약인가 — 이 표면 전체에서 「연습 · 회고」 배지를 상시 노출하는
   // 근거(C2). 정상 계약은 origin 부재 → false → 배지 미렌더(무영향).
   const isRetro = contract?.origin === 'retro';
@@ -216,8 +218,24 @@ export function SettlementModal({
         judgment_receipt: {
           ...existingReceipt,
           what_happened: text.trim(),
-          settled_at: new Date().toISOString(),
+          // Adding detail later must not rewrite when the outcome itself was
+          // settled. Preserve the original return receipt timestamp.
+          settled_at: existingReceipt.settled_at ?? new Date().toISOString(),
         },
+      },
+    });
+  }
+
+  function clearWhatHappened() {
+    const existingReceipt = contract?.judgment_receipt;
+    if (!existingReceipt?.what_happened) return;
+    const nextReceipt = { ...existingReceipt };
+    delete nextReceipt.what_happened;
+    setWhatHappened('');
+    updateProject(project.id, {
+      decision_contract: {
+        ...contract!,
+        judgment_receipt: nextReceipt,
       },
     });
   }
@@ -230,7 +248,6 @@ export function SettlementModal({
       graded,
       verdict,
       new Date(now).toISOString(),
-      ko ? 'ko' : 'en',
       whatHappened,
     );
     updateProject(project.id, { decision_contract: withReceipt });
@@ -351,9 +368,9 @@ export function SettlementModal({
             moment weight: a medallion + a line that names what's happening, so the
             settle feels like arriving in port, not filling a dialog. Mirrors the
             SealMoment scene at the other end of the loop. */}
-        <div className="flex flex-col items-center gap-3 pb-2 text-center sm:flex-row sm:items-center sm:text-left">
+        <div className="flex items-center gap-3 pb-1 text-left">
           {/* 돌아온 Argus가 직접 묻는다 — '제가 먼저 물어볼게요'의 그 감시자 */}
-          <ArgusMascot moment="returning" size="lg" alt={L('약속한 날 돌아온 Argus', 'Argus, back on the promised day')} className="max-sm:h-20 max-sm:w-20" />
+          <ArgusMascot moment="returning" size="md" alt={L('약속한 날 돌아온 Argus', 'Argus, back on the promised day')} className="shrink-0 max-sm:h-16 max-sm:w-16" />
           <div className="min-w-0">
             <p className="text-[15px] md:text-[17px] font-bold text-[var(--text-primary)] leading-[1.35]" style={{ fontFamily: 'var(--font-display)' }}>
               {L('그때 건 예측을, 이제 현실과 맞춰봐요', 'Time to check your prediction against what happened')}
@@ -372,6 +389,7 @@ export function SettlementModal({
         {contract.judgment_receipt && (
           <JudgmentReceipt
             mode="settle"
+            section="anchor"
             receipt={contract.judgment_receipt}
             sealedOn={sealedOn}
             whatHappened={whatHappened}
@@ -400,7 +418,7 @@ export function SettlementModal({
         )}
 
         {/* Judgment checkpoint (§7): the focused 4-tap for the primary predicate. */}
-        {showCheckpoint && !allResolved && primaryCheckpoint && primaryPred && (
+        {showCheckpoint && primaryCheckpoint && primaryPred && (
           <CheckpointReturnCard
             checkpoint={primaryCheckpoint}
             currentVerdict={primaryPred.verdict}
@@ -508,6 +526,23 @@ export function SettlementModal({
             );
           })}
         </div>
+        )}
+
+        {/* Optional reality context follows the structured outcome tap. A tap
+            records the category; this line remains the user's own words only. */}
+        {contract.judgment_receipt && (
+          <JudgmentReceipt
+            mode="settle"
+            section="outcome"
+            outcomeRecorded={allResolved}
+            receipt={contract.judgment_receipt}
+            sealedOn={sealedOn}
+            whatHappened={whatHappened}
+            onWhatHappenedChange={setWhatHappened}
+            onSave={saveWhatHappened}
+            onClear={clearWhatHappened}
+            locale={ko ? 'ko' : 'en'}
+          />
         )}
 
         {/* loop-17 B — "확인할 것": the unverified facts carried from seal. A neutral
