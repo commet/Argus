@@ -71,7 +71,7 @@ export function CheckpointReturnCard({
   }
 
   return (
-    <div className="rounded-xl border border-[var(--accent)]/25 bg-[var(--surface)] p-3.5">
+    <div className="rounded-xl border border-[var(--accent)]/30 bg-[var(--surface)] p-3 sm:p-3.5">
       <div className="flex items-center gap-1.5 mb-2">
         <Anchor size={13} className="text-[var(--accent)]" />
         <span className="text-[11px] font-bold uppercase tracking-wide text-[var(--accent)]">
@@ -91,7 +91,7 @@ export function CheckpointReturnCard({
       )}
 
       <p className="text-[12px] text-[var(--text-secondary)] mt-3 mb-1.5">{L('지금 보기엔 어땠나요?', 'How does it look now?')}</p>
-      <div className="flex flex-wrap gap-1.5">
+      <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:gap-1.5">
         {TAPS.map((t) => {
           const selected = t.value === 'unclear' ? showReasons || selectedTap === 'unclear' : selectedTap === t.value;
           return (
@@ -100,7 +100,7 @@ export function CheckpointReturnCard({
               key={t.value}
               onClick={() => handleTap(t.value)}
               aria-pressed={selected}
-              className={`px-2.5 py-1.5 rounded-lg text-[12px] font-semibold border transition-colors cursor-pointer ${
+              className={`min-h-11 px-2.5 py-1.5 rounded-lg text-[12px] font-semibold border transition-colors cursor-pointer ${
                 selected
                   ? 'border-[var(--accent)] bg-[var(--accent)] text-white'
                   : 'border-[var(--border)] text-[var(--text-secondary)] hover:border-[var(--accent)]/40'
@@ -134,7 +134,7 @@ export function CheckpointReturnCard({
                       key={r.value}
                       onClick={() => onUnclear(r.value)}
                       aria-pressed={on}
-                      className={`px-2.5 py-1 rounded-md text-[11.5px] font-medium border transition-colors cursor-pointer ${
+                      className={`min-h-10 px-2.5 py-1 rounded-md text-[11.5px] font-medium border transition-colors cursor-pointer ${
                         on
                           ? 'border-[var(--accent)] bg-[var(--accent)]/10 text-[var(--accent)]'
                           : 'border-[var(--border)] text-[var(--text-tertiary)] hover:border-[var(--accent)]/40'

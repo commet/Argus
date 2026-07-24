@@ -110,7 +110,7 @@ export function Modal({ open, onClose, title, children, widthClass = 'max-w-lg',
       // Return focus to the trigger that opened the dialog
       previouslyFocusedRef.current?.focus?.();
     };
-  }, [open, mounted]);
+  }, [open, mounted, initialFocusRef]);
 
   if (!open || !mounted) return null;
 
@@ -142,7 +142,7 @@ export function Modal({ open, onClose, title, children, widthClass = 'max-w-lg',
             <X size={16} strokeWidth={1.5} />
           </button>
         </div>
-        <div className="p-6 overflow-y-auto max-h-[calc(92dvh-60px)] sm:max-h-[calc(85vh-60px)]">{children}</div>
+        <div className="p-4 sm:p-6 overflow-y-auto max-h-[calc(92dvh-60px)] sm:max-h-[calc(85vh-60px)]">{children}</div>
       </div>
     </div>,
     document.body,

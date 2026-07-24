@@ -336,7 +336,10 @@ export function DecisionContractCard({
             <p className="text-[12.5px] text-[var(--text-secondary)] mt-1 leading-[1.55]">
               {parts.length > 0
                 ? parts.join(' · ')
-                : L(`예측 ${predicates.length}개 확인 완료`, `${predicates.length} predictions checked`)}
+                : L(
+                    `예측 ${predicates.length}개 확인 완료`,
+                    `${predicates.length} prediction${predicates.length === 1 ? '' : 's'} checked`,
+                  )}
             </p>
             {/* 판단 액자 (P1-A1): the user's own seal-time line + settlement
                 narrative on permanent display — verbatim quotes + date stamps
@@ -369,7 +372,7 @@ export function DecisionContractCard({
               onClick={() => setGradeOpen(true)}
               className="mt-2 text-[11.5px] text-[var(--text-tertiary)] hover:text-[var(--accent)] cursor-pointer transition-colors"
             >
-              {L('잘못 표시했어요 — 고치기', 'Marked one wrong — edit')}
+              {L('결과 다시 고르기', 'Change this outcome')}
             </button>
           </div>
         </div>
@@ -402,9 +405,12 @@ export function DecisionContractCard({
               : contract!.check_in_at
               ? L(
                   `${fmtDate(contract!.check_in_at)}에 확인 예정 · 예측 ${predicates.length}개`,
-                  `Check-in ${fmtDate(contract!.check_in_at)} · ${predicates.length} predictions`,
+                  `Check-in ${fmtDate(contract!.check_in_at)} · ${predicates.length} prediction${predicates.length === 1 ? '' : 's'}`,
                 )
-              : L(`예측 ${predicates.length}개 · 언제든 확인`, `${predicates.length} predictions · check anytime`)}
+              : L(
+                  `예측 ${predicates.length}개 · 언제든 확인`,
+                  `${predicates.length} prediction${predicates.length === 1 ? '' : 's'} · check anytime`,
+                )}
           </p>
 
           {/* 1차 정산 (§8): before the due date, the only answerable return is

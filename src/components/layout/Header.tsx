@@ -3,15 +3,13 @@
 import { LocaleLink } from '@/components/ui/LocaleLink';
 import { Logo } from '@/components/brand/Logo';
 import { usePathname, useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { Menu, X, LogOut, Sun, Moon, Lock, MoreHorizontal, Download, Users, BookOpen, BarChart3, UserCheck, Search, Compass, FolderKanban, Settings2, Waves } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { useAuth } from '@/lib/auth';
 import { useDueCount } from '@/hooks/useDueCount';
 import { RateLimitBadge } from '@/components/ui/RateLimitBadge';
 import { SyncStatus } from '@/components/ui/SyncStatus';
-import { StorageErrorToast } from '@/components/ui/StorageErrorToast';
-import { SessionExpiredToast } from '@/components/ui/SessionExpiredToast';
-import { Toast } from '@/components/ui/Toast';
 import { useLocaleSwitch } from '@/hooks/useLocaleSwitch';
 import { stripLocale } from '@/lib/locale-path';
 import { CommandPalette, type CommandPaletteItem } from '@/components/ui/CommandPalette';
@@ -366,12 +364,6 @@ export function Header() {
                   renders null for them internally). */}
               <SyncStatus />
               {user && <RateLimitBadge />}
-              {/* Ungated: storage write failures (e.g. quota) affect anonymous users too */}
-              <StorageErrorToast />
-              {/* One-time "sign-in lapsed" lantern — fires from AuthProvider (P0-5) */}
-              <SessionExpiredToast />
-              {/* Generic toast — replaces native alert() (settings, uploads, …) */}
-              <Toast />
             </div>
 
             {/* User area */}
@@ -387,9 +379,12 @@ export function Header() {
                     aria-expanded={userMenuOpen}
                   >
                     {avatarUrl ? (
-                      <img
+                      <Image
                         src={avatarUrl}
                         alt=""
+                        width={28}
+                        height={28}
+                        unoptimized
                         className="w-7 h-7 rounded-full"
                         referrerPolicy="no-referrer"
                         onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden'); }}
@@ -430,16 +425,20 @@ export function Header() {
             )}
           </div>
 
-          {/* Mobile menu button */}
-          <button
-            type="button"
-            className="lg:hidden min-w-[44px] min-h-[44px] inline-flex items-center justify-center p-2.5 hover:bg-[var(--surface)] rounded-lg cursor-pointer transition-colors"
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            aria-label={mobileMenuOpen ? L('메뉴 닫기', 'Close menu') : L('메뉴 열기', 'Open menu')}
-            aria-expanded={mobileMenuOpen}
-          >
-            {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
-          </button>
+          {/* Mobile status stays mounted so it cannot miss a write-failure
+              event. First-time/healthy states render nothing internally. */}
+          <div className="lg:hidden flex min-w-0 items-center gap-1.5">
+            <SyncStatus />
+            <button
+              type="button"
+              className="lg:hidden min-w-[44px] min-h-[44px] inline-flex items-center justify-center p-2.5 hover:bg-[var(--surface)] rounded-lg cursor-pointer transition-colors"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              aria-label={mobileMenuOpen ? L('메뉴 닫기', 'Close menu') : L('메뉴 열기', 'Open menu')}
+              aria-expanded={mobileMenuOpen}
+            >
+              {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
+            </button>
+          </div>
         </div>
       </div>
 

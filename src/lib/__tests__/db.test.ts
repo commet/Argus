@@ -15,6 +15,7 @@ vi.mock('@/lib/error-handler', () => ({
 import { mergeByTimestamp, loadAndMerge, syncToSupabase, upsertToSupabase } from '@/lib/db';
 import { supabase, getCurrentUserId } from '@/lib/supabase';
 import { getStorage, setStorage } from '@/lib/storage';
+import { getSyncFailureCount } from '@/lib/sync-health';
 
 interface TestItem {
   id: string;
@@ -198,6 +199,31 @@ describe('loadAndMerge — tombstone propagation (P1-C7)', () => {
     const pushed = upsert.mock.calls[0][0] as Array<{ id: string }>;
     expect(pushed.map(p => p.id)).toEqual(['offline-new']);
   });
+
+  it('retries a failed write when the local copy of an existing row is newer', async () => {
+    vi.mocked(getCurrentUserId).mockResolvedValue('user-1');
+    vi.mocked(getStorage).mockImplementation(() => ([
+      { id: 'decision-1', name: 'locally updated', updated_at: '2026-07-24T10:00:00Z' },
+    ]));
+    const upsert = vi.fn().mockResolvedValue({ error: null });
+    const order = vi.fn().mockResolvedValue({
+      data: [
+        { id: 'decision-1', name: 'stale cloud copy', updated_at: '2026-07-24T09:00:00Z' },
+      ],
+      error: null,
+    });
+    const eq = vi.fn(() => ({ order }));
+    const select = vi.fn(() => ({ eq }));
+    vi.mocked(supabase.from).mockReturnValue({ select, upsert } as never);
+
+    const result = await loadAndMerge<TestItem>('projects', 'sot_projects');
+
+    expect(result[0].name).toBe('locally updated');
+    expect(upsert).toHaveBeenCalledWith(
+      [expect.objectContaining({ id: 'decision-1', name: 'locally updated', user_id: 'user-1' })],
+      { onConflict: 'id' },
+    );
+  });
 });
 
 describe('user-scoped agent identity', () => {
@@ -259,5 +285,17 @@ describe('user-scoped agent identity', () => {
       expect.objectContaining({ id: 'project-1', user_id: 'user-4' }),
       { onConflict: 'id' },
     );
+  });
+
+  it('surfaces thrown single-row upsert failures to sync health', async () => {
+    vi.mocked(getCurrentUserId).mockResolvedValue('user-5');
+    vi.mocked(supabase.from).mockImplementation(() => {
+      throw new Error('network unavailable');
+    });
+    const before = getSyncFailureCount();
+
+    await upsertToSupabase('projects', { id: 'project-2', name: 'Offline edit' });
+
+    expect(getSyncFailureCount()).toBe(before + 1);
   });
 });
