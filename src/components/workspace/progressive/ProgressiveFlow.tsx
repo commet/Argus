@@ -2928,30 +2928,38 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
         </div>
 
         <div className="space-y-8">
-          {/* User input + reviewer — stacked pills. The pill is a toggle:
-              a long problem statement truncates to one line, and the session
-              offers no other way to re-read your own brief — tap to expand. */}
-          <div className="flex flex-col gap-2 items-start">
-            {/* no `layout` prop: it re-measured on every streaming re-render */}
+          {/* The user's words are the root record, not a one-line breadcrumb.
+              Keep them visibly above every model-surfaced direction, with
+              authorship explicit and enough height to re-read the decision. */}
+          <div className="border-y border-[var(--border)] bg-[var(--surface)]/35 px-4 py-4 md:px-5">
             <motion.button
               ref={problemRef}
               type="button"
               onClick={() => setProblemExpanded((o) => !o)}
               title={problemExpanded ? undefined : L('눌러서 전체 보기', 'Tap to expand')}
-              className="flex scroll-mt-24 items-start gap-2.5 max-w-full text-left cursor-pointer group"
+              className="block w-full scroll-mt-24 text-left cursor-pointer group"
             >
-              {/* "나" as a small label, not a chip-in-a-box — marks the user's
-                  own words without another bordered pill. */}
-              <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--text-tertiary)] shrink-0 mt-[3px]">{L('나', 'Me')}</span>
-              {/* min-w-0: without it this flex child's min-content (the full
-                  one-line problem, since `truncate` sets white-space:nowrap)
-                  refuses to shrink — blowing the whole column past the viewport
-                  on mobile (horizontal overflow → forced zoom-out). */}
-              <p className={`min-w-0 text-[13px] text-[var(--text-secondary)] leading-[1.55] group-hover:text-[var(--text-primary)] transition-colors ${problemExpanded ? 'whitespace-pre-wrap break-words' : 'truncate'}`}>
+              <span className="flex items-center justify-between gap-3">
+                <span className="text-[10px] font-bold tracking-[0.12em] text-[var(--accent)]">
+                  {L('내가 가져온 결정 · 원문', 'My decision · original')}
+                </span>
+                <span className="text-[10px] text-[var(--text-tertiary)]">
+                  {problemExpanded ? L('접기', 'Collapse') : L('전체 보기', 'Read all')}
+                </span>
+              </span>
+              <p
+                className={`mt-2 text-[16px] md:text-[17px] font-semibold text-[var(--text-primary)] leading-[1.62] tracking-[-0.01em] transition-colors group-hover:text-[var(--accent-fg)] ${problemExpanded ? 'whitespace-pre-wrap break-words' : 'line-clamp-4'}`}
+                style={{ fontFamily: 'var(--font-display)' }}
+              >
                 {session.problem_text}
               </p>
             </motion.button>
-            <ReviewerBadge reviewerId={session.reviewer_agent_id || null} />
+            <div className="mt-3 flex items-center justify-between gap-3 border-t border-[var(--border-subtle)] pt-3">
+              <ReviewerBadge reviewerId={session.reviewer_agent_id || null} />
+              <span className="text-right text-[10.5px] text-[var(--text-tertiary)]">
+                {L('AI가 정리한 내용은 아래에서 따로 표시돼요', 'AI-surfaced material stays separate below')}
+              </span>
+            </div>
           </div>
 
           {/* Crisis backstop (decision 3: warn + a real resource, NEVER block).

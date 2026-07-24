@@ -324,7 +324,7 @@ export function VoyageMapViews({
 export function VoyageMapRail() {
   const locale = useLocale();
   const L = (ko: string, en: string) => (locale === 'ko' ? ko : en);
-  const collapsed = useSettingsStore(s => s.settings.voyage_map_collapsed ?? false);
+  const collapsed = useSettingsStore(s => s.settings.voyage_map_collapsed ?? true);
   const updateSettings = useSettingsStore(s => s.updateSettings);
 
   if (collapsed) {

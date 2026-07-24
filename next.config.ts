@@ -31,7 +31,7 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   images: {
-    qualities: [75, 90],
+    qualities: [75, 82, 90],
   },
   async redirects() {
     // Canonical-host guard. The Vercel project ("overture") also serves on its

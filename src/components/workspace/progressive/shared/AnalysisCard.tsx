@@ -137,11 +137,11 @@ export function AnalysisCard({
       <motion.button
         type="button"
         onClick={() => setCollapsed(false)}
-        aria-label={L('우리가 정리한 방향: 근거와 계획 보기', 'Direction we clarified: view rationale and plan')}
+        aria-label={L('Argus가 찾은 진짜 질문: 근거와 계획 보기', 'The real question Argus surfaced: view rationale and plan')}
         initial={{ opacity: 0, y: 6 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, ease: EASE }}
-        className="w-full text-left grid gap-3 sm:grid-cols-[120px_minmax(0,1fr)] sm:gap-7 py-3 cursor-pointer group rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/35 focus-visible:ring-offset-4 focus-visible:ring-offset-[var(--bg)]"
+        className="w-full text-left grid gap-3 sm:grid-cols-[132px_minmax(0,1fr)] sm:gap-7 border-y border-[var(--border)] py-5 cursor-pointer group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/35 focus-visible:ring-offset-4 focus-visible:ring-offset-[var(--bg)]"
       >
         <div className="min-w-0 sm:pt-0.5">
           <div className="flex items-center gap-2 mb-1.5" aria-hidden>
@@ -149,7 +149,7 @@ export function AnalysisCard({
             <span className="size-1 rounded-full bg-[var(--accent)]/75" />
           </div>
           <div className={`text-[10px] font-bold text-[var(--accent)] ${locale === 'ko' ? 'tracking-[0.02em]' : 'uppercase tracking-[0.14em]'}`}>
-            {L('우리가 정리한 방향', 'Direction we clarified')}
+            {L('Argus가 찾은 진짜 질문', 'The real question Argus surfaced')}
           </div>
           <p className="mt-1 text-[10.5px] text-[var(--text-tertiary)] leading-[1.5] tabular-nums">
             {refinementStatus}
@@ -211,7 +211,7 @@ export function AnalysisCard({
             <div className="flex items-start justify-between gap-3 mb-1.5">
               <div>
                 <div className={`text-[10px] font-bold text-[var(--accent)] ${locale === 'ko' ? 'tracking-[0.02em]' : 'uppercase tracking-[0.15em]'}`}>
-                  {L('우리가 정리한 방향', 'Direction we clarified')}
+                  {L('Argus가 찾은 진짜 질문', 'The real question Argus surfaced')}
                 </div>
                 <p className="mt-1 text-[10.5px] text-[var(--text-tertiary)] tabular-nums">
                   {refinementStatus}
@@ -230,7 +230,7 @@ export function AnalysisCard({
               )}
             </div>
             {/* (The first-snapshot sub-line was removed: it restated the eyebrow
-                "우리가 정리한 방향" and the status line's "…정리한 방향" verbatim —
+                and the status line's "…정리한 방향" verbatim —
                 three near-identical lines within ~40px. The eyebrow + status carry it.) */}
             <div className="mb-2" />
 

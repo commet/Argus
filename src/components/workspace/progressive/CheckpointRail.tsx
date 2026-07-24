@@ -131,8 +131,93 @@ export function CheckpointRail({ checkpoints, onJump }: {
         )}
       </div>
 
-      {/* 3밴드 행 — 활성 밴드만 펼쳐지고(flex-1), 지나온/미래는 칩으로 접힘. */}
-      <div className="flex items-stretch gap-1.5">
+      {/* Compact screens use two honest rows: the three real groups first, then
+          the active group's actual checkpoints. Compressing both into one row
+          made five question labels collide at 390px and turned progress into
+          ornament. This keeps every reached checkpoint tappable. */}
+      <div className="md:hidden">
+        <div className="grid grid-cols-3 gap-1" aria-hidden>
+          {bands.map((band, bi) => (
+            <div
+              key={band.group}
+              className={`rounded-lg px-2 py-2 text-center ${
+                bi === activeIdx
+                  ? 'bg-[var(--accent)]/[0.08] text-[var(--accent)]'
+                  : band.bandState === 'done'
+                    ? 'text-[var(--text-secondary)]'
+                    : 'text-[var(--text-tertiary)]'
+              }`}
+            >
+              <span className="block text-[10px] font-bold">
+                {locale === 'ko' ? band.group : band.groupEn}
+              </span>
+              <span className="mt-0.5 block text-[9px] font-normal">
+                {band.bandState === 'done'
+                  ? L('지나옴', 'Done')
+                  : bi === activeIdx
+                    ? L('지금', 'Now')
+                    : L('다음', 'Later')}
+              </span>
+            </div>
+          ))}
+        </div>
+        <div className="mt-2 overflow-x-auto rounded-xl border border-[var(--accent)]/20 bg-[var(--accent)]/[0.035] px-2 py-2.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <div className="flex min-w-max items-center">
+            {activeBand.nodes.map((node, ni) => {
+              const done = node.state === 'done';
+              const current = node.state === 'current';
+              const skipped = node.state === 'skipped';
+              const clickable = !!onJump && done;
+              const label = node.title
+                || (clickable ? L(`${node.label}(으)로 돌아가 보기`, `Look back at ${node.label}`) : undefined);
+              const content = (
+                <>
+                  <span
+                    className={`grid size-5 place-items-center rounded-full border text-[9px] ${
+                      current
+                        ? 'border-[var(--accent)] bg-[var(--accent)] text-[var(--accent-fg)]'
+                        : done
+                          ? 'border-[var(--accent)]/45 bg-[var(--surface)] text-[var(--accent)]'
+                          : 'border-[var(--border-subtle)] bg-[var(--surface)] text-[var(--text-tertiary)]'
+                    }`}
+                  >
+                    {done ? <Check size={10} strokeWidth={3} /> : ni + 1}
+                  </span>
+                  <span className={`text-[10px] ${current ? 'font-bold text-[var(--text-primary)]' : skipped ? 'text-[var(--text-tertiary)] line-through' : 'text-[var(--text-secondary)]'}`}>
+                    {node.label}
+                  </span>
+                </>
+              );
+              return (
+                <div key={node.key} className="flex items-center">
+                  {clickable ? (
+                    <button
+                      type="button"
+                      onClick={() => onJump!(node.key)}
+                      title={label}
+                      aria-label={label}
+                      className="flex min-w-[58px] flex-col items-center gap-1 rounded-lg px-1 py-1"
+                    >
+                      {content}
+                    </button>
+                  ) : (
+                    <div className="flex min-w-[58px] flex-col items-center gap-1 px-1 py-1" aria-current={current ? 'step' : undefined}>
+                      {content}
+                    </div>
+                  )}
+                  {ni < activeBand.nodes.length - 1 && (
+                    <span className={`h-px w-4 ${done ? 'bg-[var(--accent)]/55' : 'bg-[var(--border-subtle)]'}`} aria-hidden />
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+      {/* Wide screens can carry the active band and the collapsed peer bands
+          on one row without sacrificing label legibility. */}
+      <div className="hidden items-stretch gap-1.5 md:flex">
         {bands.map((band, bi) => {
           const isActive = bi === activeIdx;
           const chevron = bi < bands.length - 1 ? (
