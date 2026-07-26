@@ -44,10 +44,21 @@ export function learnLocaleFromContent(argusDir: string | null | undefined, args
  *  month precisely because nothing ever said "your config disagrees with
  *  your words"). */
 export function contentLocaleFromArgs(args: Record<string, unknown>): Locale | null {
-  const sample = CONTENT_FIELDS
+  const parts = CONTENT_FIELDS
     .map((k) => args[k])
-    .filter((v): v is string => typeof v === 'string' && v.trim().length > 0)
-    .join('\n');
+    .filter((v): v is string => typeof v === 'string' && v.trim().length > 0);
+  // User-authored words also arrive NESTED: a premises op=add call carries
+  // them only in premises[].text, invisible to the flat sample above — so a
+  // Korean add-premises call was answered in English until a later flat-field
+  // call re-taught the session (content battery S06, 2026-07-27).
+  const prems = args['premises'];
+  if (Array.isArray(prems)) {
+    for (const p of prems) {
+      const t = (p as Record<string, unknown> | null)?.['text'];
+      if (typeof t === 'string' && t.trim().length > 0) parts.push(t);
+    }
+  }
+  const sample = parts.join('\n');
   return sample ? detectLocaleFromText(sample) : null;
 }
 

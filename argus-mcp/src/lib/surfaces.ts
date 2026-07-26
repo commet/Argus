@@ -644,7 +644,7 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
         settled: (outcome, predicate) => `실제 결과를 기록했습니다: ${({ held: '예측대로 됐다', avoided: '걱정한 일은 안 일어났다', partial: '일부만 맞았다', missed: '예측이 빗나갔다' })[outcome]}.${predicate ? ` (예측: "${predicate}".)` : ''} 영수증에 예측과 실제가 나란히 남습니다. 평가는 없습니다.`,
         sync_failed: (reason) => ` (계정 동기화가 안 됐습니다. ${reason}. 결과는 로컬에 안전합니다. 동기화되기 전까지 계정은 이걸 계속 "확인 필요"로 표시할 수 있습니다. 나중에 argus_settings action=sync를 시도하세요.)`,
         deferred: (newDate) => `아직 결과를 기록하지 않았습니다. 현실이 답하지 않았으니 평가한 것도 없습니다. ${newDate}에 다시 가져오겠습니다.`,
-        defer_dismissed: '접어뒀습니다. 이건 이제 답이 필요 없어요. 평가한 것은 없습니다.',
+        defer_dismissed: '접어뒀습니다. 이건 이제 답이 필요 없습니다. 평가한 것은 없습니다.',
       },
       recheck: {
         baseline: (ref, finding, source, cadenceDays) => `P${ref} 기준값을 기록했습니다: "${finding}" (${source}). ${cadenceDays}일 뒤에 다시 확인하길 권합니다.`,
