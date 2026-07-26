@@ -29,6 +29,9 @@ const HANGUL = /[가-힣]/;
 // ids, dates/numbers, file extensions, callback markers.
 function stripTechnical(s) {
   return s
+    // The branded receipt line is deliberately NEVER localized (plugin + CLAUDE.md
+    // contract: "keep the branded AI VERDICT line unchanged") — not a leak.
+    .replace(/AI VERDICT ON THIS DECISION/g, ' ')
     .replace(/argus_[a-z_]+/g, ' ')
     .replace(/\bview=("?)[a-z_]+\1/g, ' ')
     .replace(/[a-z0-9_]+:[a-z0-9_-]+/gi, ' ')     // id:handle style

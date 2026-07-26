@@ -622,7 +622,7 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
           factual: '이건 답이 있는 질문이지, 열어둘 결정이 아닙니다.',
           already_closed: '이미 내린 결정입니다. Argus는 이걸 다시 열지 않습니다.',
           flat: '선택지가 거의 대등합니다. 억지로 만들 핵심 질문이 없습니다.',
-          reversible_low_stakes: '되돌리기 쉽고 크게 걸린 것도 없는 결정이에요.',
+          reversible_low_stakes: '되돌리기 쉽고 크게 걸린 것도 없는 결정입니다.',
           low_stakes: '걸린 것이 별로 없습니다. 그대로 두는 편이 무난합니다.',
         },
         reason_fallback: '여기서 억지로 지어낼 결정은 없습니다.',
@@ -630,7 +630,7 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
         watch_exit: ' 기록하지 않고 그대로 두어도 괜찮습니다.',
         reconfirm: '신호가 서로 어긋납니다 (걸린 것은 큰데 되돌리기는 쉽습니다). 더 나아가기 전에 이 둘을 다시 짚어 보세요.',
         opened_with_crux: (crux) => `열었습니다. 이 결정을 좌우하는 단 하나의 질문: ${crux}`,
-        opened_bare: '이 결정, 기록해뒀어요.',
+        opened_bare: '이 결정, 기록해뒀습니다.',
         lean_disclosure: '핵심 질문을 짚는 것 자체가 뒤집히는 쪽을 희미하게 가리킬 수 있습니다. 그렇게 남는 쏠림은 알려진 한계일 뿐, 이 결정에 대한 평가가 아닙니다.',
       },
       seal: {

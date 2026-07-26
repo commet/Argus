@@ -79,14 +79,30 @@ async function main() {
     await client.close(); fs.rmSync(dir, { recursive: true, force: true });
   }
 
-  // E2 — seal confirm_draft=true, user picks "reword" → nothing saved.
+  // E2 — seal confirm_draft=true, user REWORDS in the picker's text field →
+  // saved with THEIR wording, owned by them. (The pre-R34 picker had a
+  // choice=keep/reword enum where reword meant "abort and retype in chat";
+  // the current picker takes the rewording inline — one keystroke less. This
+  // eval was still speaking the old contract and the stale answer silently
+  // fell through to keep-as-is, which looked like a pass until 2026-07-27.)
   {
     const dir = newDir();
-    const { client, seen } = await connectElicitingClient(dir, () => ({ action: 'accept', content: { choice: 'reword' } }));
+    const { client, seen } = await connectElicitingClient(dir, () => ({ action: 'accept', content: { reword: '9월까지 유료 전환 10건을 내가 직접 닫는다' } }));
     const r = parse(await client.callTool({ name: 'argus_predict', arguments: {
       argus_dir: dir, id: 'e2', predicate: 'AI가 초안한 예측 문장', check_by: '2026-09-01', predicate_owner: 'ai_surfaced', confirm_draft: true, today_override: '2026-07-02' } }));
-    check('E2 reword → sealed=false (no save)', r.data?.sealed === false, JSON.stringify(r.data));
-    check('E2 reword surface invites rewording', /다시|reword|말/.test(r.surface ?? ''), r.surface);
+    check('E2 reword asks exactly one question', seen.length === 1, `saw ${seen.length}`);
+    check('E2 reword → sealed with the USER\'s wording', r.data?.predicate === '9월까지 유료 전환 10건을 내가 직접 닫는다', JSON.stringify(r.data).slice(0, 200));
+    check('E2 reword → owner is user (their words now)', r.data?.predicate_owner === 'user', JSON.stringify(r.data?.predicate_owner));
+    await client.close(); fs.rmSync(dir, { recursive: true, force: true });
+  }
+
+  // E2b — reworded check_by is in the PAST → honest refusal, nothing recorded.
+  {
+    const dir = newDir();
+    const { client } = await connectElicitingClient(dir, () => ({ action: 'accept', content: { check_by: '2020-01-01' } }));
+    const r = parse(await client.callTool({ name: 'argus_predict', arguments: {
+      argus_dir: dir, id: 'e2b', predicate: 'AI가 초안한 예측 문장', check_by: '2026-09-01', predicate_owner: 'ai_surfaced', confirm_draft: true, today_override: '2026-07-02' } }));
+    check('E2b past check_by edit → refused honestly (not saved)', r.ok === false && !!r.error_code, JSON.stringify(r).slice(0, 200));
     await client.close(); fs.rmSync(dir, { recursive: true, force: true });
   }
 
