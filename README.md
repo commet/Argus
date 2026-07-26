@@ -13,7 +13,7 @@ Argus binds a decision to its premises and return condition before fluency — o
 
 <p align="center">
   <a href="https://www.npmjs.com/package/argus-decision-mcp"><img src="https://img.shields.io/npm/v/argus-decision-mcp?color=A8842F&label=npm%20%C2%B7%20argus-decision-mcp" alt="npm version"></a>
-  <img src="https://img.shields.io/badge/Claude%20Code%20plugin-argus%402.19.0-667572" alt="Claude Code plugin">
+  <img src="https://img.shields.io/badge/Claude%20Code%20plugin-argus%402.19.1-667572" alt="Claude Code plugin">
   <img src="https://img.shields.io/badge/license-open--core-6E8261" alt="license: open-core">
   <img src="https://img.shields.io/badge/local--first-no%20account%20needed-242321" alt="local-first">
 </p>

@@ -2,7 +2,7 @@
   "mcpServers": {
     "argus-decision": {
       "command": "npx",
-      "args": ["-y", "argus-decision-mcp@1.13.0"]
+      "args": ["-y", "argus-decision-mcp@1.13.1"]
     }
   }
 }

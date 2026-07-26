@@ -4,6 +4,15 @@ All notable changes to the Argus plugin. Versioning follows
 [semver](https://semver.org); users receive an update only when the
 `version` in `.claude-plugin/plugin.json` is bumped.
 
+## 2.19.1 — Release alignment — 2026-07-27
+
+- The exact bundled wire moves to `argus-decision-mcp@1.13.1`, which includes
+  the untouched-side hidden-assumption pass that landed immediately after the
+  first foundation release.
+- Plugin, marketplace, MCP package, and registry now identify the same main
+  source rather than leaving post-tag main changes under an already published
+  version.
+
 ## 2.19.0 — Judgment foundations — 2026-07-27
 
 - The bundled MCP pin moves with this release to
@@ -20,8 +29,6 @@ All notable changes to the Argus plugin. Versioning follows
   track-record aggregate.
 - Ambient detection can notice a named event once, but it cannot settle a record
   or promote an AI draft without explicit user authorization.
-- Hidden-assumption drafting (server 1.13.0) learns the untouched-side class:
-  what the plan assumes stays true about what it leaves alone.
 
 ## 2.18.0 — 2026-07-27
 
