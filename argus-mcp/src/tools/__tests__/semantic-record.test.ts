@@ -52,7 +52,16 @@ describe('DKK v6 MCP vertical slice', () => {
 
     const resolved = await call({
       argus_dir: dir, action: 'resolve', request_id: 'resolve-pricing', judgment_id: 'pricing', return_contract_id: 'pricing.return', resolution_id: 'pricing-answer',
-      resolution: { kind: 'answered', answer_summary: 'Conversion held in the observed cohort.', criterion_result: 'met', evidence_refs: ['conversion-observation'] },
+      resolution: {
+        kind: 'answered',
+        answer_summary: 'Conversion held in the observed cohort.',
+        criterion_result: 'met',
+        present_standard: {
+          status: 'same',
+          response_text: 'I would use the same standard today.',
+        },
+        evidence_refs: ['conversion-observation'],
+      },
       authorization: { ...authorization, evidence_ref: 'host:turn:42' },
     });
     expect(isError(resolved)).toBe(false);
@@ -219,7 +228,7 @@ describe('DKK v6 MCP vertical slice', () => {
     expect(resolutionEvent).toMatchObject({
       resolution: {
         criterion_result: 'not_met',
-        commitment_result: 'enacted',
+        commitment_result: 'maintained',
         question_validity: 'narrowed',
       },
     });
@@ -227,5 +236,25 @@ describe('DKK v6 MCP vertical slice', () => {
 
   it('publishes the foundation recorder without an environment gate', () => {
     expect(servedPublicTools().map((tool) => tool['name'])).toContain('argus_record');
+  });
+
+  it('rejects a new resolution that omits the second-timepoint standard wording', async () => {
+    const dir = tmpArgusDir();
+    const rejected = await call({
+      argus_dir: dir,
+      action: 'resolve',
+      request_id: 'resolve-without-standard',
+      judgment_id: 'missing-standard',
+      return_contract_id: 'missing-standard.return',
+      resolution_id: 'missing-standard.answer',
+      resolution: {
+        kind: 'indeterminate',
+        reason: 'Not enough evidence.',
+        evidence_refs: [],
+      },
+      authorization,
+    });
+    expect(isError(rejected)).toBe(true);
+    expect(body(rejected)['error_code']).toBe('INVALID_INPUT');
   });
 });

@@ -329,6 +329,9 @@ if (fs.existsSync(settleSkillPath)) {
   // pending contract via `amend`; neither may hand-write harvest/seal/amend JSON.
   check(/decision-ledger\.js" settle\b/.test(settle), "resolve must append through `decision-ledger.js settle`");
   check(/decision-ledger\.js" amend\b/.test(settle), "resolve must push a pending contract through `decision-ledger.js amend`, not hand-written amend JSON");
+  check(/--present-standard-response/.test(settle), "resolve must preserve the user-selected present-standard wording");
+  check(/same call under the same conditions/.test(settle), "resolve must use kind-specific present-standard wording");
+  check(/--authorization-ref/.test(settle), "resolve writes must carry a user authorization receipt");
   check(!/\{"event":"(harvest|seal|amend)"/.test(settle), "resolve must not hand-write harvest/seal/amend ledger JSON — route through decision-ledger.js (single-source shape)");
   check(/Do not show held\/missed totals/.test(settle), "resolve must forbid outcome aggregates and score proxies");
 }
@@ -354,6 +357,7 @@ const sailWakePath = path.join(root, "skills", "review", "pipeline.md");
 if (fs.existsSync(sailWakePath)) {
   const sailWake = fs.readFileSync(sailWakePath, "utf8");
   check(/decision-ledger\.js" wake\b/.test(sailWake), "sail Wake (Step 7.5) must record through `decision-ledger.js wake`, not hand-written wake JSON");
+  check(/--authorization-ref/.test(sailWake), "sail Wake must carry a user authorization receipt");
   check(!/\{"event":"wake"/.test(sailWake), "sail must not hand-write a wake ledger JSON line — route through decision-ledger.js (single-source shape)");
 }
 

@@ -3,46 +3,24 @@
 import { useState } from 'react';
 import { useLocale } from '@/hooks/useLocale';
 import { useProjectStore } from '@/stores/useProjectStore';
-import type { ContractSettlement, DecisionKind, Project } from '@/stores/types';
+import type { ContractSettlement, Project } from '@/stores/types';
 import { appendContractSettlement, decisionKind } from '@/lib/decision-contract';
+import {
+  axesWithPresentStandard,
+  FOUNDATION_SETTLEMENT_OPTIONS,
+  PRESENT_STANDARD_STATUSES,
+  presentStandardLabel,
+  presentStandardQuestion,
+  type FoundationSettlementOption,
+} from '@/lib/foundation-settlement';
 import { track } from '@/lib/analytics';
 import { Modal } from '@/components/ui/Modal';
+import { generateId } from '@/lib/uuid';
 
 export interface FoundationSettlementModalProps {
   project: Project;
   onClose: () => void;
 }
-
-interface FoundationOption {
-  id: string;
-  ko: string;
-  en: string;
-  axes: ContractSettlement['axes'];
-}
-
-const OPTIONS: Record<Exclude<DecisionKind, 'witness'>, FoundationOption[]> = {
-  prediction: [
-    { id: 'condition_met', ko: '확인하려던 일이 일어났어요', en: 'The condition was met', axes: { reality: 'met', question: 'valid' } },
-    { id: 'condition_not_met', ko: '일어나지 않았어요', en: 'It did not happen', axes: { reality: 'not_met', question: 'valid' } },
-    { id: 'mixed', ko: '일부만 맞았어요', en: 'Only part of it happened', axes: { reality: 'partial', question: 'valid' } },
-    { id: 'not_observable', ko: '지금 자료로는 확인할 수 없어요', en: 'I cannot tell from the evidence', axes: { reality: 'not_observable', question: 'indeterminate' } },
-    { id: 'moot', ko: '이 질문 자체가 더는 중요하지 않아요', en: 'The question no longer matters', axes: { reality: 'unknown', question: 'moot' } },
-  ],
-  commitment: [
-    { id: 'enacted', ko: '약속한 대로 실행했어요', en: 'I acted on the commitment', axes: { commitment: 'enacted', question: 'valid' } },
-    { id: 'maintained', ko: '아직 실행 전이지만 약속은 유지해요', en: 'The commitment still stands', axes: { commitment: 'maintained', question: 'valid' } },
-    { id: 'revised', ko: '상황을 보고 약속을 고쳤어요', en: 'I revised the commitment', axes: { commitment: 'revised', question: 'reframed' } },
-    { id: 'withdrawn', ko: '이 약속은 철회했어요', en: 'I withdrew the commitment', axes: { commitment: 'withdrawn', question: 'valid' } },
-    { id: 'moot', ko: '약속할 이유 자체가 사라졌어요', en: 'The commitment became moot', axes: { commitment: 'superseded', question: 'moot' } },
-  ],
-  declaration: [
-    { id: 'maintained', ko: '지금도 이 기준을 유지해요', en: 'I still hold this standard', axes: { commitment: 'maintained', question: 'valid' } },
-    { id: 'revised', ko: '기준을 조금 바꿨어요', en: 'I revised the standard', axes: { commitment: 'revised', question: 'reframed' } },
-    { id: 'withdrawn', ko: '이 기준은 더는 따르지 않아요', en: 'I no longer hold it', axes: { commitment: 'withdrawn', question: 'valid' } },
-    { id: 'superseded', ko: '더 나은 기준으로 바뀌었어요', en: 'A better standard replaced it', axes: { commitment: 'superseded', question: 'narrowed' } },
-    { id: 'moot', ko: '이 기준이 필요한 상황이 끝났어요', en: 'The situation no longer calls for it', axes: { commitment: 'superseded', question: 'moot' } },
-  ],
-};
 
 /**
  * Show the sealed sentence before any outcome control, accept one
@@ -53,16 +31,19 @@ export function FoundationSettlementModal({ project, onClose }: FoundationSettle
   const locale = useLocale();
   const ko = locale === 'ko';
   const L = (k: string, e: string) => (ko ? k : e);
-  const updateProject = useProjectStore((state) => state.updateProject);
+  const updateDecisionContract = useProjectStore((state) => state.updateDecisionContract);
   const contract = project.decision_contract!;
   const kind = decisionKind(contract);
-  const [selected, setSelected] = useState<FoundationOption | null>(null);
+  const [selected, setSelected] = useState<FoundationSettlementOption | null>(null);
   const [saved, setSaved] = useState<ContractSettlement | null>(null);
-  const [returnStage, setReturnStage] = useState<'gate' | 'memory' | 'revealed'>('gate');
+  const [returnStage, setReturnStage] = useState<'gate' | 'memory' | 'revealed'>(
+    (contract.settlements?.length ?? 0) > 0 ? 'gate' : 'revealed',
+  );
   const [memoryDraft, setMemoryDraft] = useState('');
   const [saveMemory, setSaveMemory] = useState(false);
 
-  const original = contract.statement_revisions?.[0]?.from_statement
+  const original = contract.sealed_statement?.trim()
+    || contract.statement_revisions?.[0]?.from_statement
     || contract.judgment_receipt?.human_judgment?.trim()
     || contract.predicates.find((predicate) => predicate.source === 'user_lean')?.text
     || contract.predicates[0]?.text
@@ -90,20 +71,31 @@ export function FoundationSettlementModal({ project, onClose }: FoundationSettle
   const save = (status: NonNullable<ContractSettlement['present_standard']>['status']) => {
     if (!selected) return;
     const recordedAt = new Date().toISOString();
+    const presentResponse = presentStandardLabel(kind, status, ko ? 'ko' : 'en');
     const settlement: ContractSettlement = {
       option_id: selected.id,
       response_text: ko ? selected.ko : selected.en,
       recorded_at: recordedAt,
-      axes: selected.axes,
+      axes: axesWithPresentStandard(selected.axes, status),
       observation_source_kind: 'user_report',
-      present_standard: { status, recorded_at: recordedAt },
+      authorization: {
+        authorized_by: 'human',
+        authorization_mode: 'explicit_confirmation',
+        surface: 'web',
+        authorization_ref: `web:return:${project.id}:${generateId()}`,
+        authorized_at: recordedAt,
+      },
+      present_standard: {
+        status,
+        response_text: presentResponse,
+        recorded_at: recordedAt,
+      },
       ...(saveMemory && memoryDraft.trim()
         ? { memory_before_reveal: { text: memoryDraft.trim(), saved_at: recordedAt } }
         : {}),
     };
-    updateProject(project.id, {
-      decision_contract: appendContractSettlement(contract, settlement),
-    });
+    updateDecisionContract(project.id, (latest) =>
+      latest ? appendContractSettlement(latest, settlement) : latest);
     track('foundation_return_saved', {
       kind,
       option_id: selected.id,
@@ -153,6 +145,7 @@ export function FoundationSettlementModal({ project, onClose }: FoundationSettle
               value={memoryDraft}
               onChange={(event) => setMemoryDraft(event.target.value)}
               rows={4}
+              maxLength={4000}
               autoFocus
               placeholder={L('기억나는 만큼만 적어보세요', 'Write only what you remember')}
               className="w-full resize-none rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3.5 py-3 text-[13px] leading-6 text-[var(--text-primary)] outline-none transition-colors placeholder:text-[var(--text-tertiary)] focus:border-[var(--accent)]/60"
@@ -223,26 +216,21 @@ export function FoundationSettlementModal({ project, onClose }: FoundationSettle
               <div className="space-y-3">
             <div>
               <p className="text-[14px] font-semibold leading-6 text-[var(--text-primary)]">
-                {L('그때 세운 기준을 지금도 유지하나요?', 'Do you still hold the standard you used then?')}
+                {presentStandardQuestion(kind, ko ? 'ko' : 'en')}
               </p>
               <p className="mt-1 text-[12px] leading-5 text-[var(--text-tertiary)]">
                 {L('한 가지만 더 확인하면 끝나요.', 'One last answer, then you are done.')}
               </p>
             </div>
             <div className="grid gap-2 sm:grid-cols-2">
-              {([
-                ['same', L('그대로예요', 'It is the same')],
-                ['changed', L('달라졌어요', 'It has changed')],
-                ['withdrawn', L('그 기준은 거뒀어요', 'I withdrew it')],
-                ['skipped', L('지금은 답하지 않을래요', 'Skip for now')],
-              ] as const).map(([status, label]) => (
+              {PRESENT_STANDARD_STATUSES.map((status) => (
                 <button
                   key={status}
                   type="button"
                   onClick={() => save(status)}
                   className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-3 text-left text-[13px] font-medium leading-5 text-[var(--text-primary)] transition-colors hover:border-[var(--accent)]/50"
                 >
-                  {label}
+                  {presentStandardLabel(kind, status, ko ? 'ko' : 'en')}
                 </button>
               ))}
             </div>
@@ -260,7 +248,7 @@ export function FoundationSettlementModal({ project, onClose }: FoundationSettle
                   : L('그 기준을 지금은 어떻게 보고 있나요?', 'How do you see that standard now?')}
             </p>
             <div className="grid gap-2">
-              {OPTIONS[kind].map((option) => (
+              {FOUNDATION_SETTLEMENT_OPTIONS[kind].map((option) => (
                 <button
                   key={option.id}
                   type="button"

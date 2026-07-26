@@ -1,6 +1,12 @@
-import type { DecisionContract, PredicateVerdict } from '@/stores/types';
+import type { DecisionContract, DecisionKind, PredicateVerdict } from '@/stores/types';
 import { amendCheckIn, gradePredicate, isResolved } from './decision-contract';
 import { REMINDER_MAX_SENDS } from './checkin-reminder';
+import {
+  FOUNDATION_SETTLEMENT_OPTIONS,
+  PRESENT_STANDARD_STATUSES,
+  presentStandardLabel,
+  type PresentStandardStatus,
+} from './foundation-settlement';
 
 /** 'mute' = "그만 물어봐 주세요": stops the reminder cron (reminder_count → cap)
  *  while the decision stays open on every web due surface. An escape hatch, not
@@ -26,6 +32,15 @@ export interface TelegramSettlementResult {
   muted?: boolean;
 }
 
+export interface TelegramFoundationSettlementIntent {
+  projectId: string;
+  contractId?: string;
+  optionKind: Exclude<DecisionKind, 'witness'>;
+  optionId: string;
+  presentStandard?: PresentStandardStatus;
+  source: 'callback';
+}
+
 const TOKEN_PREFIX = 'ARGUS_SETTLE';
 
 const OUTCOME_ALIASES: Array<[RegExp, TelegramSettlementOutcome]> = [
@@ -41,6 +56,8 @@ export function settlementToken(projectId: string, contractId?: string): string 
 
 const CALLBACK_PREFIX = 'stl1';
 const SEMANTIC_CLOSE_CALLBACK_PREFIX = 'stlc1';
+const FOUNDATION_OPTION_CALLBACK_PREFIX = 'stlo1';
+const FOUNDATION_PRESENT_CALLBACK_PREFIX = 'stlp1';
 const CALLBACK_OUTCOME_CODE: Record<TelegramSettlementOutcome, string> = {
   happened: 'h',
   avoided: 'a',
@@ -55,6 +72,43 @@ const CALLBACK_CODE_OUTCOME: Record<string, TelegramSettlementOutcome> = {
   p: 'pending',
   u: 'mute',
 };
+
+const FOUNDATION_OPTION_CODE: Record<Exclude<DecisionKind, 'witness'>, Record<string, string>> = {
+  prediction: {
+    condition_met: 'pm',
+    condition_not_met: 'pn',
+    mixed: 'px',
+    not_observable: 'pu',
+    moot: 'pq',
+  },
+  commitment: {
+    enacted: 'ce',
+    maintained: 'cm',
+    revised: 'cr',
+    withdrawn: 'cw',
+    moot: 'cq',
+  },
+  declaration: {
+    maintained: 'dm',
+    revised: 'dr',
+    withdrawn: 'dw',
+    superseded: 'ds',
+    moot: 'dq',
+  },
+};
+const FOUNDATION_CODE_OPTION = new Map(
+  Object.entries(FOUNDATION_OPTION_CODE).flatMap(([kind, options]) =>
+    Object.entries(options).map(([optionId, code]) => [code, { kind, optionId }] as const)),
+);
+const PRESENT_STANDARD_CODE: Record<PresentStandardStatus, string> = {
+  same: 's',
+  changed: 'c',
+  withdrawn: 'w',
+  skipped: 'k',
+};
+const CODE_PRESENT_STANDARD = new Map(
+  Object.entries(PRESENT_STANDARD_CODE).map(([status, code]) => [code, status as PresentStandardStatus]),
+);
 
 /** Locale detection for outbound settlement copy — one brain shared by the
  *  checkin-due cron and the webhook (same rule telegram-reminders uses). */
@@ -85,6 +139,90 @@ export function settlementReplyMarkup(projectId: string, contractId?: string, lo
       // on the web due surfaces. Intervention-reducing — mirror-clause aligned.
       [{ text: ko ? '🌙 그만 물어봐 주세요' : '🌙 Stop asking me', callback_data: callbackData('mute') }],
     ],
+  };
+}
+
+/** Kind-specific first answer for foundation records. The answer is not
+ * persisted yet: the callback asks the one required present-standard
+ * follow-up, then both authorial answers are appended atomically. */
+export function foundationSettlementReplyMarkup(
+  projectId: string,
+  contractId: string | undefined,
+  kind: Exclude<DecisionKind, 'witness'>,
+  locale: 'ko' | 'en' = 'ko',
+) {
+  const packed = contractId ? encodeCallbackTarget(projectId, contractId) : null;
+  const callbackData = (optionId: string) => {
+    const code = FOUNDATION_OPTION_CODE[kind][optionId];
+    return packed
+      ? `${FOUNDATION_OPTION_CALLBACK_PREFIX}|${code}|${packed}`
+      : `stlo|${code}|${projectId}`;
+  };
+  const legacy = settlementReplyMarkup(projectId, contractId, locale).inline_keyboard.flat();
+  const pending = legacy.find((button) => parseSettlementIntent({ callbackData: button.callback_data })?.outcome === 'pending')!;
+  const mute = legacy.find((button) => parseSettlementIntent({ callbackData: button.callback_data })?.outcome === 'mute')!;
+  return {
+    inline_keyboard: [
+      ...FOUNDATION_SETTLEMENT_OPTIONS[kind].map((option) => [{
+        text: locale === 'ko' ? option.ko : option.en,
+        callback_data: callbackData(option.id),
+      }]),
+      [pending],
+      [mute],
+    ],
+  };
+}
+
+export function foundationPresentStandardReplyMarkup(
+  projectId: string,
+  contractId: string | undefined,
+  kind: Exclude<DecisionKind, 'witness'>,
+  optionId: string,
+  locale: 'ko' | 'en' = 'ko',
+) {
+  const packed = contractId ? encodeCallbackTarget(projectId, contractId) : null;
+  const optionCode = FOUNDATION_OPTION_CODE[kind][optionId];
+  return {
+    inline_keyboard: PRESENT_STANDARD_STATUSES.map((status) => [{
+      text: presentStandardLabel(kind, status, locale),
+      callback_data: packed
+        ? `${FOUNDATION_PRESENT_CALLBACK_PREFIX}|${optionCode}|${PRESENT_STANDARD_CODE[status]}|${packed}`
+        : `stlp|${optionCode}|${PRESENT_STANDARD_CODE[status]}|${projectId}`,
+    }]),
+  };
+}
+
+export function parseFoundationSettlementCallback(data?: string): TelegramFoundationSettlementIntent | null {
+  if (!data) return null;
+  const parts = data.split('|');
+  let target: Pick<TelegramFoundationSettlementIntent, 'projectId' | 'contractId'> | null = null;
+  let code = '';
+  let presentStandard: PresentStandardStatus | undefined;
+  if (parts[0] === FOUNDATION_OPTION_CALLBACK_PREFIX && parts.length === 3) {
+    code = parts[1];
+    target = decodeCallbackTarget(parts[2]);
+  } else if (parts[0] === 'stlo' && parts.length === 3 && parts[2]) {
+    code = parts[1];
+    target = { projectId: parts[2] };
+  } else if (parts[0] === FOUNDATION_PRESENT_CALLBACK_PREFIX && parts.length === 4) {
+    code = parts[1];
+    presentStandard = CODE_PRESENT_STANDARD.get(parts[2]);
+    target = decodeCallbackTarget(parts[3]);
+  } else if (parts[0] === 'stlp' && parts.length === 4 && parts[3]) {
+    code = parts[1];
+    presentStandard = CODE_PRESENT_STANDARD.get(parts[2]);
+    target = { projectId: parts[3] };
+  }
+  const option = FOUNDATION_CODE_OPTION.get(code);
+  if (!target || !option || ((parts[0] === FOUNDATION_PRESENT_CALLBACK_PREFIX || parts[0] === 'stlp') && !presentStandard)) {
+    return null;
+  }
+  return {
+    ...target,
+    optionKind: option.kind as Exclude<DecisionKind, 'witness'>,
+    optionId: option.optionId,
+    ...(presentStandard ? { presentStandard } : {}),
+    source: 'callback',
   };
 }
 
@@ -120,31 +258,44 @@ export function settlementReminderText(args: {
   locale?: 'ko' | 'en';
   /** True on the REMINDER_MAX_SENDS-th (last) send — says so honestly. */
   isFinal?: boolean;
+  kind?: Exclude<DecisionKind, 'witness'>;
 }): string {
   const token = settlementToken(args.projectId, args.contractId);
   const locale = args.locale ?? 'ko';
   const name = escapeTelegramHtml(args.projectName || (locale === 'ko' ? '제목 없는 결정' : 'Untitled'));
   const predicate = args.predicate ? escapeTelegramHtml(args.predicate.slice(0, 220)) : '';
 
+  const heading = args.kind === 'commitment'
+    ? (locale === 'ko' ? '그 약속은 지금 어떻게 되었나요?' : 'What happened to that commitment?')
+    : args.kind === 'declaration'
+      ? (locale === 'ko' ? '그 기준을 지금은 어떻게 보고 있나요?' : 'How do you see that standard now?')
+      : args.kind === 'prediction'
+        ? (locale === 'ko' ? '실제로는 어떻게 되었나요?' : 'What actually happened?')
+        : (locale === 'ko' ? '그래서, 어떻게 됐어요?' : 'So — how did it go?');
+
   if (locale === 'ko') {
     return [
-      '<b>그래서, 어떻게 됐어요?</b>',
+      `<b>${heading}</b>`,
       '',
       `「${name}」 — 봉인할 때 이날 물어봐 달라고 하셨어요.`,
       predicate ? `확인할 것: ${predicate}` : '',
       '',
-      '아래 버튼으로 답하거나, 이 메시지에 답장해 주세요. 아직 모르겠으면 "아직"도 답이에요.',
+      args.kind
+        ? '아래 버튼으로 답해 주세요. 아직 모르겠으면 "아직"을 누를 수 있어요.'
+        : '아래 버튼으로 답하거나, 이 메시지에 답장해 주세요. 아직 모르겠으면 "아직"도 답이에요.',
       args.isFinal ? '이제 조용히 열어둘게요. 언제든 돌아오시면 그때 물어볼게요 — 프로젝트 페이지에 그대로 있어요.' : '',
       `<code>${token}</code>`,
     ].filter(Boolean).join('\n');
   }
   return [
-    '<b>So — how did it go?</b>',
+    `<b>${heading}</b>`,
     '',
     `“${name}” — you asked to be asked on this day when you sealed it.`,
     predicate ? `The check: ${predicate}` : '',
     '',
-    'Tap a button, or just reply to this message. “Not yet” is a valid answer too.',
+    args.kind
+      ? 'Choose one button below. You can tap “Not yet” if the answer is not available.'
+      : 'Tap a button, or just reply to this message. “Not yet” is a valid answer too.',
     args.isFinal ? 'This is the last nudge — I’ll keep it quietly open. Whenever you come back, it’s right there on your project page.' : '',
     `<code>${token}</code>`,
   ].filter(Boolean).join('\n');

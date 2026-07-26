@@ -2,6 +2,9 @@ import { describe, expect, it } from 'vitest';
 import type { DecisionContract } from '@/stores/types';
 import {
   applyTelegramSettlement,
+  foundationPresentStandardReplyMarkup,
+  foundationSettlementReplyMarkup,
+  parseFoundationSettlementCallback,
   parseSettlementIntent,
   parseSemanticCloseCallback,
   semanticCloseReplyMarkup,
@@ -158,6 +161,63 @@ describe('telegram settlement intent parsing', () => {
       outcome: 'happened',
       source: 'callback',
     });
+  });
+
+  it('keeps a foundation return as two compact, kind-specific callbacks', () => {
+    const first = foundationSettlementReplyMarkup(
+      uuidProjectId,
+      uuidContractId,
+      'commitment',
+      'en',
+    ).inline_keyboard.flat();
+    expect(first.map((button) => button.text)).toEqual(expect.arrayContaining([
+      'I acted on the commitment',
+      'The commitment still stands',
+      'The commitment became moot',
+    ]));
+    expect(first.every((button) => button.callback_data.length <= 64)).toBe(true);
+    const selected = parseFoundationSettlementCallback(first[0]?.callback_data);
+    expect(selected).toEqual({
+      projectId: uuidProjectId,
+      contractId: uuidContractId,
+      optionKind: 'commitment',
+      optionId: 'enacted',
+      source: 'callback',
+    });
+
+    const second = foundationPresentStandardReplyMarkup(
+      uuidProjectId,
+      uuidContractId,
+      'commitment',
+      'enacted',
+      'en',
+    ).inline_keyboard.flat();
+    expect(second.every((button) => button.callback_data.length <= 64)).toBe(true);
+    expect(parseFoundationSettlementCallback(second[1]?.callback_data)).toEqual({
+      projectId: uuidProjectId,
+      contractId: uuidContractId,
+      optionKind: 'commitment',
+      optionId: 'enacted',
+      presentStandard: 'changed',
+      source: 'callback',
+    });
+  });
+
+  it('uses the record kind in the Telegram return question', () => {
+    const commitment = settlementReminderText({
+      projectName: 'Offer',
+      projectId: 'p1',
+      locale: 'en',
+      kind: 'commitment',
+    });
+    expect(commitment).toContain('What happened to that commitment?');
+    expect(commitment).toContain('Choose one button below.');
+    expect(commitment).not.toContain('just reply');
+    expect(settlementReminderText({
+      projectName: '기준',
+      projectId: 'p1',
+      kind: 'declaration',
+    })).toContain('그 기준을 지금은 어떻게 보고 있나요?');
   });
 
   it('keeps canonical close as a distinct callback from the answer buttons', () => {

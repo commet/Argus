@@ -45,6 +45,7 @@ import {
   withoutReturn,
   withDecisionFoundation,
   augmentContract,
+  adoptionLineageForSeal,
   shouldSealContract,
   buildEarlyContract,
   CHECK_IN_MS,
@@ -249,7 +250,9 @@ export function SealMoment({
     () => deriveDecisionKind({ statement: kindSentence, has_return_handle: true }),
     [kindSentence],
   );
-  const selectedKind = kindOverride ?? derivedKind.kind;
+  // An existing authorial kind is the current projection. Re-running the
+  // wording heuristic must never manufacture a user correction on re-seal.
+  const selectedKind = kindOverride ?? contract?.kind ?? derivedKind.kind;
   // loop-17 B — open checks the user hasn't dropped. Auto-carried by default; a ×
   // removes one before sealing (founder setting: auto + one-tap drop). Preserve any
   // already on an existing contract (re-seal) so a prior carry isn't silently lost.
@@ -333,11 +336,17 @@ export function SealMoment({
           ].slice(0, 6),
         }
       : next;
+    const adoptionLineage = adoptionLineageForSeal(
+      finalizedDraft.predicates,
+      finalizedDraft.open_checks ?? keptChecks,
+      finalPredicate ? undefined : finalizedDraft.predicates[0]?.id,
+    );
     const originUtterance = currentVoyage()?.problem_text?.trim()
       || (typeof project.name === 'string' ? project.name.trim() : '')
       || finalJudgment;
     const finalized = withDecisionFoundation(finalizedDraft, {
       kind: selectedKind,
+      sealedStatement: finalJudgment || finalizedDraft.predicates[0]?.text || originUtterance,
       derivedKind: derivedKind.kind,
       kindRule: derivedKind.rule,
       kindQuestion: L('이 기록은 나중에 무엇을 확인하면 좋을까요?', 'What should this record revisit later?'),
@@ -348,6 +357,7 @@ export function SealMoment({
         : reviewCondition.trim() ? 'answered' : 'skipped',
       reviewCondition: reviewCondition.trim() || undefined,
       returnEvent: returnEvent.trim() || undefined,
+      adoptionLineage,
     }, now);
     const check_by = finalized.check_in_at ? new Date(finalized.check_in_at).toLocaleDateString(ko ? 'ko-KR' : 'en-US', { month: 'long', day: 'numeric' }) : '';
     // ALWAYS attach the receipt. The machine-derived fields (그때의 진짜 질문 /
@@ -433,7 +443,8 @@ export function SealMoment({
   // effects so the artifact behaves identically downstream.
   function manualSeal(iv: CheckInInterval = interval) {
     const summary = (typeof project?.name === 'string' ? project.name : '').trim();
-    if (!summary) return;
+    const recoveryJudgment = humanJudgment.trim() || baselineJudgment;
+    if (!summary || !recoveryJudgment) return;
     const now = Date.now();
     const existing = project.decision_contract;
     // In the CLOSING case an early rope may already exist with zero fresh
@@ -441,13 +452,13 @@ export function SealMoment({
     // id/created_at + the user's own lean) and re-confirm the check-in instead.
     const draft = existing
       ? augmentContract(existing, [], now, selectedKind === 'witness' ? undefined : iv)
-      : buildEarlyContract(project.id, { lean: summary, ...(selectedKind === 'witness' ? {} : { interval: iv }) }, now);
+      : buildEarlyContract(project.id, { lean: recoveryJudgment, ...(selectedKind === 'witness' ? {} : { interval: iv }) }, now);
     const c = draft ? (selectedKind === 'witness' ? withoutReturn(draft, now) : draft) : null;
     if (!c) return;
-    const baselineJudgment = c.judgment_receipt?.baseline_judgment
+    const recoveryBaseline = c.judgment_receipt?.baseline_judgment
       || c.predicates.find((p) => p.source === 'user_lean')?.text
       || '';
-    const finalJudgment = humanJudgment.trim() || baselineJudgment || summary;
+    const finalJudgment = recoveryJudgment;
     const finalPredicate = {
       id: stablePredicateId('user_lean', finalJudgment),
       text: finalJudgment,
@@ -462,9 +473,14 @@ export function SealMoment({
         ...c.predicates.filter((p) => p.source !== 'user_lean' && p.id !== finalPredicate.id),
       ].slice(0, 6),
     };
+    const adoptionLineage = adoptionLineageForSeal(
+      finalizedDraft.predicates,
+      finalizedDraft.open_checks ?? keptChecks,
+    );
     const originUtterance = currentVoyage()?.problem_text?.trim() || summary;
     const finalized = withDecisionFoundation(finalizedDraft, {
       kind: selectedKind,
+      sealedStatement: finalJudgment,
       derivedKind: derivedKind.kind,
       kindRule: derivedKind.rule,
       kindQuestion: L('이 기록은 나중에 무엇을 확인하면 좋을까요?', 'What should this record revisit later?'),
@@ -475,6 +491,7 @@ export function SealMoment({
         : reviewCondition.trim() ? 'answered' : 'skipped',
       reviewCondition: reviewCondition.trim() || undefined,
       returnEvent: returnEvent.trim() || undefined,
+      adoptionLineage,
     }, now);
     setDismissedLocally(false);
     setSealPromptDismissed(false);
@@ -485,7 +502,7 @@ export function SealMoment({
       real_question: summary,
       unverified_assumption: '',
       human_only: '',
-      baseline_judgment: baselineJudgment || undefined,
+      baseline_judgment: recoveryBaseline || undefined,
       human_judgment: finalJudgment,
       judgment_attribution: finalPredicate.attribution,
       check_by,
@@ -598,19 +615,46 @@ export function SealMoment({
             <Anchor size={20} />
           </div>
           <h3 className="mt-4 text-[18px] md:text-[20px] font-bold text-[var(--text-primary)] leading-[1.35] max-w-md mx-auto">
-            {L(`이 결정, ${dateFor(interval)}에 어떻게 됐는지 확인해 드릴까요?`, `Want me to check back on this on ${dateFor(interval)}?`)}
+            {selectedKind === 'witness'
+              ? L('지금 남기고 싶은 문장을 원문 그대로 보관할까요?', 'Keep the sentence you want to remember exactly as written?')
+              : L(`지금 남긴 문장을 ${dateFor(interval)}에 다시 확인할까요?`, `Revisit the sentence you keep here on ${dateFor(interval)}?`)}
           </h3>
           <p className="mt-2.5 text-[13px] text-[var(--text-secondary)] leading-[1.5] max-w-sm mx-auto">
-            {L('그날 돌아와 어떻게 됐는지 확인할 수 있어요.', 'You can return that day and see how it went.')}
+            {baselineJudgment
+              ? L('검토 전에 직접 남긴 문장을 기준으로 기록합니다.', 'This uses the sentence you wrote before the review.')
+              : L('분석에서 확인할 문장을 뽑지 못했어요. 남길 문장을 한 줄로 적어 주세요.', 'Argus could not extract a reliable line to revisit. Write the sentence you want to keep.')}
           </p>
+          <div className="mx-auto mt-5 max-w-md text-left">
+            {!baselineJudgment && (
+              <label className="block text-[12px] font-semibold text-[var(--text-secondary)]">
+                {L('내가 남길 문장', 'The sentence I want to keep')}
+                <textarea
+                  value={humanJudgment}
+                  onChange={(event) => setHumanJudgment(event.target.value)}
+                  maxLength={4000}
+                  rows={3}
+                  placeholder={L('예: 권한과 역할이 문서에 적힐 때만 옮긴다.', 'Example: I will move only if the role and authority are written down.')}
+                  className="mt-2 w-full resize-none rounded-xl border border-[var(--border)] bg-[var(--bg)] px-3.5 py-3 text-[13px] font-normal leading-6 text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:border-[var(--accent)]/55 focus:outline-none"
+                />
+              </label>
+            )}
+            <KindChoice
+              value={selectedKind}
+              onChange={(value) => setKindOverride(value)}
+              L={L}
+            />
+          </div>
           <div className="mt-7 flex flex-col sm:flex-row gap-3 justify-center">
             <button
               onClick={() => manualSeal()}
-              className="inline-flex items-center justify-center gap-2 px-7 py-3 rounded-2xl text-[var(--accent-fg)] text-[14px] font-semibold cursor-pointer transition-transform duration-150 active:scale-[0.96]"
+              disabled={!humanJudgment.trim() && !baselineJudgment}
+              className="inline-flex items-center justify-center gap-2 px-7 py-3 rounded-2xl text-[var(--accent-fg)] text-[14px] font-semibold cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 transition-transform duration-150 active:scale-[0.96]"
               style={{ background: 'var(--gradient-gold)' }}
             >
               <Check size={15} />
-              {L(`네 — ${dateFor(interval)}에 확인해 주세요`, `Yes — check back on ${dateFor(interval)}`)}
+              {selectedKind === 'witness'
+                ? L('이 원문 그대로 기록', 'Save exactly as written')
+                : L(`이 문장 기록 · ${dateFor(interval)}에 확인`, `Save this sentence · check on ${dateFor(interval)}`)}
             </button>
             <button
               onClick={() => {
@@ -634,7 +678,7 @@ export function SealMoment({
     return (
       <div className="mt-10 text-center">
         <p className="text-[12.5px] text-[var(--text-tertiary)]">
-          {L('마음 바뀌면 언제든 약속을 걸 수 있어요.', 'You can set the reminder anytime you change your mind.')}{' '}
+          {L('마음이 바뀌면 언제든 이 기록을 다시 열 수 있어요.', 'You can reopen this record anytime you change your mind.')}{' '}
           <button onClick={() => { setDismissedLocally(false); setSealPromptDismissed(false); }} className="font-medium text-[var(--accent)] hover:underline cursor-pointer">
             {L('질문 다시 보기', 'Show the question again')}
           </button>
@@ -687,7 +731,9 @@ export function SealMoment({
           {/* '제가 먼저 물어볼게요' — 약속하는 그 Argus가 직접 */}
           <ArgusMascot moment="witness" size="md" alt={L('약속을 기억하는 Argus', 'Argus remembering the promise')} />
           <p className="seal-line-write text-[15px] font-semibold text-[var(--text-primary)] leading-[1.5]">
-            {L(`기록했어요 — ${checkDateStr}에 제가 먼저 물어볼게요.`, `Saved — I'll ask you first on ${checkDateStr}.`)}
+            {displayedKind === 'witness'
+              ? L('원문 그대로 기록했어요. 다시 묻지 않을게요.', 'Saved exactly as written. I will not reopen it.')
+              : L(`기록했어요 — ${checkDateStr}에 제가 먼저 물어볼게요.`, `Saved — I'll ask you first on ${checkDateStr}.`)}
           </p>
         </div>
       </motion.div>
@@ -861,7 +907,9 @@ export function SealMoment({
             onClick={() => setDrawerOpen((o) => !o)}
             className="mt-4 inline-flex items-center gap-1 text-[12.5px] font-medium text-[var(--text-tertiary)] hover:text-[var(--accent)] transition-colors cursor-pointer"
           >
-            {L('날짜·예측 손보기', 'Adjust date & predictions')}
+            {displayedKind === 'witness'
+              ? L('함께 보관한 항목 보기', 'Review saved details')
+              : L('돌아올 때·함께 볼 항목 손보기', 'Adjust the return and saved checks')}
             <ChevronDown size={13} className={`transition-transform ${drawerOpen ? 'rotate-180' : ''}`} />
           </button>
 
@@ -903,7 +951,9 @@ export function SealMoment({
                     className="mt-4 w-full py-2.5 rounded-xl text-[13px] font-semibold text-[var(--accent-fg)] disabled:opacity-50 cursor-pointer"
                     style={{ background: 'var(--gradient-gold)' }}
                   >
-                    {L('이대로 다시 약속', 'Save the new promise')}
+                    {displayedKind === 'witness'
+                      ? L('이대로 다시 기록', 'Save these details')
+                      : L('이대로 다시 저장', 'Save these changes')}
                   </button>
                 </div>
               </motion.div>

@@ -3,7 +3,12 @@ import { createClient } from '@supabase/supabase-js';
 import { tgSendMessage } from '@/lib/telegram-api';
 import { markdownToTelegramLight } from '@/lib/telegram-format';
 import { settleQuestionMarkdown, settleKeyboard } from '@/lib/seal-core';
+import {
+  foundationSettlementReplyMarkup,
+  settlementReminderText,
+} from '@/lib/telegram-settlement';
 import { notificationGateAllowsSend } from '@/lib/notification-gate';
+import type { DecisionContract } from '@/stores/types';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -51,7 +56,7 @@ export async function GET(req: Request) {
 
   const { data: due, error } = await admin
     .from('telegram_decisions')
-    .select('id, chat_id, decision, predicate, check_by')
+    .select('id, user_id, chat_id, decision, predicate, check_by, source')
     .eq('status', 'sealed')
     .is('reminded_at', null)
     .lte('check_by', today)
@@ -63,23 +68,76 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: 'query failed' }, { status: 500 });
   }
 
+  const webIds = (due ?? [])
+    .filter((decision) => decision.source === 'web')
+    .map((decision) => decision.id);
+  const { data: webProjects } = webIds.length
+    ? await admin.from('projects').select('id, user_id, name, decision_contract').in('id', webIds)
+    : { data: [] };
+  const webProjectById = new Map(
+    (webProjects ?? []).map((project) => [project.id, project] as const),
+  );
+
   let sent = 0;
   for (const d of due ?? []) {
     const locale = detectLocale(d.decision || '');
-    if (!notificationGateAllowsSend({
-      type: 'T1_RETURN',
-      channel: 'telegram',
-      userId: String(d.chat_id),
-      targetId: d.id,
-      reminderCount: 0,
-      contentCount: 1,
-    })) continue;
     try {
-      await tgSendMessage(
-        d.chat_id,
-        markdownToTelegramLight(settleQuestionMarkdown(d.decision, d.predicate, locale)),
-        settleKeyboard(d.id, locale),
-      );
+      const candidateProject = d.source === 'web' ? webProjectById.get(d.id) : undefined;
+      // Service-role reads bypass RLS. Pair the mirrored row with its owner
+      // before exposing project wording to Telegram, even if an id was planted
+      // or corrupted outside the normal sync route.
+      const webProject = candidateProject?.user_id === d.user_id ? candidateProject : undefined;
+      if (d.source === 'web' && !webProject) {
+        await admin.from('telegram_decisions')
+          .update({ status: 'orphaned', outcome: null, reminded_at: null, settled_at: null })
+          .eq('id', d.id)
+          .eq('user_id', d.user_id)
+          .eq('source', 'web');
+        continue;
+      }
+      const contract = (webProject?.decision_contract ?? null) as DecisionContract | null;
+      if (contract?.kind === 'witness') {
+        // Defensive repair for mirrors created before witness disabling was
+        // wired to the edit surface. Do not let stale due rows consume the
+        // bounded cron window or turn "never ask" into one last reminder.
+        await admin.from('telegram_decisions')
+          .update({ status: 'witness', outcome: null, reminded_at: null, settled_at: null })
+          .eq('id', d.id)
+          .eq('user_id', d.user_id)
+          .eq('source', 'web');
+        continue;
+      }
+      if (!notificationGateAllowsSend({
+        type: 'T1_RETURN',
+        channel: 'telegram',
+        userId: String(d.chat_id),
+        targetId: d.id,
+        reminderCount: 0,
+        contentCount: 1,
+      })) continue;
+      if (contract?.kind) {
+        const foundationLocale = detectLocale(
+          `${webProject?.name ?? d.decision ?? ''} ${contract.predicates?.[0]?.text ?? ''}`,
+        );
+        await tgSendMessage(
+          d.chat_id,
+          settlementReminderText({
+            projectName: webProject?.name || d.decision,
+            projectId: d.id,
+            contractId: contract.id,
+            predicate: contract.predicates?.[0]?.text || d.predicate,
+            locale: foundationLocale,
+            kind: contract.kind,
+          }),
+          foundationSettlementReplyMarkup(d.id, contract.id, contract.kind, foundationLocale),
+        );
+      } else {
+        await tgSendMessage(
+          d.chat_id,
+          markdownToTelegramLight(settleQuestionMarkdown(d.decision, d.predicate, locale)),
+          settleKeyboard(d.id, locale),
+        );
+      }
       await admin.from('telegram_decisions')
         .update({ reminded_at: new Date().toISOString() })
         .eq('id', d.id);

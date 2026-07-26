@@ -36,8 +36,8 @@ function receipt(w: World): string {
 export const telegramScenarios: Scenario[] = [
   {
     id: 'T1',
-    title: 'Button answer records observation+resolution atomically and does NOT close',
-    proves: 'P7 telegram steps 3–5: one tap → one atomic batch with Telegram receipt evidence; the judgment stays open with a separate close offer.',
+    title: 'Two-button return records outcome+present standard atomically and does NOT close',
+    proves: 'P7 telegram steps 3–5: kind-specific answer → present-standard answer → one atomic batch with receipt evidence; close stays separate.',
     async run(w) {
       const { projectId, seal, contract } = await sealedContract(w, 'T1');
       const ref = receipt(w);
@@ -155,18 +155,23 @@ export const telegramScenarios: Scenario[] = [
   },
   {
     id: 'T7',
-    title: 'Free-text reply (Korean alias + note) parses into the answer and preserves the note',
-    proves: 'The reply-token path: the REAL parser maps 됐어/아직/반반… to intents and the note reaches the observation text.',
+    title: 'Free-text shorthand is parsed but never promoted without the two explicit choices',
+    proves: 'The reply-token path recognizes 됐어/아직/반반…, but the text remains uncommitted until the user chooses the kind-specific answer and present standard.',
     async run(w) {
       const { projectId, contract } = await sealedContract(w, 'T7');
       const out = await w.telegram.replyToReminder(projectId, contract, '됐어: 전환율 3.5%로 마감', receipt(w));
       if (out.intent?.outcome !== 'happened' || !out.intent.note?.includes('전환율')) {
         throw new Error(`parsed intent: ${JSON.stringify(out.intent)}`);
       }
-      await w.step({ scenario: 'T7', step: 'reply-answer', surface: 'telegram', action: 'observe_and_resolve', projectId },
-        { ok: true, appended: 2 }, async () => out.result);
-      const observation = w.stream(projectId).find((e) => (e as { event?: string }).event === 'observation_recorded') as { text: string };
-      if (!observation.text.includes('전환율 3.5%로 마감')) throw new Error(`note lost: ${observation.text}`);
+      await w.step({ scenario: 'T7', step: 'reply-awaits-confirmation', surface: 'telegram', action: 'request_foundation_choice', projectId },
+        { ok: true, appended: 0 }, async () => out.result);
+      if (!out.transcript.sent.at(-1)?.keyboard) throw new Error('explicit choice keyboard missing');
+      if (w.stream(projectId).some((event) => (event as { event?: string }).event === 'observation_recorded')) {
+        throw new Error('free text was silently promoted before confirmation');
+      }
+      const confirmed = await w.telegram.tapSettlementButton(projectId, contract, 'happened', receipt(w));
+      await w.step({ scenario: 'T7', step: 'confirmed-answer', surface: 'telegram', action: 'observe_and_resolve', projectId },
+        { ok: true, appended: 2 }, async () => confirmed.result);
     },
   },
   {

@@ -146,6 +146,20 @@ const inputSchema = z.strictObject({
     need('return_contract_id', 'return_contract_id is required');
     need('resolution_id', 'resolution_id is required');
     need('resolution', 'resolution is required');
+    if (value.resolution && !value.resolution.present_standard) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['resolution', 'present_standard'],
+        message: 'present_standard is required for a new resolution',
+      });
+    } else if (value.resolution?.present_standard
+      && !value.resolution.present_standard.response_text?.trim()) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['resolution', 'present_standard', 'response_text'],
+        message: 'the user-selected present-standard wording is required',
+      });
+    }
   }
   if (value.action === 'close') need('resolution_id', 'resolution_id is required');
 });
@@ -154,6 +168,19 @@ type Command = z.infer<typeof inputSchema>;
 
 function now(): string {
   return new Date().toISOString();
+}
+
+function withPresentStandardAxis(resolution: Resolution): Resolution {
+  const status = resolution.present_standard?.status;
+  if (!status || status === 'skipped') return resolution;
+  return {
+    ...resolution,
+    commitment_result: status === 'same'
+      ? 'maintained'
+      : status === 'changed'
+        ? 'revised'
+        : 'withdrawn',
+  };
 }
 
 function authority(spaceId: string, authorization: NonNullable<Command['authorization']>) {
@@ -355,7 +382,7 @@ function actionEvents(command: Command, time: string): SemanticEvent[] {
         resolution_id: command.resolution_id!,
         judgment_id: command.judgment_id!,
         return_contract_id: command.return_contract_id!,
-        resolution: command.resolution! as Resolution,
+        resolution: withPresentStandardAxis(command.resolution! as Resolution),
       }];
     case 'close':
       return [{
