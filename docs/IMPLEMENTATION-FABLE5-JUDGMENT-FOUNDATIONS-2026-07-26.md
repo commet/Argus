@@ -206,9 +206,9 @@ constraint가 `NOT VALID`라 기존 행을 소급 차단하지 않으며, 웹의
 이번 시공은 세 표면의 같은 의미를 다음 버전으로 함께 배포한다.
 
 - 웹앱: 이 커밋의 프로덕션 배포
-- MCP: `argus-decision-mcp@1.13.0`
-- Claude/Codex 플러그인: `2.19.0`
-- 플러그인의 MCP 설치 핀: `argus-decision-mcp@1.13.0`
+- MCP: `argus-decision-mcp@1.13.1`
+- Claude/Codex 플러그인: `2.19.1`
+- 플러그인의 MCP 설치 핀: `argus-decision-mcp@1.13.1`
 
 출시 전 검증 결과:
 
@@ -241,10 +241,11 @@ Windows에서 전수 시험의 worker fork가 종료 시 간헐적으로 자원 
 - 웹 production: Vercel이 merge commit 배포를 완료했고
   `https://argus.voyage/ko`, `/en`, `/ko/guide`, `/en/guide`가 모두 HTTP 200으로
   응답했다.
-- npm: `argus-decision-mcp@1.13.0`이 `latest`로 공개됐고 GitHub Actions
-  provenance가 붙었다.
-- MCP Registry: `io.github.commet/argus-decision-mcp` version `1.13.0` 등록 완료
-- 플러그인: main marketplace의 `2.19.0`과 정확한 MCP `1.13.0` 핀이 함께 배포됐다.
+- npm: `argus-decision-mcp@1.13.0`이 최초 공개된 직후 동시 PR #297의
+  untouched-side 문구 개선이 main에 합류해 release drift를 감지했다. 이를 숨기거나
+  같은 버전을 덮어쓰지 않고 합본 `1.13.1`을 최종 `latest`로 공개했다.
+- MCP Registry: `io.github.commet/argus-decision-mcp` version `1.13.1` 등록 완료
+- 플러그인: main marketplace의 `2.19.1`과 정확한 MCP `1.13.1` 핀이 함께 배포됐다.
 
 운영 DB의 과거 migration history와 저장소의 오래된 로컬 파일 목록이 이미 어긋나
 표준 `supabase db push`는 신규 migration 전에 차단됐다. 이 출시에서는 과거 이력을
