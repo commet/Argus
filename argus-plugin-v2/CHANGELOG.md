@@ -4,6 +4,14 @@ All notable changes to the Argus plugin. Versioning follows
 [semver](https://semver.org); users receive an update only when the
 `version` in `.claude-plugin/plugin.json` is bumped.
 
+## 2.17.0 — 2026-07-27
+
+- **Wire moves to `argus-decision-mcp@1.11.0`** — the settlement/premises/ambient
+  pickers no longer declare required fields, so hosts stop collapsing the enum
+  and stop blocking an empty Accept with an in-form "This field is required"
+  (the dead-end the founder hit live on 2026-07-27). Empty Accept now flows the
+  same honest path as Decline; the server re-asks instead of the form blocking.
+
 ## 2.16.0 — 2026-07-26
 
 Wire truth. The plugin launched the MCP server with a **range** spec
