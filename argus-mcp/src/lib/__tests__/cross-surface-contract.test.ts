@@ -124,6 +124,7 @@ describe('교차-표면 계약 — 세 두뇌, 같은 대답', () => {
  */
 describe('쓰기 규율 계약 — 두 writer, 같은 규율 (O2 방3)', () => {
   const CLI = path.join(REPO_ROOT, 'argus-plugin-v2', 'scripts', 'decision-ledger.js');
+  const AUTH = ['--authorization-ref', 'test:explicit-user-action'];
 
   function pluginRepo(): string {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'argus-wparity-'));
@@ -135,7 +136,7 @@ describe('쓰기 규율 계약 — 두 writer, 같은 규율 (O2 방3)', () => {
 
   it('스탬프 동형: 두 writer 모두 v·ts를 찍고, 개행으로 끝나며, 전 줄이 파스된다', async () => {
     const repo = pluginRepo();
-    const r = spawnSync(process.execPath, [CLI, 'record', '--predicate', 'the pipeline stays under budget', '--id', 'wp1', '--check-by', '2099-01-01'], { cwd: repo, encoding: 'utf8' });
+    const r = spawnSync(process.execPath, [CLI, 'record', '--predicate', 'the pipeline stays under budget', '--id', 'wp1', '--check-by', '2099-01-01', ...AUTH], { cwd: repo, encoding: 'utf8' });
     expect(r.status).toBe(0);
     const cliRaw = readLines(repo);
     expect(cliRaw.endsWith('\n')).toBe(true);
@@ -163,7 +164,7 @@ describe('쓰기 규율 계약 — 두 writer, 같은 규율 (O2 방3)', () => {
     const ledgerDir = path.join(repo, '.argus', 'ledger');
     fs.mkdirSync(ledgerDir, { recursive: true });
     fs.writeFileSync(path.join(ledgerDir, 'ledger.jsonl'), '{"torn cras'); // 종결자 없는 조각
-    const r = spawnSync(process.execPath, [CLI, 'record', '--predicate', 'the recovery path actually works', '--id', 'heal1', '--check-by', '2099-01-01'], { cwd: repo, encoding: 'utf8' });
+    const r = spawnSync(process.execPath, [CLI, 'record', '--predicate', 'the recovery path actually works', '--id', 'heal1', '--check-by', '2099-01-01', ...AUTH], { cwd: repo, encoding: 'utf8' });
     expect(r.status).toBe(0);
     const s = replayLedger(path.join(repo, '.argus'), '2026-07-17');
     expect(s.integrity.dropped_lines).toBe(1); // 찢긴 조각 그 한 줄만
@@ -174,12 +175,17 @@ describe('쓰기 규율 계약 — 두 writer, 같은 규율 (O2 방3)', () => {
     const repo = pluginRepo();
     await Promise.all(
       [1, 2, 3, 4, 5].map((n) =>
-        execFileP(process.execPath, [CLI, 'record', '--predicate', `concurrent write number ${n} lands intact`, '--id', `con${n}`, '--check-by', '2099-01-01'], { cwd: repo }),
+        execFileP(process.execPath, [CLI, 'record', '--predicate', `concurrent write number ${n} lands intact`, '--id', `con${n}`, '--check-by', '2099-01-01', ...AUTH], { cwd: repo }),
       ),
     );
     const s = replayLedger(path.join(repo, '.argus'), '2026-07-17');
     expect(s.integrity.dropped_lines).toBe(0);
     const sealed = [1, 2, 3, 4, 5].filter((n) => s.contracts.get(`con${n}`)?.status === 'sealed');
     expect(sealed.length).toBe(5);
+    const ids = readLines(repo).trim().split('\n').map((line) => (JSON.parse(line) as { id: string }).id);
+    for (let n = 1; n <= 5; n += 1) {
+      const first = ids.indexOf(`con${n}`);
+      expect(ids[first + 1]).toBe(`con${n}`);
+    }
   });
 });

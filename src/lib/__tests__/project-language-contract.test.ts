@@ -24,9 +24,9 @@ describe('project follow-up language contract', () => {
     }
   });
 
-  it('uses the same plain three-step vocabulary in both locales', () => {
-    expect(projectRecord).toContain("L('판단 추적', 'Decision follow-up')");
+  it('uses the same plain return vocabulary in both locales', () => {
+    expect(projectRecord).toContain("L('돌아올 기록', 'Return record')");
     expect(projectRecord).toContain("L('근거 추가', 'Add evidence')");
-    expect(projectRecord).toContain("L('2. 확인 결과 남기기', '2. Record the outcome')");
+    expect(projectRecord).toContain("L('돌아온 답을 확인했어요', 'Your return is saved')");
   });
 });

@@ -23,6 +23,7 @@ export interface Anomaly {
 
 export interface ProposalRecord {
   id: string;
+  kind: 'judgment' | 'premise' | 'relationship';
   text: string;
   state: 'active' | 'rejected' | 'adopted';
 }
@@ -196,7 +197,15 @@ export function apply(state: SemanticState, event: SemanticEvent): void {
 
   switch (event.event) {
     case 'proposal_created':
-      state.proposals.set(event.proposal_id, { id: event.proposal_id, text: event.text, state: 'active' });
+      if (state.proposals.has(event.proposal_id)) {
+        return anomaly(state, event, 'ILLEGAL_TRANSITION', 'proposal already exists');
+      }
+      state.proposals.set(event.proposal_id, {
+        id: event.proposal_id,
+        kind: event.proposal_kind,
+        text: event.text,
+        state: 'active',
+      });
       return;
     case 'proposal_rejected': {
       const proposal = state.proposals.get(event.proposal_id);
@@ -217,6 +226,12 @@ export function apply(state: SemanticState, event: SemanticEvent): void {
       return;
     case 'judgment_sealed': {
       if (state.judgments.has(event.judgment_id)) return anomaly(state, event, 'ILLEGAL_TRANSITION', 'judgment already sealed');
+      if (event.source_proposal_id) {
+        const proposal = state.proposals.get(event.source_proposal_id);
+        if (!proposal) return anomaly(state, event, 'UNKNOWN_REFERENCE', 'source proposal does not exist');
+        if (proposal.state !== 'active') return anomaly(state, event, 'ILLEGAL_TRANSITION', 'source proposal is not active');
+        if (proposal.kind !== 'judgment') return anomaly(state, event, 'ILLEGAL_TRANSITION', 'source proposal is not a judgment proposal');
+      }
       state.judgments.set(event.judgment_id, {
         id: event.judgment_id,
         statement: event.statement,
@@ -236,8 +251,7 @@ export function apply(state: SemanticState, event: SemanticEvent): void {
         conflicted: false,
       });
       if (event.source_proposal_id) {
-        const proposal = state.proposals.get(event.source_proposal_id);
-        if (proposal) proposal.state = 'adopted';
+        state.proposals.get(event.source_proposal_id)!.state = 'adopted';
       }
       return;
     }
@@ -270,6 +284,12 @@ export function apply(state: SemanticState, event: SemanticEvent): void {
     case 'premise_adopted': {
       const judgment = state.judgments.get(event.judgment_id);
       if (!judgment) return anomaly(state, event, 'UNKNOWN_REFERENCE', 'judgment does not exist');
+      if (event.source_proposal_id) {
+        const proposal = state.proposals.get(event.source_proposal_id);
+        if (!proposal) return anomaly(state, event, 'UNKNOWN_REFERENCE', 'source proposal does not exist');
+        if (proposal.state !== 'active') return anomaly(state, event, 'ILLEGAL_TRANSITION', 'source proposal is not active');
+        if (proposal.kind !== 'premise') return anomaly(state, event, 'ILLEGAL_TRANSITION', 'source proposal is not a premise proposal');
+      }
       judgment.premise_ids.add(event.premise_id);
       state.premises.set(event.premise_id, {
         judgment_id: event.judgment_id,
@@ -278,8 +298,7 @@ export function apply(state: SemanticState, event: SemanticEvent): void {
         challenges: [],
       });
       if (event.source_proposal_id) {
-        const proposal = state.proposals.get(event.source_proposal_id);
-        if (proposal) proposal.state = 'adopted';
+        state.proposals.get(event.source_proposal_id)!.state = 'adopted';
       }
       return;
     }

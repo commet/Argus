@@ -109,6 +109,10 @@ const zIndeterminateResolution = z.strictObject({
   kind: z.literal('indeterminate').describe(be('현재 증거로 답할 수 없는 정산임을 나타냅니다.', 'A return that current evidence cannot answer.')),
   reason: z.string().min(1).max(2000).describe(be('왜 지금 답할 수 없는지 기록합니다.', 'Why the question cannot be answered yet.')),
   question_validity: z.literal('indeterminate').optional().describe(be('질문의 유효성을 아직 판단할 수 없음을 나타냅니다.', 'The question’s validity cannot yet be determined.')),
+  criterion_result: z.enum(['met', 'not_met', 'partial', 'unknown', 'not_observable', 'not_applicable']).optional()
+    .describe(be('관찰 가능한 현실 축은 질문의 불확정성과 별도로 보존합니다.', 'Preserves the observable reality axis separately from question uncertainty.')),
+  commitment_result: z.enum(['enacted', 'maintained', 'revised', 'withdrawn', 'superseded']).optional()
+    .describe(be('현재 기준에 대한 사용자의 답을 약속 축에 별도로 보존합니다.', 'Preserves the user’s present-standard answer on the commitment axis.')),
   authorial_response: z.string().min(1).max(2000).optional().describe(be('사용자가 덧붙인 자신의 설명입니다.', 'The user’s own additional explanation.')),
   present_standard: z.strictObject({
     status: z.enum(['same', 'changed', 'withdrawn', 'skipped']).describe(be('그때의 기준을 지금도 유지하는지 나타냅니다.', 'Whether the user still holds the earlier standard.')),
@@ -120,6 +124,10 @@ const zMootResolution = z.strictObject({
   kind: z.literal('moot').describe(be('처음 질문 자체가 더는 적용되지 않음을 나타냅니다.', 'A return where the original question no longer applies.')),
   reason: z.string().min(1).max(2000).describe(be('왜 질문이 무의미해졌는지 기록합니다.', 'Why the original question became moot.')),
   question_validity: z.literal('moot').optional().describe(be('질문이 더는 적용되지 않음을 별도 축으로 기록합니다.', 'Records on a separate axis that the question no longer applies.')),
+  criterion_result: z.enum(['met', 'not_met', 'partial', 'unknown', 'not_observable', 'not_applicable']).optional()
+    .describe(be('질문이 사라져도 이미 관찰한 현실 축을 지우지 않습니다.', 'Keeps any observed reality axis even when the question became moot.')),
+  commitment_result: z.enum(['enacted', 'maintained', 'revised', 'withdrawn', 'superseded']).optional()
+    .describe(be('현재 기준에 대한 사용자의 답을 약속 축에 별도로 보존합니다.', 'Preserves the user’s present-standard answer on the commitment axis.')),
   authorial_response: z.string().min(1).max(2000).optional().describe(be('사용자가 덧붙인 자신의 설명입니다.', 'The user’s own additional explanation.')),
   present_standard: z.strictObject({
     status: z.enum(['same', 'changed', 'withdrawn', 'skipped']).describe(be('그때의 기준을 지금도 유지하는지 나타냅니다.', 'Whether the user still holds the earlier standard.')),

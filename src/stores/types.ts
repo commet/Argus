@@ -842,6 +842,16 @@ export interface ContractSettlement {
   response_text: string;
   recorded_at: string;
   axes: SettlementAxes;
+  /** Receipt for the exact user act that authorized this return. Optional only
+   * on legacy history; every current web/Telegram writer supplies it. The
+   * stable reference also makes redelivered callbacks idempotent. */
+  authorization?: {
+    authorized_by: 'human';
+    authorization_mode: 'explicit_confirmation' | 'direct_command';
+    surface: 'web' | 'telegram' | 'plugin' | 'mcp';
+    authorization_ref: string;
+    authorized_at: string;
+  };
   /** Optional recall captured before the sealed statement was revealed.
    * Absent by default; persisted only after an explicit user opt-in. */
   memory_before_reveal?: {
@@ -882,8 +892,20 @@ export interface DecisionContract {
   id: string;
   project_id: string;
   predicates: Predicate[];
+  /** Internal persistence guard. Version 2 requires exact AI-adoption lineage
+   * and a verbatim present-standard response on every new settlement. */
+  integrity_version?: 2;
+  /** Counts history that existed before a legacy contract first opted into the
+   * v2 guard. The database fixes this value at upgrade time; it is never a
+   * client-controlled escape hatch for new records. */
+  integrity_baseline?: {
+    settlement_count: number;
+  };
   /** New writes always set these fields. Optional only for legacy JSON. */
   kind?: DecisionKind;
+  /** The exact first statement authorized at seal. Later wording changes live
+   * only in statement_revisions; predicate/check edits never redefine this. */
+  sealed_statement?: string;
   kind_evidence?: DecisionKindEvidence;
   kind_corrections?: DecisionKindCorrection[];
   statement_revisions?: DecisionStatementRevision[];

@@ -17,10 +17,14 @@ import {
   readProjectSemanticEvents,
 } from '../../../src/lib/semantic-ledger-gateway';
 import {
+  handleFoundationContractSettlement,
   handleSemanticContractClose,
   handleSemanticContractSettlement,
 } from '../../../src/lib/telegram-semantic';
 import {
+  foundationPresentStandardReplyMarkup,
+  foundationSettlementReplyMarkup,
+  parseFoundationSettlementCallback,
   parseSemanticCloseCallback,
   parseSettlementIntent,
   semanticCloseReplyMarkup,
@@ -29,6 +33,7 @@ import {
   type TelegramSettlementIntent,
   type TelegramSettlementOutcome,
 } from '../../../src/lib/telegram-settlement';
+import { fold, type SemanticState } from '../../../src/lib/decision-kernel';
 import {
   closePluginRecord,
   deferPluginReturn,
@@ -136,6 +141,53 @@ export class TelegramSurface {
     outcome: TelegramSettlementOutcome,
     receiptRef: string,
   ): Promise<{ result: ActionResult; transcript: TelegramExchange; intent: TelegramSettlementIntent | null }> {
+    if (outcome !== 'pending' && outcome !== 'mute' && contract.semantic_judgment_id) {
+      const project = this.emu.projects.find((candidate) => candidate.id === projectId);
+      const transcript: TelegramExchange = { sent: [] };
+      if (!project || project.user_id !== this.userId) {
+        return { result: { ok: false, code: 'OWNERSHIP_REFUSED' }, transcript, intent: null };
+      }
+      const state = fold(
+        this.emu.snapshotStream(this.userId, projectId).map((event) => JSON.parse(event)),
+      ) as SemanticState;
+      const kind = state.judgments.get(contract.semantic_judgment_id)?.kind;
+      if (!kind || kind === 'witness') {
+        return { result: { ok: false, code: 'RETURN_KIND_UNAVAILABLE' }, transcript, intent: null };
+      }
+      const optionId = kind === 'prediction'
+        ? (outcome === 'happened' ? 'condition_met' : outcome === 'avoided' ? 'condition_not_met' : 'mixed')
+        : kind === 'commitment'
+          ? (outcome === 'happened' ? 'enacted' : outcome === 'avoided' ? 'withdrawn' : 'revised')
+          : (outcome === 'happened' ? 'maintained' : outcome === 'avoided' ? 'withdrawn' : 'revised');
+      const firstButton = foundationSettlementReplyMarkup(projectId, contract.id, kind, 'ko')
+        .inline_keyboard.flat()
+        .find((button) => parseFoundationSettlementCallback(button.callback_data)?.optionId === optionId);
+      const first = parseFoundationSettlementCallback(firstButton?.callback_data);
+      if (!first) return { result: { ok: false, code: 'INTENT_PARSE_FAILED' }, transcript, intent: null };
+      const before = this.emu.snapshotStream(this.userId, projectId).length;
+      await handleFoundationContractSettlement(
+        this.deps(transcript), 100, this.userId,
+        { id: project.id, name: project.name, decision_contract: project.decision_contract },
+        contract, first, receiptRef,
+      );
+      const status = outcome === 'partial' ? 'changed' : 'same';
+      const secondButton = foundationPresentStandardReplyMarkup(projectId, contract.id, kind, optionId, 'ko')
+        .inline_keyboard.flat()
+        .find((button) => parseFoundationSettlementCallback(button.callback_data)?.presentStandard === status);
+      const second = parseFoundationSettlementCallback(secondButton?.callback_data);
+      if (!second) return { result: { ok: false, code: 'INTENT_PARSE_FAILED' }, transcript, intent: null };
+      await handleFoundationContractSettlement(
+        this.deps(transcript), 100, this.userId,
+        { id: project.id, name: project.name, decision_contract: project.decision_contract },
+        contract, second, receiptRef,
+      );
+      const after = this.emu.snapshotStream(this.userId, projectId).length;
+      return {
+        result: { ok: true, status: 200, note: `appended=${after - before}` },
+        transcript,
+        intent: null,
+      };
+    }
     const markup = settlementReplyMarkup(projectId, contract.id, 'ko');
     const flat = markup.inline_keyboard.flat();
     const byOutcome: Record<TelegramSettlementOutcome, number> = { happened: 0, avoided: 1, partial: 2, pending: 3, mute: 4 };

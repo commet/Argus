@@ -660,7 +660,8 @@ the after-reading can never drift from what settle/journal replay):
 
 ```bash
 node "${CLAUDE_PLUGIN_ROOT}/scripts/decision-ledger.js" wake "lean:<session-id>" \
-  --lean-after "<held: the lean verbatim; moved: the user's new line>" [--changed]
+  --lean-after "<held: the lean verbatim; moved: the user's new line>" [--changed] \
+  --authorization-ref "plugin:review:<session-id>:wake"
 ```
 
 - Pass `--changed` ONLY when the read moved; omit it when it held.

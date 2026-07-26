@@ -70,21 +70,51 @@ Skip/cancel writes nothing.
 
 ## 4. Ask exactly one follow-up
 
-Ask: `그때 세운 기준을 지금도 유지하나요? / Do you still hold the standard
-you used then?`
+Use the question and exact answer labels for the record kind:
 
-- `그대로예요 / It is the same` → `same`
-- `달라졌어요 / It has changed` → `changed`
-- `그 기준은 거뒀어요 / I withdrew it` → `withdrawn`
-- `지금은 답하지 않을래요 / Skip for now` → `skipped`
+- prediction — `오늘의 당신도 같은 조건에서 같은 판단을 했을까요? / Would
+  you make the same call under the same conditions today?`
+  - `같은 조건이라면 지금도 같은 판단을 하겠어요 / I would make the same
+    call under the same conditions` → `same`
+  - `지금이라면 판단 기준을 바꾸겠어요 / I would use a different standard
+    now` → `changed`
+  - `이 판단 기준은 더는 쓰지 않겠어요 / I would no longer use this
+    standard` → `withdrawn`
+  - `지금은 내 기준이 달라졌는지 모르겠어요 / I am not sure how my
+    standard has changed` → `skipped`
+- commitment — `오늘의 당신도 같은 약속을 했을까요? / Would you make the
+  same commitment today?`
+  - `지금도 같은 약속을 하겠어요 / I would make the same commitment today`
+    → `same`
+  - `지금이라면 약속의 조건을 바꾸겠어요 / I would change the terms of the
+    commitment` → `changed`
+  - `지금은 그 약속을 하지 않겠어요 / I would not make that commitment now`
+    → `withdrawn`
+  - `지금은 같은 약속을 할지 모르겠어요 / I am not sure whether I would
+    make it again` → `skipped`
+- declaration — `오늘의 당신도 같은 기준을 따를까요? / Would you follow the
+  same standard today?`
+  - `지금도 같은 기준을 따르겠어요 / I would still follow the same standard`
+    → `same`
+  - `지금이라면 기준을 바꾸겠어요 / I would use a different standard now`
+    → `changed`
+  - `그 기준은 더는 따르지 않겠어요 / I would no longer follow that
+    standard` → `withdrawn`
+  - `지금은 내 기준이 달라졌는지 모르겠어요 / I am not sure how my
+    standard has changed` → `skipped`
 
 Do not ask a third question. Free text is optional and only when the user
 volunteers it.
 
 ## 5. Append the answer
 
-Use the single writer. Choose `--reality` or `--commitment` from the mapping
-above; never invent the mapping from prose.
+Use the single writer. Choose `--reality` or `--commitment` from the first
+answer's fixed mapping; never invent it from prose. The writer preserves that
+first answer verbatim. If the follow-up is `same`, `changed`, or `withdrawn`,
+the writer projects that explicit answer onto axis ②
+(`maintained`/`revised`/`withdrawn`). If it is `skipped`, the first-answer
+projection remains. This is deliberate: the later explicit standard is
+authoritative, while the first selected sentence remains recoverable.
 
 ```bash
 node "${CLAUDE_PLUGIN_ROOT}/scripts/decision-ledger.js" settle <id> \
@@ -93,7 +123,9 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/decision-ledger.js" settle <id> \
   --reality met|not_met|partial|unknown|not_observable \
   --question-validity valid|narrowed|reframed|moot|indeterminate \
   --present-standard same|changed|withdrawn|skipped \
-  --observation-source-kind user_report
+  --present-standard-response "<selected follow-up label verbatim>" \
+  --observation-source-kind user_report \
+  --authorization-ref "plugin:resolve:<id>:confirmation"
 ```
 
 For commitment/declaration, replace `--reality` with:
@@ -106,7 +138,9 @@ If the user says the answer is not available yet and wants another date, append
 only a date change:
 
 ```bash
-node "${CLAUDE_PLUGIN_ROOT}/scripts/decision-ledger.js" amend <id> --check-by "<new YYYY-MM-DD>"
+node "${CLAUDE_PLUGIN_ROOT}/scripts/decision-ledger.js" amend <id> \
+  --check-by "<new YYYY-MM-DD>" \
+  --authorization-ref "plugin:resolve:<id>:defer"
 ```
 
 Never amend the sealed sentence or falsification condition.

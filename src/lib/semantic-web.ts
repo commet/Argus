@@ -6,6 +6,7 @@ import {
   projectJudgment,
   ResolutionSchema,
   type JudgmentProjection,
+  type Resolution,
   type SemanticEvent,
 } from '@/lib/decision-kernel';
 import { deriveDecisionKind } from '@/lib/decision-kernel';
@@ -115,6 +116,19 @@ export interface SemanticWebCommandInput {
   };
 }
 
+function withPresentStandardAxis(resolution: Resolution): Resolution {
+  const status = resolution.present_standard?.status;
+  if (!status || status === 'skipped') return resolution;
+  return {
+    ...resolution,
+    commitment_result: status === 'same'
+      ? 'maintained'
+      : status === 'changed'
+        ? 'revised'
+        : 'withdrawn',
+  };
+}
+
 const BrowserSemanticCommandRequestSchema = z.strictObject({
   command: SemanticWebCommandSchema,
 });
@@ -188,6 +202,21 @@ export function buildSemanticWebCommand(input: SemanticWebCommandInput): Semanti
   if (!zIsoDateTime.safeParse(recordedAt).success) return { ok: false, code: 'INVALID_RECORDED_AT' };
   const { project_id: projectId, origin } = input;
   const command = parsedCommand.data;
+  if (
+    command.kind === 'seal'
+    && Boolean(command.proposal_id) !== Boolean(command.proposal_text)
+  ) {
+    return { ok: false, code: 'PROPOSAL_LINEAGE_INCOMPLETE' };
+  }
+  if (
+    (command.kind === 'resolve' || command.kind === 'observe_and_resolve')
+    && (
+      !command.resolution.present_standard
+      || !command.resolution.present_standard.response_text?.trim()
+    )
+  ) {
+    return { ok: false, code: 'PRESENT_STANDARD_REQUIRED' };
+  }
 
   switch (command.kind) {
     case 'seal': {
@@ -347,7 +376,7 @@ export function buildSemanticWebCommand(input: SemanticWebCommandInput): Semanti
           resolution_id: command.resolution_id,
           judgment_id: command.judgment_id,
           return_contract_id: command.return_contract_id,
-          resolution: command.resolution,
+          resolution: withPresentStandardAxis(command.resolution),
         }],
       };
     case 'observe_and_resolve':
@@ -379,7 +408,7 @@ export function buildSemanticWebCommand(input: SemanticWebCommandInput): Semanti
             resolution_id: command.resolution_id,
             judgment_id: command.judgment_id,
             return_contract_id: command.return_contract_id,
-            resolution: command.resolution,
+            resolution: withPresentStandardAxis(command.resolution),
           },
         ],
       };

@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { BookOpen, CalendarClock, Pencil } from 'lucide-react';
 import { useLocale } from '@/hooks/useLocale';
+import { useAuth } from '@/lib/auth';
 import { useProjectStore } from '@/stores/useProjectStore';
 import type { DecisionContract, DecisionKind, Project } from '@/stores/types';
 import {
@@ -10,6 +11,7 @@ import {
   decisionKind,
   reviseContractStatement,
 } from '@/lib/decision-contract';
+import { disableTelegramReturn, syncSealToTelegram } from '@/lib/telegram-sync';
 import { Card } from '@/components/ui/Card';
 
 const KIND_LABELS: Record<DecisionKind, { ko: string; en: string }> = {
@@ -27,7 +29,8 @@ function formatDate(value: string | undefined, locale: 'ko' | 'en'): string {
 }
 
 function sealedStatement(contract: DecisionContract, project: Project): string {
-  return contract.judgment_receipt?.human_judgment?.trim()
+  return contract.sealed_statement?.trim()
+    || contract.judgment_receipt?.human_judgment?.trim()
     || contract.predicates.find((predicate) => predicate.source === 'user_lean')?.text
     || contract.predicates[0]?.text
     || contract.origin_utterance?.trim()
@@ -49,11 +52,15 @@ export function FoundationDecisionRecordCard({
   const locale = useLocale();
   const ko = locale === 'ko';
   const L = (k: string, e: string) => (ko ? k : e);
-  const updateProject = useProjectStore((state) => state.updateProject);
+  const { session } = useAuth();
+  const updateDecisionContract = useProjectStore((state) => state.updateDecisionContract);
   const contract = project.decision_contract!;
   const kind = decisionKind(contract);
   const returns = contract.settlements ?? [];
   const latest = returns.at(-1);
+  const adoptedWording = contract.adoption_lineage?.some((item) =>
+    item.adopted_as === 'wording' || item.adopted_as === 'basis');
+  const adoptedCheck = contract.adoption_lineage?.some((item) => item.adopted_as === 'check');
   const sourceStatement = sealedStatement(contract, project);
   const statement = currentStatement(contract, project);
   const [editing, setEditing] = useState(false);
@@ -61,18 +68,52 @@ export function FoundationDecisionRecordCard({
   const [draftKind, setDraftKind] = useState<DecisionKind>(kind);
   const [reason, setReason] = useState('');
   const [returnDate, setReturnDate] = useState(contract.check_in_at?.slice(0, 10) ?? '');
+  const [returnCondition, setReturnCondition] = useState(contract.review_condition ?? '');
   const needsReturnDate = draftKind !== 'witness' && !contract.check_in_at && !returnDate;
+  const needsReturnCondition = kind === 'witness'
+    && draftKind !== 'witness'
+    && !returnCondition.trim();
 
   const saveRevision = () => {
-    if (!draftStatement.trim() || needsReturnDate) return;
+    if (!draftStatement.trim() || needsReturnDate || needsReturnCondition) return;
     const now = Date.now();
-    let next = reviseContractStatement(contract, draftStatement, reason, now);
-    next = correctContractKind(next, draftKind, now);
-    if (draftKind !== 'witness' && returnDate) {
-      const parsed = new Date(`${returnDate}T09:00:00`);
-      if (!Number.isNaN(parsed.getTime())) next = { ...next, check_in_at: parsed.toISOString() };
+    let savedContract: DecisionContract | undefined;
+    updateDecisionContract(project.id, (latestContract) => {
+      if (!latestContract) return latestContract;
+      let next = reviseContractStatement(latestContract, draftStatement, reason, now);
+      next = correctContractKind(next, draftKind, now);
+      if (kind === 'witness' && draftKind !== 'witness' && returnCondition.trim()) {
+        next = {
+          ...next,
+          review_condition_status: 'answered',
+          review_condition: returnCondition.trim(),
+        };
+      }
+      if (draftKind !== 'witness' && returnDate) {
+        const parsed = new Date(`${returnDate}T09:00:00`);
+        if (!Number.isNaN(parsed.getTime())) next = { ...next, check_in_at: parsed.toISOString() };
+      }
+      savedContract = next;
+      return next;
+    });
+    // Crossing the witness boundary changes the existence of a future return,
+    // not just its label. Keep the additive Telegram push channel in lock-step.
+    if (savedContract && session?.access_token && kind !== draftKind) {
+      if (draftKind === 'witness') {
+        disableTelegramReturn({
+          accessToken: session.access_token,
+          projectId: project.id,
+        });
+      } else if (savedContract.check_in_at) {
+        syncSealToTelegram({
+          accessToken: session.access_token,
+          projectId: project.id,
+          decision: project.name,
+          predicate: draftStatement.trim(),
+          checkInAt: savedContract.check_in_at,
+        });
+      }
     }
-    updateProject(project.id, { decision_contract: next });
     setEditing(false);
     setReason('');
   };
@@ -95,9 +136,14 @@ export function FoundationDecisionRecordCard({
             <span className="rounded-full border border-[var(--border)] px-2 py-0.5 text-[10.5px] font-medium text-[var(--text-tertiary)]">
               {ko ? KIND_LABELS[kind].ko : KIND_LABELS[kind].en}
             </span>
-            {contract.adoption_lineage?.length ? (
+            {adoptedWording ? (
               <span className="text-[10.5px] text-[var(--text-tertiary)]">
                 {L('Argus 제안을 내가 채택', 'Argus suggestion adopted by me')}
+              </span>
+            ) : null}
+            {adoptedCheck ? (
+              <span className="text-[10.5px] text-[var(--text-tertiary)]">
+                {L('Argus가 짚은 확인 항목 포함', 'Includes a check surfaced by Argus')}
               </span>
             ) : null}
           </div>
@@ -111,6 +157,7 @@ export function FoundationDecisionRecordCard({
                 <textarea
                   value={draftStatement}
                   onChange={(event) => setDraftStatement(event.target.value)}
+                  maxLength={8000}
                   rows={3}
                   className="mt-1.5 w-full resize-none rounded-xl border border-[var(--border)] bg-[var(--bg)] px-3 py-2.5 text-[13px] leading-6 text-[var(--text-primary)] outline-none focus:border-[var(--accent)]/60"
                 />
@@ -139,16 +186,31 @@ export function FoundationDecisionRecordCard({
                 </div>
               </div>
 
-              {draftKind !== 'witness' && !contract.check_in_at && (
-                <label className="block text-[11px] font-semibold text-[var(--text-secondary)]">
-                  {L('다시 볼 날짜', 'Fallback date')}
-                  <input
-                    type="date"
-                    value={returnDate}
-                    onChange={(event) => setReturnDate(event.target.value)}
-                    className="mt-1.5 block w-full rounded-xl border border-[var(--border)] bg-[var(--bg)] px-3 py-2.5 text-[12.5px] text-[var(--text-primary)] outline-none focus:border-[var(--accent)]/60"
-                  />
-                </label>
+              {draftKind !== 'witness' && (!contract.check_in_at || kind === 'witness') && (
+                <div className="space-y-3">
+                  {kind === 'witness' && (
+                    <label className="block text-[11px] font-semibold text-[var(--text-secondary)]">
+                      {L('돌아와서 확인할 질문', 'Question to revisit')}
+                      <textarea
+                        value={returnCondition}
+                        onChange={(event) => setReturnCondition(event.target.value)}
+                        rows={2}
+                        maxLength={4000}
+                        placeholder={L('현실이 나중에 답할 수 있는 한 가지 질문', 'One question reality can answer later')}
+                        className="mt-1.5 block w-full resize-none rounded-xl border border-[var(--border)] bg-[var(--bg)] px-3 py-2.5 text-[12.5px] leading-5 text-[var(--text-primary)] outline-none placeholder:text-[var(--text-tertiary)] focus:border-[var(--accent)]/60"
+                      />
+                    </label>
+                  )}
+                  <label className="block text-[11px] font-semibold text-[var(--text-secondary)]">
+                    {L('다시 볼 날짜', 'Fallback date')}
+                    <input
+                      type="date"
+                      value={returnDate}
+                      onChange={(event) => setReturnDate(event.target.value)}
+                      className="mt-1.5 block w-full rounded-xl border border-[var(--border)] bg-[var(--bg)] px-3 py-2.5 text-[12.5px] text-[var(--text-primary)] outline-none focus:border-[var(--accent)]/60"
+                    />
+                  </label>
+                </div>
               )}
 
               <label className="block text-[11px] font-semibold text-[var(--text-secondary)]">
@@ -156,6 +218,7 @@ export function FoundationDecisionRecordCard({
                 <input
                   value={reason}
                   onChange={(event) => setReason(event.target.value)}
+                  maxLength={2000}
                   className="mt-1.5 block w-full rounded-xl border border-[var(--border)] bg-[var(--bg)] px-3 py-2.5 text-[12.5px] text-[var(--text-primary)] outline-none focus:border-[var(--accent)]/60"
                 />
               </label>
@@ -171,11 +234,16 @@ export function FoundationDecisionRecordCard({
                   {L('다시 볼 기록이라면 날짜가 하나 필요해요.', 'A record to revisit needs a fallback date.')}
                 </p>
               )}
+              {needsReturnCondition && (
+                <p className="text-[11px] text-[var(--danger)]">
+                  {L('다시 볼 기록이라면 현실이 답할 질문이 하나 필요해요.', 'A record to revisit needs one question reality can answer.')}
+                </p>
+              )}
               <div className="flex gap-2">
                 <button
                   type="button"
                   onClick={saveRevision}
-                  disabled={!draftStatement.trim() || needsReturnDate}
+                  disabled={!draftStatement.trim() || needsReturnDate || needsReturnCondition}
                   className="rounded-xl bg-[var(--text-primary)] px-4 py-2.5 text-[12px] font-semibold text-[var(--bg)] disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   {L('수정 기록 남기기', 'Append revision')}
@@ -186,6 +254,7 @@ export function FoundationDecisionRecordCard({
                     setDraftStatement(statement);
                     setDraftKind(kind);
                     setReason('');
+                    setReturnCondition(contract.review_condition ?? '');
                     setEditing(false);
                   }}
                   className="rounded-xl px-3 py-2.5 text-[12px] font-medium text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]"
@@ -237,13 +306,14 @@ export function FoundationDecisionRecordCard({
               <p className="mt-1.5 text-[13px] leading-6 text-[var(--text-primary)]">{latest.response_text}</p>
               {latest.present_standard && (
                 <p className="mt-1 text-[11.5px] leading-5 text-[var(--text-secondary)]">
-                  {latest.present_standard.status === 'same'
+                  {latest.present_standard.response_text
+                    || (latest.present_standard.status === 'same'
                     ? L('그때의 기준은 지금도 같아요.', 'The standard is unchanged.')
                     : latest.present_standard.status === 'changed'
                       ? L('지금의 기준은 달라졌어요.', 'The standard has changed.')
                       : latest.present_standard.status === 'withdrawn'
                         ? L('그때의 기준은 거뒀어요.', 'The earlier standard was withdrawn.')
-                        : L('현재 기준은 답하지 않았어요.', 'The present standard was left unanswered.')}
+                        : L('현재 기준은 답하지 않았어요.', 'The present standard was left unanswered.'))}
                 </p>
               )}
             </div>
