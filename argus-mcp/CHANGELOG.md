@@ -6,6 +6,19 @@
 > The `1.3.0` / `1.2.1` entries at the bottom are pre-rename `argus-mcp` history,
 > kept for reference — all of that work shipped inside the new-name 1.0.0.
 
+## 1.12.1 — The untouched side
+
+The live frozen bench's five hidden-extraction misses shared one shape:
+the model captured a premise about the action's own mechanics (will new
+signups accept prepay?) while the planted assumption was about the side
+the decision does NOT touch (do CURRENT customers stay the year?).
+Instruction #3 now names the class — "the decision quietly bets that the
+part of the world it is not acting on keeps behaving" — with three
+anchors and a pre-draft question ("what does this plan assume stays true
+about what it leaves alone?"). Blind re-probe on three fresh cases in
+the class: the untouched-side premise was drafted in 2 of 3, with the
+third still a legitimate load-bearing pick (previously ~0/5).
+
 ## 1.12.0 — Content sharpening + the logbook
 
 Validated by a 34-scenario real-server content battery, a revived 75-day

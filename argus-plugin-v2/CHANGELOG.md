@@ -4,6 +4,12 @@ All notable changes to the Argus plugin. Versioning follows
 [semver](https://semver.org); users receive an update only when the
 `version` in `.claude-plugin/plugin.json` is bumped.
 
+## 2.18.1 — 2026-07-27
+
+- **Wire moves to `argus-decision-mcp@1.12.1`** — hidden-assumption
+  drafting learns the most-missed class (the untouched side: what the
+  plan assumes stays true about what it leaves alone).
+
 ## 2.18.0 — 2026-07-27
 
 - **Wire moves to `argus-decision-mcp@1.12.0`** — sharper prediction
