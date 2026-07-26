@@ -150,6 +150,22 @@ describe('callLLM', () => {
     await expect(callLLM(MESSAGES, OPTIONS)).rejects.toThrow('잘못된 요청');
   });
 
+  it('provider credit outage is terminal and is not retried', async () => {
+    mockFetch.mockResolvedValueOnce(
+      mockResponse({
+        code: 'PROVIDER_CREDITS_REQUIRED',
+        error: 'The analysis service is temporarily unavailable.',
+        retryable: false,
+      }, 503)
+    );
+
+    await expect(callLLM(MESSAGES, OPTIONS)).rejects.toMatchObject({
+      category: 'service_unavailable',
+      retryable: false,
+    });
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+  });
+
   it('proxy에서 needsLogin 응답 시 LOGIN_REQUIRED throw', async () => {
     mockFetch.mockResolvedValueOnce(
       mockResponse({ needsLogin: true, error: '인증 만료' }, 401)
@@ -400,5 +416,28 @@ describe('callLLMStream', () => {
     expect(caughtError).not.toBeNull();
     // Voice sweep (10 S7): 5xx surfaces the where-safe-handle sentence, not a bare code.
     expect(caughtError!.message).toBe('서버가 잠깐 말을 잇지 못했어요 (오류 500) — 저희 쪽 문제예요. 잠시 후 자동으로 다시 시도해요.');
+  });
+
+  it('SSE provider credit outage is terminal and reaches onError', async () => {
+    let caughtError: Error | null = null;
+    mockFetch.mockResolvedValueOnce(
+      mockStreamResponse([
+        'data: {"code":"PROVIDER_CREDITS_REQUIRED","error":"The analysis service is temporarily unavailable.","retryable":false,"status":503}',
+      ])
+    );
+
+    await callLLMStream(MESSAGES, OPTIONS, {
+      onToken: vi.fn(),
+      onComplete: vi.fn(),
+      onError: (error) => {
+        caughtError = error;
+      },
+    });
+
+    expect(caughtError).toMatchObject({
+      message: expect.stringContaining('SERVICE_UNAVAILABLE'),
+      category: 'service_unavailable',
+      retryable: false,
+    });
   });
 });

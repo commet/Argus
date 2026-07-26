@@ -2896,6 +2896,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
                 </div>
               ) : (() => {
                 const isQuota = error.includes('한도') || error.includes('rate') || error.includes('limit') || error.includes('429');
+                const isServiceUnavailable = error.startsWith('SERVICE_UNAVAILABLE');
                 return (
                   <div className="flex items-start gap-2 px-4 py-3 rounded-xl border border-[var(--danger)]/25 bg-[var(--danger)]/5">
                     <AlertTriangle size={14} className="text-[var(--danger)] shrink-0 mt-0.5" />
@@ -2903,17 +2904,24 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
                       <p className="text-[12.5px] text-[var(--text-primary)] leading-[1.5]">
                         {isQuota
                           ? L('오늘의 무료 사용 한도에 닿았어요. 설정에서 본인의 API 키를 등록하면 계속 쓸 수 있어요.', "You've hit today's free allowance. Register your own API key in Settings to keep going.")
-                          : error}
+                          : isServiceUnavailable
+                            ? L(
+                                '현재 분석 기능을 사용할 수 없어요. 지금까지의 작업은 그대로 남아 있습니다.',
+                                'Analysis is temporarily unavailable. Your work so far is still here.',
+                              )
+                            : error}
                       </p>
-                      {isQuota && (
+                      {(isQuota || isServiceUnavailable) && (
                         <LocaleLink href="/settings" className="inline-block mt-1 text-[12px] text-[var(--accent)] font-medium hover:underline">
-                          {L('설정에서 API 키 등록하기 →', 'Register API key in Settings →')}
+                          {isServiceUnavailable
+                            ? L('내 API 키로 계속하기 →', 'Continue with my API key →')
+                            : L('설정에서 API 키 등록하기 →', 'Register API key in Settings →')}
                         </LocaleLink>
                       )}
                       {/* P1-C3: an explicit retry handle — the failed action is
                           kept in retryRef by each safe-to-re-enter handler.
                           Quota errors route to Settings instead (retry can't fix them). */}
-                      {!isQuota && retryRef.current && (
+                      {!isQuota && !isServiceUnavailable && retryRef.current && (
                         <button
                           onClick={() => { const r = retryRef.current; setError(null); r?.(); }}
                           className="inline-flex items-center gap-1 mt-1 text-[12px] text-[var(--accent)] font-semibold hover:underline cursor-pointer"
