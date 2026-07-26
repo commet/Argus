@@ -20,6 +20,8 @@ All notable changes to the Argus plugin. Versioning follows
   track-record aggregate.
 - Ambient detection can notice a named event once, but it cannot settle a record
   or promote an AI draft without explicit user authorization.
+- Hidden-assumption drafting (server 1.13.0) learns the untouched-side class:
+  what the plan assumes stays true about what it leaves alone.
 
 ## 2.18.0 — 2026-07-27
 

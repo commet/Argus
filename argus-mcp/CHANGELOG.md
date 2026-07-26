@@ -20,6 +20,11 @@
   Event detection may invite one return, but never writes the answer.
 - Removed result aggregates from recall and continuity projections. Legacy
   fields remain readable; Argus stores and shows no score for the person.
+- Hidden-assumption drafting learns the most-missed class — the UNTOUCHED
+  side: the decision quietly bets that the part of the world it is not acting
+  on keeps behaving. Named in instruction #3 with three anchors and a
+  pre-draft question; blind re-probe on fresh in-class cases went from ~0/5
+  to 2/3 untouched-side hits.
 
 ## 1.12.0 — Content sharpening + the logbook
 
