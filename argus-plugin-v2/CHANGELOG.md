@@ -4,6 +4,33 @@ All notable changes to the Argus plugin. Versioning follows
 [semver](https://semver.org); users receive an update only when the
 `version` in `.claude-plugin/plugin.json` is bumped.
 
+## 2.16.0 — 2026-07-26
+
+Wire truth. The plugin launched the MCP server with a **range** spec
+(`argus-decision-mcp@^1`), and npx reuses a cached install whenever the spec is a
+range — so the founder's wire sat frozen on 1.2.0 from 2026-07-13 while seven
+releases were published. Every gate was green because every gate looked at the
+repo; nothing anywhere reported the version a live session actually launched.
+
+- **`.mcp.json` pins an exact version** (`argus-decision-mcp@1.10.0`). Guarded by
+  `argus-mcp/src/v2/one-install.test.ts`: a range spec fails, and the pin must
+  equal the server's own version, so a server bump without a wire bump is red.
+- **`/argus:doctor` shows the wire** — new `[10] MCP 배선 버전` section prints the
+  pinned version and every `argus-decision-mcp` build sitting in the npx caches,
+  flagging any that disagree with the pin. Read-only, offline-safe, never throws.
+  `doctor.md` then has the model confirm it in-session against
+  `argus_check_in`'s `data.server_version` (the only place the *running* build is
+  visible) — the honest-gap split between what a script can know and what it can't.
+- **The every-turn hook tells "stale" from "disconnected."** `sense-signal.js`'s
+  broken-wire guard used to report both as "MCP not connected", which sends the
+  user to `/mcp` when the actual fix is clearing the npx cache. It now keys on the
+  legacy tool names (`argus_seal` / `argus_settle` / `argus_open_decision`) being
+  present while the current ones are absent, and prescribes accordingly.
+
+> Housekeeping note: this file has no entries for 2.13–2.15 (those shipped with
+> their work recorded in commits and in `evals/detection/EVOLUTION-LOG.md`). The
+> gap is left visible rather than back-filled from memory.
+
 ## 2.12.1 — 2026-07-21
 
 Ports the MCP 1.6.1 detection sharpening into the plugin's own UserPromptSubmit

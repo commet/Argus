@@ -24,4 +24,27 @@ describe('McpInstallGuide', () => {
     expect(html).toContain('does not expand');
     expect(html).toContain('fully local');
   });
+
+  /**
+   * The hand-copied install command must ask for @latest — never a bare name and
+   * never a range. npx reuses a cached install, so a sticky spec can serve an old
+   * build for weeks: exactly the failure that froze a dogfood wire on 1.2.0 while
+   * seven releases sat published on npm (2026-07-26). This is the mirror of the
+   * bundled plugin's EXACT pin (that one ships a tested pair and is guarded by
+   * argus-mcp/src/v2/one-install.test.ts) — opposite mechanism, same invariant:
+   * the version a user ends up running must never be decided by a stale cache.
+   *
+   * What makes this red: the guide drops `@latest`, or pins `@^1`/`@~1`/a literal
+   * version that will silently rot as releases land.
+   */
+  it('install commands ask for @latest, never a bare or range spec', () => {
+    for (const locale of ['ko', 'en']) {
+      const html = renderToStaticMarkup(<McpInstallGuide locale={locale} />);
+      const specs = [...html.matchAll(/argus-decision-mcp(@[\w.^~*-]+)?/g)].map((m) => m[1] ?? '');
+      expect(specs.length, `${locale}: install command missing`).toBeGreaterThan(0);
+      for (const spec of specs) {
+        expect(spec, `${locale}: "${spec || '(bare)'}" can be served from a stale npx cache`).toBe('@latest');
+      }
+    }
+  });
 });

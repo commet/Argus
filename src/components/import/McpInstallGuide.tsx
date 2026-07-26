@@ -24,7 +24,13 @@ export function McpInstallGuide({ locale }: { locale: string }) {
       <ol className="space-y-1.5 text-[12.5px] text-[var(--text-secondary)]">
         <li>
           {L('1. 설치: ', '1. Install: ')}
-          <code className={CODE}>claude mcp add argus -- npx -y argus-decision-mcp</code>
+          {/* `@latest` is explicit on purpose. npx reuses a cached install, so a
+              bare or range spec can keep serving an old build for weeks — the
+              failure that froze a dogfood wire on 1.2.0 while seven releases sat
+              on npm (2026-07-26). The bundled plugin pins an EXACT version (it
+              ships a tested pair); this hand-copied command is the opposite case
+              — it must never inherit a stale cache, so it always asks for latest. */}
+          <code className={CODE}>claude mcp add argus -- npx -y argus-decision-mcp@latest</code>
         </li>
         <li>
           {L('2. 기록 위치는 설정 없이도 ', '2. With zero config your decision record lives in ')}
@@ -35,7 +41,7 @@ export function McpInstallGuide({ locale }: { locale: string }) {
         </li>
         <li>
           {L('3. Windows에서 서버가 안 뜨면 ', '3. On Windows, if the server fails to launch use ')}
-          <code className={CODE}>{'"command": "cmd", "args": ["/c", "npx", "-y", "argus-decision-mcp"]'}</code>
+          <code className={CODE}>{'"command": "cmd", "args": ["/c", "npx", "-y", "argus-decision-mcp@latest"]'}</code>
           {L(' 형태로 실행하세요.', '.')}
         </li>
         <li>

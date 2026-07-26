@@ -6,6 +6,39 @@
 > The `1.3.0` / `1.2.1` entries at the bottom are pre-rename `argus-mcp` history,
 > kept for reference — all of that work shipped inside the new-name 1.0.0.
 
+## 1.10.0 — The wire says which build it is (the twelve silent days)
+
+The deepest failure found so far was not in any prompt or picker — it was in one
+version spec. The plugin wired the server as `npx -y argus-decision-mcp@^1`, and
+**npx reuses a cached install whenever the spec is a range**: once 1.2.0 landed
+in the founder's npx cache on 2026-07-13, the wire froze there while 1.3.0
+through 1.9.0 were published. For twelve days every improvement — the detection
+sharpening, the settlement rider, the sensitivity dial, and the picker redesign
+that dogfooding itself had asked for — shipped to npm and never reached the
+session that reported the problem. Repo CI was green the whole time, because the
+repo *was* consistent with itself. **The one number nobody could see was the one
+the user was touching.**
+
+- **`argus_check_in` reports `data.server_version`** on all three return paths
+  (first run / nothing due / something due), from the same `packageMeta()` single
+  source the server advertises at `initialize`. A session can now answer "which
+  build am I actually talking to" instead of leaving staleness to be *felt* as
+  behavior that mysteriously isn't there.
+- **The wire is pinned to an exact version, and the pin is guarded.** The bundled
+  `.mcp.json` pins `argus-decision-mcp@1.10.0`; `one-install.test.ts` now refuses
+  a range spec (`^`, `~`, `latest`, `*`) and asserts pin == this package's
+  version == `server.json`'s registry version. Bumping the server without moving
+  the wire in the same commit turns CI red — the stale-pin failure mode that an
+  exact pin would otherwise introduce.
+- **E2E covers the path a user installs.** `evals/e2e-picker.mjs` gained the
+  settle-picker round-trip (the 1.9.0 self-sufficiency fix was unit-only, the same
+  blind spot class) and a `server_version` assertion; CI now runs the whole suite
+  a second time against the **packed tarball installed as a dependency**, not just
+  the repo's `dist/`.
+- The hand-copied install command on the web (`/import`) asks for `@latest`
+  explicitly — the mirror case: a bundled wire wants determinism, a copy-paste
+  command must never inherit a stale cache. Guarded by a render test.
+
 ## 1.9.0 — The picker stops fighting the user (native Accept/Decline)
 
 Dogfooding exposed the confirm picker as clunky: it used a REQUIRED three-way
