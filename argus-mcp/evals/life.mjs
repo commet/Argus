@@ -46,29 +46,44 @@ async function main() {
   const env = {};
   for (const [k, v] of Object.entries(process.env)) if (typeof v === 'string') env[k] = v;
   env.ARGUS_DIR = dir;
+  // Public tools (argus_check_in …) only honor the harness clock under
+  // NODE_ENV=test (server.ts hiddenTestClock). Without this, every daily
+  // check_in returned INVALID_INPUT and 75 days measured as "quiet" — the
+  // observatory itself was the silently-broken wire (found 2026-07-27).
+  env.NODE_ENV = 'test';
 
   const client = new Client({ name: 'argus-life-loop', version: '0.0.0' });
   await client.connect(new StdioClientTransport({ command: process.execPath, args: [DIST], env }));
   const call = async (name, args) => {
     const r = await client.callTool({ name, arguments: { argus_dir: dir, ...args } });
-    return r.structuredContent ?? {};
+    const sc = r.structuredContent ?? {};
+    // Fail LOUD on any unexpected error — a swallowed error here turns 75 days
+    // of measurement into plausible-looking silence (the LLM-glue invariant).
+    if (r.isError === true || sc.ok === false) {
+      throw new Error(`life loop: ${name} returned an error — ${JSON.stringify(sc).slice(0, 300)}`);
+    }
+    return sc;
   };
 
   // ── the user's sparse real actions (a busy founder, not a diarist) ───────
   // d0: one real decision sealed + its living premise + one open question
   await call('argus_seal', { id: 'launch', predicate: '신규 요금제 출시 후 30일 내 이탈률이 지금 수준을 유지한다', check_by: day(30), predicate_owner: 'user', unverified_assumption: '경쟁사가 3분기 안에 가격을 내리지 않는다', today_override: day(0) });
-  await call('argus_premises', { id: 'launch', op: 'add', today_override: day(0), premises: [
+  // d3: a second bet — the premise/open-question LIFE lives on this one, because
+  // it stays open until d63. (They used to live on 'launch', which closes at
+  // d33: every later premise touch was a DECISION_CLOSED refusal the old
+  // swallow-errors call() hid. Closed = frozen is the product stance; the
+  // scenario, not the server, was wrong.)
+  await call('argus_seal', { id: 'hire', predicate: '개발 리드 채용이 9월 1일 전에 끝난다', check_by: day(61), predicate_owner: 'user', today_override: day(3) });
+  await call('argus_premises', { id: 'hire', op: 'add', today_override: day(3), premises: [
     { text: '결제사 수수료율이 연말까지 동결된다', kind: 'premise', external: true, load_bearing: true, source: 'user' },
     { text: '엔터프라이즈 플랜을 분리할지 말지', kind: 'open_question', source: 'user', reponder_cadence_days: 21 },
   ] });
-  // d3: a second bet
-  await call('argus_seal', { id: 'hire', predicate: '개발 리드 채용이 9월 1일 전에 끝난다', check_by: day(61), predicate_owner: 'user', today_override: day(3) });
 
   const userActs = {
     [day(33)]: async () => call('argus_settle', { id: 'launch', outcome: 'missed', outcome_source: 'user_stated', what_happened: '이탈률이 2%p 올랐다. 요금제 안내 부족이 컸다.', today_override: day(33) }),
-    [day(34)]: async () => call('argus_recheck', { id: 'launch', ref: 'P2', finding: '결제사 수수료 동결 공지 확인', source: 'url', source_detail: 'https://pg.example/notice', today_override: day(34) }),
-    [day(40)]: async () => call('argus_premises', { id: 'launch', op: 'still_open', ref: 'P3', today_override: day(40) }),
-    [day(62)]: async () => call('argus_premises', { id: 'launch', op: 'resolve', ref: 'P3', decision: '분리 안 한다. 볼륨 디스카운트로 간다.', today_override: day(62) }),
+    [day(34)]: async () => call('argus_recheck', { id: 'hire', ref: 'P1', finding: '결제사 수수료 동결 공지 확인', source: 'url', source_detail: 'https://pg.example/notice', today_override: day(34) }),
+    [day(40)]: async () => call('argus_premises', { id: 'hire', op: 'still_open', ref: 'P2', today_override: day(40) }),
+    [day(62)]: async () => call('argus_premises', { id: 'hire', op: 'resolve', ref: 'P2', decision: '분리 안 한다. 볼륨 디스카운트로 간다.', today_override: day(62) }),
     [day(63)]: async () => call('argus_settle', { id: 'hire', outcome: 'held', outcome_source: 'user_stated', what_happened: '8월 중순에 오퍼 수락받았다.', today_override: day(63) }),
   };
 

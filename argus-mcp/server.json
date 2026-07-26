@@ -2,7 +2,7 @@
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.commet/argus-decision-mcp",
   "description": "Save a falsifiable prediction, then record what reality did. Reality grades you, not the model.",
-  "version": "1.11.0",
+  "version": "1.12.0",
   "repository": {
     "url": "https://github.com/commet/argus",
     "source": "github",
@@ -13,7 +13,7 @@
     {
       "registryType": "npm",
       "identifier": "argus-decision-mcp",
-      "version": "1.11.0",
+      "version": "1.12.0",
       "transport": {
         "type": "stdio"
       },

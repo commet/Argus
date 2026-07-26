@@ -6,6 +6,27 @@
 > The `1.3.0` / `1.2.1` entries at the bottom are pre-rename `argus-mcp` history,
 > kept for reference — all of that work shipped inside the new-name 1.0.0.
 
+## 1.12.0 — Content sharpening + the logbook
+
+Validated by a 34-scenario real-server content battery, a revived 75-day
+life simulation, and an 18-case blind content probe (six independent host
+models given the real instructions; 18/18 correct fire/silence decisions).
+What the probes changed:
+
+- **Instructions define falsifiable and ban the double-ask.** Hosts kept
+  vague predicates ("the launch won't flop") and asked in chat while the
+  confirm picker was already asking. The instructions now define
+  falsifiable (a stranger could mark it true/false from observable facts,
+  with a sharpening rule) and state that the chat line beside a picker
+  states, never asks. Re-probed after the change: vague verbs got anchored
+  to the nearest observable comparison, prose asks disappeared.
+- **Locale sense reads nested premises[].text** — a Korean add-premises
+  call no longer gets its first error in English.
+- **Identity, restrained:** the wake box is now the LOGBOOK / 항해일지
+  ("<date>부터 항해 중"), keepsake cards are exempt from the one-line
+  length lint, and two stray casual registers moved to 합쇼체 (copy gate
+  widened so the class stays fixed).
+
 ## 1.11.0 — The picker stops blocking the door
 
 Founder dogfooding (2026-07-27) hit the settlement picker dead-end live: pick an

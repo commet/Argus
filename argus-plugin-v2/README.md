@@ -21,6 +21,27 @@ After a decision, Argus may ask whether to save a check for later. Later, it
 asks what actually happened. You answer: predicted, missed, partial, or later.
 Argus does not judge the outcome for you.
 
+What remains is a Judgment Receipt — your prediction and reality side by side,
+with no grade:
+
+```text
+┌─ ARGUS · JUDGMENT RECEIPT ───────────────────────────────────┐
+
+  What I predicted                              saved 2026-07-02
+    "churn stays flat for 30 days after the new pricing ships"
+    check-by 2026-08-01
+
+  What actually happened                     recorded 2026-08-03
+    Churn rose 2pp. Poor plan-migration messaging did most of it.
+
+  This call was made by: me (not the model)
+
+  ───────────────────────────────────────────────────────
+  AI VERDICT ON THIS DECISION ······················  NONE
+  The model never graded you. Reality answered.
+└──────────────────  argus · prediction saved → reality recorded ⚓ ─┘
+```
+
 ---
 
 ## Install

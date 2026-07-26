@@ -30,7 +30,7 @@ execSync('npm run build', { cwd: ROOT, stdio: 'ignore' }); // always rebuild —
 const EMDASH = /—/g;
 // casual declarative -요 endings; the house register is formal 합쇼체. Formal
 // imperatives (…세요/…십시오) are correct and excluded.
-const CASUAL = /(예요|에요|었어요|았어요|뒀어요|봤어요|해요[.)]|정확해요|몫이에요|거예요)/;
+const CASUAL = /(예요|에요|었어요|았어요|뒀어요|봤어요|해요[.)]|정확해요|몫이에요|거예요|없어요|있어요|같아요|좋아요|와요[.)]|가요[.)])/;
 const FORMAL = /(습니다|입니다|됩니다|하세요|십시오|세요)/;
 
 /** Walk a locale's SURFACES tree → [{path, raw, sample}]. raw = literal (or fn

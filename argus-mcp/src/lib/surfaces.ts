@@ -409,7 +409,10 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
       footer: 'argus · prediction saved → result recorded ⚓',
     },
     wake: {
-      header: 'ARGUS · YOUR DECISIONS',
+      // The logbook: what a ship keeps of its voyage — dates, positions, what
+      // happened. Identity without ceremony (창업자 2026-07-27: 터미널에도
+      // 항해 정체성을, 과하지 않게).
+      header: 'ARGUS · LOGBOOK',
       counts: (total, sealed, settled) => `decisions ${total} · awaiting check ${sealed} · results recorded ${settled}`,
       overdue_group: (n) => `past check-by (${n})`,
       overdue_hint: '← argus_resolve',
@@ -419,7 +422,7 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
       settled_group: (n, held, avoided, partial, missed) => `results recorded (${n}): held ${held} · avoided ${avoided} · partial ${partial} · missed ${missed}`,
       outcome_label: (o) => ({ held: 'held', avoided: 'avoided', partial: 'partial', missed: 'missed', still_pending: 'pending' })[o] ?? o,
       more: (n) => `… (+${n})`,
-      record_since: (date) => `on record since ${date}`,
+      record_since: (date) => `logbook since ${date}`,
     },
     receipt: {
       header: 'ARGUS · JUDGMENT RECEIPT',
@@ -570,7 +573,7 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
       footer: 'argus · 예측 저장 → 실제 결과 기록 ⚓',
     },
     wake: {
-      header: 'ARGUS · 결정 기록',
+      header: 'ARGUS · 항해일지',
       // "예측 저장 0"은 정산이 끝나면 0으로 줄어 "저장한 적 없음"처럼 읽혔다
       // (1.4.6 재진단): 이 칸의 의미는 '지금 확인일을 기다리는 것'이다.
       counts: (total, sealed, settled) => `결정 ${total} · 확인 대기 ${sealed} · 결과 기록 ${settled}`,
@@ -582,7 +585,7 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
       settled_group: (n, held, avoided, partial, missed) => `결과 기록됨 (${n}): 예측대로 ${held} · 걱정 피함 ${avoided} · 일부 ${partial} · 빗나감 ${missed}`,
       outcome_label: (o) => ({ held: '예측대로', avoided: '걱정 피함', partial: '일부', missed: '빗나감', still_pending: '대기' })[o] ?? o,
       more: (n) => `… (+${n})`,
-      record_since: (date) => `${date}부터 기록`,
+      record_since: (date) => `${date}부터 항해 중`,
     },
     receipt: {
       header: 'ARGUS · 판단 영수증',
@@ -622,7 +625,7 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
           factual: '이건 답이 있는 질문이지, 열어둘 결정이 아닙니다.',
           already_closed: '이미 내린 결정입니다. Argus는 이걸 다시 열지 않습니다.',
           flat: '선택지가 거의 대등합니다. 억지로 만들 핵심 질문이 없습니다.',
-          reversible_low_stakes: '되돌리기 쉽고 크게 걸린 것도 없는 결정이에요.',
+          reversible_low_stakes: '되돌리기 쉽고 크게 걸린 것도 없는 결정입니다.',
           low_stakes: '걸린 것이 별로 없습니다. 그대로 두는 편이 무난합니다.',
         },
         reason_fallback: '여기서 억지로 지어낼 결정은 없습니다.',
@@ -630,7 +633,7 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
         watch_exit: ' 기록하지 않고 그대로 두어도 괜찮습니다.',
         reconfirm: '신호가 서로 어긋납니다 (걸린 것은 큰데 되돌리기는 쉽습니다). 더 나아가기 전에 이 둘을 다시 짚어 보세요.',
         opened_with_crux: (crux) => `열었습니다. 이 결정을 좌우하는 단 하나의 질문: ${crux}`,
-        opened_bare: '이 결정, 기록해뒀어요.',
+        opened_bare: '이 결정, 기록해뒀습니다.',
         lean_disclosure: '핵심 질문을 짚는 것 자체가 뒤집히는 쪽을 희미하게 가리킬 수 있습니다. 그렇게 남는 쏠림은 알려진 한계일 뿐, 이 결정에 대한 평가가 아닙니다.',
       },
       seal: {
@@ -644,7 +647,7 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
         settled: (outcome, predicate) => `실제 결과를 기록했습니다: ${({ held: '예측대로 됐다', avoided: '걱정한 일은 안 일어났다', partial: '일부만 맞았다', missed: '예측이 빗나갔다' })[outcome]}.${predicate ? ` (예측: "${predicate}".)` : ''} 영수증에 예측과 실제가 나란히 남습니다. 평가는 없습니다.`,
         sync_failed: (reason) => ` (계정 동기화가 안 됐습니다. ${reason}. 결과는 로컬에 안전합니다. 동기화되기 전까지 계정은 이걸 계속 "확인 필요"로 표시할 수 있습니다. 나중에 argus_settings action=sync를 시도하세요.)`,
         deferred: (newDate) => `아직 결과를 기록하지 않았습니다. 현실이 답하지 않았으니 평가한 것도 없습니다. ${newDate}에 다시 가져오겠습니다.`,
-        defer_dismissed: '접어뒀습니다. 이건 이제 답이 필요 없어요. 평가한 것은 없습니다.',
+        defer_dismissed: '접어뒀습니다. 이건 이제 답이 필요 없습니다. 평가한 것은 없습니다.',
       },
       recheck: {
         baseline: (ref, finding, source, cadenceDays) => `P${ref} 기준값을 기록했습니다: "${finding}" (${source}). ${cadenceDays}일 뒤에 다시 확인하길 권합니다.`,

@@ -4,6 +4,14 @@ All notable changes to the Argus plugin. Versioning follows
 [semver](https://semver.org); users receive an update only when the
 `version` in `.claude-plugin/plugin.json` is bumped.
 
+## 2.18.0 — 2026-07-27
+
+- **Wire moves to `argus-decision-mcp@1.12.0`** — sharper prediction
+  drafting (falsifiable defined, no double-ask beside pickers), Korean
+  locale detected from nested premise text, and the LOGBOOK/항해일지
+  identity on the wake box.
+- READMEs now show the Judgment Receipt keepsake up front.
+
 ## 2.17.0 — 2026-07-27
 
 - **Wire moves to `argus-decision-mcp@1.11.0`** — the settlement/premises/ambient
