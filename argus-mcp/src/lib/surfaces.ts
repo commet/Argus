@@ -409,7 +409,10 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
       footer: 'argus · prediction saved → result recorded ⚓',
     },
     wake: {
-      header: 'ARGUS · YOUR DECISIONS',
+      // The logbook: what a ship keeps of its voyage — dates, positions, what
+      // happened. Identity without ceremony (창업자 2026-07-27: 터미널에도
+      // 항해 정체성을, 과하지 않게).
+      header: 'ARGUS · LOGBOOK',
       counts: (total, sealed, settled) => `decisions ${total} · awaiting check ${sealed} · results recorded ${settled}`,
       overdue_group: (n) => `past check-by (${n})`,
       overdue_hint: '← argus_resolve',
@@ -419,7 +422,7 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
       settled_group: (n, held, avoided, partial, missed) => `results recorded (${n}): held ${held} · avoided ${avoided} · partial ${partial} · missed ${missed}`,
       outcome_label: (o) => ({ held: 'held', avoided: 'avoided', partial: 'partial', missed: 'missed', still_pending: 'pending' })[o] ?? o,
       more: (n) => `… (+${n})`,
-      record_since: (date) => `on record since ${date}`,
+      record_since: (date) => `logbook since ${date}`,
     },
     receipt: {
       header: 'ARGUS · JUDGMENT RECEIPT',
@@ -570,7 +573,7 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
       footer: 'argus · 예측 저장 → 실제 결과 기록 ⚓',
     },
     wake: {
-      header: 'ARGUS · 결정 기록',
+      header: 'ARGUS · 항해일지',
       // "예측 저장 0"은 정산이 끝나면 0으로 줄어 "저장한 적 없음"처럼 읽혔다
       // (1.4.6 재진단): 이 칸의 의미는 '지금 확인일을 기다리는 것'이다.
       counts: (total, sealed, settled) => `결정 ${total} · 확인 대기 ${sealed} · 결과 기록 ${settled}`,
@@ -582,7 +585,7 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
       settled_group: (n, held, avoided, partial, missed) => `결과 기록됨 (${n}): 예측대로 ${held} · 걱정 피함 ${avoided} · 일부 ${partial} · 빗나감 ${missed}`,
       outcome_label: (o) => ({ held: '예측대로', avoided: '걱정 피함', partial: '일부', missed: '빗나감', still_pending: '대기' })[o] ?? o,
       more: (n) => `… (+${n})`,
-      record_since: (date) => `${date}부터 기록`,
+      record_since: (date) => `${date}부터 항해 중`,
     },
     receipt: {
       header: 'ARGUS · 판단 영수증',

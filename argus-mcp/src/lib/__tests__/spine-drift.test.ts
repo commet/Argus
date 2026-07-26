@@ -174,7 +174,7 @@ describe('wake_text spine (renderWake)', () => {
     expect(ko).not.toContain('경과');
     expect(ko).toContain('확인 08-01');
     expect(ko).toContain('결정 12 · 확인 대기 8 · 결과 기록 3');
-    expect(ko).toContain('2026-07-03부터 기록');
+    expect(ko).toContain('2026-07-03부터 항해 중');
   });
 
   it('waiting lines sort by check_by ascending (dec-08 before dec-07)', () => {

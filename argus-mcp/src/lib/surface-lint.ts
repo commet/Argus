@@ -88,7 +88,10 @@ export function lintEnvelope(env: unknown): SurfaceFinding[] {
       if (hasUnsafeChars(surface)) {
         out.push({ severity: 'red', rule: 'unsafe-chars', message: 'surface carries control/bidi/zero-width characters (terminal-escape or homograph injection vector)' });
       }
-      if (surface.length > SURFACE_MAX) {
+      // A keepsake card (seal plate / judgment receipt / logbook — the boxed
+      // '┌─ ARGUS' artifacts) is deliberately bigger than a line; length-lint
+      // only the prose surfaces.
+      if (surface.length > SURFACE_MAX && !surface.includes('┌─ ARGUS')) {
         out.push({ severity: 'yellow', rule: 'surface-too-long', message: `surface is ${surface.length} chars (>${SURFACE_MAX}) — a line, not a paragraph`, excerpt: surface.slice(0, 140) });
       }
     }
