@@ -317,6 +317,59 @@ S.push({
   ],
 });
 
+S.push({
+  name: 'S35 defer 픽커 — 1주 뒤로',
+  lang: 'ko',
+  respond: (p) => (/언제 다시|look again/i.test(p.message) ? { action: 'accept', content: { when: 'week' } } : { action: 'accept', content: { outcome: 'still_pending' } }),
+  steps: (d) => [
+    { tool: 'argus_seal', args: { argus_dir: d, id: 's35', predicate: '납품처 검수 결과가 나온다', check_by: '2026-07-10', predicate_owner: 'user', today_override: T0 } },
+    { tool: 'argus_settle', args: { argus_dir: d, id: 's35', outcome: 'still_pending', outcome_source: 'user_stated', today_override: '2026-07-15' },
+      expect: (env) => (typeof env.data?.deferred_to === 'string' && env.data.deferred_to > '2026-07-15') ? null : `expected a deferred date, got ${JSON.stringify(env.data?.deferred_to)}` },
+  ],
+});
+S.push({
+  name: 'S36 defer 픽커 — Decline하면 정직한 되물음 (관찰)',
+  lang: 'ko',
+  respond: (p) => (/언제 다시|look again/i.test(p.message) ? { action: 'decline' } : { action: 'accept', content: { outcome: 'still_pending' } }),
+  steps: (d) => [
+    { tool: 'argus_seal', args: { argus_dir: d, id: 's36', predicate: '리퍼럴 프로그램 심사가 끝난다', check_by: '2026-07-10', predicate_owner: 'user', today_override: T0 } },
+    { tool: 'argus_settle', args: { argus_dir: d, id: 's36', outcome: 'still_pending', outcome_source: 'user_stated', today_override: '2026-07-15' }, observe: true },
+  ],
+});
+S.push({
+  name: 'S37 봉인 픽커 — 한국어 초안을 영어로 고쳐쓰면 목소리도 따라간다 (관찰)',
+  respond: () => ({ action: 'accept', content: { reword: 'close 3 enterprise deals before the end of September' } }),
+  steps: (d) => [
+    { tool: 'argus_seal', args: { argus_dir: d, id: 's37', predicate: '9월 안에 엔터프라이즈 계약 3건을 닫는다', check_by: '2026-09-30', predicate_owner: 'ai_surfaced', confirm_draft: true, today_override: T0 }, observe: true,
+      expect: (env) => (env.data?.predicate === 'close 3 enterprise deals before the end of September' && env.data?.predicate_owner === 'user') ? null : `reword not applied faithfully: ${JSON.stringify(env.data?.predicate)}` },
+  ],
+});
+S.push({
+  name: 'S38 전제 드리프트 — 기준값과 달라진 재확인 (관찰)',
+  lang: 'ko',
+  steps: (d) => [
+    { tool: 'argus_seal', args: { argus_dir: d, id: 's38', predicate: '해외 배송비 인상 없이 4분기 마진 20%를 지킨다', check_by: '2026-12-31', predicate_owner: 'user', unverified_assumption: '환율이 1,400원 아래에 머문다', today_override: T0 } },
+    { tool: 'argus_recheck', args: { argus_dir: d, id: 's38', ref: 'P1', finding: '환율 1,380원 — 기준 안', source: 'url', source_detail: 'https://example.com/fx', today_override: '2026-08-01' } },
+    { tool: 'argus_recheck', args: { argus_dir: d, id: 's38', ref: 'P1', finding: '환율 1,460원까지 상승 — 전제 이탈', changed: true, source: 'url', source_detail: 'https://example.com/fx', today_override: '2026-09-01' }, observe: true },
+  ],
+});
+S.push({
+  name: 'S39 고부담 미종결 결정 — 게이트가 어떻게 절제하나 (관찰)',
+  lang: 'ko',
+  steps: (d) => [
+    { tool: 'argus_open_decision', args: { argus_dir: d, id: 's39', decision: '단독 창업으로 갈지, 지금이라도 공동창업자를 구할지', stakes: 'high', reversibility: 'one_way_door', status_quo: '6개월째 단독 개발 중, 번아웃 조짐', today_override: T0 }, observe: true },
+  ],
+});
+S.push({
+  name: 'S40 혼합 몰림 — 예측 초과 + 전제 재확인 + 미결질문 한 날에 (관찰)',
+  lang: 'ko',
+  steps: (d) => [
+    { tool: 'argus_seal', args: { argus_dir: d, id: 's40', predicate: '9월 웨비나에서 SQL 20건을 만든다', check_by: '2026-07-15', predicate_owner: 'user', unverified_assumption: '웨비나 공동주최사가 자사 리스트에 2회 발송해준다', today_override: T0 } },
+    { tool: 'argus_premises', args: { argus_dir: d, id: 's40', op: 'add', today_override: T0, premises: [{ text: '연사 섭외를 외부로 돌릴지 말지', kind: 'open_question', source: 'user', reponder_cadence_days: 14 }] } },
+    { tool: 'argus_check_in', args: { argus_dir: d, today_override: '2026-07-20' }, observe: true },
+  ],
+});
+
 // ── driver ──────────────────────────────────────────────────────────────────
 async function connectClient(dir, respond) {
   const env = {};
