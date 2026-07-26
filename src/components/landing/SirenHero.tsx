@@ -49,11 +49,10 @@ export function SirenHero() {
 
   return (
     <section
-      className="bp-root relative overflow-hidden"
+      className="bp-root relative overflow-hidden pt-[72px] sm:pt-[clamp(38px,5.5vh,76px)]"
       aria-labelledby="siren-heading"
       style={{
         background: 'var(--bp-paper)',
-        paddingTop: 'clamp(38px, 5.5vh, 76px)',
         paddingBottom: 'clamp(44px, 7vh, 86px)',
       }}
     >

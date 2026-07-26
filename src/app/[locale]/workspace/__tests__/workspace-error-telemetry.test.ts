@@ -7,7 +7,8 @@ describe('workspace failure telemetry', () => {
 
   it('keeps provider error text in the UI but out of analytics storage', () => {
     expect(source).toContain('setError(errMsg');
-    expect(source).toContain("category: needsLogin ? 'login_required'");
+    expect(source).toContain("? 'login_required'");
+    expect(source).toContain("? 'service_unavailable'");
     expect(source).not.toContain("track('workspace_start_error', { error: errMsg");
   });
 });

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
 import { validateMessages, validateSystemPrompt, validateApiKey, validateRequest, normalizeMaxTokens, MAX_LLM_BODY_BYTES } from '@/lib/llm-validation';
+import { classifyProviderFailure } from '@/lib/llm-provider-errors';
 
 /**
  * Direct mode endpoint — uses the user's own API key (sent from client).
@@ -55,9 +56,9 @@ export async function POST(req: NextRequest) {
               controller.enqueue(encoder.encode('data: [DONE]\n\n'));
               controller.close();
             }
-          } catch {
+          } catch (err) {
             if (!cancelled) {
-              controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: 'Stream error' })}\n\n`));
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify(classifyProviderFailure(err))}\n\n`));
               controller.close();
             }
           }
@@ -91,9 +92,10 @@ export async function POST(req: NextRequest) {
     return res;
   } catch (err) {
     console.error('[api/llm/direct] Anthropic call failed:', err);
+    const failure = classifyProviderFailure(err);
     return NextResponse.json(
-      { error: 'LLM call failed. Please check your API key.' },
-      { status: 500 }
+      failure,
+      { status: failure.status }
     );
   }
 }

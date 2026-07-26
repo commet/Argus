@@ -2,6 +2,7 @@ import { getStorage, STORAGE_KEYS } from '@/lib/storage';
 import type { Settings } from '@/stores/types';
 import { DAILY_LIMIT } from '@/lib/quota-config';
 import { track } from '@/lib/analytics';
+import { PROVIDER_CREDITS_REQUIRED } from '@/lib/llm-provider-errors';
 
 // ━━━ Types ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -52,6 +53,7 @@ export type LLMErrorCategory =
   | 'overloaded'       // 529, 503
   | 'context_too_long' // 413
   | 'auth'             // 401, 403
+  | 'service_unavailable' // provider account/configuration needs operator action
   | 'parse_failure'    // JSON 파싱 실패
   | 'network'          // 연결 실패
   | 'validation'       // 스키마 검증 실패
@@ -89,6 +91,11 @@ function categorizeError(status: number, body?: Record<string, unknown>): LLMErr
 }
 
 function buildLlmError(status: number, body?: Record<string, unknown>): LLMError {
+  if (body?.code === PROVIDER_CREDITS_REQUIRED) {
+    return new LLMError('SERVICE_UNAVAILABLE:현재 분석 기능을 사용할 수 없습니다. 적어주신 내용은 그대로 남아 있습니다.', {
+      category: 'service_unavailable', status, retryable: false,
+    });
+  }
   if (status === 429) {
     // 무료 체험 한도 소진(익명 사용자) — 서버가 needsLogin 플래그를 함께 내려줌.
     // 이 경우는 단순 rate limit이 아니라 "로그인하면 풀린다"는 별개의 UX 경로.
@@ -254,6 +261,10 @@ async function fetchWithRetry(
       // 429 + needsLogin은 retry해도 절대 풀리지 않음 — 익명 쿼터 소진 상태.
       // 바로 LOGIN_REQUIRED로 분류해서 사용자에게 login 안내를 보여준다.
       const body = await res.json().catch(() => ({}));
+      if (body?.code === PROVIDER_CREDITS_REQUIRED) {
+        recordFailure(provider);
+        throw categorizeError(res.status, body);
+      }
       if (res.status === 429 && body?.needsLogin === true) {
         recordFailure(provider);
         throw categorizeError(res.status, body);
@@ -936,7 +947,13 @@ export async function callLLMStream(
             if (parsed.error) {
               // 서버가 스트림 내부에서 보낸 에러 이벤트
               recordFailure(provider);
-              throw new LLMError(typeof parsed.error === 'string' ? parsed.error : 'Stream error', { category: 'unknown' });
+              if (parsed.code === PROVIDER_CREDITS_REQUIRED) {
+                throw buildLlmError(typeof parsed.status === 'number' ? parsed.status : 503, parsed);
+              }
+              throw new LLMError(typeof parsed.error === 'string' ? parsed.error : 'Stream error', {
+                category: 'unknown',
+                retryable: parsed.retryable === true,
+              });
             }
             if (parsed.text) {
               fullText += parsed.text;
