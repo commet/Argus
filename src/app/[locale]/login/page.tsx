@@ -226,7 +226,19 @@ function LoginContent() {
           <div className="p-6 space-y-5">
           {/* Google OAuth */}
           <button
-            onClick={() => signInWithGoogle(safePostAuthRedirect(searchParams.get('redirect')))}
+            onClick={async () => {
+              setError('');
+              setSubmitting(true);
+              const { error: googleError } = await signInWithGoogle(
+                safePostAuthRedirect(searchParams.get('redirect')),
+              );
+              if (googleError) {
+                setError(googleError);
+                setSubmitting(false);
+              }
+            }}
+            aria-busy={submitting}
+            disabled={submitting}
             className="w-full flex items-center justify-center gap-3 px-4 py-3 rounded-xl border border-[var(--border)] shadow-[var(--shadow-xs)] hover:shadow-[var(--shadow-sm)] hover:border-[var(--accent)] hover:bg-[var(--ai)]/30 transition-all cursor-pointer text-[14px] font-semibold text-[var(--text-primary)]"
           >
             <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24">

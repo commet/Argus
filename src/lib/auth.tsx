@@ -10,12 +10,17 @@ import type { User, Session } from '@supabase/supabase-js';
 import { localeFromPath, withLocale, type AppLocale } from './locale-path';
 import { purgeCurrentBrowserContinuity } from './epistemic/browser-lifecycle';
 import { safePostAuthRedirect } from './auth-redirect';
+import {
+  claimAnonymousAccountTransfer,
+  prepareAnonymousAccountTransfer,
+} from './anonymous-account-transfer';
+import { reportSyncFailure } from './sync-health';
 
 interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
-  signInWithGoogle: (redirectAfter?: string) => Promise<void>;
+  signInWithGoogle: (redirectAfter?: string) => Promise<{ error: string | null }>;
   signInWithEmail: (email: string, password: string) => Promise<{ error: string | null }>;
   signUpWithEmail: (email: string, password: string, captchaToken?: string, profile?: { name?: string; role?: string }) => Promise<{ error: string | null }>;
   resetPassword: (email: string) => Promise<{ error: string | null }>;
@@ -86,12 +91,44 @@ function translateError(msg: string): string {
   return msg;
 }
 
+function transferPreparationError(): string {
+  return getCurrentLanguage() === 'ko'
+    ? '기존 작업을 계정에 안전하게 옮길 준비를 하지 못했습니다. 잠시 후 다시 시도해 주세요.'
+    : "We couldn't safely prepare your existing work for this account. Please try again.";
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let migrationInFlight: Promise<void> | null = null;
+    const finishPermanentAccountMigration = (forceLocalMigration: boolean) => {
+      if (migrationInFlight) return migrationInFlight;
+      migrationInFlight = claimAnonymousAccountTransfer()
+        .then(async (transfer) => {
+          if (!transfer.ok) {
+            reportSyncFailure('anonymous-account-transfer', { message: transfer.error || 'claim failed' });
+          }
+          if (!forceLocalMigration && !transfer.needed) return null;
+          const migrated = await migrateLocalToAccount();
+          return { ...migrated, partial: migrated.partial || !transfer.ok };
+        })
+        .then((result) => {
+          if (!result) return;
+          const { projects, partial } = result;
+          if (projects > 0 && typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('argus:account-synced', { detail: { count: projects, partial } }));
+          }
+        })
+        .catch(() => { /* migration is best-effort; sync health owns retry visibility */ })
+        .finally(() => {
+          migrationInFlight = null;
+        });
+      return migrationInFlight;
+    };
+
     // 4s cap on the front-door session read: if auth stalls, open the app as
     // signed-out instead of an endless boot spinner. onAuthStateChange below is
     // the safety net — a real session re-fills user/session moments later.
@@ -103,6 +140,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(realUser);
       setAnalyticsUser(realUser?.id ?? null);
       setLoading(false);
+      // A prepared transfer can outlive the OAuth/email callback (for example a
+      // transient database outage). Retry it whenever a permanent session boots,
+      // not only on the one SIGNED_IN event.
+      if (realUser) void finishPermanentAccountMigration(false);
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -134,13 +175,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // On a genuine sign-in, eagerly migrate local-first work into the account
       // and confirm it (local-first → "your thinking follows you when you sign up").
       if (_event === 'SIGNED_IN' && realUser) {
-        migrateLocalToAccount()
-          .then(({ projects, partial }) => {
-            if (projects > 0 && typeof window !== 'undefined') {
-              window.dispatchEvent(new CustomEvent('argus:account-synced', { detail: { count: projects, partial } }));
-            }
-          })
-          .catch(() => { /* migration is best-effort; never block auth */ });
+        // Claim server-backed anonymous rows FIRST. Otherwise the local fallback
+        // collides with rows still owned by the old anonymous uid and RLS rejects
+        // the upsert. The one-time ticket remains retryable on failure.
+        void finishPermanentAccountMigration(true);
       }
     });
 
@@ -149,19 +187,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signInWithGoogle = async (redirectAfter?: string) => {
     track('login_attempt', { method: 'google' });
+    const transfer = await prepareAnonymousAccountTransfer();
+    if (!transfer.ok) {
+      track('login_failure', { method: 'google', reason: transfer.error || 'transfer_prepare_failed' });
+      return { error: transferPreparationError() };
+    }
     // Supabase OAuth takes a full-page redirect, so sessionStorage survives the round-trip.
     // auth/callback consumes + clears the key.
     if (redirectAfter) sessionStorage.setItem('argus:postAuthRedirect', safePostAuthRedirect(redirectAfter));
-    await supabase.auth.signInWithOAuth({
+    const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
         redirectTo: `${window.location.origin}${withLocale(browserLocale(), '/auth/callback')}`,
       },
     });
+    if (error) track('login_failure', { method: 'google', reason: error.message.slice(0, 80) });
+    return { error: error ? translateError(error.message) : null };
   };
 
   const signInWithEmail = async (email: string, password: string) => {
     track('login_attempt', { method: 'email' });
+    const transfer = await prepareAnonymousAccountTransfer();
+    if (!transfer.ok) return { error: transferPreparationError() };
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) track('login_failure', { method: 'email', reason: error.message.slice(0, 80) });
     return { error: error ? translateError(error.message) : null };
@@ -169,6 +216,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signUpWithEmail = async (email: string, password: string, captchaToken?: string, profile?: { name?: string; role?: string }) => {
     track('signup_attempt', { method: 'email' });
+    const transfer = await prepareAnonymousAccountTransfer();
+    if (!transfer.ok) return { error: transferPreparationError() };
     // Optional profile — stored on user_metadata for greeting + decision-context personalization.
     const displayName = profile?.name?.trim();
     const role = profile?.role?.trim();
@@ -190,6 +239,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const resetPassword = async (email: string) => {
+    const transfer = await prepareAnonymousAccountTransfer();
+    if (!transfer.ok) return { error: transferPreparationError() };
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: `${window.location.origin}${withLocale(browserLocale(), '/auth/callback')}`,
     });
