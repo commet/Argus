@@ -1,7 +1,7 @@
 # Fable5 판단 시스템 철학 기반 구현 보고서
 
 Date: 2026-07-26
-Status: F0–F4 implemented; release verification is tracked in the PR and deployment checks.
+Status: F0–F4 implemented and released on 2026-07-27 KST.
 
 ## 1. 구현 정본과 제품 결론
 
@@ -228,3 +228,27 @@ constraint가 `NOT VALID`라 기존 행을 소급 차단하지 않으며, 웹의
 Windows에서 전수 시험의 worker fork가 종료 시 간헐적으로 자원 고갈을 일으키는
 문제도 제품 실패와 구분해 방치하지 않았다. 웹 전수 시험은 단일 worker, MCP는 최대
 2개 worker로 고정해 assertion뿐 아니라 시험 프로세스 종료까지 반복 가능하게 만들었다.
+
+## 11. 실제 배포 기록
+
+- 구현 PR: [#296](https://github.com/commet/Argus/pull/296)
+- main merge commit: `9e4b682d205b8317ecb635d3cd8a5077d2a6c4c5`
+- main CI: 설치 tarball E2E를 포함한 모든 단계 통과
+- 운영 DB: `_argus_semantic_idem_fingerprint(jsonb)` 갱신과
+  `projects_decision_contract_foundation_shape` constraint 적용 완료
+- DB 확인: constraint는 의도대로 `convalidated = false`라서 기존 행은 소급
+  차단하지 않고 신규 foundation write만 검사한다.
+- 웹 production: Vercel이 merge commit 배포를 완료했고
+  `https://argus.voyage/ko`, `/en`, `/ko/guide`, `/en/guide`가 모두 HTTP 200으로
+  응답했다.
+- npm: `argus-decision-mcp@1.13.0`이 `latest`로 공개됐고 GitHub Actions
+  provenance가 붙었다.
+- MCP Registry: `io.github.commet/argus-decision-mcp` version `1.13.0` 등록 완료
+- 플러그인: main marketplace의 `2.19.0`과 정확한 MCP `1.13.0` 핀이 함께 배포됐다.
+
+운영 DB의 과거 migration history와 저장소의 오래된 로컬 파일 목록이 이미 어긋나
+표준 `supabase db push`는 신규 migration 전에 차단됐다. 이 출시에서는 과거 이력을
+임의 repair하거나 local-only migration을 일괄 적용하지 않았다. 전체 신규 SQL을 먼저
+운영 연결의 transaction 안에서 실행 후 rollback해 검증하고, 같은 idempotent SQL 한
+개만 Management API로 적용한 뒤 함수와 constraint를 각각 조회했다. 이 history drift
+자체는 별도 복구 작업으로 다뤄야 하며, 이번 판단 기록 데이터의 의미를 바꾸지는 않는다.
