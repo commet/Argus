@@ -90,12 +90,142 @@ describe('DKK v6 MCP vertical slice', () => {
     expect((await readSemanticLedger(dir)).events).toHaveLength(2);
   });
 
-  it('keeps the pilot hidden by default and exposes it only with the explicit v6 flag', () => {
-    const previous = process.env['ARGUS_DKK_V6_PILOT'];
-    delete process.env['ARGUS_DKK_V6_PILOT'];
-    expect(servedPublicTools().map((tool) => tool['name'])).not.toContain('argus_record');
-    process.env['ARGUS_DKK_V6_PILOT'] = '1';
+  it('keeps a witness silent and creates no return contract', async () => {
+    const dir = tmpArgusDir();
+    const result = await call({
+      argus_dir: dir,
+      action: 'seal',
+      request_id: 'seal-witness',
+      judgment_id: 'witness-1',
+      statement: 'Today I chose not to answer immediately.',
+      decision_kind: 'witness',
+      origin_utterance: 'I did not answer today.',
+      review_condition_status: 'not_asked',
+      authorization,
+    });
+    expect(isError(result)).toBe(false);
+    const events = (await readSemanticLedger(dir)).events;
+    expect(events.map((event) => event.event)).toEqual(['judgment_sealed']);
+    expect((body(result)['data'] as Record<string, unknown>)['projection']).toMatchObject({
+      lifecycle: 'sealed',
+      kind: 'witness',
+    });
+  });
+
+  it('preserves AI proposal lineage while human authorization owns the seal', async () => {
+    const dir = tmpArgusDir();
+    const result = await call({
+      argus_dir: dir,
+      action: 'seal',
+      request_id: 'seal-adopted',
+      judgment_id: 'adopted-1',
+      statement: 'I will accept only if the role and authority are written down.',
+      decision_kind: 'commitment',
+      origin_utterance: 'I may take the offer.',
+      review_condition_status: 'answered',
+      review_condition: 'The written offer contains the role and authority.',
+      review_at: '2026-08-15T00:00:00.000Z',
+      review_question: 'Did I act on the condition I set?',
+      review_event: 'The final written offer arrives.',
+      fallback_review_at: '2026-08-20T00:00:00.000Z',
+      proposal_id: 'proposal-role',
+      proposal_text: 'Accept only if role and authority are explicit.',
+      proposal_source_ref: 'host:assistant:19',
+      adoption_mode: 'wording',
+      authorization,
+    });
+    expect(isError(result)).toBe(false);
+    const events = (await readSemanticLedger(dir)).events;
+    expect(events.map((event) => event.event)).toEqual([
+      'proposal_created',
+      'judgment_sealed',
+      'return_promised',
+    ]);
+    expect(events[0]?.authority.originated_by.kind).toBe('ai');
+    expect(events[1]).toMatchObject({
+      source_proposal_id: 'proposal-role',
+      adoption_mode: 'wording',
+      authority: { authorized_by: { kind: 'human' } },
+    });
+    expect(events[2]).toMatchObject({
+      review_event: 'The final written offer arrives.',
+      fallback_review_at: '2026-08-20T00:00:00.000Z',
+    });
+  });
+
+  it('revises a sealed sentence append-only and retains independent settlement axes', async () => {
+    const dir = tmpArgusDir();
+    await call({
+      argus_dir: dir,
+      action: 'seal',
+      request_id: 'seal-revision',
+      judgment_id: 'revision-1',
+      statement: 'I will accept the offer if the title is retained.',
+      decision_kind: 'commitment',
+      review_at: '2026-08-15T00:00:00.000Z',
+      review_question: 'Did I act on the condition?',
+      authorization,
+    });
+    const before = JSON.stringify((await readSemanticLedger(dir)).events[0]);
+    const revised = await call({
+      argus_dir: dir,
+      action: 'revise_statement',
+      request_id: 'revise-1',
+      judgment_id: 'revision-1',
+      from_statement: 'I will accept the offer if the title is retained.',
+      statement: 'I will accept only if the role and decision rights are written down.',
+      revision_reason: 'The title alone does not preserve the work.',
+      authorization: { ...authorization, evidence_ref: 'host:turn:44' },
+    });
+    expect(isError(revised)).toBe(false);
+    expect(JSON.stringify((await readSemanticLedger(dir)).events[0])).toBe(before);
+    expect((body(revised)['data'] as Record<string, unknown>)['projection']).toMatchObject({
+      statement: 'I will accept only if the role and decision rights are written down.',
+    });
+
+    await call({
+      argus_dir: dir,
+      action: 'observe',
+      request_id: 'observe-offer',
+      judgment_id: 'revision-1',
+      observation_id: 'offer-observation',
+      observation_text: 'The final offer kept authority informal.',
+      observation_source_kind: 'user_report',
+    });
+    const resolved = await call({
+      argus_dir: dir,
+      action: 'resolve',
+      request_id: 'resolve-revision',
+      judgment_id: 'revision-1',
+      return_contract_id: 'revision-1.return',
+      resolution_id: 'revision-answer',
+      resolution: {
+        kind: 'answered',
+        answer_summary: 'I declined because the authority was still informal.',
+        criterion_result: 'not_met',
+        commitment_result: 'enacted',
+        question_validity: 'narrowed',
+        authorial_response: 'I kept the underlying condition but rewrote it more precisely.',
+        present_standard: {
+          status: 'same',
+          response_text: 'Role and decision rights still need to be explicit.',
+        },
+        evidence_refs: ['offer-observation'],
+      },
+      authorization: { ...authorization, evidence_ref: 'host:turn:45' },
+    });
+    expect(isError(resolved)).toBe(false);
+    const resolutionEvent = (await readSemanticLedger(dir)).events.find((event) => event.event === 'resolution_asserted');
+    expect(resolutionEvent).toMatchObject({
+      resolution: {
+        criterion_result: 'not_met',
+        commitment_result: 'enacted',
+        question_validity: 'narrowed',
+      },
+    });
+  });
+
+  it('publishes the foundation recorder without an environment gate', () => {
     expect(servedPublicTools().map((tool) => tool['name'])).toContain('argus_record');
-    if (previous === undefined) delete process.env['ARGUS_DKK_V6_PILOT']; else process.env['ARGUS_DKK_V6_PILOT'] = previous;
   });
 });

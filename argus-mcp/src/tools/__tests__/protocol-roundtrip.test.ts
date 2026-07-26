@@ -74,7 +74,7 @@ describe('MCP protocol round-trip (built server, stdio)', () => {
     const { tools } = await client.listTools();
     const names = tools.map((t) => t.name);
     expect(names).toEqual([
-      'argus_capture', 'argus_predict', 'argus_check_in',
+      'argus_capture', 'argus_record', 'argus_predict', 'argus_check_in',
       'argus_resolve', 'argus_patterns', 'argus_settings',
     ]);
     expect(names).not.toContain('argus_premises');
@@ -93,42 +93,33 @@ describe('MCP protocol round-trip (built server, stdio)', () => {
     expect(client.getServerCapabilities()?.prompts).toBeUndefined();
   });
 
-  it('rejects a direct v6 pilot call when the pilot flag is absent', async () => {
-    const blocked = await client.callTool({ name: 'argus_record', arguments: {} });
-    expect(blocked.isError).toBe(true);
-    expect((blocked.content as Array<{ text: string }>)[0]?.text).toContain('UNKNOWN_TOOL');
-  });
-
-  it('exposes the v6 record slice only when the explicit pilot flag is enabled', async () => {
-    const pilotDir = tmpArgusDir();
-    const env: Record<string, string> = {};
-    for (const [k, v] of Object.entries(process.env)) if (typeof v === 'string') env[k] = v;
-    env['ARGUS_DIR'] = pilotDir;
-    env['ARGUS_DKK_V6_PILOT'] = '1';
-    const pilot = new Client({ name: 'v6-pilot-roundtrip', version: '0.0.0' });
-    await pilot.connect(new StdioClientTransport({ command: process.execPath, args: [DIST], env }));
-    try {
-      expect((await pilot.listTools()).tools.map((tool) => tool.name)).toContain('argus_record');
-      const sealed = structured(await pilot.callTool({
+  it('exposes the foundation recorder and preserves explicit authority over stdio', async () => {
+      const sealed = structured(await client.callTool({
         name: 'argus_record',
         arguments: {
-          argus_dir: pilotDir,
+          argus_dir: dir,
           action: 'seal',
-          request_id: 'pilot-seal',
-          judgment_id: 'pilot-pricing',
+          request_id: 'foundation-seal',
+          judgment_id: 'foundation-pricing',
           statement: 'Keep the current price through the next cohort.',
+          decision_kind: 'commitment',
+          kind_evidence: {
+            source: 'elicitation_answer',
+            rule: 'explicit_kind',
+            answer: 'commitment',
+            recorded_at: `${ADDED}T00:00:00.000Z`,
+          },
+          origin_utterance: 'Keep the current price through the next cohort.',
+          review_condition_status: 'answered',
           review_at: `${CHECK_BY}T00:00:00.000Z`,
           review_question: 'Did the conversion rate hold?',
-          authorization: { mode: 'direct_command', evidence_kind: 'user_utterance', evidence_ref: 'host:turn:pilot-1' },
+          authorization: { mode: 'direct_command', evidence_kind: 'user_utterance', evidence_ref: 'host:turn:foundation-1' },
         },
       }));
       expect(sealed['ok']).toBe(true);
       const receipt = ((sealed['data'] as Record<string, unknown>)['authority_receipt'] as Array<Record<string, unknown>>)[0]!;
-      expect(receipt['authorization_ref']).toEqual({ kind: 'user_utterance', ref: 'host:turn:pilot-1' });
-    } finally {
-      await pilot.close();
-    }
-  }, 30000);
+      expect(receipt['authorization_ref']).toEqual({ kind: 'user_utterance', ref: 'host:turn:foundation-1' });
+  });
 
   it('walks the journey: seal(+promotion) → add → due_note piggyback → recheck baseline → recall', async () => {
     // seal with a named assumption → promoted premise P1

@@ -440,8 +440,8 @@ export function JudgmentGraph({
             {focus.ground.record && (
               <p className="text-[11px] leading-relaxed" style={{ color: 'var(--text-tertiary)' }}>
                 {L(
-                  `✓ 지켜짐 ${focus.ground.record.held} · ✗ 깨짐 ${focus.ground.record.broke}${focus.ground.record.mixed ? ` · ~ 혼재 ${focus.ground.record.mixed}` : ''} — 사실, 평가가 아닙니다.`,
-                  `✓ held ${focus.ground.record.held} · ✗ broke ${focus.ground.record.broke}${focus.ground.record.mixed ? ` · ~ mixed ${focus.ground.record.mixed}` : ''} — facts, not a grade.`,
+                  `이 전제로 돌아와 답한 기록 ${focus.ground.record.revisited}건`,
+                  `${focus.ground.record.revisited} record${focus.ground.record.revisited === 1 ? '' : 's'} revisited on this ground`,
                 )}
               </p>
             )}

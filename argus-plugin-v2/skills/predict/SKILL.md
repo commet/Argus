@@ -1,103 +1,101 @@
 ---
 name: predict
 user-invocable: false
-description: "Seal a chosen Argus decision candidate or sail seed into a later-checkable contract. This is the common state transition after either entry point: `/argus:sail` can produce a seed, `/argus:scan` can produce candidates, and `/argus:predict` turns the selected item into a sealed ledger contract. Use when the user says seal this, commit this for later, remember this decision, or chooses a scan candidate id. Invoked as `/argus:predict`."
+description: "Seal one user-confirmed Argus record as a prediction, commitment, declaration, or witness. Use after /argus:sail or /argus:scan when the user asks to keep a specific decision. Invoked as /argus:predict."
 argument-hint: "[<id>] [--latest-seed] [--list]"
 ---
 
 # /argus:predict
 
-**What this skill does:** Turns one selected item into a sealed, falsifiable
-contract in `.argus/ledger/ledger.jsonl`.
+Turn one selected candidate or sail seed into an append-only record. An AI
+draft is never a seal. The user confirms both the sentence and what kind of
+return, if any, it should create.
 
-This is a shared state transition, not a separate entry point:
+## 1. Find the target
 
-- `/argus:sail` produces a current decision and may leave a `contract_seed`.
-- `/argus:scan` produces past-decision `candidate`s.
-- `/argus:predict` seals one chosen seed or candidate.
-- `/argus:resolve` later settles all sealed contracts, regardless of source.
-
----
-
-## Inputs
-
-- No args or `--list`: show sealable sail seeds and scan candidates.
-- `<id>`: seal that exact candidate or seed id.
-- `--latest-seed`: seal the latest unsealed `/argus:sail` contract seed.
-- Optional overrides:
-  - `--predicate "..."`
-  - `--falsified-if "..."`
-  - `--check-by YYYY-MM-DD`
-  - `--model sonnet|haiku|opus`
-
-Use `--latest-seed` when the user says "seal this" immediately after a sail
-run and there is an obvious latest current call seed. Use `<id>` when the
-user is choosing from scan results.
-
----
-
-## Steps
-
-1. Resolve `${CLAUDE_PLUGIN_ROOT}` per sail Path Resolution. The canonical script
-   is `${CLAUDE_PLUGIN_ROOT}/scripts/decision-ledger.js`.
-2. If the target is unclear, run:
+Resolve `${CLAUDE_PLUGIN_ROOT}` per the sail path rules. If the target is not
+unambiguous, list candidates:
 
 ```bash
 node "${CLAUDE_PLUGIN_ROOT}/scripts/decision-ledger.js" seal --list
 ```
 
-Then ask the user to pick an id only if there is more than one plausible target.
+Ask the user to choose only when more than one target remains plausible.
 
-3. If the user named an id:
+## 2. Produce a draft without writing
+
+Run exactly one:
 
 ```bash
 node "${CLAUDE_PLUGIN_ROOT}/scripts/decision-ledger.js" seal "<id>"
 ```
 
-4. If the user clearly means the latest sail seed:
-
 ```bash
 node "${CLAUDE_PLUGIN_ROOT}/scripts/decision-ledger.js" seal --latest-seed
 ```
 
-5. Relay the compact result: id, predicate clipped if long, and check-by date.
-Do not over-explain the ledger internals.
+For an AI seed or generated contract the command prints `Draft only — nothing
+was recorded.` This is expected. Do not claim that anything was sealed.
 
-6. Send the sealed decision to the webapp so the return loop (settle reminders,
-   voyage map) can reach it. On the FIRST seal with no connection this opens a
-   one-tap browser approve tab; after that it just syncs; if the user declined
-   once it stays silent. The decision is already safe in the local ledger either way.
+## 3. Confirm in one native question
+
+Show the draft sentence verbatim, plus its check-by date when present. Use one
+`AskUserQuestion`:
+
+- `현실에서 확인` / `Check against reality` → `prediction`
+- `내가 했는지 확인` / `Check what I did` → `commitment`
+- `나중에 다시 생각` / `Revisit this standard` → `declaration`
+- `기록만 남기기` / `Keep as a record` → `witness`
+- cancel/skip → write nothing
+
+These are not personality labels. They describe what the sentence asks Argus
+to do. If the user edits the sentence, use their edited wording and keep the
+draft as the proposal reference. Never preselect a kind with confidence
+language.
+
+For `prediction`, `commitment`, or `declaration`, keep the displayed date unless
+the user changes it. `witness` has no date, reminder, event trigger, or
+settlement.
+
+## 4. Seal the confirmed record
+
+Rerun with the exact confirmed fields. The authorization ref is an opaque host
+confirmation receipt; never put user content in it.
+
+```bash
+node "${CLAUDE_PLUGIN_ROOT}/scripts/decision-ledger.js" seal "<id>" \
+  --predicate "<confirmed sentence>" \
+  --falsified-if "<draft condition; omit for witness>" \
+  --check-by "<YYYY-MM-DD; omit for witness>" \
+  --kind prediction|commitment|declaration|witness \
+  --origin-utterance "<first user utterance when available; otherwise confirmed sentence>" \
+  --review-condition-status not_asked \
+  --proposal-ref "<candidate/seed id>" --adopted-as wording \
+  --confirmed --authorization-ref "plugin:predict:<id>:confirmation"
+```
+
+For a candidate whose fields came directly from the user, use the same command;
+`--proposal-ref` is omitted when there was no AI proposal.
+
+Relay only:
+
+- the confirmed sentence;
+- the user-language kind label;
+- the return date/event, or “알림 없이 기록만 남겼어요 / Saved with no reminder.”
+
+Then run the existing optional account sync:
 
 ```bash
 node "${CLAUDE_PLUGIN_ROOT}/scripts/push-webapp.js" push --ensure-connect
 ```
 
-   Relay the connect/push result in one line. Never print the credential.
+Do not print credentials. A sync failure never undoes the local append.
 
----
+## Invariants
 
-## Product Model
-
-Keep the mental model clear:
-
-- `sail` / `scan` answer: where did this decision come from?
-- `seal` / `settle` answer: what state is this decision in?
-
-`seal` is not scan-only. It also seals a sail seed. `settle` is not sail-only or
-scan-only; it settles any sealed item whose check-by date has arrived.
-
----
-
-## Relationship To argus-watch
-
-`argus-watch seal` was the prototype for scan candidates. `/argus:predict` is the
-normal plugin path and covers both recovered candidates and new sail seeds.
-
----
-
-## Forbidden Patterns
-
-- Sealing every candidate from a scan.
-- Sealing without a clear user-selected target when multiple targets exist.
-- Calling a candidate a track record before it is sealed.
-- Calling a sealed contract settled before reality is checked by `/argus:resolve`.
+- Never seal multiple candidates at once.
+- Never turn a draft into a seal without the native confirmation.
+- Never infer that the user authored AI wording; store proposal lineage.
+- Never add a date to `witness`.
+- Never call the accumulated record a score, win rate, accuracy, or track
+  record.

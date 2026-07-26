@@ -21,13 +21,8 @@ import type {
   FeedbackRecord,
   JudgmentRecord,
   Persona,
-  VitalityAssessment,
 } from '@/stores/types';
-import { getStorage, setStorage, STORAGE_KEYS } from './storage';
-import { insertToSupabase } from './db';
 import { generateId } from './uuid';
-import { recordSignal } from './signal-recorder';
-import { assessVitality } from './judgment-vitality';
 
 /* ────────────────────────────────────
    DQ Score Computation
@@ -51,13 +46,8 @@ export interface DQInput {
 export function computeDecisionQuality(input: DQInput): DecisionQualityScore {
   const {
     reframe, recast, feedbackRecords,
-    judgments, personas, projectId, force,
+    judgments, projectId,
   } = input;
-
-  // Idempotency: return cached score if already computed for this project
-  const cachedScores = getStorage<DecisionQualityScore[]>(STORAGE_KEYS.DQ_SCORES, []);
-  const cachedIndex = cachedScores.findIndex(s => s.project_id === projectId);
-  if (cachedIndex !== -1 && !force) return cachedScores[cachedIndex];
 
   // ── DQ Element 1: Appropriate Frame (적절한 프레이밍) ──
   // Did the reframing produce a meaningfully different question?
@@ -193,56 +183,9 @@ export function computeDecisionQuality(input: DQInput): DecisionQualityScore {
     created_at: new Date().toISOString(),
   };
 
-  // Persist to localStorage (replace existing entry if force-recalculated)
-  if (cachedIndex !== -1) {
-    cachedScores[cachedIndex] = score;
-  } else {
-    cachedScores.push(score);
-    if (cachedScores.length > 100) cachedScores.splice(0, cachedScores.length - 100);
-  }
-  setStorage(STORAGE_KEYS.DQ_SCORES, cachedScores);
-
-  // Persist to Supabase
-  insertToSupabase('decision_quality_scores', score);
-
-  recordSignal({
-    tool: 'refine',
-    signal_type: 'dq_score_computed',
-    signal_data: {
-      overall_dq: score.overall_dq,
-      elements: {
-        frame: score.appropriate_frame,
-        alternatives: score.creative_alternatives,
-        information: score.relevant_information,
-        values: score.clear_values,
-        reasoning: score.sound_reasoning,
-        commitment: score.commitment_to_action,
-      },
-      anti_sycophancy: {
-        framing_challenged: score.initial_framing_challenged,
-        blind_spots: score.blind_spots_surfaced,
-        mind_changed: score.user_changed_mind,
-      },
-    },
-    project_id: projectId,
-  });
-
-  // Vitality: assess and persist
-  try {
-    const pastFeedback = getStorage<FeedbackRecord[]>(STORAGE_KEYS.FEEDBACK_HISTORY, []);
-    const va = assessVitality(reframe, recast, feedbackRecords, score.overall_dq, pastFeedback);
-    const vaList = getStorage<VitalityAssessment[]>(STORAGE_KEYS.VITALITY_ASSESSMENTS, []);
-    vaList.push(va);
-    if (vaList.length > 50) vaList.splice(0, vaList.length - 50);
-    setStorage(STORAGE_KEYS.VITALITY_ASSESSMENTS, vaList);
-    recordSignal({
-      tool: 'refine',
-      signal_type: 'vitality_assessment',
-      signal_data: { gamma: va.gamma, rigidity_score: va.rigidity_score, vitality_score: va.vitality_score, tier: va.tier, signal_count: va.signals.length },
-      project_id: projectId,
-    });
-  } catch { /* non-critical — vitality failure should never block DQ */ }
-
+  // Philosophy foundation I6: this legacy computation may support a private
+  // migration/debug comparison, but a human-judgment score must never be
+  // persisted, surfaced, injected, or used for routing. No local/Supabase write.
   return score;
 }
 
@@ -250,9 +193,10 @@ export function computeDecisionQuality(input: DQInput): DecisionQualityScore {
  * Get DQ scores from localStorage, optionally for a specific project.
  */
 export function getDQScores(projectId?: string): DecisionQualityScore[] {
-  const all = getStorage<DecisionQualityScore[]>(STORAGE_KEYS.DQ_SCORES, []);
-  if (!projectId) return all;
-  return all.filter(s => s.project_id === projectId);
+  void projectId;
+  // Legacy rows remain exportable/erasable for compatibility, but are
+  // quarantined from every product projection and prompt.
+  return [];
 }
 
 /* ────────────────────────────────────

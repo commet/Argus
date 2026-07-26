@@ -68,17 +68,10 @@ export function recordStripLine(
 ): string {
   const ko = locale === 'ko';
   const reviewSettled = review?.settled ?? 0;
-  const parts: string[] = [];
-  if (record.loops > 0) {
-    parts.push(ko ? `결과 확인 완료 ${record.loops}건` : `${record.loops} outcome${record.loops === 1 ? '' : 's'} reviewed`);
-    if (record.betsHeld > 0) parts.push(ko ? `적중한 가설 ${record.betsHeld}개` : `${record.betsHeld} bet${record.betsHeld === 1 ? '' : 's'} held`);
-    if (record.risksAvoided > 0) parts.push(ko ? `비켜 간 위험 ${record.risksAvoided}개` : `${record.risksAvoided} risk${record.risksAvoided === 1 ? '' : 's'} steered past`);
-    if (record.goodOutcomesOnLuck > 0) parts.push(ko ? `그중 운으로 본 게 ${record.goodOutcomesOnLuck}개` : `${record.goodOutcomesOnLuck} marked as luck`);
-  }
-  if (reviewSettled > 0) {
-    parts.push(ko ? `문서 검수 결과 확인 ${reviewSettled}건` : `${reviewSettled} document-review outcome${reviewSettled === 1 ? '' : 's'} recorded`);
-  }
-  return parts.join(' · ');
+  const returned = record.loops + reviewSettled;
+  return ko
+    ? `다시 돌아와 답한 기록 ${returned}건`
+    : `${returned} record${returned === 1 ? '' : 's'} revisited`;
 }
 
 /**
@@ -94,12 +87,14 @@ export function recordCompactLine(
 ): string | null {
   const ko = locale === 'ko';
   if (record.loops > 0) {
-    return ko ? `결과 확인 완료 ${record.loops}건` : `${record.loops} outcome${record.loops === 1 ? '' : 's'} reviewed`;
+    return ko
+      ? `다시 돌아와 답한 기록 ${record.loops}건`
+      : `${record.loops} record${record.loops === 1 ? '' : 's'} revisited`;
   }
   if (sealedCount > 0) {
     return ko
-      ? `확인 대기 ${sealedCount}건 — 확인일이 오면 결과를 이어서 기록해요`
-      : `${sealedCount} awaiting review — add the outcome on the review date`;
+      ? `나중에 다시 볼 기록 ${sealedCount}건`
+      : `${sealedCount} record${sealedCount === 1 ? '' : 's'} to revisit`;
   }
   return null;
 }

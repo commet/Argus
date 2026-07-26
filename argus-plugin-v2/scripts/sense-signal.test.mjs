@@ -115,6 +115,34 @@ test('규칙이 못 잡는 애매-지평 예측도 진단은 주입된다 (규�
   assert.ok(!/Deterministic scan flagged/.test(ctx), 'no rule candidate for this turn');
 });
 
+test('사용자가 정한 사건이 나타나면 그 기록만 한 번 다시 제안한다', () => {
+  const cwd = ledgerWith([
+    {
+      id: 'offer-1',
+      event: 'seal',
+      predicate: 'I will decide after the written offer.',
+      return_event: 'The final written offer arrives',
+    },
+  ]);
+  const configDir = tmp('argus-sense-event-cfg-');
+  const first = context(runSense({
+    session_id: 'event-session',
+    cwd,
+    prompt: 'The final written offer arrives today, so I can finally read the terms.',
+  }, { configDir }).out);
+  assert.ok(first);
+  assert.match(first, /user-defined return event/i);
+  assert.match(first, /The final written offer arrives/);
+  assert.match(first, /matching record once/i);
+
+  const second = context(runSense({
+    session_id: 'event-session',
+    cwd,
+    prompt: 'The final written offer arrives today, and I am still reading it.',
+  }, { configDir }).out);
+  assert.ok(!second || !/user-defined return event|The final written offer arrives/i.test(second));
+});
+
 // ── 2b. 점화 축 (BLUEPRINT §9.9 V1b) — 신규 사용자 첫 결정에서 작동 ──────────
 // 콜드스타트의 dead-wire 가드: 이력 0(원장 파일 없음)·세션 상태 0인 사용자의
 // 첫 결정에서도 하중 전제(점화) 감각이 주입돼야 한다. 이력에 의존하면 신규

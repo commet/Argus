@@ -192,34 +192,13 @@ Low density on an auto-trigger → answer inline, write nothing.
    - `created_at`, `updated_at`
 5. Create `versions/v0.1/` subdirectory. This holds all artifacts for draft v0.1.
 
-### Step 1.5 — Track-record context (mechanical, skip silently if absent)
+### Step 1.5 — Earlier records are not a score or a hidden prior
 
-If `.argus/ledger/ledger.jsonl` exists, replay it (seal opens, settle closes —
-skip unparsable lines) and count settled outcomes. **Only when ≥2 contracts are
-settled**, prepare ONE reference line for the Step 2 prompt, appended as:
-
-```text
-<user-data context="track-record">
-Past decisions in this project: {{T}} contracts settled — held {{h}}, missed {{a}}, partial {{p}}.{{ IF the recent miss is relevant (rule 1): ` Most recently missed: "{{predicate, clipped 80}}".` }}
-</user-data>
-```
-
-Injection rules (these override any urge to use the data harder):
-1. **Counts are always safe; the concrete example is RELEVANCE-GATED (R38).**
-   Append `Most recently missed: "{{predicate}}"` ONLY when the current problem
-   shares a **domain or failure-mechanism** with that missed contract — a cheap,
-   mechanical tag/keyword/domain overlap, NOT a judgment call. On a mismatch,
-   inject the COUNTS ONLY and omit the example: an unrelated recent-miss seeds a
-   false analogy (R38 case-4 — a marketing-attribution miss bled into a surgery
-   decision as a loose "same kind of unknown" link) and crowds out problem-specific
-   analysis. The bare counts still calibrate `stakes_guess` sensitivity without
-   seeding an analogy.
-2. Reference only — the line informs `hidden_assumptions` and `stakes_guess`
-   sensitivity; it must NEVER override content-based judgment of the current
-   problem or change the recommendation by itself.
-3. No trend prose, no "you tend to…".
-4. Fewer than 2 settled contracts → inject nothing at all (one data point is an
-   anecdote, not a record).
+Do not aggregate earlier outcomes, inject held/missed counts, infer calibration,
+or use a past record to silently change `stakes_guess`. If the user explicitly
+names a relevant earlier record, quote that record as a dated reference with its
+authorship and context. Otherwise skip this step. Pattern mining is frozen; a
+thin history must never become a claim about the person.
 
 ### Step 1.6 — Crisis screen (Axis 0 — runs BEFORE request-type)
 
@@ -499,23 +478,11 @@ Then:
 
 - **No volunteered lean → write NOTHING** (honest-empty; the default). Never block,
   never prompt, never fabricate a lean.
-- **A lean was volunteered → write an EARLY rope to the ledger now** (the user's own
-  words are the predicate; `author:"user"` records it is theirs, not machine-
-  surfaced). Infer the check-back from stakes (do NOT ask): high → +2 weeks,
-  medium → +1 month, else omit `--check-by`. The user can change it at settle.
-  Write it through the single-source ledger writer — do NOT hand-write the JSON
-  (the CLI owns the canonical harvest+seal shape, stamps `at`, and appends in
-  `O_APPEND`, so this rope can never drift from what the readers replay):
-
-```bash
-node "${CLAUDE_PLUGIN_ROOT}/scripts/decision-ledger.js" record \
-  --id "lean:<session-id>" --session "<session-id>" --type open --author user \
-  --predicate "<the user's lean, verbatim>" [--check-by <high +2w / medium +1m, else omit>]
-```
-
-  `quote`/`decision` default to the predicate and `falsified_if` to `opposite
-  observed`, so the user's verbatim lean is all you pass. Omit `--check-by`
-  entirely for low stakes.
+- **A lean was volunteered → keep it as an in-session draft, not a ledger row.**
+  Quote it verbatim at the closing seal and ask once whether the user wants to
+  keep it. Only an explicit confirmation or direct record command may write.
+  Never infer a return date from stakes, and never silently promote a passing
+  sentence into a durable judgment.
 
 **Ears open (reviewers never see the lean):** the lean is NEVER handed to the reviewers as a directive and
 NEVER suppresses Phase 2 generation — it is only the anchor that `settle` re-confronts

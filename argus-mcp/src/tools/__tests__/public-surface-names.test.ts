@@ -44,10 +44,10 @@ describe('호스트-대면 표면에 내부 이름 누수 없음', () => {
     }
   });
 
-  it('공개 표면은 정확히 목적별 6개 이름이다 (내부와 분리)', () => {
+  it('공개 표면은 정확히 목적별 7개 이름이다 (내부와 분리)', () => {
     expect([...PUBLIC].sort()).toEqual([
       'argus_capture', 'argus_check_in', 'argus_patterns',
-      'argus_predict', 'argus_resolve', 'argus_settings',
+      'argus_predict', 'argus_record', 'argus_resolve', 'argus_settings',
     ]);
   });
 

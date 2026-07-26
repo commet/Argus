@@ -6,14 +6,14 @@
 
 > **Keeping Judgment Human.**
 
-> **Your AI gives you an answer. Argus gives you a receipt — and checks it against reality on the date you set.**
+> **Your AI gives you an answer. Argus preserves the judgment you authorized — and returns when its question can be answered.**
 
-Argus is an MCP server for **decision accountability**. Instead of grading your
-choices, it makes you write down a *falsifiable prediction* and a *check-by
-date*, then brings you back on that date to compare what you predicted against
-what actually happened. The artifact it produces — a **Judgment Receipt** —
-carries one line no other AI tool will: `AI VERDICT … NONE`. The model never
-graded you. Reality did.
+Argus is an MCP server for **judgment records across time**. It keeps the first
+utterance, the wording the user confirmed, any AI-adoption lineage, and the event
+or fallback date that should reopen it. A record may be a claim reality can
+answer, a commitment, a chosen standard, or a moment preserved without a future
+return. Later answers append to the original. No score, accuracy, or win rate is
+stored for the person.
 
 Runs on any MCP host that supports local **stdio** servers — Claude Desktop,
 Claude Code, and other clients that launch a local process. (Remote-only
@@ -24,22 +24,24 @@ connectors that require an HTTP transport aren't supported yet.)
 [your first receipt](#your-first-receipt-2-minutes) below.
 
 ```
-┌─ ARGUS · JUDGMENT RECEIPT ────────────────────────────────┐
-  Prediction saved 2026-04-02      Result recorded 2026-06-30
+┌─ ARGUS · JUDGMENT RECORD ─────────────────────────────────┐
+  Confirmed 2026-04-02       Returned 2026-06-30
 
-  THE REAL QUESTION
-    Can we cut over without a maintenance window users notice?
-  THE UNVERIFIED ASSUMPTION
+  FIRST WORDS
+    "Can we cut over without a maintenance window users notice?"
+  AI-SURFACED ASSUMPTION
     The index rebuild fits inside the replication lag budget.
-  HUMAN-ONLY CALL   Whether a 5-minute blip is acceptable.
-  …made by          Me. (not the model)
+  MY CONFIRMED CALL
+    "Proceed only if measured downtime stays under 5 minutes."
+  RETURN CONDITION
+    After the production cutover · fallback 2026-06-30
 
-  YOU PREDICTED   "Cutover downtime is under 5 minutes"   (check-by 2026-06-30)
-  WHAT HAPPENED   Cutover took 3 minutes, no customer reports.
+  REALITY         Cutover took 3 minutes, no customer reports.
+  STANDARD NOW    Still the same.
+  QUESTION        Still valid.
   ─────────────────────────────────────────────────────────
-  AI VERDICT ON THIS DECISION ······················  NONE
-  The model never graded you. Reality did.
-└──────────────────────────  argus · prediction → reality ─┘
+  NO PERSON-LEVEL SCORE OR WIN RATE IS STORED.
+└────────────────────── argus · statement → return → answer ┘
 ```
 
 ## Why it's different
@@ -47,20 +49,22 @@ connectors that require an HTTP transport aren't supported yet.)
 **It is not a receipt of what your *agent* did.** A growing set of tools now
 log an AI coding run — prompt captured, files touched, checkpoint saved, replay
 path written down. That receipt is about the *machine's* actions over one run.
-Argus receipts something no run-logger can: *your* judgment call, in your own
-words, opened again on a date you set and settled against **reality** — not
-against a model's opinion, and not against a diff. Machine-action receipts and
-judgment receipts are different primitives; you can keep both.
+Argus records something no run-logger can: *your* judgment call, in your own
+words, opened again by the event or date you chose and answered by **reality or
+you** — not by a model's opinion or a diff. Machine-action receipts and judgment
+records are different primitives; you can keep both.
 
 Most decision tools compete on a *better answer*, a *score*, a *confidence*.
 Argus does the opposite, and the opposite is enforced **structurally**, not
 promised in prose:
 
-- **There is no verdict tool.** The model cannot grade your decision because no
-  `argus_verdict` / `argus_score` tool exists to call. `grep dist/` and see.
-- **You can't record a result without a saved prediction.** `argus_resolve`
-  hard-errors without a prior `argus_predict` — "no judgment without a falsifiable prediction" is a
-  precondition, not a suggestion.
+- **There is no verdict or score tool.** The model cannot grade the person
+  because no `argus_verdict` / `argus_score` tool exists to call.
+- **A model draft is not a user judgment.** `argus_record` requires explicit
+  human authorization before a proposal becomes canonical, and records the
+  proposal/adoption lineage when the wording began with AI.
+- **A preserved moment creates no fake reminder.** Record-only entries have no
+  return contract or due projection.
 - **State is the ledger, not a flag.** A decision's status is the fold of an
   append-only event log, so it can't be faked by calling tools out of order.
 
@@ -175,28 +179,28 @@ That's the whole spine. Everything below is detail on top of these three steps.
 
 ## The everyday loop
 
-Argus now exposes six tools named for the job they do. You do not initialize
+Argus now exposes seven tools named for the job they do. You do not initialize
 it first, choose a ritual, or learn its internal state machine. The first useful
 call creates the local record automatically.
 
-For most decisions the loop is simply:
+For a new foundation record the loop is simply:
 
 1. **`argus_capture`** — capture a decision's premises and open questions, in your own words.
-2. **`argus_predict`** — make a falsifiable prediction and the date reality can answer it.
+2. **`argus_record`** — preserve the user-authorized statement, source, return condition, and later append-only answers.
 3. **`argus_check_in`** — see only what needs attention now.
-4. **`argus_resolve`** — record what actually happened, without a score or verdict.
 
-`argus_patterns` reads what is already on record — past decisions and how often
-your predictions held. `argus_settings` handles the few preferences and
-account-sync controls a user may need.
+`argus_predict` and `argus_resolve` remain compatible prediction-focused doors.
+`argus_patterns` reads the neutral chronology and current inventory; it does not
+turn outcomes into a score. `argus_settings` handles preferences and sync.
 
 | Tool | What it does |
 |------|--------------|
 | `argus_capture` | Captures one decision's premises and open questions in the user's own words, without deciding for you. Its actions add assumptions and open questions, record your answer, update an external fact, change an untested prediction, or close a decision that no longer needs an outcome. |
+| `argus_record` | Seals, revises, corrects, observes, defers, answers, closes, or reads one append-only semantic record. Supports reality-answerable claims, commitments, chosen standards, and record-only moments; explicit human authorization prevents silent AI promotion. |
 | `argus_predict` | Makes a falsifiable prediction (`predicate` + `check_by`) in the user's words. An Argus-drafted line is marked honestly and shown as a one-tap draft to keep, reword, or skip. |
 | `argus_check_in` | Shows only predictions past their check date, external facts due for an update, and open questions due for reconsideration. If nothing needs attention, it stops. |
 | `argus_resolve` | Records what actually happened and issues the Judgment Receipt. Reality supplies the outcome; Argus does not grade it. |
-| `argus_patterns` | Reads active decisions, all records, one Judgment Receipt, one decision's context, or the accumulated frequency of outcomes. Read-only. |
+| `argus_patterns` | Reads active decisions, all records, one Judgment Receipt, or one decision's context as a neutral chronology. Read-only; no outcome score or frequency projection. |
 | `argus_settings` | Reads or updates language, quiet reminders, opt-in premise sync, and explicit account sync. Initialization is automatic. |
 
 ## Living premises

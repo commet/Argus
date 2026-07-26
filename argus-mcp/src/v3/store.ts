@@ -90,7 +90,19 @@ function durableAppend(filePath: string, events: readonly SemanticEvent[]): void
 }
 
 function stableIntent(event: SemanticEvent): string {
-  const { event_id: _eventId, time, ...rest } = event;
+  const { event_id: _eventId, time, ...rawRest } = event;
+  // kind_evidence.recorded_at is recorder metadata generated alongside the
+  // top-level event time. It is not authorial intent and may differ on an exact
+  // retry, so compare its substantive derivation fields only.
+  const rest = event.event === 'judgment_sealed' && event.kind_evidence
+    ? {
+        ...rawRest,
+        kind_evidence: {
+          ...event.kind_evidence,
+          recorded_at: undefined,
+        },
+      }
+    : rawRest;
   return JSON.stringify({
     ...rest,
     time: {

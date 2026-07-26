@@ -15,5 +15,8 @@ export default defineConfig({
     // machines can exceed Vitest's 5s/30s defaults without being hung.
     testTimeout: 20_000,
     hookTimeout: 120_000,
+    // Keep full-suite runs deterministic on Windows, where the protocol and
+    // durability suites can otherwise exhaust worker-process resources.
+    maxWorkers: 2,
   },
 });

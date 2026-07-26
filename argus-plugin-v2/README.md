@@ -6,9 +6,9 @@ Argus is a decision loop for Claude Code.
 
 It helps you:
 
-1. make a decision,
-2. save what would prove it right or wrong later,
-3. come back later and compare it with reality.
+1. sharpen what a decision rests on,
+2. confirm the sentence you want to preserve and what should reopen it,
+3. come back to the original and append your answer.
 
 ```text
 /plugin marketplace add commet/Argus
@@ -17,9 +17,10 @@ It helps you:
 /argus:review "Should we ...?"
 ```
 
-After a decision, Argus may ask whether to save a check for later. Later, it
-asks what actually happened. You answer: predicted, missed, partial, or later.
-Argus does not judge the outcome for you.
+After a decision, Argus lets you keep a claim reality can answer, a commitment,
+a chosen standard, or simply the moment as written. A return uses the event or
+fallback date you chose, shows the original first, and records your answer
+without a score or win rate.
 
 What remains is a Judgment Receipt — your prediction and reality side by side,
 with no grade:
@@ -76,8 +77,8 @@ Installing the plugin is the whole setup — there is no separate init step:
 
 - **Decision tools (MCP), wired automatically** — a bundled [`.mcp.json`](./.mcp.json)
   registers the `argus-decision-mcp` stdio server at an **exact pinned version**,
-  so the decision tools (capture, predict, check-in, resolve, patterns, settings)
-  are available to the model immediately. The pin is deliberate: `npx` reuses a
+  so the decision tools (capture, record, predict, check-in, resolve, patterns,
+  settings) are available to the model immediately. The pin is deliberate: `npx` reuses a
   cached install whenever the spec is a range, so a `@^1`-style wire can sit
   frozen on an old build indefinitely. `argus_check_in` reports the version it is
   actually running (`data.server_version`) and `/argus:doctor` compares it to the
@@ -119,16 +120,16 @@ Plain language:
   pipeline (sharpen the question, reviewer agents on the real artifact,
   supported/challenged claims, optional stakeholder pass). Explicit opt-in
   only: it never runs on its own.
-- `check` is the return loop — what is due now, settle past predictions against
-  reality, seal a candidate for later (`/argus:check <id>`), re-check premises
-  (`/argus:check premises`).
-- `history` is the record — decision log, one decision's version tree, your
-  track record, recurring principles, and `/argus:history scan` to recover
+- `check` is the return loop — what is due now, show the original before asking,
+  append the user's answer, save a candidate for later (`/argus:check <id>`),
+  or re-check premises (`/argus:check premises`).
+- `history` is the record — decision log, one decision's version tree, a neutral
+  chronology, and `/argus:history scan` to recover
   decisions from past Claude Code chats.
 - `settings` is setup — language and boss persona, webapp pairing and sync.
 
 Two legacy aliases are kept: `/argus:sail` (= review) and `/argus:resolve`
-(= settle what is due). The old step commands (clarify, team, verify, boss,
+(= answer what is due). The old step commands (clarify, team, verify, boss,
 revise) are no longer separate commands — review runs them as internal steps.
 
 Argus may show a short local reminder when something is ready to check. It does
@@ -165,12 +166,12 @@ Nothing is sent to the webapp unless you run a sync or push yourself.
 | Command | Use it when |
 |---|---|
 | `/argus:review` | You want a decision or artifact pressure-tested by the full reviewer pipeline. |
-| `/argus:check` | A check is due, you want to settle against reality, seal a candidate (`<id>`), or re-check premises. |
-| `/argus:history` | You want the decision log, a version tree (`versions`), your track record, principles, or `scan`. |
+| `/argus:check` | A return is due, you want to append an answer, save a candidate (`<id>`), or re-check premises. |
+| `/argus:history` | You want the decision chronology, a version tree (`versions`), or `scan`. |
 | `/argus:settings` | You want to configure Argus or pair/sync the webapp (`connect <token>`, `sync`). |
 | `/argus:help` | You want the shortest command map. |
 
-Kept aliases: `/argus:sail` (= review) · `/argus:resolve` (= settle what is due).
+Kept aliases: `/argus:sail` (= review) · `/argus:resolve` (= answer what is due).
 Emergency hatch: `/argus:doctor` (read-only install/wiring self-diagnosis).
 
 ---

@@ -320,15 +320,17 @@ const settleSkillPath = path.join(root, "skills", "resolve", "SKILL.md");
 if (fs.existsSync(settleSkillPath)) {
   const settle = fs.readFileSync(settleSkillPath, "utf8");
   check(!/열린 질문이 하나 남았네요 — 잡아보려면: \/argus:sail/.test(settle), "settle must not auto-offer /argus:sail on a missed/partial outcome (reopen-on-settle over-fire, v2.6.0)");
-  check(/reality-only/i.test(settle), "settle must state settlement is reality-only — reopening is the user's explicit move (v2.6.0)");
+  check(/show the original before controls/i.test(settle), "resolve must show the original sentence before any settlement control");
+  check(/\bmoot\b/.test(settle) && /not_observable/.test(settle), "resolve must keep moot and not-observable as first-class exits");
   // Single-source ledger writes (plugin-core Option A): every ledger mutation goes
   // through decision-ledger.js so the JSON shape can't drift from what the readers
   // replay (the Honest-Structure invariant — a hand-written template is a wire the
   // compiler/CI can't see). resolve imports a due seed via `record` and pushes a
   // pending contract via `amend`; neither may hand-write harvest/seal/amend JSON.
-  check(/decision-ledger\.js" record\b/.test(settle), "resolve must import a read seed through `decision-ledger.js record`, not hand-written harvest+seal JSON");
+  check(/decision-ledger\.js" settle\b/.test(settle), "resolve must append through `decision-ledger.js settle`");
   check(/decision-ledger\.js" amend\b/.test(settle), "resolve must push a pending contract through `decision-ledger.js amend`, not hand-written amend JSON");
   check(!/\{"event":"(harvest|seal|amend)"/.test(settle), "resolve must not hand-write harvest/seal/amend ledger JSON — route through decision-ledger.js (single-source shape)");
+  check(/Do not show held\/missed totals/.test(settle), "resolve must forbid outcome aggregates and score proxies");
 }
 
 // clarify's BIND lean and preapprove's plan seal both birth a FRESH predicate —
@@ -336,8 +338,8 @@ if (fs.existsSync(settleSkillPath)) {
 const clarifyLeanPath = path.join(root, "skills", "review", "clarify.md");
 if (fs.existsSync(clarifyLeanPath)) {
   const clarify = fs.readFileSync(clarifyLeanPath, "utf8");
-  check(/decision-ledger\.js" record\b/.test(clarify), "clarify BIND lean must be written through `decision-ledger.js record`, not hand-written harvest+seal JSON");
-  check(/record[\s\S]{0,220}--author user/.test(clarify), "clarify's record call must carry --author user (the lean is the user's own bet, R57/R58 provenance)");
+  check(/keep it as an in-session draft, not a ledger row/i.test(clarify), "clarify must keep a passing lean ephemeral");
+  check(/explicit confirmation or direct record command/i.test(clarify), "clarify must forbid silent promotion without human authorization");
   check(!/\{"event":"(harvest|seal|amend)"/.test(clarify), "clarify must not hand-write harvest/seal ledger JSON — route through decision-ledger.js");
 }
 const preapproveLedgerPath = path.join(root, "skills", "preapprove", "SKILL.md");
