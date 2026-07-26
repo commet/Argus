@@ -171,7 +171,11 @@ async function fire(dir: string, todayOverride?: string): Promise<void> {
           : `Argus: a prediction passed its check-by. "${text}" (due ${first.date}). What did reality do? Dismiss if now is a bad time; no re-asking.`,
         {
           type: 'object',
-          required: ['outcome'],
+          // 필수 필드 없음 (2026-07-27) — 필수 enum은 호스트가 접어서 렌더하고
+          // (펼치기 키가 하나 더 붙는다) 빈 Accept를 폼 안에서 빨갛게 막는다.
+          // 여기선 특히 나쁘다: 이건 사용자가 부르지도 않았는데 뜨는 선제
+          // 픽커라, 마찰 탈출구가 살아 있어야 한다. 빈 Accept는 아래에서
+          // 거절과 같은 길로 흘러 아무것도 쓰지 않는다 — 정직한 공백.
           properties: {
             outcome: {
               type: 'string',
@@ -205,7 +209,8 @@ async function fire(dir: string, todayOverride?: string): Promise<void> {
             : 'What actually happened, in one line? Recorded verbatim, in your words.',
           {
             type: 'object',
-            required: ['what_happened'],
+            // 필수 필드 없음 — 같은 이유. 비우고 Accept하면 아래에서
+            // 기록하지 않는다(날조 금지). 폼이 막을 일이 아니다.
             properties: {
               what_happened: {
                 type: 'string', maxLength: 600,

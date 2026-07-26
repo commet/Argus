@@ -60,7 +60,9 @@ export const settle: ToolModule = {
         // a bilingual "그렇게 됐다 (held)" mishmash showed to BOTH a Korean and an
         // English user. Voice follows the language the decision was sealed in.
         const pickerLocale = resolveResponseLocale(dir, current.predicate ?? null);
-        const picked = await elicit(pickerLocale === 'ko' ? '현실이 어떻게 답했나요?' : 'What did reality do?', {
+        const picked = await elicit(pickerLocale === 'ko'
+          ? '현실이 어떻게 답했나요?\n\n결과를 고르고 Accept · 아직 모르겠으면 Decline.'
+          : 'What did reality do?\n\nPick the outcome and Accept · Decline if you are not sure yet.', {
           type: 'object',
           properties: {
             outcome: {
@@ -81,7 +83,19 @@ export const settle: ToolModule = {
               description: pickerLocale === 'ko' ? '무슨 일이 있었는지 당신의 말로 한 줄. (아직 불분명이면 비워도 됩니다.)' : "One line on what actually happened, in your words. (Leave blank if still unclear.)",
             },
           },
-          required: ['outcome'],
+          // 필수 필드 없음 (2026-07-27, 창업자 도그푸딩 스크린샷).
+          //
+          // R34가 봉인/전제 픽커에서 걷어낸 바로 그 패턴이 정산 픽커엔
+          // 그대로 남아 있었다. 필수 enum은 호스트에서 접힌 채 뜨고
+          // (`→ to expand`), 사용자가 what_happened만 적고 Accept하면 폼
+          // 안에서 빨간 "This field is required"로 막힌다 — 우리가 서버에서
+          // 없앤 막다름이 클라이언트로 자리만 옮긴 것이다. 하필 정산은
+          // 귀환 경로, 이 제품의 두 번째 인상 한복판이다.
+          //
+          // 비운 채 Accept해도 잃는 게 없다: 아래 `if (!outcome)`가 이미
+          // OUTCOME_REQUIRED로 정직하게 되묻고 모델이 대화로 물어본다.
+          // 폼 안에서 빨간 글씨로 막느니 한 번 더 묻는 쪽이 낫다.
+          // 스파인 무접촉 — 비었다고 결과를 추론하지 않는다.
         });
         const v = picked?.['outcome'];
         if (v === 'held' || v === 'avoided' || v === 'partial' || v === 'still_pending' || v === 'missed') outcome = v;
@@ -296,8 +310,12 @@ async function deferStillPending(args: {
   let dismissChosen = false;
   if (!newDate && canElicit()) {
     const picked = await elicit(
-      locale === 'ko' ? '아직 답이 안 나왔군요. 언제 다시 볼까요?' : "Not answered yet. When should I look again?",
-      { type: 'object', required: ['when'], properties: { when: {
+      locale === 'ko'
+        ? '아직 답이 안 나왔군요. 언제 다시 볼까요?\n\n고르고 Accept · 지금 정하기 싫으면 Decline.'
+        : "Not answered yet. When should I look again?\n\nPick one and Accept · Decline to leave it for now.",
+      // 필수 필드 없음 — 같은 이유. 빈 채 Accept는 Decline과 같은 길로
+      // 흐르고(newDate undefined → 아래 정직한 에러), 폼 안에서 막지 않는다.
+      { type: 'object', properties: { when: {
         type: 'string', enum: ['week', 'month', 'quarter', 'dismiss'],
         enumNames: locale === 'ko'
           ? ['약 1주 뒤', '약 1달 뒤', '약 3달 뒤', '이제 필요 없음 (접기)']
