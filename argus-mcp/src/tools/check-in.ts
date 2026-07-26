@@ -9,6 +9,7 @@ import { type NextAction } from '../lib/spine.js';
 import { tunedStandingSense } from '../lib/ambient-prefs.js';
 import { envelope } from '../lib/envelope.js';
 import { canElicit } from '../lib/elicit.js';
+import { packageMeta } from '../lib/package-meta.js';
 import { ENVELOPE_OUTPUT_SCHEMA, zArgusDir, zDate, type ToolModule } from './tool-types.js';
 import { handleToolException } from './errors.js';
 import { briefDivergence, readV2Brief } from '../v2/mirror.js';
@@ -30,6 +31,20 @@ const ANCHOR_MIRROR_MAX_AGE_DAYS = 3;
 const anchorMirrorShownFor = new Set<string>();
 export function resetCheckInSession(): void {
   anchorMirrorShownFor.clear();
+}
+
+/**
+ * The wire facts a session can see about ITSELF. `picker` answers "does this host
+ * show real pickers"; `server_version` answers "which build am I actually talking
+ * to" — the gap that let a founder dogfood 1.2.0 for twelve days while seven
+ * releases sat on npm (npx reuses a cached install whenever the spec is a RANGE,
+ * so `argus-decision-mcp@^1` never upgrades on its own). CI gates the repo and
+ * npm holds the latest; neither can see what a live session actually launched.
+ * Reported on every check_in so `/doctor` — and the user — can compare it to the
+ * version the plugin pins, instead of inferring staleness from missing behavior.
+ */
+function wireFacts(): { picker: 'one_tap' | 'text_fallback'; server_version: string } {
+  return { picker: canElicit() ? 'one_tap' : 'text_fallback', server_version: packageMeta().version };
 }
 
 const inputSchema = z.strictObject({
@@ -286,14 +301,14 @@ export const checkIn: ToolModule = {
             ok: true, tool: 'argus_check_in',
             surface: S.first_run,
             next_actions: ['argus_capture'],
-            data: { due: [], due_count: 0, due_premises: [], due_premise_count: 0, due_open_questions: [], due_open_question_count: 0, first_run: true, today, picker: canElicit() ? 'one_tap' : 'text_fallback' },
+            data: { due: [], due_count: 0, due_premises: [], due_premise_count: 0, due_open_questions: [], due_open_question_count: 0, first_run: true, today, ...wireFacts() },
           });
         }
         return envelope({
           ok: true, tool: 'argus_check_in',
           surface: mirrorLine + S.nothing_due + accountHint + upcomingLine + fleetLine + integrityLine,
           next_actions: ['stop'],
-          data: { due: [], due_count: 0, due_premises: [], due_premise_count: 0, due_open_questions: [], due_open_question_count: 0, picker: canElicit() ? 'one_tap' : 'text_fallback', ...(openWatch.length ? { open_predictions: openWatch, standing_sense: tunedStandingSense() } : {}), ...(upDays > 0 ? { upcoming } : {}), ...(a['fleet'] === true ? { fleet: fleetRows } : {}), ...watchData, today, integrity: ledger.integrity, ...(process.env['ARGUS_V2_DEBUG'] === '1' ? { capture_status: captureStatus, v2_brief: readV2Brief(dir, today), v2_divergence: briefDivergence([], readV2Brief(dir, today)) } : {}) },
+          data: { due: [], due_count: 0, due_premises: [], due_premise_count: 0, due_open_questions: [], due_open_question_count: 0, ...wireFacts(), ...(openWatch.length ? { open_predictions: openWatch, standing_sense: tunedStandingSense() } : {}), ...(upDays > 0 ? { upcoming } : {}), ...(a['fleet'] === true ? { fleet: fleetRows } : {}), ...watchData, today, integrity: ledger.integrity, ...(process.env['ARGUS_V2_DEBUG'] === '1' ? { capture_status: captureStatus, v2_brief: readV2Brief(dir, today), v2_divergence: briefDivergence([], readV2Brief(dir, today)) } : {}) },
         });
       }
 
@@ -333,7 +348,7 @@ export const checkIn: ToolModule = {
         surface: mirrorLine + parts.join(' ') + upcomingLine + fleetLine + integrityLine,
         next_actions: next,
         data: {
-          picker: canElicit() ? 'one_tap' : 'text_fallback',
+          ...wireFacts(),
           due: dueEnriched, due_count: dueAll.length,
           ...(dueTruncated > 0 ? { due_truncated: `${dueAll.length} due, showing ${DUE_TOP} oldest` } : {}),
           due_premises: duePrem, due_premise_count: premiseGroups.length,

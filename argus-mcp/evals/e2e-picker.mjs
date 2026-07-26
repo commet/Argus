@@ -60,9 +60,14 @@ const callData = async (name, args2) => {
   return sc;
 };
 
-// 2. check_in → picker 가시화
+// 2. check_in → picker 가시화 + 배선 버전 보고
 const ci = await callData('argus_check_in', {});
 check('check_in data.picker=one_tap (호스트가 픽커 지원)', ci?.data?.picker === 'one_tap', String(ci?.data?.picker));
+// 배선 진실성: 세션이 무슨 빌드를 물고 있는지 스스로 말해야 한다. 이게 없으면
+// "npx 캐시가 옛 설치본을 재사용해 12일간 1.2.0에 얼어 있던" 실패가 다시
+// 보이지 않는 채로 재발한다 (2026-07-26 근원 수리).
+const SELF_VERSION = JSON.parse(fs.readFileSync(new URL('../package.json', import.meta.url), 'utf8')).version;
+check('check_in data.server_version == package.json (배선이 자기 버전을 말한다)', ci?.data?.server_version === SELF_VERSION, `reported=${ci?.data?.server_version} expected=${SELF_VERSION}`);
 
 // 3. 예측 픽커: ai_surfaced → elicitation 실발사 → keep → sealed, owner=user
 elicitCount = 0; nextResp = { action: 'accept', content: {} };
@@ -93,6 +98,18 @@ check('skip → 기록 안 됨 (정직한 no)', prem3?.data?.recorded === false,
 elicitCount = 0; nextResp = { action: 'accept', content: { check_by: '2027-03-01' } };
 const seal2 = await callData('argus_predict', { id: 'e2e-date', predicate: 'weekly active users climb above 10k', check_by: '2026-10-01', predicate_owner: 'ai_surfaced' });
 check('날짜 조정 → 문장 유지 + 확인일 이동', seal2?.data?.status === 'sealed' && String(seal2?.data?.check_by) === '2027-03-01' && seal2?.data?.predicate === 'weekly active users climb above 10k', JSON.stringify({ cb: seal2?.data?.check_by, p: (seal2?.data?.predicate||'').slice(0,20) }));
+
+// 8. 정산 픽커 자립화 — 실물 왕복 (1.9.0의 수리를 실 서버로 고정).
+//    outcome만 받고 what_happened가 없으면 픽커 뒤에서 WHAT_HAPPENED_REQUIRED로
+//    막다르던 버그가 있었다. 단위테스트만 있으면 "픽커 뒤 막다름" 계열이 다시
+//    숨을 수 있으므로 실 elicitation 왕복으로 잡는다.
+await callData('argus_predict', { id: 'e2e-settle', predicate: 'the pinned wire reaches the next session', check_by: '2026-08-01', predicate_owner: 'user' });
+elicitCount = 0;
+nextResp = { action: 'accept', content: { outcome: 'held', what_happened: '다음 세션이 핀한 버전으로 붙었다' } };
+const settled = await callData('argus_settle', { id: 'e2e-settle', today_override: '2026-08-02' });
+check('정산 픽커 실발사', elicitCount === 1, `count=${elicitCount}`);
+check('정산 픽커 한 왕복으로 완료 (WHAT_HAPPENED_REQUIRED 막다름 없음)', settled?.ok === true && !settled?.error_code, JSON.stringify({ ok: settled?.ok, err: settled?.error_code }));
+check('정산 결과가 사용자 말 그대로 기록', settled?.ok === true && JSON.stringify(settled?.data ?? {}).includes('핀한 버전으로 붙었다'), String(settled?.error_code ?? 'recorded'));
 
 await client.close();
 const fails = results.filter((r) => !r.ok).length;

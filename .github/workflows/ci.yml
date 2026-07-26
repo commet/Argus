@@ -46,6 +46,28 @@ jobs:
           npm run build
           node evals/e2e-picker.mjs node "$PWD/dist/index.js"
 
+      # 사용자와 **같은 경로**로 한 번 더 (2026-07-26, 창업자 지시 "정확한 배선").
+      # 위 스텝은 레포의 dist/를 직접 띄운다 — 그건 개발자 경로다. 사용자는
+      # 패킹된 타르볼이 설치된 bin을 npx로 받는다. 그 경로에서만 드러나는 실패가
+      # 실재한다: package.json `files` 누락으로 런타임 파일이 안 실리거나, bin
+      # 진입점이 깨지거나, 배선 버전 보고가 설치본에서 어긋나는 것.
+      #
+      # 근원 사건: `argus-decision-mcp@^1`(범위 스펙)이 npx 캐시에 1.2.0을
+      # 앉힌 뒤 7개 릴리스가 npm에 올라가는 12일간 창업자 배선이 얼어 있었다.
+      # 레포 게이트는 전부 초록이었다 — 레포가 자기 자신과 일관됐기 때문이다.
+      # 이 스텝은 "설치된 것"을 검사 대상으로 삼아 그 종류의 침묵을 없앤다.
+      - name: E2E on the packed tarball (the path a user actually installs)
+        run: |
+          cd argus-mcp
+          TARBALL="$(npm pack --silent)"
+          INSTALL_DIR="$(mktemp -d)"
+          cd "$INSTALL_DIR"
+          npm init -y >/dev/null 2>&1
+          npm install --no-audit --no-fund "$GITHUB_WORKSPACE/argus-mcp/$TARBALL"
+          BIN="$INSTALL_DIR/node_modules/argus-decision-mcp/dist/index.js"
+          test -f "$BIN" || { echo "설치본에 진입점이 없다: $BIN (package.json files 누락?)"; exit 1; }
+          node "$GITHUB_WORKSPACE/argus-mcp/evals/e2e-picker.mjs" node "$BIN"
+
       - name: TypeScript
         run: npx tsc --noEmit
 
