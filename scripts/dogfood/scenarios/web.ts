@@ -10,7 +10,13 @@ import type { Scenario, World } from '../harness/world';
 const FUTURE = '2026-09-01T00:00:00.000Z';
 const PAST = '2026-07-01T00:00:00.000Z';
 
-function sealCmd(w: World, over: Partial<Extract<SemanticWebCommand, { kind: 'seal' }>> = {}): Extract<SemanticWebCommand, { kind: 'seal' }> {
+type ReturningSealCommand = Extract<SemanticWebCommand, { kind: 'seal' }> & {
+  return_contract_id: string;
+  review_at: string;
+  review_question: string;
+};
+
+function sealCmd(w: World, over: Partial<ReturningSealCommand> = {}): ReturningSealCommand {
   return {
     kind: 'seal',
     command_id: w.rng.id('cmd'),

@@ -8,6 +8,7 @@ import {
   type JudgmentProjection,
   type SemanticEvent,
 } from '@/lib/decision-kernel';
+import { deriveDecisionKind } from '@/lib/decision-kernel';
 
 /** The web account/project is one explicit semantic space, never a global blob. */
 export function semanticSpaceId(projectId: string): string {
@@ -21,8 +22,22 @@ const zIsoDateTime = z.string().datetime({ offset: true });
 export const SemanticWebCommandSchema = z.discriminatedUnion('kind', [
   z.strictObject({
     kind: z.literal('seal'), command_id: zCommandId, judgment_id: zId,
-    statement: z.string().min(1).max(4000), return_contract_id: zId,
-    review_at: zIsoDateTime, review_question: z.string().min(1).max(4000),
+    statement: z.string().min(1).max(4000),
+    decision_kind: z.enum(['prediction', 'commitment', 'declaration', 'witness']).optional(),
+    kind_evidence: z.strictObject({
+      source: z.enum(['wording_rule', 'elicitation_answer', 'user_override', 'legacy_default']),
+      rule: z.string().min(1).max(128),
+      question: z.string().max(2000).optional(),
+      answer: z.string().max(4000).optional(),
+      recorded_at: zIsoDateTime,
+    }).optional(),
+    origin_utterance: z.string().min(1).max(8000).optional(),
+    review_condition_status: z.enum(['answered', 'skipped', 'not_asked']).optional(),
+    review_condition: z.string().max(4000).optional(),
+    return_contract_id: zId.optional(),
+    review_at: zIsoDateTime.optional(), review_question: z.string().min(1).max(4000).optional(),
+    review_event: z.string().max(2000).optional(),
+    fallback_review_at: zIsoDateTime.optional(),
     resolution_criterion: z.string().min(1).max(2000).optional(),
     // Onramp provenance (e.g. document review): when the sealed judgment was
     // adopted from an AI proposal, the seal batch also records that proposal
@@ -31,11 +46,34 @@ export const SemanticWebCommandSchema = z.discriminatedUnion('kind', [
     proposal_id: zId.optional(),
     proposal_text: z.string().min(1).max(4000).optional(),
     source_ref: z.string().min(1).max(1024).optional(),
+    adoption_mode: z.enum(['basis', 'check', 'wording']).optional(),
+  }),
+  z.strictObject({
+    kind: z.literal('correct_kind'), command_id: zCommandId, judgment_id: zId,
+    from_kind: z.enum(['prediction', 'commitment', 'declaration', 'witness']),
+    to_kind: z.enum(['prediction', 'commitment', 'declaration', 'witness']),
+    return_contract_id: zId.optional(),
+    review_at: zIsoDateTime.optional(),
+    review_question: z.string().min(1).max(4000).optional(),
+    kind_evidence: z.strictObject({
+      source: z.literal('user_override'),
+      rule: z.string().min(1).max(128),
+      question: z.string().max(2000).optional(),
+      answer: z.string().max(4000).optional(),
+      recorded_at: zIsoDateTime,
+    }),
+  }),
+  z.strictObject({
+    kind: z.literal('revise_statement'), command_id: zCommandId, judgment_id: zId,
+    from_statement: z.string().min(1).max(4000),
+    to_statement: z.string().min(1).max(4000),
+    reason: z.string().max(2000).optional(),
   }),
   z.strictObject({
     kind: z.literal('observe'), command_id: zCommandId, observation_id: zId,
     text: z.string().min(1).max(4000), occurred_at: zIsoDateTime.optional(),
     source_ref: z.string().min(1).max(1024).optional(),
+    source_kind: z.enum(['user_report', 'system_receipt', 'ai_analysis']).optional(),
   }),
   z.strictObject({
     kind: z.literal('defer'), command_id: zCommandId, return_contract_id: zId,
@@ -51,6 +89,7 @@ export const SemanticWebCommandSchema = z.discriminatedUnion('kind', [
     kind: z.literal('observe_and_resolve'), command_id: zCommandId,
     observation_id: zId, observation_text: z.string().min(1).max(4000),
     observation_source_ref: z.string().min(1).max(1024).optional(),
+    observation_source_kind: z.enum(['user_report', 'system_receipt', 'ai_analysis']).optional(),
     resolution_id: zId, judgment_id: zId, return_contract_id: zId,
     resolution: ResolutionSchema,
   }),
@@ -180,15 +219,38 @@ export function buildSemanticWebCommand(input: SemanticWebCommandInput): Semanti
           },
         });
       }
-      events.push(
-        {
+      const derived = deriveDecisionKind({
+        statement: command.statement,
+        explicit_kind: command.decision_kind,
+        record_only: command.decision_kind === 'witness',
+        has_return_handle: Boolean(command.review_at || command.review_event),
+      });
+      const kindEvidence = command.kind_evidence ?? {
+        source: command.decision_kind ? 'elicitation_answer' as const : 'legacy_default' as const,
+        rule: derived.rule,
+        answer: command.statement,
+        recorded_at: recordedAt,
+      };
+      const reviewConditionStatus = command.review_condition_status
+        ?? (command.review_condition?.trim() ? 'answered' as const : 'not_asked' as const);
+      events.push({
           ...commandEventBase(projectId, command, recordedAt, '1-sealed', origin),
           event: 'judgment_sealed',
           judgment_id: command.judgment_id,
           statement: command.statement,
+          kind: derived.kind,
+          kind_evidence: kindEvidence,
+          origin_utterance: command.origin_utterance ?? command.statement,
+          review_condition_status: reviewConditionStatus,
+          ...(command.review_condition ? { review_condition: command.review_condition } : {}),
           ...(command.proposal_id ? { source_proposal_id: command.proposal_id } : {}),
-        },
-        {
+          ...(command.proposal_id ? { adoption_mode: command.adoption_mode ?? 'wording' as const } : {}),
+        });
+      if (derived.kind !== 'witness') {
+        if (!command.return_contract_id || !command.review_at || !command.review_question) {
+          return { ok: false, code: 'RETURN_CONTRACT_REQUIRED' };
+        }
+        events.push({
           ...commandEventBase(projectId, command, recordedAt, '2-return', origin),
           event: 'return_promised',
           return_contract_id: command.return_contract_id,
@@ -196,10 +258,49 @@ export function buildSemanticWebCommand(input: SemanticWebCommandInput): Semanti
           review_at: command.review_at,
           review_question: command.review_question,
           ...(command.resolution_criterion ? { resolution_criterion: command.resolution_criterion } : {}),
-        },
-      );
+          ...(command.review_event ? { review_event: command.review_event } : {}),
+          ...(command.fallback_review_at ? { fallback_review_at: command.fallback_review_at } : {}),
+        });
+      }
       return { ok: true, events };
     }
+    case 'correct_kind': {
+      if (command.from_kind === 'witness' && command.to_kind !== 'witness'
+        && (!command.return_contract_id || !command.review_at || !command.review_question)) {
+        return { ok: false, code: 'RETURN_CONTRACT_REQUIRED' };
+      }
+      const events: SemanticEvent[] = [{
+          ...commandEventBase(projectId, command, recordedAt, 'kind-corrected', origin),
+          event: 'judgment_kind_corrected',
+          judgment_id: command.judgment_id,
+          from_kind: command.from_kind,
+          to_kind: command.to_kind,
+          kind_evidence: command.kind_evidence,
+      }];
+      if (command.from_kind === 'witness' && command.to_kind !== 'witness') {
+        events.push({
+          ...commandEventBase(projectId, command, recordedAt, 'return-promised', origin),
+          event: 'return_promised',
+          return_contract_id: command.return_contract_id!,
+          judgment_id: command.judgment_id,
+          review_at: command.review_at!,
+          review_question: command.review_question!,
+        });
+      }
+      return { ok: true, events };
+    }
+    case 'revise_statement':
+      return {
+        ok: true,
+        events: [{
+          ...commandEventBase(projectId, command, recordedAt, 'statement-revised', origin),
+          event: 'judgment_statement_revised',
+          judgment_id: command.judgment_id,
+          from_statement: command.from_statement,
+          to_statement: command.to_statement,
+          ...(command.reason ? { reason: command.reason } : {}),
+        }],
+      };
     case 'observe':
       return {
         ok: true,
@@ -208,6 +309,7 @@ export function buildSemanticWebCommand(input: SemanticWebCommandInput): Semanti
           event: 'observation_recorded',
           observation_id: command.observation_id,
           text: command.text,
+          source_kind: command.source_kind ?? 'user_report',
           time: {
             occurred_at: command.occurred_at ?? recordedAt,
             recorded_at: recordedAt,
@@ -259,6 +361,7 @@ export function buildSemanticWebCommand(input: SemanticWebCommandInput): Semanti
             event: 'observation_recorded',
             observation_id: command.observation_id,
             text: command.observation_text,
+            source_kind: command.observation_source_kind ?? 'user_report',
             authority: {
               originated_by: { kind: 'human' as const, id: `account-project:${projectId}` },
               recorded_by: { kind: 'system' as const, id: origin?.recorder_id ?? WEB_RECORDER.id },

@@ -4,6 +4,23 @@ All notable changes to the Argus plugin. Versioning follows
 [semver](https://semver.org); users receive an update only when the
 `version` in `.claude-plugin/plugin.json` is bumped.
 
+## 2.19.0 — Judgment foundations — 2026-07-27
+
+- The bundled MCP pin moves with this release to
+  `argus-decision-mcp@1.13.0`.
+- New records preserve four user-facing intents without exposing internal kind
+  names: check against reality, check what I did, revisit my standard, or keep
+  only the record.
+- Sealing keeps the user's first utterance, derivation evidence, skipped review
+  conditions, event plus fallback return, and AI-adoption lineage.
+- Kind and wording corrections append to history; they never rewrite the first
+  record.
+- `/argus:resolve` shows the original first, asks one kind-appropriate question,
+  records the user's answer across independent axes, and never emits a score or
+  track-record aggregate.
+- Ambient detection can notice a named event once, but it cannot settle a record
+  or promote an AI draft without explicit user authorization.
+
 ## 2.18.0 — 2026-07-27
 
 - **Wire moves to `argus-decision-mcp@1.12.0`** — sharper prediction

@@ -686,19 +686,13 @@ async function handleSettle(chatId: number | string, userId: string, payload: st
     await bridgeWebContract(id, userId, { outcome: outcome as 'happened' | 'avoided' | 'partial' });
   }
 
-  const { count } = await admin
-    .from('telegram_decisions').select('id', { count: 'exact', head: true })
-    .eq('user_id', userId).eq('status', 'settled');
-  const settled = count ?? 0;
   const label = locale === 'ko'
     ? (outcome === 'happened' ? '잘 됨' : outcome === 'avoided' ? '안 됨' : '반반')
     : outcome;
   let msg = locale === 'ko' ? `기록했어요 — **${label}**.` : `Recorded — **${label}**.`;
-  if (settled >= 5) {
-    msg += locale === 'ko'
-      ? `\n정산 ${settled}건째 — 이제 당신의 판단 기록이 쌓이고 있어요.`
-      : `\n${settled} settled — your track record is building.`;
-  }
+  msg += locale === 'ko'
+    ? '\n처음 문장은 그대로 두고, 오늘의 답을 그 뒤에 덧붙였어요.'
+    : '\nThe original stays intact; today’s answer was appended after it.';
   await sendMessage(chatId, lightHtml(msg), recordButton(locale));
 }
 

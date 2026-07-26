@@ -38,6 +38,10 @@ export interface DetectOptions {
    *  plausibly resolves a KNOWN open prediction (the floor against firing on
    *  ordinary "it went fine" chatter). */
   openPredicates?: string[];
+  /** User-authored events that should bring an open record back before its
+   * fallback date. Matching is lexical and only nominates a candidate; the
+   * host still confirms the meaning and never settles automatically. */
+  returnEvents?: string[];
   /** Cap on returned signals (default 4) — a turn is not a form to harvest. */
   max?: number;
 }
@@ -141,6 +145,7 @@ function overlaps(a: string, b: string): boolean {
 export function detectSignals(text: string, opts: DetectOptions = {}): DetectedSignal[] {
   if (typeof text !== 'string' || text.trim().length < 6) return [];
   const openPredicates = (opts.openPredicates ?? []).filter((p) => typeof p === 'string' && p.trim());
+  const returnEvents = (opts.returnEvents ?? []).filter((p) => typeof p === 'string' && p.trim());
   const max = typeof opts.max === 'number' && opts.max > 0 ? opts.max : 4;
 
   const out: DetectedSignal[] = [];
@@ -174,6 +179,9 @@ export function detectSignals(text: string, opts: DetectOptions = {}): DetectedS
     const resolved = whichMatch('resolved', RESOLVED, c);
     if (resolved && openPredicates.some((p) => overlaps(c, p))) {
       push('outcome', c, [resolved, 'matches-open-prediction']);
+    }
+    if (returnEvents.some((event) => overlaps(c, event))) {
+      push('outcome', c, ['matches-return-event']);
     }
   }
 

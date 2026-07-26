@@ -21,12 +21,10 @@ import { semanticRecord } from './semantic-record.js';
 export const TOOLS: ToolModule[] = [openDecision, review, premises, seal, recheck, settle, checkIn, recall, sync, amend, dismiss, candidates, watch, init, config, semanticRecord];
 
 /** The small, purpose-led surface returned by tools/list. Legacy tools stay in
- * TOOL_MAP for cached clients and one-version compatibility, but new users and
- * models no longer have to choose among internal state-machine parts. */
-export const PUBLIC_TOOLS: ToolModule[] = [decide, publicSeal, publicCheckIn, publicSettle, history, settings];
-
-/** The semantic vertical slice is deliberately opt-in until the P5 value gate. */
-export const V3_PILOT_TOOLS: ToolModule[] = [semanticRecord];
+ * TOOL_MAP for cached clients and one-version compatibility. The foundation
+ * recorder is public after the founder-approved F0-F4 track: it is the only
+ * surface that can preserve all four sentence kinds and three settlement axes. */
+export const PUBLIC_TOOLS: ToolModule[] = [decide, semanticRecord, publicSeal, publicCheckIn, publicSettle, history, settings];
 
 export const TOOL_MAP: Map<string, ToolModule> = new Map([...TOOLS, ...PUBLIC_TOOLS].map((t) => [t.name, t]));
 
@@ -50,8 +48,7 @@ const PUBLIC_TOOL_ICONS: Record<string, Array<{ src: string; mimeType: string; s
  * translated but the tool SCHEMAS still leaked the old vocabulary.
  */
 export function servedPublicTools(): Record<string, unknown>[] {
-  const served = process.env['ARGUS_DKK_V6_PILOT'] === '1' ? [...PUBLIC_TOOLS, ...V3_PILOT_TOOLS] : PUBLIC_TOOLS;
-  return served.map((t) => {
+  return PUBLIC_TOOLS.map((t) => {
     const presentation = bilingualToolPresentation(t.name, t.annotations?.title, t.description);
     return {
       name: t.name,

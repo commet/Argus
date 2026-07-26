@@ -142,7 +142,7 @@ describe('sharedGrounds — grouping by normalized text', () => {
   });
 });
 
-describe('sharedGrounds — settled track-record (execution tier, facts only)', () => {
+describe('sharedGrounds — neutral revisit inventory', () => {
   type Outcome = 'happened' | 'avoided' | 'partial' | 'missed' | 'unclear';
   function settledFollowup(id: string, outcome: Outcome) {
     return {
@@ -158,7 +158,7 @@ describe('sharedGrounds — settled track-record (execution tier, facts only)', 
     };
   }
 
-  it('tallies held/broke/mixed across the ground’s member receipts', () => {
+  it('counts revisits without outcome buckets across member receipts', () => {
     const r1 = receipt('r1', 'a', [premise(GROUND)], {
       state: 'settled',
       falsifiable_followups: [settledFollowup('f1', 'happened'), settledFollowup('f2', 'missed')],
@@ -169,8 +169,9 @@ describe('sharedGrounds — settled track-record (execution tier, facts only)', 
     });
     const gs = sharedGrounds([r1, r2]);
     expect(gs).toHaveLength(1);
-    // happened+avoided→held, missed→broke, partial→mixed. Neutral tally, no grade.
-    expect(gs[0].record).toEqual({ settled: 4, held: 2, broke: 1, mixed: 1 });
+    expect(gs[0].record).toEqual({ revisited: 4 });
+    expect(gs[0].record).not.toHaveProperty('held');
+    expect(gs[0].record).not.toHaveProperty('broke');
   });
 
   it('excludes unclear and still-open bets — an honest gap, never a fabricated 0-of-0', () => {

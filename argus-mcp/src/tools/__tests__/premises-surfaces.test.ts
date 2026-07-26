@@ -132,8 +132,8 @@ describe('resources: argus://premises/*', () => {
   });
 });
 
-describe('settle premise attribution (P2 — where accumulation compounds)', () => {
-  it('records the user-attributed broken premise and surfaces it as frequency in track_record', async () => {
+describe('settle premise attribution stays on the individual receipt', () => {
+  it('records the user-attributed broken premise without turning it into a history aggregate', async () => {
     const dir = tmpArgusDir();
     await sealedWithMonitored(dir, 'd1');
     const r = await settle.handler({
@@ -149,13 +149,13 @@ describe('settle premise attribution (P2 — where accumulation compounds)', () 
 
     const tr = await recall.handler({ argus_dir: dir, view: 'track_record', today_override: '2026-09-03' });
     const td = body(tr)['data'] as Record<string, unknown>;
-    const counts = td['premise_attribution_counts'] as Record<string, unknown>;
-    expect(counts['with_named_broken_premise']).toBe(1);
-    expect(String(td['premise_attribution'])).toContain('you attributed 1');
-    expect(td['judgment_tier']).toBeNull(); // still no tier, no score
+    expect(td['revisit_count']).toBe(1);
+    expect(td).not.toHaveProperty('premise_attribution_counts');
+    expect(td).not.toHaveProperty('premise_attribution');
+    expect(td).not.toHaveProperty('judgment_tier');
   });
 
-  it("a 'missed' settle is counted in the frequency line AND in the did-not-hold attribution (dogfood F8)", async () => {
+  it("a 'missed' answer is counted as a revisit without a did-not-hold bucket", async () => {
     const dir = tmpArgusDir();
     await sealedWithMonitored(dir, 'd1');
     const r = await settle.handler({
@@ -167,14 +167,10 @@ describe('settle premise attribution (P2 — where accumulation compounds)', () 
 
     const tr = await recall.handler({ argus_dir: dir, view: 'track_record', today_override: '2026-09-03' });
     const td = body(tr)['data'] as Record<string, unknown>;
-    // The frequency line must account for the missed settle — "Of 1 settled: … 1 missed",
-    // never "0 held, 0 avoided, 0 partial" (a settle vanishing from its own count).
-    expect(String(td['frequency_statement'])).toMatch(/1 missed|빗나감 1/);
-    // "did not hold" now includes missed — the case a broken premise most explains.
-    const counts = td['premise_attribution_counts'] as Record<string, unknown>;
-    expect(counts['not_held']).toBe(1);
-    expect(counts['with_named_broken_premise']).toBe(1);
-    expect(td['judgment_tier']).toBeNull();
+    expect(td['revisit_count']).toBe(1);
+    expect(String(td['revisit_statement'])).toMatch(/1 record|1건/);
+    expect(td).not.toHaveProperty('premise_attribution_counts');
+    expect(td).not.toHaveProperty('judgment_tier');
   });
 
   it('an invalid broken_premise_ref fails loudly instead of mis-attributing', async () => {
@@ -254,7 +250,7 @@ describe('resources 표면 이름 누수 가드 (실행 경로)', () => {
 });
 
 describe('argus_recall view=reflection (내 맥락 다시 채우기 §8-B)', () => {
-  it('replays the user\'s own predicate + premises + outcome, with no tier/score', async () => {
+  it('replays the user\'s own predicate + premises + outcome, with no tier/score aggregate', async () => {
     const dir = tmpArgusDir();
     await seal.handler({ argus_dir: dir, id: 'mig', predicate: 'the cutover finishes under 5 minutes', check_by: '2026-08-01', predicate_owner: 'user', today_override: '2026-07-01' });
     await premises.handler({ argus_dir: dir, id: 'mig', op: 'add', today_override: '2026-07-01', premises: [{ text: 'the index rebuild fits in the lag budget', kind: 'premise', external: true, load_bearing: true, source: 'user_stated' }] });
@@ -262,8 +258,8 @@ describe('argus_recall view=reflection (내 맥락 다시 채우기 §8-B)', () 
 
     const d = body(await recall.handler({ argus_dir: dir, view: 'reflection', today_override: '2026-08-03' }))['data'] as Record<string, unknown>;
     // No verdict about the person — spine rule 2.
-    expect(d['judgment_tier']).toBeNull();
-    expect(d['judgment_score']).toBeNull();
+    expect(d).not.toHaveProperty('judgment_tier');
+    expect(d).not.toHaveProperty('judgment_score');
     // Your own reasoning is replayed: predicate, premise text, provenance, outcome.
     const rows = d['reflections'] as Array<Record<string, unknown>>;
     expect(rows).toHaveLength(1);
@@ -273,8 +269,8 @@ describe('argus_recall view=reflection (내 맥락 다시 채우기 §8-B)', () 
     expect(prem['text']).toBe('the index rebuild fits in the lag budget');
     expect(prem['source']).toBe('user_stated');    // your words, not the model's
     expect(prem['you_named_broken']).toBe(true);
-    // The only meaning-language is the shared frequency statement.
-    expect(String(d['frequency_statement'])).toMatch(/1 missed|빗나감 1/);
+    expect(d['revisit_count']).toBe(1);
+    expect(String(d['revisit_statement'])).toMatch(/1 record|1건/);
   });
 
   it('settled decisions sort before still-open ones (calibration first)', async () => {

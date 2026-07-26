@@ -135,10 +135,38 @@ const EVIDENCE_V: Record<string, string[]> = {
     'manual: 2026-07-21 창업자 실주행 — argus.voyage device 승인 후 push, admin의 plugin_bearings·plugin_decisions 0→1 육안 확인',
   ],
   V2: [
-    'src/lib/__tests__/judgment-graph.test.ts', // 정산 track record 축 — per-ground held/broke/mixed
+    'src/lib/__tests__/judgment-graph.test.ts', // 중립 귀환 이력 축 — per-ground revisited
     'src/lib/__tests__/judgment-portfolio-graph.test.ts', // 출처 축(정직 라벨) — decisionOrigin web/mcp_cli/unknown
     'src/lib/__tests__/judgment-portfolio-graph.test.ts', // 최근점검 축 — premise/decision lastActivity
     'src/components/projects/__tests__/voyage-sea.test.tsx', // VoyageSea 병합 — sealed MCP/review receipts join the same sea
+  ],
+};
+
+/** §9.10 판단 시스템 철학 기반 트랙 F의 phase별 exit 증거. */
+const EVIDENCE_F: Record<string, string[]> = {
+  F0: [
+    'src/lib/__tests__/philosophy-foundation-guards.test.ts',
+    'supabase/migrations/20260726120000_decision_foundation_contract.sql',
+    'data/contracts/judgment-foundation-conformance.json',
+  ],
+  F1: [
+    'argus-mcp/src/tools/__tests__/semantic-record.test.ts',
+    'src/components/workspace/progressive/SealMoment.tsx',
+    'argus-plugin-v2/scripts/decision-ledger.test.mjs',
+  ],
+  F2: [
+    'src/components/projects/FoundationSettlementModal.tsx',
+    'argus-mcp/src/tools/__tests__/semantic-record.test.ts',
+    'argus-plugin-v2/scripts/decision-ledger.test.mjs',
+  ],
+  F3: [
+    'argus-plugin-v2/scripts/sense-signal.test.mjs',
+    'argus-mcp/src/lib/detect-signals.ts',
+    'src/lib/decision-contract.ts',
+  ],
+  F4: [
+    'src/components/projects/FoundationSettlementModal.tsx',
+    'src/lib/__tests__/philosophy-foundation-guards.test.ts',
   ],
 };
 
@@ -185,6 +213,14 @@ function readBlueprintETrackSection(): string {
 function readBlueprintVTrackSection(): string {
   const md = readFileSync(join(process.cwd(), 'docs/ARGUS-BLUEPRINT.md'), 'utf8');
   const start = md.indexOf('### 9.9');
+  if (start === -1) return '';
+  const end = md.indexOf('\n---', start);
+  return md.slice(start, end === -1 ? undefined : end);
+}
+
+function readBlueprintFTrackSection(): string {
+  const md = readFileSync(join(process.cwd(), 'docs/ARGUS-BLUEPRINT.md'), 'utf8');
+  const start = md.indexOf('### 9.10');
   if (start === -1) return '';
   const end = md.indexOf('\n---', start);
   return md.slice(start, end === -1 ? undefined : end);
@@ -353,6 +389,34 @@ describe('BLUEPRINT §9.9 V-트랙 exit 체크 증거 계약 (같은 규약)', (
           expect(entry.length, `${phase}의 manual 증거는 무엇을/누가 확인했는지 적어야 함`).toBeGreaterThan(20);
           continue;
         }
+        expect(existsSync(join(process.cwd(), entry)), `${phase}의 증거 파일이 없음: ${entry}`).toBe(true);
+      }
+    }
+  });
+});
+
+describe('BLUEPRINT §9.10 F-트랙 exit 체크 증거 계약 (같은 규약)', () => {
+  const section = readBlueprintFTrackSection();
+
+  it('§9.10 F 트랙과 완료된 F0~F4 exit를 찾는다', () => {
+    expect(section).toContain('병렬 기반 트랙 F');
+    for (const phase of Object.keys(EVIDENCE_F)) expect(section).toContain(`**${phase} exit:**`);
+  });
+
+  it.each(Object.keys(EVIDENCE_F))('%s: 체크된 exit 수 == 등록된 증거 수', (phase) => {
+    const start = section.indexOf(`**${phase} exit:**`);
+    const next = section.indexOf('\n\n**F', start + 1);
+    const body = section.slice(start, next === -1 ? undefined : next);
+    const checked = (body.match(/\[x\]/g) || []).length;
+    expect(
+      EVIDENCE_F[phase].length,
+      `${phase}의 [x]는 ${checked}개인데 EVIDENCE_F에는 ${EVIDENCE_F[phase].length}개 — 체크(또는 취소)와 같은 커밋에서 맵을 갱신할 것`,
+    ).toBe(checked);
+  });
+
+  it('F0~F4 증거 경로가 전부 리포에 실존한다', () => {
+    for (const [phase, entries] of Object.entries(EVIDENCE_F)) {
+      for (const entry of entries) {
         expect(existsSync(join(process.cwd(), entry)), `${phase}의 증거 파일이 없음: ${entry}`).toBe(true);
       }
     }

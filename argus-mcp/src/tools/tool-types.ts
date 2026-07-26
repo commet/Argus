@@ -213,6 +213,8 @@ export function toolJsonSchema(schema: ToolInputSchema): Record<string, unknown>
         const ko = KO_FIELD_DESCRIPTIONS[key];
         if (ko) {
           const existing = typeof field['description'] === 'string' ? field['description'].trim() : '';
+          const [existingKo = '', existingEn = ''] = existing.split('\n\n');
+          const alreadyBilingual = /[가-힣]/.test(existingKo) && /[A-Za-z]{3}/.test(existingEn);
           const en = EN_FIELD_DESCRIPTIONS[key] ?? existing;
           const base = en ? `${ko}\n\n${en}` : ko;
           // A richer Zod .describe() (e.g. the argus_patterns `view` enum-value
@@ -221,9 +223,11 @@ export function toolJsonSchema(schema: ToolInputSchema): Record<string, unknown>
           // describe that references an internal tool name (argus_*): the
           // bilingual map masks those on purpose, and re-surfacing one leaks an
           // internal name into tools/list (public-surface-names guard).
-          field['description'] = existing.length > base.length && !base.includes(existing) && !/argus_/.test(existing)
-            ? `${base}\n\n${existing}`
-            : base;
+          field['description'] = alreadyBilingual
+            ? existing
+            : existing.length > base.length && !base.includes(existing) && !/argus_/.test(existing)
+              ? `${base}\n\n${existing}`
+              : base;
         }
         visit(field);
       }

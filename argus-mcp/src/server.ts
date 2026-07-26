@@ -104,11 +104,7 @@ export async function createServer(): Promise<Server> {
   server.setRequestHandler(CallToolRequestSchema, async (request): Promise<any> => {
     const { name, arguments: args } = request.params;
     const tool = TOOL_MAP.get(name);
-    // The v6 semantic recorder is a P4 pilot. Keeping it out of discovery is
-    // not enough: a cached or hand-written client must not be able to invoke it
-    // until the operator explicitly opts in.
-    const pilotDisabled = name === 'argus_record' && process.env['ARGUS_DKK_V6_PILOT'] !== '1';
-    if (!tool || pilotDisabled) {
+    if (!tool) {
       return {
         content: [{ type: 'text' as const, text: JSON.stringify({ ok: false, error_code: 'UNKNOWN_TOOL', message: `Unknown tool: ${name}` }) }],
         isError: true,

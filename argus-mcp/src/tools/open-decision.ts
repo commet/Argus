@@ -32,7 +32,7 @@ const inputSchema = z.strictObject({
   // which reaches the Judgment Receipt.
   crux_question: z.string().max(400).describe('The ONE neutral load-bearing question, phrased as a question. Never a fork, never a lean.').optional(),
   load_bearing_assumption: z.string().max(400).describe('The single assumption the decision rests on (neutral).').optional(),
-  related_to: z.array(zId).max(20).describe('Ids of past decisions the user considers similar — surfaces a frequency-only track record, never a verdict.').optional(),
+  related_to: z.array(zId).max(20).describe('Ids of past decisions the user considers similar. They are references, never an outcome aggregate or verdict.').optional(),
   today_override: zDate.optional(),
 });
 

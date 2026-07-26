@@ -91,12 +91,12 @@ function stateFile(sessionId) {
 // 빈 파일/손상 = 보수적 소진, {diag:n} 숫자 = n개의 '지금' 타임스탬프로 이주.
 function exhaustedState(caps) {
   const now = Date.now();
-  return { diagTimes: Array.from({ length: caps.perWindow }, () => now), out: OUTCOME_CAP, total: caps.sessionMax };
+  return { diagTimes: Array.from({ length: caps.perWindow }, () => now), out: OUTCOME_CAP, total: caps.sessionMax, eventOffers: [] };
 }
 function readState(sessionId, caps) {
   let raw;
   try { raw = fs.readFileSync(stateFile(sessionId), 'utf8'); }
-  catch { return { diagTimes: [], out: 0, total: 0 }; } // 파일 없음 = 새 세션
+  catch { return { diagTimes: [], out: 0, total: 0, eventOffers: [] }; } // 파일 없음 = 새 세션
   if (!raw.trim()) return exhaustedState(caps); // 구판 마커 = 소진
   try {
     const s = JSON.parse(raw);
@@ -105,11 +105,12 @@ function readState(sessionId, caps) {
         diagTimes: s.diagTimes.filter((t) => typeof t === 'number'),
         out: typeof s.out === 'number' ? s.out : 0,
         total: typeof s.total === 'number' ? s.total : s.diagTimes.length,
+        eventOffers: Array.isArray(s.eventOffers) ? s.eventOffers.filter((id) => typeof id === 'string') : [],
       };
     }
     if (typeof s.diag === 'number') { // 구판 숫자 카운트 → 보수적 이주
       const now = Date.now();
-      return { diagTimes: Array.from({ length: Math.min(s.diag, caps.perWindow) }, () => now), out: typeof s.out === 'number' ? s.out : 0, total: s.diag };
+      return { diagTimes: Array.from({ length: Math.min(s.diag, caps.perWindow) }, () => now), out: typeof s.out === 'number' ? s.out : 0, total: s.diag, eventOffers: [] };
     }
     return exhaustedState(caps);
   } catch { return exhaustedState(caps); } // 손상 = 보수적 소진
@@ -148,6 +149,34 @@ function openPredicates(cwd) {
   return out;
 }
 
+function openReturnEvents(cwd) {
+  let raw;
+  try { raw = fs.readFileSync(path.join(cwd, '.argus', 'ledger', 'ledger.jsonl'), 'utf8'); }
+  catch { return []; }
+  const events = new Map();
+  const closed = new Set();
+  for (const line of raw.split('\n')) {
+    if (!line.trim()) continue;
+    let event;
+    try { event = JSON.parse(line); } catch { continue; }
+    if (!event || !event.id) continue;
+    if (event.event === 'seal' && typeof event.return_event === 'string' && event.return_event.trim()) {
+      events.set(event.id, event.return_event.trim());
+    } else if (event.event === 'settle' || event.event === 'dismiss') {
+      closed.add(event.id);
+    }
+  }
+  const out = [];
+  for (const [id, event] of events.entries()) if (!closed.has(id)) out.push({ id, text: event });
+  return out;
+}
+
+function eventOfferKey(id) {
+  let hash = 5381;
+  for (const ch of String(id)) hash = ((hash << 5) + hash) ^ ch.charCodeAt(0);
+  return (hash >>> 0).toString(36);
+}
+
 const SRC = '[Argus sense — a deterministic every-turn hook. The judgment below is YOURS: diagnose meaning, not keywords. Speak to the user in their language. Mirror, never verdict.]';
 // Honest-gap surface (LLM-glue invariant): a broken wire must not fail silent.
 // If the MCP tools are missing the model says so ONCE — the user can then fix
@@ -161,7 +190,7 @@ function predList(preds) {
 }
 
 /** 전체 진단 지시 — 3감각을 의미 기준으로 묻는다 (패턴이 아니라 판단). */
-function buildDiagnosis(preds, candidates) {
+function buildDiagnosis(preds, returnEvents, candidates) {
   const lines = [
     SRC,
     'Diagnose THIS turn — the user\'s message AND your own previous reply, both already in your context — with three questions:',
@@ -175,6 +204,13 @@ function buildDiagnosis(preds, candidates) {
     );
   } else {
     lines.push('2. OUTCOME: No predictions are open on record — skip this sense.');
+  }
+  if (returnEvents.length) {
+    lines.push(
+      'EVENT RETURN: The user asked to revisit a record if one of these events occurred:',
+      predList(returnEvents),
+      'If this turn says one occurred, offer the matching return once. This is a trigger candidate, not an automatic settlement.',
+    );
   }
   lines.push(
     '3. LOAD-BEARING ASSUMPTION (the core sense): What single premise must be true for the reasoning in this turn to hold — the one that flips the call if it breaks? A marked conditional ("as long as", "~니까") is the easy 10%; the valuable ones are UNSTATED. A decision counts even when the user hands it to you as work to execute ("here is the plan, start with X" is still a plan whose load-bearing premise you notice while doing the task) — a task wrapper does not cancel the call under it. The load-bearing premise is usually NOT the reason they said out loud (that stated reason is the surface) — it is the specific, often-unstated fact the decision REVERSES on if it turns out false ("drop the free tier because it is too generous" rests on the unstated bet that squeezed free users convert to paid, not that free drives signups). Name THAT specific mechanism in concrete terms, not a generic restatement of their rationale or a paraphrase of the clause they already spoke. If the decision is consequential you MAY name at most ONE, as a bare neutral question in their language, offered as your draft (source "ai_surfaced" via argus_capture) — never a directional statement, never a two-pole fork, never a disclaimed lean. Exactly ONE premise — the tells of stacking to avoid: an "and", a "so"/"therefore", or a second fact/date/number; split and keep the ONE the decision most rests on. Draft it only for the decision in the user\'s CURRENT message — never reach back to an earlier turn\'s decision the user has already moved past.',
@@ -196,6 +232,16 @@ function buildOutcomeNudge(preds) {
     'A settlement may have just surfaced. These predictions are open on record:',
     predList(preds),
     'If THIS turn reveals what reality did to one of them — even by an implicit or pronoun reference — record it with argus_resolve in the user\'s own words now; do not wait for the check-by date. Never infer an outcome the user did not state. If nothing here settles one, stay completely silent. Recording is neutral bookkeeping, never praise or a grade.',
+    MCP_GUARD,
+  ].join('\n');
+}
+
+function buildEventReturnNudge(events) {
+  return [
+    SRC,
+    'A user-defined return event appears to have occurred:',
+    predList(events),
+    'Offer to reopen the matching record once. Do not settle it automatically, infer an answer, or repeat the offer later in this session. If the wording only resembles the event but does not say it occurred, stay silent.',
     MCP_GUARD,
   ].join('\n');
 }
@@ -222,16 +268,38 @@ function main(input) {
   }
   const window = assistant ? assistant + '\n' + prompt : prompt;
 
-  const pre = prefilterTurn(window);
-  if (!pre.pass) return null; // 명백한 비후보 — 주입 없음 (비용 절약, 침묵)
-
   const state = readState(sessionId, caps);
+  const returnEvents = openReturnEvents(cwd)
+    .filter((item) => !state.eventOffers.includes(eventOfferKey(item.id)));
+  const matchedReturnEvents = returnEvents.filter((item) =>
+    detectSignals(window, { returnEvents: [item.text], max: 2 })
+      .some((candidate) => candidate.cues.includes('matches-return-event')));
+  const eventCandidates = detectSignals(window, {
+    returnEvents: matchedReturnEvents.map((item) => item.text),
+    max: 2,
+  });
+  const pre = prefilterTurn(window);
+  if (!pre.pass && eventCandidates.length === 0) return null; // 명백한 비후보 — 주입 없음
+
   const preds = openPredicates(cwd);
+
+  if (matchedReturnEvents.length) {
+    try {
+      writeState(sessionId, {
+        ...state,
+        eventOffers: [
+          ...state.eventOffers,
+          ...matchedReturnEvents.map((item) => eventOfferKey(item.id)),
+        ].slice(-64),
+      });
+    } catch { return null; }
+    return buildEventReturnNudge(matchedReturnEvents.map((item) => item.text));
+  }
 
   // 경로 1 — 전체 진단 (예측·정산·숨은 전제). 슬라이딩 윈도 안에서만.
   if (diagAllowed(state, caps)) {
     // 규칙 후보는 최저선으로 동봉 — 없어도 진단은 주입된다 (규칙은 감지기가 아니다).
-    const candidates = detectSignals(window, { openPredicates: preds, max: 2 });
+    const candidates = detectSignals(window, { openPredicates: preds, returnEvents: [], max: 2 });
     // Claim the slot BEFORE printing: a write failure means silence, not a repeat.
     const cutoff = Date.now() - DIAG_WINDOW_MS;
     try {
@@ -241,7 +309,7 @@ function main(input) {
         total: (state.total || 0) + 1,
       });
     } catch { return null; }
-    return buildDiagnosis(preds, candidates);
+    return buildDiagnosis(preds, [], candidates);
   }
 
   // 경로 2 — 정산-전용: 열린 예측이 있고 창에 종결 단서가 보일 때. 진단 캡과

@@ -61,13 +61,13 @@ const isIso = (s) => typeof s === 'string' && /^\d{4}-\d{2}-\d{2}T/.test(s);
   const p = freshProject();
   const r = run(p, ['record', '--session', 'helm/2026-07-16', '--quote', 'plan sentence',
     '--decision', 'ship the cutover', '--type', 'adopt', '--stakes', 'high',
-    '--predicate', 'cutover under 5 min', '--falsified-if', 'rollback fired']);
+    '--predicate', 'cutover under 5 min', '--kind', 'witness']);
   ok('record (derived id) exits 0', r.status === 0);
   const [h, s] = ledgerLines(p);
   ok('id derives as sha256(session|quote)', h.id === stableId('helm/2026-07-16', 'plan sentence') && s.id === h.id);
   ok('stakes passed through', h.stakes === 'high');
-  ok('omitted --check-by → seal has no check_by field', !('check_by' in s));
-  ok('omitted --author → seal has no author field (machine-surfaced)', !('author' in s));
+  ok('witness omits --check-by → seal has no check_by field', !('check_by' in s));
+  ok('every direct record is human-authored', s.author === 'user');
   rmSync(p, { recursive: true, force: true });
 }
 
@@ -87,7 +87,7 @@ const isIso = (s) => typeof s === 'string' && /^\d{4}-\d{2}-\d{2}T/.test(s);
   const p = freshProject();
   // a user-authored lean rope, exactly like clarify's BIND seal
   run(p, ['record', '--id', 'lean:s9', '--session', 's9', '--type', 'open',
-    '--author', 'user', '--predicate', 'we should ship B']);
+    '--author', 'user', '--predicate', 'we should ship B', '--check-by', '2027-01-01']);
   // held: no --changed, lean_before auto-fills from the sealed predicate
   const held = run(p, ['wake', 'lean:s9', '--lean-after', 'we should ship B']);
   ok('wake (held) exits 0', held.status === 0);
@@ -101,7 +101,7 @@ const isIso = (s) => typeof s === 'string' && /^\d{4}-\d{2}-\d{2}T/.test(s);
 }
 {
   const p = freshProject();
-  run(p, ['record', '--id', 'lean:s10', '--session', 's10', '--author', 'user', '--predicate', 'go with plan A']);
+  run(p, ['record', '--id', 'lean:s10', '--session', 's10', '--author', 'user', '--predicate', 'go with plan A', '--check-by', '2027-01-01']);
   const moved = run(p, ['wake', 'lean:s10', '--lean-after', 'actually plan C now', '--changed']);
   ok('wake (moved) exits 0', moved.status === 0);
   const w = ledgerLines(p).at(-1);
@@ -161,25 +161,35 @@ function itemsLines(cwd) {
   rmSync(p, { recursive: true, force: true });
 }
 
-// --- settle: canonical outcome vocabulary (O2 방1 finding ④) -------------------
-// The ledger is SHARED with argus-decision-mcp whose canon is held/avoided/
-// partial/missed. `happened` (this CLI's legacy spelling) stays accepted as
-// INPUT but new lines are written in canon; every event carries v+ts so the
-// MCP replay never mistakes a plugin line for corruption (findings ①⑤).
+// --- foundation return: independent axes, never a score ---------------------
 {
   const p = freshProject();
   run(p, ['record', '--predicate', 'a checkable sentence about reality', '--id', 's1', '--check-by', '2099-01-01']);
   const legacy = run(p, ['settle', 's1', '--outcome', 'happened']);
-  ok('settle accepts legacy "happened"', legacy.status === 0);
+  ok('new records reject the legacy outcome-only write', legacy.status !== 0);
+  const returned = run(p, [
+    'settle', 's1',
+    '--option', 'condition_met',
+    '--response', 'The condition was met',
+    '--reality', 'met',
+    '--question-validity', 'valid',
+    '--present-standard', 'same',
+  ]);
+  ok('foundation return exits 0', returned.status === 0);
   const settled = ledgerLines(p).find((e) => e.event === 'settle' && e.id === 's1');
-  ok('…but WRITES canonical "held"', settled?.outcome === 'held');
+  ok('return stores separate axes, not a legacy verdict', settled?.axes?.reality === 'met' && settled?.axes?.question === 'valid' && !('outcome' in settled));
+  ok('return stores the present standard separately', settled?.present_standard?.status === 'same');
   ok('settle line carries the v stamp (MCP versioned-skip, not dropped)', settled?.v === 1);
   ok('settle line carries ts (MCP settled_on source) alongside at', typeof settled?.ts === 'string' && typeof settled?.at === 'string');
 
   run(p, ['record', '--predicate', 'another checkable sentence here', '--id', 's2', '--check-by', '2099-01-01']);
-  ok('settle accepts canonical "missed"', run(p, ['settle', 's2', '--outcome', 'missed']).status === 0);
-  ok('missed is written as-is', ledgerLines(p).some((e) => e.event === 'settle' && e.id === 's2' && e.outcome === 'missed'));
   ok('settle rejects an unknown outcome', run(p, ['settle', 's2', '--outcome', 'sorta']).status !== 0);
+  ok('statement revision requires authorization', run(p, ['revise', '--id', 's2', '--statement', 'revised wording']).status !== 0);
+  ok('statement revision appends with authorization', run(p, ['revise', '--id', 's2', '--statement', 'revised wording', '--authorization-ref', 'turn:5']).status === 0);
+  ok('kind correction appends with authorization', run(p, ['correct-kind', '--id', 's2', '--kind', 'commitment', '--authorization-ref', 'turn:6']).status === 0);
+  const journal = run(p, ['journal']);
+  ok('journal shows the revised chronology', journal.status === 0 && journal.stdout.includes('revised wording'));
+  ok('journal never emits outcome aggregates', !/track record|held|missed|accuracy|score|luck/i.test(journal.stdout));
   rmSync(p, { recursive: true, force: true });
 }
 

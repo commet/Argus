@@ -56,25 +56,11 @@ export interface GroundDrift {
   ts?: string;
 }
 
-/**
- * The SETTLED track-record of the bets standing on this ground — the EXECUTION
- * tier (what already resolved), kept distinct from `live_bets`' STRUCTURAL tier
- * (what could still break). BLUEPRINT §9.9 V2 axis #1.
- *
- * SPINE: facts + counts ONLY. This is "of the decisions resting on this ground,
- * N settled — held/broke/mixed" — a neutral tally, NEVER a grade, tier, score,
- * or verdict about the user. The graph layer renders these as a bare "2✓ / 1✗"
- * string; it must never compute a quality judgment from them.
- */
+/** Neutral revisit inventory for records standing on this ground. Outcome
+ * buckets are intentionally absent: a held/broke tally becomes a proxy score
+ * even when it is introduced as "facts only". */
 export interface GroundRecord {
-  /** held + broke + mixed (settled bets on this ground; excludes open/unclear). */
-  settled: number;
-  /** outcome happened | avoided — the bet held. */
-  held: number;
-  /** outcome missed — the bet broke. */
-  broke: number;
-  /** outcome partial — mixed. */
-  mixed: number;
+  revisited: number;
 }
 
 export interface SharedGround {
@@ -193,11 +179,10 @@ export function sharedGrounds(
     }
     if (drift) g.drift = drift;
 
-    // Settled track-record (execution tier) — count settled outcomes of the bets
-    // on this ground's distinct member receipts. Facts only; map the settle
-    // vocabulary → held/broke/mixed. unclear/unsettled are excluded (honest gap).
+    // Neutral revisit count. Preserve individual answers on their own records,
+    // but never roll them up into held/broke/mixed buckets here.
     const recSeen = new Set<string>();
-    let held = 0, broke = 0, mixed = 0;
+    let revisited = 0;
     for (const m of g.members) {
       if (recSeen.has(m.receipt_id)) continue;
       recSeen.add(m.receipt_id);
@@ -205,12 +190,10 @@ export function sharedGrounds(
       if (!r) continue;
       for (const f of r.falsifiable_followups ?? []) {
         if (!f.settled_at || !f.outcome || f.outcome === 'unclear') continue;
-        if (f.outcome === 'happened' || f.outcome === 'avoided') held += 1;
-        else if (f.outcome === 'missed') broke += 1;
-        else if (f.outcome === 'partial') mixed += 1;
+        revisited += 1;
       }
     }
-    if (held + broke + mixed > 0) g.record = { settled: held + broke + mixed, held, broke, mixed };
+    if (revisited > 0) g.record = { revisited };
 
     // RECENCY (axis #3): latest touch on this ground — most recent member
     // re-check ts, else a member's add-time. Pure string max (ISO sorts lexically).

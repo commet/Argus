@@ -6,6 +6,21 @@
 > The `1.3.0` / `1.2.1` entries at the bottom are pre-rename `argus-mcp` history,
 > kept for reference — all of that work shipped inside the new-name 1.0.0.
 
+## 1.13.0 — Judgment foundations, without a human score
+
+- Added the public `argus_record` semantic writer for four answerable record
+  shapes: a claim reality can answer, a commitment, a chosen standard, or a
+  moment preserved without a future return.
+- A model proposal can no longer become the user's judgment silently. Human
+  authorization and AI-adoption lineage are explicit ledger facts.
+- Preserved the first utterance, kind derivation evidence, review-condition
+  status, observation source, event trigger plus fallback date, and append-only
+  statement/kind corrections.
+- Return answers now keep reality, commitment, and question validity separate.
+  Event detection may invite one return, but never writes the answer.
+- Removed result aggregates from recall and continuity projections. Legacy
+  fields remain readable; Argus stores and shows no score for the person.
+
 ## 1.12.0 — Content sharpening + the logbook
 
 Validated by a 34-scenario real-server content battery, a revived 75-day

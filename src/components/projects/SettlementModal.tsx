@@ -56,6 +56,7 @@ import { applySettlementReceipt } from '@/lib/settlement-receipt';
 import { JudgmentReceipt } from './JudgmentReceipt';
 import { JudgmentFrame } from './JudgmentFrame';
 import { RetroBadge } from './RetroBadge';
+import { FoundationSettlementModal } from './FoundationSettlementModal';
 
 const SOURCE_ICON: Record<PredicateSource, typeof Target> = {
   governing_idea: Target,
@@ -70,32 +71,44 @@ const EXTEND_OPTIONS: { value: CheckInInterval; ko: string; en: string }[] = [
   { value: '1m', ko: '1달 뒤', en: 'in 1 month' },
 ];
 
-export function SettlementModal({
+export interface SettlementModalProps {
+  project: Project;
+  onClose: () => void;
+  remainingDue?: number;
+  draftVerdicts?: Record<string, 'happened' | 'avoided' | 'partial'>;
+  onRealSeal?: () => void;
+}
+
+export function SettlementModal(props: SettlementModalProps) {
+  // Every new return uses the foundation protocol. Legacy contracts stay
+  // readable, but coming back to one appends a type-appropriate answer instead
+  // of writing another verdict/score-shaped field.
+  if (props.project.decision_contract) {
+    return <FoundationSettlementModal project={props.project} onClose={props.onClose} />;
+  }
+  return <LegacySettlementModal {...props} />;
+}
+
+function LegacySettlementModal({
   project,
   onClose,
   remainingDue,
   draftVerdicts,
   onRealSeal,
-}: {
-  project: Project;
-  onClose: () => void;
+}: SettlementModalProps) {
   /** Remaining due count from the parent's useDueCount (the ONE number the
    *  strip already shows) — passed down so the modal never grows its own
    *  drifting due arithmetic. Absent → the new-decision door shows instead. */
-  remainingDue?: number;
   /** NON-BINDING pre-highlights from settle-align (베팅③ 회고 봉인 step 2).
    *  Maps predicate id → a drafted verdict. A matching verdict button gets a
    *  dashed "초안" ring, but is NEVER selected — the user still taps to commit
    *  (verdict_via:'ai_draft' in spirit; C5 — no AI verdict as the conclusion).
    *  Absent on the normal /project settle path — the ring simply never renders. */
-  draftVerdicts?: Record<string, 'happened' | 'avoided' | 'partial'>;
   /** [C3] 실전 온램프 (베팅③ 회고 봉인 완료 화면). Present ONLY on the retro
    *  path (RetroSeal). When a retro loop closes, the done screen offers a single
    *  TEXT LINK — "이제 진짜 …" — that starts a real (blind) decision instead of
    *  the generic "새 결정 적기". A text link only: no button promotion, no auto-
    *  navigation (§C3 절제). Absent → the normal onramp shows unchanged. */
-  onRealSeal?: () => void;
-}) {
   const locale = useLocale();
   const ko = locale === 'ko';
   const L = (k: string, e: string) => (ko ? k : e);
