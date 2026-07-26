@@ -734,6 +734,13 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/decision-ledger.js" wake "lean:<session-id>"
      poles** ("the only reversible one", "the real answer is a third thing"). A
      genuinely material third option becomes a peer pole at parity, never the
      recommendation.
+  5. **The satellite fields must be pole-neutral.** On a `fork`, `fog_or_reef`
+     attaches to the CRUX (the fact that decides between the poles), never to
+     only one pole's premise; `contract_seed` models the crux or is `null`,
+     never a scenario of just one pole; `next_helm` is an action that serves
+     BOTH poles (a check, a probe, a source pull), never a first step down one
+     of them. A neutral prose read with tilted satellites is still a verdict —
+     the 2026-07-26 live eval's modal fork flag was exactly this leak.
   The crux MUST still be surfaced — flattening tilt never means dropping the
   fork (this guards must-fire value).
 - **Refuse identity/moral verdicts.** Do not render — or seal as a contract — a
