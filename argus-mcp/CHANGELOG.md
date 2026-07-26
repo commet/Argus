@@ -6,6 +6,26 @@
 > The `1.3.0` / `1.2.1` entries at the bottom are pre-rename `argus-mcp` history,
 > kept for reference — all of that work shipped inside the new-name 1.0.0.
 
+## 1.11.0 — The picker stops blocking the door
+
+Founder dogfooding (2026-07-27) hit the settlement picker dead-end live: pick an
+outcome, press Accept, and the form blocks with a red "This field is required".
+Root cause: `required` in the elicitation schemas — hosts render a required enum
+collapsed (one extra key to expand) and hard-block an empty Accept inside the
+form. The very dead-end R34 removed server-side had moved into the client, on
+the return (settlement) path.
+
+- **No elicit schema declares `required` anymore** — settle outcome picker,
+  still_pending re-check-date picker, premises open-question resolve, and both
+  ambient asks. An empty Accept flows into the same honest path as Decline:
+  the server re-asks (OUTCOME_REQUIRED / RESOLVE_NEEDS_DECISION) or writes
+  nothing. Spine untouched — nothing is inferred from an empty answer.
+- **CI guard** (`picker-no-required-field.test.ts`): reintroducing `required:`
+  into any `elicit(...)` schema turns the build red, with a self-check fixture
+  proving the guard can see.
+- Picker prompts now state the two exits explicitly ("고르고 Accept · 아직
+  모르겠으면 Decline").
+
 ## 1.10.0 — The wire says which build it is (the twelve silent days)
 
 The deepest failure found so far was not in any prompt or picker — it was in one
