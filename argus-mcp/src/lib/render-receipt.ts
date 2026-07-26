@@ -139,7 +139,8 @@ export function renderSeal(opts: {
  * "on record since YYYY-MM-DD" line from the oldest ledger event.
  *
  * Spine (§4, pinned by spine-drift.test.ts): counts, dates and the user's own
- * outcome words ONLY — no accuracy %, no "1/3" ratio, no tier/score/streak.
+ * individual outcome words only — no aggregate outcome buckets, accuracy %,
+ * "1/3" ratio, tier, score, or streak.
  * The overdue vocabulary ("확인일 지남 · N일 경과") is terminal-allowed per
  * master §5-6 (developer surface); importing it into the webapp stays banned.
  */

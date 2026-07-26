@@ -39,18 +39,18 @@ function getFlowSteps(locale: Locale): FlowStep[] {
       { icon: Edit3, label: '적기', desc: '상황을 한 줄로 적으면 바로 질문 정리가 시작돼요.', tone: 'you' },
       { icon: MessageCircle, label: '명료화', desc: '질문 2~3개에 답하면 분석이 구체화됩니다. 언제든 건너뛸 수 있어요.', tone: 'you' },
       { icon: Search, label: '분석', desc: 'AI가 숨은 전제와 열린 질문을 찾아냅니다. 결론을 내려주는 게 아니라, 결정이 기대고 있는 것을 보여줘요.', tone: 'ai' },
-      { icon: Compass, label: '결정 요약', desc: '결론·근거·남은 확인거리가 한 화면으로 모입니다. 필요한 곳만 수정을 요청하세요.', tone: 'ai' },
-      { icon: Anchor, label: '확인 약속', desc: '내 예상을 한 줄 남기고 결과를 확인할 날짜를 정합니다. 둘 다 선택사항이에요.', tone: 'you' },
-      { icon: Check, label: '결과 확인', desc: '정한 날 돌아와 실제로 어떻게 됐는지 기록합니다. 이 기록이 다음 판단의 근거가 됩니다.', tone: 'done' },
+      { icon: Compass, label: '내 판단 확정', desc: '검토 결과를 바탕으로 마지막 문장을 직접 고치고 확정합니다. 이전 문장은 지워지지 않아요.', tone: 'you' },
+      { icon: Anchor, label: '다시 볼 조건', desc: '무엇을 언제 다시 볼지 날짜나 사건으로 정합니다. 기록만 남길 때는 돌아올 약속이 없어도 돼요.', tone: 'you' },
+      { icon: Check, label: '돌아와 답하기', desc: '그때 문장부터 본 뒤, 실제로 어땠는지와 지금도 같은 기준인지 따로 답합니다. 점수는 매기지 않아요.', tone: 'done' },
     ];
   }
   return [
     { icon: Edit3, label: 'Write', desc: 'Put the situation in one line and question clarification starts.', tone: 'you' },
     { icon: MessageCircle, label: 'Clarify', desc: 'Answer 2–3 questions to sharpen the analysis. Skip anytime.', tone: 'you' },
     { icon: Search, label: 'Analyze', desc: "The AI surfaces hidden premises and open questions — it shows what the decision rests on, it doesn't hand you a verdict.", tone: 'ai' },
-    { icon: Compass, label: 'Decision summary', desc: 'Conclusion, reasoning, and what remains to check — one page. Ask for changes only where needed.', tone: 'ai' },
-    { icon: Anchor, label: 'Check-in', desc: 'Leave a one-line expectation and choose when to check the result. Both are optional.', tone: 'you' },
-    { icon: Check, label: 'Outcome', desc: 'Come back on that date and record what actually happened. That record informs the next decision.', tone: 'done' },
+    { icon: Compass, label: 'Confirm my call', desc: 'Edit and confirm the final sentence yourself. Earlier wording stays in the record.', tone: 'you' },
+    { icon: Anchor, label: 'Set the return', desc: 'Choose the date or event that should reopen it. If you only want to preserve the moment, no return is needed.', tone: 'you' },
+    { icon: Check, label: 'Return and answer', desc: 'Read the original first, then answer what happened and whether you still hold the same standard. No score.', tone: 'done' },
   ];
 }
 
@@ -65,14 +65,14 @@ export default function GuidePage() {
     ? [
         '상황을 한 줄 적어요 → 진짜 질문과 숨은 가정이 드러납니다',
         'AI 의견을 보기 전에 내 예상을 한 줄 남겨요 → 선택사항이며, 나중에 실제 결과와 비교해요',
-        'AI 검토자가 숨은 전제와 열린 질문을 보여줘요 → 필요한 곳만 수정하고 결정 요약으로 정리해요',
-        '정한 날 돌아와 실제로 어떻게 됐는지 기록해요 → 다음 판단에 쓸 근거가 쌓입니다',
+        'AI 검토자가 숨은 전제와 열린 질문을 보여줘요 → 필요한 곳을 고치고 마지막 문장은 내가 확정해요',
+        '날짜나 사건이 오면 그때 문장부터 다시 봐요 → 현실과 지금의 기준을 따로 답하고, 점수는 매기지 않아요',
       ]
     : [
         'Write the situation in one line → the real question and hidden assumptions surface',
         'Leave your initial expectation before seeing the AI view → optional, and useful for later comparison',
-        'AI reviewers surface hidden premises and open questions → revise only what needs work, then review the decision summary',
-        'Come back on the date you set and record what happened → the evidence carries into your next decision',
+        'AI reviewers surface hidden premises and open questions → revise what needs work, then confirm the final sentence yourself',
+        'Return on the date or event you chose and read the original first → answer reality and your present standard separately, with no score',
       ];
 
   const moreTools = [
@@ -111,8 +111,8 @@ export default function GuidePage() {
         </h1>
         <p className="text-[14px] text-[var(--text-secondary)] mt-2 leading-relaxed max-w-2xl">
           {L(
-            '결정 하나를 적으면 질문 정리부터 검토까지 이어집니다. 분석은 결정 요약 한 화면으로 모이고, 확인 날짜를 정하면 그날 실제 결과를 기록할 수 있어요. 처음이라면 아래 빠른 시작만 봐도 충분해요.',
-            'Write down one decision and Argus takes it from question clarification through review. The analysis converges into one decision summary, and an optional check-in lets you record the actual outcome later. New here? The Quick Start below is all you need.',
+            '결정 하나를 적으면 질문 정리부터 검토까지 이어집니다. 마지막 판단은 직접 확정하고, 날짜나 사건이 오면 그때 문장부터 다시 본 뒤 지금의 답을 덧붙여요. 처음이라면 아래 빠른 시작만 봐도 충분해요.',
+            'Write down one decision and Argus takes it from clarification through review. You confirm the final call; when its date or event arrives, Argus shows the original first and appends your answer. New here? The Quick Start below is all you need.',
           )}
         </p>
       </div>
@@ -263,8 +263,8 @@ export default function GuidePage() {
                   a: '정한 날짜에 프로젝트 페이지에 오시면 제가 먼저 물어요. 텔레그램을 연결해 두셨다면 그날 메시지로도 가볍게 알려드려요. 원하면 캘린더 파일로 약속을 넣을 수 있어요.',
                 },
                 {
-                  q: '결정 요약에는 무엇이 들어가나요?',
-                  a: '현재 결론·이유·남은 확인거리·다음 할 일을 한 화면에 모아 보여줘요.',
+                  q: '판단 기록에는 무엇이 들어가나요?',
+                  a: '처음 적은 말, 내가 확정한 문장, 작성 주체와 경로·시각, 다시 볼 조건, 나중에 덧붙인 답이 남아요. 이전 문장은 지우지 않고 점수도 저장하지 않아요.',
                 },
                 // The one product-level faint-lean disclosure (spine rule 4,
                 // rounds 5–8): name the limit here, once — never as a
@@ -295,8 +295,8 @@ export default function GuidePage() {
                   a: "Visit your project page on the date you set and Argus asks first. If you've connected Telegram, a light message arrives that day too — no marketing emails, ever. You can add the appointment as a calendar file if you like.",
                 },
                 {
-                  q: 'What is in the decision summary?',
-                  a: 'One page with the current conclusion, reasoning, remaining checks, and next action.',
+                  q: 'What is in a judgment record?',
+                  a: 'Your first words, the sentence you confirmed, its author, path and time, the return condition, and later answers. Earlier wording stays intact, and no score is stored.',
                 },
                 {
                   q: "Doesn't the AI quietly lean one way?",

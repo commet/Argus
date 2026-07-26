@@ -272,15 +272,17 @@ describe('check_in and today override', () => {
   });
 });
 
-describe('track record reports frequency only, never a tier', () => {
-  it('never emits a judgment tier or score', async () => {
+describe('legacy track_record name projects a neutral revisit inventory', () => {
+  it('never emits outcome frequencies, a judgment tier, or a score', async () => {
     const dir = tmpArgusDir();
     await seal.handler({ argus_dir: dir, id: 't1', predicate: 'Something measurable happens', check_by: FUTURE, predicate_owner: 'user' });
     await settle.handler({ argus_dir: dir, id: 't1', outcome: 'held', outcome_source: 'user_stated', what_happened: 'it did' });
     const tr = body(await recall.handler({ argus_dir: dir, view: 'track_record' }));
     const data = tr['data'] as Record<string, unknown>;
-    expect(data['judgment_tier']).toBe(null);
-    expect(data['judgment_score']).toBe(null);
-    expect(data['frequency_statement']).toBeTruthy();
+    expect(data).not.toHaveProperty('judgment_tier');
+    expect(data).not.toHaveProperty('judgment_score');
+    expect(data).not.toHaveProperty('frequency_statement');
+    expect(data['revisit_count']).toBe(1);
+    expect(data['revisit_statement']).toBeTruthy();
   });
 });

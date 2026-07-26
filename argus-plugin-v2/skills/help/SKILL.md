@@ -29,7 +29,7 @@ Commands (5):
                    seal a candidate for later (/argus:check <id>) ·
                    re-check premises (/argus:check premises)
   /argus:history   decision log across sessions · one decision's version tree
-                   (/argus:history versions) · your track record · ratify a
+                   (/argus:history versions) · your record chronology · ratify a
                    recurring principle · scan past chats (/argus:history scan)
   /argus:settings  language & boss persona · webapp connect/push/pull/sync
   /argus:help      this screen
@@ -54,7 +54,7 @@ for the list, answer with the ONE command that fits, plus one sentence why:
 - a reminder fired / "how did that bet go?" / "what should I check now?" → `/argus:check`
 - wants to seal one candidate or seed for later → `/argus:check <id>`
 - "is that fact still true?" / premises may have shifted → `/argus:check premises`
-- asks "what have I decided here" / "my track record" → `/argus:history`
+- asks "what have I decided here" / "show my past records" → `/argus:history`
 - lost mid-decision / wants the version tree / resume → `/argus:history versions`
 - wants to keep a repeated lesson as their own rule → `/argus:history principles`
 - wants to recover decisions from past chats → `/argus:history scan`

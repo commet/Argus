@@ -14,6 +14,7 @@ const path = require("path");
 const os = require("os");
 const crypto = require("crypto");
 const { execFile } = require("child_process");
+const { DECISION_KINDS, deriveDecisionKind } = require("./lib/judgment-foundation");
 
 const args = process.argv.slice(2);
 const cmd = args[0];
@@ -248,6 +249,13 @@ function loadLedger() {
             falsified_if: event.falsified_if,
             check_by: event.check_by,
             author: event.author,
+            kind: event.kind || "prediction",
+            kind_evidence: event.kind_evidence,
+            origin_utterance: event.origin_utterance || event.predicate,
+            review_condition_status: event.review_condition_status || "not_asked",
+            review_condition: event.review_condition,
+            return_event: event.return_event,
+            adoption_lineage: event.adoption_lineage,
           });
         }
         break;
@@ -280,6 +288,42 @@ function loadLedger() {
           cur.settled_at = event.at;
           cur.settle_note = event.note;
           cur.basis = event.basis;
+          (cur.settlements ||= []).push({
+            option_id: event.option_id || event.outcome,
+            response_text: event.response_text || event.note || event.outcome,
+            recorded_at: event.at,
+            axes: event.axes,
+            present_standard: event.present_standard,
+            observation_source_kind: event.observation_source_kind || "user_report",
+          });
+        }
+        break;
+      case "kind_correction":
+        if (cur) {
+          (cur.kind_corrections ||= []).push({
+            from_kind: cur.kind || "prediction",
+            to_kind: event.kind,
+            reason: event.reason,
+            at: event.at,
+          });
+          cur.kind = event.kind;
+          if (event.kind === "witness") {
+            cur.check_by = undefined;
+            cur.return_event = undefined;
+          } else if (event.check_by) {
+            cur.check_by = event.check_by;
+          }
+        }
+        break;
+      case "statement_revision":
+        if (cur) {
+          (cur.statement_revisions ||= []).push({
+            from_statement: cur.current_statement || cur.predicate || cur.origin_utterance,
+            to_statement: event.statement,
+            reason: event.reason,
+            at: event.at,
+          });
+          cur.current_statement = event.statement;
         }
         break;
       case "wake":
@@ -323,6 +367,37 @@ function localToday(offsetDays = 0) {
 function addDaysISO(todayISO, days) {
   const parts = todayISO.split("-").map(Number);
   return new Date(Date.UTC(parts[0], parts[1] - 1, parts[2]) + days * 86400000).toISOString().slice(0, 10);
+}
+
+function foundationFields(statement, kindInfo) {
+  const status = flags["review-condition-status"]
+    ? String(flags["review-condition-status"])
+    : flags["review-condition"] ? "answered" : "not_asked";
+  if (!["answered", "skipped", "not_asked"].includes(status)) {
+    console.error("--review-condition-status must be answered|skipped|not_asked");
+    process.exit(1);
+  }
+  const event = {
+    kind: kindInfo.kind,
+    kind_evidence: {
+      source: flags.kind ? "elicitation_answer" : "wording_rule",
+      rule: kindInfo.rule,
+      answer: flags.kind ? String(flags.kind) : kindInfo.kind,
+      recorded_at: new Date().toISOString(),
+    },
+    origin_utterance: flags["origin-utterance"] ? String(flags["origin-utterance"]) : statement,
+    review_condition_status: status,
+  };
+  if (flags["review-condition"]) event.review_condition = String(flags["review-condition"]);
+  if (flags["return-event"] && kindInfo.kind !== "witness") event.return_event = String(flags["return-event"]);
+  if (flags["proposal-ref"]) {
+    event.adoption_lineage = [{
+      source_proposal_ref: String(flags["proposal-ref"]),
+      adopted_as: String(flags["adopted-as"] || "wording"),
+    }];
+  }
+  if (flags["authorization-ref"]) event.authorization_ref = String(flags["authorization-ref"]);
+  return event;
 }
 
 function stableId(sessionId, quote) {
@@ -758,6 +833,33 @@ function cmdList(status = flags.status || "candidate") {
   }
 }
 
+function cmdJournal() {
+  const records = [...loadLedger().values()]
+    .filter((item) => item.status !== "candidate" && item.status !== "dismissed")
+    .sort((a, b) => String(b.settled_at || b.sealed_at || "").localeCompare(String(a.settled_at || a.sealed_at || "")));
+  if (!records.length) {
+    console.log("No saved records yet.");
+    console.log("Use /argus:predict when a thought is worth returning to.");
+    return;
+  }
+  console.log(`Records: ${records.length}`);
+  for (const item of records) {
+    const statement = item.current_statement || item.predicate || item.origin_utterance || item.decision;
+    console.log("");
+    console.log(`${item.id} [${item.kind || "prediction"}] ${truncate(statement, 140)}`);
+    console.log(`  recorded: ${String(item.sealed_at || "").slice(0, 10) || "unknown"}`);
+    if (item.review_condition) console.log(`  return when: ${truncate(item.review_condition, 120)}`);
+    if (item.return_event) console.log(`  earlier event: ${truncate(item.return_event, 120)}`);
+    else if (item.check_by && item.kind !== "witness") console.log(`  fallback date: ${item.check_by}`);
+    for (const revision of item.statement_revisions || []) {
+      console.log(`  revised ${String(revision.at || "").slice(0, 10)}: ${truncate(revision.to_statement, 120)}`);
+    }
+    for (const settlement of item.settlements || []) {
+      console.log(`  returned ${String(settlement.recorded_at || "").slice(0, 10)}: ${truncate(settlement.response_text, 120)}`);
+    }
+  }
+}
+
 function printSealable() {
   const { candidates, seeds } = listSealable();
   if (!candidates.length && !seeds.length) {
@@ -799,8 +901,18 @@ async function cmdSeal() {
 
   const seed = findSeedById(target);
   if (seed) {
+    const statement = String(flags.predicate || seed.predicate);
     const checkBy = flags["check-by"] || seed.check_by;
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(String(checkBy || ""))) {
+    const kindInfo = deriveDecisionKind(statement, flags.kind, flags.kind === "witness", !!checkBy);
+    if (!flags.confirmed || !flags["authorization-ref"]) {
+      console.log("Draft only — nothing was recorded.");
+      console.log(`  statement: ${truncate(statement, 140)}`);
+      console.log(`  kind: ${kindInfo.kind}`);
+      if (kindInfo.kind !== "witness") console.log(`  check_by: ${checkBy || "missing"}`);
+      console.log(`Confirm with the user, then rerun with --confirmed --authorization-ref <host-ref> --kind ${kindInfo.kind}.`);
+      return;
+    }
+    if (kindInfo.kind !== "witness" && !/^\d{4}-\d{2}-\d{2}$/.test(String(checkBy || ""))) {
       console.error(`Seed ${seed.id} has no ISO check_by date. Run /argus:check ${seed.id} --check-by YYYY-MM-DD`);
       process.exit(1);
     }
@@ -818,13 +930,18 @@ async function cmdSeal() {
     appendEvent({
       event: "seal",
       id: seed.id,
-      predicate: flags.predicate || seed.predicate,
-      falsified_if: flags["falsified-if"] || seed.falsified_if,
-      check_by: checkBy,
+      predicate: statement,
+      ...(kindInfo.kind === "witness" ? {} : {
+        falsified_if: flags["falsified-if"] || seed.falsified_if,
+        check_by: checkBy,
+      }),
+      author: "user",
+      ...foundationFields(statement, kindInfo),
     });
     console.log(`Sealed ${seed.id}`);
-    console.log(`  predicate: ${truncate(flags.predicate || seed.predicate, 140)}`);
-    console.log(`  check_by: ${checkBy}`);
+    console.log(`  statement: ${truncate(statement, 140)}`);
+    console.log(`  kind: ${kindInfo.kind}`);
+    if (kindInfo.kind !== "witness") console.log(`  check_by: ${checkBy}`);
     return;
   }
 
@@ -840,12 +957,13 @@ async function cmdSeal() {
     process.exit(1);
   }
 
+  let generatedByAi = false;
   let draft = {
     predicate: flags.predicate,
     falsified_if: flags["falsified-if"],
     check_by: flags["check-by"],
   };
-  if (!draft.predicate || !draft.falsified_if || !draft.check_by) {
+  if (!draft.predicate || (flags.kind !== "witness" && (!draft.falsified_if || !draft.check_by))) {
     console.log(`Drafting a checkable contract for ${target}...`);
     const generated = await draftSeal(decision, { model: flags.model || "sonnet" });
     draft = {
@@ -853,8 +971,22 @@ async function cmdSeal() {
       falsified_if: draft.falsified_if || generated.falsified_if,
       check_by: draft.check_by || generated.check_by,
     };
+    generatedByAi = true;
   }
-  if (!draft.predicate || !draft.falsified_if || !/^\d{4}-\d{2}-\d{2}$/.test(draft.check_by || "")) {
+  const kindInfo = deriveDecisionKind(draft.predicate, flags.kind, flags.kind === "witness", !!draft.check_by);
+  const confirmationRequired = generatedByAi || flags.author === "ai_surfaced";
+  if (confirmationRequired && (!flags.confirmed || !flags["authorization-ref"])) {
+    console.log("Draft only — nothing was recorded.");
+    console.log(`  statement: ${truncate(draft.predicate, 140)}`);
+    console.log(`  kind: ${kindInfo.kind}`);
+    if (kindInfo.kind !== "witness") {
+      console.log(`  falsified_if: ${truncate(draft.falsified_if, 140)}`);
+      console.log(`  check_by: ${draft.check_by}`);
+    }
+    console.log(`Confirm with the user, then rerun with explicit fields, --confirmed --authorization-ref <host-ref> --kind ${kindInfo.kind}.`);
+    return;
+  }
+  if (!draft.predicate || (kindInfo.kind !== "witness" && (!draft.falsified_if || !/^\d{4}-\d{2}-\d{2}$/.test(draft.check_by || "")))) {
     console.error("Seal needs predicate, falsified_if, and ISO check_by.");
     console.error(`Run /argus:check ${target} --predicate "..." --falsified-if "..." --check-by ${addDaysISO(localToday(), 14)}`);
     process.exit(1);
@@ -863,13 +995,17 @@ async function cmdSeal() {
     event: "seal",
     id: target,
     predicate: draft.predicate,
-    falsified_if: draft.falsified_if,
-    check_by: draft.check_by,
-    author: flags.author,
+    ...(kindInfo.kind === "witness" ? {} : {
+      falsified_if: draft.falsified_if,
+      check_by: draft.check_by,
+    }),
+    author: "user",
+    ...foundationFields(draft.predicate, kindInfo),
   });
   console.log(`Sealed ${target}`);
-  console.log(`  predicate: ${truncate(draft.predicate, 140)}`);
-  console.log(`  check_by: ${draft.check_by}`);
+  console.log(`  statement: ${truncate(draft.predicate, 140)}`);
+  console.log(`  kind: ${kindInfo.kind}`);
+  if (kindInfo.kind !== "witness") console.log(`  check_by: ${draft.check_by}`);
 }
 
 function cmdStatus() {
@@ -888,35 +1024,89 @@ function cmdStatus() {
 // stamps `at`. Reality answers; Argus never grades — so no score is recorded.
 function cmdSettle() {
   const id = flags._[0];
-  // Canonical outcome vocabulary is the MCP's (plain canon, §9.7): held /
-  // avoided / partial / missed. `happened` (this CLI's legacy spelling of
-  // `held`) stays ACCEPTED as input but is normalized at write time, so new
-  // ledger lines speak one vocabulary while old lines keep their bytes (the
-  // MCP replay aliases `happened`→held on read for those — O2 방1 finding ④).
-  const raw = String(flags.outcome || "");
-  const outcome = raw === "happened" ? "held" : raw;
-  const OUTCOMES = ["held", "avoided", "partial", "missed"];
-  const BASES = ["reasoned", "luck", "external", "mixed"];
   if (!id) {
-    console.error('Usage: decision-ledger.js settle <id> --outcome held|avoided|partial|missed [--basis reasoned|luck|external|mixed] [--note "<one sentence>"]');
+    console.error('Usage: decision-ledger.js settle <id> --option <id> --response "<user-selected label>" --question-validity valid|narrowed|reframed|moot|indeterminate [--reality met|not_met|partial|unknown|not_observable] [--commitment enacted|maintained|revised|withdrawn|superseded] --present-standard same|changed|withdrawn|skipped');
     process.exit(1);
   }
-  if (!OUTCOMES.includes(outcome)) {
-    console.error(`--outcome must be one of ${OUTCOMES.join("|")} (legacy alias: happened=held)`);
-    process.exit(1);
-  }
-  const event = { event: "settle", id, outcome };
-  if (flags.basis) {
-    const basis = String(flags.basis);
-    if (!BASES.includes(basis)) {
-      console.error(`--basis must be one of ${BASES.join("|")}`);
+
+  // Historic calls remain readable, but all new skill writes use the three
+  // independent axes below. They are never collapsed into a score or record.
+  const rawOutcome = String(flags.outcome || "");
+  if (rawOutcome) {
+    const current = loadLedger().get(id);
+    if (current?.kind_evidence) {
+      console.error("--outcome is read-compatibility only. New records require --option, independent axes, and --present-standard.");
       process.exit(1);
     }
-    event.basis = basis;
+    const outcome = rawOutcome === "happened" ? "held" : rawOutcome;
+    const OUTCOMES = ["held", "avoided", "partial", "missed"];
+    if (!OUTCOMES.includes(outcome)) {
+      console.error(`--outcome must be one of ${OUTCOMES.join("|")} (legacy alias: happened=held)`);
+      process.exit(1);
+    }
+    const event = {
+      event: "settle",
+      id,
+      outcome,
+      option_id: `legacy_${outcome}`,
+      response_text: flags.note ? String(flags.note) : outcome,
+      axes: {
+        reality: outcome === "held" ? "met" : outcome === "avoided" ? "not_met" : outcome === "partial" ? "partial" : "unknown",
+        question: "valid",
+      },
+      observation_source_kind: "user_report",
+    };
+    if (flags.note) event.note = String(flags.note);
+    appendEvent(event);
+    console.log(`Return recorded for ${id}.`);
+    return;
   }
-  if (flags.note) event.note = String(flags.note);
+
+  const optionId = flags.option ? String(flags.option) : "";
+  const responseText = flags.response ? String(flags.response) : "";
+  const question = flags["question-validity"] ? String(flags["question-validity"]) : "";
+  const reality = flags.reality ? String(flags.reality) : undefined;
+  const commitment = flags.commitment ? String(flags.commitment) : undefined;
+  const presentStandard = flags["present-standard"] ? String(flags["present-standard"]) : "";
+  if (!optionId || !responseText) {
+    console.error("--option and --response are required for a foundation return.");
+    process.exit(1);
+  }
+  if (!["valid", "narrowed", "reframed", "moot", "indeterminate"].includes(question)) {
+    console.error("--question-validity must be valid|narrowed|reframed|moot|indeterminate.");
+    process.exit(1);
+  }
+  if (reality && !["met", "not_met", "partial", "unknown", "not_observable"].includes(reality)) {
+    console.error("--reality must be met|not_met|partial|unknown|not_observable.");
+    process.exit(1);
+  }
+  if (commitment && !["enacted", "maintained", "revised", "withdrawn", "superseded"].includes(commitment)) {
+    console.error("--commitment must be enacted|maintained|revised|withdrawn|superseded.");
+    process.exit(1);
+  }
+  if (!reality && !commitment) {
+    console.error("At least one of --reality or --commitment is required.");
+    process.exit(1);
+  }
+  if (!["same", "changed", "withdrawn", "skipped"].includes(presentStandard)) {
+    console.error("--present-standard must be same|changed|withdrawn|skipped.");
+    process.exit(1);
+  }
+  const event = {
+    event: "settle",
+    id,
+    option_id: optionId,
+    response_text: responseText,
+    axes: {
+      ...(reality ? { reality } : {}),
+      ...(commitment ? { commitment } : {}),
+      question,
+    },
+    present_standard: { status: presentStandard, recorded_at: new Date().toISOString() },
+    observation_source_kind: String(flags["observation-source-kind"] || "user_report"),
+  };
   appendEvent(event);
-  console.log(`Settled ${id}: ${outcome}${event.basis ? ` (${event.basis})` : ""}`);
+  console.log(`Return recorded for ${id}.`);
 }
 
 // Single-source writer for a BRAND-NEW predicate (harvest + seal in one atomic
@@ -941,9 +1131,18 @@ function cmdRecord() {
     process.exit(1);
   }
   const checkBy = flags["check-by"] ? String(flags["check-by"]) : undefined;
+  const kindInfo = deriveDecisionKind(predicate, flags.kind, flags.kind === "witness", !!checkBy);
   if (checkBy && !/^\d{4}-\d{2}-\d{2}$/.test(checkBy)) {
     console.error("--check-by must be an ISO date (YYYY-MM-DD) or omitted.");
     process.exit(1);
+  }
+  if (kindInfo.kind !== "witness" && !checkBy) {
+    console.error("--check-by YYYY-MM-DD is required unless --kind witness is used.");
+    process.exit(1);
+  }
+  if (flags.author === "ai_surfaced" && (!flags.confirmed || !flags["authorization-ref"])) {
+    console.log("Draft only — nothing was recorded. Confirm with the user, then rerun with --confirmed --authorization-ref <host-ref>.");
+    return;
   }
   const harvest = {
     event: "harvest",
@@ -961,14 +1160,17 @@ function cmdRecord() {
     event: "seal",
     id,
     predicate,
-    falsified_if: flags["falsified-if"] ? String(flags["falsified-if"]) : "opposite observed",
+    ...(kindInfo.kind === "witness" ? {} : {
+      falsified_if: flags["falsified-if"] ? String(flags["falsified-if"]) : "opposite observed",
+      check_by: checkBy,
+    }),
+    author: "user",
+    ...foundationFields(predicate, kindInfo),
   };
-  if (checkBy) seal.check_by = checkBy;
-  if (flags.author) seal.author = String(flags.author);
   appendEvent(seal);
-  console.log(`Recorded ${id}${seal.author ? ` (author: ${seal.author})` : ""}`);
-  console.log(`  predicate: ${truncate(predicate, 140)}`);
-  console.log(`  check_by: ${checkBy || "none"}`);
+  console.log(`Recorded ${id} (kind: ${kindInfo.kind})`);
+  console.log(`  statement: ${truncate(predicate, 140)}`);
+  if (kindInfo.kind !== "witness") console.log(`  check_by: ${checkBy}`);
 }
 
 // Single-source writer for the amend event (push a due contract's date, or fix a
@@ -977,26 +1179,87 @@ function cmdRecord() {
 function cmdAmend() {
   const id = flags._[0];
   const checkBy = flags["check-by"] ? String(flags["check-by"]) : undefined;
-  const predicate = flags.predicate ? String(flags.predicate) : undefined;
-  const falsifiedIf = flags["falsified-if"] ? String(flags["falsified-if"]) : undefined;
   if (!id) {
-    console.error('Usage: decision-ledger.js amend <id> [--check-by YYYY-MM-DD] [--predicate "..."] [--falsified-if "..."]');
+    console.error('Usage: decision-ledger.js amend <id> --check-by YYYY-MM-DD');
     process.exit(1);
   }
-  if (!checkBy && !predicate && !falsifiedIf) {
-    console.error("amend needs at least one of --check-by / --predicate / --falsified-if.");
+  if (!checkBy) {
+    console.error("amend only changes the future return date; --check-by is required. Sealed wording is append-only.");
     process.exit(1);
   }
   if (checkBy && !/^\d{4}-\d{2}-\d{2}$/.test(checkBy)) {
     console.error("--check-by must be an ISO date (YYYY-MM-DD).");
     process.exit(1);
   }
-  const event = { event: "amend", id };
-  if (checkBy) event.check_by = checkBy;
-  if (predicate) event.predicate = predicate;
-  if (falsifiedIf) event.falsified_if = falsifiedIf;
-  appendEvent(event);
+  appendEvent({ event: "amend", id, check_by: checkBy });
   console.log(`Amended ${id}${checkBy ? ` → check_by ${checkBy}` : ""}`);
+}
+
+function cmdCorrectKind() {
+  const id = flags.id ? String(flags.id) : String(flags._[0] || "");
+  const kind = flags.kind ? String(flags.kind) : "";
+  if (!id || !DECISION_KINDS.includes(kind)) {
+    console.error("Usage: decision-ledger.js correct-kind --id <id> --kind <prediction|commitment|declaration|witness> --authorization-ref <ref>");
+    process.exit(1);
+  }
+  if (!flags["authorization-ref"]) {
+    console.error("--authorization-ref is required; only the user can correct a sealed kind.");
+    process.exit(1);
+  }
+  const cur = loadLedger().get(id);
+  if (!cur || !["sealed", "settled"].includes(cur.status)) {
+    console.error(`No sealed record found for ${id}.`);
+    process.exit(1);
+  }
+  if ((cur.kind || "prediction") === kind) {
+    console.log(`${id} already has kind ${kind}; nothing written.`);
+    return;
+  }
+  const checkBy = flags["check-by"] ? String(flags["check-by"]) : "";
+  if ((cur.kind || "prediction") === "witness" && kind !== "witness" && !/^\d{4}-\d{2}-\d{2}$/.test(checkBy)) {
+    console.error("--check-by YYYY-MM-DD is required when a witness becomes a returnable record.");
+    process.exit(1);
+  }
+  appendEvent({
+    event: "kind_correction",
+    id,
+    kind,
+    reason: flags.reason ? String(flags.reason) : undefined,
+    ...(checkBy ? { check_by: checkBy } : {}),
+    authorization_ref: String(flags["authorization-ref"]),
+  });
+  console.log(`Corrected ${id}: ${cur.kind || "prediction"} -> ${kind}. Earlier kind preserved in history.`);
+}
+
+function cmdRevise() {
+  const id = flags.id ? String(flags.id) : String(flags._[0] || "");
+  const statement = flags.statement ? String(flags.statement).trim() : "";
+  if (!id || !statement) {
+    console.error('Usage: decision-ledger.js revise --id <id> --statement "<current wording>" --authorization-ref <ref>');
+    process.exit(1);
+  }
+  if (!flags["authorization-ref"]) {
+    console.error("--authorization-ref is required; only the user can revise a sealed statement.");
+    process.exit(1);
+  }
+  const cur = loadLedger().get(id);
+  if (!cur || !["sealed", "settled"].includes(cur.status)) {
+    console.error(`No sealed record found for ${id}.`);
+    process.exit(1);
+  }
+  const previous = cur.current_statement || cur.predicate || cur.origin_utterance || "";
+  if (previous.trim() === statement) {
+    console.log(`${id} already has that wording; nothing written.`);
+    return;
+  }
+  appendEvent({
+    event: "statement_revision",
+    id,
+    statement,
+    reason: flags.reason ? String(flags.reason) : undefined,
+    authorization_ref: String(flags["authorization-ref"]),
+  });
+  console.log(`Revised ${id}. Earlier wording preserved in history.`);
 }
 
 // Single-source writer for the wake event (sail Step 7.5's in-session lean
@@ -1125,7 +1388,20 @@ function cmdPremises() {
   }
 }
 
-const commands = { scan: cmdScan, seal: cmdSeal, settle: cmdSettle, record: cmdRecord, amend: cmdAmend, wake: cmdWake, premises: cmdPremises, list: () => cmdList(), status: cmdStatus };
+const commands = {
+  scan: cmdScan,
+  seal: cmdSeal,
+  settle: cmdSettle,
+  record: cmdRecord,
+  amend: cmdAmend,
+  "correct-kind": cmdCorrectKind,
+  revise: cmdRevise,
+  journal: cmdJournal,
+  wake: cmdWake,
+  premises: cmdPremises,
+  list: () => cmdList(),
+  status: cmdStatus,
+};
 if (!cmd || !commands[cmd]) {
   console.log("Usage:");
   console.log("  /argus:history scan [--since days] [--all-projects] [--list] [--status] [--purge <id|all>]");

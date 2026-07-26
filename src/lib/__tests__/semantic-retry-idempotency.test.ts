@@ -60,11 +60,13 @@ describe('web command retry idempotency', () => {
   it('fingerprint ignores volatile time fields but keeps the semantic payload', () => {
     const a = {
       event: 'judgment_sealed', event_id: 'x1', idempotency_key: 'k', statement: 'S',
+      kind_evidence: { source: 'wording_rule', rule: 'prediction_wording', recorded_at: 'T1' },
       time: { occurred_at: 'T1', recorded_at: 'T1', authorized_at: 'T1', temporal_mode: 'contemporaneous' },
       authority: { originated_by: { kind: 'human', id: 'u' }, recorded_by: { kind: 'system', id: 'web:a' }, authorization_mode: 'explicit_confirmation' },
     };
     const b = {
       event: 'judgment_sealed', event_id: 'x2', idempotency_key: 'k', statement: 'S',
+      kind_evidence: { source: 'wording_rule', rule: 'prediction_wording', recorded_at: 'T2' },
       time: { occurred_at: 'T2', recorded_at: 'T2', authorized_at: 'T2', temporal_mode: 'contemporaneous' },
       authority: { originated_by: { kind: 'human', id: 'u' }, recorded_by: { kind: 'system', id: 'web:b' }, authorization_mode: 'explicit_confirmation' },
     };
@@ -73,6 +75,8 @@ describe('web command retry idempotency', () => {
 
     // Different statement → different fingerprint.
     expect(semanticIdemFingerprint({ ...a, statement: 'DIFFERENT' })).not.toEqual(semanticIdemFingerprint(a));
+    expect(semanticIdemFingerprint({ ...a, kind_evidence: { ...a.kind_evidence, rule: 'different_rule' } }))
+      .not.toEqual(semanticIdemFingerprint(a));
     // Different temporal_mode is semantic → different fingerprint.
     expect(semanticIdemFingerprint({ ...a, time: { ...a.time, temporal_mode: 'retrospective' } }))
       .not.toEqual(semanticIdemFingerprint(a));

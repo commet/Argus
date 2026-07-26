@@ -1,7 +1,7 @@
 # ARGUS BLUEPRINT — 정본 설계도
 
-Version: 1.2 (2026-07-17 — §9.8 자기지식·AI 영향 권한 트랙 E 등록.
-1.1은 2026-07-08 §9 MCP 재건축 트랙 신설과 3중 감사 수렴)
+Version: 1.3 (2026-07-26 — §9.10 판단 시스템 철학 기반 트랙 F 등록.
+1.2는 2026-07-17 §9.8 자기지식·AI 영향 권한 트랙 E 등록)
 Author: Claude (claude-fable-5)
 Status: **단일 빌드 정본.** 이 리포에서 "무엇을 지을 것인가"에 대한 답은 이
 문서 하나다. 이전 문서들은 이 설계도의 증거·상세 부록으로 지위가 바뀐다:
@@ -892,7 +892,8 @@ shadow라 사용자 자기지식 표면을 열지 않았고, 기존 live callsit
 한 줄 정의: **플러그인/MCP의 판단 기록이 무념(승인 탭 1회)으로 웹앱에 닿고,
 흩어진 결정·전제·정산이 하나의 병합된 항해 지도로 보이게 하는 연동·투영 트랙.**
 새 두뇌·새 정본을 만들지 않는다 — 기존 트랙 E(§9.8, JCR)와 K(§9.7), P6 web
-canonical ledger에 **묶여** 실행되는 배관·투영 트랙이다.
+  canonical ledger에 **묶여** 실행되는 배관·투영 트랙이다. 단, 2026-07-26
+  승인된 §9.10 F의 no-score 불변식이 이 트랙의 옛 결과별 집계보다 우선한다.
 
 - **V1 · 무념 연동 + 점화 (게이트 없음, 지금):** 플러그인에 MCP의 브라우저-승인
   (PKCE loopback + device 폴백) 흐름을 이식하고 — `account-connect.ts`가 정본 —
@@ -902,7 +903,7 @@ canonical ledger에 **묶여** 실행되는 배관·투영 트랙이다.
   작동함을 확인하되, **공정 5 progressive UI 공예와 무접촉**.
 - **V2 · 병합 지도 (마이그레이션 게이트):** `project_semantic_events`(P6) 배포
   후 — VoyageSea가 웹+플러그인/MCP **병합 스트림**을 렌더하고, `judgment-graph.ts`에
-  축 3개를 얹는다: per-ground 정산 track record 조인 · 출처 태그(Claude Code/
+  축 3개를 얹는다: per-ground 중립 귀환 이력 조인 · 출처 태그(Claude Code/
   Codex/웹) · 최근점검. 사실+카운트 표시는 허용(§9.8 스파인), 사용자 대면
   **평결형 자기지식 표면은 E의 O4 게이트를 상속**한다.
 - **V3 · recall (O4 게이트):** 다음 결정에 판단을 push하는 표면 = **E3B/JCR J7**.
@@ -919,8 +920,8 @@ O4 통과 전 비공개.
 **V1 exit:** [x] 플러그인 승인 탭 1클릭 연동(복붙 0) [x] 첫 seal 자동 트리거
 [x] 실주행에서 `plugin_bearings` 0→1 실측(§7.5 행수 확인) — 2026-07-21 창업자 실주행 준공.
 
-**V2 exit:** [x] 정산 track record 축 — per-ground held/broke/mixed 조인(`GroundRecord`),
-사실 카운트만(평결 0). [x] 출처 축 — **정직 라벨**(웹 / MCP·CLI / 미상); 진짜
+**V2 exit:** [x] 귀환 이력 축 — per-ground `revisited` 조인(`GroundRecord`),
+결과별 합계·평결 0(§9.10 F 우선). [x] 출처 축 — **정직 라벨**(웹 / MCP·CLI / 미상); 진짜
 "Claude Code↔Codex" 세분은 어떤 영수증에도 표면 신호가 없어(source_kind는 문서
 종류일 뿐) '미상'으로 표기하는 **disclosed gap** — 그 신호를 실제로 배선하려면
 push→ingest→schema를 건드려 V2 무접촉 경계를 넘으므로 별도 승인 트랙으로 남긴다
@@ -930,6 +931,65 @@ push→ingest→schema를 건드려 V2 무접촉 경계를 넘으므로 별도 �
 (MCP/review `JudgmentReceipt`)가 한 바다에 vessel로 병합 렌더(실측 테스트); 플러그인
 브리지 `plugin_decisions`(usePluginStore) 병합은 경계 밖 gap으로 기록.
 — 2026-07-22 트랙 V2 준공(스크린샷 도구 세션 장애로 DOM/인라인 스타일 대체 검증).
+
+---
+
+### 9.10 병렬 기반 트랙 F — 판단 시스템 철학 기반 재정립 (2026-07-26 신설, 창업자 승인)
+
+구현 정본:
+`Argus-codex-docs/docs/MASTER-FABLE5-DIRECTION-AND-IMPLEMENTATION-2026-07-26.md`.
+앞선 설계와 충돌하면 이 승인 트랙의 불변식이 우선한다.
+
+한 줄 정의: **Argus는 사람을 채점하는 판단 앱이 아니라, 사용자의 문장을 현실에서
+다시 확인할 수 있는 작은 실험으로 컴파일하고 두 시점의 기준을 보존하는 도구다.**
+
+**불변식:** 판정은 사람 아닌 문장에만 붙인다 · AI 제안은 사람의 명시 채택 전 정본이
+아니다 · 과거 봉인문은 수정하지 않고 정정·개정을 덧붙인다 · 현실 접촉 없는 모델
+평가는 결론이 아니다 · `witness`는 귀환을 만들지 않는다 · 승률·적중률·합산 점수는
+표시뿐 아니라 신규 저장도 금지한다.
+
+**존재론:** 신규 기록은 prediction / commitment / declaration / witness 중 하나이며,
+정산은 현실·지금의 기준·질문의 유효성 세 축을 합산 없이 보존한다. 권한 원천은
+human-authored / machine-proposed + human-adopted / external-observation으로 분리한다.
+내부 어휘(kind·수행문·방향적합성)는 사용자 표면에 노출하지 않는다.
+
+**Phase 0 · 잠금장치와 스키마:** 신규 foundation JSON에 kind 도출 근거, 원 발화,
+검토 조건 상태, 관찰 출처, AI 제안 채택 족보를 보존한다. 조용한 AI 승격·과거 편집·
+점수형 신규 저장을 코드와 DB 제약이 함께 막는다.
+
+**F0 exit:** [x] no-silent-promotion·append-only·no-score 가드 [x] 동커밋 DB 제약
+[x] 세 표면 공유 fixture와 D2·D4·D8·D10·D11 필드 계약.
+
+**Phase 1 · 봉인:** 네 종류를 한국어·영어에서 실제 봉인할 수 있다. 사용자는 자동
+분류를 고칠 수 있고 정정은 이벤트/이력으로 남는다. witness에는 날짜·알림·재개봉이
+생기지 않는다.
+
+**F1 exit:** [x] MCP 네 종류·권한·정정 회귀 시험 [x] 웹 봉인·사후 수정 표면
+[x] 플러그인 네 종류·AI 채택 족보·witness 무귀환 시험.
+
+**Phase 2 · 정산:** 어떤 선택지보다 처음 봉인한 문장을 먼저 보여준다. 종류별 최대
+다섯 선택지에 `판단 불가`와 `질문 자체가 무의미해짐`을 포함하고, 현재 기준은 한
+문장만 더 묻는다. 응답은 세 축으로 덧붙이며 단일 verdict/점수로 환원하지 않는다.
+
+**F2 exit:** [x] 웹 원문-먼저·종류별 선택지·후속 한 문장 표면 [x] MCP 세 축·moot·
+개정 append 시험 [x] 플러그인 세 축·legacy outcome 신규 쓰기 차단 시험.
+
+**Phase 3 · 귀환:** 날짜는 유일한 트리거가 아니라 fallback이다. 사건과 fallback을
+함께 봉인하고, 대화에서 사건이 언급되면 전용 정산 제안을 한 세션에 한 번만 낸다.
+witness는 침묵한다.
+
+**F3 exit:** [x] 플러그인 사건 감지·세션 중복 방지·witness 침묵 시험
+[x] MCP 사건/fallback 투영·중복 방지 [x] 날짜 fallback 호환 유지.
+
+**Phase 4 · 기억 먼저 실험:** 사용자가 원할 때만 원문을 보기 전에 당시 기준을
+기억해 볼 수 있다. 메모는 기본 휘발이며, 사용자가 별도로 선택했을 때만 그 귀환
+기록에 저장한다.
+
+**F4 exit:** [x] 기억 먼저 opt-in·기본 비저장 표면 [x] 명시 저장만 허용하는
+귀환 데이터 계약.
+
+**freeze:** semantic v3 wire rename/v4 신설 · DecisionContract 대이주 · 패턴 카드
+생성 · 팀 승인 흐름 · 내부 철학 어휘 사용자 노출은 이 트랙에 포함하지 않는다.
 
 ---
 

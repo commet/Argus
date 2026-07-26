@@ -110,6 +110,8 @@ describe('seal ceremony — closing scene (닫는 봉인)', () => {
   it('the closing recovery seal augments an existing rope — never clobbers it', () => {
     // manualSeal must augmentContract when a contract already exists (preserve the
     // user's early lean) rather than rebuilding a fresh one.
-    expect(sealMoment).toMatch(/existing\s*\?\s*augmentContract\(existing, \[\], now, iv\)/);
+    expect(sealMoment).toMatch(
+      /existing\s*\?\s*augmentContract\(existing, \[\], now, selectedKind === 'witness' \? undefined : iv\)/,
+    );
   });
 });

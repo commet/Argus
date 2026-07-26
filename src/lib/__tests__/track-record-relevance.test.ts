@@ -1,47 +1,43 @@
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 /**
- * R38 — the n=1 moat compounds on RECURRENCE, not universally.
- *
- * Head-to-head (returning user: A = no history vs B = track-record injected): help
- * concentrated where the prior is relevant (repeats 2/2, false-link bait resisted
- * 1/1) but NOT on unrelated decisions (0/2 — no-history won case-4). The
- * reference-only invariant held 5/5; the residual risk was one level up in
- * RETRIEVAL — clarify Step 1.5 gated the injection on ≥2 settled but NOT on
- * relevance, so an unrelated most-recent-miss example seeded a loose false analogy
- * (a marketing-attribution miss bled into a surgery decision).
- *
- * Fix (plugin-only — the webapp surfaces only mechanical counts, already immune):
- * keep the COUNTS always (harmless stakes calibration), but RELEVANCE-GATE the
- * "Most recently missed: <predicate>" example — inject it only when the current
- * problem shares a domain/failure-mechanism with that miss; counts-only on mismatch.
- *
- * File-read guard.
+ * Fable5 foundation supersedes the old R38 relevance gate. A performance
+ * history does not become safe merely because it looks relevant: counts and a
+ * recent miss still steer the next decision. The injection path must be absent.
  */
 const clarify = readFileSync(
   join(process.cwd(), 'argus-plugin-v2/skills/review/clarify.md'),
   'utf8',
 );
+const signals = readFileSync(
+  join(process.cwd(), 'argus-plugin-v2/scripts/lib/decision-signals.js'),
+  'utf8',
+);
+const anchor = readFileSync(
+  join(process.cwd(), 'argus-plugin-v2/scripts/anchor-signal.js'),
+  'utf8',
+);
 
-describe('R38 — Step 1.5 relevance-gates the recent-miss example (counts always, example only when relevant)', () => {
-  it('the concrete example is explicitly RELEVANCE-GATED', () => {
-    expect(clarify).toMatch(/RELEVANCE-GATED/);
+describe('foundation — no past-performance injection into a new decision', () => {
+  it('the signal parser no longer computes a track-record aggregate', () => {
+    expect(signals).not.toMatch(/\btrackRecord\b/);
+    expect(signals).not.toMatch(/mostRecentlyMissed|recentMiss/i);
   });
 
-  it('the gate keys on domain/failure-mechanism overlap, mechanically', () => {
-    expect(clarify).toMatch(/domain or failure-mechanism/);
-    expect(clarify).toMatch(/mechanical/i);
+  it('the anchor hook does not inject held/missed counts or a past example', () => {
+    expect(anchor).not.toMatch(/\btrackRecord\b/);
+    expect(anchor).not.toMatch(/most recently missed|held\s+\d+|missed\s+\d+/i);
   });
 
-  it('on a mismatch it injects counts only (omits the example) — the false-analogy seed', () => {
-    expect(clarify).toMatch(/COUNTS ONLY/);
-    expect(clarify).toMatch(/false analogy/i);
+  it('clarify does not use a performance-history relevance gate', () => {
+    expect(clarify).not.toMatch(/RELEVANCE-GATED|COUNTS ONLY|false analogy seed/);
+    expect(clarify).not.toMatch(/Most recently missed|held\s+5\/5/i);
   });
 
-  it('the reference-only invariant is preserved (held 5/5 — do not touch it)', () => {
-    expect(clarify).toMatch(/Reference only/);
-    expect(clarify).toMatch(/NEVER override content-based judgment/);
+  it('clarify still forbids a model from turning a closed log into a new ceremony', () => {
+    expect(clarify).toMatch(/\(closed-log\)/);
+    expect(clarify).toMatch(/acknowledge and stop/i);
   });
 });

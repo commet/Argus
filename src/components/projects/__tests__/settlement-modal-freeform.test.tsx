@@ -70,47 +70,59 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-function inputValue(el: HTMLTextAreaElement, value: string) {
-  const setter = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, 'value')?.set;
-  setter?.call(el, value);
-  el.dispatchEvent(new Event('input', { bubbles: true }));
+function button(label: string): HTMLButtonElement | undefined {
+  return Array.from(document.body.querySelectorAll('button'))
+    .find((candidate) => candidate.textContent?.includes(label)) as HTMLButtonElement | undefined;
 }
 
-describe('SettlementModal date-only close', () => {
-  it('stores the freeform outcome note and does not mark a closed loop abandoned', async () => {
+describe('SettlementModal foundation return', () => {
+  it('appends an indeterminate reality answer and present-standard answer without a score-shaped verdict', async () => {
     const onClose = vi.fn();
 
     await act(async () => {
       root.render(createElement(SettlementModal, { project, onClose }));
     });
 
-    const textarea = document.body.querySelector('textarea') as HTMLTextAreaElement | null;
-    expect(textarea).toBeTruthy();
     await act(async () => {
-      inputValue(textarea!, 'It stayed useful, but the evidence was mixed.');
+      button('Show the original')!.click();
     });
 
-    const closeButton = Array.from(document.body.querySelectorAll('button'))
-      .find((button) => button.textContent?.includes('Finish recording the outcome'));
-    expect(closeButton).toBeTruthy();
-
     await act(async () => {
-      closeButton!.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      button('I cannot tell from the evidence')!.click();
+    });
+    await act(async () => {
+      button('It has changed')!.click();
     });
 
-    expect(onClose).toHaveBeenCalledTimes(1);
     expect(mocks.updateProject).toHaveBeenCalledWith('p1', {
       decision_contract: expect.objectContaining({
-        outcome_note: 'It stayed useful, but the evidence was mixed.',
-        graded_at: '2026-01-09T00:00:00.000Z',
-        check_in_at: undefined,
-        check_in_interval: undefined,
+        settlements: [
+          expect.objectContaining({
+            option_id: 'not_observable',
+            response_text: 'I cannot tell from the evidence',
+            axes: { reality: 'not_observable', question: 'indeterminate' },
+            observation_source_kind: 'user_report',
+            present_standard: expect.objectContaining({ status: 'changed' }),
+          }),
+        ],
       }),
     });
+    const written = mocks.updateProject.mock.calls[0]?.[1]?.decision_contract;
+    expect(written).not.toHaveProperty('outcome_note');
+    expect(written).not.toHaveProperty('score');
+
+    await act(async () => {
+      button('View record')!.click();
+    });
+    expect(onClose).toHaveBeenCalledTimes(1);
 
     await act(async () => {
       root.unmount();
     });
+    expect(mocks.track).toHaveBeenCalledWith('foundation_return_saved', expect.objectContaining({
+      option_id: 'not_observable',
+      present_standard: 'changed',
+    }));
     expect(mocks.track).not.toHaveBeenCalledWith('settle_abandoned', expect.anything());
   });
 });

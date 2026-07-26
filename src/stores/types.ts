@@ -784,6 +784,78 @@ export interface LeanAfter {
   recorded_at: string;
 }
 
+/** The speech act the sealed sentence performs. Legacy records without this
+ * field are read as `prediction`; every new seal writes it explicitly. */
+export type DecisionKind = 'prediction' | 'commitment' | 'declaration' | 'witness';
+
+/** Why the sealing surface derived a kind. This is evidence of the capture
+ * path, not a model confidence score. The user's correction always wins. */
+export interface DecisionKindEvidence {
+  source: 'wording_rule' | 'elicitation_answer' | 'user_override' | 'legacy_default';
+  rule: string;
+  question?: string;
+  answer?: string;
+  recorded_at: string;
+}
+
+/** A pre-seal chip correction. It remains append-only evidence of how the
+ * machine read the sentence and how the user corrected that read. */
+export interface DecisionKindCorrection {
+  event: 'kind_corrected';
+  from_kind: DecisionKind;
+  to_kind: DecisionKind;
+  corrected_at: string;
+  evidence: DecisionKindEvidence;
+}
+
+/** A user-authored post-seal revision. The previous wording remains
+ * addressable; the latest revision is only the current projection. */
+export interface DecisionStatementRevision {
+  event: 'statement_revised';
+  from_statement: string;
+  to_statement: string;
+  reason?: string;
+  recorded_at: string;
+}
+
+export type ReviewConditionStatus = 'answered' | 'skipped' | 'not_asked';
+
+/** Genealogy of an adopted machine proposal. Adoption transfers authority for
+ * a purpose; it never rewrites who originally phrased the proposal. */
+export interface AdoptionLineage {
+  source_proposal_ref: string;
+  adopted_as: 'basis' | 'check' | 'wording';
+}
+
+export type ObservationSourceKind = 'user_report' | 'system_receipt' | 'ai_analysis';
+
+export interface SettlementAxes {
+  reality?: 'met' | 'not_met' | 'partial' | 'unknown' | 'not_observable';
+  commitment?: 'enacted' | 'maintained' | 'revised' | 'withdrawn' | 'superseded';
+  question: 'valid' | 'narrowed' | 'reframed' | 'moot' | 'indeterminate';
+}
+
+/** One return in the user's own words. The selected label is canonical;
+ * `axes` is a deterministic projection and is never combined into a score. */
+export interface ContractSettlement {
+  option_id: string;
+  response_text: string;
+  recorded_at: string;
+  axes: SettlementAxes;
+  /** Optional recall captured before the sealed statement was revealed.
+   * Absent by default; persisted only after an explicit user opt-in. */
+  memory_before_reveal?: {
+    text: string;
+    saved_at: string;
+  };
+  present_standard?: {
+    status: 'same' | 'changed' | 'withdrawn' | 'skipped';
+    response_text?: string;
+    recorded_at: string;
+  };
+  observation_source_kind?: ObservationSourceKind;
+}
+
 /** One unverified fact the honesty scan (loop-17) flagged in the analysis, carried
  *  into the contract at seal so the settle screen can ask "did you check it?".
  *  This is the mirror-not-oracle move: Argus doesn't answer the fact, it remembers
@@ -810,6 +882,20 @@ export interface DecisionContract {
   id: string;
   project_id: string;
   predicates: Predicate[];
+  /** New writes always set these fields. Optional only for legacy JSON. */
+  kind?: DecisionKind;
+  kind_evidence?: DecisionKindEvidence;
+  kind_corrections?: DecisionKindCorrection[];
+  statement_revisions?: DecisionStatementRevision[];
+  origin_utterance?: string;
+  review_condition_status?: ReviewConditionStatus;
+  review_condition?: string;
+  /** Optional event that can bring the record back before the fallback date. */
+  return_event?: string;
+  /** Proposal genealogy when the sealed wording/basis/check began as AI output. */
+  adoption_lineage?: AdoptionLineage[];
+  /** Append-only settlement records; legacy predicate verdicts remain read-only. */
+  settlements?: ContractSettlement[];
   /** loop-17 B — unverified facts to check, surfaced at settle. Absent on legacy /
    *  when the scan found nothing carriable. Auto-derived at seal (deriveOpenChecks). */
   open_checks?: OpenCheck[];

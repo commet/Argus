@@ -20,7 +20,7 @@ import { Button } from '@/components/ui/Button';
 import { useLocale } from '@/hooks/useLocale';
 import { useProjectStore } from '@/stores/useProjectStore';
 import type { Project } from '@/stores/types';
-import { fold, type Resolution, type SemanticState } from '@/lib/decision-kernel';
+import { deriveDecisionKind, fold, type Resolution, type SemanticState } from '@/lib/decision-kernel';
 import { loadProjectSemanticEvents, SemanticLedgerClientError, submitProjectSemanticCommand } from '@/lib/semantic-web-client';
 import { semanticProjection, type SemanticWebCommand } from '@/lib/semantic-web';
 import { generateId } from '@/lib/uuid';
@@ -152,9 +152,23 @@ export function SemanticDecisionCard({ project, onCancel }: { project: Project; 
       return;
     }
     const nextJudgmentId = `web-judgment:${generateId()}`;
+    const recordedAt = new Date().toISOString();
+    const derived = deriveDecisionKind({ statement: cleanStatement, has_return_handle: true });
     const command: SemanticWebCommand = {
       kind: 'seal', command_id: generateId(), judgment_id: nextJudgmentId,
       return_contract_id: `${nextJudgmentId}:return`, statement: cleanStatement,
+      decision_kind: derived.kind,
+      kind_evidence: {
+        source: 'wording_rule',
+        rule: derived.rule,
+        question: cleanQuestion,
+        answer: cleanStatement,
+        recorded_at: recordedAt,
+      },
+      origin_utterance: contract?.origin_utterance?.trim() || cleanStatement,
+      review_condition_status: contract?.review_condition_status
+        ?? (contract?.review_condition?.trim() ? 'answered' : 'not_asked'),
+      ...(contract?.review_condition?.trim() ? { review_condition: contract.review_condition.trim() } : {}),
       review_at: reviewAt, review_question: cleanQuestion,
     };
     void submit(command, () => {

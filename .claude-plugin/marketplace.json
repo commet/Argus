@@ -8,14 +8,14 @@
   },
   "metadata": {
     "description": "Argus — keeps important decisions alive as courses.",
-    "version": "2.18.1"
+    "version": "2.19.0"
   },
   "plugins": [
     {
       "name": "argus",
       "source": "./argus-plugin-v2",
-      "description": "Pressure-tests an important decision and returns a one-screen summary: recommendation, why, biggest open risk, alternative passed on, next concrete action — plus one falsifiable prediction you settle against reality later. One install also wires the argus-decision-mcp server automatically; the model never grades the user.",
-      "version": "2.18.1",
+      "description": "Pressure-tests an important decision, surfaces what it rests on, and lets the user confirm a judgment record with an optional return condition. Later Argus shows the original first and appends the user's answer without scores. One install also wires the MCP server.",
+      "version": "2.19.0",
       "license": "MIT",
       "category": "productivity",
       "keywords": [

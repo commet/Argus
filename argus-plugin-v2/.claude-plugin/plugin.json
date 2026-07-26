@@ -2,8 +2,8 @@
   "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
   "name": "argus",
   "displayName": "Argus",
-  "version": "2.18.1",
-  "description": "Pressure-tests an important decision and returns a one-screen summary: the recommendation, why, the biggest open risk, the alternative you passed on, and the next concrete action — plus one falsifiable prediction you resolve against reality later (/argus:resolve). Runs an agent review team on your real code, PRs, and files to verify claims before you commit. Installing also wires the argus-decision-mcp server automatically (one install, no separate init).",
+  "version": "2.19.0",
+  "description": "Pressure-tests an important decision, surfaces what it rests on, and lets the user confirm a judgment record with an optional return condition. Later Argus shows the original first and appends the user's answer without scores. Runs reviewers on real code, PRs, and files; one install also wires the MCP server.",
   "author": {
     "name": "Argus",
     "email": "sayucurator@gmail.com",

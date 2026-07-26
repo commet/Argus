@@ -1,8 +1,8 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.commet/argus-decision-mcp",
-  "description": "Save a falsifiable prediction, then record what reality did. Reality grades you, not the model.",
-  "version": "1.12.1",
+  "description": "Preserve a user-authorized judgment and append later answers. No model verdict or human score.",
+  "version": "1.13.0",
   "repository": {
     "url": "https://github.com/commet/argus",
     "source": "github",
@@ -13,7 +13,7 @@
     {
       "registryType": "npm",
       "identifier": "argus-decision-mcp",
-      "version": "1.12.1",
+      "version": "1.13.0",
       "transport": {
         "type": "stdio"
       },
@@ -26,7 +26,7 @@
         },
         {
           "name": "ARGUS_TOKEN",
-          "description": "Optional Argus account token. Set it and saved predictions sync so Argus can email you at the check-by date. Unset = fully local, no network.",
+          "description": "Optional Argus account token. Set it and saved records can sync so Argus can return on the date you chose. Unset = fully local, no network.",
           "isRequired": false,
           "isSecret": true
         },

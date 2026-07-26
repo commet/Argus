@@ -10,13 +10,13 @@
  * visual emphasis on the map, never its subject.
  *
  * Built by REUSING sharedGrounds with minMembers:1 (single source of truth for
- * the premise-grouping, drift, settled record, and live-bet computation) — a
+ * the premise-grouping, drift, revisit inventory, and live-bet computation) — a
  * premise node IS a ground; a degree-1 premise is a leaf, a shared one a hub.
  *
  * PURE and deterministic (no time/random/DOM). The layout + component add the
  * positions, theme, and interaction on top.
  *
- * SPINE: facts + counts only (degree, live bets, held/broke tally, drift).
+ * SPINE: facts + neutral counts only (degree, live bets, revisits, drift).
  * Nothing here computes a grade or a verdict about the user.
  */
 import type { JudgmentReceipt, SourceKind } from '@/lib/review';

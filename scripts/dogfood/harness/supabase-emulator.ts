@@ -86,7 +86,8 @@ export function jsonbEqual(a: unknown, b: unknown): boolean {
  * bookkeeping fields so an honest retry (fresh time.*) is a duplicate while an
  * altered payload still conflicts. Strip: event_id, idempotency_key,
  * causal_parent_ids, atomic_batch_id, time.{occurred_at,recorded_at,authorized_at},
- * authority.recorded_by. Keep: event kind + payload, time.temporal_mode,
+ * authority.recorded_by, kind_evidence.recorded_at. Keep: event kind + payload,
+ * substantive kind evidence, time.temporal_mode,
  * authority.{originated_by,authorized_by,authorization_mode,authorization_ref}.
  */
 export function semanticIdemFingerprint(event: unknown): unknown {
@@ -98,7 +99,15 @@ export function semanticIdemFingerprint(event: unknown): unknown {
   const a = (authority && typeof authority === 'object' ? authority : {}) as Record<string, unknown>;
   const { recorded_by, ...authRest } = a;
   void recorded_by;
-  return { ...rest, time: { temporal_mode: t.temporal_mode }, authority: authRest };
+  const kindEvidence = rest.kind_evidence && typeof rest.kind_evidence === 'object'
+    ? Object.fromEntries(Object.entries(rest.kind_evidence as Record<string, unknown>).filter(([key]) => key !== 'recorded_at'))
+    : rest.kind_evidence;
+  return {
+    ...rest,
+    ...(kindEvidence === undefined ? {} : { kind_evidence: kindEvidence }),
+    time: { temporal_mode: t.temporal_mode },
+    authority: authRest,
+  };
 }
 
 type Row = Record<string, unknown>;

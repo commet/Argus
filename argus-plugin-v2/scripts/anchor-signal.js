@@ -25,7 +25,7 @@
 
 const fs = require("fs");
 const path = require("path");
-const { configDir, hasStartSignal, trackRecord } = require("./lib/decision-signals");
+const { configDir, hasStartSignal } = require("./lib/decision-signals");
 
 // argus-anchored = the CURRENT armed decision (set here, CONSUMED by wake/commit when the
 // decision closes, so a later strong START re-arms — once per DECISION, not once per
@@ -96,17 +96,7 @@ function main() {
     return; // could not claim the slot → stay silent
   }
 
-  // Self-improvement loop: feed a past track record into this decision's entry, but
-  // ONLY as a sample-size-scaled frequency fact (>=2 settled), never a verdict/tier.
-  let out = NUDGE;
-  const tr = trackRecord(data.cwd || process.cwd());
-  if (tr && tr.settled >= 2) {
-    out += " [Prior track record — you MAY state it as a bare frequency fact, but NEVER use"
-      + " it to shape or lead the lean question, and never a verdict/tier: "
-      + tr.sealed + " sealed, " + tr.settled + " settled, " + tr.held + " held"
-      + (tr.luck ? ", " + tr.luck + " held on luck" : "") + ".]";
-  }
-  process.stdout.write(out + "\n");
+  process.stdout.write(NUDGE + "\n");
 }
 
 // No process.exit(): let the runtime drain stdout and exit 0 naturally — a forced

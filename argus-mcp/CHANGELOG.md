@@ -6,18 +6,25 @@
 > The `1.3.0` / `1.2.1` entries at the bottom are pre-rename `argus-mcp` history,
 > kept for reference — all of that work shipped inside the new-name 1.0.0.
 
-## 1.12.1 — The untouched side
+## 1.13.0 — Judgment foundations, without a human score
 
-The live frozen bench's five hidden-extraction misses shared one shape:
-the model captured a premise about the action's own mechanics (will new
-signups accept prepay?) while the planted assumption was about the side
-the decision does NOT touch (do CURRENT customers stay the year?).
-Instruction #3 now names the class — "the decision quietly bets that the
-part of the world it is not acting on keeps behaving" — with three
-anchors and a pre-draft question ("what does this plan assume stays true
-about what it leaves alone?"). Blind re-probe on three fresh cases in
-the class: the untouched-side premise was drafted in 2 of 3, with the
-third still a legitimate load-bearing pick (previously ~0/5).
+- Added the public `argus_record` semantic writer for four answerable record
+  shapes: a claim reality can answer, a commitment, a chosen standard, or a
+  moment preserved without a future return.
+- A model proposal can no longer become the user's judgment silently. Human
+  authorization and AI-adoption lineage are explicit ledger facts.
+- Preserved the first utterance, kind derivation evidence, review-condition
+  status, observation source, event trigger plus fallback date, and append-only
+  statement/kind corrections.
+- Return answers now keep reality, commitment, and question validity separate.
+  Event detection may invite one return, but never writes the answer.
+- Removed result aggregates from recall and continuity projections. Legacy
+  fields remain readable; Argus stores and shows no score for the person.
+- Hidden-assumption drafting learns the most-missed class — the UNTOUCHED
+  side: the decision quietly bets that the part of the world it is not acting
+  on keeps behaving. Named in instruction #3 with three anchors and a
+  pre-draft question; blind re-probe on fresh in-class cases went from ~0/5
+  to 2/3 untouched-side hits.
 
 ## 1.12.0 — Content sharpening + the logbook
 

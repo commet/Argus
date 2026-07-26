@@ -33,6 +33,11 @@ import type {
   Falsification,
   OpenCheck,
   JudgmentAttribution,
+  DecisionKind,
+  DecisionKindEvidence,
+  ReviewConditionStatus,
+  AdoptionLineage,
+  ContractSettlement,
 } from '@/stores/types';
 import type { HonestyFlag } from './honesty-scan';
 import { generateId } from './uuid';
@@ -123,6 +128,80 @@ export function webAiAttribution(now: number, sourceRef: string): JudgmentAttrib
     recorded_at: new Date(now).toISOString(),
     source_ref: sourceRef,
   };
+}
+
+export interface DecisionFoundationInput {
+  kind: DecisionKind;
+  derivedKind?: DecisionKind;
+  kindRule: string;
+  kindQuestion?: string;
+  kindAnswer?: string;
+  originUtterance: string;
+  reviewConditionStatus: ReviewConditionStatus;
+  reviewCondition?: string;
+  returnEvent?: string;
+  adoptionLineage?: AdoptionLineage[];
+}
+
+/** Stamp the philosophy-foundation fields at the authorial seal. A later
+ * correction changes the current projection but appends the earlier kind and
+ * evidence to `kind_corrections`, so history is never silently rewritten. */
+export function withDecisionFoundation(
+  contract: DecisionContract,
+  input: DecisionFoundationInput,
+  now: number,
+): DecisionContract {
+  const recordedAt = new Date(now).toISOString();
+  const existingKind = contract.kind;
+  const inferredKind = existingKind ?? input.derivedKind;
+  const userCorrected = inferredKind !== undefined && inferredKind !== input.kind;
+  const evidence: DecisionKindEvidence = {
+    source: userCorrected ? 'user_override' : 'wording_rule',
+    rule: input.kindRule,
+    ...(input.kindQuestion?.trim() ? { question: input.kindQuestion.trim() } : {}),
+    ...(input.kindAnswer?.trim() ? { answer: input.kindAnswer.trim() } : {}),
+    recorded_at: recordedAt,
+  };
+  const correction = userCorrected ? {
+    event: 'kind_corrected' as const,
+    from_kind: inferredKind!,
+    to_kind: input.kind,
+    corrected_at: recordedAt,
+    evidence,
+  } : null;
+
+  return {
+    ...contract,
+    kind: input.kind,
+    kind_evidence: evidence,
+    kind_corrections: correction
+      ? [...(contract.kind_corrections ?? []), correction]
+      : contract.kind_corrections,
+    origin_utterance: contract.origin_utterance ?? input.originUtterance.trim(),
+    review_condition_status: contract.review_condition_status ?? input.reviewConditionStatus,
+    ...((contract.review_condition ?? input.reviewCondition?.trim())
+      ? { review_condition: contract.review_condition ?? input.reviewCondition!.trim() }
+      : {}),
+    ...((contract.return_event ?? input.returnEvent?.trim())
+      ? { return_event: contract.return_event ?? input.returnEvent!.trim() }
+      : {}),
+    ...((contract.adoption_lineage ?? input.adoptionLineage)
+      ? { adoption_lineage: contract.adoption_lineage ?? input.adoptionLineage }
+      : {}),
+  };
+}
+
+export function decisionKind(contract: Pick<DecisionContract, 'kind'> | null | undefined): DecisionKind {
+  return contract?.kind ?? 'prediction';
+}
+
+/** Append one authorial return. No aggregate, win/loss, or score is derived or
+ * stored here; projections may show the three axes separately. */
+export function appendContractSettlement(
+  contract: DecisionContract,
+  settlement: ContractSettlement,
+): DecisionContract {
+  return { ...contract, settlements: [...(contract.settlements ?? []), settlement] };
 }
 
 /** Stable id for an open check (djb2 of its text) — the settle-verdict join key. */
@@ -486,6 +565,99 @@ export function withCheckIn(
   };
 }
 
+/** Witness records deliberately create no return. If an early rope already
+ * carried a date, preserve it in append-only history before removing the active
+ * projection so no reminder or due item can be generated. */
+export function withoutReturn(contract: DecisionContract, now: number): DecisionContract {
+  const hadReturn = Boolean(contract.check_in_at || contract.check_in_interval || contract.primary_checkpoint);
+  const next: DecisionContract = {
+    ...contract,
+    ...(hadReturn ? {
+      history: [
+        ...(contract.history ?? []),
+        {
+          check_in_at: contract.check_in_at,
+          check_in_interval: contract.check_in_interval,
+          amended_at: new Date(now).toISOString(),
+        },
+      ],
+    } : {}),
+  };
+  delete next.check_in_at;
+  delete next.check_in_interval;
+  delete next.primary_checkpoint;
+  delete next.return_event;
+  delete next.reminder_sent_at;
+  delete next.telegram_reminder_sent_at;
+  return next;
+}
+
+/** Append a post-seal wording revision. The sealed source and first utterance
+ * are never overwritten; readers project the latest `to_statement`. */
+export function reviseContractStatement(
+  contract: DecisionContract,
+  nextStatement: string,
+  reason: string | undefined,
+  now: number,
+): DecisionContract {
+  const previous = contract.statement_revisions?.at(-1)?.to_statement
+    || contract.judgment_receipt?.human_judgment
+    || contract.predicates.find((predicate) => predicate.source === 'user_lean')?.text
+    || contract.predicates[0]?.text
+    || contract.origin_utterance
+    || '';
+  const next = nextStatement.trim();
+  if (!next || next === previous.trim()) return contract;
+  return {
+    ...contract,
+    statement_revisions: [
+      ...(contract.statement_revisions ?? []),
+      {
+        event: 'statement_revised',
+        from_statement: previous.trim(),
+        to_statement: next,
+        ...(reason?.trim() ? { reason: reason.trim() } : {}),
+        recorded_at: new Date(now).toISOString(),
+      },
+    ],
+  };
+}
+
+/** Correct the current speech-act projection while preserving the earlier
+ * derivation. Changing to witness also removes every future-return handle. */
+export function correctContractKind(
+  contract: DecisionContract,
+  nextKind: DecisionKind,
+  now: number,
+): DecisionContract {
+  const previous = decisionKind(contract);
+  if (previous === nextKind) return contract;
+  const recordedAt = new Date(now).toISOString();
+  const evidence: DecisionKindEvidence = {
+    source: 'user_override',
+    rule: 'post_seal_user_correction',
+    question: 'What kind of record is this?',
+    answer: nextKind,
+    recorded_at: recordedAt,
+  };
+  const corrected: DecisionContract = {
+    ...contract,
+    kind: nextKind,
+    kind_evidence: evidence,
+    kind_corrections: [
+      ...(contract.kind_corrections ?? []),
+      {
+        event: 'kind_corrected',
+        from_kind: previous,
+        to_kind: nextKind,
+        corrected_at: recordedAt,
+        evidence,
+      },
+    ],
+  };
+  return nextKind === 'witness' ? withoutReturn(corrected, now) : corrected;
+}
+
 /**
  * Phase 1 BIND — "tie the rope before you hear the Sirens". Build a contract at
  * project-OPEN, BEFORE any AI generation, from the user's own optional lean + an
@@ -500,7 +672,7 @@ export function withCheckIn(
  *                   ears open"). A predicate-less contract is NOT counted as a closed
  *                   loop (contractStatus.allGraded is false when total===0) and
  *                   resurfaces at the date; the late SealMoment AUGMENTs it with the
- *                   run's predicates so it becomes gradeable.
+ *                   run's predicates so the user has something concrete to answer.
  */
 export function buildEarlyContract(
   projectId: string,
@@ -671,13 +843,28 @@ export interface ContractStatus {
 }
 
 export function contractStatus(contract: DecisionContract, now: number): ContractStatus {
+  // A witness deliberately creates no return. Foundation returns close by
+  // appending one settlement, while legacy records continue to project their
+  // predicate verdicts for read compatibility.
+  if (contract.kind === 'witness') {
+    return {
+      total: 0,
+      graded: 0,
+      pending: 0,
+      allGraded: true,
+      checkInDue: false,
+      daysUntilCheckIn: null,
+    };
+  }
+  const foundationSettled = (contract.settlements?.length ?? 0) > 0;
+
   // Defensive: remote/old/merged data may carry a malformed contract
   // (missing or non-array predicates). Never throw mid-render.
   const preds = requiredSettlementPredicates(contract);
   const total = preds.length;
   const graded = preds.filter(isResolved).length;
   const pending = total - graded;
-  const allGraded = total > 0 && pending === 0;
+  const allGraded = foundationSettled || (total > 0 && pending === 0);
 
   let daysUntilCheckIn: number | null = null;
   let checkInDue: boolean;
@@ -695,7 +882,7 @@ export function contractStatus(contract: DecisionContract, now: number): Contrac
     checkInDue = currentDay >= targetDay && !allGraded;
   } else {
     // No date promised → resurfaces whenever something is ungraded.
-    checkInDue = !allGraded && total > 0;
+    checkInDue = !allGraded && (total > 0 || Boolean(contract.kind));
   }
   return { total, graded, pending, allGraded, checkInDue, daysUntilCheckIn };
 }

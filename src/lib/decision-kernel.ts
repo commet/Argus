@@ -18,7 +18,14 @@ export {
   SemanticEventSchema,
 } from '../../argus-mcp/dist/v3/types.js';
 
+export {
+  DECISION_KINDS,
+  deriveDecisionKind,
+} from '../../argus-mcp/dist/v3/kind.js';
+
 // The runtime always uses the built artifact above. These erased imports only
 // retain the precise source declarations for web TypeScript consumers.
 export type { JudgmentProjection, SemanticState } from '../../argus-mcp/src/v3/reducer.js';
 export type { Resolution, SemanticEvent, SemanticEventName } from '../../argus-mcp/src/v3/types.js';
+export type { DecisionKind } from '../../argus-mcp/src/v3/types.js';
+export type { DecisionKindRule, DerivedDecisionKind } from '../../argus-mcp/src/v3/kind.js';

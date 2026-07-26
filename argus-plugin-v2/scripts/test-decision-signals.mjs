@@ -176,24 +176,6 @@ test("recall: once per previous session", () => {
 });
 
 // ── unit: trackRecord (self-improvement loop) ───────────────────────────────
-test("trackRecord: no ledger → null", () =>
-  assert.equal(sig.trackRecord(tmp("argus-ds-cwd-")), null));
-test("trackRecord: counts sealed/settled/held/luck", () => {
-  const cwd = tmp("argus-ds-cwd-");
-  ledger(cwd, [
-    { event: "seal", id: "a", predicate: "x" },
-    { event: "seal", id: "b", predicate: "y" },
-    { event: "settle", id: "a", outcome: "happened", basis: "reasoned" },
-    { event: "settle", id: "b", outcome: "happened", basis: "luck" },
-  ]);
-  assert.deepEqual(sig.trackRecord(cwd), { sealed: 2, settled: 2, held: 2, luck: 1 });
-});
-test("trackRecord: dismiss removes a bet", () => {
-  const cwd = tmp("argus-ds-cwd-");
-  ledger(cwd, [{ event: "seal", id: "a" }, { event: "dismiss", id: "a" }]);
-  assert.deepEqual(sig.trackRecord(cwd), { sealed: 0, settled: 0, held: 0, luck: 0 });
-});
-
 // ── integration: commit-signal (action signal) ──────────────────────────────
 test("commit: anchored + git commit → nudge", () => {
   const cfg = tmp("argus-ds-cfg-"); anchorOn(cfg, "c1");
@@ -216,7 +198,7 @@ test("commit: once per session (shared waked marker)", () => {
 });
 
 // ── integration: anchor self-improvement injection ──────────────────────────
-test("anchor: injects track record when settled>=2", () => {
+test("anchor: never injects outcome aggregates even when history exists", () => {
   const cfg = tmp("argus-ds-cfg-"); const cwd = tmp("argus-ds-cwd-");
   ledger(cwd, [
     { event: "seal", id: "a" }, { event: "seal", id: "b" },
@@ -224,8 +206,7 @@ test("anchor: injects track record when settled>=2", () => {
     { event: "settle", id: "b", outcome: "avoided", basis: "luck" },
   ]);
   const out = runHook(ANCHOR, { session_id: "loop1", user_message: "할까 말까 고민", cwd }, cfg);
-  assert.match(out, /track record/i);
-  assert.match(out, /2 sealed/);
+  assert.ok(!/track record|2 sealed|held|luck/i.test(out));
 });
 test("anchor: no track record when settled<2", () => {
   const cfg = tmp("argus-ds-cfg-"); const cwd = tmp("argus-ds-cwd-");
@@ -260,15 +241,6 @@ test("recall: sanitizes injected prior text (strips leading [Argus], frames as d
 });
 
 // ── trackRecord luck semantics + cwd fallback ───────────────────────────────
-test("trackRecord: luck counts only among held bets", () => {
-  const cwd = tmp("argus-ds-cwd-");
-  ledger(cwd, [
-    { event: "seal", id: "a" }, { event: "seal", id: "b" },
-    { event: "settle", id: "a", outcome: "avoided", basis: "luck" },   // not held → not luck
-    { event: "settle", id: "b", outcome: "happened", basis: "luck" },  // held + luck
-  ]);
-  assert.deepEqual(sig.trackRecord(cwd), { sealed: 2, settled: 2, held: 1, luck: 1 });
-});
 test("anchor: survives missing cwd (process.cwd fallback, no crash)", () => {
   const cfg = tmp("argus-ds-cfg-");
   const out = runHook(ANCHOR, { session_id: "nocwd", user_message: "할까 말까 고민" }, cfg);

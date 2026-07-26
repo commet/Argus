@@ -1,7 +1,7 @@
 {
   "name": "argus-decision-mcp",
-  "version": "1.12.1",
-  "description": "Argus decision-accountability MCP server — clarify a decision, save a falsifiable prediction, and record what reality did. The model never grades you.",
+  "version": "1.13.0",
+  "description": "Argus judgment-record MCP — preserve a user-authorized statement, its return condition, and later answers without scoring the person.",
   "type": "module",
   "main": "dist/index.js",
   "mcpName": "io.github.commet/argus-decision-mcp",
@@ -77,6 +77,7 @@
   },
   "overrides": {
     "@hono/node-server": "^2.0.5",
-    "fast-uri": "^3.1.4"
+    "fast-uri": "^3.1.4",
+    "postcss": "8.5.23"
   }
 }
