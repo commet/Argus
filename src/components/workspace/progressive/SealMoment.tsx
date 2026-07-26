@@ -140,6 +140,7 @@ export function SealMoment({
     return null;
   });
   const { user, session, signInWithGoogle } = useAuth();
+  const [signInError, setSignInError] = useState<string | null>(null);
 
   /** §3.4 — the decision's premises become tracked items at seal (auto, not a
    *  manual import). Idempotent + spine-safe (external:false → alert OFF). */
@@ -707,9 +708,11 @@ export function SealMoment({
               follows them into the account. Local seal stays lossless either way. */}
           {!user && (
             <button
-              onClick={() => {
+              onClick={async () => {
                 track('seal_signin_cta', { placement: 'sealed' });
-                signInWithGoogle('/workspace');
+                setSignInError(null);
+                const result = await signInWithGoogle('/workspace');
+                if (result.error) setSignInError(result.error);
               }}
               className="mt-4 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-[13px] font-semibold text-[var(--accent-fg)] cursor-pointer transition-transform hover:scale-[1.02]"
               style={{ background: 'var(--gradient-gold)' }}
@@ -717,6 +720,11 @@ export function SealMoment({
               <Anchor size={14} />
               {L('로그인하고 어디서나 이어보기', 'Sign in to keep this everywhere')}
             </button>
+          )}
+          {signInError && (
+            <p role="alert" className="mt-2 text-[12px] text-[var(--danger)]">
+              {signInError}
+            </p>
           )}
 
           <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
