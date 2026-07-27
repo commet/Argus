@@ -4,6 +4,18 @@ All notable changes to the Argus plugin. Versioning follows
 [semver](https://semver.org); users receive an update only when the
 `version` in `.claude-plugin/plugin.json` is bumped.
 
+## 2.21.1 — 2026-07-27
+
+- **The return loop stops hiding which wire answered.** `/argus:check` routed
+  straight to a file-only ledger replay, so a session with the MCP server
+  disconnected — or running a stale cached build — got the same confident
+  answer as a live one, and neither `server_version` nor `picker` was
+  reachable from the command a user actually types. `resolve` now prefers
+  `argus_check_in` when the tools are present (same replay the server does,
+  plus bearing seeds), flags a version disagreement in one line, and says
+  "MCP 미연결 — 파일 기록만 읽었습니다" when it falls back. Found by founder
+  dogfooding immediately after the 1.15.0 ship.
+
 ## 2.21.0 — 2026-07-27
 
 - Wire moves to `argus-decision-mcp@1.15.0` — the settle picker becomes an
