@@ -4,6 +4,40 @@ All notable changes to the Argus plugin. Versioning follows
 [semver](https://semver.org); users receive an update only when the
 `version` in `.claude-plugin/plugin.json` is bumped.
 
+## 2.21.3 — 2026-07-28
+
+- Wire moves to `argus-decision-mcp@1.15.2` — three live defects found by
+  adversarial audit are fixed: long picker answers are no longer destroyed,
+  an unreadable ledger refuses writes instead of allowing a duplicate seal,
+  and the settle card is now actually executed by a gate.
+
+## 2.21.2 — 2026-07-27
+
+- Wire moves to `argus-decision-mcp@1.15.1` — the confirm picker carries no
+  validation constraints (a blank one-tap Accept can no longer be blocked by
+  the host), and a picker that closes without an answer offers the plain-text
+  save instead of dropping the user's work.
+
+## 2.21.1 — 2026-07-27
+
+- **`/argus:doctor` stops crying wolf about npx caches.** A machine with eight
+  leftover installs printed six `⚠ 낡은 배선이다` lines while the session was
+  correctly on the pinned build. That warning's premise died when the pin
+  became exact — a stale copy cannot be selected. With the pin present in
+  cache, stale copies now collapse to one quiet line; the loud warning is
+  reserved for the case that still bites (pin absent). Guarded by
+  `doctor-cache-noise.test.mjs`.
+
+- **The return loop stops hiding which wire answered.** `/argus:check` routed
+  straight to a file-only ledger replay, so a session with the MCP server
+  disconnected — or running a stale cached build — got the same confident
+  answer as a live one, and neither `server_version` nor `picker` was
+  reachable from the command a user actually types. `resolve` now prefers
+  `argus_check_in` when the tools are present (same replay the server does,
+  plus bearing seeds), flags a version disagreement in one line, and says
+  "MCP 미연결 — 파일 기록만 읽었습니다" when it falls back. Found by founder
+  dogfooding immediately after the 1.15.0 ship.
+
 ## 2.21.0 — 2026-07-27
 
 - Wire moves to `argus-decision-mcp@1.15.0` — the settle picker becomes an

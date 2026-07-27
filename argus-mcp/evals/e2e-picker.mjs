@@ -33,12 +33,58 @@ let elicitCount = 0;
 let nextResp = { action: 'accept', content: {} };
 let lastElicitMessage = '';
 
+/**
+ * A STRICT host, on purpose (2026-07-27, second dogfooding failure).
+ *
+ * This harness used to accept whatever the scripted answer was, without ever
+ * checking it against the schema the server sent. Real hosts are not that
+ * kind: they VALIDATE the form before letting Accept through. So when 1.14.0
+ * put `format:"date"` on an optional field, the blank a one-tap Accept leaves
+ * behind became a format violation on the founder's machine — Accept stopped
+ * advancing and the ask died by timeout — while this harness stayed green.
+ *
+ * A harness more permissive than the client it stands in for is not a test.
+ * From here on, an answer that a validating host would REJECT fails the run.
+ */
+function hostWouldReject(schema, content) {
+  const props = (schema && schema.properties) || {};
+  const req = (schema && schema.required) || [];
+  for (const key of req) {
+    const v = content?.[key];
+    if (v === undefined || v === '') return `required field "${key}" left empty — a validating host blocks Accept here`;
+  }
+  for (const [key, spec] of Object.entries(props)) {
+    const v = (content || {})[key];
+    // ABSENT COUNTS AS BLANK. A host renders every declared property, so the
+    // one-tap Accept the user actually performs submits an EMPTY field — the
+    // scripted answer omitting the key models the same user gesture. Treating
+    // "absent" as fine is precisely how this harness missed format:"date"
+    // the first time; the check must fail on the gesture, not on our encoding.
+    if (spec && spec.format && (v === '' || v === undefined)) {
+      return `field "${key}" declares format:"${spec.format}" but a one-tap Accept leaves it blank — a validating host blocks Accept here`;
+    }
+    if (!(key in (content || {}))) continue; // unconstrained + absent is fine
+    if (spec && spec.enum && v !== undefined && v !== '' && !spec.enum.includes(v)) {
+      return `field "${key}" value "${v}" is not in the declared enum`;
+    }
+  }
+  return null;
+}
+
 const client = new Client({ name: 'e2e-picker', version: '1.0.0' }, { capabilities: { elicitation: {} } });
 client.setRequestHandler(
   ElicitRequestSchema,
   async (req) => {
     elicitCount++;
     lastElicitMessage = String(req.params?.message ?? '');
+    if (nextResp.action === 'accept') {
+      const why = hostWouldReject(req.params?.requestedSchema, nextResp.content);
+      if (why) {
+        console.log(`  FAIL 픽커가 검증하는 호스트에서 막힌다 — ${why}`);
+        console.log(`       schema: ${JSON.stringify(req.params?.requestedSchema ?? {}).slice(0, 200)}`);
+        process.exitCode = 1;
+      }
+    }
     return nextResp;
   },
 );

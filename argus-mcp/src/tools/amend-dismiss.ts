@@ -3,6 +3,7 @@ import { bearingPath } from '../lib/layout.js';
 import { resolveToolArgusDir } from '../lib/argus-dir.js';
 import { resolveToday, logicalNow } from '../lib/resolve-today.js';
 import { resolveContract } from '../lib/resolve-contract.js';
+import { refuseIfLedgerUnreadable } from '../lib/ledger-readable.js';
 import { guardTransition } from '../lib/state-machine.js';
 import { validateSeal } from '../lib/validate-seal.js';
 import { appendLedger, withLedgerLock } from '../lib/ledger-append.js';
@@ -37,6 +38,8 @@ export const amend: ToolModule = {
       const id = String(a['id'] ?? '');
       const today = resolveToday({ override: a['today_override'] as string | undefined });
       const current = resolveContract(dir, id, today);
+      const blind0 = refuseIfLedgerUnreadable('argus_amend', current);
+      if (blind0) return blind0;
       guardTransition(current.state, 'amend'); // GOALPOST_MOVED / DECISION_CLOSED / ILLEGAL_TRANSITION
 
       // Goalpost guard, extended past the `due` state: a still_pending defer
@@ -130,6 +133,8 @@ export const dismiss: ToolModule = {
       const id = String(a['id'] ?? '');
       const today = resolveToday({ override: a['today_override'] as string | undefined });
       const current = resolveContract(dir, id, today);
+      const blind1 = refuseIfLedgerUnreadable('argus_dismiss', current);
+      if (blind1) return blind1;
       guardTransition(current.state, 'dismiss');
 
       const now = logicalNow(today, !!a['today_override']);

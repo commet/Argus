@@ -3,6 +3,7 @@ import { resolveToolArgusDir } from '../lib/argus-dir.js';
 import { replayLedger } from '../lib/ledger-replay.js';
 import { resolveToday, logicalNow } from '../lib/resolve-today.js';
 import { resolveContract } from '../lib/resolve-contract.js';
+import { refuseIfLedgerUnreadable } from '../lib/ledger-readable.js';
 import { guardTransition } from '../lib/state-machine.js';
 import { appendLedger, withLedgerLock, type LedgerEventInput } from '../lib/ledger-append.js';
 import {
@@ -176,6 +177,8 @@ export const premises: ToolModule = {
       }
 
       const current = resolveContract(dir, id, today);
+      const blind = refuseIfLedgerUnreadable('argus_premises', current);
+      if (blind) return blind;
       const existing: PremiseState[] = current.entry?.premises ?? [];
 
       if (op === 'add') return await opAdd(dir, id, today, now, current.state, existing, a);
@@ -497,7 +500,7 @@ async function opResolve(
         : `Your open question on this decision: "${premise.text}". What is your call now, in your own words? (You can also leave it open.)`,
       // 필수 필드 없음 — 빈 채 Accept는 아래 `if (!decision)`가 정직하게
       // 되묻는다. "아직 못 정했다"도 유효한 답이므로 폼이 막아선 안 된다.
-      { type: 'object', properties: { decision: { type: 'string', maxLength: 400, description: qLocale === 'ko' ? '당신의 판단, 당신의 표현. (아직이면 비워두고 Accept)' : 'Your call, your words. (Leave blank and Accept if still undecided.)' } } },
+      { type: 'object', properties: { decision: { type: 'string', description: qLocale === 'ko' ? '당신의 판단, 당신의 표현. (아직이면 비워두고 Accept)' : 'Your call, your words. (Leave blank and Accept if still undecided.)' } } },
     );
     decision = typeof got?.['decision'] === 'string' ? (got['decision'] as string).trim() : '';
   }

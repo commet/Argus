@@ -3,6 +3,7 @@ import { sessionFilePath } from '../lib/layout.js';
 import { resolveToolArgusDir } from '../lib/argus-dir.js';
 import { resolveToday, logicalNow } from '../lib/resolve-today.js';
 import { resolveContract } from '../lib/resolve-contract.js';
+import { refuseIfLedgerUnreadable } from '../lib/ledger-readable.js';
 import { overfireGate, type Stakes, type Reversibility } from '../lib/overfire-gate.js';
 import { validateCrux } from '../lib/validate-crux.js';
 import { computeContinuity } from '../lib/continuity.js';
@@ -59,6 +60,8 @@ export const openDecision: ToolModule = {
       const T = SURFACES[locale].tools.open_decision;
 
       const current = resolveContract(dir, id, today);
+      const blind = refuseIfLedgerUnreadable('argus_open_decision', current);
+      if (blind) return blind;
       if (a['already_decided'] === true && (current.state === 'sealed' || current.state === 'due' || current.state === 'settled')) {
         return toolError({
           ok: false, tool: 'argus_open_decision', error_code: 'ALREADY_CLOSED',

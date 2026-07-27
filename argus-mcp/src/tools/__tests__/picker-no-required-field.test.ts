@@ -32,17 +32,45 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const TOOLS_DIR = path.resolve(here, '..');
 const LIB_DIR = path.resolve(here, '..', '..', 'lib');
 
-/** `required:` 가 elicit 스키마 안에 선언된 자리를 찾는다. */
+/**
+ * 픽커 스키마 안의 **검증 제약**을 찾는다 — `required:` 와 `format:`.
+ *
+ * `format`이 왜 같은 계급인가 (2026-07-27, 두 번째 도그푸딩 실패): 1.14.0이
+ * `check_by`에 `format:"date"`를 "스펙이 허용하는 무해한 렌더링 힌트"라며 넣었다.
+ * 그런데 format을 **검증하는** 호스트에서는 원탭 Accept가 남기는 **빈 칸**이
+ * 날짜 형식 위반이 되어 Accept가 아예 안 먹고, 물음이 시간초과로 죽는다.
+ * required와 정확히 같은 실패 — 서버가 없앤 막다름이 클라이언트로 자리만 옮긴 것.
+ *
+ * 규칙: 확인 픽커의 필드에는 **검증 제약을 두지 않는다.** 값은 서버가 받아서
+ * 검증하고(정직한 되물음), 폼은 무엇도 막지 않는다.
+ */
 function requiredDeclarations(file: string): string[] {
   const text = fs.readFileSync(file, 'utf8');
   const lines = text.split('\n');
   const hits: string[] = [];
   lines.forEach((line, i) => {
-    if (!/(^|[^\w])required:\s*\[/.test(line)) return;
+    // 주석 줄은 제외 — 이 규칙을 *설명하는* 주석("format:\"date\"를 넣지 마라")이
+    // 스스로를 위반으로 잡으면, 규칙을 기록한 사람이 벌을 받는다.
+    if (/^\s*(\/\/|\*|\/\*)/.test(line)) return;
+    // EVERY validation keyword, not just the two that already bit us. The MCP
+    // SDK validates the returned content against this schema INSIDE our own
+    // process (server/index.js, ajv with validateFormats), so any constraint we
+    // declare is enforced even on a permissive host — and the throw becomes a
+    // lost answer. maxLength was live in two pickers when this was written.
+    if (!/(^|[^\w])(required|format|maxLength|minLength|pattern|minimum|maximum|multipleOf|enum)\s*:/.test(line)) return;
     // zod 스키마/JSON Schema 상수가 아니라 elicit 호출 안인지 — 앞 40줄에
     // elicit( 가 있고 그 사이에 닫는 `);` 가 없으면 픽커 스키마로 본다.
     const before = lines.slice(Math.max(0, i - 40), i).join('\n');
-    const lastElicit = before.lastIndexOf('elicit(');
+    // The outcome/when enum IS the question on the settle pickers — a closed
+    // five-way choice is the whole point there, and the user cannot submit a
+    // value outside it, so it can never block a legitimate answer.
+    if (/enum\s*:/.test(line) && /\b(outcome|when)\s*:\s*\{/.test(before)) return;
+    // `lastIndexOf('elicit(')` missed `elicitDetailed(` — so the seal confirm,
+    // the picker that blocked the founder twice, was invisible to its own guard
+    // (found by adversarial audit 2026-07-27). Match any elicit* call.
+    const m = /(?:^|[^A-Za-z0-9_])elicit\w*\(/g;
+    let lastElicit = -1, hit;
+    while ((hit = m.exec(before)) !== null) lastElicit = hit.index;
     if (lastElicit === -1) return;
     const between = before.slice(lastElicit);
     if (/^\s*\);\s*$/m.test(between)) return;
@@ -57,13 +85,13 @@ function sourceFiles(dir: string): string[] {
     .map((f) => path.join(dir, f));
 }
 
-describe('확인 픽커는 필수 필드를 두지 않는다', () => {
-  it('어떤 elicit 스키마도 required를 선언하지 않는다', () => {
+describe('확인 픽커는 검증 제약(required·format)을 두지 않는다', () => {
+  it('어떤 elicit 스키마도 required/format을 선언하지 않는다', () => {
     const files = [...sourceFiles(TOOLS_DIR), ...sourceFiles(LIB_DIR)];
     const offenders = files.flatMap(requiredDeclarations);
     expect(
       offenders,
-      '픽커에 필수 필드가 있으면 호스트가 접어서 렌더하고(펼치기 키 추가), 빈 Accept를 폼 안에서 빨갛게 막는다 — 서버가 정직하게 되묻게 두라',
+      '픽커에 검증 제약이 있으면 호스트가 빈 Accept를 폼 안에서 막는다 (required=빨간 경고, format=빈 칸이 형식 위반) — 서버가 정직하게 되묻게 두라',
     ).toEqual([]);
   });
 
@@ -78,6 +106,14 @@ describe('확인 픽커는 필수 필드를 두지 않는다', () => {
     ].join('\n'), 'utf8');
     try {
       expect(requiredDeclarations(fixture).length, '가드가 눈이 멀었다면 이 픽스처를 놓친다').toBe(1);
+      // format도 같은 계급 — 1.14.0이 실제로 이걸 통과시켰다.
+      fs.writeFileSync(fixture, [
+        'const picked = await elicit("q", {',
+        '  type: "object",',
+        '  properties: { check_by: { type: "string", format: "date" } },',
+        '});',
+      ].join('\n'), 'utf8');
+      expect(requiredDeclarations(fixture).length, 'format 제약도 잡아야 한다').toBe(1);
     } finally {
       fs.rmSync(fixture, { force: true });
     }

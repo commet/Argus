@@ -213,7 +213,7 @@ async function fire(dir: string, todayOverride?: string): Promise<void> {
             // 기록하지 않는다(날조 금지). 폼이 막을 일이 아니다.
             properties: {
               what_happened: {
-                type: 'string', maxLength: 600,
+                type: 'string',
                 description: ko ? '당신의 말, 그대로.' : 'Your words, verbatim.',
               },
             },
