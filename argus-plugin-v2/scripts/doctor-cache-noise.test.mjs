@@ -21,6 +21,12 @@ import { fileURLToPath } from 'node:url';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const DOCTOR = path.join(HERE, 'doctor.js');
+const MCP_CONFIG = path.join(HERE, '..', '.mcp.json');
+const MCP_SPEC = Object.values(JSON.parse(fs.readFileSync(MCP_CONFIG, 'utf8')).mcpServers)
+  .flatMap((server) => server.args || [])
+  .find((arg) => typeof arg === 'string' && arg.startsWith('argus-decision-mcp@'));
+const PIN = MCP_SPEC?.slice('argus-decision-mcp@'.length);
+assert.match(PIN || '', /^\d+\.\d+\.\d+$/, 'plugin MCP must use an exact semver pin');
 
 function runDoctor(cacheRoot, pin) {
   const repo = fs.mkdtempSync(path.join(os.tmpdir(), 'argus-doc-repo-'));
@@ -61,10 +67,10 @@ console.log('doctor [10] 캐시 노이즈 계약\n');
 
 // ① 핀이 캐시에 있음 + 낡은 사본 다수 → 접힘, 경고 없음
 {
-  const cache = makeCache(['1.15.0', '1.3.0', '1.4.2', '1.5.0']);
-  const out = runDoctor(cache, '1.15.0');
+  const cache = makeCache([PIN, '1.3.0', '1.4.2', '1.5.0']);
+  const out = runDoctor(cache, PIN);
   const block = out.slice(out.indexOf('[10]'));
-  check('일치 사본은 그대로 보인다', /캐시 1\.15\.0 \(핀과 일치\)/.test(block), block.slice(0, 400));
+  check('일치 사본은 그대로 보인다', block.includes(`캐시 ${PIN} (핀과 일치)`), block.slice(0, 400));
   check('낡은 사본은 한 줄로 접힌다', /낡은 사본 3개 \(1\.3\.0, 1\.4\.2, 1\.5\.0\)/.test(block), block.slice(0, 400));
   check('접혔을 때 낡은-배선 경고가 없다', !/낡은 배선이다/.test(block), block.slice(0, 400));
   fs.rmSync(cache, { recursive: true, force: true });
@@ -73,10 +79,10 @@ console.log('doctor [10] 캐시 노이즈 계약\n');
 // ② 핀이 캐시에 없음 → 예전처럼 각 줄 경고 (진짜 위험한 경우는 여전히 크게)
 {
   const cache = makeCache(['1.3.0', '1.5.0']);
-  const out = runDoctor(cache, '1.15.0');
+  const out = runDoctor(cache, PIN);
   const block = out.slice(out.indexOf('[10]'));
   check('핀 부재 시 사본마다 경고한다', (block.match(/낡은 배선이다/g) || []).length === 2, block.slice(0, 400));
-  check('핀이 캐시에 없다는 사실도 말한다', /핀한 1\.15\.0이 캐시에 없다/.test(block), block.slice(0, 400));
+  check('핀이 캐시에 없다는 사실도 말한다', block.includes(`핀한 ${PIN}이 캐시에 없다`), block.slice(0, 400));
   fs.rmSync(cache, { recursive: true, force: true });
 }
 
