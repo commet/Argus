@@ -209,6 +209,54 @@ async function runProfile(name) {
       ok(name, 'E2 no dead end (I1)', !isDeadEnd(sc) || sc?.ok === false, `surface="${String(sc?.surface).slice(0, 120)}"`);
     }
 
+    // ── E2. the DEFER ask (still_pending) — its own picker, its own dead end ─
+    {
+      await call('argus_seal', { id: 'defer', predicate: '특허 심사 결과가 나온다는 예측이다', check_by: '2026-07-10', predicate_owner: 'user', today_override: T0 });
+      const { sc, isError } = await call('argus_settle', { id: 'defer', outcome: 'still_pending', outcome_source: 'user_stated', today_override: '2026-07-15' });
+      ok(name, 'E2-1 no crash', !isError || typeof sc?.error_code === 'string', JSON.stringify(sc).slice(0, 160));
+      const deferred = typeof sc?.data?.deferred_to === 'string';
+      const honestRefusal = sc?.ok === false && typeof sc?.recovery === 'string' && sc.recovery.length > 0;
+      // Either it got a new date, or it said plainly that it needs one. Never both-nor.
+      ok(name, 'E2-2 defer either lands a date or asks honestly (I1)', deferred || honestRefusal, `deferred_to=${sc?.data?.deferred_to} code=${sc?.error_code}`);
+      ok(name, 'E2-3 a deferred item is never reported as settled (I4)', !sc?.data?.outcome || sc.data.outcome === 'still_pending', `outcome=${sc?.data?.outcome}`);
+    }
+
+    // ── E3. the PREMISE confirm — an ai_surfaced draft the user must approve ─
+    {
+      await call('argus_seal', { id: 'pdraft', predicate: '4분기 마진 20%를 지킨다는 예측이다', check_by: '2026-12-31', predicate_owner: 'user', today_override: T0 });
+      const { sc, isError } = await call('argus_premises', {
+        id: 'pdraft', op: 'add', today_override: T0,
+        premises: [{ text: '환율이 1,400원 아래에 머문다', kind: 'premise', external: true, load_bearing: true, source: 'ai_surfaced', ai_original: '환율이 1,400원 아래에 머문다' }],
+      });
+      ok(name, 'E3-1 no crash', !isError || typeof sc?.error_code === 'string', JSON.stringify(sc).slice(0, 160));
+      ok(name, 'E3-2 no dead end (I1)', !isDeadEnd(sc) || sc?.ok === false, `surface="${String(sc?.surface).slice(0, 120)}"`);
+      // I4 — an AI draft the user merely approved must NOT become "the user's words".
+      const { sc: view } = await call('argus_recall', { view: 'premises', id: 'pdraft', today_override: T0 });
+      const p = (view?.data?.premises ?? []).find((x) => String(x.text).includes('환율'));
+      if (p) ok(name, 'E3-3 approving a draft never forges authorship (I4)', p.source === 'ai_surfaced' || p.edited_by_user === true, `source=${p.source}`);
+    }
+
+    // ── E4. re-settling an already-settled record — must refuse, not corrupt ─
+    {
+      await call('argus_seal', { id: 'twice', predicate: '두 번 정산을 시도하는 예측 문장이다', check_by: '2026-07-10', predicate_owner: 'user', today_override: T0 });
+      await call('argus_settle', { id: 'twice', outcome: 'held', outcome_source: 'user_stated', what_happened: '처음 기록', today_override: '2026-07-15' });
+      const { sc } = await call('argus_settle', { id: 'twice', outcome: 'missed', outcome_source: 'user_stated', what_happened: '덮어쓰기 시도', today_override: '2026-07-16' });
+      ok(name, 'E4-1 a second settle is refused, not silently overwritten (I4)', sc?.ok === false && sc?.error_code === 'ALREADY_SETTLED', `code=${sc?.error_code}`);
+      const { sc: r } = await call('argus_recall', { view: 'contracts', today_override: '2026-07-16' });
+      const row = (r?.data?.contracts ?? []).find((c) => c.id === 'twice');
+      ok(name, 'E4-2 the first answer survives the attempt (I2)', row?.outcome === 'held', `outcome=${row?.outcome}`);
+    }
+
+    // ── E5. two asks in flight at once — the ledger must not interleave ──────
+    {
+      const seals = await Promise.all([1, 2, 3].map((n) =>
+        call('argus_seal', { id: `race${n}`, predicate: `동시 호출 ${n}번째 예측 문장이다`, check_by: '2026-09-01', predicate_owner: 'user', today_override: T0 })));
+      ok(name, 'E5-1 concurrent seals all succeed (I5)', seals.every((s) => !s.isError), seals.map((s) => s.sc?.error_code).join(','));
+      const { sc: r } = await call('argus_recall', { view: 'contracts', today_override: T0 });
+      const ids = new Set((r?.data?.contracts ?? []).map((c) => c.id));
+      ok(name, 'E5-2 no concurrent write is lost (I2)', ['race1', 'race2', 'race3'].every((i) => ids.has(i)), [...ids].join(','));
+    }
+
     // ── F. the tool list matches what the host declared ─────────────────────
     {
       const tools = await client.listTools();

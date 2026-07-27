@@ -38,7 +38,9 @@
     "prepublishOnly": "npm run typecheck && npm test && npm audit --omit=dev",
     "eval:premises": "node evals/run-premises.mjs",
     "eval:p5": "tsx evals/p5-gate.ts",
-    "arch": "npm run build && node evals/architecture-review.mjs"
+    "arch": "npm run build && node evals/architecture-review.mjs",
+    "verify": "node evals/verify-all.mjs",
+    "matrix": "npm run build && node evals/host-matrix.mjs"
   },
   "keywords": [
     "mcp",
