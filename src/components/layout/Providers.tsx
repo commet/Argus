@@ -3,7 +3,7 @@
 import { useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import { stripLocale } from '@/lib/locale-path';
-import { AuthProvider } from '@/lib/auth';
+import { AuthProvider, useAuth } from '@/lib/auth';
 import { AccountSyncToast } from '@/components/ui/AccountSyncToast';
 import { SessionExpiredToast } from '@/components/ui/SessionExpiredToast';
 import { StorageErrorToast } from '@/components/ui/StorageErrorToast';
@@ -21,20 +21,25 @@ const MARKETING_PATHS = new Set(['/', '/login', '/terms', '/privacy']);
 
 function StoreInitializer() {
   const pathname = usePathname();
+  const { loading: authLoading } = useAuth();
   const loadAgents = useAgentStore(s => s.loadAgents);
   const loadSettings = useSettingsStore(s => s.loadSettings);
   const loadProjects = useProjectStore(s => s.loadProjects);
   const loadPersonas = usePersonaStore(s => s.loadData);
-  const isMarketing = MARKETING_PATHS.has(stripLocale(pathname ?? '/'));
+  const appPath = stripLocale(pathname ?? '/');
+  const isMarketing = MARKETING_PATHS.has(appPath);
+  const isAuthCallback = appPath.startsWith('/auth/callback');
 
   useEffect(() => {
     initErrorSensors(); // capture uncaught errors everywhere (incl. marketing pages)
-    if (isMarketing) return;
+    // Do not let store reads race the service-role anonymous→account transfer.
+    // AuthProvider keeps loading=true until claim + local migration finish.
+    if (isMarketing || isAuthCallback || authLoading) return;
     loadAgents();
     loadSettings();
     loadProjects();
     loadPersonas();
-  }, [isMarketing, loadAgents, loadSettings, loadProjects, loadPersonas]);
+  }, [isMarketing, isAuthCallback, authLoading, loadAgents, loadSettings, loadProjects, loadPersonas]);
 
   useEffect(() => {
     const retrySync = () => {
@@ -50,11 +55,38 @@ function StoreInitializer() {
   return null;
 }
 
+function AuthReadinessGate({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
+  const { loading } = useAuth();
+  const appPath = stripLocale(pathname ?? '/');
+  const canRenderWhileChecking = MARKETING_PATHS.has(appPath) || appPath.startsWith('/auth/callback');
+
+  // App pages have their own store-loading effects, so guarding only the shared
+  // StoreInitializer is insufficient. Keep the app surface unmounted until
+  // account ownership is settled. Marketing and the callback stay mounted
+  // because they drive authentication itself.
+  if (loading && !canRenderWhileChecking) {
+    const ko = pathname?.startsWith('/ko') === true;
+    return (
+      <div className="min-h-screen flex items-center justify-center" role="status" aria-live="polite">
+        <div className="text-center">
+          <div aria-hidden="true" className="w-5 h-5 border-2 border-[var(--accent)] border-t-transparent rounded-full animate-spin motion-reduce:animate-none mx-auto mb-3" />
+          <p className="text-[13px] text-[var(--text-secondary)]">
+            {ko ? '계정의 작업을 안전하게 연결하는 중이에요…' : 'Safely connecting your account work...'}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  return children;
+}
+
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <AuthProvider>
       <StoreInitializer />
-      {children}
+      <AuthReadinessGate>{children}</AuthReadinessGate>
       <AccountSyncToast />
       {/* System alerts must exist on every viewport. They used to sit inside
           Header's desktop-only controls, so mobile storage failures and lapsed

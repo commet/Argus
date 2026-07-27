@@ -182,6 +182,13 @@ async function loadAndMergeUncached<T extends Timestamped>(
       } else {
         reportSyncSuccess();
       }
+    } else {
+      // A successful pull that proves every local row already exists remotely is
+      // also a verified sync success. This matters for the visible Retry action:
+      // the original write may have completed just after its client timed out,
+      // leaving nothing to upload on retry. Without this parity success event the
+      // badge remained stuck on "Syncing..." despite a healthy backup.
+      reportSyncSuccess();
     }
 
     return merged;
