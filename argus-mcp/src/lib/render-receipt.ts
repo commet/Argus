@@ -219,7 +219,11 @@ export function renderWake(
   pushGroup(
     settled,
     W.settled_group(settled.length, stats.held, stats.avoided, stats.partial, stats.missed),
-    (c) => `"${label(c)}"   ${c.outcome ? W.outcome_label(c.outcome) : '—'}  ${mmdd(c.settled_on || c.check_by)}  ·  ${c.id}`,
+    // Outcome word LEADS the settled row: a waiting row reads like a question
+    // ("…끝난다  확인 09-01"), an anchored row reads like an answer
+    // ("예측대로 · …"). The two groups stop rhyming (founder 2026-07-27:
+    // the box read flat, rows indistinguishable).
+    (c) => `${c.outcome ? W.outcome_label(c.outcome) : '—'} · "${label(c)}"   ${mmdd(c.settled_on || c.check_by)}  ·  ${c.id}`,
   );
 
   L.push('');

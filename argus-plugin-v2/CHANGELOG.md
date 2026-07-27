@@ -4,6 +4,11 @@ All notable changes to the Argus plugin. Versioning follows
 [semver](https://semver.org); users receive an update only when the
 `version` in `.claude-plugin/plugin.json` is bumped.
 
+## 2.20.1 — 2026-07-27
+
+- Wire moves to `argus-decision-mcp@1.14.1` — the logbook's three groups get
+  distinct faces (`!` / `~` / `⚓`) and anchored rows lead with the outcome word.
+
 ## 2.20.0 — 2026-07-27
 
 - Wire moves to `argus-decision-mcp@1.14.0` — one-week default check-by when

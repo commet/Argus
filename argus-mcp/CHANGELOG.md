@@ -6,6 +6,16 @@
 > The `1.3.0` / `1.2.1` entries at the bottom are pre-rename `argus-mcp` history,
 > kept for reference — all of that work shipped inside the new-name 1.0.0.
 
+## 1.14.1 — The logbook stops rhyming
+
+Founder read the wake box and called it flat: three groups that all
+scanned alike. Each group now has its own face — `!` past check-by
+(with the resolve handle), `~` at sea, `⚓` anchored (the settled group
+IS a collection of tied loops, so the anchor belongs on its header) —
+and an anchored row LEADS with the outcome word, so a waiting row reads
+like a question and an anchored row reads like an answer. The em-dash
+copy gate caught the first draft of these labels; interpuncts now.
+
 ## 1.14.0 — A week, not a quarter + the guru probe
 
 - **No-horizon predictions default to ONE WEEK out** (founder call: a short

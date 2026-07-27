@@ -159,10 +159,10 @@ describe('wake_text spine (renderWake)', () => {
 
   it('settled group exposes only the revisit count, never aggregate outcome buckets', () => {
     const ko = renderWake(fixture, stats, TODAY, 'ko', '2026-07-03');
-    expect(ko).toContain('다시 돌아와 답한 기록 (3)');
+    expect(ko).toContain('⚓ 닻 내린 기록 · 현실이 답함 (3)');
     expect(ko).not.toContain('예측대로 1');
     const en = renderWake(fixture, stats, TODAY, 'en', '2026-07-03');
-    expect(en).toContain('records revisited (3)');
+    expect(en).toContain('⚓ anchored · answered by reality (3)');
     expect(en).not.toContain('held 1');
   });
 
