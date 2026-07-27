@@ -4,6 +4,13 @@ All notable changes to the Argus plugin. Versioning follows
 [semver](https://semver.org); users receive an update only when the
 `version` in `.claude-plugin/plugin.json` is bumped.
 
+## 2.21.3 — 2026-07-28
+
+- Wire moves to `argus-decision-mcp@1.15.2` — three live defects found by
+  adversarial audit are fixed: long picker answers are no longer destroyed,
+  an unreadable ledger refuses writes instead of allowing a duplicate seal,
+  and the settle card is now actually executed by a gate.
+
 ## 2.21.2 — 2026-07-27
 
 - Wire moves to `argus-decision-mcp@1.15.1` — the confirm picker carries no

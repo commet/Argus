@@ -116,6 +116,21 @@ export interface LedgerState {
      *  Such a seal can NEVER become `due`, so without this it is silently stuck
      *  and invisible to every channel. Listed here so a channel can say so. */
     undated_seals?: string[];
+    /**
+     * The ledger file EXISTS but could not be read (permissions, a directory in
+     * its place, an I/O error, a lock held by another process). Carries the
+     * errno so a surface can name it.
+     *
+     * Why this field exists (adversarial audit 2026-07-27): the read used to
+     * swallow every failure into an empty state WITH `dropped_lines: 0` — an
+     * affirmative claim that nothing was lost. So an unreadable ledger made
+     * every surface say "no decisions on record", made `argus_resolve` answer
+     * NO_PRIOR_SEAL for a prediction sitting on disk, and — worst — made
+     * `deriveState` return `absent`, so the state machine happily accepted a
+     * SECOND seal on the same id and silently moved its check-by. "I could not
+     * look" must never be reported as "there is nothing there."
+     */
+    unreadable?: string;
   };
 }
 
@@ -146,8 +161,18 @@ export function replayLedger(argusDir: string, today: string): LedgerState {
   let raw: string;
   try {
     raw = deBom(fs.readFileSync(ledgerPath(argusDir), 'utf8'));
-  } catch {
-    return { today, overdue: [], ids, sealedPredicates, contracts: map, stats, watch, integrity: { dropped_lines: 0, skipped_unknown: 0 } };
+  } catch (e) {
+    // ENOENT is the ONLY benign case: no ledger yet, so "nothing on record" is
+    // the truth. Every other errno means we could not look — and an empty fold
+    // with `dropped_lines: 0` would be a lie that also unlocks a second seal
+    // (deriveState sees `absent`). Carry the fact so read surfaces can say it
+    // and write paths can refuse.
+    const code = (e as NodeJS.ErrnoException)?.code;
+    const benign = code === 'ENOENT';
+    return {
+      today, overdue: [], ids, sealedPredicates, contracts: map, stats, watch,
+      integrity: { dropped_lines: 0, skipped_unknown: 0, ...(benign ? {} : { unreadable: code ?? 'UNKNOWN' }) },
+    };
   }
 
   for (const rawLine of raw.split('\n')) {

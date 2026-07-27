@@ -3,6 +3,7 @@ import { bearingPath } from '../lib/layout.js';
 import { resolveToolArgusDir } from '../lib/argus-dir.js';
 import { resolveToday, logicalNow } from '../lib/resolve-today.js';
 import { resolveContract } from '../lib/resolve-contract.js';
+import { refuseIfLedgerUnreadable } from '../lib/ledger-readable.js';
 import { guardTransition } from '../lib/state-machine.js';
 import { validateSeal } from '../lib/validate-seal.js';
 import { appendLedger, withLedgerLock, type LedgerEventInput } from '../lib/ledger-append.js';
@@ -63,6 +64,8 @@ export const seal: ToolModule = {
       const today = resolveToday({ override: a['today_override'] as string | undefined });
 
       const current = resolveContract(dir, id, today);
+      const blind = refuseIfLedgerUnreadable('argus_seal', current);
+      if (blind) return blind;
       guardTransition(current.state, 'seal'); // throws DECISION_CLOSED / ILLEGAL_TRANSITION
 
       const vErr = validateSeal(a['predicate'], a['check_by'], today);

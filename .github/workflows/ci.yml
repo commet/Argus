@@ -83,6 +83,13 @@ jobs:
           cd argus-mcp
           node evals/widget-runtime.mjs
 
+      # 원장을 읽을 수 없을 때 "기록 없음"이라 답하며 이중 봉인까지 허용하던 구멍
+      # (적대 감사 2026-07-27). 쓰기는 멈추고, 기록은 손대지 않는다.
+      - name: Unreadable ledger refuses writes
+        run: |
+          cd argus-mcp
+          UNREADABLE_SKIP_BUILD=1 node evals/unreadable-ledger.mjs
+
       - name: Host conformance matrix (7 hosts x every ask)
         run: |
           cd argus-mcp

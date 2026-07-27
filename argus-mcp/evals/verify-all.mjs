@@ -72,6 +72,7 @@ run('실서버 여정 루프', 'node evals/loop.mjs', { extract: (o) => (o.match
 run('내용 배터리 (46 시나리오)', 'node evals/battery.mjs', { env: { ...process.env, BATTERY_SKIP_BUILD: '1' }, extract: (o) => (o.match(/(\d+ calls · \d+ RED[^\n]*)/) || [])[1] ?? '' });
 run('호스트 전수 대조 (7 호스트)', 'node evals/host-matrix.mjs', { env: { ...process.env, HOST_MATRIX_SKIP_BUILD: '1' }, extract: (o) => (o.match(/(\d+ checks · \d+ violation[^\n]*)/) || [])[1] ?? '' });
 run('정산 카드 실행 (VM 호스트)', 'node evals/widget-runtime.mjs', { extract: (o) => `${(o.match(/ok  /g) || []).length} gestures ok` });
+run('원장 못 읽을 때 쓰기 차단', 'node evals/unreadable-ledger.mjs', { env: { ...process.env, UNREADABLE_SKIP_BUILD: '1' }, extract: (o) => (o.includes('✅') ? '이중 봉인 차단 확인' : '') });
 run('픽커 E2E (엄격 호스트)', `node evals/e2e-picker.mjs node "${path.join(ROOT, 'dist', 'index.js')}"`, { extract: (o) => (o.match(/(E2E: [^\n]*)/) || [])[1] ?? '' });
 run('픽커 왕복 (설치본 타르볼)', 'node -e "0"'); // placeholder kept honest below
 rows.pop(); // the tarball path belongs to CI (needs npm pack); do not fake it here
@@ -101,6 +102,12 @@ selfTest(
   'node evals/widget-runtime.mjs',
 );
 selfTest(
+  '자기검증 ⑤ 못 읽는 원장 회귀를 잡는가',
+  'src/lib/ledger-replay.ts',
+  (s2) => s2.replace("    const benign = code === 'ENOENT';", "    const benign = true;"),
+  'node evals/unreadable-ledger.mjs',
+);
+selfTest(
   '자기검증 ② 작업 유실 회귀를 잡는가',
   'src/lib/elicit.ts',
   (s) => s.replace("    return { kind: 'no_answer' }; // 'cancel'", "    return { kind: 'declined' }; // 'cancel'"),
@@ -117,5 +124,5 @@ if (failed) {
   console.log(`\n❌ ${failed}개 게이트 실패 — 위 줄의 note를 보세요. 이 상태로는 배포 금지.`);
   process.exit(1);
 }
-console.log('\n✅ 전 게이트 통과 + 네 개의 심은 회귀를 게이트가 실제로 잡음.');
+console.log('\n✅ 전 게이트 통과 + 다섯 개의 심은 회귀를 게이트가 실제로 잡음.');
 console.log('   (초록불이 "고장을 못 잡는 초록불"이 아님을 같은 실행 안에서 증명했습니다.)');

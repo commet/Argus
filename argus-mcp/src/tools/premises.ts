@@ -3,6 +3,7 @@ import { resolveToolArgusDir } from '../lib/argus-dir.js';
 import { replayLedger } from '../lib/ledger-replay.js';
 import { resolveToday, logicalNow } from '../lib/resolve-today.js';
 import { resolveContract } from '../lib/resolve-contract.js';
+import { refuseIfLedgerUnreadable } from '../lib/ledger-readable.js';
 import { guardTransition } from '../lib/state-machine.js';
 import { appendLedger, withLedgerLock, type LedgerEventInput } from '../lib/ledger-append.js';
 import {
@@ -174,6 +175,8 @@ export const premises: ToolModule = {
       }
 
       const current = resolveContract(dir, id, today);
+      const blind = refuseIfLedgerUnreadable('argus_premises', current);
+      if (blind) return blind;
       const existing: PremiseState[] = current.entry?.premises ?? [];
 
       if (op === 'add') return await opAdd(dir, id, today, now, current.state, existing, a);

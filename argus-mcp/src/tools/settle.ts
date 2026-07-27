@@ -1,6 +1,7 @@
 import { resolveToolArgusDir } from '../lib/argus-dir.js';
 import { resolveToday, asDate, logicalNow } from '../lib/resolve-today.js';
 import { resolveContract } from '../lib/resolve-contract.js';
+import { refuseIfLedgerUnreadable } from '../lib/ledger-readable.js';
 import { guardTransition } from '../lib/state-machine.js';
 import { appendLedger, withLedgerLock } from '../lib/ledger-append.js';
 import { asV2WriteField } from '../v2/mirror.js';
@@ -50,6 +51,8 @@ export const settle: ToolModule = {
       const today = resolveToday({ override: a['today_override'] as string | undefined });
 
       const current = resolveContract(dir, id, today);
+      const blind = refuseIfLedgerUnreadable('argus_settle', current);
+      if (blind) return blind;
       guardTransition(current.state, 'settle'); // NO_PRIOR_SEAL / ALREADY_SETTLED / DECISION_CLOSED
 
       // Outcome is the user's — recorded, never inferred. If the model didn't

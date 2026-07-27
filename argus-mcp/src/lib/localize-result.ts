@@ -33,6 +33,13 @@ const KO_ERRORS: Record<string, ErrorCopy> = {
   PREMATURE_SETTLE: { message: '아직 확인일이 되지 않았습니다.', recovery: '확인일까지 기다리세요. 일정이 바뀌었다면 outcome="still_pending"에 defer_to로 새 확인일을 전달하면 됩니다.' },
   // ko/en 패리티: 아래 코드들은 en에서만 상세했고 ko는 제네릭 폴백이었다 —
   // 한국어 사용자가 같은 품질의 복구 안내를 받도록 전용 문구를 둔다.
+  // "못 읽었다"를 "없다"로 말하지 않는다 (적대 감사 2026-07-27). 원장이 있는데
+  // 읽히지 않을 때 쓰기를 멈추는 그 순간, 사용자가 가장 먼저 두려워하는 것은
+  // "내 기록이 날아갔나"다 — 그 답부터 준다.
+  LEDGER_UNREADABLE: {
+    message: '기록 파일은 있는데 읽을 수 없었습니다. 아무것도 쓰지 않았습니다. 이미 있는 기록을 덮어쓸 수 있어서 멈췄습니다.',
+    recovery: '.argus/ledger/ledger.jsonl 의 권한을 확인하고(폴더가 아니라 파일이 맞는지도), 그 파일을 잡고 있는 다른 프로그램이 있으면 닫은 뒤 다시 시도하세요. 잃은 것은 없습니다. 기록은 디스크에 그대로 있습니다.',
+  },
   NO_PRIOR_SEAL: { message: '이 id로 저장된 예측이 없습니다.', recovery: 'argus_predict로 나중에 확인할 수 있는 예측과 확인일을 먼저 저장하세요. (id가 argus_settings sync에서 온 "mcp_" 접두사라면 접두사를 뗀 id를 쓰세요.)' },
   BAD_CHECK_BY: { message: '확인일이 오늘 이후의 실제 달력 날짜(YYYY-MM-DD)가 아닙니다 (예: 2026-13-01처럼 없는 달·날짜는 불가).', recovery: '오늘 이후의 올바른 날짜를 YYYY-MM-DD로 다시 전달하세요.' },
   ILLEGAL_TRANSITION: { message: '이 결정에 지금은 할 수 없는 작업입니다 (id 오타이거나, 이미 저장·정산·종료된 상태일 수 있습니다).', recovery: 'argus_patterns view="all"로 id와 현재 상태를 확인하세요. 없는 id면 argus_capture 또는 argus_predict로 새로 시작하세요.' },
