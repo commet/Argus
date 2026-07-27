@@ -6,6 +6,21 @@
 > The `1.3.0` / `1.2.1` entries at the bottom are pre-rename `argus-mcp` history,
 > kept for reference — all of that work shipped inside the new-name 1.0.0.
 
+## 1.14.0 — A week, not a quarter + the guru probe
+
+- **No-horizon predictions default to ONE WEEK out** (founder call: a short
+  check-by that arrives beats a distant one that goes stale; the picker's
+  date field makes pushing it out a one-line edit). Named in instruction #1.
+- **Picker date fields carry `format: "date"`** — a spec-sanctioned
+  elicitation hint hosts MAY render as a date control; plain text otherwise.
+- **12-case senior-engineer blind probe, 12/12 in-class**: fsync removal →
+  "replicas can reconstruct acked-but-unflushed writes"; Redis→JWT → "nothing
+  needs to kill a session before its token expires"; retry removal → "the
+  duplicate becomes a missed payment". The untouched-side instruction holds
+  at guru depth in both languages.
+- CI now runs the self-drive loop AND the 46-scenario content battery on
+  every PR — standing sensors, merge-blocking.
+
 ## 1.13.1 — Release alignment after the concurrent content pass
 
 - Includes the hidden-assumption drafting improvement that landed on main
