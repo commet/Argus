@@ -4,6 +4,12 @@ All notable changes to the Argus plugin. Versioning follows
 [semver](https://semver.org); users receive an update only when the
 `version` in `.claude-plugin/plugin.json` is bumped.
 
+## 2.20.0 — 2026-07-27
+
+- Wire moves to `argus-decision-mcp@1.14.0` — one-week default check-by when
+  no horizon is named, `format:"date"` hints on picker date fields, and the
+  guru-depth untouched-side probe (12/12) behind it.
+
 ## 2.19.1 — Release alignment — 2026-07-27
 
 - The exact bundled wire moves to `argus-decision-mcp@1.13.1`, which includes

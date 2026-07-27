@@ -111,7 +111,11 @@ export const seal: ToolModule = {
             },
             check_by: {
               type: 'string',
-              description: locale === 'ko' ? `확인일을 바꾸려면 YYYY-MM-DD로 적으세요. 비우면 ${checkBy} 그대로.` : `To change the check-by date, type YYYY-MM-DD. Leave blank to keep ${checkBy}.`,
+              // `format: date` is a spec-sanctioned elicitation hint — a host MAY
+              // render a date control or validate inline; hosts that ignore it
+              // still show a plain text field (no downside).
+              format: 'date',
+              description: locale === 'ko' ? `확인일을 바꾸려면 YYYY-MM-DD로 적으세요 (예: ${checkBy}). 비우면 ${checkBy} 그대로.` : `To change the check-by date, type YYYY-MM-DD (e.g. ${checkBy}). Leave blank to keep ${checkBy}.`,
             },
           } },
         );
