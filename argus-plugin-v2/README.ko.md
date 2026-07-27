@@ -244,7 +244,7 @@ skill 파일을 바꾼 뒤에는 Claude Code를 다시 시작하세요. skill �
 ## 참고
 
 - 변경 이력: `CHANGELOG.md`
-- 에이전트 명단: `data/agents.yaml`
+- 제한된 리뷰어 역할: `agents/`
 - Boss 말투 스킨 (목소리 전용 — 리뷰의 실질은 설정된 자리): `data/boss-types.yaml`
 - 스키마: `data/schemas/*.json`
 - 빌드 로그 (동결된 역사 기록): `BUILD_STATUS.md`

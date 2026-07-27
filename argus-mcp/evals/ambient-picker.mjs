@@ -91,13 +91,13 @@ async function sitting({ dir, answer, muted = false }) {
 /** Seal a bet that is already overdue at LATER, WITHOUT spending the ambient
  *  budget (argus_check_in would). The seal itself arms the debounce timer. */
 async function seedOverdue(call) {
-  await call('argus_seal', {
+  await call('argus_predict', {
     id: 'amb', predicate: '리뉴얼 후 첫 달 재구매율이 20%를 넘는다',
     check_by: '2026-07-10', predicate_owner: 'user', today_override: T0,
   });
   // A second call at the LATER clock so the ambient timer fires with a today
   // that makes the bet overdue (the timer reads the last call's today_override).
-  await call('argus_recall', { view: 'contracts', today_override: LATER });
+  await call('argus_patterns', { view: 'all', today_override: LATER });
 }
 
 const base = fs.mkdtempSync(path.join(os.tmpdir(), 'argus-ambient-'));
@@ -109,8 +109,8 @@ console.log('Argus out-of-band ask — driven against the real server\n');
   console.log('■ O1 due 0건이면 아예 묻지 않는다');
   const dir = path.join(base, 'o1');
   const s = await sitting({ dir, answer: () => ({ action: 'accept', content: { outcome: 'held' } }) });
-  await s.call('argus_seal', { id: 'future', predicate: '연말까지 신규 채널 3개를 연다', check_by: '2026-12-31', predicate_owner: 'user', today_override: T0 });
-  await s.call('argus_recall', { view: 'contracts', today_override: T0 });
+  await s.call('argus_predict', { id: 'future', predicate: '연말까지 신규 채널 3개를 연다', check_by: '2026-12-31', predicate_owner: 'user', today_override: T0 });
+  await s.call('argus_patterns', { view: 'all', today_override: T0 });
   await sleep(500);
   ok('O1 아무것도 due가 아니면 물음 0건', s.asks.length === 0, `asks=${s.asks.length}`);
   await s.close();
@@ -160,17 +160,17 @@ console.log('Argus out-of-band ask — driven against the real server\n');
   // not a confirmation, it is another room's business leaking in.
   const otherDir = path.join(base, 'o345-other');
   fs.mkdirSync(otherDir, { recursive: true });
-  const elsewhere = await s.call('argus_recall', { argus_dir: otherDir, view: 'contracts', today_override: LATER });
+  const elsewhere = await s.call('argus_patterns', { argus_dir: otherDir, view: 'all', today_override: LATER });
   ok('O5b 다른 프로젝트 작업 중에는 그 확인이 새지 않는다',
     !/아까 답해주신|Recorded the answer/.test(String(elsewhere.surface ?? '')), String(elsewhere.surface).slice(0, 180));
 
   // O4 — it really landed in the ledger, with the user's own words.
-  const rec = await s.call('argus_recall', { view: 'contracts', today_override: LATER });
+  const rec = await s.call('argus_patterns', { view: 'all', today_override: LATER });
   const row = (rec.data?.contracts ?? []).find((c) => c.id === 'amb');
   ok('O4 밖에서 받은 답이 실제로 기록됐다', row?.status === 'settled' && row?.outcome === 'missed', JSON.stringify(row).slice(0, 200));
 
   // O5 — and the user finds out, on the next thing they do.
-  const next = await s.call('argus_recall', { view: 'contracts', today_override: LATER });
+  const next = await s.call('argus_patterns', { view: 'all', today_override: LATER });
   const surfaces = [rec.surface, next.surface].map((x) => String(x ?? '')).join(' ');
   ok('O5 다음 도구 결과에 확인 한 줄이 붙는다', /기록했습니다|Recorded the answer/.test(surfaces), surfaces.slice(0, 220));
   ok('O5 확인은 한 번만 붙는다 (같은 말을 두 번 하지 않는다)',
@@ -186,7 +186,7 @@ console.log('Argus out-of-band ask — driven against the real server\n');
   await seedOverdue(s.call);
   await sleep(700);
   ok('O6 한 번만 묻고 다시 조르지 않는다', s.asks.length === 1, `asks=${s.asks.length}`);
-  const rec = await s.call('argus_recall', { view: 'contracts', today_override: LATER });
+  const rec = await s.call('argus_patterns', { view: 'all', today_override: LATER });
   const row = (rec.data?.contracts ?? []).find((c) => c.id === 'amb');
   ok('O6 거절은 기록을 남기지 않는다', row?.status === 'sealed' && !row?.outcome, JSON.stringify(row).slice(0, 160));
   ok('O6 거절에는 확인 줄도 붙지 않는다', !/아까 답해주신/.test(String(rec.surface ?? '')), String(rec.surface).slice(0, 160));
@@ -203,7 +203,7 @@ console.log('Argus out-of-band ask — driven against the real server\n');
   });
   await seedOverdue(s.call);
   await sleep(900);
-  const rec = await s.call('argus_recall', { view: 'contracts', today_override: LATER });
+  const rec = await s.call('argus_patterns', { view: 'all', today_override: LATER });
   const row = (rec.data?.contracts ?? []).find((c) => c.id === 'amb');
   ok('O7 현실 서술 없이는 종결 정산을 쓰지 않는다', row?.status === 'sealed' && !row?.outcome, JSON.stringify(row).slice(0, 160));
   ok('O7 사용자의 클릭이 허공으로 사라지지 않는다', /못 받았습니다|never arrived/.test(String(rec.surface ?? '')), String(rec.surface).slice(0, 220));
@@ -223,7 +223,7 @@ console.log('Argus out-of-band ask — driven against the real server\n');
   ok('O8 쿨다운이 되돌려진다 (다음 세션에서 다시 물을 수 있다)',
     st === null || typeof st.last_fired_at !== 'number',
     `state=${JSON.stringify(st)}`);
-  const rec = await s.call('argus_recall', { view: 'contracts', today_override: LATER });
+  const rec = await s.call('argus_patterns', { view: 'all', today_override: LATER });
   const row = (rec.data?.contracts ?? []).find((c) => c.id === 'amb');
   ok('O8 닿지 못한 물음이 기록을 만들지 않는다', row?.status === 'sealed' && !row?.outcome, JSON.stringify(row).slice(0, 160));
   await s.close();

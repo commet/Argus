@@ -27,8 +27,8 @@
     },
     "reviewing_agent_id": {
       "type": ["string", "null"],
-      "enum": [null, "navigator"],
-      "description": "The agent that produced this revision: 'navigator' for an the revise step (review) child draft, null for an initial pipeline draft. (Boss review is NOT recorded here — a draft is 'reviewed' iff versions/{version_label}/boss_feedback.json exists.)"
+      "enum": [null, "synthesizer"],
+      "description": "The role that produced this revision: 'synthesizer' for a revision child draft, null for an initial pipeline draft."
     },
     "boss_reviewed": {
       "type": "boolean",

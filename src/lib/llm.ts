@@ -580,6 +580,29 @@ export async function callLLM(
   return callProxy(messages, options);
 }
 
+/**
+ * Real provider handshake for Settings. This intentionally performs a tiny
+ * generation through the exact same provider/model/key routing used by the
+ * product; format-only validation would let revoked or credit-starved keys look
+ * "connected" until a deep run failed minutes later.
+ */
+export async function verifyCurrentLlmConnection(): Promise<void> {
+  const text = await callLLM(
+    [{ role: 'user', content: 'Reply with exactly: OK' }],
+    {
+      system: 'This is a connection check. Reply with exactly OK and nothing else.',
+      maxTokens: 8,
+      model: 'fast',
+    },
+  );
+  if (!text.trim()) {
+    throw new LLMError('The provider returned an empty response.', {
+      category: 'service_unavailable',
+      retryable: false,
+    });
+  }
+}
+
 // ━━━ Provider tier mapping (업무 성격에 따라 모델 자동 선택) ━━━
 
 function resolveOpenAIModel(baseModel: string, tier?: ModelTier): string {

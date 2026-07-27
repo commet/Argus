@@ -1,4 +1,4 @@
-import { resolveToolArgusDir, readGlobalBoundList } from '../lib/argus-dir.js';
+import { resolveToolArgusDir } from '../lib/argus-dir.js';
 import { resolveToday, asDate } from '../lib/resolve-today.js';
 import { replayLedger, bearingContracts } from '../lib/ledger-replay.js';
 import { duePremises, groupDuePremises, dueOpenQuestions } from '../lib/premises.js';
@@ -62,7 +62,6 @@ const inputSchema = z.strictObject({
   // — an advertised-then-rejected argument is the 1.4.6 backlog's enum-divergence
   // class. Values above 30 are accepted and clamped.
   include_upcoming_days: z.number().int().min(0).max(365).default(0).describe('Also list sealed contracts coming due within N days (informational; nothing to settle yet). Values above 30 are clamped to 30.'),
-  fleet: z.boolean().default(false).describe('Also report due counts across your OTHER Argus projects (every dir argus_init registered on this machine). Facts and counts only; settle each in its own project.'),
   today_override: zDate.optional(),
 });
 
@@ -240,21 +239,7 @@ export const checkIn: ToolModule = {
       // Fleet view (M2, §9.4): due counts across the OTHER projects the global
       // registry knows. Counts + paths only — each project settles in its own
       // dir; this is a lighthouse sweep, not a merged ledger.
-      let fleetRows: Array<{ argus_dir: string; due_count: number; due_premise_count: number }> = [];
-      let fleetLine = '';
-      if (a['fleet'] === true) {
-        const others = readGlobalBoundList().filter((d) => d !== dir).slice(0, 8);
-        fleetRows = others.map((d) => {
-          try {
-            const l = replayLedger(d, today);
-            return { argus_dir: d, due_count: l.overdue.length, due_premise_count: groupDuePremises(duePremises(l)).length };
-          } catch {
-            return { argus_dir: d, due_count: 0, due_premise_count: 0 };
-          }
-        }).filter((r) => r.due_count > 0 || r.due_premise_count > 0);
-        const fleetDue = fleetRows.reduce((n, r) => n + r.due_count, 0);
-        if (fleetRows.length > 0) fleetLine = S.fleet_summary(fleetRows.length, fleetDue);
-      }
+      const fleetLine = '';
 
       // Ledger-corruption disclosure (11 P2-8): dropped_lines was counted in
       // data.integrity but never SAID. Silence is not kindness — one factual
@@ -321,7 +306,7 @@ export const checkIn: ToolModule = {
           ok: true, tool: 'argus_check_in',
           surface: mirrorLine + S.nothing_due + accountHint + upcomingLine + fleetLine + integrityLine,
           next_actions: ['stop'],
-          data: { due: [], due_count: 0, due_premises: [], due_premise_count: 0, due_open_questions: [], due_open_question_count: 0, ...wireFacts(), ...(openWatch.length ? { open_predictions: openWatch, standing_sense: tunedStandingSense() } : {}), ...(upDays > 0 ? { upcoming } : {}), ...(a['fleet'] === true ? { fleet: fleetRows } : {}), ...watchData, today, integrity: ledger.integrity, ...(process.env['ARGUS_V2_DEBUG'] === '1' ? { capture_status: captureStatus, v2_brief: readV2Brief(dir, today), v2_divergence: briefDivergence([], readV2Brief(dir, today)) } : {}) },
+          data: { due: [], due_count: 0, due_premises: [], due_premise_count: 0, due_open_questions: [], due_open_question_count: 0, ...wireFacts(), ...(openWatch.length ? { open_predictions: openWatch, standing_sense: tunedStandingSense() } : {}), ...(upDays > 0 ? { upcoming } : {}), ...watchData, today, integrity: ledger.integrity, ...(process.env['ARGUS_V2_DEBUG'] === '1' ? { capture_status: captureStatus, v2_brief: readV2Brief(dir, today), v2_divergence: briefDivergence([], readV2Brief(dir, today)) } : {}) },
         });
       }
 
@@ -369,7 +354,6 @@ export const checkIn: ToolModule = {
           due_open_questions: dueOpenQ, due_open_question_count: openQs.length,
           ...(openQs.length > TOP ? { due_open_questions_truncated: `${openQs.length} questions, showing ${TOP}` } : {}),
           ...(upDays > 0 ? { upcoming } : {}),
-          ...(a['fleet'] === true ? { fleet: fleetRows } : {}),
           ...watchData,
           ...(openWatch.length ? { open_predictions: openWatch, standing_sense: tunedStandingSense() } : {}),
           today, integrity: ledger.integrity,

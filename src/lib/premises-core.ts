@@ -116,6 +116,10 @@ export interface PremiseState {
   text: string;
   external: boolean;
   load_bearing: boolean;
+  /** User-controlled notification/re-check switch. Missing means the historical
+   * default (enabled when the premise is external and load-bearing). This is
+   * deliberately independent from material importance and verifiability. */
+  monitoring_enabled?: boolean;
   source: PremiseSource;
   /** The AI's original wording, preserved across user edits — the provenance the
    *  receipt's authorship honesty rests on. Its declared reader is the recall
@@ -174,11 +178,15 @@ export function premiseId(decisionId: string, kind: PremiseKind, text: string): 
   return `p_${h.toString(36)}`;
 }
 
-/** Monitoring is DERIVED, never stored (state-is-the-fold): only an active,
- *  load-bearing, external premise is watched — the opt-out default that arms
- *  the return loop without ceremony (plan v5 §12). */
+/** Monitoring eligibility is derived from meaning, then gated by the user's
+ * explicit switch. Turning reminders off must never rewrite a premise as
+ * unimportant or unverifiable. */
 export function isMonitored(p: PremiseState): boolean {
-  return p.kind === 'premise' && p.status === 'active' && p.external && p.load_bearing;
+  return p.kind === 'premise'
+    && p.status === 'active'
+    && p.external
+    && p.load_bearing
+    && p.monitoring_enabled !== false;
 }
 
 // ── date helpers (pure; exported so the ledger half can reuse them) ─────────

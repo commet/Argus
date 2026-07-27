@@ -6,7 +6,7 @@ import { detectLocaleFromText, osLocaleHint } from './locale.js';
  * surfaces.ts — the ONE locale brain for user-facing surface strings
  * (P1-E1, polish audit 2026-07-03; 11 S5 = 12 P2-4 merged).
  *
- * Before this file the `locale` config was a dead switch: argus_config
+ * Before this file the `locale` config was a dead switch: argus_settings
  * accepted 'ko'|'en' and nothing read it, while the voice was split by tool
  * (seal/settle/open spoke English regardless, sync/review spoke Korean
  * regardless). Surface strings move HERE, into one {ko,en} dictionary, and
@@ -23,7 +23,7 @@ import { detectLocaleFromText, osLocaleHint } from './locale.js';
  *     the webapp core (review-mcp-drift.test.ts) — NEVER move its strings
  *     here. tools/review.ts (a tool file) may adopt later.
  *
- * Locale resolution is CONFIG-ONLY and deterministic: argus_init seeds
+ * Locale resolution is CONFIG-ONLY and deterministic: argus_settings seeds
  * config.yaml with detectLocale (env/Intl sniffing lives there, at write
  * time); tools read the config. No config → 'en' (the MCP's base voice),
  * so tests and fresh dirs behave the same on every machine.

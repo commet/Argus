@@ -46,7 +46,7 @@ function skillDirs(): string[] {
 
 // team.md가 실제로 쓰는 fan-out 어휘의 지문: 워커 에이전트 스폰 마커.
 // (one-install 이전 조사에서 이 패턴은 스킬 20개 중 team 한 곳에만 존재했다.)
-const FANOUT = /argus:(chief_strategist|donghyuk|hayoon|hyeyeon|hyunwoo|jieun|junseo|minjae|minseo|navigator|research_director|seoyeon|strategy_jr|sujin|sujin_hr|taejun|yerin)|subagent_type|Task tool.*parallel|에이전트를 spawn/;
+const FANOUT = /argus:(domain-reviewer|evidence-reviewer|risk-reviewer|synthesizer)|\b(domain-reviewer|evidence-reviewer|risk-reviewer|synthesizer)\b|subagent_type|Task tool.*parallel|에이전트를 spawn/;
 
 describe('activation 계약 — 자동 deep review 0 (O3 방2, exit②)', () => {
   it('① 공개 메뉴는 정확히 5축 + alias 2 — 그 외는 전부 숨김', () => {

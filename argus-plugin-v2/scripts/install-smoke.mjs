@@ -6,7 +6,7 @@
 //
 // Checks: marketplace.json ↔ plugin.json version parity; the plugin source path
 // resolves; every skill dir has a SKILL.md with frontmatter name/description; every
-// agent referenced in data/agents.yaml resolves; hooks.json + every schema parse;
+// bounded reviewer definitions resolve; hooks.json + every schema parse;
 // the documented install commands are present in the README.
 //
 // Run: node argus-plugin-v2/scripts/install-smoke.mjs   (exit 0 ok / 1 fail)
@@ -50,16 +50,17 @@ for (const s of skills) {
   if (!/^---[\s\S]*\bdescription:\s*\S/m.test(head)) fail(`skill "${s}" SKILL.md missing frontmatter description`);
 }
 
-// 3. agents referenced in data/agents.yaml resolve to a definition
-const agentsYaml = path.join(pluginRoot, 'data', 'agents.yaml');
-if (fs.existsSync(agentsYaml)) {
-  const yaml = fs.readFileSync(agentsYaml, 'utf8');
-  const ids = [...yaml.matchAll(/^\s*-?\s*id:\s*["']?([a-z0-9_-]+)/gim)].map((m) => m[1]);
-  const agentsDir = path.join(pluginRoot, 'agents');
-  for (const id of ids) {
-    const hasFile = fs.existsSync(path.join(agentsDir, `${id}.md`));
-    if (!hasFile) fail(`agent "${id}" in agents.yaml has no agents/${id}.md`);
-  }
+// 3. the bounded reviewer set is complete and contains no legacy personas
+const agentsDir = path.join(pluginRoot, 'agents');
+const expectedAgents = ['domain-reviewer.md', 'evidence-reviewer.md', 'risk-reviewer.md', 'synthesizer.md'];
+const actualAgents = fs.readdirSync(agentsDir).filter((name) => name.endsWith('.md')).sort();
+if (JSON.stringify(actualAgents) !== JSON.stringify(expectedAgents)) {
+  fail(`agents/ must contain only: ${expectedAgents.join(', ')}`);
+}
+for (const file of actualAgents) {
+  const body = fs.readFileSync(path.join(agentsDir, file), 'utf8');
+  if (!/\nmodel:\s*inherit\r?\n/.test(body)) fail(`${file} must use model: inherit`);
+  if (!/\nmaxTurns:\s*\d+\r?\n/.test(body)) fail(`${file} must declare maxTurns`);
 }
 
 // 4. hooks.json + every schema parse cleanly, and hook commands reference real scripts

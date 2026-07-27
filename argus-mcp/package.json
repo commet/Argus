@@ -1,6 +1,6 @@
 {
   "name": "argus-decision-mcp",
-  "version": "1.15.3",
+  "version": "2.0.1",
   "description": "Argus judgment-record MCP — preserve a user-authorized statement, its return condition, and later answers without scoring the person.",
   "type": "module",
   "main": "dist/index.js",
@@ -9,7 +9,7 @@
     "argus-decision-mcp": "dist/index.js"
   },
   "files": [
-    "dist",
+    "dist/index.js",
     "README.md",
     "SECURITY.md",
     "LICENSE"
@@ -19,28 +19,18 @@
   },
   "scripts": {
     "clean": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\"",
-    "build": "npm run clean && tsc -p tsconfig.build.json",
+    "build": "npm run clean && tsc -p tsconfig.build.json && esbuild src/index.ts --bundle --platform=node --format=esm --packages=external --outfile=dist/index.js",
     "start": "node dist/index.js",
     "dev": "tsx src/index.ts",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "loop": "npm run build && node evals/loop.mjs",
     "fuzz": "npm run build && node evals/fuzz.mjs",
     "elicit": "npm run build && node evals/elicit.mjs",
-    "locale": "npm run build && node evals/locale-consistency.mjs",
-    "life": "npm run build && node evals/life.mjs",
     "copy": "npm run build && node evals/copy-audit.mjs",
-    "eval:experience": "npm run build && node evals/experience.mjs",
-    "eval": "node evals/run.mjs",
-    "eval:review": "node evals/run-review.mjs",
     "prepack": "npm run build",
     "prepublishOnly": "npm run typecheck && npm test && npm audit --omit=dev",
-    "eval:premises": "node evals/run-premises.mjs",
-    "eval:p5": "tsx evals/p5-gate.ts",
-    "arch": "npm run build && node evals/architecture-review.mjs",
-    "verify": "node evals/verify-all.mjs",
-    "matrix": "npm run build && node evals/host-matrix.mjs"
+    "verify": "node evals/verify-all.mjs"
   },
   "keywords": [
     "mcp",
@@ -73,6 +63,7 @@
   "devDependencies": {
     "@types/js-yaml": "^4.0.9",
     "@types/node": "^20.0.0",
+    "esbuild": "^0.28.1",
     "tsx": "^4.0.0",
     "typescript": "^5.0.0",
     "vitest": "^4.1.9"

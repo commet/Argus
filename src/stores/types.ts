@@ -1788,6 +1788,19 @@ export interface ProgressiveSession {
   project_id: string;
   problem_text: string;
   decision_maker: string | null;
+  /**
+   * Standard is the judgment harness: analysis, user questions, one synthesis.
+   * Deep explicitly opts into the bounded specialist/critic execution path.
+   * Optional for backward compatibility; missing always means standard.
+   */
+  judgment_mode?: 'standard' | 'deep';
+  /** Pinned at authorization so a later provider switch cannot silently move
+   * a BYOK run onto Argus-funded infrastructure. */
+  deep_funding?: 'platform' | 'byok' | null;
+  /** When the platform-funded daily deep pass was reserved, or when a BYOK
+   * user explicitly enabled it. Kept on the session so reload resumes the same
+   * authorized loop instead of consuming/asking for another pass. */
+  deep_authorized_at?: string | null;
 
   // Flow state
   phase: ProgressivePhase;

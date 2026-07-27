@@ -852,6 +852,9 @@ export async function runDeepening(
   /** P1-3: legacy question returns immediately; typed generation upgrades it
    *  in the background via the callback (see runInitialAnalysis). */
   onTypedUpgrade?: (typed: FlowQuestion, replacesQuestionId: string) => void,
+  /** Standard judgment never spends a second model call manufacturing an
+   * execution team. Deep is an explicit, quota-gated user choice. */
+  judgmentMode: 'standard' | 'deep' = 'standard',
 ): Promise<{
   snapshot: AnalysisSnapshot;
   question: FlowQuestion | null;
@@ -912,14 +915,14 @@ export async function runDeepening(
         { system, maxTokens: 2500, signal, shape: { insight: 'string', real_question: 'string', hidden_assumptions: 'array', skeleton: 'array', ready_for_mix: 'boolean' } },
       );
 
-  // ── Call B: execution_plan in its own robust, plan-only call (round >= 1). ──
+  // ── Call B: execution_plan in its own robust, plan-only deep-mode call. ──
   // Generated from the freshly-deepened analysis (Call A's output). It gets the
   // whole token budget to itself, so it can't truncate the narrative — and it is
   // best-effort: a plan failure must NEVER sink the turn (the user already saw the
   // insight stream in). On failure we carry the previous plan forward. A user
   // abort still propagates so the outer handler can roll the answer back.
-  let executionPlan = currentSnapshot.execution_plan;
-  if (round >= 1) {
+  let executionPlan = judgmentMode === 'deep' ? currentSnapshot.execution_plan : undefined;
+  if (judgmentMode === 'deep') {
     try {
       const planPrompt = buildExecutionPlanPrompt(
         problemText,
@@ -1132,6 +1135,7 @@ export async function runMix(
   userNotes?: string | null,
   onToken?: (text: string) => void,
   blockedTasks?: string[],
+  judgmentMode: 'standard' | 'deep' = 'standard',
 ): Promise<MixResult> {
   const locale = getCurrentLanguage();
   const { system, user: userPrompt } = buildMixPrompt(
@@ -1152,12 +1156,12 @@ export async function runMix(
     result = onToken
       ? await callLLMStreamThenParse<MixResponse>(
           [{ role: 'user', content: user }],
-          { system, maxTokens: 5500, signal, shape },
+          { system, maxTokens: 5500, signal, shape, model: judgmentMode === 'deep' ? 'strong' : 'default' },
           (text) => { lastStreamText = text; onToken(text); },
         )
       : await callLLMJson<MixResponse>(
           [{ role: 'user', content: user }],
-          { system, maxTokens: 5500, signal, shape },
+          { system, maxTokens: 5500, signal, shape, model: judgmentMode === 'deep' ? 'strong' : 'default' },
         );
   } catch (e) {
     // A — salvage net: if the document still failed to parse (extreme length),

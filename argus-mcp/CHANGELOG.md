@@ -1,16 +1,14 @@
 # Changelog
 
-> Published on npm as **`argus-decision-mcp`**. The package was renamed from
-> `argus-mcp` (that name was already taken by an unrelated tool) and its version
-> **reset to 1.0.0** for the first release under the new name on **2026-07-03**.
-> The `1.3.0` / `1.2.1` entries at the bottom are pre-rename `argus-mcp` history,
-> kept for reference — all of that work shipped inside the new-name 1.0.0.
+## 2.0.1 — Every remaining audit finding, and the gates that can prove it
 
-## 1.15.3 — Every remaining audit finding, and the gates that can prove it
+> Written against 1.15.x and landed on top of the 2.0.0 surface reduction. The
+> defects below were all still live in 2.0.0 — every file they touch survived
+> the reduction untouched.
 
 The 1.15.2 audit left a list. This closes it. Each fix below was verified the
 same way: the fix is reverted, the gate is confirmed to turn red, the fix is
-restored (`npm run verify` does all eleven of these in one run).
+restored (`npm run verify` does all twelve of these in one run).
 
 **Work that was reaching us and being thrown away**
 
@@ -82,6 +80,39 @@ restored (`npm run verify` does all eleven of these in one run).
 - The host matrix gained `hostile-error` (a host that declares elicitation and
   then rejects it) and now asserts the no-lost-work invariant on every ask
   rather than on one of six.
+
+**One thing 2.0.0 changed that the founder should decide on**
+
+- On the public surface `argus_capture action="answer_question"` now REQUIRES
+  `decision`, so the elicitation path that asks the USER to close their own open
+  question — in their own words, with no options and no leans — can no longer be
+  reached. The only remaining channel is the model collecting the words in chat,
+  which is the channel the picker existed to avoid: a model that must produce the
+  field is a model invited to draft the user's judgment. Nothing was changed here
+  on my own authority; the host matrix now pins the honest refusal instead, and
+  the question stays open and answerable. Reopening that path is your call.
+
+**About the observatories**
+
+- 2.0.0 deleted the journey evals because they called tool names it no longer
+  exposes, and testing names that do not exist gives a false picture. That is
+  right. Three of them came back PORTED to the public six, not resurrected —
+  without them not one fix above is provable, and "it looks fine" is exactly what
+  these files exist to refuse. The rest stayed deleted.
+
+## 2.0.0
+
+- Reduced the public and callable MCP surface to six purpose-led tools.
+- Removed legacy callable aliases and the experimental `argus_record` surface.
+- Made zero-config storage project-scoped and removed cross-project discovery.
+- Compressed initialize instructions and tool schemas under enforced byte budgets.
+- Bundled the published runtime into one entrypoint and hardened internal errors.
+
+> Published on npm as **`argus-decision-mcp`**. The package was renamed from
+> `argus-mcp` (that name was already taken by an unrelated tool) and its version
+> **reset to 1.0.0** for the first release under the new name on **2026-07-03**.
+> The `1.3.0` / `1.2.1` entries at the bottom are pre-rename `argus-mcp` history,
+> kept for reference — all of that work shipped inside the new-name 1.0.0.
 
 ## 1.15.2 — What the audit found, and the gates that could not see it
 

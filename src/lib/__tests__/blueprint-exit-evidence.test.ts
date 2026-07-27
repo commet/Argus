@@ -150,13 +150,13 @@ const EVIDENCE_F: Record<string, string[]> = {
     'data/contracts/judgment-foundation-conformance.json',
   ],
   F1: [
-    'argus-mcp/src/tools/__tests__/semantic-record.test.ts',
+    'argus-mcp/src/tools/__tests__/protocol-roundtrip.test.ts',
     'src/components/workspace/progressive/SealMoment.tsx',
     'argus-plugin-v2/scripts/decision-ledger.test.mjs',
   ],
   F2: [
     'src/components/projects/FoundationSettlementModal.tsx',
-    'argus-mcp/src/tools/__tests__/semantic-record.test.ts',
+    'argus-mcp/evals/e2e-picker.mjs',
     'argus-plugin-v2/scripts/decision-ledger.test.mjs',
   ],
   F3: [

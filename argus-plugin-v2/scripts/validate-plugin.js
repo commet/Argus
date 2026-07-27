@@ -135,7 +135,16 @@ if (fs.existsSync(clarifySkillPath)) {
 const agentFiles = fs.existsSync(path.join(root, "agents"))
   ? fs.readdirSync(path.join(root, "agents")).filter((f) => f.endsWith(".md"))
   : [];
-check(agentFiles.length === 17, `agents/ should hold 17 agent .md files, found ${agentFiles.length}`);
+const expectedAgents = ["domain-reviewer.md", "evidence-reviewer.md", "risk-reviewer.md", "synthesizer.md"];
+check(
+  JSON.stringify(agentFiles.sort()) === JSON.stringify(expectedAgents),
+  `agents/ must contain only ${expectedAgents.join(", ")}; found ${agentFiles.sort().join(", ")}`
+);
+for (const file of agentFiles) {
+  const body = fs.readFileSync(path.join(root, "agents", file), "utf8");
+  check(/\nmodel:\s*inherit\r?\n/.test(body), `${file} must inherit the host model`);
+  check(/\nmaxTurns:\s*\d+\r?\n/.test(body), `${file} must declare a bounded maxTurns`);
+}
 
 for (const schema of [
   "analysis-snapshot.json",

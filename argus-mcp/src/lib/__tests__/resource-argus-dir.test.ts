@@ -24,7 +24,7 @@ describe('resolveArgusDirForResource — same storage model as tools', () => {
   it('zero-config (no env): resource and tool resolve to the SAME ~/.argus', () => {
     delete process.env.ARGUS_DIR;
     const resourceDir = resolveArgusDirForResource();
-    expect(resourceDir).toBe(path.join(os.homedir(), '.argus'));
+    expect(resourceDir).toBe(path.join(process.cwd(), '.argus'));
     expect(resourceDir).toBe(resolveToolArgusDir(undefined));
   });
 
@@ -52,7 +52,7 @@ describe('resolveArgusDirForResource — same storage model as tools', () => {
 describe('argus://attention on a zero-config install (journey)', () => {
   function fakeHome(): string {
     const home = fs.mkdtempSync(path.join(os.tmpdir(), 'argus-reshome-'));
-    vi.spyOn(os, 'homedir').mockReturnValue(home);
+    vi.spyOn(process, 'cwd').mockReturnValue(home);
     return home;
   }
 

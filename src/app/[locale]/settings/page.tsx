@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useSettingsStore } from '@/stores/useSettingsStore';
+import { hasOwnApiKey, useSettingsStore } from '@/stores/useSettingsStore';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
@@ -23,6 +23,7 @@ import { timeoutSignal } from '@/lib/timeout-signal';
 import { useLocale } from '@/hooks/useLocale';
 import { useLocaleSwitch } from '@/hooks/useLocaleSwitch';
 import { withLocale } from '@/lib/locale-path';
+import { verifyCurrentLlmConnection } from '@/lib/llm';
 import { LocaleSwitchConfirmation } from '@/components/ui/LocaleSwitchConfirmation';
 
 function buildLlmProviders(L: (ko: string, en: string) => string) {
@@ -58,6 +59,7 @@ export default function SettingsPage() {
   const { user } = useAuth();
   const { settings, loadSettings, updateSettings } = useSettingsStore();
   const [showKey, setShowKey] = useState(false);
+  const [keyTest, setKeyTest] = useState<'idle' | 'testing' | 'ok' | 'error'>('idle');
   const [resetModal, setResetModal] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [exporting, setExporting] = useState(false);
@@ -228,6 +230,7 @@ export default function SettingsPage() {
   };
 
   const handleProviderChange = (provider: LLMProvider) => {
+    setKeyTest('idle');
     if (provider === 'openai' || provider === 'gemini') {
       // OpenAI/Gemini always uses direct mode
       updateSettings({ llm_provider: provider, llm_mode: 'direct' });
@@ -238,7 +241,18 @@ export default function SettingsPage() {
 
   const handleModeChange = (mode: LLMMode) => {
     if (mode === 'local') return;
+    setKeyTest('idle');
     updateSettings({ llm_mode: mode });
+  };
+
+  const testApiConnection = async () => {
+    setKeyTest('testing');
+    try {
+      await verifyCurrentLlmConnection();
+      setKeyTest('ok');
+    } catch {
+      setKeyTest('error');
+    }
   };
 
   // 05 S8: frequency order — the AI engine (where people come when blocked) and
@@ -351,7 +365,7 @@ export default function SettingsPage() {
                 id="settings-anthropic-api-key"
                 type={showKey ? 'text' : 'password'}
                 value={settings.anthropic_api_key}
-                onChange={(e) => updateSettings({ anthropic_api_key: e.target.value })}
+                onChange={(e) => { setKeyTest('idle'); updateSettings({ anthropic_api_key: e.target.value }); }}
                 placeholder="sk-ant-..."
                 autoComplete="off"
                 data-1p-ignore
@@ -381,7 +395,7 @@ export default function SettingsPage() {
                 id="settings-openai-api-key"
                 type={showKey ? 'text' : 'password'}
                 value={settings.openai_api_key || ''}
-                onChange={(e) => updateSettings({ openai_api_key: e.target.value })}
+                onChange={(e) => { setKeyTest('idle'); updateSettings({ openai_api_key: e.target.value }); }}
                 placeholder="sk-..."
                 autoComplete="off"
                 data-1p-ignore
@@ -404,7 +418,7 @@ export default function SettingsPage() {
               <select
                 id="settings-openai-model"
                 value={settings.openai_model || DEFAULT_OPENAI_MODEL}
-                onChange={(e) => updateSettings({ openai_model: e.target.value })}
+                onChange={(e) => { setKeyTest('idle'); updateSettings({ openai_model: e.target.value }); }}
                 className="min-h-11 w-full bg-[var(--bg)] border-[1.5px] border-[var(--border)] rounded-[10px] px-3.5 py-2.5 text-[14px] focus:outline-none focus:border-[var(--accent)] cursor-pointer"
               >
                 <option value="gpt-4o">GPT-4o — {L('균형 (추천)', 'Balanced (recommended)')}</option>
@@ -427,7 +441,7 @@ export default function SettingsPage() {
                 id="settings-gemini-api-key"
                 type={showKey ? 'text' : 'password'}
                 value={settings.gemini_api_key || ''}
-                onChange={(e) => updateSettings({ gemini_api_key: e.target.value })}
+                onChange={(e) => { setKeyTest('idle'); updateSettings({ gemini_api_key: e.target.value }); }}
                 placeholder="AIza..."
                 autoComplete="off"
                 data-1p-ignore
@@ -450,7 +464,7 @@ export default function SettingsPage() {
               <select
                 id="settings-gemini-model"
                 value={settings.gemini_model || DEFAULT_GEMINI_MODEL}
-                onChange={(e) => updateSettings({ gemini_model: e.target.value })}
+                onChange={(e) => { setKeyTest('idle'); updateSettings({ gemini_model: e.target.value }); }}
                 className="min-h-11 w-full bg-[var(--bg)] border-[1.5px] border-[var(--border)] rounded-[10px] px-3.5 py-2.5 text-[14px] focus:outline-none focus:border-[var(--accent)] cursor-pointer"
               >
                 <option value="gemini-2.5-flash">Gemini 2.5 Flash — {L('빠르고 저렴 (추천)', 'Fast & cheap (recommended)')}</option>
@@ -458,6 +472,33 @@ export default function SettingsPage() {
                 <option value="gemini-2.0-flash">Gemini 2.0 Flash — {L('초경량', 'Ultra lightweight')}</option>
               </select>
             </div>
+          </div>
+        )}
+        {hasOwnApiKey(settings) && (
+          <div className="mt-4 flex items-center gap-3">
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              disabled={keyTest === 'testing'}
+              onClick={testApiConnection}
+            >
+              {keyTest === 'testing' ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />}
+              {L('실제 연결 확인', 'Test live connection')}
+            </Button>
+            <p className={`text-[11.5px] ${
+              keyTest === 'ok'
+                ? 'text-emerald-600'
+                : keyTest === 'error'
+                  ? 'text-[var(--danger)]'
+                  : 'text-[var(--text-tertiary)]'
+            }`}>
+              {keyTest === 'ok'
+                ? L('실제 모델 응답을 확인했어요.', 'The selected model responded successfully.')
+                : keyTest === 'error'
+                  ? L('연결하지 못했어요. 키·모델·결제 상태를 확인해 주세요.', 'Could not connect. Check the key, model access, and provider billing.')
+                  : L('키 형식뿐 아니라 실제 모델 호출까지 확인합니다.', 'Checks a real model call, not just the key format.')}
+            </p>
           </div>
         )}
       </Card>

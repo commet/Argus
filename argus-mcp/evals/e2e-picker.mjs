@@ -152,7 +152,7 @@ check('날짜 조정 → 문장 유지 + 확인일 이동', seal2?.data?.status 
 await callData('argus_predict', { id: 'e2e-settle', predicate: 'the pinned wire reaches the next session', check_by: '2026-08-01', predicate_owner: 'user' });
 elicitCount = 0;
 nextResp = { action: 'accept', content: { outcome: 'held', what_happened: '다음 세션이 핀한 버전으로 붙었다' } };
-const settled = await callData('argus_settle', { id: 'e2e-settle', today_override: '2026-08-02' });
+const settled = await callData('argus_resolve', { id: 'e2e-settle' });
 check('정산 픽커 실발사', elicitCount === 1, `count=${elicitCount}`);
 check('정산 픽커 한 왕복으로 완료 (WHAT_HAPPENED_REQUIRED 막다름 없음)', settled?.ok === true && !settled?.error_code, JSON.stringify({ ok: settled?.ok, err: settled?.error_code }));
 check('정산 결과가 사용자 말 그대로 기록', settled?.ok === true && JSON.stringify(settled?.data ?? {}).includes('핀한 버전으로 붙었다'), String(settled?.error_code ?? 'recorded'));

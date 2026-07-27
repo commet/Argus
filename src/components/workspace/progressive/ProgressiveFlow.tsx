@@ -65,6 +65,10 @@ import { SealMoment } from './SealMoment';
 import { TrialSail } from './TrialSail';
 import { CrewAtWork } from './CrewAtWork';
 import { useSettingsStore } from '@/stores/useSettingsStore';
+import { hasOwnApiKey } from '@/stores/useSettingsStore';
+import { authorizePlatformDeepJudgment } from '@/lib/deep-judgment-client';
+import { recommendDeepJudgment } from '@/lib/judgment-depth';
+import { verifyCurrentLlmConnection } from '@/lib/llm';
 import { useProbeStore } from '@/stores/useProbeStore';
 import { runDivergenceProbe } from '@/lib/probe-engine';
 import { forksToQuestions, forkQuestionId } from '@/lib/fork-to-question';
@@ -1076,6 +1080,81 @@ function PipelineExitOptions({ onReframe, onRehearse }: {
   );
 }
 
+function DeepJudgmentEntry({
+  active,
+  recommended,
+  ownApiKey,
+  busy,
+  error,
+  onEnable,
+}: {
+  active: boolean;
+  recommended: boolean;
+  ownApiKey: boolean;
+  busy: boolean;
+  error: string | null;
+  onEnable: () => void;
+}) {
+  const locale = useLocale();
+  const L = (ko: string, en: string) => locale === 'ko' ? ko : en;
+  return (
+    <div className={`mb-5 rounded-xl border px-4 py-3 ${
+      active
+        ? 'border-[var(--accent)]/35 bg-[var(--accent)]/[0.06]'
+        : recommended
+          ? 'border-amber-500/30 bg-amber-500/[0.05]'
+          : 'border-[var(--border-subtle)] bg-[var(--surface)]'
+    }`}>
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-[12.5px] font-semibold text-[var(--text-primary)]">
+            {active
+              ? L('심층 판단이 켜져 있어요', 'Deep judgment is on')
+              : recommended
+                ? L('이 과제는 심층 판단을 써볼 만해요', 'This decision may benefit from deep judgment')
+                : L('더 강한 검증이 필요하면', 'When you want stronger verification')}
+          </p>
+          <p className="mt-1 text-[11.5px] leading-[1.55] text-[var(--text-tertiary)]">
+            {active
+              ? L(
+                  '최대 두 개의 전문 시각과, 되돌리기 어려운 과제일 때만 반론 하나를 더 붙입니다.',
+                  'Up to two specialist views, plus one critic only when the decision is hard to reverse.',
+                )
+              : recommended
+                ? L(
+                    '영향이 크거나 전제가 여러 개라서, 짧은 기본 경로보다 독립 검토가 도움 될 수 있어요.',
+                    'The stakes or assumptions make independent checks more useful than the short default path.',
+                  )
+                : L(
+                    '기본 경로는 에이전트 팀 없이 판단을 정리합니다. 필요할 때만 여기서 심층 경로로 바꿀 수 있어요.',
+                    'The default path organizes the judgment without an agent team. Switch here only when you need it.',
+                  )}
+          </p>
+          {!active && (
+            <p className="mt-1 text-[10.5px] text-[var(--text-tertiary)]">
+              {ownApiKey
+                ? L('개인 API 연결됨 · 횟수 제한 없음', 'Own API connected · no Argus usage limit')
+                : L('Argus 제공 모델 · 24시간에 한 번, 시작한 과제는 끝까지 이어갈 수 있음', 'Argus-provided model · once per 24 hours; the started session can be resumed')}
+            </p>
+          )}
+          {error && <p className="mt-1.5 text-[11.5px] text-[var(--danger)]">{error}</p>}
+        </div>
+        {!active && (
+          <button
+            type="button"
+            disabled={busy}
+            onClick={onEnable}
+            className="inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-lg border border-[var(--accent)]/35 px-3 text-[12px] font-semibold text-[var(--accent)] transition-colors hover:bg-[var(--accent)]/[0.08] disabled:opacity-50"
+          >
+            {busy ? <Loader2 size={13} className="animate-spin" /> : <Sparkles size={13} />}
+            {L('심층 판단', 'Go deep')}
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
 /* ═══════════════════════════════════════════ */
 /* ═══ MAIN                             ═══ */
 /* ═══════════════════════════════════════════ */
@@ -1211,6 +1290,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
   // convergence, exits, Q&A history) retreats behind one quiet "기록" toggle —
   // demoted, never deleted. classic_session=true restores the old layout.
   const classicSession = useSettingsStore((s) => s.settings.classic_session ?? false);
+  const llmSettings = useSettingsStore((s) => s.settings);
   const focusMode = !classicSession;
   const [recordOpen, setRecordOpen] = useState(false);
   /** 정거장 레일의 질문 노드 클릭 → 그 답을 AnsweredPills에서 정확히 펼치라는 신호. */
@@ -1221,6 +1301,8 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
    *  focus mode (reports auto-apply; grading homework is opt-in, not a gate). */
   const [reportsOpen, setReportsOpen] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [deepGateBusy, setDeepGateBusy] = useState(false);
+  const [deepGateError, setDeepGateError] = useState<string | null>(null);
   // The overreach/flinch step's in-flight ladder (strength + escalating claims).
   // Local + ephemeral: only the committed result persists (session.falsification).
   const [overreach, setOverreach] = useState<{ strength: string; claims: LoadBearingClaim[] } | null>(null);
@@ -1637,6 +1719,20 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
   const qaPairs = useMemo(() => questions.map((q, i) => ({ question: q, answer: answers[i] || null })), [questions, answers]);
   const curQ = questions.length > answers.length ? questions[questions.length - 1] : null;
   const latest = snapshots[snapshots.length - 1] || null;
+  const deepMode = session?.judgment_mode === 'deep';
+  const deepByokMissing = deepMode
+    && session?.deep_funding === 'byok'
+    && !hasOwnApiKey(llmSettings);
+  const deepFundingError = deepByokMissing
+    ? L(
+        '이 심층 판단은 개인 API로 시작했어요. 같은 API를 다시 연결하거나, 새 과제에서 Argus 제공 1일 1회 경로를 시작해 주세요.',
+        'This deep session started on your own API. Reconnect it, or start a new session using the once-daily Argus-provided path.',
+      )
+    : null;
+  const deepRecommendation = useMemo(
+    () => recommendDeepJudgment(latest),
+    [latest],
+  );
   // R60 — never deploy the crew on a flat decision (the highest-measured over-fire
   // harm, ~60% in the stress test). It terminates with the analysis card instead.
   // R60 — never deploy the crew on a flat decision UNLESS the user opted back in
@@ -1669,13 +1765,13 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
    * effect fires post-render.) */
   const autoDeployedRef = useRef(false);
   useEffect(() => {
-    if (!focusMode || autoDeployedRef.current) return;
+    if (!focusMode || session?.judgment_mode !== 'deep' || deepByokMissing || autoDeployedRef.current) return;
     if (deployPhase !== 'ready' || workers.length === 0) return;
     autoDeployedRef.current = true;
     track('focus_auto_deploy', { workers: workers.length });
     onDeployWorkers();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [focusMode, deployPhase, workers.length]);
+  }, [focusMode, session?.judgment_mode, deepByokMissing, deployPhase, workers.length]);
 
   /* Self-heal after a mid-run reload — the confirmed 0/N stall root.
    * migrateWorkers resets in-flight workers ('running'/'ai_preparing') back to
@@ -1686,14 +1782,14 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
    * workers, no draft yet, and no orchestration already in flight this mount. */
   const autoResumedRef = useRef(false);
   useEffect(() => {
-    if (autoResumedRef.current || workersRef.current) return;
+    if (deepByokMissing || autoResumedRef.current || workersRef.current) return;
     if (deployPhase !== 'deployed' || mix || final_) return;
     if (!workers.some(w => w.status === 'pending')) return;
     autoResumedRef.current = true;
     track('worker_auto_resume', { pending: workers.filter(w => w.status === 'pending').length });
     startWorkerExecution(store.currentSession()?.workers ?? []);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [deployPhase, workers.length]);
+  }, [deepByokMissing, deployPhase, workers.length]);
 
   /* W1.6 재구성 ③ — focus mode still doesn't make the user grade the crew's
    * homework: the review stepper stays behind "열어보기" and unreviewed reports
@@ -1838,6 +1934,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
 
   /* Deploy workers — user confirmed the team */
   const onDeployWorkers = () => {
+    if (deepByokMissing) return;
     if (deployPhase === 'deployed') return;
     const preDeployWorkers = store.currentSession()?.workers ?? [];
     if (preDeployWorkers.length === 0) return;
@@ -2006,7 +2103,51 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
   };
 
   /* Handlers */
+  const onEnableDeepJudgment = async () => {
+    if (!session || deepGateBusy || session.judgment_mode === 'deep') return;
+    setDeepGateBusy(true);
+    setDeepGateError(null);
+    try {
+      if (hasOwnApiKey(llmSettings)) {
+        try {
+          await verifyCurrentLlmConnection();
+        } catch {
+          setDeepGateError(L(
+            '개인 API로 실제 모델 호출을 확인하지 못했어요. 설정에서 키·모델·결제 상태를 확인한 뒤 다시 시도해 주세요.',
+            'Your API could not complete a real model call. Check the key, model access, and provider billing in Settings, then try again.',
+          ));
+          return;
+        }
+        store.setJudgmentMode('deep', new Date().toISOString(), 'byok');
+        track('deep_judgment_enabled', { funding: 'byok', recommended: deepRecommendation.recommended });
+        return;
+      }
+
+      const authorization = await authorizePlatformDeepJudgment(session.id);
+      if (!authorization.allowed) {
+        setDeepGateError(authorization.status === 'daily_used'
+          ? L(
+              '지난 24시간 안에 다른 과제에서 심층 판단을 시작했어요. 그 과제로 돌아가거나, 설정에서 개인 API를 연결하면 바로 사용할 수 있어요.',
+              'You started deep judgment on another session within the last 24 hours. Resume it, or connect your own API in Settings.',
+            )
+          : L(
+              '지금은 심층 판단 사용권을 확인하지 못했어요. 기본 판단은 그대로 계속할 수 있어요.',
+              'Deep access could not be verified right now. You can keep using the standard judgment path.',
+            ));
+        return;
+      }
+      store.setJudgmentMode('deep', new Date().toISOString(), 'platform');
+      track('deep_judgment_enabled', { funding: 'platform', resumed: authorization.status === 'resumed', recommended: deepRecommendation.recommended });
+    } finally {
+      setDeepGateBusy(false);
+    }
+  };
+
   const onAnswer = async (value: string) => {
+    if (deepByokMissing) {
+      setDeepGateError(deepFundingError);
+      return;
+    }
     if (!curQ || busy || !latest) return;
     const ans: FlowAnswer = { question_id: curQ.id, value };
     // Answering dismisses the MirrorBeat — recognition needs no "got it" button;
@@ -2082,7 +2223,12 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
         }
       }
       const personas = usePersonaStore.getState().personas.filter(p => !p.is_example && !p.deleted_at).map(p => ({ name: p.name, role: p.role, hasContact: !!(p.contact?.email || p.contact?.slack_id) }));
-      const r = await runDeepening(session.problem_text, latest, qa, round, maxR, snapshots, (text) => setStreamingText(text), abortRef.current.signal, leadCtx, personas.length > 0 ? personas : undefined, onTypedUpgrade);
+      const r = await runDeepening(
+        session.problem_text, latest, qa, round, maxR, snapshots,
+        (text) => setStreamingText(text), abortRef.current.signal, leadCtx,
+        personas.length > 0 ? personas : undefined, onTypedUpgrade,
+        session.judgment_mode === 'deep' ? 'deep' : 'standard',
+      );
       setStreamingText(null);
       // Phase 1: merge typed-question effects onto the fresh snapshot.
       // Strategy: if the user picked a strategic_fork option, the fork's
@@ -2113,7 +2259,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
       // Prepare workers when execution_plan appears
       const existingWorkers = store.currentSession()?.workers ?? [];
       const currentDeployPhase = store.currentSession()?.worker_deploy_phase ?? 'none';
-      if (r.snapshot.execution_plan && r.snapshot.execution_plan.steps.length > 0) {
+      if (session.judgment_mode === 'deep' && r.snapshot.execution_plan && r.snapshot.execution_plan.steps.length > 0) {
         if (existingWorkers.length === 0) {
           // First time — init workers
           store.initWorkers(r.snapshot.execution_plan.steps);
@@ -2169,6 +2315,10 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
   };
 
   const runMixCore = async () => {
+    if (deepByokMissing) {
+      setDeepGateError(deepFundingError);
+      return;
+    }
     retryRef.current = runMixCore;
     setBusy(true); setError(null); store.setPhase('mixing'); scrollToRef(statusBarRef);
     setSubstage(L('팀 결과 모으는 중', 'Gathering team results'));
@@ -2321,6 +2471,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
         abortRef.current.signal, leadSynthesis, session?.user_notes,
         (text) => setStreamingText(text),
         blockedTasks.length > 0 ? blockedTasks : undefined,
+        session?.judgment_mode === 'deep' ? 'deep' : 'standard',
       );
       setStreamingText(null);
       // Lead가 Mix보다 늦게 끝났으면 비동기로 저장 (Mix에는 미포함이지만 UI에는 표시)
@@ -2444,6 +2595,10 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
   };
 
   const onMore = async () => {
+    if (deepByokMissing) {
+      setDeepGateError(deepFundingError);
+      return;
+    }
     if (!latest) return; retryRef.current = onMore; setShowMix(false); setBusy(true); store.setPhase('analyzing'); scrollToRef(statusBarRef);
     try {
       const qa = qaPairs.filter(q => q.answer).map(q => ({ question: q.question, answer: q.answer! }));
@@ -2466,7 +2621,12 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
         }
       }
       const personas2 = usePersonaStore.getState().personas.filter(p => !p.is_example && !p.deleted_at).map(p => ({ name: p.name, role: p.role, hasContact: !!(p.contact?.email || p.contact?.slack_id) }));
-      const r = await runDeepening(session!.problem_text, latest, qa, round, round + 2, snapshots, (text) => setStreamingText(text), abortRef.current.signal, moreLeadCtx, personas2.length > 0 ? personas2 : undefined, onTypedUpgrade);
+      const r = await runDeepening(
+        session!.problem_text, latest, qa, round, round + 2, snapshots,
+        (text) => setStreamingText(text), abortRef.current.signal, moreLeadCtx,
+        personas2.length > 0 ? personas2 : undefined, onTypedUpgrade,
+        session?.judgment_mode === 'deep' ? 'deep' : 'standard',
+      );
       setStreamingText(null);
       if (r.question) {
         store.addQuestion(r.question);
@@ -3102,6 +3262,17 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
                 defaultCollapsed={phase === 'conversing' && !mix && !suppressQuestion}
               />
             </div>
+          )}
+
+          {latest?.request_type === 'open' && !final_ && !mix && !crisisBlocking && phase === 'conversing' && (
+            <DeepJudgmentEntry
+              active={deepMode}
+              recommended={deepRecommendation.recommended}
+              ownApiKey={hasOwnApiKey(llmSettings)}
+              busy={deepGateBusy}
+              error={deepGateError ?? deepFundingError}
+              onEnable={onEnableDeepJudgment}
+            />
           )}
 
           {/* Terminal route closure — a non-open/flat route suppresses the

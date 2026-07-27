@@ -61,6 +61,7 @@ const zPremiseInput = z.strictObject({
   kind: z.enum(['premise', 'open_question']).default('premise').describe('premise = a fact/belief the decision rests on. open_question = something the user explicitly left undecided.'),
   external: z.boolean().default(false).describe('Can reality verify this later (a rate, a date, supply, a third party)? external + load_bearing arms re-checking.'),
   load_bearing: z.boolean().default(false).describe(`Would the decision flip if this is wrong? Mark sparingly — max ${MAX_LOAD_BEARING} per decision.`),
+  monitoring_enabled: z.boolean().default(true).describe('Whether Argus should currently re-check/nudge this premise. This does not change whether the premise is important or externally verifiable.'),
   source: z.enum(['ai_surfaced', 'user_stated', 'ai', 'user']).optional().describe('Provenance. Never forge: "user_stated" = the user\'s own words; "ai_surfaced" = model-drafted (requires ai_original). Legacy aliases "user"/"ai" are accepted and normalized. Optional ONLY when from_capture is given (the capture\'s provenance carries over) — otherwise required.'),
   ai_original: z.string().max(400).optional().describe('REQUIRED when source="ai_surfaced": the model\'s original wording, preserved verbatim across later edits.'),
   materiality_rule: zMaterialityRule.optional().describe('Optional: how re-checks decide "did this materially change?". Absent → an under-fire default heuristic (silence when unsure). Define it to be precise (e.g. threshold "drops below 4.0", step "any one-notch credit downgrade").'),
@@ -80,6 +81,7 @@ const inputSchema = z.strictObject({
   note: z.string().max(300).optional().describe('op=amend: optional why (never required).'),
   external: z.boolean().optional().describe('op=amend: correct the external flag (true lets re-checking arm for a load-bearing premise).'),
   load_bearing: z.boolean().optional().describe('op=amend: correct the load-bearing flag.'),
+  monitoring_enabled: z.boolean().optional().describe('op=amend: turn re-check reminders on/off without changing importance or verifiability.'),
   recheck_cadence_days: z.number().int().min(1).max(365).optional().describe('op=amend: re-set how often (days) this fact is re-checked (M1). Widens or narrows the DUE nudge; never blocks an explicit recheck.'),
   reponder_cadence_days: z.number().int().min(1).max(365).optional().describe('op=amend/still_open: re-set how often (days) this open question is nudged for reconsideration (M3). Only moves the nudge — never forces a resolution.'),
   reconsider_cadence_days: z.number().int().min(1).max(365).optional().describe('Alias of reponder_cadence_days (the historical field name) — either spelling is accepted.'),
@@ -345,6 +347,7 @@ async function opAdd(
     ordinal: nextOrdinal++,
     kind: p.kind, text: p.text,
     external: p.external, load_bearing: p.load_bearing,
+    monitoring_enabled: p.monitoring_enabled,
     source: normalizePremiseSource(p.source),
     ...(p.ai_original ? { ai_original: p.ai_original } : {}),
     // 승격 계보 (§9.3): which watch capture this premise came from — a
@@ -382,7 +385,7 @@ async function opAdd(
     ref: `P${e.ordinal}`, premise_id: e.premise_id, kind: e.kind, text: e.text,
     external: e.external, load_bearing: e.load_bearing, source: e.source,
     ...(e['ai_original'] ? { ai_original: e['ai_original'] } : {}),
-    monitored: e.kind === 'premise' && e.external === true && e.load_bearing === true,
+    monitored: e.kind === 'premise' && e.external === true && e.load_bearing === true && e.monitoring_enabled !== false,
   }));
   const monitoredCount = echo.filter((p) => p.monitored).length;
 
@@ -472,6 +475,7 @@ async function opAmend(
     ...(typeof a['note'] === 'string' ? { note: a['note'] as string } : {}),
     ...(typeof a['external'] === 'boolean' ? { external: a['external'] as boolean } : {}),
     ...(typeof loadBearing === 'boolean' ? { load_bearing: loadBearing as boolean } : {}),
+    ...(typeof a['monitoring_enabled'] === 'boolean' ? { monitoring_enabled: a['monitoring_enabled'] as boolean } : {}),
     ...(typeof a['recheck_cadence_days'] === 'number' ? { recheck_cadence_days: a['recheck_cadence_days'] as number } : {}),
     ...(typeof a['reponder_cadence_days'] === 'number' && premise.kind === 'open_question' ? { reponder_cadence_days: a['reponder_cadence_days'] as number } : {}),
   };
@@ -479,7 +483,8 @@ async function opAmend(
 
   const nowExternal = typeof ev.external === 'boolean' ? ev.external : premise.external;
   const nowLb = typeof ev.load_bearing === 'boolean' ? ev.load_bearing : premise.load_bearing;
-  const armed = action !== 'retire' && premise.kind === 'premise' && nowExternal && nowLb;
+  const nowMonitoring = typeof ev.monitoring_enabled === 'boolean' ? ev.monitoring_enabled : premise.monitoring_enabled;
+  const armed = action !== 'retire' && premise.kind === 'premise' && nowExternal && nowLb && nowMonitoring !== false;
 
   // Voice follows the user's correction when there is one, else the premise
   // being amended (their earlier words). Config-pinned locale still wins.

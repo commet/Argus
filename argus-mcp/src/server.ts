@@ -6,7 +6,7 @@ import {
   ListResourceTemplatesRequestSchema,
   ReadResourceRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
-import { PUBLIC_TOOLS, TOOL_MAP, servedPublicTools } from './tools/index.js';
+import { TOOLS, TOOL_MAP, servedPublicTools } from './tools/index.js';
 import { listResources, listResourceTemplates, readResource } from './resources.js';
 import { SERVER_INSTRUCTIONS } from './lib/spine.js';
 import { setElicitor } from './lib/elicit.js';
@@ -127,7 +127,7 @@ export async function createServer(): Promise<Server> {
     // control must not become part of the public MCP schema users and models
     // have to understand.
     const hiddenTestClock = process.env['NODE_ENV'] === 'test'
-      && PUBLIC_TOOLS.some((candidate) => candidate.name === name)
+      && TOOLS.some((candidate) => candidate.name === name)
       && typeof rawArgs['today_override'] === 'string';
     const validationArgs = hiddenTestClock
       ? Object.fromEntries(Object.entries(rawArgs).filter(([key]) => key !== 'today_override'))
@@ -205,7 +205,11 @@ export async function createServer(): Promise<Server> {
       // Last-resort guard — individual handlers already map their own errors.
       logError(`[${name}] escaped handler`, e);
       return {
-        content: [{ type: 'text' as const, text: JSON.stringify({ ok: false, error_code: 'INTERNAL_ERROR', message: String(e) }) }],
+        content: [{ type: 'text' as const, text: JSON.stringify({
+          ok: false,
+          error_code: 'INTERNAL_ERROR',
+          message: 'Argus could not complete the request. Check the server log and retry.',
+        }) }],
         isError: true,
       };
     }
