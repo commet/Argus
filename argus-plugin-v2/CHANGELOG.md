@@ -6,6 +6,14 @@ All notable changes to the Argus plugin. Versioning follows
 
 ## 2.21.1 — 2026-07-27
 
+- **`/argus:doctor` stops crying wolf about npx caches.** A machine with eight
+  leftover installs printed six `⚠ 낡은 배선이다` lines while the session was
+  correctly on the pinned build. That warning's premise died when the pin
+  became exact — a stale copy cannot be selected. With the pin present in
+  cache, stale copies now collapse to one quiet line; the loud warning is
+  reserved for the case that still bites (pin absent). Guarded by
+  `doctor-cache-noise.test.mjs`.
+
 - **The return loop stops hiding which wire answered.** `/argus:check` routed
   straight to a file-only ledger replay, so a session with the MCP server
   disconnected — or running a stale cached build — got the same confident

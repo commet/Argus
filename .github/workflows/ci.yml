@@ -178,6 +178,10 @@ jobs:
       - name: Argus generated-contract sync
         run: node argus-plugin-v2/scripts/generate-contracts.test.mjs
 
+      # doctor [10] 캐시 줄이 정확 핀에서 무해한 사본에 겁주지 않는지 (2026-07-27 도그푸딩).
+      - name: Argus doctor cache-noise contract
+        run: node argus-plugin-v2/scripts/doctor-cache-noise.test.mjs
+
       # Plugin structure + bearing simulations.
       - name: Argus plugin validate
         run: node argus-plugin-v2/scripts/validate-plugin.js && node argus-plugin-v2/scripts/simulate-plugin.js
