@@ -16,7 +16,6 @@ import { amend, dismiss } from './amend-dismiss.js';
 import { recall } from './recall.js';
 import { init, config } from './init-config.js';
 import { sync } from './sync.js';
-import { review } from './review.js';
 import { seal } from './seal.js';
 import { checkIn } from './check-in.js';
 import { settle } from './settle.js';
@@ -29,6 +28,7 @@ const premiseInput = z.strictObject({
   kind: z.enum(['premise', 'open_question']).default('premise').describe('premise는 확인할 전제, open_question은 사용자가 아직 답하지 않은 질문입니다.'),
   external: z.boolean().default(false).describe('외부 현실에서 나중에 다시 확인할 수 있는 사실인지 표시합니다.'),
   load_bearing: z.boolean().default(false).describe('틀리면 결정이 바뀌는 핵심 전제인지 표시합니다.'),
+  monitoring_enabled: z.boolean().default(true).describe('이 전제를 현재 다시 확인하거나 알려줄지 정합니다. 꺼도 중요도나 검증 가능성은 바뀌지 않습니다.\n\nWhether Argus should currently re-check or nudge this premise. Turning it off does not change importance or verifiability.'),
   source: z.enum(['user_stated', 'ai_surfaced']).describe('필수: 이 문장을 말한 주체입니다. user_stated=사용자의 말, ai_surfaced=AI가 제시한 말(이때 ai_original도 함께). 사용자의 말을 AI의 말로 바꾸지 않습니다.'),
   ai_original: z.string().max(400).describe('source가 ai_surfaced일 때 AI가 처음 제시한 원문입니다.').optional(),
   recheck_cadence_days: z.number().int().min(1).max(365).describe('이 사실을 다시 확인할 간격(일)입니다.').optional(),
@@ -58,6 +58,19 @@ const decideSchema = z.discriminatedUnion('action', [
     action: z.literal('add_context').describe('결정이 딛고 선 전제나 미결 질문을 추가합니다.'),
     id: zId.describe('대상 결정 id입니다.'),
     premises: z.array(premiseInput).min(1).max(5).describe('추가할 전제와 미결 질문입니다.'),
+  }),
+  z.strictObject({
+    ...common,
+    action: z.literal('amend_context').describe('전제의 문장이나 속성, 확인 알림을 고칩니다.'),
+    id: zId.describe('대상 결정 id입니다.'),
+    ref: z.string().max(64).describe('고칠 전제 번호 또는 id입니다.'),
+    amendment: z.enum(['accept', 'refine', 'replace', 'retire']).describe('전제를 확인·수정·교체·퇴역하는 방식입니다. 알림만 바꿀 때는 accept를 씁니다.'),
+    text: z.string().min(3).max(400).describe('refine/replace에서 사용할 사용자의 원문입니다.').optional(),
+    external: z.boolean().describe('외부 현실에서 다시 확인할 수 있는 전제인지 고칩니다.').optional(),
+    load_bearing: z.boolean().describe('틀리면 결정이 바뀌는 핵심 전제인지 고칩니다.').optional(),
+    monitoring_enabled: z.boolean().describe('중요도와 별개로 재확인 알림을 켜거나 끕니다.').optional(),
+    recheck_cadence_days: z.number().int().min(1).max(365).describe('재확인 주기(일)를 고칩니다.').optional(),
+    note: z.string().max(300).describe('선택적인 수정 이유입니다.').optional(),
   }),
   z.strictObject({
     ...common,
@@ -110,7 +123,7 @@ const decideSchema = z.discriminatedUnion('action', [
 // top-level oneOf without weakening runtime validation.
 const decidePublicSchema = z.strictObject({
   argus_dir: zArgusDir,
-  action: z.enum(['open', 'add_context', 'answer_question', 'keep_question_open', 'update_fact', 'change_prediction', 'close']).describe('수행할 결정 작업입니다. 선택한 작업에 필요한 필드만 전달합니다.'),
+  action: z.enum(['open', 'add_context', 'amend_context', 'answer_question', 'keep_question_open', 'update_fact', 'change_prediction', 'close']).describe('수행할 결정 작업입니다. 선택한 작업에 필요한 필드만 전달합니다.'),
   id: zId.min(1).max(128).describe('대상 결정의 짧고 고유한 식별자입니다.').optional(),
   decision: z.string().min(1).max(600).describe('새 결정 또는 미결 질문에 대한 사용자의 판단입니다.').optional(),
   stakes: z.enum(['trivial', 'low', 'moderate', 'high']).describe('틀렸을 때의 비용입니다. 새 결정을 열 때 사용합니다.').optional(),
@@ -121,6 +134,12 @@ const decidePublicSchema = z.strictObject({
   related_to: z.array(zId).max(20).describe('사용자가 비슷하다고 본 과거 결정 id입니다.').optional(),
   premises: z.array(premiseInput).min(1).max(5).describe('추가할 전제와 미결 질문입니다.').optional(),
   ref: z.string().max(64).describe('답하거나 재확인할 전제 또는 미결 질문 번호입니다.').optional(),
+  amendment: z.enum(['accept', 'refine', 'replace', 'retire']).describe('amend_context에서 전제를 고치는 방식입니다.\n\nHow to amend a premise for action=amend_context.').optional(),
+  text: z.string().min(3).max(400).describe('사용자가 고친 전제 원문입니다.\n\nThe user’s corrected premise wording.').optional(),
+  external: z.boolean().describe('외부 현실에서 다시 확인할 수 있는 전제인지 표시합니다.\n\nWhether reality can verify this premise later.').optional(),
+  load_bearing: z.boolean().describe('틀리면 결정이 바뀌는 핵심 전제인지 표시합니다.\n\nWhether the decision materially depends on this premise.').optional(),
+  monitoring_enabled: z.boolean().describe('재확인 알림을 켜거나 끕니다.\n\nWhether Argus should re-check or nudge this premise.').optional(),
+  recheck_cadence_days: z.number().int().min(1).max(365).describe('전제 재확인 주기(일)입니다.\n\nHow often this premise becomes due for re-check.').optional(),
   reconsider_cadence_days: z.number().int().min(1).max(365).describe('미결 질문을 다시 볼 간격(일)입니다.').optional(),
   finding: z.string().min(1).max(800).describe('현재 확인한 사실을 비교 가능한 한 문장으로 적습니다.').optional(),
   numeric_value: z.number().finite().describe('수치 사실의 현재 값을 명시적으로 전달합니다.').optional(),
@@ -324,7 +343,7 @@ async function runPublic(
 
 export const decide: ToolModule = {
   name: 'argus_capture',
-  description: 'Capture the reasoning behind a decision in the user\'s own words — the premises it rests on and the questions still open — without deciding for the user. Use action=open for a new decision; add_context, answer_question, keep_question_open, update_fact, change_prediction, or close for a decision already on record. To save a checkable PREDICTION with a check-by date, use argus_predict instead (capture alone sets no check date, so nothing will come due). Standing sense: a consequential decision rests on a load-bearing assumption, and the valuable one is usually UNSTATED — you may surface at most one as your ai_surfaced draft for the user to confirm or correct; never more, never as a verdict.',
+  description: 'Capture a decision and its user-stated context without deciding for the user. Preserve at most one load-bearing assumption; tag an AI-drafted premise as ai_surfaced.',
   inputSchema: decidePublicSchema,
   outputSchema: ENVELOPE_OUTPUT_SCHEMA,
   annotations: { title: 'Work with a decision', readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
@@ -363,6 +382,9 @@ export const decide: ToolModule = {
       return result;
     }
     if (action === 'add_context') return runPublic('argus_capture', { ...a, op: 'add' }, premises.handler);
+    if (action === 'amend_context') {
+      return runPublic('argus_capture', { ...a, op: 'amend', action: a['amendment'] }, premises.handler);
+    }
     if (action === 'answer_question') return runPublic('argus_capture', { ...a, op: 'resolve' }, premises.handler);
     if (action === 'keep_question_open') {
       return runPublic('argus_capture', { ...a, op: 'still_open', reponder_cadence_days: a['reconsider_cadence_days'] }, premises.handler);
@@ -378,7 +400,7 @@ export const decide: ToolModule = {
 
 export const history: ToolModule = {
   name: 'argus_patterns',
-  description: 'Read decisions already on record: what is open, all contracts, one Judgment Receipt, one decision’s premises, the accumulated timeline, or a reflection that replays your own past predictions and premises next to what reality did. Read-only.',
+  description: 'Read active decisions, receipts, timelines, and recurring patterns. Read-only; history is context, never a verdict.',
   inputSchema: historySchema,
   outputSchema: ENVELOPE_OUTPUT_SCHEMA,
   // readOnlyHint:false — like argus_check_in, the first call auto-initializes
@@ -397,7 +419,7 @@ export const history: ToolModule = {
 
 export const settings: ToolModule = {
   name: 'argus_settings',
-  description: 'Read or update the few settings a user may need: response language, quiet due reminders, opt-in premise sync, and an explicit account sync. Argus initializes itself on first use.',
+  description: 'Read or update language, reminders, and explicit sync settings. Argus initializes the current project on first use.',
   inputSchema: settingsPublicSchema,
   outputSchema: ENVELOPE_OUTPUT_SCHEMA,
   annotations: { title: 'Argus settings', readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: true },
@@ -439,6 +461,6 @@ function publicWrapper(tool: ToolModule, name: string, description: string): Too
 // 툴 설명은 접속 후 유일하게 "항상 컨텍스트에 있는" 서버 발화다 (instructions는
 // initialize 1회, 툴 결과는 호출할 때만). 그래서 세 감각의 tell을 여기 한 줄씩
 // 심는다 — 모델이 대화 중 알아채는 확률을 매 턴 받쳐주는 상시 지침 통로.
-export const publicSeal = publicWrapper(seal, 'argus_predict', 'Make a falsifiable prediction and the date when reality can answer it. Use the user\'s own wording whenever possible. Works directly with a fresh id; no prior argus_capture call is needed. Standing sense: users rarely say "predict". A working claim that pairs a direction or target with a horizon or number ("이번 주엔 끝날 거야", "churn should drop once we launch") IS a prediction; on a consequential one, offer once with confirm_draft:true.');
-export const publicCheckIn = publicWrapper(checkIn, 'argus_check_in', 'Show only decisions, facts, and open questions that need attention now. Read-only. Call at session start and keep the open predictions it returns as a background sense for the whole conversation — they are what lets you recognize an outcome when it surfaces mid-work.');
-export const publicSettle = publicWrapper(settle, 'argus_resolve', 'Record what actually happened to a tracked prediction. Reality supplies the result; Argus does not grade it. Standing sense: when the conversation reveals the outcome, even in passing or by pronoun ("그거 결국 잘 됐어"), record it THEN, in the user\'s own words. Do not wait for the check date, and never infer an outcome the user did not state.');
+export const publicSeal = publicWrapper(seal, 'argus_predict', 'Record one falsifiable prediction and when reality can answer it. Use the user’s words and offer confirmation once.');
+export const publicCheckIn = publicWrapper(checkIn, 'argus_check_in', 'Show only open records that need attention now. Read-only.');
+export const publicSettle = publicWrapper(settle, 'argus_resolve', 'Record an outcome the user explicitly stated for a tracked prediction. Reality answers; Argus never grades.');

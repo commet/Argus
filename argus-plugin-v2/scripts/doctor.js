@@ -251,9 +251,24 @@ for (const p of [path.join(cwd, '.argus', 'ledger', 'ledger.jsonl'), path.join(h
   if (found.length === 0) {
     say('    npx 캐시에 설치본 없음 — 다음 도구 호출에서 핀한 버전을 내려받는다 (정상).');
   } else {
-    for (const f of found) {
-      const stale = pinned && /^\d+\.\d+\.\d+$/.test(pinned) && f.version !== pinned;
-      say(`    캐시 ${f.version}${stale ? ` — ⚠ 핀(${pinned})과 다르다. 이 세션이 이걸 물고 있으면 낡은 배선이다` : ' (핀과 일치)'} — ${f.dir}`);
+    // 경고의 전제는 "범위 스펙이면 npx가 낡은 캐시를 재사용한다"였다. 핀이 정확
+    // 버전인 지금은 낡은 사본이 선택될 수 없으므로 무해하다 — 그런데도 사본 하나당
+    // ⚠ 한 줄을 뿜어 창업자 화면에 겁주는 6줄이 떴다(2026-07-27 도그푸딩).
+    // 핀이 캐시에 있으면 낡은 것들은 한 줄로 접고, 없을 때만 크게 경고한다.
+    const exactPin = Boolean(pinned) && /^\d+\.\d+\.\d+$/.test(pinned);
+    const pinPresent = found.some((f) => f.version === pinned);
+    const stale = found.filter((f) => f.version !== pinned);
+    if (exactPin && pinPresent) {
+      for (const f of found.filter((x) => x.version === pinned)) say(`    캐시 ${f.version} (핀과 일치) — ${f.dir}`);
+      if (stale.length) {
+        const vs = [...new Set(stale.map((f) => f.version))].sort().join(', ');
+        say(`    낡은 사본 ${stale.length}개 (${vs}) — 무해: 정확 핀이라 npx가 이걸 고르지 않는다. 지우려면 위 캐시 폴더 삭제.`);
+      }
+    } else {
+      for (const f of found) {
+        const isStale = exactPin && f.version !== pinned;
+        say(`    캐시 ${f.version}${isStale ? ` — ⚠ 핀(${pinned})과 다르다. 이 세션이 이걸 물고 있으면 낡은 배선이다` : ' (핀과 일치)'} — ${f.dir}`);
+      }
     }
     if (pinned && found.every((f) => f.version !== pinned)) {
       say(`    ⚠ 핀한 ${pinned}이 캐시에 없다 — 아직 npm에 발행되지 않았거나 첫 호출 전이다. 발행 전이면 배선이 실패하므로 publish 여부를 먼저 확인할 것.`);

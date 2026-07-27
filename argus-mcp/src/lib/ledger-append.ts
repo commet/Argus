@@ -32,6 +32,7 @@ export interface LedgerEventInput {
   text?: string;
   external?: boolean;
   load_bearing?: boolean;
+  monitoring_enabled?: boolean;
   source?: string;
   ai_original?: string;
   /** M2 materiality rule (jsonb-nested on premise_add) — no schema migration. */

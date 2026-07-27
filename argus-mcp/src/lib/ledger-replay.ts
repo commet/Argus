@@ -116,6 +116,21 @@ export interface LedgerState {
      *  Such a seal can NEVER become `due`, so without this it is silently stuck
      *  and invisible to every channel. Listed here so a channel can say so. */
     undated_seals?: string[];
+    /**
+     * The ledger file EXISTS but could not be read (permissions, a directory in
+     * its place, an I/O error, a lock held by another process). Carries the
+     * errno so a surface can name it.
+     *
+     * Why this field exists (adversarial audit 2026-07-27): the read used to
+     * swallow every failure into an empty state WITH `dropped_lines: 0` — an
+     * affirmative claim that nothing was lost. So an unreadable ledger made
+     * every surface say "no decisions on record", made `argus_resolve` answer
+     * NO_PRIOR_SEAL for a prediction sitting on disk, and — worst — made
+     * `deriveState` return `absent`, so the state machine happily accepted a
+     * SECOND seal on the same id and silently moved its check-by. "I could not
+     * look" must never be reported as "there is nothing there."
+     */
+    unreadable?: string;
   };
 }
 
@@ -146,8 +161,18 @@ export function replayLedger(argusDir: string, today: string): LedgerState {
   let raw: string;
   try {
     raw = deBom(fs.readFileSync(ledgerPath(argusDir), 'utf8'));
-  } catch {
-    return { today, overdue: [], ids, sealedPredicates, contracts: map, stats, watch, integrity: { dropped_lines: 0, skipped_unknown: 0 } };
+  } catch (e) {
+    // ENOENT is the ONLY benign case: no ledger yet, so "nothing on record" is
+    // the truth. Every other errno means we could not look — and an empty fold
+    // with `dropped_lines: 0` would be a lie that also unlocks a second seal
+    // (deriveState sees `absent`). Carry the fact so read surfaces can say it
+    // and write paths can refuse.
+    const code = (e as NodeJS.ErrnoException)?.code;
+    const benign = code === 'ENOENT';
+    return {
+      today, overdue: [], ids, sealedPredicates, contracts: map, stats, watch,
+      integrity: { dropped_lines: 0, skipped_unknown: 0, ...(benign ? {} : { unreadable: code ?? 'UNKNOWN' }) },
+    };
   }
 
   for (const rawLine of raw.split('\n')) {
@@ -274,6 +299,7 @@ export function replayLedger(argusDir: string, today: string): LedgerState {
           text: ev['text'],
           external: ev['external'] === true,
           load_bearing: ev['load_bearing'] === true,
+          ...(typeof ev['monitoring_enabled'] === 'boolean' ? { monitoring_enabled: ev['monitoring_enabled'] } : {}),
           source: normalizePremiseSource(ev['source']),
           ...(typeof ev['ai_original'] === 'string' ? { ai_original: ev['ai_original'] } : {}),
           ...(isMaterialityRule(ev['materiality_rule']) ? { materiality_rule: ev['materiality_rule'] as PremiseState['materiality_rule'] } : {}),
@@ -309,6 +335,7 @@ export function replayLedger(argusDir: string, today: string): LedgerState {
         // so monitoring can arm) — monitoring stays DERIVED from these flags.
         if (typeof ev['external'] === 'boolean') p.external = ev['external'];
         if (typeof ev['load_bearing'] === 'boolean') p.load_bearing = ev['load_bearing'];
+        if (typeof ev['monitoring_enabled'] === 'boolean') p.monitoring_enabled = ev['monitoring_enabled'];
         // M1 §1.2: the user may re-set the cadence (how often to nudge). A
         // number widens/narrows the interval; nothing else touches it.
         if (typeof ev['recheck_cadence_days'] === 'number' && Number.isFinite(ev['recheck_cadence_days'])) p.recheck_cadence_days = ev['recheck_cadence_days'];

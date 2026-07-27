@@ -9,13 +9,14 @@ import { configPath } from '../../lib/layout.js';
 import { toolJsonSchema } from '../tool-types.js';
 
 describe('purpose-led public MCP surface', () => {
-  it('exposes seven user purposes while legacy tools remain callable aliases', () => {
+  it('exposes exactly six user purposes and rejects legacy aliases', () => {
     expect(PUBLIC_TOOLS.map((tool) => tool.name)).toEqual([
-      'argus_capture', 'argus_record', 'argus_predict', 'argus_check_in',
+      'argus_capture', 'argus_predict', 'argus_check_in',
       'argus_resolve', 'argus_patterns', 'argus_settings',
     ]);
-    expect(TOOL_MAP.has('argus_premises')).toBe(true);
-    expect(TOOL_MAP.has('argus_recheck')).toBe(true);
+    expect(TOOL_MAP.has('argus_record')).toBe(false);
+    expect(TOOL_MAP.has('argus_premises')).toBe(false);
+    expect(TOOL_MAP.has('argus_recheck')).toBe(false);
     expect(PUBLIC_TOOLS.some((tool) => tool.name === 'argus_premises')).toBe(false);
   });
 
@@ -68,6 +69,47 @@ describe('purpose-led public MCP surface', () => {
       finding: '하루 지연되지만 기한 안에는 도착', changed: false,
     });
     expect(isError(r)).toBe(false);
+  });
+
+  it('turns premise monitoring off without erasing importance or verifiability', async () => {
+    const dir = tmpArgusDir();
+    await decide.handler({
+      argus_dir: dir,
+      action: 'open',
+      id: 'monitoring-separation',
+      decision: 'whether to sign the long supplier contract',
+      status_quo: 'keep the current monthly contract',
+      stakes: 'high',
+      reversibility: 'costly_to_reverse',
+      premises: [{
+        text: 'the supplier keeps the quoted capacity through next year',
+        kind: 'premise',
+        external: true,
+        load_bearing: true,
+        monitoring_enabled: true,
+        source: 'user_stated',
+      }],
+    });
+
+    const amended = await decide.handler({
+      argus_dir: dir,
+      action: 'amend_context',
+      id: 'monitoring-separation',
+      ref: 'P1',
+      amendment: 'accept',
+      monitoring_enabled: false,
+    });
+    expect(isError(amended)).toBe(false);
+
+    const recalled = await history.handler({
+      argus_dir: dir,
+      view: 'decision_context',
+      id: 'monitoring-separation',
+    });
+    const row = (((body(recalled)['data'] as Record<string, unknown>)['premises']) as Array<Record<string, unknown>>)[0];
+    expect(row['external']).toBe(true);
+    expect(row['load_bearing']).toBe(true);
+    expect(row['monitored']).toBe(false);
   });
 
   it('records supplied premises even on a low-stakes (restraint) open — record is never gated by ceremony', async () => {

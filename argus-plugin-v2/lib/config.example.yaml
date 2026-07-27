@@ -25,7 +25,7 @@ boss:
 team:
   # Optional overrides. Omit unless you need them.
   # max_agents_override: 3
-  # preferred_agents: [donghyuk, jieun]
+  # preferred_agents: [domain-reviewer, evidence-reviewer]
 
 archive:
   commit_sessions: false  # If true, /argus:versions suggests git commit at phase=complete

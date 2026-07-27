@@ -8,6 +8,28 @@ description: Return to sealed Argus records whose fallback date has arrived, sho
 Argus returns the user's earlier sentence at a useful time. It does not decide
 whether the user was right, good, successful, or improving.
 
+## 0. Prefer the live wire, and never hide which one answered
+
+If the Argus MCP tools are present in this session, call `argus_check_in` FIRST
+(read-only) and use its `data.due` as the due list — the server replays the same
+ledger plus bearing seeds, so a file-only read can silently disagree with what
+the running build sees. Two facts from that response matter to the user and are
+NOT visible anywhere else in this command:
+
+- `data.server_version` — the build actually running. If it differs from the
+  version the plugin pins, say so in ONE line and point at clearing the npx
+  cache plus a session restart (this is the 12-silent-days failure class:
+  the repo, npm, and the live wire disagreeing with nobody able to see it).
+- `data.picker` — `card` (an MCP Apps settlement card renders), `one_tap`
+  (a confirm form), or `text_fallback` (asks in chat). Mention it only when the
+  user asks what they will see, or when a settlement is about to happen on a
+  host that can only do `text_fallback`.
+
+If the tools are NOT present, fall back to the file replay below and say so in
+ONE short line ("MCP 미연결 — 파일 기록만 읽었습니다"), so a user never mistakes
+an offline read for the live wire. Never fail the command over this; the file
+path is a real answer, just a narrower one.
+
 ## 1. Collect due records mechanically
 
 Replay `.argus/ledger/ledger.jsonl` by id:

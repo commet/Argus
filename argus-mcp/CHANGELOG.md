@@ -1,10 +1,91 @@
 # Changelog
 
+## 2.0.0
+
+- Reduced the public and callable MCP surface to six purpose-led tools.
+- Removed legacy callable aliases and the experimental `argus_record` surface.
+- Made zero-config storage project-scoped and removed cross-project discovery.
+- Compressed initialize instructions and tool schemas under enforced byte budgets.
+- Bundled the published runtime into one entrypoint and hardened internal errors.
+
 > Published on npm as **`argus-decision-mcp`**. The package was renamed from
 > `argus-mcp` (that name was already taken by an unrelated tool) and its version
 > **reset to 1.0.0** for the first release under the new name on **2026-07-03**.
 > The `1.3.0` / `1.2.1` entries at the bottom are pre-rename `argus-mcp` history,
 > kept for reference — all of that work shipped inside the new-name 1.0.0.
+
+## 1.15.2 — What the audit found, and the gates that could not see it
+
+Three adversarial auditors were told to assume the engineer was wrong.
+They were right, three times. Everything here was live and green.
+
+- **Long answers were being destroyed.** `maxLength` on the premises and
+  ambient pickers made the MCP SDK reject an over-limit answer INSIDE our
+  own process; `elicit()` returned null and the server told the model the
+  user never answered. A 420-character answer, gone, blamed on the user.
+  Removed from both. The picker guard now bans every validation keyword,
+  not the two that had already bitten us.
+- **The guard was blind to the file it was written for.** It matched the
+  literal `elicit(`, and the seal confirm — the picker that blocked the
+  founder twice — had been renamed to `elicitDetailed(` by the previous
+  fix. Now matches any `elicit*(`. (Its own self-check then caught a
+  control character an edit had injected into the new regex; a gate that
+  can fail is the only kind worth having.)
+- **The settle card had never been executed.** Its JavaScript is a string
+  in a `.ts` file, so nothing type-checked or ran it: an injected syntax
+  error, a typo'd tool name, and a guaranteed throw all shipped green.
+  `widget-runtime.mjs` now runs it in a VM host and drives all 25 user
+  gestures — and immediately found that the skip escape only appeared
+  AFTER an outcome was picked, so a user who wanted out had to commit
+  first. Fixed.
+- **An unreadable ledger reported "nothing on record" — and let a second
+  seal through.** The read swallowed every errno into an empty fold with
+  `dropped_lines: 0`, so `deriveState` saw `absent` and the state machine
+  accepted a duplicate seal that silently moved the check-by. Reads now
+  carry `integrity.unreadable`; writes refuse with `LEDGER_UNREADABLE` and
+  say plainly that nothing was lost.
+- **The account namespace re-randomized on a write failure.** A read-only
+  `.argus` meant seal and settle addressed different account rows, so the
+  row never closed and the Brief kept emailing a settled bet — while every
+  surface said "synced". The id is now held for the process and written
+  atomically.
+
+Gates: 209 host-conformance checks across 8 client profiles (new
+long-typer profile types 520 characters into every field), the card
+executed for real, an unreadable-ledger drill, and `npm run verify`
+re-plants all five regressions to prove the green light can turn red.
+
+## 1.15.1 — A picker that fails must not eat the work
+
+Founder dogfooding, second consecutive blocked confirm: Accept did not
+advance, the ask died by timeout, and the answer came back as a polite
+"기록하지 않았습니다" — with the work gone.
+
+- **`format:"date"` removed from the picker.** 1.14.0 added it as a
+  "spec-sanctioned, harmless rendering hint" — untested speculation on the
+  yes-path. A host that VALIDATES format rejects the blank a one-tap Accept
+  leaves behind, so Accept stops advancing. The `required` guard now also
+  bans `format` in any elicit schema: the confirm form carries NO validation
+  constraints, ever. The server validates and re-asks honestly instead.
+- **A decline and a non-answer are now different facts.** `elicit` collapsed
+  decline, cancel, and host failure into one `null`, so a broken picker was
+  recorded as "the user said no". `elicitDetailed` reports how the ask ended;
+  a cancel/failure now names it and hands back the plain-text path
+  ("저장해줘 한마디면 이대로 남깁니다") instead of silently dropping the seal.
+  No host UI quirk we cannot see from here can cost the user their work.
+- **A host conformance matrix now stands in for every client.** Seven
+  profiles — claude-code, claude-desktop (MCP Apps), codex (no elicitation),
+  legacy, and three hostile ones (cancels everything / accepts blank /
+  answers with junk) — each drive the real server through every ask that can
+  reach a user, asserting four promises: no dead end, no lost work, no form
+  a validating host would block, and no surface that claims a record it did
+  not write. 117 checks, and reintroducing either known regression turns it
+  red (proven, not assumed). CI gate.
+- **The E2E harness now validates like a strict host.** It accepted any
+  scripted answer without checking it against the schema the server sent —
+  more permissive than the real client, which is how format:"date" shipped
+  green. An answer a validating host would reject now fails the run
+  (verified by reintroducing the regression and watching it turn red).
 
 ## 1.15.0 — The settle card (MCP Apps)
 

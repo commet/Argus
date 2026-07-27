@@ -253,7 +253,7 @@ session start.
 
 - Web app: https://argus.voyage · Source & issues: https://github.com/commet/Argus · MCP on npm: https://www.npmjs.com/package/argus-decision-mcp
 - Changelog: `CHANGELOG.md`
-- Agent roster: `data/agents.yaml`
+- Bounded reviewer roles: `agents/`
 - Boss tone skins (voice only — the review's substance is the configured seat): `data/boss-types.yaml`
 - Schemas: `data/schemas/*.json`
 - Build log (frozen historical record): `BUILD_STATUS.md`

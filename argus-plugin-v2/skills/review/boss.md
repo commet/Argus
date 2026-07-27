@@ -266,7 +266,7 @@ into `versions/{label}/scaffold.json` above; do NOT copy them into session.json)
 - On the active draft in `session.drafts[]` (matching `active_draft_id`), set
   `boss_reviewed: true` (a small flag — full feedback stays in the version dir)
   so the version tree shows this draft was reviewed. Do NOT set `reviewing_agent_id`
-  (that marks who PRODUCED the draft — `navigator` for a revise child — not who
+  (that marks who produced the draft — `synthesizer` for a revise child — not who
   reviewed it).
 - `phase = "refining"` (next natural step is `revise.md`).
 - `updated_at = now`
