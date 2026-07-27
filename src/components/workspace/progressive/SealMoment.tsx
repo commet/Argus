@@ -38,7 +38,7 @@ import { useLocale } from '@/hooks/useLocale';
 import { useAuth } from '@/lib/auth';
 import { useProjectStore } from '@/stores/useProjectStore';
 import type { Project, Predicate, PredicateSource, CheckInInterval, OpenCheck } from '@/stores/types';
-import { contractFromPredicates, withCheckIn, augmentContract, shouldSealContract, buildEarlyContract, CHECK_IN_MS, DEFAULT_CHECK_IN_INTERVAL, intervalFromExistingContract, stablePredicateId, webUserAttribution } from '@/lib/decision-contract';
+import { contractFromPredicates, withCheckIn, augmentContract, shouldSealContract, buildEarlyContract, CHECK_IN_MS, DEFAULT_CHECK_IN_INTERVAL, intervalFromExistingContract, stablePredicateId, webUserAttribution, MAX_PREDICATES } from '@/lib/decision-contract';
 import { derivePrimaryCheckpoint } from '@/lib/checkpoint-core';
 import { buildAutoTrackedPremiseItems } from '@/lib/auto-track-premises';
 import { useDecisionItemsStore } from '@/stores/useDecisionItemsStore';
@@ -298,7 +298,7 @@ export function SealMoment({
           predicates: [
             finalPredicate,
             ...(next.predicates || []).filter((p) => p.source !== 'user_lean' && p.id !== finalPredicate.id),
-          ].slice(0, 6),
+          ].slice(0, MAX_PREDICATES),
         }
       : next;
     const check_by = finalized.check_in_at ? new Date(finalized.check_in_at).toLocaleDateString(ko ? 'ko-KR' : 'en-US', { month: 'long', day: 'numeric' }) : '';
@@ -401,7 +401,7 @@ export function SealMoment({
       predicates: [
         finalPredicate,
         ...c.predicates.filter((p) => p.source !== 'user_lean' && p.id !== finalPredicate.id),
-      ].slice(0, 6),
+      ].slice(0, MAX_PREDICATES),
     };
     setDismissedLocally(false);
     setSealPromptDismissed(false);

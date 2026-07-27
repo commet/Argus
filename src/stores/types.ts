@@ -955,6 +955,12 @@ export interface PluginDecision {
   falsified_if?: string;
   check_by?: string;            // verbatim YYYY-MM-DD
   sealed_at?: string;
+  /** Provenance carried from the plugin ledger's seal event. The MCP surface has
+   *  always recorded whether the sealed line was the user's own or an Argus
+   *  draft; the bridge used to drop it, so an unconfirmed draft arrived in the
+   *  webapp indistinguishable from a line the user dictated. Absent = unknown
+   *  (pre-2026-07 ledgers) and MUST be rendered as unknown, never as the user's. */
+  predicate_owner?: 'user' | 'ai_surfaced';
   outcome?: 'happened' | 'avoided' | 'partial' | 'pending';
   settled_at?: string;
   settle_note?: string;

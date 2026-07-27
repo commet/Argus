@@ -50,9 +50,17 @@ describe('parseLedger (port of tools/argus-watch/lib/ledger.mjs loadLedger)', ()
     expect(out[0].ledger_id).toBe('ok');
   });
 
-  it('drops a seal with no prior harvest (orphan event)', () => {
+  // CHANGED 2026-07-28 (was: "drops a seal with no prior harvest"). The two
+  // surfaces disagreed: the plugin's own replay self-creates the entry on an
+  // orphan seal (ledger-replay, "B1: self-create instead of drop") while this
+  // bridge discarded the whole sealed decision. A truncated or partially-synced
+  // ledger loses its oldest line — the harvest — first, so the drop silently ate
+  // real predictions on the way into the account. Web now matches the plugin.
+  it('self-creates on a seal with no prior harvest (parity with ledger-replay B1)', () => {
     const out = parseLedger(JSON.stringify({ event: 'seal', id: 'orphan', predicate: 'p', at: 't' }));
-    expect(out).toHaveLength(0);
+    expect(out).toHaveLength(1);
+    expect(out[0].ledger_id).toBe('orphan');
+    expect(out[0].status).toBe('sealed');
   });
 });
 

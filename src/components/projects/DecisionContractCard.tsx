@@ -59,6 +59,8 @@ import {
   summarizeGrades,
   requiredSettlementPredicates,
   isUserOwnedPredicate,
+  isBaselineOnlyContract,
+  aiSurfacedCheckedCount,
   type PredicateSources,
 } from '@/lib/decision-contract';
 
@@ -317,25 +319,44 @@ export function DecisionContractCard({
   // The opening BIND is a pre-review baseline, not a completed seal. If someone
   // leaves mid-review, preserve the line and the date without pretending there
   // is already a final prediction to grade.
-  if (!contract!.closed_at) {
+  //
+  // The phase comes from `contractPhase`, NOT from `closed_at`: that stamp is
+  // written by one ceremony path only, so gating on it demoted every genuinely
+  // sealed record (harbor seal button, RetroSeal, Telegram, pre-`closed_at`
+  // history) to "unfinished baseline" — and took their settlement route with it.
+  // `gradeOpen` escapes this branch on purpose: the user tapped "check the
+  // opening line as it stands", so the grade panel below must actually render.
+  if (isBaselineOnlyContract(contract) && !gradeOpen) {
     const baseline = contract!.judgment_receipt?.baseline_judgment
       || predicates.find((p) => p.source === 'user_lean')?.text
       || '';
+    // The rope still has to come back. A baseline whose chosen day has arrived
+    // gets the honest version of the return: we do NOT call it a prediction the
+    // user made, but we also do not drop the loop — they can finish the review
+    // or settle the opening line as it stands.
+    const baselineDue = !!status?.checkInDue;
     return (
-      <Card className="border-[var(--border)]">
+      <Card className={baselineDue ? 'border-[var(--accent)]/50' : 'border-[var(--border)]'}>
         <div className="flex items-start gap-3">
           <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[var(--bg)] text-[var(--text-secondary)]">
             <Clock size={18} />
           </div>
           <div className="min-w-0 flex-1">
             <h3 className="text-[15px] font-bold text-[var(--text-primary)]">
-              {L('검토 전 기준점이 남아 있어요', 'Your pre-review baseline is saved')}
+              {baselineDue
+                ? L('확인일이 왔어요 — 검토는 아직 끝나지 않았고요', 'Your check-in day arrived — the review is still unfinished')
+                : L('검토 전 기준점이 남아 있어요', 'Your pre-review baseline is saved')}
             </h3>
             <p className="mt-1 text-[12.5px] leading-[1.55] text-[var(--text-secondary)]">
-              {L(
-                '아직 최종 판단을 확정한 것은 아니에요. 검토를 마치면 처음 생각과 달라진 점을 보고, 그때의 판단을 따로 확정합니다.',
-                'This is not the final seal. Finish the review, see what changed from this starting point, then confirm the judgment you want to keep.',
-              )}
+              {baselineDue
+                ? L(
+                    '이건 최종 판단이 아니라 검토 전에 남긴 첫 생각이에요. 검토를 마저 하고 판단을 확정하거나, 이 문장 그대로 현실과 맞춰볼 수 있어요.',
+                    'This is the thought you left before the review, not a final call. Finish the review and confirm a judgment, or check this opening line against reality as it stands.',
+                  )
+                : L(
+                    '아직 최종 판단을 확정한 것은 아니에요. 검토를 마치면 처음 생각과 달라진 점을 보고, 그때의 판단을 따로 확정합니다.',
+                    'This is not the final seal. Finish the review, see what changed from this starting point, then confirm the judgment you want to keep.',
+                  )}
             </p>
             {baseline && (
               <div className="mt-3 rounded-lg bg-[var(--bg)]/70 px-3.5 py-3">
@@ -359,6 +380,19 @@ export function DecisionContractCard({
               <LocaleLink href="/workspace" className="text-[12.5px] font-semibold text-[var(--accent)] hover:underline">
                 {L('검토 이어가기 →', 'Continue the review →')}
               </LocaleLink>
+              {/* The loop must stay closable even when the review never finished.
+                  Without this the rope simply expired on screen. */}
+              {/* A date-only rope has no line to check — offering settlement
+                  there would open an empty ceremony. Silence is the honest state. */}
+              {baselineDue && predicates.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => (onCheckNow ? onCheckNow() : setGradeOpen(true))}
+                  className="text-[12.5px] font-semibold text-[var(--text-secondary)] hover:text-[var(--accent)] hover:underline"
+                >
+                  {L('기준점 그대로 확인하기', 'Check the opening line as it stands')}
+                </button>
+              )}
               <button
                 type="button"
                 onClick={() => setConfirmClearOpen(true)}
@@ -398,10 +432,15 @@ export function DecisionContractCard({
       g.risksAvoided > 0 && L(`위험 ${g.risksAvoided}개 회피`, `${g.risksAvoided} risk${g.risksAvoided === 1 ? '' : 's'} avoided`),
       g.risksHappened > 0 && L(`${g.risksHappened}개 발생`, `${g.risksHappened} hit`),
       g.betsHeld > 0 && L(`가설 ${g.betsHeld}개 적중`, `${g.betsHeld} bet${g.betsHeld === 1 ? '' : 's'} held`),
+      // A record that prints only its wins is a trophy case. The user's own bet
+      // NOT holding is the single most calibration-relevant line here, and it
+      // used to render as nothing at all.
+      g.betsBroke > 0 && L(`가설 ${g.betsBroke}개 빗나감`, `${g.betsBroke} bet${g.betsBroke === 1 ? '' : 's'} missed`),
       // The user's own read — a lucky win isn't a judgment win (R17).
       g.goodOutcomesOnLuck > 0 && L(`그중 운 ${g.goodOutcomesOnLuck}개`, `${g.goodOutcomesOnLuck} on luck`),
-      // AI-surfaced checks stay disclosed but never read as the user's score.
-      (g.betsHeldAiDrafted + g.risksAvoidedAiDrafted) > 0 && L(`AI 제안 확인 ${g.betsHeldAiDrafted + g.risksAvoidedAiDrafted}개`, `${g.betsHeldAiDrafted + g.risksAvoidedAiDrafted} AI-suggested checked`),
+      // AI-surfaced checks stay disclosed but never read as the user's score —
+      // and the disclosure counts the ones that broke too, not just the wins.
+      aiSurfacedCheckedCount(g) > 0 && L(`AI 제안 확인 ${aiSurfacedCheckedCount(g)}개`, `${aiSurfacedCheckedCount(g)} AI-suggested checked`),
       g.unknown > 0 && L(`${g.unknown}개 미정`, `${g.unknown} unresolved`),
     ].filter(Boolean);
     return (

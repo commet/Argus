@@ -515,10 +515,16 @@ export function VoyageSea({
         due: false,
         dueDays: null,
         premise: d.predicate || null,
-        sub:
-          state === 'verified'
+        // Honest provenance survives the bridge: a line Argus drafted in the
+        // terminal and the user never reworded must not read here as their own.
+        sub: (() => {
+          const base = state === 'verified'
             ? L('터미널 · 결과 확인 완료', 'terminal · outcome recorded')
-            : `${L('터미널 기록', 'terminal record')} · ${relativeDays(lastAt, now, locale)}`,
+            : `${L('터미널 기록', 'terminal record')} · ${relativeDays(lastAt, now, locale)}`;
+          return d.predicate_owner === 'ai_surfaced'
+            ? `${base} · ${L('AI가 적은 문장', 'AI-drafted line')}`
+            : base;
+        })(),
         resolution: RESOLUTION[state],
         idleDays: (() => {
           const t = new Date(lastAt).getTime();
