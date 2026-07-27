@@ -43,8 +43,8 @@ export function humanizeSyncReason(reason: string, locale: SurfaceLocale): strin
   const http = /^http_(\d+)$/.exec(reason);
   if (locale === 'ko') {
     if (reason === 'bad_token_format') return '토큰 형식이 잘못됐습니다 (argus_pat_로 시작해야 합니다)';
-    if (reason === 'credential_expired') return '계정 연결이 만료됐습니다. argus_settings action=connect로 다시 연결하세요';
-    if (reason === 'credential_unreadable') return '계정 연결 파일을 읽지 못했습니다. argus_settings action=connect로 다시 연결하세요';
+    if (reason === 'credential_expired') return '계정 연결이 만료됐습니다. 터미널에서 `npx argus-decision-mcp connect`로 다시 연결하세요 (플러그인은 /argus:connect)';
+    if (reason === 'credential_unreadable') return '계정 연결 파일을 읽지 못했습니다. 터미널에서 `npx argus-decision-mcp connect`로 다시 연결하세요 (플러그인은 /argus:connect)';
     if (reason === 'insecure_api_url') return 'API 주소가 https가 아니라 토큰을 보내지 않았습니다';
     if (reason === 'network') return '네트워크에 닿지 못했습니다';
     if (http) return http[1] === '401' || http[1] === '403'
@@ -53,8 +53,8 @@ export function humanizeSyncReason(reason: string, locale: SurfaceLocale): strin
     return reason;
   }
   if (reason === 'bad_token_format') return 'the token looks malformed (it should start with argus_pat_)';
-  if (reason === 'credential_expired') return 'the account connection has expired; reconnect with argus_settings action=connect';
-  if (reason === 'credential_unreadable') return 'the account connection file could not be read; reconnect with argus_settings action=connect';
+  if (reason === 'credential_expired') return 'the account connection has expired; reconnect by running `npx argus-decision-mcp connect` (plugin: /argus:connect)';
+  if (reason === 'credential_unreadable') return 'the account connection file could not be read; reconnect by running `npx argus-decision-mcp connect` (plugin: /argus:connect)';
   if (reason === 'insecure_api_url') return 'the API URL is not https, so the token was not sent';
   if (reason === 'network') return 'the network was unreachable';
   if (http) return http[1] === '401' || http[1] === '403'

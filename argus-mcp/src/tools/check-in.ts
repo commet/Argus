@@ -278,7 +278,7 @@ export const checkIn: ToolModule = {
         // Read the SAME resolver every push path uses (audit 2026-07-27). This
         // used to peek at `process.env.ARGUS_TOKEN` alone, which is the manual /
         // CI override — so a user connected the normal way (argus_settings
-        // action="connect", credential on disk) was told "nothing anywhere"
+        // `npx argus-decision-mcp connect`, credential on disk) was told "nothing anywhere"
         // while their account held live decisions this read never looked at.
         const accountHint = accountCredentialStatus() === 'ok'
           ? S.account_hint
