@@ -5,6 +5,10 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  # 수동 트리거 (2026-07-28): Actions 이벤트가 이 레포에서 멈춰 PR에 CI가 아예
+  # 안 뜬 적이 두 번 있었다. 그때 "초록이 없다"와 "빨간불이다"를 구분할 방법이
+  # 없으면 남는 선택지가 로컬 재현뿐이다. 버튼 하나를 남겨둔다.
+  workflow_dispatch:
 
 jobs:
   check:
@@ -218,6 +222,12 @@ jobs:
       # doctor [10] 캐시 줄이 정확 핀에서 무해한 사본에 겁주지 않는지 (2026-07-27 도그푸딩).
       - name: Argus doctor cache-noise contract
         run: node argus-plugin-v2/scripts/doctor-cache-noise.test.mjs
+
+      # 확인 표면(data.picker)은 서버가 값을 늘려도 플러그인이 안 늘면 조용히
+      # 사라진다 — 1.15.0의 `card`가 정확히 그랬다(데스크탑 사용자에게 doctor
+      # 항목이 통째로 없었다). 값 목록은 MCP 소스에서 파생해 대조한다.
+      - name: Argus picker-surface parity
+        run: node argus-plugin-v2/scripts/picker-surface-parity.test.mjs
 
       # Plugin structure + bearing simulations.
       - name: Argus plugin validate
