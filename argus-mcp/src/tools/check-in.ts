@@ -9,6 +9,7 @@ import { type NextAction } from '../lib/spine.js';
 import { tunedStandingSense } from '../lib/ambient-prefs.js';
 import { envelope } from '../lib/envelope.js';
 import { canElicit } from '../lib/elicit.js';
+import { appsCapable } from '../lib/apps-ui.js';
 import { packageMeta } from '../lib/package-meta.js';
 import { ENVELOPE_OUTPUT_SCHEMA, zArgusDir, zDate, type ToolModule } from './tool-types.js';
 import { handleToolException } from './errors.js';
@@ -43,8 +44,14 @@ export function resetCheckInSession(): void {
  * Reported on every check_in so `/doctor` — and the user — can compare it to the
  * version the plugin pins, instead of inferring staleness from missing behavior.
  */
-function wireFacts(): { picker: 'one_tap' | 'text_fallback'; server_version: string } {
-  return { picker: canElicit() ? 'one_tap' : 'text_fallback', server_version: packageMeta().version };
+function wireFacts(): { picker: 'card' | 'one_tap' | 'text_fallback'; server_version: string } {
+  // Three surfaces, strongest first — the SAME order settle degrades through, so
+  // this field answers "what will I actually see when I settle?" without the
+  // user having to trigger one and find out (founder 2026-07-27: "does this
+  // show up on Claude Code and Codex too?" must be answerable by the wire, not
+  // by a blog post).
+  const picker = appsCapable() ? 'card' as const : canElicit() ? 'one_tap' as const : 'text_fallback' as const;
+  return { picker, server_version: packageMeta().version };
 }
 
 const inputSchema = z.strictObject({
