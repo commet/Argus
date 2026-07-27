@@ -6,6 +6,7 @@ import { safeSegment } from './lib/safe-path.js';
 import { logDebug } from './lib/log.js';
 import { duePremises, groupDuePremises, isMonitored, isDueForRecheck } from './lib/premises.js';
 import { sanitizeOutput } from './lib/untrusted.js';
+import { appsResourceListEntry, readAppsResource } from './lib/apps-ui.js';
 
 /**
  * MCP Resources (blueprint §4.3). Read-only context the host can auto-inject —
@@ -51,7 +52,9 @@ function unbound(uri: string) {
 }
 
 export function listResources() {
-  return { resources: PUBLIC_RESOURCES.map((r) => ({ ...r })) };
+  // The settle card (MCP Apps) is listed unconditionally — a listing is inert
+  // data; rendering only happens on hosts that follow a tool's _meta.ui link.
+  return { resources: [...PUBLIC_RESOURCES.map((r) => ({ ...r })), appsResourceListEntry()] };
 }
 
 export function listResourceTemplates() {
@@ -59,6 +62,10 @@ export function listResourceTemplates() {
 }
 
 export function readResource(uri: string): { contents: Array<{ uri: string; mimeType: string; text: string }> } {
+  // ui:// resources are static HTML (no ledger dir needed) — served before the
+  // dir resolution so an unbound ARGUS_DIR can never break the settle card.
+  const app = readAppsResource(uri);
+  if (app) return app;
   const dir = resolveArgusDirForResource();
   if (!dir) {
     logDebug(`resource ${uri} requested while unbound`);

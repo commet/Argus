@@ -166,7 +166,7 @@ describe('MCP protocol round-trip (built server, stdio)', () => {
 
   it('advertises one attention resource while legacy resource URIs remain readable', async () => {
     const listed = await client.listResources();
-    expect(listed.resources.map((resource) => resource.uri)).toEqual(['argus://attention']);
+    expect(listed.resources.map((resource) => resource.uri)).toEqual(['argus://attention', 'ui://argus/settle-picker']);
     const templates = await client.listResourceTemplates();
     expect(templates.resourceTemplates).toEqual([]);
     const res = await client.readResource({ uri: 'argus://attention' });

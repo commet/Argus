@@ -2,7 +2,7 @@
   "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
   "name": "argus",
   "displayName": "Argus",
-  "version": "2.20.1",
+  "version": "2.21.0",
   "description": "Pressure-tests an important decision, surfaces what it rests on, and lets the user confirm a judgment record with an optional return condition. Later Argus shows the original first and appends the user's answer without scores. Runs reviewers on real code, PRs, and files; one install also wires the MCP server.",
   "author": {
     "name": "Argus",

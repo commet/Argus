@@ -17,6 +17,8 @@ import type { RelatedDecision } from '../v2/connection.js';
 import { sanitizeLine } from '../v2/sanitize.js';
 import { z } from 'zod';
 import { envelope, toolError } from '../lib/envelope.js';
+import { appsCapable } from '../lib/apps-ui.js';
+import { daysBetween } from '../lib/premises-core.js';
 import { ENVELOPE_OUTPUT_SCHEMA, zArgusDir, zId, zDate, type ToolModule } from './tool-types.js';
 import { handleToolException } from './errors.js';
 
@@ -55,6 +57,26 @@ export const settle: ToolModule = {
       // this is reality, not a verdict). Falls back to requiring it on hosts
       // without elicitation.
       let outcome = a['outcome'] as 'held' | 'avoided' | 'partial' | 'still_pending' | 'missed' | undefined;
+      // MCP Apps host (SEP-1865): the settle CARD is already rendering beside
+      // this call. Return the awaiting state with everything the card needs;
+      // the user's click comes back as a second argus_resolve WITH outcome.
+      // Both doors stay open — the surface tells the model the user may just
+      // answer in chat instead (a card is an offer, never a gate).
+      if (!outcome && appsCapable()) {
+        const cardLocale = resolveResponseLocale(dir, current.predicate ?? null);
+        const daysOver = current.check_by && current.check_by < today ? daysBetween(current.check_by, today) : 0;
+        return envelope({
+          ok: true, tool: 'argus_settle',
+          surface: cardLocale === 'ko'
+            ? '정산 카드를 옆에 띄웠습니다. 카드에서 골라도 되고, 어떻게 됐는지 그냥 말해도 됩니다.'
+            : 'The settle card is up. Pick on the card, or just say what happened.',
+          next_actions: ['stop'],
+          data: {
+            status: 'awaiting_picker', id, predicate: current.predicate ?? id,
+            check_by: current.check_by ?? null, days_overdue: daysOver, locale: cardLocale,
+          },
+        });
+      }
       if (!outcome && canElicit()) {
         // Localize the picker like every other elicitation (ambient-elicit does):
         // a bilingual "그렇게 됐다 (held)" mishmash showed to BOTH a Korean and an
@@ -252,6 +274,9 @@ export const settle: ToolModule = {
         next_actions: ['argus_patterns', 'stop'],
         data: {
           id, outcome, outcome_source: 'user_stated',
+          // For the MCP Apps settle card's done-view (echoes the user's OWN
+          // words back; never model content) + its locale.
+          what_happened_echo: a['what_happened'], locale,
           v2_write: v2Write,
           assumption_held: receipt.assumption_held,
           ...(brokenPremiseRef ? { broken_premise: brokenPremiseRef, broken_premise_source: 'user_stated' } : {}),
@@ -385,7 +410,7 @@ async function deferStillPending(args: {
     ok: true, tool: 'argus_settle',
     surface: T.deferred(newDate) + syncLine,
     next_actions: ['argus_check_in', 'stop'],
-    data: { id, status: 'sealed', deferred_to: newDate, from_check_by: oldCheckBy, v2_write: v2Write, account_synced: sync.synced, ...(sync.synced ? {} : { account_sync_reason: sync.reason }) },
+    data: { id, status: 'sealed', deferred_to: newDate, from_check_by: oldCheckBy, locale, v2_write: v2Write, account_synced: sync.synced, ...(sync.synced ? {} : { account_sync_reason: sync.reason }) },
   });
 }
 
