@@ -68,6 +68,17 @@ jobs:
           test -f "$BIN" || { echo "설치본에 진입점이 없다: $BIN (package.json files 누락?)"; exit 1; }
           node "$GITHUB_WORKSPACE/argus-mcp/evals/e2e-picker.mjs" node "$BIN"
 
+      # 호스트 전수 대조 (2026-07-27, 창업자 지시 "죄다 다시 다 체크"): 두 번의
+      # 차단 사고가 모두 "우리 하네스는 받아주는데 사용자의 클라이언트는 막는다"의
+      # 틈에서 났다. 이 스텝은 claude-code / claude-desktop / codex / legacy /
+      # 적대(취소·빈답·쓰레기답) 7개 호스트를 각각 흉내내 실서버를 몰고, 모든
+      # 물음에 대해 막다름 0·작업유실 0·폼차단 0을 단정한다. 알려진 두 회귀를
+      # 되살리면 실제로 빨간불이 뜬다(자기 신뢰성 검증됨).
+      - name: Host conformance matrix (7 hosts x every ask)
+        run: |
+          cd argus-mcp
+          HOST_MATRIX_SKIP_BUILD=1 node evals/host-matrix.mjs
+
       # 상시 센서 (2026-07-27 창업자 지시 "eval을 꼼꼼하게 — 사고 나면 결국
       # 모델에게 시킬 텐데 센서가 없으면 못 찾는다"): 실서버를 stdio로 몰아
       # 모든 표면을 계약·스파인 검사로 훑는다. RED = 병합 차단.

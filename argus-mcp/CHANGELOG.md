@@ -24,6 +24,14 @@ advance, the ask died by timeout, and the answer came back as a polite
   a cancel/failure now names it and hands back the plain-text path
   ("저장해줘 한마디면 이대로 남깁니다") instead of silently dropping the seal.
   No host UI quirk we cannot see from here can cost the user their work.
+- **A host conformance matrix now stands in for every client.** Seven
+  profiles — claude-code, claude-desktop (MCP Apps), codex (no elicitation),
+  legacy, and three hostile ones (cancels everything / accepts blank /
+  answers with junk) — each drive the real server through every ask that can
+  reach a user, asserting four promises: no dead end, no lost work, no form
+  a validating host would block, and no surface that claims a record it did
+  not write. 117 checks, and reintroducing either known regression turns it
+  red (proven, not assumed). CI gate.
 - **The E2E harness now validates like a strict host.** It accepted any
   scripted answer without checking it against the schema the server sent —
   more permissive than the real client, which is how format:"date" shipped
