@@ -370,6 +370,67 @@ S.push({
   ],
 });
 
+S.push({
+  name: 'S41 봉인 픽커 — 8자 미만으로 고쳐쓰면 정직 거절 (관찰)',
+  lang: 'ko',
+  respond: () => ({ action: 'accept', content: { reword: '성공한다' } }),
+  steps: (d) => [
+    { tool: 'argus_seal', args: { argus_dir: d, id: 's41', predicate: '3분기 안에 유료 고객 100명을 넘긴다', check_by: '2026-09-30', predicate_owner: 'ai_surfaced', confirm_draft: true, today_override: T0 }, observe: true },
+  ],
+});
+S.push({
+  name: 'S42 봉인 픽커 — 문장과 날짜 동시 수정 → 둘 다 반영',
+  lang: 'ko',
+  respond: () => ({ action: 'accept', content: { reword: '10월 15일 전에 앱스토어 심사를 통과한다', check_by: '2026-10-15' } }),
+  steps: (d) => [
+    { tool: 'argus_seal', args: { argus_dir: d, id: 's42', predicate: '9월에 심사 통과', check_by: '2026-09-30', predicate_owner: 'ai_surfaced', confirm_draft: true, today_override: T0 },
+      expect: (env) => (env.data?.predicate === '10월 15일 전에 앱스토어 심사를 통과한다' && env.data?.check_by === '2026-10-15') ? null : `edits not both applied: ${JSON.stringify([env.data?.predicate, env.data?.check_by])}` },
+  ],
+});
+S.push({
+  name: 'S43 정산 픽커 — 픽커에 적은 what_happened가 영수증에 그대로',
+  lang: 'ko',
+  respond: (p) => (/어떻게 답|reality/i.test(p.message) ? { action: 'accept', content: { outcome: 'held', what_happened: '재계약 8건 전부 서명, 단가는 평균 4% 인상' } } : { action: 'accept', content: {} }),
+  steps: (d) => [
+    { tool: 'argus_seal', args: { argus_dir: d, id: 's43', predicate: '7월 재계약 시즌에 8건 전부 갱신된다', check_by: '2026-07-10', predicate_owner: 'user', today_override: T0 } },
+    { tool: 'argus_settle', args: { argus_dir: d, id: 's43', outcome_source: 'user_stated', today_override: '2026-07-15' },
+      // The contract is user-facing: the words typed into the picker appear
+      // VERBATIM on the receipt the user sees (settle puts the receipt in
+      // `surface`; `data` stays minimal by design — no what_happened echo).
+      expect: (env) => (typeof env.surface === 'string' && env.surface.includes('재계약 8건 전부 서명, 단가는 평균 4% 인상')) ? null : 'picker what_happened not on the visible receipt verbatim' },
+  ],
+});
+S.push({
+  name: 'S44 봉인 픽커 — 빈 Accept = 초안 인수(소유권이 사용자로)',
+  lang: 'ko',
+  respond: () => ({ action: 'accept', content: {} }),
+  steps: (d) => [
+    { tool: 'argus_seal', args: { argus_dir: d, id: 's44', predicate: '신규 온보딩 개편으로 첫 주 활성화율이 도입 전보다 오른다', check_by: '2026-08-20', predicate_owner: 'ai_surfaced', confirm_draft: true, today_override: T0 },
+      expect: (env) => (env.data?.sealed !== false && env.data?.predicate_owner === 'user') ? null : `empty Accept should adopt the draft as the user's: ${JSON.stringify(env.data?.predicate_owner)}` },
+  ],
+});
+S.push({
+  name: 'S45 전제 픽커 — ai_surfaced 전제 keep: 출처는 ai_surfaced 그대로 (관찰)',
+  lang: 'ko',
+  respond: () => ({ action: 'accept', content: {} }),
+  steps: (d) => [
+    { tool: 'argus_seal', args: { argus_dir: d, id: 's45', predicate: '4분기 재고 회전율이 6을 넘는다', check_by: '2026-12-31', predicate_owner: 'user', today_override: T0 } },
+    { tool: 'argus_premises', args: { argus_dir: d, id: 's45', op: 'add', today_override: T0, premises: [{ text: '주력 SKU의 리드타임이 45일을 넘지 않는다', kind: 'premise', external: true, load_bearing: true, source: 'ai_surfaced', ai_original: '주력 SKU의 리드타임이 45일을 넘지 않는다' }] }, observe: true },
+    { tool: 'argus_recall', args: { argus_dir: d, view: 'premises', id: 's45', today_override: T0 }, observe: true,
+      expect: (env) => { const p = (env.data?.premises || []).find((x) => x.text?.includes('리드타임')); return p ? (p.source === 'ai_surfaced' ? null : `keep must NOT transfer authorship: ${p.source}`) : 'premise missing'; } },
+  ],
+});
+S.push({
+  name: 'S46 defer 픽커 — 약 3달 뒤(quarter)',
+  lang: 'ko',
+  respond: (p) => (/언제 다시|look again/i.test(p.message) ? { action: 'accept', content: { when: 'quarter' } } : { action: 'accept', content: { outcome: 'still_pending' } }),
+  steps: (d) => [
+    { tool: 'argus_seal', args: { argus_dir: d, id: 's46', predicate: '정부 지원사업 선정 결과가 나온다', check_by: '2026-07-10', predicate_owner: 'user', today_override: T0 } },
+    { tool: 'argus_settle', args: { argus_dir: d, id: 's46', outcome: 'still_pending', outcome_source: 'user_stated', today_override: '2026-07-15' },
+      expect: (env) => (typeof env.data?.deferred_to === 'string' && env.data.deferred_to >= '2026-10-01') ? null : `quarter defer expected ~+3mo, got ${JSON.stringify(env.data?.deferred_to)}` },
+  ],
+});
+
 // ── driver ──────────────────────────────────────────────────────────────────
 async function connectClient(dir, respond) {
   const env = {};
