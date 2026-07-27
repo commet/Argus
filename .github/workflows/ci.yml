@@ -74,6 +74,15 @@ jobs:
       # 적대(취소·빈답·쓰레기답) 7개 호스트를 각각 흉내내 실서버를 몰고, 모든
       # 물음에 대해 막다름 0·작업유실 0·폼차단 0을 단정한다. 알려진 두 회귀를
       # 되살리면 실제로 빨간불이 뜬다(자기 신뢰성 검증됨).
+      # 정산 카드의 자바스크립트는 .ts 안의 문자열이라 tsc가 못 본다. 적대 감사가
+      # 문법 오류·오타 도구명·런타임 예외를 심었을 때 레포의 모든 게이트가 초록이었다
+      # — 아무도 실행해본 적 없는 위젯을 배포한 것이다. 이 스텝이 VM에서 실제로
+      # 실행하고 사용자 제스처(선택·타이핑·기록·넘기기·연기·서버거절)를 전부 몬다.
+      - name: Settle card runtime (executed in a VM host)
+        run: |
+          cd argus-mcp
+          node evals/widget-runtime.mjs
+
       - name: Host conformance matrix (7 hosts x every ask)
         run: |
           cd argus-mcp

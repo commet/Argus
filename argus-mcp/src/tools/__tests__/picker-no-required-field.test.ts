@@ -52,11 +52,25 @@ function requiredDeclarations(file: string): string[] {
     // 주석 줄은 제외 — 이 규칙을 *설명하는* 주석("format:\"date\"를 넣지 마라")이
     // 스스로를 위반으로 잡으면, 규칙을 기록한 사람이 벌을 받는다.
     if (/^\s*(\/\/|\*|\/\*)/.test(line)) return;
-    if (!/(^|[^\w])required:\s*\[/.test(line) && !/(^|[^\w])format:\s*['"]/.test(line)) return;
+    // EVERY validation keyword, not just the two that already bit us. The MCP
+    // SDK validates the returned content against this schema INSIDE our own
+    // process (server/index.js, ajv with validateFormats), so any constraint we
+    // declare is enforced even on a permissive host — and the throw becomes a
+    // lost answer. maxLength was live in two pickers when this was written.
+    if (!/(^|[^\w])(required|format|maxLength|minLength|pattern|minimum|maximum|multipleOf|enum)\s*:/.test(line)) return;
     // zod 스키마/JSON Schema 상수가 아니라 elicit 호출 안인지 — 앞 40줄에
     // elicit( 가 있고 그 사이에 닫는 `);` 가 없으면 픽커 스키마로 본다.
     const before = lines.slice(Math.max(0, i - 40), i).join('\n');
-    const lastElicit = before.lastIndexOf('elicit(');
+    // The outcome/when enum IS the question on the settle pickers — a closed
+    // five-way choice is the whole point there, and the user cannot submit a
+    // value outside it, so it can never block a legitimate answer.
+    if (/enum\s*:/.test(line) && /\b(outcome|when)\s*:\s*\{/.test(before)) return;
+    // `lastIndexOf('elicit(')` missed `elicitDetailed(` — so the seal confirm,
+    // the picker that blocked the founder twice, was invisible to its own guard
+    // (found by adversarial audit 2026-07-27). Match any elicit* call.
+    const m = /(?:^|[^A-Za-z0-9_])elicit\w*\(/g;
+    let lastElicit = -1, hit;
+    while ((hit = m.exec(before)) !== null) lastElicit = hit.index;
     if (lastElicit === -1) return;
     const between = before.slice(lastElicit);
     if (/^\s*\);\s*$/m.test(between)) return;

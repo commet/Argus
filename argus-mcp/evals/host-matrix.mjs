@@ -69,13 +69,31 @@ function hostRefuses(schema, content) {
   }
   for (const [key, spec] of Object.entries(props)) {
     const v = (content ?? {})[key];
-    // The blank a one-tap Accept leaves — the exact gesture that broke twice.
-    if (spec?.format && (v === undefined || v === '')) return `"${key}" declares format:"${spec.format}" but a one-tap Accept leaves it blank`;
-    if (spec?.minLength && (v === undefined || String(v).length < spec.minLength)) return `"${key}" declares minLength ${spec.minLength}; a blank Accept violates it`;
-    if (spec?.pattern && (v === undefined || !new RegExp(spec.pattern).test(String(v)))) return `"${key}" declares a pattern a blank Accept cannot satisfy`;
+    const blank = v === undefined || v === '';
+    // (a) the blank a one-tap Accept leaves — the gesture that broke twice
+    if (spec?.format && blank) return `"${key}" declares format:"${spec.format}" but a one-tap Accept leaves it blank`;
+    if (spec?.minLength && (blank || String(v).length < spec.minLength)) return `"${key}" declares minLength ${spec.minLength}; a blank Accept violates it`;
+    if (spec?.pattern && (blank || !new RegExp(spec.pattern).test(String(v)))) return `"${key}" declares a pattern a blank Accept cannot satisfy`;
+    // (b) the answer the user actually TYPED. The MCP SDK validates the returned
+    //     content against this very schema INSIDE our own process (ajv), so an
+    //     over-limit or off-enum answer throws and the user's words are lost —
+    //     no exotic host required. Found live by adversarial audit 2026-07-27:
+    //     maxLength:400 was destroying 420-character answers and reporting them
+    //     to the model as "the user never answered".
+    if (blank) continue;
+    if (spec?.maxLength && String(v).length > spec.maxLength) return `"${key}" declares maxLength ${spec.maxLength} and the user typed ${String(v).length} — their words are destroyed`;
+    if (spec?.enum && !spec.enum.includes(v)) return `"${key}" value "${v}" is outside the declared enum`;
+    if (spec?.type === 'string' && typeof v !== 'string') return `"${key}" declares type:"string" but the answer is ${typeof v}`;
+    if (typeof spec?.minimum === 'number' && Number(v) < spec.minimum) return `"${key}" is below the declared minimum`;
+    if (typeof spec?.maximum === 'number' && Number(v) > spec.maximum) return `"${key}" is above the declared maximum`;
   }
   return null;
 }
+
+/** A user who types a LOT. Every harness before this one answered with `{}` or a
+ *  short string, so no gate ever modelled the person who actually writes their
+ *  reasoning out — which is the person this product is for. */
+const LONG = '이번 분기 결과를 정리하면, '.repeat(40); // ~520 chars
 
 const PROFILES = {
   'claude-code':     { elicit: true,  apps: false, answer: () => ({ action: 'accept', content: {} }), strict: true },
@@ -84,6 +102,17 @@ const PROFILES = {
   'legacy':          { elicit: false, apps: false, bare: true },
   'hostile-cancel':  { elicit: true,  apps: false, answer: () => ({ action: 'cancel' }), strict: true },
   'hostile-empty':   { elicit: true,  apps: false, answer: () => ({ action: 'accept', content: {} }), strict: true },
+  // Types a long answer into every string field the picker declares. This is the
+  // profile that catches maxLength — the class that was silently destroying real
+  // answers while every other gate stayed green.
+  'long-typer':      { elicit: true,  apps: false, strict: true, answerFor: (schema) => {
+    const content = {};
+    for (const [k, spec] of Object.entries((schema && schema.properties) || {})) {
+      if (spec?.enum) content[k] = spec.enum[0];
+      else if (spec?.type === 'string' || spec?.type === undefined) content[k] = LONG;
+    }
+    return { action: 'accept', content };
+  } },
   'hostile-garbage': { elicit: true,  apps: false, answer: () => ({ action: 'accept', content: { __junk: 1, reword: null, outcome: 'NOT_AN_ENUM' } }), strict: false },
 };
 
@@ -100,7 +129,7 @@ async function connect(name, profile, dir) {
   if (profile.elicit) {
     client.setRequestHandler(ElicitRequestSchema, async (req) => {
       const schema = req.params?.requestedSchema;
-      const answer = profile.answer();
+      const answer = profile.answerFor ? profile.answerFor(schema) : profile.answer();
       seen.push({ message: String(req.params?.message ?? ''), schema, answer });
       if (profile.strict && answer.action === 'accept') {
         const why = hostRefuses(schema, answer.content);
@@ -120,8 +149,12 @@ async function connect(name, profile, dir) {
 /** I1 — a surface is a dead end when nothing was saved AND it hands the user
  *  no way forward (no next action beyond stop, no instruction in the prose). */
 function isDeadEnd(sc) {
-  const saved = sc?.data?.sealed === true || sc?.data?.outcome || sc?.data?.status === 'sealed' || sc?.ok === false;
+  const saved = sc?.data?.sealed === true || sc?.data?.outcome || sc?.data?.status === 'sealed';
   if (saved) return false;
+  // An error is NOT a save (the old rule said it was, which made three I1 checks
+  // tautologies — audit 2026-07-27). An error is acceptable only when it hands
+  // the user a way forward: a named recovery.
+  if (sc?.ok === false) return !(typeof sc?.recovery === 'string' && sc.recovery.trim().length > 0);
   const acts = sc?.next_actions ?? [];
   const hasHandle = acts.some((x) => x !== 'stop');
   const prose = String(sc?.surface ?? '');
@@ -153,7 +186,7 @@ async function runProfile(name) {
         id: 'draft', predicate: '신규 온보딩 개편으로 D7 잔존이 25%를 넘는다',
         check_by: '2026-08-20', predicate_owner: 'ai_surfaced', confirm_draft: true, today_override: T0,
       });
-      ok(name, 'B1 no crash', !isError || typeof sc?.error_code === 'string', JSON.stringify(sc).slice(0, 160));
+      ok(name, 'B1 no unhandled throw (I5)', sc?.error_code !== 'INTERNAL_ERROR', JSON.stringify(sc).slice(0, 200));
       ok(name, 'B2 no dead end (I1)', !isDeadEnd(sc), `surface="${String(sc?.surface).slice(0, 120)}" next=${JSON.stringify(sc?.next_actions)}`);
       if (name === 'hostile-cancel') {
         // I2 — a cancel must NOT be reported as the user declining.
@@ -176,7 +209,7 @@ async function runProfile(name) {
     {
       await call('argus_seal', { id: 'ret', predicate: '광고 ROAS가 7월 안에 300%를 회복한다', check_by: '2026-07-10', predicate_owner: 'user', today_override: T0 });
       const { sc, isError } = await call('argus_settle', { id: 'ret', outcome_source: 'user_stated', today_override: '2026-07-15' });
-      ok(name, 'C1 no crash', !isError || typeof sc?.error_code === 'string', JSON.stringify(sc).slice(0, 160));
+      ok(name, 'C1 no unhandled throw (I5)', sc?.error_code !== 'INTERNAL_ERROR', JSON.stringify(sc).slice(0, 200));
       if (profile.apps) {
         ok(name, 'C2 apps host gets the card state', sc?.data?.status === 'awaiting_picker', JSON.stringify(sc?.data).slice(0, 160));
         ok(name, 'C3 card carries the predicate + due date', typeof sc?.data?.predicate === 'string' && typeof sc?.data?.check_by === 'string');
@@ -188,7 +221,7 @@ async function runProfile(name) {
         // Elicitation host answering with a blank / cancel: must not claim a record.
         const claimed = /기록했|recorded/i.test(String(sc?.surface ?? '')) && !sc?.data?.outcome;
         ok(name, 'C2 never claims a record it did not write (I4)', !claimed, String(sc?.surface).slice(0, 140));
-        ok(name, 'C3 no dead end (I1)', !isDeadEnd(sc) || sc?.ok === false, `surface="${String(sc?.surface).slice(0, 120)}"`);
+        ok(name, 'C3 no dead end (I1)', !isDeadEnd(sc), `surface="${String(sc?.surface).slice(0, 120)}"`);
       }
     }
 
@@ -205,15 +238,15 @@ async function runProfile(name) {
       await call('argus_seal', { id: 'pq', predicate: '4분기 재고 회전율이 6을 넘는다', check_by: '2026-12-31', predicate_owner: 'user', today_override: T0 });
       await call('argus_premises', { id: 'pq', op: 'add', today_override: T0, premises: [{ text: '엔터프라이즈 플랜을 분리할지 말지', kind: 'open_question', source: 'user' }] });
       const { sc, isError } = await call('argus_premises', { id: 'pq', op: 'resolve', ref: 'P1', today_override: '2026-07-20' });
-      ok(name, 'E1 no crash', !isError || typeof sc?.error_code === 'string', JSON.stringify(sc).slice(0, 160));
-      ok(name, 'E2 no dead end (I1)', !isDeadEnd(sc) || sc?.ok === false, `surface="${String(sc?.surface).slice(0, 120)}"`);
+      ok(name, 'E1 no unhandled throw (I5)', sc?.error_code !== 'INTERNAL_ERROR', JSON.stringify(sc).slice(0, 200));
+      ok(name, 'E2 no dead end (I1)', !isDeadEnd(sc), `surface="${String(sc?.surface).slice(0, 120)}"`);
     }
 
     // ── E2. the DEFER ask (still_pending) — its own picker, its own dead end ─
     {
       await call('argus_seal', { id: 'defer', predicate: '특허 심사 결과가 나온다는 예측이다', check_by: '2026-07-10', predicate_owner: 'user', today_override: T0 });
       const { sc, isError } = await call('argus_settle', { id: 'defer', outcome: 'still_pending', outcome_source: 'user_stated', today_override: '2026-07-15' });
-      ok(name, 'E2-1 no crash', !isError || typeof sc?.error_code === 'string', JSON.stringify(sc).slice(0, 160));
+      ok(name, 'E2-1 no unhandled throw (I5)', sc?.error_code !== 'INTERNAL_ERROR', JSON.stringify(sc).slice(0, 200));
       const deferred = typeof sc?.data?.deferred_to === 'string';
       const honestRefusal = sc?.ok === false && typeof sc?.recovery === 'string' && sc.recovery.length > 0;
       // Either it got a new date, or it said plainly that it needs one. Never both-nor.
@@ -228,8 +261,8 @@ async function runProfile(name) {
         id: 'pdraft', op: 'add', today_override: T0,
         premises: [{ text: '환율이 1,400원 아래에 머문다', kind: 'premise', external: true, load_bearing: true, source: 'ai_surfaced', ai_original: '환율이 1,400원 아래에 머문다' }],
       });
-      ok(name, 'E3-1 no crash', !isError || typeof sc?.error_code === 'string', JSON.stringify(sc).slice(0, 160));
-      ok(name, 'E3-2 no dead end (I1)', !isDeadEnd(sc) || sc?.ok === false, `surface="${String(sc?.surface).slice(0, 120)}"`);
+      ok(name, 'E3-1 no unhandled throw (I5)', sc?.error_code !== 'INTERNAL_ERROR', JSON.stringify(sc).slice(0, 200));
+      ok(name, 'E3-2 no dead end (I1)', !isDeadEnd(sc), `surface="${String(sc?.surface).slice(0, 120)}"`);
       // I4 — an AI draft the user merely approved must NOT become "the user's words".
       const { sc: view } = await call('argus_recall', { view: 'premises', id: 'pdraft', today_override: T0 });
       const p = (view?.data?.premises ?? []).find((x) => String(x.text).includes('환율'));

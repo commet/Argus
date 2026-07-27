@@ -492,7 +492,7 @@ async function opResolve(
         : `Your open question on this decision: "${premise.text}". What is your call now, in your own words? (You can also leave it open.)`,
       // 필수 필드 없음 — 빈 채 Accept는 아래 `if (!decision)`가 정직하게
       // 되묻는다. "아직 못 정했다"도 유효한 답이므로 폼이 막아선 안 된다.
-      { type: 'object', properties: { decision: { type: 'string', maxLength: 400, description: qLocale === 'ko' ? '당신의 판단, 당신의 표현. (아직이면 비워두고 Accept)' : 'Your call, your words. (Leave blank and Accept if still undecided.)' } } },
+      { type: 'object', properties: { decision: { type: 'string', description: qLocale === 'ko' ? '당신의 판단, 당신의 표현. (아직이면 비워두고 Accept)' : 'Your call, your words. (Leave blank and Accept if still undecided.)' } } },
     );
     decision = typeof got?.['decision'] === 'string' ? (got['decision'] as string).trim() : '';
   }

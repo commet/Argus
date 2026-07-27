@@ -71,6 +71,7 @@ run('단위·프로토콜 테스트', 'npx vitest run', { extract: (o) => (o.mat
 run('실서버 여정 루프', 'node evals/loop.mjs', { extract: (o) => (o.match(/(\d+ calls · \d+ RED[^\n]*)/) || [])[1] ?? '' });
 run('내용 배터리 (46 시나리오)', 'node evals/battery.mjs', { env: { ...process.env, BATTERY_SKIP_BUILD: '1' }, extract: (o) => (o.match(/(\d+ calls · \d+ RED[^\n]*)/) || [])[1] ?? '' });
 run('호스트 전수 대조 (7 호스트)', 'node evals/host-matrix.mjs', { env: { ...process.env, HOST_MATRIX_SKIP_BUILD: '1' }, extract: (o) => (o.match(/(\d+ checks · \d+ violation[^\n]*)/) || [])[1] ?? '' });
+run('정산 카드 실행 (VM 호스트)', 'node evals/widget-runtime.mjs', { extract: (o) => `${(o.match(/ok  /g) || []).length} gestures ok` });
 run('픽커 E2E (엄격 호스트)', `node evals/e2e-picker.mjs node "${path.join(ROOT, 'dist', 'index.js')}"`, { extract: (o) => (o.match(/(E2E: [^\n]*)/) || [])[1] ?? '' });
 run('픽커 왕복 (설치본 타르볼)', 'node -e "0"'); // placeholder kept honest below
 rows.pop(); // the tarball path belongs to CI (needs npm pack); do not fake it here
@@ -86,6 +87,18 @@ selfTest(
   'src/tools/seal.ts',
   (s) => s.replace("            check_by: {\n              type: 'string',", "            check_by: {\n              type: 'string',\n              format: 'date',"),
   'node evals/host-matrix.mjs',
+);
+selfTest(
+  '자기검증 ③ 긴 답 파괴 회귀를 잡는가',
+  'src/tools/premises.ts',
+  (s2) => s2.replace("{ type: 'object', properties: { decision: { type: 'string', description:", "{ type: 'object', properties: { decision: { type: 'string', maxLength: 400, description:"),
+  'node evals/host-matrix.mjs',
+);
+selfTest(
+  '자기검증 ④ 카드가 죽는 회귀를 잡는가',
+  'src/lib/apps-ui-html.ts',
+  (s2) => s2.replace("  'use strict';", "  'use strict'; var broken = ;"),
+  'node evals/widget-runtime.mjs',
 );
 selfTest(
   '자기검증 ② 작업 유실 회귀를 잡는가',
@@ -104,5 +117,5 @@ if (failed) {
   console.log(`\n❌ ${failed}개 게이트 실패 — 위 줄의 note를 보세요. 이 상태로는 배포 금지.`);
   process.exit(1);
 }
-console.log('\n✅ 전 게이트 통과 + 두 게이트가 심은 회귀를 실제로 잡음.');
+console.log('\n✅ 전 게이트 통과 + 네 개의 심은 회귀를 게이트가 실제로 잡음.');
 console.log('   (초록불이 "고장을 못 잡는 초록불"이 아님을 같은 실행 안에서 증명했습니다.)');

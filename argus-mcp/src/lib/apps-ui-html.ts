@@ -224,12 +224,25 @@ export const SETTLE_APP_HTML = `<!doctype html>
           commit.textContent = t.commit;
         }
         follow.appendChild(actions);
+        standaloneSkip.style.display = 'none';
         ta.focus();
       });
       grid.appendChild(b);
     });
     s.appendChild(grid);
     s.appendChild(follow);
+    // The escape hatch is visible from the FIRST paint, not after the user has
+    // already engaged (found 2026-07-27 by executing this card for the first
+    // time). Putting "skip" inside \`actions\` meant a user who did not want to
+    // answer at all had to pick an outcome just to find the way out — the
+    // friction escape has to be there before the commitment, or it is not an
+    // escape. Once an outcome is picked, \`actions\` carries its own copy and
+    // this standalone one steps aside.
+    var standaloneSkip = el('div', 'actions');
+    var skipOnly = el('a', 'skip', t.skip);
+    skipOnly.addEventListener('click', function () { renderQuiet(t.skipped, false); });
+    standaloneSkip.appendChild(skipOnly);
+    s.appendChild(standaloneSkip);
 
     commit.addEventListener('click', function () {
       if (!selected) return;
