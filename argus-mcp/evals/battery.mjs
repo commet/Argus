@@ -24,6 +24,7 @@ import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 import { ElicitRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 import { lintEnvelope } from '../dist/lib/surface-lint.js';
+import { NEXT_ACTIONS } from '../dist/lib/spine.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const DIST = path.join(ROOT, 'dist', 'index.js');
@@ -37,9 +38,11 @@ const T0 = '2026-07-02';
 // scenario: { name, lang?, respond?(elicitParams) } — respond makes the client
 //   declare elicitation and answer the server's pickers.
 
-/** The closed handle set. A surface may hint only these; anything else means an
- *  injected string reached a place that decides what happens next. */
-const ALLOWED_NEXT = new Set(['argus_capture', 'argus_predict', 'argus_resolve', 'argus_check_in', 'argus_patterns', 'argus_settings', 'argus_sync', 'leave_as_is', 'stop']);
+/** The closed handle set — imported, never re-typed. A hand-copied enum is the
+ *  drift this repo bans everywhere else: my first draft of this line invented
+ *  `argus_sync` and dropped `skip`, so it would have raised a false alarm on a
+ *  legitimate surface and waved through a handle that does not exist. */
+const ALLOWED_NEXT = new Set(NEXT_ACTIONS);
 
 /** Structural spine check usable from any scenario's `expect`. */
 function spineIntact(env) {
