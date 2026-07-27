@@ -1,5 +1,22 @@
 # Changelog
 
+## 3.0.1 — 2026-07-28
+
+- Wire moves to `argus-decision-mcp@2.0.1` — the rest of the adversarial
+  audit. Five more pickers stop reporting a broken window as "the user said
+  no" and hand your words back; a refusal that lands after you typed returns
+  what you wrote instead of asking you to write it again; the out-of-band ask
+  tells you what happened to the answer you gave it; an expired account
+  connection says so instead of going quiet; and recorded text can no longer
+  counterfeit the AI VERDICT line.
+- Two new merge-blocking gates ride along: the out-of-band ask is now driven
+  against the real server (it had none), and the settle card is checked against
+  a host that never sends `tool-input`.
+- `/argus:doctor` now names all three confirm surfaces. It knew only two, so a
+  Claude Desktop user — the one host where the settle card actually renders —
+  had that line silently missing. A parity gate derives the list from the server
+  and fails if any plugin surface stops naming one.
+
 ## 3.0.0
 
 - Replaced the historical 17-persona roster with four bounded reviewer roles.

@@ -13,6 +13,7 @@ import { appsCapable } from '../lib/apps-ui.js';
 import { packageMeta } from '../lib/package-meta.js';
 import { ENVELOPE_OUTPUT_SCHEMA, zArgusDir, zDate, type ToolModule } from './tool-types.js';
 import { handleToolException } from './errors.js';
+import { accountCredentialStatus } from '../a0/account-credentials.js';
 import { briefDivergence, readV2Brief } from '../v2/mirror.js';
 import { drainCaptureOnCheckIn } from '../v2/capture-runtime.js';
 
@@ -274,7 +275,12 @@ export const checkIn: ToolModule = {
         // local, deterministic read — but a token means the user ALSO seals in
         // their account (web), and "nothing" here must not read as "nothing
         // anywhere". One sentence, argus_sync is the one place that looks.
-        const accountHint = (process.env.ARGUS_TOKEN || '').trim()
+        // Read the SAME resolver every push path uses (audit 2026-07-27). This
+        // used to peek at `process.env.ARGUS_TOKEN` alone, which is the manual /
+        // CI override — so a user connected the normal way (argus_settings
+        // `npx argus-decision-mcp connect`, credential on disk) was told "nothing anywhere"
+        // while their account held live decisions this read never looked at.
+        const accountHint = accountCredentialStatus() === 'ok'
           ? S.account_hint
           : '';
         // First-run vs caught-up: SERVER_INSTRUCTIONS routes EVERY session start

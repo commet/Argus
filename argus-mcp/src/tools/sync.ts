@@ -8,10 +8,11 @@ import { resolveToday } from '../lib/resolve-today.js';
 import { replayLedger, type ContractEntry } from '../lib/ledger-replay.js';
 import { appendLedger, withLedgerLock } from '../lib/ledger-append.js';
 import { resolveContract } from '../lib/resolve-contract.js';
-import { guardTransition } from '../lib/state-machine.js';
+import { guardTransition, GuardError } from '../lib/state-machine.js';
 import { writeSettleReceipt, readReceipt } from '../lib/receipt.js';
 import { localIdFromAccountId } from '../lib/install-id.js';
 import { surfacesFor } from '../lib/surfaces.js';
+import { logError } from '../lib/log.js';
 
 /**
  * argus_sync — the explicit, bidirectional bridge (design doc §연결 방식).
@@ -115,7 +116,20 @@ export const sync: ToolModule = {
         return toolError({
           ok: false, tool: 'argus_sync', error_code: 'NOT_CONNECTED',
           message: 'This terminal is not connected to an Argus account.',
-          recovery: 'Issue a token in the web app (Settings → sync token) and set ARGUS_TOKEN in your MCP config.',
+          recovery: 'Run `npx argus-decision-mcp connect` in a terminal — one browser approve and you are done (plugin users: /argus:connect). For CI, issue a token in the web app (Settings, sync token) and set ARGUS_TOKEN instead.',
+        });
+      }
+      // An expired / unreadable connection is NOT "never connected" and not a
+      // network blip: nothing the user does to their network will fix it, and
+      // meanwhile every seal and settle has been quietly failing to reach the
+      // account. Name it as its own state with the one action that fixes it.
+      if (!pull.ok && (pull.reason === 'credential_expired' || pull.reason === 'credential_unreadable')) {
+        return toolError({
+          ok: false, tool: 'argus_sync', error_code: 'CONNECTION_EXPIRED',
+          message: pull.reason === 'credential_expired'
+            ? 'The account connection for this terminal has expired, so recent seals and settles have not been reaching your account.'
+            : 'The stored account connection could not be read, so recent seals and settles have not been reaching your account.',
+          recovery: 'Reconnect by running `npx argus-decision-mcp connect` in a terminal (plugin users: /argus:connect). Nothing local was lost: every decision is intact in the ledger here, and running argus_settings action="sync" afterwards pushes the backlog up.',
         });
       }
       if (!pull.ok) {
@@ -182,6 +196,7 @@ export const sync: ToolModule = {
       // This is NOT a machine settlement: the outcome stayed user_stated on the
       // web surface; source_detail names the import path on the event.
       const imported: Array<{ local_id: string; outcome: string }> = [];
+      let importFailed = 0; // a REAL write failure, never a local-record-wins skip
       if (a['import_settlements'] === true && boundDir && localContracts) {
         const today = resolveToday({});
         for (const r of pull.receipts) {
@@ -228,8 +243,19 @@ export const sync: ToolModule = {
                 },
                 { predicate: fresh.predicate, check_by: fresh.check_by });
             });
-          } catch {
-            continue; // already settled / dismissed locally — the local record wins
+          } catch (e) {
+            // TWO different facts used to share this `continue` (audit
+            // 2026-07-27). A GuardError means the local record already answered
+            // — the local record wins, and skipping is correct and silent.
+            // ANYTHING else (EACCES on the ledger, ENOSPC, a lock we could not
+            // take) means the import genuinely FAILED, and swallowing it told
+            // the user "nothing to import" about a settlement that is still
+            // sitting on the web waiting. Count those and say so.
+            if (!(e instanceof GuardError)) {
+              importFailed++;
+              logError('[argus_sync] settlement import failed', e);
+            }
+            continue;
           }
           imported.push({ local_id: localId, outcome });
         }
@@ -314,10 +340,11 @@ export const sync: ToolModule = {
         : '';
       const pushedUpLine = pushedUp.length > 0 ? S.pushed_up(pushedUp.length) : '';
       const pushFailedLine = pushUpFailed > 0 ? S.push_up_failed(pushUpFailed) : '';
+      const importFailedLine = importFailed > 0 ? S.import_failed(importFailed) : '';
 
       return envelope({
         ok: true, tool: 'argus_sync',
-        surface: baseSurface + importedLine + crossCheckLine + unclearLine + pushedUpLine + pushFailedLine,
+        surface: baseSurface + importedLine + importFailedLine + crossCheckLine + unclearLine + pushedUpLine + pushFailedLine,
         next_actions: localSettleableDueCount > 0 ? ['argus_resolve', 'stop'] : ['stop'],
         data: {
           total: pull.receipts.length,
@@ -326,6 +353,7 @@ export const sync: ToolModule = {
           ...(imported.length > 0 ? { imported } : {}),
           ...(pushedUp.length > 0 ? { pushed_to_account: pushedUp } : {}),
           ...(pushUpFailed > 0 ? { push_to_account_failed: pushUpFailed } : {}),
+          ...(importFailed > 0 ? { import_failed: importFailed } : {}),
           count: receipts.length,
           has_more: truncated,
           ...(truncated ? { truncation_note: S.truncation(receipts.length, matched.length) } : {}),

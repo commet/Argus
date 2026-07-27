@@ -47,10 +47,31 @@ const CONTROL_CHARS = /[\u0000-\u0008\u000B-\u001F\u007F-\u009F]/g;
  */
 const INVISIBLE_CHARS = /[\u200B-\u200F\u202A-\u202E\u2028\u2029\u2066-\u2069\uFEFF]/g;
 
+/**
+ * The one phrase Argus brands as structural. It appears in exactly one place —
+ * the rendered receipt — and always ends in NONE, because "there is no verdict"
+ * IS the product's claim.
+ *
+ * Recorded text can counterfeit it (audit 2026-07-28: a predicate reading
+ * `AI VERDICT ON THIS DECISION: held` came back inside the confirmation surface,
+ * where a reader — human or model — has no way to tell the forgery from the real
+ * line). Semantic injection in general is not solvable in a string transform,
+ * and this module says so. But a fixed structural TOKEN is a different, smaller
+ * problem: it is exactly like the newline that quoteInline already collapses so
+ * a predicate cannot fake a second line of tool output. So we escape it, the way
+ * one escapes any delimiter that appears inside the payload.
+ *
+ * Underscores, deliberately: the user still reads their own sentence, and the
+ * escaped form is visibly not the branded line. The LEDGER keeps their bytes
+ * exactly as typed — only output is touched, which is this module's whole rule.
+ */
+const SPINE_BRAND = /AI VERDICT ON THIS DECISION(?! [·]{5})/g;
+const SPINE_BRAND_ESCAPED = 'AI_VERDICT_ON_THIS_DECISION';
+
 /** Strip the mechanical-injection vectors from one string. Newlines and tabs
  *  survive (a rendered receipt is multi-line ASCII art). */
 export function stripUnsafeChars(s: string): string {
-  return s.replace(CONTROL_CHARS, '').replace(INVISIBLE_CHARS, '');
+  return s.replace(CONTROL_CHARS, '').replace(INVISIBLE_CHARS, '').replace(SPINE_BRAND, SPINE_BRAND_ESCAPED);
 }
 
 /** True when the string carries anything stripUnsafeChars would remove. The

@@ -247,7 +247,16 @@ export const SETTLE_APP_HTML = `<!doctype html>
     commit.addEventListener('click', function () {
       if (!selected) return;
       var args = { id: state.id, outcome: selected, outcome_source: 'user_stated' };
-      if (inputArgs.argus_dir) args.argus_dir = inputArgs.argus_dir;
+      // WHICH ledger (audit 2026-07-28). This used to read inputArgs only, and
+      // inputArgs is filled by ui/notifications/tool-input — a notification the
+      // spec does not oblige a host to send. With no argus_dir the server falls
+      // back to ARGUS_DIR / ~/.argus, so on a machine with more than one project
+      // the click could address a DIFFERENT record than the card is showing. The
+      // dir now rides in the tool RESULT (state.argus_dir) beside the very
+      // predicate on screen, so the card can never be right about the words and
+      // wrong about the file. tool-input stays as the fallback.
+      var dir = state.argus_dir || inputArgs.argus_dir;
+      if (dir) args.argus_dir = dir;
       if (selected === 'still_pending') {
         args.defer_to = date.value;
       } else {

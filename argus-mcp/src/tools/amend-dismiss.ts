@@ -9,6 +9,7 @@ import { validateSeal } from '../lib/validate-seal.js';
 import { appendLedger, withLedgerLock } from '../lib/ledger-append.js';
 import { pushToAccount } from '../lib/push-account.js';
 import { accountPushId } from '../lib/install-id.js';
+import { accountCredentialStatus } from '../a0/account-credentials.js';
 import { writeReturnCalendarEvent } from '../lib/calendar.js';
 import { resolveResponseLocale, SURFACES, humanizeSyncReason } from '../lib/surfaces.js';
 import { SCHEMA_VERSION } from '../lib/spine.js';
@@ -91,10 +92,22 @@ export const amend: ToolModule = {
       // check-by, a date the user had already changed. `defer` is the right
       // action — on the web, "revise" IS pushing the check date. No token ⇒
       // silent no-op; a failure never undoes the local amend, but it does speak.
-      const sync = a['check_by'] != null && checkBy
+      //
+      // A WORDING-only amend is a different case and used to be reported as a
+      // lie (audit 2026-07-27): the old code returned `{synced:true}` without
+      // ever calling the account, so `account_synced:true` claimed a push that
+      // never happened. There is no retitle verb on the account, and re-sealing
+      // would upsert over premises the user may have edited on the web, so the
+      // right answer is not to push — but it IS to say the two now differ.
+      const pushedDate = a['check_by'] != null && checkBy;
+      const sync = pushedDate
         ? await pushToAccount({ action: 'defer', id: accountPushId(dir, id), check_by: checkBy })
-        : { synced: true as const, reason: undefined };
-      const syncLine = sync.synced || sync.reason === 'no_token' ? '' : T.sync_failed(humanizeSyncReason(String(sync.reason), locale));
+        : { synced: false as const, reason: 'wording_only_not_pushed' as const };
+      const connected = accountCredentialStatus() === 'ok';
+      const syncLine = pushedDate
+        ? (sync.synced || sync.reason === 'no_token' ? '' : T.sync_failed(humanizeSyncReason(String(sync.reason), locale)))
+        // Only worth saying to someone who HAS an account to diverge from.
+        : (connected && a['predicate'] != null ? T.wording_not_pushed : '');
 
       return envelope({
         ok: true, tool: 'argus_amend',

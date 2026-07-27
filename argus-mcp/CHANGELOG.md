@@ -1,5 +1,105 @@
 # Changelog
 
+## 2.0.1 — Every remaining audit finding, and the gates that can prove it
+
+> Written against 1.15.x and landed on top of the 2.0.0 surface reduction. The
+> defects below were all still live in 2.0.0 — every file they touch survived
+> the reduction untouched.
+
+The 1.15.2 audit left a list. This closes it. Each fix below was verified the
+same way: the fix is reverted, the gate is confirmed to turn red, the fix is
+restored (`npm run verify` does all twelve of these in one run).
+
+**Work that was reaching us and being thrown away**
+
+- **Five of six pickers reported a broken window as "the user said no."**
+  1.15.2 fixed this only for the seal confirm. The settle outcome ask, the
+  defer ask, the premise confirm, and the open-question ask all still collapsed
+  cancel / host-failure into a decline, answered "not recorded", and dropped
+  whatever the user had typed. All six now separate the two facts and hand the
+  user's own material back with the one plain sentence that finishes the job.
+- **A refusal that lands after Accept now returns the words.** Reword a
+  prediction past 400 characters and the only thing the model used to receive
+  was "too long" — so it asked the user to write the paragraph again. Their
+  text is in our hands at that moment; `data.user_input` carries it back.
+  Same for a settle where the outcome enum was left blank but the narration
+  was not.
+- **The out-of-band ask no longer answers into a void.** It fires outside any
+  tool call, so accepting it changed nothing on screen: success and failure
+  looked identical. The result now rides back as one line on the next tool
+  call — including when it could NOT be recorded.
+
+**Things that were quietly lying**
+
+- **`argus_amend` claimed an account push it never made.** A wording-only
+  amend returned `account_synced: true` without calling anything. It now says
+  plainly that the account still shows the earlier wording (there is no
+  retitle verb, and re-sealing would overwrite premises edited on the web).
+- **An expired account connection was reported as "not connected."** Which
+  means silence, because silence is right for a user who never connected. So
+  seals and settles stopped reaching the account and every screen looked
+  normal. Expired is now its own state with its own sentence and the one
+  action that fixes it.
+- **`argus_check_in` looked for the wrong token.** It read `ARGUS_TOKEN`
+  directly — the CI/manual override — so a user connected the normal way was
+  told "nothing anywhere" while their account held live decisions.
+- **`argus_sync` conflated "already settled here" with "the write failed."**
+  A settlement recorded on the web that could not be written locally was
+  reported as nothing to import. Real failures are now counted and named.
+
+**Two ways the record could be damaged**
+
+- **Receipts were written without fsync.** The ledger append already fsyncs,
+  so a crash between the rename and the flush could leave a ledger that says
+  "settled" beside a zero-length receipt — losing the one artifact this
+  product exists to hand back. Small-file writes are now durable.
+- **Recorded text could counterfeit the spine line.** A predicate reading
+  `AI VERDICT ON THIS DECISION: held` came back inside the confirmation
+  surface, where nothing distinguished it from the real line that always says
+  NONE. The branded token is now escaped on output, exactly like the newline
+  `quoteInline` already collapses. Storage is untouched: the user's sentence
+  stays whole on disk.
+- **The settle card could address the wrong ledger.** It read the records path
+  from `ui/notifications/tool-input`, a notification no host is obliged to
+  send. Without it the click fell back to `~/.argus`. The path now travels
+  with the tool result, beside the very prediction being rendered.
+
+**Gates that were watching nothing**
+
+- The content battery's hostile-input scenarios (prompt injection, HTML) only
+  PRINTED the answer. They now assert the user's bytes round-trip unchanged,
+  the closed handle set is intact, and no verdict value reaches the surface.
+- Its picker answers were keyed on Korean prose, so a copy edit silently made
+  them answer the wrong question while staying green. They now route by schema,
+  and an ask this battery cannot recognise is a hard failure.
+- The `month` and `dismiss` defer buckets, and a declined defer, had no
+  assertion anywhere. All three now check the ledger, not the sentence.
+- The out-of-band ask had NO eval at all — the one surface that appears when
+  the user did not ask for anything. `evals/ambient-picker.mjs` drives the real
+  server over a real connection against eight named promises.
+- The host matrix gained `hostile-error` (a host that declares elicitation and
+  then rejects it) and now asserts the no-lost-work invariant on every ask
+  rather than on one of six.
+
+**One thing 2.0.0 changed that the founder should decide on**
+
+- On the public surface `argus_capture action="answer_question"` now REQUIRES
+  `decision`, so the elicitation path that asks the USER to close their own open
+  question — in their own words, with no options and no leans — can no longer be
+  reached. The only remaining channel is the model collecting the words in chat,
+  which is the channel the picker existed to avoid: a model that must produce the
+  field is a model invited to draft the user's judgment. Nothing was changed here
+  on my own authority; the host matrix now pins the honest refusal instead, and
+  the question stays open and answerable. Reopening that path is your call.
+
+**About the observatories**
+
+- 2.0.0 deleted the journey evals because they called tool names it no longer
+  exposes, and testing names that do not exist gives a false picture. That is
+  right. Three of them came back PORTED to the public six, not resurrected —
+  without them not one fix above is provable, and "it looks fine" is exactly what
+  these files exist to refuse. The rest stayed deleted.
+
 ## 2.0.0
 
 - Reduced the public and callable MCP surface to six purpose-led tools.

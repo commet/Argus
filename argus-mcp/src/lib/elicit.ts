@@ -55,19 +55,31 @@ export function canElicit(): boolean {
 export type ElicitOutcome =
   | { kind: 'accepted'; content: Record<string, unknown> }
   | { kind: 'declined' }          // the user said no — respect it, stay silent
-  | { kind: 'no_answer' }         // cancel / error / host trouble — offer the text path
+  | { kind: 'no_answer'; reason: 'cancelled' | 'failed' } // host trouble — offer the text path
   | { kind: 'unsupported' };      // no picker on this host at all
 
-/** Ask the user and report HOW it ended (see ElicitOutcome). */
+/**
+ * Ask the user and report HOW it ended (see ElicitOutcome).
+ *
+ * `no_answer.reason` splits two facts the in-band tools treat alike but the
+ * OUT-OF-BAND ask must not (audit 2026-07-27):
+ *   cancelled — the host returned action:"cancel". A window existed; a human or
+ *               their client closed it. They were interrupted, so the ambient
+ *               cooldown has been honestly spent.
+ *   failed    — the request itself threw (method not found, transport dead, a
+ *               host that declares `elicitation` and then rejects it). NOTHING
+ *               was ever shown to anyone, so burning a 4-hour cooldown on it
+ *               silences a user who was never asked.
+ */
 export async function elicitDetailed(message: string, requestedSchema: Record<string, unknown>): Promise<ElicitOutcome> {
   if (!_elicit) return { kind: 'unsupported' };
   try {
     const res = await _elicit(stripUnsafeChars(message), requestedSchema);
     if (res.action === 'accept') return { kind: 'accepted', content: res.content ?? {} };
     if (res.action === 'decline') return { kind: 'declined' };
-    return { kind: 'no_answer' }; // 'cancel' — the host closed it without an answer
+    return { kind: 'no_answer', reason: 'cancelled' }; // the host closed it without an answer
   } catch {
-    return { kind: 'no_answer' }; // declared support but failed mid-ask
+    return { kind: 'no_answer', reason: 'failed' }; // declared support but the ask never landed
   }
 }
 

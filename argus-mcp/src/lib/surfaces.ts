@@ -43,6 +43,8 @@ export function humanizeSyncReason(reason: string, locale: SurfaceLocale): strin
   const http = /^http_(\d+)$/.exec(reason);
   if (locale === 'ko') {
     if (reason === 'bad_token_format') return '토큰 형식이 잘못됐습니다 (argus_pat_로 시작해야 합니다)';
+    if (reason === 'credential_expired') return '계정 연결이 만료됐습니다. 터미널에서 `npx argus-decision-mcp connect`로 다시 연결하세요 (플러그인은 /argus:connect)';
+    if (reason === 'credential_unreadable') return '계정 연결 파일을 읽지 못했습니다. 터미널에서 `npx argus-decision-mcp connect`로 다시 연결하세요 (플러그인은 /argus:connect)';
     if (reason === 'insecure_api_url') return 'API 주소가 https가 아니라 토큰을 보내지 않았습니다';
     if (reason === 'network') return '네트워크에 닿지 못했습니다';
     if (http) return http[1] === '401' || http[1] === '403'
@@ -51,6 +53,8 @@ export function humanizeSyncReason(reason: string, locale: SurfaceLocale): strin
     return reason;
   }
   if (reason === 'bad_token_format') return 'the token looks malformed (it should start with argus_pat_)';
+  if (reason === 'credential_expired') return 'the account connection has expired; reconnect by running `npx argus-decision-mcp connect` (plugin: /argus:connect)';
+  if (reason === 'credential_unreadable') return 'the account connection file could not be read; reconnect by running `npx argus-decision-mcp connect` (plugin: /argus:connect)';
   if (reason === 'insecure_api_url') return 'the API URL is not https, so the token was not sent';
   if (reason === 'network') return 'the network was unreachable';
   if (http) return http[1] === '401' || http[1] === '403'
@@ -170,6 +174,7 @@ export interface SurfaceStrings {
      *  emailing a decision the user had already closed. */
     pushed_up: (n: number) => string;
     push_up_failed: (n: number) => string;
+    import_failed: (n: number) => string;
     /** M2 귀환 봉합 — web settlements mirrored into the local ledger (the
      *  user's own words, imported verbatim; a fact line, never a verdict). */
     imported: (n: number) => string;
@@ -327,6 +332,10 @@ export interface SurfaceStrings {
       /** The account still holds the OLD date, so its email would arrive on the
        *  wrong day. Silence here would be a lie by omission. */
       sync_failed: (reason: string) => string;
+      /** A wording-only amend is never pushed (the account has no retitle verb,
+       *  and a re-seal would overwrite premises edited on the web). The local
+       *  record is right and the account is stale — say which is which. */
+      wording_not_pushed: string;
     };
     dismiss: {
       dismissed: string;
@@ -392,6 +401,7 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
       unclear_on_web: (n) => ` ${n} marked unclear in your account. Reality hasn't answered, so no result was imported. They stay due here until their results are recorded.`,
       pushed_up: (n) => ` Sent ${n} change(s) your account had missed: results recorded, closed, or rescheduled here. It will stop nudging what you already handled.`,
       push_up_failed: (n) => ` ${n} local change(s) still haven't reached your account, so it may keep emailing them. Your record here stands; run argus_settings action=sync again when you're online.`,
+      import_failed: (n) => ` ${n} settlement(s) recorded on the web could NOT be written here (the records folder refused the write). They are still on the web, nothing was lost. Check that the .argus folder is writable, then run argus_settings action=sync again.`,
       imported: (n) => ` Mirrored ${n} web result(s) into this ledger, in your own recorded words.`,
       truncation: (shown, matched) => `Showing ${shown} of ${matched}. Raise limit or narrow with due_only.`,
     },
@@ -497,6 +507,7 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
       amend: {
         amended: (predicate, checkBy) => `Amended. Now: "${predicate}" (check-by ${checkBy}).`,
         sync_failed: (reason) => ` (Account sync didn't go through. ${reason}. The change is safe locally, but your account still holds the old check-by and may email you on that date. Run argus_settings action=sync later to reconcile.)`,
+        wording_not_pushed: ' (The new wording is recorded here. Your account still shows the earlier wording; edit it there if you want them to match. Dates and outcomes do sync.)',
       },
       dismiss: {
         dismissed: 'Dismissed. Closed without a verdict.',
@@ -556,6 +567,7 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
       unclear_on_web: (n) => ` 계정에서 ${n}건이 "불분명"으로 표시돼 있습니다. 현실이 아직 답하지 않아 가져오지 않았습니다. 결과가 기록되기 전까지 여기서는 계속 확인 대상입니다.`,
       pushed_up: (n) => ` 계정이 못 받은 변경 ${n}건을 올려보냈습니다. 결과를 기록했거나, 접었거나, 날짜를 옮긴 것들입니다. 이미 처리한 건에 대해 더는 알림이 오지 않습니다.`,
       push_up_failed: (n) => ` 로컬 변경 ${n}건이 아직 계정에 닿지 않았습니다. 그 건들에 대해 메일이 계속 올 수 있습니다. 여기 기록은 그대로 유효하니, 온라인일 때 argus_settings action=sync를 다시 실행하세요.`,
+      import_failed: (n) => ` 웹에 기록된 정산 ${n}건을 여기로 옮기지 못했습니다 (기록 폴더가 쓰기를 거부했습니다). 웹에는 그대로 있습니다. 잃은 것은 없습니다. .argus 폴더에 쓸 수 있는지 확인한 뒤 argus_settings action=sync를 다시 실행하세요.`,
       imported: (n) => ` 웹에서 기록한 결과 ${n}건을 로컬 판단 기록으로 가져왔습니다. 당신이 적은 그대로입니다.`,
       truncation: (shown, matched) => `${matched}개 중 ${shown}개만 표시합니다. limit을 올리거나 due_only로 좁히세요.`,
     },
@@ -661,6 +673,7 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
       amend: {
         amended: (predicate, checkBy) => `수정했습니다. 이제: "${predicate}" (확인일 ${checkBy}).`,
         sync_failed: (reason) => ` (계정 동기화가 안 됐습니다. ${reason}. 수정은 로컬에 안전합니다. 다만 계정에는 옛 확인일이 남아 그 날짜에 메일이 갈 수 있습니다. 나중에 argus_settings action=sync로 맞추세요.)`,
+        wording_not_pushed: ' (바뀐 문장은 여기 기록됐습니다. 계정 쪽에는 이전 문장이 그대로 있으니, 맞추고 싶으면 웹에서 고치세요. 날짜와 결과는 동기화됩니다.)',
       },
       dismiss: {
         dismissed: '접었습니다. 평결 없이 닫혔습니다.',
