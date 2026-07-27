@@ -15,7 +15,7 @@ import { renderSeal } from '../lib/render-receipt.js';
 import { resolveResponseLocale, SURFACES, humanizeSyncReason } from '../lib/surfaces.js';
 import { accountPushId } from '../lib/install-id.js';
 import { premiseSyncEnabled } from '../lib/premise-sync.js';
-import { elicit, canElicit } from '../lib/elicit.js';
+import { elicit, elicitDetailed, canElicit } from '../lib/elicit.js';
 import { SCHEMA_VERSION } from '../lib/spine.js';
 import { writeReturnCalendarEvent } from '../lib/calendar.js';
 import { z } from 'zod';
@@ -100,7 +100,7 @@ export const seal: ToolModule = {
       // stays; forced typing is NOT the invariant — honest provenance is).
       let elicitedKeep = false; // v2 provenance: only elicit-channel confirmation counts as elicited_user (II-B)
       if ((a['confirm_draft'] === true || a['predicate_owner'] === 'ai_surfaced') && canElicit()) {
-        const picked = await elicit(
+        const asked = await elicitDetailed(
           locale === 'ko'
             ? `이 예측으로 기록할까요?\n"${predicate}"\n확인일 ${checkBy}\n\n그대로면 Accept · 문장이나 날짜를 고치려면 아래 칸에 쓰고 Accept · 기록 안 하려면 Decline.`
             : `Record this prediction?\n"${predicate}"\ncheck-by ${checkBy}\n\nAccept to keep · to change the wording or date, fill a field below and Accept · Decline to skip.`,
@@ -111,16 +111,35 @@ export const seal: ToolModule = {
             },
             check_by: {
               type: 'string',
-              // `format: date` is a spec-sanctioned elicitation hint — a host MAY
-              // render a date control or validate inline; hosts that ignore it
-              // still show a plain text field (no downside).
-              format: 'date',
+              // NO `format` here. 1.14.0 added `format:"date"` as a "spec-sanctioned,
+              // harmless" rendering hint — untested speculation shipped into the
+              // critical path. On a host that VALIDATES format, the blank field a
+              // one-tap Accept leaves behind is not a valid date, so Accept stops
+              // advancing and the ask dies by timeout. That is exactly the founder's
+              // 2026-07-27 second dogfooding failure. A constraint we cannot verify
+              // against a real host does not belong on the yes-path.
               description: locale === 'ko' ? `확인일을 바꾸려면 YYYY-MM-DD로 적으세요 (예: ${checkBy}). 비우면 ${checkBy} 그대로.` : `To change the check-by date, type YYYY-MM-DD (e.g. ${checkBy}). Leave blank to keep ${checkBy}.`,
             },
           } },
         );
+        // A NO and a NON-ANSWER are different facts (2026-07-27). Declining is an
+        // answer: record nothing, say so, stop. But a picker that closed without
+        // an answer — validated field, focus trapped in a text input, host quirk
+        // we cannot see from here — must NOT eat the user's work behind a polite
+        // "not recorded". Name it and hand back the plain-text path, once.
+        if (asked.kind === 'no_answer') {
+          return envelope({
+            ok: true, tool: 'argus_seal',
+            surface: locale === 'ko'
+              ? `확인 창이 답을 받지 못했습니다 (호스트 문제일 수 있습니다). 아직 기록하지 않았습니다. "저장해줘" 한마디면 이대로 남깁니다: "${predicate}" (확인일 ${checkBy}).`
+              : `The confirm dialog closed without an answer (possibly a host issue). Nothing is recorded yet — say "save it" and I'll keep this as is: "${predicate}" (check-by ${checkBy}).`,
+            next_actions: ['argus_predict', 'stop'],
+            data: { sealed: false, choice: 'no_answer', predicate, check_by: checkBy, retry_hint: 'call argus_predict again with predicate_owner:"user" and no confirm_draft once the user says yes in chat' },
+          });
+        }
+        const picked = asked.kind === 'accepted' ? asked.content : null;
         if (!picked) {
-          // Decline / cancel / no-accept → record nothing (respect the non-yes).
+          // A deliberate decline — record nothing, and do not re-ask.
           return envelope({ ok: true, tool: 'argus_seal', surface: locale === 'ko' ? '기록하지 않았습니다.' : 'Not recorded.', next_actions: ['stop'], data: { sealed: false, choice: 'declined' } });
         }
         // Accept. Apply any optional edits, then re-gate through validateSeal —

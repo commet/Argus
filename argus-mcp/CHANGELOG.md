@@ -6,6 +6,30 @@
 > The `1.3.0` / `1.2.1` entries at the bottom are pre-rename `argus-mcp` history,
 > kept for reference — all of that work shipped inside the new-name 1.0.0.
 
+## 1.15.1 — A picker that fails must not eat the work
+
+Founder dogfooding, second consecutive blocked confirm: Accept did not
+advance, the ask died by timeout, and the answer came back as a polite
+"기록하지 않았습니다" — with the work gone.
+
+- **`format:"date"` removed from the picker.** 1.14.0 added it as a
+  "spec-sanctioned, harmless rendering hint" — untested speculation on the
+  yes-path. A host that VALIDATES format rejects the blank a one-tap Accept
+  leaves behind, so Accept stops advancing. The `required` guard now also
+  bans `format` in any elicit schema: the confirm form carries NO validation
+  constraints, ever. The server validates and re-asks honestly instead.
+- **A decline and a non-answer are now different facts.** `elicit` collapsed
+  decline, cancel, and host failure into one `null`, so a broken picker was
+  recorded as "the user said no". `elicitDetailed` reports how the ask ended;
+  a cancel/failure now names it and hands back the plain-text path
+  ("저장해줘 한마디면 이대로 남깁니다") instead of silently dropping the seal.
+  No host UI quirk we cannot see from here can cost the user their work.
+- **The E2E harness now validates like a strict host.** It accepted any
+  scripted answer without checking it against the schema the server sent —
+  more permissive than the real client, which is how format:"date" shipped
+  green. An answer a validating host would reject now fails the run
+  (verified by reintroducing the regression and watching it turn red).
+
 ## 1.15.0 — The settle card (MCP Apps)
 
 The settlement picker becomes a real interactive CARD inside the chat on

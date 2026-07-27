@@ -40,6 +40,37 @@ export function canElicit(): boolean {
   return _elicit !== null;
 }
 
+/**
+ * Why the caller must be able to tell a NO from a NON-ANSWER (2026-07-27, the
+ * founder's second blocked settle): `elicit` collapsed decline, cancel, and a
+ * host-side failure into one `null`, so a picker that never advanced — because
+ * the host validated a field, or focus sat in a text input where Enter typed a
+ * newline instead of submitting — was recorded as "the user said no", and the
+ * work they had just done evaporated with a polite "기록하지 않았습니다".
+ *
+ * A decline is an answer and deserves silence. A non-answer is a BROKEN WIRE and
+ * deserves the honest fallback: ask in one plain line. We cannot see or test the
+ * host's form rendering, so the design must not depend on it working.
+ */
+export type ElicitOutcome =
+  | { kind: 'accepted'; content: Record<string, unknown> }
+  | { kind: 'declined' }          // the user said no — respect it, stay silent
+  | { kind: 'no_answer' }         // cancel / error / host trouble — offer the text path
+  | { kind: 'unsupported' };      // no picker on this host at all
+
+/** Ask the user and report HOW it ended (see ElicitOutcome). */
+export async function elicitDetailed(message: string, requestedSchema: Record<string, unknown>): Promise<ElicitOutcome> {
+  if (!_elicit) return { kind: 'unsupported' };
+  try {
+    const res = await _elicit(stripUnsafeChars(message), requestedSchema);
+    if (res.action === 'accept') return { kind: 'accepted', content: res.content ?? {} };
+    if (res.action === 'decline') return { kind: 'declined' };
+    return { kind: 'no_answer' }; // 'cancel' — the host closed it without an answer
+  } catch {
+    return { kind: 'no_answer' }; // declared support but failed mid-ask
+  }
+}
+
 /** Ask the user; returns null if unsupported / errored / not accepted. */
 export async function elicit(message: string, requestedSchema: Record<string, unknown>): Promise<Record<string, unknown> | null> {
   if (!_elicit) return null;

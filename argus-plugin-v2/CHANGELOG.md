@@ -4,6 +4,13 @@ All notable changes to the Argus plugin. Versioning follows
 [semver](https://semver.org); users receive an update only when the
 `version` in `.claude-plugin/plugin.json` is bumped.
 
+## 2.21.2 — 2026-07-27
+
+- Wire moves to `argus-decision-mcp@1.15.1` — the confirm picker carries no
+  validation constraints (a blank one-tap Accept can no longer be blocked by
+  the host), and a picker that closes without an answer offers the plain-text
+  save instead of dropping the user's work.
+
 ## 2.21.1 — 2026-07-27
 
 - **`/argus:doctor` stops crying wolf about npx caches.** A machine with eight
