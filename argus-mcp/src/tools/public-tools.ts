@@ -29,6 +29,7 @@ const premiseInput = z.strictObject({
   kind: z.enum(['premise', 'open_question']).default('premise').describe('premise는 확인할 전제, open_question은 사용자가 아직 답하지 않은 질문입니다.'),
   external: z.boolean().default(false).describe('외부 현실에서 나중에 다시 확인할 수 있는 사실인지 표시합니다.'),
   load_bearing: z.boolean().default(false).describe('틀리면 결정이 바뀌는 핵심 전제인지 표시합니다.'),
+  monitoring_enabled: z.boolean().default(true).describe('이 전제를 현재 다시 확인하거나 알려줄지 정합니다. 꺼도 중요도나 검증 가능성은 바뀌지 않습니다.\n\nWhether Argus should currently re-check or nudge this premise. Turning it off does not change importance or verifiability.'),
   source: z.enum(['user_stated', 'ai_surfaced']).describe('필수: 이 문장을 말한 주체입니다. user_stated=사용자의 말, ai_surfaced=AI가 제시한 말(이때 ai_original도 함께). 사용자의 말을 AI의 말로 바꾸지 않습니다.'),
   ai_original: z.string().max(400).describe('source가 ai_surfaced일 때 AI가 처음 제시한 원문입니다.').optional(),
   recheck_cadence_days: z.number().int().min(1).max(365).describe('이 사실을 다시 확인할 간격(일)입니다.').optional(),
@@ -58,6 +59,19 @@ const decideSchema = z.discriminatedUnion('action', [
     action: z.literal('add_context').describe('결정이 딛고 선 전제나 미결 질문을 추가합니다.'),
     id: zId.describe('대상 결정 id입니다.'),
     premises: z.array(premiseInput).min(1).max(5).describe('추가할 전제와 미결 질문입니다.'),
+  }),
+  z.strictObject({
+    ...common,
+    action: z.literal('amend_context').describe('전제의 문장이나 속성, 확인 알림을 고칩니다.'),
+    id: zId.describe('대상 결정 id입니다.'),
+    ref: z.string().max(64).describe('고칠 전제 번호 또는 id입니다.'),
+    amendment: z.enum(['accept', 'refine', 'replace', 'retire']).describe('전제를 확인·수정·교체·퇴역하는 방식입니다. 알림만 바꿀 때는 accept를 씁니다.'),
+    text: z.string().min(3).max(400).describe('refine/replace에서 사용할 사용자의 원문입니다.').optional(),
+    external: z.boolean().describe('외부 현실에서 다시 확인할 수 있는 전제인지 고칩니다.').optional(),
+    load_bearing: z.boolean().describe('틀리면 결정이 바뀌는 핵심 전제인지 고칩니다.').optional(),
+    monitoring_enabled: z.boolean().describe('중요도와 별개로 재확인 알림을 켜거나 끕니다.').optional(),
+    recheck_cadence_days: z.number().int().min(1).max(365).describe('재확인 주기(일)를 고칩니다.').optional(),
+    note: z.string().max(300).describe('선택적인 수정 이유입니다.').optional(),
   }),
   z.strictObject({
     ...common,
@@ -110,7 +124,7 @@ const decideSchema = z.discriminatedUnion('action', [
 // top-level oneOf without weakening runtime validation.
 const decidePublicSchema = z.strictObject({
   argus_dir: zArgusDir,
-  action: z.enum(['open', 'add_context', 'answer_question', 'keep_question_open', 'update_fact', 'change_prediction', 'close']).describe('수행할 결정 작업입니다. 선택한 작업에 필요한 필드만 전달합니다.'),
+  action: z.enum(['open', 'add_context', 'amend_context', 'answer_question', 'keep_question_open', 'update_fact', 'change_prediction', 'close']).describe('수행할 결정 작업입니다. 선택한 작업에 필요한 필드만 전달합니다.'),
   id: zId.min(1).max(128).describe('대상 결정의 짧고 고유한 식별자입니다.').optional(),
   decision: z.string().min(1).max(600).describe('새 결정 또는 미결 질문에 대한 사용자의 판단입니다.').optional(),
   stakes: z.enum(['trivial', 'low', 'moderate', 'high']).describe('틀렸을 때의 비용입니다. 새 결정을 열 때 사용합니다.').optional(),
@@ -121,6 +135,12 @@ const decidePublicSchema = z.strictObject({
   related_to: z.array(zId).max(20).describe('사용자가 비슷하다고 본 과거 결정 id입니다.').optional(),
   premises: z.array(premiseInput).min(1).max(5).describe('추가할 전제와 미결 질문입니다.').optional(),
   ref: z.string().max(64).describe('답하거나 재확인할 전제 또는 미결 질문 번호입니다.').optional(),
+  amendment: z.enum(['accept', 'refine', 'replace', 'retire']).describe('amend_context에서 전제를 고치는 방식입니다.\n\nHow to amend a premise for action=amend_context.').optional(),
+  text: z.string().min(3).max(400).describe('사용자가 고친 전제 원문입니다.\n\nThe user’s corrected premise wording.').optional(),
+  external: z.boolean().describe('외부 현실에서 다시 확인할 수 있는 전제인지 표시합니다.\n\nWhether reality can verify this premise later.').optional(),
+  load_bearing: z.boolean().describe('틀리면 결정이 바뀌는 핵심 전제인지 표시합니다.\n\nWhether the decision materially depends on this premise.').optional(),
+  monitoring_enabled: z.boolean().describe('재확인 알림을 켜거나 끕니다.\n\nWhether Argus should re-check or nudge this premise.').optional(),
+  recheck_cadence_days: z.number().int().min(1).max(365).describe('전제 재확인 주기(일)입니다.\n\nHow often this premise becomes due for re-check.').optional(),
   reconsider_cadence_days: z.number().int().min(1).max(365).describe('미결 질문을 다시 볼 간격(일)입니다.').optional(),
   finding: z.string().min(1).max(800).describe('현재 확인한 사실을 비교 가능한 한 문장으로 적습니다.').optional(),
   numeric_value: z.number().finite().describe('수치 사실의 현재 값을 명시적으로 전달합니다.').optional(),
@@ -363,6 +383,9 @@ export const decide: ToolModule = {
       return result;
     }
     if (action === 'add_context') return runPublic('argus_capture', { ...a, op: 'add' }, premises.handler);
+    if (action === 'amend_context') {
+      return runPublic('argus_capture', { ...a, op: 'amend', action: a['amendment'] }, premises.handler);
+    }
     if (action === 'answer_question') return runPublic('argus_capture', { ...a, op: 'resolve' }, premises.handler);
     if (action === 'keep_question_open') {
       return runPublic('argus_capture', { ...a, op: 'still_open', reponder_cadence_days: a['reconsider_cadence_days'] }, premises.handler);

@@ -70,6 +70,47 @@ describe('purpose-led public MCP surface', () => {
     expect(isError(r)).toBe(false);
   });
 
+  it('turns premise monitoring off without erasing importance or verifiability', async () => {
+    const dir = tmpArgusDir();
+    await decide.handler({
+      argus_dir: dir,
+      action: 'open',
+      id: 'monitoring-separation',
+      decision: 'whether to sign the long supplier contract',
+      status_quo: 'keep the current monthly contract',
+      stakes: 'high',
+      reversibility: 'costly_to_reverse',
+      premises: [{
+        text: 'the supplier keeps the quoted capacity through next year',
+        kind: 'premise',
+        external: true,
+        load_bearing: true,
+        monitoring_enabled: true,
+        source: 'user_stated',
+      }],
+    });
+
+    const amended = await decide.handler({
+      argus_dir: dir,
+      action: 'amend_context',
+      id: 'monitoring-separation',
+      ref: 'P1',
+      amendment: 'accept',
+      monitoring_enabled: false,
+    });
+    expect(isError(amended)).toBe(false);
+
+    const recalled = await history.handler({
+      argus_dir: dir,
+      view: 'decision_context',
+      id: 'monitoring-separation',
+    });
+    const row = (((body(recalled)['data'] as Record<string, unknown>)['premises']) as Array<Record<string, unknown>>)[0];
+    expect(row['external']).toBe(true);
+    expect(row['load_bearing']).toBe(true);
+    expect(row['monitored']).toBe(false);
+  });
+
   it('records supplied premises even on a low-stakes (restraint) open — record is never gated by ceremony', async () => {
     // Regression: on a flat/low-stakes open the over-fire gate does NOT fire,
     // and the premise-recording used to sit behind that gate → user premises

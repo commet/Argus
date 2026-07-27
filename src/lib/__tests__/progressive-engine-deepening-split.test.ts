@@ -7,8 +7,8 @@
  * a user-facing "JSON 파싱 실패". These prove the structural fix:
  *
  *  1. The streamed narrative call NO LONGER carries the plan.
- *  2. The execution_plan is built in its OWN call (round >= 1) and merged in.
- *  3. round 0 makes NO plan call.
+ *  2. Deep mode builds the execution_plan in its OWN call and merges it.
+ *  3. Standard mode makes NO plan call.
  *  4. A plan-call FAILURE is best-effort: the turn still resolves and carries the
  *     prior plan forward — it never surfaces as a turn error.
  */
@@ -75,16 +75,17 @@ beforeEach(() => {
 });
 
 describe('deepening narrative no longer carries the plan; plan is a separate call', () => {
-  it('round >= 1: streams the narrative ONCE and merges a separately-generated plan', async () => {
+  it('deep mode streams the narrative once and builds a separate plan on the first answered turn', async () => {
     mockJson.mockImplementation(async (_messages, options) =>
       (isPlanCall(options) ? PLAN : { text: 'typed', options: ['x', 'y'] }) as never,
     );
 
     const { snapshot } = await runDeepening(
-      PROBLEM, baseSnapshot, [{ question: q, answer: ans }], 1, 3, [baseSnapshot],
+      PROBLEM, baseSnapshot, [{ question: q, answer: ans }], 0, 3, [baseSnapshot],
       () => {}, // onToken → streaming path (the one that used to truncate)
       undefined, undefined, undefined,
       () => {}, // onTypedUpgrade → typed-question generation stays in the background
+      'deep',
     );
 
     // The narrative came from exactly one streamed call...
@@ -95,7 +96,7 @@ describe('deepening narrative no longer carries the plan; plan is a separate cal
     expect(snapshot.execution_plan?.steps[0].task).toBe('NEW-PLAN-STEP');
   });
 
-  it('round 0: makes NO execution_plan call', async () => {
+  it('standard mode makes NO execution_plan call', async () => {
     mockJson.mockImplementation(async () => ({ text: 'typed', options: ['x', 'y'] }) as never);
 
     await runDeepening(
@@ -115,7 +116,7 @@ describe('deepening narrative no longer carries the plan; plan is a separate cal
     // No abort signal → the failure must be swallowed, not rethrown.
     const { snapshot } = await runDeepening(
       PROBLEM, baseSnapshot, [{ question: q, answer: ans }], 1, 3, [baseSnapshot],
-      () => {}, undefined, undefined, undefined, () => {},
+      () => {}, undefined, undefined, undefined, () => {}, 'deep',
     );
 
     // Narrative still applied, and the previous plan is carried forward intact.

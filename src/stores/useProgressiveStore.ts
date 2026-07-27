@@ -10,6 +10,7 @@ import type { Agent } from '@/stores/agent-types';
 import { numericLevelToAgentLevel } from '@/lib/agent-skills';
 import { onTaskApproved, onTaskRejected } from '@/lib/observation-engine';
 import { planWorkers } from '@/lib/orchestrator';
+import { boundDeepExecutionPlan } from '@/lib/judgment-depth';
 import { selectLeadAgent } from '@/lib/lead-agent';
 import { computeQualityXP } from '@/lib/agent-quality';
 import { nextChildLabel, promoteToMajor, ROOT_LABEL } from '@/lib/version-numbering';
@@ -216,6 +217,7 @@ interface ProgressiveState {
   createSession: (projectId: string, problemText: string, reviewerAgentId?: string) => string;
   setPhase: (phase: ProgressivePhase) => void;
   setDecisionMaker: (name: string) => void;
+  setJudgmentMode: (mode: 'standard' | 'deep', authorizedAt?: string, funding?: 'platform' | 'byok') => void;
 
   // ── Post-complete draft tree ──
   /** Append a new draft as a child of `parent_draft_id` (null = root child). Returns new id. */
@@ -262,7 +264,7 @@ interface ProgressiveState {
   linkToRecast: (recastItemId: string) => void;
 
   // Workers
-  initWorkers: (steps: { task: string; who?: string; agent_type?: string; output: string; agent_hint?: string; ai_scope?: string; self_scope?: string; decision?: string; question_to_human?: string; human_contact_hint?: string }[], signals?: InterviewSignals, userLeaning?: boolean) => WorkerTask[];
+  initWorkers: (steps: { task: string; who?: string; agent_type?: string; output: string; agent_hint?: string; ai_scope?: string; self_scope?: string; decision?: string; question_to_human?: string; human_contact_hint?: string; depends_on?: number[] }[], signals?: InterviewSignals, userLeaning?: boolean) => WorkerTask[];
   deployWorkers: () => void;
   updateWorker: (workerId: string, partial: Partial<WorkerTask>) => void;
   setWorkerStreamText: (workerId: string, text: string) => void;
@@ -654,6 +656,9 @@ export const useProgressiveStore = create<ProgressiveState>((set, get) => ({
       project_id: projectId,
       problem_text: problemText,
       decision_maker: null,
+      judgment_mode: 'standard',
+      deep_funding: null,
+      deep_authorized_at: null,
       reviewer_agent_id: reviewerAgentId,
       phase: 'analyzing',
       round: 0,
@@ -700,6 +705,19 @@ export const useProgressiveStore = create<ProgressiveState>((set, get) => ({
     const sessions = updateSession(get().sessions, currentSessionId, () => ({ decision_maker: clean }));
     persist(sessions);
     set({ sessions });
+  },
+
+  setJudgmentMode: (mode, authorizedAt, funding) => {
+    const { currentSessionId } = get();
+    if (!currentSessionId) return;
+    const sessions = updateSession(get().sessions, currentSessionId, () => ({
+      judgment_mode: mode,
+      deep_funding: mode === 'deep' ? (funding ?? 'platform') : null,
+      deep_authorized_at: mode === 'deep' ? (authorizedAt ?? new Date().toISOString()) : null,
+    }));
+    persist(sessions);
+    set({ sessions });
+    track('judgment_mode_changed', { mode });
   },
 
   addQuestion: (question) => {
@@ -1094,7 +1112,13 @@ export const useProgressiveStore = create<ProgressiveState>((set, get) => ({
     // Orchestrator: 입력 분류 → 에이전트 선택 → 프레임워크 배정
     const unlockedAgents = agentStore.getUnlockedAgents();
     const allObservations = unlockedAgents.flatMap(a => a.observations || []);
-    const { classification, workers: planned, stages: plannedStages, orchestrationPlan } = planWorkers(steps, signals, unlockedAgents, allObservations, userLeaning);
+    const current = get().currentSession();
+    if (current?.judgment_mode !== 'deep') return [];
+    const boundedSteps = boundDeepExecutionPlan(
+      steps,
+      current.snapshots?.slice(-1)[0],
+    );
+    const { classification, workers: planned, stages: plannedStages, orchestrationPlan } = planWorkers(boundedSteps, signals, unlockedAgents, allObservations, userLeaning);
 
     // Lead Agent 선정: stakes >= important AND agentCount >= 2
     const leadConfig = selectLeadAgent(classification, unlockedAgents);
@@ -1116,7 +1140,7 @@ export const useProgressiveStore = create<ProgressiveState>((set, get) => ({
       const needsAgent = pw.agentType === 'ai';
       const agent = needsAgent && pw.agentId ? agentStore.getAgent(pw.agentId) : null;
       const fallbackAgent = needsAgent
-        ? (agent || agentStore.assignAgentToTask(steps[si].task, steps[si].output, assignedAgentIds))
+        ? (agent || agentStore.assignAgentToTask(boundedSteps[si].task, boundedSteps[si].output, assignedAgentIds))
         : null;
       if (fallbackAgent) assignedAgentIds.add(fallbackAgent.id);
 
@@ -1133,11 +1157,11 @@ export const useProgressiveStore = create<ProgressiveState>((set, get) => ({
         task_group_id: generateId(),
         // origin tracking — auto-assigned, original task captured for diff.
         added_manually: false,
-        original_task: steps[si].task,
+        original_task: boundedSteps[si].task,
         step_index: si,
-        task: steps[si].task,
+        task: boundedSteps[si].task,
         who,
-        expected_output: steps[si].output,
+        expected_output: boundedSteps[si].output,
         status: 'pending' as const,
         persona: fallbackAgent ? agentToWorkerPersona(fallbackAgent) : null,
         agent_id: fallbackAgent?.id,

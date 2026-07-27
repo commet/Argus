@@ -5,7 +5,7 @@ import { USER_DATA_TABLES } from '../user-data-tables';
  * Erasure-coverage drift guard (mirrors schema-drift.test.ts's TABLE_COLUMNS contract).
  *
  * LIVE_USER_SCOPED_TABLES is a hand-mirrored copy of every public table that has a
- * `user_id` column on the live DB, re-captured 2026-07-03 via:
+ * `user_id` column in the migrations, re-captured 2026-07-27 via:
  *   SELECT table_name FROM information_schema.columns
  *   WHERE table_schema='public' AND column_name='user_id' ... (BASE TABLEs only)
  *
@@ -22,7 +22,7 @@ import { USER_DATA_TABLES } from '../user-data-tables';
  */
 const LIVE_USER_SCOPED_TABLES = [
   'accuracy_ratings', 'agent_activities', 'agent_chains', 'agents',
-  'decision_items', 'decision_quality_scores', 'epistemic_account_policies',
+  'decision_items', 'decision_quality_scores', 'deep_judgment_usage', 'epistemic_account_policies',
   'epistemic_artifact_descriptors', 'epistemic_authority_events', 'epistemic_command_receipts', 'epistemic_context_traces', 'epistemic_erasure_receipts',
   'epistemic_projection_outbox', 'epistemic_recall_documents', 'epistemic_recall_projection_state', 'epistemic_restore_receipts', 'epistemic_use_receipts', 'feedback_records', 'human_agent_messages',
   'judgment_records', 'outcome_records', 'personas', 'plugin_bearings',

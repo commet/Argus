@@ -274,6 +274,7 @@ export function replayLedger(argusDir: string, today: string): LedgerState {
           text: ev['text'],
           external: ev['external'] === true,
           load_bearing: ev['load_bearing'] === true,
+          ...(typeof ev['monitoring_enabled'] === 'boolean' ? { monitoring_enabled: ev['monitoring_enabled'] } : {}),
           source: normalizePremiseSource(ev['source']),
           ...(typeof ev['ai_original'] === 'string' ? { ai_original: ev['ai_original'] } : {}),
           ...(isMaterialityRule(ev['materiality_rule']) ? { materiality_rule: ev['materiality_rule'] as PremiseState['materiality_rule'] } : {}),
@@ -309,6 +310,7 @@ export function replayLedger(argusDir: string, today: string): LedgerState {
         // so monitoring can arm) — monitoring stays DERIVED from these flags.
         if (typeof ev['external'] === 'boolean') p.external = ev['external'];
         if (typeof ev['load_bearing'] === 'boolean') p.load_bearing = ev['load_bearing'];
+        if (typeof ev['monitoring_enabled'] === 'boolean') p.monitoring_enabled = ev['monitoring_enabled'];
         // M1 §1.2: the user may re-set the cadence (how often to nudge). A
         // number widens/narrows the interval; nothing else touches it.
         if (typeof ev['recheck_cadence_days'] === 'number' && Number.isFinite(ev['recheck_cadence_days'])) p.recheck_cadence_days = ev['recheck_cadence_days'];

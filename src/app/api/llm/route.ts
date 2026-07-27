@@ -182,7 +182,9 @@ export async function POST(req: NextRequest) {
     const MODEL_MAP: Record<string, string> = {
       fast: 'claude-haiku-4-5-20251001',
       default: 'claude-sonnet-4-6',
-      strong: 'claude-sonnet-4-6', // Note: using Opus here would raise costs significantly
+      // Deep judgment is separately limited to one platform-funded loop per
+      // rolling 24h. Its final synthesis earns the strongest model.
+      strong: 'claude-opus-4-8',
     };
     const modelId = MODEL_MAP[body.model as string] || MODEL_MAP.default;
 
