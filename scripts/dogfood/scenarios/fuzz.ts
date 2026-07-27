@@ -23,6 +23,12 @@ interface ModelProject {
 }
 
 const FUTURE = '2026-10-01T00:00:00.000Z';
+const PRESENT_STANDARD = {
+  present_standard: {
+    status: 'same' as const,
+    response_text: 'I would make the same call under the same conditions',
+  },
+};
 
 type Move =
   | 'seal' | 'observe' | 'resolve' | 'defer' | 'close'
@@ -111,7 +117,7 @@ export function fuzzScenario(cycles: number): Scenario {
                 w.web.command(p.projectId, {
                   kind: 'resolve', command_id: w.rng.id('cmd'), resolution_id: resolutionId,
                   judgment_id: p.judgmentId!, return_contract_id: p.returnContractId!,
-                  resolution: { kind: 'answered', answer_summary: 'fuzz answer', evidence_refs: evidence },
+                  resolution: { kind: 'answered', answer_summary: 'fuzz answer', evidence_refs: evidence, ...PRESENT_STANDARD },
                 }));
               if (res.ok) { p.resolutionId = resolutionId; p.lastBatch = res.built; }
               break;

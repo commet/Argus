@@ -596,7 +596,8 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem, fr
       //   - "LOGIN_REQUIRED:..." prefix → 익명 무료 체험 소진 (categorizeError at 429+needsLogin)
       //   - "한도" / "rate" → 로그인 사용자의 일반 rate limit
       const needsLogin = errMsg.startsWith('LOGIN_REQUIRED');
-      const isRateLimit = !needsLogin && (errMsg.includes('한도') || errMsg.includes('rate') || errMsg.includes('limit') || errMsg.includes('429'));
+      const isServiceUnavailable = errMsg.startsWith('SERVICE_UNAVAILABLE');
+      const isRateLimit = !needsLogin && !isServiceUnavailable && (errMsg.includes('한도') || errMsg.includes('rate') || errMsg.includes('limit') || errMsg.includes('429'));
 
       // errMsg 그대로 setError — 렌더 쪽에서 prefix로 분기해 login CTA vs generic 배너 결정.
       // 세션은 아직 생성 안 했으므로 정리 로직 불필요.
@@ -606,7 +607,13 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem, fr
       // Keep failure telemetry diagnostic but never persist the provider's raw
       // message: upstream errors can echo user material or internal details.
       track('workspace_start_error', {
-        category: needsLogin ? 'login_required' : isRateLimit ? 'rate_limit' : err instanceof Error ? err.name : 'unknown',
+        category: needsLogin
+          ? 'login_required'
+          : isServiceUnavailable
+            ? 'service_unavailable'
+            : isRateLimit
+              ? 'rate_limit'
+              : err instanceof Error ? err.name : 'unknown',
         is_rate_limit: isRateLimit,
         needs_login: needsLogin,
       });
@@ -888,10 +895,16 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem, fr
                 {error && !error.startsWith('LOGIN_REQUIRED') && (() => {
                   // Categorize so the user knows what to DO, not just that it failed.
                   const e = error.toLowerCase();
+                  const isServiceUnavailable = e.startsWith('service_unavailable');
                   const isQuota = e.includes('한도') || e.includes('rate') || e.includes('limit') || e.includes('429') || e.includes('api 키') || e.includes('api key');
                   const isNetwork = e.includes('network') || e.includes('failed to fetch') || e.includes('fetch') || e.includes('네트워크') || e.includes('offline');
                   const isTimeout = e.includes('timeout') || e.includes('timed out') || e.includes('시간 초과') || e.includes('aborted');
-                  const msg = isQuota
+                  const msg = isServiceUnavailable
+                    ? L(
+                        '현재 분석 기능을 사용할 수 없어요. 적어주신 내용은 그대로 남아 있습니다. 운영자 쪽 설정이 복구되면 다시 시작할 수 있어요.',
+                        'Analysis is temporarily unavailable. What you wrote is still here; you can continue once the service is restored.',
+                      )
+                    : isQuota
                     // Disambiguate anon "trial" from a logged-in user's daily quota —
                     // a signed-in user hasn't hit a "trial", they've used today's allowance.
                     ? (user
@@ -913,10 +926,12 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem, fr
                       <div className="flex-1">
                         <span>{msg}</span>
                         <div className="mt-1.5 flex items-center gap-3">
-                          {/* Quota → settings; everything else → an explicit retry. */}
-                          {isQuota ? (
+                          {/* Quota/provider setup → settings; retry only transient failures. */}
+                          {isQuota || isServiceUnavailable ? (
                             <LocaleLink href="/settings" className="text-[12px] text-[var(--accent)] font-medium hover:underline">
-                              {L('설정에서 API 키 등록하기 →', 'Register your API key in Settings →')}
+                              {isServiceUnavailable
+                                ? L('내 API 키로 계속하기 →', 'Continue with my API key →')
+                                : L('설정에서 API 키 등록하기 →', 'Register your API key in Settings →')}
                             </LocaleLink>
                           ) : (
                             <button onClick={() => handleSubmit()}

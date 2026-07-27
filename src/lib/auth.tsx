@@ -104,6 +104,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     let migrationInFlight: Promise<void> | null = null;
+    let authEventSeen = false;
+    let readinessGeneration = 0;
     const finishPermanentAccountMigration = (forceLocalMigration: boolean) => {
       if (migrationInFlight) return migrationInFlight;
       migrationInFlight = claimAnonymousAccountTransfer()
@@ -129,24 +131,44 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return migrationInFlight;
     };
 
+    // A permanent account is not ready for app data reads until a prepared
+    // anonymous transfer has committed. Password sign-in does not visit the
+    // callback page, so opening the workspace early can race the transfer and
+    // make RLS reject an upsert against the still-anonymous row.
+    const holdAuthLoadingUntilMigration = (forceLocalMigration: boolean) => {
+      const generation = ++readinessGeneration;
+      setLoading(true);
+      void finishPermanentAccountMigration(forceLocalMigration).finally(() => {
+        if (readinessGeneration === generation) setLoading(false);
+      });
+    };
+
     // 4s cap on the front-door session read: if auth stalls, open the app as
     // signed-out instead of an endless boot spinner. onAuthStateChange below is
     // the safety net — a real session re-fills user/session moments later.
     getSessionWithTimeout().then((session) => {
+      // Once INITIAL_SESSION or SIGNED_IN has fired, that event is newer and
+      // authoritative. A slower front-door read must not overwrite it or release
+      // the ownership-transfer readiness barrier early.
+      if (authEventSeen) return;
       // Anonymous sessions (durable server identity for logged-out voyagers) are
       // NOT a signed-in user for the app's UX — only a real account is.
       const realUser = isRealUser(session?.user) ? session!.user : null;
       setSession(session);
       setUser(realUser);
       setAnalyticsUser(realUser?.id ?? null);
-      setLoading(false);
       // A prepared transfer can outlive the OAuth/email callback (for example a
       // transient database outage). Retry it whenever a permanent session boots,
       // not only on the one SIGNED_IN event.
-      if (realUser) void finishPermanentAccountMigration(false);
+      if (realUser) holdAuthLoadingUntilMigration(false);
+      else {
+        readinessGeneration++;
+        setLoading(false);
+      }
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      authEventSeen = true;
       clearUserCache();
       // Anonymous sessions are server-identity plumbing, not a signed-in user —
       // keep every real-account gate (wall/header/migration/expiry) keyed on a
@@ -155,7 +177,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setSession(session);
       setUser(realUser);
       setAnalyticsUser(realUser?.id ?? null);
-      setLoading(false);
 
       // P0-5 session-expiry honesty: remember (boolean only) that this browser
       // has signed in; when the session later drops while the flag is still set
@@ -174,11 +195,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       // On a genuine sign-in, eagerly migrate local-first work into the account
       // and confirm it (local-first → "your thinking follows you when you sign up").
-      if (_event === 'SIGNED_IN' && realUser) {
+      if (realUser && (_event === 'SIGNED_IN' || _event === 'INITIAL_SESSION')) {
         // Claim server-backed anonymous rows FIRST. Otherwise the local fallback
         // collides with rows still owned by the old anonymous uid and RLS rejects
         // the upsert. The one-time ticket remains retryable on failure.
-        void finishPermanentAccountMigration(true);
+        holdAuthLoadingUntilMigration(_event === 'SIGNED_IN');
+      } else if (!realUser) {
+        // A genuine sign-out supersedes any older readiness completion.
+        readinessGeneration++;
+        setLoading(false);
+      } else if (!migrationInFlight) {
+        // Token refreshes and metadata updates do not require another migration.
+        setLoading(false);
       }
     });
 

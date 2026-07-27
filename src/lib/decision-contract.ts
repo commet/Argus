@@ -132,6 +132,7 @@ export function webAiAttribution(now: number, sourceRef: string): JudgmentAttrib
 
 export interface DecisionFoundationInput {
   kind: DecisionKind;
+  sealedStatement?: string;
   derivedKind?: DecisionKind;
   kindRule: string;
   kindQuestion?: string;
@@ -141,6 +142,36 @@ export interface DecisionFoundationInput {
   reviewCondition?: string;
   returnEvent?: string;
   adoptionLineage?: AdoptionLineage[];
+}
+
+/** Build the adoption receipt for machine-authored material the user chose to
+ * keep at seal. Predicate ids are stable and live in the same contract, so they
+ * are the narrowest available proposal references on the web surface. */
+export function adoptionLineageForSeal(
+  predicates: readonly Predicate[],
+  openChecks: readonly OpenCheck[] = [],
+  wordingPredicateId?: string,
+): AdoptionLineage[] {
+  const byKey = new Map<string, AdoptionLineage>();
+  for (const predicate of predicates) {
+    if (
+      predicate.authored !== 'ai_surfaced'
+      && predicate.attribution?.wording_source !== 'ai_surfaced'
+    ) continue;
+    const item: AdoptionLineage = {
+      source_proposal_ref: predicate.id,
+      adopted_as: predicate.id === wordingPredicateId ? 'wording' : 'check',
+    };
+    byKey.set(`${item.source_proposal_ref}:${item.adopted_as}`, item);
+  }
+  for (const check of openChecks) {
+    const item: AdoptionLineage = {
+      source_proposal_ref: check.id,
+      adopted_as: 'check',
+    };
+    byKey.set(`${item.source_proposal_ref}:${item.adopted_as}`, item);
+  }
+  return [...byKey.values()];
 }
 
 /** Stamp the philosophy-foundation fields at the authorial seal. A later
@@ -169,11 +200,31 @@ export function withDecisionFoundation(
     corrected_at: recordedAt,
     evidence,
   } : null;
+  const adoptionLineage = [...(contract.adoption_lineage ?? []), ...(input.adoptionLineage ?? [])]
+    .filter((item, index, all) =>
+      all.findIndex((candidate) =>
+        candidate.source_proposal_ref === item.source_proposal_ref
+        && candidate.adopted_as === item.adopted_as,
+      ) === index);
+  const integrityBaseline = contract.integrity_version === 2
+    ? contract.integrity_baseline
+    : { settlement_count: contract.settlements?.length ?? 0 };
+  const sealedStatement = contract.sealed_statement?.trim()
+    || input.sealedStatement?.trim()
+    || contract.judgment_receipt?.human_judgment?.trim()
+    || contract.predicates.find((predicate) => predicate.source === 'user_lean')?.text.trim()
+    || contract.predicates[0]?.text.trim()
+    || input.originUtterance.trim();
 
   return {
     ...contract,
+    integrity_version: 2,
+    integrity_baseline: integrityBaseline,
     kind: input.kind,
-    kind_evidence: evidence,
+    sealed_statement: sealedStatement,
+    kind_evidence: existingKind && !correction
+      ? contract.kind_evidence ?? evidence
+      : evidence,
     kind_corrections: correction
       ? [...(contract.kind_corrections ?? []), correction]
       : contract.kind_corrections,
@@ -185,8 +236,8 @@ export function withDecisionFoundation(
     ...((contract.return_event ?? input.returnEvent?.trim())
       ? { return_event: contract.return_event ?? input.returnEvent!.trim() }
       : {}),
-    ...((contract.adoption_lineage ?? input.adoptionLineage)
-      ? { adoption_lineage: contract.adoption_lineage ?? input.adoptionLineage }
+    ...(adoptionLineage.length
+      ? { adoption_lineage: adoptionLineage }
       : {}),
   };
 }
@@ -201,6 +252,14 @@ export function appendContractSettlement(
   contract: DecisionContract,
   settlement: ContractSettlement,
 ): DecisionContract {
+  const authorizationRef = settlement.authorization?.authorization_ref;
+  if (
+    authorizationRef
+    && contract.settlements?.some((existing) =>
+      existing.authorization?.authorization_ref === authorizationRef)
+  ) {
+    return contract;
+  }
   return { ...contract, settlements: [...(contract.settlements ?? []), settlement] };
 }
 
@@ -601,6 +660,7 @@ export function reviseContractStatement(
   now: number,
 ): DecisionContract {
   const previous = contract.statement_revisions?.at(-1)?.to_statement
+    || contract.sealed_statement
     || contract.judgment_receipt?.human_judgment
     || contract.predicates.find((predicate) => predicate.source === 'user_lean')?.text
     || contract.predicates[0]?.text

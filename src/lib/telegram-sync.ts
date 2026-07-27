@@ -36,3 +36,30 @@ export function syncSealToTelegram(input: {
     }).catch(() => { /* additive channel — silence is fine */ });
   } catch { /* never block the seal */ }
 }
+
+/**
+ * A witness is a first-class "keep this, never ask again" record. If the same
+ * project previously had a returnable seal, disable its mirrored Telegram row
+ * so an old date cannot resurrect a reminder. A later returnable correction
+ * calls syncSealToTelegram again and explicitly re-arms the row.
+ */
+export function disableTelegramReturn(input: {
+  accessToken: string;
+  projectId: string;
+}): void {
+  try {
+    if (!input.accessToken || !input.projectId) return;
+    void fetch('/api/decisions/telegram-sync', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${input.accessToken}`,
+      },
+      body: JSON.stringify({
+        action: 'disable',
+        projectId: input.projectId,
+      }),
+      keepalive: true,
+    }).catch(() => { /* additive channel — the web record remains canonical */ });
+  } catch { /* never block the authorial correction */ }
+}

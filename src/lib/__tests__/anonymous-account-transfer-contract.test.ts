@@ -11,6 +11,10 @@ const callbackSource = readFileSync(
   join(process.cwd(), 'src/app/[locale]/auth/callback/page.tsx'),
   'utf8',
 );
+const providersSource = readFileSync(
+  join(process.cwd(), 'src/components/layout/Providers.tsx'),
+  'utf8',
+);
 
 describe('anonymous → permanent account transfer contract', () => {
   it('keeps the transfer atomic and service-role-only', () => {
@@ -47,5 +51,12 @@ describe('anonymous → permanent account transfer contract', () => {
     expect(authSource.indexOf('claimAnonymousAccountTransfer()'))
       .toBeLessThan(authSource.indexOf('migrateLocalToAccount()'));
     expect(callbackSource).toContain('await claimAnonymousAccountTransfer()');
+  });
+
+  it('keeps app stores behind the ownership-transfer readiness barrier', () => {
+    expect(authSource).toContain('holdAuthLoadingUntilMigration');
+    expect(authSource).toContain("_event === 'SIGNED_IN' || _event === 'INITIAL_SESSION'");
+    expect(providersSource).toContain('isMarketing || isAuthCallback || authLoading');
+    expect(providersSource).toContain('<AuthReadinessGate>{children}</AuthReadinessGate>');
   });
 });

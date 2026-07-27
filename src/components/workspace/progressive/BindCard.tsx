@@ -199,36 +199,38 @@ export function BindCard({
 
         {/* Check-in window — none preselected; an untapped default is never a commitment.
             Each chip shows its resolved date; "직접" picks a specific known day. */}
-        <div className="mt-2.5 flex items-center gap-1.5 overflow-x-auto pb-1">
-          <span className="shrink-0 text-[11.5px] text-[var(--text-tertiary)]">{L('현실과 확인:', 'Check reality:')}</span>
-          {INTERVALS.map((iv) => (
-            <button
-              key={iv.value}
-              type="button"
-              onClick={() => { setInterval(interval === iv.value ? null : iv.value); setCustomDate(''); }}
+        <div className="mt-2.5">
+          <span className="mb-1.5 block text-[11.5px] text-[var(--text-tertiary)]">{L('현실과 확인:', 'Check reality:')}</span>
+          <div className="grid grid-cols-3 gap-1.5 sm:flex sm:items-center sm:overflow-x-auto sm:pb-1">
+            {INTERVALS.map((iv) => (
+              <button
+                key={iv.value}
+                type="button"
+                onClick={() => { setInterval(interval === iv.value ? null : iv.value); setCustomDate(''); }}
+                disabled={proceeding}
+                aria-pressed={interval === iv.value && !customDate}
+                className={`min-w-0 rounded-lg border px-1.5 py-1.5 text-[10.5px] leading-4 transition-colors sm:shrink-0 sm:rounded-full sm:px-2.5 sm:py-1 sm:text-[11.5px] ${
+                  interval === iv.value && !customDate
+                    ? 'border-[var(--primary)] bg-[var(--primary)] text-[var(--bg)]'
+                    : 'border-[var(--border-subtle)] text-[var(--text-secondary)] hover:border-[var(--text-tertiary)]'
+                }`}
+              >
+                {(ko ? iv.ko : iv.en)} · {dateLabel(iv.value)}
+              </button>
+            ))}
+            <input
+              type="date"
+              value={customDate}
+              min={minimumCustomDate}
               disabled={proceeding}
-              aria-pressed={interval === iv.value && !customDate}
-              className={`shrink-0 rounded-full border px-2.5 py-1 text-[11.5px] transition-colors ${
-                interval === iv.value && !customDate
-                  ? 'border-[var(--primary)] bg-[var(--primary)] text-[var(--bg)]'
-                  : 'border-[var(--border-subtle)] text-[var(--text-secondary)] hover:border-[var(--text-tertiary)]'
+              onChange={(e) => { setCustomDate(e.target.value); if (e.target.value) setInterval(null); }}
+              className={`w-full min-w-0 rounded-lg border bg-[var(--bg)] px-1.5 py-1.5 text-[10.5px] cursor-pointer sm:w-[116px] sm:shrink-0 sm:rounded-full sm:px-2 sm:py-1 sm:text-[11px] ${
+                customDate ? 'border-[var(--primary)] text-[var(--primary)]' : 'border-[var(--border-subtle)] text-[var(--text-secondary)]'
               }`}
-            >
-              {(ko ? iv.ko : iv.en)} · {dateLabel(iv.value)}
-            </button>
-          ))}
-          <input
-            type="date"
-            value={customDate}
-            min={minimumCustomDate}
-            disabled={proceeding}
-            onChange={(e) => { setCustomDate(e.target.value); if (e.target.value) setInterval(null); }}
-            className={`w-[116px] shrink-0 rounded-full border bg-[var(--bg)] px-2 py-1 text-[11px] cursor-pointer ${
-              customDate ? 'border-[var(--primary)] text-[var(--primary)]' : 'border-[var(--border-subtle)] text-[var(--text-secondary)]'
-            }`}
-            aria-label={L('직접 확인일 고르기', 'Pick a custom review date')}
-            title={L('직접 고르기', 'Pick a date')}
-          />
+              aria-label={L('직접 확인일 고르기', 'Pick a custom review date')}
+              title={L('직접 고르기', 'Pick a date')}
+            />
+          </div>
         </div>
 
         <div className="mt-4 flex items-center justify-between gap-3">

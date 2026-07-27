@@ -9,6 +9,12 @@ import type { Scenario, World } from '../harness/world';
 
 const FUTURE = '2026-09-01T00:00:00.000Z';
 const PAST = '2026-07-01T00:00:00.000Z';
+const PRESENT_STANDARD = {
+  present_standard: {
+    status: 'same' as const,
+    response_text: 'I would make the same call under the same conditions',
+  },
+};
 
 type ReturningSealCommand = Extract<SemanticWebCommand, { kind: 'seal' }> & {
   return_contract_id: string;
@@ -65,7 +71,7 @@ export const webScenarios: Scenario[] = [
         () => w.web.command(projectId, {
           kind: 'resolve', command_id: w.rng.id('cmd'), resolution_id: resolutionId,
           judgment_id: seal.judgment_id, return_contract_id: seal.return_contract_id,
-          resolution: { kind: 'answered', answer_summary: 'Conversion held at 3.4%.', criterion_result: 'met', evidence_refs: [observationId] },
+          resolution: { kind: 'answered', answer_summary: 'Conversion held at 3.4%.', criterion_result: 'met', evidence_refs: [observationId], ...PRESENT_STANDARD },
         }));
       projection = w.projection(projectId, seal.judgment_id);
       if (projection?.lifecycle === 'resolved_answered') throw new Error('resolution closed the judgment (I3 violation)');
@@ -176,7 +182,7 @@ export const webScenarios: Scenario[] = [
         () => w.web.command(projectId, {
           kind: 'resolve', command_id: w.rng.id('cmd'), resolution_id: resolutionId,
           judgment_id: seal.judgment_id, return_contract_id: seal.return_contract_id,
-          resolution: { kind: 'answered', answer_summary: 'done', evidence_refs: [observationId] },
+          resolution: { kind: 'answered', answer_summary: 'done', evidence_refs: [observationId], ...PRESENT_STANDARD },
         }));
 
       const before = w.stream(projectId).length;
@@ -229,7 +235,7 @@ export const webScenarios: Scenario[] = [
         () => w.web.command(projectId, {
           kind: 'resolve', command_id: w.rng.id('cmd'), resolution_id: w.rng.id('res'),
           judgment_id: seal.judgment_id, return_contract_id: seal.return_contract_id,
-          resolution: { kind: 'answered', answer_summary: 'says so', evidence_refs: [w.rng.id('ghost')] },
+          resolution: { kind: 'answered', answer_summary: 'says so', evidence_refs: [w.rng.id('ghost')], ...PRESENT_STANDARD },
         }));
     },
   },
@@ -246,7 +252,7 @@ export const webScenarios: Scenario[] = [
           kind: 'observe_and_resolve', command_id: w.rng.id('cmd'),
           observation_id: observationId, observation_text: 'observed', resolution_id: w.rng.id('res'),
           judgment_id: seal.judgment_id, return_contract_id: seal.return_contract_id,
-          resolution: { kind: 'answered', answer_summary: 'ok', evidence_refs: [observationId] },
+          resolution: { kind: 'answered', answer_summary: 'ok', evidence_refs: [observationId], ...PRESENT_STANDARD },
         }));
       const stream = w.stream(projectId);
       const resolutionId = (stream.find((e) => (e as { event?: string }).event === 'resolution_asserted') as { resolution_id: string }).resolution_id;
@@ -270,7 +276,7 @@ export const webScenarios: Scenario[] = [
           kind: 'observe_and_resolve', command_id: w.rng.id('cmd'),
           observation_id: observationId, observation_text: 'observed', resolution_id: w.rng.id('res'),
           judgment_id: seal.judgment_id, return_contract_id: seal.return_contract_id,
-          resolution: { kind: 'answered', answer_summary: 'ok', evidence_refs: [observationId] },
+          resolution: { kind: 'answered', answer_summary: 'ok', evidence_refs: [observationId], ...PRESENT_STANDARD },
         }));
       const stream = w.stream(projectId);
       const resolutionId = (stream.find((e) => (e as { event?: string }).event === 'resolution_asserted') as { resolution_id: string }).resolution_id;
@@ -410,7 +416,7 @@ export const webScenarios: Scenario[] = [
           () => w.web.command(projectId, {
             kind: 'resolve', command_id: w.rng.id('cmd'), resolution_id: resolutionId,
             judgment_id: seal.judgment_id, return_contract_id: seal.return_contract_id,
-            resolution: { kind, reason: 'The metric pipeline was replaced mid-window.', evidence_refs: [] },
+            resolution: { kind, reason: 'The metric pipeline was replaced mid-window.', evidence_refs: [], ...PRESENT_STANDARD },
           }));
         await w.step({ scenario: 'W17', step: `close-${kind}`, surface: 'web', action: 'close', projectId }, { ok: true },
           () => w.web.command(projectId, { kind: 'close', command_id: w.rng.id('cmd'), judgment_id: seal.judgment_id, resolution_id: resolutionId }));
@@ -496,7 +502,7 @@ export const webScenarios: Scenario[] = [
           observation_id: w.rng.id('obs'), observation_text: 'observed',
           resolution_id: w.rng.id('res'), judgment_id: seal.judgment_id,
           return_contract_id: w.rng.id('wrong-contract'),
-          resolution: { kind: 'answered', answer_summary: 'ok', evidence_refs: [w.rng.id('obs-other')] },
+          resolution: { kind: 'answered', answer_summary: 'ok', evidence_refs: [w.rng.id('obs-other')], ...PRESENT_STANDARD },
         }));
       const kinds = w.stream(projectId).map((e) => (e as { event: string }).event);
       if (kinds.includes('observation_recorded')) throw new Error('half of an atomic batch was admitted');

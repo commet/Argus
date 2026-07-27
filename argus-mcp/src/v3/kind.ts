@@ -37,7 +37,7 @@ export interface DerivedDecisionKind {
 
 const COMMITMENT_PATTERNS = [
   /\b(i\s+(?:will|commit|promise|am going to)|we\s+will)\b/i,
-  /(?:하겠습니다|할게요|합니다|하기로\s*(?:했다|한다)|약속(?:한다|할게|하겠다)|(?:수락|거절|진행|실행|선택)하겠다|지키겠다|하지\s*않겠다)/u,
+  /(?:하겠습니다|할게요|하기로\s*(?:했다|한다|합니다)|약속(?:한다|할게|하겠다)|(?:수락|거절|진행|실행|선택|중단|유지)합니다|(?:수락|거절|진행|실행|선택)하겠다|지키겠다|하지\s*않겠다)/u,
 ];
 
 const DECLARATION_PATTERNS = [

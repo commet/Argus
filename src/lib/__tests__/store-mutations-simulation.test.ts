@@ -473,6 +473,43 @@ describe('useProjectStore mutations', () => {
     expect(project.refs[0].label).toBe('First'); // first one kept
   });
 
+  it('updateDecisionContract applies each append to the latest local contract', () => {
+    const projectId = useProjectStore.getState().createProject('Append-only return');
+    useProjectStore.getState().updateProject(projectId, {
+      decision_contract: {
+        id: 'contract-1',
+        project_id: projectId,
+        created_at: '2026-07-27T00:00:00.000Z',
+        predicates: [],
+      },
+    });
+    const append = (optionId: string, hour: string) => {
+      useProjectStore.getState().updateDecisionContract(projectId, (contract) => contract && ({
+        ...contract,
+        settlements: [
+          ...(contract.settlements ?? []),
+          {
+            option_id: optionId,
+            response_text: optionId,
+            recorded_at: `2026-07-27T${hour}:00:00.000Z`,
+            axes: { question: 'valid' },
+            present_standard: {
+              status: 'same',
+              response_text: 'I would keep the same standard.',
+              recorded_at: `2026-07-27T${hour}:00:00.000Z`,
+            },
+          },
+        ],
+      }));
+    };
+
+    append('first', '01');
+    append('second', '02');
+
+    expect(useProjectStore.getState().getProject(projectId)?.decision_contract?.settlements)
+      .toHaveLength(2);
+  });
+
   it('getProject — returns specific project by id', () => {
     const id1 = useProjectStore.getState().createProject('Project A');
     const id2 = useProjectStore.getState().createProject('Project B');
