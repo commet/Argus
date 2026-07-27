@@ -9,13 +9,14 @@ import { configPath } from '../../lib/layout.js';
 import { toolJsonSchema } from '../tool-types.js';
 
 describe('purpose-led public MCP surface', () => {
-  it('exposes seven user purposes while legacy tools remain callable aliases', () => {
+  it('exposes exactly six user purposes and rejects legacy aliases', () => {
     expect(PUBLIC_TOOLS.map((tool) => tool.name)).toEqual([
-      'argus_capture', 'argus_record', 'argus_predict', 'argus_check_in',
+      'argus_capture', 'argus_predict', 'argus_check_in',
       'argus_resolve', 'argus_patterns', 'argus_settings',
     ]);
-    expect(TOOL_MAP.has('argus_premises')).toBe(true);
-    expect(TOOL_MAP.has('argus_recheck')).toBe(true);
+    expect(TOOL_MAP.has('argus_record')).toBe(false);
+    expect(TOOL_MAP.has('argus_premises')).toBe(false);
+    expect(TOOL_MAP.has('argus_recheck')).toBe(false);
     expect(PUBLIC_TOOLS.some((tool) => tool.name === 'argus_premises')).toBe(false);
   });
 

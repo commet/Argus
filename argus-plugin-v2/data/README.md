@@ -1,68 +1,20 @@
-# Argus Plugin Data
+# Argus plugin data
 
-This directory is the **reference data** consumed by plugin skills at runtime. It is generated from the webapp's source of truth and should be regenerated when the webapp changes.
+Runtime contracts live here:
 
-## Files
+- `classification.yaml` defines the bounded review vocabulary and depth.
+- `boss-types.yaml` contains optional stakeholder tone presets.
+- `schemas/` contains persisted session artifact contracts.
+- `prompts/` contains reusable probe prompts.
 
-| File | Purpose | Source |
-|------|---------|--------|
-| `agents.yaml` | 17 agent profiles — identity, capabilities, frameworks, voice markers, worker-mode dialogues | `src/lib/agent-registry.ts`, `worker-personas.ts`, `agent-capabilities.ts`, `orchestrator-framework.ts` |
-| `boss-types.yaml` | 16 boss TONE skins (구 MBTI archetypes — voice only since O3 방3; the review's substance comes from the config boss seat) | `src/lib/boss/personality-types.ts` |
-| `classification.yaml` | Task/domain/output vocab + stakes rules | `src/lib/task-classifier.ts`, `orchestrator-classify.ts` |
-| `schemas/*.json` | JSON Schema contracts for plugin artifacts | `src/stores/types.ts` |
-| `schemas/verification-ledger.json` | Plugin-native positive/negative validation ledger | Plugin v2.1, aligned with webapp worker validation direction |
-| `schemas/current-bearing.json` | Compressed one-screen user-facing decision-voyage read | Plugin v2.1 current call contract |
+Reviewer roles are defined once in `../agents/`. The plugin intentionally does
+not mirror the web app’s historical persona roster. Standard judgment uses no
+reviewer; explicit deep review uses at most two specialists and, only for a
+critical or irreversible judgment, one risk pass.
 
-## Regenerate from webapp
-
-When `src/lib/agent-registry.ts` or related files change:
-
-```bash
-# From the monorepo root
-cd argus-plugin-v2
-# (Currently manual — port updates by diffing webapp source against yaml entries.)
-# Future: scripts/extract-from-webapp.ts will automate this.
-```
-
-The plugin holds **data copies**, not live references. Webapp can change independently; plugin stays frozen until regeneration.
-
-## What's INTENTIONALLY different from webapp
-
-1. **No experience/observation system** — agents don't level up in plugin MVP. `agents.yaml` has no `level` or `observations[]` fields.
-2. **No daily mood / Saju** — the boss tone layer uses the 16 presets only (and only as voice; R42). `boss-types.yaml` excludes `exampleDialogues` beyond one entry per type (space), and excludes `innerMonologueExample` entirely.
-3. **Worker-mode dialogues** — agents' `worker_mode_examples[]` are NEW (written for plugin). Webapp has critic-mode persona prompts; plugin dialogues show agents PRODUCING artifacts in their voice. This is the M9 differentiator.
-4. **Stakes classification at runtime** — plugin skills classify via LLM using `classification.yaml` as vocabulary reference, NOT via deterministic regex. Webapp uses regex + LLM hybrid.
-5. **FinalScaffold** — plugin emits decision scaffold, NOT the markdown `final_deliverable` webapp produces. `data/schemas/final-scaffold.json` is plugin-only.
-6. **VerificationLedger** — plugin has a first-class `the verify step (review)` artifact that splits team output into supported claims, challenged claims, unresolved tensions, and human-required checks before boss review. This is intentionally plugin-native because terminal users benefit from a compact pre-signoff quality gate more than a rich web UI.
-7. **CurrentBearing** — plugin hides the multi-agent machinery in the default `/argus:review` output. `current_bearing.json` is the one-screen read users actually consume; deeper artifacts remain available through `/argus:versions`.
-
-## What's EXACTLY mirrored from webapp
-
-1. Agent canonical IDs, persona_ids, framework_keys (`agent-registry.ts`).
-2. Capability profiles (`agent-capabilities.ts` — task_types/domains/output_types/anti_patterns).
-3. Framework priority per decision type (`orchestrator-framework.ts`).
-4. MBTI type structural fields (`personality-types.ts` — code/name/communicationStyle/feedbackStyle/triggers/speechPatterns/bossVibe/speechLevel).
-5. Version numbering algorithm (`version-numbering.ts` — ported to `lib/session/version-numbering.md`).
-6. Draft tree model (`stores/types.ts:Draft` + `useProgressiveStore.addDraft`).
-
-## Drift monitoring
-
-When regenerating, diff against:
-- `src/lib/agent-registry.ts:AGENT_REGISTRY` vs `agents.yaml` agent list
-- `src/lib/agent-capabilities.ts:AGENT_CAPABILITIES` vs each agent's `capabilities` block
-- `src/lib/boss/personality-types.ts:PERSONALITY_TYPES` vs `boss-types.yaml`
-
-If webapp adds a new agent, adds a capability type, or changes framework preferences, regenerate this data before the next plugin release.
-
-For v2.1+, also diff webapp worker validation concepts (`src/lib/worker-quality.ts`, `src/lib/guard-rails.ts`, `src/lib/progressive-convergence.ts`) against:
-- `schemas/verification-ledger.json`
-- `schemas/current-bearing.json`
-- `schemas/final-scaffold.json.properties.verification`
-- `skills/verify/SKILL.md`
-
-Before release, run:
+Before release:
 
 ```bash
 node ./argus-plugin-v2/scripts/validate-plugin.js
-node ./argus-plugin-v2/scripts/simulate-plugin.js
+node ./argus-plugin-v2/scripts/install-smoke.mjs
 ```

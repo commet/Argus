@@ -174,7 +174,7 @@ the earlier statement.
 
 ## An honest promise about your data
 
-- **Local first.** The ledger lives in `~/.argus` (MCP/plugin) and your browser
+- **Local first.** The ledger lives in the current project's `.argus` directory (MCP/plugin) and your browser
   (web). Uninstalling never deletes your records.
 - **No human score — structurally.** There is no scoring tool to call, and new
   foundation records reject score-shaped fields at the storage boundary.
@@ -200,7 +200,7 @@ Cursor, …). The fastest path, in Claude Code:
 claude mcp add argus "--" npx -y argus-decision-mcp
 ```
 
-Zero config works — your ledger lives in `~/.argus`. For the full config (Claude
+Zero config works — your ledger lives in the current project's `.argus`. For the full config (Claude
 Desktop, Windows, per-project ledgers, optional account sync) and the six tools,
 see **[argus-mcp/README.md](./argus-mcp/README.md)**.
 

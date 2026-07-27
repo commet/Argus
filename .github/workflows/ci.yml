@@ -90,22 +90,13 @@ jobs:
           cd argus-mcp
           UNREADABLE_SKIP_BUILD=1 node evals/unreadable-ledger.mjs
 
-      - name: Host conformance matrix (7 hosts x every ask)
-        run: |
-          cd argus-mcp
-          HOST_MATRIX_SKIP_BUILD=1 node evals/host-matrix.mjs
-
       # 상시 센서 (2026-07-27 창업자 지시 "eval을 꼼꼼하게 — 사고 나면 결국
       # 모델에게 시킬 텐데 센서가 없으면 못 찾는다"): 실서버를 stdio로 몰아
       # 모든 표면을 계약·스파인 검사로 훑는다. RED = 병합 차단.
-      - name: Self-drive journey loop (real server, 16 calls)
+      - name: Final MCP and plugin surface
         run: |
           cd argus-mcp
-          node evals/loop.mjs
-      - name: Content battery (46 scenarios / 85 calls, real server)
-        run: |
-          cd argus-mcp
-          BATTERY_SKIP_BUILD=1 node evals/battery.mjs
+          npm run verify
 
       - name: TypeScript
         run: npx tsc --noEmit

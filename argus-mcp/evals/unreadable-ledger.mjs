@@ -56,7 +56,7 @@ console.log('원장을 읽을 수 없을 때 — 침묵 대신 정직\n');
 
 // 1) a real sealed prediction on disk
 await session(async (call) => {
-  const r = await call('argus_seal', { id: 'q3', predicate: '컷오버 다운타임이 5분 미만이다', check_by: '2026-08-01', predicate_owner: 'user', today_override: '2026-07-20' });
+  const r = await call('argus_predict', { id: 'q3', predicate: '컷오버 다운타임이 5분 미만이다', check_by: '2026-08-01', predicate_owner: 'user', today_override: '2026-07-20' });
   check('준비: 예측이 실제로 저장됐다', r?.ok !== false, JSON.stringify(r).slice(0, 140));
 });
 
@@ -69,7 +69,7 @@ fs.mkdirSync(ledger);
 
 await session(async (call) => {
   // U1 — the write path must refuse, NOT re-seal onto a record it cannot see
-  const re = await call('argus_seal', { id: 'q3', predicate: '컷오버 다운타임이 5분 미만이다', check_by: '2026-09-01', predicate_owner: 'user', today_override: '2026-07-20' });
+  const re = await call('argus_predict', { id: 'q3', predicate: '컷오버 다운타임이 5분 미만이다', check_by: '2026-09-01', predicate_owner: 'user', today_override: '2026-07-20' });
   check('U1 못 읽는 원장 위에 두 번째 봉인을 거부한다', re?.ok === false, JSON.stringify(re).slice(0, 200));
   check('U1 거부 코드가 원인을 지목한다', re?.error_code === 'LEDGER_UNREADABLE', `code=${re?.error_code}`);
   // U2 — the refusal must be actionable and must not frighten the user about data
@@ -77,7 +77,7 @@ await session(async (call) => {
   check('U2 아무것도 잃지 않았음을 말한다', /lost|잃|intact|그대로/i.test(String(re?.recovery ?? '') + String(re?.message ?? '')), String(re?.recovery).slice(0, 140));
 
   // settle must refuse too — never NO_PRIOR_SEAL for a prediction on disk
-  const st = await call('argus_settle', { id: 'q3', outcome: 'held', outcome_source: 'user_stated', what_happened: '3분 만에 끝', today_override: '2026-08-02' });
+  const st = await call('argus_resolve', { id: 'q3', outcome: 'held', outcome_source: 'user_stated', what_happened: '3분 만에 끝', today_override: '2026-08-02' });
   check('U1 정산도 거부한다 (NO_PRIOR_SEAL로 오답하지 않는다)', st?.error_code === 'LEDGER_UNREADABLE', `code=${st?.error_code}`);
 
   // U3 — a READ may be empty, but it must not assert integrity it does not have
@@ -90,7 +90,7 @@ await session(async (call) => {
 fs.rmSync(ledger, { recursive: true, force: true });
 fs.writeFileSync(ledger, saved, 'utf8');
 await session(async (call) => {
-  const rc = await call('argus_recall', { view: 'contracts', today_override: '2026-08-02' });
+  const rc = await call('argus_patterns', { view: 'all', today_override: '2026-08-02' });
   const rows = rc?.data?.contracts ?? [];
   const q3 = rows.find((c) => c.id === 'q3');
   check('복구 후 원래 예측이 그대로 하나만 있다', rows.filter((c) => c.id === 'q3').length === 1, JSON.stringify(rows).slice(0, 160));

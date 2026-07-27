@@ -6,14 +6,15 @@ interface PackageMeta {
 }
 
 export function packageMeta(): PackageMeta {
-  try {
-    const raw = fs.readFileSync(new URL('../../package.json', import.meta.url), 'utf8');
-    const parsed = JSON.parse(raw) as Partial<PackageMeta>;
-    return {
-      name: parsed.name || 'argus-decision-mcp',
-      version: parsed.version || '0.0.0',
-    };
-  } catch {
-    return { name: 'argus-decision-mcp', version: '0.0.0' };
+  for (const relative of ['../package.json', '../../package.json']) {
+    try {
+      const parsed = JSON.parse(fs.readFileSync(new URL(relative, import.meta.url), 'utf8')) as Partial<PackageMeta>;
+      if (parsed.name === 'argus-decision-mcp' && parsed.version) {
+        return { name: parsed.name, version: parsed.version };
+      }
+    } catch {
+      // Try the source-tree or bundled-layout candidate.
+    }
   }
+  return { name: 'argus-decision-mcp', version: '0.0.0' };
 }

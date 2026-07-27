@@ -1,5 +1,14 @@
 # Changelog
 
+## 3.0.0
+
+- Replaced the historical 17-persona roster with four bounded reviewer roles.
+- Standard judgment now uses no agent team; deep review is explicit opt-in.
+- Deep review uses at most two specialists plus one risk pass for critical calls.
+- Reviewer models inherit the host model and every role has a turn limit.
+- Removed the duplicated roster data and obsolete build/rehearsal documents.
+- Pinned MCP 2.0.0 with project-scoped storage.
+
 All notable changes to the Argus plugin. Versioning follows
 [semver](https://semver.org); users receive an update only when the
 `version` in `.claude-plugin/plugin.json` is bumped.

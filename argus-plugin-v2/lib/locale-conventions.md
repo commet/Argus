@@ -25,7 +25,7 @@ All of these MUST switch on `config.locale`:
 
 NOT switched on locale (always stays same):
 - Field NAMES in JSON artifacts (`real_question`, `hidden_assumptions`, `first_reaction`, etc.)
-- Agent `id`s and canonical names in `data/agents.yaml`
+- Reviewer role ids and filenames in `agents/`
 - Tone-skin codes (구 MBTI — 16 presets, voice only since O3 방3)
 - Version labels (`v0.1`, `v1.0`, etc.)
 - File paths

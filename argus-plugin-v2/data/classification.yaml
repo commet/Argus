@@ -1,232 +1,42 @@
-# Classification Dimensions — LLM Runtime Reference
-#
-# Source: extracted from webapp's src/lib/task-classifier.ts + orchestrator-classify.ts
-# (2026-04-24).
-#
-# Purpose: Plugin skills (especially the team step (review)) classify user input at runtime
-# via LLM reasoning (option (b) from planning). This file provides the DIMENSIONS
-# and REFERENCE SIGNALS — not deterministic rules. The skill prompt points at
-# this file so the LLM knows the vocabulary it should produce.
-#
-# Plugin deliberately does NOT port the webapp's deterministic regex classifier.
-# Rationale: the plugin is already running inside Claude, so runtime LLM classification
-# is both natural and avoids maintaining a divergent rule engine.
-
-version: 1
-
-# ═══════════════════ Task Types ═══════════════════
-# Each task gets ONE primary taskType + optional secondaryType.
-
-task_types:
-  research:
-    description: "Gather facts, data, cases. Does not take a position."
-    signals: [조사, 리서치, 벤치마크, 사례, 수집, 탐색, 현황, research, benchmark, survey, gather, explore]
-    artifact_patterns: ["3 competitor list", "trend summary", "case collection"]
-
-  analysis:
-    description: "Find patterns, diagnose, extract insight from gathered data."
-    signals: [분석, 파악, 진단, 평가, 인사이트, analy, assess, diagnose, insight, deep dive]
-    artifact_patterns: ["root cause", "pattern breakdown", "diagnosis"]
-
-  synthesis:
-    description: "Combine multiple inputs into a coherent whole. Draws conclusion."
-    signals: [종합, 요약, 정리, 통합, 결론, synthesis, summary, consolidate, conclusion]
-    artifact_patterns: ["executive summary", "integrated view", "final draft"]
-
-  strategy:
-    description: "Set direction, position, differentiate. Takes a stance."
-    signals: [전략, 방향, 포지셔닝, 차별화, 비전, GTM, strategy, positioning, differentiation]
-    artifact_patterns: ["positioning statement", "go-to-market plan", "strategic recommendation"]
-
-  calculation:
-    description: "Quantitative modeling, estimation, ROI/unit economics."
-    signals: [계산, 산출, 추정, 모델링, ROI, BEP, TAM, calculate, estimate, forecast, model]
-    artifact_patterns: ["financial model", "ROI calc", "scenario numbers"]
-
-  writing:
-    description: "Independent creative prose — copy, memo, deck."
-    signals: [작성, 문서, 카피, 기획안, 보고서, 슬라이드, write, document, copy, memo, slide]
-    artifact_patterns: ["landing copy", "deck", "memo", "PR description"]
-
-  critique:
-    description: "Find risks, weaknesses, failure modes. Red-team stance."
-    signals: [리스크, 위험, 반론, 약점, 검증, 취약, risk, critique, weakness, failure, pushback]
-    artifact_patterns: ["risk list", "failure scenarios", "hidden assumptions"]
-
-  design:
-    description: "User experience, interface, prototype — human-system boundary."
-    signals: [UX, UI, 설계, 프로토, 사용성, 인터페이스, design, prototype, usability, wireframe]
-    artifact_patterns: ["user journey", "wireframe annotation", "UX review"]
-
-  legal_review:
-    description: "Compliance, regulation, contract, privacy."
-    signals: [법률, 규제, 계약, 특허, 라이선스, 컴플라이언스, 개인정보, legal, compliance, contract, privacy]
-    artifact_patterns: ["compliance checklist", "legal risk matrix", "contract summary"]
-
-  planning:
-    description: "Execution — who, when, dependencies, milestones."
-    signals: [일정, 타임라인, 마일스톤, 리소스, 우선순위, 스프린트, timeline, milestone, schedule, priority]
-    artifact_patterns: ["execution plan", "RACI", "sprint breakdown"]
-
-# ═══════════════════ Context Domains ═══════════════════
-# The subject matter of the task. ONE primary domain.
-
-domains:
-  market:
-    description: "External — competitors, customers, trends, share."
-    signals: [시장, 경쟁, 고객, 소비자, 트렌드, market, competitor, customer, trend]
-
-  finance:
-    description: "Money — cost, revenue, investment, cash flow, valuation."
-    signals: [재무, 비용, 매출, 수익, 투자, 현금흐름, finance, cost, revenue, cash flow, valuation]
-
-  tech:
-    description: "Engineering — architecture, stack, implementation, infra."
-    signals: [기술, 아키텍처, 구현, 인프라, 스택, API, tech, architecture, stack, infrastructure, engineer]
-
-  legal:
-    description: "Law — regulation, contract, privacy, IP."
-    signals: [법률, 규제, 계약, 특허, 개인정보, legal, regulation, contract, privacy, patent]
-
-  ux:
-    description: "Human-system — interface, user flow, usability."
-    signals: [UX, UI, 사용자, 경험, 인터페이스, 프로토타입, user, experience, interface, usability]
-
-  ops:
-    description: "Running — process, hiring, org, workflow."
-    signals: [운영, 프로세스, 인력, 채용, 조직, 효율, 자동화, operation, process, hiring, org, workflow]
-
-  product:
-    description: "What we build — features, roadmap, launch."
-    signals: [제품, 기능, 서비스, 출시, 로드맵, 피처, product, feature, roadmap, MVP, launch, release]
-
-  brand:
-    description: "Message out — marketing, PR, communication."
-    signals: [브랜드, 마케팅, 홍보, 캠페인, 메시지, brand, marketing, campaign, messaging, PR]
-
-# ═══════════════════ Output Types ═══════════════════
-# The FORM the artifact should take.
-
-output_types:
-  report:
-    description: "Structured findings — research/analysis result."
-    signals: [보고서, 리포트, 조사 결과, 분석 결과, report, findings, analysis result]
-
-  document:
-    description: "Free-form prose — proposal, memo, spec, deck."
-    signals: [기획안, 제안서, 기획서, 문서, 메모, 슬라이드, proposal, document, memo, slide, deck]
-
-  numbers:
-    description: "Quantitative — table, model, spreadsheet, metrics."
-    signals: [수치, 모델, 표, 스프레드시트, 재무, spreadsheet, financial model, metrics, numbers]
-
-  checklist:
-    description: "Actionable list — action items, todos, check."
-    signals: [체크리스트, 액션, TODO, 할 일, 점검, checklist, action item, to-do]
-
-  risk_assessment:
-    description: "Structured risk/failure analysis."
-    signals: [리스크, 위험, 실패, 시나리오, 대응, risk, failure, scenario, mitigation]
-
-  comparison:
-    description: "Matrix, ranking, benchmark table."
-    signals: [비교, 매트릭스, 대조, 벤치마크, 순위, comparison, matrix, benchmark, ranking]
-
-  plan:
-    description: "Time-structured execution — schedule, roadmap, milestones."
-    signals: [계획, 일정, 로드맵, 타임라인, 마일스톤, plan, schedule, roadmap, timeline, milestone]
-
-# ═══════════════════ Stakes ═══════════════════
-# Determines agent count limit + pipeline depth.
+# Bounded deep-review routing. Standard Argus does not use reviewers.
 
 stakes:
   routine:
-    description: "Reversible, low-impact. Experiment, prototype, side-project."
-    agent_count_max: 2
-    pipeline: single_stage  # All agents parallel, no critic gate
-    signals_from_signals: [experiment]
+    description: "Low-impact and easily reversible."
+    reviewer_count_max: 1
+    roles: [domain-reviewer]
 
   important:
-    description: "Meaningful but reversible. Standard business decision."
-    agent_count_max: 3
-    pipeline: single_stage
-    signals_from_signals: [important, unknown_stakes]
-    default: true  # If signals absent, assume important
-    mandates: [adversarial_check]  # Even at single_stage, the strongest recommendation must be challenged once (see runtime rule 2). 'important' is the DEFAULT stakes, so without this most decisions would get zero adversarial review — defeating the anti-sycophancy claim.
+    description: "Meaningful but reversible."
+    reviewer_count_max: 2
+    roles: [domain-reviewer, evidence-reviewer]
+    note: "Use evidence-reviewer only when factual claims are load-bearing."
 
   critical:
-    description: "Irreversible or high-impact. Cannot redo cheaply."
-    agent_count_max: 4
-    pipeline: two_stage  # Domain experts → critic review
-    signals_from_signals: [irreversible]
-    mandates: [critic_review]  # donghyuk must be included
-
-# ═══════════════════ Decision Types ═══════════════════
-# From InterviewSignals.nature — shapes framework choice.
+    description: "High-impact, irreversible, or expensive to undo."
+    reviewer_count_max: 3
+    roles: [domain-reviewer, evidence-reviewer, risk-reviewer]
+    mandates: [risk-review]
 
 decision_types:
   known_path:
-    description: "Clear how to proceed. Execution question."
-    framework_bias: [Decision Log, RACI, Comparison Matrix]
-
+    description: "The path is known; inspect execution constraints."
   needs_analysis:
-    description: "Problem defined but solution space unclear."
-    framework_bias: [MECE, Pyramid Principle, Opportunity Solution Tree]
-
+    description: "The problem is defined but the solution is uncertain."
   no_answer:
-    description: "Problem itself is ambiguous. Exploration mode."
-    framework_bias: [Wardley, Real Options, Cynefin, HILP]
-
+    description: "The problem or evidence is still ambiguous."
   on_fire:
-    description: "Urgent, high-stress, time-pressured."
-    framework_bias: [Pre-mortem, Kill Criteria, Break-even, SCQA]
-
-# ═══════════════════ Runtime Classification Instructions ═══════════════════
-# Embedded into the team step (review) skill prompt.
+    description: "Urgent and time-constrained."
 
 runtime_instructions: |
-  When classifying a user task, produce the following JSON:
-  {
-    "stakes": "routine" | "important" | "critical",
-    "stakes_confidence": 0-100,
-    "stakes_user_confirmed": true | false,
-    "decision_type": "known_path" | "needs_analysis" | "no_answer" | "on_fire",
-    "steps": [
-      {
-        "task": "<task description>",
-        "output": "<expected deliverable>",
-        "primary_task_type": "<from task_types>",
-        "secondary_task_type": "<optional>",
-        "context_domain": "<from domains>",
-        "output_type": "<from output_types>",
-        "agent_hint": "<optional agentId suggestion, see agents.yaml>"
-      }
-    ]
-  }
+  Classify stakes as routine, important, or critical.
+  Default to important when unclear. Use critical only for a credible
+  irreversible or high-impact consequence.
 
-  Rules:
-  1. Stakes default to 'important' if unclear. Only 'critical' when irreversible
-     (legal commitment, public announcement, major spend). 'routine' when explicitly
-     experimental.
-  2. Adversarial review is mandatory unless stakes is 'routine':
-     - 'critical' → plan a dedicated final step with task_type='critique' (donghyuk),
-       within the 4-agent budget. This is a full second stage.
-     - 'important' (the default) → the strongest recommendation MUST be challenged once.
-       If the 3-agent plan already contains a critique/risk step, that satisfies it;
-       otherwise make the last step task_type='critique' (donghyuk) within the 3-agent
-       budget. A lightweight single pass, not a full debate — but never zero.
-     - 'routine' → no mandated critique (single_stage parallel is fine).
-  3. Pick primary_task_type by matching the task's intent to signals — NOT by
-     surface keyword count. "write a PR description" is writing; "summarize 3
-     research docs" is synthesis (it's consolidating other work), not writing.
-  4. agent_hint is optional. When you add it, it's a soft signal — the skill
-     will still score via capabilities to verify match.
-  5. stakes_confidence rules:
-     - If upstream sail Step 6b already user-confirmed the stakes → set 100 and
-       stakes_user_confirmed=true.
-     - If your classification matches clarify's snapshot.stakes_guess → average
-       confidences (yours + clarify's).
-     - If your classification DIVERGES from clarify's → confidence MUST be <=70.
-       Divergence is itself a low-confidence signal; surface it.
-     The threshold sail uses to trigger AskUserQuestion is <75, so this naturally
-     forces disagreements between clarify and team to be resolved by the user.
+  Keep the plan bounded:
+  - routine: domain-reviewer only;
+  - important: domain-reviewer plus evidence-reviewer only when needed;
+  - critical: the same specialists plus one risk-reviewer pass.
+
+  Never create a debate, vote, persona council, or recursive review.
+  Preserve uncertainty and human-required checks in the final synthesis.

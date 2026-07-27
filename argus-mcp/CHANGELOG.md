@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.0.0
+
+- Reduced the public and callable MCP surface to six purpose-led tools.
+- Removed legacy callable aliases and the experimental `argus_record` surface.
+- Made zero-config storage project-scoped and removed cross-project discovery.
+- Compressed initialize instructions and tool schemas under enforced byte budgets.
+- Bundled the published runtime into one entrypoint and hardened internal errors.
+
 > Published on npm as **`argus-decision-mcp`**. The package was renamed from
 > `argus-mcp` (that name was already taken by an unrelated tool) and its version
 > **reset to 1.0.0** for the first release under the new name on **2026-07-03**.

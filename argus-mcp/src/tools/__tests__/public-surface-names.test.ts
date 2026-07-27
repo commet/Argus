@@ -47,8 +47,13 @@ describe('호스트-대면 표면에 내부 이름 누수 없음', () => {
   it('공개 표면은 정확히 목적별 7개 이름이다 (내부와 분리)', () => {
     expect([...PUBLIC].sort()).toEqual([
       'argus_capture', 'argus_check_in', 'argus_patterns',
-      'argus_predict', 'argus_record', 'argus_resolve', 'argus_settings',
+      'argus_predict', 'argus_resolve', 'argus_settings',
     ]);
+  });
+
+  it('keeps the full MCP harness within a deterministic context budget', () => {
+    expect(Buffer.byteLength(JSON.stringify(servedPublicTools()), 'utf8')).toBeLessThanOrEqual(16_000);
+    expect(Buffer.byteLength(SERVER_INSTRUCTIONS, 'utf8')).toBeLessThanOrEqual(2_000);
   });
 
   it('종결 도구는 웹과 같은 닫는 고리 닻 아이콘을 광고한다', () => {

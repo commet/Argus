@@ -25,14 +25,14 @@ describe('resolveToolArgusDir — the ergonomic argus_dir resolution', () => {
 
   it('defaults to ~/.argus when neither is available (첫 설치의 문, §9.4)', () => {
     delete process.env.ARGUS_DIR;
-    expect(resolveToolArgusDir(undefined)).toBe(path.join(os.homedir(), '.argus'));
+    expect(resolveToolArgusDir(undefined)).toBe(path.join(process.cwd(), '.argus'));
   });
 
   it('M0 exit fixture: a zero-config FIRST TOOL CALL succeeds into ~/.argus', async () => {
     delete process.env.ARGUS_DIR;
     // fake home so the test never touches the real user profile
-    const fakeHome = fs.mkdtempSync(path.join(os.tmpdir(), 'argus-home-'));
-    const spy = vi.spyOn(os, 'homedir').mockReturnValue(fakeHome);
+    const fakeHome = fs.mkdtempSync(path.join(os.tmpdir(), 'argus-project-'));
+    const spy = vi.spyOn(process, 'cwd').mockReturnValue(fakeHome);
     try {
       const res = body(await init.handler({}));
       expect(res['ok']).toBe(true);
@@ -53,7 +53,7 @@ describe('resolveToolArgusDir — the ergonomic argus_dir resolution', () => {
       } catch (e) {
         expect(e).toBeInstanceOf(ArgusDirError);
         expect((e as Error).message).toContain('did not expand');
-        expect((e as Error).message).toContain('~/.argus');
+        expect((e as Error).message).toContain('absolute project .argus path');
       }
     }
   });

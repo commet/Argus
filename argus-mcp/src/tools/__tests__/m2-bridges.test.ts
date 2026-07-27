@@ -160,13 +160,10 @@ describe('M2 · fleet — 두 프로젝트의 due가 한 check_in에', () => {
       await seal.handler({ argus_dir: dirA, id: 'a1', predicate: 'project A prediction comes true', check_by: '2026-07-01', predicate_owner: 'user', today_override: '2026-06-01' });
       await seal.handler({ argus_dir: dirB, id: 'b1', predicate: 'project B prediction comes true', check_by: '2026-07-01', predicate_owner: 'user', today_override: '2026-06-01' });
 
-      const res = body(await checkIn.handler({ argus_dir: dirA, fleet: true, today_override: D1 }));
+      const res = body(await checkIn.handler({ argus_dir: dirA, today_override: D1 }));
       expect((res['data'] as Record<string, unknown>)['due_count']).toBe(1); // A's own
-      const fleet = (res['data'] as Record<string, unknown>)['fleet'] as Array<Record<string, unknown>>;
-      expect(fleet).toHaveLength(1); // B (A itself excluded)
-      expect(fleet[0]['argus_dir']).toBe(dirB);
-      expect(fleet[0]['due_count']).toBe(1);
-      expect(String(res['surface'])).toContain('1'); // fleet line names the count
+      expect((res['data'] as Record<string, unknown>)['fleet']).toBeUndefined();
+      expect(JSON.stringify(res)).not.toContain(dirB);
     } finally {
       spy.mockRestore();
     }
