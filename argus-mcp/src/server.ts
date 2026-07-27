@@ -10,6 +10,7 @@ import { PUBLIC_TOOLS, TOOL_MAP, servedPublicTools } from './tools/index.js';
 import { listResources, listResourceTemplates, readResource } from './resources.js';
 import { SERVER_INSTRUCTIONS } from './lib/spine.js';
 import { setElicitor } from './lib/elicit.js';
+import { setAppsCapability, withUiMeta, UI_EXTENSION_ID } from './lib/apps-ui.js';
 import { initAmbientElicit, armAmbientElicit } from './lib/ambient-elicit.js';
 import { settle } from './tools/settle.js';
 import { appendDueNote } from './lib/due-note.js';
@@ -65,6 +66,13 @@ export async function createServer(): Promise<Server> {
     (message, requestedSchema) => ec.elicitInput({ message, requestedSchema }),
     () => Boolean(ec.getClientCapabilities?.()?.elicitation),
   );
+  // MCP Apps (SEP-1865): same declared-capability pattern. Hosts that announce
+  // the io.modelcontextprotocol/ui extension get the settle CARD (tool _meta.ui
+  // + awaiting_picker path); everyone else keeps the elicitation/text flow.
+  setAppsCapability(() => {
+    const caps = ec.getClientCapabilities?.() as { extensions?: Record<string, unknown> } | undefined;
+    return Boolean(caps?.extensions?.[UI_EXTENSION_ID]);
+  });
 
   // Resources — read-only context (blueprint §4.3).
   server.setRequestHandler(ListResourcesRequestSchema, async () => listResources());
@@ -77,7 +85,7 @@ export async function createServer(): Promise<Server> {
 
   // Single source (tools/index.ts): builds the descriptors AND runs schemas
   // through publicCopy so a legacy tool name in a field description can't leak.
-  server.setRequestHandler(ListToolsRequestSchema, async () => ({ tools: servedPublicTools() }));
+  server.setRequestHandler(ListToolsRequestSchema, async () => ({ tools: withUiMeta(servedPublicTools()) }));
 
   // Serialize tool calls so concurrent invocations can't interleave a
   // read-replay-then-append against the same ledger (real hosts already wait

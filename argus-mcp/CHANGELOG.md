@@ -6,6 +6,34 @@
 > The `1.3.0` / `1.2.1` entries at the bottom are pre-rename `argus-mcp` history,
 > kept for reference — all of that work shipped inside the new-name 1.0.0.
 
+## 1.15.0 — The settle card (MCP Apps)
+
+The settlement picker becomes a real interactive CARD inside the chat on
+hosts that support MCP Apps (SEP-1865, official in Claude since
+2026-01-26): the prediction as the hero line, five reality buttons, a
+what-happened field in the user's words, a real date control for "not
+yet", and the anchor ⚓ only after the loop ties. One click IS the settle.
+
+- `ui://argus/settle-picker` resource (self-contained HTML, default
+  restrictive CSP — no external origins), `argus_resolve` carries
+  `_meta.ui.resourceUri`, and settle returns an `awaiting_picker` state
+  the card fills by calling `tools/call` back into the server.
+- Capability-gated end to end: hosts that never declared the
+  `io.modelcontextprotocol/ui` extension keep today's elicitation/text
+  flow byte-identical (guarded by `apps-ui.test.ts`).
+- Honest limit: protocol + fallback are machine-verified; the card's
+  look on a live apps host awaits founder eyes.
+
+## 1.14.1 — The logbook stops rhyming
+
+Founder read the wake box and called it flat: three groups that all
+scanned alike. Each group now has its own face — `!` past check-by
+(with the resolve handle), `~` at sea, `⚓` anchored (the settled group
+IS a collection of tied loops, so the anchor belongs on its header) —
+and an anchored row LEADS with the outcome word, so a waiting row reads
+like a question and an anchored row reads like an answer. The em-dash
+copy gate caught the first draft of these labels; interpuncts now.
+
 ## 1.14.0 — A week, not a quarter + the guru probe
 
 - **No-horizon predictions default to ONE WEEK out** (founder call: a short
