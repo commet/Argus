@@ -11,7 +11,8 @@ import {
   MAX_ACTIVE_PREMISES, MAX_LOAD_BEARING,
   type PremiseState,
 } from '../lib/premises.js';
-import { elicit, canElicit } from '../lib/elicit.js';
+import { elicitDetailed, canElicit } from '../lib/elicit.js';
+import { noAnswerResult } from '../lib/picker-fallback.js';
 import { resolveResponseLocale } from '../lib/surfaces.js';
 import { envelope, toolError } from '../lib/envelope.js';
 import { ENVELOPE_OUTPUT_SCHEMA, zArgusDir, zId, zDate, type ToolModule } from './tool-types.js';
@@ -220,6 +221,10 @@ async function opAdd(
   // the invariant). Reword typed in the form → the user's words, user_stated,
   // with the draft preserved as ai_original. Skip / declined / no elicitation
   // → the friction escape stays: nothing forced, no dead end.
+  // Set when the confirm window closed with no answer while the SAME call also
+  // carried the user's own premises: those record, and the surface has to admit
+  // the draft went unanswered instead of silently shrinking the list.
+  let noAnswerDraft = '';
   {
     const aiDrafts = inputs.filter((p) => normalizePremiseSource(p.source) === 'ai_surfaced');
     if (aiDrafts.length === 1 && canElicit()) {
@@ -229,7 +234,7 @@ async function opAdd(
       // (provenance ai_surfaced intact), Accept + reword → the user's words
       // (user_stated, draft kept as ai_original), Decline → skip. One keystroke
       // to keep — no required enum to expand.
-      const picked = await elicit(
+      const asked = await elicitDetailed(
         dLocale === 'ko'
           ? `이 결정이 딛고 선 전제로 기록할까요?\n"${draft.text}"\n\n그대로면 Accept · 고치려면 아래 칸에 쓰고 Accept · 기록 안 하려면 Decline.`
           : `Record this as a premise the decision rests on?\n"${draft.text}"\n\nAccept to keep · to reword, type it below and Accept · Decline to skip.`,
@@ -240,18 +245,49 @@ async function opAdd(
           },
         } },
       );
-      if (!picked) {
-        // Decline / cancel → drop ONLY the draft; the user's own premises in the
+      // A window that never answered is not a decline (audit 2026-07-27). The
+      // draft is dropped either way — we will not record a premise the user
+      // never approved — but the SURFACE must not say "not recorded" as though
+      // they refused, and the sentence must be handed back so one word in chat
+      // finishes it. When the same call also carries the user's OWN premises,
+      // those still record; only the unapproved draft falls away.
+      if (asked.kind === 'no_answer') {
+        inputs.splice(inputs.indexOf(draft), 1);
+        if (inputs.length === 0) {
+          return noAnswerResult({
+            tool: 'argus_premises', ko: dLocale === 'ko',
+            handBack: {
+              ko: `"그거 맞아" 한마디면 이 전제를 그대로 남깁니다: "${draft.text}".`,
+              en: `Say "yes, that one" and I'll record this premise as is: "${draft.text}".`,
+            },
+            next_actions: ['argus_capture', 'stop'],
+            data: { id, premise_draft: draft.text, retry_hint: 'once the user confirms in chat, call argus_capture again with this premise and source:"ai_surfaced" + ai_original' },
+          });
+        }
+        noAnswerDraft = draft.text;
+      } else if (asked.kind === 'declined') {
+        // A real decline → drop ONLY the draft; the user's own premises in the
         // same call still record below.
         inputs.splice(inputs.indexOf(draft), 1);
         if (inputs.length === 0) {
           return envelope({ ok: true, tool: 'argus_premises', surface: dLocale === 'ko' ? '기록하지 않았습니다.' : 'Not recorded.', next_actions: ['stop'], data: { recorded: false, choice: 'declined' } });
         }
       } else {
+        // accepted, or `unsupported` (elicitor unwired between the capability
+        // probe and the ask) — both keep the draft with its ai_surfaced tag.
+        const picked = asked.kind === 'accepted' ? asked.content : {};
         const wording = typeof picked['reword'] === 'string' ? (picked['reword'] as string).trim() : '';
         if (wording) {
           if (wording.length < 4 || wording.length > 400) {
-            return envelope({ ok: true, tool: 'argus_premises', surface: dLocale === 'ko' ? '그럼 그 전제를 원하는 문장으로 알려주세요 (4~400자). 그 말 그대로 기록하겠습니다.' : 'Then tell me the premise in your own words (4–400 chars) and I will record exactly that.', next_actions: ['argus_capture'], data: { recorded: false, choice: 'reword' } });
+            // Hand their sentence back (audit 2026-07-27). Asking a user to
+            // retype a 500-character premise from memory is how a correction
+            // gets abandoned; the words are in our hands right here.
+            return envelope({
+              ok: true, tool: 'argus_premises',
+              surface: dLocale === 'ko' ? '그럼 그 전제를 원하는 문장으로 알려주세요 (4~400자). 그 말 그대로 기록하겠습니다.' : 'Then tell me the premise in your own words (4–400 chars) and I will record exactly that.',
+              next_actions: ['argus_capture'],
+              data: { recorded: false, choice: 'reword', user_input: { reword: wording }, retry_hint: 'data.user_input.reword is what the user typed; offer it back trimmed to 4-400 chars rather than asking them to write it again' },
+            });
           }
           draft.ai_original = draft.ai_original ?? draft.text;
           draft.text = wording;
@@ -384,11 +420,17 @@ async function opAdd(
               ? `전제 ${events.length}건을 기록했습니다 (${refRange}). 틀린 것이 있으면 말해 주세요. 바로잡은 내용도 기록에 남습니다.${monitoredNote}`
               : `${events.length} premises recorded (${refRange}). Fix anything wrong with argus_capture; your correction stays on the record too.${monitoredNote}`));
 
+  const noAnswerNote = noAnswerDraft
+    ? (ko
+        ? ` 확인 창이 답을 받지 못해 이 한 줄은 빼두었습니다: "${oneLine(noAnswerDraft)}". 맞으면 말씀만 하세요.`
+        : ` The confirm window gave no answer, so this one was left out: "${oneLine(noAnswerDraft)}". Say the word if it belongs.`)
+    : '';
+
   return envelope({
     ok: true, tool: 'argus_premises',
-    surface,
+    surface: surface + noAnswerNote,
     next_actions: ['argus_predict', 'argus_patterns', 'leave_as_is'],
-    data: { id, premises: echo, skipped_duplicates: skippedDup, ...(dupRetired.length ? { skipped_retired: dupRetired } : {}), ledger_events_written: events.map(() => 'premise_add') },
+    data: { id, premises: echo, skipped_duplicates: skippedDup, ...(dupRetired.length ? { skipped_retired: dupRetired } : {}), ...(noAnswerDraft ? { unanswered_draft: noAnswerDraft } : {}), ledger_events_written: events.map(() => 'premise_add') },
   });
 }
 
@@ -489,7 +531,7 @@ async function opResolve(
     // Localize like the rest of the tool — a Korean user closing their own
     // Korean question used to get an English form. Voice follows the question.
     const qLocale = resolveResponseLocale(dir, premise.text);
-    const got = await elicit(
+    const got = await elicitDetailed(
       qLocale === 'ko'
         ? `이 결정에 남겨둔 질문입니다: "${premise.text}". 지금은 어떻게 판단하시나요? 당신의 말로 적어주세요. (그대로 열어둬도 됩니다.)`
         : `Your open question on this decision: "${premise.text}". What is your call now, in your own words? (You can also leave it open.)`,
@@ -497,10 +539,31 @@ async function opResolve(
       // 되묻는다. "아직 못 정했다"도 유효한 답이므로 폼이 막아선 안 된다.
       { type: 'object', properties: { decision: { type: 'string', description: qLocale === 'ko' ? '당신의 판단, 당신의 표현. (아직이면 비워두고 Accept)' : 'Your call, your words. (Leave blank and Accept if still undecided.)' } } },
     );
-    decision = typeof got?.['decision'] === 'string' ? (got['decision'] as string).trim() : '';
+    // This is the one ask where a broken window is most expensive: the user may
+    // have typed a full paragraph of their own reasoning and we cannot get it
+    // back. Say so plainly instead of reporting RESOLVE_NEEDS_DECISION, which
+    // reads as "the user gave no call" about someone who did (audit 2026-07-27).
+    if (got.kind === 'no_answer') {
+      return noAnswerResult({
+        tool: 'argus_premises', ko: qLocale === 'ko',
+        handBack: {
+          ko: `판단을 한 줄로 말씀해주시면 그 말 그대로 닫습니다: "${premise.text}". 아직이면 그대로 열어두면 됩니다.`,
+          en: `Say your call in one line and I'll close it in exactly those words: "${premise.text}". If you're not there yet, leaving it open is fine.`,
+        },
+        next_actions: ['argus_patterns', 'leave_as_is'],
+        data: { id, ref: `P${premise.ordinal}`, premise_id: premise.premise_id, question: premise.text, retry_hint: 'ask the user for their call in chat, then call argus_premises op="resolve" with `decision` set to their words' },
+      });
+    }
+    const content = got.kind === 'accepted' ? got.content : null;
+    decision = typeof content?.['decision'] === 'string' ? (content['decision'] as string).trim() : '';
   }
   if (!decision) {
-    return toolError({ ok: false, tool: 'argus_premises', error_code: 'RESOLVE_NEEDS_DECISION', message: 'An open question closes only in the user\'s own words.', recovery: 'Ask the user for their call and pass it as `decision` — never draft it for them. "Still undecided" is a valid answer: then leave it open (no call needed).' });
+    return toolError({
+      ok: false, tool: 'argus_premises', error_code: 'RESOLVE_NEEDS_DECISION',
+      message: 'An open question closes only in the user\'s own words.',
+      recovery: 'Ask the user for their call and pass it as `decision` — never draft it for them. "Still undecided" is a valid answer: then leave it open (no call needed).',
+      data: { id, ref: `P${premise.ordinal}`, question: premise.text },
+    });
   }
 
   await appendLedger(dir, [{ id, event: 'premise_resolve', premise_id: premise.premise_id, decision }], now);

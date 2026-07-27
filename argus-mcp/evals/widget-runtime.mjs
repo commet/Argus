@@ -226,6 +226,43 @@ async function freshCard(scriptSrc) {
   }
 }
 
+
+{ // W9 — a host that never sends ui/notifications/tool-input
+  //
+  // The spec does not oblige a host to send it, and the card used to read the
+  // ledger path from THERE alone. With no argus_dir the server falls back to
+  // ~/.argus, so on a machine with more than one project the user's click could
+  // land on a different record than the one on screen (audit 2026-07-28). The
+  // dir now travels with the tool RESULT, beside the predicate being rendered.
+  const s2 = makeSandbox();
+  vm.createContext(s2.sandbox);
+  new vm.Script(src, { filename: 'settle-card.js' }).runInContext(s2.sandbox);
+  const d2 = (m) => s2.listeners.forEach((fn) => fn({ data: m }));
+  const ir = [...s2.posted].reverse().find((m) => m.method === 'ui/initialize');
+  if (ir) d2({ jsonrpc: '2.0', id: ir.id, result: { hostContext: { theme: 'dark' } } });
+  // NOTE: no tool-input notification at all — this is the whole point.
+  d2({ jsonrpc: '2.0', method: 'ui/notifications/tool-result', params: { structuredContent: { ok: true, data: {
+    status: 'awaiting_picker', id: 'demo', predicate: '테스트 예측', check_by: '2026-07-20', days_overdue: 3, locale: 'ko',
+    argus_dir: 'D:/projects/beta/.argus',
+  } } } });
+  const n2 = () => flat(s2.byId.stage);
+  const held3 = n2().find((n) => n.tagName === 'button' && n.textContent.startsWith('예측대로'));
+  check('W9 tool-input 없이도 카드가 렌더된다', Boolean(held3), s2.byId.stage.textContent.slice(0, 120));
+  if (held3) {
+    held3.click();
+    const ta = flat(s2.byId.stage).find((n) => n.tagName === 'textarea');
+    if (ta) ta.value = '그렇게 됐다';
+    const commit = flat(s2.byId.stage).filter((n) => n.tagName === 'button').find((n) => /기록하기/.test(n.textContent));
+    if (commit) {
+      commit.click();
+      const m = [...s2.posted].reverse().find((x) => x.method === 'tools/call');
+      const args = m?.params?.arguments ?? {};
+      check('W9 tool-input이 없어도 올바른 원장을 겨냥한다', args.argus_dir === 'D:/projects/beta/.argus', JSON.stringify(args).slice(0, 160));
+      check('W9 결정 id도 잃지 않는다', args.id === 'demo', JSON.stringify(args).slice(0, 160));
+    }
+  }
+}
+
 console.log(failures === 0
   ? '\n✅ 정산 카드가 실제로 실행되고, 모든 사용자 제스처가 서버에 정확히 닿는다.'
   : `\n❌ ${failures}건 — 카드가 사용자 손에서 이렇게 깨진다.`);

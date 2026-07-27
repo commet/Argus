@@ -40,6 +40,13 @@ const KO_ERRORS: Record<string, ErrorCopy> = {
     message: '기록 파일은 있는데 읽을 수 없었습니다. 아무것도 쓰지 않았습니다. 이미 있는 기록을 덮어쓸 수 있어서 멈췄습니다.',
     recovery: '.argus/ledger/ledger.jsonl 의 권한을 확인하고(폴더가 아니라 파일이 맞는지도), 그 파일을 잡고 있는 다른 프로그램이 있으면 닫은 뒤 다시 시도하세요. 잃은 것은 없습니다. 기록은 디스크에 그대로 있습니다.',
   },
+  // 만료된 연결을 "연결 안 됨"이라 말하지 않는다 (적대 감사 2026-07-27). 이 상태의
+  // 사용자는 그동안 계정에 아무것도 안 올라갔다는 사실을 방금 처음 듣는다 —
+  // 그러니 "여기 기록은 멀쩡하다"를 같은 호흡에 붙인다.
+  CONNECTION_EXPIRED: {
+    message: '이 터미널의 계정 연결이 만료됐습니다. 그동안의 저장·정산이 계정에 닿지 않았습니다.',
+    recovery: 'argus_settings action="connect"로 다시 연결하세요. 로컬에서 잃은 것은 없습니다. 모든 결정은 여기 기록에 그대로 있고, 다시 연결한 뒤 argus_settings action="sync"를 돌리면 밀린 것들이 올라갑니다.',
+  },
   NO_PRIOR_SEAL: { message: '이 id로 저장된 예측이 없습니다.', recovery: 'argus_predict로 나중에 확인할 수 있는 예측과 확인일을 먼저 저장하세요. (id가 argus_settings sync에서 온 "mcp_" 접두사라면 접두사를 뗀 id를 쓰세요.)' },
   BAD_CHECK_BY: { message: '확인일이 오늘 이후의 실제 달력 날짜(YYYY-MM-DD)가 아닙니다 (예: 2026-13-01처럼 없는 달·날짜는 불가).', recovery: '오늘 이후의 올바른 날짜를 YYYY-MM-DD로 다시 전달하세요.' },
   ILLEGAL_TRANSITION: { message: '이 결정에 지금은 할 수 없는 작업입니다 (id 오타이거나, 이미 저장·정산·종료된 상태일 수 있습니다).', recovery: 'argus_patterns view="all"로 id와 현재 상태를 확인하세요. 없는 id면 argus_capture 또는 argus_predict로 새로 시작하세요.' },

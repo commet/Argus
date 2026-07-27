@@ -16,7 +16,7 @@
  *     ARGUS_API_URL  optional, defaults to https://argus.voyage
  */
 
-import { resolveAccountApiUrl, resolveAccountToken } from '../a0/account-credentials.js';
+import { resolveAccountApiUrl, resolveAccountToken, accountCredentialStatus } from '../a0/account-credentials.js';
 
 export interface SealPush {
   action: 'seal';
@@ -119,7 +119,7 @@ function resolveApiBase(): string | null {
 /** Pull the account's receipts (the sync's read side). No token ⇒ empty. */
 export async function fetchAccountReceipts(): Promise<PullResult> {
   const token = resolveAccountToken();
-  if (!token || !token.startsWith('argus_pat_')) return { ok: false, reason: 'no_token', receipts: [] };
+  if (!token || !token.startsWith('argus_pat_')) return { ok: false, reason: noTokenReason(), receipts: [] };
   const base = resolveApiBase();
   if (!base) return { ok: false, reason: 'insecure_api_url', receipts: [] };
   const controller = new AbortController();
@@ -139,9 +139,21 @@ export async function fetchAccountReceipts(): Promise<PullResult> {
   }
 }
 
+/** '' from resolveAccountToken has two meanings; name the one that is a problem. */
+function noTokenReason(): 'no_token' | 'credential_expired' | 'credential_unreadable' {
+  const st = accountCredentialStatus();
+  if (st === 'expired') return 'credential_expired';
+  if (st === 'malformed') return 'credential_unreadable';
+  return 'no_token';
+}
+
 export async function pushToAccount(payload: AccountPush): Promise<PushResult> {
   const token = resolveAccountToken();
-  if (!token) return { synced: false, reason: 'no_token' }; // local-only (default)
+  // An EXPIRED connection is not "not connected" (audit 2026-07-27). Reporting
+  // it as no_token kept every sync line silent, so a user whose credential ran
+  // out watched their seals stop reaching the account with nothing on any
+  // screen saying so. Silence is only honest for a never-connected install.
+  if (!token) return { synced: false, reason: noTokenReason() }; // local-only (default)
   if (!token.startsWith('argus_pat_')) return { synced: false, reason: 'bad_token_format' };
 
   const base = resolveApiBase();

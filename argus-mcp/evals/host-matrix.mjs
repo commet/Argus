@@ -22,12 +22,17 @@
  *   hostile-cancel   elicitation, then cancels every ask (timeout / ESC / quirk)
  *   hostile-empty    elicitation, accepts with {} every time (one-tap yes)
  *   hostile-garbage  elicitation, accepts with junk fields the schema never asked for
+ *   long-typer       elicitation, types a long answer into every free-text field
+ *   hostile-error    declares elicitation at initialize, then rejects every ask
+ *   text-only        types into the free-text box and leaves the enum alone
  *
  * THE INVARIANTS (each one is a founder-visible promise):
  *   I1 NO DEAD END      — every ask ends with the work saved, or a surface that
  *                         tells the user how to save it. Never "not recorded"
  *                         with no way forward.
- *   I2 NO LOST WORK     — a picker that fails must not read as "the user said no".
+ *   I2 NO LOST WORK     — a picker that fails must not read as "the user said no",
+ *                         and a refusal that lands AFTER the user typed must hand
+ *                         their words back instead of making them write it twice.
  *   I3 NO FORM BLOCKING — no elicit schema may carry a constraint a validating
  *                         host enforces (required / format / enum-on-free-text),
  *                         because the blank a one-tap Accept leaves must pass.
@@ -114,6 +119,24 @@ const PROFILES = {
     return { action: 'accept', content };
   } },
   'hostile-garbage': { elicit: true,  apps: false, answer: () => ({ action: 'accept', content: { __junk: 1, reword: null, outcome: 'NOT_AN_ENUM' } }), strict: false },
+  // Declares `elicitation` at initialize and then REJECTS every elicitation/create.
+  // Real hosts do this (a capability advertised ahead of the implementation), and
+  // it is the one shape where the user never sees anything at all — so nothing may
+  // be recorded as "the user said no", and the out-of-band ask must not burn its
+  // cooldown on a question that was never shown.
+  'hostile-error':   { elicit: true,  apps: false, strict: false, throws: true },
+  // The MOST LIKELY real gesture, and no profile modelled it until 2026-07-28:
+  // the user types into the free-text box and leaves the enum alone. Hosts render
+  // a non-required enum collapsed behind an expand key, so "write the sentence,
+  // press Accept" is the path of least resistance — and the one where the server
+  // has the user's words in hand and must not throw them away asking again.
+  'text-only':       { elicit: true,  apps: false, strict: true, answerFor: (schema) => {
+    const content = {};
+    for (const [k, spec] of Object.entries((schema && schema.properties) || {})) {
+      if (!spec?.enum && (spec?.type === 'string' || spec?.type === undefined)) content[k] = '실제로는 예상보다 2주 늦게, 그래도 목표치는 넘겼다';
+    }
+    return { action: 'accept', content };
+  } },
 };
 
 async function connect(name, profile, dir) {
@@ -128,6 +151,7 @@ async function connect(name, profile, dir) {
   const seen = [];
   if (profile.elicit) {
     client.setRequestHandler(ElicitRequestSchema, async (req) => {
+      if (profile.throws) throw new Error('elicitation declared but not implemented');
       const schema = req.params?.requestedSchema;
       const answer = profile.answerFor ? profile.answerFor(schema) : profile.answer();
       seen.push({ message: String(req.params?.message ?? ''), schema, answer });
@@ -164,6 +188,13 @@ function isDeadEnd(sc) {
   return !isDecline && !hasHandle && !tellsHow;
 }
 
+/** Profiles where the picker NEVER returns an answer (cancel, or a host that
+ *  rejects the request outright). Every ask must, on these, (a) mark the result
+ *  `choice:'no_answer'` rather than 'declined', and (b) hand back the material
+ *  the user would otherwise have to produce again from memory. This is the I2
+ *  invariant, and until 2026-07-28 it was asserted on exactly ONE of six asks. */
+const NO_ANSWER_HOSTS = new Set(['hostile-cancel', 'hostile-error']);
+
 async function runProfile(name) {
   const profile = PROFILES[name];
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), `argus-host-${name}-`));
@@ -198,6 +229,16 @@ async function runProfile(name) {
         ok(name, 'B3 one-tap Accept saves (I4)', sc?.data?.sealed !== false, `data=${JSON.stringify(sc?.data).slice(0, 160)}`);
         ok(name, 'B4 accepting a draft makes it the user\'s', sc?.data?.predicate_owner === 'user', `owner=${sc?.data?.predicate_owner}`);
       }
+      if (name === 'long-typer') {
+        // 520 characters into `reword` exceeds the 400-char predicate cap, so the
+        // seal is refused AFTER the user already typed. Until 2026-07-28 the only
+        // thing that reached the model was "too long" and the sentence was gone,
+        // so the model asked the user to write the whole thing again. It is in
+        // our hands at that moment; hand it back.
+        ok(name, 'B5 a post-Accept refusal returns the words the user typed (I2)',
+          typeof sc?.data?.user_input?.reword === 'string' && sc.data.user_input.reword.length > 400,
+          `code=${sc?.error_code} data=${JSON.stringify(sc?.data).slice(0, 160)}`);
+      }
       if (!profile.elicit) {
         // No picker here — the seal must proceed honestly, never silently drop.
         ok(name, 'B3 no-picker host still records (I4)', sc?.data?.sealed !== false && !isError, JSON.stringify(sc?.data).slice(0, 160));
@@ -217,11 +258,26 @@ async function runProfile(name) {
         // No picker: an honest refusal that names the missing input.
         ok(name, 'C2 honest OUTCOME_REQUIRED, not a silent drop (I4)', sc?.error_code === 'OUTCOME_REQUIRED', `code=${sc?.error_code}`);
         ok(name, 'C3 the refusal says how to proceed (I1)', /outcome|결과/i.test(String(sc?.recovery ?? sc?.message ?? '')), String(sc?.recovery).slice(0, 120));
+      } else if (name === 'text-only') {
+        // They wrote what happened and left the outcome alone. We may not infer
+        // the outcome (spine), so a refusal is right — but the refusal must carry
+        // their sentence, or the model asks them to type it a second time and
+        // they don't. `data` is the channel: `recovery` is rewritten per-locale.
+        ok(name, 'C2 refusal names the missing pick, not the missing words', sc?.error_code === 'OUTCOME_REQUIRED', `code=${sc?.error_code}`);
+        ok(name, 'C3 the sentence they typed comes back (I2)',
+          typeof sc?.data?.user_input?.what_happened === 'string' && sc.data.user_input.what_happened.includes('2주 늦게'),
+          JSON.stringify(sc?.data).slice(0, 200));
+        ok(name, 'C4 the model is told not to make them retype it (I2)',
+          /twice|다시 쓰|retype|already typed/i.test(String(sc?.data?.retry_hint ?? '')), String(sc?.data?.retry_hint).slice(0, 160));
       } else {
         // Elicitation host answering with a blank / cancel: must not claim a record.
         const claimed = /기록했|recorded/i.test(String(sc?.surface ?? '')) && !sc?.data?.outcome;
         ok(name, 'C2 never claims a record it did not write (I4)', !claimed, String(sc?.surface).slice(0, 140));
         ok(name, 'C3 no dead end (I1)', !isDeadEnd(sc), `surface="${String(sc?.surface).slice(0, 120)}"`);
+        if (NO_ANSWER_HOSTS.has(name)) {
+          ok(name, 'C4 settle picker: a non-answer is not a decline (I2)', sc?.data?.choice === 'no_answer', `choice=${sc?.data?.choice} code=${sc?.error_code}`);
+          ok(name, 'C5 settle picker hands the prediction back (I2)', typeof sc?.data?.predicate === 'string' && sc.data.predicate.includes('ROAS'), JSON.stringify(sc?.data).slice(0, 160));
+        }
       }
     }
 
@@ -240,6 +296,16 @@ async function runProfile(name) {
       const { sc, isError } = await call('argus_premises', { id: 'pq', op: 'resolve', ref: 'P1', today_override: '2026-07-20' });
       ok(name, 'E1 no unhandled throw (I5)', sc?.error_code !== 'INTERNAL_ERROR', JSON.stringify(sc).slice(0, 200));
       ok(name, 'E2 no dead end (I1)', !isDeadEnd(sc), `surface="${String(sc?.surface).slice(0, 120)}"`);
+      if (NO_ANSWER_HOSTS.has(name)) {
+        // The costliest broken window: the user may have typed a paragraph of
+        // their own reasoning into it, and it is gone. Say so, and repeat their
+        // question so one line in chat finishes the job.
+        ok(name, 'E1b open-question ask: non-answer is not a decline (I2)', sc?.data?.choice === 'no_answer', `choice=${sc?.data?.choice} code=${sc?.error_code}`);
+        ok(name, 'E1c the question itself comes back (I2)', typeof sc?.data?.question === 'string' && sc.data.question.includes('엔터프라이즈'), JSON.stringify(sc?.data).slice(0, 160));
+      }
+      // Whatever happened, the open question must still be OPEN and answerable.
+      const { sc: after } = await call('argus_patterns', { view: 'decision_context', id: 'pq', today_override: '2026-07-20' });
+      ok(name, 'E1d an unanswered ask never closes the question (I4)', JSON.stringify(after?.data ?? {}).includes('엔터프라이즈'), JSON.stringify(after?.data).slice(0, 200));
     }
 
     // ── E2. the DEFER ask (still_pending) — its own picker, its own dead end ─
@@ -249,9 +315,33 @@ async function runProfile(name) {
       ok(name, 'E2-1 no unhandled throw (I5)', sc?.error_code !== 'INTERNAL_ERROR', JSON.stringify(sc).slice(0, 200));
       const deferred = typeof sc?.data?.deferred_to === 'string';
       const honestRefusal = sc?.ok === false && typeof sc?.recovery === 'string' && sc.recovery.length > 0;
-      // Either it got a new date, or it said plainly that it needs one. Never both-nor.
-      ok(name, 'E2-2 defer either lands a date or asks honestly (I1)', deferred || honestRefusal, `deferred_to=${sc?.data?.deferred_to} code=${sc?.error_code}`);
+      // The third honest branch (added 2026-07-28 with the no_answer split): the
+      // window never answered. That is NOT a refusal to pick, so it must not be
+      // dressed as one — but it still owes the user the old date and a way on.
+      // Deliberately NOT a free pass: it only counts when the surface names the
+      // unchanged check-by, which E2-6 below then verifies against the LEDGER.
+      const honestNoAnswer = sc?.data?.choice === 'no_answer'
+        && sc?.data?.deferred === false
+        && String(sc?.surface ?? '').includes('2026-07-10');
+      // Either it got a new date, or it said plainly that it needs one, or it
+      // admitted the window gave nothing. Never both-nor.
+      ok(name, 'E2-2 defer either lands a date or asks honestly (I1)', deferred || honestRefusal || honestNoAnswer, `deferred_to=${sc?.data?.deferred_to} code=${sc?.error_code} choice=${sc?.data?.choice}`);
       ok(name, 'E2-3 a deferred item is never reported as settled (I4)', !sc?.data?.outcome || sc.data.outcome === 'still_pending', `outcome=${sc?.data?.outcome}`);
+      if (NO_ANSWER_HOSTS.has(name)) {
+        ok(name, 'E2-4 defer picker: a non-answer is not a refusal to pick (I2)', sc?.data?.choice === 'no_answer', `choice=${sc?.data?.choice} code=${sc?.error_code}`);
+        ok(name, 'E2-5 the old check-by is named so nothing silently moved (I4)', sc?.data?.check_by === '2026-07-10', `check_by=${sc?.data?.check_by}`);
+      }
+      // E2-6 — the claim above is checked against the LEDGER, not the prose.
+      // A surface that says "the date is unchanged" while a defer event landed
+      // would be the goalpost move the state machine exists to prevent, and the
+      // three branches above are all satisfiable by a lying surface alone.
+      {
+        const { sc: r } = await call('argus_recall', { view: 'contracts', today_override: '2026-07-15' });
+        const row = (r?.data?.contracts ?? []).find((c) => c.id === 'defer');
+        const expected = typeof sc?.data?.deferred_to === 'string' ? sc.data.deferred_to : '2026-07-10';
+        ok(name, 'E2-6 the ledger agrees with what the surface claimed (I4)', row?.check_by === expected, `ledger=${row?.check_by} claimed=${expected}`);
+        ok(name, 'E2-7 an unanswered defer never terminally settles (I4)', row?.status !== 'settled', `status=${row?.status}`);
+      }
     }
 
     // ── E3. the PREMISE confirm — an ai_surfaced draft the user must approve ─
@@ -263,6 +353,15 @@ async function runProfile(name) {
       });
       ok(name, 'E3-1 no unhandled throw (I5)', sc?.error_code !== 'INTERNAL_ERROR', JSON.stringify(sc).slice(0, 200));
       ok(name, 'E3-2 no dead end (I1)', !isDeadEnd(sc), `surface="${String(sc?.surface).slice(0, 120)}"`);
+      if (NO_ANSWER_HOSTS.has(name)) {
+        ok(name, 'E3-1b premise confirm: non-answer is not a decline (I2)', sc?.data?.choice === 'no_answer', `choice=${sc?.data?.choice}`);
+        ok(name, 'E3-1c the drafted premise comes back (I2)', typeof sc?.data?.premise_draft === 'string' && sc.data.premise_draft.includes('환율'), JSON.stringify(sc?.data).slice(0, 160));
+      }
+      if (name === 'long-typer') {
+        ok(name, 'E3-1d the premise reword refusal returns the typed words too (I2)',
+          typeof sc?.data?.user_input?.reword === 'string' && sc.data.user_input.reword.length > 400,
+          `data=${JSON.stringify(sc?.data).slice(0, 160)}`);
+      }
       // I4 — an AI draft the user merely approved must NOT become "the user's words".
       const { sc: view } = await call('argus_recall', { view: 'premises', id: 'pdraft', today_override: T0 });
       const p = (view?.data?.premises ?? []).find((x) => String(x.text).includes('환율'));

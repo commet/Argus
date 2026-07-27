@@ -90,10 +90,20 @@ jobs:
           cd argus-mcp
           UNREADABLE_SKIP_BUILD=1 node evals/unreadable-ledger.mjs
 
-      - name: Host conformance matrix (7 hosts x every ask)
+      - name: Host conformance matrix (9 hosts x every ask)
         run: |
           cd argus-mcp
           HOST_MATRIX_SKIP_BUILD=1 node evals/host-matrix.mjs
+
+      # 밖에서 뜨는 물음(out-of-band elicitation)은 사용자가 부르지 않은 유일한
+      # 표면인데 2026-07-28까지 어떤 eval도 몰지 않았다 — 단위 테스트는 스텁
+      # elicitor로 게이트 로직만 봤고, 실제 MCP 연결로 무엇이 도착하는지는
+      # 아무도 본 적이 없다. 침묵해야 할 때 침묵하는지, 답을 받으면 진짜로
+      # 기록하는지, 그 결과가 사용자에게 돌아가는지를 실서버로 확인한다.
+      - name: Out-of-band ask (real server, 8 promises)
+        run: |
+          cd argus-mcp
+          AMBIENT_SKIP_BUILD=1 node evals/ambient-picker.mjs
 
       # 상시 센서 (2026-07-27 창업자 지시 "eval을 꼼꼼하게 — 사고 나면 결국
       # 모델에게 시킬 텐데 센서가 없으면 못 찾는다"): 실서버를 stdio로 몰아
@@ -102,7 +112,7 @@ jobs:
         run: |
           cd argus-mcp
           node evals/loop.mjs
-      - name: Content battery (46 scenarios / 85 calls, real server)
+      - name: Content battery (47 scenarios / 92 calls, real server)
         run: |
           cd argus-mcp
           BATTERY_SKIP_BUILD=1 node evals/battery.mjs

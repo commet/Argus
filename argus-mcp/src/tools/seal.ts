@@ -16,11 +16,12 @@ import { renderSeal } from '../lib/render-receipt.js';
 import { resolveResponseLocale, SURFACES, humanizeSyncReason } from '../lib/surfaces.js';
 import { accountPushId } from '../lib/install-id.js';
 import { premiseSyncEnabled } from '../lib/premise-sync.js';
-import { elicit, elicitDetailed, canElicit } from '../lib/elicit.js';
+import { elicitDetailed, canElicit } from '../lib/elicit.js';
 import { SCHEMA_VERSION } from '../lib/spine.js';
 import { writeReturnCalendarEvent } from '../lib/calendar.js';
 import { z } from 'zod';
 import { envelope, toolError } from '../lib/envelope.js';
+import { noAnswerResult } from '../lib/picker-fallback.js';
 import { ENVELOPE_OUTPUT_SCHEMA, zArgusDir, zId, zDate, type ToolModule } from './tool-types.js';
 import { handleToolException } from './errors.js';
 
@@ -131,13 +132,14 @@ export const seal: ToolModule = {
         // we cannot see from here — must NOT eat the user's work behind a polite
         // "not recorded". Name it and hand back the plain-text path, once.
         if (asked.kind === 'no_answer') {
-          return envelope({
-            ok: true, tool: 'argus_seal',
-            surface: locale === 'ko'
-              ? `확인 창이 답을 받지 못했습니다 (호스트 문제일 수 있습니다). 아직 기록하지 않았습니다. "저장해줘" 한마디면 이대로 남깁니다: "${predicate}" (확인일 ${checkBy}).`
-              : `The confirm dialog closed without an answer (possibly a host issue). Nothing is recorded yet — say "save it" and I'll keep this as is: "${predicate}" (check-by ${checkBy}).`,
+          return noAnswerResult({
+            tool: 'argus_seal', ko: locale === 'ko',
+            handBack: {
+              ko: `"저장해줘" 한마디면 이대로 남깁니다: "${predicate}" (확인일 ${checkBy}).`,
+              en: `Say "save it" and I'll keep this as is: "${predicate}" (check-by ${checkBy}).`,
+            },
             next_actions: ['argus_predict', 'stop'],
-            data: { sealed: false, choice: 'no_answer', predicate, check_by: checkBy, retry_hint: 'call argus_predict again with predicate_owner:"user" and no confirm_draft once the user says yes in chat' },
+            data: { sealed: false, predicate, check_by: checkBy, retry_hint: 'call argus_predict again with predicate_owner:"user" and no confirm_draft once the user says yes in chat' },
           });
         }
         const picked = asked.kind === 'accepted' ? asked.content : null;
@@ -152,13 +154,29 @@ export const seal: ToolModule = {
         const cbEdit = typeof picked['check_by'] === 'string' ? (picked['check_by'] as string).trim() : '';
         if (rw) predicate = rw;
         if (cbEdit) checkBy = cbEdit;
+        // A refusal AFTER the user typed must hand their words back (audit
+        // 2026-07-27). Without `data.user_input` the only thing reaching the
+        // model is "too long", so it asks the user to retype a paragraph they
+        // already wrote — and they don't. We are holding the text; return it.
         if (rw && rw.length > 400) {
-          return toolError({ ok: false, tool: 'argus_seal', error_code: 'SEAL_INVALID', message: locale === 'ko' ? '다시 쓴 예측이 너무 깁니다 (최대 400자).' : 'The reworded prediction is too long (max 400 chars).', recovery: locale === 'ko' ? '예측 문장을 400자 이내로 다시 알려주세요.' : 'Give the prediction again within 400 characters.' });
+          return toolError({
+            ok: false, tool: 'argus_seal', error_code: 'SEAL_INVALID',
+            message: locale === 'ko' ? '다시 쓴 예측이 너무 깁니다 (최대 400자).' : 'The reworded prediction is too long (max 400 chars).',
+            recovery: locale === 'ko' ? '아래 data.user_input.reword가 사용자가 방금 쓴 문장입니다. 처음부터 다시 쓰게 하지 말고, 그 문장을 400자로 줄여 사용자에게 확인받은 뒤 다시 부르세요.' : "data.user_input.reword below is what the user just typed. Do not make them start over: offer it trimmed to 400 chars, confirm with them, then call again.",
+            // Also in `data`, because localize-result rewrites `recovery` from a
+            // static per-locale map — the sentence telling the model to reuse
+            // their words does not survive the language switch. `data` does.
+            data: { sealed: false, user_input: { reword: rw, ...(cbEdit ? { check_by: cbEdit } : {}) }, retry_hint: 'data.user_input.reword is what the user just typed; offer it back trimmed to 400 chars rather than asking them to write it again' },
+          });
         }
         if (rw || cbEdit) {
           const rErr = validateSeal(predicate, checkBy, today);
           if (rErr) {
-            return toolError({ ok: false, tool: 'argus_seal', error_code: rErr.code, message: rErr.message, recovery: rErr.recovery });
+            return toolError({
+              ok: false, tool: 'argus_seal', error_code: rErr.code, message: rErr.message,
+              recovery: rErr.recovery,
+              data: { sealed: false, user_input: { ...(rw ? { reword: rw } : {}), ...(cbEdit ? { check_by: cbEdit } : {}) } },
+            });
           }
         }
         // Accept (blank or edited) = the user affirmed it → it is theirs now.

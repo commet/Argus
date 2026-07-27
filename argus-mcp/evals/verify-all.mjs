@@ -42,8 +42,15 @@ function run(label, cmd, opts = {}) {
 function selfTest(label, file, mutate, gateCmd) {
   const full = path.join(ROOT, file);
   const original = fs.readFileSync(full, 'utf8');
-  const broken = mutate(original);
-  if (broken === original) {
+  // Match against LF regardless of what the working copy holds. On Windows a
+  // tool that rewrites a file lands CRLF, every multi-line mutation string
+  // stops matching, and three self-tests reported "could not plant" (2026-07-28)
+  // — the honest outcome, but it means a line ending can disarm the only check
+  // that proves a gate still bites. Restore writes the ORIGINAL bytes back, so
+  // this normalisation never becomes a stealth edit of the user's file.
+  const lf = original.replace(/\r\n/g, '\n');
+  const broken = mutate(lf);
+  if (broken === lf) {
     failed++;
     rows.push({ label, ok: false, ms: 0, note: '회귀를 심지 못했다 — 자기검증 자체가 무효' });
     return;
@@ -69,9 +76,10 @@ run('빌드', 'npm run build');
 run('타입 검사', 'npm run typecheck');
 run('단위·프로토콜 테스트', 'npx vitest run', { extract: (o) => (o.match(/Tests\s+(\d+ passed[^\n]*)/) || [])[1] ?? '' });
 run('실서버 여정 루프', 'node evals/loop.mjs', { extract: (o) => (o.match(/(\d+ calls · \d+ RED[^\n]*)/) || [])[1] ?? '' });
-run('내용 배터리 (46 시나리오)', 'node evals/battery.mjs', { env: { ...process.env, BATTERY_SKIP_BUILD: '1' }, extract: (o) => (o.match(/(\d+ calls · \d+ RED[^\n]*)/) || [])[1] ?? '' });
-run('호스트 전수 대조 (7 호스트)', 'node evals/host-matrix.mjs', { env: { ...process.env, HOST_MATRIX_SKIP_BUILD: '1' }, extract: (o) => (o.match(/(\d+ checks · \d+ violation[^\n]*)/) || [])[1] ?? '' });
+run('내용 배터리 (47 시나리오)', 'node evals/battery.mjs', { env: { ...process.env, BATTERY_SKIP_BUILD: '1' }, extract: (o) => (o.match(/(\d+ calls · \d+ RED[^\n]*)/) || [])[1] ?? '' });
+run('호스트 전수 대조 (9 호스트)', 'node evals/host-matrix.mjs', { env: { ...process.env, HOST_MATRIX_SKIP_BUILD: '1' }, extract: (o) => (o.match(/(\d+ checks · \d+ violation[^\n]*)/) || [])[1] ?? '' });
 run('정산 카드 실행 (VM 호스트)', 'node evals/widget-runtime.mjs', { extract: (o) => `${(o.match(/ok  /g) || []).length} gestures ok` });
+run('밖에서 뜨는 물음 (실서버)', 'node evals/ambient-picker.mjs', { env: { ...process.env, AMBIENT_SKIP_BUILD: '1' }, extract: (o) => (o.match(/(\d+ checks · \d+ violation[^\n]*)/) || [])[1] ?? '' });
 run('원장 못 읽을 때 쓰기 차단', 'node evals/unreadable-ledger.mjs', { env: { ...process.env, UNREADABLE_SKIP_BUILD: '1' }, extract: (o) => (o.includes('✅') ? '이중 봉인 차단 확인' : '') });
 run('픽커 E2E (엄격 호스트)', `node evals/e2e-picker.mjs node "${path.join(ROOT, 'dist', 'index.js')}"`, { extract: (o) => (o.match(/(E2E: [^\n]*)/) || [])[1] ?? '' });
 run('픽커 왕복 (설치본 타르볼)', 'node -e "0"'); // placeholder kept honest below
@@ -110,7 +118,50 @@ selfTest(
 selfTest(
   '자기검증 ② 작업 유실 회귀를 잡는가',
   'src/lib/elicit.ts',
-  (s) => s.replace("    return { kind: 'no_answer' }; // 'cancel'", "    return { kind: 'declined' }; // 'cancel'"),
+  (s) => s.replace("    return { kind: 'no_answer', reason: 'cancelled' };", "    return { kind: 'declined' };"),
+  'node evals/host-matrix.mjs',
+);
+// ── 2026-07-28 감사에서 고친 것들. 각각 "되돌리면 빨간불이 켜지는가"로만 신뢰한다.
+selfTest(
+  '자기검증 ⑥ 정산 픽커 유실 회귀를 잡는가',
+  'src/tools/settle.ts',
+  (s) => s.replace("        if (asked.kind === 'no_answer') {\n          return noAnswerResult({\n            tool: 'argus_settle',", "        if (false) {\n          return noAnswerResult({\n            tool: 'argus_settle',"),
+  'node evals/host-matrix.mjs',
+);
+selfTest(
+  '자기검증 ⑦ 스파인 문구 위조 회귀를 잡는가',
+  'src/lib/untrusted.ts',
+  (s) => s.replace('.replace(SPINE_BRAND, SPINE_BRAND_ESCAPED)', ''),
+  'node evals/battery.mjs',
+);
+selfTest(
+  '자기검증 ⑧ 카드가 엉뚱한 원장을 겨냥하는 회귀를 잡는가',
+  'src/lib/apps-ui-html.ts',
+  (s) => s.replace('var dir = state.argus_dir || inputArgs.argus_dir;', 'var dir = inputArgs.argus_dir;'),
+  'node evals/widget-runtime.mjs',
+);
+selfTest(
+  '자기검증 ⑨ 밖에서 받은 답이 조용히 사라지는 회귀를 잡는가',
+  'src/server.ts',
+  (s) => s.replace('attachAmbientNote(result, dirForNote)', 'result'),
+  'node evals/ambient-picker.mjs',
+);
+selfTest(
+  '자기검증 ⑩ 못 본 물음이 쿨다운을 먹는 회귀를 잡는가',
+  'src/lib/ambient-elicit.ts',
+  (s) => s.replace("    if (asked && (asked.kind === 'unsupported' || (asked.kind === 'no_answer' && asked.reason === 'failed'))) {", '    if (false) {'),
+  'node evals/ambient-picker.mjs',
+);
+selfTest(
+  '자기검증 ⑪ 사용자가 쓴 말을 버리는 회귀를 잡는가',
+  'src/tools/seal.ts',
+  (s) => s.replace(/\n +data: \{ sealed: false, user_input: \{ reword: rw[^\n]*\n/, '\n'),
+  'node evals/host-matrix.mjs',
+);
+selfTest(
+  '자기검증 ⑫ 적어둔 서술을 되돌려주지 않는 회귀를 잡는가',
+  'src/tools/settle.ts',
+  (s) => s.replace('user_input: { what_happened: typed },', ''),
   'node evals/host-matrix.mjs',
 );
 
@@ -124,5 +175,6 @@ if (failed) {
   console.log(`\n❌ ${failed}개 게이트 실패 — 위 줄의 note를 보세요. 이 상태로는 배포 금지.`);
   process.exit(1);
 }
-console.log('\n✅ 전 게이트 통과 + 다섯 개의 심은 회귀를 게이트가 실제로 잡음.');
+const planted = rows.filter((r) => r.label.startsWith('자기검증')).length;
+console.log(`\n✅ 전 게이트 통과 + 심은 회귀 ${planted}개를 게이트가 실제로 잡음.`);
 console.log('   (초록불이 "고장을 못 잡는 초록불"이 아님을 같은 실행 안에서 증명했습니다.)');

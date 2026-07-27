@@ -26,6 +26,20 @@ export interface ArgusErrorData {
   message: string;            // written so the model can recover
   recovery_action?: NextAction;
   recovery?: string;
+  /**
+   * What the user already gave us, handed back (audit 2026-07-27).
+   *
+   * A refusal that lands AFTER the user typed into a picker used to drop their
+   * words on the floor: seal rejects a 500-character reword, premises rejects a
+   * 2-character one, and the only thing that reaches the model is "too long" —
+   * so the model asks the user to type it all again, and the user quite
+   * reasonably does not. The text was in our hands and we threw it away.
+   *
+   * Anything a refusal echoes here is the USER's own input, never a model draft,
+   * so relaying it forges no authorship. `data` is already declared on the
+   * envelope output schema, so hosts that validate error results still pass.
+   */
+  data?: Record<string, unknown>;
 }
 
 export interface McpToolResult {

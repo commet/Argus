@@ -11,7 +11,7 @@ import { listResources, listResourceTemplates, readResource } from './resources.
 import { SERVER_INSTRUCTIONS } from './lib/spine.js';
 import { setElicitor } from './lib/elicit.js';
 import { setAppsCapability, withUiMeta, UI_EXTENSION_ID } from './lib/apps-ui.js';
-import { initAmbientElicit, armAmbientElicit } from './lib/ambient-elicit.js';
+import { initAmbientElicit, armAmbientElicit, attachAmbientNote } from './lib/ambient-elicit.js';
 import { settle } from './tools/settle.js';
 import { appendDueNote } from './lib/due-note.js';
 import { logError } from './lib/log.js';
@@ -195,7 +195,11 @@ export async function createServer(): Promise<Server> {
       // session goes quiet; a check_in call spends the budget instead (the user
       // just saw their dues). Never throws, never taxes this call.
       armAmbientElicit(name, callArgs);
-      return appendDueNote(name, callArgs, result);
+      // 밖에서 물어본 답의 결말을 한 줄로 돌려준 뒤 due 꼬리를 붙인다 (순서:
+      // 확인이 먼저 — 사용자가 방금 한 행동의 결과가 due 안내보다 앞선다).
+      let dirForNote: string | null = null;
+      try { dirForNote = resolveToolArgusDir(callArgs['argus_dir']); } catch { /* unbound — no note */ }
+      return appendDueNote(name, callArgs, attachAmbientNote(result, dirForNote));
     } catch (e) {
       recordToolCall(name, false);
       // Last-resort guard — individual handlers already map their own errors.

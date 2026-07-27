@@ -4,6 +4,19 @@ All notable changes to the Argus plugin. Versioning follows
 [semver](https://semver.org); users receive an update only when the
 `version` in `.claude-plugin/plugin.json` is bumped.
 
+## 2.21.4 — 2026-07-28
+
+- Wire moves to `argus-decision-mcp@1.15.3` — the rest of the adversarial
+  audit. Five more pickers stop reporting a broken window as "the user said
+  no" and hand your words back; a refusal that lands after you typed returns
+  what you wrote instead of asking you to write it again; the out-of-band ask
+  tells you what happened to the answer you gave it; an expired account
+  connection says so instead of going quiet; and recorded text can no longer
+  counterfeit the AI VERDICT line.
+- Two new merge-blocking gates ride along: the out-of-band ask is now driven
+  against the real server (it had none), and the settle card is checked
+  against a host that never sends `tool-input`.
+
 ## 2.21.3 — 2026-07-28
 
 - Wire moves to `argus-decision-mcp@1.15.2` — three live defects found by
