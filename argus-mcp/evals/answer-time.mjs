@@ -119,11 +119,21 @@ for (const [id, ev, kind, label] of [
   ok(`${id} ${label} 기록 시각이 호출 시점에 머물지 않는다`,
     lag > -(THINK_MS - SLACK_MS),
     `대기 ${THINK_MS}ms 인데 기록이 답변보다 ${Math.round(-lag)}ms 앞섭니다`);
-  // A3 — only the intra-day time was wrong; the logical date must not move.
+  // A3 — only the intra-day time was wrong; the LOGICAL date must not move.
+  //
+  // Compare against the LOCAL day, not the UTC day. The server stamps the
+  // tz-aware logical date on purpose (a Korean user sealing at 01:00 KST is
+  // sealing today, not yesterday), so a gate that converts the answer instant
+  // to UTC disagrees with it for nine hours out of every twenty-four. This
+  // fired for the first time at 01:20 KST — the product was right and the gate
+  // was wrong, which is worth more than the assertion it replaced.
+  const localDay = (ms) => {
+    const d = new Date(ms);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  };
   ok(`A3 ${label} 날짜는 물었던 그날 그대로다`,
-    ev.ts.slice(0, 10) === new Date(replied).toISOString().slice(0, 10)
-      || ev.ts.slice(0, 10) === new Date(replied - 86400000).toISOString().slice(0, 10),
-    `${ev.ts.slice(0, 10)} vs ${new Date(replied).toISOString().slice(0, 10)}`);
+    ev.ts.slice(0, 10) === localDay(replied) || ev.ts.slice(0, 10) === localDay(replied - 86400000),
+    `${ev.ts.slice(0, 10)} vs 로컬 ${localDay(replied)}`);
 }
 
 fs.rmSync(dir, { recursive: true, force: true });

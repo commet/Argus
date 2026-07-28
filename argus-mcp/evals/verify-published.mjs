@@ -38,6 +38,11 @@ const BUNDLE_MARKERS = [
   ['10분 타임아웃이 담겨 있다 (2.0.4)', 'DECISION_ASK_TIMEOUT_MS'],
   ['이모지 폭 측정이 담겨 있다 (2.0.4)', 'Extended_Pictographic'],
   ['답한 시각 기록이 담겨 있다 (2.0.4)', 'answeredAt'],
+  // 2.0.5 — provenance rides the seal event itself. Its absence is exactly how
+  // 2.0.4 shipped: main carried the fix, the published build did not, and both
+  // called themselves 2.0.4 because the version gate only compares version
+  // strings to each other. This marker is what makes that visible next time.
+  ["봉인 이벤트가 출처를 싣는다 (2.0.5)", "predicate_owner: a['predicate_owner']"],
 ];
 
 const VERSION = process.argv[2] ?? '2.0.4';
