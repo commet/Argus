@@ -76,6 +76,15 @@ if (!fs.existsSync(bindingFile)) {
   }
 }
 
+// Say that [3]–[6] were skipped, and why. Without this the report reads
+// "[1] [2] [7] [8]…" and a person counting the gap has to decide for themselves
+// whether four checks failed, crashed, or never existed. A diagnostic that
+// silently omits sections is asking to be misread at exactly the moment someone
+// is already worried.
+if (!repositoryId) {
+  say('[3]-[6] 건너뜀 — 바인딩이 없으면 내구 원장·LOGBOOK·쓰기 락·이전 경계가 아직 없다 (고장 아님).');
+}
+
 if (repositoryId) {
   const projDir = path.join(home, 'projects', repositoryId);
   const ledgerFile = path.join(projDir, 'ledger.jsonl');
