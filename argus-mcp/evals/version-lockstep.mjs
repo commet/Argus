@@ -45,6 +45,7 @@ const mcpJson = read('argus-plugin-v2/.mcp.json');
 const market = read('.claude-plugin/marketplace.json');
 
 const SERVER_V = pkg.version;
+const escapedPackage = pkg.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 ok('V1 server.json = package.json', server.version === SERVER_V, `${server.version} vs ${SERVER_V}`);
 
 // server.json carries the version twice (top level + the package entry)
@@ -55,10 +56,10 @@ for (const [i, p] of (server.packages ?? []).entries()) {
 
 // THE PIN — the one that decides which server a real user actually runs
 const spec = (mcpJson.mcpServers?.['argus-decision']?.args ?? []).find(
-  (a) => typeof a === 'string' && a.startsWith(`${pkg.name}@`));
+  (a) => typeof a === 'string' && a.includes(`${pkg.name}@`));
 ok('V3 .mcp.json이 서버를 핀으로 잡는다', typeof spec === 'string', JSON.stringify(mcpJson.mcpServers));
 if (spec) {
-  const pinned = spec.slice(pkg.name.length + 1);
+  const pinned = new RegExp(`${escapedPackage}@(\\d+\\.\\d+\\.\\d+)`).exec(spec)?.[1] ?? '';
   ok('V3 핀 = 배포되는 버전', pinned === SERVER_V,
     `플러그인이 ${pinned}을 띄우는데 배포되는 것은 ${SERVER_V} — 사용자는 고친 것을 못 받습니다`);
   ok('V3 핀이 범위가 아니라 정확한 버전', /^\d+\.\d+\.\d+$/.test(pinned), pinned);
@@ -76,25 +77,17 @@ const patch = (v) => v.split('.').slice(1).join('.');
 ok('V5 플러그인과 서버가 같은 패치 라인', patch(plugin.version) === patch(SERVER_V),
   `플러그인 ${plugin.version} / 서버 ${SERVER_V}`);
 
-/**
- * V6 — 문서에 적힌 핀. 다섯 파일이 서로 일치해도, 사람이 복사하는 줄이 틀리면
- * 그 사람에게 제품은 없다.
- *
- * 2026-07-29에 실제로 그랬다: README의 설치 블록이 `argus-decision-mcp@2.0.0`을
- * 시키고 있었는데 2.0.0은 **npm에 올라간 적이 없다.** 그대로 따라 하면
- * `No matching version found`로 서버가 아예 뜨지 않는다 — 손으로 설정하는 모든
- * 사용자(Codex 포함)의 정문이 그 줄이다. 이 게이트가 다섯 곳만 보고 문서를 안
- * 봤기 때문에 조용히 흘렀다.
- */
+// The manifests can agree while the command a person copies still launches an
+// old or nonexistent server. Keep the public install pin in the same gate.
 const DOC_PINS = ['argus-mcp/README.md'];
-const pinRe = new RegExp(`${pkg.name.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&')}@([0-9]+\\.[0-9]+\\.[0-9]+|[^\\s"'\`)\\]]+)`, 'g');
+const pinRe = new RegExp(`${escapedPackage}@([^\\s"'()\`\\]]+)`, 'g');
 for (const rel of DOC_PINS) {
-  const text = fs.readFileSync(path.join(ROOT, rel), 'utf8');
-  const found = [...text.matchAll(pinRe)].map((m) => m[1]);
+  const body = fs.readFileSync(path.join(ROOT, rel), 'utf8');
+  const found = [...body.matchAll(pinRe)].map((match) => match[1]);
   ok(`V6 ${rel}에 설치 핀이 있다`, found.length > 0, '설치 예시에 버전 핀이 없다');
-  for (const v of new Set(found)) {
-    ok(`V6 ${rel} 핀 ${v} = 배포 버전`, v === SERVER_V,
-      `문서가 ${v}을 시키는데 배포되는 것은 ${SERVER_V} — 이 줄을 복사한 사람은 다른 서버를 받거나(구버전) 아무것도 못 받습니다(미발행)`);
+  for (const version of new Set(found)) {
+    ok(`V6 ${rel} 핀 ${version} = 배포 버전`, version === SERVER_V,
+      `문서 ${version} vs 배포 ${SERVER_V}`);
   }
 }
 
@@ -104,4 +97,4 @@ if (violations.length) {
   for (const v of violations) console.error('  ' + v);
   process.exit(1);
 }
-console.log(`✅ ${label} — 서버 ${SERVER_V} · 플러그인 ${plugin.version}, 다섯 파일 + 문서의 설치 핀이 일치합니다.`);
+console.log(`✅ ${label} — 서버 ${SERVER_V} · 플러그인 ${plugin.version}, manifest와 공개 설치 핀이 일치합니다.`);

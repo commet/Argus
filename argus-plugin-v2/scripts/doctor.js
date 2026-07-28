@@ -224,8 +224,11 @@ for (const p of [path.join(cwd, '.argus', 'ledger', 'ledger.jsonl'), path.join(h
   try {
     const wired = JSON.parse(fs.readFileSync(mcpJson, 'utf8')).mcpServers || {};
     for (const s of Object.values(wired)) {
-      const spec = (s && Array.isArray(s.args) ? s.args : []).find((a) => typeof a === 'string' && a.startsWith('argus-decision-mcp@'));
-      if (spec) { pinned = spec.slice('argus-decision-mcp@'.length); break; }
+      const spec = (s && Array.isArray(s.args) ? s.args : []).find(
+        (a) => typeof a === 'string' && a.includes('argus-decision-mcp@'),
+      );
+      const match = /argus-decision-mcp@(\d+\.\d+\.\d+|[^\s]+)/.exec(spec ?? '');
+      if (match) { pinned = match[1]; break; }
     }
   } catch { /* 배선 파일 없음/파손 — 아래에서 정직하게 보고 */ }
 
