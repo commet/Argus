@@ -167,10 +167,25 @@ try {
   if (!pinnedVersion) throw new Error('staged .mcp.json has no exact argus-decision-mcp@version pin');
 
   if (publishedMode) {
-    const published = command(npmBin, ['view', `argus-decision-mcp@${pinnedVersion}`, 'version', '--json'], {
-      env,
-      timeout: 60_000,
-    }).trim();
+    // npm publish can return before every registry edge serves the new version.
+    // Retry the exact immutable version for a bounded 30 seconds; never fall
+    // back to latest or a range, which could make a stale release look green.
+    let published = '';
+    let lastRegistryError;
+    for (let attempt = 1; attempt <= 6; attempt++) {
+      try {
+        published = command(
+          npmBin,
+          ['view', `argus-decision-mcp@${pinnedVersion}`, 'version', '--json', '--prefer-online'],
+          { env, timeout: 60_000 },
+        ).trim();
+        break;
+      } catch (error) {
+        lastRegistryError = error;
+        if (attempt < 6) await new Promise((resolve) => setTimeout(resolve, 5_000));
+      }
+    }
+    if (!published) throw lastRegistryError;
     if (!published.includes(pinnedVersion)) {
       throw new Error(`npm did not return the pinned version ${pinnedVersion}: ${published}`);
     }
