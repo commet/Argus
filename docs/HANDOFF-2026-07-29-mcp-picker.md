@@ -163,8 +163,11 @@ WHAT_HAPPENED_REQUIRED — 실제로 일어난 일을 기록해야 합니다
 |---|---|
 | npm | `argus-decision-mcp@2.0.4` 게시 |
 | MCP 레지스트리 | 2.0.4 등록 (20개 버전 중 최신) |
-| main | `e62730fe` — 서버 2.0.4 / 플러그인 3.0.4 |
+| 배포 시점의 main | `e62730fe` — 서버 2.0.4 / 플러그인 3.0.4 |
 | 플러그인 도달 | `.mcp.json` 핀 `@2.0.4`, 마켓플레이스 3.0.4 |
+
+> **주의:** 배포 *직후*에는 main = 배포본이었다. 그 뒤 PR #308이 머지되며 갈렸다 —
+> §7 첫 항목을 볼 것.
 
 **배포본을 실제로 받아서 8/8 통과.** 같은 스크립트가 2.0.2에서는 4건 실패한다 —
 판별력 있는 검증이다.
@@ -185,12 +188,44 @@ node evals/verify-published.mjs 2.0.2      # 판별력 확인: 4건 실패해야
 
 ## 7. 지금 열려 있는 것
 
-### PR #308 — 머지 대기 (CI 1건 pending)
+### 🔴 배포본(npm 2.0.4)과 main이 갈려 있다 — 가장 먼저 볼 것
 
-`fix/return-loop-integrity-and-bridge-provenance` · 커밋 `4affcdce`
+PR #308을 머지한 뒤 확인한 사실이다. **버전은 양쪽 다 2.0.4인데 코드가 다르다.**
 
-- `MERGEABLE`, tsc 0, 웹 **3820 통과**
-- 창업자가 "머지해"라고 했고, CI 마지막 1건(`check`)이 끝나면 머지하면 된다
+```bash
+git diff --stat v2.0.4 origin/main -- argus-mcp/src
+#  seal-provenance-replay.test.ts | 68 +++
+#  ledger-append.ts               |  6 +
+#  ledger-replay.ts               |  7 +
+#  seal.ts                        |  8 +-
+```
+
+PR #308이 MCP에 실질 수정을 담고 있었다 — 봉인 이벤트 자체에 `predicate_owner`를 실어
+웹 다리를 건널 때 출처가 유실되지 않게 하는 것. **CLAUDE.md 규칙 1(저자를 속이지 않는다)에
+해당하는 수정이고, npm 2.0.4에는 없다.** 직접 확인했다:
+
+```bash
+npm pack argus-decision-mcp@2.0.4 --prefer-online && tar xzf *.tgz
+grep -c "predicate_owner: a\['predicate_owner'\]" package/dist/index.js   # → 0
+```
+
+**왜 게이트가 못 잡았나:** `version-lockstep.mjs`는 *다섯 파일의 버전 문자열이 서로
+같은지*만 본다. 소스가 바뀌었는데 버전이 안 오른 경우는 검사 범위 밖이다. 오늘 만든
+게이트의 빈틈이고, 이 문서를 쓰는 시점에 아직 안 메웠다.
+
+**해야 할 일 (택일):**
+- **2.0.5를 내보낸다** — 출처 수정이 사용자에게 도달해야 한다면. 버전 5곳 올리고
+  `evals/verify-published.mjs`의 `BUNDLE_MARKERS`에 `predicate_owner` 마커를 추가한 뒤
+  main에서 `v2.0.5` 태그
+- **다음 릴리스에 묶는다** — 급하지 않다고 판단되면. 다만 그때까지 main ≠ npm 상태가
+  유지된다는 것을 알고 있어야 한다
+
+**같이 고려할 것:** "배포된 태그 이후 `argus-mcp/src`가 바뀌었는데 버전이 그대로면
+빨간불" 게이트. 이 상황이 조용히 반복되는 것을 막는다.
+
+### PR #308 — 머지 완료 (`87771448`)
+
+`fix/return-loop-integrity-and-bridge-provenance` · CI 전부 통과, 웹 3820, tsc 0.
 
 **⚠️ 이 PR에 창업자 확인이 필요한 판단이 하나 들어 있다:**
 
@@ -218,9 +253,13 @@ node evals/verify-published.mjs 2.0.2      # 판별력 확인: 4건 실패해야
 
 ### 바로
 
-1. **PR #308 머지** — CI 끝나면. 위의 집계 제거 건만 창업자에게 확인
-2. **실기기 재확인 (배포본으로)** — 오늘 검증은 로컬 빌드로 했다. 플러그인을 3.0.4로
+1. **main ≠ npm 해소** — §7 첫 항목. 2.0.5를 낼지 다음 릴리스에 묶을지 정한다.
+   출처(`predicate_owner`) 수정이 사용자에게 도달해야 하는 성격이라 판단이 필요하다
+2. **"태그 이후 소스가 바뀌었는데 버전 그대로면 빨간불" 게이트** — 1번과 같은 상황이
+   조용히 반복되는 것을 막는다. `version-lockstep.mjs`의 빈틈
+3. **실기기 재확인 (배포본으로)** — 오늘 검증은 로컬 빌드로 했다. 플러그인을 3.0.4로
    업데이트한 뒤 봉인·정산 픽커를 한 번씩 눌러 npm 경로도 동일한지 보는 게 남았다
+4. **PR #308의 집계 제거 건** — 창업자에게 확인 (아래 §7)
 
 ### 이어서 (§8 대기 목록에서)
 
