@@ -16,6 +16,7 @@ import { renderSeal } from '../lib/render-receipt.js';
 import { resolveResponseLocale, SURFACES, humanizeSyncReason } from '../lib/surfaces.js';
 import { accountPushId } from '../lib/install-id.js';
 import { premiseSyncEnabled } from '../lib/premise-sync.js';
+import { sanitizeLine } from '../v2/sanitize.js';
 import { elicitDetailed, canElicit } from '../lib/elicit.js';
 import { SCHEMA_VERSION } from '../lib/spine.js';
 import { writeReturnCalendarEvent } from '../lib/calendar.js';
@@ -41,7 +42,7 @@ const inputSchema = z.strictObject({
   predicate: z.string().min(8).max(400).describe('A prediction reality can mark true/false. Good: "cutover downtime < 5 min". Bad: "it will go well".'),
   check_by: zDate.describe('YYYY-MM-DD, a real future date when the result can be checked.'),
   predicate_owner: z.enum(['user', 'ai_surfaced']).describe('Provenance. Never forge. "user" = the user wrote or affirmed it. "ai_surfaced" = Argus drafted, unconfirmed — on a host with a picker this AUTOMATICALLY shows a one-tap confirm before saving.'),
-  confirm_draft: z.boolean().optional().describe('Optional extra confirmation: force the one-tap confirm even for a "user" predicate. ai_surfaced predicates get it automatically on supporting hosts. The picker maps to the host\'s native Accept/Decline: Accept with both fields blank keeps the draft as theirs, Accept with `reword` saves the user\'s wording, Accept with `check_by` adjusts the date, Decline records nothing. Without picker support, saving proceeds — confirm in your own message first.'),
+  confirm_draft: z.boolean().optional().describe('Optional extra confirmation: force the one-tap confirm even for a "user" predicate. ai_surfaced predicates get it automatically on supporting hosts. The picker maps to the host\'s native Accept/Decline and carries NO input fields, so one keypress records it: Accept keeps the sentence as theirs, Decline records nothing. If they want different words or a different date, they say so in chat and you call again with the new value. Without picker support, saving proceeds — confirm in your own message first.'),
   basis: z.enum(['judgment', 'luck', 'mixed', 'unsure']).optional(),
   real_question: z.string().max(400).describe('The real question behind the answer (receipt).').optional(),
   unverified_assumption: z.string().max(400).describe('The core assumption not yet verified (receipt).').optional(),
@@ -82,7 +83,7 @@ export const seal: ToolModule = {
       // the tool's own `today` disagreeing with the date it printed. recheck.ts
       // already fixed this same class for premise cadences. Keep the real UTC
       // time-of-day for intra-day ordering, but stamp the logical date.
-      const now = logicalNow(today, !!a['today_override']);
+      let now = logicalNow(today, !!a['today_override']);
       // Response voice follows the predicate (M4): config > text > env.
       let locale = resolveResponseLocale(dir, predicate);
       let T = SURFACES[locale].tools.seal;
@@ -104,27 +105,41 @@ export const seal: ToolModule = {
       // stays; forced typing is NOT the invariant — honest provenance is).
       let elicitedKeep = false; // v2 provenance: only elicit-channel confirmation counts as elicited_user (II-B)
       if ((a['confirm_draft'] === true || a['predicate_owner'] === 'ai_surfaced') && canElicit()) {
+        // CLIP FOR DISPLAY ONLY (2026-07-28). The full predicate went into the
+        // message raw, so a 380-character prediction — well inside the schema's
+        // own 400-char cap — arrived as one 302-character line. The record keeps
+        // every character; only what the human reads is bounded, and the clip
+        // leaves an ellipsis so nobody mistakes it for the whole sentence.
+        const shownPred = sanitizeLine(predicate, 96);
+        // NO FIELDS ON THE YES-PATH (2026-07-28, the third "Accept does not work").
+        //
+        // Read out of the shipped Claude Code binary rather than guessed at:
+        //
+        //     const [selected] = useState(hasFields ? null : "accept")
+        //     handleTextInputSubmit = () => move("down")
+        //
+        // If the ask declares ANY field, Accept is not selected at mount — the
+        // cursor sits in the first text box, and Return there MOVES to the next
+        // row instead of submitting. Our seal ask shipped two optional boxes, so
+        // "read it, press Accept" sent nothing at all: the dialog waited until
+        // the request timed out and the host reported that as a cancel. The
+        // founder's log shows it arriving at 60.018s, which nobody pressed.
+        //
+        // With no properties, `selected` starts on "accept" and one Return
+        // records it. That IS the ask: "is this your sentence, yes or no." A
+        // user who wants different words says so in chat and the model calls
+        // again — the same path every host without a picker already takes, and
+        // one this tool has always supported.
+        //
+        // The two previous fixes here (`required`, then `format`) were real and
+        // are still right. They were not this. Nobody counted the keystrokes,
+        // because every harness we own answers the ask programmatically.
+        // `evals/claude-code-form.mjs` now counts them.
         const asked = await elicitDetailed(
           locale === 'ko'
-            ? `이 예측으로 기록할까요?\n"${predicate}"\n확인일 ${checkBy}\n\n그대로면 Accept · 문장이나 날짜를 고치려면 아래 칸에 쓰고 Accept · 기록 안 하려면 Decline.`
-            : `Record this prediction?\n"${predicate}"\ncheck-by ${checkBy}\n\nAccept to keep · to change the wording or date, fill a field below and Accept · Decline to skip.`,
-          { type: 'object', properties: {
-            reword: {
-              type: 'string',
-              description: locale === 'ko' ? '예측 문장을 고쳐 쓰려면 여기에 적으세요. 비우면 위 문장 그대로 기록합니다.' : 'To reword the prediction, type it here. Leave blank to keep the statement above.',
-            },
-            check_by: {
-              type: 'string',
-              // NO `format` here. 1.14.0 added `format:"date"` as a "spec-sanctioned,
-              // harmless" rendering hint — untested speculation shipped into the
-              // critical path. On a host that VALIDATES format, the blank field a
-              // one-tap Accept leaves behind is not a valid date, so Accept stops
-              // advancing and the ask dies by timeout. That is exactly the founder's
-              // 2026-07-27 second dogfooding failure. A constraint we cannot verify
-              // against a real host does not belong on the yes-path.
-              description: locale === 'ko' ? `확인일을 바꾸려면 YYYY-MM-DD로 적으세요 (예: ${checkBy}). 비우면 ${checkBy} 그대로.` : `To change the check-by date, type YYYY-MM-DD (e.g. ${checkBy}). Leave blank to keep ${checkBy}.`,
-            },
-          } },
+            ? `이 예측으로 기록할까요?\n"${shownPred}"\n확인일 ${checkBy}\n\n그대로 남기려면 Accept, 남기지 않으려면 Decline입니다. 문장이나 날짜를 고치고 싶으면 Decline 후 말씀해 주세요.`
+            : `Record this prediction?\n"${shownPred}"\ncheck-by ${checkBy}\n\nAccept to keep it, Decline to skip. To change the wording or the date, Decline and say so.`,
+          { type: 'object', properties: {} },
         );
         // A NO and a NON-ANSWER are different facts (2026-07-27). Declining is an
         // answer: record nothing, say so, stop. But a picker that closed without
@@ -187,6 +202,15 @@ export const seal: ToolModule = {
           T = SURFACES[locale].tools.seal;
         }
       }
+
+      // RE-STAMP AFTER THE PICKER (2026-07-28, seen on real hardware). `now` was
+      // computed at handler entry; if the confirm dialog was up, a human was
+      // deciding for as long as they needed — a minute is ordinary — and the
+      // ledger, the receipt, the .ics and the account push all carried the
+      // earlier instant. The record then reads as if they answered before the
+      // host logged their answer. The logical DATE is unchanged (that is the day
+      // they were asked about); only the intra-day time is corrected.
+      if (elicitedKeep && !a['today_override']) now = logicalNow(now.slice(0, 10), false);
 
       await ensurePrivacyGitignore(dir);
 
@@ -318,7 +342,10 @@ export const seal: ToolModule = {
       // dumping the absolute path — and the English label "Calendar file:" — into
       // a one-line surface was noise, and broke the Korean voice (copy-audit /
       // loop find). Mention it briefly, localized; keep the path in data.
-      const calNote = locale === 'ko' ? ' 달력 리마인더(.ics)도 저장했습니다.' : ' Saved a calendar reminder (.ics).';
+      // ".ics" is a file extension, not a word. To the non-developer this
+      // product is for it reads as noise in the middle of a friendly line
+      // (2026-07-28 surface sweep). Say what it is; the file is still an .ics.
+      const calNote = locale === 'ko' ? ' 달력 앱에 넣을 알림 파일도 함께 저장했습니다.' : ' A calendar reminder file is saved alongside it.';
       return envelope({
         ok: true, tool: 'argus_seal',
         surface: `${(a['predicate_owner'] === 'ai_surfaced' ? T.sealed_draft : T.sealed)(predicate, checkBy)}${calNote}${nudge}${syncLine}`,

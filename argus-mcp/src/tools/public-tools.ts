@@ -77,7 +77,12 @@ const decideSchema = z.discriminatedUnion('action', [
     action: z.literal('answer_question').describe('미결 질문을 사용자의 판단으로 닫습니다.'),
     id: zId.describe('대상 결정 id입니다.'),
     ref: z.string().max(64).describe('답할 미결 질문 번호 또는 id입니다.'),
-    decision: z.string().min(1).max(400).describe('사용자가 직접 내린 판단입니다. AI가 대신 작성하지 않습니다.'),
+    // Optional ON PURPOSE. Requiring it (2.0.0) meant the model had to produce
+    // the closing call before the tool would run — which put the model in the
+    // seat this surface exists to keep empty, and made the elicitation path
+    // (the user typing their own answer into a picker) unreachable from the
+    // public surface. Omitted, the handler asks the USER directly.
+    decision: z.string().min(1).max(400).describe('사용자가 이미 자기 말로 답했을 때만, 그 말을 그대로 넣습니다. 아직 묻지 않았다면 비워두세요. 그러면 사용자에게 직접 묻는 확인창이 뜹니다. AI가 대신 작성하지 않습니다.').optional(),
   }),
   z.strictObject({
     ...common,

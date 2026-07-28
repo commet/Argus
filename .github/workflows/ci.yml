@@ -112,6 +112,19 @@ jobs:
           cd argus-mcp
           BATTERY_SKIP_BUILD=1 node evals/battery.mjs
 
+      # 픽커와 문구는 사람이 읽는 화면이다. 2026-07-28까지 어떤 게이트도 "동작하나"만
+      # 물었고 "읽을 수 있나"는 묻지 않았다 — 그 사이 모든 입력 칸이 내부 키 이름으로
+      # 라벨링돼 있었다. 아래 둘은 두 언어 × 여러 내용 모양으로 실서버를 몰아
+      # 라벨 부재·언어 혼입·깨진 보간·폼 차단을 단정한다.
+      - name: Picker surfaces (2 locales x 8 content shapes)
+        run: |
+          cd argus-mcp
+          PICKER_SURFACES_SKIP_BUILD=1 node evals/picker-surfaces.mjs
+      - name: Surface hazards (2 locales x picker/no-picker hosts)
+        run: |
+          cd argus-mcp
+          SURFACE_HAZARDS_SKIP_BUILD=1 node evals/surface-hazards.mjs
+
       - name: Unreadable ledger refuses writes
         run: |
           cd argus-mcp

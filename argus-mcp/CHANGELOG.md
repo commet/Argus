@@ -1,5 +1,201 @@
 # Changelog
 
+## 2.0.4 — The Accept that was thrown away, and the keepsakes nobody had looked at
+
+**The record was dated before the answer it recorded**
+
+Also found live. Resolving an open question, the host log and the ledger
+disagreed about something I had just typed:
+
+```
+12:56:11  ledger: premise_resolve "split it, and price the tiers separately"
+12:57:14  host:   Elicitation response {"decision":"split it, and price…"}
+```
+
+63 seconds backwards. Nothing was lost and nothing was forged — the handler
+computed its timestamp on entry and then the picker sat waiting for a human,
+which is what a picker is for. But a judgment record whose timestamps run
+backwards against the host's own log cannot be used to reconstruct what
+happened, which is its one job. The session reviewing that payload concluded the
+server had synthesised a decision and stamped it `user`; it had not. That is the
+real cost — the defect makes an honest record look like a forged one.
+
+`settle` already stamped after its picker. `seal` and the open-question resolve
+now do too; the logical date is untouched, only the intra-day time is corrected.
+`evals/answer-time.mjs` answers deliberately slowly and fails if the stamp
+precedes the answer.
+
+**A form that promised what the server would refuse**
+
+Found by driving the real Claude Code on real hardware, not by a harness. The
+settle picker labelled its what-happened box "(optional)" and told the user to
+leave it blank if they did not know yet. Picking an outcome and doing exactly
+that was then refused with `WHAT_HAPPENED_REQUIRED` — and the refusal carried
+nothing, so the model asked them to choose the outcome a second time.
+
+The label is now conditional: optional only when the model already carried the
+sentence in from the conversation, and otherwise it says a settled record needs
+it and points at "Don't know yet" for the case where reality has not answered.
+The refusal hands back the outcome they already picked, the same way an
+over-long reword is handed back. No `minLength` was added — a constraint there
+would block Accept inside the form, which is the very defect below.
+
+**Pressing Accept did nothing, and it was our schema that made it so**
+
+The third report of "Accept does not work". The first two fixes — a `required`
+field, then a `format` constraint — were real defects and neither was the cause.
+This time the answer came from reading the shipped Claude Code binary instead of
+reasoning about what a strict host "would" do:
+
+```js
+const hasFields = Object.keys(schema.properties).length > 0
+const [selected] = useState(hasFields ? null : "accept")   // not preselected
+handleTextInputSubmit = () => move("down")                 // Return MOVES
+```
+
+If an ask declares **any** field, Accept is not selected when the dialog opens:
+the cursor sits in the first input, and Return there advances a row instead of
+submitting. Our seal confirm shipped two optional edit boxes, so "read it, press
+Accept" sent nothing at all — the dialog waited until the request timed out and
+the host reported that as a cancel. The founder's log shows one arriving at
+60.018 seconds, which nobody pressed.
+
+The seal and premise confirms now declare no properties, so one Return records
+them. Rewording still works: the user says so in chat and the model calls again
+with their words. The asks that genuinely COLLECT something (settle outcome,
+defer date, an open question's answer) keep their fields — the answer cannot
+come from Accept alone — and now say on screen that the submit row is below.
+
+`evals/claude-code-form.mjs` reimplements that submit gate and judges every ask
+we send, including how many Returns it takes. It goes red on 2.0.2, which is the
+version that blocked the founder — a gate that cannot fail on the broken build
+is not evidence of anything.
+
+**A minute is not long enough to decide something**
+
+- **An Accept that arrived after 60 seconds was discarded.** The MCP SDK times a
+  server-to-client request out after 60 seconds by default and we never passed an
+  option, so every picker inherited that limit — on a request whose responder is
+  a person reading their own prediction and deciding whether to commit to it.
+  From the founder's host log: the ask went out at 07:22:16, the SDK gave up at
+  07:23:16 exactly, and their Accept landed at 07:23:27. The tool had already
+  told them nothing was recorded, and reading the record back said "No decisions
+  on record yet."
+
+  This was reported twice as "Accept does not work" and fixed twice — once for a
+  `required` field, once for `format`. Both were real. Neither was this. Nobody
+  measured the clock, because every harness answered instantly, which is the one
+  thing a person never does.
+
+  The ask now allows ten minutes, and `evals/slow-human.mjs` answers after
+  seventy-five seconds and requires the record to survive. It costs 80 seconds of
+  CI, which is what it costs to test the most important interaction in the
+  product the way people actually perform it.
+
+- The out-of-band ask believed it waited two minutes (`DEFAULT_ASK_TIMEOUT_MS =
+  120_000`). The SDK cut it at 60, so that outer bound was a number which could
+  never be reached. Inner and outer now agree.
+
+**The three blocks you keep and share**
+
+The settle receipt, the seal certificate and the logbook travel in `data` and are
+drawn as monospace frames. 2.0.2 rendered the card and looked at it; 2.0.3 did the
+same for the five asks; nothing had ever looked at these. Rendering them across
+two languages and eleven content shapes found six defects:
+
+- a sentence with **no spaces in it** — ordinary in Korean — was never broken, so
+  a 64-column frame carried a 105-column line. A long URL gave 81.
+- **every settled row in the logbook** ran nine columns past the border: the
+  outcome word is prepended to a label already budgeted the full width.
+- `idCol()`, written to stop exactly that, **was never called**, so one long id
+  pushed a row twelve columns out.
+- the seal certificate padded its two date rows by codepoint, so in Korean the
+  dates did not line up.
+- the group hint was padded the same way and landed outside the frame.
+- **emoji were not counted as wide**, so an emoji prediction packed 15 columns
+  past the border in Korean and 25 in English. That one was invisible for a
+  reason worth keeping: the check that would have caught it used the renderer's
+  own width function, so checker and subject were wrong in the same direction.
+  `evals/keepsake-frames.mjs` therefore carries an independent measure, built
+  from Unicode properties rather than from the hand-kept list it audits.
+
+Widening `dw` alone was not enough either: `truncDw` and `breakToken` each carried
+their own inline copy of the rule, so the renderer judged with the new measure and
+cut with the old one. There is one character-width function now, used by all three.
+
+**Gates**
+
+- `keepsake-frames.mjs` — 254 checks: frames close, borders agree, the box fits an
+  80-column terminal, and nothing is discarded to make it fit.
+- `slow-human.mjs` — the seventy-five-second answer.
+- `version-lockstep.mjs` — a release moves the version in five hand-kept files, and
+  the `npx …@X` pin is the dangerous one. If it lags, every user of the new plugin
+  keeps launching the old server, silently, because both halves are internally
+  consistent and nothing errors.
+- `picker-surfaces.mjs` identified each ask by which line of the script had run
+  last. The out-of-band ask fires on a timer, so under load it took the defer slot
+  and the gate went red on machine load rather than on a defect. Asks are now
+  identified by their own schema shape, and a missing one is named.
+
+## 2.0.3 — What the pickers say, in both languages
+
+2.0.2 fixed the settle card by rendering it and looking. This does the same for
+the five ELICITATION asks, and for the words a host that has no picker at all
+(Codex) is left with. Both were checked by driving the real server across two
+languages and eight content shapes.
+
+**Our identifiers, shown to a person**
+
+- **Every field on every picker was labelled with its KEY.** The MCP spec has a
+  `title` for exactly this and we never sent one, so a host falls back to the
+  identifier: a Korean user editing their own prediction met a box called
+  `reword`; the return path asked them for `outcome` and `what_happened`; the
+  defer ask offered `when`. Five pickers, every field, including the two the
+  founder was blocked on in July. All of them now carry a human label.
+
+**Asks that never said what they were about**
+
+- The defer ask opened with a bare "not answered yet" line: the user picks a
+  date for a sentence the screen never shows. It now quotes the prediction, as
+  the settle ask has since 2.0.2.
+- The out-of-band ask arrived as one run-on paragraph with the user's own
+  prediction buried mid-sentence. It is the ask that fires when they did NOT ask
+  for anything; the least it can do is be scannable.
+
+**A terminal action dressed as a scheduling option**
+
+- The defer list read "in a week / in a month / in 3 months / it no longer
+  matters". The fourth closes the decision permanently and nothing said so. It
+  says so now, and the field description separates the three that only move a
+  date.
+
+**Long text spilling**
+
+- The seal and premise asks interpolated the sentence RAW, so a 380-character
+  prediction (inside the schema's own 400 cap) arrived as one 302-character
+  line. Display is clipped with an ellipsis now; the record still keeps every
+  character.
+
+**English, which nobody had read**
+
+- The first line an English user ever sees was a 144-character run-on, and the
+  seal confirmation ran the quoted prediction straight into the next clause.
+  Both are broken into lines. `.ics` came out of the human sentence in both
+  languages: a file extension is not a word.
+
+**Gates**
+
+- `picker-surfaces.mjs` — 2 languages x 8 content shapes x 5 asks: every field
+  has a human label, one language does not leak into the other, nothing renders
+  as undefined / an unrendered template / mojibake, no form-blocking constraint.
+- `surface-hazards.mjs` — every sentence the server can say, in both languages,
+  on a host WITH a picker and a host WITHOUT one. `locale-consistency.mjs`
+  guarded part of this before 2.0.0 removed it; nothing had since.
+- Both verified by re-planting the defect (self-tests 14 and 15).
+- The out-of-band eval now waits for the ask instead of a stopwatch: its fixed
+  sleeps passed alone and failed under load, which is a harness flake wearing
+  the product's face, the third of that class in one day.
+
 ## 2.0.2 — What the picker and the card actually look like
 
 Everything before this verified the wiring: the resource is listed, the args

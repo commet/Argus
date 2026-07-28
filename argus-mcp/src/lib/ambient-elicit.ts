@@ -219,15 +219,25 @@ async function fire(dir: string, todayOverride?: string): Promise<void> {
     };
 
     const ko = resolveResponseLocale(dir) === 'ko';
-    const text = sanitizeLine(first.text || first.id, 120);
+    const text = sanitizeLine(first.text || first.id, 96);
 
     // 물음 1 — 정산 outcome (spine-SAFE 구조 픽: 현실이지 평결이 아니다).
     // 대화 맥락이 없는 사용자를 위해 그의 예측을 그대로 되비춘다 (우정 1조).
     const asked = await withTimeout(
       elicitDetailed(
+        // Structured, not a paragraph (2026-07-28). This arrived as one run-on
+        // line with the user's own prediction buried mid-sentence — and this is
+        // the ask that appears when they did NOT ask for anything, mid-work.
+        // Whatever it costs them in attention, it should at least be scannable.
         ko
-          ? `Argus: 확인일이 지난 예측이 있어요. "${text}" (확인일 ${first.date}). 현실이 어떻게 답했나요? 지금 어려우면 닫아도 됩니다. 다시 조르지 않아요.`
-          : `Argus: a prediction passed its check-by. "${text}" (due ${first.date}). What did reality do? Dismiss if now is a bad time; no re-asking.`,
+          ? `Argus · 확인일이 지난 예측이 있어요.
+"${text}" (확인일 ${first.date})
+
+현실이 어떻게 답했나요? → 키로 고른 뒤, 아래 화살표로 수락 줄까지 내려가 선택하십시오. 지금 어려우면 그냥 닫으세요. 다시 조르지 않습니다.`
+          : `Argus · a prediction passed its check-by.
+"${text}" (due ${first.date})
+
+What did reality do? Pick one with →, then press Enter twice to reach Accept. Just close this if now is a bad time; no re-asking.`,
         {
           type: 'object',
           // 필수 필드 없음 (2026-07-27) — 필수 enum은 호스트가 접어서 렌더하고
@@ -244,10 +254,12 @@ async function fire(dir: string, todayOverride?: string): Promise<void> {
               // asking editors to keep them in lockstep by hand; a third,
               // different wording lived in the settle card. Same user, same week.
               enumNames: outcomeEnumNames(ko ? 'ko' : 'en'),
+              title: ko ? '현실이 어떻게 답했나' : 'What reality did',
               description: outcomeFieldDescription(ko ? 'ko' : 'en'),
             },
           },
         },
+        askTimeoutMs(),
       ),
       askTimeoutMs(),
     );
@@ -285,10 +297,12 @@ async function fire(dir: string, todayOverride?: string): Promise<void> {
             properties: {
               what_happened: {
                 type: 'string',
+                title: ko ? '실제로 무슨 일이 있었나' : 'What actually happened',
                 description: ko ? '당신의 말, 그대로.' : 'Your words, verbatim.',
               },
             },
           },
+          askTimeoutMs(),
         ),
         askTimeoutMs(),
       );

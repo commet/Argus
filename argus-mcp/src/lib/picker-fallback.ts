@@ -35,9 +35,13 @@ export function noAnswerResult(args: {
   return envelope({
     ok: true,
     tool,
+    // Two lines, not one. As a single sentence the English ran to 170
+    // characters of chrome before the user's own material even started
+    // (2026-07-28 surface sweep), and this is a line someone meets at the exact
+    // moment something already went wrong.
     surface: ko
-      ? `확인 창이 답을 받지 못했습니다 (호스트 문제일 수 있습니다). 아직 기록하지 않았습니다. ${handBack.ko}`
-      : `The dialog closed without an answer (possibly a host issue). Nothing is recorded yet. ${handBack.en}`,
+      ? `확인 창이 답을 받지 못했습니다 (호스트 문제일 수 있습니다). 아직 기록하지 않았습니다.\n${handBack.ko}`
+      : `The dialog closed without an answer (possibly a host issue). Nothing is recorded yet.\n${handBack.en}`,
     next_actions,
     data: { recorded: false, choice: 'no_answer', ...data },
   });

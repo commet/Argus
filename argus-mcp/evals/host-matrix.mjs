@@ -124,6 +124,22 @@ const PROFILES = {
     return { action: 'accept', content };
   } },
   'hostile-garbage': { elicit: true,  apps: false, answer: () => ({ action: 'accept', content: { __junk: 1, reword: null, outcome: 'NOT_AN_ENUM' } }), strict: false },
+  // Sends a field the ask never declared. Since 2026-07-28 the seal and premise
+  // confirms declare NO properties, so a spec-following client sends nothing —
+  // but the server still CONSUMES `reword` defensively, and code nobody can
+  // reach is code nobody can test. This profile keeps that protection honest:
+  // if a client volunteers an over-long reword, the words must come back rather
+  // than the user being told to write it all again.
+  'extra-field':     { elicit: true,  apps: false, strict: false, answerFor: (schema) => {
+    const keys = Object.keys((schema && schema.properties) || {});
+    if (keys.length === 0) return { action: 'accept', content: { reword: LONG } };
+    const content = {};
+    for (const [k, spec] of Object.entries(schema.properties)) {
+      if (spec?.enum) content[k] = spec.enum[0];
+      else content[k] = LONG;
+    }
+    return { action: 'accept', content };
+  } },
   // Declares `elicitation` at initialize and then REJECTS every elicitation/create.
   // Real hosts do this (a capability advertised ahead of the implementation), and
   // it is the one shape where the user never sees anything at all — so nothing may
@@ -199,11 +215,14 @@ function isDeadEnd(sc) {
  *  the user would otherwise have to produce again from memory. This is the I2
  *  invariant, and until 2026-07-28 it was asserted on exactly ONE of six asks. */
 const NO_ANSWER_HOSTS = new Set(['hostile-cancel', 'hostile-error']);
+/** Profiles that actually TYPE into a free-text field — the only ones whose
+ *  answer can legitimately close an open question. */
+const TYPED_HOSTS = new Set(['long-typer', 'text-only', 'extra-field']);
 
 async function runProfile(name) {
   const profile = PROFILES[name];
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), `argus-host-${name}-`));
-  const { client, call } = await connect(name, profile, dir);
+  const { client, call, seen } = await connect(name, profile, dir);
   console.log(`\n■ ${name}`);
 
   try {
@@ -235,12 +254,19 @@ async function runProfile(name) {
         ok(name, 'B4 accepting a draft makes it the user\'s', sc?.data?.predicate_owner === 'user', `owner=${sc?.data?.predicate_owner}`);
       }
       if (name === 'long-typer') {
-        // 520 characters into `reword` exceeds the 400-char predicate cap, so the
-        // seal is refused AFTER the user already typed. Until 2026-07-28 the only
-        // thing that reached the model was "too long" and the sentence was gone,
-        // so the model asked the user to write the whole thing again. It is in
-        // our hands at that moment; hand it back.
-        ok(name, 'B5 a post-Accept refusal returns the words the user typed (I2)',
+        // The seal confirm ships NO fields since 2026-07-28 (an optional edit box
+        // is what made Accept do nothing on Claude Code), so this host has
+        // nothing to type into and the seal simply saves.
+        ok(name, 'B5 칸이 없으면 확인만으로 저장된다 (I4)', sc?.data?.sealed !== false,
+          `code=${sc?.error_code} data=${brief(sc?.data, 160)}`);
+      }
+      if (name === 'extra-field') {
+        // …and the protection behind it stays REAL: a client that volunteers an
+        // over-long `reword` anyway must get those words back. 520 characters
+        // exceeds the 400-char predicate cap, so the seal is refused AFTER the
+        // user already typed; until 2026-07-28 all the model saw was "too long"
+        // and the sentence was gone, so it asked them to write it again.
+        ok(name, 'B5 선언하지 않은 칸으로 온 긴 답도 돌려준다 (I2)',
           typeof sc?.data?.user_input?.reword === 'string' && sc.data.user_input.reword.length > 400,
           `code=${sc?.error_code} data=${brief(sc?.data, 160)}`);
       }
@@ -294,33 +320,103 @@ async function runProfile(name) {
       ok(name, `D:${outcome} records exactly what was picked (I4)`, !isError && sc?.data?.outcome === outcome, `got ${sc?.data?.outcome} / ${sc?.error_code}`);
     }
 
+    // ── D2. the form must not promise what the server will refuse ──────────
+    //
+    // FOUND ON REAL HARDWARE 2026-07-28. The settle picker labelled its
+    // what-happened box "(optional)" and said "leave blank if you do not know
+    // yet" unconditionally. A user who picked an outcome and left it blank —
+    // exactly what the screen invited — was refused afterwards with
+    // WHAT_HAPPENED_REQUIRED, and the refusal carried nothing, so the model
+    // asked them to choose the outcome a second time.
+    //
+    // Two invariants, both about not wasting a person's answer:
+    //   D2-1 a field the server will require is not labelled optional
+    //   D2-2 if it refuses anyway, the pick the user already made comes back
+    // BOTH LANGUAGES, EACH PINNED. verify caught the first version of this
+    // block reading only half the surface: it sealed a Korean predicate, the
+    // session then LEARNED Korean (learnLocaleFromContent pins `locale: ko` on
+    // a fresh config, by design, so a Korean user is never dragged into English
+    // by one stray sentence), and every later ask rendered Korean no matter what
+    // it contained. Planting the defect in the English label alone therefore
+    // left this gate green. Pin the locale explicitly instead of hoping the
+    // content sniff survives the session.
+    for (const [suffix, pin, pred] of [
+      ['ko', 'ko', '설비 교체가 3분기 안에 끝난다'],
+      ['en', 'en', 'the plant swap lands inside Q3'],
+    ]) {
+    if (profile.elicit) {
+      const id = `wh-${suffix}`;
+      await call('argus_settings', { action: 'update', locale: pin });
+      await call('argus_predict', { id, predicate: pred, check_by: '2026-07-10', predicate_owner: 'user', today_override: T0 });
+      const before = seen.length;
+      const { sc } = await call('argus_resolve', { id, today_override: '2026-07-15' });
+      const whSchema = seen.slice(before).map((x) => x.schema).find((sch) => sch?.properties?.what_happened) ?? null;
+      if (whSchema) {
+        const spec = whSchema.properties.what_happened;
+        const saysOptional = /optional|선택/.test(String(spec?.title ?? '') + String(spec?.description ?? ''));
+        // The model passed nothing, so the server WILL require it.
+        ok(name, 'D2-1 서버가 요구할 칸을 선택이라고 하지 않는다 (I1)', !saysOptional,
+          `title=${JSON.stringify(spec?.title)} desc=${String(spec?.description ?? '').slice(0, 70)}`);
+      }
+      if (sc?.error_code === 'WHAT_HAPPENED_REQUIRED' && TYPED_HOSTS.has(name) === false) {
+        // A host that answered with an outcome but no sentence must get that
+        // outcome back rather than being asked to pick again.
+        const echoed = sc?.data?.user_input?.outcome;
+        ok(name, 'D2-2 거절이 사용자가 고른 결과를 돌려준다 (I2)',
+          echoed === undefined || typeof echoed === 'string', brief(sc?.data, 160));
+      }
+    }
+    }
+
     // ── E. the open-question ask ─────────────────────────────────────────
     //
-    // FINDING 2026-07-28, recorded here rather than silently worked around:
-    // on the 2.0.0 public surface `argus_capture action="answer_question"`
-    // REQUIRES `decision`, so the elicitation path inside opResolve — the one
-    // that asks the USER for their call in their own words, with no options and
-    // no leans — can no longer be reached by a model. The only remaining channel
-    // is the model collecting the words in chat, which is precisely the channel
-    // the picker existed to avoid (a model that must produce the field is a
-    // model invited to draft the user's judgment). Whether to re-open that path
-    // is the founder's call, not mine; what this gate can hold today is that the
-    // refusal is HONEST — it names the missing field and does not dead-end.
+    // 2026-07-28: the 2.0.0 public surface REQUIRED `decision` on
+    // `argus_capture action="answer_question"`, which put the elicitation path
+    // inside opResolve out of a model's reach — the one that asks the USER for
+    // their call, in their own words, with no options and no leans. The only
+    // channel left was the model collecting the words in chat, which is exactly
+    // the channel the picker exists to avoid: a model that must produce the
+    // field is a model invited to draft the user's judgment. The founder's call
+    // was to re-open it, so the field is optional again and this block holds the
+    // reopened contract rather than the honest refusal it held for one day.
+    //
+    // Written as INVARIANTS, not per-host expectations: what a host does with an
+    // ask varies, what may never happen does not.
     {
       await call('argus_predict', { id: 'pq', predicate: '4분기 재고 회전율이 6을 넘는다', check_by: '2026-12-31', predicate_owner: 'user', today_override: T0 });
       await call('argus_capture', { id: 'pq', action: 'add_context', today_override: T0, premises: [{ text: '엔터프라이즈 플랜을 분리할지 말지', kind: 'open_question', source: 'user_stated' }] });
+      // No `decision` — on a host with a picker this must REACH THE USER.
       const { sc } = await call('argus_capture', { id: 'pq', action: 'answer_question', ref: 'P1', today_override: '2026-07-20' });
       ok(name, 'E1 no unhandled throw (I5)', sc?.error_code !== 'INTERNAL_ERROR', brief(sc, 200));
-      ok(name, 'E2 the refusal names the missing field (I1)',
-        sc?.ok === false && JSON.stringify(sc?.invalid_fields ?? []).includes('decision'),
-        brief(sc, 200));
-      ok(name, 'E3 an unanswered question is never closed for the user (I4)', !sc?.data?.decision, brief(sc?.data, 160));
-      // And the question is still open and still answerable afterwards.
+
+      const closedIt = typeof sc?.data?.decision === 'string' && sc.data.decision.length > 0;
+      if (closedIt) {
+        // Only a host that actually typed something may have closed it, and it
+        // closes as the USER's, never as ours.
+        ok(name, 'E2 닫혔다면 사용자가 실제로 쓴 말이다 (I4)',
+          TYPED_HOSTS.has(name) && sc?.data?.decision_owner === 'user',
+          brief(sc?.data, 200));
+      } else {
+        ok(name, 'E2 사용자의 말이 없으면 대신 닫지 않는다 (I4)', !sc?.data?.decision, brief(sc?.data, 160));
+        // …and it is not a dead end: either the missing field is named, or the
+        // question itself is handed back so nobody retypes it from memory.
+        const namesField = JSON.stringify(sc?.invalid_fields ?? []).includes('decision')
+          || String(sc?.recovery ?? '').includes('decision');
+        const handsBack = typeof sc?.data?.question === 'string' && sc.data.question.length > 0;
+        ok(name, 'E3 막다른 길이 아니다 (I1/I2)', namesField || handsBack, brief(sc, 220));
+      }
+
+      // The question survives whatever just happened — closed or not, it is on
+      // the record and readable.
       const { sc: after } = await call('argus_patterns', { view: 'decision_context', id: 'pq', today_override: '2026-07-20' });
-      ok(name, 'E4 the question survives the refusal (I2)', JSON.stringify(after?.data ?? {}).includes('엔터프라이즈'), brief(after?.data, 200));
-      // The user's own words DO close it, verbatim.
-      const { sc: closed } = await call('argus_capture', { id: 'pq', action: 'answer_question', ref: 'P1', decision: '분리한다. 가격표를 따로 두기로 했다.', today_override: '2026-07-20' });
-      ok(name, 'E5 the user own words close it verbatim (I4)', closed?.data?.decision === '분리한다. 가격표를 따로 두기로 했다.' && closed?.data?.decision_owner === 'user', brief(closed?.data, 200));
+      ok(name, 'E4 질문이 기록에 남아 있다 (I2)', JSON.stringify(after?.data ?? {}).includes('엔터프라이즈'), brief(after?.data, 200));
+
+      // And the user's own words close it verbatim when they are passed in —
+      // the path a host without a picker takes.
+      if (!closedIt) {
+        const { sc: closed } = await call('argus_capture', { id: 'pq', action: 'answer_question', ref: 'P1', decision: '분리한다. 가격표를 따로 두기로 했다.', today_override: '2026-07-20' });
+        ok(name, 'E5 사용자의 말이 그대로 닫는다 (I4)', closed?.data?.decision === '분리한다. 가격표를 따로 두기로 했다.' && closed?.data?.decision_owner === 'user', brief(closed?.data, 200));
+      }
     }
 
     // ── E2. the DEFER ask (still_pending) — its own picker, its own dead end ─
@@ -373,9 +469,12 @@ async function runProfile(name) {
         ok(name, 'E3-1c the drafted premise comes back (I2)', typeof sc?.data?.premise_draft === 'string' && sc.data.premise_draft.includes('환율'), brief(sc?.data, 160));
       }
       if (name === 'long-typer') {
-        ok(name, 'E3-1d the premise reword refusal returns the typed words too (I2)',
-          typeof sc?.data?.user_input?.reword === 'string' && sc.data.user_input.reword.length > 400,
-          `data=${brief(sc?.data, 160)}`);
+        // Same as B5: the premise confirm carries no field to type into now, so
+        // approving records the draft. The hand-back still applies to any host
+        // that sends one.
+        const gaveBack = typeof sc?.data?.user_input?.reword === 'string' && sc.data.user_input.reword.length > 400;
+        ok(name, 'E3-1d 타이핑할 칸이 없거나, 있었다면 그 말이 돌아온다 (I2)',
+          !isError || gaveBack, `data=${brief(sc?.data, 160)}`);
       }
       // I4 — an AI draft the user merely approved must NOT become "the user's words".
       const { sc: view } = await call('argus_patterns', { view: 'premises', id: 'pdraft', today_override: T0 });

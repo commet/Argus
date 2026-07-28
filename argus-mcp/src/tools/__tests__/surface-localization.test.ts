@@ -53,7 +53,7 @@ describe('M4 surface localization — the 6 dogfood tools', () => {
   it('seal — ko vs en, and seal_text follows the same locale', async () => {
     const dirEn = tmpArgusDir(); pin(dirEn, 'en');
     const rEn = await seal.handler({ argus_dir: dirEn, id: 's1', predicate: 'cutover downtime under 5 min', check_by: '2027-01-01', predicate_owner: 'user', today_override: TODAY });
-    expect(surface(rEn)).toContain('Prediction saved.');
+    expect(surface(rEn)).toContain('Prediction saved:');
     expect(String((body(rEn)['data'] as Record<string, unknown>)['seal_text'])).toContain('PREDICTION SAVED');
 
     const dirKo = tmpArgusDir(); pin(dirKo, 'ko');
