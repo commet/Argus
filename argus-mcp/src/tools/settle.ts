@@ -104,6 +104,14 @@ export const settle: ToolModule = {
         // the handle that works.
         const q = sanitizeLine(current.predicate ?? id, 96);
         const due = current.check_by ?? '';
+        // Is this field genuinely optional right now? Only if the model already
+        // carried what-happened in from the conversation. Found on real
+        // hardware 2026-07-28: the label said "(optional)" and "leave blank if
+        // you do not know yet" unconditionally, so a user who picked an outcome
+        // and left it blank — exactly what the screen invited — was refused
+        // afterwards with WHAT_HAPPENED_REQUIRED. The form must not promise
+        // what the server will not honour.
+        const haveWhat = typeof a['what_happened'] === 'string' && (a['what_happened'] as string).trim().length > 0;
         const asked = await elicitDetailed(pickerLocale === 'ko'
           ? `"${q}"${due ? ` (확인일 ${due})` : ''}\n\n현실이 어떻게 답했나요? → 키로 하나 고른 뒤, 아래 화살표로 수락 줄까지 내려가 선택하십시오.\n아직 결과가 안 나왔으면 "아직 모르겠다"를 고르세요. 지금 답하기 어려우면 Decline.`
           : `"${q}"${due ? ` (check-by ${due})` : ''}\n\nWhat did reality do? Pick one with →, then press Enter twice to reach Accept.\nNo answer yet? Choose "Don't know yet". Bad moment? Decline.`, {
@@ -123,8 +131,20 @@ export const settle: ToolModule = {
             // types here is THEIR words (spine-safe — never model-inferred).
             what_happened: {
               type: 'string',
-              title: pickerLocale === 'ko' ? '실제로 무슨 일이 있었나 (선택)' : 'What actually happened (optional)',
-              description: pickerLocale === 'ko' ? '무슨 일이 있었는지 당신의 말로 한 줄. ("아직 모르겠다"면 비워도 됩니다.)' : 'One line on what actually happened, in your words. (Leave blank if you do not know yet.)',
+              title: pickerLocale === 'ko'
+                ? (haveWhat ? '실제로 무슨 일이 있었나 (선택)' : '실제로 무슨 일이 있었나')
+                : (haveWhat ? 'What actually happened (optional)' : 'What actually happened'),
+              // No `minLength` even when it is needed — a constraint here blocks
+              // Accept inside the form, which is the defect this file already
+              // carries a comment about. The honest thing is to SAY it is needed
+              // and let the server refuse with the user's pick handed back.
+              description: pickerLocale === 'ko'
+                ? (haveWhat
+                  ? '무슨 일이 있었는지 당신의 말로 한 줄. 비우면 앞서 말씀하신 내용을 그대로 씁니다.'
+                  : '무슨 일이 있었는지 당신의 말로 한 줄. 결과를 남기려면 이 줄이 필요합니다.\n아직 모르겠으면 위에서 "아직 모르겠다"를 고르세요.')
+                : (haveWhat
+                  ? 'One line on what actually happened, in your words. Leave blank to keep what you already said.'
+                  : 'One line, in your words. A settled record needs it.\nNot sure yet? Choose "Don\'t know yet" above.'),
             },
           },
           // 필수 필드 없음 (2026-07-27, 창업자 도그푸딩 스크린샷).
@@ -227,10 +247,24 @@ export const settle: ToolModule = {
       // A real settlement records what reality did — required for a terminal
       // outcome (still_pending returned above, where it is genuinely optional).
       if (!(typeof a['what_happened'] === 'string' && a['what_happened'].trim())) {
+        // Hand back the outcome they just chose. Found on real hardware
+        // 2026-07-28: picking "It held" and leaving the sentence blank refused
+        // with nothing in `data`, so the model asked them to pick the outcome
+        // AGAIN — the same make-them-do-it-twice class as the reword hand-back.
+        // Their pick is in our hands at this moment; keep it.
         return toolError({
           ok: false, tool: 'argus_settle', error_code: 'WHAT_HAPPENED_REQUIRED',
           message: 'Record what reality did to the prediction.',
-          recovery: 'Ask the user what actually happened and pass it as `what_happened` — never infer it.',
+          recovery: outcome
+            ? 'The user already picked the outcome (data.user_input.outcome). Do not ask for it again: ask only what actually happened, in their words, and call again passing BOTH.'
+            : 'Ask the user what actually happened and pass it as `what_happened` — never infer it.',
+          data: {
+            id,
+            ...(outcome ? {
+              user_input: { outcome },
+              retry_hint: 'the user already chose data.user_input.outcome — ask only for what happened and call again with both. Never make them choose twice.',
+            } : {}),
+          },
         });
       }
 

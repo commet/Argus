@@ -2,6 +2,21 @@
 
 ## 2.0.4 — The Accept that was thrown away, and the keepsakes nobody had looked at
 
+**A form that promised what the server would refuse**
+
+Found by driving the real Claude Code on real hardware, not by a harness. The
+settle picker labelled its what-happened box "(optional)" and told the user to
+leave it blank if they did not know yet. Picking an outcome and doing exactly
+that was then refused with `WHAT_HAPPENED_REQUIRED` — and the refusal carried
+nothing, so the model asked them to choose the outcome a second time.
+
+The label is now conditional: optional only when the model already carried the
+sentence in from the conversation, and otherwise it says a settled record needs
+it and points at "Don't know yet" for the case where reality has not answered.
+The refusal hands back the outcome they already picked, the same way an
+over-long reword is handed back. No `minLength` was added — a constraint there
+would block Accept inside the form, which is the very defect below.
+
 **Pressing Accept did nothing, and it was our schema that made it so**
 
 The third report of "Accept does not work". The first two fixes — a `required`

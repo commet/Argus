@@ -298,6 +298,14 @@ selfTest(
   'node evals/keepsake-frames.mjs',
 );
 selfTest(
+  '자기검증 ⑳ 화면이 서버가 요구할 칸을 선택이라 부르는 회귀를 잡는가',
+  'src/tools/settle.ts',
+  (s) => s.replace(
+    "                : (haveWhat ? 'What actually happened (optional)' : 'What actually happened'),",
+    "                : 'What actually happened (optional)',"),
+  'node evals/host-matrix.mjs',
+);
+selfTest(
   '자기검증 ⑲ 확인창에 입력칸이 되돌아오는 회귀를 잡는가',
   'src/tools/seal.ts',
   (s) => s.replace(

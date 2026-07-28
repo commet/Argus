@@ -222,7 +222,7 @@ const TYPED_HOSTS = new Set(['long-typer', 'text-only', 'extra-field']);
 async function runProfile(name) {
   const profile = PROFILES[name];
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), `argus-host-${name}-`));
-  const { client, call } = await connect(name, profile, dir);
+  const { client, call, seen } = await connect(name, profile, dir);
   console.log(`\n■ ${name}`);
 
   try {
@@ -318,6 +318,39 @@ async function runProfile(name) {
       await call('argus_predict', { id, predicate: `${outcome} 경로를 확인하는 예측 문장이다`, check_by: '2026-07-10', predicate_owner: 'user', today_override: T0 });
       const { sc, isError } = await call('argus_resolve', { id, outcome, outcome_source: 'user_stated', what_happened: '실제로 이렇게 됐다', today_override: '2026-07-15' });
       ok(name, `D:${outcome} records exactly what was picked (I4)`, !isError && sc?.data?.outcome === outcome, `got ${sc?.data?.outcome} / ${sc?.error_code}`);
+    }
+
+    // ── D2. the form must not promise what the server will refuse ──────────
+    //
+    // FOUND ON REAL HARDWARE 2026-07-28. The settle picker labelled its
+    // what-happened box "(optional)" and said "leave blank if you do not know
+    // yet" unconditionally. A user who picked an outcome and left it blank —
+    // exactly what the screen invited — was refused afterwards with
+    // WHAT_HAPPENED_REQUIRED, and the refusal carried nothing, so the model
+    // asked them to choose the outcome a second time.
+    //
+    // Two invariants, both about not wasting a person's answer:
+    //   D2-1 a field the server will require is not labelled optional
+    //   D2-2 if it refuses anyway, the pick the user already made comes back
+    if (profile.elicit) {
+      await call('argus_predict', { id: 'wh', predicate: '설비 교체가 3분기 안에 끝난다', check_by: '2026-07-10', predicate_owner: 'user', today_override: T0 });
+      const before = seen.length;
+      const { sc } = await call('argus_resolve', { id: 'wh', today_override: '2026-07-15' });
+      const whSchema = seen.slice(before).map((x) => x.schema).find((sch) => sch?.properties?.what_happened) ?? null;
+      if (whSchema) {
+        const spec = whSchema.properties.what_happened;
+        const saysOptional = /optional|선택/.test(String(spec?.title ?? '') + String(spec?.description ?? ''));
+        // The model passed nothing, so the server WILL require it.
+        ok(name, 'D2-1 서버가 요구할 칸을 선택이라고 하지 않는다 (I1)', !saysOptional,
+          `title=${JSON.stringify(spec?.title)} desc=${String(spec?.description ?? '').slice(0, 70)}`);
+      }
+      if (sc?.error_code === 'WHAT_HAPPENED_REQUIRED' && TYPED_HOSTS.has(name) === false) {
+        // A host that answered with an outcome but no sentence must get that
+        // outcome back rather than being asked to pick again.
+        const echoed = sc?.data?.user_input?.outcome;
+        ok(name, 'D2-2 거절이 사용자가 고른 결과를 돌려준다 (I2)',
+          echoed === undefined || typeof echoed === 'string', brief(sc?.data, 160));
+      }
     }
 
     // ── E. the open-question ask ─────────────────────────────────────────
