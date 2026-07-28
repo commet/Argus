@@ -76,10 +76,25 @@ const patch = (v) => v.split('.').slice(1).join('.');
 ok('V5 플러그인과 서버가 같은 패치 라인', patch(plugin.version) === patch(SERVER_V),
   `플러그인 ${plugin.version} / 서버 ${SERVER_V}`);
 
+// The manifests can agree while the command a person copies still launches an
+// old or nonexistent server. Keep the public install pin in the same gate.
+const DOC_PINS = ['argus-mcp/README.md'];
+const escapedPackage = pkg.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const pinRe = new RegExp(`${escapedPackage}@([^\\s"'()\`\\]]+)`, 'g');
+for (const rel of DOC_PINS) {
+  const body = fs.readFileSync(path.join(ROOT, rel), 'utf8');
+  const found = [...body.matchAll(pinRe)].map((match) => match[1]);
+  ok(`V6 ${rel}에 설치 핀이 있다`, found.length > 0, '설치 예시에 버전 핀이 없다');
+  for (const version of new Set(found)) {
+    ok(`V6 ${rel} 핀 ${version} = 배포 버전`, version === SERVER_V,
+      `문서 ${version} vs 배포 ${SERVER_V}`);
+  }
+}
+
 const label = `${checks} checks · ${violations.length} violations`;
 if (violations.length) {
   console.error(`\n❌ ${label}\n`);
   for (const v of violations) console.error('  ' + v);
   process.exit(1);
 }
-console.log(`✅ ${label} — 서버 ${SERVER_V} · 플러그인 ${plugin.version}, 다섯 곳이 일치합니다.`);
+console.log(`✅ ${label} — 서버 ${SERVER_V} · 플러그인 ${plugin.version}, manifest와 공개 설치 핀이 일치합니다.`);

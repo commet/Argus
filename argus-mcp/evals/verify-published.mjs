@@ -21,6 +21,7 @@
  * something new, or they quietly degrade into "the file is not empty".
  */
 import { execFileSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -42,8 +43,31 @@ const BUNDLE_MARKERS = [
   // 2.0.4 shipped: main carried the fix, the published build did not, and both
   // called themselves 2.0.4 because the version gate only compares version
   // strings to each other. This marker is what makes that visible next time.
-  ["봉인 이벤트가 출처를 싣는다 (2.0.5)", "predicate_owner: a['predicate_owner']"],
+  ["봉인 이벤트가 출처를 싣는다 (2.0.5)", /predicate_owner:\s*[A-Za-z0-9_$]*\[['"]predicate_owner['"]\]/],
+  // npm 2.0.5 was cut before PR #318 merged. It has the provenance fix above,
+  // but its elicitation adapter does not consult the host capability and is
+  // therefore not the verified picker build. This exact branch is present in
+  // 2.0.6 and absent from the immutable 2.0.5 tarball.
+  ['host capability is checked before elicitation (2.0.6)', 'if (!_elicit || !canElicit())'],
 ];
+
+const markerMatches = (bundle, marker) => (
+  marker instanceof RegExp ? marker.test(bundle) : bundle.includes(marker)
+);
+
+// Catch an impossible marker before it can be misreported as a publish failure.
+// A local dist is optional for post-publish use, but CI builds it first.
+const localEntry = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', 'dist', 'index.js');
+if (fs.existsSync(localEntry)) {
+  const localBundle = fs.readFileSync(localEntry, 'utf8');
+  const impossible = BUNDLE_MARKERS
+    .filter(([, marker]) => !markerMatches(localBundle, marker))
+    .map(([label]) => label);
+  if (impossible.length) {
+    console.error(`릴리스 마커 자체가 현재 빌드와 맞지 않습니다: ${impossible.join(', ')}`);
+    process.exit(1);
+  }
+}
 
 const VERSION = process.argv[2] ?? '2.0.4';
 const work = fs.mkdtempSync(path.join(os.tmpdir(), 'pubcheck-'));
@@ -83,7 +107,7 @@ const check = (name, cond, detail) => {
 
 check(`버전이 ${VERSION}`, declared === VERSION, `실제 ${declared}`);
 for (const [label, marker] of BUNDLE_MARKERS) {
-  check(label, bundle.includes(marker), `번들에 ${marker} 없음`);
+  check(label, markerMatches(bundle, marker), `번들에 ${marker} 없음`);
 }
 
 // ── drive the real downloaded server ────────────────────────────────────────

@@ -1,5 +1,11 @@
 # Changelog
 
+## 3.0.6 — 2026-07-29
+
+- Pins `argus-decision-mcp@2.0.6`, the first published MCP build that preserves
+  fast Decline and never disables later picker surfaces.
+- Keeps the six-tool MCP surface and four-role deep-review plugin unchanged.
+
 ## 3.0.5 — 2026-07-29
 
 - Wire moves to `argus-decision-mcp@2.0.5` — **a line Argus drafted can no longer

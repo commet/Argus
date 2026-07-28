@@ -46,12 +46,45 @@ function resolveCodexCommand() {
   if (process.platform !== 'win32') return 'codex';
 
   const found = spawnSync('where.exe', ['codex'], { encoding: 'utf8' });
-  const executable = String(found.stdout ?? '')
+  const candidates = String(found.stdout ?? '')
     .split(/\r?\n/)
     .map((line) => line.trim())
-    .find((line) => /\.exe$/i.test(line) && fs.existsSync(line));
-  if (!executable) throw new Error('codex.exe not found on PATH');
-  return executable;
+    .filter(Boolean);
+  const executable = candidates.find((line) => /\.exe$/i.test(line) && fs.existsSync(line));
+  if (executable) return executable;
+
+  // A normal npm install exposes codex.cmd/codex.ps1, while Node's spawn cannot
+  // launch those shims without a shell. Resolve the vendored native binary the
+  // shim points at instead; all values come from PATH and bounded package dirs.
+  const scanScope = (scope) => {
+    if (!fs.existsSync(scope)) return null;
+    for (const packageName of fs.readdirSync(scope)) {
+      const packageRoot = path.join(scope, packageName);
+      const bin = path.join(packageRoot, 'bin');
+      if (fs.existsSync(bin)) {
+        const directBin = fs.readdirSync(bin)
+          .map((name) => path.join(bin, name))
+          .find((file) => /^codex.*\.exe$/i.test(path.basename(file)) && fs.existsSync(file));
+        if (directBin) return directBin;
+      }
+      const vendor = path.join(packageRoot, 'vendor');
+      if (!fs.existsSync(vendor)) continue;
+      for (const target of fs.readdirSync(vendor)) {
+        const native = path.join(vendor, target, 'bin', 'codex.exe');
+        if (fs.existsSync(native)) return native;
+      }
+    }
+    return null;
+  };
+  for (const shim of candidates) {
+    const topScope = path.join(path.dirname(shim), 'node_modules', '@openai');
+    const optionalScope = path.join(topScope, 'codex', 'node_modules', '@openai');
+    const optionalDependency = scanScope(optionalScope);
+    if (optionalDependency) return optionalDependency;
+    const topLevel = scanScope(topScope);
+    if (topLevel) return topLevel;
+  }
+  throw new Error('Codex native executable not found from PATH (set CODEX_CLI_PATH)');
 }
 
 const codexHome = fs.mkdtempSync(path.join(ROOT, '.codex-app-eval-'));
