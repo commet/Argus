@@ -99,7 +99,7 @@ export function NextStepGuide({
                 <div className="flex items-center gap-2">
                   <span className="text-[13px] font-bold text-[var(--text-primary)]">{option.label}</span>
                   {option.primary && (
-                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-[var(--accent)] text-[var(--bg)] font-semibold">{t('ui.recommended')}</span>
+                    <span className="text-[12px] px-1.5 py-0.5 rounded bg-[var(--accent)] text-[var(--bg)] font-semibold">{t('ui.recommended')}</span>
                   )}
                 </div>
                 <p className="text-[12px] text-[var(--text-secondary)] mt-0.5 leading-relaxed">{option.reason}</p>

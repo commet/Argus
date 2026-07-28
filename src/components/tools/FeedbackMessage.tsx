@@ -101,7 +101,7 @@ export function FeedbackMessage({
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 mb-1">
           <span className="text-[13px] font-bold text-[var(--text-primary)]">{personaName}</span>
-          <span className={`text-[10px] font-semibold ${CATEGORY_COLORS[category] || 'text-[var(--text-tertiary)]'}`}>
+          <span className={`text-[12px] font-semibold ${CATEGORY_COLORS[category] || 'text-[var(--text-tertiary)]'}`}>
             {categoryIcon && <span className="inline-flex mr-0.5 align-middle">{categoryIcon}</span>}
             {category}
           </span>

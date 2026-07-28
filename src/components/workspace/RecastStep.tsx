@@ -556,7 +556,7 @@ export function RecastStep({ onNavigate }: RecastStepProps) {
           {(() => {
             const signals = getSignals({ tool: 'recast' });
             return signals.length > 0 ? (
-              <p className="text-[11px] text-[var(--text-tertiary)] mt-1.5">
+              <p className="text-[12.5px] text-[var(--text-tertiary)] mt-1.5">
                 {L(`지난 실행 설계 ${signals.length}번이 이번 분석에 반영돼요`, `Your last ${signals.length} execution plans are shaping this analysis`)}
               </p>
             ) : null;
@@ -594,7 +594,7 @@ export function RecastStep({ onNavigate }: RecastStepProps) {
       {(!current || current.status === 'input') && !currentId && (
         <Card>
           {reframeCtx && (
-            <div className="flex items-center gap-1.5 text-[11px] text-[var(--accent)] mb-3">
+            <div className="flex items-center gap-1.5 text-[12.5px] text-[var(--accent)] mb-3">
               <Check size={12} /> {L('문제 재정의에서 가져온 맥락이 반영됐어요', 'Context carried over from your reframe')}
             </div>
           )}
@@ -614,14 +614,14 @@ export function RecastStep({ onNavigate }: RecastStepProps) {
             initialText={inputText}
             contextPanel={reframeCtx ? (
               <div className="rounded-xl bg-[var(--bg)] border border-[var(--border-subtle)] px-4 py-3">
-                <p className="text-[11px] font-bold text-[var(--text-secondary)] uppercase tracking-wider mb-1.5">{L('문제 재정의에서 도출된 맥락', 'Context from reframe')}</p>
+                <p className="text-[12.5px] font-bold text-[var(--text-secondary)] uppercase tracking-wider mb-1.5">{L('문제 재정의에서 도출된 맥락', 'Context from reframe')}</p>
                 <p className="text-[14px] font-semibold text-[var(--text-primary)] leading-snug">
                   {reframeCtx.reframed_question || reframeCtx.surface_task}
                 </p>
                 {reframeCtx.unverified_assumptions && reframeCtx.unverified_assumptions.length > 0 && (
                   <div className="mt-2 flex flex-wrap gap-1.5">
                     {reframeCtx.unverified_assumptions.slice(0, 3).map((a, i) => (
-                      <span key={i} className="px-2 py-0.5 rounded-full bg-[var(--warning)]/10 text-[var(--warning)] text-[10px] font-medium border border-[var(--warning)]/30">
+                      <span key={i} className="px-2 py-0.5 rounded-full bg-[var(--warning)]/10 text-[var(--warning)] text-[12px] font-medium border border-[var(--warning)]/30">
                         {L('미확인', 'Unverified')}: {typeof a === 'string' ? a : a.assumption}
                       </span>
                     ))}
@@ -660,7 +660,7 @@ export function RecastStep({ onNavigate }: RecastStepProps) {
                 <div className="flex items-center gap-2">
                   <AlertTriangle size={14} /> <span>{error}</span>
                 </div>
-                <button onClick={() => { setError(''); handleAnalyze(); }} className="shrink-0 px-2.5 py-1 rounded-lg text-[11px] font-medium border border-[var(--danger)]/25 text-[var(--danger)] hover:bg-[var(--danger)]/15 cursor-pointer transition-colors">
+                <button onClick={() => { setError(''); handleAnalyze(); }} className="shrink-0 px-2.5 py-1 rounded-lg text-[12.5px] font-medium border border-[var(--danger)]/25 text-[var(--danger)] hover:bg-[var(--danger)]/15 cursor-pointer transition-colors">
                   {L('다시 시도', 'Retry')}
                 </button>
               </div>
@@ -679,10 +679,10 @@ export function RecastStep({ onNavigate }: RecastStepProps) {
               is never mistaken for the surfaced conclusion (honest provenance). */}
           {streamingText && (
             <div className="mt-3 px-1" aria-hidden="true">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--text-tertiary)] mb-1">
+              <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-[var(--text-tertiary)] mb-1">
                 {L('초안 작성 중…', 'Drafting…')}
               </p>
-              <p className="text-[11.5px] leading-[1.6] text-[var(--text-tertiary)] italic line-clamp-3 break-all opacity-80">
+              <p className="text-[13px] leading-[1.6] text-[var(--text-tertiary)] italic line-clamp-3 break-all opacity-80">
                 {streamingText.slice(-360)}
               </p>
             </div>
@@ -700,7 +700,7 @@ export function RecastStep({ onNavigate }: RecastStepProps) {
               {/* 재정의된 질문 (from 항로 재설정) — compact reference */}
               {relatedReframe?.analysis && (
                 <div className="rounded-xl bg-[var(--bg)] px-4 py-3">
-                  <p className="text-[11px] font-medium text-[var(--text-secondary)] mb-1">{L('문제 재정의에서 정리된 질문', 'Reframed question from Reframe')}</p>
+                  <p className="text-[12.5px] font-medium text-[var(--text-secondary)] mb-1">{L('문제 재정의에서 정리된 질문', 'Reframed question from Reframe')}</p>
                   <p className="text-[14px] font-bold text-[var(--text-primary)] leading-snug">
                     {relatedReframe.selected_question || relatedReframe.analysis.reframed_question || relatedReframe.analysis.surface_task}
                   </p>
@@ -709,12 +709,12 @@ export function RecastStep({ onNavigate }: RecastStepProps) {
 
               {/* 핵심 방향 */}
               <div className="rounded-xl bg-[var(--primary)] text-[var(--bg)] px-5 py-4 shadow-md">
-                <p className="text-[11px] font-medium text-white/50 mb-1">{t('recast.governingIdea')}</p>
+                <p className="text-[12.5px] font-medium text-white/50 mb-1">{t('recast.governingIdea')}</p>
                 <p className="text-[16px] font-bold leading-snug" style={{ fontFamily: 'var(--font-display)' }}>
                   {current.analysis.governing_idea}
                 </p>
                 {/* Honest provenance: governing_idea is AI-drafted, not the user's settled call. */}
-                <p className="text-[10px] text-white/45 mt-2">
+                <p className="text-[12px] text-white/45 mt-2">
                   {locale === 'ko' ? 'AI가 잡아본 방향 — 고쳐도 돼요' : 'AI’s first draft — yours to change'}
                 </p>
               </div>
@@ -765,7 +765,7 @@ export function RecastStep({ onNavigate }: RecastStepProps) {
               <div className="flex items-center gap-2">
                 <AlertTriangle size={14} /> <span>{error}</span>
               </div>
-              <button onClick={() => { setError(''); handleAnalyze(); }} className="shrink-0 px-2.5 py-1 rounded-lg text-[11px] font-medium border border-[var(--danger)]/25 text-[var(--danger)] hover:bg-[var(--danger)]/15 cursor-pointer transition-colors">
+              <button onClick={() => { setError(''); handleAnalyze(); }} className="shrink-0 px-2.5 py-1 rounded-lg text-[12.5px] font-medium border border-[var(--danger)]/25 text-[var(--danger)] hover:bg-[var(--danger)]/15 cursor-pointer transition-colors">
                 {L('다시 시도', 'Retry')}
               </button>
             </div>
@@ -826,12 +826,12 @@ export function RecastStep({ onNavigate }: RecastStepProps) {
                     : L(`${steps.length}단계 중 AI가 전체를 실행합니다`, `AI will run all ${steps.length} steps`)}
                 </p>
                 {aiAuto > 0 && (
-                  <p className="text-[11px] text-[var(--text-secondary)] mb-2.5">
+                  <p className="text-[12.5px] text-[var(--text-secondary)] mb-2.5">
                     {L(`나머지 ${aiAuto}단계는 AI가 실행합니다${checkpoints > 0 ? ` · 체크포인트 ${checkpoints}곳` : ''}`, `The other ${aiAuto} steps run on AI${checkpoints > 0 ? ` · ${checkpoints} checkpoints` : ''}`)}
                   </p>
                 )}
                 {keyAssumptions > 0 && (
-                  <p className="text-[11px] text-[var(--accent)]">
+                  <p className="text-[12.5px] text-[var(--accent)]">
                     {L(`핵심 가정 ${keyAssumptions}건 — 리허설에서 이해관계자들이 검증합니다`, `${keyAssumptions} key assumptions — stakeholders will verify them in rehearsal`)}
                   </p>
                 )}
@@ -955,24 +955,24 @@ function QuickRehearsalCard({
               <div className="flex items-center gap-2 flex-wrap mb-0.5">
                 <span className="text-[14px] font-bold text-[var(--text-primary)]">{reviewer.name}</span>
                 <span className="text-[12px] text-[var(--text-secondary)]">{reviewer.role}</span>
-                <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold ${influenceColors[reviewer.influence]}`}>
+                <span className={`px-1.5 py-0.5 rounded text-[12.5px] font-bold ${influenceColors[reviewer.influence]}`}>
                   {influenceLabels[reviewer.influence]}
                 </span>
               </div>
               <p className="text-[12px] text-[var(--text-secondary)] leading-relaxed mb-1.5">{reviewer.why_relevant}</p>
               <div className="flex flex-wrap gap-1.5">
                 {reviewer.decision_style && (
-                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-[var(--ai)] text-[var(--ai-fg)] font-medium">
+                  <span className="text-[12px] px-1.5 py-0.5 rounded bg-[var(--ai)] text-[var(--ai-fg)] font-medium">
                     {{ analytical: L('데이터 중심', 'Data-driven'), intuitive: L('직관 중심', 'Intuitive'), consensus: L('합의 중시', 'Consensus-driven'), directive: L('빠른 결정', 'Decisive') }[reviewer.decision_style]}
                   </span>
                 )}
                 {reviewer.risk_tolerance && (
-                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-[var(--bg)] text-[var(--text-secondary)] font-medium">
+                  <span className="text-[12px] px-1.5 py-0.5 rounded bg-[var(--bg)] text-[var(--text-secondary)] font-medium">
                     {L('리스크', 'Risk')} {{ low: L('회피', 'averse'), medium: L('균형', 'balanced'), high: L('수용', 'tolerant') }[reviewer.risk_tolerance]}
                   </span>
                 )}
                 {reviewer.success_metric && (
-                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-[var(--collab)] text-[var(--both-fg)] font-medium">
+                  <span className="text-[12px] px-1.5 py-0.5 rounded bg-[var(--collab)] text-[var(--both-fg)] font-medium">
                     OK: {reviewer.success_metric.slice(0, 30)}{reviewer.success_metric.length > 30 ? '...' : ''}
                   </span>
                 )}

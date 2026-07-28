@@ -128,7 +128,7 @@ export function PremiseTracker({ receipt }: { receipt: JudgmentReceipt }) {
 
   return (
     <Card variant="muted">
-      <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--text-secondary)] mb-2">
+      <div className="text-[12px] font-bold uppercase tracking-[0.18em] text-[var(--text-secondary)] mb-2">
         {L('추적 중인 전제', 'Tracked premises')}
       </div>
 
@@ -149,23 +149,23 @@ export function PremiseTracker({ receipt }: { receipt: JudgmentReceipt }) {
                 className="text-[13px] border-b border-[var(--border-subtle)] last:border-0 pb-2.5 last:pb-0 scroll-mt-24 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/40"
               >
                 <div className="flex items-start gap-2">
-                  <span className="inline-block px-1 py-0.5 mt-0.5 text-[10px] rounded border border-[var(--border-subtle)] text-[var(--text-tertiary)] tabular-nums shrink-0">P{p.ordinal}</span>
+                  <span className="inline-block px-1 py-0.5 mt-0.5 text-[12px] rounded border border-[var(--border-subtle)] text-[var(--text-tertiary)] tabular-nums shrink-0">P{p.ordinal}</span>
                   <div className="min-w-0 flex-1">
                     <span className="text-[var(--text-primary)]">{p.text}</span>
-                    {p.load_bearing && <span className="ml-1.5 text-[10px] text-[var(--accent)]">{L('핵심', 'critical')}</span>}
-                    {isOpenQ && <span className="ml-1.5 text-[10px] text-[var(--text-tertiary)]">{L('미결', 'open')}</span>}
+                    {p.load_bearing && <span className="ml-1.5 text-[12px] text-[var(--accent)]">{L('핵심', 'critical')}</span>}
+                    {isOpenQ && <span className="ml-1.5 text-[12px] text-[var(--text-tertiary)]">{L('미결', 'open')}</span>}
                     {due && (
-                      <span className="ml-1.5 text-[10px] px-1 py-0.5 rounded bg-[var(--warning)]/10 text-[var(--warning)] border border-[var(--warning)]/30">{L('확인할 때', 'due')}</span>
+                      <span className="ml-1.5 text-[12px] px-1 py-0.5 rounded bg-[var(--warning)]/10 text-[var(--warning)] border border-[var(--warning)]/30">{L('확인할 때', 'due')}</span>
                     )}
                     {shared > 0 && (
                       /* Quiet cross-link (judgment graph): a count, never a nudge —
                          the same ground literally appears under other judgments. */
-                      <p className="mt-0.5 text-[11px] text-[var(--text-tertiary)]">
+                      <p className="mt-0.5 text-[12.5px] text-[var(--text-tertiary)]">
                         {L(`이 전제는 다른 판단 ${shared}개 아래에도 있어요.`, `Also under ${shared} other judgment${shared === 1 ? '' : 's'}.`)}
                       </p>
                     )}
                     {last && (
-                      <div className="mt-1 space-y-1 text-[11px] text-[var(--text-tertiary)]">
+                      <div className="mt-1 space-y-1 text-[12.5px] text-[var(--text-tertiary)]">
                         <p>
                           {L('지난 확인', 'Last check')}: {last.finding}
                           {last.drifted && <span className="text-[var(--warning)]"> · {L('바뀜', 'changed')}</span>}
@@ -196,7 +196,7 @@ export function PremiseTracker({ receipt }: { receipt: JudgmentReceipt }) {
                   </div>
                   <button
                     onClick={() => (recheckId === p.premise_id ? setRecheckId(null) : openRecheck(p.premise_id))}
-                    className="text-[11px] text-[var(--text-tertiary)] hover:text-[var(--accent)] shrink-0"
+                    className="text-[12.5px] text-[var(--text-tertiary)] hover:text-[var(--accent)] shrink-0"
                   >
                     {recheckId === p.premise_id ? L('닫기', 'Close') : L('지금 현실은?', 'Reality now?')}
                   </button>
@@ -204,7 +204,7 @@ export function PremiseTracker({ receipt }: { receipt: JudgmentReceipt }) {
 
                 {/* auto-watch opt-in (Workstream E) — monitored premises + open questions. */}
                 {(p.load_bearing || isOpenQ) && (
-                  <div className="mt-1.5 pl-7 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px]">
+                  <div className="mt-1.5 pl-7 flex flex-wrap items-center gap-x-2 gap-y-1 text-[12.5px]">
                     <button
                       onClick={() => store.setAutoWatch(receipt.receipt_id, p.premise_id, !p.auto_watch)}
                       className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full border ${p.auto_watch ? 'border-[var(--accent)] text-[var(--accent)]' : 'border-[var(--border-subtle)] text-[var(--text-tertiary)]'}`}
@@ -240,7 +240,7 @@ export function PremiseTracker({ receipt }: { receipt: JudgmentReceipt }) {
                       placeholder={L('지금 현실이 어떤지 한 문장으로 (예: "기준금리 3.75%로 올랐다")', 'One sentence on reality now')}
                       className="w-full text-[12px] p-2 rounded border border-[var(--border-subtle)] bg-[var(--bg)] text-[var(--text-primary)]"
                     />
-                    <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
+                    <div className="flex flex-wrap items-center gap-1.5 text-[12.5px]">
                       <button onClick={() => setMode('fact')} className={`px-2 py-0.5 rounded-full border ${mode === 'fact' ? 'border-[var(--accent)] text-[var(--accent)]' : 'border-[var(--border-subtle)] text-[var(--text-tertiary)]'}`}>{L('사실', 'Fact')}</button>
                       <button onClick={() => setMode('number')} className={`px-2 py-0.5 rounded-full border ${mode === 'number' ? 'border-[var(--accent)] text-[var(--accent)]' : 'border-[var(--border-subtle)] text-[var(--text-tertiary)]'}`}>{L('수치', 'Number')}</button>
                       {mode === 'number' ? (
@@ -261,7 +261,7 @@ export function PremiseTracker({ receipt }: { receipt: JudgmentReceipt }) {
                     </div>
                     <div className="flex items-center gap-2">
                       <Button size="sm" onClick={() => submitRecheck(p)} disabled={!finding.trim()}>{L('기록', 'Record')}</Button>
-                      <button onClick={() => store.retirePremise(receipt.receipt_id, p.premise_id)} className="text-[11px] text-[var(--text-tertiary)] hover:text-[var(--danger)]">{L('추적 그만', 'Stop tracking')}</button>
+                      <button onClick={() => store.retirePremise(receipt.receipt_id, p.premise_id)} className="text-[12.5px] text-[var(--text-tertiary)] hover:text-[var(--danger)]">{L('추적 그만', 'Stop tracking')}</button>
                     </div>
                   </div>
                 )}
@@ -279,7 +279,7 @@ export function PremiseTracker({ receipt }: { receipt: JudgmentReceipt }) {
             </button>
           ) : (
             <div className="space-y-1.5">
-              <p className="text-[11px] text-[var(--text-tertiary)]">
+              <p className="text-[12.5px] text-[var(--text-tertiary)]">
                 {atCap
                   ? L(`최대 ${MAX_ACTIVE_PREMISES}개까지예요. 하나를 그만 추적하면 더 추가할 수 있어요.`, `Up to ${MAX_ACTIVE_PREMISES} items. Stop tracking one to add more.`)
                   : L('전제(사실 가정)나 아직 못 정한 판단(미결)을 고르세요. 확인일이 되면 이메일로 알려드려요.', 'Pick a premise (a fact you\'re assuming) or a decision you haven\'t made (open). We email you at the cadence.')}
@@ -290,7 +290,7 @@ export function PremiseTracker({ receipt }: { receipt: JudgmentReceipt }) {
                     <button
                       disabled={atCap}
                       onClick={() => store.promotePremise(receipt.receipt_id, { text: t, load_bearing: true, external: true })}
-                      className="text-[11px] px-1.5 py-0.5 rounded border border-[var(--border-subtle)] text-[var(--accent)] hover:border-[var(--accent)] disabled:opacity-40 disabled:cursor-not-allowed"
+                      className="text-[12.5px] px-1.5 py-0.5 rounded border border-[var(--border-subtle)] text-[var(--accent)] hover:border-[var(--accent)] disabled:opacity-40 disabled:cursor-not-allowed"
                       title={L('사실 가정으로 추적 — 바뀌면 알림', 'Track as a fact assumption — alert on change')}
                     >
                       {L('전제로', 'As premise')}
@@ -298,7 +298,7 @@ export function PremiseTracker({ receipt }: { receipt: JudgmentReceipt }) {
                     <button
                       disabled={atCap}
                       onClick={() => store.promotePremise(receipt.receipt_id, { text: t, load_bearing: false, external: true, kind: 'open_question' })}
-                      className="text-[11px] px-1.5 py-0.5 rounded border border-[var(--border-subtle)] text-[var(--text-tertiary)] hover:border-[var(--accent)] hover:text-[var(--accent)] disabled:opacity-40 disabled:cursor-not-allowed"
+                      className="text-[12.5px] px-1.5 py-0.5 rounded border border-[var(--border-subtle)] text-[var(--text-tertiary)] hover:border-[var(--accent)] hover:text-[var(--accent)] disabled:opacity-40 disabled:cursor-not-allowed"
                       title={L('아직 못 정한 판단 — 도울 새 정보 나오면 알림', 'A decision you haven\'t made — alert on new info to decide it')}
                     >
                       {L('미결로', 'As open')}

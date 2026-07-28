@@ -41,7 +41,7 @@ export function InfluenceGrantPanel({
       <div className="flex items-start gap-3">
         <div className="mt-0.5 rounded-xl bg-[var(--accent)]/10 p-2 text-[var(--accent)]"><KeyRound size={17} /></div>
         <div className="min-w-0 flex-1">
-          <p className="text-[10px] font-bold tracking-[0.16em] text-[var(--accent)] uppercase">{L('별도 권한', 'Separate permission')}</p>
+          <p className="text-[12px] font-bold tracking-[0.16em] text-[var(--accent)] uppercase">{L('별도 권한', 'Separate permission')}</p>
           <h3 id={`${claim.claim_id}-grant-title`} className="mt-1 text-[16px] font-bold text-[var(--text-primary)]">
             {L('미래 AI가 이 기억을 어떻게 다뤄도 될까요?', 'How may future AI use this memory?')}
           </h3>
@@ -59,7 +59,7 @@ export function InfluenceGrantPanel({
               <label key={value} className={`cursor-pointer rounded-xl border p-3 transition-colors ${effect === value ? 'border-[var(--accent)] bg-[var(--surface)]' : 'border-[var(--border-subtle)]'}`}>
                 <span className="flex gap-2">
                   <input type="radio" name={`${claim.claim_id}-effect`} value={value} checked={effect === value} onChange={() => setEffect(value)} className="mt-1 accent-[var(--accent)]" />
-                  <span><span className="block text-[13px] font-semibold text-[var(--text-primary)]">{label}</span><span className="mt-0.5 block text-[11px] leading-5 text-[var(--text-secondary)]">{description}</span></span>
+                  <span><span className="block text-[13px] font-semibold text-[var(--text-primary)]">{label}</span><span className="mt-0.5 block text-[12.5px] leading-5 text-[var(--text-secondary)]">{description}</span></span>
                 </span>
               </label>
             ))}
@@ -102,7 +102,7 @@ export function InfluenceGrantPanel({
               <h4 className="text-[12px] font-bold text-[var(--text-primary)]">{L('현재 활성 권한', 'Active permissions')}</h4>
               <ul className="mt-2 grid gap-2">
                 {claim.active_grants.map((grant) => (
-                  <li key={grant.grant_id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-[var(--surface)] px-3 py-2 text-[11px] text-[var(--text-secondary)]">
+                  <li key={grant.grant_id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-[var(--surface)] px-3 py-2 text-[12.5px] text-[var(--text-secondary)]">
                     <span>{grant.effect} · {grant.surfaces.join(', ')} · {grant.scope.domain ?? L('지정 범위', 'specified scope')}</span>
                     <Button variant="ghost" size="sm" disabled={busy} onClick={() => onAction({ kind: 'revoke', claim_id: claim.claim_id, grant_id: grant.grant_id })}>
                       <Ban size={13} />{L('철회', 'Revoke')}

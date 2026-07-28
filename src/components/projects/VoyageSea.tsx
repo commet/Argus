@@ -795,7 +795,7 @@ export function VoyageSea({
       {beacon && (
         <div className="mb-2.5 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 rounded-xl px-4 py-3" style={{ background: `linear-gradient(105deg, ${N.gold}14 0%, ${N.card} 34%)`, border: `1px solid ${N.gold}30`, boxShadow: `0 1px 2px ${N.paper}0d` }}>
           <div className="min-w-0 flex-1">
-            <p className="flex items-center gap-2 text-[10px] font-mono uppercase tracking-[0.16em] font-semibold" style={{ color: N.goldInk }}>
+            <p className="flex items-center gap-2 text-[12px] font-mono uppercase tracking-[0.16em] font-semibold" style={{ color: N.goldInk }}>
               <span aria-hidden className="vsea-pulse inline-block w-1.5 h-1.5 rounded-full" style={{ background: N.gold }} />
               {L('그래서, 어떻게 됐어요?', 'So, how did it go?')}
               {dueShips.length > 1 && (
@@ -843,7 +843,7 @@ export function VoyageSea({
           className="inline-flex min-h-9 shrink-0 items-center gap-1.5 px-2.5 text-[12px] font-semibold transition-colors"
           style={!activeFilter ? { color: N.goldInk, boxShadow: `inset 0 -2px ${N.gold}` } : { color: 'var(--text-secondary)' }}
         >
-          {L('전체', 'All')} <span className="font-mono text-[10.5px] tabular-nums opacity-70">{ships.length}</span>
+          {L('전체', 'All')} <span className="font-mono text-[12.5px] tabular-nums opacity-70">{ships.length}</span>
         </button>
         {filterList.map((f) => {
           const on = activeFilter?.key === f.key;
@@ -860,7 +860,7 @@ export function VoyageSea({
               }}
             >
               {(f.gold || f.amber) && <span aria-hidden className="h-1.5 w-1.5 rounded-full" style={{ background: f.amber ? N.amber : N.gold }} />}
-              {L(f.ko, f.en)} <span className="font-mono text-[10.5px] tabular-nums opacity-70">{f.n}</span>
+              {L(f.ko, f.en)} <span className="font-mono text-[12.5px] tabular-nums opacity-70">{f.n}</span>
             </button>
           );
         })}
@@ -870,7 +870,7 @@ export function VoyageSea({
           finder makes every vessel directly reachable without blind taps; the
           chart then spends its scarce label space on the selected vessel. */}
       <label className="mb-2 flex min-h-11 items-center gap-2 border-b px-1 pb-2 sm:hidden" style={{ borderColor: `${N.ink}1c` }}>
-        <span className="shrink-0 text-[11px] font-semibold text-[var(--text-tertiary)]">{L('결정 찾기', 'Find decision')}</span>
+        <span className="shrink-0 text-[12.5px] font-semibold text-[var(--text-tertiary)]">{L('결정 찾기', 'Find decision')}</span>
         <select
           value={focusedDecisionId ?? ''}
           onChange={(event) => {
@@ -929,7 +929,7 @@ export function VoyageSea({
               is still out (미해소), below it it's home (항구·완료). Placed at the
               resolution boundary between sailing and docked. */}
         <div aria-hidden className="absolute left-0 right-0 pointer-events-none" style={{ top: '62%', height: 1, background: `linear-gradient(90deg, transparent, ${N.paper}22 8%, ${N.paper}22 92%, transparent)` }} />
-        <span aria-hidden className="absolute right-[2%] rounded-sm px-1.5 py-0.5 text-[10px] sm:text-[11px] font-mono pointer-events-none" style={{ top: 'calc(62% + 4px)', color: `${N.paper}d0`, background: 'rgba(2,28,27,.58)' }}>
+        <span aria-hidden className="absolute right-[2%] rounded-sm px-1.5 py-0.5 text-[12px] sm:text-[12.5px] font-mono pointer-events-none" style={{ top: 'calc(62% + 4px)', color: `${N.paper}d0`, background: 'rgba(2,28,27,.58)' }}>
           {L('↑ 아직 열려 있음 · 아래 결론에 가까움', '↑ still open · closer to conclusion below')}
         </span>
         {/* danger-zone tint — the upper-LEFT quadrant (unresolved + slipping).
@@ -944,16 +944,16 @@ export function VoyageSea({
         {thresholds.map((t) => (
           <div key={t.d} aria-hidden className="absolute top-[12%] pointer-events-none" style={{ left: `${t.x}%`, bottom: '30%' }}>
             <div className="absolute inset-y-0" style={{ width: 1, background: `repeating-linear-gradient(180deg, ${N.paper}2e 0 4px, transparent 4px 8px)` }} />
-            <span className="absolute -top-1 left-1 whitespace-nowrap rounded-sm px-1 py-0.5 text-[9.5px] sm:text-[10px] font-mono" style={{ color: `${N.paper}c4`, background: 'rgba(2,28,27,.52)' }}>{t.label}</span>
+            <span className="absolute -top-1 left-1 whitespace-nowrap rounded-sm px-1 py-0.5 text-[13px] sm:text-[12px] font-mono" style={{ color: `${N.paper}c4`, background: 'rgba(2,28,27,.52)' }}>{t.label}</span>
           </div>
         ))}
 
         {/* X-axis captions — the horizontal meaning (the home line + zone tags
             carry the vertical). Kept quiet; the "읽는 법" key does the teaching. */}
-        <span className="absolute bottom-2.5 left-[2%] z-[3] rounded-sm px-1.5 py-0.5 text-[10px] sm:text-[11px] font-mono pointer-events-none" style={{ color: `${N.paper}d0`, background: 'rgba(2,28,27,.58)' }}>
+        <span className="absolute bottom-2.5 left-[2%] z-[3] rounded-sm px-1.5 py-0.5 text-[12px] sm:text-[12.5px] font-mono pointer-events-none" style={{ color: `${N.paper}d0`, background: 'rgba(2,28,27,.58)' }}>
           ← {L('오래 살피지 않음', 'long untended')}
         </span>
-        <span className="absolute bottom-2.5 right-[2%] z-[3] rounded-sm px-1.5 py-0.5 text-[10px] sm:text-[11px] font-mono text-right pointer-events-none" style={{ color: `${N.paper}d0`, background: 'rgba(2,28,27,.58)' }}>
+        <span className="absolute bottom-2.5 right-[2%] z-[3] rounded-sm px-1.5 py-0.5 text-[12px] sm:text-[12.5px] font-mono text-right pointer-events-none" style={{ color: `${N.paper}d0`, background: 'rgba(2,28,27,.58)' }}>
           {L('최근 확인', 'recently checked')} →
         </span>
 
@@ -973,8 +973,8 @@ export function VoyageSea({
               : { background: `${N.card}e0`, color: N.amber, boxShadow: `inset 0 0 0 1px ${N.amber}59` }}
           >
             <span aria-hidden className="w-1.5 h-1.5 rounded-full" style={{ background: filter === 'idle' ? N.card : N.amber }} />
-            <span className="text-[11.5px] font-semibold" style={{ fontFamily: 'var(--font-display)' }}>{L('확인 필요', 'needs attention')}</span>
-            <span className="text-[11px] font-mono tabular-nums font-bold">{untended}</span>
+            <span className="text-[13px] font-semibold" style={{ fontFamily: 'var(--font-display)' }}>{L('확인 필요', 'needs attention')}</span>
+            <span className="text-[12.5px] font-mono tabular-nums font-bold">{untended}</span>
           </button>
         )}
         {sailingN > 0 && (
@@ -987,8 +987,8 @@ export function VoyageSea({
               ? { background: N.paper, color: N.ink }
               : { background: `${N.card}e0`, color: `${N.ink}b0`, boxShadow: `inset 0 0 0 1px ${N.ink}2e` }}
           >
-            <span className="text-[11.5px] font-semibold" style={{ fontFamily: 'var(--font-display)' }}>{L('진행 중', 'in progress')}</span>
-            <span className="text-[11px] font-mono tabular-nums font-bold">{sailingN}</span>
+            <span className="text-[13px] font-semibold" style={{ fontFamily: 'var(--font-display)' }}>{L('진행 중', 'in progress')}</span>
+            <span className="text-[12.5px] font-mono tabular-nums font-bold">{sailingN}</span>
           </button>
         )}
 
@@ -999,10 +999,10 @@ export function VoyageSea({
           type="button"
           onClick={() => setShowKey((v) => !v)}
           aria-expanded={showKey}
-          className="absolute bottom-11 right-2 z-[6] inline-flex min-h-9 items-center gap-1 rounded-full px-2.5 py-1 text-[11.5px] font-mono cursor-pointer transition-colors"
+          className="absolute bottom-11 right-2 z-[6] inline-flex min-h-9 items-center gap-1 rounded-full px-2.5 py-1 text-[13px] font-mono cursor-pointer transition-colors"
           style={{ background: `${N.card}ed`, color: `${N.ink}c8`, boxShadow: `inset 0 0 0 1px ${N.ink}22` }}
         >
-          <span aria-hidden className="inline-flex items-center justify-center rounded-full text-[9px] font-bold" style={{ width: 13, height: 13, background: `${N.ink}1a` }}>?</span>
+          <span aria-hidden className="inline-flex items-center justify-center rounded-full text-[12.5px] font-bold" style={{ width: 13, height: 13, background: `${N.ink}1a` }}>?</span>
           {showKey ? L('닫기', 'Close') : L('읽는 법', 'Legend')}
         </button>
         {showKey && (
@@ -1016,20 +1016,20 @@ export function VoyageSea({
             >
               {/* Lead with the payoff — what to LOOK for — then the mechanism.
                   Plain decision-language, not the nautical metaphor. */}
-              <p className="text-[11.5px] font-semibold leading-snug mb-1" style={{ color: N.ink, fontFamily: 'var(--font-display)' }}>
+              <p className="text-[13px] font-semibold leading-snug mb-1" style={{ color: N.ink, fontFamily: 'var(--font-display)' }}>
                   {L('표식 하나는 결정 하나를 뜻합니다.', 'Each marker represents one decision.')}
               </p>
-              <p className="text-[10.5px] leading-relaxed mb-2.5" style={{ color: `${N.ink}b0` }}>
+              <p className="text-[12.5px] leading-relaxed mb-2.5" style={{ color: `${N.ink}b0` }}>
                 {L('왼쪽 위로 갈수록 마지막 활동이 오래됐고 아직 진행 중인 결정입니다.', 'Markers toward the upper left are older and still in progress.')}
               </p>
               {/* the two axes — named by what each MEASURES, then its two ends */}
               <div className="space-y-1.5 mb-2.5">
-                <p className="text-[10.5px] leading-tight" style={{ color: `${N.ink}c8` }}>
+                <p className="text-[12.5px] leading-tight" style={{ color: `${N.ink}c8` }}>
                   <span className="font-semibold">{L('세로 ', 'Up/down ')}</span>
                   <span style={{ color: `${N.ink}90` }}>{L('얼마나 끝났나', 'how finished')}</span>
                     {L(' — 위 진행 중 · 아래 완료', ' — top: in progress · bottom: complete')}
                 </p>
-                <p className="text-[10.5px] leading-tight" style={{ color: `${N.ink}c8` }}>
+                <p className="text-[12.5px] leading-tight" style={{ color: `${N.ink}c8` }}>
                   <span className="font-semibold">{L('가로 ', 'Left/right ')}</span>
                   <span style={{ color: `${N.ink}90` }}>{L('언제 마지막에 봤나', 'last touched')}</span>
                   {L(' — 왼쪽 오래 전 · 오른쪽 최근', ' — left: long ago · right: recent')}
@@ -1044,7 +1044,7 @@ export function VoyageSea({
                   { st: 'verified', ko: '결과 확인 완료', en: 'outcome checked' },
                   { st: 'docked', ko: '아직 시작 전', en: 'not started' },
                 ] as const).map((r) => (
-                  <span key={r.st} className="flex items-center gap-1.5 text-[10px]" style={{ color: `${N.ink}c8` }}>
+                  <span key={r.st} className="flex items-center gap-1.5 text-[12px]" style={{ color: `${N.ink}c8` }}>
                     <span className="inline-flex items-end justify-center shrink-0" style={{ width: 20, height: 20 }}>
                       <ShipMark state={r.st} due={false} size={17} plain />
                     </span>
@@ -1052,7 +1052,7 @@ export function VoyageSea({
                   </span>
                 ))}
               </div>
-              <p className="text-[10px] pt-2 flex items-center gap-1.5" style={{ color: `${N.ink}9a`, borderTop: `1px solid ${N.ink}12` }}>
+              <p className="text-[12px] pt-2 flex items-center gap-1.5" style={{ color: `${N.ink}9a`, borderTop: `1px solid ${N.ink}12` }}>
                 <span aria-hidden style={{ color: N.gold }}>◆</span>
                 {L('표식을 누르면 결정을 열거나 결과를 확인할 수 있어요.', 'Select a marker to open the decision or review its outcome.')}
               </p>
@@ -1238,7 +1238,7 @@ export function VoyageSea({
                     card carries the name. */}
                 {(showKeyword || showKeywordMobile) && !s.beacon && (
                   <span
-                    className={`${showKeywordMobile || selected ? 'block' : 'hidden'} ${showKeyword || selected ? 'sm:block' : 'sm:hidden'} mt-1 max-w-[128px] text-center text-[11px] sm:text-[11.5px] leading-[1.25] break-keep line-clamp-1 font-semibold rounded-full px-2 py-0.5`}
+                    className={`${showKeywordMobile || selected ? 'block' : 'hidden'} ${showKeyword || selected ? 'sm:block' : 'sm:hidden'} mt-1 max-w-[128px] text-center text-[12.5px] sm:text-[13px] leading-[1.25] break-keep line-clamp-1 font-semibold rounded-full px-2 py-0.5`}
                     style={{
                       color: s.due ? N.goldInk : attention || hasAttentionSignal ? N.amberInk : `${N.ink}d8`,
                       fontFamily: 'var(--font-display)',
@@ -1262,7 +1262,7 @@ export function VoyageSea({
                     <span className="text-center text-[12.5px] leading-[1.35] break-keep line-clamp-3 font-medium" style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-display)' }}>
                       {s.name}
                     </span>
-                    <span className="text-[10px] font-mono whitespace-nowrap" style={{ color: s.due ? N.goldInk : 'var(--text-tertiary)' }}>
+                    <span className="text-[12px] font-mono whitespace-nowrap" style={{ color: s.due ? N.goldInk : 'var(--text-tertiary)' }}>
                       {stateLabel} · {s.sub}
                     </span>
                   </span>
@@ -1328,19 +1328,19 @@ export function VoyageSea({
               <p className="pr-7 text-[13px] font-semibold leading-snug break-keep line-clamp-2" style={{ color: N.ink, fontFamily: 'var(--font-display)' }}>
                 {s.name}
               </p>
-              <p className="mt-0.5 text-[10.5px] font-mono uppercase tracking-[0.06em] flex items-center gap-1.5" style={{ color: s.due ? N.gold : (s.state === 'adrift' || s.state === 'wrecked') ? N.amber : `${N.ink}88` }}>
+              <p className="mt-0.5 text-[12.5px] font-mono uppercase tracking-[0.06em] flex items-center gap-1.5" style={{ color: s.due ? N.gold : (s.state === 'adrift' || s.state === 'wrecked') ? N.amber : `${N.ink}88` }}>
                 <span className="inline-flex items-end" style={{ width: 15, height: 15 }}><ShipMark state={s.state} due={s.due} size={13} plain /></span>
                 {stateLabel} · {s.sub}
               </p>
               {/* the sealed bet this decision rests on — its own words. */}
               {s.premise && (
-                <p className="mt-2 text-[11px] leading-relaxed break-keep" style={{ color: `${N.ink}b0` }}>
-                  <span className="font-mono text-[9px] uppercase tracking-[0.1em]" style={{ color: `${N.ink}70` }}>{L('처음 기록한 전제', 'saved premise')}</span><br />
+                <p className="mt-2 text-[12.5px] leading-relaxed break-keep" style={{ color: `${N.ink}b0` }}>
+                  <span className="font-mono text-[12.5px] uppercase tracking-[0.1em]" style={{ color: `${N.ink}70` }}>{L('처음 기록한 전제', 'saved premise')}</span><br />
                   <em style={{ color: `${N.ink}d8` }}>「{s.premise.length > 60 ? `${s.premise.slice(0, 60)}…` : s.premise}」</em>
                 </p>
               )}
               {s.kind === 'project' && attentionSet.has(s.id) && !s.due && (
-                <p className="mt-2 text-[10.5px] leading-relaxed" style={{ color: N.amber }}>
+                <p className="mt-2 text-[12.5px] leading-relaxed" style={{ color: N.amber }}>
                   {L('다시 확인할 전제나 미결 질문이 있어요. 아래 목록에서 정확한 항목을 열 수 있습니다.', 'A premise or open question is due for review. Open the exact item from the list below.')}
                 </p>
               )}
@@ -1349,12 +1349,12 @@ export function VoyageSea({
                   together. This is the board's intelligence, not a menu. */}
               {leverageSibs.length > 0 && (
                 <div className="mt-2 rounded-lg px-2.5 py-2" style={{ background: `${leverageHue}14` }}>
-                  <p className="text-[10.5px] font-semibold flex items-center gap-1.5" style={{ color: leverageHue }}>
+                  <p className="text-[12.5px] font-semibold flex items-center gap-1.5" style={{ color: leverageHue }}>
                     <span aria-hidden>⚭</span>
                     {L(`같은 전제를 쓰는 결정 ${leverageSibs.length + 1}개`, `${leverageSibs.length + 1} decisions share this premise`)}
                   </p>
                   {leverageShaky && (
-                    <p className="mt-1 text-[10.5px] leading-snug flex items-start gap-1.5" style={{ color: N.amber }}>
+                    <p className="mt-1 text-[12.5px] leading-snug flex items-start gap-1.5" style={{ color: N.amber }}>
                       <span aria-hidden>⚠</span>
                       {L('이 전제가 최근 흔들렸어요 — 위 결정들 다시 봐야.', 'This premise just moved — the decisions on it need a fresh look.')}
                     </p>
@@ -1368,14 +1368,14 @@ export function VoyageSea({
                           onFocusDecision?.(sib.id, sib.kind);
                           setActionShip(sib.id);
                         }}
-                        className="text-left text-[11px] leading-snug break-keep line-clamp-1 hover:underline cursor-pointer"
+                        className="text-left text-[12.5px] leading-snug break-keep line-clamp-1 hover:underline cursor-pointer"
                         style={{ color: `${N.ink}c0`, fontFamily: 'var(--font-display)' }}
                       >
                         · {sib.name}
                       </button>
                     ))}
                     {leverageSibs.length > 4 && (
-                        <span className="text-[10px]" style={{ color: `${N.ink}80` }}>{L(`외 ${leverageSibs.length - 4}개`, `+${leverageSibs.length - 4} more`)}</span>
+                        <span className="text-[12px]" style={{ color: `${N.ink}80` }}>{L(`외 ${leverageSibs.length - 4}개`, `+${leverageSibs.length - 4} more`)}</span>
                     )}
                   </div>
                 </div>
@@ -1427,25 +1427,25 @@ export function VoyageSea({
             aria-label={L(`전제 이동 — ${spotlight.text}. 전체 살펴보기`, `Premise moved — ${spotlight.text}. See the full ground`)}
           >
             <span aria-hidden className="vsea-pulse inline-block w-1.5 h-1.5 rounded-full shrink-0" style={{ background: 'var(--warning)' }} />
-            <span className="text-[9.5px] font-mono uppercase tracking-[0.12em] font-semibold shrink-0" style={{ color: 'var(--warning)' }}>
+            <span className="text-[13px] font-mono uppercase tracking-[0.12em] font-semibold shrink-0" style={{ color: 'var(--warning)' }}>
               {L('전제 이동', 'GROUND MOVED')}
             </span>
-            <span className="text-[11px] truncate" style={{ color: `${N.ink}d0`, fontFamily: 'var(--font-display)' }}>
+            <span className="text-[12.5px] truncate" style={{ color: `${N.ink}d0`, fontFamily: 'var(--font-display)' }}>
               「{spotlight.text.length > 22 ? `${spotlight.text.slice(0, 22)}…` : spotlight.text}」
             </span>
             {spotGauge && (
-              <span className="text-[10px] font-mono tabular-nums shrink-0" style={{ color: 'var(--warning)' }}>
+              <span className="text-[12px] font-mono tabular-nums shrink-0" style={{ color: 'var(--warning)' }}>
                 {spotGauge.from != null ? `${spotGauge.from}→${spotGauge.to}` : spotGauge.to}
               </span>
             )}
             {/* blast radius — how many charted decisions stand on this moved
                 premise. Turns a drift notice into "N of your calls are exposed." */}
             {driftExposed >= 2 && (
-              <span className="text-[10px] font-semibold shrink-0" style={{ color: N.amber }}>
+              <span className="text-[12px] font-semibold shrink-0" style={{ color: N.amber }}>
               · {L(`연결된 결정 ${driftExposed}개`, `${driftExposed} linked`)}
               </span>
             )}
-            <span aria-hidden className="text-[11px] shrink-0" style={{ color: `${N.ink}80` }}>→</span>
+            <span aria-hidden className="text-[12.5px] shrink-0" style={{ color: `${N.ink}80` }}>→</span>
           </button>
       )}
       </div>

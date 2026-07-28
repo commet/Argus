@@ -111,10 +111,10 @@ export function VoyageChart({ onNavigated }: { onNavigated?: () => void } = {}) 
       {/* Header — chart title + clearer waypoint count */}
       <div className="flex items-center gap-2 px-4 py-3 border-b border-[var(--border-subtle)]/60">
         <Compass size={12} className="text-[var(--accent)]" />
-        <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--accent)]">
+        <span className="text-[12px] font-bold uppercase tracking-[0.18em] text-[var(--accent)]">
           {L('결정 갈래 지도', 'Decision branch map')}
         </span>
-        <span className="ml-auto text-[10px] text-[var(--text-tertiary)]">
+        <span className="ml-auto text-[12px] text-[var(--text-tertiary)]">
           {L(
             `${activePath.length} / ${STAGE_ORDER.length} 기점`,
             `${activePath.length} / ${STAGE_ORDER.length} waypoints`,
@@ -124,7 +124,7 @@ export function VoyageChart({ onNavigated }: { onNavigated?: () => void } = {}) 
 
       {/* Active course summary — shown once the voyage has more than one course */}
       {branches.length > 1 && activeBranch && (
-        <div className="flex items-center gap-1.5 px-4 py-2 border-b border-[var(--border-subtle)]/40 text-[10px]">
+        <div className="flex items-center gap-1.5 px-4 py-2 border-b border-[var(--border-subtle)]/40 text-[12px]">
           <span className="w-2 h-2 rounded-full shrink-0" style={{ background: activeBranch.color }} />
           <span className="font-semibold text-[var(--text-primary)] truncate max-w-[130px]">{activeBranch.name}</span>
           <span className="ml-auto text-[var(--text-tertiary)]">{L(`결정 갈래 ${branches.length}개`, `${branches.length} decision branches`)}</span>
@@ -147,7 +147,7 @@ export function VoyageChart({ onNavigated }: { onNavigated?: () => void } = {}) 
 
         {/* Visual legend — the SVG marks can't explain themselves, so spell
             out the encoding (filled vs hollow node, ring, ⚑, dimmed). */}
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-2 px-1 text-[9px] text-[var(--text-tertiary)]">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-2 px-1 text-[12.5px] text-[var(--text-tertiary)]">
           <span className="inline-flex items-center gap-1">
             <span className="w-2 h-2 rounded-full shrink-0" style={{ background: 'var(--accent)' }} />
             {L('기록된 기점', 'Logged point')}
@@ -164,7 +164,7 @@ export function VoyageChart({ onNavigated }: { onNavigated?: () => void } = {}) 
 
         {/* Footer hint — how to step back along the route. Journey language:
             click a waypoint to return there and answer differently. */}
-        <div className="text-[10px] text-[var(--text-tertiary)] mt-2 px-1 leading-tight">
+        <div className="text-[12px] text-[var(--text-tertiary)] mt-2 px-1 leading-tight">
           {branches.length <= 1
             ? L('기점을 클릭하면 그 시점으로 돌아가 다른 답으로 가볼 수 있어요. · 끌어서 이동, +/− 로 확대·축소.', 'Click a waypoint to step back there and try a different answer. · Drag to pan, +/− to zoom.')
             : L('기점이나 갈래를 클릭해 그 시점으로 돌아갈 수 있어요. · 끌어서 이동, +/− 로 확대·축소.', 'Click a point or branch to return there. · Drag to pan, +/− to zoom.')}
@@ -175,7 +175,7 @@ export function VoyageChart({ onNavigated }: { onNavigated?: () => void } = {}) 
             Read-only except "이 길로" to return to a path you took. */}
         {branches.length > 1 && (
           <div className="mt-3 pt-3 border-t border-[var(--border-subtle)]/40 space-y-0.5">
-            <div className="text-[9px] font-bold uppercase tracking-[0.16em] text-[var(--text-tertiary)] mb-1">
+            <div className="text-[12.5px] font-bold uppercase tracking-[0.16em] text-[var(--text-tertiary)] mb-1">
               {L('결정 갈래', 'Decision branches')}
             </div>
             {branches.map(b => {
@@ -187,16 +187,16 @@ export function VoyageChart({ onNavigated }: { onNavigated?: () => void } = {}) 
                   className={`flex items-center gap-1.5 px-1.5 py-1 rounded-lg ${isActive ? 'bg-[var(--accent)]/8' : ''}`}
                 >
                   <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: b.color }} />
-                  <span className="text-[11px] text-[var(--text-primary)] truncate flex-1 min-w-0" title={b.name}>{b.name}</span>
-                  <span className="text-[9px] text-[var(--text-tertiary)] tabular-nums shrink-0">{count}</span>
+                  <span className="text-[12.5px] text-[var(--text-primary)] truncate flex-1 min-w-0" title={b.name}>{b.name}</span>
+                  <span className="text-[12.5px] text-[var(--text-tertiary)] tabular-nums shrink-0">{count}</span>
                   {isActive ? (
-                    <span className="text-[9px] text-[var(--accent)] font-semibold shrink-0 ml-0.5">{L('지금 이 길', 'current')}</span>
+                    <span className="text-[12.5px] text-[var(--accent)] font-semibold shrink-0 ml-0.5">{L('지금 이 길', 'current')}</span>
                   ) : (
                     <button
                       onClick={() => !locked && switchBranch(b.id)}
                       disabled={locked}
                       title={L('이 길로 돌아가기', 'Go to this course')}
-                      className={`text-[9px] font-medium text-[var(--accent)] hover:underline shrink-0 ml-0.5 cursor-pointer ${locked ? 'opacity-40 cursor-not-allowed' : ''}`}
+                      className={`text-[12.5px] font-medium text-[var(--accent)] hover:underline shrink-0 ml-0.5 cursor-pointer ${locked ? 'opacity-40 cursor-not-allowed' : ''}`}
                     >
                       {L('이 길로', 'Go')}
                     </button>
@@ -224,7 +224,7 @@ export function VoyageChart({ onNavigated }: { onNavigated?: () => void } = {}) 
             <button
               type="button"
               onClick={() => handleRestoreRequest(cp.id)}
-              className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded text-[11px] font-semibold text-[var(--accent)] border border-[var(--accent)]/35 hover:bg-[var(--accent)]/10 transition-colors cursor-pointer min-h-[36px]"
+              className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded text-[12.5px] font-semibold text-[var(--accent)] border border-[var(--accent)]/35 hover:bg-[var(--accent)]/10 transition-colors cursor-pointer min-h-[36px]"
             >
               <RotateCcw size={11} />
               {L('이 지점에서 다시 시작', 'Restart from here')}
@@ -241,7 +241,7 @@ export function VoyageChart({ onNavigated }: { onNavigated?: () => void } = {}) 
             >
               <div className="px-4 py-3">
                 <div className="flex items-center justify-between gap-2 mb-2">
-                  <span className="text-[10px] text-[var(--text-tertiary)]">{dateStr}</span>
+                  <span className="text-[12px] text-[var(--text-tertiary)]">{dateStr}</span>
                   <button
                     type="button"
                     onClick={() => setSelectedId(null)}

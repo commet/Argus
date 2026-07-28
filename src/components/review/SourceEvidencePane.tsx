@@ -316,7 +316,7 @@ function PdfEvidenceViewer({
           <button type="button" onClick={() => go(page - 1)} disabled={page <= 1} aria-label={L('이전 페이지', 'Previous page')} title={L('이전 페이지', 'Previous page')} className="grid h-7 w-7 place-items-center rounded border border-[var(--border-subtle)] text-[var(--text-secondary)] disabled:opacity-35">
             <ChevronLeft size={15} />
           </button>
-          <label className="flex h-7 items-center gap-1 rounded border border-[var(--border-subtle)] bg-[var(--surface)] px-1.5 text-[11px] text-[var(--text-tertiary)]">
+          <label className="flex h-7 items-center gap-1 rounded border border-[var(--border-subtle)] bg-[var(--surface)] px-1.5 text-[12.5px] text-[var(--text-tertiary)]">
             <span className="sr-only">{L('현재 페이지', 'Current page')}</span>
             <input type="number" min={1} max={resolvedPageCount} value={page} onChange={(event) => go(Number(event.target.value) || 1)} className="w-8 bg-transparent text-center font-semibold tabular-nums text-[var(--text-primary)] outline-none" />
             <span>/ {resolvedPageCount}</span>
@@ -327,7 +327,7 @@ function PdfEvidenceViewer({
         </div>
         <div className="flex items-center gap-1">
           <button type="button" onClick={() => setZoom((value) => Math.max(0.7, value - 0.15))} disabled={zoom <= 0.7} aria-label={L('축소', 'Zoom out')} title={L('축소', 'Zoom out')} className="grid h-7 w-7 place-items-center rounded border border-[var(--border-subtle)] text-[var(--text-secondary)] disabled:opacity-35"><ZoomOut size={14} /></button>
-          <span className="w-10 text-center text-[10px] tabular-nums text-[var(--text-tertiary)]">{Math.round(zoom * 100)}%</span>
+          <span className="w-10 text-center text-[12px] tabular-nums text-[var(--text-tertiary)]">{Math.round(zoom * 100)}%</span>
           <button type="button" onClick={() => setZoom((value) => Math.min(1.75, value + 0.15))} disabled={zoom >= 1.75} aria-label={L('확대', 'Zoom in')} title={L('확대', 'Zoom in')} className="grid h-7 w-7 place-items-center rounded border border-[var(--border-subtle)] text-[var(--text-secondary)] disabled:opacity-35"><ZoomIn size={14} /></button>
           <button type="button" onClick={() => setFullscreen((value) => !value)} aria-label={fullscreen ? L('전체화면 닫기', 'Exit fullscreen') : L('전체화면으로 보기', 'View fullscreen')} title={fullscreen ? L('전체화면 닫기', 'Exit fullscreen') : L('전체화면으로 보기', 'View fullscreen')} className="ml-1 grid h-7 w-7 place-items-center rounded border border-[var(--border-subtle)] text-[var(--text-secondary)]">
             {fullscreen ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
@@ -337,7 +337,7 @@ function PdfEvidenceViewer({
 
       {anchorPages.length > 0 && (
         <div className="flex min-h-9 items-center justify-between gap-2 border-b border-[var(--border-subtle)] px-2 py-1.5">
-          <span className="min-w-0 truncate text-[10px] font-semibold text-[var(--text-tertiary)]">
+          <span className="min-w-0 truncate text-[12px] font-semibold text-[var(--text-tertiary)]">
             {currentEvidenceCount > 0
               ? L(`이 페이지에 연결된 판단 ${currentEvidenceCount}개`, `${currentEvidenceCount} judgments tied to this page`)
               : L(`근거가 표시된 페이지 ${anchorPages.length}곳`, `Evidence marked on ${anchorPages.length} pages`)}
@@ -433,18 +433,18 @@ export function SourceEvidencePane({
         <div className="flex min-w-0 items-center gap-2">
           <FileSearch size={14} className="shrink-0 text-[var(--accent)]" aria-hidden="true" />
           <div className="min-w-0">
-            <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--text-tertiary)]">{L('Argus가 본 원문', 'Source Argus saw')}</p>
+            <p className="text-[12px] font-bold uppercase tracking-[0.16em] text-[var(--text-tertiary)]">{L('Argus가 본 원문', 'Source Argus saw')}</p>
             {title && <p className="truncate text-[12px] font-semibold text-[var(--text-primary)]">{title}</p>}
           </div>
         </div>
-        {(current || pdfData) && <span className="shrink-0 text-[10px] tabular-nums text-[var(--text-tertiary)]">{pdfData && sourceKind === 'pdf' ? L(`${pdfPage} / ${pageCount ?? (pages.length || 1)}쪽`, `Page ${pdfPage} / ${pageCount ?? (pages.length || 1)}`) : current ? pageLabel(current, selected) : ''}</span>}
+        {(current || pdfData) && <span className="shrink-0 text-[12px] tabular-nums text-[var(--text-tertiary)]">{pdfData && sourceKind === 'pdf' ? L(`${pdfPage} / ${pageCount ?? (pages.length || 1)}쪽`, `Page ${pdfPage} / ${pageCount ?? (pages.length || 1)}`) : current ? pageLabel(current, selected) : ''}</span>}
       </div>
 
       {activeAnchor && (
         <div role="status" className="flex min-h-9 items-center gap-2 border-b border-[var(--accent)]/20 bg-[var(--accent)]/[0.06] px-3 py-1.5">
           <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--accent)]" aria-hidden="true" />
-          <span className="shrink-0 text-[10px] font-semibold text-[var(--accent)]">{L('연결된 근거', 'Linked evidence')}</span>
-          <strong className="min-w-0 truncate text-[11px] font-medium text-[var(--text-primary)]">{sourceAnchorPosition(activeAnchor, locale)}</strong>
+          <span className="shrink-0 text-[12px] font-semibold text-[var(--accent)]">{L('연결된 근거', 'Linked evidence')}</span>
+          <strong className="min-w-0 truncate text-[12.5px] font-medium text-[var(--text-primary)]">{sourceAnchorPosition(activeAnchor, locale)}</strong>
         </div>
       )}
 

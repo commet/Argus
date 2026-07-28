@@ -98,7 +98,7 @@ export function PatternsSurface() {
         <button type="button" onClick={() => void load()} className="mt-4 rounded-lg border border-[var(--border)] px-3 py-2 text-[12px] font-semibold text-[var(--text-primary)]">
           {L('다시 불러오기', 'Try again')}
         </button>
-        <p className="mt-3 font-mono text-[10px] text-[var(--text-tertiary)]">{readError}</p>
+        <p className="mt-3 font-mono text-[12px] text-[var(--text-tertiary)]">{readError}</p>
       </div>
     </div>
   );
@@ -106,7 +106,7 @@ export function PatternsSurface() {
   return (
     <div className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6 sm:py-12">
       <header className="max-w-3xl">
-        <p className="text-[11px] font-bold tracking-[0.17em] text-[var(--accent)] uppercase">{L('판단 패턴', 'Decision patterns')}</p>
+        <p className="text-[12.5px] font-bold tracking-[0.17em] text-[var(--accent)] uppercase">{L('판단 패턴', 'Decision patterns')}</p>
         <h1 className="mt-3 text-[28px] font-bold leading-tight tracking-[-0.025em] text-[var(--text-primary)] sm:text-[36px]">
           {L('기록은 결론이 아니라, 내가 검토할 수 있는 표현입니다.', 'A record is not a verdict. It is wording I can review.')}
         </h1>
@@ -118,7 +118,7 @@ export function PatternsSurface() {
       {mutationError && (
         <div role="alert" className="mt-6 flex gap-2 rounded-xl border border-[var(--risk-critical)]/30 bg-[var(--risk-critical)]/5 p-4 text-[13px] text-[var(--text-primary)]">
           <AlertTriangle size={16} className="mt-0.5 shrink-0 text-[var(--risk-critical)]" />
-          <span>{L('변경을 반영하지 못했습니다. 기록은 바뀌지 않았습니다.', 'The change was not applied. The record is unchanged.')} <span className="font-mono text-[11px]">({mutationError})</span></span>
+          <span>{L('변경을 반영하지 못했습니다. 기록은 바뀌지 않았습니다.', 'The change was not applied. The record is unchanged.')} <span className="font-mono text-[12.5px]">({mutationError})</span></span>
         </div>
       )}
 
@@ -160,7 +160,7 @@ export function PatternsSurface() {
       </div>
 
       {snapshot && (
-        <p className="mt-10 text-center font-mono text-[10px] text-[var(--text-tertiary)]">
+        <p className="mt-10 text-center font-mono text-[12px] text-[var(--text-tertiary)]">
           {L('검토 데이터 버전', 'Review data version')} · {snapshot.release_receipt_id}
         </p>
       )}
@@ -175,7 +175,7 @@ function EmptyState({ locale, kind }: { locale: 'ko' | 'en'; kind: 'review' | 'p
       <p className="text-[13px] font-semibold text-[var(--text-primary)]">
         {kind === 'review' ? L('지금 검토할 표현이 없습니다.', 'There is no wording to review now.') : L('아직 채택한 기록이 없습니다.', 'You have not endorsed a record yet.')}
       </p>
-      <p className="mt-1 text-[11px] leading-5 text-[var(--text-tertiary)]">
+      <p className="mt-1 text-[12.5px] leading-5 text-[var(--text-tertiary)]">
         {kind === 'review'
           ? L('독립된 해결 사례 3건과 출처가 갖춰진 후보만 여기에 옵니다.', 'Only candidates with three independent resolved cases and sources appear here.')
           : L('동의율을 높이는 것이 목적이 아닙니다. 맞는 표현만 남기세요.', 'A high agreement rate is not the goal. Keep only wording that fits.')}

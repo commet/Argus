@@ -45,7 +45,7 @@ export function JudgmentAttributionLine({
       }).format(recorded);
 
   return (
-    <p className={`flex flex-wrap gap-x-2 gap-y-0.5 text-[10px] leading-[1.45] text-[var(--text-tertiary)] ${className}`}>
+    <p className={`flex flex-wrap gap-x-2 gap-y-0.5 text-[12px] leading-[1.45] text-[var(--text-tertiary)] ${className}`}>
       <span>{wording}</span>
       <span aria-hidden>·</span>
       <span>{authority}</span>

@@ -72,11 +72,11 @@ export function DailyMoodIndicator({ profile, variant = 'pill', showCopy = false
   if (variant === 'inline') {
     return (
       <span
-        className="inline-flex items-center gap-1 text-[10px]"
+        className="inline-flex items-center gap-1 text-[12px]"
         style={{ color: color.fg, opacity: 0.75 }}
         title={title}
       >
-        <span className="text-[11px] leading-none">{result.emoji}</span>
+        <span className="text-[12.5px] leading-none">{result.emoji}</span>
         <span className="font-medium">{label}</span>
         <span style={{ color: 'var(--text-tertiary)', fontWeight: 400 }}>· {ko ? '재미로' : 'just for fun'}</span>
       </span>
@@ -107,11 +107,11 @@ export function DailyMoodIndicator({ profile, variant = 'pill', showCopy = false
       >
         {result.emoji}
       </motion.span>
-      <span className="text-[10px] font-bold tracking-wide" style={{ color: color.fg }}>
+      <span className="text-[12px] font-bold tracking-wide" style={{ color: color.fg }}>
         {ko ? '오늘' : 'Today'} {label}
       </span>
       {showCopy && (
-        <span className="text-[10px]" style={{ color: color.fg, opacity: 0.75 }}>
+        <span className="text-[12px]" style={{ color: color.fg, opacity: 0.75 }}>
           · {result.copy}
         </span>
       )}

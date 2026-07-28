@@ -63,7 +63,7 @@ export function JudgmentFrame({
             <RetroBadge ko={ko} />
           </div>
         )}
-        <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--text-tertiary)]">
+        <p className="text-[12px] font-semibold uppercase tracking-[0.18em] text-[var(--text-tertiary)]">
           {ko ? '처음 기록할 때' : 'When first saved'}
           {sealedOn ? ` — ${sealedOn}` : ''}
         </p>
@@ -72,7 +72,7 @@ export function JudgmentFrame({
         </p>
         {happened && (
           <>
-            <p className="mt-4 text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--text-tertiary)]">
+            <p className="mt-4 text-[12px] font-semibold uppercase tracking-[0.18em] text-[var(--text-tertiary)]">
               {ko ? '결과를 확인한 뒤' : 'After reviewing the outcome'}
               {settledOn ? ` — ${settledOn}` : ''}
             </p>

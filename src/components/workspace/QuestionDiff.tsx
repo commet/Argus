@@ -45,7 +45,7 @@ export function QuestionDiff({
 
   return (
     <div className={`reward-entrance ${className}`}>
-      <p className="text-[11px] font-semibold text-[var(--text-secondary)] mb-2.5">
+      <p className="text-[12.5px] font-semibold text-[var(--text-secondary)] mb-2.5">
         {ko ? '당신의 질문이 바뀌었습니다' : 'Your question has changed'}
       </p>
       <div className="space-y-2">
@@ -54,7 +54,7 @@ export function QuestionDiff({
         </p>
         <p className="text-[13px] font-semibold text-[var(--accent)]">{after}</p>
       </div>
-      {note && <p className="mt-2.5 text-[11px] text-[var(--accent)]">{note}</p>}
+      {note && <p className="mt-2.5 text-[12.5px] text-[var(--accent)]">{note}</p>}
     </div>
   );
 }

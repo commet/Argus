@@ -139,12 +139,12 @@ export function ExecutionReadiness({ projectId }: Props) {
                   {check.label}
                 </span>
               </div>
-              <span className={`text-[11px] tabular-nums ${check.status === 'done' ? 'text-[var(--success)] font-semibold' : 'text-[var(--text-secondary)]'}`}>
+              <span className={`text-[12.5px] tabular-nums ${check.status === 'done' ? 'text-[var(--success)] font-semibold' : 'text-[var(--text-secondary)]'}`}>
                 {check.detail}
               </span>
             </div>
             {check.action && (
-              <p className="text-[11px] text-[var(--accent)] ml-[30px] mt-0.5">&rarr; {check.action}</p>
+              <p className="text-[12.5px] text-[var(--accent)] ml-[30px] mt-0.5">&rarr; {check.action}</p>
             )}
           </div>
         ))}

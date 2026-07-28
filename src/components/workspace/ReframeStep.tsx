@@ -982,7 +982,7 @@ export function ReframeStep({ onNavigate }: ReframeStepProps) {
                   `[맥락]\n과제 성격: ${natureOpt?.label}\n목표: ${goalOpt?.label}\n결정의 무게: ${stakesOpt?.label}\n\n[과제]\n${ex.text}`,
                   { version: 2, nature: ex.nature, goal: ex.goal, stakes: ex.stakes }
                 )}
-                className="px-2.5 py-1 rounded-lg text-[11px] font-medium border border-[var(--border)] text-[var(--text-secondary)] hover:border-[var(--accent)] hover:text-[var(--accent)] cursor-pointer transition-all"
+                className="px-2.5 py-1 rounded-lg text-[12.5px] font-medium border border-[var(--border)] text-[var(--text-secondary)] hover:border-[var(--accent)] hover:text-[var(--accent)] cursor-pointer transition-all"
               >
                 {ex.label}
               </button>
@@ -1053,7 +1053,7 @@ export function ReframeStep({ onNavigate }: ReframeStepProps) {
                       <p className="text-[13px] font-medium text-[var(--text-primary)]">
                         {item.analysis?.surface_task || item.input_text.slice(0, 40)}
                       </p>
-                      <p className="text-[11px] text-[var(--text-tertiary)] mt-0.5">
+                      <p className="text-[12.5px] text-[var(--text-tertiary)] mt-0.5">
                         {L('유사도', 'Similarity')} {Math.round(item.similarity * 100)}%
                       </p>
                     </div>
@@ -1077,7 +1077,7 @@ export function ReframeStep({ onNavigate }: ReframeStepProps) {
                 <div className="flex items-center gap-2">
                   <AlertTriangle size={14} /> <span>{error}</span>
                 </div>
-                <button onClick={() => { setError(''); handleAnalyze(); }} className="shrink-0 px-2.5 py-1 rounded-lg text-[11px] font-medium border border-[var(--danger)]/25 text-[var(--danger)] hover:bg-[var(--danger)]/15 cursor-pointer transition-colors">
+                <button onClick={() => { setError(''); handleAnalyze(); }} className="shrink-0 px-2.5 py-1 rounded-lg text-[12.5px] font-medium border border-[var(--danger)]/25 text-[var(--danger)] hover:bg-[var(--danger)]/15 cursor-pointer transition-colors">
                   {L('다시 시도', 'Retry')}
                 </button>
               </div>
@@ -1128,7 +1128,7 @@ export function ReframeStep({ onNavigate }: ReframeStepProps) {
             const preview = cleanStreamPreview(streamingText).slice(-200);
             if (!preview) return null;
             return (
-              <p className="mt-4 text-[11px] italic leading-relaxed text-[var(--text-tertiary)] line-clamp-2 opacity-70 break-words" aria-hidden="true">
+              <p className="mt-4 text-[12.5px] italic leading-relaxed text-[var(--text-tertiary)] line-clamp-2 opacity-70 break-words" aria-hidden="true">
                 {preview}
               </p>
             );
@@ -1162,9 +1162,9 @@ export function ReframeStep({ onNavigate }: ReframeStepProps) {
                 {/* 과제 요약 */}
                 <div id="reframe-source" tabIndex={-1} className="scroll-mt-24 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface)] px-5 py-4 focus:outline-none">
                   <div className="flex items-center justify-between mb-2">
-                    <p className="text-[11px] font-semibold text-[var(--text-tertiary)] tracking-wide">{L('STEP 1 — 가정 점검', 'STEP 1 — Assumption check')}</p>
+                    <p className="text-[12.5px] font-semibold text-[var(--text-tertiary)] tracking-wide">{L('STEP 1 — 가정 점검', 'STEP 1 — Assumption check')}</p>
                     {currentStrategy && (
-                      <span className="text-[10px] text-[var(--text-tertiary)] bg-[var(--bg)] px-2 py-0.5 rounded-full">
+                      <span className="text-[12px] text-[var(--text-tertiary)] bg-[var(--bg)] px-2 py-0.5 rounded-full">
                         {STRATEGY_LABELS[currentStrategy].label}
                       </span>
                     )}
@@ -1174,7 +1174,7 @@ export function ReframeStep({ onNavigate }: ReframeStepProps) {
                   </p>
                   {analysis.reasoning_narrative && (
                     <div className="mt-3 pt-3 border-t border-[var(--border-subtle)]">
-                      <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--text-tertiary)] mb-1.5">{L('분석 노트', 'Analyst note')}</p>
+                      <p className="text-[12px] font-semibold uppercase tracking-[0.12em] text-[var(--text-tertiary)] mb-1.5">{L('분석 노트', 'Analyst note')}</p>
                       <p className="text-[13px] text-[var(--text-secondary)] leading-[1.75]">
                         {analysis.reasoning_narrative}
                       </p>
@@ -1199,7 +1199,7 @@ export function ReframeStep({ onNavigate }: ReframeStepProps) {
                       return (
                         <div key={i} className="rounded-xl border border-[var(--border-subtle)] bg-[var(--surface)] p-4 md:p-5">
                           <div className="flex items-start gap-2.5 mb-2">
-                            <span className="shrink-0 mt-0.5 w-5 h-5 rounded-full bg-[var(--bg)] border border-[var(--border-subtle)] flex items-center justify-center text-[11px] font-semibold text-[var(--text-tertiary)] tabular-nums">{i + 1}</span>
+                            <span className="shrink-0 mt-0.5 w-5 h-5 rounded-full bg-[var(--bg)] border border-[var(--border-subtle)] flex items-center justify-center text-[12.5px] font-semibold text-[var(--text-tertiary)] tabular-nums">{i + 1}</span>
                             <p className="text-[14px] font-semibold text-[var(--text-primary)] leading-snug">
                               {a.assumption}
                             </p>
@@ -1273,7 +1273,7 @@ export function ReframeStep({ onNavigate }: ReframeStepProps) {
                         <RotateCcw size={14} /> {L('가정 재분석', 'Re-analyze assumptions')}
                       </Button>
                       <div className="flex items-center gap-3">
-                        <span className="hidden sm:inline text-[11px] text-[var(--text-tertiary)] tabular-nums">
+                        <span className="hidden sm:inline text-[12.5px] text-[var(--text-tertiary)] tabular-nums">
                           {L(`${analysis.hidden_assumptions.length}개 중 ${touchedAssumptions.size}개 살펴봤어요`, `${touchedAssumptions.size} of ${analysis.hidden_assumptions.length} reviewed`)}
                         </span>
                         <Button onClick={handleReframe}>
@@ -1307,7 +1307,7 @@ export function ReframeStep({ onNavigate }: ReframeStepProps) {
                   <div id="reframe-question" tabIndex={-1} className="scroll-mt-24 rounded-[20px] overflow-hidden border border-[var(--border-subtle)] focus:outline-none">
                     {/* 전제 평가 요약 — 상단 */}
                     <div id="reframe-assumptions" className="px-5 py-3 bg-[var(--bg)] border-b border-[var(--border-subtle)]">
-                      <p id="reframe-source" className="mb-2 text-[10px] leading-relaxed text-[var(--text-tertiary)]">
+                      <p id="reframe-source" className="mb-2 text-[12px] leading-relaxed text-[var(--text-tertiary)]">
                         <span className="font-bold">{L('처음 과제', 'Original task')} </span>{analysis.surface_task}
                       </p>
                       <p className="text-[12px] font-medium text-[var(--text-secondary)] mb-2">{L('당신의 가정 평가 결과', 'Your assumption evaluations')}</p>
@@ -1332,7 +1332,7 @@ export function ReframeStep({ onNavigate }: ReframeStepProps) {
                     {/* 연결선 */}
                     <div className="flex items-center gap-2 px-5 py-1.5 bg-[var(--surface)]">
                       <div className="flex-1 h-px bg-[var(--border-subtle)]" />
-                      <span className="text-[10px] text-[var(--text-tertiary)] font-medium">{L('이 평가를 바탕으로', 'Based on this evaluation')}</span>
+                      <span className="text-[12px] text-[var(--text-tertiary)] font-medium">{L('이 평가를 바탕으로', 'Based on this evaluation')}</span>
                       <div className="flex-1 h-px bg-[var(--border-subtle)]" />
                     </div>
 
@@ -1344,7 +1344,7 @@ export function ReframeStep({ onNavigate }: ReframeStepProps) {
                         suggestion (--ai register + an "AI 제안" provenance tag) that
                         returns the decision to the user. Not a verdict. */}
                     <div className="bg-[var(--ai)] px-5 py-5 md:px-6 md:py-6">
-                      <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--text-tertiary)] mb-2">{L('AI 제안', 'AI suggestion')} · {questionLabel}</p>
+                      <p className="text-[12px] font-bold uppercase tracking-[0.14em] text-[var(--text-tertiary)] mb-2">{L('AI 제안', 'AI suggestion')} · {questionLabel}</p>
                       <p className="text-[18px] md:text-[20px] font-bold text-[var(--text-primary)] leading-snug animate-rise" style={{ fontFamily: 'var(--font-display)' }}>
                         {analysis.reframed_question}
                       </p>
@@ -1356,8 +1356,8 @@ export function ReframeStep({ onNavigate }: ReframeStepProps) {
                     {/* 리프레이밍 근거 — 하단 */}
                     {analysis.why_reframing_matters && (
                       <div className="px-5 py-4 bg-[var(--surface)] border-t border-[var(--border-subtle)]">
-                        <p className="text-[11px] font-semibold text-[var(--text-tertiary)] mb-0.5">{L('분석 근거', 'Rationale')}</p>
-                        <p className="text-[10px] text-[var(--text-tertiary)] mb-2">{L('가정·목적·시간·범위·문제 성격을 모두 따져봤어요', 'Weighed together: assumptions, purpose, time, scope, and problem type')}</p>
+                        <p className="text-[12.5px] font-semibold text-[var(--text-tertiary)] mb-0.5">{L('분석 근거', 'Rationale')}</p>
+                        <p className="text-[12px] text-[var(--text-tertiary)] mb-2">{L('가정·목적·시간·범위·문제 성격을 모두 따져봤어요', 'Weighed together: assumptions, purpose, time, scope, and problem type')}</p>
                         <p className="text-[13px] text-[var(--text-primary)] leading-relaxed">
                           {analysis.why_reframing_matters}
                         </p>
@@ -1460,7 +1460,7 @@ export function ReframeStep({ onNavigate }: ReframeStepProps) {
                   <div className="flex items-center gap-2">
                     <AlertTriangle size={14} /> <span>{error}</span>
                   </div>
-                  <button onClick={() => { setError(''); handleAnalyze(); }} className="shrink-0 px-2.5 py-1 rounded-lg text-[11px] font-medium border border-[var(--danger)]/25 text-[var(--danger)] hover:bg-[var(--danger)]/15 cursor-pointer transition-colors">
+                  <button onClick={() => { setError(''); handleAnalyze(); }} className="shrink-0 px-2.5 py-1 rounded-lg text-[12.5px] font-medium border border-[var(--danger)]/25 text-[var(--danger)] hover:bg-[var(--danger)]/15 cursor-pointer transition-colors">
                     {L('다시 시도', 'Retry')}
                   </button>
                 </div>
@@ -1504,7 +1504,7 @@ export function ReframeStep({ onNavigate }: ReframeStepProps) {
                   <span className="text-[var(--text-tertiary)] font-normal ml-1">{L('핵심 질문이 잡혔어요', 'The core question is set')}</span>
                 </div>
 
-                <p className="text-[10px] font-semibold tracking-[0.12em] uppercase text-[var(--text-tertiary)] mb-1.5">
+                <p className="text-[12px] font-semibold tracking-[0.12em] uppercase text-[var(--text-tertiary)] mb-1.5">
                   {L('재정의된 질문', 'Reframed question')}
                 </p>
                 <p className="text-[17px] font-bold text-[var(--text-primary)] leading-snug tracking-tight">
@@ -1519,7 +1519,7 @@ export function ReframeStep({ onNavigate }: ReframeStepProps) {
                 {/* ── Reward: 질문의 변화 ── */}
                 {analysis.surface_task && (current.selected_question || analysis.reframed_question) !== analysis.surface_task && (
                   <div className="mt-5 pt-4 border-t border-[var(--success)]/20 reward-entrance">
-                    <p className="text-[11px] font-semibold text-[var(--text-secondary)] mb-2.5">{L('질문이 이렇게 바뀌었어요', 'Here’s how your question changed')}</p>
+                    <p className="text-[12.5px] font-semibold text-[var(--text-secondary)] mb-2.5">{L('질문이 이렇게 바뀌었어요', 'Here’s how your question changed')}</p>
                     <div className="space-y-2">
                       <p className="text-[13px] text-[var(--text-tertiary)] line-through decoration-[var(--text-tertiary)]/30">
                         {analysis.surface_task}
@@ -1535,7 +1535,7 @@ export function ReframeStep({ onNavigate }: ReframeStepProps) {
                       const risky = doubtful + uncertain;
                       if (risky === 0) return null;
                       return (
-                        <p className="mt-2.5 text-[11px] text-[var(--accent)]">
+                        <p className="mt-2.5 text-[12.5px] text-[var(--accent)]">
                           {L(`숨은 가정 ${assumptions.length}건 중 ${risky}건이 불확실 — 다음 단계에서 검증됩니다`, `${risky} of ${assumptions.length} hidden assumptions are uncertain — verified in the next step`)}
                         </p>
                       );

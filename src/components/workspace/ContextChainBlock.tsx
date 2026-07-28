@@ -28,7 +28,7 @@ export function ContextChainBlock({ summary, items }: ContextChainBlockProps) {
 
   return (
     <Card className="!bg-[var(--checkpoint)] !p-3">
-      <p className="text-[11px] font-bold text-[var(--warning)] mb-2">{L('이전 단계에서', 'From the previous step')}</p>
+      <p className="text-[12.5px] font-bold text-[var(--warning)] mb-2">{L('이전 단계에서', 'From the previous step')}</p>
       <p className="text-[12px] text-[var(--text-primary)] leading-relaxed">{summary}</p>
       {items.length > 0 && (
         <div className="mt-2 space-y-1.5">
@@ -48,7 +48,7 @@ export function ContextChainBlock({ summary, items }: ContextChainBlockProps) {
               {expanded[i] && item.details.length > 0 && (
                 <ul className="mt-1 ml-3 space-y-0.5 animate-fade-in">
                   {item.details.map((d, j) => (
-                    <li key={j} className="text-[11px] text-[var(--text-primary)]">• {d}</li>
+                    <li key={j} className="text-[12.5px] text-[var(--text-primary)]">• {d}</li>
                   ))}
                 </ul>
               )}

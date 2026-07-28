@@ -159,11 +159,11 @@ export function StakeholderClaimMatrix({ record, personas, onOpenPersona, onUpda
           <h4 id="stakeholder-matrix-title" className="text-[14px] font-bold text-[var(--text-primary)]">
             {L('주장 × 이해관계자', 'Claims × stakeholders')}
           </h4>
-          <p className="mt-0.5 text-[11px] leading-relaxed text-[var(--text-secondary)]">
+          <p className="mt-0.5 text-[12.5px] leading-relaxed text-[var(--text-secondary)]">
             {L('가상 반응입니다. 원문과 직접 연결된 반응만 표시하며, 실제 확인 전에는 확정하지 않습니다.', 'These are simulated responses. Only direct source links are shown; nothing is confirmed until checked with real stakeholders.')}
           </p>
         </div>
-        <div className="text-right text-[10px] text-[var(--text-tertiary)]">
+        <div className="text-right text-[12px] text-[var(--text-tertiary)]">
           <p>{L('셀을 눌러 발언과 원문을 함께 확인', 'Select a cell to compare response and source')}</p>
           {checkRows.length > 0 && <p className="mt-0.5 font-semibold tabular-nums text-[var(--accent)]">{L(`실제 확인 ${completedChecks}/${checkRows.length}`, `Reality checks ${completedChecks}/${checkRows.length}`)}</p>}
         </div>
@@ -173,7 +173,7 @@ export function StakeholderClaimMatrix({ record, personas, onOpenPersona, onUpda
         <table className="min-w-max border-collapse text-left">
           <thead>
             <tr className="bg-[var(--bg)]">
-              <th className="sticky left-0 z-10 w-[190px] border-b border-r border-[var(--border-subtle)] bg-[var(--bg)] px-3 py-2 align-bottom text-[10px] font-bold text-[var(--text-tertiary)]">
+              <th className="sticky left-0 z-10 w-[190px] border-b border-r border-[var(--border-subtle)] bg-[var(--bg)] px-3 py-2 align-bottom text-[12px] font-bold text-[var(--text-tertiary)]">
                 {L('이해관계자', 'Stakeholder')}
               </th>
               {matrix.claims.map((claim, index) => (
@@ -184,15 +184,15 @@ export function StakeholderClaimMatrix({ record, personas, onOpenPersona, onUpda
                     className="group flex h-[112px] w-full flex-col justify-between p-3 text-left transition-colors hover:bg-[var(--bg-hover)] focus-visible:outline-2 focus-visible:outline-inset focus-visible:outline-[var(--accent)]"
                     aria-label={L(`주장 ${index + 1} 원문 보기`, `Open source for claim ${index + 1}`)}
                   >
-                    <span className="line-clamp-4 text-[11px] font-semibold leading-[1.45] text-[var(--text-primary)]">{claim.text}</span>
-                    <span className="flex w-full items-center justify-between text-[9px] font-medium text-[var(--text-tertiary)]">
+                    <span className="line-clamp-4 text-[12.5px] font-semibold leading-[1.45] text-[var(--text-primary)]">{claim.text}</span>
+                    <span className="flex w-full items-center justify-between text-[12.5px] font-medium text-[var(--text-tertiary)]">
                       <span>{claim.section || L(`주장 ${index + 1}`, `Claim ${index + 1}`)}</span>
                       <span className="flex items-center gap-1"><FileText size={10} /> L{claim.lineStart}{claim.lineEnd !== claim.lineStart ? `–${claim.lineEnd}` : ''}</span>
                     </span>
                   </button>
                 </th>
               ))}
-              <th className="w-[112px] border-b border-l border-[var(--border-subtle)] bg-[var(--bg)] px-3 py-2 align-bottom text-[10px] font-bold text-[var(--text-tertiary)]">
+              <th className="w-[112px] border-b border-l border-[var(--border-subtle)] bg-[var(--bg)] px-3 py-2 align-bottom text-[12px] font-bold text-[var(--text-tertiary)]">
                 {L('기타 확인', 'Other checks')}
               </th>
             </tr>
@@ -203,8 +203,8 @@ export function StakeholderClaimMatrix({ record, personas, onOpenPersona, onUpda
                 <th className="sticky left-0 z-10 h-[76px] border-b border-r border-[var(--border-subtle)] bg-[var(--surface)] px-3 py-2 last:border-b-0">
                   <button type="button" onClick={() => onOpenPersona(row.personaId)} className="group w-full text-left">
                     <span className="block truncate text-[12px] font-bold text-[var(--text-primary)] group-hover:text-[var(--accent)]">{row.name}</span>
-                    <span className="mt-0.5 block truncate text-[10px] font-normal text-[var(--text-secondary)]">{row.role}</span>
-                    <span className="mt-1 block text-[9px] font-normal text-[var(--text-tertiary)]">
+                    <span className="mt-0.5 block truncate text-[12px] font-normal text-[var(--text-secondary)]">{row.role}</span>
+                    <span className="mt-1 block text-[12.5px] font-normal text-[var(--text-tertiary)]">
                       {row.influence === 'high' ? L('영향 높음', 'High influence') : row.influence === 'low' ? L('영향 낮음', 'Low influence') : L('영향 중간', 'Medium influence')}
                     </span>
                   </button>
@@ -217,7 +217,7 @@ export function StakeholderClaimMatrix({ record, personas, onOpenPersona, onUpda
                         type="button"
                         onClick={() => cell.statements.length > 0 && setSelection({ type: 'cell', rowIndex, claimIndex })}
                         disabled={cell.statements.length === 0}
-                        className={`flex h-[58px] w-full items-center justify-center gap-1.5 border text-[11px] font-bold transition-all focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--accent)] ${toneStyles[cell.tone]} ${active ? 'ring-2 ring-[var(--accent)] ring-offset-1 ring-offset-[var(--surface)]' : ''} ${cell.statements.length > 0 ? 'hover:-translate-y-px' : 'cursor-default opacity-55'}`}
+                        className={`flex h-[58px] w-full items-center justify-center gap-1.5 border text-[12.5px] font-bold transition-all focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--accent)] ${toneStyles[cell.tone]} ${active ? 'ring-2 ring-[var(--accent)] ring-offset-1 ring-offset-[var(--surface)]' : ''} ${cell.statements.length > 0 ? 'hover:-translate-y-px' : 'cursor-default opacity-55'}`}
                         aria-label={`${row.name}: ${toneLabel(cell.tone, cell.statements.length)}`}
                       >
                         <ToneIcon tone={cell.tone} />
@@ -231,7 +231,7 @@ export function StakeholderClaimMatrix({ record, personas, onOpenPersona, onUpda
                     type="button"
                     onClick={() => row.unmapped.length > 0 && setSelection({ type: 'unmapped', rowIndex })}
                     disabled={row.unmapped.length === 0}
-                    className={`flex h-[58px] w-full items-center justify-center gap-1 border border-dashed border-[var(--border)] text-[11px] font-bold text-[var(--text-secondary)] ${row.unmapped.length > 0 ? 'hover:border-[var(--text-tertiary)] hover:bg-[var(--bg-hover)]' : 'cursor-default opacity-40'}`}
+                    className={`flex h-[58px] w-full items-center justify-center gap-1 border border-dashed border-[var(--border)] text-[12.5px] font-bold text-[var(--text-secondary)] ${row.unmapped.length > 0 ? 'hover:border-[var(--text-tertiary)] hover:bg-[var(--bg-hover)]' : 'cursor-default opacity-40'}`}
                     aria-label={L(`${row.name}: 원문에 직접 연결되지 않은 반응 ${row.unmapped.length}건`, `${row.name}: ${row.unmapped.length} responses without a direct source link`)}
                   >
                     <ListFilter size={14} /> {row.unmapped.length}
@@ -247,13 +247,13 @@ export function StakeholderClaimMatrix({ record, personas, onOpenPersona, onUpda
         <div className="mt-4 border-t border-[var(--border-subtle)] pt-4" aria-live="polite">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-start">
             <div className="min-w-0 flex-1">
-              <p className="text-[10px] font-bold text-[var(--text-tertiary)]">
+              <p className="text-[12px] font-bold text-[var(--text-tertiary)]">
                 {selectedClaim ? L('문서 주장', 'Document claim') : L('직접 연결되지 않은 반응', 'Responses without a direct source link')}
               </p>
               {selectedClaim ? (
                 <>
                   <p className="mt-1 text-[13px] font-semibold leading-relaxed text-[var(--text-primary)]">{selectedClaim.text}</p>
-                  <button type="button" onClick={() => setSourceClaim(selectedClaim)} className="mt-2 inline-flex items-center gap-1 text-[11px] font-bold text-[var(--accent)] hover:underline">
+                  <button type="button" onClick={() => setSourceClaim(selectedClaim)} className="mt-2 inline-flex items-center gap-1 text-[12.5px] font-bold text-[var(--accent)] hover:underline">
                     <FileText size={12} /> {L(`원문 L${selectedClaim.lineStart} 보기`, `Open source at L${selectedClaim.lineStart}`)}
                   </button>
                 </>
@@ -265,23 +265,23 @@ export function StakeholderClaimMatrix({ record, personas, onOpenPersona, onUpda
             </div>
             <div className="min-w-0 flex-1 border-t border-[var(--border-subtle)] pt-3 lg:border-l lg:border-t-0 lg:pl-4 lg:pt-0">
               <div className="flex items-center justify-between gap-3">
-                <p className="text-[10px] font-bold text-[var(--text-tertiary)]">{selectedRow.name} · {L('가상 반응', 'Simulated response')}</p>
-                <button type="button" onClick={() => onOpenPersona(selectedRow.personaId)} className="inline-flex shrink-0 items-center gap-1 text-[10px] font-bold text-[var(--accent)] hover:underline">
+                <p className="text-[12px] font-bold text-[var(--text-tertiary)]">{selectedRow.name} · {L('가상 반응', 'Simulated response')}</p>
+                <button type="button" onClick={() => onOpenPersona(selectedRow.personaId)} className="inline-flex shrink-0 items-center gap-1 text-[12px] font-bold text-[var(--accent)] hover:underline">
                   {L('전체 피드백', 'Full feedback')} <ArrowRight size={11} />
                 </button>
               </div>
               <div className="mt-2 space-y-2">
                 {selectedStatements.map((statement) => (
                   <div key={statement.id} className="border-l-2 border-[var(--border)] pl-2.5">
-                    <p className="text-[9px] font-bold text-[var(--text-tertiary)]">{kindLabel(statement.kind)}</p>
+                    <p className="text-[12.5px] font-bold text-[var(--text-tertiary)]">{kindLabel(statement.kind)}</p>
                     <p className="mt-0.5 text-[12px] leading-relaxed text-[var(--text-primary)]">{statement.text}</p>
                     {onUpdateRealityChecks && (() => {
                       const id = checkIdFor(statement, selectedClaim);
                       const tracked = checksFor(selectedRow.personaId).find((check) => check.id === id);
                       return tracked ? (
-                        <p className="mt-1 inline-flex items-center gap-1 text-[10px] font-semibold text-[var(--accent)]"><Clock3 size={11} /> {L('실제 확인 목록에 있음', 'Added to reality checks')}</p>
+                        <p className="mt-1 inline-flex items-center gap-1 text-[12px] font-semibold text-[var(--accent)]"><Clock3 size={11} /> {L('실제 확인 목록에 있음', 'Added to reality checks')}</p>
                       ) : (
-                        <button type="button" onClick={() => addRealityCheck(statement)} className="mt-1 inline-flex min-h-7 items-center gap-1 text-[10px] font-semibold text-[var(--accent)] hover:underline">
+                        <button type="button" onClick={() => addRealityCheck(statement)} className="mt-1 inline-flex min-h-7 items-center gap-1 text-[12px] font-semibold text-[var(--accent)] hover:underline">
                           <Plus size={11} /> {L('실제 확인에 추가', 'Add reality check')}
                         </button>
                       );
@@ -299,9 +299,9 @@ export function StakeholderClaimMatrix({ record, personas, onOpenPersona, onUpda
           <div className="flex items-end justify-between gap-3">
             <div>
               <h5 id="stakeholder-reality-checks-title" className="text-[13px] font-bold text-[var(--text-primary)]">{L('실제 확인 목록', 'Reality-check list')}</h5>
-              <p className="mt-0.5 text-[10.5px] text-[var(--text-secondary)]">{L('가상 반응을 실제 당사자에게 확인한 결과를 남깁니다.', 'Record what the real stakeholder actually confirms or disputes.')}</p>
+              <p className="mt-0.5 text-[12.5px] text-[var(--text-secondary)]">{L('가상 반응을 실제 당사자에게 확인한 결과를 남깁니다.', 'Record what the real stakeholder actually confirms or disputes.')}</p>
             </div>
-            <span className="shrink-0 text-[10px] tabular-nums text-[var(--text-tertiary)]">{completedChecks}/{checkRows.length}</span>
+            <span className="shrink-0 text-[12px] tabular-nums text-[var(--text-tertiary)]">{completedChecks}/{checkRows.length}</span>
           </div>
           <div className="mt-3 divide-y divide-[var(--border-subtle)] border-y border-[var(--border-subtle)]">
             {checkRows.map((check) => (
@@ -313,7 +313,7 @@ export function StakeholderClaimMatrix({ record, personas, onOpenPersona, onUpda
               >
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                   <div className="min-w-0 flex-1">
-                    <p className="text-[10px] font-bold text-[var(--text-tertiary)]">{check.personaName} · {L('확인할 발언', 'Statement to verify')}</p>
+                    <p className="text-[12px] font-bold text-[var(--text-tertiary)]">{check.personaName} · {L('확인할 발언', 'Statement to verify')}</p>
                     <p className="mt-0.5 text-[12px] leading-relaxed text-[var(--text-primary)]">{check.statement}</p>
                   </div>
                   <div role="group" aria-label={L(`${check.personaName} 실제 확인 상태`, `Reality-check status for ${check.personaName}`)} className="inline-flex shrink-0 border border-[var(--border-subtle)] bg-[var(--bg)] p-0.5">
@@ -327,7 +327,7 @@ export function StakeholderClaimMatrix({ record, personas, onOpenPersona, onUpda
                         type="button"
                         aria-pressed={check.status === value}
                         onClick={() => updateRealityCheck(check.personaId, check.id, { status: value as StakeholderRealityCheckStatus })}
-                        className={`inline-flex min-h-7 items-center gap-1 px-2 text-[9.5px] font-semibold ${check.status === value ? 'bg-[var(--surface)] text-[var(--accent)] shadow-sm' : 'text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]'}`}
+                        className={`inline-flex min-h-7 items-center gap-1 px-2 text-[13px] font-semibold ${check.status === value ? 'bg-[var(--surface)] text-[var(--accent)] shadow-sm' : 'text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]'}`}
                       >
                         <Icon size={11} /> {label}
                       </button>
@@ -340,7 +340,7 @@ export function StakeholderClaimMatrix({ record, personas, onOpenPersona, onUpda
                   onChange={(event) => setDraftNotes((current) => ({ ...current, [check.id]: event.target.value }))}
                   onBlur={(event) => updateRealityCheck(check.personaId, check.id, { note: event.target.value.trim() || undefined })}
                   placeholder={L('실제 답변이나 확인 경로 메모', 'Note the real response or verification path')}
-                  className="mt-2 w-full border border-[var(--border-subtle)] bg-[var(--surface)] px-2.5 py-1.5 text-[11px] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:border-[var(--accent)] focus:outline-none"
+                  className="mt-2 w-full border border-[var(--border-subtle)] bg-[var(--surface)] px-2.5 py-1.5 text-[12.5px] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:border-[var(--accent)] focus:outline-none"
                 />
               </article>
             ))}
@@ -359,9 +359,9 @@ export function StakeholderClaimMatrix({ record, personas, onOpenPersona, onUpda
           <div>
             <div className="mb-3 flex items-center justify-between gap-3 border-b border-[var(--border-subtle)] pb-3">
               <p className="truncate text-[12px] font-bold text-[var(--text-primary)]">{record.document_title}</p>
-              <p className="shrink-0 text-[10px] text-[var(--text-tertiary)]">L{sourceClaim.lineStart}{sourceClaim.lineEnd !== sourceClaim.lineStart ? `–${sourceClaim.lineEnd}` : ''}</p>
+              <p className="shrink-0 text-[12px] text-[var(--text-tertiary)]">L{sourceClaim.lineStart}{sourceClaim.lineEnd !== sourceClaim.lineStart ? `–${sourceClaim.lineEnd}` : ''}</p>
             </div>
-            <div className="overflow-hidden border border-[var(--border-subtle)] bg-[var(--bg)] font-mono text-[11px] leading-[1.65]">
+            <div className="overflow-hidden border border-[var(--border-subtle)] bg-[var(--bg)] font-mono text-[12.5px] leading-[1.65]">
               {(record.document_text || '').split(/\r?\n/).map((line, index) => {
                 const lineNo = index + 1;
                 const highlighted = lineNo >= sourceClaim.lineStart && lineNo <= sourceClaim.lineEnd;

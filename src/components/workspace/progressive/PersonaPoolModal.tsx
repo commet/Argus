@@ -332,9 +332,9 @@ export function PersonaPoolModal({
         <div className="flex-1 min-w-0">
           <div className="flex items-baseline gap-1.5 flex-wrap">
             <span className="text-[14px] font-semibold text-[var(--text-primary)]">{p.persona.name}</span>
-            <span className="text-[11px] text-[var(--text-tertiary)]">{p.persona.role}</span>
+            <span className="text-[12.5px] text-[var(--text-tertiary)]">{p.persona.role}</span>
             {stats && (
-              <span className="text-[10px] font-medium text-[var(--accent)]/80 tabular-nums">
+              <span className="text-[12px] font-medium text-[var(--accent)]/80 tabular-nums">
                 Lv.{stats.agent.level}
               </span>
             )}
@@ -345,7 +345,7 @@ export function PersonaPoolModal({
           {/* Growth cue — together count + observation badge. Tertiary tone
               so it doesn't compete with the primary task-match preview. */}
           {familiarityLabel && (
-            <div className="mt-1 flex items-center gap-1.5 text-[10px] text-[var(--text-tertiary)]">
+            <div className="mt-1 flex items-center gap-1.5 text-[12px] text-[var(--text-tertiary)]">
               <span>{familiarityLabel}</span>
               {stats && stats.observationCount >= 3 && (
                 <span className="inline-flex items-center gap-0.5 text-[var(--accent)]/70">
@@ -356,7 +356,7 @@ export function PersonaPoolModal({
           )}
           {/* Free-mode preview: which task this persona will land in */}
           {mode === 'free' && p.matchedTask && p.reason === 'addable' && (
-            <div className="mt-1.5 flex items-center gap-1 text-[11px] text-[var(--accent)] line-clamp-1">
+            <div className="mt-1.5 flex items-center gap-1 text-[12.5px] text-[var(--accent)] line-clamp-1">
               <ArrowRight size={10} className="shrink-0" />
               <span className="truncate">
                 <span className="text-[var(--text-tertiary)]">{L('이 작업에 추가:', 'Goes to:')}</span> {p.matchedTask}
@@ -365,7 +365,7 @@ export function PersonaPoolModal({
           )}
         </div>
         {reasonLabel && (
-          <span className="shrink-0 inline-flex items-center gap-1 text-[10px] font-medium text-[var(--text-tertiary)] mt-1">
+          <span className="shrink-0 inline-flex items-center gap-1 text-[12px] font-medium text-[var(--text-tertiary)] mt-1">
             {p.reason === 'already-in' && <Check size={11} />}
             {reasonLabel}
           </span>
@@ -420,14 +420,14 @@ export function PersonaPoolModal({
               {/* Header */}
               <div className="px-5 py-4 border-b border-[var(--border-subtle)] flex items-start gap-3">
                 <div className="flex-1 min-w-0">
-                  <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--accent)] mb-1">
+                  <div className="text-[12px] font-bold uppercase tracking-[0.18em] text-[var(--accent)] mb-1">
                     {headerEyebrow}
                   </div>
                   <p className={`${mode === 'task' ? 'text-[14px] font-medium text-[var(--text-primary)] line-clamp-2' : 'text-[13px] text-[var(--text-secondary)]'} leading-snug`}>
                     {headerTitle}
                   </p>
                   {headerSub && (
-                    <p className="text-[11px] text-[var(--text-tertiary)] mt-1 line-clamp-1">
+                    <p className="text-[12.5px] text-[var(--text-tertiary)] mt-1 line-clamp-1">
                       {headerSub}
                     </p>
                   )}
@@ -455,12 +455,12 @@ export function PersonaPoolModal({
                   />
                 </div>
                 {targetGroupFull && mode === 'task' && (
-                  <p className="text-[11px] text-amber-700 dark:text-amber-300 mt-2 leading-snug">
+                  <p className="text-[12.5px] text-amber-700 dark:text-amber-300 mt-2 leading-snug">
                     {L('한 작업에 최대 5명까지 추가할 수 있어요. 일부를 빼고 다시 추가하세요.', 'Up to 5 per task. Remove one to add another.')}
                   </p>
                 )}
                 {allGroupsFull && (
-                  <p className="text-[11px] text-amber-700 dark:text-amber-300 mt-2 leading-snug">
+                  <p className="text-[12.5px] text-amber-700 dark:text-amber-300 mt-2 leading-snug">
                     {L('모든 작업에 5명이 다 찼어요. 어딘가에서 한 명 빼고 다시 시도하세요.', 'Every task is full. Remove one somewhere first.')}
                   </p>
                 )}
@@ -489,7 +489,7 @@ export function PersonaPoolModal({
                       <div>
                         <div className="flex items-center gap-1.5 px-2 mb-2">
                           <Sparkles size={11} className="text-[var(--accent)]" />
-                          <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--accent)]">
+                          <span className="text-[12px] font-bold uppercase tracking-[0.16em] text-[var(--accent)]">
                             {mode === 'task' || mode === 'replace'
                               ? L('이 작업에 잘 맞는 팀원', 'Recommended for this task')
                               : L('지금 팀에 잘 어울릴 팀원', 'Recommended for your team')}
@@ -503,7 +503,7 @@ export function PersonaPoolModal({
                     {others.length > 0 && (
                       <div>
                         <div className="px-2 mb-2 mt-1">
-                          <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--text-tertiary)]">
+                          <span className="text-[12px] font-bold uppercase tracking-[0.16em] text-[var(--text-tertiary)]">
                             {recommended.length > 0 ? L('전체 풀', 'All personas') : L('팀원 풀', 'Persona pool')}
                           </span>
                         </div>

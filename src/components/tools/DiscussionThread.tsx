@@ -57,12 +57,12 @@ export function DiscussionThread({ messages, personas, keyTakeaway }: Discussion
               <div className="flex-1 min-w-0 pb-2">
                 <div className="flex items-center gap-2 mb-1">
                   <span className="text-[13px] font-bold text-[var(--text-primary)]">{persona.name}</span>
-                  <span className="text-[11px] text-[var(--text-tertiary)]">{persona.role}</span>
+                  <span className="text-[12.5px] text-[var(--text-tertiary)]">{persona.role}</span>
                 </div>
                 {reactingTo && (
                   <div className="flex items-center gap-1 mb-1.5">
                     <TypeIcon size={11} className={config.color} />
-                    <span className={`text-[10px] font-semibold ${config.color}`}>
+                    <span className={`text-[12px] font-semibold ${config.color}`}>
                       {locale === 'ko'
                         ? `${reactingTo.name}에게 ${config.labelKo}`
                         : `${config.labelEn} ${reactingTo.name}`}
@@ -83,7 +83,7 @@ export function DiscussionThread({ messages, personas, keyTakeaway }: Discussion
         <div className="mt-4 flex items-start gap-2.5 px-4 py-3 rounded-xl bg-[var(--checkpoint)] border border-[var(--warning)]/30">
           <Lightbulb size={16} className="text-[var(--warning)] shrink-0 mt-0.5" />
           <div>
-            <p className="text-[11px] font-bold text-[var(--warning)] mb-0.5">{L('핵심 결론', 'Key takeaway')}</p>
+            <p className="text-[12.5px] font-bold text-[var(--warning)] mb-0.5">{L('핵심 결론', 'Key takeaway')}</p>
             <p className="text-[13px] text-[var(--text-primary)] leading-relaxed">{keyTakeaway}</p>
           </div>
         </div>

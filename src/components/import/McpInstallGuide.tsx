@@ -11,7 +11,7 @@
  * 동일하게 KO 우선.
  */
 
-const CODE = 'text-[11px] font-mono bg-[var(--surface)] px-1.5 py-0.5 rounded';
+const CODE = 'text-[12.5px] font-mono bg-[var(--surface)] px-1.5 py-0.5 rounded';
 
 export function McpInstallGuide({ locale }: { locale: string }) {
   const ko = locale === 'ko';

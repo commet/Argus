@@ -115,7 +115,7 @@ export function DecisionEvidenceMap({ onNavigate }: { onNavigate?: () => void } 
   return (
     <div className="px-4 pb-6" data-testid="decision-evidence-map">
       <div className="relative overflow-hidden border-y border-[var(--border-subtle)] py-4">
-        <div className="mb-2 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--text-tertiary)]">
+        <div className="mb-2 flex items-center gap-1.5 text-[12px] font-bold uppercase tracking-[0.14em] text-[var(--text-tertiary)]">
           <SearchCheck size={12} className="text-[var(--accent)]" />
           {model.conclusionKind}
         </div>
@@ -140,7 +140,7 @@ export function DecisionEvidenceMap({ onNavigate }: { onNavigate?: () => void } 
               >
                 <Icon size={14} className={`shrink-0 ${group.tone}`} />
                 <span className="flex-1 text-[12.5px] font-semibold text-[var(--text-primary)]">{group.label}</span>
-                <span className="tabular-nums text-[10px] text-[var(--text-tertiary)]">{group.count}</span>
+                <span className="tabular-nums text-[12px] text-[var(--text-tertiary)]">{group.count}</span>
                 <ChevronDown size={13} className={`text-[var(--text-tertiary)] transition-transform ${open ? 'rotate-180' : ''}`} />
               </button>
 
@@ -179,12 +179,12 @@ export function DecisionEvidenceMap({ onNavigate }: { onNavigate?: () => void } 
                               aria-label={L(`${row.name} 보고서 원문 보기`, `Open ${row.name} report`)}
                             >
                               <div className="mb-1 flex items-center gap-1.5">
-                                <span className="truncate text-[11px] font-semibold text-[var(--text-primary)]">{row.name}</span>
-                                <span className="truncate text-[9.5px] text-[var(--text-tertiary)]">{row.task}</span>
+                                <span className="truncate text-[12.5px] font-semibold text-[var(--text-primary)]">{row.name}</span>
+                                <span className="truncate text-[13px] text-[var(--text-tertiary)]">{row.task}</span>
                                 {row.reviewed && <CheckCircle2 size={11} className="ml-auto shrink-0 text-[var(--success)]" aria-label={L('직접 반영함', 'Reviewed and applied')} />}
                                 <ArrowUpRight size={11} className="shrink-0 text-[var(--text-tertiary)] transition-colors group-hover:text-[var(--accent)]" aria-hidden="true" />
                               </div>
-                              <p className="text-[11.5px] leading-[1.55] text-[var(--text-secondary)]">{row.finding}</p>
+                              <p className="text-[13px] leading-[1.55] text-[var(--text-secondary)]">{row.finding}</p>
                             </button>
                           ))}
                         </div>
@@ -194,18 +194,18 @@ export function DecisionEvidenceMap({ onNavigate }: { onNavigate?: () => void } 
                         <div className="space-y-3">
                           {model.flags.map((flag) => (
                             <div key={`${flag.kind}-${flag.text}`} className="border-l-2 border-amber-500/55 pl-2.5">
-                              <p className="text-[10px] font-semibold text-amber-700 dark:text-amber-400">{L('외부 근거 필요', 'External evidence needed')}</p>
-                              <p className="mt-0.5 text-[11.5px] leading-[1.5] text-[var(--text-primary)]">{flag.text}</p>
-                              {flag.stake && <p className="mt-1 text-[10.5px] leading-[1.45] text-[var(--text-secondary)]">{flag.stake}</p>}
-                              {flag.where && <p className="mt-1 inline-flex items-start gap-1 text-[10px] leading-[1.4] text-[var(--accent)]"><SearchCheck size={10} className="mt-0.5 shrink-0" />{flag.where}</p>}
+                              <p className="text-[12px] font-semibold text-amber-700 dark:text-amber-400">{L('외부 근거 필요', 'External evidence needed')}</p>
+                              <p className="mt-0.5 text-[13px] leading-[1.5] text-[var(--text-primary)]">{flag.text}</p>
+                              {flag.stake && <p className="mt-1 text-[12.5px] leading-[1.45] text-[var(--text-secondary)]">{flag.stake}</p>}
+                              {flag.where && <p className="mt-1 inline-flex items-start gap-1 text-[12px] leading-[1.4] text-[var(--accent)]"><SearchCheck size={10} className="mt-0.5 shrink-0" />{flag.where}</p>}
                             </div>
                           ))}
                           {model.assumptions.map((assumption) => (
                             <div key={assumption} className="flex items-start gap-2">
                               <CircleHelp size={12} className="mt-0.5 shrink-0 text-[var(--text-tertiary)]" />
                               <div>
-                                <p className="text-[11.5px] leading-[1.5] text-[var(--text-primary)]">{assumption}</p>
-                                <p className="mt-0.5 text-[9.5px] text-[var(--text-tertiary)]">{L('문서 전체가 기대는 가정', 'Assumption supporting the document as a whole')}</p>
+                                <p className="text-[13px] leading-[1.5] text-[var(--text-primary)]">{assumption}</p>
+                                <p className="mt-0.5 text-[13px] text-[var(--text-tertiary)]">{L('문서 전체가 기대는 가정', 'Assumption supporting the document as a whole')}</p>
                               </div>
                             </div>
                           ))}
@@ -220,7 +220,7 @@ export function DecisionEvidenceMap({ onNavigate }: { onNavigate?: () => void } 
         })}
       </div>
 
-      <p className="mt-3 flex items-start gap-1.5 text-[9.5px] leading-[1.45] text-[var(--text-tertiary)]">
+      <p className="mt-3 flex items-start gap-1.5 text-[13px] leading-[1.45] text-[var(--text-tertiary)]">
         <CircleHelp size={10} className="mt-0.5 shrink-0" />
         {L('출처 위치를 확인할 수 있는 내용만 연결했습니다. 가정은 근거처럼 표시하지 않습니다.', 'Only material with a traceable source location is connected. Assumptions are kept separate.')}
       </p>
@@ -231,11 +231,11 @@ export function DecisionEvidenceMap({ onNavigate }: { onNavigate?: () => void } 
 function EvidenceQuote({ label, text, openLabel, onOpen }: { label: string; text: string; openLabel: string; onOpen: () => void }) {
   return (
     <button type="button" onClick={onOpen} className="group block w-full text-left" aria-label={openLabel}>
-      <p className="mb-1 flex items-center gap-1 text-[9.5px] font-semibold text-[var(--text-tertiary)]">
+      <p className="mb-1 flex items-center gap-1 text-[13px] font-semibold text-[var(--text-tertiary)]">
         <Quote size={9} /> <span className="flex-1">{label}</span>
         <ArrowUpRight size={10} className="transition-colors group-hover:text-[var(--accent)]" aria-hidden="true" />
       </p>
-      <p className="border-l border-[var(--border)] pl-2.5 text-[11.5px] leading-[1.55] text-[var(--text-secondary)]">
+      <p className="border-l border-[var(--border)] pl-2.5 text-[13px] leading-[1.55] text-[var(--text-secondary)]">
         {text}
       </p>
     </button>

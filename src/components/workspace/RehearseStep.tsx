@@ -487,7 +487,7 @@ ${L('리스크', 'Risks')}: ${(r.classified_risks || []).map(cr => `[${cr.catego
         <p className="text-[13px] text-[var(--text-secondary)] mt-1">
           {L('보내기 전에, 받는 사람 입장에서 미리 들어봐요.', 'Before you send it, hear it from the receiver\'s side first.')}
         </p>
-        <LocaleLink href="/boss" className="mt-2 inline-flex items-center gap-1.5 text-[11px] font-semibold text-[var(--text-secondary)] hover:text-[var(--accent)]">
+        <LocaleLink href="/boss" className="mt-2 inline-flex items-center gap-1.5 text-[12.5px] font-semibold text-[var(--text-secondary)] hover:text-[var(--accent)]">
           <MessageCircleMore size={13} />
           {L('문서 검토가 아니라 팀장과의 1:1 대화를 연습하려면', 'Rehearse a 1:1 manager conversation instead of a document review')}
         </LocaleLink>
@@ -529,7 +529,7 @@ ${L('리스크', 'Risks')}: ${(r.classified_risks || []).map(cr => `[${cr.catego
         <div className="space-y-6 animate-fade-in">
           {/* Handoff context confirmation */}
           {handoffContent && (
-            <div className="flex items-center gap-1.5 text-[11px] text-[var(--accent)]">
+            <div className="flex items-center gap-1.5 text-[12.5px] text-[var(--accent)]">
               <Check size={12} /> {handoffTitle || L('이전 단계', 'Previous step')} {L('맥락이 연결되어 있습니다', 'context is connected')}
             </div>
           )}
@@ -541,20 +541,20 @@ ${L('리스크', 'Risks')}: ${(r.classified_risks || []).map(cr => `[${cr.catego
                 <Users size={14} className="text-[var(--text-secondary)]" />
                 <span className="text-[13px] font-semibold text-[var(--text-primary)]">{L(`${personas.length}명의 이해관계자`, `${personas.length} stakeholder${personas.length === 1 ? '' : 's'}`)}</span>
                 {personas.some(p => p.is_example) && (
-                  <span className="text-[10px] text-[var(--text-tertiary)]">{L('예시 포함', 'Examples included')}</span>
+                  <span className="text-[12px] text-[var(--text-tertiary)]">{L('예시 포함', 'Examples included')}</span>
                 )}
               </div>
               <div className="flex items-center gap-1.5">
                 <button
                   onClick={() => setManagingPersonas(!managingPersonas)}
-                  className="px-2.5 py-1 rounded-lg text-[11px] font-medium border border-[var(--border-subtle)] text-[var(--text-secondary)] hover:border-[var(--border)] cursor-pointer transition-colors"
+                  className="px-2.5 py-1 rounded-lg text-[12.5px] font-medium border border-[var(--border-subtle)] text-[var(--text-secondary)] hover:border-[var(--border)] cursor-pointer transition-colors"
                 >
                   <Pencil size={10} className="inline mr-1" />
                   {managingPersonas ? L('접기', 'Collapse') : L('편집', 'Edit')}
                 </button>
                 <button
                   onClick={() => { setEditingPersona(null); setShowPersonaForm(true); setManagingPersonas(true); }}
-                  className="px-2.5 py-1 rounded-lg text-[11px] font-medium border border-[var(--accent)]/30 text-[var(--accent)] hover:bg-[var(--ai)] cursor-pointer transition-colors"
+                  className="px-2.5 py-1 rounded-lg text-[12.5px] font-medium border border-[var(--accent)]/30 text-[var(--accent)] hover:bg-[var(--ai)] cursor-pointer transition-colors"
                 >
                   <Plus size={10} className="inline mr-1" /> {L('새 페르소나', 'New Persona')}
                 </button>
@@ -578,7 +578,7 @@ ${L('리스크', 'Risks')}: ${(r.classified_risks || []).map(cr => `[${cr.catego
                     <p className="text-[12px] font-medium text-[var(--text-primary)]">
                       {L(`${blindSpotRec.axis_label} 관점이 아직 탐색되지 않았습니다`, `${blindSpotRec.axis_label} perspective has not been explored yet`)}
                     </p>
-                    <p className="text-[11px] text-[var(--text-secondary)] mt-0.5">
+                    <p className="text-[12.5px] text-[var(--text-secondary)] mt-0.5">
                       {blindSpotRec.why}
                     </p>
                     <button
@@ -591,7 +591,7 @@ ${L('리스크', 'Risks')}: ${(r.classified_risks || []).map(cr => `[${cr.catego
                         });
                         setBlindSpotDismissed(true);
                       }}
-                      className="mt-2 px-3 py-1 rounded-lg text-[11px] font-medium bg-amber-500/10 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20 cursor-pointer transition-colors"
+                      className="mt-2 px-3 py-1 rounded-lg text-[12.5px] font-medium bg-amber-500/10 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20 cursor-pointer transition-colors"
                     >
                       + {L(`${blindSpotRec.name} (${blindSpotRec.role}) 추가`, `Add ${blindSpotRec.name} (${blindSpotRec.role})`)}
                     </button>
@@ -625,7 +625,7 @@ ${L('리스크', 'Risks')}: ${(r.classified_risks || []).map(cr => `[${cr.catego
                 <div key={p.id} className="relative group">
                   <PersonaCard persona={p} onClick={() => { setEditingPersona(p); setShowPersonaForm(true); }} />
                   {p.is_example && (
-                    <span className="absolute top-2 left-3 px-1.5 py-0.5 rounded text-[9px] font-bold bg-[var(--ai)] text-[var(--accent)]">{L('예시', 'Example')}</span>
+                    <span className="absolute top-2 left-3 px-1.5 py-0.5 rounded text-[12.5px] font-bold bg-[var(--ai)] text-[var(--accent)]">{L('예시', 'Example')}</span>
                   )}
                   <div className="absolute top-3 right-3 flex gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity z-10">
                     <button onClick={() => { setEditingPersona(p); setShowPersonaForm(true); }}
@@ -650,7 +650,7 @@ ${L('리스크', 'Risks')}: ${(r.classified_risks || []).map(cr => `[${cr.catego
               <div className="flex items-center gap-2">
                 <AlertTriangle size={14} /> <span>{feedbackError}</span>
               </div>
-              <button onClick={() => { if (feedbackLoading) return; setFeedbackError(''); if (lastFeedbackData) handleFeedbackSubmit(lastFeedbackData); }} className="shrink-0 px-2.5 py-1 rounded-lg text-[11px] font-medium border border-[var(--danger)]/25 text-[var(--danger)] hover:bg-[var(--danger)]/15 cursor-pointer transition-colors">
+              <button onClick={() => { if (feedbackLoading) return; setFeedbackError(''); if (lastFeedbackData) handleFeedbackSubmit(lastFeedbackData); }} className="shrink-0 px-2.5 py-1 rounded-lg text-[12.5px] font-medium border border-[var(--danger)]/25 text-[var(--danger)] hover:bg-[var(--danger)]/15 cursor-pointer transition-colors">
                 {L('다시 시도', 'Retry')}
               </button>
             </div>
@@ -731,19 +731,19 @@ ${L('리스크', 'Risks')}: ${(r.classified_risks || []).map(cr => `[${cr.catego
                 <p className="text-[12px] font-bold text-[var(--text-primary)] mb-3">{L(`AI가 ${personaCount}개의 이해관계자 관점을 시뮬레이션했어요`, `AI simulated ${personaCount} stakeholder perspective${personaCount === 1 ? '' : 's'}`)}</p>
 
                 <div className="flex flex-wrap gap-2 mb-2">
-                  {praiseCount > 0 && <span className="text-[11px] px-2.5 py-1 rounded-full bg-[var(--success)]/10 border border-[var(--success)]/25 text-[var(--success)] font-medium">{L(`긍정 평가 ${praiseCount}건`, `${praiseCount} positive${praiseCount === 1 ? '' : 's'}`)}</span>}
-                  {critical > 0 && <span className="text-[11px] px-2.5 py-1 rounded-full bg-[var(--danger)]/10 border border-[var(--danger)]/25 text-[var(--danger)] font-semibold">{L(`핵심 리스크 ${critical}건`, `${critical} critical risk${critical === 1 ? '' : 's'}`)}</span>}
-                  {manageable > 0 && <span className="text-[11px] px-2.5 py-1 rounded-full bg-[var(--warning)]/10 border border-[var(--warning)]/30 text-[var(--warning)] font-medium">{L(`관리 가능 ${manageable}건`, `${manageable} manageable`)}</span>}
-                  {unspoken > 0 && <span className="text-[11px] px-2.5 py-1 rounded-full bg-[var(--risk-unspoken)]/12 border border-[var(--risk-unspoken)]/30 text-[var(--risk-unspoken)] font-semibold">{L(`침묵의 리스크 ${unspoken}건`, `${unspoken} unspoken risk${unspoken === 1 ? '' : 's'}`)}</span>}
-                  {approvalCount > 0 && <span className="text-[11px] px-2.5 py-1 rounded-full bg-[var(--ai)] border border-[var(--ai-fg)]/20 text-[var(--ai-fg)] font-medium">{L(`승인 조건 ${approvalCount}건`, `${approvalCount} approval condition${approvalCount === 1 ? '' : 's'}`)}</span>}
+                  {praiseCount > 0 && <span className="text-[12.5px] px-2.5 py-1 rounded-full bg-[var(--success)]/10 border border-[var(--success)]/25 text-[var(--success)] font-medium">{L(`긍정 평가 ${praiseCount}건`, `${praiseCount} positive${praiseCount === 1 ? '' : 's'}`)}</span>}
+                  {critical > 0 && <span className="text-[12.5px] px-2.5 py-1 rounded-full bg-[var(--danger)]/10 border border-[var(--danger)]/25 text-[var(--danger)] font-semibold">{L(`핵심 리스크 ${critical}건`, `${critical} critical risk${critical === 1 ? '' : 's'}`)}</span>}
+                  {manageable > 0 && <span className="text-[12.5px] px-2.5 py-1 rounded-full bg-[var(--warning)]/10 border border-[var(--warning)]/30 text-[var(--warning)] font-medium">{L(`관리 가능 ${manageable}건`, `${manageable} manageable`)}</span>}
+                  {unspoken > 0 && <span className="text-[12.5px] px-2.5 py-1 rounded-full bg-[var(--risk-unspoken)]/12 border border-[var(--risk-unspoken)]/30 text-[var(--risk-unspoken)] font-semibold">{L(`침묵의 리스크 ${unspoken}건`, `${unspoken} unspoken risk${unspoken === 1 ? '' : 's'}`)}</span>}
+                  {approvalCount > 0 && <span className="text-[12.5px] px-2.5 py-1 rounded-full bg-[var(--ai)] border border-[var(--ai-fg)]/20 text-[var(--ai-fg)] font-medium">{L(`승인 조건 ${approvalCount}건`, `${approvalCount} approval condition${approvalCount === 1 ? '' : 's'}`)}</span>}
                 </div>
                 {(critical > 0 || unspoken > 0) && (
-                  <p className="text-[11px] text-[var(--text-secondary)] mt-1">
+                  <p className="text-[12.5px] text-[var(--text-secondary)] mt-1">
                     {L('아래에서 각 모의 관점의 질문을 확인하고, 직접 검증할 부분을 골라보세요.', 'Review each simulated perspective below and choose what to verify or incorporate.')}
                   </p>
                 )}
                 {critical === 0 && unspoken === 0 && (
-                  <p className="text-[11px] text-[var(--success)] font-medium">{L('이번 시뮬레이션에서는 큰 위험을 찾지 못했어요. 실행 전 실제 근거와 당사자에게 다시 확인하세요.', 'This simulation surfaced no major risk. Verify the evidence and check with the actual people before execution.')}</p>
+                  <p className="text-[12.5px] text-[var(--success)] font-medium">{L('이번 시뮬레이션에서는 큰 위험을 찾지 못했어요. 실행 전 실제 근거와 당사자에게 다시 확인하세요.', 'This simulation surfaced no major risk. Verify the evidence and check with the actual people before execution.')}</p>
                 )}
               </div>
             );
@@ -764,7 +764,7 @@ ${L('리스크', 'Risks')}: ${(r.classified_risks || []).map(cr => `[${cr.catego
           {discussionError && (
             <div role="alert" className="flex items-center justify-between gap-2 text-[var(--danger)] text-[13px] bg-[var(--danger)]/10 rounded-lg px-3 py-2">
               <span className="min-w-0">{discussionError}</span>
-              <button onClick={() => { setDiscussionError(''); handleStartDiscussion(); }} className="shrink-0 px-2.5 py-1 rounded-lg text-[11px] font-medium border border-[var(--danger)]/25 text-[var(--danger)] hover:bg-[var(--danger)]/15 cursor-pointer transition-colors">
+              <button onClick={() => { setDiscussionError(''); handleStartDiscussion(); }} className="shrink-0 px-2.5 py-1 rounded-lg text-[12.5px] font-medium border border-[var(--danger)]/25 text-[var(--danger)] hover:bg-[var(--danger)]/15 cursor-pointer transition-colors">
                 {L('다시 시도', 'Retry')}
               </button>
             </div>

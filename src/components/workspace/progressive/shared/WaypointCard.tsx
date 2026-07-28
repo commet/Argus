@@ -65,10 +65,10 @@ export function WaypointDetail({
   const narration = hasNarration && (
     <>
       {waypoint.significance && (
-        <p className="text-[11.5px] leading-[1.55] text-[var(--text-secondary)]">{waypoint.significance}</p>
+        <p className="text-[13px] leading-[1.55] text-[var(--text-secondary)]">{waypoint.significance}</p>
       )}
       {waypoint.trigger && (
-        <p className="flex items-start gap-1.5 text-[11px] leading-[1.5] text-[var(--text-tertiary)]">
+        <p className="flex items-start gap-1.5 text-[12.5px] leading-[1.5] text-[var(--text-tertiary)]">
           <Zap size={11} className="mt-[1.5px] shrink-0 text-[var(--text-tertiary)]" />
           <span><span className="font-semibold text-[var(--text-secondary)]">{L('계기', 'Trigger')}</span> · {waypoint.trigger}</span>
         </p>
@@ -81,7 +81,7 @@ export function WaypointDetail({
       {/* Narration — open in the full chart; folded to one line in the rail. */}
       {dense && hasNarration ? (
         <details className="group/n">
-          <summary className="text-[10px] text-[var(--text-tertiary)] cursor-pointer hover:text-[var(--accent)] list-none flex items-center gap-1">
+          <summary className="text-[12px] text-[var(--text-tertiary)] cursor-pointer hover:text-[var(--accent)] list-none flex items-center gap-1">
             <ChevronDown size={9} className="transition-transform group-open/n:rotate-180" />
             {L('왜 이 갈림길인가', 'Why this turn')}
           </summary>
@@ -96,10 +96,10 @@ export function WaypointDetail({
           offered, why it was set aside, and a real button to go sail it now. */}
       {notTaken.map((alt, j) => (
         <div key={j} className="rounded-lg border border-[var(--border-subtle)] bg-[var(--bg)] px-2.5 py-2">
-          <div className="mb-1 flex items-center gap-1 text-[9px] font-bold uppercase tracking-[0.1em] text-[var(--text-tertiary)]">
+          <div className="mb-1 flex items-center gap-1 text-[12.5px] font-bold uppercase tracking-[0.1em] text-[var(--text-tertiary)]">
             <CornerDownRight size={10} /> {L('보류한 선택지', 'Options set aside')}
           </div>
-          <p className={`text-[11px] leading-[1.45] text-[var(--text-secondary)] ${dense ? 'line-clamp-2' : ''}`}>
+          <p className={`text-[12.5px] leading-[1.45] text-[var(--text-secondary)] ${dense ? 'line-clamp-2' : ''}`}>
             <span className="font-medium italic text-[var(--text-primary)]">{alt.label}</span>
             {alt.why_abandoned && alt.why_abandoned_source === 'user' && (
               <span className="text-[var(--text-tertiary)]"> — {alt.why_abandoned}</span>
@@ -108,7 +108,7 @@ export function WaypointDetail({
           <button
             onClick={() => onTakeRoad(waypoint.checkpoint_id, alt.label)}
             disabled={locked}
-            className={`mt-2 inline-flex items-center gap-1 rounded-md border border-[var(--accent)]/35 px-2 py-1 text-[10px] font-semibold text-[var(--accent)] transition-colors hover:bg-[var(--accent)]/10 cursor-pointer ${locked ? 'opacity-40 cursor-not-allowed' : ''}`}
+            className={`mt-2 inline-flex items-center gap-1 rounded-md border border-[var(--accent)]/35 px-2 py-1 text-[12px] font-semibold text-[var(--accent)] transition-colors hover:bg-[var(--accent)]/10 cursor-pointer ${locked ? 'opacity-40 cursor-not-allowed' : ''}`}
           >
             <GitBranch size={10} /> {L('이 길 가보기', 'Sail this path')}
           </button>
@@ -117,13 +117,13 @@ export function WaypointDetail({
 
       {assumptions.length > 0 && (
         <details className="group/d">
-          <summary className="text-[10px] text-[var(--text-tertiary)] cursor-pointer hover:text-[var(--accent)] list-none flex items-center gap-1">
+          <summary className="text-[12px] text-[var(--text-tertiary)] cursor-pointer hover:text-[var(--accent)] list-none flex items-center gap-1">
             <ChevronDown size={9} className="transition-transform group-open/d:rotate-180" />
             {L(`이 시점의 가정 ${assumptions.length}`, `${assumptions.length} assumptions in play`)}
           </summary>
           <ul className="mt-1 space-y-0.5 pl-2">
             {assumptions.map((a, k) => (
-              <li key={k} className="text-[10.5px] leading-[1.5] text-[var(--text-secondary)] flex gap-1">
+              <li key={k} className="text-[12.5px] leading-[1.5] text-[var(--text-secondary)] flex gap-1">
                 <span className="text-[var(--text-tertiary)] shrink-0">·</span><span>{a}</span>
               </li>
             ))}
@@ -163,10 +163,10 @@ export function WaypointCard({
           style={{ background: `color-mix(in srgb, ${meta.color} 13%, transparent)`, color: meta.color }}
         >
           <Icon size={12} strokeWidth={2.2} />
-          <span className="text-[10px] font-bold tracking-tight">{locale === 'ko' ? meta.ko : meta.en}</span>
+          <span className="text-[12px] font-bold tracking-tight">{locale === 'ko' ? meta.ko : meta.en}</span>
         </span>
         {eyebrow && (
-          <span className="shrink-0 inline-flex items-center rounded-full bg-[var(--accent)] px-2 py-[3px] text-[9px] font-bold uppercase tracking-[0.12em] text-white">
+          <span className="shrink-0 inline-flex items-center rounded-full bg-[var(--accent)] px-2 py-[3px] text-[12.5px] font-bold uppercase tracking-[0.12em] text-white">
             {eyebrow}
           </span>
         )}

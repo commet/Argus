@@ -187,11 +187,11 @@ export function ReceiptView({
       {/* header */}
       <div className="flex items-start justify-between gap-3 border-y-[3px] border-double border-[var(--border)] py-3">
         <div className="min-w-0">
-          <div className="text-[9px] font-bold uppercase tracking-[0.2em] text-[var(--text-tertiary)]">
+          <div className="text-[12.5px] font-bold uppercase tracking-[0.2em] text-[var(--text-tertiary)]">
             {L('문서 검수 기록', 'Document Review Record')}
           </div>
           <h2 className="text-[16px] font-bold text-[var(--text-primary)] truncate">{receipt.source_title}</h2>
-          <p className="mt-1 text-[9px] font-semibold uppercase tracking-[0.12em] text-[var(--text-tertiary)] tabular-nums">
+          <p className="mt-1 text-[12.5px] font-semibold uppercase tracking-[0.12em] text-[var(--text-tertiary)] tabular-nums">
             {receipt.source_kind} · {receiptDate} · No. {receipt.receipt_id.slice(-8)}
           </p>
         </div>
@@ -217,7 +217,7 @@ export function ReceiptView({
           covers part of the source, so it must not read as a full review. */}
       {receipt.coverage && receipt.coverage.band !== 'full' && receipt.coverage.notes.length > 0 && (
         <Card variant={receipt.coverage.band === 'low' ? 'danger' : 'muted'}>
-          <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--warning)] mb-1">
+          <div className="text-[12px] font-bold uppercase tracking-[0.18em] text-[var(--warning)] mb-1">
             {receipt.coverage.band === 'low' ? L('일부만 검수됨', 'Only partly reviewed') : L('부분 검수', 'Partial review')}
           </div>
           <ul className="space-y-0.5">
@@ -225,7 +225,7 @@ export function ReceiptView({
               <li key={i} className="text-[13px] text-[var(--text-primary)]">· {n}</li>
             ))}
           </ul>
-          <p className="mt-1.5 text-[11px] text-[var(--text-secondary)]">
+          <p className="mt-1.5 text-[12.5px] text-[var(--text-secondary)]">
             {L(
               '이 검수 결과는 위 범위만 다룹니다. 전체를 검수하려면 문서를 나눠 넣거나 핵심 부분을 붙여넣어 주세요.',
               'This review covers only the scope above. To review everything, split the document into pieces or paste the key section.',
@@ -239,7 +239,7 @@ export function ReceiptView({
           only for a document with real scope (skip tiny pastes). */}
       {receipt.coverage && receipt.coverage.band === 'full'
         && (receipt.coverage.pages_read || receipt.coverage.slides_read || receipt.coverage.units_total > 12) && (
-        <div className="flex items-center gap-1.5 text-[11px] text-[var(--success)]">
+        <div className="flex items-center gap-1.5 text-[12.5px] text-[var(--success)]">
           <span aria-hidden>✓</span>
           <span>
             {(() => {
@@ -259,7 +259,7 @@ export function ReceiptView({
       {!isJudgmentMirror && reviewability && band && (
       <Card variant={band === 'insufficient' ? 'danger' : band === 'limited' ? 'muted' : 'default'}>
         <div className="flex items-center justify-between gap-3">
-          <span className="text-[11px] font-bold uppercase tracking-wide text-[var(--text-secondary)]">
+          <span className="text-[12.5px] font-bold uppercase tracking-wide text-[var(--text-secondary)]">
             {L('검수 가능성', 'Reviewability')}
           </span>
           <span className="text-[15px] font-bold text-[var(--text-primary)]">{reviewability.score}/100</span>
@@ -273,7 +273,7 @@ export function ReceiptView({
           </ul>
         )}
         {receipt.profile && receipt.profile.source_confidence < 0.5 && (
-          <div className="mt-2 text-[11px] text-[var(--text-tertiary)]">
+          <div className="mt-2 text-[12.5px] text-[var(--text-tertiary)]">
             {L('문서 유형은 추론값입니다 (inferred).', 'The document type is inferred, not declared.')}
           </div>
         )}
@@ -282,7 +282,7 @@ export function ReceiptView({
 
       {/* core question */}
       <Card variant="premium">
-        <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--accent)] mb-1">{L('핵심 판단', 'Core judgment')}</div>
+        <div className="text-[12px] font-bold uppercase tracking-[0.18em] text-[var(--accent)] mb-1">{L('핵심 판단', 'Core judgment')}</div>
         <p className="text-[15px] leading-[1.6] text-[var(--text-primary)]">{receipt.core_question}</p>
         {receipt.current_heading && (
           <p className="mt-2 text-[13px] leading-[1.6] text-[var(--text-secondary)]">{receipt.current_heading}</p>
@@ -292,7 +292,7 @@ export function ReceiptView({
       {/* judgment obligations */}
       {topObligations.length > 0 && (
         <Card variant="human">
-          <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--human-fg)] mb-2">
+          <div className="text-[12px] font-bold uppercase tracking-[0.18em] text-[var(--human-fg)] mb-2">
             {L('사람이 직접 판단해야 할 것', 'What a human must judge')}
           </div>
           <div className="space-y-2.5">
@@ -306,7 +306,7 @@ export function ReceiptView({
       {/* top findings */}
       {topFindings.length > 0 && (
         <Card>
-          <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--text-secondary)] mb-2">{L('주요 발견', 'Key findings')}</div>
+          <div className="text-[12px] font-bold uppercase tracking-[0.18em] text-[var(--text-secondary)] mb-2">{L('주요 발견', 'Key findings')}</div>
           <div className="space-y-2.5">
             {topFindings.map((f) => (
               <FindingRow key={f.finding_id} f={f} isImage={isImage} onAnchorSelect={onAnchorSelect} activeSourcePage={activeSourcePage} activeSourceAnchor={activeSourceAnchor} />
@@ -344,7 +344,7 @@ export function ReceiptView({
       {/* 문서 수정안 — concrete per-claim fixes, secondary to judgment review */}
       {showFixes && fixes.length > 0 && (
         <Card variant="muted">
-          <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--text-secondary)] mb-2">
+          <div className="text-[12px] font-bold uppercase tracking-[0.18em] text-[var(--text-secondary)] mb-2">
             {L('문서 수정안 (제안 — 판단은 당신의 몫)', 'Suggested fixes (suggestions — the judgment is yours)')}
           </div>
           <ul className="space-y-1.5">
@@ -362,7 +362,7 @@ export function ReceiptView({
         <div className="flex flex-col gap-4 pt-1">
           {receipt.claim_ledger.length > 0 && (
             <Card>
-              <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--text-secondary)] mb-2">{L('주장과 근거', 'Claims & evidence')}</div>
+              <div className="text-[12px] font-bold uppercase tracking-[0.18em] text-[var(--text-secondary)] mb-2">{L('주장과 근거', 'Claims & evidence')}</div>
               {/* status filter (design doc §Claim Ledger) */}
               {claimStatuses.length > 1 && (
                 <div className="flex flex-wrap gap-1 mb-2.5">
@@ -370,7 +370,7 @@ export function ReceiptView({
                     <button
                       key={st}
                       onClick={() => setClaimFilter(st)}
-                      className={`px-2 py-0.5 text-[10px] rounded-full border ${
+                      className={`px-2 py-0.5 text-[12px] rounded-full border ${
                         claimFilter === st
                           ? 'border-[var(--accent)] text-[var(--accent)]'
                           : 'border-[var(--border-subtle)] text-[var(--text-tertiary)]'
@@ -385,29 +385,29 @@ export function ReceiptView({
                 {filteredClaims.map((c) => (
                   <div key={c.claim_id} className="text-[13px] border-b border-[var(--border-subtle)] last:border-0 pb-2 last:pb-0">
                     <div>
-                      <span className="inline-block px-1 py-0.5 mr-1 text-[10px] rounded border border-[var(--border-subtle)] text-[var(--text-tertiary)] tabular-nums">
+                      <span className="inline-block px-1 py-0.5 mr-1 text-[12px] rounded border border-[var(--border-subtle)] text-[var(--text-tertiary)] tabular-nums">
                         C{claimNumById.get(c.claim_id)}
                       </span>
-                      <span className="inline-block px-1.5 py-0.5 mr-2 text-[10px] rounded border border-[var(--border-subtle)] text-[var(--text-tertiary)]">
+                      <span className="inline-block px-1.5 py-0.5 mr-2 text-[12px] rounded border border-[var(--border-subtle)] text-[var(--text-tertiary)]">
                         {claimStatusLabel(c.status, L)}
                       </span>
                       <span className="text-[var(--text-primary)]">{c.text}</span>
                       {anchorLabel(L, c.anchors[0], isImage) && (
                         onAnchorSelect ? (
-                          <button type="button" onClick={() => c.anchors[0] && onAnchorSelect(c.anchors[0])} className="ml-1 text-[11px] text-[var(--accent)] hover:underline underline-offset-2">({anchorLabel(L, c.anchors[0], isImage)})</button>
+                          <button type="button" onClick={() => c.anchors[0] && onAnchorSelect(c.anchors[0])} className="ml-1 text-[12.5px] text-[var(--accent)] hover:underline underline-offset-2">({anchorLabel(L, c.anchors[0], isImage)})</button>
                         ) : (
-                          <span className="ml-1 text-[11px] text-[var(--text-tertiary)]">({anchorLabel(L, c.anchors[0], isImage)})</span>
+                          <span className="ml-1 text-[12.5px] text-[var(--text-tertiary)]">({anchorLabel(L, c.anchors[0], isImage)})</span>
                         )
                       )}
                     </div>
                     {c.evidence_needed && (
-                      <p className="mt-1 text-[11px] text-[var(--text-secondary)]">{L('확인할 근거', 'Evidence to check')}: {c.evidence_needed}</p>
+                      <p className="mt-1 text-[12.5px] text-[var(--text-secondary)]">{L('확인할 근거', 'Evidence to check')}: {c.evidence_needed}</p>
                     )}
                     {c.fix_suggestion && (
-                      <p className="mt-0.5 text-[11px] text-[var(--accent)]">{L('수정 제안', 'Suggested fix')}: {c.fix_suggestion}</p>
+                      <p className="mt-0.5 text-[12.5px] text-[var(--accent)]">{L('수정 제안', 'Suggested fix')}: {c.fix_suggestion}</p>
                     )}
                     {c.depends_on_claim_ids && c.depends_on_claim_ids.length > 0 && (
-                      <p className="mt-0.5 text-[11px] text-[var(--text-tertiary)]">
+                      <p className="mt-0.5 text-[12.5px] text-[var(--text-tertiary)]">
                         {L('기대는 논지', 'Rests on')}:{' '}
                         {c.depends_on_claim_ids
                           .map((id) => (claimNumById.has(id) ? { n: claimNumById.get(id)!, t: claimTextById.get(id) || '' } : null))
@@ -427,7 +427,7 @@ export function ReceiptView({
 
           {receipt.hidden_assumptions.length > 0 && (
             <Card variant="muted">
-              <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--text-secondary)] mb-2">
+              <div className="text-[12px] font-bold uppercase tracking-[0.18em] text-[var(--text-secondary)] mb-2">
                 {L('그대로 진행하면 위험한 가정', 'Assumptions risky to proceed on')}
               </div>
               <ul className="space-y-1.5">
@@ -443,25 +443,25 @@ export function ReceiptView({
 
           {receipt.falsifiable_followups.length > 0 && (
             <Card>
-              <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--text-secondary)] mb-2">
+              <div className="text-[12px] font-bold uppercase tracking-[0.18em] text-[var(--text-secondary)] mb-2">
                 {L('현실이 답할 후속 예측', 'Follow-up predictions reality will answer')}
               </div>
               <div className="space-y-3">
                 {receipt.falsifiable_followups.map((f) => (
                   <div key={f.followup_id} className="text-[13px] border-b border-[var(--border-subtle)] last:border-0 pb-2.5 last:pb-0">
                     <p className="text-[var(--text-primary)]">{f.predicate}</p>
-                    <p className="text-[11px] text-[var(--text-tertiary)]">
+                    <p className="text-[12.5px] text-[var(--text-tertiary)]">
                       {L(`확인일 ${f.check_by}`, `Check by ${f.check_by}`)} · {L('맞음', 'Pass')}: {f.pass_condition || '—'} · {L('틀림', 'Fail')}: {f.fail_condition || '—'}
                       {f.predicate_owner === 'user' && ` · ${L('내가 기록함', 'Recorded by me')}`}
                       {f.revise_count ? ` · ${L(`${f.revise_count}회 미룸`, `Postponed ${f.revise_count} time${f.revise_count === 1 ? '' : 's'}`)}` : ''}
                       {f.first_check_by ? ` · ${L(`원래 ${f.first_check_by}`, `originally ${f.first_check_by}`)}` : ''}
                     </p>
-                    {f.lean && <p className="mt-0.5 text-[11px] text-[var(--human-fg)]">{L('내 예상', 'My lean')}: {f.lean}</p>}
-                    {f.key_assumption && <p className="text-[11px] text-[var(--text-tertiary)]">{L('핵심 가정', 'Key assumption')}: {f.key_assumption}</p>}
+                    {f.lean && <p className="mt-0.5 text-[12.5px] text-[var(--human-fg)]">{L('내 예상', 'My lean')}: {f.lean}</p>}
+                    {f.key_assumption && <p className="text-[12.5px] text-[var(--text-tertiary)]">{L('핵심 가정', 'Key assumption')}: {f.key_assumption}</p>}
                     {/* why reality was still silent — returned so the next check-by
                         reminds the user WHY they pushed it, not just that time passed */}
                     {!f.settled_at && f.defer_reason && (
-                      <p className="mt-0.5 text-[11px] text-[var(--text-tertiary)]">
+                      <p className="mt-0.5 text-[12.5px] text-[var(--text-tertiary)]">
                         {L('미룬 이유', 'Why postponed')}: {f.defer_reason}
                       </p>
                     )}
@@ -485,7 +485,7 @@ export function ReceiptView({
 
           {receipt.findings.length > topFindings.length && (
             <Card>
-              <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--text-secondary)] mb-2">
+              <div className="text-[12px] font-bold uppercase tracking-[0.18em] text-[var(--text-secondary)] mb-2">
                 {L(
                   `나머지 발견 (${receipt.findings.length - topFindings.length})`,
                   `Remaining findings (${receipt.findings.length - topFindings.length})`,
@@ -533,9 +533,9 @@ function ObligationRow({
         {o.statement}
         {anchorLabel(L, o.anchors[0], isImage) && (
           onAnchorSelect ? (
-            <button type="button" onClick={() => o.anchors[0] && onAnchorSelect(o.anchors[0])} className="ml-1 text-[11px] font-normal text-[var(--accent)] hover:underline underline-offset-2">({anchorLabel(L, o.anchors[0], isImage)})</button>
+            <button type="button" onClick={() => o.anchors[0] && onAnchorSelect(o.anchors[0])} className="ml-1 text-[12.5px] font-normal text-[var(--accent)] hover:underline underline-offset-2">({anchorLabel(L, o.anchors[0], isImage)})</button>
           ) : (
-            <span className="ml-1 text-[11px] font-normal text-[var(--text-tertiary)]">({anchorLabel(L, o.anchors[0], isImage)})</span>
+            <span className="ml-1 text-[12.5px] font-normal text-[var(--text-tertiary)]">({anchorLabel(L, o.anchors[0], isImage)})</span>
           )
         )}
       </p>
@@ -553,7 +553,7 @@ function ObligationRow({
           <button
             type="button"
             onClick={() => setOpen((v) => !v)}
-            className="text-[11px] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]"
+            className="text-[12.5px] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]"
           >
             {open ? L('접기', 'Less') : L('왜 사람인가 ▾', 'Why a human ▾')}
           </button>
@@ -593,14 +593,14 @@ function FindingRow({ f, isImage = false, onAnchorSelect, activeSourcePage, acti
         aria-expanded={hasMore ? open : undefined}
         aria-current={sourceActive ? 'location' : undefined}
       >
-        <span className={`shrink-0 mt-0.5 px-1.5 py-0.5 text-[10px] font-bold rounded border ${SEVERITY_CLS[f.severity]}`}>{severityLabel(f.severity, L)}</span>
+        <span className={`shrink-0 mt-0.5 px-1.5 py-0.5 text-[12px] font-bold rounded border ${SEVERITY_CLS[f.severity]}`}>{severityLabel(f.severity, L)}</span>
         <span className="min-w-0 flex-1 text-[13px] font-medium leading-snug text-[var(--text-primary)]">
           {f.title}
           {anchorLabel(L, f.anchors[0], isImage) && (
-            <span className="ml-1 text-[11px] font-normal text-[var(--text-tertiary)]">({anchorLabel(L, f.anchors[0], isImage)})</span>
+            <span className="ml-1 text-[12.5px] font-normal text-[var(--text-tertiary)]">({anchorLabel(L, f.anchors[0], isImage)})</span>
           )}
         </span>
-        {hasMore && <span className="shrink-0 mt-0.5 text-[10px] text-[var(--text-tertiary)]">{open ? '▲' : '▼'}</span>}
+        {hasMore && <span className="shrink-0 mt-0.5 text-[12px] text-[var(--text-tertiary)]">{open ? '▲' : '▼'}</span>}
       </button>
       {open && hasMore && (
         <div className="mt-1 pl-8 space-y-0.5">

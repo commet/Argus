@@ -127,7 +127,7 @@ export function FeedbackRequest({ personas, onSubmit, loading, initialContent, i
           {relatedRecast && !useCustomDoc && (
             <button
               onClick={() => setUseCustomDoc(true)}
-              className="text-[11px] text-[var(--accent)] hover:underline cursor-pointer"
+              className="text-[12.5px] text-[var(--accent)] hover:underline cursor-pointer"
             >
               {L('직접 입력으로 전환', 'Switch to manual')}
             </button>
@@ -135,7 +135,7 @@ export function FeedbackRequest({ personas, onSubmit, loading, initialContent, i
           {useCustomDoc && relatedRecast && (
             <button
               onClick={() => { setUseCustomDoc(false); setDocumentText(recastToMarkdown(relatedRecast)); }}
-              className="text-[11px] text-[var(--accent)] hover:underline cursor-pointer"
+              className="text-[12.5px] text-[var(--accent)] hover:underline cursor-pointer"
             >
               {L('선원 배치 결과 사용', 'Use Crew Assignment output')}
             </button>
@@ -158,7 +158,7 @@ export function FeedbackRequest({ personas, onSubmit, loading, initialContent, i
 
             {/* Key info */}
             <div className="px-4 py-3 border-t border-[var(--border-subtle)]">
-              <div className="flex flex-wrap gap-3 text-[11px]">
+              <div className="flex flex-wrap gap-3 text-[12.5px]">
                 <span className="text-[var(--text-secondary)]">
                   <Bot size={10} className="inline mr-1" />
                   {relatedRecast.analysis.steps?.filter(s => s.actor === 'ai').length || 0} {L('AI 단계', 'AI steps')}
@@ -180,13 +180,13 @@ export function FeedbackRequest({ personas, onSubmit, loading, initialContent, i
               </div>
               <button
                 onClick={() => setShowFullDoc(!showFullDoc)}
-                className="flex items-center gap-1 mt-2 text-[11px] text-[var(--text-tertiary)] hover:text-[var(--accent)] cursor-pointer"
+                className="flex items-center gap-1 mt-2 text-[12.5px] text-[var(--text-tertiary)] hover:text-[var(--accent)] cursor-pointer"
               >
                 {showFullDoc ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
                 {showFullDoc ? L('접기', 'Collapse') : L('전체 내용 보기', 'Show full content')}
               </button>
               {showFullDoc && (
-                <pre className="mt-2 text-[11px] text-[var(--text-secondary)] whitespace-pre-wrap leading-relaxed max-h-60 overflow-y-auto bg-[var(--bg)] rounded-lg p-3">
+                <pre className="mt-2 text-[12.5px] text-[var(--text-secondary)] whitespace-pre-wrap leading-relaxed max-h-60 overflow-y-auto bg-[var(--bg)] rounded-lg p-3">
                   {documentText}
                 </pre>
               )}
@@ -272,11 +272,11 @@ export function FeedbackRequest({ personas, onSubmit, loading, initialContent, i
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <p className="text-[13px] font-semibold text-[var(--text-primary)] truncate">{p.name}</p>
-                      <span className={`shrink-0 px-1.5 py-0.5 rounded text-[10px] font-bold ${inf.bg} ${inf.text}`}>
+                      <span className={`shrink-0 px-1.5 py-0.5 rounded text-[12px] font-bold ${inf.bg} ${inf.text}`}>
                         {inf.label}
                       </span>
                     </div>
-                    <p className="text-[11px] text-[var(--text-secondary)] truncate">{p.role}{p.organization ? ` · ${p.organization}` : ''}</p>
+                    <p className="text-[12.5px] text-[var(--text-secondary)] truncate">{p.role}{p.organization ? ` · ${p.organization}` : ''}</p>
                   </div>
                   {selected && (
                     <Check size={16} className="text-[var(--accent)] shrink-0" />
@@ -290,7 +290,7 @@ export function FeedbackRequest({ personas, onSubmit, loading, initialContent, i
 
       {/* ── CTA ── */}
       <div className="flex items-center justify-between pt-2">
-        <p className="text-[11px] text-[var(--text-tertiary)]">
+        <p className="text-[12.5px] text-[var(--text-tertiary)]">
           {selectedIds.length > 0
             ? L(`${selectedIds.length}명의 이해관계자가 검토합니다`, `${selectedIds.length} stakeholder${selectedIds.length === 1 ? '' : 's'} will review`)
             : L('이해관계자를 선택하세요', 'Pick stakeholders')

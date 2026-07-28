@@ -40,7 +40,7 @@ export function DMFeedback({ fb, onToggle, onFinalize, onDeepen, busy }: { fb: D
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 rounded-full bg-[var(--accent)]/8 flex items-center justify-center text-[15px] font-bold text-[var(--accent)]">{initial}</div>
               <div className="min-w-0">
-                <p className="text-[10px] font-bold tracking-[0.12em] text-[var(--accent)]">
+                <p className="text-[12px] font-bold tracking-[0.12em] text-[var(--accent)]">
                   {L('AI가 맡은 검토 관점', 'AI-simulated review lens')}
                 </p>
                 <p className="mt-0.5 truncate text-[14px] text-[var(--text-primary)]">
@@ -54,14 +54,14 @@ export function DMFeedback({ fb, onToggle, onFinalize, onDeepen, busy }: { fb: D
                 </p>
               </div>
             </div>
-            <p className="-mt-2 text-[11.5px] leading-[1.55] text-[var(--text-tertiary)]">
+            <p className="-mt-2 text-[13px] leading-[1.55] text-[var(--text-tertiary)]">
               {L('실제 당사자의 의견이 아니에요. 이 자리가 먼저 물을 질문을 미리 점검합니다.', 'This is not the real stakeholder’s opinion. It previews the questions this seat may ask.')}
             </p>
 
             {/* A model projection is not a quotation. Keep it prominent without
                 borrowing the visual grammar of something a real person said. */}
             <div className="rounded-xl bg-[var(--ai)]/45 px-4 py-3.5">
-              <p className="mb-1.5 text-[9.5px] font-bold uppercase tracking-[0.16em] text-[var(--accent)]">
+              <p className="mb-1.5 text-[13px] font-bold uppercase tracking-[0.16em] text-[var(--accent)]">
                 {L('AI 예상 첫 반응', 'AI-predicted first reaction')}
               </p>
               <p className="text-[17px] leading-[1.6] text-[var(--text-primary)] md:text-[18px]">
@@ -88,14 +88,14 @@ export function DMFeedback({ fb, onToggle, onFinalize, onDeepen, busy }: { fb: D
             {/* Concerns — "이것만 고치면" */}
             {fb.concerns.length > 0 && <div>
               <div className="flex items-center justify-between gap-3 mb-3">
-                <p className="text-[9px] font-bold text-[var(--text-tertiary)] uppercase tracking-[0.2em]">{L('이것만 고치면', 'Fix These')}</p>
+                <p className="text-[12.5px] font-bold text-[var(--text-tertiary)] uppercase tracking-[0.2em]">{L('이것만 고치면', 'Fix These')}</p>
                 {fb.concerns.length > 1 && (
                   <div className="flex items-center gap-2.5 shrink-0">
                     <button
                       type="button"
                       onClick={() => { if (!busy) fb.concerns.forEach((c, i) => { if (!c.applied) onToggle(i); }); }}
                       disabled={busy || fb.concerns.every(c => c.applied)}
-                      className="text-[11px] font-medium text-[var(--accent)] hover:underline cursor-pointer disabled:opacity-30 disabled:cursor-default disabled:no-underline">
+                      className="text-[12.5px] font-medium text-[var(--accent)] hover:underline cursor-pointer disabled:opacity-30 disabled:cursor-default disabled:no-underline">
                       {L('모두 반영', 'Apply all')}
                     </button>
                     <span className="text-[var(--border)]">·</span>
@@ -103,7 +103,7 @@ export function DMFeedback({ fb, onToggle, onFinalize, onDeepen, busy }: { fb: D
                       type="button"
                       onClick={() => { if (!busy) fb.concerns.forEach((c, i) => { if (c.applied) onToggle(i); }); }}
                       disabled={busy || fb.concerns.every(c => !c.applied)}
-                      className="text-[11px] font-medium text-[var(--text-tertiary)] hover:text-[var(--text-primary)] cursor-pointer disabled:opacity-30 disabled:cursor-default">
+                      className="text-[12.5px] font-medium text-[var(--text-tertiary)] hover:text-[var(--text-primary)] cursor-pointer disabled:opacity-30 disabled:cursor-default">
                       {L('모두 해제', 'Clear all')}
                     </button>
                   </div>
@@ -124,7 +124,7 @@ export function DMFeedback({ fb, onToggle, onFinalize, onDeepen, busy }: { fb: D
                       return (
                         <div className="mb-2.5">
                           <div className="flex items-start gap-2">
-                            <span className={`inline-block text-[9px] font-bold px-2 py-0.5 rounded-full shrink-0 mt-[3px] ${c.severity === 'critical' ? 'bg-red-50 text-red-600 dark:bg-red-950/40 dark:text-red-400' : c.severity === 'important' ? 'bg-amber-50 text-amber-600 dark:bg-amber-950/40 dark:text-amber-400' : 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400'}`}>
+                            <span className={`inline-block text-[12.5px] font-bold px-2 py-0.5 rounded-full shrink-0 mt-[3px] ${c.severity === 'critical' ? 'bg-red-50 text-red-600 dark:bg-red-950/40 dark:text-red-400' : c.severity === 'important' ? 'bg-amber-50 text-amber-600 dark:bg-amber-950/40 dark:text-amber-400' : 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400'}`}>
                               {c.severity === 'critical' ? L('필수', 'Required') : c.severity === 'important' ? L('권장', 'Recommended') : L('참고', 'Note')}</span>
                             <p className="text-[13.5px] font-semibold text-[var(--text-primary)] leading-[1.5]">{head}</p>
                           </div>
@@ -137,13 +137,13 @@ export function DMFeedback({ fb, onToggle, onFinalize, onDeepen, busy }: { fb: D
                     {c.fix_suggestion && (
                       <div className="rounded-lg bg-[var(--accent)]/[0.05] px-3 py-2 mb-3">
                         <p className="text-[12.5px] leading-[1.6] text-[var(--text-primary)]">
-                          <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--accent)] mr-1.5">{L('해결', 'Fix')}</span>
+                          <span className="text-[12px] font-bold uppercase tracking-[0.12em] text-[var(--accent)] mr-1.5">{L('해결', 'Fix')}</span>
                           {c.fix_suggestion}
                         </p>
                       </div>
                     )}
                     <div className="flex items-center justify-end gap-2">
-                      <span className="text-[10px] text-[var(--text-tertiary)]">{c.applied ? L('반영', 'Applied') : L('제외', 'Skipped')}</span>
+                      <span className="text-[12px] text-[var(--text-tertiary)]">{c.applied ? L('반영', 'Applied') : L('제외', 'Skipped')}</span>
                       <button
                         type="button"
                         role="switch"
@@ -164,14 +164,14 @@ export function DMFeedback({ fb, onToggle, onFinalize, onDeepen, busy }: { fb: D
             {/* Approval condition — one compact line riding right above the CTA
                 (it IS the CTA's justification, not a separate chapter). */}
             <div className="flex items-baseline gap-2.5 rounded-lg bg-[var(--accent)]/[0.04] px-3.5 py-2.5">
-              <span className="text-[9px] font-bold text-[var(--accent)] uppercase tracking-[0.18em] shrink-0">{L('반영 기준', 'What to change')}</span>
+              <span className="text-[12.5px] font-bold text-[var(--accent)] uppercase tracking-[0.18em] shrink-0">{L('반영 기준', 'What to change')}</span>
               <p className="text-[13.5px] text-[var(--text-primary)] font-semibold leading-snug">{fb.approval_condition}</p>
             </div>
 
             {/* Deep mode extras — would_ask (shown after deep review) */}
             {fb.would_ask.length > 0 && (
               <div className="pt-2">
-                <p className="text-[9px] font-bold text-[var(--text-tertiary)] uppercase tracking-[0.2em] mb-2.5">{L('이것도 물어볼 거다', 'They Would Also Ask')}</p>
+                <p className="text-[12.5px] font-bold text-[var(--text-tertiary)] uppercase tracking-[0.2em] mb-2.5">{L('이것도 물어볼 거다', 'They Would Also Ask')}</p>
                 {fb.would_ask.map((q, i) => <p key={i} className="text-[13px] text-[var(--text-secondary)] flex items-start gap-2 mb-1.5 leading-relaxed"><span className="text-[var(--accent)] shrink-0">?</span>{q}</p>)}
               </div>
             )}
@@ -186,10 +186,10 @@ export function DMFeedback({ fb, onToggle, onFinalize, onDeepen, busy }: { fb: D
                 <div>
                   <p className="text-[12px] font-semibold text-[var(--text-primary)]">{L('반영할 수정 제안', 'Revisions to apply')}</p>
                   {fb.concerns.length === 0 && (
-                    <p className="mt-0.5 text-[11px] text-[var(--text-tertiary)]">{L('추가로 반영할 게 없어요', 'Nothing more to apply')}</p>
+                    <p className="mt-0.5 text-[12.5px] text-[var(--text-tertiary)]">{L('추가로 반영할 게 없어요', 'Nothing more to apply')}</p>
                   )}
                 </div>
-                <span className="rounded-full bg-[var(--surface)] px-2.5 py-1 text-[11px] font-semibold tabular-nums text-[var(--accent)]">
+                <span className="rounded-full bg-[var(--surface)] px-2.5 py-1 text-[12.5px] font-semibold tabular-nums text-[var(--accent)]">
                   {fb.concerns.length > 0 ? `${appliedCount}/${fb.concerns.length}` : L('확인 완료', 'Checked')}
                 </span>
               </div>

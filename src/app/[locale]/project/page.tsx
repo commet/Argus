@@ -742,7 +742,7 @@ export default function ProjectPage() {
               >
                 <div className="flex flex-col gap-2 px-1 sm:flex-row sm:items-end sm:justify-between">
                   <div>
-                    <p className="flex items-center gap-2 text-[9px] font-mono font-semibold uppercase tracking-[0.18em] text-[#2b615d]">
+                    <p className="flex items-center gap-2 text-[12.5px] font-mono font-semibold uppercase tracking-[0.18em] text-[#2b615d]">
                       <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-[#c49945]" />
                       {L('결정 기록 · 현재 상태', 'Decision record · current status')}
                     </p>
@@ -753,7 +753,7 @@ export default function ProjectPage() {
                       {L('확인이 필요한 결정부터 최근 활동 순으로 정리했어요.', 'Decisions needing attention come first, followed by recent activity.')}
                     </p>
                   </div>
-                  <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-[var(--text-tertiary)] tabular-nums">
+                  <p className="font-mono text-[12px] uppercase tracking-[0.12em] text-[var(--text-tertiary)] tabular-nums">
                     {L(`${stats.total}건`, `${stats.total} decision${stats.total === 1 ? '' : 's'}`)}
                   </p>
                 </div>
@@ -777,14 +777,14 @@ export default function ProjectPage() {
                         key={f.key}
                         aria-pressed={active}
                         onClick={() => setStatusFilter(f.key)}
-                        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11.5px] font-medium transition-all cursor-pointer ${
+                        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[13px] font-medium transition-all cursor-pointer ${
                           active
                             ? 'bg-[var(--text-primary)] text-[var(--bg)]'
                             : 'bg-[var(--surface)] text-[var(--text-secondary)] border border-[var(--border-subtle)] hover:border-[var(--text-secondary)]/30'
                         }`}
                       >
                         <span>{f.label}</span>
-                        <span className={`tabular-nums text-[10.5px] ${active ? 'opacity-70' : 'text-[var(--text-tertiary)]'}`}>
+                        <span className={`tabular-nums text-[12.5px] ${active ? 'opacity-70' : 'text-[var(--text-tertiary)]'}`}>
                           {f.count}
                         </span>
                       </button>
@@ -803,7 +803,7 @@ export default function ProjectPage() {
                       />
                     </div>
                   </div>
-                  <div className="flex min-h-6 items-center justify-between gap-3 text-[11.5px] text-[var(--text-tertiary)]">
+                  <div className="flex min-h-6 items-center justify-between gap-3 text-[13px] text-[var(--text-tertiary)]">
                     <p role="status" aria-live="polite" aria-atomic="true">
                       {L(`${filteredProjects.length}개 프로젝트`, `${filteredProjects.length} project${filteredProjects.length === 1 ? '' : 's'}`)}
                     </p>
@@ -925,7 +925,7 @@ export default function ProjectPage() {
                         </div>
 
                         {/* Header: status pill + last-activity time */}
-                        <div className="flex items-center justify-between gap-2 text-[10.5px] uppercase tracking-wide font-bold">
+                        <div className="flex items-center justify-between gap-2 text-[12.5px] uppercase tracking-wide font-bold">
                           <span
                             className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md ${cardStatusClass}`}
                             style={vMeta.tone === 'gold' && !isDue ? { background: 'var(--gradient-gold-subtle)' } : undefined}
@@ -969,7 +969,7 @@ export default function ProjectPage() {
 
                         {/* Metrics strip — only when meaningful */}
                         {hasMetrics && (
-                          <div className="flex flex-wrap gap-x-3.5 gap-y-1.5 text-[11.5px] text-[var(--text-secondary)]">
+                          <div className="flex flex-wrap gap-x-3.5 gap-y-1.5 text-[13px] text-[var(--text-secondary)]">
                             {m.stepCount > 0 && (
                               <span className="inline-flex items-center gap-1 tabular-nums">
                                 <GitBranch size={11} className="text-[var(--text-tertiary)]" strokeWidth={2.25} />
@@ -1021,7 +1021,7 @@ export default function ProjectPage() {
                               />
                             ))}
                           </div>
-                          <div className="flex items-center justify-between text-[10px]">
+                          <div className="flex items-center justify-between text-[12px]">
                             {labels.map((label, i) => {
                               const isLast = i === m.lastActivityStepIdx && !m.isDone;
                               return (
@@ -1094,7 +1094,7 @@ export default function ProjectPage() {
                     {currentProject.name}
                   </h1>
                   {currentHasVoyage && (
-                    <span className={`shrink-0 text-[11px] font-semibold px-2 py-0.5 rounded-full ${currentVoyageStatusClass}`}>
+                    <span className={`shrink-0 text-[12.5px] font-semibold px-2 py-0.5 rounded-full ${currentVoyageStatusClass}`}>
                       {currentVoyageStatusLabel}
                     </span>
                   )}
@@ -1130,7 +1130,7 @@ export default function ProjectPage() {
                   <Download size={14} /> {L('요약 파일 (.md)', 'Summary file (.md)')}
                 </Button>
                 </div>
-                <p className="mt-1.5 text-[11px] leading-5 text-[var(--text-tertiary)] sm:text-right">
+                <p className="mt-1.5 text-[12.5px] leading-5 text-[var(--text-tertiary)] sm:text-right">
                   {L('현재 판단·확인 계획·최종 결과물을 담습니다.', 'Includes the current decision, follow-up plan, and final deliverable.')}
                 </p>
               </div>
@@ -1254,7 +1254,7 @@ export default function ProjectPage() {
                     {/* Content */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <span className="text-[11px] font-bold text-[var(--text-secondary)]">STEP {i + 1}</span>
+                        <span className="text-[12.5px] font-bold text-[var(--text-secondary)]">STEP {i + 1}</span>
                         <h3 className="text-[15px] font-bold text-[var(--text-primary)]">{step.label}</h3>
                         {step.status === 'done' && <Badge variant="both">{L('완료', 'Done')}</Badge>}
                         {step.status === 'in-progress' && <Badge variant="ai">{L('진행 중', 'In progress')}</Badge>}

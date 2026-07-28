@@ -78,8 +78,8 @@ export function ReframeDecisionPath({
                   <Icon size={14} className={node.ownership === 'ai' ? 'text-[var(--ai-fg)]' : 'text-[var(--accent)]'} />
                   <span className={`h-1.5 w-1.5 rounded-full ${node.complete ? 'bg-[var(--success)]' : 'border border-[var(--border)]'}`} />
                 </span>
-                <span className="mt-2 block text-[11px] font-bold text-[var(--text-primary)]">{node.label}</span>
-                <span className="mt-0.5 block text-[9px] text-[var(--text-tertiary)]">{node.detail}</span>
+                <span className="mt-2 block text-[12.5px] font-bold text-[var(--text-primary)]">{node.label}</span>
+                <span className="mt-0.5 block text-[12.5px] text-[var(--text-tertiary)]">{node.detail}</span>
               </button>
               {index < nodes.length - 1 && (
                 <span className="hidden items-center justify-center text-[var(--text-tertiary)] md:flex" aria-hidden="true"><ArrowRight size={12} /></span>
