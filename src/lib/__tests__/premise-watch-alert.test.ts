@@ -54,7 +54,10 @@ describe('premise-watch T2 alert fixture', () => {
       receipt,
       premise,
       result,
-      checkedAt: '2026-07-07T09:00:00.000Z',
+      // The check date is deliberately LATER than source_date (2026-07-07): the
+      // two are different facts, and an identical-dates fixture cannot tell whether
+      // the email prints the source's publish date or merely today's.
+      checkedAt: '2026-07-12T09:00:00.000Z',
       baseUrl: 'https://argus.voyage',
     });
 
@@ -63,7 +66,9 @@ describe('premise-watch T2 alert fixture', () => {
     expect(alert.email?.subject).toBe('전제가 하나 움직였어요 — "기준금리가 3.5% 근처에 머문다"');
     expect(alert.email?.markdown).toContain('봉인 당시 값: 3.5');
     expect(alert.email?.markdown).toContain('오늘 확인된 값: 4');
-    expect(alert.email?.markdown).toContain('출처: https://bok.example/current, 2026-07-07');
+    expect(alert.email?.markdown).toContain('출처: https://bok.example/current, 2026-07-07 발행');
+    // and the check date is reported as its own fact, never as the source's.
+    expect(alert.email?.markdown).toContain('확인일: 2026-07-12');
     expect(alert.email?.markdown).toContain('확신도: 높음');
     expect(alert.email?.url).toBe('https://argus.voyage/tools/review?receipt=row_rate&premise=p_rate');
   });
