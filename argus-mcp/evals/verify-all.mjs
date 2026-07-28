@@ -449,9 +449,15 @@ selfTest(
   // 픽커가 아예 안 뜬다.
   '자기검증 ㉖ 거절 한 번이 이후 픽커를 전부 없애는 회귀를 잡는가',
   'src/lib/elicit.ts',
+  // Anchor on the signature line only. This mutation used to include the body's
+  // first statement and stopped matching the moment canElicit gained its
+  // fail-closed try/catch — the self-test then reported "could not plant", which
+  // is the honest outcome and exactly why that branch exists, but a mutation
+  // that cannot be planted proves nothing. Keep the anchor as small as the
+  // change requires.
   (s) => s.replace(
-    'export function canElicit(): boolean {\n  if (_capable) return _capable();',
-    'export function canElicit(): boolean {\n  if (_unreadableStreak >= 1) return false;\n  if (_capable) return _capable();'),
+    'export function canElicit(): boolean {',
+    'export function canElicit(): boolean {\n  if (_unreadableStreak >= 1) return false;'),
   `node evals/e2e-picker.mjs "${process.execPath}" dist/index.js`,
 );
 selfTest(
