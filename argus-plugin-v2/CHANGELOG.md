@@ -1,5 +1,15 @@
 # Changelog
 
+## 3.0.4 — 2026-07-28
+
+- Wire moves to `argus-decision-mcp@2.0.4` — **the confirm dialog now waits for
+  you.** Underneath, the ask was a request with the MCP SDK's default 60-second
+  timeout, so an Accept pressed after a minute of thinking was discarded and the
+  tool reported that nothing had been recorded. It allows ten minutes now. The
+  receipt, seal certificate and logbook also had six ways to spill outside their
+  own frame — a Korean sentence without spaces, a long URL, emoji, a long id —
+  and they stay inside it now.
+
 ## 3.0.3 — 2026-07-28
 
 - Wire moves to `argus-decision-mcp@2.0.3` — the five confirm dialogs were read

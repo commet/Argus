@@ -138,6 +138,10 @@ run('정산 카드 실행 (VM 호스트)', 'node evals/widget-runtime.mjs', { ex
 const COUNTS = (o) => (o.match(/(\d+ checks · \d+ violation[^\n]*)/) || [])[1] ?? '';
 run('픽커 화면 전수 (2언어 × 8내용)', 'node evals/picker-surfaces.mjs', { env: { ...process.env, PICKER_SURFACES_SKIP_BUILD: '1' }, extract: COUNTS });
 run('문장 위험 전수 (2언어 × 2호스트)', 'node evals/surface-hazards.mjs', { env: { ...process.env, SURFACE_HAZARDS_SKIP_BUILD: '1' }, extract: COUNTS });
+run('간직하는 화면의 액자 (영수증·봉인·항해일지)', 'node evals/keepsake-frames.mjs', { env: { ...process.env, KEEPSAKE_SKIP_BUILD: '1' }, extract: COUNTS });
+run('버전 다섯 곳 일치', 'node evals/version-lockstep.mjs', { extract: COUNTS });
+// Slow on purpose: the answer arrives after the SDK's 60s default. ~80s.
+run('1분 넘게 생각한 사람의 Accept', 'node evals/slow-human.mjs', { env: { ...process.env, SLOW_HUMAN_SKIP_BUILD: '1' }, extract: (o) => (o.match(/(\d+ checks · \d+ violations[^\n]*)/) || [])[1] ?? '' });
 
 // ── the plugin surface ──────────────────────────────────────────────────────
 run('플러그인 검증', 'node argus-plugin-v2/scripts/validate-plugin.js', { cwd: REPO });
@@ -257,6 +261,26 @@ selfTest(
   'src/tools/seal.ts',
   (s) => s.replace("' 달력 앱에 넣을 알림 파일도 함께 저장했습니다.'", "' 달력 리마인더(.ics)도 저장했습니다.'"),
   'node evals/surface-hazards.mjs',
+);
+selfTest(
+  '자기검증 ⑯ 간직하는 화면이 액자 밖으로 나가는 회귀를 잡는가',
+  'src/lib/render-receipt.ts',
+  (s) => s.replace('.flatMap((w) => breakToken(w, width));', ';'),
+  'node evals/keepsake-frames.mjs',
+);
+selfTest(
+  '자기검증 ⑰ 폭 측정이 이모지를 놓치는 회귀를 잡는가',
+  'src/lib/render-receipt.ts',
+  (s) => s.replace('return (WIDE.test(ch) || PICTO.test(ch)) ? 2 : 1;', 'return WIDE.test(ch) ? 2 : 1;'),
+  'node evals/keepsake-frames.mjs',
+);
+selfTest(
+  '자기검증 ⑱ 오래 생각한 사람의 답을 버리는 회귀를 잡는가',
+  'src/server.ts',
+  (s) => s.replace(
+    'ec.elicitInput({ message, requestedSchema }, { timeout: timeoutMs ?? DECISION_ASK_TIMEOUT_MS })',
+    'ec.elicitInput({ message, requestedSchema })'),
+  'node evals/slow-human.mjs',
 );
 
 const pad = (s, n) => String(s) + ' '.repeat(Math.max(0, n - String(s).length));

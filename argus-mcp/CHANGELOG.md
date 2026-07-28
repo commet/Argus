@@ -1,5 +1,73 @@
 # Changelog
 
+## 2.0.4 — The Accept that was thrown away, and the keepsakes nobody had looked at
+
+**A minute is not long enough to decide something**
+
+- **An Accept that arrived after 60 seconds was discarded.** The MCP SDK times a
+  server-to-client request out after 60 seconds by default and we never passed an
+  option, so every picker inherited that limit — on a request whose responder is
+  a person reading their own prediction and deciding whether to commit to it.
+  From the founder's host log: the ask went out at 07:22:16, the SDK gave up at
+  07:23:16 exactly, and their Accept landed at 07:23:27. The tool had already
+  told them nothing was recorded, and reading the record back said "No decisions
+  on record yet."
+
+  This was reported twice as "Accept does not work" and fixed twice — once for a
+  `required` field, once for `format`. Both were real. Neither was this. Nobody
+  measured the clock, because every harness answered instantly, which is the one
+  thing a person never does.
+
+  The ask now allows ten minutes, and `evals/slow-human.mjs` answers after
+  seventy-five seconds and requires the record to survive. It costs 80 seconds of
+  CI, which is what it costs to test the most important interaction in the
+  product the way people actually perform it.
+
+- The out-of-band ask believed it waited two minutes (`DEFAULT_ASK_TIMEOUT_MS =
+  120_000`). The SDK cut it at 60, so that outer bound was a number which could
+  never be reached. Inner and outer now agree.
+
+**The three blocks you keep and share**
+
+The settle receipt, the seal certificate and the logbook travel in `data` and are
+drawn as monospace frames. 2.0.2 rendered the card and looked at it; 2.0.3 did the
+same for the five asks; nothing had ever looked at these. Rendering them across
+two languages and eleven content shapes found six defects:
+
+- a sentence with **no spaces in it** — ordinary in Korean — was never broken, so
+  a 64-column frame carried a 105-column line. A long URL gave 81.
+- **every settled row in the logbook** ran nine columns past the border: the
+  outcome word is prepended to a label already budgeted the full width.
+- `idCol()`, written to stop exactly that, **was never called**, so one long id
+  pushed a row twelve columns out.
+- the seal certificate padded its two date rows by codepoint, so in Korean the
+  dates did not line up.
+- the group hint was padded the same way and landed outside the frame.
+- **emoji were not counted as wide**, so an emoji prediction packed 15 columns
+  past the border in Korean and 25 in English. That one was invisible for a
+  reason worth keeping: the check that would have caught it used the renderer's
+  own width function, so checker and subject were wrong in the same direction.
+  `evals/keepsake-frames.mjs` therefore carries an independent measure, built
+  from Unicode properties rather than from the hand-kept list it audits.
+
+Widening `dw` alone was not enough either: `truncDw` and `breakToken` each carried
+their own inline copy of the rule, so the renderer judged with the new measure and
+cut with the old one. There is one character-width function now, used by all three.
+
+**Gates**
+
+- `keepsake-frames.mjs` — 254 checks: frames close, borders agree, the box fits an
+  80-column terminal, and nothing is discarded to make it fit.
+- `slow-human.mjs` — the seventy-five-second answer.
+- `version-lockstep.mjs` — a release moves the version in five hand-kept files, and
+  the `npx …@X` pin is the dangerous one. If it lags, every user of the new plugin
+  keeps launching the old server, silently, because both halves are internally
+  consistent and nothing errors.
+- `picker-surfaces.mjs` identified each ask by which line of the script had run
+  last. The out-of-band ask fires on a timer, so under load it took the defer slot
+  and the gate went red on machine load rather than on a defect. Asks are now
+  identified by their own schema shape, and a missing one is named.
+
 ## 2.0.3 — What the pickers say, in both languages
 
 2.0.2 fixed the settle card by rendering it and looking. This does the same for
