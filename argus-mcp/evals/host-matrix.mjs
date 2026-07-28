@@ -332,10 +332,24 @@ async function runProfile(name) {
     // Two invariants, both about not wasting a person's answer:
     //   D2-1 a field the server will require is not labelled optional
     //   D2-2 if it refuses anyway, the pick the user already made comes back
+    // BOTH LANGUAGES, EACH PINNED. verify caught the first version of this
+    // block reading only half the surface: it sealed a Korean predicate, the
+    // session then LEARNED Korean (learnLocaleFromContent pins `locale: ko` on
+    // a fresh config, by design, so a Korean user is never dragged into English
+    // by one stray sentence), and every later ask rendered Korean no matter what
+    // it contained. Planting the defect in the English label alone therefore
+    // left this gate green. Pin the locale explicitly instead of hoping the
+    // content sniff survives the session.
+    for (const [suffix, pin, pred] of [
+      ['ko', 'ko', '설비 교체가 3분기 안에 끝난다'],
+      ['en', 'en', 'the plant swap lands inside Q3'],
+    ]) {
     if (profile.elicit) {
-      await call('argus_predict', { id: 'wh', predicate: '설비 교체가 3분기 안에 끝난다', check_by: '2026-07-10', predicate_owner: 'user', today_override: T0 });
+      const id = `wh-${suffix}`;
+      await call('argus_settings', { action: 'update', locale: pin });
+      await call('argus_predict', { id, predicate: pred, check_by: '2026-07-10', predicate_owner: 'user', today_override: T0 });
       const before = seen.length;
-      const { sc } = await call('argus_resolve', { id: 'wh', today_override: '2026-07-15' });
+      const { sc } = await call('argus_resolve', { id, today_override: '2026-07-15' });
       const whSchema = seen.slice(before).map((x) => x.schema).find((sch) => sch?.properties?.what_happened) ?? null;
       if (whSchema) {
         const spec = whSchema.properties.what_happened;
@@ -351,6 +365,7 @@ async function runProfile(name) {
         ok(name, 'D2-2 거절이 사용자가 고른 결과를 돌려준다 (I2)',
           echoed === undefined || typeof echoed === 'string', brief(sc?.data, 160));
       }
+    }
     }
 
     // ── E. the open-question ask ─────────────────────────────────────────
