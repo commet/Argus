@@ -141,7 +141,12 @@ jobs:
       # 있어야 한다. 없으면 스크립트가 소리내어 건너뛰므로 여기서 깔아둔다 —
       # 안 그러면 게이트가 조용히 매니페스트 읽기 수준으로 퇴화한다.
       - name: Claude Code CLI (for the plugin install lifecycle)
-        run: npm i -g @anthropic-ai/claude-code
+        # --allow-scripts, and pinned. npm 11 blocks dependency install scripts,
+        # and Claude Code's native binary comes from its own postinstall — a
+        # plain `npm i -g` there leaves a `claude` that cannot run, the smoke
+        # skips loudly, and the lifecycle silently stops being tested. Same form
+        # the publish workflow already proved.
+        run: npm install -g --allow-scripts=@anthropic-ai/claude-code @anthropic-ai/claude-code@2.1.220
         continue-on-error: true
 
       - name: Unreadable ledger refuses writes
