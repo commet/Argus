@@ -8,7 +8,7 @@ reality later did. It does not score people or give verdicts.
 ### Codex (CLI or app)
 
 ```bash
-codex mcp add argus-decision -- npx -y argus-decision-mcp@2.0.6
+codex mcp add argus-decision -- npx -y argus-decision-mcp@2.0.7
 codex mcp list
 ```
 
@@ -31,7 +31,7 @@ reason; enable MCP elicitations to use the form.
   "mcpServers": {
     "argus-decision": {
       "command": "npx",
-      "args": ["-y", "argus-decision-mcp@2.0.6"],
+      "args": ["-y", "argus-decision-mcp@2.0.7"],
       "env": {
         "ARGUS_DIR": "/absolute/path/to/your/project/.argus"
       }

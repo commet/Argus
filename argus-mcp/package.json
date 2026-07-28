@@ -1,6 +1,6 @@
 {
   "name": "argus-decision-mcp",
-  "version": "2.0.6",
+  "version": "2.0.7",
   "description": "Argus judgment-record MCP — preserve a user-authorized statement, its return condition, and later answers without scoring the person.",
   "type": "module",
   "main": "dist/index.js",
@@ -19,7 +19,7 @@
   },
   "scripts": {
     "clean": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\"",
-    "build": "npm run clean && tsc -p tsconfig.build.json && esbuild src/index.ts --bundle --platform=node --format=esm --packages=external --outfile=dist/index.js",
+    "build": "npm run clean && tsc -p tsconfig.build.json && esbuild src/index.ts --bundle --platform=node --format=esm --packages=external --outfile=dist/index.js && node -e \"if(process.platform!=='win32')require('node:fs').chmodSync('dist/index.js',0o755)\"",
     "start": "node dist/index.js",
     "dev": "tsx src/index.ts",
     "typecheck": "tsc --noEmit",

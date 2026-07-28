@@ -84,6 +84,7 @@ console.log(`레지스트리에서 argus-decision-mcp@${VERSION} 내려받는 �
 const npmCli = path.join(path.dirname(process.execPath), 'node_modules', 'npm', 'bin', 'npm-cli.js');
 execFileSync(process.execPath, [npmCli, 'pack', `argus-decision-mcp@${VERSION}`, '--prefer-online'], { cwd: work, stdio: 'pipe' });
 const tgz = fs.readdirSync(work).find((f) => f.endsWith('.tgz'));
+const tarListing = execFileSync('tar', ['-tvzf', tgz], { cwd: work, encoding: 'utf8' });
 execFileSync('tar', ['xzf', tgz], { cwd: work, stdio: 'pipe' });
 const pkgDir = path.join(work, 'package');
 const entry = path.join(pkgDir, 'dist', 'index.js');
@@ -106,6 +107,9 @@ const check = (name, cond, detail) => {
 };
 
 check(`버전이 ${VERSION}`, declared === VERSION, `실제 ${declared}`);
+check('npm bin이 POSIX에서 실행 가능하다 (2.0.7)',
+  /^-rwx[^\r\n]*package\/dist\/index\.js$/m.test(tarListing),
+  'tar header의 package/dist/index.js에 실행 비트가 없음');
 for (const [label, marker] of BUNDLE_MARKERS) {
   check(label, markerMatches(bundle, marker), `번들에 ${marker} 없음`);
 }
