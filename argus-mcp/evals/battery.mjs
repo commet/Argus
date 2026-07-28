@@ -340,10 +340,32 @@ S.push({
   ],
 });
 S.push({
-  name: 'S29 patterns — 빈 원장에서의 정직한 빈손 (관찰)',
+  // 빈 원장 = 첫 실행. 읽을 사용자 문장이 하나도 없으므로 목소리는 설정에서만
+  // 올 수 있다. 이 시나리오는 원래 locale을 안 켜고 `lang:'ko'`만 달아둬서,
+  // 통과하든 말든 매번 노란불(한국어 여정에 영어 화면)을 냈다 — 제품이 아니라
+  // 시나리오가 틀린 것이었고, 상시 노란불은 노란불을 무시하도록 길들인다.
+  // 이제 설정을 켜고, 내용이 전혀 없어도 그 설정이 지켜지는지를 단정한다.
+  name: 'S29 patterns — 빈 원장에서도 설정한 언어를 지킨다 (관찰)',
   lang: 'ko',
   steps: (d) => [
-    { tool: 'argus_patterns', args: { argus_dir: d, today_override: T0 }, observe: true },
+    { tool: 'argus_settings', args: { argus_dir: d, action: 'update', locale: 'ko' } },
+    { tool: 'argus_patterns', args: { argus_dir: d, today_override: T0 }, observe: true,
+      expect: (env) => (/[가-힣]/.test(String(env.surface ?? '')) ? null
+        : `설정이 ko인데 빈 원장 화면이 한국어가 아니다: ${String(env.surface).slice(0, 90)}`) },
+  ],
+});
+S.push({
+  // 그 반대편. 설정도 없고 사용자 문장도 없으면 우리는 언어를 **모른다**.
+  // 기계의 로케일에서 지어내면 안 된다 — 한국어 로케일 노트북을 쓰는 영어
+  // 사용자가 한국어 "전제 없음" 줄을 받았던 것이 정확히 그 버그다
+  // (recall.ts readVoice의 주석). 신호가 없을 때의 영어는 드리프트가 아니라
+  // 문서화된 기본값이고, 이 시나리오가 그걸 못박는다.
+  name: 'S29b patterns — 신호가 없으면 기계 로케일에서 언어를 지어내지 않는다 (관찰)',
+  steps: (d) => [
+    { tool: 'argus_patterns', args: { argus_dir: d, today_override: T0 }, observe: true,
+      expect: (env) => (/[가-힣]/.test(String(env.surface ?? ''))
+        ? `설정도 사용자 문장도 없는데 한국어가 나왔다 — 기계 로케일을 읽은 것: ${String(env.surface).slice(0, 90)}`
+        : null) },
   ],
 });
 S.push({
