@@ -420,9 +420,11 @@ S.push({
   ],
 });
 S.push({
-  name: 'S36 defer 픽커 — Decline하면 정직한 되물음 (관찰)',
+  name: 'S36 defer 픽커 — 사람이 읽고 Decline하면 정직한 되물음 (관찰)',
   lang: 'ko',
-  respond: (p) => (pickerKind(p.requestedSchema) === 'defer' ? { action: 'decline' } : { action: 'accept', content: { outcome: 'still_pending' } }),
+  respond: (p) => (pickerKind(p.requestedSchema) === 'defer'
+    ? { action: 'decline', humanPause: 700 }   // 사람이 화면을 읽고 거절한 경우
+    : { action: 'accept', content: { outcome: 'still_pending' } }),
   steps: (d) => [
     { tool: 'argus_predict', args: { argus_dir: d, id: 's36', predicate: '리퍼럴 프로그램 심사가 끝난다', check_by: '2026-07-10', predicate_owner: 'user', today_override: T0 } },
     { tool: 'argus_resolve', args: { argus_dir: d, id: 's36', outcome: 'still_pending', outcome_source: 'user_stated', today_override: '2026-07-15' },
@@ -433,6 +435,33 @@ S.push({
       expect: (env) => {
         const row = (env.data?.contracts ?? []).find((c) => c.id === 's36');
         return row?.check_by === '2026-07-10' && row?.status === 'sealed' ? null : `a declined defer moved something: ${JSON.stringify(row)}`;
+      } },
+  ],
+});
+S.push({
+  // 사람이 없는 거절. 호스트 정책이 화면을 안 띄우고 스스로 답한 경우
+  // (실측: `codex app-server`, approval_policy="never" / granular
+  // .mcp_elicitations=false → 요청이 클라이언트에 전달조차 안 되고 ~330ms 만에
+  // decline). 이때 "당신이 거절했습니다"라고 말하면 하지도 않은 결정을 사람
+  // 것이라 우기는 것이다. 정직한 되물음 + 텍스트 경로여야 하고, 결정은 원래
+  // 자리에 그대로 있어야 한다.
+  name: 'S36b defer 픽커 — 아무도 못 본 거절은 사용자 것이라 하지 않는다 (관찰)',
+  lang: 'ko',
+  respond: (p) => (pickerKind(p.requestedSchema) === 'defer'
+    ? { action: 'decline' }                    // 즉시 — 읽을 시간이 없었다
+    : { action: 'accept', content: { outcome: 'still_pending' } }),
+  steps: (d) => [
+    { tool: 'argus_predict', args: { argus_dir: d, id: 's36b', predicate: '파트너사 계약서 검토가 끝난다', check_by: '2026-07-10', predicate_owner: 'user', today_override: T0 } },
+    { tool: 'argus_resolve', args: { argus_dir: d, id: 's36b', outcome: 'still_pending', outcome_source: 'user_stated', today_override: '2026-07-15' },
+      expect: (env) => {
+        if (env.data?.choice !== 'no_answer') return `아무도 못 본 거절이 사용자의 답으로 기록됐다: ${JSON.stringify(env.data).slice(0, 200)}`;
+        if (env.data?.recorded !== false) return `기록하지 않았어야 한다: ${JSON.stringify(env.data).slice(0, 200)}`;
+        return null;
+      } },
+    { tool: 'argus_patterns', args: { argus_dir: d, view: 'all', today_override: '2026-07-15' },
+      expect: (env) => {
+        const row = (env.data?.contracts ?? []).find((c) => c.id === 's36b');
+        return row?.check_by === '2026-07-10' && row?.status === 'sealed' ? null : `보이지 않은 거절이 무언가를 옮겼다: ${JSON.stringify(row)}`;
       } },
   ],
 });
@@ -576,7 +605,21 @@ async function connectClient(dir, respond) {
     // answering `{}` is how a new ask ships untested while the suite is green.
     const kind = pickerKind(req.params?.requestedSchema);
     if (kind === 'unknown') unknownPickers.push(JSON.stringify(req.params?.requestedSchema).slice(0, 200));
-    return respond(req.params);
+    const answer = respond(req.params);
+    // A scenario that claims to test what a PERSON did has to behave like one.
+    // Answering in zero milliseconds is not a fast user, it is a machine, and
+    // the server is now allowed to say so: a decline that returns before anyone
+    // could have read the form is reported as unattributable rather than
+    // credited to the user (a real `codex app-server` under restrictive policy
+    // does exactly that — measured 2026-07-29). So `humanPause` is not a sleep
+    // added to make red go green; it is the scenario declaring which of the two
+    // realities it is exercising. The other one has its own scenario.
+    if (answer?.humanPause) {
+      const { humanPause, ...rest } = answer;
+      await new Promise((r) => setTimeout(r, humanPause));
+      return rest;
+    }
+    return answer;
   });
   await client.connect(new StdioClientTransport({ command: process.execPath, args: [DIST], env }));
   return { client, unknownPickers };

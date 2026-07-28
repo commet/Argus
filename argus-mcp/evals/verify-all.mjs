@@ -147,6 +147,11 @@ run('Claude Code 폼이 실제로 제출하는가', 'node evals/claude-code-form
 run('답한 시각으로 기록되는가', 'node evals/answer-time.mjs', { env: { ...process.env, ANSWER_TIME_SKIP_BUILD: '1' }, extract: (o) => (o.match(/(\d+ checks · \d+ violations[^\n]*)/) || [])[1] ?? '' });
 // Slow on purpose: the answer arrives after the SDK's 60s default. ~80s.
 run('1분 넘게 생각한 사람의 Accept', 'node evals/slow-human.mjs', { env: { ...process.env, SLOW_HUMAN_SKIP_BUILD: '1' }, extract: (o) => (o.match(/(\d+ checks · \d+ violations[^\n]*)/) || [])[1] ?? '' });
+// Two real `codex app-server` processes with two real approval policies. The
+// blocked reality is produced BY CODEX, not by the harness deciding to decline —
+// a harness that manufactures the failure it detects proves only the harness.
+// Skips loudly (exit 0 with a message) when codex is not installed.
+run('진짜 Codex app-server (허용 / 정책차단)', 'node evals/codex-app-server.mjs', { env: { ...process.env, CODEX_APP_SERVER_SKIP_BUILD: '1' }, extract: (o) => (o.match(/(\d+ checks · \d+ violation[^\n]*|.*SKIPPED.*)/) || [])[1] ?? '' });
 
 // ── the plugin surface ──────────────────────────────────────────────────────
 run('플러그인 검증', 'node argus-plugin-v2/scripts/validate-plugin.js', { cwd: REPO });
@@ -319,6 +324,22 @@ selfTest(
     "          { type: 'object', properties: {} },",
     "          { type: 'object', properties: { reword: { type: 'string', title: 'Reword (optional)' } } },"),
   'node evals/claude-code-form.mjs',
+);
+selfTest(
+  '자기검증 ㉒ 아무도 못 본 거절을 사용자 것이라 하는 회귀를 잡는가',
+  'src/lib/elicit.ts',
+  (s) => s.replace('      if (Date.now() - started <= UNREADABLE_DECLINE_MAX_MS) {', '      if (false) {'),
+  'node evals/battery.mjs',
+);
+selfTest(
+  // 한 번의 성급한 거절이 그 세션의 모든 픽커를 지우던 설계. 되심으면 정산
+  // 픽커가 아예 안 뜬다.
+  '자기검증 ㉓ 거절 한 번이 이후 픽커를 전부 없애는 회귀를 잡는가',
+  'src/lib/elicit.ts',
+  (s) => s.replace(
+    'export function canElicit(): boolean {\n  if (_capable) return _capable();',
+    'export function canElicit(): boolean {\n  if (_unreadableStreak >= 1) return false;\n  if (_capable) return _capable();'),
+  `node evals/e2e-picker.mjs "${process.execPath}" dist/index.js`,
 );
 selfTest(
   '자기검증 ⑱ 오래 생각한 사람의 답을 버리는 회귀를 잡는가',

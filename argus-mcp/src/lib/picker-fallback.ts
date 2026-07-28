@@ -39,9 +39,15 @@ export function noAnswerResult(args: {
     // characters of chrome before the user's own material even started
     // (2026-07-28 surface sweep), and this is a line someone meets at the exact
     // moment something already went wrong.
+    //
+    // "did not come back" rather than "the dialog closed": on a host whose
+    // policy answers elicitations itself (a real `codex app-server` under
+    // `approval_policy = "never"`, measured 2026-07-29) no dialog was ever
+    // opened, so describing one closing is a small fiction told at the exact
+    // moment the user needs to trust what they are reading.
     surface: ko
-      ? `확인 창이 답을 받지 못했습니다 (호스트 문제일 수 있습니다). 아직 기록하지 않았습니다.\n${handBack.ko}`
-      : `The dialog closed without an answer (possibly a host issue). Nothing is recorded yet.\n${handBack.en}`,
+      ? `확인 창에서 답이 오지 않았습니다 (호스트가 창을 안 띄웠을 수 있습니다). 아직 기록하지 않았습니다.\n${handBack.ko}`
+      : `No answer came back from the confirm dialog — your host may not be showing it. Nothing is recorded yet.\n${handBack.en}`,
     next_actions,
     data: { recorded: false, choice: 'no_answer', ...data },
   });

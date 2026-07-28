@@ -21,6 +21,7 @@
  * something new, or they quietly degrade into "the file is not empty".
  */
 import { execFileSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -42,8 +43,30 @@ const BUNDLE_MARKERS = [
   // 2.0.4 shipped: main carried the fix, the published build did not, and both
   // called themselves 2.0.4 because the version gate only compares version
   // strings to each other. This marker is what makes that visible next time.
-  ["봉인 이벤트가 출처를 싣는다 (2.0.5)", "predicate_owner: a['predicate_owner']"],
+  // 따옴표를 정규식으로 받는 이유: 이 줄은 처음에 소스 그대로
+  // `a['predicate_owner']`로 적혀 있었고, esbuild가 번들에서 작은따옴표를 큰
+  // 따옴표로 정규화하기 때문에 **애초에 맞을 수가 없는 마커**였다. 2.0.5는 실제로
+  // 수정을 담고 배포됐는데 이 게이트만 빨간불이었다. 낡은 마커보다 나쁜 것이
+  // 결코 참이 될 수 없는 마커다 — 아래 자기점검이 그걸 잡는다.
+  ['봉인 이벤트가 출처를 싣는다 (2.0.5)', /predicate_owner: [A-Za-z0-9_$]*\[['"]predicate_owner['"]\]/],
 ];
+
+/**
+ * 마커가 "이번에 만든 빌드"에서는 맞는지 먼저 본다.
+ *
+ * 이 스크립트는 배포된 번들에만 마커를 대보므로, 맞을 수 없는 마커와 정말 빠진
+ * 수정이 똑같은 빨간불로 보인다. 로컬 dist가 있으면 거기서 먼저 대조해서 둘을
+ * 갈라놓는다: 로컬에도 없으면 마커가 잘못된 것이고, 로컬에는 있는데 배포본에
+ * 없으면 그것이야말로 2.0.4에서 일어났던 진짜 사고다.
+ */
+function auditMarkersAgainstLocalBuild() {
+  const local = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', 'dist', 'index.js');
+  if (!fs.existsSync(local)) return null;
+  const src = fs.readFileSync(local, 'utf8');
+  return BUNDLE_MARKERS
+    .filter(([, needle]) => (needle instanceof RegExp ? !needle.test(src) : !src.includes(needle)))
+    .map(([label]) => label);
+}
 
 const VERSION = process.argv[2] ?? '2.0.4';
 const work = fs.mkdtempSync(path.join(os.tmpdir(), 'pubcheck-'));
@@ -82,8 +105,18 @@ const check = (name, cond, detail) => {
 };
 
 check(`버전이 ${VERSION}`, declared === VERSION, `실제 ${declared}`);
+
+// 배포본에 대보기 전에, 이 마커들이 애초에 맞을 수 있는 것인지부터 본다.
+const impossible = auditMarkersAgainstLocalBuild();
+if (impossible === null) {
+  console.log('ℹ  로컬 dist가 없어 마커 자기점검을 건너뜀 (npm run build 후 다시 돌리면 더 강함)');
+} else if (impossible.length) {
+  console.log(`⚠  이 마커는 방금 만든 로컬 빌드에서도 안 맞는다 → 마커가 잘못됐을 가능성이 크다 (배포 누락이 아니라): ${impossible.join(' · ')}`);
+}
+
+const matches = (needle) => (needle instanceof RegExp ? needle.test(bundle) : bundle.includes(needle));
 for (const [label, marker] of BUNDLE_MARKERS) {
-  check(label, bundle.includes(marker), `번들에 ${marker} 없음`);
+  check(label, matches(marker), `번들에 ${marker} 없음`);
 }
 
 // ── drive the real downloaded server ────────────────────────────────────────

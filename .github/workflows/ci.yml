@@ -125,6 +125,17 @@ jobs:
           cd argus-mcp
           SURFACE_HAZARDS_SKIP_BUILD=1 node evals/surface-hazards.mjs
 
+      # 진짜 Codex를 설치해 진짜 승인 정책 두 개로 몬다. 정책이 화면을 안 띄우고
+      # 스스로 decline하는 경우(approval_policy="never" / granular
+      # .mcp_elicitations=false)를 하네스가 흉내내는 게 아니라 Codex가 직접
+      # 만들게 한다 — 자기가 만든 실패를 자기가 잡는 하네스는 하네스만 증명한다.
+      # codex가 없으면 이 스텝은 소리내어 건너뛴다(초록 위장 금지).
+      - name: Real Codex app-server (allowed / policy-blocked)
+        run: |
+          npm i -g @openai/codex@0.130.0-alpha.5
+          cd argus-mcp
+          CODEX_APP_SERVER_SKIP_BUILD=1 node evals/codex-app-server.mjs
+
       - name: Unreadable ledger refuses writes
         run: |
           cd argus-mcp

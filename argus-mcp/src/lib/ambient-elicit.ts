@@ -270,6 +270,13 @@ What did reality do? Pick one with →, then press Enter twice to reach Accept. 
     // 사용자가 지금은 답할 마음이 아닌 경우와 구분할 수 없고, 구분이 안 될 때의
     // 안전한 쪽은 침묵이다 (mirror clause: 개입할지를 대신 판단하지 않는다).
     // 취소도 같은 이유로 소진 그대로 — 창을 닫은 건 사람일 수 있다.
+    //
+    // `unattributable`(읽을 수 없이 빠른 거절)도 소진 그대로다. 여기서만은 두
+    // 해석이 같은 답을 낸다: 정책이 대신 답한 것이면 되묻기는 보이지 않는
+    // 타이머가 영원히 재시도하는 것이고, 사람이 Esc를 친 것이면 방금 거절한
+    // 사람에게 묻지도 않은 질문을 다시 미는 것이다. 둘 다 멈추라고 말한다.
+    // (in-band 도구들은 반대로 이걸 `failed`와 똑같이 다뤄 텍스트 경로를 준다 —
+    //  거기선 사용자가 방금 요청한 일을 끝내야 하기 때문이다.)
     if (asked && (asked.kind === 'unsupported' || (asked.kind === 'no_answer' && asked.reason === 'failed'))) {
       await rollbackCooldown();
       return;

@@ -2,3 +2,10 @@ dist/
 node_modules/
 *.js.map
 evals/out/
+
+# The real-Codex gate needs a CODEX_HOME, and Codex refuses to create its helper
+# binaries under the system temp dir — so the home has to live beside the
+# checkout. The gate removes it on the way out; this is for the run that dies
+# first, so a crash never shows up as 22 untracked directories in `git status`.
+.codex-app-eval-*/
+.codexprobe-*/
