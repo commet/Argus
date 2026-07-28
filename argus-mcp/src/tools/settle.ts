@@ -16,6 +16,7 @@ import { replayLedger } from '../lib/ledger-replay.js';
 import { relatedOpenForPremise } from '../v2/connection-io.js';
 import type { RelatedDecision } from '../v2/connection.js';
 import { sanitizeLine } from '../v2/sanitize.js';
+import { OUTCOME_VALUES, outcomeEnumNames, outcomeFieldDescription } from '../lib/outcome-labels.js';
 import { z } from 'zod';
 import { envelope, toolError } from '../lib/envelope.js';
 import { noAnswerResult } from '../lib/picker-fallback.js';
@@ -92,18 +93,27 @@ export const settle: ToolModule = {
         // a bilingual "그렇게 됐다 (held)" mishmash showed to BOTH a Korean and an
         // English user. Voice follows the language the decision was sealed in.
         const pickerLocale = resolveResponseLocale(dir, current.predicate ?? null);
+        // SHOW WHICH PREDICTION (2026-07-28, found by dumping what a host
+        // actually renders). This ask used to open with a bare "현실이 어떻게
+        // 답했나요?" — no predicate, no date. The seal picker quotes the
+        // sentence; the settle picker did not, and settling is the moment a
+        // user with several open bets most needs to know which one is on
+        // screen. The old tail was also wrong: it sent "아직 모르겠으면
+        // Decline", but Decline records nothing and asks again, while the
+        // enum's still_pending properly moves the date. It pointed away from
+        // the handle that works.
+        const q = sanitizeLine(current.predicate ?? id, 110);
+        const due = current.check_by ?? '';
         const asked = await elicitDetailed(pickerLocale === 'ko'
-          ? '현실이 어떻게 답했나요?\n\n결과를 고르고 Accept · 아직 모르겠으면 Decline.'
-          : 'What did reality do?\n\nPick the outcome and Accept · Decline if you are not sure yet.', {
+          ? `"${q}"${due ? ` (확인일 ${due})` : ''}\n\n현실이 어떻게 답했나요? 하나 고르고 Accept.\n아직 결과가 안 나왔으면 "아직 모르겠다"를 고르세요. 지금 답하기 어려우면 Decline.`
+          : `"${q}"${due ? ` (check-by ${due})` : ''}\n\nWhat did reality do? Pick one and Accept.\nNo answer yet? Choose "Don't know yet". Bad moment? Decline.`, {
           type: 'object',
           properties: {
             outcome: {
               type: 'string',
-              enum: ['held', 'avoided', 'partial', 'still_pending', 'missed'],
-              enumNames: pickerLocale === 'ko'
-                ? ['예측대로 됐다', '걱정한 일은 안 일어났다', '일부만 맞았다', '아직 불분명', '예측이 빗나갔다']
-                : ['It held', 'Avoided', 'Partially', 'Still unclear', 'Missed: my read was wrong'],
-              description: pickerLocale === 'ko' ? '저장한 예측에 현실이 어떻게 답했는지 고르세요.' : 'What reality did to your sealed prediction.',
+              enum: [...OUTCOME_VALUES],
+              enumNames: outcomeEnumNames(pickerLocale),
+              description: outcomeFieldDescription(pickerLocale),
             },
             // Capture what-happened in the SAME picker so a settle that reached
             // the picker doesn't dead-end on WHAT_HAPPENED_REQUIRED after the user
@@ -112,7 +122,7 @@ export const settle: ToolModule = {
             // types here is THEIR words (spine-safe — never model-inferred).
             what_happened: {
               type: 'string',
-              description: pickerLocale === 'ko' ? '무슨 일이 있었는지 당신의 말로 한 줄. (아직 불분명이면 비워도 됩니다.)' : "One line on what actually happened, in your words. (Leave blank if still unclear.)",
+              description: pickerLocale === 'ko' ? '무슨 일이 있었는지 당신의 말로 한 줄. ("아직 모르겠다"면 비워도 됩니다.)' : 'One line on what actually happened, in your words. (Leave blank if you do not know yet.)',
             },
           },
           // 필수 필드 없음 (2026-07-27, 창업자 도그푸딩 스크린샷).

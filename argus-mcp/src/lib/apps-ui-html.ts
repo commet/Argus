@@ -27,50 +27,96 @@ export const SETTLE_APP_HTML = `<!doctype html>
     --tint: rgba(163,127,53,.07); --btn-bg: #f1ede3; --danger: #a04a3f;
   }
   * { box-sizing: border-box; margin: 0; }
+  /* Two faces, on purpose (2026-07-28, after looking at the rendered card).
+     Monospace IS the identity — the plate, the wordmark, the dates. But a
+     Korean sentence set in monospace breaks into evenly-spaced blocks
+     ("광 고  R O A S가  7월  안에") and is measurably harder to read, and the
+     sentence on this card is the user's own prediction: the one thing that
+     must land instantly. So prose gets a proportional face and the instrument
+     keeps the mono. */
+  :root {
+    --mono: ui-monospace, 'Cascadia Code', 'D2Coding', Consolas, monospace;
+    --ui: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Pretendard', 'Apple SD Gothic Neo',
+          'Malgun Gothic', 'Noto Sans KR', system-ui, sans-serif;
+  }
   body {
     background: var(--bg); color: var(--ink);
-    font: 14px/1.65 ui-monospace, 'Cascadia Code', 'D2Coding', Consolas, monospace;
+    font: 14px/1.65 var(--ui);
     padding: 18px 20px 14px; max-width: 640px;
   }
-  .head { display: flex; justify-content: space-between; align-items: baseline; }
-  .brand { font-size: 11px; letter-spacing: .22em; color: var(--sub); }
+  .head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+  .brand { font: 11px/1.65 var(--mono); letter-spacing: .22em; color: var(--sub); white-space: nowrap; }
   .brand b { color: var(--ink); font-weight: 600; }
-  .when { font-size: 11px; color: var(--faint); }
+  .when { font: 11px/1.65 var(--mono); color: var(--faint); text-align: right; }
+  /* Overdue is the fact that decides whether this card is urgent; it was the
+     same grey as the date beside it. */
+  .when b { color: var(--gold-dim); font-weight: 600; }
+  /* Under ~380px the header squeezed the date into "2026-07- / 10". A date is
+     one token to a reader; let the header stack instead of splitting it. */
+  @media (max-width: 380px) {
+    .head { flex-direction: column; align-items: flex-start; gap: 3px; }
+    .when { text-align: left; }
+  }
   hr { border: 0; border-top: 1px solid var(--rule); margin: 10px 0 16px; }
-  .predicate { font-size: 15px; line-height: 1.7; margin: 2px 0 6px; }
+  .predicate { font-size: 16px; line-height: 1.62; margin: 2px 0 6px; letter-spacing: -.01em; }
   .predicate::before { content: '\\201C'; color: var(--gold-dim); }
   .predicate::after  { content: '\\201D'; color: var(--gold-dim); }
   .meta { font-size: 12px; color: var(--sub); margin-bottom: 16px; }
-  .ask { font-size: 12px; color: var(--sub); margin: 14px 0 8px; }
-  .choices { display: grid; grid-template-columns: repeat(auto-fit, minmax(108px, 1fr)); gap: 8px; }
+  .ask { font-size: 13px; color: var(--sub); margin: 16px 0 9px; }
+  .choices { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; }
   button.outcome {
     font: inherit; color: var(--ink); background: var(--btn-bg);
-    border: 1px solid var(--rule); border-radius: 8px; padding: 9px 6px 7px;
-    cursor: pointer; text-align: center; transition: border-color .12s, background .12s;
+    border: 1px solid var(--rule); border-radius: 8px; padding: 10px 10px 9px;
+    cursor: pointer; text-align: left; transition: border-color .12s, background .12s;
   }
-  button.outcome small { display: block; font-size: 10px; color: var(--faint); margin-top: 2px; }
+  button.outcome b { display: block; font-weight: 600; font-size: 14px; }
+  /* The sub-line used to be the raw enum value (held / avoided / partial …) —
+     system vocabulary shown to a user who never asked for it, and no help at
+     all with the one distinction people actually get wrong (held vs avoided).
+     It now says, in the user's language, what the choice means. */
+  button.outcome small { display: block; font-size: 12px; color: var(--sub); margin-top: 3px; line-height: 1.45; }
   button.outcome:hover { border-color: var(--gold-dim); }
   button.outcome.sel { border-color: var(--gold); background: var(--tint); }
-  button.outcome.sel small { color: var(--gold-dim); }
+  button.outcome.sel small { color: var(--ink); }
+  /* "아직" is not a result — it re-arms the date. Sitting it in the same grid
+     as the four verdicts invited recording it as one. */
+  button.later {
+    font: inherit; color: var(--sub); background: transparent;
+    border: 1px dashed var(--rule); border-radius: 8px; padding: 9px 12px;
+    cursor: pointer; text-align: left; width: 100%; margin-top: 8px;
+    transition: border-color .12s, color .12s;
+  }
+  button.later:hover { border-color: var(--gold-dim); color: var(--ink); }
+  button.later.sel { border-style: solid; border-color: var(--gold); color: var(--ink); background: var(--tint); }
+  button.later b { display: block; font-weight: 600; font-size: 14px; }
+  button.later small { display: block; font-size: 12px; color: var(--faint); margin-top: 3px; line-height: 1.45; }
+  button.later.sel small { color: var(--sub); }
   .follow { display: none; margin-top: 14px; }
   .follow.show { display: block; }
+  input[type=date] { font-family: var(--mono); }
   textarea, input[type=date] {
     font: inherit; width: 100%; color: var(--ink); background: var(--btn-bg);
     border: 1px solid var(--rule); border-radius: 8px; padding: 9px 11px; outline: none;
   }
   textarea { resize: vertical; min-height: 58px; }
   textarea:focus, input[type=date]:focus { border-color: var(--gold-dim); }
-  label.small { display: block; font-size: 11px; color: var(--sub); margin: 10px 0 5px; }
+  label.small { display: block; font-size: 13px; color: var(--sub); margin: 12px 0 6px; }
   .actions { display: flex; align-items: center; gap: 14px; margin-top: 14px; }
   button.commit {
     font: inherit; font-weight: 600; color: var(--bg); background: var(--gold);
     border: 0; border-radius: 8px; padding: 9px 22px; cursor: pointer;
   }
   button.commit:disabled { opacity: .45; cursor: default; }
-  a.skip { font-size: 12px; color: var(--faint); cursor: pointer; text-decoration: none; }
-  a.skip:hover { color: var(--sub); }
+  /* The escape hatch was the least legible thing on the card while being the
+     one the spine requires to always be reachable. Quiet, but readable. */
+  a.skip {
+    font-size: 13px; color: var(--sub); cursor: pointer;
+    text-decoration: underline; text-decoration-color: var(--rule);
+    text-underline-offset: 3px; padding: 4px 2px;
+  }
+  a.skip:hover { color: var(--ink); text-decoration-color: var(--gold-dim); }
   .foot { display: flex; justify-content: flex-end; margin-top: 14px; }
-  .foot span { font-size: 11px; color: var(--gold-dim); letter-spacing: .04em; }
+  .foot span { font: 11px/1.65 var(--mono); color: var(--gold-dim); letter-spacing: .04em; }
   .done-outcome { font-size: 13px; color: var(--gold); margin-bottom: 6px; letter-spacing: .06em; }
   .done-what { font-size: 14px; line-height: 1.7; }
   .quiet { font-size: 12px; color: var(--faint); }
@@ -123,13 +169,20 @@ export const SETTLE_APP_HTML = `<!doctype html>
       skipped: '넘어갔습니다. 조르지 않습니다.',
       recorded: '기록했습니다', deferred: function (d) { return d + '에 다시 가져오겠습니다.'; },
       sig: '예측 저장 → 실제 결과 기록 ⚓',
-      needWhat: '한 줄이면 됩니다 — 비워두면 기록하지 않습니다.',
+      needWhat: '한 줄이면 됩니다. 비워두면 기록하지 않습니다.',
+      // [value, label, what it means]. The third slot used to hold the raw enum
+      // (held / avoided / partial / later / missed) — English system vocabulary
+      // shown to a Korean user, useless for the one distinction people actually
+      // get wrong. It now explains the choice, in their language.
       outcomes: [
-        ['held', '예측대로', 'held'], ['avoided', '걱정 피함', 'avoided'],
-        ['partial', '일부만', 'partial'], ['still_pending', '아직', 'later'],
-        ['missed', '빗나감', 'missed']
+        ['held', '예측대로', '그 일이 실제로 일어났다'],
+        ['avoided', '걱정 피함', '걱정한 일이 안 일어났다'],
+        ['partial', '일부만', '절반쯤 맞았다'],
+        ['missed', '빗나감', '내 예측이 틀렸다']
       ],
-      errNoAnswer: '기록하지 못했습니다 — 대화로 이어서 알려주셔도 됩니다.'
+      // Not an outcome — reality has not answered. Kept out of the grid above.
+      pending: ['still_pending', '아직 모르겠다', '결과는 기록하지 않고, 다시 볼 날짜만 정합니다'],
+      errNoAnswer: '기록하지 못했습니다. 대화로 이어서 알려주셔도 됩니다.'
     },
     en: {
       title: 'SETTLEMENT', ask: 'What did reality do?',
@@ -141,13 +194,15 @@ export const SETTLE_APP_HTML = `<!doctype html>
       skipped: 'Skipped. No re-asking.',
       recorded: 'Recorded', deferred: function (d) { return 'Coming back on ' + d + '.'; },
       sig: 'prediction saved → reality recorded ⚓',
-      needWhat: 'One line is enough — blank records nothing.',
+      needWhat: 'One line is enough; blank records nothing.',
       outcomes: [
-        ['held', 'Held', ''], ['avoided', 'Avoided', ''],
-        ['partial', 'Partially', ''], ['still_pending', 'Not yet', ''],
-        ['missed', 'Missed', '']
+        ['held', 'Held', 'the thing actually happened'],
+        ['avoided', 'Avoided', 'the risk did not occur'],
+        ['partial', 'Partially', 'about half right'],
+        ['missed', 'Missed', 'my read was wrong']
       ],
-      errNoAnswer: 'Nothing was recorded — you can also just tell me in chat.'
+      pending: ['still_pending', "Don't know yet", 'records no outcome; just picks a date to look again'],
+      errNoAnswer: 'Nothing was recorded; you can also just tell me in chat.'
     }
   };
 
@@ -185,8 +240,10 @@ export const SETTLE_APP_HTML = `<!doctype html>
     var t = T[locale];
     document.getElementById('title').textContent = t.title;
     var whenEl = document.getElementById('when');
-    whenEl.textContent = t.due(state.check_by || '') +
-      (state.days_overdue > 0 ? t.overdue(state.days_overdue) : '');
+    whenEl.textContent = '';
+    whenEl.appendChild(document.createTextNode(t.due(state.check_by || '')));
+    // Overdue is what makes this card urgent; it read as the same grey aside.
+    if (state.days_overdue > 0) whenEl.appendChild(el('b', null, t.overdue(state.days_overdue)));
     var s = stage();
     s.appendChild(el('div', 'predicate', state.predicate || state.id));
     s.appendChild(el('div', 'ask', t.ask));
@@ -206,13 +263,16 @@ export const SETTLE_APP_HTML = `<!doctype html>
     skip.addEventListener('click', function () { renderQuiet(t.skipped, false); });
     actions.appendChild(commit); actions.appendChild(skip);
 
-    t.outcomes.forEach(function (o) {
-      var b = el('button', 'outcome');
-      b.appendChild(document.createTextNode(o[1]));
+    // One place that builds a choice, so the four verdicts and the "not yet"
+    // handle can look different without their behaviour drifting apart.
+    var allChoices = [];
+    function choice(o, cls) {
+      var b = el('button', cls);
+      b.appendChild(el('b', null, o[1]));
       if (o[2]) b.appendChild(el('small', null, o[2]));
       b.addEventListener('click', function () {
         selected = o[0];
-        Array.prototype.forEach.call(grid.children, function (c) { c.classList.remove('sel'); });
+        allChoices.forEach(function (c) { c.classList.remove('sel'); });
         b.classList.add('sel');
         follow.className = 'follow show';
         follow.innerHTML = '';
@@ -225,11 +285,18 @@ export const SETTLE_APP_HTML = `<!doctype html>
         }
         follow.appendChild(actions);
         standaloneSkip.style.display = 'none';
-        ta.focus();
+        if (selected !== 'still_pending') ta.focus();
       });
-      grid.appendChild(b);
-    });
+      allChoices.push(b);
+      return b;
+    }
+
+    t.outcomes.forEach(function (o) { grid.appendChild(choice(o, 'outcome')); });
     s.appendChild(grid);
+    // "아직 모르겠다" is not a fifth verdict — it re-arms the check-by date and
+    // records nothing. It used to sit in the same grid as the four outcomes,
+    // which is an invitation to file "no answer yet" as an answer.
+    s.appendChild(choice(t.pending, 'later'));
     s.appendChild(follow);
     // The escape hatch is visible from the FIRST paint, not after the user has
     // already engaged (found 2026-07-27 by executing this card for the first

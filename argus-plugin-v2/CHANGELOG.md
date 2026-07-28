@@ -1,5 +1,14 @@
 # Changelog
 
+## 3.0.2 — 2026-07-28
+
+- Wire moves to `argus-decision-mcp@2.0.2` — the confirm surfaces were rendered
+  and read for the first time. The outcome buttons stop printing our database
+  vocabulary (`held`, `avoided`, `partial`…) under their Korean labels and say
+  what each choice means; the settle picker finally shows WHICH prediction it is
+  asking about; "아직 모르겠다" is no longer shaped like a fifth verdict; Korean
+  sentences are no longer set in monospace; and the skip link is legible.
+
 ## 3.0.1 — 2026-07-28
 
 - Wire moves to `argus-decision-mcp@2.0.1` — the rest of the adversarial
