@@ -1,5 +1,95 @@
 # Changelog
 
+## 2.0.6 — Codex answered the picker, and we called it the user's decline
+
+**A Codex user on a restrictive policy could not save anything, and was told
+they had refused**
+
+Measured against a real `codex app-server`, five configurations, one Argus build:
+
+| approval policy | request reaches a screen? |
+|---|---|
+| default | yes — the form is shown |
+| `approval_policy = "never"` | **no** — Codex answers `decline` itself in ~330ms |
+| `granular.mcp_elicitations = false` | **no** — same |
+
+In the bottom two rows Codex advertises the elicitation capability, intercepts
+the request, shows nobody anything, and declines on the user's behalf. All the
+user saw was:
+
+```
+Not recorded.
+```
+
+with `choice: "declined"` in the record. A decision credited to a person who was
+never asked, and no way to continue. Codex's own protocol cannot distinguish the
+two cases — the response carries `action`, `content`, and a `_meta` that arrives
+null — so reading the reply harder was never going to answer it.
+
+What can be said honestly is narrower: a form rendered a moment ago and declined
+within 500ms was not read by anyone. That is a claim about reading speed, so it
+needs no list of host names, and it is grounds only for **refusing to attribute**
+the decline — never for concluding anything about the user.
+
+- an unreadably fast decline is reported as a non-answer: nothing recorded,
+  nothing attributed, and the plain-text path offered so the work can finish
+- the out-of-band ask is the one surface that treats it as spending its cooldown.
+  Both readings agree there: a policy answering means an invisible timer
+  retrying forever; a person hammering Escape means pushing an unprompted
+  question at someone who just said no
+- the English line no longer says a dialog closed, because on a blocked host
+  none was ever opened
+
+**One hurried "no" no longer deletes the rest of your pickers**
+
+The version of this fix that arrived from the parallel verification track opened
+a session-wide breaker on the FIRST such decline. That also fires when a person
+simply answers fast, and it then removed the settle picker, the defer picker and
+the premise picker for the remainder of the session — silently, on a host that
+renders forms perfectly well. Asking a blocked host again costs one intercepted
+request nobody sees; guessing wrong costs the user every later screen. The ask is
+never suppressed now. A pattern of unseen declines (two consecutive, cleared by
+any contrary evidence) only changes what `argus_check_in` REPORTS the surface to
+be.
+
+**The README told people to install a version that does not exist**
+
+The install block pinned `argus-decision-mcp@2.0.0`, which was never published.
+Following it verbatim produced `No matching version found` and no server at all
+— the front door for every hand-configured host, which is every Codex user.
+There were also no Codex instructions anywhere. Both fixed, and
+`version-lockstep` now holds the pins in the docs to the same version as the
+five manifest files; it had been comparing those five to each other and never
+looking at the line a human copies.
+
+**Gates**
+
+- `evals/codex-app-server.mjs` rewritten: two real Codex processes under two real
+  approval policies. The blocked reality now comes from Codex's own config
+  instead of the harness declining when it spots a keyword in the message — a
+  harness that manufactures the failure it detects proves only the harness. It
+  also locates a Codex installed by npm; the previous draft accepted only
+  `codex.exe`, which a normal global install never puts on PATH, so it threw
+  "codex.exe not found" and never ran.
+- `host-matrix` gains `codex-interactive` and `codex-policy-blocked`, one real
+  Codex identity in two realities, which is what keeps proving nothing branches
+  on a product name.
+- `battery` gains S36b (a decline nobody saw) beside S36, and S36 now declares
+  that its decline came from a PERSON by pausing — a scenario answering in zero
+  milliseconds is not a fast user, it is a machine.
+- `verify-published`: the 2.0.5 marker was written in source form,
+  `a['predicate_owner']`, and esbuild normalises quotes, so it could never match
+  and reported a shipped fix as missing. Made quote-agnostic, plus a pre-flight
+  that checks every marker against the build just produced, so "impossible
+  marker" stops looking like "missing fix".
+- test fixtures were never removed: one `vitest run` left 386 directories in the
+  system temp dir, and a machine mid-verify was holding 28,203. Verify dies
+  without a stack when the disk fills, and a self-test that dies mid-plant leaves
+  the regression it planted in the source tree.
+
+E2E 13/13 (was 9/13) · battery 95 calls 0 RED · picker surfaces 6696/0 · host
+matrix 424/0 across 13 profiles · keepsake 254/0 · real Codex 15/15 · unit 1120.
+
 ## 2.0.5 — Provenance rides the seal event, and a release that main had already left behind
 
 **A drafted line could cross into the account looking like the user's own**

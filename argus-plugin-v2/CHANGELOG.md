@@ -1,5 +1,14 @@
 # Changelog
 
+## 3.0.6 — 2026-07-29
+
+- Wire moves to `argus-decision-mcp@2.0.6`. If your host answers Argus's confirm
+  dialog without showing it to you — a real Codex under `approval_policy =
+  "never"` does exactly this — Argus no longer tells you that you declined
+  something you never saw. It says the answer did not come back, hands your
+  sentence back, and offers to save it from chat.
+- Saying no to one dialog no longer removes the dialogs that come after it.
+
 ## 3.0.5 — 2026-07-29
 
 - Wire moves to `argus-decision-mcp@2.0.5` — **a line Argus drafted can no longer

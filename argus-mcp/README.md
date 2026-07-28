@@ -8,7 +8,7 @@ reality later did. It does not score people or give verdicts.
 ### Codex (CLI or app)
 
 ```bash
-codex mcp add argus-decision -- npx -y argus-decision-mcp@2.0.5
+codex mcp add argus-decision -- npx -y argus-decision-mcp@2.0.6
 codex mcp list        # argus-decision should be listed and enabled
 ```
 
@@ -32,7 +32,7 @@ instead, rather than pretend you declined.
   "mcpServers": {
     "argus-decision": {
       "command": "npx",
-      "args": ["-y", "argus-decision-mcp@2.0.5"],
+      "args": ["-y", "argus-decision-mcp@2.0.6"],
       "env": {
         "ARGUS_DIR": "/absolute/path/to/your/project/.argus"
       }

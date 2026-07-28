@@ -500,6 +500,17 @@ handleTextInputSubmit = () => move("down")                 // 칸 안에서 Retu
 
 ## §8. 대기 목록 — 여기 적고, 짓지 않는다
 
+- **Codex 플러그인 v1** — 지금 Codex 사용자는 `codex mcp add argus-decision --
+  npx -y argus-decision-mcp@<pin>` 한 줄을 손으로 친다. 실기기로 확인했고
+  README에 넣었다(2026-07-29). 원클릭 설치는 O4 관문 뒤. **선행 사실로 확정:**
+  Codex의 `approval_policy = "never"` 또는 `granular.mcp_elicitations = false`
+  에서는 elicitation 요청이 클라이언트에 **전달되지 않고** Codex가 스스로
+  decline한다 (실측 5설정). 프로토콜에 정책 거절 표시가 없다
+  (`McpServerElicitationRequestResponse` = action + content + null `_meta`) —
+  즉 **호스트가 대신 답한 것과 사람이 빨리 거절한 것은 구분 불가**이고, 그래서
+  어느 쪽도 사용자의 결정으로 기록하지 않는다. 자세한 근거는
+  `docs/HANDOFF-2026-07-29-CODEX-HONESTY.md`
+
 - ~~**미결질문 픽커가 공개 표면에서 도달 불가**~~ → **되열림 (2026-07-28, 창업자 결정)**:
   2.0.0에서 `argus_capture action="answer_question"`이 `decision`을 필수로 요구하면서,
   사용자에게 자기 미결 질문을 **자기 말로** 닫게 하던 elicitation 경로가 모델에게서
