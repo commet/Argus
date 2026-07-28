@@ -49,8 +49,13 @@ const EVIDENCE: Record<string, string[]> = {
     'src/app/api/share/link/__tests__/route.test.ts', // 기본 비공개
     'src/lib/__tests__/demo-settle-latency.test.ts', // 데모 확인일 ≤ 7일
   ],
-  // 공정 5 (첫인상 수리, 2026-07-08 신설) — 아직 체크된 exit 없음.
-  '공정 5': [],
+  // 공정 5 (첫인상 수리, 2026-07-08 신설) — 2026-07-28 준공.
+  // 시공은 이미 있었고(PR #110·#150·#284·#286·#290·#296) 없던 것은 준공 증거였다.
+  '공정 5': [
+    'manual: 프로덕션 재실사 3화면(seal 직전·직후·질문 답변 후) + 작업 10건 관찰 — docs/receipts/2026-07-28-process5-live-walkthrough/README.md',
+    'src/components/workspace/progressive/__tests__/process5-exit-evidence.test.tsx', // seal 직후 블록 라벨 (30초 룰의 필요조건)
+    'src/components/workspace/progressive/__tests__/process5-exit-evidence.test.tsx', // 항로 카드 기본 접힘 — 거동 + ProgressiveFlow 배선
+  ],
 };
 
 /** §9 MCP 재건축 트랙(공정 M0~M4)의 exit 증거 — 같은 계약, 같은 규약.
