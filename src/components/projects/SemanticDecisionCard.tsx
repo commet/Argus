@@ -346,7 +346,7 @@ export function SemanticDecisionCard({ project, onCancel }: { project: Project; 
               <BookOpen size={20} />
             </span>
             <div className="min-w-0">
-              <p className="text-[11px] font-bold tracking-[0.08em] text-[var(--accent)]">
+              <p className="text-[12.5px] font-bold tracking-[0.08em] text-[var(--accent)]">
                 {L('돌아올 기록', 'Return record')}
               </p>
               <h2 className="mt-1 text-[18px] font-bold leading-7 text-[var(--text-primary)]">
@@ -362,7 +362,7 @@ export function SemanticDecisionCard({ project, onCancel }: { project: Project; 
         <div className="p-5 md:p-6">
           <label className="grid gap-1.5 text-[12px] font-bold text-[var(--text-primary)]">
             {L('지금 남길 문장', 'Statement to keep')}
-            <span className="text-[11px] font-normal leading-5 text-[var(--text-tertiary)]">
+            <span className="text-[12.5px] font-normal leading-5 text-[var(--text-tertiary)]">
               {L('나중의 내가 비교할 수 있도록 지금 생각을 내 말로 확인하세요.', 'Confirm the wording in your own voice so your future self can compare it.')}
             </span>
             <textarea
@@ -375,7 +375,7 @@ export function SemanticDecisionCard({ project, onCancel }: { project: Project; 
           </label>
 
           {initialAiPredicate && (
-            <label className="mt-3 flex items-start gap-2.5 rounded-xl bg-[var(--ai)]/45 px-3.5 py-3 text-[11.5px] leading-5 text-[var(--text-secondary)]">
+            <label className="mt-3 flex items-start gap-2.5 rounded-xl bg-[var(--ai)]/45 px-3.5 py-3 text-[13px] leading-5 text-[var(--text-secondary)]">
               <input
                 type="checkbox"
                 checked={keepsAiOrigin}
@@ -473,7 +473,7 @@ export function SemanticDecisionCard({ project, onCancel }: { project: Project; 
               <FileCheck2 size={20} />
             </span>
             <div className="min-w-0">
-              <p className="text-[11px] font-bold tracking-[0.08em] text-[var(--accent)]">
+              <p className="text-[12.5px] font-bold tracking-[0.08em] text-[var(--accent)]">
                 {L('돌아올 기록', 'Return record')}
               </p>
               <h2 className="mt-1 text-[18px] font-bold leading-7 text-[var(--text-primary)]">
@@ -501,7 +501,7 @@ export function SemanticDecisionCard({ project, onCancel }: { project: Project; 
         <>
           <section className="grid gap-3 p-5 md:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)] md:p-6">
             <div className="rounded-xl bg-[var(--bg)]/70 px-4 py-4">
-              <p className="text-[11px] font-bold text-[var(--text-tertiary)]">
+              <p className="text-[12.5px] font-bold text-[var(--text-tertiary)]">
                 {L('처음 남긴 문장', 'Initial statement')}
               </p>
               <p className="mt-1.5 text-[14px] font-medium leading-6 text-[var(--text-primary)]">
@@ -510,13 +510,13 @@ export function SemanticDecisionCard({ project, onCancel }: { project: Project; 
             </div>
             {activeReturn && (
               <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--surface)] px-4 py-4 shadow-sm">
-                <p className="text-[11px] font-bold text-[var(--text-tertiary)]">
+                <p className="text-[12.5px] font-bold text-[var(--text-tertiary)]">
                   {L('돌아와서 확인할 질문', 'Question to revisit')}
                 </p>
                 <p className="mt-1.5 text-[13px] font-semibold leading-6 text-[var(--text-primary)]">
                   {activeReturn.review_question}
                 </p>
-                <p className="mt-2 inline-flex items-center gap-1.5 text-[11.5px] text-[var(--text-secondary)]">
+                <p className="mt-2 inline-flex items-center gap-1.5 text-[13px] text-[var(--text-secondary)]">
                   <CalendarDays size={13} className="text-[var(--accent)]" />
                   {formatReviewDate(activeReturn.review_at, ko)}
                 </p>
@@ -545,7 +545,7 @@ export function SemanticDecisionCard({ project, onCancel }: { project: Project; 
                         <div className="font-semibold text-[var(--text-primary)]">{eventLabel(raw, ko)}</div>
                         {eventDetail(raw) && <div className="mt-0.5 break-words">{eventDetail(raw)}</div>}
                         {typeof event.time?.recorded_at === 'string' && (
-                          <time className="mt-0.5 block text-[10.5px] text-[var(--text-tertiary)]">
+                          <time className="mt-0.5 block text-[12.5px] text-[var(--text-tertiary)]">
                             {new Date(event.time.recorded_at).toLocaleString(ko ? 'ko-KR' : 'en-US')}
                           </time>
                         )}
@@ -574,7 +574,7 @@ export function SemanticDecisionCard({ project, onCancel }: { project: Project; 
                           <h3 className="text-[13px] font-bold text-[var(--text-primary)]">
                             {L('새로 알게 된 근거', 'New evidence')}
                           </h3>
-                          <p className="mt-0.5 text-[11.5px] leading-5 text-[var(--text-secondary)]">
+                          <p className="mt-0.5 text-[13px] leading-5 text-[var(--text-secondary)]">
                             {L('결정 뒤 확인한 사실, 수치, 사건이나 출처만 적으세요. 해석은 섞지 않아도 됩니다.', 'Add a fact, number, event, or source learned after the decision.')}
                           </p>
                         </div>
@@ -605,7 +605,7 @@ export function SemanticDecisionCard({ project, onCancel }: { project: Project; 
                           <p className="text-[12px] font-semibold text-[var(--text-secondary)]">
                             {presentStandardQuestion(currentKind, ko ? 'ko' : 'en')}
                           </p>
-                          <p className="mt-1 text-[11px] leading-5 text-[var(--text-tertiary)]">
+                          <p className="mt-1 text-[12.5px] leading-5 text-[var(--text-tertiary)]">
                             {L('한 가지만 더 고르면 이번 답이 기록됩니다.', 'Choose one more answer to save this return.')}
                           </p>
                           <div className="mt-3 grid gap-2 sm:grid-cols-2">
@@ -624,7 +624,7 @@ export function SemanticDecisionCard({ project, onCancel }: { project: Project; 
                           <button
                             type="button"
                             onClick={() => setSelectedOutcomeId(null)}
-                            className="mt-3 text-[11.5px] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]"
+                            className="mt-3 text-[13px] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]"
                           >
                             {L('앞으로 돌아가기', 'Back')}
                           </button>
@@ -673,7 +673,7 @@ export function SemanticDecisionCard({ project, onCancel }: { project: Project; 
 
                   {activeReturn && !resolutionId && (
                     <div className="flex flex-wrap items-end gap-3 rounded-xl bg-[var(--bg)]/70 px-4 py-3">
-                      <label className="grid gap-1 text-[11.5px] font-semibold text-[var(--text-secondary)]">
+                      <label className="grid gap-1 text-[13px] font-semibold text-[var(--text-secondary)]">
                         {L('아직 답하기 이르다면 다시 볼 날짜를 바꾸세요.', 'If it is too early to answer, choose a new return date.')}
                         <input
                           type="date"
@@ -714,7 +714,7 @@ export function SemanticDecisionCard({ project, onCancel }: { project: Project; 
 
 function AuthorityNote({ ko }: { ko: boolean }) {
   return (
-    <p className="mt-4 text-[11px] leading-5 text-[var(--text-tertiary)]">
+    <p className="mt-4 text-[12.5px] leading-5 text-[var(--text-tertiary)]">
       {ko
         ? 'Argus의 제안과 사용자가 확정한 문장을 구분해 남깁니다. 근거와 돌아온 답은 사용자가 직접 확인합니다.'
         : 'Argus proposals remain distinct from statements you seal. You verify the evidence and the answer you return with.'}

@@ -41,7 +41,7 @@ export function Tab({ tabs, activeKey, onChange }: TabProps) {
           )}
           {tab.label}
           {tab.count !== undefined && (
-            <span className={`ml-1.5 text-[11px] px-1.5 py-0.5 rounded-full ${
+            <span className={`ml-1.5 text-[12.5px] px-1.5 py-0.5 rounded-full ${
               activeKey === tab.key ? 'bg-[var(--bg)]' : 'bg-[var(--surface)]'
             }`}>
               {tab.count}

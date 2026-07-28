@@ -43,7 +43,7 @@ export function CrisisConcernBanner({
       <div className="flex items-start gap-2.5">
         <AlertTriangle size={16} className="text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
         <div className="flex-1 min-w-0 space-y-2.5">
-          <p className="text-[10px] font-semibold uppercase tracking-wide text-amber-600 dark:text-amber-400">
+          <p className="text-[12px] font-semibold uppercase tracking-wide text-amber-600 dark:text-amber-400">
             {L('잠깐만요', 'One moment')}
           </p>
           <p className="text-[13px] text-[var(--text-primary)] leading-[1.6] whitespace-pre-wrap">

@@ -84,11 +84,11 @@ export function MixPreview({ mix, dm, onDM, onSkip, busy, cmReview, debateResult
         transition={{ duration: 0.5, ease: EASE }}
         className="mb-3 flex items-center gap-2.5"
       >
-        <span className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-bold text-[var(--accent-fg)]" style={{ background: 'var(--gradient-gold)' }}>
+        <span className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12.5px] font-bold text-[var(--accent-fg)]" style={{ background: 'var(--gradient-gold)' }}>
           <CheckIcon size={11} strokeWidth={3} />
           {L('초안이 닿았어요', 'The draft has landed')}
         </span>
-        <span className="text-[11px] text-[var(--text-tertiary)]">
+        <span className="text-[12.5px] text-[var(--text-tertiary)]">
           {L(`${sections.length}개 섹션 · 당신의 답 위에서 쓰였어요`, `${sections.length} sections · built on your answers`)}
         </span>
       </motion.div>
@@ -116,11 +116,11 @@ export function MixPreview({ mix, dm, onDM, onSkip, busy, cmReview, debateResult
               <div className="flex items-center gap-1">
                 <button type="button" onClick={copyDraft}
                   aria-live="polite"
-                  className={`inline-flex items-center gap-1 text-[11.5px] hover:text-[var(--accent)] px-2 py-1 rounded-md transition-colors cursor-pointer ${copyFailed ? 'text-[var(--danger)]' : 'text-[var(--text-tertiary)]'}`}>
+                  className={`inline-flex items-center gap-1 text-[13px] hover:text-[var(--accent)] px-2 py-1 rounded-md transition-colors cursor-pointer ${copyFailed ? 'text-[var(--danger)]' : 'text-[var(--text-tertiary)]'}`}>
                   {copied ? <CheckIcon size={12} /> : <CopyIcon size={12} />} {copied ? L('복사됨', 'Copied') : copyFailed ? L('복사 실패 — 다시 시도', 'Copy failed — retry') : L('초안 복사', 'Copy draft')}
                 </button>
                 <button type="button" onClick={downloadDraft}
-                  className="inline-flex items-center gap-1 text-[11.5px] text-[var(--text-tertiary)] hover:text-[var(--accent)] px-2 py-1 rounded-md transition-colors cursor-pointer">
+                  className="inline-flex items-center gap-1 text-[13px] text-[var(--text-tertiary)] hover:text-[var(--accent)] px-2 py-1 rounded-md transition-colors cursor-pointer">
                   <Download size={12} /> .md
                 </button>
               </div>
@@ -136,7 +136,7 @@ export function MixPreview({ mix, dm, onDM, onSkip, busy, cmReview, debateResult
 
                 {nextSteps.length > 0 && (
                   <div className="pt-5 border-t border-[var(--border-subtle)]">
-                    <p className="text-[9px] font-bold text-[var(--text-tertiary)] uppercase tracking-[0.2em] mb-3">{L('다음 단계', 'Next Steps')}</p>
+                    <p className="text-[12.5px] font-bold text-[var(--text-tertiary)] uppercase tracking-[0.2em] mb-3">{L('다음 단계', 'Next Steps')}</p>
                     {nextSteps.map((s, i) => <div key={i} className="flex items-start gap-2.5 text-[13px] text-[var(--text-primary)] mb-2 leading-relaxed"><span className="w-1.5 h-1.5 rounded-full bg-[var(--accent)] mt-2 shrink-0" /><span>{s}</span></div>)}
                   </div>
                 )}
@@ -149,7 +149,7 @@ export function MixPreview({ mix, dm, onDM, onSkip, busy, cmReview, debateResult
                 {/* Spine: surface the synthesis as work, not as a character. No
                     agent-persona label, no "meet the navigator" machinery intro —
                     the plugin forbids machinery-selling and the webapp must match. */}
-                <p className="text-[9px] font-bold text-[var(--accent)] uppercase tracking-[0.2em] mb-3">{L('통합 검토', 'Integrated check')}</p>
+                <p className="text-[12.5px] font-bold text-[var(--accent)] uppercase tracking-[0.2em] mb-3">{L('통합 검토', 'Integrated check')}</p>
                 <p className="text-[13px] text-[var(--text-primary)] leading-relaxed mb-2">{cmReview.overall}</p>
                 {cmReview.contradictions.length > 0 && (
                   <div className="mb-2">
@@ -165,7 +165,7 @@ export function MixPreview({ mix, dm, onDM, onSkip, busy, cmReview, debateResult
                     proceed/no-proceed verdict (renamed from `verdict`, 2026-07-04). */}
                 {cmReview.open_question && (
                   <div className="mt-3 pt-3 border-t border-dashed border-[var(--accent)]/15">
-                    <p className="text-[9px] font-bold text-[var(--accent)] uppercase tracking-[0.2em] mb-1.5">{L('아직 열려 있는 질문', 'Still open')}</p>
+                    <p className="text-[12.5px] font-bold text-[var(--accent)] uppercase tracking-[0.2em] mb-1.5">{L('아직 열려 있는 질문', 'Still open')}</p>
                     <p className="text-[12.5px] text-[var(--text-secondary)] italic leading-relaxed">{cmReview.open_question}</p>
                   </div>
                 )}
@@ -179,9 +179,9 @@ export function MixPreview({ mix, dm, onDM, onSkip, busy, cmReview, debateResult
                     named agent "losing" a debate. No agent attribution, no 💀
                     weakest-claim drama; the claim stands on its own. */}
                 <div className="flex items-center gap-2 mb-3">
-                  <p className="text-[9px] font-bold text-[var(--danger)] uppercase tracking-[0.2em]">{L('미해결 긴장', 'Unresolved tension')}</p>
+                  <p className="text-[12.5px] font-bold text-[var(--danger)] uppercase tracking-[0.2em]">{L('미해결 긴장', 'Unresolved tension')}</p>
                   {/* Localized — the raw English enum used to leak into Korean UI */}
-                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${debateResult.severity === 'critical' ? 'bg-[var(--danger)]/10 text-[var(--danger)]' : debateResult.severity === 'important' ? 'bg-[var(--warning)]/10 text-[var(--warning)]' : 'bg-[var(--text-tertiary)]/10 text-[var(--text-tertiary)]'}`}>
+                  <span className={`text-[12px] px-2 py-0.5 rounded-full font-medium ${debateResult.severity === 'critical' ? 'bg-[var(--danger)]/10 text-[var(--danger)]' : debateResult.severity === 'important' ? 'bg-[var(--warning)]/10 text-[var(--warning)]' : 'bg-[var(--text-tertiary)]/10 text-[var(--text-tertiary)]'}`}>
                     {debateResult.severity === 'critical' ? L('필수', 'Critical') : debateResult.severity === 'important' ? L('권장', 'Important') : L('참고', 'Minor')}
                   </span>
                 </div>
@@ -204,14 +204,14 @@ export function MixPreview({ mix, dm, onDM, onSkip, busy, cmReview, debateResult
             <div className="pt-6 border-t border-[var(--border-subtle)] space-y-3">
               <div className="flex items-end justify-between gap-3">
                 <div>
-                  <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--accent)]">{L('다음 선택', 'Next choice')}</p>
+                  <p className="text-[12px] font-bold uppercase tracking-[0.16em] text-[var(--accent)]">{L('다음 선택', 'Next choice')}</p>
                   <p className="mt-1 text-[12px] text-[var(--text-tertiary)]">
                     {primary === 'wrap'
                       ? L('독자의 눈으로 확인하거나, 계획의 핵심 가정을 한 번 더 시험할 수 있어요.', 'Get a reader check, or test the plan’s core bet once more.')
                       : L('검토를 거치면 수정할 항목을 고른 뒤 최종본으로 만들 수 있어요.', 'A review lets you choose fixes before creating the final document.')}
                   </p>
                 </div>
-                <span className="shrink-0 rounded-full bg-[var(--bg)] px-2.5 py-1 text-[10px] text-[var(--text-tertiary)]">
+                <span className="shrink-0 rounded-full bg-[var(--bg)] px-2.5 py-1 text-[12px] text-[var(--text-tertiary)]">
                   {L('초안 완료', 'Draft ready')}
                 </span>
               </div>
@@ -242,7 +242,7 @@ export function MixPreview({ mix, dm, onDM, onSkip, busy, cmReview, debateResult
                       </div>
                       <div>
                         <p className="text-[14px] font-semibold text-[var(--text-primary)]">{dm || L('의사결정권자', 'Decision-Maker')}</p>
-                        <p className="text-[11px] text-[var(--text-tertiary)]">{L('올리기 전에 한번 검토 받아보세요', 'Get a review before you submit')}</p>
+                        <p className="text-[12.5px] text-[var(--text-tertiary)]">{L('올리기 전에 한번 검토 받아보세요', 'Get a review before you submit')}</p>
                       </div>
                     </div>
                     <motion.button type="button" onClick={onDM} disabled={busy} aria-busy={busy} whileTap={{ scale: 0.98 }}

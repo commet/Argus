@@ -83,7 +83,7 @@ export function QuestionCard({
         </div>
         <div>
           {meta && (
-            <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--accent)]/70 mb-1">{meta}</p>
+            <p className="text-[12px] font-bold uppercase tracking-[0.14em] text-[var(--accent)]/70 mb-1">{meta}</p>
           )}
           <p id={questionId} className="text-[17px] md:text-[19px] font-semibold text-[var(--text-primary)] leading-[1.4] tracking-tight" style={{ fontFamily: 'var(--font-display)' }}>
             {question.text}
@@ -119,7 +119,7 @@ export function QuestionCard({
                 }}>
                 <span
                   aria-hidden="true"
-                  className={`grid h-6 w-6 shrink-0 place-items-center rounded-md border text-[10px] font-bold tabular-nums ${
+                  className={`grid h-6 w-6 shrink-0 place-items-center rounded-md border text-[12px] font-bold tabular-nums ${
                     selected === opt
                       ? 'border-[var(--accent)]/40 bg-[var(--surface)] text-[var(--accent)]'
                       : 'border-[var(--border-subtle)] bg-[var(--bg)] text-[var(--text-tertiary)]'
@@ -137,7 +137,7 @@ export function QuestionCard({
             <div className="mt-3">
               <div className="mb-2 flex items-center gap-2" aria-hidden="true">
                 <span className="h-px flex-1 bg-[var(--border-subtle)]" />
-                <span className="text-[10px] font-medium text-[var(--text-tertiary)]">{L('또는 직접 입력', 'Or type your own')}</span>
+                <span className="text-[12px] font-medium text-[var(--text-tertiary)]">{L('또는 직접 입력', 'Or type your own')}</span>
                 <span className="h-px flex-1 bg-[var(--border-subtle)]" />
               </div>
               <div className="flex gap-2">

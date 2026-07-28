@@ -118,12 +118,12 @@ function PersonaSettings({ onClose }: { onClose: () => void }) {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <span className="text-[12px] font-semibold text-[var(--text-primary)]">{L('팀원 설정', 'Team Settings')}</span>
-        <button onClick={onClose} className="text-[10px] text-[var(--accent)] cursor-pointer">{L('완료', 'Done')}</button>
+        <button onClick={onClose} className="text-[12px] text-[var(--accent)] cursor-pointer">{L('완료', 'Done')}</button>
       </div>
 
       {/* Built-in persona names */}
       <div className="space-y-1.5">
-        <p className="text-[11px] text-[var(--text-secondary)] font-medium">{L('기본 팀원 이름 변경', 'Rename default members')}</p>
+        <p className="text-[12.5px] text-[var(--text-secondary)] font-medium">{L('기본 팀원 이름 변경', 'Rename default members')}</p>
         {builtins.map(p => (
           <div key={p.id} className="flex items-center gap-2">
             <span className="text-[13px] w-6 text-center">{p.emoji}</span>
@@ -132,9 +132,9 @@ function PersonaSettings({ onClose }: { onClose: () => void }) {
               placeholder={p.name}
               maxLength={20}
               onBlur={(e) => handleNameChange(p.id, e.target.value)}
-              className="flex-1 px-2 py-1 rounded-lg bg-[var(--bg)] border border-[var(--border-subtle)] text-[11px] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:outline-none focus:border-[var(--accent)]/30"
+              className="flex-1 px-2 py-1 rounded-lg bg-[var(--bg)] border border-[var(--border-subtle)] text-[12.5px] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:outline-none focus:border-[var(--accent)]/30"
             />
-            <span className="text-[10px] text-[var(--text-secondary)] w-20 truncate">{p.role}</span>
+            <span className="text-[12px] text-[var(--text-secondary)] w-20 truncate">{p.role}</span>
           </div>
         ))}
       </div>
@@ -142,12 +142,12 @@ function PersonaSettings({ onClose }: { onClose: () => void }) {
       {/* Custom personas */}
       {customization.customPersonas.length > 0 && (
         <div className="space-y-1.5">
-          <p className="text-[10px] text-[var(--text-tertiary)] font-medium">{L('추가된 팀원', 'Custom members')}</p>
+          <p className="text-[12px] text-[var(--text-tertiary)] font-medium">{L('추가된 팀원', 'Custom members')}</p>
           {customization.customPersonas.map(p => (
             <div key={p.id} className="flex items-center gap-2">
               <span className="text-[13px] w-6 text-center">{p.emoji}</span>
-              <span className="flex-1 text-[11px] text-[var(--text-primary)]">{p.name}</span>
-              <span className="text-[9px] text-[var(--text-tertiary)]">{p.role}</span>
+              <span className="flex-1 text-[12.5px] text-[var(--text-primary)]">{p.name}</span>
+              <span className="text-[12.5px] text-[var(--text-tertiary)]">{p.role}</span>
               <button onClick={() => handleRemoveCustom(p.id)} className="p-1.5 text-red-500 hover:text-[var(--danger)] hover:bg-[var(--danger)]/10 rounded-lg cursor-pointer transition-colors" aria-label={L('삭제', 'Delete')}>
                 <Trash2 size={13} />
               </button>
@@ -160,13 +160,13 @@ function PersonaSettings({ onClose }: { onClose: () => void }) {
       {!addMode ? (
         <button
           onClick={() => setAddMode(true)}
-          className="flex items-center gap-1.5 text-[11px] text-[var(--accent)] hover:underline cursor-pointer"
+          className="flex items-center gap-1.5 text-[12.5px] text-[var(--accent)] hover:underline cursor-pointer"
         >
           <Plus size={12} /> {L('새 팀원 추가', 'Add new member')}
         </button>
       ) : (
         <div className="space-y-2 p-3 rounded-xl bg-[var(--bg)] border border-[var(--border-subtle)]">
-          <p className="text-[10px] font-semibold text-[var(--text-primary)]">{L('새 팀원', 'New member')}</p>
+          <p className="text-[12px] font-semibold text-[var(--text-primary)]">{L('새 팀원', 'New member')}</p>
 
           {/* Emoji picker */}
           <div className="flex flex-wrap gap-1">
@@ -181,23 +181,23 @@ function PersonaSettings({ onClose }: { onClose: () => void }) {
           <div className="flex gap-2">
             <input value={newPersona.name} onChange={e => setNewPersona(p => ({ ...p, name: e.target.value }))}
               placeholder={L('이름', 'Name')} maxLength={10}
-              className="flex-1 px-2 py-1.5 rounded-lg bg-[var(--surface)] border border-[var(--border-subtle)] text-[11px] focus:outline-none focus:border-[var(--accent)]/30" />
+              className="flex-1 px-2 py-1.5 rounded-lg bg-[var(--surface)] border border-[var(--border-subtle)] text-[12.5px] focus:outline-none focus:border-[var(--accent)]/30" />
             <input value={newPersona.role} onChange={e => setNewPersona(p => ({ ...p, role: e.target.value }))}
               placeholder={L('역할 (e.g., 데이터 사이언티스트)', 'Role (e.g., Data Scientist)')} maxLength={20}
-              className="flex-1 px-2 py-1.5 rounded-lg bg-[var(--surface)] border border-[var(--border-subtle)] text-[11px] focus:outline-none focus:border-[var(--accent)]/30" />
+              className="flex-1 px-2 py-1.5 rounded-lg bg-[var(--surface)] border border-[var(--border-subtle)] text-[12.5px] focus:outline-none focus:border-[var(--accent)]/30" />
           </div>
 
           <textarea value={newPersona.expertise} onChange={e => setNewPersona(p => ({ ...p, expertise: e.target.value }))}
             placeholder={L('전문 영역 설명 (프롬프트에 주입됩니다)', 'Describe expertise (injected into prompts)')} maxLength={100}
-            className="w-full px-2 py-1.5 rounded-lg bg-[var(--surface)] border border-[var(--border-subtle)] text-[11px] resize-none focus:outline-none focus:border-[var(--accent)]/30" rows={2} />
+            className="w-full px-2 py-1.5 rounded-lg bg-[var(--surface)] border border-[var(--border-subtle)] text-[12.5px] resize-none focus:outline-none focus:border-[var(--accent)]/30" rows={2} />
 
           <input value={newPersona.tone} onChange={e => setNewPersona(p => ({ ...p, tone: e.target.value }))}
             placeholder={L('말투 스타일 (e.g., 데이터 기반으로 차분하게)', 'Tone style (e.g., calm and data-driven)')} maxLength={60}
-            className="w-full px-2 py-1.5 rounded-lg bg-[var(--surface)] border border-[var(--border-subtle)] text-[11px] focus:outline-none focus:border-[var(--accent)]/30" />
+            className="w-full px-2 py-1.5 rounded-lg bg-[var(--surface)] border border-[var(--border-subtle)] text-[12.5px] focus:outline-none focus:border-[var(--accent)]/30" />
 
           <input value={keywordInput} onChange={e => setKeywordInput(e.target.value)} maxLength={120}
             placeholder={L('매칭 키워드 (쉼표 구분: 데이터, 분석, ML)', 'Matching keywords (comma-separated: data, analysis, ML)')}
-            className="w-full px-2 py-1.5 rounded-lg bg-[var(--surface)] border border-[var(--border-subtle)] text-[11px] focus:outline-none focus:border-[var(--accent)]/30" />
+            className="w-full px-2 py-1.5 rounded-lg bg-[var(--surface)] border border-[var(--border-subtle)] text-[12.5px] focus:outline-none focus:border-[var(--accent)]/30" />
 
           {/* Color picker */}
           <div className="flex gap-1">
@@ -209,9 +209,9 @@ function PersonaSettings({ onClose }: { onClose: () => void }) {
           </div>
 
           <div className="flex justify-end gap-2">
-            <button onClick={() => setAddMode(false)} className="px-3 py-1.5 text-[10px] text-[var(--text-tertiary)] cursor-pointer">{L('취소', 'Cancel')}</button>
+            <button onClick={() => setAddMode(false)} className="px-3 py-1.5 text-[12px] text-[var(--text-tertiary)] cursor-pointer">{L('취소', 'Cancel')}</button>
             <button onClick={handleAddPersona} disabled={!newPersona.name.trim() || !newPersona.role.trim()}
-              className="px-3 py-1.5 text-[10px] text-[var(--accent-fg)] font-semibold rounded-lg disabled:opacity-30 cursor-pointer"
+              className="px-3 py-1.5 text-[12px] text-[var(--accent-fg)] font-semibold rounded-lg disabled:opacity-30 cursor-pointer"
               style={{ background: 'var(--gradient-gold)' }}>{L('추가', 'Add')}</button>
           </div>
         </div>
@@ -241,7 +241,7 @@ function TeamHeader({ workers, onOpenSettings, settingsOpen }: { workers: Worker
         <div className="flex items-center gap-2">
           <Users size={14} className="text-[var(--accent)]" />
           <span className="text-[13px] font-semibold text-[var(--text-primary)]">{L('팀', 'Team')}</span>
-          <span className="text-[11px] text-[var(--text-secondary)] bg-[var(--bg)] px-2 py-0.5 rounded-full">
+          <span className="text-[12.5px] text-[var(--text-secondary)] bg-[var(--bg)] px-2 py-0.5 rounded-full">
             {settledCount}/{workers.length}
           </span>
           {activeEmojis.length > 0 && (
@@ -273,7 +273,7 @@ function TeamHeader({ workers, onOpenSettings, settingsOpen }: { workers: Worker
       </div>
 
       {/* Status summary */}
-      <p className="text-[10px] text-[var(--text-secondary)]" aria-live="polite">
+      <p className="text-[12px] text-[var(--text-secondary)]" aria-live="polite">
         {[
           runningCount > 0 ? L(`${runningCount}명 작업 중`, `${runningCount} working`) : '',
           attentionCount > 0 ? L(`${attentionCount}건 확인 필요`, `${attentionCount} need attention`) : '',
@@ -351,17 +351,17 @@ export function WorkerPanel({ className }: { className?: string }) {
                 {(() => {
                   const lv = w.agent_id ? useAgentStore.getState().getAgent(w.agent_id)?.level : undefined;
                   return lv != null && lv >= 2 ? (
-                    <span className="agent-lv ml-1" style={{ fontSize: 9, padding: '0px 5px' }} data-level={lv}>
+                    <span className="agent-lv ml-1" style={{ fontSize: 12.5, padding: '0px 5px' }} data-level={lv}>
                       Lv.{lv}
                     </span>
                   ) : null;
                 })()}
               </p>
-              <p className="text-[11px] text-[var(--text-secondary)] truncate" title={w.task}>{w.task}</p>
+              <p className="text-[12.5px] text-[var(--text-secondary)] truncate" title={w.task}>{w.task}</p>
             </div>
             <div className="flex items-center gap-1.5 shrink-0">
               <StatusIndicator worker={w} />
-              <span className="text-[10px] text-[var(--text-secondary)]">{statusText(w, locale)}</span>
+              <span className="text-[12px] text-[var(--text-secondary)]">{statusText(w, locale)}</span>
             </div>
           </motion.div>
         ))}
@@ -479,12 +479,12 @@ export function WorkerDrawer({ className }: { className?: string }) {
             {L('팀', 'Team')} {settledCount}/{workers.length}
           </span>
           {attentionCount > 0 && (
-            <span className="text-[10px] font-medium text-[var(--accent)] bg-[var(--accent)]/10 px-2 py-0.5 rounded-full shrink-0">
+            <span className="text-[12px] font-medium text-[var(--accent)] bg-[var(--accent)]/10 px-2 py-0.5 rounded-full shrink-0">
               {L('확인', 'Check')} {attentionCount}
             </span>
           )}
           {runningCount > 0 && attentionCount === 0 && (
-            <span className="inline-flex items-center gap-1.5 text-[10px] text-[var(--accent)] bg-[var(--accent)]/8 px-2 py-0.5 rounded-full shrink-0">
+            <span className="inline-flex items-center gap-1.5 text-[12px] text-[var(--accent)] bg-[var(--accent)]/8 px-2 py-0.5 rounded-full shrink-0">
               {L('진행', 'Active')} {runningCount}
               <TypingDots />
             </span>
@@ -514,7 +514,7 @@ export function WorkerDrawer({ className }: { className?: string }) {
                 <div className="flex items-center gap-2">
                   <Users size={14} className="text-[var(--accent)]" />
                   <span id={drawerTitleId} className="text-[13px] font-semibold text-[var(--text-primary)]">{L('팀', 'Team')}</span>
-                  <span className="text-[11px] text-[var(--text-secondary)] bg-[var(--bg)] px-2 py-0.5 rounded-full">
+                  <span className="text-[12.5px] text-[var(--text-secondary)] bg-[var(--bg)] px-2 py-0.5 rounded-full">
                     {settledCount}/{workers.length}
                   </span>
                 </div>

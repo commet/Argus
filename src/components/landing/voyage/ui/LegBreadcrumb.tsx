@@ -35,11 +35,11 @@ export function LegBreadcrumb({ active, className }: { active: Leg; className?: 
         return (
           <span key={leg} className="flex items-center gap-2">
             {i > 0 && (
-              <span style={{ color: 'var(--bp-ink-faint)', fontSize: 10 }}>→</span>
+              <span style={{ color: 'var(--bp-ink-faint)', fontSize: 12 }}>→</span>
             )}
             <span
               style={{
-                fontSize: 13,
+                fontSize: 14.5,
                 letterSpacing: '0.04em',
                 fontWeight: on ? 700 : 500,
                 color: on ? 'var(--bp-ink)' : 'var(--bp-ink-soft)',

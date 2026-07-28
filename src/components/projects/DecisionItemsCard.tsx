@@ -159,7 +159,7 @@ export function DecisionItemsCard({
             <div className="mt-3 space-y-3">
               {grouped.map(({ type, list }) => (
                 <div key={type}>
-                  <p className="text-[11px] font-semibold uppercase tracking-wide text-[var(--text-tertiary)] mb-1.5">
+                  <p className="text-[12.5px] font-semibold uppercase tracking-wide text-[var(--text-tertiary)] mb-1.5">
                     {L(TYPE_LABEL[type].ko, TYPE_LABEL[type].en)}
                   </p>
                   <ul className="space-y-1.5">
@@ -206,7 +206,7 @@ export function DecisionItemsCard({
                               <p className="text-[13px] text-[var(--text-primary)] leading-[1.5] flex-1 min-w-0">
                                 {item.text}
                                 {edited && (
-                                  <span className="ml-1.5 text-[10.5px] text-[var(--text-tertiary)] align-middle">
+                                  <span className="ml-1.5 text-[12.5px] text-[var(--text-tertiary)] align-middle">
                                     {L('(수정함)', '(edited)')}
                                   </span>
                                 )}
@@ -251,7 +251,7 @@ export function DecisionItemsCard({
                           {/* #2 — reconsider nudge for a deferred open question (pull, never demands an answer) */}
                           {!editing && item.type === 'open_question' && isItemDueForReconsider(item, now) && (
                             <div className="mt-2 pt-2 border-t border-[var(--border)] flex items-center gap-2 flex-wrap">
-                              <span className="text-[11.5px] text-[var(--text-secondary)] leading-[1.4] flex-1 min-w-0">
+                              <span className="text-[13px] text-[var(--text-secondary)] leading-[1.4] flex-1 min-w-0">
                                 {L(
                                   `${itemReconsiderDays(item, now)}일 전에 미뤄둔 질문이에요. 지금은 정리할 수 있나요?`,
                                   `You set this aside ${itemReconsiderDays(item, now)} days ago. Can you settle it now?`,
@@ -261,14 +261,14 @@ export function DecisionItemsCard({
                                 <button
                                   type="button"
                                   onClick={() => startEdit(item.id, item.text)}
-                                  className="min-h-[44px] px-2.5 py-1 rounded-md text-[11.5px] font-semibold border border-[var(--accent)]/50 text-[var(--accent)] cursor-pointer"
+                                  className="min-h-[44px] px-2.5 py-1 rounded-md text-[13px] font-semibold border border-[var(--accent)]/50 text-[var(--accent)] cursor-pointer"
                                 >
                                   {L('네, 정리할게요', 'Settle it')}
                                 </button>
                                 <button
                                   type="button"
                                   onClick={() => dismissAlert(item.id)}
-                                  className="min-h-[44px] px-2.5 py-1 rounded-md text-[11.5px] font-medium border border-[var(--border)] text-[var(--text-secondary)] cursor-pointer"
+                                  className="min-h-[44px] px-2.5 py-1 rounded-md text-[13px] font-medium border border-[var(--border)] text-[var(--text-secondary)] cursor-pointer"
                                 >
                                   {L('아직 열어둘래요', 'Keep it open')}
                                 </button>
@@ -279,7 +279,7 @@ export function DecisionItemsCard({
                           {/* #1 — recheck nudge for a watched premise (pull, not a cron; gates the nudge, not the pen) */}
                           {!editing && item.type === 'premise' && isItemDueForRecheck(item, now) && (
                             <div className="mt-2 pt-2 border-t border-[var(--border)] flex items-center gap-2 flex-wrap">
-                              <span className="text-[11.5px] text-[var(--text-secondary)] leading-[1.4] flex-1 min-w-0">
+                              <span className="text-[13px] text-[var(--text-secondary)] leading-[1.4] flex-1 min-w-0">
                                 {L(
                                   `마지막으로 확인한 지 ${itemRecheckDays(item, now)}일 됐어요. 이 사실, 아직 그대로인가요?`,
                                   `Last checked ${itemRecheckDays(item, now)} days ago. Is this still true?`,
@@ -289,14 +289,14 @@ export function DecisionItemsCard({
                                 <button
                                   type="button"
                                   onClick={() => markRechecked(item.id)}
-                                  className="min-h-[44px] px-2.5 py-1 rounded-md text-[11.5px] font-semibold border border-[var(--accent)]/50 text-[var(--accent)] cursor-pointer"
+                                  className="min-h-[44px] px-2.5 py-1 rounded-md text-[13px] font-semibold border border-[var(--accent)]/50 text-[var(--accent)] cursor-pointer"
                                 >
                                   {L('그대로예요', 'Still true')}
                                 </button>
                                 <button
                                   type="button"
                                   onClick={() => startEdit(item.id, item.text)}
-                                  className="min-h-[44px] px-2.5 py-1 rounded-md text-[11.5px] font-medium border border-[var(--border)] text-[var(--text-secondary)] cursor-pointer"
+                                  className="min-h-[44px] px-2.5 py-1 rounded-md text-[13px] font-medium border border-[var(--border)] text-[var(--text-secondary)] cursor-pointer"
                                 >
                                   {L('바뀌었어요', 'It changed')}
                                 </button>
@@ -331,7 +331,7 @@ export function DecisionItemsCard({
                   {L('미결 추가', 'Add')}
                 </button>
               </div>
-              <p className="text-[11px] text-[var(--text-tertiary)] leading-[1.5]">
+              <p className="text-[12.5px] text-[var(--text-tertiary)] leading-[1.5]">
                 {L(
                   '전제 옆 종을 켜면, 다시 확인할 때가 됐을 때 이 프로젝트에서 위로 올려드려요.',
                   "Turn on the bell and we'll surface the premise here when it is time to recheck it.",

@@ -121,12 +121,12 @@ export function ReceiptList({
                     </p>
                   </div>
                   <span
-                    className={`shrink-0 px-2 py-0.5 text-[10px] font-bold rounded-full border ${STATUS_STYLE[s.derived]}`}
+                    className={`shrink-0 px-2 py-0.5 text-[12px] font-bold rounded-full border ${STATUS_STYLE[s.derived]}`}
                   >
                     {s.label}
                   </span>
                 </div>
-                <div className="mt-2 flex items-center gap-3 text-[11px] text-[var(--text-tertiary)]">
+                <div className="mt-2 flex items-center gap-3 text-[12.5px] text-[var(--text-tertiary)]">
                   {s.next_check_by && <span>{L(`확인일 ${s.next_check_by}`, `Check by ${s.next_check_by}`)}</span>}
                   {s.sealed_count > 0 && (
                     <span>

@@ -34,7 +34,7 @@ export function PlateLabel({
         className="bp-mono"
         style={{
           color: 'var(--bp-ink-soft)',
-          fontSize: 11.5,
+          fontSize: 13,
           letterSpacing: hasKo ? '0.15em' : '0.32em',
           textTransform: 'uppercase',
           fontWeight: 500,

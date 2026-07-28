@@ -106,7 +106,7 @@ export function Falsification({
           action instruction (which is now action-only). */}
       {!resolved && (
         <div>
-          <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--accent)]/80 mb-1.5">
+          <p className="text-[12px] font-bold uppercase tracking-[0.14em] text-[var(--accent)]/80 mb-1.5">
             {L('계획 시험', 'Stress-test')}
           </p>
           <h3 className="text-[16px] md:text-[17px] font-bold text-[var(--text-primary)] leading-[1.35]" style={{ fontFamily: 'var(--font-display)' }}>
@@ -176,7 +176,7 @@ export function Falsification({
                 }`}
               >
                 <span className="inline-flex items-baseline gap-2">
-                  <span className="text-[10px] font-bold tabular-nums opacity-60">{i + 1}</span>
+                  <span className="text-[12px] font-bold tabular-nums opacity-60">{i + 1}</span>
                   <span style={{ fontWeight: 400 + Math.round(t * 200) }}>{c.text}</span>
                 </span>
               </button>
@@ -268,7 +268,7 @@ export function Falsification({
                     setRealBet(surfaced);
                     setRealBetAuthored('ai_surfaced');
                   }}
-                  className="text-[11px] text-[var(--text-tertiary)] hover:text-[var(--accent)] transition-colors cursor-pointer"
+                  className="text-[12.5px] text-[var(--text-tertiary)] hover:text-[var(--accent)] transition-colors cursor-pointer"
                 >
                   {L('이 문장 그대로 쓰기', 'Use this sentence as-is')}
                 </button>
@@ -288,7 +288,7 @@ export function Falsification({
                 <button
                   type="button"
                   onClick={() => { if (surfaced) onResolve({ claims, flinched_id: noFlinch ? null : flinched!.id, surfaced_constraint: surfaced, real_bet: surfaced, real_bet_authored: 'ai_surfaced', no_flinch_fallback: noFlinch }); }}
-                  className="text-[11px] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] underline underline-offset-2 cursor-pointer transition-colors"
+                  className="text-[12.5px] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] underline underline-offset-2 cursor-pointer transition-colors"
                 >
                   {L('직접 적지 않을게요 — AI가 짚은 내용으로만 둘게요', "I won't rewrite it — keep only the AI's version")}
                 </button>

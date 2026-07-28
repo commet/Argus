@@ -257,7 +257,7 @@ export function Header() {
                     {showReturnBadge && (
                       <span
                         aria-label={L(`돌아올 결정 ${dueCount}건`, `${dueCount} decision(s) to revisit`)}
-                        className="pointer-events-none absolute -top-0.5 -right-1 min-w-[14px] h-[14px] px-[3px] rounded-full flex items-center justify-center text-[9px] font-bold text-white leading-none"
+                        className="pointer-events-none absolute -top-0.5 -right-1 min-w-[14px] h-[14px] px-[3px] rounded-full flex items-center justify-center text-[12.5px] font-bold text-white leading-none"
                         style={{ background: 'var(--gold)' }}
                       >
                         {dueCount}
@@ -295,7 +295,7 @@ export function Header() {
                             <Icon size={14} strokeWidth={1.75} className="mt-0.5 shrink-0 text-[var(--text-tertiary)] group-hover/util:text-[var(--text-primary)] transition-colors" />
                             <span className="min-w-0">
                               <span className="block text-[13px] text-[var(--text-secondary)] group-hover/util:text-[var(--text-primary)] transition-colors leading-tight">{item.label}</span>
-                              <span className="block text-[11px] text-[var(--text-tertiary)] leading-snug mt-0.5">{item.desc}</span>
+                              <span className="block text-[12.5px] text-[var(--text-tertiary)] leading-snug mt-0.5">{item.desc}</span>
                             </span>
                           </LocaleLink>
                         </div>
@@ -315,7 +315,7 @@ export function Header() {
             >
               <Search size={14} aria-hidden="true" />
               <span className="hidden lg:inline">{L('빠른 이동', 'Quick find')}</span>
-              <kbd className="hidden xl:inline rounded border border-[var(--border-subtle)] bg-[var(--bg)] px-1.5 py-0.5 font-mono text-[9px] text-[var(--text-tertiary)]">Ctrl/⌘ K</kbd>
+              <kbd className="hidden xl:inline rounded border border-[var(--border-subtle)] bg-[var(--bg)] px-1.5 py-0.5 font-mono text-[12.5px] text-[var(--text-tertiary)]">Ctrl/⌘ K</kbd>
             </button>
 
             {/* Locale toggle + Theme toggle + Status badges */}
@@ -324,7 +324,7 @@ export function Header() {
                 <button
                   type="button"
                   onClick={() => handleLocaleChange('ko')}
-                  className={`inline-flex min-h-9 items-center px-2.5 py-1 text-[11px] font-bold transition-colors cursor-pointer ${
+                  className={`inline-flex min-h-9 items-center px-2.5 py-1 text-[12.5px] font-bold transition-colors cursor-pointer ${
                     locale === 'ko'
                       ? 'bg-[var(--primary)] text-[var(--bg)]'
                       : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
@@ -337,7 +337,7 @@ export function Header() {
                 <button
                   type="button"
                   onClick={() => handleLocaleChange('en')}
-                  className={`inline-flex min-h-9 items-center px-2.5 py-1 text-[11px] font-bold transition-colors cursor-pointer ${
+                  className={`inline-flex min-h-9 items-center px-2.5 py-1 text-[12.5px] font-bold transition-colors cursor-pointer ${
                     locale === 'en'
                       ? 'bg-[var(--primary)] text-[var(--bg)]'
                       : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
@@ -391,7 +391,7 @@ export function Header() {
                       />
                     ) : null}
                     <div className={`w-7 h-7 rounded-full bg-[var(--accent)] flex items-center justify-center ${avatarUrl ? 'hidden' : ''}`}>
-                      <span className="text-[var(--accent-fg)] text-[11px] font-bold">{displayName.charAt(0).toUpperCase()}</span>
+                      <span className="text-[var(--accent-fg)] text-[12.5px] font-bold">{displayName.charAt(0).toUpperCase()}</span>
                     </div>
                   </button>
 
@@ -400,7 +400,7 @@ export function Header() {
                       <div className="h-[2px] w-full" style={{ background: 'var(--gradient-gold)' }} />
                       <div className="px-3 py-2 border-b border-[var(--border-subtle)] mt-0">
                         <p className="text-[13px] font-semibold text-[var(--text-primary)] truncate">{displayName}</p>
-                        <p className="text-[11px] text-[var(--text-tertiary)] truncate">{user.email}</p>
+                        <p className="text-[12.5px] text-[var(--text-tertiary)] truncate">{user.email}</p>
                       </div>
                       <button
                         type="button"
@@ -454,7 +454,7 @@ export function Header() {
             >
               <Search size={15} aria-hidden="true" />
               <span className="flex-1">{L('페이지와 기능 찾기', 'Find pages and features')}</span>
-              <kbd className="rounded border border-[var(--border)] bg-[var(--surface)] px-1.5 py-0.5 font-mono text-[9px]">Ctrl/⌘ K</kbd>
+              <kbd className="rounded border border-[var(--border)] bg-[var(--surface)] px-1.5 py-0.5 font-mono text-[12.5px]">Ctrl/⌘ K</kbd>
             </button>
             {navItems.map((item) => {
               const showReturnBadge = item.href === '/project' && dueCount > 0;
@@ -476,7 +476,7 @@ export function Header() {
                     {showReturnBadge && (
                       <span
                         aria-label={L(`돌아올 결정 ${dueCount}건`, `${dueCount} decision(s) to revisit`)}
-                        className="pointer-events-none absolute -top-1.5 -right-4 min-w-[14px] h-[14px] px-[3px] rounded-full flex items-center justify-center text-[9px] font-bold text-white leading-none"
+                        className="pointer-events-none absolute -top-1.5 -right-4 min-w-[14px] h-[14px] px-[3px] rounded-full flex items-center justify-center text-[12.5px] font-bold text-white leading-none"
                         style={{ background: 'var(--gold)' }}
                       >
                         {dueCount}
@@ -509,7 +509,7 @@ export function Header() {
             </div>
             {/* Mobile locale toggle */}
             <div className="pt-2 mt-1 border-t border-[var(--border-subtle)] flex items-center gap-2 px-4">
-              <span className="text-[11px] font-semibold text-[var(--text-tertiary)] uppercase tracking-wider">{L('언어', 'Language')}</span>
+              <span className="text-[12.5px] font-semibold text-[var(--text-tertiary)] uppercase tracking-wider">{L('언어', 'Language')}</span>
               <div className="flex items-center rounded-full bg-[var(--bg)] border border-[var(--border-subtle)] overflow-hidden ml-auto">
                 <button
                   type="button"

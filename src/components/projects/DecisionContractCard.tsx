@@ -332,7 +332,7 @@ export function DecisionContractCard({
             <BookOpen size={17} />
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-[11px] font-semibold text-[var(--text-tertiary)]">
+            <p className="text-[12.5px] font-semibold text-[var(--text-tertiary)]">
               {L('그날의 원문 · 다시 묻지 않음', 'Original record · no follow-up')}
             </p>
             {statement && <p className="mt-2 text-[14px] font-semibold leading-6 text-[var(--text-primary)]">&ldquo;{statement}&rdquo;</p>}
@@ -370,7 +370,7 @@ export function DecisionContractCard({
             </p>
             {baseline && (
               <div className="mt-3 rounded-lg bg-[var(--bg)]/70 px-3.5 py-3">
-                <p className="text-[10.5px] font-semibold uppercase tracking-[0.12em] text-[var(--text-tertiary)]">
+                <p className="text-[12.5px] font-semibold uppercase tracking-[0.12em] text-[var(--text-tertiary)]">
                   {L('검토 전 내가 남긴 말', 'What I thought before the review')}
                 </p>
                 <p className="mt-1 text-[13.5px] leading-[1.55] text-[var(--text-primary)]" style={{ fontFamily: 'var(--font-voice, serif)' }}>
@@ -379,7 +379,7 @@ export function DecisionContractCard({
               </div>
             )}
             {contract!.check_in_at && (
-              <p className="mt-2 text-[11.5px] text-[var(--text-tertiary)]">
+              <p className="mt-2 text-[13px] text-[var(--text-tertiary)]">
                 {L(
                   `처음 고른 확인일 · ${fmtDate(contract!.check_in_at)}`,
                   `Original check-in choice · ${fmtDate(contract!.check_in_at)}`,
@@ -393,7 +393,7 @@ export function DecisionContractCard({
               <button
                 type="button"
                 onClick={() => setConfirmClearOpen(true)}
-                className="text-[11.5px] text-[var(--text-tertiary)] hover:text-[var(--accent)]"
+                className="text-[13px] text-[var(--text-tertiary)] hover:text-[var(--accent)]"
               >
                 {L('기준점 지우기', 'Clear baseline')}
               </button>
@@ -452,7 +452,7 @@ export function DecisionContractCard({
             />
             <div className="mt-4 rounded-xl bg-[var(--bg)]/70 px-3.5 py-3">
               <p className="text-[12px] font-semibold text-[var(--text-primary)]">{L('이 결정의 근거와 결과도 이어서 남기기', 'Keep evidence and outcomes with this decision')}</p>
-              <p className="mt-0.5 text-[11px] leading-5 text-[var(--text-secondary)]">{L('새로 알게 된 사실과 최종 결과를 시간순으로 연결할 수 있어요.', 'Connect later evidence and the final outcome in time order.')}</p>
+              <p className="mt-0.5 text-[12.5px] leading-5 text-[var(--text-secondary)]">{L('새로 알게 된 사실과 최종 결과를 시간순으로 연결할 수 있어요.', 'Connect later evidence and the final outcome in time order.')}</p>
               <button
                 type="button"
                 onClick={() => setSemanticSetupOpen(true)}
@@ -464,7 +464,7 @@ export function DecisionContractCard({
             <button
               type="button"
               onClick={() => (onCheckNow ? onCheckNow() : setGradeOpen(true))}
-              className="mt-2 text-[11.5px] text-[var(--text-tertiary)] hover:text-[var(--accent)] cursor-pointer transition-colors"
+              className="mt-2 text-[13px] text-[var(--text-tertiary)] hover:text-[var(--accent)] cursor-pointer transition-colors"
             >
               {L('결과 다시 고르기', 'Change this outcome')}
             </button>
@@ -536,7 +536,7 @@ export function DecisionContractCard({
               history (변침도 기록이다). */}
           <div className="mt-4 rounded-xl bg-[var(--bg)]/70 px-3.5 py-3">
             <p className="text-[12px] font-semibold text-[var(--text-primary)]">{L('결정 뒤에 알게 된 근거도 함께 남길까요?', 'Want to keep later evidence with this decision?')}</p>
-            <p className="mt-0.5 text-[11px] leading-5 text-[var(--text-secondary)]">{L('지금 판단과 확인 날짜를 연결해 두면, 나중에 근거와 결과를 같은 흐름에서 확인할 수 있어요.', 'Connect this decision and its review date so later evidence and outcomes stay together.')}</p>
+            <p className="mt-0.5 text-[12.5px] leading-5 text-[var(--text-secondary)]">{L('지금 판단과 확인 날짜를 연결해 두면, 나중에 근거와 결과를 같은 흐름에서 확인할 수 있어요.', 'Connect this decision and its review date so later evidence and outcomes stay together.')}</p>
             <button
               type="button"
               onClick={() => setSemanticSetupOpen(true)}
@@ -552,7 +552,7 @@ export function DecisionContractCard({
                 <button
                   type="button"
                   onClick={() => setRescheduleOpen(true)}
-                  className="text-[11.5px] text-[var(--text-tertiary)] hover:text-[var(--accent)] cursor-pointer transition-colors"
+                  className="text-[13px] text-[var(--text-tertiary)] hover:text-[var(--accent)] cursor-pointer transition-colors"
                 >
                   {L('날짜 바꾸기', 'Change the date')}
                 </button>
@@ -566,12 +566,12 @@ export function DecisionContractCard({
                         updateProject(project.id, { decision_contract: amendCheckIn(contract!, iv.value, Date.now()) });
                         setRescheduleOpen(false);
                       }}
-                      className="px-2.5 py-1 rounded-lg text-[11.5px] font-medium border border-[var(--border)] text-[var(--text-secondary)] hover:border-[var(--accent)]/40 cursor-pointer transition-colors"
+                      className="px-2.5 py-1 rounded-lg text-[13px] font-medium border border-[var(--border)] text-[var(--text-secondary)] hover:border-[var(--accent)]/40 cursor-pointer transition-colors"
                     >
                       {L(iv.ko, iv.en)}
                     </button>
                   ))}
-                  <button type="button" onClick={() => setRescheduleOpen(false)} className="text-[11.5px] text-[var(--text-tertiary)] hover:underline cursor-pointer">
+                  <button type="button" onClick={() => setRescheduleOpen(false)} className="text-[13px] text-[var(--text-tertiary)] hover:underline cursor-pointer">
                     {L('취소', 'Cancel')}
                   </button>
                 </div>
@@ -594,7 +594,7 @@ export function DecisionContractCard({
               <button
                 type="button"
                 onClick={() => setConfirmClearOpen(true)}
-                className="text-[11.5px] text-[var(--text-tertiary)] hover:text-[var(--accent)] cursor-pointer transition-colors"
+                className="text-[13px] text-[var(--text-tertiary)] hover:text-[var(--accent)] cursor-pointer transition-colors"
               >
                 {L('처음 판단 기록 취소', 'Clear initial judgment')}
               </button>
@@ -637,7 +637,7 @@ export function DecisionContractCard({
                         (R17). Same single-source helpers as the settlement modal. */}
                     {isCreditClaimingOutcome(p) && (
                       <div className="pl-[21px] mt-2">
-                        <p className="text-[11px] text-[var(--text-tertiary)] mb-1.5">
+                        <p className="text-[12.5px] text-[var(--text-tertiary)] mb-1.5">
                           {L('어쩌다 그렇게 됐어요? (선택)', 'What made it go your way? (optional)')}
                         </p>
                         <div className="flex flex-wrap gap-1.5">
@@ -666,7 +666,7 @@ export function DecisionContractCard({
                 );
               })}
               {status!.graded > 0 && (
-                <p className="text-[11.5px] text-[var(--text-tertiary)] pt-0.5">
+                <p className="text-[13px] text-[var(--text-tertiary)] pt-0.5">
                   {L(`${status!.graded}/${status!.total} 확인했어요`, `${status!.graded}/${status!.total} checked`)}
                 </p>
               )}
@@ -674,7 +674,7 @@ export function DecisionContractCard({
                 <button
                   type="button"
                   onClick={() => setGradeOpen(false)}
-                  className="text-[11.5px] font-semibold text-[var(--accent)] hover:underline cursor-pointer"
+                  className="text-[13px] font-semibold text-[var(--accent)] hover:underline cursor-pointer"
                 >
                   {L('완료', 'Done')}
                 </button>
@@ -724,7 +724,7 @@ function PredicateList({
             <Icon size={13} className="text-[var(--text-tertiary)] mt-0.5 shrink-0" />
             <span className="flex-1 min-w-0">{predicateQuestion(p, ko)}</span>
             {showVerdict && verdictLabel && (
-              <span className="text-[11px] font-semibold text-[var(--accent)] shrink-0 whitespace-nowrap">{verdictLabel}</span>
+              <span className="text-[12.5px] font-semibold text-[var(--accent)] shrink-0 whitespace-nowrap">{verdictLabel}</span>
             )}
           </li>
         );

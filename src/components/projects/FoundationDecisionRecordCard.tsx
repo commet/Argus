@@ -133,16 +133,16 @@ export function FoundationDecisionRecordCard({
                   ? L('남겨 둔 기록', 'Saved record')
                   : L('다시 볼 판단', 'A judgment to revisit')}
             </h3>
-            <span className="rounded-full border border-[var(--border)] px-2 py-0.5 text-[10.5px] font-medium text-[var(--text-tertiary)]">
+            <span className="rounded-full border border-[var(--border)] px-2 py-0.5 text-[12.5px] font-medium text-[var(--text-tertiary)]">
               {ko ? KIND_LABELS[kind].ko : KIND_LABELS[kind].en}
             </span>
             {adoptedWording ? (
-              <span className="text-[10.5px] text-[var(--text-tertiary)]">
+              <span className="text-[12.5px] text-[var(--text-tertiary)]">
                 {L('Argus 제안을 내가 채택', 'Argus suggestion adopted by me')}
               </span>
             ) : null}
             {adoptedCheck ? (
-              <span className="text-[10.5px] text-[var(--text-tertiary)]">
+              <span className="text-[12.5px] text-[var(--text-tertiary)]">
                 {L('Argus가 짚은 확인 항목 포함', 'Includes a check surfaced by Argus')}
               </span>
             ) : null}
@@ -151,7 +151,7 @@ export function FoundationDecisionRecordCard({
           {editing ? (
             <div className="mt-4 space-y-3 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4">
               <div>
-                <label className="text-[11px] font-semibold text-[var(--text-secondary)]">
+                <label className="text-[12.5px] font-semibold text-[var(--text-secondary)]">
                   {L('지금 더 정확하다고 생각하는 문장', 'A more accurate sentence now')}
                 </label>
                 <textarea
@@ -164,7 +164,7 @@ export function FoundationDecisionRecordCard({
               </div>
 
               <div>
-                <p className="text-[11px] font-semibold text-[var(--text-secondary)]">
+                <p className="text-[12.5px] font-semibold text-[var(--text-secondary)]">
                   {L('이 문장은 무엇에 가까운가요?', 'What kind of record is this?')}
                 </p>
                 <div className="mt-1.5 grid gap-1.5 sm:grid-cols-2">
@@ -174,7 +174,7 @@ export function FoundationDecisionRecordCard({
                       type="button"
                       onClick={() => setDraftKind(value)}
                       aria-pressed={draftKind === value}
-                      className={`rounded-lg border px-3 py-2 text-left text-[11.5px] transition-colors ${
+                      className={`rounded-lg border px-3 py-2 text-left text-[13px] transition-colors ${
                         draftKind === value
                           ? 'border-[var(--accent)]/60 bg-[var(--ai)] text-[var(--accent)]'
                           : 'border-[var(--border)] text-[var(--text-secondary)] hover:border-[var(--text-secondary)]/40'
@@ -189,7 +189,7 @@ export function FoundationDecisionRecordCard({
               {draftKind !== 'witness' && (!contract.check_in_at || kind === 'witness') && (
                 <div className="space-y-3">
                   {kind === 'witness' && (
-                    <label className="block text-[11px] font-semibold text-[var(--text-secondary)]">
+                    <label className="block text-[12.5px] font-semibold text-[var(--text-secondary)]">
                       {L('돌아와서 확인할 질문', 'Question to revisit')}
                       <textarea
                         value={returnCondition}
@@ -201,7 +201,7 @@ export function FoundationDecisionRecordCard({
                       />
                     </label>
                   )}
-                  <label className="block text-[11px] font-semibold text-[var(--text-secondary)]">
+                  <label className="block text-[12.5px] font-semibold text-[var(--text-secondary)]">
                     {L('다시 볼 날짜', 'Fallback date')}
                     <input
                       type="date"
@@ -213,7 +213,7 @@ export function FoundationDecisionRecordCard({
                 </div>
               )}
 
-              <label className="block text-[11px] font-semibold text-[var(--text-secondary)]">
+              <label className="block text-[12.5px] font-semibold text-[var(--text-secondary)]">
                 {L('바꾼 이유 · 선택', 'Why it changed · optional')}
                 <input
                   value={reason}
@@ -223,19 +223,19 @@ export function FoundationDecisionRecordCard({
                 />
               </label>
 
-              <p className="text-[11px] leading-5 text-[var(--text-tertiary)]">
+              <p className="text-[12.5px] leading-5 text-[var(--text-tertiary)]">
                 {L(
                   '처음 문장은 지워지지 않고, 이번 수정이 새 시점으로 이어집니다.',
                   'The original is preserved; this revision is appended at a new point in time.',
                 )}
               </p>
               {needsReturnDate && (
-                <p className="text-[11px] text-[var(--danger)]">
+                <p className="text-[12.5px] text-[var(--danger)]">
                   {L('다시 볼 기록이라면 날짜가 하나 필요해요.', 'A record to revisit needs a fallback date.')}
                 </p>
               )}
               {needsReturnCondition && (
-                <p className="text-[11px] text-[var(--danger)]">
+                <p className="text-[12.5px] text-[var(--danger)]">
                   {L('다시 볼 기록이라면 현실이 답할 질문이 하나 필요해요.', 'A record to revisit needs one question reality can answer.')}
                 </p>
               )}
@@ -268,7 +268,7 @@ export function FoundationDecisionRecordCard({
               <p className="mt-3 text-[14px] leading-6 text-[var(--text-primary)]" style={{ fontFamily: 'var(--font-voice, serif)' }}>
                 &ldquo;{statement}&rdquo;
               </p>
-              <div className="mt-1.5 flex flex-wrap items-center gap-2 text-[11.5px] text-[var(--text-tertiary)]">
+              <div className="mt-1.5 flex flex-wrap items-center gap-2 text-[13px] text-[var(--text-tertiary)]">
                 <span>{formatDate(contract.created_at, locale)}</span>
                 <button
                   type="button"
@@ -300,12 +300,12 @@ export function FoundationDecisionRecordCard({
 
           {!editing && latest && (
             <div className="mt-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3">
-              <p className="text-[10.5px] font-semibold tracking-[0.08em] text-[var(--text-tertiary)]">
+              <p className="text-[12.5px] font-semibold tracking-[0.08em] text-[var(--text-tertiary)]">
                 {formatDate(latest.recorded_at, locale)} · {L('나의 답', 'My answer')}
               </p>
               <p className="mt-1.5 text-[13px] leading-6 text-[var(--text-primary)]">{latest.response_text}</p>
               {latest.present_standard && (
-                <p className="mt-1 text-[11.5px] leading-5 text-[var(--text-secondary)]">
+                <p className="mt-1 text-[13px] leading-5 text-[var(--text-secondary)]">
                   {latest.present_standard.response_text
                     || (latest.present_standard.status === 'same'
                     ? L('그때의 기준은 지금도 같아요.', 'The standard is unchanged.')
@@ -321,13 +321,13 @@ export function FoundationDecisionRecordCard({
 
           {!editing && returns.length > 1 && (
             <details className="mt-3">
-              <summary className="cursor-pointer text-[11.5px] font-medium text-[var(--text-tertiary)]">
+              <summary className="cursor-pointer text-[13px] font-medium text-[var(--text-tertiary)]">
                 {L(`이전 답 ${returns.length - 1}개`, `${returns.length - 1} earlier return${returns.length === 2 ? '' : 's'}`)}
               </summary>
               <div className="mt-2 space-y-2">
                 {returns.slice(0, -1).reverse().map((item) => (
                   <div key={`${item.recorded_at}:${item.option_id}`} className="rounded-lg bg-[var(--bg)] px-3 py-2">
-                    <p className="text-[10.5px] text-[var(--text-tertiary)]">{formatDate(item.recorded_at, locale)}</p>
+                    <p className="text-[12.5px] text-[var(--text-tertiary)]">{formatDate(item.recorded_at, locale)}</p>
                     <p className="mt-0.5 text-[12px] leading-5 text-[var(--text-secondary)]">{item.response_text}</p>
                   </div>
                 ))}
@@ -337,10 +337,10 @@ export function FoundationDecisionRecordCard({
 
           {!editing && (
             <details className="mt-3">
-              <summary className="cursor-pointer text-[11.5px] font-medium text-[var(--text-tertiary)]">
+              <summary className="cursor-pointer text-[13px] font-medium text-[var(--text-tertiary)]">
                 {L('처음 문장과 수정 이력', 'Original and revision history')}
               </summary>
-              <div className="mt-2 space-y-2 rounded-xl bg-[var(--bg)] px-3 py-3 text-[11.5px] leading-5 text-[var(--text-secondary)]">
+              <div className="mt-2 space-y-2 rounded-xl bg-[var(--bg)] px-3 py-3 text-[13px] leading-5 text-[var(--text-secondary)]">
                 <p>
                   <span className="font-semibold">{L('처음 확정한 문장', 'First confirmed wording')}:</span>{' '}
                   {sourceStatement}

@@ -1,12 +1,17 @@
 'use client';
 
 /**
- * SirenHero — one thesis, one entry, one proof.
+ * SirenHero — one thesis, one entry, one scene.
  *
  * The hero must show why Argus is more than a reminder: a raw decision is
  * sharpened around one load-bearing question, the user owns the closing line,
  * and that exact record later meets reality. Document review remains a quiet
  * feeder, never a competing first-screen product.
+ *
+ * The proof beside the entry field is the Odyssey film, not a worked example
+ * (restored 2026-07-28 — see the note at its render site). The concrete
+ * first-person examples live one section below in `UseCases`, which is where a
+ * reader who asks "is this for MY decision?" is actually looking.
  */
 
 import { useEffect, useRef, useState } from 'react';
@@ -15,6 +20,7 @@ import { useLocale } from '@/hooks/useLocale';
 import { useLocaleRouter } from '@/hooks/useLocaleRouter';
 import { LocaleLink } from '@/components/ui/LocaleLink';
 import { PaperGrain } from './voyage/atmosphere/PaperGrain';
+import { VoyageFilm } from './films/VoyageFilm';
 import { track } from '@/lib/analytics';
 
 export function SirenHero() {
@@ -64,9 +70,12 @@ export function SirenHero() {
             className="bp-fade-up bp-mono"
             style={{
               color: 'var(--bp-gold-deep)',
-              fontSize: 10,
+              fontSize: 12,
               fontWeight: 700,
-              letterSpacing: ko ? '0.11em' : '0.22em',
+              // English is the longer string AND carries wider tracking, so at the
+              // legibility-bumped size it wrapped to two lines. Tighten the Latin
+              // tracking rather than shrinking the type back down.
+              letterSpacing: ko ? '0.11em' : '0.145em',
               textTransform: 'uppercase',
             }}
           >
@@ -97,15 +106,27 @@ export function SirenHero() {
             className={`bp-fade-up mx-auto mt-5 max-w-xl lg:mx-0 ${ko ? 'break-keep' : ''}`}
             style={{
               color: 'var(--bp-ink-soft)',
-              fontSize: 'clamp(14.5px, 1.45vw, 16.5px)',
+              fontSize: 'clamp(16px, 1.6vw, 18px)',
               lineHeight: 1.68,
               animationDelay: '120ms',
             }}
           >
-            {L(
-              '결정 전에 생각을 한 번 벼리고, 그 판단을 움직인 전제를 남기세요. Argus는 답을 대신 내리지 않고, 현실이 답할 때 그 기록을 다시 엽니다.',
-              "Sharpen the thinking before the call and keep the assumptions that moved it. Argus doesn't decide for you; it reopens the record when reality can answer.",
-            )}
+            {/* Two beats, two lines: what you do, then what Argus does. Kept as
+                separate blocks (not one flowing paragraph) so the second promise
+                — the one that separates Argus from a reminder — starts a line of
+                its own instead of trailing off the end of the first. */}
+            <span className="block">
+              {L(
+                '결정 전에 생각을 한 번 벼리고, 그 판단을 움직인 전제를 남기세요.',
+                'Sharpen the thinking before the call and keep the assumptions that moved it.',
+              )}
+            </span>
+            <span className="mt-1.5 block">
+              {L(
+                'Argus는 답을 대신 내리지 않고, 현실이 답할 때 그 기록을 다시 엽니다.',
+                "Argus doesn't decide for you; it reopens the record when reality can answer.",
+              )}
+            </span>
           </p>
 
           <div
@@ -122,7 +143,7 @@ export function SirenHero() {
                 className="bp-mono flex items-center gap-2 text-left"
                 style={{
                   color: 'var(--bp-ink-soft)',
-                  fontSize: 10.5,
+                  fontSize: 12.5,
                   fontWeight: 600,
                   letterSpacing: ko ? '0.09em' : '0.2em',
                   textTransform: 'uppercase',
@@ -146,14 +167,14 @@ export function SirenHero() {
                 style={{ borderColor: 'var(--bp-ink-faint)', fontFamily: 'var(--font-display)' }}
               />
               <div className="mt-3 flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
-                <span className="text-left text-[11.5px] leading-5 text-[var(--bp-ink-soft)]">
+                <span className="text-left text-[13px] leading-5 text-[var(--bp-ink-soft)]">
                   {L('한 줄이면 충분해요 · 기록할 내용은 직접 확인합니다', 'One line is enough · you choose what becomes part of the record')}
                 </span>
                 <button
                   type="button"
                   onClick={begin}
                   disabled={!text.trim()}
-                  className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-[2px] px-4 text-[12.5px] font-semibold transition-[transform,opacity] active:scale-[.98] disabled:cursor-default disabled:opacity-40"
+                  className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-[2px] px-4 text-[14px] font-semibold transition-[transform,opacity] active:scale-[.98] disabled:cursor-default disabled:opacity-40"
                   style={{ background: 'var(--bp-gold)', color: 'var(--bp-ink)' }}
                 >
                   {L('가장 중요한 질문 찾기', 'Find the question that matters')}
@@ -167,7 +188,7 @@ export function SirenHero() {
             <LocaleLink
               href="/tools/review"
               onClick={() => track('landing_cta_click', { cta: 'hero_document_review' })}
-              className="inline-flex min-h-10 items-center gap-2 text-[12px] font-medium text-[var(--bp-ink-soft)] underline-offset-4 hover:text-[var(--bp-ink)] hover:underline"
+              className="inline-flex min-h-10 items-center gap-2 text-[13.5px] font-medium text-[var(--bp-ink-soft)] underline-offset-4 hover:text-[var(--bp-ink)] hover:underline"
             >
               <FileSearch size={14} aria-hidden />
               {L('이미 문서가 있다면, 문서 속 판단 지점 찾기', 'Already have a document? Find the judgment calls inside it')}
@@ -175,88 +196,21 @@ export function SirenHero() {
           </div>
         </div>
 
-        {/* Signature object: not a receipt alone, but the transformation a
-            reminder cannot provide. Each row declares who contributed it. */}
-        <article
-          className="bp-fade-up mx-auto w-full max-w-[520px] overflow-hidden rounded-[6px] border text-left"
-          style={{
-            animationDelay: '230ms',
-            borderColor: 'var(--bp-ink-faint)',
-            background: 'color-mix(in srgb, var(--bp-paper) 92%, white)',
-            boxShadow: '0 22px 55px -34px rgba(48,34,14,.46)',
-          }}
-          aria-label={L('한 결정이 판단 기록으로 남는 예시', 'Example of one decision becoming a judgment record')}
-        >
-          <header className="flex items-center justify-between gap-4 border-b px-4 py-3 sm:px-5" style={{ borderColor: 'var(--bp-ink-faint)' }}>
-            <p className="bp-mono text-[9.5px] font-semibold uppercase tracking-[0.18em] text-[var(--bp-ink-soft)]">
-              {L('예시 · 한 결정이 남는 방식', 'Example · what Argus keeps')}
-            </p>
-            <span className="bp-mono shrink-0 text-[9px] uppercase tracking-[0.12em] text-[var(--bp-gold-deep)]">
-              {L('판정 없음', 'No verdict')}
-            </span>
-          </header>
-
-          <div className="px-4 py-3.5 sm:px-5 sm:py-4">
-            <div>
-              <div className="flex items-center justify-between gap-3">
-                <p className="bp-mono text-[9.5px] font-semibold uppercase tracking-[0.13em] text-[var(--bp-ink-soft)]">
-                  {L('내가 적은 상황 · 원문', 'What I wrote · original')}
-                </p>
-                <span className="text-[9.5px] text-[var(--bp-ink-soft)]">{L('사용자', 'User')}</span>
-              </div>
-              <p className="mt-1.5 text-[13.5px] leading-[1.55] text-[var(--bp-ink)]" style={{ fontFamily: 'var(--font-display)' }}>
-                {L(
-                  '“2주차 재방문율이 25%를 넘으면 다음 달 예산을 두 배로 늘린다.”',
-                  '“If week-two retention clears 25%, double next month’s budget.”',
-                )}
-              </p>
-            </div>
-
-            <div className="my-3 flex items-center gap-3" aria-hidden>
-              <span className="h-px flex-1" style={{ background: 'var(--bp-ink-faint)' }} />
-              <span className="bp-mono text-[9px] tracking-[0.16em] text-[var(--bp-gold-deep)]">{L('한 번 벼림', 'ONE CRUX')}</span>
-              <span className="h-px flex-1" style={{ background: 'var(--bp-ink-faint)' }} />
-            </div>
-
-            <div className="rounded-[3px] px-3 py-2.5" style={{ background: 'color-mix(in srgb, var(--bp-gold) 8%, transparent)' }}>
-              <div className="flex items-center justify-between gap-3">
-                <p className="bp-mono text-[9.5px] font-semibold uppercase tracking-[0.13em] text-[var(--bp-gold-deep)]">
-                  {L('Argus가 짚은 한 질문', 'The crux Argus surfaced')}
-                </p>
-                <span className="text-[9.5px] text-[var(--bp-ink-soft)]">AI</span>
-              </div>
-              <p className="mt-1 text-[13px] font-semibold leading-[1.5] text-[var(--bp-ink)]">
-                {L(
-                  '25%는 의미 있는 기준인가, 증액을 정당화하기 위해 고른 숫자인가?',
-                  'Is 25% a meaningful baseline, or a number chosen to justify the increase?',
-                )}
-              </p>
-            </div>
-
-            <div className="mt-3 border-t pt-3" style={{ borderColor: 'var(--bp-ink-faint)' }}>
-              <div className="flex items-center justify-between gap-3">
-                <p className="bp-mono text-[9.5px] font-semibold uppercase tracking-[0.13em] text-[var(--bp-ink-soft)]">
-                  {L('검토 뒤 내가 확정한 판단', 'My judgment after the review')}
-                </p>
-                <span className="text-[9.5px] text-[var(--bp-ink-soft)]">{L('사용자', 'User')}</span>
-              </div>
-              <p className="mt-1.5 text-[14px] font-semibold leading-[1.55] text-[var(--bp-ink)]" style={{ fontFamily: 'var(--font-display)' }}>
-                {L(
-                  '“25%의 의미와 CAC 한도를 확인한 뒤 증액한다.”',
-                  '“Increase only after validating the 25% baseline and the CAC limit.”',
-                )}
-              </p>
-            </div>
-          </div>
-
-          <footer
-            className="flex items-center justify-between gap-4 border-t px-4 py-3 sm:px-5"
-            style={{ borderColor: 'var(--bp-ink-faint)', background: 'var(--bp-paper-deep)' }}
-          >
-            <span className="text-[11px] font-semibold text-[var(--bp-ink)]">{L('8월 1일 · 현실과 확인', 'August 1 · check against reality')}</span>
-            <span aria-hidden className="bp-mono text-[9px] tracking-[0.14em] text-[var(--bp-gold-deep)]">RETURN →</span>
-          </footer>
-        </article>
+        {/* Signature object (2026-07-28): the Odyssey film, restored.
+            It replaces a four-row example table that EXPLAINED the loop in
+            labelled cells (원문 / 한 질문 / 최종 판단 / RETURN). The table was
+            accurate but inert — the implementation report (§11.2) found it
+            "설명하고 있고 체험시키지 않는다", gave the hero two competing
+            protagonists, and pushed its payoff below the fold on mobile.
+            The film carries the same four beats as MOVEMENT — 묶기(seal) ·
+            듣기(listen) · 닿기(reality judges) · 알아봄(the dog Argos returns) —
+            which is the thesis the headline states one line above. A resting
+            plate here, the full film in a lightbox on play, so the entry field
+            stays the first-screen focal point (the reason the table was put
+            here in #290 to begin with). */}
+        <div className="bp-fade-up mx-auto w-full max-w-[520px]" style={{ animationDelay: '230ms' }}>
+          <VoyageFilm />
+        </div>
       </div>
     </section>
   );

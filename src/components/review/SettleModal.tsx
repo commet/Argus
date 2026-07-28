@@ -54,7 +54,7 @@ export function SettleModal({
             <div className="flex items-center gap-3">
               <ArgusMascot moment="returning" size="sm" alt="" />
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--text-tertiary)]">{L('결과 확인', 'Outcome review')}</p>
+                <p className="text-[12px] font-bold uppercase tracking-[0.16em] text-[var(--text-tertiary)]">{L('결과 확인', 'Outcome review')}</p>
                 <h3 className="text-[16px] font-bold text-[var(--text-primary)]">{L('실제로 어떻게 됐나요?', 'What actually happened?')}</h3>
               </div>
             </div>
@@ -63,12 +63,12 @@ export function SettleModal({
 
           {/* the past prediction — shown, not graded */}
           <Card variant="muted" className="mb-4">
-            <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--text-tertiary)] mb-1">
+            <div className="text-[12px] font-bold uppercase tracking-[0.18em] text-[var(--text-tertiary)] mb-1">
               {L(`그때 기록한 예측 · 확인일 ${followup.check_by}`, `The prediction you recorded · check by ${followup.check_by}`)}
             </div>
             <p className="text-[13px] text-[var(--text-primary)]">{followup.predicate}</p>
             {(followup.pass_condition || followup.fail_condition) && (
-              <p className="text-[11px] text-[var(--text-tertiary)] mt-1">
+              <p className="text-[12.5px] text-[var(--text-tertiary)] mt-1">
                 {L('맞음', 'Pass')}: {followup.pass_condition || '—'} · {L('틀림', 'Fail')}: {followup.fail_condition || '—'}
               </p>
             )}
@@ -92,7 +92,7 @@ export function SettleModal({
 
           {/* Deferring? Then nothing happened yet — asking "what happened" would be
               a question about a thing that has not occurred. Ask why instead. */}
-          <label className="block text-[11px] font-bold text-[var(--text-secondary)] mb-1">
+          <label className="block text-[12.5px] font-bold text-[var(--text-secondary)] mb-1">
             {deferring
               ? L('아직 답이 안 나온 이유 (선택)', 'Why it has not answered yet (optional)')
               : L('무슨 일이 있었나요? (선택)', 'What happened? (optional)')}
@@ -110,7 +110,7 @@ export function SettleModal({
           {/* 배운 점 — Settlement View §937 "아래: 배운 점". Nothing to learn from a
               non-answer, so it is hidden while deferring. */}
           {!deferring && (<>
-          <label className="block text-[11px] font-bold text-[var(--text-secondary)] mb-1 mt-3">{L('배운 점 (선택)', 'What you learned (optional)')}</label>
+          <label className="block text-[12.5px] font-bold text-[var(--text-secondary)] mb-1 mt-3">{L('배운 점 (선택)', 'What you learned (optional)')}</label>
           <textarea
             value={learned}
             onChange={(e) => setLearned(e.target.value)}
@@ -156,7 +156,7 @@ export function SettleModal({
               {L('나중에', 'Later')}
             </Button>
           </div>
-          <p className="mt-3 text-[11px] text-[var(--text-tertiary)]">
+          <p className="mt-3 text-[12.5px] text-[var(--text-tertiary)]">
             {L(
               'Argus는 맞다/틀리다를 판정하지 않습니다. 현실이 답하고, 당신이 기록합니다.',
               'Argus does not judge right or wrong. Reality answers, and you record it.',

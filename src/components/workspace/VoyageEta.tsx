@@ -43,7 +43,7 @@ export function VoyageEta({
   // DUE — the date arrived and there's still something to settle. The hook.
   if (cs.checkInDue) {
     return (
-      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10.5px] font-bold bg-amber-500/15 text-amber-700 dark:text-amber-400 ${className}`}>
+      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[12.5px] font-bold bg-amber-500/15 text-amber-700 dark:text-amber-400 ${className}`}>
         <CalendarCheck size={10} className="shrink-0" />
         {cs.pending > 0
           ? L(`결과 확인 필요 · ${cs.pending}개`, `Outcome review due · ${cs.pending}`)
@@ -59,7 +59,7 @@ export function VoyageEta({
     const n = cs.daysUntilCheckIn;
     return (
       <span
-        className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10.5px] font-semibold ${className}`}
+        className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[12.5px] font-semibold ${className}`}
         style={{ color: 'var(--accent)', background: 'var(--gold-muted)' }}
         title={L(`확인일까지 ${n}일 남음`, `${n} day${n === 1 ? '' : 's'} until review`)}
       >
@@ -73,7 +73,7 @@ export function VoyageEta({
   if (cs.allGraded && showArrived) {
     return (
       <span
-        className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10.5px] font-semibold text-[var(--text-tertiary)] ${className}`}
+        className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[12.5px] font-semibold text-[var(--text-tertiary)] ${className}`}
         style={{ fontFamily: 'var(--font-mono)' }}
       >
         <CalendarCheck size={10} className="shrink-0" />

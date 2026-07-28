@@ -28,7 +28,7 @@ function HitReactionBar({ workerId, agentId, taskType }: { workerId: string; age
 
   if (!agentId || reacted) {
     return reacted ? (
-      <p className="text-[10px] text-[var(--text-tertiary)] mt-2 pl-0.5">
+      <p className="text-[12px] text-[var(--text-tertiary)] mt-2 pl-0.5">
         {reacted === 'hit' ? L('새로운 관점이었군요', 'That was a fresh perspective') : reacted === 'miss' ? L('다음엔 더 깊이', 'Will go deeper next time') : L('참고했습니다', 'Noted')}
       </p>
     ) : null;
@@ -46,17 +46,17 @@ function HitReactionBar({ workerId, agentId, taskType }: { workerId: string; age
 
   return (
     <div className="flex flex-wrap items-center gap-1.5 mt-2.5" role="group" aria-label={L('분석 평가', 'Rate this analysis')}>
-      <span className="text-[10px] text-[var(--text-tertiary)] mr-1">{L('이 분석이', 'This analysis was')}</span>
+      <span className="text-[12px] text-[var(--text-tertiary)] mr-1">{L('이 분석이', 'This analysis was')}</span>
       <button type="button" onClick={() => react('hit')}
-        className="inline-flex items-center justify-center min-h-[40px] px-2.5 py-2 text-[10px] rounded-lg border border-emerald-200 text-emerald-700 hover:bg-emerald-50 cursor-pointer transition-colors">
+        className="inline-flex items-center justify-center min-h-[40px] px-2.5 py-2 text-[12px] rounded-lg border border-emerald-200 text-emerald-700 hover:bg-emerald-50 cursor-pointer transition-colors">
         {L('새로웠다', 'New insight')}
       </button>
       <button type="button" onClick={() => react('miss')}
-        className="inline-flex items-center justify-center min-h-[40px] px-2.5 py-2 text-[10px] rounded-lg border border-[var(--border-subtle)] text-[var(--text-tertiary)] hover:bg-[var(--bg)] cursor-pointer transition-colors">
+        className="inline-flex items-center justify-center min-h-[40px] px-2.5 py-2 text-[12px] rounded-lg border border-[var(--border-subtle)] text-[var(--text-tertiary)] hover:bg-[var(--bg)] cursor-pointer transition-colors">
         {L('이미 알았다', 'Already knew')}
       </button>
       <button type="button" onClick={() => react('irrelevant')}
-        className="inline-flex items-center justify-center min-h-[40px] px-2.5 py-2 text-[10px] rounded-lg border border-[var(--border-subtle)] text-[var(--text-tertiary)] hover:bg-[var(--bg)] cursor-pointer transition-colors">
+        className="inline-flex items-center justify-center min-h-[40px] px-2.5 py-2 text-[12px] rounded-lg border border-[var(--border-subtle)] text-[var(--text-tertiary)] hover:bg-[var(--bg)] cursor-pointer transition-colors">
         {L('중요하지 않다', 'Not important')}
       </button>
     </div>
@@ -269,9 +269,9 @@ export const WorkerReportBlock = memo(function WorkerReportBlock({
           {worker.contact?.name || L('외부', 'External')}
           <span className="text-[var(--text-tertiary)]"> · {statusLabel}</span>
         </span>
-        {worker.error && <p className="text-[11px] text-[var(--danger)] mt-0.5">{worker.error}</p>}
+        {worker.error && <p className="text-[12.5px] text-[var(--danger)] mt-0.5">{worker.error}</p>}
         </div>
-        <span className="text-[10px] text-amber-500">⏳</span>
+        <span className="text-[12px] text-amber-500">⏳</span>
       </motion.div>
     );
   }
@@ -302,7 +302,7 @@ export const WorkerReportBlock = memo(function WorkerReportBlock({
         </div>
         {onRetry && (
           <button onClick={() => onRetry(worker.id)}
-            className="flex items-center gap-1 text-[11px] text-[var(--ai-fg)] hover:text-blue-700 shrink-0 cursor-pointer">
+            className="flex items-center gap-1 text-[12.5px] text-[var(--ai-fg)] hover:text-blue-700 shrink-0 cursor-pointer">
             <RotateCw size={11} /> {L('재시도', 'Retry')}
           </button>
         )}
@@ -320,16 +320,16 @@ export const WorkerReportBlock = memo(function WorkerReportBlock({
           <div className="flex-1 min-w-0">
             <p className="text-[13px] font-medium text-[var(--text-primary)]">
               {persona?.name || 'AI'}
-              <span className="text-[var(--text-tertiary)] font-normal ml-1.5 text-[11px]">{persona?.role}</span>
+              <span className="text-[var(--text-tertiary)] font-normal ml-1.5 text-[12.5px]">{persona?.role}</span>
             </p>
             <div className="mt-2 p-3 rounded-lg bg-[var(--warning)]/10 border border-[var(--warning)]/30">
               <p className="text-[12px] font-semibold text-amber-900 mb-1">{L('품질 확인이 필요해요', 'Quality check needed')}</p>
               {worker.validation_feedback && <p className="text-[12px] text-[var(--warning)] mb-2.5 leading-relaxed">{worker.validation_feedback}</p>}
               <div className="flex gap-2">
                 {onRetry && <button onClick={() => onRetry(worker.id)}
-                  className="text-[11px] px-3 py-1.5 min-h-[36px] rounded-lg bg-[var(--surface)] border border-[var(--warning)]/30 text-[var(--warning)] cursor-pointer hover:bg-[var(--warning)]/10">{L('다시 생성', 'Regenerate')}</button>}
+                  className="text-[12.5px] px-3 py-1.5 min-h-[36px] rounded-lg bg-[var(--surface)] border border-[var(--warning)]/30 text-[var(--warning)] cursor-pointer hover:bg-[var(--warning)]/10">{L('다시 생성', 'Regenerate')}</button>}
                 <button onClick={() => store.updateWorker(worker.id, { status: 'done', completed_at: new Date().toISOString() })}
-                  className="text-[11px] px-3 py-1.5 min-h-[36px] rounded-lg text-[var(--warning)] cursor-pointer hover:text-amber-900">{L('그냥 사용', 'Use anyway')}</button>
+                  className="text-[12.5px] px-3 py-1.5 min-h-[36px] rounded-lg text-[var(--warning)] cursor-pointer hover:text-amber-900">{L('그냥 사용', 'Use anyway')}</button>
               </div>
             </div>
           </div>
@@ -352,7 +352,7 @@ export const WorkerReportBlock = memo(function WorkerReportBlock({
         {isFirstWaiting && (
           <div className="flex items-center gap-1.5 mb-2 ml-4">
             <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent)] animate-pulse" />
-            <span className="text-[11px] font-medium text-[var(--accent)]">{L('여기부터 작성해주세요', 'Start here')}</span>
+            <span className="text-[12.5px] font-medium text-[var(--accent)]">{L('여기부터 작성해주세요', 'Start here')}</span>
           </div>
         )}
         <div className="flex items-start gap-3">
@@ -368,7 +368,7 @@ export const WorkerReportBlock = memo(function WorkerReportBlock({
               {isHumanAgent ? (worker.contact?.name || worker.question_to_human?.slice(0, 20) || L('외부 확인', 'External'))
                 : aType === 'self' ? L('내 판단', 'My decision')
                 : (persona?.name || 'AI')}
-              <span className={`ml-1.5 px-1.5 py-0.5 rounded text-[9px] font-bold ${
+              <span className={`ml-1.5 px-1.5 py-0.5 rounded text-[12.5px] font-bold ${
                 isHumanAgent ? 'bg-[var(--bg-hover)] text-[var(--text-tertiary)]'
                 : aType === 'self' ? 'bg-[var(--warning)]/10 text-[var(--warning)]'
                 : 'bg-[var(--ai)] text-[var(--ai-fg)]'
@@ -376,7 +376,7 @@ export const WorkerReportBlock = memo(function WorkerReportBlock({
                 {isHumanAgent ? 'HUMAN' : aType === 'self' ? 'SELF' : 'AI'}
               </span>
               {!isHumanAgent && aType !== 'self' && (
-                <span className="text-[var(--text-tertiary)] font-normal ml-1.5 text-[11px]">{persona?.role}</span>
+                <span className="text-[var(--text-tertiary)] font-normal ml-1.5 text-[12.5px]">{persona?.role}</span>
               )}
             </p>
 
@@ -384,13 +384,13 @@ export const WorkerReportBlock = memo(function WorkerReportBlock({
             {(worker.ai_scope || worker.self_scope) && (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 mt-2">
                 {worker.ai_scope && (
-                  <div className="text-[11px] px-2.5 py-1.5 rounded-lg bg-[var(--ai)]/80">
+                  <div className="text-[12.5px] px-2.5 py-1.5 rounded-lg bg-[var(--ai)]/80">
                     <span className="font-bold text-[var(--ai-fg)]">AI:</span>
                     <span className="text-[var(--text-secondary)] ml-1">{worker.ai_scope}</span>
                   </div>
                 )}
                 {worker.self_scope && (
-                  <div className="text-[11px] px-2.5 py-1.5 rounded-lg bg-amber-50/80">
+                  <div className="text-[12.5px] px-2.5 py-1.5 rounded-lg bg-amber-50/80">
                     <span className="font-bold text-[var(--warning)]">{L('나', 'Me')}:</span>
                     <span className="text-[var(--text-secondary)] ml-1">{worker.self_scope}</span>
                   </div>
@@ -401,7 +401,7 @@ export const WorkerReportBlock = memo(function WorkerReportBlock({
             {/* Human agent — 질문 표시 */}
             {isHumanAgent && worker.question_to_human && (
               <div className="mt-2 text-[12px] bg-[var(--bg-hover)] rounded-xl p-3">
-                <p className="text-[10px] font-medium text-gray-500 mb-1">Q:</p>
+                <p className="text-[12px] font-medium text-gray-500 mb-1">Q:</p>
                 <p className="text-[var(--text-primary)]">{worker.question_to_human}</p>
               </div>
             )}
@@ -415,7 +415,7 @@ export const WorkerReportBlock = memo(function WorkerReportBlock({
               if (!finding) return null;
               return (
                 <div className="mt-2.5 rounded-xl bg-[var(--bg)]/70 border border-[var(--border-subtle)] px-3.5 py-2.5">
-                  <p className="text-[9px] font-bold uppercase tracking-[0.08em] text-[var(--accent)] mb-1">
+                  <p className="text-[12.5px] font-bold uppercase tracking-[0.08em] text-[var(--accent)] mb-1">
                     {L('AI 핵심 정리', 'AI key point')}
                   </p>
                   <p className="text-[13px] text-[var(--text-primary)] leading-[1.55]">{finding}</p>
@@ -429,7 +429,7 @@ export const WorkerReportBlock = memo(function WorkerReportBlock({
             {(hasPreliminary || hasDraft) && (
               <div className="mt-2">
                 <button onClick={() => setShowModal(true)}
-                  className="flex items-center gap-1 text-[11px] text-[var(--accent)] hover:underline cursor-pointer">
+                  className="flex items-center gap-1 text-[12.5px] text-[var(--accent)] hover:underline cursor-pointer">
                   <ExternalLink size={10} />
                   {hasDraft ? L('전체 초안 보기', 'View full draft') : L('참고 자료 전체 보기', 'View full reference')}
                 </button>
@@ -439,7 +439,7 @@ export const WorkerReportBlock = memo(function WorkerReportBlock({
             {/* Decision chips */}
             {decisionOptions.length > 0 && (
               <div className="mt-2">
-                <p className="text-[10px] text-[var(--text-tertiary)] mb-1.5">{L('하나 고르거나, 아래에 직접 적어도 돼요', 'Pick one, or type your own below')}</p>
+                <p className="text-[12px] text-[var(--text-tertiary)] mb-1.5">{L('하나 고르거나, 아래에 직접 적어도 돼요', 'Pick one, or type your own below')}</p>
               <div className="flex flex-wrap gap-1.5">
                 {decisionOptions.map((opt, j) => (
                   <button key={j}
@@ -532,20 +532,20 @@ export const WorkerReportBlock = memo(function WorkerReportBlock({
               {persona?.name || 'AI'}
               <span className="text-[var(--text-secondary)] font-normal ml-1.5 text-[12px]">{persona?.role}</span>
               {agentLevel != null && agentLevel >= 2 && (
-                <span className="agent-lv ml-1.5" data-level={agentLevel} style={{ fontSize: 10, padding: '1px 6px' }}>
+                <span className="agent-lv ml-1.5" data-level={agentLevel} style={{ fontSize: 12, padding: '1px 6px' }}>
                   Lv.{agentLevel}
                 </span>
               )}
-              {isApproved && <span className="ml-2 text-[11px] text-[var(--accent)] font-medium">{L('반영', 'Applied')}</span>}
-              {isRejected && <span className="ml-2 text-[11px] text-[var(--text-tertiary)] font-medium">{L('제외', 'Excluded')}</span>}
+              {isApproved && <span className="ml-2 text-[12.5px] text-[var(--accent)] font-medium">{L('반영', 'Applied')}</span>}
+              {isRejected && <span className="ml-2 text-[12.5px] text-[var(--text-tertiary)] font-medium">{L('제외', 'Excluded')}</span>}
             </p>
             {/* Task name */}
-            <p className="text-[11px] text-[var(--accent)] mt-0.5">{worker.task}</p>
+            <p className="text-[12.5px] text-[var(--accent)] mt-0.5">{worker.task}</p>
 
             {/* Validation state — descriptive, not "N점" (score numerals are
                 verdict language; the internal score still drives the tint). */}
             {worker.validation_score != null && (
-              <span className={`inline-block mt-1 px-2 py-0.5 rounded-md text-[10px] font-semibold ${
+              <span className={`inline-block mt-1 px-2 py-0.5 rounded-md text-[12px] font-semibold ${
                 worker.validation_score >= 80 ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
                   : worker.validation_score >= 60 ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
                   : 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400'
@@ -570,7 +570,7 @@ export const WorkerReportBlock = memo(function WorkerReportBlock({
                   ? 'bg-[var(--bg)]/30 text-[var(--text-tertiary)] line-through'
                   : 'bg-[var(--bg)]/70 border border-[var(--border-subtle)] text-[var(--text-primary)]'
               }`}>
-                <p className="text-[9px] font-bold uppercase tracking-[0.08em] text-[var(--accent)] mb-1">
+                <p className="text-[12.5px] font-bold uppercase tracking-[0.08em] text-[var(--accent)] mb-1">
                   {L('핵심 발견', 'Key finding')}
                 </p>
                 <p className="text-[13.5px] leading-[1.6]">{keyFinding}</p>
@@ -581,7 +581,7 @@ export const WorkerReportBlock = memo(function WorkerReportBlock({
                 scrollable) instead of dumping thousands of chars inline. */}
             {hasMore && (
               <button onClick={() => setShowModal(true)}
-                className="flex items-center gap-1 mt-2 text-[11px] text-[var(--accent)] hover:underline cursor-pointer">
+                className="flex items-center gap-1 mt-2 text-[12.5px] text-[var(--accent)] hover:underline cursor-pointer">
                 <ExternalLink size={10} />
                 {L('전체 초안 보기', 'View full draft')}
               </button>
@@ -611,15 +611,15 @@ export const WorkerReportBlock = memo(function WorkerReportBlock({
               if (!simResult) return null;
               return (
                 <div className="mt-3 rounded-xl border border-[var(--risk-unspoken)]/30 bg-purple-50/30 p-3">
-                  <p className="text-[10px] font-bold text-[var(--risk-unspoken)] mb-2">{L('시뮬레이션 vs 실제 응답', 'Simulation vs Reality')}</p>
+                  <p className="text-[12px] font-bold text-[var(--risk-unspoken)] mb-2">{L('시뮬레이션 vs 실제 응답', 'Simulation vs Reality')}</p>
                   <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <p className="text-[9px] font-medium text-purple-500 mb-1">{L('AI 시뮬레이션', 'AI Simulation')}</p>
-                      <p className="text-[11px] text-[var(--text-secondary)] line-clamp-4">{simResult.overall_reaction}</p>
+                      <p className="text-[12.5px] font-medium text-purple-500 mb-1">{L('AI 시뮬레이션', 'AI Simulation')}</p>
+                      <p className="text-[12.5px] text-[var(--text-secondary)] line-clamp-4">{simResult.overall_reaction}</p>
                     </div>
                     <div>
-                      <p className="text-[9px] font-medium text-emerald-600 mb-1">{L('실제 응답', 'Actual Response')}</p>
-                      <p className="text-[11px] text-[var(--text-primary)] line-clamp-4">{worker.result.slice(0, 200)}</p>
+                      <p className="text-[12.5px] font-medium text-emerald-600 mb-1">{L('실제 응답', 'Actual Response')}</p>
+                      <p className="text-[12.5px] text-[var(--text-primary)] line-clamp-4">{worker.result.slice(0, 200)}</p>
                     </div>
                   </div>
                 </div>
@@ -630,7 +630,7 @@ export const WorkerReportBlock = memo(function WorkerReportBlock({
             {(onApprove || onReject) && (
               <div className="mt-3">
                 {!isApproved && !isRejected && (
-                  <p className="text-[11px] text-[var(--text-tertiary)] mb-2">
+                  <p className="text-[12.5px] text-[var(--text-tertiary)] mb-2">
                     {L('이 분석을 최종 문서에 포함할지 선택하세요', 'Choose whether to include this in the final document')}
                   </p>
                 )}
@@ -651,7 +651,7 @@ export const WorkerReportBlock = memo(function WorkerReportBlock({
                   {(isApproved || isRejected) && (
                     <>
                       <button onClick={() => isApproved ? onReject?.(worker.id) : onApprove?.(worker.id)}
-                        className="text-[11px] text-[var(--text-tertiary)] hover:text-[var(--accent)] cursor-pointer transition-colors">
+                        className="text-[12.5px] text-[var(--text-tertiary)] hover:text-[var(--accent)] cursor-pointer transition-colors">
                         {L('변경', 'Change')}
                       </button>
                       {/* Rejected work isn't a dead-end — let the captain demand a
@@ -659,18 +659,18 @@ export const WorkerReportBlock = memo(function WorkerReportBlock({
                       {isRejected && onRetry && (
                         <button
                           onClick={() => { store.updateWorker(worker.id, { approved: null }); onRetry(worker.id); }}
-                          className="inline-flex items-center gap-1 text-[11px] text-[var(--accent)] hover:underline cursor-pointer transition-colors">
+                          className="inline-flex items-center gap-1 text-[12.5px] text-[var(--accent)] hover:underline cursor-pointer transition-colors">
                           <RotateCw size={10} /> {L('다시 시도', 'Try again')}
                         </button>
                       )}
                       {isRejected && onReassign && (
                         <button
                           onClick={() => onReassign(worker.id)}
-                          className="inline-flex items-center gap-1 text-[11px] text-[var(--accent)] hover:underline cursor-pointer transition-colors">
+                          className="inline-flex items-center gap-1 text-[12.5px] text-[var(--accent)] hover:underline cursor-pointer transition-colors">
                           <Repeat size={10} /> {L('다른 에이전트로', 'Different agent')}
                         </button>
                       )}
-                      <span className="text-[10px] text-[var(--text-tertiary)]">
+                      <span className="text-[12px] text-[var(--text-tertiary)]">
                         {isApproved ? L('최종 문서에 포함됩니다', 'Included in final document') : L('최종 문서에서 제외됩니다', 'Excluded from final document')}
                       </span>
                     </>

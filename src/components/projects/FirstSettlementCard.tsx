@@ -42,7 +42,7 @@ export function FirstSettlementCard({
               <Compass size={15} />
             </span>
             <div>
-              <p className="text-[11px] font-semibold text-[var(--text-tertiary)]">{L('최근 돌아보기', 'Latest reflection')}</p>
+              <p className="text-[12.5px] font-semibold text-[var(--text-tertiary)]">{L('최근 돌아보기', 'Latest reflection')}</p>
               <p className="text-[13px] font-semibold text-[var(--text-primary)]">
             {leanAfter.view === 'same'
               ? L('처음 판단과 생각이 같습니다', 'Your view is unchanged')
@@ -84,7 +84,7 @@ export function FirstSettlementCard({
       </div>
       <div className="grid gap-5 p-4 md:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] md:p-5">
         <div className="rounded-xl bg-[var(--bg)]/75 px-4 py-3.5">
-          <p className="text-[11px] font-semibold text-[var(--text-tertiary)]">{L('처음 기록한 판단', 'Your initial decision')}</p>
+          <p className="text-[12.5px] font-semibold text-[var(--text-tertiary)]">{L('처음 기록한 판단', 'Your initial decision')}</p>
           <p className="mt-1.5 text-[13px] font-medium leading-6 text-[var(--text-primary)]">“{anchor}”</p>
         </div>
         <div>
@@ -106,7 +106,7 @@ export function FirstSettlementCard({
               </button>
             ))}
           </div>
-          <label className="mt-3 grid gap-1.5 text-[11px] font-semibold text-[var(--text-secondary)]">
+          <label className="mt-3 grid gap-1.5 text-[12.5px] font-semibold text-[var(--text-secondary)]">
             {L('바뀐 점이나 그대로인 이유 (선택)', 'What changed, or why it still holds (optional)')}
             <input
               type="text"

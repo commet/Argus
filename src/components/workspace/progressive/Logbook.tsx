@@ -86,11 +86,11 @@ export function Logbook({ hideChartButton = false }: { hideChartButton?: boolean
         <div className="rounded-xl border border-dashed border-[var(--border-subtle)] px-3 py-4 space-y-1.5">
           <div className="flex items-center gap-1.5">
             <Compass size={13} className="text-[var(--accent)]/60 shrink-0" />
-            <span className="text-[11.5px] font-medium text-[var(--text-secondary)]">
+            <span className="text-[13px] font-medium text-[var(--text-secondary)]">
               {L('아직 결정 기록이 없어요', 'No decision entries yet')}
             </span>
           </div>
-          <p className="text-[10.5px] leading-[1.5] text-[var(--text-tertiary)]">
+          <p className="text-[12.5px] leading-[1.5] text-[var(--text-tertiary)]">
             {L('분석이 진행되면 결정의 흐름 — 방향을 바꾼 순간들 — 이 여기 차곡차곡 쌓여요.',
                'As the analysis unfolds, your decision trail — the moments you changed direction — collects here.')}
           </p>
@@ -112,7 +112,7 @@ export function Logbook({ hideChartButton = false }: { hideChartButton?: boolean
         {!hideChartButton && (
           <button
             onClick={() => setChartOpen(true)}
-            className="inline-flex items-center gap-1 text-[10.5px] text-[var(--text-tertiary)] hover:text-[var(--accent)] transition-colors cursor-pointer"
+            className="inline-flex items-center gap-1 text-[12.5px] text-[var(--text-tertiary)] hover:text-[var(--accent)] transition-colors cursor-pointer"
           >
             <MapIcon size={11} /> {L('전체 결정 지도', 'Full decision map')}
           </button>
@@ -161,7 +161,7 @@ export function Logbook({ hideChartButton = false }: { hideChartButton?: boolean
               >
                 <div className="flex-1 min-w-0">
                   <div
-                    className="text-[9px] font-bold uppercase tracking-[0.1em] mb-0.5"
+                    className="text-[12.5px] font-bold uppercase tracking-[0.1em] mb-0.5"
                     style={{ color: meta.color }}
                   >
                     {L(meta.ko, meta.en)}
@@ -170,7 +170,7 @@ export function Logbook({ hideChartButton = false }: { hideChartButton?: boolean
                       been" log), not the full question — that lives in the left
                       column. Expanding (tap) still reveals the full headline +
                       significance/trigger below, so nothing is lost. */}
-                  <div className={`text-[11.5px] leading-[1.4] text-[var(--text-primary)] ${emphasize ? 'font-semibold' : ''} ${isOpen ? '' : 'line-clamp-1'}`}>
+                  <div className={`text-[13px] leading-[1.4] text-[var(--text-primary)] ${emphasize ? 'font-semibold' : ''} ${isOpen ? '' : 'line-clamp-1'}`}>
                     {w.headline}
                   </div>
                 </div>
@@ -240,7 +240,7 @@ export function LogbookDrawer({ offset }: { offset?: boolean }) {
           <span className="flex items-center gap-2 text-[13px] font-semibold text-[var(--text-primary)]">
             <Compass size={15} className="text-[var(--accent)]" />
             {L('결정 기록', 'Decision log')}
-            <span className="text-[11px] font-normal text-[var(--text-tertiary)] tabular-nums">{count}</span>
+            <span className="text-[12.5px] font-normal text-[var(--text-tertiary)] tabular-nums">{count}</span>
           </span>
           <ChevronUp size={16} className="text-[var(--text-tertiary)]" />
         </button>

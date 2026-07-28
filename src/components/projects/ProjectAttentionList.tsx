@@ -71,11 +71,11 @@ export function ProjectAttentionList({
           <h2 id="project-attention-heading" className="text-[14px] font-bold text-[var(--text-primary)]">
             {L('지금 살펴볼 것', 'Needs a look now')}
           </h2>
-          <p className="mt-0.5 text-[11.5px] text-[var(--text-secondary)]">
+          <p className="mt-0.5 text-[13px] text-[var(--text-secondary)]">
             {L('확인할 이유와 영향을 받는 판단을 함께 묶었습니다.', 'Each signal includes why it matters and which judgments depend on it.')}
           </p>
         </div>
-        <span className="shrink-0 text-[11px] tabular-nums text-[var(--text-tertiary)]">{items.length}</span>
+        <span className="shrink-0 text-[12.5px] tabular-nums text-[var(--text-tertiary)]">{items.length}</span>
       </header>
 
       <ol className="divide-y divide-[var(--border-subtle)]">
@@ -106,12 +106,12 @@ export function ProjectAttentionList({
               >
                 <span className="min-w-0 flex-1">
                   <span className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
-                    <span className="text-[10px] font-bold uppercase tracking-[0.1em] text-amber-700 dark:text-amber-400">{kindLabel(item.kind)}</span>
-                    <span className="text-[10.5px] text-[var(--text-tertiary)]">{item.context}</span>
-                    {item.ageDays != null && <span className="text-[10.5px] tabular-nums text-[var(--text-tertiary)]">· {L(`${item.ageDays}일째`, `${item.ageDays}d`)}</span>}
+                    <span className="text-[12px] font-bold uppercase tracking-[0.1em] text-amber-700 dark:text-amber-400">{kindLabel(item.kind)}</span>
+                    <span className="text-[12.5px] text-[var(--text-tertiary)]">{item.context}</span>
+                    {item.ageDays != null && <span className="text-[12.5px] tabular-nums text-[var(--text-tertiary)]">· {L(`${item.ageDays}일째`, `${item.ageDays}d`)}</span>}
                   </span>
                   <span className="mt-0.5 block text-[13px] font-medium leading-[1.5] text-[var(--text-primary)] line-clamp-2">{item.title}</span>
-                  <span className="mt-1 flex items-center gap-1 text-[10.5px] text-[var(--text-secondary)]">
+                  <span className="mt-1 flex items-center gap-1 text-[12.5px] text-[var(--text-secondary)]">
                     {L(`영향받는 판단 ${affected.length}건`, `${affected.length} affected judgment${affected.length === 1 ? '' : 's'}`)}
                     {affected.length <= 3 && <span className="truncate text-[var(--text-tertiary)]">· {affected.map((entry) => entry.label).join(' · ')}</span>}
                   </span>
@@ -135,7 +135,7 @@ export function ProjectAttentionList({
       </ol>
       {items.length > 5 && (
         <div className="flex justify-end border-t border-[var(--border-subtle)] px-1 py-2">
-          <button type="button" onClick={() => setExpanded((value) => !value)} className="min-h-9 text-[11.5px] font-semibold text-[var(--accent)] hover:underline">
+          <button type="button" onClick={() => setExpanded((value) => !value)} className="min-h-9 text-[13px] font-semibold text-[var(--accent)] hover:underline">
             {expanded ? L('접기', 'Show less') : L(`${items.length - 5}건 더 보기`, `Show ${items.length - 5} more`)}
           </button>
         </div>

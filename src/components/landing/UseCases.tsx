@@ -62,10 +62,17 @@ const CASES: Case[] = [
   {
     origin: 'write', tone: 'risk',
     originKo: '적어 둔 결정', originEn: 'a decision you typed',
-    seedKo: '받은 이직 제안, 받아들일까?', seedEn: 'Take the job offer I just got?',
+    // `\n` = a deliberate break so the question splits at its own comma instead
+    // of wherever the column happens to run out (see the seed renderer).
+    seedKo: '받은 이직 제안,\n받아들일까?', seedEn: 'Take the job offer\nI just got?',
     betLabelKo: '믿고 간 것', betLabelEn: 'what it counted on',
-    betKo: '나를 뽑아준 그 팀장 밑에서 일하려고 가는 거였다.',
-    betEn: 'The whole draw was working under the manager who hired me.',
+    // Was "나를 뽑아준 그 팀장 밑에서 일하려고 가는 거였다." — the seed is still an
+    // open question ("받아들일까?") but that line was already past tense, as if the
+    // move had happened, and "가는 거였다" reads as spoken recollection. Now it
+    // names the premise the choice rested on, matching the third card's
+    // "…에 기대고 있었다" and hooking straight into the shift below.
+    betKo: '이 선택은 나를 뽑아준 그 팀장과 일한다는 데 기대고 있었다.',
+    betEn: 'The choice leaned on working under the manager who hired me.',
     laterKo: '넉 달 뒤', laterEn: 'four months later',
     shiftKo: '그 팀장이 조직 개편으로 다른 본부로 옮겼습니다.',
     shiftEn: 'That manager was just moved to another division.',
@@ -75,7 +82,7 @@ const CASES: Case[] = [
   {
     origin: 'write', tone: 'green',
     originKo: '적어 둔 결정', originEn: 'a decision you typed',
-    seedKo: '이 사업, 지금 확장할까 더 지켜볼까?', seedEn: 'Scale this up now, or keep watching?',
+    seedKo: '이 사업, 지금 확장할까\n더 지켜볼까?', seedEn: 'Scale this up now,\nor keep watching?',
     betLabelKo: '지켜보기로 한 것', betLabelEn: 'what you set to watch',
     betKo: '첫 파일럿 고객이 재계약하면, 그때 확장하기로 했다.',
     betEn: 'I’d scale the moment the first pilot customer renews — not before.',
@@ -149,21 +156,27 @@ export function UseCases() {
       {/* origin chip — the quiet "which door", not a structural axis */}
       <div className="flex items-center gap-2" style={{ marginBottom: 13 }}>
         <span aria-hidden="true" style={{ width: 14, height: 1, background: 'var(--bp-ink-soft)', opacity: 0.5 }} />
-        <span className="bp-mono" style={{ color: 'var(--bp-ink-soft)', fontSize: 10, letterSpacing: locale === 'ko' ? '0.08em' : '0.16em', textTransform: 'uppercase', fontWeight: 500 }}>
+        <span className="bp-mono" style={{ color: 'var(--bp-ink-soft)', fontSize: 12, letterSpacing: locale === 'ko' ? '0.08em' : '0.16em', textTransform: 'uppercase', fontWeight: 500 }}>
           {L(c.originKo, c.originEn)}
         </span>
       </div>
 
       {/* the decision — quoted in the reader's own voice (or a file chip) */}
       {c.origin === 'write' ? (
-        <div className="flex items-start gap-2" style={{ color: 'var(--bp-ink)', fontSize: 'clamp(17px, 1.9vw, 19px)', fontFamily: 'var(--font-display)', fontStyle: 'italic', fontWeight: 600, lineHeight: 1.4 }}>
-          <span className="bp-caret" aria-hidden="true" style={{ height: 20, marginTop: 3 }} />
-          <span style={{ flex: 1, minWidth: 0 }}>&ldquo;{L(c.seedKo, c.seedEn)}&rdquo;</span>
+        <div className="flex items-start gap-2" style={{ color: 'var(--bp-ink)', fontSize: 'clamp(18.5px, 2vw, 21px)', fontFamily: 'var(--font-display)', fontStyle: 'italic', fontWeight: 600, lineHeight: 1.42 }}>
+          <span className="bp-caret" aria-hidden="true" style={{ height: 21, marginTop: 3 }} />
+          {/* Hanging open-quote: the “ sits in the margin so every line of the
+              quote starts on the same vertical edge. Without this the second
+              line began where the quote mark did and read as pulled left.
+              `pre-line` honours the deliberate \n in the seed copy. */}
+          <span style={{ flex: 1, minWidth: 0, whiteSpace: 'pre-line', paddingLeft: '0.58em', textIndent: '-0.58em' }}>
+            &ldquo;{L(c.seedKo, c.seedEn)}&rdquo;
+          </span>
         </div>
       ) : (
         <div className="inline-flex items-start gap-2.5" style={{ background: 'var(--bp-paper-deep)', border: '1px solid var(--bp-ink-faint)', borderRadius: 3, padding: '9px 12px', alignSelf: 'flex-start', maxWidth: '100%' }}>
           <FileIcon />
-          <span className="bp-mono" style={{ color: 'var(--bp-ink)', fontSize: 13, fontWeight: 500, lineHeight: 1.45 }}>
+          <span className="bp-mono" style={{ color: 'var(--bp-ink)', fontSize: 14.5, fontWeight: 500, lineHeight: 1.45 }}>
             {L(c.seedKo, c.seedEn)}
           </span>
         </div>
@@ -171,10 +184,10 @@ export function UseCases() {
 
       {/* what it was really counting on — the "premise" idea, without the word */}
       <div style={{ marginTop: 18 }}>
-        <div className="bp-mono" style={{ color: 'var(--bp-ink-soft)', fontSize: 10, letterSpacing: locale === 'ko' ? '0.06em' : '0.13em', textTransform: 'uppercase', fontWeight: 700, marginBottom: 6 }}>
+        <div className="bp-mono" style={{ color: 'var(--bp-ink-soft)', fontSize: 12, letterSpacing: locale === 'ko' ? '0.06em' : '0.13em', textTransform: 'uppercase', fontWeight: 700, marginBottom: 6 }}>
           {L(c.betLabelKo, c.betLabelEn)}
         </div>
-        <div style={{ color: 'var(--bp-ink)', fontSize: 14, lineHeight: 1.55, fontWeight: 500 }}>
+        <div style={{ color: 'var(--bp-ink)', fontSize: 15.5, lineHeight: 1.55, fontWeight: 500 }}>
           {L(c.betKo, c.betEn)}
         </div>
       </div>
@@ -182,7 +195,7 @@ export function UseCases() {
       {/* … time passes … */}
       <div className="flex items-center gap-2.5" style={{ marginTop: 18, marginBottom: 12 }}>
         <span aria-hidden="true" style={{ flex: 1, borderTop: '1px dashed var(--bp-ink-faint)' }} />
-        <span className="bp-mono" style={{ color: 'var(--bp-ink-soft)', opacity: 0.8, fontSize: 9.5, letterSpacing: '0.12em', textTransform: 'uppercase', fontWeight: 600, whiteSpace: 'nowrap' }}>
+        <span className="bp-mono" style={{ color: 'var(--bp-ink-soft)', opacity: 0.8, fontSize: 11.5, letterSpacing: '0.12em', textTransform: 'uppercase', fontWeight: 600, whiteSpace: 'nowrap' }}>
           {L(`… ${c.laterKo} …`, `… ${c.laterEn} …`)}
         </span>
         <span aria-hidden="true" style={{ flex: 1, borderTop: '1px dashed var(--bp-ink-faint)' }} />
@@ -192,7 +205,7 @@ export function UseCases() {
           the reality shift, then Argus's return as a bare question. Sits at the
           card's foot (mt-auto) so the three tap-backs line up. */}
       <div style={{ marginTop: 'auto' }}>
-        <div style={{ color: 'var(--bp-ink-soft)', fontSize: 13, lineHeight: 1.55, marginBottom: 10 }}>
+        <div style={{ color: 'var(--bp-ink-soft)', fontSize: 14.5, lineHeight: 1.55, marginBottom: 10 }}>
           {L(c.shiftKo, c.shiftEn)}
         </div>
         <div
@@ -204,12 +217,12 @@ export function UseCases() {
         >
           <span style={{ marginTop: 1 }}>{c.tone === 'green' ? <SignalIcon /> : <BellIcon />}</span>
           <div style={{ minWidth: 0 }}>
-            <div className="bp-mono" style={{ color: 'var(--bp-gold-deep)', fontSize: 9.5, letterSpacing: locale === 'ko' ? '0.06em' : '0.13em', textTransform: 'uppercase', fontWeight: 700, marginBottom: 4 }}>
+            <div className="bp-mono" style={{ color: 'var(--bp-gold-deep)', fontSize: 11.5, letterSpacing: locale === 'ko' ? '0.06em' : '0.13em', textTransform: 'uppercase', fontWeight: 700, marginBottom: 4 }}>
               {c.tone === 'green'
                 ? L('Argus가 때를 알려줍니다', 'Argus tells you when')
                 : L('Argus가 먼저 돌아옵니다', 'Argus comes back first')}
             </div>
-            <div style={{ color: 'var(--bp-ink)', fontSize: 14, lineHeight: 1.5, fontWeight: 500 }}>
+            <div style={{ color: 'var(--bp-ink)', fontSize: 15.5, lineHeight: 1.5, fontWeight: 500 }}>
               {L(c.tapKo, c.tapEn)}
             </div>
           </div>
@@ -225,7 +238,7 @@ export function UseCases() {
         {/* eyebrow */}
         <div className="flex items-center gap-3" style={{ marginBottom: 14 }}>
           <span aria-hidden="true" style={{ width: 26, height: 1, background: 'var(--bp-ink-faint)' }} />
-          <span className="bp-mono" style={{ color: 'var(--bp-ink-soft)', fontSize: 11, letterSpacing: locale === 'ko' ? '0.1em' : '0.22em', textTransform: 'uppercase', fontWeight: 500 }}>
+          <span className="bp-mono" style={{ color: 'var(--bp-ink-soft)', fontSize: 12.5, letterSpacing: locale === 'ko' ? '0.1em' : '0.22em', textTransform: 'uppercase', fontWeight: 500 }}>
             {L('USE CASES · 이런 결정에 씁니다', 'USE CASES · decisions people bring')}
           </span>
         </div>
@@ -239,7 +252,7 @@ export function UseCases() {
             >
               {L('정하고 나면, 세상은 말없이 바뀝니다.', 'You decide — then the world quietly moves on.')}
             </h2>
-            <p className={bk} style={{ color: 'var(--bp-ink-soft)', fontSize: 'clamp(13.5px, 1.5vw, 15px)', lineHeight: 1.65, maxWidth: 620, marginTop: 12 }}>
+            <p className={bk} style={{ color: 'var(--bp-ink-soft)', fontSize: 'clamp(15px, 1.5vw, 15px)', lineHeight: 1.65, maxWidth: 620, marginTop: 12 }}>
               {L(
                 '믿고 정했던 것이 흔들리거나, 기다리던 때가 오는 순간 — 대개는 아무도 알려주지 않죠. 그때 Argus가 먼저 당신에게 돌아옵니다. 실제로 이런 순간들이에요.',
                 'What your decision rested on shifts — or the moment you were waiting for finally lands. Usually no one tells you. That’s when Argus comes back to you. Real ones:',
@@ -274,7 +287,7 @@ export function UseCases() {
         </div>
 
         {/* the loop in one line + the one quiet product-level honesty */}
-        <p className={bk} style={{ color: 'var(--bp-ink-soft)', fontSize: 12, lineHeight: 1.6, marginTop: 24, opacity: 0.9, maxWidth: 720 }}>
+        <p className={bk} style={{ color: 'var(--bp-ink-soft)', fontSize: 13.5, lineHeight: 1.6, marginTop: 24, opacity: 0.9, maxWidth: 720 }}>
           {L(
             '결정의 근거를 기억했다 때가 오면 돌려드려요. 결정은 당신 몫이고, 질문의 치우침도 숨기지 않습니다.',
             'We return what your decision stood on when the time comes. The call is yours; we don’t hide our questions’ lean.',

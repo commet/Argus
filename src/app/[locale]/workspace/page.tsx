@@ -261,11 +261,11 @@ function ProgressiveLayout({ projectId, projectName, onReset }: { projectId: str
                           >
                             <span className="w-2 h-2 rounded-full shrink-0" style={{ background: b.color }} />
                             <span className="truncate flex-1 min-w-0">{b.name}</span>
-                            {isActive && <span className="text-[10px] text-[var(--text-tertiary)] shrink-0">{L('현재', 'now')}</span>}
+                            {isActive && <span className="text-[12px] text-[var(--text-tertiary)] shrink-0">{L('현재', 'now')}</span>}
                           </button>
                         );
                       })}
-                      <p className="px-2.5 pt-1 pb-0.5 text-[10px] text-[var(--text-tertiary)] leading-[1.5]">
+                      <p className="px-2.5 pt-1 pb-0.5 text-[12px] text-[var(--text-tertiary)] leading-[1.5]">
                         {branchingLocked
                           ? L('지금은 작업 중이라 갈아탈 수 없어요 — 끝나면 풀려요.', 'Switching is locked while work is running.')
                           : L('다른 방향을 선택해도 지금 기록은 그대로 남아요.', 'Choosing another direction keeps this record intact.')}
@@ -726,7 +726,7 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem, fr
                 <h2 className="text-[19px] md:text-[23px] font-semibold text-[var(--text-primary)] leading-tight mb-2.5" style={{ fontFamily: 'var(--font-display)' }}>
                   {L('지금 들고 있는 결정은 어떤 가정 위에 서 있을까요?', "What assumptions does the decision you're holding rest on?")}
                 </h2>
-                <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5 text-[11px] text-[var(--text-tertiary)]">
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5 text-[12.5px] text-[var(--text-tertiary)]">
                   {[
                     L('상황을 적고', 'Describe the situation'),
                     L('결정을 바꿀 전제를 짚고', 'surface what could change the call'),
@@ -735,7 +735,7 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem, fr
                     <React.Fragment key={i}>
                       {i > 0 && <ChevronRight size={11} className="text-[var(--text-tertiary)]/50 shrink-0" />}
                       <span className="inline-flex items-center gap-1.5">
-                        <span className="w-4 h-4 rounded-full bg-[var(--accent)]/12 text-[var(--accent)] flex items-center justify-center font-semibold text-[9px]">{i + 1}</span>
+                        <span className="w-4 h-4 rounded-full bg-[var(--accent)]/12 text-[var(--accent)] flex items-center justify-center font-semibold text-[12.5px]">{i + 1}</span>
                         {step}
                       </span>
                     </React.Fragment>
@@ -823,10 +823,10 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem, fr
                       {/* When empty: a gentle nudge (why is Start dimmed?) — shown on
                           all sizes. When typed: the desktop keyboard hint. */}
                       {problemInput.trim()
-                        ? <span className="hidden md:inline text-[11px] text-[var(--text-tertiary)]">
+                        ? <span className="hidden md:inline text-[12.5px] text-[var(--text-tertiary)]">
                             {L('Enter로 시작 · Shift+Enter로 줄바꿈', 'Enter to start · Shift+Enter for newline')}
                           </span>
-                        : <span className="text-[11px] text-[var(--text-tertiary)]">
+                        : <span className="text-[12.5px] text-[var(--text-tertiary)]">
                             {L('내용은 시작한 뒤에도 다듬을 수 있어요', 'You can refine this after you start')}
                           </span>}
                       {/* Shared Button, accent variant (H1-C3): the raw inline-gold
@@ -991,7 +991,7 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem, fr
                         <History size={14} className="text-[var(--accent)]" />
                         {L('이어서 작업', 'Continue where you left off')}
                       </p>
-                      <span className="flex items-baseline gap-2.5 min-w-0 text-[11px] text-[var(--text-tertiary)]">
+                      <span className="flex items-baseline gap-2.5 min-w-0 text-[12.5px] text-[var(--text-tertiary)]">
                         {accumulation && <span className="truncate">{accumulation}</span>}
                         <span className="tabular-nums shrink-0">{L(`${sorted.length}개`, `${sorted.length}`)}</span>
                       </span>
@@ -1006,7 +1006,7 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem, fr
                             {/* P1-A4: the voyage-state chip this component's header
                                 comment always promised (ETA D-N / 지금 정산 / 도착). */}
                             <VoyageEta contract={p.decision_contract} showArrived />
-                            <span className="text-[11px] text-[var(--text-tertiary)] tabular-nums">{relTime(p.updated_at || p.created_at)}</span>
+                            <span className="text-[12.5px] text-[var(--text-tertiary)] tabular-nums">{relTime(p.updated_at || p.created_at)}</span>
                           </span>
                           {/* Chevron stays visible on touch (no hover there) */}
                           <ChevronRight size={12} className="text-[var(--text-tertiary)] shrink-0 opacity-60 md:opacity-0 md:group-hover:opacity-100 transition-opacity" />
@@ -1018,7 +1018,7 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem, fr
                         there in localStorage. */}
                     {sorted.length > 3 && (
                       <button onClick={() => setShowAllProjects((v) => !v)}
-                        className="mt-1.5 px-3 text-[11.5px] text-[var(--text-tertiary)] hover:text-[var(--accent)] cursor-pointer transition-colors">
+                        className="mt-1.5 px-3 text-[13px] text-[var(--text-tertiary)] hover:text-[var(--accent)] cursor-pointer transition-colors">
                         {showAllProjects ? L('접기 ▴', 'Show less ▴') : L(`전체 ${sorted.length}개 보기 ▾`, `Show all ${sorted.length} ▾`)}
                       </button>
                     )}
@@ -1069,7 +1069,7 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem, fr
                                   <span className={`font-semibold text-[var(--text-primary)] group-hover:text-[var(--accent)] transition-colors ${muted ? 'text-[12px]' : 'text-[13px]'}`}>{s.title}</span>
                                   <ChevronRight size={muted ? 12 : 13} className="shrink-0 text-[var(--text-tertiary)] opacity-55 transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
                                 </div>
-                                <p className={`text-[var(--text-tertiary)] leading-relaxed ${muted ? 'text-[11px] line-clamp-1' : 'text-[12px] line-clamp-3 sm:line-clamp-2'}`}>&ldquo;{s.problemText}&rdquo;</p>
+                                <p className={`text-[var(--text-tertiary)] leading-relaxed ${muted ? 'text-[12.5px] line-clamp-1' : 'text-[12px] line-clamp-3 sm:line-clamp-2'}`}>&ldquo;{s.problemText}&rdquo;</p>
                               </div>
                             </button>
                           );
@@ -1139,7 +1139,7 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem, fr
               {/* 축소된 입력 */}
               <motion.div layout className="flex items-center gap-3 px-5 py-3 rounded-full bg-[var(--bg)] border border-[var(--border-subtle)] w-fit max-w-full mb-8">
                 <div className="w-5 h-5 rounded-full bg-[var(--text-primary)] flex items-center justify-center shrink-0">
-                  <span className="text-[var(--bg)] text-[9px] font-bold">{L('나', 'Me')}</span>
+                  <span className="text-[var(--bg)] text-[12.5px] font-bold">{L('나', 'Me')}</span>
                 </div>
                 <p className="text-[13px] text-[var(--text-secondary)] truncate">{problemInput}</p>
               </motion.div>
@@ -1153,11 +1153,11 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem, fr
                     className="flex items-center gap-3">
                     <WorkerAvatar persona={p} size="sm" />
                     <span className="text-[13px] font-medium text-[var(--text-primary)]">{p.name}</span>
-                    <span className="text-[11px] text-[var(--text-tertiary)]">{p.role}</span>
+                    <span className="text-[12.5px] text-[var(--text-tertiary)]">{p.role}</span>
                   </motion.div>
                 ))}
                 <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.2, duration: 0.4 }}
-                  className="text-[11px] text-[var(--text-tertiary)] pt-1">
+                  className="text-[12.5px] text-[var(--text-tertiary)] pt-1">
                   {/* Honest framing: the initial pass is a single read that finds the real
                       question; this crew does its individual work later, at the worker stage. */}
                   {L('AI 검토자 4명이 이 상황을 따로 살펴보고 있어요 — 먼저 지금 풀어야 할 질문을 정리합니다...', 'Four AI reviewers are looking at this separately — first, organizing the question to solve...')}
@@ -1197,13 +1197,13 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem, fr
                     <Sparkles size={14} className="text-[var(--accent)]" />
                   </motion.div>
                   <span className="text-[12px] font-medium text-[var(--accent)]">{stageLabel}</span>
-                  <span className="text-[11px] text-[var(--text-tertiary)] ml-auto tabular-nums">
+                  <span className="text-[12.5px] text-[var(--text-tertiary)] ml-auto tabular-nums">
                     {elapsed >= 3 ? L(`${elapsed}초 경과`, `${elapsed}s elapsed`) : L('보통 20~40초', 'usually 20–40s')}
                   </span>
                   <button
                     type="button"
                     onClick={() => analyzeAbortRef.current?.abort()}
-                    className="text-[11px] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] underline underline-offset-2 cursor-pointer transition-colors"
+                    className="text-[12.5px] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] underline underline-offset-2 cursor-pointer transition-colors"
                   >
                     {L('취소', 'Cancel')}
                   </button>
@@ -1220,7 +1220,7 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem, fr
                   transition={{ duration: 0.4, ease: EASE }}
                   className="rounded-2xl border border-[var(--accent)]/15 bg-[var(--surface)] p-5 md:p-6 mb-3"
                 >
-                  <div className="text-[10px] font-bold text-[var(--accent)] uppercase tracking-[0.15em] mb-2.5">
+                  <div className="text-[12px] font-bold text-[var(--accent)] uppercase tracking-[0.15em] mb-2.5">
                     {L('지금 풀어야 할 질문', 'The question to solve now')}
                   </div>
                   <div className="text-[17px] md:text-[19px] leading-[1.45] text-[var(--text-primary)] whitespace-pre-wrap break-words min-h-[28px]" style={{ fontFamily: 'var(--font-display)' }}>
@@ -1239,7 +1239,7 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem, fr
                     transition={{ duration: 0.4, ease: EASE }}
                     className="px-1.5 space-y-1"
                   >
-                    <div className="flex items-center gap-3 text-[11.5px] text-[var(--text-tertiary)] tabular-nums">
+                    <div className="flex items-center gap-3 text-[13px] text-[var(--text-tertiary)] tabular-nums">
                       <span className={hasAssumptions ? 'text-[var(--text-secondary)]' : ''}>
                         {L(`확인할 가정 ${partial.hidden_assumptions.length}`, `${partial.hidden_assumptions.length} assumptions to check`)}
                       </span>
@@ -1558,7 +1558,7 @@ function WorkspaceContent() {
               <div style={{ color: activeStep === step.id ? step.color : undefined }}>
                 {step.icon}
               </div>
-              <span className="text-[10px] font-semibold">{locale === 'ko' ? step.labelKo2 : step.labelEn.slice(0, 3)}</span>
+              <span className="text-[12px] font-semibold">{locale === 'ko' ? step.labelKo2 : step.labelEn.slice(0, 3)}</span>
             </button>
           ))}
         </div>

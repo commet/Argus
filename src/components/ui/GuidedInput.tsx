@@ -110,7 +110,7 @@ export function GuidedInput({
           {textLabel}
         </label>
         {textHint && (
-          <p className="text-[11px] text-[var(--text-secondary)] mb-2">{textHint}</p>
+          <p className="text-[12.5px] text-[var(--text-secondary)] mb-2">{textHint}</p>
         )}
         <div className="relative">
           {animatedPlaceholders && animatedPlaceholders.length > 0 && (

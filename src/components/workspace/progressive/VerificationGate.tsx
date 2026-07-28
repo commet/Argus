@@ -114,7 +114,7 @@ export function VerificationGate({ workers, anyRunning, onApprove, onReject, onR
                 <div className="flex items-center gap-2">
                   <WorkerAvatar persona={w.persona} size="sm" />
                   <span className="text-[13px] font-medium text-[var(--text-primary)] truncate">{personaName(w.persona, locale) || 'AI'}</span>
-                  <span className="text-[11px] text-[var(--text-tertiary)] truncate">· {w.task}</span>
+                  <span className="text-[12.5px] text-[var(--text-tertiary)] truncate">· {w.task}</span>
                 </div>
                 {finding && <p className="text-[12px] text-[var(--text-secondary)] mt-1.5 leading-[1.55] line-clamp-3">{finding}</p>}
                 {/* Apply and Exclude are symmetric neutral affordances: the
@@ -134,7 +134,7 @@ export function VerificationGate({ workers, anyRunning, onApprove, onReject, onR
                   </button>
                   {onRetry && (
                     <button type="button" onClick={() => onRetry(w.id)}
-                      className="ml-auto inline-flex items-center justify-center gap-1 min-h-[44px] px-2.5 py-2.5 text-[11px] text-[var(--text-tertiary)] hover:text-[var(--accent)] rounded-lg cursor-pointer transition-colors"
+                      className="ml-auto inline-flex items-center justify-center gap-1 min-h-[44px] px-2.5 py-2.5 text-[12.5px] text-[var(--text-tertiary)] hover:text-[var(--accent)] rounded-lg cursor-pointer transition-colors"
                       title={L('이 분석을 다시 실행', 'Re-run this analysis')}>
                       <RotateCw size={11} /> {L('다시', 'Redo')}
                     </button>

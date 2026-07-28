@@ -776,17 +776,17 @@ export function PersonaForm({ persona, onSave, onCancel }: PersonaFormProps) {
             <p className="text-[12px] font-semibold text-[var(--text-secondary)] mb-2">{L('연락처', 'Contact')} <span className="font-normal text-[var(--text-tertiary)]">{L('(선택 — 실제 질문 발송용)', '(optional — for sending real questions)')}</span></p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <div>
-                <label className="text-[11px] text-[var(--text-tertiary)] mb-0.5 block">{L('📧 이메일', '📧 Email')}</label>
+                <label className="text-[12.5px] text-[var(--text-tertiary)] mb-0.5 block">{L('📧 이메일', '📧 Email')}</label>
                 <input type="email" value={form.contact?.email || ''} onChange={(e) => setForm(f => ({ ...f, contact: { ...f.contact, email: e.target.value || undefined } }))} placeholder="name@company.com" maxLength={120}
                   className="w-full bg-[var(--bg)] border-[1.5px] border-[var(--border)] rounded-[10px] px-3 py-2 text-[13px] focus:outline-none focus:border-[var(--accent)]" />
               </div>
               <div>
-                <label className="text-[11px] text-[var(--text-tertiary)] mb-0.5 block">{L('💬 Slack ID', '💬 Slack ID')}</label>
+                <label className="text-[12.5px] text-[var(--text-tertiary)] mb-0.5 block">{L('💬 Slack ID', '💬 Slack ID')}</label>
                 <input type="text" value={form.contact?.slack_id || ''} onChange={(e) => setForm(f => ({ ...f, contact: { ...f.contact, slack_id: e.target.value || undefined } }))} placeholder="U0123ABCDEF" maxLength={30}
                   className="w-full bg-[var(--bg)] border-[1.5px] border-[var(--border)] rounded-[10px] px-3 py-2 text-[13px] focus:outline-none focus:border-[var(--accent)]" />
               </div>
             </div>
-            <p className="text-[10px] text-[var(--text-tertiary)] mt-1">{L('입력하면 기획 과정에서 이 사람에게 직접 질문을 보낼 수 있습니다.', "If filled, you can send direct questions to this person during planning.")}</p>
+            <p className="text-[12px] text-[var(--text-tertiary)] mt-1">{L('입력하면 기획 과정에서 이 사람에게 직접 질문을 보낼 수 있습니다.', "If filled, you can send direct questions to this person during planning.")}</p>
           </div>
 
           {/* Structured persona fields */}
@@ -801,7 +801,7 @@ export function PersonaForm({ persona, onSave, onCancel }: PersonaFormProps) {
               ].map(opt => (
                 <button key={opt.value} type="button"
                   onClick={() => setForm(f => ({ ...f, decision_style: (f.decision_style === opt.value ? undefined : opt.value) as Persona['decision_style'] }))}
-                  className={`px-2.5 py-1.5 rounded-lg text-[11px] font-medium border cursor-pointer transition-all ${
+                  className={`px-2.5 py-1.5 rounded-lg text-[12.5px] font-medium border cursor-pointer transition-all ${
                     form.decision_style === opt.value ? 'border-[var(--accent)] bg-[var(--ai)] text-[var(--accent)]' : 'border-[var(--border)] text-[var(--text-secondary)]'
                   }`}
                 >{opt.label}</button>
@@ -816,7 +816,7 @@ export function PersonaForm({ persona, onSave, onCancel }: PersonaFormProps) {
               ].map(opt => (
                 <button key={opt.value} type="button"
                   onClick={() => setForm(f => ({ ...f, risk_tolerance: (f.risk_tolerance === opt.value ? undefined : opt.value) as Persona['risk_tolerance'] }))}
-                  className={`px-2.5 py-1.5 rounded-lg text-[11px] font-medium border cursor-pointer transition-all ${
+                  className={`px-2.5 py-1.5 rounded-lg text-[12.5px] font-medium border cursor-pointer transition-all ${
                     form.risk_tolerance === opt.value ? 'border-[var(--accent)] bg-[var(--ai)] text-[var(--accent)]' : 'border-[var(--border)] text-[var(--text-secondary)]'
                   }`}
                 >{opt.label}</button>

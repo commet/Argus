@@ -124,7 +124,7 @@ export function BindCard({
             making the machine's prompt feel like the subject. */}
         {problem && (
           <figure className="border-b border-[var(--border-subtle)] bg-[var(--bg)]/55 px-4 py-3.5 sm:px-5">
-            <figcaption className="mb-1.5 flex items-center justify-between gap-3 text-[10px] font-bold tracking-[0.12em] text-[var(--accent)]">
+            <figcaption className="mb-1.5 flex items-center justify-between gap-3 text-[12px] font-bold tracking-[0.12em] text-[var(--accent)]">
               <span className="flex items-center gap-2">
                 <Quote size={12} aria-hidden />
                 {L('내가 적은 상황 · 원문', 'What I wrote · original')}
@@ -153,7 +153,7 @@ export function BindCard({
             can never visually precede what the person actually wrote. */}
         {recognition && (
           <div className="mx-4 mt-3 rounded-xl border border-[var(--accent)]/20 bg-[var(--ai)]/35 px-3.5 py-2.5 sm:mx-5">
-            <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--accent)]">
+            <p className="mb-1 text-[12px] font-semibold uppercase tracking-[0.14em] text-[var(--accent)]">
               {L('Argus가 먼저 짚은 한 질문 · AI', 'One question Argus surfaced · AI')}
             </p>
             <p className="line-clamp-2 text-[13.5px] font-semibold leading-[1.45] text-[var(--text-primary)]" style={{ fontFamily: 'var(--font-display)' }}>
@@ -163,7 +163,7 @@ export function BindCard({
         )}
 
         <div className="px-4 py-4 sm:px-5 sm:py-5">
-          <p className="text-[10px] font-bold tracking-[0.12em] text-[var(--text-tertiary)]">
+          <p className="text-[12px] font-bold tracking-[0.12em] text-[var(--text-tertiary)]">
             {L('검토 전 기준점 · 선택', 'Before-review baseline · optional')}
           </p>
           <h2 className="mt-1 text-[18px] font-bold leading-snug text-[var(--text-primary)] sm:text-[19px]" style={{ fontFamily: 'var(--font-display)' }}>
@@ -200,7 +200,7 @@ export function BindCard({
         {/* Check-in window — none preselected; an untapped default is never a commitment.
             Each chip shows its resolved date; "직접" picks a specific known day. */}
         <div className="mt-2.5">
-          <span className="mb-1.5 block text-[11.5px] text-[var(--text-tertiary)]">{L('현실과 확인:', 'Check reality:')}</span>
+          <span className="mb-1.5 block text-[13px] text-[var(--text-tertiary)]">{L('현실과 확인:', 'Check reality:')}</span>
           <div className="grid grid-cols-3 gap-1.5 sm:flex sm:items-center sm:overflow-x-auto sm:pb-1">
             {INTERVALS.map((iv) => (
               <button
@@ -209,7 +209,7 @@ export function BindCard({
                 onClick={() => { setInterval(interval === iv.value ? null : iv.value); setCustomDate(''); }}
                 disabled={proceeding}
                 aria-pressed={interval === iv.value && !customDate}
-                className={`min-w-0 rounded-lg border px-1.5 py-1.5 text-[10.5px] leading-4 transition-colors sm:shrink-0 sm:rounded-full sm:px-2.5 sm:py-1 sm:text-[11.5px] ${
+                className={`min-w-0 rounded-lg border px-1.5 py-1.5 text-[12.5px] leading-4 transition-colors sm:shrink-0 sm:rounded-full sm:px-2.5 sm:py-1 sm:text-[13px] ${
                   interval === iv.value && !customDate
                     ? 'border-[var(--primary)] bg-[var(--primary)] text-[var(--bg)]'
                     : 'border-[var(--border-subtle)] text-[var(--text-secondary)] hover:border-[var(--text-tertiary)]'
@@ -224,7 +224,7 @@ export function BindCard({
               min={minimumCustomDate}
               disabled={proceeding}
               onChange={(e) => { setCustomDate(e.target.value); if (e.target.value) setInterval(null); }}
-              className={`w-full min-w-0 rounded-lg border bg-[var(--bg)] px-1.5 py-1.5 text-[10.5px] cursor-pointer sm:w-[116px] sm:shrink-0 sm:rounded-full sm:px-2 sm:py-1 sm:text-[11px] ${
+              className={`w-full min-w-0 rounded-lg border bg-[var(--bg)] px-1.5 py-1.5 text-[12.5px] cursor-pointer sm:w-[116px] sm:shrink-0 sm:rounded-full sm:px-2 sm:py-1 sm:text-[12.5px] ${
                 customDate ? 'border-[var(--primary)] text-[var(--primary)]' : 'border-[var(--border-subtle)] text-[var(--text-secondary)]'
               }`}
               aria-label={L('직접 확인일 고르기', 'Pick a custom review date')}
@@ -260,7 +260,7 @@ export function BindCard({
           </button>
         </div>
 
-        <p className="mt-2 text-[11.5px] leading-[1.45] text-[var(--text-tertiary)]">
+        <p className="mt-2 text-[13px] leading-[1.45] text-[var(--text-tertiary)]">
           {L('다음에는 결론을 바꿀 수 있는 한 가지 질문부터 봅니다.', 'Next, start with the one question that could change the call.')}
         </p>
         </div>

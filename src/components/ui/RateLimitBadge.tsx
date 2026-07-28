@@ -41,7 +41,7 @@ export function RateLimitBadge() {
       <Zap size={12} />
       <span>{t('rateLimit.remaining', { remaining, total: DAILY_LIMIT })}</span>
       {isEmpty && (
-        <span className="text-[11px] ml-1">
+        <span className="text-[12.5px] ml-1">
           · {t('rateLimit.useApiKey')}
         </span>
       )}

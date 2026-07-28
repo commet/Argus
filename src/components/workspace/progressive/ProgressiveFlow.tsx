@@ -114,11 +114,11 @@ function ReviewerBadge({ reviewerId }: { reviewerId: string | null }) {
       >
         {agent.emoji}
       </motion.span>
-      <span className="text-[11px] font-semibold text-[var(--text-primary)] truncate max-w-[140px]">
+      <span className="text-[12.5px] font-semibold text-[var(--text-primary)] truncate max-w-[140px]">
         {agent.name}
       </span>
       {code && (
-        <span className="text-[10px] font-bold tracking-wider text-[var(--text-tertiary)]">
+        <span className="text-[12px] font-bold tracking-wider text-[var(--text-tertiary)]">
           {code}
         </span>
       )}
@@ -198,7 +198,7 @@ function AnsweredPills({ qaPairs, canRevisit, onRevisit, focusIndex, focusNonce 
           </motion.button>
         ))}
         <motion.span initial={{ opacity: 0, x: -4 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3 }}
-          className="text-[11px] font-medium text-[var(--accent)]/80 flex items-center gap-1">
+          className="text-[12.5px] font-medium text-[var(--accent)]/80 flex items-center gap-1">
           <ArrowRight size={11} /> {locale === 'ko' ? '팀 분석에 반영' : 'sent to team'}
         </motion.span>
       </div>
@@ -213,17 +213,17 @@ function AnsweredPills({ qaPairs, canRevisit, onRevisit, focusIndex, focusNonce 
           <p className="text-[13px] text-[var(--text-primary)] font-medium leading-[1.5]">→ {open.answer!.value}</p>
           {canRevisit?.(openIdx!) && onRevisit ? (
             <div className="flex items-center justify-between gap-3 pt-1">
-              <span className="text-[10.5px] text-[var(--text-tertiary)]">
+              <span className="text-[12.5px] text-[var(--text-tertiary)]">
                 {locale === 'ko' ? '지금까지 정리한 방향은 다른 갈래로 그대로 남아요' : 'The direction so far stays available as another branch'}
               </span>
               <button
                 onClick={() => { onRevisit(openIdx!); setOpenIdx(null); }}
-                className="shrink-0 px-3 py-1.5 rounded-lg border border-[var(--accent)]/40 text-[11.5px] font-medium text-[var(--accent)] hover:bg-[var(--ai)] transition-colors cursor-pointer">
+                className="shrink-0 px-3 py-1.5 rounded-lg border border-[var(--accent)]/40 text-[13px] font-medium text-[var(--accent)] hover:bg-[var(--ai)] transition-colors cursor-pointer">
                 {locale === 'ko' ? '이 답부터 다시 →' : 'Redo from this answer →'}
               </button>
             </div>
           ) : (
-            <p className="text-[10.5px] text-[var(--text-tertiary)] pt-1">
+            <p className="text-[12.5px] text-[var(--text-tertiary)] pt-1">
               {locale === 'ko' ? '이 지점은 답 이후 흐름이 많이 진행돼 직접 수정 대신 새 질문으로 반영하는 게 안전해요.' : 'This point is past safe rewind — fold changes in via a new answer instead.'}
             </p>
           )}
@@ -331,7 +331,7 @@ function PhaseStatusBar({
             <span className="ml-2 text-[12px] text-[var(--text-tertiary)]">{sub}</span>
           )}
           {showLongWait && (
-            <span className="ml-2 text-[11px] text-[var(--text-tertiary)]">{L('지금까지 내용은 저장됐어요', 'Your work so far is saved')}</span>
+            <span className="ml-2 text-[12.5px] text-[var(--text-tertiary)]">{L('지금까지 내용은 저장됐어요', 'Your work so far is saved')}</span>
           )}
           {substage && (
             <AnimatePresence mode="wait">
@@ -341,7 +341,7 @@ function PhaseStatusBar({
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -3 }}
                 transition={{ duration: 0.25, ease: EASE }}
-                className="text-[11px] text-[var(--text-tertiary)] ml-2 italic"
+                className="text-[12.5px] text-[var(--text-tertiary)] ml-2 italic"
               >
                 · {substage}
               </motion.span>
@@ -349,7 +349,7 @@ function PhaseStatusBar({
           )}
         </div>
         {elapsedLabel && (
-          <span className="text-[11px] tabular-nums shrink-0 text-[var(--text-tertiary)]">{elapsedLabel}</span>
+          <span className="text-[12.5px] tabular-nums shrink-0 text-[var(--text-tertiary)]">{elapsedLabel}</span>
         )}
         {/* Cancel is always reachable while the AI works. */}
         {onCancel && (
@@ -357,7 +357,7 @@ function PhaseStatusBar({
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             onClick={onCancel}
-            className="shrink-0 inline-flex items-center gap-1 px-2.5 py-1.5 min-h-[44px] md:min-h-[32px] rounded-full text-[11px] font-semibold text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] border border-transparent hover:border-[var(--border)] transition-colors cursor-pointer"
+            className="shrink-0 inline-flex items-center gap-1 px-2.5 py-1.5 min-h-[44px] md:min-h-[32px] rounded-full text-[12.5px] font-semibold text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] border border-transparent hover:border-[var(--border)] transition-colors cursor-pointer"
             aria-label={L('취소', 'Cancel')}
           >
             <XIcon size={10} />
@@ -452,11 +452,11 @@ function StreamSnippet({ text, kind }: { text: string | null; kind: StreamKind }
         >
           <Sparkles size={11} className="text-[var(--accent)]" />
         </motion.span>
-        <span className="text-[11px] font-semibold text-[var(--accent)] uppercase tracking-[0.12em]">
+        <span className="text-[12.5px] font-semibold text-[var(--accent)] uppercase tracking-[0.12em]">
           {stageLabel}
         </span>
         {counts.map(c => (
-          <span key={c.label} className="text-[10px] text-[var(--text-tertiary)]">
+          <span key={c.label} className="text-[12px] text-[var(--text-tertiary)]">
             · {c.label} {c.value}
           </span>
         ))}
@@ -503,7 +503,7 @@ function LeadSynthesisCard({ synthesis }: { synthesis: LeadSynthesisResult }) {
                 the lenses together), never an authorial byline. */}
             <span className="text-[13px] font-semibold text-[var(--text-primary)]">{L('팀이 모은 결론', 'Team summary')}</span>
             {synthesis.lead_agent_name && (
-              <span className="text-[11px] text-[var(--text-tertiary)] ml-2">· {synthesis.lead_agent_name}</span>
+              <span className="text-[12.5px] text-[var(--text-tertiary)] ml-2">· {synthesis.lead_agent_name}</span>
             )}
           </div>
           {/* Value-first: takeaway visible while still collapsed. */}
@@ -521,7 +521,7 @@ function LeadSynthesisCard({ synthesis }: { synthesis: LeadSynthesisResult }) {
               {/* ① 핵심 발견 leads — the one thing that changes the strategy. */}
               {synthesis.key_findings.length > 0 && (
                 <div className="pt-4">
-                  <p className="text-[10px] font-bold text-[var(--accent)] uppercase tracking-[0.15em] mb-2">{L('결정에 중요한 발견', 'Decision-shaping findings')}</p>
+                  <p className="text-[12px] font-bold text-[var(--accent)] uppercase tracking-[0.15em] mb-2">{L('결정에 중요한 발견', 'Decision-shaping findings')}</p>
                   <ul className="space-y-1.5">
                     {synthesis.key_findings.map((f, i) => (
                       <li key={i} className="flex gap-2 text-[13px] text-[var(--text-primary)]">
@@ -537,7 +537,7 @@ function LeadSynthesisCard({ synthesis }: { synthesis: LeadSynthesisResult }) {
                 <div className={synthesis.key_findings.length > 0 ? 'pt-1' : 'pt-4'}>
                   {/* Spine: the crux this turns on — a neutral question, not a
                       "what you'd advise" verdict (renamed from recommendation_direction). */}
-                  <p className="text-[10px] font-bold text-[var(--accent)] uppercase tracking-[0.15em] mb-2">{L('아직 열려 있는 질문', 'The open question')}</p>
+                  <p className="text-[12px] font-bold text-[var(--accent)] uppercase tracking-[0.15em] mb-2">{L('아직 열려 있는 질문', 'The open question')}</p>
                   <blockquote className="rounded-lg bg-[var(--accent)]/[0.04] px-3.5 py-2.5 text-[13px] text-[var(--text-secondary)] italic leading-relaxed">
                     {synthesis.open_question}
                   </blockquote>
@@ -545,7 +545,7 @@ function LeadSynthesisCard({ synthesis }: { synthesis: LeadSynthesisResult }) {
                       surface the ONE question, and name the faint lean as a known
                       limit at the product level, rather than claiming "we don't
                       judge". Quiet, once per card. */}
-                  <p className="mt-2 pl-4 text-[10.5px] text-[var(--text-tertiary)] leading-[1.5]">
+                  <p className="mt-2 pl-4 text-[12.5px] text-[var(--text-tertiary)] leading-[1.5]">
                     {/* Spine F5 (CLAUDE.md): keep naming the faint lean as a known
                         limit — no-machinery-leak.test pins this. "기울기" was jargon;
                         "은근히 한쪽으로 치우칠 수 있다" is the plain-language version. */}
@@ -557,7 +557,7 @@ function LeadSynthesisCard({ synthesis }: { synthesis: LeadSynthesisResult }) {
               {/* ③ 미해결 쟁점. */}
               {synthesis.unresolved_tensions.length > 0 && (
                 <div>
-                  <p className="text-[10px] font-bold text-[var(--warning)] uppercase tracking-[0.15em] mb-2">{L('미해결 쟁점', 'Unresolved Tensions')}</p>
+                  <p className="text-[12px] font-bold text-[var(--warning)] uppercase tracking-[0.15em] mb-2">{L('미해결 쟁점', 'Unresolved Tensions')}</p>
                   <ul className="space-y-1.5">
                     {synthesis.unresolved_tensions.map((t, i) => (
                       <li key={i} className="flex gap-2 text-[13px] text-amber-700 dark:text-amber-400">
@@ -594,7 +594,7 @@ function PhaseDivider({ done, next, yourTurn }: { done: string; next: string; yo
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5, ease: EASE }}
       className={`flex items-center gap-3 py-3 ${yourTurn ? 'px-4 rounded-xl bg-amber-50/50 dark:bg-amber-900/10 border border-amber-200/30 dark:border-amber-700/20' : ''}`}>
-      <div className="flex items-center gap-1.5 text-[11px] text-[var(--text-tertiary)]">
+      <div className="flex items-center gap-1.5 text-[12.5px] text-[var(--text-tertiary)]">
         <Check size={10} className="text-[var(--accent)]" />
         <span>{done}</span>
       </div>
@@ -727,7 +727,7 @@ function VoyagePrepSummary({
       <div className="flex items-center gap-2.5 mb-4 px-1">
         <div className="w-2 h-2 rounded-full bg-[var(--accent)]/45 shrink-0" />
         <div className="flex-1 border-t border-dashed border-[var(--accent)]/30" />
-        <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--accent)] flex items-center gap-1.5 shrink-0">
+        <div className="text-[12px] font-bold uppercase tracking-[0.2em] text-[var(--accent)] flex items-center gap-1.5 shrink-0">
           <span>✓</span>
           {L('초안 준비 완료', 'Ready to draft')}
         </div>
@@ -762,7 +762,7 @@ function VoyagePrepSummary({
                 the question under a label that says it's the question the ANALYSIS
                 narrowed to (not one the user decided). Escape links stay below. */}
             <div className="mb-5">
-              <div className="text-[10px] font-bold text-[var(--accent)] uppercase tracking-[0.15em] mb-1.5 flex items-center gap-1.5">
+              <div className="text-[12px] font-bold text-[var(--accent)] uppercase tracking-[0.15em] mb-1.5 flex items-center gap-1.5">
                 <Compass size={11} className="shrink-0" />
                 {safeInsight
                   ? L('팀이 정리한 방향', 'The direction the team organized')
@@ -878,7 +878,7 @@ export function MirrorBeat({ assumption }: { assumption: string }) {
       className="mb-8"
     >
       {/* Provenance label — the only gold here, small-caps. */}
-      <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--accent)]/80 mb-2.5">
+      <p className="text-[12px] font-bold uppercase tracking-[0.16em] text-[var(--accent)]/80 mb-2.5">
         {L('AI가 임시로 둔 전제', 'Working premise from AI')}
       </p>
       {/* The surfaced premise — a NOTE, not a headline. One display-serif
@@ -954,7 +954,7 @@ export function TerminalRouteCard({
     >
       <div className="flex items-center gap-2 mb-2.5">
         <Check size={13} className="text-[var(--accent)] shrink-0" />
-        <span className="text-[11px] font-bold uppercase tracking-[0.14em] text-[var(--accent)]">
+        <span className="text-[12.5px] font-bold uppercase tracking-[0.14em] text-[var(--accent)]">
           {L('여기서 마쳐도 돼요', 'You can stop here')}
         </span>
       </div>
@@ -1015,7 +1015,7 @@ function FramingConfirmation({ snapshot, onConfirm, onReject, busy }: {
               "흔들릴 여지가 있어요" clause that undercut the analysis mid-confirm.
               The high-confidence subline just restated the heading + buttons. */}
           {isLowConfidence && (
-            <p className="text-[11px] text-[var(--text-tertiary)] mt-0.5">
+            <p className="text-[12.5px] text-[var(--text-tertiary)] mt-0.5">
               {L('이 문제는 여러 방향으로 읽힐 수 있어요.', 'This problem reads in more than one way.')}
             </p>
           )}
@@ -1040,7 +1040,7 @@ function FramingConfirmation({ snapshot, onConfirm, onReject, busy }: {
             <motion.button onClick={() => reason.trim() && onReject(reason.trim())} disabled={busy || !reason.trim()} whileTap={{ scale: 0.98 }}
               className="px-4 py-2 rounded-xl text-[12px] font-semibold text-[var(--accent-fg)] cursor-pointer disabled:opacity-50"
               style={{ background: 'var(--gradient-gold)' }}>{L('재분석', 'Re-analyze')}</motion.button>
-            <button onClick={() => setRejectMode(false)} className="px-3 py-2 text-[11px] text-[var(--text-tertiary)] cursor-pointer">{L('취소', 'Cancel')}</button>
+            <button onClick={() => setRejectMode(false)} className="px-3 py-2 text-[12.5px] text-[var(--text-tertiary)] cursor-pointer">{L('취소', 'Cancel')}</button>
           </div>
         </div>
       )}
@@ -1068,12 +1068,12 @@ function PipelineExitOptions({ onReframe, onRehearse }: {
         <button onClick={onReframe}
           className="flex-1 text-left px-3.5 py-2.5 rounded-xl bg-[var(--bg)]/60 hover:bg-[var(--accent)]/5 border border-[var(--border-subtle)]/60 hover:border-[var(--accent)]/30 cursor-pointer transition-colors duration-300">
           <p className="text-[13px] font-semibold text-[var(--text-primary)]">{L('→ 문제 다시 정리하기', '→ Reframe the problem')}</p>
-          <p className="text-[11px] text-[var(--text-tertiary)] mt-0.5">{L('더 깊이 들어가기', 'Dig deeper')}</p>
+          <p className="text-[12.5px] text-[var(--text-tertiary)] mt-0.5">{L('더 깊이 들어가기', 'Dig deeper')}</p>
         </button>
         <button onClick={onRehearse}
           className="flex-1 text-left px-3.5 py-2.5 rounded-xl bg-[var(--bg)]/60 hover:bg-[var(--accent)]/5 border border-[var(--border-subtle)]/60 hover:border-[var(--accent)]/30 cursor-pointer transition-colors duration-300">
           <p className="text-[13px] font-semibold text-[var(--text-primary)]">{L('→ 피드백부터 받기', '→ Get feedback first')}</p>
-          <p className="text-[11px] text-[var(--text-tertiary)] mt-0.5">{L('이해관계자 반응 시뮬레이션', 'Simulate stakeholder reactions')}</p>
+          <p className="text-[12.5px] text-[var(--text-tertiary)] mt-0.5">{L('이해관계자 반응 시뮬레이션', 'Simulate stakeholder reactions')}</p>
         </button>
       </div>
     </div>
@@ -1114,7 +1114,7 @@ function DeepJudgmentEntry({
                 ? L('이 과제는 심층 판단을 써볼 만해요', 'This decision may benefit from deep judgment')
                 : L('더 강한 검증이 필요하면', 'When you want stronger verification')}
           </p>
-          <p className="mt-1 text-[11.5px] leading-[1.55] text-[var(--text-tertiary)]">
+          <p className="mt-1 text-[13px] leading-[1.55] text-[var(--text-tertiary)]">
             {active
               ? L(
                   '최대 두 개의 전문 시각과, 되돌리기 어려운 과제일 때만 반론 하나를 더 붙입니다.',
@@ -1131,13 +1131,13 @@ function DeepJudgmentEntry({
                   )}
           </p>
           {!active && (
-            <p className="mt-1 text-[10.5px] text-[var(--text-tertiary)]">
+            <p className="mt-1 text-[12.5px] text-[var(--text-tertiary)]">
               {ownApiKey
                 ? L('개인 API 연결됨 · 횟수 제한 없음', 'Own API connected · no Argus usage limit')
                 : L('Argus 제공 모델 · 24시간에 한 번, 시작한 과제는 끝까지 이어갈 수 있음', 'Argus-provided model · once per 24 hours; the started session can be resumed')}
             </p>
           )}
-          {error && <p className="mt-1.5 text-[11.5px] text-[var(--danger)]">{error}</p>}
+          {error && <p className="mt-1.5 text-[13px] text-[var(--danger)]">{error}</p>}
         </div>
         {!active && (
           <button
@@ -3114,10 +3114,10 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
               className="block w-full scroll-mt-24 text-left cursor-pointer group"
             >
               <span className="flex items-center justify-between gap-3">
-                <span className="text-[10px] font-bold tracking-[0.12em] text-[var(--accent)]">
+                <span className="text-[12px] font-bold tracking-[0.12em] text-[var(--accent)]">
                   {L('내가 적은 상황 · 원문', 'What I wrote · original')}
                 </span>
-                <span className="text-[10px] text-[var(--text-tertiary)]">
+                <span className="text-[12px] text-[var(--text-tertiary)]">
                   {problemExpanded ? L('접기', 'Collapse') : L('전체 보기', 'Read all')}
                 </span>
               </span>
@@ -3130,7 +3130,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
             </motion.button>
             <div className="mt-3 flex items-center justify-between gap-3 border-t border-[var(--border-subtle)] pt-3">
               <ReviewerBadge reviewerId={session.reviewer_agent_id || null} />
-              <span className="text-right text-[10.5px] text-[var(--text-tertiary)]">
+              <span className="text-right text-[12.5px] text-[var(--text-tertiary)]">
                 {L('AI가 정리한 내용은 아래에서 따로 표시돼요', 'AI-surfaced material stays separate below')}
               </span>
             </div>
@@ -3418,7 +3418,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
               <div ref={workerSectionRef} className="scroll-mt-24 space-y-3">
                 {/* W1.6 ④: the chips finally explain themselves — what 반영/제외
                     DOES and where the rating goes. One line, always visible. */}
-                <p className="text-[11.5px] text-[var(--text-tertiary)] px-1 leading-[1.5]">
+                <p className="text-[13px] text-[var(--text-tertiary)] px-1 leading-[1.5]">
                   {L(
                     '반영 = 문서에 포함 · 제외 = 빠짐 (언제든 번복 가능)',
                     'Apply = included · Exclude = left out (reversible anytime)',
@@ -3448,7 +3448,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
                           }`} />
                       ))}
                     </div>
-                    <span className="text-[11px] tabular-nums text-[var(--text-tertiary)]">{cursor + 1}/{total}</span>
+                    <span className="text-[12.5px] tabular-nums text-[var(--text-tertiary)]">{cursor + 1}/{total}</span>
                   </nav>
                 </div>
                 {/* Current worker card — slides on step change */}
@@ -3522,7 +3522,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
                   <span className="text-[var(--bg)] text-[8px] font-bold">{L('나', 'Me')}</span>
                 </div>
                 <span className="text-[13px] font-medium text-[var(--text-primary)]">{L('내 생각 추가', 'Add my thoughts')}</span>
-                <span className="text-[11px] text-[var(--text-tertiary)]">({L('선택', 'optional')})</span>
+                <span className="text-[12.5px] text-[var(--text-tertiary)]">({L('선택', 'optional')})</span>
               </div>
               <textarea
                 value={session?.user_notes || ''}
@@ -3793,7 +3793,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
                   aria-expanded={drawerOpen}
                   aria-controls="version-history-drawer"
                   aria-haspopup="dialog"
-                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-[11px] text-[var(--text-secondary)] hover:border-[var(--accent)] hover:text-[var(--accent)] transition-colors"
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-[12.5px] text-[var(--text-secondary)] hover:border-[var(--accent)] hover:text-[var(--accent)] transition-colors"
                   title={L('버전 히스토리 열기', 'Open version history')}
                 >
                   <History className="w-3 h-3" />
@@ -3815,7 +3815,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
                       {L('에서 수정 중', ' (revision)')}
                     </div>
                     {justReactivatedFromBranch && (
-                      <div className="text-[11px] text-[var(--text-secondary)] mt-0.5">
+                      <div className="text-[12.5px] text-[var(--text-secondary)] mt-0.5">
                         {L('이전 결과는 버전 히스토리에 그대로 남아있습니다.', 'Previous results remain in version history.')}
                       </div>
                     )}
@@ -3838,7 +3838,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
                         store.setActiveDraft(latestMain.id);
                         setJustReactivatedFromBranch(false);
                       }}
-                      className="text-[11px] text-[var(--accent)] hover:underline shrink-0"
+                      className="text-[12.5px] text-[var(--accent)] hover:underline shrink-0"
                     >
                       {L('최신으로 돌아가기', 'Back to latest')}
                     </button>
@@ -3936,7 +3936,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
               {/* (The old "복사해서 바로 사용하세요" label pointed at a copy button
                   that lives in FinalCard's header, not here — removed.) */}
               <div className="text-center mb-6">
-                <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--accent)]">{L('다음에 할 일', 'What next')}</p>
+                <p className="text-[12px] font-bold uppercase tracking-[0.16em] text-[var(--accent)]">{L('다음에 할 일', 'What next')}</p>
                 <p className="mt-1.5 text-[12px] text-[var(--text-secondary)]">{L('새 프로젝트를 시작해도 이 결과는 저장돼요 — 언제든 다시 열 수 있어요.', 'Starting a new project keeps this one saved — you can reopen it anytime.')}</p>
               </div>
               <div className="flex flex-col sm:flex-row gap-3 justify-center flex-wrap">
@@ -3955,12 +3955,12 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
                   <Wand2 size={13} className="text-[var(--accent)]" />
                   <span className="text-left">
                     <span className="block">{L('이 문서 더 다듬기', 'Keep refining this document')}</span>
-                    <span className="block mt-0.5 text-[10.5px] font-normal text-[var(--text-tertiary)]">{L('현재 버전은 남겨두고 수정본 만들기', 'Keep this version and create a revision')}</span>
+                    <span className="block mt-0.5 text-[12.5px] font-normal text-[var(--text-tertiary)]">{L('현재 버전은 남겨두고 수정본 만들기', 'Keep this version and create a revision')}</span>
                   </span>
                 </button>
               </div>
               <div className="mt-4 text-center">
-                <a href={withLocale(locale, '/project')} className="text-[11.5px] font-medium text-[var(--text-secondary)] hover:text-[var(--accent)] underline underline-offset-2 transition-colors">
+                <a href={withLocale(locale, '/project')} className="text-[13px] font-medium text-[var(--text-secondary)] hover:text-[var(--accent)] underline underline-offset-2 transition-colors">
                   {L('저장된 프로젝트 보기', 'View saved projects')}
                 </a>
               </div>
@@ -3968,7 +3968,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
                   the real exits (compression audit B-10). Two-step stays. */}
               <div className="mt-3 text-center">
                 {rerunArmed ? (
-                  <span className="inline-flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-[11.5px] text-[var(--text-tertiary)]">
+                  <span className="inline-flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-[13px] text-[var(--text-tertiary)]">
                     {L('지금 문서와 검토를 비우고 초안부터 다시 만들어요 — 이전 결과는 버전 히스토리에 남아요.', 'Clears the current document & review, regenerates from draft — previous results stay in version history.')}
                     <button onClick={() => { if (mix) { store.setFinalDeliverable(null as unknown as string); store.setDMFeedback(null as unknown as import('@/stores/types').DMFeedbackResult); store.setMix(null as unknown as MixResult); setShowMix(true); } setRerunArmed(false); }}
                       className="font-semibold text-[var(--danger)] hover:underline cursor-pointer">
@@ -3980,7 +3980,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
                   </span>
                 ) : (
                   <button onClick={() => setRerunArmed(true)}
-                    className="text-[11.5px] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] underline underline-offset-2 cursor-pointer transition-colors">
+                    className="text-[13px] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] underline underline-offset-2 cursor-pointer transition-colors">
                     {L('초안부터 다시 만들기', 'Regenerate from draft')}
                   </button>
                 )}
@@ -4034,7 +4034,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
           >
             <header className="flex items-center justify-between px-5 py-3 border-b border-[var(--border)]">
               <div>
-                <p className="text-[11px] text-[var(--text-tertiary)]">{L('미리보기 · 읽기 전용', 'Preview · read-only')}</p>
+                <p className="text-[12.5px] text-[var(--text-tertiary)]">{L('미리보기 · 읽기 전용', 'Preview · read-only')}</p>
                 <h3 id={previewDialogTitleId} className="text-[14px] font-semibold text-[var(--text-primary)]">{previewDraft.version_label}</h3>
                 {previewDraft.change_summary && (
                   <p className="text-[12px] text-[var(--text-secondary)] mt-0.5">{previewDraft.change_summary}</p>
@@ -4096,7 +4096,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
                   <h3 id={iterationDialogTitleId} className="text-[14px] font-semibold text-[var(--text-primary)]">
                     {L('종합자에게 수정 요청', 'Ask Synthesizer to revise')}
                   </h3>
-                  <p className="text-[11px] text-[var(--text-tertiary)] mt-0.5">
+                  <p className="text-[12.5px] text-[var(--text-tertiary)] mt-0.5">
                     {L('현재 버전', 'Current version')} <span className="font-semibold">{activeDraft.version_label}</span>
                   </p>
                 </div>
@@ -4126,7 +4126,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
                 maxLength={500}
                 disabled={isIterating}
               />
-              <div className="text-[10px] text-[var(--text-tertiary)] mt-1 text-right">
+              <div className="text-[12px] text-[var(--text-tertiary)] mt-1 text-right">
                 {iterationDirective.length} / 500
               </div>
               {isIterating && (
@@ -4141,7 +4141,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
                   <span className="flex-1">{error}</span>
                   <button
                     type="button"
-                    className="text-[11px] text-[var(--danger)] hover:underline shrink-0"
+                    className="text-[12.5px] text-[var(--danger)] hover:underline shrink-0"
                     onClick={() => setError(null)}
                     aria-label={L('에러 닫기', 'Dismiss error')}
                   >

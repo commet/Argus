@@ -73,7 +73,7 @@ function RoleDashboard({
               key={actor}
               type="button"
               onClick={() => onJumpActor(actor)}
-              className="inline-flex min-h-[28px] items-center gap-1.5 text-[11px] font-bold text-[var(--text-secondary)] hover:text-[var(--text-primary)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+              className="inline-flex min-h-[28px] items-center gap-1.5 text-[12.5px] font-bold text-[var(--text-secondary)] hover:text-[var(--text-primary)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
               aria-label={L(`${actorLabel(actor, locale)} 단계 ${counts[actor]}개 중 첫 단계로 이동`, `Go to the first of ${counts[actor]} ${actorLabel(actor, locale)} steps`)}
             >
               <span className="h-2.5 w-2.5 shrink-0" style={{ backgroundColor: actorInfo.color }} />
@@ -131,7 +131,7 @@ function ActorToggle({
             key={actor}
             onClick={(e) => { e.stopPropagation(); onChange(actor); }}
             className={`
-              flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] font-bold
+              flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[12.5px] font-bold
               transition-all duration-200 cursor-pointer
               ${active
                 ? 'shadow-sm'
@@ -259,19 +259,19 @@ export function WorkflowGraph({
                             <ActorToggle current={step.actor} onChange={(actor) => onUpdateActor?.(i, actor)} />
                           ) : (
                             <span
-                              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold"
+                              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[12.5px] font-bold"
                               style={{ backgroundColor: a.color, color: '#fff' }}
                             >
                               <AIcon size={11} /> {actorLabel(step.actor, locale)}
                             </span>
                           )}
                           {isCritical && (
-                            <span className="text-[10px] text-[var(--danger)] font-bold flex items-center gap-0.5">
+                            <span className="text-[12px] text-[var(--danger)] font-bold flex items-center gap-0.5">
                               <Zap size={10} /> {L('크리티컬', 'Critical')}
                             </span>
                           )}
                           {step.estimated_time && (
-                            <span className="text-[11px] text-[var(--text-secondary)] flex items-center gap-1 ml-auto">
+                            <span className="text-[12.5px] text-[var(--text-secondary)] flex items-center gap-1 ml-auto">
                               <Clock size={10} /> {step.estimated_time}
                             </span>
                           )}
@@ -292,13 +292,13 @@ export function WorkflowGraph({
                         {step.actor === 'both' && (step.ai_scope || step.human_scope) && (
                           <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-1.5">
                             {step.ai_scope && (
-                              <div className="flex items-start gap-1.5 text-[11px] px-2 py-1.5 rounded-md bg-[#3b6dcc]/5">
+                              <div className="flex items-start gap-1.5 text-[12.5px] px-2 py-1.5 rounded-md bg-[#3b6dcc]/5">
                                 <span className="font-bold text-[var(--ai-fg)] shrink-0">AI:</span>
                                 <span className="text-[var(--text-secondary)]">{step.ai_scope}</span>
                               </div>
                             )}
                             {step.human_scope && (
-                              <div className="flex items-start gap-1.5 text-[11px] px-2 py-1.5 rounded-md bg-[var(--human-fg)]/5">
+                              <div className="flex items-start gap-1.5 text-[12.5px] px-2 py-1.5 rounded-md bg-[var(--human-fg)]/5">
                                 <span className="font-bold text-[var(--human-fg)] shrink-0">{L('사람', 'Human')}:</span>
                                 <span className="text-[var(--text-secondary)]">{step.human_scope}</span>
                               </div>
@@ -310,17 +310,17 @@ export function WorkflowGraph({
                         {!isExpanded && hasInput && (
                           <div className="flex gap-2 mt-2">
                             {step.user_ai_guide?.trim() && (
-                              <span className="text-[10px] px-2 py-0.5 rounded-full bg-[var(--ai)] text-[var(--ai-fg)] font-medium">{L('AI 가이드 입력됨', 'AI guide entered')}</span>
+                              <span className="text-[12px] px-2 py-0.5 rounded-full bg-[var(--ai)] text-[var(--ai-fg)] font-medium">{L('AI 가이드 입력됨', 'AI guide entered')}</span>
                             )}
                             {step.user_decision?.trim() && (
-                              <span className="text-[10px] px-2 py-0.5 rounded-full bg-[var(--human)] text-[var(--human-fg)] font-medium">{L('결정 입력됨', 'Decision entered')}</span>
+                              <span className="text-[12px] px-2 py-0.5 rounded-full bg-[var(--human)] text-[var(--human-fg)] font-medium">{L('결정 입력됨', 'Decision entered')}</span>
                             )}
                           </div>
                         )}
 
                         {/* Expand hint */}
                         {!isExpanded && editable && (
-                          <p className="text-[11px] text-[var(--text-secondary)] mt-2">
+                          <p className="text-[12.5px] text-[var(--text-secondary)] mt-2">
                             {step.actor === 'ai'
                               ? L('AI 방향 설정 ↓', 'Set AI direction ↓')
                               : step.actor === 'human'
@@ -336,7 +336,7 @@ export function WorkflowGraph({
                       <div className="mt-3 pt-3 border-t border-[var(--border-subtle)] animate-fade-in space-y-3">
                         {/* Actor reasoning */}
                         {step.actor_reasoning && (
-                          <p className="text-[11px] text-[var(--text-secondary)] leading-relaxed italic">
+                          <p className="text-[12.5px] text-[var(--text-secondary)] leading-relaxed italic">
                             {step.actor_reasoning}
                           </p>
                         )}
@@ -531,13 +531,13 @@ export function WorkflowGraph({
                         {/* Read-only filled values */}
                         {!editable && step.user_ai_guide?.trim() && (
                           <div className="rounded-lg bg-[var(--ai)] px-3 py-2">
-                            <p className="text-[11px] font-bold text-[var(--ai-fg)] mb-0.5">{L('AI 가이드', 'AI guide')}</p>
+                            <p className="text-[12.5px] font-bold text-[var(--ai-fg)] mb-0.5">{L('AI 가이드', 'AI guide')}</p>
                             <p className="text-[12px] text-[var(--text-primary)]">{step.user_ai_guide}</p>
                           </div>
                         )}
                         {!editable && step.user_decision?.trim() && (
                           <div className="rounded-lg bg-[var(--human)] px-3 py-2">
-                            <p className="text-[11px] font-bold text-[var(--human-fg)] mb-0.5">{L('결정', 'Decision')}</p>
+                            <p className="text-[12.5px] font-bold text-[var(--human-fg)] mb-0.5">{L('결정', 'Decision')}</p>
                             <p className="text-[12px] text-[var(--text-primary)]">{step.user_decision}</p>
                           </div>
                         )}
@@ -545,7 +545,7 @@ export function WorkflowGraph({
                         {/* Actor reasoning — readable */}
                         {/* Checkpoint reason — inline warning */}
                         {step.checkpoint && step.checkpoint_reason && (
-                          <div className="flex items-start gap-2 text-[11px] bg-[var(--warning)]/10 border border-[var(--warning)]/30 rounded-lg px-3 py-2">
+                          <div className="flex items-start gap-2 text-[12.5px] bg-[var(--warning)]/10 border border-[var(--warning)]/30 rounded-lg px-3 py-2">
                             <Flag size={11} className="text-[var(--warning)] shrink-0 mt-0.5" />
                             <p className="text-[var(--warning)]"><span className="font-bold">{L('넘어가기 전 확인:', 'Verify before moving on:')}</span> {step.checkpoint_reason}</p>
                           </div>
@@ -559,7 +559,7 @@ export function WorkflowGraph({
                     <div className="flex items-center justify-between px-3 py-1.5 bg-[var(--bg)] border-t border-[var(--border-subtle)]">
                       <button
                         onClick={(e) => { e.stopPropagation(); onToggleCheckpoint?.(i); }}
-                        className={`px-2.5 py-1 rounded-lg text-[11px] font-medium border cursor-pointer transition-colors ${
+                        className={`px-2.5 py-1 rounded-lg text-[12.5px] font-medium border cursor-pointer transition-colors ${
                           step.checkpoint
                             ? 'border-amber-400 bg-[var(--warning)]/10 text-[var(--warning)]'
                             : 'border-[var(--border)] text-[var(--text-secondary)] hover:border-[var(--warning)]/30'

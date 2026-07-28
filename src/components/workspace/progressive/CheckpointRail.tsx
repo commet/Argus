@@ -117,7 +117,7 @@ export function CheckpointRail({ checkpoints, onJump }: {
     >
       {/* Eyebrow — 그룹 · 현재 실단계 · 전체 중 몇 번째, 그리고 다음 정거장 */}
       <div className="flex items-baseline justify-between mb-2.5 px-0.5 gap-2">
-        <span className="text-[11px] font-bold tracking-[0.14em] text-[var(--accent)] tabular-nums uppercase truncate">
+        <span className="text-[12.5px] font-bold tracking-[0.14em] text-[var(--accent)] tabular-nums uppercase truncate">
           {locale === 'ko' ? activeBand.group : activeBand.groupEn}
           <span className="ml-1.5 text-[var(--text-primary)] normal-case tracking-normal">{cur?.label}</span>
           <span className="ml-1.5 normal-case tracking-normal font-normal text-[var(--text-tertiary)]">
@@ -125,7 +125,7 @@ export function CheckpointRail({ checkpoints, onJump }: {
           </span>
         </span>
         {next && (
-          <span className="text-[11px] text-[var(--text-tertiary)] shrink-0 whitespace-nowrap">
+          <span className="text-[12.5px] text-[var(--text-tertiary)] shrink-0 whitespace-nowrap">
             {L(`다음: ${next.label}`, `Next: ${next.label}`)}
           </span>
         )}
@@ -148,10 +148,10 @@ export function CheckpointRail({ checkpoints, onJump }: {
                     : 'text-[var(--text-tertiary)]'
               }`}
             >
-              <span className="block text-[10px] font-bold">
+              <span className="block text-[12px] font-bold">
                 {locale === 'ko' ? band.group : band.groupEn}
               </span>
-              <span className="mt-0.5 block text-[9px] font-normal">
+              <span className="mt-0.5 block text-[12.5px] font-normal">
                 {band.bandState === 'done'
                   ? L('지나옴', 'Done')
                   : bi === activeIdx
@@ -173,7 +173,7 @@ export function CheckpointRail({ checkpoints, onJump }: {
               const content = (
                 <>
                   <span
-                    className={`grid size-5 place-items-center rounded-full border text-[9px] ${
+                    className={`grid size-5 place-items-center rounded-full border text-[12.5px] ${
                       current
                         ? 'border-[var(--accent)] bg-[var(--accent)] text-[var(--accent-fg)]'
                         : done
@@ -183,7 +183,7 @@ export function CheckpointRail({ checkpoints, onJump }: {
                   >
                     {done ? <Check size={10} strokeWidth={3} /> : ni + 1}
                   </span>
-                  <span className={`text-[10px] ${current ? 'font-bold text-[var(--text-primary)]' : skipped ? 'text-[var(--text-tertiary)] line-through' : 'text-[var(--text-secondary)]'}`}>
+                  <span className={`text-[12px] ${current ? 'font-bold text-[var(--text-primary)]' : skipped ? 'text-[var(--text-tertiary)] line-through' : 'text-[var(--text-secondary)]'}`}>
                     {node.label}
                   </span>
                 </>
@@ -229,7 +229,7 @@ export function CheckpointRail({ checkpoints, onJump }: {
             return (
               <div key={band.group} className="contents">
                 <div className="flex-1 min-w-0 rounded-xl border border-[var(--accent)]/20 bg-[var(--accent)]/[0.04] pt-4 pb-2 px-3">
-                  <div className="text-[9px] font-bold uppercase tracking-[0.18em] text-[var(--accent)] mb-1.5">
+                  <div className="text-[12.5px] font-bold uppercase tracking-[0.18em] text-[var(--accent)] mb-1.5">
                     {locale === 'ko' ? band.group : band.groupEn}
                   </div>
                   {/* 노드가 밴드 너비를 넘으면(질문 여러 개 + 좁은 화면) 페이지를
@@ -273,7 +273,7 @@ export function CheckpointRail({ checkpoints, onJump }: {
                           )}
                           {dot}
                           <span
-                            className={`text-[10px] leading-none whitespace-nowrap flex items-center gap-0.5 ${
+                            className={`text-[12px] leading-none whitespace-nowrap flex items-center gap-0.5 ${
                               isCur ? 'text-[var(--text-primary)] font-bold'
                                 : done ? 'text-[var(--accent)]/85 font-medium'
                                 : skipped ? 'text-[var(--text-tertiary)] line-through opacity-70'
@@ -335,12 +335,12 @@ export function CheckpointRail({ checkpoints, onJump }: {
                     onClick={() => onJump(rep.key)}
                     title={label}
                     aria-label={label}
-                    className="flex-none self-center inline-flex items-center gap-1 rounded-full border border-[var(--accent)]/30 bg-[var(--accent)]/[0.05] px-2.5 py-1.5 text-[10px] font-semibold text-[var(--accent)]/90 hover:bg-[var(--accent)]/[0.1] transition-colors cursor-pointer"
+                    className="flex-none self-center inline-flex items-center gap-1 rounded-full border border-[var(--accent)]/30 bg-[var(--accent)]/[0.05] px-2.5 py-1.5 text-[12px] font-semibold text-[var(--accent)]/90 hover:bg-[var(--accent)]/[0.1] transition-colors cursor-pointer"
                   >
                     {chipContent}
                   </button>
                 ) : (
-                  <div className="flex-none self-center inline-flex items-center gap-1 rounded-full border border-[var(--accent)]/30 bg-[var(--accent)]/[0.05] px-2.5 py-1.5 text-[10px] font-semibold text-[var(--accent)]/90">
+                  <div className="flex-none self-center inline-flex items-center gap-1 rounded-full border border-[var(--accent)]/30 bg-[var(--accent)]/[0.05] px-2.5 py-1.5 text-[12px] font-semibold text-[var(--accent)]/90">
                     {chipContent}
                   </div>
                 )}
@@ -357,10 +357,10 @@ export function CheckpointRail({ checkpoints, onJump }: {
                 className="flex-none self-center inline-flex flex-col items-start justify-center rounded-full border border-[var(--border-subtle)] px-2.5 py-1.5"
                 title={band.nodes.map(c => c.title).filter(Boolean).join('\n') || undefined}
               >
-                <span className="text-[10px] font-semibold text-[var(--text-tertiary)] leading-none">
+                <span className="text-[12px] font-semibold text-[var(--text-tertiary)] leading-none">
                   {locale === 'ko' ? band.group : band.groupEn}
                 </span>
-                <span className="text-[9px] text-[var(--text-tertiary)]/70 leading-none mt-0.5 whitespace-nowrap">
+                <span className="text-[12.5px] text-[var(--text-tertiary)]/70 leading-none mt-0.5 whitespace-nowrap">
                   {subLabels}
                 </span>
               </div>
