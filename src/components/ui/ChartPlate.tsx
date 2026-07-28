@@ -44,12 +44,12 @@ export function ChartPlate({
       <span className="absolute bottom-2.5 left-2.5 w-3 h-3 border-b border-l border-[var(--bp-ink)]/30" aria-hidden />
       <span className="absolute bottom-2.5 right-2.5 w-3 h-3 border-b border-r border-[var(--bp-ink)]/30" aria-hidden />
       {label && (
-        <span className="absolute top-3 left-5 text-[9px] font-mono uppercase tracking-[0.22em] text-[var(--bp-ink-soft)]/70">
+        <span className="absolute top-3 left-5 text-[12.5px] font-mono uppercase tracking-[0.22em] text-[var(--bp-ink-soft)]/70">
           {label}
         </span>
       )}
       {coordinate && (
-        <span className="absolute top-3 right-5 hidden sm:block text-[9px] font-mono tracking-[0.12em] text-[var(--bp-ink-soft)]/55 tabular-nums">
+        <span className="absolute top-3 right-5 hidden sm:block text-[12.5px] font-mono tracking-[0.12em] text-[var(--bp-ink-soft)]/55 tabular-nums">
           {coordinate}
         </span>
       )}

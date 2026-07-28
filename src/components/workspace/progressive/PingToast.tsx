@@ -99,7 +99,7 @@ export function PingToast() {
                     : <ArrowDown size={12} className="text-[var(--accent)]" />)
                 : <ArrowRight size={11} className="text-[var(--accent)]" />}
             </motion.span>
-            <span className={`${isOutput ? 'text-[12px]' : 'text-[11px]'} font-semibold text-[var(--accent)] whitespace-nowrap`}>
+            <span className={`${isOutput ? 'text-[12px]' : 'text-[12.5px]'} font-semibold text-[var(--accent)] whitespace-nowrap`}>
               {msg.text}
             </span>
           </motion.div>

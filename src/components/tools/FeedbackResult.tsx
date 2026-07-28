@@ -144,7 +144,7 @@ export function FeedbackResult({ record, personas, onUpdateRecord, onStartDiscus
         <ShareBar getText={getFullText} getTitle={() => L('AI 모의 리허설 결과', 'AI-simulated rehearsal results')} />
       </div>
       <div className="rounded-xl border border-[var(--accent)]/20 bg-[var(--ai)]/45 px-4 py-3">
-        <p className="text-[10px] font-bold tracking-[0.12em] text-[var(--accent)]">
+        <p className="text-[12px] font-bold tracking-[0.12em] text-[var(--accent)]">
           {L('출처 · AI 역할 시뮬레이션', 'Source · AI role simulation')}
         </p>
         <p className="mt-1 text-[12px] leading-[1.6] text-[var(--text-secondary)]">
@@ -192,10 +192,10 @@ export function FeedbackResult({ record, personas, onUpdateRecord, onStartDiscus
                     <PersonaAvatar name={persona.name} personaId={persona.id} size={44} influence={persona.influence} />
                     <div className="min-w-0">
                       <p className="text-[14px] font-bold text-[var(--text-primary)] truncate">{persona.name}</p>
-                      <p className="text-[11px] text-[var(--text-secondary)] truncate">{persona.role}</p>
+                      <p className="text-[12.5px] text-[var(--text-secondary)] truncate">{persona.role}</p>
                     </div>
                     {persona.influence && (
-                      <span className={`ml-auto shrink-0 px-1.5 py-0.5 rounded text-[10px] font-bold ${
+                      <span className={`ml-auto shrink-0 px-1.5 py-0.5 rounded text-[12px] font-bold ${
                         persona.influence === 'high' ? 'bg-[var(--danger)]/15 text-[var(--danger)]'
                         : persona.influence === 'medium' ? 'bg-[var(--warning)]/15 text-[var(--warning)]'
                         : 'bg-[var(--bg-hover)] text-[var(--text-tertiary)]'
@@ -206,7 +206,7 @@ export function FeedbackResult({ record, personas, onUpdateRecord, onStartDiscus
                   </div>
 
                   <div className="rounded-xl bg-[var(--bg)] px-3 py-2.5">
-                    <p className="mb-1 text-[9px] font-bold uppercase tracking-[0.14em] text-[var(--accent)]">
+                    <p className="mb-1 text-[12.5px] font-bold uppercase tracking-[0.14em] text-[var(--accent)]">
                       {L('AI 예상 반응', 'AI-predicted reaction')}
                     </p>
                     <p className="text-[13px] leading-relaxed text-[var(--text-primary)]">
@@ -216,7 +216,7 @@ export function FeedbackResult({ record, personas, onUpdateRecord, onStartDiscus
 
                   {/* Risk indicators */}
                   {criticalCount > 0 && (
-                    <div className="mt-2 flex items-center gap-1 text-[10px] font-semibold text-[#E24B4A]">
+                    <div className="mt-2 flex items-center gap-1 text-[12px] font-semibold text-[#E24B4A]">
                       <ShieldAlert size={10} /> {L(`핵심 위협 ${criticalCount}건`, `${criticalCount} critical threat${criticalCount === 1 ? '' : 's'}`)}
                     </div>
                   )}
@@ -249,7 +249,7 @@ export function FeedbackResult({ record, personas, onUpdateRecord, onStartDiscus
             if (allConditions.length === 0) return null;
             return (
               <div className="px-4 py-3 rounded-xl border border-[var(--accent-light)]/20 bg-[var(--checkpoint)]">
-                <p className="text-[11px] font-bold text-[var(--accent)] mb-2">{L('예상 승인 조건 · 직접 확인 필요', 'Possible approval conditions · verify directly')}</p>
+                <p className="text-[12.5px] font-bold text-[var(--accent)] mb-2">{L('예상 승인 조건 · 직접 확인 필요', 'Possible approval conditions · verify directly')}</p>
                 <div className="space-y-1">
                   {allConditions.map((ac, i) => (
                     <div key={i} className="flex items-start gap-2 text-[12px]">
@@ -282,7 +282,7 @@ export function FeedbackResult({ record, personas, onUpdateRecord, onStartDiscus
                     <p className="text-[13px] font-bold text-[var(--text-primary)]">
                       {record.discussion ? L('AI 모의 이해관계자 토론', 'AI-simulated stakeholder discussion') : L('이해관계자 토론 시뮬레이션', 'Simulate stakeholder discussion')}
                     </p>
-                    <p className="text-[11px] text-[var(--text-secondary)] mt-0.5 leading-relaxed">
+                    <p className="text-[12.5px] text-[var(--text-secondary)] mt-0.5 leading-relaxed">
                       {record.discussion
                         ? (locale === 'ko'
                             ? `${record.discussion.length}건의 발언${record.discussion_takeaway ? ` — "${record.discussion_takeaway}"` : ''}`
@@ -325,7 +325,7 @@ export function FeedbackResult({ record, personas, onUpdateRecord, onStartDiscus
 
           {/* ── 전반적 반응 (한 줄 요약) ── */}
           <div className="rounded-xl bg-[var(--ai)] px-4 py-3">
-            <p className="mb-1 text-[9px] font-bold uppercase tracking-[0.14em] text-[var(--accent)]">
+            <p className="mb-1 text-[12.5px] font-bold uppercase tracking-[0.14em] text-[var(--accent)]">
               {L('AI 예상 반응', 'AI-predicted reaction')}
             </p>
             <p className="text-[14px] font-medium text-[var(--text-primary)] leading-relaxed">
@@ -351,7 +351,7 @@ export function FeedbackResult({ record, personas, onUpdateRecord, onStartDiscus
           {/* ── 이것만 고치면 (concerns — pulled out, prominent) ── */}
           {(selectedResult.concerns || []).length > 0 && (
             <div>
-              <p className="text-[11px] font-bold text-[var(--text-secondary)] uppercase tracking-wider mb-2">{L('이것만 고치면', 'Just fix this')}</p>
+              <p className="text-[12.5px] font-bold text-[var(--text-secondary)] uppercase tracking-wider mb-2">{L('이것만 고치면', 'Just fix this')}</p>
               <div className="space-y-2">
                 {selectedResult.concerns.map((c, i) => (
                   <div key={i} className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg)] px-3.5 py-2.5">
@@ -365,7 +365,7 @@ export function FeedbackResult({ record, personas, onUpdateRecord, onStartDiscus
           {/* ── OK 조건 (highlighted, like web app) ── */}
           {(selectedResult.approval_conditions?.length ?? 0) > 0 && (
             <div className="rounded-xl bg-[var(--accent)]/[0.04] border border-[var(--accent)]/10 px-4 py-3.5">
-              <p className="text-[11px] font-bold text-[var(--accent)] uppercase tracking-wider mb-2">{L('예상 승인 조건 · 직접 확인 필요', 'Possible approval conditions · verify directly')}</p>
+              <p className="text-[12.5px] font-bold text-[var(--accent)] uppercase tracking-wider mb-2">{L('예상 승인 조건 · 직접 확인 필요', 'Possible approval conditions · verify directly')}</p>
               <ul className="space-y-1">
                 {selectedResult.approval_conditions!.map((c, i) => (
                   <li key={i} className="text-[14px] text-[var(--text-primary)] font-medium leading-relaxed flex items-start gap-2">
@@ -398,7 +398,7 @@ export function FeedbackResult({ record, personas, onUpdateRecord, onStartDiscus
                     {/* 질문 */}
                     {(selectedResult.first_questions || []).length > 0 && (
                       <div>
-                        <p className="text-[11px] font-bold text-[var(--text-secondary)] mb-1.5">{L('이 관점이 예상한 질문', 'Questions predicted by this lens')}</p>
+                        <p className="text-[12.5px] font-bold text-[var(--text-secondary)] mb-1.5">{L('이 관점이 예상한 질문', 'Questions predicted by this lens')}</p>
                         <ul className="space-y-1.5">
                           {selectedResult.first_questions.map((q, i) => (
                             <li key={i} className="text-[13px] text-[var(--text-primary)] px-3 py-2 rounded-lg bg-[var(--bg)]">{q}</li>
@@ -410,7 +410,7 @@ export function FeedbackResult({ record, personas, onUpdateRecord, onStartDiscus
                     {/* 실패 시나리오 */}
                     {selectedResult.failure_scenario && (
                       <div>
-                        <p className="text-[11px] font-bold text-[var(--warning)] mb-1">{L('실패 시나리오', 'Failure scenario')}</p>
+                        <p className="text-[12.5px] font-bold text-[var(--warning)] mb-1">{L('실패 시나리오', 'Failure scenario')}</p>
                         <p className="text-[13px] text-[var(--text-primary)] leading-relaxed">{selectedResult.failure_scenario}</p>
                       </div>
                     )}
@@ -418,7 +418,7 @@ export function FeedbackResult({ record, personas, onUpdateRecord, onStartDiscus
                     {/* 검증 안 된 가정 */}
                     {(selectedResult.untested_assumptions?.length ?? 0) > 0 && (
                       <div>
-                        <p className="text-[11px] font-bold text-[var(--warning)] mb-1">{L('검증되지 않은 가정', 'Untested assumptions')}</p>
+                        <p className="text-[12.5px] font-bold text-[var(--warning)] mb-1">{L('검증되지 않은 가정', 'Untested assumptions')}</p>
                         <ul className="space-y-1">
                           {selectedResult.untested_assumptions!.map((a, i) => (
                             <li key={i} className="text-[13px] text-[var(--text-primary)] flex items-start gap-1.5">
@@ -432,10 +432,10 @@ export function FeedbackResult({ record, personas, onUpdateRecord, onStartDiscus
                     {/* 리스크 분류 */}
                     {(selectedResult.classified_risks?.length ?? 0) > 0 && (
                       <div className="space-y-2">
-                        <p className="text-[11px] font-bold text-[var(--text-secondary)]">{L('리스크 분류', 'Risk categorization')}</p>
+                        <p className="text-[12.5px] font-bold text-[var(--text-secondary)]">{L('리스크 분류', 'Risk categorization')}</p>
                         {selectedResult.classified_risks!.map((risk, i) => (
                           <div key={i} className="flex items-start gap-2.5 text-[13px]">
-                            <span className={`shrink-0 px-2 py-0.5 rounded text-[10px] font-bold ${risk.category === 'critical' ? 'bg-[var(--danger)]/15 text-[var(--danger)]' : risk.category === 'manageable' ? 'bg-[var(--warning)]/15 text-[var(--warning)]' : 'bg-[var(--risk-unspoken)]/15 text-purple-700'}`}>
+                            <span className={`shrink-0 px-2 py-0.5 rounded text-[12px] font-bold ${risk.category === 'critical' ? 'bg-[var(--danger)]/15 text-[var(--danger)]' : risk.category === 'manageable' ? 'bg-[var(--warning)]/15 text-[var(--warning)]' : 'bg-[var(--risk-unspoken)]/15 text-purple-700'}`}>
                               {risk.category === 'critical' ? L('위협', 'Threat') : risk.category === 'manageable' ? L('관리', 'Manage') : L('침묵', 'Unspoken')}
                             </span>
                             <span className="text-[var(--text-primary)] leading-relaxed">{risk.text}</span>
@@ -447,7 +447,7 @@ export function FeedbackResult({ record, personas, onUpdateRecord, onStartDiscus
                     {/* 추가 요청 */}
                     {(selectedResult.wants_more?.length ?? 0) > 0 && (
                       <div>
-                        <p className="text-[11px] font-bold text-[var(--text-secondary)] mb-1">{L('추가로 보고 싶은 것', 'What they want to see more of')}</p>
+                        <p className="text-[12.5px] font-bold text-[var(--text-secondary)] mb-1">{L('추가로 보고 싶은 것', 'What they want to see more of')}</p>
                         <ul className="space-y-1">
                           {selectedResult.wants_more!.map((w, i) => (
                             <li key={i} className="text-[13px] text-[var(--text-primary)]">{w}</li>
@@ -476,7 +476,7 @@ export function FeedbackResult({ record, personas, onUpdateRecord, onStartDiscus
                 )}
               </div>
               <div className="space-y-2 mb-3">
-                <p className="text-[11px] font-semibold text-[var(--text-secondary)]">{L('어떤 부분이 정확했나요?', 'What was accurate?')}</p>
+                <p className="text-[12.5px] font-semibold text-[var(--text-secondary)]">{L('어떤 부분이 정확했나요?', 'What was accurate?')}</p>
                 <div className="flex flex-wrap gap-1.5">
                   {(locale === 'ko'
                     ? ['질문 예측', '칭찬 포인트', '우려/지적', '추가 요구']
@@ -487,11 +487,11 @@ export function FeedbackResult({ record, personas, onUpdateRecord, onStartDiscus
                     return (
                       <div key={aspect} className="flex items-center gap-1">
                         <button onClick={() => toggleAspect(selectedPersona.id, aspect, 'accurate')}
-                          className={`px-2 py-1 rounded text-[11px] font-medium border cursor-pointer ${isAccurate ? 'border-[var(--success)] bg-[var(--collab)] text-[var(--success)]' : 'border-[var(--border)] text-[var(--text-secondary)]'}`}>
+                          className={`px-2 py-1 rounded text-[12.5px] font-medium border cursor-pointer ${isAccurate ? 'border-[var(--success)] bg-[var(--collab)] text-[var(--success)]' : 'border-[var(--border)] text-[var(--text-secondary)]'}`}>
                           &#x2713; {aspect}
                         </button>
                         <button onClick={() => toggleAspect(selectedPersona.id, aspect, 'inaccurate')}
-                          className={`px-2 py-1 rounded text-[11px] font-medium border cursor-pointer ${isInaccurate ? 'border-[var(--danger)]/30 bg-[var(--danger)]/10 text-[var(--danger)]' : 'border-[var(--border)] text-[var(--text-secondary)]'}`}>
+                          className={`px-2 py-1 rounded text-[12.5px] font-medium border cursor-pointer ${isInaccurate ? 'border-[var(--danger)]/30 bg-[var(--danger)]/10 text-[var(--danger)]' : 'border-[var(--border)] text-[var(--text-secondary)]'}`}>
                           &#x2717;
                         </button>
                       </div>
@@ -549,7 +549,7 @@ export function FeedbackResult({ record, personas, onUpdateRecord, onStartDiscus
                 <p className="text-[13px] font-bold text-[var(--text-primary)]">
                   {L('가상 관점 세트', 'Synthetic perspective set')}
                 </p>
-                <p className="text-[11px] text-[var(--text-secondary)] mt-1 leading-relaxed">
+                <p className="text-[12.5px] text-[var(--text-secondary)] mt-1 leading-relaxed">
                   {L(
                     '같은 자료에서 생성된 관점들은 공통 결론이나 현실 증거가 아닙니다. 관점 수와 영향력은 진실성·우선순위를 높이지 않으며, 이 세트의 독립성 단위는 항상 1입니다.',
                     'Perspectives generated from the same material are not a shared conclusion or reality evidence. Count and influence do not raise truth or priority; this set always has one independence unit.',
@@ -577,7 +577,7 @@ export function FeedbackResult({ record, personas, onUpdateRecord, onStartDiscus
                 <p className="text-[13px] text-[var(--text-primary)]">
                   {syntheticSet.strongest_dissent.statement || L('명시적으로 확인된 반대 렌즈가 없습니다.', 'No dissent lens was explicitly established.')}
                 </p>
-                <p className="text-[11px] text-[var(--text-tertiary)] mt-2">
+                <p className="text-[12.5px] text-[var(--text-tertiary)] mt-2">
                   {syntheticSet.strongest_dissent.kind} · {syntheticSet.strongest_dissent.search_method}
                 </p>
               </Card>
@@ -633,7 +633,7 @@ export function FeedbackResult({ record, personas, onUpdateRecord, onStartDiscus
                 <p className="text-[13px] font-bold text-[var(--warning)]">
                   {L('이전 형식의 가상 종합 기록', 'Legacy simulated synthesis')}
                 </p>
-                <p className="text-[11px] text-[var(--text-secondary)] mt-1">
+                <p className="text-[12.5px] text-[var(--text-secondary)] mt-1">
                   {L('원본은 보존하지만 아래 반복 항목을 공통 결론·사실·우선순위 증거로 사용하지 않습니다.', 'The original bytes are preserved, but recurring items below are not treated as a shared conclusion, fact, or priority evidence.')}
                 </p>
               </div>
@@ -673,7 +673,7 @@ export function FeedbackResult({ record, personas, onUpdateRecord, onStartDiscus
                   </p>
                   {legacySynthesis.review_items.map((item, i) => (
                     <p key={i} className="text-[13px] text-[var(--text-primary)] mb-1">
-                      &#x2022; {item.statement} <span className="text-[11px] text-[var(--text-tertiary)]">({item.source})</span>
+                      &#x2022; {item.statement} <span className="text-[12.5px] text-[var(--text-tertiary)]">({item.source})</span>
                     </p>
                   ))}
                 </Card>
@@ -694,7 +694,7 @@ export function FeedbackResult({ record, personas, onUpdateRecord, onStartDiscus
         <div className="space-y-3 mt-2">
           <div className="flex items-center gap-2">
             <div className="h-px flex-1 bg-[var(--border)]" />
-            <span className="text-[10px] font-bold text-[var(--text-tertiary)] uppercase tracking-wider shrink-0">{L('다음 단계', 'Next step')}</span>
+            <span className="text-[12px] font-bold text-[var(--text-tertiary)] uppercase tracking-wider shrink-0">{L('다음 단계', 'Next step')}</span>
             <div className="h-px flex-1 bg-[var(--border)]" />
           </div>
 
@@ -714,7 +714,7 @@ export function FeedbackResult({ record, personas, onUpdateRecord, onStartDiscus
               </div>
               <div className="flex-1">
                 <p className="text-[13px] font-bold text-[var(--text-primary)]">{L('이슈 정리', 'Triage issues')}</p>
-                <p className="text-[11px] text-[var(--text-secondary)]">{L('반영할 이슈를 선별하고 추가합니다', 'Select which issues to incorporate and add more')}</p>
+                <p className="text-[12.5px] text-[var(--text-secondary)]">{L('반영할 이슈를 선별하고 추가합니다', 'Select which issues to incorporate and add more')}</p>
               </div>
               <ArrowRight size={14} className="text-[var(--text-tertiary)] group-hover:text-[var(--accent)] transition-colors shrink-0" />
             </button>

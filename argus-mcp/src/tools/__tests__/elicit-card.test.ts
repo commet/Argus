@@ -43,9 +43,8 @@ const SEAL_ARGS = {
 } as const;
 
 describe('elicitation 카드 발사 (봉인 confirm_draft)', () => {
-  it('카드가 예측 문구·확인일을 담아, 네이티브 Accept/Decline 스키마(선택 reword·check_by)로 발사된다', async () => {
+  it('카드가 예측 문구·확인일을 담아, 입력칸 없는 Accept/Decline으로 발사된다', async () => {
     let seen: { message: string; schema: Record<string, unknown> } | null = null;
-    // 새 설계(2026-07-24): Accept(빈칸)=keep. 필수 enum 없음.
     setElicitor(async (message, schema) => { seen = { message, schema }; return { action: 'accept', content: {} }; });
 
     await call(init, { argus_dir: argusDir });
@@ -57,10 +56,15 @@ describe('elicitation 카드 발사 (봉인 confirm_draft)', () => {
     expect(s.message).toContain('cutover downtime stays under five minutes'); // 예측 원문
     expect(s.message).toContain('2099-01-01'); // 확인일
     const schema = s.schema as { required?: string[]; properties: Record<string, { type: string }> };
-    // 필수 항목 0 → Accept 한 번이 곧 keep (클런키한 3지선다 enum 제거).
     expect(schema.required ?? []).toEqual([]);
-    expect(schema.properties['reword'].type).toBe('string'); // 선택: 고쳐 쓰기
-    expect(schema.properties['check_by'].type).toBe('string'); // 선택: 확인일 조정
+    // 입력칸이 하나도 없어야 한다 (2026-07-28). 이 테스트는 2026-07-24에
+    // `reword`/`check_by`가 있다는 것을 고정했는데, 그 두 칸이 바로 창업자의
+    // Accept가 세 번 먹히지 않은 이유였다. Claude Code는 필드가 하나라도 있으면
+    // Accept를 미리 선택하지 않고, 텍스트칸 안에서 Return은 제출이 아니라 다음
+    // 줄로 이동한다. 그래서 "읽고 Accept"가 아무것도 보내지 않은 채 60초 뒤
+    // 타임아웃으로 끝났다 (호스트 로그 60.018초). 확인만 받는 픽커는 칸을
+    // 두지 않는다 — 고쳐 쓰기는 사용자가 대화로 말하면 모델이 다시 부른다.
+    expect(Object.keys(schema.properties)).toEqual([]);
 
     // Accept(빈칸) → 사용자가 확언 → 그의 것으로 봉인.
     expect(res.ok).toBe(true);

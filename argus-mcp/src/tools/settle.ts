@@ -102,17 +102,26 @@ export const settle: ToolModule = {
         // Decline", but Decline records nothing and asks again, while the
         // enum's still_pending properly moves the date. It pointed away from
         // the handle that works.
-        const q = sanitizeLine(current.predicate ?? id, 110);
+        const q = sanitizeLine(current.predicate ?? id, 96);
         const due = current.check_by ?? '';
+        // Is this field genuinely optional right now? Only if the model already
+        // carried what-happened in from the conversation. Found on real
+        // hardware 2026-07-28: the label said "(optional)" and "leave blank if
+        // you do not know yet" unconditionally, so a user who picked an outcome
+        // and left it blank — exactly what the screen invited — was refused
+        // afterwards with WHAT_HAPPENED_REQUIRED. The form must not promise
+        // what the server will not honour.
+        const haveWhat = typeof a['what_happened'] === 'string' && (a['what_happened'] as string).trim().length > 0;
         const asked = await elicitDetailed(pickerLocale === 'ko'
-          ? `"${q}"${due ? ` (확인일 ${due})` : ''}\n\n현실이 어떻게 답했나요? 하나 고르고 Accept.\n아직 결과가 안 나왔으면 "아직 모르겠다"를 고르세요. 지금 답하기 어려우면 Decline.`
-          : `"${q}"${due ? ` (check-by ${due})` : ''}\n\nWhat did reality do? Pick one and Accept.\nNo answer yet? Choose "Don't know yet". Bad moment? Decline.`, {
+          ? `"${q}"${due ? ` (확인일 ${due})` : ''}\n\n현실이 어떻게 답했나요? → 키로 하나 고른 뒤, 아래 화살표로 수락 줄까지 내려가 선택하십시오.\n아직 결과가 안 나왔으면 "아직 모르겠다"를 고르세요. 지금 답하기 어려우면 Decline.`
+          : `"${q}"${due ? ` (check-by ${due})` : ''}\n\nWhat did reality do? Pick one with →, then press Enter twice to reach Accept.\nNo answer yet? Choose "Don't know yet". Bad moment? Decline.`, {
           type: 'object',
           properties: {
             outcome: {
               type: 'string',
               enum: [...OUTCOME_VALUES],
               enumNames: outcomeEnumNames(pickerLocale),
+              title: pickerLocale === 'ko' ? '현실이 어떻게 답했나' : 'What reality did',
               description: outcomeFieldDescription(pickerLocale),
             },
             // Capture what-happened in the SAME picker so a settle that reached
@@ -122,7 +131,20 @@ export const settle: ToolModule = {
             // types here is THEIR words (spine-safe — never model-inferred).
             what_happened: {
               type: 'string',
-              description: pickerLocale === 'ko' ? '무슨 일이 있었는지 당신의 말로 한 줄. ("아직 모르겠다"면 비워도 됩니다.)' : 'One line on what actually happened, in your words. (Leave blank if you do not know yet.)',
+              title: pickerLocale === 'ko'
+                ? (haveWhat ? '실제로 무슨 일이 있었나 (선택)' : '실제로 무슨 일이 있었나')
+                : (haveWhat ? 'What actually happened (optional)' : 'What actually happened'),
+              // No `minLength` even when it is needed — a constraint here blocks
+              // Accept inside the form, which is the defect this file already
+              // carries a comment about. The honest thing is to SAY it is needed
+              // and let the server refuse with the user's pick handed back.
+              description: pickerLocale === 'ko'
+                ? (haveWhat
+                  ? '무슨 일이 있었는지 당신의 말로 한 줄. 비우면 앞서 말씀하신 내용을 그대로 씁니다.'
+                  : '무슨 일이 있었는지 당신의 말로 한 줄. 결과를 남기려면 이 줄이 필요합니다.\n아직 모르겠으면 위에서 "아직 모르겠다"를 고르세요.')
+                : (haveWhat
+                  ? 'One line on what actually happened, in your words. Leave blank to keep what you already said.'
+                  : 'One line, in your words. A settled record needs it.\nNot sure yet? Choose "Don\'t know yet" above.'),
             },
           },
           // 필수 필드 없음 (2026-07-27, 창업자 도그푸딩 스크린샷).
@@ -225,10 +247,24 @@ export const settle: ToolModule = {
       // A real settlement records what reality did — required for a terminal
       // outcome (still_pending returned above, where it is genuinely optional).
       if (!(typeof a['what_happened'] === 'string' && a['what_happened'].trim())) {
+        // Hand back the outcome they just chose. Found on real hardware
+        // 2026-07-28: picking "It held" and leaving the sentence blank refused
+        // with nothing in `data`, so the model asked them to pick the outcome
+        // AGAIN — the same make-them-do-it-twice class as the reword hand-back.
+        // Their pick is in our hands at this moment; keep it.
         return toolError({
           ok: false, tool: 'argus_settle', error_code: 'WHAT_HAPPENED_REQUIRED',
           message: 'Record what reality did to the prediction.',
-          recovery: 'Ask the user what actually happened and pass it as `what_happened` — never infer it.',
+          recovery: outcome
+            ? 'The user already picked the outcome (data.user_input.outcome). Do not ask for it again: ask only what actually happened, in their words, and call again passing BOTH.'
+            : 'Ask the user what actually happened and pass it as `what_happened` — never infer it.',
+          data: {
+            id,
+            ...(outcome ? {
+              user_input: { outcome },
+              retry_hint: 'the user already chose data.user_input.outcome — ask only for what happened and call again with both. Never make them choose twice.',
+            } : {}),
+          },
         });
       }
 
@@ -391,18 +427,28 @@ async function deferStillPending(args: {
   //    matters should not be forced into a fake future date).
   let dismissChosen = false;
   if (!newDate && canElicit()) {
+    // WHICH prediction, again (2026-07-28). This ask opened with a bare "아직
+    // 답이 안 나왔군요" — the user is choosing a date for a sentence the screen
+    // never shows. The settle picker had the same hole; this one kept it.
+    const dq = sanitizeLine(current.predicate ?? id, 96);
     const asked = await elicitDetailed(
       locale === 'ko'
-        ? '아직 답이 안 나왔군요. 언제 다시 볼까요?\n\n고르고 Accept · 지금 정하기 싫으면 Decline.'
-        : "Not answered yet. When should I look again?\n\nPick one and Accept · Decline to leave it for now.",
+        ? `"${dq}"\n\n아직 답이 안 나왔군요. 언제 다시 볼까요?\n→ 키로 고른 뒤, 아래 화살표로 수락 줄까지 내려가 선택하십시오. 지금 정하기 어려우면 Decline (확인일은 ${oldCheckBy} 그대로).`
+        : `"${dq}"\n\nNot answered yet. When should I look again?\nPick one with →, then press Enter twice to reach Accept. Decline to leave it (check-by stays ${oldCheckBy}).`,
       // 필수 필드 없음 — 같은 이유. 빈 채 Accept는 Decline과 같은 길로
       // 흐르고(newDate undefined → 아래 정직한 에러), 폼 안에서 막지 않는다.
       { type: 'object', properties: { when: {
         type: 'string', enum: ['week', 'month', 'quarter', 'dismiss'],
+        title: locale === 'ko' ? '언제 다시 볼까요' : 'When to look again',
+        // The fourth option is NOT a date — it closes the decision for good, and
+        // it sat in the list looking like a fourth scheduling choice with no
+        // sign that it is terminal (2026-07-28). Say what it does.
         enumNames: locale === 'ko'
-          ? ['약 1주 뒤', '약 1달 뒤', '약 3달 뒤', '이제 필요 없음 (접기)']
-          : ['In about a week', 'In about a month', 'In about 3 months', 'It no longer matters (set aside)'],
-        description: locale === 'ko' ? '언제 다시 확인할지 고르세요.' : 'When to check this again.',
+          ? ['약 1주 뒤에 다시', '약 1달 뒤에 다시', '약 3달 뒤에 다시', '이 결정은 이제 접습니다 (되돌릴 수 없음)']
+          : ['Again in about a week', 'Again in about a month', 'Again in about 3 months', 'Close this decision for good (cannot be undone)'],
+        description: locale === 'ko'
+          ? '앞의 셋은 확인일만 옮깁니다. 마지막 하나는 이 결정을 영구히 닫습니다.'
+          : 'The first three only move the check-by date. The last one closes the decision permanently.',
       } } },
     );
     // The window never answered (host trouble) — say so, and do NOT dress it up

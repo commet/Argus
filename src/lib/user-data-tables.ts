@@ -4,14 +4,29 @@
  *
  * Why this file exists: `deleteAllUserData` used to hardcode ~16 tables while the
  * live DB has 29 — so 13 tables of a user's data (plugin history, integrations,
- * analytics) silently SURVIVED an account deletion. None of these tables have an
- * `ON DELETE CASCADE` FK to `auth.users` (verified against the live schema
- * 2026-06-23), so deleting the auth identity alone does NOT remove the rows; the
- * server must delete each table explicitly, then delete the identity.
+ * analytics) silently SURVIVED an account deletion. The server must therefore
+ * delete each table explicitly, then delete the identity.
  *
- * Guarded by `src/lib/__tests__/erasure-coverage.test.ts`: if a new user-scoped
- * table is added to the schema and not added here, CI fails — a table can never
- * again silently escape erasure/export.
+ * CORRECTION (2026-07-28, re-verified against the live schema via `pg_constraint`):
+ * an earlier version of this comment claimed "none of these tables have an
+ * `ON DELETE CASCADE` FK to `auth.users`". That was never true — CASCADE has been
+ * in the migrations since `20260409_progressive_sessions.sql`, and live today 49 of
+ * the 51 FKs to `auth.users` are CASCADE. The explicit loop is still required, for
+ * two reasons that do NOT depend on the false claim:
+ *   1. `user_events.user_id` (and `anonymous_account_transfer_tickets.target_user_id`)
+ *      are `ON DELETE SET NULL` — a cascade would leave those rows behind.
+ *   2. Deletion must return a per-table receipt; a cascade erases silently and
+ *      cannot prove what was removed.
+ * The practical consequence of the correction: identity deletion is a real second
+ * erasure mechanism, so anything that BLOCKS identity deletion (see the route's
+ * `hadError` gate) also silently blocks the cascade for tables not listed here.
+ *
+ * Guarded by `src/lib/__tests__/erasure-coverage.test.ts`, in two directions:
+ *   - every user-scoped table DERIVED FROM THE MIGRATIONS must appear here
+ *     (offline, machine-checked — catches a new migration that forgets this file);
+ *   - the hand-mirrored live list must agree with this one.
+ * Neither can see the live DB. For that, run after every migration:
+ *   node scripts/check-erasure-coverage.mjs <execute_sql-result.json>
  */
 export const USER_DATA_TABLES = [
   'accuracy_ratings',
@@ -35,6 +50,10 @@ export const USER_DATA_TABLES = [
   'feedback_records',
   'human_agent_messages',
   'judgment_records',
+  // Short-lived hashed OAuth/device codes for MCP account connection. Has a
+  // `user_id`, so it is user-scoped by this file's own rule — it was live from
+  // 20260716 but missing here until 2026-07-28, i.e. absent from every export.
+  'mcp_account_authorizations',
   'outcome_records',
   'personas',
   'plugin_bearings',

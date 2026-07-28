@@ -8,9 +8,23 @@ import { logServerEvent } from '@/lib/server-events';
  *
  * Replaces the old client-side loop that (a) covered only 16 of 29 user-scoped
  * tables, (b) swallowed errors so a failed delete reported success, and (c) never
- * removed the auth identity. None of the tables cascade on auth.users delete, so
- * we delete each table explicitly with the service role, THEN delete the identity,
- * and return a per-table receipt so the client can show what was actually removed.
+ * removed the auth identity. We delete each table explicitly with the service role,
+ * THEN delete the identity, and return a per-table receipt so the client can show
+ * what was actually removed.
+ *
+ * Why explicit deletion, correctly stated (2026-07-28 — the previous "none of the
+ * tables cascade on auth.users delete" was false; live, 49 of 51 FKs to auth.users
+ * ARE cascade):
+ *   1. `user_events.user_id` is ON DELETE SET NULL — a cascade leaves those rows.
+ *   2. A cascade erases silently and cannot produce the per-table receipt.
+ *
+ * The `hadError` gate below is deliberately all-or-nothing, and that has a sharp
+ * edge worth knowing: because identity deletion IS a real cascade trigger for the
+ * tables not in USER_DATA_TABLES, any error in the loop blocks that cascade too.
+ * A single table listed here but absent from the live DB therefore stops the whole
+ * erasure (it happened: `deep_judgment_usage`, 2026-07-27..28). Guard against it
+ * with `node scripts/check-erasure-coverage.mjs` after every migration — CI cannot
+ * see the live schema.
  */
 export async function POST(req: NextRequest) {
   // Reject anonymous callers before exposing deployment configuration state.

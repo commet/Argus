@@ -9,7 +9,7 @@ import {
 import { TOOLS, TOOL_MAP, servedPublicTools } from './tools/index.js';
 import { listResources, listResourceTemplates, readResource } from './resources.js';
 import { SERVER_INSTRUCTIONS } from './lib/spine.js';
-import { setElicitor } from './lib/elicit.js';
+import { setElicitor, DECISION_ASK_TIMEOUT_MS } from './lib/elicit.js';
 import { setAppsCapability, withUiMeta, UI_EXTENSION_ID } from './lib/apps-ui.js';
 import { initAmbientElicit, armAmbientElicit, attachAmbientNote } from './lib/ambient-elicit.js';
 import { settle } from './tools/settle.js';
@@ -51,7 +51,10 @@ export async function createServer(): Promise<Server> {
   // casting the whole server to `any`. If the running SDK/host lacks it, the
   // call throws and lib/elicit.ts catches it → text fallback.
   type ElicitCapableServer = {
-    elicitInput(params: { message: string; requestedSchema: Record<string, unknown> }): Promise<{
+    elicitInput(
+      params: { message: string; requestedSchema: Record<string, unknown> },
+      options?: { timeout?: number },
+    ): Promise<{
       action: 'accept' | 'decline' | 'cancel';
       content?: Record<string, unknown>;
     }>;
@@ -62,8 +65,14 @@ export async function createServer(): Promise<Server> {
   // initialize). Gating canElicit() on it means a host that never declared the
   // capability takes the text path instead of calling elicitInput (which the SDK
   // throws on) and silently dropping a confirm_draft seal.
+  // The timeout is passed EXPLICITLY. Without it the SDK applies its 60-second
+  // default to a request whose responder is a human deciding whether to commit
+  // to a prediction — and an answer that arrives at 71 seconds is discarded
+  // after the tool has already reported that nothing was recorded. See
+  // DECISION_ASK_TIMEOUT_MS for the host log that proves it happened.
   setElicitor(
-    (message, requestedSchema) => ec.elicitInput({ message, requestedSchema }),
+    (message, requestedSchema, timeoutMs) =>
+      ec.elicitInput({ message, requestedSchema }, { timeout: timeoutMs ?? DECISION_ASK_TIMEOUT_MS }),
     () => Boolean(ec.getClientCapabilities?.()?.elicitation),
   );
   // MCP Apps (SEP-1865): same declared-capability pattern. Hosts that announce

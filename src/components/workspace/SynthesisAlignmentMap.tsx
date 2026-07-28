@@ -46,11 +46,11 @@ export function SynthesisAlignmentMap({ item, onSelectConflict }: SynthesisAlign
           <h3 id="synthesis-map-title" className="text-[15px] font-bold text-[var(--text-primary)]">
             {L('출처에서 판단까지', 'From sources to judgment')}
           </h3>
-          <p className="mt-0.5 text-[11px] text-[var(--text-secondary)]">
+          <p className="mt-0.5 text-[12.5px] text-[var(--text-secondary)]">
             {L('각 입장을 눌러 원문의 정확한 줄 또는 가장 가까운 문단을 확인하세요.', 'Open any position to see the exact line or closest source passage.')}
           </p>
         </div>
-        <p className="text-[10px] text-[var(--text-tertiary)]">
+        <p className="text-[12px] text-[var(--text-tertiary)]">
           {analysis.conflicts.filter((conflict) => conflict.user_judgment).length}/{analysis.conflicts.length} {L('쟁점 판단 완료', 'conflicts decided')}
         </p>
       </div>
@@ -63,7 +63,7 @@ export function SynthesisAlignmentMap({ item, onSelectConflict }: SynthesisAlign
             onClick={() => openSource(source.name, source.core_claim)}
             className="group min-h-[92px] border border-[var(--border-subtle)] bg-[var(--ai)] p-3 text-left transition-colors hover:border-[var(--border)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
           >
-            <span className="flex items-center justify-between gap-2 text-[10px] font-bold text-[var(--ai-fg)]">
+            <span className="flex items-center justify-between gap-2 text-[12px] font-bold text-[var(--ai-fg)]">
               <span className="truncate">{source.name}</span>
               <FileSearch size={12} className="shrink-0 opacity-65 group-hover:opacity-100" />
             </span>
@@ -76,7 +76,7 @@ export function SynthesisAlignmentMap({ item, onSelectConflict }: SynthesisAlign
 
       {analysis.agreements.length > 0 && (
         <div className="border border-[var(--success)]/25 bg-[var(--success)]/7 px-4 py-3">
-          <p className="flex items-center gap-1.5 text-[10px] font-bold text-[var(--success)]"><Check size={12} /> {L('공통으로 남은 것', 'Common ground')}</p>
+          <p className="flex items-center gap-1.5 text-[12px] font-bold text-[var(--success)]"><Check size={12} /> {L('공통으로 남은 것', 'Common ground')}</p>
           <div className="mt-2 grid gap-x-5 gap-y-1.5 sm:grid-cols-2">
             {analysis.agreements.map((agreement, index) => (
               <p key={index} className="text-[12px] leading-relaxed text-[var(--text-primary)]">{agreement}</p>
@@ -87,7 +87,7 @@ export function SynthesisAlignmentMap({ item, onSelectConflict }: SynthesisAlign
 
       {analysis.conflicts.length > 0 && (
         <div className="mt-3 border border-[var(--border-subtle)]">
-          <div className="grid grid-cols-[minmax(0,1fr)_116px_minmax(0,1fr)] border-b border-[var(--border-subtle)] bg-[var(--bg)] px-2 py-1.5 text-center text-[9px] font-bold text-[var(--text-tertiary)]">
+          <div className="grid grid-cols-[minmax(0,1fr)_116px_minmax(0,1fr)] border-b border-[var(--border-subtle)] bg-[var(--bg)] px-2 py-1.5 text-center text-[12.5px] font-bold text-[var(--text-tertiary)]">
             <span>{L('입장 A', 'Position A')}</span>
             <span>{L('쟁점', 'Conflict')}</span>
             <span>{L('입장 B', 'Position B')}</span>
@@ -99,8 +99,8 @@ export function SynthesisAlignmentMap({ item, onSelectConflict }: SynthesisAlign
                 onClick={() => openSource(conflict.side_a.source, conflict.side_a.position)}
                 className="group min-w-0 border-r border-[var(--border-subtle)] p-3 text-left hover:bg-[var(--bg-hover)] focus-visible:outline-2 focus-visible:outline-inset focus-visible:outline-[var(--accent)]"
               >
-                <span className="flex items-center gap-1 text-[9px] font-bold text-[var(--text-tertiary)]"><Search size={10} /> {conflict.side_a.source}</span>
-                <span className="mt-1.5 line-clamp-4 block text-[11px] leading-relaxed text-[var(--text-primary)]">{conflict.side_a.position}</span>
+                <span className="flex items-center gap-1 text-[12.5px] font-bold text-[var(--text-tertiary)]"><Search size={10} /> {conflict.side_a.source}</span>
+                <span className="mt-1.5 line-clamp-4 block text-[12.5px] leading-relaxed text-[var(--text-primary)]">{conflict.side_a.position}</span>
               </button>
               <button
                 type="button"
@@ -109,7 +109,7 @@ export function SynthesisAlignmentMap({ item, onSelectConflict }: SynthesisAlign
                 aria-label={L(`${conflict.topic} 판단으로 이동`, `Go to judgment for ${conflict.topic}`)}
               >
                 {conflict.user_judgment ? <UserRound size={14} className="text-[var(--success)]" /> : <Scale size={14} className="text-[var(--warning)]" />}
-                <span className="line-clamp-3 text-[10px] font-bold leading-snug text-[var(--text-primary)]">{conflict.topic}</span>
+                <span className="line-clamp-3 text-[12px] font-bold leading-snug text-[var(--text-primary)]">{conflict.topic}</span>
                 <span className={`text-[8px] font-bold ${conflict.user_judgment ? 'text-[var(--success)]' : 'text-[var(--warning)]'}`}>
                   {conflict.user_judgment ? L('내 판단 있음', 'Decided') : L('판단 필요', 'Needs judgment')}
                 </span>
@@ -119,8 +119,8 @@ export function SynthesisAlignmentMap({ item, onSelectConflict }: SynthesisAlign
                 onClick={() => openSource(conflict.side_b.source, conflict.side_b.position)}
                 className="group min-w-0 border-l border-[var(--border-subtle)] p-3 text-left hover:bg-[var(--bg-hover)] focus-visible:outline-2 focus-visible:outline-inset focus-visible:outline-[var(--accent)]"
               >
-                <span className="flex items-center gap-1 text-[9px] font-bold text-[var(--text-tertiary)]"><Search size={10} /> {conflict.side_b.source}</span>
-                <span className="mt-1.5 line-clamp-4 block text-[11px] leading-relaxed text-[var(--text-primary)]">{conflict.side_b.position}</span>
+                <span className="flex items-center gap-1 text-[12.5px] font-bold text-[var(--text-tertiary)]"><Search size={10} /> {conflict.side_b.source}</span>
+                <span className="mt-1.5 line-clamp-4 block text-[12.5px] leading-relaxed text-[var(--text-primary)]">{conflict.side_b.position}</span>
               </button>
             </div>
           ))}
@@ -139,15 +139,15 @@ export function SynthesisAlignmentMap({ item, onSelectConflict }: SynthesisAlign
             <div className="mb-3 border-b border-[var(--border-subtle)] pb-3">
               <div className="flex items-center justify-between gap-3">
                 <p className="truncate text-[12px] font-bold text-[var(--text-primary)]">{sourceSelection.location.sourceName}</p>
-                <p className={`shrink-0 text-[10px] font-bold ${sourceSelection.location.match === 'unresolved' ? 'text-[var(--warning)]' : 'text-[var(--accent)]'}`}>
+                <p className={`shrink-0 text-[12px] font-bold ${sourceSelection.location.match === 'unresolved' ? 'text-[var(--warning)]' : 'text-[var(--accent)]'}`}>
                   {matchLabel(sourceSelection.location.match)}
                 </p>
               </div>
-              <p className="mt-2 text-[11px] leading-relaxed text-[var(--text-secondary)]">
+              <p className="mt-2 text-[12.5px] leading-relaxed text-[var(--text-secondary)]">
                 <span className="font-bold text-[var(--text-tertiary)]">{L('비교한 입장', 'Compared position')} </span>{sourceSelection.position}
               </p>
             </div>
-            <div className="overflow-hidden border border-[var(--border-subtle)] bg-[var(--bg)] font-mono text-[11px] leading-[1.65]">
+            <div className="overflow-hidden border border-[var(--border-subtle)] bg-[var(--bg)] font-mono text-[12.5px] leading-[1.65]">
               {sourceLines.map((line, index) => {
                 const lineNo = index + 1;
                 const highlighted = sourceSelection.location.match !== 'unresolved'
@@ -162,7 +162,7 @@ export function SynthesisAlignmentMap({ item, onSelectConflict }: SynthesisAlign
               })}
             </div>
             {sourceSelection.location.match === 'unresolved' && (
-              <p className="mt-2 text-[10px] leading-relaxed text-[var(--warning)]">
+              <p className="mt-2 text-[12px] leading-relaxed text-[var(--warning)]">
                 {L('이 입장은 원문을 요약하거나 재해석한 표현이라 특정 줄을 자동으로 단정하지 않았습니다.', 'This position appears summarized or reinterpreted, so Argus did not assert a specific source line.')}
               </p>
             )}

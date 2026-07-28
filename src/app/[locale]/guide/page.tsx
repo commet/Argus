@@ -135,7 +135,7 @@ export default function GuidePage() {
           {quickStartSteps.map((step, i) => (
             <div key={i} className="flex items-start gap-3">
               <span
-                className="text-[11px] font-bold tabular-nums leading-none pt-1 shrink-0 select-none w-5 h-5 rounded-full bg-[var(--accent)]/10 text-[var(--accent)] flex items-center justify-center"
+                className="text-[12.5px] font-bold tabular-nums leading-none pt-1 shrink-0 select-none w-5 h-5 rounded-full bg-[var(--accent)]/10 text-[var(--accent)] flex items-center justify-center"
               >
                 {i + 1}
               </span>
@@ -168,7 +168,7 @@ export default function GuidePage() {
         </p>
 
         {/* Tone legend */}
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mb-5 text-[11px] text-[var(--text-secondary)]">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mb-5 text-[12.5px] text-[var(--text-secondary)]">
           <span className="inline-flex items-center gap-1.5">
             <span className="w-2 h-2 rounded-full bg-[var(--accent)]" /> {L('AI 작업', 'AI working')}
           </span>

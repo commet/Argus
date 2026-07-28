@@ -51,7 +51,7 @@ export function RecordStrip({ className }: { className?: string }) {
     <div
       className={`rounded-xl border border-[var(--border-subtle)] bg-[var(--surface)] px-4 py-2.5 flex items-baseline gap-2.5 ${className || ''}`}
     >
-      <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--text-tertiary)] shrink-0">
+      <span className="text-[12px] font-bold uppercase tracking-[0.12em] text-[var(--text-tertiary)] shrink-0">
         {L('나의 기록', 'Your records')}
       </span>
       <span className="text-[13px] text-[var(--text-secondary)] leading-snug">
@@ -61,7 +61,7 @@ export function RecordStrip({ className }: { className?: string }) {
         )}
       </span>
       {since ? (
-        <span className="text-[11px] text-[var(--text-tertiary)] shrink-0">
+        <span className="text-[12.5px] text-[var(--text-tertiary)] shrink-0">
           {L(`기록 시작 ${since}`, `since ${since}`)}
         </span>
       ) : null}

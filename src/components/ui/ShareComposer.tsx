@@ -118,30 +118,30 @@ export function ShareComposer({ open, onClose, getText, getTitle, shareContext =
         {/* Preview */}
         <div>
           <div className="flex items-center justify-between mb-1.5">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--text-tertiary)]">{title || L('미리보기', 'Preview')}</span>
+            <span className="text-[12.5px] font-bold uppercase tracking-wider text-[var(--text-tertiary)]">{title || L('미리보기', 'Preview')}</span>
             <div className="flex gap-1.5">
               <button
                 onClick={handleCopy}
-                className="inline-flex items-center gap-1 text-[11px] text-[var(--text-secondary)] hover:text-[var(--accent)] px-2 py-1 rounded-md transition-colors cursor-pointer"
+                className="inline-flex items-center gap-1 text-[12.5px] text-[var(--text-secondary)] hover:text-[var(--accent)] px-2 py-1 rounded-md transition-colors cursor-pointer"
               >
                 {copied ? <Check size={12} /> : <CopyIcon size={12} />} {copied ? L('복사됨', 'Copied') : L('복사', 'Copy')}
               </button>
               <button
                 onClick={handleDownload}
-                className="inline-flex items-center gap-1 text-[11px] text-[var(--text-secondary)] hover:text-[var(--accent)] px-2 py-1 rounded-md transition-colors cursor-pointer"
+                className="inline-flex items-center gap-1 text-[12.5px] text-[var(--text-secondary)] hover:text-[var(--accent)] px-2 py-1 rounded-md transition-colors cursor-pointer"
               >
                 <Download size={12} /> .md
               </button>
             </div>
           </div>
-          <pre className="bg-[#1a1a2e] text-[#e2e4ea] rounded-xl p-3.5 text-[11.5px] leading-relaxed overflow-auto max-h-[180px] whitespace-pre-wrap font-mono">
+          <pre className="bg-[#1a1a2e] text-[#e2e4ea] rounded-xl p-3.5 text-[13px] leading-relaxed overflow-auto max-h-[180px] whitespace-pre-wrap font-mono">
             {text}
           </pre>
         </div>
 
         {/* Channel chooser */}
         <div>
-          <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--text-tertiary)]">{L('보낼 곳', 'Send to')}</span>
+          <span className="text-[12.5px] font-bold uppercase tracking-wider text-[var(--text-tertiary)]">{L('보낼 곳', 'Send to')}</span>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-2">
             {(Object.keys(channelMeta) as Channel[]).map((ch) => (
               <button
@@ -261,14 +261,14 @@ function LinkPanel({ user, title, text, context, onCreated }: { user: boolean; t
       {error && <p className="text-[12px] text-[var(--danger)]">{error}</p>}
       {url ? (
         <>
-          <p className="text-[11.5px] text-[var(--text-secondary)]">{L('누구나 이 링크로 결과를 열어볼 수 있어요.', 'Anyone with this link can open the result.')}</p>
+          <p className="text-[13px] text-[var(--text-secondary)]">{L('누구나 이 링크로 결과를 열어볼 수 있어요.', 'Anyone with this link can open the result.')}</p>
           <div className="flex items-center gap-2">
             <input readOnly value={url} className="flex-1 text-[12px] font-mono bg-[var(--bg)] border border-[var(--border-subtle)] rounded-lg px-2.5 py-2 text-[var(--text-primary)]" onFocus={(e) => e.currentTarget.select()} />
             <Button variant="secondary" size="sm" onClick={copy}>
               {copied ? <Check size={13} /> : <CopyIcon size={13} />}
             </Button>
           </div>
-          <a href={url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[11.5px] text-[var(--text-tertiary)] hover:text-[var(--accent)]">
+          <a href={url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[13px] text-[var(--text-tertiary)] hover:text-[var(--accent)]">
             {L('새 탭에서 열기', 'Open in new tab')} <ExternalLink size={11} />
           </a>
         </>
@@ -484,7 +484,7 @@ function TelegramPanel({ connected, loaded, loadError, user, title, text, contex
         >
           <Send size={14} className="text-[var(--accent)]" />
           <span className="text-[13px] text-[var(--text-primary)] truncate">{c.chat_title || L('내 Telegram', 'My Telegram')}</span>
-          {sending ? <Loader2 size={13} className="animate-spin text-[var(--text-tertiary)] ml-auto" /> : <span className="text-[11px] text-[var(--text-tertiary)] ml-auto">{L('보내기', 'Send')}</span>}
+          {sending ? <Loader2 size={13} className="animate-spin text-[var(--text-tertiary)] ml-auto" /> : <span className="text-[12.5px] text-[var(--text-tertiary)] ml-auto">{L('보내기', 'Send')}</span>}
         </button>
       ))}
     </div>

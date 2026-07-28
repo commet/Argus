@@ -138,7 +138,7 @@ export function StepIntro({ stepKey }: StepIntroProps) {
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-1.5 mb-1">
               <Icon size={12} className="text-[var(--accent)]" />
-              <p className="text-[11px] font-bold text-[var(--accent)] uppercase tracking-wider">
+              <p className="text-[12.5px] font-bold text-[var(--accent)] uppercase tracking-wider">
                 {L('이 단계는', 'This step')}
               </p>
             </div>

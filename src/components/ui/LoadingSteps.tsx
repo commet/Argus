@@ -81,7 +81,7 @@ export function LoadingSteps({ steps, intervalMs = 2500 }: LoadingStepsProps) {
         <p key={currentStep} className="mt-3 text-[14px] font-semibold text-[var(--text-primary)] animate-fade-in">
           {steps[currentStep]}
         </p>
-        <p className="mt-1.5 text-[11px] text-[var(--text-tertiary)] min-h-[15px]" aria-live="polite">
+        <p className="mt-1.5 text-[12.5px] text-[var(--text-tertiary)] min-h-[15px]" aria-live="polite">
           {note}
         </p>
         {showCompanion && (

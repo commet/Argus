@@ -64,7 +64,7 @@ export function renderMd(c: string) {
             <thead>
               <tr className="border-b border-[var(--text-primary)]/15">
                 {header.map((h, hi) => (
-                  <th key={hi} className="text-left py-2 px-2.5 font-semibold text-[var(--text-tertiary)] text-[10px] uppercase tracking-[0.08em] align-bottom">
+                  <th key={hi} className="text-left py-2 px-2.5 font-semibold text-[var(--text-tertiary)] text-[12px] uppercase tracking-[0.08em] align-bottom">
                     {renderInline(h)}
                   </th>
                 ))}

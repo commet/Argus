@@ -73,17 +73,64 @@ function Clause({ text, ink, nib, halo, dur, delay }: { text: string; ink: strin
 // Orchestrates the quote's clauses (split on the authored "\n") so each inks in
 // immediately after the previous. There is deliberately no inter-clause pause:
 // a pause made every authored line break look like a playback hitch.
-function InkedQuote({ text, ink, nib, halo, rm, narrow }: { text: string; ink: string; nib: string; halo: string; rm: boolean; narrow: boolean }) {
+/**
+ * Caption pacing, budgeted against the chapter's own on-screen window
+ * (2026-07-28 — founder: "후다닥 나오다가 갑자기 멈췄다가 다시 진행된다.
+ * 정박으로 계속 찬찬히 나오도록").
+ *
+ * The old schedule was window-blind: each clause was clamped to 0.46–0.85s with
+ * ZERO pause between clauses, so chapter I finished drawing at ~1.5s and the
+ * tail landed at ~1.8s — inside a 6.6s window. The remaining ~4.8s was a frozen
+ * frame, and the 1.4–1.6s gap before the next chapter read as a second stop.
+ * Hence "rushes, then stalls, then resumes".
+ *
+ * Now every chapter spends its own window: the quote draws across roughly the
+ * first half of it, clauses breathe between one another, and the tail follows
+ * after a beat — leaving the last stretch as reading time rather than dead air.
+ */
+const QUOTE_START = 0.3;
+/** Share of the chapter window the quote may spend drawing (incl. its pauses). */
+const QUOTE_SHARE = 0.5;
+/** Of that quote budget, how much is silence between clauses. */
+const CLAUSE_PAUSE_SHARE = 0.3;
+/** Beat between the last clause landing and the attribution/Argus tail. */
+const TAIL_BEAT = 0.36;
+
+/** Per-clause draw durations + start delays, fitted to `window` seconds. */
+function quoteSchedule(text: string, narrow: boolean, window: number) {
   const clauses = text.split('\n');
+  // A chapter is never shorter than ~6.5s today, but never trust the data to
+  // stay that way: floor the budget so a short window can't make it a flicker.
+  const budget = Math.max(1.6, window * QUOTE_SHARE) * (narrow ? 0.92 : 1);
+  const gaps = Math.max(0, clauses.length - 1);
+  const pauseEach = gaps ? (budget * CLAUSE_PAUSE_SHARE) / gaps : 0;
+  const drawBudget = budget - pauseEach * gaps;
+  // Longer clauses take proportionally longer to ink; the floor keeps a very
+  // short clause from snapping into place.
+  const weights = clauses.map((c) => Math.max(6, c.length));
+  const totalWeight = weights.reduce((a, b) => a + b, 0);
+  const durs = weights.map((w) => (w / totalWeight) * drawBudget);
+
+  let cursor = QUOTE_START;
+  const delays = durs.map((d) => {
+    const at = cursor;
+    cursor += d + pauseEach;
+    return at;
+  });
+  // `cursor` overshoots by one pause after the final clause — drop it so the
+  // tail follows the last clause, not the last pause.
+  const end = cursor - pauseEach;
+  return { clauses, durs, delays, end };
+}
+
+function InkedQuote({ text, ink, nib, halo, rm, narrow, window: win }: { text: string; ink: string; nib: string; halo: string; rm: boolean; narrow: boolean; window: number }) {
+  const { clauses, durs, delays } = quoteSchedule(text, narrow, win);
   if (rm) return <>{clauses.map((c, i) => <span key={i} style={{ display: 'block', color: ink, textShadow: halo }}>{c}</span>)}</>;
-  const mult = narrow ? 0.9 : 1;
-  const durs = clauses.map((c) => Math.min(0.85, Math.max(0.46, c.length * 0.045)) * mult);
   return (
     <>
-      {clauses.map((c, i) => {
-        const delay = 0.3 + durs.slice(0, i).reduce((a, d) => a + d, 0);
-        return <Clause key={i} text={c} ink={ink} nib={nib} halo={halo} dur={durs[i]} delay={delay} />;
-      })}
+      {clauses.map((c, i) => (
+        <Clause key={i} text={c} ink={ink} nib={nib} halo={halo} dur={durs[i]} delay={delays[i]} />
+      ))}
     </>
   );
 }
@@ -176,11 +223,9 @@ const CHAPTERS: Chapter[] = [
 ];
 
 // When the quote finishes inking — so the attribution+service rise right after.
-function quoteEnd(text: string, narrow: boolean) {
-  const mult = narrow ? 0.9 : 1;
-  const durs = text.split('\n').map((c) => Math.min(0.85, Math.max(0.46, c.length * 0.045)) * mult);
-  const lastDelay = 0.3 + durs.slice(0, -1).reduce((a, d) => a + d, 0);
-  return lastDelay + (durs[durs.length - 1] ?? 0.46);
+/** When the tail (attribution + Argus line) should follow the drawn quote. */
+function quoteEnd(text: string, narrow: boolean, window: number) {
+  return quoteSchedule(text, narrow, window).end + TAIL_BEAT;
 }
 
 /* The lower-left "plate folio" — a giant ghosted chapter numeral + a margin
@@ -204,7 +249,9 @@ function PlateFolioCard({ active, L, locale, rm, narrow }: { active: Chapter; L:
   const folioHalo = '0 0 2px var(--bp-paper), 0 0 7px var(--bp-paper), 0 0 16px var(--bp-paper)';
   const spineColor = gold ? 'var(--bp-ink)' : 'var(--bp-gold)';
   const eyebrowColor = gold ? 'var(--bp-gold-deep)' : 'var(--bp-ink)';
-  const clusterDelay = quoteEnd(L(active.mythKo, active.mythEn), narrow);
+  // The chapter's own on-screen window is the pacing budget — see quoteSchedule.
+  const chapterWindow = Math.max(0, active.to - active.from);
+  const clusterDelay = quoteEnd(L(active.mythKo, active.mythEn), narrow, chapterWindow);
   const ease: [number, number, number, number] = [0.22, 0.61, 0.36, 1];
   const bk = locale === 'ko' ? 'break-keep' : '';
 
@@ -225,7 +272,7 @@ function PlateFolioCard({ active, L, locale, rm, narrow }: { active: Chapter; L:
   );
   const quote = (
     <div className={bk} style={{ fontFamily: "'Nanum Myeongjo', var(--font-display), serif", fontWeight: 700, fontSize: 'clamp(21px, 2.6vw, 31px)', lineHeight: 1.32, letterSpacing: '0.005em', maxWidth: '52ch', whiteSpace: 'pre-line' }}>
-      <InkedQuote text={L(active.mythKo, active.mythEn)} ink={quoteInk} nib={nib} halo={quoteHalo} rm={rm} narrow={narrow} />
+      <InkedQuote text={L(active.mythKo, active.mythEn)} ink={quoteInk} nib={nib} halo={quoteHalo} rm={rm} narrow={narrow} window={chapterWindow} />
     </div>
   );
   // attribution (who said the myth line) — held visually apart from the blue

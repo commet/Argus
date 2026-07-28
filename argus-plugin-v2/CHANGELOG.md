@@ -1,5 +1,38 @@
 # Changelog
 
+## 3.0.4 — 2026-07-28
+
+- Wire moves to `argus-decision-mcp@2.0.4` — **Accept works, and the dialog
+  waits for you.** Two separate reasons it did not:
+
+  The confirm dialog carried optional edit boxes. Claude Code does not
+  preselect Accept when a form has any field, and Return inside a box moves to
+  the next row rather than submitting — so reading the prediction and pressing
+  Accept sent nothing, and the ask ended in a timeout. The confirm now has no
+  input fields: one keypress records it. To change the wording or the date, say
+  so and it is re-sealed with your words.
+
+  Separately, the ask itself was a request with the MCP SDK's default 60-second
+  timeout, so an Accept pressed after a minute of thinking was discarded while
+  the tool reported that nothing had been recorded. It allows ten minutes now.
+
+- The pickers that need an answer from you (what reality did, when to look
+  again, your call on an open question) keep their fields and now say on screen
+  where the submit row is.
+- The receipt, seal certificate and logbook had six ways to spill outside their
+  own frame — a Korean sentence without spaces, a long URL, emoji, a long id —
+  and they stay inside it now.
+
+## 3.0.3 — 2026-07-28
+
+- Wire moves to `argus-decision-mcp@2.0.3` — the five confirm dialogs were read
+  the way the card was in 3.0.2. Every input box had been labelled with its
+  internal key (`reword`, `outcome`, `what_happened`, `when`); they now carry
+  human labels in your language. The defer ask shows which prediction it is
+  about and marks "close this for good" as irreversible. A long prediction no
+  longer spills as one 300-character line. English copy was read for the first
+  time and unpacked into lines.
+
 ## 3.0.2 — 2026-07-28
 
 - Wire moves to `argus-decision-mcp@2.0.2` — the confirm surfaces were rendered

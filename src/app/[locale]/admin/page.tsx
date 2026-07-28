@@ -49,9 +49,9 @@ interface FunnelStageCounts {
 function Stat({ label, value, hint, accent }: { label: string; value: number | string; hint?: string; accent?: boolean }) {
   return (
     <Card variant={accent ? 'elevated' : 'default'} className="!p-4">
-      <p className="text-[11px] font-bold uppercase tracking-wider text-[var(--text-tertiary)]">{label}</p>
+      <p className="text-[12.5px] font-bold uppercase tracking-wider text-[var(--text-tertiary)]">{label}</p>
       <p className={`mt-1 text-[28px] font-bold leading-none ${accent ? 'text-[var(--accent)]' : 'text-[var(--text-primary)]'}`}>{value}</p>
-      {hint && <p className="mt-1 text-[11px] text-[var(--text-tertiary)]">{hint}</p>}
+      {hint && <p className="mt-1 text-[12.5px] text-[var(--text-tertiary)]">{hint}</p>}
     </Card>
   );
 }
@@ -74,9 +74,9 @@ function SurfaceFunnel({ rows, L }: { rows: Record<'web' | 'mcp' | 'plugin', Fun
       <table className="w-full min-w-[560px] text-left">
         <thead>
           <tr className="border-b border-[var(--border-subtle)]">
-            <th className="px-3 py-2 text-[11px] font-bold uppercase tracking-wider text-[var(--text-tertiary)]">{L('표면', 'Surface')}</th>
+            <th className="px-3 py-2 text-[12.5px] font-bold uppercase tracking-wider text-[var(--text-tertiary)]">{L('표면', 'Surface')}</th>
             {stages.map((s) => (
-              <th key={s.key} className="px-3 py-2 text-[11px] font-bold uppercase tracking-wider text-[var(--text-tertiary)]">{s.label}</th>
+              <th key={s.key} className="px-3 py-2 text-[12.5px] font-bold uppercase tracking-wider text-[var(--text-tertiary)]">{s.label}</th>
             ))}
           </tr>
         </thead>
@@ -87,7 +87,7 @@ function SurfaceFunnel({ rows, L }: { rows: Record<'web' | 'mcp' | 'plugin', Fun
               <tr key={surface.key} className="border-b border-[var(--border-subtle)] last:border-b-0">
                 <td className="px-3 py-3">
                   <p className="text-[13px] font-semibold text-[var(--text-primary)]">{surface.label}</p>
-                  <p className="text-[11px] text-[var(--text-tertiary)]">{surface.hint}</p>
+                  <p className="text-[12.5px] text-[var(--text-tertiary)]">{surface.hint}</p>
                 </td>
                 {stages.map((s) => (
                   <td key={s.key} className="px-3 py-3 text-[18px] font-bold tabular-nums text-[var(--text-primary)]">{counts[s.key] ?? 0}</td>
@@ -209,7 +209,7 @@ export default function AdminPage() {
                   </div>
                 )}
 
-                <p className="text-[11px] text-[var(--text-tertiary)] mb-6 leading-snug">
+                <p className="text-[12.5px] text-[var(--text-tertiary)] mb-6 leading-snug">
                   {L('익명 정산은 며칠 뒤 새 세션에서 일어나 세션 단위로는 과소집계됩니다 — 전환율 대신 원시 카운트를 봅니다.',
                      'Anon settle happens days later in a new session, so session-based conversion undercounts — read raw counts, not a %.')}
                 </p>

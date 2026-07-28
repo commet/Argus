@@ -35,7 +35,7 @@ export function StationCard({
             justifyContent: 'space-between',
             alignItems: 'center',
             color: 'var(--bp-ink-soft)',
-            fontSize: 10.5,
+            fontSize: 12.5,
             letterSpacing: '0.22em',
             textTransform: 'uppercase',
             marginBottom: 8,
@@ -46,7 +46,7 @@ export function StationCard({
             style={{
               border: '1px solid var(--bp-ink-faint)',
               padding: '1px 7px',
-              fontSize: 10,
+              fontSize: 12,
               letterSpacing: '0.12em',
               color: 'var(--bp-ink)',
             }}
@@ -75,7 +75,7 @@ export function StationCard({
           className="bp-mono"
           style={{
             color: 'var(--bp-ink-soft)',
-            fontSize: 10.5,
+            fontSize: 12.5,
             letterSpacing: '0.18em',
             textTransform: 'uppercase',
             marginBottom: 12,
@@ -88,7 +88,7 @@ export function StationCard({
         <p
           style={{
             color: 'var(--bp-ink)',
-            fontSize: 13.5,
+            fontSize: 15,
             lineHeight: 1.5,
             margin: 0,
             wordBreak: 'keep-all',
@@ -102,7 +102,7 @@ export function StationCard({
           className="bp-mono"
           style={{
             color: 'var(--bp-ink-soft)',
-            fontSize: 10.5,
+            fontSize: 12.5,
             letterSpacing: '0.08em',
             marginTop: 12,
             marginBottom: 0,

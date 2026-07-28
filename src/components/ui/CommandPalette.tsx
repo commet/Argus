@@ -141,9 +141,9 @@ export function CommandPalette({ open, onClose, locale, items }: CommandPaletteP
                 <span className="min-w-0 flex-1">
                   <span className="flex items-center gap-2">
                     <span className="truncate text-[13px] font-semibold">{item.label}</span>
-                    <span className="shrink-0 text-[9px] font-bold uppercase tracking-[0.12em] text-[var(--text-tertiary)]">{item.group}</span>
+                    <span className="shrink-0 text-[12.5px] font-bold uppercase tracking-[0.12em] text-[var(--text-tertiary)]">{item.group}</span>
                   </span>
-                  <span className="block truncate text-[11px] text-[var(--text-tertiary)]">{item.description}</span>
+                  <span className="block truncate text-[12.5px] text-[var(--text-tertiary)]">{item.description}</span>
                 </span>
                 <ArrowRight size={14} className={`shrink-0 transition-all ${active ? 'translate-x-0 opacity-70' : '-translate-x-1 opacity-0'}`} aria-hidden="true" />
               </button>
@@ -158,7 +158,7 @@ export function CommandPalette({ open, onClose, locale, items }: CommandPaletteP
           )}
         </div>
 
-        <div className="flex items-center gap-4 border-t border-[var(--border-subtle)] bg-[var(--bg)]/70 px-4 py-2 text-[10px] text-[var(--text-tertiary)]">
+        <div className="flex items-center gap-4 border-t border-[var(--border-subtle)] bg-[var(--bg)]/70 px-4 py-2 text-[12px] text-[var(--text-tertiary)]">
           <span><kbd className="font-mono">↑↓</kbd> {L('이동', 'move')}</span>
           <span><kbd className="font-mono">Enter</kbd> {L('열기', 'open')}</span>
           <span className="ml-auto"><kbd className="font-mono">Esc</kbd> {L('닫기', 'close')}</span>

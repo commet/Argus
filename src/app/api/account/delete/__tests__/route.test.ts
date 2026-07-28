@@ -12,6 +12,8 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 let tokenUser: { id: string } | null = { id: 'user-1' };
 let deleteError: { message: string } | null = null;
+/** One table that answers like PostgREST does for a relation that isn't there. */
+let missingTable: string | null = null;
 let artifactReadError: { message: string } | null = null;
 let storageRemoveError: { message: string } | null = null;
 let artifactLocator = 'user-1/sha256/aa/hash';
@@ -39,6 +41,15 @@ function adminClient() {
         delete: () => ({
           eq: () => {
             if (deleteError) return Promise.resolve({ count: null, error: deleteError });
+            if (table === missingTable) {
+              return Promise.resolve({
+                count: null,
+                error: {
+                  code: 'PGRST205',
+                  message: `Could not find the table 'public.${table}' in the schema cache`,
+                },
+              });
+            }
             deletedTables.push(table);
             return Promise.resolve({ count: 1, error: null });
           },
@@ -76,6 +87,7 @@ beforeEach(() => {
   vi.stubEnv('SUPABASE_SERVICE_ROLE_KEY', 'svc-key');
   tokenUser = { id: 'user-1' };
   deleteError = null;
+  missingTable = null;
   artifactReadError = null;
   storageRemoveError = null;
   artifactLocator = 'user-1/sha256/aa/hash';
@@ -141,6 +153,37 @@ describe('POST /api/account/delete — auth + erasure receipt', () => {
     expect(json.ok).toBe(false);
     expect(json.identityDeleted).toBe(false);
     expect(deleteUserSpy).not.toHaveBeenCalled();
+    expect(String(json.receipt['auth.users'])).toContain('skipped');
+  });
+
+  /**
+   * Regression — the 2026-07-27..28 production incident, reproduced exactly.
+   *
+   * `deep_judgment_usage` was added to USER_DATA_TABLES in the same commit as its
+   * migration, but the migration was never applied. Exactly ONE table answered
+   * PGRST205 while every other delete succeeded, so the receipt looked almost
+   * entirely healthy — and the identity was never deleted, which ALSO silences the
+   * `ON DELETE CASCADE` that is the only erasure path for tables outside the list.
+   * Deletion returned 500 for every user, and both CI list-guards stayed green.
+   *
+   * The all-or-nothing gate asserted here is correct and must stay (skipping ahead
+   * would orphan rows). What must never regress is the loudness: a schema drift has
+   * to name the table in the receipt. Catching the drift itself is the job of
+   * `scripts/check-erasure-coverage.mjs` — CI cannot see the live DB.
+   */
+  it('a single missing table (schema drift) blocks identity deletion and names itself', async () => {
+    missingTable = 'deep_judgment_usage';
+    const res = await POST(req('good'));
+    const json = await res.json();
+
+    expect(res.status).toBe(500);
+    expect(json.ok).toBe(false);
+    expect(json.identityDeleted).toBe(false);
+    expect(deleteUserSpy).not.toHaveBeenCalled();
+
+    // The tell that made this hard to spot: most tables still report success.
+    expect(deletedTables.length).toBeGreaterThan(10);
+    expect(String(json.receipt.deep_judgment_usage)).toContain('Could not find the table');
     expect(String(json.receipt['auth.users'])).toContain('skipped');
   });
 

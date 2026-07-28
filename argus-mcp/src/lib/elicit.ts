@@ -17,7 +17,36 @@ export interface ElicitResult {
   content?: Record<string, unknown>;
 }
 
-export type Elicitor = (message: string, requestedSchema: Record<string, unknown>) => Promise<ElicitResult>;
+export type Elicitor = (
+  message: string,
+  requestedSchema: Record<string, unknown>,
+  timeoutMs?: number,
+) => Promise<ElicitResult>;
+
+/**
+ * How long a person may take to answer, and why this is not a detail.
+ *
+ * The MCP SDK times a server→client request out after 60 seconds by default
+ * (`DEFAULT_REQUEST_TIMEOUT_MSEC`). Nobody passed an option, so every picker
+ * inherited it — and a picker is not a machine call. It is a human being reading
+ * their own prediction and deciding whether to commit to it, which routinely
+ * takes longer than a minute.
+ *
+ * What that produced, from the founder's own host log (2026-07-27):
+ *
+ *     07:22:16  argus_predict called, ask sent
+ *     07:23:16  tool completed in 1m 0s      ← the SDK gave up, exactly on time
+ *     07:23:27  {"action":"accept"}          ← their Accept, 11 seconds too late
+ *
+ * They pressed Accept. The answer arrived. It was thrown away, and the tool had
+ * already told them nothing was recorded. This was reported twice as "Accept
+ * does not work" and fixed twice — as a schema-constraint problem, which was
+ * also real — while the clock went unmeasured both times.
+ *
+ * So: minutes, not seconds, and the number lives here rather than in the SDK's
+ * defaults where nobody looks.
+ */
+export const DECISION_ASK_TIMEOUT_MS = 10 * 60 * 1000;
 
 let _elicit: Elicitor | null = null;
 let _capable: (() => boolean) | null = null;
@@ -71,10 +100,14 @@ export type ElicitOutcome =
  *               was ever shown to anyone, so burning a 4-hour cooldown on it
  *               silences a user who was never asked.
  */
-export async function elicitDetailed(message: string, requestedSchema: Record<string, unknown>): Promise<ElicitOutcome> {
+export async function elicitDetailed(
+  message: string,
+  requestedSchema: Record<string, unknown>,
+  timeoutMs: number = DECISION_ASK_TIMEOUT_MS,
+): Promise<ElicitOutcome> {
   if (!_elicit) return { kind: 'unsupported' };
   try {
-    const res = await _elicit(stripUnsafeChars(message), requestedSchema);
+    const res = await _elicit(stripUnsafeChars(message), requestedSchema, timeoutMs);
     if (res.action === 'accept') return { kind: 'accepted', content: res.content ?? {} };
     if (res.action === 'decline') return { kind: 'declined' };
     return { kind: 'no_answer', reason: 'cancelled' }; // the host closed it without an answer
@@ -84,7 +117,11 @@ export async function elicitDetailed(message: string, requestedSchema: Record<st
 }
 
 /** Ask the user; returns null if unsupported / errored / not accepted. */
-export async function elicit(message: string, requestedSchema: Record<string, unknown>): Promise<Record<string, unknown> | null> {
+export async function elicit(
+  message: string,
+  requestedSchema: Record<string, unknown>,
+  timeoutMs: number = DECISION_ASK_TIMEOUT_MS,
+): Promise<Record<string, unknown> | null> {
   if (!_elicit) return null;
   try {
     // The elicitation `message` is a SEPARATE server→client request — it does NOT
@@ -94,7 +131,7 @@ export async function elicit(message: string, requestedSchema: Record<string, un
     // spine spoof). Sanitize here, at the one seam every picker passes through,
     // so no call site can forget. stripUnsafeChars keeps \n and \t (a message
     // like `Record this?\n"…"` needs the newline).
-    const res = await _elicit(stripUnsafeChars(message), requestedSchema);
+    const res = await _elicit(stripUnsafeChars(message), requestedSchema, timeoutMs);
     return res.action === 'accept' && res.content ? res.content : null;
   } catch {
     return null; // host declared support but failed — fall back to text

@@ -56,7 +56,7 @@ export function Act1Voyage() {
             className={`bp-fade-up ${locale === 'ko' ? 'break-keep' : ''}`}
             style={{
               color: 'var(--bp-ink-soft)',
-              fontSize: 'clamp(12px, 1vw, 14px)',
+              fontSize: 'clamp(13.5px, 1vw, 14px)',
               letterSpacing: '0.04em',
               fontWeight: 600,
               marginBottom: 14,
@@ -127,7 +127,7 @@ export function Act1Voyage() {
               className="bp-mono inline-flex items-center"
               style={{
                 color: 'var(--bp-ink)',
-                fontSize: 11.5,
+                fontSize: 13,
                 letterSpacing: '0.22em',
                 textTransform: 'uppercase',
                 borderBottom: '1px solid var(--bp-ink)',
@@ -142,7 +142,7 @@ export function Act1Voyage() {
               className="bp-mono"
               style={{
                 color: 'var(--bp-ink-faint)',
-                fontSize: 11,
+                fontSize: 12.5,
                 letterSpacing: '0.16em',
               }}
             >

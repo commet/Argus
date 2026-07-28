@@ -135,7 +135,7 @@ export function SealModal({
           </div>
           {obligation && (
             <div className="mb-4 rounded-sm bg-[var(--accent)]/[0.045] px-3 py-2.5">
-              <div className="mb-1 text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--accent)]">
+              <div className="mb-1 text-[12px] font-bold uppercase tracking-[0.16em] text-[var(--accent)]">
                 {L('기록할 판단', 'Judgment to record')}
               </div>
               <p className="text-[13px] leading-relaxed text-[var(--text-primary)]">{obligation.statement}</p>
@@ -144,7 +144,7 @@ export function SealModal({
 
           {followups.length > 1 && (
             <div className="mb-3">
-              <label htmlFor="followup-suggestion" className="mb-1 block text-[11px] font-semibold text-[var(--text-secondary)]">
+              <label htmlFor="followup-suggestion" className="mb-1 block text-[12.5px] font-semibold text-[var(--text-secondary)]">
                 {L('Argus가 찾은 확인 질문', 'Check-in question suggested by Argus')}
               </label>
               <select
@@ -164,7 +164,7 @@ export function SealModal({
           <label htmlFor="record-predicate" className="mb-1 block text-[12px] font-bold text-[var(--text-primary)]">
             {L('나중에 무엇을 확인할까요?', 'What should we check later?')}
           </label>
-          <p className="mb-2 text-[11px] leading-relaxed text-[var(--text-tertiary)]">
+          <p className="mb-2 text-[12.5px] leading-relaxed text-[var(--text-tertiary)]">
             {selected?.predicate_owner === 'ai_surfaced'
               ? L('Argus가 문서에서 뽑은 초안입니다. 실제로 답할 수 있는 질문이 되도록 고쳐도 됩니다.', 'This is an Argus draft from the document. Edit it into a question reality can answer.')
               : L('결과를 보고 분명하게 답할 수 있는 질문으로 적어주세요.', 'Write a question the outcome can answer clearly.')}
@@ -204,24 +204,24 @@ export function SealModal({
           {showCriteria && (
             <div className="mt-3 grid grid-cols-1 gap-3 border-b border-[var(--border-subtle)] pb-4 sm:grid-cols-2">
               <div>
-                <label htmlFor="record-pass" className="mb-1 block text-[11px] font-bold text-[var(--text-secondary)]">{L('이 정도면 맞았다고 봄', 'This would count as right')}</label>
+                <label htmlFor="record-pass" className="mb-1 block text-[12.5px] font-bold text-[var(--text-secondary)]">{L('이 정도면 맞았다고 봄', 'This would count as right')}</label>
                 <input id="record-pass" value={pass} onChange={(e) => setPass(e.target.value)} maxLength={200}
                   className="w-full rounded border border-[var(--border-subtle)] bg-transparent px-3 py-2 text-[12px] outline-none focus:border-[var(--accent)]" />
               </div>
               <div>
-                <label htmlFor="record-fail" className="mb-1 block text-[11px] font-bold text-[var(--text-secondary)]">{L('이러면 다시 생각해야 함', 'This would make me reconsider')}</label>
+                <label htmlFor="record-fail" className="mb-1 block text-[12.5px] font-bold text-[var(--text-secondary)]">{L('이러면 다시 생각해야 함', 'This would make me reconsider')}</label>
                 <input id="record-fail" value={fail} onChange={(e) => setFail(e.target.value)} maxLength={200}
                   className="w-full rounded border border-[var(--border-subtle)] bg-transparent px-3 py-2 text-[12px] outline-none focus:border-[var(--accent)]" />
               </div>
               {!obligation && (
                 <>
                   <div>
-                    <label htmlFor="record-lean" className="mb-1 block text-[11px] font-bold text-[var(--text-secondary)]">{L('지금 내 예상', 'My expectation now')}</label>
+                    <label htmlFor="record-lean" className="mb-1 block text-[12.5px] font-bold text-[var(--text-secondary)]">{L('지금 내 예상', 'My expectation now')}</label>
                     <input id="record-lean" value={lean} onChange={(e) => setLean(e.target.value)} maxLength={200}
                       className="w-full rounded border border-[var(--border-subtle)] bg-transparent px-3 py-2 text-[12px] outline-none focus:border-[var(--accent)]" />
                   </div>
                   <div>
-                    <label htmlFor="record-assumption" className="mb-1 block text-[11px] font-bold text-[var(--text-secondary)]">{L('기대고 있는 가정', 'Assumption I rely on')}</label>
+                    <label htmlFor="record-assumption" className="mb-1 block text-[12.5px] font-bold text-[var(--text-secondary)]">{L('기대고 있는 가정', 'Assumption I rely on')}</label>
                     <input id="record-assumption" value={assumption} onChange={(e) => setAssumption(e.target.value)} maxLength={200}
                       className="w-full rounded border border-[var(--border-subtle)] bg-transparent px-3 py-2 text-[12px] outline-none focus:border-[var(--accent)]" />
                   </div>
@@ -230,7 +230,7 @@ export function SealModal({
             </div>
           )}
 
-          <p className="mt-4 text-[11px] leading-relaxed text-[var(--text-tertiary)]">
+          <p className="mt-4 text-[12.5px] leading-relaxed text-[var(--text-tertiary)]">
             {L(
               '확인 날짜에 이 질문을 이메일로 한 번 보내드려요. 결과는 Argus가 판정하지 않고, 당신이 직접 기록합니다.',
               'On the check-in date, we send this question once by email. Argus does not grade it; you record the outcome.',

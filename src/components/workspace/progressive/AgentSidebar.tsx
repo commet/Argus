@@ -34,7 +34,7 @@ function StatusBadge({ worker, locale }: { worker: WorkerTask; locale: string })
     return (
       <span className="inline-flex items-center gap-1.5 shrink-0 px-2 py-0.5 rounded-full bg-[var(--accent)]/12 text-[var(--accent)]">
         <Loader2 size={10} className="animate-spin" />
-        <span className="text-[10px] font-semibold">{L('진행 중', 'Live')}</span>
+        <span className="text-[12px] font-semibold">{L('진행 중', 'Live')}</span>
       </span>
     );
   }
@@ -49,14 +49,14 @@ function StatusBadge({ worker, locale }: { worker: WorkerTask; locale: string })
     return (
       <span className="inline-flex items-center gap-1 shrink-0 px-2 py-0.5 rounded-full bg-[var(--accent)]/10 text-[var(--accent)]">
         <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent)] animate-pulse" />
-        <span className="text-[10px] font-medium">{L('입력 필요', 'Input')}</span>
+        <span className="text-[12px] font-medium">{L('입력 필요', 'Input')}</span>
       </span>
     );
   }
   if (worker.status === 'error') {
-    return <span className="text-[9px] text-red-500 font-medium shrink-0">{L('오류', 'Error')}</span>;
+    return <span className="text-[12.5px] text-red-500 font-medium shrink-0">{L('오류', 'Error')}</span>;
   }
-  return <span className="text-[9px] text-[var(--text-tertiary)]/50 shrink-0 uppercase tracking-wider">{L('대기', 'standby')}</span>;
+  return <span className="text-[12.5px] text-[var(--text-tertiary)]/50 shrink-0 uppercase tracking-wider">{L('대기', 'standby')}</span>;
 }
 
 // ─── Agent Row — DemoAgentSidebar style with real data ───
@@ -200,7 +200,7 @@ function AgentRow({ worker, expanded, onToggle, enterIndex, onRetry }: {
               {worker.persona ? localizePersona(worker.persona, locale).name : 'AI'}
             </span>
             {lv != null && lv >= 2 && (
-              <span className="agent-lv" style={{ fontSize: 9, padding: '0px 5px' }} data-level={lv}>
+              <span className="agent-lv" style={{ fontSize: 12.5, padding: '0px 5px' }} data-level={lv}>
                 Lv.{lv}
               </span>
             )}
@@ -214,7 +214,7 @@ function AgentRow({ worker, expanded, onToggle, enterIndex, onRetry }: {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -6 }}
                   transition={{ duration: 0.35, ease: EASE }}
-                  className="text-[11px] truncate flex items-center gap-1.5 absolute inset-0"
+                  className="text-[12.5px] truncate flex items-center gap-1.5 absolute inset-0"
                   style={{ color: personaColor }}
                 >
                   <span className="truncate">{liveLine}</span>
@@ -224,25 +224,25 @@ function AgentRow({ worker, expanded, onToggle, enterIndex, onRetry }: {
             </div>
           )}
           {isDone && worker.completion_note && (
-            <p className="text-[11px] text-[var(--text-secondary)] mt-0.5 italic truncate">
+            <p className="text-[12.5px] text-[var(--text-secondary)] mt-0.5 italic truncate">
               &ldquo;{worker.completion_note}&rdquo;
             </p>
           )}
           {isError && worker.error && (
-            <p className="text-[11px] text-red-600 dark:text-red-400 mt-0.5 truncate flex items-center gap-1">
+            <p className="text-[12.5px] text-red-600 dark:text-red-400 mt-0.5 truncate flex items-center gap-1">
               <AlertCircle size={10} className="shrink-0" />
               <span className="truncate">{worker.error}</span>
             </p>
           )}
           {!isWorking && !isDone && !isError && worker.task && (
-            <p className="text-[11px] text-[var(--text-secondary)] mt-0.5 truncate">{worker.task}</p>
+            <p className="text-[12.5px] text-[var(--text-secondary)] mt-0.5 truncate">{worker.task}</p>
           )}
         </div>
         <StatusBadge worker={worker} locale={locale} />
         {isError && onRetry && (
           <button
             onClick={(e) => { e.stopPropagation(); onRetry(worker.id); }}
-            className="shrink-0 inline-flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-semibold text-[var(--accent)] bg-[var(--accent)]/8 hover:bg-[var(--accent)]/15 border border-[var(--accent)]/20 cursor-pointer transition-colors"
+            className="shrink-0 inline-flex items-center gap-1 px-2 py-1 rounded-md text-[12px] font-semibold text-[var(--accent)] bg-[var(--accent)]/8 hover:bg-[var(--accent)]/15 border border-[var(--accent)]/20 cursor-pointer transition-colors"
             title={L('다시 시도', 'Retry')}
           >
             <RefreshCw size={9} />
@@ -267,7 +267,7 @@ function AgentRow({ worker, expanded, onToggle, enterIndex, onRetry }: {
                 <motion.div
                   initial={{ opacity: 0, y: -4 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="pt-2.5 flex items-center gap-1.5 text-[10px] text-[var(--accent)] font-semibold uppercase tracking-wider"
+                  className="pt-2.5 flex items-center gap-1.5 text-[12px] text-[var(--accent)] font-semibold uppercase tracking-wider"
                 >
                   <Sparkles size={9} />
                   <span>{L('방금 끝낸 분석', 'Just finished')}</span>
@@ -279,7 +279,7 @@ function AgentRow({ worker, expanded, onToggle, enterIndex, onRetry }: {
               {worker.validation_score != null && (
                 <div className="mt-2 flex items-center gap-1.5">
                   {/* Descriptive, not "N/100" — score numerals are verdict language */}
-                  <span className={`text-[10px] font-medium ${worker.validation_passed ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}`}>
+                  <span className={`text-[12px] font-medium ${worker.validation_passed ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}`}>
                     {worker.validation_passed ? L('확인 통과', 'Checked') : L('확인 필요', 'Needs a look')}
                   </span>
                   {worker.validation_passed && <Check size={10} className="text-emerald-500" />}
@@ -328,12 +328,12 @@ function StageTransitionBanner({ nextStageLabel, previousStageLabel, locale }: {
           <Sparkles size={11} className="text-white" />
         </motion.div>
         <div className="flex-1 min-w-0">
-          <p className="text-[11px] font-bold text-[var(--text-primary)] leading-tight">
+          <p className="text-[12.5px] font-bold text-[var(--text-primary)] leading-tight">
             {previousStageLabel
               ? L(`${previousStageLabel} 완료`, `${previousStageLabel} complete`)
               : L('첫 단계 완료', 'First stage complete')}
           </p>
-          <p className="text-[10px] text-[var(--accent)] mt-0.5 flex items-center gap-1">
+          <p className="text-[12px] text-[var(--accent)] mt-0.5 flex items-center gap-1">
             <ArrowRight size={9} />
             {L(`이제 ${nextStageLabel} 시작`, `Now starting ${nextStageLabel}`)}
           </p>
@@ -362,7 +362,7 @@ function StageDivider({ stage, index, isFirst, allStageDone, locale }: {
       transition={{ duration: 0.4, ease: EASE }}
       className={`flex items-center gap-2.5 ${isFirst ? 'pt-1' : 'pt-4'} pb-1`}
     >
-      <span className={`text-[9px] font-bold tracking-[0.12em] uppercase shrink-0 ${
+      <span className={`text-[12.5px] font-bold tracking-[0.12em] uppercase shrink-0 ${
         allStageDone ? 'text-emerald-600 dark:text-emerald-400' : 'text-[var(--accent)]'
       }`}>
         Stage {romanIdx} — {locale === 'en' ? (stage.labelEn || stage.label) : stage.label}
@@ -372,7 +372,7 @@ function StageDivider({ stage, index, isFirst, allStageDone, locale }: {
         <Check size={9} className="text-emerald-500 shrink-0" />
       )}
       {!allStageDone && (
-        <span className="text-[9px] text-[var(--accent)] shrink-0 flex items-center gap-1">
+        <span className="text-[12.5px] text-[var(--accent)] shrink-0 flex items-center gap-1">
           <span className="w-1 h-1 rounded-full bg-[var(--accent)] animate-pulse" />
           {L('진행 중', 'live')}
         </span>
@@ -452,23 +452,23 @@ export function AgentSidebar({ className }: { className?: string }) {
     <div className={`p-4 space-y-3.5 ${className ?? ''}`}>
       {/* Header */}
       <div className="flex items-center justify-between">
-        <span className="text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--text-secondary)]">
+        <span className="text-[12.5px] font-bold uppercase tracking-[0.12em] text-[var(--text-secondary)]">
           {L('분석 팀', 'Analysis Team')}
         </span>
         {runningCount > 0 && (
-          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-[var(--accent)]/10 text-[10px] text-[var(--accent)] font-semibold">
+          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-[var(--accent)]/10 text-[12px] text-[var(--accent)] font-semibold">
             <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent)] animate-pulse" />
             {runningCount} {L('분석 중', 'analyzing')}
             <TypingDots />
           </span>
         )}
         {waitingInputCount > 0 && runningCount === 0 && (
-          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-[var(--accent)]/10 text-[10px] text-[var(--accent)] font-medium">
+          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-[var(--accent)]/10 text-[12px] text-[var(--accent)] font-medium">
             {L('입력 대기', 'Awaiting input')} {waitingInputCount}
           </span>
         )}
         {allDone && (
-          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-100/60 dark:bg-emerald-900/20 text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold">
+          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-100/60 dark:bg-emerald-900/20 text-[12px] text-emerald-600 dark:text-emerald-400 font-semibold">
             <Check size={10} />
             {L('완료', 'Complete')}
           </span>
@@ -497,10 +497,10 @@ export function AgentSidebar({ className }: { className?: string }) {
           <div className="relative">
             <Loader2 size={18} className="animate-spin text-[var(--accent)]" />
           </div>
-          <p className="text-[11px] text-[var(--text-secondary)] font-medium">
+          <p className="text-[12.5px] text-[var(--text-secondary)] font-medium">
             {L(`${pendingCount}명의 팀원 배정 중`, `Assembling ${pendingCount} team members`)}
           </p>
-          <p className="text-[10px] text-[var(--text-tertiary)]">
+          <p className="text-[12px] text-[var(--text-tertiary)]">
             {L('잠시만요', 'One moment')}<TypingDots />
           </p>
         </motion.div>
@@ -547,7 +547,7 @@ export function AgentSidebar({ className }: { className?: string }) {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ delay: 0.2 }}
-            className="flex items-center gap-2 px-3 pt-1 text-[10px] text-[var(--text-tertiary)]"
+            className="flex items-center gap-2 px-3 pt-1 text-[12px] text-[var(--text-tertiary)]"
           >
             <span className="w-1 h-1 rounded-full bg-[var(--text-tertiary)]/40" />
             <span>{L(`${pendingCount}명 더 합류 예정`, `${pendingCount} more joining`)}</span>
@@ -568,20 +568,20 @@ export function AgentSidebar({ className }: { className?: string }) {
             <div className="rounded-xl border border-[var(--accent)]/15 bg-[var(--accent)]/[0.03] p-3.5 space-y-2">
               <div className="flex items-center gap-1.5">
                 <Sparkles size={11} className="text-[var(--accent)]" />
-                <span className="text-[10px] font-bold text-[var(--accent)] uppercase tracking-wider">
+                <span className="text-[12px] font-bold text-[var(--accent)] uppercase tracking-wider">
                   {L('요약', 'Summary')}
                 </span>
               </div>
               {workers.map(w => (
                 <div key={w.id} className="flex items-start gap-2">
                   <WorkerAvatar persona={w.persona} size="sm" />
-                  <p className="text-[11px] text-[var(--text-secondary)] leading-relaxed">
+                  <p className="text-[12.5px] text-[var(--text-secondary)] leading-relaxed">
                     {w.completion_note || w.task}
                   </p>
                 </div>
               ))}
               <div className="pt-1.5 border-t border-[var(--accent)]/10">
-                <p className="text-[10px] text-[var(--accent)]/70 flex items-center gap-1">
+                <p className="text-[12px] text-[var(--accent)]/70 flex items-center gap-1">
                   <ArrowRight size={8} />
                   {L('아래 기획안에 반영됨', 'Reflected in the document below')}
                 </p>

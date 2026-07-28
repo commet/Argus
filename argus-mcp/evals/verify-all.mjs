@@ -135,6 +135,18 @@ run('호스트 전수 대조 (9 호스트)', 'node evals/host-matrix.mjs', { env
 run('밖에서 뜨는 물음 (실서버)', 'node evals/ambient-picker.mjs', { env: { ...process.env, AMBIENT_SKIP_BUILD: '1' }, extract: (o) => (o.match(/(\d+ checks · \d+ violation[^\n]*)/) || [])[1] ?? '' });
 run('내용 배터리 (실서버)', 'node evals/battery.mjs', { env: { ...process.env, BATTERY_SKIP_BUILD: '1' }, extract: (o) => (o.match(/(\d+ calls · \d+ RED[^\n]*)/) || [])[1] ?? '' });
 run('정산 카드 실행 (VM 호스트)', 'node evals/widget-runtime.mjs', { extract: (o) => `${(o.match(/ok  /g) || []).length} gestures ok` });
+const COUNTS = (o) => (o.match(/(\d+ checks · \d+ violation[^\n]*)/) || [])[1] ?? '';
+run('픽커 화면 전수 (2언어 × 8내용)', 'node evals/picker-surfaces.mjs', { env: { ...process.env, PICKER_SURFACES_SKIP_BUILD: '1' }, extract: COUNTS });
+run('문장 위험 전수 (2언어 × 2호스트)', 'node evals/surface-hazards.mjs', { env: { ...process.env, SURFACE_HAZARDS_SKIP_BUILD: '1' }, extract: COUNTS });
+run('간직하는 화면의 액자 (영수증·봉인·항해일지)', 'node evals/keepsake-frames.mjs', { env: { ...process.env, KEEPSAKE_SKIP_BUILD: '1' }, extract: COUNTS });
+run('버전 다섯 곳 일치', 'node evals/version-lockstep.mjs', { extract: COUNTS });
+// Judges our asks with the submit gate read out of the shipped Claude Code
+// binary — including how many Returns it takes, which is what three previous
+// "Accept does not work" fixes each missed.
+run('Claude Code 폼이 실제로 제출하는가', 'node evals/claude-code-form.mjs', { env: { ...process.env, CC_FORM_SKIP_BUILD: '1' }, extract: (o) => (o.match(/(\d+ checks · \d+ violations[^\n]*)/) || [])[1] ?? '' });
+run('답한 시각으로 기록되는가', 'node evals/answer-time.mjs', { env: { ...process.env, ANSWER_TIME_SKIP_BUILD: '1' }, extract: (o) => (o.match(/(\d+ checks · \d+ violations[^\n]*)/) || [])[1] ?? '' });
+// Slow on purpose: the answer arrives after the SDK's 60s default. ~80s.
+run('1분 넘게 생각한 사람의 Accept', 'node evals/slow-human.mjs', { env: { ...process.env, SLOW_HUMAN_SKIP_BUILD: '1' }, extract: (o) => (o.match(/(\d+ checks · \d+ violations[^\n]*)/) || [])[1] ?? '' });
 
 // ── the plugin surface ──────────────────────────────────────────────────────
 run('플러그인 검증', 'node argus-plugin-v2/scripts/validate-plugin.js', { cwd: REPO });
@@ -144,10 +156,18 @@ run('확인 표면 문구 대조', 'node argus-plugin-v2/scripts/picker-surface-
 
 console.log('게이트 실행 완료. 이제 게이트 자신을 시험합니다 (회귀를 일부러 심어 빨간불을 확인)…\n');
 
+// ① used to plant `format:'date'` on the seal ask's check_by box. That box is
+// gone (2026-07-28) — a confirmation ask ships no fields at all, because Claude
+// Code does not preselect Accept when any property is declared. The regression
+// this guards against is therefore the reintroduction of a constraining field,
+// planted on the settle picker, which still has one and still must never block
+// the form.
 selfTest(
   '자기검증 ① 폼 차단 회귀를 잡는가',
-  'src/tools/seal.ts',
-  (s) => s.replace("            check_by: {\n              type: 'string',", "            check_by: {\n              type: 'string',\n              format: 'date',"),
+  'src/tools/settle.ts',
+  (s) => s.replace(
+    "            what_happened: {\n              type: 'string',",
+    "            what_happened: {\n              type: 'string',\n              minLength: 1,"),
   'node evals/host-matrix.mjs',
 );
 selfTest(
@@ -161,10 +181,16 @@ selfTest(
 // `decision`), so the plant became invisible and the self-test reported
 // "심었는데도 초록" — correctly. It is re-aimed at the premise CONFIRM picker,
 // which is the same defect class on a path a user can still reach today.
+// ③ used to plant maxLength on the premise ask's reword box, which no longer
+// exists. The same destroy-the-typed-answer class now lives on the open-question
+// picker, whose field IS the user's own sentence — the most expensive place in
+// the product to silently truncate.
 selfTest(
   '자기검증 ③ 긴 답 파괴 회귀를 잡는가',
   'src/tools/premises.ts',
-  (s) => s.replace(/(\n\s+reword: \{\n\s+type: 'string',)/, "$1\n            maxLength: 400,"),
+  (s) => s.replace(
+    "{ type: 'object', properties: { decision: { type: 'string',",
+    "{ type: 'object', properties: { decision: { type: 'string', maxLength: 400,"),
   'node evals/host-matrix.mjs',
 );
 selfTest(
@@ -209,6 +235,11 @@ selfTest(
   (s) => s.replace("    if (asked && (asked.kind === 'unsupported' || (asked.kind === 'no_answer' && asked.reason === 'failed'))) {", '    if (false) {'),
   'node evals/ambient-picker.mjs',
 );
+// ⑪ The seal confirm no longer declares `reword`, so this protection became
+// unreachable — and unreachable code cannot be tested, which is how a gate
+// starts lying. The `extra-field` host profile sends the field anyway (a client
+// that volunteers what the schema did not ask for), which keeps the hand-back
+// on a live path and this self-test meaningful.
 selfTest(
   '자기검증 ⑪ 사용자가 쓴 말을 버리는 회귀를 잡는가',
   'src/tools/seal.ts',
@@ -241,6 +272,61 @@ selfTest(
   'src/lib/apps-ui-html.ts',
   (s) => s.replace("      s.appendChild(el('div', 'done-outcome', t.deferredHead));", "      s.appendChild(el('div', 'done-outcome', 'still_pending'));"),
   'node evals/widget-runtime.mjs',
+);
+
+selfTest(
+  '자기검증 ⑭ 픽커 라벨이 키로 새는 회귀를 잡는가',
+  'src/tools/settle.ts',
+  (s) => s.replace(/\n +title: pickerLocale === 'ko' \? '현실이 어떻게 답했나' : 'What reality did',/, ''),
+  'node evals/picker-surfaces.mjs',
+);
+selfTest(
+  '자기검증 ⑮ 한국어 화면에 영어가 섞이는 회귀를 잡는가',
+  'src/tools/seal.ts',
+  (s) => s.replace("' 달력 앱에 넣을 알림 파일도 함께 저장했습니다.'", "' 달력 리마인더(.ics)도 저장했습니다.'"),
+  'node evals/surface-hazards.mjs',
+);
+selfTest(
+  '자기검증 ⑯ 간직하는 화면이 액자 밖으로 나가는 회귀를 잡는가',
+  'src/lib/render-receipt.ts',
+  (s) => s.replace('.flatMap((w) => breakToken(w, width));', ';'),
+  'node evals/keepsake-frames.mjs',
+);
+selfTest(
+  '자기검증 ⑰ 폭 측정이 이모지를 놓치는 회귀를 잡는가',
+  'src/lib/render-receipt.ts',
+  (s) => s.replace('return (WIDE.test(ch) || PICTO.test(ch)) ? 2 : 1;', 'return WIDE.test(ch) ? 2 : 1;'),
+  'node evals/keepsake-frames.mjs',
+);
+selfTest(
+  '자기검증 ㉑ 사람을 기다려놓고 호출 시점으로 찍는 회귀를 잡는가',
+  'src/tools/premises.ts',
+  (s) => s.replace('], answeredAt);', '], now);'),
+  'node evals/answer-time.mjs',
+);
+selfTest(
+  '자기검증 ⑳ 화면이 서버가 요구할 칸을 선택이라 부르는 회귀를 잡는가',
+  'src/tools/settle.ts',
+  (s) => s.replace(
+    "                : (haveWhat ? 'What actually happened (optional)' : 'What actually happened'),",
+    "                : 'What actually happened (optional)',"),
+  'node evals/host-matrix.mjs',
+);
+selfTest(
+  '자기검증 ⑲ 확인창에 입력칸이 되돌아오는 회귀를 잡는가',
+  'src/tools/seal.ts',
+  (s) => s.replace(
+    "          { type: 'object', properties: {} },",
+    "          { type: 'object', properties: { reword: { type: 'string', title: 'Reword (optional)' } } },"),
+  'node evals/claude-code-form.mjs',
+);
+selfTest(
+  '자기검증 ⑱ 오래 생각한 사람의 답을 버리는 회귀를 잡는가',
+  'src/server.ts',
+  (s) => s.replace(
+    'ec.elicitInput({ message, requestedSchema }, { timeout: timeoutMs ?? DECISION_ASK_TIMEOUT_MS })',
+    'ec.elicitInput({ message, requestedSchema })'),
+  'node evals/slow-human.mjs',
 );
 
 const pad = (s, n) => String(s) + ' '.repeat(Math.max(0, n - String(s).length));

@@ -54,8 +54,11 @@ export function JudgmentAttributionLine({
         minute: '2-digit',
       }).format(recorded);
 
+  // 12px comes from main (readability pass); wordingLabel from this PR — the raw
+  // `wording` renders an empty span when the stored value is unknown, blanking
+  // the line exactly when it should read "미확인". Independent changes, both kept.
   return (
-    <p className={`flex flex-wrap gap-x-2 gap-y-0.5 text-[10px] leading-[1.45] text-[var(--text-tertiary)] ${className}`}>
+    <p className={`flex flex-wrap gap-x-2 gap-y-0.5 text-[12px] leading-[1.45] text-[var(--text-tertiary)] ${className}`}>
       <span>{wordingLabel}</span>
       <span aria-hidden>·</span>
       <span>{authorityLabel}</span>

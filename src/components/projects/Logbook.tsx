@@ -192,7 +192,7 @@ export function Logbook({
               {L('결정 기록', 'Decision log')}
             </p>
             {inscription ? (
-            <span className="text-[10px] font-mono uppercase tracking-[0.14em] text-[var(--bp-ink-soft)]/80 tabular-nums">
+            <span className="text-[12px] font-mono uppercase tracking-[0.14em] text-[var(--bp-ink-soft)]/80 tabular-nums">
               {inscription}
             </span>
             ) : null}
@@ -201,7 +201,7 @@ export function Logbook({
             type="button"
             onClick={() => setCollapsed((v) => !v)}
             aria-expanded={!collapsed}
-            className="inline-flex items-center gap-1 text-[10px] font-mono uppercase tracking-[0.14em] text-[var(--bp-ink-soft)]/70 hover:text-[var(--bp-ink)] transition-colors cursor-pointer"
+            className="inline-flex items-center gap-1 text-[12px] font-mono uppercase tracking-[0.14em] text-[var(--bp-ink-soft)]/70 hover:text-[var(--bp-ink)] transition-colors cursor-pointer"
           >
             {collapsed ? L('펼치기', 'Show') : L('접기', 'Hide')}
             <ChevronDown
@@ -222,7 +222,7 @@ export function Logbook({
                   type="button"
                   onClick={() => setQuotesOnly((v) => !v)}
                   aria-pressed={quotesOnly}
-                  className="inline-flex items-center rounded-lg border border-[var(--bp-ink)]/20 px-2.5 py-1 text-[11px] font-medium text-[var(--bp-ink-soft)] hover:bg-[var(--bp-ink)]/[0.05] transition-colors cursor-pointer"
+                  className="inline-flex items-center rounded-lg border border-[var(--bp-ink)]/20 px-2.5 py-1 text-[12.5px] font-medium text-[var(--bp-ink-soft)] hover:bg-[var(--bp-ink)]/[0.05] transition-colors cursor-pointer"
                 >
                   {quotesOnly ? L('일지 보기', 'Show the log') : L('문장만 보기', 'Sentences only')}
                 </button>
@@ -248,7 +248,7 @@ export function Logbook({
               <ol className="relative space-y-2.5">
                 {events.map((e) => (
                   <li key={e.key} className="flex items-baseline gap-3 text-[13px]">
-                    <span className="shrink-0 w-10 text-right font-mono tabular-nums text-[11px] text-[var(--bp-ink-soft)]/70">
+                    <span className="shrink-0 w-10 text-right font-mono tabular-nums text-[12.5px] text-[var(--bp-ink-soft)]/70">
                       {e.stamp}
                     </span>
                     <span className="text-[var(--bp-ink)] leading-snug">

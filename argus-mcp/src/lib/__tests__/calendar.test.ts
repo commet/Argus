@@ -91,6 +91,10 @@ describe('return calendar export', () => {
     // The absolute path lives in data, not the one-line surface (copy find).
     // The surface only mentions that a calendar file exists.
     expect(String(b.surface)).not.toContain(data.calendar_path!);
-    expect(String(b.surface)).toContain('.ics');
+    // It used to assert the literal ".ics" — a file extension is not a word,
+    // and the surface sweep (2026-07-28) took it out of the human line. The
+    // durable claim is that the surface TELLS the user a calendar file exists;
+    // the extension belongs in data.calendar_path, which is asserted above.
+    expect(String(b.surface)).toMatch(/calendar|달력/);
   });
 });

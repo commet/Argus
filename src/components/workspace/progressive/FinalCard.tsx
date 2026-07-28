@@ -102,7 +102,7 @@ export function FinalCard({
                   '현재 방위'는 '결정 요약'으로 개명됨.) */}
               <div>
                 <span id={cardTitleId} className="text-[14px] font-semibold text-[var(--text-primary)]">{L('완성된 문서', 'Final Document')}</span>
-                <span className="block text-[11.5px] text-[var(--text-tertiary)] mt-0.5 leading-snug">{L('복사해서 바로 쓰는 결과물', 'The artifact you copy and use')}</span>
+                <span className="block text-[13px] text-[var(--text-tertiary)] mt-0.5 leading-snug">{L('복사해서 바로 쓰는 결과물', 'The artifact you copy and use')}</span>
               </div>
             </div>
             <ShareBar
@@ -113,13 +113,13 @@ export function FinalCard({
           </div>
           {viewingBranchDraft && (
             <div className="px-5 md:px-7 py-2 border-b border-[var(--border-subtle)] flex flex-wrap items-center justify-end gap-x-3 gap-y-1">
-              <span className="text-[11px] text-[var(--text-tertiary)]">
+              <span className="text-[12.5px] text-[var(--text-tertiary)]">
                 {L(`복사하면 ${releasedLabel} 출시본이 나가요`, `Copy gives you the released ${releasedLabel}`)}
               </span>
               <button
                 type="button"
                 onClick={copyVisibleDraft}
-                className="text-[11px] font-medium text-[var(--text-secondary)] hover:text-[var(--accent)] underline underline-offset-2 transition-colors cursor-pointer"
+                className="text-[12.5px] font-medium text-[var(--text-secondary)] hover:text-[var(--accent)] underline underline-offset-2 transition-colors cursor-pointer"
               >
                 {copiedDraft ? L('복사했어요', 'Copied') : copyDraftFailed ? L('복사 실패 — 다시 시도', 'Copy failed — retry') : L('지금 보는 버전 복사', 'Copy the version on screen')}
               </button>
@@ -177,7 +177,7 @@ export function FinalCard({
               </div>
               {structuredNextSteps.length > 0 && (
                 <div className="pt-5 border-t border-[var(--border-subtle)]">
-                  <p className="text-[9px] font-bold text-[var(--text-tertiary)] uppercase tracking-[0.2em] mb-3">{L('다음 단계', 'Next Steps')}</p>
+                  <p className="text-[12.5px] font-bold text-[var(--text-tertiary)] uppercase tracking-[0.2em] mb-3">{L('다음 단계', 'Next Steps')}</p>
                   {structuredNextSteps.map((step, i) => (
                     <div key={i} className="flex items-start gap-2.5 text-[13px] text-[var(--text-primary)] mb-2 leading-relaxed">
                       <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent)] mt-2 shrink-0" />
@@ -247,7 +247,7 @@ function AgentGrowthFooter({ sessionId, locale }: { sessionId: string; locale: s
         onClick={() => setOpen(o => !o)}
         aria-expanded={open}
         aria-controls={detailId}
-        className="inline-flex items-center gap-1.5 text-[11px] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors cursor-pointer"
+        className="inline-flex items-center gap-1.5 text-[12.5px] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors cursor-pointer"
       >
         <Sparkles size={10} className="opacity-60 text-[var(--accent)]" />
         <span>
@@ -273,7 +273,7 @@ function AgentGrowthFooter({ sessionId, locale }: { sessionId: string; locale: s
                   <span className="text-[var(--text-primary)] font-medium">{d.name}</span>
                   <span className="text-[var(--accent)] tabular-nums">+{d.xpGained}XP</span>
                   {d.leveledUp && (
-                    <span className="text-[10px] font-bold text-[var(--accent)] bg-[var(--accent)]/10 px-1.5 py-0.5 rounded">
+                    <span className="text-[12px] font-bold text-[var(--accent)] bg-[var(--accent)]/10 px-1.5 py-0.5 rounded">
                       Lv.{d.fromLevel}→{d.toLevel}
                     </span>
                   )}

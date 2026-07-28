@@ -119,7 +119,7 @@ export function CrewAtWork({ workers, onRetry, reportsOpen, onToggleReports, her
           <span className={`shrink-0 rounded-full ${allDone ? 'bg-[var(--success)]' : interrupted ? 'bg-amber-500' : 'animate-pulse bg-[var(--accent)]'} h-2 w-2`} aria-hidden />
           <p className={`${hero ? 'text-[14.5px] md:text-[15.5px] font-bold' : 'text-[12.5px] font-semibold'} text-[var(--text-primary)] truncate`}>{headline}</p>
         </div>
-        <span className="flex shrink-0 items-center gap-1.5 text-[11px] text-[var(--text-tertiary)]">
+        <span className="flex shrink-0 items-center gap-1.5 text-[12.5px] text-[var(--text-tertiary)]">
           {!open && <span>{L('검토 과정 보기', 'See review details')}</span>}
           <ChevronDown size={13} className={`transition-transform ${open ? 'rotate-180' : ''}`} />
         </span>
@@ -129,7 +129,7 @@ export function CrewAtWork({ workers, onRetry, reportsOpen, onToggleReports, her
           crew cold, so state what/why + the honest boundary in ONE tertiary line
           at first contact — the definition used to be trapped inside the collapsed
           panel. One line only, to respect the ④보조 / "진행 막대 수준" constraint. */}
-      <p className="mt-2 text-[11px] text-[var(--text-tertiary)] leading-[1.5]">
+      <p className="mt-2 text-[12.5px] text-[var(--text-tertiary)] leading-[1.5]">
         {interrupted
           ? L('남은 부분만 이어서 확인할 수 있어요. 이미 끝난 검토는 다시 실행하지 않아요.', 'You can continue only the missing work. Finished reviews will not run again.')
           : L('서로 다른 관점은 뒤에서 합쳐지고, 화면에는 판단을 바꿀 수 있는 내용만 남아요.', 'Different lenses are combined in the background; only decision-changing findings stay on the page.')}
@@ -157,7 +157,7 @@ export function CrewAtWork({ workers, onRetry, reportsOpen, onToggleReports, her
           type="button"
           onClick={onToggleReports}
           aria-expanded={reportsOpen}
-          className="text-[11.5px] font-medium text-[var(--text-tertiary)] hover:text-[var(--accent)] cursor-pointer transition-colors"
+          className="text-[13px] font-medium text-[var(--text-tertiary)] hover:text-[var(--accent)] cursor-pointer transition-colors"
         >
           {reportsOpen ? L('보고 접기 ▴', 'Hide reports ▴') : L('팀원 보고 열어보기 ▾', 'Open reviewer reports ▾')}
         </button>
@@ -165,7 +165,7 @@ export function CrewAtWork({ workers, onRetry, reportsOpen, onToggleReports, her
       {/* Privacy recap only — the always-visible orienting line above now teaches
           what/why at first contact, so this in-panel line keeps just the privacy
           reassurance (no longer teaching the same thing twice). */}
-      <p className="text-[11px] text-[var(--text-tertiary)]">
+      <p className="text-[12.5px] text-[var(--text-tertiary)]">
         {L('입력하신 내용은 이 분석에만 쓰여요.', 'What you typed is used only for this analysis.')}
       </p>
 
@@ -204,29 +204,29 @@ export function CrewAtWork({ workers, onRetry, reportsOpen, onToggleReports, her
               <div className="flex-1 min-w-0">
                 <div className="flex items-baseline gap-2">
                   <span className="text-[12px] font-semibold text-[var(--text-primary)]">{name}</span>
-                  <span className="text-[11px] text-[var(--text-tertiary)] truncate">{w.task}</span>
+                  <span className="text-[12.5px] text-[var(--text-tertiary)] truncate">{w.task}</span>
                 </div>
                 {/* Purpose lead-in — what this crew member is FOR (routing is real
                     even without the scope wiring). Honest provenance: AI is the
                     subject of AI-authored work; the human half names ownership. */}
-                <p className="text-[11px] text-[var(--accent)]/85 mt-0.5">{purpose}</p>
+                <p className="text-[12.5px] text-[var(--accent)]/85 mt-0.5">{purpose}</p>
                 {/* The human-judgment boundary the user owns — describes what they
                     were asked to decide (true regardless of AI internals). Never
                     truncated: the "you decide" half is load-bearing. */}
                 {at === 'self' && w.self_scope && (
-                  <p className="text-[11px] text-[var(--text-secondary)] mt-0.5 leading-[1.5]">
+                  <p className="text-[12.5px] text-[var(--text-secondary)] mt-0.5 leading-[1.5]">
                     {L('당신이 정해요', 'You decide')}: {w.self_scope}
                   </p>
                 )}
                 {/* Why THIS lens was assigned (router rationale) — quiet, guarded;
                     absent → render nothing (never fabricate). */}
                 {at === 'ai' && w.assignment_reason && (
-                  <p className="text-[11px] text-[var(--text-tertiary)] mt-0.5 leading-[1.5]">↳ {w.assignment_reason}</p>
+                  <p className="text-[12.5px] text-[var(--text-tertiary)] mt-0.5 leading-[1.5]">↳ {w.assignment_reason}</p>
                 )}
                 {/* The theater: live stream tail while running; takeaway when done;
                     an honest line + inline retry when the work didn't land. */}
                 {running && w.stream_text ? (
-                  <p className="text-[11.5px] text-[var(--text-secondary)] mt-1 leading-[1.5] font-mono truncate">
+                  <p className="text-[13px] text-[var(--text-secondary)] mt-1 leading-[1.5] font-mono truncate">
                     {streamTail(w.stream_text)}
                     <span className="inline-block w-[6px] h-[12px] ml-0.5 align-text-bottom bg-[var(--accent)]/70 animate-pulse" />
                   </p>
@@ -246,13 +246,13 @@ export function CrewAtWork({ workers, onRetry, reportsOpen, onToggleReports, her
                     <div className="mt-1">
                       {isOpen ? (
                         <>
-                          <p id={reportId} role="region" aria-label={L(`${name} 보고서`, `${name} report`)} className="text-[11.5px] text-[var(--text-secondary)] leading-[1.6] whitespace-pre-wrap max-h-[240px] overflow-y-auto pr-1">{full}</p>
+                          <p id={reportId} role="region" aria-label={L(`${name} 보고서`, `${name} report`)} className="text-[13px] text-[var(--text-secondary)] leading-[1.6] whitespace-pre-wrap max-h-[240px] overflow-y-auto pr-1">{full}</p>
                           <button
                             type="button"
                             onClick={() => setExpandedId(null)}
                             aria-expanded="true"
                             aria-controls={reportId}
-                            className="mt-1 inline-flex items-center gap-0.5 text-[10.5px] font-medium text-[var(--text-tertiary)] hover:text-[var(--accent)] transition-colors cursor-pointer"
+                            className="mt-1 inline-flex items-center gap-0.5 text-[12.5px] font-medium text-[var(--text-tertiary)] hover:text-[var(--accent)] transition-colors cursor-pointer"
                           >
                             {L('접기', 'Collapse')} <ChevronDown size={11} className="rotate-180" />
                           </button>
@@ -265,9 +265,9 @@ export function CrewAtWork({ workers, onRetry, reportsOpen, onToggleReports, her
                           aria-controls={hasMore ? reportId : undefined}
                           className={`w-full text-left group/rep ${hasMore ? 'cursor-pointer' : 'cursor-default'}`}
                         >
-                          <p className="text-[11.5px] text-[var(--text-secondary)] leading-[1.5] line-clamp-2">{firstLine(w)}</p>
+                          <p className="text-[13px] text-[var(--text-secondary)] leading-[1.5] line-clamp-2">{firstLine(w)}</p>
                           {hasMore && (
-                            <span className="mt-0.5 inline-flex items-center gap-0.5 text-[10.5px] font-medium text-[var(--text-tertiary)] group-hover/rep:text-[var(--accent)] transition-colors">
+                            <span className="mt-0.5 inline-flex items-center gap-0.5 text-[12.5px] font-medium text-[var(--text-tertiary)] group-hover/rep:text-[var(--accent)] transition-colors">
                               {L('열어보기', 'Open report')} <ChevronDown size={11} />
                             </span>
                           )}
@@ -276,7 +276,7 @@ export function CrewAtWork({ workers, onRetry, reportsOpen, onToggleReports, her
                     </div>
                   );
                 })() : (w.status === 'error' || w.status === 'validation_failed') ? (
-                  <p className="text-[11.5px] text-[var(--text-tertiary)] mt-1 leading-[1.5]">
+                  <p className="text-[13px] text-[var(--text-tertiary)] mt-1 leading-[1.5]">
                     {w.status === 'validation_failed'
                       ? L('이 팀원의 결과를 확인하지 못했어요.', 'This review did not pass validation.')
                       : L('이 팀원의 작업을 받지 못했어요.', 'This review did not arrive.')}
@@ -291,7 +291,7 @@ export function CrewAtWork({ workers, onRetry, reportsOpen, onToggleReports, her
                   </p>
                 ) : w.status === 'blocked' ? (
                   // Layer 0: honest "waiting on a human input" — NOT fabricated output.
-                  <p className="text-[11.5px] text-[var(--text-secondary)] mt-1 leading-[1.5]">
+                  <p className="text-[13px] text-[var(--text-secondary)] mt-1 leading-[1.5]">
                     {(w.blocked_on && w.blocked_on.length > 0)
                       ? L(`입력 대기: ${w.blocked_on.join(', ')} — 그 답이 있어야 이 부분을 지어내지 않고 채울 수 있어요.`,
                           `Waiting on: ${w.blocked_on.join(', ')} — that answer is needed so this part isn't made up.`)
@@ -305,11 +305,11 @@ export function CrewAtWork({ workers, onRetry, reportsOpen, onToggleReports, her
                 ) : (w.status === 'error' || w.status === 'validation_failed') ? (
                   <AlertTriangle size={13} className="text-amber-500" />
                 ) : w.status === 'blocked' ? (
-                  <span className="text-[10px] text-[var(--text-tertiary)]">{L('대기', 'waiting')}</span>
+                  <span className="text-[12px] text-[var(--text-tertiary)]">{L('대기', 'waiting')}</span>
                 ) : running ? (
                   <span className="inline-block w-2 h-2 rounded-full bg-[var(--accent)] animate-pulse mt-1" />
                 ) : (
-                  <span className="text-[10px] text-[var(--text-tertiary)]">{L('대기', 'queued')}</span>
+                  <span className="text-[12px] text-[var(--text-tertiary)]">{L('대기', 'queued')}</span>
                 )}
               </span>
             </motion.div>

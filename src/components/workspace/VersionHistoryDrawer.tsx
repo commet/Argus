@@ -142,16 +142,16 @@ export function VersionHistoryDrawer({
           <div className="flex items-center gap-2 mb-1">
             <span className="text-[13px] font-semibold text-[var(--text-primary)]">{label}</span>
             {isActiveLeaf && (
-              <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded bg-[var(--accent)] text-white">
+              <span className="inline-flex items-center gap-1 text-[12px] px-1.5 py-0.5 rounded bg-[var(--accent)] text-white">
                 <Check className="w-2.5 h-2.5" /> {L('현재', 'current')}
               </span>
             )}
             {isReleased && (
-              <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded bg-[var(--warning)]/15 text-[var(--warning)]">
+              <span className="inline-flex items-center gap-1 text-[12px] px-1.5 py-0.5 rounded bg-[var(--warning)]/15 text-[var(--warning)]">
                 <Crown className="w-2.5 h-2.5" /> {L('정식 버전', 'released')}
               </span>
             )}
-            <span className="ml-auto text-[10px] text-[var(--text-tertiary)]">
+            <span className="ml-auto text-[12px] text-[var(--text-tertiary)]">
               {item.created_at ? relativeTime(item.created_at, locale) : ''}
             </span>
           </div>
@@ -166,7 +166,7 @@ export function VersionHistoryDrawer({
           <div className="flex items-center gap-1.5">
             <button
               type="button"
-              className="inline-flex items-center gap-1 text-[11px] text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors"
+              className="inline-flex items-center gap-1 text-[12.5px] text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors"
               onClick={() => onPreview(nodeId)}
             >
               <Eye className="w-3 h-3" /> {L('보기', 'View')}
@@ -174,7 +174,7 @@ export function VersionHistoryDrawer({
             {!isActiveLeaf && (
               <button
                 type="button"
-                className="inline-flex items-center gap-1 text-[11px] text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors"
+                className="inline-flex items-center gap-1 text-[12.5px] text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors"
                 onClick={() => onBranch(nodeId)}
               >
                 <GitBranch className="w-3 h-3" /> {L('이 버전에서 수정', 'Revise here')}
@@ -183,7 +183,7 @@ export function VersionHistoryDrawer({
             {canPromote && (
               <button
                 type="button"
-                className="inline-flex items-center gap-1 text-[11px] text-[var(--warning)] hover:text-amber-900 transition-colors ml-auto"
+                className="inline-flex items-center gap-1 text-[12.5px] text-[var(--warning)] hover:text-amber-900 transition-colors ml-auto"
                 onClick={() => onPromote(nodeId)}
                 title={L('이 버전을 v1.0으로 승격합니다', 'Promote this version to v1.0')}
               >
@@ -220,7 +220,7 @@ export function VersionHistoryDrawer({
         <header className="flex items-center justify-between px-4 py-3 border-b border-[var(--border)]">
           <div>
             <h3 id={titleId} className="text-[14px] font-semibold text-[var(--text-primary)]">{L('버전 히스토리', 'Version History')}</h3>
-            <p className="text-[11px] text-[var(--text-tertiary)] mt-0.5">
+            <p className="text-[12.5px] text-[var(--text-tertiary)] mt-0.5">
               {L(`${nodes.length}개 저장됨 · 읽어본 뒤 원하는 지점에서 수정할 수 있어요`, `${nodes.length} saved · preview one, then revise from that point`)}
             </p>
           </div>
@@ -229,7 +229,7 @@ export function VersionHistoryDrawer({
           </Button>
         </header>
         <div className="flex-1 overflow-y-auto px-4 py-3 pb-[env(safe-area-inset-bottom)]">
-          <div className="mb-3 rounded-lg bg-[var(--surface)] px-3 py-2 text-[10.5px] leading-relaxed text-[var(--text-tertiary)]">
+          <div className="mb-3 rounded-lg bg-[var(--surface)] px-3 py-2 text-[12.5px] leading-relaxed text-[var(--text-tertiary)]">
             <span className="font-semibold text-[var(--accent)]">{L('현재', 'Current')}</span>
             {L('는 지금 편집 기준 · ', ' is your working version · ')}
             <span className="font-semibold text-[var(--warning)]">{L('정식 버전', 'Released')}</span>
@@ -242,7 +242,7 @@ export function VersionHistoryDrawer({
           ) : (
             <div>
               <div className="mb-3 pb-2 border-b border-dashed border-[var(--border)]">
-                <div className="text-[11px] text-[var(--text-tertiary)] mb-0.5">{resolvedRootLabel}</div>
+                <div className="text-[12.5px] text-[var(--text-tertiary)] mb-0.5">{resolvedRootLabel}</div>
                 <div className="text-[12px] text-[var(--text-secondary)] italic">{resolvedRootSummary}</div>
               </div>
               {tree.map((node) => renderNode(node, 0))}

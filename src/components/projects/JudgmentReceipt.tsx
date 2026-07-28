@@ -63,7 +63,7 @@ export function JudgmentReceipt(props: Props) {
       <div className="rounded-xl border border-[var(--border)] overflow-hidden text-[13px] leading-[1.6]">
         {baselineJudgment && (
           <div className="px-4 py-3 border-b border-[var(--border)] bg-[var(--bg)]/55">
-            <p className="text-[11px] text-[var(--text-tertiary)] mb-1">
+            <p className="text-[12.5px] text-[var(--text-tertiary)] mb-1">
               {L('검토 전에 남긴 기준점 · 평가하지 않음', 'Your pre-review baseline · not scored')}
             </p>
             <p className="text-[var(--text-secondary)]" style={{ fontFamily: 'var(--font-voice, serif)' }}>
@@ -73,7 +73,7 @@ export function JudgmentReceipt(props: Props) {
         )}
         {real_question && (
           <div className="px-4 py-3 border-b border-[var(--border)]">
-            <p className="text-[11px] text-[var(--text-tertiary)] mb-1">
+            <p className="text-[12.5px] text-[var(--text-tertiary)] mb-1">
               {L('Argus가 짚은 핵심 질문', 'The crux Argus surfaced')}
             </p>
             <p className="text-[var(--text-primary)] font-medium" style={{ fontFamily: 'var(--font-voice, serif)' }}>
@@ -84,7 +84,7 @@ export function JudgmentReceipt(props: Props) {
 
         {unverified_assumption && (
           <div className="px-4 py-3 border-b border-[var(--border)] bg-[var(--surface)]">
-            <p className="text-[11px] text-[var(--text-tertiary)] mb-1">
+            <p className="text-[12.5px] text-[var(--text-tertiary)] mb-1">
               {L('아직 확인되지 않은 가정', 'Assumption not yet verified')}
             </p>
             <div className="rounded-lg bg-[var(--accent)]/[0.04] px-3 py-2">
@@ -97,7 +97,7 @@ export function JudgmentReceipt(props: Props) {
 
         {human_only && (
           <div className="px-4 py-3 border-b border-[var(--border)]">
-            <p className="text-[11px] text-[var(--text-tertiary)] mb-1">
+            <p className="text-[12.5px] text-[var(--text-tertiary)] mb-1">
               {L('사용자가 직접 판단할 것', 'What you need to judge')}
             </p>
             <p className="text-[var(--text-secondary)]">{human_only}</p>
@@ -121,7 +121,7 @@ export function JudgmentReceipt(props: Props) {
             className="w-full text-[13px] px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface-2)] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)]"
           />
           {baselineJudgment && !humanJudgment.trim() && (
-            <p className="mt-1.5 text-[10.5px] leading-[1.45] text-[var(--text-tertiary)]">
+            <p className="mt-1.5 text-[12.5px] leading-[1.45] text-[var(--text-tertiary)]">
               {L(
                 '비워두면 검토 전 기준점을 그대로 최종 판단으로 남겨요.',
                 'Leave this blank to keep your pre-review baseline as the final judgment.',
@@ -160,14 +160,14 @@ export function JudgmentReceipt(props: Props) {
       {showAnchor && (
         <>
           <div className="px-4 py-2.5 bg-[var(--surface)] border-b border-[var(--border)]">
-            <p className="text-[11px] text-[var(--text-muted)]">
+            <p className="text-[12.5px] text-[var(--text-muted)]">
               {L(`${sealedOn}에 기록한 판단`, `Decision saved on ${sealedOn}`)}
             </p>
           </div>
 
           {receipt.human_judgment && (
             <div className="px-4 py-3 bg-[var(--surface)]">
-              <p className="text-[11px] text-[var(--text-tertiary)] mb-1">
+              <p className="text-[12.5px] text-[var(--text-tertiary)] mb-1">
                 {L('그때 당신이 내린 판단', 'Your judgment then')}
               </p>
               <p className="text-[14px] leading-[1.55] text-[var(--text-primary)] font-medium" style={{ fontFamily: 'var(--font-voice, serif)' }}>
@@ -183,14 +183,14 @@ export function JudgmentReceipt(props: Props) {
 
           {hasSavedContext && (
             <details className="group border-t border-[var(--border)]">
-              <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 px-4 py-2 text-[11.5px] font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)]">
+              <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 px-4 py-2 text-[13px] font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)]">
                 <span>{L('그날의 질문과 가정도 보기', 'See the question and assumptions saved that day')}</span>
                 <span aria-hidden className="text-[var(--text-tertiary)] transition-transform group-open:rotate-45">+</span>
               </summary>
               <div className="border-t border-[var(--border)] bg-[var(--bg)]/45 px-4 py-3 space-y-3">
                 {receipt.real_question && (
                   <div>
-                    <p className="text-[10.5px] text-[var(--text-tertiary)] mb-1">
+                    <p className="text-[12.5px] text-[var(--text-tertiary)] mb-1">
                       {L('그때의 진짜 질문', 'The real question then')}
                     </p>
                     <p className="text-[var(--text-primary)] font-medium" style={{ fontFamily: 'var(--font-voice, serif)' }}>
@@ -200,7 +200,7 @@ export function JudgmentReceipt(props: Props) {
                 )}
                 {receipt.unverified_assumption && (
                   <div>
-                    <p className="text-[10.5px] text-[var(--text-tertiary)] mb-1">
+                    <p className="text-[12.5px] text-[var(--text-tertiary)] mb-1">
                       {L('그때 검증되지 않았던 가정', 'The unverified assumption then')}
                     </p>
                     <p className="text-[var(--text-secondary)]">{receipt.unverified_assumption}</p>
@@ -208,7 +208,7 @@ export function JudgmentReceipt(props: Props) {
                 )}
                 {receipt.human_only && (
                   <div>
-                    <p className="text-[10.5px] text-[var(--text-tertiary)] mb-1">
+                    <p className="text-[12.5px] text-[var(--text-tertiary)] mb-1">
                       {L('사람이 직접 판단하기로 한 것', 'What remained yours to judge')}
                     </p>
                     <p className="text-[var(--text-secondary)]">{receipt.human_only}</p>
@@ -222,12 +222,12 @@ export function JudgmentReceipt(props: Props) {
 
       {showOutcome && (
         <div className={`px-4 py-3 ${showAnchor ? 'border-t border-[var(--border)]' : ''}`}>
-          <p className="text-[11px] text-[var(--text-tertiary)] mb-1">
+          <p className="text-[12.5px] text-[var(--text-tertiary)] mb-1">
             {outcomeRecorded
               ? L('선택 사항 · 실제로 일어난 일', 'Optional · what actually happened')
               : L('선택 사항 · 결과와 함께 남길 한 줄', 'Optional · one line to keep with your outcome')}
           </p>
-          <p className="mb-2 text-[11px] leading-[1.45] text-[var(--text-muted)]">
+          <p className="mb-2 text-[12.5px] leading-[1.45] text-[var(--text-muted)]">
             {outcomeRecorded
               ? L('결과 선택은 이미 저장됐어요. 나중에 기억할 구체적인 사실이 있다면 덧붙이세요.', 'Your outcome choice is already saved. Add a concrete fact only if it will help later.')
               : L('이 메모는 필수가 아니에요. 결과 선택만으로도 기록은 남습니다.', 'This note is not required. The outcome tap is enough to keep the record.')}
@@ -257,7 +257,7 @@ export function JudgmentReceipt(props: Props) {
               </button>
             )}
           </div>
-          <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[10px] font-semibold tracking-[0.12em] text-[var(--text-tertiary)]">
+          <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[12px] font-semibold tracking-[0.12em] text-[var(--text-tertiary)]">
             <span>WHAT HAPPENED -- {visibleWhatHappened.trim() || (ko ? '비어 있음' : 'EMPTY')}</span>
             <span>AI VERDICT -- NONE</span>
           </div>
@@ -265,12 +265,12 @@ export function JudgmentReceipt(props: Props) {
             <button
               type="button"
               onClick={onClear}
-              className="mt-2 text-[11px] text-[var(--text-tertiary)] underline underline-offset-2 hover:text-[var(--danger)] cursor-pointer transition-colors"
+              className="mt-2 text-[12.5px] text-[var(--text-tertiary)] underline underline-offset-2 hover:text-[var(--danger)] cursor-pointer transition-colors"
             >
               {L('이 메모 지우기', 'Remove this note')}
             </button>
           )}
-          <p className="mt-2 text-[11px] leading-[1.5] text-[var(--text-tertiary)]">
+          <p className="mt-2 text-[12.5px] leading-[1.5] text-[var(--text-tertiary)]">
             {L('처음 기록한 판단과 확인일에 실제로 일어난 일이 같은 기록에 함께 남습니다.', 'Your initial decision and what actually happened on the review date stay together in this record.')}
           </p>
         </div>

@@ -167,7 +167,7 @@ export function RetroSeal({ onExit, onRealSeal }: {
       {/* Practice framing — this is a rehearsal on a KNOWN outcome, said plainly. */}
       <div className="flex items-center gap-3 mb-8 text-[var(--text-tertiary)]/60">
         <div className="h-px flex-1 bg-[var(--border-subtle)]" />
-        <span className="inline-flex items-center gap-1.5 text-[11px] font-medium tracking-wide uppercase">
+        <span className="inline-flex items-center gap-1.5 text-[12.5px] font-medium tracking-wide uppercase">
           <History size={12} />
           {L('연습 · 지난 결정으로', 'Practice · on a past decision')}
         </span>

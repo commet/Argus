@@ -30,7 +30,7 @@ export function PatternCard({
       <div className="flex items-start gap-3">
         <div className="mt-1 rounded-xl bg-[var(--primary)]/10 p-2 text-[var(--primary)]"><Waves size={18} /></div>
         <div className="min-w-0 flex-1">
-          <p className="text-[10px] font-bold tracking-[0.14em] text-[var(--text-tertiary)] uppercase">{L('내가 채택한 표현', 'Wording I endorsed')}</p>
+          <p className="text-[12px] font-bold tracking-[0.14em] text-[var(--text-tertiary)] uppercase">{L('내가 채택한 표현', 'Wording I endorsed')}</p>
           <h2 className="mt-2 text-[17px] font-semibold leading-7 text-[var(--text-primary)]">{pattern.claim.statement}</h2>
           <p className="mt-1 text-[12px] text-[var(--text-secondary)]">{L(`적용 범위: ${pattern.claim.scope.domains.join(', ')}`, `Scope: ${pattern.claim.scope.domains.join(', ')}`)}</p>
         </div>
@@ -46,13 +46,13 @@ export function PatternCard({
               </span>
               <div>
                 <div className="flex items-baseline gap-2">
-                  <span className="font-mono text-[10px] text-[var(--text-tertiary)]">{String(index + 1).padStart(2, '0')}</span>
+                  <span className="font-mono text-[12px] text-[var(--text-tertiary)]">{String(index + 1).padStart(2, '0')}</span>
                   <h3 className="text-[12px] font-bold text-[var(--text-primary)]">{labels[locale === 'ko' ? 0 : 1]}</h3>
-                  {!dimension.available && <span className="text-[10px] text-[var(--text-tertiary)]">{L('미확인', 'not established')}</span>}
+                  {!dimension.available && <span className="text-[12px] text-[var(--text-tertiary)]">{L('미확인', 'not established')}</span>}
                 </div>
                 <p className="mt-1 text-[12px] leading-5 text-[var(--text-secondary)]">{locale === 'ko' ? dimension.summary : dimension.summary_en}</p>
                 {dimension.source_refs.length > 0 && (
-                  <details className="mt-2 text-[10px] text-[var(--text-tertiary)]">
+                  <details className="mt-2 text-[12px] text-[var(--text-tertiary)]">
                     <summary className="w-fit cursor-pointer font-semibold hover:text-[var(--text-secondary)]">
                       {L(`근거 참조 ${dimension.source_refs.length}개`, `${dimension.source_refs.length} evidence references`)}
                     </summary>

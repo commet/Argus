@@ -53,7 +53,7 @@ export function PersonaCard({ persona, onClick, selected, selectable, onSelect }
           {/* Name + influence badge */}
           <div className="flex items-center gap-2 mb-0.5">
             <h3 className="text-[14px] font-bold text-[var(--text-primary)] truncate">{persona.name}</h3>
-            <span className={`shrink-0 inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold ${inf.bg} ${inf.text}`}>
+            <span className={`shrink-0 inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[12.5px] font-bold ${inf.bg} ${inf.text}`}>
               <InfIcon size={8} /> {inf.label}
             </span>
           </div>
@@ -67,7 +67,7 @@ export function PersonaCard({ persona, onClick, selected, selectable, onSelect }
           {persona.extracted_traits.length > 0 && (
             <div className="flex flex-wrap gap-1 mt-2">
               {persona.extracted_traits.slice(0, 4).map((trait, i) => (
-                <span key={i} className="px-1.5 py-0.5 rounded bg-[var(--bg)] text-[10px] text-[var(--text-secondary)] font-medium">
+                <span key={i} className="px-1.5 py-0.5 rounded bg-[var(--bg)] text-[12px] text-[var(--text-secondary)] font-medium">
                   {trait}
                 </span>
               ))}
@@ -76,7 +76,7 @@ export function PersonaCard({ persona, onClick, selected, selectable, onSelect }
 
           {/* Priorities preview */}
           {persona.priorities && (
-            <p className="text-[11px] text-[var(--text-tertiary)] mt-1.5 line-clamp-1">
+            <p className="text-[12.5px] text-[var(--text-tertiary)] mt-1.5 line-clamp-1">
               {persona.priorities}
             </p>
           )}
@@ -85,7 +85,7 @@ export function PersonaCard({ persona, onClick, selected, selectable, onSelect }
 
       {/* Feedback log count */}
       {persona.feedback_logs.length > 0 && (
-        <div className="absolute top-3 right-3 flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-[var(--bg)] text-[10px] text-[var(--text-tertiary)] font-medium">
+        <div className="absolute top-3 right-3 flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-[var(--bg)] text-[12px] text-[var(--text-tertiary)] font-medium">
           <MessageSquare size={9} /> {persona.feedback_logs.length}
         </div>
       )}

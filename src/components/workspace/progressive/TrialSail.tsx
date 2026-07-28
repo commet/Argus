@@ -164,7 +164,7 @@ export function TrialSail({ paragraph }: { paragraph: string }) {
         <p className="text-[13.5px] font-semibold text-[var(--text-primary)]">
           {L(`적으신 내용을 AI 검토자 ${N_EXECUTORS}명이 그대로 읽었어요`, `${N_EXECUTORS} AI reviewers read your text, as-is`)}
         </p>
-        <p className="text-[11.5px] text-[var(--text-tertiary)] mt-0.5">
+        <p className="text-[13px] text-[var(--text-tertiary)] mt-0.5">
           {L('같은 글을 따로따로 읽었어요 — 서로 다른 지시는 없었고, 내용은 분석에만 쓰여요.', 'Each read the same text separately — no differing instructions, and it stays inside the analysis.')}
         </p>
       </div>
@@ -185,7 +185,7 @@ export function TrialSail({ paragraph }: { paragraph: string }) {
                 <span className="text-[14px]" aria-hidden>{label.avatar}</span>
                 <span className="text-[12px] font-semibold text-[var(--text-primary)]">{label.name}</span>
                 {!sample && (
-                  <span className={`ml-auto text-[10px] text-[var(--text-tertiary)] ${done ? '' : 'animate-pulse'}`}>
+                  <span className={`ml-auto text-[12px] text-[var(--text-tertiary)] ${done ? '' : 'animate-pulse'}`}>
                     {done ? L('응답 없음', 'no response') : L('읽는 중', 'reading')}
                   </span>
                 )}
@@ -194,10 +194,10 @@ export function TrialSail({ paragraph }: { paragraph: string }) {
                 <motion.dl initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-1.5">
                   {(Object.keys(FIELD_LABEL) as (keyof ProbeSample)[]).map((f) => (
                     <div key={f}>
-                      <dt className="text-[9.5px] uppercase tracking-wide text-[var(--text-tertiary)]">
+                      <dt className="text-[13px] uppercase tracking-wide text-[var(--text-tertiary)]">
                         {L(FIELD_LABEL[f].ko, FIELD_LABEL[f].en)}
                       </dt>
-                      <dd className="text-[11.5px] text-[var(--text-secondary)] leading-[1.45] line-clamp-2">
+                      <dd className="text-[13px] text-[var(--text-secondary)] leading-[1.45] line-clamp-2">
                         {sample[f]}
                       </dd>
                     </div>
@@ -206,7 +206,7 @@ export function TrialSail({ paragraph }: { paragraph: string }) {
               ) : done ? (
                 // Honest no-show: a frozen skeleton reads as "loading stuck" —
                 // say plainly that this reading never arrived.
-                <p className="text-[11px] text-[var(--text-tertiary)] leading-[1.5]">
+                <p className="text-[12.5px] text-[var(--text-tertiary)] leading-[1.5]">
                   {L('이 팀원의 응답을 받지 못했어요.', "This review didn't arrive.")}
                 </p>
               ) : (
@@ -232,7 +232,7 @@ export function TrialSail({ paragraph }: { paragraph: string }) {
           >
             {/* Reverse convergence chip — 갈림 수가 곧 게이지. */}
             {forks.length > 0 && (
-              <p className="text-[11px] font-semibold text-[var(--accent)] tabular-nums">
+              <p className="text-[12.5px] font-semibold text-[var(--accent)] tabular-nums">
                 {L(`갈림 ${forks.length}곳`, `${forks.length} fork${forks.length === 1 ? '' : 's'}`)}
               </p>
             )}
@@ -246,10 +246,10 @@ export function TrialSail({ paragraph }: { paragraph: string }) {
                       {L('이 구절에서 갈렸어요: ', 'They split on: ')}
                       <span className="font-semibold">&ldquo;{fork.cause_quote}&rdquo;</span>
                     </p>
-                    <p className="text-[11.5px] text-[var(--text-secondary)] mt-1 leading-[1.5]">
+                    <p className="text-[13px] text-[var(--text-secondary)] mt-1 leading-[1.5]">
                       {fork.variants.join(L(' ↔ ', ' ↔ '))}
                     </p>
-                    <p className="text-[11.5px] text-[var(--accent)] mt-1.5 leading-[1.5]">
+                    <p className="text-[13px] text-[var(--accent)] mt-1.5 leading-[1.5]">
                       {L(
                         `이 선택에 따라 "${fork.flipped_user_claim}"이 참도 거짓도 됩니다.`,
                         `Depending on this, "${fork.flipped_user_claim}" becomes true or false.`,
@@ -269,7 +269,7 @@ export function TrialSail({ paragraph }: { paragraph: string }) {
                       {L('이 문장이 결론을 받치고 있어요: ', 'This sentence is load-bearing: ')}
                       <span className="font-semibold">&ldquo;{f.load_bearing_claim}&rdquo;</span>
                     </p>
-                    <p className="text-[11.5px] text-[var(--text-secondary)] mt-1 leading-[1.5]">{f.why_unsupported}</p>
+                    <p className="text-[13px] text-[var(--text-secondary)] mt-1 leading-[1.5]">{f.why_unsupported}</p>
                   </div>
                 </div>
               </div>
@@ -278,7 +278,7 @@ export function TrialSail({ paragraph }: { paragraph: string }) {
             {/* Honest partial failure: D (the primary lever) didn't land. One
                 quiet line — never the silence card (failure ≠ convergence). */}
             {ablationFailed && (
-              <p className="text-[11px] text-[var(--text-tertiary)]">
+              <p className="text-[12.5px] text-[var(--text-tertiary)]">
                 {L('하중 측정은 이번에 닿지 않았어요.', "The load-bearing measurement didn't land this time.")}
               </p>
             )}

@@ -182,24 +182,24 @@ export default function ImportPage() {
         </p>
         <ol className="space-y-2 text-[13px] text-[var(--text-secondary)]">
           <li className="flex gap-2">
-            <span className="shrink-0 w-5 h-5 rounded-full bg-[var(--accent)]/10 text-[var(--accent)] text-[11px] font-bold flex items-center justify-center">1</span>
+            <span className="shrink-0 w-5 h-5 rounded-full bg-[var(--accent)]/10 text-[var(--accent)] text-[12.5px] font-bold flex items-center justify-center">1</span>
             <span>
               <LocaleLink href="/settings" className="text-[var(--accent)] hover:underline font-medium">{L('설정에서 연결 토큰을 발급', 'Issue a connect token in Settings')}</LocaleLink>
               {L('합니다.', '.')}
             </span>
           </li>
           <li className="flex gap-2">
-            <span className="shrink-0 w-5 h-5 rounded-full bg-[var(--accent)]/10 text-[var(--accent)] text-[11px] font-bold flex items-center justify-center">2</span>
+            <span className="shrink-0 w-5 h-5 rounded-full bg-[var(--accent)]/10 text-[var(--accent)] text-[12.5px] font-bold flex items-center justify-center">2</span>
             <span>
               {L('터미널에서 ', 'In your terminal, run ')}
-              <code className="text-[11.5px] font-mono bg-[var(--surface)] px-1.5 py-0.5 rounded">/argus:settings connect</code>
+              <code className="text-[13px] font-mono bg-[var(--surface)] px-1.5 py-0.5 rounded">/argus:settings connect</code>
               {L('를 한 번 실행합니다.', ' once.')}
             </span>
           </li>
         </ol>
         <p className="text-[12.5px] text-[var(--text-tertiary)] mt-3">
           {L('이후로는 ', 'From then on, ')}
-          <code className="text-[11px] font-mono bg-[var(--surface)] px-1.5 py-0.5 rounded">/argus:settings sync</code>
+          <code className="text-[12.5px] font-mono bg-[var(--surface)] px-1.5 py-0.5 rounded">/argus:settings sync</code>
           {L(' 한 번이면 로컬 기록과 이 화면이 왕복으로 맞춰집니다 — 파일을 올릴 필요가 없어요. 여기서 기록한 결과도 같은 명령으로 로컬에 돌아갑니다.', ' keeps your local records and this page in sync both ways — no file uploads needed. Outcomes recorded here travel back the same way.')}
         </p>
       </Card>
@@ -210,15 +210,15 @@ export default function ImportPage() {
           <span className="text-[13px] font-medium text-[var(--text-secondary)]">
             {L('처음이라면 — MCP 설치 안내', 'First time? — MCP install guide')}
           </span>
-          <span className="text-[11px] text-[var(--text-tertiary)] group-open/install:hidden">{L('펼치기', 'Show')}</span>
+          <span className="text-[12.5px] text-[var(--text-tertiary)] group-open/install:hidden">{L('펼치기', 'Show')}</span>
         </summary>
         <div className="mt-3">
           <McpInstallGuide locale={locale} />
           <p className="text-[12px] text-[var(--text-tertiary)] px-1 -mt-3 mb-3">
             {L('더 깊이: 문서 검토는 ', 'Going deeper: document review starts with ')}
-            <code className="text-[11px] font-mono bg-[var(--surface)] px-1.5 py-0.5 rounded">/argus:review</code>
+            <code className="text-[12.5px] font-mono bg-[var(--surface)] px-1.5 py-0.5 rounded">/argus:review</code>
             {L(', 과거 Claude Code 결정 회수는 ', '; recovering past Claude Code decisions starts with ')}
-            <code className="text-[11px] font-mono bg-[var(--surface)] px-1.5 py-0.5 rounded">/argus:history scan</code>
+            <code className="text-[12.5px] font-mono bg-[var(--surface)] px-1.5 py-0.5 rounded">/argus:history scan</code>
             {L('입니다.', '.')}
           </p>
         </div>
@@ -231,16 +231,16 @@ export default function ImportPage() {
             <Upload size={14} className="text-[var(--text-tertiary)]" />
             {L('파일로 직접 올리기 (연결 없이)', 'Upload files manually (without connecting)')}
           </span>
-          <span className="text-[11px] text-[var(--text-tertiary)] group-open/upload:hidden">{L('펼치기', 'Show')}</span>
+          <span className="text-[12.5px] text-[var(--text-tertiary)] group-open/upload:hidden">{L('펼치기', 'Show')}</span>
         </summary>
         <Card variant="muted" className="mt-3">
           <div className="flex items-center justify-between gap-4 flex-wrap">
             <div>
               <p className="text-[13px] text-[var(--text-secondary)]">
                 {L('플러그인 폴더의 ', 'From the plugin folder: ')}
-                <code className="text-[11px] font-mono bg-[var(--surface)] px-1.5 py-0.5 rounded">.argus/ledger/ledger.jsonl</code>
+                <code className="text-[12.5px] font-mono bg-[var(--surface)] px-1.5 py-0.5 rounded">.argus/ledger/ledger.jsonl</code>
                 {L('과 ', ' and ')}
-                <code className="text-[11px] font-mono bg-[var(--surface)] px-1.5 py-0.5 rounded">current_bearing.json</code>
+                <code className="text-[12.5px] font-mono bg-[var(--surface)] px-1.5 py-0.5 rounded">current_bearing.json</code>
               </p>
               <p className="text-[12px] text-[var(--text-tertiary)] mt-1">
                 {L('여러 개 가능, 다시 올리면 중복 없이 갱신됩니다.', 'Multiple files ok; re-uploading updates without duplicates.')}
@@ -310,7 +310,7 @@ export default function ImportPage() {
                     {d.decision || d.quote || d.predicate || L('(제목 없음)', '(untitled)')}
                   </p>
                   <span
-                    className="text-[10px] font-bold uppercase tracking-wider shrink-0 px-2 py-0.5 rounded-full border"
+                    className="text-[12px] font-bold uppercase tracking-wider shrink-0 px-2 py-0.5 rounded-full border"
                     style={{ color: STATUS_TONE[d.status ?? 'candidate'], borderColor: 'var(--border-subtle)' }}
                   >
                     {isOverdue(d)
@@ -325,7 +325,7 @@ export default function ImportPage() {
                 <span className="text-[var(--text-tertiary)]">{L('확인 질문: ', 'Follow-up question: ')}</span>{d.predicate}
                   </p>
                 )}
-                <div className="flex items-center gap-3 mt-2 text-[11.5px] text-[var(--text-tertiary)] flex-wrap">
+                <div className="flex items-center gap-3 mt-2 text-[13px] text-[var(--text-tertiary)] flex-wrap">
                   {d.check_by && <span>{L('확인: ', 'Check: ')}{d.check_by}</span>}
                   {d.outcome && <span className="text-[var(--primary)]">{L('결과: ', 'Outcome: ')}{OUTCOME_LABELS[locale === 'ko' ? 'ko' : 'en'][d.outcome]}</span>}
                   {d.project && <span>{d.project}</span>}
@@ -339,17 +339,17 @@ export default function ImportPage() {
                   return (
                     <div className="mt-3 pt-3 border-t border-[var(--border-subtle)]">
                       {!record ? <>
-                        <p className="text-[11.5px] text-[var(--text-tertiary)] mb-2">
+                        <p className="text-[13px] text-[var(--text-tertiary)] mb-2">
                           {L('예전 플러그인 기록이에요. 자동으로 옮겨 적지 않습니다 — 아래 버튼은 이 내용을 오늘 내 판단으로 다시 채택하는 행동이에요.', 'A legacy plugin record. It is never copied over silently — the button below re-adopts it today as your own judgment.')}
                         </p>
                         <Button variant="accent" size="sm" onClick={() => reforge(d.id)} disabled={actingId === d.id}>{L('내 판단으로 다시 기록', 'Re-adopt as my judgment')}</Button>
                       </> : closed ? <>
-                        <p className="text-[11.5px] text-[var(--text-tertiary)]">{L('답변과 별도 종결 확인이 모두 기록되었습니다.', 'The answer and the separate close confirmation are both recorded.')}</p>
+                        <p className="text-[13px] text-[var(--text-tertiary)]">{L('답변과 별도 종결 확인이 모두 기록되었습니다.', 'The answer and the separate close confirmation are both recorded.')}</p>
                       </> : answered ? <>
-                        <p className="text-[11.5px] text-[var(--text-tertiary)] mb-2">{L('답변은 기록됐지만 아직 종결되지 않았습니다.', 'The answer is recorded but the judgment is not closed.')}</p>
+                        <p className="text-[13px] text-[var(--text-tertiary)] mb-2">{L('답변은 기록됐지만 아직 종결되지 않았습니다.', 'The answer is recorded but the judgment is not closed.')}</p>
                         <Button variant="accent" size="sm" onClick={() => closeSemantic(d.id)} disabled={actingId === d.id}>{L('이 답변으로 기록 종결', 'Close with this answer')}</Button>
                       </> : <>
-                        <p className="text-[11.5px] text-[var(--text-tertiary)] mb-2">{L('관찰과 답변은 남기되, 종결은 다음 단계에서 별도로 확인합니다.', 'Record an observation and answer now; closing is a separate later confirmation.')}</p>
+                        <p className="text-[13px] text-[var(--text-tertiary)] mb-2">{L('관찰과 답변은 남기되, 종결은 다음 단계에서 별도로 확인합니다.', 'Record an observation and answer now; closing is a separate later confirmation.')}</p>
                         <div className="flex flex-wrap gap-1.5">
                           <Button variant="secondary" size="sm" onClick={() => settle(d.id, 'happened')} disabled={actingId === d.id}>{L('발생했다고 답변', 'Record “happened”')}</Button>
                           <Button variant="secondary" size="sm" onClick={() => settle(d.id, 'avoided')} disabled={actingId === d.id}>{L('발생하지 않았다고 답변', 'Record “did not”')}</Button>
@@ -357,7 +357,7 @@ export default function ImportPage() {
                           <Button variant="ghost" size="sm" onClick={() => later(d.id)} disabled={actingId === d.id}>{L('2주 뒤 다시 보기', 'Defer 2 weeks')}</Button>
                         </div>
                       </>}
-                      <p className="text-[11px] text-[var(--text-tertiary)] mt-2">
+                      <p className="text-[12.5px] text-[var(--text-tertiary)] mt-2">
                         {L('여기서 기록한 내용은 다음 /argus:settings sync 때 로컬 기록에도 그대로 더해집니다.', 'What you record here is appended to your local records on the next /argus:settings sync.')}
                       </p>
                     </div>
@@ -383,7 +383,7 @@ export default function ImportPage() {
                   <FileText size={13} className="text-[var(--accent)]" />
                   <span className="text-[12px] font-semibold text-[var(--text-primary)]">{b.label || b.version_label || L('판단 기록', 'Decision record')}</span>
                   {b.current_course?.status && (
-                    <span className="text-[10px] uppercase tracking-wider text-[var(--text-tertiary)]">{b.current_course.status}</span>
+                    <span className="text-[12px] uppercase tracking-wider text-[var(--text-tertiary)]">{b.current_course.status}</span>
                   )}
                 </div>
                 {b.current_course?.summary && (

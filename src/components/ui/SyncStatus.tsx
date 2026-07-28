@@ -97,7 +97,7 @@ export function SyncStatus() {
       // Signed-out returning user: work IS saving locally, cloud backup is not.
       return (
         <div
-          className="inline-flex items-center gap-1.5 text-[11px] px-2 py-0.5 rounded-full border text-[var(--warning)] bg-[var(--warning)]/10 border-[var(--warning)]/30"
+          className="inline-flex items-center gap-1.5 text-[12.5px] px-2 py-0.5 rounded-full border text-[var(--warning)] bg-[var(--warning)]/10 border-[var(--warning)]/30"
           title={L('로그인하면 클라우드 백업이 이어져요', 'Sign in to resume cloud backup')}
         >
           <CloudOff size={12} />
@@ -149,7 +149,7 @@ export function SyncStatus() {
   }[state as Exclude<SyncState, 'idle'>]; // 'idle' returned null above
 
   const retryable = (state === 'error' || state === 'backup_pending') && canRetryDecisionSync(lastContext);
-  const className = `inline-flex items-center gap-1.5 text-[11px] px-2 py-0.5 rounded-full border ${config.color} ${config.bg} ${config.border}`;
+  const className = `inline-flex items-center gap-1.5 text-[12.5px] px-2 py-0.5 rounded-full border ${config.color} ${config.bg} ${config.border}`;
 
   if (retryable) {
     return (
