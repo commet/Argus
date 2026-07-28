@@ -1,5 +1,16 @@
 # Changelog
 
+## 2.0.8 — One install command across npm 10–12
+
+The immutable 2.0.7 tarball fixed POSIX executable mode, but its bundled README
+still used npm's positional `npx package@version` shorthand. npm 12 could resolve
+the package yet fail to link the inferred command.
+
+All public wiring now uses the explicit, documented form:
+`npm exec --package=argus-decision-mcp@2.0.8 -- argus-decision-mcp`.
+Post-publish verification retries only this exact version while npm registry
+edges converge; it never falls back to `latest` or a range.
+
 ## 2.0.7 — The npm executable is executable
 
 The immutable 2.0.6 tarball carried the correct server but packed
@@ -9,10 +20,6 @@ POSIX `npx` could resolve the package but could not execute its bin.
 The build now sets mode `0755` on POSIX before packing. The post-publish gate
 checks the tar header itself, so directly invoking the entry with `node` can no
 longer produce a false green for a broken `npx` installation.
-
-Plugin and manual-install wiring use npm's explicit
-`exec --package=argus-decision-mcp@2.0.7 -- argus-decision-mcp` form. This avoids
-npm 12's broken positional `npx package@version` bin inference.
 
 ## 2.0.6 — The published package catches up with the verified main
 
