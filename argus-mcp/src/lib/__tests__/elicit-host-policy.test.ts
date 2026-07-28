@@ -1,8 +1,7 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import {
   canElicit,
   elicitDetailed,
-  INVISIBLE_DECLINE_MAX_MS,
   setElicitor,
   supportsReliableElicitation,
 } from '../elicit.js';
@@ -20,30 +19,54 @@ describe('MCP host elicitation policy', () => {
     expect(supportsReliableElicitation({ elicitation: {} })).toBe(true);
   });
 
-  it('turns an impossibly fast synthetic decline into a non-answer and trips the circuit', async () => {
+  it('preserves an immediate decline and keeps later picker surfaces available', async () => {
     let calls = 0;
     setElicitor(async () => {
       calls++;
       return { action: 'decline' };
     }, () => true);
     try {
-      await expect(elicitDetailed('invisible form', { type: 'object', properties: {} }))
-        .resolves.toEqual({ kind: 'no_answer', reason: 'failed' });
-      expect(calls).toBe(1);
-      expect(canElicit()).toBe(false);
+      await expect(elicitDetailed('first form', { type: 'object', properties: {} }))
+        .resolves.toEqual({ kind: 'declined' });
+      await expect(elicitDetailed('later form', { type: 'object', properties: {} }))
+        .resolves.toEqual({ kind: 'declined' });
+      expect(calls).toBe(2);
+      expect(canElicit()).toBe(true);
     } finally {
       setElicitor(null);
     }
   });
 
-  it('preserves a decline that took long enough to be a human answer', async () => {
+  it('does not infer user intent from elapsed time', async () => {
+    let now = 0;
+    const dateSpy = vi.spyOn(Date, 'now').mockImplementation(() => now);
     setElicitor(async () => {
-      await new Promise((resolve) => setTimeout(resolve, INVISIBLE_DECLINE_MAX_MS + 50));
+      now += 24 * 60 * 60 * 1000;
       return { action: 'decline' };
     }, () => true);
     try {
       await expect(elicitDetailed('visible form', { type: 'object', properties: {} }))
         .resolves.toEqual({ kind: 'declined' });
+      expect(canElicit()).toBe(true);
+    } finally {
+      dateSpy.mockRestore();
+      setElicitor(null);
+    }
+  });
+
+  it('turns a transport failure into a non-answer without disabling later calls', async () => {
+    let calls = 0;
+    setElicitor(async () => {
+      calls++;
+      if (calls === 1) throw new Error('method unavailable');
+      return { action: 'accept', content: { answer: 'later' } };
+    }, () => true);
+    try {
+      await expect(elicitDetailed('broken form', { type: 'object', properties: {} }))
+        .resolves.toEqual({ kind: 'no_answer', reason: 'failed' });
+      await expect(elicitDetailed('later form', { type: 'object', properties: {} }))
+        .resolves.toEqual({ kind: 'accepted', content: { answer: 'later' } });
+      expect(calls).toBe(2);
       expect(canElicit()).toBe(true);
     } finally {
       setElicitor(null);

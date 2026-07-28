@@ -280,10 +280,14 @@ Codex app-server는 표준 `mcpServer/elicitation/request` form과
 Accept/Decline/Cancel 응답을 지원한다. `approval_policy`가 MCP elicitation을
 허용하면 실제 picker가 떠야 한다. 제품 이름이 Codex라는 이유로 차단하면 실패다.
 
-반대로 바깥 Codex 표면의 정책이 form을 금지하면, capability를 선언한 채 사람이
-보지 못한 `decline`을 즉시 돌려줄 수 있다. Argus는 사람이 읽을 수 없는 속도의
-decline만 `no_answer`로 재분류하고 그 세션의 회로를 `text_fallback`으로 연다.
-사람이 실제로 보고 누른 느린 Decline은 그대로 존중한다.
+반대로 Codex 정책이 form을 금지하면 app-server는 바깥 UI에 요청을 보내지 않고
+MCP 서버에 `_meta` 없는 `{action:"decline"}`만 돌려준다. MCP 표준에서 decline은
+사용자의 명시적 거절이다. 서버가 받은 값만으로 정책 거절과 빠른 사람의 거절을
+구분할 방법은 없으며, 응답 시간은 그 증거가 될 수 없다.
+
+따라서 Argus는 속도와 무관하게 decline을 decline으로 보존한다. cancel·전송 오류·
+미지원은 별도 상태로 남긴다. 한 tool call은 elicitation을 한 번만 시도하고 끝나며,
+어떤 응답도 뒤의 다른 picker를 전역 차단하지 않는다.
 
 ```
 node evals/codex-app-server.mjs
@@ -291,14 +295,15 @@ node evals/codex-app-server.mjs
 
 - [ ] 실제 Codex app-server가 `mode:"form"` 요청을 내보내는가?
 - [ ] Accept 뒤 기록의 `predicate_owner`가 `user`인가?
-- [ ] 즉시 synthetic decline은 `choice:"no_answer"`로 돌아오는가?
-- [ ] 그 다음 `argus_check_in.data.picker`가 `text_fallback`인가?
-- [ ] 같은 세션에서 보이지 않는 form을 두 번째로 호출하지 않는가?
-- [ ] fallback으로 기록할 때 출처가 `ai_surfaced`로 정직한가?
+- [ ] `mcp_elicitations=false`에서 바깥 form 요청이 0건인가?
+- [ ] 그 정책의 원시 응답이 `_meta` 없는 bare decline인가?
+- [ ] Argus가 이를 시간으로 재해석하지 않고 `choice:"declined"`로 보존하는가?
+- [ ] 정책 차단된 각 tool call이 내부 재시도 없이 한 번에 끝나는가?
+- [ ] 그 뒤 interactive thread의 picker가 다시 뜨고 Accept가 기록되는가?
 
 Codex 설정에서 picker를 허용하려면 `approval_policy.granular.mcp_elicitations`
 가 `true`여야 한다. 관리형 정책이 이 값을 금지하면 서버가 우회할 수 없으며,
-텍스트 fallback이 정상 경로다.
+현재 Codex wire에는 서버가 그 정책을 식별할 별도 신호가 없다.
 
 ---
 
@@ -344,7 +349,7 @@ OS:
 | 확인창에 입력칸이 있어 Enter 한 번으로 제출 불가 | Claude Code 번들의 `useState(hasFields ? null : "accept")` | `claude-code-form.mjs` (F5) |
 | 60초 넘겨 도착한 Accept 유실 | SDK `DEFAULT_REQUEST_TIMEOUT_MSEC`, 창업자 호스트 로그 07:23:16 완료 / 07:23:27 응답 | `slow-human.mjs` (95초 대기) |
 | Codex 정상 picker까지 제품명으로 차단 | 실제 Codex app-server form → Accept 왕복 | `codex-app-server.mjs` C1 |
-| Codex가 보이지 않는 form을 즉시 `decline` | 같은 app-server의 synthetic decline → circuit → fallback | `codex-app-server.mjs` C2 |
+| Codex 정책 차단과 빠른 사람의 Decline을 시간으로 구분 | 실제 app-server 정책 응답은 `_meta` 없는 bare decline; MCP도 decline을 명시적 거절로 정의 | `codex-app-server.mjs` C2/C3 + wire probe |
 | 영수증·봉인·항해일지가 액자 밖으로 | 렌더해서 육안 확인, 2언어 × 11내용 | `keepsake-frames.mjs` |
 | 버전 5곳 불일치 시 옛 서버가 조용히 뜸 | `.mcp.json`의 npx 핀 | `version-lockstep.mjs` |
 | 미결질문 픽커 도달 불가 | `argus_capture answer_question`의 `decision` 필수 | `host-matrix.mjs` (E 블록) |

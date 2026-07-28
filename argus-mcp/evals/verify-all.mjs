@@ -399,12 +399,17 @@ selfTest(
   'node evals/codex-app-server.mjs',
 );
 selfTest(
-  '자기검증 ㉔ Codex 즉시 decline이 반복되는 회귀를 잡는가',
+  '자기검증 ㉔ 즉시 decline을 시간으로 재해석하는 회귀를 잡는가',
   'src/lib/elicit.ts',
-  (s) => s.replace(
-    '        _provenUnavailable = true;',
-    '        _provenUnavailable = false;',
-  ),
+  (s) => s
+    .replace(
+      "    const res = await _elicit(stripUnsafeChars(message), requestedSchema, timeoutMs);\n    if (res.action === 'accept')",
+      "    const started = Date.now();\n    const res = await _elicit(stripUnsafeChars(message), requestedSchema, timeoutMs);\n    if (res.action === 'accept')",
+    )
+    .replace(
+      "    if (res.action === 'decline') return { kind: 'declined' };",
+      "    if (res.action === 'decline' && Date.now() - started <= 500) return { kind: 'no_answer', reason: 'failed' };\n    if (res.action === 'decline') return { kind: 'declined' };",
+    ),
   'node evals/codex-app-server.mjs',
 );
 selfTest(

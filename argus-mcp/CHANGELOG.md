@@ -1,5 +1,25 @@
 # Changelog
 
+## Unreleased — Decline means decline
+
+The 2.0.4 Codex fallback inferred that a `decline` returned within 500ms was a
+host-policy auto-reject. That inference was not supported by MCP. A fast
+keyboard choice, accessibility automation, a test client, and Codex policy can
+all produce the same result. Worse, the inference opened a process-global
+circuit breaker, so one quick Decline disabled every later picker surface.
+
+Argus now preserves the protocol result: `decline` is always a decline,
+`cancel` is a non-answer, transport failure is a failed non-answer, and an
+undeclared capability is unsupported. Every tool call makes at most one
+elicitation request; no response can disable unrelated later pickers.
+
+The Codex verifier now uses the installed app-server with two real thread
+policies. It proves that `mcp_elicitations=false` returns a bare
+`{action:"decline"}` with no `_meta` and never forwards a form to the outer
+client. Because the server receives no distinguishing signal, it does not
+invent one from elapsed time. The same verifier then returns to an interactive
+thread and proves a later form still reaches the client and records an Accept.
+
 ## 2.0.4 — The Accept that was thrown away, and the keepsakes nobody had looked at
 
 **The record was dated before the answer it recorded**
@@ -26,6 +46,10 @@ now do too; the logical date is untouched, only the intra-day time is corrected.
 precedes the answer.
 
 **Codex picker works when allowed and fails over when policy blocks it**
+
+> Superseded by “Decline means decline” above. The 500ms inference and global
+> circuit described here were removed after real app-server wire inspection
+> proved that the server cannot distinguish policy and human declines.
 
 Codex app-server supports standard MCP form elicitation, but an outer surface
 can advertise the capability while policy auto-rejects the form without showing

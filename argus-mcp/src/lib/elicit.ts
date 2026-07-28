@@ -39,15 +39,6 @@ export function supportsReliableElicitation(
 }
 
 /**
- * A policy-blocked host can advertise elicitation and synthesize `decline`
- * without showing anything. A person cannot read and deliberately reject a
- * newly rendered form inside this window. Reclassifying only an impossibly
- * fast decline is fail-safe: a genuinely fast human decline may receive one
- * plain-text handback, but nothing is written and no user input is lost.
- */
-export const INVISIBLE_DECLINE_MAX_MS = 500;
-
-/**
  * How long a person may take to answer, and why this is not a detail.
  *
  * The MCP SDK times a server→client request out after 60 seconds by default
@@ -74,7 +65,6 @@ export const DECISION_ASK_TIMEOUT_MS = 10 * 60 * 1000;
 
 let _elicit: Elicitor | null = null;
 let _capable: (() => boolean) | null = null;
-let _provenUnavailable = false;
 
 /** Wire the elicitor and, optionally, a live capability probe. The probe must
  *  reflect the ACTUAL host: the MCP spec (and the SDK) only permit elicitInput
@@ -87,11 +77,9 @@ let _provenUnavailable = false;
 export function setElicitor(fn: Elicitor | null, capable?: () => boolean): void {
   _elicit = fn;
   _capable = capable ?? null;
-  _provenUnavailable = false;
 }
 
 export function canElicit(): boolean {
-  if (_provenUnavailable) return false;
   if (_capable) {
     try {
       return _capable();
@@ -143,19 +131,16 @@ export async function elicitDetailed(
   // capability/identity gating and launch an invisible request.
   if (!_elicit || !canElicit()) return { kind: 'unsupported' };
   try {
-    const started = Date.now();
     const res = await _elicit(stripUnsafeChars(message), requestedSchema, timeoutMs);
     if (res.action === 'accept') return { kind: 'accepted', content: res.content ?? {} };
-    if (res.action === 'decline') {
-      if (Date.now() - started <= INVISIBLE_DECLINE_MAX_MS) {
-        // The host proved that its declared form surface did not reach a
-        // person. Trip a session-local circuit breaker so the next tool reports
-        // text_fallback instead of repeatedly launching invisible requests.
-        _provenUnavailable = true;
-        return { kind: 'no_answer', reason: 'failed' };
-      }
-      return { kind: 'declined' };
-    }
+    // MCP defines `decline` as an explicit user decision. Some hosts also use
+    // that same bare result for an approval-policy auto-reject, without
+    // metadata that a server can inspect. Response time cannot disambiguate
+    // those cases: tests, accessibility automation, keyboard users, and a
+    // person who already knows their answer can all respond immediately.
+    // Preserve the protocol fact instead of inventing user intent or poisoning
+    // every later picker with a process-global circuit breaker.
+    if (res.action === 'decline') return { kind: 'declined' };
     return { kind: 'no_answer', reason: 'cancelled' }; // the host closed it without an answer
   } catch {
     return { kind: 'no_answer', reason: 'failed' }; // declared support but the ask never landed
@@ -177,11 +162,7 @@ export async function elicit(
     // spine spoof). Sanitize here, at the one seam every picker passes through,
     // so no call site can forget. stripUnsafeChars keeps \n and \t (a message
     // like `Record this?\n"…"` needs the newline).
-    const started = Date.now();
     const res = await _elicit(stripUnsafeChars(message), requestedSchema, timeoutMs);
-    if (res.action === 'decline' && Date.now() - started <= INVISIBLE_DECLINE_MAX_MS) {
-      _provenUnavailable = true;
-    }
     return res.action === 'accept' && res.content ? res.content : null;
   } catch {
     return null; // host declared support but failed — fall back to text

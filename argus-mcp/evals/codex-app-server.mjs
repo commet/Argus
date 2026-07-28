@@ -8,10 +8,11 @@
  *
  * It proves two opposite realities with the same Codex identity:
  *   C1 forms allowed: request -> Accept -> user-owned seal
- *   C2 policy auto-reject: immediate decline -> no_answer -> session fallback
+ *   C2 policy auto-reject: bare decline, no outer request, one bounded tool call
+ *   C3 a policy decline never disables a later interactive picker
  *
- * A host-name blacklist fails C1. Blindly trusting capability-only decline
- * fails C2. Both are release blockers.
+ * A host-name blacklist fails C1. Timing-based intent inference fails C2/C3.
+ * Both are release blockers.
  */
 import { spawn, spawnSync } from 'node:child_process';
 import fs from 'node:fs';
@@ -22,6 +23,7 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const DIST = path.join(ROOT, 'dist', 'index.js');
+const WIRE_PROBE = path.join(ROOT, 'evals', 'codex-elicit-wire-probe.mjs');
 if (process.env.CODEX_APP_SERVER_SKIP_BUILD !== '1') {
   const build = spawnSync('npm', ['run', 'build'], {
     cwd: ROOT,
@@ -63,6 +65,9 @@ const codexArgs = [
   '-c', `mcp_servers.argus_probe.args=${JSON.stringify([DIST])}`,
   '-c', `mcp_servers.argus_probe.env={ARGUS_DIR=${JSON.stringify(argusDir)}}`,
   '-c', 'mcp_servers.argus_probe.startup_timeout_sec=30',
+  '-c', `mcp_servers.elicit_wire_probe.command=${JSON.stringify(process.execPath)}`,
+  '-c', `mcp_servers.elicit_wire_probe.args=${JSON.stringify([WIRE_PROBE])}`,
+  '-c', 'mcp_servers.elicit_wire_probe.startup_timeout_sec=30',
 ];
 
 const child = spawn(codex, codexArgs, {
@@ -113,12 +118,9 @@ lines.on('line', (line) => {
 
   if (message.method === 'mcpServer/elicitation/request' && message.id !== undefined) {
     elicitationRequests.push(message.params);
-    const autoReject = String(message.params?.message ?? '').includes('auto-reject');
     send({
       id: message.id,
-      result: autoReject
-        ? { action: 'decline', content: null }
-        : { action: 'accept', content: {} },
+      result: { action: 'accept', content: {}, _meta: null },
     });
     return;
   }
@@ -198,18 +200,24 @@ try {
       limit: 100,
     });
     const argus = inventory?.data?.find((server) => server.name === 'argus_probe');
-    if (argus?.tools?.argus_predict) break;
+    const wire = inventory?.data?.find((server) => server.name === 'elicit_wire_probe');
+    if (argus?.tools?.argus_predict && wire?.tools?.probe_elicitation) break;
     await new Promise((resolve) => setTimeout(resolve, 250));
   }
   const argus = inventory?.data?.find((server) => server.name === 'argus_probe');
+  const wireProbe = inventory?.data?.find((server) => server.name === 'elicit_wire_probe');
   ok('C0 checkout MCP loaded inside Codex', Boolean(argus?.tools?.argus_predict), JSON.stringify(inventory).slice(0, 200));
+  ok('C0 wire probe MCP loaded inside Codex',
+    Boolean(wireProbe?.tools?.probe_elicitation),
+    JSON.stringify(inventory).slice(0, 200));
 
-  const call = (tool, args) => request('mcpServer/tool/call', {
-    threadId,
+  const callForThread = (targetThreadId, tool, args) => request('mcpServer/tool/call', {
+    threadId: targetThreadId,
     server: 'argus_probe',
     tool,
     arguments: { argus_dir: argusDir, ...args },
   });
+  const call = (tool, args) => callForThread(threadId, tool, args);
 
   const accepted = await call('argus_predict', {
     id: 'codex-accept',
@@ -228,41 +236,83 @@ try {
       && accepted?.structuredContent?.data?.status === 'sealed',
     JSON.stringify(accepted?.structuredContent?.data));
 
-  const rejected = await call('argus_predict', {
+  const policyThread = await request('thread/start', {
+    cwd: ROOT,
+    ephemeral: true,
+    approvalPolicy: {
+      granular: {
+        sandbox_approval: true,
+        rules: true,
+        skill_approval: true,
+        request_permissions: true,
+        mcp_elicitations: false,
+      },
+    },
+    sandbox: 'read-only',
+  });
+  const policyThreadId = policyThread?.thread?.id;
+  ok('C2 Codex created a policy-auto-reject thread',
+    typeof policyThreadId === 'string',
+    JSON.stringify(policyThread));
+  const asksBeforePolicyReject = elicitationRequests.length;
+  const rawPolicyResult = await request('mcpServer/tool/call', {
+    threadId: policyThreadId,
+    server: 'elicit_wire_probe',
+    tool: 'probe_elicitation',
+    arguments: {},
+  });
+  ok('C2 raw policy result is a bare decline',
+    rawPolicyResult?.structuredContent?.action === 'decline'
+      && rawPolicyResult?.structuredContent?._meta === undefined,
+    JSON.stringify(rawPolicyResult?.structuredContent));
+  ok('C2 raw policy decline never reached the outer form client',
+    elicitationRequests.length === asksBeforePolicyReject,
+    `before=${asksBeforePolicyReject} after=${elicitationRequests.length}`);
+  const rejected = await callForThread(policyThreadId, 'argus_predict', {
     id: 'codex-auto-reject',
     predicate: 'the Codex outer policy will auto-reject this form',
     check_by: '2099-12-31',
     predicate_owner: 'ai_surfaced',
     confirm_draft: true,
   });
-  ok('C2 synthetic decline is a non-answer, never a human no',
-    rejected?.structuredContent?.data?.choice === 'no_answer'
+  ok('C2 Argus preserves the only protocol fact it received',
+    rejected?.structuredContent?.data?.choice === 'declined'
       && rejected?.structuredContent?.data?.sealed === false,
     JSON.stringify(rejected?.structuredContent));
-  ok('C2 the unconfirmed predicate is handed back intact',
-    rejected?.structuredContent?.data?.predicate
-      === 'the Codex outer policy will auto-reject this form',
-    JSON.stringify(rejected?.structuredContent?.data));
+  ok('C2 policy auto-reject never reached the outer form client',
+    elicitationRequests.length === asksBeforePolicyReject,
+    `before=${asksBeforePolicyReject} after=${elicitationRequests.length}`);
 
-  const checkIn = await call('argus_check_in', {});
-  ok('C2 the session reports text fallback after the invisible decline',
-    checkIn?.structuredContent?.data?.picker === 'text_fallback',
-    JSON.stringify(checkIn?.structuredContent?.data));
-
-  const asksBeforeCircuit = elicitationRequests.length;
-  const circuit = await call('argus_predict', {
-    id: 'codex-circuit-open',
-    predicate: 'the open circuit must not launch another invisible form',
+  const asksBeforeSecondPolicyCall = elicitationRequests.length;
+  const secondPolicyCall = await callForThread(policyThreadId, 'argus_predict', {
+    id: 'codex-policy-bounded',
+    predicate: 'a policy rejection ends this tool call without an internal loop',
     check_by: '2099-12-31',
     predicate_owner: 'ai_surfaced',
     confirm_draft: true,
   });
-  ok('C2 no second invisible request is launched',
-    elicitationRequests.length === asksBeforeCircuit,
-    `before=${asksBeforeCircuit} after=${elicitationRequests.length}`);
-  ok('C2 fallback record keeps honest AI provenance',
-    circuit?.structuredContent?.data?.predicate_owner === 'ai_surfaced',
-    JSON.stringify(circuit?.structuredContent?.data));
+  ok('C2 each policy-blocked tool call terminates with one decline',
+    secondPolicyCall?.structuredContent?.data?.choice === 'declined',
+    JSON.stringify(secondPolicyCall?.structuredContent?.data));
+  ok('C2 no policy-blocked call leaks an outer request',
+    elicitationRequests.length === asksBeforeSecondPolicyCall,
+    `before=${asksBeforeSecondPolicyCall} after=${elicitationRequests.length}`);
+
+  const asksBeforeRecovery = elicitationRequests.length;
+  const recovered = await call('argus_predict', {
+    id: 'codex-after-policy',
+    predicate: 'a later interactive Codex form still reaches the user',
+    check_by: '2099-12-31',
+    predicate_owner: 'ai_surfaced',
+    confirm_draft: true,
+  });
+  ok('C3 a policy decline does not poison later picker surfaces',
+    elicitationRequests.length === asksBeforeRecovery + 1,
+    `before=${asksBeforeRecovery} after=${elicitationRequests.length}`);
+  ok('C3 the later interactive Accept still records user ownership',
+    recovered?.structuredContent?.data?.predicate_owner === 'user'
+      && recovered?.structuredContent?.data?.status === 'sealed',
+    JSON.stringify(recovered?.structuredContent?.data));
 } catch (error) {
   violations.push(`C0 app-server harness: ${error?.message ?? error}; stderr=${stderr.slice(-700)}`);
 } finally {
@@ -275,4 +325,4 @@ if (violations.length) {
   for (const violation of violations) console.error(`  ${violation}`);
   process.exit(1);
 }
-console.log(`✅ ${label} — allowed forms work; invisible decline fails over once.`);
+console.log(`✅ ${label} — protocol facts preserved; policy decline stays bounded.`);

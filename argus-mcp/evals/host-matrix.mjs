@@ -110,8 +110,8 @@ const PROFILES = {
   'claude-code':     { elicit: true,  apps: false, answer: () => ({ action: 'accept', content: {} }), strict: true },
   'claude-desktop':  { elicit: true,  apps: true,  answer: () => ({ action: 'accept', content: {} }), strict: true },
   // Same real Codex identity, two realities. A product-name blacklist makes the
-  // first impossible; trusting every declared capability makes the second lose
-  // work behind an invisible synthetic decline.
+  // first impossible. In the second, Codex policy returns a bare protocol
+  // decline; elapsed time cannot reveal whether a person or policy produced it.
   'codex-interactive': {
     elicit: true,
     apps: false,
@@ -122,7 +122,7 @@ const PROFILES = {
   'codex-auto-reject': {
     elicit: true,
     apps: false,
-    autoReject: true,
+    policyBareDecline: true,
     clientInfo: { name: 'codex-mcp-client', title: 'Codex', version: '0.130.0' },
     answer: () => ({ action: 'decline' }),
   },
@@ -265,10 +265,18 @@ async function runProfile(name) {
       });
       ok(name, 'B1 no unhandled throw (I5)', sc?.error_code !== 'INTERNAL_ERROR', brief(sc, 200));
       ok(name, 'B2 no dead end (I1)', !isDeadEnd(sc), `surface="${String(sc?.surface).slice(0, 120)}" next=${JSON.stringify(sc?.next_actions)}`);
-      if (name === 'hostile-cancel' || name === 'codex-auto-reject') {
+      if (name === 'hostile-cancel') {
         // I2 — a cancel must NOT be reported as the user declining.
         ok(name, 'B3 non-answer is not recorded as a decline (I2)', sc?.data?.choice === 'no_answer', `choice=${sc?.data?.choice}`);
         ok(name, 'B4 the predicate is handed back so no work is lost (I2)', typeof sc?.data?.predicate === 'string' && sc.data.predicate.includes('D7'), brief(sc?.data, 160));
+      }
+      if (profile.policyBareDecline) {
+        ok(name, 'B3 immediate decline keeps its MCP meaning',
+          sc?.data?.choice === 'declined',
+          `choice=${sc?.data?.choice}`);
+        ok(name, 'B4 one tool call makes one bounded ask',
+          seen.length === 1,
+          `asks=${seen.length}`);
       }
       if (name === 'hostile-empty' || name === 'claude-code' || name === 'claude-desktop' || name === 'codex-interactive') {
         // A one-tap Accept with a blank form must SAVE — this is the whole point.
@@ -297,13 +305,6 @@ async function runProfile(name) {
         ok(name, 'B3 no-picker host still records (I4)', sc?.data?.sealed !== false && !isError, brief(sc?.data, 160));
         ok(name, 'B4 provenance stays honest without a picker', sc?.data?.predicate_owner === 'ai_surfaced', `owner=${sc?.data?.predicate_owner}`);
       }
-      if (profile.autoReject) {
-        const { sc: afterReject } = await call('argus_check_in', { today_override: T0 });
-        ok(name, 'B5 an invisible decline trips text fallback for the session',
-          afterReject?.data?.picker === 'text_fallback',
-          `picker=${afterReject?.data?.picker}`);
-        ok(name, 'B6 only one invisible ask was attempted', seen.length === 1, `asks=${seen.length}`);
-      }
     }
 
     // ── C. settle — the return path (yesterday's blocked screen) ─────────────
@@ -314,7 +315,7 @@ async function runProfile(name) {
       if (profile.apps) {
         ok(name, 'C2 apps host gets the card state', sc?.data?.status === 'awaiting_picker', brief(sc?.data, 160));
         ok(name, 'C3 card carries the predicate + due date', typeof sc?.data?.predicate === 'string' && typeof sc?.data?.check_by === 'string');
-      } else if (profile.autoReject || !profile.elicit) {
+      } else if (!profile.elicit) {
         // No picker: an honest refusal that names the missing input.
         ok(name, 'C2 honest OUTCOME_REQUIRED, not a silent drop (I4)', sc?.error_code === 'OUTCOME_REQUIRED', `code=${sc?.error_code}`);
         ok(name, 'C3 the refusal says how to proceed (I1)', /outcome|결과/i.test(String(sc?.recovery ?? sc?.message ?? '')), String(sc?.recovery).slice(0, 120));
@@ -364,7 +365,7 @@ async function runProfile(name) {
     // Pin both languages through the public settings tool. Content sniffing is
     // not enough here: once a fresh session learns Korean, the saved locale
     // intentionally outranks a later English sentence.
-    if (profile.elicit && !profile.autoReject) {
+    if (profile.elicit) {
       for (const sample of [
         { id: 'wh-ko', predicate: '설비 교체가 3분기 안에 끝난다', locale: 'ko' },
         { id: 'wh-en', predicate: 'the plant swap lands inside Q3', locale: 'en' },
@@ -465,11 +466,6 @@ async function runProfile(name) {
         ok(name, 'E2-4 defer picker: a non-answer is not a refusal to pick (I2)', sc?.data?.choice === 'no_answer', `choice=${sc?.data?.choice} code=${sc?.error_code}`);
         ok(name, 'E2-5 the old check-by is named so nothing silently moved (I4)', sc?.data?.check_by === '2026-07-10', `check_by=${sc?.data?.check_by}`);
       }
-      if (profile.autoReject) {
-        ok(name, 'E2-4 circuit-open host uses the explicit date fallback',
-          sc?.error_code === 'DEFER_DATE_REQUIRED' && typeof sc?.recovery === 'string',
-          `code=${sc?.error_code} recovery=${String(sc?.recovery).slice(0, 90)}`);
-      }
       // E2-6 — the claim above is checked against the LEDGER, not the prose.
       // A surface that says "the date is unchanged" while a defer event landed
       // would be the goalpost move the state machine exists to prevent, and the
@@ -539,9 +535,6 @@ async function runProfile(name) {
       ok(name, 'F1 _meta.ui exactly on apps hosts', hasUi === Boolean(profile.apps), `hasUi=${hasUi} apps=${Boolean(profile.apps)}`);
       const res = await client.listResources();
       ok(name, 'F2 the settle card resource is readable everywhere', res.resources.some((r) => r.uri === 'ui://argus/settle-picker'));
-      if (profile.autoReject) {
-        ok(name, 'F3 auto-reject host was probed once then bypassed', seen.length === 1, `invisible asks=${seen.length}`);
-      }
     }
   } finally {
     await client.close();
