@@ -12,17 +12,21 @@ let counter = 0;
  * Every fixture used to be created straight in os.tmpdir() and never removed.
  * One `vitest run` leaves 386 directories behind; a machine that had been
  * running verify and its mutation self-tests for a while was holding 28,203 of
- * them (measured 2026-07-29). Verify eventually died on a full disk with no
+ * them (measured 2026-07-29). Verify eventually dies on a full disk with no
  * stack, and — worse — a self-test that dies mid-plant leaves the regression it
  * planted sitting in the source tree.
  *
- * Removal is best-effort in both hooks: a fixture can still be held by a child
- * that was terminated abruptly, and a cleanup failure must never overwrite the
- * actual test verdict.
+ * `ARGUS_TEST_RUN_ID` keeps concurrent runs (verify spawns a whole suite per
+ * mutation) from sharing a name; the retries cover a fixture a just-exited child
+ * still holds on Windows. Removal is best-effort in both hooks: a cleanup
+ * failure must never overwrite the actual test verdict.
  */
-const workerRoot = fs.mkdtempSync(path.join(os.tmpdir(), `argus-test-${process.pid}-`));
+const testRunId = process.env['ARGUS_TEST_RUN_ID'] ?? `standalone-${process.pid}`;
+const workerRoot = fs.mkdtempSync(path.join(os.tmpdir(), `argus-test-${testRunId}-worker-${process.pid}-`));
 function sweep(): void {
-  try { fs.rmSync(workerRoot, { recursive: true, force: true }); } catch { /* keep the verdict */ }
+  try {
+    fs.rmSync(workerRoot, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
+  } catch { /* keep the verdict */ }
 }
 process.once('exit', sweep);
 afterAll(sweep);

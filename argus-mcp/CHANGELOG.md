@@ -1,96 +1,118 @@
 # Changelog
 
-## 2.0.6 — Codex answered the picker, and we called it the user's decline
+## 2.0.7 - Codex answered the picker, and we called it the user's decline
 
-**A Codex user on a restrictive policy could not save anything, and was told
-they had refused**
+**Measured, on a real `codex app-server`, five configurations, one build**
 
-Measured against a real `codex app-server`, five configurations, one Argus build:
+| approval policy | does the request reach a screen? | what the user got |
+|---|---|---|
+| default | yes | saved |
+| `approval_policy = "never"` | **no** - Codex answers `decline` itself in ~330ms | `Not recorded.` |
+| `granular.mcp_elicitations = false` | **no** - same | `Not recorded.` |
+| allowed, a person declines | yes | `Not recorded.` |
 
-| approval policy | request reaches a screen? |
-|---|---|
-| default | yes — the form is shown |
-| `approval_policy = "never"` | **no** — Codex answers `decline` itself in ~330ms |
-| `granular.mcp_elicitations = false` | **no** — same |
+The bottom three look identical, and Argus recorded all of them as
+`choice: "declined"` - a decision credited to someone who, in two of those rows,
+was never shown anything and had no way to continue. Codex's own protocol cannot
+separate them: the response carries `action`, `content`, and a `_meta` that
+arrives null.
 
-In the bottom two rows Codex advertises the elicitation capability, intercepts
-the request, shows nobody anything, and declines on the user's behalf. All the
-user saw was:
+2.0.6 took the position that response time cannot disambiguate, because tests,
+accessibility automation, keyboard users, and a person who already knows their
+answer can all respond immediately. Every one of those is true. They are an
+argument against CONCLUDING anything - not an argument for reporting the
+policy-answered case as the user's act.
 
-```
-Not recorded.
-```
+So nothing here concludes. A decline that returns faster than a form can be read
+is not recorded and not attributed; the plain-text path is offered instead. And
+the sentence is written to be true in both readings - it leads with what holds
+either way (nothing was recorded) and makes the host explanation conditional,
+because telling someone who deliberately declined that "no answer came back"
+contradicts what they just did.
 
-with `choice: "declined"` in the record. A decision credited to a person who was
-never asked, and no way to continue. Codex's own protocol cannot distinguish the
-two cases — the response carries `action`, `content`, and a `_meta` that arrives
-null — so reading the reply harder was never going to answer it.
+The out-of-band ask is the one surface that spends its cooldown on it. There the
+two readings finally agree: a policy answering means an invisible timer retrying
+forever, and a person hammering Escape means pushing an unprompted question at
+someone who just said no.
 
-What can be said honestly is narrower: a form rendered a moment ago and declined
-within 500ms was not read by anyone. That is a claim about reading speed, so it
-needs no list of host names, and it is grounds only for **refusing to attribute**
-the decline — never for concluding anything about the user.
+**The README installed a version that does not exist**
 
-- an unreadably fast decline is reported as a non-answer: nothing recorded,
-  nothing attributed, and the plain-text path offered so the work can finish
-- the out-of-band ask is the one surface that treats it as spending its cooldown.
-  Both readings agree there: a policy answering means an invisible timer
-  retrying forever; a person hammering Escape means pushing an unprompted
-  question at someone who just said no
-- the English line no longer says a dialog closed, because on a blocked host
-  none was ever opened
+The install block pinned `argus-decision-mcp@2.0.0`, never published. Following
+it verbatim produced `No matching version found` and no server at all - the
+front door for every hand-configured host, which is every Codex user. There were
+also no Codex instructions anywhere. Both fixed, and `version-lockstep` now holds
+the pins in the docs to the same version as the five manifest files; it had been
+comparing those five to each other and never looking at the line a human copies.
 
-**One hurried "no" no longer deletes the rest of your pickers**
+**The pickers told every host to press Claude Code's keys**
 
-The version of this fix that arrived from the parallel verification track opened
-a session-wide breaker on the FIRST such decline. That also fires when a person
-simply answers fast, and it then removed the settle picker, the defer picker and
-the premise picker for the remainder of the session — silently, on a host that
-renders forms perfectly well. Asking a blocked host again costs one intercepted
-request nobody sees; guessing wrong costs the user every later screen. The ask is
-never suppressed now. A pattern of unseen declines (two consecutive, cleared by
-any contrary evidence) only changes what `argus_check_in` REPORTS the surface to
-be.
-
-**The README told people to install a version that does not exist**
-
-The install block pinned `argus-decision-mcp@2.0.0`, which was never published.
-Following it verbatim produced `No matching version found` and no server at all
-— the front door for every hand-configured host, which is every Codex user.
-There were also no Codex instructions anywhere. Both fixed, and
-`version-lockstep` now holds the pins in the docs to the same version as the
-five manifest files; it had been comparing those five to each other and never
-looking at the line a human copies.
+Four messages spelled out one client's keyboard - "arrow down to the accept
+row", "press Enter twice" - inside a protocol message every host receives. A
+Codex user reading a rendered form is being told to press keys that are not
+there. The fact underneath is host-independent: choosing is not yet saving, and
+the answer lands at Accept. Also: a newline inside a field description (a hint
+rendered beside one input, not a block the host lays out), and English copy that
+told a PERSON to call `argus_capture`.
 
 **Gates**
 
-- `evals/codex-app-server.mjs` rewritten: two real Codex processes under two real
-  approval policies. The blocked reality now comes from Codex's own config
-  instead of the harness declining when it spots a keyword in the message — a
-  harness that manufactures the failure it detects proves only the harness. It
-  also locates a Codex installed by npm; the previous draft accepted only
-  `codex.exe`, which a normal global install never puts on PATH, so it threw
-  "codex.exe not found" and never ran.
-- `host-matrix` gains `codex-interactive` and `codex-policy-blocked`, one real
-  Codex identity in two realities, which is what keeps proving nothing branches
-  on a product name.
-- `battery` gains S36b (a decline nobody saw) beside S36, and S36 now declares
-  that its decline came from a PERSON by pausing — a scenario answering in zero
+- `evals/codex-app-server.mjs` drives two real Codex processes under two real
+  approval policies, so the blocked reality comes from Codex's own config rather
+  than the harness declining when it spots a keyword - a harness that
+  manufactures the failure it detects proves only the harness. It also finds a
+  Codex installed by npm; accepting only `codex.exe` meant it never ran on an
+  ordinary global install.
+- `host-matrix` carries one real Codex identity in two realities, which is what
+  keeps proving nothing branches on a product name.
+- `battery` gains the decline nobody saw, and its counterpart now declares that
+  its decline came from a PERSON by pausing - a scenario answering in zero
   milliseconds is not a fast user, it is a machine.
-- `verify-published`: the 2.0.5 marker was written in source form,
-  `a['predicate_owner']`, and esbuild normalises quotes, so it could never match
-  and reported a shipped fix as missing. Made quote-agnostic, plus a pre-flight
-  that checks every marker against the build just produced, so "impossible
-  marker" stops looking like "missing fix".
-- test fixtures were never removed: one `vitest run` left 386 directories in the
-  system temp dir, and a machine mid-verify was holding 28,203. Verify dies
-  without a stack when the disk fills, and a self-test that dies mid-plant leaves
-  the regression it planted in the source tree.
+- `picker-surfaces` asserts every field label and description is one line.
+- The standing yellow ("Korean journey got a mostly-English surface") was the
+  scenario, not the product: an empty ledger has no user text to read a voice
+  from and that scenario never set a locale. It now asserts config is honoured
+  with zero content, and a new one asserts the opposite edge - with no config and
+  no user text, the language must not be invented from the machine's locale.
+- `verify-published` markers are quote-agnostic and pre-checked against the build
+  just made. The 2.0.5 marker was written in source form and esbuild normalises
+  quotes, so it could never match and reported a shipped fix as missing.
+- Test fixtures were never removed: 386 directories per `vitest run`, 28,203 on
+  one machine. Verify dies without a stack when the disk fills, and a self-test
+  that dies mid-plant leaves the regression it planted in the source tree.
 
-E2E 13/13 (was 9/13) · battery 95 calls 0 RED · picker surfaces 6696/0 · host
-matrix 424/0 across 13 profiles · keepsake 254/0 · real Codex 15/15 · unit 1120.
+## 2.0.6 — The published package catches up with the verified main
 
-## 2.0.5 — Provenance rides the seal event, and a release that main had already left behind
+Version 2.0.5 was tagged from PR #316 while the decline-semantics PR was still
+in CI. npm therefore received the provenance fix but not the removal of the
+500ms timing heuristic and global picker circuit. npm versions are immutable;
+2.0.6 is the first published build containing both fixes and the real
+Codex-policy wire verification.
+
+The public README no longer pins the never-published `2.0.0`; the lockstep gate
+now checks the command users copy as well as the manifests. Post-publish markers
+are quote-agnostic and self-check against the local build before judging npm.
+The real Codex gate resolves both a native PATH install and npm's nested
+platform binary, instead of requiring a `codex.exe` shim npm never creates.
+
+## 2.0.5 — Decline means decline; provenance rides the seal event
+
+The 2.0.4 Codex fallback inferred that a `decline` returned within 500ms was a
+host-policy auto-reject. That inference was not supported by MCP. A fast
+keyboard choice, accessibility automation, a test client, and Codex policy can
+all produce the same result. Worse, the inference opened a process-global
+circuit breaker, so one quick Decline disabled every later picker surface.
+
+Argus now preserves the protocol result: `decline` is always a decline,
+`cancel` is a non-answer, transport failure is a failed non-answer, and an
+undeclared capability is unsupported. Every tool call makes at most one
+elicitation request; no response can disable unrelated later pickers.
+
+The Codex verifier now uses the installed app-server with two real thread
+policies. It proves that `mcp_elicitations=false` returns a bare
+`{action:"decline"}` with no `_meta` and never forwards a form to the outer
+client. Because the server receives no distinguishing signal, it does not
+invent one from elapsed time. The same verifier then returns to an interactive
+thread and proves a later form still reaches the client and records an Accept.
 
 **A drafted line could cross into the account looking like the user's own**
 
@@ -147,6 +169,31 @@ real cost — the defect makes an honest record look like a forged one.
 now do too; the logical date is untouched, only the intra-day time is corrected.
 `evals/answer-time.mjs` answers deliberately slowly and fails if the stamp
 precedes the answer.
+
+**Codex picker works when allowed and fails over when policy blocks it**
+
+> Superseded by “Decline means decline” above. The 500ms inference and global
+> circuit described here were removed after real app-server wire inspection
+> proved that the server cannot distinguish policy and human declines.
+
+Codex app-server supports standard MCP form elicitation, but an outer surface
+can advertise the capability while policy auto-rejects the form without showing
+it. A Codex product-name blacklist was tested and rejected because it also
+killed the working picker.
+
+Argus now uses the protocol capability. An impossibly fast synthetic decline is
+reclassified as a non-answer, the draft is handed back, and a session-local
+circuit breaker moves later calls to text fallback. A visible human decline is
+still respected. `evals/codex-app-server.mjs` drives the installed Codex
+app-server itself and proves both wire paths.
+
+**Release verification is isolated and executes the installed plugin command**
+
+Mutation self-tests run only in a temporary copy after a green baseline, and a
+non-zero exit counts only when the gate emits a positive, gate-owned violation.
+The real Claude Code plugin lifecycle now executes the MCP command reported by
+the installed inventory, calls `argus_check_in`, and verifies the six public
+tools plus the exact pinned server version before disable/enable/update/uninstall.
 
 **A form that promised what the server would refuse**
 

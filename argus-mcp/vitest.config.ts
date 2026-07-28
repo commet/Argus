@@ -10,6 +10,10 @@ export default defineConfig({
     // Points the account API at a closed local port, so a test that sets
     // ARGUS_TOKEN and forgets to mock fetch cannot reach the real server.
     setupFiles: ['src/test-setup.ts'],
+    // Own every temp root with a per-run token, then sweep only that token after
+    // workers stop. Per-file hooks can miss cleanup when Windows tears a worker
+    // down while a directory handle is briefly held.
+    globalSetup: ['src/test-global-setup.ts'],
     // The protocol suite intentionally rebuilds dist and several durability
     // properties perform real filesystem I/O. Windows CI and busy developer
     // machines can exceed Vitest's 5s/30s defaults without being hung.

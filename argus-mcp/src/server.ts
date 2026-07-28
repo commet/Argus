@@ -9,7 +9,7 @@ import {
 import { TOOLS, TOOL_MAP, servedPublicTools } from './tools/index.js';
 import { listResources, listResourceTemplates, readResource } from './resources.js';
 import { SERVER_INSTRUCTIONS } from './lib/spine.js';
-import { setElicitor, DECISION_ASK_TIMEOUT_MS } from './lib/elicit.js';
+import { setElicitor, DECISION_ASK_TIMEOUT_MS, supportsReliableElicitation } from './lib/elicit.js';
 import { setAppsCapability, withUiMeta, UI_EXTENSION_ID } from './lib/apps-ui.js';
 import { initAmbientElicit, armAmbientElicit, attachAmbientNote } from './lib/ambient-elicit.js';
 import { settle } from './tools/settle.js';
@@ -73,7 +73,7 @@ export async function createServer(): Promise<Server> {
   setElicitor(
     (message, requestedSchema, timeoutMs) =>
       ec.elicitInput({ message, requestedSchema }, { timeout: timeoutMs ?? DECISION_ASK_TIMEOUT_MS }),
-    () => Boolean(ec.getClientCapabilities?.()?.elicitation),
+    () => supportsReliableElicitation(ec.getClientCapabilities?.()),
   );
   // MCP Apps (SEP-1865): same declared-capability pattern. Hosts that announce
   // the io.modelcontextprotocol/ui extension get the settle CARD (tool _meta.ui

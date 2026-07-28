@@ -94,7 +94,7 @@ jobs:
       # 그래서 공개 6도구 이름(argus_predict / argus_resolve / argus_capture /
       # argus_patterns)으로 다시 짜서, 같은 사실을 지금 있는 표면에 대고 묻는다.
       # 이것들이 없으면 2026-07-28 감사 수리 중 어느 것도 증명되지 않는다.
-      - name: Host conformance matrix (9 hosts x every ask)
+      - name: Host conformance matrix (real client profiles x every ask)
         run: |
           cd argus-mcp
           HOST_MATRIX_SKIP_BUILD=1 node evals/host-matrix.mjs
@@ -148,6 +148,19 @@ jobs:
         run: |
           cd argus-mcp
           UNREADABLE_SKIP_BUILD=1 node evals/unreadable-ledger.mjs
+
+      # install-smoke drives Claude Code's real plugin manager and MCP health
+      # check in an isolated config. Pin the host version whose form submit
+      # behavior is also read by claude-code-form.mjs; "latest" would make a
+      # host rollout silently change the meaning of this gate.
+      - name: Install tested Claude Code host
+        run: npm install -g @anthropic-ai/claude-code@2.1.220
+
+      # The Codex gate drives the actual app-server JSON-RPC bridge, not a
+      # Codex-shaped mock. Keep the host version explicit so a rollout changes
+      # this contract in a visible dependency update.
+      - name: Install tested Codex host
+        run: npm install -g @openai/codex@0.130.0-alpha.5
 
       # 상시 센서 (2026-07-27 창업자 지시 "eval을 꼼꼼하게 — 사고 나면 결국
       # 모델에게 시킬 텐데 센서가 없으면 못 찾는다"): 실서버를 stdio로 몰아
@@ -246,7 +259,8 @@ jobs:
       - name: Argus reminder hook
         run: node argus-plugin-v2/scripts/test-check-contracts.mjs
 
-      # Clean-install preconditions (manifest parity, skills/agents/hooks/schemas resolve).
+      # Real clean install in an isolated CLAUDE_CONFIG_DIR: install, inventory,
+      # MCP connection, disable/enable/update, and uninstall.
       - name: Argus install smoke
         run: node argus-plugin-v2/scripts/install-smoke.mjs
 

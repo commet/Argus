@@ -40,14 +40,23 @@ export function noAnswerResult(args: {
     // (2026-07-28 surface sweep), and this is a line someone meets at the exact
     // moment something already went wrong.
     //
-    // "did not come back" rather than "the dialog closed": on a host whose
-    // policy answers elicitations itself (a real `codex app-server` under
-    // `approval_policy = "never"`, measured 2026-07-29) no dialog was ever
-    // opened, so describing one closing is a small fiction told at the exact
-    // moment the user needs to trust what they are reading.
+    // The first clause must be true in BOTH readings of how we got here.
+    //
+    // This surface is reached by a cancelled window, a thrown request, AND a
+    // decline that came back faster than a form can be read. That last one is
+    // genuinely ambiguous: a policy may have answered without showing anything
+    // (a real `codex app-server` under `approval_policy = "never"`, measured
+    // 2026-07-29), or a keyboard user, assistive automation, or someone who
+    // already knew their answer may have declined instantly and meant it.
+    //
+    // So lead with the fact that holds either way — nothing was recorded — and
+    // make the host explanation CONDITIONAL rather than asserted. Telling
+    // someone who deliberately declined that "no answer came back" contradicts
+    // what they just did; telling a blocked user "you declined" invents an act
+    // they never performed. One sentence has to avoid both.
     surface: ko
-      ? `확인 창에서 답이 오지 않았습니다 (호스트가 창을 안 띄웠을 수 있습니다). 아직 기록하지 않았습니다.\n${handBack.ko}`
-      : `No answer came back from the confirm dialog — your host may not be showing it. Nothing is recorded yet.\n${handBack.en}`,
+      ? `기록하지 않았습니다. 확인 창을 보지 못하셨다면 호스트가 대신 답했을 수 있습니다.\n${handBack.ko}`
+      : `Nothing recorded. If no dialog appeared, your host may have answered for you.\n${handBack.en}`,
     next_actions,
     data: { recorded: false, choice: 'no_answer', ...data },
   });

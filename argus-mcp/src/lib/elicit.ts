@@ -48,6 +48,21 @@ export type Elicitor = (
  */
 export const DECISION_ASK_TIMEOUT_MS = 10 * 60 * 1000;
 
+export interface McpClientCapabilities {
+  elicitation?: unknown;
+}
+
+/**
+ * Branch on the protocol capability, never the host's product name. Codex can
+ * surface standard MCP forms when mcp_elicitations are allowed; blacklisting
+ * `codex-mcp-client` made the working path impossible along with the broken one.
+ */
+export function supportsReliableElicitation(
+  capabilities: McpClientCapabilities | undefined,
+): boolean {
+  return Boolean(capabilities?.elicitation);
+}
+
 /**
  * A decline nobody could have read, and why we refuse to call it the user's.
  *
@@ -80,6 +95,27 @@ export const DECISION_ASK_TIMEOUT_MS = 10 * 60 * 1000;
  * the host is blocked — a person really can hammer Escape — so it must not be
  * used to conclude anything about the user. It is only ever grounds for refusing
  * to claim the decline was theirs.
+ *
+ * THE OBJECTION, AND WHY THIS STILL STANDS (the parallel verification track
+ * reached the opposite conclusion on 2026-07-29 and shipped it as 2.0.6):
+ * response time cannot separate the two, because "tests, accessibility
+ * automation, keyboard users, and a person who already knows their answer can
+ * all respond immediately." Every one of those is true, and the keyboard and
+ * assistive-tech cases are better counterexamples than the ones this comment
+ * originally answered.
+ *
+ * They are an argument against CONCLUDING, which is why nothing here concludes.
+ * They are not an argument for the alternative, which is to report every such
+ * decline as the user's: on a policy-blocked Codex that produces `Not recorded.`
+ * with `choice: "declined"` and no way forward — a decision credited to someone
+ * who was never shown anything, which is the first thing CLAUDE.md forbids.
+ *
+ * So the split is: BEHAVIOUR refuses to attribute (nothing recorded, nothing
+ * claimed, the text path offered), and the SENTENCE must be true whether they
+ * declined deliberately or never saw a thing. It says nothing was recorded — true
+ * either way — and offers the path conditionally, so a person who did mean to
+ * decline reads one accurate line rather than a contradiction of what they just
+ * did. See picker-fallback.ts for the wording that has to carry both readings.
  */
 export const UNREADABLE_DECLINE_MAX_MS = 500;
 
@@ -125,7 +161,16 @@ export function setElicitor(fn: Elicitor | null, capable?: () => boolean): void 
  * asymmetry is not close, so the ask is never suppressed.
  */
 export function canElicit(): boolean {
-  if (_capable) return _capable();
+  // Fail CLOSED if the probe itself throws: an exception from the capability
+  // check is not evidence of capability, and answering "yes, this host has a
+  // picker" on the strength of a crash launches an ask into the dark.
+  if (_capable) {
+    try {
+      return _capable();
+    } catch {
+      return false;
+    }
+  }
   return _elicit !== null;
 }
 
@@ -197,7 +242,10 @@ export async function elicitDetailed(
   requestedSchema: Record<string, unknown>,
   timeoutMs: number = DECISION_ASK_TIMEOUT_MS,
 ): Promise<ElicitOutcome> {
-  if (!_elicit) return { kind: 'unsupported' };
+  // Enforce the capability at the seam itself. Call sites use canElicit() to
+  // choose their UI branch, but forgetting that pre-check must never bypass the
+  // gate and launch an ask at a host that never declared it could show one.
+  if (!_elicit || !canElicit()) return { kind: 'unsupported' };
   try {
     const started = Date.now();
     const res = await _elicit(stripUnsafeChars(message), requestedSchema, timeoutMs);
@@ -233,7 +281,7 @@ export async function elicit(
   requestedSchema: Record<string, unknown>,
   timeoutMs: number = DECISION_ASK_TIMEOUT_MS,
 ): Promise<Record<string, unknown> | null> {
-  if (!_elicit) return null;
+  if (!_elicit || !canElicit()) return null;
   try {
     // The elicitation `message` is a SEPARATE server→client request — it does NOT
     // pass through envelope()/sanitizeOutput, so a raw predicate/premise
