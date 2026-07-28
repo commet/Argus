@@ -20,6 +20,39 @@ client. Because the server receives no distinguishing signal, it does not
 invent one from elapsed time. The same verifier then returns to an interactive
 thread and proves a later form still reaches the client and records an Accept.
 
+## 2.0.5 — Provenance rides the seal event, and a release that main had already left behind
+
+**A drafted line could cross into the account looking like the user's own**
+
+`argus_seal` has always recorded `predicate_owner`, but the value lived only in
+the bearing seed, the receipt, and the v2 mirror — none of which the webapp push
+reads. So an `ai_surfaced` draft arrived in the account indistinguishable from a
+sentence the user dictated, which is CLAUDE.md rule 1 (never lie about
+authorship) breaking silently at a surface boundary. It now rides the
+append-only seal event itself and survives every downstream reader. Absence
+stays absence: no reader may promote a missing value to `user`.
+
+**How this release came to exist**
+
+2.0.4 shipped, and then #308 merged the fix above into main without a version
+bump. Both sides called themselves 2.0.4 while the code differed, and
+`version-lockstep.mjs` stayed green because it only compares the five version
+STRINGS to each other — source moving without the version moving is outside
+what it looks at. The divergence was found by unpacking the published tarball
+and grepping for the fix, not by reading a diff.
+
+`evals/verify-published.mjs` now carries a marker for it, so the same class is
+visible from the outside next time: run it against 2.0.4 and that one line goes
+red while everything else passes.
+
+**Gate correction**
+
+`answer-time.mjs` compared the ledger's logical date against the UTC day of the
+answer. The server stamps the tz-aware LOCAL date deliberately — someone sealing
+at 01:00 KST is sealing today, not yesterday — so the gate disagreed with
+correct behaviour for nine hours out of every twenty-four. It fired for the
+first time at 01:20 KST tonight. The product was right; the gate was wrong.
+
 ## 2.0.4 — The Accept that was thrown away, and the keepsakes nobody had looked at
 
 **The record was dated before the answer it recorded**

@@ -128,6 +128,9 @@ for (const [id, ev, kind, label] of [
     `대기 ${THINK_MS}ms 인데 기록이 답변보다 ${Math.round(-lag)}ms 앞섭니다`);
   // A3 — only the intra-day time was wrong. ARGUS_TZ is pinned above so the
   // expected logical date is deterministic across the host's local midnight.
+  // This is stronger than comparing with the machine's local day: CI and the
+  // spawned MCP process share an explicit UTC contract instead of accepting
+  // both today and yesterday around a timezone boundary.
   ok(`A3 ${label} 날짜는 물었던 그날 그대로다`,
     ev.ts.slice(0, 10) === new Date(replied).toISOString().slice(0, 10),
     `${ev.ts.slice(0, 10)} vs ${new Date(replied).toISOString().slice(0, 10)}`);

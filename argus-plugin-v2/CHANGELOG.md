@@ -1,5 +1,15 @@
 # Changelog
 
+## 3.0.5 — 2026-07-29
+
+- Wire moves to `argus-decision-mcp@2.0.5` — **a line Argus drafted can no longer
+  reach your account looking like your own.** Provenance was recorded at seal
+  time but not on the event the webapp push reads, so an unconfirmed draft and a
+  sentence you dictated arrived identical. It now travels with the seal itself.
+- That fix was on main but not in the published 2.0.4; both called themselves
+  2.0.4. This release closes the gap, and the post-publish check now looks for
+  the fix by name so the same silence is visible from the outside.
+
 ## 3.0.4 — 2026-07-28
 
 - Wire moves to `argus-decision-mcp@2.0.4` — **Accept works, and the dialog
