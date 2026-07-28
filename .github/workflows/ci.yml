@@ -136,6 +136,14 @@ jobs:
           cd argus-mcp
           CODEX_APP_SERVER_SKIP_BUILD=1 node evals/codex-app-server.mjs
 
+      # 설치 스모크가 실제 Claude Code lifecycle(마켓플레이스 추가 → 설치 →
+      # 인벤토리 → MCP 연결 → 비활성/활성/업데이트 → 제거)을 돌게 하려면 CLI가
+      # 있어야 한다. 없으면 스크립트가 소리내어 건너뛰므로 여기서 깔아둔다 —
+      # 안 그러면 게이트가 조용히 매니페스트 읽기 수준으로 퇴화한다.
+      - name: Claude Code CLI (for the plugin install lifecycle)
+        run: npm i -g @anthropic-ai/claude-code
+        continue-on-error: true
+
       - name: Unreadable ledger refuses writes
         run: |
           cd argus-mcp

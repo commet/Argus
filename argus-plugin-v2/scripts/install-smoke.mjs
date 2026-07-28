@@ -140,6 +140,21 @@ if (errors.length) {
 }
 
 // ── Real isolated Claude Code lifecycle ─────────────────────────────────────
+//
+// Everything above this line reads files. Everything below drives the actual
+// Claude Code CLI, so it cannot run where that CLI is absent. Skip LOUDLY there
+// rather than failing: this gate's entire value is that it touched a real
+// install, and a red light that only means "the tool isn't here" trains people
+// to ignore a red light. CI installs the CLI so the skip never fires there.
+{
+  const probe = spawnSync(claudeBin, ['--version'], { encoding: 'utf8', shell: process.platform === 'win32' });
+  if (probe.error || probe.status !== 0) {
+    console.log('Install smoke: manifest checks passed.');
+    console.log('⏭  real Claude Code lifecycle SKIPPED — the `claude` CLI is not on PATH here.');
+    process.exit(0);
+  }
+}
+
 const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'argus-plugin-install-'));
 const stagedRepo = path.join(tempRoot, 'marketplace');
 const configDir = path.join(tempRoot, 'claude-config');
