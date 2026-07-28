@@ -36,7 +36,11 @@ describe('픽커는 무엇에 대한 물음인지 말한다', () => {
 
   it('봉인 픽커도 여전히 예측 문장을 담는다 (회귀 방지)', () => {
     const seal = read('tools/seal.ts');
-    expect(seal).toMatch(/이 예측으로 기록할까요\?\\n"\$\{predicate\}"/);
+    // The quoted sentence is clipped for DISPLAY (sanitizeLine) so a 380-char
+    // prediction cannot arrive as one 302-character line; the RECORD keeps it
+    // whole. Assert both halves of that, not just the quote.
+    expect(seal).toMatch(/이 예측으로 기록할까요\?\\n"\$\{shownPred\}"/);
+    expect(seal).toMatch(/const shownPred = sanitizeLine\(predicate, \d+\)/);
   });
 
   it('두 픽커가 같은 한 곳에서 선택지 문구를 가져온다', () => {

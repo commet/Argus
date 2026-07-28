@@ -135,6 +135,9 @@ run('호스트 전수 대조 (9 호스트)', 'node evals/host-matrix.mjs', { env
 run('밖에서 뜨는 물음 (실서버)', 'node evals/ambient-picker.mjs', { env: { ...process.env, AMBIENT_SKIP_BUILD: '1' }, extract: (o) => (o.match(/(\d+ checks · \d+ violation[^\n]*)/) || [])[1] ?? '' });
 run('내용 배터리 (실서버)', 'node evals/battery.mjs', { env: { ...process.env, BATTERY_SKIP_BUILD: '1' }, extract: (o) => (o.match(/(\d+ calls · \d+ RED[^\n]*)/) || [])[1] ?? '' });
 run('정산 카드 실행 (VM 호스트)', 'node evals/widget-runtime.mjs', { extract: (o) => `${(o.match(/ok  /g) || []).length} gestures ok` });
+const COUNTS = (o) => (o.match(/(\d+ checks · \d+ violation[^\n]*)/) || [])[1] ?? '';
+run('픽커 화면 전수 (2언어 × 8내용)', 'node evals/picker-surfaces.mjs', { env: { ...process.env, PICKER_SURFACES_SKIP_BUILD: '1' }, extract: COUNTS });
+run('문장 위험 전수 (2언어 × 2호스트)', 'node evals/surface-hazards.mjs', { env: { ...process.env, SURFACE_HAZARDS_SKIP_BUILD: '1' }, extract: COUNTS });
 
 // ── the plugin surface ──────────────────────────────────────────────────────
 run('플러그인 검증', 'node argus-plugin-v2/scripts/validate-plugin.js', { cwd: REPO });
@@ -241,6 +244,19 @@ selfTest(
   'src/lib/apps-ui-html.ts',
   (s) => s.replace("      s.appendChild(el('div', 'done-outcome', t.deferredHead));", "      s.appendChild(el('div', 'done-outcome', 'still_pending'));"),
   'node evals/widget-runtime.mjs',
+);
+
+selfTest(
+  '자기검증 ⑭ 픽커 라벨이 키로 새는 회귀를 잡는가',
+  'src/tools/settle.ts',
+  (s) => s.replace(/\n +title: pickerLocale === 'ko' \? '현실이 어떻게 답했나' : 'What reality did',/, ''),
+  'node evals/picker-surfaces.mjs',
+);
+selfTest(
+  '자기검증 ⑮ 한국어 화면에 영어가 섞이는 회귀를 잡는가',
+  'src/tools/seal.ts',
+  (s) => s.replace("' 달력 앱에 넣을 알림 파일도 함께 저장했습니다.'", "' 달력 리마인더(.ics)도 저장했습니다.'"),
+  'node evals/surface-hazards.mjs',
 );
 
 const pad = (s, n) => String(s) + ' '.repeat(Math.max(0, n - String(s).length));

@@ -1,5 +1,15 @@
 # Changelog
 
+## 3.0.3 — 2026-07-28
+
+- Wire moves to `argus-decision-mcp@2.0.3` — the five confirm dialogs were read
+  the way the card was in 3.0.2. Every input box had been labelled with its
+  internal key (`reword`, `outcome`, `what_happened`, `when`); they now carry
+  human labels in your language. The defer ask shows which prediction it is
+  about and marks "close this for good" as irreversible. A long prediction no
+  longer spills as one 300-character line. English copy was read for the first
+  time and unpacked into lines.
+
 ## 3.0.2 — 2026-07-28
 
 - Wire moves to `argus-decision-mcp@2.0.2` — the confirm surfaces were rendered

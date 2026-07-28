@@ -1,5 +1,64 @@
 # Changelog
 
+## 2.0.3 — What the pickers say, in both languages
+
+2.0.2 fixed the settle card by rendering it and looking. This does the same for
+the five ELICITATION asks, and for the words a host that has no picker at all
+(Codex) is left with. Both were checked by driving the real server across two
+languages and eight content shapes.
+
+**Our identifiers, shown to a person**
+
+- **Every field on every picker was labelled with its KEY.** The MCP spec has a
+  `title` for exactly this and we never sent one, so a host falls back to the
+  identifier: a Korean user editing their own prediction met a box called
+  `reword`; the return path asked them for `outcome` and `what_happened`; the
+  defer ask offered `when`. Five pickers, every field, including the two the
+  founder was blocked on in July. All of them now carry a human label.
+
+**Asks that never said what they were about**
+
+- The defer ask opened with a bare "not answered yet" line: the user picks a
+  date for a sentence the screen never shows. It now quotes the prediction, as
+  the settle ask has since 2.0.2.
+- The out-of-band ask arrived as one run-on paragraph with the user's own
+  prediction buried mid-sentence. It is the ask that fires when they did NOT ask
+  for anything; the least it can do is be scannable.
+
+**A terminal action dressed as a scheduling option**
+
+- The defer list read "in a week / in a month / in 3 months / it no longer
+  matters". The fourth closes the decision permanently and nothing said so. It
+  says so now, and the field description separates the three that only move a
+  date.
+
+**Long text spilling**
+
+- The seal and premise asks interpolated the sentence RAW, so a 380-character
+  prediction (inside the schema's own 400 cap) arrived as one 302-character
+  line. Display is clipped with an ellipsis now; the record still keeps every
+  character.
+
+**English, which nobody had read**
+
+- The first line an English user ever sees was a 144-character run-on, and the
+  seal confirmation ran the quoted prediction straight into the next clause.
+  Both are broken into lines. `.ics` came out of the human sentence in both
+  languages: a file extension is not a word.
+
+**Gates**
+
+- `picker-surfaces.mjs` — 2 languages x 8 content shapes x 5 asks: every field
+  has a human label, one language does not leak into the other, nothing renders
+  as undefined / an unrendered template / mojibake, no form-blocking constraint.
+- `surface-hazards.mjs` — every sentence the server can say, in both languages,
+  on a host WITH a picker and a host WITHOUT one. `locale-consistency.mjs`
+  guarded part of this before 2.0.0 removed it; nothing had since.
+- Both verified by re-planting the defect (self-tests 14 and 15).
+- The out-of-band eval now waits for the ask instead of a stopwatch: its fixed
+  sleeps passed alone and failed under load, which is a harness flake wearing
+  the product's face, the third of that class in one day.
+
 ## 2.0.2 — What the picker and the card actually look like
 
 Everything before this verified the wiring: the resource is listed, the args

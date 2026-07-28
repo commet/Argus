@@ -58,6 +58,20 @@ function ok(id, cond, detail) {
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 /**
+ * Wait for the ask to ARRIVE, not for a stopwatch. The fixed 700ms sleeps here
+ * passed alone and failed inside `npm run verify`, where the machine is busy —
+ * a harness flake wearing the product's face, which is the one thing these
+ * files exist to prevent (2026-07-28, third instance of this class today).
+ * A scenario that expects silence still sleeps: you cannot poll for nothing.
+ */
+async function waitForAsks(s, n, timeoutMs = 8000) {
+  const started = Date.now();
+  while (s.asks.length < n && Date.now() - started < timeoutMs) await sleep(40);
+  // settle time for the handler that runs after the last answer
+  await sleep(250);
+}
+
+/**
  * One server process, one sitting. `answer` receives the elicit params and
  * returns an ElicitResult (or throws, to model a host that declared the
  * capability and then refuses it).
@@ -111,7 +125,7 @@ console.log('Argus out-of-band ask — driven against the real server\n');
   const s = await sitting({ dir, answer: () => ({ action: 'accept', content: { outcome: 'held' } }) });
   await s.call('argus_predict', { id: 'future', predicate: '연말까지 신규 채널 3개를 연다', check_by: '2026-12-31', predicate_owner: 'user', today_override: T0 });
   await s.call('argus_patterns', { view: 'all', today_override: T0 });
-  await sleep(500);
+  await sleep(1500);
   ok('O1 아무것도 due가 아니면 물음 0건', s.asks.length === 0, `asks=${s.asks.length}`);
   await s.close();
 }
@@ -122,7 +136,7 @@ console.log('Argus out-of-band ask — driven against the real server\n');
   const dir = path.join(base, 'o2');
   const s = await sitting({ dir, muted: true, answer: () => ({ action: 'accept', content: { outcome: 'held' } }) });
   await seedOverdue(s.call);
-  await sleep(500);
+  await sleep(1500);
   ok('O2 mute면 물음 0건', s.asks.length === 0, `asks=${s.asks.length}`);
   await s.close();
 }
@@ -138,7 +152,7 @@ console.log('Argus out-of-band ask — driven against the real server\n');
       : { action: 'accept', content: { what_happened: '재구매율 13%에서 멈췄다. 쿠폰 의존이 컸다.' } }),
   });
   await seedOverdue(s.call);
-  await sleep(900);
+  await waitForAsks(s, 2);
 
   ok('O3 due가 있으면 실제로 물어본다', s.asks.length >= 1, `asks=${s.asks.length}`);
   if (s.asks.length >= 1) {
@@ -184,7 +198,7 @@ console.log('Argus out-of-band ask — driven against the real server\n');
   const dir = path.join(base, 'o6');
   const s = await sitting({ dir, answer: () => ({ action: 'decline' }) });
   await seedOverdue(s.call);
-  await sleep(700);
+  await waitForAsks(s, 1);
   ok('O6 한 번만 묻고 다시 조르지 않는다', s.asks.length === 1, `asks=${s.asks.length}`);
   const rec = await s.call('argus_patterns', { view: 'all', today_override: LATER });
   const row = (rec.data?.contracts ?? []).find((c) => c.id === 'amb');
@@ -202,7 +216,7 @@ console.log('Argus out-of-band ask — driven against the real server\n');
     answer: (p, n) => (n === 1 ? { action: 'accept', content: { outcome: 'held' } } : { action: 'accept', content: {} }),
   });
   await seedOverdue(s.call);
-  await sleep(900);
+  await waitForAsks(s, 2);
   const rec = await s.call('argus_patterns', { view: 'all', today_override: LATER });
   const row = (rec.data?.contracts ?? []).find((c) => c.id === 'amb');
   ok('O7 현실 서술 없이는 종결 정산을 쓰지 않는다', row?.status === 'sealed' && !row?.outcome, JSON.stringify(row).slice(0, 160));
@@ -216,7 +230,7 @@ console.log('Argus out-of-band ask — driven against the real server\n');
   const dir = path.join(base, 'o8');
   const s = await sitting({ dir, answer: () => { throw new Error('elicitation declared but not implemented'); } });
   await seedOverdue(s.call);
-  await sleep(700);
+  await waitForAsks(s, 1);
   ok('O8 시도는 했다', s.asks.length >= 1, `asks=${s.asks.length}`);
   const statePath = path.join(dir, 'ambient-elicit-state.json');
   const st = fs.existsSync(statePath) ? JSON.parse(fs.readFileSync(statePath, 'utf8')) : null;

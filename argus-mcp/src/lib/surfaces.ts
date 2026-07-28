@@ -372,7 +372,10 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
     },
     checkin: {
       nothing_due: 'Nothing is due right now.',
-      first_run: 'Just talk through a decision you\'re weighing. I\'ll follow along, and if something is worth checking later, I\'ll note it. Nothing is tracked yet.',
+      // Three sentences, three lines. As one run-on it was 144 characters of
+      // chrome — the Korean equivalent is three short lines, and this is the
+      // FIRST thing an English user ever reads (2026-07-28 surface sweep).
+      first_run: 'Just talk through a decision you\'re weighing.\nI\'ll follow along, and if something is worth checking later I\'ll note it.\nNothing is tracked yet.',
       account_hint: ' This screen reads the local decision record only. Predictions saved in your account show up with argus_settings action=sync.',
       upcoming: (n, days) => ` ${n} coming due within ${days} day(s). Informational; no result is due yet.`,
       due_contracts: (n) => `${n} saved prediction(s) past check-by. Tell me how each turned out and I'll record it.`,
@@ -485,7 +488,10 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
         lean_disclosure: 'Naming the load-bearing question points faintly at the flip; that residual lean is a known limit, not a verdict.',
       },
       seal: {
-        sealed: (predicate, checkBy) => `Prediction saved. "${predicate}" Check-by is ${checkBy}. I'll bring it back that day to see how it went.`,
+        // Two lines. The quoted prediction ran straight into "Check-by is …"
+        // with no break, so the confirmation of the thing the user just
+        // committed to was buried mid-paragraph (2026-07-28 surface sweep).
+        sealed: (predicate, checkBy) => `Prediction saved: "${predicate}"\nCheck-by is ${checkBy}. I'll bring it back that day to see how it went.`,
         sealed_draft: (predicate, checkBy) => `I drafted this prediction for you: "${predicate}" Check-by is ${checkBy}. Keep it as it stands, or tell me how to reword it.`,
         nudge_assumption: '',
         synced: ' Synced to your account. You\'ll get an email when it comes due.',

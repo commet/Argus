@@ -16,6 +16,7 @@ import { renderSeal } from '../lib/render-receipt.js';
 import { resolveResponseLocale, SURFACES, humanizeSyncReason } from '../lib/surfaces.js';
 import { accountPushId } from '../lib/install-id.js';
 import { premiseSyncEnabled } from '../lib/premise-sync.js';
+import { sanitizeLine } from '../v2/sanitize.js';
 import { elicitDetailed, canElicit } from '../lib/elicit.js';
 import { SCHEMA_VERSION } from '../lib/spine.js';
 import { writeReturnCalendarEvent } from '../lib/calendar.js';
@@ -104,17 +105,29 @@ export const seal: ToolModule = {
       // stays; forced typing is NOT the invariant — honest provenance is).
       let elicitedKeep = false; // v2 provenance: only elicit-channel confirmation counts as elicited_user (II-B)
       if ((a['confirm_draft'] === true || a['predicate_owner'] === 'ai_surfaced') && canElicit()) {
+        // CLIP FOR DISPLAY ONLY (2026-07-28). The full predicate went into the
+        // message raw, so a 380-character prediction — well inside the schema's
+        // own 400-char cap — arrived as one 302-character line. The record keeps
+        // every character; only what the human reads is bounded, and the clip
+        // leaves an ellipsis so nobody mistakes it for the whole sentence.
+        const shownPred = sanitizeLine(predicate, 96);
         const asked = await elicitDetailed(
           locale === 'ko'
-            ? `이 예측으로 기록할까요?\n"${predicate}"\n확인일 ${checkBy}\n\n그대로면 Accept · 문장이나 날짜를 고치려면 아래 칸에 쓰고 Accept · 기록 안 하려면 Decline.`
-            : `Record this prediction?\n"${predicate}"\ncheck-by ${checkBy}\n\nAccept to keep · to change the wording or date, fill a field below and Accept · Decline to skip.`,
+            ? `이 예측으로 기록할까요?\n"${shownPred}"\n확인일 ${checkBy}\n\n그대로면 Accept · 문장이나 날짜를 고치려면 아래 칸에 쓰고 Accept · 기록 안 하려면 Decline.`
+            : `Record this prediction?\n"${shownPred}"\ncheck-by ${checkBy}\n\nAccept to keep · to change the wording or date, fill a field below and Accept · Decline to skip.`,
           { type: 'object', properties: {
             reword: {
               type: 'string',
+              // TITLE, not just description. With no title a host labels the row
+              // with the KEY — so a Korean user reading their own prediction met
+              // a field called "reword" (audit 2026-07-28, found by dumping what
+              // the host actually receives). Same class as printing enum values.
+              title: locale === 'ko' ? '예측 문장 고쳐쓰기 (선택)' : 'Reword the prediction (optional)',
               description: locale === 'ko' ? '예측 문장을 고쳐 쓰려면 여기에 적으세요. 비우면 위 문장 그대로 기록합니다.' : 'To reword the prediction, type it here. Leave blank to keep the statement above.',
             },
             check_by: {
               type: 'string',
+              title: locale === 'ko' ? '확인일 바꾸기 (선택)' : 'Change the check-by date (optional)',
               // NO `format` here. 1.14.0 added `format:"date"` as a "spec-sanctioned,
               // harmless" rendering hint — untested speculation shipped into the
               // critical path. On a host that VALIDATES format, the blank field a
@@ -318,7 +331,10 @@ export const seal: ToolModule = {
       // dumping the absolute path — and the English label "Calendar file:" — into
       // a one-line surface was noise, and broke the Korean voice (copy-audit /
       // loop find). Mention it briefly, localized; keep the path in data.
-      const calNote = locale === 'ko' ? ' 달력 리마인더(.ics)도 저장했습니다.' : ' Saved a calendar reminder (.ics).';
+      // ".ics" is a file extension, not a word. To the non-developer this
+      // product is for it reads as noise in the middle of a friendly line
+      // (2026-07-28 surface sweep). Say what it is; the file is still an .ics.
+      const calNote = locale === 'ko' ? ' 달력 앱에 넣을 알림 파일도 함께 저장했습니다.' : ' A calendar reminder file is saved alongside it.';
       return envelope({
         ok: true, tool: 'argus_seal',
         surface: `${(a['predicate_owner'] === 'ai_surfaced' ? T.sealed_draft : T.sealed)(predicate, checkBy)}${calNote}${nudge}${syncLine}`,

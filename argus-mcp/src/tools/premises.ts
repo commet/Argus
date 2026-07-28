@@ -13,6 +13,7 @@ import {
 } from '../lib/premises.js';
 import { elicitDetailed, canElicit } from '../lib/elicit.js';
 import { noAnswerResult } from '../lib/picker-fallback.js';
+import { sanitizeLine } from '../v2/sanitize.js';
 import { resolveResponseLocale } from '../lib/surfaces.js';
 import { envelope, toolError } from '../lib/envelope.js';
 import { ENVELOPE_OUTPUT_SCHEMA, zArgusDir, zId, zDate, type ToolModule } from './tool-types.js';
@@ -236,13 +237,16 @@ async function opAdd(
       // (provenance ai_surfaced intact), Accept + reword → the user's words
       // (user_stated, draft kept as ai_original), Decline → skip. One keystroke
       // to keep — no required enum to expand.
+      // Clip for DISPLAY only — the record keeps the whole sentence.
+      const shownDraft = sanitizeLine(draft.text, 96);
       const asked = await elicitDetailed(
         dLocale === 'ko'
-          ? `이 결정이 딛고 선 전제로 기록할까요?\n"${draft.text}"\n\n그대로면 Accept · 고치려면 아래 칸에 쓰고 Accept · 기록 안 하려면 Decline.`
-          : `Record this as a premise the decision rests on?\n"${draft.text}"\n\nAccept to keep · to reword, type it below and Accept · Decline to skip.`,
+          ? `이 결정이 딛고 선 전제로 기록할까요?\n"${shownDraft}"\n\n그대로면 Accept · 고치려면 아래 칸에 쓰고 Accept · 기록 안 하려면 Decline.`
+          : `Record this as a premise the decision rests on?\n"${shownDraft}"\n\nAccept to keep · to reword, type it below and Accept · Decline to skip.`,
         { type: 'object', properties: {
           reword: {
             type: 'string',
+            title: dLocale === 'ko' ? '전제 고쳐쓰기 (선택)' : 'Reword the premise (optional)',
             description: dLocale === 'ko' ? '전제를 고쳐 쓰려면 여기에 적으세요. 비우면 위 문장 그대로 기록합니다.' : 'To reword the premise, type it here. Leave blank to keep the statement above.',
           },
         } },
@@ -538,11 +542,11 @@ async function opResolve(
     const qLocale = resolveResponseLocale(dir, premise.text);
     const got = await elicitDetailed(
       qLocale === 'ko'
-        ? `이 결정에 남겨둔 질문입니다: "${premise.text}". 지금은 어떻게 판단하시나요? 당신의 말로 적어주세요. (그대로 열어둬도 됩니다.)`
-        : `Your open question on this decision: "${premise.text}". What is your call now, in your own words? (You can also leave it open.)`,
+        ? `이 결정에 남겨둔 질문입니다: "${sanitizeLine(premise.text, 96)}". 지금은 어떻게 판단하시나요? 당신의 말로 적어주세요. (그대로 열어둬도 됩니다.)`
+        : `Your open question on this decision: "${sanitizeLine(premise.text, 96)}". What is your call now, in your own words? (You can also leave it open.)`,
       // 필수 필드 없음 — 빈 채 Accept는 아래 `if (!decision)`가 정직하게
       // 되묻는다. "아직 못 정했다"도 유효한 답이므로 폼이 막아선 안 된다.
-      { type: 'object', properties: { decision: { type: 'string', description: qLocale === 'ko' ? '당신의 판단, 당신의 표현. (아직이면 비워두고 Accept)' : 'Your call, your words. (Leave blank and Accept if still undecided.)' } } },
+      { type: 'object', properties: { decision: { type: 'string', title: qLocale === 'ko' ? '지금의 판단' : 'Your call now', description: qLocale === 'ko' ? '당신의 판단, 당신의 표현. (아직이면 비워두고 Accept)' : 'Your call, your words. (Leave blank and Accept if still undecided.)' } } },
     );
     // This is the one ask where a broken window is most expensive: the user may
     // have typed a full paragraph of their own reasoning and we cannot get it
