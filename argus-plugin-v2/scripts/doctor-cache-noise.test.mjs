@@ -24,15 +24,20 @@ const DOCTOR = path.join(HERE, 'doctor.js');
 const MCP_CONFIG = path.join(HERE, '..', '.mcp.json');
 const MCP_SPEC = Object.values(JSON.parse(fs.readFileSync(MCP_CONFIG, 'utf8')).mcpServers)
   .flatMap((server) => server.args || [])
-  .find((arg) => typeof arg === 'string' && arg.startsWith('argus-decision-mcp@'));
-const PIN = MCP_SPEC?.slice('argus-decision-mcp@'.length);
+  .find((arg) => typeof arg === 'string' && arg.includes('argus-decision-mcp@'));
+const PIN = /argus-decision-mcp@(\d+\.\d+\.\d+)/.exec(MCP_SPEC ?? '')?.[1];
 assert.match(PIN || '', /^\d+\.\d+\.\d+$/, 'plugin MCP must use an exact semver pin');
 
 function runDoctor(cacheRoot, pin) {
   const repo = fs.mkdtempSync(path.join(os.tmpdir(), 'argus-doc-repo-'));
   const pluginRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'argus-doc-plugin-'));
   fs.writeFileSync(path.join(pluginRoot, '.mcp.json'), JSON.stringify({
-    mcpServers: { 'argus-decision': { command: 'npx', args: ['-y', `argus-decision-mcp@${pin}`] } },
+    mcpServers: {
+      'argus-decision': {
+        command: 'npm',
+        args: ['exec', '--yes', `--package=argus-decision-mcp@${pin}`, '--', 'argus-decision-mcp'],
+      },
+    },
   }));
   try {
     return execFileSync(process.execPath, [DOCTOR], {

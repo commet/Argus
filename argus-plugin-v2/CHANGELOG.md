@@ -4,6 +4,8 @@
 
 - Pins `argus-decision-mcp@2.0.7`, whose npm bin is executable on POSIX as well
   as through Windows' npm shim.
+- Uses npm's explicit `exec --package ... -- command` form. npm 12 no longer
+  reliably links the bin for the older positional `npx package@version` form.
 - No public MCP tools or plugin roles changed.
 
 ## 3.0.6 — 2026-07-29

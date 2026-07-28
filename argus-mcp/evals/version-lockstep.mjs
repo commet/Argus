@@ -45,6 +45,7 @@ const mcpJson = read('argus-plugin-v2/.mcp.json');
 const market = read('.claude-plugin/marketplace.json');
 
 const SERVER_V = pkg.version;
+const escapedPackage = pkg.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 ok('V1 server.json = package.json', server.version === SERVER_V, `${server.version} vs ${SERVER_V}`);
 
 // server.json carries the version twice (top level + the package entry)
@@ -55,10 +56,10 @@ for (const [i, p] of (server.packages ?? []).entries()) {
 
 // THE PIN — the one that decides which server a real user actually runs
 const spec = (mcpJson.mcpServers?.['argus-decision']?.args ?? []).find(
-  (a) => typeof a === 'string' && a.startsWith(`${pkg.name}@`));
+  (a) => typeof a === 'string' && a.includes(`${pkg.name}@`));
 ok('V3 .mcp.json이 서버를 핀으로 잡는다', typeof spec === 'string', JSON.stringify(mcpJson.mcpServers));
 if (spec) {
-  const pinned = spec.slice(pkg.name.length + 1);
+  const pinned = new RegExp(`${escapedPackage}@(\\d+\\.\\d+\\.\\d+)`).exec(spec)?.[1] ?? '';
   ok('V3 핀 = 배포되는 버전', pinned === SERVER_V,
     `플러그인이 ${pinned}을 띄우는데 배포되는 것은 ${SERVER_V} — 사용자는 고친 것을 못 받습니다`);
   ok('V3 핀이 범위가 아니라 정확한 버전', /^\d+\.\d+\.\d+$/.test(pinned), pinned);
@@ -79,7 +80,6 @@ ok('V5 플러그인과 서버가 같은 패치 라인', patch(plugin.version) ==
 // The manifests can agree while the command a person copies still launches an
 // old or nonexistent server. Keep the public install pin in the same gate.
 const DOC_PINS = ['argus-mcp/README.md'];
-const escapedPackage = pkg.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const pinRe = new RegExp(`${escapedPackage}@([^\\s"'()\`\\]]+)`, 'g');
 for (const rel of DOC_PINS) {
   const body = fs.readFileSync(path.join(ROOT, rel), 'utf8');

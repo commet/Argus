@@ -162,8 +162,8 @@ try {
   command(claudeBin, ['plugin', 'validate', stagedRepo], { env });
 
   const mcpPin = readJson(path.join(stagedPlugin, '.mcp.json'))
-    .mcpServers?.['argus-decision']?.args?.find((arg) => /^argus-decision-mcp@/.test(arg));
-  const pinnedVersion = String(mcpPin ?? '').split('@').at(-1);
+    .mcpServers?.['argus-decision']?.args?.find((arg) => /argus-decision-mcp@/.test(arg));
+  const pinnedVersion = /argus-decision-mcp@(\d+\.\d+\.\d+)/.exec(String(mcpPin ?? ''))?.[1];
   if (!pinnedVersion) throw new Error('staged .mcp.json has no exact argus-decision-mcp@version pin');
 
   if (publishedMode) {
@@ -247,21 +247,24 @@ try {
   }
 
   const expandedRuntimeArgs = installedMcp.args.map(expand);
-  const windowsNpxShim = process.platform === 'win32'
-    && installedMcp.command.toLowerCase() === 'npx';
-  const runtimeCommand = windowsNpxShim
+  const windowsNpmShim = process.platform === 'win32'
+    && ['npm', 'npx'].includes(installedMcp.command.toLowerCase());
+  const runtimeCommand = windowsNpmShim
     ? (process.env.ComSpec || 'cmd.exe')
     : installedMcp.command;
-  const runtimeArgs = windowsNpxShim
+  const runtimeArgs = windowsNpmShim
     ? ['/d', '/s', '/c', installedMcp.command, ...expandedRuntimeArgs]
     : expandedRuntimeArgs;
+  if (process.env.ARGUS_INSTALL_SMOKE_DEBUG === '1') {
+    console.error(`installed runtime: ${JSON.stringify({ command: runtimeCommand, args: runtimeArgs })}`);
+  }
 
   const runtimeClient = new Client(
     { name: 'argus-plugin-install-smoke', version: '1' },
     { capabilities: {} },
   );
   const runtimeTransport = new StdioClientTransport({
-    // npm exposes npx as npx.cmd on Windows. Claude Code knows how to launch
+    // npm exposes npm/npx as .cmd shims on Windows. Claude Code knows how to launch
     // that host command, but Node's direct spawn (used by this independent
     // inventory check) needs the bounded cmd.exe shim explicitly.
     command: runtimeCommand,

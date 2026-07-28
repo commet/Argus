@@ -10,6 +10,10 @@ The build now sets mode `0755` on POSIX before packing. The post-publish gate
 checks the tar header itself, so directly invoking the entry with `node` can no
 longer produce a false green for a broken `npx` installation.
 
+Plugin and manual-install wiring use npm's explicit
+`exec --package=argus-decision-mcp@2.0.7 -- argus-decision-mcp` form. This avoids
+npm 12's broken positional `npx package@version` bin inference.
+
 ## 2.0.6 — The published package catches up with the verified main
 
 Version 2.0.5 was tagged from PR #316 while the decline-semantics PR was still
