@@ -22,6 +22,12 @@ export interface LedgerEventInput {
   decision?: string;
   outcome?: string;
   basis?: string;
+  /** Honest provenance of the sealed line, recorded ON the append-only event so
+   *  it survives every downstream reader — including the webapp bridge, which
+   *  previously had no way to tell an Argus draft from a line the user dictated
+   *  and therefore displayed both as the user's own. Absent on pre-2026-07 rows;
+   *  readers must treat absence as unknown, never as 'user'. */
+  predicate_owner?: 'user' | 'ai_surfaced';
   dismiss_reason?: string;
   /** gate audit (over-fire inputs) — meta event, ignored by replay (N3 counts unknowns; gate_input is known-meta) */
   gate?: Record<string, unknown>;
