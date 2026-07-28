@@ -40,6 +40,29 @@ let failed = 0;
 // prevent. Give every gate room to speak.
 const BUF = { maxBuffer: 64 * 1024 * 1024 };
 
+/**
+ * What to print when a gate fails, and why the last three lines are the wrong
+ * answer.
+ *
+ * A CI run failed on 2026-07-29 and the report read:
+ *
+ *   ✗ 단위·프로토콜 테스트   73.2s   89| const dir = tmpArgusDir(); | 90| for (…
+ *
+ * That is vitest's SOURCE CONTEXT — the tail of the output — not the assertion.
+ * It names a line without saying what went wrong with it, so the one person
+ * reading the report cannot act on it, which is the whole failure mode this file
+ * exists to prevent: an instrument that runs but does not inform.
+ *
+ * So look for the sentence that states the failure, and only fall back to the
+ * tail when nothing announces itself.
+ */
+function failureNote(out) {
+  const lines = out.split('\n').map((l) => l.replace(/\[[0-9;]*m/g, '').trim()).filter(Boolean);
+  const said = lines.filter((l) => /AssertionError|Error:|expected .* to |Test timed out|timed out in \d+ms|✗|×\s|FAIL\b|\b[1-9]\d* (?:violations?|RED|failed)\b/i.test(l));
+  const chosen = said.length ? said.slice(0, 3) : lines.slice(-3);
+  return chosen.join(' | ').slice(0, 240);
+}
+
 function run(label, cmd, opts = {}) {
   const started = Date.now();
   try {
@@ -49,7 +72,7 @@ function run(label, cmd, opts = {}) {
   } catch (e) {
     failed++;
     const out = String(e.stdout ?? '') + String(e.stderr ?? '');
-    rows.push({ label, ok: false, ms: Date.now() - started, note: out.split('\n').filter(Boolean).slice(-3).join(' | ').slice(0, 180) });
+    rows.push({ label, ok: false, ms: Date.now() - started, note: failureNote(out) });
     return out;
   }
 }
