@@ -144,6 +144,7 @@ run('버전 다섯 곳 일치', 'node evals/version-lockstep.mjs', { extract: CO
 // binary — including how many Returns it takes, which is what three previous
 // "Accept does not work" fixes each missed.
 run('Claude Code 폼이 실제로 제출하는가', 'node evals/claude-code-form.mjs', { env: { ...process.env, CC_FORM_SKIP_BUILD: '1' }, extract: (o) => (o.match(/(\d+ checks · \d+ violations[^\n]*)/) || [])[1] ?? '' });
+run('답한 시각으로 기록되는가', 'node evals/answer-time.mjs', { env: { ...process.env, ANSWER_TIME_SKIP_BUILD: '1' }, extract: (o) => (o.match(/(\d+ checks · \d+ violations[^\n]*)/) || [])[1] ?? '' });
 // Slow on purpose: the answer arrives after the SDK's 60s default. ~80s.
 run('1분 넘게 생각한 사람의 Accept', 'node evals/slow-human.mjs', { env: { ...process.env, SLOW_HUMAN_SKIP_BUILD: '1' }, extract: (o) => (o.match(/(\d+ checks · \d+ violations[^\n]*)/) || [])[1] ?? '' });
 
@@ -296,6 +297,12 @@ selfTest(
   'src/lib/render-receipt.ts',
   (s) => s.replace('return (WIDE.test(ch) || PICTO.test(ch)) ? 2 : 1;', 'return WIDE.test(ch) ? 2 : 1;'),
   'node evals/keepsake-frames.mjs',
+);
+selfTest(
+  '자기검증 ㉑ 사람을 기다려놓고 호출 시점으로 찍는 회귀를 잡는가',
+  'src/tools/premises.ts',
+  (s) => s.replace('], answeredAt);', '], now);'),
+  'node evals/answer-time.mjs',
 );
 selfTest(
   '자기검증 ⑳ 화면이 서버가 요구할 칸을 선택이라 부르는 회귀를 잡는가',

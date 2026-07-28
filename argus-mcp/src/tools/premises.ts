@@ -576,7 +576,16 @@ async function opResolve(
     });
   }
 
-  await appendLedger(dir, [{ id, event: 'premise_resolve', premise_id: premise.premise_id, decision }], now);
+  // STAMP WHEN THEY ANSWERED, not when the tool was called (2026-07-28, seen on
+  // real hardware). `now` was computed at handler entry, then the picker sat
+  // waiting for a human — 62 seconds in the observed run — so the ledger dated
+  // the user's call a minute BEFORE the host logged their answer. A record whose
+  // own timestamps run backwards against the host log is a record you cannot use
+  // to reconstruct what happened. settle.ts already stamps after its picker;
+  // this is the same rule. `today` is unchanged: the logical date is the date
+  // they were asked about, and only the intra-day time was wrong.
+  const answeredAt = a['today_override'] ? now : logicalNow(now.slice(0, 10), false);
+  await appendLedger(dir, [{ id, event: 'premise_resolve', premise_id: premise.premise_id, decision }], answeredAt);
 
   // Voice follows the user's own closing call (their words ARE the sample).
   const ko = resolveResponseLocale(dir, decision || premise.text) === 'ko';

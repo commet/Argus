@@ -83,7 +83,7 @@ export const seal: ToolModule = {
       // the tool's own `today` disagreeing with the date it printed. recheck.ts
       // already fixed this same class for premise cadences. Keep the real UTC
       // time-of-day for intra-day ordering, but stamp the logical date.
-      const now = logicalNow(today, !!a['today_override']);
+      let now = logicalNow(today, !!a['today_override']);
       // Response voice follows the predicate (M4): config > text > env.
       let locale = resolveResponseLocale(dir, predicate);
       let T = SURFACES[locale].tools.seal;
@@ -202,6 +202,15 @@ export const seal: ToolModule = {
           T = SURFACES[locale].tools.seal;
         }
       }
+
+      // RE-STAMP AFTER THE PICKER (2026-07-28, seen on real hardware). `now` was
+      // computed at handler entry; if the confirm dialog was up, a human was
+      // deciding for as long as they needed — a minute is ordinary — and the
+      // ledger, the receipt, the .ics and the account push all carried the
+      // earlier instant. The record then reads as if they answered before the
+      // host logged their answer. The logical DATE is unchanged (that is the day
+      // they were asked about); only the intra-day time is corrected.
+      if (elicitedKeep && !a['today_override']) now = logicalNow(now.slice(0, 10), false);
 
       await ensurePrivacyGitignore(dir);
 

@@ -2,6 +2,29 @@
 
 ## 2.0.4 — The Accept that was thrown away, and the keepsakes nobody had looked at
 
+**The record was dated before the answer it recorded**
+
+Also found live. Resolving an open question, the host log and the ledger
+disagreed about something I had just typed:
+
+```
+12:56:11  ledger: premise_resolve "split it, and price the tiers separately"
+12:57:14  host:   Elicitation response {"decision":"split it, and price…"}
+```
+
+63 seconds backwards. Nothing was lost and nothing was forged — the handler
+computed its timestamp on entry and then the picker sat waiting for a human,
+which is what a picker is for. But a judgment record whose timestamps run
+backwards against the host's own log cannot be used to reconstruct what
+happened, which is its one job. The session reviewing that payload concluded the
+server had synthesised a decision and stamped it `user`; it had not. That is the
+real cost — the defect makes an honest record look like a forged one.
+
+`settle` already stamped after its picker. `seal` and the open-question resolve
+now do too; the logical date is untouched, only the intra-day time is corrected.
+`evals/answer-time.mjs` answers deliberately slowly and fails if the stamp
+precedes the answer.
+
 **A form that promised what the server would refuse**
 
 Found by driving the real Claude Code on real hardware, not by a harness. The
