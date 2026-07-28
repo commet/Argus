@@ -108,7 +108,24 @@ const LONG = '이번 분기 결과를 정리하면, '.repeat(40); // ~520 chars
 const PROFILES = {
   'claude-code':     { elicit: true,  apps: false, answer: () => ({ action: 'accept', content: {} }), strict: true },
   'claude-desktop':  { elicit: true,  apps: true,  answer: () => ({ action: 'accept', content: {} }), strict: true },
-  'codex':           { elicit: false, apps: false },
+  // ONE real Codex identity, two realities — and neither may be reached by
+  // matching the product name. Blacklisting `codex-mcp-client` makes the first
+  // impossible along with the second; trusting every declared capability lets
+  // the second be reported to the user as their own decline. (Both realities
+  // were reproduced against a real `codex app-server` on 2026-07-29 and have a
+  // dedicated gate there; these two profiles are the fast proxy that runs even
+  // where Codex is not installed.)
+  'codex-interactive': {
+    elicit: true, apps: false, strict: true,
+    clientInfo: { name: 'codex-mcp-client', title: 'Codex', version: '0.130.0' },
+    answer: () => ({ action: 'accept', content: {} }),
+  },
+  'codex-policy-blocked': {
+    elicit: true, apps: false, policyBlocked: true,
+    clientInfo: { name: 'codex-mcp-client', title: 'Codex', version: '0.130.0' },
+    answer: () => ({ action: 'decline' }),   // synthesized, instantly, unseen
+  },
+  'codex-no-elicit':  { elicit: false, apps: false },
   'legacy':          { elicit: false, apps: false, bare: true },
   'hostile-cancel':  { elicit: true,  apps: false, answer: () => ({ action: 'cancel' }), strict: true },
   'hostile-empty':   { elicit: true,  apps: false, answer: () => ({ action: 'accept', content: {} }), strict: true },
@@ -168,7 +185,10 @@ async function connect(name, profile, dir) {
   const caps = {};
   if (profile.elicit) caps.elicitation = {};
   if (profile.apps) caps.extensions = { 'io.modelcontextprotocol/ui': { mimeTypes: ['text/html;profile=mcp-app'] } };
-  const client = new Client({ name: `host-${name}`, version: '1' }, profile.bare ? {} : { capabilities: caps });
+  // clientInfo matters: a profile that carries a REAL host's identity is how we
+  // keep proving that nothing branches on the product name.
+  const client = new Client(profile.clientInfo ?? { name: `host-${name}`, version: '1' },
+    profile.bare ? {} : { capabilities: caps });
   const seen = [];
   if (profile.elicit) {
     client.setRequestHandler(ElicitRequestSchema, async (req) => {
@@ -243,12 +263,15 @@ async function runProfile(name) {
       });
       ok(name, 'B1 no unhandled throw (I5)', sc?.error_code !== 'INTERNAL_ERROR', brief(sc, 200));
       ok(name, 'B2 no dead end (I1)', !isDeadEnd(sc), `surface="${String(sc?.surface).slice(0, 120)}" next=${JSON.stringify(sc?.next_actions)}`);
-      if (name === 'hostile-cancel') {
-        // I2 — a cancel must NOT be reported as the user declining.
-        ok(name, 'B3 cancel is not recorded as a decline (I2)', sc?.data?.choice === 'no_answer', `choice=${sc?.data?.choice}`);
+      if (name === 'hostile-cancel' || profile.policyBlocked) {
+        // I2 — a non-answer must NOT be reported as the user declining. For the
+        // policy-blocked Codex this is the whole defect: it answered `decline`
+        // itself, nobody saw anything, and the user was told "Not recorded.
+        // choice: declined" — a decision credited to a person who was never asked.
+        ok(name, 'B3 non-answer is not recorded as a decline (I2)', sc?.data?.choice === 'no_answer', `choice=${sc?.data?.choice}`);
         ok(name, 'B4 the predicate is handed back so no work is lost (I2)', typeof sc?.data?.predicate === 'string' && sc.data.predicate.includes('D7'), brief(sc?.data, 160));
       }
-      if (name === 'hostile-empty' || name === 'claude-code' || name === 'claude-desktop') {
+      if (name === 'hostile-empty' || name === 'claude-code' || name === 'claude-desktop' || name === 'codex-interactive') {
         // A one-tap Accept with a blank form must SAVE — this is the whole point.
         ok(name, 'B3 one-tap Accept saves (I4)', sc?.data?.sealed !== false, `data=${brief(sc?.data, 160)}`);
         ok(name, 'B4 accepting a draft makes it the user\'s', sc?.data?.predicate_owner === 'user', `owner=${sc?.data?.predicate_owner}`);
@@ -274,6 +297,25 @@ async function runProfile(name) {
         // No picker here — the seal must proceed honestly, never silently drop.
         ok(name, 'B3 no-picker host still records (I4)', sc?.data?.sealed !== false && !isError, brief(sc?.data, 160));
         ok(name, 'B4 provenance stays honest without a picker', sc?.data?.predicate_owner === 'ai_surfaced', `owner=${sc?.data?.predicate_owner}`);
+      }
+      if (profile.policyBlocked) {
+        // THE BLAST RADIUS. An earlier fix opened a session-wide breaker the
+        // moment one decline came back unreadably fast — which also fires on a
+        // person hammering Escape, and then deletes every later picker in the
+        // session. The ask must still go out; only what check_in REPORTS may
+        // change, and only after a PATTERN (two in a row, reset by any contrary
+        // evidence), never after one sample.
+        const asksBefore = seen.length;
+        const { sc: second } = await call('argus_predict', {
+          id: 'draft2', predicate: '두 번째 초안도 정책이 대신 답한다',
+          check_by: '2026-08-21', predicate_owner: 'ai_surfaced', confirm_draft: true, today_override: T0,
+        });
+        ok(name, 'B5 the ask is still sent — one unseen decline does not disable pickers',
+          seen.length > asksBefore, `asks before=${asksBefore} after=${seen.length}`);
+        ok(name, 'B6 still not called the user\'s decline', second?.data?.choice === 'no_answer', `choice=${second?.data?.choice}`);
+        const { sc: after } = await call('argus_check_in', { today_override: T0 });
+        ok(name, 'B7 after a PATTERN of unseen declines, the surface is reported as text',
+          after?.data?.picker === 'text_fallback', `picker=${after?.data?.picker}`);
       }
     }
 

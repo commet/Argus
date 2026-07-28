@@ -56,7 +56,15 @@ const ok = (id, cond, detail) => {
 };
 
 const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'answertime-'));
-const env = { ...process.env, ARGUS_DIR: dir, NODE_ENV: 'test' };
+// Pin the logical timezone. This gate is about the ORDER of two instants — was
+// the ledger stamped when we asked, or when the human answered — and crossing
+// the host's local midnight was quietly turning it into a timezone test. With
+// ARGUS_TZ fixed, the expected logical date is deterministic and A3 can assert
+// exact equality instead of tolerating a day either side. (The earlier fix
+// tolerated `localDay(replied - 86400000)`, which also passes when the server
+// really does stamp the wrong day — the loophole is worse than the flake.)
+// Timezone and date semantics have their own coverage; this file has one job.
+const env = { ...process.env, ARGUS_DIR: dir, ARGUS_TZ: 'UTC', NODE_ENV: 'test' };
 delete env.ARGUS_TOKEN;
 
 const answeredAt = new Map(); // field name -> ms when we replied
@@ -120,20 +128,10 @@ for (const [id, ev, kind, label] of [
     lag > -(THINK_MS - SLACK_MS),
     `대기 ${THINK_MS}ms 인데 기록이 답변보다 ${Math.round(-lag)}ms 앞섭니다`);
   // A3 — only the intra-day time was wrong; the LOGICAL date must not move.
-  //
-  // Compare against the LOCAL day, not the UTC day. The server stamps the
-  // tz-aware logical date on purpose (a Korean user sealing at 01:00 KST is
-  // sealing today, not yesterday), so a gate that converts the answer instant
-  // to UTC disagrees with it for nine hours out of every twenty-four. This
-  // fired for the first time at 01:20 KST — the product was right and the gate
-  // was wrong, which is worth more than the assertion it replaced.
-  const localDay = (ms) => {
-    const d = new Date(ms);
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-  };
+  // ARGUS_TZ is pinned to UTC above, so this is an exact comparison.
   ok(`A3 ${label} 날짜는 물었던 그날 그대로다`,
-    ev.ts.slice(0, 10) === localDay(replied) || ev.ts.slice(0, 10) === localDay(replied - 86400000),
-    `${ev.ts.slice(0, 10)} vs 로컬 ${localDay(replied)}`);
+    ev.ts.slice(0, 10) === new Date(replied).toISOString().slice(0, 10),
+    `${ev.ts.slice(0, 10)} vs ${new Date(replied).toISOString().slice(0, 10)} (ARGUS_TZ=UTC)`);
 }
 
 fs.rmSync(dir, { recursive: true, force: true });
