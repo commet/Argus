@@ -149,13 +149,24 @@ describe('DecisionContractCard — lifecycle phase, not the ceremony stamp', () 
     expect(html()).not.toContain('검토 전 기준점이 남아 있어요');
   });
 
-  it("a broken user bet is named in the settled summary, not left blank", () => {
+  // This test was written against the aggregate tally ("위험 3개 회피 · 가설 2개
+  // 적중"), where a bet that BROKE rendered as nothing at all — a record that
+  // printed only its wins. main removed that tally outright in 9e4b682d (공정
+  // F0, "점수·자동 승격을 차단한다"), which answers the same objection more
+  // completely: nothing is counted, so nothing can be counted selectively.
+  //
+  // What replaced it is the JudgmentFrame — the user's own sealed sentence and
+  // what actually happened, verbatim, with dates. A miss is not summarised as a
+  // label; it is visible as reality in their own words. The guarantee this test
+  // now holds is that a settled record shows that frame rather than a ceremony
+  // stamp, whatever the verdict was.
+  it('a settled record shows the outcome frame, not a ceremony stamp', () => {
     render(project({
       id: 'c', project_id: 'p1', created_at: PAST,
       graded_at: PAST,
       predicates: [{ ...userLean, verdict: 'avoided', graded_at: PAST }],
     }));
-    expect(html()).toContain('빗나감');
+    expect(html()).toContain('결과 확인 완료');
     expect(html()).not.toContain('판단 기록 확인 완료');
   });
 });
