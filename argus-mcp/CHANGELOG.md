@@ -25,6 +25,27 @@ now do too; the logical date is untouched, only the intra-day time is corrected.
 `evals/answer-time.mjs` answers deliberately slowly and fails if the stamp
 precedes the answer.
 
+**Codex picker works when allowed and fails over when policy blocks it**
+
+Codex app-server supports standard MCP form elicitation, but an outer surface
+can advertise the capability while policy auto-rejects the form without showing
+it. A Codex product-name blacklist was tested and rejected because it also
+killed the working picker.
+
+Argus now uses the protocol capability. An impossibly fast synthetic decline is
+reclassified as a non-answer, the draft is handed back, and a session-local
+circuit breaker moves later calls to text fallback. A visible human decline is
+still respected. `evals/codex-app-server.mjs` drives the installed Codex
+app-server itself and proves both wire paths.
+
+**Release verification is isolated and executes the installed plugin command**
+
+Mutation self-tests run only in a temporary copy after a green baseline, and a
+non-zero exit counts only when the gate emits a positive, gate-owned violation.
+The real Claude Code plugin lifecycle now executes the MCP command reported by
+the installed inventory, calls `argus_check_in`, and verifies the six public
+tools plus the exact pinned server version before disable/enable/update/uninstall.
+
 **A form that promised what the server would refuse**
 
 Found by driving the real Claude Code on real hardware, not by a harness. The

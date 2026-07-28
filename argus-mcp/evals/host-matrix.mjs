@@ -17,7 +17,8 @@
  *
  *   claude-code      elicitation, strict schema validation (terminal form)
  *   claude-desktop   elicitation + MCP Apps extension (renders the settle card)
- *   codex            NO elicitation declared (the model asks in chat)
+ *   codex-interactive real Codex identity, form allowed and accepted
+ *   codex-auto-reject real Codex identity, policy rejects without rendering
  *   legacy           declares nothing at all
  *   hostile-cancel   elicitation, then cancels every ask (timeout / ESC / quirk)
  *   hostile-empty    elicitation, accepts with {} every time (one-tap yes)
@@ -108,7 +109,23 @@ const LONG = '이번 분기 결과를 정리하면, '.repeat(40); // ~520 chars
 const PROFILES = {
   'claude-code':     { elicit: true,  apps: false, answer: () => ({ action: 'accept', content: {} }), strict: true },
   'claude-desktop':  { elicit: true,  apps: true,  answer: () => ({ action: 'accept', content: {} }), strict: true },
-  'codex':           { elicit: false, apps: false },
+  // Same real Codex identity, two realities. A product-name blacklist makes the
+  // first impossible; trusting every declared capability makes the second lose
+  // work behind an invisible synthetic decline.
+  'codex-interactive': {
+    elicit: true,
+    apps: false,
+    clientInfo: { name: 'codex-mcp-client', title: 'Codex', version: '0.130.0' },
+    answer: () => ({ action: 'accept', content: {} }),
+    strict: true,
+  },
+  'codex-auto-reject': {
+    elicit: true,
+    apps: false,
+    autoReject: true,
+    clientInfo: { name: 'codex-mcp-client', title: 'Codex', version: '0.130.0' },
+    answer: () => ({ action: 'decline' }),
+  },
   'legacy':          { elicit: false, apps: false, bare: true },
   'hostile-cancel':  { elicit: true,  apps: false, answer: () => ({ action: 'cancel' }), strict: true },
   'hostile-empty':   { elicit: true,  apps: false, answer: () => ({ action: 'accept', content: {} }), strict: true },
@@ -168,7 +185,8 @@ async function connect(name, profile, dir) {
   const caps = {};
   if (profile.elicit) caps.elicitation = {};
   if (profile.apps) caps.extensions = { 'io.modelcontextprotocol/ui': { mimeTypes: ['text/html;profile=mcp-app'] } };
-  const client = new Client({ name: `host-${name}`, version: '1' }, profile.bare ? {} : { capabilities: caps });
+  const clientInfo = profile.clientInfo ?? { name: `host-${name}`, version: '1' };
+  const client = new Client(clientInfo, profile.bare ? {} : { capabilities: caps });
   const seen = [];
   if (profile.elicit) {
     client.setRequestHandler(ElicitRequestSchema, async (req) => {
@@ -230,7 +248,11 @@ async function runProfile(name) {
     {
       const { sc } = await call('argus_check_in', { today_override: T0 });
       const picker = sc?.data?.picker;
-      const expect = profile.apps ? 'card' : profile.elicit ? 'one_tap' : 'text_fallback';
+      const expect = profile.apps
+        ? 'card'
+        : !profile.elicit
+          ? 'text_fallback'
+          : 'one_tap';
       ok(name, 'A1 picker reported truthfully', picker === expect, `expected ${expect}, got ${picker}`);
       ok(name, 'A2 server_version present', typeof sc?.data?.server_version === 'string');
     }
@@ -243,12 +265,12 @@ async function runProfile(name) {
       });
       ok(name, 'B1 no unhandled throw (I5)', sc?.error_code !== 'INTERNAL_ERROR', brief(sc, 200));
       ok(name, 'B2 no dead end (I1)', !isDeadEnd(sc), `surface="${String(sc?.surface).slice(0, 120)}" next=${JSON.stringify(sc?.next_actions)}`);
-      if (name === 'hostile-cancel') {
+      if (name === 'hostile-cancel' || name === 'codex-auto-reject') {
         // I2 — a cancel must NOT be reported as the user declining.
-        ok(name, 'B3 cancel is not recorded as a decline (I2)', sc?.data?.choice === 'no_answer', `choice=${sc?.data?.choice}`);
+        ok(name, 'B3 non-answer is not recorded as a decline (I2)', sc?.data?.choice === 'no_answer', `choice=${sc?.data?.choice}`);
         ok(name, 'B4 the predicate is handed back so no work is lost (I2)', typeof sc?.data?.predicate === 'string' && sc.data.predicate.includes('D7'), brief(sc?.data, 160));
       }
-      if (name === 'hostile-empty' || name === 'claude-code' || name === 'claude-desktop') {
+      if (name === 'hostile-empty' || name === 'claude-code' || name === 'claude-desktop' || name === 'codex-interactive') {
         // A one-tap Accept with a blank form must SAVE — this is the whole point.
         ok(name, 'B3 one-tap Accept saves (I4)', sc?.data?.sealed !== false, `data=${brief(sc?.data, 160)}`);
         ok(name, 'B4 accepting a draft makes it the user\'s', sc?.data?.predicate_owner === 'user', `owner=${sc?.data?.predicate_owner}`);
@@ -275,6 +297,13 @@ async function runProfile(name) {
         ok(name, 'B3 no-picker host still records (I4)', sc?.data?.sealed !== false && !isError, brief(sc?.data, 160));
         ok(name, 'B4 provenance stays honest without a picker', sc?.data?.predicate_owner === 'ai_surfaced', `owner=${sc?.data?.predicate_owner}`);
       }
+      if (profile.autoReject) {
+        const { sc: afterReject } = await call('argus_check_in', { today_override: T0 });
+        ok(name, 'B5 an invisible decline trips text fallback for the session',
+          afterReject?.data?.picker === 'text_fallback',
+          `picker=${afterReject?.data?.picker}`);
+        ok(name, 'B6 only one invisible ask was attempted', seen.length === 1, `asks=${seen.length}`);
+      }
     }
 
     // ── C. settle — the return path (yesterday's blocked screen) ─────────────
@@ -285,7 +314,7 @@ async function runProfile(name) {
       if (profile.apps) {
         ok(name, 'C2 apps host gets the card state', sc?.data?.status === 'awaiting_picker', brief(sc?.data, 160));
         ok(name, 'C3 card carries the predicate + due date', typeof sc?.data?.predicate === 'string' && typeof sc?.data?.check_by === 'string');
-      } else if (!profile.elicit) {
+      } else if (profile.autoReject || !profile.elicit) {
         // No picker: an honest refusal that names the missing input.
         ok(name, 'C2 honest OUTCOME_REQUIRED, not a silent drop (I4)', sc?.error_code === 'OUTCOME_REQUIRED', `code=${sc?.error_code}`);
         ok(name, 'C3 the refusal says how to proceed (I1)', /outcome|결과/i.test(String(sc?.recovery ?? sc?.message ?? '')), String(sc?.recovery).slice(0, 120));
@@ -332,40 +361,34 @@ async function runProfile(name) {
     // Two invariants, both about not wasting a person's answer:
     //   D2-1 a field the server will require is not labelled optional
     //   D2-2 if it refuses anyway, the pick the user already made comes back
-    // BOTH LANGUAGES, EACH PINNED. verify caught the first version of this
-    // block reading only half the surface: it sealed a Korean predicate, the
-    // session then LEARNED Korean (learnLocaleFromContent pins `locale: ko` on
-    // a fresh config, by design, so a Korean user is never dragged into English
-    // by one stray sentence), and every later ask rendered Korean no matter what
-    // it contained. Planting the defect in the English label alone therefore
-    // left this gate green. Pin the locale explicitly instead of hoping the
-    // content sniff survives the session.
-    for (const [suffix, pin, pred] of [
-      ['ko', 'ko', '설비 교체가 3분기 안에 끝난다'],
-      ['en', 'en', 'the plant swap lands inside Q3'],
-    ]) {
-    if (profile.elicit) {
-      const id = `wh-${suffix}`;
-      await call('argus_settings', { action: 'update', locale: pin });
-      await call('argus_predict', { id, predicate: pred, check_by: '2026-07-10', predicate_owner: 'user', today_override: T0 });
-      const before = seen.length;
-      const { sc } = await call('argus_resolve', { id, today_override: '2026-07-15' });
-      const whSchema = seen.slice(before).map((x) => x.schema).find((sch) => sch?.properties?.what_happened) ?? null;
-      if (whSchema) {
-        const spec = whSchema.properties.what_happened;
-        const saysOptional = /optional|선택/.test(String(spec?.title ?? '') + String(spec?.description ?? ''));
-        // The model passed nothing, so the server WILL require it.
-        ok(name, 'D2-1 서버가 요구할 칸을 선택이라고 하지 않는다 (I1)', !saysOptional,
-          `title=${JSON.stringify(spec?.title)} desc=${String(spec?.description ?? '').slice(0, 70)}`);
+    // Pin both languages through the public settings tool. Content sniffing is
+    // not enough here: once a fresh session learns Korean, the saved locale
+    // intentionally outranks a later English sentence.
+    if (profile.elicit && !profile.autoReject) {
+      for (const sample of [
+        { id: 'wh-ko', predicate: '설비 교체가 3분기 안에 끝난다', locale: 'ko' },
+        { id: 'wh-en', predicate: 'the plant swap lands inside Q3', locale: 'en' },
+      ]) {
+        await call('argus_settings', { action: 'update', locale: sample.locale });
+        await call('argus_predict', { id: sample.id, predicate: sample.predicate, check_by: '2026-07-10', predicate_owner: 'user', today_override: T0 });
+        const before = seen.length;
+        const { sc } = await call('argus_resolve', { id: sample.id, today_override: '2026-07-15' });
+        const whSchema = seen.slice(before).map((x) => x.schema).find((sch) => sch?.properties?.what_happened) ?? null;
+        if (whSchema) {
+          const spec = whSchema.properties.what_happened;
+          const saysOptional = /optional|선택/.test(String(spec?.title ?? '') + String(spec?.description ?? ''));
+          // The model passed nothing, so the server WILL require it.
+          ok(name, `D2-1 ${sample.locale} 서버가 요구할 칸을 선택이라고 하지 않는다 (I1)`, !saysOptional,
+            `title=${JSON.stringify(spec?.title)} desc=${String(spec?.description ?? '').slice(0, 70)}`);
+        }
+        if (sc?.error_code === 'WHAT_HAPPENED_REQUIRED' && TYPED_HOSTS.has(name) === false) {
+          // A host that answered with an outcome but no sentence must get that
+          // outcome back rather than being asked to pick again.
+          const echoed = sc?.data?.user_input?.outcome;
+          ok(name, `D2-2 ${sample.locale} 거절이 사용자가 고른 결과를 돌려준다 (I2)`,
+            echoed === undefined || typeof echoed === 'string', brief(sc?.data, 160));
+        }
       }
-      if (sc?.error_code === 'WHAT_HAPPENED_REQUIRED' && TYPED_HOSTS.has(name) === false) {
-        // A host that answered with an outcome but no sentence must get that
-        // outcome back rather than being asked to pick again.
-        const echoed = sc?.data?.user_input?.outcome;
-        ok(name, 'D2-2 거절이 사용자가 고른 결과를 돌려준다 (I2)',
-          echoed === undefined || typeof echoed === 'string', brief(sc?.data, 160));
-      }
-    }
     }
 
     // ── E. the open-question ask ─────────────────────────────────────────
@@ -442,6 +465,11 @@ async function runProfile(name) {
         ok(name, 'E2-4 defer picker: a non-answer is not a refusal to pick (I2)', sc?.data?.choice === 'no_answer', `choice=${sc?.data?.choice} code=${sc?.error_code}`);
         ok(name, 'E2-5 the old check-by is named so nothing silently moved (I4)', sc?.data?.check_by === '2026-07-10', `check_by=${sc?.data?.check_by}`);
       }
+      if (profile.autoReject) {
+        ok(name, 'E2-4 circuit-open host uses the explicit date fallback',
+          sc?.error_code === 'DEFER_DATE_REQUIRED' && typeof sc?.recovery === 'string',
+          `code=${sc?.error_code} recovery=${String(sc?.recovery).slice(0, 90)}`);
+      }
       // E2-6 — the claim above is checked against the LEDGER, not the prose.
       // A surface that says "the date is unchanged" while a defer event landed
       // would be the goalpost move the state machine exists to prevent, and the
@@ -511,6 +539,9 @@ async function runProfile(name) {
       ok(name, 'F1 _meta.ui exactly on apps hosts', hasUi === Boolean(profile.apps), `hasUi=${hasUi} apps=${Boolean(profile.apps)}`);
       const res = await client.listResources();
       ok(name, 'F2 the settle card resource is readable everywhere', res.resources.some((r) => r.uri === 'ui://argus/settle-picker'));
+      if (profile.autoReject) {
+        ok(name, 'F3 auto-reject host was probed once then bypassed', seen.length === 1, `invisible asks=${seen.length}`);
+      }
     }
   } finally {
     await client.close();

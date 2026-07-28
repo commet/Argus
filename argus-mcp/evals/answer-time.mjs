@@ -56,7 +56,14 @@ const ok = (id, cond, detail) => {
 };
 
 const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'answertime-'));
-const env = { ...process.env, ARGUS_DIR: dir, NODE_ENV: 'test' };
+// Pin the logical timezone so crossing local midnight cannot turn a time-order
+// gate into a timezone test. Timezone/date semantics have separate coverage.
+const env = {
+  ...process.env,
+  ARGUS_DIR: dir,
+  ARGUS_TZ: 'UTC',
+  NODE_ENV: 'test',
+};
 delete env.ARGUS_TOKEN;
 
 const answeredAt = new Map(); // field name -> ms when we replied
@@ -119,10 +126,10 @@ for (const [id, ev, kind, label] of [
   ok(`${id} ${label} 기록 시각이 호출 시점에 머물지 않는다`,
     lag > -(THINK_MS - SLACK_MS),
     `대기 ${THINK_MS}ms 인데 기록이 답변보다 ${Math.round(-lag)}ms 앞섭니다`);
-  // A3 — only the intra-day time was wrong; the logical date must not move.
+  // A3 — only the intra-day time was wrong. ARGUS_TZ is pinned above so the
+  // expected logical date is deterministic across the host's local midnight.
   ok(`A3 ${label} 날짜는 물었던 그날 그대로다`,
-    ev.ts.slice(0, 10) === new Date(replied).toISOString().slice(0, 10)
-      || ev.ts.slice(0, 10) === new Date(replied - 86400000).toISOString().slice(0, 10),
+    ev.ts.slice(0, 10) === new Date(replied).toISOString().slice(0, 10),
     `${ev.ts.slice(0, 10)} vs ${new Date(replied).toISOString().slice(0, 10)}`);
 }
 

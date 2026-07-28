@@ -47,6 +47,17 @@ delete process.env.LC_ALL;
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { afterAll } from 'vitest';
 const TEST_HOME = fs.mkdtempSync(path.join(os.tmpdir(), 'argus-test-home-'));
 process.env.HOME = TEST_HOME;
 process.env.USERPROFILE = TEST_HOME;
+process.once('exit', () => {
+  try {
+    fs.rmSync(TEST_HOME, { recursive: true, force: true });
+  } catch {
+    // Do not replace the actual test verdict during worker shutdown.
+  }
+});
+afterAll(() => {
+  fs.rmSync(TEST_HOME, { recursive: true, force: true });
+});

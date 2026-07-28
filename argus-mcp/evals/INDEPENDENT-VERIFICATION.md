@@ -218,15 +218,14 @@ C:\Users\<user>\AppData\Local\claude-cli-nodejs\Cache\<프로젝트 슬러그>\m
 - [ ] 요청과 응답 사이 시간이 **당신이 누른 시점**과 일치하는가?
       (정확히 60.0초라면 그건 당신이 누른 게 아니라 타임아웃이 cancel로 둔갑한 것이다)
 
-**실기기 조작 요령 (실제로 필요했던 것들):**
+**실기기 조작 요령:**
 
-- 창이 **선택(mark) 모드**에 걸리면 화면이 얼어붙고 콘솔 읽기가 빈 값을 낸다.
-  제목이 `선택 claude`면 그 상태다. 그 창은 버리고 새로 띄우는 게 빠르다.
-- 포커스를 뺏어 키를 보내면(SendKeys) **다른 창으로 갈 수 있다.** 안전한 방법은
-  그 프로세스의 콘솔 입력 버퍼에 직접 쓰는 것이다(`AttachConsole` + `WriteConsoleInputW`).
-  포커스가 필요 없고 대상이 PID로 확정된다.
-- `today_override`는 **공개 스키마에 없다**(테스트 전용, `public-tools.ts`가 의도적으로 숨김).
-  실기기에서는 실제 날짜로 시나리오를 짜라. 연기(defer) 픽커는 **확인일이 지난 기록**에서만 뜬다.
+- 창 제목이 `선택 claude`라면 콘솔이 선택(mark) 모드에 걸린 것이다. 화면이
+  멈추고 읽기도 빈 값이 될 수 있으므로 새 창에서 다시 시작한다.
+- 포커스 기반 SendKeys는 다른 창에 입력될 수 있다. 자동화할 때는 대상 PID를
+  확정하고 그 프로세스의 콘솔 입력 버퍼에 직접 쓴다.
+- `today_override`는 테스트 전용이라 공개 스키마에 없다. 실기기에서는 실제
+  날짜로 시나리오를 만들고, 연기 picker는 check-by가 지난 기록에서 확인한다.
 
 ### 4.3 정산 픽커 — 답을 골라서 넣는다
 
@@ -249,18 +248,18 @@ argus_resolve(id:"live-2")
 
 ### 4.4b 기록 시각 — 물은 때가 아니라 답한 때인가
 
-이건 실기기에서만 보인다. 화면과 로그와 원장 세 곳의 시각을 대조하라.
+화면, 호스트 로그, 원장의 세 시계를 대조한다.
 
 ```
-호스트 로그: Elicitation response: {...}   ← 당신이 답한 순간
+호스트 로그: Elicitation response: {...}   ← 답한 순간
 원장:        {"ts":"...","event":"seal"}   ← 기록된 시각
 ```
 
-- [ ] 원장의 `ts`가 호스트 로그의 응답 시각보다 **앞서지 않는가?**
-      (앞선다면 핸들러가 호출 시점에 찍고 사람을 기다린 것이다. 2026-07-28에 63초 앞선 사례)
+- [ ] 원장의 `ts`가 호스트의 응답 시각보다 앞서지 않는가?
+- [ ] logical date는 원래 물었던 날짜로 유지되는가?
 
-이게 왜 중요한가: 앞선 시각은 아무것도 잃지 않지만, **정직한 기록을 위조된 것처럼 보이게 한다.**
-실제로 그날 리뷰 세션이 payload만 보고 "서버가 판단을 지어내 user로 찍었다"고 결론냈다. 아니었다.
+2026-07-28 실기기에서는 원장이 응답보다 63초 앞섰다. 내용은 정직했지만,
+타임라인이 거꾸로라 사용자 입력을 서버가 만든 것처럼 오해하게 했다.
 
 ### 4.5 영수증 — 사람이 읽을 수 있는가
 
@@ -275,14 +274,31 @@ argus_patterns(view:"receipt", id:"live-2")
 
 ---
 
-## 5. 픽커 없는 호스트 (Codex 등)
+## 5. Codex — picker가 되는 현실과 차단되는 현실을 둘 다 검증
 
-Codex는 elicitation을 선언하지 않는다. 그 경우 **픽커가 안 뜨는 것이 정상**이고,
-설계상 텍스트 경로로 진행돼야 한다(커밋 `d113ef34` 참조).
+Codex app-server는 표준 `mcpServer/elicitation/request` form과
+Accept/Decline/Cancel 응답을 지원한다. `approval_policy`가 MCP elicitation을
+허용하면 실제 picker가 떠야 한다. 제품 이름이 Codex라는 이유로 차단하면 실패다.
 
-- [ ] 픽커 없이도 봉인이 진행되는가?
-- [ ] 출처가 `ai_surfaced`로 정직하게 남는가? (사용자 것으로 위조하면 실패)
-- [ ] 조용히 아무것도 기록 안 하고 끝나지 않는가? (그게 과거의 데이터 유실 버그였다)
+반대로 바깥 Codex 표면의 정책이 form을 금지하면, capability를 선언한 채 사람이
+보지 못한 `decline`을 즉시 돌려줄 수 있다. Argus는 사람이 읽을 수 없는 속도의
+decline만 `no_answer`로 재분류하고 그 세션의 회로를 `text_fallback`으로 연다.
+사람이 실제로 보고 누른 느린 Decline은 그대로 존중한다.
+
+```
+node evals/codex-app-server.mjs
+```
+
+- [ ] 실제 Codex app-server가 `mode:"form"` 요청을 내보내는가?
+- [ ] Accept 뒤 기록의 `predicate_owner`가 `user`인가?
+- [ ] 즉시 synthetic decline은 `choice:"no_answer"`로 돌아오는가?
+- [ ] 그 다음 `argus_check_in.data.picker`가 `text_fallback`인가?
+- [ ] 같은 세션에서 보이지 않는 form을 두 번째로 호출하지 않는가?
+- [ ] fallback으로 기록할 때 출처가 `ai_surfaced`로 정직한가?
+
+Codex 설정에서 picker를 허용하려면 `approval_policy.granular.mcp_elicitations`
+가 `true`여야 한다. 관리형 정책이 이 값을 금지하면 서버가 우회할 수 없으며,
+텍스트 fallback이 정상 경로다.
 
 ---
 
@@ -326,18 +342,18 @@ OS:
 | 결함 | 근거 | 고정한 게이트 |
 |---|---|---|
 | 확인창에 입력칸이 있어 Enter 한 번으로 제출 불가 | Claude Code 번들의 `useState(hasFields ? null : "accept")` | `claude-code-form.mjs` (F5) |
-| 60초 넘겨 도착한 Accept 유실 | SDK `DEFAULT_REQUEST_TIMEOUT_MSEC`, 창업자 호스트 로그 07:23:16 완료 / 07:23:27 응답 | `slow-human.mjs` (75초 대기) |
+| 60초 넘겨 도착한 Accept 유실 | SDK `DEFAULT_REQUEST_TIMEOUT_MSEC`, 창업자 호스트 로그 07:23:16 완료 / 07:23:27 응답 | `slow-human.mjs` (95초 대기) |
+| Codex 정상 picker까지 제품명으로 차단 | 실제 Codex app-server form → Accept 왕복 | `codex-app-server.mjs` C1 |
+| Codex가 보이지 않는 form을 즉시 `decline` | 같은 app-server의 synthetic decline → circuit → fallback | `codex-app-server.mjs` C2 |
 | 영수증·봉인·항해일지가 액자 밖으로 | 렌더해서 육안 확인, 2언어 × 11내용 | `keepsake-frames.mjs` |
 | 버전 5곳 불일치 시 옛 서버가 조용히 뜸 | `.mcp.json`의 npx 핀 | `version-lockstep.mjs` |
 | 미결질문 픽커 도달 불가 | `argus_capture answer_question`의 `decision` 필수 | `host-matrix.mjs` (E 블록) |
-| 화면은 "(선택)"인데 서버는 필수 | 실기기: 안내대로 비웠더니 `WHAT_HAPPENED_REQUIRED` | `host-matrix.mjs` (D2) |
-| 기록이 답한 시각보다 63초 앞섬 | 실기기: 원장 12:56:11 vs 호스트 응답 12:57:14 | `answer-time.mjs` |
+| 화면은 "(선택)"인데 서버는 필수 | 실기기에서 안내대로 비워 제출 | `host-matrix.mjs` (D2) |
+| 원장 시각이 실제 응답보다 63초 앞섬 | 호스트 응답 시각과 ledger `ts` 비교 | `answer-time.mjs` |
 
-### 실기기에서만 나온 것 — 이 방식이 왜 필요한가
-
-위 표의 마지막 두 줄은 **기계 검증 전부가 초록인 상태에서** 나왔다. 하네스는 즉시 답하므로
-"화면 안내대로 비워두고 제출"도, "사람이 1분 생각한 뒤의 시각"도 재현하지 않는다.
-§4를 건너뛰면 이 부류는 계속 살아남는다.
+위 마지막 두 결함은 기계 검증이 전부 초록일 때 실기기에서 나왔다. 하네스는
+즉시 답하므로 “안내대로 비워 제출”과 “사람이 1분 생각한 뒤의 시각”을 놓치기
+쉽다. 그래서 §4의 실제 사용자 여정은 자동 게이트를 대체하는 게 아니라 보완한다.
 
 **이 표의 각 줄도 검증 대상이다.** "게이트가 있다"는 "고쳐졌다"의 증거가 아니다 —
 게이트가 고장난 버전에서 실제로 빨간불이 되는지가 증거다(§3.3).
@@ -361,7 +377,7 @@ OS:
 
 4. **하네스가 즉시 응답.**
    사람은 즉시 답하지 않는다. 60초 타임아웃 결함이 여기 숨어 있었다
-   (`slow-human.mjs`가 일부러 75초 기다리는 이유).
+   (`slow-human.mjs`가 일부러 95초 기다리는 이유).
 
 5. **위치 기반 식별.**
    `picker-surfaces.mjs`가 "스크립트의 몇 번째 줄이 마지막에 돌았나"로 픽커를 분류해서,
