@@ -231,13 +231,26 @@ try {
     throw new Error(`installed ARGUS_DIR does not resolve inside the isolated user project: ${journeyArgusDir}`);
   }
 
+  const expandedRuntimeArgs = installedMcp.args.map(expand);
+  const windowsNpxShim = process.platform === 'win32'
+    && installedMcp.command.toLowerCase() === 'npx';
+  const runtimeCommand = windowsNpxShim
+    ? (process.env.ComSpec || 'cmd.exe')
+    : installedMcp.command;
+  const runtimeArgs = windowsNpxShim
+    ? ['/d', '/s', '/c', installedMcp.command, ...expandedRuntimeArgs]
+    : expandedRuntimeArgs;
+
   const runtimeClient = new Client(
     { name: 'argus-plugin-install-smoke', version: '1' },
     { capabilities: {} },
   );
   const runtimeTransport = new StdioClientTransport({
-    command: installedMcp.command,
-    args: installedMcp.args.map(expand),
+    // npm exposes npx as npx.cmd on Windows. Claude Code knows how to launch
+    // that host command, but Node's direct spawn (used by this independent
+    // inventory check) needs the bounded cmd.exe shim explicitly.
+    command: runtimeCommand,
+    args: runtimeArgs,
     env: {
       ...env,
       CLAUDE_PROJECT_DIR: journeyProject,

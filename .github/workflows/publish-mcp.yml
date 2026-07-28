@@ -62,7 +62,10 @@ jobs:
       # connect to that exact public version before the registry is updated.
       - name: Verify published plugin install and MCP connection
         run: |
-          npm install -g @anthropic-ai/claude-code@2.1.220
+          # npm 11 blocks dependency install scripts unless explicitly allowed.
+          # Claude Code's native binary is installed by its own postinstall, so
+          # authorize only this exact package instead of enabling scripts globally.
+          npm install -g --allow-scripts=@anthropic-ai/claude-code @anthropic-ai/claude-code@2.1.220
           node ../argus-plugin-v2/scripts/install-smoke.mjs --published
 
       - name: Install mcp-publisher
