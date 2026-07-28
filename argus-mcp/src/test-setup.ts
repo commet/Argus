@@ -47,6 +47,15 @@ delete process.env.LC_ALL;
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { afterAll } from 'vitest';
 const TEST_HOME = fs.mkdtempSync(path.join(os.tmpdir(), 'argus-test-home-'));
 process.env.HOME = TEST_HOME;
 process.env.USERPROFILE = TEST_HOME;
+// Removed on the way out, for the same reason as the fixture root in
+// test-helpers.ts: these accumulated one per worker per run until the disk was
+// full and verify died without a stack.
+function sweepHome(): void {
+  try { fs.rmSync(TEST_HOME, { recursive: true, force: true }); } catch { /* keep the verdict */ }
+}
+process.once('exit', sweepHome);
+afterAll(sweepHome);
