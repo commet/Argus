@@ -763,3 +763,19 @@ elicitation adapter는 없다. 이미 공개된 태그나 npm 버전을 이동�
   표식과 한 번의 Accept로 기록되는 실제 여정을 검증해야 한다.
 - 같은 표식은 npm `2.0.5`에는 의도적으로 없으므로, 배포 후 gate가
   경합으로 잘못 나간 artifact와 수정 artifact를 구분할 수 있다.
+
+### 2.0.6 배포에서 추가로 발견한 POSIX 결함
+
+`2.0.6`의 서버 내용과 실제 기록 왕복은 정상이었지만, npm tarball의
+`package/dist/index.js` mode가 `0644`였다. Windows에서는 npm의 `.cmd`
+shim이 Node로 실행해서 감춰졌지만, Linux의 npm 11 `npx`는 bin을 실행하지
+못했다. 따라서 `2.0.6`을 최종 배포로 취급하지 않는다.
+
+최종 복구 릴리스는 MCP `2.0.7` / plugin `3.0.7`이다.
+
+- POSIX build가 pack 전에 `dist/index.js`를 `0755`로 만든다.
+- CI는 설치한 tarball의 파일과 `.bin/argus-decision-mcp`를 모두 `test -x`
+  하고, Node로 우회하지 않고 그 bin을 통해 E2E를 수행한다.
+- publish workflow도 npm publish 전에 실행 권한 gate를 통과해야 한다.
+- post-publish 검증은 tar header의 실행 비트를 직접 검사한다.
+- immutable npm `2.0.6`은 이 새 gate에서 정확히 1건으로 실패함을 확인했다.

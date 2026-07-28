@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.0.7 — The npm executable is executable
+
+The immutable 2.0.6 tarball carried the correct server but packed
+`dist/index.js` as mode `0644`. Windows hid the defect behind npm's `.cmd` shim;
+POSIX `npx` could resolve the package but could not execute its bin.
+
+The build now sets mode `0755` on POSIX before packing. The post-publish gate
+checks the tar header itself, so directly invoking the entry with `node` can no
+longer produce a false green for a broken `npx` installation.
+
 ## 2.0.6 — The published package catches up with the verified main
 
 Version 2.0.5 was tagged from PR #316 while the decline-semantics PR was still

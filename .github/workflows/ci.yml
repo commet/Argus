@@ -70,7 +70,10 @@ jobs:
           npm install --no-audit --no-fund "$GITHUB_WORKSPACE/argus-mcp/$TARBALL"
           BIN="$INSTALL_DIR/node_modules/argus-decision-mcp/dist/index.js"
           test -f "$BIN" || { echo "설치본에 진입점이 없다: $BIN (package.json files 누락?)"; exit 1; }
-          node "$GITHUB_WORKSPACE/argus-mcp/evals/e2e-picker.mjs" node "$BIN"
+          test -x "$BIN" || { echo "installed npm bin is not executable: $BIN"; ls -l "$BIN"; exit 1; }
+          CLI="$INSTALL_DIR/node_modules/.bin/argus-decision-mcp"
+          test -x "$CLI" || { echo "npm did not create an executable bin link: $CLI"; exit 1; }
+          node "$GITHUB_WORKSPACE/argus-mcp/evals/e2e-picker.mjs" "$CLI"
 
       # 호스트 전수 대조 (2026-07-27, 창업자 지시 "죄다 다시 다 체크"): 두 번의
       # 차단 사고가 모두 "우리 하네스는 받아주는데 사용자의 클라이언트는 막는다"의
