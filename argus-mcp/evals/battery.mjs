@@ -547,6 +547,12 @@ S.push({
 function pickerKind(schema) {
   const props = (schema && schema.properties) || {};
   const has = (k) => Object.prototype.hasOwnProperty.call(props, k);
+  // NO FIELDS = a pure confirmation (2026-07-28). The seal and premise asks
+  // shipped optional edit boxes until Claude Code's own form logic showed why
+  // that breaks: with any property declared, Accept is not preselected and
+  // Return inside a field moves instead of submitting, so "read it, press
+  // Accept" sent nothing. An empty schema IS the contract now, not a mystery.
+  if (Object.keys(props).length === 0) return 'bare_confirm';
   if (has('when')) return 'defer';
   if (has('outcome')) return 'settle_outcome';
   if (has('decision')) return 'resolve_question';

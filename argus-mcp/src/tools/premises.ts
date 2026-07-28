@@ -233,23 +233,24 @@ async function opAdd(
     if (aiDrafts.length === 1 && canElicit()) {
       const draft = aiDrafts[0];
       const dLocale = resolveResponseLocale(dir, draft.text);
-      // Native Accept/Decline (2026-07-24), mirroring seal: Accept blank → keep
-      // (provenance ai_surfaced intact), Accept + reword → the user's words
-      // (user_stated, draft kept as ai_original), Decline → skip. One keystroke
-      // to keep — no required enum to expand.
+      // Native Accept/Decline (2026-07-24), mirroring seal: Accept → keep
+      // (provenance ai_surfaced intact), Decline → skip.
+      //
+      // NO FIELD (2026-07-28). The comment here used to claim "one keystroke to
+      // keep", and it was wrong in the way that mattered: Claude Code does not
+      // preselect Accept when an ask declares any property, and Return inside a
+      // text box moves to the next row rather than submitting. So the optional
+      // reword box turned a yes into a two-Return gesture nobody was told about,
+      // and pressing Return once sent nothing at all. Same defect as the seal
+      // ask; same fix. Rewording stays available — the user says it in chat and
+      // the model calls again with their words as `user_stated`.
       // Clip for DISPLAY only — the record keeps the whole sentence.
       const shownDraft = sanitizeLine(draft.text, 96);
       const asked = await elicitDetailed(
         dLocale === 'ko'
-          ? `이 결정이 딛고 선 전제로 기록할까요?\n"${shownDraft}"\n\n그대로면 Accept · 고치려면 아래 칸에 쓰고 Accept · 기록 안 하려면 Decline.`
-          : `Record this as a premise the decision rests on?\n"${shownDraft}"\n\nAccept to keep · to reword, type it below and Accept · Decline to skip.`,
-        { type: 'object', properties: {
-          reword: {
-            type: 'string',
-            title: dLocale === 'ko' ? '전제 고쳐쓰기 (선택)' : 'Reword the premise (optional)',
-            description: dLocale === 'ko' ? '전제를 고쳐 쓰려면 여기에 적으세요. 비우면 위 문장 그대로 기록합니다.' : 'To reword the premise, type it here. Leave blank to keep the statement above.',
-          },
-        } },
+          ? `이 결정이 딛고 선 전제로 기록할까요?\n"${shownDraft}"\n\n그대로 남기려면 Accept, 남기지 않으려면 Decline입니다. 문장을 고치고 싶으면 Decline 후 말씀해 주세요.`
+          : `Record this as a premise the decision rests on?\n"${shownDraft}"\n\nAccept to keep it, Decline to skip. To reword it, Decline and say so.`,
+        { type: 'object', properties: {} },
       );
       // A window that never answered is not a decline (audit 2026-07-27). The
       // draft is dropped either way — we will not record a premise the user
@@ -542,8 +543,8 @@ async function opResolve(
     const qLocale = resolveResponseLocale(dir, premise.text);
     const got = await elicitDetailed(
       qLocale === 'ko'
-        ? `이 결정에 남겨둔 질문입니다: "${sanitizeLine(premise.text, 96)}". 지금은 어떻게 판단하시나요? 당신의 말로 적어주세요. (그대로 열어둬도 됩니다.)`
-        : `Your open question on this decision: "${sanitizeLine(premise.text, 96)}". What is your call now, in your own words? (You can also leave it open.)`,
+        ? `이 결정에 남겨둔 질문입니다: "${sanitizeLine(premise.text, 96)}". 지금은 어떻게 판단하시나요? 아래 칸에 당신의 말로 적은 뒤, 아래 화살표로 수락 줄까지 내려가 선택하십시오. (그대로 열어두려면 Decline.)`
+        : `Your open question on this decision: "${sanitizeLine(premise.text, 96)}". What is your call now, in your own words? Type it below, then press Enter twice to reach Accept. (Decline to leave it open.)`,
       // 필수 필드 없음 — 빈 채 Accept는 아래 `if (!decision)`가 정직하게
       // 되묻는다. "아직 못 정했다"도 유효한 답이므로 폼이 막아선 안 된다.
       { type: 'object', properties: { decision: { type: 'string', title: qLocale === 'ko' ? '지금의 판단' : 'Your call now', description: qLocale === 'ko' ? '당신의 판단, 당신의 표현. (아직이면 비워두고 Accept)' : 'Your call, your words. (Leave blank and Accept if still undecided.)' } } },

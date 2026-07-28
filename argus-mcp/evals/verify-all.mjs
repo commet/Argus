@@ -140,6 +140,10 @@ run('픽커 화면 전수 (2언어 × 8내용)', 'node evals/picker-surfaces.mjs
 run('문장 위험 전수 (2언어 × 2호스트)', 'node evals/surface-hazards.mjs', { env: { ...process.env, SURFACE_HAZARDS_SKIP_BUILD: '1' }, extract: COUNTS });
 run('간직하는 화면의 액자 (영수증·봉인·항해일지)', 'node evals/keepsake-frames.mjs', { env: { ...process.env, KEEPSAKE_SKIP_BUILD: '1' }, extract: COUNTS });
 run('버전 다섯 곳 일치', 'node evals/version-lockstep.mjs', { extract: COUNTS });
+// Judges our asks with the submit gate read out of the shipped Claude Code
+// binary — including how many Returns it takes, which is what three previous
+// "Accept does not work" fixes each missed.
+run('Claude Code 폼이 실제로 제출하는가', 'node evals/claude-code-form.mjs', { env: { ...process.env, CC_FORM_SKIP_BUILD: '1' }, extract: (o) => (o.match(/(\d+ checks · \d+ violations[^\n]*)/) || [])[1] ?? '' });
 // Slow on purpose: the answer arrives after the SDK's 60s default. ~80s.
 run('1분 넘게 생각한 사람의 Accept', 'node evals/slow-human.mjs', { env: { ...process.env, SLOW_HUMAN_SKIP_BUILD: '1' }, extract: (o) => (o.match(/(\d+ checks · \d+ violations[^\n]*)/) || [])[1] ?? '' });
 
@@ -151,10 +155,18 @@ run('확인 표면 문구 대조', 'node argus-plugin-v2/scripts/picker-surface-
 
 console.log('게이트 실행 완료. 이제 게이트 자신을 시험합니다 (회귀를 일부러 심어 빨간불을 확인)…\n');
 
+// ① used to plant `format:'date'` on the seal ask's check_by box. That box is
+// gone (2026-07-28) — a confirmation ask ships no fields at all, because Claude
+// Code does not preselect Accept when any property is declared. The regression
+// this guards against is therefore the reintroduction of a constraining field,
+// planted on the settle picker, which still has one and still must never block
+// the form.
 selfTest(
   '자기검증 ① 폼 차단 회귀를 잡는가',
-  'src/tools/seal.ts',
-  (s) => s.replace("            check_by: {\n              type: 'string',", "            check_by: {\n              type: 'string',\n              format: 'date',"),
+  'src/tools/settle.ts',
+  (s) => s.replace(
+    "            what_happened: {\n              type: 'string',",
+    "            what_happened: {\n              type: 'string',\n              minLength: 1,"),
   'node evals/host-matrix.mjs',
 );
 selfTest(
@@ -168,10 +180,16 @@ selfTest(
 // `decision`), so the plant became invisible and the self-test reported
 // "심었는데도 초록" — correctly. It is re-aimed at the premise CONFIRM picker,
 // which is the same defect class on a path a user can still reach today.
+// ③ used to plant maxLength on the premise ask's reword box, which no longer
+// exists. The same destroy-the-typed-answer class now lives on the open-question
+// picker, whose field IS the user's own sentence — the most expensive place in
+// the product to silently truncate.
 selfTest(
   '자기검증 ③ 긴 답 파괴 회귀를 잡는가',
   'src/tools/premises.ts',
-  (s) => s.replace(/(\n\s+reword: \{\n\s+type: 'string',)/, "$1\n            maxLength: 400,"),
+  (s) => s.replace(
+    "{ type: 'object', properties: { decision: { type: 'string',",
+    "{ type: 'object', properties: { decision: { type: 'string', maxLength: 400,"),
   'node evals/host-matrix.mjs',
 );
 selfTest(
@@ -216,6 +234,11 @@ selfTest(
   (s) => s.replace("    if (asked && (asked.kind === 'unsupported' || (asked.kind === 'no_answer' && asked.reason === 'failed'))) {", '    if (false) {'),
   'node evals/ambient-picker.mjs',
 );
+// ⑪ The seal confirm no longer declares `reword`, so this protection became
+// unreachable — and unreachable code cannot be tested, which is how a gate
+// starts lying. The `extra-field` host profile sends the field anyway (a client
+// that volunteers what the schema did not ask for), which keeps the hand-back
+// on a live path and this self-test meaningful.
 selfTest(
   '자기검증 ⑪ 사용자가 쓴 말을 버리는 회귀를 잡는가',
   'src/tools/seal.ts',
@@ -273,6 +296,14 @@ selfTest(
   'src/lib/render-receipt.ts',
   (s) => s.replace('return (WIDE.test(ch) || PICTO.test(ch)) ? 2 : 1;', 'return WIDE.test(ch) ? 2 : 1;'),
   'node evals/keepsake-frames.mjs',
+);
+selfTest(
+  '자기검증 ⑲ 확인창에 입력칸이 되돌아오는 회귀를 잡는가',
+  'src/tools/seal.ts',
+  (s) => s.replace(
+    "          { type: 'object', properties: {} },",
+    "          { type: 'object', properties: { reword: { type: 'string', title: 'Reword (optional)' } } },"),
+  'node evals/claude-code-form.mjs',
 );
 selfTest(
   '자기검증 ⑱ 오래 생각한 사람의 답을 버리는 회귀를 잡는가',

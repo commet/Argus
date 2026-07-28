@@ -2,6 +2,37 @@
 
 ## 2.0.4 — The Accept that was thrown away, and the keepsakes nobody had looked at
 
+**Pressing Accept did nothing, and it was our schema that made it so**
+
+The third report of "Accept does not work". The first two fixes — a `required`
+field, then a `format` constraint — were real defects and neither was the cause.
+This time the answer came from reading the shipped Claude Code binary instead of
+reasoning about what a strict host "would" do:
+
+```js
+const hasFields = Object.keys(schema.properties).length > 0
+const [selected] = useState(hasFields ? null : "accept")   // not preselected
+handleTextInputSubmit = () => move("down")                 // Return MOVES
+```
+
+If an ask declares **any** field, Accept is not selected when the dialog opens:
+the cursor sits in the first input, and Return there advances a row instead of
+submitting. Our seal confirm shipped two optional edit boxes, so "read it, press
+Accept" sent nothing at all — the dialog waited until the request timed out and
+the host reported that as a cancel. The founder's log shows one arriving at
+60.018 seconds, which nobody pressed.
+
+The seal and premise confirms now declare no properties, so one Return records
+them. Rewording still works: the user says so in chat and the model calls again
+with their words. The asks that genuinely COLLECT something (settle outcome,
+defer date, an open question's answer) keep their fields — the answer cannot
+come from Accept alone — and now say on screen that the submit row is below.
+
+`evals/claude-code-form.mjs` reimplements that submit gate and judges every ask
+we send, including how many Returns it takes. It goes red on 2.0.2, which is the
+version that blocked the founder — a gate that cannot fail on the broken build
+is not evidence of anything.
+
 **A minute is not long enough to decide something**
 
 - **An Accept that arrived after 60 seconds was discarded.** The MCP SDK times a

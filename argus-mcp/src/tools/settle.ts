@@ -105,8 +105,8 @@ export const settle: ToolModule = {
         const q = sanitizeLine(current.predicate ?? id, 96);
         const due = current.check_by ?? '';
         const asked = await elicitDetailed(pickerLocale === 'ko'
-          ? `"${q}"${due ? ` (확인일 ${due})` : ''}\n\n현실이 어떻게 답했나요? 하나 고르고 Accept.\n아직 결과가 안 나왔으면 "아직 모르겠다"를 고르세요. 지금 답하기 어려우면 Decline.`
-          : `"${q}"${due ? ` (check-by ${due})` : ''}\n\nWhat did reality do? Pick one and Accept.\nNo answer yet? Choose "Don't know yet". Bad moment? Decline.`, {
+          ? `"${q}"${due ? ` (확인일 ${due})` : ''}\n\n현실이 어떻게 답했나요? → 키로 하나 고른 뒤, 아래 화살표로 수락 줄까지 내려가 선택하십시오.\n아직 결과가 안 나왔으면 "아직 모르겠다"를 고르세요. 지금 답하기 어려우면 Decline.`
+          : `"${q}"${due ? ` (check-by ${due})` : ''}\n\nWhat did reality do? Pick one with →, then press Enter twice to reach Accept.\nNo answer yet? Choose "Don't know yet". Bad moment? Decline.`, {
           type: 'object',
           properties: {
             outcome: {
@@ -399,8 +399,8 @@ async function deferStillPending(args: {
     const dq = sanitizeLine(current.predicate ?? id, 96);
     const asked = await elicitDetailed(
       locale === 'ko'
-        ? `"${dq}"\n\n아직 답이 안 나왔군요. 언제 다시 볼까요?\n고르고 Accept. 지금 정하기 어려우면 Decline (확인일은 ${oldCheckBy} 그대로).`
-        : `"${dq}"\n\nNot answered yet. When should I look again?\nPick one and Accept. Decline to leave it (check-by stays ${oldCheckBy}).`,
+        ? `"${dq}"\n\n아직 답이 안 나왔군요. 언제 다시 볼까요?\n→ 키로 고른 뒤, 아래 화살표로 수락 줄까지 내려가 선택하십시오. 지금 정하기 어려우면 Decline (확인일은 ${oldCheckBy} 그대로).`
+        : `"${dq}"\n\nNot answered yet. When should I look again?\nPick one with →, then press Enter twice to reach Accept. Decline to leave it (check-by stays ${oldCheckBy}).`,
       // 필수 필드 없음 — 같은 이유. 빈 채 Accept는 Decline과 같은 길로
       // 흐르고(newDate undefined → 아래 정직한 에러), 폼 안에서 막지 않는다.
       { type: 'object', properties: { when: {

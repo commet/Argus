@@ -42,7 +42,7 @@ const inputSchema = z.strictObject({
   predicate: z.string().min(8).max(400).describe('A prediction reality can mark true/false. Good: "cutover downtime < 5 min". Bad: "it will go well".'),
   check_by: zDate.describe('YYYY-MM-DD, a real future date when the result can be checked.'),
   predicate_owner: z.enum(['user', 'ai_surfaced']).describe('Provenance. Never forge. "user" = the user wrote or affirmed it. "ai_surfaced" = Argus drafted, unconfirmed — on a host with a picker this AUTOMATICALLY shows a one-tap confirm before saving.'),
-  confirm_draft: z.boolean().optional().describe('Optional extra confirmation: force the one-tap confirm even for a "user" predicate. ai_surfaced predicates get it automatically on supporting hosts. The picker maps to the host\'s native Accept/Decline: Accept with both fields blank keeps the draft as theirs, Accept with `reword` saves the user\'s wording, Accept with `check_by` adjusts the date, Decline records nothing. Without picker support, saving proceeds — confirm in your own message first.'),
+  confirm_draft: z.boolean().optional().describe('Optional extra confirmation: force the one-tap confirm even for a "user" predicate. ai_surfaced predicates get it automatically on supporting hosts. The picker maps to the host\'s native Accept/Decline and carries NO input fields, so one keypress records it: Accept keeps the sentence as theirs, Decline records nothing. If they want different words or a different date, they say so in chat and you call again with the new value. Without picker support, saving proceeds — confirm in your own message first.'),
   basis: z.enum(['judgment', 'luck', 'mixed', 'unsure']).optional(),
   real_question: z.string().max(400).describe('The real question behind the answer (receipt).').optional(),
   unverified_assumption: z.string().max(400).describe('The core assumption not yet verified (receipt).').optional(),
@@ -111,33 +111,35 @@ export const seal: ToolModule = {
         // every character; only what the human reads is bounded, and the clip
         // leaves an ellipsis so nobody mistakes it for the whole sentence.
         const shownPred = sanitizeLine(predicate, 96);
+        // NO FIELDS ON THE YES-PATH (2026-07-28, the third "Accept does not work").
+        //
+        // Read out of the shipped Claude Code binary rather than guessed at:
+        //
+        //     const [selected] = useState(hasFields ? null : "accept")
+        //     handleTextInputSubmit = () => move("down")
+        //
+        // If the ask declares ANY field, Accept is not selected at mount — the
+        // cursor sits in the first text box, and Return there MOVES to the next
+        // row instead of submitting. Our seal ask shipped two optional boxes, so
+        // "read it, press Accept" sent nothing at all: the dialog waited until
+        // the request timed out and the host reported that as a cancel. The
+        // founder's log shows it arriving at 60.018s, which nobody pressed.
+        //
+        // With no properties, `selected` starts on "accept" and one Return
+        // records it. That IS the ask: "is this your sentence, yes or no." A
+        // user who wants different words says so in chat and the model calls
+        // again — the same path every host without a picker already takes, and
+        // one this tool has always supported.
+        //
+        // The two previous fixes here (`required`, then `format`) were real and
+        // are still right. They were not this. Nobody counted the keystrokes,
+        // because every harness we own answers the ask programmatically.
+        // `evals/claude-code-form.mjs` now counts them.
         const asked = await elicitDetailed(
           locale === 'ko'
-            ? `이 예측으로 기록할까요?\n"${shownPred}"\n확인일 ${checkBy}\n\n그대로면 Accept · 문장이나 날짜를 고치려면 아래 칸에 쓰고 Accept · 기록 안 하려면 Decline.`
-            : `Record this prediction?\n"${shownPred}"\ncheck-by ${checkBy}\n\nAccept to keep · to change the wording or date, fill a field below and Accept · Decline to skip.`,
-          { type: 'object', properties: {
-            reword: {
-              type: 'string',
-              // TITLE, not just description. With no title a host labels the row
-              // with the KEY — so a Korean user reading their own prediction met
-              // a field called "reword" (audit 2026-07-28, found by dumping what
-              // the host actually receives). Same class as printing enum values.
-              title: locale === 'ko' ? '예측 문장 고쳐쓰기 (선택)' : 'Reword the prediction (optional)',
-              description: locale === 'ko' ? '예측 문장을 고쳐 쓰려면 여기에 적으세요. 비우면 위 문장 그대로 기록합니다.' : 'To reword the prediction, type it here. Leave blank to keep the statement above.',
-            },
-            check_by: {
-              type: 'string',
-              title: locale === 'ko' ? '확인일 바꾸기 (선택)' : 'Change the check-by date (optional)',
-              // NO `format` here. 1.14.0 added `format:"date"` as a "spec-sanctioned,
-              // harmless" rendering hint — untested speculation shipped into the
-              // critical path. On a host that VALIDATES format, the blank field a
-              // one-tap Accept leaves behind is not a valid date, so Accept stops
-              // advancing and the ask dies by timeout. That is exactly the founder's
-              // 2026-07-27 second dogfooding failure. A constraint we cannot verify
-              // against a real host does not belong on the yes-path.
-              description: locale === 'ko' ? `확인일을 바꾸려면 YYYY-MM-DD로 적으세요 (예: ${checkBy}). 비우면 ${checkBy} 그대로.` : `To change the check-by date, type YYYY-MM-DD (e.g. ${checkBy}). Leave blank to keep ${checkBy}.`,
-            },
-          } },
+            ? `이 예측으로 기록할까요?\n"${shownPred}"\n확인일 ${checkBy}\n\n그대로 남기려면 Accept, 남기지 않으려면 Decline입니다. 문장이나 날짜를 고치고 싶으면 Decline 후 말씀해 주세요.`
+            : `Record this prediction?\n"${shownPred}"\ncheck-by ${checkBy}\n\nAccept to keep it, Decline to skip. To change the wording or the date, Decline and say so.`,
+          { type: 'object', properties: {} },
         );
         // A NO and a NON-ANSWER are different facts (2026-07-27). Declining is an
         // answer: record nothing, say so, stop. But a picker that closed without
