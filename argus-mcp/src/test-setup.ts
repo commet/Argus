@@ -48,16 +48,17 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { afterAll } from 'vitest';
-const TEST_HOME = fs.mkdtempSync(path.join(os.tmpdir(), 'argus-test-home-'));
+const TEST_RUN_ID = process.env['ARGUS_TEST_RUN_ID'] ?? `standalone-${process.pid}`;
+const TEST_HOME = fs.mkdtempSync(path.join(os.tmpdir(), `argus-test-${TEST_RUN_ID}-home-`));
 process.env.HOME = TEST_HOME;
 process.env.USERPROFILE = TEST_HOME;
 process.once('exit', () => {
   try {
-    fs.rmSync(TEST_HOME, { recursive: true, force: true });
+    fs.rmSync(TEST_HOME, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
   } catch {
     // Do not replace the actual test verdict during worker shutdown.
   }
 });
 afterAll(() => {
-  fs.rmSync(TEST_HOME, { recursive: true, force: true });
+  fs.rmSync(TEST_HOME, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
 });

@@ -5,21 +5,22 @@ import { afterAll } from 'vitest';
 import type { McpToolResult } from './lib/envelope.js';
 
 let counter = 0;
+const testRunId = process.env['ARGUS_TEST_RUN_ID'] ?? `standalone-${process.pid}`;
 // Keep a worker's fixtures under one disposable root. The previous helper put
 // every fixture directly in os.tmpdir() and never removed it; repeated verify
 // and mutation runs left tens of thousands of directories behind until Windows
 // reported ENOSPC and unrelated gates failed in a cascade.
-const workerRoot = fs.mkdtempSync(path.join(os.tmpdir(), `argus-test-${process.pid}-`));
+const workerRoot = fs.mkdtempSync(path.join(os.tmpdir(), `argus-test-${testRunId}-worker-${process.pid}-`));
 process.once('exit', () => {
   try {
-    fs.rmSync(workerRoot, { recursive: true, force: true });
+    fs.rmSync(workerRoot, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
   } catch {
     // Process shutdown must not hide the test result. A later temp cleanup can
     // remove a fixture still held by an abruptly terminated child.
   }
 });
 afterAll(() => {
-  fs.rmSync(workerRoot, { recursive: true, force: true });
+  fs.rmSync(workerRoot, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
 });
 
 /** Create a fresh, isolated .argus directory for a test. */
