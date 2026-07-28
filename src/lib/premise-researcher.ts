@@ -71,7 +71,28 @@ function sanitizeSnippet(s: string): string {
     const c = ch.charCodeAt(0);
     out += c < 32 || c === 127 ? ' ' : ch;
   }
-  return out.replace(/\s+/g, ' ').trim().slice(0, 400);
+  return neutralizeFraming(out.replace(/\s+/g, ' ').trim().slice(0, 400));
+}
+
+/**
+ * Defuse the `<web>` fence itself (2026-07-28).
+ *
+ * The untrusted snippets are wrapped in `<web>…</web>` and the system prompt tells
+ * the model to treat everything inside as data. That framing is only as strong as
+ * the fence: a page whose title or URL contains a literal `</web>` could close the
+ * block early and have the text after it read as prompt rather than data — the
+ * one hole the file header's "framed so any instructions inside them are ignored"
+ * claim did not actually cover. Blunt the angle brackets of the tag so no snippet
+ * can spell the delimiter, while leaving ordinary prose untouched.
+ */
+function neutralizeFraming(s: string): string {
+  return s.replace(/<(\/?)\s*web\s*>/gi, '[$1web]');
+}
+
+/** URLs are untrusted too — they are attacker-influenced strings we echo into the
+ *  prompt inside `<…>`. Same fence rule, plus no whitespace to break the line. */
+function sanitizeUrl(u: string): string {
+  return neutralizeFraming((u || '').replace(/[\s<>]+/g, '').slice(0, 300));
 }
 
 const VERDICT_SCHEMA = {
@@ -113,12 +134,22 @@ export async function investigatePremise(input: InvestigateInput): Promise<Inves
   if (results.length === 0) return { verdict: 'no_recent_source', reason: 'no recent dated source' };
 
   const webBlock = results
-    .map((r, i) => `[${i + 1}] (${r.publishedYMD}) ${sanitizeSnippet(r.title)} — ${sanitizeSnippet(r.snippet)} <${r.url}>`)
+    .map((r, i) => `[${i + 1}] (${r.publishedYMD}) ${sanitizeSnippet(r.title)} — ${sanitizeSnippet(r.snippet)} <${sanitizeUrl(r.url)}>`)
     .join('\n');
+
+  // When a materiality RULE and a prior value both exist, this premise has a
+  // declared mechanical threshold — and that rule is only ever applied on the
+  // `numeric` branch below. The model was never told the rule existed, so it kept
+  // choosing `fact`, where a bare changed=true alerts and the user's own
+  // threshold is silently bypassed (found on the 2026-07-28 live run: a premise
+  // carrying a delta-0.25 rule was judged in `fact` mode). Say it out loud so the
+  // declared rule is reachable. The `fact` branch stays as the fallback for real
+  // qualitative shifts — forcing numeric would drop those when extraction fails.
+  const wantsNumeric = Boolean(input.materiality_rule) && typeof input.priorValue === 'number';
 
   const user = `전제 종류: ${input.kind === 'open_question' ? '미결질문(아직 못 정함)' : '전제(사실 가정)'}
 전제/질문: ${sanitizeSnippet(input.text)}
-${typeof input.priorValue === 'number' ? `직전 기록 수치(기준값): ${input.priorValue}\n` : ''}기준일: ${input.baselineYMD} (이 날짜 이후 출처만 아래에 실림)
+${typeof input.priorValue === 'number' ? `직전 기록 수치(기준값): ${input.priorValue}\n` : ''}${wantsNumeric ? '이 전제에는 수치 기준이 선언돼 있다. 현재 숫자를 읽어낼 수 있으면 mode="numeric"으로 판정하고 current_value를 채워라(중대성은 선언된 기준으로 기계가 판정한다). 숫자를 읽어낼 수 없을 때만 mode="fact".\n' : ''}기준일: ${input.baselineYMD} (이 날짜 이후 출처만 아래에 실림)
 
 <web>
 ${webBlock}
