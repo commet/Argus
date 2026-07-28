@@ -5,6 +5,51 @@
 초록이었다. 원인은 우리 스키마가 확인창에 **입력칸을 선언한 것**이었다. 고치고 배포했다
 (MCP 2.0.4 / 플러그인 3.0.4).
 
+## ⏸ 지금 어디까지 와 있나 (앞선 세션이 중단된 지점)
+
+**중단 시각:** 2026-07-29 01:35 KST경
+**바로 할 일:** PR #316의 CI가 끝나면 → 머지 → 태그 → 배포. 아래 4단계가 전부다.
+
+```bash
+# ① 상태 확인 — 이 셋만 보면 어디까지 됐는지 안다
+gh pr view 316 --json state,mergeable --jq '.state + " " + .mergeable'
+npm view argus-decision-mcp version        # 2.0.5면 배포까지 끝난 것
+git -C . log --oneline origin/main -1
+
+# ② CI 통과했으면 머지
+gh pr checks 316                            # 전부 pass 인지
+gh pr merge 316 --merge --delete-branch=false
+
+# ③ main에서 태그 (반드시 main에서 — 브랜치에서 달면 배포본과 main이 갈린다)
+git fetch origin main && git tag -a v2.0.5 origin/main -m "MCP 2.0.5 / plugin 3.0.5"
+git push origin v2.0.5                      # 워크플로가 npm + MCP 레지스트리 자동 배포
+
+# ④ 배포됐다고 믿지 말고 받아서 확인 — 이게 마지막 관문
+gh run watch $(gh run list --workflow=publish-mcp.yml --limit 1 --json databaseId --jq '.[0].databaseId') --exit-status
+node argus-mcp/evals/verify-published.mjs 2.0.5    # 9/9 통과해야 함
+node argus-mcp/evals/verify-published.mjs 2.0.4    # 판별력 확인: 출처 마커 1줄만 빨간불
+```
+
+**중단 시점의 정확한 상태:**
+
+| | |
+|---|---|
+| PR #316 | `OPEN` · `MERGEABLE` · CI 4/5 pass, `check` 1건 진행 중 |
+| 작업 브랜치 | `commet/argus-claude-sayu` · `a7bd3819` · **전부 푸시됨** (커밋 안 된 것 없음) |
+| npm 현재 | **2.0.4** (2.0.5는 아직 안 올라감) |
+| main 현재 | 2.0.5 소스 + 3.0.5 (PR #316 머지 전) |
+| 배포될 번들 | 확인 완료 — 2.0.5 수정 + 2.0.4 수정 4종 모두 포함 |
+| 태그 `v2.0.5` | 없음 (중복 배포 위험 없음) |
+
+**검증 상태 (중단 전 마지막 실행):** 단위 **1109 통과**, host-matrix · claude-code-form
+120 · answer-time 10 · keepsake 254 · version-lockstep 9 전부 초록.
+
+> ⚠️ `verify-all.mjs` 전량은 2.0.5 트리에서 **아직 안 돌렸다.** 위 게이트들은 개별로
+> 돌려 초록을 봤지만, 자기검증(회귀 22개 심기) 포함 전량 실행은 2.0.4 트리가 마지막이다.
+> 배포 전에 한 번 돌리면 더 안전하다 (20분+, 디스크 2GB 이상 필요 — §7 참고).
+
+---
+
 ## 이 문서를 어떻게 쓰나 — 문서가 두 개고 용도가 다르다
 
 | 문서 | 누가 · 언제 |
