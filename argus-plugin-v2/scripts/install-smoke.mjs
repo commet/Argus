@@ -269,6 +269,11 @@ try {
     // inventory check) needs the bounded cmd.exe shim explicitly.
     command: runtimeCommand,
     args: runtimeArgs,
+    // Never run npm exec from the argus-mcp source checkout. npm prefers a
+    // matching top-level local package there, but top-level packages do not get
+    // their own node_modules/.bin link. A real user's host starts in their
+    // project, so make the independent probe do the same.
+    cwd: journeyProject,
     env: {
       ...env,
       CLAUDE_PROJECT_DIR: journeyProject,
