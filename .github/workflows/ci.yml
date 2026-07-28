@@ -152,6 +152,13 @@ jobs:
         run: npm install -g --allow-scripts=@anthropic-ai/claude-code @anthropic-ai/claude-code@2.1.220
         continue-on-error: true
 
+      # 게이트를 지키는 게이트 — 도는 모든 게이트가 "빨간불이 될 수 있음"을 자기검증으로
+      # 증명했는지, 그리고 evals/에 아무도 안 돌리는 죽은 게이트가 없는지 본다.
+      - name: Gate coverage (every gate has proven it can fail)
+        run: |
+          cd argus-mcp
+          node evals/gate-coverage.mjs
+
       - name: Unreadable ledger refuses writes
         run: |
           cd argus-mcp
