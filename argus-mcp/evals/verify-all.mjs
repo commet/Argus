@@ -403,17 +403,18 @@ selfTest(
   'node evals/codex-app-server.mjs',
 );
 selfTest(
-  '자기검증 ㉔ 즉시 decline을 시간으로 재해석하는 회귀를 잡는가',
+  // main의 2.0.6판은 "즉시 decline을 시간으로 재해석하는 회귀"를 잡았다. 2.0.7이
+  // 그 재해석을 (귀속 거부의 형태로) 채택했으므로 그 변이는 더 이상 심을 수
+  // 없다. 다만 그 테스트가 지키려던 진짜 우려는 살아 있고 더 중요하다:
+  // **귀속 거부가 정상적인 거절까지 삼켜서는 안 된다.** 사람이 화면을 읽고 누른
+  // "아니오"는 그 사람의 답이고, 그걸 "답이 없었다"로 바꾸면 이번엔 반대 방향으로
+  // 사용자의 행위를 지우는 것이다. 창(窓)을 무한대로 열면 모든 거절이 삼켜진다.
+  '자기검증 ㉔ 귀속 거부가 사람의 정상 거절까지 삼키는 회귀를 잡는가',
   'src/lib/elicit.ts',
-  (s) => s
-    .replace(
-      "    const res = await _elicit(stripUnsafeChars(message), requestedSchema, timeoutMs);\n    if (res.action === 'accept')",
-      "    const started = Date.now();\n    const res = await _elicit(stripUnsafeChars(message), requestedSchema, timeoutMs);\n    if (res.action === 'accept')",
-    )
-    .replace(
-      "    if (res.action === 'decline') return { kind: 'declined' };",
-      "    if (res.action === 'decline' && Date.now() - started <= 500) return { kind: 'no_answer', reason: 'failed' };\n    if (res.action === 'decline') return { kind: 'declined' };",
-    ),
+  (s) => s.replace(
+    'export const UNREADABLE_DECLINE_MAX_MS = 500;',
+    'export const UNREADABLE_DECLINE_MAX_MS = 24 * 60 * 60 * 1000;',
+  ),
   'node evals/codex-app-server.mjs',
 );
 selfTest(
