@@ -283,6 +283,8 @@ export async function GET(req: Request) {
   let budget = MAX_PER_RUN;
   let dropped = 0;
   let researched = 0;
+  // Surfaced in the response so a silently-skipped premise is never invisible.
+  let failedPremises = 0;
   const byUser = new Map<string, { rowIds: string[]; emails: CompanionBriefEmail[] }>();
   const rowUpdates: Array<{ id: string; data: JudgmentReceipt; next_check_by: string | null }> = [];
   let mergedIntoBrief = 0;
@@ -294,60 +296,81 @@ export async function GET(req: Request) {
 
     for (const p of premises) {
       if (p.status !== 'active' || !p.auto_watch) continue;
+      // `monitoring_enabled` is the user's own "stop nudging me" switch, and the
+      // MCP offers it on ANY tracked item ("turn re-check reminders on/off").
+      // For premises it is honoured inside isMonitored(); for open_questions
+      // isReconsiderable() only looks at kind+status, so a user who turned
+      // notifications off still got nudged — the switch was a silent no-op on
+      // exactly the items whose alert copy promises "끄면 멈춰요". Honour it for
+      // both kinds here. This can only ever make the watcher QUIETER.
+      if (p.monitoring_enabled === false) continue;
       // premise → recheck cadence (isMonitored); open_question → reconsider cadence.
       const isOpenQ = p.kind === 'open_question';
       const due = isOpenQ ? isDueForReconsider(p, today) : isDueForRecheck(p, today);
       if (!due) continue;
 
-      const key = normalizePremiseText(p.text);
-      let result = investigated.get(key);
-      if (!result) {
-        if (budget <= 0 || budgetLeft <= 0) { dropped++; continue; } // per-run + monthly cost cap
-        budget--;
-        budgetLeft--;
-        researched++;
-        const baselineYMD = dateOnly(isOpenQ ? (p.last_reconsidered ?? p.added_ts) : p.last_recheck?.ts) ?? dateOnly(p.added_ts) ?? addDaysYMD(today, -365);
-        result = await investigatePremise({
-          text: p.text,
-          watch_query: p.watch_query,
-          kind: p.kind,
-          baselineYMD,
-          priorValue: p.last_recheck?.numeric_value,
-          materiality_rule: p.materiality_rule,
-          locale: 'ko',
-        });
-        investigated.set(key, result);
-      }
-
-      const now = new Date().toISOString();
-      if (result.verdict === 'material' || result.verdict === 'quiet') {
-        const alert = buildPremiseWatchAlert({
-          userId: row.user_id,
-          receiptId: row.id,
-          receipt,
-          premise: p,
-          result,
-          checkedAt: now,
-          baseUrl: `https://${process.env.EMAIL_FROM_DOMAIN || 'argus.voyage'}`,
-        });
-        if (alert.gate.decision === 'merge_into_brief') mergedIntoBrief++;
-        if (alert.email) {
-          const recentlyNotified = row.companion_notified_at && row.companion_notified_at >= renudgeCutoff;
-          if (!recentlyNotified) {
-            const bucket = byUser.get(row.user_id) || { rowIds: [], emails: [] };
-            bucket.rowIds.push(row.id);
-            bucket.emails.push(alert.email);
-            byUser.set(row.user_id, bucket);
-          }
+      // Containment (2026-07-28). Everything below reads jsonb the DB does not
+      // type-check — most sharply `materiality_rule`, which reaches
+      // evaluateMateriality() OUTSIDE the researcher's try/catch: a rule stored
+      // as `{type:'delta'}` with no `params` throws a TypeError. Unwrapped, that
+      // one premise aborted the whole nightly run — every other user went
+      // unchecked, and the findings already computed this pass were dropped
+      // because persistence happens after both loops. Isolate per premise: one
+      // bad row is skipped and logged, the batch keeps going.
+      try {
+        const key = normalizePremiseText(p.text);
+        let result = investigated.get(key);
+        if (!result) {
+          if (budget <= 0 || budgetLeft <= 0) { dropped++; continue; } // per-run + monthly cost cap
+          budget--;
+          budgetLeft--;
+          researched++;
+          const baselineYMD = dateOnly(isOpenQ ? (p.last_reconsidered ?? p.added_ts) : p.last_recheck?.ts) ?? dateOnly(p.added_ts) ?? addDaysYMD(today, -365);
+          result = await investigatePremise({
+            text: p.text,
+            watch_query: p.watch_query,
+            kind: p.kind,
+            baselineYMD,
+            priorValue: p.last_recheck?.numeric_value,
+            materiality_rule: p.materiality_rule,
+            locale: 'ko',
+          });
+          investigated.set(key, result);
         }
-        applyWatchRecheck(p, result, {
-          now,
-          queueForBrief: alert.gate.decision === 'merge_into_brief' && Boolean(alert.change),
-        });
-        mutated = true;
-      } else {
-        applyWatchRecheck(p, result, { now });
-        mutated = true;
+
+        const now = new Date().toISOString();
+        if (result.verdict === 'material' || result.verdict === 'quiet') {
+          const alert = buildPremiseWatchAlert({
+            userId: row.user_id,
+            receiptId: row.id,
+            receipt,
+            premise: p,
+            result,
+            checkedAt: now,
+            baseUrl: `https://${process.env.EMAIL_FROM_DOMAIN || 'argus.voyage'}`,
+          });
+          if (alert.gate.decision === 'merge_into_brief') mergedIntoBrief++;
+          if (alert.email) {
+            const recentlyNotified = row.companion_notified_at && row.companion_notified_at >= renudgeCutoff;
+            if (!recentlyNotified) {
+              const bucket = byUser.get(row.user_id) || { rowIds: [], emails: [] };
+              bucket.rowIds.push(row.id);
+              bucket.emails.push(alert.email);
+              byUser.set(row.user_id, bucket);
+            }
+          }
+          applyWatchRecheck(p, result, {
+            now,
+            queueForBrief: alert.gate.decision === 'merge_into_brief' && Boolean(alert.change),
+          });
+          mutated = true;
+        } else {
+          applyWatchRecheck(p, result, { now });
+          mutated = true;
+        }
+      } catch (err) {
+        failedPremises++;
+        console.error('[premise-watch] premise failed:', row.id, p.premise_id, err instanceof Error ? err.message : err);
       }
     }
 
@@ -414,6 +437,7 @@ export async function GET(req: Request) {
     dry_run: dryRun,
     date: today,
     researched,
+    failed_premises: failedPremises,
     dropped_over_cap: dropped,
     month: monthKey,
     month_used: monthStart + researched,

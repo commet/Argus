@@ -217,7 +217,13 @@ export const seal: ToolModule = {
       // ledger: self-create harvest if the decision was sealed without an explicit open
       const events: LedgerEventInput[] = [];
       if (current.state === 'absent') events.push({ id, event: 'harvest', decision: predicate });
-      events.push({ id, event: 'seal', predicate, check_by: checkBy, basis: a['basis'] as string | undefined });
+      events.push({
+        id, event: 'seal', predicate, check_by: checkBy, basis: a['basis'] as string | undefined,
+        // Provenance rides the ledger event itself. It previously lived only in
+        // the bearing seed / receipt / v2 mirror, none of which the webapp push
+        // reads — so an ai_surfaced draft crossed the bridge looking user-authored.
+        predicate_owner: a['predicate_owner'] as 'user' | 'ai_surfaced' | undefined,
+      });
 
       // Promotion (plan v5 §5.4): the named unverified_assumption IS the first
       // premise — the premise set is canonical, the seal field is its input

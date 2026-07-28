@@ -58,7 +58,7 @@ const TABLE_COLUMNS: Record<string, string[]> = {
   plugin_decisions: [
     'id', 'user_id', 'source', 'ledger_id', 'project', 'session', 'decided_at',
     'harvested_at', 'quote', 'decision', 'type', 'stakes', 'status', 'predicate',
-    'falsified_if', 'check_by', 'sealed_at', 'outcome', 'settled_at', 'settle_note',
+    'falsified_if', 'check_by', 'sealed_at', 'predicate_owner', 'outcome', 'settled_at', 'settle_note',
     'dismissed_at', 'dismiss_reason', 'history', 'raw', 'imported_at',
     'created_at', 'updated_at',
   ],

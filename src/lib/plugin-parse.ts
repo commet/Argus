@@ -41,15 +41,28 @@ export function parseLedger(text: string): FoldedDecision[] {
           history: [],
         });
         break;
-      case 'seal':
-        if (cur) {
-          cur.status = 'sealed';
-          cur.sealed_at = e.at as string;
-          cur.predicate = e.predicate as string;
-          cur.falsified_if = e.falsified_if as string;
-          cur.check_by = e.check_by as string;
+      case 'seal': {
+        // Self-create instead of dropping. The plugin's own replay does this
+        // (ledger-replay "B1"), and a seal whose harvest line is missing or
+        // truncated is exactly the decision we must not lose in silence — the
+        // old `if (cur)` discarded the whole record with no trace.
+        let entry = cur;
+        if (!entry) {
+          entry = { ledger_id: id, status: 'candidate', history: [] };
+          map.set(id, entry);
+        }
+        entry.status = 'sealed';
+        entry.sealed_at = e.at as string;
+        entry.predicate = e.predicate as string;
+        entry.falsified_if = e.falsified_if as string;
+        entry.check_by = e.check_by as string;
+        // Honest provenance across the bridge (§5 MCP↔web). Absent stays absent:
+        // an old ledger without the field is unknown, never "the user's own".
+        if (e.predicate_owner === 'user' || e.predicate_owner === 'ai_surfaced') {
+          entry.predicate_owner = e.predicate_owner;
         }
         break;
+      }
       case 'amend':
         if (cur) {
           const amend: PluginAmendment = {
