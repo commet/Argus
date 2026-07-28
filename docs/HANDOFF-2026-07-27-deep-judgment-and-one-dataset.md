@@ -194,32 +194,90 @@ through 4.7 has acceptance evidence.
 
 ### 4.1 Deploy and prove the deep-quota foundation
 
-Status: code exists; **not applied to production**.
+Status (updated 2026-07-28): **steps 1–4 done and verified against production,
+step 5 verified at the API layer only, step 6 BLOCKED on real provider keys.**
+Platform-funded deep judgment is live and enforcing its 24-hour quota. The
+migration was applied with founder approval after the gap surfaced a live defect
+in account deletion — see the note at the end of this subsection.
 
-1. Identify the intended Supabase project and take a schema snapshot / verify
-   migration ordering. This workspace did not contain an active Supabase link or
-   runtime secrets during the foundation work.
-2. Apply `20260727150000_deep_judgment_usage.sql` through the normal reviewed
-   migration workflow. Do not hand-run a partial copy of the function.
-3. Verify in the database:
-   - both tables exist;
-   - RLS is enabled;
-   - `anon` and `authenticated` cannot select/update them;
-   - only `service_role` can execute `reserve_deep_judgment`;
-   - RPC returns `granted`, `resumed`, `daily_used` in the expected order.
-4. Deploy the web route with all three required server values:
+1. ~~Identify the intended Supabase project and take a schema snapshot / verify
+   migration ordering.~~ **DONE 2026-07-28** — project `sckixrzwqntynsisgcdx`
+   (`overture-db`, ap-northeast-2). Live schema read directly; ordering confirmed
+   (this migration landed after `20260727120000_foundation_integrity_v2`).
+2. ~~Apply `20260727150000_deep_judgment_usage.sql` through the normal reviewed
+   migration workflow.~~ **DONE 2026-07-28** — applied verbatim from the file (no
+   partial hand-run), registered as migration `deep_judgment_usage`.
+3. ~~Verify in the database.~~ **DONE 2026-07-28**, all five checks green:
+   - both tables exist ✓
+   - RLS enabled on both ✓
+   - `anon` / `authenticated` hold no grant on either table (only `service_role`) ✓
+   - only `service_role` (plus the `postgres` owner) may execute
+     `reserve_deep_judgment`; it is `SECURITY DEFINER` ✓
+   - RPC returned `granted` → `resumed` → `daily_used` in that order, exercised
+     inside a transaction and rolled back (0 rows left in either table) ✓
+4. ~~Deploy the web route with all three required server values:
    `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, and
-   `SUPABASE_SERVICE_ROLE_KEY`.
-5. Run a real browser test with two clean anonymous sessions and one signed-in
-   account. Test same-session resume, different-session denial, 24-hour expiry
-   (time-controlled staging fixture if available), and failed DB behavior.
-6. Test real Anthropic, OpenAI, and Gemini BYOK credentials in a safe test
-   account. Confirm the settings check and deep-entry check call the selected
-   provider and fail honestly for revoked/no-credit keys.
+   `SUPABASE_SERVICE_ROLE_KEY`.~~ **DONE / verified live 2026-07-28** — all three
+   are present in production. Proven positively rather than by inspection: the
+   route returns `granted`, and it can only do so after a successful service-role
+   RPC (any missing value short-circuits to 503 before the RPC is reached).
+5. **PARTIALLY DONE 2026-07-28 — API layer verified live against production
+   (`https://argus.voyage`), browser UI not driven.** Against the deployed route:
+
+   | Call | Result |
+   |---|---|
+   | first reservation, anonymous | `200 {"allowed":true,"status":"granted"}` |
+   | same `session_id` again | `200 … "status":"resumed"` (no second quota spend) |
+   | different `session_id`, same network principal | `429 … "status":"daily_used"` |
+   | `session_id: ""` | `400 {"error":"Invalid request."}` |
+   | response headers | `Cache-Control: no-store` |
+
+   Database after the run: exactly ONE row in `anon_deep_judgment_usage`, still
+   holding the FIRST session id (so `resumed`/`daily_used` neither duplicated nor
+   overwrote it), `principal_hash` 64 chars — the IP is hashed, never stored raw.
+   The signed-in branch was exercised separately against a real `auth.users` id
+   inside a transaction (`granted` → `resumed` → `daily_used`, 1 account row +
+   1 anon row) and rolled back. **All smoke rows were then deleted; both tables
+   are back to 0 rows.**
+
+   Still open in this step: driving the actual browser UI, and the 24-hour expiry
+   (needs a time-controlled fixture — not exercised).
+
+   Note on "failed DB behavior": now structurally satisfied rather than tested by
+   outage injection. `authorizePlatformDeepJudgment` returns `unavailable` on any
+   non-OK response or throw, and `ProgressiveFlow` returns early WITHOUT calling
+   `setJudgmentMode('deep', …)` — so a failure cannot leave the session in deep
+   mode, and the standard path continues. That is the §4.7 outage row.
+6. **BLOCKED — not done.** Test real Anthropic, OpenAI, and Gemini BYOK
+   credentials in a safe test account. Confirm the settings check and deep-entry
+   check call the selected provider and fail honestly for revoked/no-credit keys.
+   Requires real provider keys, which were not available in this environment.
+   Do NOT mark the initiative complete on the strength of steps 1–5.
 
 Acceptance: no successful platform deep run can begin without a successful
 server reservation; no BYOK success is claimed without a real response; an
 outage leaves standard judgment usable.
+
+**Why step 2 could not stay deferred (2026-07-28).** Leaving the migration
+unapplied was not cost-free, and the cost landed somewhere unrelated. Because
+`deep_judgment_usage` was listed in `src/lib/user-data-tables.ts` from the same
+commit, `/api/account/delete` iterated a table that did not exist, PostgREST
+returned "relation does not exist", the route's all-or-nothing `hadError` gate
+tripped, and **auth-identity deletion was skipped for every account deletion** —
+which also silences the `ON DELETE CASCADE` that is the only erasure path for
+tables outside that list. Account deletion returned HTTP 500 and left the account
+standing. Both CI guards stayed green throughout, because both compare two
+hand-written lists to each other and neither can see the live database.
+
+The lasting fix is not the migration; it is that the gap is now visible:
+- `src/lib/__tests__/erasure-coverage.test.ts` derives user-scoped tables from
+  `supabase/migrations/*.sql` (offline, machine-checked) and requires every
+  non-`user_id` reference to `auth.users` to carry a written waiver;
+- `node scripts/check-erasure-coverage.mjs <sql-result.json>` compares the list
+  to the live DB and is the only thing that can catch "listed but not applied".
+Run the script after every migration. See also the corrected comments in
+`user-data-tables.ts` and `api/account/delete/route.ts`: the long-standing claim
+that no table cascades on `auth.users` delete was false (49 of 51 FKs cascade).
 
 ### 4.2 Define and implement the shared event envelope
 
