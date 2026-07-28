@@ -82,7 +82,7 @@ export function LandingHeader() {
                 style={{
                   padding: '12px 14px',
                   minHeight: 44,
-                  fontSize: 10.5,
+                  fontSize: 12.5,
                   letterSpacing: '0.18em',
                   background: locale === 'ko' ? 'var(--bp-ink)' : 'transparent',
                   color: locale === 'ko' ? 'var(--bp-paper)' : 'var(--bp-ink-soft)',
@@ -97,7 +97,7 @@ export function LandingHeader() {
                 style={{
                   padding: '12px 14px',
                   minHeight: 44,
-                  fontSize: 10.5,
+                  fontSize: 12.5,
                   letterSpacing: '0.18em',
                   background: locale === 'en' ? 'var(--bp-ink)' : 'transparent',
                   color: locale === 'en' ? 'var(--bp-paper)' : 'var(--bp-ink-soft)',
@@ -117,7 +117,7 @@ export function LandingHeader() {
                   className="bp-mono transition-opacity hover:opacity-70 inline-flex items-center"
                   style={{
                     color: 'var(--bp-ink)',
-                    fontSize: 11,
+                    fontSize: 12.5,
                     letterSpacing: locale === 'ko' ? '0.04em' : '0.16em',
                     textTransform: 'uppercase',
                     padding: '12px 6px',
@@ -148,7 +148,7 @@ export function LandingHeader() {
                   className="bp-mono transition-opacity hover:opacity-70 inline-flex items-center"
                   style={{
                     color: 'var(--bp-ink-soft)',
-                    fontSize: 11,
+                    fontSize: 12.5,
                     letterSpacing: locale === 'ko' ? '0.04em' : '0.16em',
                     textTransform: 'uppercase',
                     padding: '12px 6px',
