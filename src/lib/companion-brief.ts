@@ -139,16 +139,26 @@ export function premiseDriftDeepLink(input: PremiseDriftEmailInput): string {
 export function buildPremiseDriftEmail(input: PremiseDriftEmailInput): CompanionBriefEmail {
   const { change } = input;
   const url = premiseDriftDeepLink(input);
-  const checkedAt = (change.checked_at || change.source_date || '').slice(0, 10) || '확인일 표시 없음';
+  // The source's PUBLISH date and the date we checked are different facts, and
+  // this feature's whole trust model rests on the first one: the watcher only
+  // alerts off a source dated on/after the premise baseline (premise-researcher
+  // §"RECENCY is enforced upstream"). Rendering `checked_at` inside the "출처:"
+  // parenthesis showed today's date as if it were the source's — so the very
+  // evidence that earns the alert was invisible, and the line quietly overstated
+  // how fresh the source was. Label both, separately. (2026-07-28: found by a
+  // live run; the old fixture used the SAME date for both, so no test could see it.)
+  const checkedOn = (change.checked_at || '').slice(0, 10) || '표시 없음';
+  const sourceDate = (change.source_date || '').slice(0, 10);
   const provenance = change.source_url || '출처 표시 없음';
+  const sourceLabel = sourceDate ? `${provenance}, ${sourceDate} 발행` : `${provenance}, 발행일 표시 없음`;
   const subject = `전제가 하나 움직였어요 — "${clipped(change.text)}"`;
   const markdown = [
     `"${input.decision_title || '제목 없는 문서'}"을 봉인할 때, 이 결정은 이 전제 위에 서 있었어요:`,
     '',
     `    P${change.ordinal}  "${change.text}"        (봉인 당시 값: ${baselineLabel(change)})`,
     '',
-    `오늘 확인된 값: ${valueLabel(change)}   (출처: ${provenance}, ${checkedAt})`,
-    `확신도: ${confidenceLabel(change.confidence)}`,
+    `오늘 확인된 값: ${valueLabel(change)}   (출처: ${sourceLabel})`,
+    `확인일: ${checkedOn} · 확신도: ${confidenceLabel(change.confidence)}`,
     '',
     '전제가 움직였다는 사실만 전해요.',
     '결정을 다시 볼지는 당신의 몫이에요.',
