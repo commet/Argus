@@ -33,6 +33,15 @@ So I rendered both surfaces and looked at them, and found this:
   definition now, in `outcome-labels.ts`.
 - Under ~380px the header split the date into "2026-07- / 10".
 
+- **The deferred screen printed `still_pending` in gold as its headline.** I
+  caused this an hour earlier by moving that value out of the outcomes table
+  into its own handle, which made the label lookup fall through to the raw
+  value — and the gate I had just written could not see it, because it read the
+  label tables and not the rendered screen. The card gate now DRIVES the
+  after-the-click states and fails if any enum reaches the DOM. The same screen
+  also stamped the closing anchor on a deferral (a loop that did not tie) and
+  kept "5일 지남" in the header after the date had moved.
+
 Two gates hold this: the card may not show an enum value where a human reads,
 and a picker must name the record it is asking about. Both were verified by
 putting the defect back and watching them go red.

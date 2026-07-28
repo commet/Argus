@@ -168,6 +168,7 @@ export const SETTLE_APP_HTML = `<!doctype html>
       commit: '기록하기', later: '그날 다시', skip: '지금은 넘어가기',
       skipped: '넘어갔습니다. 조르지 않습니다.',
       recorded: '기록했습니다', deferred: function (d) { return d + '에 다시 가져오겠습니다.'; },
+      deferredHead: '다시 보기로 했습니다', unknownOutcome: '기록됨',
       sig: '예측 저장 → 실제 결과 기록 ⚓',
       needWhat: '한 줄이면 됩니다. 비워두면 기록하지 않습니다.',
       // [value, label, what it means]. The third slot used to hold the raw enum
@@ -193,6 +194,7 @@ export const SETTLE_APP_HTML = `<!doctype html>
       commit: 'Record', later: 'Come back then', skip: 'skip for now',
       skipped: 'Skipped. No re-asking.',
       recorded: 'Recorded', deferred: function (d) { return 'Coming back on ' + d + '.'; },
+      deferredHead: 'Coming back to it', unknownOutcome: 'Recorded',
       sig: 'prediction saved → reality recorded ⚓',
       needWhat: 'One line is enough; blank records nothing.',
       outcomes: [
@@ -341,18 +343,29 @@ export const SETTLE_APP_HTML = `<!doctype html>
     });
   }
 
+  // Never hand a raw enum to a reader. Moving still_pending out of the outcomes
+  // table into its own handle silently made this fall through to the raw value,
+  // and the deferred screen printed "still_pending" in gold as its headline
+  // (2026-07-28, found by screenshotting the state I had not looked at).
   function outcomeWord(o) {
     var t = T[locale], i;
     for (i = 0; i < t.outcomes.length; i++) if (t.outcomes[i][0] === o) return t.outcomes[i][1];
-    return o;
+    if (t.pending && t.pending[0] === o) return t.pending[1];
+    return t.unknownOutcome || o;
   }
 
   function renderDone(outcome, what, deferredTo) {
     var t = T[locale];
     var s = stage();
     if (deferredTo) {
-      s.appendChild(el('div', 'done-outcome', outcomeWord('still_pending')));
+      // A deferral is not a result. Naming an outcome here — even a translated
+      // one — files "no answer yet" as an answer on the screen that confirms it.
+      s.appendChild(el('div', 'done-outcome', t.deferredHead));
       s.appendChild(el('div', 'done-what', t.deferred(deferredTo)));
+      // The check-by moved; leaving "N일 지남" in the header contradicts the
+      // sentence right below it.
+      var w = document.getElementById('when');
+      if (w) { w.textContent = t.due(deferredTo); }
     } else {
       s.appendChild(el('div', 'done-outcome', t.recorded + ' · ' + outcomeWord(outcome)));
       if (what) s.appendChild(el('div', 'done-what', '\\u201C' + what + '\\u201D'));
@@ -362,9 +375,13 @@ export const SETTLE_APP_HTML = `<!doctype html>
       m.textContent = '\\u201C' + state.predicate + '\\u201D';
       s.appendChild(m);
     }
-    var foot = document.getElementById('foot');
-    foot.style.display = 'flex';
-    document.getElementById('sig').textContent = t.sig;
+    // The anchor marks a loop that actually tied. A deferral re-arms it, so the
+    // closing mark would claim a completion that did not happen.
+    if (!deferredTo) {
+      var foot = document.getElementById('foot');
+      foot.style.display = 'flex';
+      document.getElementById('sig').textContent = t.sig;
+    }
   }
 
   function renderQuiet(msg, isErr) {
