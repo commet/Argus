@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased — Decline means decline
+## 2.0.5 — Decline means decline; provenance rides the seal event
 
 The 2.0.4 Codex fallback inferred that a `decline` returned within 500ms was a
 host-policy auto-reject. That inference was not supported by MCP. A fast
@@ -19,8 +19,6 @@ policies. It proves that `mcp_elicitations=false` returns a bare
 client. Because the server receives no distinguishing signal, it does not
 invent one from elapsed time. The same verifier then returns to an interactive
 thread and proves a later form still reaches the client and records an Accept.
-
-## 2.0.5 — Provenance rides the seal event, and a release that main had already left behind
 
 **A drafted line could cross into the account looking like the user's own**
 
