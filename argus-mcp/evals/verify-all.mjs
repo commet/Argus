@@ -195,6 +195,7 @@ run('적대 입력 퍼즈', 'node evals/fuzz.mjs', { extract: (o) => (o.match(/(
 run('픽커 E2E (엄격 호스트)', `node evals/e2e-picker.mjs "${process.execPath}" dist/index.js`, { extract: (o) => (o.match(/(E2E: [^\n]*)/) || [])[1] ?? '' });
 run('원장 못 읽을 때 쓰기 차단', 'node evals/unreadable-ledger.mjs', { extract: (o) => (o.includes('✅') ? '이중 봉인 차단 확인' : '') });
 run('패키지 내용물', 'npm pack --dry-run');
+run('npm bin 실행 권한', 'node evals/package-executable.mjs');
 
 // ── the observatories, ported to the public six ────────────────────────────
 run('호스트 전수 대조 (실제 클라이언트 프로필)', 'node evals/host-matrix.mjs', { env: { ...process.env, HOST_MATRIX_SKIP_BUILD: '1' }, extract: (o) => (o.match(/(\d+ checks · \d+ violation[^\n]*)/) || [])[1] ?? '' });

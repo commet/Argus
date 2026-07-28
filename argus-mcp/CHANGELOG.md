@@ -1,6 +1,6 @@
 # Changelog
 
-## 2.0.7 - Codex answered the picker, and we called it the user's decline
+## 2.0.8 - Codex answered the picker, and we called it the user's decline
 
 **Measured, on a real `codex app-server`, five configurations, one build**
 
@@ -11,74 +11,72 @@
 | `granular.mcp_elicitations = false` | **no** - same | `Not recorded.` |
 | allowed, a person declines | yes | `Not recorded.` |
 
-The bottom three look identical, and Argus recorded all of them as
+The bottom three look identical, and every one was recorded as
 `choice: "declined"` - a decision credited to someone who, in two of those rows,
-was never shown anything and had no way to continue. Codex's own protocol cannot
-separate them: the response carries `action`, `content`, and a `_meta` that
-arrives null.
+was shown nothing and had no way to continue. Codex's protocol cannot separate
+them: the response is `action` + `content` + a `_meta` that arrives null.
 
-2.0.6 took the position that response time cannot disambiguate, because tests,
-accessibility automation, keyboard users, and a person who already knows their
-answer can all respond immediately. Every one of those is true. They are an
-argument against CONCLUDING anything - not an argument for reporting the
-policy-answered case as the user's act.
+2.0.6 held that response time cannot disambiguate, because tests, accessibility
+automation, keyboard users, and a person who already knows their answer can all
+respond immediately. Every one of those is true, and they are an argument
+against CONCLUDING - not an argument for reporting the policy-answered case as
+the user's act.
 
-So nothing here concludes. A decline that returns faster than a form can be read
-is not recorded and not attributed; the plain-text path is offered instead. And
-the sentence is written to be true in both readings - it leads with what holds
-either way (nothing was recorded) and makes the host explanation conditional,
-because telling someone who deliberately declined that "no answer came back"
-contradicts what they just did.
+So nothing concludes. A decline returning faster than a form can be read is not
+recorded and not attributed, and the text path is offered instead. The sentence
+is written to hold under both readings: it leads with what is true either way
+(nothing was recorded) and makes the host explanation conditional, because
+telling someone who deliberately declined that "no answer came back" contradicts
+what they just did. A decline someone took time over is still theirs.
 
-The out-of-band ask is the one surface that spends its cooldown on it. There the
-two readings finally agree: a policy answering means an invisible timer retrying
-forever, and a person hammering Escape means pushing an unprompted question at
+The out-of-band ask is the one surface that spends its cooldown on it - there
+both readings agree, since a policy answering means an invisible timer retrying
+forever and a person hammering Escape means pushing an unprompted question at
 someone who just said no.
 
 **The README installed a version that does not exist**
 
-The install block pinned `argus-decision-mcp@2.0.0`, never published. Following
-it verbatim produced `No matching version found` and no server at all - the
-front door for every hand-configured host, which is every Codex user. There were
-also no Codex instructions anywhere. Both fixed, and `version-lockstep` now holds
-the pins in the docs to the same version as the five manifest files; it had been
-comparing those five to each other and never looking at the line a human copies.
+The install block pinned `argus-decision-mcp@2.0.0`, never published: following
+it produced `No matching version found` and no server at all - the front door
+for every hand-configured host, which is every Codex user. There were no Codex
+instructions either. Both fixed, and `version-lockstep` now holds the pins in the
+docs to the same version as the five manifest files.
 
 **The pickers told every host to press Claude Code's keys**
 
-Four messages spelled out one client's keyboard - "arrow down to the accept
-row", "press Enter twice" - inside a protocol message every host receives. A
-Codex user reading a rendered form is being told to press keys that are not
-there. The fact underneath is host-independent: choosing is not yet saving, and
-the answer lands at Accept. Also: a newline inside a field description (a hint
-rendered beside one input, not a block the host lays out), and English copy that
-told a PERSON to call `argus_capture`.
+Four messages spelled out one client's keyboard ("arrow down to the accept row",
+"press Enter twice") inside a protocol message every host receives. Also a
+newline inside a field description, and English copy that told a PERSON to call
+`argus_capture`. Read on the real Codex wire, both languages.
 
 **Gates**
 
-- `evals/codex-app-server.mjs` drives two real Codex processes under two real
-  approval policies, so the blocked reality comes from Codex's own config rather
-  than the harness declining when it spots a keyword - a harness that
-  manufactures the failure it detects proves only the harness. It also finds a
-  Codex installed by npm; accepting only `codex.exe` meant it never ran on an
-  ordinary global install.
-- `host-matrix` carries one real Codex identity in two realities, which is what
-  keeps proving nothing branches on a product name.
-- `battery` gains the decline nobody saw, and its counterpart now declares that
-  its decline came from a PERSON by pausing - a scenario answering in zero
-  milliseconds is not a fast user, it is a machine.
+- `codex-app-server.mjs` drives two real Codex processes under two real approval
+  policies, so the blocked reality comes from Codex's own config rather than the
+  harness declining when it spots a keyword. It also finds a Codex installed by
+  npm; accepting only `codex.exe` meant it never ran on an ordinary install.
+- `host-matrix` carries one real Codex identity in two realities.
 - `picker-surfaces` asserts every field label and description is one line.
-- The standing yellow ("Korean journey got a mostly-English surface") was the
-  scenario, not the product: an empty ledger has no user text to read a voice
-  from and that scenario never set a locale. It now asserts config is honoured
-  with zero content, and a new one asserts the opposite edge - with no config and
-  no user text, the language must not be invented from the machine's locale.
+- The standing yellow was the scenario, not the product: an empty ledger has no
+  user text to read a voice from and that scenario never set a locale. It now
+  asserts config is honoured with zero content, and a new one asserts the
+  opposite edge - the language must not be invented from the machine's locale.
 - `verify-published` markers are quote-agnostic and pre-checked against the build
-  just made. The 2.0.5 marker was written in source form and esbuild normalises
-  quotes, so it could never match and reported a shipped fix as missing.
+  just made. That pre-flight caught a marker of my own going stale three hours
+  after I wrote it.
 - Test fixtures were never removed: 386 directories per `vitest run`, 28,203 on
   one machine. Verify dies without a stack when the disk fills, and a self-test
   that dies mid-plant leaves the regression it planted in the source tree.
+
+## 2.0.7 — The npm executable is executable
+
+The immutable 2.0.6 tarball carried the correct server but packed
+`dist/index.js` as mode `0644`. Windows hid the defect behind npm's `.cmd` shim;
+POSIX `npx` could resolve the package but could not execute its bin.
+
+The build now sets mode `0755` on POSIX before packing. The post-publish gate
+checks the tar header itself, so directly invoking the entry with `node` can no
+longer produce a false green for a broken `npx` installation.
 
 ## 2.0.6 — The published package catches up with the verified main
 

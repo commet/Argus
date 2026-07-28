@@ -92,6 +92,7 @@ console.log(`레지스트리에서 argus-decision-mcp@${VERSION} 내려받는 �
 const npmCli = path.join(path.dirname(process.execPath), 'node_modules', 'npm', 'bin', 'npm-cli.js');
 execFileSync(process.execPath, [npmCli, 'pack', `argus-decision-mcp@${VERSION}`, '--prefer-online'], { cwd: work, stdio: 'pipe' });
 const tgz = fs.readdirSync(work).find((f) => f.endsWith('.tgz'));
+const tarListing = execFileSync('tar', ['-tvzf', tgz], { cwd: work, encoding: 'utf8' });
 execFileSync('tar', ['xzf', tgz], { cwd: work, stdio: 'pipe' });
 const pkgDir = path.join(work, 'package');
 const entry = path.join(pkgDir, 'dist', 'index.js');
@@ -122,6 +123,13 @@ if (impossible === null) {
 } else if (impossible.length) {
   console.log(`⚠  이 마커는 방금 만든 로컬 빌드에서도 안 맞는다 → 마커가 잘못됐을 가능성이 크다 (배포 누락이 아니라): ${impossible.join(' · ')}`);
 }
+
+// POSIX 실행 비트 (2.0.7, main). npx는 bin을 직접 실행하므로 실행 비트가 빠지면
+// 리눅스/맥 사용자에게만 배선이 통째로 죽는다 — Windows에서 만든 릴리스가 조용히
+// 그렇게 나갈 수 있다.
+check('npm bin이 POSIX에서 실행 가능하다 (2.0.7)',
+  /^-rwx[^\r\n]*package\/dist\/index\.js$/m.test(tarListing),
+  'tar header의 package/dist/index.js에 실행 비트가 없음');
 
 const matches = (needle) => (needle instanceof RegExp ? needle.test(bundle) : bundle.includes(needle));
 for (const [label, marker] of BUNDLE_MARKERS) {
