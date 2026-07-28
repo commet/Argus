@@ -6,6 +6,68 @@
 
 작성 목적: 다른 기기의 새 Codex 세션이 맥락을 다시 추측하지 않고, 아직 끝나지 않은 치명적 결함부터 재현·수정·반증하도록 한다.
 
+## 2026-07-29 후속 세션 결과
+
+이 절이 아래의 최초 인수인계보다 우선한다. 아래 본문은 결함을 발견했을 때의
+재현 기록으로 보존하며, 더 이상 현재 상태를 뜻하지 않는다.
+
+### 결론
+
+- 최신 `origin/main`과 MCP 2.0.5 / 플러그인 3.0.5 릴리스 브랜치를 통합했다.
+- 500ms 기반 decline 재분류와 process-global picker circuit을 제거했다.
+- MCP `decline`은 속도와 무관하게 `declined`, `cancel`은 `no_answer/cancelled`,
+  전송 오류는 `no_answer/failed`, capability 미지원은 `unsupported`로 보존한다.
+- 한 tool call은 elicitation을 한 번만 시도하고 끝난다. 한 응답이 이후의 다른
+  picker를 전역 차단하지 않는다.
+
+### 왜 이 설계가 맞는가
+
+설치된 Codex CLI 0.145.0의 app-server를 실제로 기동하고 두 thread를 만들었다.
+
+1. `mcp_elicitations=true`: 바깥 client에 `mode:"form"` 요청이 도착했고 Accept가
+   user-owned seal로 기록됐다.
+2. `mcp_elicitations=false`: 바깥 client에는 요청이 0건이었고, MCP 서버가 받은
+   원시 값은 `_meta` 없는 `{action:"decline"}`였다.
+
+MCP 표준도 `decline`을 사용자의 명시적 거절로 정의하며, 정책 거절을 식별하는
+별도 필드는 없다. 따라서 서버가 elapsed time으로 둘을 구분하는 것은 관측이
+아니라 추측이다. `evals/codex-elicit-wire-probe.mjs`와
+`evals/codex-app-server.mjs`가 이 사실을 실제 wire에서 고정한다.
+
+### 최종 전수 검증
+
+정식 명령은 문서의 옛 표기인 `npm run verify:all`이 아니라 다음이다.
+
+```powershell
+cd argus-mcp
+npm run verify
+```
+
+2026-07-29 후속 세션 결과:
+
+- build / typecheck: 통과
+- 단위·프로토콜: 120 files, 1,116 tests 통과
+- E2E picker: 13/13
+- battery: 92 calls, 0 RED
+- picker surfaces: 6,696 checks, 0 violations
+- host matrix: 390 checks, 0 violations
+- real Codex app-server: 15 checks, 0 violations
+- Claude Code form: 120 checks, 0 violations
+- 95초 slow-human: 3 checks, 0 violations
+- plugin validate/install/simulate/parity: 전부 통과
+- mutation self-test: 심은 회귀 24개를 모두 해당 gate가 검출
+- 원본 보호: mutation 대상 10개 바이트 불변, 격리 사본 삭제
+
+추가로 테스트 temp root에 실행별 무작위 소유 토큰을 붙이고 global teardown을
+추가했다. 병렬 워크스페이스의 fixture를 건드리지 않으면서 자기 실행의
+`argus-test-*`만 재시도 삭제한다.
+
+### 아직 남은 외부 단계
+
+이 절 작성 시점에는 코드와 로컬 전수 검증이 끝났고, 남은 것은 PR CI, main 병합,
+태그/배포, published tarball 재검증뿐이다. 이 단계가 끝나기 전에는 “배포 완료”로
+표현하지 않는다.
+
 ## 0. 가장 먼저 읽을 결론
 
 이 작업은 **완료되지 않았다. 현재 전체 검증은 빨간색이다.**
@@ -85,7 +147,7 @@ git diff origin/main...HEAD --stat
 2. 특히 `premises`, provenance, 자동 감시, prompt fence 변경과 이 WIP가 충돌하거나 의미를 무효화하는지 확인한다.
 3. WIP가 빨간 상태라는 사실을 보존한다. 충돌 해결과 기능 수정을 한 번에 섞지 않는다.
 4. 통합 후 아래 3개의 실패 게이트를 그대로 재현한다.
-5. 설계 수정 후 개별 게이트를 통과시키고, 마지막에만 `npm run verify:all`을 실행한다.
+5. 설계 수정 후 개별 게이트를 통과시키고, 마지막에만 `npm run verify`를 실행한다.
 
 브랜치가 remote에 없다면 이전 기기에서 push가 누락된 것이다. 임의로 같은 변경을 재작성하지 말고 이 문서 작성 세션에 branch push를 요청한다.
 
@@ -218,7 +280,7 @@ node evals/picker-surfaces.mjs
 
 ```powershell
 cd argus-mcp
-npm run verify:all
+npm run verify
 ```
 
 최신 전체 실행에서 통과한 주요 baseline:
@@ -548,7 +610,7 @@ mock뿐 아니라 real Codex app-server evidence가 있다.
 baseline이 모두 초록일 때만:
 
 ```powershell
-npm run verify:all
+npm run verify
 ```
 
 그 뒤 self-test 결과에서 각 mutation이:
@@ -641,7 +703,7 @@ plugin lifecycle:
 - host matrix 및 ambient/surface/keepsake 통과
 - answer-time exact response timestamp 통과
 - slow-human 통과
-- full `verify:all` baseline 통과
+- full `verify` baseline 통과
 - 모든 mutation self-test가 정확한 이유로 red
 - test가 원본을 오염시키지 않음
 - fresh install 및 upgrade 사용자 여정 증거
