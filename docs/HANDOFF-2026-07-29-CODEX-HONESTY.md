@@ -14,14 +14,14 @@ app-server`를 다섯 가지 설정으로 몰아 재현했고, 고쳤고, 되심
 ```bash
 claude plugin update argus@argus
 # 그 뒤 Claude Code를 재시작하고
-claude mcp list | grep argus     # argus-decision-mcp@2.0.7 이 보여야 정상 (배포 후)
+claude mcp list | grep argus     # argus-decision-mcp@2.0.8 이 보여야 정상 (배포 후)
 ```
 
 확인한 사실(당신 프로필을 건드리지 않고 읽기만 함):
 
 | | |
 |---|---|
-| 설치된 플러그인 | `argus@argus` **v2.16.0** (현재 3.0.7) |
+| 설치된 플러그인 | `argus@argus` **v2.16.0** (현재 3.0.8) |
 | 그 플러그인이 띄우는 서버 | `npx -y argus-decision-mcp@1.10.0` |
 | 이 세션에서 그 서버에 물어본 결과 | `server_version: "1.10.0"` — 살아 있는 증거 |
 
@@ -30,8 +30,8 @@ claude mcp list | grep argus     # argus-decision-mcp@2.0.7 이 보여야 정상
 비활성/활성/업데이트 → 제거), **로컬 빌드와 npm 배포본 양쪽 다 정상**입니다.
 위 한 줄이면 됩니다.
 
-> 2.0.7 배포가 아직이면 `plugin update`는 3.0.6/MCP 2.0.6까지 갑니다. 그것만으로도
-> 1.10.0보다 훨씬 낫습니다 — Codex 정직성 수정만 2.0.7에 있습니다 (§7).
+> 2.0.8 배포가 아직이면 `plugin update`는 이미 나간 3.0.7/MCP 2.0.7까지 갑니다.
+> 그것만으로도 1.10.0보다 훨씬 낫습니다 — Codex 정직성 수정만 2.0.8에 있습니다 (§7).
 
 ---
 
@@ -124,8 +124,8 @@ picker-surfaces 32위반)이 전부 이 차단기 때문이었다.
 ## 4. 남은 것
 
 1. **창업자 플러그인 업데이트** — §0. 이것만 하면 지금까지 고친 게 전부 닿는다
-2. **2.0.7 배포** (2.0.6은 병렬 트랙이 이미 냈다 — §7) — 이 브랜치 머지 → **main에서** `v2.0.7` 태그 → publish 워크플로 →
-   `node argus-mcp/evals/verify-published.mjs 2.0.7`
+2. **2.0.8 배포** (2.0.6·2.0.7은 병렬 트랙이 이미 냈다 — §7) — 이 브랜치 머지 → **main에서** `v2.0.8` 태그 → publish 워크플로 →
+   `node argus-mcp/evals/verify-published.mjs 2.0.8`
    - 레지스트리 스텝이 504로 실패할 수 있다(2.0.5가 그랬다). npm publish 스텝은
      이미 멱등이라 `gh run rerun <id> --failed`로 안전하게 재시도된다
 3. **Codex 플러그인 v1** — 지금은 `codex mcp add` 수동 한 줄. BLUEPRINT §8, O4 뒤
@@ -225,3 +225,25 @@ main의 해당 단언은 **그 자리에서 뒤집되 이유를 옆에 적어** 
 **합류 후 재검증:** 단위 **1127** · E2E 13/13 · picker-surfaces 6824/0 ·
 surface-hazards 1222/0 · host-matrix 424/0 · battery **97 calls 0 RED 0 yellow** ·
 claude-code-form 120/0 · **실제 Codex app-server 15/0**.
+
+---
+
+## 8. 릴리스 경합 — 창업자 판단이 필요한 한 가지
+
+이 세션이 도는 동안 병렬 트랙이 **2.0.6 → 2.0.7 → (pack 메타 수정)** 을 연달아
+태그·발행했다. 나는 그때마다 main을 다시 합치고 전량 재검증했다. 결과물은
+2.0.8이고 품질 손실은 없다 — 오히려 그쪽 게이트 두 개(POSIX 실행 비트, 패키지
+실행성)를 받아왔다.
+
+다만 **한 패키지에 두 트랙이 몇 분 간격으로 릴리스를 밀고 있다.** 재합류 한 번에
+전량 재검증(20분+)이 붙고, 그 사이 또 나갈 수 있다. 이건 기술 문제가 아니라
+조율 문제라서 내가 혼자 정하지 않았다. 가장 단순한 형태:
+
+> **릴리스 버튼은 한 트랙이 쥐고, 다른 트랙은 그 위로 착지한다.**
+
+나는 태그 경쟁을 하지 않고 항상 합류 가능한 상태를 유지했다.
+
+**참고:** GitHub이 PR #319를 `CONFLICTING`으로 표시할 수 있는데 **stale이다.**
+`git merge-base --is-ancestor origin/main HEAD`가 참 — main이 내 HEAD의 조상이라
+병합은 fast-forward고 충돌이 불가능하다. 이 레포는 Actions 이벤트가 멈춘 전력이
+있다(§CI는 `gh workflow run CI --ref <branch>`로 수동 트리거).
