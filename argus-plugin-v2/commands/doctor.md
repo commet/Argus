@@ -32,9 +32,11 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/doctor.js"
    - `card` → "정산 카드 OK — 확인일이 오면 옆에 카드가 떠서 결과를 눌러
      기록한다(대화로 그냥 말해도 된다)"
    - `one_tap` → "픽커 OK — AI 초안 예측은 Accept/Decline 원탭으로 확인받는다
-     (Accept 빈칸=그대로, reword=내 문구, check_by=확인일만 조정)"
-   - `text_fallback` → "⚠ 이 호스트는 elicitation 미지원 — 확인은 대화
-     텍스트로 폴백된다(기능은 동작)"
+     (입력칸 없이 Accept를 한 번 누르면 초안 그대로 기록)"
+   - `text_fallback` → "⚠ 이 호스트는 elicitation을 지원하지 않거나 현재
+     정책이 picker를 차단했다 — 확인은 대화 텍스트로 폴백된다(기능은 동작).
+     Codex라면 `approval_policy.granular.mcp_elicitations=true`인지 확인하라.
+     관리형 정책이 막으면 관리자 설정이 우선한다."
    셋 중 어느 값도 아니면 그 값을 그대로 적어라. 모르는 값을 조용히 빼면
    사용자는 자기 호스트가 무엇을 보여줄지 끝내 알 수 없다.
 

@@ -56,6 +56,15 @@ jobs:
             npm publish
           fi
 
+      # This is the release half of the plugin smoke. CI points the staged
+      # plugin at the checkout's dist so pre-publish work is testable; after npm
+      # publish we leave the real npx pin untouched and require Claude Code to
+      # connect to that exact public version before the registry is updated.
+      - name: Verify published plugin install and MCP connection
+        run: |
+          npm install -g @anthropic-ai/claude-code@2.1.220
+          node ../argus-plugin-v2/scripts/install-smoke.mjs --published
+
       - name: Install mcp-publisher
         run: |
           curl -L "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_$(uname -s | tr '[:upper:]' '[:lower:]')_$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/').tar.gz" | tar xz mcp-publisher

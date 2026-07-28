@@ -23,6 +23,21 @@ export type Elicitor = (
   timeoutMs?: number,
 ) => Promise<ElicitResult>;
 
+export interface McpClientCapabilities {
+  elicitation?: unknown;
+}
+
+/**
+ * Branch on the protocol capability, never the host's product name. Codex can
+ * surface standard MCP forms when mcp_elicitations are allowed; blacklisting
+ * `codex-mcp-client` made the working path impossible along with the broken one.
+ */
+export function supportsReliableElicitation(
+  capabilities: McpClientCapabilities | undefined,
+): boolean {
+  return Boolean(capabilities?.elicitation);
+}
+
 /**
  * How long a person may take to answer, and why this is not a detail.
  *
@@ -65,7 +80,13 @@ export function setElicitor(fn: Elicitor | null, capable?: () => boolean): void 
 }
 
 export function canElicit(): boolean {
-  if (_capable) return _capable();
+  if (_capable) {
+    try {
+      return _capable();
+    } catch {
+      return false;
+    }
+  }
   return _elicit !== null;
 }
 
@@ -105,10 +126,20 @@ export async function elicitDetailed(
   requestedSchema: Record<string, unknown>,
   timeoutMs: number = DECISION_ASK_TIMEOUT_MS,
 ): Promise<ElicitOutcome> {
-  if (!_elicit) return { kind: 'unsupported' };
+  // Enforce the host policy at the seam itself. Call sites may use canElicit()
+  // to choose their UI branch, but forgetting that pre-check must never bypass
+  // capability/identity gating and launch an invisible request.
+  if (!_elicit || !canElicit()) return { kind: 'unsupported' };
   try {
     const res = await _elicit(stripUnsafeChars(message), requestedSchema, timeoutMs);
     if (res.action === 'accept') return { kind: 'accepted', content: res.content ?? {} };
+    // MCP defines `decline` as an explicit user decision. Some hosts also use
+    // that same bare result for an approval-policy auto-reject, without
+    // metadata that a server can inspect. Response time cannot disambiguate
+    // those cases: tests, accessibility automation, keyboard users, and a
+    // person who already knows their answer can all respond immediately.
+    // Preserve the protocol fact instead of inventing user intent or poisoning
+    // every later picker with a process-global circuit breaker.
     if (res.action === 'decline') return { kind: 'declined' };
     return { kind: 'no_answer', reason: 'cancelled' }; // the host closed it without an answer
   } catch {
@@ -122,7 +153,7 @@ export async function elicit(
   requestedSchema: Record<string, unknown>,
   timeoutMs: number = DECISION_ASK_TIMEOUT_MS,
 ): Promise<Record<string, unknown> | null> {
-  if (!_elicit) return null;
+  if (!_elicit || !canElicit()) return null;
   try {
     // The elicitation `message` is a SEPARATE server→client request — it does NOT
     // pass through envelope()/sanitizeOutput, so a raw predicate/premise

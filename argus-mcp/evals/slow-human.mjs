@@ -21,8 +21,8 @@
  * The harness always answered instantly — which is precisely the one behaviour
  * a person never has.
  *
- * So this one is slow on purpose: it answers after SEVENTY-FIVE seconds and
- * requires that the record still lands. It costs ~80s of wall clock, which is
+ * So this one is slow on purpose: it answers after NINETY-FIVE seconds and
+ * requires that the record still lands. It costs ~100s of wall clock, which is
  * the price of testing the single most important interaction in the product
  * against the way people actually use it.
  *
@@ -45,7 +45,7 @@ const DIST = path.join(ROOT, 'dist', 'index.js');
 if (process.env.SLOW_HUMAN_SKIP_BUILD !== '1') execSync('npm run build', { cwd: ROOT, stdio: 'ignore' });
 
 // Past the SDK's 60s default, close enough to keep CI honest about the cost.
-const THINK_MS = Number(process.env['SLOW_HUMAN_THINK_MS'] ?? 75_000);
+const THINK_MS = Number(process.env['SLOW_HUMAN_THINK_MS'] ?? 95_000);
 
 const violations = [];
 let checks = 0;
