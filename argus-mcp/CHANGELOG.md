@@ -1,5 +1,51 @@
 # Changelog
 
+## 2.0.2 — What the picker and the card actually look like
+
+Everything before this verified the wiring: the resource is listed, the args
+arrive, the ask fires. None of it asked whether a person could read the result.
+So I rendered both surfaces and looked at them, and found this:
+
+- **Every outcome button showed the raw enum underneath its Korean label** —
+  예측대로/`held`, 걱정 피함/`avoided`, 일부만/`partial`, 아직/`later`,
+  빗나감/`missed`. Our filing system, printed for a user who never asked for it,
+  at the moment we ask them to commit. It did not even help with the one
+  distinction people get wrong (held vs avoided), which the tool description
+  itself warns about. The sub-line now says what the choice means, in their
+  language.
+- **The settle picker never said WHICH prediction it was asking about.** No
+  sentence, no date — just "현실이 어떻게 답했나요?". The seal picker quotes the
+  sentence; the return path, where a user with several open bets most needs to
+  know, did not. It does now.
+- **That picker also pointed at the wrong handle:** "아직 모르겠으면 Decline".
+  Decline records nothing and asks again; the enum's still_pending moves the
+  date properly. Fixed.
+- **"아직 모르겠다" sat in the same grid as the four verdicts**, which invites
+  filing "no answer yet" as an answer. It is now a separate handle that says it
+  records nothing.
+- **Korean prose was set in monospace**, which breaks a sentence into evenly
+  spaced blocks ("광 고  R O A S가"). The instrument keeps the mono (wordmark,
+  dates, the plate); the sentences get a proportional face.
+- **The escape hatch was the least legible thing on the card** while being the
+  one the spine requires to always be reachable.
+- The five labels lived in **three** hand-maintained copies (two pickers plus
+  the card) with a comment asking editors to keep them in lockstep. One
+  definition now, in `outcome-labels.ts`.
+- Under ~380px the header split the date into "2026-07- / 10".
+
+- **The deferred screen printed `still_pending` in gold as its headline.** I
+  caused this an hour earlier by moving that value out of the outcomes table
+  into its own handle, which made the label lookup fall through to the raw
+  value — and the gate I had just written could not see it, because it read the
+  label tables and not the rendered screen. The card gate now DRIVES the
+  after-the-click states and fails if any enum reaches the DOM. The same screen
+  also stamped the closing anchor on a deferral (a loop that did not tie) and
+  kept "5일 지남" in the header after the date had moved.
+
+Two gates hold this: the card may not show an enum value where a human reads,
+and a picker must name the record it is asking about. Both were verified by
+putting the defect back and watching them go red.
+
 ## 2.0.1 — Every remaining audit finding, and the gates that can prove it
 
 > Written against 1.15.x and landed on top of the 2.0.0 surface reduction. The

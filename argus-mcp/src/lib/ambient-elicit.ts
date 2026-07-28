@@ -9,6 +9,7 @@ import { configPath } from './layout.js';
 import { atomicWriteJson } from './atomic-write.js';
 import { logError } from './log.js';
 import { sanitizeLine } from '../v2/sanitize.js';
+import { OUTCOME_VALUES, outcomeEnumNames, outcomeFieldDescription } from './outcome-labels.js';
 import type { McpToolResult } from './envelope.js';
 
 /**
@@ -237,13 +238,13 @@ async function fire(dir: string, todayOverride?: string): Promise<void> {
           properties: {
             outcome: {
               type: 'string',
-              enum: ['held', 'avoided', 'partial', 'still_pending', 'missed'],
-              // Same labels as the in-band settle picker (settle.ts) — 풀어쓰기.
-              // (Duplicated across the two picker sites; keep them in lockstep.)
-              enumNames: ko
-                ? ['예측대로 됐다', '걱정한 일은 안 일어났다', '일부만 맞았다', '아직 불분명', '예측이 빗나갔다']
-                : ['It held', 'Avoided', 'Partially', 'Still unclear', 'Missed: my read was wrong'],
-              description: ko ? '봉인한 예측에 현실이 어떻게 답했는지.' : 'What reality did to your sealed prediction.',
+              enum: [...OUTCOME_VALUES],
+              // One definition, shared with the in-band picker (outcome-labels.ts).
+              // These used to be written out here a second time with a comment
+              // asking editors to keep them in lockstep by hand; a third,
+              // different wording lived in the settle card. Same user, same week.
+              enumNames: outcomeEnumNames(ko ? 'ko' : 'en'),
+              description: outcomeFieldDescription(ko ? 'ko' : 'en'),
             },
           },
         },

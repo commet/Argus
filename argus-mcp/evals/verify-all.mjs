@@ -236,6 +236,13 @@ if (dirty === 0 && touched.size > 0) {
   rows.push({ label: '자기검증 뒷정리', ok: true, ms: 0, note: `건드린 파일 ${touched.size}개 전부 원래 바이트로 복구됨` });
 }
 
+selfTest(
+  '자기검증 ⑬ 화면에 enum이 새는 회귀를 잡는가',
+  'src/lib/apps-ui-html.ts',
+  (s) => s.replace("      s.appendChild(el('div', 'done-outcome', t.deferredHead));", "      s.appendChild(el('div', 'done-outcome', 'still_pending'));"),
+  'node evals/widget-runtime.mjs',
+);
+
 const pad = (s, n) => String(s) + ' '.repeat(Math.max(0, n - String(s).length));
 console.log('\n' + '─'.repeat(78));
 for (const r of rows) {

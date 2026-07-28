@@ -263,6 +263,69 @@ async function freshCard(scriptSrc) {
   }
 }
 
+
+// W10/W11 — the screens AFTER the click. These were never driven, and that is
+// exactly where a raw enum surfaced: moving still_pending out of the outcomes
+// table made outcomeWord fall through, so the deferred screen printed
+// "still_pending" in gold as its headline (2026-07-28). String checks on the
+// label tables cannot see this; only rendering the state can.
+const ENUMS = ['held', 'avoided', 'partial', 'missed', 'still_pending'];
+function visibleText(sandbox) {
+  const seen = [];
+  const walk = (n) => {
+    if (!n) return;
+    if (n.tagName === 'script' || n.tagName === 'style') return;
+    if (typeof n.textContent === 'string' && (!n.children || n.children.length === 0)) seen.push(n.textContent);
+    (n.children || []).forEach(walk);
+  };
+  walk(sandbox.byId.stage);
+  walk(sandbox.byId.foot);
+  return seen.join(' | ');
+}
+
+{ // W10 — a recorded outcome
+  const c = await freshCard(src);
+  const held = c.nodes().find((n) => n.tagName === 'button' && n.textContent.includes('예측대로'));
+  check('W10 결과 버튼이 있다', Boolean(held));
+  if (held) {
+    held.click();
+    const ta = flat(c.byId.stage).find((n) => n.tagName === 'textarea');
+    if (ta) ta.value = '실제로는 268%에서 멈췄다';
+    const commit = flat(c.byId.stage).filter((n) => n.tagName === 'button').find((n) => /기록하기/.test(n.textContent));
+    if (commit) {
+      commit.click();
+      const m = [...c.posted].reverse().find((x) => x.method === 'tools/call');
+      c.deliver({ jsonrpc: '2.0', id: m.id, result: { structuredContent: { ok: true, data: { outcome: 'held', what_happened_echo: '실제로는 268%에서 멈췄다', locale: 'ko' } } } });
+      await new Promise((r) => setTimeout(r, 15));
+      const text = visibleText(c);
+      check('W10 기록 화면에 enum 값이 안 보인다', !ENUMS.some((e) => text.includes(e)), text.slice(0, 180));
+      check('W10 사용자의 말이 그대로 보인다', text.includes('268%에서 멈췄다'), text.slice(0, 180));
+    }
+  }
+}
+
+{ // W11 — a deferral
+  const c = await freshCard(src);
+  const later = c.nodes().find((n) => n.tagName === 'button' && n.textContent.includes('아직'));
+  check('W11 아직 손잡이가 있다', Boolean(later));
+  if (later) {
+    later.click();
+    const commit = flat(c.byId.stage).filter((n) => n.tagName === 'button').find((n) => /그날 다시/.test(n.textContent));
+    if (commit) {
+      commit.click();
+      const m = [...c.posted].reverse().find((x) => x.method === 'tools/call');
+      const to = (m.params.arguments || {}).defer_to;
+      c.deliver({ jsonrpc: '2.0', id: m.id, result: { structuredContent: { ok: true, data: { deferred_to: to, locale: 'ko' } } } });
+      await new Promise((r) => setTimeout(r, 15));
+      const text = visibleText(c);
+      check('W11 연기 화면에 enum 값이 안 보인다', !ENUMS.some((e) => text.includes(e)), text.slice(0, 180));
+      check('W11 연기를 결과처럼 말하지 않는다', /다시 보기로|Coming back/.test(text), text.slice(0, 180));
+      check('W11 연기에는 닻(완결 표시)을 찍지 않는다', !text.includes('⚓'), text.slice(0, 180));
+      check('W11 헤더가 새 날짜로 바뀐다', String(c.byId.when && c.byId.when.textContent || '').includes(to), String(c.byId.when && c.byId.when.textContent));
+    }
+  }
+}
+
 console.log(failures === 0
   ? '\n✅ 정산 카드가 실제로 실행되고, 모든 사용자 제스처가 서버에 정확히 닿는다.'
   : `\n❌ ${failures}건 — 카드가 사용자 손에서 이렇게 깨진다.`);
