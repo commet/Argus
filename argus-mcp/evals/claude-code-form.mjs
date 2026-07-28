@@ -249,13 +249,20 @@ for (const locale of ['ko', 'en']) {
         ok(`${w} F5 확인 픽커는 Return 한 번으로 제출된다`, presses === 1,
           `Return ${presses}번 필요 (입력칸 ${keys.length}개: ${keys.join(',')}) — 확인만 받는 픽커는 입력칸을 두지 않습니다`);
       } else {
-        // Match the INSTRUCTION, not one phrasing of it. The first version of
-        // this check looked for the literal "Enter twice", so rewording the
-        // Korean copy to drop a stray English key name turned the gate red
-        // while the screen had got BETTER. What has to be true is that the ask
-        // tells the user the submit row is somewhere they must move to.
+        // Match the INSTRUCTION, not one phrasing of it — twice learned now.
+        // The first version looked for the literal "Enter twice", so improving
+        // the Korean copy turned the gate red while the screen got BETTER. The
+        // second version accepted only Claude Code's keyboard choreography
+        // ("아래 화살표로 수락 줄까지"), which is the OPPOSITE failure: it held
+        // the copy to one host's controls, and a Codex user reading a rendered
+        // form was told to press keys that do not exist there.
+        //
+        // What must be true on every host is the fact underneath: choosing is
+        // not yet saving, and the answer lands at Accept. So require a phrase
+        // that points onward to Accept — not the bare word, which every ask
+        // contains, but a continuation to it.
         const msg = String(messages.get(schema) ?? '');
-        const tells = /수락 줄|화살표로|arrow (down|to)|Enter를 두 번|Enter twice/.test(msg);
+        const tells = /Accept까지|continue to Accept|수락 줄|화살표로|arrow (down|to)|Enter를 두 번|Enter twice/.test(msg);
         ok(`${w} F5 수집 픽커는 제출 방법을 알려준다`, tells,
           `Return ${presses}번 필요한데 안내가 없습니다: ${msg.replace(/\s+/g, ' ').slice(0, 110)}`);
       }

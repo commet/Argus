@@ -233,11 +233,11 @@ async function fire(dir: string, todayOverride?: string): Promise<void> {
           ? `Argus · 확인일이 지난 예측이 있어요.
 "${text}" (확인일 ${first.date})
 
-현실이 어떻게 답했나요? → 키로 고른 뒤, 아래 화살표로 수락 줄까지 내려가 선택하십시오. 지금 어려우면 그냥 닫으세요. 다시 조르지 않습니다.`
+현실이 어떻게 답했나요? 하나 고른 뒤 Accept까지 진행하면 기록됩니다. 지금 어려우면 그냥 닫으세요. 다시 조르지 않습니다.`
           : `Argus · a prediction passed its check-by.
 "${text}" (due ${first.date})
 
-What did reality do? Pick one with →, then press Enter twice to reach Accept. Just close this if now is a bad time; no re-asking.`,
+What did reality do? Pick one, then continue to Accept to record it. Just close this if now is a bad time; no re-asking.`,
         {
           type: 'object',
           // 필수 필드 없음 (2026-07-27) — 필수 enum은 호스트가 접어서 렌더하고
