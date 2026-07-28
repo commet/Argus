@@ -40,6 +40,29 @@ let failed = 0;
 // prevent. Give every gate room to speak.
 const BUF = { maxBuffer: 64 * 1024 * 1024 };
 
+/**
+ * What to print when a gate fails, and why the last three lines are the wrong
+ * answer.
+ *
+ * A CI run failed on 2026-07-29 and the report read:
+ *
+ *   ✗ 단위·프로토콜 테스트   73.2s   89| const dir = tmpArgusDir(); | 90| for (…
+ *
+ * That is vitest's SOURCE CONTEXT — the tail of the output — not the assertion.
+ * It names a line without saying what went wrong with it, so the one person
+ * reading the report cannot act on it, which is the whole failure mode this file
+ * exists to prevent: an instrument that runs but does not inform.
+ *
+ * So look for the sentence that states the failure, and only fall back to the
+ * tail when nothing announces itself.
+ */
+function failureNote(out) {
+  const lines = out.split('\n').map((l) => l.replace(/\[[0-9;]*m/g, '').trim()).filter(Boolean);
+  const said = lines.filter((l) => /AssertionError|Error:|expected .* to |Test timed out|timed out in \d+ms|✗|×\s|FAIL\b|\b[1-9]\d* (?:violations?|RED|failed)\b/i.test(l));
+  const chosen = said.length ? said.slice(0, 3) : lines.slice(-3);
+  return chosen.join(' | ').slice(0, 240);
+}
+
 function run(label, cmd, opts = {}) {
   const started = Date.now();
   try {
@@ -49,7 +72,7 @@ function run(label, cmd, opts = {}) {
   } catch (e) {
     failed++;
     const out = String(e.stdout ?? '') + String(e.stderr ?? '');
-    rows.push({ label, ok: false, ms: Date.now() - started, note: out.split('\n').filter(Boolean).slice(-3).join(' | ').slice(0, 180) });
+    rows.push({ label, ok: false, ms: Date.now() - started, note: failureNote(out) });
     return out;
   }
 }
@@ -165,6 +188,11 @@ function gateFailureFor(gateCmd) {
   if (gateCmd.includes('codex-app-server')) return /\b[1-9]\d* violations?\b/i;
   if (gateCmd.includes('answer-time')) return /\b[1-9]\d* violations?\b/i;
   if (gateCmd.includes('slow-human')) return /\b[1-9]\d* violations?\b/i;
+  // e2e-picker does not print "violations" — it prints its own tally. Without
+  // this line the self-test that uses it throws here and takes the whole verify
+  // with it, which is exactly what this function is for: a gate whose failure
+  // nobody can recognise must not be silently accepted as "it exited non-zero".
+  if (gateCmd.includes('e2e-picker')) return /E2E: \d+ passed, [1-9]\d* failed/;
   throw new Error(`self-test has no owned failure signature for: ${gateCmd}`);
 }
 
@@ -206,10 +234,14 @@ run('버전 다섯 곳 일치', 'node evals/version-lockstep.mjs', { extract: CO
 // binary — including how many Returns it takes, which is what three previous
 // "Accept does not work" fixes each missed.
 run('Claude Code 폼이 실제로 제출하는가', 'node evals/claude-code-form.mjs', { env: { ...process.env, CC_FORM_SKIP_BUILD: '1' }, extract: (o) => (o.match(/(\d+ checks · \d+ violations[^\n]*)/) || [])[1] ?? '' });
-run('Codex app-server 폼 실물 왕복', 'node evals/codex-app-server.mjs', { env: { ...process.env, CODEX_APP_SERVER_SKIP_BUILD: '1' }, extract: (o) => (o.match(/(\d+ checks · \d+ violations[^\n]*)/) || [])[1] ?? '' });
 run('기록이 사람이 답한 시각을 쓰는가', 'node evals/answer-time.mjs', { env: { ...process.env, ANSWER_TIME_SKIP_BUILD: '1' }, extract: (o) => (o.match(/(\d+ checks · \d+ violations[^\n]*)/) || [])[1] ?? '' });
 // Slow on purpose: the answer arrives after 90 seconds, beyond the SDK default.
 run('1분 넘게 생각한 사람의 Accept', 'node evals/slow-human.mjs', { env: { ...process.env, SLOW_HUMAN_SKIP_BUILD: '1' }, extract: (o) => (o.match(/(\d+ checks · \d+ violations[^\n]*)/) || [])[1] ?? '' });
+// Two real `codex app-server` processes with two real approval policies. The
+// blocked reality is produced BY CODEX, not by the harness deciding to decline —
+// a harness that manufactures the failure it detects proves only the harness.
+// Skips loudly (exit 0 with a message) when codex is not installed.
+run('진짜 Codex app-server (허용 / 정책차단)', 'node evals/codex-app-server.mjs', { env: { ...process.env, CODEX_APP_SERVER_SKIP_BUILD: '1' }, extract: (o) => (o.match(/(\d+ checks · \d+ violation[^\n]*|.*SKIPPED.*)/) || [])[1] ?? '' });
 
 // ── the plugin surface ──────────────────────────────────────────────────────
 run('플러그인 검증', 'node argus-plugin-v2/scripts/validate-plugin.js', { cwd: REPO });
@@ -400,17 +432,18 @@ selfTest(
   'node evals/codex-app-server.mjs',
 );
 selfTest(
-  '자기검증 ㉔ 즉시 decline을 시간으로 재해석하는 회귀를 잡는가',
+  // main의 2.0.6판은 "즉시 decline을 시간으로 재해석하는 회귀"를 잡았다. 2.0.7이
+  // 그 재해석을 (귀속 거부의 형태로) 채택했으므로 그 변이는 더 이상 심을 수
+  // 없다. 다만 그 테스트가 지키려던 진짜 우려는 살아 있고 더 중요하다:
+  // **귀속 거부가 정상적인 거절까지 삼켜서는 안 된다.** 사람이 화면을 읽고 누른
+  // "아니오"는 그 사람의 답이고, 그걸 "답이 없었다"로 바꾸면 이번엔 반대 방향으로
+  // 사용자의 행위를 지우는 것이다. 창(窓)을 무한대로 열면 모든 거절이 삼켜진다.
+  '자기검증 ㉔ 귀속 거부가 사람의 정상 거절까지 삼키는 회귀를 잡는가',
   'src/lib/elicit.ts',
-  (s) => s
-    .replace(
-      "    const res = await _elicit(stripUnsafeChars(message), requestedSchema, timeoutMs);\n    if (res.action === 'accept')",
-      "    const started = Date.now();\n    const res = await _elicit(stripUnsafeChars(message), requestedSchema, timeoutMs);\n    if (res.action === 'accept')",
-    )
-    .replace(
-      "    if (res.action === 'decline') return { kind: 'declined' };",
-      "    if (res.action === 'decline' && Date.now() - started <= 500) return { kind: 'no_answer', reason: 'failed' };\n    if (res.action === 'decline') return { kind: 'declined' };",
-    ),
+  (s) => s.replace(
+    'export const UNREADABLE_DECLINE_MAX_MS = 500;',
+    'export const UNREADABLE_DECLINE_MAX_MS = 24 * 60 * 60 * 1000;',
+  ),
   'node evals/codex-app-server.mjs',
 );
 selfTest(
@@ -428,6 +461,28 @@ selfTest(
     "          { type: 'object', properties: {} },",
     "          { type: 'object', properties: { reword: { type: 'string', title: 'Reword (optional)' } } },"),
   'node evals/claude-code-form.mjs',
+);
+selfTest(
+  '자기검증 ㉕ 아무도 못 본 거절을 사용자 것이라 하는 회귀를 잡는가',
+  'src/lib/elicit.ts',
+  (s) => s.replace('      if (Date.now() - started <= UNREADABLE_DECLINE_MAX_MS) {', '      if (false) {'),
+  'node evals/battery.mjs',
+);
+selfTest(
+  // 한 번의 성급한 거절이 그 세션의 모든 픽커를 지우던 설계. 되심으면 정산
+  // 픽커가 아예 안 뜬다.
+  '자기검증 ㉖ 거절 한 번이 이후 픽커를 전부 없애는 회귀를 잡는가',
+  'src/lib/elicit.ts',
+  // Anchor on the signature line only. This mutation used to include the body's
+  // first statement and stopped matching the moment canElicit gained its
+  // fail-closed try/catch — the self-test then reported "could not plant", which
+  // is the honest outcome and exactly why that branch exists, but a mutation
+  // that cannot be planted proves nothing. Keep the anchor as small as the
+  // change requires.
+  (s) => s.replace(
+    'export function canElicit(): boolean {',
+    'export function canElicit(): boolean {\n  if (_unreadableStreak >= 1) return false;'),
+  `node evals/e2e-picker.mjs "${process.execPath}" dist/index.js`,
 );
 selfTest(
   '자기검증 ⑱ 오래 생각한 사람의 답을 버리는 회귀를 잡는가',

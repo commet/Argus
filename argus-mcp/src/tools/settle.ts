@@ -113,8 +113,15 @@ export const settle: ToolModule = {
         // what the server will not honour.
         const haveWhat = typeof a['what_happened'] === 'string' && (a['what_happened'] as string).trim().length > 0;
         const asked = await elicitDetailed(pickerLocale === 'ko'
-          ? `"${q}"${due ? ` (확인일 ${due})` : ''}\n\n현실이 어떻게 답했나요? → 키로 하나 고른 뒤, 아래 화살표로 수락 줄까지 내려가 선택하십시오.\n아직 결과가 안 나왔으면 "아직 모르겠다"를 고르세요. 지금 답하기 어려우면 Decline.`
-          : `"${q}"${due ? ` (check-by ${due})` : ''}\n\nWhat did reality do? Pick one with →, then press Enter twice to reach Accept.\nNo answer yet? Choose "Don't know yet". Bad moment? Decline.`, {
+          // Say what is TRUE ON EVERY HOST: choosing is not yet saving, and the
+          // answer lands at Accept. The previous wording spelled out Claude
+          // Code's keyboard — "→ 키로 고른 뒤, 아래 화살표로 수락 줄까지" — which
+          // a Codex user reading a rendered form (verified on a real app-server,
+          // 2026-07-29) is being told to press keys that are not there, and a
+          // desktop user with a mouse likewise. The load-bearing fact is not the
+          // keystroke, it is that a selection alone does not record anything.
+          ? `"${q}"${due ? ` (확인일 ${due})` : ''}\n\n현실이 어떻게 답했나요? 하나 고른 뒤 Accept까지 진행하면 기록됩니다.\n아직 결과가 안 나왔으면 "아직 모르겠다"를 고르세요. 지금 답하기 어려우면 Decline.`
+          : `"${q}"${due ? ` (check-by ${due})` : ''}\n\nWhat did reality do? Pick one, then continue to Accept to record it.\nNo answer yet? Choose "Don't know yet". Bad moment? Decline.`, {
           type: 'object',
           properties: {
             outcome: {
@@ -138,13 +145,19 @@ export const settle: ToolModule = {
               // Accept inside the form, which is the defect this file already
               // carries a comment about. The honest thing is to SAY it is needed
               // and let the server refuse with the user's pick handed back.
+              // No newline in a DESCRIPTION. The `message` is a block the host
+              // lays out; a field description is a hint rendered beside or under
+              // one input, and hosts treat a `\n` there inconsistently — some
+              // collapse it, some print it literally. Seen while reading the
+              // real Codex wire, 2026-07-29: the second sentence fell outside
+              // the field's own indentation. Two sentences, one line.
               description: pickerLocale === 'ko'
                 ? (haveWhat
                   ? '무슨 일이 있었는지 당신의 말로 한 줄. 비우면 앞서 말씀하신 내용을 그대로 씁니다.'
-                  : '무슨 일이 있었는지 당신의 말로 한 줄. 결과를 남기려면 이 줄이 필요합니다.\n아직 모르겠으면 위에서 "아직 모르겠다"를 고르세요.')
+                  : '무슨 일이 있었는지 당신의 말로 한 줄. 결과를 남기려면 이 줄이 필요합니다. 아직 모르겠으면 위에서 "아직 모르겠다"를 고르세요.')
                 : (haveWhat
                   ? 'One line on what actually happened, in your words. Leave blank to keep what you already said.'
-                  : 'One line, in your words. A settled record needs it.\nNot sure yet? Choose "Don\'t know yet" above.'),
+                  : 'One line, in your words. A settled record needs it. Not sure yet? Choose "Don\'t know yet" above.'),
             },
           },
           // 필수 필드 없음 (2026-07-27, 창업자 도그푸딩 스크린샷).
@@ -433,8 +446,8 @@ async function deferStillPending(args: {
     const dq = sanitizeLine(current.predicate ?? id, 96);
     const asked = await elicitDetailed(
       locale === 'ko'
-        ? `"${dq}"\n\n아직 답이 안 나왔군요. 언제 다시 볼까요?\n→ 키로 고른 뒤, 아래 화살표로 수락 줄까지 내려가 선택하십시오. 지금 정하기 어려우면 Decline (확인일은 ${oldCheckBy} 그대로).`
-        : `"${dq}"\n\nNot answered yet. When should I look again?\nPick one with →, then press Enter twice to reach Accept. Decline to leave it (check-by stays ${oldCheckBy}).`,
+        ? `"${dq}"\n\n아직 답이 안 나왔군요. 언제 다시 볼까요?\n하나 고른 뒤 Accept까지 진행하세요. 지금 정하기 어려우면 Decline (확인일은 ${oldCheckBy} 그대로).`
+        : `"${dq}"\n\nNot answered yet. When should I look again?\nPick one, then continue to Accept. Decline to leave it (check-by stays ${oldCheckBy}).`,
       // 필수 필드 없음 — 같은 이유. 빈 채 Accept는 Decline과 같은 길로
       // 흐르고(newDate undefined → 아래 정직한 에러), 폼 안에서 막지 않는다.
       { type: 'object', properties: { when: {

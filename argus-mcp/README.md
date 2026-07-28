@@ -8,14 +8,15 @@ reality later did. It does not score people or give verdicts.
 ### Codex (CLI or app)
 
 ```bash
-codex mcp add argus-decision -- npm exec --yes --package=argus-decision-mcp@2.0.8 -- argus-decision-mcp
-codex mcp list
+codex mcp add argus-decision -- npx -y argus-decision-mcp@2.0.9
+codex mcp list        # argus-decision should be listed and enabled
 ```
 
-Argus uses standard MCP elicitation for one-tap confirmation. Codex can show
-that form when MCP elicitations are allowed. If your approval policy blocks
-them, Codex returns a protocol-level decline without a server-visible policy
-reason; enable MCP elicitations to use the form.
+Argus confirms a prediction with a one-tap form before saving it. Codex shows
+that form under its default approval policy. If yours is set to `never`, or
+`approval_policy.granular.mcp_elicitations = false`, Codex answers the form
+itself without showing it — Argus will tell you so and offer to save from chat
+instead, rather than pretend you declined.
 
 ### Claude Code
 
@@ -30,8 +31,8 @@ reason; enable MCP elicitations to use the form.
 {
   "mcpServers": {
     "argus-decision": {
-      "command": "npm",
-      "args": ["exec", "--yes", "--package=argus-decision-mcp@2.0.8", "--", "argus-decision-mcp"],
+      "command": "npx",
+      "args": ["-y", "argus-decision-mcp@2.0.9"],
       "env": {
         "ARGUS_DIR": "/absolute/path/to/your/project/.argus"
       }
@@ -40,8 +41,8 @@ reason; enable MCP elicitations to use the form.
 }
 ```
 
-Pin an exact version, not a range, so the host cannot silently reuse an older
-cached package.
+Pin an exact version, not a range: `npx` reuses a cached install for a range
+spec, so `@latest` or `@^2` can silently keep running a build from weeks ago.
 
 `ARGUS_DIR` is optional when the MCP host starts the server in the project
 directory. The default is `<current-project>/.argus`. A per-call absolute

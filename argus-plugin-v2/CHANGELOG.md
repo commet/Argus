@@ -1,5 +1,18 @@
 # Changelog
 
+## 3.0.9 - 2026-07-29
+
+- Wire moves to `argus-decision-mcp@2.0.9`. If your host answers Argus's confirm
+  dialog without showing it to you - a real Codex under `approval_policy =
+  "never"` does exactly this - Argus no longer tells you that you declined
+  something you never saw. It says nothing was recorded, notes your host may have
+  answered for you, and offers to save it from chat. A decline you actually made
+  is still yours.
+- The dialogs no longer describe one client's keyboard to every host.
+- `/argus:doctor` names the second cause of a text fallback (your approval policy
+  is blocking the picker), and stops silently skipping four numbered sections
+  when a workspace has no binding.
+
 ## 3.0.8 — 2026-07-29
 
 - Pins `argus-decision-mcp@2.0.8`.

@@ -401,9 +401,14 @@ async function opAdd(
   // decision "once the decision is sealed" was a false conditional (loop find).
   const sealedNow = state === 'sealed';
   const refRange = events.length > 0 ? `${echo[0].ref}${echo.length > 1 ? `–${echo[echo.length - 1].ref}` : ''}` : '';
+  // Its own line, not appended to the confirmation. Together they ran to 133
+  // characters in English — the confirmation of what was written, plus a second
+  // fact about future re-checks, arriving as one wall. Korean stayed under the
+  // limit only because Korean is denser, which is not a reason for the English
+  // reader to get a worse line.
   const monitoredNote = monitoredCount === 0 ? '' : ko
-    ? (sealedNow ? ` 그중 ${monitoredCount}건은 나중에 실제와 다시 대조해 확인합니다 (예측 저장됨).` : ` 예측을 저장하면 그중 ${monitoredCount}건을 나중에 실제와 다시 대조해 확인합니다.`)
-    : (sealedNow ? ` ${monitoredCount} will be re-checked against what actually happens (prediction saved).` : ` After saving a prediction, ${monitoredCount} will be re-checked against what actually happens.`);
+    ? (sealedNow ? `\n그중 ${monitoredCount}건은 나중에 실제와 다시 대조해 확인합니다 (예측 저장됨).` : `\n예측을 저장하면 그중 ${monitoredCount}건을 나중에 실제와 다시 대조해 확인합니다.`)
+    : (sealedNow ? `\n${monitoredCount} will be re-checked against what actually happens (prediction saved).` : `\nAfter saving a prediction, ${monitoredCount} will be re-checked against what actually happens.`);
   const oneLine = (s: string): string => {
     const t = s.replace(/\s+/g, ' ').trim();
     return t.length > 70 ? t.slice(0, 69) + '…' : t;
@@ -423,10 +428,15 @@ async function opAdd(
       : (events.length === 1
           ? (ko
               ? `방금 적어뒀습니다: '${oneLine(echo[0]?.text ?? '')}'. 잘못 적혔으면 그대로 말씀해 주세요. 바로잡은 내용도 기록에 남습니다.${monitoredNote}`
-              : `Noted: "${oneLine(echo[0]?.text ?? '')}". Fix anything wrong with argus_capture.${monitoredNote}`)
+              // The Korean here says "tell me and I'll fix it, and the correction
+              // stays on the record too". The English told the PERSON to call
+              // `argus_capture` — a tool name they cannot type — and dropped the
+              // reassurance entirely. `surface` is the line a human reads; the
+              // tool names belong in next_actions, which the model reads.
+              : `Noted: "${oneLine(echo[0]?.text ?? '')}". Say if it's wrong — your correction is recorded too.${monitoredNote}`)
           : (ko
               ? `전제 ${events.length}건을 기록했습니다 (${refRange}). 틀린 것이 있으면 말해 주세요. 바로잡은 내용도 기록에 남습니다.${monitoredNote}`
-              : `${events.length} premises recorded (${refRange}). Fix anything wrong with argus_capture; your correction stays on the record too.${monitoredNote}`));
+              : `${events.length} premises recorded (${refRange}). Say if it's wrong — your correction is recorded too.${monitoredNote}`));
 
   const noAnswerNote = noAnswerDraft
     ? (ko
@@ -543,8 +553,8 @@ async function opResolve(
     const qLocale = resolveResponseLocale(dir, premise.text);
     const got = await elicitDetailed(
       qLocale === 'ko'
-        ? `이 결정에 남겨둔 질문입니다: "${sanitizeLine(premise.text, 96)}". 지금은 어떻게 판단하시나요? 아래 칸에 당신의 말로 적은 뒤, 아래 화살표로 수락 줄까지 내려가 선택하십시오. (그대로 열어두려면 Decline.)`
-        : `Your open question on this decision: "${sanitizeLine(premise.text, 96)}". What is your call now, in your own words? Type it below, then press Enter twice to reach Accept. (Decline to leave it open.)`,
+        ? `이 결정에 남겨둔 질문입니다: "${sanitizeLine(premise.text, 96)}". 지금은 어떻게 판단하시나요? 아래 칸에 당신의 말로 적은 뒤 Accept까지 진행하세요. (그대로 열어두려면 Decline.)`
+        : `Your open question on this decision: "${sanitizeLine(premise.text, 96)}". What is your call now, in your own words? Type it below, then continue to Accept. (Decline to leave it open.)`,
       // 필수 필드 없음 — 빈 채 Accept는 아래 `if (!decision)`가 정직하게
       // 되묻는다. "아직 못 정했다"도 유효한 답이므로 폼이 막아선 안 된다.
       { type: 'object', properties: { decision: { type: 'string', title: qLocale === 'ko' ? '지금의 판단' : 'Your call now', description: qLocale === 'ko' ? '당신의 판단, 당신의 표현. (아직이면 비워두고 Accept)' : 'Your call, your words. (Leave blank and Accept if still undecided.)' } } },

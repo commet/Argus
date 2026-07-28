@@ -128,23 +128,34 @@ jobs:
           cd argus-mcp
           SURFACE_HAZARDS_SKIP_BUILD=1 node evals/surface-hazards.mjs
 
+      # 진짜 Codex를 설치해 진짜 승인 정책 두 개로 몬다. 정책이 화면을 안 띄우고
+      # 스스로 decline하는 경우(approval_policy="never" / granular
+      # .mcp_elicitations=false)를 하네스가 흉내내는 게 아니라 Codex가 직접
+      # 만들게 한다 — 자기가 만든 실패를 자기가 잡는 하네스는 하네스만 증명한다.
+      # codex가 없으면 이 스텝은 소리내어 건너뛴다(초록 위장 금지).
+      - name: Real Codex app-server (allowed / policy-blocked)
+        run: |
+          npm i -g @openai/codex@0.130.0-alpha.5
+          cd argus-mcp
+          CODEX_APP_SERVER_SKIP_BUILD=1 node evals/codex-app-server.mjs
+
+      # 설치 스모크가 실제 Claude Code lifecycle(마켓플레이스 추가 → 설치 →
+      # 인벤토리 → MCP 연결 → 비활성/활성/업데이트 → 제거)을 돌게 하려면 CLI가
+      # 있어야 한다. 없으면 스크립트가 소리내어 건너뛰므로 여기서 깔아둔다 —
+      # 안 그러면 게이트가 조용히 매니페스트 읽기 수준으로 퇴화한다.
+      - name: Claude Code CLI (for the plugin install lifecycle)
+        # --allow-scripts, and pinned. npm 11 blocks dependency install scripts,
+        # and Claude Code's native binary comes from its own postinstall — a
+        # plain `npm i -g` there leaves a `claude` that cannot run, the smoke
+        # skips loudly, and the lifecycle silently stops being tested. Same form
+        # the publish workflow already proved.
+        run: npm install -g --allow-scripts=@anthropic-ai/claude-code @anthropic-ai/claude-code@2.1.220
+        continue-on-error: true
+
       - name: Unreadable ledger refuses writes
         run: |
           cd argus-mcp
           UNREADABLE_SKIP_BUILD=1 node evals/unreadable-ledger.mjs
-
-      # install-smoke drives Claude Code's real plugin manager and MCP health
-      # check in an isolated config. Pin the host version whose form submit
-      # behavior is also read by claude-code-form.mjs; "latest" would make a
-      # host rollout silently change the meaning of this gate.
-      - name: Install tested Claude Code host
-        run: npm install -g @anthropic-ai/claude-code@2.1.220
-
-      # The Codex gate drives the actual app-server JSON-RPC bridge, not a
-      # Codex-shaped mock. Keep the host version explicit so a rollout changes
-      # this contract in a visible dependency update.
-      - name: Install tested Codex host
-        run: npm install -g @openai/codex@0.130.0-alpha.5
 
       # 상시 센서 (2026-07-27 창업자 지시 "eval을 꼼꼼하게 — 사고 나면 결국
       # 모델에게 시킬 텐데 센서가 없으면 못 찾는다"): 실서버를 stdio로 몰아

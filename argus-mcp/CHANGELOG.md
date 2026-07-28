@@ -1,5 +1,68 @@
 # Changelog
 
+## 2.0.9 - Codex answered the picker, and we called it the user's decline
+
+**Measured on a real `codex app-server`, five configurations, one build**
+
+| approval policy | does the request reach a screen? | what the user got |
+|---|---|---|
+| default | yes | saved |
+| `approval_policy = "never"` | **no** - Codex answers `decline` itself in ~330ms | `Not recorded.` |
+| `granular.mcp_elicitations = false` | **no** - same | `Not recorded.` |
+| allowed, a person declines | yes | `Not recorded.` |
+
+The bottom three look identical, and all were recorded as `choice: "declined"` -
+a decision credited to someone who, in two of those rows, was shown nothing and
+had no way to continue. Codex's protocol cannot separate them: the response is
+`action` + `content` + a `_meta` that arrives null.
+
+2.0.6 held that response time cannot disambiguate, because tests, accessibility
+automation, keyboard users, and a person who already knows their answer can all
+respond immediately. Every one of those is true - and they argue against
+CONCLUDING, not for reporting the policy-answered case as the user's act.
+
+So nothing concludes. A decline returning faster than a form can be read is not
+recorded and not attributed, and the text path is offered instead. The sentence
+holds under both readings: it leads with what is true either way (nothing was
+recorded) and makes the host explanation conditional, because telling someone
+who deliberately declined that "no answer came back" contradicts what they just
+did. A decline someone took time over is still theirs, and a self-test fails if
+attribution-refusal ever swallows one.
+
+**The README installed a version that does not exist**
+
+The install block pinned `argus-decision-mcp@2.0.0`, never published: following
+it produced `No matching version found` and no server - the front door for every
+hand-configured host, which is every Codex user. There were no Codex
+instructions either. Both fixed; `version-lockstep` now holds the pins in the
+docs to the same version as the manifests.
+
+**The pickers told every host to press Claude Code's keys**
+
+Four messages spelled out one client's keyboard ("arrow down to the accept row",
+"press Enter twice") inside a protocol message every host receives. Also a
+newline inside a field description, and English copy that told a PERSON to call
+`argus_capture`. Read on the real Codex wire, in both languages.
+
+**Gates**
+
+- `codex-app-server.mjs` drives two real Codex processes under two real approval
+  policies, so the blocked reality comes from Codex's own config rather than the
+  harness declining when it spots a keyword. It also finds a Codex installed by
+  npm; accepting only `codex.exe` meant it never ran on an ordinary install.
+- `picker-surfaces` asserts every field label and description is one line.
+- The standing yellow was the scenario, not the product: an empty ledger has no
+  user text to read a voice from and that scenario never set a locale. It now
+  asserts config is honoured with zero content, and a new one asserts the
+  opposite edge - the language must not be invented from the machine's locale.
+- `verify-published` markers are quote-agnostic and pre-checked against the build
+  just made; that pre-flight caught a marker of my own going stale hours later.
+- verify's failure line now prints the assertion rather than vitest's source
+  context. A gate that runs but cannot tell you what broke is the same disease as
+  a gate that is green without measuring.
+- Test fixtures were never removed: 386 directories per `vitest run`, 28,203 on
+  one machine.
+
 ## 2.0.8 — One install command across npm 10–12
 
 The immutable 2.0.7 tarball fixed POSIX executable mode, but its bundled README

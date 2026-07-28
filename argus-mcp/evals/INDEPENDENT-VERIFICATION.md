@@ -285,9 +285,22 @@ MCP 서버에 `_meta` 없는 `{action:"decline"}`만 돌려준다. MCP 표준에
 사용자의 명시적 거절이다. 서버가 받은 값만으로 정책 거절과 빠른 사람의 거절을
 구분할 방법은 없으며, 응답 시간은 그 증거가 될 수 없다.
 
-따라서 Argus는 속도와 무관하게 decline을 decline으로 보존한다. cancel·전송 오류·
-미지원은 별도 상태로 남긴다. 한 tool call은 elicitation을 한 번만 시도하고 끝나며,
-어떤 응답도 뒤의 다른 picker를 전역 차단하지 않는다.
+따라서 Argus는 **속도로 결론을 내지 않는다.** 다만 결론을 내지 않는 것과 "사용자가
+거절했다"고 보고하는 것은 다른 선택이다 (2.0.6은 후자였고, 2.0.7에서 바뀌었다).
+
+읽을 시간이 없었던 decline은 **귀속을 거부**한다 — `choice:"no_answer"`,
+`reason:"unattributable"`. 기록하지 않고, 누구의 결정이라고도 적지 않고, 텍스트
+경로를 제시한다. 근거: 정책 차단 Codex에서 `choice:"declined"`는 아무것도 보지
+못한 사람에게 결정을 씌우고 빠져나갈 길도 주지 않는다 (§1의 실측).
+
+시간을 들인 decline은 그대로 `declined`다. cancel·전송 오류·미지원은 각각 별도
+상태다. 한 tool call은 elicitation을 한 번만 시도하고 끝나며, **어떤 응답도 뒤의
+다른 picker를 전역 차단하지 않는다** (이 마지막 항목은 2.0.6과 2.0.7이 동일하게
+요구한다 — 두 트랙이 독립적으로 같은 결론에 도달했다).
+
+> **반증해 볼 지점:** 접근성 자동화나 키보드 사용자가 500ms 안에 **의도적으로**
+> 거절했을 때, 화면 문구가 그 사람이 방금 한 일을 부정하지 않는가? 문구는 두 해석
+> 모두에서 참이어야 한다. 아니라면 그렇게 보고하라.
 
 ```
 node evals/codex-app-server.mjs
@@ -297,9 +310,13 @@ node evals/codex-app-server.mjs
 - [ ] Accept 뒤 기록의 `predicate_owner`가 `user`인가?
 - [ ] `mcp_elicitations=false`에서 바깥 form 요청이 0건인가?
 - [ ] 그 정책의 원시 응답이 `_meta` 없는 bare decline인가?
-- [ ] Argus가 이를 시간으로 재해석하지 않고 `choice:"declined"`로 보존하는가?
+- [ ] Argus가 이를 `choice:"no_answer"`로 두고, **사용자의 거절이라고 적지 않는가?**
+- [ ] 그 화면이 사용자의 문장을 되돌려주고 텍스트 경로를 제시하는가?
+- [ ] 원장에 아무것도 안 쓰였는가? (안 보인 거절이 무언가를 옮기면 위반)
 - [ ] 정책 차단된 각 tool call이 내부 재시도 없이 한 번에 끝나는가?
 - [ ] 그 뒤 interactive thread의 picker가 다시 뜨고 Accept가 기록되는가?
+- [ ] **사람이 시간을 들여 누른 decline은 여전히 `declined`인가?** (귀속 거부가
+      정상 거절까지 삼키면 그것도 위반이다)
 
 Codex 설정에서 picker를 허용하려면 `approval_policy.granular.mcp_elicitations`
 가 `true`여야 한다. 관리형 정책이 이 값을 금지하면 서버가 우회할 수 없으며,
