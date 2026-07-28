@@ -6,7 +6,8 @@
  * contracts there are zero validated outcomes, so no accuracy/calibration figure
  * may render as if it were a proven track record. Honest "unproven yet" is a trust
  * asset; a faked track record is a trust bomb. (Metaculus/Manifold only show
- * calibration on RESOLVED questions — same principle.)
+ * calibration on RESOLVED questions — but Argus does not convert a person's
+ * records into a performance figure at any sample size.)
  *
  * This is the single enforceable invariant; surfaces (patterns card, DQ trend,
  * boss record) call `calibrationDisclosure()` and MUST NOT render an accuracy
@@ -15,6 +16,7 @@
 
 // A track record needs at least this many SETTLED outcomes before any accuracy/
 // Brier/calibration figure is meaningful. Below it: counts only + an honest banner.
+/** Retained only for the legacy third-return ceremony. It is not a score gate. */
 export const SETTLED_THRESHOLD = 3;
 
 export interface CalibrationCounts {
@@ -30,18 +32,11 @@ export interface CalibrationDisclosure {
 }
 
 export function calibrationDisclosure(counts: CalibrationCounts): CalibrationDisclosure {
-  const settled = Math.max(0, counts.settled | 0);
-  if (settled < SETTLED_THRESHOLD) {
-    return {
-      showStats: false,
-      banner:
-        settled === 0
-          ? 'No outcomes have settled yet — this is unproven, not a track record.'
-          : `Only ${settled} outcome${settled === 1 ? '' : 's'} settled so far — too few to be a track record yet (a figure appears at ${SETTLED_THRESHOLD}).`,
-      counts,
-    };
-  }
-  return { showStats: true, banner: null, counts };
+  return {
+    showStats: false,
+    banner: 'Answers stay with their individual records; Argus does not produce a performance statistic.',
+    counts,
+  };
 }
 
 /**
@@ -50,5 +45,7 @@ export function calibrationDisclosure(counts: CalibrationCounts): CalibrationDis
  * be rendered below the threshold even by accident.
  */
 export function gatedAccuracy(counts: CalibrationCounts, computeAccuracy: () => number): number | null {
-  return counts.settled >= SETTLED_THRESHOLD ? computeAccuracy() : null;
+  void counts;
+  void computeAccuracy;
+  return null;
 }

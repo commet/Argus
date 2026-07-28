@@ -109,11 +109,13 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/decision-ledger.js" record \
   --session "helm/<ISO date>" --quote "<계획의 해당 문장>" \
   --decision "<계획 한 줄 요약>" --type adopt --stakes high \
   --predicate "<확인 가능한 한 문장>" --falsified-if "<반대 신호 한 문장>" \
-  --check-by "<YYYY-MM-DD, 기본 +1w>"
+  --check-by "<YYYY-MM-DD, 기본 +1w>" \
+  --kind commitment --origin-utterance "<사용자가 승인한 계획 문장>" \
+  --review-condition-status not_asked --authorization-ref "plugin:preapprove:<id>:direct"
 ```
 
 - `--id`를 생략하면 CLI가 `sha256(session|quote).slice(0,8)`로 계산 — 모델이 해시를
-  손으로 만들 필요가 없다. `--check-by`를 생략하면 날짜 없는 밧줄이 된다.
+  손으로 만들 필요가 없다. 새 약속 기록은 `--check-by`를 생략하지 않는다.
 - **쓰기 검증**: 명령 성공 후 `/argus:predict --list`(또는 `status`)로 방금 봉인이
   잡히는지 확인. 실패했다면 다시 실행 — CLI는 append-only라 재실행이 안전하다.
 - `.argus/ledger/` 생성 시 `.argus/.gitignore`에 `ledger/` 줄이 있는지 확인하고

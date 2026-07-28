@@ -14,6 +14,7 @@ const path = require("path");
 const os = require("os");
 const crypto = require("crypto");
 const { execFile } = require("child_process");
+const { DECISION_KINDS, deriveDecisionKind } = require("./lib/judgment-foundation");
 
 const args = process.argv.slice(2);
 const cmd = args[0];
@@ -89,7 +90,7 @@ function ensureLedgerIgnored() {
 // fallback writer would mean two write paths again — the exact drift O2 kills.
 const LOCK_TRIES = 120; // ~3s worst case (25ms steps)
 const LOCK_WAIT_MS = 25;
-const LOCK_STALE_MS = 5000; // a crash leftover is stolen after this
+const LOCK_HELD_TOO_LONG_MS = 10 * 60_000;
 
 function sleepSync(ms) {
   try {
@@ -100,29 +101,78 @@ function sleepSync(ms) {
   }
 }
 
+function pidAlive(pid) {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch (error) {
+    return error && error.code === "EPERM";
+  }
+}
+
+function lockStealable(lockPath) {
+  try {
+    let body = null;
+    try { body = JSON.parse(fs.readFileSync(lockPath, "utf8")); } catch { /* legacy/torn lock */ }
+    if (body && typeof body === "object") {
+      const started = typeof body.started_at === "string" ? Date.parse(body.started_at) : NaN;
+      if (Number.isFinite(started) && Date.now() - started > LOCK_HELD_TOO_LONG_MS) return true;
+      if (typeof body.pid === "number") return !pidAlive(body.pid);
+    }
+    return Date.now() - fs.statSync(lockPath).mtimeMs > LOCK_HELD_TOO_LONG_MS;
+  } catch {
+    return true;
+  }
+}
+
 function withFileLockSync(file, fn) {
   const lockPath = `${file}.lock`;
+  const nonce = crypto.randomUUID();
+  const body = JSON.stringify({ nonce, pid: process.pid, started_at: new Date().toISOString() });
+  const tmp = `${lockPath}.${nonce}.tmp`;
   let acquired = false;
   for (let i = 0; i < LOCK_TRIES && !acquired; i++) {
     try {
-      const fd = fs.openSync(lockPath, fs.constants.O_CREAT | fs.constants.O_EXCL | fs.constants.O_WRONLY);
-      fs.writeSync(fd, String(process.pid), null, "utf8");
-      fs.closeSync(fd);
+      fs.writeFileSync(tmp, body, "utf8");
+      fs.linkSync(tmp, lockPath);
       acquired = true;
-    } catch {
-      try {
-        const st = fs.statSync(lockPath);
-        if (Date.now() - st.mtimeMs > LOCK_STALE_MS) { fs.unlinkSync(lockPath); continue; }
-      } catch { continue; } // lock vanished between attempts — retry immediately
-      sleepSync(LOCK_WAIT_MS);
+    } catch (error) {
+      if (error && error.code !== "EEXIST") {
+        try {
+          const fd = fs.openSync(lockPath, fs.constants.O_CREAT | fs.constants.O_EXCL | fs.constants.O_WRONLY);
+          fs.writeSync(fd, body, null, "utf8");
+          fs.closeSync(fd);
+          acquired = true;
+        } catch { /* another writer holds the lock */ }
+      }
+      if (!acquired) {
+        if (lockStealable(lockPath)) {
+          try {
+            const grave = `${lockPath}.stale-${nonce}`;
+            fs.renameSync(lockPath, grave);
+            fs.unlinkSync(grave);
+          } catch { /* another contender won the steal */ }
+          continue;
+        }
+        sleepSync(LOCK_WAIT_MS);
+      }
+    } finally {
+      try { fs.unlinkSync(tmp); } catch { /* linked or never created */ }
     }
   }
-  // Lock or no lock, the work proceeds (availability over strictness — same
-  // contract as the canonical writer: a stuck lock must never brick a seal).
+  if (!acquired) {
+    throw new Error(`ARGUS_LEDGER_BUSY: could not acquire ${lockPath}; nothing was written`);
+  }
+  // The nonce prevents this process from deleting a later holder's lock.
   try {
     return fn();
   } finally {
-    if (acquired) { try { fs.unlinkSync(lockPath); } catch { /* already gone */ } }
+    if (acquired) {
+      try {
+        const current = JSON.parse(fs.readFileSync(lockPath, "utf8"));
+        if (current.nonce === nonce) fs.unlinkSync(lockPath);
+      } catch { /* gone, malformed, or no longer ours */ }
+    }
   }
 }
 
@@ -146,23 +196,37 @@ function needsLeadingNewline(file) {
   }
 }
 
-function appendJsonlLine(file, obj) {
+function appendJsonlBatch(file, objects) {
   return withFileLockSync(file, () => {
-    const line = (needsLeadingNewline(file) ? "\n" : "") + JSON.stringify(obj) + "\n";
+    const isFirstCreate = !fs.existsSync(file);
+    const body = objects.map((object) => JSON.stringify(object)).join("\n") + "\n";
+    const lines = (needsLeadingNewline(file) ? "\n" : "") + body;
     let fd;
     try {
       fd = fs.openSync(file, fs.constants.O_APPEND | fs.constants.O_CREAT | fs.constants.O_WRONLY);
-      fs.writeSync(fd, line, null, "utf8");
+      fs.writeSync(fd, lines, null, "utf8");
       // The ledger is the product's only durable asset — fsync is what stands
       // between a power loss and a lost settlement.
-      try { fs.fsyncSync(fd); } catch { /* fsync unsupported on this fs — the write landed */ }
+      try {
+        fs.fsyncSync(fd);
+      } catch (error) {
+        if (!["EINVAL", "ENOTSUP", "EOPNOTSUPP"].includes(error && error.code)) throw error;
+      }
     } finally {
       if (fd !== undefined) fs.closeSync(fd);
+    }
+    if (isFirstCreate) {
+      let dirFd;
+      try {
+        dirFd = fs.openSync(path.dirname(file), fs.constants.O_RDONLY);
+        fs.fsyncSync(dirFd);
+      } catch { /* directory fsync is unsupported on Windows and some filesystems */ }
+      finally { if (dirFd !== undefined) fs.closeSync(dirFd); }
     }
   });
 }
 
-function appendEvent(event) {
+function appendEvents(events) {
   ensureLedgerIgnored();
   fs.mkdirSync(ledgerDir(), { recursive: true });
   // v + ts: the ledger file is SHARED with argus-decision-mcp, whose replay
@@ -171,7 +235,14 @@ function appendEvent(event) {
   // corruption alarm on the MCP side and lost its settled date (O2 방1
   // findings ①⑤). `at` stays for existing plugin readers; same instant.
   const now = new Date().toISOString();
-  appendJsonlLine(ledgerFile(), { v: 1, ...event, ts: now, at: now });
+  appendJsonlBatch(
+    ledgerFile(),
+    events.map((event) => ({ v: 1, ...event, ts: now, at: now })),
+  );
+}
+
+function appendEvent(event) {
+  appendEvents([event]);
 }
 
 function itemsFile() {
@@ -201,7 +272,7 @@ function appendItem(event) {
   // the same durability discipline — a torn tail eating a premise alert would
   // be the same silent loss, just in a different file.
   const now = new Date().toISOString();
-  appendJsonlLine(itemsFile(), { v: 1, ...event, ts: now, at: now });
+  appendJsonlBatch(itemsFile(), [{ v: 1, ...event, ts: now, at: now }]);
 }
 
 function loadLedger() {
@@ -248,6 +319,13 @@ function loadLedger() {
             falsified_if: event.falsified_if,
             check_by: event.check_by,
             author: event.author,
+            kind: event.kind || "prediction",
+            kind_evidence: event.kind_evidence,
+            origin_utterance: event.origin_utterance || event.predicate,
+            review_condition_status: event.review_condition_status || "not_asked",
+            review_condition: event.review_condition,
+            return_event: event.return_event,
+            adoption_lineage: event.adoption_lineage,
           });
         }
         break;
@@ -280,6 +358,42 @@ function loadLedger() {
           cur.settled_at = event.at;
           cur.settle_note = event.note;
           cur.basis = event.basis;
+          (cur.settlements ||= []).push({
+            option_id: event.option_id || event.outcome,
+            response_text: event.response_text || event.note || event.outcome,
+            recorded_at: event.at,
+            axes: event.axes,
+            present_standard: event.present_standard,
+            observation_source_kind: event.observation_source_kind || "user_report",
+          });
+        }
+        break;
+      case "kind_correction":
+        if (cur) {
+          (cur.kind_corrections ||= []).push({
+            from_kind: cur.kind || "prediction",
+            to_kind: event.kind,
+            reason: event.reason,
+            at: event.at,
+          });
+          cur.kind = event.kind;
+          if (event.kind === "witness") {
+            cur.check_by = undefined;
+            cur.return_event = undefined;
+          } else if (event.check_by) {
+            cur.check_by = event.check_by;
+          }
+        }
+        break;
+      case "statement_revision":
+        if (cur) {
+          (cur.statement_revisions ||= []).push({
+            from_statement: cur.current_statement || cur.predicate || cur.origin_utterance,
+            to_statement: event.statement,
+            reason: event.reason,
+            at: event.at,
+          });
+          cur.current_statement = event.statement;
         }
         break;
       case "wake":
@@ -323,6 +437,45 @@ function localToday(offsetDays = 0) {
 function addDaysISO(todayISO, days) {
   const parts = todayISO.split("-").map(Number);
   return new Date(Date.UTC(parts[0], parts[1] - 1, parts[2]) + days * 86400000).toISOString().slice(0, 10);
+}
+
+function foundationFields(statement, kindInfo) {
+  const status = flags["review-condition-status"]
+    ? String(flags["review-condition-status"])
+    : flags["review-condition"] ? "answered" : "not_asked";
+  if (!["answered", "skipped", "not_asked"].includes(status)) {
+    console.error("--review-condition-status must be answered|skipped|not_asked");
+    process.exit(1);
+  }
+  const event = {
+    kind: kindInfo.kind,
+    kind_evidence: {
+      source: flags.kind ? "elicitation_answer" : "wording_rule",
+      rule: kindInfo.rule,
+      answer: flags.kind ? String(flags.kind) : kindInfo.kind,
+      recorded_at: new Date().toISOString(),
+    },
+    origin_utterance: flags["origin-utterance"] ? String(flags["origin-utterance"]) : statement,
+    review_condition_status: status,
+  };
+  if (flags["review-condition"]) event.review_condition = String(flags["review-condition"]);
+  if (flags["return-event"] && kindInfo.kind !== "witness") event.return_event = String(flags["return-event"]);
+  if (flags["proposal-ref"]) {
+    const adoptedAs = String(flags["adopted-as"] || "wording");
+    if (!["basis", "check", "wording"].includes(adoptedAs)) {
+      console.error("--adopted-as must be basis|check|wording.");
+      process.exit(1);
+    }
+    event.adoption_lineage = [{
+      source_proposal_ref: String(flags["proposal-ref"]),
+      adopted_as: adoptedAs,
+    }];
+  } else if (flags["adopted-as"]) {
+    console.error("--adopted-as requires --proposal-ref.");
+    process.exit(1);
+  }
+  if (flags["authorization-ref"]) event.authorization_ref = String(flags["authorization-ref"]);
+  return event;
 }
 
 function stableId(sessionId, quote) {
@@ -758,6 +911,33 @@ function cmdList(status = flags.status || "candidate") {
   }
 }
 
+function cmdJournal() {
+  const records = [...loadLedger().values()]
+    .filter((item) => item.status !== "candidate" && item.status !== "dismissed")
+    .sort((a, b) => String(b.settled_at || b.sealed_at || "").localeCompare(String(a.settled_at || a.sealed_at || "")));
+  if (!records.length) {
+    console.log("No saved records yet.");
+    console.log("Use /argus:predict when a thought is worth returning to.");
+    return;
+  }
+  console.log(`Records: ${records.length}`);
+  for (const item of records) {
+    const statement = item.current_statement || item.predicate || item.origin_utterance || item.decision;
+    console.log("");
+    console.log(`${item.id} [${item.kind || "prediction"}] ${truncate(statement, 140)}`);
+    console.log(`  recorded: ${String(item.sealed_at || "").slice(0, 10) || "unknown"}`);
+    if (item.review_condition) console.log(`  return when: ${truncate(item.review_condition, 120)}`);
+    if (item.return_event) console.log(`  earlier event: ${truncate(item.return_event, 120)}`);
+    else if (item.check_by && item.kind !== "witness") console.log(`  fallback date: ${item.check_by}`);
+    for (const revision of item.statement_revisions || []) {
+      console.log(`  revised ${String(revision.at || "").slice(0, 10)}: ${truncate(revision.to_statement, 120)}`);
+    }
+    for (const settlement of item.settlements || []) {
+      console.log(`  returned ${String(settlement.recorded_at || "").slice(0, 10)}: ${truncate(settlement.response_text, 120)}`);
+    }
+  }
+}
+
 function printSealable() {
   const { candidates, seeds } = listSealable();
   if (!candidates.length && !seeds.length) {
@@ -799,32 +979,49 @@ async function cmdSeal() {
 
   const seed = findSeedById(target);
   if (seed) {
+    const statement = String(flags.predicate || seed.predicate);
     const checkBy = flags["check-by"] || seed.check_by;
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(String(checkBy || ""))) {
+    const kindInfo = deriveDecisionKind(statement, flags.kind, flags.kind === "witness", !!checkBy);
+    if (!flags.confirmed || !flags["authorization-ref"]) {
+      console.log("Draft only — nothing was recorded.");
+      console.log(`  statement: ${truncate(statement, 140)}`);
+      console.log(`  kind: ${kindInfo.kind}`);
+      if (kindInfo.kind !== "witness") console.log(`  check_by: ${checkBy || "missing"}`);
+      console.log(`Confirm with the user, then rerun with --confirmed --authorization-ref <host-ref> --kind ${kindInfo.kind}.`);
+      return;
+    }
+    if (kindInfo.kind !== "witness" && !/^\d{4}-\d{2}-\d{2}$/.test(String(checkBy || ""))) {
       console.error(`Seed ${seed.id} has no ISO check_by date. Run /argus:check ${seed.id} --check-by YYYY-MM-DD`);
       process.exit(1);
     }
-    appendEvent({
-      event: "harvest",
-      id: seed.id,
-      project: path.basename(root),
-      session: seed.session,
-      decided_at: seed.generated_at,
-      quote: seed.predicate,
-      decision: seed.decision,
-      type: "adopt",
-      stakes: seed.stakes,
-    });
-    appendEvent({
-      event: "seal",
-      id: seed.id,
-      predicate: flags.predicate || seed.predicate,
-      falsified_if: flags["falsified-if"] || seed.falsified_if,
-      check_by: checkBy,
-    });
+    appendEvents([
+      {
+        event: "harvest",
+        id: seed.id,
+        project: path.basename(root),
+        session: seed.session,
+        decided_at: seed.generated_at,
+        quote: seed.predicate,
+        decision: seed.decision,
+        type: "adopt",
+        stakes: seed.stakes,
+      },
+      {
+        event: "seal",
+        id: seed.id,
+        predicate: statement,
+        ...(kindInfo.kind === "witness" ? {} : {
+          falsified_if: flags["falsified-if"] || seed.falsified_if,
+          check_by: checkBy,
+        }),
+        author: "user",
+        ...foundationFields(statement, kindInfo),
+      },
+    ]);
     console.log(`Sealed ${seed.id}`);
-    console.log(`  predicate: ${truncate(flags.predicate || seed.predicate, 140)}`);
-    console.log(`  check_by: ${checkBy}`);
+    console.log(`  statement: ${truncate(statement, 140)}`);
+    console.log(`  kind: ${kindInfo.kind}`);
+    if (kindInfo.kind !== "witness") console.log(`  check_by: ${checkBy}`);
     return;
   }
 
@@ -845,7 +1042,7 @@ async function cmdSeal() {
     falsified_if: flags["falsified-if"],
     check_by: flags["check-by"],
   };
-  if (!draft.predicate || !draft.falsified_if || !draft.check_by) {
+  if (!draft.predicate || (flags.kind !== "witness" && (!draft.falsified_if || !draft.check_by))) {
     console.log(`Drafting a checkable contract for ${target}...`);
     const generated = await draftSeal(decision, { model: flags.model || "sonnet" });
     draft = {
@@ -854,7 +1051,19 @@ async function cmdSeal() {
       check_by: draft.check_by || generated.check_by,
     };
   }
-  if (!draft.predicate || !draft.falsified_if || !/^\d{4}-\d{2}-\d{2}$/.test(draft.check_by || "")) {
+  const kindInfo = deriveDecisionKind(draft.predicate, flags.kind, flags.kind === "witness", !!draft.check_by);
+  if (!flags.confirmed || !flags["authorization-ref"]) {
+    console.log("Draft only — nothing was recorded.");
+    console.log(`  statement: ${truncate(draft.predicate, 140)}`);
+    console.log(`  kind: ${kindInfo.kind}`);
+    if (kindInfo.kind !== "witness") {
+      console.log(`  falsified_if: ${truncate(draft.falsified_if, 140)}`);
+      console.log(`  check_by: ${draft.check_by}`);
+    }
+    console.log(`Confirm with the user, then rerun with explicit fields, --confirmed --authorization-ref <host-ref> --kind ${kindInfo.kind}.`);
+    return;
+  }
+  if (!draft.predicate || (kindInfo.kind !== "witness" && (!draft.falsified_if || !/^\d{4}-\d{2}-\d{2}$/.test(draft.check_by || "")))) {
     console.error("Seal needs predicate, falsified_if, and ISO check_by.");
     console.error(`Run /argus:check ${target} --predicate "..." --falsified-if "..." --check-by ${addDaysISO(localToday(), 14)}`);
     process.exit(1);
@@ -863,13 +1072,17 @@ async function cmdSeal() {
     event: "seal",
     id: target,
     predicate: draft.predicate,
-    falsified_if: draft.falsified_if,
-    check_by: draft.check_by,
-    author: flags.author,
+    ...(kindInfo.kind === "witness" ? {} : {
+      falsified_if: draft.falsified_if,
+      check_by: draft.check_by,
+    }),
+    author: "user",
+    ...foundationFields(draft.predicate, kindInfo),
   });
   console.log(`Sealed ${target}`);
-  console.log(`  predicate: ${truncate(draft.predicate, 140)}`);
-  console.log(`  check_by: ${draft.check_by}`);
+  console.log(`  statement: ${truncate(draft.predicate, 140)}`);
+  console.log(`  kind: ${kindInfo.kind}`);
+  if (kindInfo.kind !== "witness") console.log(`  check_by: ${draft.check_by}`);
 }
 
 function cmdStatus() {
@@ -888,35 +1101,134 @@ function cmdStatus() {
 // stamps `at`. Reality answers; Argus never grades — so no score is recorded.
 function cmdSettle() {
   const id = flags._[0];
-  // Canonical outcome vocabulary is the MCP's (plain canon, §9.7): held /
-  // avoided / partial / missed. `happened` (this CLI's legacy spelling of
-  // `held`) stays ACCEPTED as input but is normalized at write time, so new
-  // ledger lines speak one vocabulary while old lines keep their bytes (the
-  // MCP replay aliases `happened`→held on read for those — O2 방1 finding ④).
-  const raw = String(flags.outcome || "");
-  const outcome = raw === "happened" ? "held" : raw;
-  const OUTCOMES = ["held", "avoided", "partial", "missed"];
-  const BASES = ["reasoned", "luck", "external", "mixed"];
   if (!id) {
-    console.error('Usage: decision-ledger.js settle <id> --outcome held|avoided|partial|missed [--basis reasoned|luck|external|mixed] [--note "<one sentence>"]');
+    console.error('Usage: decision-ledger.js settle <id> --option <id> --response "<user-selected label>" --question-validity valid|narrowed|reframed|moot|indeterminate [--reality met|not_met|partial|unknown|not_observable] [--commitment enacted|maintained|revised|withdrawn|superseded] --present-standard same|changed|withdrawn|skipped --present-standard-response "<selected label>" --authorization-ref <host-ref>');
     process.exit(1);
   }
-  if (!OUTCOMES.includes(outcome)) {
-    console.error(`--outcome must be one of ${OUTCOMES.join("|")} (legacy alias: happened=held)`);
+  if (!flags["authorization-ref"]) {
+    console.error("--authorization-ref is required; only the user's answer can settle a record.");
     process.exit(1);
   }
-  const event = { event: "settle", id, outcome };
-  if (flags.basis) {
-    const basis = String(flags.basis);
-    if (!BASES.includes(basis)) {
-      console.error(`--basis must be one of ${BASES.join("|")}`);
+
+  // Historic calls remain readable, but all new skill writes use the three
+  // independent axes below. They are never collapsed into a score or record.
+  const rawOutcome = String(flags.outcome || "");
+  const presentStandard = flags["present-standard"] ? String(flags["present-standard"]) : "";
+  const presentStandardResponse = flags["present-standard-response"]
+    ? String(flags["present-standard-response"])
+    : "";
+  const observationSourceKind = String(flags["observation-source-kind"] || "user_report");
+  if (!["same", "changed", "withdrawn", "skipped"].includes(presentStandard)) {
+    console.error("--present-standard must be same|changed|withdrawn|skipped.");
+    process.exit(1);
+  }
+  if (!presentStandardResponse) {
+    console.error("--present-standard-response is required and must be the selected label verbatim.");
+    process.exit(1);
+  }
+  if (!["user_report", "system_receipt", "ai_analysis"].includes(observationSourceKind)) {
+    console.error("--observation-source-kind must be user_report|system_receipt|ai_analysis.");
+    process.exit(1);
+  }
+  if (rawOutcome) {
+    const current = loadLedger().get(id);
+    if (current?.kind_evidence) {
+      console.error("--outcome is read-compatibility only. New records require --option, independent axes, and --present-standard.");
       process.exit(1);
     }
-    event.basis = basis;
+    const outcome = rawOutcome === "happened" ? "held" : rawOutcome;
+    const OUTCOMES = ["held", "avoided", "partial", "missed"];
+    if (!OUTCOMES.includes(outcome)) {
+      console.error(`--outcome must be one of ${OUTCOMES.join("|")} (legacy alias: happened=held)`);
+      process.exit(1);
+    }
+    const event = {
+      event: "settle",
+      id,
+      outcome,
+      option_id: `legacy_${outcome}`,
+      response_text: flags.note ? String(flags.note) : outcome,
+      axes: {
+        reality: outcome === "held" ? "met" : outcome === "avoided" ? "not_met" : outcome === "partial" ? "partial" : "unknown",
+        ...(presentStandard === "same"
+          ? { commitment: "maintained" }
+          : presentStandard === "changed"
+            ? { commitment: "revised" }
+            : presentStandard === "withdrawn"
+              ? { commitment: "withdrawn" }
+              : {}),
+        question: "valid",
+      },
+      present_standard: {
+        status: presentStandard,
+        response_text: presentStandardResponse,
+        recorded_at: new Date().toISOString(),
+      },
+      observation_source_kind: observationSourceKind,
+      authorization_ref: String(flags["authorization-ref"]),
+    };
+    if (flags.note) event.note = String(flags.note);
+    appendEvent(event);
+    console.log(`Return recorded for ${id}.`);
+    return;
   }
-  if (flags.note) event.note = String(flags.note);
+
+  const optionId = flags.option ? String(flags.option) : "";
+  const responseText = flags.response ? String(flags.response) : "";
+  const question = flags["question-validity"] ? String(flags["question-validity"]) : "";
+  const reality = flags.reality ? String(flags.reality) : undefined;
+  const commitment = flags.commitment ? String(flags.commitment) : undefined;
+  if (!optionId || !responseText) {
+    console.error("--option and --response are required for a foundation return.");
+    process.exit(1);
+  }
+  if (!["valid", "narrowed", "reframed", "moot", "indeterminate"].includes(question)) {
+    console.error("--question-validity must be valid|narrowed|reframed|moot|indeterminate.");
+    process.exit(1);
+  }
+  if (reality && !["met", "not_met", "partial", "unknown", "not_observable"].includes(reality)) {
+    console.error("--reality must be met|not_met|partial|unknown|not_observable.");
+    process.exit(1);
+  }
+  if (commitment && !["enacted", "maintained", "revised", "withdrawn", "superseded"].includes(commitment)) {
+    console.error("--commitment must be enacted|maintained|revised|withdrawn|superseded.");
+    process.exit(1);
+  }
+  if (!reality && !commitment) {
+    console.error("At least one of --reality or --commitment is required.");
+    process.exit(1);
+  }
+  // The selected first answer stays canonical in response_text. When the user
+  // also answers the present-standard follow-up, that answer becomes the
+  // authorial projection of axis ②. An explicit skip leaves the first-choice
+  // commitment mapping in place.
+  const projectedCommitment = presentStandard === "same"
+    ? "maintained"
+    : presentStandard === "changed"
+      ? "revised"
+      : presentStandard === "withdrawn"
+        ? "withdrawn"
+        : commitment;
+  const event = {
+    event: "settle",
+    id,
+    option_id: optionId,
+    response_text: responseText,
+    axes: {
+      ...(reality ? { reality } : {}),
+      ...(projectedCommitment ? { commitment: projectedCommitment } : {}),
+      question,
+    },
+    present_standard: {
+      status: presentStandard,
+      response_text: presentStandardResponse,
+      recorded_at: new Date().toISOString(),
+    },
+    observation_source_kind: observationSourceKind,
+    authorization_ref: String(flags["authorization-ref"]),
+  };
   appendEvent(event);
-  console.log(`Settled ${id}: ${outcome}${event.basis ? ` (${event.basis})` : ""}`);
+  console.log(`Return recorded for ${id}.`);
 }
 
 // Single-source writer for a BRAND-NEW predicate (harvest + seal in one atomic
@@ -937,12 +1249,29 @@ function cmdRecord() {
   let id = flags.id ? String(flags.id) : "";
   if (!id && session && quote) id = stableId(session, quote);
   if (!id || !predicate) {
-    console.error('Usage: decision-ledger.js record --predicate "<one checkable sentence>" (--id <id> | --session <sess> [--quote "..."]) [--check-by YYYY-MM-DD] [--decision "..."] [--falsified-if "..."] [--type adopt|open|...] [--stakes high|medium|low] [--author user] [--project <name>] [--decided-at <ISO>]');
+    console.error('Usage: decision-ledger.js record --predicate "<one checkable sentence>" (--id <id> | --session <sess> [--quote "..."]) [--check-by YYYY-MM-DD] [--decision "..."] [--falsified-if "..."] [--type adopt|open|...] [--stakes high|medium|low] [--author user] [--project <name>] [--decided-at <ISO>] --authorization-ref <host-ref>');
+    process.exit(1);
+  }
+  if (!flags["authorization-ref"]) {
+    console.error("--authorization-ref is required; direct records need a user command or confirmation receipt.");
     process.exit(1);
   }
   const checkBy = flags["check-by"] ? String(flags["check-by"]) : undefined;
+  const kindInfo = deriveDecisionKind(predicate, flags.kind, flags.kind === "witness", !!checkBy);
   if (checkBy && !/^\d{4}-\d{2}-\d{2}$/.test(checkBy)) {
     console.error("--check-by must be an ISO date (YYYY-MM-DD) or omitted.");
+    process.exit(1);
+  }
+  if (kindInfo.kind !== "witness" && !checkBy) {
+    console.error("--check-by YYYY-MM-DD is required unless --kind witness is used.");
+    process.exit(1);
+  }
+  if (flags.author === "ai_surfaced" && (!flags.confirmed || !flags["authorization-ref"])) {
+    console.log("Draft only — nothing was recorded. Confirm with the user, then rerun with --confirmed --authorization-ref <host-ref>.");
+    return;
+  }
+  if (flags.author === "ai_surfaced" && !flags["proposal-ref"]) {
+    console.error("--proposal-ref is required when the sealed wording began as an AI proposal.");
     process.exit(1);
   }
   const harvest = {
@@ -956,19 +1285,21 @@ function cmdRecord() {
     type: flags.type ? String(flags.type) : "adopt",
   };
   if (flags.stakes) harvest.stakes = String(flags.stakes);
-  appendEvent(harvest);
   const seal = {
     event: "seal",
     id,
     predicate,
-    falsified_if: flags["falsified-if"] ? String(flags["falsified-if"]) : "opposite observed",
+    ...(kindInfo.kind === "witness" ? {} : {
+      falsified_if: flags["falsified-if"] ? String(flags["falsified-if"]) : "opposite observed",
+      check_by: checkBy,
+    }),
+    author: "user",
+    ...foundationFields(predicate, kindInfo),
   };
-  if (checkBy) seal.check_by = checkBy;
-  if (flags.author) seal.author = String(flags.author);
-  appendEvent(seal);
-  console.log(`Recorded ${id}${seal.author ? ` (author: ${seal.author})` : ""}`);
-  console.log(`  predicate: ${truncate(predicate, 140)}`);
-  console.log(`  check_by: ${checkBy || "none"}`);
+  appendEvents([harvest, seal]);
+  console.log(`Recorded ${id} (kind: ${kindInfo.kind})`);
+  console.log(`  statement: ${truncate(predicate, 140)}`);
+  if (kindInfo.kind !== "witness") console.log(`  check_by: ${checkBy}`);
 }
 
 // Single-source writer for the amend event (push a due contract's date, or fix a
@@ -977,26 +1308,96 @@ function cmdRecord() {
 function cmdAmend() {
   const id = flags._[0];
   const checkBy = flags["check-by"] ? String(flags["check-by"]) : undefined;
-  const predicate = flags.predicate ? String(flags.predicate) : undefined;
-  const falsifiedIf = flags["falsified-if"] ? String(flags["falsified-if"]) : undefined;
   if (!id) {
-    console.error('Usage: decision-ledger.js amend <id> [--check-by YYYY-MM-DD] [--predicate "..."] [--falsified-if "..."]');
+    console.error('Usage: decision-ledger.js amend <id> --check-by YYYY-MM-DD --authorization-ref <host-ref>');
     process.exit(1);
   }
-  if (!checkBy && !predicate && !falsifiedIf) {
-    console.error("amend needs at least one of --check-by / --predicate / --falsified-if.");
+  if (!checkBy) {
+    console.error("amend only changes the future return date; --check-by is required. Sealed wording is append-only.");
+    process.exit(1);
+  }
+  if (!flags["authorization-ref"]) {
+    console.error("--authorization-ref is required; only the user can change a promised return date.");
     process.exit(1);
   }
   if (checkBy && !/^\d{4}-\d{2}-\d{2}$/.test(checkBy)) {
     console.error("--check-by must be an ISO date (YYYY-MM-DD).");
     process.exit(1);
   }
-  const event = { event: "amend", id };
-  if (checkBy) event.check_by = checkBy;
-  if (predicate) event.predicate = predicate;
-  if (falsifiedIf) event.falsified_if = falsifiedIf;
-  appendEvent(event);
+  appendEvent({
+    event: "amend",
+    id,
+    check_by: checkBy,
+    authorization_ref: String(flags["authorization-ref"]),
+  });
   console.log(`Amended ${id}${checkBy ? ` → check_by ${checkBy}` : ""}`);
+}
+
+function cmdCorrectKind() {
+  const id = flags.id ? String(flags.id) : String(flags._[0] || "");
+  const kind = flags.kind ? String(flags.kind) : "";
+  if (!id || !DECISION_KINDS.includes(kind)) {
+    console.error("Usage: decision-ledger.js correct-kind --id <id> --kind <prediction|commitment|declaration|witness> --authorization-ref <ref>");
+    process.exit(1);
+  }
+  if (!flags["authorization-ref"]) {
+    console.error("--authorization-ref is required; only the user can correct a sealed kind.");
+    process.exit(1);
+  }
+  const cur = loadLedger().get(id);
+  if (!cur || !["sealed", "settled"].includes(cur.status)) {
+    console.error(`No sealed record found for ${id}.`);
+    process.exit(1);
+  }
+  if ((cur.kind || "prediction") === kind) {
+    console.log(`${id} already has kind ${kind}; nothing written.`);
+    return;
+  }
+  const checkBy = flags["check-by"] ? String(flags["check-by"]) : "";
+  if ((cur.kind || "prediction") === "witness" && kind !== "witness" && !/^\d{4}-\d{2}-\d{2}$/.test(checkBy)) {
+    console.error("--check-by YYYY-MM-DD is required when a witness becomes a returnable record.");
+    process.exit(1);
+  }
+  appendEvent({
+    event: "kind_correction",
+    id,
+    kind,
+    reason: flags.reason ? String(flags.reason) : undefined,
+    ...(checkBy ? { check_by: checkBy } : {}),
+    authorization_ref: String(flags["authorization-ref"]),
+  });
+  console.log(`Corrected ${id}: ${cur.kind || "prediction"} -> ${kind}. Earlier kind preserved in history.`);
+}
+
+function cmdRevise() {
+  const id = flags.id ? String(flags.id) : String(flags._[0] || "");
+  const statement = flags.statement ? String(flags.statement).trim() : "";
+  if (!id || !statement) {
+    console.error('Usage: decision-ledger.js revise --id <id> --statement "<current wording>" --authorization-ref <ref>');
+    process.exit(1);
+  }
+  if (!flags["authorization-ref"]) {
+    console.error("--authorization-ref is required; only the user can revise a sealed statement.");
+    process.exit(1);
+  }
+  const cur = loadLedger().get(id);
+  if (!cur || !["sealed", "settled"].includes(cur.status)) {
+    console.error(`No sealed record found for ${id}.`);
+    process.exit(1);
+  }
+  const previous = cur.current_statement || cur.predicate || cur.origin_utterance || "";
+  if (previous.trim() === statement) {
+    console.log(`${id} already has that wording; nothing written.`);
+    return;
+  }
+  appendEvent({
+    event: "statement_revision",
+    id,
+    statement,
+    reason: flags.reason ? String(flags.reason) : undefined,
+    authorization_ref: String(flags["authorization-ref"]),
+  });
+  console.log(`Revised ${id}. Earlier wording preserved in history.`);
 }
 
 // Single-source writer for the wake event (sail Step 7.5's in-session lean
@@ -1009,7 +1410,11 @@ function cmdWake() {
   const id = flags._[0];
   const leanAfter = flags["lean-after"] != null ? String(flags["lean-after"]) : "";
   if (!id || !leanAfter) {
-    console.error('Usage: decision-ledger.js wake <id> --lean-after "<the user\'s own words>" [--lean-before "<verbatim BIND lean>"] [--changed]');
+    console.error('Usage: decision-ledger.js wake <id> --lean-after "<the user\'s own words>" [--lean-before "<verbatim BIND lean>"] [--changed] --authorization-ref <host-ref>');
+    process.exit(1);
+  }
+  if (!flags["authorization-ref"]) {
+    console.error("--authorization-ref is required; only the user can append a changed or maintained view.");
     process.exit(1);
   }
   const ledger = loadLedger();
@@ -1027,7 +1432,14 @@ function cmdWake() {
     console.error(`No sealed lean found for ${id}; pass --lean-before "<verbatim BIND lean>".`);
     process.exit(1);
   }
-  appendEvent({ event: "wake", id, lean_before: leanBefore, lean_after: leanAfter, changed: !!flags.changed });
+  appendEvent({
+    event: "wake",
+    id,
+    lean_before: leanBefore,
+    lean_after: leanAfter,
+    changed: !!flags.changed,
+    authorization_ref: String(flags["authorization-ref"]),
+  });
   console.log(`Woke ${id}: ${flags.changed ? "moved" : "held"}`);
   if (flags.changed) console.log(`  ${truncate(leanBefore, 60)} → ${truncate(leanAfter, 60)}`);
 }
@@ -1125,7 +1537,20 @@ function cmdPremises() {
   }
 }
 
-const commands = { scan: cmdScan, seal: cmdSeal, settle: cmdSettle, record: cmdRecord, amend: cmdAmend, wake: cmdWake, premises: cmdPremises, list: () => cmdList(), status: cmdStatus };
+const commands = {
+  scan: cmdScan,
+  seal: cmdSeal,
+  settle: cmdSettle,
+  record: cmdRecord,
+  amend: cmdAmend,
+  "correct-kind": cmdCorrectKind,
+  revise: cmdRevise,
+  journal: cmdJournal,
+  wake: cmdWake,
+  premises: cmdPremises,
+  list: () => cmdList(),
+  status: cmdStatus,
+};
 if (!cmd || !commands[cmd]) {
   console.log("Usage:");
   console.log("  /argus:history scan [--since days] [--all-projects] [--list] [--status] [--purge <id|all>]");

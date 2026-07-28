@@ -20,6 +20,7 @@ export const USER_DATA_TABLES = [
   'agents',
   'decision_items',
   'decision_quality_scores',
+  'deep_judgment_usage',
   'epistemic_account_policies',
   'epistemic_artifact_descriptors',
   'epistemic_authority_events',

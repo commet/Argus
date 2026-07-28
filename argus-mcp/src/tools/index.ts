@@ -1,34 +1,25 @@
 import type { ToolModule } from './tool-types.js';
-import { openDecision } from './open-decision.js';
-import { seal } from './seal.js';
-import { settle } from './settle.js';
-import { checkIn } from './check-in.js';
-import { recall } from './recall.js';
-import { amend, dismiss } from './amend-dismiss.js';
-import { init, config } from './init-config.js';
-import { review } from './review.js';
-import { sync } from './sync.js';
-import { premises } from './premises.js';
-import { recheck } from './recheck.js';
-import { watch } from './watch.js';
-import { candidates } from './candidates.js';
 import { decide, history, settings, publicSeal, publicCheckIn, publicSettle, publicCopy } from './public-tools.js';
 import { toolJsonSchema } from './tool-types.js';
 import { bilingualToolPresentation } from '../lib/tool-presentation.js';
-import { semanticRecord } from './semantic-record.js';
 
-/** The full registered tool set. There is deliberately no verdict/grade/score tool. */
-export const TOOLS: ToolModule[] = [openDecision, review, premises, seal, recheck, settle, checkIn, recall, sync, amend, dismiss, candidates, watch, init, config, semanticRecord];
+/**
+ * The complete callable surface. Internal modules are implementation details:
+ * cached names from older releases intentionally return UNKNOWN_TOOL.
+ */
+export const TOOLS: ToolModule[] = [
+  decide,
+  publicSeal,
+  publicCheckIn,
+  publicSettle,
+  history,
+  settings,
+];
 
-/** The small, purpose-led surface returned by tools/list. Legacy tools stay in
- * TOOL_MAP for cached clients and one-version compatibility, but new users and
- * models no longer have to choose among internal state-machine parts. */
-export const PUBLIC_TOOLS: ToolModule[] = [decide, publicSeal, publicCheckIn, publicSettle, history, settings];
+/** Compatibility alias for source consumers; it is identical to TOOLS. */
+export const PUBLIC_TOOLS = TOOLS;
 
-/** The semantic vertical slice is deliberately opt-in until the P5 value gate. */
-export const V3_PILOT_TOOLS: ToolModule[] = [semanticRecord];
-
-export const TOOL_MAP: Map<string, ToolModule> = new Map([...TOOLS, ...PUBLIC_TOOLS].map((t) => [t.name, t]));
+export const TOOL_MAP: Map<string, ToolModule> = new Map(TOOLS.map((t) => [t.name, t]));
 
 /** MCP 2025-11-25 tool icons. Clients that implement the optional icon field
  * show the same closing-loop anchor used by the web app; older clients simply
@@ -49,15 +40,26 @@ const PUBLIC_TOOL_ICONS: Record<string, Array<{ src: string; mimeType: string; s
  * public name before it reaches a host. Without this, the tool-call RESULTS are
  * translated but the tool SCHEMAS still leaked the old vocabulary.
  */
+function withoutSchemaDescriptions(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(withoutSchemaDescriptions);
+  if (!value || typeof value !== 'object') return value;
+  return Object.fromEntries(
+    Object.entries(value as Record<string, unknown>)
+      .filter(([key]) => key !== 'description')
+      .map(([key, child]) => [key, withoutSchemaDescriptions(child)]),
+  );
+}
+
 export function servedPublicTools(): Record<string, unknown>[] {
-  const served = process.env['ARGUS_DKK_V6_PILOT'] === '1' ? [...PUBLIC_TOOLS, ...V3_PILOT_TOOLS] : PUBLIC_TOOLS;
-  return served.map((t) => {
+  return TOOLS.map((t) => {
     const presentation = bilingualToolPresentation(t.name, t.annotations?.title, t.description);
     return {
       name: t.name,
       title: presentation.title,
       description: publicCopy(presentation.description),
-      inputSchema: publicCopy(toolJsonSchema(t.inputSchema)),
+      // Field names, types and enums carry the contract. Repeating prose on
+      // every property taxes every model turn and previously leaked old names.
+      inputSchema: withoutSchemaDescriptions(publicCopy(toolJsonSchema(t.inputSchema))),
       ...(t.outputSchema ? { outputSchema: t.outputSchema } : {}),
       ...(t.annotations ? { annotations: t.annotations } : {}),
       ...(PUBLIC_TOOL_ICONS[t.name] ? { icons: PUBLIC_TOOL_ICONS[t.name] } : {}),

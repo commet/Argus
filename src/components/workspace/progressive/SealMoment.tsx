@@ -37,8 +37,24 @@ import { ArgusMascot } from '@/components/brand/ArgusMascot';
 import { useLocale } from '@/hooks/useLocale';
 import { useAuth } from '@/lib/auth';
 import { useProjectStore } from '@/stores/useProjectStore';
-import type { Project, Predicate, PredicateSource, CheckInInterval, OpenCheck } from '@/stores/types';
-import { contractFromPredicates, withCheckIn, augmentContract, shouldSealContract, buildEarlyContract, CHECK_IN_MS, DEFAULT_CHECK_IN_INTERVAL, intervalFromExistingContract, stablePredicateId, webUserAttribution, MAX_PREDICATES } from '@/lib/decision-contract';
+import type { Project, Predicate, PredicateSource, CheckInInterval, OpenCheck, DecisionKind } from '@/stores/types';
+import { deriveDecisionKind } from '@/lib/decision-kernel';
+import {
+  contractFromPredicates,
+  withCheckIn,
+  withoutReturn,
+  withDecisionFoundation,
+  augmentContract,
+  adoptionLineageForSeal,
+  shouldSealContract,
+  buildEarlyContract,
+  CHECK_IN_MS,
+  DEFAULT_CHECK_IN_INTERVAL,
+  intervalFromExistingContract,
+  stablePredicateId,
+  webUserAttribution,
+  MAX_PREDICATES,
+} from '@/lib/decision-contract';
 import { derivePrimaryCheckpoint } from '@/lib/checkpoint-core';
 import { buildAutoTrackedPremiseItems } from '@/lib/auto-track-premises';
 import { useDecisionItemsStore } from '@/stores/useDecisionItemsStore';
@@ -140,6 +156,7 @@ export function SealMoment({
     return null;
   });
   const { user, session, signInWithGoogle } = useAuth();
+  const [signInError, setSignInError] = useState<string | null>(null);
 
   /** §3.4 — the decision's premises become tracked items at seal (auto, not a
    *  manual import). Idempotent + spine-safe (external:false → alert OFF). */
@@ -169,6 +186,9 @@ export function SealMoment({
   const [dismissedLocally, setDismissedLocally] = useState(false);
   const dismissed = dismissedLocally || !!persistedDismissedAt;
   const [humanJudgment, setHumanJudgment] = useState('');
+  const [kindOverride, setKindOverride] = useState<DecisionKind | null>(null);
+  const [reviewCondition, setReviewCondition] = useState('');
+  const [returnEvent, setReturnEvent] = useState('');
   const sealedSceneRef = useRef<HTMLDivElement>(null);
 
   // Ceremony clock — the press lands ~380ms, the ink line finishes ~1650ms,
@@ -221,6 +241,19 @@ export function SealMoment({
     () => (Array.isArray(predicates) ? predicates : []).filter((p) => !dropped.has(p.id)),
     [predicates, dropped],
   );
+  const kindSentence = (
+    humanJudgment.trim()
+    || baselineJudgment
+    || kept[0]?.text?.trim()
+    || (typeof project.name === 'string' ? project.name.trim() : '')
+  );
+  const derivedKind = useMemo(
+    () => deriveDecisionKind({ statement: kindSentence, has_return_handle: true }),
+    [kindSentence],
+  );
+  // An existing authorial kind is the current projection. Re-running the
+  // wording heuristic must never manufacture a user correction on re-seal.
+  const selectedKind = kindOverride ?? contract?.kind ?? derivedKind.kind;
   // loop-17 B — open checks the user hasn't dropped. Auto-carried by default; a ×
   // removes one before sealing (founder setting: auto + one-tap drop). Preserve any
   // already on an existing contract (re-seal) so a prior carry isn't silently lost.
@@ -258,7 +291,7 @@ export function SealMoment({
     // decision gets ONE light check, not the full multi-predicate ceremony. It NEVER
     // drops the decision — single_check still seals (the user's early rope alone if one
     // exists, else the single sharpest predicate). Absent gate inputs → full contract.
-    const decision = shouldSealContract({
+    const decision = selectedKind === 'witness' ? { mode: 'full_contract' as const } : shouldSealContract({
       stakes: gate?.stakes ?? 'important',
       reversibility: gate?.reversibility ?? 'partial',
       framingConfidence: gate?.framingConfidence ?? 0,
@@ -271,9 +304,12 @@ export function SealMoment({
     // If an EARLY rope already exists (Phase 1 BIND at project-OPEN), AUGMENT it —
     // merge onto it, preserving id/created_at and the user's own user_lean predicate,
     // and re-confirm the check-in. Never clobber ("bind tighter at peak temptation").
-    const next = existing
-      ? augmentContract(existing, toSeal, now, iv)
-      : (() => { const f = contractFromPredicates(project.id, toSeal, now); return f ? withCheckIn(f, iv, now) : null; })();
+    const base = existing
+      ? augmentContract(existing, toSeal, now, selectedKind === 'witness' ? undefined : iv)
+      : contractFromPredicates(project.id, toSeal, now);
+    const next = base
+      ? (selectedKind === 'witness' ? withoutReturn(base, now) : (existing ? base : withCheckIn(base, iv, now)))
+      : null;
     if (!next) return;
     setDismissedLocally(false);
     setSealPromptDismissed(false);
@@ -292,7 +328,7 @@ export function SealMoment({
           attribution: webUserAttribution(now, 'workspace:closing_judgment'),
         }
       : null;
-    const finalized = finalPredicate
+    const finalizedDraft = finalPredicate
       ? {
           ...next,
           predicates: [
@@ -301,6 +337,29 @@ export function SealMoment({
           ].slice(0, MAX_PREDICATES),
         }
       : next;
+    const adoptionLineage = adoptionLineageForSeal(
+      finalizedDraft.predicates,
+      finalizedDraft.open_checks ?? keptChecks,
+      finalPredicate ? undefined : finalizedDraft.predicates[0]?.id,
+    );
+    const originUtterance = currentVoyage()?.problem_text?.trim()
+      || (typeof project.name === 'string' ? project.name.trim() : '')
+      || finalJudgment;
+    const finalized = withDecisionFoundation(finalizedDraft, {
+      kind: selectedKind,
+      sealedStatement: finalJudgment || finalizedDraft.predicates[0]?.text || originUtterance,
+      derivedKind: derivedKind.kind,
+      kindRule: derivedKind.rule,
+      kindQuestion: L('이 기록은 나중에 무엇을 확인하면 좋을까요?', 'What should this record revisit later?'),
+      kindAnswer: finalJudgment || finalizedDraft.predicates[0]?.text,
+      originUtterance,
+      reviewConditionStatus: selectedKind === 'witness'
+        ? 'not_asked'
+        : reviewCondition.trim() ? 'answered' : 'skipped',
+      reviewCondition: reviewCondition.trim() || undefined,
+      returnEvent: returnEvent.trim() || undefined,
+      adoptionLineage,
+    }, now);
     const check_by = finalized.check_in_at ? new Date(finalized.check_in_at).toLocaleDateString(ko ? 'ko-KR' : 'en-US', { month: 'long', day: 'numeric' }) : '';
     // ALWAYS attach the receipt. The machine-derived fields (그때의 진짜 질문 /
     // 검증 안 된 가정) are computed regardless; only human_judgment is optional.
@@ -322,25 +381,35 @@ export function SealMoment({
     // checkpoints v2 §12 Phase 0 (W1): designate the primary checkpoint at seal —
     // preserve a carried one, else auto-construct from the top predicate + the
     // date handle. jsonb-nested (no migration); the return loop focuses here.
-    const primary_checkpoint = derivePrimaryCheckpoint(
-      finalized,
-      finalPredicate ? {
-        predicate_id: finalPredicate.id,
-        check_prompt: finalPredicate.text,
-        authorship: 'user_authored',
-      } : finalized.primary_checkpoint,
-      new Date(now).toISOString().slice(0, 10),
-    ) ?? undefined;
+    const primary_checkpoint = selectedKind === 'witness'
+      ? undefined
+      : derivePrimaryCheckpoint(
+          finalized,
+          finalPredicate ? {
+            predicate_id: finalPredicate.id,
+            check_prompt: finalPredicate.text,
+            authorship: 'user_authored',
+          } : finalized.primary_checkpoint,
+          new Date(now).toISOString().slice(0, 10),
+        ) ?? undefined;
     // loop-17 B — carry the kept open checks (preserve any already sealed on a re-seal).
     const open_checks = finalized.open_checks ?? (keptChecks.length ? keptChecks : undefined);
-    updateProject(project.id, { decision_contract: { ...finalized, judgment_receipt, closed_at, primary_checkpoint, open_checks } });
+    updateProject(project.id, {
+      decision_contract: {
+        ...finalized,
+        judgment_receipt,
+        closed_at,
+        ...(primary_checkpoint ? { primary_checkpoint } : {}),
+        open_checks,
+      },
+    });
     autoTrackPremises(now);
     // Cross-surface return loop: if this logged-in user connected Telegram, mirror
     // the sealed contract into the one push channel that actually fires on the date
     // (the daily cron reads telegram_decisions, which web seals never wrote). Server
     // no-ops for unconnected users; fire-and-forget so it never blocks the seal.
     const sharp = finalized.predicates[0]?.text;
-    if (user && session?.access_token && finalized.check_in_at && sharp) {
+    if (selectedKind !== 'witness' && user && session?.access_token && finalized.check_in_at && sharp) {
       syncSealToTelegram({
         accessToken: session.access_token,
         projectId: project.id,
@@ -359,9 +428,9 @@ export function SealMoment({
     // nothing. Accepting the seal is the strongest engagement signal the
     // product has. Not already sealed → only count the first seal.
     if (firstSeal) {
-      recordSignal({ project_id: project.id, tool: 'voyage', signal_type: 'seal_accepted', signal_data: { interval: iv, predicates: finalized.predicates.length } });
+      recordSignal({ project_id: project.id, tool: 'voyage', signal_type: 'seal_accepted', signal_data: { interval: iv, predicates: finalized.predicates.length, kind: selectedKind } });
       // Also in the main funnel (user_events) — this is the activation north-star.
-      track('decision_sealed', { interval: iv, predicates: finalized.predicates.length, augmented: !!existing, mode: decision.mode });
+      track('decision_sealed', { interval: iv, predicates: finalized.predicates.length, augmented: !!existing, mode: decision.mode, kind: selectedKind });
       // Retro→real conversion signal (항목10): only if a retro loop was settled first.
       fireFirstRealSealAfterRetro();
     }
@@ -375,20 +444,22 @@ export function SealMoment({
   // effects so the artifact behaves identically downstream.
   function manualSeal(iv: CheckInInterval = interval) {
     const summary = (typeof project?.name === 'string' ? project.name : '').trim();
-    if (!summary) return;
+    const recoveryJudgment = humanJudgment.trim() || baselineJudgment;
+    if (!summary || !recoveryJudgment) return;
     const now = Date.now();
     const existing = project.decision_contract;
     // In the CLOSING case an early rope may already exist with zero fresh
     // predicates — never clobber it with a rebuilt contract; augment (preserve
     // id/created_at + the user's own lean) and re-confirm the check-in instead.
-    const c = existing
-      ? augmentContract(existing, [], now, iv)
-      : buildEarlyContract(project.id, { lean: summary, interval: iv }, now);
+    const draft = existing
+      ? augmentContract(existing, [], now, selectedKind === 'witness' ? undefined : iv)
+      : buildEarlyContract(project.id, { lean: recoveryJudgment, ...(selectedKind === 'witness' ? {} : { interval: iv }) }, now);
+    const c = draft ? (selectedKind === 'witness' ? withoutReturn(draft, now) : draft) : null;
     if (!c) return;
-    const baselineJudgment = c.judgment_receipt?.baseline_judgment
+    const recoveryBaseline = c.judgment_receipt?.baseline_judgment
       || c.predicates.find((p) => p.source === 'user_lean')?.text
       || '';
-    const finalJudgment = humanJudgment.trim() || baselineJudgment || summary;
+    const finalJudgment = recoveryJudgment;
     const finalPredicate = {
       id: stablePredicateId('user_lean', finalJudgment),
       text: finalJudgment,
@@ -396,13 +467,33 @@ export function SealMoment({
       authored: 'user' as const,
       attribution: webUserAttribution(now, 'workspace:closing_judgment_recovery'),
     };
-    const finalized = {
+    const finalizedDraft = {
       ...c,
       predicates: [
         finalPredicate,
         ...c.predicates.filter((p) => p.source !== 'user_lean' && p.id !== finalPredicate.id),
       ].slice(0, MAX_PREDICATES),
     };
+    const adoptionLineage = adoptionLineageForSeal(
+      finalizedDraft.predicates,
+      finalizedDraft.open_checks ?? keptChecks,
+    );
+    const originUtterance = currentVoyage()?.problem_text?.trim() || summary;
+    const finalized = withDecisionFoundation(finalizedDraft, {
+      kind: selectedKind,
+      sealedStatement: finalJudgment,
+      derivedKind: derivedKind.kind,
+      kindRule: derivedKind.rule,
+      kindQuestion: L('이 기록은 나중에 무엇을 확인하면 좋을까요?', 'What should this record revisit later?'),
+      kindAnswer: finalJudgment,
+      originUtterance,
+      reviewConditionStatus: selectedKind === 'witness'
+        ? 'not_asked'
+        : reviewCondition.trim() ? 'answered' : 'skipped',
+      reviewCondition: reviewCondition.trim() || undefined,
+      returnEvent: returnEvent.trim() || undefined,
+      adoptionLineage,
+    }, now);
     setDismissedLocally(false);
     setSealPromptDismissed(false);
     const check_by = finalized.check_in_at ? new Date(finalized.check_in_at).toLocaleDateString(ko ? 'ko-KR' : 'en-US', { month: 'long', day: 'numeric' }) : '';
@@ -412,26 +503,36 @@ export function SealMoment({
       real_question: summary,
       unverified_assumption: '',
       human_only: '',
-      baseline_judgment: baselineJudgment || undefined,
+      baseline_judgment: recoveryBaseline || undefined,
       human_judgment: finalJudgment,
       judgment_attribution: finalPredicate.attribution,
       check_by,
     };
     const closed_at = closing ? new Date(now).toISOString() : finalized.closed_at;
-    const primary_checkpoint = derivePrimaryCheckpoint(
-      finalized,
-      {
-        predicate_id: finalPredicate.id,
-        check_prompt: finalPredicate.text,
-        authorship: 'user_authored',
-      },
-      new Date(now).toISOString().slice(0, 10),
-    ) ?? undefined;
+    const primary_checkpoint = selectedKind === 'witness'
+      ? undefined
+      : derivePrimaryCheckpoint(
+          finalized,
+          {
+            predicate_id: finalPredicate.id,
+            check_prompt: finalPredicate.text,
+            authorship: 'user_authored',
+          },
+          new Date(now).toISOString().slice(0, 10),
+        ) ?? undefined;
     const open_checks = finalized.open_checks ?? (keptChecks.length ? keptChecks : undefined);
-    updateProject(project.id, { decision_contract: { ...finalized, judgment_receipt, closed_at, primary_checkpoint, open_checks } });
+    updateProject(project.id, {
+      decision_contract: {
+        ...finalized,
+        judgment_receipt,
+        closed_at,
+        ...(primary_checkpoint ? { primary_checkpoint } : {}),
+        open_checks,
+      },
+    });
     autoTrackPremises(now);
     const sharp = finalized.predicates[0]?.text;
-    if (user && session?.access_token && finalized.check_in_at && sharp) {
+    if (selectedKind !== 'witness' && user && session?.access_token && finalized.check_in_at && sharp) {
       syncSealToTelegram({
         accessToken: session.access_token,
         projectId: project.id,
@@ -442,8 +543,8 @@ export function SealMoment({
     }
     setInterval(iv);
     setScene(reducedMotion ? 'sealed' : 'sealing');
-    recordSignal({ project_id: project.id, tool: 'voyage', signal_type: 'seal_accepted', signal_data: { interval: iv, predicates: finalized.predicates.length, mode: 'manual_recovery' } });
-    track('decision_sealed', { interval: iv, predicates: finalized.predicates.length, mode: 'manual_recovery' });
+    recordSignal({ project_id: project.id, tool: 'voyage', signal_type: 'seal_accepted', signal_data: { interval: iv, predicates: finalized.predicates.length, mode: 'manual_recovery', kind: selectedKind } });
+    track('decision_sealed', { interval: iv, predicates: finalized.predicates.length, mode: 'manual_recovery', kind: selectedKind });
     // Retro→real conversion signal (항목10): only if a retro loop was settled first.
     fireFirstRealSealAfterRetro();
   }
@@ -515,19 +616,46 @@ export function SealMoment({
             <Anchor size={20} />
           </div>
           <h3 className="mt-4 text-[18px] md:text-[20px] font-bold text-[var(--text-primary)] leading-[1.35] max-w-md mx-auto">
-            {L(`이 결정, ${dateFor(interval)}에 어떻게 됐는지 확인해 드릴까요?`, `Want me to check back on this on ${dateFor(interval)}?`)}
+            {selectedKind === 'witness'
+              ? L('지금 남기고 싶은 문장을 원문 그대로 보관할까요?', 'Keep the sentence you want to remember exactly as written?')
+              : L(`지금 남긴 문장을 ${dateFor(interval)}에 다시 확인할까요?`, `Revisit the sentence you keep here on ${dateFor(interval)}?`)}
           </h3>
           <p className="mt-2.5 text-[13px] text-[var(--text-secondary)] leading-[1.5] max-w-sm mx-auto">
-            {L('그날 돌아와 어떻게 됐는지 확인할 수 있어요.', 'You can return that day and see how it went.')}
+            {baselineJudgment
+              ? L('검토 전에 직접 남긴 문장을 기준으로 기록합니다.', 'This uses the sentence you wrote before the review.')
+              : L('분석에서 확인할 문장을 뽑지 못했어요. 남길 문장을 한 줄로 적어 주세요.', 'Argus could not extract a reliable line to revisit. Write the sentence you want to keep.')}
           </p>
+          <div className="mx-auto mt-5 max-w-md text-left">
+            {!baselineJudgment && (
+              <label className="block text-[12px] font-semibold text-[var(--text-secondary)]">
+                {L('내가 남길 문장', 'The sentence I want to keep')}
+                <textarea
+                  value={humanJudgment}
+                  onChange={(event) => setHumanJudgment(event.target.value)}
+                  maxLength={4000}
+                  rows={3}
+                  placeholder={L('예: 권한과 역할이 문서에 적힐 때만 옮긴다.', 'Example: I will move only if the role and authority are written down.')}
+                  className="mt-2 w-full resize-none rounded-xl border border-[var(--border)] bg-[var(--bg)] px-3.5 py-3 text-[13px] font-normal leading-6 text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:border-[var(--accent)]/55 focus:outline-none"
+                />
+              </label>
+            )}
+            <KindChoice
+              value={selectedKind}
+              onChange={(value) => setKindOverride(value)}
+              L={L}
+            />
+          </div>
           <div className="mt-7 flex flex-col sm:flex-row gap-3 justify-center">
             <button
               onClick={() => manualSeal()}
-              className="inline-flex items-center justify-center gap-2 px-7 py-3 rounded-2xl text-[var(--accent-fg)] text-[14px] font-semibold cursor-pointer transition-transform duration-150 active:scale-[0.96]"
+              disabled={!humanJudgment.trim() && !baselineJudgment}
+              className="inline-flex items-center justify-center gap-2 px-7 py-3 rounded-2xl text-[var(--accent-fg)] text-[14px] font-semibold cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 transition-transform duration-150 active:scale-[0.96]"
               style={{ background: 'var(--gradient-gold)' }}
             >
               <Check size={15} />
-              {L(`네 — ${dateFor(interval)}에 확인해 주세요`, `Yes — check back on ${dateFor(interval)}`)}
+              {selectedKind === 'witness'
+                ? L('이 원문 그대로 기록', 'Save exactly as written')
+                : L(`이 문장 기록 · ${dateFor(interval)}에 확인`, `Save this sentence · check on ${dateFor(interval)}`)}
             </button>
             <button
               onClick={() => {
@@ -551,7 +679,7 @@ export function SealMoment({
     return (
       <div className="mt-10 text-center">
         <p className="text-[12.5px] text-[var(--text-tertiary)]">
-          {L('마음 바뀌면 언제든 약속을 걸 수 있어요.', 'You can set the reminder anytime you change your mind.')}{' '}
+          {L('마음이 바뀌면 언제든 이 기록을 다시 열 수 있어요.', 'You can reopen this record anytime you change your mind.')}{' '}
           <button onClick={() => { setDismissedLocally(false); setSealPromptDismissed(false); }} className="font-medium text-[var(--accent)] hover:underline cursor-pointer">
             {L('질문 다시 보기', 'Show the question again')}
           </button>
@@ -562,7 +690,10 @@ export function SealMoment({
 
   // ── Certificate / ceremony derived facts (all reads defensive — legacy
   //    contracts may lack the receipt; empty strings simply don't render). ──
-  const checkDateStr = sealedAtMs ? fmtDate(sealedAtMs) : dateFor(interval);
+  const displayedKind = contract?.kind ?? selectedKind;
+  const checkDateStr = displayedKind === 'witness'
+    ? ''
+    : sealedAtMs ? fmtDate(sealedAtMs) : dateFor(interval);
   const stampD = new Date(sealedAtMs ?? Date.now() + CHECK_IN_MS[interval]);
   const stampDate = `${stampD.getMonth() + 1}.${stampD.getDate()}`;
   const sealedOnStr = fmtDate(Date.now());
@@ -601,7 +732,9 @@ export function SealMoment({
           {/* '제가 먼저 물어볼게요' — 약속하는 그 Argus가 직접 */}
           <ArgusMascot moment="witness" size="md" alt={L('약속을 기억하는 Argus', 'Argus remembering the promise')} />
           <p className="seal-line-write text-[15px] font-semibold text-[var(--text-primary)] leading-[1.5]">
-            {L(`기록했어요 — ${checkDateStr}에 제가 먼저 물어볼게요.`, `Saved — I'll ask you first on ${checkDateStr}.`)}
+            {displayedKind === 'witness'
+              ? L('원문 그대로 기록했어요. 다시 묻지 않을게요.', 'Saved exactly as written. I will not reopen it.')
+              : L(`기록했어요 — ${checkDateStr}에 제가 먼저 물어볼게요.`, `Saved — I'll ask you first on ${checkDateStr}.`)}
           </p>
         </div>
       </motion.div>
@@ -679,8 +812,14 @@ export function SealMoment({
             )}
           </div>
           <p className="relative mt-5 pt-3 border-t border-[var(--border)] text-[13px] text-[var(--text-secondary)] leading-[1.6]">
-            {L(`이 판단의 답은 이제 현실만 갖고 있어요 — ${checkDateStr}, 「그래서, 어떻게 됐어요?」 ⚓`,
-               `Only reality holds the answer now — ${checkDateStr}, "So, how did it go?" ⚓`)}
+            {displayedKind === 'witness'
+              ? L('이 기록은 다시 묻지 않고, 오늘의 원문 그대로 남겨둘게요.', 'This stays exactly as written today. Argus will not reopen it.')
+              : displayedKind === 'commitment'
+                ? L(`${checkDateStr}에, 실제로 실행했는지만 사실대로 확인할게요.`, `On ${checkDateStr}, we’ll only check what you actually did.`)
+                : displayedKind === 'declaration'
+                  ? L(`${checkDateStr}에, 지금도 같은 기준인지 다시 물을게요.`, `On ${checkDateStr}, we’ll ask whether this standard still holds for you.`)
+                  : L(`이 판단의 답은 이제 현실만 갖고 있어요 — ${checkDateStr}, 「그래서, 어떻게 됐어요?」 ⚓`,
+                      `Only reality holds the answer now — ${checkDateStr}, "So, how did it go?" ⚓`)}
           </p>
         </div>
 
@@ -695,7 +834,9 @@ export function SealMoment({
               됐어요?". One line here, and only the NEW bit: where it comes back
               (the project page). The old second <p> just re-poeticized the cert. */}
           <p className="text-[14px] font-semibold text-[var(--text-primary)] leading-[1.5]">
-            {L('좋아요 — 그날 프로젝트 페이지에서 제가 먼저 물어볼게요.', "Done — I'll bring it up first on the project page that day.")}
+            {displayedKind === 'witness'
+              ? L('저장됐어요. 다시 묻거나 알림을 만들지 않습니다.', 'Saved. No reminder or follow-up was created.')
+              : L('좋아요 — 그날 프로젝트 페이지에서 제가 먼저 물어볼게요.', "Done — I'll bring it up first on the project page that day.")}
           </p>
 
           {/* Peak-ownership conversion: the artifact was just minted on THIS device.
@@ -707,9 +848,11 @@ export function SealMoment({
               follows them into the account. Local seal stays lossless either way. */}
           {!user && (
             <button
-              onClick={() => {
+              onClick={async () => {
                 track('seal_signin_cta', { placement: 'sealed' });
-                signInWithGoogle('/workspace');
+                setSignInError(null);
+                const result = await signInWithGoogle('/workspace');
+                if (result.error) setSignInError(result.error);
               }}
               className="mt-4 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-[13px] font-semibold text-[var(--accent-fg)] cursor-pointer transition-transform hover:scale-[1.02]"
               style={{ background: 'var(--gradient-gold)' }}
@@ -718,18 +861,23 @@ export function SealMoment({
               {L('로그인하고 어디서나 이어보기', 'Sign in to keep this everywhere')}
             </button>
           )}
+          {signInError && (
+            <p role="alert" className="mt-2 text-[12px] text-[var(--danger)]">
+              {signInError}
+            </p>
+          )}
 
           <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
             <LocaleLink href="/project" className="text-[12.5px] font-medium text-[var(--accent)] hover:underline">
               {L('프로젝트 페이지 보기 →', 'See the project page →')}
             </LocaleLink>
-            <button
+            {displayedKind !== 'witness' && <button
               onClick={downloadIcs}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12.5px] font-medium text-[var(--text-secondary)] border border-[var(--border)] hover:border-[var(--accent)]/40 hover:text-[var(--accent)] transition-colors cursor-pointer"
             >
               <CalendarPlus size={13} />
               {L('캘린더에 약속 넣기', 'Add to my calendar')}
-            </button>
+            </button>}
           </div>
 
           {/* Email return-path opt-in (P1-B2 / 03 S5): the seal moment is the ONE
@@ -740,7 +888,7 @@ export function SealMoment({
               Logged-in only: the cron mails the account address. Anonymous users
               keep the login CTA above as their durable path (§5-20: no new
               channel for anonymous sealers). */}
-          {user && contract && (
+          {displayedKind !== 'witness' && user && contract && (
             <label className="mt-3 inline-flex items-center justify-center gap-2 text-[12px] text-[var(--text-secondary)] cursor-pointer select-none">
               <input
                 type="checkbox"
@@ -760,7 +908,9 @@ export function SealMoment({
             onClick={() => setDrawerOpen((o) => !o)}
             className="mt-4 inline-flex items-center gap-1 text-[12.5px] font-medium text-[var(--text-tertiary)] hover:text-[var(--accent)] transition-colors cursor-pointer"
           >
-            {L('날짜·예측 손보기', 'Adjust date & predictions')}
+            {displayedKind === 'witness'
+              ? L('함께 보관한 항목 보기', 'Review saved details')
+              : L('돌아올 때·함께 볼 항목 손보기', 'Adjust the return and saved checks')}
             <ChevronDown size={13} className={`transition-transform ${drawerOpen ? 'rotate-180' : ''}`} />
           </button>
 
@@ -776,7 +926,7 @@ export function SealMoment({
                 <div className="pt-4 text-left">
                   {/* Selection-only — one control, one contract: the explicit
                       "이대로 다시 봉인" button below is the single commit point. */}
-                  <DateChips interval={interval} onPick={setInterval} dateFor={dateFor} L={L} />
+                  {displayedKind !== 'witness' && <DateChips interval={interval} onPick={setInterval} dateFor={dateFor} L={L} />}
                   <div className="mt-4">
                     <PredicateEditor
                       predicates={Array.isArray(predicates) ? predicates : []}
@@ -802,7 +952,9 @@ export function SealMoment({
                     className="mt-4 w-full py-2.5 rounded-xl text-[13px] font-semibold text-[var(--accent-fg)] disabled:opacity-50 cursor-pointer"
                     style={{ background: 'var(--gradient-gold)' }}
                   >
-                    {L('이대로 다시 약속', 'Save the new promise')}
+                    {displayedKind === 'witness'
+                      ? L('이대로 다시 기록', 'Save these details')
+                      : L('이대로 다시 저장', 'Save these changes')}
                   </button>
                 </div>
               </motion.div>
@@ -833,10 +985,13 @@ export function SealMoment({
           <Anchor size={20} />
         </div>
         <h3 className="mt-4 text-[19px] md:text-[21px] font-bold text-[var(--text-primary)] leading-[1.35] max-w-md mx-auto">
-          {L(
-            `검토 뒤의 판단을 남기고, ${dateFor(interval)}에 현실과 확인할까요?`,
-            `Keep the judgment after this review and check it against reality on ${dateFor(interval)}?`,
-          )}
+          {selectedKind === 'witness'
+            ? L('오늘의 판단을 원문 그대로 남길까요?', 'Keep today’s decision exactly as written?')
+            : selectedKind === 'commitment'
+              ? L(`지금의 약속을 남기고, ${dateFor(interval)}에 실행했는지 확인할까요?`, `Keep this commitment and check what you did on ${dateFor(interval)}?`)
+              : selectedKind === 'declaration'
+                ? L(`지금의 기준을 남기고, ${dateFor(interval)}에 다시 생각해볼까요?`, `Keep this standard and revisit it on ${dateFor(interval)}?`)
+                : L(`검토 뒤의 판단을 남기고, ${dateFor(interval)}에 현실과 확인할까요?`, `Keep the judgment after this review and check it against reality on ${dateFor(interval)}?`)}
         </h3>
         {/* Nothing between the question and the choice (cleared 2026-07-20).
             The old pre-consent paragraphs — the channel ("프로젝트 페이지·텔레그램·
@@ -847,6 +1002,12 @@ export function SealMoment({
             Explaining delivery + device-scope BEFORE the yes was pure friction;
             the honest disclosure lands after commitment, framed as action not
             alarm. Here the user just chooses. */}
+
+        <KindChoice
+          value={selectedKind}
+          onChange={(value) => setKindOverride(value)}
+          L={L}
+        />
 
         {/* Judgment Receipt — seal과 settle을 하나의 오브젝트로 묶는 진입점.
             사용자가 human_judgment를 작성하면 봉인 시 함께 저장된다. */}
@@ -869,6 +1030,26 @@ export function SealMoment({
             </div>
           ) : null;
         })()}
+
+        {selectedKind !== 'witness' && (
+          <div className="mx-auto mt-5 max-w-md text-left">
+            <label className="block text-[12px] font-semibold text-[var(--text-secondary)]" htmlFor={`review-condition-${project.id}`}>
+              {selectedKind === 'commitment'
+                ? L('무엇이 생기면 이 약속을 바꿔도 될까요?', 'What would justify changing this commitment?')
+                : selectedKind === 'declaration'
+                  ? L('무엇이 달라지면 이 기준을 다시 볼까요?', 'What change would make you revisit this standard?')
+                  : L('어떤 결과가 나오면 다시 생각할까요?', 'What result would make you reconsider?')}
+            </label>
+            <input
+              id={`review-condition-${project.id}`}
+              value={reviewCondition}
+              onChange={(event) => setReviewCondition(event.target.value)}
+              maxLength={400}
+              placeholder={L('선택사항 · 비워두면 건너뛴 것으로 기록돼요', 'Optional · leave blank to record that you skipped it')}
+              className="mt-2 w-full rounded-xl border border-[var(--border)] bg-[var(--bg)] px-3.5 py-2.5 text-[13px] leading-5 text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:border-[var(--accent)]/55 focus:outline-none"
+            />
+          </div>
+        )}
 
         {/* loop-17 B — the unverified facts, carried into the seal. Auto-listed;
             a × drops one. Background-tint block (no left-accent bar — banned). On
@@ -908,7 +1089,9 @@ export function SealMoment({
             style={{ background: 'var(--gradient-gold)' }}
           >
             <Check size={15} />
-            {L(`판단 기록 확정 · ${dateFor(interval)}에 확인`, `Confirm this judgment · check on ${dateFor(interval)}`)}
+            {selectedKind === 'witness'
+              ? L('이 원문 그대로 기록', 'Save exactly as written')
+              : L(`판단 기록 확정 · ${dateFor(interval)}에 확인`, `Confirm this judgment · check on ${dateFor(interval)}`)}
           </button>
           <button
             onClick={() => {
@@ -930,7 +1113,9 @@ export function SealMoment({
           onClick={() => setDrawerOpen((o) => !o)}
           className="mt-5 inline-flex items-center gap-1 text-[12px] font-medium text-[var(--text-tertiary)] hover:text-[var(--accent)] transition-colors cursor-pointer"
         >
-          {L(`확인일 바꾸기 · Argus가 짚은 항목 보기`, `Change date · see what Argus surfaced`)}
+          {selectedKind === 'witness'
+            ? L('함께 보관할 항목 보기', 'See what will be kept with it')
+            : L('돌아올 때·함께 볼 항목 설정', 'Set the return and what to revisit')}
           <ChevronDown size={13} className={`transition-transform ${drawerOpen ? 'rotate-180' : ''}`} />
         </button>
 
@@ -944,7 +1129,19 @@ export function SealMoment({
               className="overflow-hidden"
             >
               <div className="pt-5 text-left max-w-md mx-auto">
-                <DateChips interval={interval} onPick={setInterval} dateFor={dateFor} L={L} />
+                {selectedKind !== 'witness' && <DateChips interval={interval} onPick={setInterval} dateFor={dateFor} L={L} />}
+                {selectedKind !== 'witness' && (
+                  <label className="mt-4 block text-[12px] font-semibold text-[var(--text-secondary)]">
+                    {L('이 일이 생기면 날짜보다 먼저 돌아오기 (선택)', 'Return when this happens, even before the date (optional)')}
+                    <input
+                      value={returnEvent}
+                      onChange={(event) => setReturnEvent(event.target.value)}
+                      maxLength={300}
+                      placeholder={L('예: 최종 제안서를 받으면', 'Example: when the final offer arrives')}
+                      className="mt-2 w-full rounded-xl border border-[var(--border)] bg-[var(--bg)] px-3.5 py-2.5 text-[13px] font-normal leading-5 text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:border-[var(--accent)]/55 focus:outline-none"
+                    />
+                  </label>
+                )}
                 <div className="mt-4">
                   <PredicateEditor
                     predicates={Array.isArray(predicates) ? predicates : []}
@@ -972,6 +1169,48 @@ export function SealMoment({
     </motion.div>
     )}
     </AnimatePresence>
+  );
+}
+
+function KindChoice({
+  value,
+  onChange,
+  L,
+}: {
+  value: DecisionKind;
+  onChange: (kind: DecisionKind) => void;
+  L: (k: string, e: string) => string;
+}) {
+  const choices: Array<{ value: DecisionKind; ko: string; en: string }> = [
+    { value: 'prediction', ko: '현실에서 확인', en: 'Check against reality' },
+    { value: 'commitment', ko: '내가 했는지 확인', en: 'Check what I did' },
+    { value: 'declaration', ko: '나중에 다시 생각', en: 'Revisit my standard' },
+    { value: 'witness', ko: '기록만 남기기', en: 'Keep only the record' },
+  ];
+  return (
+    <fieldset className="mx-auto mt-5 max-w-xl">
+      <legend className="sr-only">{L('이 기록으로 나중에 무엇을 할지', 'What this record should do later')}</legend>
+      <div className="grid grid-cols-2 gap-1.5 rounded-2xl bg-[var(--bg)] p-1.5 sm:grid-cols-4">
+        {choices.map((choice) => {
+          const selected = choice.value === value;
+          return (
+            <button
+              key={choice.value}
+              type="button"
+              aria-pressed={selected}
+              onClick={() => onChange(choice.value)}
+              className={`min-h-10 rounded-xl px-2.5 py-2 text-[11.5px] font-semibold leading-4 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)] ${
+                selected
+                  ? 'bg-[var(--surface)] text-[var(--text-primary)] shadow-sm'
+                  : 'text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]'
+              }`}
+            >
+              {L(choice.ko, choice.en)}
+            </button>
+          );
+        })}
+      </div>
+    </fieldset>
   );
 }
 

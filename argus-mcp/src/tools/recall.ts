@@ -17,15 +17,14 @@ import { handleToolException } from './errors.js';
 const byCheckBy = (a: { check_by?: string }, b: { check_by?: string }) =>
   (a.check_by || '9999-99-99') < (b.check_by || '9999-99-99') ? -1 : 1;
 
-/** The ONE canonical meaning-statement (spine rule 2): sample-size-scaled
- *  frequency, never a tier/score/verdict about the user. Shared by track_record
- *  and reflection so the two reads can never drift into two different claims. */
+/** Neutral chronology only. Historical outcomes remain readable on individual
+ * receipts, but are never aggregated into a score-shaped summary. */
 function frequencyStatement(s: LedgerState['stats'], locale: SurfaceLocale): string {
   const n = s.total_settled;
-  if (n === 0) return locale === 'ko' ? '아직 결과를 기록한 결정이 없습니다. 요약할 것이 없습니다.' : 'No settled decisions yet; nothing to summarize.';
+  if (n === 0) return locale === 'ko' ? '아직 다시 돌아와 답한 기록이 없습니다.' : 'No records have been revisited yet.';
   return locale === 'ko'
-    ? `결과 기록 ${n}건 중: 예측대로 ${s.held} · 걱정 피함 ${s.avoided} · 일부 ${s.partial} · 빗나감 ${s.missed}.`
-    : `Of ${n} settled: ${s.held} held, ${s.avoided} avoided, ${s.partial} partial, ${s.missed} missed.`;
+    ? `다시 돌아와 답한 기록 ${n}건이 있습니다.`
+    : `${n} record${n === 1 ? '' : 's'} revisited.`;
 }
 
 /** Voice for a read view: the view's own text, else any ledger user-text, else
@@ -55,7 +54,7 @@ const inputSchema = z.strictObject({
 export const recall: ToolModule = {
   name: 'argus_recall',
   description:
-    "Read your own decision history: a single receipt, the open contracts, or your track record. Read-only. Track record reports sample-size-scaled frequency only — never a tier, score, or verdict about who you are.",
+    'Read your own decision history: a single receipt, open records, or a neutral chronology. Read-only. Answers are not aggregated into scores or performance claims.',
   inputSchema,
   outputSchema: ENVELOPE_OUTPUT_SCHEMA,
   annotations: { title: 'Recall your history', readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
@@ -291,49 +290,29 @@ export const recall: ToolModule = {
           surface: rn > 0 ? `${framing} ${rfreq}` : framing,
           next_actions: ledger.ids.size === 0 ? ['argus_capture'] : ['stop'], // empty ledger → a handle, not a dead end
           data: {
-            judgment_tier: null, judgment_score: null, // spine rule 2 — never a verdict about who you are
             reflections, reflection_count: reflections.length,
-            frequency_statement: rfreq,
-            sample_size: rn,
-            sample_size_caveat: rn > 0 && rn < 10 ? (rl === 'ko' ? '표본이 작습니다. 당신에 대한 패턴이 아니라 기록으로 읽으세요.' : 'Sample is small. Read this as history, not a pattern about you.') : undefined,
+            revisit_statement: rfreq,
+            revisit_count: rn,
             today,
           },
         });
       }
 
-      // track_record — frequency only, sample-size caveated. No tier, no score (spine rule 2).
+      // `track_record` remains a wire-compatible legacy view name. Its meaning
+      // is now a neutral inventory, not an outcome aggregate.
       const s = ledger.stats;
       const n = s.total_settled;
       const trackLocale = readVoice(dir, ledger);
       const freq = frequencyStatement(s, trackLocale);
 
-      // Premise-level attribution (plan v5 P2) — where accumulation compounds:
-      // COUNTS of settles where the user themselves named a broken premise.
-      // A frequency statement, never a diagnosis of the person.
-      const settled = [...ledger.contracts.values()].filter((c) => c.status === 'settled');
-      // "did not hold" = every settled outcome except a clean held: avoided,
-      // partial, AND missed. Excluding 'missed' (the clearest not-held case)
-      // dropped exactly the settle a broken premise most often explains
-      // (dogfood F8: a missed+broken-premise settle vanished from attribution).
-      const missedOrPartial = settled.filter((c) => c.outcome === 'avoided' || c.outcome === 'partial' || c.outcome === 'missed');
-      const withBroken = missedOrPartial.filter((c) => c.broken_premise_id);
-      const premiseAttribution = withBroken.length > 0
-        ? (trackLocale === 'ko'
-            ? `예측대로 되지 않은 결과 ${missedOrPartial.length}건 중, ${withBroken.length}건에서 당신이 깨진 전제를 직접 지목했습니다.`
-            : `Of ${missedOrPartial.length} results that did not hold, you attributed ${withBroken.length} to a named broken premise.`)
-        : undefined;
-
       return envelope({
         ok: true, tool: 'argus_recall',
-        surface: premiseAttribution ? `${freq} ${premiseAttribution}` : freq,
+        surface: freq,
         next_actions: ledger.ids.size === 0 ? ['argus_capture'] : ['stop'], // empty ledger → a handle, not a dead end
         data: {
-          judgment_tier: null, judgment_score: null, // drift-guard asserts these stay null
-          frequency_statement: freq,
-          ...(premiseAttribution ? { premise_attribution: premiseAttribution, premise_attribution_counts: { not_held: missedOrPartial.length, with_named_broken_premise: withBroken.length } } : {}),
-          sample_size: n,
-          sample_size_caveat: n < 10 ? (trackLocale === 'ko' ? '표본이 작습니다. 당신에 대한 패턴이 아니라 기록으로 읽으세요.' : 'Sample is small. Read this as history, not a pattern about you.') : undefined,
-          stats: s,
+          revisit_statement: freq,
+          revisit_count: n,
+          open_count: s.total_sealed,
         },
       });
     } catch (e) {

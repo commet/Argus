@@ -5,6 +5,10 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'node',
+    // The full app suite is large enough that Vitest's CPU-count default can
+    // exhaust Windows worker memory after all assertions have passed. Keep the
+    // official gate deterministic locally and in CI.
+    maxWorkers: 1,
     // Dummy Supabase env so modules that construct the client at import time
     // (lib/supabase.ts) don't throw during full-import-chain tests. No real
     // network call is made in unit tests.

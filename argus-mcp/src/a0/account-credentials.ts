@@ -75,6 +75,45 @@ export function resolveAccountToken(): string {
   return readStoredAccountCredential()?.access_token ?? '';
 }
 
+/**
+ * Is this install connected, and if not, WHY (audit 2026-07-27).
+ *
+ * `resolveAccountToken()` returns '' for two very different situations, and the
+ * whole product treated them alike: an unconnected install (silence is correct,
+ * it is the default) and a connection whose credential EXPIRED (silence is a
+ * lie). In the second case every seal and settle stopped reaching the account
+ * while `no_token` kept the sync line suppressed, so the user's surfaces went on
+ * looking exactly as they had the day before. The account quietly stops being
+ * updated and nothing anywhere says so.
+ *
+ *   'none'      no credential file, no ARGUS_TOKEN — never connected
+ *   'expired'   a well-formed stored credential whose expires_at has passed
+ *   'malformed' a credential file we cannot use (corrupt, wrong version)
+ *   'ok'        usable
+ */
+export type AccountCredentialStatus = 'none' | 'expired' | 'malformed' | 'ok';
+
+export function accountCredentialStatus(file = defaultCredentialPath()): AccountCredentialStatus {
+  if (process.env.ARGUS_TOKEN?.trim()) return 'ok';
+  if (readStoredAccountCredential(file)) return 'ok';
+  // Same test-isolation rule as readStoredAccountCredential: never probe a
+  // developer's real config directory just because a status check ran.
+  if (process.env.NODE_ENV === 'test' && !process.env.ARGUS_ACCOUNT_FILE && !process.env.ARGUS_DIR && file === defaultCredentialPath()) {
+    return 'none';
+  }
+  let raw: string;
+  try { raw = fs.readFileSync(file, 'utf8'); } catch { return 'none'; }
+  try {
+    const parsed = JSON.parse(raw) as Partial<StoredAccountCredential>;
+    const looksLikeOurs = parsed.version === 1 && typeof parsed.access_token === 'string' && parsed.access_token.startsWith('argus_pat_');
+    if (!looksLikeOurs) return 'malformed';
+    if (typeof parsed.expires_at === 'string' && Date.parse(parsed.expires_at) <= Date.now()) return 'expired';
+    return 'malformed';
+  } catch {
+    return 'malformed';
+  }
+}
+
 export function resolveAccountApiUrl(): string {
   const manual = process.env.ARGUS_API_URL?.trim();
   if (manual) return manual;

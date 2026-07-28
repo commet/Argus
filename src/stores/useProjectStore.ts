@@ -35,6 +35,10 @@ interface ProjectState {
   loadProjects: () => void;
   createProject: (name: string, description?: string) => string;
   updateProject: (id: string, data: Partial<Project>) => void;
+  updateDecisionContract: (
+    id: string,
+    updater: (contract: Project['decision_contract']) => Project['decision_contract'],
+  ) => void;
   deleteProject: (id: string) => void;
   addRef: (projectId: string, ref: Omit<ProjectRef, 'linkedAt'>) => void;
   setCurrentProjectId: (id: string | null) => void;
@@ -79,6 +83,13 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   },
 
   updateProject: (id, data) => updateItem(KEY, TABLE, () => get().projects, (projects) => set({ projects }), id, data),
+  updateDecisionContract: (id, updater) =>
+    updateNestedField(KEY, TABLE, () => get().projects, (projects) => set({ projects }), id, (project) => {
+      const decisionContract = updater(project.decision_contract);
+      return decisionContract === project.decision_contract
+        ? project
+        : { ...project, decision_contract: decisionContract };
+    }),
   deleteProject: (id) => deleteItem(KEY, TABLE, () => get().projects, (projects) => set({ projects }), () => get().currentProjectId, (cid) => {
     set({ currentProjectId: cid });
     if (cid === null) removeStorage(CURRENT_PROJECT_KEY); // deleted the current project — clear the stored id too

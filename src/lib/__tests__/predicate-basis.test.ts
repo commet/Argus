@@ -20,7 +20,6 @@ import {
   summarizeGrades,
   summarizeRecord,
 } from '../decision-contract';
-import { PREDICATE_BASES } from '@/stores/types';
 import type { DecisionContract, Predicate } from '@/stores/types';
 
 const T0 = new Date('2026-06-08T00:00:00Z').getTime();
@@ -130,18 +129,17 @@ describe('summarizeRecord — luck count aggregates across projects', () => {
   });
 });
 
-describe('cross-surface parity — webapp basis set === plugin settle basis', () => {
-  it('PREDICATE_BASES matches the plugin settle basis values', () => {
-    // The plugin's settle event is now written by the single-source CLI
-    // (decision-ledger.js), which owns the canonical basis enum. Parity is
-    // checked against that source, not the skill prose it used to hand-write.
+describe('foundation settlement supersedes the score-shaped legacy basis input', () => {
+  it('accepts separate settlement axes and rejects --outcome on new records', () => {
     const cli = readFileSync(
       join(process.cwd(), 'argus-plugin-v2/scripts/decision-ledger.js'),
       'utf8',
     );
-    const m = cli.match(/const BASES\s*=\s*\[([^\]]+)\]/);
-    expect(m, 'decision-ledger.js settle must declare a BASES enum').toBeTruthy();
-    const pluginSet = (m![1].match(/"([^"]+)"/g) ?? []).map((s) => s.replace(/"/g, ''));
-    expect([...PREDICATE_BASES].sort()).toEqual(pluginSet.sort());
+    expect(cli).not.toMatch(/const BASES\s*=/);
+    expect(cli).toContain('--outcome is read-compatibility only');
+    expect(cli).toContain('--reality');
+    expect(cli).toContain('--commitment');
+    expect(cli).toContain('--question-validity');
+    expect(cli).toContain('--present-standard');
   });
 });

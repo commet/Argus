@@ -1,0 +1,88 @@
+{
+  "version": 1,
+  "kind_cases": [
+    {
+      "id": "ko-prediction",
+      "statement": "최종 제안서가 오면 역할과 권한이 문서에 있을 것이다.",
+      "expected_kind": "prediction",
+      "expected_rule": "prediction_wording"
+    },
+    {
+      "id": "ko-prediction-formal-ending",
+      "statement": "출시 뒤 전환율이 오를 것으로 예상합니다.",
+      "expected_kind": "prediction",
+      "expected_rule": "prediction_wording"
+    },
+    {
+      "id": "ko-commitment",
+      "statement": "역할과 권한이 문서에 있을 때만 수락하겠다.",
+      "expected_kind": "commitment",
+      "expected_rule": "commitment_wording"
+    },
+    {
+      "id": "ko-declaration",
+      "statement": "나는 직함보다 실제 권한을 우선한다.",
+      "expected_kind": "declaration",
+      "expected_rule": "declaration_wording"
+    },
+    {
+      "id": "en-prediction",
+      "statement": "When the written offer arrives, the role and authority will be explicit.",
+      "expected_kind": "prediction",
+      "expected_rule": "prediction_wording"
+    },
+    {
+      "id": "en-commitment",
+      "statement": "I will accept only if the role and decision rights are written down.",
+      "expected_kind": "commitment",
+      "expected_rule": "commitment_wording"
+    },
+    {
+      "id": "en-declaration",
+      "statement": "My standard is to choose real authority over title.",
+      "expected_kind": "declaration",
+      "expected_rule": "declaration_wording"
+    },
+    {
+      "id": "record-only",
+      "statement": "오늘은 바로 답하지 않기로 했다.",
+      "record_only": true,
+      "expected_kind": "witness",
+      "expected_rule": "record_only_path"
+    },
+    {
+      "id": "explicit-user-correction",
+      "statement": "아직은 잘 모르겠다.",
+      "explicit_kind": "witness",
+      "expected_kind": "witness",
+      "expected_rule": "explicit_kind"
+    }
+  ],
+  "acceptance_narrative": {
+    "origin_utterance": "이 오퍼를 받아도 될지 모르겠어.",
+    "sealed_statement": "역할과 의사결정권이 문서에 남을 때만 수락한다.",
+    "kind": "commitment",
+    "review_condition_status": "answered",
+    "review_condition": "최종 서면 오퍼에서 역할과 의사결정권을 확인할 수 있다.",
+    "return_event": "최종 서면 오퍼가 도착한다.",
+    "fallback_review_at": "2026-08-20T00:00:00.000Z",
+    "settlement": {
+      "response_text": "권한은 여전히 구두 약속뿐이라 오퍼를 거절했다.",
+      "axes": {
+        "commitment": "maintained",
+        "question": "narrowed"
+      },
+      "authorization": {
+        "authorized_by": "human",
+        "authorization_mode": "explicit_confirmation",
+        "surface": "web",
+        "authorization_ref": "fixture:return:offer-1",
+        "authorized_at": "2026-08-20T00:00:00.000Z"
+      },
+      "present_standard": {
+        "status": "same",
+        "response_text": "역할보다 실제 의사결정권이 명시돼야 한다."
+      }
+    }
+  }
+}

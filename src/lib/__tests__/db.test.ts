@@ -12,6 +12,17 @@ vi.mock('@/lib/error-handler', () => ({
   handleError: vi.fn(),
 }));
 
+const syncMocks = vi.hoisted(() => ({
+  failures: 0,
+  success: vi.fn(),
+}));
+
+vi.mock('@/lib/sync-health', () => ({
+  getSyncFailureCount: () => syncMocks.failures,
+  reportSyncFailure: () => { syncMocks.failures++; },
+  reportSyncSuccess: syncMocks.success,
+}));
+
 import { mergeByTimestamp, loadAndMerge, syncToSupabase, upsertToSupabase } from '@/lib/db';
 import { supabase, getCurrentUserId } from '@/lib/supabase';
 import { getStorage, setStorage } from '@/lib/storage';
@@ -223,6 +234,23 @@ describe('loadAndMerge — tombstone propagation (P1-C7)', () => {
       [expect.objectContaining({ id: 'decision-1', name: 'locally updated', user_id: 'user-1' })],
       { onConflict: 'id' },
     );
+  });
+
+  it('reports synced when a retry proves local and remote are already identical', async () => {
+    vi.mocked(getCurrentUserId).mockResolvedValue('user-1');
+    const item = { id: 'decision-1', name: 'already backed up', updated_at: '2026-07-24T10:00:00Z' };
+    vi.mocked(getStorage).mockImplementation(() => ([item]));
+    const upsert = vi.fn().mockResolvedValue({ error: null });
+    const order = vi.fn().mockResolvedValue({ data: [item], error: null });
+    const eq = vi.fn(() => ({ order }));
+    const select = vi.fn(() => ({ eq }));
+    vi.mocked(supabase.from).mockReturnValue({ select, upsert } as never);
+    syncMocks.success.mockClear();
+
+    await loadAndMerge<TestItem>('projects', 'sot_projects');
+
+    expect(upsert).not.toHaveBeenCalled();
+    expect(syncMocks.success).toHaveBeenCalledTimes(1);
   });
 });
 

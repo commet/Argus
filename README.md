@@ -3,7 +3,7 @@
 </p>
 <p align="center"><em>
 Odysseus bound himself before the Sirens sang.<br>
-Argus binds a decision to its premises and prediction before fluency — or hindsight — can rewrite them.
+Argus binds a decision to its premises and return condition before fluency — or hindsight — can rewrite them.
 </em></p>
 
 <h1 align="center">Argus</h1>
@@ -13,7 +13,7 @@ Argus binds a decision to its premises and prediction before fluency — or hind
 
 <p align="center">
   <a href="https://www.npmjs.com/package/argus-decision-mcp"><img src="https://img.shields.io/npm/v/argus-decision-mcp?color=A8842F&label=npm%20%C2%B7%20argus-decision-mcp" alt="npm version"></a>
-  <img src="https://img.shields.io/badge/Claude%20Code%20plugin-argus%402.10.0-667572" alt="Claude Code plugin">
+  <img src="https://img.shields.io/badge/Claude%20Code%20plugin-argus%402.19.1-667572" alt="Claude Code plugin">
   <img src="https://img.shields.io/badge/license-open--core-6E8261" alt="license: open-core">
   <img src="https://img.shields.io/badge/local--first-no%20account%20needed-242321" alt="local-first">
 </p>
@@ -22,15 +22,16 @@ Argus binds a decision to its premises and prediction before fluency — or hind
   <a href="https://argus.voyage"><strong>Web app</strong></a> ·
   <a href="#-try-it-in-30-seconds">Install</a> ·
   <a href="#what-argus-does">What it does</a> ·
-  <a href="#the-judgment-receipt">The receipt</a> ·
+  <a href="#the-judgment-record">The record</a> ·
   <a href="#license">License</a> ·
   <a href="./README.ko.md">한국어</a>
 </p>
 
-Argus records the judgment *behind* a decision — the premises it rests on,
-**whose premise is whose** (yours vs. the AI's), and one falsifiable prediction —
-then comes back when reality answers. Not a better answer: a **living record of
-your calls**, settled against what actually happened.
+Argus records the judgment *behind* a decision — your first words, the premises
+it rests on, **whose wording is whose** (yours vs. the AI's), and what should
+bring it back. The record may be a claim reality can answer, a commitment, a
+standard you chose, or simply a moment worth preserving. Not a better answer: a
+living, append-only record of your calls.
 
 ---
 
@@ -50,7 +51,8 @@ door. It **remembers what you believed** when you decided, **notices the hidden
 premise** under the fluent answer, **keeps watch** on the signals you chose, and
 **returns first** when reality has an answer.
 
-It never decides for you. `AI VERDICT` stays `NONE` — reality does the grading.
+It never decides for you, and it never grades the person. Reality can answer a
+claim; only you can answer what happened to your commitment or standard.
 
 ---
 
@@ -77,13 +79,13 @@ Two things — and the second is the one most tools skip.
 Work with an AI long enough and its assumptions quietly blend into yours. Argus
 pulls them apart and keeps them honest:
 
-- **Remember exactly.** Your words, your premises, your prediction — and *whose*
+- **Remember exactly.** Your words, your premises, your confirmed call — and *whose*
   each one is. Every premise stays tagged as yours or the AI's, so something the
   model surfaced never quietly becomes your belief.
 - **Notice beneath the surface.** It surfaces the hidden premise and the real
   question under the fluent answer — without choosing a side for you.
 
-### ② After you decide — it keeps watch and lets reality grade it
+### ② After you decide — it keeps watch and returns when the question is answerable
 
 - **Keep watch honestly.** It tracks only the signals *you* chose, and re-checks
   the load-bearing premises while your decisions are still open. If several
@@ -92,8 +94,9 @@ pulls them apart and keeps them honest:
   alerts.
 - **Return first.** It comes back on the date you set — or earlier, when a watched
   premise materially moves.
-- **Keep the receipt, not a verdict.** Reality answers, you record, and Argus keeps
-  the receipt. `AI VERDICT` remains `NONE`.
+- **Keep the chronology, not a verdict.** Argus shows the original first. You
+  append what reality showed, what happened to the commitment, and whether the
+  original question still makes sense. No score is stored.
 
 ---
 
@@ -101,14 +104,16 @@ pulls them apart and keeps them honest:
 
 Everywhere Argus runs, the loop is the same:
 
-1. **Record & separate** — the decision, the premises it rests on, and whose each
-   premise is (yours vs. the AI's), in your own words.
-2. **Seal** one falsifiable prediction with a check-by date.
-3. **Wait quietly** — no nagging; if a watched premise shifts or the date arrives,
+1. **Record & separate** — keep the first utterance, the confirmed wording, and
+   whether an AI suggestion was adopted.
+2. **Make it answerable** — choose what kind of question it is and a useful event
+   or fallback date. A moment kept only for the record needs no return.
+3. **Wait quietly** — no nagging; if the named event happens or the date arrives,
    Argus says so once.
-4. **Settle** against what actually happened. You answer; the model never grades.
-5. **Keep the receipt** — settled predictions become a track record you can
-   inspect: how well calibrated you were, and which principles held up.
+4. **Return original-first** — you answer reality, commitment, and question
+   validity separately. The model never invents the answer.
+5. **Keep the chronology** — later wording and answers append. Earlier wording
+   stays intact, and no person-level score or win rate is stored.
 
 <details>
 <summary>What that looks like at each door</summary>
@@ -116,8 +121,8 @@ Everywhere Argus runs, the loop is the same:
 - **Web app** — write the decision in one line (or upload a strategy doc); an AI
   crew surfaces the hidden premises, marks what only a human can call, and alerts
   you when a premise changes.
-- **MCP server** — talk about a decision naturally in any chat; Argus captures it,
-  seals the prediction, and pulls you back on the check-by date.
+- **MCP server** — talk about a decision naturally in any chat; Argus preserves
+  the user-authorized record and pulls it back on its event or fallback date.
 - **Claude Code plugin** — five commands over your real code and PRs:
   `/argus:review` (deep pressure-test, explicit opt-in) · `/argus:check` ·
   `/argus:history` · `/argus:settings` · `/argus:help`.
@@ -126,29 +131,31 @@ Everywhere Argus runs, the loop is the same:
 
 ---
 
-## The Judgment Receipt
+## The Judgment Record
 
-The artifact at the end. Notice the split: **what the AI assumed** (still
-unverified) sits apart from **the call only you could make** — and the model's
-verdict is, by design, `NONE`.
+The artifact across time. Notice the split: **what the AI proposed** stays apart
+from **the wording you authorized**. A later answer appends; it does not rewrite
+the earlier statement.
 
 ```
-┌─ ARGUS · JUDGMENT RECEIPT ────────────────────────────────┐
-  Prediction saved 2026-04-02      Result recorded 2026-06-30
+┌─ ARGUS · JUDGMENT RECORD ─────────────────────────────────┐
+  Confirmed 2026-04-02       Returned 2026-06-30
 
-  THE REAL QUESTION
-    Can we cut over without a maintenance window users notice?
-  THE UNVERIFIED ASSUMPTION      (the AI's)
+  FIRST WORDS
+    "Can we cut over without a maintenance window users notice?"
+  AI-SURFACED ASSUMPTION
     The index rebuild fits inside the replication lag budget.
-  HUMAN-ONLY CALL   Whether a 5-minute blip is acceptable.
-  …made by          Me. (not the model)
+  MY CONFIRMED CALL
+    "Proceed only if measured downtime stays under 5 minutes."
+  RETURN CONDITION
+    After the production cutover · fallback 2026-06-30
 
-  YOU PREDICTED   "Cutover downtime is under 5 minutes"   (check-by 2026-06-30)
-  WHAT HAPPENED   Cutover took 3 minutes, no customer reports.
+  REALITY         Cutover took 3 minutes, no customer reports.
+  STANDARD NOW    Still the same.
+  QUESTION        Still valid.
   ─────────────────────────────────────────────────────────
-  AI VERDICT ON THIS DECISION ······················  NONE
-  The model never graded you. Reality did.
-└──────────────────────────  argus · prediction → reality ─┘
+  NO PERSON-LEVEL SCORE OR WIN RATE IS STORED.
+└────────────────────── argus · statement → return → answer ┘
 ```
 
 ---
@@ -157,20 +164,20 @@ verdict is, by design, `NONE`.
 
 | | Answer tools | **Argus** |
 |---|---|---|
-| Output | a more plausible answer | a **judgment receipt** — prediction → reality |
-| Whose reasoning it keeps | the model's answer | **yours** — your premises and prediction, tagged apart from the AI's |
-| Who evaluates | the model (scores, confidence) | **nobody** — `AI VERDICT: NONE`; reality settles on the date you set |
-| After the chat ends | the reasoning evaporates | Argus **comes back** — check-by dates, premise-change alerts |
-| What accumulates | an implicit profile of you | **a record you own**: settled predictions, your calibration, principles that held up |
+| Output | a more plausible answer | an **append-only judgment record** |
+| Whose reasoning it keeps | the model's answer | **yours**, with AI proposals and adoption lineage kept separate |
+| Who evaluates | the model (scores, confidence) | **nobody scores the person**; reality and the user's later answer remain separate facts |
+| After the chat ends | the reasoning evaporates | Argus **comes back** — named events plus a fallback date |
+| What accumulates | an implicit profile of you | **a chronology you own**: original wording, revisions, conditions, observations, and answers |
 
 ---
 
 ## An honest promise about your data
 
-- **Local first.** The ledger lives in `~/.argus` (MCP/plugin) and your browser
+- **Local first.** The ledger lives in the current project's `.argus` directory (MCP/plugin) and your browser
   (web). Uninstalling never deletes your records.
-- **No verdict — structurally.** There is no scoring tool to call. The receipt's
-  last line is the product's signature, not a marketing slogan.
+- **No human score — structurally.** There is no scoring tool to call, and new
+  foundation records reject score-shaped fields at the storage boundary.
 - **No silent profiling.** Derived patterns about you are excluded from prompts by
   default; anything that would use them needs your explicit, scoped, revocable
   grant — and leaves a visible trace.
@@ -193,7 +200,7 @@ Cursor, …). The fastest path, in Claude Code:
 claude mcp add argus "--" npx -y argus-decision-mcp
 ```
 
-Zero config works — your ledger lives in `~/.argus`. For the full config (Claude
+Zero config works — your ledger lives in the current project's `.argus`. For the full config (Claude
 Desktop, Windows, per-project ledgers, optional account sync) and the six tools,
 see **[argus-mcp/README.md](./argus-mcp/README.md)**.
 

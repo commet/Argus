@@ -6,11 +6,12 @@ import {
   ListResourceTemplatesRequestSchema,
   ReadResourceRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
-import { PUBLIC_TOOLS, TOOL_MAP, servedPublicTools } from './tools/index.js';
+import { TOOLS, TOOL_MAP, servedPublicTools } from './tools/index.js';
 import { listResources, listResourceTemplates, readResource } from './resources.js';
 import { SERVER_INSTRUCTIONS } from './lib/spine.js';
 import { setElicitor } from './lib/elicit.js';
-import { initAmbientElicit, armAmbientElicit } from './lib/ambient-elicit.js';
+import { setAppsCapability, withUiMeta, UI_EXTENSION_ID } from './lib/apps-ui.js';
+import { initAmbientElicit, armAmbientElicit, attachAmbientNote } from './lib/ambient-elicit.js';
 import { settle } from './tools/settle.js';
 import { appendDueNote } from './lib/due-note.js';
 import { logError } from './lib/log.js';
@@ -65,6 +66,13 @@ export async function createServer(): Promise<Server> {
     (message, requestedSchema) => ec.elicitInput({ message, requestedSchema }),
     () => Boolean(ec.getClientCapabilities?.()?.elicitation),
   );
+  // MCP Apps (SEP-1865): same declared-capability pattern. Hosts that announce
+  // the io.modelcontextprotocol/ui extension get the settle CARD (tool _meta.ui
+  // + awaiting_picker path); everyone else keeps the elicitation/text flow.
+  setAppsCapability(() => {
+    const caps = ec.getClientCapabilities?.() as { extensions?: Record<string, unknown> } | undefined;
+    return Boolean(caps?.extensions?.[UI_EXTENSION_ID]);
+  });
 
   // Resources — read-only context (blueprint §4.3).
   server.setRequestHandler(ListResourcesRequestSchema, async () => listResources());
@@ -77,7 +85,7 @@ export async function createServer(): Promise<Server> {
 
   // Single source (tools/index.ts): builds the descriptors AND runs schemas
   // through publicCopy so a legacy tool name in a field description can't leak.
-  server.setRequestHandler(ListToolsRequestSchema, async () => ({ tools: servedPublicTools() }));
+  server.setRequestHandler(ListToolsRequestSchema, async () => ({ tools: withUiMeta(servedPublicTools()) }));
 
   // Serialize tool calls so concurrent invocations can't interleave a
   // read-replay-then-append against the same ledger (real hosts already wait
@@ -104,11 +112,7 @@ export async function createServer(): Promise<Server> {
   server.setRequestHandler(CallToolRequestSchema, async (request): Promise<any> => {
     const { name, arguments: args } = request.params;
     const tool = TOOL_MAP.get(name);
-    // The v6 semantic recorder is a P4 pilot. Keeping it out of discovery is
-    // not enough: a cached or hand-written client must not be able to invoke it
-    // until the operator explicitly opts in.
-    const pilotDisabled = name === 'argus_record' && process.env['ARGUS_DKK_V6_PILOT'] !== '1';
-    if (!tool || pilotDisabled) {
+    if (!tool) {
       return {
         content: [{ type: 'text' as const, text: JSON.stringify({ ok: false, error_code: 'UNKNOWN_TOOL', message: `Unknown tool: ${name}` }) }],
         isError: true,
@@ -123,7 +127,7 @@ export async function createServer(): Promise<Server> {
     // control must not become part of the public MCP schema users and models
     // have to understand.
     const hiddenTestClock = process.env['NODE_ENV'] === 'test'
-      && PUBLIC_TOOLS.some((candidate) => candidate.name === name)
+      && TOOLS.some((candidate) => candidate.name === name)
       && typeof rawArgs['today_override'] === 'string';
     const validationArgs = hiddenTestClock
       ? Object.fromEntries(Object.entries(rawArgs).filter(([key]) => key !== 'today_override'))
@@ -191,13 +195,21 @@ export async function createServer(): Promise<Server> {
       // session goes quiet; a check_in call spends the budget instead (the user
       // just saw their dues). Never throws, never taxes this call.
       armAmbientElicit(name, callArgs);
-      return appendDueNote(name, callArgs, result);
+      // 밖에서 물어본 답의 결말을 한 줄로 돌려준 뒤 due 꼬리를 붙인다 (순서:
+      // 확인이 먼저 — 사용자가 방금 한 행동의 결과가 due 안내보다 앞선다).
+      let dirForNote: string | null = null;
+      try { dirForNote = resolveToolArgusDir(callArgs['argus_dir']); } catch { /* unbound — no note */ }
+      return appendDueNote(name, callArgs, attachAmbientNote(result, dirForNote));
     } catch (e) {
       recordToolCall(name, false);
       // Last-resort guard — individual handlers already map their own errors.
       logError(`[${name}] escaped handler`, e);
       return {
-        content: [{ type: 'text' as const, text: JSON.stringify({ ok: false, error_code: 'INTERNAL_ERROR', message: String(e) }) }],
+        content: [{ type: 'text' as const, text: JSON.stringify({
+          ok: false,
+          error_code: 'INTERNAL_ERROR',
+          message: 'Argus could not complete the request. Check the server log and retry.',
+        }) }],
         isError: true,
       };
     }

@@ -1,55 +1,50 @@
 'use client';
 
 /**
- * RecordStrip — the 자차표 as ONE component (P1-A2 = 08 S2).
+ * A quiet inventory of the user's own records.
  *
- * The user's accumulating record of closed loops, rendered identically on
- * /project (its original home) and /tools/review, with the workspace header
- * reading its compact form from the same lib (record-summary.ts). Numbers come
- * from two brains merged at the DISPLAY layer only: summarizeRecord (project
- * decision contracts) ⊕ summarizeReviewRecord (review receipts). Tables stay
- * separate (master §5-12).
- *
- * Spine: counts of what happened, never a score. The dim9 gate
- * (recordDisclosure) runs on the MERGED settled count — below the threshold
- * the honest italic renders; at/after it, a plain date fact ("기록 시작 …",
- * P1-A5) takes its place. All user data renders as JSX text nodes (XSS 헌법).
+ * This deliberately counts only two neutral facts: how many records exist and
+ * how many times the user returned to append a later answer. It never rolls
+ * answers up into hits, misses, luck, accuracy, maturity, or a proxy score.
  */
 
 import { useEffect } from 'react';
 import { useProjectStore } from '@/stores/useProjectStore';
 import { useReviewStore } from '@/stores/useReviewStore';
 import { useLocale } from '@/hooks/useLocale';
-import { summarizeRecord, recordDisclosure } from '@/lib/decision-contract';
-import {
-  summarizeReviewRecord,
-  recordStripLine,
-  recordStartDate,
-} from '@/lib/record-summary';
+import { summarizeReviewRecord, recordStartDate } from '@/lib/record-summary';
 
 export function RecordStrip({ className }: { className?: string }) {
   const locale = useLocale();
   const L = (ko: string, en: string) => (locale === 'ko' ? ko : en);
-  const projects = useProjectStore((s) => s.projects);
-  const loadProjects = useProjectStore((s) => s.loadProjects);
-  const receipts = useReviewStore((s) => s.receipts);
-  const loadReceipts = useReviewStore((s) => s.load);
+  const projects = useProjectStore((state) => state.projects);
+  const loadProjects = useProjectStore((state) => state.loadProjects);
+  const receipts = useReviewStore((state) => state.receipts);
+  const loadReceipts = useReviewStore((state) => state.load);
 
-  // localStorage-first: both halves of the record must be present wherever the
-  // strip renders (/tools/review doesn't otherwise load projects, and vice
-  // versa). Loads are idempotent local+remote merges.
   useEffect(() => {
     loadProjects();
     loadReceipts();
   }, [loadProjects, loadReceipts]);
 
-  const record = summarizeRecord(projects || [], Date.now());
   const review = summarizeReviewRecord(receipts || []);
-  const mergedSettled = record.loops + review.settled;
-  if (mergedSettled === 0) return null;
+  const projectRecords = (projects || []).filter(
+    (project) => project.decision_contract && project.decision_contract.origin !== 'retro',
+  );
+  const projectReturns = projectRecords.reduce((total, project) => {
+    const contract = project.decision_contract!;
+    if (contract.settlements?.length) return total + contract.settlements.length;
+    return total + (contract.judgment_receipt?.settled_at ? 1 : 0);
+  }, 0);
+  const reviewRecords = (receipts || []).reduce(
+    (total, receipt) => total
+      + (receipt.falsifiable_followups || []).filter((followup) => followup.sealed_at).length,
+    0,
+  );
+  const recordCount = projectRecords.length + reviewRecords;
+  const returnCount = projectReturns + review.settled;
+  if (recordCount === 0) return null;
 
-  // Dim9 gate on the MERGED count — the same number both clauses sum to.
-  const reveal = recordDisclosure({ ...record, loops: mergedSettled });
   const since = recordStartDate(projects || [], receipts || []);
 
   return (
@@ -57,20 +52,17 @@ export function RecordStrip({ className }: { className?: string }) {
       className={`rounded-xl border border-[var(--border-subtle)] bg-[var(--surface)] px-4 py-2.5 flex items-baseline gap-2.5 ${className || ''}`}
     >
       <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--text-tertiary)] shrink-0">
-        {L('나의 기록', 'Your record')}
+        {L('나의 기록', 'Your records')}
       </span>
       <span className="text-[13px] text-[var(--text-secondary)] leading-snug">
-        {recordStripLine(record, review, locale)}
+        {L(
+          `남긴 판단 ${recordCount}건 · 다시 돌아와 답한 기록 ${returnCount}건`,
+          `${recordCount} record${recordCount === 1 ? '' : 's'} · ${returnCount} revisited`,
+        )}
       </span>
-      {/* Below the threshold: the honest "not yet a track record" italic.
-          At/after it (P1-A5): the italic seat becomes a plain date fact. */}
-      {!reveal.showStats ? (
-        <span className="text-[11px] text-[var(--text-tertiary)] italic shrink-0">
-          {L('아직 확정된 기록은 아님', 'not yet a track record')}
-        </span>
-      ) : since ? (
+      {since ? (
         <span className="text-[11px] text-[var(--text-tertiary)] shrink-0">
-          {L(`기록 시작 ${since}`, `on record since ${since}`)}
+          {L(`기록 시작 ${since}`, `since ${since}`)}
         </span>
       ) : null}
     </div>

@@ -784,6 +784,88 @@ export interface LeanAfter {
   recorded_at: string;
 }
 
+/** The speech act the sealed sentence performs. Legacy records without this
+ * field are read as `prediction`; every new seal writes it explicitly. */
+export type DecisionKind = 'prediction' | 'commitment' | 'declaration' | 'witness';
+
+/** Why the sealing surface derived a kind. This is evidence of the capture
+ * path, not a model confidence score. The user's correction always wins. */
+export interface DecisionKindEvidence {
+  source: 'wording_rule' | 'elicitation_answer' | 'user_override' | 'legacy_default';
+  rule: string;
+  question?: string;
+  answer?: string;
+  recorded_at: string;
+}
+
+/** A pre-seal chip correction. It remains append-only evidence of how the
+ * machine read the sentence and how the user corrected that read. */
+export interface DecisionKindCorrection {
+  event: 'kind_corrected';
+  from_kind: DecisionKind;
+  to_kind: DecisionKind;
+  corrected_at: string;
+  evidence: DecisionKindEvidence;
+}
+
+/** A user-authored post-seal revision. The previous wording remains
+ * addressable; the latest revision is only the current projection. */
+export interface DecisionStatementRevision {
+  event: 'statement_revised';
+  from_statement: string;
+  to_statement: string;
+  reason?: string;
+  recorded_at: string;
+}
+
+export type ReviewConditionStatus = 'answered' | 'skipped' | 'not_asked';
+
+/** Genealogy of an adopted machine proposal. Adoption transfers authority for
+ * a purpose; it never rewrites who originally phrased the proposal. */
+export interface AdoptionLineage {
+  source_proposal_ref: string;
+  adopted_as: 'basis' | 'check' | 'wording';
+}
+
+export type ObservationSourceKind = 'user_report' | 'system_receipt' | 'ai_analysis';
+
+export interface SettlementAxes {
+  reality?: 'met' | 'not_met' | 'partial' | 'unknown' | 'not_observable';
+  commitment?: 'enacted' | 'maintained' | 'revised' | 'withdrawn' | 'superseded';
+  question: 'valid' | 'narrowed' | 'reframed' | 'moot' | 'indeterminate';
+}
+
+/** One return in the user's own words. The selected label is canonical;
+ * `axes` is a deterministic projection and is never combined into a score. */
+export interface ContractSettlement {
+  option_id: string;
+  response_text: string;
+  recorded_at: string;
+  axes: SettlementAxes;
+  /** Receipt for the exact user act that authorized this return. Optional only
+   * on legacy history; every current web/Telegram writer supplies it. The
+   * stable reference also makes redelivered callbacks idempotent. */
+  authorization?: {
+    authorized_by: 'human';
+    authorization_mode: 'explicit_confirmation' | 'direct_command';
+    surface: 'web' | 'telegram' | 'plugin' | 'mcp';
+    authorization_ref: string;
+    authorized_at: string;
+  };
+  /** Optional recall captured before the sealed statement was revealed.
+   * Absent by default; persisted only after an explicit user opt-in. */
+  memory_before_reveal?: {
+    text: string;
+    saved_at: string;
+  };
+  present_standard?: {
+    status: 'same' | 'changed' | 'withdrawn' | 'skipped';
+    response_text?: string;
+    recorded_at: string;
+  };
+  observation_source_kind?: ObservationSourceKind;
+}
+
 /** One unverified fact the honesty scan (loop-17) flagged in the analysis, carried
  *  into the contract at seal so the settle screen can ask "did you check it?".
  *  This is the mirror-not-oracle move: Argus doesn't answer the fact, it remembers
@@ -810,6 +892,32 @@ export interface DecisionContract {
   id: string;
   project_id: string;
   predicates: Predicate[];
+  /** Internal persistence guard. Version 2 requires exact AI-adoption lineage
+   * and a verbatim present-standard response on every new settlement. */
+  integrity_version?: 2;
+  /** Counts history that existed before a legacy contract first opted into the
+   * v2 guard. The database fixes this value at upgrade time; it is never a
+   * client-controlled escape hatch for new records. */
+  integrity_baseline?: {
+    settlement_count: number;
+  };
+  /** New writes always set these fields. Optional only for legacy JSON. */
+  kind?: DecisionKind;
+  /** The exact first statement authorized at seal. Later wording changes live
+   * only in statement_revisions; predicate/check edits never redefine this. */
+  sealed_statement?: string;
+  kind_evidence?: DecisionKindEvidence;
+  kind_corrections?: DecisionKindCorrection[];
+  statement_revisions?: DecisionStatementRevision[];
+  origin_utterance?: string;
+  review_condition_status?: ReviewConditionStatus;
+  review_condition?: string;
+  /** Optional event that can bring the record back before the fallback date. */
+  return_event?: string;
+  /** Proposal genealogy when the sealed wording/basis/check began as AI output. */
+  adoption_lineage?: AdoptionLineage[];
+  /** Append-only settlement records; legacy predicate verdicts remain read-only. */
+  settlements?: ContractSettlement[];
   /** loop-17 B — unverified facts to check, surfaced at settle. Absent on legacy /
    *  when the scan found nothing carriable. Auto-derived at seal (deriveOpenChecks). */
   open_checks?: OpenCheck[];
@@ -1686,6 +1794,19 @@ export interface ProgressiveSession {
   project_id: string;
   problem_text: string;
   decision_maker: string | null;
+  /**
+   * Standard is the judgment harness: analysis, user questions, one synthesis.
+   * Deep explicitly opts into the bounded specialist/critic execution path.
+   * Optional for backward compatibility; missing always means standard.
+   */
+  judgment_mode?: 'standard' | 'deep';
+  /** Pinned at authorization so a later provider switch cannot silently move
+   * a BYOK run onto Argus-funded infrastructure. */
+  deep_funding?: 'platform' | 'byok' | null;
+  /** When the platform-funded daily deep pass was reserved, or when a BYOK
+   * user explicitly enabled it. Kept on the session so reload resumes the same
+   * authorized loop instead of consuming/asking for another pass. */
+  deep_authorized_at?: string | null;
 
   // Flow state
   phase: ProgressivePhase;

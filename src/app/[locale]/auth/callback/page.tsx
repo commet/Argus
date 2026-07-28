@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase';
 import { useLocale } from '@/hooks/useLocale';
 import { useLocaleRouter } from '@/hooks/useLocaleRouter';
 import { safePostAuthRedirect } from '@/lib/auth-redirect';
+import { claimAnonymousAccountTransfer } from '@/lib/anonymous-account-transfer';
 
 export default function AuthCallbackPage() {
   const router = useLocaleRouter();
@@ -46,6 +47,12 @@ export default function AuthCallbackPage() {
           if (timeoutId) clearTimeout(timeoutId);
         }
       }
+
+      // Complete ownership transfer before leaving the callback page. The auth
+      // provider also retries this on SIGNED_IN, but awaiting it here prevents a
+      // fast redirect from aborting the only in-flight request after OAuth/email
+      // confirmation.
+      await claimAnonymousAccountTransfer();
 
       const stashed = sessionStorage.getItem('argus:postAuthRedirect');
       if (stashed) sessionStorage.removeItem('argus:postAuthRedirect');

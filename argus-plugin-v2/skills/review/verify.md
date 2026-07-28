@@ -112,11 +112,11 @@ be filled: `mix.sections[]` carry the contributing worker id(s) (team Step 8
 records which worker(s) fed each section); `scaffold.hidden_assumptions[]` /
 `next_actions[]` / `team_contradictions[]` likewise trace to their originating
 worker(s). When a candidate cannot be traced to any worker (pure synthesis), set
-`source_worker_ids: ["navigator"]` — never leave it empty (an untraceable claim
+`source_worker_ids: ["synthesizer"]` — never leave it empty (an untraceable claim
 must not silently escape the flag). A claim whose `source_worker_ids` intersects
 the **Step 1 flagged-worker set** is pre-flagged: it skips Step 3 and enters Step 4
 already challenged, and cannot become `supported_claims[]` on plausibility alone.
-A `["navigator"]`-only claim (pure synthesis, no domain worker behind it) likewise
+A `["synthesizer"]`-only claim (pure synthesis, no domain worker behind it) likewise
 enters Step 4 **pre-flagged** — it needs real evidence to pass. The Synthesizer is the
 synthesizer and never appears in the flagged-worker set, so without this rule an
 untraceable synthesis claim would be structurally exempt from every flag.
@@ -138,7 +138,7 @@ For each claim, ask:
   - **Lineage echo guard:** a worker that did NOT read another worker before
     writing is less contaminated for contradiction coverage, but is still not
     independent reality evidence. A **stage-2** critique
-    worker (e.g. donghyuk) is *given* stage-1 results as input (team Step 6), so
+    worker (e.g. risk-reviewer) is *given* specialist results as input, so
     its matching statement is downstream restatement, not corroboration, and
     is explicitly an echo. Its *challenges* still count as negative signal in
     Step 4; its agreement adds no positive weight.
@@ -236,7 +236,7 @@ Claims failing checks become `challenged_claims[]`:
   "challenge": "What is wrong or under-evidenced",
   "severity": "critical|important|minor",
   "suggested_fix": "Concrete repair",
-  "owner_agent_id": "donghyuk"
+  "owner_agent_id": "risk-reviewer"
 }
 ```
 

@@ -70,9 +70,8 @@ every one in the card.
 The default entry point. The argument is plain prose — quotes are optional
 (`/argus:review PR 12 머지해도 되나` works as-is), and when the text names a PR,
 issue, file, branch, or document, clarify detects and reads that artifact
-(see clarify §Inputs); the user never needs reference syntax. Claude may also
-invoke this skill WITHOUT the slash command when the user's plain request
-matches the description triggers — treat that invocation identically:
+(see clarify §Inputs); the user never needs reference syntax. Run this skill
+only after an explicit `/argus:review`; a description match is not authorization:
 
 - `/argus:review "<problem description>"`
 - `/argus:review "PR 12 머지해도 되나?"` (prose target — clarify expands it)
@@ -103,7 +102,7 @@ defers here):
 3. **Developer mode (working inside the Argus repo):**
    `<repo>/argus-plugin-v2/data/` and `<repo>/argus-plugin-v2/lib/`.
 
-Directory contents: `data/` = schemas, agents.yaml, boss-types.yaml,
+Directory contents: `data/` = schemas, boss-types.yaml,
 classification.yaml, prompts/; `lib/` = locale-conventions.md,
 config.example.yaml, rehearsal-prompt.md, session/ (session-layout.md,
 version-numbering.md).
@@ -121,14 +120,8 @@ Session artifacts live in:
 
 ## Step 0 - Load Config
 
-**Zero-droppings rule for auto-invocation.** When sail was triggered from a
-plain natural-language request (no explicit `/argus:review`), do NOT create
-`.argus/` or any file yet. Hold all writes in memory through clarify's initial
-analysis; create `.argus/` only once the decision is confirmed non-trivial
-(`decision_density` medium/high, or the user engages with a question). If the
-density turns out low, answer with the minimal card inline and write
-NOTHING — a mistaken auto-trigger must leave the user's repo byte-identical.
-Explicit `/argus:review` invocations create files as written below.
+**Explicit-only rule.** Without an explicit `/argus:review`, do not run this
+pipeline and do not create any session files.
 
 Read `.argus/config.yaml`.
 
@@ -660,7 +653,8 @@ the after-reading can never drift from what settle/journal replay):
 
 ```bash
 node "${CLAUDE_PLUGIN_ROOT}/scripts/decision-ledger.js" wake "lean:<session-id>" \
-  --lean-after "<held: the lean verbatim; moved: the user's new line>" [--changed]
+  --lean-after "<held: the lean verbatim; moved: the user's new line>" [--changed] \
+  --authorization-ref "plugin:review:<session-id>:wake"
 ```
 
 - Pass `--changed` ONLY when the read moved; omit it when it held.
@@ -734,6 +728,13 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/decision-ledger.js" wake "lean:<session-id>"
      poles** ("the only reversible one", "the real answer is a third thing"). A
      genuinely material third option becomes a peer pole at parity, never the
      recommendation.
+  5. **The satellite fields must be pole-neutral.** On a `fork`, `fog_or_reef`
+     attaches to the CRUX (the fact that decides between the poles), never to
+     only one pole's premise; `contract_seed` models the crux or is `null`,
+     never a scenario of just one pole; `next_helm` is an action that serves
+     BOTH poles (a check, a probe, a source pull), never a first step down one
+     of them. A neutral prose read with tilted satellites is still a verdict —
+     the 2026-07-26 live eval's modal fork flag was exactly this leak.
   The crux MUST still be surfaced — flattening tilt never means dropping the
   fork (this guards must-fire value).
 - **Refuse identity/moral verdicts.** Do not render — or seal as a contract — a

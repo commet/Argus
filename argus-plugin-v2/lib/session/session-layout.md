@@ -201,7 +201,7 @@ surface view reflects the active draft's scaffold.
 | `the verify step (review)` | `verification.json`, updated `scaffold.json` verification summary, updated `session.json` verification state |
 | `/argus:review` Step 7 | `current_bearing.json` for medium/high paths |
 | `the boss step (review)` | `boss_feedback.json`, updated `scaffold.json` with applied/rejected concerns; in session.json only the active draft's `boss_reviewed: true` flag + `phase` (boss does NOT touch `reviewing_agent_id` — that marks who produced a draft, not who reviewed it) |
-| `the revise step (review)` | writes a transient `pending_revision.json` (session level, consumed by team), then via `the team step (review) --revise` creates a new **child** version dir (full artifacts, write-once) and appends a child Draft (`directive`, `reviewing_agent_id: navigator`); then `the verify step (review)` re-verifies. The parent draft is untouched. |
+| `the revise step (review)` | writes a transient `pending_revision.json`, creates a write-once child version with `reviewing_agent_id: synthesizer`, then re-verifies material changes. The parent draft is untouched. |
 | `/argus:resolve` | appends `harvest`/`seal` (read-seed import), `settle`, or `amend` events to `.argus/ledger/ledger.jsonl` — append-only, never touches session dirs |
 | `/argus:journal`, `/argus:help`, `/argus:versions` (default) | read-only — write nothing |
 

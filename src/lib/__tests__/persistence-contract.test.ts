@@ -81,6 +81,7 @@ const ROGUE_ALLOWLIST: Record<string, string> = {
   argus_eval_refine: '로컬 평가 데이터 — 개인 픽스처, 동기화 대상 아님 (eval-engine.ts)',
   argus_metrics: '스토리지 키 아님 — 운영자 계기판 집계용 Postgres RPC 이름 (admin/page.tsx, supabase.rpc)',
   argus_pat_: '스토리지 키 아님 — 플러그인 푸시 개인 액세스 토큰(PAT)의 접두사. 원문은 어디에도 저장 안 함, sha256 해시만 plugin_tokens 테이블에 (api/plugin/ingest·token)',
+  argus_anon_transfer: 'localStorage가 아닌 HttpOnly·SameSite 일회용 계정 이전 쿠키. 브라우저 JS가 읽을 수 없고 서버 DB 트랜잭션 성공 후 즉시 삭제',
 };
 
 function walk(dir: string, acc: string[] = []): string[] {

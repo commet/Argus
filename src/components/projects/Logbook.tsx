@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react';
 import { ChartPlate } from '@/components/ui/ChartPlate';
 import { JudgmentFrame } from './JudgmentFrame';
-import { contractStatus, summarizeGrades } from '@/lib/decision-contract';
+import { contractStatus } from '@/lib/decision-contract';
 import { firstVoyageInscription } from '@/lib/record-summary';
 import type { Project, DecisionContract } from '@/stores/types';
 import { ChevronDown } from 'lucide-react';
@@ -70,24 +70,14 @@ function mdStamp(iso: string | undefined, locale: 'ko' | 'en'): string {
   return locale === 'ko' ? `${m}/${day}` : `${m}/${day}`;
 }
 
-/** The settle line's counts — the SAME counts the 자차표 shows (summarizeGrades),
- *  rendered as a plain list. Never a total, never a score. Exported so the B8
- *  drift guard can assert the Logbook's digits equal the RecordStrip/telegram
- *  digits without rendering React. */
+/** One neutral return line. Foundation records use the user's selected wording;
+ * legacy records use their free-text reality note when one exists. No outcome
+ * bucket is aggregated into a proxy score. */
 export function settleCountsLine(c: DecisionContract, locale: 'ko' | 'en'): string {
-  const g = summarizeGrades(c);
-  const parts: string[] = [];
-  const ko = locale === 'ko';
-  if (g.betsHeld > 0) parts.push(ko ? `가설 적중 ${g.betsHeld}` : `${g.betsHeld} bet${g.betsHeld === 1 ? '' : 's'} held`);
-  if (g.betsBroke > 0) parts.push(ko ? `가설 빗나감 ${g.betsBroke}` : `${g.betsBroke} bet${g.betsBroke === 1 ? '' : 's'} missed`);
-  if (g.risksAvoided > 0) parts.push(ko ? `위험 비켜감 ${g.risksAvoided}` : `${g.risksAvoided} risk${g.risksAvoided === 1 ? '' : 's'} steered past`);
-  if (g.risksHappened > 0) parts.push(ko ? `위험 실현 ${g.risksHappened}` : `${g.risksHappened} risk${g.risksHappened === 1 ? '' : 's'} hit`);
-  if (g.goodOutcomesOnLuck > 0) parts.push(ko ? `그중 운 ${g.goodOutcomesOnLuck}` : `${g.goodOutcomesOnLuck} on luck`);
-  if (parts.length === 0) {
-    // A settled loop with no counted bucket (e.g. a date-only outcome). Honest fact.
-    return ko ? '고리를 닫음' : 'loop closed';
-  }
-  return parts.join(' · ');
+  const latest = c.settlements?.at(-1);
+  if (latest?.response_text) return latest.response_text;
+  if (c.judgment_receipt?.what_happened?.trim()) return c.judgment_receipt.what_happened.trim();
+  return locale === 'ko' ? '결과를 확인해 기록함' : 'Recorded what happened';
 }
 
 export function Logbook({
@@ -135,12 +125,13 @@ export function Logbook({
           amendTo: a.check_in_at ? mdStamp(a.check_in_at, locale) : undefined,
         });
       }
-      if (c.graded_at && contractStatus(c, 0).allGraded) {
+      const returnedAt = c.settlements?.at(-1)?.recorded_at ?? c.graded_at;
+      if (returnedAt && contractStatus(c, 0).allGraded) {
         list.push({
           key: `${c.id}-settle`,
           kind: 'settle',
-          at: c.graded_at,
-          stamp: mdStamp(c.graded_at, locale),
+          at: returnedAt,
+          stamp: mdStamp(returnedAt, locale),
           projectName: name,
           settleCounts: settleCountsLine(c, locale),
         });

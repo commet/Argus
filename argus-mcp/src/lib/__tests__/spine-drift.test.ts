@@ -157,11 +157,13 @@ describe('wake_text spine (renderWake)', () => {
     }
   });
 
-  it('settled group is a count list of user-stated outcomes, never a rate', () => {
+  it('settled group exposes only the revisit count, never aggregate outcome buckets', () => {
     const ko = renderWake(fixture, stats, TODAY, 'ko', '2026-07-03');
-    expect(ko).toContain('결과 기록됨 (3): 예측대로 1 · 걱정 피함 1 · 일부 1');
+    expect(ko).toContain('⚓ 닻 내린 기록 · 현실이 답함 (3)');
+    expect(ko).not.toContain('예측대로 1');
     const en = renderWake(fixture, stats, TODAY, 'en', '2026-07-03');
-    expect(en).toContain('results recorded (3): held 1 · avoided 1 · partial 1');
+    expect(en).toContain('⚓ anchored · answered by reality (3)');
+    expect(en).not.toContain('held 1');
   });
 
   it('three groups on a time axis, folded at 5 lines, with the settle handle returned', () => {
@@ -174,7 +176,7 @@ describe('wake_text spine (renderWake)', () => {
     expect(ko).not.toContain('경과');
     expect(ko).toContain('확인 08-01');
     expect(ko).toContain('결정 12 · 확인 대기 8 · 결과 기록 3');
-    expect(ko).toContain('2026-07-03부터 기록');
+    expect(ko).toContain('2026-07-03부터 항해 중');
   });
 
   it('waiting lines sort by check_by ascending (dec-08 before dec-07)', () => {

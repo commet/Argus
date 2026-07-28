@@ -24,9 +24,22 @@ describe('새 공개 체계의 어휘 경계', () => {
       path.join(ROOT, 'argus-mcp', 'src', 'v2', 'logbook.ts'),
       path.join(ROOT, '.claude-plugin', 'marketplace.json'),
     ];
+    // 좁은 예외 하나 (2026-07-26): doctor.md는 구 이름을 **증상으로** 읽는다.
+    // 배선이 낡으면(npx가 캐시된 옛 설치본을 재사용) 서버는 연결돼 있는데 옛
+    // 이름만 노출한다 — 그 상태를 "미연결"로 보고하면 처방이 틀리고(재연결 vs
+    // 캐시 비우기) 영영 안 고쳐진다. 실제로 창업자 배선이 1.2.0에 12일간 얼어
+    // 있었던 게 이 경로다. 그래서 진단 문맥에서 구 이름을 **호출법으로 가르치는
+    // 것**과 **낡음의 단서로 식별하는 것**을 구별한다: 아래 줄들은 "옛 이름이
+    // 보이면 구버전이다"라고만 말하고, 그 도구를 부르라고 시키지 않는다.
+    const DIAGNOSTIC_STALE_MARKER = /구버전|낡은 배선/;
     const leaks = files.flatMap((file) => {
-      const names = fs.readFileSync(file, 'utf8').match(RETIRED_PUBLIC_NAMES) ?? [];
-      return names.map((name) => `${path.relative(ROOT, file)}: ${name}`);
+      const text = fs.readFileSync(file, 'utf8');
+      const isDoctorCommand = path.basename(file) === 'doctor.md';
+      return text.split('\n').flatMap((line) => {
+        if (isDoctorCommand && DIAGNOSTIC_STALE_MARKER.test(line)) return [];
+        const names = line.match(RETIRED_PUBLIC_NAMES) ?? [];
+        return names.map((name) => `${path.relative(ROOT, file)}: ${name}`);
+      });
     });
     expect(leaks).toEqual([]);
   });

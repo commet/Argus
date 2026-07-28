@@ -16,7 +16,7 @@
     },
     "agent_id": {
       "type": "string",
-      "description": "Canonical agentId from agents.yaml. e.g., 'sujin', 'minjae'."
+      "description": "One of the bounded reviewer role ids from agents/."
     },
     "agent_name": {
       "type": "string",

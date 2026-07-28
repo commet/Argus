@@ -161,6 +161,18 @@ localStorage-first 아키텍처에서 UI는 로컬만 읽는다 — 서버에 �
 3. **현실 접촉 후엔 행수도 본다** — 실주행 관찰에 "예상 테이블에 행이 늘었나"
    1줄을 포함한다. UI가 멀쩡한 것과 데이터가 도착한 것은 다른 사실이다.
 
+## 실기기 검증 안전 규칙 (2026-07-27 터미널 사고 — 위반 금지)
+
+1. **claude 프로세스를 절대 죽이지 않는다.** `Stop-Process -Name claude`,
+   `taskkill /IM claude*`, `pkill claude` 등 이름 기반 킬 전면 금지 — 다른
+   워크트리의 모든 세션까지 동시에 죽고, 강제 종료된 CLI는 터미널 모드(마우스
+   추적)를 복원하지 못해 이후 셸에 `[555;..M` 이스케이프 시퀀스가 쏟아진다.
+   재시작이 필요하면 사용자에게 요청하거나, **자신이 띄운 특정 PID만** 종료.
+2. **기존 사용자 세션 창에 키 입력·클릭을 시뮬레이션하지 않는다.** 실기기
+   검증(computer-use)은 새로 띄운 전용 창에서만; 기존 창은 관찰(읽기)만.
+3. 위 1은 `.claude/hookify.block-claude-process-kill.local.md` 훅이 기계로도
+   차단한다 — 훅이 없는 환경에서도 이 규칙은 그대로 적용된다.
+
 ## Principle: Defensive Data Access
 
 All data from these sources must use optional chaining + fallbacks:

@@ -18,6 +18,7 @@ import { fileURLToPath } from 'node:url';
 const here = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(here, '..', '..', '..');
 const PLUGIN = path.join(REPO_ROOT, 'argus-plugin-v2');
+const MCP_ROOT = path.resolve(here, '..', '..');
 
 const readJson = (p: string): Record<string, unknown> =>
   JSON.parse(fs.readFileSync(p, 'utf8')) as Record<string, unknown>;
@@ -39,10 +40,45 @@ describe('argus 플러그인 골격 — 하나의 설치 (O3 방1)', () => {
     const argus = wired.find((s) => s.args.some((a) => a.startsWith('argus-decision-mcp')));
     expect(argus, 'argus-decision-mcp가 배선되어 있어야 한다').toBeDefined();
     expect(argus!.command).toBe('npx');
-    // 버전 핸드셰이크의 최소형: 메이저 핀 — 서버 메이저가 바뀌면 설치가
-    // 조용히 새 메이저를 받지 않는다 (Distribution 행의 환경 내 몫).
+    // 배선은 **정확 버전 핀**이어야 한다 (2026-07-26 근원 수리).
+    //
+    // 예전 규약은 메이저 핀(`@^1`)이었고, 그게 조용한 staleness 함정이었다:
+    // npx는 스펙이 RANGE면 캐시에 조건을 만족하는 설치본이 있는 한 그걸
+    // 재사용하고 레지스트리를 보지 않는다. 그래서 창업자 기기의 캐시에
+    // 1.2.0이 한 번 앉은 뒤(2026-07-13) 1.3.0~1.9.0이 npm에 올라가는 동안
+    // 12일간 배선이 1.2.0에 얼어 있었다 — 픽커 재설계를 포함한 모든 개선이
+    // 정작 도그푸딩 세션에는 한 번도 닿지 않았다. 레포는 자기 자신과
+    // 일관됐고 npm은 최신을 갖고 있었는데, **아무도 볼 수 없던 숫자가
+    // 사용자가 만지던 그 숫자였다.**
+    //
+    // 정확 핀은 그 함정을 닫되 새 함정(핀이 낡는 것)을 연다. 그래서 아래
+    // lockstep 단정이 짝이다: 핀 == 이 패키지의 version. 서버를 올리면
+    // 배선도 같은 커밋에서 올라가지 않으면 CI가 빨개진다.
     const pkgArg = argus!.args.find((a) => a.startsWith('argus-decision-mcp'))!;
-    expect(pkgArg).toMatch(/^argus-decision-mcp@\^\d+$/);
+    expect(pkgArg, '범위 스펙(^, ~, latest, *)은 npx 캐시에 얼어붙는다 — 정확 버전으로 핀할 것')
+      .toMatch(/^argus-decision-mcp@\d+\.\d+\.\d+$/);
+  });
+
+  it('.mcp.json 핀 == argus-mcp/package.json version (배선 lockstep)', () => {
+    const mcp = readJson(path.join(PLUGIN, '.mcp.json'));
+    const servers = mcp['mcpServers'] as Record<string, { args: string[] }>;
+    const pkgArg = Object.values(servers)
+      .flatMap((s) => s.args)
+      .find((a) => a.startsWith('argus-decision-mcp@'))!;
+    const pinned = pkgArg.split('@').pop();
+    const selfVersion = (readJson(path.join(MCP_ROOT, 'package.json'))['version'] as string);
+    expect(pinned, `플러그인이 핀한 ${pinned} != 이 서버의 ${selfVersion} — 같은 커밋에서 함께 올릴 것`)
+      .toBe(selfVersion);
+  });
+
+  it('server.json(레지스트리) 버전도 package.json과 일치한다', () => {
+    const selfVersion = readJson(path.join(MCP_ROOT, 'package.json'))['version'] as string;
+    const registry = readJson(path.join(MCP_ROOT, 'server.json'));
+    expect(registry['version']).toBe(selfVersion);
+    const pkgs = registry['packages'] as Array<{ identifier: string; version: string }>;
+    for (const p of pkgs) {
+      if (p.identifier === 'argus-decision-mcp') expect(p.version).toBe(selfVersion);
+    }
   });
 
   it('marketplace.json — 플러그인은 정확히 하나(argus)고 driver 잔재가 없다', () => {

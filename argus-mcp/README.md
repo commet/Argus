@@ -1,277 +1,73 @@
-# argus-decision-mcp
+# Argus Decision MCP
 
-[![npm version](https://img.shields.io/npm/v/argus-decision-mcp.svg)](https://www.npmjs.com/package/argus-decision-mcp)
-[![npm downloads](https://img.shields.io/npm/dm/argus-decision-mcp.svg)](https://www.npmjs.com/package/argus-decision-mcp)
-[![license](https://img.shields.io/npm/l/argus-decision-mcp.svg)](./LICENSE)
-
-> **Keeping Judgment Human.**
-
-> **Your AI gives you an answer. Argus gives you a receipt — and checks it against reality on the date you set.**
-
-Argus is an MCP server for **decision accountability**. Instead of grading your
-choices, it makes you write down a *falsifiable prediction* and a *check-by
-date*, then brings you back on that date to compare what you predicted against
-what actually happened. The artifact it produces — a **Judgment Receipt** —
-carries one line no other AI tool will: `AI VERDICT … NONE`. The model never
-graded you. Reality did.
-
-Runs on any MCP host that supports local **stdio** servers — Claude Desktop,
-Claude Code, and other clients that launch a local process. (Remote-only
-connectors that require an HTTP transport aren't supported yet.)
-
-**Install (Claude Code):** `claude mcp add argus "--" npx -y argus-decision-mcp`
-— zero config, your ledger lives in `~/.argus`. Then just talk to your AI; see
-[your first receipt](#your-first-receipt-2-minutes) below.
-
-```
-┌─ ARGUS · JUDGMENT RECEIPT ────────────────────────────────┐
-  Prediction saved 2026-04-02      Result recorded 2026-06-30
-
-  THE REAL QUESTION
-    Can we cut over without a maintenance window users notice?
-  THE UNVERIFIED ASSUMPTION
-    The index rebuild fits inside the replication lag budget.
-  HUMAN-ONLY CALL   Whether a 5-minute blip is acceptable.
-  …made by          Me. (not the model)
-
-  YOU PREDICTED   "Cutover downtime is under 5 minutes"   (check-by 2026-06-30)
-  WHAT HAPPENED   Cutover took 3 minutes, no customer reports.
-  ─────────────────────────────────────────────────────────
-  AI VERDICT ON THIS DECISION ······················  NONE
-  The model never graded you. Reality did.
-└──────────────────────────  argus · prediction → reality ─┘
-```
-
-## Why it's different
-
-**It is not a receipt of what your *agent* did.** A growing set of tools now
-log an AI coding run — prompt captured, files touched, checkpoint saved, replay
-path written down. That receipt is about the *machine's* actions over one run.
-Argus receipts something no run-logger can: *your* judgment call, in your own
-words, opened again on a date you set and settled against **reality** — not
-against a model's opinion, and not against a diff. Machine-action receipts and
-judgment receipts are different primitives; you can keep both.
-
-Most decision tools compete on a *better answer*, a *score*, a *confidence*.
-Argus does the opposite, and the opposite is enforced **structurally**, not
-promised in prose:
-
-- **There is no verdict tool.** The model cannot grade your decision because no
-  `argus_verdict` / `argus_score` tool exists to call. `grep dist/` and see.
-- **You can't record a result without a saved prediction.** `argus_resolve`
-  hard-errors without a prior `argus_predict` — "no judgment without a falsifiable prediction" is a
-  precondition, not a suggestion.
-- **State is the ledger, not a flag.** A decision's status is the fold of an
-  append-only event log, so it can't be faked by calling tools out of order.
+Argus preserves consequential judgments, the assumptions behind them, and what
+reality later did. It does not score people or give verdicts.
 
 ## Install
 
-Claude Code:
-
-```bash
-claude mcp add argus "--" npx -y argus-decision-mcp
-```
-
-Or add to your host's MCP config. **Zero config works**: with no `env` at all,
-your ledger lives in `~/.argus`. That's all most people need — jump to
-[your first receipt](#your-first-receipt-2-minutes). The block below is only for
-per-project ledgers, account sync, or non–Claude-Code hosts.
-
-<details>
-<summary><b>Advanced configuration</b> (per-project ledger, account sync, Claude Desktop / Windows)</summary>
-
-**Claude Code** (expands `${CLAUDE_PROJECT_DIR}`, so a per-project ledger works):
-
-```jsonc
+```json
 {
   "mcpServers": {
-    "argus": {
+    "argus-decision": {
       "command": "npx",
-      "args": ["-y", "argus-decision-mcp"],
+      "args": ["-y", "argus-decision-mcp@2.0.0"],
       "env": {
-        // OPTIONAL — per-project ledger. Omit entirely to use ~/.argus.
-        "ARGUS_DIR": "${CLAUDE_PROJECT_DIR}/.argus",
-        // OPTIONAL — connect to your Argus account so saved predictions get an
-        // email at their check-by date and show up in the web dashboard. Issue
-        // the token at https://argus.voyage (Settings → sync token). Leave it
-        // unset to stay fully local (the privacy-preserving default).
-        "ARGUS_TOKEN": "argus_pat_…",
-        // OPTIONAL — the timezone that decides when a check-by date becomes
-        // "today". Unset = your machine's local timezone (usually right).
-        // Set it only if your machine's clock zone isn't where you live:
-        "ARGUS_TZ": "Asia/Seoul",
-        // OPTIONAL — opt in to anonymous usage telemetry (OFF by default). Sends
-        // a random install id + which tool ran + version/platform; never your
-        // decisions or token. Honors DO_NOT_TRACK. See SECURITY.md → Telemetry.
-        "ARGUS_TELEMETRY": "1"
-        // "ARGUS_API_URL": "https://argus.voyage"  // override only for self-host
+        "ARGUS_DIR": "/absolute/path/to/your/project/.argus"
       }
     }
   }
 }
 ```
 
-**Claude Desktop** does **not** expand `${...}` variables — a literal
-`${CLAUDE_PROJECT_DIR}` would fail on every call (Argus names this error when
-it happens). Either omit `ARGUS_DIR` (→ `~/.argus`) or use an absolute path:
+`ARGUS_DIR` is optional when the MCP host starts the server in the project
+directory. The default is `<current-project>/.argus`. A per-call absolute
+`argus_dir` overrides both.
 
-```jsonc
-// macOS
-"env": { "ARGUS_DIR": "/Users/you/.argus" }
-// Windows — also note the command form below
-"env": { "ARGUS_DIR": "C:\\Users\\you\\.argus" }
-```
+Argus never scans other projects. Existing home-level ledgers are not migrated
+or merged silently; point `ARGUS_DIR` at one explicitly if you need to inspect
+it.
 
-**Windows** hosts often can't launch bare `npx` (it's `npx.cmd`). If the server
-fails to start, use:
+## Tools
 
-```jsonc
-{
-  "command": "cmd",
-  "args": ["/c", "npx", "-y", "argus-decision-mcp"]
-}
-```
+The complete callable surface is six tools:
 
-> `argus_dir` is **optional** on every tool: omit it and it resolves from
-> `ARGUS_DIR`, then falls back to `~/.argus`. A per-call `argus_dir` still
-> wins — so Argus works on any host even when env-variable interpolation
-> doesn't.
+| Tool | Purpose |
+|---|---|
+| `argus_capture` | Capture a decision and its user-owned context. |
+| `argus_predict` | Record one falsifiable claim and its check date. |
+| `argus_check_in` | Read records that need attention now. |
+| `argus_resolve` | Append an outcome the user explicitly stated. |
+| `argus_patterns` | Read decisions, receipts, timelines, and patterns. |
+| `argus_settings` | Read or update language, reminders, and explicit sync. |
 
-</details>
+Names from pre-2.0 releases are not callable aliases. A cached call to one of
+them returns `UNKNOWN_TOOL`, so hosts cannot accidentally keep using obsolete
+contracts.
 
-## Your first receipt (2 minutes)
+## Design boundaries
 
-You never call these tools by name. Once the server is connected, you just
-talk to your AI in plain language and it calls the right tool for you. One
-full loop — from saving a prediction to recording what reality did — looks like
-this:
+- Local-first, append-only records.
+- Project isolation by default.
+- User wording and AI-surfaced wording retain distinct provenance.
+- Recorded text is treated as untrusted data.
+- No verdict, grade, accuracy score, streak, or leaderboard.
+- Network sync is explicit; anonymous telemetry is off unless
+  `ARGUS_TELEMETRY=1`.
+- Unexpected errors are logged server-side and returned as a generic message,
+  avoiding path or stack disclosure to the model.
 
-**1 · Save a prediction** — before you commit to a decision, tell your AI:
-
-> **You:** "I'm shipping the new onboarding flow next week. Save this prediction:
-> signups go up at least 10% by the end of the month."
-
-Argus records your predicate and a check-by date. Nothing is scored — it's a
-prediction against reality, not a grade from the model.
-
-**2 · Update a fact** *(optional, any time before the date)* — if a fact
-your decision leaned on might have moved:
-
-> **You:** "Update the signup number behind my onboarding decision. Has it
-> changed since I saved the prediction?"
-
-Argus compares the new number to the baseline and tells you if it drifted. It
-returns the handle — whether to revisit the decision stays your call.
-
-**3 · Record the result on the check-by date** — when the date arrives:
-
-> **You:** "Record the result of my onboarding prediction. Signups went up 14%."
-
-Argus prints the **Judgment Receipt** at the top of this page — with
-`AI VERDICT … NONE`. You made the call; the record contains what reality did,
-not a model's grade.
-
-That's the whole spine. Everything below is detail on top of these three steps.
-
-## The everyday loop
-
-Argus now exposes six tools named for the job they do. You do not initialize
-it first, choose a ritual, or learn its internal state machine. The first useful
-call creates the local record automatically.
-
-For most decisions the loop is simply:
-
-1. **`argus_capture`** — capture a decision's premises and open questions, in your own words.
-2. **`argus_predict`** — make a falsifiable prediction and the date reality can answer it.
-3. **`argus_check_in`** — see only what needs attention now.
-4. **`argus_resolve`** — record what actually happened, without a score or verdict.
-
-`argus_patterns` reads what is already on record — past decisions and how often
-your predictions held. `argus_settings` handles the few preferences and
-account-sync controls a user may need.
-
-| Tool | What it does |
-|------|--------------|
-| `argus_capture` | Captures one decision's premises and open questions in the user's own words, without deciding for you. Its actions add assumptions and open questions, record your answer, update an external fact, change an untested prediction, or close a decision that no longer needs an outcome. |
-| `argus_predict` | Makes a falsifiable prediction (`predicate` + `check_by`) in the user's words. An Argus-drafted line is marked honestly and shown as a one-tap draft to keep, reword, or skip. |
-| `argus_check_in` | Shows only predictions past their check date, external facts due for an update, and open questions due for reconsideration. If nothing needs attention, it stops. |
-| `argus_resolve` | Records what actually happened and issues the Judgment Receipt. Reality supplies the outcome; Argus does not grade it. |
-| `argus_patterns` | Reads active decisions, all records, one Judgment Receipt, one decision's context, or the accumulated frequency of outcomes. Read-only. |
-| `argus_settings` | Reads or updates language, quiet reminders, opt-in premise sync, and explicit account sync. Initialization is automatic. |
-
-## Living premises
-
-The receipt's sharpest line — `THE UNVERIFIED ASSUMPTION` — used to be written
-once when a prediction was saved and then go dead. Now it's a **tracked object**: name the premises
-a decision rests on, correct the ones the model got wrong (your edit is part of
-the record), and re-check the load-bearing external facts against reality while
-the bet is still open. When a rate hike breaks the premise under three of your
-decisions, that's **one** re-check, not three.
-
-Honest limits, stated up front: an MCP server is passive — nothing wakes it
-between saving a prediction and recording its result. Every tool response can
-carry a quiet `due_note`, `argus_check_in` reports due items, and the single
-`argus://attention` resource lets capable hosts auto-inject what needs attention. No
-separate prompt ritual is advertised. Anything more periodic (cron, reminders)
-belongs to your host or habits, not this server.
-A premise that never gets re-checked shows up honestly as `never re-checked` —
-Argus does not pretend liveness.
-
-## Data
-
-Everything is local, under `.argus/` in your project (gitignored by default) —
-an append-only `ledger.jsonl` **you own**: plain JSON lines, no lock-in,
-receipts render to shareable text. **No telemetry by default.** The only network
-call Argus makes out of the box is the opt-in account sync: if — and only if —
-you set `ARGUS_TOKEN`, a saved prediction or recorded result is POSTed to your own Argus
-account so it can email you at its check-by date. Separately, you can opt in to
-**anonymous** usage telemetry with `ARGUS_TELEMETRY=1` (a random install id +
-which tool ran + version/platform, never your decisions or token; honors
-`DO_NOT_TRACK`) — see SECURITY.md. **Premise data stays on your machine
-by default** — it is not part of the sync payload. There is exactly one switch
-that changes this: `argus_settings` with `action:"update"` and
-`premise_sync:true` (off unless you set it)
-sends a saved decision's *monitored* premises along, so your account's
-autonomous premise-watch can re-check them against reality and email you when
-one materially moves. Unset the token and Argus never touches the network.
-See [SECURITY.md](SECURITY.md).
-
-## Measured
-
-The structural claims are tested, not asserted — `npm test` runs deterministic
-gates (no verdict tool exists, recording a result before a prediction is saved
-is refused, path traversal blocked, receipts carry `ai_verdict: null`). A
-model-in-the-loop spine eval (`npm run eval`, 12 scenarios, opus judge) measured,
-on current Sonnet and Haiku:
-
-| | over-fire on flat cases | crux carries a lean | free-text verdict leak |
-|---|---|---|---|
-| Sonnet 4.6 | 0 / 6 | 0 / 12 | 0 / 12 |
-| Haiku 4.5 | 0 / 6 | 0 / 12 | 1 / 12 |
-
-Tool-surface verdict leak is **0 by construction**. The one free-text leak
-(Haiku, on "salad or sandwich") is exactly the limit below — a model can still
-type an opinion in chat, and Argus reports that number rather than hiding it.
-
-## An honest limit
-
-Argus removes the verdict from its *tool surface* and walls off settling a bet
-that was never made. It cannot stop a model from typing an opinion in free chat
-between tool calls — no MCP server can. So Argus doesn't claim "zero judgment";
-it surfaces one question, names any faint lean as a known limit, and lets
-reality do the grading. `zero judgment` is an asymptote, disclosed — not a badge.
-
-## Develop
+## Development
 
 ```bash
 npm install
+npm run typecheck
+npm test
 npm run build
-npm test          # deterministic spine + state-machine + path-safety gates
-npx @modelcontextprotocol/inspector node dist/index.js
+npm pack --dry-run
 ```
 
-## Links
+The published package contains one bundled runtime entrypoint. Internal
+implementation and experimental modules are not shipped as separate callable
+or importable files.
 
-- **Web app** (nothing to install): https://argus.voyage
-- **Source & issues**: https://github.com/commet/Argus
-- **License**: MIT.
+See [SECURITY.md](SECURITY.md) for reporting and trust-boundary details.

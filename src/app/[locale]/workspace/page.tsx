@@ -563,8 +563,8 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem, fr
         : normalizedTitle;
       const pid = createProject(projectTitle);
       // Keep the pre-review baseline before analysis is revealed. The final seal
-      // later replaces its scoreable user_lean predicate with the user's closing
-      // judgment while preserving this baseline in the receipt.
+      // later separates it from the user's closing judgment while preserving the
+      // baseline as chronology, never as a score input.
       // Skip (bind === null) writes nothing — honest-empty, identical to before.
       if (bind) {
         const early = buildEarlyContract(pid, bind, Date.now());
@@ -596,7 +596,8 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem, fr
       //   - "LOGIN_REQUIRED:..." prefix → 익명 무료 체험 소진 (categorizeError at 429+needsLogin)
       //   - "한도" / "rate" → 로그인 사용자의 일반 rate limit
       const needsLogin = errMsg.startsWith('LOGIN_REQUIRED');
-      const isRateLimit = !needsLogin && (errMsg.includes('한도') || errMsg.includes('rate') || errMsg.includes('limit') || errMsg.includes('429'));
+      const isServiceUnavailable = errMsg.startsWith('SERVICE_UNAVAILABLE');
+      const isRateLimit = !needsLogin && !isServiceUnavailable && (errMsg.includes('한도') || errMsg.includes('rate') || errMsg.includes('limit') || errMsg.includes('429'));
 
       // errMsg 그대로 setError — 렌더 쪽에서 prefix로 분기해 login CTA vs generic 배너 결정.
       // 세션은 아직 생성 안 했으므로 정리 로직 불필요.
@@ -606,7 +607,13 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem, fr
       // Keep failure telemetry diagnostic but never persist the provider's raw
       // message: upstream errors can echo user material or internal details.
       track('workspace_start_error', {
-        category: needsLogin ? 'login_required' : isRateLimit ? 'rate_limit' : err instanceof Error ? err.name : 'unknown',
+        category: needsLogin
+          ? 'login_required'
+          : isServiceUnavailable
+            ? 'service_unavailable'
+            : isRateLimit
+              ? 'rate_limit'
+              : err instanceof Error ? err.name : 'unknown',
         is_rate_limit: isRateLimit,
         needs_login: needsLogin,
       });
@@ -721,9 +728,9 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem, fr
                 </h2>
                 <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5 text-[11px] text-[var(--text-tertiary)]">
                   {[
-                    L('상황을 적으면', 'Describe the situation'),
-                    L('AI 검토자가 숨은 전제를 살펴보고', 'AI reviewers surface hidden premises'),
-                    L('완성된 문서와 결정 요약이 남아요', 'leave with a finished document and decision summary'),
+                    L('상황을 적고', 'Describe the situation'),
+                    L('결정을 바꿀 전제를 짚고', 'surface what could change the call'),
+                    L('내 판단과 확인할 현실을 남겨요', 'keep your call and what reality should answer'),
                   ].map((step, i) => (
                     <React.Fragment key={i}>
                       {i > 0 && <ChevronRight size={11} className="text-[var(--text-tertiary)]/50 shrink-0" />}
@@ -888,10 +895,16 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem, fr
                 {error && !error.startsWith('LOGIN_REQUIRED') && (() => {
                   // Categorize so the user knows what to DO, not just that it failed.
                   const e = error.toLowerCase();
+                  const isServiceUnavailable = e.startsWith('service_unavailable');
                   const isQuota = e.includes('한도') || e.includes('rate') || e.includes('limit') || e.includes('429') || e.includes('api 키') || e.includes('api key');
                   const isNetwork = e.includes('network') || e.includes('failed to fetch') || e.includes('fetch') || e.includes('네트워크') || e.includes('offline');
                   const isTimeout = e.includes('timeout') || e.includes('timed out') || e.includes('시간 초과') || e.includes('aborted');
-                  const msg = isQuota
+                  const msg = isServiceUnavailable
+                    ? L(
+                        '현재 분석 기능을 사용할 수 없어요. 적어주신 내용은 그대로 남아 있습니다. 운영자 쪽 설정이 복구되면 다시 시작할 수 있어요.',
+                        'Analysis is temporarily unavailable. What you wrote is still here; you can continue once the service is restored.',
+                      )
+                    : isQuota
                     // Disambiguate anon "trial" from a logged-in user's daily quota —
                     // a signed-in user hasn't hit a "trial", they've used today's allowance.
                     ? (user
@@ -913,10 +926,12 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem, fr
                       <div className="flex-1">
                         <span>{msg}</span>
                         <div className="mt-1.5 flex items-center gap-3">
-                          {/* Quota → settings; everything else → an explicit retry. */}
-                          {isQuota ? (
+                          {/* Quota/provider setup → settings; retry only transient failures. */}
+                          {isQuota || isServiceUnavailable ? (
                             <LocaleLink href="/settings" className="text-[12px] text-[var(--accent)] font-medium hover:underline">
-                              {L('설정에서 API 키 등록하기 →', 'Register your API key in Settings →')}
+                              {isServiceUnavailable
+                                ? L('내 API 키로 계속하기 →', 'Continue with my API key →')
+                                : L('설정에서 API 키 등록하기 →', 'Register your API key in Settings →')}
                             </LocaleLink>
                           ) : (
                             <button onClick={() => handleSubmit()}
@@ -1099,7 +1114,9 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem, fr
               {projects.length === 0 && (
                 <div className="mt-12 pt-8 border-t border-[var(--border-subtle)]/60 text-center">
                   <p className="text-[14px] md:text-[15px] text-[var(--text-secondary)] leading-relaxed max-w-md mx-auto">
-                    {locale === 'ko' ? <>상황을 알려주면 AI 검토자가 전제를 살펴보고, 초안을 만들고,<br className="hidden md:block" /> 의사결정권자의 반응까지 점검해요.</> : <>Share the situation and AI reviewers will surface premises, draft,<br className="hidden md:block" /> and test the decision-maker&apos;s likely response.</>}
+                    {locale === 'ko'
+                      ? <>결정이 기대는 전제를 짚고, 지금 풀 질문을 좁혀요.<br className="hidden md:block" /> 검토 뒤에는 내 판단과 확인할 현실이 남습니다.</>
+                      : <>Surface what the decision rests on and narrow the question.<br className="hidden md:block" /> Leave with your call and the reality that can answer it.</>}
                   </p>
                 </div>
               )}

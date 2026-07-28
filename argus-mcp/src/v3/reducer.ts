@@ -2,6 +2,9 @@ import {
   AUTHORIAL_EVENT_NAMES,
   SemanticEventSchema,
   type Lifecycle,
+  type DecisionKind,
+  type KindEvidence,
+  type ObservationSourceKind,
   type Resolution,
   type SemanticEvent,
 } from './types.js';
@@ -20,6 +23,7 @@ export interface Anomaly {
 
 export interface ProposalRecord {
   id: string;
+  kind: 'judgment' | 'premise' | 'relationship';
   text: string;
   state: 'active' | 'rejected' | 'adopted';
 }
@@ -28,6 +32,7 @@ export interface ObservationRecord {
   id: string;
   text: string;
   recorded_at: string;
+  source_kind?: ObservationSourceKind;
 }
 
 export interface ReturnContractRecord {
@@ -35,13 +40,27 @@ export interface ReturnContractRecord {
   review_at: string;
   review_question: string;
   resolution_criterion?: string;
+  review_event?: string;
+  fallback_review_at?: string;
   superseded: boolean;
 }
 
 export interface JudgmentRecord {
   id: string;
   statement: string;
+  sealed_statement: string;
+  statement_revisions: Array<{
+    from_statement: string;
+    to_statement: string;
+    reason?: string;
+    recorded_at: string;
+  }>;
   sealed_at: string;
+  kind: DecisionKind;
+  kind_evidence?: KindEvidence;
+  origin_utterance?: string;
+  review_condition_status?: 'answered' | 'skipped' | 'not_asked';
+  review_condition?: string;
   premise_ids: Set<string>;
   return_contracts: Map<string, ReturnContractRecord>;
   active_return_contract_id?: string;
@@ -58,7 +77,12 @@ export interface SemanticState {
   assertions: Map<string, string>;
   observations: Map<string, ObservationRecord>;
   judgments: Map<string, JudgmentRecord>;
-  premises: Map<string, { judgment_id: string; text: string; retired: boolean }>;
+  premises: Map<string, {
+    judgment_id: string;
+    text: string;
+    retired: boolean;
+    challenges: Array<{ challenge: string; response?: string; disposition: 'open' | 'corrected' | 'rejected' | 'upheld' }>;
+  }>;
   idempotency: Map<string, string>;
   anomalies: Anomaly[];
 }
@@ -67,6 +91,8 @@ export interface JudgmentProjection {
   judgment_id: string;
   lifecycle: Lifecycle;
   statement?: string;
+  kind?: DecisionKind;
+  origin_utterance?: string;
   active_return_contract_id?: string;
   resolution?: Resolution;
 }
@@ -81,11 +107,21 @@ export const emptyState = (): SemanticState => ({
   anomalies: [],
 });
 
+const fingerprintPayload = (event: SemanticEvent): Record<string, unknown> => {
+  const payload = Object.fromEntries(Object.entries(event).filter(([key]) => ![
+    'event_id', 'idempotency_key', 'time', 'authority', 'causal_parent_ids', 'atomic_batch_id',
+  ].includes(key)));
+  if (event.event === 'judgment_sealed' && event.kind_evidence) {
+    const { recorded_at: _recordedAt, ...kindEvidence } = event.kind_evidence;
+    void _recordedAt;
+    payload.kind_evidence = kindEvidence;
+  }
+  return payload;
+};
+
 const fingerprint = (event: SemanticEvent): string => JSON.stringify({
   event: event.event,
-  payload: Object.fromEntries(Object.entries(event).filter(([key]) => ![
-    'event_id', 'idempotency_key', 'time', 'authority', 'causal_parent_ids', 'atomic_batch_id',
-  ].includes(key))),
+  payload: fingerprintPayload(event),
   authority: {
     originated_by: event.authority.originated_by,
     authorized_by: event.authority.authorized_by,
@@ -100,7 +136,8 @@ const fingerprint = (event: SemanticEvent): string => JSON.stringify({
   // bookkeeping, never a new intent. temporal_mode stays — it is the semantic
   // distinction (contemporaneous vs retrospective), stable across retries.
   // NOTE: mirrored verbatim by append_project_semantic_events (SQL) and the
-  // dogfood supabase-emulator — keep all three in lockstep.
+  // dogfood supabase-emulator — keep all three in lockstep. A derived
+  // kind_evidence.recorded_at is recorder time too and is stripped likewise.
   time: {
     temporal_mode: event.time.temporal_mode,
   },
@@ -160,7 +197,15 @@ export function apply(state: SemanticState, event: SemanticEvent): void {
 
   switch (event.event) {
     case 'proposal_created':
-      state.proposals.set(event.proposal_id, { id: event.proposal_id, text: event.text, state: 'active' });
+      if (state.proposals.has(event.proposal_id)) {
+        return anomaly(state, event, 'ILLEGAL_TRANSITION', 'proposal already exists');
+      }
+      state.proposals.set(event.proposal_id, {
+        id: event.proposal_id,
+        kind: event.proposal_kind,
+        text: event.text,
+        state: 'active',
+      });
       return;
     case 'proposal_rejected': {
       const proposal = state.proposals.get(event.proposal_id);
@@ -172,14 +217,32 @@ export function apply(state: SemanticState, event: SemanticEvent): void {
       state.assertions.set(event.assertion_id, event.text);
       return;
     case 'observation_recorded':
-      state.observations.set(event.observation_id, { id: event.observation_id, text: event.text, recorded_at: event.time.recorded_at });
+      state.observations.set(event.observation_id, {
+        id: event.observation_id,
+        text: event.text,
+        recorded_at: event.time.recorded_at,
+        ...(event.source_kind ? { source_kind: event.source_kind } : {}),
+      });
       return;
     case 'judgment_sealed': {
       if (state.judgments.has(event.judgment_id)) return anomaly(state, event, 'ILLEGAL_TRANSITION', 'judgment already sealed');
+      if (event.source_proposal_id) {
+        const proposal = state.proposals.get(event.source_proposal_id);
+        if (!proposal) return anomaly(state, event, 'UNKNOWN_REFERENCE', 'source proposal does not exist');
+        if (proposal.state !== 'active') return anomaly(state, event, 'ILLEGAL_TRANSITION', 'source proposal is not active');
+        if (proposal.kind !== 'judgment') return anomaly(state, event, 'ILLEGAL_TRANSITION', 'source proposal is not a judgment proposal');
+      }
       state.judgments.set(event.judgment_id, {
         id: event.judgment_id,
         statement: event.statement,
+        sealed_statement: event.statement,
+        statement_revisions: [],
         sealed_at: event.time.recorded_at,
+        kind: event.kind ?? 'prediction',
+        ...(event.kind_evidence ? { kind_evidence: event.kind_evidence } : {}),
+        ...(event.origin_utterance ? { origin_utterance: event.origin_utterance } : {}),
+        ...(event.review_condition_status ? { review_condition_status: event.review_condition_status } : {}),
+        ...(event.review_condition ? { review_condition: event.review_condition } : {}),
         premise_ids: new Set(),
         return_contracts: new Map(),
         closed: false,
@@ -188,16 +251,65 @@ export function apply(state: SemanticState, event: SemanticEvent): void {
         conflicted: false,
       });
       if (event.source_proposal_id) {
-        const proposal = state.proposals.get(event.source_proposal_id);
-        if (proposal) proposal.state = 'adopted';
+        state.proposals.get(event.source_proposal_id)!.state = 'adopted';
       }
+      return;
+    }
+    case 'judgment_kind_corrected': {
+      const judgment = state.judgments.get(event.judgment_id);
+      if (!judgment) return anomaly(state, event, 'UNKNOWN_REFERENCE', 'judgment does not exist');
+      if (terminal(judgment)) return conflict(state, event, judgment, 'terminal judgment cannot change kind');
+      if (judgment.kind !== event.from_kind) return conflict(state, event, judgment, 'kind correction does not match current kind');
+      judgment.kind = event.to_kind;
+      judgment.kind_evidence = event.kind_evidence;
+      if (event.to_kind === 'witness') judgment.active_return_contract_id = undefined;
+      return;
+    }
+    case 'judgment_statement_revised': {
+      const judgment = state.judgments.get(event.judgment_id);
+      if (!judgment) return anomaly(state, event, 'UNKNOWN_REFERENCE', 'judgment does not exist');
+      if (terminal(judgment)) return conflict(state, event, judgment, 'terminal judgment cannot be revised');
+      if (judgment.statement !== event.from_statement) {
+        return conflict(state, event, judgment, 'statement revision does not match current wording');
+      }
+      judgment.statement_revisions.push({
+        from_statement: event.from_statement,
+        to_statement: event.to_statement,
+        ...(event.reason ? { reason: event.reason } : {}),
+        recorded_at: event.time.recorded_at,
+      });
+      judgment.statement = event.to_statement;
       return;
     }
     case 'premise_adopted': {
       const judgment = state.judgments.get(event.judgment_id);
       if (!judgment) return anomaly(state, event, 'UNKNOWN_REFERENCE', 'judgment does not exist');
+      if (event.source_proposal_id) {
+        const proposal = state.proposals.get(event.source_proposal_id);
+        if (!proposal) return anomaly(state, event, 'UNKNOWN_REFERENCE', 'source proposal does not exist');
+        if (proposal.state !== 'active') return anomaly(state, event, 'ILLEGAL_TRANSITION', 'source proposal is not active');
+        if (proposal.kind !== 'premise') return anomaly(state, event, 'ILLEGAL_TRANSITION', 'source proposal is not a premise proposal');
+      }
       judgment.premise_ids.add(event.premise_id);
-      state.premises.set(event.premise_id, { judgment_id: event.judgment_id, text: event.text, retired: false });
+      state.premises.set(event.premise_id, {
+        judgment_id: event.judgment_id,
+        text: event.text,
+        retired: false,
+        challenges: [],
+      });
+      if (event.source_proposal_id) {
+        state.proposals.get(event.source_proposal_id)!.state = 'adopted';
+      }
+      return;
+    }
+    case 'premise_challenged': {
+      const premise = state.premises.get(event.premise_id);
+      if (!premise || premise.judgment_id !== event.judgment_id) return anomaly(state, event, 'UNKNOWN_REFERENCE', 'premise does not exist');
+      premise.challenges.push({
+        challenge: event.challenge,
+        ...(event.response ? { response: event.response } : {}),
+        disposition: event.disposition,
+      });
       return;
     }
     case 'premise_retired': {
@@ -215,6 +327,8 @@ export function apply(state: SemanticState, event: SemanticEvent): void {
         review_at: event.review_at,
         review_question: event.review_question,
         ...(event.resolution_criterion ? { resolution_criterion: event.resolution_criterion } : {}),
+        ...(event.review_event ? { review_event: event.review_event } : {}),
+        ...(event.fallback_review_at ? { fallback_review_at: event.fallback_review_at } : {}),
         superseded: false,
       });
       judgment.active_return_contract_id = event.return_contract_id;
@@ -298,22 +412,30 @@ export function projectJudgment(state: SemanticState, judgmentId: string, now: s
   if (!judgment) return undefined;
   if (judgment.erased) return { judgment_id: judgmentId, lifecycle: 'erased' };
   if (judgment.conflicted) return { judgment_id: judgmentId, lifecycle: 'conflict', statement: judgment.statement };
-  if (judgment.withdrawn) return { judgment_id: judgmentId, lifecycle: 'withdrawn', statement: judgment.statement };
-  if (judgment.superseded_by) return { judgment_id: judgmentId, lifecycle: 'superseded', statement: judgment.statement };
+  if (judgment.withdrawn) return { judgment_id: judgmentId, lifecycle: 'withdrawn', statement: judgment.statement, kind: judgment.kind, origin_utterance: judgment.origin_utterance };
+  if (judgment.superseded_by) return { judgment_id: judgmentId, lifecycle: 'superseded', statement: judgment.statement, kind: judgment.kind, origin_utterance: judgment.origin_utterance };
   if (judgment.closed && judgment.resolution) {
     return {
       judgment_id: judgmentId,
       lifecycle: `resolved_${judgment.resolution.value.kind}` as Lifecycle,
       statement: judgment.statement,
+      kind: judgment.kind,
+      origin_utterance: judgment.origin_utterance,
       active_return_contract_id: judgment.active_return_contract_id,
       resolution: judgment.resolution.value,
     };
   }
-  const active = judgment.active_return_contract_id ? judgment.return_contracts.get(judgment.active_return_contract_id) : undefined;
+  const active = judgment.kind === 'witness'
+    ? undefined
+    : judgment.active_return_contract_id
+      ? judgment.return_contracts.get(judgment.active_return_contract_id)
+      : undefined;
   return {
     judgment_id: judgmentId,
     lifecycle: active && active.review_at <= now ? 'due' : 'sealed',
     statement: judgment.statement,
+    kind: judgment.kind,
+    origin_utterance: judgment.origin_utterance,
     active_return_contract_id: active?.id,
   };
 }

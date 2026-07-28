@@ -1,12 +1,13 @@
 import { resolveToolArgusDir } from '../lib/argus-dir.js';
 import { resolveToday, asDate, logicalNow } from '../lib/resolve-today.js';
 import { resolveContract } from '../lib/resolve-contract.js';
+import { refuseIfLedgerUnreadable } from '../lib/ledger-readable.js';
 import { guardTransition } from '../lib/state-machine.js';
 import { appendLedger, withLedgerLock } from '../lib/ledger-append.js';
 import { asV2WriteField } from '../v2/mirror.js';
 import { writeSettleReceipt } from '../lib/receipt.js';
 import { pushToAccount } from '../lib/push-account.js';
-import { elicit, canElicit } from '../lib/elicit.js';
+import { elicitDetailed, canElicit } from '../lib/elicit.js';
 import { renderReceipt } from '../lib/render-receipt.js';
 import { resolveResponseLocale, SURFACES, humanizeSyncReason, type SurfaceLocale } from '../lib/surfaces.js';
 import { accountPushId } from '../lib/install-id.js';
@@ -15,8 +16,12 @@ import { replayLedger } from '../lib/ledger-replay.js';
 import { relatedOpenForPremise } from '../v2/connection-io.js';
 import type { RelatedDecision } from '../v2/connection.js';
 import { sanitizeLine } from '../v2/sanitize.js';
+import { OUTCOME_VALUES, outcomeEnumNames, outcomeFieldDescription } from '../lib/outcome-labels.js';
 import { z } from 'zod';
 import { envelope, toolError } from '../lib/envelope.js';
+import { noAnswerResult } from '../lib/picker-fallback.js';
+import { appsCapable } from '../lib/apps-ui.js';
+import { daysBetween } from '../lib/premises-core.js';
 import { ENVELOPE_OUTPUT_SCHEMA, zArgusDir, zId, zDate, type ToolModule } from './tool-types.js';
 import { handleToolException } from './errors.js';
 
@@ -48,6 +53,8 @@ export const settle: ToolModule = {
       const today = resolveToday({ override: a['today_override'] as string | undefined });
 
       const current = resolveContract(dir, id, today);
+      const blind = refuseIfLedgerUnreadable('argus_settle', current);
+      if (blind) return blind;
       guardTransition(current.state, 'settle'); // NO_PRIOR_SEAL / ALREADY_SETTLED / DECISION_CLOSED
 
       // Outcome is the user's — recorded, never inferred. If the model didn't
@@ -55,21 +62,58 @@ export const settle: ToolModule = {
       // this is reality, not a verdict). Falls back to requiring it on hosts
       // without elicitation.
       let outcome = a['outcome'] as 'held' | 'avoided' | 'partial' | 'still_pending' | 'missed' | undefined;
+      // MCP Apps host (SEP-1865): the settle CARD is already rendering beside
+      // this call. Return the awaiting state with everything the card needs;
+      // the user's click comes back as a second argus_resolve WITH outcome.
+      // Both doors stay open — the surface tells the model the user may just
+      // answer in chat instead (a card is an offer, never a gate).
+      if (!outcome && appsCapable()) {
+        const cardLocale = resolveResponseLocale(dir, current.predicate ?? null);
+        const daysOver = current.check_by && current.check_by < today ? daysBetween(current.check_by, today) : 0;
+        return envelope({
+          ok: true, tool: 'argus_settle',
+          surface: cardLocale === 'ko'
+            ? '정산 카드를 옆에 띄웠습니다. 카드에서 골라도 되고, 어떻게 됐는지 그냥 말해도 됩니다.'
+            : 'The settle card is up. Pick on the card, or just say what happened.',
+          next_actions: ['stop'],
+          data: {
+            status: 'awaiting_picker', id, predicate: current.predicate ?? id,
+            check_by: current.check_by ?? null, days_overdue: daysOver, locale: cardLocale,
+            // The card's click comes back as a fresh tools/call, and it must
+            // address THIS ledger. Sending the dir with the state the card
+            // renders means the two can never disagree; relying on the optional
+            // ui/notifications/tool-input meant a host that skips it silently
+            // routed the click to ~/.argus (audit 2026-07-28).
+            argus_dir: dir,
+          },
+        });
+      }
       if (!outcome && canElicit()) {
         // Localize the picker like every other elicitation (ambient-elicit does):
         // a bilingual "그렇게 됐다 (held)" mishmash showed to BOTH a Korean and an
         // English user. Voice follows the language the decision was sealed in.
         const pickerLocale = resolveResponseLocale(dir, current.predicate ?? null);
-        const picked = await elicit(pickerLocale === 'ko' ? '현실이 어떻게 답했나요?' : 'What did reality do?', {
+        // SHOW WHICH PREDICTION (2026-07-28, found by dumping what a host
+        // actually renders). This ask used to open with a bare "현실이 어떻게
+        // 답했나요?" — no predicate, no date. The seal picker quotes the
+        // sentence; the settle picker did not, and settling is the moment a
+        // user with several open bets most needs to know which one is on
+        // screen. The old tail was also wrong: it sent "아직 모르겠으면
+        // Decline", but Decline records nothing and asks again, while the
+        // enum's still_pending properly moves the date. It pointed away from
+        // the handle that works.
+        const q = sanitizeLine(current.predicate ?? id, 110);
+        const due = current.check_by ?? '';
+        const asked = await elicitDetailed(pickerLocale === 'ko'
+          ? `"${q}"${due ? ` (확인일 ${due})` : ''}\n\n현실이 어떻게 답했나요? 하나 고르고 Accept.\n아직 결과가 안 나왔으면 "아직 모르겠다"를 고르세요. 지금 답하기 어려우면 Decline.`
+          : `"${q}"${due ? ` (check-by ${due})` : ''}\n\nWhat did reality do? Pick one and Accept.\nNo answer yet? Choose "Don't know yet". Bad moment? Decline.`, {
           type: 'object',
           properties: {
             outcome: {
               type: 'string',
-              enum: ['held', 'avoided', 'partial', 'still_pending', 'missed'],
-              enumNames: pickerLocale === 'ko'
-                ? ['예측대로 됐다', '걱정한 일은 안 일어났다', '일부만 맞았다', '아직 불분명', '예측이 빗나갔다']
-                : ['It held', 'Avoided', 'Partially', 'Still unclear', 'Missed: my read was wrong'],
-              description: pickerLocale === 'ko' ? '저장한 예측에 현실이 어떻게 답했는지 고르세요.' : 'What reality did to your sealed prediction.',
+              enum: [...OUTCOME_VALUES],
+              enumNames: outcomeEnumNames(pickerLocale),
+              description: outcomeFieldDescription(pickerLocale),
             },
             // Capture what-happened in the SAME picker so a settle that reached
             // the picker doesn't dead-end on WHAT_HAPPENED_REQUIRED after the user
@@ -78,11 +122,40 @@ export const settle: ToolModule = {
             // types here is THEIR words (spine-safe — never model-inferred).
             what_happened: {
               type: 'string',
-              description: pickerLocale === 'ko' ? '무슨 일이 있었는지 당신의 말로 한 줄. (아직 불분명이면 비워도 됩니다.)' : "One line on what actually happened, in your words. (Leave blank if still unclear.)",
+              description: pickerLocale === 'ko' ? '무슨 일이 있었는지 당신의 말로 한 줄. ("아직 모르겠다"면 비워도 됩니다.)' : 'One line on what actually happened, in your words. (Leave blank if you do not know yet.)',
             },
           },
-          required: ['outcome'],
+          // 필수 필드 없음 (2026-07-27, 창업자 도그푸딩 스크린샷).
+          //
+          // R34가 봉인/전제 픽커에서 걷어낸 바로 그 패턴이 정산 픽커엔
+          // 그대로 남아 있었다. 필수 enum은 호스트에서 접힌 채 뜨고
+          // (`→ to expand`), 사용자가 what_happened만 적고 Accept하면 폼
+          // 안에서 빨간 "This field is required"로 막힌다 — 우리가 서버에서
+          // 없앤 막다름이 클라이언트로 자리만 옮긴 것이다. 하필 정산은
+          // 귀환 경로, 이 제품의 두 번째 인상 한복판이다.
+          //
+          // 비운 채 Accept해도 잃는 게 없다: 아래 `if (!outcome)`가 이미
+          // OUTCOME_REQUIRED로 정직하게 되묻고 모델이 대화로 물어본다.
+          // 폼 안에서 빨간 글씨로 막느니 한 번 더 묻는 쪽이 낫다.
+          // 스파인 무접촉 — 비었다고 결과를 추론하지 않는다.
         });
+        // A NO and a NON-ANSWER are different facts (audit 2026-07-27). This is
+        // the return path — the user came back to close a bet and may have typed
+        // what happened into the form. Falling through to OUTCOME_REQUIRED would
+        // tell the model "the user didn't answer" about a user who did, and the
+        // user would see a red error for a wire THEY did not break.
+        if (asked.kind === 'no_answer') {
+          return noAnswerResult({
+            tool: 'argus_settle', ko: pickerLocale === 'ko',
+            handBack: {
+              ko: `어떻게 됐는지 한 줄로 말씀해주시면 그대로 기록합니다: "${sanitizeLine(current.predicate ?? id, 90)}" (확인일 ${current.check_by ?? '미상'}).`,
+              en: `Say in one line what happened and I'll record exactly that: "${sanitizeLine(current.predicate ?? id, 90)}" (check-by ${current.check_by ?? 'unknown'}).`,
+            },
+            next_actions: ['argus_resolve', 'stop'],
+            data: { id, predicate: current.predicate ?? id, check_by: current.check_by ?? null, retry_hint: 'ask the user what happened in chat, then call argus_resolve again with outcome + what_happened' },
+          });
+        }
+        const picked = asked.kind === 'accepted' ? asked.content : null;
         const v = picked?.['outcome'];
         if (v === 'held' || v === 'avoided' || v === 'partial' || v === 'still_pending' || v === 'missed') outcome = v;
         // If the model didn't already supply what_happened, take the user's
@@ -93,10 +166,30 @@ export const settle: ToolModule = {
         }
       }
       if (!outcome) {
+        // The user may have typed what happened into the picker and left the
+        // outcome enum blank (the enum is deliberately not `required`, because
+        // a required enum blocks Accept). Their sentence is in our hands right
+        // now; dropping it here would make them write it twice. Hand it back so
+        // the model can read it out and ask only for the one missing pick.
+        const typed = typeof a['what_happened'] === 'string' ? (a['what_happened'] as string).trim() : '';
         return toolError({
           ok: false, tool: 'argus_settle', error_code: 'OUTCOME_REQUIRED',
           message: 'Reality has to answer: held, avoided, partial, missed, or still_pending.',
-          recovery: 'Ask the user what actually happened and pass it as `outcome` — never infer it.',
+          recovery: typed
+            ? 'The user already told us what happened (data.user_input.what_happened). Do not ask them to repeat it: read it back, ask only which outcome it was, and call again passing BOTH.'
+            : 'Ask the user what actually happened and pass it as `outcome` — never infer it.',
+          // `recovery` is rewritten per-locale by localize-result (KO_ERRORS
+          // replaces English-authored copy wholesale), so the instruction that
+          // matters cannot live only there — a Korean session would lose it and
+          // the model would ask the user to type their sentence a second time.
+          // `data` is never localized; this is the channel that survives.
+          data: {
+            id,
+            ...(typed ? {
+              user_input: { what_happened: typed },
+              retry_hint: 'the user already typed data.user_input.what_happened — read it back to them, ask only which outcome it was, and call again with both. Never make them write it twice.',
+            } : {}),
+          },
         });
       }
       const checkBy = asDate(current.check_by);
@@ -238,6 +331,9 @@ export const settle: ToolModule = {
         next_actions: ['argus_patterns', 'stop'],
         data: {
           id, outcome, outcome_source: 'user_stated',
+          // For the MCP Apps settle card's done-view (echoes the user's OWN
+          // words back; never model content) + its locale.
+          what_happened_echo: a['what_happened'], locale,
           v2_write: v2Write,
           assumption_held: receipt.assumption_held,
           ...(brokenPremiseRef ? { broken_premise: brokenPremiseRef, broken_premise_source: 'user_stated' } : {}),
@@ -295,9 +391,13 @@ async function deferStillPending(args: {
   //    matters should not be forced into a fake future date).
   let dismissChosen = false;
   if (!newDate && canElicit()) {
-    const picked = await elicit(
-      locale === 'ko' ? '아직 답이 안 나왔군요. 언제 다시 볼까요?' : "Not answered yet. When should I look again?",
-      { type: 'object', required: ['when'], properties: { when: {
+    const asked = await elicitDetailed(
+      locale === 'ko'
+        ? '아직 답이 안 나왔군요. 언제 다시 볼까요?\n\n고르고 Accept · 지금 정하기 싫으면 Decline.'
+        : "Not answered yet. When should I look again?\n\nPick one and Accept · Decline to leave it for now.",
+      // 필수 필드 없음 — 같은 이유. 빈 채 Accept는 Decline과 같은 길로
+      // 흐르고(newDate undefined → 아래 정직한 에러), 폼 안에서 막지 않는다.
+      { type: 'object', properties: { when: {
         type: 'string', enum: ['week', 'month', 'quarter', 'dismiss'],
         enumNames: locale === 'ko'
           ? ['약 1주 뒤', '약 1달 뒤', '약 3달 뒤', '이제 필요 없음 (접기)']
@@ -305,12 +405,27 @@ async function deferStillPending(args: {
         description: locale === 'ko' ? '언제 다시 확인할지 고르세요.' : 'When to check this again.',
       } } },
     );
+    // The window never answered (host trouble) — say so, and do NOT dress it up
+    // as the honest DEFER_DATE_REQUIRED refusal below, which reads as "the user
+    // wouldn't pick" about a user who never got the chance.
+    if (asked.kind === 'no_answer') {
+      return noAnswerResult({
+        tool: 'argus_settle', ko: locale === 'ko',
+        handBack: {
+          ko: `언제 다시 볼지 한마디만 해주세요 (예: "다음 주"). 그 전까지 확인일은 ${oldCheckBy} 그대로입니다.`,
+          en: `Just say when to look again (e.g. "next week"). Until then the check-by stays ${oldCheckBy}.`,
+        },
+        next_actions: ['argus_resolve', 'stop'],
+        data: { id, deferred: false, check_by: oldCheckBy, retry_hint: 'ask the user when to look again, then call argus_resolve with outcome="still_pending" and defer_to' },
+      });
+    }
+    const picked = asked.kind === 'accepted' ? asked.content : null;
     const when = picked?.['when'];
     if (when === 'dismiss') dismissChosen = true;
     else if (when === 'week') newDate = addDays(today, 7);
     else if (when === 'month') newDate = addDays(today, 30);
     else if (when === 'quarter') newDate = addDays(today, 90);
-    // a declined/cancelled picker → newDate stays undefined → honest error below.
+    // a declined picker → newDate stays undefined → honest error below.
   }
 
   // The prediction no longer needs an answer — set aside, don't force a date.
@@ -367,7 +482,7 @@ async function deferStillPending(args: {
     ok: true, tool: 'argus_settle',
     surface: T.deferred(newDate) + syncLine,
     next_actions: ['argus_check_in', 'stop'],
-    data: { id, status: 'sealed', deferred_to: newDate, from_check_by: oldCheckBy, v2_write: v2Write, account_synced: sync.synced, ...(sync.synced ? {} : { account_sync_reason: sync.reason }) },
+    data: { id, status: 'sealed', deferred_to: newDate, from_check_by: oldCheckBy, locale, v2_write: v2Write, account_synced: sync.synced, ...(sync.synced ? {} : { account_sync_reason: sync.reason }) },
   });
 }
 

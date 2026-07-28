@@ -1,8 +1,163 @@
 # Changelog
 
+## 3.0.2 — 2026-07-28
+
+- Wire moves to `argus-decision-mcp@2.0.2` — the confirm surfaces were rendered
+  and read for the first time. The outcome buttons stop printing our database
+  vocabulary (`held`, `avoided`, `partial`…) under their Korean labels and say
+  what each choice means; the settle picker finally shows WHICH prediction it is
+  asking about; "아직 모르겠다" is no longer shaped like a fifth verdict; Korean
+  sentences are no longer set in monospace; and the skip link is legible.
+
+## 3.0.1 — 2026-07-28
+
+- Wire moves to `argus-decision-mcp@2.0.1` — the rest of the adversarial
+  audit. Five more pickers stop reporting a broken window as "the user said
+  no" and hand your words back; a refusal that lands after you typed returns
+  what you wrote instead of asking you to write it again; the out-of-band ask
+  tells you what happened to the answer you gave it; an expired account
+  connection says so instead of going quiet; and recorded text can no longer
+  counterfeit the AI VERDICT line.
+- Two new merge-blocking gates ride along: the out-of-band ask is now driven
+  against the real server (it had none), and the settle card is checked against
+  a host that never sends `tool-input`.
+- `/argus:doctor` now names all three confirm surfaces. It knew only two, so a
+  Claude Desktop user — the one host where the settle card actually renders —
+  had that line silently missing. A parity gate derives the list from the server
+  and fails if any plugin surface stops naming one.
+
+## 3.0.0
+
+- Replaced the historical 17-persona roster with four bounded reviewer roles.
+- Standard judgment now uses no agent team; deep review is explicit opt-in.
+- Deep review uses at most two specialists plus one risk pass for critical calls.
+- Reviewer models inherit the host model and every role has a turn limit.
+- Removed the duplicated roster data and obsolete build/rehearsal documents.
+- Pinned MCP 2.0.0 with project-scoped storage.
+
 All notable changes to the Argus plugin. Versioning follows
 [semver](https://semver.org); users receive an update only when the
 `version` in `.claude-plugin/plugin.json` is bumped.
+
+## 2.21.3 — 2026-07-28
+
+- Wire moves to `argus-decision-mcp@1.15.2` — three live defects found by
+  adversarial audit are fixed: long picker answers are no longer destroyed,
+  an unreadable ledger refuses writes instead of allowing a duplicate seal,
+  and the settle card is now actually executed by a gate.
+
+## 2.21.2 — 2026-07-27
+
+- Wire moves to `argus-decision-mcp@1.15.1` — the confirm picker carries no
+  validation constraints (a blank one-tap Accept can no longer be blocked by
+  the host), and a picker that closes without an answer offers the plain-text
+  save instead of dropping the user's work.
+
+## 2.21.1 — 2026-07-27
+
+- **`/argus:doctor` stops crying wolf about npx caches.** A machine with eight
+  leftover installs printed six `⚠ 낡은 배선이다` lines while the session was
+  correctly on the pinned build. That warning's premise died when the pin
+  became exact — a stale copy cannot be selected. With the pin present in
+  cache, stale copies now collapse to one quiet line; the loud warning is
+  reserved for the case that still bites (pin absent). Guarded by
+  `doctor-cache-noise.test.mjs`.
+
+- **The return loop stops hiding which wire answered.** `/argus:check` routed
+  straight to a file-only ledger replay, so a session with the MCP server
+  disconnected — or running a stale cached build — got the same confident
+  answer as a live one, and neither `server_version` nor `picker` was
+  reachable from the command a user actually types. `resolve` now prefers
+  `argus_check_in` when the tools are present (same replay the server does,
+  plus bearing seeds), flags a version disagreement in one line, and says
+  "MCP 미연결 — 파일 기록만 읽었습니다" when it falls back. Found by founder
+  dogfooding immediately after the 1.15.0 ship.
+
+## 2.21.0 — 2026-07-27
+
+- Wire moves to `argus-decision-mcp@1.15.0` — the settle picker becomes an
+  MCP Apps CARD (five reality buttons + date control) on supporting hosts;
+  everywhere else keeps the current picker unchanged.
+
+## 2.20.1 — 2026-07-27
+
+- Wire moves to `argus-decision-mcp@1.14.1` — the logbook's three groups get
+  distinct faces (`!` / `~` / `⚓`) and anchored rows lead with the outcome word.
+
+## 2.20.0 — 2026-07-27
+
+- Wire moves to `argus-decision-mcp@1.14.0` — one-week default check-by when
+  no horizon is named, `format:"date"` hints on picker date fields, and the
+  guru-depth untouched-side probe (12/12) behind it.
+
+## 2.19.1 — Release alignment — 2026-07-27
+
+- The exact bundled wire moves to `argus-decision-mcp@1.13.1`, which includes
+  the untouched-side hidden-assumption pass that landed immediately after the
+  first foundation release.
+- Plugin, marketplace, MCP package, and registry now identify the same main
+  source rather than leaving post-tag main changes under an already published
+  version.
+
+## 2.19.0 — Judgment foundations — 2026-07-27
+
+- The bundled MCP pin moves with this release to
+  `argus-decision-mcp@1.13.0`.
+- New records preserve four user-facing intents without exposing internal kind
+  names: check against reality, check what I did, revisit my standard, or keep
+  only the record.
+- Sealing keeps the user's first utterance, derivation evidence, skipped review
+  conditions, event plus fallback return, and AI-adoption lineage.
+- Kind and wording corrections append to history; they never rewrite the first
+  record.
+- `/argus:resolve` shows the original first, asks one kind-appropriate question,
+  records the user's answer across independent axes, and never emits a score or
+  track-record aggregate.
+- Ambient detection can notice a named event once, but it cannot settle a record
+  or promote an AI draft without explicit user authorization.
+
+## 2.18.0 — 2026-07-27
+
+- **Wire moves to `argus-decision-mcp@1.12.0`** — sharper prediction
+  drafting (falsifiable defined, no double-ask beside pickers), Korean
+  locale detected from nested premise text, and the LOGBOOK/항해일지
+  identity on the wake box.
+- READMEs now show the Judgment Receipt keepsake up front.
+
+## 2.17.0 — 2026-07-27
+
+- **Wire moves to `argus-decision-mcp@1.11.0`** — the settlement/premises/ambient
+  pickers no longer declare required fields, so hosts stop collapsing the enum
+  and stop blocking an empty Accept with an in-form "This field is required"
+  (the dead-end the founder hit live on 2026-07-27). Empty Accept now flows the
+  same honest path as Decline; the server re-asks instead of the form blocking.
+
+## 2.16.0 — 2026-07-26
+
+Wire truth. The plugin launched the MCP server with a **range** spec
+(`argus-decision-mcp@^1`), and npx reuses a cached install whenever the spec is a
+range — so the founder's wire sat frozen on 1.2.0 from 2026-07-13 while seven
+releases were published. Every gate was green because every gate looked at the
+repo; nothing anywhere reported the version a live session actually launched.
+
+- **`.mcp.json` pins an exact version** (`argus-decision-mcp@1.10.0`). Guarded by
+  `argus-mcp/src/v2/one-install.test.ts`: a range spec fails, and the pin must
+  equal the server's own version, so a server bump without a wire bump is red.
+- **`/argus:doctor` shows the wire** — new `[10] MCP 배선 버전` section prints the
+  pinned version and every `argus-decision-mcp` build sitting in the npx caches,
+  flagging any that disagree with the pin. Read-only, offline-safe, never throws.
+  `doctor.md` then has the model confirm it in-session against
+  `argus_check_in`'s `data.server_version` (the only place the *running* build is
+  visible) — the honest-gap split between what a script can know and what it can't.
+- **The every-turn hook tells "stale" from "disconnected."** `sense-signal.js`'s
+  broken-wire guard used to report both as "MCP not connected", which sends the
+  user to `/mcp` when the actual fix is clearing the npx cache. It now keys on the
+  legacy tool names (`argus_seal` / `argus_settle` / `argus_open_decision`) being
+  present while the current ones are absent, and prescribes accordingly.
+
+> Housekeeping note: this file has no entries for 2.13–2.15 (those shipped with
+> their work recorded in commits and in `evals/detection/EVOLUTION-LOG.md`). The
+> gap is left visible rather than back-filled from memory.
 
 ## 2.12.1 — 2026-07-21
 

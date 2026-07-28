@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { elicit, canElicit } from './elicit.js';
+import { elicitDetailed, canElicit } from './elicit.js';
 import { replayLedger } from './ledger-replay.js';
 import { resolveToday } from './resolve-today.js';
 import { resolveResponseLocale } from './surfaces.js';
@@ -9,6 +9,7 @@ import { configPath } from './layout.js';
 import { atomicWriteJson } from './atomic-write.js';
 import { logError } from './log.js';
 import { sanitizeLine } from '../v2/sanitize.js';
+import { OUTCOME_VALUES, outcomeEnumNames, outcomeFieldDescription } from './outcome-labels.js';
 import type { McpToolResult } from './envelope.js';
 
 /**
@@ -71,6 +72,14 @@ let _serialize: Serialize = (fn) => fn();
 let _timer: ReturnType<typeof setTimeout> | null = null;
 let _spent = false; // 프로세스당 질문 1개 — 한 자리에 한 질문
 let _inFlight = false;
+/**
+ * 다음 툴 결과 끝에 한 번 붙일 확인 한 줄 (아래 attachAmbientNote).
+ *
+ * argus_dir로 키를 잡는다: 한 세션이 프로젝트 두 개를 오갈 수 있는데, A 프로젝트의
+ * 예측 문장이 B 프로젝트 작업 중에 튀어나오면 그건 확인이 아니라 다른 방 이야기의
+ * 유출이다. 답을 받은 그 원장으로 돌아왔을 때만 말한다.
+ */
+let _pendingNote: { dir: string; text: string } | null = null;
 
 /** server.ts가 시동 시 배선한다. 미배선이면 arm은 완전 no-op (정직한 미연결). */
 export function initAmbientElicit(deps: { settleHandler: SettleHandler; serialize?: Serialize }): void {
@@ -84,8 +93,37 @@ export function resetAmbientElicit(): void {
   _timer = null;
   _spent = false;
   _inFlight = false;
+  _pendingNote = null;
   _settleHandler = null;
   _serialize = (fn) => fn();
+}
+
+/**
+ * 밖에서 물어본 답의 결말을 다음 툴 결과 한 줄로 돌려준다 (감사 2026-07-27).
+ *
+ * out-of-band 픽커는 툴 호출 밖에서 뜨므로, 사용자가 답을 넣어도 화면엔 아무
+ * 변화가 없었다 — 성공했는지 실패했는지 알 길이 없는 채로 자기 판단을 던진
+ * 셈이다. 확인용 팝업을 한 번 더 띄우는 건 의식(ceremony)이라 하지 않고,
+ * 사용자가 이미 여기 와 있는 다음 순간 — 다음 툴 호출 — 에 사실 한 줄만 붙인다.
+ *
+ * 한 번 쓰고 비운다 (같은 확인을 두 번 보여주지 않는다). 실패해도 본 호출은
+ * 그대로 — ambient는 절대 본 호출에 세금을 물리지 않는다.
+ */
+export function attachAmbientNote(result: McpToolResult, argusDir: string | null): McpToolResult {
+  try {
+    if (!_pendingNote) return result;
+    if (!argusDir || argusDir !== _pendingNote.dir) return result; // 다른 원장 — 그 방 이야기는 그 방에서
+    const sc = result.structuredContent as Record<string, unknown> | undefined;
+    if (!sc || sc['ok'] !== true || typeof sc['surface'] !== 'string') return result;
+    const note = _pendingNote.text;
+    _pendingNote = null;
+    sc['surface'] = String(sc['surface']) + note;
+    (sc['data'] as Record<string, unknown> | undefined ?? (sc['data'] = {}) as Record<string, unknown>)['ambient_answer_note'] = true;
+    result.content = [{ type: 'text', text: JSON.stringify(sc, null, 2) }];
+    return result;
+  } catch {
+    return result;
+  }
 }
 
 function quietMs(): number {
@@ -103,13 +141,17 @@ function muted(dir: string): boolean {
 
 const statePath = (dir: string): string => path.join(dir, 'ambient-elicit-state.json');
 
-function underCooldown(dir: string): boolean {
+function readState(dir: string): { last_fired_at?: number } | null {
   try {
-    const st = JSON.parse(fs.readFileSync(statePath(dir), 'utf8')) as { last_fired_at?: number };
-    return typeof st.last_fired_at === 'number' && Date.now() - st.last_fired_at < COOLDOWN_MS;
+    return JSON.parse(fs.readFileSync(statePath(dir), 'utf8')) as { last_fired_at?: number };
   } catch {
-    return false; // 상태 부재·파손 = 이력 없음
+    return null; // 상태 부재·파손 = 이력 없음
   }
+}
+
+function underCooldown(dir: string): boolean {
+  const st = readState(dir);
+  return !!st && typeof st.last_fired_at === 'number' && Date.now() - st.last_fired_at < COOLDOWN_MS;
 }
 
 function withTimeout<T>(p: Promise<T>, ms: number): Promise<T | null> {
@@ -157,40 +199,73 @@ async function fire(dir: string, todayOverride?: string): Promise<void> {
     // 상한 없는 질문보다 한 번 거르는 쪽이 안전하다 (driver 훅과 같은 자세).
     _spent = true;
     _inFlight = true;
+    const priorState = readState(dir); // 되돌리기용 — 아래 rollback 참조
     try { await atomicWriteJson(statePath(dir), { last_fired_at: Date.now() }); } catch { return; }
+
+    /**
+     * 아무에게도 닿지 않은 물음은 쿨다운을 쓰지 않는다 (감사 2026-07-27).
+     *
+     * `elicitation`을 선언해놓고 실제로는 거부하는 호스트가 있다 (메서드 없음,
+     * 전송 끊김). 그 경우 요청은 프로세스 밖으로 나가지도 않았는데 4시간 침묵이
+     * 걸렸다 — 묻지도 않고 입을 막은 것이다. 화면이 실제로 떴을 수 있는
+     * 경우(취소·시간초과)는 그대로 소진으로 둔다: 사용자를 방해한 건 사실이니까.
+     */
+    const rollbackCooldown = async (): Promise<void> => {
+      try {
+        if (priorState) await atomicWriteJson(statePath(dir), priorState);
+        else await fs.promises.rm(statePath(dir), { force: true });
+        _spent = false;
+      } catch { /* 되돌리기 실패는 과침묵 — 안전한 쪽 */ }
+    };
 
     const ko = resolveResponseLocale(dir) === 'ko';
     const text = sanitizeLine(first.text || first.id, 120);
 
     // 물음 1 — 정산 outcome (spine-SAFE 구조 픽: 현실이지 평결이 아니다).
     // 대화 맥락이 없는 사용자를 위해 그의 예측을 그대로 되비춘다 (우정 1조).
-    const picked = await withTimeout(
-      elicit(
+    const asked = await withTimeout(
+      elicitDetailed(
         ko
           ? `Argus: 확인일이 지난 예측이 있어요. "${text}" (확인일 ${first.date}). 현실이 어떻게 답했나요? 지금 어려우면 닫아도 됩니다. 다시 조르지 않아요.`
           : `Argus: a prediction passed its check-by. "${text}" (due ${first.date}). What did reality do? Dismiss if now is a bad time; no re-asking.`,
         {
           type: 'object',
-          required: ['outcome'],
+          // 필수 필드 없음 (2026-07-27) — 필수 enum은 호스트가 접어서 렌더하고
+          // (펼치기 키가 하나 더 붙는다) 빈 Accept를 폼 안에서 빨갛게 막는다.
+          // 여기선 특히 나쁘다: 이건 사용자가 부르지도 않았는데 뜨는 선제
+          // 픽커라, 마찰 탈출구가 살아 있어야 한다. 빈 Accept는 아래에서
+          // 거절과 같은 길로 흘러 아무것도 쓰지 않는다 — 정직한 공백.
           properties: {
             outcome: {
               type: 'string',
-              enum: ['held', 'avoided', 'partial', 'still_pending', 'missed'],
-              // Same labels as the in-band settle picker (settle.ts) — 풀어쓰기.
-              // (Duplicated across the two picker sites; keep them in lockstep.)
-              enumNames: ko
-                ? ['예측대로 됐다', '걱정한 일은 안 일어났다', '일부만 맞았다', '아직 불분명', '예측이 빗나갔다']
-                : ['It held', 'Avoided', 'Partially', 'Still unclear', 'Missed: my read was wrong'],
-              description: ko ? '봉인한 예측에 현실이 어떻게 답했는지.' : 'What reality did to your sealed prediction.',
+              enum: [...OUTCOME_VALUES],
+              // One definition, shared with the in-band picker (outcome-labels.ts).
+              // These used to be written out here a second time with a comment
+              // asking editors to keep them in lockstep by hand; a third,
+              // different wording lived in the settle card. Same user, same week.
+              enumNames: outcomeEnumNames(ko ? 'ko' : 'en'),
+              description: outcomeFieldDescription(ko ? 'ko' : 'en'),
             },
           },
         },
       ),
       askTimeoutMs(),
     );
+    // 호스트가 elicitation을 선언해놓고 거부했다 = 사용자는 아무것도 못 봤다.
+    // 이 침묵은 사용자의 답이 아니므로 쿨다운을 되돌린다.
+    //
+    // 시간초과(withTimeout의 null)는 여기 포함하지 않는다 — 화면이 떴는데
+    // 사용자가 지금은 답할 마음이 아닌 경우와 구분할 수 없고, 구분이 안 될 때의
+    // 안전한 쪽은 침묵이다 (mirror clause: 개입할지를 대신 판단하지 않는다).
+    // 취소도 같은 이유로 소진 그대로 — 창을 닫은 건 사람일 수 있다.
+    if (asked && (asked.kind === 'unsupported' || (asked.kind === 'no_answer' && asked.reason === 'failed'))) {
+      await rollbackCooldown();
+      return;
+    }
+    const picked = asked && asked.kind === 'accepted' ? asked.content : null;
     const outcome = picked?.['outcome'];
     if (outcome !== 'held' && outcome !== 'avoided' && outcome !== 'partial' && outcome !== 'still_pending' && outcome !== 'missed') {
-      return; // 거절·시간초과·미렌더 = 답이다. 아무것도 쓰지 않는다.
+      return; // 거절·취소·시간초과 = 답이다. 아무것도 쓰지 않는다.
     }
 
     // still_pending은 실제 settle 핸들러의 defer elicitation이 같은 채널로
@@ -199,16 +274,17 @@ async function fire(dir: string, todayOverride?: string): Promise<void> {
     let whatHappened: string | undefined;
     if (outcome !== 'still_pending') {
       const wh = await withTimeout(
-        elicit(
+        elicitDetailed(
           ko
             ? '실제로 무슨 일이 있었나요? 한 줄이면 됩니다. 당신의 말 그대로 기록됩니다.'
             : 'What actually happened, in one line? Recorded verbatim, in your words.',
           {
             type: 'object',
-            required: ['what_happened'],
+            // 필수 필드 없음 — 같은 이유. 비우고 Accept하면 아래에서
+            // 기록하지 않는다(날조 금지). 폼이 막을 일이 아니다.
             properties: {
               what_happened: {
-                type: 'string', maxLength: 600,
+                type: 'string',
                 description: ko ? '당신의 말, 그대로.' : 'Your words, verbatim.',
               },
             },
@@ -216,8 +292,17 @@ async function fire(dir: string, todayOverride?: string): Promise<void> {
         ),
         askTimeoutMs(),
       );
-      whatHappened = typeof wh?.['what_happened'] === 'string' ? (wh['what_happened'] as string).trim() : '';
-      if (!whatHappened) return; // 현실 서술 없이는 종결 정산을 쓰지 않는다
+      const whContent = wh && wh.kind === 'accepted' ? wh.content : null;
+      whatHappened = typeof whContent?.['what_happened'] === 'string' ? (whContent['what_happened'] as string).trim() : '';
+      // 여기서 비면 정말로 아무것도 안 쓴다 — 그런데 사용자는 이미 결과를 골랐다.
+      // 그 한 번의 클릭이 허공으로 사라지지 않도록, 다음 툴 호출에 붙일 한 줄을
+      // 남긴다 (아래 pendingNote). 날조 금지는 그대로: 기록은 안 한다.
+      if (!whatHappened) {
+        _pendingNote = { dir, text: ko
+          ? `\n\n(아까 "${text}" 결과를 고르셨는데, 무슨 일이 있었는지는 못 받았습니다. 한 줄만 말씀해주시면 그때 기록합니다.)`
+          : `\n\n(You picked an outcome for "${text}" earlier, but the one-line what-happened never arrived. Say it in a line and I'll record it then.)` };
+        return;
+      }
     }
 
     // 기록은 실제 settle 핸들러로 — 가드·영수증·이중쓰기 전부 본 경로 그대로.
@@ -232,7 +317,22 @@ async function fire(dir: string, todayOverride?: string): Promise<void> {
         ...(todayOverride ? { today_override: todayOverride } : {}),
       }),
     );
-    if (result.isError) logError('[ambient-elicit] settle refused', (result.structuredContent as Record<string, unknown> | undefined)?.['error_code']);
+    // 결과를 사용자에게 돌려준다 (감사 2026-07-27). 이 물음은 툴 호출 밖에서
+    // 떴기 때문에 답을 넣어도 화면에는 아무 일도 안 일어났다 — 사용자 입장에선
+    // 자기 판단을 허공에 던진 것이다. out-of-band 채널로 확인을 또 띄우는 건
+    // 팝업 두 번(의식)이라 안 한다. 대신 다음 툴 호출의 surface 끝에 한 줄로
+    // 붙인다: 사용자가 이미 여기 있는 유일한 순간이 그때다 (due-note와 같은 자세).
+    const code = (result.structuredContent as Record<string, unknown> | undefined)?.['error_code'];
+    if (result.isError) {
+      logError('[ambient-elicit] settle refused', code);
+      _pendingNote = { dir, text: ko
+        ? `\n\n(아까 답해주신 "${text}" 기록이 실패했습니다 (${String(code ?? 'unknown')}). 다시 알려주시면 그때 기록합니다.)`
+        : `\n\n(The answer you gave earlier on "${text}" could not be recorded (${String(code ?? 'unknown')}). Tell me again and I'll record it then.)` };
+    } else {
+      _pendingNote = { dir, text: ko
+        ? `\n\n(아까 답해주신 "${text}" 기록했습니다.)`
+        : `\n\n(Recorded the answer you gave earlier on "${text}".)` };
+    }
   } catch (e) {
     logError('[ambient-elicit] fire failed', e);
   } finally {

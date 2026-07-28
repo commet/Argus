@@ -40,6 +40,49 @@ export function canElicit(): boolean {
   return _elicit !== null;
 }
 
+/**
+ * Why the caller must be able to tell a NO from a NON-ANSWER (2026-07-27, the
+ * founder's second blocked settle): `elicit` collapsed decline, cancel, and a
+ * host-side failure into one `null`, so a picker that never advanced — because
+ * the host validated a field, or focus sat in a text input where Enter typed a
+ * newline instead of submitting — was recorded as "the user said no", and the
+ * work they had just done evaporated with a polite "기록하지 않았습니다".
+ *
+ * A decline is an answer and deserves silence. A non-answer is a BROKEN WIRE and
+ * deserves the honest fallback: ask in one plain line. We cannot see or test the
+ * host's form rendering, so the design must not depend on it working.
+ */
+export type ElicitOutcome =
+  | { kind: 'accepted'; content: Record<string, unknown> }
+  | { kind: 'declined' }          // the user said no — respect it, stay silent
+  | { kind: 'no_answer'; reason: 'cancelled' | 'failed' } // host trouble — offer the text path
+  | { kind: 'unsupported' };      // no picker on this host at all
+
+/**
+ * Ask the user and report HOW it ended (see ElicitOutcome).
+ *
+ * `no_answer.reason` splits two facts the in-band tools treat alike but the
+ * OUT-OF-BAND ask must not (audit 2026-07-27):
+ *   cancelled — the host returned action:"cancel". A window existed; a human or
+ *               their client closed it. They were interrupted, so the ambient
+ *               cooldown has been honestly spent.
+ *   failed    — the request itself threw (method not found, transport dead, a
+ *               host that declares `elicitation` and then rejects it). NOTHING
+ *               was ever shown to anyone, so burning a 4-hour cooldown on it
+ *               silences a user who was never asked.
+ */
+export async function elicitDetailed(message: string, requestedSchema: Record<string, unknown>): Promise<ElicitOutcome> {
+  if (!_elicit) return { kind: 'unsupported' };
+  try {
+    const res = await _elicit(stripUnsafeChars(message), requestedSchema);
+    if (res.action === 'accept') return { kind: 'accepted', content: res.content ?? {} };
+    if (res.action === 'decline') return { kind: 'declined' };
+    return { kind: 'no_answer', reason: 'cancelled' }; // the host closed it without an answer
+  } catch {
+    return { kind: 'no_answer', reason: 'failed' }; // declared support but the ask never landed
+  }
+}
+
 /** Ask the user; returns null if unsupported / errored / not accepted. */
 export async function elicit(message: string, requestedSchema: Record<string, unknown>): Promise<Record<string, unknown> | null> {
   if (!_elicit) return null;

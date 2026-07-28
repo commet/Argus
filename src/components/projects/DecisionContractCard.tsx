@@ -26,7 +26,7 @@
  */
 
 import { useMemo, useState } from 'react';
-import { Sparkles, Check, Clock, Target, AlertTriangle, GitBranch, ChevronDown } from 'lucide-react';
+import { Sparkles, Check, Clock, Target, AlertTriangle, GitBranch, ChevronDown, BookOpen } from 'lucide-react';
 import { useLocale } from '@/hooks/useLocale';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -38,6 +38,7 @@ import { getStorage, STORAGE_KEYS } from '@/lib/storage';
 import { JudgmentFrame } from './JudgmentFrame';
 import { FirstSettlementCard } from './FirstSettlementCard';
 import { SemanticDecisionCard } from './SemanticDecisionCard';
+import { FoundationDecisionRecordCard } from './FoundationDecisionRecordCard';
 import type {
   Project,
   RecastItem,
@@ -56,11 +57,9 @@ import {
   gradePredicate,
   setPredicateBasis,
   contractStatus,
-  summarizeGrades,
-  requiredSettlementPredicates,
   isUserOwnedPredicate,
   isBaselineOnlyContract,
-  aiSurfacedCheckedCount,
+  decisionKind,
   type PredicateSources,
 } from '@/lib/decision-contract';
 
@@ -216,6 +215,9 @@ export function DecisionContractCard({
   if (contract?.semantic_judgment_id || semanticSetupOpen) {
     return <SemanticDecisionCard project={project} onCancel={semanticSetupOpen ? () => setSemanticSetupOpen(false) : undefined} />;
   }
+  if (contract?.kind) {
+    return <FoundationDecisionRecordCard project={project} onReturn={onCheckNow} />;
+  }
 
   function seal() {
     const now = Date.now();
@@ -315,6 +317,34 @@ export function DecisionContractCard({
   }
 
   const predicates = Array.isArray(contract!.predicates) ? contract!.predicates : [];
+
+  // Witness is intentionally silent: it is a dated authorial record, not a
+  // sleeping reminder. No due state, early check, reschedule, or reopen action
+  // may be projected from it on any surface.
+  if (decisionKind(contract) === 'witness' && contract!.closed_at) {
+    const statement = contract!.judgment_receipt?.human_judgment?.trim()
+      || predicates.find((predicate) => isUserOwnedPredicate(predicate))?.text?.trim()
+      || predicates[0]?.text?.trim()
+      || '';
+    return (
+      <Card className="border-[var(--border)]">
+        <div className="flex items-start gap-3">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[var(--bg)] text-[var(--text-secondary)]">
+            <BookOpen size={17} />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-[11px] font-semibold text-[var(--text-tertiary)]">
+              {L('그날의 원문 · 다시 묻지 않음', 'Original record · no follow-up')}
+            </p>
+            {statement && <p className="mt-2 text-[14px] font-semibold leading-6 text-[var(--text-primary)]">&ldquo;{statement}&rdquo;</p>}
+            <p className="mt-2 text-[12px] leading-5 text-[var(--text-secondary)]">
+              {L('결과를 채점하거나 알림을 만들지 않고, 이때의 기준만 그대로 보관합니다.', 'Argus keeps this standard as written without grading it or creating a reminder.')}
+            </p>
+          </div>
+        </div>
+      </Card>
+    );
+  }
 
   // The opening BIND is a pre-review baseline, not a completed seal. If someone
   // leaves mid-review, preserve the line and the date without pretending there
@@ -425,24 +455,6 @@ export function DecisionContractCard({
   // grade panel below instead of the read-only verified card (gradePredicate already
   // supports re-grading back to pending).
   if (status!.allGraded && !gradeOpen) {
-    const g = summarizeGrades(contract!);
-    const requiredPredicates = requiredSettlementPredicates(contract!);
-    const optionalAiPredicates = predicates.filter((p) => !isUserOwnedPredicate(p));
-    const parts = [
-      g.risksAvoided > 0 && L(`위험 ${g.risksAvoided}개 회피`, `${g.risksAvoided} risk${g.risksAvoided === 1 ? '' : 's'} avoided`),
-      g.risksHappened > 0 && L(`${g.risksHappened}개 발생`, `${g.risksHappened} hit`),
-      g.betsHeld > 0 && L(`가설 ${g.betsHeld}개 적중`, `${g.betsHeld} bet${g.betsHeld === 1 ? '' : 's'} held`),
-      // A record that prints only its wins is a trophy case. The user's own bet
-      // NOT holding is the single most calibration-relevant line here, and it
-      // used to render as nothing at all.
-      g.betsBroke > 0 && L(`가설 ${g.betsBroke}개 빗나감`, `${g.betsBroke} bet${g.betsBroke === 1 ? '' : 's'} missed`),
-      // The user's own read — a lucky win isn't a judgment win (R17).
-      g.goodOutcomesOnLuck > 0 && L(`그중 운 ${g.goodOutcomesOnLuck}개`, `${g.goodOutcomesOnLuck} on luck`),
-      // AI-surfaced checks stay disclosed but never read as the user's score —
-      // and the disclosure counts the ones that broke too, not just the wins.
-      aiSurfacedCheckedCount(g) > 0 && L(`AI 제안 확인 ${aiSurfacedCheckedCount(g)}개`, `${aiSurfacedCheckedCount(g)} AI-suggested checked`),
-      g.unknown > 0 && L(`${g.unknown}개 미정`, `${g.unknown} unresolved`),
-    ].filter(Boolean);
     return (
       <Card className="border-[var(--success)]/30">
         <div className="flex items-start gap-3">
@@ -454,12 +466,10 @@ export function DecisionContractCard({
               {L('결과 확인 완료', 'Outcome checked')}
             </h3>
             <p className="text-[12.5px] text-[var(--text-secondary)] mt-1 leading-[1.55]">
-              {parts.length > 0
-                ? parts.join(' · ')
-                : L(
-                    `판단 기록 확인 완료`,
-                    `Judgment record checked`,
-                  )}
+              {L(
+                '그때의 문장은 그대로 두고, 나중에 확인한 내용을 이어 붙였어요.',
+                'The original sentence remains intact, with the later answer appended.',
+              )}
             </p>
             {/* 판단 액자 (P1-A1): the user's own seal-time line + settlement
                 narrative on permanent display — verbatim quotes + date stamps
@@ -473,22 +483,6 @@ export function DecisionContractCard({
               settledOn={fmtDate(contract!.judgment_receipt?.settled_at)}
               ko={ko}
             />
-            <div className="mt-3">
-              <PredicateList predicates={requiredPredicates} ko={ko} showVerdict />
-            </div>
-            {optionalAiPredicates.length > 0 && (
-              <details className="mt-3 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5">
-                <summary className="cursor-pointer text-[11.5px] font-semibold text-[var(--text-secondary)]">
-                  {L(
-                    `Argus가 짚었던 전제 ${optionalAiPredicates.length}개 · 사용자 점수와 분리`,
-                    `${optionalAiPredicates.length} premise${optionalAiPredicates.length === 1 ? '' : 's'} Argus surfaced · separate from your score`,
-                  )}
-                </summary>
-                <div className="mt-2">
-                  <PredicateList predicates={optionalAiPredicates} ko={ko} showVerdict />
-                </div>
-              </details>
-            )}
             <div className="mt-4 rounded-xl bg-[var(--bg)]/70 px-3.5 py-3">
               <p className="text-[12px] font-semibold text-[var(--text-primary)]">{L('이 결정의 근거와 결과도 이어서 남기기', 'Keep evidence and outcomes with this decision')}</p>
               <p className="mt-0.5 text-[11px] leading-5 text-[var(--text-secondary)]">{L('새로 알게 된 사실과 최종 결과를 시간순으로 연결할 수 있어요.', 'Connect later evidence and the final outcome in time order.')}</p>

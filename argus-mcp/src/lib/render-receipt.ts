@@ -139,7 +139,8 @@ export function renderSeal(opts: {
  * "on record since YYYY-MM-DD" line from the oldest ledger event.
  *
  * Spine (§4, pinned by spine-drift.test.ts): counts, dates and the user's own
- * outcome words ONLY — no accuracy %, no "1/3" ratio, no tier/score/streak.
+ * individual outcome words only — no aggregate outcome buckets, accuracy %,
+ * "1/3" ratio, tier, score, or streak.
  * The overdue vocabulary ("확인일 지남 · N일 경과") is terminal-allowed per
  * master §5-6 (developer surface); importing it into the webapp stays banned.
  */
@@ -218,7 +219,11 @@ export function renderWake(
   pushGroup(
     settled,
     W.settled_group(settled.length, stats.held, stats.avoided, stats.partial, stats.missed),
-    (c) => `"${label(c)}"   ${c.outcome ? W.outcome_label(c.outcome) : '—'}  ${mmdd(c.settled_on || c.check_by)}  ·  ${c.id}`,
+    // Outcome word LEADS the settled row: a waiting row reads like a question
+    // ("…끝난다  확인 09-01"), an anchored row reads like an answer
+    // ("예측대로 · …"). The two groups stop rhyming (founder 2026-07-27:
+    // the box read flat, rows indistinguishable).
+    (c) => `${c.outcome ? W.outcome_label(c.outcome) : '—'} · "${label(c)}"   ${mmdd(c.settled_on || c.check_by)}  ·  ${c.id}`,
   );
 
   L.push('');

@@ -1,7 +1,8 @@
 # ADR — P6 web canonical ledger and command gateway
 
 Date: 2026-07-14
-Status: Accepted (deployment migration pending)
+Status: Accepted for the web-project aggregate; cross-surface scope superseded
+by `ADR-2026-07-27-one-user-judgment-dataset.md`.
 
 ## Decision
 
@@ -16,6 +17,10 @@ The web client writes only through
 account, translates a named web command through the built MCP v3 kernel,
 preflights it with that same reducer, then uses the locked Postgres RPC
 `append_project_semantic_events` to append the entire command batch.
+
+This remains the authority rule inside a web project. It no longer means that
+plugin/MCP and web keep unrelated logical datasets: the 2026-07-27 founder
+decision adds an explicit replica/exchange layer above these aggregates.
 
 ## Consequences
 

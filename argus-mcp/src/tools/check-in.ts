@@ -1,4 +1,4 @@
-import { resolveToolArgusDir, readGlobalBoundList } from '../lib/argus-dir.js';
+import { resolveToolArgusDir } from '../lib/argus-dir.js';
 import { resolveToday, asDate } from '../lib/resolve-today.js';
 import { replayLedger, bearingContracts } from '../lib/ledger-replay.js';
 import { duePremises, groupDuePremises, dueOpenQuestions } from '../lib/premises.js';
@@ -9,8 +9,11 @@ import { type NextAction } from '../lib/spine.js';
 import { tunedStandingSense } from '../lib/ambient-prefs.js';
 import { envelope } from '../lib/envelope.js';
 import { canElicit } from '../lib/elicit.js';
+import { appsCapable } from '../lib/apps-ui.js';
+import { packageMeta } from '../lib/package-meta.js';
 import { ENVELOPE_OUTPUT_SCHEMA, zArgusDir, zDate, type ToolModule } from './tool-types.js';
 import { handleToolException } from './errors.js';
+import { accountCredentialStatus } from '../a0/account-credentials.js';
 import { briefDivergence, readV2Brief } from '../v2/mirror.js';
 import { drainCaptureOnCheckIn } from '../v2/capture-runtime.js';
 
@@ -32,6 +35,26 @@ export function resetCheckInSession(): void {
   anchorMirrorShownFor.clear();
 }
 
+/**
+ * The wire facts a session can see about ITSELF. `picker` answers "does this host
+ * show real pickers"; `server_version` answers "which build am I actually talking
+ * to" — the gap that let a founder dogfood 1.2.0 for twelve days while seven
+ * releases sat on npm (npx reuses a cached install whenever the spec is a RANGE,
+ * so `argus-decision-mcp@^1` never upgrades on its own). CI gates the repo and
+ * npm holds the latest; neither can see what a live session actually launched.
+ * Reported on every check_in so `/doctor` — and the user — can compare it to the
+ * version the plugin pins, instead of inferring staleness from missing behavior.
+ */
+function wireFacts(): { picker: 'card' | 'one_tap' | 'text_fallback'; server_version: string } {
+  // Three surfaces, strongest first — the SAME order settle degrades through, so
+  // this field answers "what will I actually see when I settle?" without the
+  // user having to trigger one and find out (founder 2026-07-27: "does this
+  // show up on Claude Code and Codex too?" must be answerable by the wire, not
+  // by a blog post).
+  const picker = appsCapable() ? 'card' as const : canElicit() ? 'one_tap' as const : 'text_fallback' as const;
+  return { picker, server_version: packageMeta().version };
+}
+
 const inputSchema = z.strictObject({
   argus_dir: zArgusDir,
   // max(365), not max(30): the handler clamps the WINDOW to 30 days, but the
@@ -39,7 +62,6 @@ const inputSchema = z.strictObject({
   // — an advertised-then-rejected argument is the 1.4.6 backlog's enum-divergence
   // class. Values above 30 are accepted and clamped.
   include_upcoming_days: z.number().int().min(0).max(365).default(0).describe('Also list sealed contracts coming due within N days (informational; nothing to settle yet). Values above 30 are clamped to 30.'),
-  fleet: z.boolean().default(false).describe('Also report due counts across your OTHER Argus projects (every dir argus_init registered on this machine). Facts and counts only; settle each in its own project.'),
   today_override: zDate.optional(),
 });
 
@@ -217,21 +239,7 @@ export const checkIn: ToolModule = {
       // Fleet view (M2, §9.4): due counts across the OTHER projects the global
       // registry knows. Counts + paths only — each project settles in its own
       // dir; this is a lighthouse sweep, not a merged ledger.
-      let fleetRows: Array<{ argus_dir: string; due_count: number; due_premise_count: number }> = [];
-      let fleetLine = '';
-      if (a['fleet'] === true) {
-        const others = readGlobalBoundList().filter((d) => d !== dir).slice(0, 8);
-        fleetRows = others.map((d) => {
-          try {
-            const l = replayLedger(d, today);
-            return { argus_dir: d, due_count: l.overdue.length, due_premise_count: groupDuePremises(duePremises(l)).length };
-          } catch {
-            return { argus_dir: d, due_count: 0, due_premise_count: 0 };
-          }
-        }).filter((r) => r.due_count > 0 || r.due_premise_count > 0);
-        const fleetDue = fleetRows.reduce((n, r) => n + r.due_count, 0);
-        if (fleetRows.length > 0) fleetLine = S.fleet_summary(fleetRows.length, fleetDue);
-      }
+      const fleetLine = '';
 
       // Ledger-corruption disclosure (11 P2-8): dropped_lines was counted in
       // data.integrity but never SAID. Silence is not kindness — one factual
@@ -267,7 +275,12 @@ export const checkIn: ToolModule = {
         // local, deterministic read — but a token means the user ALSO seals in
         // their account (web), and "nothing" here must not read as "nothing
         // anywhere". One sentence, argus_sync is the one place that looks.
-        const accountHint = (process.env.ARGUS_TOKEN || '').trim()
+        // Read the SAME resolver every push path uses (audit 2026-07-27). This
+        // used to peek at `process.env.ARGUS_TOKEN` alone, which is the manual /
+        // CI override — so a user connected the normal way (argus_settings
+        // `npx argus-decision-mcp connect`, credential on disk) was told "nothing anywhere"
+        // while their account held live decisions this read never looked at.
+        const accountHint = accountCredentialStatus() === 'ok'
           ? S.account_hint
           : '';
         // First-run vs caught-up: SERVER_INSTRUCTIONS routes EVERY session start
@@ -286,14 +299,14 @@ export const checkIn: ToolModule = {
             ok: true, tool: 'argus_check_in',
             surface: S.first_run,
             next_actions: ['argus_capture'],
-            data: { due: [], due_count: 0, due_premises: [], due_premise_count: 0, due_open_questions: [], due_open_question_count: 0, first_run: true, today, picker: canElicit() ? 'one_tap' : 'text_fallback' },
+            data: { due: [], due_count: 0, due_premises: [], due_premise_count: 0, due_open_questions: [], due_open_question_count: 0, first_run: true, today, ...wireFacts() },
           });
         }
         return envelope({
           ok: true, tool: 'argus_check_in',
           surface: mirrorLine + S.nothing_due + accountHint + upcomingLine + fleetLine + integrityLine,
           next_actions: ['stop'],
-          data: { due: [], due_count: 0, due_premises: [], due_premise_count: 0, due_open_questions: [], due_open_question_count: 0, picker: canElicit() ? 'one_tap' : 'text_fallback', ...(openWatch.length ? { open_predictions: openWatch, standing_sense: tunedStandingSense() } : {}), ...(upDays > 0 ? { upcoming } : {}), ...(a['fleet'] === true ? { fleet: fleetRows } : {}), ...watchData, today, integrity: ledger.integrity, ...(process.env['ARGUS_V2_DEBUG'] === '1' ? { capture_status: captureStatus, v2_brief: readV2Brief(dir, today), v2_divergence: briefDivergence([], readV2Brief(dir, today)) } : {}) },
+          data: { due: [], due_count: 0, due_premises: [], due_premise_count: 0, due_open_questions: [], due_open_question_count: 0, ...wireFacts(), ...(openWatch.length ? { open_predictions: openWatch, standing_sense: tunedStandingSense() } : {}), ...(upDays > 0 ? { upcoming } : {}), ...watchData, today, integrity: ledger.integrity, ...(process.env['ARGUS_V2_DEBUG'] === '1' ? { capture_status: captureStatus, v2_brief: readV2Brief(dir, today), v2_divergence: briefDivergence([], readV2Brief(dir, today)) } : {}) },
         });
       }
 
@@ -333,7 +346,7 @@ export const checkIn: ToolModule = {
         surface: mirrorLine + parts.join(' ') + upcomingLine + fleetLine + integrityLine,
         next_actions: next,
         data: {
-          picker: canElicit() ? 'one_tap' : 'text_fallback',
+          ...wireFacts(),
           due: dueEnriched, due_count: dueAll.length,
           ...(dueTruncated > 0 ? { due_truncated: `${dueAll.length} due, showing ${DUE_TOP} oldest` } : {}),
           due_premises: duePrem, due_premise_count: premiseGroups.length,
@@ -341,7 +354,6 @@ export const checkIn: ToolModule = {
           due_open_questions: dueOpenQ, due_open_question_count: openQs.length,
           ...(openQs.length > TOP ? { due_open_questions_truncated: `${openQs.length} questions, showing ${TOP}` } : {}),
           ...(upDays > 0 ? { upcoming } : {}),
-          ...(a['fleet'] === true ? { fleet: fleetRows } : {}),
           ...watchData,
           ...(openWatch.length ? { open_predictions: openWatch, standing_sense: tunedStandingSense() } : {}),
           today, integrity: ledger.integrity,

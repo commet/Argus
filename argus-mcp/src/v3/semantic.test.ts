@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { fold, foldAsOf, guardAppend, guardAppendBatch, projectJudgment } from './reducer.js';
-import type { SemanticEvent } from './types.js';
+import { SemanticEventSchema, type SemanticEvent } from './types.js';
 
 const at = (minute: number, mode: 'contemporaneous' | 'retrospective' = 'contemporaneous') => ({
   occurred_at: `2026-07-14T18:${String(minute).padStart(2, '0')}:00.000Z`,
@@ -107,6 +107,63 @@ describe('DKK v6 semantic reducer', () => {
     expect(guardAppend([seal(), promise(), observation(), resolution()], unauthorizedClose)).toEqual({ ok: false, code: 'INVALID_EVENT' });
   });
 
+  it('refuses adoption lineage that points to no live proposal', () => {
+    const missingProposalSeal: SemanticEvent = {
+      ...seal(),
+      source_proposal_id: 'proposal-missing',
+      adoption_mode: 'wording',
+    };
+    expect(guardAppend([], missingProposalSeal)).toEqual({
+      ok: false,
+      code: 'UNKNOWN_REFERENCE',
+    });
+
+    const proposal: SemanticEvent = {
+      ...base('proposal-1', 0, false),
+      event: 'proposal_created',
+      proposal_id: 'proposal-1',
+      proposal_kind: 'judgment',
+      text: 'Keep price unchanged through September 1.',
+      authority: {
+        originated_by: { kind: 'ai', id: 'mcp' },
+        recorded_by: { kind: 'system', id: 'mcp' },
+      },
+      provenance: { source_kind: 'ai_generation', verification: 'unknown' },
+    };
+    const adopted: SemanticEvent = {
+      ...seal(),
+      source_proposal_id: 'proposal-1',
+      adoption_mode: 'wording',
+    };
+    expect(guardAppend([proposal], adopted).ok).toBe(true);
+  });
+
+  it('does not launder a proposal of another object kind into a judgment', () => {
+    const premiseProposal: SemanticEvent = {
+      ...base('proposal-premise', 0, false),
+      event: 'proposal_created',
+      proposal_id: 'proposal-premise',
+      proposal_kind: 'premise',
+      text: 'The written authority may be narrower than the title.',
+      authority: {
+        originated_by: { kind: 'ai', id: 'mcp' },
+        recorded_by: { kind: 'system', id: 'mcp' },
+      },
+      provenance: { source_kind: 'ai_generation', verification: 'unknown' },
+    };
+    const mismatchedSeal: SemanticEvent = {
+      ...seal(),
+      source_proposal_id: 'proposal-premise',
+      adoption_mode: 'basis',
+    };
+
+    expect(guardAppend([premiseProposal], mismatchedSeal)).toEqual({
+      ok: false,
+      code: 'ILLEGAL_TRANSITION',
+    });
+    expect(fold([premiseProposal, mismatchedSeal]).judgments.size).toBe(0);
+  });
+
   it('treats defer as a new return promise rather than a terminal result', () => {
     const deferred: SemanticEvent = {
       ...base('e-defer', 4),
@@ -186,5 +243,38 @@ describe('DKK v6 semantic reducer', () => {
     const state = fold([seal(), promise(), { event_id: 'mystery', event: 'mystery_event' }]);
     expect(projectJudgment(state, 'j-1', '2026-08-01T00:00:00.000Z')?.lifecycle).toBe('sealed');
     expect(state.anomalies.map((entry) => entry.code)).toContain('INVALID_EVENT');
+  });
+
+  it.each([
+    {
+      kind: 'indeterminate' as const,
+      reason: 'The evidence cannot be reconstructed.',
+      criterion_result: 'not_observable' as const,
+      commitment_result: 'revised' as const,
+      question_validity: 'indeterminate' as const,
+      evidence_refs: [],
+    },
+    {
+      kind: 'moot' as const,
+      reason: 'The project was cancelled before the criterion could apply.',
+      criterion_result: 'not_applicable' as const,
+      commitment_result: 'withdrawn' as const,
+      question_validity: 'moot' as const,
+      evidence_refs: [],
+    },
+  ])('preserves the three independent axes for a $kind resolution', (resolutionAxes) => {
+    const event = {
+      ...base(`resolution-${resolutionAxes.kind}`, 7),
+      event: 'resolution_asserted',
+      resolution_id: `resolution-${resolutionAxes.kind}`,
+      judgment_id: 'j-1',
+      return_contract_id: 'r-1',
+      resolution: resolutionAxes,
+    };
+    const parsed = SemanticEventSchema.safeParse(event);
+
+    expect(parsed.success).toBe(true);
+    if (!parsed.success || parsed.data.event !== 'resolution_asserted') return;
+    expect(parsed.data.resolution).toMatchObject(resolutionAxes);
   });
 });

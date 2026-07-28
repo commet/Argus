@@ -1,7 +1,12 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { Resend } from 'resend';
-import { settlementReminderText, settlementReplyMarkup, detectSettlementLocale } from '@/lib/telegram-settlement';
+import {
+  detectSettlementLocale,
+  foundationSettlementReplyMarkup,
+  settlementReminderText,
+  settlementReplyMarkup,
+} from '@/lib/telegram-settlement';
 import { isCheckInReminderDue, renderCheckInReminderEmail, resendEmailErrorMessage, selectOpenPredicate, REMINDER_MAX_SENDS } from '@/lib/checkin-reminder';
 import { buildProjectReturnUrl, returnEmailSubject } from '@/lib/return-email';
 import { notificationGateAllowsSend } from '@/lib/notification-gate';
@@ -215,6 +220,7 @@ export async function GET(req: Request) {
           predicate: openPredicate?.text,
           locale,
           isFinal: isFinalWave,
+          ...(c.kind && c.kind !== 'witness' ? { kind: c.kind } : {}),
         });
         let delivered = 0;
         if (notificationGateAllowsSend({
@@ -230,7 +236,9 @@ export async function GET(req: Request) {
               botToken,
               chatId: String(conn.chat_id),
               text,
-              replyMarkup: settlementReplyMarkup(r.id, c.id, locale),
+              replyMarkup: c.kind && c.kind !== 'witness'
+                ? foundationSettlementReplyMarkup(r.id, c.id, c.kind, locale)
+                : settlementReplyMarkup(r.id, c.id, locale),
             })) delivered++;
           }
         }

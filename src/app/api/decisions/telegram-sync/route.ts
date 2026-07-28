@@ -56,17 +56,42 @@ export async function POST(req: NextRequest) {
   try { body = await req.json(); } catch { return NextResponse.json({ error: 'Bad request.' }, { status: 400 }); }
   const b = (body ?? {}) as Record<string, unknown>;
   const projectId = typeof b.projectId === 'string' ? b.projectId : '';
+  const action = b.action === 'disable' ? 'disable' : 'sync';
   const decision = typeof b.decision === 'string' ? b.decision.slice(0, 500) : '';
   const predicate = typeof b.predicate === 'string' ? b.predicate.slice(0, 1000) : '';
   const falsifiedIf = typeof b.falsifiedIf === 'string' ? b.falsifiedIf.slice(0, 1000) : null;
   const checkInAt = typeof b.checkInAt === 'string' ? b.checkInAt : '';
-  if (!UUID_RE.test(projectId) || !predicate || !checkInAt) {
+  if (!UUID_RE.test(projectId) || (action === 'sync' && (!predicate || !checkInAt))) {
     return NextResponse.json({ error: 'Bad request.' }, { status: 400 });
   }
-  const checkBy = kstDate(checkInAt);
-  if (!checkBy) return NextResponse.json({ error: 'Bad request.' }, { status: 400 });
+  const checkBy = action === 'sync' ? kstDate(checkInAt) : null;
+  if (action === 'sync' && !checkBy) {
+    return NextResponse.json({ error: 'Bad request.' }, { status: 400 });
+  }
 
   const admin = createClient(url, serviceKey);
+
+  // Disabling is meaningful even after Telegram was disconnected: an old
+  // mirrored row can still carry the previous chat id. Scope by both owner and
+  // source, and do not call it a settlement — witness means "no return".
+  if (action === 'disable') {
+    const { error: disableError } = await admin
+      .from('telegram_decisions')
+      .update({
+        status: 'witness',
+        outcome: null,
+        reminded_at: null,
+        settled_at: null,
+      })
+      .eq('id', projectId)
+      .eq('user_id', user.id)
+      .eq('source', 'web');
+    if (disableError) {
+      console.error('[decisions/telegram-sync] disable failed:', disableError.message);
+      return NextResponse.json({ error: 'Sync failed.' }, { status: 500 });
+    }
+    return NextResponse.json({ ok: true, synced: true, active: false });
+  }
 
   // Only mirror for users who connected Telegram (the channel that can push).
   // Most users have no row → 200 synced:false, the client need not care.
@@ -105,7 +130,7 @@ export async function POST(req: NextRequest) {
     decision: decision || '(decision)',
     predicate,
     falsified_if: falsifiedIf,
-    check_by: checkBy,
+    check_by: checkBy!,
     status: 'sealed',
     reminded_at: null,
     settled_at: null,

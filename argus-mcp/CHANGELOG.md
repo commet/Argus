@@ -1,10 +1,378 @@
 # Changelog
 
+## 2.0.2 — What the picker and the card actually look like
+
+Everything before this verified the wiring: the resource is listed, the args
+arrive, the ask fires. None of it asked whether a person could read the result.
+So I rendered both surfaces and looked at them, and found this:
+
+- **Every outcome button showed the raw enum underneath its Korean label** —
+  예측대로/`held`, 걱정 피함/`avoided`, 일부만/`partial`, 아직/`later`,
+  빗나감/`missed`. Our filing system, printed for a user who never asked for it,
+  at the moment we ask them to commit. It did not even help with the one
+  distinction people get wrong (held vs avoided), which the tool description
+  itself warns about. The sub-line now says what the choice means, in their
+  language.
+- **The settle picker never said WHICH prediction it was asking about.** No
+  sentence, no date — just "현실이 어떻게 답했나요?". The seal picker quotes the
+  sentence; the return path, where a user with several open bets most needs to
+  know, did not. It does now.
+- **That picker also pointed at the wrong handle:** "아직 모르겠으면 Decline".
+  Decline records nothing and asks again; the enum's still_pending moves the
+  date properly. Fixed.
+- **"아직 모르겠다" sat in the same grid as the four verdicts**, which invites
+  filing "no answer yet" as an answer. It is now a separate handle that says it
+  records nothing.
+- **Korean prose was set in monospace**, which breaks a sentence into evenly
+  spaced blocks ("광 고  R O A S가"). The instrument keeps the mono (wordmark,
+  dates, the plate); the sentences get a proportional face.
+- **The escape hatch was the least legible thing on the card** while being the
+  one the spine requires to always be reachable.
+- The five labels lived in **three** hand-maintained copies (two pickers plus
+  the card) with a comment asking editors to keep them in lockstep. One
+  definition now, in `outcome-labels.ts`.
+- Under ~380px the header split the date into "2026-07- / 10".
+
+- **The deferred screen printed `still_pending` in gold as its headline.** I
+  caused this an hour earlier by moving that value out of the outcomes table
+  into its own handle, which made the label lookup fall through to the raw
+  value — and the gate I had just written could not see it, because it read the
+  label tables and not the rendered screen. The card gate now DRIVES the
+  after-the-click states and fails if any enum reaches the DOM. The same screen
+  also stamped the closing anchor on a deferral (a loop that did not tie) and
+  kept "5일 지남" in the header after the date had moved.
+
+Two gates hold this: the card may not show an enum value where a human reads,
+and a picker must name the record it is asking about. Both were verified by
+putting the defect back and watching them go red.
+
+## 2.0.1 — Every remaining audit finding, and the gates that can prove it
+
+> Written against 1.15.x and landed on top of the 2.0.0 surface reduction. The
+> defects below were all still live in 2.0.0 — every file they touch survived
+> the reduction untouched.
+
+The 1.15.2 audit left a list. This closes it. Each fix below was verified the
+same way: the fix is reverted, the gate is confirmed to turn red, the fix is
+restored (`npm run verify` does all twelve of these in one run).
+
+**Work that was reaching us and being thrown away**
+
+- **Five of six pickers reported a broken window as "the user said no."**
+  1.15.2 fixed this only for the seal confirm. The settle outcome ask, the
+  defer ask, the premise confirm, and the open-question ask all still collapsed
+  cancel / host-failure into a decline, answered "not recorded", and dropped
+  whatever the user had typed. All six now separate the two facts and hand the
+  user's own material back with the one plain sentence that finishes the job.
+- **A refusal that lands after Accept now returns the words.** Reword a
+  prediction past 400 characters and the only thing the model used to receive
+  was "too long" — so it asked the user to write the paragraph again. Their
+  text is in our hands at that moment; `data.user_input` carries it back.
+  Same for a settle where the outcome enum was left blank but the narration
+  was not.
+- **The out-of-band ask no longer answers into a void.** It fires outside any
+  tool call, so accepting it changed nothing on screen: success and failure
+  looked identical. The result now rides back as one line on the next tool
+  call — including when it could NOT be recorded.
+
+**Things that were quietly lying**
+
+- **`argus_amend` claimed an account push it never made.** A wording-only
+  amend returned `account_synced: true` without calling anything. It now says
+  plainly that the account still shows the earlier wording (there is no
+  retitle verb, and re-sealing would overwrite premises edited on the web).
+- **An expired account connection was reported as "not connected."** Which
+  means silence, because silence is right for a user who never connected. So
+  seals and settles stopped reaching the account and every screen looked
+  normal. Expired is now its own state with its own sentence and the one
+  action that fixes it.
+- **`argus_check_in` looked for the wrong token.** It read `ARGUS_TOKEN`
+  directly — the CI/manual override — so a user connected the normal way was
+  told "nothing anywhere" while their account held live decisions.
+- **`argus_sync` conflated "already settled here" with "the write failed."**
+  A settlement recorded on the web that could not be written locally was
+  reported as nothing to import. Real failures are now counted and named.
+
+**Two ways the record could be damaged**
+
+- **Receipts were written without fsync.** The ledger append already fsyncs,
+  so a crash between the rename and the flush could leave a ledger that says
+  "settled" beside a zero-length receipt — losing the one artifact this
+  product exists to hand back. Small-file writes are now durable.
+- **Recorded text could counterfeit the spine line.** A predicate reading
+  `AI VERDICT ON THIS DECISION: held` came back inside the confirmation
+  surface, where nothing distinguished it from the real line that always says
+  NONE. The branded token is now escaped on output, exactly like the newline
+  `quoteInline` already collapses. Storage is untouched: the user's sentence
+  stays whole on disk.
+- **The settle card could address the wrong ledger.** It read the records path
+  from `ui/notifications/tool-input`, a notification no host is obliged to
+  send. Without it the click fell back to `~/.argus`. The path now travels
+  with the tool result, beside the very prediction being rendered.
+
+**Gates that were watching nothing**
+
+- The content battery's hostile-input scenarios (prompt injection, HTML) only
+  PRINTED the answer. They now assert the user's bytes round-trip unchanged,
+  the closed handle set is intact, and no verdict value reaches the surface.
+- Its picker answers were keyed on Korean prose, so a copy edit silently made
+  them answer the wrong question while staying green. They now route by schema,
+  and an ask this battery cannot recognise is a hard failure.
+- The `month` and `dismiss` defer buckets, and a declined defer, had no
+  assertion anywhere. All three now check the ledger, not the sentence.
+- The out-of-band ask had NO eval at all — the one surface that appears when
+  the user did not ask for anything. `evals/ambient-picker.mjs` drives the real
+  server over a real connection against eight named promises.
+- The host matrix gained `hostile-error` (a host that declares elicitation and
+  then rejects it) and now asserts the no-lost-work invariant on every ask
+  rather than on one of six.
+
+**One thing 2.0.0 changed that the founder should decide on**
+
+- On the public surface `argus_capture action="answer_question"` now REQUIRES
+  `decision`, so the elicitation path that asks the USER to close their own open
+  question — in their own words, with no options and no leans — can no longer be
+  reached. The only remaining channel is the model collecting the words in chat,
+  which is the channel the picker existed to avoid: a model that must produce the
+  field is a model invited to draft the user's judgment. Nothing was changed here
+  on my own authority; the host matrix now pins the honest refusal instead, and
+  the question stays open and answerable. Reopening that path is your call.
+
+**About the observatories**
+
+- 2.0.0 deleted the journey evals because they called tool names it no longer
+  exposes, and testing names that do not exist gives a false picture. That is
+  right. Three of them came back PORTED to the public six, not resurrected —
+  without them not one fix above is provable, and "it looks fine" is exactly what
+  these files exist to refuse. The rest stayed deleted.
+
+## 2.0.0
+
+- Reduced the public and callable MCP surface to six purpose-led tools.
+- Removed legacy callable aliases and the experimental `argus_record` surface.
+- Made zero-config storage project-scoped and removed cross-project discovery.
+- Compressed initialize instructions and tool schemas under enforced byte budgets.
+- Bundled the published runtime into one entrypoint and hardened internal errors.
+
 > Published on npm as **`argus-decision-mcp`**. The package was renamed from
 > `argus-mcp` (that name was already taken by an unrelated tool) and its version
 > **reset to 1.0.0** for the first release under the new name on **2026-07-03**.
 > The `1.3.0` / `1.2.1` entries at the bottom are pre-rename `argus-mcp` history,
 > kept for reference — all of that work shipped inside the new-name 1.0.0.
+
+## 1.15.2 — What the audit found, and the gates that could not see it
+
+Three adversarial auditors were told to assume the engineer was wrong.
+They were right, three times. Everything here was live and green.
+
+- **Long answers were being destroyed.** `maxLength` on the premises and
+  ambient pickers made the MCP SDK reject an over-limit answer INSIDE our
+  own process; `elicit()` returned null and the server told the model the
+  user never answered. A 420-character answer, gone, blamed on the user.
+  Removed from both. The picker guard now bans every validation keyword,
+  not the two that had already bitten us.
+- **The guard was blind to the file it was written for.** It matched the
+  literal `elicit(`, and the seal confirm — the picker that blocked the
+  founder twice — had been renamed to `elicitDetailed(` by the previous
+  fix. Now matches any `elicit*(`. (Its own self-check then caught a
+  control character an edit had injected into the new regex; a gate that
+  can fail is the only kind worth having.)
+- **The settle card had never been executed.** Its JavaScript is a string
+  in a `.ts` file, so nothing type-checked or ran it: an injected syntax
+  error, a typo'd tool name, and a guaranteed throw all shipped green.
+  `widget-runtime.mjs` now runs it in a VM host and drives all 25 user
+  gestures — and immediately found that the skip escape only appeared
+  AFTER an outcome was picked, so a user who wanted out had to commit
+  first. Fixed.
+- **An unreadable ledger reported "nothing on record" — and let a second
+  seal through.** The read swallowed every errno into an empty fold with
+  `dropped_lines: 0`, so `deriveState` saw `absent` and the state machine
+  accepted a duplicate seal that silently moved the check-by. Reads now
+  carry `integrity.unreadable`; writes refuse with `LEDGER_UNREADABLE` and
+  say plainly that nothing was lost.
+- **The account namespace re-randomized on a write failure.** A read-only
+  `.argus` meant seal and settle addressed different account rows, so the
+  row never closed and the Brief kept emailing a settled bet — while every
+  surface said "synced". The id is now held for the process and written
+  atomically.
+
+Gates: 209 host-conformance checks across 8 client profiles (new
+long-typer profile types 520 characters into every field), the card
+executed for real, an unreadable-ledger drill, and `npm run verify`
+re-plants all five regressions to prove the green light can turn red.
+
+## 1.15.1 — A picker that fails must not eat the work
+
+Founder dogfooding, second consecutive blocked confirm: Accept did not
+advance, the ask died by timeout, and the answer came back as a polite
+"기록하지 않았습니다" — with the work gone.
+
+- **`format:"date"` removed from the picker.** 1.14.0 added it as a
+  "spec-sanctioned, harmless rendering hint" — untested speculation on the
+  yes-path. A host that VALIDATES format rejects the blank a one-tap Accept
+  leaves behind, so Accept stops advancing. The `required` guard now also
+  bans `format` in any elicit schema: the confirm form carries NO validation
+  constraints, ever. The server validates and re-asks honestly instead.
+- **A decline and a non-answer are now different facts.** `elicit` collapsed
+  decline, cancel, and host failure into one `null`, so a broken picker was
+  recorded as "the user said no". `elicitDetailed` reports how the ask ended;
+  a cancel/failure now names it and hands back the plain-text path
+  ("저장해줘 한마디면 이대로 남깁니다") instead of silently dropping the seal.
+  No host UI quirk we cannot see from here can cost the user their work.
+- **A host conformance matrix now stands in for every client.** Seven
+  profiles — claude-code, claude-desktop (MCP Apps), codex (no elicitation),
+  legacy, and three hostile ones (cancels everything / accepts blank /
+  answers with junk) — each drive the real server through every ask that can
+  reach a user, asserting four promises: no dead end, no lost work, no form
+  a validating host would block, and no surface that claims a record it did
+  not write. 117 checks, and reintroducing either known regression turns it
+  red (proven, not assumed). CI gate.
+- **The E2E harness now validates like a strict host.** It accepted any
+  scripted answer without checking it against the schema the server sent —
+  more permissive than the real client, which is how format:"date" shipped
+  green. An answer a validating host would reject now fails the run
+  (verified by reintroducing the regression and watching it turn red).
+
+## 1.15.0 — The settle card (MCP Apps)
+
+The settlement picker becomes a real interactive CARD inside the chat on
+hosts that support MCP Apps (SEP-1865, official in Claude since
+2026-01-26): the prediction as the hero line, five reality buttons, a
+what-happened field in the user's words, a real date control for "not
+yet", and the anchor ⚓ only after the loop ties. One click IS the settle.
+
+- `ui://argus/settle-picker` resource (self-contained HTML, default
+  restrictive CSP — no external origins), `argus_resolve` carries
+  `_meta.ui.resourceUri`, and settle returns an `awaiting_picker` state
+  the card fills by calling `tools/call` back into the server.
+- Capability-gated end to end: hosts that never declared the
+  `io.modelcontextprotocol/ui` extension keep today's elicitation/text
+  flow byte-identical (guarded by `apps-ui.test.ts`).
+- Honest limit: protocol + fallback are machine-verified; the card's
+  look on a live apps host awaits founder eyes.
+
+## 1.14.1 — The logbook stops rhyming
+
+Founder read the wake box and called it flat: three groups that all
+scanned alike. Each group now has its own face — `!` past check-by
+(with the resolve handle), `~` at sea, `⚓` anchored (the settled group
+IS a collection of tied loops, so the anchor belongs on its header) —
+and an anchored row LEADS with the outcome word, so a waiting row reads
+like a question and an anchored row reads like an answer. The em-dash
+copy gate caught the first draft of these labels; interpuncts now.
+
+## 1.14.0 — A week, not a quarter + the guru probe
+
+- **No-horizon predictions default to ONE WEEK out** (founder call: a short
+  check-by that arrives beats a distant one that goes stale; the picker's
+  date field makes pushing it out a one-line edit). Named in instruction #1.
+- **Picker date fields carry `format: "date"`** — a spec-sanctioned
+  elicitation hint hosts MAY render as a date control; plain text otherwise.
+- **12-case senior-engineer blind probe, 12/12 in-class**: fsync removal →
+  "replicas can reconstruct acked-but-unflushed writes"; Redis→JWT → "nothing
+  needs to kill a session before its token expires"; retry removal → "the
+  duplicate becomes a missed payment". The untouched-side instruction holds
+  at guru depth in both languages.
+- CI now runs the self-drive loop AND the 46-scenario content battery on
+  every PR — standing sensors, merge-blocking.
+
+## 1.13.1 — Release alignment after the concurrent content pass
+
+- Includes the hidden-assumption drafting improvement that landed on main
+  immediately after the `1.13.0` tag: Argus now looks for the UNTOUCHED side,
+  what a decision quietly assumes will keep behaving because the plan leaves it
+  alone.
+- Moves the exact package, server manifest, plugin wire, and registry version
+  together so main and the published artifact identify the same source.
+
+## 1.13.0 — Judgment foundations, without a human score
+
+- Added the public `argus_record` semantic writer for four answerable record
+  shapes: a claim reality can answer, a commitment, a chosen standard, or a
+  moment preserved without a future return.
+- A model proposal can no longer become the user's judgment silently. Human
+  authorization and AI-adoption lineage are explicit ledger facts.
+- Preserved the first utterance, kind derivation evidence, review-condition
+  status, observation source, event trigger plus fallback date, and append-only
+  statement/kind corrections.
+- Return answers now keep reality, commitment, and question validity separate.
+  Event detection may invite one return, but never writes the answer.
+- Removed result aggregates from recall and continuity projections. Legacy
+  fields remain readable; Argus stores and shows no score for the person.
+
+## 1.12.0 — Content sharpening + the logbook
+
+Validated by a 34-scenario real-server content battery, a revived 75-day
+life simulation, and an 18-case blind content probe (six independent host
+models given the real instructions; 18/18 correct fire/silence decisions).
+What the probes changed:
+
+- **Instructions define falsifiable and ban the double-ask.** Hosts kept
+  vague predicates ("the launch won't flop") and asked in chat while the
+  confirm picker was already asking. The instructions now define
+  falsifiable (a stranger could mark it true/false from observable facts,
+  with a sharpening rule) and state that the chat line beside a picker
+  states, never asks. Re-probed after the change: vague verbs got anchored
+  to the nearest observable comparison, prose asks disappeared.
+- **Locale sense reads nested premises[].text** — a Korean add-premises
+  call no longer gets its first error in English.
+- **Identity, restrained:** the wake box is now the LOGBOOK / 항해일지
+  ("<date>부터 항해 중"), keepsake cards are exempt from the one-line
+  length lint, and two stray casual registers moved to 합쇼체 (copy gate
+  widened so the class stays fixed).
+
+## 1.11.0 — The picker stops blocking the door
+
+Founder dogfooding (2026-07-27) hit the settlement picker dead-end live: pick an
+outcome, press Accept, and the form blocks with a red "This field is required".
+Root cause: `required` in the elicitation schemas — hosts render a required enum
+collapsed (one extra key to expand) and hard-block an empty Accept inside the
+form. The very dead-end R34 removed server-side had moved into the client, on
+the return (settlement) path.
+
+- **No elicit schema declares `required` anymore** — settle outcome picker,
+  still_pending re-check-date picker, premises open-question resolve, and both
+  ambient asks. An empty Accept flows into the same honest path as Decline:
+  the server re-asks (OUTCOME_REQUIRED / RESOLVE_NEEDS_DECISION) or writes
+  nothing. Spine untouched — nothing is inferred from an empty answer.
+- **CI guard** (`picker-no-required-field.test.ts`): reintroducing `required:`
+  into any `elicit(...)` schema turns the build red, with a self-check fixture
+  proving the guard can see.
+- Picker prompts now state the two exits explicitly ("고르고 Accept · 아직
+  모르겠으면 Decline").
+
+## 1.10.0 — The wire says which build it is (the twelve silent days)
+
+The deepest failure found so far was not in any prompt or picker — it was in one
+version spec. The plugin wired the server as `npx -y argus-decision-mcp@^1`, and
+**npx reuses a cached install whenever the spec is a range**: once 1.2.0 landed
+in the founder's npx cache on 2026-07-13, the wire froze there while 1.3.0
+through 1.9.0 were published. For twelve days every improvement — the detection
+sharpening, the settlement rider, the sensitivity dial, and the picker redesign
+that dogfooding itself had asked for — shipped to npm and never reached the
+session that reported the problem. Repo CI was green the whole time, because the
+repo *was* consistent with itself. **The one number nobody could see was the one
+the user was touching.**
+
+- **`argus_check_in` reports `data.server_version`** on all three return paths
+  (first run / nothing due / something due), from the same `packageMeta()` single
+  source the server advertises at `initialize`. A session can now answer "which
+  build am I actually talking to" instead of leaving staleness to be *felt* as
+  behavior that mysteriously isn't there.
+- **The wire is pinned to an exact version, and the pin is guarded.** The bundled
+  `.mcp.json` pins `argus-decision-mcp@1.10.0`; `one-install.test.ts` now refuses
+  a range spec (`^`, `~`, `latest`, `*`) and asserts pin == this package's
+  version == `server.json`'s registry version. Bumping the server without moving
+  the wire in the same commit turns CI red — the stale-pin failure mode that an
+  exact pin would otherwise introduce.
+- **E2E covers the path a user installs.** `evals/e2e-picker.mjs` gained the
+  settle-picker round-trip (the 1.9.0 self-sufficiency fix was unit-only, the same
+  blind spot class) and a `server_version` assertion; CI now runs the whole suite
+  a second time against the **packed tarball installed as a dependency**, not just
+  the repo's `dist/`.
+- The hand-copied install command on the web (`/import`) asks for `@latest`
+  explicitly — the mirror case: a bundled wire wants determinism, a copy-paste
+  command must never inherit a stale cache. Guarded by a render test.
 
 ## 1.9.0 — The picker stops fighting the user (native Accept/Decline)
 

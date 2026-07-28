@@ -152,7 +152,15 @@ export async function runProductionP6(outDir: string): Promise<number> {
   await step('4-resolve-open', { status: 200, duplicate: false }, {
     kind: 'resolve', command_id: id('resolve'), resolution_id: id('res'),
     judgment_id: sealCommand.judgment_id, return_contract_id: sealCommand.return_contract_id,
-    resolution: { kind: 'answered', answer_summary: `Dogfood answer (${suffix}).`, evidence_refs: [id('obs')] },
+    resolution: {
+      kind: 'answered',
+      answer_summary: `Dogfood answer (${suffix}).`,
+      evidence_refs: [id('obs')],
+      present_standard: {
+        status: 'same',
+        response_text: 'I would make the same call under the same conditions',
+      },
+    },
   });
   const afterResolve = await http('GET');
   const openProjection = projectJudgment(fold((afterResolve.body.events ?? []) as unknown[]), sealCommand.judgment_id, stamp());

@@ -4,10 +4,24 @@ import { reframeSystemPrompt, deeperSuffix, coerceReframe, reframeToMarkdown, RE
 import { sealSystemPrompt, coerceSealDraft, sealPreviewMarkdown, formatCheckBy, parseCheckBy, SEAL_TOOL_NAME, SEAL_TOOL_SCHEMA } from '@/lib/seal-core';
 import { rehearseSystemPrompt, buildRehearseUser, coerceRehearse, rehearseToMarkdown, REHEARSE_PRESETS, REHEARSE_TOOL_NAME, REHEARSE_TOOL_SCHEMA } from '@/lib/rehearse-core';
 import { recordSummaryMarkdown } from '@/lib/record-core';
-import { parseSettlementIntent, parseSemanticCloseCallback, applyTelegramSettlement, detectSettlementLocale, type TelegramSettlementIntent } from '@/lib/telegram-settlement';
+import {
+  applyTelegramSettlement,
+  detectSettlementLocale,
+  foundationSettlementReplyMarkup,
+  parseFoundationSettlementCallback,
+  parseSemanticCloseCallback,
+  parseSettlementIntent,
+  type TelegramFoundationSettlementIntent,
+  type TelegramSettlementIntent,
+} from '@/lib/telegram-settlement';
 import { amendCheckIn } from '@/lib/decision-contract';
 import type { DecisionContract } from '@/stores/types';
-import { handleSemanticContractClose, handleSemanticContractSettlement, kstDateOf } from '@/lib/telegram-semantic';
+import {
+  handleFoundationContractSettlement,
+  handleSemanticContractClose,
+  handleSemanticContractSettlement,
+  kstDateOf,
+} from '@/lib/telegram-semantic';
 import { recastSystemPrompt, coerceRecast, recastToMarkdown, RECAST_TOOL_NAME, RECAST_TOOL_SCHEMA } from '@/lib/recast-core';
 import { callAnthropicJson } from '@/lib/llm-server';
 import { markdownToTelegramHtml, markdownToTelegramLight as lightHtml } from '@/lib/telegram-format';
@@ -513,6 +527,34 @@ function semanticDeps() {
   return { admin: adminClient(), send: sendMessage };
 }
 
+async function handleFoundationSettlement(
+  chatId: number | string,
+  userId: string,
+  intent: TelegramFoundationSettlementIntent,
+  receiptRef: string,
+): Promise<void> {
+  const admin = adminClient();
+  const { data: row } = await admin
+    .from('projects')
+    .select('id, user_id, name, decision_contract')
+    .eq('id', intent.projectId)
+    .single();
+  const contract = (row?.decision_contract ?? null) as DecisionContract | null;
+  if (!row || row.user_id !== userId || !contract || (intent.contractId && contract.id && contract.id !== intent.contractId)) {
+    await sendMessage(chatId, 'That record could not be found.');
+    return;
+  }
+  await handleFoundationContractSettlement(
+    semanticDeps(),
+    chatId,
+    userId,
+    row,
+    contract,
+    intent,
+    receiptRef,
+  );
+}
+
 async function handleContractSettlement(
   chatId: number | string,
   userId: string,
@@ -533,6 +575,16 @@ async function handleContractSettlement(
   }
   if (await handleSemanticContractSettlement(semanticDeps(), chatId, userId, row, contract, intent, receiptRef)) return;
   const locale = detectSettlementLocale(row.name, ...(Array.isArray(contract.predicates) ? contract.predicates : []).map((p) => p?.text));
+  if (contract.kind && contract.kind !== 'witness' && !['pending', 'mute'].includes(intent.outcome)) {
+    await sendMessage(
+      chatId,
+      locale === 'ko'
+        ? '방금 답은 아직 저장하지 않았어요. 이 기록에 맞는 답 하나를 골라 주세요.'
+        : 'I have not saved that reply. Choose the answer that fits this record.',
+      foundationSettlementReplyMarkup(row.id, contract.id, contract.kind, locale),
+    );
+    return;
+  }
   const now = Date.now();
 
   // Already closed? (freeform contracts re-close silently otherwise)
@@ -637,7 +689,12 @@ async function bridgeWebContract(
 }
 
 // ── Settle flow (the check-in answer: 잘 됐어요/안 됐어요/반반/아직) ──
-async function handleSettle(chatId: number | string, userId: string, payload: string): Promise<void> {
+async function handleSettle(
+  chatId: number | string,
+  userId: string,
+  payload: string,
+  receiptRef: string,
+): Promise<void> {
   const [id, outcome] = payload.split(':');
   const admin = adminClient();
   const { data: dec } = await admin
@@ -655,6 +712,17 @@ async function handleSettle(chatId: number | string, userId: string, payload: st
   }
 
   // "아직" — extend the check-in instead of settling (변침도 기록이다: push the
+  if (dec.source === 'web' && ['happened', 'avoided', 'partial', 'later'].includes(outcome)) {
+    await handleContractSettlement(chatId, userId, {
+      projectId: id,
+      outcome: outcome === 'later'
+        ? 'pending'
+        : outcome as 'happened' | 'avoided' | 'partial',
+      source: 'callback',
+    }, receiptRef);
+    return;
+  }
+
   // old date onto history, never overwrite; re-arm the reminder).
   if (outcome === 'later') {
     const newCheck = kstDatePlus(14);
@@ -686,19 +754,13 @@ async function handleSettle(chatId: number | string, userId: string, payload: st
     await bridgeWebContract(id, userId, { outcome: outcome as 'happened' | 'avoided' | 'partial' });
   }
 
-  const { count } = await admin
-    .from('telegram_decisions').select('id', { count: 'exact', head: true })
-    .eq('user_id', userId).eq('status', 'settled');
-  const settled = count ?? 0;
   const label = locale === 'ko'
     ? (outcome === 'happened' ? '잘 됨' : outcome === 'avoided' ? '안 됨' : '반반')
     : outcome;
   let msg = locale === 'ko' ? `기록했어요 — **${label}**.` : `Recorded — **${label}**.`;
-  if (settled >= 5) {
-    msg += locale === 'ko'
-      ? `\n정산 ${settled}건째 — 이제 당신의 판단 기록이 쌓이고 있어요.`
-      : `\n${settled} settled — your track record is building.`;
-  }
+  msg += locale === 'ko'
+    ? '\n처음 문장은 그대로 두고, 오늘의 답을 그 뒤에 덧붙였어요.'
+    : '\nThe original stays intact; today’s answer was appended after it.';
   await sendMessage(chatId, lightHtml(msg), recordButton(locale));
 }
 
@@ -783,6 +845,12 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ ok: true });
       }
 
+      const foundationIntent = parseFoundationSettlementCallback(data);
+      if (foundationIntent) {
+        await handleFoundationSettlement(chatId, userId, foundationIntent, receiptRef);
+        return NextResponse.json({ ok: true });
+      }
+
       const contractIntent = parseSettlementIntent({ callbackData: data });
       if (contractIntent) {
         await handleContractSettlement(chatId, userId, contractIntent, receiptRef);
@@ -827,7 +895,7 @@ export async function POST(req: NextRequest) {
       } else if (data.startsWith('sl:')) {
         await handleSealConfirm(chatId, userId, data.slice(3));
       } else if (data.startsWith('st:')) {
-        await handleSettle(chatId, userId, data.slice(3));
+        await handleSettle(chatId, userId, data.slice(3), receiptRef);
       } else if (data === 'rc:show') {
         await showRecord(chatId, userId);
       }

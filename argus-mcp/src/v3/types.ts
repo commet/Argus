@@ -1,10 +1,33 @@
 import { z } from 'zod';
 
 export const SEMANTIC_VERSION = 3 as const;
+const be = (ko: string, en: string) => `${ko}\n\n${en}`;
 
 const zId = z.string().min(1).max(128);
 const zIsoDateTime = z.string().datetime({ offset: true });
 const zPrincipalKind = z.enum(['human', 'ai', 'host', 'imported', 'system']);
+
+export const DecisionKindSchema = z.enum(['prediction', 'commitment', 'declaration', 'witness']);
+export type DecisionKind = z.infer<typeof DecisionKindSchema>;
+
+export const AdoptionModeSchema = z.enum(['basis', 'check', 'wording']);
+export type AdoptionMode = z.infer<typeof AdoptionModeSchema>;
+
+export const ObservationSourceKindSchema = z.enum(['user_report', 'system_receipt', 'ai_analysis']);
+export type ObservationSourceKind = z.infer<typeof ObservationSourceKindSchema>;
+
+export const ReviewConditionStatusSchema = z.enum(['answered', 'skipped', 'not_asked']);
+export type ReviewConditionStatus = z.infer<typeof ReviewConditionStatusSchema>;
+
+export const KindEvidenceSchema = z.strictObject({
+  source: z.enum(['wording_rule', 'elicitation_answer', 'user_override', 'legacy_default'])
+    .describe(be('종류를 정한 근거가 표현 규칙·질문 답·사용자 수정·레거시 기본값 중 무엇인지 나타냅니다.', 'Which source established the kind: wording rule, elicitation answer, user override, or legacy default.')),
+  rule: z.string().min(1).max(128).describe(be('적용한 도출 규칙의 안정적인 이름입니다.', 'Stable name of the derivation rule used.')),
+  question: z.string().max(2000).optional().describe(be('종류를 확인하기 위해 사용자에게 물은 질문입니다.', 'Question asked to confirm what the sentence does.')),
+  answer: z.string().max(4000).optional().describe(be('종류 확인 질문에 대한 사용자 답입니다.', 'The user’s answer to the kind-confirmation question.')),
+  recorded_at: z.string().datetime({ offset: true }).describe(be('이 도출 근거를 기록한 ISO 시각입니다.', 'ISO time when this derivation evidence was recorded.')),
+});
+export type KindEvidence = z.infer<typeof KindEvidenceSchema>;
 
 export const PrincipalRefSchema = z.strictObject({
   kind: zPrincipalKind,
@@ -67,20 +90,50 @@ const zAuthorial = <T extends z.ZodRawShape>(shape: T) =>
   });
 
 const zAnsweredResolution = z.strictObject({
-  kind: z.literal('answered'),
-  answer_summary: z.string().min(1).max(2000),
-  criterion_result: z.enum(['met', 'not_met', 'partial', 'not_applicable']).optional(),
-  evidence_refs: z.array(zId).min(1).max(32),
+  kind: z.literal('answered').describe(be('관찰로 답할 수 있는 정산임을 나타냅니다.', 'A return that available observations can answer.')),
+  answer_summary: z.string().min(1).max(2000).describe(be('무엇이 일어났는지 사용자의 말로 요약합니다.', 'What happened, summarized in the user’s own words.')),
+  criterion_result: z.enum(['met', 'not_met', 'partial', 'unknown', 'not_observable', 'not_applicable']).optional()
+    .describe(be('현실 조건이 충족됐는지를 별도 축으로 기록합니다.', 'Whether the real-world criterion was met, kept as a separate axis.')),
+  commitment_result: z.enum(['enacted', 'maintained', 'revised', 'withdrawn', 'superseded']).optional()
+    .describe(be('사용자의 약속이 어떻게 되었는지를 별도 축으로 기록합니다.', 'What happened to the user’s commitment, kept as a separate axis.')),
+  question_validity: z.enum(['valid', 'narrowed', 'reframed', 'moot', 'indeterminate']).optional()
+    .describe(be('처음 질문이 지금도 유효한지를 별도 축으로 기록합니다.', 'Whether the original question is still valid, kept as a separate axis.')),
+  authorial_response: z.string().min(1).max(2000).optional().describe(be('정산 선택에 덧붙인 사용자 자신의 설명입니다.', 'The user’s own explanation added to the return choice.')),
+  present_standard: z.strictObject({
+    status: z.enum(['same', 'changed', 'withdrawn', 'skipped']).describe(be('그때의 기준을 지금도 유지하는지 나타냅니다.', 'Whether the user still holds the earlier standard.')),
+    response_text: z.string().max(2000).optional().describe(be('현재 기준에 대한 사용자의 짧은 설명입니다.', 'The user’s short description of the present standard.')),
+  }).optional().describe(be('현재 시점의 기준을 한 번만 확인한 답입니다.', 'One follow-up answer about the user’s present standard.')),
+  evidence_refs: z.array(zId).min(1).max(32).describe(be('이 답을 뒷받침하는 관찰 기록 id 목록입니다.', 'Observation ids that support this answer.')),
 });
 const zIndeterminateResolution = z.strictObject({
-  kind: z.literal('indeterminate'),
-  reason: z.string().min(1).max(2000),
-  evidence_refs: z.array(zId).max(32),
+  kind: z.literal('indeterminate').describe(be('현재 증거로 답할 수 없는 정산임을 나타냅니다.', 'A return that current evidence cannot answer.')),
+  reason: z.string().min(1).max(2000).describe(be('왜 지금 답할 수 없는지 기록합니다.', 'Why the question cannot be answered yet.')),
+  question_validity: z.literal('indeterminate').optional().describe(be('질문의 유효성을 아직 판단할 수 없음을 나타냅니다.', 'The question’s validity cannot yet be determined.')),
+  criterion_result: z.enum(['met', 'not_met', 'partial', 'unknown', 'not_observable', 'not_applicable']).optional()
+    .describe(be('관찰 가능한 현실 축은 질문의 불확정성과 별도로 보존합니다.', 'Preserves the observable reality axis separately from question uncertainty.')),
+  commitment_result: z.enum(['enacted', 'maintained', 'revised', 'withdrawn', 'superseded']).optional()
+    .describe(be('현재 기준에 대한 사용자의 답을 약속 축에 별도로 보존합니다.', 'Preserves the user’s present-standard answer on the commitment axis.')),
+  authorial_response: z.string().min(1).max(2000).optional().describe(be('사용자가 덧붙인 자신의 설명입니다.', 'The user’s own additional explanation.')),
+  present_standard: z.strictObject({
+    status: z.enum(['same', 'changed', 'withdrawn', 'skipped']).describe(be('그때의 기준을 지금도 유지하는지 나타냅니다.', 'Whether the user still holds the earlier standard.')),
+    response_text: z.string().max(2000).optional().describe(be('현재 기준에 대한 사용자의 짧은 설명입니다.', 'The user’s short description of the present standard.')),
+  }).optional().describe(be('현재 시점의 기준을 한 번만 확인한 답입니다.', 'One follow-up answer about the user’s present standard.')),
+  evidence_refs: z.array(zId).max(32).describe(be('관련 관찰 기록 id 목록입니다.', 'Related observation ids.')),
 });
 const zMootResolution = z.strictObject({
-  kind: z.literal('moot'),
-  reason: z.string().min(1).max(2000),
-  evidence_refs: z.array(zId).max(32),
+  kind: z.literal('moot').describe(be('처음 질문 자체가 더는 적용되지 않음을 나타냅니다.', 'A return where the original question no longer applies.')),
+  reason: z.string().min(1).max(2000).describe(be('왜 질문이 무의미해졌는지 기록합니다.', 'Why the original question became moot.')),
+  question_validity: z.literal('moot').optional().describe(be('질문이 더는 적용되지 않음을 별도 축으로 기록합니다.', 'Records on a separate axis that the question no longer applies.')),
+  criterion_result: z.enum(['met', 'not_met', 'partial', 'unknown', 'not_observable', 'not_applicable']).optional()
+    .describe(be('질문이 사라져도 이미 관찰한 현실 축을 지우지 않습니다.', 'Keeps any observed reality axis even when the question became moot.')),
+  commitment_result: z.enum(['enacted', 'maintained', 'revised', 'withdrawn', 'superseded']).optional()
+    .describe(be('현재 기준에 대한 사용자의 답을 약속 축에 별도로 보존합니다.', 'Preserves the user’s present-standard answer on the commitment axis.')),
+  authorial_response: z.string().min(1).max(2000).optional().describe(be('사용자가 덧붙인 자신의 설명입니다.', 'The user’s own additional explanation.')),
+  present_standard: z.strictObject({
+    status: z.enum(['same', 'changed', 'withdrawn', 'skipped']).describe(be('그때의 기준을 지금도 유지하는지 나타냅니다.', 'Whether the user still holds the earlier standard.')),
+    response_text: z.string().max(2000).optional().describe(be('현재 기준에 대한 사용자의 짧은 설명입니다.', 'The user’s short description of the present standard.')),
+  }).optional().describe(be('현재 시점의 기준을 한 번만 확인한 답입니다.', 'One follow-up answer about the user’s present standard.')),
+  evidence_refs: z.array(zId).max(32).describe(be('관련 관찰 기록 id 목록입니다.', 'Related observation ids.')),
 });
 export const ResolutionSchema = z.discriminatedUnion('kind', [
   zAnsweredResolution,
@@ -114,6 +167,8 @@ export const SemanticEventSchema = z.discriminatedUnion('event', [
     event: z.literal('observation_recorded'),
     observation_id: zId,
     text: z.string().min(1).max(4000),
+    /** Required on new writes; optional here so historic v3 lines still parse. */
+    source_kind: ObservationSourceKindSchema.optional(),
   }).superRefine((event, ctx) => {
     if (!event.authority.observed_by && !event.provenance) {
       ctx.addIssue({ code: 'custom', message: 'observation requires observed_by or provenance' });
@@ -124,7 +179,30 @@ export const SemanticEventSchema = z.discriminatedUnion('event', [
     event: z.literal('judgment_sealed'),
     judgment_id: zId,
     statement: z.string().min(1).max(4000),
+    /** Required on new writes; optional only for historic v3 compatibility. */
+    kind: DecisionKindSchema.optional(),
+    kind_evidence: KindEvidenceSchema.optional(),
+    origin_utterance: z.string().min(1).max(8000).optional(),
+    review_condition_status: ReviewConditionStatusSchema.optional(),
+    review_condition: z.string().max(4000).optional(),
     source_proposal_id: zId.optional(),
+    adoption_mode: AdoptionModeSchema.optional(),
+  }),
+  zAuthorial({
+    ...B,
+    event: z.literal('judgment_kind_corrected'),
+    judgment_id: zId,
+    from_kind: DecisionKindSchema,
+    to_kind: DecisionKindSchema,
+    kind_evidence: KindEvidenceSchema,
+  }),
+  zAuthorial({
+    ...B,
+    event: z.literal('judgment_statement_revised'),
+    judgment_id: zId,
+    from_statement: z.string().min(1).max(4000),
+    to_statement: z.string().min(1).max(4000),
+    reason: z.string().max(2000).optional(),
   }),
   zAuthorial({
     ...B,
@@ -132,6 +210,17 @@ export const SemanticEventSchema = z.discriminatedUnion('event', [
     premise_id: zId,
     judgment_id: zId,
     text: z.string().min(1).max(4000),
+    source_proposal_id: zId.optional(),
+    adoption_mode: AdoptionModeSchema.optional(),
+  }),
+  zAuthorial({
+    ...B,
+    event: z.literal('premise_challenged'),
+    premise_id: zId,
+    judgment_id: zId,
+    challenge: z.string().min(1).max(4000),
+    response: z.string().max(4000).optional(),
+    disposition: z.enum(['open', 'corrected', 'rejected', 'upheld']),
   }),
   zAuthorial({
     ...B,
@@ -148,6 +237,8 @@ export const SemanticEventSchema = z.discriminatedUnion('event', [
     review_at: zIsoDateTime,
     review_question: z.string().min(1).max(4000),
     resolution_criterion: z.string().max(4000).optional(),
+    review_event: z.string().max(2000).optional(),
+    fallback_review_at: zIsoDateTime.optional(),
   }),
   zAuthorial({
     ...B,
@@ -202,7 +293,10 @@ export type SemanticEventName = SemanticEvent['event'];
 
 export const AUTHORIAL_EVENT_NAMES = new Set<SemanticEventName>([
   'judgment_sealed',
+  'judgment_kind_corrected',
+  'judgment_statement_revised',
   'premise_adopted',
+  'premise_challenged',
   'premise_retired',
   'return_promised',
   'return_deferred',

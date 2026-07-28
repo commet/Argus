@@ -1,26 +1,8 @@
 import fs from 'fs';
-import os from 'os';
 import path from 'path';
 import { boundMarkerPath } from './layout.js';
 
-/**
- * argus_dir resolution + precedence (blueprint §4.0 + addendum A/B; §9.7 O1).
- *
- * The `${workspaceFolder}` config variable only expands in VS Code — Claude
- * Code expands `${CLAUDE_PROJECT_DIR}`, others expand nothing. So env
- * interpolation is the LEAST reliable channel and must come last. Tools always
- * receive a per-call `argus_dir`, which works on every host, so that wins.
- *
- * Precedence (tools and resources must tell the same storage story):
- *   tools:     1. per-call `argus_dir`  2. ARGUS_DIR env  3. ~/.argus default
- *   resources: (no per-call channel)   1. ARGUS_DIR env  2. ~/.argus default
- *
- * One deliberate asymmetry: an ARGUS_DIR that is SET but invalid makes a tool
- * THROW (requireArgusDir) but makes a resource return null/unbound — resources
- * can't error usefully, and silently reading a ledger the user didn't
- * configure would be worse than degrading.
- */
-
+/** Project-scoped ledger resolution. Explicit absolute paths still win. */
 export class ArgusDirError extends Error {
   code = 'ARGUS_DIR_INVALID';
   constructor(message: string) {
@@ -29,119 +11,46 @@ export class ArgusDirError extends Error {
   }
 }
 
-/** Validate a per-call argus_dir: must be an absolute path, no traversal segments. */
 export function requireArgusDir(callArg: unknown): string {
   if (typeof callArg !== 'string' || callArg.length === 0) {
-    throw new ArgusDirError('argus_dir is required (absolute path to the .argus directory).');
+    throw new ArgusDirError('argus_dir must be a non-empty absolute path.');
   }
-  // An unexpanded config variable is the #1 Claude Desktop first-run failure:
-  // only Claude Code expands ${CLAUDE_PROJECT_DIR}, so Desktop passes the
-  // literal string through. Name the actual problem instead of "not absolute".
   if (/\$\{[^}]*\}|%[A-Za-z_]+%/.test(callArg)) {
-    throw new ArgusDirError(
-      `Your MCP host did not expand the variable in "${callArg}" (only some hosts interpolate env vars). ` +
-        'Replace it with an absolute path in your MCP config (e.g. "C:\\Users\\you\\.argus" or "/Users/you/.argus"), ' +
-        'or remove ARGUS_DIR entirely to use the default ~/.argus.',
-    );
+    throw new ArgusDirError(`The MCP host did not expand "${callArg}". Set ARGUS_DIR to an absolute project .argus path.`);
   }
-  const resolved = path.resolve(callArg);
-  if (!path.isAbsolute(callArg)) {
-    throw new ArgusDirError('argus_dir must be an absolute path.');
-  }
-  if (callArg.split(/[\\/]/).some((seg) => seg === '..')) {
+  if (!path.isAbsolute(callArg)) throw new ArgusDirError('argus_dir must be an absolute path.');
+  if (callArg.split(/[\\/]/).some((segment) => segment === '..')) {
     throw new ArgusDirError("argus_dir must not contain '..'.");
   }
-  return resolved;
+  return path.resolve(callArg);
 }
 
-/**
- * Resolve argus_dir for a TOOL call, implementing the full precedence the
- * blueprint promised (§4.0): a per-call `argus_dir` wins, else the `ARGUS_DIR`
- * env var. This is the ergonomic win — set ARGUS_DIR once in the MCP config and
- * never pass the path again. Both channels get the same path-safety validation;
- * omitting both yields one clear, actionable error.
- */
 export function resolveToolArgusDir(callArg: unknown): string {
   if (typeof callArg === 'string' && callArg.length > 0) return requireArgusDir(callArg);
-  const env = process.env['ARGUS_DIR'];
-  if (typeof env === 'string' && env.length > 0) return requireArgusDir(env);
-  // Zero-config default (blueprint §9.4 "첫 설치의 문"): a brand-new user on a
-  // host without env interpolation still gets a working home for their ledger.
-  // Per-call argus_dir and ARGUS_DIR both keep winning over this.
-  return path.join(os.homedir(), '.argus');
+  const configured = process.env['ARGUS_DIR'];
+  if (configured) return requireArgusDir(configured);
+  return path.join(process.cwd(), '.argus');
 }
 
-/** Record the bound dir so Resources (which get no args) can find it later. */
+/** Store project-local binding metadata only; never create a global path index. */
 export function writeBoundMarker(argusDir: string): void {
   try {
-    const envDirs = readBoundList(argusDir);
-    if (!envDirs.includes(argusDir)) envDirs.unshift(argusDir);
-    fs.writeFileSync(boundMarkerPath(argusDir), JSON.stringify({ bound: envDirs.slice(0, 8) }), 'utf8');
+    fs.writeFileSync(boundMarkerPath(argusDir), JSON.stringify({ bound: [argusDir] }), 'utf8');
   } catch {
-    /* non-critical */
-  }
-  // Global registry (M2 fleet, §9.4): every init'd project dir also lands in
-  // ~/.argus/.bound so ONE check_in can report due items across all of a
-  // user's projects. Local paths only, stays on this machine, best-effort.
-  try {
-    const home = path.join(os.homedir(), '.argus');
-    fs.mkdirSync(home, { recursive: true });
-    const reg = path.join(home, '.bound');
-    let dirs: string[] = [];
-    try {
-      const parsed = JSON.parse(fs.readFileSync(reg, 'utf8')) as { bound?: unknown };
-      dirs = Array.isArray(parsed.bound) ? (parsed.bound.filter((x) => typeof x === 'string') as string[]) : [];
-    } catch { /* fresh registry */ }
-    if (!dirs.includes(argusDir)) dirs.unshift(argusDir);
-    fs.writeFileSync(reg, JSON.stringify({ bound: dirs.slice(0, 16) }), 'utf8');
-  } catch {
-    /* non-critical */
+    // Convenience metadata; the ledger write path reports material failures.
   }
 }
 
-/** The cross-project registry (~/.argus/.bound) — existing dirs only. */
+/** @deprecated Cross-project discovery was removed for project isolation. */
 export function readGlobalBoundList(): string[] {
-  try {
-    const reg = path.join(os.homedir(), '.argus', '.bound');
-    const parsed = JSON.parse(fs.readFileSync(reg, 'utf8')) as { bound?: unknown };
-    const dirs = Array.isArray(parsed.bound) ? (parsed.bound.filter((x) => typeof x === 'string') as string[]) : [];
-    return dirs.filter((d) => { try { return fs.existsSync(d); } catch { return false; } });
-  } catch {
-    return [];
-  }
+  return [];
 }
 
-function readBoundList(argusDir: string): string[] {
-  try {
-    const raw = fs.readFileSync(boundMarkerPath(argusDir), 'utf8');
-    const parsed = JSON.parse(raw) as { bound?: unknown };
-    return Array.isArray(parsed.bound) ? (parsed.bound.filter((x) => typeof x === 'string') as string[]) : [];
-  } catch {
-    return [];
-  }
-}
-
-/**
- * Resolve argus_dir for a Resource read (no per-call arg available).
- *
- * Mirrors the tool chain minus the per-call arg: ARGUS_DIR env, else the same
- * zero-config `~/.argus` default that tools write to — so a zero-config
- * install's passive attention surface reads the SAME ledger its tools use.
- * (§9.7 O1 방2. Previously env-only, which left every zero-config install's
- * `argus://attention` permanently `{unbound}` while argus_predict happily
- * wrote to ~/.argus — the return loop's front door was dark.)
- *
- * Stays null (unbound, cleanly degraded) ONLY when ARGUS_DIR is set but
- * invalid — unexpanded `${...}`/`%...%` or a relative path. Falling back to
- * ~/.argus in that case would silently read a different ledger than the one
- * the user configured; unbound-with-hint is the resource's honest-failure
- * form of the requireArgusDir throw.
- */
 export function resolveArgusDirForResource(): string | null {
-  const env = process.env['ARGUS_DIR'];
-  if (typeof env === 'string' && env.length > 0) {
-    if (/\$\{[^}]*\}|%[A-Za-z_]+%/.test(env) || !path.isAbsolute(env)) return null;
-    return path.resolve(env);
+  const configured = process.env['ARGUS_DIR'];
+  if (configured) {
+    if (/\$\{[^}]*\}|%[A-Za-z_]+%/.test(configured) || !path.isAbsolute(configured)) return null;
+    return path.resolve(configured);
   }
-  return path.join(os.homedir(), '.argus');
+  return path.join(process.cwd(), '.argus');
 }

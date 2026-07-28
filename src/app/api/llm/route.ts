@@ -5,6 +5,7 @@ import { validateMessages, validateSystemPrompt, validateRequest, normalizeMaxTo
 import { DAILY_LIMIT, ANON_LIMIT } from '@/lib/quota-config';
 import { logServerEvent } from '@/lib/server-events';
 import { verifyTurnstile, TURNSTILE_HEADER } from '@/lib/turnstile';
+import { classifyProviderFailure } from '@/lib/llm-provider-errors';
 
 // The review pipeline is the one NON-streaming consumer: a large-document
 // extraction can generate for 60–100s with no bytes until done. Without an
@@ -181,7 +182,9 @@ export async function POST(req: NextRequest) {
     const MODEL_MAP: Record<string, string> = {
       fast: 'claude-haiku-4-5-20251001',
       default: 'claude-sonnet-4-6',
-      strong: 'claude-sonnet-4-6', // Note: using Opus here would raise costs significantly
+      // Deep judgment is separately limited to one platform-funded loop per
+      // rolling 24h. Its final synthesis earns the strongest model.
+      strong: 'claude-opus-4-8',
     };
     const modelId = MODEL_MAP[body.model as string] || MODEL_MAP.default;
 
@@ -225,7 +228,13 @@ export async function POST(req: NextRequest) {
             // a 529 overload, and a code bug are indistinguishable in production.
             console.error('[api/llm] stream error:', err);
             if (!cancelled) {
-              controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: 'Stream error' })}\n\n`));
+              const failure = classifyProviderFailure(err);
+              logServerEvent('server_llm_error', {
+                code: failure.code,
+                status: failure.upstreamStatus,
+                retryable: failure.retryable,
+              }, { userId: auth?.userId ?? null, path: '/api/llm' });
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify(failure)}\n\n`));
               controller.close();
             }
           }
@@ -269,11 +278,15 @@ export async function POST(req: NextRequest) {
     // Log the real cause server-side (provider error type / request id) so the
     // paid Anthropic path is observable; keep the client body generic.
     console.error('[api/llm] Anthropic call failed:', err);
-    const status = (err as { status?: number })?.status;
-    logServerEvent('server_llm_error', { message: String((err as Error)?.message || err).slice(0, 300), status }, { path: '/api/llm' });
+    const failure = classifyProviderFailure(err);
+    logServerEvent('server_llm_error', {
+      code: failure.code,
+      status: failure.upstreamStatus,
+      retryable: failure.retryable,
+    }, { path: '/api/llm' });
     return NextResponse.json(
-      { error: 'LLM call failed. Please try again in a moment.' },
-      { status: 500 }
+      failure,
+      { status: failure.status }
     );
   }
 }

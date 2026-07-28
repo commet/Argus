@@ -194,6 +194,88 @@ for (const p of [path.join(cwd, '.argus', 'ledger', 'ledger.jsonl'), path.join(h
     say(`    감도 ${lv} — (${path.join(home, 'config.json')} ambient.sensitivity: low/normal/high)`);
   }
 }
+
+// 10. MCP 배선 버전 — "무엇이 실제로 돌고 있나" (2026-07-26 신설).
+//
+//     근원 사건: 플러그인이 MCP를 `npx -y argus-decision-mcp@^1`로 띄웠고, npx는
+//     스펙이 RANGE면 캐시에 조건을 만족하는 설치본이 있는 한 그걸 재사용한다.
+//     그래서 창업자 기기의 캐시에 1.2.0이 앉은 뒤 1.3.0~1.9.0이 npm에 올라가는
+//     12일간 배선이 얼어 있었고 — 픽커 재설계를 포함한 모든 개선이 도그푸딩
+//     세션에 한 번도 닿지 않았다. 레포 CI는 초록, npm은 최신, 정작 사용자가
+//     만지던 숫자만 아무도 볼 수 없었다.
+//
+//     이 절이 그 숫자를 표면에 올린다. 결정론적으로 볼 수 있는 것: 핀한 버전과
+//     npx 캐시에 실제로 놓인 설치본들. 볼 수 없는 것: 지금 이 세션이 물고 있는
+//     프로세스 — 그건 argus_check_in의 data.server_version이 정본이라 doctor.md가
+//     모델에게 그 한 가지를 추가 확인시킨다 (honest gap: 모르는 건 모른다고).
+{
+  say('[10] MCP 배선 버전:');
+  const mcpJson = path.join(__dirname, '..', '.mcp.json');
+  let pinned = null;
+  try {
+    const wired = JSON.parse(fs.readFileSync(mcpJson, 'utf8')).mcpServers || {};
+    for (const s of Object.values(wired)) {
+      const spec = (s && Array.isArray(s.args) ? s.args : []).find((a) => typeof a === 'string' && a.startsWith('argus-decision-mcp@'));
+      if (spec) { pinned = spec.slice('argus-decision-mcp@'.length); break; }
+    }
+  } catch { /* 배선 파일 없음/파손 — 아래에서 정직하게 보고 */ }
+
+  if (!pinned) {
+    say(`    ⚠ 배선 스펙을 읽지 못함 (${mcpJson}) — 플러그인 번들이 불완전하다. 플러그인 재설치 대상.`);
+  } else if (!/^\d+\.\d+\.\d+$/.test(pinned)) {
+    say(`    ⚠ 핀이 범위 스펙이다 (${pinned}) — npx가 캐시된 옛 설치본을 계속 재사용해 배선이 조용히 얼어붙는다. 정확 버전으로 핀할 것.`);
+  } else {
+    say(`    핀한 버전 ${pinned} (${mcpJson})`);
+  }
+
+  // npx 캐시 실사 — 핀이 캐시에 없으면 첫 호출에 내려받고, 옛 버전이 남아 있으면
+  // 그 사실 자체가 "예전 세션이 무엇을 물고 있었나"의 증거다.
+  const roots = [
+    process.env.npm_config_cache && path.join(process.env.npm_config_cache, '_npx'),
+    process.env.LOCALAPPDATA && path.join(process.env.LOCALAPPDATA, 'npm-cache', '_npx'),
+    path.join(os.homedir(), '.npm', '_npx'),
+  ].filter(Boolean);
+  const found = [];
+  for (const root of roots) {
+    let entries = [];
+    try { entries = fs.readdirSync(root, { withFileTypes: true }); } catch { continue; }
+    for (const e of entries) {
+      if (!e.isDirectory()) continue;
+      const pj = path.join(root, e.name, 'node_modules', 'argus-decision-mcp', 'package.json');
+      try {
+        const v = JSON.parse(fs.readFileSync(pj, 'utf8')).version;
+        if (typeof v === 'string') found.push({ version: v, dir: path.join(root, e.name) });
+      } catch { /* 이 캐시 항목엔 없음 */ }
+    }
+  }
+  if (found.length === 0) {
+    say('    npx 캐시에 설치본 없음 — 다음 도구 호출에서 핀한 버전을 내려받는다 (정상).');
+  } else {
+    // 경고의 전제는 "범위 스펙이면 npx가 낡은 캐시를 재사용한다"였다. 핀이 정확
+    // 버전인 지금은 낡은 사본이 선택될 수 없으므로 무해하다 — 그런데도 사본 하나당
+    // ⚠ 한 줄을 뿜어 창업자 화면에 겁주는 6줄이 떴다(2026-07-27 도그푸딩).
+    // 핀이 캐시에 있으면 낡은 것들은 한 줄로 접고, 없을 때만 크게 경고한다.
+    const exactPin = Boolean(pinned) && /^\d+\.\d+\.\d+$/.test(pinned);
+    const pinPresent = found.some((f) => f.version === pinned);
+    const stale = found.filter((f) => f.version !== pinned);
+    if (exactPin && pinPresent) {
+      for (const f of found.filter((x) => x.version === pinned)) say(`    캐시 ${f.version} (핀과 일치) — ${f.dir}`);
+      if (stale.length) {
+        const vs = [...new Set(stale.map((f) => f.version))].sort().join(', ');
+        say(`    낡은 사본 ${stale.length}개 (${vs}) — 무해: 정확 핀이라 npx가 이걸 고르지 않는다. 지우려면 위 캐시 폴더 삭제.`);
+      }
+    } else {
+      for (const f of found) {
+        const isStale = exactPin && f.version !== pinned;
+        say(`    캐시 ${f.version}${isStale ? ` — ⚠ 핀(${pinned})과 다르다. 이 세션이 이걸 물고 있으면 낡은 배선이다` : ' (핀과 일치)'} — ${f.dir}`);
+      }
+    }
+    if (pinned && found.every((f) => f.version !== pinned)) {
+      say(`    ⚠ 핀한 ${pinned}이 캐시에 없다 — 아직 npm에 발행되지 않았거나 첫 호출 전이다. 발행 전이면 배선이 실패하므로 publish 여부를 먼저 확인할 것.`);
+    }
+  }
+  say('    실제로 돌고 있는 버전의 정본 = argus_check_in의 data.server_version (세션 안에서만 보인다).');
+}
 say('');
 say('진단 끝. 이 스크립트는 아무것도 고치지 않았다 — 수리 손잡이는 각 줄에 적힌 도구다.');
 

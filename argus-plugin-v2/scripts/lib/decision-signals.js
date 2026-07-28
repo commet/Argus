@@ -126,40 +126,6 @@ function lastUserText(tail, partial) {
   return "";
 }
 
-// Self-improvement loop (§13 loop): replay the LOCAL ledger to a track record so a
-// past settlement can feed the next decision. Counts only — sealed/settled/held/luck —
-// NEVER a tier or verdict (spine: meaning-language is sample-size-scaled frequency, not
-// a score). Returns null if no ledger / unreadable. cwd is the project dir holding .argus.
-function trackRecord(cwd) {
-  if (!cwd) return null;
-  let raw;
-  try { raw = fs.readFileSync(path.join(cwd, ".argus", "ledger", "ledger.jsonl"), "utf8"); }
-  catch { return null; }
-  const st = new Map();
-  for (const line of raw.split("\n")) {
-    if (!line.trim()) continue;
-    let e;
-    try { e = JSON.parse(line); } catch { continue; }
-    if (!e.id) continue;
-    if (e.event === "seal") { if (!st.has(e.id)) st.set(e.id, { settled: false, outcome: null, basis: null }); }
-    else if (e.event === "settle") {
-      const c = st.get(e.id) || { settled: false };
-      c.settled = true; c.outcome = e.outcome; c.basis = e.basis; st.set(e.id, c);
-    } else if (e.event === "dismiss") { st.delete(e.id); }
-  }
-  let sealed = 0, settled = 0, held = 0, luck = 0;
-  for (const c of st.values()) {
-    sealed++;
-    if (c.settled) {
-      settled++;
-      // luck counts ONLY among held bets, so "held on luck" is a true statement
-      // (an avoided/did-not-hold bet is not a hold, regardless of basis).
-      if (c.outcome === "happened") { held++; if (c.basis === "luck") luck++; }
-    }
-  }
-  return { sealed, settled, held, luck };
-}
-
 // Opportunistic cleanup so the per-session marker dirs don't grow forever. Called once
 // from the SessionStart hook (recall). mtime-based; every failure is ignored (best-effort).
 function pruneMarkers(maxAgeMs) {
@@ -266,6 +232,7 @@ function _overlaps(a, b) {
 function detectSignals(text, opts = {}) {
   if (typeof text !== "string" || text.trim().length < 6) return [];
   const openPredicates = (opts.openPredicates || []).filter((p) => typeof p === "string" && p.trim());
+  const returnEvents = (opts.returnEvents || []).filter((p) => typeof p === "string" && p.trim());
   const max = typeof opts.max === "number" && opts.max > 0 ? opts.max : 4;
   const out = [], seen = new Set();
   const push = (kind, span, cues) => { const k = kind + ":" + span; if (seen.has(k)) return; seen.add(k); out.push({ kind, span, cues }); };
@@ -278,6 +245,7 @@ function detectSignals(text, opts = {}) {
     if (conditional && (measurable || completion || future)) push("assumption", c, [conditional, measurable, completion, future].filter(Boolean));
     const resolved = _which("resolved", RESOLVED, c);
     if (resolved && openPredicates.some((p) => _overlaps(c, p))) push("outcome", c, [resolved, "matches-open-prediction"]);
+    if (returnEvents.some((event) => _overlaps(c, event))) push("outcome", c, ["matches-return-event"]);
   }
   return out.slice(0, max);
 }
@@ -347,7 +315,6 @@ module.exports = {
   lastUserText,
   lastAssistantText,
   prefilterTurn,
-  trackRecord,
   pruneMarkers,
   isIrreversible,
   isDangerousTool,

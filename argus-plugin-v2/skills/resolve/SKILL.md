@@ -1,233 +1,193 @@
 ---
 name: resolve
-description: Settle decision contracts whose check-by date has arrived — compare each sealed prediction against what actually happened and record the outcome in the ledger. This is the back half of the decision-contract loop (seal → reality → settle) and what builds the user's calibration history over time. Use when the session-start reminder fires, when /argus:versions or /argus:journal shows overdue contracts, or when the user says "정산" / "settle". Invoked as `/argus:resolve`.
+description: Return to sealed Argus records whose fallback date has arrived, show the original sentence before any controls, ask one kind-appropriate question, and append the user's answer without scoring it. Invoked as /argus:resolve.
 ---
 
 # /argus:resolve
 
-**What this skill does:** Finds decision contracts past (or at) their check-by
-date, asks the user what reality did, and appends the outcome to
-`.argus/ledger/ledger.jsonl`. Argus never grades the user — reality does. The
-skill only records.
+Argus returns the user's earlier sentence at a useful time. It does not decide
+whether the user was right, good, successful, or improving.
 
-**Why this matters:** A prediction that is never checked is just a vibe with a
-date on it. Settling is what turns `.argus/` from session storage into a track
-record — the thing that compounds and that no fresh tool can replicate.
+## 0. Prefer the live wire, and never hide which one answered
 
----
+If the Argus MCP tools are present in this session, call `argus_check_in` FIRST
+(read-only) and use its `data.due` as the due list — the server replays the same
+ledger plus bearing seeds, so a file-only read can silently disagree with what
+the running build sees. Two facts from that response matter to the user and are
+NOT visible anywhere else in this command:
 
-## When to run
+- `data.server_version` — the build actually running. If it differs from the
+  version the plugin pins, say so in ONE line and point at clearing the npx
+  cache plus a session restart (this is the 12-silent-days failure class:
+  the repo, npm, and the live wire disagreeing with nobody able to see it).
+- `data.picker` — `card` (an MCP Apps settlement card renders), `one_tap`
+  (a confirm form), or `text_fallback` (asks in chat). Mention it only when the
+  user asks what they will see, or when a settlement is about to happen on a
+  host that can only do `text_fallback`.
 
-- The SessionStart reminder printed an overdue-contract line.
-- `/argus:versions` / `/argus:journal` shows contracts past check-by.
-- The user says "정산하자" / "settle the contracts" / "how did that bet go?".
+If the tools are NOT present, fall back to the file replay below and say so in
+ONE short line ("MCP 미연결 — 파일 기록만 읽었습니다"), so a user never mistakes
+an offline read for the live wire. Never fail the command over this; the file
+path is a real answer, just a narrower one.
 
-Locale: read `config.locale` from `.argus/config.yaml`; all user-facing text
-uses it (English shown below; translate naturally for ko).
+## 1. Collect due records mechanically
 
----
+Replay `.argus/ledger/ledger.jsonl` by id:
 
-## Step 1 — Collect due contracts (mechanical, no LLM judgment)
+- `seal` opens a record and supplies `kind`, `origin_utterance`,
+  `review_condition`, `return_event`, and fallback `check_by`;
+- `amend` changes only the active fallback date and preserves the earlier date;
+- `settle` appends an answer;
+- `dismiss` closes the active return.
 
-Two sources, merged and deduped by id:
+Keep sealed, non-`witness` records whose ISO `check_by` is today or earlier.
+Do not auto-import an unsealed `current_bearing.json` seed. A seed is an AI
+proposal, not a human-authorized record.
 
-1. **Ledger:** parse `.argus/ledger/ledger.jsonl` line by line (skip unparsable
-   lines). Replay events by `id`: `seal` opens/updates a contract
-   (`predicate`, `falsified_if`, `check_by`), `amend` updates fields,
-   `settle`/`dismiss` closes it. Keep contracts still open whose `check_by`
-   (ISO date) ≤ today.
-2. **Read seeds:** every `current_bearing.json` (or legacy hyphen
-   spelling) with a `contract_seed` whose `check_by` contains an ISO date ≤
-   today — scan the same three levels the statusline and reminder hook scan,
-   so no surface can alert on a seed settle can't reach:
-   `.argus/sessions/*/versions/*/` (id `bearing:<session-id>:<label>`),
-   `.argus/sessions/*/` (id `bearing:<session-id>:<read.label or "v0">`),
-   and `.argus/` root (id `bearing:root:<read.label or "v0">`).
-   Synthesize a stable id: `bearing:<session-id>:<label>`. Skip seeds whose id
-   already appears in the ledger (they were settled or already imported) — or
-   whose verbatim predicate was already sealed under another id (e.g., sealed
-   manually via argus-watch); the reminder hook and statusline dedup the same
-   two ways, and settle must agree with them.
-   Prose check-by values ("30 days after release") are not mechanically due —
-   list them at the end as "date unclear; settle explicitly if it has passed."
+Sort oldest first and handle at most three. If none are due, say:
 
-If nothing is due: print one line and exit —
-`No contracts due. Next check-by: {{date or "none sealed yet"}}.`
+`No records are due. Next return: {{date or "none"}}.`
 
-## Step 2 — Settle each (max 3 per run; oldest first)
+## 2. Show the original before controls
 
-For each due contract, one `AskUserQuestion` (this is a measurement, not a
-quiz — neutral tone):
+For each due record show, in this order:
 
-- Title: `Contract check` (ko: `계약 정산`)
-- Question: `You predicted: "{{predicate}}" (check by {{check_by}}). What did
-  reality do?`
-- Options:
-  - `Held — it happened as predicted` → outcome `happened`
-  - `Did not hold — reality went the other way` → outcome `avoided`
-  - `Partially — mixed result` → outcome `partial`
-  - `Can't tell yet — push the date` → `pending`
-  - `Skip this one` → no event written
+1. the seal date;
+2. `origin_utterance` (fallback: `predicate`) verbatim;
+3. `review_condition`, if answered;
+4. the kind-appropriate question below.
 
-If more than 3 are due, settle the 3 oldest and say how many remain.
+Never lead with an AI summary or a verdict.
 
-**The recorded outcome IS the user's tapped option, verbatim (R41 — the foundation
-rule, at the point of action, not just in the meta-gates).** NEVER narrate a
-verdict by mapping reality to the sealed pass/fail YOURSELF (e.g. "결과: 실패" /
-"that maps to missed") — that makes the MODEL the judge, which is the one integrity
-break the n=1 record cannot survive (a record of model-graded outcomes is
-worthless). You surface the sealed predicate + pass/fail and the question; the user
-states what reality did. **Discrepancy case:** when the user's prose disagrees with
-the sealed conditions ("basically held" when the fail_condition was met), do NOT
-resolve it with a stated verdict — re-surface the sealed pass/fail VERBATIM and let
-them settle it against that ("당신이 봉인한 기준은 이거예요 — 현실을 여기에 대보세요;
-답은 당신이 정합니다"). This matters most on the weakest model tier (R41: a weak
-tier self-graded the verdict — it landed correct only because the fixture's facts
-were unambiguous; a real settlement 30 days later, fed by self-serving memory, will
-not be).
+## 3. Ask one kind-appropriate question
 
-## Step 3 — Record (append-only; never rewrite existing lines)
+Use one native `AskUserQuestion`. Record the selected option label verbatim.
+Each list has no more than five choices and includes a moot exit.
 
-**Concurrency (true append, not read-modify-write).** Append each event as a
-single line in append mode (`O_APPEND`) — never read the whole `ledger.jsonl`,
-add a line in memory, and rewrite the file. Two concurrent writers (a seal from
-one session, a settle from another, or preapprove sealing while settle runs) each
-appending one line both land; a read-rewrite-whole-file would lose one. Append-only
-is exactly what lets concurrent in-process writers AND git merges both converge —
-this rule applies to every ledger writer (settle, preapprove, watch), not just here.
+### prediction — “실제로는 어떻게 되었나요?”
 
+- `확인하려던 일이 일어났어요` → option `condition_met`, reality `met`, question `valid`
+- `일어나지 않았어요` → `condition_not_met`, reality `not_met`, question `valid`
+- `일부만 맞았어요` → `mixed`, reality `partial`, question `valid`
+- `지금 자료로는 확인할 수 없어요` → `not_observable`, reality `not_observable`, question `indeterminate`
+- `이 질문 자체가 더는 중요하지 않아요` → `moot`, reality `unknown`, question `moot`
 
-- For a **read seed not yet in the ledger**, first import it (harvest+seal),
-  then settle — so the ledger stays the single replayable source. Write the
-  import through the single-source CLI (do NOT hand-write the JSON — the CLI owns
-  the canonical harvest+seal shape and stamps `at`). Pass the id you synthesized
-  in Step 1 verbatim so import, dedup, and settle all target the same contract:
+### commitment — “그 약속은 지금 어떻게 되었나요?”
 
-```bash
-node "${CLAUDE_PLUGIN_ROOT}/scripts/decision-ledger.js" record \
-  --id "bearing:<session-id>:<label>" --session "<session-id>" \
-  --decided-at "<read generated_at>" --decision "<current_course.summary>" \
-  --type adopt [--stakes <from classification.json if readable; omit otherwise — never fabricate>] \
-  --predicate "<predicate>" --falsified-if "<fail_condition or 'opposite observed'>" \
-  --check-by "<ISO date>"
-```
+- `약속한 대로 실행했어요` → `enacted`, commitment `enacted`, question `valid`
+- `아직 실행 전이지만 약속은 유지해요` → `maintained`, commitment `maintained`, question `valid`
+- `상황을 보고 약속을 고쳤어요` → `revised`, commitment `revised`, question `reframed`
+- `이 약속은 철회했어요` → `withdrawn`, commitment `withdrawn`, question `valid`
+- `약속할 이유 자체가 사라졌어요` → `moot`, commitment `superseded`, question `moot`
 
-`quote` defaults to the predicate. Do NOT pass `--author` — a read seed is
-machine-surfaced (the Step 3 authorship note), not the user's own bet.
+### declaration — “그 기준을 지금은 어떻게 보고 있나요?”
 
-Omit `note` from the settle event when the user offered no sentence.
+- `지금도 이 기준을 유지해요` → `maintained`, commitment `maintained`, question `valid`
+- `기준을 조금 바꿨어요` → `revised`, commitment `revised`, question `reframed`
+- `이 기준은 더는 따르지 않아요` → `withdrawn`, commitment `withdrawn`, question `valid`
+- `더 나은 기준으로 바뀌었어요` → `superseded`, commitment `superseded`, question `narrowed`
+- `이 기준이 필요한 상황이 끝났어요` → `moot`, commitment `superseded`, question `moot`
 
-- Outcome events. **A held bet on luck is NOT a held bet on judgment** (R17:
-  the one settle failure was a reckless, no-prep gamble that got lucky being
-  logged as a clean "held", cementing winging-it as a validated win). So when
-  recording, optionally capture the user's OWN read of WHY it went that way —
-  reasoning, or luck / external factors outside it. This is the user's
-  self-report, NOT Argus grading them (reality is still the only judge); it just
-  keeps a lucky outcome from compounding into the record as a skill-win, and
-  lets the track record separate judgment from luck. Offer it as a light second
-  tap, never a quiz; omit `basis` if the user doesn't answer.
+Skip/cancel writes nothing.
 
-Write it through the single-source ledger writer — do NOT hand-write the JSON
-(the CLI owns the canonical shape, stamps `at`, and appends in `O_APPEND` mode,
-so the settle event can never drift from what the readers expect):
+## 4. Ask exactly one follow-up
 
-```bash
-node "${CLAUDE_PLUGIN_ROOT}/scripts/decision-ledger.js" settle <id> --outcome happened|avoided|partial [--basis reasoned|luck|external|mixed] [--note "<one user sentence>"]
-```
+Use the question and exact answer labels for the record kind:
 
-Omit `--basis` / `--note` entirely when the user offered neither. The command
-writes exactly `{"event":"settle","id","outcome","basis?","note?","at"}`.
+- prediction — `오늘의 당신도 같은 조건에서 같은 판단을 했을까요? / Would
+  you make the same call under the same conditions today?`
+  - `같은 조건이라면 지금도 같은 판단을 하겠어요 / I would make the same
+    call under the same conditions` → `same`
+  - `지금이라면 판단 기준을 바꾸겠어요 / I would use a different standard
+    now` → `changed`
+  - `이 판단 기준은 더는 쓰지 않겠어요 / I would no longer use this
+    standard` → `withdrawn`
+  - `지금은 내 기준이 달라졌는지 모르겠어요 / I am not sure how my
+    standard has changed` → `skipped`
+- commitment — `오늘의 당신도 같은 약속을 했을까요? / Would you make the
+  same commitment today?`
+  - `지금도 같은 약속을 하겠어요 / I would make the same commitment today`
+    → `same`
+  - `지금이라면 약속의 조건을 바꾸겠어요 / I would change the terms of the
+    commitment` → `changed`
+  - `지금은 그 약속을 하지 않겠어요 / I would not make that commitment now`
+    → `withdrawn`
+  - `지금은 같은 약속을 할지 모르겠어요 / I am not sure whether I would
+    make it again` → `skipped`
+- declaration — `오늘의 당신도 같은 기준을 따를까요? / Would you follow the
+  same standard today?`
+  - `지금도 같은 기준을 따르겠어요 / I would still follow the same standard`
+    → `same`
+  - `지금이라면 기준을 바꾸겠어요 / I would use a different standard now`
+    → `changed`
+  - `그 기준은 더는 따르지 않겠어요 / I would no longer follow that
+    standard` → `withdrawn`
+  - `지금은 내 기준이 달라졌는지 모르겠어요 / I am not sure how my
+    standard has changed` → `skipped`
 
-**Authorship (mirror of the webapp `authored` field, R57/R58).** A seal carrying
-`author:"user"` is the user's OWN prediction (the Phase-1 BIND lean from clarify Step
-3.4) — re-confront it verbatim and, in `log`'s calibration, count a held one as the
-user's judgment. A seal WITHOUT `author` (the AI-surfaced seed from sail Step 7) is a
-machine-surfaced belief, not the user's bet — a held one is NOT the user's skill-win
-(same principle as luck-vs-judgment basis). Never silently relabel one as the other.
+Do not ask a third question. Free text is optional and only when the user
+volunteers it.
 
-- `pending` → extend instead (history preserved, no settle). Write it through the
-  single-source CLI, never hand-written JSON (the reducer keeps the prior date in
-  `history`, so this never clobbers):
+## 5. Append the answer
+
+Use the single writer. Choose `--reality` or `--commitment` from the first
+answer's fixed mapping; never invent it from prose. The writer preserves that
+first answer verbatim. If the follow-up is `same`, `changed`, or `withdrawn`,
+the writer projects that explicit answer onto axis ②
+(`maintained`/`revised`/`withdrawn`). If it is `skipped`, the first-answer
+projection remains. This is deliberate: the later explicit standard is
+authoritative, while the first selected sentence remains recoverable.
 
 ```bash
-node "${CLAUDE_PLUGIN_ROOT}/scripts/decision-ledger.js" amend <id> --check-by "<today + 14d, or user-given date>"
+node "${CLAUDE_PLUGIN_ROOT}/scripts/decision-ledger.js" settle <id> \
+  --option "<canonical option id>" \
+  --response "<selected label verbatim>" \
+  --reality met|not_met|partial|unknown|not_observable \
+  --question-validity valid|narrowed|reframed|moot|indeterminate \
+  --present-standard same|changed|withdrawn|skipped \
+  --present-standard-response "<selected follow-up label verbatim>" \
+  --observation-source-kind user_report \
+  --authorization-ref "plugin:resolve:<id>:confirmation"
 ```
 
-Create `.argus/ledger/` if missing. Ensure `.argus/.gitignore` exists per sail
-Step 0 **and contains a `ledger/` line** — older gitignores predate the
-settlement loop and only cover `sessions/`; append the line if missing so the
-ledger (verbatim predicates and outcomes) stays local by default.
+For commitment/declaration, replace `--reality` with:
 
-## Step 4 — Report (one screen)
+```bash
+--commitment enacted|maintained|revised|withdrawn|superseded
+```
+
+If the user says the answer is not available yet and wants another date, append
+only a date change:
+
+```bash
+node "${CLAUDE_PLUGIN_ROOT}/scripts/decision-ledger.js" amend <id> \
+  --check-by "<new YYYY-MM-DD>" \
+  --authorization-ref "plugin:resolve:<id>:defer"
+```
+
+Never amend the sealed sentence or falsification condition.
+
+## 6. Report without aggregation
+
+For each completed return show:
 
 ```text
-## Argus - Settle
+{{seal date}} · 그때 남긴 문장
+“{{origin_utterance}}”
 
-⚓ Loop closed
-
-✓ "{{predicate clipped 70}}" → {{outcome}}
-{{if contract came from a read seed AND that read has fog_or_reef}}
-  당시 짚었던 위험: "{{fog_or_reef.issue clipped 60}}" — 현실의 답: {{outcome}}
-{{endif}}
-{{...per settled contract}}
-{{if pending}}→ "{{predicate}}" pushed to {{new check_by}}{{endif}}
-
-Track record: {{S}} sealed · {{T}} settled — held {{h}} · missed {{a}} · partial {{p}}{{if T < 3}} (인사이트까지 {{3-T}}건){{endif}}
-{{if remaining due}}{{N}} more due — run /argus:resolve again.{{endif}}
-{{if T >= 3}}Patterns across your decisions: /argus:journal{{endif}}
+{{return date}} · 내 답
+{{selected response}}
+{{present-standard sentence}}
 ```
 
-The anchor line is the terminal form of Argus's closing-loop mark. Print it
-only when at least one contract was actually settled; do not print it for an
-empty due list, a skipped contract, or a date extension.
+Say that the earlier sentence remains intact and another future answer would be
+appended. Do not show held/missed totals, accuracy, hit rate, a score, a streak,
+or a celebratory animation.
 
-**Settlement is reality-only — do NOT auto-offer `/argus:sail` on a missed or
-partial outcome.** A missed bet does not mean the decision should be re-opened;
-the user just learned what reality did and may simply be recording it.
-Re-deciding is the user's explicit move, not an engine nudge — pushing
-re-engagement here is over-fire (the mirror clause, CLAUDE.md), the same reason
-the request-type gate (clarify Step 1.7) refuses to fork a vent. The unknown-line
-above already surfaces "what you flagged vs what reality did" honestly; let that
-stand on its own. If the user wants to re-decide, they will say so.
+## Invariants
 
-**Recovering `fog_or_reef` for the unknown line:** parse the contract id back
-into a path — `bearing:<session-id>:<label>` →
-`.argus/sessions/<session-id>/versions/<label>/current_bearing.json` (try the
-hyphen spelling too; `bearing:root:<label>` → the root read). This works
-for ledger-origin contracts settled in a later run, where the id is the only
-link back to the source read. If the read is gone, skip the line —
-never reconstruct the unknown from memory.
-
-The track-record line is computed mechanically from the full ledger replay.
-No praise, no scolding — counts only. The "당시 짚었던 위험" line is the one
-deliberate exception to counts-only: a user's first settle must show that the
-harness saw a real risk at decision time, or there is no reason to come back
-for settle #2 — it quotes, it never editorializes.
-
----
-
-## Meta-check gates
-
-- **Append-only:** never modify or delete existing ledger lines; corrupt lines
-  are skipped, not repaired.
-- **Write verification:** after appending, re-read the line(s) you just wrote
-  and JSON-parse each one. Every reader in the system silently skips
-  unparsable lines, so a malformed seal isn't an error — it's a prediction
-  that ceases to exist. If a line fails to parse, append a corrected line
-  immediately (never edit in place).
-- **No self-grading:** the user states the outcome; the skill never infers
-  `happened`/`avoided` from git state or argument.
-- **No nagging:** one pass per invocation; skipping is one tap and is never
-  questioned.
-- **Id stability:** the same read seed must always produce the same id, or
-  it will be double-settled.
-
-## Forbidden patterns
-
-- Judging the outcome ("that was a bad call").
-- **Reopening a settled decision** — auto-offering `/argus:sail` / re-engagement
-  on a missed or partial outcome (over-fire, the mirror clause). Settlement
-  records reality; re-deciding is the user's explicit move.
-- Settling without an explicit user answer.
-- Rewriting `check_by` on a contract the user didn't choose to push.
-- Producing a long retrospective — that is `/argus:journal --insights` territory.
+- The user supplies the authorial answer; Argus never infers it.
+- `moot` and `not_observable` are honest first-class exits.
+- An answer appends; it never rewrites the seal.
+- A return does not automatically reopen the decision.
+- Human, AI, and system observation sources remain explicit.

@@ -58,6 +58,7 @@ next-env.d.ts
 
 # argus-watch + local working data: personal — never commit (repo is public)
 /.argus/
+**/.argus/
 
 # Private strategy/eval/roadmap notes — kept as local backup, never public (BLUEPRINT §3.3)
 /docs/ARGUS-PRODUCT-EVALUATION-2026-07-16.ko.md
