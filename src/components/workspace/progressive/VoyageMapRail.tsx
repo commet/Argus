@@ -52,7 +52,7 @@ function EmptyChart() {
       >
         <Compass size={26} strokeWidth={1.4} />
       </motion.div>
-      <p className="text-[11px] leading-[1.55] text-[var(--text-tertiary)] max-w-[180px]">
+      <p className="text-[12.5px] leading-[1.55] text-[var(--text-tertiary)] max-w-[180px]">
         {L('답을 고르거나 이전 답으로 돌아가면 결정의 갈래가 여기에 기록돼요.',
            'Decision branches appear here as you answer or return to an earlier choice.')}
       </p>
@@ -111,14 +111,14 @@ function VoyageMapHero({ surface = 'rail' }: { surface?: 'rail' | 'modal' }) {
     <div className={surface === 'rail' ? 'px-4 pt-3' : 'pt-3'}>
       {/* Eyebrow + full-chart entry */}
       <div className="flex items-center justify-between mb-2">
-        <span className="inline-flex items-center gap-1.5 text-[11.5px] font-bold text-[var(--accent)]">
+        <span className="inline-flex items-center gap-1.5 text-[13px] font-bold text-[var(--accent)]">
           <Compass size={13} /> {L('현재 판단 경로', 'Current decision path')}
         </span>
         {hasChart && (
           <button
             onClick={() => setChartOpen(true)}
             title={L('전체 결정 지도 — 이전 지점으로 돌아가기', 'Full decision map — return to an earlier point')}
-            className="inline-flex min-h-9 items-center gap-1 text-[11px] text-[var(--text-tertiary)] hover:text-[var(--accent)] transition-colors cursor-pointer"
+            className="inline-flex min-h-9 items-center gap-1 text-[12.5px] text-[var(--text-tertiary)] hover:text-[var(--accent)] transition-colors cursor-pointer"
           >
             <Maximize2 size={10} /> {L('전체 결정 지도', 'Full decision map')}
           </button>
@@ -126,9 +126,9 @@ function VoyageMapHero({ surface = 'rail' }: { surface?: 'rail' | 'modal' }) {
       </div>
 
       {hasChart && (
-        <div data-testid="route-reading-strip" className="mb-2.5 flex items-center border-y border-[var(--border-subtle)] py-2 text-[11px]">
+        <div data-testid="route-reading-strip" className="mb-2.5 flex items-center border-y border-[var(--border-subtle)] py-2 text-[12.5px]">
           <span className="min-w-0 flex-1 pr-2 text-[var(--text-secondary)]">
-            <span className="block text-[9.5px] font-bold text-[var(--text-tertiary)]">{L('지금', 'Now')}</span>
+            <span className="block text-[13px] font-bold text-[var(--text-tertiary)]">{L('지금', 'Now')}</span>
             <strong className="block truncate text-[12px] font-semibold text-[var(--text-primary)]" title={shownWp?.headline}>
               {shownWp?.headline || L('현재 지점', 'Current point')}
             </strong>
@@ -169,7 +169,7 @@ function VoyageMapHero({ surface = 'rail' }: { surface?: 'rail' | 'modal' }) {
 
       {/* Compact legend — the SVG marks can't explain themselves */}
       {hasChart && (
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-2 px-0.5 text-[10.5px] text-[var(--text-tertiary)]">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-2 px-0.5 text-[12.5px] text-[var(--text-tertiary)]">
           <span className="inline-flex items-center gap-1">
             <span className="w-1.5 h-1.5 rounded-full" style={{ background: 'var(--accent)' }} />
             {L('기록된 결정', 'Logged turn')}
@@ -197,7 +197,7 @@ function VoyageMapHero({ surface = 'rail' }: { surface?: 'rail' | 'modal' }) {
           {!isCurrent && (
             <button
               onClick={() => setPickedCp(null)}
-              className="mt-1.5 inline-flex min-h-9 items-center gap-1 text-[11px] font-medium text-[var(--text-tertiary)] hover:text-[var(--accent)] transition-colors cursor-pointer"
+              className="mt-1.5 inline-flex min-h-9 items-center gap-1 text-[12.5px] font-medium text-[var(--text-tertiary)] hover:text-[var(--accent)] transition-colors cursor-pointer"
             >
               <ArrowLeft size={10} /> {L('지금 위치로', 'Back to current')}
             </button>
@@ -207,7 +207,7 @@ function VoyageMapHero({ surface = 'rail' }: { surface?: 'rail' | 'modal' }) {
 
       {/* Single-course nudge → toward the product's core "take another path". */}
       {hasChart && !multiBranch && waypoints.length > 0 && (
-        <p className="mt-2 px-0.5 text-[11px] leading-[1.5] text-[var(--text-tertiary)]">
+        <p className="mt-2 px-0.5 text-[12.5px] leading-[1.5] text-[var(--text-tertiary)]">
           {L('아직 한 갈래예요. 위 지도에서 이전 지점으로 돌아가 다른 답을 선택할 수 있어요.',
              'There is one branch so far. Return to an earlier point above to try a different answer.')}
         </p>
@@ -251,7 +251,7 @@ function CollapsedSpine({ onExpand }: { onExpand: () => void }) {
         <PanelLeftOpen size={16} />
       </span>
 
-      <span className="text-[9px] font-bold uppercase tracking-[0.2em] text-[var(--text-tertiary)] group-hover:text-[var(--accent)] [writing-mode:vertical-rl] rotate-180 transition-colors">
+      <span className="text-[12.5px] font-bold uppercase tracking-[0.2em] text-[var(--text-tertiary)] group-hover:text-[var(--accent)] [writing-mode:vertical-rl] rotate-180 transition-colors">
         {L('판단 경로', 'Decision path')}
       </span>
 
@@ -260,13 +260,13 @@ function CollapsedSpine({ onExpand }: { onExpand: () => void }) {
         {waypointCount > 0 && (
           <span className="flex flex-col items-center gap-0.5" title={L('결정 기점', 'Decision turns')}>
             <Milestone size={12} className="text-[var(--accent)]/70" />
-            <span className="text-[9px] font-semibold text-[var(--text-secondary)] tabular-nums">{waypointCount}</span>
+            <span className="text-[12.5px] font-semibold text-[var(--text-secondary)] tabular-nums">{waypointCount}</span>
           </span>
         )}
         {branchCount > 1 && (
           <span className="flex flex-col items-center gap-0.5" title={L('결정 갈래', 'Decision branches')}>
             <GitBranch size={12} className="text-[var(--accent)]/70" />
-            <span className="text-[9px] font-semibold text-[var(--text-secondary)] tabular-nums">{branchCount}</span>
+            <span className="text-[12.5px] font-semibold text-[var(--text-secondary)] tabular-nums">{branchCount}</span>
           </span>
         )}
         {running > 0 && (

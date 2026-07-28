@@ -28,11 +28,11 @@ export function ClaimReviewCard({
     <article className="overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow-sm)]">
       <div className="p-5 sm:p-6">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="flex items-center gap-2 text-[11px] font-semibold tracking-[0.12em] text-[var(--text-tertiary)] uppercase">
+            <div className="flex items-center gap-2 text-[12.5px] font-semibold tracking-[0.12em] text-[var(--text-tertiary)] uppercase">
               <Scale size={14} className="text-[var(--accent)]" />
               {L('검토할 표현', 'Wording to review')}
             </div>
-            <span className="rounded-full border border-[var(--border)] px-2.5 py-1 text-[11px] text-[var(--text-secondary)]">
+            <span className="rounded-full border border-[var(--border)] px-2.5 py-1 text-[12.5px] text-[var(--text-secondary)]">
               {L(`독립된 해결 사례 ${card.independent_source_count}건`, `${card.independent_source_count} independent resolved cases`)}
             </span>
           </div>
@@ -71,12 +71,12 @@ export function ClaimReviewCard({
                         <div className="mt-2 rounded-md bg-[var(--accent)]/[0.06] px-2.5 py-2">
                           <p className="font-semibold text-[var(--text-primary)]">{L('당시 관찰', 'Observation then')}</p>
                           <p>{source.drilldown.observation.excerpt}</p>
-                          <p className="mt-1 break-all text-[10px] text-[var(--text-tertiary)]">{source.drilldown.observation.event_id} · {source.drilldown.observation.occurred_at}</p>
+                          <p className="mt-1 break-all text-[12px] text-[var(--text-tertiary)]">{source.drilldown.observation.event_id} · {source.drilldown.observation.occurred_at}</p>
                         </div>
                         <div className="mt-2 rounded-md bg-[var(--primary)]/[0.06] px-2.5 py-2">
                           <p className="font-semibold text-[var(--text-primary)]">{L('나중에 확인한 결과', 'Outcome reviewed later')}</p>
                           <p>{source.drilldown.resolution.excerpt}</p>
-                          <p className="mt-1 break-all text-[10px] text-[var(--text-tertiary)]">{source.drilldown.resolution.event_id} · {source.drilldown.resolution.occurred_at}</p>
+                          <p className="mt-1 break-all text-[12px] text-[var(--text-tertiary)]">{source.drilldown.resolution.event_id} · {source.drilldown.resolution.occurred_at}</p>
                         </div>
                       </> : <>
                         <p className="mt-1 break-all">{L('관찰', 'Observation')}: {source.observation_ref}</p>
@@ -149,7 +149,7 @@ export function ClaimReviewCard({
                 <Pause size={14} />{L('나중에', 'Later')}
               </Button>
             </div>
-            <p className="mt-3 text-[11px] leading-5 text-[var(--text-tertiary)]">
+            <p className="mt-3 text-[12.5px] leading-5 text-[var(--text-tertiary)]">
               {L('여기서 ‘맞음’을 눌러도 미래 AI에 반영되지 않습니다. 영향 허용은 검토가 끝난 뒤 별도 단계입니다.', 'Choosing “Fits” does not affect future AI. Influence is a separate step after review.')}
             </p>
           </div>

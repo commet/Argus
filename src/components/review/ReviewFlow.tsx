@@ -568,7 +568,7 @@ export function ReviewFlow() {
       <>
         {receipt.version && receipt.version > 1 && receipt.drift_note && (
           <Card variant="checkpoint" className="mb-4">
-            <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--warning)] mb-1">
+            <div className="text-[12px] font-bold uppercase tracking-[0.18em] text-[var(--warning)] mb-1">
               {L(`버전 ${receipt.version} · 재검수`, `Version ${receipt.version} · Re-review`)}
             </div>
             <p className="text-[13px] text-[var(--text-primary)]">{receipt.drift_note}</p>
@@ -587,7 +587,7 @@ export function ReviewFlow() {
               <div className="flex items-center gap-3">
                 {stampDate && <SealStamp date={stampDate} size={44} className="shrink-0" />}
                 <div className="min-w-0">
-                  <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--accent)] mb-1">{L('기록됨', 'Recorded')}</div>
+                  <div className="text-[12px] font-bold uppercase tracking-[0.18em] text-[var(--accent)] mb-1">{L('기록됨', 'Recorded')}</div>
                   <p className="text-[13px] text-[var(--text-primary)]">
                     {L(
                       '판단을 기록했습니다. 확인일에 실제 결과를 돌아볼 때까지 이 기록은 이어집니다.',
@@ -772,8 +772,8 @@ export function ReviewFlow() {
         )}
         <Card variant="elevated">
           <div className="flex items-center justify-between gap-3 mb-2">
-            <h1 className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--accent)]">{L('문서 확인 중', 'Analyzing document')}</h1>
-            <span className="text-[11px] tabular-nums text-[var(--text-tertiary)]">
+            <h1 className="text-[12px] font-bold uppercase tracking-[0.18em] text-[var(--accent)]">{L('문서 확인 중', 'Analyzing document')}</h1>
+            <span className="text-[12.5px] tabular-nums text-[var(--text-tertiary)]">
               {mm > 0 ? `${mm}:${ss}` : L(`${elapsed}초`, `${elapsed}s`)}
             </span>
           </div>
@@ -796,7 +796,7 @@ export function ReviewFlow() {
                     }`}
                   />
                   <div
-                    className={`mt-1.5 text-[9px] leading-tight truncate transition-colors ${
+                    className={`mt-1.5 text-[12.5px] leading-tight truncate transition-colors ${
                       active
                         ? 'text-[var(--accent)] font-semibold'
                         : done
@@ -821,7 +821,7 @@ export function ReviewFlow() {
             const idx = Math.floor(elapsed / 3) % items.length;
             return (
               <div className="mt-4">
-                <div className="text-[11px] text-[var(--text-tertiary)] mb-1.5">
+                <div className="text-[12.5px] text-[var(--text-tertiary)] mb-1.5">
                   {L('문서에 적힌 전제를 확인하는 중', 'Checking a premise stated in the document')}
                 </div>
                 <div key={idx} className="animate-fade-in rounded-lg bg-[var(--accent)]/[0.04] px-4 py-3">
@@ -872,7 +872,7 @@ export function ReviewFlow() {
     return (
       <div className="max-w-2xl mx-auto w-full">
         <Card variant="danger">
-          <h1 className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--danger)] mb-2">{L('검수 어려움', 'Unable to review')}</h1>
+          <h1 className="text-[12px] font-bold uppercase tracking-[0.18em] text-[var(--danger)] mb-2">{L('검수 어려움', 'Unable to review')}</h1>
           <p className="text-[14px] text-[var(--text-primary)]">
             {job?.error?.message ?? L('이 문서는 지금 상태로는 검수하기 어렵습니다.', 'This document is hard to review in its current form.')}
           </p>
@@ -990,7 +990,7 @@ export function ReviewFlow() {
               ? L('읽는 중…', 'Reading…')
               : L('파일 선택', 'Choose file')}
           </Button>
-          <span className={`text-[11px] ${text.length >= PASTE_CHAR_CAP ? 'text-[var(--warning)] font-semibold' : 'text-[var(--text-tertiary)]'}`}>
+          <span className={`text-[12.5px] ${text.length >= PASTE_CHAR_CAP ? 'text-[var(--warning)] font-semibold' : 'text-[var(--text-tertiary)]'}`}>
             {text.length >= PASTE_CHAR_CAP
               ? L(
                   `최대 ${PASTE_CHAR_CAP.toLocaleString()}자 — 초과분은 잘립니다`,
@@ -1057,7 +1057,7 @@ export function ReviewFlow() {
 
       {/* concern chips */}
       <fieldset>
-        <legend className="text-[11px] font-bold text-[var(--text-secondary)] mb-1.5">{L('어떤 검수를 원하세요?', 'What kind of review do you want?')}</legend>
+        <legend className="text-[12.5px] font-bold text-[var(--text-secondary)] mb-1.5">{L('어떤 검수를 원하세요?', 'What kind of review do you want?')}</legend>
         <div className="flex flex-wrap gap-1.5">
           {CONCERN_CHIPS.map((c) => (
             <button
@@ -1084,7 +1084,7 @@ export function ReviewFlow() {
         </summary>
         <div className="mt-2 flex flex-col gap-2">
           <div>
-            <label htmlFor="review-audience" className="mb-1 block text-[11px] font-semibold text-[var(--text-secondary)]">
+            <label htmlFor="review-audience" className="mb-1 block text-[12.5px] font-semibold text-[var(--text-secondary)]">
               {L('이 문서를 볼 사람', 'Audience')}
             </label>
             <input
@@ -1097,7 +1097,7 @@ export function ReviewFlow() {
             />
           </div>
           <div>
-            <label htmlFor="review-worry" className="mb-1 block text-[11px] font-semibold text-[var(--text-secondary)]">
+            <label htmlFor="review-worry" className="mb-1 block text-[12.5px] font-semibold text-[var(--text-secondary)]">
               {L('가장 불안한 부분', 'Main concern')}
             </label>
             <input
@@ -1117,7 +1117,7 @@ export function ReviewFlow() {
         <input type="checkbox" checked={storeSource} onChange={(e) => setStoreSource(e.target.checked)} className="mt-0.5" />
         <span>
           {L('원문도 함께 저장하기', 'Also store the original text')}
-          <span className="block text-[11px] text-[var(--text-tertiary)]">
+          <span className="block text-[12.5px] text-[var(--text-tertiary)]">
             {storeSource
               ? L(
                   '원문을 저장해 검수 결과 옆에서 나란히 볼 수 있습니다.',
@@ -1141,7 +1141,7 @@ export function ReviewFlow() {
             {preExtracted.vision.kind === 'pdf'
               ? L('이미지·차트·표도 함께 확인', 'Also check images, charts, and tables')
               : L('덱에 담긴 이미지·차트도 함께 확인', 'Also check the deck’s embedded images and charts')}
-            <span className="block text-[11px] text-[var(--text-tertiary)]">
+            <span className="block text-[12.5px] text-[var(--text-tertiary)]">
               {L(
                 '문서를 이미지로도 모델에 보여줘, 텍스트만으로는 놓치는 그래프·표·레이아웃을 잡아냅니다. 토큰을 더 쓰니 무료 1회를 소모해요.',
                 'The model also sees the document as images, catching graphs/tables/layout that text alone misses. Uses more tokens — spends your free review.',
@@ -1155,7 +1155,7 @@ export function ReviewFlow() {
           renderer). Nudge toward PDF export, which gets full-fidelity native
           vision — every slide, layout and all — for free. */}
       {sourceKind === 'pptx' && !!preExtracted && (
-        <p className="text-[11px] leading-[1.6] text-[var(--text-tertiary)]">
+        <p className="text-[12.5px] leading-[1.6] text-[var(--text-tertiary)]">
           {L(
             '💡 덱을 PDF로 내보내 올리면 모든 슬라이드를 이미지로 더 정밀하게 검수해요 (지금은 덱에 박힌 이미지만 봅니다).',
             '💡 Export your deck to PDF and upload that for a full visual review of every slide — right now only the deck’s embedded images are seen.',
@@ -1163,7 +1163,7 @@ export function ReviewFlow() {
         </p>
       )}
 
-      <p className="text-[11px] leading-[1.6] text-[var(--text-tertiary)]">
+      <p className="text-[12.5px] leading-[1.6] text-[var(--text-tertiary)]">
         {L('예상 시간: 보통 1~3분 · 긴 문서나 이미지·도표 검토는 최대 5분', 'Typical time: 1–3 minutes · long documents or visual review can take up to 5 minutes')}
       </p>
 

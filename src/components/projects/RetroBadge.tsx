@@ -28,7 +28,7 @@ import { History } from 'lucide-react';
 export function RetroBadge({ ko, className = '' }: { ko: boolean; className?: string }) {
   return (
     <span
-      className={`inline-flex items-center gap-1 align-middle text-[10px] font-semibold text-[var(--text-tertiary)] border border-[var(--border)] rounded px-1.5 py-px ${className}`}
+      className={`inline-flex items-center gap-1 align-middle text-[12px] font-semibold text-[var(--text-tertiary)] border border-[var(--border)] rounded px-1.5 py-px ${className}`}
       title={
         ko
           ? '이미 끝난 일을 되짚어 보는 연습이에요. 실제 판단 기록은 결과를 모르는 시점에 남긴 결정부터 시작됩니다.'

@@ -21,7 +21,25 @@ describe('document review import accessibility', () => {
   });
 
   it('keeps a top-level heading while running and after failure', () => {
-    expect(source).toContain('<h1 className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--accent)]">');
-    expect(source).toContain('<h1 className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--danger)] mb-2">');
+    // The contract is the HEADING — a running/failed import must still expose an
+    // <h1> so the page never loses its top-level landmark. It is deliberately NOT
+    // a contract about type size: pinning the whole class string made a
+    // legibility pass (2026-07-28, 10px → 12px across the app) fail an
+    // accessibility test, which inverts the guard's purpose — bigger text is the
+    // thing this test should welcome.
+    const headings = [...source.matchAll(/<h1\s+className="([^"]*)"/g)].map((m) => m[1]);
+    const accent = headings.find((c) => c.includes('text-[var(--accent)]'));
+    const danger = headings.find((c) => c.includes('text-[var(--danger)]'));
+
+    expect(accent, 'the running state lost its <h1>').toBeDefined();
+    expect(danger, 'the failure state lost its <h1>').toBeDefined();
+    // Still an eyebrow-style heading in both states (weight + tracking), and still
+    // legible — a heading is not allowed to shrink back below 12px.
+    for (const cls of [accent!, danger!]) {
+      expect(cls).toMatch(/font-bold/);
+      expect(cls).toMatch(/uppercase/);
+      const size = Number(cls.match(/text-\[(\d+(?:\.\d+)?)px\]/)?.[1] ?? NaN);
+      expect(size, `heading type too small: ${cls}`).toBeGreaterThanOrEqual(12);
+    }
   });
 });

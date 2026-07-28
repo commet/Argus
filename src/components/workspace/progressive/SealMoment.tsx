@@ -607,7 +607,7 @@ export function SealMoment({
       >
         <div className="flex items-center gap-3 mb-8 text-[var(--text-tertiary)]/50">
           <div className="h-px flex-1 bg-[var(--border-subtle)]" />
-          <span className="text-[11px] font-medium tracking-wide uppercase">{L('마지막으로', 'One last thing')}</span>
+          <span className="text-[12.5px] font-medium tracking-wide uppercase">{L('마지막으로', 'One last thing')}</span>
           <div className="h-px flex-1 bg-[var(--border-subtle)]" />
         </div>
         <div className="rounded-3xl border border-[var(--accent)]/30 bg-[var(--surface)] px-6 py-7 md:px-10 md:py-9 text-center">
@@ -763,7 +763,7 @@ export function SealMoment({
                 <RetroBadge ko={ko} />
               </div>
             )}
-            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--text-tertiary)]">
+            <p className="text-[12px] font-semibold uppercase tracking-[0.2em] text-[var(--text-tertiary)]">
               {L('판단 기록 · 저장됨', 'Decision record · saved')} · {sealedOnStr}
             </p>
             {typeof project?.name === 'string' && project.name.trim() && (
@@ -773,7 +773,7 @@ export function SealMoment({
               baselineJudgment && baselineJudgment !== certQuote ? (
                 <div className="mt-4 space-y-3">
                   <div>
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--text-tertiary)]">
+                    <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-[var(--text-tertiary)]">
                       {L('검토 전 기준점', 'Before the review')}
                     </p>
                     <p className="mt-1 text-[13px] leading-[1.55] text-[var(--text-secondary)]" style={{ fontFamily: 'var(--font-voice, serif)' }}>
@@ -781,7 +781,7 @@ export function SealMoment({
                     </p>
                   </div>
                   <div className="border-t border-[var(--border)] pt-3">
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--accent)]">
+                    <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-[var(--accent)]">
                       {L('검토 뒤 내가 확정한 판단', 'My judgment after the review')}
                     </p>
                     <p className="mt-1 text-[16px] leading-[1.6] text-[var(--text-primary)]" style={{ fontFamily: 'var(--font-voice, serif)' }}>
@@ -796,7 +796,7 @@ export function SealMoment({
               )
             ) : certPredicate ? (
               <div className="mt-3">
-                <p className="text-[10.5px] text-[var(--text-tertiary)]">{L('AI가 대신 적어둔 확인 질문', 'A check question Argus drafted for you')}</p>
+                <p className="text-[12.5px] text-[var(--text-tertiary)]">{L('AI가 대신 적어둔 확인 질문', 'A check question Argus drafted for you')}</p>
                 <p className="mt-1 text-[14px] text-[var(--text-secondary)] leading-[1.6]" style={{ fontFamily: 'var(--font-voice, serif)' }}>
                   &ldquo;{certPredicate}&rdquo;
                 </p>
@@ -941,7 +941,7 @@ export function SealMoment({
                     />
                   </div>
                   {kept.length === 0 && (
-                    <p className="mt-2 text-[11.5px] text-amber-600 dark:text-amber-400">
+                    <p className="mt-2 text-[13px] text-amber-600 dark:text-amber-400">
                       {L('최소 1개는 남겨야 물어볼 수 있어요.', 'Keep at least one so I have something to ask about.')}
                     </p>
                   )}
@@ -975,7 +975,7 @@ export function SealMoment({
           the pre-review baseline; this closes the reviewed judgment. */}
       <div className="flex items-center gap-3 mb-8 text-[var(--text-tertiary)]/50">
         <div className="h-px flex-1 bg-[var(--border-subtle)]" />
-        <span className="text-[11px] font-medium tracking-wide uppercase">{L('검토의 끝 · 판단 기록', 'Close the review · decision record')}</span>
+        <span className="text-[12.5px] font-medium tracking-wide uppercase">{L('검토의 끝 · 판단 기록', 'Close the review · decision record')}</span>
         <div className="h-px flex-1 bg-[var(--border-subtle)]" />
       </div>
 
@@ -1156,7 +1156,7 @@ export function SealMoment({
                   />
                 </div>
                 {kept.length === 0 && (
-                  <p className="mt-2 text-[11.5px] text-amber-600 dark:text-amber-400">
+                  <p className="mt-2 text-[13px] text-amber-600 dark:text-amber-400">
                     {L('최소 1개는 남겨야 물어볼 수 있어요.', 'Keep at least one so I have something to ask about.')}
                   </p>
                 )}
@@ -1198,7 +1198,7 @@ function KindChoice({
               type="button"
               aria-pressed={selected}
               onClick={() => onChange(choice.value)}
-              className={`min-h-10 rounded-xl px-2.5 py-2 text-[11.5px] font-semibold leading-4 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)] ${
+              className={`min-h-10 rounded-xl px-2.5 py-2 text-[13px] font-semibold leading-4 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)] ${
                 selected
                   ? 'bg-[var(--surface)] text-[var(--text-primary)] shadow-sm'
                   : 'text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]'
@@ -1283,7 +1283,7 @@ function PredicateEditor({
               >
                 <Icon size={13} className="text-[var(--text-tertiary)] mt-0.5 shrink-0" />
                 <span className="flex-1 min-w-0 text-[12.5px] text-[var(--text-primary)] leading-[1.5]">{p.text}</span>
-                <span className="text-[10.5px] text-[var(--text-tertiary)] shrink-0 mt-0.5">
+                <span className="text-[12.5px] text-[var(--text-tertiary)] shrink-0 mt-0.5">
                   {off ? L('뺌', 'off') : L('뺄까요?', 'remove?')}
                 </span>
               </button>

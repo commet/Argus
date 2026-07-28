@@ -201,7 +201,7 @@ export default function TeamsPage() {
       </LocaleLink>
 
       <header className="mt-5 max-w-2xl">
-        <p className="text-[11px] font-semibold tracking-[0.12em] text-[var(--accent)]">{L('사람과 함께 검토', 'REVIEW WITH PEOPLE')}</p>
+        <p className="text-[12.5px] font-semibold tracking-[0.12em] text-[var(--accent)]">{L('사람과 함께 검토', 'REVIEW WITH PEOPLE')}</p>
         <h1 className="mt-2 text-[28px] font-bold tracking-[-0.035em] text-[var(--text-primary)]">{L('팀의 시선을 한곳에 모으세요', 'Bring the team’s perspectives together')}</h1>
         <p className="mt-2 text-[14px] leading-7 text-[var(--text-secondary)]">
           {L('결정을 공유하고, 서로의 답을 보기 전에 각자 의견을 남긴 뒤 한꺼번에 공개할 수 있어요. AI 검토자와 달리 이곳의 팀은 초대한 실제 사람들입니다.', 'Share a decision, let each person respond independently, then publish the round together. Unlike AI reviewers, these teams are made of people you invite.')}
@@ -375,7 +375,7 @@ export default function TeamsPage() {
                 <div key={member.id} className="group flex items-center justify-between gap-2 py-3">
                   <div className="min-w-0">
                     <p className="truncate text-[13px] font-semibold text-[var(--text-primary)]">{member.display_name || member.email || L('팀원', 'Teammate')}</p>
-                    <p className="mt-0.5 truncate text-[11px] text-[var(--text-tertiary)]">{roleLabel(member.role, locale)}{member.display_name && member.email ? ` · ${member.email}` : ''}</p>
+                    <p className="mt-0.5 truncate text-[12.5px] text-[var(--text-tertiary)]">{roleLabel(member.role, locale)}{member.display_name && member.email ? ` · ${member.email}` : ''}</p>
                   </div>
                   {manager && member.role !== 'owner' && (
                     <button type="button" onClick={() => void removeMember(member.id)} className="flex min-h-10 min-w-10 items-center justify-center text-[var(--text-tertiary)] opacity-70 transition-colors hover:text-[var(--danger)] sm:opacity-0 sm:group-hover:opacity-100 sm:focus-visible:opacity-100" aria-label={L(`${member.display_name || member.email || '팀원'} 내보내기`, `Remove ${member.display_name || member.email || 'teammate'}`)}>
@@ -389,7 +389,7 @@ export default function TeamsPage() {
             {manager && (
               <div className="mt-7 border-t border-[var(--border)] pt-5">
                 <h3 className="text-[13px] font-bold text-[var(--text-primary)]">{L('사람 초대', 'Invite a person')}</h3>
-                <p className="mt-1 text-[11px] leading-5 text-[var(--text-tertiary)]">{L('메일 전송이 안 되면 링크를 복사하고, 복사가 막히면 직접 선택할 수 있게 보여드려요.', 'If email delivery is unavailable, we copy a link or show it for manual selection.')}</p>
+                <p className="mt-1 text-[12.5px] leading-5 text-[var(--text-tertiary)]">{L('메일 전송이 안 되면 링크를 복사하고, 복사가 막히면 직접 선택할 수 있게 보여드려요.', 'If email delivery is unavailable, we copy a link or show it for manual selection.')}</p>
                 <label htmlFor="team-invite-email" className="sr-only">{L('초대할 이메일 주소', 'Email address to invite')}</label>
                 <input id="team-invite-email" type="email" inputMode="email" autoComplete="email" maxLength={254} value={inviteEmail} onChange={(event) => setInviteEmail(event.target.value)} placeholder="name@company.com" className="mt-3 min-h-11 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 text-[13px] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/25" />
                 <div className="mt-2 flex gap-2">
@@ -401,9 +401,9 @@ export default function TeamsPage() {
                 </div>
                 {invites.length > 0 && (
                   <div className="mt-5">
-                    <p className="text-[11px] font-semibold text-[var(--text-tertiary)]">{L('응답 대기', 'Awaiting response')} · {invites.length}</p>
+                    <p className="text-[12.5px] font-semibold text-[var(--text-tertiary)]">{L('응답 대기', 'Awaiting response')} · {invites.length}</p>
                     <ul className="mt-1 divide-y divide-[var(--border-subtle)]">
-                      {invites.map((invite) => <li key={invite.id} className="truncate py-2 text-[11px] text-[var(--text-secondary)]">{invite.email}</li>)}
+                      {invites.map((invite) => <li key={invite.id} className="truncate py-2 text-[12.5px] text-[var(--text-secondary)]">{invite.email}</li>)}
                     </ul>
                   </div>
                 )}
@@ -473,7 +473,7 @@ function SharedDecision({
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
             <h3 className="[overflow-wrap:anywhere] text-[15px] font-bold text-[var(--text-primary)]">{project.name}</h3>
-            <span className="[overflow-wrap:anywhere] text-[11px] text-[var(--text-tertiary)]">{project.owner_name || project.owner_email || L('팀원', 'Teammate')}</span>
+            <span className="[overflow-wrap:anywhere] text-[12.5px] text-[var(--text-tertiary)]">{project.owner_name || project.owner_email || L('팀원', 'Teammate')}</span>
           </div>
           <p className="mt-1 line-clamp-2 text-[13px] leading-6 text-[var(--text-secondary)]">{bearing?.current_course.summary || project.description || L('결정 요약이 아직 준비되지 않았어요.', 'The decision summary is not ready yet.')}</p>
         </div>
@@ -504,7 +504,7 @@ function SharedDecision({
                 <h4 className="text-[14px] font-bold text-[var(--text-primary)]">{L('내 의견 먼저 남기기', 'Respond independently')}</h4>
                 <p className="mt-1 text-[12px] leading-5 text-[var(--text-tertiary)]">{L('공개 전에는 다른 사람의 미공개 의견을 볼 수 없어요.', 'Unpublished responses stay hidden from other reviewers.')}</p>
               </div>
-              {hiddenCount > 0 && <span className="text-[11px] font-semibold text-[var(--accent)]">{manager ? L(`공개 대기 ${hiddenCount}건`, `${hiddenCount} awaiting publication`) : L('내 의견 공개 대기', 'Your response is private')}</span>}
+              {hiddenCount > 0 && <span className="text-[12.5px] font-semibold text-[var(--accent)]">{manager ? L(`공개 대기 ${hiddenCount}건`, `${hiddenCount} awaiting publication`) : L('내 의견 공개 대기', 'Your response is private')}</span>}
             </div>
 
             <div className="mt-4 flex flex-wrap gap-2" role="group" aria-label={L('의견 유형', 'Feedback type')}>
@@ -517,7 +517,7 @@ function SharedDecision({
               ))}
             </div>
             <div className="mt-3 flex items-center gap-1" aria-label={L('확신 점수', 'Confidence rating')}>
-              <span className="mr-2 text-[11px] text-[var(--text-tertiary)]">{L('확신', 'Confidence')}</span>
+              <span className="mr-2 text-[12.5px] text-[var(--text-tertiary)]">{L('확신', 'Confidence')}</span>
               {[1, 2, 3, 4, 5].map((rating) => (
                 <button key={rating} type="button" onClick={() => onRating(reviewRating === rating ? null : rating)} aria-pressed={reviewRating === rating} className={`h-8 w-8 rounded-full text-[12px] font-semibold ${reviewRating === rating ? 'bg-[var(--primary)] text-[var(--bg)]' : 'border border-[var(--border)] text-[var(--text-tertiary)]'}`}>{rating}</button>
               ))}
@@ -525,7 +525,7 @@ function SharedDecision({
             <label htmlFor={`team-review-${project.id}`} className="sr-only">{L(`${project.name}에 대한 검토 의견`, `Review comment for ${project.name}`)}</label>
             <textarea id={`team-review-${project.id}`} value={reviewComment} onChange={(event) => onComment(event.target.value)} maxLength={2000} rows={3} placeholder={L('어떤 점을 확인하거나 다르게 보고 있나요?', 'What should the team check, or what do you see differently?')} className="mt-3 w-full resize-y rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 text-[13px] leading-6 text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/25" />
             <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
-              <span className="text-[11px] text-[var(--text-tertiary)]">{L('제출 직후에는 나만 볼 수 있어요.', 'Only you can see it immediately after submitting.')} · {reviewComment.length}/2000</span>
+              <span className="text-[12.5px] text-[var(--text-tertiary)]">{L('제출 직후에는 나만 볼 수 있어요.', 'Only you can see it immediately after submitting.')} · {reviewComment.length}/2000</span>
               <Button size="sm" onClick={onSubmit} disabled={!reviewRating && !reviewComment.trim()}><Send size={13} />{L('의견 보관', 'Save response')}</Button>
             </div>
           </div>
@@ -539,7 +539,7 @@ function SharedDecision({
               <div className="mt-2 divide-y divide-[var(--border-subtle)]">
                 {[...publicInputs, ...privateInputs].map((input) => (
                   <div key={input.id} className="py-3">
-                    <div className="flex flex-wrap items-center gap-2 text-[11px] text-[var(--text-tertiary)]">
+                    <div className="flex flex-wrap items-center gap-2 text-[12.5px] text-[var(--text-tertiary)]">
                       <UserRound size={12} aria-hidden="true" />
                       <span>{input.user_name || L('팀원', 'Teammate')}</span>
                       <span>·</span>
@@ -556,7 +556,7 @@ function SharedDecision({
 
           {canUnshare && (
             <div className="mt-7 flex justify-end border-t border-[var(--border-subtle)] pt-3">
-              <button type="button" onClick={onUnshare} className="inline-flex min-h-10 items-center gap-1.5 text-[11px] text-[var(--text-tertiary)] transition-colors hover:text-[var(--danger)]"><Trash2 size={12} />{L('팀 공유 해제', 'Remove from team')}</button>
+              <button type="button" onClick={onUnshare} className="inline-flex min-h-10 items-center gap-1.5 text-[12.5px] text-[var(--text-tertiary)] transition-colors hover:text-[var(--danger)]"><Trash2 size={12} />{L('팀 공유 해제', 'Remove from team')}</button>
             </div>
           )}
         </div>
@@ -566,7 +566,7 @@ function SharedDecision({
 }
 
 function SummaryField({ label, value }: { label: string; value: string }) {
-  return <div className="min-w-0"><p className="text-[10px] font-bold tracking-[0.08em] text-[var(--accent)]">{label}</p><p className="mt-1.5 [overflow-wrap:anywhere] whitespace-pre-wrap text-[13px] leading-6 text-[var(--text-secondary)]">{value}</p></div>;
+  return <div className="min-w-0"><p className="text-[12px] font-bold tracking-[0.08em] text-[var(--accent)]">{label}</p><p className="mt-1.5 [overflow-wrap:anywhere] whitespace-pre-wrap text-[13px] leading-6 text-[var(--text-secondary)]">{value}</p></div>;
 }
 
 function roleLabel(role: 'owner' | 'admin' | 'member', locale: 'ko' | 'en') {

@@ -235,7 +235,7 @@ export default function UtmBuilderPage() {
                 placeholder={L('예: vibecoding_kr, launch_april', 'e.g. launch_april, design_community')}
                 className="w-full bg-[var(--bg)] border border-[var(--border)] rounded-lg px-3 py-2 text-[14px]"
               />
-              <p className="text-[11px] text-[var(--text-tertiary)] mt-1">
+              <p className="text-[12.5px] text-[var(--text-tertiary)] mt-1">
                 {L('리포트에서 이 값으로 묶어 봅니다. 캠페인이나 그룹마다 구분해 주세요.', 'Reports group results by this value. Use a distinct name for each campaign or group.')}
               </p>
             </div>
@@ -252,7 +252,7 @@ export default function UtmBuilderPage() {
                 placeholder={L('예: first_share, pinned_msg, v2', 'e.g. first_share, pinned_msg, v2')}
                 className="w-full bg-[var(--bg)] border border-[var(--border)] rounded-lg px-3 py-2 text-[14px]"
               />
-              <p className="text-[11px] text-[var(--text-tertiary)] mt-1">
+              <p className="text-[12.5px] text-[var(--text-tertiary)] mt-1">
                 {L('같은 캠페인 안에서 A/B 링크를 구분할 때 사용합니다.', 'Use this to distinguish A/B links within one campaign.')}
               </p>
             </div>
@@ -274,7 +274,7 @@ export default function UtmBuilderPage() {
         {/* ── Generated URL ── */}
         <Card variant={isReady ? 'elevated' : 'muted'} className="p-6 mb-6">
           <div className="flex items-center justify-between mb-3">
-            <p className="text-[11px] font-semibold text-[var(--text-tertiary)] uppercase tracking-wider">{L('생성된 링크', 'Generated link')}</p>
+            <p className="text-[12.5px] font-semibold text-[var(--text-tertiary)] uppercase tracking-wider">{L('생성된 링크', 'Generated link')}</p>
             {isReady && (
               <button
                 type="button"
@@ -307,7 +307,7 @@ export default function UtmBuilderPage() {
         {/* ── History ── */}
         {history.length > 0 && (
           <Card className="p-6 mb-6">
-            <p className="text-[11px] font-semibold text-[var(--text-tertiary)] uppercase tracking-wider mb-3">{L('최근 저장한 링크', 'Recently saved links')}</p>
+            <p className="text-[12.5px] font-semibold text-[var(--text-tertiary)] uppercase tracking-wider mb-3">{L('최근 저장한 링크', 'Recently saved links')}</p>
             <div className="flex flex-col gap-2">
               {history.map(h => (
                 <div
@@ -316,7 +316,7 @@ export default function UtmBuilderPage() {
                 >
                   <div className="flex-1 min-w-0">
                     <p className="text-[12px] font-medium text-[var(--text-primary)] truncate">{h.label}</p>
-                    <p className="text-[11px] text-[var(--text-tertiary)] truncate font-mono">{h.url}</p>
+                    <p className="text-[12.5px] text-[var(--text-tertiary)] truncate font-mono">{h.url}</p>
                   </div>
                   <button
                     type="button"
@@ -346,7 +346,7 @@ export default function UtmBuilderPage() {
 
         {/* ── Helper ── */}
         <Card variant="muted" className="p-5">
-          <p className="text-[11px] font-semibold text-[var(--text-tertiary)] uppercase tracking-wider mb-2">{L('힌트', 'Guide')}</p>
+          <p className="text-[12.5px] font-semibold text-[var(--text-tertiary)] uppercase tracking-wider mb-2">{L('힌트', 'Guide')}</p>
           <ul className="text-[12px] text-[var(--text-secondary)] leading-[1.7] list-disc pl-4 space-y-1">
             <li>{L('Source: 유입 플랫폼 (kakao, threads, linkedin 등)', 'Source: the referring platform (kakao, threads, linkedin, etc.)')}</li>
             <li>{L('Medium: 링크의 형태 (chat, social, community 등)', 'Medium: the channel format (chat, social, community, etc.)')}</li>
@@ -355,7 +355,7 @@ export default function UtmBuilderPage() {
           </ul>
         </Card>
 
-        <p className="text-[11px] text-[var(--text-tertiary)] text-center mt-8">
+        <p className="text-[12.5px] text-[var(--text-tertiary)] text-center mt-8">
           {L('생성된 링크는 공개 URL이며, UTM 값은 추적용 라벨로만 사용됩니다.', 'Generated links are public URLs. UTM values are tracking labels only.')}
         </p>
       </div>

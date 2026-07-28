@@ -84,7 +84,7 @@ export function AttributedSection({ section, index }: {
         {hasUnreviewed && (
           <span
             title={L('이 부분에 기여한 팀원 보고를 아직 직접 확인하지 않았어요. 위 "열어보기"에서 반영하거나 제외할 수 있어요.', "You haven't reviewed the AI reports behind this section yet — open the reports above to apply or exclude them.")}
-            className="shrink-0 text-[9px] font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)] border border-[var(--border)] rounded-full px-1.5 py-0.5"
+            className="shrink-0 text-[12.5px] font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)] border border-[var(--border)] rounded-full px-1.5 py-0.5"
           >
             {L('검토 전', 'unreviewed')}
           </span>
@@ -94,7 +94,7 @@ export function AttributedSection({ section, index }: {
             {contributors.map(w => (
               <div
                 key={w.id}
-                className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] border-2 border-[var(--surface)]"
+                className="w-5 h-5 rounded-full flex items-center justify-center text-[12px] border-2 border-[var(--surface)]"
                 style={{ backgroundColor: (w.persona?.color || 'var(--accent)') + '25', color: w.persona?.color }}
                 title={personaName(w.persona, locale)}
               >
@@ -112,7 +112,7 @@ export function AttributedSection({ section, index }: {
       )}
 
       {contributors.length > 0 && (
-        <p className="mt-2 text-[10px] text-[var(--text-tertiary)] flex items-center gap-1.5">
+        <p className="mt-2 text-[12px] text-[var(--text-tertiary)] flex items-center gap-1.5">
           <span className="opacity-60">{L('기여', 'By')}</span>
           <span className="truncate">
             {contributors.map(w => personaName(w.persona, locale)).filter(Boolean).join(' · ')}

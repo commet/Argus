@@ -117,7 +117,7 @@ export function TeamDeployBanner({
               {displayName}
             </span>
             {w.added_manually && (
-              <span className="inline-flex items-center gap-0.5 text-[9px] font-bold uppercase tracking-[0.1em] text-[var(--accent)] bg-[var(--accent)]/[0.08] border border-[var(--accent)]/20 px-1.5 py-0.5 rounded-full">
+              <span className="inline-flex items-center gap-0.5 text-[12.5px] font-bold uppercase tracking-[0.1em] text-[var(--accent)] bg-[var(--accent)]/[0.08] border border-[var(--accent)]/20 px-1.5 py-0.5 rounded-full">
                 {L('직접 추가', 'Added')}
               </span>
             )}
@@ -128,7 +128,7 @@ export function TeamDeployBanner({
             || ((w.agent_type || 'ai') === 'ai' && w.persona?.expertise)
             || ((w.agent_type || 'ai') === 'ai' && w.agent_id)
           ) && (
-            <div className="flex items-center gap-x-1.5 text-[11px] text-[var(--text-tertiary)] mt-0.5 leading-snug">
+            <div className="flex items-center gap-x-1.5 text-[12.5px] text-[var(--text-tertiary)] mt-0.5 leading-snug">
               {roleText && <span className="truncate">{roleText}</span>}
               {(w.agent_type || 'ai') === 'ai' && w.persona?.expertise && roleText && (
                 <span className="text-[var(--text-tertiary)]/60">·</span>
@@ -160,14 +160,14 @@ export function TeamDeployBanner({
               (or "직접 지정" after a manual swap). The richest part of the
               engine, finally shown to the captain. AI workers only. */}
           {isAI && w.assignment_reason && (
-            <div className="flex items-start gap-1 text-[11px] text-[var(--text-tertiary)] mt-1 leading-snug">
+            <div className="flex items-start gap-1 text-[12.5px] text-[var(--text-tertiary)] mt-1 leading-snug">
               <Compass size={10} className="shrink-0 mt-[2px] text-[var(--accent)]/55" />
               <span className="min-w-0">{w.assignment_reason}</span>
             </div>
           )}
           {/* Scope preview — neutral tone, no color pills */}
           {(w.ai_scope || w.self_scope) && (
-            <div className="mt-1.5 space-y-0.5 text-[11px] leading-[1.55]">
+            <div className="mt-1.5 space-y-0.5 text-[12.5px] leading-[1.55]">
               {w.ai_scope && (
                 <div className="flex gap-1.5">
                   <span className="text-[var(--text-tertiary)] font-medium shrink-0 min-w-[1.5rem]">AI</span>
@@ -188,7 +188,7 @@ export function TeamDeployBanner({
               <select
                 value={w.contact?.channel || 'email'}
                 onChange={(e) => onUpdateWorker(w.id, { contact: { channel: e.target.value as 'email' | 'slack', name: w.contact?.name || '', address: w.contact?.address || '' } })}
-                className="text-[11px] px-2 py-1 rounded-lg border border-[var(--border-subtle)] bg-[var(--surface)] cursor-pointer"
+                className="text-[12.5px] px-2 py-1 rounded-lg border border-[var(--border-subtle)] bg-[var(--surface)] cursor-pointer"
                 onClick={(e) => e.stopPropagation()}>
                 <option value="email">Email</option>
                 <option value="slack">Slack</option>
@@ -198,7 +198,7 @@ export function TeamDeployBanner({
                 value={w.contact?.address || ''}
                 onChange={(e) => onUpdateWorker(w.id, { contact: { channel: w.contact?.channel || 'email', name: w.contact?.name || '', address: e.target.value } })}
                 placeholder={w.contact?.channel === 'slack' ? 'Slack User ID' : 'email@example.com'}
-                className="flex-1 text-[11px] px-2.5 py-1 rounded-lg border border-[var(--border-subtle)] bg-[var(--surface)] placeholder:text-[var(--text-tertiary)] focus:outline-none focus:border-[var(--accent)]/30"
+                className="flex-1 text-[12.5px] px-2.5 py-1 rounded-lg border border-[var(--border-subtle)] bg-[var(--surface)] placeholder:text-[var(--text-tertiary)] focus:outline-none focus:border-[var(--accent)]/30"
                 onClick={(e) => e.stopPropagation()}
               />
             </div>
@@ -245,7 +245,7 @@ export function TeamDeployBanner({
           the actions themselves. */}
       <div className="flex items-start justify-between mb-4 gap-3">
         <div className="min-w-0">
-          <div className="text-[10px] font-bold text-[var(--accent)] uppercase tracking-[0.14em] mb-1">
+          <div className="text-[12px] font-bold text-[var(--accent)] uppercase tracking-[0.14em] mb-1">
             {L('투입할 팀', 'Your team')}
           </div>
           <p className="text-[14px] text-[var(--text-secondary)]">
@@ -262,7 +262,7 @@ export function TeamDeployBanner({
             type="button"
             onClick={() => setAdjusting((v) => !v)}
             aria-pressed={adjusting}
-            className={`shrink-0 inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-medium border transition-colors cursor-pointer ${
+            className={`shrink-0 inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[12.5px] font-medium border transition-colors cursor-pointer ${
               adjusting
                 ? 'border-[var(--accent)]/40 text-[var(--accent)] bg-[var(--accent)]/[0.06]'
                 : 'border-[var(--border-subtle)] text-[var(--text-secondary)] hover:border-[var(--text-secondary)]/40 hover:bg-[var(--bg)]'
@@ -304,7 +304,7 @@ export function TeamDeployBanner({
               {/* Task heading + add button */}
               <div className="flex items-start justify-between gap-3 mb-2.5">
                 <div className="flex-1 min-w-0">
-                  <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--text-tertiary)] mb-1 flex items-center gap-1.5 flex-wrap">
+                  <div className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[var(--text-tertiary)] mb-1 flex items-center gap-1.5 flex-wrap">
                     <span>{L(`Task ${gi + 1}`, `Task ${gi + 1}`)}</span>
                     {groupSize > 1 && (
                       <span className="text-[var(--accent)] normal-case tracking-normal">
@@ -361,7 +361,7 @@ export function TeamDeployBanner({
                   <button
                     onClick={() => canAdd && onOpenPool(g.groupId)}
                     disabled={!canAdd}
-                    className={`shrink-0 inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold transition-all ${
+                    className={`shrink-0 inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[12.5px] font-semibold transition-all ${
                       canAdd
                         ? 'text-[var(--accent)] bg-[var(--accent)]/[0.06] hover:bg-[var(--accent)]/[0.12] border border-[var(--accent)]/25 cursor-pointer'
                         : 'text-[var(--text-tertiary)] bg-[var(--bg)] border border-[var(--border-subtle)] cursor-not-allowed opacity-60'
@@ -392,7 +392,7 @@ export function TeamDeployBanner({
                 ];
                 return (
                   <div className="mt-3 pt-2.5 border-t border-[var(--border-subtle)]/40 flex items-center gap-2 flex-wrap">
-                    <span className="text-[10px] text-[var(--text-tertiary)] shrink-0">{L('누가 맡을까요?', 'Who handles this?')}</span>
+                    <span className="text-[12px] text-[var(--text-tertiary)] shrink-0">{L('누가 맡을까요?', 'Who handles this?')}</span>
                     <div className="inline-flex rounded-lg border border-[var(--border-subtle)] overflow-hidden">
                       {opts.map(o => {
                         const active = seedTrack === o.key;
@@ -405,7 +405,7 @@ export function TeamDeployBanner({
                             onClick={() => { if (!active && !blocked) onSetGroupTrack(g.groupId, o.key); }}
                             disabled={active || blocked}
                             title={blocked ? L('여러 명일 땐 한 명만 남기고 바꿔주세요', 'Reduce to one member first') : undefined}
-                            className={`inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium transition-colors ${
+                            className={`inline-flex items-center gap-1 px-2.5 py-1 text-[12.5px] font-medium transition-colors ${
                               active
                                 ? 'bg-[var(--accent)]/[0.12] text-[var(--accent)] cursor-default'
                                 : blocked
@@ -445,7 +445,7 @@ export function TeamDeployBanner({
           >
             <Plus size={12} />
             {L('새 팀원 추가', 'Add a team member')}
-            <span className="text-[10px] text-[var(--text-tertiary)] font-normal">
+            <span className="text-[12px] text-[var(--text-tertiary)] font-normal">
               {everyGroupFull ? '' : L(' · 어울리는 task에 자동 배정', ' · auto-match to a task')}
             </span>
           </button>

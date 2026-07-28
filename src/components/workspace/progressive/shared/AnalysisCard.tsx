@@ -148,10 +148,10 @@ export function AnalysisCard({
             <span className="h-px w-7 bg-[var(--accent)]/60 transition-[width] duration-300 group-hover:w-9" />
             <span className="size-1 rounded-full bg-[var(--accent)]/75" />
           </div>
-          <div className={`text-[10px] font-bold text-[var(--accent)] ${locale === 'ko' ? 'tracking-[0.02em]' : 'uppercase tracking-[0.14em]'}`}>
+          <div className={`text-[12px] font-bold text-[var(--accent)] ${locale === 'ko' ? 'tracking-[0.02em]' : 'uppercase tracking-[0.14em]'}`}>
             {L('Argus가 찾은 진짜 질문', 'The real question Argus surfaced')}
           </div>
-          <p className="mt-1 text-[10.5px] text-[var(--text-tertiary)] leading-[1.5] tabular-nums">
+          <p className="mt-1 text-[12.5px] text-[var(--text-tertiary)] leading-[1.5] tabular-nums">
             {refinementStatus}
           </p>
         </div>
@@ -166,7 +166,7 @@ export function AnalysisCard({
             </p>
           )}
 
-          <div className="mt-3 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[11px] tabular-nums">
+          <div className="mt-3 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[12.5px] tabular-nums">
             {(stepCount > 0 || assumeCount > 0) && (
               <div className="flex items-center gap-2 text-[var(--text-tertiary)]">
                 {stepCount > 0 && <span>{L(`계획 ${stepCount}단계`, `${stepCount}-step plan`)}</span>}
@@ -210,10 +210,10 @@ export function AnalysisCard({
                 the new "voyage" framing without overcommitting. */}
             <div className="flex items-start justify-between gap-3 mb-1.5">
               <div>
-                <div className={`text-[10px] font-bold text-[var(--accent)] ${locale === 'ko' ? 'tracking-[0.02em]' : 'uppercase tracking-[0.15em]'}`}>
+                <div className={`text-[12px] font-bold text-[var(--accent)] ${locale === 'ko' ? 'tracking-[0.02em]' : 'uppercase tracking-[0.15em]'}`}>
                   {L('Argus가 찾은 진짜 질문', 'The real question Argus surfaced')}
                 </div>
-                <p className="mt-1 text-[10.5px] text-[var(--text-tertiary)] tabular-nums">
+                <p className="mt-1 text-[12.5px] text-[var(--text-tertiary)] tabular-nums">
                   {refinementStatus}
                 </p>
               </div>
@@ -221,7 +221,7 @@ export function AnalysisCard({
                 <button
                   type="button"
                   onClick={() => setCollapsed(true)}
-                  className="shrink-0 inline-flex items-center gap-0.5 text-[10px] text-[var(--text-tertiary)] hover:text-[var(--accent)] transition-colors -mt-0.5"
+                  className="shrink-0 inline-flex items-center gap-0.5 text-[12px] text-[var(--text-tertiary)] hover:text-[var(--accent)] transition-colors -mt-0.5"
                   aria-label={L('방향 요약으로 접기', 'Collapse to direction summary')}
                 >
                   <ChevronUp size={11} />
@@ -253,7 +253,7 @@ export function AnalysisCard({
                 <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
                   transition={{ duration: 0.4, ease: EASE }} className="overflow-hidden mb-6">
                   <div className="border-t border-[var(--border-subtle)] pt-4">
-                    <div className="text-[10px] font-bold text-[var(--accent)] uppercase tracking-[0.15em] mb-1.5">
+                    <div className="text-[12px] font-bold text-[var(--accent)] uppercase tracking-[0.15em] mb-1.5">
                       {L('핵심', 'Key Insight')}
                     </div>
                     <p className="text-[15px] md:text-[16px] text-[var(--text-primary)] leading-[1.6] font-semibold">
@@ -277,7 +277,7 @@ export function AnalysisCard({
                 <motion.div key={`removed-a-${i}`} initial={{ opacity: 0.5 }} animate={{ opacity: 0, height: 0 }}
                   transition={{ duration: 0.8, ease: EASE }}
                   className="flex items-start gap-2 text-[12px] text-red-300 line-through leading-relaxed overflow-hidden">
-                  <span className="text-red-300 text-[9px] font-bold shrink-0 mt-0.5">−</span>
+                  <span className="text-red-300 text-[12.5px] font-bold shrink-0 mt-0.5">−</span>
                   <span>{d.text}</span>
                 </motion.div>
               ))}
@@ -291,7 +291,7 @@ export function AnalysisCard({
                 {/* Callout header — neutral tone, no team avatars
                     (team belongs in worker panel, not inside this block) */}
                 <div className="flex items-center gap-2 px-4 pt-3.5 pb-2">
-                  <span className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-[0.15em]">
+                  <span className="text-[12px] font-bold text-[var(--text-secondary)] uppercase tracking-[0.15em]">
                     {L('확인할 가정', 'Assumptions to verify')}
                   </span>
                 </div>
@@ -304,7 +304,7 @@ export function AnalysisCard({
                       className={`flex items-baseline gap-3 py-2 transition-colors duration-1000 ${
                         i < activeAssumptions.length - 1 ? 'border-b border-[var(--border-subtle)]/40' : ''
                       } ${d.status === 'new' ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)]'}`}>
-                      <span className="text-[11px] font-semibold tabular-nums shrink-0 text-[var(--text-tertiary)]">
+                      <span className="text-[12.5px] font-semibold tabular-nums shrink-0 text-[var(--text-tertiary)]">
                         {i + 1}
                       </span>
                       <p className="text-[13px] leading-[1.65]">{renderText(d.text)}</p>
@@ -320,7 +320,7 @@ export function AnalysisCard({
                 <motion.div key={`removed-s-${i}`} initial={{ opacity: 0.5 }} animate={{ opacity: 0, height: 0 }}
                   transition={{ duration: 0.8, ease: EASE }}
                   className="flex items-start gap-2 text-[12px] text-red-300 line-through leading-relaxed overflow-hidden">
-                  <span className="text-red-300 font-mono text-[9px] shrink-0 mt-1">−</span>
+                  <span className="text-red-300 font-mono text-[12.5px] shrink-0 mt-1">−</span>
                   <span>{d.text}</span>
                 </motion.div>
               ))}
@@ -330,7 +330,7 @@ export function AnalysisCard({
               <div>
                 {/* Quiet section label so the numbered list reads as "the plan",
                     matching the card's existing eyebrow system (핵심 / 확인할 가정). */}
-                <div className={`text-[10px] font-bold text-[var(--text-tertiary)] mb-2 ${locale === 'ko' ? 'tracking-[0.02em]' : 'uppercase tracking-[0.15em]'}`}>
+                <div className={`text-[12px] font-bold text-[var(--text-tertiary)] mb-2 ${locale === 'ko' ? 'tracking-[0.02em]' : 'uppercase tracking-[0.15em]'}`}>
                   {L('단계', 'Steps')}
                 </div>
                 {activeSkeleton.map((d, i) => {
@@ -415,17 +415,17 @@ export function AnalysisCard({
                 <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} transition={{ duration: 0.5, ease: EASE }} className="overflow-hidden">
                   <div className="pt-4 mt-4 border-t border-[var(--border-subtle)]">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-[0.12em]">{L('실행 계획', 'Execution Plan')}</span>
+                      <span className="text-[12px] font-bold text-[var(--text-secondary)] uppercase tracking-[0.12em]">{L('실행 계획', 'Execution Plan')}</span>
                       {snapshot.execution_plan.steps.map((step, i) => {
                         const mark = step.who === 'ai' ? 'AI' : step.who === 'human' ? L('외부', 'Ext') : L('도구', 'Tool');
                         return (
-                          <span key={i} className="inline-flex items-baseline gap-1 text-[11px] px-2 py-0.5 rounded-full bg-[var(--bg)] border border-[var(--border-subtle)]/60">
-                            <span className="text-[var(--text-tertiary)] font-semibold text-[9px] tracking-wider">{mark}</span>
+                          <span key={i} className="inline-flex items-baseline gap-1 text-[12.5px] px-2 py-0.5 rounded-full bg-[var(--bg)] border border-[var(--border-subtle)]/60">
+                            <span className="text-[var(--text-tertiary)] font-semibold text-[12.5px] tracking-wider">{mark}</span>
                             <span className="text-[var(--text-secondary)]">{step.task}</span>
                           </span>
                         );
                       })}
-                      <span className="text-[10px] text-[var(--text-tertiary)] ml-auto">
+                      <span className="text-[12px] text-[var(--text-tertiary)] ml-auto">
                         <span className="hidden lg:inline">{L('우측 패널에서 확인 →', 'See right panel →')}</span>
                         <span className="lg:hidden">{L('↓ 하단 팀 탭에서 진행 중', '↓ In progress below')}</span>
                       </span>

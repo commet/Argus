@@ -137,7 +137,7 @@ export function FoundationSettlementModal({ project, onClose }: FoundationSettle
               <p className="text-[14px] font-semibold leading-6 text-[var(--text-primary)]">
                 {L('그때 무엇이 가장 중요했나요?', 'What mattered most to you then?')}
               </p>
-              <p className="mt-1 text-[11.5px] leading-5 text-[var(--text-tertiary)]">
+              <p className="mt-1 text-[13px] leading-5 text-[var(--text-tertiary)]">
                 {L('이 메모는 저장하지 않아요.', 'This note is not saved.')}
               </p>
             </div>
@@ -175,13 +175,13 @@ export function FoundationSettlementModal({ project, onClose }: FoundationSettle
             />
             {memoryDraft.trim() && (
               <div className="rounded-xl bg-[var(--bg)] px-3.5 py-3">
-                <p className="text-[10.5px] font-semibold text-[var(--text-tertiary)]">
+                <p className="text-[12.5px] font-semibold text-[var(--text-tertiary)]">
                   {L('방금 떠올린 것 · 저장되지 않음', 'What you recalled · not saved')}
                 </p>
                 <p className="mt-1.5 whitespace-pre-wrap text-[12.5px] leading-5 text-[var(--text-secondary)]">
                   {memoryDraft.trim()}
                 </p>
-                <label className="mt-2.5 flex cursor-pointer items-start gap-2 border-t border-[var(--border)] pt-2.5 text-[11.5px] leading-5 text-[var(--text-secondary)]">
+                <label className="mt-2.5 flex cursor-pointer items-start gap-2 border-t border-[var(--border)] pt-2.5 text-[13px] leading-5 text-[var(--text-secondary)]">
                   <input
                     type="checkbox"
                     checked={saveMemory}
@@ -283,7 +283,7 @@ function OriginalStatement({
 }) {
   return (
     <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4">
-      <p className="text-[11px] font-semibold tracking-[0.08em] text-[var(--text-tertiary)]">
+      <p className="text-[12.5px] font-semibold tracking-[0.08em] text-[var(--text-tertiary)]">
         {sealedOn ? (ko ? `${sealedOn}에 남긴 문장` : `Recorded ${sealedOn}`) : (ko ? '그때 남긴 문장' : 'What you recorded')}
       </p>
       <p className="mt-2 text-[15px] leading-7 text-[var(--text-primary)]" style={{ fontFamily: 'var(--font-voice, serif)' }}>
@@ -291,7 +291,7 @@ function OriginalStatement({
       </p>
       {current && current !== original && (
         <div className="mt-3 border-t border-[var(--border)] pt-3">
-          <p className="text-[10.5px] font-semibold tracking-[0.04em] text-[var(--text-tertiary)]">
+          <p className="text-[12.5px] font-semibold tracking-[0.04em] text-[var(--text-tertiary)]">
             {ko ? '이후에 고친 현재 문장' : 'Current wording after your revision'}
           </p>
           <p className="mt-1.5 text-[13px] leading-6 text-[var(--text-secondary)]">“{current}”</p>

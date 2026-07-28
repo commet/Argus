@@ -116,7 +116,7 @@ export function StepEntry({
           ))}
           <div className={`h-1 rounded-full transition-all ${isLastStep ? 'w-6 bg-[var(--accent)]/50' : 'w-3 bg-[var(--border)]'}`} />
         </div>
-        <span className="shrink-0 text-[11px] font-medium text-[var(--text-tertiary)] tabular-nums">
+        <span className="shrink-0 text-[12.5px] font-medium text-[var(--text-tertiary)] tabular-nums">
           {Math.min(currentStep + 1, steps.length + 1)} / {steps.length + 1}
         </span>
       </div>
@@ -130,7 +130,7 @@ export function StepEntry({
                 {currentEntryStep.question}
               </h3>
               {currentEntryStep.adaptive && (
-                <span className="text-[10px] text-[var(--accent)] bg-[var(--ai)] px-2 py-0.5 rounded-full font-medium animate-fade-in">
+                <span className="text-[12px] text-[var(--accent)] bg-[var(--ai)] px-2 py-0.5 rounded-full font-medium animate-fade-in">
                   {L('맞춤 질문', 'Tailored question')}
                 </span>
               )}
@@ -174,7 +174,7 @@ export function StepEntry({
                   <div>
                     <p className="text-[13px] font-semibold text-[var(--text-primary)]">{option.label}</p>
                     {option.description && (
-                      <p className="text-[10px] text-[var(--text-secondary)] mt-0.5">{option.description}</p>
+                      <p className="text-[12px] text-[var(--text-secondary)] mt-0.5">{option.description}</p>
                     )}
                   </div>
                 </button>
@@ -193,7 +193,7 @@ export function StepEntry({
                 return (
                   <span
                     key={step.key}
-                    className="px-2 py-0.5 rounded-full bg-[var(--ai)] text-[var(--ai-fg)] text-[10px] font-semibold"
+                    className="px-2 py-0.5 rounded-full bg-[var(--ai)] text-[var(--ai-fg)] text-[12px] font-semibold"
                   >
                     {opt?.emoji} {opt?.label}
                   </span>
@@ -218,14 +218,14 @@ export function StepEntry({
           {/* Selected context — compact inline pills + note */}
           {Object.keys(selections).length > 0 && (
             <div className="flex flex-wrap items-center gap-1.5">
-              <span className="text-[11px] text-[var(--text-tertiary)] font-medium mr-0.5">{L('자동 반영:', 'Applied:')}</span>
+              <span className="text-[12.5px] text-[var(--text-tertiary)] font-medium mr-0.5">{L('자동 반영:', 'Applied:')}</span>
               {steps.map((step) => {
                 const val = selections[step.key];
                 if (!val || step.locked) return null;
                 const opt = step.options.find((o) => o.value === val);
                 if (!opt) return null;
                 return (
-                  <span key={step.key} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[var(--ai)] text-[11px] text-[var(--ai-fg)] font-medium">
+                  <span key={step.key} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[var(--ai)] text-[12.5px] text-[var(--ai-fg)] font-medium">
                     {opt.emoji} {opt.label}
                   </span>
                 );
@@ -253,7 +253,7 @@ export function StepEntry({
 
           <div className="flex items-center justify-between">
             {!text.trim() && Object.keys(selections).length > 0 && (
-              <p className="text-[11px] text-[var(--text-tertiary)]">{L('위 선택만으로도 시작할 수 있습니다', 'The selections above are enough to start')}</p>
+              <p className="text-[12.5px] text-[var(--text-tertiary)]">{L('위 선택만으로도 시작할 수 있습니다', 'The selections above are enough to start')}</p>
             )}
             {(text.trim() || Object.keys(selections).length === 0) && <div />}
             <Button onClick={handleSubmit} disabled={(!text.trim() && Object.keys(selections).length === 0) || disabled}>
@@ -267,7 +267,7 @@ export function StepEntry({
       {!isLastStep && (
         <button
           onClick={() => setCurrentStep(steps.length)}
-          className="text-[11px] text-[var(--text-secondary)] hover:text-[var(--accent)] cursor-pointer transition-colors"
+          className="text-[12.5px] text-[var(--text-secondary)] hover:text-[var(--accent)] cursor-pointer transition-colors"
         >
           {L('질문 건너뛰고 바로 쓰기 →', 'Skip the questions →')}
         </button>

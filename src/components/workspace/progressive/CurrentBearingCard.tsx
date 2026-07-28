@@ -111,7 +111,7 @@ export function CurrentBearingCard({
               {L('결정 요약', 'Decision summary')}
             </span>
             {label && (
-              <span className="tabular-nums text-[10px] text-[var(--text-tertiary)]">
+              <span className="tabular-nums text-[12px] text-[var(--text-tertiary)]">
                 {label}
               </span>
             )}
@@ -120,12 +120,12 @@ export function CurrentBearingCard({
             <button
               onClick={copyBearing}
               aria-label={L('결정 요약 복사', 'Copy decision summary')}
-              className="inline-flex min-h-8 cursor-pointer items-center gap-1 px-1.5 text-[10.5px] font-medium text-[var(--text-tertiary)] transition-[color,scale] duration-150 hover:text-[var(--accent)] active:scale-[0.96]"
+              className="inline-flex min-h-8 cursor-pointer items-center gap-1 px-1.5 text-[12.5px] font-medium text-[var(--text-tertiary)] transition-[color,scale] duration-150 hover:text-[var(--accent)] active:scale-[0.96]"
             >
               {copied ? <Check size={11} className="text-[var(--success)]" /> : <Copy size={11} />}
               {copied ? L('복사됨', 'Copied') : L('복사', 'Copy')}
             </button>
-            <span className="rounded-full border border-[var(--border-subtle)] bg-[var(--bg)] px-2 py-0.5 text-[10px] font-semibold text-[var(--text-secondary)]">
+            <span className="rounded-full border border-[var(--border-subtle)] bg-[var(--bg)] px-2 py-0.5 text-[12px] font-semibold text-[var(--text-secondary)]">
               {L(status.ko, status.en)}
             </span>
           </div>
@@ -225,7 +225,7 @@ export function CurrentBearingCard({
         <div className="space-y-3 border-t border-[var(--border-subtle)] bg-[var(--bg)]/40 px-5 py-4 md:px-6">
           {reasons.length > 0 && (
             <div>
-              <p className="mb-1.5 text-[9px] font-bold uppercase tracking-[0.2em] text-[var(--text-tertiary)]">
+              <p className="mb-1.5 text-[12.5px] font-bold uppercase tracking-[0.2em] text-[var(--text-tertiary)]">
                 {L('이 방향을 택한 이유', 'Why this direction')}
               </p>
               <ul className="space-y-1">
@@ -240,7 +240,7 @@ export function CurrentBearingCard({
           )}
           {roads.length > 0 && (
             <div>
-              <p className="mb-1.5 flex items-center gap-1.5 text-[9px] font-bold uppercase tracking-[0.2em] text-[var(--text-tertiary)]">
+              <p className="mb-1.5 flex items-center gap-1.5 text-[12.5px] font-bold uppercase tracking-[0.2em] text-[var(--text-tertiary)]">
                 <GitFork size={11} className="text-[var(--text-tertiary)]" />
                 {L('보류한 선택지', 'Options set aside')}
               </p>
@@ -264,7 +264,7 @@ function Beat({ label, icon, tone, children }: { label: string; icon: ReactNode;
   return (
     <div className="flex gap-3 border-b border-[var(--border-subtle)] py-3 last:border-b-0">
       <div
-        className="flex w-[92px] shrink-0 items-center gap-1.5 pt-px text-[11.5px] font-semibold"
+        className="flex w-[92px] shrink-0 items-center gap-1.5 pt-px text-[13px] font-semibold"
         style={{ color: tone }}
       >
         {icon}

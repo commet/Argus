@@ -173,7 +173,7 @@ export function OutputSelector({ project }: OutputSelectorProps) {
             </div>
             <div className="min-w-0">
               <p className="text-[13px] font-semibold text-[var(--text-primary)] break-words">{format.label}</p>
-              <p className="text-[11px] text-[var(--text-secondary)] mt-0.5 break-words">{format.description}</p>
+              <p className="text-[12.5px] text-[var(--text-secondary)] mt-0.5 break-words">{format.description}</p>
             </div>
           </button>
         ))}
@@ -182,7 +182,7 @@ export function OutputSelector({ project }: OutputSelectorProps) {
       {/* The preserved formats — one quiet toggle, persisted in settings. */}
       <button
         onClick={() => updateSettings({ all_output_formats: !allFormatsOn })}
-        className="text-[11.5px] text-[var(--text-tertiary)] hover:text-[var(--accent)] transition-colors cursor-pointer"
+        className="text-[13px] text-[var(--text-tertiary)] hover:text-[var(--accent)] transition-colors cursor-pointer"
       >
         {allFormatsOn
           ? L('기본 형식만 보기', 'Show default format only')
@@ -217,7 +217,7 @@ export function OutputSelector({ project }: OutputSelectorProps) {
           {/* 08 P2-3: '항해일지' is reserved for the ship's-log rail — this legacy
               coda only looks back on ONE voyage, so its label says exactly that. */}
           {L('이 결정 돌아보기', 'Reflect on this decision')}
-          {codaSaved && <span className="text-[10px] text-[var(--success)] font-medium ml-1">{L('저장됨', 'Saved')}</span>}
+          {codaSaved && <span className="text-[12px] text-[var(--success)] font-medium ml-1">{L('저장됨', 'Saved')}</span>}
         </button>
         {codaOpen && (
           <div className="mt-4 space-y-4 animate-fade-in">

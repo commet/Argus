@@ -152,7 +152,7 @@ function TypingInput({ text, highlights, onDone, locale = 'ko' }: {
       onKeyDown={isTyping ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); skip(); } } : undefined}
       aria-label={isTyping ? (locale === 'ko' ? '클릭해서 건너뛰기' : 'Click to skip') : undefined}
       className={`relative flex items-start gap-2.5 px-1 py-1 w-full ${isTyping ? 'cursor-pointer group' : ''}`}>
-      <span className="shrink-0 mt-[3px] text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--text-tertiary)]">
+      <span className="shrink-0 mt-[3px] text-[12px] font-bold uppercase tracking-[0.14em] text-[var(--text-tertiary)]">
         {locale === 'ko' ? '나' : 'Me'}
       </span>
       <p className={`flex-1 text-[14px] leading-relaxed transition-colors ${isTyping ? 'text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]' : 'text-[var(--text-primary)]'}`}>
@@ -162,7 +162,7 @@ function TypingInput({ text, highlights, onDone, locale = 'ko' }: {
         {isTyping && <span className="inline-block w-[2px] h-[16px] bg-[var(--accent)] ml-0.5 align-middle animate-pulse" />}
       </p>
       {isTyping && (
-        <span className="shrink-0 self-center text-[10px] text-[var(--text-tertiary)] tracking-wide">
+        <span className="shrink-0 self-center text-[12px] text-[var(--text-tertiary)] tracking-wide">
           <span className="sm:hidden">{locale === 'ko' ? '탭해서 건너뛰기' : 'Tap to skip'}</span>
           <span className="hidden sm:inline">{locale === 'ko' ? '클릭해 건너뛰기' : 'Click to skip'}</span>
         </span>
@@ -192,11 +192,11 @@ function TeamEntrance({ scenario, onDone, locale = 'ko' }: { scenario: DemoScena
           className="flex items-center gap-3">
           <WorkerAvatar persona={p} size="sm" />
           <span className="text-[13px] font-medium text-[var(--text-primary)]">{p.name}</span>
-          <span className="text-[11px] text-[var(--text-tertiary)]">{p.role}</span>
+          <span className="text-[12.5px] text-[var(--text-tertiary)]">{p.role}</span>
         </motion.div>
       ))}
       <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.2, duration: 0.4 }}
-        className="text-[11px] text-[var(--text-tertiary)] pt-1">
+        className="text-[12.5px] text-[var(--text-tertiary)] pt-1">
         {locale === 'ko' ? 'AI 검토자들이 각자 다른 관점에서 검토를 시작해요.' : 'AI reviewers are starting from different perspectives.'}
       </motion.p>
     </motion.div>
@@ -240,7 +240,7 @@ function WorkerMiniBar({ scenario, visibleCount }: { scenario: DemoScenario; vis
         {scenario.workers.map((w, i) => (
           <div key={w.persona.id} className="flex items-center gap-1.5">
             <WorkerAvatar persona={w.persona} size="sm" pulse={i >= visibleCount} />
-            <span className={`text-[11px] transition-colors duration-300 ${i < visibleCount ? 'text-[var(--text-primary)] font-medium' : 'text-[var(--text-tertiary)]'}`}>
+            <span className={`text-[12.5px] transition-colors duration-300 ${i < visibleCount ? 'text-[var(--text-primary)] font-medium' : 'text-[var(--text-tertiary)]'}`}>
               {w.persona.name}
             </span>
             {i < visibleCount && <Check size={10} className="text-emerald-500" />}
@@ -264,9 +264,9 @@ function DemoWorkerReport({ worker }: { worker: DemoScenario['workers'][number] 
           <div className="flex items-center gap-2 mb-1">
             <WorkerAvatar persona={worker.persona} size="sm" />
             <span className="text-[13px] font-semibold text-[var(--text-primary)]">{worker.persona.name}</span>
-            <span className="text-[11px] text-[var(--text-tertiary)]">{worker.persona.role}</span>
+            <span className="text-[12.5px] text-[var(--text-tertiary)]">{worker.persona.role}</span>
           </div>
-          <p className="text-[11px] text-[var(--accent)] mb-2 pl-0.5">{worker.task}</p>
+          <p className="text-[12.5px] text-[var(--accent)] mb-2 pl-0.5">{worker.task}</p>
           {worker.completionNote && (
             <p className="text-[12px] text-[var(--text-secondary)] mb-2 italic pl-0.5">
               &ldquo;{worker.completionNote}&rdquo;
@@ -363,7 +363,7 @@ function AgentRow({ worker, status, expanded, onToggle, locale = 'ko' }: {
         <div className="flex-1 text-left min-w-0">
           <div className="flex items-center gap-1.5">
             <span className="text-[13px] font-semibold text-[var(--text-primary)] truncate">{worker.persona.name}</span>
-            <span className="text-[11px] text-[var(--text-tertiary)] truncate">{worker.persona.role}</span>
+            <span className="text-[12.5px] text-[var(--text-tertiary)] truncate">{worker.persona.role}</span>
           </div>
           {isWorking && (
             <div className="mt-0.5 h-[15px] relative overflow-hidden">
@@ -374,7 +374,7 @@ function AgentRow({ worker, status, expanded, onToggle, locale = 'ko' }: {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -6 }}
                   transition={{ duration: 0.35, ease: EASE }}
-                  className="text-[11px] truncate flex items-center gap-1.5 absolute inset-0"
+                  className="text-[12.5px] truncate flex items-center gap-1.5 absolute inset-0"
                   style={{ color: worker.persona.color }}
                 >
                   <span className="truncate">{tickers[tickerIdx]}</span>
@@ -384,16 +384,16 @@ function AgentRow({ worker, status, expanded, onToggle, locale = 'ko' }: {
             </div>
           )}
           {isDone && worker.completionNote && (
-            <p className="text-[11px] text-[var(--text-secondary)] mt-0.5 italic truncate">
+            <p className="text-[12.5px] text-[var(--text-secondary)] mt-0.5 italic truncate">
               &ldquo;{worker.completionNote}&rdquo;
             </p>
           )}
         </div>
-        {status === 'waiting' && <span className="text-[9px] text-[var(--text-tertiary)]/50 shrink-0 uppercase tracking-wider">{L('대기', 'standby')}</span>}
+        {status === 'waiting' && <span className="text-[12.5px] text-[var(--text-tertiary)]/50 shrink-0 uppercase tracking-wider">{L('대기', 'standby')}</span>}
         {isWorking && (
           <span className="inline-flex items-center gap-1.5 shrink-0 px-2 py-0.5 rounded-full bg-[var(--accent)]/12 text-[var(--accent)]">
             <Loader2 size={10} className="animate-spin" />
-            <span className="text-[10px] font-semibold">{L('진행 중', 'live')}</span>
+            <span className="text-[12px] font-semibold">{L('진행 중', 'live')}</span>
           </span>
         )}
         {isDone && (
@@ -449,22 +449,22 @@ function DemoAgentSidebar({ scenario, workers, phase, visibleWorkers, locale = '
     <div className="p-4 space-y-3.5">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <span className="text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--text-secondary)]">{L('분석 팀', 'Analysis Team')}</span>
+        <span className="text-[12.5px] font-bold uppercase tracking-[0.12em] text-[var(--text-secondary)]">{L('분석 팀', 'Analysis Team')}</span>
         {phase === 'analysis' && (
           <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}
-            className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-[var(--bg)] text-[10px] text-[var(--text-tertiary)] font-medium">
+            className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-[var(--bg)] text-[12px] text-[var(--text-tertiary)] font-medium">
             <span className="w-1.5 h-1.5 rounded-full bg-[var(--text-tertiary)] animate-pulse" />
             {L('모이는 중', 'assembling')}
           </motion.span>
         )}
         {workingCount > 0 && phaseGte(phase, 'q1') && !phaseGte(phase, 'draft') && (
-          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-[var(--accent)]/10 text-[10px] text-[var(--accent)] font-semibold">
+          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-[var(--accent)]/10 text-[12px] text-[var(--accent)] font-semibold">
             <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent)] animate-pulse" />
             {L(`${workingCount}명 분석 중`, `${workingCount} analyzing`)}
           </span>
         )}
         {phaseGte(phase, 'draft') && (
-          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-100/60 dark:bg-emerald-900/20 text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold">
+          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-100/60 dark:bg-emerald-900/20 text-[12px] text-emerald-600 dark:text-emerald-400 font-semibold">
             <Check size={10} />
             {L('완료', 'Complete')}
           </span>
@@ -514,7 +514,7 @@ function DemoAgentSidebar({ scenario, workers, phase, visibleWorkers, locale = '
             </div>
             <div className="flex-1 min-w-0">
               <div className="text-[12px] font-semibold text-[var(--text-primary)]">{L('? — 세 번째 동료', '? — Third teammate')}</div>
-              <p className="text-[10px] text-[var(--accent)] leading-snug mt-0.5">
+              <p className="text-[12px] text-[var(--accent)] leading-snug mt-0.5">
                 {L('당신의 Q1 답에 따라 누가 합류할지 정해져요', 'Your answer to Q1 decides who joins')}
               </p>
             </div>
@@ -532,7 +532,7 @@ function DemoAgentSidebar({ scenario, workers, phase, visibleWorkers, locale = '
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ delay: 0.2 }}
-              className="flex items-center gap-2 px-3 pt-1 text-[10px] text-[var(--text-tertiary)]"
+              className="flex items-center gap-2 px-3 pt-1 text-[12px] text-[var(--text-tertiary)]"
             >
               <span className="w-1 h-1 rounded-full bg-[var(--text-tertiary)]/40" />
               <span>{L(`${pending}명 더 합류 예정`, `${pending} more joining`)}</span>
@@ -554,19 +554,19 @@ function DemoAgentSidebar({ scenario, workers, phase, visibleWorkers, locale = '
             <div className="rounded-xl border border-[var(--accent)]/15 bg-[var(--accent)]/[0.03] p-3.5 space-y-2">
               <div className="flex items-center gap-1.5">
                 <Sparkles size={11} className="text-[var(--accent)]" />
-                <span className="text-[10px] font-bold text-[var(--accent)] uppercase tracking-wider">{L('요약', 'Summary')}</span>
+                <span className="text-[12px] font-bold text-[var(--accent)] uppercase tracking-wider">{L('요약', 'Summary')}</span>
               </div>
               {workers.map((w) => (
                 <div key={w.persona.id} className="flex items-start gap-2">
                   <div className="w-4 h-4 rounded-full flex items-center justify-center text-[8px] shrink-0 mt-0.5"
                     style={{ backgroundColor: w.persona.color + '20' }}>{w.persona.emoji}</div>
-                  <p className="text-[11px] text-[var(--text-secondary)] leading-relaxed">
+                  <p className="text-[12.5px] text-[var(--text-secondary)] leading-relaxed">
                     {w.completionNote || w.task}
                   </p>
                 </div>
               ))}
               <div className="pt-1.5 border-t border-[var(--accent)]/10">
-                <p className="text-[10px] text-[var(--accent)]/70 flex items-center gap-1">
+                <p className="text-[12px] text-[var(--accent)]/70 flex items-center gap-1">
                   <ArrowRight size={8} />
                   {L('아래 기획안에 반영됨', 'Reflected in the draft below')}
                 </p>
@@ -616,7 +616,7 @@ function DemoAgentCompactBar({ workers, phase, visibleWorkers, locale = 'ko' }: 
                 animate={{ opacity: 1, scale: 1, x: 0 }}
                 exit={{ opacity: 0, scale: 0.6 }}
                 transition={{ duration: 0.35, ease: EASE }}
-                className={`w-6 h-6 rounded-full flex items-center justify-center text-[9px] border-2 border-[var(--surface)] ${
+                className={`w-6 h-6 rounded-full flex items-center justify-center text-[12.5px] border-2 border-[var(--surface)] ${
                   isWorking ? 'animate-pulse ring-1 ring-[var(--accent)]/30' : ''
                 }`}
                 style={{ backgroundColor: w.persona.color + '20' }}
@@ -627,7 +627,7 @@ function DemoAgentCompactBar({ workers, phase, visibleWorkers, locale = 'ko' }: 
           })}
         </AnimatePresence>
       </div>
-      <span className="text-[10px] text-[var(--text-secondary)] flex-1 inline-flex items-center gap-1.5">
+      <span className="text-[12px] text-[var(--text-secondary)] flex-1 inline-flex items-center gap-1.5">
         {allDone ? (locale === 'ko' ? '분석 완료' : 'Analysis done') : <>{locale === 'ko' ? `${workingCount}명 분석 중` : `${workingCount} analyzing`} <TypingDots /></>}
       </span>
       {workingCount > 0 && !allDone && (
@@ -652,7 +652,7 @@ function DemoDraftCard({ draft, locale }: { draft: DemoScenario['draft']; locale
         <div className="rounded-[calc(1rem-1px)] bg-[var(--surface)]">
           <div className="h-[2px]" style={{ background: 'var(--gradient-gold)' }} />
           <div className="p-5 md:p-8 space-y-5">
-            <span className="text-[9px] font-bold text-[var(--accent)] uppercase tracking-[0.2em] bg-[var(--accent)]/8 px-3 py-1 rounded-full">{L('초안', 'Draft')}</span>
+            <span className="text-[12.5px] font-bold text-[var(--accent)] uppercase tracking-[0.2em] bg-[var(--accent)]/8 px-3 py-1 rounded-full">{L('초안', 'Draft')}</span>
             <h2 className="text-[20px] md:text-[24px] font-bold text-[var(--text-primary)] leading-tight">{draft.title}</h2>
             <blockquote className="rounded-lg bg-[var(--accent)]/[0.04] px-4 py-3 text-[14px] text-[var(--text-secondary)] italic leading-relaxed">
               {renderInline(draft.executive_summary)}
@@ -719,7 +719,7 @@ function DemoDraftCardV2({
                 {q1Answer && (
                   <div className="flex items-start gap-2">
                     <Sparkles size={12} className="text-[var(--accent)] shrink-0 mt-0.5" />
-                    <div className="text-[11px] text-[var(--text-secondary)] leading-relaxed flex-1">
+                    <div className="text-[12.5px] text-[var(--text-secondary)] leading-relaxed flex-1">
                       <span className="font-semibold text-[var(--accent)] mr-1.5">Q1</span>
                       <span className="font-medium text-[var(--text-primary)]">{q1Answer}</span>
                       {thirdWorker && (
@@ -739,7 +739,7 @@ function DemoDraftCardV2({
                 {q2Answer && (
                   <div className="flex items-start gap-2">
                     <Sparkles size={12} className="text-[var(--accent)] shrink-0 mt-0.5" />
-                    <div className="text-[11px] text-[var(--text-secondary)] leading-relaxed flex-1">
+                    <div className="text-[12.5px] text-[var(--text-secondary)] leading-relaxed flex-1">
                       <span className="font-semibold text-[var(--accent)] mr-1.5">Q2</span>
                       <span className="font-medium text-[var(--text-primary)]">{q2Answer}</span>
                       <span className="text-[var(--text-tertiary)] ml-1">
@@ -752,13 +752,13 @@ function DemoDraftCardV2({
             )}
 
             <div>
-              <span className="text-[9px] font-bold text-[var(--accent)] uppercase tracking-[0.2em] bg-[var(--accent)]/8 px-3 py-1 rounded-full inline-block mb-3">{L('초안', 'Draft')}</span>
+              <span className="text-[12.5px] font-bold text-[var(--accent)] uppercase tracking-[0.2em] bg-[var(--accent)]/8 px-3 py-1 rounded-full inline-block mb-3">{L('초안', 'Draft')}</span>
               <h2 className="text-[20px] md:text-[24px] font-bold text-[var(--text-primary)] leading-tight">{draft.title}</h2>
             </div>
 
             {/* 💡 결재 한 줄 */}
             <div className="rounded-xl bg-[var(--accent)]/[0.05] border border-[var(--accent)]/15 p-4">
-              <p className="text-[10px] font-bold text-[var(--accent)] uppercase tracking-wider mb-1.5">
+              <p className="text-[12px] font-bold text-[var(--accent)] uppercase tracking-wider mb-1.5">
                 💡 {L('결재 한 줄', 'Decision line')}
               </p>
               <p className="text-[15px] md:text-[16px] text-[var(--text-primary)] leading-[1.55] font-medium">
@@ -768,7 +768,7 @@ function DemoDraftCardV2({
 
             {/* 팀이 만든 한 줄들 */}
             <div>
-              <h3 className="text-[11px] font-bold text-[var(--text-tertiary)] uppercase tracking-wider mb-3.5">
+              <h3 className="text-[12.5px] font-bold text-[var(--text-tertiary)] uppercase tracking-wider mb-3.5">
                 {L('팀이 만든 한 줄들', 'What the team built')}
               </h3>
               <div className="space-y-4">
@@ -818,8 +818,8 @@ function DemoDraftCardV2({
                         <span className="text-[13px] font-semibold text-[var(--text-primary)]">
                           {thirdWorker.persona.name}
                         </span>
-                        <span className="text-[11px] text-[var(--text-tertiary)]">— {thirdWorker.task}</span>
-                        <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full bg-[var(--accent)]/10 text-[var(--accent)]">
+                        <span className="text-[12.5px] text-[var(--text-tertiary)]">— {thirdWorker.task}</span>
+                        <span className="text-[12.5px] font-semibold px-1.5 py-0.5 rounded-full bg-[var(--accent)]/10 text-[var(--accent)]">
                           {L('당신의 답으로 합류', 'joined by your choice')}
                         </span>
                       </div>
@@ -834,7 +834,7 @@ function DemoDraftCardV2({
 
             {/* ⚠ 가장 약한 가정 */}
             <div className="rounded-xl border border-amber-400/30 bg-amber-50/30 dark:bg-amber-950/10 p-4">
-              <p className="text-[10px] font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider mb-1.5">
+              <p className="text-[12px] font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider mb-1.5">
                 ⚠ {L('가장 약한 가정', 'Weakest assumption')} <span className="font-normal text-[var(--text-tertiary)] normal-case">({L('대표님이 먼저 물을 거예요', 'CEO will ask first')})</span>
               </p>
               <p className="text-[14px] md:text-[15px] text-[var(--text-primary)] leading-[1.55] font-medium">
@@ -847,13 +847,13 @@ function DemoDraftCardV2({
 
             {/* 📌 다음 3일 */}
             <div>
-              <p className="text-[10px] font-bold text-[var(--accent)]/80 uppercase tracking-wider mb-2.5">
+              <p className="text-[12px] font-bold text-[var(--accent)]/80 uppercase tracking-wider mb-2.5">
                 📌 {L('다음 3일', 'Next 3 days')}
               </p>
               <ol className="space-y-2">
                 {finalNextThreeDays.map((step, i) => (
                   <li key={i} className="flex items-start gap-2.5 text-[13px] md:text-[14px] text-[var(--text-primary)] leading-[1.55]">
-                    <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-[var(--accent)]/12 text-[10px] font-bold text-[var(--accent)] shrink-0 mt-0.5">{i + 1}</span>
+                    <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-[var(--accent)]/12 text-[12px] font-bold text-[var(--accent)] shrink-0 mt-0.5">{i + 1}</span>
                     <span>{renderInline(step)}</span>
                   </li>
                 ))}
@@ -891,7 +891,7 @@ function DemoDMFeedback({ fb, onToggle, onDone, showDoneButton = true, readOnly 
               <UserCheck size={13} className="text-[var(--accent)]" />
             </div>
             <div className="min-w-0">
-              <p className="text-[10px] font-bold tracking-[0.12em] text-[var(--accent)]">
+              <p className="text-[12px] font-bold tracking-[0.12em] text-[var(--accent)]">
                 {L('AI가 맡은 검토 관점', 'AI-simulated review lens')}
               </p>
               <p className="truncate">
@@ -902,12 +902,12 @@ function DemoDMFeedback({ fb, onToggle, onDone, showDoneButton = true, readOnly 
             </div>
           </div>
 
-          <p className="-mt-3 text-[11.5px] leading-relaxed text-[var(--text-tertiary)]">
+          <p className="-mt-3 text-[13px] leading-relaxed text-[var(--text-tertiary)]">
             {L('실제 당사자의 의견이 아니라, 이 관점에서 먼저 물을 질문을 미리 점검한 결과예요.', 'This is not the real stakeholder’s opinion. It previews questions this perspective may raise.')}
           </p>
 
           <div className="rounded-xl bg-[var(--ai)]/45 px-4 py-3.5">
-            <p className="mb-1.5 text-[9.5px] font-bold uppercase tracking-[0.16em] text-[var(--accent)]">
+            <p className="mb-1.5 text-[13px] font-bold uppercase tracking-[0.16em] text-[var(--accent)]">
               {L('AI 예상 첫 반응', 'AI-predicted first reaction')}
             </p>
             <p className="text-[19px] font-medium leading-[1.55] tracking-[-0.005em] text-[var(--text-primary)] md:text-[21px]">
@@ -919,10 +919,10 @@ function DemoDMFeedback({ fb, onToggle, onDone, showDoneButton = true, readOnly 
           {fb.concerns.length > 0 && (
             <div className="pt-2">
               <div className="flex items-baseline justify-between mb-4">
-                <h4 className="text-[11px] font-bold text-[var(--text-tertiary)] uppercase tracking-[0.12em]">
+                <h4 className="text-[12.5px] font-bold text-[var(--text-tertiary)] uppercase tracking-[0.12em]">
                   {L('수정 요청', 'Revisions')} <span className="text-[var(--text-tertiary)]/60">({fb.concerns.length})</span>
                 </h4>
-                <span className="text-[11px] text-[var(--text-tertiary)]">
+                <span className="text-[12.5px] text-[var(--text-tertiary)]">
                   {readOnly && appliedCount === 0
                     ? L('검토 완료', 'Review complete')
                     : appliedCount > 0
@@ -972,7 +972,7 @@ function DemoDMFeedback({ fb, onToggle, onDone, showDoneButton = true, readOnly 
 
           {/* Approval condition — quiet closing line */}
           <div className="pt-2">
-            <p className="text-[10px] font-bold text-[var(--accent)]/80 uppercase tracking-[0.14em] mb-2">
+            <p className="text-[12px] font-bold text-[var(--accent)]/80 uppercase tracking-[0.14em] mb-2">
               {L('결정 조건', 'Decision condition')}
             </p>
             <p className="text-[14px] md:text-[15px] text-[var(--text-primary)] leading-[1.6]">
@@ -1155,14 +1155,14 @@ function DemoFinalCard({
         <div className="px-6 md:px-10 py-3.5 flex items-center justify-between border-b border-[var(--border-subtle)]">
           <div className="flex items-center gap-2">
             <div className="w-1.5 h-1.5 rounded-full" style={{ background: 'var(--accent)' }} />
-            <span className="text-[10px] font-bold text-[var(--text-tertiary)] uppercase tracking-[0.14em]">
+            <span className="text-[12px] font-bold text-[var(--text-tertiary)] uppercase tracking-[0.14em]">
               {L('완성된 기획안', 'Final Document')}
             </span>
           </div>
           <div className="flex items-center gap-1">
             {isOverridden && (
               <button onClick={handleReset}
-                className="inline-flex items-center gap-1 px-2 py-1.5 rounded-lg text-[11px] font-medium cursor-pointer text-[var(--text-tertiary)] hover:text-[var(--accent)] hover:bg-[var(--accent)]/[0.05] transition-all">
+                className="inline-flex items-center gap-1 px-2 py-1.5 rounded-lg text-[12.5px] font-medium cursor-pointer text-[var(--text-tertiary)] hover:text-[var(--accent)] hover:bg-[var(--accent)]/[0.05] transition-all">
                 ↺ {L('원래 답으로', 'Reset')}
               </button>
             )}
@@ -1184,7 +1184,7 @@ function DemoFinalCard({
         {/* Attribution chips — clickable to change answers */}
         {hasAttribution && (
           <div className="px-6 md:px-10 py-3 border-b border-[var(--border-subtle)] bg-[var(--accent)]/[0.025]">
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-[11px]">
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-[12.5px]">
               <Sparkles size={11} className="text-[var(--accent)] shrink-0" />
               <span className="text-[var(--text-tertiary)]">
                 {isOverridden
@@ -1335,7 +1335,7 @@ function DMMatchingTransition({ personaName, personaRole, locale, onDone }: {
                 <UserCheck size={28} className="text-[var(--accent)]" />
               </motion.div>
               <div>
-                <p className="text-[10px] font-bold text-[var(--accent)] uppercase tracking-[0.18em] mb-1.5">
+                <p className="text-[12px] font-bold text-[var(--accent)] uppercase tracking-[0.18em] mb-1.5">
                   {L('매칭 완료', 'Matched')}
                 </p>
                 <p className="text-[18px] font-bold text-[var(--text-primary)]">{personaName}</p>
@@ -1402,16 +1402,16 @@ function DemoSealCard({ scenario, decisionLine, onSealed, locale = 'ko' }: {
         <div className="p-6 md:p-9 space-y-6">
           <div className="flex items-center gap-2">
             <span className="text-[18px]">⚓</span>
-            <span className="text-[10px] font-bold text-[var(--accent)] uppercase tracking-[0.16em]">{L('확인 계획 — 결과를 확인할 질문과 날짜', 'Follow-up plan — a question and date to review')}</span>
+            <span className="text-[12px] font-bold text-[var(--accent)] uppercase tracking-[0.16em]">{L('확인 계획 — 결과를 확인할 질문과 날짜', 'Follow-up plan — a question and date to review')}</span>
           </div>
 
           <div>
-            <p className="text-[11px] font-bold text-[var(--text-tertiary)] uppercase tracking-wider mb-1.5">{L('기록할 판단', 'Decision to record')}</p>
+            <p className="text-[12.5px] font-bold text-[var(--text-tertiary)] uppercase tracking-wider mb-1.5">{L('기록할 판단', 'Decision to record')}</p>
             <p className="text-[16px] md:text-[17px] text-[var(--text-primary)] font-medium leading-[1.5]">&ldquo;{decisionLine}&rdquo;</p>
           </div>
 
           <div className="rounded-xl bg-[var(--accent)]/[0.05] border border-[var(--accent)]/15 p-4">
-            <p className="text-[10px] font-bold text-[var(--accent)] uppercase tracking-wider mb-1.5">{L('핵심 가정을 확인할 질문 · 확인일에 실제 결과와 비교', 'Question that tests the key assumption · compare with the outcome on the review date')}</p>
+            <p className="text-[12px] font-bold text-[var(--accent)] uppercase tracking-wider mb-1.5">{L('핵심 가정을 확인할 질문 · 확인일에 실제 결과와 비교', 'Question that tests the key assumption · compare with the outcome on the review date')}</p>
             <p className="text-[14px] md:text-[15px] text-[var(--text-primary)] leading-[1.55]">{scenario.seal.prediction}</p>
             <div className="mt-3 flex items-center gap-1.5 text-[12px] text-[var(--text-secondary)]">
               <span>📅</span>
@@ -1487,12 +1487,12 @@ function DemoSettleCard({ scenario, locale = 'ko' }: { scenario: DemoScenario; l
                 <div className="text-center">
                   {/* Argus는 '제가 먼저 물어볼게요'의 그 감시자 — 정산 순간에 직접 등장 */}
                   <div className="flex justify-center mb-3"><ArgusMascot moment="returning" size="md" alt={L('돌아온 Argus', 'Argus returned')} /></div>
-                  <p className="text-[10px] font-bold text-[var(--accent)] uppercase tracking-[0.18em] mb-2">{L('확인일 — 제가 돌아왔어요', 'Check-in day — I’m back')}</p>
+                  <p className="text-[12px] font-bold text-[var(--accent)] uppercase tracking-[0.18em] mb-2">{L('확인일 — 제가 돌아왔어요', 'Check-in day — I’m back')}</p>
                   <h2 className="text-[22px] md:text-[26px] font-bold text-[var(--text-primary)] tracking-tight">{L('그래서, 어떻게 됐어요?', 'So, how did it go?')}</h2>
                 </div>
 
                 <div className="rounded-xl bg-[var(--bg)] border border-[var(--border-subtle)] p-4">
-                  <p className="text-[10px] font-bold text-[var(--text-tertiary)] uppercase tracking-wider mb-1.5">{L('그때 건 예측', 'What you predicted')}</p>
+                  <p className="text-[12px] font-bold text-[var(--text-tertiary)] uppercase tracking-wider mb-1.5">{L('그때 건 예측', 'What you predicted')}</p>
                   <p className="text-[13px] text-[var(--text-secondary)] leading-[1.55]">{scenario.seal.prediction}</p>
                 </div>
 
@@ -1500,13 +1500,13 @@ function DemoSettleCard({ scenario, locale = 'ko' }: { scenario: DemoScenario; l
                   className={`rounded-xl border p-4 ${v.box}`}>
                   <div className="flex items-center gap-2 mb-2">
                     <span className={`text-[14px] font-bold ${v.cls}`}>{L(v.ko, v.en)}</span>
-                    <span className="text-[11px] text-[var(--text-tertiary)]">— {L('현실이 보여준 것', 'what reality showed')}</span>
+                    <span className="text-[12.5px] text-[var(--text-tertiary)]">— {L('현실이 보여준 것', 'what reality showed')}</span>
                   </div>
                   <p className="text-[14px] md:text-[15px] text-[var(--text-primary)] leading-[1.6]">{scenario.settle.happened}</p>
                 </motion.div>
 
                 <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6, duration: 0.5, ease: EASE }}>
-                  <p className="text-[10px] font-bold text-[var(--accent)]/80 uppercase tracking-wider mb-1.5">💡 {L('그래서 배운 것', 'What you learned')}</p>
+                  <p className="text-[12px] font-bold text-[var(--accent)]/80 uppercase tracking-wider mb-1.5">💡 {L('그래서 배운 것', 'What you learned')}</p>
                   <p className="text-[15px] md:text-[16px] text-[var(--text-primary)] font-medium leading-[1.55]">{scenario.settle.learning}</p>
                 </motion.div>
 
@@ -1798,7 +1798,7 @@ export function InteractiveDemo({ scenario, locale = 'ko', onStartReal, onBack }
         <button onClick={onBack} className="min-h-[44px] px-3 -ml-3 text-[12px] text-[var(--text-tertiary)] hover:text-[var(--accent)] cursor-pointer transition-colors">
           &larr; {L('돌아가기', 'Back')}
         </button>
-        <div className="flex items-center gap-2 text-[11px] text-[var(--text-tertiary)]">
+        <div className="flex items-center gap-2 text-[12.5px] text-[var(--text-tertiary)]">
           <span className="relative h-7 w-9 shrink-0 overflow-hidden rounded border border-[var(--border-subtle)] bg-[var(--bg)]" aria-hidden="true">
             <Image
               src={DEMO_SCENARIO_ART[scenario.id]}
@@ -1952,7 +1952,7 @@ export function InteractiveDemo({ scenario, locale = 'ko', onStartReal, onBack }
                 {/* Page divider */}
                 <div className="flex items-center gap-4 py-4 mb-2">
                   <div className="flex-1 h-px bg-gradient-to-r from-transparent via-[var(--accent)]/20 to-transparent" />
-                  <span className="text-[10px] font-bold text-[var(--accent)] uppercase tracking-widest">{L('기록 전 점검', 'Before saving')}</span>
+                  <span className="text-[12px] font-bold text-[var(--accent)] uppercase tracking-widest">{L('기록 전 점검', 'Before saving')}</span>
                   <div className="flex-1 h-px bg-gradient-to-r from-transparent via-[var(--accent)]/20 to-transparent" />
                 </div>
 
@@ -1993,13 +1993,13 @@ export function InteractiveDemo({ scenario, locale = 'ko', onStartReal, onBack }
                   </div>
                   <span className="text-[13px] font-medium text-[var(--text-primary)] flex-1 min-w-0">
                     {L('완성된 문서', 'The finished document')}
-                    <span className="text-[11px] text-[var(--text-tertiary)] ml-1.5">
+                    <span className="text-[12.5px] text-[var(--text-tertiary)] ml-1.5">
                       {concerns.filter(c => c.applied).length > 0
                         ? L(`· 피드백 ${concerns.filter(c => c.applied).length}건 반영`, `· ${concerns.filter(c => c.applied).length} applied`)
                         : L('· 초안 그대로', '· as-is')}
                     </span>
                   </span>
-                  <span className="text-[11px] text-[var(--text-tertiary)] group-open:hidden shrink-0">{L('펼쳐 보기', 'Expand')}</span>
+                  <span className="text-[12.5px] text-[var(--text-tertiary)] group-open:hidden shrink-0">{L('펼쳐 보기', 'Expand')}</span>
                   <ChevronDown size={15} className="text-[var(--text-tertiary)] transition-transform duration-200 group-open:rotate-180 shrink-0" />
                 </summary>
                 <div className="border-t border-[var(--border-subtle)] p-3">

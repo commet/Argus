@@ -432,7 +432,7 @@ function LegacySettlementModal({
             verdicts. One quiet line so a first-timer knows to tap-confirm. Only
             renders on the retro path (draftVerdicts present). */}
         {draftVerdicts && Object.keys(draftVerdicts).length > 0 && (
-          <p className="text-[11.5px] text-[var(--text-tertiary)] leading-[1.5] -mt-1">
+          <p className="text-[13px] text-[var(--text-tertiary)] leading-[1.5] -mt-1">
             {L('점선으로 미리 짚어둔 건 AI가 읽어본 초안이에요 — 최종은 직접 눌러서 확정하세요.',
                'The dashed marks are the AI-read draft — you confirm the final call by tapping.')}
           </p>
@@ -466,7 +466,7 @@ function LegacySettlementModal({
                         user's own confirmed judgment. Quiet shade, no extra friction —
                         it's a pure read of the already-tracked `authored` field. */}
                     {p.authored === 'ai_surfaced' && (
-                      <span className="ml-1.5 inline-block align-middle text-[10px] font-semibold text-[var(--text-tertiary)] border border-[var(--border)] rounded px-1 py-px">
+                      <span className="ml-1.5 inline-block align-middle text-[12px] font-semibold text-[var(--text-tertiary)] border border-[var(--border)] rounded px-1 py-px">
                         {ko ? 'AI가 짚은 전제' : 'AI-surfaced'}
                       </span>
                     )}
@@ -516,7 +516,7 @@ function LegacySettlementModal({
                       className="overflow-hidden"
                     >
                       <div className="pl-[21px] mt-2">
-                        <p className="text-[11px] text-[var(--text-tertiary)] mb-1.5">
+                        <p className="text-[12.5px] text-[var(--text-tertiary)] mb-1.5">
                           {L('어쩌다 그렇게 됐어요? (선택)', 'What made it go your way? (optional)')}
                         </p>
                         <div className="flex flex-wrap gap-1.5">
@@ -528,7 +528,7 @@ function LegacySettlementModal({
                                 key={b.value}
                                 onClick={() => setBasis(p.id, b.value, on)}
                                 aria-pressed={on}
-                                className={`px-2 py-0.5 rounded-md text-[11.5px] font-medium border transition-colors cursor-pointer ${
+                                className={`px-2 py-0.5 rounded-md text-[13px] font-medium border transition-colors cursor-pointer ${
                                   on
                                     ? 'border-[var(--accent)] bg-[var(--accent)]/10 text-[var(--accent)]'
                                     : 'border-[var(--border)] text-[var(--text-tertiary)] hover:border-[var(--accent)]/40'
@@ -569,7 +569,7 @@ function LegacySettlementModal({
                       <Icon size={13} className="mt-0.5 shrink-0 text-[var(--text-tertiary)]" />
                       <p className="min-w-0 flex-1 text-[13px] leading-[1.5] text-[var(--text-primary)]">
                         {predicateQuestion(p, ko)}
-                        <span className="ml-1.5 inline-block rounded border border-[var(--border)] px-1 py-px align-middle text-[10px] font-semibold text-[var(--text-tertiary)]">
+                        <span className="ml-1.5 inline-block rounded border border-[var(--border)] px-1 py-px align-middle text-[12px] font-semibold text-[var(--text-tertiary)]">
                           {L('AI가 짚음', 'AI-surfaced')}
                         </span>
                       </p>
@@ -599,7 +599,7 @@ function LegacySettlementModal({
                   </div>
                 );
               })}
-              <p className="text-[11px] leading-[1.5] text-[var(--text-tertiary)]">
+              <p className="text-[12.5px] leading-[1.5] text-[var(--text-tertiary)]">
                 {L(
                   '이 항목은 판단 기록을 닫는 데 필요하지 않고, 당신의 예측으로 집계되지 않아요.',
                   'These do not block completion and are not counted as your predictions.',
@@ -687,7 +687,7 @@ function LegacySettlementModal({
                 >
                   <ClosingAnchorMark size={58} className="shrink-0 shadow-[0_8px_22px_rgba(6,38,36,0.22)]" />
                   <div>
-                    <p className="text-[10px] font-mono uppercase tracking-[0.16em] text-[var(--text-tertiary)]">
+                    <p className="text-[12px] font-mono uppercase tracking-[0.16em] text-[var(--text-tertiary)]">
                       {L('현실 확인 완료', 'REALITY CHECK COMPLETE')}
                     </p>
                     <p className="mt-0.5 text-[15px] font-semibold text-[var(--success)]">
@@ -766,13 +766,13 @@ function LegacySettlementModal({
                 {!isRetro && contract.growth_note && (
                   <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-2.5">
                     <div className="flex items-center justify-between gap-2">
-                      <span className="text-[10px] font-semibold text-[var(--text-tertiary)] border border-[var(--border)] rounded px-1 py-px">
+                      <span className="text-[12px] font-semibold text-[var(--text-tertiary)] border border-[var(--border)] rounded px-1 py-px">
                         {L('AI가 비춘 한 줄', 'AI-surfaced')}
                       </span>
                       <button
                         type="button"
                         onClick={() => updateProject(project.id, { decision_contract: { ...contract, growth_note: undefined } })}
-                        className="text-[11px] text-[var(--text-tertiary)] hover:text-[var(--danger)] cursor-pointer transition-colors"
+                        className="text-[12.5px] text-[var(--text-tertiary)] hover:text-[var(--danger)] cursor-pointer transition-colors"
                       >
                         {L('지우기', 'Dismiss')}
                       </button>
@@ -845,7 +845,7 @@ function LegacySettlementModal({
                     </button>
                   ))}
                   {resolvedCount > 0 && (
-                    <span className="ml-auto text-[11px] text-[var(--text-tertiary)] tabular-nums">
+                    <span className="ml-auto text-[12.5px] text-[var(--text-tertiary)] tabular-nums">
                       {L(`${resolvedCount}/${requiredPredicates.length} 확인했어요`, `${resolvedCount}/${requiredPredicates.length} checked`)}
                     </span>
                   )}
@@ -854,7 +854,7 @@ function LegacySettlementModal({
                   <button
                     type="button"
                     onClick={closeAsUnknown}
-                    className="mt-2.5 text-[11.5px] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] underline underline-offset-2 cursor-pointer transition-colors"
+                    className="mt-2.5 text-[13px] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] underline underline-offset-2 cursor-pointer transition-colors"
                   >
                     {L('이 결정은 결과를 알 수 없는 걸로 닫아둘까요?', 'Close this one as unknowable?')}
                   </button>

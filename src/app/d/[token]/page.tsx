@@ -110,7 +110,7 @@ export default async function SharedDeliverablePage({ params }: { params: Promis
         <header className="flex items-center justify-between mb-8 pb-5 border-b border-[var(--border-subtle)]">
           <Link href={home} className="flex items-center gap-2 group">
             <span className="text-[15px] font-bold tracking-tight text-[var(--accent)]">Argus</span>
-            <span className="text-[11px] text-[var(--text-tertiary)] group-hover:text-[var(--text-secondary)] transition-colors">
+            <span className="text-[12.5px] text-[var(--text-tertiary)] group-hover:text-[var(--text-secondary)] transition-colors">
               {copy.record}
             </span>
           </Link>
@@ -157,7 +157,7 @@ function SharedReceipt({ title, content, locale }: { title: string; content: str
   return (
     <article className="rounded-lg border border-[var(--border)] bg-[var(--surface)] shadow-[0_1px_2px_rgba(0,0,0,0.05),0_12px_32px_rgba(0,0,0,0.08)] overflow-hidden">
       <div className="border-b border-[var(--border-subtle)] px-5 sm:px-7 py-5">
-        <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--text-tertiary)]">
+        <div className="text-[12px] font-bold uppercase tracking-[0.2em] text-[var(--text-tertiary)]">
           {SHARE_COPY[locale].receipt}
         </div>
         <h1 className="mt-1 text-[24px] sm:text-[30px] font-bold leading-tight text-[var(--text-primary)]">

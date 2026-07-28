@@ -513,11 +513,11 @@ export function SynthesizeStep({ onNavigate }: SynthesizeStepProps) {
                       dark mode. Distinguished by the source label, not by hue. */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     <div className="bg-[var(--bg)] border border-[var(--border-subtle)] rounded-lg p-3">
-                      <p className="text-[11px] font-bold text-[var(--text-secondary)] mb-1">{conflict.side_a.source}</p>
+                      <p className="text-[12.5px] font-bold text-[var(--text-secondary)] mb-1">{conflict.side_a.source}</p>
                       <p className="text-[13px] text-[var(--text-primary)]">{conflict.side_a.position}</p>
                     </div>
                     <div className="bg-[var(--bg)] border border-[var(--border-subtle)] rounded-lg p-3">
-                      <p className="text-[11px] font-bold text-[var(--text-secondary)] mb-1">{conflict.side_b.source}</p>
+                      <p className="text-[12.5px] font-bold text-[var(--text-secondary)] mb-1">{conflict.side_b.source}</p>
                       <p className="text-[13px] text-[var(--text-primary)]">{conflict.side_b.position}</p>
                     </div>
                   </div>

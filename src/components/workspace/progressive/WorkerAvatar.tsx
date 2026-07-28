@@ -16,8 +16,8 @@ export function WorkerAvatar({
   pulse?: boolean;
 }) {
   const dims = { sm: 'w-6 h-6', md: 'w-8 h-8', lg: 'w-10 h-10' };
-  const textSize = { sm: 'text-[10px]', md: 'text-[12px]', lg: 'text-[14px]' };
-  const iconSize = { sm: 'text-[7px]', md: 'text-[8px]', lg: 'text-[9px]' };
+  const textSize = { sm: 'text-[12px]', md: 'text-[12px]', lg: 'text-[14px]' };
+  const iconSize = { sm: 'text-[7px]', md: 'text-[8px]', lg: 'text-[12.5px]' };
 
   if (!persona) {
     return (
@@ -66,7 +66,7 @@ export function AvatarRow({ personas, maxShow = 5 }: { personas: (WorkerPersona 
         </div>
       ))}
       {overflow > 0 && (
-        <span className="ml-1 text-[10px] text-[var(--text-tertiary)]">+{overflow}</span>
+        <span className="ml-1 text-[12px] text-[var(--text-tertiary)]">+{overflow}</span>
       )}
     </div>
   );

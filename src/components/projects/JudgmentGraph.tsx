@@ -322,7 +322,7 @@ export function JudgmentGraph({
                     <DecisionTile size={node.size} completed={!node.decision!.live} title={decTitle} />
                     {showsLabel(node) && (
                       <span
-                        className="mt-1 max-w-[110px] text-center text-[10px] leading-tight"
+                        className="mt-1 max-w-[110px] text-center text-[12px] leading-tight"
                         style={{ color: '#f5f0e5b0' }}
                       >
                         {clip(label, 26)}
@@ -372,7 +372,7 @@ export function JudgmentGraph({
                       a click: this footing's number went baseline → today. */}
                   {node.hot && delta && (
                     <span
-                      className="mb-1 whitespace-nowrap rounded-full px-1.5 py-0.5 text-[9.5px] font-semibold tabular-nums"
+                      className="mb-1 whitespace-nowrap rounded-full px-1.5 py-0.5 text-[13px] font-semibold tabular-nums"
                       style={{ background: '#e39a561f', color: N.amber, border: '1px solid #e39a5640' }}
                     >
                       {delta}
@@ -381,7 +381,7 @@ export function JudgmentGraph({
                   <VoyageMarker state={node.hot ? 'adrift' : 'docked'} size={node.size} title={title} />
                   {showsLabel(node) && (
                     <span
-                      className="mt-1 max-w-[130px] text-center text-[10.5px] leading-tight"
+                      className="mt-1 max-w-[130px] text-center text-[12.5px] leading-tight"
                       style={{ color: isHub ? N.foam : '#f5f0e59a', fontWeight: isHub ? 600 : 400 }}
                     >
                       「{clip(label, isHub ? 40 : 22)}」
@@ -404,7 +404,7 @@ export function JudgmentGraph({
 
             {layout.overflow > 0 && (
               <span
-                className="absolute bottom-3 right-3 z-[4] rounded-full px-2.5 py-1 text-[11px]"
+                className="absolute bottom-3 right-3 z-[4] rounded-full px-2.5 py-1 text-[12.5px]"
                 style={{ background: '#f5f0e514', color: '#f5f0e5cc', border: '1px solid #f5f0e524' }}
               >
                 {L(`+${layout.overflow}개 전제 더`, `+${layout.overflow} more premises`)}
@@ -430,7 +430,7 @@ export function JudgmentGraph({
               const eta = etaLabel(focus.ground.recheck_due, now, ko);
               if (!last && !eta) return null;
               return (
-                <p className="text-[11px] tabular-nums" style={{ color: eta?.overdue ? undefined : 'var(--text-tertiary)' }}>
+                <p className="text-[12.5px] tabular-nums" style={{ color: eta?.overdue ? undefined : 'var(--text-tertiary)' }}>
                   {last && <span style={{ color: 'var(--text-tertiary)' }}>{L('마지막으로 ', 'last ')}{last}</span>}
                   {last && eta && <span style={{ color: 'var(--text-tertiary)' }}> · </span>}
                   {eta && <span style={{ color: eta.overdue ? 'var(--warning)' : 'var(--text-tertiary)', fontWeight: eta.overdue ? 600 : 400 }}>{eta.text}</span>}
@@ -438,7 +438,7 @@ export function JudgmentGraph({
               );
             })()}
             {focus.ground.record && (
-              <p className="text-[11px] leading-relaxed" style={{ color: 'var(--text-tertiary)' }}>
+              <p className="text-[12.5px] leading-relaxed" style={{ color: 'var(--text-tertiary)' }}>
                 {L(
                   `이 전제로 돌아와 답한 기록 ${focus.ground.record.revisited}건`,
                   `${focus.ground.record.revisited} record${focus.ground.record.revisited === 1 ? '' : 's'} revisited on this ground`,
@@ -449,7 +449,7 @@ export function JudgmentGraph({
         </div>
       ) : (
         <div className="mt-2 flex flex-col gap-1.5">
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px]" style={{ color: 'var(--text-secondary)' }}>
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[12.5px]" style={{ color: 'var(--text-secondary)' }}>
             <span className="inline-flex items-center gap-1.5">
               <span aria-hidden className="inline-block h-3 w-3 rounded-full" style={{ border: '1.5px solid var(--text-secondary)' }} />
               {L('동그라미 = 전제(딛고 선 자리)', 'circle = premise (the footing)')}
@@ -463,13 +463,13 @@ export function JudgmentGraph({
               {L('호박색 = 봉인 뒤 현실이 그만큼 움직임', 'amber = reality moved it since sealing')}
             </span>
           </div>
-          <p className="text-[11px] leading-relaxed" style={{ color: 'var(--text-tertiary)' }}>
+          <p className="text-[12.5px] leading-relaxed" style={{ color: 'var(--text-tertiary)' }}>
             {L(
               '결정 밑 작은 표: 웹 = 웹에서 올린 문서 · MCP·CLI = 터미널에서 온 것 · 미상 = 출처를 알 수 없음(아직 Claude Code↔Codex 구분은 없어요). 허브 밑 “다음 확인 D-N”은 그 전제를 다시 확인할 항해 ETA — 기한이 지나면 브라스색 “확인 기한 지남”으로 바뀝니다.',
               'The tag under a decision: web = uploaded on the web · MCP·CLI = came from a terminal · unknown = surface not recorded (Claude Code vs Codex isn’t distinguished yet). "next check in N days" under a hub is that premise’s re-check ETA — it turns brass ("check overdue") once the date passes.',
             )}
           </p>
-          <p className="text-[11px] leading-relaxed" style={{ color: 'var(--text-tertiary)' }}>
+          <p className="text-[12.5px] leading-relaxed" style={{ color: 'var(--text-tertiary)' }}>
             {L(
               '점에 마우스를 올리면 무엇과 연결됐는지 밝아지고, 전제를 누르면 그 위에 선 열린 내기가 열립니다. 색은 사실만 — 호박색도 “틀렸다”가 아니라 “여기 봐라”입니다.',
               'Hover any point to light what it connects to; click a premise to open the bets standing on it. Color is fact-only — amber says “look here,” never “you were wrong.”',
@@ -528,11 +528,11 @@ function FocusPlate({
           style={{ left: `${s.x}%`, top: `${s.y}%`, transform: 'translate(-50%,-50%)', width: 132 }}
         >
           <VoyageMarker state={s.state} size={22} title={s.label} />
-          <span className="mt-1 text-center text-[10px] leading-tight" style={{ color: '#f5f0e5cc' }}>
+          <span className="mt-1 text-center text-[12px] leading-tight" style={{ color: '#f5f0e5cc' }}>
             {clip(s.label, 30)}
           </span>
           {s.detail && (
-            <span className="text-[9px] tabular-nums" style={{ color: '#d8ad55c4' }}>
+            <span className="text-[12.5px] tabular-nums" style={{ color: '#d8ad55c4' }}>
               {s.detail}
             </span>
           )}
@@ -547,7 +547,7 @@ function FocusPlate({
         <span className="mt-1.5 text-center text-[12px] font-medium leading-tight" style={{ color: N.foam }}>
           「{clip(center.label, 42)}」
         </span>
-        <span className="mt-0.5 text-center text-[10px] tabular-nums" style={{ color: '#f5f0e599' }}>
+        <span className="mt-0.5 text-center text-[12px] tabular-nums" style={{ color: '#f5f0e599' }}>
           {L(`열린 내기 ${ground.live_bets.length}건`, `${ground.live_bets.length} open bets`)}
         </span>
       </div>
@@ -557,11 +557,11 @@ function FocusPlate({
           className="absolute left-3 top-3 z-[4] max-w-[60%] rounded-lg px-3 py-2"
           style={{ background: '#e39a5616', border: '1px solid #e39a5638' }}
         >
-          <p className="text-[11px] font-medium" style={{ color: N.amber }}>
+          <p className="text-[12.5px] font-medium" style={{ color: N.amber }}>
             {L('이 전제, 봉인 후 현실이 움직였어요', 'Reality moved this assumption since it was sealed')}
           </p>
           {driftLine && (
-            <p className="mt-0.5 text-[11px] tabular-nums" style={{ color: '#f5f0e5cc' }}>
+            <p className="mt-0.5 text-[12.5px] tabular-nums" style={{ color: '#f5f0e5cc' }}>
               {driftLine}
             </p>
           )}
@@ -570,7 +570,7 @@ function FocusPlate({
 
       {overflow > 0 && (
         <span
-          className="absolute bottom-3 right-3 z-[4] rounded-full px-2.5 py-1 text-[11px]"
+          className="absolute bottom-3 right-3 z-[4] rounded-full px-2.5 py-1 text-[12.5px]"
           style={{ background: '#f5f0e514', color: '#f5f0e5cc', border: '1px solid #f5f0e524' }}
         >
           {L(`+${overflow}건 더`, `+${overflow} more`)}

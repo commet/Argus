@@ -271,7 +271,7 @@ export default function SettingsPage() {
       <div>
         <h1 className="text-[22px] font-bold text-[var(--text-primary)]">{L('설정', 'Settings')}</h1>
         <p className="text-[13px] text-[var(--text-secondary)] mt-1">{L('AI 엔진 · 연동 · 프로필 · 환경 설정', 'AI engine · integrations · profile · preferences')}</p>
-        <p className="text-[11px] text-[var(--text-tertiary)] mt-1">
+        <p className="text-[12.5px] text-[var(--text-tertiary)] mt-1">
           {L('변경 사항은 이 브라우저에 자동 저장됩니다.', 'Changes save automatically in this browser.')}
         </p>
       </div>
@@ -321,7 +321,7 @@ export default function SettingsPage() {
         {(() => {
           const p = llmProviders.find((x) => x.value === (settings.llm_provider || 'anthropic'));
           return (
-            <p className="text-[11px] mt-2 leading-relaxed">
+            <p className="text-[12.5px] mt-2 leading-relaxed">
               {p?.model && <span className="font-semibold text-[var(--text-primary)]">{p.model} · </span>}
               <span className="text-[var(--text-tertiary)]">{p?.detail}</span>
             </p>
@@ -350,7 +350,7 @@ export default function SettingsPage() {
                 </button>
               ))}
             </div>
-            <p className="text-[11px] text-[var(--text-tertiary)] mt-1.5">
+            <p className="text-[12.5px] text-[var(--text-tertiary)] mt-1.5">
               {llmModes.find(m => m.value === settings.llm_mode)?.description}
             </p>
           </fieldset>
@@ -486,7 +486,7 @@ export default function SettingsPage() {
               {keyTest === 'testing' ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />}
               {L('실제 연결 확인', 'Test live connection')}
             </Button>
-            <p className={`text-[11.5px] ${
+            <p className={`text-[13px] ${
               keyTest === 'ok'
                 ? 'text-emerald-600'
                 : keyTest === 'error'
@@ -620,7 +620,7 @@ export default function SettingsPage() {
           <div className="flex items-center justify-between p-3 bg-[var(--bg)] rounded-lg gap-3">
             <div className="min-w-0">
               <p className="text-[13px] font-medium">{L('내 데이터 내보내기', 'Export my data')}</p>
-              <p className="text-[11px] text-[var(--text-secondary)]">
+              <p className="text-[12.5px] text-[var(--text-secondary)]">
                 {user
                   ? L('서버에 저장된 모든 데이터를 JSON 한 파일로', 'Every row stored on the server, as one JSON file')
                   : L('이 브라우저의 데이터를 JSON으로', 'This browser’s data, as JSON')}
@@ -634,7 +634,7 @@ export default function SettingsPage() {
             <div className="flex items-center justify-between p-3 bg-[var(--bg)] rounded-lg gap-3">
               <div className="min-w-0">
                 <p className="text-[13px] font-medium">{L('판단 연속성 아카이브', 'Judgment continuity archive')}</p>
-                <p className="text-[11px] text-[var(--text-secondary)]">
+                <p className="text-[12.5px] text-[var(--text-secondary)]">
                   {L('해시·스키마 검증과 복원 dry-run을 지원하는 ZIP', 'A hashed ZIP with schema checks and restore dry-run support')}
                 </p>
               </div>
@@ -647,7 +647,7 @@ export default function SettingsPage() {
           <div className="flex items-center justify-between p-3 bg-[var(--bg)] rounded-lg gap-3">
             <div className="min-w-0">
               <p className="text-[13px] font-medium">{L('백업 가져오기', 'Import backup')}</p>
-              <p className="text-[11px] text-[var(--text-secondary)]">
+              <p className="text-[12.5px] text-[var(--text-secondary)]">
                 {user
                   ? L('이 브라우저의 로컬 JSON만 가져옵니다. 서버 전체 JSON은 열람용입니다.', 'Imports this browser’s local JSON only. The full server JSON is for inspection.')
                   : L('내보낸 JSON 파일에서 복원', 'Restore from an exported JSON file')}
@@ -779,7 +779,7 @@ export default function SettingsPage() {
             </button>
           ))}
         </div>
-        <p className="text-[11px] text-[var(--text-tertiary)] mt-1.5">
+        <p className="text-[12.5px] text-[var(--text-tertiary)] mt-1.5">
           {L('일부 UI는 아직 한국어로만 나와요.', 'Some UI text is still Korean-only.')}
         </p>
         </fieldset>
@@ -809,7 +809,7 @@ export default function SettingsPage() {
             </button>
           ))}
         </div>
-        <p className="text-[11px] text-[var(--text-tertiary)] mt-1.5">
+        <p className="text-[12.5px] text-[var(--text-tertiary)] mt-1.5">
           {L('시스템은 기기 설정을 따라가요. 첫 방문(홈)은 라이트로 시작합니다.', 'System follows your device. The landing page starts in light.')}
         </p>
         </fieldset>
@@ -825,7 +825,7 @@ export default function SettingsPage() {
         <div className="flex items-center justify-between">
           <div>
             <p className="text-[13px] font-medium">{L('전환음', 'Transition Sound')}</p>
-            <p className="text-[11px] text-[var(--text-secondary)]">{L('단계 전환 시 잔잔한 알림음', 'A gentle tone on step transitions')}</p>
+            <p className="text-[12.5px] text-[var(--text-secondary)]">{L('단계 전환 시 잔잔한 알림음', 'A gentle tone on step transitions')}</p>
           </div>
           <button
             type="button"
@@ -869,7 +869,7 @@ export default function SettingsPage() {
             <div className="flex items-center justify-between pt-2 border-t border-[var(--border-subtle)]">
               <div>
                 <p className="text-[13px] font-medium">{L('잔잔한 배경음', 'Ambient sound')}</p>
-                <p className="text-[11px] text-[var(--text-secondary)]">{L('집중할 때 은은하게 재생되는 배경음이에요.', 'A quiet background sound for focused work.')}</p>
+                <p className="text-[12.5px] text-[var(--text-secondary)]">{L('집중할 때 은은하게 재생되는 배경음이에요.', 'A quiet background sound for focused work.')}</p>
               </div>
               <button
                 type="button"
@@ -935,7 +935,7 @@ export default function SettingsPage() {
               <div key={lab.key} className="flex items-center justify-between gap-3">
                 <div className="min-w-0">
                   <p className="text-[13px] font-medium">{lab.label}</p>
-                  <p className="text-[11px] text-[var(--text-secondary)]">{lab.desc}</p>
+                  <p className="text-[12.5px] text-[var(--text-secondary)]">{lab.desc}</p>
                 </div>
                 <button
                   type="button"
@@ -969,7 +969,7 @@ export default function SettingsPage() {
               <p className="text-[13px] font-medium text-[var(--danger)]">
                 {user ? L('계정 완전 삭제', 'Delete my account') : L('데이터 초기화', 'Reset data')}
               </p>
-              <p className="text-[11px] text-[var(--danger)]/70">
+              <p className="text-[12.5px] text-[var(--danger)]/70">
                 {user
                   ? L('모든 데이터와 계정을 영구 삭제 — 되돌릴 수 없어요', 'Permanently erase all data + your account — cannot be undone')
                   : L('이 브라우저의 모든 데이터를 삭제', 'Delete all data in this browser')}
@@ -1163,7 +1163,7 @@ function TelegramBlock({ locale }: { locale: string }) {
       )}
       {note && <p className="text-[12px] text-[var(--text-secondary)] mt-2">{note}</p>}
       {connections.length === 0 && (
-        <button type="button" onClick={() => loadConnections()} className="min-h-[44px] text-[11.5px] text-[var(--text-tertiary)] hover:text-[var(--accent)] mt-1.5 cursor-pointer transition-colors">
+        <button type="button" onClick={() => loadConnections()} className="min-h-[44px] text-[13px] text-[var(--text-tertiary)] hover:text-[var(--accent)] mt-1.5 cursor-pointer transition-colors">
           {L('연결했는데 안 보이면 새로고침', 'Connected but not showing? Refresh')}
         </button>
       )}
@@ -1233,15 +1233,15 @@ function PluginTokenBlock({ locale }: { locale: string }) {
         <div className="mt-3 p-3 rounded-lg bg-[var(--checkpoint)] border border-amber-500/30">
           <p className="text-[12px] font-medium text-[var(--text-primary)] mb-1.5">{L('이 토큰은 지금만 보여요. 복사해서 안전하게 보관하세요.', 'Shown only once. Copy and store it safely.')}</p>
           <div className="flex items-center gap-2">
-            <code className="flex-1 text-[11.5px] font-mono bg-[var(--bg)] px-2.5 py-1.5 rounded-md break-all">{issued}</code>
+            <code className="flex-1 text-[13px] font-mono bg-[var(--bg)] px-2.5 py-1.5 rounded-md break-all">{issued}</code>
             <Button variant="secondary" size="sm" onClick={async () => { await navigator.clipboard.writeText(issued); setCopied(true); setTimeout(() => setCopied(false), 2000); }}>
               {copied ? <Check size={13} /> : <Copy size={13} />}
             </Button>
           </div>
           <div className="mt-3 rounded-md border border-[var(--border-subtle)] bg-[var(--bg)] p-2.5">
-            <p className="text-[11px] text-[var(--text-tertiary)] mb-1">{L('플러그인에서 먼저 실행', 'Run first in the plugin')}</p>
+            <p className="text-[12.5px] text-[var(--text-tertiary)] mb-1">{L('플러그인에서 먼저 실행', 'Run first in the plugin')}</p>
             <div className="flex items-center gap-2">
-              <code className="flex-1 text-[11.5px] font-mono break-all">/argus:settings connect {issued}</code>
+              <code className="flex-1 text-[13px] font-mono break-all">/argus:settings connect {issued}</code>
               <Button
                 variant="secondary"
                 size="sm"
@@ -1254,7 +1254,7 @@ function PluginTokenBlock({ locale }: { locale: string }) {
                 {copiedCommand ? <Check size={13} /> : <Copy size={13} />} {L('명령 복사', 'Copy')}
               </Button>
             </div>
-            <p className="text-[11px] text-[var(--text-tertiary)] mt-2">
+            <p className="text-[12.5px] text-[var(--text-tertiary)] mt-2">
               {L('그 다음부터는 로컬에서 ', 'Then use ')}
               <code className="font-mono">/argus:settings sync</code>
               {L('로 웹앱과 로컬 판단 기록을 맞추면 됩니다.', ' to keep the web app and local decision record aligned.')}
@@ -1262,9 +1262,9 @@ function PluginTokenBlock({ locale }: { locale: string }) {
           </div>
           {/* MCP: env var for argus-decision-mcp config */}
           <div className="mt-2 rounded-md border border-[var(--border-subtle)] bg-[var(--bg)] p-2.5">
-            <p className="text-[11px] text-[var(--text-tertiary)] mb-1">{L('MCP 사용 시 — 설정 env에 붙여넣기', 'Using MCP — paste into your config env')}</p>
+            <p className="text-[12.5px] text-[var(--text-tertiary)] mb-1">{L('MCP 사용 시 — 설정 env에 붙여넣기', 'Using MCP — paste into your config env')}</p>
             <div className="flex items-center gap-2">
-              <code className="flex-1 text-[11.5px] font-mono break-all">{`"ARGUS_TOKEN": "${issued}"`}</code>
+              <code className="flex-1 text-[13px] font-mono break-all">{`"ARGUS_TOKEN": "${issued}"`}</code>
               <Button
                 variant="secondary"
                 size="sm"
@@ -1358,17 +1358,17 @@ function ObservationsBlock({ locale }: { locale: string }) {
     <div className="mt-4 pt-4 border-t border-[var(--border-subtle)]">
       <div className="flex items-center gap-1.5 mb-2.5">
         <BarChart3 size={12} className="text-[var(--text-tertiary)]" />
-        <span className="text-[11px] font-bold text-[var(--text-tertiary)] uppercase tracking-wider">{L('나의 사용 현황', 'My Usage')}</span>
+        <span className="text-[12.5px] font-bold text-[var(--text-tertiary)] uppercase tracking-wider">{L('나의 사용 현황', 'My Usage')}</span>
       </div>
       <div className="grid grid-cols-2 gap-2">
         {items.map((item, i) => (
           <div key={i} className="px-3 py-2 rounded-lg bg-[var(--bg)]">
-            <p className="text-[10px] text-[var(--text-tertiary)] mb-0.5">{item.label}</p>
+            <p className="text-[12px] text-[var(--text-tertiary)] mb-0.5">{item.label}</p>
             <p className="text-[13px] font-medium text-[var(--text-primary)]">{item.value}</p>
           </div>
         ))}
       </div>
-      <p className="text-[10px] text-[var(--text-tertiary)] mt-2">{L('사용 기록만 보여줘요. 판단력이나 성향을 평가하지 않아요.', 'Usage facts only — this does not grade your judgment or personality.')}</p>
+      <p className="text-[12px] text-[var(--text-tertiary)] mt-2">{L('사용 기록만 보여줘요. 판단력이나 성향을 평가하지 않아요.', 'Usage facts only — this does not grade your judgment or personality.')}</p>
     </div>
   );
 }

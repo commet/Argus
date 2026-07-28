@@ -136,11 +136,11 @@ export function InterviewInput({
                 key={s.key}
                 className="flex items-start gap-3 p-3 rounded-lg bg-[var(--bg)] border border-[var(--border)]"
               >
-                <span className="text-[11px] font-bold text-[var(--accent)] bg-[var(--ai)] px-1.5 py-0.5 rounded mt-0.5 shrink-0">
+                <span className="text-[12.5px] font-bold text-[var(--accent)] bg-[var(--ai)] px-1.5 py-0.5 rounded mt-0.5 shrink-0">
                   {i + 1}
                 </span>
                 <div className="flex-1 min-w-0">
-                  <p className="text-[11px] text-[var(--text-secondary)]">
+                  <p className="text-[12.5px] text-[var(--text-secondary)]">
                     {s.label}
                   </p>
                   <p className="text-[14px] text-[var(--text-primary)] mt-0.5 whitespace-pre-wrap">
@@ -180,11 +180,11 @@ export function InterviewInput({
       {/* Progress */}
       <div className="space-y-2">
         <div className="flex justify-between items-center">
-          <span className="text-[11px] font-medium text-[var(--text-secondary)]">
+          <span className="text-[12.5px] font-medium text-[var(--text-secondary)]">
             {currentStep + 1} / {steps.length}
           </span>
           {!step.required && (
-            <span className="text-[11px] text-[var(--text-secondary)]">
+            <span className="text-[12.5px] text-[var(--text-secondary)]">
               {t('ui.optional')}
             </span>
           )}

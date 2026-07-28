@@ -75,13 +75,13 @@ export function CheckpointReturnCard({
     <div className="rounded-xl border border-[var(--accent)]/30 bg-[var(--surface)] p-3 sm:p-3.5">
       <div className="flex items-center gap-1.5 mb-2">
         <Anchor size={13} className="text-[var(--accent)]" />
-        <span className="text-[11px] font-bold uppercase tracking-wide text-[var(--accent)]">
+        <span className="text-[12.5px] font-bold uppercase tracking-wide text-[var(--accent)]">
           {L('판단 체크포인트', 'Judgment checkpoint')}
         </span>
       </div>
 
       {/* Do not transfer authorship merely because the user kept an AI draft. */}
-      <p className="text-[11px] font-semibold text-[var(--text-tertiary)]">
+      <p className="text-[12.5px] font-semibold text-[var(--text-tertiary)]">
         {userOwned
           ? L('그때 내가 확정한 판단', 'The judgment you chose')
           : L('Argus가 함께 확인하자고 제안한 항목', 'A check Argus suggested')}
@@ -90,7 +90,7 @@ export function CheckpointReturnCard({
 
       {checkpoint.expected_signal && (
         <>
-          <p className="text-[11px] font-semibold text-[var(--text-tertiary)] mt-2.5">{L('다시 볼 기준', 'What to look for')}</p>
+          <p className="text-[12.5px] font-semibold text-[var(--text-tertiary)] mt-2.5">{L('다시 볼 기준', 'What to look for')}</p>
           <p className="text-[12.5px] text-[var(--text-secondary)] leading-[1.5] mt-0.5">{checkpoint.expected_signal}</p>
         </>
       )}
@@ -131,7 +131,7 @@ export function CheckpointReturnCard({
             className="overflow-hidden"
           >
             <div className="pt-3">
-              <p className="text-[11.5px] text-[var(--text-secondary)] mb-1.5">
+              <p className="text-[13px] text-[var(--text-secondary)] mb-1.5">
                 {L('무엇이 아직 부족한가요? 열어두고 다음에 다시 볼게요.', "What's still missing? We'll keep it open and look again.")}
               </p>
               <div className="flex flex-wrap gap-1.5">
@@ -143,7 +143,7 @@ export function CheckpointReturnCard({
                       key={r.value}
                       onClick={() => onUnclear(r.value)}
                       aria-pressed={on}
-                      className={`min-h-10 px-2.5 py-1 rounded-md text-[11.5px] font-medium border transition-colors cursor-pointer ${
+                      className={`min-h-10 px-2.5 py-1 rounded-md text-[13px] font-medium border transition-colors cursor-pointer ${
                         on
                           ? 'border-[var(--accent)] bg-[var(--accent)]/10 text-[var(--accent)]'
                           : 'border-[var(--border)] text-[var(--text-tertiary)] hover:border-[var(--accent)]/40'
