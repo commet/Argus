@@ -779,3 +779,14 @@ shim이 Node로 실행해서 감춰졌지만, Linux의 npm 11 `npx`는 bin을 �
 - publish workflow도 npm publish 전에 실행 권한 gate를 통과해야 한다.
 - post-publish 검증은 tar header의 실행 비트를 직접 검사한다.
 - immutable npm `2.0.6`은 이 새 gate에서 정확히 1건으로 실패함을 확인했다.
+
+### 최종 배포선: MCP 2.0.8 / plugin 3.0.8
+
+`2.0.7`은 실행 비트는 정상이나 이미 게시된 tarball README에 npm 12에서
+불안정한 positional `npx package@version` 명령이 남았다. 최종 배포선은
+명시형 `npm exec --package=argus-decision-mcp@2.0.8 -- argus-decision-mcp`
+배선을 package README와 plugin manifest에 함께 싣는 `2.0.8/3.0.8`이다.
+
+publish 직후 npm edge가 수 초간 exact version을 404로 반환한 실측도 반영했다.
+published smoke는 exact pin만 5초 간격, 최대 6회 재시도하며 `latest`나 범위로
+후퇴하지 않는다.

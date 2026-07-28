@@ -162,15 +162,30 @@ try {
   command(claudeBin, ['plugin', 'validate', stagedRepo], { env });
 
   const mcpPin = readJson(path.join(stagedPlugin, '.mcp.json'))
-    .mcpServers?.['argus-decision']?.args?.find((arg) => /^argus-decision-mcp@/.test(arg));
-  const pinnedVersion = String(mcpPin ?? '').split('@').at(-1);
+    .mcpServers?.['argus-decision']?.args?.find((arg) => /argus-decision-mcp@/.test(arg));
+  const pinnedVersion = /argus-decision-mcp@(\d+\.\d+\.\d+)/.exec(String(mcpPin ?? ''))?.[1];
   if (!pinnedVersion) throw new Error('staged .mcp.json has no exact argus-decision-mcp@version pin');
 
   if (publishedMode) {
-    const published = command(npmBin, ['view', `argus-decision-mcp@${pinnedVersion}`, 'version', '--json'], {
-      env,
-      timeout: 60_000,
-    }).trim();
+    // npm publish can return before every registry edge serves the new version.
+    // Retry the exact immutable version for a bounded 30 seconds; never fall
+    // back to latest or a range, which could make a stale release look green.
+    let published = '';
+    let lastRegistryError;
+    for (let attempt = 1; attempt <= 6; attempt++) {
+      try {
+        published = command(
+          npmBin,
+          ['view', `argus-decision-mcp@${pinnedVersion}`, 'version', '--json', '--prefer-online'],
+          { env, timeout: 60_000 },
+        ).trim();
+        break;
+      } catch (error) {
+        lastRegistryError = error;
+        if (attempt < 6) await new Promise((resolve) => setTimeout(resolve, 5_000));
+      }
+    }
+    if (!published) throw lastRegistryError;
     if (!published.includes(pinnedVersion)) {
       throw new Error(`npm did not return the pinned version ${pinnedVersion}: ${published}`);
     }
@@ -232,21 +247,24 @@ try {
   }
 
   const expandedRuntimeArgs = installedMcp.args.map(expand);
-  const windowsNpxShim = process.platform === 'win32'
-    && installedMcp.command.toLowerCase() === 'npx';
-  const runtimeCommand = windowsNpxShim
+  const windowsNpmShim = process.platform === 'win32'
+    && ['npm', 'npx'].includes(installedMcp.command.toLowerCase());
+  const runtimeCommand = windowsNpmShim
     ? (process.env.ComSpec || 'cmd.exe')
     : installedMcp.command;
-  const runtimeArgs = windowsNpxShim
+  const runtimeArgs = windowsNpmShim
     ? ['/d', '/s', '/c', installedMcp.command, ...expandedRuntimeArgs]
     : expandedRuntimeArgs;
+  if (process.env.ARGUS_INSTALL_SMOKE_DEBUG === '1') {
+    console.error(`installed runtime: ${JSON.stringify({ command: runtimeCommand, args: runtimeArgs })}`);
+  }
 
   const runtimeClient = new Client(
     { name: 'argus-plugin-install-smoke', version: '1' },
     { capabilities: {} },
   );
   const runtimeTransport = new StdioClientTransport({
-    // npm exposes npx as npx.cmd on Windows. Claude Code knows how to launch
+    // npm exposes npm/npx as .cmd shims on Windows. Claude Code knows how to launch
     // that host command, but Node's direct spawn (used by this independent
     // inventory check) needs the bounded cmd.exe shim explicitly.
     command: runtimeCommand,

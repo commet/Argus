@@ -1,5 +1,12 @@
 # Changelog
 
+## 3.0.8 — 2026-07-29
+
+- Pins `argus-decision-mcp@2.0.8`.
+- Uses npm's explicit `exec --package ... -- command` form across npm 10–12.
+- Published-runtime verification tolerates bounded exact-version registry
+  propagation without ever accepting `latest` or a range.
+
 ## 3.0.7 — 2026-07-29
 
 - Pins `argus-decision-mcp@2.0.7`, whose npm bin is executable on POSIX as well
