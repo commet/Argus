@@ -76,10 +76,32 @@ const patch = (v) => v.split('.').slice(1).join('.');
 ok('V5 플러그인과 서버가 같은 패치 라인', patch(plugin.version) === patch(SERVER_V),
   `플러그인 ${plugin.version} / 서버 ${SERVER_V}`);
 
+/**
+ * V6 — 문서에 적힌 핀. 다섯 파일이 서로 일치해도, 사람이 복사하는 줄이 틀리면
+ * 그 사람에게 제품은 없다.
+ *
+ * 2026-07-29에 실제로 그랬다: README의 설치 블록이 `argus-decision-mcp@2.0.0`을
+ * 시키고 있었는데 2.0.0은 **npm에 올라간 적이 없다.** 그대로 따라 하면
+ * `No matching version found`로 서버가 아예 뜨지 않는다 — 손으로 설정하는 모든
+ * 사용자(Codex 포함)의 정문이 그 줄이다. 이 게이트가 다섯 곳만 보고 문서를 안
+ * 봤기 때문에 조용히 흘렀다.
+ */
+const DOC_PINS = ['argus-mcp/README.md'];
+const pinRe = new RegExp(`${pkg.name.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&')}@([0-9]+\\.[0-9]+\\.[0-9]+|[^\\s"'\`)\\]]+)`, 'g');
+for (const rel of DOC_PINS) {
+  const text = fs.readFileSync(path.join(ROOT, rel), 'utf8');
+  const found = [...text.matchAll(pinRe)].map((m) => m[1]);
+  ok(`V6 ${rel}에 설치 핀이 있다`, found.length > 0, '설치 예시에 버전 핀이 없다');
+  for (const v of new Set(found)) {
+    ok(`V6 ${rel} 핀 ${v} = 배포 버전`, v === SERVER_V,
+      `문서가 ${v}을 시키는데 배포되는 것은 ${SERVER_V} — 이 줄을 복사한 사람은 다른 서버를 받거나(구버전) 아무것도 못 받습니다(미발행)`);
+  }
+}
+
 const label = `${checks} checks · ${violations.length} violations`;
 if (violations.length) {
   console.error(`\n❌ ${label}\n`);
   for (const v of violations) console.error('  ' + v);
   process.exit(1);
 }
-console.log(`✅ ${label} — 서버 ${SERVER_V} · 플러그인 ${plugin.version}, 다섯 곳이 일치합니다.`);
+console.log(`✅ ${label} — 서버 ${SERVER_V} · 플러그인 ${plugin.version}, 다섯 파일 + 문서의 설치 핀이 일치합니다.`);
