@@ -165,6 +165,11 @@ function gateFailureFor(gateCmd) {
   if (gateCmd.includes('codex-app-server')) return /\b[1-9]\d* violations?\b/i;
   if (gateCmd.includes('answer-time')) return /\b[1-9]\d* violations?\b/i;
   if (gateCmd.includes('slow-human')) return /\b[1-9]\d* violations?\b/i;
+  // e2e-picker does not print "violations" — it prints its own tally. Without
+  // this line the self-test that uses it throws here and takes the whole verify
+  // with it, which is exactly what this function is for: a gate whose failure
+  // nobody can recognise must not be silently accepted as "it exited non-zero".
+  if (gateCmd.includes('e2e-picker')) return /E2E: \d+ passed, [1-9]\d* failed/;
   throw new Error(`self-test has no owned failure signature for: ${gateCmd}`);
 }
 
