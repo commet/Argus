@@ -713,3 +713,53 @@ plugin lifecycle:
 - 기본 사용자 profile 상태를 격리 profile 결과와 구분해 보고
 
 현재 상태는 이 정의상 **미완료**다.
+
+---
+
+## 13. 2026-07-29 인수 후 완료 현황과 릴리스 복구
+
+이 절은 위 인수인계의 최신 후속 기록이며, 현재 상태 판단에는 이 절을 우선한다.
+
+### `main` 반영 완료
+
+- PR #318을 `4896139d8ead4cc916d254c06174b8ebf5673456`로 병합했다.
+- 빠른 `decline`도 언제나 사용자의 명시적 거절로 처리한다.
+- `cancel`과 전송 오류는 재시도 가능한 `no_answer`로 남긴다.
+- elicitation capability가 없는 경우만 `unsupported`로 처리한다.
+- 500ms 시간 추론과 프로세스 전역 picker 비활성화 회로를 제거했다.
+- 실제 Codex app-server의 raw wire를 측정하는 정책 probe를 추가했다.
+- 테스트 fixture는 실행별 무작위 소유 토큰과 controller cleanup을 사용하므로,
+  동시 workspace끼리 서로의 실행 중 fixture를 지우지 않는다.
+
+### 확인한 기준선
+
+- 120개 test file / unit·protocol 1,116건
+- E2E picker 13/13
+- battery 92 calls, RED 0
+- picker surfaces 6,696건, 위반 0
+- host matrix 390건, 실패 0
+- 실제 Codex app-server 15건, 실패 0
+- Claude form 120건, 실패 0
+- answer-time 10건, 실패 0
+- slow-human 95초 경로 3건, 실패 0
+- 결함 재삽입 mutation 24종을 모두 검출
+- 플러그인 검증, 격리 설치·업데이트·비활성화·활성화·삭제 수명주기,
+  설치된 MCP의 실제 도구 목록과 MCP/plugin parity 통과
+
+### 변경 불가능한 npm 릴리스 경합
+
+다른 세션이 PR #318의 CI 완료 전에 PR #316 기준으로 `v2.0.5`를
+태그했다. 따라서 npm `2.0.5`에는 provenance 수정은 있지만 최종
+elicitation adapter는 없다. 이미 공개된 태그나 npm 버전을 이동하거나
+덮어쓰지 않는다.
+
+복구 릴리스:
+
+- MCP `2.0.6`
+- Claude plugin `3.0.6`
+- 배포 전 install smoke는 현재 checkout의 MCP 빌드를 실제 격리 Claude
+  수명주기로 검증한다.
+- 배포 후 `verify-published.mjs 2.0.6`은 npm tarball을 새로 받아 릴리스
+  표식과 한 번의 Accept로 기록되는 실제 여정을 검증해야 한다.
+- 같은 표식은 npm `2.0.5`에는 의도적으로 없으므로, 배포 후 gate가
+  경합으로 잘못 나간 artifact와 수정 artifact를 구분할 수 있다.

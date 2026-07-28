@@ -2,7 +2,7 @@
   "mcpServers": {
     "argus-decision": {
       "command": "npx",
-      "args": ["-y", "argus-decision-mcp@2.0.5"],
+      "args": ["-y", "argus-decision-mcp@2.0.6"],
       "env": {
         "ARGUS_DIR": "${CLAUDE_PROJECT_DIR}/.argus"
       }

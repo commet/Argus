@@ -2,7 +2,7 @@
   "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
   "name": "argus",
   "displayName": "Argus",
-  "version": "3.0.5",
+  "version": "3.0.6",
   "description": "Captures consequential judgments and their return conditions. Explicit deep review uses a bounded set of evidence, domain, and risk roles; standard use has no agent team.",
   "author": {
     "name": "Argus",

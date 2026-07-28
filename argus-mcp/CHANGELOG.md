@@ -1,5 +1,19 @@
 # Changelog
 
+## 2.0.6 — The published package catches up with the verified main
+
+Version 2.0.5 was tagged from PR #316 while the decline-semantics PR was still
+in CI. npm therefore received the provenance fix but not the removal of the
+500ms timing heuristic and global picker circuit. npm versions are immutable;
+2.0.6 is the first published build containing both fixes and the real
+Codex-policy wire verification.
+
+The public README no longer pins the never-published `2.0.0`; the lockstep gate
+now checks the command users copy as well as the manifests. Post-publish markers
+are quote-agnostic and self-check against the local build before judging npm.
+The real Codex gate resolves both a native PATH install and npm's nested
+platform binary, instead of requiring a `codex.exe` shim npm never creates.
+
 ## 2.0.5 — Decline means decline; provenance rides the seal event
 
 The 2.0.4 Codex fallback inferred that a `decline` returned within 500ms was a
