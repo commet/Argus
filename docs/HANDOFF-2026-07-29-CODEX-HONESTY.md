@@ -21,7 +21,7 @@ claude mcp list | grep argus     # argus-decision-mcp@2.0.7 이 보여야 정상
 
 | | |
 |---|---|
-| 설치된 플러그인 | `argus@argus` **v2.16.0** (현재 3.0.6) |
+| 설치된 플러그인 | `argus@argus` **v2.16.0** (현재 3.0.7) |
 | 그 플러그인이 띄우는 서버 | `npx -y argus-decision-mcp@1.10.0` |
 | 이 세션에서 그 서버에 물어본 결과 | `server_version: "1.10.0"` — 살아 있는 증거 |
 
@@ -96,7 +96,8 @@ picker-surfaces 32위반)이 전부 이 차단기 때문이었다.
 
 ## 3. 검증
 
-전부 **되심어서 빨간불을 확인**했다 (게이트가 실제로 무는지):
+전부 **되심어서 빨간불을 확인**했다 (게이트가 실제로 무는지). 아래는 병렬 트랙
+합류 **전** 수치다 — 합류 후 최종 수치는 §7에 있다:
 
 | 게이트 | 결과 | 되심은 결함 |
 |---|---|---|
@@ -125,8 +126,9 @@ picker-surfaces 32위반)이 전부 이 차단기 때문이었다.
      이미 멱등이라 `gh run rerun <id> --failed`로 안전하게 재시도된다
 3. **Codex 플러그인 v1** — 지금은 `codex mcp add` 수동 한 줄. BLUEPRINT §8, O4 뒤
 4. **verify-all 분할 실행** — 22개+ 자기검증 × 재빌드로 20분+. 앞 세션이 이미 제기
-5. Codex 트랙의 `verify-all` 격리 복사본 방식은 **포팅하지 않았다** — 현행
-   `selfTest`가 이미 원본 바이트 복원 + `touched` 대조를 한다. 필요해지면 그때
+5. ~~Codex 트랙의 `verify-all` 격리 복사본 방식 미포팅~~ → **§7에서 합류하며
+   main 것을 통째로 채택했다** (자기검증이 폐기 가능한 복사본에서 돌고, 게이트
+   고유 실패 문구까지 요구한다)
 
 ---
 
@@ -165,7 +167,7 @@ picker-surfaces 32위반)이 전부 이 차단기 때문이었다.
 의미를 본다. `picker-surfaces`에는 "칸 라벨·설명은 한 줄" 128개 검사가 붙었다
 (되심어 8건 빨간불 확인).
 
-**최종 게이트:** 단위 1120 · picker-surfaces 6824/0 · surface-hazards 1222/0 ·
+**이 시점 게이트** (합류 전 수치 — 최종은 §7): 단위 1120 · picker-surfaces 6824/0 · surface-hazards 1222/0 ·
 host-matrix 424/0 · battery 95 calls 0 RED · claude-code-form 120/0 ·
 real Codex 15/0 · E2E 13/13 · keepsake 254/0 · version-lockstep 11/0.
 `verify-all` 전량 1회: **전 게이트 통과 + 심은 회귀 24개 전부 잡힘, 트리 원상복구.**
