@@ -92,6 +92,29 @@ describe('출처는 흐려지지 않는다', () => {
     })])).toBe('user');
   });
 
+  it('봉인 문장과 텍스트가 일치하는 술어의 출처를 읽는다 (옆 술어를 읽지 않는다)', () => {
+    // 봉인 문장은 여러 곳에서 올 수 있다. 라벨이 다른 술어의 출처를 읽으면
+    // "내가 쓴 문장"이 AI 문장 위에 붙는다 — 이 카드가 절대 하면 안 되는 거짓말.
+    const card = buildJudgmentCard({
+      ...BASE,
+      sealed_statement: 'AI가 짚은 그 문장',
+      predicates: [
+        bet({ id: 'mine', text: '내가 쓴 다른 문장', authored: 'user' }),
+        bet({ id: 'ai', text: 'AI가 짚은 그 문장', source: 'risk', authored: 'ai_surfaced' }),
+      ],
+    }, '채용 결정');
+    expect(card?.authorship).toBe('ai_surfaced');
+  });
+
+  it('공백 차이는 같은 문장으로 본다 (줄바꿈 때문에 unknown 으로 떨어지지 않는다)', () => {
+    const card = buildJudgmentCard({
+      ...BASE,
+      sealed_statement: '다음 분기  매출이\n유지된다.',
+      predicates: [bet({ text: '다음 분기 매출이 유지된다.', authored: 'user' })],
+    }, '채용 결정');
+    expect(card?.authorship).toBe('user');
+  });
+
   it('attribution 이 authored 보다 우선한다 (정본이 하나여야 한다)', () => {
     // 옛 호환 비트가 'user' 라도, 필드별 기록이 ai_surfaced 면 ai_surfaced 다.
     expect(readAuthorship([bet({

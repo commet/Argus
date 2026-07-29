@@ -89,8 +89,20 @@ function ymd(iso: string | undefined | null): string | null {
  * 확인되지 않은 초안이 사용자 문장과 구별 없이 도착했던 사례(2026-07-28)와 같은
  * 실수를 카드에서 반복하지 않기 위해서다.
  */
-export function readAuthorship(predicates: Predicate[] | undefined): JudgmentCardData['authorship'] {
-  const bet = (predicates ?? []).find((p) => p.source === 'governing_idea' || p.attribution || p.authored);
+export function readAuthorship(
+  predicates: Predicate[] | undefined,
+  statement?: string,
+): JudgmentCardData['authorship'] {
+  const list = predicates ?? [];
+  // **그 문장의 출처**를 읽어야 한다. 봉인 문장은 여러 곳에서 올 수 있고
+  // (사용자 기울기 · 지배 베팅 · 첫 술어 · 원문), 라벨이 다른 술어의 출처를
+  // 읽으면 "내가 쓴 문장"이 AI 문장 위에 붙는다 — 이 카드가 절대 하면 안 되는
+  // 단 하나의 거짓말이 정확히 그것이다. 그래서 텍스트가 일치하는 술어를 먼저 찾고,
+  // 못 찾으면 지배 베팅으로 물러나고, 그것도 없으면 'unknown' 이다.
+  const norm = (s: string) => s.replace(/\s+/g, ' ').trim();
+  const target = statement ? norm(statement) : null;
+  const bet = (target ? list.find((p) => typeof p.text === 'string' && norm(p.text) === target) : undefined)
+    ?? list.find((p) => p.source === 'governing_idea' || p.attribution || p.authored);
   if (!bet) return 'unknown';
   const w = bet.attribution?.wording_source;
   if (w === 'user_direct' || w === 'user_reworded') return 'user';
@@ -132,7 +144,7 @@ export function buildJudgmentCard(
     statement,
     sealedOn,
     checkOn: ymd(contract.check_in_at),
-    authorship: readAuthorship(contract.predicates),
+    authorship: readAuthorship(contract.predicates, statement),
     // 상황 줄이 봉인 문장과 같으면 두 번 찍지 않는다 (같은 사실의 두 번째 사본).
     context: rawContext && rawContext !== statement ? rawContext : null,
   };
