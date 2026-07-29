@@ -263,13 +263,15 @@ async function runProfile(name) {
       });
       ok(name, 'B1 no unhandled throw (I5)', sc?.error_code !== 'INTERNAL_ERROR', brief(sc, 200));
       ok(name, 'B2 no dead end (I1)', !isDeadEnd(sc), `surface="${String(sc?.surface).slice(0, 120)}" next=${JSON.stringify(sc?.next_actions)}`);
-      if (name === 'hostile-cancel' || profile.policyBlocked) {
-        // I2 — a non-answer must NOT be reported as the user declining. For the
-        // policy-blocked Codex this is the whole defect: it answered `decline`
-        // itself, nobody saw anything, and the user was told "Not recorded.
-        // choice: declined" — a decision credited to a person who was never asked.
+      if (name === 'hostile-cancel') {
         ok(name, 'B3 non-answer is not recorded as a decline (I2)', sc?.data?.choice === 'no_answer', `choice=${sc?.data?.choice}`);
         ok(name, 'B4 the predicate is handed back so no work is lost (I2)', typeof sc?.data?.predicate === 'string' && sc.data.predicate.includes('D7'), brief(sc?.data, 160));
+      }
+      if (profile.policyBlocked) {
+        // This profile reproduces a client that violates MCP by returning
+        // `decline` for policy. The server has no rendering receipt or policy
+        // marker, so it must preserve the only wire action it received.
+        ok(name, 'B3 decline is not reclassified from elapsed time', sc?.data?.choice === 'declined', `choice=${sc?.data?.choice}`);
       }
       if (name === 'hostile-empty' || name === 'claude-code' || name === 'claude-desktop' || name === 'codex-interactive') {
         // A one-tap Accept with a blank form must SAVE — this is the whole point.
@@ -299,23 +301,19 @@ async function runProfile(name) {
         ok(name, 'B4 provenance stays honest without a picker', sc?.data?.predicate_owner === 'ai_surfaced', `owner=${sc?.data?.predicate_owner}`);
       }
       if (profile.policyBlocked) {
-        // THE BLAST RADIUS. An earlier fix opened a session-wide breaker the
-        // moment one decline came back unreadably fast — which also fires on a
-        // person hammering Escape, and then deletes every later picker in the
-        // session. The ask must still go out; only what check_in REPORTS may
-        // change, and only after a PATTERN (two in a row, reset by any contrary
-        // evidence), never after one sample.
+        // Even a client that repeatedly synthesizes decline must not disable
+        // later pickers or change the negotiated capability report.
         const asksBefore = seen.length;
         const { sc: second } = await call('argus_predict', {
           id: 'draft2', predicate: '두 번째 초안도 정책이 대신 답한다',
           check_by: '2026-08-21', predicate_owner: 'ai_surfaced', confirm_draft: true, today_override: T0,
         });
-        ok(name, 'B5 the ask is still sent — one unseen decline does not disable pickers',
+        ok(name, 'B5 the ask is still sent — a decline does not disable pickers',
           seen.length > asksBefore, `asks before=${asksBefore} after=${seen.length}`);
-        ok(name, 'B6 still not called the user\'s decline', second?.data?.choice === 'no_answer', `choice=${second?.data?.choice}`);
+        ok(name, 'B6 repeated decline keeps the same protocol meaning', second?.data?.choice === 'declined', `choice=${second?.data?.choice}`);
         const { sc: after } = await call('argus_check_in', { today_override: T0 });
-        ok(name, 'B7 after a PATTERN of unseen declines, the surface is reported as text',
-          after?.data?.picker === 'text_fallback', `picker=${after?.data?.picker}`);
+        ok(name, 'B7 timing does not rewrite the negotiated picker capability',
+          after?.data?.picker === 'one_tap', `picker=${after?.data?.picker}`);
       }
     }
 

@@ -188,6 +188,7 @@ function gateFailureFor(gateCmd) {
   if (gateCmd.includes('codex-app-server')) return /\b[1-9]\d* violations?\b/i;
   if (gateCmd.includes('answer-time')) return /\b[1-9]\d* violations?\b/i;
   if (gateCmd.includes('slow-human')) return /\b[1-9]\d* violations?\b/i;
+  if (gateCmd.includes('version-lockstep')) return /\b[1-9]\d* violations?\b/i;
   // e2e-picker does not print "violations" — it prints its own tally. Without
   // this line the self-test that uses it throws here and takes the whole verify
   // with it, which is exactly what this function is for: a gate whose failure
@@ -230,6 +231,7 @@ run('픽커 화면 전수 (2언어 × 8내용)', 'node evals/picker-surfaces.mjs
 run('문장 위험 전수 (2언어 × 2호스트)', 'node evals/surface-hazards.mjs', { env: { ...process.env, SURFACE_HAZARDS_SKIP_BUILD: '1' }, extract: COUNTS });
 run('간직하는 화면의 액자 (영수증·봉인·항해일지)', 'node evals/keepsake-frames.mjs', { env: { ...process.env, KEEPSAKE_SKIP_BUILD: '1' }, extract: COUNTS });
 run('버전 다섯 곳 일치', 'node evals/version-lockstep.mjs', { extract: COUNTS });
+run('게이트가 실제로 빨개질 수 있는가', 'node evals/gate-coverage.mjs');
 // Judges our asks with the submit gate read out of the shipped Claude Code
 // binary — including how many Returns it takes, which is what three previous
 // "Accept does not work" fixes each missed.
@@ -274,6 +276,20 @@ fs.symlinkSync(
   path.join(selfRoot, 'node_modules'),
   process.platform === 'win32' ? 'junction' : 'dir',
 );
+
+// version-lockstep spans the monorepo: npm package, plugin pin/manifest, and
+// marketplace metadata are one release contract. Copy the three external
+// manifests into the expendable root so its mutation test exercises the gate
+// rather than dying on ENOENT.
+for (const relative of [
+  'argus-plugin-v2/.claude-plugin/plugin.json',
+  'argus-plugin-v2/.mcp.json',
+  '.claude-plugin/marketplace.json',
+]) {
+  const destination = path.join(selfBase, relative);
+  fs.mkdirSync(path.dirname(destination), { recursive: true });
+  fs.copyFileSync(path.join(REPO, relative), destination);
+}
 
 console.log(`게이트 실행 완료. 격리 사본에서 게이트 자신을 시험합니다: ${selfRoot}\n`);
 
@@ -432,17 +448,11 @@ selfTest(
   'node evals/codex-app-server.mjs',
 );
 selfTest(
-  // main의 2.0.6판은 "즉시 decline을 시간으로 재해석하는 회귀"를 잡았다. 2.0.7이
-  // 그 재해석을 (귀속 거부의 형태로) 채택했으므로 그 변이는 더 이상 심을 수
-  // 없다. 다만 그 테스트가 지키려던 진짜 우려는 살아 있고 더 중요하다:
-  // **귀속 거부가 정상적인 거절까지 삼켜서는 안 된다.** 사람이 화면을 읽고 누른
-  // "아니오"는 그 사람의 답이고, 그걸 "답이 없었다"로 바꾸면 이번엔 반대 방향으로
-  // 사용자의 행위를 지우는 것이다. 창(窓)을 무한대로 열면 모든 거절이 삼켜진다.
-  '자기검증 ㉔ 귀속 거부가 사람의 정상 거절까지 삼키는 회귀를 잡는가',
+  '자기검증 ㉔ decline을 서버가 no_answer로 재해석하는 회귀를 잡는가',
   'src/lib/elicit.ts',
   (s) => s.replace(
-    'export const UNREADABLE_DECLINE_MAX_MS = 500;',
-    'export const UNREADABLE_DECLINE_MAX_MS = 24 * 60 * 60 * 1000;',
+    "    if (res.action === 'decline') return { kind: 'declined' };",
+    "    if (res.action === 'decline') return { kind: 'no_answer', reason: 'failed' };",
   ),
   'node evals/codex-app-server.mjs',
 );
@@ -463,25 +473,12 @@ selfTest(
   'node evals/claude-code-form.mjs',
 );
 selfTest(
-  '자기검증 ㉕ 아무도 못 본 거절을 사용자 것이라 하는 회귀를 잡는가',
-  'src/lib/elicit.ts',
-  (s) => s.replace('      if (Date.now() - started <= UNREADABLE_DECLINE_MAX_MS) {', '      if (false) {'),
-  'node evals/battery.mjs',
-);
-selfTest(
-  // 한 번의 성급한 거절이 그 세션의 모든 픽커를 지우던 설계. 되심으면 정산
-  // 픽커가 아예 안 뜬다.
+  // 한 번의 거절이 그 세션의 모든 픽커를 지우던 설계를 되심는다.
   '자기검증 ㉖ 거절 한 번이 이후 픽커를 전부 없애는 회귀를 잡는가',
   'src/lib/elicit.ts',
-  // Anchor on the signature line only. This mutation used to include the body's
-  // first statement and stopped matching the moment canElicit gained its
-  // fail-closed try/catch — the self-test then reported "could not plant", which
-  // is the honest outcome and exactly why that branch exists, but a mutation
-  // that cannot be planted proves nothing. Keep the anchor as small as the
-  // change requires.
   (s) => s.replace(
-    'export function canElicit(): boolean {',
-    'export function canElicit(): boolean {\n  if (_unreadableStreak >= 1) return false;'),
+    "    if (res.action === 'decline') return { kind: 'declined' };",
+    "    if (res.action === 'decline') { _elicit = null; return { kind: 'declined' }; }"),
   `node evals/e2e-picker.mjs "${process.execPath}" dist/index.js`,
 );
 selfTest(
@@ -491,6 +488,12 @@ selfTest(
     'ec.elicitInput({ message, requestedSchema }, { timeout: timeoutMs ?? DECISION_ASK_TIMEOUT_MS })',
     'ec.elicitInput({ message, requestedSchema })'),
   'node evals/slow-human.mjs',
+);
+selfTest(
+  '자기검증 ㉗ 버전 한 곳만 어긋나는 회귀를 잡는가',
+  'package.json',
+  (s) => s.replace(/"version":\s*"[^"]+"/, '"version": "0.0.0"'),
+  'node evals/version-lockstep.mjs',
 );
 
 } finally {

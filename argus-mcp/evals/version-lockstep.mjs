@@ -39,6 +39,7 @@ const ok = (id, cond, detail) => {
 };
 
 const pkg = read('argus-mcp/package.json');
+const lock = read('argus-mcp/package-lock.json');
 const server = read('argus-mcp/server.json');
 const plugin = read('argus-plugin-v2/.claude-plugin/plugin.json');
 const mcpJson = read('argus-plugin-v2/.mcp.json');
@@ -46,6 +47,9 @@ const market = read('.claude-plugin/marketplace.json');
 
 const SERVER_V = pkg.version;
 const escapedPackage = pkg.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+ok('V0 package-lock root = package.json', lock.version === SERVER_V, `${lock.version} vs ${SERVER_V}`);
+ok('V0 package-lock package = package.json', lock.packages?.['']?.version === SERVER_V,
+  `${lock.packages?.['']?.version} vs ${SERVER_V}`);
 ok('V1 server.json = package.json', server.version === SERVER_V, `${server.version} vs ${SERVER_V}`);
 
 // server.json carries the version twice (top level + the package entry)

@@ -8,15 +8,21 @@ reality later did. It does not score people or give verdicts.
 ### Codex (CLI or app)
 
 ```bash
-codex mcp add argus-decision -- npx -y argus-decision-mcp@2.0.9
+codex mcp add argus-decision -- npx -y argus-decision-mcp@2.0.10
 codex mcp list        # argus-decision should be listed and enabled
 ```
 
+Restart Codex after adding the server. Conversations opened before `mcp add`
+do not gain newly registered tools; quit and reopen the app or start a new CLI
+session.
+
 Argus confirms a prediction with a one-tap form before saving it. Codex shows
 that form under its default approval policy. If yours is set to `never`, or
-`approval_policy.granular.mcp_elicitations = false`, Codex answers the form
-itself without showing it — Argus will tell you so and offer to save from chat
-instead, rather than pretend you declined.
+`approval_policy.granular.mcp_elicitations = false`, Codex may return a protocol
+`decline` without rendering the form. MCP currently supplies no marker that
+distinguishes that policy response from a fast intentional decline, so Argus
+must respect it as a decline. Enable MCP elicitations and retry if you need the
+confirmation form.
 
 ### Claude Code
 
@@ -32,7 +38,7 @@ instead, rather than pretend you declined.
   "mcpServers": {
     "argus-decision": {
       "command": "npx",
-      "args": ["-y", "argus-decision-mcp@2.0.9"],
+      "args": ["-y", "argus-decision-mcp@2.0.10"],
       "env": {
         "ARGUS_DIR": "/absolute/path/to/your/project/.argus"
       }

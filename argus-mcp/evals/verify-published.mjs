@@ -49,15 +49,10 @@ const BUNDLE_MARKERS = [
   // 수정을 담고 배포됐는데 이 게이트만 빨간불이었다. 낡은 마커보다 나쁜 것이
   // 결코 참이 될 수 없는 마커다 — 아래 자기점검이 그걸 잡는다.
   ['봉인 이벤트가 출처를 싣는다 (2.0.5)', /predicate_owner: [A-Za-z0-9_$]*\[['"]predicate_owner['"]\]/],
-  // 2.0.7 — 아무도 못 본 거절을 사용자 것이라 하지 않는다. 이게 빠진 번들은
-  // 정책이 대신 답한 Codex에서 "당신이 거절했습니다"라고 말한다.
-  ['안 보인 거절을 귀속하지 않는다 (2.0.7)', 'UNREADABLE_DECLINE_MAX_MS'],
-  ['그 거절에 전용 사유가 있다 (2.0.7)', 'unattributable'],
-  // 차단된 호스트에선 창이 뜬 적이 없으므로 "창이 닫혔다"고 말하지 않는다.
-  // 문구는 합류하며 한 번 더 바뀌었다(두 해석 모두에서 참이도록). 그때 이 마커가
-  // 낡았고 — 위의 로컬 빌드 사전점검이 그걸 잡아냈다. 마커를 만든 지 세 시간 만에
-  // 마커가 썩는다는 증거이므로, 이 줄은 릴리스마다 실제 문구와 대조할 것.
-  ['차단 호스트에 정직한 문구 (2.0.7)', 'host may have answered for you'],
+  // MCP decline is explicit decline. Response time is not provenance and must
+  // not manufacture a fourth action.
+  ['decline 의미를 시간으로 바꾸지 않는다', /if \(res\.action === ["']decline["']\) return \{ kind: ["']declined["'] \}/],
+  ['실패 fallback은 decline과 분리된다', 'Nothing recorded because the dialog returned no answer.'],
 ];
 
 /**
