@@ -258,6 +258,7 @@ async function marchToSeal() {
   const s = { answered: 0 };
   const deadline = Date.now() + MARCH_BUDGET_MS;
   let idleTicks = 0;
+  let busyTicks = 0;
   let lastState = '';
 
   while (Date.now() < deadline) {
@@ -295,6 +296,22 @@ async function marchToSeal() {
       console.log(`   → ${matched.st.id}`);
       lastState = matched.st.id;
       await shot(matched.st.id);
+    }
+
+    // 'busy' 에 눌러앉는 것을 실패로 본다. 2026-07-29 실주행에서 흐름은 이미
+    // 끝났는데(완성된 문서까지 떴는데) 화면 어딘가의 스피너 때문에 계속 busy 로
+    // 읽혀 600초를 조용히 태우고 "시간 초과"라고만 신고했다. 그건 사실이지만
+    // 쓸모가 없다 — 진짜 사실은 "봉인 화면이 안 떴다"였고, 화면 글을 뱉었으면
+    // 1분 만에 알 수 있었다. 초안 생성이 오래 걸리므로 넉넉히 4분을 준다.
+    busyTicks = matched.st.id === 'busy' ? busyTicks + 1 : 0;
+    if (busyTicks >= 40) {
+      await shot('stuck-busy');
+      return {
+        ok: false,
+        why: '4분 넘게 "일하는 중"으로만 읽힌다. 진짜 작업 중일 수도 있지만, 흐름은 끝났는데 '
+          + '스피너가 남아 그렇게 보이는 경우가 있었다 (실측). 아래는 그때 화면이다.',
+        dump: (await bodyText()).slice(0, 1200),
+      };
     }
 
     const outcome = await matched.st.act(matched.hit, s);
