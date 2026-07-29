@@ -58,34 +58,55 @@ function vendoredExe(dir) {
  *               means the harness failed to resolve an installed Codex, which is
  *               a failure, NOT a skip.
  */
-export function resolveCodex() {
-  const configured = process.env.CODEX_CLI_PATH;
-  if (configured && fs.existsSync(configured)) return { bin: configured, kind: 'configured', onPath: true };
-
-  if (process.platform !== 'win32') {
-    const found = spawnSync('which', ['codex'], { encoding: 'utf8' });
-    const hit = String(found.stdout ?? '').trim().split(/\r?\n/)[0];
-    if (hit && fs.existsSync(hit)) return { bin: hit, kind: 'posix', onPath: true };
-    return { bin: null, kind: 'absent', onPath: false };
+/** Every `codex` entry visible on PATH, most-preferred first. */
+function onPathEntries() {
+  const win = process.platform === 'win32';
+  // `which -a` is not universal. Falling back matters more than tidiness here:
+  // an empty listing reads as "codex is not installed", which downgrades a
+  // broken lookup into an honest-looking skip — the exact failure this file
+  // exists to end.
+  const probes = win ? [['where.exe', ['codex']]] : [['which', ['-a', 'codex']], ['which', ['codex']]];
+  for (const [cmd, args] of probes) {
+    const hits = String(spawnSync(cmd, args, { encoding: 'utf8' }).stdout ?? '')
+      .split(/\r?\n/).map((l) => l.trim()).filter(Boolean)
+      .filter((l) => fs.existsSync(l));
+    if (hits.length) return hits;
   }
+  return [];
+}
 
-  const found = spawnSync('where.exe', ['codex'], { encoding: 'utf8' });
-  const lines = String(found.stdout ?? '').split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
-  const onPath = lines.length > 0;
-
-  const direct = lines.find((l) => /\.exe$/i.test(l) && fs.existsSync(l));
-  if (direct) return { bin: direct, kind: 'exe', onPath };
-
+/** The first PATH entry that can actually be launched, or null. */
+function firstRunnable(lines) {
+  if (process.platform !== 'win32') {
+    const hit = lines[0];
+    return hit ? { path: hit, kind: 'posix' } : null;
+  }
+  const direct = lines.find((l) => /\.exe$/i.test(l));
+  if (direct) return { path: direct, kind: 'exe' };
   // Prefer the real executable the shim would launch — spawning it directly
   // avoids an extra cmd.exe in the process tree and its stdio buffering.
   for (const shim of lines) {
     const exe = vendoredExe(path.dirname(shim));
-    if (exe) return { bin: exe, kind: 'vendored', onPath };
+    if (exe) return { path: exe, kind: 'vendored' };
   }
+  const shim = lines.find((l) => /\.(cmd|bat)$/i.test(l));
+  return shim ? { path: shim, kind: 'shim' } : null;
+}
 
-  const shim = lines.find((l) => /\.(cmd|bat)$/i.test(l) && fs.existsSync(l));
-  if (shim) return { bin: shim, kind: 'shim', onPath };
+export function resolveCodex() {
+  const configured = process.env.CODEX_CLI_PATH;
+  if (configured && fs.existsSync(configured)) return { bin: configured, kind: 'configured', onPath: true };
 
+  // Listing and selection are separate, and BOTH PLATFORMS PASS THROUGH THESE
+  // TWO LINES. That is deliberate: self-test 29 plants its regression on the
+  // selection step, and the first draft of this file put the Windows logic in an
+  // early-return branch that Linux never reached — so the plant was inert on CI
+  // and the self-test reported "planted but still green" (2026-07-29). A gate's
+  // mutation seam has to be reachable everywhere the gate runs.
+  const lines = onPathEntries();
+  const onPath = lines.length > 0;
+  const hit = firstRunnable(lines);
+  if (hit) return { bin: hit.path, kind: hit.kind, onPath };
   return { bin: null, kind: onPath ? 'unresolvable' : 'absent', onPath };
 }
 

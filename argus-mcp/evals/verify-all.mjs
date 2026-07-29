@@ -531,9 +531,9 @@ selfTest(
   // 재지 않은 채로. 그래서 "설치돼 있는데 못 찾음"은 이제 건너뛰기가 아니라 실패다.
   '자기검증 ㉙ Codex가 있는데 게이트가 조용히 건너뛰는 회귀를 잡는가',
   'evals/_codex-bin.mjs',
-  (s) => s.replace(
-    '  const direct = lines.find((l) => /\\.exe$/i.test(l) && fs.existsSync(l));',
-    "  if (onPath) return { bin: null, kind: 'unresolvable', onPath };\n  const direct = lines.find((l) => /\\.exe$/i.test(l) && fs.existsSync(l));"),
+  // 심는 자리는 두 플랫폼이 모두 지나가는 줄이어야 한다 — 첫 시도는 Windows
+  // 전용 분기에 심어서 리눅스 CI에서 아무 일도 일어나지 않았다.
+  (s) => s.replace('  const hit = firstRunnable(lines);', '  const hit = null;'),
   'node evals/decline-latency.mjs',
   /codex is on PATH but no runnable entry point/i,
 );
