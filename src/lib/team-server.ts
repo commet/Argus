@@ -3,7 +3,10 @@ import 'server-only';
 import { createClient, type SupabaseClient, type User } from '@supabase/supabase-js';
 import type { NextRequest } from 'next/server';
 
-export const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+// UUID_RE lives in the pure module so vitest can actually reach it — see uuid.ts
+// for why (a validator that cannot be tested is not validated).
+export { UUID_RE, isUuid } from './uuid';
+
 
 export type TeamRole = 'owner' | 'admin' | 'member';
 

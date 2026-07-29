@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { UUID_RE } from '@/lib/team-server';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -21,7 +22,6 @@ export const dynamic = 'force-dynamic';
  * case — so the client can fire-and-forget without branching on connection state.
  */
 
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /** The check_by column is a DATE; match the cron's KST "today" semantics. */
 function kstDate(iso: string): string | null {
