@@ -53,6 +53,9 @@ const BUNDLE_MARKERS = [
   // render receipt or actor provenance. A stopwatch must not manufacture either
   // fact, so every wire-level decline remains a decline at every speed.
   ['decline 의미를 시간으로 바꾸지 않는다 (2.0.12)', /if \(res\.action === ["']decline["']\) return \{ kind: ["']declined["'] \}/],
+  // 2.0.13 — 거절해도 사용자가 쓴 문장은 응답에 남는다. 문자열 하나로 잡는 이유는
+  // 분기 모양은 번들러가 바꿀 수 있지만 이 키 이름은 호출부가 읽는 계약이라 못 바꿈이다.
+  ['거절해도 초안을 되돌려준다 (2.0.13)', 'draft is preserved here'],
   ['실패 fallback은 decline과 분리된다', 'Nothing recorded because the dialog returned no answer.'],
 ];
 
