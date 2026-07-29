@@ -19,24 +19,7 @@ describe('MCP host elicitation policy', () => {
     expect(supportsReliableElicitation({ elicitation: {} })).toBe(true);
   });
 
-  /**
-   * This assertion changed direction on 2026-07-29, and the reason is worth
-   * keeping. It used to require that an immediate decline resolve to
-   * `{ kind: 'declined' }` — the user's own act — on the reasoning that elapsed
-   * time cannot separate a policy auto-reject from a person who answered fast.
-   *
-   * That reasoning is sound and is why nothing CONCLUDES from the timing. But it
-   * does not follow that the safe report is "the user declined". Measured on a
-   * real `codex app-server`: under `approval_policy = "never"` the request never
-   * reaches anything that could render it and Codex declines on the user's
-   * behalf in ~330ms. Calling that theirs credits a decision to someone who was
-   * shown nothing and leaves them no way to continue.
-   *
-   * So the outcome is a NON-ANSWER: nothing recorded, nothing attributed, the
-   * text path offered. The half both readings agreed on is unchanged and still
-   * asserted below — the ask keeps going out, and no picker is disabled.
-   */
-  it('refuses to attribute an unreadably fast decline, and keeps later pickers alive', async () => {
+  it('preserves immediate declines and keeps later pickers alive', async () => {
     let calls = 0;
     setElicitor(async () => {
       calls++;
@@ -44,11 +27,9 @@ describe('MCP host elicitation policy', () => {
     }, () => true);
     try {
       await expect(elicitDetailed('first form', { type: 'object', properties: {} }))
-        .resolves.toEqual({ kind: 'no_answer', reason: 'unattributable' });
+        .resolves.toEqual({ kind: 'declined' });
       await expect(elicitDetailed('later form', { type: 'object', properties: {} }))
-        .resolves.toEqual({ kind: 'no_answer', reason: 'unattributable' });
-      // THE part that must never regress: the ask still went out both times, and
-      // one "no" did not turn the session's pickers off.
+        .resolves.toEqual({ kind: 'declined' });
       expect(calls).toBe(2);
       expect(canElicit()).toBe(true);
     } finally {

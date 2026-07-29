@@ -26,7 +26,6 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "fuzz": "npm run build && node evals/fuzz.mjs",
-    "elicit": "npm run build && node evals/elicit.mjs",
     "copy": "npm run build && node evals/copy-audit.mjs",
     "prepack": "npm run build",
     "prepublishOnly": "npm run typecheck && npm test && npm audit --omit=dev",

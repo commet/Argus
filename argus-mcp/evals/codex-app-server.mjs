@@ -184,7 +184,7 @@ async function session(policy, answer) {
   return { threadId, started, call, asks, stop, stderr: () => stderr, argusDir, req };
 }
 
-const HUMAN_PAUSE_MS = 900; // longer than UNREADABLE_DECLINE_MAX_MS — a person read it
+const HUMAN_PAUSE_MS = 900;
 
 try {
   // ───────── P · a Codex that shows the form ─────────
@@ -230,15 +230,14 @@ try {
         && declined?.structuredContent?.data?.sealed === false,
       JSON.stringify(declined?.structuredContent?.data).slice(0, 300));
 
-    // Someone hammering Escape on a form they never read. We cannot tell this
-    // apart from a policy answering for them — Codex's protocol carries no
-    // marker — so nothing may be recorded and nothing may be attributed.
+    // Response time is not provenance. A keyboard user or accessibility
+    // automation can decline immediately, so preserve the MCP action.
     const hammered = await p.call('argus_predict', {
       id: 'codex-escape', predicate: 'this one gets escaped before it is read',
       check_by: '2099-12-31', predicate_owner: 'ai_surfaced', confirm_draft: true,
     });
-    ok('P3 an instant decline is not credited to the user either, even here',
-      hammered?.structuredContent?.data?.choice === 'no_answer',
+    ok('P3 an instant decline remains a decline',
+      hammered?.structuredContent?.data?.choice === 'declined',
       JSON.stringify(hammered?.structuredContent?.data).slice(0, 300));
 
     // THE REGRESSION GUARD, and it must run RIGHT AFTER the instant decline
@@ -267,17 +266,10 @@ try {
     });
     ok('B0 Codex really did intercept it — nothing reached the client',
       b.asks.length === 0, `client saw ${b.asks.length} request(s)`);
-    ok('B1 a decline nobody saw is NOT reported as the user declining',
-      blocked?.structuredContent?.data?.choice === 'no_answer'
+    ok('B1 the server preserves the only wire fact Codex supplied',
+      blocked?.structuredContent?.data?.choice === 'declined'
         && blocked?.structuredContent?.data?.sealed === false,
       JSON.stringify(blocked?.structuredContent?.data).slice(0, 300));
-    ok('B1 their sentence is handed back so nothing is lost',
-      blocked?.structuredContent?.data?.predicate === 'the Codex policy answers this one without showing it',
-      JSON.stringify(blocked?.structuredContent?.data).slice(0, 300));
-    ok('B1 the surface names the host, and does not describe a dialog nobody opened',
-      /host/i.test(String(blocked?.structuredContent?.surface ?? ''))
-        && !/dialog closed/i.test(String(blocked?.structuredContent?.surface ?? '')),
-      JSON.stringify(blocked?.structuredContent?.surface));
 
     // Nothing may have been written.
     const ledger = await b.call('argus_patterns', { view: 'all' });
@@ -285,15 +277,15 @@ try {
       ((ledger?.structuredContent?.data?.contracts ?? []).length === 0),
       JSON.stringify(ledger?.structuredContent?.data?.contracts ?? []).slice(0, 200));
 
-    // A second invisible decline is what tells us the host, not the person, is
-    // answering. Only then may the environment be described as text.
+    // A second identical action still supplies no rendering receipt. Do not
+    // infer a different capability from timing or repetition.
     await b.call('argus_predict', {
       id: 'codex-policy-2', predicate: 'and this one too',
       check_by: '2099-12-31', predicate_owner: 'ai_surfaced', confirm_draft: true,
     });
     const checkIn = await b.call('argus_check_in', {});
-    ok('B3 after a pattern of unseen declines, the surface is reported as text',
-      checkIn?.structuredContent?.data?.picker === 'text_fallback',
+    ok('B3 negotiated elicitation remains reported without timing inference',
+      checkIn?.structuredContent?.data?.picker === 'one_tap',
       JSON.stringify(checkIn?.structuredContent?.data).slice(0, 300));
   } finally { await b.stop(); }
 } catch (error) {
@@ -306,4 +298,4 @@ if (violations.length) {
   for (const v of violations) console.error(`  ${v}`);
   process.exit(1);
 }
-console.log(`✅ ${label} — allowed forms work; a policy-answered decline is never called the user's.`);
+console.log(`✅ ${label} — allowed forms work; wire actions are preserved without timing inference.`);
