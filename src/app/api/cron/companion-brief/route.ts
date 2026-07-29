@@ -6,6 +6,7 @@ import { buildCompanionBrief, companionBriefItemCount, type DueReceiptBrief, typ
 import { notificationGateAllowsSend } from '@/lib/notification-gate';
 import type { JudgmentReceipt } from '@/lib/review';
 import { isMonitored, isReconsiderable, nextRecheckDue, nextReponderDue } from '@/lib/premises-core';
+import { logServerEvent } from '@/lib/server-events';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -240,6 +241,10 @@ export async function GET(req: Request) {
     sent++;
   }
 
+  // 계기 (2026-07-29): 이 크론이 돌았는지·누구에게 갔는지 데이터로 답할 수 있게.
+  logServerEvent('cron_companion_brief', {
+    dry_run: dryRun, due_users: byUser.size, emailed: sent, skipped: skipped.length,
+  }, { path: '/api/cron/companion-brief' });
   return NextResponse.json({
     ok: true,
     dry_run: dryRun,

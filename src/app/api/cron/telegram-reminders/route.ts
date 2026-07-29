@@ -9,6 +9,7 @@ import {
 } from '@/lib/telegram-settlement';
 import { notificationGateAllowsSend } from '@/lib/notification-gate';
 import type { DecisionContract } from '@/stores/types';
+import { logServerEvent } from '@/lib/server-events';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -147,5 +148,7 @@ export async function GET(req: Request) {
     }
   }
 
+  // 계기 (2026-07-29): 텔레그램 귀환 알림도 같은 이유로 흔적을 남긴다.
+  logServerEvent('cron_telegram_reminders', { due: due?.length ?? 0, sent }, { path: '/api/cron/telegram-reminders' });
   return NextResponse.json({ ok: true, date: today, due: due?.length ?? 0, sent });
 }
