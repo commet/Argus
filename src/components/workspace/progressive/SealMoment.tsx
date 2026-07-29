@@ -913,13 +913,19 @@ export function SealMoment({
               {/* The gold button is Google-only. Email/password sign-up is a real
                   path (and the one that has actually converted lately), so it must
                   be reachable from the peak-ownership moment too — not just from
-                  the header. */}
+                  the header.
+                  `?signup=1` 로 **가입 모드에 바로 내려놓는다** — 전에는 로그인
+                  모드로 떨어져서 한 번 더 전환 링크를 찾아야 했다. `redirect` 는
+                  가입이 끝나면 방금 봉인한 이 자리로 돌려보낸다. */}
               <LocaleLink
-                href="/login"
+                href="/login?signup=1&redirect=/workspace"
                 onClick={() => track('seal_signin_cta', { placement: 'sealed_email' })}
                 className="text-[12px] font-medium text-[var(--text-tertiary)] hover:text-[var(--accent)] hover:underline"
               >
-                {L('이메일로 가입하기', 'Sign up with email')}
+                {/* 무엇을 얻는지로 말한다. "가입하기"는 우리가 원하는 것이고,
+                    "그날 물어봐 준다"는 그 사람이 얻는 것이다 — 그리고 그게
+                    바로 위에서 "알려드릴 주소가 아직 없어요"라고 말한 그 구멍이다. */}
+                {L(`이메일 남기고 ${dateFor(interval)}에 알림 받기`, `Leave an email and get the ${dateFor(interval)} nudge`)}
               </LocaleLink>
             </div>
           )}
