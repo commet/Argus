@@ -196,9 +196,46 @@ export function selectCardPremises(
     if (!t || norm(t) === target) continue;
     if (t.length > 90) continue;
     if (isQuestionShaped(t)) continue;
-    if (out.some((x) => norm(x) === norm(t))) continue;
+    if (saysTheSame(t, target) || out.some((x) => saysTheSame(x, t))) continue;
     out.push(t);
     if (out.length >= MAX_CARD_PREMISES) break;
   }
   return out;
+}
+
+/**
+ * 두 문장이 사실상 같은 말인가.
+ *
+ * 실주행(2026-07-29)에서 카드에 이렇게 찍혔다:
+ *     · 다음 분기 매출이 지금 수준을 유지한다.
+ *     · 다음 분기 매출은 확정 계약 기준으로 현재와 유사한 수준을 유지한다.
+ * 글자가 달라 정확 일치 대조를 통과했지만 **같은 생각 하나**다. 두 자리밖에
+ * 없는 카드가 한 생각에 둘을 다 쓰면, 알차 보이라고 넣은 것이 오히려 채워넣은
+ * 것처럼 보인다 — 목적의 정반대다.
+ *
+ * 판정은 내용어 겹침으로 한다. 문턱을 낮추면 서로 다른 전제가 사라지므로
+ * (조용한 손실) 겹침이 확실할 때만 같은 말로 본다. 짧은 조사·어미는 2글자
+ * 미만이라 자연히 빠지고, 한국어에서 판별력을 갖는 명사·용언 어간이 남는다.
+ */
+function saysTheSame(a: string, b: string): boolean {
+  // 조사를 떼고 센다. 한국어는 교착어라 같은 낱말이 자리마다 다른 꼬리를 단다 —
+  // "매출이" 와 "매출은" 을 다른 낱말로 세면 같은 문장의 겹침이 0.67 에서 멈춰
+  // 통과해버린다 (2026-07-29 실측: 카드에 같은 말이 두 줄 찍힌 그 경우).
+  const PARTICLE = /(으로|에서|부터|까지|이|가|은|는|을|를|의|에|로|와|과|도|만)$/;
+  const stem = (w: string) => {
+    const s = w.replace(PARTICLE, '');
+    // 떼고 나서 한 글자만 남으면 원형을 쓴다 ("도시"→"도" 같은 과잉 절단 방지).
+    return s.length >= 2 ? s : w;
+  };
+  const tokens = (s: string) => new Set(
+    s.toLowerCase().replace(/[^\p{L}\p{N}\s]/gu, ' ').split(/\s+/)
+      .filter((w) => w.length >= 2).map(stem),
+  );
+  const ta = tokens(a);
+  const tb = tokens(b);
+  if (ta.size === 0 || tb.size === 0) return false;
+  let shared = 0;
+  for (const w of ta) if (tb.has(w)) shared++;
+  // 작은 쪽 기준 — 한쪽이 길게 부연했을 뿐인 경우를 잡아야 한다.
+  return shared / Math.min(ta.size, tb.size) >= 0.7;
 }
