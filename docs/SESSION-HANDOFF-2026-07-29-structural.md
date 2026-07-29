@@ -212,6 +212,7 @@ PR 코멘트의 로컬 재현 표를 볼 것.
 |---|---|---|
 | `premises-core.ts` | 47% | **73%** |
 | `decision-contract.ts` | **16%** | **29%** |
+| `review/status.ts` | 70% | **85%** |
 
 `decision-contract.ts`가 제품의 척추인데 가장 낮았다. 사용자에게 직접 닿는 셋을
 막았다(`decision-contract-spine-mutations.test.ts`): 저작자 분기(AI 초안이 사용자
@@ -219,7 +220,9 @@ PR 코멘트의 로컬 재현 표를 볼 것.
 
 **남은 32개 생존자는 대부분 방어적 옵셔널 체이닝**이라 픽스처로는 안 죽는다 —
 실제 망가진 데이터에서만 드러나는 부류다. 100%를 쫓는 대신, 다음 후보로 넘어가는 게
-낫다: `review/status.ts` → `premise-researcher.ts` → `notification-gate.ts`.
+낫다. 다음 후보: `premise-researcher.ts` → `notification-gate.ts` → `progressive-engine.ts`.
+
+`review/status.ts`에서 막은 것: **정산 완료 판정**(`settled_count >= sealed_count` — 뒤집히면 3개 중 1개만 정산한 영수증이 '완료'로 접히고 다 정산한 것은 계속 열려 있다)과 대시보드 정렬(뒤집히면 가장 급한 것이 맨 아래로 가는데 라벨은 그대로라 화면은 멀쩡해 보인다).
 
 ### D. 새 쌍을 발견하면 등록부에 한 줄
 `agreement-pairs.test.ts`. 이번에 추가된 실사례:
