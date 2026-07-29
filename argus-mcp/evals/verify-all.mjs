@@ -518,7 +518,9 @@ selfTest(
   // 정책 상한(1.1ms)과 보수적 인간 하한(250ms) 사이에만 있어야 한다.
   '자기검증 ㉘ 귀속 거부 문턱이 사람 영역으로 올라가는 회귀를 잡는가',
   'src/lib/elicit.ts',
-  (s) => s.replace('export const UNSEEN_DECLINE_MAX_MS = 5;', 'export const UNSEEN_DECLINE_MAX_MS = 5000;'),
+  // 값을 정규식으로 잡는다 — 상수를 5에서 50으로 올렸을 때 리터럴 앵커였다면
+  // 조용히 안 심겼을 것이다(그러면 이 자기검증이 아무것도 증명 못 한다).
+  (s) => s.replace(/UNSEEN_DECLINE_MAX_MS = \d+;/, 'UNSEEN_DECLINE_MAX_MS = 5000;'),
   'node evals/decline-latency.mjs',
   // 이 게이트가 스스로 내는 판정문을 그대로 요구한다 — 비정상 종료만으로는
   // "잡았다"고 치지 않는다는 규칙을 지키면서, 공용 서명 추론에 기대지 않는다.

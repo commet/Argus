@@ -21,15 +21,18 @@ import {
  * `evals/decline-latency.mjs` re-measures both sides against the installed Codex
  * on every verify, so this is checked rather than believed.
  *
- * The threshold sits ~5x above the measured policy ceiling and ~200x below the
- * conservative human floor. Both directions are asserted below, because getting
- * it wrong either way erases a person:
+ * The threshold is placed for the WORST plausible machine, not the fastest
+ * measured one: the first value (5ms, five times the idle-machine ceiling) broke
+ * on a loaded CI runner, where a policy rejection with nothing drawn still took
+ * longer than 5ms and landed back on the user. It is now ~35x above the idle
+ * ceiling and ~4x below the conservative human floor. Both directions are
+ * asserted below, because getting it wrong either way erases a person:
  *
  *   too low  → a policy rejection is reported as "you declined", to someone who
  *              was shown nothing and then handed next_actions:["stop"]
  *   too high → a real "no" is swallowed and called a non-answer
  *
- * 무엇이 이걸 빨간불로 만드나: 귀속 거부를 지우면 ①②가, 문턱을 250ms 이상으로
+ * 무엇이 이걸 빨간불로 만드나: 귀속 거부를 지우면 ①②가, 문턱을 사람 영역(120ms 이상)으로
  * 올리면 ③이, canElicit이 스트릭을 다시 보면 ④가 빨개진다.
  */
 
@@ -80,7 +83,7 @@ describe('아무도 보지 못한 거절', () => {
   });
 
   it('③b 접근성·키보드 사용자의 빠른 거절도 그 사람의 것이다', async () => {
-    // 문턱(5ms)의 몇 배지만 사람으로서는 아주 빠른 축 — 이것도 삼키면 안 된다.
+    // 문턱의 몇 배지만 사람으로서는 아주 빠른 축 — 이것도 삼키면 안 된다.
     wire([{ action: 'decline', delayMs: UNSEEN_DECLINE_MAX_MS * 8 }]);
     const out = await elicitDetailed('Record this?', { type: 'object', properties: {} });
     expect(out.kind).toBe('declined');
@@ -97,10 +100,14 @@ describe('아무도 보지 못한 거절', () => {
     expect(w.asked()).toBe(2);
   });
 
-  it('⑤ 문턱은 사람의 최속보다 두 자릿수 아래에 있다', () => {
+  it('⑤ 문턱은 사람이 닿을 수 없는 구간 안에 있다', () => {
     // 게이트(evals/decline-latency.mjs)가 실호스트로 재는 것과 같은 불변식을,
     // 단위 수준에서도 못박는다. 문턱을 사람 영역으로 올리면 여기서 걸린다.
-    expect(UNSEEN_DECLINE_MAX_MS).toBeLessThanOrEqual(25);
+    //
+    // 상한 62ms의 근거: 준비된 사람이 화면 변화에 키를 누르는 단순반응 하한이
+    // ~250ms이고, 문턱은 그 1/4을 넘지 않아야 한다. 읽고 판단해서 거절하는
+    // 실제 행동은 ~1000ms이므로 실제 여유는 훨씬 크다.
+    expect(UNSEEN_DECLINE_MAX_MS).toBeLessThanOrEqual(62);
     expect(UNSEEN_DECLINE_MAX_MS).toBeGreaterThan(0);
   });
 });

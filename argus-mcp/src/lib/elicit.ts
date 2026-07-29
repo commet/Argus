@@ -57,15 +57,32 @@ export const DECISION_ASK_TIMEOUT_MS = 10 * 60 * 1000;
  *     0.3ms · 0.3ms · 0.3ms · 0.4ms · 1.1ms
  *
  * Against the fastest possible HUMAN decline, which still needs a render, a read
- * and a keypress: ~1000ms. Three orders of magnitude apart. 5 is deliberately
- * ~5x above the measured ceiling and ~200x below the human floor, so it is not a
- * tuned number — anywhere in that gap behaves identically.
+ * and a keypress: ~1000ms, and even a *prepared* simple reaction to a visual cue
+ * does not go below ~200ms. Three orders of magnitude apart.
  *
- * `evals/decline-latency.mjs` re-measures both sides on every verify. If Codex
- * ever starts rendering something in under 5ms, that gate goes red rather than
- * this constant quietly becoming wrong.
+ * WHY THIS IS 50 AND NOT THE 1.4ms THE MEASUREMENT WOULD ALLOW. The first value
+ * was 5 — five times the ceiling observed on an idle Windows machine. CI then
+ * failed on Linux with the invisible decline landing back on the user:
+ *
+ *     B0 Codex really did intercept it — nothing reached the client   ✓
+ *     B1 a decline no form could have preceded is not attributed …    ✗
+ *        {"sealed":false,"choice":"declined"}
+ *
+ * Nothing had been drawn — B0 proves it — and the policy rejection still took
+ * longer than 5ms, because a shared runner under load is not an idle laptop.
+ * The founder's own machine mid-build is the same story. A threshold calibrated
+ * on quiet hardware silently stops working exactly when the machine is busy.
+ *
+ * So the constant is placed for the WORST plausible machine rather than the
+ * fastest measured one: ~35x above the idle-machine ceiling, and still 4x below
+ * the most conservative human floor and ~20x below a realistic human decline.
+ * No person can read a prediction and refuse it in 50ms.
+ *
+ * `evals/decline-latency.mjs` re-measures both sides on every verify and holds
+ * the constant inside that gap from both directions, so it can neither drift up
+ * into human range nor be quietly outrun by a slower host.
  */
-export const UNSEEN_DECLINE_MAX_MS = 5;
+export const UNSEEN_DECLINE_MAX_MS = 50;
 
 export interface McpClientCapabilities {
   elicitation?: unknown;
