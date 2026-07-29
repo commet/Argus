@@ -102,7 +102,6 @@ argus-plugin-v2/evals/sweep-report.json
 # AI-dev exhaust & local Claude Code state — never commit (repo is public)
 /.claude/projects/
 /.claude/worktrees/
-/.claude/skills/*/_*        # one-off scratch fragments (e.g. _writer.js, _test_write.txt)
 
 # Borrowed/vendored non-Argus skill packs — not redistributed in this repo
 /.agents/

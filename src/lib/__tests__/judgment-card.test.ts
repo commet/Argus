@@ -196,7 +196,51 @@ describe('이게 맞으려면 — 전제는 고르기만 한다', () => {
   it('최대 두 줄까지만 (판단이 주인공 자리를 잃지 않게)', () => {
     const card = buildJudgmentCard({
       ...BASE,
-      predicates: [gi('a', '전제 하나.'), gi('b', '전제 둘.'), gi('c', '전제 셋.')],
+      predicates: [
+        gi('a', '온보딩 기간은 3~6개월로 잡는다.'),
+        gi('b', '핵심 인력 이탈은 이번 분기에 없다.'),
+        gi('c', '예산 승인은 이미 끝났다.'),
+      ],
+    }, '채용 결정');
+    expect(card?.premises).toHaveLength(2);
+  });
+
+  it('같은 말을 다르게 쓴 두 줄은 한 줄만 올린다', () => {
+    // 실주행에서 실제로 이렇게 찍혔다. 글자가 달라 정확 일치 대조를 통과했지만
+    // 같은 생각 하나다 — 두 자리를 한 생각에 다 쓰면 알찬 게 아니라 채워넣은 것이다.
+    const card = buildJudgmentCard({
+      ...BASE,
+      sealed_statement: '역할 재분배를 먼저 한다.',
+      predicates: [
+        gi('a', '다음 분기 매출이 지금 수준을 유지한다.'),
+        gi('b', '다음 분기 매출은 확정 계약 기준으로 현재와 유사한 수준을 유지한다.'),
+        gi('c', '핵심 인력 이탈은 이번 분기에 없다.'),
+      ],
+    }, '채용 결정');
+    expect(card?.premises).toEqual([
+      '다음 분기 매출이 지금 수준을 유지한다.',
+      '핵심 인력 이탈은 이번 분기에 없다.',
+    ]);
+  });
+
+  it('봉인 문장을 다르게 쓴 것도 안 올린다', () => {
+    const card = buildJudgmentCard({
+      ...BASE,
+      sealed_statement: '다음 분기 매출이 지금 수준을 유지한다.',
+      predicates: [gi('a', '다음 분기 매출은 지금 수준을 그대로 유지한다.'), gi('b', '핵심 인력 이탈은 없다.')],
+    }, '채용 결정');
+    expect(card?.premises).toEqual(['핵심 인력 이탈은 없다.']);
+  });
+
+  it('서로 다른 전제는 둘 다 남는다 (조용한 손실 방지)', () => {
+    // 문턱이 너무 낮으면 멀쩡한 전제가 사라진다. 이쪽도 함께 본다.
+    const card = buildJudgmentCard({
+      ...BASE,
+      sealed_statement: '역할 재분배를 먼저 한다.',
+      predicates: [
+        gi('a', '온보딩 기간은 3~6개월로 잡는다.'),
+        gi('b', '핵심 인력 이탈은 이번 분기에 없다.'),
+      ],
     }, '채용 결정');
     expect(card?.premises).toHaveLength(2);
   });
