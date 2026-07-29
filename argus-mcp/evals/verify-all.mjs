@@ -225,6 +225,13 @@ run('단위·프로토콜 테스트', 'npm test -- --reporter=dot', { extract: (
 // EPERM while a just-exited spawned server still holds the file — a flake in the
 // HARNESS that reads as a product failure. verify already built; call it directly.
 run('적대 입력 퍼즈', 'node evals/fuzz.mjs', { extract: (o) => (o.match(/(server alive after run: \w+)/) || [])[1] ?? '' });
+// Vitest and the fuzzer both exercise spawned copies of the server. On Windows,
+// process/file-release timing has occasionally left the shared dist entrypoint
+// absent between otherwise successful gates. A missing executable is a harness
+// precondition failure, not a picker verdict: restore the known build before
+// launching the strict-host journey. The journey itself still fails normally
+// for every product/schema error.
+if (!fs.existsSync(path.join(ROOT, 'dist', 'index.js'))) build();
 run('픽커 E2E (엄격 호스트)', `node evals/e2e-picker.mjs "${process.execPath}" dist/index.js`, { extract: (o) => (o.match(/(E2E: [^\n]*)/) || [])[1] ?? '' });
 run('원장 못 읽을 때 쓰기 차단', 'node evals/unreadable-ledger.mjs', { extract: (o) => (o.includes('✅') ? '이중 봉인 차단 확인' : '') });
 run('패키지 내용물', 'npm pack --dry-run');
