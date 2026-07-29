@@ -472,11 +472,11 @@ S.push({
   steps: (d) => [
     { tool: 'argus_predict', args: { argus_dir: d, id: 's36b', predicate: '파트너사 계약서 검토가 끝난다', check_by: '2026-07-10', predicate_owner: 'user', today_override: T0 } },
     { tool: 'argus_resolve', args: { argus_dir: d, id: 's36b', outcome: 'still_pending', outcome_source: 'user_stated', today_override: '2026-07-15' },
-      expect: (env) => {
-        if (env.data?.choice !== 'declined') return `decline을 시간으로 재해석했다: ${JSON.stringify(env.data).slice(0, 200)}`;
-        if (env.data?.recorded !== false) return `기록하지 않았어야 한다: ${JSON.stringify(env.data).slice(0, 200)}`;
-        return null;
-      } },
+      // The defer picker declined the date: preserve the decision as due and
+      // require a date rather than guessing one. The wire action itself is
+      // covered at the elicitation seam; this tool contract is an honest
+      // validation error, just as in S36 above.
+      expectError: 'DEFER_DATE_REQUIRED' },
     { tool: 'argus_patterns', args: { argus_dir: d, view: 'all', today_override: '2026-07-15' },
       expect: (env) => {
         const row = (env.data?.contracts ?? []).find((c) => c.id === 's36b');
