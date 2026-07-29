@@ -33,8 +33,10 @@
 | 4 | 첫 실행 문장만 영어다 | 구조 |
 | 5 | enum 거절 에러가 산문 칸의 존재를 안 알린다 (3곳) | 구조 (내 실수에서 발견) |
 | 6 | 검증 실패한 호출이 원장에 이미 쓰고 실패한다 | 구조 (내 실수에서 발견) |
-| 7 | 전제 `ref`를 얻을 도구가 없다 | 구조 |
+| 7 | ~~전제 `ref`를 얻을 도구가 없다~~ | **철회 — §1.7 참조** |
 | 8 | 달력 파일 경로가 문장에 없다 | 문안 |
+
+2차 주행(같은 날, 아래 §4)에서 8건 추가. 목록은 §4.1에 있다.
 
 ---
 
@@ -186,7 +188,20 @@ N건")는 `seal` 기준이라 어긋나지 않았지만, 원장 자체에는 중
   기록한다"는 의도를 명시하는데, 그 의도는 **게이트**를 대상으로 한 것이고
   **인자 검증 실패**는 고려 범위 밖으로 보인다.
 
-### 7. 전제 `ref`를 얻을 도구가 없다
+### 7. ~~전제 `ref`를 얻을 도구가 없다~~ — **철회 (2차 주행에서 반증)**
+
+> **이 항목은 틀렸다.** `argus_patterns view="decision_context" id=<id>`가
+> `ref`(`"P1"`)와 `premise_id`(`"p_ykj1rf"`)를 포함한 전제 목록을 돌려준다.
+> 나는 `argus_patterns`의 인자 스키마를 확인하지 않고 "나열해 주는 도구가
+> 없다"고 적었다. 이 항목을 근거로 새 조회 경로를 짓지 말 것.
+>
+> **다만 §2는 그대로 유효하다** — `ref`를 얻어도 정산 후에는
+> `DECISION_CLOSED`라 쓸 수 없다. 교정이 막히는 원인은 조회 부재가 아니라
+> 상태 전이 규칙이다.
+>
+> 원래 서술은 기록으로 남긴다:
+
+
 
 전제 교정에는 `ref`(예: `p_ykj1rf`)가 필요하다. 이 id는 전제를 만든 그 응답의
 `data`에만 있다. 공개 도구 6개(`argus_capture`/`predict`/`check_in`/`resolve`/
@@ -258,5 +273,166 @@ npm install argus-decision-mcp@2.0.9
 
 ---
 
+## 4. 2차 주행 — 스파인·경계·에러 경로 (같은 날)
+
+1차가 정상 여정이었다면 2차는 **억제 게이트가 실제로 억제하는지**와
+**경계·실패 경로**를 봤다. 같은 발행본 2.0.9, 같은 방식.
+
+### 4.1 추가 관찰
+
+| # | 관찰 | 성격 |
+|---|---|---|
+| N1 | 확인일 **전**에도 정산이 통과하고, 조기 정산 표시가 없다 | 구조 |
+| N2 | `low_stakes` 문안이 코드 주석의 자기 계약(지시 금지)을 위반 | 문안·스파인 |
+| N3 | `leave_coda`가 문맥 무관하게 붙어 사실과 어긋난다 | 문안 |
+| N4 | `monitoring_enabled`가 조용히 무효인 설정 | 구조 |
+| N5 | `reconfirm`이 사용자가 쓴 적 없는 값을 확인하라 한다 | 문안 |
+| N6 | 에러 복구 안내에 내부 배관(`mcp_` 접두사)이 샌다 | 문안 |
+| N7 | `integrity`가 무결성이 아니라 파싱 계수기다 | 이름 |
+| N8 | `decision_context` 문장의 정보량이 낮다 | 문안 |
+
+### N1. 확인일 전에도 정산이 통과한다
+
+`hire-vs-agency`의 `check_by`는 `2026-08-05`인데, `2026-07-29`에
+`argus_resolve`를 호출하니 **7일 일찍 통과**했고 영수증까지 발급됐다.
+영수증에 두 날짜가 나란히 남지만 조기 정산이라는 표시는 없다:
+
+```json
+{ "check_by": "2026-08-05", "settled_at": "2026-07-29T07:16:15.642Z",
+  "outcome": "held", "what_happened": "벌써 됐다", "assumption_held": true }
+```
+
+`argus_patterns view="receipt"`는 이걸 이렇게 읽어 준다:
+
+> 예측: "…". 현실: "벌써 됐다" (예측대로). 채점은 없습니다.
+> **예측은 당신이, 답은 현실이 했습니다.**
+
+- **불일치**: `argus_check_in`은 같은 순간 "확인할 차례가 된 것은 없습니다"라고
+  답한다. 두 도구가 *도래(due)* 개념을 공유하지 않는다.
+- **왜 걸리는가**: 조기 정산 자체를 막는 게 옳은지는 이 기록이 정할 일이
+  아니다(사용자가 결과를 일찍 알 수도 있다). 다만 **조기인지 아닌지 구분이
+  기록에 남지 않는다**는 사실은 남긴다 — "현실이 답했다"가 제품의 유일한
+  검증 근거인데, 답하기 전에 적힌 것과 뒤에 적힌 것이 같은 모양이다.
+- **빨간불 조건**: `settled_at < check_by`인 영수증이 그 사실을 담지 않으면
+  실패하는 테스트.
+
+### N2. `low_stakes` 문안이 자기 계약을 위반한다
+
+`argus-mcp/src/tools/open-decision.ts:120~125` 주석이 억제 문장의 계약을
+직접 적어 두었다:
+
+> the line ENDS by naming the option and returning the handle —
+> **never a directive ("leave it") issued in the user's stead**
+
+그런데 여섯 개 이유 문자열 중 `low_stakes` 하나만 권고형이다:
+
+| 이유 | EN (`surfaces.ts:475~480`) | KO (`:642~647`) |
+|---|---|---|
+| vent | This reads like something to say out loud… | 이건 소리 내어 말할 일이지… |
+| factual | This is a question with an answer… | 이건 답이 있는 질문이지… |
+| already_closed | You already made this call… | 이미 내린 결정입니다… |
+| flat | The options are close to even… | 선택지가 거의 대등합니다… |
+| reversible_low_stakes | Cheap to undo and little at stake. | 되돌리기 쉽고 크게 걸린 것도 없는 결정입니다. |
+| **low_stakes** | **…so the steady move is to leave it as is.** | **…그대로 두는 편이 무난합니다.** |
+
+나머지 다섯은 순수 서술이고 이것만 "무난하다 / the steady move"라고 **권한다.**
+두 로케일 모두 같다.
+
+배정도 봐야 한다. `reversible_low_stakes`가 따로 있으므로 `low_stakes`는
+**걸린 것은 작지만 되돌리기 어려운** 쪽에 배정된다. 실측(`stakes:"low"`,
+`reversibility:"one_way_door"`, "손목에 문신을 할지")에서 나온 문장:
+
+> 걸린 것이 별로 없습니다. 그대로 두는 편이 무난합니다. 그대로 두는 것도
+> 여전히 진짜 선택지입니다.
+
+되돌릴 수 없는 행동에 대해 권고가 나가고, 같은 말이 두 번 나간다.
+
+### N3. `leave_coda`가 문맥과 무관하게 붙는다
+
+`open-decision.ts:127`이 비발화 이유 전부에 `T.leave_coda`를 무조건 이어
+붙인다. `already_decided:true` + "이미 계약서에 서명했다. 사무실을 강남으로
+옮기기로 했다"에 대해 나온 문장:
+
+> 이미 내린 결정입니다. Argus는 이걸 다시 열지 않습니다.
+> **그대로 두는 것도 여전히 진짜 선택지입니다.**
+
+계약서에 이미 서명한 사람에게 "현상 유지도 진짜 선택지"라고 말한다. 앞 문장이
+"다시 열지 않는다"고 해놓고 뒤 문장이 선택지를 제시한다.
+
+### N4. `monitoring_enabled`가 조용히 무효인 설정
+
+`premises[].monitoring_enabled`의 스키마 기본값은 **`true`**이고, 원장에도
+`true`로 기록된다:
+
+```json
+{"event":"premise_add","premise_id":"p_ykj1rf","load_bearing":true,
+ "monitoring_enabled":true,"external":false,"source":"ai_surfaced"}
+```
+
+그런데 `isMonitored`(`argus-mcp/src/lib/premises-core.ts:184`)는
+`p.external === true`를 요구하고, `external`의 기본값은 `false`다. 그래서
+조회하면 `monitored: false`로 나오고, 사용자는 이렇게 듣는다:
+
+> 이 결정에 전제 1건이 있습니다. **0건 추적 중**, 0건 재확인 차례.
+
+모델은 켰다고 믿고, 원장에는 켜졌다고 적히고, 화면은 꺼졌다고 말한다.
+(`isMonitored`의 정의 자체는 의도된 것으로 보인다 — 문제는 **기본값 `true`가
+조건을 만족시키지 못한 채 참으로 기록된다**는 점이다.)
+
+### N5. `reconfirm`이 사용자가 쓴 적 없는 값을 확인하라 한다
+
+`stakes:"high"` + `reversibility:"easily_reversible"`에서 나오는 문장
+(`surfaces.ts:652`):
+
+> 신호가 서로 어긋납니다 (걸린 것은 큰데 되돌리기는 쉽습니다).
+> 더 나아가기 전에 **이 둘을 다시 짚어 보세요.**
+
+`stakes`·`reversibility`는 사용자 발화가 아니라 **모델이 채운 도구 인자**다.
+사용자는 그 두 단어를 말한 적이 없는데 그것을 재확인하라는 지시를 받는다.
+
+### N6. 에러 복구 안내에 내부 배관이 샌다
+
+`NO_PRIOR_SEAL`의 복구 안내:
+
+> argus_predict로 … 먼저 저장하세요.
+> **(id가 argus_settings sync에서 온 "mcp_" 접두사라면 접두사를 뗀 id를 쓰세요.)**
+
+서버가 호스트에 주는 지시문은 *"Internal ids and errors are plumbing;
+recover quietly"*인데, 에러 문안이 id 접두사 규칙을 노출한다.
+
+### N7. `integrity`가 무결성이 아니라 파싱 계수기다
+
+`argus_check_in`의 `data.integrity`는 `{dropped_lines, skipped_unknown}`뿐이다.
+§0에서 밝혔듯 나는 `ledger.jsonl`의 `check_by`를 손으로 고쳤는데, 그 뒤에도
+`{"dropped_lines":0,"skipped_unknown":0}`이었다. 줄이 깨졌는지만 세고 내용
+정합성은 보지 않는다. 이름이 보증 범위보다 넓게 읽힌다.
+
+(원장 변조 방지가 이 제품의 위협 모델에 들어가는지는 별개 문제다. 여기서는
+**이름과 실제 보증 범위가 어긋난다**는 것만 적는다.)
+
+### N8. `decision_context` 문장의 정보량이 낮다
+
+> 이 결정에 전제 1건이 있습니다. 0건 추적 중, 0건 재확인 차례.
+
+숫자 셋 중 둘이 0이고, "추적"과 "재확인"이 무엇인지 설명이 없다. 전제 문장
+자체는 `data.premises[].text`에 있으나 문장에는 실리지 않는다 (§1.1과 같은
+모양).
+
+### 4.2 2차 주행에서 잘 작동한 것
+
+- **억제 게이트가 실제로 억제한다.** 사소·되돌리기 쉬움·이미 결정함·평평함
+  네 경우 모두 `fork_emitted: false`, `crux_question: null`로 통과했고 갈림길을
+  만들어내지 않았다. CLAUDE.md 미러 조항(과다발화 금지)이 코드에서 지켜진다.
+  (문제는 §N2·N3의 **문안**이지 게이트의 판정이 아니다.)
+- **동시성이 견고하다.** 서로 다른 프로세스 8개가 같은 `argus_dir`에 동시에
+  봉인 → 8/8 성공, 원장 16줄, JSON 파싱 실패 0줄, seal 유실 0건.
+  병렬 세션을 실제로 굴리는 환경에서 중요한 성질이다.
+- **상태 전이 가드가 정확하다.** 없는 id 정산 → `NO_PRIOR_SEAL`,
+  이미 정산한 것 재정산 → `ALREADY_SETTLED`, 같은 결정 2회 봉인 →
+  `ILLEGAL_TRANSITION`. 전부 조용히 성공하지 않고 제대로 막았다.
+
+---
+
 *이 기록은 판정이 아니다. 각 항목의 "빨간불 조건"이 채워지기 전까지, 어느
-것도 exit 체크를 대신하지 않는다.*
+것도 exit 체크를 대신하지 않는다. 그리고 §1.7이 보여주듯 **이 기록 자체도
+틀릴 수 있다** — 항목을 근거로 짓기 전에 해당 코드를 직접 확인할 것.*
