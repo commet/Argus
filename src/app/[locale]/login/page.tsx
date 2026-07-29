@@ -78,6 +78,15 @@ function LoginContent() {
     }
   }, [searchParams, locale]);
 
+  // `?signup=1` — 봉인 직후처럼 "가입하러 왔다"가 이미 확실한 진입은 가입 모드로
+  // 연다. 전에는 로그인 모드로 떨어져서, 방금 봉인한 사람이 "이메일로 가입하기"를
+  // 누르고도 **가입 폼이 아닌 화면**을 만나 한 번 더 전환 링크를 찾아야 했다.
+  // 폼 자체는 복제하지 않는다 — 약관·개인정보 동의와 캡차가 두 곳에 생기면
+  // 한쪽만 고쳐지는 날이 온다. 여기 정본 하나에 정확히 데려다 놓는 것으로 족하다.
+  useEffect(() => {
+    if (searchParams.get('signup') === '1') setIsSignUp(true);
+  }, [searchParams]);
+
   useEffect(() => {
     if (!loading && user) {
       router.replace(safePostAuthRedirect(searchParams.get('redirect')));
