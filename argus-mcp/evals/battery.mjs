@@ -461,13 +461,10 @@ S.push({
   ],
 });
 S.push({
-  // MCP decline은 명시적 거절이다. 다만 호스트가 정책 차단에도 같은 값을 쓰고,
-  // 그 경우는 **측정으로 구분된다**: 실제 codex app-server 정책 차단이
-  // 0.3~1.1ms인 반면 사람의 거절은 화면이 그려지고 읽고 누르는 ~1000ms가 든다
-  // (evals/decline-latency.mjs가 매 verify마다 양쪽을 다시 잰다).
-  // 아무 화면도 선행할 수 없었던 거절은 사용자 것이라 **귀속하지 않는다** —
-  // 결론을 내리는 게 아니라 귀속을 거부하는 것이고, 원장은 그대로 둔다.
-  name: 'S36b defer 픽커 — 아무 화면도 없던 거절은 귀속하지 않는다 (관찰)',
+  // MCP decline은 명시적 거절이다. 호스트가 정책 차단에도 같은 값을 쓰는
+  // 결함은 서버가 응답 시간으로 구분할 수 없다. 원장을 건드리지 않되 wire
+  // 의미를 그대로 보존한다.
+  name: 'S36b defer 픽커 — 즉시 decline도 명시적 거절로 보존한다 (관찰)',
   lang: 'ko',
   respond: (p) => (pickerKind(p.requestedSchema) === 'defer'
     ? { action: 'decline' }                    // 즉시 — 시간과 무관하게 같은 의미
@@ -475,14 +472,7 @@ S.push({
   steps: (d) => [
     { tool: 'argus_predict', args: { argus_dir: d, id: 's36b', predicate: '파트너사 계약서 검토가 끝난다', check_by: '2026-07-10', predicate_owner: 'user', today_override: T0 } },
     { tool: 'argus_resolve', args: { argus_dir: d, id: 's36b', outcome: 'still_pending', outcome_source: 'user_stated', today_override: '2026-07-15' },
-      // 화면이 뜬 적 없는 거절이므로 "사용자가 거절함"이 아니라 정직한 되물음이
-      // 나가야 한다. 결정은 원래 자리(확인일 2026-07-10, sealed)에 그대로 있어야
-      // 하고, 그건 아래 단계가 확인한다.
-      expect: (env) => {
-        if (env.data?.choice !== 'no_answer') return `아무도 못 본 거절이 사용자 답으로 기록됐다: ${JSON.stringify(env.data).slice(0, 200)}`;
-        if (env.data?.recorded !== false) return `기록하지 않았어야 한다: ${JSON.stringify(env.data).slice(0, 200)}`;
-        return null;
-      } },
+      expectError: 'DEFER_DATE_REQUIRED' },
     { tool: 'argus_patterns', args: { argus_dir: d, view: 'all', today_override: '2026-07-15' },
       expect: (env) => {
         const row = (env.data?.contracts ?? []).find((c) => c.id === 's36b');

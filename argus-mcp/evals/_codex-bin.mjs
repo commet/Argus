@@ -7,7 +7,7 @@
  * back to the `codex.cmd` shim, the other returned null. On an ordinary npm
  * install — which puts only `codex` and `codex.cmd` on PATH — that one-line
  * difference meant the app-server gate ran against a real Codex while the
- * decline-latency gate SKIPPED and reported success. It had measured nothing,
+ * another real-host gate SKIPPED and reported success. It had measured nothing,
  * and the only reason anyone noticed is that its own self-test refused to go red
  * when a regression was planted under it.
  *

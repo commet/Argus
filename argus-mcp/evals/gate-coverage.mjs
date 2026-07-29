@@ -24,7 +24,6 @@ const EXPECTED_BASELINE = new Set([
   'battery',
   'claude-code-form',
   'codex-app-server',
-  'decline-latency',
   'e2e-picker',
   'fuzz',
   'gate-coverage',

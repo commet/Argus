@@ -890,6 +890,9 @@ Phase 3과 4는 그 결과를 정본으로 받아 이어간다.
   생성하지 않는 실제 stdio 회귀 테스트가 있다.
 - 모든 설명을 지우는 방식은 폐기했다. 잘못된 호출을 막는 필드만 짧게 남기고
   전체 `tools/list` descriptor 크기를 20KB 이하로 고정했다.
+- 응답 지연으로 MCP `decline`의 행위자를 추론하지 않는다. 정책 차단이 빠르다는
+  측정은 렌더링 영수증이나 행위자 provenance가 아니므로, wire action은 속도와
+  무관하게 보존하고 Codex 정책 문제는 호스트 설정으로 안내한다.
 - MCP에 등록되지 않던 `review`, `watch`, `candidates` 도구 구현과 전용 테스트,
   웹앱 review-core 중복 사본, 문서 파서 운영 의존성(`mammoth`, `jszip`,
   `pdfjs-dist`)을 제거했다. 웹앱과 플러그인의 명시적 deep review는 유지된다.

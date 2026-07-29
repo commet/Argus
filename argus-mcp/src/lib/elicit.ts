@@ -48,25 +48,6 @@ export type Elicitor = (
  */
 export const DECISION_ASK_TIMEOUT_MS = 10 * 60 * 1000;
 
-/**
- * Below this, no form was ever painted, so the decline cannot be the user's.
- *
- * Measured against a real `codex app-server` with elicitations blocked by
- * policy — five calls, timed at the seam in elicitDetailed (2026-07-29):
- *
- *     0.3ms · 0.3ms · 0.3ms · 0.4ms · 1.1ms
- *
- * Against the fastest possible HUMAN decline, which still needs a render, a read
- * and a keypress: ~1000ms. Three orders of magnitude apart. 5 is deliberately
- * ~5x above the measured ceiling and ~200x below the human floor, so it is not a
- * tuned number — anywhere in that gap behaves identically.
- *
- * `evals/decline-latency.mjs` re-measures both sides on every verify. If Codex
- * ever starts rendering something in under 5ms, that gate goes red rather than
- * this constant quietly becoming wrong.
- */
-export const UNSEEN_DECLINE_MAX_MS = 5;
-
 export interface McpClientCapabilities {
   elicitation?: unknown;
 }
@@ -138,12 +119,7 @@ export function canElicit(): boolean {
 export type ElicitOutcome =
   | { kind: 'accepted'; content: Record<string, unknown> }
   | { kind: 'declined' }          // the user said no — respect it, stay silent
-  // `unattributable` — a decline returned before any form could be drawn (see
-  // UNSEEN_DECLINE_MAX_MS). Nothing is recorded and nothing is claimed. The
-  // in-band tools treat it exactly like `failed` and hand back the text path;
-  // the OUT-OF-BAND ask treats it like `declined` and spends its cooldown, since
-  // both readings agree that re-asking unprompted is wrong there.
-  | { kind: 'no_answer'; reason: 'cancelled' | 'failed' | 'unattributable' }
+  | { kind: 'no_answer'; reason: 'cancelled' | 'failed' }
   | { kind: 'unsupported' };      // no picker on this host at all
 
 /**
@@ -169,43 +145,12 @@ export async function elicitDetailed(
   // gate and launch an ask at a host that never declared it could show one.
   if (!_elicit || !canElicit()) return { kind: 'unsupported' };
   try {
-    const started = Date.now();
     const res = await _elicit(stripUnsafeChars(message), requestedSchema, timeoutMs);
     if (res.action === 'accept') return { kind: 'accepted', content: res.content ?? {} };
-    if (res.action === 'decline') {
-      // MEASURED, not argued. Real `codex app-server`, policy
-      // `granular.mcp_elicitations = false`, five consecutive elicitInput calls,
-      // timed inside the MCP server at the seam below (2026-07-29):
-      //
-      //     0.3ms  0.3ms  0.3ms  0.4ms  1.1ms
-      //
-      // A policy rejection is synthesized locally with no UI in the path, so it
-      // returns in UNDER A MILLISECOND. A person cannot participate in that
-      // window — the form has not been painted yet.
-      //
-      // The objection this replaces was that elapsed time cannot separate a
-      // policy rejection from a fast human, because keyboard users, assistive
-      // automation and someone who already knows their answer can all decline
-      // immediately. That is true of a form that EXISTS: those paths still
-      // require a render, a read and a keystroke, which is ~1000ms at the very
-      // fastest. The gap here is three orders of magnitude, and the threshold
-      // sits two orders above the measured ceiling — so every one of those users
-      // keeps their decline, and only a window nobody could have seen is refused.
-      //
-      // What this does NOT do: conclude anything about the user. It refuses to
-      // ATTRIBUTE. `no_answer` records nothing and claims nothing; the caller
-      // hands back the user's own material and the plain-text path. Getting this
-      // wrong in the other direction — telling someone they declined a dialog
-      // that was never drawn, then ending with next_actions:["stop"] — is the
-      // one thing CLAUDE.md forbids outright.
-      //
-      // evals/decline-latency.mjs re-measures this against the installed Codex
-      // on every verify, so the number above is checked rather than believed.
-      if (Date.now() - started <= UNSEEN_DECLINE_MAX_MS) {
-        return { kind: 'no_answer', reason: 'unattributable' };
-      }
-      return { kind: 'declined' };
-    }
+    // MCP gives us an action, not a render receipt or actor provenance.
+    // Response latency cannot manufacture either fact. Preserve the protocol
+    // action at every speed; host policy must be fixed or reported at the host.
+    if (res.action === 'decline') return { kind: 'declined' };
     return { kind: 'no_answer', reason: 'cancelled' }; // the host closed it without an answer
   } catch {
     return { kind: 'no_answer', reason: 'failed' }; // declared support but the ask never landed
