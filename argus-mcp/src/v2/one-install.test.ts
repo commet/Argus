@@ -114,10 +114,13 @@ describe('argus 플러그인 골격 — 하나의 설치 (O3 방1)', () => {
     expect(referenced).toContain('hooks/ambient-nudge.js');
   });
 
-  it('commands/*.md — 프론트매터가 있고, 가리키는 플러그인 루트 스크립트가 실존한다', () => {
+  it('별도 commands/*.md를 배송하지 않고 doctor는 내부 워크플로로 존재한다', () => {
     const commandsDir = path.join(PLUGIN, 'commands');
-    const files = fs.readdirSync(commandsDir).filter((f) => f.endsWith('.md'));
-    expect(files.length).toBeGreaterThan(0);
+    const files = fs.existsSync(commandsDir)
+      ? fs.readdirSync(commandsDir).filter((f) => f.endsWith('.md'))
+      : [];
+    expect(files).toEqual([]);
+    expect(fs.existsSync(path.join(PLUGIN, 'lib', 'workflows', 'doctor.md'))).toBe(true);
     for (const f of files) {
       const body = fs.readFileSync(path.join(commandsDir, f), 'utf8');
       expect(body.startsWith('---\n'), `${f}: 프론트매터 필수`).toBe(true);
@@ -127,9 +130,12 @@ describe('argus 플러그인 골격 — 하나의 설치 (O3 방1)', () => {
     }
   });
 
-  it('일상 ritual 커맨드는 없고 읽기 전용 doctor 비상구만 남는다', () => {
-    const files = fs.readdirSync(path.join(PLUGIN, 'commands')).filter((f) => f.endsWith('.md'));
-    expect(files).toEqual(['doctor.md']);
+  it('공개 commands 디렉터리에 별도 비상구를 다시 만들지 않는다', () => {
+    const commandsDir = path.join(PLUGIN, 'commands');
+    const files = fs.existsSync(commandsDir)
+      ? fs.readdirSync(commandsDir).filter((f) => f.endsWith('.md'))
+      : [];
+    expect(files).toEqual([]);
   });
 
   it('statusline — 정본 단일 사본이 플러그인에 실린다 (driver 사본 시대 종료)', () => {
