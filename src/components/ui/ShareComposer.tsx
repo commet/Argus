@@ -13,6 +13,7 @@ import { timeoutSignal } from '@/lib/timeout-signal';
 import { useSlackStore } from '@/stores/useSlackStore';
 import { useTelegramStore } from '@/stores/useTelegramStore';
 import { copyToClipboard, composeMailtoLink } from '@/lib/export';
+import { ANON_SHARE_LIMIT } from '@/lib/share-limits';
 import { track } from '@/lib/analytics';
 import { LocaleLink } from '@/components/ui/LocaleLink';
 
@@ -34,7 +35,12 @@ type Channel = 'email' | 'slack' | 'telegram' | 'link';
 export function ShareComposer({ open, onClose, getText, getTitle, shareContext = 'unknown' }: ShareComposerProps) {
   const locale = useLocale();
   const L = (ko: string, en: string) => (locale === 'ko' ? ko : en);
-  const { user } = useAuth();
+  // `user` 는 **진짜 계정**만이다 (익명 세션은 auth.tsx 에서 걸러진다). 링크 만들기는
+  // 서버가 익명 JWT 도 받으므로 `session` 으로 판정해야 한다 — 2026-07-29 이전에는
+  // `!!user` 로 막아서, 서버가 열려 있는데 화면이 닫혀 있었다. 설정 페이지의 계정
+  // 삭제가 정확히 같은 모양으로 틀렸었다(`user` 로 물어서 익명의 서버 사본을 못 지움).
+  const { user, session } = useAuth();
+  const hasIdentity = !!user || !!session;
 
   const text = useMemo(() => (open ? getText() : ''), [open, getText]);
   const title = useMemo(() => (open ? getTitle() : ''), [open, getTitle]);
@@ -92,7 +98,7 @@ export function ShareComposer({ open, onClose, getText, getTitle, shareContext =
     email: { icon: <Mail size={15} />, label: 'Email', ready: true },
     slack: { icon: <MessageSquare size={15} />, label: 'Slack', ready: slackConnected },
     telegram: { icon: <Send size={15} />, label: 'Telegram', ready: tgConnected },
-    link: { icon: <Link2 size={15} />, label: L('링크', 'Link'), ready: !!user },
+    link: { icon: <Link2 size={15} />, label: L('링크', 'Link'), ready: hasIdentity },
   };
 
   if (sentVia) {
@@ -147,10 +153,18 @@ export function ShareComposer({ open, onClose, getText, getTitle, shareContext =
               <button
                 key={ch}
                 onClick={() => setActive(active === ch ? null : ch)}
+                // `ready` 는 2026-07-29 까지 계산만 되고 **아무 데서도 읽히지 않았다** —
+                // 그래서 `ready: !!user` 를 고쳐도 화면은 그대로였고, 진짜 게이트는
+                // LinkPanel 안에 따로 있었다. 만들어놓고 아무도 안 먹는 필드는 다음
+                // 사람을 정확히 틀린 줄로 데려간다 (CLAUDE.md F2 소비 계약).
+                // 이제 실제로 읽어서 "아직 준비 안 된 곳"을 눌러보기 전에 알려준다.
+                // 막지는 않는다 — 눌러야 연결 안내에 닿기 때문이다.
+                aria-disabled={!channelMeta[ch].ready}
+                title={channelMeta[ch].ready ? undefined : L('아직 준비되지 않았어요 — 눌러서 확인', 'Not ready yet — tap to see why')}
                 className={`flex items-center justify-center gap-1.5 py-2.5 rounded-xl border text-[13px] font-medium transition-all cursor-pointer ${
                   active === ch
                     ? 'border-[var(--accent)] bg-[var(--ai)] text-[var(--accent)]'
-                    : 'border-[var(--border)] text-[var(--text-secondary)] hover:border-[var(--accent)]'
+                    : `border-[var(--border)] text-[var(--text-secondary)] hover:border-[var(--accent)]${channelMeta[ch].ready ? '' : ' opacity-55'}`
                 }`}
               >
                 {channelMeta[ch].icon}
@@ -195,7 +209,14 @@ export function ShareComposer({ open, onClose, getText, getTitle, shareContext =
           />
         )}
         {active === 'link' && (
-          <LinkPanel user={!!user} title={title} text={text} context={shareContext} onCreated={() => trackShare('link')} />
+          <LinkPanel
+            hasIdentity={hasIdentity}
+            anonymous={!user}
+            title={title}
+            text={text}
+            context={shareContext}
+            onCreated={() => trackShare('link')}
+          />
         )}
       </div>
     </Modal>
@@ -203,7 +224,7 @@ export function ShareComposer({ open, onClose, getText, getTitle, shareContext =
 }
 
 /* ── Public link ── */
-function LinkPanel({ user, title, text, context, onCreated }: { user: boolean; title: string; text: string; context: string; onCreated: () => void }) {
+function LinkPanel({ hasIdentity, anonymous, title, text, context, onCreated }: { hasIdentity: boolean; anonymous: boolean; title: string; text: string; context: string; onCreated: () => void }) {
   const locale = useLocale();
   const L = (ko: string, en: string) => (locale === 'ko' ? ko : en);
   const [url, setUrl] = useState('');
@@ -211,12 +232,14 @@ function LinkPanel({ user, title, text, context, onCreated }: { user: boolean; t
   const [error, setError] = useState('');
   const [copied, setCopied] = useState(false);
 
-  if (!user) {
+  // 신원이 아예 없는 순간(분석 전)에만 남는 상태. 익명 신원은 분석이 끝나면 발급되므로,
+  // 실제로 보여줄 결과물이 있는 사람은 거의 여기 오지 않는다.
+  if (!hasIdentity) {
     return (
       <div className="rounded-xl border border-[var(--border-subtle)] p-3.5 animate-fade-in">
         <p className="text-[12px] text-[var(--text-secondary)] mb-2">
-          {L('로그인하면 계정 없이도 누구나 열 수 있는 공개 링크를 만들 수 있어요.',
-             'Log in to mint a public link anyone can open — no account needed.')}
+          {L('잠깐만요 — 아직 준비 중이에요. 잠시 후 다시 열어 주세요.',
+             'One moment — still getting ready. Please reopen this shortly.')}
         </p>
         <LocaleLink href="/login" className="inline-flex items-center gap-1 text-[12px] font-medium text-[var(--accent)] hover:underline">
           {L('로그인', 'Log in')} <ExternalLink size={12} />
@@ -271,12 +294,33 @@ function LinkPanel({ user, title, text, context, onCreated }: { user: boolean; t
           <a href={url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[13px] text-[var(--text-tertiary)] hover:text-[var(--accent)]">
             {L('새 탭에서 열기', 'Open in new tab')} <ExternalLink size={11} />
           </a>
+          {/* 링크를 손에 쥔 직후가 유일하게 "지킬 값어치가 있다"고 느끼는 순간이다.
+              고지를 먼저 하고 문을 연다 — 순서를 바꾸면 그냥 광고가 된다. */}
+          {anonymous && (
+            <div className="pt-1 border-t border-[var(--border-subtle)] space-y-1.5">
+              <p className="text-[12px] leading-relaxed text-[var(--text-secondary)]">
+                {L('이 링크를 거두거나 다시 찾는 건 지금 이 브라우저에서만 돼요. 브라우저를 비우거나 한동안 안 오시면 링크도 같이 사라져요.',
+                   'Revoking or finding this link again only works from this browser. If you clear it or stay away a while, the link goes with it.')}
+              </p>
+              <LocaleLink href="/login" className="inline-flex items-center gap-1 text-[12px] font-semibold text-[var(--accent)] hover:underline">
+                {L('로그인하고 이 링크 계속 관리하기', 'Sign in to keep managing this link')} <ExternalLink size={12} />
+              </LocaleLink>
+            </div>
+          )}
         </>
       ) : (
-        <Button size="sm" onClick={create} disabled={busy}>
-          {busy ? <Loader2 size={14} className="animate-spin" /> : <Link2 size={14} />}
-          {L('공개 링크 만들기', 'Create public link')}
-        </Button>
+        <>
+          <Button size="sm" onClick={create} disabled={busy}>
+            {busy ? <Loader2 size={14} className="animate-spin" /> : <Link2 size={14} />}
+            {L('공개 링크 만들기', 'Create public link')}
+          </Button>
+          {anonymous && (
+            <p className="text-[12px] text-[var(--text-tertiary)]">
+              {L(`로그인 없이도 만들 수 있어요 (하루 ${ANON_SHARE_LIMIT}개).`,
+                 `You can make one without an account (${ANON_SHARE_LIMIT} a day).`)}
+            </p>
+          )}
+        </>
       )}
     </div>
   );

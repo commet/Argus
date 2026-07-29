@@ -112,3 +112,6 @@ argus-plugin-v2/evals/sweep-report.json
 
 # Supabase CLI link/runtime metadata
 /supabase/.temp/
+scripts/e2e/shots/
+e2e-shots/
+card-preview/

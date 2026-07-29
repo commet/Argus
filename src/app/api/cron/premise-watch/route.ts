@@ -17,6 +17,7 @@ import {
 } from '@/lib/premises-core';
 import { investigatePremise, type InvestigationResult } from '@/lib/premise-researcher';
 import { webSearchEnabled } from '@/lib/web-research';
+import { logServerEvent } from '@/lib/server-events';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -448,6 +449,12 @@ export async function GET(req: Request) {
   // counts too) against the monthly cap. Best-effort; never blocks the response.
   await bumpMonthly(supabase, monthKey, monthStart, researched);
 
+  // 계기 (2026-07-29): 전제 감시는 비용이 드는 크론이라 더더욱 흔적이 필요하다 —
+  // "돌았는데 조용했다"와 "아예 안 돌았다"는 로그의 200 만으로 구분되지 않는다.
+  logServerEvent('cron_premise_watch', {
+    dry_run: dryRun, researched, failed_premises: failedPremises,
+    dropped_over_cap: dropped, emailed, merged_into_brief: mergedIntoBrief,
+  }, { path: '/api/cron/premise-watch' });
   return NextResponse.json({
     ok: true,
     dry_run: dryRun,

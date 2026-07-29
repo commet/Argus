@@ -46,8 +46,12 @@ export async function POST(req: NextRequest) {
   const safeTitle = (typeof title === 'string' && title ? title : 'Argus').slice(0, 200);
   const safeContent = content.slice(0, 100_000);
 
+  // 익명 신원도 링크를 만들 수 있다 — 첫인상은 대부분 로그아웃 상태에서 오고,
+  // 결과물을 남에게 보여줄 수단이 "텍스트 복사"뿐이면 그 사람은 아무에게도 못 보여준다.
+  // 다만 익명 신원은 브라우저마다 공짜로 나오므로 한도를 훨씬 낮게 준다 (ANON_SHARE_LIMIT).
   const guard = await recordAndCheckShare(user.id, 'link', {
     context: typeof context === 'string' ? context.slice(0, 60) : undefined,
+    anonymous: user.is_anonymous === true,
   });
   if (!guard.ok) return NextResponse.json({ error: guard.error }, { status: guard.status ?? 429 });
 
