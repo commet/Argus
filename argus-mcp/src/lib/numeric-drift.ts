@@ -273,6 +273,12 @@ export function evaluateMateriality(
 
 // ── declared-rule evaluation (§1, §6) ───────────────────────────────────────
 
+/** Rule types that cannot decide anything without a parameter. `stateful` is the
+ *  only declared type that is meaningful bare (it always answers `uncertain`). */
+const NEEDS_PARAMS: ReadonlySet<RuleType> = new Set<RuleType>([
+  'threshold', 'step', 'delta', 'relative', 'band', 'map',
+]);
+
 function evaluateDeclaredRule(
   pv: number,
   nv: number,
@@ -281,6 +287,30 @@ function evaluateDeclaredRule(
 ): MaterialityResult | null {
   const mod = rule.modifiers;
   const resolution = mod?.resolution ?? ctx?.resolution ?? inferResolution(pv, nv);
+
+  // A declared rule arrives as UNVALIDATED jsonb — written by the MCP host, by an
+  // older client, or by hand — and every branch below indexes `rule.params`. When
+  // that is absent (`{type:'delta'}`) the index THROWS, and the throw escapes into
+  // callers that are not all wrapped: the nightly watcher burns a Brave + LLM call
+  // and then loses the premise every single night, and `recheckPremise` in the
+  // browser store dies mid-write with no catch anywhere above it. So read params
+  // defensively (2026-07-29).
+  //
+  // But do not paper over it either: a rule whose required parameter is simply
+  // MISSING is broken data, not a rule that happens not to apply. Falling through
+  // to the heuristic there would let a `material` verdict fire off a threshold the
+  // user never actually wrote. `uncertain` is the honest answer — it is silent (no
+  // alert) and it carries the reason to the premise screen.
+  const params = rule.params && typeof rule.params === 'object' && !Array.isArray(rule.params)
+    ? rule.params
+    : undefined;
+  const unreadable = (what: string): MaterialityResult => ({
+    status: 'uncertain',
+    reason: `선언된 ${rule.type} 규칙에서 ${what}을(를) 읽을 수 없어요. 규칙을 다시 정해주세요`,
+    low_confidence: true,
+  });
+  if (!params && NEEDS_PARAMS.has(rule.type)) return unreadable('기준값(params)');
+  const p: Record<string, number | string | string[]> = params ?? {};
 
   // axis gate (§6.3): a value declared as a raw ratio/% cannot take a naked
   // relative or delta move — the author must pick %p or a complement axis. Until
@@ -317,10 +347,13 @@ function evaluateDeclaredRule(
 
   switch (rule.type) {
     case 'threshold': {
-      const line = numParam(rule.params['line'], NaN);
-      if (!Number.isFinite(line)) return null;
-      const direction = String(rule.params['direction'] ?? 'cross');
-      const boundary = mod?.boundary ?? (rule.params['boundary'] as string | undefined);
+      const line = numParam(p['line'], NaN);
+      // Declared-but-unreadable is NOT the same as declared-but-inapplicable: falling
+      // through to the heuristic here would fire `material` off a threshold the user
+      // never wrote. Say so instead (silent, and the reason reaches the premise screen).
+      if (!Number.isFinite(line)) return unreadable('임계선(line)');
+      const direction = String(p['direction'] ?? 'cross');
+      const boundary = mod?.boundary ?? (p['boundary'] as string | undefined);
       if (!boundary && direction !== 'cross') {
         // boundary undefined and it matters near the line → uncertain (§1.4)
         const atLine = pv === line || nv === line;
@@ -339,9 +372,11 @@ function evaluateDeclaredRule(
     }
 
     case 'step': {
-      const S = numParam(rule.params['S'], NaN);
-      const N = numParam(rule.params['N'], 1);
-      if (!Number.isFinite(S) || S <= 0) return null;
+      const S = numParam(p['S'], NaN);
+      const N = numParam(p['N'], 1);
+      if (!Number.isFinite(S)) return unreadable('칸 크기(S)');
+      // S<=0 is PRESENT but inapplicable — the documented fall-through, kept.
+      if (S <= 0) return null;
       // ordinal-scale step compares ranks (already normalized to numbers upstream).
       const notches = Math.abs(nv - pv) / S;
       // step size must sit above resolution (§3.3) — else fall to heuristic.
@@ -352,15 +387,17 @@ function evaluateDeclaredRule(
     }
 
     case 'delta': {
-      const D = numParam(rule.params['D'], NaN);
-      if (!Number.isFinite(D) || D <= 0) return null;
+      const D = numParam(p['D'], NaN);
+      if (!Number.isFinite(D)) return unreadable('허용 변화폭(D)');
+      // D<=0 is PRESENT but inapplicable — the documented fall-through, kept.
+      if (D <= 0) return null;
       return Math.abs(nv - pv) >= D
         ? dirGate({ status: 'material', reason: `Δ ${Math.abs(nv - pv)} ≥ ${D}: ${pv} → ${nv}` })
         : { status: 'unchanged', reason: `Δ ${Math.abs(nv - pv)} < ${D}: ${pv} → ${nv}` };
     }
 
     case 'relative': {
-      const P = numParam(rule.params['P'], REL_DEFAULT);
+      const P = numParam(p['P'], REL_DEFAULT);
       if (pv === 0) return { status: 'uncertain', reason: 'relative 기준값 0. delta 규칙이 필요합니다', low_confidence: true };
       const rel = Math.abs(nv - pv) / Math.abs(pv);
       if (Math.abs(rel - P) <= EPS) {
@@ -372,10 +409,10 @@ function evaluateDeclaredRule(
     }
 
     case 'band': {
-      const lo = numParam(rule.params['lo'], NaN);
-      const hi = numParam(rule.params['hi'], NaN);
-      if (!Number.isFinite(lo) || !Number.isFinite(hi)) return null;
-      const incl = (mod?.boundary ?? rule.params['boundary']) === 'inclusive';
+      const lo = numParam(p['lo'], NaN);
+      const hi = numParam(p['hi'], NaN);
+      if (!Number.isFinite(lo) || !Number.isFinite(hi)) return unreadable('밴드 경계(lo/hi)');
+      const incl = (mod?.boundary ?? p['boundary']) === 'inclusive';
       const outside = incl ? nv < lo || nv > hi : nv <= lo || nv >= hi;
       const wasInside = incl ? pv >= lo && pv <= hi : pv > lo && pv < hi;
       return outside && wasInside
@@ -404,7 +441,17 @@ function evaluateMap(prevLabel: string, nextLabel: string, rule: MaterialityRule
   if (normStr(prevLabel) === normStr(nextLabel)) {
     return { status: 'unchanged', reason: '상태 동일' };
   }
-  const raw = rule.params['material_states'];
+  // Same unvalidated-jsonb hazard as evaluateDeclaredRule: this runs on the LABEL
+  // path, BEFORE that function, so it needs its own guard or `{type:'map'}` throws.
+  const params = rule.params && typeof rule.params === 'object' ? rule.params : undefined;
+  if (!params) {
+    return {
+      status: 'uncertain',
+      reason: '선언된 map 규칙에 material 상태집합(params)이 없어 적용할 수 없어요. 규칙을 다시 정해주세요',
+      low_confidence: true,
+    };
+  }
+  const raw = params['material_states'];
   const set = Array.isArray(raw) ? raw.map((s) => normStr(String(s))) : [];
   if (set.includes(normStr(nextLabel))) {
     return { status: 'material', reason: `material 상태 진입: ${prevLabel} → ${nextLabel}` };

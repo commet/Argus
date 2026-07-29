@@ -85,4 +85,32 @@ describe('companion-brief T5 routing helpers', () => {
 
     expect(dueOpenQuestions(r, '2026-07-07')).toEqual([{ ordinal: 1, text: '내년 규제 완화 여부' }]);
   });
+
+  /**
+   * `monitoring_enabled:false` is the user pressing "stop nudging me about this",
+   * and the nudge copy promises exactly that. `isMonitored` honoured it for
+   * premises; `isReconsiderable` looked only at kind+status, so a MUTED open
+   * question was still emailed every day — a no-op switch on precisely the items
+   * whose copy promises it works (2026-07-29).
+   */
+  it('stays silent on an open question the user muted', () => {
+    const muted = receipt({
+      tracked_premises: [{
+        premise_id: 'p_reg',
+        ordinal: 1,
+        kind: 'open_question',
+        text: '내년 규제 완화 여부',
+        external: true,
+        load_bearing: false,
+        monitoring_enabled: false,
+        source: 'ai_surfaced',
+        status: 'active',
+        amend_history: [],
+        recheck_count: 0,
+        added_ts: '2026-06-01T00:00:00.000Z',
+      }],
+    });
+
+    expect(dueOpenQuestions(muted, '2026-07-07')).toEqual([]);
+  });
 });

@@ -151,26 +151,34 @@ describe('investigatePremise — a declared materiality rule is reachable', () =
 });
 
 /**
- * Blast-radius containment (2026-07-28).
+ * A malformed stored rule (2026-07-28, revised 2026-07-29).
  *
  * `materiality_rule` arrives from jsonb, which the DB does not type-check, and
  * `evaluateMateriality` runs OUTSIDE the researcher's try/catch. A rule stored as
- * `{type:'delta'}` with no `params` therefore throws a TypeError straight out of
+ * `{type:'delta'}` with no `params` used to throw a TypeError straight out of
  * investigatePremise — and the cron had no try/catch either, so one malformed
- * premise aborted the entire nightly run: every other user unchecked, and the
- * findings already computed that pass discarded (persistence happens after the
- * loops). The cron now isolates per premise; this pins the shape of the failure
- * so the isolation is never quietly removed.
+ * premise aborted the entire nightly run.
+ *
+ * The cron now isolates per premise, but containment was only half the answer: a
+ * throw here still burned a Brave + LLM call and then lost that premise EVERY
+ * night, forever, in silence, and the same function is called from the browser
+ * (`useReviewStore.recheckPremise`) with no catch anywhere above it. The engine is
+ * now total (`materiality-rule-totality.test.ts`), so the honest outcome is a
+ * silent `uncertain` naming the broken rule — never a throw, and never a
+ * `material` verdict invented from a threshold the user did not finish writing.
  */
-describe('investigatePremise — a malformed stored rule is a contained failure', () => {
-  it('throws rather than silently mis-grading when the rule is missing params', async () => {
+describe('investigatePremise — a malformed stored rule degrades honestly', () => {
+  it('returns a silent, self-describing verdict instead of throwing', async () => {
     mockSearch.mockResolvedValue(ONE_RESULT);
     mockLLM.mockResolvedValue({ mode: 'numeric', fact: 'f', source_index: 1, current_value: 4, confidence: 'high' });
-    await expect(investigatePremise({
+    const out = await investigatePremise({
       text: 'base rate', kind: 'premise', baselineYMD: '2026-05-01', priorValue: 3.5,
       // exactly what a hand-written / legacy jsonb rule looks like
       materiality_rule: { type: 'delta' } as never,
-    })).rejects.toThrow();
+    });
+    expect(out.verdict).toBe('quiet');          // silent: no alert is sent
+    expect(out.materiality).toBe('uncertain');  // and not fabricated as `material`
+    expect(out.reason).toContain('params');     // the gap is named, not hidden
   });
 
   it('a well-formed rule on the same input does NOT throw', async () => {

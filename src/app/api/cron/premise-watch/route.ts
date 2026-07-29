@@ -318,14 +318,30 @@ export async function GET(req: Request) {
       // because persistence happens after both loops. Isolate per premise: one
       // bad row is skipped and logged, the batch keeps going.
       try {
-        const key = normalizePremiseText(p.text);
+        const baselineYMD = dateOnly(isOpenQ ? (p.last_reconsidered ?? p.added_ts) : p.last_recheck?.ts) ?? dateOnly(p.added_ts) ?? addDaysYMD(today, -365);
+        // The cache key must be the researcher's FULL input signature, not just the
+        // text (2026-07-29). investigatePremise's answer depends on the baseline
+        // date (it filters which sources are even visible), the prior numeric value
+        // and the materiality rule (they decide `material` vs `quiet`) — so keying
+        // on text alone handed one user's verdict to another user's premise whenever
+        // the wording matched. The second user's receipt then recorded a drift judged
+        // against a baseline and a prior value that were never theirs: silently
+        // wrong, and invisible, because the recorded finding still reads perfectly
+        // plausible. Two calls with an identical signature are genuinely
+        // interchangeable; nothing else is.
+        const key = JSON.stringify([
+          normalizePremiseText(p.watch_query || p.text),
+          p.kind ?? 'premise',
+          baselineYMD,
+          p.last_recheck?.numeric_value ?? null,
+          p.materiality_rule ?? null,
+        ]);
         let result = investigated.get(key);
         if (!result) {
           if (budget <= 0 || budgetLeft <= 0) { dropped++; continue; } // per-run + monthly cost cap
           budget--;
           budgetLeft--;
           researched++;
-          const baselineYMD = dateOnly(isOpenQ ? (p.last_reconsidered ?? p.added_ts) : p.last_recheck?.ts) ?? dateOnly(p.added_ts) ?? addDaysYMD(today, -365);
           result = await investigatePremise({
             text: p.text,
             watch_query: p.watch_query,
