@@ -247,3 +247,105 @@ claude-code-form 120/0 · **실제 Codex app-server 15/0**.
 `git merge-base --is-ancestor origin/main HEAD`가 참 — main이 내 HEAD의 조상이라
 병합은 fast-forward고 충돌이 불가능하다. 이 레포는 Actions 이벤트가 멈춘 전력이
 있다(§CI는 `gh workflow run CI --ref <branch>`로 수동 트리거).
+
+---
+
+## 9. 다른 기기에서 이어받는 사람에게 — 현재 상태 (2026-07-29 오전 10시)
+
+### 배포 완료 · 검증 완료
+
+| | |
+|---|---|
+| npm `argus-decision-mcp` | **2.0.9** |
+| MCP 레지스트리 | 2.0.9 등재 |
+| 플러그인 `argus@argus` | **3.0.9** |
+| main | 2.0.9 (npm과 일치 — 갈림 없음) |
+| 배포본 내려받아 검증 | **13/13** |
+| 창업자 Claude Code | ✅ 2.16.0 → **3.0.9 업데이트 완료** |
+
+### ✅ Codex 실사용 확인됨 (창업자가 직접)
+
+Codex 앱에서 `argus_predict`가 실제로 돌았다. 원장 2건 + `.ics` 파일이
+창업자 Argus 리포의 `.argus/` 아래 생성된 것을 디스크에서 확인했다.
+
+**핵심 함정 (README에 박음):** Codex는 **세션 시작 시점에** MCP 서버를 붙인다.
+`codex mcp add` 전에 열려 있던 대화는 도구를 못 본다. **앱 완전 재시작**이
+필요하다 — 새 대화만으로는 부족하다. Codex 자신이 그렇게 말하지만, 이미 시도한
+뒤에 나오는 말이라 "설치 실패"로 오인된다. 창업자가 여기서 시간을 잃었다.
+
+**내 프로브가 틀렸던 것 (다음 사람 주의):** `mcpServerStatus/list`로 "도구 0개"를
+보고 핸드셰이크 실패라 결론냈는데, **Codex는 stdio 서버를 첫 턴에 lazy하게
+띄운다.** 스레드만 만들고 턴을 안 돌리면 아직 안 뜬 상태를 본다. 실사용이 맞고
+계기가 틀렸다. 오늘 밤 일곱 번째 "계기가 거짓 신호를 준" 사례.
+
+### ❓ 아직 아무도 못 본 것 — 다음 사람의 1순위
+
+**Codex에서 확인창(픽커)이 화면에 그려지는 것을 눈으로 본 사람이 없다.**
+
+- app-server 배선까지는 실측 완료 (`mode:"form"` 요청이 클라이언트로 전달됨)
+- 창업자 실사용에서 픽커가 안 뜬 것은 **정상** — 문장을 직접 불러줬으므로 모델이
+  `predicate_owner:"user"`로 그냥 저장했다 (설계대로)
+- 픽커는 **AI가 초안을 잡을 때**만 뜬다
+
+확인 방법 (Codex 앱 재시작 후 새 대화):
+
+```
+argus_predict를 predicate_owner="ai_surfaced", confirm_draft=true 로 호출해줘.
+```
+
+안 뜨면 승인 정책을 본다:
+
+```toml
+approval_policy = { granular = { mcp_elicitations = true, rules = true, sandbox_approval = true } }
+```
+
+### ❌ ChatGPT는 지금 구조상 불가능 (창업자 결정 필요)
+
+우리 서버는 **stdio 전용**이다. HTTP/SSE 전송이 없다. ChatGPT 커넥터는 **원격
+MCP(HTTP)** 만 받는다. 메모리의 `F1b(HTTP 전송) = 창업자 결정`이 정확히 이걸
+막고 있다. "ChatGPT도 되어야 한다" = **HTTP 전송 + 호스팅**이라는 별도 공사이고,
+오늘 밤 작업 범위 밖이다.
+
+### 🔧 Claude Desktop — 한 줄 남음
+
+설치·실행 중인데 `claude_desktop_config.json`에 **MCP가 0개** 등록돼 있다. 그래서
+Argus가 없다. 창업자 승인 후 아래를 넣으면 된다:
+
+```json
+{ "mcpServers": { "argus-decision": {
+    "command": "npx", "args": ["-y", "argus-decision-mcp@2.0.9"] } } }
+```
+
+### 새로 만든 것 — 게이트를 지키는 게이트
+
+`argus-mcp/evals/gate-coverage.mjs`. 개별 자기검증은 *"물던 게이트가 안 물게 된
+것"* 은 잡지만 **"한 번도 문 적 없는 게이트"** 는 아무도 안 잡았다. 첫 실행에서
+**아무도 안 돌리는 eval 7개**를 찾아냈고, 라이브러리 / LLM 판정 도구 / 조사 도구로
+각각 **이유와 함께** 분류했다. verify와 CI에 등록돼 있다.
+
+**창업자 판단 대기:** `evals/elicit.mjs` — `npm run elicit` 스크립트가 남아 있지만
+하는 일은 e2e-picker + host-matrix + claude-code-form이 대체했다. 살릴지 지울지가
+남았다 (다른 트랙 자산이라 내가 지우지 않았다).
+
+### 릴리스 버튼 (§8에서 이어짐)
+
+**Codex 트랙에 주기로 권고했다.** 그쪽이 릴리스 배관(POSIX 실행비트, npm 전파
+대기, 패키지 검증)을 만들었고 밤새 네 번 돌렸다. 이 트랙은 그 위로 착지한다.
+이 세션은 2.0.6 → 2.0.7 → 2.0.8을 쫓아 세 번 리베이스했고 매번 전량 재검증했다.
+
+### 다음 사람이 바로 돌릴 것
+
+```bash
+git pull
+cd argus-mcp && npm run build
+node evals/gate-coverage.mjs             # 게이트가 전부 "물 수 있음"을 증명했나
+node evals/verify-published.mjs 2.0.9    # 배포본이 오늘 수정을 담았나 (13/13)
+npm run verify                            # 전량 (20분+, 디스크 여유 필요)
+```
+
+Codex 게이트를 로컬에서 돌리려면 `CODEX_CLI_PATH`를 실제 바이너리로 지정한다
+(npm 전역 설치는 PATH에 `.cmd`/`.ps1`만 놓기 때문):
+
+```
+C:\Users\admin\AppData\Roaming\npm\node_modules\@openai\codex\node_modules\@openai\codex-win32-x64\vendor\x86_64-pc-windows-msvc\bin\codex.exe
+```
