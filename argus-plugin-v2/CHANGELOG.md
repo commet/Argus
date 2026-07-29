@@ -1,6 +1,6 @@
 # Changelog
 
-## 3.0.11 - 2026-07-29
+## 3.0.12 - 2026-07-29
 
 - Exposes exactly five skills: `review`, `check`, `history`, `settings`, and
   `help`. Thirteen detailed workflows now load only after a public router selects
@@ -8,8 +8,13 @@
 - Removes the `sail` and `resolve` aliases and the legacy copy installer.
 - Normal webapp pairing is browser approval through `/argus:settings connect`;
   docs no longer teach users to paste a token into chat.
-- Pins `argus-decision-mcp@2.0.11`, with the final six-tool surface and
+- Pins `argus-decision-mcp@2.0.12`, with the final six-tool surface and
   pre-write provenance validation.
+
+## 3.0.11 - 2026-07-29
+
+- Pins `argus-decision-mcp@2.0.11`, which classified very fast declines as
+  unattributable. Superseded by 3.0.12/2.0.12.
 
 ## 3.0.10 - 2026-07-29
 

@@ -1,6 +1,6 @@
 # Changelog
 
-## 2.0.11 - Final public surface and lower harness cost
+## 2.0.12 - Final public surface and protocol-faithful decline
 
 - Keeps exactly six callable MCP tools and validates nested premise provenance
   before any session or ledger write.
@@ -13,6 +13,13 @@
   elicitation remain distinct, and one decline never disables later pickers.
 - Adds an across-speed Accept regression suite and keeps the real Claude Code
   and Codex host gates.
+
+## 2.0.11 - Fast policy declines were treated as unattributable
+
+- Introduced a latency threshold intended to distinguish a Codex policy response
+  from a human decline. This inference was removed in 2.0.12 because MCP returns
+  an action but no render receipt or actor provenance; elapsed time cannot supply
+  either fact reliably across hosts, machines, accessibility tools, or automation.
 
 ## 2.0.10 - Decline is a protocol fact, not a stopwatch inference
 
