@@ -1,477 +1,107 @@
 # 발행본 MCP 실주행 — 제3자 사용자로 루프 완주 (2026-07-29)
 
 `docs/receipts/2026-07-28-process5-live-walkthrough/`와 같은 장르의 **관찰
-기록**이다. 설계 문서가 아니고 처방도 아니다 — 무엇을 보았는지와 어디를 보면
-되는지만 적는다. 판단과 우선순위는 읽는 세션·창업자의 몫이다.
+기록**이다. 설계 문서가 아니고 처방도 아니다.
 
-- **대상**: npm에 발행된 `argus-decision-mcp@2.0.9` (레포 소스 아님).
-  빈 디렉터리에 `npm install`한 실물을 stdio로 직접 구동.
+- **대상**: npm에 발행된 `argus-decision-mcp@2.0.9` (레포 소스 아님). 빈
+  디렉터리에 `npm install`한 실물을 stdio로 직접 구동.
 - **관점**: Argus를 처음 쓰는 제3자. 한국어 사용자.
-- **완주 범위**: 첫 실행 → 결정 열기 → 전제 기록 → 봉인 → 확인일 도래 →
-  정산 → 축적 조회 → 전제 교정 시도.
-- **레포 기준선**: `origin/main` = `0ca1d8c8` 시점.
-
-## 0. 정직 고지 — 이 기록의 한계
-
-1. **시간을 조작했다.** 확인일 도래를 보려고 `ledger.jsonl`과 세션 파일의
-   `check_by`를 하루 앞으로 직접 수정했다. 사용자 행동이 아니다. 그래서
-   §2의 영수증에 "확인일이 저장일보다 앞선" 모순이 보이는데, **그건 내
-   조작의 흔적이지 제품 결함이 아니다.**
-2. **아래 여러 항목은 내가 인자를 틀려서 만났다.** 그럼에도 적은 이유는,
-   *모델이 그렇게 틀리도록 유도되는 구조*라면 그것 자체가 관찰 대상이기
-   때문이다. 각 항목에 "내 실수인가/구조인가"를 명시했다.
-3. **웹앱은 타지 않았다.** 이 데스크탑에 브라우저 확장이 연결돼 있지 않아
-   `argus.voyage` 화면은 이 주행의 범위 밖이다. MCP 표면만이다.
-
-## 1. 관찰 목록
-
-| # | 관찰 | 성격 |
-|---|---|---|
-| 1 | 축적 화면(`wake_text`)이 만들어지고 surface에 안 실린다 | 구조 |
-| 2 | 정산 직후 전제 교정이 `DECISION_CLOSED`로 막힌다 | 구조 |
-| 3 | 봉인 뒤 `check_in`이 "확인할 것 없음 · stop"이라 답한다 | 구조 |
-| 4 | 첫 실행 문장만 영어다 | 구조 |
-| 5 | enum 거절 에러가 산문 칸의 존재를 안 알린다 (3곳) | 구조 (내 실수에서 발견) |
-| 6 | 검증 실패한 호출이 원장에 이미 쓰고 실패한다 | 구조 (내 실수에서 발견) |
-| 7 | ~~전제 `ref`를 얻을 도구가 없다~~ | **철회 — §1.7 참조** |
-| 8 | 달력 파일 경로가 문장에 없다 | 문안 |
-
-2차 주행(같은 날, 아래 §4)에서 8건 추가. 목록은 §4.1에 있다.
+- **레포 기준선**: `origin/main` = `ad62aa6a`.
+- **판**: 3차 주행까지 마친 뒤 **전면 재작성**. 이전 판(1·2차 append 형태)은
+  `git log`에 남아 있다.
 
 ---
 
-### 1. 축적 화면이 만들어지는데 사용자에게 안 간다
+## §0. 이 기록을 어떻게 읽어야 하나
 
-`argus_patterns` 호출 결과. `data.wake_text`에 완성된 항해일지가 들어 있다:
+**초판에서 나는 두 번 "없다"고 썼고 두 번 다 틀렸다.** 원인은 같다 —
+*내가 못 찾은 것*을 *존재하지 않는 것*으로 적었다. 겉에서만 쓰는 방식(그건
+UX 관찰에는 맞는 방법이었다)으로 얻은 증거를 가지고 **코드에 대한 주장**을
+썼기 때문이다.
+
+그래서 이 판은 규칙을 바꿨다:
+
+> **모든 항목에 `검증` 줄을 붙인다.** 그 줄에 적힌 명령으로 직접 확인했다는
+> 뜻이다. 확인하지 못한 것은 "없다"가 아니라 "찾지 못했다"로 쓴다.
+
+전수 재확인 결과 집계 (항목 16개):
+
+| | 개수 |
+|---|---|
+| 재확인에서 **유지** | 12 |
+| **철회** (사실이 아님) | 1 |
+| **정정** (현상은 맞고 원인이 틀림) | 1 |
+| **오분류** (결함이 아니라 이미 판단된 설계) | 2 |
+
+§4에 넷을 전부 남겼다. 지우지 않는다 — 이 기록을 근거로 짓는 세션이
+**어떤 종류의 오류가 섞이는지** 알아야 하기 때문이다.
+
+### 주행의 한계
+
+1. **시간을 조작했다.** 확인일 도래를 보려고 `ledger.jsonl`의 `check_by`를
+   직접 수정했다. 사용자 행동이 아니다.
+2. **웹앱 화면은 타지 않았다.** 브라우저 확장이 이 기계에 연결돼 있지 않다.
+   MCP 표면만이다. 웹앱에 대한 진술은 전부 **코드 확인**이지 실주행이 아니다.
+3. **플러그인 표면도 실주행하지 않았다.** 스킬 파일과 문안만 읽었다.
+
+---
+
+## §1. 하나의 패턴 — 지어놓고, 기본값으로 꺼두었다
+
+개별 문제로 보이던 것들이 사실 한 모양이다. **기능은 이미 있다. 기본 상태가
+그것을 안 보이게 하거나 무력화한다.** 그래서 코드를 읽으면 "다 있는데"로
+보이고, 써 보면 "아무것도 없는데"가 된다. 여섯 건 모두 **각자의 단위
+테스트는 초록**이면서 사용자에게 도달하지 않는다.
+
+### 1.1 축적 화면이 만들어지고 문장에는 안 실린다
+
+`argus_patterns` 응답의 `data.wake_text`에 완성된 항해일지가 들어 있다:
 
 ```
 ┌─ ARGUS · 항해일지 ────────── 결정 2 · 확인 대기 1 · 결과 기록 1 ─┐
-
   ~ 바다 위 · 결과를 기다리는 중 (1)
     "직접 채용하면 3개월 안에 배…"   확인 08-05  ·  hire-vs-agency
-
   ⚓ 닻 내린 기록 · 현실이 답함 (1)
     빗나감 · "가격을 올려도 첫 달 이탈이 …"   07-29  ·  price-raise
-
 └───────────────────────────────────────── 2026-07-29부터 항해 중 ─┘
 ```
 
-같은 응답의 `surface`는 **`"결과를 기다리는 예측 1건."`** 한 줄이다. 정산을
-완주해도 그 완주가 사용자에게 도달하지 않는다.
+사용자가 듣는 `surface`는 **`"결과를 기다리는 예측 1건."`** 한 줄이다.
+`active`·`all` 두 뷰에서 같았다.
 
-- **코드**: `argus-mcp/src/tools/recall.ts:233`, `:251` — `wake`를 `data`에만
-  싣고 `surface`는 따로 만든다. 렌더러는 `lib/render-receipt.ts:138`
-  (`renderWake`), 조립은 `lib/surfaces.ts:200`.
-- **대조군**: `argus_resolve`는 영수증을 `surface`에 실어 보낸다. 두 도구가
-  같은 성격의 산출물을 다르게 취급한다.
-- **빨간불 조건**: `wake_text`가 존재하는 응답에서 `surface`가 그 내용을
-  담지 않으면 실패하는 테스트. 현재 그런 가드는 없다 (CLAUDE.md
-  "Type the verbs" / 소비 계약의 미적용 지점).
+- **검증**: `grep -n "wake_text: wake" argus-mcp/src/tools/recall.ts`
+  → `:233`, `:251` 둘 다 `data:` 안에만 있다. `surface`는 별도 변수다.
+- **대조군**: `argus_resolve`는 영수증을 `surface`에 실어 보낸다. 같은 성격의
+  산출물을 두 도구가 다르게 취급한다.
+- **빨간불 조건**: `wake_text`가 있는 응답에서 `surface`가 그 내용을 담지
+  않으면 실패하는 테스트.
 
-### 2. 영수증을 읽는 순간 전제를 고칠 수 없다
+### 1.2 "다가오는 확인일" 기능이 꺼진 채 출고된다
 
-정산 영수증이 사용자에게 보여주는 줄:
-
-```
-  검증 안 된 전제: 지금 쓰는 사람들은 가격이 두 배가 돼도
-  대부분 남는다
-```
-
-이 문장의 출처는 `ai_surfaced`다 — **AI가 쓴 문장**이다. 이어서
-`argus_capture action="amend_context"`로 교정을 시도하면:
+`argus_check_in`에 `include_upcoming_days`가 있고 실제로 구현돼 있다. 기본값이
+**`0`**이라 `upcomingLine`이 빈 문자열이 되고, 봉인 직후 다시 들어온 사용자는
+이 문장을 받는다:
 
 ```
-[실패] DECISION_CLOSED: 닫힌 결정이라 더 진행할 수 없습니다.
-[복구안내] 필요하면 새 id로 다시 여세요. 닫힌 기록은 그대로 남습니다.
+surface      : "지금 확인할 차례가 된 것은 없습니다."
+next_actions : ["stop"]
+data.open_predictions : [ 2건 — 문장·확인일 전부 들어 있음 ]
 ```
 
-`settle` 이후 결정이 닫히고 교정 경로도 함께 닫힌다. 새 id로 열면 그 교정은
-원래 기록에 붙지 않는다.
-
-- **코드**: `argus-mcp/src/lib/state-machine.ts:166` (닫힌 결정의 모든 이벤트
-  거부), 진입점 `argus-mcp/src/tools/amend-dismiss.ts:44`.
-- **설계 의도와의 관계**: 닫힌 기록을 되열지 않는 것은 원장 무결성 규약으로
-  보인다(`state-machine.ts:125` 주석). 반면 CLAUDE.md 스파인 1항은
-  provenance 태깅과 함께 **사용자의 교정 여지**를 요구한다. 둘 중 무엇이
-  우선인지는 이 기록이 정할 문제가 아니다 — 다만 **사용자가 교정하고 싶어질
-  가능성이 가장 높은 시점이 유일하게 막힌 시점**이라는 사실만 남긴다.
-- **빨간불 조건**: `ai_surfaced` 전제가 실린 영수증을 낸 뒤, 그 전제에 대한
-  사용자 교정이 어떤 경로로든 원래 기록에 도달하는지 확인하는 여정 테스트.
-
-### 3. 봉인해두고 다시 오면 "확인할 것 없음 · stop"
-
-봉인 직후 `argus_check_in`:
-
-- `surface`: `"지금 확인할 차례가 된 것은 없습니다."`
-- `next_actions`: `["stop"]`
-- 같은 응답 `data.open_predictions`: **2건** (문장·`check_by` 전부 포함)
-
-```json
-[{"id":"price-raise","predicate":"가격을 올려도 첫 달 이탈이 10%를 넘지 않는다","check_by":"2026-07-30"},
- {"id":"hire-vs-agency","predicate":"직접 채용하면 3개월 안에 배포 주기가 2주에서 1주로 줄어든다","check_by":"2026-08-05"}]
-```
-
-`argus_patterns`는 같은 상태를 `"결과를 기다리는 예측 2건."`이라고 말한다.
-**두 도구가 같은 상태를 다르게 서술하고, 세션 시작에 도는 쪽이 "없음"이다.**
-
-- **코드**: `argus-mcp/src/lib/surfaces.ts:546` (`nothing_due`). 바로 아래
-  `:571`에 `live_no_due: (total) => '계정에 살아 있는 예측 N개. 확인할 차례가
-  된 것은 없습니다.'`가 **이미 존재한다** — 계정 연동 경로에만 쓰이는 것으로
-  보인다. 로컬 경로에는 그 문안이 닿지 않는다.
-
-### 4. 한국어 사용자가 보는 첫 문장이 영어
-
-설치 직후 첫 `argus_check_in`:
-
-```
-Just talk through a decision you're weighing.
-I'll follow along, and if something is worth checking later I'll note it.
-Nothing is tracked yet.
-```
-
-이후 모든 문장은 한국어로 나온다(입력에서 언어를 잡는 구조로 보인다).
-**입력이 아직 없는 첫 화면만 기본값 영어로 떨어진다.**
-
-- **코드**: `argus-mcp/src/lib/surfaces.ts:378` (`first_run`).
-- 공정 1 exit가 "ko 영수증 전문 한국어"를 요구했는데, 그 관문이 **영수증만**
-  덮고 첫 화면은 안 덮는다.
-
-### 5. enum 거절 에러가 "당신 문장을 넣을 칸"을 안 알려준다
-
-세 곳에서 같은 모양을 만났다. 셋 다 **내가 산문을 enum 칸에 넣어서** 난 것이다.
-
-| 넣으려던 값 | 거절 메시지가 알려준 것 | 실제 정답 |
-|---|---|---|
-| 실제로 일어난 일(산문) | `outcome: 가능: held·avoided·partial·still_pending·missed` | `what_happened` (별도 칸, 600자) |
-| 전제 교정 문장(산문) | `amendment: 가능: accept·refine·replace·retire` | `amendment:"replace"` + `text` |
-| `"ai_surfaced"` | `source: 가능: url·user_stated·host_reported` | `premises[].source` |
-
-설계 자체는 일관된다 — 기계 분류는 enum, 사람 말은 별도 칸. **관찰 대상은
-에러가 enum만 나열하고 산문 칸을 가리키지 않는다는 점이다.**
-
-특히 첫 줄이 문제될 수 있다. 확인일 화면이 사용자를 이렇게 초대한다:
-
-> 저장한 예측 1건이 확인일을 지났습니다. **실제로 어떻게 됐는지 알려주시면
-> 남겨드릴게요.**
-
-초대에 응해 사용자 문장을 넣으면 "그 값은 안 됩니다, 5개 중 고르세요"가
-돌아온다. 이때 모델의 최단 복구는 **사용자 문장을 버리고 `missed`로 뭉개는
-것**이다 — 사용자의 말이 기계 분류로 대체되는 경로가 열려 있다.
-
-세 번째 줄(`source`)은 별도로 주의할 값이 있다: **같은 도구 안에 이름이 같고
-허용값이 다른 `source`가 둘 있다.** 최상위 `source`(`url·user_stated·
-host_reported`)와 `premises[].source`(`user_stated·ai_surfaced`). 서버가
-모델에게 주는 지시문은 *"label it ai_surfaced"*라고 적고 있어서, 최상위
-`source`를 집은 모델은 **"ai_surfaced는 허용되지 않는 값"이라는 (그 자리에서는
-맞지만 전체로는 틀린) 안내**를 받는다.
-
-- 이어지는 재시도에서 `PROVENANCE_REQUIRED`를 또 만난다: `ai_surfaced`에는
-  `ai_original`이 필수인데 스키마 `required`에는 `source`만 있다(런타임 검증).
-  결과적으로 **전제 1건을 기록하는 데 왕복 3회**가 든다.
-
-### 6. 검증 실패한 호출이 원장에 이미 쓰고 나서 실패한다
-
-§5의 `PROVENANCE_REQUIRED`로 **실패한** 호출인데, 원장에는 남았다:
-
-```
-06:10:03  gate_input  price-raise   ← 실패한 호출
-06:10:03  harvest     price-raise   ← 실패한 호출
-06:10:54  gate_input  price-raise   ← 성공한 호출
-06:10:54  harvest     price-raise   ← 성공한 호출
-```
-
-같은 결정이 두 번 기록됐다. 사용자에게 보이는 집계(`argus_patterns`의 "예측
-N건")는 `seal` 기준이라 어긋나지 않았지만, 원장 자체에는 중복이 남는다.
-
-- **코드**: `argus-mcp/src/tools/open-decision.ts:104` — `harvest` append가
-  전제 처리보다 **먼저** 실행된다. 바로 위 주석(`:95~99`)은 "게이트와 무관하게
-  기록한다"는 의도를 명시하는데, 그 의도는 **게이트**를 대상으로 한 것이고
-  **인자 검증 실패**는 고려 범위 밖으로 보인다.
-
-### 7. ~~전제 `ref`를 얻을 도구가 없다~~ — **철회 (2차 주행에서 반증)**
-
-> **이 항목은 틀렸다.** `argus_patterns view="decision_context" id=<id>`가
-> `ref`(`"P1"`)와 `premise_id`(`"p_ykj1rf"`)를 포함한 전제 목록을 돌려준다.
-> 나는 `argus_patterns`의 인자 스키마를 확인하지 않고 "나열해 주는 도구가
-> 없다"고 적었다. 이 항목을 근거로 새 조회 경로를 짓지 말 것.
->
-> **다만 §2는 그대로 유효하다** — `ref`를 얻어도 정산 후에는
-> `DECISION_CLOSED`라 쓸 수 없다. 교정이 막히는 원인은 조회 부재가 아니라
-> 상태 전이 규칙이다.
->
-> 원래 서술은 기록으로 남긴다:
-
-
-
-전제 교정에는 `ref`(예: `p_ykj1rf`)가 필요하다. 이 id는 전제를 만든 그 응답의
-`data`에만 있다. 공개 도구 6개(`argus_capture`/`predict`/`check_in`/`resolve`/
-`patterns`/`settings`) 중 **전제를 나열해 주는 것이 없다.** `check_in`이 돌려주는
-전제는 `due_premises`(재확인일이 도래한 것)뿐이다.
-
-결과: 다음 세션에 와서 "그 전제 틀렸어"라고 하면, 모델이 `ref`를 얻을 경로가
-없다. §2와 합치면 **교정 창구는 (a) 같은 대화 안에서 (b) 정산 전에만** 열린다.
-
-### 8. 달력 파일을 어디 저장했는지 문장에 없다
-
-> 예측을 저장했습니다. … **달력 앱에 넣을 알림 파일도 함께 저장했습니다.**
-
-경로는 `data.calendar_path`에만 있고 `surface`에 없다. 사용자는 파일을 못 찾는다.
-실제로는 `<argus_dir>/calendar/<id>.ics`에 정상 생성되며, 내용도 올바른
-VCALENDAR였다(`VALARM` 포함).
-
----
-
-## 2. 잘 작동한 것 (대조군)
-
-관찰이 결함 목록으로만 읽히지 않도록, 같은 주행에서 확인된 것도 남긴다.
-
-- **영수증.** 정산 결과가 이렇게 나온다:
-
-```
-  내가 예측한 것                               (저장일)
-    "가격을 올려도 첫 달 이탈이 10%를 넘지 않는다"
-  실제로 일어난 일                             (확인일)
-    올리고 첫 달에 18% 빠졌다. 예상보다 훨씬 컸다.
-
-  이 판단을 내린 사람: 나 (모델 아님)
-  검증 안 된 전제: …
-  ───────────────────────────────────────────
-  AI VERDICT ON THIS DECISION ············  NONE
-  모델은 당신을 채점하지 않았습니다. 현실이 답했습니다.
-```
-
-  **빗나간 예측을 기록했는데 기분이 나쁘지 않았다.** 이 표면은 의도대로 작동한다.
-
-- **에러 복구 안내가 스파인을 지킨다.** 모든 검증 실패에
-  `"사용자가 정해야 할 값은 추측하지 마세요"`가 붙는다. 모델이 사용자 대신
-  칸을 채우는 것을 구조가 막는다. (§5의 문제는 이것과 별개로, *어느 칸이
-  사람 말 칸인지*를 안 알려준다는 것이다.)
-
-- **기록이 실제로 디스크에 도착한다.** `ledger/ledger.jsonl`,
-  `sessions/<id>/receipt.json`, `calendar/<id>.ics`, `current_bearing.json`
-  전부 생성됐고, 건너뛴 칸은 `"(skipped)"`로 정직하게 남았으며
-  `ai_verdict`는 `null`이었다.
-
-## 3. 재현 방법
-
-```bash
-mkdir journey-probe && cd journey-probe && npm init -y
-npm install argus-decision-mcp@2.0.9
-
-# stdio로 직접 구동 — initialize → notifications/initialized → tools/call
-# argus_dir는 반드시 OS 네이티브 절대경로로 준다.
-# (Windows에서 /c/Users/... 형태의 POSIX 경로를 주면 C:\c\Users\... 아래에
-#  조용히 생성된다 — 이 주행에서 실제로 겪었고, 도구는 성공을 보고했다.)
-```
-
-호출 순서: `argus_check_in` → `argus_capture(action:"open", premises:[…])`
-→ `argus_predict` → `argus_check_in` → `argus_resolve(outcome, what_happened)`
-→ `argus_patterns`.
-
-확인일 도래는 `check_by`가 미래여야 하므로(`BAD_CHECK_BY`는 오늘도 거부),
-루프의 후반부를 한 세션에서 보려면 원장의 `check_by`를 과거로 옮겨야 한다.
-
----
-
-## 4. 2차 주행 — 스파인·경계·에러 경로 (같은 날)
-
-1차가 정상 여정이었다면 2차는 **억제 게이트가 실제로 억제하는지**와
-**경계·실패 경로**를 봤다. 같은 발행본 2.0.9, 같은 방식.
-
-### 4.1 추가 관찰
-
-| # | 관찰 | 성격 |
-|---|---|---|
-| N1 | 확인일 **전**에도 정산이 통과하고, 조기 정산 표시가 없다 | 구조 |
-| N2 | `low_stakes` 문안이 코드 주석의 자기 계약(지시 금지)을 위반 | 문안·스파인 |
-| N3 | `leave_coda`가 문맥 무관하게 붙어 사실과 어긋난다 | 문안 |
-| N4 | `monitoring_enabled`가 조용히 무효인 설정 | 구조 |
-| N5 | `reconfirm`이 사용자가 쓴 적 없는 값을 확인하라 한다 | 문안 |
-| N6 | 에러 복구 안내에 내부 배관(`mcp_` 접두사)이 샌다 | 문안 |
-| N7 | `integrity`가 무결성이 아니라 파싱 계수기다 | 이름 |
-| N8 | `decision_context` 문장의 정보량이 낮다 | 문안 |
-
-### N1. 확인일 전에도 정산이 통과한다
-
-`hire-vs-agency`의 `check_by`는 `2026-08-05`인데, `2026-07-29`에
-`argus_resolve`를 호출하니 **7일 일찍 통과**했고 영수증까지 발급됐다.
-영수증에 두 날짜가 나란히 남지만 조기 정산이라는 표시는 없다:
-
-```json
-{ "check_by": "2026-08-05", "settled_at": "2026-07-29T07:16:15.642Z",
-  "outcome": "held", "what_happened": "벌써 됐다", "assumption_held": true }
-```
-
-`argus_patterns view="receipt"`는 이걸 이렇게 읽어 준다:
-
-> 예측: "…". 현실: "벌써 됐다" (예측대로). 채점은 없습니다.
-> **예측은 당신이, 답은 현실이 했습니다.**
-
-- **불일치**: `argus_check_in`은 같은 순간 "확인할 차례가 된 것은 없습니다"라고
-  답한다. 두 도구가 *도래(due)* 개념을 공유하지 않는다.
-- **왜 걸리는가**: 조기 정산 자체를 막는 게 옳은지는 이 기록이 정할 일이
-  아니다(사용자가 결과를 일찍 알 수도 있다). 다만 **조기인지 아닌지 구분이
-  기록에 남지 않는다**는 사실은 남긴다 — "현실이 답했다"가 제품의 유일한
-  검증 근거인데, 답하기 전에 적힌 것과 뒤에 적힌 것이 같은 모양이다.
-- **빨간불 조건**: `settled_at < check_by`인 영수증이 그 사실을 담지 않으면
-  실패하는 테스트.
-
-### N2. `low_stakes` 문안이 자기 계약을 위반한다
-
-`argus-mcp/src/tools/open-decision.ts:120~125` 주석이 억제 문장의 계약을
-직접 적어 두었다:
-
-> the line ENDS by naming the option and returning the handle —
-> **never a directive ("leave it") issued in the user's stead**
-
-그런데 여섯 개 이유 문자열 중 `low_stakes` 하나만 권고형이다:
-
-| 이유 | EN (`surfaces.ts:475~480`) | KO (`:642~647`) |
-|---|---|---|
-| vent | This reads like something to say out loud… | 이건 소리 내어 말할 일이지… |
-| factual | This is a question with an answer… | 이건 답이 있는 질문이지… |
-| already_closed | You already made this call… | 이미 내린 결정입니다… |
-| flat | The options are close to even… | 선택지가 거의 대등합니다… |
-| reversible_low_stakes | Cheap to undo and little at stake. | 되돌리기 쉽고 크게 걸린 것도 없는 결정입니다. |
-| **low_stakes** | **…so the steady move is to leave it as is.** | **…그대로 두는 편이 무난합니다.** |
-
-나머지 다섯은 순수 서술이고 이것만 "무난하다 / the steady move"라고 **권한다.**
-두 로케일 모두 같다.
-
-배정도 봐야 한다. `reversible_low_stakes`가 따로 있으므로 `low_stakes`는
-**걸린 것은 작지만 되돌리기 어려운** 쪽에 배정된다. 실측(`stakes:"low"`,
-`reversibility:"one_way_door"`, "손목에 문신을 할지")에서 나온 문장:
-
-> 걸린 것이 별로 없습니다. 그대로 두는 편이 무난합니다. 그대로 두는 것도
-> 여전히 진짜 선택지입니다.
-
-되돌릴 수 없는 행동에 대해 권고가 나가고, 같은 말이 두 번 나간다.
-
-### N3. `leave_coda`가 문맥과 무관하게 붙는다
-
-`open-decision.ts:127`이 비발화 이유 전부에 `T.leave_coda`를 무조건 이어
-붙인다. `already_decided:true` + "이미 계약서에 서명했다. 사무실을 강남으로
-옮기기로 했다"에 대해 나온 문장:
-
-> 이미 내린 결정입니다. Argus는 이걸 다시 열지 않습니다.
-> **그대로 두는 것도 여전히 진짜 선택지입니다.**
-
-계약서에 이미 서명한 사람에게 "현상 유지도 진짜 선택지"라고 말한다. 앞 문장이
-"다시 열지 않는다"고 해놓고 뒤 문장이 선택지를 제시한다.
-
-### N4. `monitoring_enabled`가 조용히 무효인 설정
-
-`premises[].monitoring_enabled`의 스키마 기본값은 **`true`**이고, 원장에도
-`true`로 기록된다:
-
-```json
-{"event":"premise_add","premise_id":"p_ykj1rf","load_bearing":true,
- "monitoring_enabled":true,"external":false,"source":"ai_surfaced"}
-```
-
-그런데 `isMonitored`(`argus-mcp/src/lib/premises-core.ts:184`)는
-`p.external === true`를 요구하고, `external`의 기본값은 `false`다. 그래서
-조회하면 `monitored: false`로 나오고, 사용자는 이렇게 듣는다:
-
-> 이 결정에 전제 1건이 있습니다. **0건 추적 중**, 0건 재확인 차례.
-
-모델은 켰다고 믿고, 원장에는 켜졌다고 적히고, 화면은 꺼졌다고 말한다.
-(`isMonitored`의 정의 자체는 의도된 것으로 보인다 — 문제는 **기본값 `true`가
-조건을 만족시키지 못한 채 참으로 기록된다**는 점이다.)
-
-### N5. `reconfirm`이 사용자가 쓴 적 없는 값을 확인하라 한다
-
-`stakes:"high"` + `reversibility:"easily_reversible"`에서 나오는 문장
-(`surfaces.ts:652`):
-
-> 신호가 서로 어긋납니다 (걸린 것은 큰데 되돌리기는 쉽습니다).
-> 더 나아가기 전에 **이 둘을 다시 짚어 보세요.**
-
-`stakes`·`reversibility`는 사용자 발화가 아니라 **모델이 채운 도구 인자**다.
-사용자는 그 두 단어를 말한 적이 없는데 그것을 재확인하라는 지시를 받는다.
-
-### N6. 에러 복구 안내에 내부 배관이 샌다
-
-`NO_PRIOR_SEAL`의 복구 안내:
-
-> argus_predict로 … 먼저 저장하세요.
-> **(id가 argus_settings sync에서 온 "mcp_" 접두사라면 접두사를 뗀 id를 쓰세요.)**
-
-서버가 호스트에 주는 지시문은 *"Internal ids and errors are plumbing;
-recover quietly"*인데, 에러 문안이 id 접두사 규칙을 노출한다.
-
-### N7. `integrity`가 무결성이 아니라 파싱 계수기다
-
-`argus_check_in`의 `data.integrity`는 `{dropped_lines, skipped_unknown}`뿐이다.
-§0에서 밝혔듯 나는 `ledger.jsonl`의 `check_by`를 손으로 고쳤는데, 그 뒤에도
-`{"dropped_lines":0,"skipped_unknown":0}`이었다. 줄이 깨졌는지만 세고 내용
-정합성은 보지 않는다. 이름이 보증 범위보다 넓게 읽힌다.
-
-(원장 변조 방지가 이 제품의 위협 모델에 들어가는지는 별개 문제다. 여기서는
-**이름과 실제 보증 범위가 어긋난다**는 것만 적는다.)
-
-### N8. `decision_context` 문장의 정보량이 낮다
-
-> 이 결정에 전제 1건이 있습니다. 0건 추적 중, 0건 재확인 차례.
-
-숫자 셋 중 둘이 0이고, "추적"과 "재확인"이 무엇인지 설명이 없다. 전제 문장
-자체는 `data.premises[].text`에 있으나 문장에는 실리지 않는다 (§1.1과 같은
-모양).
-
-### 4.2 2차 주행에서 잘 작동한 것
-
-- **억제 게이트가 실제로 억제한다.** 사소·되돌리기 쉬움·이미 결정함·평평함
-  네 경우 모두 `fork_emitted: false`, `crux_question: null`로 통과했고 갈림길을
-  만들어내지 않았다. CLAUDE.md 미러 조항(과다발화 금지)이 코드에서 지켜진다.
-  (문제는 §N2·N3의 **문안**이지 게이트의 판정이 아니다.)
-- **동시성이 견고하다.** 서로 다른 프로세스 8개가 같은 `argus_dir`에 동시에
-  봉인 → 8/8 성공, 원장 16줄, JSON 파싱 실패 0줄, seal 유실 0건.
-  병렬 세션을 실제로 굴리는 환경에서 중요한 성질이다.
-- **상태 전이 가드가 정확하다.** 없는 id 정산 → `NO_PRIOR_SEAL`,
-  이미 정산한 것 재정산 → `ALREADY_SETTLED`, 같은 결정 2회 봉인 →
-  `ILLEGAL_TRANSITION`. 전부 조용히 성공하지 않고 제대로 막았다.
-
----
-
-## 5. 3차 주행 — 하나의 패턴, 그리고 문안 전수 측정
-
-1·2차의 개별 항목들이 사실 **한 가지 모양**이라는 것이 3차에서 드러났다.
-그리고 "말이 어렵다"를 감이 아니라 숫자로 쟀다.
-
-### 5.1 핵심 패턴 — 지어놓고, 기본값으로 꺼두었다
-
-여섯 건이 전부 같다. **기능은 이미 있다. 기본 상태가 그것을 안 보이게 하거나
-무력화한다.** 그래서 코드를 읽으면 "다 있는데"로 보이고, 써 보면 "아무것도
-없는데"가 된다.
-
-| 기능 | 어디에 지어져 있나 | 왜 도달하지 않나 |
-|---|---|---|
-| 축적 화면(항해일지) | `tools/recall.ts:233` (`wake_text`) | `data`에만 실리고 `surface`에는 안 실린다 |
-| 다가오는 확인일 안내 | `tools/check-in.ts:72` `include_upcoming_days` | **기본값 `0`** → `upcomingLine`이 빈 문자열 |
-| 조기 정산 차단 | `tools/settle.ts:252` `PREMATURE_SETTLE` | **`still_pending` 분기 안에만 있다** (§5.2) |
-| 전제 지켜보기 | `premises[].monitoring_enabled` 기본 `true` | `isMonitored`가 `external===true`를 요구, `external` 기본 `false` |
-| 계정/웹 안내 | `surfaces.ts:548` `account_hint` | `accountCredentialStatus()==='ok'`일 때만 → **이미 연결한 사람에게만** |
-| 웹앱 주소 | — | 사용자 문안에 **한 번도 나오지 않는다**. `argus.voyage`는 API 기본값·아이콘·텔레메트리에만 있다 |
-
-마지막 줄은 사고가 아니라 명시된 설계다 (`surfaces.ts:304`):
-
-```
-/** account-sync voice (3-state): success speaks, no_token stays silent. */
-```
-
-`no_token`(= 아직 연결 안 함)은 **의도적으로 침묵**한다. 그 결과 처음 쓰는
-사람은 웹앱이 있다는 사실도, 주소도, 연결 방법도 듣지 못한다. 침묵 자체가
-잘못이라는 뜻은 아니다 — **공개 전이라는 이유가 있다면 그건 제품 결정이다.**
-여기서는 *현재 상태가 그렇다*는 사실만 적는다.
-
-- **빨간불 조건(공통)**: "이 기능이 켜져 있다"고 기록/스키마가 말하는데
-  사용자 표면에 그 효과가 0인 조합을 잡는 테스트. 여섯 건 모두 지금은
-  각자의 단위 테스트가 초록이면서 사용자에게는 도달하지 않는다.
-
-### 5.2 조기 정산 차단이 정확히 거꾸로 달려 있다
-
-2차 §N1에서 "가드가 없다"고 적었는데 **틀렸다. 가드는 있다.** 다만 걸리는
-자리가 반대다. `argus-mcp/src/tools/settle.ts:245~256`:
+같은 상태를 `argus_patterns`는 `"결과를 기다리는 예측 2건."`이라고 말한다.
+**세션 시작에 도는 쪽이 "없음"이다.**
+
+- **검증**: `grep -n "include_upcoming_days" argus-mcp/src/tools/check-in.ts`
+  → `:72` `.default(0)`. 실주행에서 `upcoming` 키 자체가 응답에 없었다.
+- 참고: `surfaces.ts:571`에 `live_no_due(total)` = "계정에 살아 있는 예측
+  N개. 확인할 차례가 된 것은 없습니다."가 **이미 있다.** 계정 경로에만 쓰인다.
+- **빨간불 조건**: 열린 예측이 있는데 `surface`가 그 존재를 한 번도 언급하지
+  않으면 실패하는 테스트.
+
+### 1.3 조기 정산 차단이 정확히 거꾸로 달려 있다
+
+`PREMATURE_SETTLE` 가드는 **있다.** 걸리는 자리가 반대다.
+`argus-mcp/src/tools/settle.ts:245~256`:
 
 ```js
 if (outcome === 'still_pending') {
@@ -480,34 +110,211 @@ if (outcome === 'still_pending') {
   }
   return await deferStillPending({ … });
 }
-// ↓ held / missed / avoided / partial 은 여기까지 오는 동안 날짜 검사가 없다
+// ↓ held / missed / avoided / partial 은 여기 오는 동안 날짜 검사가 없다
 ```
 
-실측 (오늘 `2026-07-29`, 확인일 `2026-09-01` — **34일 전**):
+실측 — 오늘 `2026-07-29`, 확인일 `2026-09-01` (**34일 전**):
 
 | 정산 시도 | 결과 |
 |---|---|
-| `outcome:"still_pending"` (= 현실이 아직 답 안 함. **정산이 아니다**) | `PREMATURE_SETTLE` — 막힘 |
-| `outcome:"held"` (= 예측대로 됐다. **진짜 정산이고 영수증이 나온다**) | **통과** |
+| `still_pending` (= 현실이 아직 답 안 함. **기록을 닫지 않는다**) | `PREMATURE_SETTLE` — 막힘 |
+| `held` (= 예측대로 됐다. **닫고 영수증을 낸다**) | **통과** |
 
-즉 **닫지 않는 쪽만 막고, 닫는 쪽은 통과시킨다.** 그리고 막힐 때 나오는
-복구 안내가 이렇다:
+닫지 않는 쪽만 막고 닫는 쪽은 통과시킨다. 그리고 막힐 때 나오는 안내가
+*"`still_pending`에 `defer_to`로 새 확인일을 전달하면 됩니다"* — 방금 막힌
+그 값을 쓰라고 한다.
 
-> 확인일까지 기다리세요. 일정이 바뀌었다면 `outcome="still_pending"`에
-> `defer_to`로 새 확인일을 전달하면 됩니다.
+조기 정산된 영수증에는 두 날짜가 나란히 남지만 **조기라는 표시는 없다**:
 
-방금 막힌 바로 그 값을 쓰라고 안내한다. (코드 주석 `settle.ts:246~248`이
-"조기 defer 허용은 상태기계 설계와 충돌한다 — 1.4.x에서 스파인 검토 후에만"
-이라고 적어 두었으니, `still_pending` 쪽 차단은 **의도**로 보인다. 관찰
-대상은 그 의도가 **종결 outcome 네 개에는 적용되지 않는다**는 점이다.)
+```json
+{ "check_by": "2026-08-05", "settled_at": "2026-07-29T07:16:15.642Z",
+  "outcome": "held", "what_happened": "벌써 됐다" }
+```
 
-- **빨간불 조건**: `check_by > today`인데 종결 outcome으로 정산이 성공하면
-  실패하는 테스트. 또는 성공시키되 영수증에 조기 여부가 남는지 보는 테스트.
+`argus_patterns view="receipt"`는 이걸 *"예측은 당신이, 답은 현실이 했습니다"*
+로 읽어 준다.
 
-### 5.3 "말이 어렵다"를 숫자로
+- **검증**: `grep -rn "PREMATURE_SETTLE" argus-mcp/src --include=*.ts`
+  → 발생 지점은 `settle.ts:252` 하나뿐이고 `still_pending` 분기 안이다.
+  라이브 2회 대조(`still_pending` 막힘 / `held` 통과).
+- **주의**: `settle.ts:246~248` 주석이 "조기 defer 허용은 상태기계 설계와
+  충돌한다 — 1.4.x에서 스파인 검토 후에만"이라고 적고 있다. 즉
+  `still_pending` 쪽 차단은 **의도**다. 관찰 대상은 그 의도가 **종결 outcome
+  네 개에는 적용되지 않는다**는 점이다.
+- **빨간불 조건**: `check_by > today`인데 종결 outcome 정산이 성공하면
+  실패하는 테스트. (혹은 성공시키되 영수증에 조기 여부가 남는지 보는 테스트.)
 
-두 파일의 한국어 문장을 전부 뽑아 도구명·파라미터 문법·경로·환경변수가
-섞였는지 셌다. 결과가 예상과 달랐다.
+### 1.4 전제 지켜보기 스위치가 조용히 무효다
+
+`premises[].monitoring_enabled`의 기본값은 **`true`**이고 원장에도 `true`로
+기록된다. 그런데 판정 함수는 `external === true`를 요구하고, `external`의
+기본값은 **`false`**다. 결과: 조회하면 `monitored: false`, 사용자는
+**"0건 추적 중"**을 듣는다.
+
+```json
+원장 : {"event":"premise_add","load_bearing":true,"monitoring_enabled":true,"external":false}
+조회 : {"ref":"P1","load_bearing":true,"monitored":false}
+문장 : "이 결정에 전제 1건이 있습니다. 0건 추적 중, 0건 재확인 차례."
+```
+
+- **검증**: `sed -n '183,189p' argus-mcp/src/lib/premises-core.ts`
+  → `isMonitored`는 `kind==='premise' && status==='active' && external &&
+  load_bearing && monitoring_enabled !== false`.
+- **핵심**: 이 의존 관계는 **내부 도구에는 적혀 있고 공개 도구에서는 빠졌다.**
+  `argus-mcp/src/tools/premises.ts:63` describe에는
+  `"external + load_bearing arms re-checking"`이 있는데,
+  공개 스키마 `argus-mcp/src/tools/public-tools.ts:29`의 한국어 describe는
+  "외부 현실에서 나중에 다시 확인할 수 있는 사실인지 표시합니다"뿐이다.
+  모델은 공개 도구만 본다.
+- **빨간불 조건**: `monitoring_enabled:true`로 기록됐는데 `monitored:false`로
+  읽히는 조합이 생기면 실패하거나, 최소한 그 사실을 문장에 담게 하는 테스트.
+
+### 1.5 계정·웹앱 안내가 이미 연결한 사람에게만 뜬다
+
+```js
+const accountHint = accountCredentialStatus() === 'ok' ? S.account_hint : '';
+```
+
+연결 안 한 사람(`no_token`)에게는 빈 문자열이다. 그리고 그 상태의 침묵은
+명시된 설계다 (`argus-mcp/src/lib/surfaces.ts:304`):
+
+```
+/** account-sync voice (3-state): success speaks, no_token stays silent. */
+```
+
+- **검증**: `grep -n -A2 "const accountHint" argus-mcp/src/tools/check-in.ts`
+  → `:291~293`. 실주행 봉인 응답: `account_synced:false, reason:"no_token"`.
+- **온램프가 반대 방향이다**: 초대는 이미 들어온 사람에게만 보인다.
+
+### 1.6 웹앱 주소가 사용자 문안에 없다
+
+- **검증**: `grep -c "argus\.voyage" argus-mcp/src/lib/surfaces.ts
+  argus-mcp/src/lib/localize-result.ts` → **`0`, `0`**.
+  `argus-mcp/src` 전체에서 `argus.voyage`가 나오는 곳은 API 기본값
+  (`a0/account-connect.ts:10`, `a0/account-credentials.ts:120`), 텔레메트리
+  (`lib/telemetry.ts:130`), 아이콘 URL(`tools/index.ts:30~31`)이다.
+  플러그인 쪽도 `argus-plugin-v2/scripts/push-webapp.js`의 기본 URL뿐이다.
+- 즉 **사용자에게 나가는 문장 중 주소를 말하는 것을 찾지 못했다.**
+
+> **창업자 진술 (2026-07-29, 이 기록을 읽고):** 침묵은 웹앱 미공개 때문이지만,
+> **처음 쓰는 사람에게 웹앱의 존재와 주소를 알리고 가입으로 잇는 것은 원래
+> 하기로 한 것.** 따라서 §1.5·§1.6은 "설계대로"가 아니라 **미시공**으로
+> 읽어야 한다. 이 줄은 관찰이 아니라 창업자 진술이며, 시공 범위는 BLUEPRINT
+> 공정 규약을 따를 것.
+
+---
+
+## §2. 스파인에 닿는 관찰
+
+### 2.1 영수증을 읽는 순간 전제를 고칠 수 없다
+
+영수증이 사용자에게 보여주는 줄:
+
+> **검증 안 된 전제:** 지금 쓰는 사람들은 가격이 두 배가 돼도 대부분 남는다
+
+이 문장의 출처는 `ai_surfaced` — **AI가 쓴 문장**이다. 이어서 교정을 시도하면:
+
+```
+[실패] DECISION_CLOSED: 닫힌 결정이라 더 진행할 수 없습니다.
+[복구안내] 필요하면 새 id로 다시 여세요. 닫힌 기록은 그대로 남습니다.
+```
+
+- **검증**: `grep -rn "DECISION_CLOSED" argus-mcp/src --include=*.ts`
+  → 상태기계 `lib/state-machine.ts:166`이 닫힌 결정의 모든 이벤트를 거부.
+  진입점 `tools/amend-dismiss.ts:44`. 라이브 재현 1회.
+- **참조는 얻을 수 있다**: `argus_patterns view="decision_context" id=<id>`가
+  `ref:"P1"`, `premise_id:"p_ykj1rf"`를 돌려준다 (§4에서 철회한 항목 참조).
+  막히는 원인은 조회 부재가 아니라 **상태 전이 규칙**이다.
+- **긴장 관계**: 닫힌 기록을 되열지 않는 것은 원장 무결성 규약으로 보인다
+  (`state-machine.ts:125` 주석). CLAUDE.md 스파인 1항은 provenance 태깅과
+  함께 **사용자의 교정 여지**를 요구한다. 무엇이 우선인지는 이 기록이 정할
+  문제가 아니다 — **사용자가 교정하고 싶어질 가능성이 가장 높은 시점이 유일하게
+  막힌 시점**이라는 사실만 남긴다.
+- **빨간불 조건**: `ai_surfaced` 전제가 실린 영수증을 낸 뒤, 그 전제에 대한
+  사용자 교정이 어떤 경로로든 원래 기록에 도달하는지 확인하는 여정 테스트.
+
+### 2.2 억제 문안 하나가 코드의 자기 계약을 어긴다
+
+`argus-mcp/src/tools/open-decision.ts:122~124` 주석이 계약을 직접 적어 두었다
+(문구가 줄바꿈으로 갈라져 있어 `grep "never a directive"`로는 안 잡힌다):
+
+> the line ENDS by naming the option and returning the handle —
+> **never a directive ("leave it") issued in the user's stead**
+
+여섯 이유 문자열 중 `low_stakes` 하나만 권고형이다:
+
+| 이유 | EN (`surfaces.ts:475~480`) | KO (`:642~647`) |
+|---|---|---|
+| vent / factual / already_closed / flat / reversible_low_stakes | 전부 순수 서술 | 전부 순수 서술 |
+| **low_stakes** | **…so the steady move is to leave it as is.** | **…그대로 두는 편이 무난합니다.** |
+
+배정도 봐야 한다. `argus-mcp/src/lib/overfire-gate.ts:47~55`:
+
+```js
+if (s.reversibility === 'easily_reversible' && s.stakes !== 'high')
+  return { reason: 'reversible_low_stakes', … };   // 되돌리기 쉬운 쪽은 여기서 빠짐
+if (s.stakes === 'trivial' || s.stakes === 'low')
+  return { reason: 'low_stakes', … };              // ← 남는 건 "되돌리기 어려운" 쪽
+```
+
+즉 `low_stakes`는 **걸린 것은 작지만 되돌리기 어려운** 결정에 배정된다.
+실측(`stakes:"low"`, `reversibility:"one_way_door"`, "손목에 문신을 할지"):
+
+> 걸린 것이 별로 없습니다. **그대로 두는 편이 무난합니다.** 그대로 두는 것도
+> 여전히 진짜 선택지입니다.
+
+되돌릴 수 없는 행동에 권고가 나가고, 같은 말이 두 번 나간다.
+
+- **검증**: 위 두 `sed`/`grep` + 라이브 4시나리오(사소·이미결정·중대하나
+  되돌리기쉬움·사소하나 되돌리기어려움).
+- **빨간불 조건**: 억제 이유 문자열에 권고형 술어가 들어가면 실패하는 문안
+  validator. (레포에 이미 `notification-copy-validator.test.ts` 선례가 있다.)
+
+### 2.3 코다가 문맥과 무관하게 붙는다
+
+- **검증**: `grep -n "leave_coda" argus-mcp/src/tools/open-decision.ts`
+  → `:127` 한 곳. 비발화 분기 전체에 무조건 이어 붙는다.
+
+`already_decided:true` + "이미 계약서에 서명했다. 사무실을 강남으로 옮기기로
+했다"에 대해 나온 문장:
+
+> 이미 내린 결정입니다. Argus는 이걸 다시 열지 않습니다.
+> **그대로 두는 것도 여전히 진짜 선택지입니다.**
+
+앞 문장이 "다시 열지 않는다"고 해놓고 뒤 문장이 선택지를 제시한다.
+
+### 2.4 사용자가 쓴 적 없는 값을 확인하라고 한다
+
+`stakes:"high"` + `reversibility:"easily_reversible"`에서 (`surfaces.ts:652`):
+
+> 신호가 서로 어긋납니다 (걸린 것은 큰데 되돌리기는 쉽습니다).
+> 더 나아가기 전에 **이 둘을 다시 짚어 보세요.**
+
+`stakes`·`reversibility`는 사용자 발화가 아니라 **모델이 채운 도구 인자**다.
+
+### 2.5 검증 실패한 호출이 원장에 이미 쓰고 실패한다
+
+`PROVENANCE_REQUIRED`로 **실패한** 호출인데 원장에 남았다:
+
+```
+06:10:03  gate_input  price-raise   ← 실패한 호출
+06:10:03  harvest     price-raise   ← 실패한 호출
+06:10:54  gate_input  price-raise   ← 성공한 호출
+06:10:54  harvest     price-raise   ← 성공한 호출
+```
+
+- **검증**: `sed -n '95,110p' argus-mcp/src/tools/open-decision.ts`
+  → `harvest` append가 `:104`, 전제 처리보다 **먼저**다. 바로 위 `:95~99`
+  주석은 "게이트와 무관하게 기록한다"는 의도를 적고 있는데, 그 의도의 대상은
+  **게이트**이고 **인자 검증 실패**는 고려 범위 밖으로 보인다.
+- 사용자 집계(`seal` 기준)는 어긋나지 않았다. 원장에만 중복이 남는다.
+
+---
+
+## §3. 말 — 감이 아니라 숫자로
+
+두 문안 파일의 한국어 문장을 전부 뽑아 도구명·파라미터 문법·경로·환경변수가
+섞였는지 셌다. **결과가 내 예상과 반대였다.**
 
 | 대상 | 개수 | 개발자 말이 섞인 것 |
 |---|---|---|
@@ -515,16 +322,15 @@ if (outcome === 'still_pending') {
 | 에러의 `recovery` (모델에게 주는 줄) | 48 | 33건 (69%) |
 | `surface` (사용자에게 나가는 문장) | 90 | **11건 (12%)** |
 
-**에러 문안 설계는 오히려 좋다.** 사용자 줄과 모델 줄이 깨끗이 갈라져 있고,
-사용자 줄은 거의 사람 말이다. (오염된 2건: `BAD_CHECK_BY`의 `YYYY-MM-DD`,
-`ARGUS_DIR_INVALID`의 `argus_dir / ARGUS_DIR`.)
+**에러 문안 설계는 좋다.** 사용자 줄과 모델 줄이 갈라져 있고 사용자 줄은 거의
+사람 말이다. (오염 2건: `BAD_CHECK_BY`의 `YYYY-MM-DD`, `ARGUS_DIR_INVALID`의
+`argus_dir / ARGUS_DIR`.)
 
 **다만 `recovery`가 모델용이라는 표시가 없다.** 실패 응답에서 `message`와
-`recovery`가 같은 층에 나란히 있어, 호스트/모델이 통째로 사용자에게 옮기면
-69%가 그대로 새어 나간다. 이 주행에서도 내 드라이버가 둘 다 출력했다.
+`recovery`가 같은 층에 나란히 있어, 호스트/모델이 통째로 옮기면 69%가 그대로
+새어 나간다.
 
-문제가 실제로 몰려 있는 곳은 **`surface` 11건**이고, 그중 **8건이 같은
-문장을 시킨다**:
+### 3.1 문제가 몰린 곳 — `surface` 11건, 그중 8건이 같은 것을 시킨다
 
 ```
 [account_hint]     … argus_settings action=sync로 가져올 수 있습니다.
@@ -534,50 +340,130 @@ if (outcome === 'still_pending') {
 [sync_failed] ×4   … 나중에 argus_settings action=sync를 시도하세요.
 ```
 
-여기서 관찰할 것은 어휘가 아니라 **수신자**다. `argus_settings`는 MCP 도구라
-**사용자가 칠 수 있는 것이 아니다** — 모델만 부를 수 있다. 그런데 문장은
-사용자에게 "실행하세요"라고 말한다. 사용자는 실행할 수 없고, 모델은 자기에게
-하는 말인 줄 모른다.
+여기서 볼 것은 어휘가 아니라 **수신자**다.
 
-나머지 3건도 같은 성격이다: `reconsider_more`의 `(argus_capture)`,
-`promoted`의 `argus_predict로 저장하세요`, `truncation`의
-`limit을 올리거나 due_only로 좁히세요`.
+- **MCP 사용자에게**: `argus_settings`는 MCP 도구라 **사용자가 칠 수 없다.**
+  모델만 부를 수 있다. 그런데 문장은 사용자에게 "실행하세요"라고 한다.
+- **플러그인 사용자에게**: 칠 수 있는 명령이 **있는데 이름이 다르다.**
+  `argus-plugin-v2/skills/sync/SKILL.md`가 실재한다 (`/argus:sync`).
+
+그리고 이게 오류라는 근거가 같은 파일 안에 있다 — **대조군**:
+
+- `grep -c "/argus:connect" argus-mcp/src/lib/surfaces.ts` → **4**
+  (예: "터미널에서 `npx argus-decision-mcp connect`로 다시 연결하세요
+  **(플러그인은 /argus:connect)**")
+- `action=sync` 문안 중 `/argus:sync`를 병기한 것 → **0**
+
+즉 이 레포는 **두 표면을 병기하는 관행을 이미 갖고 있고**, sync 계열에만
+적용되지 않았다.
+
+나머지 3건: `reconsider_more`의 `(argus_capture)`, `promoted`의
+`argus_predict로 저장하세요`, `truncation`의 `limit을 올리거나 due_only로
+좁히세요`.
 
 - **빨간불 조건**: `surface` 문자열에 `argus_[a-z_]+`나 `action=` 같은
-  파라미터 문법이 들어가면 실패하는 테스트. (`recovery`는 제외 — 거긴
-  모델용이 맞다.)
+  파라미터 문법이 들어가면 실패하는 테스트. (`recovery`는 제외 — 모델용이 맞다.)
 
-### 5.4 같은 것을 두 가지로 부른다
-
-한 화면 안에서 같은 개념의 이름이 갈린다. 사용자가 "이게 아까 그건가?"를
-매번 다시 판단해야 한다.
+### 3.2 같은 것을 두 가지로 부른다
 
 | 개념 | 표현 A | 표현 B |
 |---|---|---|
-| 누가 판단했나 | `made_by_line` "이 판단을 내린 사람: 나 (모델 아님)" | `made_by` "나. (모델이 아니라)" |
-| 확인일이 된 예측 | `frag_contracts` "결과를 기록할 예측 N건" | `due_contracts` "저장한 예측 N건이 확인일을 지났습니다" |
-| 저장된 예측 | `sealed_label` "저장한 예측" | `counts` "확인 대기" |
+| 누가 판단했나 | "이 판단을 내린 사람: 나 (모델 아님)" | "나. (모델이 아니라)" |
+| 확인일이 된 예측 | "결과를 기록할 예측 N건" | "저장한 예측 N건이 확인일을 지났습니다" |
+| 저장된 예측 | "저장한 예측" | "확인 대기" |
 
-### 5.5 3차에서 확인한 사실 (질문에 대한 답)
+### 3.3 정보량이 낮은 문장
 
-- **웹앱 연동은 실재한다.** `src/app/api/plugin/ingest`가 받고,
-  `src/app/[locale]/project/page.tsx`·`components/projects/VoyageSea.tsx`·
-  `admin/page.tsx`가 그린다. 지어져 있다.
-- **다만 기본 상태의 MCP 사용자에게는 닿지 않는다.** 봉인 시 응답:
-  `account_synced: false, account_sync_reason: "no_token"`. 그리고 §5.1대로
-  그 상태는 침묵한다.
+> 이 결정에 전제 1건이 있습니다. 0건 추적 중, 0건 재확인 차례.
 
-> **창업자 메모 (2026-07-29, 이 기록을 읽고):** 침묵은 웹앱 미공개 때문이지만,
-> **처음 쓰는 사람에게 웹앱의 존재와 주소를 안내하고 가입으로 잇는 것은 원래
-> 하기로 한 것**이라고 확인했다. 즉 §5.1의 마지막 두 줄(계정 안내가 이미
-> 연결한 사람에게만 뜸 / 주소가 어떤 문안에도 없음)은 "설계대로"가 아니라
-> **미시공**으로 읽어야 한다. 이 줄은 관찰이 아니라 창업자 진술이므로, 시공
-> 범위는 BLUEPRINT 공정 규약을 따를 것.
+숫자 셋 중 둘이 0이고, "추적"과 "재확인"이 무엇인지 설명이 없다. 전제 문장
+자체는 `data.premises[].text`에 있으나 문장에는 실리지 않는다 (§1.1과 같은 모양).
 
 ---
 
-*이 기록은 판정이 아니다. 각 항목의 "빨간불 조건"이 채워지기 전까지, 어느
-것도 exit 체크를 대신하지 않는다. 그리고 §1.7과 §5.2가 보여주듯 **이 기록
-자체도 틀린다** — 1차에서 "조회 도구가 없다"고 한 것과 2차에서 "가드가 없다"고
-한 것이 둘 다 반증됐다. 두 번 다 원인은 같다: **없다고 적기 전에 그 자리를
-찾아보지 않았다.** 항목을 근거로 짓기 전에 해당 코드를 직접 확인할 것.*
+## §4. 틀렸던 것 — 지우지 않고 남긴다
+
+### 4.1 철회 — 사실이 아니었다
+
+**"전제 `ref`를 얻을 도구가 없다"** → **틀렸다.**
+`argus_patterns view="decision_context" id=<id>`가 `ref`와 `premise_id`를
+포함한 목록을 돌려준다. 나는 `argus_patterns`의 인자 스키마를 열어보지 않고
+단정했다. **§2.1은 그대로 유효하다** — 원인이 조회 부재가 아니라 상태 전이일
+뿐이다.
+
+### 4.2 정정 — 현상은 맞고 원인이 틀렸다
+
+**"조기 정산을 막는 가드가 없다"** → **가드는 있다. 방향이 반대다.** §1.3으로
+다시 썼다. 관찰("34일 전인데 정산이 통과했다")은 맞았고, 원인 진단이 틀렸다.
+
+### 4.3 오분류 — 결함이 아니라 이미 판단된 설계
+
+둘 다 코드 주석에 판단 근거가 남아 있는데 내가 찾지 않고 새 발견처럼 적었다.
+
+**(a) 첫 문장이 영어인 것.** `argus-mcp/src/lib/surfaces.ts:26~29`:
+
+> Locale resolution is CONFIG-ONLY and deterministic … **No config → 'en'**
+> (the MCP's base voice), so tests and fresh dirs behave the same on every machine.
+
+기계마다 같게 동작시키기 위한 **의도된 트레이드오프**다. 남는 관찰은 좁다 —
+한국어 사용자의 **첫 문장은 영어, 두 번째부터 한국어**로 바뀐다. 그 교환이
+맞는지는 제품 판단이지 결함이 아니다.
+
+**(b) 달력 파일 경로를 문장에 안 넣은 것.** `argus-mcp/src/tools/seal.ts:347~352`:
+
+> dumping the absolute path — and the English label "Calendar file:" — into a
+> one-line surface was noise, and broke the Korean voice (copy-audit / loop
+> find). Mention it briefly, localized; keep the path in data.
+
+**이미 문안 감사를 거쳐 내린 결정**이다. 남는 관찰은 "사용자가 파일을 찾을
+경로가 문장에 없다" 하나뿐이고, 그건 이미 저울질된 비용이다.
+
+---
+
+## §5. 잘 작동하는 것 (대조군)
+
+이 기록이 결함 목록으로만 읽히면 판단이 왜곡된다.
+
+- **영수증.** `AI VERDICT ON THIS DECISION ······ NONE` / "모델은 당신을
+  채점하지 않았습니다. 현실이 답했습니다." 빗나간 예측을 기록했는데 기분이
+  나쁘지 않았다. 의도대로 작동한다.
+- **억제 게이트가 실제로 억제한다.** 사소·되돌리기 쉬움·이미 결정함·평평함
+  네 경우 모두 `fork_emitted:false`, `crux_question:null`. 갈림길을 지어내지
+  않는다. §2.2의 문제는 **문안**이지 게이트의 판정이 아니다.
+- **동시성이 견고하다.** 서로 다른 프로세스 8개가 같은 `argus_dir`에 동시
+  봉인 → 8/8 성공, 원장 16줄, JSON 파싱 실패 0, seal 유실 0.
+- **상태 전이 가드가 정확하다.** 없는 id 정산 → `NO_PRIOR_SEAL`, 재정산 →
+  `ALREADY_SETTLED`, 이중 봉인 → `ILLEGAL_TRANSITION`. 조용히 성공하지 않는다.
+- **에러 복구 안내가 스파인을 지킨다.** 모든 검증 실패에 "사용자가 정해야 할
+  값은 추측하지 마세요"가 붙는다.
+- **기록이 실제로 디스크에 도착한다.** 원장·영수증·`.ics`·`current_bearing`
+  전부 생성됐고, 건너뛴 칸은 `"(skipped)"`로 남았으며 `ai_verdict`는 `null`이었다.
+
+---
+
+## §6. 재현
+
+```bash
+mkdir journey-probe && cd journey-probe && npm init -y
+npm install argus-decision-mcp@2.0.9
+# stdio: initialize → notifications/initialized → tools/call
+# argus_dir는 OS 네이티브 절대경로. Windows에서 /c/Users/... 형태의 POSIX
+# 경로를 주면 C:\c\Users\... 아래에 조용히 생성되고 도구는 성공을 보고한다.
+```
+
+호출 순서: `argus_check_in` → `argus_capture(action:"open", premises:[…])` →
+`argus_predict` → `argus_check_in` → `argus_resolve(outcome, what_happened)` →
+`argus_patterns(view:"active"|"all"|"decision_context"|"receipt")`.
+
+`check_by`는 오늘도 거부되므로(`BAD_CHECK_BY`), 루프 후반부를 한 세션에서
+보려면 원장의 `check_by`를 과거로 옮겨야 한다.
+
+문안 전수 측정은 `localize-result.ts`와 `surfaces.ts`에서 한국어 리터럴을
+뽑아 `argus_[a-z_]+` / `action=` / `.argus` / `${…}` 패턴을 세면 재현된다.
+
+---
+
+*이 기록은 판정이 아니다. 각 항목의 "빨간불 조건"이 채워지기 전까지 어느
+것도 exit 체크를 대신하지 않는다. 그리고 §4가 보여주듯 **이 기록도 틀린다** —
+16개 중 4개가 재확인에서 뒤집혔다. 항목을 근거로 짓기 전에 `검증` 줄의 명령을
+직접 돌려볼 것.*
