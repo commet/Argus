@@ -28,12 +28,13 @@
  *                  declined, must hand their material back, must leave the
  *                  ledger untouched, and must report the surface as text
  */
-import { spawn, spawnSync } from 'node:child_process';
+import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import readline from 'node:readline';
 import { fileURLToPath } from 'node:url';
+import { requireCodexOrExit, spawnCodex } from './_codex-bin.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const DIST = path.join(ROOT, 'dist', 'index.js');
@@ -49,49 +50,12 @@ const ok = (label, condition, detail = '') => {
   if (!condition) violations.push(`${label}: ${String(detail).slice(0, 300)}`);
 };
 
-/**
- * Find the Codex binary. The first draft ran `where.exe codex` and accepted only
- * a `.exe`, which finds nothing on a machine that installed Codex the normal way
- * — npm puts `codex.cmd` / `codex.ps1` on PATH and the real binary down inside
- * `@openai/codex-<platform>/vendor/`. That gate therefore threw "codex.exe not
- * found" on an ordinary install and never ran at all.
- */
-function resolveCodex() {
-  const configured = process.env.CODEX_CLI_PATH;
-  if (configured && fs.existsSync(configured)) return configured;
-  if (process.platform !== 'win32') return 'codex';
-
-  const found = spawnSync('where.exe', ['codex'], { encoding: 'utf8' });
-  const lines = String(found.stdout ?? '').split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
-  const direct = lines.find((l) => /\.exe$/i.test(l) && fs.existsSync(l));
-  if (direct) return direct;
-
-  // npm shim on PATH → walk to the vendored binary it launches.
-  for (const shim of lines) {
-    const dir = path.dirname(shim);
-    const vendor = path.join(dir, 'node_modules', '@openai');
-    if (!fs.existsSync(vendor)) continue;
-    for (const pkg of fs.readdirSync(vendor)) {
-      const hit = path.join(vendor, pkg, 'vendor');
-      if (!fs.existsSync(hit)) continue;
-      for (const triple of fs.readdirSync(hit)) {
-        const exe = path.join(hit, triple, 'bin', 'codex.exe');
-        if (fs.existsSync(exe)) return exe;
-      }
-    }
-  }
-  // Some npm installations do not contain a platform-vendored executable.
-  // The command shim is still a usable Codex entry point (handled at spawn).
-  return lines.find((l) => /\.(cmd|bat)$/i.test(l) && fs.existsSync(l)) ?? null;
-}
-
-const CODEX = resolveCodex();
-if (!CODEX) {
-  // Skipping loudly beats a silent green: this gate's whole value is that it
-  // touched a real host.
-  console.log('⏭  real Codex app-server gate SKIPPED — codex not installed (set CODEX_CLI_PATH to run it)');
-  process.exit(0);
-}
+// Codex discovery lives in evals/_codex-bin.mjs so this gate and
+// decline-latency cannot disagree about whether a host is present — they did,
+// by exactly one line, and the quieter one skipped while reporting success.
+// Skipping loudly beats a silent green: this gate's whole value is that it
+// touched a real host, so "installed but unresolvable" fails instead of skipping.
+const CODEX = requireCodexOrExit('real Codex app-server gate');
 
 const ALLOWED = null; // Codex's own default forwards the request (measured)
 const BLOCKED = '{granular={mcp_elicitations=false,rules=true,sandbox_approval=true}}';
@@ -109,12 +73,7 @@ async function session(policy, answer) {
   ];
   if (policy) args.push('-c', `approval_policy=${policy}`);
 
-  // Node cannot execute a Windows .cmd/.bat shim without cmd.exe. npm installs
-  // Codex that way, so support an explicit CODEX_CLI_PATH to the normal shim
-  // as well as the vendored .exe discovered above.
-  const isWindowsShim = process.platform === 'win32' && /\.(cmd|bat)$/i.test(CODEX);
-  const child = spawn(isWindowsShim ? process.env.ComSpec ?? 'cmd.exe' : CODEX,
-    isWindowsShim ? ['/d', '/s', '/c', CODEX, ...args] : args, {
+  const child = spawnCodex(CODEX, args, {
     cwd: ROOT, env: { ...process.env, CODEX_HOME: codexHome },
     stdio: ['pipe', 'pipe', 'pipe'], windowsHide: true,
   });

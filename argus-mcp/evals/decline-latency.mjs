@@ -28,8 +28,9 @@
  * Skips loudly when Codex is absent: this gate's whole value is that it touched
  * a real host, and a silent pass would be worse than no gate.
  */
-import { spawn, spawnSync } from 'node:child_process';
+import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
+import { requireCodexOrExit, spawnCodex } from './_codex-bin.mjs';
 import os from 'node:os';
 import path from 'node:path';
 import readline from 'node:readline';
@@ -54,34 +55,11 @@ const ok = (label, cond, detail = '') => {
   if (!cond) violations.push(`${label}: ${String(detail).slice(0, 240)}`);
 };
 
-function resolveCodex() {
-  const configured = process.env.CODEX_CLI_PATH;
-  if (configured && fs.existsSync(configured)) return configured;
-  if (process.platform !== 'win32') return 'codex';
-  const found = spawnSync('where.exe', ['codex'], { encoding: 'utf8' });
-  const lines = String(found.stdout ?? '').split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
-  const direct = lines.find((l) => /\.exe$/i.test(l) && fs.existsSync(l));
-  if (direct) return direct;
-  for (const shim of lines) {
-    const vendor = path.join(path.dirname(shim), 'node_modules', '@openai');
-    if (!fs.existsSync(vendor)) continue;
-    for (const pkg of fs.readdirSync(vendor)) {
-      const hit = path.join(vendor, pkg, 'vendor');
-      if (!fs.existsSync(hit)) continue;
-      for (const triple of fs.readdirSync(hit)) {
-        const exe = path.join(hit, triple, 'bin', 'codex.exe');
-        if (fs.existsSync(exe)) return exe;
-      }
-    }
-  }
-  return null;
-}
-
-const CODEX = resolveCodex();
-if (!CODEX) {
-  console.log('⏭  decline-latency SKIPPED — codex not installed (set CODEX_CLI_PATH to run it)');
-  process.exit(0);
-}
+// Codex discovery is shared with the other host gates (evals/_codex-bin.mjs).
+// It used to be a private copy here whose last line returned null where the
+// other copy fell back to the npm shim — so on an ordinary install this gate
+// skipped, reported success, and measured nothing.
+const CODEX = requireCodexOrExit('decline-latency');
 
 ok('L0 제품의 문턱값을 읽었다', Number.isFinite(THRESHOLD), 'src/lib/elicit.ts에서 UNSEEN_DECLINE_MAX_MS를 못 읽음');
 
@@ -116,7 +94,7 @@ async function measure(policy) {
     '-c', 'mcp_servers.lat.startup_timeout_sec=40',
     '-c', `approval_policy=${policy}`,
   ];
-  const child = spawn(CODEX, args, {
+  const child = spawnCodex(CODEX, args, {
     cwd: ROOT, env: { ...process.env, CODEX_HOME: codexHome },
     stdio: ['pipe', 'pipe', 'pipe'], windowsHide: true,
   });

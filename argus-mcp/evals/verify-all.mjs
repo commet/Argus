@@ -91,6 +91,7 @@ function run(label, cmd, opts = {}) {
  *      gate's own failure signature.
  */
 const touched = new Map();
+const selfTestsSkipped = [];
 let selfRoot = null;
 function selfTest(label, file, mutate, gateCmd, gateFailure = gateFailureFor(gateCmd)) {
   const full = path.join(selfRoot, file);
@@ -128,14 +129,22 @@ function selfTest(label, file, mutate, gateCmd, gateFailure = gateFailureFor(gat
       exitedNonZero = true;
       output = `${String(error.stdout ?? '')}${String(error.stderr ?? '')}`;
     }
+    // A gate that SKIPPED (no host installed here) is a third outcome, and
+    // collapsing it into "this gate lies" would be its own dishonesty — the gate
+    // made no claim at all. It still proved nothing, so it is never counted as a
+    // caught regression; it is surfaced separately and summarised at the end.
+    const skipped = !exitedNonZero && /⏭|\bSKIPPED\b/.test(output);
     const ownedFailure = exitedNonZero && gateFailure.test(output);
-    if (!ownedFailure) failed++;
-    const note = !exitedNonZero
-      ? '⚠ 회귀를 심었는데도 초록 — 이 게이트는 거짓말한다'
-      : ownedFailure
-        ? `심은 회귀를 잡았다 (${gateFailure})`
-        : `비정상 종료했지만 게이트 판정문이 없다: ${output.split('\n').filter(Boolean).slice(-2).join(' | ').slice(0, 130)}`;
-    rows.push({ label, ok: ownedFailure, ms: Date.now() - started, note });
+    if (!ownedFailure && !skipped) failed++;
+    if (skipped) selfTestsSkipped.push(label);
+    const note = skipped
+      ? '⏭ 게이트가 호스트 없이 건너뜀 — 이 자기검증은 아무것도 증명하지 못했다'
+      : !exitedNonZero
+        ? '⚠ 회귀를 심었는데도 초록 — 이 게이트는 거짓말한다'
+        : ownedFailure
+          ? `심은 회귀를 잡았다 (${gateFailure})`
+          : `비정상 종료했지만 게이트 판정문이 없다: ${output.split('\n').filter(Boolean).slice(-2).join(' | ').slice(0, 130)}`;
+    rows.push({ label, ok: ownedFailure, skipped, ms: Date.now() - started, note });
   } catch (e) {
     // Reaching here means the SELF-TEST broke, not the product. Say exactly that
     // — a harness failure dressed as a product verdict is the thing this file
@@ -516,6 +525,19 @@ selfTest(
   /L3 |[1-9]\d* violations?/i,
 );
 selfTest(
+  // 2026-07-29에 실제로 일어난 일: 두 호스트 게이트가 각자 Codex 탐색 함수를
+  // 복사해 갖고 있었고, 마지막 한 줄만 달랐다(하나는 npm 셈으로 대체, 하나는
+  // null). 평범한 npm 설치에서는 후자가 조용히 건너뛰며 성공을 보고했다 — 아무것도
+  // 재지 않은 채로. 그래서 "설치돼 있는데 못 찾음"은 이제 건너뛰기가 아니라 실패다.
+  '자기검증 ㉙ Codex가 있는데 게이트가 조용히 건너뛰는 회귀를 잡는가',
+  'evals/_codex-bin.mjs',
+  (s) => s.replace(
+    '  const direct = lines.find((l) => /\\.exe$/i.test(l) && fs.existsSync(l));',
+    "  if (onPath) return { bin: null, kind: 'unresolvable', onPath };\n  const direct = lines.find((l) => /\\.exe$/i.test(l) && fs.existsSync(l));"),
+  'node evals/decline-latency.mjs',
+  /codex is on PATH but no runnable entry point/i,
+);
+selfTest(
   '자기검증 ㉗ 버전 한 곳만 어긋나는 회귀를 잡는가',
   'package.json',
   (s) => s.replace(/"version":\s*"[^"]+"/, '"version": "0.0.0"'),
@@ -557,7 +579,15 @@ if (failed) {
   process.exit(1);
 }
 const planted = rows.filter(
-  (row) => row.label.startsWith('자기검증') && !row.label.includes('원본 보호'),
+  (row) => row.label.startsWith('자기검증') && !row.label.includes('원본 보호') && !row.skipped,
 ).length;
 console.log(`\n✅ 전 게이트 통과 + 심은 회귀 ${planted}개를 게이트가 실제로 잡음.`);
 console.log('   (초록불이 "고장을 못 잡는 초록불"이 아님을 같은 실행 안에서 증명했습니다.)');
+// Never let a skip hide inside a green summary. The count is stated even when
+// everything else passed, because "N개는 이 기계에서 확인되지 않았다" is a
+// different sentence from "전부 확인했다".
+if (selfTestsSkipped.length) {
+  console.log(`\n⏭  다만 자기검증 ${selfTestsSkipped.length}개는 이 기계에서 돌지 못했습니다 (해당 호스트 미설치):`);
+  for (const label of selfTestsSkipped) console.log(`   · ${label}`);
+  console.log('   그 게이트들이 아직 무는지는 이 실행이 증명하지 않았습니다.');
+}
