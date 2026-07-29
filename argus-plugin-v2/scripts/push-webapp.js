@@ -107,7 +107,7 @@ function loadConfig() {
     url: String(flags.url || process.env.ARGUS_PUSH_URL || saved.url || "https://argus.voyage").replace(/\/$/, ""),
     // Auto-sync is ON by default once connected (the first approve IS the opt-in).
     // `auto:false` is the opt-out switch: it silences the automatic post-seal push
-    // (--ensure-connect) while an explicit /argus:push still works.
+    // (--ensure-connect) while an explicit settings push still works.
     auto: saved.auto !== false,
   };
 }
@@ -458,25 +458,25 @@ async function connect() {
   saveConfig(token, url);
   console.log("연결됐어요. 이제 봉인할 때마다 판단 기록이 자동으로 웹앱 항구에 닿습니다.");
   console.log(`토큰은 ${path.relative(root, configFile()).replace(/\\/g, "/")} 에 로컬 저장되고 git에서 제외됩니다.`);
-  console.log("자동 전송을 끄려면 /argus:push --auto off (언제든 다시 --auto on).");
+  console.log("자동 전송을 끄려면 /argus:settings push --auto off (언제든 다시 --auto on).");
 }
 
 async function push() {
   const config = loadConfig();
   let { token, url } = config;
 
-  // Opt-out toggle: `/argus:push --auto off` silences the automatic post-seal
-  // sync (an explicit /argus:push still works); `--auto on` re-enables it.
+  // Opt-out toggle: `settings push --auto off` silences automatic post-seal
+  // sync (an explicit settings push still works); `--auto on` re-enables it.
   if (flags.auto === "on" || flags.auto === "off") {
     setAuto(flags.auto === "on");
     console.log(flags.auto === "on"
       ? "자동 동기화 켜짐 — 봉인할 때마다 웹앱으로 자동 전송."
-      : "자동 동기화 꺼짐 — /argus:push 로 수동 전송하세요.");
+      : "자동 동기화 꺼짐 — /argus:settings push 로 수동 전송하세요.");
     return;
   }
 
   // The AUTOMATIC path (called after each seal via --ensure-connect). If the user
-  // turned auto-sync off, this is a silent no-op; explicit /argus:push is unaffected.
+  // turned auto-sync off, this is a silent no-op; explicit settings push is unaffected.
   if (flags["ensure-connect"] && config.auto === false) return;
 
   // Auto-trigger (BLUEPRINT §9.9 V1): the seal path calls `push --ensure-connect`.
@@ -490,21 +490,21 @@ async function push() {
       token = flags.headless ? await connectWithDevice(url) : await connectWithBrowser(url);
       saveConfig(token, url);
       console.log("연결됐어요. 방금 봉인한 결정을 웹앱으로 보냅니다.");
-      console.log("이후 봉인은 자동으로 전송돼요. 끄려면 /argus:push --auto off.");
+      console.log("이후 봉인은 자동으로 전송돼요. 끄려면 /argus:settings push --auto off.");
     } catch (error) {
       try { fs.writeFileSync(connectDeclinedFile(), new Date().toISOString()); } catch { /* best effort */ }
-      console.log(`웹앱 연동은 건너뜁니다 (${error.message}). 결정은 로컬에 안전히 봉인됐고, 언제든 /argus:connect 로 이어붙일 수 있어요.`);
+      console.log(`웹앱 연동은 건너뜁니다 (${error.message}). 결정은 로컬에 안전히 봉인됐고, 언제든 /argus:settings connect 로 이어붙일 수 있어요.`);
       return;
     }
   }
 
   if (!token) {
-    console.error("아직 웹앱에 연결 안 됐어요. /argus:connect 를 먼저 실행하세요 (승인 탭 1회).");
+    console.error("아직 웹앱에 연결 안 됐어요. /argus:settings connect 를 먼저 실행하세요 (승인 탭 1회).");
     process.exit(1);
   }
   const files = collectFiles();
   if (files.length === 0) {
-    console.log("Nothing to push yet. Run /argus:sail, /argus:scan, or /argus:resolve first.");
+    console.log("Nothing to push yet. Run /argus:review, /argus:history scan, or /argus:check first.");
     return;
   }
   const bytes = files.reduce((sum, file) => sum + Buffer.byteLength(file.content), 0);
@@ -523,7 +523,7 @@ async function push() {
   }
   if (!res.ok) {
     console.error(`Push failed (${res.status}): ${res.data.error || "unknown error"}`);
-    if (res.status === 401) console.error("연결이 만료·철회됐을 수 있어요. /argus:connect 를 다시 실행해 승인하세요.");
+    if (res.status === 401) console.error("연결이 만료·철회됐을 수 있어요. /argus:settings connect 를 다시 실행해 승인하세요.");
     process.exit(1);
   }
   const summary = res.data.summary || {};
@@ -537,7 +537,7 @@ async function push() {
 async function pull() {
   const { token, url } = loadConfig();
   if (!token) {
-    console.error("아직 웹앱에 연결 안 됐어요. /argus:connect 를 먼저 실행하세요 (승인 탭 1회).");
+    console.error("아직 웹앱에 연결 안 됐어요. /argus:settings connect 를 먼저 실행하세요 (승인 탭 1회).");
     process.exit(1);
   }
 
@@ -560,7 +560,7 @@ async function pull() {
   }
   if (!res.ok) {
     console.error(`Pull failed (${res.status}): ${res.data.error || "unknown error"}`);
-    if (res.status === 401) console.error("연결이 만료·철회됐을 수 있어요. /argus:connect 를 다시 실행해 승인하세요.");
+    if (res.status === 401) console.error("연결이 만료·철회됐을 수 있어요. /argus:settings connect 를 다시 실행해 승인하세요.");
     process.exit(1);
   }
 
@@ -631,11 +631,11 @@ async function status() {
 const commands = { connect, push, pull, sync, status };
 if (!cmd || !commands[cmd]) {
   console.log("Usage:");
-  console.log("  /argus:connect          (브라우저 승인 탭 1회 — 복붙 없음)");
-  console.log("  /argus:push");
-  console.log("  /argus:pull");
-  console.log("  /argus:sync");
-  console.log("  /argus:push --status");
+  console.log("  /argus:settings connect (브라우저 승인 탭 1회 — 복붙 없음)");
+  console.log("  /argus:settings push");
+  console.log("  /argus:settings pull");
+  console.log("  /argus:settings sync");
+  console.log("  /argus:settings push --status");
   process.exit(cmd ? 1 : 0);
 }
 

@@ -4,7 +4,8 @@
 기준 브랜치: `main`  
 기준 커밋: `9bc2a70b`  
 관련 병합: PR #309, PR #310  
-상태: **공개 표면 1차 정리는 완료됐지만 저장소 내부 완전 정리는 아직 시작 전**
+상태: **2026-07-29 실행 갱신 — 공개 표면과 직접 연결된 dead leaf 정리 완료,
+최종 릴리스·호스트 재실측 진행 중**
 
 이 문서는 다른 세션이 Argus MCP·플러그인의 현재 구조를 잘못 추측하지
 않도록 만든 정리 작업의 정본이다. 이미 무엇을 왜 지웠는지, 무엇은 실제
@@ -874,3 +875,49 @@ Phase 3과 4는 그 결과를 정본으로 받아 이어간다.
 도메인 정본, 데이터 writer, 배포 경로가 각각 하나의 명확한 주인을 갖게
 하는 것이다. 그 상태가 되면 큰 삭제는 결과로 따라오며, 그 전의 무차별
 삭제는 정리가 아니라 회귀다.
+
+---
+
+## 11. 2026-07-29 실행 결과와 다른 세션 준수사항
+
+이 절이 위의 “현재 상태”보다 최신이다.
+
+완료:
+
+- MCP 호출 표면은 여전히 정확히 여섯 개다.
+- `argus_capture action=open`의 중첩 전제 입력을 쓰기 전에 검증한다.
+  `ai_surfaced`에 `ai_original`이 없으면 session·gate·harvest 어느 것도
+  생성하지 않는 실제 stdio 회귀 테스트가 있다.
+- 모든 설명을 지우는 방식은 폐기했다. 잘못된 호출을 막는 필드만 짧게 남기고
+  전체 `tools/list` descriptor 크기를 20KB 이하로 고정했다.
+- MCP에 등록되지 않던 `review`, `watch`, `candidates` 도구 구현과 전용 테스트,
+  웹앱 review-core 중복 사본, 문서 파서 운영 의존성(`mammoth`, `jszip`,
+  `pdfjs-dist`)을 제거했다. 웹앱과 플러그인의 명시적 deep review는 유지된다.
+- Claude 플러그인의 자동 발견 skill은 정확히 다섯 개만 남았다:
+  `review`, `check`, `history`, `settings`, `help`.
+- 세부 로직 13개는 `skills/*/SKILL.md`에서
+  `lib/workflows/*.md`로 이동했다. 공개 router가 선택했을 때만 읽으며,
+  별도 slash command나 상시 모델 문맥이 아니다.
+- `/argus:sail`, `/argus:resolve`를 포함한 옛 별칭과 copy-install
+  `install.sh`를 제거했다.
+- 웹앱 연결의 정상 경로는 `/argus:settings connect` 브라우저 승인이다.
+  README와 skill이 채팅에 토큰을 붙여넣으라고 가르치지 않는다.
+- 격리된 실제 Claude Code 설치 수명주기에서 5 skills, 4 inherited agents,
+  MCP 연결, 여섯 tool 목록, 실제 tool call, disable/enable/update/uninstall을
+  통과했다.
+
+다른 세션은 다음을 하지 않는다:
+
+- 삭제된 skill 디렉터리나 MCP tool 파일을 충돌 해결 명목으로 복구하지 않는다.
+- 내부 workflow를 다시 `skills/` 아래로 옮기지 않는다.
+- 정상 연결 예시에 raw token을 넣지 않는다.
+- `main`이나 현재 릴리스 핀을 확인하지 않고 과거 브랜치의 버전을 덮지 않는다.
+
+남은 순서:
+
+1. 동시 진행된 원격 커밋을 내용 비교 후 병합한다.
+2. 전체 root/MCP/plugin/eval gate를 다시 돌린다.
+3. 새 버전을 한 번만 올리고 npm·marketplace 핀을 맞춘다.
+4. 사용자 세션을 마지막에만 재시작한다.
+5. 새 세션에서 Claude Code, Codex CLI, Codex Desktop의
+   저장→확인→Accept/Allow→readback 루프를 각각 눈으로 재실측한다.

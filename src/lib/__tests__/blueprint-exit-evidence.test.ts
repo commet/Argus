@@ -70,12 +70,12 @@ const EVIDENCE_M: Record<string, string[]> = {
     'src/lib/__tests__/companion-brief.test.ts', // 이메일 페이로드에 터미널 명령
   ],
   '공정 M1': [
-    'argus-mcp/src/tools/__tests__/m1-watch-loop.test.ts', // 당직 여정 fixture
-    'argus-mcp/src/tools/__tests__/m1-watch-loop.test.ts', // 앵커 비산입
-    'argus-mcp/src/tools/__tests__/m1-watch-loop.test.ts', // 어휘 가드 (recheck 포함)
+    'argus-mcp/src/tools/__tests__/public-surface-names.test.ts', // 은퇴 watch가 공개 표면으로 부활하지 않음
+    'argus-mcp/src/tools/__tests__/protocol-roundtrip.test.ts', // 실제 tools/list는 최종 6종뿐
+    'argus-mcp/src/v2/activation-contract.test.ts', // 플러그인도 최종 5축만 공개
   ],
   '공정 M2': [
-    'argus-mcp/src/tools/__tests__/m2-bridges.test.ts', // capture→봉인→정산 승격 여정
+    'argus-mcp/src/tools/__tests__/protocol-roundtrip.test.ts', // 공개 capture→전제 기록은 원자적으로 수행
     'argus-mcp/src/tools/__tests__/m2-bridges.test.ts', // 웹 정산 발산 0 (import_settlements)
     'argus-mcp/src/tools/__tests__/m2-bridges.test.ts', // fleet 두 프로젝트 fixture
   ],

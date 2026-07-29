@@ -42,11 +42,11 @@ describe('intentional divergence — webapp-only kicks survive', () => {
 
 describe('intentional divergence — plugin-only kicks survive', () => {
   it('Helm (pre-scan of irreversible ops in coding-agent plans) still exists', () => {
-    expect(existsSync(join(ROOT, 'argus-plugin-v2/skills/preapprove/SKILL.md'))).toBe(true);
+    expect(existsSync(join(ROOT, 'argus-plugin-v2/lib/workflows/preapprove.md'))).toBe(true);
   });
 
   it('Chart (version-tree of child drafts) still exists', () => {
-    expect(existsSync(join(ROOT, 'argus-plugin-v2/skills/versions/SKILL.md'))).toBe(true);
+    expect(existsSync(join(ROOT, 'argus-plugin-v2/lib/workflows/versions.md'))).toBe(true);
   });
 });
 

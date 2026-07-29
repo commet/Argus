@@ -101,7 +101,7 @@ async function generate(input) {
     // so every call after the first reads it from cache (~90% cheaper input). This
     // is the main cost lever for the eval/sweep (the SKILL.md files are ~1.3k lines).
     system: [{ type: 'text', text: GEN_SYSTEM, cache_control: { type: 'ephemeral' } }],
-    messages: [{ role: 'user', content: `/argus:sail "${input}"` }],
+    messages: [{ role: 'user', content: `/argus:review "${input}"` }],
   });
   const text = res.content.map((b) => (b.type === 'text' ? b.text : '')).join('');
   const obj = extractJson(text);

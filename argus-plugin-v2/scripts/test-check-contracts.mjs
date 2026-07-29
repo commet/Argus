@@ -96,11 +96,11 @@ t("sealed bet due in the future → silence", () => {
 
 // ─── Ledger replay ──────────────────────────────────────
 
-t("overdue sealed bet → one line with /argus:resolve", () => {
+t("overdue sealed bet → one line with /argus:check", () => {
   const r = repo();
   ledger(r, bet("aaaa0001", iso(-3), "지난 결정"));
   const out = run(r);
-  assert(out.includes("/argus:resolve"), `missing settle hint: ${out}`);
+  assert(out.includes("/argus:check"), `missing settle hint: ${out}`);
   assert(out.includes(iso(-3)), `missing date: ${out}`);
   assert(!out.includes("\n"), `must be exactly one line: ${out}`);
 });
@@ -108,7 +108,7 @@ t("overdue sealed bet → one line with /argus:resolve", () => {
 t("check-by today → fires (settle treats ≤ today as due)", () => {
   const r = repo();
   ledger(r, bet("aaaa0001", iso(0), "오늘 결정"));
-  assert(run(r).includes("/argus:resolve"), "due-today must fire");
+  assert(run(r).includes("/argus:check"), "due-today must fire");
 });
 
 t("settled bet → silence", () => {
@@ -126,7 +126,7 @@ t("amend pushes check_by → silence (the 'push the date' path)", () => {
 t("amend pulls check_by into the past → fires", () => {
   const r = repo();
   ledger(r, bet("aaaa0001", iso(10), "당긴 결정", [{ event: "amend", check_by: iso(-1) }]));
-  assert(run(r).includes("/argus:resolve"), "amended-overdue must fire");
+  assert(run(r).includes("/argus:check"), "amended-overdue must fire");
 });
 
 t("MCP defer (still_pending re-arm) → silence until the NEW date (O2 방1 finding ③)", () => {
@@ -138,7 +138,7 @@ t("MCP defer (still_pending re-arm) → silence until the NEW date (O2 방1 find
 t("bare seal (no prior harvest) still fires — parity with MCP replay & statusline (O2 backlog ⑥)", () => {
   const r = repo();
   ledger(r, [{ event: "seal", id: "bare0001", predicate: "bare seal must fire the reminder", check_by: iso(-2) }]);
-  assert(run(r).includes("/argus:resolve"), "a seal without harvest must still be tracked and fire");
+  assert(run(r).includes("/argus:check"), "a seal without harvest must still be tracked and fire");
 });
 
 t("bound repo: durable home AND project v1 are UNIONed — the due owner sees both planes (O3 방2)", () => {
@@ -157,7 +157,7 @@ t("bound repo: durable home AND project v1 are UNIONed — the due owner sees bo
   ].join("\n") + "\n");
   ledger(r, bet("projB", iso(-2), "plugin-written bet"));
   const out = run(r, { ARGUS_HOME: home });
-  assert(out.includes("/argus:resolve"), `union fold must fire the reminder: ${out}`);
+  assert(out.includes("/argus:check"), `union fold must fire the reminder: ${out}`);
   assert(out.includes("외 1건") || /2 decision contracts/.test(out), `both planes must fold into one count: ${out}`);
 });
 
@@ -171,7 +171,7 @@ t("bound repo: durable v2 events (v:2, provenanced) fold too — an MCP-only sea
   writeFileSync(join(dur, "ledger.jsonl"),
     JSON.stringify({ v: 2, event: "seal", decision_id: "v2A", predicate: { value: "v2 mcp seal — predicate" }, check_by: { value: iso(-2) } }) + "\n");
   const out = run(r, { ARGUS_HOME: home });
-  assert(out.includes("/argus:resolve"), `a v2 seal in the durable home must fire: ${out}`);
+  assert(out.includes("/argus:check"), `a v2 seal in the durable home must fire: ${out}`);
 });
 
 t("dismissed contract → silence", () => {
@@ -200,7 +200,7 @@ t("corrupt ledger lines → skipped, valid events survive", () => {
   writeFileSync(join(r, ".argus", "ledger", "ledger.jsonl"),
     "not json\n" + bet("aaaa0001", iso(-1), "살아남은 결정").map(e => JSON.stringify(e)).join("\n") + "\n{broken",
   );
-  assert(run(r).includes("/argus:resolve"), "valid events must survive corrupt lines");
+  assert(run(r).includes("/argus:check"), "valid events must survive corrupt lines");
 });
 
 // ─── Bearing seeds ──────────────────────────────────────
@@ -209,7 +209,7 @@ t("overdue bearing seed → fires", () => {
   const r = repo();
   seedBearing(r, "s1", "v0.1", { predicate: "시드 예측", check_by: iso(-2) });
   const out = run(r);
-  assert(out.includes("시드 예측") && out.includes("/argus:resolve"), `seed must fire: ${out}`);
+  assert(out.includes("시드 예측") && out.includes("/argus:check"), `seed must fire: ${out}`);
 });
 
 t("legacy hyphen spelling seed → fires", () => {
@@ -254,7 +254,7 @@ t("seed imported but still open → fires ONCE (ledger owns it)", () => {
     { event: "seal", id: "bearing:s1:v0.1", predicate: "열린 시드", check_by: iso(-3) },
   ]);
   const out = run(r);
-  assert(out.includes("/argus:resolve"), `open imported seed is still due: ${out}`);
+  assert(out.includes("/argus:check"), `open imported seed is still due: ${out}`);
   assert(!/2|외/.test(out.replace(iso(-3), "")), `must not double-count: ${out}`);
 });
 
@@ -274,7 +274,7 @@ t("locale ko in config.yaml → Korean line", () => {
   writeFileSync(join(r, ".argus", "config.yaml"), "locale: ko\n");
   ledger(r, bet("aaaa0001", iso(-1), "한국어 결정"));
   const out = run(r);
-  assert(out.includes("정산할 때") && out.includes("/argus:resolve"), `expected ko line: ${out}`);
+  assert(out.includes("정산할 때") && out.includes("/argus:check"), `expected ko line: ${out}`);
 });
 
 t("UTF-8 BOM bearing (PS 5.1 Out-File) → still fires", () => {
@@ -292,7 +292,7 @@ t("UTF-8 BOM ledger → still replayed", () => {
   mkdirSync(join(r, ".argus", "ledger"), { recursive: true });
   writeFileSync(join(r, ".argus", "ledger", "ledger.jsonl"),
     "﻿" + bet("aaaa0001", iso(-1), "BOM 원장").map(e => JSON.stringify(e)).join("\n") + "\n");
-  assert(run(r).includes("/argus:resolve"), "BOM-prefixed ledger must still fire");
+  assert(run(r).includes("/argus:check"), "BOM-prefixed ledger must still fire");
 });
 
 t("root-level bearing seed → fires (statusline coverage parity)", () => {
@@ -337,7 +337,7 @@ t("overdue beats greeting — and still burns the marker", () => {
   const r = repo();
   ledger(r, bet("aaaa0001", iso(-1), "기존 사용자 결정"));
   const out = run(r, { CLAUDE_CONFIG_DIR: cfg });
-  assert(out.includes("/argus:resolve") && !out.includes("/argus:help"), `overdue line must win: ${out}`);
+  assert(out.includes("/argus:check") && !out.includes("/argus:help"), `overdue line must win: ${out}`);
   assert(run(repo(), { CLAUDE_CONFIG_DIR: cfg }) === "", "user with contracts never gets the intro later");
 });
 
@@ -424,7 +424,7 @@ t("overdue contract beats premise reminder — one line, settle only", () => {
   ledger(r, bet("aaaa0001", iso(-1), "지난 결정"));
   items(r, [premise("item_p1")]);
   const out = run(r);
-  assert(out.includes("/argus:resolve") && !out.includes("/argus:check premises"), `settle must win: ${out}`);
+  assert(out.includes("/argus:check") && !out.includes("/argus:check premises"), `settle must win: ${out}`);
   assert(!out.includes("\n"), `must be one line: ${out}`);
 });
 

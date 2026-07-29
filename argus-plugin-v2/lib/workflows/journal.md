@@ -1,10 +1,10 @@
 ---
 name: journal
-description: Read the decision record across Argus sessions as a neutral chronology. Show original sentences, authorship, later answers, revisions, and what still has a return condition. Never aggregate outcomes into a score, calibration claim, hit rate, or performance label. Invoked as `/argus:journal`.
+description: Read the decision record as a neutral chronology. Never score or rank outcomes. Invoked through `/argus:history`.
 user-invocable: false
 ---
 
-# Argus Journal
+# Internal journal workflow
 
 Run:
 
@@ -48,5 +48,5 @@ Always distinguish:
 - Do not ask for more information unless the user explicitly wants to edit,
   settle, or inspect one record.
 
-If no record exists, say so plainly and offer `/argus:predict` as an optional
+If no record exists, say so plainly and offer `/argus:check <id>` as an optional
 next step. Do not manufacture an insight from an empty or thin history.

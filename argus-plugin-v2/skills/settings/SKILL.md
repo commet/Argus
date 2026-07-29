@@ -1,24 +1,20 @@
 ---
 name: settings
-description: Set up and connect Argus in one command — language and boss-persona preferences, webapp pairing with a push token, push/pull/two-way sync of plugin records, plus a pointer to the read-only /argus:doctor wiring self-diagnosis. Use when the user wants to configure Argus, change its language, connect the webapp, sync records, or asks "how do I change Argus settings". Invoked as `/argus:settings`.
-argument-hint: "[비워두면 현재 설정 요약 | configure | connect <token> | push | pull | sync]"
+description: Configure Argus, connect the webapp through browser approval, sync records, or inspect pairing state. Never ask for or print a token in normal use. Invoked as `/argus:settings`.
+argument-hint: "[configure | connect | sync | push | pull | doctor]"
 ---
 
 # /argus:settings — setup & sync
 
-Route by the argument, then invoke the matching internal skill via the Skill
-tool and let it do the work — do NOT re-implement its logic here:
+Route by the argument, read the matching bundled workflow, and follow it
+exactly. These files are implementation details, not additional user commands:
 
-| Input | Invoke |
+| Input | Read |
 |---|---|
 | (none) | No skill — render a one-screen read-only summary: `.argus/config.yaml` (locale, boss persona) if present, webapp pairing state (does `.argus/ledger/push.json` exist — say paired/not-paired, never print the token), and the verbs below. Create nothing. |
-| `configure` (+ args) | `configure` — language, boss/stakeholder persona, session-commit preference (interactive, writes `.argus/config.yaml`). |
-| `connect <token>` | `connect` with the token — pair this project with the user's webapp account (stores the token locally, git-ignored). |
-| `push` | `push` — send local plugin records to the paired webapp account. |
-| `pull` | `pull` — bring webapp-originated settle/defer events back into the local decision record. |
-| `sync` | `sync` — pull, then push (the two-way default; prefer this over bare push/pull). |
+| `configure` (+ args) | `${CLAUDE_PLUGIN_ROOT}/lib/workflows/configure.md` |
+| `connect` | `${CLAUDE_PLUGIN_ROOT}/lib/workflows/connect.md` — run browser approval; do not request a pasted token. |
+| `push` | `${CLAUDE_PLUGIN_ROOT}/lib/workflows/push.md` |
+| `pull` | `${CLAUDE_PLUGIN_ROOT}/lib/workflows/pull.md` |
+| `sync` | `${CLAUDE_PLUGIN_ROOT}/lib/workflows/sync.md` |
 | `doctor` | Point the user to `/argus:doctor` — the read-only install/wiring self-diagnosis is its own command. |
-
-Legacy names that still work if typed directly: `/argus:configure`,
-`/argus:connect`, `/argus:push`, `/argus:pull`, `/argus:sync` (menu-hidden but
-functional).

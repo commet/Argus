@@ -1,11 +1,11 @@
 ---
 name: predict
 user-invocable: false
-description: "Seal one user-confirmed Argus record as a prediction, commitment, declaration, or witness. Use after /argus:sail or /argus:scan when the user asks to keep a specific decision. Invoked as /argus:predict."
+description: "Save one user-confirmed candidate as a prediction, commitment, declaration, or witness. Invoked through /argus:check <id>."
 argument-hint: "[<id>] [--latest-seed] [--list]"
 ---
 
-# /argus:predict
+# Internal predict workflow
 
 Turn one selected candidate or sail seed into an append-only record. An AI
 draft is never a seal. The user confirms both the sentence and what kind of

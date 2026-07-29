@@ -1,11 +1,11 @@
 ---
 name: configure
 user-invocable: false
-description: Set up or change Argus's saved preferences for THIS repo — language and your stakeholder (Boss) persona — written to .argus/config.yaml. Use when the user wants to set or change the language, configure the Boss that the boss step of /argus:review role-plays, decide whether decision session files get committed, or asks "how do I configure Argus / change settings". Interactive and entirely optional — Argus works with sensible defaults if it's never run. Invoked as `/argus:configure`.
+description: Configure this repo's Argus language, stakeholder persona, and archive preference. Invoked through `/argus:settings configure`.
 allowed-tools: Read, Write, AskUserQuestion
 ---
 
-# /argus:configure
+# Internal configure workflow
 
 Sets `.argus/config.yaml` — the per-repo preferences every Argus skill reads at
 startup. **Optional**: skills fall back to sensible defaults (auto-detected locale,
@@ -32,7 +32,7 @@ were a stale design and are gone):
   `name`, `gender` (`남`/`여` or `male`/`female`), and an optional voice skin
   `tone` (one of the 16 presets in `data/boss-types.yaml`; legacy key
   `mbti_code` still works and means the same thing — tone only).
-- **`archive.commit_sessions`** — `true`/`false`. Whether `/argus:versions` offers to
+- **`archive.commit_sessions`** — `true`/`false`. Whether `/argus:history versions` offers to
   git-commit `.argus/sessions/` when a decision completes. Default `false`.
 - **`team`** *(optional, advanced)* — `max_agents_override` (1–6), `preferred_agents`
   (ids). Only touch if the user explicitly asks; otherwise leave it out.
@@ -41,7 +41,7 @@ were a stale design and are gone):
 
 ### Step 0 — read current state
 Read `.argus/config.yaml`.
-- **Missing** → run **First-time setup**. (`/argus:sail` also auto-creates the file
+- **Missing** → run **First-time setup**. (`/argus:review` also auto-creates the file
   with a detected locale; this skill is the explicit, interactive path.)
 - **Exists** → run **Returning-user update**: show the current values, change what
   they ask for, keep the rest.
@@ -68,7 +68,7 @@ You can skip — a generic decision-owner review is used."
     two-question mapper was personality theater — retired in O3 방3).
 - **Skip** → omit the entire `boss:` block (don't write an empty one).
 
-**Ask 3 · Commit session files?** — "When a decision ends, should `/argus:versions` offer
+**Ask 3 · Commit session files?** — "When a decision ends, should `/argus:history versions` offer
 to git-commit `.argus/sessions/`? Default no — they're git-ignored." →
 `archive.commit_sessions`.
 

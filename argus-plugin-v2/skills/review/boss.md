@@ -188,7 +188,7 @@ Retry once if invalid or generic.
 
 ### Step 4 - Apply Concern Defaults
 
-**If `--invoked-via-sail` is set: do NOT AskUserQuestion here.** Auto-apply all `critical` concerns (`applied = true`), leave others `applied = false`, and let sail Step 7 surface them so the user can revisit via `/argus:versions` later. Firing a concern-selection dialog mid-chain breaks sail's "auto-proceeding, Ctrl-C to halt" contract and hangs an unattended run — this was a confirmed regression. Proceed straight to the report step.
+**If `--invoked-via-sail` is set: do NOT AskUserQuestion here.** Auto-apply all `critical` concerns (`applied = true`), leave others `applied = false`, and let review Step 7 surface them so the user can revisit via `/argus:history versions` later. Firing a concern-selection dialog mid-chain breaks review's "auto-proceeding, Ctrl-C to halt" contract and hangs an unattended run — this was a confirmed regression. Proceed straight to the report step.
 
 **Only on direct invocation** (no `--invoked-via-sail`), let the user toggle via AskUserQuestion (locale-aware):
 - ko Title: `어느 우려를 반영할까요?`
@@ -315,11 +315,11 @@ Approval condition: {{approval_condition}}
 {{locale-aware footer — conditional on there being a concern worth applying}}
 - **If `concerns[]` is empty (or all rejected):** do NOT push `revise.md` —
   there is nothing to revise. Offer the done-handle instead:
-  - ko: `다음: 반영할 우려 없음 — 이대로 확정하려면 \`/argus:versions --promote\`.`
-  - en: `Next: no concerns to apply — \`/argus:versions --promote\` to finalize as is.`
+  - ko: `다음: 반영할 우려 없음 — 이대로 확정하려면 \`/argus:history versions --promote\`.`
+  - en: `Next: no concerns to apply — \`/argus:history versions --promote\` to finalize as is.`
 - **If at least one concern is worth applying:**
-  - ko: `다음: 우려를 반영하려면 \`revise.md\` (선택한 우려로 자식 초안 생성 + 재검증). 현재 초안으로 확정하려면 \`/argus:versions --promote\`.`
-  - en: `Next: \`revise.md\` to apply the concerns (forks a child draft + re-verifies). Or \`/argus:versions --promote\` to finalize this draft.`
+  - ko: `다음: 우려를 반영하려면 \`revise.md\` (선택한 우려로 자식 초안 생성 + 재검증). 현재 초안으로 확정하려면 \`/argus:history versions --promote\`.`
+  - en: `Next: \`revise.md\` to apply the concerns (forks a child draft + re-verifies). Or \`/argus:history versions --promote\` to finalize this draft.`
 ```
 
 Keep this to one terminal screen.

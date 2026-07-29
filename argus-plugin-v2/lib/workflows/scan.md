@@ -1,22 +1,22 @@
 ---
 name: scan
 user-invocable: false
-description: "Recover decision candidates from past Claude Code conversations in this project. This is the ambient-capture entry point: it finds decisions that happened outside `/argus:sail`, writes them as local candidate ledger events, and does not seal anything automatically. Use when the user asks to scan past chats, recover decisions, harvest decisions, or asks what argus-watch scan used to do. Invoked as `/argus:scan`."
+description: "Recover decision candidates from past Claude Code conversations without saving them automatically. Invoked through `/argus:history scan`."
 argument-hint: "[--since days] [--all-projects] [--list] [--status] [--purge <id|all>]"
 ---
 
-# /argus:scan
+# Internal scan workflow
 
 **What this skill does:** Scans past Claude Code transcripts for human decision
 moments and writes only `candidate` events to `.argus/ledger/ledger.jsonl`.
 
-This is an entry point, like `/argus:sail`:
+This is the past-conversation entry point:
 
-- `/argus:sail` = start from a decision the user is making now.
-- `/argus:scan` = recover decisions already made in past Claude Code chats.
+- `/argus:review` = pressure-test a decision the user is making now.
+- `/argus:history scan` = recover decisions already made in past Claude Code chats.
 
 It never seals automatically. The user must choose which candidates are worth
-turning into later-checkable contracts with `/argus:predict <id>`.
+turning into later-checkable contracts with `/argus:check <id>`.
 
 ---
 
@@ -52,13 +52,13 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/decision-ledger.js" scan --list
 3. Relay the compact result:
    - how many conversation segments were scanned,
    - candidate ids found,
-   - next command: `/argus:predict <id>`.
+   - next command: `/argus:check <id>`.
 
 ---
 
 ## Relationship To argus-watch
 
-`argus-watch scan` was the prototype. `/argus:scan` is now the normal plugin
+`argus-watch scan` was the prototype. `/argus:history scan` is the normal plugin
 path. Foreground scan and opt-in background capture use the same deterministic
 extractor port, exact-source byte verification, stable identity, and canonical
 writer. No separate detector prompt, webapp login, or API key is involved.

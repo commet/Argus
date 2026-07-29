@@ -28,4 +28,4 @@ team:
   # preferred_agents: [domain-reviewer, evidence-reviewer]
 
 archive:
-  commit_sessions: false  # If true, /argus:versions suggests git commit at phase=complete
+  commit_sessions: false  # If true, /argus:history versions suggests git commit at phase=complete

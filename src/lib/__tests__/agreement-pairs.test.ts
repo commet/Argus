@@ -55,11 +55,6 @@ const PAIRS: Pair[] = [
     guard: 'src/lib/__tests__/premises-core-drift.test.ts', kind: 'ci',
   },
   {
-    a: 'src/lib/review/*', b: 'argus-mcp/src/lib/review*',
-    breaks: '문서 검수 결과가 웹과 MCP에서 갈라진다',
-    guard: 'src/lib/__tests__/review-mcp-drift.test.ts', kind: 'ci',
-  },
-  {
     a: '동기화 인터페이스 필드 (types.ts)', b: '실DB 컬럼 매니페스트 (TABLE_COLUMNS)',
     breaks: 'PGRST204로 행 전체가 거부되어 그 사용자의 데이터가 조용히 서버에 안 닿는다',
     guard: 'src/lib/__tests__/schema-drift.test.ts', kind: 'ci',

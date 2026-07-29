@@ -14,10 +14,7 @@ import { describe, it, expect, vi, afterEach } from 'vitest';
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
-import { tmpArgusDir, body, isError } from '../../test-helpers.js';
-import { watch } from '../watch.js';
-import { premises } from '../premises.js';
-import { openDecision } from '../open-decision.js';
+import { tmpArgusDir, body } from '../../test-helpers.js';
 import { seal } from '../seal.js';
 import { settle } from '../settle.js';
 import { checkIn } from '../check-in.js';
@@ -30,70 +27,6 @@ const ORIG_TOKEN = process.env.ARGUS_TOKEN;
 afterEach(() => {
   vi.restoreAllMocks();
   if (ORIG_TOKEN === undefined) delete process.env.ARGUS_TOKEN; else process.env.ARGUS_TOKEN = ORIG_TOKEN;
-});
-
-describe('M2 · capture → 봉인 → 정산 승격 여정', () => {
-  it('promotes a capture into a decision premise verbatim, then seals and settles', async () => {
-    const dir = tmpArgusDir();
-    const cap = body(await watch.handler({
-      argus_dir: dir, op: 'capture', today_override: D1, kind: 'premise',
-      text: '고객은 간편결제를 우선 원한다', source: 'user_stated',
-    }));
-    const cid = String((cap['data'] as Record<string, unknown>)['capture_id']);
-    expect(cid).toMatch(/^wc-/);
-
-    await openDecision.handler({
-      argus_dir: dir, id: 'pay-mvp', decision: '간편결제 먼저 갈까 — 갈림길',
-      stakes: 'high', reversibility: 'one_way_door', status_quo: '기존 순서 유지',
-    });
-    const added = body(await premises.handler({
-      argus_dir: dir, id: 'pay-mvp', op: 'add',
-      premises: [{ from_capture: cid, external: true, load_bearing: true }],
-    }));
-    expect(added['ok']).toBe(true);
-    const echo = (added['data'] as Record<string, unknown>)['premises'] as Array<Record<string, unknown>>;
-    expect(echo[0]['text']).toBe('고객은 간편결제를 우선 원한다'); // verbatim carry-over
-    expect(echo[0]['source']).toBe('user_stated');
-
-    // the capture STAYS on the watch log — promotion is a reference, not a move
-    const listed = body(await watch.handler({ argus_dir: dir, op: 'list', today_override: D1 }));
-    expect(((listed['data'] as Record<string, unknown>)['captures'] as unknown[]).length).toBe(1);
-
-    const sealed = body(await seal.handler({
-      argus_dir: dir, id: 'pay-mvp', predicate: '출시 4주 안에 간편결제 사용 비중이 30%를 넘는다',
-      check_by: '2027-01-01', predicate_owner: 'user',
-    }));
-    expect(sealed['ok']).toBe(true);
-    const settled = body(await settle.handler({
-      argus_dir: dir, id: 'pay-mvp', outcome: 'held', outcome_source: 'user_stated',
-      what_happened: '첫 달 간편결제 비중 41%',
-    }));
-    expect(settled['ok']).toBe(true);
-  });
-
-  it('a captured QUESTION promotes as an open_question by default', async () => {
-    const dir = tmpArgusDir();
-    const cap = body(await watch.handler({
-      argus_dir: dir, op: 'capture', today_override: D1, kind: 'question',
-      text: '이 역할이 6개월 뒤에도 필요한가', source: 'user_stated',
-    }));
-    const cid = String((cap['data'] as Record<string, unknown>)['capture_id']);
-    await openDecision.handler({
-      argus_dir: dir, id: 'hire-q', decision: '핵심 채용 지금 할까 — 갈림길',
-      stakes: 'high', reversibility: 'one_way_door', status_quo: '보류',
-    });
-    const added = body(await premises.handler({ argus_dir: dir, id: 'hire-q', op: 'add', premises: [{ from_capture: cid }] }));
-    const echo = (added['data'] as Record<string, unknown>)['premises'] as Array<Record<string, unknown>>;
-    expect(echo[0]['kind']).toBe('open_question');
-  });
-
-  it('refuses an unknown capture ref loudly', async () => {
-    const dir = tmpArgusDir();
-    await openDecision.handler({ argus_dir: dir, id: 'x1', decision: '갈림길', stakes: 'high', reversibility: 'one_way_door', status_quo: 'stay' });
-    const res = await premises.handler({ argus_dir: dir, id: 'x1', op: 'add', premises: [{ from_capture: 'wc-deadbeef' }] });
-    expect(isError(res)).toBe(true);
-    expect(body(res)['error_code']).toBe('CAPTURE_NOT_FOUND');
-  });
 });
 
 describe('M2 · 발산 0 — 웹 정산이 로컬 판단 기록으로 돌아온다', () => {

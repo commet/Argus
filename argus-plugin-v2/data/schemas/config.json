@@ -77,7 +77,7 @@
         "commit_sessions": {
           "type": "boolean",
           "default": false,
-          "description": "If true, /argus:versions suggests committing .argus/sessions/ changes at phase=complete."
+          "description": "If true, /argus:history versions suggests committing .argus/sessions/ changes at phase=complete."
         }
       }
     }

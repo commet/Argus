@@ -14,7 +14,7 @@ const forbiddenSurfaceTerms = JSON.parse(
 const cases = [
   {
     id: "pr-auth-middleware",
-    userInput: "/argus:sail @PR#42",
+    userInput: "/argus:review @PR#42",
     targetRequiresSource: true,
     developerTarget: true,
     bearing: {
@@ -58,7 +58,7 @@ const cases = [
   },
   {
     id: "dev-billing-plan",
-    userInput: "/argus:sail \"Claude made a billing refactor plan; can I run it?\"",
+    userInput: "/argus:review \"Claude made a billing refactor plan; can I run it?\"",
     targetRequiresSource: true,
     developerTarget: true,
     bearing: {
@@ -88,7 +88,7 @@ const cases = [
           why_not_now: "It bundles two money-state surfaces before the idempotency invariant is pinned."
         }
       ],
-      next_helm: "Add a duplicate-webhook idempotency test for src/app/api/stripe/webhook/route.ts, then rerun /argus:sail --resume.",
+      next_helm: "Add a duplicate-webhook idempotency test for src/app/api/stripe/webhook/route.ts, then rerun /argus:review --resume.",
       contract_seed: null,
       blocked: true,
       detail_path: ".argus/sessions/2026-06-30-billing-refactor/versions/v0.1/",
@@ -97,7 +97,7 @@ const cases = [
   },
   {
     id: "strategy-doc-plugin-webapp",
-    userInput: "/argus:sail @docs/plugin-strategy.md",
+    userInput: "/argus:review @docs/plugin-strategy.md",
     targetRequiresSource: true,
     bearing: {
       label: "v0.2",
@@ -144,7 +144,7 @@ const cases = [
   },
   {
     id: "gdpr-eu-launch",
-    userInput: "/argus:sail \"Ship EU this quarter with GDPR 70% ready?\"",
+    userInput: "/argus:review \"Ship EU this quarter with GDPR 70% ready?\"",
     targetRequiresSource: false,
     bearing: {
       label: "v0.1",
@@ -180,7 +180,7 @@ const cases = [
   },
   {
     id: "low-density-rename",
-    userInput: "/argus:sail \"Rename Workspace to Project?\"",
+    userInput: "/argus:review \"Rename Workspace to Project?\"",
     minimalExpected: true,
     bearing: null
   },
@@ -190,7 +190,7 @@ const cases = [
   // a restraint bearing: no manufactured fork, no fabricated fog, a done-handle.
   {
     id: "R4-04-folder-rename",
-    userInput: "/argus:sail \"name the scratch folder tmp or scratch?\"",
+    userInput: "/argus:review \"name the scratch folder tmp or scratch?\"",
     flat: true,
     bearing: {
       label: "v0.1",
@@ -212,7 +212,7 @@ const cases = [
   },
   {
     id: "R4-05-incumbent-stay",
-    userInput: "/argus:sail \"I'm happy in my job, all good — should I look around anyway?\"",
+    userInput: "/argus:review \"I'm happy in my job, all good — should I look around anyway?\"",
     flat: true,
     bearing: {
       label: "v0.1",
@@ -234,7 +234,7 @@ const cases = [
   },
   {
     id: "R4-07-express-stack",
-    userInput: "/argus:sail \"my Express API runs fine, keep it?\"",
+    userInput: "/argus:review \"my Express API runs fine, keep it?\"",
     flat: true,
     bearing: {
       label: "v0.1",
@@ -310,7 +310,7 @@ function validateBearing(testCase) {
     if (!hasFailureMode) {
       fail(id, "developer target bearing must name a concrete failure mode");
     }
-    const hasSmallNextCheck = /(test|rerun|inspect|split|add|run|check|route|file|PR|\/argus:sail --resume|\/argus:verify)/i.test(bearing.next_helm);
+    const hasSmallNextCheck = /(test|rerun|inspect|split|add|run|check|route|file|PR|\/argus:review --resume)/i.test(bearing.next_helm);
     if (!hasSmallNextCheck) {
       fail(id, "developer target next_helm must be a small executable engineering check");
     }

@@ -116,7 +116,7 @@ try {
 
   // 3b. Opt-out switch (founder correction): auto-sync is ON by default after the
   // first connect, and `--auto off` silences ONLY the automatic post-seal path;
-  // an explicit /argus:push still works. `--auto on` re-enables. The connect
+  // an explicit settings push still works. `--auto on` re-enables. The connect
   // credential must survive the toggle.
   {
     const p = freshProject();

@@ -1,10 +1,10 @@
 ---
 name: sync
 user-invocable: false
-description: Two-way sync between the local Argus decision record and the webapp. Pulls webapp-originated settle/defer events into the local record, then pushes the updated record and bearings back to the webapp. Invoked as `/argus:sync`.
+description: Two-way sync between the local Argus record and the webapp. Invoked through `/argus:settings sync`.
 ---
 
-# /argus:sync
+# Internal sync workflow
 
 **What this skill does:** Runs the full bridge loop:
 
@@ -26,7 +26,7 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/push-webapp.js" sync
 If no token is configured, route the user to:
 
 ```bash
-/argus:connect <argus_pat_...>
+/argus:settings connect
 ```
 
 ## Semantics

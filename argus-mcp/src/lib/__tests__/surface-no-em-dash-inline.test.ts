@@ -36,9 +36,6 @@ const LIB_FULL_SCAN = [
   'lib/surfaces.ts',
   'lib/render-receipt.ts',
   'lib/tool-presentation.ts',
-  'lib/review/render.ts',
-  'lib/review/routing.ts',
-  'lib/review/extract-file-node.ts',
 ];
 
 // 한글 리터럴만 대조하는 tools 파일들 (영문 describe() 산문은 모델-대면).
@@ -51,7 +48,6 @@ const TOOLS_KO_SCAN = [
   'tools/recheck.ts',
   'tools/check-in.ts',
   'tools/open-decision.ts',
-  'tools/review.ts',
   'tools/public-tools.ts',
   'tools/tool-types.ts',
   'tools/init-config.ts',

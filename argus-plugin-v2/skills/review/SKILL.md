@@ -11,7 +11,7 @@ This command is the ONLY entry to the multi-agent deep review, and it opens only
 by the user's explicit hand: the model cannot auto-invoke it
 (`disable-model-invocation: true` keeps even this description out of ambient
 context), and no hook or other skill chains into it. If the user did not type
-`/argus:review` (or its legacy alias `/argus:sail`), this pipeline must not run.
+`/argus:review`, this pipeline must not run.
 The quiet default — capture a decision, save a check, get reminded, settle
 against reality — lives outside this door and never needs it.
 
@@ -19,14 +19,14 @@ against reality — lives outside this door and never needs it.
 
 Read [pipeline.md](pipeline.md) and follow it end to end with the arguments the
 user passed (flags: `--full`, `--quick`, `--no-boss`, `--resume <id>`). It is
-the full orchestrator, formerly shipped as `/argus:sail`.
+the full orchestrator.
 
 ## Conventions inside this directory
 
 The step files are the former individual skills, moved here as supporting files
 (they are not commands anymore):
 
-- [pipeline.md](pipeline.md) — orchestrator (formerly `/argus:sail`)
+- [pipeline.md](pipeline.md) — orchestrator
 - [clarify.md](clarify.md) — sharpen the real question (formerly `/argus:clarify`)
 - [team.md](team.md) — reviewer agents work the artifact in parallel (formerly `/argus:team`)
 - [verify.md](verify.md) — split claims: supported / challenged / human-required (formerly `/argus:verify`)
@@ -35,8 +35,8 @@ The step files are the former individual skills, moved here as supporting files
 
 When a step file says `` `team.md --revise` `` (or similar), that means: read
 that file and follow it in that mode — the file-reference form of the old
-`/argus:team --revise` skill invocation. The `--invoked-via-sail` flag keeps its
-historic name and still means "running as a chained step: suppress your own
+`/argus:team --revise` skill invocation. The internal `--invoked-via-sail` flag
+keeps its wire-compatible name and means "running as a chained step: suppress your own
 verbose print; the pipeline renders the consolidated card".
 
 ## Activation contract (spine)

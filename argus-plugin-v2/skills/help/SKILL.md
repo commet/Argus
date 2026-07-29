@@ -34,7 +34,6 @@ Commands (5):
   /argus:settings  language & boss persona · webapp connect/push/pull/sync
   /argus:help      this screen
 
-Kept aliases: /argus:sail = review · /argus:resolve = settle what is due
 Emergency hatch: /argus:doctor — read-only install/wiring self-diagnosis
 
 Where things live:
@@ -66,4 +65,4 @@ for the list, answer with the ONE command that fits, plus one sentence why:
 - Creating or mutating any file (including `.argus/config.yaml`).
 - Printing more than ~35 lines or re-explaining the internal pipeline
   (workers, ledgers, schemas) — orientation, not machinery.
-- Teaching retired command names beyond the two kept aliases (`sail`, `resolve`).
+- Teaching retired command names.

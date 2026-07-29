@@ -1,6 +1,5 @@
 <!-- Supporting file of /argus:review — NOT a skill. This is the full pipeline
-     orchestrator (formerly the /argus:sail skill body). It runs ONLY when the
-     user explicitly invoked /argus:review or its legacy alias /argus:sail;
+     orchestrator. It runs ONLY when the user explicitly invoked /argus:review;
      the old "trigger on natural language, even without the slash command"
      behavior is retired (O3 방2 activation contract — 자동 deep review 0).
      Handles repo decisions (PR, design doc, architecture) and non-code ones
@@ -27,7 +26,7 @@ The default user-facing output is either:
 
 Do not expose worker counts, ledger counts, schemas, model names, or phase names
 in the default read. Those details live in `.argus/sessions/` and
-`/argus:versions`.
+`/argus:history versions`.
 
 ## Question Budget — at most 2 `AskUserQuestion` per run (HARD CAP)
 
@@ -96,10 +95,7 @@ defers here):
    `${CLAUDE_PLUGIN_ROOT}/lib/` — Claude Code sets `${CLAUDE_PLUGIN_ROOT}` to the
    plugin's install directory when Argus is installed via the marketplace. All
    bundled files ship with the plugin; no extra install step is needed.
-2. **Copy install (legacy `install.sh`):** `~/.claude/argus-data/` and
-   `~/.claude/argus-lib/` (note: session docs live under `argus-lib/session/` —
-   `install.sh` preserves the subdir; do NOT look for them flat).
-3. **Developer mode (working inside the Argus repo):**
+2. **Developer mode (working inside the Argus repo):**
    `<repo>/argus-plugin-v2/data/` and `<repo>/argus-plugin-v2/lib/`.
 
 Directory contents: `data/` = schemas, boss-types.yaml,
@@ -107,7 +103,7 @@ classification.yaml, prompts/; `lib/` = locale-conventions.md,
 config.example.yaml, rehearsal-prompt.md, session/ (session-layout.md,
 version-numbering.md).
 
-If ALL three locations are absent, stop with one line in the user's locale —
+If both locations are absent, stop with one line in the user's locale —
 ko: `Argus 데이터 파일을 찾을 수 없어요 — 플러그인을 재설치해 주세요
 (/plugin install argus@argus).` · en: `Argus data files not found — reinstall
 the plugin (/plugin install argus@argus).` Never improvise schemas from memory.
@@ -220,7 +216,7 @@ extended to a readable-but-stale phase, which is the more common crash shape.
 | `verifying` or team complete with no `verification.json` | `verify.md` |
 | `dm_feedback` pending | `boss.md` |
 | `refining` | `revise.md` (apply boss concerns / verify challenges → child draft + re-verify) |
-| `complete` | show current call/version tree via `/argus:versions`; `revise.md` to iterate or `--promote` to finalize |
+| `complete` | show current call/version tree via `/argus:history versions`; `revise.md` to iterate or `--promote` to finalize |
 
 ---
 
@@ -601,8 +597,8 @@ Target length: 10-16 lines. Never exceed one terminal screen.
 
 **First-decision hint:** if this is the project's FIRST session (exactly one
 directory under `.argus/sessions/`), append one line after the read —
-ko: `첫 결정이 기록됐어요. /argus:versions 로 언제든 돌아올 수 있고, /argus:help 가 안내예요.`
-en: `Your first decision is logged. /argus:versions returns here anytime; /argus:help shows the map.`
+ko: `첫 결정이 기록됐어요. /argus:history versions 로 언제든 돌아올 수 있고, /argus:help 가 안내예요.`
+en: `Your first decision is logged. /argus:history versions returns here anytime; /argus:help shows the map.`
 Never print it again after the first session.
 
 ### Step 7.5 - Wake (1차 정산: 마음이 어디로 움직였나)
@@ -611,7 +607,7 @@ The webapp mirrors the pre-AI BIND lean back the moment the read is revealed and
 asks "still holds?" (`WakeReturn` / `lean_after`). This is the SAME pass on the plugin
 surface — the bind from clarify Step 3.4 finally pays off **in-session**, making the
 reviewers' pull on the user's own read visible immediately, not weeks later at settle.
-It is the on-ramp that sells the later reality settlement (`/argus:resolve`).
+It is the on-ramp to the later reality check (`/argus:check`).
 
 **Run ONLY when a real rope exists, and only in an interactive run.** Read
 `.argus/ledger/ledger.jsonl`; find the `seal` with id `lean:<session-id>` and
@@ -636,7 +632,7 @@ that blocks:
   - reply reads as "still holds" → `changed:false`, `lean_after` = the lean verbatim
   - reply gives a new line → `changed:true`, `lean_after` = the user's new line
   - no reaction / they move on → write nothing (lossless; the rope still settles
-    later at `/argus:resolve`)
+    later at `/argus:check`)
 
 **Spine (do not regress):**
 - `lean_after` is PURE user-authored — NEVER prefilled from the read or any model
@@ -777,7 +773,7 @@ render current call. Do not mention that boss was skipped in the read.
 | Medium/high | current call |
 
 No JSON dumps. No path-only summaries. No internal pipeline report unless the
-user explicitly asks for `/argus:versions` or opens session files.
+user explicitly asks for `/argus:history versions` or opens session files.
 
 ---
 

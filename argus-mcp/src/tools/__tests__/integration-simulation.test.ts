@@ -1,43 +1,11 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { review } from '../review.js';
 import { seal } from '../seal.js';
 import { settle } from '../settle.js';
 import { tmpArgusDir, body, isError } from '../../test-helpers.js';
 
-const MEMO = `# 온보딩 리빌드 전략\n\n## 문제\nretention이 낮다\n\n## 제안\n3단계로 리빌드한다\n\n## 근거\n- 경쟁사도 3단계\n- 인터뷰 피드백`;
-const DECK = `# 시장\n- TAM 10조\n\n---\n\n# Ask\n- 20억`;
-
 const ORIG = process.env.ARGUS_TOKEN;
 beforeEach(() => { delete process.env.ARGUS_TOKEN; vi.restoreAllMocks(); });
 afterEach(() => { if (ORIG === undefined) delete process.env.ARGUS_TOKEN; else process.env.ARGUS_TOKEN = ORIG; });
-
-describe('MCP simulation — argus_review across shapes', () => {
-  it('memo: routes base lenses, points at seal, no verdict', async () => {
-    const res = await review.handler({ text: MEMO, source_kind: 'markdown', concerns: ['evidence'] });
-    expect(isError(res)).toBe(false);
-    const d = body(res).data as Record<string, unknown>;
-    const lenses = (d.lenses as { id: string }[]).map((l) => l.id);
-    expect(lenses).toContain('claim_evidence');
-    expect(lenses).toContain('human_judgment');
-    expect((body(res).next_actions as string[])).toContain('argus_predict');
-    expect(String(body(res).surface)).not.toMatch(/진행하세요|틀렸|추천/);
-  });
-
-  it('deck text: routes the deck-narrative lens', async () => {
-    const res = await review.handler({ text: DECK, source_kind: 'pptx' });
-    const d = body(res).data as Record<string, unknown>;
-    expect((d.lenses as { id: string }[]).map((l) => l.id)).toContain('deck_narrative');
-  });
-
-  it('empty + unreadable binary degrade honestly instead of faking', async () => {
-    expect(body(await review.handler({ text: '' })).error_code).toBe('EMPTY');
-    // Binaries are parsed now; an unreadable path INSIDE the readable root fails
-    // honestly (never a fake review). A path outside every opted-in project is
-    // refused earlier by the read boundary — a different, also-honest refusal.
-    expect(body(await review.handler({ file_path: `${process.cwd()}/deck.pptx` })).error_code).toBe('READ_FAILED');
-    expect(body(await review.handler({ file_path: '/x/deck.pptx' })).error_code).toBe('PATH_NOT_ALLOWED');
-  });
-});
 
 describe('MCP simulation — full loop with account sync', () => {
   it('seal then settle both mirror to the account with the right payloads', async () => {

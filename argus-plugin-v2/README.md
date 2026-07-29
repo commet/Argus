@@ -149,9 +149,9 @@ Plain language:
   decisions from past Claude Code chats.
 - `settings` is setup — language and boss persona, webapp pairing and sync.
 
-Two legacy aliases are kept: `/argus:sail` (= review) and `/argus:resolve`
-(= answer what is due). The old step commands (clarify, team, verify, boss,
-revise) are no longer separate commands — review runs them as internal steps.
+Older command names are retired. The former step commands are internal files;
+`review`, `check`, `history`, `settings`, and `help` are the complete public
+surface.
 
 Argus may show a short local reminder when something is ready to check. It does
 not judge, settle, or sync automatically.
@@ -162,14 +162,16 @@ not judge, settle, or sync automatically.
 
 The plugin is local-first. Webapp sync is optional.
 
-First, create a push token in the webapp: **[argus.voyage](https://argus.voyage)
-→ Settings → Argus token**. Then connect this project once:
+Connect this project once:
 
 ```text
-/argus:settings connect <argus_pat_...>
+/argus:settings connect
 ```
 
-Then use:
+Argus opens a browser approval page. The credential returns directly to the
+local plugin and is stored in a git-ignored file; do not paste it into chat.
+After approval, new saved checks can sync automatically. To reconcile both
+directions on demand, use:
 
 ```text
 /argus:settings sync
@@ -178,7 +180,8 @@ Then use:
 Sync first pulls webapp actions into the local decision record, then pushes the updated
 local records back to the webapp. Re-running it is safe.
 
-Nothing is sent to the webapp unless you run a sync or push yourself.
+Nothing is sent before browser approval. Auto-sync can be disabled with
+`/argus:settings push --auto off`.
 
 ---
 
@@ -189,10 +192,9 @@ Nothing is sent to the webapp unless you run a sync or push yourself.
 | `/argus:review` | You want a decision or artifact pressure-tested by the full reviewer pipeline. |
 | `/argus:check` | A return is due, you want to append an answer, save a candidate (`<id>`), or re-check premises. |
 | `/argus:history` | You want the decision chronology, a version tree (`versions`), or `scan`. |
-| `/argus:settings` | You want to configure Argus or pair/sync the webapp (`connect <token>`, `sync`). |
+| `/argus:settings` | You want to configure Argus or pair/sync the webapp (`connect`, `sync`). |
 | `/argus:help` | You want the shortest command map. |
 
-Kept aliases: `/argus:sail` (= review) · `/argus:resolve` (= answer what is due).
 Emergency hatch: `/argus:doctor` (read-only install/wiring self-diagnosis).
 
 ---
@@ -232,7 +234,8 @@ Argus writes project-local state under `.argus/`.
 - `.argus/sessions/` stores decision trails and is git-ignored by default.
 - `.argus/ledger/` stores saved checks and webapp sync tokens and is git-ignored
   by default.
-- Webapp sync is explicit. It never runs in the background.
+- Webapp sync is off until browser approval. After approval, saved checks may
+  auto-sync; the user can turn that off at any time.
 
 Review `.argus/` before sharing or committing it.
 
@@ -241,7 +244,7 @@ Review `.argus/` before sharing or committing it.
 ## Development
 
 ```bash
-./argus-plugin-v2/install.sh --link
+claude --plugin-dir ./argus-plugin-v2
 node ./argus-plugin-v2/scripts/validate-plugin.js
 node ./argus-plugin-v2/scripts/simulate-plugin.js
 ```
@@ -256,8 +259,6 @@ session start.
 - Bounded reviewer roles: `agents/`
 - Boss tone skins (voice only — the review's substance is the configured seat): `data/boss-types.yaml`
 - Schemas: `data/schemas/*.json`
-- Build log (frozen historical record): `BUILD_STATUS.md`
-- Test plan (frozen historical record): `TEST_PLAN.md`
 
 ## License
 
