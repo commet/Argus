@@ -736,41 +736,6 @@ export function correctContractKind(
  *                   resurfaces at the date; the late SealMoment AUGMENTs it with the
  *                   run's predicates so the user has something concrete to answer.
  */
-/**
- * 검토를 **마친 뒤** 사용자가 자기 말로 적은 문장. 없으면 빈 문자열.
- *
- * 왜 필요한가 (2026-07-29 실주행에서 발견): 봉인 함수는 "검토 전 기준점은 변화의
- * 증거이지 점수를 매길 최종 예측이 아니다"라고 적어놓고, 정작 마무리 판단 입력칸을
- * `!baselineJudgment` 일 때만 렌더했다. 그래서 기준점을 남긴 사람은 마무리 판단을
- * 쓸 자리가 없었고, 봉인되는 문장은 **언제나 검토 전 첫 생각**이었다.
- *
- * 그 한 값이 봉인 문장·영수증·인증서 인용구·공유 카드를 전부 결정한다. 즉 현실이
- * 답하게 되는 문장이 검토를 하나도 반영하지 않은 문장이었다는 뜻이고, 그러면
- * 검토의 값어치("처음 생각에서 무엇이 달라졌나")가 기록에서 통째로 사라진다.
- * 그때↔지금을 나란히 보여주는 코드도 두 값이 같아서 영영 렌더되지 않았다.
- *
- * 그래서 새 입력칸을 세우는 대신, 사용자가 **이미 자기 말로 적어둔** 문장을 쓴다
- * (강제 타이핑 게이트는 지친 사용자를 밀어내 소유권을 0으로 만든다 — CLAUDE.md A1).
- * 우선순위는 늦게 쓴 것부터:
- *   1. workspace:decision_line     — 사용자가 직접 정한 방향
- *   2. workspace:closing_judgment  — 이전 봉인에서 확정한 문장 (재봉인)
- *   3. workspace:falsification     — 시험 단계에서 "이 계획이 기대는 한 가지"를 적은 것
- *
- * `authored === 'user'` 를 함께 요구한다. 시험 단계에서 "AI가 짚은 내용으로만
- * 둘게요"를 고른 경우는 `ai_surfaced` 로 남고, 그건 사용자의 판단이 아니다 —
- * 그걸 마무리 판단으로 승격시키면 기계 문장을 사람 문장으로 세탁하는 것이 된다.
- */
-export function closingJudgmentFrom(predicates: Predicate[] | undefined | null): string {
-  const list = Array.isArray(predicates) ? predicates : [];
-  const own = (ref: string) => list.find(
-    (p) => p.attribution?.source_ref === ref && p.authored === 'user' && typeof p.text === 'string',
-  )?.text?.trim();
-  return own('workspace:decision_line')
-    || own('workspace:closing_judgment')
-    || own('workspace:falsification')
-    || '';
-}
-
 export function buildEarlyContract(
   projectId: string,
   opts: { lean?: string; interval?: CheckInInterval; check_in_at?: string },

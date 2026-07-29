@@ -13,9 +13,33 @@
 import type { JudgmentReceipt as JudgmentReceiptType } from '@/stores/types';
 import { JudgmentAttributionLine } from './JudgmentAttributionLine';
 
+/**
+ * 한 문장이 그 칸에 들어가도 되는 모양인가 (2026-07-29).
+ *
+ * 실제 봉인 기록에서 나온 것들:
+ *   · "일단"                        → 기준점 칸에 두 글자
+ *   · "뭔가 인프라로 만들기?"         → 판단 칸에 의문문
+ *   · "'다음 단계' 섹션에서 Day 3에 …가능한 타임라인이에요? …답하기 어려워져요."
+ *                                   → **"아직 확인되지 않은 가정"** 칸에 리뷰 문단 통째로
+ *
+ * 마지막 것이 제일 나쁘다. 그건 가정이 아니라 검토자가 남긴 지적이고, 확인일에
+ * "이 가정이 맞았나요?"라고 물으면 답할 수가 없다. 이름표와 내용이 다르면
+ * 사용자는 화면 전체를 못 믿게 된다.
+ *
+ * 그래서 못 미더운 것은 **조용히 빼지 않고** 안 넣는다 — 빈 칸은 렌더되지 않으므로
+ * 결과적으로 그 줄이 사라진다. 지어내서 채우는 것보다 없는 게 정직하다.
+ */
+function fitsAsClaim(text: string | undefined, maxLen: number): boolean {
+  const t = (text ?? '').trim();
+  if (t.length < 8) return false;          // "일단" 류 — 문장이 아니다
+  if (t.length > maxLen) return false;     // 문단은 주장 한 줄이 아니다
+  if (/\?|인가요|이에요\?|일까요/.test(t)) return false; // 물음은 가정이 아니다
+  return true;
+}
+
 export function deriveReceiptFields(predicates: { source: string; text: string; authored?: string }[], projectName: string) {
   const governing = predicates.find((p) => p.source === 'governing_idea' || p.source === 'user_lean');
-  const risk = predicates.find((p) => p.source === 'risk');
+  const risk = predicates.find((p) => fitsAsClaim(p.text, 220) && p.source === 'risk');
   const actor = predicates.find((p) => p.source === 'actor');
   return {
     real_question: governing?.text || projectName || '',
@@ -33,6 +57,9 @@ interface SealProps {
   onJudgmentChange: (value: string) => void;
   humanJudgment: string;
   baselineJudgment?: string;
+  /** 지금 칸에 든 문장이 **손대지 않은 AI 초안**인가. 연하게 그리고, 그대로 두면
+   *  「AI가 쓴 문장」으로 기록된다고 말하기 위해서만 쓴다. */
+  isAiDraft?: boolean;
   locale: 'ko' | 'en';
 }
 
@@ -58,7 +85,7 @@ export function JudgmentReceipt(props: Props) {
   const L = (k: string, e: string) => (ko ? k : e);
 
   if (props.mode === 'seal') {
-    const { real_question, unverified_assumption, human_only, check_by, humanJudgment, baselineJudgment, onJudgmentChange } = props;
+    const { real_question, unverified_assumption, human_only, check_by, humanJudgment, baselineJudgment, isAiDraft, onJudgmentChange } = props;
     return (
       <div className="rounded-xl border border-[var(--border)] overflow-hidden text-[13px] leading-[1.6]">
         {baselineJudgment && (
@@ -74,7 +101,7 @@ export function JudgmentReceipt(props: Props) {
         {real_question && (
           <div className="px-4 py-3 border-b border-[var(--border)]">
             <p className="text-[12.5px] text-[var(--text-tertiary)] mb-1">
-              {L('Argus가 짚은 핵심 질문', 'The crux Argus surfaced')}
+              {L('검토가 짚은 핵심', 'The crux this review surfaced')}
             </p>
             <p className="text-[var(--text-primary)] font-medium" style={{ fontFamily: 'var(--font-voice, serif)' }}>
               &ldquo;{real_question}&rdquo;
@@ -85,7 +112,7 @@ export function JudgmentReceipt(props: Props) {
         {unverified_assumption && (
           <div className="px-4 py-3 border-b border-[var(--border)] bg-[var(--surface)]">
             <p className="text-[12.5px] text-[var(--text-tertiary)] mb-1">
-              {L('아직 확인되지 않은 가정', 'Assumption not yet verified')}
+              {L('아직 확인하지 않은 것', 'Not verified yet')}
             </p>
             <div className="rounded-lg bg-[var(--accent)]/[0.04] px-3 py-2">
               <p className="text-[var(--text-primary)]">
@@ -118,15 +145,37 @@ export function JudgmentReceipt(props: Props) {
               'One line: I judge that ___',
             )}
             maxLength={280}
-            className="w-full text-[13px] px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface-2)] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)]"
+            // 손대지 않은 AI 초안은 **연하게** 보인다 — 확정된 내 문장처럼 보이면
+            // 그대로 지나칠 확률이 높아진다. 흐린 글씨가 "이건 아직 네 말이 아니다"를
+            // 말한다. 손대는 순간 진해진다.
+            className={`w-full text-[13px] px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface-2)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)] ${
+              isAiDraft ? 'text-[var(--text-tertiary)] italic' : 'text-[var(--text-primary)]'
+            }`}
           />
-          {baselineJudgment && !humanJudgment.trim() && (
+          {isAiDraft && (
             <p className="mt-1.5 text-[12.5px] leading-[1.45] text-[var(--text-tertiary)]">
               {L(
-                '비워두면 검토 전 기준점을 그대로 최종 판단으로 남겨요.',
-                'Leave this blank to keep your pre-review baseline as the final judgment.',
+                'Argus가 초안으로 적어둔 문장이에요. 그대로 두셔도 되고 — 그러면 「AI가 쓴 문장」으로 기록돼요. 고쳐 쓰시면 사장님 문장이 됩니다.',
+                "Argus drafted this line. Keep it — it will be recorded as the AI's wording. Rewrite it and it becomes yours.",
               )}
             </p>
+          )}
+          {/* 정말 비어 있을 때: 무슨 문장이 봉인되는지 **그 문장 그대로** 보여준다.
+              2026-07-29 이전에는 "비워두면 기준점이 남아요"라는 회색 한 줄뿐이었고,
+              그래서 아무도 자기가 무엇을 봉인하는지 모른 채 확정했다. 결과를 미리
+              보여주는 것은 지어내는 것이 아니다 — 이미 있는 문장을 읽어줄 뿐이다. */}
+          {baselineJudgment && !humanJudgment.trim() && (
+            <div className="mt-2 rounded-lg bg-[var(--accent)]/[0.05] px-3 py-2.5">
+              <p className="text-[12.5px] leading-[1.45] text-[var(--text-secondary)]">
+                {L(`이대로 확정하면 ${check_by}에 이 문장을 다시 봅니다`, `Confirm as-is and on ${check_by} you will revisit this line`)}
+              </p>
+              <p className="mt-1 text-[13px] leading-[1.5] text-[var(--text-primary)]" style={{ fontFamily: 'var(--font-voice, serif)' }}>
+                &ldquo;{baselineJudgment}&rdquo;
+              </p>
+              <p className="mt-1 text-[12.5px] text-[var(--text-tertiary)]">
+                {L('검토를 시작하기 전에 적으신 문장이에요.', 'You wrote this before the review began.')}
+              </p>
+            </div>
           )}
         </div>
       </div>

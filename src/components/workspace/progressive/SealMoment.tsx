@@ -52,11 +52,11 @@ import {
   DEFAULT_CHECK_IN_INTERVAL,
   intervalFromExistingContract,
   stablePredicateId,
-  closingJudgmentFrom,
   webUserAttribution,
   MAX_PREDICATES,
 } from '@/lib/decision-contract';
 import { buildJudgmentCard } from '@/lib/judgment-card';
+import { closingJudgmentAuthorship } from '@/lib/judgment-authorship';
 import { derivePrimaryCheckpoint } from '@/lib/checkpoint-core';
 import { buildAutoTrackedPremiseItems } from '@/lib/auto-track-premises';
 import { useDecisionItemsStore } from '@/stores/useDecisionItemsStore';
@@ -188,7 +188,35 @@ export function SealMoment({
   const reducedMotion = useReducedMotion();
   const [dismissedLocally, setDismissedLocally] = useState(false);
   const dismissed = dismissedLocally || !!persistedDismissedAt;
-  const [humanJudgment, setHumanJudgment] = useState('');
+  // ── 마무리 판단 칸 ────────────────────────────────────────────────────
+  // 2026-07-29 실주행: 이 칸은 **빈칸으로 떠 있었다.** 그리고 밑에 회색 작은 글씨로
+  // "비워두면 검토 전 기준점을 그대로 최종 판단으로 남겨요"라고만 적혀 있었다.
+  // 빈칸은 채워지지 않는다 — 그래서 30분 검토가 끝나도 봉인되는 문장은 **시작 전에
+  // 아무 생각 없이 적은 한 줄**이었다("일단" 두 글자가 봉인된 기록도 실재한다).
+  //
+  // 고치는 방향: 새 LLM 호출도, 강제 타이핑도 아니다. 초안 흐름이 이미 만들어둔
+  // `decision_read`("먼저 읽을 한 줄 — 행동 + 이유 하나")를 **연한 초안으로 미리
+  // 넣어둔다.** 빈칸에는 반응할 수 없지만 틀린 문장에는 반응할 수 있다 —
+  // "아니, 그게 아니라"가 사람이 제일 쉽게 하는 편집이다.
+  //
+  // 그대로 두고 확정해도 거짓말이 되지 않는 이유는 아래 judgmentAuthorship 이
+  // 처리한다: 손대지 않은 초안은 `ai_surfaced` + `user_adopted` 로 기록되고,
+  // 인증서·공유 카드에 "AI가 짚은 문장을 그대로 뒀음"으로 찍힌다.
+  // 지어내도 되지만 누가 썼는지는 숨기지 않는다 (CLAUDE.md A1).
+  const aiDraftJudgment = useMemo(() => {
+    const v = currentVoyage();
+    if (!v || v.project_id !== project.id) return '';
+    return (v.final_mix?.decision_read ?? v.mix?.decision_read ?? '').trim();
+    // currentVoyage 는 store selector 라 매 렌더 같은 참조가 아니다 — 프로젝트가
+    // 바뀔 때만 다시 읽으면 충분하다.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [project.id]);
+  const [humanJudgment, setHumanJudgment] = useState(aiDraftJudgment);
+  const [judgmentTouched, setJudgmentTouched] = useState(false);
+  /** 손대지 않은 초안을 그대로 확정했는가 — 출처를 정직하게 가르는 유일한 기준. */
+  const keptAiDraft = !judgmentTouched
+    && !!aiDraftJudgment
+    && humanJudgment.trim() === aiDraftJudgment;
   const [kindOverride, setKindOverride] = useState<DecisionKind | null>(null);
   const [reviewCondition, setReviewCondition] = useState('');
   const [returnEvent, setReturnEvent] = useState('');
@@ -317,21 +345,29 @@ export function SealMoment({
     setDismissedLocally(false);
     setSealPromptDismissed(false);
     const receiptFields = deriveReceiptFields(toSeal, typeof project.name === 'string' ? project.name : '');
-    // 검토를 마친 뒤 사용자가 자기 말로 적은 문장이 있으면 **그것이 마무리 판단**이다.
-    // 기준점은 마지막 폴백으로만 남는다 — 바로 아래 주석이 원래 말하려던 그대로.
-    // (2026-07-29: 그 폴백이 사실상 유일한 경로였다. closingJudgmentFrom 머리말 참고.)
-    const finalJudgment = humanJudgment.trim() || closingJudgmentFrom(toSeal) || baselineJudgment;
+    // 2026-07-29 (되돌림): 잠깐 여기에 "시험 단계에서 적은 전제"를 폴백으로 끼워넣었다가
+    // 뺐다. 그 전제는 "다음 분기 매출이 지금 수준을 유지한다" 같은 문장 — **결정이 아니다.**
+    // 판단 자리에 전제를 넣으면 종류가 다른 문장이 봉인되고, 확인일 질문이 어긋난다.
+    // 전제는 governing_idea 술어로 제자리에 남는다. 여기 오는 건 판단뿐이다.
+    const finalJudgment = humanJudgment.trim() || baselineJudgment;
     if (!humanJudgment.trim() && finalJudgment) setHumanJudgment(finalJudgment);
     // The pre-review baseline is evidence of change, not the final prediction to
     // score. When the user writes a closing judgment, replace the baseline
     // predicate with that exact line and make it the primary return checkpoint.
-    const finalPredicate = finalJudgment
+    // 문장을 누가 썼는지의 판정은 **순수 함수 한 곳**에 있다 (judgment-authorship.ts).
+    // 여기 인라인으로 두면 순수 테스트가 못 읽고, 검사기가 못 읽는 규칙은 없는 규칙이다.
+    const authorship = finalJudgment
+      ? closingJudgmentAuthorship({
+          text: finalJudgment, aiDraft: aiDraftJudgment, touched: judgmentTouched, now,
+        })
+      : null;
+    const finalPredicate = finalJudgment && authorship
       ? {
           id: stablePredicateId('user_lean', finalJudgment),
           text: finalJudgment,
           source: 'user_lean' as const,
-          authored: 'user' as const,
-          attribution: webUserAttribution(now, 'workspace:closing_judgment'),
+          authored: authorship.authored,
+          attribution: authorship.attribution,
         }
       : null;
     // 같은 문장이 두 번 실리지 않게 **글자로도** 거른다. 마무리 판단이 시험 단계의
@@ -1110,7 +1146,8 @@ export function SealMoment({
                 check_by={check_by}
                 baselineJudgment={baselineJudgment}
                 humanJudgment={humanJudgment}
-                onJudgmentChange={setHumanJudgment}
+                isAiDraft={keptAiDraft}
+                onJudgmentChange={(v) => { setJudgmentTouched(true); setHumanJudgment(v); }}
                 locale={ko ? 'ko' : 'en'}
               />
             </div>
