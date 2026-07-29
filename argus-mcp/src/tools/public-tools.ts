@@ -24,15 +24,26 @@ import { gitCommonDirOf } from '../v2/git-discovery.js';
 import { handleToolException } from './errors.js';
 
 const premiseInput = z.strictObject({
-  text: z.string().min(3).max(400).describe('결정이 딛고 선 사실 또는 아직 답하지 못한 질문입니다. 사용자의 표현을 그대로 씁니다.').optional(),
+  // Public callers cannot use the internal from_capture shortcut, so allowing a
+  // text-less premise here only postpones a deterministic failure until AFTER
+  // action=open has already persisted gate_input + harvest.
+  text: z.string().min(3).max(400).describe('필수: 기록할 전제 또는 미결 질문의 원문입니다. Required premise/open-question text.'),
   kind: z.enum(['premise', 'open_question']).default('premise').describe('premise는 확인할 전제, open_question은 사용자가 아직 답하지 않은 질문입니다.'),
   external: z.boolean().default(false).describe('외부 현실에서 나중에 다시 확인할 수 있는 사실인지 표시합니다.'),
   load_bearing: z.boolean().default(false).describe('틀리면 결정이 바뀌는 핵심 전제인지 표시합니다.'),
   monitoring_enabled: z.boolean().default(true).describe('이 전제를 현재 다시 확인하거나 알려줄지 정합니다. 꺼도 중요도나 검증 가능성은 바뀌지 않습니다.\n\nWhether Argus should currently re-check or nudge this premise. Turning it off does not change importance or verifiability.'),
   source: z.enum(['user_stated', 'ai_surfaced']).describe('필수: 이 문장을 말한 주체입니다. user_stated=사용자의 말, ai_surfaced=AI가 제시한 말(이때 ai_original도 함께). 사용자의 말을 AI의 말로 바꾸지 않습니다.'),
-  ai_original: z.string().max(400).describe('source가 ai_surfaced일 때 AI가 처음 제시한 원문입니다.').optional(),
+  ai_original: z.string().max(400).describe('source=ai_surfaced이면 필수: AI가 처음 제시한 원문입니다. Required with ai_surfaced.').optional(),
   recheck_cadence_days: z.number().int().min(1).max(365).describe('이 사실을 다시 확인할 간격(일)입니다.').optional(),
   reconsider_cadence_days: z.number().int().min(1).max(365).describe('미결 질문을 다시 볼 간격(일)입니다.').optional(),
+}).superRefine((value, ctx) => {
+  if (value.source === 'ai_surfaced' && !value.ai_original?.trim()) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['ai_original'],
+      message: 'source=ai_surfaced requires ai_original; use source=user_stated when these are the user’s words',
+    });
+  }
 });
 
 const common = {

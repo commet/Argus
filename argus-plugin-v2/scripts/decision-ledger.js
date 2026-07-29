@@ -4,7 +4,7 @@
  *
  * Product shape:
  *   /argus:review and /argus:history scan are entry points.
- *   /argus:check and /argus:resolve are common ledger state changes.
+ *   /argus:check owns the common ledger state changes.
  *
  * Seal drafting remains an explicit Claude-assisted action. Transcript scan is
  * delegated to the canonical MCP capture runtime shared with background capture.
@@ -917,7 +917,7 @@ function cmdJournal() {
     .sort((a, b) => String(b.settled_at || b.sealed_at || "").localeCompare(String(a.settled_at || a.sealed_at || "")));
   if (!records.length) {
     console.log("No saved records yet.");
-    console.log("Use /argus:predict when a thought is worth returning to.");
+    console.log("Use /argus:check <id> when a thought is worth returning to.");
     return;
   }
   console.log(`Records: ${records.length}`);

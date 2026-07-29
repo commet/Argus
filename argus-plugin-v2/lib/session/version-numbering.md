@@ -79,11 +79,11 @@ Session starts with no drafts. Root `parentLabel` is `ROOT_LABEL = "v0"`.
 
 2. User runs `the revise step (review)` with a directive → new draft child of `v0.1`. `parentLabel = "v0.1"`, no existing children of `v0.1` → `incrementLastTier("v0.1")` = `"v0.2"`. Labeled `v0.2`.
 
-3. User explores an alternative: `/argus:versions --checkout v0.1` then `the revise step (review)`. `parentLabel = "v0.1"`, existing children = [`"v0.2"`]. Not empty. `"v0.2"` doesn't start with `"v0.1."` → branchCount = 0 → new label = `"v0.1.1"`. Labeled `v0.1.1` (branch from v0.1).
+3. User explores an alternative: `/argus:history versions --checkout v0.1` then `the revise step (review)`. `parentLabel = "v0.1"`, existing children = [`"v0.2"`]. Not empty. `"v0.2"` doesn't start with `"v0.1."` → branchCount = 0 → new label = `"v0.1.1"`. Labeled `v0.1.1` (branch from v0.1).
 
 4. User continues main line: `the revise step (review)` on `v0.2` → new child. `parentLabel = "v0.2"`, no children → `"v0.3"`. Labeled `v0.3`.
 
-5. User promotes: `/argus:versions --promote v0.3` → `promoteToMajor("v0.3") = "v1.0"`. Draft relabeled, `released_draft_id` set.
+5. User promotes: `/argus:history versions --promote v0.3` → `promoteToMajor("v0.3") = "v1.0"`. Draft relabeled, `released_draft_id` set.
 
 6. User continues: `the revise step (review)` on `v1.0` → `incrementLastTier("v1.0")` = `"v1.1"`. Labeled `v1.1`.
 
@@ -96,7 +96,7 @@ v0.1 ─┬── v0.2 ─── v0.3 ── (promoted to v1.0) ─── v1.1
       └── v0.1.1  (branch)
 ```
 
-## Rendering rules (for `/argus:versions`)
+## Rendering rules (for `/argus:history versions`)
 
 - Root node: `v0.1` always (or equivalent if session was imported).
 - Main-line children: drawn horizontally with `───`.

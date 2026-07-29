@@ -40,26 +40,67 @@ const PUBLIC_TOOL_ICONS: Record<string, Array<{ src: string; mimeType: string; s
  * public name before it reaches a host. Without this, the tool-call RESULTS are
  * translated but the tool SCHEMAS still leaked the old vocabulary.
  */
-function withoutSchemaDescriptions(value: unknown): unknown {
-  if (Array.isArray(value)) return value.map(withoutSchemaDescriptions);
+// Keep only descriptions that prevent a wrong call or explain a conditional
+// contract. This stays far smaller than restoring all 100+ descriptions, while
+// avoiding the false economy where a tiny schema causes failed calls and extra
+// model round-trips.
+const ESSENTIAL_FIELD_DESCRIPTIONS = new Set([
+  'action', 'id', 'view', 'premises', 'text', 'source', 'ai_original',
+  'amendment', 'outcome', 'what_happened', 'outcome_source',
+  'predicate', 'check_by', 'predicate_owner', 'confirm_draft',
+]);
+
+function compactSchemaDescriptions(value: unknown, field?: string): unknown {
+  if (Array.isArray(value)) return value.map((child) => compactSchemaDescriptions(child, field));
   if (!value || typeof value !== 'object') return value;
   return Object.fromEntries(
     Object.entries(value as Record<string, unknown>)
-      .filter(([key]) => key !== 'description')
-      .map(([key, child]) => [key, withoutSchemaDescriptions(child)]),
+      .filter(([key]) => key !== 'description' || (field !== undefined && ESSENTIAL_FIELD_DESCRIPTIONS.has(field)))
+      .map(([key, child]) => [
+        key,
+        compactSchemaDescriptions(child, key === 'properties' ? undefined : key === 'items' ? field : key),
+      ]),
   );
+}
+
+function clarifyPublicSchemaDescriptions(toolName: string, value: unknown): unknown {
+  if (toolName !== 'argus_capture' || !value || typeof value !== 'object') return value;
+  const schema = value as {
+    properties?: Record<string, {
+      description?: string;
+      items?: { properties?: Record<string, { description?: string }> };
+    }>;
+  };
+  const props = schema.properties;
+  if (!props) return value;
+  if (props['source']) {
+    props['source'].description =
+      'action=update_fact에서만 사용: 현재 사실을 확인한 출처(url | user_stated | host_reported). For update_fact only.';
+  }
+  const premiseProps = props['premises']?.items?.properties;
+  if (premiseProps?.['source']) {
+    premiseProps['source'].description =
+      '전제 문장의 작성자: user_stated=사용자 원문, ai_surfaced=AI 초안(이때 ai_original 필수). Premise authorship.';
+  }
+  if (premiseProps?.['ai_original']) {
+    premiseProps['ai_original'].description =
+      'source=ai_surfaced이면 필수: AI가 처음 제시한 정확한 원문. Required with ai_surfaced.';
+  }
+  return value;
 }
 
 export function servedPublicTools(): Record<string, unknown>[] {
   return TOOLS.map((t) => {
     const presentation = bilingualToolPresentation(t.name, t.annotations?.title, t.description);
+    const schema = compactSchemaDescriptions(publicCopy(toolJsonSchema(t.inputSchema)));
     return {
       name: t.name,
       title: presentation.title,
       description: publicCopy(presentation.description),
-      // Field names, types and enums carry the contract. Repeating prose on
-      // every property taxes every model turn and previously leaked old names.
-      inputSchema: withoutSchemaDescriptions(publicCopy(toolJsonSchema(t.inputSchema))),
+      // Preserve only ambiguity-breaking descriptions. Modern hosts defer full
+      // schemas until a tool is relevant; failed calls cost more than these few
+      // short hints.
+      inputSchema: clarifyPublicSchemaDescriptions(t.name, schema),
       ...(t.outputSchema ? { outputSchema: t.outputSchema } : {}),
       ...(t.annotations ? { annotations: t.annotations } : {}),
       ...(PUBLIC_TOOL_ICONS[t.name] ? { icons: PUBLIC_TOOL_ICONS[t.name] } : {}),

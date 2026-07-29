@@ -100,14 +100,14 @@ t("empty repo → line 1 only", () => {
   assert(out[0].includes("TestModel"), "missing model name");
 });
 
-t("overdue bet → OVERDUE line with /argus:resolve hint", () => {
+t("overdue bet → OVERDUE line with /argus:check hint", () => {
   const r = repo();
   ledger(r, bet("aaaa0001", iso(-3), "플러그인 보존, 포지셔닝 피벗"));
   const out = lines(run(r));
   assert(out.length === 2, `expected 2 lines, got ${out.length}`);
   assert(out[1].includes("OVERDUE"), `no OVERDUE: ${out[1]}`);
   assert(out[1].includes("플러그인 보존"), `missing decision text: ${out[1]}`);
-  assert(out[1].includes("/argus:resolve"), `missing hint: ${out[1]}`);
+  assert(out[1].includes("/argus:check"), `missing hint: ${out[1]}`);
 });
 
 t("two overdue bets → ×2, oldest date shown", () => {
@@ -145,7 +145,7 @@ t("bet due today → 'due today', not OVERDUE", () => {
   const l2 = lines(run(r))[1];
   assert(l2.includes("due today"), `no due today: ${l2}`);
   assert(!l2.includes("OVERDUE"), `today is due, not overdue: ${l2}`);
-  assert(l2.includes("/argus:resolve"), `missing hint: ${l2}`);
+  assert(l2.includes("/argus:check"), `missing hint: ${l2}`);
 });
 
 t("overdue beats due today", () => {

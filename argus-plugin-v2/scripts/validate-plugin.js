@@ -51,11 +51,21 @@ if (manifest) {
   check(typeof manifest.version === "string" && manifest.version.length > 0, "manifest must declare a version");
 }
 
-// O3 방2 5-axis surface: 공개 5 + alias 2 + 숨김 내부 스킬. 구 단계 스킬
-// (clarify/team/verify/boss/revise)은 skills/review/의 step 파일로 이주 —
-// 그 실존은 아래 REVIEW_STEPS가 검사한다 (activation-contract.test.ts와 동형).
-const SKILLS = ["review", "check", "history", "settings", "help", "sail", "resolve", "scan", "predict", "premises", "versions", "principles", "preapprove", "journal", "configure", "connect", "push", "pull", "sync"];
+// The host sees exactly five skills. Detailed workflows live outside skills/
+// so they are loaded only after a public router selects them; they do not tax
+// every model turn or create undocumented slash commands.
+const SKILLS = ["review", "check", "history", "settings", "help"];
+const WORKFLOWS = ["configure", "connect", "journal", "preapprove", "predict", "premises", "principles", "pull", "push", "resolve", "scan", "sync", "versions"];
 const REVIEW_STEPS = ["pipeline", "clarify", "team", "verify", "boss", "revise"];
+const discoveredSkills = fs.readdirSync(path.join(root, "skills"), { withFileTypes: true })
+  .filter((entry) => entry.isDirectory() && !entry.name.startsWith("_")
+    && fs.existsSync(path.join(root, "skills", entry.name, "SKILL.md")))
+  .map((entry) => entry.name)
+  .sort();
+check(
+  JSON.stringify(discoveredSkills) === JSON.stringify([...SKILLS].sort()),
+  `skills/ must expose exactly ${[...SKILLS].sort().join(", ")}; found ${discoveredSkills.join(", ")}`,
+);
 for (const step of REVIEW_STEPS) {
   check(fs.existsSync(path.join(root, "skills", "review", `${step}.md`)), `missing skills/review/${step}.md (review pipeline step)`);
 }
@@ -91,18 +101,18 @@ for (const skill of SKILLS) {
       check(/^[a-z0-9]+(-[a-z0-9]+)*$/.test(name), `skills/${skill}/SKILL.md name "${name}" violates agentskills naming (lowercase a-z 0-9 with single hyphens; no leading/trailing/consecutive hyphen)`);
       check(name.length <= 64, `skills/${skill}/SKILL.md name is ${name.length} chars (>64, agentskills limit)`);
     }
-    // Path-resolution regression guard: bundled files are referenced via
-    // ${CLAUDE_PLUGIN_ROOT}; only sail documents the legacy fallbacks.
-    if (skill !== "sail") {
-      check(!body.includes("~/.claude/argus-"), `skills/${skill}/SKILL.md hardcodes ~/.claude/argus-* (use \${CLAUDE_PLUGIN_ROOT}/data|lib per sail §Path Resolution)`);
-    }
+    check(!body.includes("~/.claude/argus-"), `skills/${skill}/SKILL.md hardcodes ~/.claude/argus-* (use \${CLAUDE_PLUGIN_ROOT}/data|lib)`);
     // Intake convention guards (v2.4.0): the entry-point skills must show an
     // argument hint and must keep natural-language target detection primary —
     // a regression back to @-syntax-only intake re-imposes a learned syntax.
-    if (skill === "sail" || skill === "clarify") {
+    if (skill === "review") {
       check(/\nargument-hint:/.test(body.split(/\r?\n---/)[0] + "\n"), `skills/${skill}/SKILL.md frontmatter must declare argument-hint`);
     }
   }
+}
+for (const workflow of WORKFLOWS) {
+  const workflowPath = path.join(root, "lib", "workflows", `${workflow}.md`);
+  check(fs.existsSync(workflowPath), `missing lib/workflows/${workflow}.md (internal on-demand workflow)`);
 }
 
 const clarifySkillPath = path.join(root, "skills", "review", "clarify.md");
@@ -189,15 +199,6 @@ if (analysisSnapshot) {
       ["flat", "load_bearing"].every((f) => analysisSnapshot.properties.frame_status.enum.includes(f)),
     "AnalysisSnapshot must declare frame_status with flat/load_bearing (clarify Step 2 — the under-fire dial, v2.6.0)"
   );
-}
-
-const installPath = path.join(root, "install.sh");
-if (fs.existsSync(installPath)) {
-  const install = fs.readFileSync(installPath, "utf8");
-  check(!install.includes("\r\n"), "install.sh must use LF line endings for bash");
-  for (const command of SKILLS) {
-    check(new RegExp(`\\b${command}\\b`).test(install), `install.sh does not verify ${command}`);
-  }
 }
 
 const finalScaffold = readJson(path.join(root, "data", "schemas", "final-scaffold.json"));
@@ -323,12 +324,12 @@ if (fs.existsSync(verifySkillPath)) {
   check(/concrete repo artifact/i.test(verify), "verify Developer-output gate must require concrete repo artifacts for headline support");
 }
 
-// Settlement is reality-only (v2.6.0): settle must NOT auto-offer /argus:sail on
+// Settlement is reality-only (v2.6.0): settle must NOT auto-offer a new review on
 // a missed/partial outcome (reopen-on-settle was over-fire).
-const settleSkillPath = path.join(root, "skills", "resolve", "SKILL.md");
+const settleSkillPath = path.join(root, "lib", "workflows", "resolve.md");
 if (fs.existsSync(settleSkillPath)) {
   const settle = fs.readFileSync(settleSkillPath, "utf8");
-  check(!/열린 질문이 하나 남았네요 — 잡아보려면: \/argus:sail/.test(settle), "settle must not auto-offer /argus:sail on a missed/partial outcome (reopen-on-settle over-fire, v2.6.0)");
+  check(!/열린 질문이 하나 남았네요 — 잡아보려면: \/argus:review/.test(settle), "settle must not auto-offer a new review on a missed/partial outcome (reopen-on-settle over-fire)");
   check(/show the original before controls/i.test(settle), "resolve must show the original sentence before any settlement control");
   check(/\bmoot\b/.test(settle) && /not_observable/.test(settle), "resolve must keep moot and not-observable as first-class exits");
   // Single-source ledger writes (plugin-core Option A): every ledger mutation goes
@@ -354,7 +355,7 @@ if (fs.existsSync(clarifyLeanPath)) {
   check(/explicit confirmation or direct record command/i.test(clarify), "clarify must forbid silent promotion without human authorization");
   check(!/\{"event":"(harvest|seal|amend)"/.test(clarify), "clarify must not hand-write harvest/seal ledger JSON — route through decision-ledger.js");
 }
-const preapproveLedgerPath = path.join(root, "skills", "preapprove", "SKILL.md");
+const preapproveLedgerPath = path.join(root, "lib", "workflows", "preapprove.md");
 if (fs.existsSync(preapproveLedgerPath)) {
   const preapprove = fs.readFileSync(preapproveLedgerPath, "utf8");
   check(/decision-ledger\.js" record\b/.test(preapprove), "preapprove must seal a plan through `decision-ledger.js record`, not hand-written harvest+seal JSON");
@@ -376,7 +377,7 @@ if (fs.existsSync(sailWakePath)) {
 // replays them is check-contracts.js; argus-mcp one-install.test.ts locks the
 // CLI-op ↔ reducer-consumption contract.
 const ITEMS_JSON = /\{\s*"?event"?:\s*"(extract|add|edit|alert|recheck|dismiss)"/;
-const premisesItemsPath = path.join(root, "skills", "premises", "SKILL.md");
+const premisesItemsPath = path.join(root, "lib", "workflows", "premises.md");
 if (fs.existsSync(premisesItemsPath)) {
   const premises = fs.readFileSync(premisesItemsPath, "utf8");
   check(/decision-ledger\.js" premises\b/.test(premises), "premises must write items through `decision-ledger.js premises <op>`, not hand-written items.jsonl JSON");
@@ -428,14 +429,14 @@ if (fs.existsSync(contractsScript)) {
 }
 
 const pushScript = path.join(root, "scripts", "push-webapp.js");
-check(fs.existsSync(pushScript), "missing scripts/push-webapp.js (used by /argus:connect, /argus:push, /argus:pull, and /argus:sync)");
+check(fs.existsSync(pushScript), "missing scripts/push-webapp.js (used by /argus:settings connect/push/pull/sync)");
 if (fs.existsSync(pushScript)) {
   const result = spawnSync(process.execPath, ["--check", pushScript], { encoding: "utf8" });
   check(result.status === 0, `push-webapp syntax check failed: ${result.stderr || result.stdout}`);
 }
 
 const decisionLedgerScript = path.join(root, "scripts", "decision-ledger.js");
-check(fs.existsSync(decisionLedgerScript), "missing scripts/decision-ledger.js (used by /argus:scan and /argus:predict)");
+check(fs.existsSync(decisionLedgerScript), "missing scripts/decision-ledger.js (used by /argus:history scan and /argus:check)");
 if (fs.existsSync(decisionLedgerScript)) {
   const result = spawnSync(process.execPath, ["--check", decisionLedgerScript], { encoding: "utf8" });
   check(result.status === 0, `decision-ledger syntax check failed: ${result.stderr || result.stdout}`);

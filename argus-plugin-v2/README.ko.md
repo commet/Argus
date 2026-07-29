@@ -142,9 +142,8 @@ Argus는 그럴듯한 답만으로는 부족한 결정에 씁니다.
   과거 대화 회수(`/argus:history scan`).
 - `settings`는 설정입니다 — 언어·보스 페르소나, 웹앱 연결과 동기화.
 
-예전 이름 두 개는 별칭으로 남습니다: `/argus:sail`(= review),
-`/argus:resolve`(= 때가 된 기록에 답하기). 옛 단계 명령(clarify, team, verify, boss,
-revise)은 더 이상 개별 명령이 아니라 review 안의 내부 단계입니다.
+예전 명령 이름은 종료했습니다. 과거의 단계 명령은 내부 파일일 뿐이며,
+`review`, `check`, `history`, `settings`, `help`가 공개 기능의 전부입니다.
 
 확인할 때가 되면 Argus가 로컬에서 짧게 알려줄 수 있습니다. 자동으로 판단하거나
 답을 만들거나 웹앱에 보내지는 않습니다.
@@ -158,10 +157,12 @@ revise)은 더 이상 개별 명령이 아니라 review 안의 내부 단계입�
 프로젝트마다 처음 한 번 연결합니다.
 
 ```text
-/argus:settings connect <argus_pat_...>
+/argus:settings connect
 ```
 
-그 다음부터는:
+브라우저 승인 페이지가 열리고, 인증 정보는 채팅을 거치지 않고 로컬의
+git-ignored 파일에 저장됩니다. 채팅에 토큰을 붙여넣지 마세요. 승인 뒤 새로
+저장한 확인 건은 자동 동기화할 수 있습니다. 양방향으로 즉시 맞추려면:
 
 ```text
 /argus:settings sync
@@ -170,7 +171,8 @@ revise)은 더 이상 개별 명령이 아니라 review 안의 내부 단계입�
 sync는 먼저 웹앱에서 한 답변/미루기를 로컬 ledger로 가져오고, 그 다음 갱신된
 로컬 기록을 웹앱으로 보냅니다. 반복 실행해도 안전합니다.
 
-직접 sync나 push를 실행하지 않으면 웹앱으로 아무것도 보내지 않습니다.
+브라우저 승인 전에는 아무것도 보내지 않습니다. 자동 동기화는
+`/argus:settings push --auto off`로 끌 수 있습니다.
 
 ---
 
@@ -181,10 +183,9 @@ sync는 먼저 웹앱에서 한 답변/미루기를 로컬 ledger로 가져오�
 | `/argus:review` | 결정·PR·문서를 전체 리뷰 파이프라인으로 압박 검증하고 싶을 때. |
 | `/argus:check` | 다시 볼 때가 됐을 때 · 내 답 덧붙이기 · 후보 저장(`<id>`) · 전제 재확인(`premises`). |
 | `/argus:history` | 결정 일지 · 버전 트리(`versions`) · 중립적인 시간 순서 · 과거 대화 회수(`scan`). |
-| `/argus:settings` | 언어·보스 설정, 웹앱 연결/동기화(`connect <token>`, `sync`). |
+| `/argus:settings` | 언어·보스 설정, 웹앱 연결/동기화(`connect`, `sync`). |
 | `/argus:help` | 가장 짧은 명령어 지도가 필요할 때. |
 
-유지되는 별칭: `/argus:sail`(= review) · `/argus:resolve`(= 때가 된 기록에 답하기).
 비상구: `/argus:doctor` (읽기 전용 설치·배선 자가진단).
 
 ---
@@ -224,7 +225,8 @@ Argus는 프로젝트 안의 `.argus/`에 기록을 남깁니다.
 - `.argus/sessions/`에는 판단 과정이 저장되고, 기본적으로 git-ignore 됩니다.
 - `.argus/ledger/`에는 나중에 확인할 기준과 웹앱 sync token이 저장되고,
   기본적으로 git-ignore 됩니다.
-- 웹앱 동기화는 명시적으로 실행할 때만 일어납니다.
+- 웹앱 동기화는 브라우저 승인 전에는 꺼져 있습니다. 승인 뒤에는 저장한 확인
+  건이 자동 동기화될 수 있고, 사용자가 언제든 끌 수 있습니다.
 
 공유하거나 커밋하기 전에는 `.argus/` 내용을 확인하세요.
 
@@ -233,7 +235,7 @@ Argus는 프로젝트 안의 `.argus/`에 기록을 남깁니다.
 ## 개발
 
 ```bash
-./argus-plugin-v2/install.sh --link
+claude --plugin-dir ./argus-plugin-v2
 node ./argus-plugin-v2/scripts/validate-plugin.js
 node ./argus-plugin-v2/scripts/simulate-plugin.js
 ```
@@ -247,8 +249,6 @@ skill 파일을 바꾼 뒤에는 Claude Code를 다시 시작하세요. skill �
 - 제한된 리뷰어 역할: `agents/`
 - Boss 말투 스킨 (목소리 전용 — 리뷰의 실질은 설정된 자리): `data/boss-types.yaml`
 - 스키마: `data/schemas/*.json`
-- 빌드 로그 (동결된 역사 기록): `BUILD_STATUS.md`
-- 테스트 계획 (동결된 역사 기록): `TEST_PLAN.md`
 
 ## 라이선스
 

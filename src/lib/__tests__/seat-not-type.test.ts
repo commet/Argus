@@ -58,7 +58,7 @@ describe('O3 방3 — the plugin boss STRUCTURE is seat-first, not type-first', 
   const dmSchema = JSON.parse(
     readFileSync(join(process.cwd(), 'argus-plugin-v2/data/schemas/dm-feedback.json'), 'utf8'),
   ) as { properties: { concerns: { minItems?: number; items: { required: string[] } } } };
-  const configure = readFileSync(join(process.cwd(), 'argus-plugin-v2/skills/configure/SKILL.md'), 'utf8');
+  const configure = readFileSync(join(process.cwd(), 'argus-plugin-v2/lib/workflows/configure.md'), 'utf8');
 
   it('config schema: boss no longer REQUIRES a type; seat fields exist; mbti_code is legacy tone alias', () => {
     const bossSchema = configSchema.properties.boss;

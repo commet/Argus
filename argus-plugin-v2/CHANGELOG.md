@@ -1,13 +1,20 @@
 # Changelog
 
+## 3.0.12 - 2026-07-29
+
+- Exposes exactly five skills: `review`, `check`, `history`, `settings`, and
+  `help`. Thirteen detailed workflows now load only after a public router selects
+  them; they no longer create extra commands or ambient model-context cost.
+- Removes the `sail` and `resolve` aliases and the legacy copy installer.
+- Normal webapp pairing is browser approval through `/argus:settings connect`;
+  docs no longer teach users to paste a token into chat.
+- Pins `argus-decision-mcp@2.0.12`, with the final six-tool surface and
+  pre-write provenance validation.
+
 ## 3.0.11 - 2026-07-29
 
-- Wire moves to `argus-decision-mcp@2.0.11`. If your host answers Argus's confirm
-  dialog without ever showing it to you - a real Codex under a restrictive
-  approval policy answers in under a millisecond, measured - Argus no longer
-  tells you that you declined something you never saw. It records nothing,
-  claims nothing, hands your sentence back and offers to save it from chat.
-  A decline you actually made is still yours.
+- Pins `argus-decision-mcp@2.0.11`, which classified very fast declines as
+  unattributable. Superseded by 3.0.12/2.0.12.
 
 ## 3.0.10 - 2026-07-29
 

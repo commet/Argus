@@ -52,7 +52,20 @@ describe('MCP protocol round-trip (real server, stdio)', () => {
     ]);
     expect(JSON.stringify(tools)).not.toContain('argus_record');
     expect(JSON.stringify(tools)).not.toContain('argus_premises');
-    expect(JSON.stringify(tools.map((tool) => tool.inputSchema))).not.toContain('"description":');
+    const capture = tools.find((tool) => tool.name === 'argus_capture')!;
+    const captureSchema = capture.inputSchema as {
+      properties?: Record<string, { description?: string; items?: { properties?: Record<string, { description?: string }> } }>;
+    };
+    // Concise does not mean blind: conditional provenance and companion text
+    // fields keep the hints that prevent failed model calls.
+    expect(captureSchema.properties?.['source']?.description).toContain('update_fact');
+    expect(captureSchema.properties?.['premises']?.items?.properties?.['source']?.description).toContain('ai_surfaced');
+    expect(captureSchema.properties?.['premises']?.items?.properties?.['ai_original']?.description).toContain('필수');
+    const resolveSchema = tools.find((tool) => tool.name === 'argus_resolve')?.inputSchema as {
+      properties?: Record<string, { description?: string }>;
+    };
+    expect(resolveSchema.properties?.['what_happened']?.description).toBeTruthy();
+    expect(Buffer.byteLength(JSON.stringify(tools), 'utf8')).toBeLessThanOrEqual(20_000);
   });
 
   it('runs the core prediction and return loop', async () => {
@@ -88,6 +101,36 @@ describe('MCP protocol round-trip (real server, stdio)', () => {
     const invalid = await client.callTool({ name: 'argus_predict', arguments: { predicate: 'short' } });
     expect(invalid.isError).toBe(true);
     expect((invalid.content as Array<{ text: string }>)[0]?.text).toContain('INVALID_INPUT');
+  });
+
+  it('rejects an invalid nested premise before writing any part of action=open', async () => {
+    const id = 'atomic-invalid-open';
+    const invalid = await client.callTool({
+      name: 'argus_capture',
+      arguments: {
+        argus_dir: dir,
+        action: 'open',
+        id,
+        decision: 'whether to commit to the annual plan',
+        stakes: 'moderate',
+        reversibility: 'costly_to_reverse',
+        status_quo: 'keep the monthly plan',
+        premises: [{
+          text: 'annual churn will be lower',
+          kind: 'premise',
+          source: 'ai_surfaced',
+          // ai_original deliberately omitted
+        }],
+      },
+    });
+    expect(invalid.isError).toBe(true);
+    expect(JSON.stringify(invalid.content)).toContain('ai_original');
+    expect(fs.existsSync(path.join(dir, 'sessions', id, 'session.json'))).toBe(false);
+    const ledgerPath = path.join(dir, 'ledger', 'ledger.jsonl');
+    const events = fs.existsSync(ledgerPath)
+      ? fs.readFileSync(ledgerPath, 'utf8').split(/\r?\n/).filter(Boolean).map((line) => JSON.parse(line) as { id?: string })
+      : [];
+    expect(events.filter((event) => event.id === id)).toEqual([]);
   });
 
   it('offers one attention resource and no prompt surface', async () => {

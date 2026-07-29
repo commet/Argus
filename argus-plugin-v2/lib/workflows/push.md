@@ -1,18 +1,18 @@
 ---
 name: push
 user-invocable: false
-description: Push this project's local Argus plugin records to the Argus webapp account paired by `/argus:connect`. Sends `.argus/ledger/ledger.jsonl` and `current_bearing.json` files through the webapp plugin ingest API. Use when the user wants to open plugin results in the webapp or run "push"; prefer `/argus:sync` for two-way sync. Invoked as `/argus:push`.
+description: Push this project's local Argus records to the paired webapp. Prefer two-way sync. Invoked through `/argus:settings push`.
 ---
 
-# /argus:push
+# Internal push workflow
 
 **What this skill does:** Sends local Argus artifacts to the webapp account that
-was paired with `/argus:connect`.
+was paired with `/argus:settings connect`.
 
 This is explicit one-way push, not background sync. The plugin remains
 local-first: nothing leaves the machine unless the user runs this command. If
-the user has settled or deferred decisions in the webapp, run `/argus:sync` or
-`/argus:pull` so those web events are appended locally.
+the user has settled or deferred decisions in the webapp, run
+`/argus:settings sync` or `/argus:settings pull` so those web events are appended locally.
 
 ---
 
@@ -23,14 +23,13 @@ the user has settled or deferred decisions in the webapp, run `/argus:sync` or
   ready, without sending anything.
 - Optional `--url https://...`: override the saved/default webapp URL for this
   run only.
-- Optional `--token argus_pat_...`: one-off token override. Prefer
-  `/argus:connect` for normal use.
+- CI may provide `ARGUS_PUSH_TOKEN` as an environment secret.
 
 ---
 
 ## Steps
 
-1. Resolve `${CLAUDE_PLUGIN_ROOT}` per sail Path Resolution. The canonical script
+1. Resolve `${CLAUDE_PLUGIN_ROOT}`. The canonical script
    is `${CLAUDE_PLUGIN_ROOT}/scripts/push-webapp.js`.
 2. Run:
 
@@ -53,7 +52,7 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/push-webapp.js" push --status
 If the script says no token is configured, tell the user:
 
 ```text
-Run /argus:connect <argus_pat_...> first. You can issue the token in the Argus webapp Settings.
+Run /argus:settings connect first; it opens browser approval.
 ```
 
 ---
@@ -67,15 +66,15 @@ Run /argus:connect <argus_pat_...> first. You can issue the token in the Argus w
 The webapp stores them under the paired account as `plugin_decisions` and
 `plugin_bearings`. Re-running push is idempotent: rows update in place by
 ledger id or session/version key. Webapp-originated settle/defer events are
-returned by `/argus:pull`.
+returned by `/argus:settings pull`.
 
 ---
 
 ## Relationship To argus-watch
 
-`argus-watch push` was the prototype bridge. `/argus:push` is now the normal
-product path. Past-chat harvesting also lives in the plugin now via
-`/argus:scan` and `/argus:predict`; do not require `argus-watch` for webapp sync.
+`argus-watch push` was the prototype bridge. `/argus:settings push` is the
+normal product path. Past-chat harvesting lives at `/argus:history scan`, and
+saving a candidate at `/argus:check <id>`; do not require `argus-watch`.
 
 ---
 

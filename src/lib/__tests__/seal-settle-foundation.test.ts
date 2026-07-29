@@ -7,7 +7,7 @@ const pipeline = readFileSync(
   'utf8',
 );
 const resolve = readFileSync(
-  join(process.cwd(), 'argus-plugin-v2/skills/resolve/SKILL.md'),
+  join(process.cwd(), 'argus-plugin-v2/lib/workflows/resolve.md'),
   'utf8',
 );
 

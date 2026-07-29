@@ -82,7 +82,10 @@ else {
 const skillsDir = path.join(pluginRoot, 'skills');
 const skills = fs.readdirSync(skillsDir)
   .filter((name) => !name.startsWith('_') && fs.statSync(path.join(skillsDir, name)).isDirectory());
-if (skills.length === 0) fail('no skills found');
+const expectedSkills = ['check', 'help', 'history', 'review', 'settings'];
+if (JSON.stringify(skills.sort()) !== JSON.stringify(expectedSkills)) {
+  fail(`skills/ must expose exactly ${expectedSkills.join(', ')}; found ${skills.join(', ')}`);
+}
 for (const skill of skills) {
   const file = path.join(skillsDir, skill, 'SKILL.md');
   if (!fs.existsSync(file)) {

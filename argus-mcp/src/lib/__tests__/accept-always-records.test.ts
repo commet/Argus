@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { setElicitor, elicitDetailed, elicit, canElicit, UNSEEN_DECLINE_MAX_MS } from '../elicit.js';
+import { setElicitor, elicitDetailed, elicit, canElicit } from '../elicit.js';
 
 /**
  * ACCEPT MUST RECORD. AT EVERY SPEED. FOREVER.
@@ -10,14 +10,8 @@ import { setElicitor, elicitDetailed, elicit, canElicit, UNSEEN_DECLINE_MAX_MS }
  * declaring input boxes at all (which made Enter move the cursor instead of
  * submitting). Each time the gates were green.
  *
- * 2.0.11 introduced a timing branch on the DECLINE path. That branch must never
- * be able to touch Accept, and "must never" is not a promise — it is this file.
- * The founder's instruction was explicit: this fix must not become a fourth
- * "Accept does not work".
- *
  * So Accept is asserted across the whole latency range a real answer can arrive
- * in, from an instant machine reply through the timings that surround the
- * decline threshold, past a human pause, and out beyond the SDK's old 60-second
+ * in, from an instant machine reply through a human pause and out beyond the SDK's old 60-second
  * default that silently discarded a real Accept at 71 seconds.
  *
  * 무엇이 이걸 빨간불로 만드나: elicitDetailed의 accept 반환을 타이밍 분기 아래로
@@ -43,16 +37,13 @@ function wire(replies: Reply[]): { asked: () => number } {
 beforeEach(() => setElicitor(null));
 
 /**
- * Every latency an Accept can plausibly arrive in. The ones bracketing
- * UNSEEN_DECLINE_MAX_MS are the point: if the timing branch ever leaks into the
- * accept path, THOSE are what break first.
+ * Every latency an Accept can plausibly arrive in.
  */
 const SPEEDS: Array<[string, number]> = [
   ['즉시 (0ms — 기계·자동화)', 0],
-  ['문턱 바로 아래 (1ms)', 1],
-  ['문턱과 같음', UNSEEN_DECLINE_MAX_MS],
-  ['문턱 바로 위', UNSEEN_DECLINE_MAX_MS + 1],
-  ['문턱의 10배', UNSEEN_DECLINE_MAX_MS * 10],
+  ['매우 빠름 (1ms)', 1],
+  ['빠름 (5ms)', 5],
+  ['짧은 지연 (50ms)', 50],
   ['사람이 읽고 누름 (300ms)', 300],
   ['천천히 (1.2초)', 1200],
 ];
@@ -96,11 +87,11 @@ describe('Accept는 어떤 속도에서도 기록된다', () => {
 
   it('거절이 한 번 있어도 다음 Accept는 정상 기록된다', async () => {
     const w = wire([
-      { action: 'decline' },                                   // 아무도 못 본 거절
+      { action: 'decline' },
       { action: 'accept', content: { outcome: 'missed' } },     // 그 다음 진짜 Accept
     ]);
     const first = await elicitDetailed('seal?', { type: 'object', properties: {} });
-    expect(first.kind).toBe('no_answer');
+    expect(first.kind).toBe('declined');
 
     expect(canElicit()).toBe(true);
     const second = await elicitDetailed('settle?', { type: 'object', properties: {} });

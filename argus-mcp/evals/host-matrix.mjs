@@ -268,13 +268,10 @@ async function runProfile(name) {
         ok(name, 'B4 the predicate is handed back so no work is lost (I2)', typeof sc?.data?.predicate === 'string' && sc.data.predicate.includes('D7'), brief(sc?.data, 160));
       }
       if (profile.policyBlocked) {
-        // This profile reproduces a client that violates MCP by returning
-        // `decline` for policy. There is no rendering receipt and no policy
-        // marker — but there IS a measurable gap: a real codex app-server with
-        // elicitations blocked answers in 0.3-1.1ms, while any human decline
-        // needs a render, a read and a keypress (~1000ms). So the server refuses
-        // to ATTRIBUTE what no form could have preceded; it concludes nothing.
-        ok(name, 'B3 a decline no form could have preceded is not attributed', sc?.data?.choice === 'no_answer', `choice=${sc?.data?.choice}`);
+        // This profile reproduces a client that returns `decline` for policy.
+        // The server has no rendering receipt or policy marker, so it preserves
+        // the only protocol action it received.
+        ok(name, 'B3 decline is not reclassified from elapsed time', sc?.data?.choice === 'declined', `choice=${sc?.data?.choice}`);
       }
       if (name === 'hostile-empty' || name === 'claude-code' || name === 'claude-desktop' || name === 'codex-interactive') {
         // A one-tap Accept with a blank form must SAVE — this is the whole point.
@@ -313,7 +310,7 @@ async function runProfile(name) {
         });
         ok(name, 'B5 the ask is still sent — a decline does not disable pickers',
           seen.length > asksBefore, `asks before=${asksBefore} after=${seen.length}`);
-        ok(name, 'B6 repeated unseen decline is still not attributed', second?.data?.choice === 'no_answer', `choice=${second?.data?.choice}`);
+        ok(name, 'B6 repeated decline keeps the same protocol meaning', second?.data?.choice === 'declined', `choice=${second?.data?.choice}`);
         const { sc: after } = await call('argus_check_in', { today_override: T0 });
         ok(name, 'B7 timing does not rewrite the negotiated picker capability',
           after?.data?.picker === 'one_tap', `picker=${after?.data?.picker}`);

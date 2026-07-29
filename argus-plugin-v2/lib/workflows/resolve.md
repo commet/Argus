@@ -1,9 +1,9 @@
 ---
 name: resolve
-description: Return to sealed Argus records whose fallback date has arrived, show the original sentence before any controls, ask one kind-appropriate question, and append the user's answer without scoring it. Invoked as /argus:resolve.
+description: Return to saved Argus records whose check date has arrived, show the original before controls, and append the user's answer without scoring it. Invoked through /argus:check.
 ---
 
-# /argus:resolve
+# Internal resolve workflow
 
 Argus returns the user's earlier sentence at a useful time. It does not decide
 whether the user was right, good, successful, or improving.

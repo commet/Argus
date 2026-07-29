@@ -49,15 +49,10 @@ const BUNDLE_MARKERS = [
   // 수정을 담고 배포됐는데 이 게이트만 빨간불이었다. 낡은 마커보다 나쁜 것이
   // 결코 참이 될 수 없는 마커다 — 아래 자기점검이 그걸 잡는다.
   ['봉인 이벤트가 출처를 싣는다 (2.0.5)', /predicate_owner: [A-Za-z0-9_$]*\[['"]predicate_owner['"]\]/],
-  // 2.0.10까지 이 자리는 정반대를 요구했다 — `decline`은 무조건 `declined`라고.
-  // 2.0.11이 그걸 일부러 바꿨으므로(아무 화면도 뜨지 못한 거절은 사용자 것이
-  // 아니다) 마커도 같이 뒤집는다. 낡은 마커를 남겨두면 옳은 배포본을 빨간불로
-  // 만든다 — 실제로 2.0.11 배포 직후 그렇게 됐고, 위 사전대조가 "로컬 빌드에서도
-  // 안 맞는다"로 잡아줬다.
-  //
-  // 문자열 하나로 잡는 이유: 분기 형태는 번들러가 바꿀 수 있지만 이 사유 이름은
-  // 계약이라 못 바꾼다(호출부가 읽는다). esbuild 따옴표 정규화에도 안전하다.
-  ['아무도 못 본 거절을 사용자 것이라 적지 않는다 (2.0.11)', 'unattributable'],
+  // 2.0.12 restores the protocol boundary: MCP supplies an action, but no
+  // render receipt or actor provenance. A stopwatch must not manufacture either
+  // fact, so every wire-level decline remains a decline at every speed.
+  ['decline 의미를 시간으로 바꾸지 않는다 (2.0.12)', /if \(res\.action === ["']decline["']\) return \{ kind: ["']declined["'] \}/],
   ['실패 fallback은 decline과 분리된다', 'Nothing recorded because the dialog returned no answer.'],
 ];
 

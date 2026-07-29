@@ -19,9 +19,6 @@ import { detectLocaleFromText, osLocaleHint } from './locale.js';
  *   - Already-diverged voices (sync's hardcoded Korean) are unified here.
  *   - Everything else migrates tool-by-tool WHEN a tool is touched — do not
  *     bulk-move all 13 tools' strings in one pass.
- *   - `argus-mcp/src/lib/review/*` (8 files) is byte-drift-guarded against
- *     the webapp core (review-mcp-drift.test.ts) — NEVER move its strings
- *     here. tools/review.ts (a tool file) may adopt later.
  *
  * Locale resolution is CONFIG-ONLY and deterministic: argus_settings seeds
  * config.yaml with detectLocale (env/Intl sniffing lives there, at write

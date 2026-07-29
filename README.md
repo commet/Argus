@@ -222,20 +222,8 @@ Restart Claude Code, then from any repo:
 **Commands (5):** `/argus:review` (deep pressure-test, explicit opt-in) ·
 `/argus:check` (settle what is due · seal · premises) · `/argus:history`
 (decision log · version tree · scan past chats) · `/argus:settings` ·
-`/argus:help`. Aliases kept: `/argus:sail`, `/argus:resolve`. More →
+`/argus:help`. These are the complete public commands. More →
 **[argus-plugin-v2/README.md](./argus-plugin-v2/README.md)**.
-
-<details>
-<summary>Alternative: copy-install without the plugin system</summary>
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/commet/Argus/main/argus-plugin-v2/install.sh | bash
-```
-
-Flat-installed skills lose the `argus:` prefix and the automatic reminders — the
-plugin install above is the documented experience.
-
-</details>
 
 <details>
 <summary>Local development &amp; optional API key</summary>

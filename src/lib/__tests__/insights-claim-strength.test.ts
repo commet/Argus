@@ -8,7 +8,7 @@ import { join } from 'node:path';
  * n. The journal is now a chronology, not an insights generator.
  */
 const journal = readFileSync(
-  join(process.cwd(), 'argus-plugin-v2/skills/journal/SKILL.md'),
+  join(process.cwd(), 'argus-plugin-v2/lib/workflows/journal.md'),
   'utf8',
 );
 const ledger = readFileSync(

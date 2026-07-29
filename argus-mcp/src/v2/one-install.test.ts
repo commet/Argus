@@ -155,7 +155,7 @@ describe('premises 스킬 — 미결 질문은 fork로 묻지 않는다 (스파�
   // argus_premises op=resolve(자유 텍스트, 선택지 없음)가 정본이고, 이 스킬이
   // 거기서 드리프트하면 두 표면이 스파인 위반 여부에서 갈린다. disclaimed lean도
   // 세탁이 아니므로(CLAUDE.md rounds 5–8), 규칙 문구까지 실재를 확인한다.
-  const SKILL = path.join(REPO_ROOT, 'argus-plugin-v2', 'skills', 'premises', 'SKILL.md');
+  const SKILL = path.join(REPO_ROOT, 'argus-plugin-v2', 'lib', 'workflows', 'premises.md');
   const body = fs.readFileSync(SKILL, 'utf8');
 
   it('reconsider 단계가 A/B lean 칩(fork)을 다시 들이지 않는다', () => {

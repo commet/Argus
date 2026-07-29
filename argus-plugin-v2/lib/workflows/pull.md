@@ -1,19 +1,19 @@
 ---
 name: pull
 user-invocable: false
-description: Pull webapp-originated plugin events back into the local Argus decision record. Use after settling or deferring plugin decisions in the webapp, or whenever the user asks to sync webapp changes back to Claude Code. Invoked as `/argus:pull`.
+description: Pull webapp-originated events into the local Argus record. Invoked through `/argus:settings pull`.
 ---
 
-# /argus:pull
+# Internal pull workflow
 
 **What this skill does:** Fetches webapp-originated decision events for the
 paired account and appends them to `.argus/ledger/ledger.jsonl`.
 
 This is the return path of the bridge:
 
-- `/argus:push` sends local decision records to the webapp.
+- `/argus:settings push` sends local decision records to the webapp.
 - The webapp can settle or defer imported plugin decisions.
-- `/argus:pull` brings those webapp actions back into the local decision record.
+- `/argus:settings pull` brings those webapp actions back into the local decision record.
 
 ## Run
 
@@ -24,11 +24,10 @@ say this command requires the packaged Argus plugin install.
 node "${CLAUDE_PLUGIN_ROOT}/scripts/push-webapp.js" pull
 ```
 
-If the script says no token is configured, tell the user to create a token in
-the webapp settings and run:
+If the script says no credential is configured, tell the user to run:
 
 ```bash
-/argus:connect <argus_pat_...>
+/argus:settings connect
 ```
 
 ## Behavior
@@ -38,7 +37,7 @@ the webapp settings and run:
 - Webapp events keep their original `at` timestamp and are marked with
   `origin:"webapp"`.
 - This command only pulls web events. It does not push local artifacts; use
-  `/argus:sync` for both directions.
+  `/argus:settings sync` for both directions.
 
 ## Forbidden Patterns
 

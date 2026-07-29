@@ -6,7 +6,7 @@
  * returns), in priority order:
  *   1. At least one decision contract is past its check-by date → one line.
  *   2. No overdue contract, but a monitored premise is due to be re-checked
- *      (.argus/items.jsonl) → one line pointing at /argus:premises check.
+ *      (.argus/items.jsonl) → one line pointing at /argus:check premises.
  *   3. The very first session after install (no marker file yet) → one
  *      orientation line, once per machine, ever. Marketplace installs drop
  *      the user back at the prompt with zero guidance — this is the bridge
@@ -256,7 +256,7 @@ function bearingContracts(argusDir, today, ledger) {
 /**
  * Count monitored premises due for a re-check (the living-premises return-loop;
  * design: internal design notes). Replays `.argus/items.jsonl`
- * (append-only, same shape as /argus:premises). A premise is DUE when it is an active,
+ * (append-only, same shape as /argus:check premises). A premise is DUE when it is an active,
  * external, on_change premise that has NOT backed off (fewer than 2 dismisses) and
  * was either never re-checked or last re-checked 7+ days ago. Fast + defensive:
  * missing file or bad lines → 0, never throws.
@@ -347,11 +347,11 @@ function main() {
     const first = clip(overdue[0].text, 80);
     if (locale === "ko") {
       process.stdout.write(
-        `Argus: 확인일이 지난 결정 계약 ${overdue[0].date}${overdue.length > 1 ? ` 외 ${overdue.length - 1}건` : ""} — "${first}" 이 예측, 현실은 어땠는지 정산할 때가 됐어요 (/argus:resolve).`
+        `Argus: 확인일이 지난 결정 계약 ${overdue[0].date}${overdue.length > 1 ? ` 외 ${overdue.length - 1}건` : ""} — "${first}" 이 예측, 현실은 어땠는지 정산할 때가 됐어요 (/argus:check).`
       );
     } else {
       process.stdout.write(
-        `Argus: ${overdue.length} decision contract${overdue.length > 1 ? "s are" : " is"} past check-by (${overdue[0].date}) — "${first}" It's time to check this prediction against reality (/argus:resolve).`
+        `Argus: ${overdue.length} decision contract${overdue.length > 1 ? "s are" : " is"} past check-by (${overdue[0].date}) — "${first}" It's time to check this prediction against reality (/argus:check).`
       );
     }
     return;

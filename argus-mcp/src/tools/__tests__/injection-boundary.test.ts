@@ -2,8 +2,6 @@ import { describe, it, expect } from 'vitest';
 import { tmpArgusDir, body } from '../../test-helpers.js';
 import { seal } from '../seal.js';
 import { settle } from '../settle.js';
-import { checkIn } from '../check-in.js';
-import { watch } from '../watch.js';
 import { hasUnsafeChars, quoteInline, sanitizeOutput } from '../../lib/untrusted.js';
 import { lintEnvelope } from '../../lib/surface-lint.js';
 import { elicit, setElicitor } from '../../lib/elicit.js';
@@ -50,14 +48,6 @@ describe('untrusted text cannot smuggle control characters into the model contex
     expect(lintEnvelope(r).filter((f) => f.rule === 'unsafe-chars')).toHaveLength(0);
     // and the rendered certificate (a nested, multi-line string) is clean too
     expect(hasUnsafeChars(String((r['data'] as Record<string, unknown>)['seal_text']))).toBe(false);
-  });
-
-  it('a poisoned watch anchor cannot inject when check_in mirrors it back', async () => {
-    const dir = tmpArgusDir();
-    await watch.handler({ argus_dir: dir, op: 'anchor', text: NASTY, today_override: '2026-07-01' });
-    const r = body(await checkIn.handler({ argus_dir: dir, today_override: '2026-07-02' }));
-    expect(allClean(r)).toBe(true);
-    expect(lintEnvelope(r).filter((f) => f.rule === 'unsafe-chars')).toHaveLength(0);
   });
 
   it('a poisoned settlement cannot inject through the rendered receipt', async () => {

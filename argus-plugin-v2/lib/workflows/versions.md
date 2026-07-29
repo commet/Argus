@@ -1,10 +1,10 @@
 ---
 name: versions
 user-invocable: false
-description: Display the version tree of the current Argus decision — active draft, current call summary, verification state, open concerns, and next route. Use when the user asks where they are in a decision, wants to see or switch between drafts/branches, or needs the next useful command — "지금 어디까지 왔지", "버전 트리 보여줘", "show the branches", "where am I". Read-only by default; checkout/promote/delete/json flags can mutate or export. NOT for generating new analysis — no LLM runs. Invoked as `/argus:versions`.
+description: Display or manage one Argus decision's version tree. Read-only by default; no new analysis. Invoked through `/argus:history versions`.
 ---
 
-# /argus:versions
+# Internal versions workflow
 
 **What this skill does:** Shows the map of an Argus session. It is the user's
 way to see branches, active draft, released draft, current read, blockers,
@@ -16,13 +16,13 @@ and the next useful command.
 
 ## When To Run
 
-- `/argus:versions`
-- `/argus:versions --session <id>`
-- `/argus:versions --tree`
-- `/argus:versions --checkout <version-label>`
-- `/argus:versions --promote <version-label>`
-- `/argus:versions --delete <session-id>`
-- `/argus:versions --json`
+- `/argus:history versions`
+- `/argus:history versions --session <id>`
+- `/argus:history versions --tree`
+- `/argus:history versions --checkout <version-label>`
+- `/argus:history versions --promote <version-label>`
+- `/argus:history versions --delete <session-id>`
+- `/argus:history versions --json`
 
 ---
 
@@ -45,8 +45,8 @@ Flags that mutate state are mutually exclusive.
 
 1. Read `.argus/config.yaml` (silent-create from `${CLAUDE_PLUGIN_ROOT}/lib/config.example.yaml` if missing, same as other skills). All user-facing text in this skill uses `config.locale`.
 2. **Zero-sessions guard:** if `.argus/sessions/` does not exist or contains no session directory, do NOT error. Print and stop:
-   - ko: `아직 Argus 결정 기록이 없습니다. \`/argus:sail "<결정>"\` 로 시작하세요.`
-   - en: `No Argus decisions yet. Start one with \`/argus:sail "<your decision>"\`.`
+   - ko: `아직 Argus 결정 기록이 없습니다. \`/argus:review "<결정>"\` 로 시작하세요.`
+   - en: `No Argus decisions yet. Start one with \`/argus:review "<your decision>"\`.`
 3. **Legacy guard:** if only pre-v2 (`v0.5`-era) files exist with no `session.json`, note that legacy sessions aren't rendered by this version and point to the newest v2 session if any.
 
 ### Default (no flags) — show current session
@@ -65,7 +65,7 @@ Active: {{active_label}}  Released: {{released_label or "-"}}
 current call:
 - Course: {{current_bearing.current_course.summary or "not rendered yet"}}
 - Unknown/Risk: {{current_bearing.fog_or_reef.issue or "none named"}}
-- Next step: {{current_bearing.next_helm or "run /argus:sail --resume {{id}}"}}
+- Next step: {{current_bearing.next_helm or "run /argus:review --resume {{id}}"}}
 
 Version Tree:
 v0.1 (initial read)
@@ -74,17 +74,17 @@ v0.1 (initial read)
 
 Open Checks:
 - Verification: {{overall_status or "not run"}}
-{{if root_crack}}- Reality check: "{{root_crack.claim clipped 50}}" (course rests on it; only reality confirms) -> /argus:resolve when known{{endif}}
+{{if root_crack}}- Reality check: "{{root_crack.claim clipped 50}}" (course rests on it; only reality confirms) -> /argus:check when known{{endif}}
 - Human checks: {{first human check or "none"}}
 - Boss condition: {{approval_condition or "none"}}
-{{if contract past check-by}}- Contract: "{{predicate clipped 50}}" was due {{check_by}} -> /argus:resolve{{endif}}
+{{if contract past check-by}}- Contract: "{{predicate clipped 50}}" was due {{check_by}} -> /argus:check{{endif}}
 
 Next:
 - If verification is missing: `/argus:review --resume {{session.id}}` (routes to the verify step)
 - If verification is blocked: complete human checks, then `/argus:review --resume {{session.id}}`
 - Apply boss concerns / verify challenges: `/argus:review --resume {{session.id}}` (the revise step forks a child draft with the fixes + re-verifies)
-- Promote this draft to v1.0: `/argus:versions --promote {{active_label}}`
-- Branch from an older draft: `/argus:versions --checkout <label>` then `/argus:review --resume {{session.id}}` (revise branches from the checked-out draft)
+- Promote this draft to v1.0: `/argus:history versions --promote {{active_label}}`
+- Branch from an older draft: `/argus:history versions --checkout <label>` then `/argus:review --resume {{session.id}}` (revise branches from the checked-out draft)
 ```
 
 Do not render worker counts by default. If the user wants internals, they can
@@ -136,7 +136,7 @@ boolean flags or `overall_status` for routing — `routing_decision` is the sing
 source of truth, and reading anything else is what reintroduces gate collisions.
 
 - A sealed contract (ledger or this session's read seed) is past its
-  check-by date -> `/argus:resolve` (outranks everything below — an unsettled
+  check-by date -> `/argus:check` (outranks everything below — an unsettled
   past prediction is the most perishable item on the version tree)
 - Missing `verification.json` on a medium/high draft -> `/argus:review --resume <id>` (routes to the verify step)
 - Verification `revise_team` -> `/argus:review --resume <id>` (the revise step auto-detects the challenged claims to repair)
@@ -145,8 +145,8 @@ source of truth, and reading anything else is what reintroduces gate collisions.
 - Verification `ask_user` (unresolved critical challenge) -> `/argus:review --resume <id>` to make the call
 - Boss critical applied concerns exist -> `/argus:review --resume <id>` (the revise step auto-applies the accepted concerns)
 - No `current_bearing.json` -> `/argus:review --resume <id>`
-- Read status is `anchor` -> `/argus:versions --promote <active_label>`
-- Otherwise -> `/argus:review --resume <id> "<directive>"` or `/argus:versions --promote <active_label>`
+- Read status is `anchor` -> `/argus:history versions --promote <active_label>`
+- Otherwise -> `/argus:review --resume <id> "<directive>"` or `/argus:history versions --promote <active_label>`
 
 ---
 
@@ -159,7 +159,7 @@ source of truth, and reading anything else is what reintroduces gate collisions.
 
 ```text
 Switched active draft to {{label}}.
-Next: /argus:sail --resume {{session.id}}
+Next: /argus:review --resume {{session.id}}
 ```
 
 ---
@@ -263,7 +263,7 @@ ROOT_LABEL = `v0`. First child = `v0.1`.
 ## Meta-Check Gates
 
 - **No LLM:** version tree never invokes an LLM.
-- **Idempotent default:** `/argus:versions` does not mutate state.
+- **Idempotent default:** `/argus:history versions` does not mutate state.
 - **Read-centered:** default view starts from current course and next step.
 - **Branch clarity:** active and released drafts are visibly distinct.
 - **Safe mutation:** checkout/promote/delete read and verify before writing.

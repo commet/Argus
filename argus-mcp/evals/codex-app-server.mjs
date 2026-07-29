@@ -51,7 +51,7 @@ const ok = (label, condition, detail = '') => {
 };
 
 // Codex discovery lives in evals/_codex-bin.mjs so this gate and
-// decline-latency cannot disagree about whether a host is present — they did,
+// Real-host gates cannot disagree about whether a host is present — they did,
 // by exactly one line, and the quieter one skipped while reporting success.
 // Skipping loudly beats a silent green: this gate's whole value is that it
 // touched a real host, so "installed but unresolvable" fails instead of skipping.
@@ -157,10 +157,7 @@ try {
   const p = await session(ALLOWED, async (_params, n) => {
     if (n === 1) return { action: 'accept', content: {} };                    // seal, kept
     if (n === 2) { await new Promise((r) => setTimeout(r, HUMAN_PAUSE_MS)); return { action: 'decline' }; }
-    // 접근성 자동화·키보드 사용자의 "아주 빠른" 거절. 사람이라도 화면이 그려지고
-    // 읽고 눌러야 하므로 0ms일 수 없다 — 0ms로 답하는 하네스는 빠른 사용자가
-    // 아니라 기계다. 문턱(5ms)의 수십 배지만 사람으로선 극단적으로 빠른 값.
-    if (n === 3) { await new Promise((r) => setTimeout(r, 150)); return { action: 'decline' }; }
+    if (n === 3) return { action: 'decline' };  // someone hammering Escape — instant
     return { action: 'accept', content: { outcome: 'held', what_happened: 'shipped on the 3rd' } };
   });
   try {
@@ -199,15 +196,13 @@ try {
         && declined?.structuredContent?.data?.sealed === false,
       JSON.stringify(declined?.structuredContent?.data).slice(0, 300));
 
-    // The case the threshold must NOT swallow: a keyboard user or accessibility
-    // automation declining very fast. They are still ~30x above the measured
-    // policy ceiling (0.3-1.1ms), because a form has to be drawn before anyone —
-    // or any assistive tool reading it — can act on it. Their "no" stays theirs.
+    // Response time is not provenance. A keyboard user or accessibility
+    // automation can decline immediately, so preserve the MCP action.
     const hammered = await p.call('argus_predict', {
       id: 'codex-escape', predicate: 'this one gets escaped before it is read',
       check_by: '2099-12-31', predicate_owner: 'ai_surfaced', confirm_draft: true,
     });
-    ok('P3 a very fast HUMAN decline is still honoured as a decline',
+    ok('P3 an instant decline remains a decline',
       hammered?.structuredContent?.data?.choice === 'declined',
       JSON.stringify(hammered?.structuredContent?.data).slice(0, 300));
 
@@ -237,13 +232,8 @@ try {
     });
     ok('B0 Codex really did intercept it — nothing reached the client',
       b.asks.length === 0, `client saw ${b.asks.length} request(s)`);
-    // Measured, not argued: this policy answers in 0.3-1.1ms (evals/
-    // decline-latency.mjs re-measures it here on every verify), and a human
-    // decline needs a render, a read and a keypress. Reporting this as the
-    // user's own decline tells them they refused a dialog Codex never drew —
-    // B0 above proves nothing reached a client.
-    ok('B1 a decline no form could have preceded is not attributed to the user',
-      blocked?.structuredContent?.data?.choice === 'no_answer'
+    ok('B1 the server preserves the only wire fact Codex supplied',
+      blocked?.structuredContent?.data?.choice === 'declined'
         && blocked?.structuredContent?.data?.sealed === false,
       JSON.stringify(blocked?.structuredContent?.data).slice(0, 300));
 

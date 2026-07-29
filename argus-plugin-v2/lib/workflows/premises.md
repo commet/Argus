@@ -1,10 +1,10 @@
 ---
 name: premises
 user-invocable: false
-description: View and correct the tracked items of a decision — its premises, phenomena, conclusions, and open questions — and turn per-item change alerts on or off. AI extracts these items; you fix the ones that are wrong (over-interpreted, wrong starting point), and every correction is recorded as signal. Use when the user says "전제 고칠래", "이 전제 알림 꺼줘", "결정 항목 보여줘", "the AI got this premise wrong", or after a decision is sealed and its items should be reviewed. Invoked as `/argus:premises`.
+description: View and correct a decision's premises, conclusions, open questions, and change alerts. Invoked through `/argus:check premises`.
 ---
 
-# /argus:premises
+# Internal premises workflow
 
 **What this skill does:** Shows a decision broken into tracked items and lets the
 user **correct** any item and **toggle its change-alert**. Editing is the expected
@@ -85,8 +85,8 @@ Phenomena
 Open questions
   [Q1] {{text}}
 
-Edit: /argus:premises edit P1 · Alert: /argus:premises alert P1 off · Re-check: /argus:premises check
-Open question: /argus:premises open "…" · Reconsider: /argus:premises reconsider Q1
+Edit: /argus:check premises edit P1 · Alert: /argus:check premises alert P1 off · Re-check: /argus:check premises check
+Open question: /argus:check premises open "…" · Reconsider: /argus:check premises reconsider Q1
 ```
 Show at most ~12 items; note if more.
 
@@ -101,7 +101,7 @@ items (`source:"ai"`) vs how many the user overturned (an `edit` with action
 > 한마디 남겨줘요, 그쪽을 손볼게요. [피드백] [괜찮아요]
 
 This calibrates the *extraction*, not the person. It is NOT a principle (principles
-draw only from settled reality — `/argus:principles` §Reality is the source) and
+draw only from settled reality — `/argus:history principles` §Reality is the source) and
 NOT a statement about who the user is. Below the threshold: say nothing.
 
 ### Step 3 — Edit (on request)
@@ -129,7 +129,7 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/decision-ledger.js" premises alert --id <ref
 Confirm in one line: `{{ref}} 알림: {{mode}}.` For an external premise, `on_change`
 means "re-check the fact periodically and tell you only if it actually changed."
 
-### Step 5 — Re-check monitored premises (`/argus:premises check`)
+### Step 5 — Re-check monitored premises (`/argus:check premises check`)
 The living-premises alert: re-check whether a premise's fact still holds, and pull
 the user back in ONLY when it actually changed. This is on-demand (no infra) — the
 firing threshold is high, so silence is the common result.
@@ -165,12 +165,12 @@ Open questions are things the user EXPLICITLY left undecided. Argus NEVER invent
 one from a sealed decision — re-opening a closed call is a mirror-clause violation.
 The only source is the user:
 
-- `/argus:premises open "<text>"` → write through the CLI (single-source, never
+- `/argus:check premises open "<text>"` → write through the CLI (single-source, never
   hand-written JSON; the CLI sets `source:user`):
   ```bash
   node "${CLAUDE_PLUGIN_ROOT}/scripts/decision-ledger.js" premises add --id "item_{decision}_q{n}" --decision "{decision}" --type open_question --text "<text>"
   ```
-- `/argus:premises reconsider <ref>` for an `open_question` item. **Spine-critical
+- `/argus:check premises reconsider <ref>` for an `open_question` item. **Spine-critical
   form (mirrors the MCP `argus_premises` op=resolve — keep the two surfaces from
   drifting): an open question closes ONLY in the user's own words. NO options, NO
   example leans, NO A/B fork — a multiple-choice crux IS a fork, and a disclaimed
@@ -202,7 +202,7 @@ The only source is the user:
 - **User wording wins** — refine/replace text is the user's, verbatim, never re-summarized.
 - **No verdict about the user** — a high overturn rate is TOOL-calibration (Step 2b:
   "is the extraction too aggressive?"), never a user principle (override is a
-  self-report, not settled reality — routing it to `/argus:principles` would break
+  self-report, not settled reality — routing it to `/argus:history principles` would break
   that skill's reality-source invariant) and never "you are an X thinker"
   (Zero-Judgment gate).
 

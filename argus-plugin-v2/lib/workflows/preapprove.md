@@ -4,7 +4,7 @@ user-invocable: false
 description: EXPERIMENTAL — pre-approval evidence check for agent plans (the "pre-approval scan"), separate from the sail pipeline. Before the user approves a plan (ExitPlanMode, a plan doc, a migration/deploy/delete proposal), preapprove runs a silent load-bearing scan and speaks ONLY when an unsupported claim touches an irreversible operation. Default output is silence. Full divergence probe is opt-in. Seals accepted bets into .argus/ledger/ (same schema as argus-watch). Invoked as `/argus:preapprove`.
 ---
 
-# /argus:preapprove — 계획 승인 전 근거 점검 (사전승인 스캔)
+# Internal preapprove workflow — 계획 승인 전 근거 점검
 
 > Status: **experimental.** preapprove은 sail 파이프라인의 단계가 아니라 독립
 > 보조 스킬이다. 사용자에게 보이는 모든 출력(스캔 결과 한 줄, 발화문,
@@ -102,7 +102,7 @@ description: EXPERIMENTAL — pre-approval evidence check for agent plans (the "
 단일소스 렛저 라이터로 harvest+seal을 한 번에 쓴다 — JSON을 손으로 적지 않는다
 (CLI가 canonical 모양을 소유하고, `sha256(session|quote)` id를 직접 계산하며,
 `at`을 찍고 `O_APPEND`로 붙이므로 이 봉인이 리더가 replay하는 것과 절대 어긋날 수
-없다). id 해시·리플레이 규칙이 CLI에 있으니 `/argus:predict --list`에도 그대로 잡힌다:
+없다). id 해시·리플레이 규칙이 CLI에 있으니 `/argus:check --list`에도 그대로 잡힌다:
 
 ```bash
 node "${CLAUDE_PLUGIN_ROOT}/scripts/decision-ledger.js" record \
@@ -116,7 +116,7 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/decision-ledger.js" record \
 
 - `--id`를 생략하면 CLI가 `sha256(session|quote).slice(0,8)`로 계산 — 모델이 해시를
   손으로 만들 필요가 없다. 새 약속 기록은 `--check-by`를 생략하지 않는다.
-- **쓰기 검증**: 명령 성공 후 `/argus:predict --list`(또는 `status`)로 방금 봉인이
+- **쓰기 검증**: 명령 성공 후 `/argus:check --list`(또는 `status`)로 방금 봉인이
   잡히는지 확인. 실패했다면 다시 실행 — CLI는 append-only라 재실행이 안전하다.
 - `.argus/ledger/` 생성 시 `.argus/.gitignore`에 `ledger/` 줄이 있는지 확인하고
   없으면 추가 (sail Step 0 프라이버시 기본값 — preapprove이 판단 기록을 처음 만드는
@@ -126,7 +126,7 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/decision-ledger.js" record \
 ## Step 3 — 반자동 정산 (실행 완료 후)
 
 계획이 실행된 흔적(해당 커밋/배포)이 보이고 check_by가 지났으면, 다음 preapprove 호출
-시작에 한 줄: `지난번 그 계획 — 그래서, 어떻게 됐어요?` → `/argus:resolve` 안내
+시작에 한 줄: `지난번 그 계획 — 그래서, 어떻게 됐어요?` → `/argus:check` 안내
 (플러그인의 정산 스킬 — 같은 ledger를 읽고 쓴다). pending = check_by 연장
 (amend, 이력 보존). `argus-watch` CLI가 설치된 환경에서는 `argus-watch settle
 <id>`도 같은 결과를 낸다 — 어느 쪽이든 판단 기록은 하나다.

@@ -1,6 +1,6 @@
 ---
 name: verify
-description: Verify Argus reviewers output before it is promoted. Splits claims into supported, challenged, unresolved, and human-required checks, then routes to boss, revise, human check, or current call. Use after team.md writes its scaffold, when /argus:review chains a medium/high decision, or when the user asks whether the reviewers output can be trusted — "믿어도 되나", "근거 확인해줘", "can we trust this output". NOT for grading future outcomes (that is /argus:resolve), and not needed for a low-density minimal scaffold. Runs as a step inside `/argus:review` (formerly `/argus:verify`).
+description: Verify Argus reviewer output before promotion. Splits claims into supported, challenged, unresolved, and human-required checks. Not for future outcomes; those return through `/argus:check`. Runs only inside `/argus:review`.
 ---
 
 # verify step — part of /argus:review (formerly /argus:verify)

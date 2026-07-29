@@ -218,20 +218,8 @@ Claude Code를 다시 켠 다음, 아무 리포에서나:
 
 **명령 다섯 개:** `/argus:review`(깊은 압박 검증, 직접 부를 때만) ·
 `/argus:check`(정산 · 봉인 · 전제 재확인) · `/argus:history`(결정 일지 · 버전 트리 ·
-지난 대화 회수) · `/argus:settings` · `/argus:help`. 별칭도 그대로 씁니다:
-`/argus:sail`, `/argus:resolve`. 자세히 → **[argus-plugin-v2/README.ko.md](./argus-plugin-v2/README.ko.md)**.
-
-<details>
-<summary>대안: 플러그인 시스템 없이 복사로 설치</summary>
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/commet/Argus/main/argus-plugin-v2/install.sh | bash
-```
-
-이렇게 복사만 하면 `argus:` 접두사와 자동 알림이 빠집니다. 위의 플러그인 설치가
-정식 경로예요.
-
-</details>
+지난 대화 회수) · `/argus:settings` · `/argus:help`. 이 다섯 개가 공개 명령의
+전부입니다. 자세히 → **[argus-plugin-v2/README.ko.md](./argus-plugin-v2/README.ko.md)**.
 
 <details>
 <summary>로컬 개발 &amp; API 키(선택)</summary>
