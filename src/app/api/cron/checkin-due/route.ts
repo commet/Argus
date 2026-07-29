@@ -12,6 +12,7 @@ import { buildProjectReturnUrl, returnEmailSubject } from '@/lib/return-email';
 import { notificationGateAllowsSend } from '@/lib/notification-gate';
 import { buildFirstSettlementEmail, firstSettlementAnchor, isFirstSettlementInviteDue } from '@/lib/first-settlement';
 import type { DecisionContract } from '@/stores/types';
+import { logServerEvent } from '@/lib/server-events';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -263,5 +264,13 @@ export async function GET(req: Request) {
     }
   }
 
+  // 이 루프가 실제로 돌았는지 데이터로 답할 수 있게 남긴다 (2026-07-29).
+  // 그전까지 크론 4개는 아무것도 기록하지 않아서, 봉인 18건이 남아 있는데도
+  // "확인일에 알림이 갔는가"를 물으면 답할 곳이 없었다 — 제품의 북극성이
+  // '봉인→귀환→정산 완주'인데 그 가운데 칸에 계기가 없었다.
+  logServerEvent('cron_checkin_due', {
+    candidates: due.length, sent, first_settlement_sent: firstSettlementSent,
+    telegram_sent: telegramSent, failures: failures.length,
+  }, { path: '/api/cron/checkin-due' });
   return NextResponse.json({ ok: true, candidates: due.length, sent, firstSettlementSent, telegramSent, failures });
 }
