@@ -52,6 +52,7 @@ import {
   DEFAULT_CHECK_IN_INTERVAL,
   intervalFromExistingContract,
   stablePredicateId,
+  closingJudgmentFrom,
   webUserAttribution,
   MAX_PREDICATES,
 } from '@/lib/decision-contract';
@@ -316,7 +317,10 @@ export function SealMoment({
     setDismissedLocally(false);
     setSealPromptDismissed(false);
     const receiptFields = deriveReceiptFields(toSeal, typeof project.name === 'string' ? project.name : '');
-    const finalJudgment = humanJudgment.trim() || baselineJudgment;
+    // 검토를 마친 뒤 사용자가 자기 말로 적은 문장이 있으면 **그것이 마무리 판단**이다.
+    // 기준점은 마지막 폴백으로만 남는다 — 바로 아래 주석이 원래 말하려던 그대로.
+    // (2026-07-29: 그 폴백이 사실상 유일한 경로였다. closingJudgmentFrom 머리말 참고.)
+    const finalJudgment = humanJudgment.trim() || closingJudgmentFrom(toSeal) || baselineJudgment;
     if (!humanJudgment.trim() && finalJudgment) setHumanJudgment(finalJudgment);
     // The pre-review baseline is evidence of change, not the final prediction to
     // score. When the user writes a closing judgment, replace the baseline
@@ -330,12 +334,18 @@ export function SealMoment({
           attribution: webUserAttribution(now, 'workspace:closing_judgment'),
         }
       : null;
+    // 같은 문장이 두 번 실리지 않게 **글자로도** 거른다. 마무리 판단이 시험 단계의
+    // 베팅에서 왔으면 그 술어는 governing_idea 로 이미 목록에 있고 id 가 달라
+    // id/source 필터만으로는 안 걸린다 — 그러면 사용자는 자기 문장을 두 줄로 본다.
+    const sameLine = (a: string, b: string) => a.replace(/\s+/g, ' ').trim() === b.replace(/\s+/g, ' ').trim();
     const finalizedDraft = finalPredicate
       ? {
           ...next,
           predicates: [
             finalPredicate,
-            ...(next.predicates || []).filter((p) => p.source !== 'user_lean' && p.id !== finalPredicate.id),
+            ...(next.predicates || []).filter((p) => p.source !== 'user_lean'
+              && p.id !== finalPredicate.id
+              && !(typeof p.text === 'string' && sameLine(p.text, finalPredicate.text))),
           ].slice(0, MAX_PREDICATES),
         }
       : next;

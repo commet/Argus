@@ -87,7 +87,13 @@ function step(name, ok, detail = '') {
 }
 
 const browser = await chromium.launch({ headless: true });
-const ctx = await browser.newContext({ locale: `${LOCALE}-KR`, viewport: { width: 1400, height: 1000 } });
+// acceptDownloads 를 명시한다 — 판단 카드 검사가 "파일이 실제로 온다"를 재는데,
+// 기본값에 기대면 Playwright 버전이 바뀌는 날 조용히 검사만 사라진다.
+const ctx = await browser.newContext({
+  locale: `${LOCALE}-KR`,
+  viewport: { width: 1400, height: 1000 },
+  acceptDownloads: true,
+});
 const page = await ctx.newPage();
 page.on('pageerror', (e) => pageErrors.push(String(e).slice(0, 200)));
 
@@ -458,10 +464,81 @@ try {
     // 고지 없이 유도만 하면 압박이고, 유도 없이 고지만 하면 막다른 길이다. 둘 다 있어야 한다.
     const honest = /이 브라우저에 묶여 있어요|tied to this browser/.test(sealedText);
     const nudge = /로그인하고 어디서나 이어보기|Sign in to keep this everywhere/.test(sealedText);
-    const emailPath = /이메일로 가입하기|Sign up with email/.test(sealedText);
+    const emailPath = /이메일 남기고|이메일로 가입하기|Leave an email|Sign up with email/.test(sealedText);
     step('9. 익명에게 정직한 고지 + 로그인 유도 + 이메일 가입 경로가 함께 있다',
       honest && nudge && emailPath,
       [honest ? null : '고지 없음', nudge ? null : '로그인 유도 없음', emailPath ? null : '이메일 가입 경로 없음'].filter(Boolean).join(', '));
+
+    // ── 9b. 판단 카드가 실제로 내려온다 ────────────────────────────────
+    // "버튼이 있다"가 아니라 "파일이 온다"까지 본다. 캔버스 렌더는 브라우저에서만
+    // 도는 코드라 단위 테스트가 닿지 않는 자리다 — 여기서 안 보면 아무도 안 본다.
+    const cardBtn = await clickable(/이미지로 저장|Save as image/);
+    if (!cardBtn) {
+      step('9b. 판단 카드를 이미지로 내려받을 수 있다', false, '버튼이 없다 (봉인 문장이 비어 카드가 안 만들어졌을 수 있다)');
+    } else {
+      const dl = await Promise.all([
+        page.waitForEvent('download', { timeout: 20_000 }).catch(() => null),
+        cardBtn.click(),
+      ]).then((r) => r[0]);
+      const fname = dl?.suggestedFilename() ?? '';
+      let bytes = 0;
+      if (dl) {
+        const p = path.join(SHOT_DIR, fname || 'card.png');
+        await dl.saveAs(p).catch(() => {});
+        bytes = fs.existsSync(p) ? fs.statSync(p).size : 0;
+      }
+      // 0바이트도 "내려받았다"로 통과하면 안 된다 — 빈 카드가 정확히 그 모양이다.
+      step('9b. 판단 카드를 이미지로 내려받을 수 있다', !!dl && /\.png$/.test(fname) && bytes > 5000,
+        dl ? `${fname} · ${bytes}B` : '다운로드가 시작되지 않음');
+    }
+
+    // ── 9c/9d. 익명이 공개 링크를 만들고, 그 링크가 남에게 열린다 ──────
+    // 만드는 것까지만 보면 반쪽이다. **로그아웃·빈 저장소인 새 브라우저**로 열어야
+    // "누구나 열 수 있다"가 사실인지 알 수 있다. 우리 세션이 살아 있는 창에서
+    // 열리는 것은 아무것도 증명하지 않는다.
+    const sendBtn = await clickable(/^보내기$|^Send$/);
+    if (!sendBtn) {
+      step('9c. 익명이 공개 링크를 만든다', false, '"보내기" 버튼을 못 찾음');
+    } else {
+      await sendBtn.click();
+      await page.waitForTimeout(2500);
+      const linkTab = await clickable(/^링크$|^Link$/);
+      if (linkTab) await linkTab.click();
+      await page.waitForTimeout(1200);
+      const makeBtn = await clickable(/공개 링크 만들기|Create public link/);
+      if (!makeBtn) {
+        await shot('share-no-button');
+        step('9c. 익명이 공개 링크를 만든다', false, '익명에게 링크 만들기 버튼이 안 보인다');
+      } else {
+        await makeBtn.click();
+        await page.waitForTimeout(7000);
+        await shot('share-link');
+        const url = await page.locator('input[readonly]').first().inputValue().catch(() => '');
+        const minted = /\/d\/[A-Za-z0-9_-]{8,}/.test(url);
+        step('9c. 익명이 공개 링크를 만든다', minted, minted ? url : `링크가 안 만들어짐 (읽은 값: ${url || '없음'})`);
+
+        if (minted) {
+          const fresh = await browser.newContext({ locale: `${LOCALE}-KR` });
+          const fp = await fresh.newPage();
+          let opened = false;
+          let why = '';
+          try {
+            const res = await fp.goto(url, { waitUntil: 'domcontentloaded', timeout: 45_000 });
+            await fp.waitForTimeout(3500);
+            const t = await fp.evaluate(() => document.body.innerText).catch(() => '');
+            const walled = /로그인이 필요해요|need an account/.test(t);
+            const missing = /찾을 수 없|not found|404/i.test(t);
+            opened = res?.status() === 200 && !walled && !missing && t.length > 200;
+            why = walled ? '로그인 벽' : missing ? '404' : `HTTP ${res?.status()} · 본문 ${t.length}자`;
+            await fp.screenshot({ path: path.join(SHOT_DIR, '99-shared-link-fresh-browser.png') }).catch(() => {});
+          } catch (e) { why = String(e).split('\n')[0]; }
+          await fresh.close();
+          step('9d. 그 링크가 로그아웃·빈 저장소인 새 브라우저에서 열린다', opened, opened ? '' : why);
+        }
+      }
+      await page.keyboard.press('Escape').catch(() => {});
+      await page.waitForTimeout(800);
+    }
   }
 
   // ── 10. 귀환이 도착할 자리 ───────────────────────────────────────────
