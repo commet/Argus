@@ -950,7 +950,7 @@ export function VoyageSea({
         {thresholds.map((t) => (
           <div key={t.d} aria-hidden className="absolute top-[12%] pointer-events-none" style={{ left: `${t.x}%`, bottom: '30%' }}>
             <div className="absolute inset-y-0" style={{ width: 1, background: `repeating-linear-gradient(180deg, ${N.paper}2e 0 4px, transparent 4px 8px)` }} />
-            <span className="absolute -top-1 left-1 whitespace-nowrap rounded-sm px-1 py-0.5 text-[13px] sm:text-[12px] font-mono" style={{ color: `${N.paper}c4`, background: 'rgba(2,28,27,.52)' }}>{t.label}</span>
+            <span className="absolute -top-1 left-1 whitespace-nowrap rounded-sm px-1 py-0.5 text-[12px] sm:text-[12.5px] font-mono" style={{ color: `${N.paper}c4`, background: 'rgba(2,28,27,.52)' }}>{t.label}</span>
           </div>
         ))}
 

@@ -56,7 +56,10 @@ export default function SettingsPage() {
   const llmProviders = buildLlmProviders(L);
   const llmModes = buildLlmModes(L);
 
-  const { user } = useAuth();
+  // `user` is deliberately null for anonymous sessions (they are not a signed-in
+  // account for UX purposes) — but an anonymous voyager DOES have a durable server
+  // identity holding real rows, so erasure must key on the SESSION, not on `user`.
+  const { user, session } = useAuth();
   const { settings, loadSettings, updateSettings } = useSettingsStore();
   const [showKey, setShowKey] = useState(false);
   const [keyTest, setKeyTest] = useState<'idle' | 'testing' | 'ok' | 'error'>('idle');
@@ -193,8 +196,14 @@ export default function SettingsPage() {
   const handleReset = async () => {
     setDeleting(true);
     try {
-      if (user) {
-        // Logged in — erase ALL server data + the auth identity (complete, with receipt).
+      // A session — real OR anonymous — means server rows exist under an auth
+      // identity. Keying this on `user` alone meant an anonymous voyager's "지우기"
+      // cleared localStorage and left their projects, sessions, receipts and sealed
+      // judgments on the server under an anonymous id that clearAllStorage then made
+      // unreachable forever: kept without consent, and impossible to erase later
+      // (2026-07-29). The server route accepts an anonymous bearer and erases the
+      // same way, so route both through it.
+      if (user || session) {
         const result = await deleteAccount();
         if (!result.ok) {
           toast(L('일부 데이터를 지우지 못했어요. 계정은 안전하게 보존했어요. 다시 시도해 주세요.', 'Some data could not be deleted. Your account was kept safe. Please try again.'), 'error');
@@ -202,7 +211,8 @@ export default function SettingsPage() {
           return;
         }
         let localPurgeComplete = true;
-        try { await purgeCurrentBrowserContinuity(user.id); }
+        const identityId = user?.id ?? session?.user?.id;
+        try { if (identityId) await purgeCurrentBrowserContinuity(identityId); }
         catch { localPurgeComplete = false; }
         clearAllStorage();
         await supabase.auth.signOut();
@@ -218,7 +228,8 @@ export default function SettingsPage() {
         setResetModal(false);
         window.location.href = withLocale(locale, '/');
       } else {
-        // Anonymous — only this browser's local data exists.
+        // No session at all — anonymous sign-in is off or unreachable, so nothing
+        // was ever written server-side and localStorage really is the whole copy.
         clearAllStorage();
         setResetModal(false);
         window.location.reload();
@@ -984,9 +995,13 @@ export default function SettingsPage() {
 
       <Modal open={resetModal} onClose={() => { if (!deleting) setResetModal(false); }} title={user ? L('계정 완전 삭제', 'Delete my account') : L('데이터 초기화', 'Reset data')}>
         <p className="text-[14px] text-[var(--text-primary)] mb-2">
+          {/* The anonymous line used to promise only "this browser" — but a
+              logged-out voyage has had a durable server copy since anonymous auth
+              shipped, and that copy is what the button now erases too. Say what it
+              actually does. */}
           {user
             ? L('서버에 저장된 모든 데이터와 계정이 영구 삭제되고, 로그아웃됩니다.', 'All your server-stored data and your account will be permanently deleted, and you’ll be signed out.')
-            : L('이 브라우저에 저장된 모든 프로젝트·초안·검토 이력이 삭제됩니다.', 'Every project, draft, and review stored in this browser will be deleted.')}
+            : L('이 브라우저의 모든 프로젝트·초안·검토 이력과, 로그인 없이 저장돼 있던 서버 사본까지 함께 삭제됩니다.', 'Every project, draft, and review in this browser — and the server copy kept for your logged-out voyage — will be deleted.')}
         </p>
         <p className="text-[12px] text-[var(--text-secondary)] mb-4">
           {user

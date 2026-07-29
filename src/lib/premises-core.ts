@@ -252,7 +252,16 @@ export function nextRecheckDue(p: PremiseState): string | null {
  *  isMonitored for premises. Sealing arms it (the caller gates on decision state,
  *  same as duePremises). resolved/retired questions are closed and never nagged. */
 export function isReconsiderable(p: PremiseState): boolean {
-  return p.kind === 'open_question' && p.status === 'active';
+  return p.kind === 'open_question'
+    && p.status === 'active'
+    // Same user switch `isMonitored` honours, and for the same reason: the MCP
+    // offers `monitoring_enabled` on ANY tracked item and the alert copy promises
+    // "끄면 멈춰요". Leaving it out here made it a no-op on exactly the items that
+    // promise it — the companion brief kept nudging a muted question every day, and
+    // the receipt's next_check_by kept being dragged forward by it. Gating here
+    // rather than at each caller keeps ONE answer to "is this item still watched?"
+    // (2026-07-29; the premise-watch cron's own guard is now redundant, not wrong).
+    && p.monitoring_enabled !== false;
 }
 
 /** The anchor date the reconsider clock runs from: the last time the user chose
