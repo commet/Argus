@@ -232,8 +232,7 @@ run('간직하는 화면의 액자 (영수증·봉인·항해일지)', 'node eva
 // 게이트를 지키는 게이트. 하룻밤에 이 레포의 게이트 6개가 "초록인데 아무것도 안
 // 재는" 상태로 드러났다. 개별 자기검증은 '물던 게이트가 안 물게 된 것'은 잡지만,
 // '한 번도 문 적 없는 게이트'는 아무도 안 잡았다. 이 파일이 그 자리다.
-run('게이트를 지키는 게이트', 'node evals/gate-coverage.mjs', { extract: (o) => (o.match(/(\d+ checks · \d+ violations[^
-]*)/) || [])[1] ?? '' });
+run('게이트를 지키는 게이트', 'node evals/gate-coverage.mjs', { extract: COUNTS });
 run('버전 다섯 곳 일치', 'node evals/version-lockstep.mjs', { extract: COUNTS });
 // Judges our asks with the submit gate read out of the shipped Claude Code
 // binary — including how many Returns it takes, which is what three previous
