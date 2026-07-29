@@ -80,7 +80,9 @@ function resolveCodex() {
       }
     }
   }
-  return null;
+  // Some npm installations do not contain a platform-vendored executable.
+  // The command shim is still a usable Codex entry point (handled at spawn).
+  return lines.find((l) => /\.(cmd|bat)$/i.test(l) && fs.existsSync(l)) ?? null;
 }
 
 const CODEX = resolveCodex();
@@ -107,7 +109,12 @@ async function session(policy, answer) {
   ];
   if (policy) args.push('-c', `approval_policy=${policy}`);
 
-  const child = spawn(CODEX, args, {
+  // Node cannot execute a Windows .cmd/.bat shim without cmd.exe. npm installs
+  // Codex that way, so support an explicit CODEX_CLI_PATH to the normal shim
+  // as well as the vendored .exe discovered above.
+  const isWindowsShim = process.platform === 'win32' && /\.(cmd|bat)$/i.test(CODEX);
+  const child = spawn(isWindowsShim ? process.env.ComSpec ?? 'cmd.exe' : CODEX,
+    isWindowsShim ? ['/d', '/s', '/c', CODEX, ...args] : args, {
     cwd: ROOT, env: { ...process.env, CODEX_HOME: codexHome },
     stdio: ['pipe', 'pipe', 'pipe'], windowsHide: true,
   });
