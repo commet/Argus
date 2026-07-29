@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { isQuestionShaped } from '../lib/premise-shape.js';
 import { resolveToolArgusDir } from '../lib/argus-dir.js';
 import { replayLedger } from '../lib/ledger-replay.js';
 import { resolveToday, logicalNow } from '../lib/resolve-today.js';
@@ -204,7 +205,16 @@ async function opAdd(
 
   // text is guaranteed non-empty by the handler's post-resolution guard.
   const inputs = (a['premises'] as Array<z.infer<typeof zPremiseInput>> | undefined)
-    ?.map((p) => ({ ...p, text: p.text ?? '' }));
+    ?.map((p) => ({
+      ...p,
+      text: p.text ?? '',
+      // 2026-07-29: kind 는 모델이 채우는 값이고 zod 기본값이 'premise' 다. 모델이
+      // 생략하면 물음도 전제가 된다 — 그러면 확인일에 "이 전제가 맞았나요?"라고
+      // 물었을 때 "이 일정이 가능한가요?"가 나오고, 물음에는 참/거짓이 없다.
+      // 모델의 라벨은 힌트고 문장의 모양이 사실이다. 물음이면 제자리로 옮긴다
+      // (버리지 않는다 — open_question 은 처음부터 있던 자리다).
+      kind: isQuestionShaped(p.text ?? '') ? ('open_question' as const) : p.kind,
+    }));
   if (!inputs || inputs.length === 0) {
     return toolError({ ok: false, tool: 'argus_premises', error_code: 'PREMISES_REQUIRED', message: 'op=add needs a non-empty `premises` array.', recovery: 'Pass 1-5 premises: {text, kind, external, load_bearing, source}.' });
   }

@@ -315,7 +315,7 @@ Turn the skeleton into a concrete execution plan assigned to the team. Respond w
 JSON:
 {
   "steps": [{"task": "What to do", "agent_type": "ai|self|human", "output": "Deliverable", "ai_scope": "What AI does", "self_scope": "What user judges", "decision": "질문: A vs B vs C (or empty)", "agent_hint": "Team member name (if applicable)", "question_to_human": "Question for external person (human type only)", "human_contact_hint": "Role like CTO (human type only)", "depends_on": []}],
-  "key_assumptions": ["assumptions the plan depends on, 1-3 items"]
+  "key_assumptions": ["assumptions the plan depends on, 1-3 items. Each MUST be a statement reality can later prove true or false — never a question."]
 }`,
   };
 }
@@ -652,7 +652,7 @@ JSON format:
   "sections": [
     ${sectionSchema}
   ],
-  "key_assumptions": ["Up to 4 assumptions this document is based on"],
+  "key_assumptions": ["Up to 4 assumptions this document rests on. Each MUST be a statement that reality can later prove true or false — never a question, never advice. Wrong: \"Is the timeline realistic?\" Right: \"The team can finish the migration within two sprints.\""],
   "next_steps": ["Exactly 3 specific next actions (who, by when, what)"]
 }`,
   };

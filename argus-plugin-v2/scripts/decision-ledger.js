@@ -21,6 +21,28 @@ const cmd = args[0];
 const flags = parseFlags(args.slice(1));
 const root = findProjectRoot();
 
+
+/**
+ * 전제 자리에 물음이 앉지 않게 한다 (2026-07-29).
+ *
+ * --type 은 호출하는 쪽(모델)이 말해주는 라벨이고, 지금까지 그 라벨을 문장과
+ * 대조하지 않았다. 그래서 물음표로 끝나는 문장이 "확인할 전제"로 저장됐다.
+ * 확인일에 "이 전제가 맞았나요?"라고 물으면 답할 수가 없다 — 물음에는 참/거짓이 없다.
+ *
+ * 버리지 않고 제자리(open_question)로 옮긴다. webapp/src/lib/premise-shape.ts 와
+ * MCP 사본이 같은 규칙을 쓴다 (agreement-pairs 등록부가 세 벌의 드리프트를 막는다).
+ */
+const TRAILING_QUESTION_MARK = /[?？]\s*$/;
+const KO_INTERROGATIVE_ENDING = /(나요|까요|다까|을까|인가|는가|은가|습니까|니까|일까|던가)[.!\s]*$/;
+function isQuestionShaped(text) {
+  const t = String(text || "").trim();
+  if (!t) return false;
+  if (TRAILING_QUESTION_MARK.test(t)) return true;
+  const parts = t.split(/(?<=[.!?？。])\s+/);
+  const last = (parts[parts.length - 1] || t).trim();
+  return KO_INTERROGATIVE_ENDING.test(last);
+}
+
 function parseFlags(items) {
   const out = { _: [] };
   for (let i = 0; i < items.length; i += 1) {
@@ -1477,11 +1499,13 @@ function cmdPremises() {
         console.error("--text is required.");
         process.exit(1);
       }
+      // 모델이 말한 라벨은 힌트, 문장의 모양이 사실이다. 물음이면 제자리로 옮긴다.
+      const finalType = type === "premise" && isQuestionShaped(text) ? "open_question" : type;
       const ev = {
         event: op,
         id,
         decision_id: flags.decision ? String(flags.decision) : "",
-        type,
+        type: finalType,
         text,
         external: !!flags.external,
         load_bearing: !!flags["load-bearing"],
