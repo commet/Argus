@@ -241,6 +241,16 @@ const BROKEN = /다시 시도해 주세요|막혔어요|Please try again|Hit a s
  */
 const QUOTA = /무료 체험을 모두 사용했어요|하루 50회까지|Free trial used up|You've used your free/;
 
+/** 한도 소진으로 검사를 접는다. 앱 실패(1)와 다른 코드(3)로 나간다. */
+function outOfQuota() {
+  console.log('');
+  console.log('🟡 무료 한도 소진 — 앱이 끊긴 게 아니라 이 IP 의 오늘 몫을 다 썼다.');
+  console.log('   앱은 정직하게 처리했다: 적은 글을 그대로 두고, 다 썼다고 말하고, 로그인을 권한다.');
+  console.log('   되돌리려면 Vercel 환경변수 ANON_DAILY_LIMIT 를 올리거나, 내일 다시 돌린다.');
+  console.log(`   스크린샷: ${SHOT_DIR}`);
+  process.exit(3);
+}
+
 /**
  * 봉인에 도착할 때까지 행진한다. 아는 화면에서만 움직이고, 모르면 실패한다.
  */
@@ -252,7 +262,7 @@ async function marchToSeal() {
 
   while (Date.now() < deadline) {
     const text = await bodyText();
-    if (QUOTA.test(text)) { await shot('quota'); return { ok: false, quota: true }; }
+    if (QUOTA.test(text)) { await shot('quota'); outOfQuota(); }
     if (BROKEN.test(text)) {
       await shot('broken');
       return { ok: false, why: `앱이 오류를 표시했다: ${(text.match(BROKEN) ?? [''])[0]}` };
@@ -353,7 +363,11 @@ try {
   while (Date.now() < deadline) {
     await page.waitForTimeout(6000);
     const t = await bodyText();
-    if (/지금 풀어야 할 질문|확인할 가정|Argus가 찾은/.test(t)) { analysisArrived = true; break; }
+    if (QUOTA.test(t)) { await shot('quota'); outOfQuota(); }
+    // 분석 도착 판정은 **질문 카드가 실제로 있는지**까지 본다. 문구만 보면
+    // 한도 소진 화면처럼 흐름이 되감긴 경우에도 초록이 뜬다 (2026-07-29 실측).
+    const hasCard = (await page.locator('input[name="question-answer"]').count().catch(() => 0)) > 0;
+    if (hasCard || /지금 풀어야 할 질문|확인할 가정|Argus가 찾은/.test(t)) { analysisArrived = true; break; }
     if (BROKEN.test(t)) break;
   }
   await shot('analysis');

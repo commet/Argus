@@ -87,25 +87,44 @@ export async function renderJudgmentCard(data: JudgmentCardData, locale: 'ko' | 
   ctx.fillStyle = DIM;
   ctx.fillText(S.sealedOn(data.sealedOn), PAD, PAD + 84);
 
-  let y = PAD + 190;
   const maxW = W - PAD * 2;
+  const footerTop = H - PAD - 190;
+
+  // ── 2단계로 그린다: 먼저 재고, 그다음 그린다. ──────────────────────────
+  // 위에서부터 흘려 쓰면 짧은 문장일 때 가운데가 통째로 비어 "미완성 이미지"로
+  // 보인다(2026-07-29 첫 렌더에서 실제로 그랬다). 본문 덩어리의 높이를 먼저
+  // 구해서 헤더와 푸터 사이 공간에 가운데 정렬한다.
+  const contextSize = 28;
+  const contextLineH = 42;
+  const bodySize = data.statement.length > 160 ? 44 : data.statement.length > 90 ? 52 : 60;
+  const bodyLineH = Math.round(bodySize * 1.5);
+
+  ctx.font = `400 ${contextSize}px ${FONT}`;
+  const contextLines = data.context ? wrap(ctx, data.context, maxW).slice(0, 2) : [];
+
+  ctx.font = `600 ${bodySize}px ${FONT}`;
+  const bodyLines = wrap(ctx, data.statement, maxW);
+
+  const blockH = (contextLines.length ? contextLines.length * contextLineH + 34 : 0)
+    + bodyLines.length * bodyLineH
+    + 26 + 30; // 출처 한 줄
+
+  const bandTop = PAD + 170;
+  const bandBottom = footerTop - 40;
+  let y = Math.max(bandTop, bandTop + Math.round((bandBottom - bandTop - blockH) / 2));
 
   // 상황 한 줄 (있을 때만)
-  if (data.context) {
-    ctx.font = `400 28px ${FONT}`;
+  if (contextLines.length) {
+    ctx.font = `400 ${contextSize}px ${FONT}`;
     ctx.fillStyle = DIM;
-    const ctxLines = wrap(ctx, data.context, maxW).slice(0, 2);
-    for (const l of ctxLines) { ctx.fillText(l, PAD, y); y += 42; }
+    for (const l of contextLines) { ctx.fillText(l, PAD, y); y += contextLineH; }
     y += 34;
   }
 
   // 본문 — 봉인 문장. 카드의 전부.
-  const bodySize = data.statement.length > 160 ? 44 : data.statement.length > 90 ? 52 : 60;
   ctx.font = `600 ${bodySize}px ${FONT}`;
   ctx.fillStyle = INK;
-  const bodyLines = wrap(ctx, data.statement, maxW);
-  const lineH = Math.round(bodySize * 1.5);
-  for (const l of bodyLines) { ctx.fillText(l, PAD, y); y += lineH; }
+  for (const l of bodyLines) { ctx.fillText(l, PAD, y); y += bodyLineH; }
 
   // 출처 표기 — 흐리게 쓰되 **빼지는 않는다**. 기계 문장을 사람 문장처럼
   // 유통시키지 않는 것이 이 카드의 유일한 무거운 약속이다.
@@ -115,7 +134,6 @@ export async function renderJudgmentCard(data: JudgmentCardData, locale: 'ko' | 
   ctx.fillText(authorshipLabel(data, locale), PAD, y);
 
   // 아래쪽 — 확인일. 이 제품이 다른 어떤 결과물 이미지와도 다르게 생긴 지점.
-  const footerTop = H - PAD - 190;
   ctx.fillStyle = '#26262f';
   ctx.fillRect(PAD, footerTop, maxW, 1);
 

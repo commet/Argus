@@ -35,6 +35,7 @@
     "probe:boss": "tsx --env-file=.env.local scripts/probe-boss-store.ts",
     "validate:boss": "tsx --env-file=.env.local scripts/validate-boss.ts",
     "eval:sweep": "node argus-plugin-v2/evals/sweep.mjs",
+    "card:preview": "node scripts/preview-judgment-card.mjs",
     "e2e:surfaces": "node scripts/e2e/public-surfaces.mjs",
     "e2e:loop": "node scripts/e2e/decision-loop.mjs",
     "e2e:loop:signed-in": "node -e \"process.env.E2E_MODE='signed-in';import('./scripts/e2e/decision-loop.mjs')\""

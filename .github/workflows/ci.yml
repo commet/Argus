@@ -323,12 +323,23 @@ jobs:
 
       # 익명 경로 — 시크릿이 필요 없다. 95%+ 방문자가 타는 길이고,
       # **봉인까지** 완주한 뒤 스스로 뒷정리해서 프로덕션에 쓰레기를 남기지 않는다.
+      #
+      # 종료 코드 3 = 무료 한도 소진. 앱 고장이 아니라 **검사가 못 돈 것**이라
+      # 경고로만 남긴다. 둘을 같은 색으로 칠하면 진짜 고장이 왔을 때 아무도 안 본다.
       - name: Anonymous loop reaches the seal (logged out)
-        run: node scripts/e2e/decision-loop.mjs
         env:
           ARGUS_BASE_URL: https://argus.voyage
           E2E_MODE: anon
           E2E_SHOT_DIR: e2e-shots/anon
+        run: |
+          set +e
+          node scripts/e2e/decision-loop.mjs
+          code=$?
+          if [ "$code" = "3" ]; then
+            echo "::warning title=Anonymous loop skipped::무료 한도(IP당)를 다 써서 익명 루프를 끝까지 못 돌렸습니다. 앱 고장이 아닙니다."
+            exit 0
+          fi
+          exit $code
 
       # 로그인 경로 — 시크릿이 등록돼야 돈다. 없으면 **건너뛴다고 말하고** 넘어간다.
       # 조용히 통과시키지 않는 이유: "안 돌았다"와 "돌았고 초록이다"가 구분되지 않으면
@@ -350,7 +361,14 @@ jobs:
             echo "::warning title=Signed-in loop skipped::DOGFOOD_EMAIL / DOGFOOD_PASSWORD 시크릿이 없어 로그인 경로를 검사하지 못했습니다. 익명 경로만 확인됨."
             exit 0
           fi
+          set +e
           node scripts/e2e/decision-loop.mjs
+          code=$?
+          if [ "$code" = "3" ]; then
+            echo "::warning title=Signed-in loop skipped::계정 한도를 다 써서 로그인 루프를 끝까지 못 돌렸습니다. 앱 고장이 아닙니다."
+            exit 0
+          fi
+          exit $code
 
       - name: Upload loop screens
         if: always()

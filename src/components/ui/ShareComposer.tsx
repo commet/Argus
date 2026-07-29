@@ -153,10 +153,18 @@ export function ShareComposer({ open, onClose, getText, getTitle, shareContext =
               <button
                 key={ch}
                 onClick={() => setActive(active === ch ? null : ch)}
+                // `ready` 는 2026-07-29 까지 계산만 되고 **아무 데서도 읽히지 않았다** —
+                // 그래서 `ready: !!user` 를 고쳐도 화면은 그대로였고, 진짜 게이트는
+                // LinkPanel 안에 따로 있었다. 만들어놓고 아무도 안 먹는 필드는 다음
+                // 사람을 정확히 틀린 줄로 데려간다 (CLAUDE.md F2 소비 계약).
+                // 이제 실제로 읽어서 "아직 준비 안 된 곳"을 눌러보기 전에 알려준다.
+                // 막지는 않는다 — 눌러야 연결 안내에 닿기 때문이다.
+                aria-disabled={!channelMeta[ch].ready}
+                title={channelMeta[ch].ready ? undefined : L('아직 준비되지 않았어요 — 눌러서 확인', 'Not ready yet — tap to see why')}
                 className={`flex items-center justify-center gap-1.5 py-2.5 rounded-xl border text-[13px] font-medium transition-all cursor-pointer ${
                   active === ch
                     ? 'border-[var(--accent)] bg-[var(--ai)] text-[var(--accent)]'
-                    : 'border-[var(--border)] text-[var(--text-secondary)] hover:border-[var(--accent)]'
+                    : `border-[var(--border)] text-[var(--text-secondary)] hover:border-[var(--accent)]${channelMeta[ch].ready ? '' : ' opacity-55'}`
                 }`}
               >
                 {channelMeta[ch].icon}
