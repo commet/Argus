@@ -17,6 +17,19 @@
  *
  * Options (env): ARGUS_LOCALE=ko|en, HEADLESS=false (watch it live),
  *   ARGUS_DECISION="your sentence", MAX_STEPS=16, PW_EXECUTABLE=/path/to/chrome
+ *
+ * Two modes added 2026-07-29 so this can run as a STANDING CI check:
+ *
+ *   DOGFOOD_ANON=1   Walk the logged-out journey — no credentials at all. This is
+ *                    the path 95%+ of early visitors take, and the one two
+ *                    production outages (share 18 days, teams 10 days) lived in.
+ *
+ *   CI_ASSERT=1      Exit NON-ZERO when the walk finds a blocker, a crash, a page
+ *                    error, or fails to reach a milestone. Without this the script
+ *                    always exited 0 — which is why putting it in CI unchanged
+ *                    would have been decoration: a harness that cannot go red is
+ *                    not a check. (Same lesson as the two eval observatories that
+ *                    died quietly in 2026-07.)
  */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -25,6 +38,11 @@ import { chromium } from '@playwright/test';
 const BASE = (process.env.ARGUS_BASE_URL ?? 'https://argus.voyage').replace(/\/$/, '');
 const EMAIL = process.env.DOGFOOD_EMAIL;
 const PASSWORD = process.env.DOGFOOD_PASSWORD;
+/** Walk logged-out. Explicit flag, never inferred from missing credentials — a
+ *  silent downgrade would let a CI job report "loop fine" while never signing in. */
+const ANON = process.env.DOGFOOD_ANON === '1';
+/** Turn findings into an exit code so CI can actually go red. */
+const ASSERT = process.env.CI_ASSERT === '1';
 const LOCALE = process.env.ARGUS_LOCALE ?? 'ko';
 const HEADLESS = process.env.HEADLESS !== 'false';
 const MAX_STEPS = Number(process.env.MAX_STEPS ?? 16);
@@ -52,8 +70,9 @@ function ts() {
 }
 
 async function main() {
-  if (!EMAIL || !PASSWORD) {
-    console.error('Missing DOGFOOD_EMAIL / DOGFOOD_PASSWORD. Use a DISPOSABLE test account.');
+  if (!ANON && (!EMAIL || !PASSWORD)) {
+    console.error('Missing DOGFOOD_EMAIL / DOGFOOD_PASSWORD. Use a DISPOSABLE test account,');
+    console.error('or set DOGFOOD_ANON=1 to walk the logged-out journey with no account.');
     process.exit(2);
   }
   const outDir = path.join('scripts', 'dogfood', 'experience', 'shots', ts());
@@ -95,29 +114,42 @@ async function main() {
   const result = { reachedMilestone: null, contentLanded: null, stoppedReason: null, steps: 0 };
 
   try {
-    // ── 1. Login ──────────────────────────────────────────────────────────
-    console.log(`\n▶ Opening ${BASE}/${LOCALE}/login`);
-    await page.goto(`${BASE}/${LOCALE}/login`, { waitUntil: 'domcontentloaded', timeout: 30000 });
-    await page.waitForTimeout(1200);
-    await shot('login');
-    const emailInput = page.locator('input[type=email]').first();
-    const passInput = page.locator('input[type=password]').first();
-    if (await emailInput.count() === 0 || await passInput.count() === 0) {
-      issues.push({ kind: 'blocker', at: page.url(), detail: 'no email/password fields on the login page' });
-      result.stoppedReason = 'login form not found (Google-only? locale route wrong?)';
+    // ── 1. Sign in — or deliberately don't ──────────────────────────────
+    if (ANON) {
+      // The logged-out journey is the product's front door: /workspace and
+      // /project are public by design so an anonymous voyager can seal and come
+      // back. Walking it needs no account, which is exactly why it can run on
+      // every push — and why it is the cheapest standing guard we have.
+      console.log(`
+▶ Walking LOGGED OUT (no account) — ${BASE}/${LOCALE}`);
+      await page.goto(`${BASE}/${LOCALE}`, { waitUntil: 'domcontentloaded', timeout: 30000 });
+      await page.waitForTimeout(1500);
+      await shot('landing-anon');
     } else {
-      await emailInput.fill(EMAIL);
-      await passInput.fill(PASSWORD);
-      // The primary submit: a button whose text is a login verb, else [type=submit].
-      const loginBtn = page.locator('button:has-text("로그인"), button:has-text("Log in"), button:has-text("Sign in"), button[type=submit]').first();
-      await loginBtn.click({ timeout: 5000 }).catch(() => page.keyboard.press('Enter'));
-      await page.waitForTimeout(3500);
-      await shot('after-login');
-      if (/\/login/.test(page.url())) {
-        const text = await visibleText();
-        if (ERROR_TEXT.test(text)) {
-          issues.push({ kind: 'blocker', at: page.url(), detail: 'login appears to have failed (error text on page)' });
-          result.stoppedReason = 'login failed — check the disposable account credentials';
+      console.log(`
+▶ Opening ${BASE}/${LOCALE}/login`);
+      await page.goto(`${BASE}/${LOCALE}/login`, { waitUntil: 'domcontentloaded', timeout: 30000 });
+      await page.waitForTimeout(1200);
+      await shot('login');
+      const emailInput = page.locator('input[type=email]').first();
+      const passInput = page.locator('input[type=password]').first();
+      if (await emailInput.count() === 0 || await passInput.count() === 0) {
+        issues.push({ kind: 'blocker', at: page.url(), detail: 'no email/password fields on the login page' });
+        result.stoppedReason = 'login form not found (Google-only? locale route wrong?)';
+      } else {
+        await emailInput.fill(EMAIL);
+        await passInput.fill(PASSWORD);
+        // The primary submit: a button whose text is a login verb, else [type=submit].
+        const loginBtn = page.locator('button:has-text("로그인"), button:has-text("Log in"), button:has-text("Sign in"), button[type=submit]').first();
+        await loginBtn.click({ timeout: 5000 }).catch(() => page.keyboard.press('Enter'));
+        await page.waitForTimeout(3500);
+        await shot('after-login');
+        if (/\/login/.test(page.url())) {
+          const text = await visibleText();
+          if (ERROR_TEXT.test(text)) {
+            issues.push({ kind: 'blocker', at: page.url(), detail: 'login appears to have failed (error text on page)' });
+            result.stoppedReason = 'login failed — check the disposable account credentials';
+          }
         }
       }
     }
@@ -211,7 +243,7 @@ async function main() {
   const lines = [];
   lines.push(`# Browser loop walkthrough — ${new Date().toISOString()}`);
   lines.push('');
-  lines.push(`- app: ${BASE} · locale: ${LOCALE} · account: ${EMAIL?.replace(/(.).*(@.*)/, '$1***$2')}`);
+  lines.push(`- app: ${BASE} · locale: ${LOCALE} · ${ANON ? 'LOGGED OUT (no account)' : `account: ${EMAIL?.replace(/(.).*(@.*)/, '$1***$2')}`}`);
   lines.push(`- steps walked: **${result.steps}** · stopped because: ${result.stoppedReason ?? '—'}`);
   lines.push(`- milestone reached: ${result.reachedMilestone ? `**${result.reachedMilestone}**` : '**none** (loop did not visibly complete)'}`);
   lines.push(`- your decision text landed on later screens: ${result.contentLanded === null ? 'n/a' : result.contentLanded ? '**yes**' : '**NO — content disappeared, worth checking**'}`);
@@ -239,6 +271,44 @@ async function main() {
     ? `Loop reached: ${result.reachedMilestone}. Flip through the screenshots to judge the UX.`
     : `Loop did NOT visibly complete (${result.stoppedReason}). The screenshots show where it stalled.`);
   if (issues.length) console.log(`⚠ ${issues.length} issue(s) auto-surfaced — see summary.md.`);
+
+  // ── Verdict ─────────────────────────────────────────────────────────────
+  // Without CI_ASSERT this stays a reviewing tool: it reports and exits 0, so a
+  // founder flipping through screenshots is never blocked by a judgement call a
+  // machine should not make about UX.
+  //
+  // With CI_ASSERT it becomes a CHECK, and a check must be able to go red. These
+  // three are the failures no screenshot review can excuse:
+  //   crash / page-error  — the app threw; nothing downstream is trustworthy
+  //   blocker             — the walk could not proceed (dead end, missing form)
+  //   no milestone        — the loop never visibly completed
+  // Console errors and failed sub-requests are REPORTED but do not fail the run:
+  // third-party noise would make this flaky, and a flaky check gets ignored,
+  // which is the same as not having one.
+  if (!ASSERT) process.exit(0);
+
+  const fatal = issues.filter((i) => i.kind === 'crash' || i.kind === 'page-error' || i.kind === 'blocker');
+  const noisy = issues.filter((i) => !fatal.includes(i));
+  console.log(`
+── CI verdict ──`);
+  console.log(`fatal: ${fatal.length} · reported-only: ${noisy.length} · milestone: ${result.reachedMilestone ?? 'NONE'}`);
+  for (const f of fatal) console.log(`  ✖ ${f.kind} @ ${f.at}
+     ${f.detail}`);
+  if (noisy.length) for (const n of noisy.slice(0, 5)) console.log(`  · ${n.kind}: ${String(n.detail).slice(0, 120)}`);
+
+  if (fatal.length) {
+    console.error(`
+🔴 the walk hit ${fatal.length} fatal issue(s) — see above.`);
+    process.exit(1);
+  }
+  if (!result.reachedMilestone) {
+    console.error(`
+🔴 the loop did not visibly complete (${result.stoppedReason ?? 'no reason recorded'}).`);
+    console.error('   Screens are in the artifact; the walk stalled where the last one shows.');
+    process.exit(1);
+  }
+  console.log(`
+🟢 loop reached "${result.reachedMilestone}" with no fatal issue.`);
   process.exit(0);
 }
 

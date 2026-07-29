@@ -276,3 +276,83 @@ jobs:
 
       - name: Argus plugin validate
         run: node argus-plugin-v2/scripts/validate-plugin.js && node argus-plugin-v2/scripts/simulate-plugin.js
+
+  # ── 살아 있는 앱을 실제로 열어보는 검사 (2026-07-29 신설) ────────────────
+  #
+  # 왜 별도 job 인가: 위 `check` 는 코드를 읽는다. 2026-07-29까지 이 리포는 그
+  # 3,900여 개가 전부 초록인 채로 공유 기능이 18일, 팀 기능이 10일 죽어 있었다.
+  # 둘 다 "코드는 맞고 응답이 틀린" 부류라 코드를 읽는 어떤 테스트도 볼 수 없었다.
+  # 실제로 열어봐야 보인다.
+  #
+  # `check` 와 분리한 이유: 이건 배포된 앱에 의존하므로 코드 리뷰를 막지 않아야 하고
+  # (continue-on-error 가 아니라 별도 job 으로 신호를 나눈다), 실패 원인이
+  # "네 PR" 이 아니라 "프로덕션" 일 수 있다.
+  live-surfaces:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+
+      # LLM 호출 없음 · 40초 내외 → 매 PR 에 붙여도 부담이 없다.
+      # 막는 것: 공개 경로가 죽거나, 본선에 로그인 벽이 생기거나,
+      #          계정 기능이 누구에게나 열리는 것.
+      - name: Public surfaces reachable (no LLM)
+        run: node scripts/e2e/public-surfaces.mjs
+        env:
+          ARGUS_BASE_URL: https://argus.voyage
+
+  # 본선 완주는 LLM 을 태우므로 매 PR 이 아니라 main 병합 후와 수동 실행에서만.
+  # 비용을 아끼려고 커버리지를 포기하는 게 아니라, 커버리지를 유지할 수 있는
+  # 주기로 옮기는 것이다 — 병합 한 번 안에 "루프가 죽었다"가 드러난다.
+  live-loop:
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+
+      # 익명 경로 — 시크릿이 필요 없다. 95%+ 방문자가 타는 길이고,
+      # 스스로 뒷정리까지 해서 실행이 프로덕션에 쓰레기를 남기지 않는다.
+      - name: Anonymous loop completes (logged out)
+        run: node scripts/e2e/anon-loop.mjs
+        env:
+          ARGUS_BASE_URL: https://argus.voyage
+          E2E_SHOT_DIR: e2e-shots/anon
+
+      # 로그인 경로 — 시크릿이 등록돼야 돈다. 없으면 **건너뛴다고 말하고** 넘어간다.
+      # 조용히 통과시키지 않는 이유: "안 돌았다"와 "돌았고 초록이다"가 구분되지 않으면
+      # 그 검사는 있으나 마나다 (이 리포가 이미 두 번 겪은 부류).
+      - name: Signed-in walkthrough (skips loudly without secrets)
+        env:
+          ARGUS_BASE_URL: https://argus.voyage
+          DOGFOOD_EMAIL: ${{ secrets.DOGFOOD_EMAIL }}
+          DOGFOOD_PASSWORD: ${{ secrets.DOGFOOD_PASSWORD }}
+          CI_ASSERT: '1'
+          MAX_STEPS: '12'
+        run: |
+          if [ -z "$DOGFOOD_EMAIL" ] || [ -z "$DOGFOOD_PASSWORD" ]; then
+            echo "::warning title=Signed-in walkthrough skipped::DOGFOOD_EMAIL / DOGFOOD_PASSWORD 시크릿이 없어 로그인 경로를 검사하지 못했습니다. 익명 경로만 확인됨."
+            exit 0
+          fi
+          node scripts/dogfood/experience/browser-walkthrough.mjs
+
+      - name: Upload walkthrough screens
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: live-loop-screens
+          path: |
+            e2e-shots/
+            scripts/dogfood/experience/shots/
+          if-no-files-found: ignore
+          retention-days: 7
