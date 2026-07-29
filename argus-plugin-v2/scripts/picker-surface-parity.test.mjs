@@ -42,7 +42,7 @@ if (values.length < 2) {
 // The consumers: every plugin surface that has to explain the value to a human.
 const CONSUMERS = [
   path.join(ROOT, 'argus-plugin-v2', 'commands', 'doctor.md'),
-  path.join(ROOT, 'argus-plugin-v2', 'skills', 'resolve', 'SKILL.md'),
+  path.join(ROOT, 'argus-plugin-v2', 'lib', 'workflows', 'resolve.md'),
 ];
 
 let failures = 0;
