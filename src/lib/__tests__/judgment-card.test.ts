@@ -137,7 +137,10 @@ describe('정상 경로', () => {
     const card = buildJudgmentCard({
       ...BASE,
       provenance: { app_version: 'x', prompt_version: 'R34', sealed_at: '2026-07-29T04:00:00.000Z' },
-      predicates: [bet({ authored: 'user' })],
+      predicates: [
+        bet({ id: 'self', text: BASE.sealed_statement!, authored: 'user' }),
+        bet({ id: 'rest', text: '온보딩 기간은 3~6개월로 잡는다.' }),
+      ],
       origin_utterance: '다음 분기에 신규 채용을 2명 더 할지 정해야 한다.',
     }, '채용 결정');
     expect(card).toEqual({
@@ -146,7 +149,64 @@ describe('정상 경로', () => {
       checkOn: '2026-10-27',
       authorship: 'user',
       context: '다음 분기에 신규 채용을 2명 더 할지 정해야 한다.',
+      premises: ['온보딩 기간은 3~6개월로 잡는다.'],
     });
+  });
+});
+
+describe('이게 맞으려면 — 전제는 고르기만 한다', () => {
+  // 창업자 요청(2026-07-29): "최종 결정 부분의 전제는 중간에 뽑힌 것들 중 넣어주면
+  // 더 알차게 보이지 않을까?" 맞다 — 판단 한 줄만 있는 카드는 3개월 뒤에 봐도
+  // "뭘 믿고 이렇게 정했더라"가 없다. 다만 **고르기만** 한다. 여기서 문장을
+  // 만들기 시작하면 카드의 유일한 약속(지어내지 않는다)이 깨진다.
+  const gi = (id: string, text: string) => bet({ id, text, source: 'governing_idea' });
+
+  it('지배 베팅만 올린다 — 검토자의 우려(risk)는 성격이 다르다', () => {
+    const card = buildJudgmentCard({
+      ...BASE,
+      predicates: [
+        gi('a', '온보딩 기간은 3~6개월로 잡는다.'),
+        bet({ id: 'r', text: '팀장이 당사자라 답이 편향될 수 있어요.', source: 'risk' }),
+      ],
+    }, '채용 결정');
+    expect(card?.premises).toEqual(['온보딩 기간은 3~6개월로 잡는다.']);
+  });
+
+  it('봉인 문장과 같은 줄은 두 번 찍지 않는다', () => {
+    const card = buildJudgmentCard({
+      ...BASE,
+      predicates: [gi('same', BASE.sealed_statement!), gi('b', '핵심 인력 이탈은 없다.')],
+    }, '채용 결정');
+    expect(card?.premises).toEqual(['핵심 인력 이탈은 없다.']);
+  });
+
+  it('물음은 올리지 않는다 (옛 기록에 전제로 남아 있을 수 있다)', () => {
+    const card = buildJudgmentCard({
+      ...BASE,
+      predicates: [gi('q', '이 일정이 현실적으로 가능한가요?'), gi('b', '핵심 인력 이탈은 없다.')],
+    }, '채용 결정');
+    expect(card?.premises).toEqual(['핵심 인력 이탈은 없다.']);
+  });
+
+  it('카드 한 장에 안 들어갈 만큼 길면 올리지 않는다 (자르면 다른 문장이 된다)', () => {
+    const long = '가'.repeat(120);
+    expect(buildJudgmentCard({ ...BASE, predicates: [gi('l', long)] }, '채용 결정')?.premises).toEqual([]);
+  });
+
+  it('최대 두 줄까지만 (판단이 주인공 자리를 잃지 않게)', () => {
+    const card = buildJudgmentCard({
+      ...BASE,
+      predicates: [gi('a', '전제 하나.'), gi('b', '전제 둘.'), gi('c', '전제 셋.')],
+    }, '채용 결정');
+    expect(card?.premises).toHaveLength(2);
+  });
+
+  it('올릴 게 없으면 빈 배열 — 채우려고 다른 데서 끌어오지 않는다', () => {
+    const card = buildJudgmentCard({
+      ...BASE,
+      predicates: [bet({ id: 'r', text: '검토자의 우려 한 줄.', source: 'risk' })],
+    }, '채용 결정');
+    expect(card?.premises).toEqual([]);
   });
 });
 
@@ -170,7 +230,7 @@ describe('카드 경로에는 생성이 없다', () => {
     // 필드 목록 자체가 계약이다. 여기 없는 것은 그려질 수 없다.
     const card = buildJudgmentCard({ ...BASE, predicates: [bet({ authored: 'user' })] }, '채용 결정');
     expect(Object.keys(card!).sort()).toEqual(
-      ['authorship', 'checkOn', 'context', 'sealedOn', 'statement'],
+      ['authorship', 'checkOn', 'context', 'premises', 'sealedOn', 'statement'],
     );
   });
 });

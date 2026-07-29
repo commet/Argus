@@ -105,9 +105,20 @@ export async function renderJudgmentCard(data: JudgmentCardData, locale: 'ko' | 
   ctx.font = `600 ${bodySize}px ${FONT}`;
   const bodyLines = wrap(ctx, data.statement, maxW);
 
+  // 전제 블록 — "이게 맞으려면". 판단 아래, 확인일 위. 그 순서가 곧 문장이다:
+  // 이렇게 판단했다 → 이게 맞으려면 이것들이 참이어야 한다 → 그 답은 그날 온다.
+  const premiseSize = 27;
+  const premiseLineH = 40;
+  ctx.font = `400 ${premiseSize}px ${FONT}`;
+  const premiseLines: string[][] = data.premises.map((p) => wrap(ctx, `· ${p}`, maxW - 8));
+  const premiseBlockH = premiseLines.length
+    ? 44 + premiseLines.reduce((n, l) => n + l.length, 0) * premiseLineH
+    : 0;
+
   const blockH = (contextLines.length ? contextLines.length * contextLineH + 34 : 0)
     + bodyLines.length * bodyLineH
-    + 26 + 30; // 출처 한 줄
+    + 26 + 30 // 출처 한 줄
+    + premiseBlockH;
 
   const bandTop = PAD + 170;
   const bandBottom = footerTop - 40;
@@ -132,6 +143,23 @@ export async function renderJudgmentCard(data: JudgmentCardData, locale: 'ko' | 
   ctx.font = `500 25px ${FONT}`;
   ctx.fillStyle = data.authorship === 'user' ? DIM : GOLD;
   ctx.fillText(authorshipLabel(data, locale), PAD, y);
+  y += 30;
+
+  // ── 이게 맞으려면 ──────────────────────────────────────────────────────
+  // 전부 기계가 짚은 문장이다. 라벨에 그렇게 적고, 본문보다 흐리게, 작게 그린다 —
+  // 판단은 사람 것이고 이건 참고라는 위계가 눈에 보여야 한다. 위계가 무너지면
+  // 카드 전체의 출처 표기가 사실상 거짓이 된다.
+  if (premiseLines.length) {
+    y += 44;
+    ctx.font = `600 23px ${FONT}`;
+    ctx.fillStyle = DIM;
+    ctx.fillText(S.restsOn, PAD, y - 8);
+    ctx.font = `400 ${premiseSize}px ${FONT}`;
+    ctx.fillStyle = '#a8a8b4';
+    for (const lines of premiseLines) {
+      for (const l of lines) { ctx.fillText(l, PAD, y + 26); y += premiseLineH; }
+    }
+  }
 
   // 아래쪽 — 확인일. 이 제품이 다른 어떤 결과물 이미지와도 다르게 생긴 지점.
   ctx.fillStyle = '#26262f';

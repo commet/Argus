@@ -1,4 +1,5 @@
 import type { DecisionContract, Predicate } from '@/stores/types';
+import { isQuestionShaped } from './premise-shape';
 
 /**
  * 판단 카드 — 봉인된 판단 하나를 그림 한 장으로.
@@ -51,6 +52,21 @@ export interface JudgmentCardData {
   authorship: 'user' | 'ai_surfaced' | 'unknown';
   /** 사용자가 처음 적은 상황 한 줄. 없으면 생략 — 지어내지 않는다. */
   context: string | null;
+  /**
+   * 이 판단이 기대고 있는 것 — 검토 중에 뽑혀 계약에 **이미 저장된** 전제 문장들.
+   *
+   * 왜 넣는가 (창업자 요청, 2026-07-29): 판단 한 줄만 있는 카드는 3개월 뒤에 봐도
+   * "그래서 내가 뭘 믿고 이렇게 정했더라"가 없다. 그 답이 이미 기록에 있는데
+   * 안 보여주는 건 아까운 게 아니라 **불친절한** 것이다.
+   *
+   * 왜 지금 넣을 수 있는가: 전제 자리에 물음이 앉지 않게 고친 뒤라서(premise-shape)
+   * 여기 올라오는 문장이 참/거짓이 갈리는 서술문이라는 게 보장된다. 그 전이었다면
+   * "이게 맞으려면 — 이 일정이 현실적으로 가능한가요?" 같은 카드가 나갔을 것이다.
+   *
+   * 전부 **기계가 쓴 문장**이므로 화면에서 그렇게 표시된다 (`premisesAreAi`).
+   * 사람 문장과 섞이면 카드 전체의 출처 표기가 거짓이 된다.
+   */
+  premises: string[];
 }
 
 /** 하나의 화면 문구도 여기 밖에서 만들어지지 않는다. */
@@ -62,6 +78,7 @@ export const CARD_STRINGS = {
     byUser: '내가 쓴 문장',
     byAi: 'AI가 짚은 문장을 그대로 뒀음',
     byUnknown: '누가 쓴 문장인지 기록이 없음',
+    restsOn: '이게 맞으려면 — Argus가 짚은 것',
   },
   en: {
     sealedOn: (d: string) => `Judged on ${d}`,
@@ -70,6 +87,7 @@ export const CARD_STRINGS = {
     byUser: 'Written by me',
     byAi: "Kept the AI's sentence as-is",
     byUnknown: 'No record of who wrote this',
+    restsOn: 'This holds only if — surfaced by Argus',
   },
 } as const;
 
@@ -147,5 +165,40 @@ export function buildJudgmentCard(
     authorship: readAuthorship(contract.predicates, statement),
     // 상황 줄이 봉인 문장과 같으면 두 번 찍지 않는다 (같은 사실의 두 번째 사본).
     context: rawContext && rawContext !== statement ? rawContext : null,
+    premises: selectCardPremises(contract.predicates, statement),
   };
+}
+
+/** 카드에 올릴 전제 최대 개수. 두 줄이 넘어가면 판단이 주인공 자리를 잃는다. */
+export const MAX_CARD_PREMISES = 2;
+
+/**
+ * 카드에 올릴 전제를 고른다. **고르기만 한다 — 만들지 않는다.**
+ *
+ * 규칙:
+ *   · `governing_idea` 만 — 이 결정이 서 있는 바닥이다. `risk`(검토자의 우려)는
+ *     성격이 달라 "이게 맞으려면" 아래 놓으면 뜻이 어긋난다.
+ *   · 봉인 문장 자체는 뺀다 — 같은 줄을 두 번 찍는 것.
+ *   · 물음은 뺀다 — 전제 자리에 물음이 앉지 않게 한 것과 같은 이유이고,
+ *     옛 기록에는 아직 물음이 전제로 남아 있을 수 있으므로 여기서도 본다.
+ *   · 너무 길면 뺀다 — 카드는 한 장이고, 자르면 다른 문장이 된다.
+ */
+export function selectCardPremises(
+  predicates: Predicate[] | undefined | null,
+  statement: string,
+): string[] {
+  const norm = (s: string) => s.replace(/\s+/g, ' ').trim();
+  const target = norm(statement);
+  const out: string[] = [];
+  for (const p of Array.isArray(predicates) ? predicates : []) {
+    if (p.source !== 'governing_idea') continue;
+    const t = typeof p.text === 'string' ? p.text.trim() : '';
+    if (!t || norm(t) === target) continue;
+    if (t.length > 90) continue;
+    if (isQuestionShaped(t)) continue;
+    if (out.some((x) => norm(x) === norm(t))) continue;
+    out.push(t);
+    if (out.length >= MAX_CARD_PREMISES) break;
+  }
+  return out;
 }

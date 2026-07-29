@@ -38,6 +38,7 @@ const CASES = [
       checkOn: '2026-10-27',
       authorship: 'user',
       context: '다음 분기에 신규 채용을 2명 더 할지, 지금 인원으로 버틸지 정해야 한다.',
+      premises: ['온보딩 기간은 3~6개월로 잡는다.', '핵심 인력 이탈은 이번 분기에 없다.'],
     },
   },
   {
@@ -49,6 +50,7 @@ const CASES = [
       checkOn: '2026-09-01',
       authorship: 'ai_surfaced',
       context: '런칭 채널을 유료로 갈지 입소문에 걸지',
+      premises: ['유료 채널 없이 첫 100명이 모인다.'],
     },
   },
   {
@@ -60,6 +62,7 @@ const CASES = [
       checkOn: null,
       authorship: 'unknown',
       context: null,
+      premises: [],
     },
   },
   {
@@ -71,6 +74,7 @@ const CASES = [
       checkOn: '2026-11-15',
       authorship: 'user',
       context: 'Whether to rebuild onboarding this quarter',
+      premises: ['Support volume stays flat through the quarter.'],
     },
   },
 ];
