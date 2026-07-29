@@ -1,6 +1,16 @@
 import { describe, it, expect } from 'vitest';
-import { readFileSync, readdirSync } from 'node:fs';
+import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
+
+/** ProgressiveFlow.tsx + every extracted flow-parts file, concatenated. A guard
+ *  about what the flow renders must not care which file it lives in. */
+function flowSurfaceSource(): string {
+  const parts = join(DIR, 'flow-parts');
+  const extracted = existsSync(parts)
+    ? readdirSync(parts).filter((f) => f.endsWith('.tsx')).sort().map((f) => readFileSync(join(parts, f), 'utf8'))
+    : [];
+  return [readFileSync(join(DIR, 'ProgressiveFlow.tsx'), 'utf8'), ...extracted].join('\n');
+}
 
 /**
  * Spine guard (mirror of the plugin's forbidden-transition gate, ported to the
@@ -66,7 +76,11 @@ describe('progressive flow: no machinery-persona leak (spine)', () => {
 
 // F5 spine polish — two things the foundational review flagged as missing/leaking.
 describe('progressive flow: LeadSynthesisCard spine (F5)', () => {
-  const src = readFileSync(join(DIR, 'ProgressiveFlow.tsx'), 'utf8');
+  // The contract is the FLOW SURFACE, not one file. When the presentational half
+  // moved to flow-parts/ (E-1, 2026-07-29) a guard pinned to the single path
+  // stopped guarding anything — the same "two places had to agree and only one
+  // moved" failure this repo keeps hitting. Read the whole surface instead.
+  const src = flowSurfaceSource();
   const card = src.slice(src.indexOf('function LeadSynthesisCard'), src.indexOf('function LeadSynthesisCard') + 6000);
 
   it('surfaces the WORK as the byline, not the agent as an author (de-personified)', () => {

@@ -1,5 +1,4 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { execSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -8,15 +7,12 @@ import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js'
 import { tmpArgusDir } from '../../test-helpers.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
-const DIST = path.join(ROOT, 'dist', 'index.js');
+const TSX = path.join(ROOT, 'node_modules', 'tsx', 'dist', 'cli.mjs');
+const SOURCE = path.join(ROOT, 'src', 'index.ts');
 let client: Client;
 let dir: string;
 
 beforeAll(async () => {
-  execSync(
-    'npm exec -- esbuild src/index.ts --bundle --platform=node --format=esm --packages=external --outfile=dist/index.js',
-    { cwd: ROOT, stdio: 'ignore' },
-  );
   dir = tmpArgusDir();
   const env = Object.fromEntries(
     Object.entries(process.env).filter((entry): entry is [string, string] => typeof entry[1] === 'string'),
@@ -24,7 +20,10 @@ beforeAll(async () => {
   env.ARGUS_DIR = dir;
   env.ARGUS_TZ = 'UTC';
   client = new Client({ name: 'roundtrip-test', version: '0.0.0' });
-  await client.connect(new StdioClientTransport({ command: process.execPath, args: [DIST], env }));
+  // Run source through the pinned TS loader. Packaging/executable mode has its
+  // own gate; this suite owns the MCP protocol contract and must not rebuild a
+  // shared dist directory while other Vitest workers are running.
+  await client.connect(new StdioClientTransport({ command: process.execPath, args: [TSX, SOURCE], env }));
 }, 90_000);
 
 afterAll(async () => {
@@ -35,7 +34,7 @@ function structured(result: unknown): Record<string, unknown> {
   return (result as { structuredContent: Record<string, unknown> }).structuredContent;
 }
 
-describe('MCP protocol round-trip (bundled server, stdio)', () => {
+describe('MCP protocol round-trip (real server, stdio)', () => {
   it('advertises package metadata and exactly six tools', async () => {
     const pkg = JSON.parse(fs.readFileSync(new URL('../../../package.json', import.meta.url), 'utf8')) as {
       name: string;

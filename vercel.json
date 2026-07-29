@@ -26,6 +26,10 @@
     {
       "path": "/api/cron/checkin-due",
       "schedule": "0 0 * * *"
+    },
+    {
+      "path": "/api/cron/anon-cleanup",
+      "schedule": "0 3 * * *"
     }
   ]
 }

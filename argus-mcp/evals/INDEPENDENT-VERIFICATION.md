@@ -285,22 +285,17 @@ MCP 서버에 `_meta` 없는 `{action:"decline"}`만 돌려준다. MCP 표준에
 사용자의 명시적 거절이다. 서버가 받은 값만으로 정책 거절과 빠른 사람의 거절을
 구분할 방법은 없으며, 응답 시간은 그 증거가 될 수 없다.
 
-따라서 Argus는 **속도로 결론을 내지 않는다.** 다만 결론을 내지 않는 것과 "사용자가
-거절했다"고 보고하는 것은 다른 선택이다 (2.0.6은 후자였고, 2.0.7에서 바뀌었다).
+따라서 Argus는 **속도로 결론을 내리지 않는다.** MCP 표준에서 `decline`은 사용자의
+명시적 거절이며, 서버가 받는 wire에는 정책 거절과 빠른 사용자의 거절을 구분할
+표식이 없다. 500ms 같은 임의의 경계로 네 번째 상태를 만들어서는 안 된다.
 
-읽을 시간이 없었던 decline은 **귀속을 거부**한다 — `choice:"no_answer"`,
-`reason:"unattributable"`. 기록하지 않고, 누구의 결정이라고도 적지 않고, 텍스트
-경로를 제시한다. 근거: 정책 차단 Codex에서 `choice:"declined"`는 아무것도 보지
-못한 사람에게 결정을 씌우고 빠져나갈 길도 주지 않는다 (§1의 실측).
+`decline`은 응답 시간과 무관하게 `declined`로 보존한다. `cancel`·전송 오류·미지원은
+각각 별도 상태다. 한 tool call은 elicitation을 한 번만 시도하고 끝나며, **어떤
+응답도 뒤의 다른 picker를 전역 차단하지 않는다**.
 
-시간을 들인 decline은 그대로 `declined`다. cancel·전송 오류·미지원은 각각 별도
-상태다. 한 tool call은 elicitation을 한 번만 시도하고 끝나며, **어떤 응답도 뒤의
-다른 picker를 전역 차단하지 않는다** (이 마지막 항목은 2.0.6과 2.0.7이 동일하게
-요구한다 — 두 트랙이 독립적으로 같은 결론에 도달했다).
-
-> **반증해 볼 지점:** 접근성 자동화나 키보드 사용자가 500ms 안에 **의도적으로**
-> 거절했을 때, 화면 문구가 그 사람이 방금 한 일을 부정하지 않는가? 문구는 두 해석
-> 모두에서 참이어야 한다. 아니라면 그렇게 보고하라.
+정책 때문에 UI를 보여주지 않고 `decline`을 합성하는 Codex 동작은 클라이언트의
+프로토콜 의미 위반이다. 서버에는 이를 안전하게 고칠 정보가 없으므로, 호스트가
+정책·렌더링 여부를 명시적인 metadata로 제공하기 전까지 서버 추측으로 덮지 않는다.
 
 ```
 node evals/codex-app-server.mjs
@@ -310,17 +305,24 @@ node evals/codex-app-server.mjs
 - [ ] Accept 뒤 기록의 `predicate_owner`가 `user`인가?
 - [ ] `mcp_elicitations=false`에서 바깥 form 요청이 0건인가?
 - [ ] 그 정책의 원시 응답이 `_meta` 없는 bare decline인가?
-- [ ] Argus가 이를 `choice:"no_answer"`로 두고, **사용자의 거절이라고 적지 않는가?**
-- [ ] 그 화면이 사용자의 문장을 되돌려주고 텍스트 경로를 제시하는가?
-- [ ] 원장에 아무것도 안 쓰였는가? (안 보인 거절이 무언가를 옮기면 위반)
+- [ ] Argus가 raw wire의 `decline`을 시간으로 `no_answer`로 바꾸지 않는가?
+- [ ] 원장에 아무것도 안 쓰였는가? (거절이 무언가를 옮기면 위반)
 - [ ] 정책 차단된 각 tool call이 내부 재시도 없이 한 번에 끝나는가?
 - [ ] 그 뒤 interactive thread의 picker가 다시 뜨고 Accept가 기록되는가?
-- [ ] **사람이 시간을 들여 누른 decline은 여전히 `declined`인가?** (귀속 거부가
-      정상 거절까지 삼키면 그것도 위반이다)
+- [ ] 즉시 decline과 시간이 지난 decline이 모두 동일하게 `declined`인가?
 
 Codex 설정에서 picker를 허용하려면 `approval_policy.granular.mcp_elicitations`
 가 `true`여야 한다. 관리형 정책이 이 값을 금지하면 서버가 우회할 수 없으며,
 현재 Codex wire에는 서버가 그 정책을 식별할 별도 신호가 없다.
+
+### 2026-07-29 실제 TUI 관찰
+
+격리한 실제 Codex CLI/TUI에서 `argus_predict`를
+`predicate_owner:"ai_surfaced", confirm_draft:true`로 호출했다. 화면은 예측문,
+`check-by 2026-12-31`, 그리고 `Allow / Deny / Cancel` 세 선택지를 렌더링했고
+첫 선택은 `Allow`였다. 이는 app-server 배선 시뮬레이션이 아니라 실제 TUI의 콘솔
+화면 버퍼에서 읽은 결과다. 데스크톱 캡처 제공자는 콘솔 대신 바탕화면을 캡처했으므로
+픽셀 스크린샷은 증거로 주장하지 않는다.
 
 ---
 
