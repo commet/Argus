@@ -4,6 +4,7 @@ const path = require("path");
 const { spawnSync } = require("child_process");
 
 const root = path.resolve(__dirname, "..");
+const repoRoot = path.resolve(root, "..");
 const errors = [];
 
 function walk(dir, predicate, out = []) {
@@ -73,6 +74,24 @@ check(
   discoveredCommands.length === 0,
   `commands/ must expose no extra slash commands; route everything through the five public skills (found ${discoveredCommands.join(", ")})`,
 );
+// A repository-local .claude/ surface is loaded alongside the installed
+// plugin and silently creates extra commands/agents. That is how the retired
+// argus-doctor, argus-help, watch, and a dozen early product skills survived
+// after the packaged plugin itself had been reduced to five commands.
+for (const surface of ["skills", "commands", "agents"]) {
+  const dir = path.join(repoRoot, ".claude", surface);
+  const entries = fs.existsSync(dir)
+    ? fs.readdirSync(dir, { withFileTypes: true })
+      .filter((entry) => surface === "skills"
+        ? entry.isDirectory() && fs.existsSync(path.join(dir, entry.name, "SKILL.md"))
+        : entry.isFile() && entry.name.endsWith(".md"))
+      .map((entry) => entry.name)
+    : [];
+  check(
+    entries.length === 0,
+    `.claude/${surface}/ must be empty: repository-local auto-discovery would bypass the five-command plugin surface (found ${entries.join(", ")})`,
+  );
+}
 for (const step of REVIEW_STEPS) {
   check(fs.existsSync(path.join(root, "skills", "review", `${step}.md`)), `missing skills/review/${step}.md (review pipeline step)`);
 }

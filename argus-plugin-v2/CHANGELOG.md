@@ -1,5 +1,15 @@
 # Changelog
 
+## 3.0.14 - 2026-07-29
+
+- Removes the repository-local `.claude/skills`, `.claude/commands`, and
+  `.claude/agents` remnants that Claude Code loaded beside the installed
+  plugin. They exposed retired commands such as `argus-doctor`, `argus-help`,
+  `argus-setup`, and `watch` while the packaged plugin correctly exposed five.
+- Extends plugin validation across the repository boundary so a local
+  auto-discovered surface cannot silently bypass the five-command contract.
+- Continues to pin the published MCP 2.0.12; no MCP runtime behavior changed.
+
 ## 3.0.13 - 2026-07-29
 
 - Removes the separately auto-discovered `/argus:doctor` command. Diagnosis is
