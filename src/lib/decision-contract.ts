@@ -998,7 +998,24 @@ export function contractStatus(contract: DecisionContract, now: number): Contrac
     checkInDue = currentDay >= targetDay && !allGraded;
   } else {
     // No date promised → resurfaces whenever something is ungraded.
-    checkInDue = !allGraded && (total > 0 || Boolean(contract.kind));
+    //
+    // 단, **검토 전 기준점만 있는 계약은 예외다** (2026-07-29 실주행에서 발견).
+    // 기준점은 약속이 아니라 출발점이다. 날짜를 안 고른 기준점까지 due 로 치면:
+    //
+    //   · 방금 시작한 사람이 5분 만에 "확인일이 왔어요 · 돌아오셨네요"를 본다.
+    //     온 적도 없고 돌아온 적도 없고 확인일도 없다 — 시간에 대한 거짓말이다.
+    //     (같은 카드가 `contract.check_in_at` 이 있을 때만 날짜 줄을 그린다.
+    //      코드는 날짜가 없을 수 있다는 걸 알면서 "그날이 왔다"고 말하고 있었다.)
+    //
+    //   · 더 무거운 쪽: ProgressiveFlow 는 `contractProject && !contractDue` 일 때만
+    //     **봉인 종막**을 그린다. 그래서 기준점을 남긴 사람은 검토를 끝까지 마쳐도
+    //     봉인 제안을 영영 못 만나고, 계약은 술어가 안 붙어 기준점 상태에 갇힌다.
+    //     봉인이 안 되면 확인일도 알림도 정산도 없다 — 루프 전체가 여기서 끊긴다.
+    //
+    // 날짜를 **고른** 기준점은 그대로 due 가 된다(위 if 가지) — 그건 진짜 약속이고,
+    // 기준점 카드가 "확인일이 왔어요"로 정직하게 맞이하는 그 경우다.
+    const baselineWithoutPromise = isBaselineOnlyContract(contract);
+    checkInDue = !allGraded && (total > 0 || Boolean(contract.kind)) && !baselineWithoutPromise;
   }
   return { total, graded, pending, allGraded, checkInDue, daysUntilCheckIn };
 }
