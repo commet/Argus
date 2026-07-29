@@ -1,5 +1,375 @@
 # Changelog
 
+## 2.0.9 - Codex answered the picker, and we called it the user's decline
+
+**Measured on a real `codex app-server`, five configurations, one build**
+
+| approval policy | does the request reach a screen? | what the user got |
+|---|---|---|
+| default | yes | saved |
+| `approval_policy = "never"` | **no** - Codex answers `decline` itself in ~330ms | `Not recorded.` |
+| `granular.mcp_elicitations = false` | **no** - same | `Not recorded.` |
+| allowed, a person declines | yes | `Not recorded.` |
+
+The bottom three look identical, and all were recorded as `choice: "declined"` -
+a decision credited to someone who, in two of those rows, was shown nothing and
+had no way to continue. Codex's protocol cannot separate them: the response is
+`action` + `content` + a `_meta` that arrives null.
+
+2.0.6 held that response time cannot disambiguate, because tests, accessibility
+automation, keyboard users, and a person who already knows their answer can all
+respond immediately. Every one of those is true - and they argue against
+CONCLUDING, not for reporting the policy-answered case as the user's act.
+
+So nothing concludes. A decline returning faster than a form can be read is not
+recorded and not attributed, and the text path is offered instead. The sentence
+holds under both readings: it leads with what is true either way (nothing was
+recorded) and makes the host explanation conditional, because telling someone
+who deliberately declined that "no answer came back" contradicts what they just
+did. A decline someone took time over is still theirs, and a self-test fails if
+attribution-refusal ever swallows one.
+
+**The README installed a version that does not exist**
+
+The install block pinned `argus-decision-mcp@2.0.0`, never published: following
+it produced `No matching version found` and no server - the front door for every
+hand-configured host, which is every Codex user. There were no Codex
+instructions either. Both fixed; `version-lockstep` now holds the pins in the
+docs to the same version as the manifests.
+
+**The pickers told every host to press Claude Code's keys**
+
+Four messages spelled out one client's keyboard ("arrow down to the accept row",
+"press Enter twice") inside a protocol message every host receives. Also a
+newline inside a field description, and English copy that told a PERSON to call
+`argus_capture`. Read on the real Codex wire, in both languages.
+
+**Gates**
+
+- `codex-app-server.mjs` drives two real Codex processes under two real approval
+  policies, so the blocked reality comes from Codex's own config rather than the
+  harness declining when it spots a keyword. It also finds a Codex installed by
+  npm; accepting only `codex.exe` meant it never ran on an ordinary install.
+- `picker-surfaces` asserts every field label and description is one line.
+- The standing yellow was the scenario, not the product: an empty ledger has no
+  user text to read a voice from and that scenario never set a locale. It now
+  asserts config is honoured with zero content, and a new one asserts the
+  opposite edge - the language must not be invented from the machine's locale.
+- `verify-published` markers are quote-agnostic and pre-checked against the build
+  just made; that pre-flight caught a marker of my own going stale hours later.
+- verify's failure line now prints the assertion rather than vitest's source
+  context. A gate that runs but cannot tell you what broke is the same disease as
+  a gate that is green without measuring.
+- Test fixtures were never removed: 386 directories per `vitest run`, 28,203 on
+  one machine.
+
+## 2.0.8 — One install command across npm 10–12
+
+The immutable 2.0.7 tarball fixed POSIX executable mode, but its bundled README
+still used npm's positional `npx package@version` shorthand. npm 12 could resolve
+the package yet fail to link the inferred command.
+
+All public wiring now uses the explicit, documented form:
+`npm exec --package=argus-decision-mcp@2.0.8 -- argus-decision-mcp`.
+Post-publish verification retries only this exact version while npm registry
+edges converge; it never falls back to `latest` or a range.
+
+## 2.0.7 — The npm executable is executable
+
+The immutable 2.0.6 tarball carried the correct server but packed
+`dist/index.js` as mode `0644`. Windows hid the defect behind npm's `.cmd` shim;
+POSIX `npx` could resolve the package but could not execute its bin.
+
+The build now sets mode `0755` on POSIX before packing. The post-publish gate
+checks the tar header itself, so directly invoking the entry with `node` can no
+longer produce a false green for a broken `npx` installation.
+
+## 2.0.6 — The published package catches up with the verified main
+
+Version 2.0.5 was tagged from PR #316 while the decline-semantics PR was still
+in CI. npm therefore received the provenance fix but not the removal of the
+500ms timing heuristic and global picker circuit. npm versions are immutable;
+2.0.6 is the first published build containing both fixes and the real
+Codex-policy wire verification.
+
+The public README no longer pins the never-published `2.0.0`; the lockstep gate
+now checks the command users copy as well as the manifests. Post-publish markers
+are quote-agnostic and self-check against the local build before judging npm.
+The real Codex gate resolves both a native PATH install and npm's nested
+platform binary, instead of requiring a `codex.exe` shim npm never creates.
+
+## 2.0.5 — Decline means decline; provenance rides the seal event
+
+The 2.0.4 Codex fallback inferred that a `decline` returned within 500ms was a
+host-policy auto-reject. That inference was not supported by MCP. A fast
+keyboard choice, accessibility automation, a test client, and Codex policy can
+all produce the same result. Worse, the inference opened a process-global
+circuit breaker, so one quick Decline disabled every later picker surface.
+
+Argus now preserves the protocol result: `decline` is always a decline,
+`cancel` is a non-answer, transport failure is a failed non-answer, and an
+undeclared capability is unsupported. Every tool call makes at most one
+elicitation request; no response can disable unrelated later pickers.
+
+The Codex verifier now uses the installed app-server with two real thread
+policies. It proves that `mcp_elicitations=false` returns a bare
+`{action:"decline"}` with no `_meta` and never forwards a form to the outer
+client. Because the server receives no distinguishing signal, it does not
+invent one from elapsed time. The same verifier then returns to an interactive
+thread and proves a later form still reaches the client and records an Accept.
+
+**A drafted line could cross into the account looking like the user's own**
+
+`argus_seal` has always recorded `predicate_owner`, but the value lived only in
+the bearing seed, the receipt, and the v2 mirror — none of which the webapp push
+reads. So an `ai_surfaced` draft arrived in the account indistinguishable from a
+sentence the user dictated, which is CLAUDE.md rule 1 (never lie about
+authorship) breaking silently at a surface boundary. It now rides the
+append-only seal event itself and survives every downstream reader. Absence
+stays absence: no reader may promote a missing value to `user`.
+
+**How this release came to exist**
+
+2.0.4 shipped, and then #308 merged the fix above into main without a version
+bump. Both sides called themselves 2.0.4 while the code differed, and
+`version-lockstep.mjs` stayed green because it only compares the five version
+STRINGS to each other — source moving without the version moving is outside
+what it looks at. The divergence was found by unpacking the published tarball
+and grepping for the fix, not by reading a diff.
+
+`evals/verify-published.mjs` now carries a marker for it, so the same class is
+visible from the outside next time: run it against 2.0.4 and that one line goes
+red while everything else passes.
+
+**Gate correction**
+
+`answer-time.mjs` compared the ledger's logical date against the UTC day of the
+answer. The server stamps the tz-aware LOCAL date deliberately — someone sealing
+at 01:00 KST is sealing today, not yesterday — so the gate disagreed with
+correct behaviour for nine hours out of every twenty-four. It fired for the
+first time at 01:20 KST tonight. The product was right; the gate was wrong.
+
+## 2.0.4 — The Accept that was thrown away, and the keepsakes nobody had looked at
+
+**The record was dated before the answer it recorded**
+
+Also found live. Resolving an open question, the host log and the ledger
+disagreed about something I had just typed:
+
+```
+12:56:11  ledger: premise_resolve "split it, and price the tiers separately"
+12:57:14  host:   Elicitation response {"decision":"split it, and price…"}
+```
+
+63 seconds backwards. Nothing was lost and nothing was forged — the handler
+computed its timestamp on entry and then the picker sat waiting for a human,
+which is what a picker is for. But a judgment record whose timestamps run
+backwards against the host's own log cannot be used to reconstruct what
+happened, which is its one job. The session reviewing that payload concluded the
+server had synthesised a decision and stamped it `user`; it had not. That is the
+real cost — the defect makes an honest record look like a forged one.
+
+`settle` already stamped after its picker. `seal` and the open-question resolve
+now do too; the logical date is untouched, only the intra-day time is corrected.
+`evals/answer-time.mjs` answers deliberately slowly and fails if the stamp
+precedes the answer.
+
+**Codex picker works when allowed and fails over when policy blocks it**
+
+> Superseded by “Decline means decline” above. The 500ms inference and global
+> circuit described here were removed after real app-server wire inspection
+> proved that the server cannot distinguish policy and human declines.
+
+Codex app-server supports standard MCP form elicitation, but an outer surface
+can advertise the capability while policy auto-rejects the form without showing
+it. A Codex product-name blacklist was tested and rejected because it also
+killed the working picker.
+
+Argus now uses the protocol capability. An impossibly fast synthetic decline is
+reclassified as a non-answer, the draft is handed back, and a session-local
+circuit breaker moves later calls to text fallback. A visible human decline is
+still respected. `evals/codex-app-server.mjs` drives the installed Codex
+app-server itself and proves both wire paths.
+
+**Release verification is isolated and executes the installed plugin command**
+
+Mutation self-tests run only in a temporary copy after a green baseline, and a
+non-zero exit counts only when the gate emits a positive, gate-owned violation.
+The real Claude Code plugin lifecycle now executes the MCP command reported by
+the installed inventory, calls `argus_check_in`, and verifies the six public
+tools plus the exact pinned server version before disable/enable/update/uninstall.
+
+**A form that promised what the server would refuse**
+
+Found by driving the real Claude Code on real hardware, not by a harness. The
+settle picker labelled its what-happened box "(optional)" and told the user to
+leave it blank if they did not know yet. Picking an outcome and doing exactly
+that was then refused with `WHAT_HAPPENED_REQUIRED` — and the refusal carried
+nothing, so the model asked them to choose the outcome a second time.
+
+The label is now conditional: optional only when the model already carried the
+sentence in from the conversation, and otherwise it says a settled record needs
+it and points at "Don't know yet" for the case where reality has not answered.
+The refusal hands back the outcome they already picked, the same way an
+over-long reword is handed back. No `minLength` was added — a constraint there
+would block Accept inside the form, which is the very defect below.
+
+**Pressing Accept did nothing, and it was our schema that made it so**
+
+The third report of "Accept does not work". The first two fixes — a `required`
+field, then a `format` constraint — were real defects and neither was the cause.
+This time the answer came from reading the shipped Claude Code binary instead of
+reasoning about what a strict host "would" do:
+
+```js
+const hasFields = Object.keys(schema.properties).length > 0
+const [selected] = useState(hasFields ? null : "accept")   // not preselected
+handleTextInputSubmit = () => move("down")                 // Return MOVES
+```
+
+If an ask declares **any** field, Accept is not selected when the dialog opens:
+the cursor sits in the first input, and Return there advances a row instead of
+submitting. Our seal confirm shipped two optional edit boxes, so "read it, press
+Accept" sent nothing at all — the dialog waited until the request timed out and
+the host reported that as a cancel. The founder's log shows one arriving at
+60.018 seconds, which nobody pressed.
+
+The seal and premise confirms now declare no properties, so one Return records
+them. Rewording still works: the user says so in chat and the model calls again
+with their words. The asks that genuinely COLLECT something (settle outcome,
+defer date, an open question's answer) keep their fields — the answer cannot
+come from Accept alone — and now say on screen that the submit row is below.
+
+`evals/claude-code-form.mjs` reimplements that submit gate and judges every ask
+we send, including how many Returns it takes. It goes red on 2.0.2, which is the
+version that blocked the founder — a gate that cannot fail on the broken build
+is not evidence of anything.
+
+**A minute is not long enough to decide something**
+
+- **An Accept that arrived after 60 seconds was discarded.** The MCP SDK times a
+  server-to-client request out after 60 seconds by default and we never passed an
+  option, so every picker inherited that limit — on a request whose responder is
+  a person reading their own prediction and deciding whether to commit to it.
+  From the founder's host log: the ask went out at 07:22:16, the SDK gave up at
+  07:23:16 exactly, and their Accept landed at 07:23:27. The tool had already
+  told them nothing was recorded, and reading the record back said "No decisions
+  on record yet."
+
+  This was reported twice as "Accept does not work" and fixed twice — once for a
+  `required` field, once for `format`. Both were real. Neither was this. Nobody
+  measured the clock, because every harness answered instantly, which is the one
+  thing a person never does.
+
+  The ask now allows ten minutes, and `evals/slow-human.mjs` answers after
+  seventy-five seconds and requires the record to survive. It costs 80 seconds of
+  CI, which is what it costs to test the most important interaction in the
+  product the way people actually perform it.
+
+- The out-of-band ask believed it waited two minutes (`DEFAULT_ASK_TIMEOUT_MS =
+  120_000`). The SDK cut it at 60, so that outer bound was a number which could
+  never be reached. Inner and outer now agree.
+
+**The three blocks you keep and share**
+
+The settle receipt, the seal certificate and the logbook travel in `data` and are
+drawn as monospace frames. 2.0.2 rendered the card and looked at it; 2.0.3 did the
+same for the five asks; nothing had ever looked at these. Rendering them across
+two languages and eleven content shapes found six defects:
+
+- a sentence with **no spaces in it** — ordinary in Korean — was never broken, so
+  a 64-column frame carried a 105-column line. A long URL gave 81.
+- **every settled row in the logbook** ran nine columns past the border: the
+  outcome word is prepended to a label already budgeted the full width.
+- `idCol()`, written to stop exactly that, **was never called**, so one long id
+  pushed a row twelve columns out.
+- the seal certificate padded its two date rows by codepoint, so in Korean the
+  dates did not line up.
+- the group hint was padded the same way and landed outside the frame.
+- **emoji were not counted as wide**, so an emoji prediction packed 15 columns
+  past the border in Korean and 25 in English. That one was invisible for a
+  reason worth keeping: the check that would have caught it used the renderer's
+  own width function, so checker and subject were wrong in the same direction.
+  `evals/keepsake-frames.mjs` therefore carries an independent measure, built
+  from Unicode properties rather than from the hand-kept list it audits.
+
+Widening `dw` alone was not enough either: `truncDw` and `breakToken` each carried
+their own inline copy of the rule, so the renderer judged with the new measure and
+cut with the old one. There is one character-width function now, used by all three.
+
+**Gates**
+
+- `keepsake-frames.mjs` — 254 checks: frames close, borders agree, the box fits an
+  80-column terminal, and nothing is discarded to make it fit.
+- `slow-human.mjs` — the seventy-five-second answer.
+- `version-lockstep.mjs` — a release moves the version in five hand-kept files, and
+  the `npx …@X` pin is the dangerous one. If it lags, every user of the new plugin
+  keeps launching the old server, silently, because both halves are internally
+  consistent and nothing errors.
+- `picker-surfaces.mjs` identified each ask by which line of the script had run
+  last. The out-of-band ask fires on a timer, so under load it took the defer slot
+  and the gate went red on machine load rather than on a defect. Asks are now
+  identified by their own schema shape, and a missing one is named.
+
+## 2.0.3 — What the pickers say, in both languages
+
+2.0.2 fixed the settle card by rendering it and looking. This does the same for
+the five ELICITATION asks, and for the words a host that has no picker at all
+(Codex) is left with. Both were checked by driving the real server across two
+languages and eight content shapes.
+
+**Our identifiers, shown to a person**
+
+- **Every field on every picker was labelled with its KEY.** The MCP spec has a
+  `title` for exactly this and we never sent one, so a host falls back to the
+  identifier: a Korean user editing their own prediction met a box called
+  `reword`; the return path asked them for `outcome` and `what_happened`; the
+  defer ask offered `when`. Five pickers, every field, including the two the
+  founder was blocked on in July. All of them now carry a human label.
+
+**Asks that never said what they were about**
+
+- The defer ask opened with a bare "not answered yet" line: the user picks a
+  date for a sentence the screen never shows. It now quotes the prediction, as
+  the settle ask has since 2.0.2.
+- The out-of-band ask arrived as one run-on paragraph with the user's own
+  prediction buried mid-sentence. It is the ask that fires when they did NOT ask
+  for anything; the least it can do is be scannable.
+
+**A terminal action dressed as a scheduling option**
+
+- The defer list read "in a week / in a month / in 3 months / it no longer
+  matters". The fourth closes the decision permanently and nothing said so. It
+  says so now, and the field description separates the three that only move a
+  date.
+
+**Long text spilling**
+
+- The seal and premise asks interpolated the sentence RAW, so a 380-character
+  prediction (inside the schema's own 400 cap) arrived as one 302-character
+  line. Display is clipped with an ellipsis now; the record still keeps every
+  character.
+
+**English, which nobody had read**
+
+- The first line an English user ever sees was a 144-character run-on, and the
+  seal confirmation ran the quoted prediction straight into the next clause.
+  Both are broken into lines. `.ics` came out of the human sentence in both
+  languages: a file extension is not a word.
+
+**Gates**
+
+- `picker-surfaces.mjs` — 2 languages x 8 content shapes x 5 asks: every field
+  has a human label, one language does not leak into the other, nothing renders
+  as undefined / an unrendered template / mojibake, no form-blocking constraint.
+- `surface-hazards.mjs` — every sentence the server can say, in both languages,
+  on a host WITH a picker and a host WITHOUT one. `locale-consistency.mjs`
+  guarded part of this before 2.0.0 removed it; nothing had since.
+- Both verified by re-planting the defect (self-tests 14 and 15).
+- The out-of-band eval now waits for the ask instead of a stopwatch: its fixed
+  sleeps passed alone and failed under load, which is a harness flake wearing
+  the product's face, the third of that class in one day.
+
 ## 2.0.2 — What the picker and the card actually look like
 
 Everything before this verified the wiring: the resource is listed, the args

@@ -53,6 +53,7 @@ import {
   intervalFromExistingContract,
   stablePredicateId,
   webUserAttribution,
+  MAX_PREDICATES,
 } from '@/lib/decision-contract';
 import { derivePrimaryCheckpoint } from '@/lib/checkpoint-core';
 import { buildAutoTrackedPremiseItems } from '@/lib/auto-track-premises';
@@ -333,7 +334,7 @@ export function SealMoment({
           predicates: [
             finalPredicate,
             ...(next.predicates || []).filter((p) => p.source !== 'user_lean' && p.id !== finalPredicate.id),
-          ].slice(0, 6),
+          ].slice(0, MAX_PREDICATES),
         }
       : next;
     const adoptionLineage = adoptionLineageForSeal(
@@ -471,7 +472,7 @@ export function SealMoment({
       predicates: [
         finalPredicate,
         ...c.predicates.filter((p) => p.source !== 'user_lean' && p.id !== finalPredicate.id),
-      ].slice(0, 6),
+      ].slice(0, MAX_PREDICATES),
     };
     const adoptionLineage = adoptionLineageForSeal(
       finalizedDraft.predicates,

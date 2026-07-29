@@ -8,7 +8,7 @@ import { z } from 'zod';
 import { type NextAction } from '../lib/spine.js';
 import { tunedStandingSense } from '../lib/ambient-prefs.js';
 import { envelope } from '../lib/envelope.js';
-import { canElicit } from '../lib/elicit.js';
+import { canElicit, elicitationLikelyBlocked } from '../lib/elicit.js';
 import { appsCapable } from '../lib/apps-ui.js';
 import { packageMeta } from '../lib/package-meta.js';
 import { ENVELOPE_OUTPUT_SCHEMA, zArgusDir, zDate, type ToolModule } from './tool-types.js';
@@ -51,7 +51,17 @@ function wireFacts(): { picker: 'card' | 'one_tap' | 'text_fallback'; server_ver
   // user having to trigger one and find out (founder 2026-07-27: "does this
   // show up on Claude Code and Codex too?" must be answerable by the wire, not
   // by a blog post).
-  const picker = appsCapable() ? 'card' as const : canElicit() ? 'one_tap' as const : 'text_fallback' as const;
+  //
+  // A host can declare the capability and still answer every ask itself without
+  // showing anything — a real `codex app-server` does exactly that under
+  // `approval_policy = "never"` (measured 2026-07-29). Reporting `one_tap` there
+  // describes a screen the user will never see, so an observed pattern of
+  // declines nobody could have read demotes the report to the truth: text.
+  const picker = appsCapable()
+    ? 'card' as const
+    : canElicit() && !elicitationLikelyBlocked()
+      ? 'one_tap' as const
+      : 'text_fallback' as const;
   return { picker, server_version: packageMeta().version };
 }
 

@@ -117,11 +117,15 @@ export function renderSeal(opts: {
   // carries the meaning; the token stays in `data`, off the rendered card.
   L.push(`  ${opts.predicate_owner === 'user' ? S.owner_user : S.owner_ai}`);
   L.push('');
-  const labelWidth = Math.max(S.sealed_label.length, S.answers_label.length) + 4;
+  // Pad by DISPLAY columns: padEnd counts codepoints, so in Korean "저장한 예측"
+  // (6 chars / 11 cols) and "확인일" (3 chars / 6 cols) padded to the same char
+  // count put their dates two columns apart — two date rows that did not line up.
+  const labelWidth = Math.max(dw(S.sealed_label), dw(S.answers_label)) + 4;
+  const padLabel = (label: string): string => label + ' '.repeat(Math.max(1, labelWidth - dw(label)));
   const days = Math.round((Date.parse(opts.check_by) - Date.parse(opts.today)) / 86400000);
   const daysOut = Number.isFinite(days) && days > 0 ? `   ${S.days_out(days)}` : '';
-  L.push(`  ${S.sealed_label.padEnd(labelWidth)}${opts.sealed_on}`);
-  L.push(`  ${S.answers_label.padEnd(labelWidth)}${opts.check_by}${daysOut}`);
+  L.push(`  ${padLabel(S.sealed_label)}${opts.sealed_on}`);
+  L.push(`  ${padLabel(S.answers_label)}${opts.check_by}${daysOut}`);
   L.push('');
   L.push(`  ${S.closing[0]}`);
   L.push(`  ${S.closing[1]}`);
@@ -182,49 +186,65 @@ export function renderWake(
     // frame. Budget in columns keeps both scripts inside the bracket.
     return truncDw(raw, 28);
   };
-  const idCol = (id: string) => (id.length > 10 ? id.slice(0, 9) + '…' : id).padEnd(10);
+  // An id is a quiet trailing reference, not a column that may push the row out
+  // of the box. This budget existed and was never called — the row templates
+  // interpolated `c.id` raw, so one long id ran twelve columns past the border.
+  const shortId = (id: string) => (dw(id) > 26 ? id.slice(0, 25) + '…' : id);
 
-  const L: string[] = [];
   const headText = W.header + ' ';
   const countText = ' ' + W.counts(contracts.length, sealed.length, settled.length) + ' ';
-  // The header+counts row can exceed WIDTH (Korean counts are wide); when it
-  // does, the top must GROW rather than clamp its dashes to a floor while the
-  // short footer sits at WIDTH — that was the 1-column top/bottom mismatch. Both
-  // edges derive from one barWidth: WIDTH, or wider if the top needs it.
   const topFixed = 3 + dw(headText) + dw(countText) + 2; // everything but the dashes
-  const barWidth = Math.max(WIDTH, topFixed + 2);
-  L.push('┌─ ' + headText + '─'.repeat(barWidth - topFixed) + countText + '─┐');
 
-  const pushGroup = (rows: WakeContractRow[], head: string, line: (c: WakeContractRow) => string, hint?: string) => {
+  interface Group { head: string; hint?: string; rows: string[] }
+  const groups: Group[] = [];
+  const group = (rows: WakeContractRow[], head: string, line: (c: WakeContractRow) => string, hint?: string) => {
     if (rows.length === 0) return;
-    L.push('');
-    L.push(hint ? `  ${head}`.padEnd(WIDTH - 2 - hint.length) + hint : `  ${head}`);
-    for (const c of rows.slice(0, WAKE_TOP)) L.push(`    ${line(c)}`);
-    if (rows.length > WAKE_TOP) L.push(`    ${W.more(rows.length - WAKE_TOP)}`);
+    const out = rows.slice(0, WAKE_TOP).map(line);
+    if (rows.length > WAKE_TOP) out.push(W.more(rows.length - WAKE_TOP));
+    groups.push({ head, hint, rows: out });
   };
 
   // Lead with the bet, not the raw id — "s6/s3" leading forced a busy operator to
   // parse codes before the plain-English bet (experience loop, scale_juggler; same
   // "cold code label" call as the premise P-refs). The id trails as a quiet
   // reference the host can settle by; "past check-by" alone, no day-count.
-  pushGroup(
+  group(
     overdue,
     W.overdue_group(overdue.length),
-    (c) => `"${label(c)}"   ${mmdd(c.check_by)}  ·  ${c.id}`,
+    (c) => `"${label(c)}"   ${mmdd(c.check_by)}  ·  ${shortId(c.id)}`,
     W.overdue_hint,
   );
 
-  pushGroup(waiting, W.waiting_group(waiting.length), (c) => `"${label(c)}"   ${W.answer_on(mmdd(c.check_by))}  ·  ${c.id}`);
+  group(waiting, W.waiting_group(waiting.length), (c) => `"${label(c)}"   ${W.answer_on(mmdd(c.check_by))}  ·  ${shortId(c.id)}`);
 
-  pushGroup(
+  group(
     settled,
     W.settled_group(settled.length, stats.held, stats.avoided, stats.partial, stats.missed),
     // Outcome word LEADS the settled row: a waiting row reads like a question
     // ("…끝난다  확인 09-01"), an anchored row reads like an answer
     // ("예측대로 · …"). The two groups stop rhyming (founder 2026-07-27:
     // the box read flat, rows indistinguishable).
-    (c) => `${c.outcome ? W.outcome_label(c.outcome) : '—'} · "${label(c)}"   ${mmdd(c.settled_on || c.check_by)}  ·  ${c.id}`,
+    (c) => `${c.outcome ? W.outcome_label(c.outcome) : '—'} · "${label(c)}"   ${mmdd(c.settled_on || c.check_by)}  ·  ${shortId(c.id)}`,
   );
+
+  // The box grows to hold its widest row — the same rule the header+counts line
+  // already followed. Clamping the frame to WIDTH while a row is longer is what
+  // put every settled row nine columns past the border: the outcome word is
+  // prepended to a label that was already budgeted the full width.
+  const widestRow = Math.max(0, ...groups.flatMap((g) => g.rows.map((r) => dw(r))));
+  const barWidth = Math.max(WIDTH, topFixed + 2, widestRow + 5);
+
+  const L: string[] = [];
+  L.push('┌─ ' + headText + '─'.repeat(barWidth - topFixed) + countText + '─┐');
+  for (const g of groups) {
+    L.push('');
+    // Pad by display columns: padEnd counts codepoints, so a Korean group head
+    // (2 cols/char) pushed the right-aligned hint past the border.
+    L.push(g.hint
+      ? '  ' + g.head + ' '.repeat(Math.max(2, barWidth - 4 - dw(g.head) - dw(g.hint))) + g.hint
+      : '  ' + g.head);
+    for (const r of g.rows) L.push('    ' + r);
+  }
 
   L.push('');
   const foot = recordSince ? ' ' + W.record_since(recordSince) + ' ' : '';
@@ -238,9 +258,28 @@ export function renderWake(
 // disagree by several columns — the keepsake's frame did not close. Both edges
 // are now derived from one target WIDTH using this measure.
 const WIDE = /[ᄀ-ᇿ⺀-鿿ꥠ-꥿가-힣豈-﫿︰-﹏＀-｠￠-￦⚓]/;
+// Emoji are two columns too. Leaving them out did not merely mis-measure — a
+// prediction written with emoji packed 15 columns past the border in Korean and
+// 25 in English, and the check that would have caught it used this same ruler.
+// Both were wrong in the same direction, so the overflow was invisible. Joiners,
+// variation selectors and combining marks carry no width of their own; counting
+// them would wrap far too early.
+const PICTO = /\p{Extended_Pictographic}/u;
+const ZERO_WIDTH = /[‍︎️]|\p{Mn}|\p{Me}/u;
+
+/** The width of ONE character, and the only place that decides it.
+ *  `truncDw` and `breakToken` each used to carry their own inline copy of this
+ *  rule. Widening `dw` alone therefore produced a renderer that JUDGED with the
+ *  new measure and CUT with the old one: the emoji line was correctly found too
+ *  long, then packed to the old budget and emitted at full width anyway. */
+function charW(ch: string): number {
+  if (ZERO_WIDTH.test(ch)) return 0;
+  return (WIDE.test(ch) || PICTO.test(ch)) ? 2 : 1;
+}
+
 function dw(s: string): number {
   let w = 0;
-  for (const ch of s) w += WIDE.test(ch) ? 2 : 1;
+  for (const ch of s) w += charW(ch);
   return w;
 }
 
@@ -252,19 +291,40 @@ function truncDw(s: string, maxCols: number): string {
   let w = 0;
   let out = '';
   for (const ch of s) {
-    const cw = WIDE.test(ch) ? 2 : 1;
-    if (w + cw > maxCols - 1) break; // reserve 1 col for the ellipsis
-    w += cw;
+    const c = charW(ch);
+    if (w + c > maxCols - 1) break; // reserve 1 col for the ellipsis
+    w += c;
     out += ch;
   }
   return out + '…';
+}
+
+/** Break one unbreakable token into frame-width pieces, by display columns.
+ *  Wrapping on whitespace alone leaves anything with no spaces in it — a
+ *  Korean run-on sentence, a long URL — as a single line that runs straight
+ *  through the border. The keepsake is the thing the user shares; its frame
+ *  has to close whatever they wrote. */
+function breakToken(w: string, width: number): string[] {
+  if (dw(w) <= width) return [w];
+  const pieces: string[] = [];
+  let cur = '';
+  let cw = 0;
+  for (const ch of w) {
+    const c = charW(ch);
+    if (cw + c > width) { pieces.push(cur); cur = ''; cw = 0; }
+    cur += ch;
+    cw += c;
+  }
+  if (cur) pieces.push(cur);
+  return pieces;
 }
 
 function wrapLines(s: string, width = 54): string[] {
   // Defense in depth: a corrupt receipt field could be non-string — coerce so
   // .split never throws on the keepsake. Wrap by DISPLAY width (dw), not
   // codepoints, so a Korean line (2 cols/char) stays inside the frame.
-  const words = String(s ?? '').split(/\s+/).filter(Boolean);
+  const words = String(s ?? '').split(/\s+/).filter(Boolean)
+    .flatMap((w) => breakToken(w, width));
   const lines: string[] = [];
   let cur = '';
   for (const w of words) {

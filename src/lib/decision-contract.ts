@@ -58,7 +58,9 @@ function makeProvenance(now: number): ContractProvenance {
 }
 
 const DAY_MS = 86_400_000;
-const MAX_PREDICATES = 6;
+/** Exported because SealMoment composes its own final predicate list and must
+ *  cap it identically — a second hardcoded 6 drifts silently. */
+export const MAX_PREDICATES = 6;
 const MAX_RISKS = 3;
 const MAX_ACTORS = 2;
 /** Live path: cap governing bets so concerns still fit within MAX_PREDICATES. */
@@ -846,6 +848,60 @@ export function requiredSettlementPredicates(contract: Pick<DecisionContract, 'p
   return userOwned.length > 0 ? userOwned : predicates;
 }
 
+/**
+ * ── The contract lifecycle, in ONE place ──────────────────────────────────
+ *
+ * `baseline`  the pre-review rope only: the user left an opening line and/or a
+ *             date before hearing anything. Nothing has been confirmed as their
+ *             final call, so no surface may narrate it as "the judgment you made".
+ * `sealed`    a final judgment exists and is waiting for reality.
+ * `settled`   every required predicate has met reality.
+ *
+ * WHY THIS EXISTS (regression 2026-07-25, PR #290): the harbor card gated the
+ * baseline screen on `!contract.closed_at`. But `closed_at` is a CEREMONY stamp
+ * written by exactly one code path (SealMoment's closing seal) — it was never a
+ * lifecycle flag. Every other producer of a real sealed contract — the harbor
+ * card's own seal button, RetroSeal, Telegram, and every record written before
+ * `closed_at` existed — leaves it undefined. Those records were therefore shown
+ * as unfinished baselines, WITH a destructive "clear baseline" button and with
+ * no route to settlement: the return loop silently disappeared for them.
+ *
+ * The rule: a contract is a baseline only while there is no positive evidence of
+ * a closing judgment. Evidence is anything that could only exist after the user
+ * committed — a ceremony stamp, a settlement, a verdict, a first-settlement lean,
+ * a receipt line the user confirmed, a retro seal (which IS the seal), or any
+ * predicate beyond the opening user_lean rope (those are extracted post-review).
+ * Absence of evidence keeps it a baseline; it never fabricates a seal.
+ */
+export function isBaselineOnlyContract(contract: DecisionContract | null | undefined): boolean {
+  if (!contract) return false;
+  // ── positive evidence of a closing judgment ──
+  if (contract.closed_at) return false;
+  if (contract.graded_at) return false;
+  if (contract.origin === 'retro') return false;        // a retro seal IS the seal
+  if (contract.semantic_judgment_id) return false;      // v6 canonical record
+  if (contract.lean_after) return false;                // first settlement recorded
+  const receipt = contract.judgment_receipt;
+  if (receipt?.settled_at || receipt?.what_happened) return false;
+  // A receipt whose closing line differs from the baseline line means the user
+  // confirmed a final judgment at SealMoment.
+  if (receipt?.human_judgment?.trim()) return false;
+  const predicates = Array.isArray(contract.predicates) ? contract.predicates : [];
+  if (predicates.some(isResolved)) return false;
+  // Anything beyond the opening rope is post-review material (risks, governing
+  // ideas, actors are only ever extracted after the crew has read the decision).
+  if (predicates.some((p) => p.source !== 'user_lean')) return false;
+  return true;
+}
+
+export type ContractPhase = 'baseline' | 'sealed' | 'settled';
+
+/** The single source of truth every surface must ask before it narrates a record. */
+export function contractPhase(contract: DecisionContract, now: number = Date.now()): ContractPhase {
+  if (isBaselineOnlyContract(contract)) return 'baseline';
+  return contractStatus(contract, now).allGraded ? 'settled' : 'sealed';
+}
+
 /** Grade one predicate (immutable). Stamps graded_at; finalizes the contract once
  *  all are resolved. Re-tapping a verdict CLEARS any prior `basis` — the "why"
  *  no longer applies once the outcome itself changed. */
@@ -969,6 +1025,14 @@ export interface GradeSummary {
   betsHeldAiSurfaced: number;
   betsHeldAiDrafted: number;
   risksAvoidedAiDrafted: number;
+  /** The losing half of the AI-surfaced bucket. Without these two counters the
+   *  machine-surfaced items were recorded ONLY when they turned out well: a
+   *  broken AI premise incremented nothing at all, so "N AI-suggested checked"
+   *  silently meant "N that happened to hold". That is the trophy case this
+   *  file's own CrossProjectRecord comment warns against — a record must carry
+   *  its losses or it is not calibration. */
+  risksHappenedAiDrafted: number;
+  betsBrokeAiDrafted: number;
   /** Predicates graded but outcome unknown — not scored either way. */
   unknown: number;
   /** Total predicates with any verdict (incl. unknown/partial). */
@@ -993,6 +1057,8 @@ export function summarizeGrades(contract: DecisionContract): GradeSummary {
     betsHeldAiSurfaced: 0,
     betsHeldAiDrafted: 0,
     risksAvoidedAiDrafted: 0,
+    risksHappenedAiDrafted: 0,
+    betsBrokeAiDrafted: 0,
     unknown: 0,
     resolved: 0,
     total: preds.length,
@@ -1016,7 +1082,10 @@ export function summarizeGrades(contract: DecisionContract): GradeSummary {
           if (isLuckBasis(p.basis)) s.goodOutcomesOnLuck++;
         }
       }
-      else if (p.verdict === 'happened' && !aiSuggested) s.risksHappened++;
+      else if (p.verdict === 'happened') {
+        if (aiSuggested) s.risksHappenedAiDrafted++;
+        else s.risksHappened++;
+      }
     } else if (p.source === 'governing_idea' || p.source === 'user_lean') {
       // user_lean is the user's own pre-AI bet; it grades like a governing bet
       // (held → betsHeld). It is authored:'user', so it never counts as ai_surfaced.
@@ -1029,12 +1098,22 @@ export function summarizeGrades(contract: DecisionContract): GradeSummary {
           if (isLuckBasis(p.basis)) s.goodOutcomesOnLuck++;
         }
       }
-      else if (p.verdict === 'avoided' && !aiSuggested) s.betsBroke++;
+      else if (p.verdict === 'avoided') {
+        if (aiSuggested) s.betsBrokeAiDrafted++;
+        else s.betsBroke++;
+      }
     } else if (p.source === 'actor') {
       if (p.verdict === 'happened') s.rolesConfirmed++;
     }
   }
   return s;
+}
+
+/** Every AI-surfaced item that met reality — wins AND losses. Surfaces must use
+ *  this rather than summing the two "good outcome" counters, which reads as a
+ *  score for Argus instead of a disclosure. */
+export function aiSurfacedCheckedCount(g: GradeSummary): number {
+  return g.betsHeldAiDrafted + g.risksAvoidedAiDrafted + g.risksHappenedAiDrafted + g.betsBrokeAiDrafted;
 }
 
 export interface CrossProjectRecord {

@@ -1,5 +1,80 @@
 # Changelog
 
+## 3.0.9 - 2026-07-29
+
+- Wire moves to `argus-decision-mcp@2.0.9`. If your host answers Argus's confirm
+  dialog without showing it to you - a real Codex under `approval_policy =
+  "never"` does exactly this - Argus no longer tells you that you declined
+  something you never saw. It says nothing was recorded, notes your host may have
+  answered for you, and offers to save it from chat. A decline you actually made
+  is still yours.
+- The dialogs no longer describe one client's keyboard to every host.
+- `/argus:doctor` names the second cause of a text fallback (your approval policy
+  is blocking the picker), and stops silently skipping four numbered sections
+  when a workspace has no binding.
+
+## 3.0.8 — 2026-07-29
+
+- Pins `argus-decision-mcp@2.0.8`.
+- Uses npm's explicit `exec --package ... -- command` form across npm 10–12.
+- Published-runtime verification tolerates bounded exact-version registry
+  propagation without ever accepting `latest` or a range.
+
+## 3.0.7 — 2026-07-29
+
+- Pins `argus-decision-mcp@2.0.7`, whose npm bin is executable on POSIX as well
+  as through Windows' npm shim.
+- No public MCP tools or plugin roles changed.
+
+## 3.0.6 — 2026-07-29
+
+- Pins `argus-decision-mcp@2.0.6`, the first published MCP build that preserves
+  fast Decline and never disables later picker surfaces.
+- Keeps the six-tool MCP surface and four-role deep-review plugin unchanged.
+
+## 3.0.5 — 2026-07-29
+
+- Wire moves to `argus-decision-mcp@2.0.5` — **a line Argus drafted can no longer
+  reach your account looking like your own.** Provenance was recorded at seal
+  time but not on the event the webapp push reads, so an unconfirmed draft and a
+  sentence you dictated arrived identical. It now travels with the seal itself.
+- That fix was on main but not in the published 2.0.4; both called themselves
+  2.0.4. This release closes the gap, and the post-publish check now looks for
+  the fix by name so the same silence is visible from the outside.
+
+## 3.0.4 — 2026-07-28
+
+- Wire moves to `argus-decision-mcp@2.0.4` — **Accept works, and the dialog
+  waits for you.** Two separate reasons it did not:
+
+  The confirm dialog carried optional edit boxes. Claude Code does not
+  preselect Accept when a form has any field, and Return inside a box moves to
+  the next row rather than submitting — so reading the prediction and pressing
+  Accept sent nothing, and the ask ended in a timeout. The confirm now has no
+  input fields: one keypress records it. To change the wording or the date, say
+  so and it is re-sealed with your words.
+
+  Separately, the ask itself was a request with the MCP SDK's default 60-second
+  timeout, so an Accept pressed after a minute of thinking was discarded while
+  the tool reported that nothing had been recorded. It allows ten minutes now.
+
+- The pickers that need an answer from you (what reality did, when to look
+  again, your call on an open question) keep their fields and now say on screen
+  where the submit row is.
+- The receipt, seal certificate and logbook had six ways to spill outside their
+  own frame — a Korean sentence without spaces, a long URL, emoji, a long id —
+  and they stay inside it now.
+
+## 3.0.3 — 2026-07-28
+
+- Wire moves to `argus-decision-mcp@2.0.3` — the five confirm dialogs were read
+  the way the card was in 3.0.2. Every input box had been labelled with its
+  internal key (`reword`, `outcome`, `what_happened`, `when`); they now carry
+  human labels in your language. The defer ask shows which prediction it is
+  about and marks "close this for good" as irreversible. A long prediction no
+  longer spills as one 300-character line. English copy was read for the first
+  time and unpacked into lines.
+
 ## 3.0.2 — 2026-07-28
 
 - Wire moves to `argus-decision-mcp@2.0.2` — the confirm surfaces were rendered

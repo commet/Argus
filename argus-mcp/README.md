@@ -5,12 +5,34 @@ reality later did. It does not score people or give verdicts.
 
 ## Install
 
+### Codex (CLI or app)
+
+```bash
+codex mcp add argus-decision -- npx -y argus-decision-mcp@2.0.9
+codex mcp list        # argus-decision should be listed and enabled
+```
+
+Argus confirms a prediction with a one-tap form before saving it. Codex shows
+that form under its default approval policy. If yours is set to `never`, or
+`approval_policy.granular.mcp_elicitations = false`, Codex answers the form
+itself without showing it — Argus will tell you so and offer to save from chat
+instead, rather than pretend you declined.
+
+### Claude Code
+
+```bash
+/plugin marketplace add commet/Argus
+/plugin install argus@argus
+```
+
+### Any other MCP host
+
 ```json
 {
   "mcpServers": {
     "argus-decision": {
       "command": "npx",
-      "args": ["-y", "argus-decision-mcp@2.0.0"],
+      "args": ["-y", "argus-decision-mcp@2.0.9"],
       "env": {
         "ARGUS_DIR": "/absolute/path/to/your/project/.argus"
       }
@@ -18,6 +40,9 @@ reality later did. It does not score people or give verdicts.
   }
 }
 ```
+
+Pin an exact version, not a range: `npx` reuses a cached install for a range
+spec, so `@latest` or `@^2` can silently keep running a build from weeks ago.
 
 `ARGUS_DIR` is optional when the MCP host starts the server in the project
 directory. The default is `<current-project>/.argus`. A per-call absolute

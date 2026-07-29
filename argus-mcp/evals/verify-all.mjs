@@ -24,6 +24,7 @@
  */
 import { execSync } from 'node:child_process';
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -39,6 +40,29 @@ let failed = 0;
 // prevent. Give every gate room to speak.
 const BUF = { maxBuffer: 64 * 1024 * 1024 };
 
+/**
+ * What to print when a gate fails, and why the last three lines are the wrong
+ * answer.
+ *
+ * A CI run failed on 2026-07-29 and the report read:
+ *
+ *   ✗ 단위·프로토콜 테스트   73.2s   89| const dir = tmpArgusDir(); | 90| for (…
+ *
+ * That is vitest's SOURCE CONTEXT — the tail of the output — not the assertion.
+ * It names a line without saying what went wrong with it, so the one person
+ * reading the report cannot act on it, which is the whole failure mode this file
+ * exists to prevent: an instrument that runs but does not inform.
+ *
+ * So look for the sentence that states the failure, and only fall back to the
+ * tail when nothing announces itself.
+ */
+function failureNote(out) {
+  const lines = out.split('\n').map((l) => l.replace(/\[[0-9;]*m/g, '').trim()).filter(Boolean);
+  const said = lines.filter((l) => /AssertionError|Error:|expected .* to |Test timed out|timed out in \d+ms|✗|×\s|FAIL\b|\b[1-9]\d* (?:violations?|RED|failed)\b/i.test(l));
+  const chosen = said.length ? said.slice(0, 3) : lines.slice(-3);
+  return chosen.join(' | ').slice(0, 240);
+}
+
 function run(label, cmd, opts = {}) {
   const started = Date.now();
   try {
@@ -48,27 +72,31 @@ function run(label, cmd, opts = {}) {
   } catch (e) {
     failed++;
     const out = String(e.stdout ?? '') + String(e.stderr ?? '');
-    rows.push({ label, ok: false, ms: Date.now() - started, note: out.split('\n').filter(Boolean).slice(-3).join(' | ').slice(0, 180) });
+    rows.push({ label, ok: false, ms: Date.now() - started, note: failureNote(out) });
     return out;
   }
 }
 
 /**
- * Break something on purpose; assert the gate turns red; put it back.
- * A gate that stays green here is worse than no gate — it is false comfort.
+ * Break something on purpose inside an expendable copy; assert that the gate
+ * itself reports a violation; put the copy back.
  *
- * This edits REAL source files, so an interrupted run can leave the tree
- * mutated. It happened (2026-07-28): a build failure escaped mid-plant and a
- * line stayed deleted. Two defences now: the try/catch below can no longer let
- * an exception skip the restore, and `verifyTreeClean()` at the end re-reads
- * every file this function touched and fails loudly if any byte differs from
- * what it started with. Never trust the restore silently.
+ * The old harness edited the checkout. An interrupted run once left a planted
+ * regression in src/server.ts, and any non-zero child exit — including an OS
+ * resource failure — counted as "the gate caught it". Both are disallowed:
+ *
+ *   1. every mutation lives under the system temp directory;
+ *   2. the unmodified baseline must pass before self-tests begin;
+ *   3. a self-test passes only when the child exits non-zero AND emits that
+ *      gate's own failure signature.
  */
 const touched = new Map();
-function selfTest(label, file, mutate, gateCmd) {
-  const full = path.join(ROOT, file);
+let selfRoot = null;
+function selfTest(label, file, mutate, gateCmd, gateFailure = gateFailureFor(gateCmd)) {
+  const full = path.join(selfRoot, file);
+  const realFull = path.join(ROOT, file);
   const original = fs.readFileSync(full, 'utf8');
-  if (!touched.has(full)) touched.set(full, original);
+  if (!touched.has(realFull)) touched.set(realFull, fs.readFileSync(realFull, 'utf8'));
   // Match against LF regardless of what the working copy holds. On Windows a
   // tool that rewrites a file lands CRLF, every multi-line mutation string stops
   // matching, and three self-tests reported "could not plant" (2026-07-28) — the
@@ -85,12 +113,29 @@ function selfTest(label, file, mutate, gateCmd) {
   const started = Date.now();
   try {
     fs.writeFileSync(full, broken);
-    build(); // a build failure here must NOT escape with the file still broken
-    let caught = false;
-    try { execSync(gateCmd, { cwd: ROOT, stdio: ['ignore', 'pipe', 'pipe'], ...BUF }); }
-    catch { caught = true; }
-    if (!caught) failed++;
-    rows.push({ label, ok: caught, ms: Date.now() - started, note: caught ? '심은 회귀를 잡았다' : '⚠ 회귀를 심었는데도 초록 — 이 게이트는 거짓말한다' });
+    build(selfRoot);
+    let exitedNonZero = false;
+    let output = '';
+    try {
+      output = execSync(gateCmd, {
+        cwd: selfRoot,
+        encoding: 'utf8',
+        stdio: ['ignore', 'pipe', 'pipe'],
+        env: { ...process.env, ...skipBuildEnv(gateCmd) },
+        ...BUF,
+      });
+    } catch (error) {
+      exitedNonZero = true;
+      output = `${String(error.stdout ?? '')}${String(error.stderr ?? '')}`;
+    }
+    const ownedFailure = exitedNonZero && gateFailure.test(output);
+    if (!ownedFailure) failed++;
+    const note = !exitedNonZero
+      ? '⚠ 회귀를 심었는데도 초록 — 이 게이트는 거짓말한다'
+      : ownedFailure
+        ? `심은 회귀를 잡았다 (${gateFailure})`
+        : `비정상 종료했지만 게이트 판정문이 없다: ${output.split('\n').filter(Boolean).slice(-2).join(' | ').slice(0, 130)}`;
+    rows.push({ label, ok: ownedFailure, ms: Date.now() - started, note });
   } catch (e) {
     // Reaching here means the SELF-TEST broke, not the product. Say exactly that
     // — a harness failure dressed as a product verdict is the thing this file
@@ -101,19 +146,63 @@ function selfTest(label, file, mutate, gateCmd) {
     rows.push({ label, ok: false, ms: Date.now() - started, note: `자기검증 하네스 실패(제품 아님): ${String(e?.message ?? e).split('\n')[0].slice(0, 120)}` });
   } finally {
     fs.writeFileSync(full, original);
-    build();
   }
 }
 
 /** `npm run build` wipes dist/ first, and on Windows that rmSync can EPERM for a
  *  moment while a just-exited spawned server still holds dist/index.js. One
  *  retry turns a harness flake back into what it is; a second failure is real. */
-function build() {
+function build(root = ROOT) {
   try {
-    execSync('npm run build', { cwd: ROOT, stdio: 'ignore' });
+    execSync('npm run build', { cwd: root, stdio: 'ignore' });
   } catch {
-    execSync('npm run build', { cwd: ROOT, stdio: 'ignore' });
+    execSync('npm run build', { cwd: root, stdio: 'ignore' });
   }
+}
+
+function skipBuildEnv(gateCmd) {
+  if (gateCmd.includes('host-matrix')) return { HOST_MATRIX_SKIP_BUILD: '1' };
+  if (gateCmd.includes('ambient-picker')) return { AMBIENT_SKIP_BUILD: '1' };
+  if (gateCmd.includes('battery')) return { BATTERY_SKIP_BUILD: '1' };
+  if (gateCmd.includes('unreadable-ledger')) return { UNREADABLE_SKIP_BUILD: '1' };
+  if (gateCmd.includes('picker-surfaces')) return { PICKER_SURFACES_SKIP_BUILD: '1' };
+  if (gateCmd.includes('surface-hazards')) return { SURFACE_HAZARDS_SKIP_BUILD: '1' };
+  if (gateCmd.includes('keepsake-frames')) return { KEEPSAKE_SKIP_BUILD: '1' };
+  if (gateCmd.includes('claude-code-form')) return { CC_FORM_SKIP_BUILD: '1' };
+  if (gateCmd.includes('codex-app-server')) return { CODEX_APP_SERVER_SKIP_BUILD: '1' };
+  if (gateCmd.includes('answer-time')) return { ANSWER_TIME_SKIP_BUILD: '1' };
+  if (gateCmd.includes('slow-human')) return { SLOW_HUMAN_SKIP_BUILD: '1', SLOW_HUMAN_THINK_MS: '61500' };
+  return {};
+}
+
+function gateFailureFor(gateCmd) {
+  if (gateCmd.includes('host-matrix')) return /I[1-5](?:\)|\s)|\b[1-9]\d* violation/i;
+  if (gateCmd.includes('widget-runtime')) return /\bFAIL\b/;
+  if (gateCmd.includes('unreadable-ledger')) return /\bFAIL\b/;
+  if (gateCmd.includes('battery')) return /\b[1-9]\d* RED\b/;
+  if (gateCmd.includes('ambient-picker')) return /\bFAIL\b|\b[1-9]\d* violation(?:s|\(s\))?\b/i;
+  if (gateCmd.includes('picker-surfaces')) return /\b[1-9]\d* violations?\b/i;
+  if (gateCmd.includes('surface-hazards')) return /\b[1-9]\d* violations?\b/i;
+  if (gateCmd.includes('keepsake-frames')) return /\b[1-9]\d* violations?\b/i;
+  if (gateCmd.includes('claude-code-form')) return /\b[1-9]\d* violations?\b/i;
+  if (gateCmd.includes('codex-app-server')) return /\b[1-9]\d* violations?\b/i;
+  if (gateCmd.includes('answer-time')) return /\b[1-9]\d* violations?\b/i;
+  if (gateCmd.includes('slow-human')) return /\b[1-9]\d* violations?\b/i;
+  // e2e-picker does not print "violations" — it prints its own tally. Without
+  // this line the self-test that uses it throws here and takes the whole verify
+  // with it, which is exactly what this function is for: a gate whose failure
+  // nobody can recognise must not be silently accepted as "it exited non-zero".
+  if (gateCmd.includes('e2e-picker')) return /E2E: \d+ passed, [1-9]\d* failed/;
+  throw new Error(`self-test has no owned failure signature for: ${gateCmd}`);
+}
+
+const pad = (s, n) => String(s) + ' '.repeat(Math.max(0, n - String(s).length));
+function printReport() {
+  console.log('\n' + '─'.repeat(78));
+  for (const row of rows) {
+    console.log(`  ${row.ok ? '✓' : '✗'} ${pad(row.label, 34)} ${pad(`${(row.ms / 1000).toFixed(1)}s`, 8)} ${row.note}`);
+  }
+  console.log('─'.repeat(78));
 }
 
 console.log('Argus 전수 검증 — 모든 게이트 + 게이트 자신의 신뢰성\n');
@@ -129,12 +218,30 @@ run('적대 입력 퍼즈', 'node evals/fuzz.mjs', { extract: (o) => (o.match(/(
 run('픽커 E2E (엄격 호스트)', `node evals/e2e-picker.mjs "${process.execPath}" dist/index.js`, { extract: (o) => (o.match(/(E2E: [^\n]*)/) || [])[1] ?? '' });
 run('원장 못 읽을 때 쓰기 차단', 'node evals/unreadable-ledger.mjs', { extract: (o) => (o.includes('✅') ? '이중 봉인 차단 확인' : '') });
 run('패키지 내용물', 'npm pack --dry-run');
+run('npm bin 실행 권한', 'node evals/package-executable.mjs');
 
 // ── the observatories, ported to the public six ────────────────────────────
-run('호스트 전수 대조 (9 호스트)', 'node evals/host-matrix.mjs', { env: { ...process.env, HOST_MATRIX_SKIP_BUILD: '1' }, extract: (o) => (o.match(/(\d+ checks · \d+ violation[^\n]*)/) || [])[1] ?? '' });
+run('호스트 전수 대조 (실제 클라이언트 프로필)', 'node evals/host-matrix.mjs', { env: { ...process.env, HOST_MATRIX_SKIP_BUILD: '1' }, extract: (o) => (o.match(/(\d+ checks · \d+ violation[^\n]*)/) || [])[1] ?? '' });
 run('밖에서 뜨는 물음 (실서버)', 'node evals/ambient-picker.mjs', { env: { ...process.env, AMBIENT_SKIP_BUILD: '1' }, extract: (o) => (o.match(/(\d+ checks · \d+ violation[^\n]*)/) || [])[1] ?? '' });
 run('내용 배터리 (실서버)', 'node evals/battery.mjs', { env: { ...process.env, BATTERY_SKIP_BUILD: '1' }, extract: (o) => (o.match(/(\d+ calls · \d+ RED[^\n]*)/) || [])[1] ?? '' });
 run('정산 카드 실행 (VM 호스트)', 'node evals/widget-runtime.mjs', { extract: (o) => `${(o.match(/ok  /g) || []).length} gestures ok` });
+const COUNTS = (o) => (o.match(/(\d+ checks · \d+ violation[^\n]*)/) || [])[1] ?? '';
+run('픽커 화면 전수 (2언어 × 8내용)', 'node evals/picker-surfaces.mjs', { env: { ...process.env, PICKER_SURFACES_SKIP_BUILD: '1' }, extract: COUNTS });
+run('문장 위험 전수 (2언어 × 2호스트)', 'node evals/surface-hazards.mjs', { env: { ...process.env, SURFACE_HAZARDS_SKIP_BUILD: '1' }, extract: COUNTS });
+run('간직하는 화면의 액자 (영수증·봉인·항해일지)', 'node evals/keepsake-frames.mjs', { env: { ...process.env, KEEPSAKE_SKIP_BUILD: '1' }, extract: COUNTS });
+run('버전 다섯 곳 일치', 'node evals/version-lockstep.mjs', { extract: COUNTS });
+// Judges our asks with the submit gate read out of the shipped Claude Code
+// binary — including how many Returns it takes, which is what three previous
+// "Accept does not work" fixes each missed.
+run('Claude Code 폼이 실제로 제출하는가', 'node evals/claude-code-form.mjs', { env: { ...process.env, CC_FORM_SKIP_BUILD: '1' }, extract: (o) => (o.match(/(\d+ checks · \d+ violations[^\n]*)/) || [])[1] ?? '' });
+run('기록이 사람이 답한 시각을 쓰는가', 'node evals/answer-time.mjs', { env: { ...process.env, ANSWER_TIME_SKIP_BUILD: '1' }, extract: (o) => (o.match(/(\d+ checks · \d+ violations[^\n]*)/) || [])[1] ?? '' });
+// Slow on purpose: the answer arrives after 90 seconds, beyond the SDK default.
+run('1분 넘게 생각한 사람의 Accept', 'node evals/slow-human.mjs', { env: { ...process.env, SLOW_HUMAN_SKIP_BUILD: '1' }, extract: (o) => (o.match(/(\d+ checks · \d+ violations[^\n]*)/) || [])[1] ?? '' });
+// Two real `codex app-server` processes with two real approval policies. The
+// blocked reality is produced BY CODEX, not by the harness deciding to decline —
+// a harness that manufactures the failure it detects proves only the harness.
+// Skips loudly (exit 0 with a message) when codex is not installed.
+run('진짜 Codex app-server (허용 / 정책차단)', 'node evals/codex-app-server.mjs', { env: { ...process.env, CODEX_APP_SERVER_SKIP_BUILD: '1' }, extract: (o) => (o.match(/(\d+ checks · \d+ violation[^\n]*|.*SKIPPED.*)/) || [])[1] ?? '' });
 
 // ── the plugin surface ──────────────────────────────────────────────────────
 run('플러그인 검증', 'node argus-plugin-v2/scripts/validate-plugin.js', { cwd: REPO });
@@ -142,12 +249,48 @@ run('플러그인 설치 스모크', 'node argus-plugin-v2/scripts/install-smoke
 run('플러그인 시뮬레이션', 'node argus-plugin-v2/scripts/simulate-plugin.js', { cwd: REPO });
 run('확인 표면 문구 대조', 'node argus-plugin-v2/scripts/picker-surface-parity.test.mjs', { cwd: REPO });
 
-console.log('게이트 실행 완료. 이제 게이트 자신을 시험합니다 (회귀를 일부러 심어 빨간불을 확인)…\n');
+// Self-tests are meaningful only against a known-green baseline. Previously an
+// unrelated baseline failure could be followed by a sea of green self-tests,
+// making the final output look much healthier than the run actually was.
+if (failed) {
+  printReport();
+  console.log(`\n❌ 기준 게이트 ${failed}개 실패 — 자기검증은 실행하지 않았습니다. 기준선부터 고치세요.`);
+  process.exit(1);
+}
 
+const selfBase = fs.mkdtempSync(path.join(os.tmpdir(), 'argus-verify-self-'));
+selfRoot = path.join(selfBase, 'argus-mcp');
+fs.cpSync(ROOT, selfRoot, {
+  recursive: true,
+  filter: (source) => {
+    const relative = path.relative(ROOT, source);
+    if (!relative) return true;
+    const first = relative.split(path.sep)[0];
+    return first !== 'node_modules' && first !== 'dist';
+  },
+});
+fs.symlinkSync(
+  path.join(ROOT, 'node_modules'),
+  path.join(selfRoot, 'node_modules'),
+  process.platform === 'win32' ? 'junction' : 'dir',
+);
+
+console.log(`게이트 실행 완료. 격리 사본에서 게이트 자신을 시험합니다: ${selfRoot}\n`);
+
+try {
+
+// ① used to plant `format:'date'` on the seal ask's check_by box. That box is
+// gone (2026-07-28) — a confirmation ask ships no fields at all, because Claude
+// Code does not preselect Accept when any property is declared. The regression
+// this guards against is therefore the reintroduction of a constraining field,
+// planted on the settle picker, which still has one and still must never block
+// the form.
 selfTest(
   '자기검증 ① 폼 차단 회귀를 잡는가',
-  'src/tools/seal.ts',
-  (s) => s.replace("            check_by: {\n              type: 'string',", "            check_by: {\n              type: 'string',\n              format: 'date',"),
+  'src/tools/settle.ts',
+  (s) => s.replace(
+    "            what_happened: {\n              type: 'string',",
+    "            what_happened: {\n              type: 'string',\n              minLength: 1,"),
   'node evals/host-matrix.mjs',
 );
 selfTest(
@@ -161,10 +304,16 @@ selfTest(
 // `decision`), so the plant became invisible and the self-test reported
 // "심었는데도 초록" — correctly. It is re-aimed at the premise CONFIRM picker,
 // which is the same defect class on a path a user can still reach today.
+// ③ used to plant maxLength on the premise ask's reword box, which no longer
+// exists. The same destroy-the-typed-answer class now lives on the open-question
+// picker, whose field IS the user's own sentence — the most expensive place in
+// the product to silently truncate.
 selfTest(
   '자기검증 ③ 긴 답 파괴 회귀를 잡는가',
   'src/tools/premises.ts',
-  (s) => s.replace(/(\n\s+reword: \{\n\s+type: 'string',)/, "$1\n            maxLength: 400,"),
+  (s) => s.replace(
+    "{ type: 'object', properties: { decision: { type: 'string',",
+    "{ type: 'object', properties: { decision: { type: 'string', maxLength: 400,"),
   'node evals/host-matrix.mjs',
 );
 selfTest(
@@ -209,6 +358,11 @@ selfTest(
   (s) => s.replace("    if (asked && (asked.kind === 'unsupported' || (asked.kind === 'no_answer' && asked.reason === 'failed'))) {", '    if (false) {'),
   'node evals/ambient-picker.mjs',
 );
+// ⑪ The seal confirm no longer declares `reword`, so this protection became
+// unreachable — and unreachable code cannot be tested, which is how a gate
+// starts lying. The `extra-field` host profile sends the field anyway (a client
+// that volunteers what the schema did not ask for), which keeps the hand-back
+// on a live path and this self-test meaningful.
 selfTest(
   '자기검증 ⑪ 사용자가 쓴 말을 버리는 회귀를 잡는가',
   'src/tools/seal.ts',
@@ -222,20 +376,6 @@ selfTest(
   'node evals/host-matrix.mjs',
 );
 
-// The self-tests rewrote real source files. Prove every one of them came back
-// byte-identical before this run is allowed to say anything reassuring.
-let dirty = 0;
-for (const [full, before] of touched) {
-  const now = fs.readFileSync(full, 'utf8');
-  if (now === before) continue;
-  dirty++;
-  failed++;
-  rows.push({ label: `자기검증 뒷정리 ${path.relative(ROOT, full)}`, ok: false, ms: 0, note: '심은 회귀가 파일에 남았다 — git diff로 확인하고 되돌리세요' });
-}
-if (dirty === 0 && touched.size > 0) {
-  rows.push({ label: '자기검증 뒷정리', ok: true, ms: 0, note: `건드린 파일 ${touched.size}개 전부 원래 바이트로 복구됨` });
-}
-
 selfTest(
   '자기검증 ⑬ 화면에 enum이 새는 회귀를 잡는가',
   'src/lib/apps-ui-html.ts',
@@ -243,16 +383,152 @@ selfTest(
   'node evals/widget-runtime.mjs',
 );
 
-const pad = (s, n) => String(s) + ' '.repeat(Math.max(0, n - String(s).length));
-console.log('\n' + '─'.repeat(78));
-for (const r of rows) {
-  console.log(`  ${r.ok ? '✅' : '❌'} ${pad(r.label, 34)} ${pad(`${(r.ms / 1000).toFixed(1)}s`, 8)} ${r.note}`);
+selfTest(
+  '자기검증 ⑭ 픽커 라벨이 키로 새는 회귀를 잡는가',
+  'src/tools/settle.ts',
+  (s) => s.replace(/\n +title: pickerLocale === 'ko' \? '현실이 어떻게 답했나' : 'What reality did',/, ''),
+  'node evals/picker-surfaces.mjs',
+);
+selfTest(
+  '자기검증 ⑮ 한국어 화면에 영어가 섞이는 회귀를 잡는가',
+  'src/tools/seal.ts',
+  (s) => s.replace("' 달력 앱에 넣을 알림 파일도 함께 저장했습니다.'", "' 달력 리마인더(.ics)도 저장했습니다.'"),
+  'node evals/surface-hazards.mjs',
+);
+selfTest(
+  '자기검증 ⑯ 간직하는 화면이 액자 밖으로 나가는 회귀를 잡는가',
+  'src/lib/render-receipt.ts',
+  (s) => s.replace('.flatMap((w) => breakToken(w, width));', ';'),
+  'node evals/keepsake-frames.mjs',
+);
+selfTest(
+  '자기검증 ⑰ 폭 측정이 이모지를 놓치는 회귀를 잡는가',
+  'src/lib/render-receipt.ts',
+  (s) => s.replace('return (WIDE.test(ch) || PICTO.test(ch)) ? 2 : 1;', 'return WIDE.test(ch) ? 2 : 1;'),
+  'node evals/keepsake-frames.mjs',
+);
+selfTest(
+  '자기검증 ㉑ 사람을 기다려놓고 호출 시점으로 찍는 회귀를 잡는가',
+  'src/tools/premises.ts',
+  (s) => s.replace('], answeredAt);', '], now);'),
+  'node evals/answer-time.mjs',
+);
+selfTest(
+  '자기검증 ㉒ 봉인 시각이 호출 시점에 머무는 회귀를 잡는가',
+  'src/tools/seal.ts',
+  (s) => s.replace(
+    "      if (elicitedKeep && !a['today_override']) now = logicalNow(now.slice(0, 10), false);",
+    "      if (elicitedKeep && !a['today_override']) now = now;",
+  ),
+  'node evals/answer-time.mjs',
+);
+selfTest(
+  '자기검증 ㉓ Codex 제품명 차단이 정상 picker까지 죽이는 회귀를 잡는가',
+  'src/lib/elicit.ts',
+  (s) => s.replace(
+    '  return Boolean(capabilities?.elicitation);',
+    '  return false;',
+  ),
+  'node evals/codex-app-server.mjs',
+);
+selfTest(
+  // main의 2.0.6판은 "즉시 decline을 시간으로 재해석하는 회귀"를 잡았다. 2.0.7이
+  // 그 재해석을 (귀속 거부의 형태로) 채택했으므로 그 변이는 더 이상 심을 수
+  // 없다. 다만 그 테스트가 지키려던 진짜 우려는 살아 있고 더 중요하다:
+  // **귀속 거부가 정상적인 거절까지 삼켜서는 안 된다.** 사람이 화면을 읽고 누른
+  // "아니오"는 그 사람의 답이고, 그걸 "답이 없었다"로 바꾸면 이번엔 반대 방향으로
+  // 사용자의 행위를 지우는 것이다. 창(窓)을 무한대로 열면 모든 거절이 삼켜진다.
+  '자기검증 ㉔ 귀속 거부가 사람의 정상 거절까지 삼키는 회귀를 잡는가',
+  'src/lib/elicit.ts',
+  (s) => s.replace(
+    'export const UNREADABLE_DECLINE_MAX_MS = 500;',
+    'export const UNREADABLE_DECLINE_MAX_MS = 24 * 60 * 60 * 1000;',
+  ),
+  'node evals/codex-app-server.mjs',
+);
+selfTest(
+  '자기검증 ⑳ 화면이 서버가 요구할 칸을 선택이라 부르는 회귀를 잡는가',
+  'src/tools/settle.ts',
+  (s) => s.replace(
+    "                : (haveWhat ? 'What actually happened (optional)' : 'What actually happened'),",
+    "                : 'What actually happened (optional)',"),
+  'node evals/host-matrix.mjs',
+);
+selfTest(
+  '자기검증 ⑲ 확인창에 입력칸이 되돌아오는 회귀를 잡는가',
+  'src/tools/seal.ts',
+  (s) => s.replace(
+    "          { type: 'object', properties: {} },",
+    "          { type: 'object', properties: { reword: { type: 'string', title: 'Reword (optional)' } } },"),
+  'node evals/claude-code-form.mjs',
+);
+selfTest(
+  '자기검증 ㉕ 아무도 못 본 거절을 사용자 것이라 하는 회귀를 잡는가',
+  'src/lib/elicit.ts',
+  (s) => s.replace('      if (Date.now() - started <= UNREADABLE_DECLINE_MAX_MS) {', '      if (false) {'),
+  'node evals/battery.mjs',
+);
+selfTest(
+  // 한 번의 성급한 거절이 그 세션의 모든 픽커를 지우던 설계. 되심으면 정산
+  // 픽커가 아예 안 뜬다.
+  '자기검증 ㉖ 거절 한 번이 이후 픽커를 전부 없애는 회귀를 잡는가',
+  'src/lib/elicit.ts',
+  // Anchor on the signature line only. This mutation used to include the body's
+  // first statement and stopped matching the moment canElicit gained its
+  // fail-closed try/catch — the self-test then reported "could not plant", which
+  // is the honest outcome and exactly why that branch exists, but a mutation
+  // that cannot be planted proves nothing. Keep the anchor as small as the
+  // change requires.
+  (s) => s.replace(
+    'export function canElicit(): boolean {',
+    'export function canElicit(): boolean {\n  if (_unreadableStreak >= 1) return false;'),
+  `node evals/e2e-picker.mjs "${process.execPath}" dist/index.js`,
+);
+selfTest(
+  '자기검증 ⑱ 오래 생각한 사람의 답을 버리는 회귀를 잡는가',
+  'src/server.ts',
+  (s) => s.replace(
+    'ec.elicitInput({ message, requestedSchema }, { timeout: timeoutMs ?? DECISION_ASK_TIMEOUT_MS })',
+    'ec.elicitInput({ message, requestedSchema })'),
+  'node evals/slow-human.mjs',
+);
+
+} finally {
+  fs.rmSync(selfBase, { recursive: true, force: true });
 }
-console.log('─'.repeat(78));
+
+// Prove the checkout remained byte-identical. This now checks the source tree
+// after ALL self-tests, including the final seven that the old cleanup check
+// accidentally ran before.
+let dirty = 0;
+for (const [full, before] of touched) {
+  const now = fs.readFileSync(full, 'utf8');
+  if (now === before) continue;
+  dirty++;
+  failed++;
+  rows.push({
+    label: `자기검증 원본 보호 ${path.relative(ROOT, full)}`,
+    ok: false,
+    ms: 0,
+    note: '격리 자기검증이 원본을 바꿨다 — 배포 금지',
+  });
+}
+if (dirty === 0 && touched.size > 0) {
+  rows.push({
+    label: '자기검증 원본 보호',
+    ok: true,
+    ms: 0,
+    note: `대상 ${touched.size}개 모두 원본 바이트 불변 · 임시 사본 삭제`,
+  });
+}
+
+printReport();
 if (failed) {
   console.log(`\n❌ ${failed}개 게이트 실패 — 위 줄의 note를 보세요. 이 상태로는 배포 금지.`);
   process.exit(1);
 }
-const planted = rows.filter((r) => r.label.startsWith('자기검증')).length;
+const planted = rows.filter(
+  (row) => row.label.startsWith('자기검증') && !row.label.includes('원본 보호'),
+).length;
 console.log(`\n✅ 전 게이트 통과 + 심은 회귀 ${planted}개를 게이트가 실제로 잡음.`);
 console.log('   (초록불이 "고장을 못 잡는 초록불"이 아님을 같은 실행 안에서 증명했습니다.)');

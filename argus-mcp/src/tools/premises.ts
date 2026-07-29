@@ -13,6 +13,7 @@ import {
 } from '../lib/premises.js';
 import { elicitDetailed, canElicit } from '../lib/elicit.js';
 import { noAnswerResult } from '../lib/picker-fallback.js';
+import { sanitizeLine } from '../v2/sanitize.js';
 import { resolveResponseLocale } from '../lib/surfaces.js';
 import { envelope, toolError } from '../lib/envelope.js';
 import { ENVELOPE_OUTPUT_SCHEMA, zArgusDir, zId, zDate, type ToolModule } from './tool-types.js';
@@ -232,20 +233,24 @@ async function opAdd(
     if (aiDrafts.length === 1 && canElicit()) {
       const draft = aiDrafts[0];
       const dLocale = resolveResponseLocale(dir, draft.text);
-      // Native Accept/Decline (2026-07-24), mirroring seal: Accept blank → keep
-      // (provenance ai_surfaced intact), Accept + reword → the user's words
-      // (user_stated, draft kept as ai_original), Decline → skip. One keystroke
-      // to keep — no required enum to expand.
+      // Native Accept/Decline (2026-07-24), mirroring seal: Accept → keep
+      // (provenance ai_surfaced intact), Decline → skip.
+      //
+      // NO FIELD (2026-07-28). The comment here used to claim "one keystroke to
+      // keep", and it was wrong in the way that mattered: Claude Code does not
+      // preselect Accept when an ask declares any property, and Return inside a
+      // text box moves to the next row rather than submitting. So the optional
+      // reword box turned a yes into a two-Return gesture nobody was told about,
+      // and pressing Return once sent nothing at all. Same defect as the seal
+      // ask; same fix. Rewording stays available — the user says it in chat and
+      // the model calls again with their words as `user_stated`.
+      // Clip for DISPLAY only — the record keeps the whole sentence.
+      const shownDraft = sanitizeLine(draft.text, 96);
       const asked = await elicitDetailed(
         dLocale === 'ko'
-          ? `이 결정이 딛고 선 전제로 기록할까요?\n"${draft.text}"\n\n그대로면 Accept · 고치려면 아래 칸에 쓰고 Accept · 기록 안 하려면 Decline.`
-          : `Record this as a premise the decision rests on?\n"${draft.text}"\n\nAccept to keep · to reword, type it below and Accept · Decline to skip.`,
-        { type: 'object', properties: {
-          reword: {
-            type: 'string',
-            description: dLocale === 'ko' ? '전제를 고쳐 쓰려면 여기에 적으세요. 비우면 위 문장 그대로 기록합니다.' : 'To reword the premise, type it here. Leave blank to keep the statement above.',
-          },
-        } },
+          ? `이 결정이 딛고 선 전제로 기록할까요?\n"${shownDraft}"\n\n그대로 남기려면 Accept, 남기지 않으려면 Decline입니다. 문장을 고치고 싶으면 Decline 후 말씀해 주세요.`
+          : `Record this as a premise the decision rests on?\n"${shownDraft}"\n\nAccept to keep it, Decline to skip. To reword it, Decline and say so.`,
+        { type: 'object', properties: {} },
       );
       // A window that never answered is not a decline (audit 2026-07-27). The
       // draft is dropped either way — we will not record a premise the user
@@ -396,9 +401,14 @@ async function opAdd(
   // decision "once the decision is sealed" was a false conditional (loop find).
   const sealedNow = state === 'sealed';
   const refRange = events.length > 0 ? `${echo[0].ref}${echo.length > 1 ? `–${echo[echo.length - 1].ref}` : ''}` : '';
+  // Its own line, not appended to the confirmation. Together they ran to 133
+  // characters in English — the confirmation of what was written, plus a second
+  // fact about future re-checks, arriving as one wall. Korean stayed under the
+  // limit only because Korean is denser, which is not a reason for the English
+  // reader to get a worse line.
   const monitoredNote = monitoredCount === 0 ? '' : ko
-    ? (sealedNow ? ` 그중 ${monitoredCount}건은 나중에 실제와 다시 대조해 확인합니다 (예측 저장됨).` : ` 예측을 저장하면 그중 ${monitoredCount}건을 나중에 실제와 다시 대조해 확인합니다.`)
-    : (sealedNow ? ` ${monitoredCount} will be re-checked against what actually happens (prediction saved).` : ` After saving a prediction, ${monitoredCount} will be re-checked against what actually happens.`);
+    ? (sealedNow ? `\n그중 ${monitoredCount}건은 나중에 실제와 다시 대조해 확인합니다 (예측 저장됨).` : `\n예측을 저장하면 그중 ${monitoredCount}건을 나중에 실제와 다시 대조해 확인합니다.`)
+    : (sealedNow ? `\n${monitoredCount} will be re-checked against what actually happens (prediction saved).` : `\nAfter saving a prediction, ${monitoredCount} will be re-checked against what actually happens.`);
   const oneLine = (s: string): string => {
     const t = s.replace(/\s+/g, ' ').trim();
     return t.length > 70 ? t.slice(0, 69) + '…' : t;
@@ -418,10 +428,15 @@ async function opAdd(
       : (events.length === 1
           ? (ko
               ? `방금 적어뒀습니다: '${oneLine(echo[0]?.text ?? '')}'. 잘못 적혔으면 그대로 말씀해 주세요. 바로잡은 내용도 기록에 남습니다.${monitoredNote}`
-              : `Noted: "${oneLine(echo[0]?.text ?? '')}". Fix anything wrong with argus_capture.${monitoredNote}`)
+              // The Korean here says "tell me and I'll fix it, and the correction
+              // stays on the record too". The English told the PERSON to call
+              // `argus_capture` — a tool name they cannot type — and dropped the
+              // reassurance entirely. `surface` is the line a human reads; the
+              // tool names belong in next_actions, which the model reads.
+              : `Noted: "${oneLine(echo[0]?.text ?? '')}". Say if it's wrong — your correction is recorded too.${monitoredNote}`)
           : (ko
               ? `전제 ${events.length}건을 기록했습니다 (${refRange}). 틀린 것이 있으면 말해 주세요. 바로잡은 내용도 기록에 남습니다.${monitoredNote}`
-              : `${events.length} premises recorded (${refRange}). Fix anything wrong with argus_capture; your correction stays on the record too.${monitoredNote}`));
+              : `${events.length} premises recorded (${refRange}). Say if it's wrong — your correction is recorded too.${monitoredNote}`));
 
   const noAnswerNote = noAnswerDraft
     ? (ko
@@ -538,11 +553,11 @@ async function opResolve(
     const qLocale = resolveResponseLocale(dir, premise.text);
     const got = await elicitDetailed(
       qLocale === 'ko'
-        ? `이 결정에 남겨둔 질문입니다: "${premise.text}". 지금은 어떻게 판단하시나요? 당신의 말로 적어주세요. (그대로 열어둬도 됩니다.)`
-        : `Your open question on this decision: "${premise.text}". What is your call now, in your own words? (You can also leave it open.)`,
+        ? `이 결정에 남겨둔 질문입니다: "${sanitizeLine(premise.text, 96)}". 지금은 어떻게 판단하시나요? 아래 칸에 당신의 말로 적은 뒤 Accept까지 진행하세요. (그대로 열어두려면 Decline.)`
+        : `Your open question on this decision: "${sanitizeLine(premise.text, 96)}". What is your call now, in your own words? Type it below, then continue to Accept. (Decline to leave it open.)`,
       // 필수 필드 없음 — 빈 채 Accept는 아래 `if (!decision)`가 정직하게
       // 되묻는다. "아직 못 정했다"도 유효한 답이므로 폼이 막아선 안 된다.
-      { type: 'object', properties: { decision: { type: 'string', description: qLocale === 'ko' ? '당신의 판단, 당신의 표현. (아직이면 비워두고 Accept)' : 'Your call, your words. (Leave blank and Accept if still undecided.)' } } },
+      { type: 'object', properties: { decision: { type: 'string', title: qLocale === 'ko' ? '지금의 판단' : 'Your call now', description: qLocale === 'ko' ? '당신의 판단, 당신의 표현. (아직이면 비워두고 Accept)' : 'Your call, your words. (Leave blank and Accept if still undecided.)' } } },
     );
     // This is the one ask where a broken window is most expensive: the user may
     // have typed a full paragraph of their own reasoning and we cannot get it
@@ -571,7 +586,16 @@ async function opResolve(
     });
   }
 
-  await appendLedger(dir, [{ id, event: 'premise_resolve', premise_id: premise.premise_id, decision }], now);
+  // STAMP WHEN THEY ANSWERED, not when the tool was called (2026-07-28, seen on
+  // real hardware). `now` was computed at handler entry, then the picker sat
+  // waiting for a human — 62 seconds in the observed run — so the ledger dated
+  // the user's call a minute BEFORE the host logged their answer. A record whose
+  // own timestamps run backwards against the host log is a record you cannot use
+  // to reconstruct what happened. settle.ts already stamps after its picker;
+  // this is the same rule. `today` is unchanged: the logical date is the date
+  // they were asked about, and only the intra-day time was wrong.
+  const answeredAt = a['today_override'] ? now : logicalNow(now.slice(0, 10), false);
+  await appendLedger(dir, [{ id, event: 'premise_resolve', premise_id: premise.premise_id, decision }], answeredAt);
 
   // Voice follows the user's own closing call (their words ARE the sample).
   const ko = resolveResponseLocale(dir, decision || premise.text) === 'ko';

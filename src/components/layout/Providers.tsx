@@ -42,7 +42,14 @@ function StoreInitializer() {
   }, [isMarketing, isAuthCallback, authLoading, loadAgents, loadSettings, loadProjects, loadPersonas]);
 
   useEffect(() => {
+    // Coalesce: SyncStatus is mounted twice on purpose (desktop + mobile shells),
+    // so one `online` event emits two retries and doubles the upload work.
+    // Guarding the single consumer covers every emitter, present and future.
+    let lastRunAt = 0;
     const retrySync = () => {
+      const now = Date.now();
+      if (now - lastRunAt < 2000) return;
+      lastRunAt = now;
       // The visible retry is deliberately scoped to decision records. Loading
       // unrelated stores in parallel can emit a success that masks a failed
       // project upload. loadAndMerge retries locally-newer project rows.

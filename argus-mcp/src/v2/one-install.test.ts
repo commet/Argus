@@ -37,9 +37,11 @@ describe('argus 플러그인 골격 — 하나의 설치 (O3 방1)', () => {
     const servers = mcp['mcpServers'] as Record<string, { command: string; args: string[] }>;
     const wired = Object.values(servers);
     expect(wired.length).toBeGreaterThan(0);
-    const argus = wired.find((s) => s.args.some((a) => a.startsWith('argus-decision-mcp')));
+    const argus = wired.find((s) => s.args.some((a) => a.includes('argus-decision-mcp@')));
     expect(argus, 'argus-decision-mcp가 배선되어 있어야 한다').toBeDefined();
-    expect(argus!.command).toBe('npx');
+    expect(argus!.command).toBe('npm');
+    expect(argus!.args.slice(0, 2)).toEqual(['exec', '--yes']);
+    expect(argus!.args.at(-1)).toBe('argus-decision-mcp');
     // 배선은 **정확 버전 핀**이어야 한다 (2026-07-26 근원 수리).
     //
     // 예전 규약은 메이저 핀(`@^1`)이었고, 그게 조용한 staleness 함정이었다:
@@ -54,9 +56,9 @@ describe('argus 플러그인 골격 — 하나의 설치 (O3 방1)', () => {
     // 정확 핀은 그 함정을 닫되 새 함정(핀이 낡는 것)을 연다. 그래서 아래
     // lockstep 단정이 짝이다: 핀 == 이 패키지의 version. 서버를 올리면
     // 배선도 같은 커밋에서 올라가지 않으면 CI가 빨개진다.
-    const pkgArg = argus!.args.find((a) => a.startsWith('argus-decision-mcp'))!;
+    const pkgArg = argus!.args.find((a) => a.includes('argus-decision-mcp@'))!;
     expect(pkgArg, '범위 스펙(^, ~, latest, *)은 npx 캐시에 얼어붙는다 — 정확 버전으로 핀할 것')
-      .toMatch(/^argus-decision-mcp@\d+\.\d+\.\d+$/);
+      .toMatch(/^--package=argus-decision-mcp@\d+\.\d+\.\d+$/);
   });
 
   it('.mcp.json 핀 == argus-mcp/package.json version (배선 lockstep)', () => {
@@ -64,8 +66,8 @@ describe('argus 플러그인 골격 — 하나의 설치 (O3 방1)', () => {
     const servers = mcp['mcpServers'] as Record<string, { args: string[] }>;
     const pkgArg = Object.values(servers)
       .flatMap((s) => s.args)
-      .find((a) => a.startsWith('argus-decision-mcp@'))!;
-    const pinned = pkgArg.split('@').pop();
+      .find((a) => a.includes('argus-decision-mcp@'))!;
+    const pinned = /argus-decision-mcp@(\d+\.\d+\.\d+)/.exec(pkgArg)?.[1];
     const selfVersion = (readJson(path.join(MCP_ROOT, 'package.json'))['version'] as string);
     expect(pinned, `플러그인이 핀한 ${pinned} != 이 서버의 ${selfVersion} — 같은 커밋에서 함께 올릴 것`)
       .toBe(selfVersion);

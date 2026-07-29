@@ -340,10 +340,32 @@ S.push({
   ],
 });
 S.push({
-  name: 'S29 patterns — 빈 원장에서의 정직한 빈손 (관찰)',
+  // 빈 원장 = 첫 실행. 읽을 사용자 문장이 하나도 없으므로 목소리는 설정에서만
+  // 올 수 있다. 이 시나리오는 원래 locale을 안 켜고 `lang:'ko'`만 달아둬서,
+  // 통과하든 말든 매번 노란불(한국어 여정에 영어 화면)을 냈다 — 제품이 아니라
+  // 시나리오가 틀린 것이었고, 상시 노란불은 노란불을 무시하도록 길들인다.
+  // 이제 설정을 켜고, 내용이 전혀 없어도 그 설정이 지켜지는지를 단정한다.
+  name: 'S29 patterns — 빈 원장에서도 설정한 언어를 지킨다 (관찰)',
   lang: 'ko',
   steps: (d) => [
-    { tool: 'argus_patterns', args: { argus_dir: d, today_override: T0 }, observe: true },
+    { tool: 'argus_settings', args: { argus_dir: d, action: 'update', locale: 'ko' } },
+    { tool: 'argus_patterns', args: { argus_dir: d, today_override: T0 }, observe: true,
+      expect: (env) => (/[가-힣]/.test(String(env.surface ?? '')) ? null
+        : `설정이 ko인데 빈 원장 화면이 한국어가 아니다: ${String(env.surface).slice(0, 90)}`) },
+  ],
+});
+S.push({
+  // 그 반대편. 설정도 없고 사용자 문장도 없으면 우리는 언어를 **모른다**.
+  // 기계의 로케일에서 지어내면 안 된다 — 한국어 로케일 노트북을 쓰는 영어
+  // 사용자가 한국어 "전제 없음" 줄을 받았던 것이 정확히 그 버그다
+  // (recall.ts readVoice의 주석). 신호가 없을 때의 영어는 드리프트가 아니라
+  // 문서화된 기본값이고, 이 시나리오가 그걸 못박는다.
+  name: 'S29b patterns — 신호가 없으면 기계 로케일에서 언어를 지어내지 않는다 (관찰)',
+  steps: (d) => [
+    { tool: 'argus_patterns', args: { argus_dir: d, today_override: T0 }, observe: true,
+      expect: (env) => (/[가-힣]/.test(String(env.surface ?? ''))
+        ? `설정도 사용자 문장도 없는데 한국어가 나왔다 — 기계 로케일을 읽은 것: ${String(env.surface).slice(0, 90)}`
+        : null) },
   ],
 });
 S.push({
@@ -420,9 +442,11 @@ S.push({
   ],
 });
 S.push({
-  name: 'S36 defer 픽커 — Decline하면 정직한 되물음 (관찰)',
+  name: 'S36 defer 픽커 — 사람이 읽고 Decline하면 정직한 되물음 (관찰)',
   lang: 'ko',
-  respond: (p) => (pickerKind(p.requestedSchema) === 'defer' ? { action: 'decline' } : { action: 'accept', content: { outcome: 'still_pending' } }),
+  respond: (p) => (pickerKind(p.requestedSchema) === 'defer'
+    ? { action: 'decline', humanPause: 700 }   // 사람이 화면을 읽고 거절한 경우
+    : { action: 'accept', content: { outcome: 'still_pending' } }),
   steps: (d) => [
     { tool: 'argus_predict', args: { argus_dir: d, id: 's36', predicate: '리퍼럴 프로그램 심사가 끝난다', check_by: '2026-07-10', predicate_owner: 'user', today_override: T0 } },
     { tool: 'argus_resolve', args: { argus_dir: d, id: 's36', outcome: 'still_pending', outcome_source: 'user_stated', today_override: '2026-07-15' },
@@ -433,6 +457,33 @@ S.push({
       expect: (env) => {
         const row = (env.data?.contracts ?? []).find((c) => c.id === 's36');
         return row?.check_by === '2026-07-10' && row?.status === 'sealed' ? null : `a declined defer moved something: ${JSON.stringify(row)}`;
+      } },
+  ],
+});
+S.push({
+  // 사람이 없는 거절. 호스트 정책이 화면을 안 띄우고 스스로 답한 경우
+  // (실측: `codex app-server`, approval_policy="never" / granular
+  // .mcp_elicitations=false → 요청이 클라이언트에 전달조차 안 되고 ~330ms 만에
+  // decline). 이때 "당신이 거절했습니다"라고 말하면 하지도 않은 결정을 사람
+  // 것이라 우기는 것이다. 정직한 되물음 + 텍스트 경로여야 하고, 결정은 원래
+  // 자리에 그대로 있어야 한다.
+  name: 'S36b defer 픽커 — 아무도 못 본 거절은 사용자 것이라 하지 않는다 (관찰)',
+  lang: 'ko',
+  respond: (p) => (pickerKind(p.requestedSchema) === 'defer'
+    ? { action: 'decline' }                    // 즉시 — 읽을 시간이 없었다
+    : { action: 'accept', content: { outcome: 'still_pending' } }),
+  steps: (d) => [
+    { tool: 'argus_predict', args: { argus_dir: d, id: 's36b', predicate: '파트너사 계약서 검토가 끝난다', check_by: '2026-07-10', predicate_owner: 'user', today_override: T0 } },
+    { tool: 'argus_resolve', args: { argus_dir: d, id: 's36b', outcome: 'still_pending', outcome_source: 'user_stated', today_override: '2026-07-15' },
+      expect: (env) => {
+        if (env.data?.choice !== 'no_answer') return `아무도 못 본 거절이 사용자의 답으로 기록됐다: ${JSON.stringify(env.data).slice(0, 200)}`;
+        if (env.data?.recorded !== false) return `기록하지 않았어야 한다: ${JSON.stringify(env.data).slice(0, 200)}`;
+        return null;
+      } },
+    { tool: 'argus_patterns', args: { argus_dir: d, view: 'all', today_override: '2026-07-15' },
+      expect: (env) => {
+        const row = (env.data?.contracts ?? []).find((c) => c.id === 's36b');
+        return row?.check_by === '2026-07-10' && row?.status === 'sealed' ? null : `보이지 않은 거절이 무언가를 옮겼다: ${JSON.stringify(row)}`;
       } },
   ],
 });
@@ -547,6 +598,12 @@ S.push({
 function pickerKind(schema) {
   const props = (schema && schema.properties) || {};
   const has = (k) => Object.prototype.hasOwnProperty.call(props, k);
+  // NO FIELDS = a pure confirmation (2026-07-28). The seal and premise asks
+  // shipped optional edit boxes until Claude Code's own form logic showed why
+  // that breaks: with any property declared, Accept is not preselected and
+  // Return inside a field moves instead of submitting, so "read it, press
+  // Accept" sent nothing. An empty schema IS the contract now, not a mystery.
+  if (Object.keys(props).length === 0) return 'bare_confirm';
   if (has('when')) return 'defer';
   if (has('outcome')) return 'settle_outcome';
   if (has('decision')) return 'resolve_question';
@@ -570,7 +627,21 @@ async function connectClient(dir, respond) {
     // answering `{}` is how a new ask ships untested while the suite is green.
     const kind = pickerKind(req.params?.requestedSchema);
     if (kind === 'unknown') unknownPickers.push(JSON.stringify(req.params?.requestedSchema).slice(0, 200));
-    return respond(req.params);
+    const answer = respond(req.params);
+    // A scenario that claims to test what a PERSON did has to behave like one.
+    // Answering in zero milliseconds is not a fast user, it is a machine, and
+    // the server is now allowed to say so: a decline that returns before anyone
+    // could have read the form is reported as unattributable rather than
+    // credited to the user (a real `codex app-server` under restrictive policy
+    // does exactly that — measured 2026-07-29). So `humanPause` is not a sleep
+    // added to make red go green; it is the scenario declaring which of the two
+    // realities it is exercising. The other one has its own scenario.
+    if (answer?.humanPause) {
+      const { humanPause, ...rest } = answer;
+      await new Promise((r) => setTimeout(r, humanPause));
+      return rest;
+    }
+    return answer;
   });
   await client.connect(new StdioClientTransport({ command: process.execPath, args: [DIST], env }));
   return { client, unknownPickers };

@@ -219,15 +219,25 @@ async function fire(dir: string, todayOverride?: string): Promise<void> {
     };
 
     const ko = resolveResponseLocale(dir) === 'ko';
-    const text = sanitizeLine(first.text || first.id, 120);
+    const text = sanitizeLine(first.text || first.id, 96);
 
     // 물음 1 — 정산 outcome (spine-SAFE 구조 픽: 현실이지 평결이 아니다).
     // 대화 맥락이 없는 사용자를 위해 그의 예측을 그대로 되비춘다 (우정 1조).
     const asked = await withTimeout(
       elicitDetailed(
+        // Structured, not a paragraph (2026-07-28). This arrived as one run-on
+        // line with the user's own prediction buried mid-sentence — and this is
+        // the ask that appears when they did NOT ask for anything, mid-work.
+        // Whatever it costs them in attention, it should at least be scannable.
         ko
-          ? `Argus: 확인일이 지난 예측이 있어요. "${text}" (확인일 ${first.date}). 현실이 어떻게 답했나요? 지금 어려우면 닫아도 됩니다. 다시 조르지 않아요.`
-          : `Argus: a prediction passed its check-by. "${text}" (due ${first.date}). What did reality do? Dismiss if now is a bad time; no re-asking.`,
+          ? `Argus · 확인일이 지난 예측이 있어요.
+"${text}" (확인일 ${first.date})
+
+현실이 어떻게 답했나요? 하나 고른 뒤 Accept까지 진행하면 기록됩니다. 지금 어려우면 그냥 닫으세요. 다시 조르지 않습니다.`
+          : `Argus · a prediction passed its check-by.
+"${text}" (due ${first.date})
+
+What did reality do? Pick one, then continue to Accept to record it. Just close this if now is a bad time; no re-asking.`,
         {
           type: 'object',
           // 필수 필드 없음 (2026-07-27) — 필수 enum은 호스트가 접어서 렌더하고
@@ -244,10 +254,12 @@ async function fire(dir: string, todayOverride?: string): Promise<void> {
               // asking editors to keep them in lockstep by hand; a third,
               // different wording lived in the settle card. Same user, same week.
               enumNames: outcomeEnumNames(ko ? 'ko' : 'en'),
+              title: ko ? '현실이 어떻게 답했나' : 'What reality did',
               description: outcomeFieldDescription(ko ? 'ko' : 'en'),
             },
           },
         },
+        askTimeoutMs(),
       ),
       askTimeoutMs(),
     );
@@ -258,6 +270,13 @@ async function fire(dir: string, todayOverride?: string): Promise<void> {
     // 사용자가 지금은 답할 마음이 아닌 경우와 구분할 수 없고, 구분이 안 될 때의
     // 안전한 쪽은 침묵이다 (mirror clause: 개입할지를 대신 판단하지 않는다).
     // 취소도 같은 이유로 소진 그대로 — 창을 닫은 건 사람일 수 있다.
+    //
+    // `unattributable`(읽을 수 없이 빠른 거절)도 소진 그대로다. 여기서만은 두
+    // 해석이 같은 답을 낸다: 정책이 대신 답한 것이면 되묻기는 보이지 않는
+    // 타이머가 영원히 재시도하는 것이고, 사람이 Esc를 친 것이면 방금 거절한
+    // 사람에게 묻지도 않은 질문을 다시 미는 것이다. 둘 다 멈추라고 말한다.
+    // (in-band 도구들은 반대로 이걸 `failed`와 똑같이 다뤄 텍스트 경로를 준다 —
+    //  거기선 사용자가 방금 요청한 일을 끝내야 하기 때문이다.)
     if (asked && (asked.kind === 'unsupported' || (asked.kind === 'no_answer' && asked.reason === 'failed'))) {
       await rollbackCooldown();
       return;
@@ -285,10 +304,12 @@ async function fire(dir: string, todayOverride?: string): Promise<void> {
             properties: {
               what_happened: {
                 type: 'string',
+                title: ko ? '실제로 무슨 일이 있었나' : 'What actually happened',
                 description: ko ? '당신의 말, 그대로.' : 'Your words, verbatim.',
               },
             },
           },
+          askTimeoutMs(),
         ),
         askTimeoutMs(),
       );

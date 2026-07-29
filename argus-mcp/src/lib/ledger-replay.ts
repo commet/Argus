@@ -34,6 +34,10 @@ export interface ContractEntry {
    *  reconstructed honestly instead of misreported as "no prediction" (recall). */
   what_happened?: string;
   basis?: string;
+  /** Provenance of the sealed line as recorded on the seal event. Absent means
+   *  UNKNOWN (pre-2026-07 ledgers), never 'user' — no reader may upgrade a
+   *  missing value into an authorship claim. */
+  predicate_owner?: 'user' | 'ai_surfaced';
   amend_history: Array<{ predicate?: string; check_by?: string; ts?: string }>;
   dismiss_reason?: string;
   /** Living premises (plan v5) — ordinal order preserved; ≤ MAX_ACTIVE_PREMISES
@@ -219,6 +223,9 @@ export function replayLedger(argusDir: string, today: string): LedgerState {
         }
         cur.check_by = ev['check_by'] as string | undefined;
         if (typeof ev['basis'] === 'string') cur.basis = ev['basis'];
+        if (ev['predicate_owner'] === 'user' || ev['predicate_owner'] === 'ai_surfaced') {
+          cur.predicate_owner = ev['predicate_owner'];
+        }
         cur.status = 'sealed';
         everSealed.add(id);
         break;

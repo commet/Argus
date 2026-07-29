@@ -85,6 +85,13 @@ describe('M0 · the Korean journey ends in a Korean receipt (FC-2)', () => {
 });
 
 describe('M0 · check_in stays bounded after a long gap (§9.4 경계 수리)', () => {
+  // 25 SEQUENTIAL seals, each taking the ledger lock and fsyncing (~870ms
+  // locally). This failed ONCE on CI (2026-07-29) inside verify's own `npm test`
+  // while the same suite had passed minutes earlier in the same run — and it
+  // already carries a 15s budget, so "too slow" is NOT established. The report
+  // printed vitest's source context instead of the assertion, so the cause is
+  // still unknown; verify-all's failureNote was fixed to surface the actual
+  // sentence next time rather than guessing at a fix now.
   it('caps data.due at 20, keeps the TRUE total in due_count, and discloses the cut', async () => {
     const dir = tmpArgusDir();
     for (let i = 0; i < 25; i++) {

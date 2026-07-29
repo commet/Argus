@@ -1,8 +1,8 @@
 {
   "mcpServers": {
     "argus-decision": {
-      "command": "npx",
-      "args": ["-y", "argus-decision-mcp@2.0.2"],
+      "command": "npm",
+      "args": ["exec", "--yes", "--package=argus-decision-mcp@2.0.9", "--", "argus-decision-mcp"],
       "env": {
         "ARGUS_DIR": "${CLAUDE_PROJECT_DIR}/.argus"
       }

@@ -43,6 +43,12 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Prove the npm bin is executable
+        run: |
+          npm run build
+          test -x dist/index.js
+          node evals/package-executable.mjs
+
       # Publish to npm via OIDC trusted publishing (no token; provenance is added
       # automatically for this public repo). Skip if the version is already on npm
       # so a re-run or a tag on an existing version doesn't 409-fail and block the
@@ -55,6 +61,18 @@ jobs:
           else
             npm publish
           fi
+
+      # This is the release half of the plugin smoke. CI points the staged
+      # plugin at the checkout's dist so pre-publish work is testable; after npm
+      # publish we leave the real npx pin untouched and require Claude Code to
+      # connect to that exact public version before the registry is updated.
+      - name: Verify published plugin install and MCP connection
+        run: |
+          # npm 11 blocks dependency install scripts unless explicitly allowed.
+          # Claude Code's native binary is installed by its own postinstall, so
+          # authorize only this exact package instead of enabling scripts globally.
+          npm install -g --allow-scripts=@anthropic-ai/claude-code @anthropic-ai/claude-code@2.1.220
+          node ../argus-plugin-v2/scripts/install-smoke.mjs --published
 
       - name: Install mcp-publisher
         run: |
