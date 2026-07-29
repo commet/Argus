@@ -315,6 +315,15 @@ Codex 설정에서 picker를 허용하려면 `approval_policy.granular.mcp_elici
 가 `true`여야 한다. 관리형 정책이 이 값을 금지하면 서버가 우회할 수 없으며,
 현재 Codex wire에는 서버가 그 정책을 식별할 별도 신호가 없다.
 
+### 2026-07-29 실제 TUI 관찰
+
+격리한 실제 Codex CLI/TUI에서 `argus_predict`를
+`predicate_owner:"ai_surfaced", confirm_draft:true`로 호출했다. 화면은 예측문,
+`check-by 2026-12-31`, 그리고 `Allow / Deny / Cancel` 세 선택지를 렌더링했고
+첫 선택은 `Allow`였다. 이는 app-server 배선 시뮬레이션이 아니라 실제 TUI의 콘솔
+화면 버퍼에서 읽은 결과다. 데스크톱 캡처 제공자는 콘솔 대신 바탕화면을 캡처했으므로
+픽셀 스크린샷은 증거로 주장하지 않는다.
+
 ---
 
 ## 6. 보고 양식

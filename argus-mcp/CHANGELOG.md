@@ -1,5 +1,24 @@
 # Changelog
 
+## 2.0.10 - Decline is a protocol fact, not a stopwatch inference
+
+- A wire-level MCP `decline` is preserved at any response speed. The server no
+  longer invents `no_answer/unattributable` from a 500 ms threshold or disables
+  later pickers after one fast response. `cancel`, transport failure, and
+  unsupported elicitation remain distinct non-answer paths.
+- The fallback copy no longer contradicts a person who deliberately declined.
+  Codex policy can still synthesize a bare decline without rendering a form;
+  because the wire carries no provenance marker, the README explains the host
+  setting instead of pretending elapsed time identifies the actor.
+- The redundant `evals/elicit.mjs` harness and its npm script are removed. Its
+  behavior is covered by the real stdio picker, host matrix, Claude form, and
+  real Codex app-server gates.
+- Gate coverage now proves every baseline gate is mutation-tested or explicitly
+  classified, rejects stale waivers, and attacks itself in both directions.
+  Version-lockstep also checks the npm lockfile.
+- A real isolated Codex TUI rendered the Argus confirmation with the prediction,
+  check-by date, and `Allow / Deny / Cancel` choices.
+
 ## 2.0.9 - Codex answered the picker, and we called it the user's decline
 
 **Measured on a real `codex app-server`, five configurations, one build**

@@ -188,6 +188,7 @@ function gateFailureFor(gateCmd) {
   if (gateCmd.includes('codex-app-server')) return /\b[1-9]\d* violations?\b/i;
   if (gateCmd.includes('answer-time')) return /\b[1-9]\d* violations?\b/i;
   if (gateCmd.includes('slow-human')) return /\b[1-9]\d* violations?\b/i;
+  if (gateCmd.includes('version-lockstep')) return /\b[1-9]\d* violations?\b/i;
   // e2e-picker does not print "violations" — it prints its own tally. Without
   // this line the self-test that uses it throws here and takes the whole verify
   // with it, which is exactly what this function is for: a gate whose failure
@@ -275,6 +276,20 @@ fs.symlinkSync(
   path.join(selfRoot, 'node_modules'),
   process.platform === 'win32' ? 'junction' : 'dir',
 );
+
+// version-lockstep spans the monorepo: npm package, plugin pin/manifest, and
+// marketplace metadata are one release contract. Copy the three external
+// manifests into the expendable root so its mutation test exercises the gate
+// rather than dying on ENOENT.
+for (const relative of [
+  'argus-plugin-v2/.claude-plugin/plugin.json',
+  'argus-plugin-v2/.mcp.json',
+  '.claude-plugin/marketplace.json',
+]) {
+  const destination = path.join(selfBase, relative);
+  fs.mkdirSync(path.dirname(destination), { recursive: true });
+  fs.copyFileSync(path.join(REPO, relative), destination);
+}
 
 console.log(`게이트 실행 완료. 격리 사본에서 게이트 자신을 시험합니다: ${selfRoot}\n`);
 

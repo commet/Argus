@@ -1,5 +1,14 @@
 # Changelog
 
+## 3.0.10 - 2026-07-29
+
+- Pins `argus-decision-mcp@2.0.10`.
+- Restores MCP's defined decline semantics: a decline remains a decline at any
+  response speed, while cancel and failed delivery remain non-answers.
+- Removes the redundant legacy elicitation harness and adds mutation-backed
+  coverage for every release gate.
+- Documents that Codex must be restarted after registering a new MCP server.
+
 ## 3.0.9 - 2026-07-29
 
 - Wire moves to `argus-decision-mcp@2.0.9`. If your host answers Argus's confirm
