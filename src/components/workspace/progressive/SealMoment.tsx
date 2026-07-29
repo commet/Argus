@@ -847,19 +847,43 @@ export function SealMoment({
               migrateLocalToAccount on SIGNED_IN return — the just-sealed decision
               follows them into the account. Local seal stays lossless either way. */}
           {!user && (
-            <button
-              onClick={async () => {
-                track('seal_signin_cta', { placement: 'sealed' });
-                setSignInError(null);
-                const result = await signInWithGoogle('/workspace');
-                if (result.error) setSignInError(result.error);
-              }}
-              className="mt-4 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-[13px] font-semibold text-[var(--accent-fg)] cursor-pointer transition-transform hover:scale-[1.02]"
-              style={{ background: 'var(--gradient-gold)' }}
-            >
-              <Anchor size={14} />
-              {L('로그인하고 어디서나 이어보기', 'Sign in to keep this everywhere')}
-            </button>
+            <div className="mt-4 flex flex-col items-center gap-2">
+              {/* Say the true thing before the ask (2026-07-29). The record IS saved
+                  — server-side too — but it is reachable only from this browser's
+                  anonymous session, and the check-in email needs an address we do
+                  not have. Stating that is not pressure; withholding it while
+                  promising a return date would be the dishonest version. */}
+              <p className="max-w-[30rem] text-[12.5px] leading-relaxed text-[var(--text-secondary)]">
+                {L(
+                  '이 기록은 지금 이 브라우저에 묶여 있어요. 다른 기기에서는 열리지 않고, 확인일에 알려드릴 주소도 아직 없어요.',
+                  'This record is tied to this browser. It will not open on another device, and there is no address to reach you at on the check-in date.',
+                )}
+              </p>
+              <button
+                onClick={async () => {
+                  track('seal_signin_cta', { placement: 'sealed' });
+                  setSignInError(null);
+                  const result = await signInWithGoogle('/workspace');
+                  if (result.error) setSignInError(result.error);
+                }}
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-[13px] font-semibold text-[var(--accent-fg)] cursor-pointer transition-transform hover:scale-[1.02]"
+                style={{ background: 'var(--gradient-gold)' }}
+              >
+                <Anchor size={14} />
+                {L('로그인하고 어디서나 이어보기', 'Sign in to keep this everywhere')}
+              </button>
+              {/* The gold button is Google-only. Email/password sign-up is a real
+                  path (and the one that has actually converted lately), so it must
+                  be reachable from the peak-ownership moment too — not just from
+                  the header. */}
+              <LocaleLink
+                href="/login"
+                onClick={() => track('seal_signin_cta', { placement: 'sealed_email' })}
+                className="text-[12px] font-medium text-[var(--text-tertiary)] hover:text-[var(--accent)] hover:underline"
+              >
+                {L('이메일로 가입하기', 'Sign up with email')}
+              </LocaleLink>
+            </div>
           )}
           {signInError && (
             <p role="alert" className="mt-2 text-[12px] text-[var(--danger)]">

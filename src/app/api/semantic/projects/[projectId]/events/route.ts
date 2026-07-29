@@ -5,11 +5,11 @@ import {
   semanticWebCommandFromRequest,
 } from '@/lib/semantic-web';
 import { appendProjectSemanticEvents, readProjectSemanticEvents } from '@/lib/semantic-ledger-gateway';
+import { UUID_RE } from '@/lib/team-server';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 type Params = { params: Promise<{ projectId: string }> };
 
