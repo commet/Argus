@@ -126,6 +126,18 @@ const TABLE_COLUMNS: Record<string, string[]> = {
     'id', 'user_id', 'decision_id', 'type', 'text', 'source', 'authored', 'edits',
     'external', 'load_bearing', 'alert', 'status', 'created_at', 'updated_at',
   ],
+  // ← 2026-07-29: 실DB 재대조 중 이 둘이 db.ts의 동기화 목록에 있으면서
+  //   매니페스트에도 커버리지 목록에도 없다는 걸 발견했다 (아래 파생 가드가 그걸 잡아낸 지점).
+  //   두 표 다 전체 객체가 아니라 명시적 row shape를 upsert하므로 위험은 낮았지만,
+  //   "가드가 없다"는 사실 자체가 이 파일이 막으려는 부류다.
+  review_receipts: [
+    'id', 'user_id', 'state', 'source_title', 'source_kind', 'next_check_by',
+    'data', 'companion_notified_at', 'deleted_at', 'created_at', 'updated_at',
+  ],
+  progressive_sessions: [
+    'id', 'user_id', 'project_id', 'data', 'phase', 'has_pending_humans',
+    'created_at', 'updated_at',
+  ],
 };
 
 /** 인터페이스엔 있으나 컬럼이 아닌(보내지지 않거나 sanitize로 제거되는) 필드. */
@@ -180,8 +192,71 @@ function fieldsOf(iface: string): string[] {
   return topLevelFields(src, iface);
 }
 
-describe('스키마 드리프트: 동기화 인터페이스 필드 ⊆ 실제 컬럼', () => {
-  it.each([
+/**
+ * 이 파일의 커버리지 목록(아래 `SYNCED_INTERFACES`)도, db.ts의 `TableName`도 손으로 쓴
+ * 목록이다 — **두 곳이 같아야 하는데 한 곳만 고쳐지는** 바로 그 부류다. 실제로
+ * 그렇게 됐다: `review_receipts`와 `progressive_sessions`가 db.ts에 동기화 테이블로
+ * 올라간 뒤 이 파일에는 끝내 도착하지 않았고, 2026-07-29 실DB 대조 전까지
+ * 아무도 몰랐다.
+ *
+ * 그래서 커버리지 목록을 **db.ts에서 파생**시켜 대조한다. 새 동기화 테이블은 이제
+ * 매니페스트와 커버리지를 갖추거나 사유를 적어야 하고, 둘 다 아니면 CI가 막는다.
+ */
+function syncedTablesFromDbSource(): string[] {
+  const m = /type TableName =([\s\S]*?);/.exec(DB_SRC);
+  if (!m) throw new Error('db.ts의 TableName 유니온을 읽지 못했다 — 파서를 고쳐라');
+  return [...new Set([...m[1].matchAll(/'([a-z_]+)'/g)].map((x) => x[1]))];
+}
+
+/**
+ * 인터페이스가 아니라 **명시적 row 리터럴/타입**으로 업서트하는 표. 전체 객체를
+ * 보내지 않으므로 인터페이스 대조 대상은 아니지만, 그 키들도 컬럼이어야 하는 건 같다.
+ * 사유 없이 여기 넣는 것은 금지 — 아래 테스트가 사유 길이를 본다.
+ */
+const ROW_SHAPE_ONLY: Record<string, string> = {
+  review_receipts:
+    'toReceiptRow()가 JudgmentReceipt 전체가 아니라 6개 컬럼짜리 ReceiptRow만 만들어 보낸다 '
+    + '(본문은 data jsonb 안). 인터페이스 대조 대신 TABLE_COLUMNS 매니페스트가 계약이다.',
+  progressive_sessions:
+    'useProgressiveStore가 인라인 리터럴(id/project_id/data/phase/has_pending_humans/updated_at)로 '
+    + '업서트한다. 세션 본문은 data jsonb 안이라 최상위 키는 이 6개로 고정.',
+};
+
+describe('스키마 드리프트: 커버리지 목록이 db.ts와 갈라지지 않는다', () => {
+  const synced = syncedTablesFromDbSource();
+
+  it('db.ts에서 실제 테이블 목록을 읽는다 (빈손으로 통과하지 않는다)', () => {
+    expect(synced).toContain('projects');
+    expect(synced).toContain('review_receipts');
+    expect(synced.length).toBeGreaterThan(15);
+  });
+
+  it('동기화되는 모든 테이블에 컬럼 매니페스트가 있다', () => {
+    const missing = synced.filter((t) => !(t in TABLE_COLUMNS));
+    expect(
+      missing,
+      `db.ts가 upsert하는데 TABLE_COLUMNS에 없는 테이블 — 컬럼 없는 필드가 붙으면 `
+      + `PGRST204로 행 전체가 조용히 거부된다: ${missing.join(', ')}`,
+    ).toEqual([]);
+  });
+
+  it('동기화되는 모든 테이블이 인터페이스 대조 대상이거나 사유가 적힐 row-shape 표다', () => {
+    const covered = new Set(SYNCED_INTERFACES.map(([t]) => t));
+    const undeclared = synced.filter((t) => !covered.has(t) && !(t in ROW_SHAPE_ONLY));
+    expect(
+      undeclared,
+      `이 테이블들은 동기화되는데 필드 대조가 전혀 없다. 인터페이스를 아래 목록에 등록하거나, `
+      + `명시적 row shape로만 쓴다면 사유와 함께 ROW_SHAPE_ONLY에 적어라: ${undeclared.join(', ')}`,
+    ).toEqual([]);
+  });
+
+  it('ROW_SHAPE_ONLY 면제에는 사유가 있다', () => {
+    const unreasoned = Object.entries(ROW_SHAPE_ONLY).filter(([, r]) => r.trim().length < 40).map(([t]) => t);
+    expect(unreasoned).toEqual([]);
+  });
+});
+
+const SYNCED_INTERFACES: Array<[string, string]> = [
     ['projects', 'Project'],
     ['personas', 'Persona'],
     ['reframe_items', 'ReframeItem'],
@@ -202,7 +277,10 @@ describe('스키마 드리프트: 동기화 인터페이스 필드 ⊆ 실제 �
     ['retrospective_answers', 'RetrospectiveAnswer'],
     ['decision_quality_scores', 'DecisionQualityScore'],
     ['decision_items', 'DecisionItem'],
-  ])('%s: 모든 %s 필드가 컬럼 또는 LOCAL_ONLY로 선언돼 있다', (table, iface) => {
+];
+
+describe('스키마 드리프트: 동기화 인터페이스 필드 ⊆ 실제 컬럼', () => {
+  it.each(SYNCED_INTERFACES)('%s: 모든 %s 필드가 컬럼 또는 LOCAL_ONLY로 선언돼 있다', (table, iface) => {
     const cols = new Set(TABLE_COLUMNS[table]);
     const localOnly = LOCAL_ONLY[table] ?? {};
     for (const field of fieldsOf(iface)) {
