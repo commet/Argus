@@ -7,6 +7,7 @@ allowed-tools: Bash(node:*)
 진단은 스크립트가 결정론적으로 끝냈고, 각 줄에 수리 손잡이가 이미 적혀 있다):
 
 ```
+# Read-only deterministic diagnosis:
 node "${CLAUDE_PLUGIN_ROOT}/scripts/doctor.js"
 ```
 

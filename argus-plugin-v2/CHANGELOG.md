@@ -1,5 +1,13 @@
 # Changelog
 
+## 3.0.13 - 2026-07-29
+
+- Removes the separately auto-discovered `/argus:doctor` command. Diagnosis is
+  now routed through `/argus:settings doctor`, so the installed plugin exposes
+  exactly the five documented public commands.
+- Plugin and MCP versions are now validated independently; this plugin-only
+  cleanup continues to pin the already-published MCP 2.0.12.
+
 ## 3.0.12 - 2026-07-29
 
 - Exposes exactly five skills: `review`, `check`, `history`, `settings`, and

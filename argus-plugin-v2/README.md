@@ -102,14 +102,14 @@ Installing the plugin is the whole setup — there is no separate init step:
   settings) are available to the model immediately. The pin is deliberate: `npx` reuses a
   cached install whenever the spec is a range, so a `@^1`-style wire can sit
   frozen on an old build indefinitely. `argus_check_in` reports the version it is
-  actually running (`data.server_version`) and `/argus:doctor` compares it to the
+  actually running (`data.server_version`) and `/argus:settings doctor` compares it to the
   pin, so a stale wire is visible instead of being felt as missing behavior.
 - **Quiet hooks** — a session-start check that mentions decisions whose check-by
   date has arrived (and refreshes a stale decision view), plus an ambient trigger
   that may ask about at most one due item
   per session (4-hour cooldown across sessions; silence is the default). Opt out
   with `{ "ambient": { "opt_out": true } }` in `~/.argus/config.json`.
-- **`/argus:doctor`** — a read-only self-diagnosis of the install and wiring. It
+- **`/argus:settings doctor`** — a read-only self-diagnosis of the install and wiring. It
   repairs nothing; each line names the public tool that can.
 - **Statusline (optional)** — [`statusline/index.js`](./statusline/index.js) reads
   your local decision records. Enable it with one line in `~/.claude/settings.json`:
@@ -195,7 +195,7 @@ Nothing is sent before browser approval. Auto-sync can be disabled with
 | `/argus:settings` | You want to configure Argus or pair/sync the webapp (`connect`, `sync`). |
 | `/argus:help` | You want the shortest command map. |
 
-Emergency hatch: `/argus:doctor` (read-only install/wiring self-diagnosis).
+Emergency hatch: `/argus:settings doctor` (read-only install/wiring self-diagnosis).
 
 ---
 

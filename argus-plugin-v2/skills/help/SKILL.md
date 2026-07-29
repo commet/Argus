@@ -34,7 +34,7 @@ Commands (5):
   /argus:settings  language & boss persona · webapp connect/push/pull/sync
   /argus:help      this screen
 
-Emergency hatch: /argus:doctor — read-only install/wiring self-diagnosis
+Emergency hatch: /argus:settings doctor — read-only install/wiring self-diagnosis
 
 Where things live:
   .argus/config.yaml      locale + boss persona (auto-created, edit freely)
@@ -58,7 +58,7 @@ for the list, answer with the ONE command that fits, plus one sentence why:
 - wants to keep a repeated lesson as their own rule → `/argus:history principles`
 - wants to recover decisions from past chats → `/argus:history scan`
 - webapp pairing / sync / language / boss persona → `/argus:settings`
-- suspects install or wiring is broken → `/argus:doctor`
+- suspects install or wiring is broken → `/argus:settings doctor`
 
 ## Forbidden patterns
 

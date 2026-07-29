@@ -17,7 +17,7 @@ describe('새 공개 체계의 어휘 경계', () => {
       path.join(ROOT, 'argus-plugin-v2', 'hooks', 'session-start.js'),
       path.join(ROOT, 'argus-plugin-v2', 'hooks', 'ambient-nudge.js'),
       path.join(ROOT, 'argus-plugin-v2', 'scripts', 'doctor.js'),
-      path.join(ROOT, 'argus-plugin-v2', 'commands', 'doctor.md'),
+      path.join(ROOT, 'argus-plugin-v2', 'lib', 'workflows', 'doctor.md'),
       path.join(ROOT, 'argus-plugin-v2', 'statusline', 'index.js'),
       path.join(ROOT, 'argus-plugin-v2', 'README.md'),
       path.join(ROOT, 'argus-plugin-v2', 'README.ko.md'),
@@ -44,9 +44,11 @@ describe('새 공개 체계의 어휘 경계', () => {
     expect(leaks).toEqual([]);
   });
 
-  it('별도 일상 ritual 대신 doctor 비상구 하나만 배송한다', () => {
-    const commands = fs.readdirSync(path.join(ROOT, 'argus-plugin-v2', 'commands'))
-      .filter((file) => file.endsWith('.md'));
-    expect(commands).toEqual(['doctor.md']);
+  it('doctor를 별도 공개 command가 아닌 내부 워크플로로 배송한다', () => {
+    const commandsDir = path.join(ROOT, 'argus-plugin-v2', 'commands');
+    const commands = fs.existsSync(commandsDir)
+      ? fs.readdirSync(commandsDir).filter((file) => file.endsWith('.md'))
+      : [];
+    expect(commands).toEqual([]);
   });
 });
