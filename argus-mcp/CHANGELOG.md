@@ -1,5 +1,51 @@
 # Changelog
 
+## 2.0.11 — A decline no form could have preceded is not the user's decline
+
+**This was argued twice and reverted twice. It is settled by measurement now.**
+
+2.0.6 and 2.0.10 both held that elapsed time cannot separate a policy rejection
+from a fast human decline, because keyboard users, assistive automation, and
+someone who already knows their answer can all decline immediately. That is a
+real objection and it deserved a real answer, so both populations were measured
+against a running `codex app-server`.
+
+| | latency |
+|---|---|
+| policy rejection (`granular.mcp_elicitations = false`), 5 calls | **0.3 · 0.3 · 0.3 · 0.4 · 1.1 ms** |
+| any human decline — render, read, keypress | **~1000 ms** |
+
+They do not overlap. They are roughly a thousand times apart, because a policy
+rejection is synthesized locally with no UI anywhere in the path. A decline that
+arrives in under a millisecond is not a fast user; it is a window that was never
+drawn.
+
+What that was costing: a Codex user on a restrictive policy asked Argus to record
+a prediction, saw nothing at all, and was told
+
+```
+기록하지 않았습니다.        data: { choice: "declined" }   next_actions: ["stop"]
+```
+
+— a decision credited to a person who was never shown anything, and a dead end.
+
+**The fix refuses to attribute; it does not conclude.** A decline under
+`UNSEEN_DECLINE_MAX_MS` (5ms — about 5x above the measured policy ceiling and
+200x below the conservative human floor) is reported as `no_answer` with reason
+`unattributable`: nothing recorded, nothing claimed, the user's own sentence
+handed back with the plain-text path. Every decline a person could actually have
+made — including every accessibility path — is still theirs.
+
+**The evidence is a gate, not a comment.** `evals/decline-latency.mjs` re-measures
+both populations against the installed Codex on every verify and fails if they
+ever approach each other. Self-test ㉘ raises the threshold into human range and
+requires that gate to go red, so the constant cannot drift into swallowing a real
+"no". The unit tests assert both directions, and the real-Codex gate asserts the
+blocked policy is not attributed while a very fast *human* decline still is.
+
+Unchanged from 2.0.10, and never in dispute: one decline never disables a later
+picker, and cancel / transport failure / unsupported stay distinct.
+
 ## 2.0.10 - Decline is a protocol fact, not a stopwatch inference
 
 - A wire-level MCP `decline` is preserved at any response speed. The server no

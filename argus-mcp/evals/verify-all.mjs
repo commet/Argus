@@ -170,6 +170,7 @@ function skipBuildEnv(gateCmd) {
   if (gateCmd.includes('keepsake-frames')) return { KEEPSAKE_SKIP_BUILD: '1' };
   if (gateCmd.includes('claude-code-form')) return { CC_FORM_SKIP_BUILD: '1' };
   if (gateCmd.includes('codex-app-server')) return { CODEX_APP_SERVER_SKIP_BUILD: '1' };
+  if (gateCmd.includes('decline-latency')) return { DECLINE_LATENCY_SKIP_BUILD: '1' };
   if (gateCmd.includes('answer-time')) return { ANSWER_TIME_SKIP_BUILD: '1' };
   if (gateCmd.includes('slow-human')) return { SLOW_HUMAN_SKIP_BUILD: '1', SLOW_HUMAN_THINK_MS: '61500' };
   return {};
@@ -193,6 +194,7 @@ function gateFailureFor(gateCmd) {
   // this line the self-test that uses it throws here and takes the whole verify
   // with it, which is exactly what this function is for: a gate whose failure
   // nobody can recognise must not be silently accepted as "it exited non-zero".
+  if (gateCmd.includes('decline-latency')) return /[1-9]\d* violations?/i;
   if (gateCmd.includes('e2e-picker')) return /E2E: \d+ passed, [1-9]\d* failed/;
   throw new Error(`self-test has no owned failure signature for: ${gateCmd}`);
 }
@@ -233,6 +235,9 @@ run('간직하는 화면의 액자 (영수증·봉인·항해일지)', 'node eva
 // 게이트를 지키는 게이트. 하룻밤에 이 레포의 게이트 6개가 "초록인데 아무것도 안
 // 재는" 상태로 드러났다. 개별 자기검증은 '물던 게이트가 안 물게 된 것'은 잡지만,
 // '한 번도 문 적 없는 게이트'는 아무도 안 잡았다. 이 파일이 그 자리다.
+// 정책 거절과 사람의 거절이 실제로 구분되는지 실호스트로 매번 다시 잰다.
+// 이 숫자가 UNSEEN_DECLINE_MAX_MS의 근거다 — 믿는 게 아니라 재는 것.
+run('정책 거절 지연 (실제 Codex)', 'node evals/decline-latency.mjs', { env: { ...process.env, DECLINE_LATENCY_SKIP_BUILD: '1' }, extract: COUNTS });
 run('게이트를 지키는 게이트', 'node evals/gate-coverage.mjs', { extract: COUNTS });
 run('버전 다섯 곳 일치', 'node evals/version-lockstep.mjs', { extract: COUNTS });
 run('게이트가 실제로 빨개질 수 있는가', 'node evals/gate-coverage.mjs');
@@ -452,11 +457,16 @@ selfTest(
   'node evals/codex-app-server.mjs',
 );
 selfTest(
-  '자기검증 ㉔ decline을 서버가 no_answer로 재해석하는 회귀를 잡는가',
+  // 원래 이 자기검증은 "모든 decline은 declined"라는 옛 계약을 고정했고, 2.0.11이
+  // 측정으로 그 계약을 바꾸면서 앵커가 죽었다. 지키려던 두려움 — 서버가 사람의
+  // 진짜 거절을 제멋대로 삼킨다 — 은 사라지지 않았고 오히려 더 중요해졌으므로,
+  // 방향을 뒤집어 살린다: 시간 조건을 없애 모든 거절을 귀속 거부로 만들면,
+  // 실호스트의 "아주 빠른 사람의 거절도 그 사람 것" 단언이 빨개져야 한다.
+  '자기검증 ㉔ 귀속 거부가 사람의 진짜 거절까지 삼키는 회귀를 잡는가',
   'src/lib/elicit.ts',
   (s) => s.replace(
-    "    if (res.action === 'decline') return { kind: 'declined' };",
-    "    if (res.action === 'decline') return { kind: 'no_answer', reason: 'failed' };",
+    '      if (Date.now() - started <= UNSEEN_DECLINE_MAX_MS) {',
+    '      if (true) {',
   ),
   'node evals/codex-app-server.mjs',
 );
@@ -481,8 +491,8 @@ selfTest(
   '자기검증 ㉖ 거절 한 번이 이후 픽커를 전부 없애는 회귀를 잡는가',
   'src/lib/elicit.ts',
   (s) => s.replace(
-    "    if (res.action === 'decline') return { kind: 'declined' };",
-    "    if (res.action === 'decline') { _elicit = null; return { kind: 'declined' }; }"),
+    "    if (res.action === 'decline') {",
+    "    if (res.action === 'decline') {\n      _elicit = null;"),
   `node evals/e2e-picker.mjs "${process.execPath}" dist/index.js`,
 );
 selfTest(
@@ -492,6 +502,18 @@ selfTest(
     'ec.elicitInput({ message, requestedSchema }, { timeout: timeoutMs ?? DECISION_ASK_TIMEOUT_MS })',
     'ec.elicitInput({ message, requestedSchema })'),
   'node evals/slow-human.mjs',
+);
+selfTest(
+  // 문턱이 사람 영역으로 올라가면 접근성·키보드 사용자의 진짜 거절을 삼킨다.
+  // decline-latency의 L3가 실호스트 측정과 대조해 그걸 잡는다 — 문턱은 측정된
+  // 정책 상한(1.1ms)과 보수적 인간 하한(250ms) 사이에만 있어야 한다.
+  '자기검증 ㉘ 귀속 거부 문턱이 사람 영역으로 올라가는 회귀를 잡는가',
+  'src/lib/elicit.ts',
+  (s) => s.replace('export const UNSEEN_DECLINE_MAX_MS = 5;', 'export const UNSEEN_DECLINE_MAX_MS = 5000;'),
+  'node evals/decline-latency.mjs',
+  // 이 게이트가 스스로 내는 판정문을 그대로 요구한다 — 비정상 종료만으로는
+  // "잡았다"고 치지 않는다는 규칙을 지키면서, 공용 서명 추론에 기대지 않는다.
+  /L3 |[1-9]\d* violations?/i,
 );
 selfTest(
   '자기검증 ㉗ 버전 한 곳만 어긋나는 회귀를 잡는가',

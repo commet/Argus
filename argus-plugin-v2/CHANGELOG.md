@@ -1,5 +1,14 @@
 # Changelog
 
+## 3.0.11 - 2026-07-29
+
+- Wire moves to `argus-decision-mcp@2.0.11`. If your host answers Argus's confirm
+  dialog without ever showing it to you - a real Codex under a restrictive
+  approval policy answers in under a millisecond, measured - Argus no longer
+  tells you that you declined something you never saw. It records nothing,
+  claims nothing, hands your sentence back and offers to save it from chat.
+  A decline you actually made is still yours.
+
 ## 3.0.10 - 2026-07-29
 
 - Pins `argus-decision-mcp@2.0.10`.
