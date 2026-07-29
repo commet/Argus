@@ -1,5 +1,39 @@
 # Changelog
 
+## 2.0.13 - A decline no longer takes the user's sentence with it, and one install stays current
+
+- **A decline ends the ask; it does not delete the draft.** The response used to
+  carry only `{sealed:false, choice:"declined"}`, so the prediction the user had
+  just written was unrecoverable — by them or by the assistant. It now rides back
+  in `data` with its check-by date. The surface stays terse and `next_actions`
+  stays `["stop"]`: a "no" is still respected, and no second picker is ever shown.
+- This closes the real injury behind the 2.0.11/2.0.12 disagreement without
+  reopening it. The wire action is preserved exactly as MCP defines it — response
+  latency is not a render receipt, and a threshold calibrated on an idle machine
+  measurably broke on a loaded one. Nothing here infers who answered.
+- It matters most where nothing was drawn at all: a Codex approval policy that
+  blocks elicitations answers `decline` itself, showing the user no dialog. Their
+  words survive that now.
+
+### Install once; there is nothing to update by hand
+
+- **The plugin and the documented install lines no longer pin a version.**
+  Measured 2026-07-29, same spec string twice with the npx cache holding an older
+  build the spec still allowed: a bare name launched the current release, while
+  `@^2.0.0` launched the stale cached copy. npx must resolve a bare name against
+  the registry; a range is satisfied from cache and never asks again.
+- The 2026-07-13 incident that froze the wiring for twelve days was a RANGE. An
+  exact pin fixed it by accident and introduced the opposite failure — on
+  2026-07-29 the founder's Codex and the plugin pointed at two different
+  versions, neither of them current. Dropping the version fixes the original
+  problem on purpose.
+- Every gate that demanded a pin was inverted rather than deleted, and a range or
+  `@latest` in the wiring is now a hard failure. `doctor` reports the unpinned
+  state plainly instead of calling harmless cache leftovers a mismatch.
+- `doctor` now reads the plugin at `CLAUDE_PLUGIN_ROOT`. Its cache test had been
+  writing a fixture that doctor never opened, so those assertions were reading
+  the repo's own file and proving nothing.
+
 ## 2.0.12 - Final public surface and protocol-faithful decline
 
 - Keeps exactly six callable MCP tools and validates nested premise provenance

@@ -37,40 +37,48 @@ describe('argus 플러그인 골격 — 하나의 설치 (O3 방1)', () => {
     const servers = mcp['mcpServers'] as Record<string, { command: string; args: string[] }>;
     const wired = Object.values(servers);
     expect(wired.length).toBeGreaterThan(0);
-    const argus = wired.find((s) => s.args.some((a) => a.includes('argus-decision-mcp@')));
+    const argus = wired.find((s) => s.args.some((a) => a.includes('argus-decision-mcp')));
     expect(argus, 'argus-decision-mcp가 배선되어 있어야 한다').toBeDefined();
     expect(argus!.command).toBe('npm');
     expect(argus!.args.slice(0, 2)).toEqual(['exec', '--yes']);
     expect(argus!.args.at(-1)).toBe('argus-decision-mcp');
-    // 배선은 **정확 버전 핀**이어야 한다 (2026-07-26 근원 수리).
+
+    // 배선은 **버전을 적지 않는다.** 그 이유는 두 번의 사고와 한 번의 측정이다.
     //
-    // 예전 규약은 메이저 핀(`@^1`)이었고, 그게 조용한 staleness 함정이었다:
-    // npx는 스펙이 RANGE면 캐시에 조건을 만족하는 설치본이 있는 한 그걸
-    // 재사용하고 레지스트리를 보지 않는다. 그래서 창업자 기기의 캐시에
-    // 1.2.0이 한 번 앉은 뒤(2026-07-13) 1.3.0~1.9.0이 npm에 올라가는 동안
-    // 12일간 배선이 1.2.0에 얼어 있었다 — 픽커 재설계를 포함한 모든 개선이
-    // 정작 도그푸딩 세션에는 한 번도 닿지 않았다. 레포는 자기 자신과
-    // 일관됐고 npm은 최신을 갖고 있었는데, **아무도 볼 수 없던 숫자가
-    // 사용자가 만지던 그 숫자였다.**
+    // ① 메이저 핀(`@^1`) 시절: npx는 스펙이 RANGE면 캐시에 조건을 만족하는
+    //    설치본이 있는 한 그걸 재사용하고 레지스트리를 보지 않는다. 창업자 기기의
+    //    캐시에 1.2.0이 한 번 앉은 뒤(2026-07-13) 1.3.0~1.9.0이 npm에 올라가는 동안
+    //    12일간 배선이 1.2.0에 얼어 있었다. 레포는 자기 자신과 일관됐고 npm은
+    //    최신을 갖고 있었는데, **아무도 볼 수 없던 숫자가 사용자가 만지던 그 숫자였다.**
     //
-    // 정확 핀은 그 함정을 닫되 새 함정(핀이 낡는 것)을 연다. 그래서 아래
-    // lockstep 단정이 짝이다: 핀 == 이 패키지의 version. 서버를 올리면
-    // 배선도 같은 커밋에서 올라가지 않으면 CI가 빨개진다.
-    const pkgArg = argus!.args.find((a) => a.includes('argus-decision-mcp@'))!;
-    expect(pkgArg, '범위 스펙(^, ~, latest, *)은 npx 캐시에 얼어붙는다 — 정확 버전으로 핀할 것')
-      .toMatch(/^--package=argus-decision-mcp@\d+\.\d+\.\d+$/);
+    // ② 정확 핀 시절: 그 함정은 닫혔지만 새 함정이 열렸다 — 핀은 사람이 고치기
+    //    전까지 낡는다. 2026-07-29에 창업자의 Codex와 플러그인이 서로 다른 버전을,
+    //    그리고 둘 다 최신이 아닌 걸 가리키고 있었다.
+    //
+    // ③ 그래서 전제를 재었다. 같은 스펙 문자열로 두 번, 캐시에 조건을 만족하는
+    //    낡은 빌드를 심어두고:
+    //
+    //        argus-decision-mcp          → 현재 발행본을 띄운다
+    //        argus-decision-mcp@^2.0.0   → 낡은 캐시본을 띄운다
+    //
+    //    언는 것은 RANGE이지 버전 표기 자체가 아니었다. 범위는 캐시로 만족되지만
+    //    맨 이름은 npx가 매번 레지스트리에 다시 물어야 하기 때문이다. ①은 범위였고,
+    //    정확 핀은 그걸 우연히 고쳤다 — 버전을 빼면 의도적으로 고쳐지고, 설치가
+    //    손볼 일이 없어진다.
+    const versioned = argus!.args.filter((a) => /argus-decision-mcp@/.test(a));
+    expect(versioned, '버전을 박으면 이 플러그인을 긐 사람은 새 서버를 영영 못 받는다')
+      .toEqual([]);
+    expect(argus!.args).toContain('--package=argus-decision-mcp');
   });
 
-  it('.mcp.json 핀 == argus-mcp/package.json version (배선 lockstep)', () => {
+  it('범위 스펙은 어느 자리에도 없다 (캐시에 얼어붙는 유일한 형태)', () => {
     const mcp = readJson(path.join(PLUGIN, '.mcp.json'));
     const servers = mcp['mcpServers'] as Record<string, { args: string[] }>;
-    const pkgArg = Object.values(servers)
-      .flatMap((s) => s.args)
-      .find((a) => a.includes('argus-decision-mcp@'))!;
-    const pinned = /argus-decision-mcp@(\d+\.\d+\.\d+)/.exec(pkgArg)?.[1];
-    const selfVersion = (readJson(path.join(MCP_ROOT, 'package.json'))['version'] as string);
-    expect(pinned, `플러그인이 핀한 ${pinned} != 이 서버의 ${selfVersion} — 같은 커밋에서 함께 올릴 것`)
-      .toBe(selfVersion);
+    const all = Object.values(servers).flatMap((s) => s.args);
+    for (const arg of all) {
+      expect(arg, `${arg} — 범위/태그 스펙은 npx 캐시에 얼어붙는다 (실측 2026-07-29)`)
+        .not.toMatch(/argus-decision-mcp@[\^~*]|argus-decision-mcp@latest/);
+    }
   });
 
   it('server.json(레지스트리) 버전도 package.json과 일치한다', () => {

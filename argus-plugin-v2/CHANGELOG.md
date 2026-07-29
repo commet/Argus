@@ -1,5 +1,23 @@
 # Changelog
 
+## 3.0.14 - 2026-07-29
+
+- **The wiring no longer pins an MCP version, so one install keeps receiving
+  fixes.** Measured the same day, same spec string twice with an older build in
+  the npx cache: a bare package name launched the current release, `@^2.0.0`
+  launched the stale cached one. A range is satisfied from cache and never
+  re-asks the registry; a bare name has to.
+- Before this, installing the plugin froze you on whatever MCP version the
+  plugin shipped with. On 2026-07-29 the founder's Codex and this plugin pointed
+  at two different versions, neither of them current.
+- `doctor` now says "버전 고정 없음 — 매 실행 최신을 받는다" and folds leftover
+  cache copies into one harmless line, instead of comparing them to a pin that no
+  longer exists. It also reads the plugin at `CLAUDE_PLUGIN_ROOT` — the install
+  the host actually loaded, not the checkout beside the script.
+- Wire moves to `argus-decision-mcp` (unpinned), whose 2.0.13 keeps the user's
+  draft when a picker is declined — including when a host approval policy
+  declines it without drawing anything.
+
 ## 3.0.13 - 2026-07-29
 
 - Removes the separately auto-discovered `/argus:doctor` command. Diagnosis is

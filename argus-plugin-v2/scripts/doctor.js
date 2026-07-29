@@ -219,20 +219,34 @@ for (const p of [path.join(cwd, '.argus', 'ledger', 'ledger.jsonl'), path.join(h
 //     모델에게 그 한 가지를 추가 확인시킨다 (honest gap: 모르는 건 모른다고).
 {
   say('[10] MCP 배선 버전:');
-  const mcpJson = path.join(__dirname, '..', '.mcp.json');
+  // CLAUDE_PLUGIN_ROOT is where the HOST actually installed this plugin, and it
+  // is what doctor should inspect — the checkout next to this script is only the
+  // same file by coincidence when run from a dev tree. It also means the wiring
+  // contract can be tested against a fixture: without this, doctor-cache-noise
+  // wrote a fixture .mcp.json that doctor never opened, so its pin assertions
+  // were reading the repo's own file and proving nothing (2026-07-29).
+  const pluginHome = process.env.CLAUDE_PLUGIN_ROOT || path.join(__dirname, '..');
+  const mcpJson = path.join(pluginHome, '.mcp.json');
   let pinned = null;
+  let launches = false;   // 배선 자체는 있는가 (버전 표기와 별개의 사실)
   try {
-    const wired = JSON.parse(fs.readFileSync(mcpJson, 'utf8')).mcpServers || {};
-    for (const s of Object.values(wired)) {
+    const servers = JSON.parse(fs.readFileSync(mcpJson, 'utf8')).mcpServers || {};
+    for (const s of Object.values(servers)) {
       const spec = (s && Array.isArray(s.args) ? s.args : []).find(
-        (a) => typeof a === 'string' && a.includes('argus-decision-mcp@'),
+        (a) => typeof a === 'string' && a.includes('argus-decision-mcp'),
       );
-      const match = /argus-decision-mcp@(\d+\.\d+\.\d+|[^\s]+)/.exec(spec ?? '');
+      if (!spec) continue;
+      launches = true;
+      const match = /argus-decision-mcp@(\d+\.\d+\.\d+|[^\s]+)/.exec(spec);
       if (match) { pinned = match[1]; break; }
     }
   } catch { /* 배선 파일 없음/파손 — 아래에서 정직하게 보고 */ }
 
-  if (!pinned) {
+  if (launches && !pinned) {
+    // 의도된 상태. 버전을 안 적으면 npx가 매 실행 레지스트리에 다시 물어보므로
+    // 한 번 설치하면 계속 최신이다 (2026-07-29 실측).
+    say(`    버전 고정 없음 — 매 실행 최신을 받는다 (${mcpJson})`);
+  } else if (!pinned) {
     say(`    ⚠ 배선 스펙을 읽지 못함 (${mcpJson}) — 플러그인 번들이 불완전하다. 플러그인 재설치 대상.`);
   } else if (!/^\d+\.\d+\.\d+$/.test(pinned)) {
     say(`    ⚠ 핀이 범위 스펙이다 (${pinned}) — npx가 캐시된 옛 설치본을 계속 재사용해 배선이 조용히 얼어붙는다. 정확 버전으로 핀할 것.`);
@@ -261,7 +275,12 @@ for (const p of [path.join(cwd, '.argus', 'ledger', 'ledger.jsonl'), path.join(h
     }
   }
   if (found.length === 0) {
-    say('    npx 캐시에 설치본 없음 — 다음 도구 호출에서 핀한 버전을 내려받는다 (정상).');
+    say('    npx 캐시에 설치본 없음 — 다음 도구 호출에서 내려받는다 (정상).');
+  } else if (launches && !pinned) {
+    // 버전을 안 박았으므로 "핀과 같다/다르다"는 말이 안 된다. npx가 매 실행
+    // 레지스트리에 다시 물으므로 남은 사본은 지난 실행의 흔적일 뿐이다.
+    const vs = [...new Set(found.map((f) => f.version))].sort().join(', ');
+    say(`    캐시에 남은 사본 ${found.length}개 (${vs}) — 무해: 버전을 안 박았으므로 npx가 매번 최신을 다시 받는다.`);
   } else {
     // 경고의 전제는 "범위 스펙이면 npx가 낡은 캐시를 재사용한다"였다. 핀이 정확
     // 버전인 지금은 낡은 사본이 선택될 수 없으므로 무해하다 — 그런데도 사본 하나당

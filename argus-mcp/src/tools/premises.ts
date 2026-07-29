@@ -287,7 +287,19 @@ async function opAdd(
         // same call still record below.
         inputs.splice(inputs.indexOf(draft), 1);
         if (inputs.length === 0) {
-          return envelope({ ok: true, tool: 'argus_premises', surface: dLocale === 'ko' ? '기록하지 않았습니다.' : 'Not recorded.', next_actions: ['stop'], data: { recorded: false, choice: 'declined' } });
+          // Same rule as seal.ts: stay silent, do not re-ask — but do not throw
+          // the draft away. When a host policy answers `decline` without drawing
+          // anything, this was the surface that made the user's own sentence
+          // unrecoverable. Carrying it costs no inference about who answered.
+          return envelope({
+            ok: true, tool: 'argus_premises',
+            surface: dLocale === 'ko' ? '기록하지 않았습니다.' : 'Not recorded.',
+            next_actions: ['stop'],
+            data: {
+              recorded: false, choice: 'declined', id, premise_draft: draft.text,
+              retry_hint: 'the draft is preserved here; if the user asks for it again, call argus_capture with this premise and source:"ai_surfaced" + ai_original',
+            },
+          });
         }
       } else {
         // accepted, or `unsupported` (elicitor unwired between the capability

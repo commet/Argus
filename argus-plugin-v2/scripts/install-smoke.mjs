@@ -180,9 +180,16 @@ try {
   command(claudeBin, ['plugin', 'validate', stagedRepo], { env });
 
   const mcpPin = readJson(path.join(stagedPlugin, '.mcp.json'))
-    .mcpServers?.['argus-decision']?.args?.find((arg) => /argus-decision-mcp@/.test(arg));
-  const pinnedVersion = /argus-decision-mcp@(\d+\.\d+\.\d+)/.exec(String(mcpPin ?? ''))?.[1];
-  if (!pinnedVersion) throw new Error('staged .mcp.json has no exact argus-decision-mcp@version pin');
+    .mcpServers?.['argus-decision']?.args?.find((arg) => /argus-decision-mcp/.test(arg));
+  // The plugin names no version on purpose (measured 2026-07-29: npx re-resolves
+  // a bare name every launch, a range never does), so what has to be true here is
+  // the opposite of a pin — and the release still has to actually be on npm, or
+  // a bare name resolves to yesterday's build for everyone.
+  if (!mcpPin) throw new Error('staged .mcp.json does not launch argus-decision-mcp');
+  if (/argus-decision-mcp@/.test(String(mcpPin))) {
+    throw new Error(`staged .mcp.json pins a version (${mcpPin}) — one install must keep receiving fixes`);
+  }
+  const pinnedVersion = readJson(path.join(mcpRoot, 'package.json')).version;
 
   if (publishedMode) {
     // npm publish can return before every registry edge serves the new version.
