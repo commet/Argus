@@ -50,6 +50,16 @@ const PAIRS: Pair[] = [
     guard: 'src/lib/__tests__/premises-core-drift.test.ts', kind: 'ci',
   },
   {
+    a: 'src/lib/premise-shape.ts', b: 'argus-mcp/src/lib/premise-shape.ts',
+    breaks: '같은 문장이 웹에서는 전제, 터미널에서는 미결 질문으로 앉는다 — 확인일에 한쪽만 답할 수 있게 된다',
+    guard: 'src/lib/__tests__/premises-core-drift.test.ts', kind: 'ci',
+  },
+  {
+    a: 'src/lib/premise-shape.ts (판별 규칙)', b: 'argus-plugin-v2/scripts/decision-ledger.js (isQuestionShaped)',
+    breaks: '플러그인만 물음을 전제로 계속 저장해, 같은 결정이 표면마다 다른 모양으로 남는다',
+    guard: 'src/lib/__tests__/premise-shape.test.ts', kind: 'ci',
+  },
+  {
     a: 'src/lib/numeric-drift.ts', b: 'argus-mcp/src/lib/numeric-drift.ts',
     breaks: '같은 수치 변화가 한쪽에서만 material로 판정된다',
     guard: 'src/lib/__tests__/premises-core-drift.test.ts', kind: 'ci',

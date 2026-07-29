@@ -18,6 +18,7 @@ const PAIRS: Array<[string, string]> = [
   ['src/lib/canonical-scales.ts', 'argus-mcp/src/lib/canonical-scales.ts'],
   ['src/lib/numeric-drift.ts', 'argus-mcp/src/lib/numeric-drift.ts'],
   ['src/lib/premises-core.ts', 'argus-mcp/src/lib/premises-core.ts'],
+  ['src/lib/premise-shape.ts', 'argus-mcp/src/lib/premise-shape.ts'],
 ];
 
 /** Strip the `.js` extension the MCP copy adds to relative imports. */
