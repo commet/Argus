@@ -109,6 +109,16 @@ const PAIRS: Pair[] = [
     breaks: '흐름을 읽는 소스 가드가 코드 이동만으로 조용히 눈을 감는다',
     guard: 'src/components/workspace/progressive/__tests__/no-machinery-leak.test.ts', kind: 'ci',
   },
+  {
+    a: 'UUID 검사 패턴 (lib/uuid.ts)', b: '라우트들이 손으로 다시 쓴 사본',
+    breaks: '사본 셋 중 하나가 넷 묶음이라 팀 초대·멤버·프로젝트 공유·리뷰가 10일간 전부 400이었다',
+    guard: 'src/lib/__tests__/uuid-pattern.test.ts', kind: 'ci',
+  },
+  {
+    a: 'attribution.authority (누가 썼는가)', b: 'authored / source (옛 신호)',
+    breaks: 'AI가 초안한 문장이 "사용자가 소유한 판단"으로 계산되어 귀환 루프를 닫을 자격을 얻는다',
+    guard: 'src/lib/__tests__/decision-contract-spine-mutations.test.ts', kind: 'ci',
+  },
 
   // ── 리포 ↔ 실DB (CI가 구조적으로 볼 수 없는 것) ──────────────────────────
   {
