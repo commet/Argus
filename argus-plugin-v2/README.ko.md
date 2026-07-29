@@ -98,13 +98,13 @@ Claude Code를 다시 시작한 뒤:
   핀은 의도된 선택입니다 — `npx`는 스펙이 범위(`@^1` 등)면 캐시에 있는 설치본을
   계속 재사용해서, 배선이 옛 빌드에 얼어붙은 채 남을 수 있습니다.
   `argus_check_in`이 실제로 돌고 있는 버전(`data.server_version`)을 보고하고
-  `/argus:doctor`가 그걸 핀과 대조하므로, 낡은 배선은 "기능이 없는 느낌"이 아니라
+  `/argus:settings doctor`가 그걸 핀과 대조하므로, 낡은 배선은 "기능이 없는 느낌"이 아니라
   눈에 보이는 사실이 됩니다.
 - **조용한 훅 2개** — 세션 시작 때 확인일이 도달한 결정을 알려주는 점검(뒤처진
   결정 뷰는 새로 고침), 그리고 세션당 최대 1회(세션 밖 4시간 쿨다운) due 항목
   하나만 묻는 ambient 방아쇠. 침묵이 기본값이고, 끄기는
   `~/.argus/config.json`에 `{ "ambient": { "opt_out": true } }`.
-- **`/argus:doctor`** — 설치·배선 읽기 전용 자가진단. 아무것도 고치지 않으며,
+- **`/argus:settings doctor`** — 설치·배선 읽기 전용 자가진단. 아무것도 고치지 않으며,
   각 줄에 고칠 수 있는 공개 도구 이름이 적혀 있습니다.
 - **statusline (선택)** — [`statusline/index.js`](./statusline/index.js)가 로컬 판단
   기록을 읽습니다. 켜려면 `~/.claude/settings.json`에 1줄:
@@ -186,7 +186,7 @@ sync는 먼저 웹앱에서 한 답변/미루기를 로컬 ledger로 가져오�
 | `/argus:settings` | 언어·보스 설정, 웹앱 연결/동기화(`connect`, `sync`). |
 | `/argus:help` | 가장 짧은 명령어 지도가 필요할 때. |
 
-비상구: `/argus:doctor` (읽기 전용 설치·배선 자가진단).
+비상구: `/argus:settings doctor` (읽기 전용 설치·배선 자가진단).
 
 ---
 

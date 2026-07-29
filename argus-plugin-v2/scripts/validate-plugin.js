@@ -55,7 +55,7 @@ if (manifest) {
 // so they are loaded only after a public router selects them; they do not tax
 // every model turn or create undocumented slash commands.
 const SKILLS = ["review", "check", "history", "settings", "help"];
-const WORKFLOWS = ["configure", "connect", "journal", "preapprove", "predict", "premises", "principles", "pull", "push", "resolve", "scan", "sync", "versions"];
+const WORKFLOWS = ["configure", "connect", "doctor", "journal", "preapprove", "predict", "premises", "principles", "pull", "push", "resolve", "scan", "sync", "versions"];
 const REVIEW_STEPS = ["pipeline", "clarify", "team", "verify", "boss", "revise"];
 const discoveredSkills = fs.readdirSync(path.join(root, "skills"), { withFileTypes: true })
   .filter((entry) => entry.isDirectory() && !entry.name.startsWith("_")
@@ -65,6 +65,13 @@ const discoveredSkills = fs.readdirSync(path.join(root, "skills"), { withFileTyp
 check(
   JSON.stringify(discoveredSkills) === JSON.stringify([...SKILLS].sort()),
   `skills/ must expose exactly ${[...SKILLS].sort().join(", ")}; found ${discoveredSkills.join(", ")}`,
+);
+const discoveredCommands = fs.existsSync(path.join(root, "commands"))
+  ? fs.readdirSync(path.join(root, "commands")).filter((name) => name.endsWith(".md"))
+  : [];
+check(
+  discoveredCommands.length === 0,
+  `commands/ must expose no extra slash commands; route everything through the five public skills (found ${discoveredCommands.join(", ")})`,
 );
 for (const step of REVIEW_STEPS) {
   check(fs.existsSync(path.join(root, "skills", "review", `${step}.md`)), `missing skills/review/${step}.md (review pipeline step)`);

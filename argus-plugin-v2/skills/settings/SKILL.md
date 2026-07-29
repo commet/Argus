@@ -17,4 +17,4 @@ exactly. These files are implementation details, not additional user commands:
 | `push` | `${CLAUDE_PLUGIN_ROOT}/lib/workflows/push.md` |
 | `pull` | `${CLAUDE_PLUGIN_ROOT}/lib/workflows/pull.md` |
 | `sync` | `${CLAUDE_PLUGIN_ROOT}/lib/workflows/sync.md` |
-| `doctor` | Point the user to `/argus:doctor` — the read-only install/wiring self-diagnosis is its own command. |
+| `doctor` | `${CLAUDE_PLUGIN_ROOT}/lib/workflows/doctor.md` — read-only install/wiring self-diagnosis. |

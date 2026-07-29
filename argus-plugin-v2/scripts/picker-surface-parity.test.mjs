@@ -4,7 +4,7 @@
  *
  * `argus_check_in` returns `data.picker` as one of three values, and the plugin
  * is the only place that turns that value into a sentence a human reads. When
- * 1.15.0 added the MCP Apps `card`, `/argus:doctor` still knew only `one_tap`
+ * 1.15.0 added the MCP Apps `card`; the doctor workflow still knew only `one_tap`
  * and `text_fallback` — so a Claude Desktop user, the one host where the card
  * actually renders, got NO line at all for it. The item did not read as broken;
  * it simply was not there, which is the silent-drift class this repo keeps
@@ -41,7 +41,7 @@ if (values.length < 2) {
 
 // The consumers: every plugin surface that has to explain the value to a human.
 const CONSUMERS = [
-  path.join(ROOT, 'argus-plugin-v2', 'commands', 'doctor.md'),
+  path.join(ROOT, 'argus-plugin-v2', 'lib', 'workflows', 'doctor.md'),
   path.join(ROOT, 'argus-plugin-v2', 'lib', 'workflows', 'resolve.md'),
 ];
 
