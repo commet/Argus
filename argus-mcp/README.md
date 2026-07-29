@@ -12,6 +12,12 @@ codex mcp add argus-decision -- npx -y argus-decision-mcp@2.0.9
 codex mcp list        # argus-decision should be listed and enabled
 ```
 
+**Then restart Codex.** A conversation that was already open when you ran `mcp
+add` will not see the tools — Codex binds its MCP servers when the session
+starts, and it will tell you so ("the server tools are not connected yet").
+Quit the app and reopen it, or start a fresh session; asking again in the same
+conversation is not enough.
+
 Argus confirms a prediction with a one-tap form before saving it. Codex shows
 that form under its default approval policy. If yours is set to `never`, or
 `approval_policy.granular.mcp_elicitations = false`, Codex answers the form
