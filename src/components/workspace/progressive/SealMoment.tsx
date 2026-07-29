@@ -32,7 +32,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { LocaleLink } from '@/components/ui/LocaleLink';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
-import { Anchor, CalendarPlus, Check, ChevronDown, Target, AlertTriangle, GitBranch } from 'lucide-react';
+import { Anchor, CalendarPlus, Check, ChevronDown, Target, AlertTriangle, GitBranch, Image as ImageIcon } from 'lucide-react';
 import { ArgusMascot } from '@/components/brand/ArgusMascot';
 import { useLocale } from '@/hooks/useLocale';
 import { useAuth } from '@/lib/auth';
@@ -55,6 +55,7 @@ import {
   webUserAttribution,
   MAX_PREDICATES,
 } from '@/lib/decision-contract';
+import { buildJudgmentCard } from '@/lib/judgment-card';
 import { derivePrimaryCheckpoint } from '@/lib/checkpoint-core';
 import { buildAutoTrackedPremiseItems } from '@/lib/auto-track-premises';
 import { useDecisionItemsStore } from '@/stores/useDecisionItemsStore';
@@ -157,6 +158,7 @@ export function SealMoment({
   });
   const { user, session, signInWithGoogle } = useAuth();
   const [signInError, setSignInError] = useState<string | null>(null);
+  const [cardBusy, setCardBusy] = useState(false);
 
   /** §3.4 — the decision's premises become tracked items at seal (auto, not a
    *  manual import). Idempotent + spine-safe (external:false → alert OFF). */
@@ -579,6 +581,42 @@ export function SealMoment({
     URL.revokeObjectURL(url);
   }
 
+  // ── 판단 카드 — 봉인한 판단을 그림 한 장으로. 남에게 보여줄 수 있는 유일한
+  //    수단이 "텍스트 복사"뿐이면, 좋다고 느낀 사람도 아무에게도 못 보여준다.
+  //
+  //    카드에 무엇이 실리고 무엇이 실리지 않는지는 lib/judgment-card.ts 가 전부
+  //    정한다. 여기서는 그 결과를 그리고 내려받게만 한다 — 이 컴포넌트가 문장을
+  //    보태면 그 순간 "사용자가 확정하지 않은 문장"이 서명 없이 유통된다.
+  //
+  //    카드를 만들 수 없으면(봉인 문장 없음) 버튼 자체를 렌더하지 않는다. 눌렀는데
+  //    빈 카드가 나오는 것보다 버튼이 없는 게 정직하다.
+  const judgmentCard = useMemo(
+    () => buildJudgmentCard(project?.decision_contract ?? null, typeof project?.name === 'string' ? project.name : null),
+    [project?.decision_contract, project?.name],
+  );
+
+  async function downloadCard() {
+    if (!judgmentCard || cardBusy) return;
+    setCardBusy(true);
+    try {
+      // 렌더러는 캔버스를 쓰므로 브라우저에서만 산다 — 봉인 화면 첫 페인트에
+      // 끌고 들어오지 않도록 누를 때 불러온다.
+      const { renderJudgmentCard, judgmentCardFilename } = await import('@/lib/judgment-card-render');
+      const blob = await renderJudgmentCard(judgmentCard, locale === 'ko' ? 'ko' : 'en');
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = judgmentCardFilename(judgmentCard);
+      a.click();
+      URL.revokeObjectURL(url);
+      track('judgment_card_downloaded', { authorship: judgmentCard.authorship, has_check: !!judgmentCard.checkOn });
+    } catch {
+      // 카드는 부가 기능이다. 실패해도 봉인은 이미 끝났으므로 화면을 흔들지 않는다.
+    } finally {
+      setCardBusy(false);
+    }
+  }
+
   // ── Already-sealed loop (reload / waiting / due / verified): single source of
   //    truth lives in DecisionContractCard. We only own the fresh ASK + the
   //    just-sealed confirmation. ──
@@ -895,6 +933,14 @@ export function SealMoment({
             <LocaleLink href="/project" className="text-[12.5px] font-medium text-[var(--accent)] hover:underline">
               {L('프로젝트 페이지 보기 →', 'See the project page →')}
             </LocaleLink>
+            {judgmentCard && <button
+              onClick={downloadCard}
+              disabled={cardBusy}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12.5px] font-medium text-[var(--text-secondary)] border border-[var(--border)] hover:border-[var(--accent)]/40 hover:text-[var(--accent)] transition-colors cursor-pointer disabled:opacity-50"
+            >
+              <ImageIcon size={13} />
+              {L('이미지로 저장', 'Save as image')}
+            </button>}
             {displayedKind !== 'witness' && <button
               onClick={downloadIcs}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12.5px] font-medium text-[var(--text-secondary)] border border-[var(--border)] hover:border-[var(--accent)]/40 hover:text-[var(--accent)] transition-colors cursor-pointer"

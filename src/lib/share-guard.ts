@@ -9,7 +9,8 @@
  */
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 
-const DAILY_SHARE_LIMIT = 50;
+// 한도 숫자는 화면도 알아야 해서 순수 파일에 산다 (share-limits.ts 의 주석 참고).
+import { ANON_SHARE_LIMIT, DAILY_SHARE_LIMIT } from './share-limits';
 
 export function adminClient(): SupabaseClient {
   return createClient(
@@ -27,15 +28,16 @@ export interface ShareGuardResult {
 export async function recordAndCheckShare(
   userId: string,
   channel: string,
-  opts: { target?: string; context?: string } = {},
+  opts: { target?: string; context?: string; anonymous?: boolean } = {},
 ): Promise<ShareGuardResult> {
   const admin = adminClient();
+  const limit = opts.anonymous ? ANON_SHARE_LIMIT : DAILY_SHARE_LIMIT;
   const { data: allowed, error } = await admin.rpc('record_share_if_allowed', {
     p_user_id: userId,
     p_channel: channel,
     p_target: opts.target ?? null,
     p_context: opts.context ?? null,
-    p_limit: DAILY_SHARE_LIMIT,
+    p_limit: limit,
     p_scope_channel: null,
   });
 
@@ -48,7 +50,11 @@ export async function recordAndCheckShare(
     return {
       ok: false,
       status: 429,
-      error: `Daily share limit (${DAILY_SHARE_LIMIT}) reached. Try again tomorrow.`,
+      // 익명에게는 "로그인하면 늘어난다"를 함께 말한다 — 벽만 세우고 문을 안 알려주면
+      // 그 사람은 여기서 끝난다.
+      error: opts.anonymous
+        ? `Daily share limit (${ANON_SHARE_LIMIT}) reached for a signed-out browser. Sign in to raise it.`
+        : `Daily share limit (${DAILY_SHARE_LIMIT}) reached. Try again tomorrow.`,
     };
   }
 
