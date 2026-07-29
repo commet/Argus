@@ -45,7 +45,13 @@ describe('promotion-critical web basics', () => {
   });
 
   it('does not expose a first-analysis verdict before neutrality scanning', () => {
-    const flow = read('src/components/workspace/progressive/ProgressiveFlow.tsx');
+    // Whole flow surface, not one path: the presentational half now lives in
+    // flow-parts/ (E-1, 2026-07-29) and a path-pinned guard would go quietly blind.
+    const flow = [
+      read('src/components/workspace/progressive/ProgressiveFlow.tsx'),
+      ...['stream-cards', 'phase-chrome', 'voyage-prep', 'framing']
+        .map((f) => read(`src/components/workspace/progressive/flow-parts/${f}.tsx`)),
+    ].join('\n');
     const card = read('src/components/workspace/progressive/shared/AnalysisCard.tsx');
     const engine = read('src/lib/progressive-engine.ts');
     expect(flow).toContain('scanLean(session.problem_text');
