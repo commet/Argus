@@ -180,7 +180,7 @@ function defaultCheckpointLabel(stage: VoyageStage, round: number): string {
     case 'briefing':   return ko ? `질문 정리 ${round}` : `Question framing ${round}`;
     case 'crew_set':   return ko ? 'AI 팀 구성' : 'AI team ready';
     case 'crew_done':  return ko ? 'AI 팀원 검토 완료' : 'AI review complete';
-    case 'mix':        return ko ? '문서 초안' : 'Draft';
+    case 'mix':        return ko ? '정리' : 'Write-up';
     case 'review':     return ko ? '리뷰어 검토' : 'Review';
     case 'anchor':     return ko ? '완료' : 'Complete';
   }
@@ -244,6 +244,10 @@ interface ProgressiveState {
 
   // Mix & DM
   setMix: (mix: MixResult) => void;
+  /** Integrity-scan patch (FIX 7): replace the mix WITHOUT touching the phase —
+   *  setMix forces phase 'dm_feedback', which would yank back a user who has
+   *  already moved past the draft when the async scan resolves. */
+  patchMix: (mix: MixResult) => void;
   setDMFeedback: (feedback: DMFeedbackResult) => void;
   toggleFix: (concernIndex: number) => void;
   /** Persist the committed overreach/flinch result. Additive — never touches
@@ -475,7 +479,7 @@ function migrateSessionDrafts(sessions: ProgressiveSession[]): ProgressiveSessio
       id,
       parent_draft_id: null,
       version_label: 'v0.1',
-      change_summary: getCurrentLanguage() === 'ko' ? '첫 초안 (에이전트 팀 분석)' : 'First draft (agent team analysis)',
+      change_summary: getCurrentLanguage() === 'ko' ? '첫 정리 (에이전트 팀 분석)' : 'First write-up (agent team analysis)',
       directive: null,
       final_text: s.final_deliverable,
       final_mix: s.final_mix ?? null,
@@ -846,6 +850,14 @@ export const useProgressiveStore = create<ProgressiveState>((set, get) => ({
     set({ sessions });
   },
 
+  patchMix: (mix) => {
+    const { currentSessionId } = get();
+    if (!currentSessionId) return;
+    const sessions = updateSession(get().sessions, currentSessionId, () => ({ mix }));
+    persist(sessions);
+    set({ sessions });
+  },
+
   setDMFeedback: (feedback) => {
     const { currentSessionId } = get();
     if (!currentSessionId) return;
@@ -921,7 +933,7 @@ export const useProgressiveStore = create<ProgressiveState>((set, get) => ({
           // Initial completion — root of the draft tree.
           parentId = null;
           reviewingAgentId = null;
-          changeSummary = getCurrentLanguage() === 'ko' ? '첫 초안 (에이전트 팀 분석)' : 'First draft (agent team analysis)';
+          changeSummary = getCurrentLanguage() === 'ko' ? '첫 정리 (에이전트 팀 분석)' : 'First write-up (agent team analysis)';
         } else {
           // Re-run of DM stakeholder review — append as child of active leaf.
           parentId = current.active_draft_id

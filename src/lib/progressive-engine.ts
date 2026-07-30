@@ -5,7 +5,7 @@
 import { callLLMJson, callLLMStreamThenParse, LLMError } from '@/lib/llm';
 import { salvageMixDoc } from '@/lib/partial-analysis';
 import { buildHonestyScanPrompt, coerceHonestyFlags, type HonestyFlag } from '@/lib/honesty-scan';
-import { buildLeanScanPrompt, coerceLeanFlags, type LeanFlag } from '@/lib/lean-scan';
+import { buildLeanScanPrompt, coerceLeanFlags, neutralizeLeanText, type LeanFlag } from '@/lib/lean-scan';
 import {
   buildInitialAnalysisPrompt,
   buildInitialRefinementPrompt,
@@ -601,6 +601,60 @@ export async function scanLean(
   }
 }
 
+/** FIX 7 — the integrity scans used to run ONLY on the analysis card; the mix
+ * (the document the user actually ships) went out unscanned. This maps the
+ * document fields into the scans' analysis shape and runs both, best-effort:
+ * any failure resolves to empty flags and never sinks the mix.
+ *  - decision_read + executive_summary ride the `insight` slot (where verdicts
+ *    and asserted world-facts concentrate — the lean scan's own doctrine).
+ *  - sections ride the `skeleton` slot (body prose; the skeleton exemption for
+ *    imperative ACTION steps correctly spares "확인하세요" pointers).
+ *  - key_assumptions are deliberately NOT scanned: they are declared assumptions,
+ *    which is already the honest form. */
+export async function scanMixIntegrity(
+  problemText: string,
+  mix: MixResult,
+  signal?: AbortSignal,
+): Promise<{ leanFlags: LeanFlag[]; honestyFlags: HonestyFlag[] }> {
+  const analysis = {
+    real_question: mix.title || '',
+    hidden_assumptions: [] as string[],
+    skeleton: (mix.sections || []).map(s => `${s.heading} — ${s.content}`),
+    insight: [mix.decision_read, mix.executive_summary].filter(Boolean).join('\n'),
+  };
+  const [leanFlags, honestyFlags] = await Promise.all([
+    scanLean(problemText, analysis, signal),
+    scanHonesty(problemText, analysis, signal),
+  ]);
+  return { leanFlags, honestyFlags };
+}
+
+/** Apply the mix integrity scan: NEUTRALIZE lean spans in place (a verdict must
+ * be rewritten, never labeled — mirror clause) and attach honesty flags for the
+ * "확인 필요" shade. Pure; returns a new MixResult. */
+export function applyMixIntegrity(
+  mix: MixResult,
+  leanFlags: LeanFlag[],
+  honestyFlags: HonestyFlag[],
+): MixResult {
+  const n = (t: string) => neutralizeLeanText(t, leanFlags);
+  return {
+    ...mix,
+    title: n(mix.title || ''),
+    ...(mix.decision_read != null ? { decision_read: n(mix.decision_read) } : {}),
+    executive_summary: n(mix.executive_summary || ''),
+    sections: (mix.sections || []).map(s => ({
+      ...s,
+      heading: n(s.heading || ''),
+      content: n(s.content || ''),
+      ...(s.sentences
+        ? { sentences: s.sentences.map(sent => ({ ...sent, text: n(sent.text || '') })) }
+        : {}),
+    })),
+    honesty_flags: honestyFlags,
+  };
+}
+
 export async function runInitialAnalysis(
   problemText: string,
   onToken?: (text: string) => void,
@@ -941,6 +995,9 @@ export async function runDeepening(
           skeleton: result.skeleton || currentSnapshot.skeleton,
         },
         questionsAndAnswers, round, availableAgents, locale, leadContext, registeredPersonas,
+        // FIX 5 — feed the MEASURED round-0 weight (living estimate) into the
+        // crew-restraint clause instead of letting the planner re-derive it.
+        { stakes: currentSnapshot.stakes, reversibility: currentSnapshot.reversibility },
       );
       // maxTokens 3500: a 5-step Korean plan with human-step fields is the
       // largest realistic payload; 3500 (well under the server cap) clears it.
@@ -1152,7 +1209,7 @@ export async function runMix(
   );
   // Append user notes to the user prompt if provided
   const user = userNotes?.trim()
-    ? `${userPrompt}\n\n<user-notes>\n사용자가 직접 추가한 의견입니다. 초안에 반드시 반영하세요:\n${userNotes.trim()}\n</user-notes>`
+    ? `${userPrompt}\n\n<user-notes>\n사용자가 직접 추가한 의견입니다. 문서에 반드시 반영하세요:\n${userNotes.trim()}\n</user-notes>`
     : userPrompt;
 
   const shape = { title: 'string' as const, executive_summary: 'string' as const, sections: 'array' as const, key_assumptions: 'array' as const, next_steps: 'array' as const };

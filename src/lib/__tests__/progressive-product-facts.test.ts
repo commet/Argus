@@ -4,6 +4,7 @@ import {
   buildDeepeningPrompt,
   buildExecutionPlanPrompt,
   buildInitialAnalysisPrompt,
+  buildInitialRefinementPrompt,
   buildMixPrompt,
   buildWorkerTaskPrompt,
 } from '../progressive-prompts';
@@ -35,6 +36,7 @@ describe('workspace product facts — MCP sync is never invented', () => {
         'ko',
       ).system,
       buildMixPrompt('결정을 돕자', [snapshot], [], null, [], 'ko').system,
+      buildInitialRefinementPrompt('결정을 돕자', '거부된 질문?', '방향이 달라요', 'ko').system,
     ];
 
     for (const system of systems) {

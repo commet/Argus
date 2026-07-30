@@ -68,7 +68,7 @@ JSON으로만 응답하세요 (모든 문자열은 한국어):
     }
   ]
 }
-findings는 3-5개. 반드시 JSON만 응답하세요.`;
+findings는 있는 만큼만 — 실질적인 약점이 없으면 빈 배열([])이 정답입니다. thorough해 보이려고 억지 findings를 만들지 마세요. 반드시 JSON만 응답하세요.`;
 }
 
 function skepticPromptEn(ctx: ReviewContext): string {
@@ -99,7 +99,7 @@ Respond in JSON only (all strings in English):
     }
   ]
 }
-3-5 findings. JSON only.`;
+Report only what's real — if there is no substantive weakness, an empty findings array ([]) is the correct answer. Never manufacture findings to look thorough. JSON only.`;
 }
 
 function getSkepticLens(): ReviewLens {
@@ -136,7 +136,7 @@ JSON으로만 응답하세요 (모든 문자열은 한국어):
     }
   ]
 }
-findings는 2-4개. 반드시 JSON만 응답하세요.`;
+findings는 있는 만큼만 — 실질적인 개선점이 없으면 빈 배열([])이 정답입니다. 억지로 채우지 마세요. 반드시 JSON만 응답하세요.`;
 }
 
 function optimizerPromptEn(ctx: ReviewContext): string {
@@ -165,7 +165,7 @@ Respond in JSON only (all strings in English):
     }
   ]
 }
-2-4 findings. JSON only.`;
+Report only what's real — if there is no substantive improvement, an empty findings array ([]) is the correct answer. Never pad. JSON only.`;
 }
 
 function getOptimizerLens(): ReviewLens {
@@ -285,7 +285,7 @@ JSON으로만 응답하세요 (모든 문자열은 한국어):
     }
   ]
 }
-findings는 2-4개. 반드시 JSON만 응답하세요.`
+findings는 있는 만큼만 — 실질적인 리스크나 기회가 없으면 빈 배열([])이 정답입니다. 억지로 채우지 마세요. 반드시 JSON만 응답하세요.`
       : `${domainPromptsEn[domainType]}
 
 [Core direction] ${ctx.governing_idea}
@@ -306,7 +306,7 @@ Respond in JSON only (all strings in English):
     }
   ]
 }
-2-4 findings. JSON only.`,
+Report only what's real — if there is no substantive domain risk or opportunity, an empty findings array ([]) is the correct answer. Never pad. JSON only.`,
   };
 }
 

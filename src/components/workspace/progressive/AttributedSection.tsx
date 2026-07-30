@@ -4,15 +4,19 @@ import { motion } from 'framer-motion';
 import { useLocale } from '@/hooks/useLocale';
 import { useAgentAttentionStore } from '@/stores/useAgentAttentionStore';
 import type { MixResult } from '@/stores/types';
+import type { HonestyFlag } from '@/lib/honesty-scan';
 import { useWorkers } from './WorkerPanel';
-import { renderInline } from './shared/renderMd';
+import { renderInlineShaded } from './shared/HonestyShaded';
 import { personaName } from './shared/persona-format';
 import { EASE } from './shared/constants';
 
-/* ═══ Attributed Section — draft paragraph with bidirectional hover + sentence-level attribution ═══ */
-export function AttributedSection({ section, index }: {
+/* ═══ Attributed Section — document paragraph with bidirectional hover + sentence-level attribution ═══ */
+export function AttributedSection({ section, index, honestyFlags }: {
   section: MixResult['sections'][number];
   index: number;
+  /** FIX 7 — flags from the mix integrity scan; matched spans get the quiet
+   *  "확인 필요" dotted shade. Optional: absent = render as before. */
+  honestyFlags?: HonestyFlag[];
 }) {
   const locale = useLocale();
   const L = (ko: string, en: string) => locale === 'ko' ? ko : en;
@@ -106,9 +110,9 @@ export function AttributedSection({ section, index }: {
       </div>
 
       {hasSentences ? (
-        <SentenceStream section={section} sectionIndex={index} workers={workers} />
+        <SentenceStream section={section} sectionIndex={index} workers={workers} honestyFlags={honestyFlags} />
       ) : (
-        <p className="text-[14px] text-[var(--text-primary)] leading-[1.75]">{renderInline(section.content)}</p>
+        <p className="text-[14px] text-[var(--text-primary)] leading-[1.75]">{renderInlineShaded(section.content, honestyFlags, locale)}</p>
       )}
 
       {contributors.length > 0 && (
@@ -124,10 +128,11 @@ export function AttributedSection({ section, index }: {
 }
 
 /* ═══ SentenceStream — renders section sentences inline with per-sentence hover + trailing contributor dots ═══ */
-function SentenceStream({ section, sectionIndex, workers }: {
+function SentenceStream({ section, sectionIndex, workers, honestyFlags }: {
   section: MixResult['sections'][number];
   sectionIndex: number;
   workers: ReturnType<typeof useWorkers>;
+  honestyFlags?: HonestyFlag[];
 }) {
   const locale = useLocale();
   const hovered = useAgentAttentionStore(s => s.hovered);
@@ -165,7 +170,7 @@ function SentenceStream({ section, sectionIndex, workers }: {
             }`}
             style={{ cursor: ids.length > 0 ? 'pointer' : 'default' }}
           >
-            {renderInline(sent.text)}
+            {renderInlineShaded(sent.text, honestyFlags, locale)}
             {dots.length > 0 && (
               <span className="inline-flex items-center gap-[2px] ml-1 align-middle">
                 {dots.map(d => (

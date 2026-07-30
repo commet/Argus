@@ -166,7 +166,7 @@ export function SealModal({
           </label>
           <p className="mb-2 text-[12.5px] leading-relaxed text-[var(--text-tertiary)]">
             {selected?.predicate_owner === 'ai_surfaced'
-              ? L('Argus가 문서에서 뽑은 초안입니다. 실제로 답할 수 있는 질문이 되도록 고쳐도 됩니다.', 'This is an Argus draft from the document. Edit it into a question reality can answer.')
+              ? L('문서에서 뽑아 AI가 쓴 말입니다. 고치면 내 말이 됩니다 — 실제로 답할 수 있는 질문이 되도록 다듬어 보세요.', 'AI-written, pulled from the document. Edit it and it becomes your words — shape it into a question reality can answer.')
               : L('결과를 보고 분명하게 답할 수 있는 질문으로 적어주세요.', 'Write a question the outcome can answer clearly.')}
           </p>
           <textarea

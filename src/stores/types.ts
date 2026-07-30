@@ -1766,6 +1766,13 @@ export interface MixResult {
   }[];
   key_assumptions: string[];
   next_steps: string[];
+  /** Post-generation honesty scan over the DOCUMENT (title / decision_read /
+   *  executive_summary / sections) — same machinery as
+   *  AnalysisSnapshot.honesty_flags ("확인 필요" shade). undefined = not yet
+   *  scanned (the non-blocking mix integrity effect fires); [] = scanned clean.
+   *  Lean flags are not stored: detected verdicts are NEUTRALIZED into the text
+   *  itself (mirror clause — a lean cannot be laundered by labeling it). */
+  honesty_flags?: import('@/lib/honesty-scan').HonestyFlag[];
 }
 
 export interface LeadSynthesisResult {

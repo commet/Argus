@@ -38,7 +38,7 @@ export interface RailCheckpoint {
   state: CheckpointState;
   /** 묶기/듣기/닿기 그룹 (밴드 묶음 + eyebrow 표기) */
   group: '정리' | '작성' | '확인';
-  groupEn: 'Frame' | 'Draft' | 'Check';
+  groupEn: 'Frame' | 'Writing' | 'Check';
   /** hover 설명 — done이면 그때의 내용 미리보기, 미래면 그 단계가 뭘 하는지. */
   title?: string;
 }

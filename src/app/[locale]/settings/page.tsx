@@ -1027,7 +1027,7 @@ export default function SettingsPage() {
               actually does. */}
           {user
             ? L('서버에 저장된 모든 데이터와 계정이 영구 삭제되고, 로그아웃됩니다.', 'All your server-stored data and your account will be permanently deleted, and you’ll be signed out.')
-            : L('이 브라우저의 모든 프로젝트·초안·검토 이력과, 로그인 없이 저장돼 있던 서버 사본까지 함께 삭제됩니다.', 'Every project, draft, and review in this browser — and the server copy kept for your logged-out voyage — will be deleted.')}
+            : L('이 브라우저의 모든 프로젝트·정리·검토 이력과, 로그인 없이 저장돼 있던 서버 사본까지 함께 삭제됩니다.', 'Every project, write-up, and review in this browser — and the server copy kept for your logged-out voyage — will be deleted.')}
         </p>
         <p className="text-[12px] text-[var(--text-secondary)] mb-4">
           {user

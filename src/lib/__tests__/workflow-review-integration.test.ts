@@ -291,4 +291,23 @@ describe('Workflow Review Integration', () => {
     expect(systemPrompt).toContain('3. 팀이 충분하다');
     expect(systemPrompt).not.toContain('3. 팀이 충분하다 (틀리면:');
   });
+
+  // ═══════════════════════════════════════
+  // 11. 정직한 빈손 — no numeric finding floors (FIX 6)
+  // ═══════════════════════════════════════
+  it('review prompts carry no numeric finding floors — an honest empty array is the correct answer', async () => {
+    mockCallLLMJson.mockResolvedValue(mockReviewOutput([]));
+
+    await runWorkflowReview([makeStep()], '방향', '목표', [], '과제');
+
+    expect(mockCallLLMJson).toHaveBeenCalledTimes(3);
+    for (const call of mockCallLLMJson.mock.calls) {
+      const systemPrompt: string = (call[1] as { system?: string })?.system ?? '';
+      // A "3-5개 / 2-4개" style floor manufactures findings on a clean plan.
+      expect(systemPrompt).not.toMatch(/findings는 \d+-\d+개/);
+      expect(systemPrompt).not.toMatch(/\d+-\d+ findings/);
+      // The honest-none language (debate-engine's severity:"none" shape) instead.
+      expect(systemPrompt).toContain('빈 배열([])이 정답');
+    }
+  });
 });

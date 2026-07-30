@@ -78,7 +78,7 @@ export function PhaseStatusBar({
     } else if (phase === 'lead_synthesizing') {
       label = L(`${leadAgentName || '리드'}가 팀 결과를 통합하는 중`, `${leadAgentName || 'Lead'} is synthesizing findings`);
     } else if (phase === 'mixing') {
-      label = L('초안을 작성하고 있어요', 'Drafting the document');
+      label = L('정리하고 있어요', 'Wrapping up');
     } else {
       label = L('생각하는 중...', 'Thinking...');
     }
@@ -93,7 +93,7 @@ export function PhaseStatusBar({
   } else if (shouldMix) {
     mode = 'your_turn';
     label = L('팀 분석이 끝났어요', 'Team analysis complete');
-    sub = L('초안 작성을 시작하세요', 'Ready to create the draft');
+    sub = L('정리를 시작하세요', 'Ready to wrap up');
   } else if (workersRunning > 0) {
     mode = 'ai_working';
     label = L('팀이 분석하고 있어요', 'Team is analyzing');

@@ -174,7 +174,7 @@ describe('ProgressiveStore Draft Tree', () => {
       expect(d0.parent_draft_id).toBeNull();
       expect(d0.version_label).toBe('v0.1');
       expect(d0.reviewing_agent_id).toBeNull();
-      expect(d0.change_summary).toContain('첫 초안');
+      expect(d0.change_summary).toContain('첫 정리');
       expect(d0.final_text).toBe('# Plan v1\nBody.');
       expect(session.active_draft_id).toBe(d0.id);
       expect(session.phase).toBe('complete');

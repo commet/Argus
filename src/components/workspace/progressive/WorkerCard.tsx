@@ -162,7 +162,7 @@ function ResultModal({ worker, content, onClose, onApprove, onReject }: {
         {(onApprove || onReject) && (
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 px-4 sm:px-6 py-4 border-t border-[var(--border-subtle)] shrink-0">
             <span className="text-[13px] text-[var(--text-secondary)]">
-              {worker.approved === true ? L('초안에 반영됩니다', 'Included in draft') : worker.approved === false ? L('초안에서 제외됩니다', 'Excluded from draft') : L('반영 여부를 선택하세요', 'Choose whether to include')}
+              {worker.approved === true ? L('정리에 반영됩니다', 'Included in the write-up') : worker.approved === false ? L('정리에서 빠집니다', 'Excluded from the write-up') : L('반영 여부를 선택하세요', 'Choose whether to include')}
             </span>
             <div className="flex gap-2.5">
               {onReject && worker.approved !== false && (
@@ -431,7 +431,7 @@ export const WorkerReportBlock = memo(function WorkerReportBlock({
                 <button onClick={() => setShowModal(true)}
                   className="flex items-center gap-1 text-[12.5px] text-[var(--accent)] hover:underline cursor-pointer">
                   <ExternalLink size={10} />
-                  {hasDraft ? L('전체 초안 보기', 'View full draft') : L('참고 자료 전체 보기', 'View full reference')}
+                  {hasDraft ? L('작업 결과 전체 보기', 'View the full result') : L('참고 자료 전체 보기', 'View full reference')}
                 </button>
               </div>
             )}
@@ -477,7 +477,7 @@ export const WorkerReportBlock = memo(function WorkerReportBlock({
                 {hasDraft && (
                   <button onClick={() => { onSubmitInput(worker.id, worker.result!); onAdvance?.(); }}
                     className="px-3.5 py-2.5 text-[12px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] rounded-xl border border-[var(--border-subtle)] cursor-pointer min-h-[44px]">
-                    {L('초안 그대로', 'Keep draft')}
+                    {L('그대로 쓰기', 'Use as-is')}
                   </button>
                 )}
                 <button onClick={() => { if (inputVal.trim()) { onSubmitInput(worker.id, inputVal.trim()); onAdvance?.(); } }}
@@ -583,7 +583,7 @@ export const WorkerReportBlock = memo(function WorkerReportBlock({
               <button onClick={() => setShowModal(true)}
                 className="flex items-center gap-1 mt-2 text-[12.5px] text-[var(--accent)] hover:underline cursor-pointer">
                 <ExternalLink size={10} />
-                {L('전체 초안 보기', 'View full draft')}
+                {L('작업 결과 전체 보기', 'View the full result')}
               </button>
             )}
             {/* No key finding extracted — show the text inline (capped), so the

@@ -59,7 +59,7 @@ export function VoyagePrepSummary({
         <div className="flex-1 border-t border-dashed border-[var(--accent)]/30" />
         <div className="text-[12px] font-bold uppercase tracking-[0.2em] text-[var(--accent)] flex items-center gap-1.5 shrink-0">
           <span>✓</span>
-          {L('초안 준비 완료', 'Ready to draft')}
+          {L('정리할 준비 완료', 'Ready to wrap up')}
         </div>
         <div className="flex-1 border-t border-dashed border-[var(--accent)]/30" />
         <Navigation size={11} className="text-[var(--accent)]/65 shrink-0 -rotate-12" />
@@ -77,7 +77,7 @@ export function VoyagePrepSummary({
           <div className="relative p-6 md:p-8">
             <h2 className="text-[20px] md:text-[24px] font-bold text-[var(--text-primary)] leading-[1.3] tracking-tight mb-5 pr-20"
               style={{ fontFamily: 'var(--font-display)' }}>
-              {L('이 방향으로 초안을 만들까요?', 'Draft in this direction?')}
+              {L('이 방향으로 정리할까요?', 'Wrap it up in this direction?')}
             </h2>
 
             {/* Course summary — focal sentence framed with a Compass icon
@@ -136,10 +136,10 @@ export function VoyagePrepSummary({
               className="group/sail w-full flex items-center justify-center gap-2.5 px-6 py-4 text-[var(--accent-fg)] rounded-xl text-[15px] font-semibold shadow-[var(--shadow-sm)] hover:shadow-[var(--shadow-md)] transition-all cursor-pointer disabled:opacity-50"
               style={{ background: 'var(--gradient-gold)' }}>
               {busy
-                ? <><Loader2 size={16} className="animate-spin" /> {L('초안 만드는 중...', 'Drafting...')}</>
+                ? <><Loader2 size={16} className="animate-spin" /> {L('정리하는 중...', 'Wrapping up...')}</>
                 : (
                   <>
-                    {L('이 방향으로 초안 만들기', 'Create the draft')}
+                    {L('이 방향으로 정리하기', 'Wrap up in this direction')}
                     <Navigation
                       size={15}
                       className="-rotate-12 transition-transform duration-500 ease-out group-hover/sail:rotate-0 group-hover/sail:translate-x-0.5"

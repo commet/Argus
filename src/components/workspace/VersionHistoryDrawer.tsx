@@ -73,7 +73,7 @@ export function VersionHistoryDrawer({
   previewNodeIdRef.current = previewNodeId;
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
-  const resolvedRootLabel = rootLabel ?? L('v0 (초안)', 'v0 (draft)');
+  const resolvedRootLabel = rootLabel ?? L('v0 (첫 정리)', 'v0 (first write-up)');
   const resolvedRootSummary = rootSummary ?? L('원본', 'Original');
   const tree = useMemo(() => buildTree(nodes), [nodes]);
 

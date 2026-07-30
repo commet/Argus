@@ -147,7 +147,7 @@ function renderVals(t: number, reduced: boolean, grain: boolean, captionBar: boo
     [L('결정 분석 중', 'Analyzing the decision'), 'var(--accent)'],
     [L('확인 필요', 'Needs your check'), '#c9852f'],
     [L('크루 작업 중', 'Crew at work'), 'var(--accent)'],
-    [L('초안 완성', 'Draft ready'), 'var(--success)'],
+    [L('정리 완료', 'Write-up ready'), 'var(--success)'],
   ];
   R.statusLabel = statuses[sc][0];
   R.statusDot = {
