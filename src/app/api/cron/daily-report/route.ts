@@ -8,6 +8,8 @@ import {
   referrerHost,
   type AnonBucket,
 } from '@/lib/analytics-reporting';
+import { loopPulse } from '@/lib/loop-pulse';
+import { logServerEvent } from '@/lib/server-events';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -533,6 +535,13 @@ export async function GET(req: Request) {
   const anonEntryEntries = Object.entries(anonEntryPages).sort(([, a], [, b]) => b - a).slice(0, 6);
   const anonBotHosts = [...new Set(anonBot.map(a => referrerHost(a.referrer)).filter(Boolean))].slice(0, 8);
 
+  // ─── 11.5 루프 맥박 — 어제 심장이 뛰었나 (2026-07-30) ───
+  // 크론 흔적은 session_id 'server' 로 남으므로 사람 필터 전의 전체 이벤트로
+  // 잰다. 빠진 크론이 있으면 메일 맨 위에 소리 내어 올린다 — 지금까지는
+  // 사람이 DB를 열어봐야만 알 수 있던 사실이었다.
+  const pulse = loopPulse(yesterdayEvents.map((e) => e.event_name));
+  logServerEvent('loop_pulse', { ok: pulse.ok, missing: pulse.missing, seen: pulse.seen.length }, { path: '/api/cron/daily-report' });
+
   // ───── Build HTML ─────
 
   const kstDate = yesterday.label;
@@ -569,6 +578,17 @@ export async function GET(req: Request) {
       </p>
     </td></tr>
   </table>
+
+  <!-- ════════ LOOP PULSE ════════ -->
+  ${pulse.ok
+    ? `<p style="font-size: 11px; color: ${C.faint}; margin: 0 0 16px; text-align: center;">루프 맥박 정상 — 어제 크론 ${pulse.seen.length}/${pulse.seen.length}개 실행 흔적 확인</p>`
+    : `<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background: ${C.declineBg}; border: 1px solid ${C.decline}; border-radius: 14px; margin-bottom: 16px;">
+    <tr><td style="padding: 16px 20px;">
+      <p style="font-size: 12px; font-weight: 800; color: ${C.decline}; margin: 0 0 6px;">루프 맥박 이상 — 어제 실행 흔적이 없는 크론 ${pulse.missing.length}개</p>
+      <p style="font-size: 12px; color: ${C.text}; margin: 0;">${pulse.missing.map(escHtml).join(' · ')}</p>
+      <p style="font-size: 11px; color: ${C.muted}; margin: 6px 0 0;">흔적은 꺼짐(disabled)이어도 남습니다 — 흔적 없음은 실행 자체가 없었다는 뜻입니다. Vercel Crons 상태를 확인하세요.</p>
+    </td></tr>
+  </table>`}
 
   <!-- ════════ CUMULATIVE ════════ -->
   <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background: ${C.card}; border: 1px solid ${C.border}; border-radius: 14px; margin-bottom: 16px;">
