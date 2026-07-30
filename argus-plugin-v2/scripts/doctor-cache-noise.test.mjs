@@ -47,6 +47,10 @@ const PIN = '';
 function runDoctor(cacheRoot, pin) {
   const repo = fs.mkdtempSync(path.join(os.tmpdir(), 'argus-doc-repo-'));
   const pluginRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'argus-doc-plugin-'));
+  // doctor [11] reads the host's ~/.claude/settings.json. Point it at an empty
+  // temp dir so this fixture run stays hermetic — otherwise whatever status line
+  // the developer happens to have configured decides whether this test passes.
+  const claudeDir = fs.mkdtempSync(path.join(os.tmpdir(), 'argus-doc-claude-'));
   fs.writeFileSync(path.join(pluginRoot, '.mcp.json'), JSON.stringify({
     mcpServers: {
       'argus-decision': {
@@ -61,12 +65,26 @@ function runDoctor(cacheRoot, pin) {
     return execFileSync(process.execPath, [DOCTOR], {
       cwd: repo,
       encoding: 'utf8',
-      env: { ...process.env, npm_config_cache: cacheRoot, LOCALAPPDATA: cacheRoot, CLAUDE_PLUGIN_ROOT: pluginRoot },
+      env: {
+        ...process.env,
+        npm_config_cache: cacheRoot,
+        LOCALAPPDATA: cacheRoot,
+        CLAUDE_PLUGIN_ROOT: pluginRoot,
+        CLAUDE_CONFIG_DIR: claudeDir,
+      },
     });
   } finally {
     fs.rmSync(repo, { recursive: true, force: true });
     fs.rmSync(pluginRoot, { recursive: true, force: true });
+    fs.rmSync(claudeDir, { recursive: true, force: true });
   }
+}
+
+/** The [10] section only — later sections have their own contracts and their own ⚠. */
+function cacheBlock(out) {
+  const from = out.indexOf('[10]');
+  const to = out.indexOf('[11]');
+  return to > from ? out.slice(from, to) : out.slice(from);
 }
 
 function makeCache(versions) {
@@ -96,7 +114,7 @@ console.log('doctor [10] 캐시 노이즈 계약\n');
 {
   const cache = makeCache(['1.3.0', '1.4.2', '1.5.0']);
   const out = runDoctor(cache, '');
-  const block = out.slice(out.indexOf('[10]'));
+  const block = cacheBlock(out);
   check('버전 고정이 없다고 명시한다', /버전 고정 없음 — 매 실행 최신/.test(block), block.slice(0, 400));
   check('남은 사본은 한 줄로 접힌다', /캐시에 남은 사본 3개 \(1\.3\.0, 1\.4\.2, 1\.5\.0\)/.test(block), block.slice(0, 400));
   check('낙은-배선 경고를 띄우지 않는다', !/낡은 배선이다/.test(block), block.slice(0, 400));
@@ -108,7 +126,7 @@ console.log('doctor [10] 캐시 노이즈 계약\n');
 {
   const cache = makeCache(['1.3.0']);
   const out = runDoctor(cache, '^2');
-  const block = out.slice(out.indexOf('[10]'));
+  const block = cacheBlock(out);
   check('범위 스펙이면 경고한다', /범위 스펙이다/.test(block), block.slice(0, 400));
   fs.rmSync(cache, { recursive: true, force: true });
 }

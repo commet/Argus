@@ -115,8 +115,19 @@ Installing the plugin is the whole setup — there is no separate init step:
 - **`/argus:settings doctor`** — a read-only self-diagnosis of the install and wiring. It
   repairs nothing; each line names the public tool that can.
 - **Statusline (optional)** — [`statusline/index.js`](./statusline/index.js) reads
-  your local decision records. Enable it with one line in `~/.claude/settings.json`:
-  `"statusLine": { "type": "command", "command": "node ${CLAUDE_PLUGIN_ROOT}/statusline/index.js" }`
+  your local decision records and shows at most one line under the prompt: an
+  overdue check first, silence when there is nothing worth the space. Turn it on
+  with `/argus:settings statusline on`, off again with `statusline off`.
+  That command writes the `statusLine` key into your own
+  `~/.claude/settings.json`, because a plugin cannot: Claude Code honours only
+  `agent` and `subagentStatusLine` from a plugin's settings. It refuses to
+  overwrite a statusline you already run (`--replace` takes it over, after a
+  backup), and it runs the command once before wiring it, so a broken line is
+  never saved. `/argus:settings doctor` reports the state either way.
+  Configuring it by hand also works — but write the **absolute path** to this
+  file, since `${CLAUDE_PLUGIN_ROOT}` expands in plugin components (skills,
+  hooks, monitors, MCP/LSP fields) and **not** in your settings, where it
+  silently collapses to a path that does not exist and blanks the line.
 
 Uninstalling the plugin never deletes your decision records — the files under
 `.argus/` (and `~/.argus`) are your data, not the plugin's.

@@ -109,8 +109,18 @@ Claude Code를 다시 시작한 뒤:
 - **`/argus:settings doctor`** — 설치·배선 읽기 전용 자가진단. 아무것도 고치지 않으며,
   각 줄에 고칠 수 있는 공개 도구 이름이 적혀 있습니다.
 - **statusline (선택)** — [`statusline/index.js`](./statusline/index.js)가 로컬 판단
-  기록을 읽습니다. 켜려면 `~/.claude/settings.json`에 1줄:
-  `"statusLine": { "type": "command", "command": "node ${CLAUDE_PLUGIN_ROOT}/statusline/index.js" }`
+  기록을 읽어 프롬프트 아래에 **최대 한 줄**만 씁니다. 기한이 지난 확인이 먼저고,
+  보여줄 가치가 없으면 침묵합니다. 켜기는 `/argus:settings statusline on`,
+  끄기는 `statusline off`.
+  이 명령이 사용자의 `~/.claude/settings.json`에 `statusLine` 키를 직접 씁니다 —
+  플러그인은 그 키를 실을 수 없기 때문입니다 (Claude Code가 플러그인 설정에서
+  받아주는 키는 `agent`와 `subagentStatusLine` 둘뿐). 이미 쓰던 상태줄이 있으면
+  덮지 않고 멈추며(`--replace`가 백업 후 인수), 배선 전에 명령을 한 번 실행해
+  보므로 안 도는 줄은 저장되지 않습니다. 상태는 `/argus:settings doctor`가 봅니다.
+  손으로 적어도 되지만 그때는 이 파일의 **절대 경로**를 씁니다 —
+  `${CLAUDE_PLUGIN_ROOT}`는 플러그인 구성요소(스킬·훅·모니터·MCP/LSP 필드)에서만
+  치환되고 **사용자 설정에서는 치환되지 않아서**, 없는 경로로 조용히 무너지며
+  상태줄이 빈칸이 됩니다.
 
 결정 기록은 사용자 자산이라 **플러그인 제거가 절대 삭제하지 않는다**는 것이
 저장 계약입니다 — `.argus/`와 `~/.argus`의 판단 기록 파일은 플러그인을 지워도 그대로

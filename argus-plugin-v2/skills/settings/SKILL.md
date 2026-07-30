@@ -1,7 +1,7 @@
 ---
 name: settings
 description: Configure Argus, connect the webapp through browser approval, sync records, or inspect pairing state. Never ask for or print a token in normal use. Invoked as `/argus:settings`.
-argument-hint: "[configure | connect | sync | push | pull | doctor]"
+argument-hint: "[configure | connect | sync | push | pull | statusline | doctor]"
 ---
 
 # /argus:settings — setup & sync
@@ -17,4 +17,5 @@ exactly. These files are implementation details, not additional user commands:
 | `push` | `${CLAUDE_PLUGIN_ROOT}/lib/workflows/push.md` |
 | `pull` | `${CLAUDE_PLUGIN_ROOT}/lib/workflows/pull.md` |
 | `sync` | `${CLAUDE_PLUGIN_ROOT}/lib/workflows/sync.md` |
+| `statusline` (+ `on`/`off`/`--replace`) | `${CLAUDE_PLUGIN_ROOT}/lib/workflows/statusline.md` — write the `statusLine` key into the user's own settings; a plugin cannot ship it. |
 | `doctor` | `${CLAUDE_PLUGIN_ROOT}/lib/workflows/doctor.md` — read-only install/wiring self-diagnosis. |
