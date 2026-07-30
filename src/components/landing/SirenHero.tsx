@@ -20,6 +20,7 @@ import { useLocale } from '@/hooks/useLocale';
 import { useLocaleRouter } from '@/hooks/useLocaleRouter';
 import { LocaleLink } from '@/components/ui/LocaleLink';
 import { PaperGrain } from './voyage/atmosphere/PaperGrain';
+import { ClauseText } from '@/components/landing/ClauseText';
 import { VoyageFilm } from './films/VoyageFilm';
 import { track } from '@/lib/analytics';
 
@@ -115,18 +116,20 @@ export function SirenHero() {
                 separate blocks (not one flowing paragraph) so the second promise
                 — the one that separates Argus from a reminder — starts a line of
                 its own instead of trailing off the end of the first. */}
-            <span className="block">
-              {L(
+            <ClauseText
+              className="block"
+              text={L(
                 '결정 전에 생각을 한 번 벼리고, 그 판단을 움직인 전제를 남기세요.',
                 'Sharpen the thinking before the call and keep the assumptions that moved it.',
               )}
-            </span>
-            <span className="mt-1.5 block">
-              {L(
+            />
+            <ClauseText
+              className="mt-1.5 block"
+              text={L(
                 'Argus는 답을 대신 내리지 않고, 현실이 답할 때 그 기록을 다시 엽니다.',
                 "Argus doesn't decide for you; it reopens the record when reality can answer.",
               )}
-            </span>
+            />
           </p>
 
           <div

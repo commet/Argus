@@ -296,11 +296,13 @@ body {
 .argus-presence-settle { animation: argus-presence-settle 600ms var(--ease-wave) both; }
 .argus-presence-note { animation: argus-presence-note-enter 520ms var(--ease-wave) both; }
 .argus-presence-interactive:hover { animation: argus-presence-perk 620ms var(--ease-wave); }
-.argus-landing-watch { mix-blend-mode: multiply; }
-[data-theme='dark'] .argus-landing-watch {
-  mix-blend-mode: normal;
-  box-shadow: 0 5px 18px rgba(0, 0, 0, 0.24);
-}
+/* The landing dog stands on the paper with no plate under it. It used to be a
+   JPEG (baked cream rectangle) hidden with `mix-blend-mode: multiply` — which
+   made it worse, not better: multiplying the plate's cream by the section's
+   cream lands DARKER than either, so the box read as a dark patch instead of
+   vanishing. The asset is now a real alpha cutout, so there is nothing to hide
+   and no blend to apply; blending here would only muddy the ink. */
+.argus-landing-watch { mix-blend-mode: normal; }
 @media (prefers-reduced-motion: reduce) {
   .voyage-anim, .voyage-fog, .argus-presence-breathe,
   .argus-presence-acknowledge, .argus-presence-return,
