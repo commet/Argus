@@ -127,8 +127,8 @@ export default function GuidePage() {
         </div>
         <p className="text-[14px] text-[var(--text-secondary)] leading-relaxed mb-4">
           {L(
-            '워크스페이스에 고민을 입력하는 순간 자동으로 흐릅니다. 중간에 멈추고 손볼 수 있고, 결정이 필요한 곳에서는 알아서 잠깐 멈춰줍니다.',
-            "It starts the moment you type your problem. You can stop and edit anytime, and it pauses on its own wherever a human decision is needed.",
+            '워크스페이스에 상황을 적으면 질문 정리가 바로 시작됩니다. 중간에 멈추고 손볼 수 있고, 직접 결정해야 하는 곳에서는 잠깐 멈춥니다.',
+            "Question framing starts as soon as you describe the situation. You can stop and edit anytime, and the flow pauses wherever your judgment is needed.",
           )}
         </p>
         <div className="space-y-2.5 mb-5">
@@ -246,7 +246,7 @@ export default function GuidePage() {
             ? [
                 {
                   q: '왜 바로 답하지 않고 먼저 물어보나요?',
-                  a: "상황을 더 정확히 이해하고, 아직 정해지지 않은 쟁점을 줄이기 위해서예요. 언제든 '그만 묻고 초안 만들기'로 건너뛸 수 있어요.",
+                  a: "상황을 더 정확히 이해하고, 아직 정해지지 않은 쟁점을 줄이기 위해서예요. 언제든 '지금까지 답한 내용으로 초안 만들기'를 눌러 넘어갈 수 있어요.",
                 },
                 {
                   q: '내가 쓴 내용은 어디로 가나요?',
@@ -254,10 +254,10 @@ export default function GuidePage() {
                 },
                 {
                   q: '무료로 어디까지 쓰나요?',
-                  a: '로그인 없이 하루 결정 2~3개 분량, 로그인하면 더 넉넉해요.',
+                  a: '일반적인 사용 기준으로 로그인 없이 하루 약 2~3개, 로그인하면 약 4~5개 결정을 살펴볼 수 있어요. 문서 검토처럼 긴 작업은 더 빨리 소진될 수 있습니다.',
                 },
                 {
-                  q: "'물어봐 준다'는 게 어떻게 오나요?",
+                  q: '결과 확인일이 오면 어디에서 알려주나요?',
                   // 약속 정합(P1-B4): 이 답은 SealMoment의 채널 고지 문장과 복사 일치 —
                   // 알림 채널이 늘거나 줄면 SealMoment.tsx와 여기(ko/en)를 같이 고칠 것.
                   a: '정한 날짜에 프로젝트 페이지에 오시면 제가 먼저 물어요. 텔레그램을 연결해 두셨다면 그날 메시지로도 가볍게 알려드려요. 원하면 캘린더 파일로 약속을 넣을 수 있어요.',
@@ -285,10 +285,10 @@ export default function GuidePage() {
                 },
                 {
                   q: 'How much can I use for free?',
-                  a: 'Without logging in, about 2–3 decisions a day; logging in gives you more room.',
+                  a: 'For typical use, you can explore about 2–3 decisions a day without logging in and about 4–5 when logged in. Longer work such as document review may use the allowance faster.',
                 },
                 {
-                  q: 'How does "coming back to ask" work?',
+                  q: 'How will Argus remind me?',
                   // Promise parity (P1-B4): this answer mirrors the SealMoment channel
                   // disclosure — if notification channels change, update SealMoment.tsx
                   // and both locales here together.
@@ -316,7 +316,7 @@ export default function GuidePage() {
       <Card>
         <h2 className="text-[18px] font-bold text-[var(--text-primary)] mb-1">{L('더 있는 도구', 'More tools')}</h2>
         <p className="text-[13px] text-[var(--text-secondary)] mb-4">
-          {L('전부 상단 ⋯ 메뉴에서도 열 수 있어요. 필요할 때만 쓰면 됩니다.', 'All of these live in the ⋯ menu up top. Use them only when you need them.')}
+          {L('상단 메뉴에서 모두 열 수 있어요. 필요할 때만 쓰면 됩니다.', 'You can open all of these from the main menu. Use them only when you need them.')}
         </p>
         <div className="space-y-1">
           {moreTools.map((tool) => {

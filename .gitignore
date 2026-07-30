@@ -114,3 +114,5 @@ argus-plugin-v2/evals/sweep-report.json
 scripts/e2e/shots/
 e2e-shots/
 card-preview/
+
+.vercel

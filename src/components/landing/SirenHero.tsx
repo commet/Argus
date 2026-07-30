@@ -79,7 +79,7 @@ export function SirenHero() {
               textTransform: 'uppercase',
             }}
           >
-            {L('판단을 벼리고 · 전제를 남기고 · 현실로 확인한다', 'Sharpen · keep the assumptions · check against reality')}
+            {L('판단을 다듬고 · 전제를 남기고 · 현실로 확인한다', 'Sharpen · keep the assumptions · check against reality')}
           </p>
 
           <h1
@@ -117,7 +117,7 @@ export function SirenHero() {
                 its own instead of trailing off the end of the first. */}
             <span className="block">
               {L(
-                '결정 전에 생각을 한 번 벼리고, 그 판단을 움직인 전제를 남기세요.',
+                '결정 전에 생각을 한 번 다듬고, 그 결정을 떠받치는 전제를 남기세요.',
                 'Sharpen the thinking before the call and keep the assumptions that moved it.',
               )}
             </span>
@@ -191,7 +191,7 @@ export function SirenHero() {
               className="inline-flex min-h-10 items-center gap-2 text-[13.5px] font-medium text-[var(--bp-ink-soft)] underline-offset-4 hover:text-[var(--bp-ink)] hover:underline"
             >
               <FileSearch size={14} aria-hidden />
-              {L('이미 문서가 있다면, 문서 속 판단 지점 찾기', 'Already have a document? Find the judgment calls inside it')}
+              {L('이미 문서가 있다면, 문서에서 판단이 필요한 지점 찾기', 'Already have a document? Find the judgment calls inside it')}
             </LocaleLink>
           </div>
         </div>

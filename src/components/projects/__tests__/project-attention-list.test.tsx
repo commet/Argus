@@ -40,14 +40,14 @@ describe('ProjectAttentionList', () => {
     window.addEventListener('argus:trace-navigate', listener);
 
     act(() => root.render(createElement(ProjectAttentionList, { items })));
-    expect(container.textContent).toContain('전제 4');
-    expect(container.textContent).not.toContain('전제 5');
+    expect(container.textContent).toContain('전제 2');
+    expect(container.textContent).not.toContain('전제 3');
 
-    const more = Array.from(container.querySelectorAll('button')).find((button) => button.textContent?.includes('2건 더 보기'))!;
+    const more = Array.from(container.querySelectorAll('button')).find((button) => button.textContent?.includes('4건 더 보기'))!;
     act(() => more.click());
     expect(container.textContent).toContain('전제 6');
 
-    const source = Array.from(container.querySelectorAll('button')).find((button) => button.textContent?.includes('전제 6'))!;
+    const source = Array.from(container.querySelectorAll('[aria-label="전제 확인 정확한 근거 위치 열기"]')).at(-1) as HTMLButtonElement;
     act(() => source.click());
     expect((listener.mock.calls[0][0] as CustomEvent).detail).toEqual({ locator: 'argus://project/p6/item/i6' });
     window.removeEventListener('argus:trace-navigate', listener);
@@ -74,12 +74,12 @@ describe('ProjectAttentionList', () => {
       onFocusItem,
     })));
 
-    const locate = container.querySelector('[aria-label="전제 재확인 결정 지도에서 찾기"]') as HTMLButtonElement;
+    const locate = container.querySelector('[aria-label="전제 확인 결정 지도에서 찾기"]') as HTMLButtonElement;
     expect(locate.getAttribute('aria-pressed')).toBe('true');
     act(() => locate.click());
     expect(onFocusItem).toHaveBeenCalledWith(item, 'p-focus');
 
-    const source = container.querySelector('[aria-label="전제 재확인 정확한 근거 위치 열기"]') as HTMLButtonElement;
+    const source = container.querySelector('[aria-label="전제 확인 정확한 근거 위치 열기"]') as HTMLButtonElement;
     act(() => source.click());
     expect((listener.mock.calls[0][0] as CustomEvent).detail).toEqual({ locator: item.locator });
     window.removeEventListener('argus:trace-navigate', listener);

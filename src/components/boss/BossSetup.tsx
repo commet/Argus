@@ -227,7 +227,7 @@ export function BossSetup() {
 
       <div className="bs-hint-row">
         <label className="bs-hint-label" htmlFor="bs-hint">
-          {locale === 'ko' ? '반응을 바꿀 팀장 특성 한 줄 (선택)' : 'One boss trait that may shape the response (optional)'}
+          {locale === 'ko' ? '팀장 반응에 영향을 줄 특성 (선택)' : 'A trait that may shape your manager’s response (optional)'}
         </label>
         <div className="bs-hint-wrap">
           <input

@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { GoogleGenAI } from '@google/genai';
 import { validateMessages, validateSystemPrompt, validateApiKey, validateRequest, normalizeMaxTokens } from '@/lib/llm-validation';
 
-const ALLOWED_MODELS = new Set(['gemini-2.5-flash', 'gemini-2.5-pro', 'gemini-2.0-flash']);
-const DEFAULT_MODEL = 'gemini-2.5-flash';
+const ALLOWED_MODELS = new Set(['gemini-3.6-flash', 'gemini-3.1-pro-preview', 'gemini-3.5-flash-lite']);
+const DEFAULT_MODEL = 'gemini-3.6-flash';
 
 /**
  * Gemini direct mode endpoint — uses the user's own Google AI API key.

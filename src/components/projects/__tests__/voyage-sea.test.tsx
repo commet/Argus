@@ -281,7 +281,7 @@ describe('VoyageSea — spine gate (거울 조항, 항해 지도판)', () => {
     const dueItem = items.find((el) => (el.getAttribute('aria-label') || '').includes('voyage-due1'))!;
     const other = items.find((el) => (el.getAttribute('aria-label') || '').includes('voyage-b'))!;
     expect(dueItem.style.opacity).toBe('1'); // the match stays
-    expect(other.style.opacity).toBe('0.1'); // the rest recede
+    expect(other.style.opacity).toBe('0'); // zoom mode removes non-matches so labels cannot collide
     // and the chip reports its true count
     expect(chip.textContent).toContain('1');
   });
@@ -298,7 +298,7 @@ describe('VoyageSea — spine gate (거울 조항, 항해 지도판)', () => {
     const attentionShip = document.getElementById('voyage-ship-b')!;
     const otherShip = document.getElementById('voyage-ship-a')!;
     expect(attentionShip.style.opacity).toBe('1');
-    expect(otherShip.style.opacity).toBe('0.1');
+    expect(otherShip.style.opacity).toBe('0');
   });
 
   it('shares a persistent, readable selection with the action list', () => {

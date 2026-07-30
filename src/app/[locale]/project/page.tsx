@@ -607,7 +607,7 @@ export default function ProjectPage() {
           <div>
             <h1 ref={listHeadingRef} tabIndex={-1} className="text-[22px] font-bold text-[var(--text-primary)] tracking-tight outline-none">{L('프로젝트', 'Projects')}</h1>
             <p className="text-[13px] text-[var(--text-secondary)] mt-1">
-              {L('진행 중인 결정과 결과를 확인할 기록을 한눈에 봅니다.', 'See decisions in progress and records due for outcome review at a glance.')}
+              {L('진행 중인 결정과 결과 확인 기록을 한눈에 봅니다.', 'See decisions in progress and records due for outcome review at a glance.')}
             </p>
           </div>
           {projects.length > 0 && (
@@ -668,7 +668,7 @@ export default function ProjectPage() {
                   {L('워크스페이스에서 시작하기', 'Start in workspace')} <ArrowRight size={14} />
                 </LocaleLink>
                 <LocaleLink href="/workspace?demo=planning" className="text-[12px] text-[var(--text-tertiary)] hover:text-[var(--accent)] transition-colors">
-                  {L('또는 데모 먼저 보기 →', 'Or see the demo first →')}
+                  {L('데모 먼저 보기 →', 'See the demo first →')}
                 </LocaleLink>
               </div>
             </Card>

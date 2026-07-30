@@ -45,7 +45,7 @@ export function McpInstallGuide({ locale }: { locale: string }) {
           {L(' 형태로 실행하세요.', '.')}
         </li>
         <li>
-          {L('4. 이메일 귀환을 원하면 설정에서 토큰을 발급해 ', '4. For the return email, issue a token in Settings and set ')}
+          {L('4. 웹 계정과 동기화하려면 설정에서 토큰을 발급해 ', '4. To sync with your web account, issue a token in Settings and set ')}
           <code className={CODE}>ARGUS_TOKEN</code>
           {L('으로 넣으세요 — 안 넣으면 완전 로컬로만 동작합니다.', ' — without it everything stays fully local.')}
         </li>

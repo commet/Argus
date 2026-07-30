@@ -89,9 +89,9 @@ describe('BindCard — authorship before commitment', () => {
       onProceed,
     }));
     const text = container.textContent || '';
-    expect(text).toContain('내가 적은 상황 · 원문');
+    expect(text).toContain('처음 적은 상황');
     expect(text.indexOf('내가 직접 적은 원래 결정')).toBeLessThan(text.indexOf('AI가 새로 찾은 질문'));
-    expect(text.indexOf('내가 직접 적은 원래 결정')).toBeLessThan(text.indexOf('검토하기 전, 지금의 생각은 무엇인가요?'));
+    expect(text.indexOf('내가 직접 적은 원래 결정')).toBeLessThan(text.indexOf('지금 생각을 한 줄로 남길까요?'));
     expect(container.querySelector('textarea')?.hasAttribute('autofocus')).toBe(false);
   });
 
@@ -104,8 +104,8 @@ describe('BindCard — authorship before commitment', () => {
     const textarea = container.querySelector('textarea')!;
     pressOn(textarea, 'Enter', true);
     expect(onProceed).not.toHaveBeenCalled();
-    click(byText('아직 잘 모르겠어요'));
-    click(byText('아직 잘 모르겠어요'));
+    click(byText('건너뛰고 계속'));
+    click(byText('건너뛰고 계속'));
     expect(onProceed).toHaveBeenCalledWith(null);
     expect(onProceed).toHaveBeenCalledTimes(1);
   });
