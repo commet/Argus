@@ -20,6 +20,7 @@
 const fs = require("fs");
 const path = require("path");
 const { configDir, isIrreversible, isDangerousTool } = require("./lib/decision-signals");
+const { tryClaimAsk, sessionHadCrisis } = require("./lib/ask-budget");
 
 const keeledMarker = (id) => path.join(configDir(), "argus-keeled", String(id));
 function clip(t, n) { t = String(t || ""); return t.length <= n ? t : t.slice(0, n - 1) + "…"; }
@@ -38,9 +39,20 @@ function main() {
   const sessionId = data.session_id;
   if (!sessionId) return;
 
+  // Crisis screen (session-scope): this hook never sees user text, so it reads
+  // the marker the prompt-side hooks leave. A seal offer on a ruin-shaped
+  // session reads as endorsement — stay silent.
+  if (sessionHadCrisis(sessionId)) return;
+
   // Once per session — helm never warns twice in one session.
   const marker = keeledMarker(sessionId);
   try { if (fs.existsSync(marker)) return; } catch { return; }
+
+  // Global ambient ask budget (keyless claim — the prompt is not visible here;
+  // recency stands in for "same turn"). Claim BEFORE the once-per-session
+  // marker so a denied ask leaves the keel free to warn later in the session.
+  if (!tryClaimAsk(sessionId, null)) return;
+
   try {
     fs.mkdirSync(path.dirname(marker), { recursive: true });
     fs.writeFileSync(marker, "");

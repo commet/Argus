@@ -1,5 +1,24 @@
 # Changelog
 
+## 2.0.20 - The horizon follows the decision, and small honesty fixes
+
+- **Default horizon scales with the decision.** SERVER_INSTRUCTIONS no longer
+  defaults every prediction to "one week": with no stated horizon the draft
+  follows the decision's natural check point — everyday or reversible calls
+  check tonight or next morning, project-scale bets in 1-4 weeks; one week
+  only when nothing is inferable.
+- **Vocabulary (founder-approved):** the ai_surfaced surfaces drop the
+  machine word "초안" — ko "AI가 쓴 문장입니다. 아직 내 문장이 아닙니다." /
+  "예측을 이렇게 써 봤습니다", en "AI-written". Provenance unchanged.
+- **argus_check_in stops calling itself "Read-only."** Its readOnlyHint is
+  honestly false — the first call may initialize the ledger folder — and the
+  description now says exactly that.
+- **The residual-lean disclosure is finally emitted.** `lean_disclosure`
+  (the spine-mandated product-level known-limit statement) existed in the
+  surfaces dictionary with no emitter; it now rides `argus_open_decision`'s
+  FIRE-branch data. The dead `watch_exit` string and the unreferenced
+  `tools.candidates.*` / `tools.watch.*` dictionaries are deleted.
+
 ## 2.0.19 - App conversations stop fragmenting the ledger
 
 - Measured in the Codex desktop app: it creates a fresh folder per

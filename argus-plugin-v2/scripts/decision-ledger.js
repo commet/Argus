@@ -993,7 +993,7 @@ function printSealable() {
     return;
   }
   if (seeds.length) {
-    console.log("Sail seeds:");
+    console.log("Seeds:");
     for (const seed of seeds) {
       console.log(`  ${seed.id} ${truncate(seed.predicate)}${seed.check_by ? ` (check_by ${seed.check_by})` : ""}`);
     }
@@ -1076,7 +1076,7 @@ async function cmdSeal() {
   const decision = ledger.get(target);
   if (!decision) {
     console.error(`Unknown seal target: ${target}`);
-    console.error("Run /argus:check --list to see candidates and sail seeds.");
+    console.error("Run /argus:check --list to see candidates and seeds.");
     process.exit(1);
   }
   if (decision.status !== "candidate") {
@@ -1137,7 +1137,7 @@ function cmdStatus() {
   const { candidates, seeds } = listSealable();
   const rows = [...ledger.values()];
   console.log(`Candidates: ${candidates.length}`);
-  console.log(`Sail seeds: ${seeds.length}`);
+  console.log(`Seeds: ${seeds.length}`);
   console.log(`Sealed: ${rows.filter((row) => row.status === "sealed").length}`);
   console.log(`Settled: ${rows.filter((row) => row.status === "settled").length}`);
   console.log(`Ledger: ${rel(ledgerFile())}`);

@@ -479,5 +479,7 @@ function publicWrapper(tool: ToolModule, name: string, description: string): Too
 // initialize 1회, 툴 결과는 호출할 때만). 그래서 세 감각의 tell을 여기 한 줄씩
 // 심는다 — 모델이 대화 중 알아채는 확률을 매 턴 받쳐주는 상시 지침 통로.
 export const publicSeal = publicWrapper(seal, 'argus_predict', 'Record one falsifiable prediction and when reality can answer it. Use the user’s words and offer confirmation once.');
-export const publicCheckIn = publicWrapper(checkIn, 'argus_check_in', 'Show only open records that need attention now. Read-only.');
+// NOT "Read-only.": readOnlyHint is honestly false — the first call on an
+// un-initialized dir creates the .argus ledger folder (see check-in.ts note).
+export const publicCheckIn = publicWrapper(checkIn, 'argus_check_in', 'Show only open records that need attention now. Reads open records; the first call may initialize the ledger folder.');
 export const publicSettle = publicWrapper(settle, 'argus_resolve', 'Record an outcome the user explicitly stated for a tracked prediction. Reality answers; Argus never grades.');

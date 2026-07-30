@@ -39,8 +39,12 @@ was recorded.` This is expected. Do not claim that anything was sealed.
 
 ## 3. Confirm in one native question
 
-Show the draft sentence verbatim, plus its check-by date when present. Use one
-`AskUserQuestion`:
+Show the draft sentence verbatim, plus its check-by date when present. When the
+sentence came from an AI seed or a generated draft, label it in the user's
+language as AI-written — ko: "AI가 쓴 문장입니다. 아직 내 문장이 아닙니다." / en:
+"This sentence is AI-written. Not yet your words." Never label the user's own
+wording AI-written, and never use the machine word "초안/draft" in the
+user-facing line (founder-approved vocabulary). Use one `AskUserQuestion`:
 
 - `현실에서 확인` / `Check against reality` → `prediction`
 - `내가 했는지 확인` / `Check what I did` → `commitment`

@@ -1,5 +1,35 @@
 # Changelog
 
+## 3.0.20 - 2026-07-31
+
+- **One Argus ask per reply, three per session — across ALL five ambient
+  hooks.** anchor / sense / ambient-nudge / keel / recall each had their own
+  cap, but nothing capped the total; five polite surfaces stacked into one
+  pushy product. `scripts/lib/ask-budget.js` is the shared deterministic
+  budget they all consult (state in the same marker-dir pattern, pruned with
+  the rest). Sense's diagnosis frequency stays owned by the sensitivity dial;
+  it now also yields the turn whenever another hook already asked.
+- **Ambient surfaces gain the crisis screen the review pipeline already had.**
+  A lean pre-ask or a seal offer on a ruin-shaped bet reads as endorsement.
+  A precision-biased regex screen (same category set as
+  `data/contracts/crisis-taxonomy.json`) silences the hooks on a crisis-shaped
+  turn and marks the session so text-blind hooks (keel) stay silent too.
+- **anchor↔clarify contradiction resolved by scoping.** The ambient anchor
+  (user-initiated, pre-analysis) is a different surface from the review
+  pipeline's BIND; clarify Step 3.4's no-pre-ask ban now says so, and the
+  anchor nudge leads with its consequential-only gate.
+- **Silent premise monitoring is now disclosed.** clarify Step 3.5 still
+  writes extracted premises quietly, but the run's user-facing summary must
+  carry ONE line naming how many premises were kept and that monitoring can
+  be turned off (`/argus:check premises`). Auto-enroll stays narrow:
+  load-bearing + external premises only.
+- Vocabulary (founder-approved): user-facing "AI 초안" becomes the "AI가 쓴
+  말" scheme (EN: AI-written) in the predict/premises workflows.
+- `session-start` hook's Korean LOGBOOK/harvest lines now carry the same
+  "relay in the user's language" instruction the welcome block uses.
+- Retired branding: `decision-ledger.js` list/status output says "Seeds:",
+  not "Sail seeds:".
+
 ## 3.0.19 - 2026-07-30
 
 - **The status line now has a way to be turned on.** A plugin cannot ship the

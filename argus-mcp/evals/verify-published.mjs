@@ -76,6 +76,9 @@ const BUNDLE_MARKERS = [
   ['직접 실행하면 첫 화면이 뜬다 (2.0.18)', 'just talk about a decision as usual'],
   // 2.0.19 — 프로젝트 아닌 폴더는 개인 홈 원장. 앵커는 홈 폴백 stderr 한 줄(ASCII).
   ['앱 대화가 원장을 조각내지 않는다 (2.0.19)', 'using the personal home ledger'],
+  // 2.0.20 — check_in 설명이 readOnlyHint:false와 일치한다 (첫 호출은 원장
+  // 폴더를 만들 수 있다). 앵커는 그 설명의 ASCII 문장 — 이스케이프 함정 없음.
+  ['check_in 설명이 정직하다 (2.0.20)', 'first call may initialize the ledger folder'],
 ];
 
 /**

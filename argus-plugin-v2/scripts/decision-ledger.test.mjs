@@ -288,5 +288,19 @@ function itemsLines(cwd) {
   rmSync(p, { recursive: true, force: true });
 }
 
+// --- retired branding: user-relayed output says "Seeds", never "Sail" -------
+// (tranche-4 audit item 11: the sail command is retired; CLI lines the model
+// relays to users must not resurrect the old brand vocabulary.)
+{
+  const p = freshProject();
+  const st = run(p, ['status']);
+  ok('status exits 0', st.status === 0);
+  ok('status counts seeds with neutral wording', /Seeds: \d+/.test(st.stdout));
+  ok('no retired "Sail" branding in status output', !/sail/i.test(st.stdout));
+  const bad = run(p, ['seal', 'no-such-id']);
+  ok('unknown seal target error avoids retired branding', bad.status !== 0 && !/sail/i.test(bad.stderr));
+  rmSync(p, { recursive: true, force: true });
+}
+
 console.log(`\ndecision-ledger.test: ${pass} passed, ${fail} failed`);
 process.exit(fail === 0 ? 0 : 1);
