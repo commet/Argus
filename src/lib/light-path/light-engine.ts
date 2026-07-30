@@ -21,7 +21,7 @@
  *     under-fire default — here the user explicitly asked, and under-treating a
  *     heavy decision is worse than ceremony on a light one.
  *
- * The seal (걸어둘게요) reuses the EXISTING decision-contract machinery: the
+ * The seal (기억해 둘게요) reuses the EXISTING decision-contract machinery: the
  * record lands on project.decision_contract (projects table) with check_in_at,
  * so it enters the same return loop every surface reads (useDueCount, /project
  * due strip, checkin-due cron emails). No new storage keys, tables, or fields.
@@ -58,9 +58,17 @@ export interface LightQA {
 export type LightWhen = 'tonight' | 'tomorrow_morning' | 'this_weekend' | 'in_days';
 
 export interface LightOffer {
+  /** The falsifiable line (rule 7). An INTERNAL record for the seal + receipt —
+   *  never shown inside the permission ask itself. */
   sentence: string;
   when: LightWhen;
   days?: number;
+  /** The permission-to-return ask — ONE flowing sentence continuing the mirror
+   *  ("그럼 {오늘의 정리}하는 걸로 하고 — {확인 시점}에 {확인할 것}, 제가 한 번만
+   *  물어볼까요?"). No bracketed 「quote」, no betting vocabulary. Optional: when
+   *  the model omits it the UI composes a mechanical fallback from the when
+   *  label (known slots only — never invented content). */
+  ask?: string;
 }
 
 export interface LightGateResult {
@@ -123,6 +131,11 @@ light = 일상의 결정: 걸린 것이 작고, 되돌릴 수 있고, 개인적�
 heavy = 업무 산출물, 외부 청중, 큰 이해관계, 되돌리기 어려움, 위기에 가까움, 또는 사용자가 공들여 쓴 여러 문단.
 확신이 없으면 heavy로 분류하세요. 무거운 결정을 가볍게 다루는 해가 가벼운 결정에 의식을 치르는 해보다 큽니다.
 
+[첫 생각 — 첫 질문 전용]
+입력에 갈림이 보이면 (할까 말까, A냐 B냐) 첫 질문은 지금 기운 쪽과 그 이유를 한 호흡에 자연스럽게 초대하세요. 예: "지금 마음은 어느 쪽에 가 있어요? 왜 그런지 한 줄이면 돼요."
+규칙: 기울기를 제안하지 마세요. 답을 미리 채워주지 마세요. 건너뛰어도 잃는 것이 없습니다. 기울기 질문은 최대 한 번입니다.
+갈림이 안 보이면 평소의 열린 질문을 하세요. 그때는 이유가 곧 첫 생각입니다.
+
 [출력]
 JSON만 출력하세요. 다른 텍스트 금지:
 {"need":"light" 또는 "heavy","mirror":"...","question":"..."}
@@ -134,6 +147,11 @@ const GATE_SECTION_EN = `
 light = an everyday decision: low stakes, reversible, personal register.
 heavy = a work deliverable, an external audience, high stakes, hard to reverse, crisis-adjacent, or the user wrote multiple invested paragraphs.
 When unsure, classify heavy. Under-treating a heavy decision is worse than ceremony on a light one.
+
+[First thought — first question only]
+If the input shows a visible fork (should I or not, A vs B), let the FIRST question naturally invite the current lean plus the reason in one breath. e.g. "Which way is your heart leaning right now? One line on why is enough."
+Rules: never suggest a lean. Never pre-fill an answer. Skipping loses nothing. The lean question is asked at most once.
+No visible fork: ask the usual open question. The reason IS the first thought then.
 
 [Output]
 Output JSON only. No other text:
@@ -148,13 +166,18 @@ function nextSectionKo(questionsAsked: number): string {
 
 [지금 상황]
 사용자가 지금까지 질문 ${questionsAsked}개에 답했습니다. ${budget}
+기울기(첫 생각)를 다시 묻지 마세요 — 물을 수 있는 자리는 첫 질문 하나뿐이었습니다.
 
 [출력]
 JSON만 출력하세요. 다른 텍스트 금지:
-{"mirror":"...","action":"ask" 또는 "offer" 또는 "escalate","question":"...","offer":{"sentence":"...","when":"tonight" 또는 "tomorrow_morning" 또는 "this_weekend" 또는 "in_days","days":숫자},"escalate":{"bigger_question":"..."}}
+{"mirror":"...","action":"ask" 또는 "offer" 또는 "escalate","question":"...","offer":{"sentence":"...","when":"tonight" 또는 "tomorrow_morning" 또는 "this_weekend" 또는 "in_days","days":숫자,"ask":"..."},"escalate":{"bigger_question":"..."}}
 - mirror: 방금 답을 반영해 상황을 다시 비추는 한두 문장 (규칙 1·5).
 - action "ask": question에 다음 질문 하나만 (규칙 3·4).
-- action "offer": offer.sentence에 규칙 7의 남기기 한 문장, when에 확인 시점 ("in_days"면 days는 1~14).
+- action "offer": 남기기는 계약이 아니라 다시 물어봐도 되는지 허락을 구하는 순간입니다.
+  · offer.sentence = 규칙 7의 남기기 한 문장. 내부 기록용 — 사용자에게 이 문장을 그대로 보여주지 않습니다.
+  · offer.when = 확인 시점 ("in_days"면 days는 1~14).
+  · offer.ask = 비추기에서 자연스럽게 이어지는 허락 문장 하나. 패턴: "그럼 {오늘의 정리}하는 걸로 하고 — {확인 시점}에 {확인할 것}, 제가 한 번만 물어볼까요?" ({오늘의 정리}와 {확인할 것}은 사용자의 말로).
+  · ask 규칙: 괄호 인용(「」) 금지. 내기 어휘(걸다·걸어두다·베팅) 금지 — 사용자에게 보이는 모든 문장에서.
 - action "escalate": 규칙 8. escalate.bigger_question에 더 큰 질문 한 줄.`;
 }
 
@@ -166,13 +189,18 @@ function nextSectionEn(questionsAsked: number): string {
 
 [Where we are]
 The user has answered ${questionsAsked} question(s) so far. ${budget}
+Never re-ask the lean (first thought) — its only slot was the first question.
 
 [Output]
 Output JSON only. No other text:
-{"mirror":"...","action":"ask" or "offer" or "escalate","question":"...","offer":{"sentence":"...","when":"tonight" or "tomorrow_morning" or "this_weekend" or "in_days","days":number},"escalate":{"bigger_question":"..."}}
+{"mirror":"...","action":"ask" or "offer" or "escalate","question":"...","offer":{"sentence":"...","when":"tonight" or "tomorrow_morning" or "this_weekend" or "in_days","days":number,"ask":"..."},"escalate":{"bigger_question":"..."}}
 - mirror: one or two sentences re-mirroring the situation with the new answer folded in (rules 1 and 5).
 - action "ask": exactly one next question in question (rules 3 and 4).
-- action "offer": the rule-7 leave-behind sentence in offer.sentence, the check time in when (for "in_days", days is 1 to 14).
+- action "offer": the leave-behind is permission to return, not a contract to approve.
+  · offer.sentence = the rule-7 leave-behind sentence. Internal record only — never show it verbatim to the user.
+  · offer.when = the check time (for "in_days", days is 1 to 14).
+  · offer.ask = ONE permission sentence flowing naturally out of the mirror. Pattern: "So let's go with {today's call in their words} — and {check time}, {the thing to check}, want me to ask you just once?"
+  · ask rules: no bracketed 「quote」. No betting vocabulary in anything the user sees.
 - action "escalate": rule 8 — the bigger question, one line, in escalate.bigger_question.`;
 }
 
@@ -238,7 +266,13 @@ function coerceOffer(v: unknown): LightOffer | undefined {
     days = clampLightDays(o.days);
     if (days === undefined) when = 'tomorrow_morning'; // in_days without a usable number → default check time
   }
-  return { sentence, when, ...(days !== undefined ? { days } : {}) };
+  // The permission ask must FLOW — a bracketed 「quote」 would re-introduce the
+  // contractual reading the ask exists to avoid, so brackets are stripped
+  // structurally (the prompt also forbids them; prompt rules alone don't
+  // survive weak tiers). Absent/empty → undefined; the UI composes a
+  // mechanical fallback from the when label.
+  const ask = asTrimmedString(o.ask).replace(/[「」]/g, '').trim() || undefined;
+  return { sentence, when, ...(days !== undefined ? { days } : {}), ...(ask ? { ask } : {}) };
 }
 
 /** Gate coercion. Anything short of a renderable light opening falls to heavy. */
@@ -400,7 +434,8 @@ export function lightCheckBy(when: LightWhen, days: number | undefined, now: num
   return new Date(now + n * DAY_MS);
 }
 
-/** Human label for the check slot — used in the close line "걸어뒀어요. {확인 시점}에…". */
+/** Human label for the check slot — used in the close line "기억해 뒀어요. {확인 시점}에…"
+ *  and in the permission button "{확인 시점}에 물어봐 주세요". */
 export function lightWhenLabel(when: LightWhen, days: number | undefined, locale: Locale): string {
   const ko = locale === 'ko';
   switch (when) {
@@ -414,6 +449,20 @@ export function lightWhenLabel(when: LightWhen, days: number | undefined, locale
   }
 }
 
+// ─── First thought (첫 생각) ───
+
+/**
+ * The FIRST answer of a light session is the first-thought anchor (첫 생각):
+ * on a visible fork the first question invites the current lean + reason in one
+ * breath, and with no fork the reason IS the first thought. Always the user's
+ * words verbatim — never suggested, never pre-filled (anchor rules in the
+ * system prompt). Undefined when nothing was answered (skipping loses nothing).
+ */
+export function firstThoughtFromQas(qas: LightQA[]): string | undefined {
+  const t = (qas[0]?.answer || '').trim();
+  return t || undefined;
+}
+
 // ─── Seal contract (REUSES the existing decision-contract machinery) ───
 
 export interface LightSealInput {
@@ -425,6 +474,11 @@ export interface LightSealInput {
   days?: number;
   /** The original problem — kept as origin_utterance. */
   problemText: string;
+  /** 첫 생각 — the user's first answer, verbatim. Stored in the EXISTING
+   *  judgment_receipt.baseline_judgment slot (the pre-review baseline that is
+   *  deliberately never scored), so the later return can read
+   *  처음 생각 → 남긴 판단 → 현실 without any new field. */
+  firstThought?: string;
 }
 
 /**
@@ -462,6 +516,24 @@ export function buildLightSealContract(
   );
   const wordingId = predicates.find((p) => p.source === 'user_lean')?.id;
   const lineage = input.edited ? [] : adoptionLineageForSeal(predicates, [], wordingId);
+  const sealed = predicates.find((p) => p.source === 'user_lean');
+
+  // 첫 생각 → the EXISTING receipt slot for the pre-review baseline. The three
+  // review-derived fields stay honestly empty (the light path never computed a
+  // reframe/assumption/actor — empty renders nothing, fabricating would lie),
+  // while human_judgment + attribution mirror the sealed line so settlement can
+  // show 처음 생각 → 남긴 판단 → 현실 through the same JudgmentReceipt renderer.
+  const firstThought = (input.firstThought || '').trim();
+  const judgment_receipt = firstThought
+    ? {
+        real_question: '',
+        unverified_assumption: '',
+        human_only: '',
+        baseline_judgment: firstThought,
+        human_judgment: sentence,
+        judgment_attribution: sealed?.attribution,
+      }
+    : undefined;
 
   return {
     ...base,
@@ -470,6 +542,7 @@ export function buildLightSealContract(
     origin_utterance: (input.problemText || '').trim() || sentence,
     closed_at: new Date(now).toISOString(),
     ...(lineage.length ? { adoption_lineage: lineage } : {}),
+    ...(judgment_receipt ? { judgment_receipt } : {}),
   };
 }
 

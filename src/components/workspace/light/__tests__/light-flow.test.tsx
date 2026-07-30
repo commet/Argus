@@ -113,7 +113,7 @@ async function answerOnce(answer: string, turn: LightTurn) {
 
 /** Every button on a light screen must be one of the FIXED action affordances —
  *  a generated option would show up as an unexpected button label. */
-const FIXED_BUTTONS = ['보내기', '더 깊이 보기', '걸어둘게요', '그냥 갈래요', '지금 조금 더 볼래요', '다음에 볼래요', '처음으로', '지금까지 나눈 이야기'];
+const FIXED_BUTTONS = ['보내기', '더 깊이 보기', '물어봐 주세요', '괜찮아요, 그냥 갈게요', '고쳐도 돼요', '저장', '지금 조금 더 볼래요', '다음에 볼래요', '처음으로', '지금까지 나눈 이야기'];
 function assertNoGeneratedOptionButtons() {
   for (const b of Array.from(container.querySelectorAll('button'))) {
     const label = (b.textContent || '').trim();
@@ -161,24 +161,43 @@ describe('answer → next screen', () => {
   });
 });
 
-describe('offer (남기기)', () => {
+describe('offer (남기기) — permission to return, not sentence-approval', () => {
+  const ASK = '그럼 케이크만 자르고 나오는 걸로 하고, 내일 아침에 안 피곤했는지 제가 한 번만 물어볼까요?';
   const OFFER_TURN: LightTurn = {
     mirror: '내일 피곤만 아니면 되는 거네요.',
     action: 'offer',
-    offer: { sentence: '케이크 자르고 나오면 내일 안 피곤하다', when: 'tomorrow_morning' },
+    offer: { sentence: '케이크 자르고 나오면 내일 안 피곤하다', when: 'tomorrow_morning', ask: ASK },
   };
 
-  it('accepting as-is records via the project store with honest ai-wording provenance', async () => {
+  it('the ask is one flowing sentence — the falsifiable line is NOT shown before accept', async () => {
     renderFlow();
     await answerOnce('내일 피곤할까 봐요', OFFER_TURN);
     expect(mockTrack).toHaveBeenCalledWith('light_seal_offered');
-    // the sentence sits in an EDITABLE input
-    const editable = Array.from(container.querySelectorAll('textarea')).find(
-      (t) => t.value === '케이크 자르고 나오면 내일 안 피곤하다',
-    );
-    expect(editable, 'offer sentence must be editable').toBeTruthy();
+    expect(container.textContent).toContain(ASK);
+    // the sentence stays an internal record until the user says yes
+    expect(container.textContent).not.toContain('케이크 자르고 나오면 내일 안 피곤하다');
+    expect(container.textContent).not.toContain('「');
+    // nothing to approve: no editable input on the ask screen
+    expect(container.querySelectorAll('textarea')).toHaveLength(0);
+    // permission buttons carry the check slot in plain words
+    expect(buttonByText('내일 아침에 물어봐 주세요')).toBeTruthy();
+    expect(buttonByText('괜찮아요, 그냥 갈게요')).toBeTruthy();
+    assertNoGeneratedOptionButtons();
+  });
 
-    await click(buttonByText('걸어둘게요')!);
+  it('a missing ask falls back to a mechanical when-label question (never invented content)', async () => {
+    renderFlow();
+    await answerOnce('내일 피곤할까 봐요', {
+      ...OFFER_TURN,
+      offer: { sentence: '케이크 자르고 나오면 내일 안 피곤하다', when: 'tomorrow_morning' },
+    });
+    expect(container.textContent).toContain('내일 아침에 제가 한 번만 물어볼까요?');
+  });
+
+  it('accepting records via the project store with honest ai-wording provenance and shows the receipt', async () => {
+    renderFlow();
+    await answerOnce('내일 피곤할까 봐요', OFFER_TURN);
+    await click(buttonByText('내일 아침에 물어봐 주세요')!);
 
     const { projects, currentProjectId } = useProjectStore.getState();
     expect(projects).toHaveLength(1);
@@ -190,34 +209,118 @@ describe('offer (남기기)', () => {
     // the flow stays on its own close screen — no project takeover
     expect(currentProjectId).toBeNull();
     expect(mockTrack).toHaveBeenCalledWith('light_seal_accepted', { edited: false });
-    // verbatim close line
-    expect(container.textContent).toContain('걸어뒀어요. 내일 아침에 딱 한 번 물어볼게요.');
+    // verbatim close line + the receipt that finally shows the remembered line
+    expect(container.textContent).toContain('기억해 뒀어요. 내일 아침에 한 번만 물어볼게요.');
+    expect(container.textContent).toContain('이렇게 기억해 둘게요');
+    expect(container.textContent).toContain('케이크 자르고 나오면 내일 안 피곤하다');
+    expect(buttonByText('고쳐도 돼요')).toBeTruthy();
   });
 
-  it('rewriting the sentence makes it user-authored', async () => {
+  it('고쳐도 돼요 after accept updates the stored contract and flips authorship to the user', async () => {
     renderFlow();
     await answerOnce('내일 피곤할까 봐요', OFFER_TURN);
+    await click(buttonByText('내일 아침에 물어봐 주세요')!);
+    const before = useProjectStore.getState().projects[0].decision_contract!;
+
+    await click(buttonByText('고쳐도 돼요')!);
     const editable = Array.from(container.querySelectorAll('textarea')).find(
       (t) => t.value === '케이크 자르고 나오면 내일 안 피곤하다',
-    )!;
-    setTextarea(editable, '지금 나가도 후회 안 한다');
-    await click(buttonByText('걸어둘게요')!);
-    const contract = useProjectStore.getState().projects[0].decision_contract!;
-    expect(contract.sealed_statement).toBe('지금 나가도 후회 안 한다');
-    expect(contract.predicates[0].authored).toBe('user');
-    expect(mockTrack).toHaveBeenCalledWith('light_seal_accepted', { edited: true });
+    );
+    expect(editable, 'the receipt line must open into an editable input').toBeTruthy();
+    setTextarea(editable!, '지금 나가도 후회 안 한다');
+    await click(buttonByText('저장')!);
+
+    const after = useProjectStore.getState().projects[0].decision_contract!;
+    expect(after.sealed_statement).toBe('지금 나가도 후회 안 한다');
+    expect(after.predicates[0].authored).toBe('user');
+    expect(after.predicates[0].attribution?.wording_source).toBe('user_reworded');
+    expect(after.judgment_receipt?.human_judgment).toBe('지금 나가도 후회 안 한다');
+    // machine wording no longer kept → no adoption lineage survives
+    expect(after.adoption_lineage).toBeUndefined();
+    // identity, seal stamp, and promised schedule are preserved
+    expect(after.id).toBe(before.id);
+    expect(after.created_at).toBe(before.created_at);
+    expect(after.closed_at).toBe(before.closed_at);
+    expect(after.check_in_at).toBe(before.check_in_at);
+    // the receipt now shows the user's own line
+    expect(container.textContent).toContain('지금 나가도 후회 안 한다');
   });
 
   it('declining closes in one line, records nothing, and never re-asks', async () => {
     renderFlow();
     await answerOnce('내일 피곤할까 봐요', OFFER_TURN);
-    await click(buttonByText('그냥 갈래요')!);
+    await click(buttonByText('괜찮아요, 그냥 갈게요')!);
     expect(container.textContent).toContain('네, 여기까지도 충분해요. 필요하면 언제든요.');
     expect(useProjectStore.getState().projects).toHaveLength(0);
     expect(mockTrack).toHaveBeenCalledWith('light_seal_declined');
+    expect(container.textContent).not.toContain('이렇게 기억해 둘게요');
     // no re-ask: the engine ran exactly once and no question input remains
     expect(mockNext).toHaveBeenCalledTimes(1);
     expect(container.querySelector('textarea[placeholder="한 줄이면 돼요"]')).toBeNull();
+  });
+});
+
+describe('첫 생각 (first-thought anchor)', () => {
+  const OFFER_TURN: LightTurn = {
+    mirror: '내일 피곤만 아니면 되는 거네요.',
+    action: 'offer',
+    offer: { sentence: '케이크 자르고 나오면 내일 안 피곤하다', when: 'tomorrow_morning' },
+  };
+
+  it('the opening screen shows NO 처음 생각 line and the answer input is never pre-filled', () => {
+    renderFlow();
+    expect(container.textContent).not.toContain('처음 생각');
+    const ta = container.querySelector<HTMLTextAreaElement>('textarea[placeholder="한 줄이면 돼요"]');
+    expect(ta!.value).toBe('');
+  });
+
+  it('the next answer input is also empty after a turn (never pre-filled)', async () => {
+    renderFlow();
+    await answerOnce('남고 싶은데 내일이 걱정돼요', { mirror: 'm2', action: 'ask', question: '내일 몇 시에 일어나요?' });
+    const ta = container.querySelector<HTMLTextAreaElement>('textarea[placeholder="한 줄이면 돼요"]');
+    expect(ta!.value).toBe('');
+  });
+
+  it('the permission ask stays flowing — no 처음 생각 line before accept', async () => {
+    renderFlow();
+    await answerOnce('남고 싶은데 내일이 걱정돼요', OFFER_TURN);
+    expect(container.textContent).not.toContain('처음 생각');
+    assertNoGeneratedOptionButtons();
+  });
+
+  it('accepting keeps the first thought in the record AND shows it on the receipt', async () => {
+    renderFlow();
+    await answerOnce('남고 싶은데 내일이 걱정돼요', OFFER_TURN);
+    await click(buttonByText('내일 아침에 물어봐 주세요')!);
+    const contract = useProjectStore.getState().projects[0].decision_contract!;
+    // EXISTING slot, no new field: the pre-review baseline that is never scored
+    expect(contract.judgment_receipt?.baseline_judgment).toBe('남고 싶은데 내일이 걱정돼요');
+    expect(contract.judgment_receipt?.human_judgment).toBe('케이크 자르고 나오면 내일 안 피곤하다');
+    expect(contract.predicates).toHaveLength(1);
+    // the receipt keeps the comparison readable: 처음 생각 → 남긴 판단
+    expect(container.textContent).toContain('처음 생각 · 남고 싶은데 내일이 걱정돼요');
+    expect(container.textContent).toContain('기억해 뒀어요. 내일 아침에 한 번만 물어볼게요.');
+  });
+
+  it('editing the receipt keeps the first thought intact in the stored record', async () => {
+    renderFlow();
+    await answerOnce('남고 싶은데 내일이 걱정돼요', OFFER_TURN);
+    await click(buttonByText('내일 아침에 물어봐 주세요')!);
+    await click(buttonByText('고쳐도 돼요')!);
+    const editable = Array.from(container.querySelectorAll('textarea'))
+      .find((t) => t.value === '케이크 자르고 나오면 내일 안 피곤하다')!;
+    setTextarea(editable, '지금 나가도 후회 안 한다');
+    await click(buttonByText('저장')!);
+    const contract = useProjectStore.getState().projects[0].decision_contract!;
+    expect(contract.judgment_receipt?.baseline_judgment).toBe('남고 싶은데 내일이 걱정돼요');
+    expect(container.textContent).toContain('처음 생각 · 남고 싶은데 내일이 걱정돼요');
+  });
+
+  it('declining shows no 처음 생각 line (it belongs to the kept record only)', async () => {
+    renderFlow();
+    await answerOnce('남고 싶은데 내일이 걱정돼요', OFFER_TURN);
+    await click(buttonByText('괜찮아요, 그냥 갈게요')!);
+    expect(container.textContent).not.toContain('처음 생각');
   });
 });
 
@@ -284,7 +387,7 @@ describe('clean close', () => {
       mirror: 'm', action: 'offer',
       offer: { sentence: '한 줄', when: 'tonight' },
     });
-    await click(buttonByText('그냥 갈래요')!);
+    await click(buttonByText('괜찮아요, 그냥 갈게요')!);
     await click(buttonByText('처음으로')!);
     expect(onClose).toHaveBeenCalledTimes(1);
   });

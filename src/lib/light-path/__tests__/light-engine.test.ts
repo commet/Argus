@@ -28,6 +28,7 @@ import {
   lightWhenLabel,
   buildLightSealContract,
   composeDeepenText,
+  firstThoughtFromQas,
   LIGHT_MAX_QUESTIONS,
   LIGHT_PATH_ENABLED,
 } from '@/lib/light-path/light-engine';
@@ -307,6 +308,58 @@ describe('buildLightSealContract — the seal reuses the EXISTING contract machi
 
   it('an empty sentence seals nothing (honest-empty)', () => {
     expect(buildLightSealContract('p1', { sentence: '  ', edited: false, when: 'tonight', problemText: 'x' }, now)).toBeNull();
+  });
+});
+
+describe('firstThoughtFromQas — the first answer IS the first thought (첫 생각)', () => {
+  it('tags the first answer, verbatim and trimmed', () => {
+    expect(firstThoughtFromQas([
+      { question: '지금 마음은 어느 쪽에 가 있어요?', answer: ' 남고 싶은데 내일이 걱정돼요 ' },
+      { question: 'q2', answer: 'a2' },
+    ])).toBe('남고 싶은데 내일이 걱정돼요');
+  });
+
+  it('is absent when nothing was answered (skipping loses nothing)', () => {
+    expect(firstThoughtFromQas([])).toBeUndefined();
+    expect(firstThoughtFromQas([{ question: 'q', answer: '   ' }])).toBeUndefined();
+  });
+});
+
+describe('buildLightSealContract — 첫 생각 rides the EXISTING baseline_judgment slot', () => {
+  const now = new Date(2026, 6, 28, 10, 0, 0, 0).getTime();
+  const input = {
+    sentence: '케이크 자르고 나오면 내일 안 피곤하다',
+    edited: false as const,
+    when: 'tomorrow_morning' as const,
+    problemText: '파티에서 지금 나올까',
+  };
+
+  it('with a first thought: judgment_receipt reuses baseline_judgment (no new field)', () => {
+    const c = buildLightSealContract('p1', { ...input, firstThought: '남고 싶은데 내일이 걱정돼요' }, now)!;
+    const receipt = c.judgment_receipt!;
+    expect(receipt.baseline_judgment).toBe('남고 싶은데 내일이 걱정돼요');
+    // the sealed line mirrors into human_judgment so the return reads
+    // 처음 생각 → 남긴 판단 → 현실 through the existing receipt renderer
+    expect(receipt.human_judgment).toBe(input.sentence);
+    expect(receipt.judgment_attribution).toEqual(c.predicates[0].attribution);
+    // review-derived fields stay honestly EMPTY — never fabricated
+    expect(receipt.real_question).toBe('');
+    expect(receipt.unverified_assumption).toBe('');
+    expect(receipt.human_only).toBe('');
+    // the first thought is NEVER a scored predicate (baseline is deliberately unscored)
+    expect(c.predicates).toHaveLength(1);
+    expect(c.predicates[0].text).toBe(input.sentence);
+    expect(contractPhase(c, now)).toBe('sealed');
+  });
+
+  it('without a first thought the contract shape is unchanged (no receipt)', () => {
+    const c = buildLightSealContract('p1', input, now)!;
+    expect(c.judgment_receipt).toBeUndefined();
+  });
+
+  it('a whitespace first thought is treated as absent, never sealed as an empty baseline', () => {
+    const c = buildLightSealContract('p1', { ...input, firstThought: '   ' }, now)!;
+    expect(c.judgment_receipt).toBeUndefined();
   });
 });
 

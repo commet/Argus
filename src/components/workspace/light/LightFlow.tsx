@@ -9,10 +9,11 @@
  * never a step rail. Input is free text only ("한 줄이면 돼요"); NO generated
  * option buttons exist anywhere on this surface (anti-술 invariant).
  *
- * Ending is symmetric: 걸어둘게요 records through the EXISTING decision-contract
- * machinery (projects store → decision_contract → the same return loop as every
- * seal); 그냥 갈래요 closes in one line and never re-asks. Declining is also
- * completion.
+ * Ending is symmetric: the 남기기 moment asks PERMISSION TO RETURN (one flowing
+ * sentence continuing the mirror — never a sentence to approve), and accepting
+ * records through the EXISTING decision-contract machinery (projects store →
+ * decision_contract → the same return loop as every seal). Declining closes in
+ * one line and never re-asks. Declining is also completion.
  */
 
 import React, { useEffect, useRef, useState } from 'react';
@@ -27,8 +28,10 @@ import {
   composeDeepenText,
   buildLightSealContract,
   lightWhenLabel,
+  firstThoughtFromQas,
   type LightOffer,
   type LightQA,
+  type LightWhen,
 } from '@/lib/light-path/light-engine';
 
 const EASE = [0.22, 1, 0.36, 1] as const;
@@ -48,7 +51,18 @@ type Screen =
   | { kind: 'turn'; mirror: string; question: string }
   | { kind: 'offer'; mirror: string; offer: LightOffer }
   | { kind: 'escalate'; mirror: string; biggerQuestion: string }
-  | { kind: 'closed'; variant: 'accepted' | 'declined'; sentence?: string; checkLabel?: string };
+  | {
+      kind: 'closed';
+      variant: 'accepted' | 'declined';
+      sentence?: string;
+      checkLabel?: string;
+      firstThought?: string;
+      /** Kept for the after-accept receipt edit (고쳐도 돼요) — the stored
+       *  contract is updated in place, identity and schedule preserved. */
+      pid?: string;
+      when?: LightWhen;
+      days?: number;
+    };
 
 export function LightFlow({
   problemText,
@@ -71,7 +85,9 @@ export function LightFlow({
   const [qas, setQas] = useState<LightQA[]>([]);
   const [screen, setScreen] = useState<Screen>({ kind: 'turn', mirror: opening.mirror, question: opening.question });
   const [input, setInput] = useState('');
-  const [offerText, setOfferText] = useState('');
+  // After-accept receipt edit (고쳐도 돼요) — the only place the sentence is edited.
+  const [editingReceipt, setEditingReceipt] = useState(false);
+  const [receiptEdit, setReceiptEdit] = useState('');
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [recordOpen, setRecordOpen] = useState(true);
@@ -111,7 +127,6 @@ export function LightFlow({
         setScreen({ kind: 'turn', mirror: turn.mirror, question: turn.question });
       } else if (turn.action === 'offer' && turn.offer) {
         setScreen({ kind: 'offer', mirror: turn.mirror, offer: turn.offer });
-        setOfferText(turn.offer.sentence);
         track('light_seal_offered');
       } else if (turn.action === 'escalate' && turn.escalate) {
         setScreen({ kind: 'escalate', mirror: turn.mirror, biggerQuestion: turn.escalate.bigger_question });
@@ -131,11 +146,18 @@ export function LightFlow({
     }
   };
 
+  // 첫 생각 — the first answer of this session, verbatim (내 말). Kept in the seal
+  // and shown on the after-accept receipt so the return can compare
+  // 처음 생각 → 남긴 판단 → 현실.
+  const firstThought = firstThoughtFromQas(qas);
+
+  // Accepting is PERMISSION TO RETURN — the sentence (offer.sentence) seals as
+  // the machine's wording (honest ai_surfaced provenance) and only appears on
+  // the receipt afterwards, where 고쳐도 돼요 can still make it the user's own.
   const acceptOffer = async () => {
     if (busy || screen.kind !== 'offer') return;
-    const sentence = offerText.trim();
+    const sentence = screen.offer.sentence.trim();
     if (!sentence) return;
-    const edited = sentence !== screen.offer.sentence.trim();
     setBusy(true);
     setErr(null);
     try {
@@ -151,23 +173,58 @@ export function LightFlow({
       const pid = store.createProject(title || sentence);
       const contract = buildLightSealContract(
         pid,
-        { sentence, edited, when: screen.offer.when, days: screen.offer.days, problemText },
+        { sentence, edited: false, when: screen.offer.when, days: screen.offer.days, problemText, firstThought },
         now,
       );
       if (contract) store.updateProject(pid, { decision_contract: contract });
       // Stay on the light close screen: createProject selects the new project,
       // which would swap the whole workspace out from under this surface.
       store.setCurrentProjectId(null);
-      track('light_seal_accepted', { edited });
+      track('light_seal_accepted', { edited: false });
       setScreen({
         kind: 'closed',
         variant: 'accepted',
         sentence,
         checkLabel: lightWhenLabel(screen.offer.when, screen.offer.days, locale),
+        firstThought,
+        pid,
+        when: screen.offer.when,
+        days: screen.offer.days,
       });
     } finally {
       setBusy(false);
     }
+  };
+
+  // 고쳐도 돼요 — editing AFTER accept updates the stored contract in place and
+  // flips authorship to the user (user_reworded), exactly like the pre-revision
+  // edit path. Identity (id/created_at), the seal stamp, and the promised
+  // check date are preserved — only the wording and its provenance change.
+  const saveReceiptEdit = () => {
+    if (screen.kind !== 'closed' || screen.variant !== 'accepted' || !screen.pid || !screen.when) return;
+    const next = receiptEdit.trim();
+    if (!next) return;
+    setEditingReceipt(false);
+    if (next === (screen.sentence || '').trim()) return; // unchanged — nothing to rewrite
+    const store = useProjectStore.getState();
+    const existing = store.getProject(screen.pid)?.decision_contract;
+    const rebuilt = buildLightSealContract(
+      screen.pid,
+      { sentence: next, edited: true, when: screen.when, days: screen.days, problemText, firstThought: screen.firstThought },
+      Date.now(),
+    );
+    if (!rebuilt) return;
+    const contract = existing
+      ? {
+          ...rebuilt,
+          id: existing.id,
+          created_at: existing.created_at,
+          closed_at: existing.closed_at ?? rebuilt.closed_at,
+          check_in_at: existing.check_in_at ?? rebuilt.check_in_at,
+        }
+      : rebuilt;
+    store.updateProject(screen.pid, { decision_contract: contract });
+    setScreen({ ...screen, sentence: next });
   };
 
   const declineOffer = () => {
@@ -272,32 +329,26 @@ export function LightFlow({
             className="rounded-2xl border border-[var(--accent)]/25 bg-[var(--surface)] p-5 md:p-6"
           >
             {mirrorBlock(screen.mirror)}
-            <p className="mt-4 mb-1.5 text-[12.5px] font-semibold text-[var(--text-secondary)]">
-              {L('한 줄 걸어두고 갈래요?', 'Want to leave one line to check later?')}
-            </p>
-            {/* The sentence is EDITABLE — rewriting makes it user-authored;
-                keeping it as-is records the AI wording origin honestly. */}
-            <div className="rounded-lg bg-[var(--accent)]/[0.04] px-4 py-3">
-              <textarea
-                value={offerText}
-                onChange={(e) => setOfferText(e.target.value)}
-                rows={2}
-                maxLength={MAX_SENTENCE}
-                disabled={busy}
-                aria-label={L('걸어둘 한 줄', 'The line to leave')}
-                className="w-full bg-transparent text-base md:text-[15.5px] leading-[1.6] text-[var(--text-primary)] font-medium resize-none focus:outline-none"
-              />
-            </div>
-            <p className="mt-2 text-[12.5px] text-[var(--text-tertiary)]">
-              {L(`확인 시점: ${lightWhenLabel(screen.offer.when, screen.offer.days, locale)}`,
-                 `Check time: ${lightWhenLabel(screen.offer.when, screen.offer.days, locale)}`)}
+            {/* Permission to return — ONE flowing sentence continuing the mirror.
+                The falsifiable line (offer.sentence) is deliberately NOT shown
+                here; it appears on the receipt only after the user says yes.
+                Fallback composes mechanically from the when label (known slots
+                only — never invented content). */}
+            <p className="mt-3 text-[15px] md:text-[15.5px] leading-[1.65] text-[var(--text-primary)] whitespace-pre-wrap break-words" style={{ fontFamily: 'var(--font-display)' }}>
+              {screen.offer.ask || L(
+                `${lightWhenLabel(screen.offer.when, screen.offer.days, locale)}에 제가 한 번만 물어볼까요?`,
+                `Want me to ask you just once, ${lightWhenLabel(screen.offer.when, screen.offer.days, locale)}?`,
+              )}
             </p>
             <div className="mt-4 flex flex-col sm:flex-row sm:items-center gap-2">
-              <Button variant="accent" size="md" onClick={() => void acceptOffer()} disabled={busy || !offerText.trim()}>
-                {L('걸어둘게요', "I'll leave it")}
+              <Button variant="accent" size="md" onClick={() => void acceptOffer()} disabled={busy}>
+                {L(
+                  `${lightWhenLabel(screen.offer.when, screen.offer.days, locale)}에 물어봐 주세요`,
+                  `Ask me ${lightWhenLabel(screen.offer.when, screen.offer.days, locale)}`,
+                )}
               </Button>
               <Button variant="ghost" size="md" onClick={declineOffer} disabled={busy}>
-                {L('그냥 갈래요', "I'm good, thanks")}
+                {L('괜찮아요, 그냥 갈게요', "I'm okay, I'll just go")}
               </Button>
             </div>
             <div className="mt-4">{deepenLink}</div>
@@ -348,18 +399,55 @@ export function LightFlow({
           >
             {screen.variant === 'accepted' ? (
               <>
-                {screen.sentence && (
-                  <div className="mb-3 rounded-lg bg-[var(--accent)]/[0.04] px-4 py-3">
-                    <p className="text-[15px] leading-[1.6] text-[var(--text-primary)] font-medium break-words">
-                      {screen.sentence}
-                    </p>
-                  </div>
-                )}
                 <p className="text-[15px] leading-[1.65] text-[var(--text-primary)]" style={{ fontFamily: 'var(--font-display)' }}>
                   {ko
-                    ? `걸어뒀어요. ${screen.checkLabel}에 딱 한 번 물어볼게요.`
-                    : `It's up. I'll ask exactly once, ${screen.checkLabel}.`}
+                    ? `기억해 뒀어요. ${screen.checkLabel}에 한 번만 물어볼게요.`
+                    : `I'll remember this. I'll ask just once, ${screen.checkLabel}.`}
                 </p>
+                {/* Receipt — how it will be remembered. The first thought stays
+                    with it, and the line remains correctable: 고쳐도 돼요 flips
+                    authorship to the user (user_reworded) in the stored record. */}
+                {screen.sentence && (
+                  <div className="mt-3 rounded-lg bg-[var(--accent)]/[0.04] px-4 py-3">
+                    {screen.firstThought && (
+                      <p className="mb-1.5 text-[12.5px] leading-[1.5] text-[var(--text-secondary)] break-words">
+                        {L('처음 생각', 'First thought')} · {screen.firstThought}
+                      </p>
+                    )}
+                    {editingReceipt ? (
+                      <>
+                        <textarea
+                          value={receiptEdit}
+                          onChange={(e) => setReceiptEdit(e.target.value)}
+                          rows={2}
+                          maxLength={MAX_SENTENCE}
+                          autoFocus
+                          aria-label={L('기억해 둘 한 줄', 'The line to remember')}
+                          className="w-full bg-transparent text-base md:text-[14.5px] leading-[1.6] text-[var(--text-primary)] resize-none focus:outline-none"
+                        />
+                        <div className="mt-1.5">
+                          <Button variant="secondary" size="sm" onClick={saveReceiptEdit} disabled={!receiptEdit.trim()}>
+                            {L('저장', 'Save')}
+                          </Button>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <p className="text-[14px] leading-[1.6] text-[var(--text-primary)] break-words">
+                          {L('이렇게 기억해 둘게요 — ', "Here's how I'll remember it — ")}
+                          {screen.sentence}
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => { setReceiptEdit(screen.sentence || ''); setEditingReceipt(true); }}
+                          className="mt-1 text-[12px] text-[var(--text-tertiary)] underline underline-offset-2 hover:text-[var(--text-secondary)] transition-colors cursor-pointer"
+                        >
+                          {L('고쳐도 돼요', 'You can fix it')}
+                        </button>
+                      </>
+                    )}
+                  </div>
+                )}
               </>
             ) : (
               <p className="text-[15px] leading-[1.65] text-[var(--text-primary)]" style={{ fontFamily: 'var(--font-display)' }}>
