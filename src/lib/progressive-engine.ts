@@ -632,16 +632,23 @@ export async function runInitialAnalysis(
 
   const { system, user } = buildInitialAnalysisPrompt(problemText, locale);
 
-  // Stream: real-time display then JSON parse, or standard approach
+  // Stream: real-time display then JSON parse, or standard approach.
+  // maxTokens 4096 (was 2000): the full Korean OPEN-decision JSON measures
+  // ~3,900 output tokens, so the old budget truncated ~44% of streams mid-JSON
+  // (7-day production count) — every one of those re-ran the whole call and
+  // froze the screen for the retry. The cap is a ceiling, not a target: short
+  // routes (vent/info/flat) still stop where they stop.
+  // cacheSystem: the ~7k-token system prompt is byte-identical per locale, so
+  // it prompt-caches across all calls and users.
   const result = onToken
     ? await callLLMStreamThenParse<InitialAnalysisResponse>(
         [{ role: 'user', content: user }],
-        { system, maxTokens: 2000, signal, shape: { real_question: 'string', hidden_assumptions: 'array', skeleton: 'array', next_question: 'object' } },
+        { system, maxTokens: 4096, signal, cacheSystem: true, shape: { real_question: 'string', hidden_assumptions: 'array', skeleton: 'array', next_question: 'object' } },
         onToken,
       )
     : await callLLMJson<InitialAnalysisResponse>(
         [{ role: 'user', content: user }],
-        { system, maxTokens: 2000, signal, shape: { real_question: 'string', hidden_assumptions: 'array', skeleton: 'array', next_question: 'object' } },
+        { system, maxTokens: 4096, signal, cacheSystem: true, shape: { real_question: 'string', hidden_assumptions: 'array', skeleton: 'array', next_question: 'object' } },
       );
 
   // R31 — runtime route-contract guard: a non-open request that nonetheless built
@@ -781,15 +788,17 @@ export async function refineInitialFraming(
     problemText, rejectedQuestion, rejectionReason, locale,
   );
 
+  // Same budget/caching rationale as runInitialAnalysis: identical output
+  // shape (full re-analysis), static-per-locale system prompt.
   const result = onToken
     ? await callLLMStreamThenParse<InitialAnalysisResponse>(
         [{ role: 'user', content: user }],
-        { system, maxTokens: 2000, signal, shape: { real_question: 'string', hidden_assumptions: 'array', skeleton: 'array', next_question: 'object' } },
+        { system, maxTokens: 4096, signal, cacheSystem: true, shape: { real_question: 'string', hidden_assumptions: 'array', skeleton: 'array', next_question: 'object' } },
         onToken,
       )
     : await callLLMJson<InitialAnalysisResponse>(
         [{ role: 'user', content: user }],
-        { system, maxTokens: 2000, signal, shape: { real_question: 'string', hidden_assumptions: 'array', skeleton: 'array', next_question: 'object' } },
+        { system, maxTokens: 4096, signal, cacheSystem: true, shape: { real_question: 'string', hidden_assumptions: 'array', skeleton: 'array', next_question: 'object' } },
       );
 
   const { result: contractResult } = applyRouteContract(result);

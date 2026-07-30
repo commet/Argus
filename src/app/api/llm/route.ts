@@ -239,11 +239,23 @@ export async function POST(req: NextRequest) {
       ? requestedAnthropicModel
       : MODEL_MAP[body.model as string] || MODEL_MAP.default;
 
+    // Prompt caching for STATIC system prompts (client opt-in via cacheSystem).
+    // The initial-analysis prompt is ~7k tokens of byte-identical instructions
+    // per locale, re-prefilled from scratch on every call before this — pure
+    // prefill latency + cost. Callers only set the flag for prompts that are
+    // truly identical across calls; a dynamic prompt would never hit and each
+    // write costs a 25% premium. Below Anthropic's per-model minimum
+    // cacheable length the marker is simply ignored — safe, never an error.
+    const systemParam: string | Anthropic.TextBlockParam[] | undefined =
+      body.cacheSystem === true && typeof system === 'string'
+        ? [{ type: 'text', text: system, cache_control: { type: 'ephemeral' } }]
+        : system;
+
     if (stream) {
       const anthropicStream = client.messages.stream({
         model: modelId,
         max_tokens: maxTokens,
-        system,
+        system: systemParam,
         messages: messages as Anthropic.MessageParam[],
       });
 
@@ -268,6 +280,11 @@ export async function POST(req: NextRequest) {
                   tier: body.model || 'default',
                   input_tokens: final.usage?.input_tokens,
                   output_tokens: final.usage?.output_tokens,
+                  // Cache observability: without these two numbers there is no
+                  // way to tell from production data whether caching is
+                  // actually firing (read>0) or only paying write premiums.
+                  cache_read_tokens: final.usage?.cache_read_input_tokens,
+                  cache_write_tokens: final.usage?.cache_creation_input_tokens,
                   stream: true,
                 }, { userId: auth?.userId ?? null, path: '/api/llm' });
               } catch { /* telemetry must never break the stream */ }
@@ -309,7 +326,7 @@ export async function POST(req: NextRequest) {
     const response = await client.messages.create({
       model: modelId,
       max_tokens: maxTokens,
-      system,
+      system: systemParam,
       messages: messages as Anthropic.MessageParam[],
     });
 
@@ -320,6 +337,8 @@ export async function POST(req: NextRequest) {
       tier: body.model || 'default',
       input_tokens: response.usage?.input_tokens,
       output_tokens: response.usage?.output_tokens,
+      cache_read_tokens: response.usage?.cache_read_input_tokens,
+      cache_write_tokens: response.usage?.cache_creation_input_tokens,
       stream: false,
     }, { userId: auth?.userId ?? null, path: '/api/llm' });
     const res = NextResponse.json({ text: block ? block.text : '' });

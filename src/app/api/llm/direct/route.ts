@@ -41,11 +41,19 @@ export async function POST(req: NextRequest) {
       ? body.anthropicModel
       : MODEL_MAP[body.model as string] || MODEL_MAP.default;
 
+    // Same static-system prompt caching as /api/llm — here the savings land on
+    // the USER's own key (BYOK), which is exactly where a 90% input discount on
+    // a ~7k-token prompt matters most to them.
+    const systemParam: string | Anthropic.TextBlockParam[] | undefined =
+      body.cacheSystem === true && typeof system === 'string'
+        ? [{ type: 'text', text: system, cache_control: { type: 'ephemeral' } }]
+        : system;
+
     if (stream) {
       const anthropicStream = client.messages.stream({
         model: modelId,
         max_tokens: maxTokens,
-        system,
+        system: systemParam,
         messages: messages as Anthropic.MessageParam[],
       });
 
@@ -90,7 +98,7 @@ export async function POST(req: NextRequest) {
     const response = await client.messages.create({
       model: modelId,
       max_tokens: maxTokens,
-      system,
+      system: systemParam,
       messages: messages as Anthropic.MessageParam[],
     });
 
