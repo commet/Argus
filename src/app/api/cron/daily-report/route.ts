@@ -94,6 +94,9 @@ type SessionAgg = {
   entryPage: string | null;
   referrer: string | null;
   utmSource: string | null;
+  utmMedium: string | null;
+  utmCampaign: string | null;
+  utmContent: string | null;
   visitedAdmin: boolean;
   visitedPrivacy: boolean;
   visitedTerms: boolean;
@@ -124,6 +127,9 @@ function aggregateSessions(events: EventRow[]): Map<string, SessionAgg> {
         entryPage: e.page_path ?? null,
         referrer: null,
         utmSource: null,
+        utmMedium: null,
+        utmCampaign: null,
+        utmContent: null,
         visitedAdmin: false,
         visitedPrivacy: false,
         visitedTerms: false,
@@ -151,6 +157,9 @@ function aggregateSessions(events: EventRow[]): Map<string, SessionAgg> {
       const ir = (props.initial_referrer as string) || e.referrer || null;
       if (ir) a.referrer = ir;
       if (props.utm_source) a.utmSource = String(props.utm_source);
+      if (props.utm_medium) a.utmMedium = String(props.utm_medium);
+      if (props.utm_campaign) a.utmCampaign = String(props.utm_campaign);
+      if (props.utm_content) a.utmContent = String(props.utm_content);
     }
     if (!a.referrer && e.referrer) a.referrer = e.referrer;
     if (e.event_name === 'workspace_enter') a.reachedWorkspace = true;
@@ -173,6 +182,7 @@ function bucketSession(a: SessionAgg, ownerIds: Set<string>): AnonBucket {
     distinctEvents: a.eventNames.size,
     distinctPages: a.pages.size,
     referrer: a.referrer,
+    utmSource: a.utmSource,
     visitedAdmin: a.visitedAdmin,
     localesTouched: a.locales.size,
     visitedLegalPair: a.visitedPrivacy && a.visitedTerms,
@@ -229,6 +239,7 @@ export async function GET(req: Request) {
 
   // ─── Time windows ───
   const yesterday = kstRange(1);
+  const previousDay = kstRange(2);
   const twoWeeksAgo = kstRange(14);
 
   // ─── 1. Auth users + owner ids ───
@@ -319,7 +330,7 @@ export async function GET(req: Request) {
   // Completions: progressive_sessions where phase=complete OR final_deliverable is set
   const { data: allProgressive } = await supabase
     .from('progressive_sessions')
-    .select('user_id, data')
+    .select('project_id, user_id, data, created_at, updated_at')
     .limit(5000);
   const cumulativeCompletions = (allProgressive || []).filter(s => {
     if (s.user_id && ownerIds.has(s.user_id)) return false;
@@ -327,6 +338,35 @@ export async function GET(req: Request) {
     const fd = (s.data as { final_deliverable?: string })?.final_deliverable;
     return phase === 'complete' || (fd && fd.length > 0);
   }).length;
+
+  // Daily persistence truth comes from the product tables, not from browser
+  // events. This exposes the exact "project exists, voyage backup does not"
+  // gap that used to be invisible in the founder email.
+  const [{ data: recentProjects, error: projectsError }, { data: recentSessions, error: sessionsError }] = await Promise.all([
+    supabase
+      .from('projects')
+      .select('id, user_id, created_at, decision_contract')
+      .gte('created_at', previousDay.start)
+      .lte('created_at', yesterday.end)
+      .limit(5000),
+    supabase
+      .from('progressive_sessions')
+      .select('project_id, user_id, created_at, updated_at, phase, data')
+      .gte('created_at', previousDay.start)
+      .lte('created_at', yesterday.end)
+      .limit(5000),
+  ]);
+  if (projectsError || sessionsError) {
+    throw new Error(`persistence health query failed: ${projectsError?.message || sessionsError?.message}`);
+  }
+  const externalRecentProjects = (recentProjects || []).filter(r => !ownerIds.has(r.user_id));
+  const externalRecentSessions = (recentSessions || []).filter(r => !ownerIds.has(r.user_id));
+  const projectsYesterday = externalRecentProjects.filter(r => r.created_at >= yesterday.start && r.created_at <= yesterday.end);
+  const projectsPrevious = externalRecentProjects.filter(r => r.created_at >= previousDay.start && r.created_at <= previousDay.end);
+  const sessionsYesterday = externalRecentSessions.filter(r => r.created_at >= yesterday.start && r.created_at <= yesterday.end);
+  const sessionsPrevious = externalRecentSessions.filter(r => r.created_at >= previousDay.start && r.created_at <= previousDay.end);
+  const allSessionProjectIds = new Set((allProgressive || []).map(s => s.project_id).filter(Boolean));
+  const projectsMissingSession = projectsYesterday.filter(p => !allSessionProjectIds.has(p.id));
 
   // Ignore the unused first `totalUsers` query — we use externalUsers.length for accuracy
   void totalUsers;
@@ -348,10 +388,20 @@ export async function GET(req: Request) {
   const anonBot = anonAggY.filter(a => bucketY.get(a.sessionId) === 'bot');
   const anonInternal = anonAggY.filter(a => bucketY.get(a.sessionId) === 'internal');
 
+  const previousEvents = ext14.filter(e => e.created_at >= previousDay.start && e.created_at <= previousDay.end);
+  const previousAgg = aggregateSessions(previousEvents);
+  const humanAggPrevious = [...previousAgg.values()].filter(a => bucketSession(a, ownerIds) === 'human');
+
   // ─── 4. Yesterday top-line (humans only) ───
   const sessionsY = humanSessionIds;
   const usersY = new Set(humanAggY.filter(a => a.userId).map(a => a.userId!));
   const anonSessionsY = new Set(anonHuman.map(a => a.sessionId));
+  const submittedY = humanAggY.filter(a => a.eventNames.has('workspace_problem_submit')).length;
+  const submittedPrevious = humanAggPrevious.filter(a => a.eventNames.has('workspace_problem_submit')).length;
+  const completedY = humanAggY.filter(a => a.completed).length;
+  const completedPrevious = humanAggPrevious.filter(a => a.completed).length;
+  const sealedY = humanAggY.filter(a => a.eventNames.has('decision_sealed')).length;
+  const sealedPrevious = humanAggPrevious.filter(a => a.eventNames.has('decision_sealed')).length;
 
   // ─── 5. 7-day trend (daily HUMAN session count) + WoW comparison ───
   // Classify the whole fortnight the same way, then count each human session
@@ -376,11 +426,37 @@ export async function GET(req: Request) {
 
   // ─── 6. Source breakdown + per-source completion (humans only) ───
   const sourceStats: Record<string, { sessions: number; completions: number }> = {};
+  const campaignStats: Record<string, {
+    source: string;
+    medium: string;
+    campaign: string;
+    content: string;
+    sessions: number;
+    submissions: number;
+    completions: number;
+  }> = {};
   for (const a of humanAggY) {
     const src = classifySource(a.referrer, a.utmSource);
     if (!sourceStats[src]) sourceStats[src] = { sessions: 0, completions: 0 };
     sourceStats[src].sessions++;
     if (a.completed) sourceStats[src].completions++;
+    if (a.utmSource || a.utmMedium || a.utmCampaign || a.utmContent) {
+      const key = [a.utmSource || '(none)', a.utmMedium || '(none)', a.utmCampaign || '(none)', a.utmContent || '(none)'].join('\u001f');
+      if (!campaignStats[key]) {
+        campaignStats[key] = {
+          source: a.utmSource || '(none)',
+          medium: a.utmMedium || '(none)',
+          campaign: a.utmCampaign || '(none)',
+          content: a.utmContent || '(none)',
+          sessions: 0,
+          submissions: 0,
+          completions: 0,
+        };
+      }
+      campaignStats[key].sessions++;
+      if (a.eventNames.has('workspace_problem_submit')) campaignStats[key].submissions++;
+      if (a.completed) campaignStats[key].completions++;
+    }
   }
 
   // ─── 7. New signups + drilldown ───
@@ -389,6 +465,10 @@ export async function GET(req: Request) {
   const newSignups = externalUsers.filter(u => {
     const created = new Date(u.created_at);
     return created >= yStart && created <= yEnd;
+  });
+  const previousSignups = externalUsers.filter(u => {
+    const created = new Date(u.created_at);
+    return created >= new Date(previousDay.start) && created <= new Date(previousDay.end);
   });
 
   const MILESTONES = [
@@ -509,6 +589,7 @@ export async function GET(req: Request) {
     .sort(([, a], [, b]) => b - a)
     .map(([name, count]) => `${name} ${count}`)
     .join(' · ');
+  const syncWriteFailures = extYAll.filter(e => e.event_name === 'sync_write_failure');
 
   // ─── 11. Anonymous-visit detail (finer sensor) ───
   const anonHumanCount = anonHuman.length;
@@ -546,7 +627,17 @@ export async function GET(req: Request) {
 
   const kstDate = yesterday.label;
   const sourceEntries = Object.entries(sourceStats).sort(([, a], [, b]) => b.sessions - a.sessions).slice(0, 8);
+  const campaignEntries = Object.values(campaignStats).sort((a, b) => b.sessions - a.sessions).slice(0, 10);
   const trendMax = Math.max(...dailyTrend.map(d => d.sessions), 1);
+  const dailyChanges = [
+    { label: '사람 세션', current: sessionsY.size, previous: humanAggPrevious.length },
+    { label: '상황 제출', current: submittedY, previous: submittedPrevious },
+    { label: '완주', current: completedY, previous: completedPrevious },
+    { label: '결정 확정', current: sealedY, previous: sealedPrevious },
+    { label: '신규 가입', current: signupDetails.length, previous: previousSignups.length },
+    { label: '서버 프로젝트', current: projectsYesterday.length, previous: projectsPrevious.length },
+    { label: '서버 진행 기록', current: sessionsYesterday.length, previous: sessionsPrevious.length },
+  ];
 
   const html = `
 <!DOCTYPE html>
@@ -590,10 +681,46 @@ export async function GET(req: Request) {
     </td></tr>
   </table>`}
 
-  <!-- ════════ CUMULATIVE ════════ -->
+  <!-- ════════ DAILY CHANGE ════════ -->
   <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background: ${C.card}; border: 1px solid ${C.border}; border-radius: 14px; margin-bottom: 16px;">
     <tr><td style="padding: 20px;">
-      <p style="font-size: 10px; font-weight: 700; color: ${C.faint}; margin: 0 0 14px; letter-spacing: 0.12em; text-transform: uppercase;">누적 · All-Time</p>
+      <p style="font-size: 10px; font-weight: 800; color: ${C.primary}; margin: 0 0 4px; letter-spacing: 0.12em; text-transform: uppercase;">어제의 변화</p>
+      <p style="font-size: 12px; color: ${C.muted}; margin: 0 0 14px;">${previousDay.label}와 비교 · 사람으로 분류한 세션 기준</p>
+      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="font-size: 12px;">
+        ${dailyChanges.map((item) => {
+          const d = deltaLabel(item.current, item.previous);
+          return `<tr style="border-top: 1px solid ${C.borderSubtle};">
+            <td style="padding: 9px 0; color: ${C.text}; font-weight: 650;">${item.label}</td>
+            <td style="padding: 9px 8px; text-align: right; color: ${C.faint};">${item.previous}</td>
+            <td style="padding: 9px 8px; text-align: right; color: ${C.text}; font-size: 15px; font-weight: 800;">${item.current}</td>
+            <td style="padding: 9px 0; width: 72px; text-align: right; color: ${d.color}; font-weight: 750;">${d.arrow} ${d.text}</td>
+          </tr>`;
+        }).join('')}
+      </table>
+      <p style="font-size: 10px; color: ${C.faint}; margin: 10px 0 0; text-align: right;">전일 → 어제 → 증감</p>
+    </td></tr>
+  </table>
+
+  <!-- ════════ PERSISTENCE HEALTH ════════ -->
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background: ${projectsMissingSession.length > 0 || syncWriteFailures.length > 0 ? C.declineBg : C.growthBg}; border: 1px solid ${projectsMissingSession.length > 0 || syncWriteFailures.length > 0 ? '#fecaca' : '#a7f3d0'}; border-radius: 14px; margin-bottom: 16px;">
+    <tr><td style="padding: 18px 20px;">
+      <p style="font-size: 10px; font-weight: 800; color: ${projectsMissingSession.length > 0 || syncWriteFailures.length > 0 ? C.decline : C.growth}; margin: 0 0 10px; letter-spacing: 0.12em; text-transform: uppercase;">서버 저장 건전성 · 어제</p>
+      <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+        <tr>
+          <td style="width: 25%; text-align: center;"><p style="font-size: 24px; font-weight: 800; margin: 0;">${projectsYesterday.length}</p><p style="font-size: 10px; color: ${C.muted}; margin: 3px 0 0;">프로젝트</p></td>
+          <td style="width: 25%; text-align: center;"><p style="font-size: 24px; font-weight: 800; margin: 0;">${sessionsYesterday.length}</p><p style="font-size: 10px; color: ${C.muted}; margin: 3px 0 0;">진행 기록</p></td>
+          <td style="width: 25%; text-align: center;"><p style="font-size: 24px; font-weight: 800; color: ${projectsMissingSession.length > 0 ? C.decline : C.growth}; margin: 0;">${projectsMissingSession.length}</p><p style="font-size: 10px; color: ${C.muted}; margin: 3px 0 0;">짝 없는 프로젝트</p></td>
+          <td style="width: 25%; text-align: center;"><p style="font-size: 24px; font-weight: 800; color: ${syncWriteFailures.length > 0 ? C.decline : C.growth}; margin: 0;">${syncWriteFailures.length}</p><p style="font-size: 10px; color: ${C.muted}; margin: 3px 0 0;">감지된 쓰기 실패</p></td>
+        </tr>
+      </table>
+      <p style="font-size: 10px; color: ${C.muted}; margin: 12px 0 0; line-height: 1.5;">프로젝트와 진행 기록은 Supabase 행을 직접 확인합니다. 쓰기 실패 수집은 이 배포 이후 발생분부터 집계됩니다.</p>
+    </td></tr>
+  </table>
+
+  <!-- ════════ CUMULATIVE (SECONDARY) ════════ -->
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background: ${C.card}; border: 1px solid ${C.border}; border-radius: 14px; margin-bottom: 16px;">
+    <tr><td style="padding: 20px;">
+      <p style="font-size: 10px; font-weight: 700; color: ${C.faint}; margin: 0 0 14px; letter-spacing: 0.12em; text-transform: uppercase;">참고 · 전체 누적</p>
       <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
         <tr>
           <td style="width: 33.33%; text-align: center; padding: 0 8px;">
@@ -786,6 +913,34 @@ export async function GET(req: Request) {
     </td></tr>
   </table>` : ''}
 
+  <!-- ════════ UTM CAMPAIGNS ════════ -->
+  ${campaignEntries.length > 0 ? `
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background: ${C.card}; border: 1px solid ${C.border}; border-radius: 14px; margin-bottom: 16px;">
+    <tr><td style="padding: 20px;">
+      <p style="font-size: 10px; font-weight: 700; color: ${C.faint}; margin: 0 0 4px; letter-spacing: 0.12em; text-transform: uppercase;">UTM 캠페인 · 어제</p>
+      <p style="font-size: 11px; color: ${C.muted}; margin: 0 0 12px;">소스 / 매체 / 캠페인 / 콘텐츠별 실제 전환</p>
+      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="font-size: 11px;">
+        <tr style="color: ${C.faint}; font-size: 9px; text-transform: uppercase; letter-spacing: 0.06em;">
+          <td style="padding: 4px 0; font-weight: 700;">경로</td>
+          <td style="padding: 4px 5px; text-align: right; font-weight: 700;">세션</td>
+          <td style="padding: 4px 5px; text-align: right; font-weight: 700;">제출</td>
+          <td style="padding: 4px 0; text-align: right; font-weight: 700;">완주</td>
+        </tr>
+        ${campaignEntries.map((c) => `<tr style="border-top: 1px solid ${C.borderSubtle};">
+          <td style="padding: 8px 8px 8px 0; line-height: 1.45;">
+            <strong style="color: ${C.text};">${escHtml(c.source)}</strong>
+            <span style="color: ${C.faint};"> / ${escHtml(c.medium)}</span><br>
+            <span style="color: ${C.muted};">${escHtml(c.campaign)} · ${escHtml(c.content)}</span>
+          </td>
+          <td style="padding: 8px 5px; text-align: right;">${c.sessions}</td>
+          <td style="padding: 8px 5px; text-align: right; font-weight: 700;">${c.submissions}</td>
+          <td style="padding: 8px 0; text-align: right; font-weight: 800; color: ${c.completions > 0 ? C.growth : C.faint};">${c.completions}</td>
+        </tr>`).join('')}
+      </table>
+    </td></tr>
+  </table>` : `
+  <p style="font-size: 11px; color: ${C.faint}; margin: 0 0 16px; text-align: center;">어제 UTM이 붙은 사람 세션은 없었습니다. 홍보 링크에 UTM을 붙여야 캠페인별로 나뉩니다.</p>`}
+
   <!-- ════════ ERRORS ════════ -->
   ${errorCount > 0 ? `
   <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background: ${C.declineBg}; border: 1px solid #fecaca; border-radius: 14px; margin-bottom: 16px;">
@@ -814,7 +969,7 @@ export async function GET(req: Request) {
     const { error: sendError } = await resend.emails.send({
       from: `Argus <hello@${process.env.EMAIL_FROM_DOMAIN || 'argus.voyage'}>`,
       to: REPORT_EMAIL,
-      subject: `[Argus] ${kstDate} — 사람세션 ${sessionsY.size} · 익명사람 ${anonHuman.length} · 신규 ${signupDetails.length} · 누적 완주 ${cumulativeCompletions}`,
+      subject: `[Argus] ${kstDate} — 방문 ${sessionsY.size} · 제출 ${submittedY} · 완주 ${completedY} · 저장 누락 ${projectsMissingSession.length}`,
       html,
     });
     if (sendError) throw new Error(`Resend rejected the daily report: ${sendError.message}`);
@@ -831,6 +986,11 @@ export async function GET(req: Request) {
       cumulative_users: cumulativeUsers,
       cumulative_projects: cumulativeProjects ?? 0,
       cumulative_completions: cumulativeCompletions,
+      projects_yesterday: projectsYesterday.length,
+      progressive_sessions_yesterday: sessionsYesterday.length,
+      projects_missing_session: projectsMissingSession.length,
+      sync_write_failures: syncWriteFailures.length,
+      campaigns: campaignEntries.length,
       wow_delta: wowDelta.text,
       top_user: topUser?.email || null,
     });

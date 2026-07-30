@@ -71,6 +71,8 @@ export const SPAM_REFERRER_HOSTS = [
   'get-free-traffic-now.com',
   'success-seo.com',
   'event-tracking.com',
+  'goodsearch.com',
+  'fuzzfind.com',
 ] as const;
 
 /** Bare hostname from a referrer URL (protocol + path stripped, lowercased). */
@@ -139,6 +141,8 @@ export interface AnonSessionFeatures {
   distinctPages: number;
   /** initial_referrer (preferred) or referrer of the session. */
   referrer: string | null | undefined;
+  /** Explicit campaign source. `internal_qa` is the operator opt-out. */
+  utmSource?: string | null | undefined;
   /** Session touched any `/admin` route. */
   visitedAdmin: boolean;
   /** Number of distinct locale prefixes touched (/ko, /en, …). */
@@ -162,6 +166,8 @@ export interface AnonSessionFeatures {
  */
 export function classifyAnonSession(f: AnonSessionFeatures): AnonBucket {
   const host = referrerHost(f.referrer);
+  const utmSource = (f.utmSource || '').toLowerCase();
+  if (utmSource === 'internal' || utmSource === 'qa' || utmSource === 'internal_qa') return 'internal';
   if (
     host.includes('localhost')
     || host.startsWith('127.0.0.1')

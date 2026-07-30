@@ -55,6 +55,8 @@ describe('referrer-spam detection', () => {
     expect(isSpamReferrer('http://searchhippo.com/')).toBe(true);
     expect(isSpamReferrer('https://roysearch.com/x')).toBe(true);
     expect(isSpamReferrer('http://cluuz.com/')).toBe(true);
+    expect(isSpamReferrer('https://www.goodsearch.com/')).toBe(true);
+    expect(isSpamReferrer('https://fuzzfind.com/')).toBe(true);
   });
   it('does not flag real referrers', () => {
     expect(isSpamReferrer('https://l.instagram.com/')).toBe(false);
@@ -104,6 +106,7 @@ describe('anonymous session bucketing', () => {
     expect(classifyAnonSession({ ...humanBase, distinctPages: 12 })).toBe('internal');
     // legal-page sweep (privacy + terms + several others)
     expect(classifyAnonSession({ ...humanBase, visitedLegalPair: true, distinctPages: 5 })).toBe('internal');
+    expect(classifyAnonSession({ ...humanBase, utmSource: 'internal_qa' })).toBe('internal');
   });
 
   it('does not downgrade a shallow but organic visitor to bot', () => {
