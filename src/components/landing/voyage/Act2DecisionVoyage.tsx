@@ -13,6 +13,7 @@
 
 import { LocaleLink } from '@/components/ui/LocaleLink';
 import { useLocale } from '@/hooks/useLocale';
+import { ClauseText } from '@/components/landing/ClauseText';
 import { PaperGrain } from './atmosphere/PaperGrain';
 import { PlateLabel } from './ui/PlateLabel';
 import { DecisionVoyageFilm } from '@/components/landing/films/DecisionVoyageFilm';
@@ -93,9 +94,27 @@ export function Act2DecisionVoyage() {
         <div className="bp-fade-up mt-10 md:mt-12 mx-auto max-w-2xl" style={{ animationDelay: '380ms' }}>
           {/* Lead-in — ties the film's voyage to the artifact it leaves behind, so
               the receipt reads as "what you walk away with," not an orphaned card. */}
-          <p className={`text-center ${locale === 'ko' ? 'break-keep' : ''}`} style={{ color: 'var(--bp-ink-soft)', fontSize: 'clamp(14.5px, 1vw, 14.5px)', lineHeight: 1.6, marginBottom: 14 }}>
-            {L('검토가 끝나면, 판단과 확인 계획이 한 장으로 남아요.', 'When the review ends, your decision and follow-up plan remain on one page.')}
-          </p>
+          {/* This sentence tells you what the card below IS, so it has to land
+              first. It was set at 14.5px ink-soft — SMALLER and quieter than the
+              body text inside the card it introduces — so the reader met the
+              artifact before its label. Display face, ink, heading weight, and
+              room to breathe; still under the card's own title, which is the
+              specimen's. */}
+          <ClauseText
+            as="p"
+            wrap="balance"
+            className={`text-center ${locale === 'ko' ? 'break-keep' : ''}`}
+            text={L('검토가 끝나면, 판단과 확인 계획이 한 장으로 남아요.', 'When the review ends, your decision and follow-up plan remain on one page.')}
+            style={{
+              color: 'var(--bp-ink)',
+              fontFamily: 'var(--font-display)',
+              fontSize: 'clamp(17px, 1.9vw, 22px)',
+              fontWeight: 700,
+              lineHeight: 1.35,
+              letterSpacing: '-0.008em',
+              marginBottom: 20,
+            }}
+          />
           {/* The record, redesigned 2026-07-28 (founder: "디자인이 예전하고 동일한데
               구려보여 아주. 가독성도 떨어지고").
 
@@ -170,8 +189,8 @@ export function Act2DecisionVoyage() {
               }}
             >
               {[
-                [L('그때의 판단', 'The call then'), L('예산을 2배로 늘리지 않는다. 몰려든 사람부터 남게 만든 뒤에 키운다.', 'Don’t double the budget yet. Make the incoming users stay first, then grow.')],
-                [L('확인할 현실', 'Reality to check'), L('한 달 뒤, 새로 온 사용자의 잔존율이 실제로 올랐는가?', 'A month on — did retention of the newly-arrived users actually rise?')],
+                [L('그때의 판단', 'The call then'), L('예산을 2배로 늘리지 않는다.\n몰려든 사람부터 남게 만든 뒤에 키운다.', 'Don’t double the budget yet.\nMake the incoming users stay first, then grow.')],
+                [L('확인할 현실', 'Reality to check'), L('한 달 뒤, 새로 온 사용자의 잔존율이\n실제로 올랐는가?', 'A month on — did retention of the\nnewly-arrived users actually rise?')],
               ].map(([label, body], i) => (
                 <div
                   key={label}
@@ -187,9 +206,12 @@ export function Act2DecisionVoyage() {
                   >
                     {label}
                   </div>
-                  <p className={locale === 'ko' ? 'break-keep' : ''} style={{ marginTop: 9, color: 'var(--bp-ink)', fontSize: 'clamp(15px, 1.5vw, 16.5px)', lineHeight: 1.6 }}>
-                    {body}
-                  </p>
+                  <ClauseText
+                    as="p"
+                    className={locale === 'ko' ? 'break-keep' : ''}
+                    text={body}
+                    style={{ marginTop: 9, color: 'var(--bp-ink)', fontSize: 'clamp(15px, 1.5vw, 16.5px)', lineHeight: 1.6 }}
+                  />
                 </div>
               ))}
             </div>
@@ -218,9 +240,12 @@ export function Act2DecisionVoyage() {
               >
                 {L('AI 판정 —— 없음', 'AI verdict —— none')}
               </div>
-              <p className={locale === 'ko' ? 'break-keep' : ''} style={{ margin: '9px auto 0', maxWidth: 470, color: 'var(--bp-ink-soft)', fontSize: 'clamp(13.5px, 1.25vw, 14.5px)', lineHeight: 1.6 }}>
-                {L('AI는 대신 결론을 내리지 않습니다. 사용자가 기록한 판단과 이후의 실제 결과만 이 한 장에 남습니다.', 'AI does not decide for you. Only your recorded decision and the later outcome remain on this page.')}
-              </p>
+              <ClauseText
+                as="p"
+                className={locale === 'ko' ? 'break-keep' : ''}
+                text={L('AI는 대신 결론을 내리지 않습니다.\n기록한 판단과 이후의 실제 결과만 이 한 장에 남습니다.', 'AI does not decide for you.\nOnly your recorded decision and the later outcome remain on this page.')}
+                style={{ margin: '9px auto 0', maxWidth: 470, color: 'var(--bp-ink-soft)', fontSize: 'clamp(13.5px, 1.25vw, 14.5px)', lineHeight: 1.6 }}
+              />
             </div>
           </div>
         </div>
