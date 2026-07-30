@@ -59,8 +59,13 @@ const WEB_TO_MCP_OUTCOME = new Map<string, McpOutcome>([
   ['unclear', 'still_pending'], ['still_pending', 'still_pending'],
 ]);
 
-/** argus_settle caps what_happened at 600 chars; the import must not be a way around it. */
-const MAX_IMPORTED_WHAT_HAPPENED = 600;
+/** The surface promises the user's web-recorded words VERBATIM, so this cap is a
+ *  bound against a hostile/oversized payload, not a normal-path edit: web
+ *  settlements legitimately run longer than argus_settle's 600-char input cap,
+ *  and silently cutting them contradicted the "verbatim, never inferred" claim.
+ *  When the bound does cut, the cut is marked visibly — never silent. */
+const MAX_IMPORTED_WHAT_HAPPENED = 4000;
+const TRUNCATION_MARK = '…(truncated)';
 /** The exact shape appendLedger writes as `ts` — anything else would corrupt the
  *  ledger's lexicographic = chronological ordering invariant. */
 const ISO_TS = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{3})?Z$/;
@@ -85,7 +90,10 @@ function safeRemoteSettlement(sp: unknown): { outcome: McpOutcome; what_happened
   const outcome = typeof r['outcome'] === 'string' ? WEB_TO_MCP_OUTCOME.get(r['outcome']) : undefined;
   if (!outcome) return null;
   const raw = typeof r['what_happened'] === 'string' ? r['what_happened'] : '';
-  const what_happened = raw.replace(CONTROL_CHARS, '').trim().slice(0, MAX_IMPORTED_WHAT_HAPPENED);
+  const cleaned = raw.replace(CONTROL_CHARS, '').trim();
+  const what_happened = cleaned.length > MAX_IMPORTED_WHAT_HAPPENED
+    ? cleaned.slice(0, MAX_IMPORTED_WHAT_HAPPENED) + TRUNCATION_MARK
+    : cleaned;
   if (!what_happened) return null; // the account returned no words — leave it flagged, never invent
   const at = r['settled_at'];
   const settled_at = typeof at === 'string' && ISO_TS.test(at) ? at : undefined;

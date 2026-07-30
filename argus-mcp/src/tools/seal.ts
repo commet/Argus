@@ -45,7 +45,7 @@ const inputSchema = z.strictObject({
   confirm_draft: z.boolean().optional().describe('Optional extra confirmation: force the one-tap confirm even for a "user" predicate. ai_surfaced predicates get it automatically on supporting hosts. The picker maps to the host\'s native Accept/Decline and carries NO input fields, so one keypress records it: Accept keeps the sentence as theirs, Decline records nothing. If they want different words or a different date, they say so in chat and you call again with the new value. Without picker support, saving proceeds — confirm in your own message first.'),
   basis: z.enum(['judgment', 'luck', 'mixed', 'unsure']).optional(),
   real_question: z.string().max(400).describe('The real question behind the answer (receipt).').optional(),
-  unverified_assumption: z.string().max(400).describe('The core assumption not yet verified (receipt).').optional(),
+  unverified_assumption: z.string().max(400).describe('The core assumption not yet verified (receipt). Recorded as an AI-tagged draft (ai_surfaced, with the original wording preserved) unless the user later amends it in their own words.').optional(),
   human_only: z.string().max(400).describe('What only a human can judge here (receipt).').optional(),
   human_judgment: z.string().max(400).describe("The user's one-line call. MUST be the user's words — never an Argus-drafted line relabeled.").optional(),
   today_override: zDate.optional(),
@@ -154,7 +154,7 @@ export const seal: ToolModule = {
               en: `Say "save it" and I'll keep this as is: "${predicate}" (check-by ${checkBy}).`,
             },
             next_actions: ['argus_predict', 'stop'],
-            data: { sealed: false, predicate, check_by: checkBy, retry_hint: 'call argus_predict again with predicate_owner:"user" and no confirm_draft once the user says yes in chat' },
+            data: { sealed: false, predicate, check_by: checkBy, retry_hint: 'you may call argus_predict again with predicate_owner:"user" ONLY if the user explicitly approved this exact sentence in chat — never otherwise (ownership transfers only on that explicit affirmation)' },
           });
         }
         const picked = asked.kind === 'accepted' ? asked.content : null;
@@ -184,7 +184,7 @@ export const seal: ToolModule = {
             next_actions: ['stop'],
             data: {
               sealed: false, choice: 'declined', predicate, check_by: checkBy,
-              retry_hint: 'the user\'s draft is preserved here; if they ask for it again, call argus_predict with predicate_owner:"user" and no confirm_draft',
+              retry_hint: 'the draft is preserved here; you may call argus_predict again with predicate_owner:"user" ONLY if the user explicitly approved this exact sentence in chat — never otherwise',
             },
           });
         }
@@ -253,7 +253,9 @@ export const seal: ToolModule = {
 
       // Promotion (plan v5 §5.4): the named unverified_assumption IS the first
       // premise — the premise set is canonical, the seal field is its input
-      // alias. source='user' (receipt judgment fields are user-named),
+      // alias. source='ai_surfaced' with ai_original preserved (the field is
+      // model-fillable and the schema never requires the user's words — tagging
+      // it user_stated would forge authorship; an amend transfers it honestly),
       // external=false until the user marks it (honest default: we cannot infer
       // reality-checkability), load_bearing=true (it is the receipt headline).
       // Skipped field ⇒ no promotion. Dedup + cap-safe: never fails the seal.
@@ -271,7 +273,7 @@ export const seal: ToolModule = {
             id, event: 'premise_add', premise_id: pid, ordinal,
             kind: 'premise', text: ua.trim(),
             external: false, load_bearing: lbCount < MAX_LOAD_BEARING,
-            source: 'user_stated',
+            source: 'ai_surfaced', ai_original: ua.trim(),
           });
           promotedRef = `P${ordinal}`;
         }

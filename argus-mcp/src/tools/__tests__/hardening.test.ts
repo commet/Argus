@@ -86,21 +86,36 @@ describe('argus_sync · the account is a network trust boundary', () => {
     expect(D(c)['due_count']).toBe(1); // NOT terminally settled
   });
 
-  it('remote text is length-capped and control-stripped, and a forged ts is ignored', async () => {
+  it('remote text is bound-capped WITH a visible truncation mark, control-stripped, and a forged ts is ignored', async () => {
     const dir = tmpArgusDir();
     await sealedLocally(dir);
-    const nasty = 'a'.repeat(900) + String.fromCharCode(7);
+    // The surface promises the user's words verbatim: an ordinary long web
+    // settlement (here 900 chars) must NOT be cut. Only an oversized payload
+    // (>4000) hits the bound, and the cut is marked visibly, never silent.
+    const long = 'a'.repeat(900) + String.fromCharCode(7);
+    const oversized = 'b'.repeat(4100);
     mockAccount([accountReceipt({
-      settled_predicates: [{ predicate: 'churn', outcome: 'happened', what_happened: nasty, settled_at: 'not-a-timestamp' }],
+      settled_predicates: [{ predicate: 'churn', outcome: 'happened', what_happened: long, settled_at: 'not-a-timestamp' }],
     })]);
 
     const r = body(await sync.handler({ argus_dir: dir, import_settlements: true }));
     const imported = D(r)['imported'] as Array<Record<string, unknown>>;
     expect(imported).toHaveLength(1);
     const line = fs.readFileSync(ledgerPath(dir), 'utf8').split('\n').filter(Boolean).map((l) => JSON.parse(l)).pop();
-    expect(String(line.decision).length).toBeLessThanOrEqual(600);   // capped like argus_settle
+    expect(String(line.decision)).toBe('a'.repeat(900));             // verbatim — no silent cut at 600
     expect(String(line.decision)).not.toContain(String.fromCharCode(7)); // control char stripped
     expect(String(line.ts)).toMatch(/^\d{4}-\d{2}-\d{2}T/);          // forged ts rejected, ours used
+
+    // oversized payload: bounded at 4000 + the visible '…(truncated)' marker
+    const dir2 = tmpArgusDir();
+    await sealedLocally(dir2);
+    mockAccount([accountReceipt({
+      settled_predicates: [{ predicate: 'churn', outcome: 'happened', what_happened: oversized }],
+    })]);
+    const r2 = body(await sync.handler({ argus_dir: dir2, import_settlements: true }));
+    expect(D(r2)['imported'] as Array<Record<string, unknown>>).toHaveLength(1);
+    const line2 = fs.readFileSync(ledgerPath(dir2), 'utf8').split('\n').filter(Boolean).map((l) => JSON.parse(l)).pop();
+    expect(String(line2.decision)).toBe('b'.repeat(4000) + '…(truncated)'); // cut is visible, never silent
   });
 
   it('two account rows mapping to one local id settle it exactly once (no double-count)', async () => {

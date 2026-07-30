@@ -71,11 +71,17 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/decision-ledger.js" seal "<id>" \
   --origin-utterance "<first user utterance when available; otherwise confirmed sentence>" \
   --review-condition-status not_asked \
   --proposal-ref "<candidate/seed id>" --adopted-as wording \
+  --author user \
   --confirmed --authorization-ref "plugin:predict:<id>:confirmation"
 ```
 
 For a candidate whose fields came directly from the user, use the same command;
 `--proposal-ref` is omitted when there was no AI proposal.
+
+`--author user` is correct here ONLY because the native confirmation just
+happened — the user affirmed this exact sentence in the `AskUserQuestion` above.
+On any path without that explicit confirmation, omit `--author` entirely
+(absence is the honest unknown/AI-path signal; never default to `user`).
 
 Relay only:
 
