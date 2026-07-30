@@ -39,3 +39,23 @@ function readAnonLimit(): number {
 }
 
 export const ANON_LIMIT = readAnonLimit();
+
+/**
+ * Daily cap on ALL platform-funded model calls combined (auth + anon).
+ *
+ * The per-IP and per-user limits bound one abuser; they cannot bound many
+ * IPs at once (rotation, a launch-day bot swarm). This is the cost circuit
+ * breaker: when the sum hits this number the service degrades honestly
+ * ("at capacity today") instead of the bill absorbing the difference.
+ * 4000 calls ≈ 250-400 full decisions/day — far above an organic launch day,
+ * an order of magnitude below a runaway bill. `GLOBAL_DAILY_LIMIT` env
+ * overrides in either direction (raise for a good problem, drop during abuse).
+ */
+const GLOBAL_LIMIT_DEFAULT = 4000;
+
+function readGlobalLimit(): number {
+  const raw = Number(process.env.GLOBAL_DAILY_LIMIT);
+  return Number.isFinite(raw) && raw > 0 ? Math.floor(raw) : GLOBAL_LIMIT_DEFAULT;
+}
+
+export const GLOBAL_LIMIT = readGlobalLimit();

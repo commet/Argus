@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import Anthropic from '@anthropic-ai/sdk';
 import { validateMessages, validateSystemPrompt, validateRequest, normalizeMaxTokens, MAX_LLM_BODY_BYTES } from '@/lib/llm-validation';
-import { DAILY_LIMIT, ANON_LIMIT } from '@/lib/quota-config';
+import { DAILY_LIMIT, ANON_LIMIT, GLOBAL_LIMIT } from '@/lib/quota-config';
 import { logServerEvent } from '@/lib/server-events';
 import { verifyTurnstile, TURNSTILE_HEADER } from '@/lib/turnstile';
 import { classifyProviderFailure } from '@/lib/llm-provider-errors';
@@ -91,6 +91,33 @@ async function checkAnonRateLimit(ip: string): Promise<boolean> {
   return allowed === true;
 }
 
+/**
+ * Global cost circuit breaker: one shared daily counter across ALL requests
+ * (auth + anon). Reuses the anon rate-limit RPC with a fixed sentinel key —
+ * no real IP can collide with it (real keys are SHA-256 prefixes of `anon:ip`).
+ * Fail-closed like the other limits: if the RPC errors, the model is not called.
+ */
+const GLOBAL_SENTINEL_HASH = '00000000000000000000000000000001';
+
+async function checkGlobalRateLimit(): Promise<boolean> {
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+  );
+
+  const { data: allowed, error } = await supabase.rpc('check_anon_rate_limit', {
+    p_ip_hash: GLOBAL_SENTINEL_HASH,
+    p_limit: GLOBAL_LIMIT,
+  });
+
+  if (error) {
+    console.error('[rate-limit] global RPC error:', error.message);
+    return false;
+  }
+
+  return allowed === true;
+}
+
 export async function POST(req: NextRequest) {
   // 0. Request validation
   const reqError = validateRequest(req, MAX_LLM_BODY_BYTES);
@@ -169,6 +196,20 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         { error: `Free trial quota exhausted. Log in to keep using up to ${DAILY_LIMIT} free calls per day!`, needsLogin: true },
         { status: 429 }
+      );
+    }
+  }
+
+  // 3.5 Global cost circuit breaker — after the individual checks so the shared
+  // counter reflects calls that would actually reach the model. Per-IP limits
+  // cannot bound many IPs at once; this bounds the day's total bill.
+  if (!devSkipRateLimit) {
+    const globalAllowed = await checkGlobalRateLimit();
+    if (!globalAllowed) {
+      logServerEvent('server_rate_limited', { kind: 'global_daily', limit: GLOBAL_LIMIT }, { userId: auth?.userId ?? null, path: '/api/llm' });
+      return NextResponse.json(
+        { error: 'The free service hit today\'s overall capacity. Please try again tomorrow, or enter your own API key in Settings to continue now.' },
+        { status: 503 }
       );
     }
   }
