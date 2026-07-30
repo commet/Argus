@@ -1,13 +1,21 @@
 import { create } from 'zustand';
 import type { Settings } from '@/stores/types';
 import { getStorage, setStorage, STORAGE_KEYS } from '@/lib/storage';
-import { DEFAULT_OPENAI_MODEL, DEFAULT_GEMINI_MODEL } from '@/lib/llm-models';
+import {
+  ANTHROPIC_MODELS,
+  DEFAULT_ANTHROPIC_MODEL,
+  DEFAULT_GEMINI_MODEL,
+  DEFAULT_OPENAI_MODEL,
+  GEMINI_MODELS,
+  OPENAI_MODELS,
+} from '@/lib/llm-models';
 
 const DEFAULT_SETTINGS: Settings = {
   anthropic_api_key: '',
   openai_api_key: '',
   gemini_api_key: '',
   llm_provider: 'anthropic',
+  anthropic_model: DEFAULT_ANTHROPIC_MODEL,
   openai_model: DEFAULT_OPENAI_MODEL,
   gemini_model: DEFAULT_GEMINI_MODEL,
   llm_mode: 'proxy',
@@ -54,6 +62,18 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     // those load as undefined and leak into math/UI (NaN volume slider).
     const stored = getStorage<Partial<Settings>>(STORAGE_KEYS.SETTINGS, {});
     const settings: Settings = { ...DEFAULT_SETTINGS, ...stored };
+    // Retire model IDs that are no longer offered. Without this migration a
+    // returning user's native select renders blank even though requests fall
+    // back server-side, hiding which model is actually used.
+    if (!ANTHROPIC_MODELS.some((model) => model.id === settings.anthropic_model)) {
+      settings.anthropic_model = DEFAULT_ANTHROPIC_MODEL;
+    }
+    if (!OPENAI_MODELS.some((model) => model.id === settings.openai_model)) {
+      settings.openai_model = DEFAULT_OPENAI_MODEL;
+    }
+    if (!GEMINI_MODELS.some((model) => model.id === settings.gemini_model)) {
+      settings.gemini_model = DEFAULT_GEMINI_MODEL;
+    }
     // auto-detect mode based on saved api key
     // Only old records without an llm_mode field may infer direct from a key.
     // An explicit proxy choice must survive reload even when a dormant key is

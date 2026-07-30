@@ -1,5 +1,6 @@
 import { getStorage, STORAGE_KEYS } from '@/lib/storage';
 import type { Settings } from '@/stores/types';
+import { DEFAULT_ANTHROPIC_MODEL, DEFAULT_GEMINI_MODEL, DEFAULT_OPENAI_MODEL } from '@/lib/llm-models';
 import { DAILY_LIMIT } from '@/lib/quota-config';
 import { track } from '@/lib/analytics';
 import { PROVIDER_CREDITS_REQUIRED } from '@/lib/llm-provider-errors';
@@ -513,8 +514,9 @@ function getSettings(): Settings {
     openai_api_key: '',
     gemini_api_key: '',
     llm_provider: 'anthropic',
-    openai_model: 'gpt-4o',
-    gemini_model: 'gemini-2.5-flash',
+    anthropic_model: DEFAULT_ANTHROPIC_MODEL,
+    openai_model: DEFAULT_OPENAI_MODEL,
+    gemini_model: DEFAULT_GEMINI_MODEL,
     llm_mode: 'proxy',
     local_endpoint: '',
     language: 'ko',
@@ -562,7 +564,7 @@ export async function callLLM(
     if (!settings.openai_api_key) {
       throw new LLMError('OpenAI API 키가 설정되지 않았습니다. 설정에서 키를 입력해주세요.', { category: 'auth' });
     }
-    return callOpenAI(settings.openai_api_key, settings.openai_model || 'gpt-4o', messages, options);
+    return callOpenAI(settings.openai_api_key, settings.openai_model || DEFAULT_OPENAI_MODEL, messages, options);
   }
 
   // Gemini provider — always direct (user's own key)
@@ -570,14 +572,14 @@ export async function callLLM(
     if (!settings.gemini_api_key) {
       throw new LLMError('Google AI API 키가 설정되지 않았습니다. 설정에서 키를 입력해주세요.', { category: 'auth' });
     }
-    return callGemini(settings.gemini_api_key, settings.gemini_model || 'gemini-2.5-flash', messages, options);
+    return callGemini(settings.gemini_api_key, settings.gemini_model || DEFAULT_GEMINI_MODEL, messages, options);
   }
 
   if (settings.llm_mode === 'direct' && settings.anthropic_api_key) {
-    return callServerWithUserKey(settings.anthropic_api_key, messages, options);
+    return callServerWithUserKey(settings.anthropic_api_key, settings.anthropic_model || DEFAULT_ANTHROPIC_MODEL, messages, options);
   }
 
-  return callProxy(messages, options);
+  return callProxy(settings.anthropic_model || DEFAULT_ANTHROPIC_MODEL, messages, options);
 }
 
 /**
@@ -606,17 +608,13 @@ export async function verifyCurrentLlmConnection(): Promise<void> {
 // ━━━ Provider tier mapping (업무 성격에 따라 모델 자동 선택) ━━━
 
 function resolveOpenAIModel(baseModel: string, tier?: ModelTier): string {
-  if (!tier || tier === 'default') return baseModel;
-  if (tier === 'fast') return 'gpt-4o-mini';
-  // strong: 기본 모델이 mini면 4o로 올림, 아니면 유지
-  return baseModel.includes('mini') || baseModel.includes('nano') ? 'gpt-4o' : baseModel;
+  void tier;
+  return baseModel;
 }
 
 function resolveGeminiModel(baseModel: string, tier?: ModelTier): string {
-  if (!tier || tier === 'default') return baseModel;
-  if (tier === 'fast') return 'gemini-2.0-flash';
-  // strong: pro로 올림
-  return 'gemini-2.5-pro';
+  void tier;
+  return baseModel;
 }
 
 async function callOpenAI(
@@ -669,6 +667,7 @@ async function callGemini(
 
 async function callServerWithUserKey(
   apiKey: string,
+  anthropicModel: string,
   messages: LLMMessage[],
   options: LLMOptions
 ): Promise<string> {
@@ -681,6 +680,7 @@ async function callServerWithUserKey(
       system: options.system,
       maxTokens: options.maxTokens,
       model: options.model,
+      anthropicModel,
     }),
     signal: options.signal,
   });
@@ -690,6 +690,7 @@ async function callServerWithUserKey(
 }
 
 async function callProxy(
+  anthropicModel: string,
   messages: LLMMessage[],
   options: LLMOptions
 ): Promise<string> {
@@ -698,7 +699,7 @@ async function callProxy(
   const res = await fetchWithRetry('/api/llm', {
     method: 'POST',
     headers,
-    body: JSON.stringify({ messages, system: options.system, maxTokens: options.maxTokens, model: options.model }),
+    body: JSON.stringify({ messages, system: options.system, maxTokens: options.maxTokens, model: options.model, anthropicModel }),
     signal: options.signal,
   });
 
@@ -859,12 +860,15 @@ export async function callLLMStream(
   };
   if (isGemini) {
     bodyObj.apiKey = settings.gemini_api_key;
-    bodyObj.model = resolveGeminiModel(settings.gemini_model || 'gemini-2.5-flash', options.model);
+    bodyObj.model = resolveGeminiModel(settings.gemini_model || DEFAULT_GEMINI_MODEL, options.model);
   } else if (isOpenAI) {
     bodyObj.apiKey = settings.openai_api_key;
-    bodyObj.model = resolveOpenAIModel(settings.openai_model || 'gpt-4o', options.model);
+    bodyObj.model = resolveOpenAIModel(settings.openai_model || DEFAULT_OPENAI_MODEL, options.model);
   } else if (isDirect) {
     bodyObj.apiKey = settings.anthropic_api_key;
+    bodyObj.anthropicModel = settings.anthropic_model || DEFAULT_ANTHROPIC_MODEL;
+  } else {
+    bodyObj.anthropicModel = settings.anthropic_model || DEFAULT_ANTHROPIC_MODEL;
   }
 
   const provider = isGemini ? 'gemini' : isOpenAI ? 'openai' : 'anthropic';

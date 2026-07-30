@@ -1759,6 +1759,8 @@ button, a, input, textarea {
   .boss-page { padding: 0 16px; }
   .bs { padding: 28px 0 48px; gap: 24px; }
   .bs-title { font-size: 34px; }
+  .bs-cta-row { flex-direction: column; align-items: stretch; }
+  .bs-cta { width: 100%; }
   .bs-profile-bar { flex-direction: column; gap: 12px; }
   .bs-profile-divider { width: 100%; height: 1px; margin: 0; }
   /* 4 MBTI axes side-by-side don't fit at 375px → wrap to 2x2 */

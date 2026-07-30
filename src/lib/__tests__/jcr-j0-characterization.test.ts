@@ -110,7 +110,13 @@ describe('J6 known debt — capture has two brains and no production consumer', 
       'argus-mcp/src/v2/capture-runtime.ts',
       'argus-mcp/src/v2/harvest.ts',
     ]);
-    expect(sessionStart).toContain('다음 Argus check-in이 제한된 수만 처리합니다.');
+    // The claim, not the sentence. This pinned the exact wording, so the copy
+    // sweep of 2026-07-30 ("다음 Argus check-in이 제한된 수만 처리합니다."
+    // → "다음 확인 때 순서대로 처리합니다.") turned a deliberate copy change into
+    // a red CI that then SKIPPED tsc, lint and the whole test step behind it.
+    // What must hold is that the hook tells the user the queue is worked off at
+    // the next check — delete that promise and this still fails.
+    expect(sessionStart).toMatch(/다음 (?:확인|Argus check-in)[^`]*처리/);
   });
 
   it('routes foreground scan and background queue through the canonical capture runtime', () => {

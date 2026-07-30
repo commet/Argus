@@ -16,6 +16,7 @@ import { getCurrentUserId, supabase } from './supabase';
 import { getSyncFailureCount, reportSyncFailure } from './sync-health';
 import { getStorage, STORAGE_KEYS } from './storage';
 import { loadAndMerge } from './db';
+import { announceForeignData, getForeignIds, isForeignOwnerError, markForeignRows } from './account-scope';
 import type { ProgressiveSession } from '@/stores/types';
 
 type SyncTable = Parameters<typeof loadAndMerge>[0];
@@ -92,23 +93,51 @@ export async function migrateLocalToAccount(): Promise<MigrateResult> {
         .from('progressive_sessions').select('id').eq('user_id', userId);
       if (remoteError) throw remoteError;
       const remoteIds = new Set((remote ?? []).map((r: { id: string }) => r.id));
-      const toPush = real.filter((s) => !remoteIds.has(s.id));
+      // This is the one push that does NOT go through db.ts (the {data} wrapper
+      // shape), so it needs the same two exclusions or it re-fails on every
+      // sign-in and reddens a badge the user can do nothing about.
+      const quarantined = getForeignIds('progressive_sessions');
+      const toPush = real.filter((s) => !remoteIds.has(s.id) && !quarantined.has(s.id));
       if (toPush.length > 0) {
-        const { error: pushError } = await supabase.from('progressive_sessions').upsert(
-          toPush.map((s) => ({
-            id: s.id,
-            user_id: userId,
-            project_id: s.project_id,
-            data: s,
-            phase: s.phase,
-            has_pending_humans: (s.workers || []).some(
-              (w) => w.agent_type === 'human' && (w.status === 'sent' || w.status === 'waiting_response'),
-            ),
-            updated_at: s.updated_at || new Date().toISOString(),
-          })),
-          { onConflict: 'id' },
-        );
-        if (pushError) throw pushError;
+        const row = (s: ProgressiveSession) => ({
+          id: s.id,
+          user_id: userId,
+          project_id: s.project_id,
+          data: s,
+          phase: s.phase,
+          has_pending_humans: (s.workers || []).some(
+            (w) => w.agent_type === 'human' && (w.status === 'sent' || w.status === 'waiting_response'),
+          ),
+          updated_at: s.updated_at || new Date().toISOString(),
+        });
+        const { error: pushError } = await supabase
+          .from('progressive_sessions')
+          .upsert(toPush.map(row), { onConflict: 'id' });
+        if (pushError) {
+          const foreign: string[] = [];
+          if (toPush.length === 1) {
+            // Nothing to disentangle in a one-row batch — re-sending it would
+            // only be a second identical request.
+            if (!isForeignOwnerError(pushError)) throw pushError;
+            foreign.push(toPush[0].id);
+          } else {
+            // A batch is one statement, so one foreign row rolls back the rest.
+            // Attribute per row: this account's sessions still land, and the ones
+            // the server proves are someone else's leave the pending set for good.
+            for (const s of toPush) {
+              const { error: rowError } = await supabase
+                .from('progressive_sessions')
+                .upsert(row(s), { onConflict: 'id' });
+              if (!rowError) continue;
+              if (!isForeignOwnerError(rowError)) throw rowError;
+              foreign.push(s.id);
+            }
+          }
+          if (foreign.length > 0) {
+            markForeignRows('progressive_sessions', foreign);
+            announceForeignData('rejected');
+          }
+        }
       }
     }
   } catch (error) {

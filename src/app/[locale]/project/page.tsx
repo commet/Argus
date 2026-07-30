@@ -20,7 +20,7 @@ import { generateProjectBrief } from '@/lib/project-brief';
 import { OutputSelector } from '@/components/ui/OutputSelector';
 import { ExecutionReadiness } from '@/components/ui/ExecutionReadiness';
 import { LocaleLink } from '@/components/ui/LocaleLink';
-import { Layers, Map as MapIcon, Users, Check, ArrowLeft, ArrowRight, Download, Sparkles, Plus, Search, GitBranch, Scale, AlertTriangle, MessageSquare, LoaderCircle, CloudOff } from 'lucide-react';
+import { Layers, Map as MapIcon, Users, Check, ArrowLeft, ArrowRight, ChevronDown, ChevronUp, Download, Sparkles, Plus, Search, GitBranch, Scale, AlertTriangle, MessageSquare, LoaderCircle, CloudOff } from 'lucide-react';
 import { useLocale } from '@/hooks/useLocale';
 import { getVoyageState, VOYAGE_STATE_META, type VoyageLeg } from '@/lib/voyage-state';
 import { DecisionContractCard } from '@/components/projects/DecisionContractCard';
@@ -50,6 +50,11 @@ import { parseTraceLocator, TRACE_NAVIGATE_EVENT } from '@/lib/evidence-trace';
 // Hick's law (05 S7): filter chips + search only earn their place once the
 // list outgrows a single screen.
 const FILTER_TOOLS_MIN = 7;
+// The chart and attention list already provide the fleet-wide overview. Repeating
+// every rich card below them made a 46-decision phone page more than 14,000px
+// tall. Keep one representative row visible; search/filter still work across the
+// full collection, and expanding the archive is an explicit choice.
+const PROJECT_ROSTER_PREVIEW = 3;
 
 const STEP_LABELS_KO = ['재정의', '설계', '검증', '종합'] as const;
 const STEP_LABELS_EN = ['Reframe', 'Recast', 'Rehearse', 'Synth'] as const;
@@ -111,6 +116,7 @@ export default function ProjectPage() {
   const [storesLoaded, setStoresLoaded] = useState(false);
   const [query, setQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+  const [rosterExpanded, setRosterExpanded] = useState(false);
   const [focusedDecisionId, setFocusedDecisionId] = useState<string | null>(null);
   const [focusedAttentionId, setFocusedAttentionId] = useState<string | null>(null);
   const [focusOrigin, setFocusOrigin] = useState<'sea' | 'attention' | null>(null);
@@ -451,6 +457,10 @@ export default function ProjectPage() {
     if (q) list = list.filter((p) => p.name.toLowerCase().includes(q));
     return list;
   }, [sortedProjects, query, statusFilter, projectMetricsMap]);
+  const visibleProjects = rosterExpanded
+    ? filteredProjects
+    : filteredProjects.slice(0, PROJECT_ROSTER_PREVIEW);
+  const hiddenProjectCount = Math.max(0, filteredProjects.length - visibleProjects.length);
 
   const openProject = useCallback((projectId: string) => {
     lastOpenedProjectIdRef.current = projectId;
@@ -623,7 +633,7 @@ export default function ProjectPage() {
           <div>
             <h1 ref={listHeadingRef} tabIndex={-1} className="text-[22px] font-bold text-[var(--text-primary)] tracking-tight outline-none">{L('프로젝트', 'Projects')}</h1>
             <p className="text-[13px] text-[var(--text-secondary)] mt-1">
-              {L('진행 중인 결정과 결과를 확인할 기록을 한눈에 봅니다.', 'See decisions in progress and records due for outcome review at a glance.')}
+              {L('진행 중인 결정과 결과 확인 기록을 한눈에 봅니다.', 'See decisions in progress and records due for outcome review at a glance.')}
             </p>
           </div>
           {projects.length > 0 && (
@@ -684,7 +694,7 @@ export default function ProjectPage() {
                   {L('워크스페이스에서 시작하기', 'Start in workspace')} <ArrowRight size={14} />
                 </LocaleLink>
                 <LocaleLink href="/workspace?demo=planning" className="text-[12px] text-[var(--text-tertiary)] hover:text-[var(--accent)] transition-colors">
-                  {L('또는 데모 먼저 보기 →', 'Or see the demo first →')}
+                  {L('데모 먼저 보기 →', 'See the demo first →')}
                 </LocaleLink>
               </div>
             </Card>
@@ -796,7 +806,10 @@ export default function ProjectPage() {
                         type="button"
                         key={f.key}
                         aria-pressed={active}
-                        onClick={() => setStatusFilter(f.key)}
+                        onClick={() => {
+                          setStatusFilter(f.key);
+                          setRosterExpanded(false);
+                        }}
                         className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[13px] font-medium transition-all cursor-pointer ${
                           active
                             ? 'bg-[var(--text-primary)] text-[var(--bg)]'
@@ -817,7 +830,10 @@ export default function ProjectPage() {
                         type="search"
                         aria-label={L('프로젝트 이름 검색', 'Search projects by name')}
                         value={query}
-                        onChange={(e) => setQuery(e.target.value)}
+                        onChange={(e) => {
+                          setQuery(e.target.value);
+                          setRosterExpanded(false);
+                        }}
                         placeholder={L('프로젝트 검색', 'Search projects')}
                         className="pl-7 pr-3 py-1.5 text-[12px] rounded-lg bg-[var(--bg)] border border-[var(--border)] focus:border-[var(--accent)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)]/20 w-full sm:w-52 placeholder:text-[var(--text-tertiary)] transition-all"
                       />
@@ -830,7 +846,7 @@ export default function ProjectPage() {
                     {(query || statusFilter !== 'all') && (
                       <button
                         type="button"
-                        onClick={() => { setQuery(''); setStatusFilter('all'); }}
+                        onClick={() => { setQuery(''); setStatusFilter('all'); setRosterExpanded(false); }}
                         className="font-semibold text-[var(--accent)] hover:underline cursor-pointer"
                       >
                         {L('검색·필터 초기화', 'Clear search and filters')}
@@ -846,15 +862,16 @@ export default function ProjectPage() {
                   <p className="text-[13px] text-[var(--text-secondary)]">{L('조건에 맞는 결정이 없어요.', 'No decisions match these filters.')}</p>
                   <button
                     type="button"
-                    onClick={() => { setQuery(''); setStatusFilter('all'); }}
+                    onClick={() => { setQuery(''); setStatusFilter('all'); setRosterExpanded(false); }}
                     className="inline-flex items-center px-3 py-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-[12px] font-semibold text-[var(--accent)] hover:border-[var(--accent)]/50 transition-colors cursor-pointer"
                   >
                     {L('전체 프로젝트 보기', 'Show all projects')}
                   </button>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {filteredProjects.map((project, projectIndex) => {
+                <>
+                <div id="project-roster-grid" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {visibleProjects.map((project, projectIndex) => {
                     const m = projectMetricsMap.get(project.id);
                     if (!m) return null;
                     const labels = locale === 'ko' ? STEP_LABELS_KO : STEP_LABELS_EN;
@@ -1068,6 +1085,33 @@ export default function ProjectPage() {
                     );
                   })}
                 </div>
+                {filteredProjects.length > PROJECT_ROSTER_PREVIEW && (
+                  <button
+                    type="button"
+                    aria-controls="project-roster-grid"
+                    aria-expanded={rosterExpanded}
+                    onClick={() => {
+                      if (rosterExpanded) {
+                        setRosterExpanded(false);
+                        window.requestAnimationFrame(() => {
+                          document.getElementById('fleet-roster-heading')?.scrollIntoView({
+                            behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+                            block: 'start',
+                          });
+                        });
+                      } else {
+                        setRosterExpanded(true);
+                      }
+                    }}
+                    className="flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 text-[13px] font-semibold text-[var(--text-primary)] transition-colors hover:border-[var(--accent)]/45 hover:text-[var(--accent)]"
+                  >
+                    {rosterExpanded
+                      ? L('결정 목록 접기', 'Collapse decision list')
+                      : L(`나머지 ${hiddenProjectCount}개 결정 보기`, `Show ${hiddenProjectCount} more decision${hiddenProjectCount === 1 ? '' : 's'}`)}
+                    {rosterExpanded ? <ChevronUp size={15} aria-hidden /> : <ChevronDown size={15} aria-hidden />}
+                  </button>
+                )}
+                </>
               )}
               </section>
 

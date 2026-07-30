@@ -1129,6 +1129,7 @@ export interface Settings {
   openai_api_key: string;
   gemini_api_key: string;
   llm_provider: LLMProvider;
+  anthropic_model: string;
   openai_model: string;
   gemini_model: string;
   llm_mode: LLMMode;

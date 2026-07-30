@@ -41,7 +41,7 @@ export function Act2DecisionVoyage() {
 
       <div className="relative max-w-3xl mx-auto px-6 md:px-10">
         <div className="bp-fade-up">
-          <PlateLabel numeral="I" title={L('항적 · The Trail', 'The Trail')} />
+          <PlateLabel numeral="I" title={L('항적', 'The Trail')} />
         </div>
 
         <h2

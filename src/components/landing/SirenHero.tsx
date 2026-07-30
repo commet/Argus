@@ -80,7 +80,7 @@ export function SirenHero() {
               textTransform: 'uppercase',
             }}
           >
-            {L('판단을 벼리고 · 전제를 남기고 · 현실로 확인한다', 'Sharpen · keep the assumptions · check against reality')}
+            {L('판단을 다듬고 · 전제를 남기고 · 현실로 확인한다', 'Sharpen · keep the assumptions · check against reality')}
           </p>
 
           <h1
@@ -119,7 +119,7 @@ export function SirenHero() {
             <ClauseText
               className="block"
               text={L(
-                '결정 전에 생각을 한 번 벼리고, 그 판단을 움직인 전제를 남기세요.',
+                '결정 전에 생각을 한 번 다듬고, 그 결정을 떠받치는 전제를 남기세요.',
                 'Sharpen the thinking before the call and keep the assumptions that moved it.',
               )}
             />
@@ -166,8 +166,7 @@ export function SirenHero() {
                   if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') begin();
                 }}
                 placeholder={prompts[promptIndex]}
-                className="mt-3 w-full resize-none border-0 border-b bg-transparent px-1 pb-3 text-[16px] leading-7 text-[var(--bp-ink)] outline-none placeholder:italic placeholder:text-[var(--bp-ink-soft)]/75 focus:ring-0"
-                style={{ borderColor: 'var(--bp-ink-faint)', fontFamily: 'var(--font-display)' }}
+                className="mt-3 w-full resize-none border-0 border-b border-[var(--bp-ink-faint)] bg-transparent px-1 pb-3 text-[16px] leading-7 text-[var(--bp-ink)] outline-none [font-family:var(--font-display)] placeholder:italic placeholder:text-[var(--bp-ink-soft)]/75 focus:ring-0"
               />
               <div className="mt-3 flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
                 <span className="text-left text-[13px] leading-5 text-[var(--bp-ink-soft)]">
@@ -194,7 +193,7 @@ export function SirenHero() {
               className="inline-flex min-h-10 items-center gap-2 text-[13.5px] font-medium text-[var(--bp-ink-soft)] underline-offset-4 hover:text-[var(--bp-ink)] hover:underline"
             >
               <FileSearch size={14} aria-hidden />
-              {L('이미 문서가 있다면, 문서 속 판단 지점 찾기', 'Already have a document? Find the judgment calls inside it')}
+              {L('이미 문서가 있다면, 문서에서 판단이 필요한 지점 찾기', 'Already have a document? Find the judgment calls inside it')}
             </LocaleLink>
           </div>
         </div>

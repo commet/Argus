@@ -210,8 +210,8 @@ function LoginContent() {
                     in — raw call counts are an internal metric (H1-C6). The
                     call→decision conversion note lives in quota-config.ts. */}
                 <span>{locale === 'ko'
-                  ? <>하루 <strong>결정 4~5개 분량</strong> 무료 (로그인 없이는 2~3개)</>
-                  : <><strong>About 4–5 decisions a day</strong> free (2–3 without login)</>}</span>
+                  ? <>하루 <strong>결정 6~8개 분량</strong> 무료 (로그인 없이는 4~5개)</>
+                  : <><strong>About 6–8 decisions a day</strong> free (4–5 without login)</>}</span>
               </li>
               <li className="flex items-start gap-2">
                 <FolderOpen size={14} className="text-[var(--accent)] shrink-0 mt-0.5" />
@@ -489,7 +489,11 @@ function LoginContent() {
             href="/workspace"
             className="inline-flex min-h-11 items-center text-[12px] text-[var(--text-tertiary)] hover:text-[var(--accent)] transition-colors"
           >
-            {L('로그인 없이 계속 → 하루 결정 2~3개 분량 무료', 'Continue without login → about 2–3 decisions/day free')}
+<<<<<<< HEAD
+            {L('로그인 없이 계속 → 하루 결정 4~5개 분량 무료', 'Continue without login → about 4–5 decisions/day free')}
+=======
+            {L('로그인 없이 계속 → 일반적인 사용 기준 하루 약 2~3개', 'Continue without login → about 2–3 decisions/day for typical use')}
+>>>>>>> origin/main
           </LocaleLink>
         </div>
       </div>

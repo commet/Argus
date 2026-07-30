@@ -48,7 +48,9 @@ export function VoyageMarker({
 }) {
   const drifted = state === 'adrift' || state === 'wrecked';
   const completed = state === 'arrived' || state === 'verified';
-  const tone = due || state === 'verified' ? MARK.brass : drifted ? MARK.amber : MARK.foam;
+  // Gold has one job on the map: "this needs your attention now". Completed
+  // decisions are already unambiguous from the check/flag glyph.
+  const tone = due ? MARK.brass : drifted ? MARK.amber : MARK.foam;
   const iconSize = Math.max(12, Math.round(size * 0.46));
   const rotation = state === 'wrecked' ? 12 : state === 'adrift' ? -8 : heading;
 

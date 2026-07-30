@@ -64,7 +64,7 @@ export function AnsweredPills({ qaPairs, canRevisit, onRevisit, focusIndex, focu
         ))}
         <motion.span initial={{ opacity: 0, x: -4 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3 }}
           className="text-[12.5px] font-medium text-[var(--accent)]/80 flex items-center gap-1">
-          <ArrowRight size={11} /> {locale === 'ko' ? '팀 분석에 반영' : 'sent to team'}
+          <ArrowRight size={11} /> {locale === 'ko' ? '분석에 반영' : 'used in analysis'}
         </motion.span>
       </div>
 

@@ -181,9 +181,18 @@ confirm which build answered.
 
 One ledger per project, on your disk, from the first call — nothing to set up.
 
-`ARGUS_DIR` is optional when the MCP host starts the server in the project
-directory. The default is `<current-project>/.argus`. A per-call absolute
-`argus_dir` overrides both.
+`ARGUS_DIR` is optional. The default follows one rule — *project evidence
+decides where the ledger lives*:
+
+- the working directory is inside a **git repo**, or already has an `.argus`
+  folder → `<that-project>/.argus` (per-project isolation, unchanged)
+- otherwise (a temp folder, or an app that creates a fresh folder per
+  conversation — the Codex desktop app does this) → the **personal home
+  ledger** (`~/.argus`), so records accumulate across conversations instead
+  of fragmenting into per-conversation orphans
+
+A per-call absolute `argus_dir` overrides everything; `ARGUS_DIR` overrides
+the rule.
 
 Argus never scans other projects. Existing home-level ledgers are not migrated
 or merged silently; point `ARGUS_DIR` at one explicitly if you need to inspect

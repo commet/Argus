@@ -62,11 +62,11 @@ type Case = {
 const CASES: Case[] = [
   {
     origin: 'write', tone: 'risk',
-    originKo: '적어 둔 결정', originEn: 'a decision you typed',
+    originKo: '직접 적은 결정', originEn: 'a decision you typed',
     // `\n` = a deliberate break so the question splits at its own comma instead
     // of wherever the column happens to run out (see the seed renderer).
     seedKo: '받은 이직 제안,\n받아들일까?', seedEn: 'Take the job offer\nI just got?',
-    betLabelKo: '믿고 간 것', betLabelEn: 'what it counted on',
+    betLabelKo: '결정이 기대고 있던 것', betLabelEn: 'what the decision rested on',
     // Was "나를 뽑아준 그 팀장 밑에서 일하려고 가는 거였다." — the seed is still an
     // open question ("받아들일까?") but that line was already past tense, as if the
     // move had happened, and "가는 거였다" reads as spoken recollection. Now it
@@ -82,27 +82,27 @@ const CASES: Case[] = [
   },
   {
     origin: 'write', tone: 'green',
-    originKo: '적어 둔 결정', originEn: 'a decision you typed',
+    originKo: '직접 적은 결정', originEn: 'a decision you typed',
     seedKo: '이 사업, 지금 확장할까\n더 지켜볼까?', seedEn: 'Scale this up now,\nor keep watching?',
-    betLabelKo: '지켜보기로 한 것', betLabelEn: 'what you set to watch',
+    betLabelKo: '확인하기로 한 신호', betLabelEn: 'the signal you chose to watch',
     betKo: '첫 파일럿 고객이 재계약하면, 그때 확장하기로 했다.',
     betEn: 'I’d scale the moment the first pilot customer renews — not before.',
     laterKo: '석 달 뒤', laterEn: 'three months later',
     shiftKo: '그 고객이 방금 재계약했습니다.',
     shiftEn: 'That customer just renewed.',
     tapKo: '기다리던 신호가 왔어요. 이제 확장할까요?',
-    tapEn: 'The signal you were waiting for just landed — time to scale?',
+    tapEn: 'The signal you were waiting for just arrived — time to scale?',
   },
   {
     origin: 'file', tone: 'risk',
-    originKo: '올린 문서', originEn: 'a document you uploaded',
-    seedKo: '신사업 제안서.pdf', seedEn: 'New-business proposal.pdf',
-    betLabelKo: '믿고 간 것', betLabelEn: 'what it counted on',
+    originKo: '검토할 문서', originEn: 'a document you uploaded',
+    seedKo: '신사업 제안서.pdf', seedEn: 'New business proposal.pdf',
+    betLabelKo: '결정이 기대고 있던 것', betLabelEn: 'what the decision rested on',
     betKo: '계획 전체가 “이 시장은 앞으로도 매년 커진다”에 기대고 있었다.',
     betEn: 'The whole plan leaned on “this market keeps growing every year.”',
     laterKo: '두 달 뒤', laterEn: 'two months later',
     shiftKo: '그 시장의 성장률이 처음으로 꺾였다는 지표가 나왔습니다.',
-    shiftEn: 'An index showed that market’s growth turning down for the first time.',
+    shiftEn: 'A new indicator showed that market growth had declined for the first time.',
     tapKo: '계획이 기댄 그 숫자가 흔들려요. 다시 짚어볼까요?',
     tapEn: 'The number your plan rested on just moved — want to re-check it?',
   },
@@ -252,7 +252,7 @@ export function UseCases() {
         <div className="flex items-center gap-3" style={{ marginBottom: 14 }}>
           <span aria-hidden="true" style={{ width: 26, height: 1, background: 'var(--bp-ink-faint)' }} />
           <span className="bp-mono" style={{ color: 'var(--bp-ink-soft)', fontSize: 12.5, letterSpacing: locale === 'ko' ? '0.1em' : '0.22em', textTransform: 'uppercase', fontWeight: 500 }}>
-            {L('USE CASES · 이런 결정에 씁니다', 'USE CASES · decisions people bring')}
+            {L('이런 결정에 씁니다', 'USE CASES · decisions people bring')}
           </span>
         </div>
 
@@ -311,8 +311,8 @@ export function UseCases() {
         {/* the loop in one line + the one quiet product-level honesty */}
         <p className={bk} style={{ color: 'var(--bp-ink-soft)', fontSize: 13.5, lineHeight: 1.6, marginTop: 24, opacity: 0.9, maxWidth: 720 }}>
           {L(
-            '결정의 근거를 기억했다 때가 오면 돌려드려요. 결정은 당신 몫이고, 질문의 치우침도 숨기지 않습니다.',
-            'We return what your decision stood on when the time comes. The call is yours; we don’t hide our questions’ lean.',
+            '결정의 근거를 기억했다가 때가 오면 돌려드려요. 결정은 당신 몫이고, 질문의 치우침도 숨기지 않습니다.',
+            'When the time comes, we bring back what your decision rested on. The decision remains yours, and we show where our questions may be leading.',
           )}
         </p>
       </div>

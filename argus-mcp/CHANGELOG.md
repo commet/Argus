@@ -1,5 +1,35 @@
 # Changelog
 
+## 2.0.19 - App conversations stop fragmenting the ledger
+
+- Measured in the Codex desktop app: it creates a fresh folder per
+  conversation, and the old default (always `<cwd>/.argus`) gave every
+  conversation an orphan ledger — records were never seen again once the
+  chat closed. The default now follows one rule: **project evidence decides
+  where the ledger lives.** Inside a git repo, or where an `.argus` already
+  exists → the project ledger, exactly as before. Anywhere else (temp
+  folders, per-conversation app folders) → the personal home ledger
+  (`ARGUS_HOME` or `~/.argus`), so app conversations share one record.
+- Verified live: a prediction saved in one simulated app conversation is
+  visible from a second one, and no orphan `.argus` is created. The first
+  home fallback per process says so on stderr, so "where did my records go"
+  has a one-line answer.
+- Explicit settings always win: per-call `argus_dir`, then `ARGUS_DIR`.
+  One logical judgment dataset per user is the target model
+  (ADR 2026-07-27); this removes the sharpest fragmentation against it.
+
+## 2.0.18 - Running it by hand no longer looks broken
+
+- A human typing `npx argus-decision-mcp` in a terminal used to get one
+  stderr line and a silent hang — indistinguishable from a crash, and the
+  very first impression a curious new user gets. When stdin is a TTY (a
+  keyboard, not a host pipe) the server now prints a one-screen card
+  instead: what this is, the two wire-up commands (Claude Code / Codex),
+  and the one on-ramp that matters — nothing to learn, just talk about a
+  decision. `help` / `--help` / `-h` show the same card; `--stdio` forces
+  server mode for the rare TTY-allocating host. Hosts launch over pipes
+  and never hit this gate.
+
 ## 2.0.17 - The copy sweep reaches the terminal surfaces
 
 - Twelve Korean surface strings lose their chatty and translationese edges

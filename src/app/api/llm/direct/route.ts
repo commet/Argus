@@ -26,12 +26,20 @@ export async function POST(req: NextRequest) {
     const client = new Anthropic({ apiKey });
     const stream = body.stream === true;
 
+    const ALLOWED_MODELS = new Set([
+      'claude-sonnet-5',
+      'claude-opus-5',
+      'claude-opus-4-8',
+      'claude-fable-5',
+    ]);
     const MODEL_MAP: Record<string, string> = {
       fast: 'claude-haiku-4-5-20251001',
       default: 'claude-sonnet-4-6',
       strong: 'claude-opus-4-8',
     };
-    const modelId = MODEL_MAP[body.model as string] || MODEL_MAP.default;
+    const modelId = ALLOWED_MODELS.has(body.anthropicModel)
+      ? body.anthropicModel
+      : MODEL_MAP[body.model as string] || MODEL_MAP.default;
 
     if (stream) {
       const anthropicStream = client.messages.stream({

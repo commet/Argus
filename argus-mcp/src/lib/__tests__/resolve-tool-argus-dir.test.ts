@@ -7,7 +7,11 @@ import { init } from '../../tools/init-config.js';
 import { body } from '../../test-helpers.js';
 
 const ORIG = process.env.ARGUS_DIR;
-afterEach(() => { if (ORIG === undefined) delete process.env.ARGUS_DIR; else process.env.ARGUS_DIR = ORIG; });
+const ORIG_HOME = process.env.ARGUS_HOME;
+afterEach(() => {
+  if (ORIG === undefined) delete process.env.ARGUS_DIR; else process.env.ARGUS_DIR = ORIG;
+  if (ORIG_HOME === undefined) delete process.env.ARGUS_HOME; else process.env.ARGUS_HOME = ORIG_HOME;
+});
 
 const ABS = path.resolve('/tmp/some/.argus');
 
@@ -23,22 +27,27 @@ describe('resolveToolArgusDir — the ergonomic argus_dir resolution', () => {
     expect(resolveToolArgusDir('')).toBe(ABS);
   });
 
-  it('defaults to ~/.argus when neither is available (첫 설치의 문, §9.4)', () => {
+  it('프로젝트 안(이 레포는 깃 저장소)에서는 cwd/.argus 가 기본이다', () => {
     delete process.env.ARGUS_DIR;
     expect(resolveToolArgusDir(undefined)).toBe(path.join(process.cwd(), '.argus'));
   });
 
-  it('M0 exit fixture: a zero-config FIRST TOOL CALL succeeds into ~/.argus', async () => {
+  it('M0 exit fixture: 깃 없는 폴더의 zero-config 첫 호출은 개인 홈으로 간다 (2026-07-30 규칙)', async () => {
+    // Codex 앱은 대화마다 새 폴더를 만든다 — 옛 기본값(cwd/.argus)은 대화마다
+    // 고아 원장을 만들어 기록이 조각났다. 프로젝트 증거(깃/.argus)가 없으면
+    // 개인 홈이 기본이다. ARGUS_HOME 주입으로 진짜 사용자 프로필은 안 건드린다.
     delete process.env.ARGUS_DIR;
-    // fake home so the test never touches the real user profile
-    const fakeHome = fs.mkdtempSync(path.join(os.tmpdir(), 'argus-project-'));
-    const spy = vi.spyOn(process, 'cwd').mockReturnValue(fakeHome);
+    const ephemeralCwd = fs.mkdtempSync(path.join(os.tmpdir(), 'argus-appconvo-'));
+    const fakeHome = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'argus-home-')), '.argus');
+    process.env.ARGUS_HOME = fakeHome;
+    const spy = vi.spyOn(process, 'cwd').mockReturnValue(ephemeralCwd);
     try {
       const res = body(await init.handler({}));
       expect(res['ok']).toBe(true);
-      const expected = path.join(fakeHome, '.argus');
-      expect(String((res['data'] as Record<string, unknown>)['argus_dir'] ?? '')).toContain('.argus');
-      expect(fs.existsSync(expected)).toBe(true);
+      expect(String((res['data'] as Record<string, unknown>)['argus_dir'] ?? '')).toBe(fakeHome);
+      expect(fs.existsSync(fakeHome)).toBe(true);
+      // 고아 원장을 만들지 않는다 — 파편화의 재발 조건.
+      expect(fs.existsSync(path.join(ephemeralCwd, '.argus'))).toBe(false);
     } finally {
       spy.mockRestore();
     }
