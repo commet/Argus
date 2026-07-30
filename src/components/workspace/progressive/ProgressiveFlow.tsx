@@ -20,6 +20,8 @@ import {
   runLeadSynthesis,
   scanHonesty,
   scanLean,
+  scanMixIntegrity,
+  applyMixIntegrity,
   type NavigatorReview,
   type DebateResult,
 } from '@/lib/progressive-engine';
@@ -302,6 +304,34 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
     }
     return () => { cancelled = true; controller.abort(); };
   }, [session?.id, session?.problem_text, latestSnapshotVersion, store]);
+  // FIX 7 — the same integrity scans, wired onto the MIX output (the document the
+  // user actually ships). Same non-blocking pattern as the card effect above:
+  // the draft renders instantly; when the scan resolves, lean spans are
+  // NEUTRALIZED into the text and honesty flags attach for the "확인 필요"
+  // shade. Best-effort — a scan failure resolves to empty flags, never sinks
+  // the mix. honesty_flags === undefined is the not-yet-scanned marker.
+  const mixScanFiredRef = useRef<string>('');
+  useEffect(() => {
+    const mix = store.currentSession()?.mix;
+    if (!mix || !session?.problem_text) return;
+    if (mix.honesty_flags !== undefined) return;
+    // Key on a rough content identity so an in-flight scan isn't double-fired by
+    // re-renders, while a REGENERATED mix (new content, flags undefined again)
+    // still gets its own scan.
+    const key = `${session.id}:${mix.title}:${(mix.executive_summary || '').length}`;
+    if (mixScanFiredRef.current === key) return;
+    mixScanFiredRef.current = key;
+    let cancelled = false;
+    const controller = new AbortController();
+    scanMixIntegrity(session.problem_text, mix, controller.signal).then(({ leanFlags, honestyFlags }) => {
+      if (cancelled) return;
+      const cur = store.currentSession()?.mix;
+      if (!cur || cur.honesty_flags !== undefined) return;
+      // patchMix (not setMix): the phase must not be yanked back to dm_feedback.
+      store.patchMix(applyMixIntegrity(cur, leanFlags, honestyFlags));
+    });
+    return () => { cancelled = true; controller.abort(); };
+  }, [session?.id, session?.problem_text, session?.mix, store]);
   // §0 sealing restraint inputs from the latest analysis snapshot — lets SealMoment
   // give a routine + reversible + confident decision one light check instead of the
   // full ceremony (CLAUDE.md mirror clause). Absent fields → full ceremony (safe).
@@ -1502,7 +1532,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
         workerResults.push({
           workerId: '',
           name: undefined,
-          task: locale === 'ko' ? `[미해결 긴장] 초안에서 가장 약한 지점` : `[Unresolved tension] The draft's weakest point`,
+          task: locale === 'ko' ? `[미해결 긴장] 정리에서 가장 약한 지점` : `[Unresolved tension] The write-up's weakest point`,
           result: locale === 'ko' ? `${debateRes.challenge}\n\n약점: ${debateRes.weakestClaim}\n\n대안: ${debateRes.alternativeView}` : `${debateRes.challenge}\n\nWeakness: ${debateRes.weakestClaim}\n\nAlternative: ${debateRes.alternativeView}`,
           taskGroupId: 'debate',
           authored: 'ai' as const,
@@ -1517,7 +1547,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
         new Promise<null>(resolve => setTimeout(() => resolve(null), 4000)),
       ]);
 
-      setSubstage(L('초안 본문 작성 중', 'Writing draft body'));
+      setSubstage(L('본문 정리 중', 'Writing the body'));
       setStreamKind('doc');
       setStreamingText('');
       // F1(3): tasks the crew was BLOCKED on (a human input never arrived) — pass
@@ -1570,7 +1600,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
         useAgentAttentionStore.getState().ping('mix_done');
         scrollToRef(mixPreviewRef, 'bottom');
       }
-    } catch (e) { setStreamingText(null); if (!(e instanceof DOMException && e.name === 'AbortError')) setError(e instanceof Error ? e.message : L('초안을 만들다 막혔어요 — 지금까지 작업은 그대로 있어요. 다시 시도해 주세요.', 'Hit a snag while drafting — your work so far is safe. Please try again.')); store.setPhase('conversing'); scrollToRef(statusBarRef); }
+    } catch (e) { setStreamingText(null); if (!(e instanceof DOMException && e.name === 'AbortError')) setError(e instanceof Error ? e.message : L('정리하다 막혔어요 — 지금까지 작업은 그대로 있어요. 다시 시도해 주세요.', 'Hit a snag while wrapping up — your work so far is safe. Please try again.')); store.setPhase('conversing'); scrollToRef(statusBarRef); }
     finally { setBusy(false); setSubstage(null); abortRef.current = null; }
   };
 
@@ -1601,7 +1631,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
       setSubstage(
         reviewerAgent
           ? L(`${reviewerAgent.name}이(가) 읽는 중`, `${reviewerAgent.name} is reading`)
-          : L('초안을 검토하는 중', 'Reviewing the draft')
+          : L('정리한 것을 검토하는 중', 'Reviewing the write-up')
       );
       setStreamKind('feedback');
       setStreamingText('');
@@ -2005,10 +2035,10 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
           }
           cps.push({
             key: 'draft',
-            label: L('초안', 'Draft'),
+            label: L('정리', 'Write-up'),
             state: (mix || rank >= 2) ? 'done' : (rank === 1 || (rank === 0 && crewRowing && !asking)) ? 'current' : 'future',
-            group: '작성', groupEn: 'Draft',
-            title: L('당신의 답 위에서 문서 초안을 만들어요', 'A draft is written on top of your answers'),
+            group: '작성', groupEn: 'Writing',
+            title: L('당신의 답 위에서 정리해요', 'Your answers get organized into one write-up'),
           });
           // 검토를 건너뛰고 완성한 경우엔 정직하게 '건너뜀'으로 — 안 한 검토를
           // 완료로 칠하면 레일이 거짓말을 한다.
@@ -2016,10 +2046,10 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
             key: 'review',
             label: L('검토', 'Review'),
             state: rank >= 4 ? (dmFb ? 'done' : 'skipped') : (rank === 2 || rank === 3) ? 'current' : 'future',
-            group: '작성', groupEn: 'Draft',
+            group: '작성', groupEn: 'Writing',
             title: rank >= 4 && !dmFb
               ? L('검토 없이 진행했어요', 'Went ahead without a review')
-              : L('의사결정권자의 눈으로 초안을 검토받아요', "The draft gets a decision-maker's read"),
+              : L('의사결정권자의 눈으로 정리한 것을 검토받아요', "The write-up gets a decision-maker's read"),
           });
           cps.push({
             key: 'check',
@@ -2124,7 +2154,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
                     <div className="flex-1 min-w-0">
                       <p className="text-[12.5px] text-[var(--text-primary)] leading-[1.5]">
                         {isQuota
-                          ? L('오늘의 무료 사용 한도에 닿았어요. 설정에서 본인의 API 키를 등록하면 계속 쓸 수 있어요.', "You've hit today's free allowance. Register your own API key in Settings to keep going.")
+                          ? L('오늘의 무료 사용 한도에 도달했어요. 설정에서 본인의 API 키를 등록하면 계속 쓸 수 있어요.', "You've hit today's free allowance. Register your own API key in Settings to keep going.")
                           : isServiceUnavailable
                             ? L(
                                 '현재 분석 기능을 사용할 수 없어요. 지금까지의 작업은 그대로 남아 있습니다.',
@@ -2413,7 +2443,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
                   meta={meta}
                   onSkip={focusEscape ?? (teamReady ? onDeployWorkers : undefined)}
                   skipLabel={focusEscape
-                    ? L('지금까지 답한 내용으로 초안 만들기', 'Draft from my answers so far')
+                    ? L('지금까지 답한 내용으로 정리하기', 'Wrap up from my answers so far')
                     : (teamReady ? L('건너뛰고 팀 투입', 'Skip & start') : undefined)}
                 />
               );
@@ -2570,7 +2600,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
           {/* PhaseDivider: Team analysis complete → create draft. Gated on crewSettled
               so it never claims "팀 분석 완료" while workers are still running (0/4). */}
           {shouldMix && !busy && phase === 'conversing' && !curQ && crewSettled && (
-            <PhaseDivider done={L('팀 분석 완료', 'Team analysis done')} next={L('초안 작성 시작', 'Create draft')} yourTurn />
+            <PhaseDivider done={L('팀 분석 완료', 'Team analysis done')} next={L('정리 시작', 'Start the write-up')} yourTurn />
           )}
 
           {/* UserNotesInput — add your thoughts AFTER the crew finishes (so there's
@@ -2770,7 +2800,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
 
           {/* PhaseDivider: Draft ready → Review */}
           {mix && !dmFb && !final_ && phase !== 'mixing' && (
-            <PhaseDivider done={L('초안 완성', 'Draft ready')} next={L('검토', 'Review')} yourTurn />
+            <PhaseDivider done={L('정리 완료', 'Write-up ready')} next={L('검토', 'Review')} yourTurn />
           )}
           <div ref={mixPreviewRef}>
             {/* W1.6 재구성 ④: focus routes the primary CTA through the flinch
@@ -3030,7 +3060,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
               <div className="mt-3 text-center">
                 {rerunArmed ? (
                   <span className="inline-flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-[13px] text-[var(--text-tertiary)]">
-                    {L('지금 문서와 검토를 비우고 초안부터 다시 만들어요 — 이전 결과는 버전 히스토리에 남아요.', 'Clears the current document & review, regenerates from draft — previous results stay in version history.')}
+                    {L('지금 정리한 것과 검토를 비우고 다시 정리해요 — 이전 결과는 버전 히스토리에 남아요.', 'Clears the current write-up & review and redoes it — previous results stay in version history.')}
                     <button onClick={() => { if (mix) { store.setFinalDeliverable(null as unknown as string); store.setDMFeedback(null as unknown as import('@/stores/types').DMFeedbackResult); store.setMix(null as unknown as MixResult); setShowMix(true); } setRerunArmed(false); }}
                       className="font-semibold text-[var(--danger)] hover:underline cursor-pointer">
                       {L('네, 다시 만들게요', 'Yes, regenerate')}
@@ -3042,7 +3072,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
                 ) : (
                   <button onClick={() => setRerunArmed(true)}
                     className="text-[13px] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] underline underline-offset-2 cursor-pointer transition-colors">
-                    {L('초안부터 다시 만들기', 'Regenerate from draft')}
+                    {L('다시 정리하기', 'Redo the write-up')}
                   </button>
                 )}
               </div>

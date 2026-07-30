@@ -433,8 +433,8 @@ function LegacySettlementModal({
             renders on the retro path (draftVerdicts present). */}
         {draftVerdicts && Object.keys(draftVerdicts).length > 0 && (
           <p className="text-[13px] text-[var(--text-tertiary)] leading-[1.5] -mt-1">
-            {L('점선으로 미리 짚어둔 건 AI가 읽어본 초안이에요 — 최종은 직접 눌러서 확정하세요.',
-               'The dashed marks are the AI-read draft — you confirm the final call by tapping.')}
+            {L('점선으로 미리 짚어둔 건 AI가 쓴 말이에요 — 최종은 직접 눌러서 확정하세요.',
+               'The dashed marks are AI-written — you confirm the final call by tapping.')}
           </p>
         )}
 
@@ -489,7 +489,7 @@ function LegacySettlementModal({
                           key={v.value}
                           onClick={() => grade(p.id, selected ? 'pending' : v.value)}
                           aria-pressed={selected}
-                          title={isDraft ? L('AI가 미리 짚은 초안 — 눌러서 확정하세요', 'AI-drafted — tap to confirm') : undefined}
+                          title={isDraft ? L('AI가 쓴 말 — 눌러서 확정하세요', 'AI-written — tap to confirm') : undefined}
                           className={`px-2.5 py-1 rounded-lg text-[12px] font-semibold border transition-colors cursor-pointer ${
                             selected
                               ? 'border-[var(--accent)] bg-[var(--accent)] text-[var(--accent-fg)]'

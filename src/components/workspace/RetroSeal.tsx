@@ -253,8 +253,8 @@ export function RetroSeal({ onExit, onRealSeal }: {
                 {L('그래서, 어떻게 됐어요?', 'So, how did it go?')}
               </h2>
               <p className="text-[12.5px] text-[var(--text-tertiary)] mt-2 leading-snug">
-                {L('실제로 어떻게 흘러갔는지 편하게 한 문단 적어주세요. 이걸 읽고 초안을 미리 짚어드릴게요 — 최종 확인은 다음 화면에서 직접 하세요.',
-                   "Write a paragraph on how it actually went. We'll read it and pre-mark a draft — you make the final call on the next screen.")}
+                {L('실제로 어떻게 흘러갔는지 편하게 한 문단 적어주세요. 이걸 읽고 미리 짚어드릴게요 — 최종 확인은 다음 화면에서 직접 하세요.',
+                   "Write a paragraph on how it actually went. We'll read it and pre-mark our read — you make the final call on the next screen.")}
               </p>
 
               <textarea

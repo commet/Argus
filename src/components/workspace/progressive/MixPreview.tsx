@@ -8,7 +8,8 @@ import type { MixResult } from '@/stores/types';
 import type { NavigatorReview } from '@/lib/progressive-engine';
 import type { DebateResult } from '@/lib/debate-engine';
 import { AttributedSection } from './AttributedSection';
-import { renderInline } from './shared/renderMd';
+import { HonestyShaded, renderInlineShaded } from './shared/HonestyShaded';
+import { locateFlag } from '@/lib/honesty-scan';
 import { EASE } from './shared/constants';
 import { Copy as CopyIcon, Check as CheckIcon, Download } from 'lucide-react';
 
@@ -65,13 +66,21 @@ export function MixPreview({ mix, dm, onDM, onSkip, busy, cmReview, debateResult
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${(mix.title || 'argus-draft').replace(/[^\w가-힣\- ]+/g, '').trim().slice(0, 60) || 'argus-draft'}.md`;
+    a.download = `${(mix.title || 'argus-write-up').replace(/[^\w가-힣\- ]+/g, '').trim().slice(0, 60) || 'argus-write-up'}.md`;
     a.click();
     URL.revokeObjectURL(url);
   };
   // Defensive (CLAUDE.md): restore/remote-merged mix may predate migrateMix.
   const sections = mix.sections || [];
   const nextSteps = mix.next_steps || [];
+  // FIX 7 — honesty flags from the async mix integrity scan. Legend shows only
+  // when a flag actually matched somewhere visible (same rule as voyage-prep).
+  const honestyFlags = mix.honesty_flags || [];
+  const shadedCorpus = [
+    mix.title || '', mix.executive_summary || '',
+    ...sections.flatMap((s) => [s.content || '', ...(s.sentences || []).map((x) => x.text || '')]),
+  ].join('\n');
+  const hasMatchedFlag = honestyFlags.some((f) => locateFlag(shadedCorpus, f.text) >= 0);
   return (
     <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, ease: EASE }}>
       {/* 도착 세리머니 — 항해의 산출물이 뭍에 닿는 순간. 정산 화면의 '영수증
@@ -86,7 +95,7 @@ export function MixPreview({ mix, dm, onDM, onSkip, busy, cmReview, debateResult
       >
         <span className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12.5px] font-bold text-[var(--accent-fg)]" style={{ background: 'var(--gradient-gold)' }}>
           <CheckIcon size={11} strokeWidth={3} />
-          {L('초안이 닿았어요', 'The draft has landed')}
+          {L('정리 끝났어요', 'Your write-up is ready')}
         </span>
         <span className="text-[12.5px] text-[var(--text-tertiary)]">
           {L(`${sections.length}개 섹션 · 당신의 답 위에서 쓰였어요`, `${sections.length} sections · built on your answers`)}
@@ -95,8 +104,19 @@ export function MixPreview({ mix, dm, onDM, onSkip, busy, cmReview, debateResult
       <div className="rounded-2xl p-[1.5px] bg-gradient-to-b from-[var(--accent)]/45 via-[var(--accent)]/15 to-[var(--accent)]/5 shadow-[0_2px_16px_rgba(160,130,60,0.10)]">
         <div className="rounded-[calc(1rem-1.5px)] bg-[var(--surface)] shadow-[inset_0_1px_1px_rgba(255,255,255,0.5)]">
           <div className="p-5 md:p-7 space-y-6">
-            <h2 className="text-[22px] md:text-[28px] font-bold text-[var(--text-primary)] leading-tight tracking-tight" style={{ fontFamily: 'var(--font-display)' }}>{mix.title}</h2>
-            <blockquote className="rounded-lg bg-[var(--accent)]/[0.04] px-4 py-3 text-[15px] text-[var(--text-secondary)] italic leading-relaxed">{renderInline(mix.executive_summary)}</blockquote>
+            <h2 className="text-[22px] md:text-[28px] font-bold text-[var(--text-primary)] leading-tight tracking-tight" style={{ fontFamily: 'var(--font-display)' }}>
+              <HonestyShaded text={mix.title} flags={honestyFlags} locale={locale} />
+            </h2>
+            <blockquote className="rounded-lg bg-[var(--accent)]/[0.04] px-4 py-3 text-[15px] text-[var(--text-secondary)] italic leading-relaxed">{renderInlineShaded(mix.executive_summary, honestyFlags, locale)}</blockquote>
+            {/* Honesty-scan legend — one quiet line, ONLY when a flag matched the
+                document (same pattern as the analysis card). An invitation to
+                verify, never a verdict on the content. */}
+            {hasMatchedFlag && (
+              <p className="text-[12px] text-[var(--text-tertiary)] leading-relaxed">
+                {L('점선 그은 곳은 아직 확인 안 된 부분이에요 — 짚어보면 어디서 확인할지 알려드려요.',
+                   'Dotted spans are things we couldn’t verify — hover to see where to check.')}
+              </p>
+            )}
 
             {/* Collapsed by default — the CTA must not hide below a full document. */}
             <div className="flex items-center justify-between gap-3 flex-wrap">
@@ -109,7 +129,7 @@ export function MixPreview({ mix, dm, onDM, onSkip, busy, cmReview, debateResult
               >
                 {bodyOpen
                   ? L('본문 접기', 'Collapse body')
-                  : L(`전문 보기 — ${sections.length}개 섹션${nextSteps.length ? ' · 다음 단계' : ''}`, `Read full draft — ${sections.length} section${sections.length === 1 ? '' : 's'}`)}
+                  : L(`전문 보기 — ${sections.length}개 섹션${nextSteps.length ? ' · 다음 단계' : ''}`, `Read the full write-up — ${sections.length} section${sections.length === 1 ? '' : 's'}`)}
                 <ChevronDown size={13} className={`transition-transform ${bodyOpen ? 'rotate-180' : ''}`} />
               </button>
               {/* Take the draft NOW — before the optional review/falsification step. */}
@@ -117,7 +137,7 @@ export function MixPreview({ mix, dm, onDM, onSkip, busy, cmReview, debateResult
                 <button type="button" onClick={copyDraft}
                   aria-live="polite"
                   className={`inline-flex items-center gap-1 text-[13px] hover:text-[var(--accent)] px-2 py-1 rounded-md transition-colors cursor-pointer ${copyFailed ? 'text-[var(--danger)]' : 'text-[var(--text-tertiary)]'}`}>
-                  {copied ? <CheckIcon size={12} /> : <CopyIcon size={12} />} {copied ? L('복사됨', 'Copied') : copyFailed ? L('복사 실패 — 다시 시도', 'Copy failed — retry') : L('초안 복사', 'Copy draft')}
+                  {copied ? <CheckIcon size={12} /> : <CopyIcon size={12} />} {copied ? L('복사됨', 'Copied') : copyFailed ? L('복사 실패 — 다시 시도', 'Copy failed — retry') : L('정리한 것 복사', 'Copy the write-up')}
                 </button>
                 <button type="button" onClick={downloadDraft}
                   className="inline-flex items-center gap-1 text-[13px] text-[var(--text-tertiary)] hover:text-[var(--accent)] px-2 py-1 rounded-md transition-colors cursor-pointer">
@@ -127,10 +147,10 @@ export function MixPreview({ mix, dm, onDM, onSkip, busy, cmReview, debateResult
             </div>
 
             {bodyOpen && (
-              <div id={bodyId} role="region" aria-label={L('초안 전문', 'Full draft')} className="space-y-6">
+              <div id={bodyId} role="region" aria-label={L('정리한 것 전문', 'The full write-up')} className="space-y-6">
                 <div className="space-y-5">
                   {sections.map((s, i) => (
-                    <AttributedSection key={i} section={s} index={i} />
+                    <AttributedSection key={i} section={s} index={i} honestyFlags={honestyFlags} />
                   ))}
                 </div>
 
@@ -212,7 +232,7 @@ export function MixPreview({ mix, dm, onDM, onSkip, busy, cmReview, debateResult
                   </p>
                 </div>
                 <span className="shrink-0 rounded-full bg-[var(--bg)] px-2.5 py-1 text-[12px] text-[var(--text-tertiary)]">
-                  {L('초안 완료', 'Draft ready')}
+                  {L('정리 완료', 'Write-up ready')}
                 </span>
               </div>
               {primary === 'wrap' ? (

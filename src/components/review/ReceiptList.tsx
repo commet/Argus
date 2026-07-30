@@ -75,7 +75,7 @@ export function ReceiptList({
             {L('기존 문서 검수하기', 'Review an existing document')}
           </Button>
           <LocaleLink href="/workspace?new=1">
-            <Button variant="secondary" size="sm">{L('초안 만들기', 'Create a draft')}</Button>
+            <Button variant="secondary" size="sm">{L('새로 정리하기', 'Start a write-up')}</Button>
           </LocaleLink>
         </div>
       </div>

@@ -652,7 +652,7 @@ function DemoDraftCard({ draft, locale }: { draft: DemoScenario['draft']; locale
         <div className="rounded-[calc(1rem-1px)] bg-[var(--surface)]">
           <div className="h-[2px]" style={{ background: 'var(--gradient-gold)' }} />
           <div className="p-5 md:p-8 space-y-5">
-            <span className="text-[12.5px] font-bold text-[var(--accent)] uppercase tracking-[0.2em] bg-[var(--accent)]/8 px-3 py-1 rounded-full">{L('초안', 'Draft')}</span>
+            <span className="text-[12.5px] font-bold text-[var(--accent)] uppercase tracking-[0.2em] bg-[var(--accent)]/8 px-3 py-1 rounded-full">{L('정리', 'Write-up')}</span>
             <h2 className="text-[20px] md:text-[24px] font-bold text-[var(--text-primary)] leading-tight">{draft.title}</h2>
             <blockquote className="rounded-lg bg-[var(--accent)]/[0.04] px-4 py-3 text-[14px] text-[var(--text-secondary)] italic leading-relaxed">
               {renderInline(draft.executive_summary)}
@@ -752,7 +752,7 @@ function DemoDraftCardV2({
             )}
 
             <div>
-              <span className="text-[12.5px] font-bold text-[var(--accent)] uppercase tracking-[0.2em] bg-[var(--accent)]/8 px-3 py-1 rounded-full inline-block mb-3">{L('초안', 'Draft')}</span>
+              <span className="text-[12.5px] font-bold text-[var(--accent)] uppercase tracking-[0.2em] bg-[var(--accent)]/8 px-3 py-1 rounded-full inline-block mb-3">{L('정리', 'Write-up')}</span>
               <h2 className="text-[20px] md:text-[24px] font-bold text-[var(--text-primary)] leading-tight">{draft.title}</h2>
             </div>
 
@@ -1261,7 +1261,7 @@ function DMMatchingTransition({ personaName, personaRole, locale, onDone }: {
   const [step, setStep] = useState(0);
 
   const steps = [
-    L('초안 검토 중', 'Reading the draft'),
+    L('정리한 것 검토 중', 'Reading the write-up'),
     L('결정 맥락 추출', 'Extracting decision context'),
     L('의사결정권자 페르소나 매칭', 'Matching decision-maker persona'),
   ];
@@ -1753,18 +1753,18 @@ export function InteractiveDemo({ scenario, locale = 'ko', onStartReal, onBack }
     },
     {
       key: 'draft',
-      label: L('초안', 'Draft'),
+      label: L('정리', 'Write-up'),
       state: phase === 'draft' || phase === 'matching' ? 'current' : phaseGte(phase, 'dm') ? 'done' : 'future',
       group: '작성',
-      groupEn: 'Draft',
-      title: L('팀의 관점을 모은 초안', 'A draft shaped by the team'),
+      groupEn: 'Writing',
+      title: L('팀의 관점을 모은 정리', "The team's angles in one write-up"),
     },
     {
       key: 'review',
       label: L('검토', 'Review'),
       state: phase === 'dm' ? 'current' : phaseGte(phase, 'final') ? 'done' : 'future',
       group: '작성',
-      groupEn: 'Draft',
+      groupEn: 'Writing',
       title: L('받는 사람의 관점으로 검토', 'Review from the recipient’s perspective'),
     },
     {
@@ -1909,7 +1909,7 @@ export function InteractiveDemo({ scenario, locale = 'ko', onStartReal, onBack }
                 <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 1.0, duration: 0.5, ease: EASE }}
                   className="text-center py-6">
                   <p className="text-[13px] text-[var(--text-secondary)] mb-3">
-                    {L('초안이 나왔어요. 기록하기 전에, 이걸 받아볼 사람은 뭐라고 할지 먼저 들어볼까요?', 'The draft is ready. Before you save it, want to hear how the recipient might react?')}
+                    {L('정리 끝났어요. 기록하기 전에, 이걸 받아볼 사람은 뭐라고 할지 먼저 들어볼까요?', 'The write-up is ready. Before you save it, want to hear how the recipient might react?')}
                   </p>
                   <motion.button
                     onClick={() => setPhase('matching')}
@@ -1996,7 +1996,7 @@ export function InteractiveDemo({ scenario, locale = 'ko', onStartReal, onBack }
                     <span className="text-[12.5px] text-[var(--text-tertiary)] ml-1.5">
                       {concerns.filter(c => c.applied).length > 0
                         ? L(`· 피드백 ${concerns.filter(c => c.applied).length}건 반영`, `· ${concerns.filter(c => c.applied).length} applied`)
-                        : L('· 초안 그대로', '· as-is')}
+                        : L('· 그대로 완성', '· as-is')}
                     </span>
                   </span>
                   <span className="text-[12.5px] text-[var(--text-tertiary)] group-open:hidden shrink-0">{L('펼쳐 보기', 'Expand')}</span>

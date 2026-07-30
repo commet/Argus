@@ -3,6 +3,7 @@
 import React from 'react';
 import type { HonestyFlag } from '@/lib/honesty-scan';
 import { locateFlag } from '@/lib/honesty-scan';
+import { renderInline } from './renderMd';
 
 /**
  * Renders `text`, shading any spans the post-generation honesty scan flagged as
@@ -75,4 +76,30 @@ export function HonestyShaded({
   });
   if (cursor < text.length) out.push(<React.Fragment key="tail">{text.slice(cursor)}</React.Fragment>);
   return <>{out}</>;
+}
+
+/**
+ * renderInline (bold-aware) + honesty shading combined — for mix/document text
+ * that carries **bold** markdown (FIX 7: the scans now run on the mix too).
+ * Splits on bold the same way renderInline does, then shades flagged spans
+ * inside each segment. A flagged span that crosses a bold boundary simply
+ * doesn't match (precision over recall — a missed shade beats a broken one).
+ * With no flags this is exactly renderInline.
+ */
+export function renderInlineShaded(
+  text: string,
+  flags: HonestyFlag[] | undefined | null,
+  locale: 'ko' | 'en',
+): React.ReactNode {
+  if (!text || !flags || flags.length === 0) return renderInline(text || '');
+  const parts = text.split(/(\*\*[^*]+\*\*)/g);
+  return parts.map((s, i) =>
+    s.startsWith('**') && s.endsWith('**')
+      ? (
+        <strong key={i} className="font-semibold text-[var(--text-primary)]">
+          <HonestyShaded text={s.slice(2, -2)} flags={flags} locale={locale} />
+        </strong>
+      )
+      : <React.Fragment key={i}><HonestyShaded text={s} flags={flags} locale={locale} /></React.Fragment>,
+  );
 }

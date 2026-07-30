@@ -14,10 +14,17 @@ import { localizePersona } from '@/lib/worker-personas';
 
 import { sanitizeForPrompt as sanitize } from './persona-prompt';
 import { GLOBAL_QUESTION_INSTRUCTION } from './question-rules';
+import { KOREAN_VOICE_RULES } from './prompt-voice';
 
 // ─── Locale type (matches useLocale.ts) ───
 
 type Locale = 'ko' | 'en';
+
+/** Condensed WORLD-FACT HONESTY guard (R40 shape, from buildInitialAnalysisPrompt).
+ *  One source, injected into every downstream prompt that writes user-visible
+ *  claims — its absence in the mix produced a declaratively-asserted sleep-study
+ *  in a party question. */
+const WORLD_FACT_HONESTY_GUARD = `WORLD-FACT HONESTY (no web access — no laundered recall): never assert an outside-world fact the user or the provided material did not give (prices, statistics, studies, dates, regulations, what a company/product currently does, "research shows…"). Either leave it out, or state it CONDITIONALLY and name where to verify ("~라면 …일 수 있어요 — X에서 직접 확인하세요"). A declaratively asserted number/study that was never provided is a fabrication even when it sounds plausible — an honest gap beats a confident invention.`;
 
 const ARGUS_PRODUCT_FACTS = `ARGUS PRODUCT-FACT HONESTY:
 - argus_predict saves to the local .argus directory by default. It does NOT, by itself, write directly into the Argus web workspace or arm account email.
@@ -192,35 +199,42 @@ GROUND RULES:
 - You CAN reason about what others likely want based on situational evidence. But NEVER project motives without evidence.
 - WORLD-FACT HONESTY (no web access — no laundered recall): any concrete empirical claim the user didn't give you (prices, supply/sales numbers, dates, statistics, regulations, what a company/product currently does) comes from training memory and may be stale/wrong. Never assert it as settled fact — drop it, or make it CONDITIONAL and name where to verify (실거래가/청약홈/공시/통계청 등). Applies to real_question, assumptions, skeleton, and insight alike.
 - NEVER decide the user's OPEN choice in insight or skeleton. Re-pose the load-bearing point as the deciding variable: "it depends on whether X outweighs Y — what is true in your case?" A memorable line is not allowed to become a recommendation. Do not write "now is the time", "X is the better call", "ship now", or a rhetorical equivalent.
+- THE EVERYDAY LEAK (guard it hardest): the pull to just "answer it" directionally is HIGHEST on small, casual, everyday-feeling decisions, precisely because a direction feels harmless there. It is not — it's the same verdict. "회의 줄일까?" → do NOT reply "구조를 봐라"; "노트북 살까?" → do NOT reply "지금은 안 사도 된다". A low-stakes OPEN decision is STILL OPEN.
+- NEUTRALIZE PATTERN (do exactly this instead of a verdict): take the load-bearing point and re-pose it as the deciding VARIABLE handed back — NOT "지금은 안 사도 돼요" but "이건 지금 느려서 겪는 불편이 새 노트북 값만큼인지에 달렸어요 — 지금 체감되는 지장이 어느 정도예요?". Same leverage, zero pick: name the variable, ask their read.
 - Go deeper than the surface problem. Illuminate the underlying question, don't just organize.
 
 Progressive analysis session — round ${round + 1} of ${maxRounds}.
 ${isLastRound
   ? 'This is the LAST round. Finalize the analysis. Set ready_for_mix: true.'
-  : 'Update analysis based on the new answer, then ask the next question.'}
+  : 'Update analysis based on the new answer, then decide honestly whether another question is even needed.'}
+
+LIVING WEIGHT ESTIMATE (round-0 classification — an estimate, NOT a command):
+현재 추정: ${currentSnapshot.stakes ?? 'unknown'} / ${currentSnapshot.reversibility ?? 'unknown'} / ${currentSnapshot.request_type ?? 'open'} — 이 추정은 명령이 아니라 갱신 대상이다. 답에서 더 무겁거나 가벼운 신호가 보이면 분석에 반영하고, 무게가 바뀌었음을 insight에 자연스럽게 드러내라.
+When the current estimate is stakes=routine AND reversibility=reversible, scale the ceremony DOWN: prefer NO further question (set ready_for_mix true), keep the skeleton minimal — a light decision must not be run through heavy machinery.
 
 CRITICAL: The user's latest answer is the MOST IMPORTANT new information. Everything you update should be BECAUSE of this answer.
-- If an answer doesn't affect something, DON'T change it (stability = trust).
-- If an answer changes the direction, make the change DRAMATIC and visible.
-- The user should look at the updated analysis and think "Yes, my answer actually mattered."
+- HONEST STABILITY IS THE HEADLINE RULE: an answer that changes nothing is a VALID outcome. If the answer confirms the current picture, say so plainly in the insight ("이 답으로 지금 그림이 그대로 확인됐어요") and change nothing — stability = trust. Never manufacture visible change to make an answer look consequential.
+- If an answer doesn't affect something, DON'T change it.
+- If an answer genuinely changes the direction, reflect that change honestly where it applies.
 
 Your job each round:
-1. Insight — TWO concise sentences about what their answer MEANS for the strategy. Sentence 1 states the updated takeaway; sentence 2 explains the deciding contrast. Not "you said X" but "X means Y." Never open with commentary such as “X라는 표현이 핵심이에요” / “the phrase X is key,” and do not join the two jobs with an em dash. The user should think "I didn't see it that way — that's exactly right."
-2. Update real_question — must stay a QUESTION (ends with ?). Should feel NOTICEABLY more specific than before because of the answer.
+1. Insight — TWO concise sentences about what their answer MEANS for the strategy. Sentence 1 states the updated takeaway (which may honestly be "the picture holds"); sentence 2 explains the deciding contrast. Not "you said X" but "X means Y." Never open with commentary such as “X라는 표현이 핵심이에요” / “the phrase X is key,” and do not join the two jobs with an em dash.
+2. Update real_question — must stay a QUESTION (ends with ?). Sharpen it only where the answer actually sharpened it.
 3. Update hidden assumptions — only change what the answer resolved or revealed. Don't shuffle items for novelty.
 4. Update skeleton — only modify items DIRECTLY AFFECTED by the new answer. Keep stable items unchanged. Never exceed 5-6 items.
    Use natural sequence connectors (${locale === 'ko' ? '먼저, 그다음, 그리고 등 — vary naturally' : 'First, Then, Next, etc. — vary naturally'}).
 
 QUESTION RULES (critical — this determines the quality of the entire session):
-- The answer they just gave should VISIBLY change the analysis. If nothing changes, the question was pointless.
+- Ask another question ONLY if its answer would actually change the analysis. If no remaining question passes that bar, return next_question null and set ready_for_mix true — stopping early is a feature, not a failure.
+- ANCHOR RULE: never invent a dimension the user's words don't contain. Reference only what the user actually said — e.g. never surface '술' from '파티'. A question built on an invented detail poisons the whole session.
 - Reference their answer directly: ${locale === 'ko' ? '"경쟁사 때문이라고 하셨는데, 그러면..."' : '"Since you mentioned it\'s about the competitor, then..."'}
-- Each question must open a NEW dimension. Never repeat themes.
+- Don't re-ask a theme the user already answered.
 - Questions should be SITUATION-SHAPING, not administrative:
   BAD: "What format should the document be?" / "Who's the audience?"
   GOOD: "Why did they choose your team for this?" / "What happens if this doesn't work?"
 - Offer 3-4 concrete options. Each option should lead to a DIFFERENT strategy.
 - Keep concise — this is a conversation, not an essay.
-
+${locale === 'ko' ? `\n${KOREAN_VOICE_RULES}\n` : ''}
 ${ARGUS_PRODUCT_FACTS}`,
 
     user: `Original problem:
@@ -234,16 +248,16 @@ Current analysis (v${currentSnapshot.version}):
 Q&A:
 ${qaHistory}
 
-Update the analysis. The user should FEEL the plan getting sharper because of their answer.
+Update the analysis honestly — change only what the answer actually changed, and say plainly when the picture holds.
 
 JSON:
 {
   "insight": "Two concise sentences: updated takeaway first, deciding reason second",
-  "real_question": "Updated question — more specific than before (natural sentence, ends with ?)",
+  "real_question": "Updated question (natural sentence, ends with ?) — sharpen only where the answer sharpened it",
   "hidden_assumptions": ["Realistic only, 2-3 items"],
   "skeleton": ["Only change items affected by the latest answer. Use natural sequence words. 5 items max."],
-  "next_question": ${isLastRound ? 'null' : '{"text": "Situation-shaping question (reference their latest answer)", "subtext": "Why this changes the strategy", "options": ["Leads to strategy A", "Strategy B", "Strategy C"], "type": "select|short"}'},
-  "ready_for_mix": ${isLastRound ? 'true' : 'false'}
+  "next_question": ${isLastRound ? 'null' : '{"text": "Situation-shaping question (reference their latest answer)", "subtext": "Why this changes the strategy", "options": ["Leads to strategy A", "Strategy B", "Strategy C"], "type": "select|short"} — or null when no remaining question would change the analysis'},
+  "ready_for_mix": ${isLastRound ? 'true' : 'true|false — true when another answer would NOT meaningfully change the analysis (honest early stop); false only when the next_question above is genuinely load-bearing'}
 }`,
   };
 }
@@ -265,9 +279,17 @@ export function buildExecutionPlanPrompt(
   locale: Locale = 'en',
   leadContext?: string,
   registeredPersonas?: Array<{ name: string; role: string; hasContact: boolean }>,
+  /** Round-0 weight classification carried on the snapshot (living estimate).
+   *  Feeds the crew-restraint clause the MEASURED values instead of letting the
+   *  planner re-derive the weight from scratch. */
+  weight?: { stakes?: 'routine' | 'important' | 'critical'; reversibility?: 'reversible' | 'partial' | 'irreversible' },
 ): { system: string; user: string } {
   const lang = locale === 'ko' ? 'Korean' : 'English';
   const keepRecent = getKeepRecent(round);
+  const isLight = weight?.stakes === 'routine' && weight?.reversibility === 'reversible';
+  const weightBlock = (weight?.stakes || weight?.reversibility)
+    ? `\nMEASURED WEIGHT (round-0 classification, updated through the session — a living estimate, not a command): stakes=${weight?.stakes ?? 'unknown'}, reversibility=${weight?.reversibility ?? 'unknown'}.${isLight ? ' This decision measured routine AND reversible: a SINGLE "ai" step is the MAXIMUM — no parallel fan-out, no committee.' : ''}`
+    : '';
   const qaHistory = shouldCompact(questionsAndAnswers)
     ? compactQAHistory(questionsAndAnswers, keepRecent, locale)
     : questionsAndAnswers.map((qa, i) =>
@@ -289,7 +311,7 @@ CRITICAL: Never write a team member's name INSIDE task/ai_scope/self_scope text.
 
 Build an execution_plan — assign tasks to your team. 3-5 steps max. For each step:
 
-SIZE THE CREW TO THE DECISION (default to restraint). Most decisions need ONE strong AI lens, not a committee — default to a SINGLE "ai" step that reasons the question through. Add a second or third INDEPENDENT "ai" lens ONLY when the decision genuinely earns it: it is important / hard-to-reverse, OR it spans 3+ distinct domains that each need separate expertise (e.g. finance AND legal AND technical). A routine, low-stakes, or easily-reversible decision must NOT be fanned out into parallel AI perspectives — that is ceremony, not insight, and it wastes the user's time. (A sequential producer→consumer chain via depends_on is NOT a "lens" — this limit is only about independent parallel AI perspectives on the same question. "self"/"human" steps are also unaffected.)
+SIZE THE CREW TO THE DECISION (default to restraint). Most decisions need ONE strong AI lens, not a committee — default to a SINGLE "ai" step that reasons the question through. Add a second or third INDEPENDENT "ai" lens ONLY when the decision genuinely earns it: it is important / hard-to-reverse, OR it spans 3+ distinct domains that each need separate expertise (e.g. finance AND legal AND technical). A routine, low-stakes, or easily-reversible decision must NOT be fanned out into parallel AI perspectives — that is ceremony, not insight, and it wastes the user's time.${weightBlock} (A sequential producer→consumer chain via depends_on is NOT a "lens" — this limit is only about independent parallel AI perspectives on the same question. "self"/"human" steps are also unaffected.)
 - agent_type: "ai" (AI executes: research, analysis, drafting) | "self" (user decides: strategy, budget, priorities) | "human" (ask someone else: tech validation, customer feedback, internal approval)
 - ai_scope: what AI does — describe the ACTION, never name a person (required for ai/self types; for human, AI prepares the question + context)
 - self_scope: what the user judges/validates — action only, no person names (required for ai/self types; empty for human)
@@ -420,7 +442,12 @@ Keep the deliverable within roughly ${wordBudget} words instead of padding for c
 
   // 6. Core rules
   systemParts.push(`\nAlways respond in ${lang}. Produce ready-to-use deliverables.
+${WORLD_FACT_HONESTY_GUARD}
 ${who === 'both' ? 'Note: This is a human-AI collaboration task. Aim for 80% completion, and mark sections requiring human judgment with [DECISION NEEDED].' : ''}`);
+  if (locale === 'ko') {
+    // User-visible output — the shared anti-report-tone voice block (ko only).
+    systemParts.push(`\n${KOREAN_VOICE_RULES}`);
+  }
   systemParts.push(`\n${ARGUS_PRODUCT_FACTS}`);
 
   // ─── User prompt: adaptive context strategy ───
@@ -452,7 +479,7 @@ Expected output: ${expectedOutput}
 You are part of a team working on this problem together. Other members are handling related tasks in parallel.
 ${context.peerResults ? 'Previous team results are shown above — build on their specific findings when relevant.' : 'Write your result so the next person can build on it:'}
 - State your KEY FINDING in the first line (the one thing that changes the strategy).
-- Use specific numbers, names, and facts — not generic statements.
+- Be specific with numbers, names, and facts ONLY where the provided material (the problem, the answers, peer results) actually contains them. Anything beyond the material must be stated conditionally with where to verify — never asserted as settled fact. An honest "확인 필요" beats an invented specific.
 - End with the IMPLICATION for the overall problem ("This means...").`,
   };
 }
@@ -482,49 +509,54 @@ export function buildMixPrompt(
         `Q${i + 1}: ${sanitize(qa.question.text)}\nA${i + 1}: ${sanitize(qa.answer.value)}`,
       ).join('\n\n');
 
-  const dmLabel = decisionMaker || (locale === 'ko' ? '\uc758\uc0ac\uacb0\uc815\uad8c\uc790' : 'the decision maker');
+  // When no decision-maker exists, the document is addressed to the USER
+  // themselves (\uc2a4\uc2a4\ub85c \ubcf4\ub294 \uc815\ub9ac) \u2014 not to an invented '\uc758\uc0ac\uacb0\uc815\uad8c\uc790'.
+  const dmLabel = decisionMaker || (locale === 'ko' ? '\uc0ac\uc6a9\uc790 \ubcf8\uc778' : 'the user themselves');
+  const audienceLine = decisionMaker
+    ? `This document will be presented to ${sanitize(dmLabel)}.`
+    : `This document is for the USER THEMSELVES \u2014 ${locale === 'ko' ? '\uc2a4\uc2a4\ub85c \ubcf4\ub294 \uc815\ub9ac' : 'a self-directed brief'}. There is no boss to persuade: write it to sharpen their own judgment, not to sell a conclusion.`;
   const riskSectionName = locale === 'ko' ? '\ub9ac\uc2a4\ud06c\uc640 \ub300\uc751' : 'Risks & Mitigation';
 
   // When lead synthesis exists, Mix becomes a document formatter, not a strategic assembler
   const systemPrompt = leadSynthesis
     ? `You are a professional document editor. Always respond in ${lang}.
 
-A domain expert (${leadSynthesis.lead_agent_name}) has already synthesized the team's findings into an integrated analysis. Your job is to format this into a polished, professional document for ${sanitize(dmLabel)}.
+A domain expert (${leadSynthesis.lead_agent_name}) has already synthesized the team's findings into an integrated analysis. Your job is to format this into a polished, professional document. ${audienceLine}
 
 Rules:
 - The lead expert's synthesis is your PRIMARY source. Preserve their strategic logic and the open question / unresolved tensions they surfaced. The lead does NOT pick a side — do not manufacture one.
 - Executive summary: 2-3 sentences derived from the lead's integrated analysis.
 - 3-5 sections. Merge adjacent ideas instead of creating a section for every source.
 - Include the assumptions explicitly — this shows intellectual honesty.
-- Return exactly 3 next steps: the highest-leverage actions, time-bound and assigned.
+- Next steps: as many as are real, at most 3 (필요한 만큼, 최대 3) — the highest-leverage actions, time-bound and assigned. Never pad to reach a count.
 - Write it so the user can literally send this as-is. No "[insert here]" placeholders.
 - Tone: confident but honest about uncertainties. Professional ${lang}.
 - DO NOT use markdown headers in section content — just flowing text with emphasis where needed.
 - Use **bold** for key terms and critical numbers.
-- Include a "${riskSectionName}" section based on the lead's unresolved tensions and risk analysis.
+- Include a "${riskSectionName}" section ONLY when the lead's synthesis contains real unresolved tensions or risks — include as many as are real, and never manufacture one to fill the section.
 - DO NOT add a recommendation, verdict, or "what I'd do" — neither yours nor a stronger version of the lead's. You format the analysis and surface its open question; you never tell the user which option to pick.
 - NARRATIVE FLOW: Each section must connect to the next. The document should read as one continuous argument, not separate blocks. Weave the lead's insights with specific worker evidence to create depth.`
     : `You are assembling a final draft document. Always respond in ${lang}.
 ${locale === 'ko' ? 'Tone: 해요체 (polite but warm). Not a formal report — more like a well-structured brief that a smart colleague would write. Confident but honest.' : 'Tone: warm, professional. Not a formal corporate report — more like a well-structured brief from a smart colleague. Confident but honest about uncertainties.'}
 
-This document will be presented to ${sanitize(dmLabel)}.
+${audienceLine}
 
 STRUCTURE RULE: The analysis went through multiple Q&A rounds. The skeleton from the final analysis reflects the user's validated thinking. USE THAT SKELETON as the document's section structure. Don't invent new sections — fill in the skeleton items with worker research and your synthesis.
 IMPORTANT: The skeleton contains ACTION ITEMS (e.g., "먼저 — 경쟁사 제품 직접 써보기"). Transform these into proper DOCUMENT HEADINGS (e.g., "시장 기회 — 경쟁사가 열어준 시장"). The skeleton guides your structure; your headings should be topic-based, not task-based.
 
 Rules:
-- Executive summary: 2-3 sentences max. Must contain the document's single most SURPRISING insight — if nothing in the summary surprises, it's not sharp enough. ${sanitize(dmLabel)} should get 80% of the value just from this.
-- Section structure: 3-5 sections total. Follow the analysis skeleton, but merge adjacent skeleton items when needed. Each section: 2-3 sentences. Every section MUST contain at least one specific number, fact, or example from the worker results. Generic statements without evidence are forbidden.
+- Executive summary: 2-3 sentences max. Lead with the document's most decision-relevant point; the reader should get 80% of the value from this alone. If nothing new emerged, say plainly what the analysis confirmed — never manufacture surprise to sound sharp.
+- Section structure: 3-5 sections total. Follow the analysis skeleton, but merge adjacent skeleton items when needed. Each section: 2-3 sentences. Anchor every section to material actually provided (worker results, the user's answers, the analysis). NEVER invent a number, fact, or example to satisfy structure — an honest general statement beats a fabricated specific.
 - Include the assumptions explicitly — this shows intellectual honesty.
-- Next steps: exactly 3, limited to the highest-leverage actions; each must be time-bound and assigned (who does what by when).
+- Next steps: 필요한 만큼, 최대 3 (as many as are real, up to 3) — highest-leverage only; each must be time-bound and assigned (who does what by when). Never pad to reach a count.
 - Write it so the user can literally send this as-is. No "[insert here]" placeholders.
 - DO NOT use markdown headers in section content — flowing text with **bold** for key terms.
 - The document should feel substantial but concise — no repeated rationale, duplicated caveats, or second summary.
-- Include a "${riskSectionName}" section with 2-3 risks + specific mitigation actions.
+- Include a "${riskSectionName}" section ONLY if real risks exist in the material — as many risks as are real (no fixed count), each with a specific mitigation. If no real risk emerged, omit the section entirely; never invent a risk to fill it.
 
 NARRATIVE FLOW — this separates a good draft from a great one:
 - Each section's FIRST sentence must connect to the PREVIOUS section's conclusion. If Section 1 ends with a gap in the market, Section 2 should start by addressing that gap. The reader should feel one continuous argument, not separate blocks.
-- When citing worker findings, NAME the source naturally: "시장 분석 결과..." / "전략 검토에 따르면..." — this creates a sense of team rigor, not a faceless report.
+- Worker findings may be woven in, but synthetic analysis is ONE lens, never independent evidence. Do NOT phrase citations to imply multiple independent verifications ("여러 분석이 일치" / "검토 결과 확인됨"), and never let persona count or agreement inflate confidence — synthetic output contributes zero support units toward any claim's certainty. The sentence-level contributor attribution is honest provenance; it must not become borrowed authority.
 - Weave worker findings together — if one worker found the problem and another found the solution, connect them explicitly: "X라는 문제가 확인됐고, 이를 Y 전략으로 뒤집을 수 있습니다."
 - The document should read as ONE STORY: Context (why now) → Opportunity (what we found) → Strategy (how we solve it) → Evidence (proof it works) → Risks (what could go wrong) → Action (what to do next).
 
@@ -630,7 +662,7 @@ ${aiResults.filter(w => w.name).map(w => `- ${sanitize(w.name!)}`).join('\n') ||
     }`
     : `{"heading": "Section heading", "content": "Section content (2-3 sentences, specific)"}`;
 
-  const guardedSystemPrompt = `${systemPrompt}\n\n${ARGUS_PRODUCT_FACTS}`;
+  const guardedSystemPrompt = `${systemPrompt}\n\n${WORLD_FACT_HONESTY_GUARD}${locale === 'ko' ? `\n\n${KOREAN_VOICE_RULES}` : ''}\n\n${ARGUS_PRODUCT_FACTS}`;
 
   return {
     system: guardedSystemPrompt,
@@ -649,13 +681,13 @@ ${leadSynthesis ? 'Format the lead expert\'s synthesis into a polished professio
 JSON format:
 {
   "title": "Document title (specific, reflects the situation)",
-  "decision_read": "The single line the user reads FIRST — a headline, not a summary. HARD RULES, follow all: (1) ONE short sentence, max ~18 words. (2) ONE action only — if you're joining two actions with '그리고/하고/,/—/and', you've failed: pick the ONE that matters most and cut the rest (the others live in next_steps). (3) State the action, and at most ONE reason, plainly. (4) NO hedging ('~할 수 있어요','~하는 게 좋아요','might','consider','it may be worth'), NO topic label, NO restating the question. In the user's language. GOOD (ko): 'PT 전에 진짜 결재권자부터 확인하세요 — 승부처는 슬라이드가 아닙니다.' BAD (run-on, two actions joined): '오늘 사전 통화를 요청하고, 내일 확인 미팅으로 뭘 보여줄지 확정하세요 — 이 둘이 빠지면 …'. If yours reads like the BAD one, rewrite it shorter.",
+  "decision_read": "The single line the user reads FIRST — a neutral headline of WHERE the document lands, never a command. HARD RULES, follow all: (1) ONE short sentence, max ~18 words. (2) State either the single question this document turns on, OR the condition under which each path wins ('X라면 A가, 아니라면 B가 맞는 구도'). (3) NEVER an imperative instruction ('~하세요'), NEVER a pick of one option, NEVER a verdict — the document informs the user's call; it does not make it. (4) No topic label, no restating the question verbatim. In the user's language. GOOD (ko): '이 결정은 결국 대표가 원하는 게 속도인지 완성도인지에 달려 있어요.' GOOD (ko): '결재권자가 누구인지 확인되면 PT의 구조가 정해지는 구도예요.' BAD (an engine-authored command): 'PT 전에 진짜 결재권자부터 확인하세요 — 승부처는 슬라이드가 아닙니다.'",
   "executive_summary": "The document's own 2-3 sentence summary (fuller than decision_read; leads the document body, not the headline).",
   "sections": [
     ${sectionSchema}
   ],
   "key_assumptions": ["Up to 4 assumptions this document rests on. Each MUST be a statement that reality can later prove true or false — never a question, never advice. Wrong: \"Is the timeline realistic?\" Right: \"The team can finish the migration within two sprints.\""],
-  "next_steps": ["Exactly 3 specific next actions (who, by when, what)"]
+  "next_steps": ["As many as are real, up to 3 — each a specific next action (who, by when, what). Never pad."]
 }`,
   };
 }
@@ -917,7 +949,7 @@ export function buildFinalDeliverablePrompt(
   return {
     system: `You are a concise document editor. Take the original document and apply the requested fixes.
 Always respond in ${lang}. Maintain the original tone and structure. Don't add new sections unless a fix requires it.
-Output the complete updated document — not just the changes. Keep each section to 2-3 sentences, remove repeated caveats, keep at most 4 assumptions, and return exactly 3 highest-leverage next steps.`,
+Output the complete updated document — not just the changes. Keep each section to 2-3 sentences, remove repeated caveats, keep at most 4 assumptions, and keep only the highest-leverage next steps (as many as are real, at most 3 — never pad).`,
 
     user: `Original document:
 Title: ${mix.title}
@@ -934,7 +966,7 @@ Apply the fixes and produce the final document.
 JSON format:
 {
   "title": "Final title",
-  "decision_read": "The single line read FIRST — a headline. HARD RULES: ONE short sentence, max ~18 words; ONE action only (no '그리고/하고/,/—/and' joining two actions — pick the most important); at most one reason; no hedging; user's language. GOOD: 'PT 전에 진짜 결재권자부터 확인하세요 — 승부처는 슬라이드가 아닙니다.' Update it if the applied fixes changed the call; otherwise keep the prior one.",
+  "decision_read": "The single line read FIRST — a neutral headline of WHERE the document lands, never a command. HARD RULES: ONE short sentence, max ~18 words; state the single question the document turns on OR the condition under which each path wins; NEVER an imperative '~하세요', NEVER a pick, NEVER a verdict; user's language. GOOD: '이 결정은 결국 대표가 원하는 게 속도인지 완성도인지에 달려 있어요.' Update it if the applied fixes changed where the document lands; otherwise keep the prior one.",
   "executive_summary": "Final summary (2-3 sentences, document body)",
   "sections": [{"heading": "...", "content": "..."}],
   "key_assumptions": ["..."],
@@ -954,16 +986,31 @@ export function buildInitialRefinementPrompt(
 ): { system: string; user: string } {
   const lang = locale === 'ko' ? 'Korean' : 'English';
   return {
-    system: `You are a practical business mentor. Always respond in ${lang}. Direct.
+    system: `You are a practical senior colleague. Always respond in ${lang}. ${locale === 'ko' ? 'Use 해요체 (polite but warm, like a senior colleague over lunch — not formal 존댓말, not casual 반말).' : 'Warm, professional, direct tone.'}
 
 The user saw your initial "real question" and REJECTED it. Their feedback tells you WHERE you went wrong.
-Re-analyze from scratch, incorporating their correction. The new real_question must:
+
+STEP 0 — RE-CLASSIFY BEFORE RE-ANALYZING. A rejected framing often means the request was never an OPEN decision at all — the rejection may be telling you "stop analyzing me". Re-run the route in order; the first that fires wins:
+- CRISIS (imminent harm to a person — self-harm / abuse / coercion / scam-shaped): no planning machinery. Name the dynamic plainly, point to one real resource; skeleton [], next_question null.
+- VENT (emotional, no decision asked): reflect in ONE warm line in insight. skeleton [], next_question null.
+- VALIDATION / CLOSED (already decided, just logging or sanity-checking): respect it — do NOT reopen. At most ONE cheap falsifiable check in insight; skeleton [], next_question null.
+- INFO (plain factual / how-to): just answer it in insight; skeleton [], next_question null.
+- FLAT (genuinely low-stakes / reversible / either-way-equal): one-line direct answer in insight; real_question = the surface question; skeleton [], next_question null.
+- OPEN (a real undecided question with genuine leverage): ONLY this gets a new skeleton and a next question. When unsure, prefer the light touch.
+
+GROUND RULES:
+- ${WORLD_FACT_HONESTY_GUARD}
+- NEVER decide the user's OPEN choice. No verdicts, no "X가 낫다", no "지금이 타이밍" — re-pose the load-bearing point as the deciding variable and hand it back. This binds real_question, insight, assumptions, and skeleton alike.
+
+For an OPEN re-analysis, the new real_question must:
 1. Directly address the user's feedback
 2. Still be a QUESTION (ends with ?)
 3. Be more specific than the rejected version
 4. Include framing_confidence — if you're still uncertain, say so (60-70).
 
-Do NOT repeat the rejected question with minor edits. Find the ACTUAL underlying question.`,
+Do NOT repeat the rejected question with minor edits. Find the ACTUAL underlying question.
+${locale === 'ko' ? `\n${KOREAN_VOICE_RULES}\n` : ''}
+${ARGUS_PRODUCT_FACTS}`,
 
     user: `Original problem:
 <user-data>${sanitize(problemText)}</user-data>
@@ -974,17 +1021,21 @@ Initially proposed question (rejected):
 User feedback:
 "${sanitize(rejectionReason)}"
 
-Re-analyze completely based on the user's rejection reason.
+Re-analyze completely based on the user's rejection reason — starting from the STEP 0 re-classification.
 
 JSON format:
 {
-  "real_question": "New core question (ends with ?)",
+  "request_type": "open | flat | vent | validation | info | resistance | crisis — your STEP 0 re-classification. ONLY 'open' gets a skeleton/next_question; every other type MUST have skeleton [] and next_question null.",
+  "real_question": "New core question (ends with ?) — for non-open types, the surface text",
+  "insight": "For open: one sharp reframe sentence (no verdict). For non-open types: the route's one-line response itself.",
   "framing_confidence": 75,
   "why_this_matters": "Why this question is the right one (1 sentence)",
-  "hidden_assumptions": ["Realistic hidden assumptions, 2-3 items"],
-  "skeleton": ["Updated skeleton items"],
+  "stakes": "routine | important | critical",
+  "reversibility": "reversible | partial | irreversible",
+  "hidden_assumptions": ["Realistic hidden assumptions, 2-3 items (open only; else [])"],
+  "skeleton": ["Updated skeleton items (open only; else [])"],
   "next_question": {
-    "text": "Next question",
+    "text": "Next question (open only; else null)",
     "subtext": "Reason",
     "options": ["1","2","3"],
     "type": "select"

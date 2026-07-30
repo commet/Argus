@@ -69,7 +69,10 @@ describe('F1(1) — the mix renders the user’s calls as an authoritative, non-
 
     expect(system).toContain('3-5 sections total');
     expect(system).toContain('Each section: 2-3 sentences');
-    expect(system).toContain('exactly 3');
+    // Honest count — the fixed "exactly 3" quota was a manufactured-content
+    // mandate; the brief now asks for as many real steps as exist, capped at 3.
+    expect(system).toContain('up to 3');
+    expect(system).not.toContain('exactly 3');
     expect(system).toContain('OMIT "content"');
     expect(user).not.toContain('Flat section content');
   });
@@ -83,6 +86,6 @@ describe('F1(1) — the mix renders the user’s calls as an authoritative, non-
 
     expect(system).toContain('each section to 2-3 sentences');
     expect(system).toContain('at most 4 assumptions');
-    expect(system).toContain('exactly 3 highest-leverage next steps');
+    expect(system).toContain('as many as are real, at most 3');
   });
 });

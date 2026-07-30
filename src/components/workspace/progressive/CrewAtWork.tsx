@@ -89,7 +89,7 @@ export function CrewAtWork({ workers, onRetry, reportsOpen, onToggleReports, her
       : L('Argus가 전제를 확인하고 있어요', 'Argus is checking the assumptions')
     : attentionCount > 0
       ? doneCount === 0
-        ? L('확인하지 못한 부분은 초안에 넣지 않아요', 'Unverified work will stay out of the draft')
+        ? L('확인하지 못한 부분은 정리에 넣지 않아요', 'Unverified work will stay out of the write-up')
         : L('도착한 결과만 보존하고, 빠진 부분은 따로 표시해요', 'Only arrived findings are saved; gaps stay visible')
       : doneCount === 0
         ? L('이 건은 사람이 판단할 항목이에요 — AI가 대신 정하지 않아요', "This one is yours to judge — AI doesn't decide it for you")

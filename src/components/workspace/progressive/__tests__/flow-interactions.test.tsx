@@ -246,7 +246,7 @@ describe('VerificationGate — ESC + keep/skip/override', () => {
     render(createElement(VerificationGate, { workers: unreviewed, onApprove, onReject, onSail: vi.fn(), onOverride, onClose: vi.fn() }));
     click(byText('반영')); expect(onApprove).toHaveBeenCalledWith('u1');
     click(byText('제외')); expect(onReject).toHaveBeenCalledWith('u1');
-    click(byText('확인 없이 모두 반영하고 초안 만들기')); expect(onOverride).toHaveBeenCalledTimes(1);
+    click(byText('확인 없이 모두 반영하고 정리하기')); expect(onOverride).toHaveBeenCalledTimes(1);
   });
 
   it('sail is disabled while results remain, enabled when none', () => {
@@ -255,7 +255,7 @@ describe('VerificationGate — ESC + keep/skip/override', () => {
     const sail = byText('남음') as HTMLButtonElement; // "N개 남음"
     expect(sail.disabled).toBe(true);
     render(createElement(VerificationGate, { workers: [], onApprove: vi.fn(), onReject: vi.fn(), onSail, onOverride: vi.fn(), onClose: vi.fn() }));
-    const sail2 = byText('초안 만들기') as HTMLButtonElement;
+    const sail2 = byText('정리하기') as HTMLButtonElement;
     expect(sail2.disabled).toBe(false);
     click(sail2); expect(onSail).toHaveBeenCalledTimes(1);
   });
