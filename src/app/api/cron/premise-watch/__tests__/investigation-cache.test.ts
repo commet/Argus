@@ -39,7 +39,15 @@ let rows: unknown[] = [];
 
 vi.mock('@supabase/supabase-js', () => ({
   createClient: () => ({
-    from: () => ({
+    from: (table: string) => table === 'decision_items'
+      ? (() => {
+      // 두 번째 소스(decision_items, 2026-07-30) 쿼리 체인: .select().eq().eq().eq().limit()
+      // 이 테스트의 관심사는 receipts 경로이므로 빈 목록을 준다 — 다만 체인은
+      // 진짜 모양대로 받아야 한다 (체인이 끊기면 라우트 전체가 죽어 가짜 빨간불).
+          const chain = { eq: () => chain, limit: () => Promise.resolve({ data: [], error: null }) } as never;
+          return { select: () => chain };
+        })()
+      : ({
       select: () => ({
         eq: () => ({ single: () => Promise.resolve({ data: null }) }),
         is: () => ({ eq: () => ({ not: () => ({ lte: () => ({ limit: () => Promise.resolve({ data: rows, error: null }) }) }) }) }),

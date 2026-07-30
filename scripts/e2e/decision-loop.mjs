@@ -442,6 +442,41 @@ try {
   step('7. 봉인 제안에 확인일이 박혀 있다', hasDate || isWitness,
     isWitness ? '증인 모드(확인일 없는 기록)로 떴다' : (hasDate ? '' : '확정 버튼에 날짜가 없다'));
 
+  // ── 7b. 봉인 전 확인 표면 — 추적될 전제를 보고 뺄 수 있다 (2026-07-30) ──
+  // 서랍을 열어 "확인일에 함께 볼 전제" 목록을 확인하고, 하나를 ×로 뺀 뒤
+  // 그 문장을 기억해 둔다. 봉인 후 /project 추적 목록에 **그 문장이 없어야**
+  // deny 배선이 산 것이다 — 화면에서 사라지는 것만 보면 절반이다.
+  let deniedPremise = '';
+  {
+    const drawerBtn = await clickable(/돌아올 때·함께 볼 항목 설정|함께 보관할 항목 보기|Set the return|See what will be kept/);
+    if (drawerBtn) { await drawerBtn.click(); await page.waitForTimeout(1200); }
+    const removeBtns = page.getByRole('button', { name: /이 전제 추적하지 않기|do not track this premise/ });
+    const nPremises = await removeBtns.count().catch(() => 0);
+    await shot('seal-drawer');
+    if (nPremises === 0) {
+      // 이번 실행의 분석이 술어와 겹치지 않는 가정을 안 냈을 수 있다 — 그건 앱
+      // 고장이 아니므로 빨간불이 아니다. 다만 조용히 초록으로 두지 않고 말한다.
+      console.log('   🟡 7b. 이번 실행에는 술어 밖 추적 전제가 없어 deny 배선을 못 쟀다 (앱 고장 아님)');
+    } else {
+      const firstItem = removeBtns.first();
+      deniedPremise = (await firstItem.locator('xpath=../span[1]').innerText().catch(() => '')).split('\n')[0].trim();
+      if (!deniedPremise) {
+        // 형제 span 을 못 읽으면 li 전체에서 추출
+        deniedPremise = (await firstItem.locator('xpath=..').innerText().catch(() => '')).split('\n')[0].replace(/×$/, '').trim();
+      }
+      await firstItem.click();
+      await page.waitForTimeout(800);
+      // 개수로 재면 안 된다 (2026-07-30 실측): 풀이 캡(5)보다 크면 하나를 빼도
+      // 다음 후보가 그 자리에 들어와 개수가 유지된다 — 그건 올바른 동작이다.
+      // 재야 할 사실은 "**뺀 그 문장**이 목록에서 사라졌는가"다.
+      const drawerAfter = await bodyText();
+      const key7b = deniedPremise.slice(0, 16);
+      const gone = key7b.length >= 8 && !drawerAfter.includes(key7b);
+      step('7b. 봉인 서랍에서 추적 전제를 ×로 뺄 수 있다', gone,
+        gone ? `뺀 문장: "${deniedPremise.slice(0, 30)}…"` : `뺀 문장이 목록에 그대로 있다: "${key7b}…"`);
+    }
+  }
+
   if (MODE === 'signed-in') {
     // 로그인 상태에서만 달라지는 것: 익명용 고지가 없어야 한다.
     const anonNotice = /이 브라우저에 묶여 있어요|tied to this browser/.test(offerText);
@@ -550,6 +585,16 @@ try {
   const visible = projectText.includes(DECISION.slice(0, 18));
   step('10. /project 가 열리고 그 결정이 보인다', !projectWalled && visible,
     projectWalled ? '로그인 벽' : (visible ? '' : '결정이 목록에 없다'));
+
+  // ── 10b. deny 가 저장까지 막았다 ─────────────────────────────────────
+  // 서랍에서 ×로 뺀 문장이 /project 추적 목록에도 없어야 한다. 2026-07-30 전에는
+  // 화면에서만 사라지고 저장소에는 active 로 남았다 — 그 회귀를 여기서 막는다.
+  if (MODE === 'anon' && deniedPremise) {
+    const key = deniedPremise.slice(0, 16);
+    const leaked = key.length >= 8 && projectText.includes(key);
+    step('10b. ×로 뺀 전제가 추적 목록에 저장되지 않았다', !leaked,
+      leaked ? `뺀 문장이 /project 에 살아 있다: "${key}…"` : '');
+  }
 
   // ── 11. 뒷정리 = 삭제 경로 검사 (익명 전용) ──────────────────────────
   if (MODE === 'anon') {
