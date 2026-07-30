@@ -1,5 +1,33 @@
 # Changelog
 
+## 3.0.19 - 2026-07-30
+
+- **The status line now has a way to be turned on.** A plugin cannot ship the
+  main `statusLine` key — Claude Code honours only `agent` and
+  `subagentStatusLine` from a plugin's settings.json — so `statusline/index.js`
+  was downloaded by every user and activated by none. `/argus:settings
+  statusline on` writes the key into the user's own `~/.claude/settings.json`;
+  `off` removes it. It refuses to overwrite a status line it did not write
+  (`--replace` takes it over after a backup), refuses to touch a settings.json
+  it cannot parse, and runs the command once **before** wiring it so a broken
+  line is never saved.
+- **The README told users to write a placeholder that cannot expand.** Both
+  READMEs carried `"command": "node ${CLAUDE_PLUGIN_ROOT}/statusline/index.js"`.
+  `${CLAUDE_PLUGIN_ROOT}` substitutes in plugin components (skill and agent
+  content, hook and monitor commands, MCP/LSP fields) and **not** in a user's
+  settings, where the shell drops the empty variable, node cannot find the
+  module, and Claude Code renders a blank status line. Measured, not inferred:
+  the command resolves to `C:\Program Files\Git\statusline\index.js` under Git
+  Bash and exits non-zero. Both READMEs now point at the one command, and a
+  regression guard fails the build if any document puts a `${...}` placeholder
+  inside a `statusLine` snippet again.
+- **doctor [11] — status line wiring.** Reports off / on / pointing at another
+  copy / a foreign status line, and never executes a command it did not write.
+  "Downloaded but never activated" was previously invisible on every surface.
+- Root cause worth keeping: no test ever *executed* the documented command
+  string, so the whole repo stayed green while the instruction was dead.
+  `statusline-wire.test.mjs` now runs the wired command in a real shell.
+
 ## 3.0.18 - 2026-07-30
 
 - **Copy sweep across every user-visible plugin surface** (founder's four
