@@ -13,7 +13,7 @@ Argus binds a decision to its premises and return condition before fluency — o
 
 <p align="center">
   <a href="https://www.npmjs.com/package/argus-decision-mcp"><img src="https://img.shields.io/npm/v/argus-decision-mcp?color=A8842F&label=npm%20%C2%B7%20argus-decision-mcp" alt="npm version"></a>
-  <img src="https://img.shields.io/badge/Claude%20Code%20plugin-argus%403.0.15-667572" alt="Claude Code plugin">
+  <img src="https://img.shields.io/badge/Claude%20Code%20plugin-argus-667572" alt="Claude Code plugin">
   <img src="https://img.shields.io/badge/license-open--core-6E8261" alt="license: open-core">
   <img src="https://img.shields.io/badge/local--first-no%20account%20needed-242321" alt="local-first">
 </p>
@@ -67,6 +67,8 @@ Three doors, one loop. Start with whichever fits.
 | 🔌 **Claude Code plugin** | Deciding *inside* a codebase, over real PRs and files. | `/plugin marketplace add commet/Argus`<br>`/plugin install argus@argus` |
 
 <sub>New and not sure? The **web app** needs zero setup. Want Argus in every AI chat? The **MCP server** is the one. (MCP = Model Context Protocol — the open standard assistants use to load tools.) Full setup + tool list in **[argus-mcp/README.md](./argus-mcp/README.md)** and **[argus-plugin-v2/README.md](./argus-plugin-v2/README.md)**.</sub>
+
+<sub>**What you need:** the web app needs only a browser. The MCP server and the plugin need **Node.js 18+** on your `PATH` (`node --version`; get it from [nodejs.org](https://nodejs.org)). No API key, no account, no config file — records are local files from the first use.</sub>
 
 ---
 
@@ -197,7 +199,8 @@ Add Argus to any AI assistant that supports MCP (Claude Desktop, Claude Code,
 Cursor, …). The fastest path, in Claude Code:
 
 ```bash
-claude mcp add argus "--" npx -y argus-decision-mcp
+claude mcp add argus -- npx -y argus-decision-mcp          # this project
+claude mcp add -s user argus -- npx -y argus-decision-mcp  # every project
 ```
 
 Zero config works — your ledger lives in the current project's `.argus`. For the full config (Claude

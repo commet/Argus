@@ -41,29 +41,14 @@ Argus는 Claude Code에서 쓰는 결정 루프입니다.
 └─────────────────────  argus · 예측 저장 → 실제 결과 기록 ⚓ ─┘
 ```
 
-남는 것은 판단 영수증입니다 — 예측과 실제가 나란히, 평가는 없이:
-
-```text
-┌─ ARGUS · 판단 영수증 ────────────────────────────────────────┐
-
-  내가 예측한 것                               2026-07-02 저장
-    "신규 요금제 출시 후 30일 내 이탈률이 지금 수준을 유지한다"
-    확인일 2026-08-01
-
-  실제로 일어난 일                             2026-08-03 확인
-    이탈률이 2%p 올랐다. 요금제 안내 부족이 컸다.
-
-  이 판단을 내린 사람: 나 (모델 아님)
-
-  ───────────────────────────────────────────────────────
-  AI VERDICT ON THIS DECISION ······················  NONE
-  모델은 당신을 채점하지 않았습니다. 현실이 답했습니다.
-└─────────────────────  argus · 예측 저장 → 실제 결과 기록 ⚓ ─┘
-```
-
 ---
 
 ## 설치
+
+**필요한 것:** Claude Code, 그리고 `PATH`에 **Node.js 18 이상** — 동봉된 결정
+도구가 `npx`로 뜨기 때문입니다. `node --version`을 쳐 보고 아무것도 안 나오면
+[nodejs.org](https://nodejs.org)에서 먼저 설치하세요. 그 외에는 없습니다 —
+API 키도, 계정도, 설정 파일도 필요 없습니다.
 
 Claude Code에서:
 
@@ -72,7 +57,14 @@ Claude Code에서:
 /plugin install argus@argus
 ```
 
-Claude Code를 다시 시작한 뒤:
+Claude Code를 다시 시작하세요. 배선이 제대로 됐는지 확인하려면:
+
+```text
+/argus:settings doctor
+```
+
+읽기 전용이고 검사 항목마다 한 줄씩 나옵니다. 확인할 수 없는 건 추측하지 않고
+그대로 말합니다. 그 다음 시작:
 
 ```text
 /argus:review "Firestore에서 Supabase로 옮길까?"
@@ -150,8 +142,9 @@ Argus는 그럴듯한 답만으로는 부족한 결정에 씁니다.
   일은 없습니다.
 - `check`는 귀환 루프입니다 — 지금 확인할 것, 원문을 먼저 본 뒤 내 답 덧붙이기,
   후보 저장(`/argus:check <id>`), 전제 재확인(`/argus:check premises`).
-- `history`는 기록입니다 — 결정 일지, 버전 트리, 중립적인 시간 순서, 그리고
-  과거 대화 회수(`/argus:history scan`).
+- `history`는 기록입니다 — 결정 일지, 버전 트리(`/argus:history versions`),
+  반복되는 것에서 내가 직접 써서 남기는 원칙(`/argus:history principles`),
+  그리고 과거 대화 회수(`/argus:history scan`).
 - `settings`는 설정입니다 — 언어·보스 페르소나, 웹앱 연결과 동기화.
 
 예전 명령 이름은 종료했습니다. 과거의 단계 명령은 내부 파일일 뿐이며,
@@ -194,7 +187,7 @@ sync는 먼저 웹앱에서 한 답변/미루기를 로컬 ledger로 가져오�
 |---|---|
 | `/argus:review` | 결정·PR·문서를 전체 리뷰 파이프라인으로 압박 검증하고 싶을 때. |
 | `/argus:check` | 다시 볼 때가 됐을 때 · 내 답 덧붙이기 · 후보 저장(`<id>`) · 전제 재확인(`premises`). |
-| `/argus:history` | 결정 일지 · 버전 트리(`versions`) · 중립적인 시간 순서 · 과거 대화 회수(`scan`). |
+| `/argus:history` | 결정 일지 · 버전 트리(`versions`) · 내가 쓰는 원칙(`principles`) · 과거 대화 회수(`scan`). |
 | `/argus:settings` | 언어·보스 설정, 웹앱 연결/동기화(`connect`, `sync`). |
 | `/argus:help` | 가장 짧은 명령어 지도가 필요할 때. |
 
@@ -257,6 +250,7 @@ skill 파일을 바꾼 뒤에는 Claude Code를 다시 시작하세요. skill �
 
 ## 참고
 
+- 웹앱: https://argus.voyage · 소스·이슈: https://github.com/commet/Argus · npm의 MCP: https://www.npmjs.com/package/argus-decision-mcp
 - 변경 이력: `CHANGELOG.md`
 - 제한된 리뷰어 역할: `agents/`
 - Boss 말투 스킨 (목소리 전용 — 리뷰의 실질은 설정된 자리): `data/boss-types.yaml`

@@ -43,30 +43,14 @@ with no grade:
 └──────────────────  argus · prediction saved → reality recorded ⚓ ─┘
 ```
 
-What remains is a Judgment Receipt — your prediction and reality side by side,
-with no grade:
-
-```text
-┌─ ARGUS · JUDGMENT RECEIPT ───────────────────────────────────┐
-
-  What I predicted                              saved 2026-07-02
-    "churn stays flat for 30 days after the new pricing ships"
-    check-by 2026-08-01
-
-  What actually happened                     recorded 2026-08-03
-    Churn rose 2pp. Poor plan-migration messaging did most of it.
-
-  This call was made by: me (not the model)
-
-  ───────────────────────────────────────────────────────
-  AI VERDICT ON THIS DECISION ······················  NONE
-  The model never graded you. Reality answered.
-└──────────────────  argus · prediction saved → reality recorded ⚓ ─┘
-```
-
 ---
 
 ## Install
+
+**Requirements:** Claude Code, and **Node.js 18 or newer** on your `PATH` — the
+bundled decision tools run through `npx`. Check with `node --version`; if that
+prints nothing, install Node from [nodejs.org](https://nodejs.org) first.
+Nothing else: no API key, no account, no config file.
 
 In Claude Code:
 
@@ -75,7 +59,14 @@ In Claude Code:
 /plugin install argus@argus
 ```
 
-Restart Claude Code, then start with:
+Restart Claude Code. To confirm the install is wired, run:
+
+```text
+/argus:settings doctor
+```
+
+It is read-only and prints one line per check; anything it cannot verify it says
+plainly rather than guessing. Then start with:
 
 ```text
 /argus:review "Should we migrate from Firestore to Supabase?"
@@ -158,9 +149,10 @@ Plain language:
 - `check` is the return loop — what is due now, show the original before asking,
   append the user's answer, save a candidate for later (`/argus:check <id>`),
   or re-check premises (`/argus:check premises`).
-- `history` is the record — decision log, one decision's version tree, a neutral
-  chronology, and `/argus:history scan` to recover
-  decisions from past Claude Code chats.
+- `history` is the record — decision log, one decision's version tree
+  (`/argus:history versions`), a principle you author yourself from what recurs
+  (`/argus:history principles`), and `/argus:history scan` to recover decisions
+  from past Claude Code chats.
 - `settings` is setup — language and boss persona, webapp pairing and sync.
 
 Older command names are retired. The former step commands are internal files;
@@ -205,7 +197,7 @@ Nothing is sent before browser approval. Auto-sync can be disabled with
 |---|---|
 | `/argus:review` | You want a decision or artifact pressure-tested by the full reviewer pipeline. |
 | `/argus:check` | A return is due, you want to append an answer, save a candidate (`<id>`), or re-check premises. |
-| `/argus:history` | You want the decision chronology, a version tree (`versions`), or `scan`. |
+| `/argus:history` | You want the decision chronology, a version tree (`versions`), a principle you author (`principles`), or `scan`. |
 | `/argus:settings` | You want to configure Argus or pair/sync the webapp (`connect`, `sync`). |
 | `/argus:help` | You want the shortest command map. |
 
