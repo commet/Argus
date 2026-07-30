@@ -63,12 +63,12 @@ Argus는 결정의 뒤편에 남는 것을 기록합니다. 처음 한 말, 결�
 | | 이런 분께 | 시작하기 |
 |---|---|---|
 | 🌐 **웹앱** | 누구나. 설치·가입 필요 없음. | **[argus.voyage](https://argus.voyage)** 열기 |
-| 🧩 **MCP 서버** | MCP를 지원하는 AI 어시스턴트라면 어디든 — Claude Desktop, Claude Code, Cursor… | `claude mcp add argus "--" npx -y argus-decision-mcp` |
+| 🧩 **MCP 서버** | MCP를 지원하는 AI 어시스턴트라면 어디든 — Claude Code, Claude Desktop, Codex, Cursor… | `claude mcp add argus -- npx -y argus-decision-mcp`<br><sub>다른 호스트 → [argus-mcp/README.md](./argus-mcp/README.md)</sub> |
 | 🔌 **Claude Code 플러그인** | 코드베이스 *안에서*, 실제 PR·파일 위에서 결정할 때. | `/plugin marketplace add commet/Argus`<br>`/plugin install argus@argus` |
 
 <sub>잘 모르겠으면 **웹앱**이 제일 편합니다 — 아무것도 설치 안 해도 됩니다. 모든 AI 대화에서 쓰고 싶다면 **MCP 서버**가 답이고요. (MCP = Model Context Protocol, 어시스턴트가 도구를 불러올 때 쓰는 공개 표준입니다.) 자세한 설정과 도구 목록은 **[argus-mcp/README.md](./argus-mcp/README.md)**(영문), **[argus-plugin-v2/README.ko.md](./argus-plugin-v2/README.ko.md)** 를 보세요.</sub>
 
-<sub>**필요한 것:** 웹앱은 브라우저만 있으면 됩니다. MCP 서버와 플러그인은 `PATH`에 **Node.js 18 이상**이 필요합니다 (`node --version`으로 확인, 없으면 [nodejs.org](https://nodejs.org)에서 설치). API 키도, 계정도, 설정 파일도 필요 없습니다 — 기록은 처음 쓰는 순간부터 로컬 파일로 남습니다.</sub>
+<sub>**필요한 것:** 웹앱은 브라우저만 있으면 됩니다. MCP 서버와 플러그인은 `PATH`에 **Node.js 18 이상**이 필요합니다 — `node --version`으로 확인하고, 아무것도 안 나오면 [nodejs.org](https://nodejs.org)에서 설치하세요 (20 LTS로 검증했습니다). API 키도, 계정도, 설정 파일도 필요 없습니다 — 기록은 처음 쓰는 순간부터 로컬 파일로 남습니다.</sub>
 
 ---
 
@@ -250,7 +250,7 @@ npm run dev            # http://localhost:3000 에서 뜹니다
 src/               # 웹앱 (Next.js — argus.voyage)
 argus-mcp/         # MCP 서버 (npm: argus-decision-mcp, MIT)
 argus-plugin-v2/   # Claude Code 플러그인 (marketplace: argus, MIT)
-tools/argus-watch/ # 독립 실행형 결정-감시 CLI
+tools/argus-watch/ # 초기의 독립 실행형 감시 CLI (플러그인으로 대체됨 · 참고용)
 docs/ARGUS-BLUEPRINT.md   # 빌드 정본 (무엇을 어떤 순서로 짓는가)
 ```
 

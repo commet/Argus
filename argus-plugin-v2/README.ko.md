@@ -45,7 +45,7 @@ Argus는 Claude Code에서 쓰는 결정 루프입니다.
 
 ## 설치
 
-**필요한 것:** Claude Code, 그리고 `PATH`에 **Node.js 18 이상** — 동봉된 결정
+**필요한 것:** Claude Code, 그리고 `PATH`에 **Node.js 18 이상**(20 LTS 권장) — 동봉된 결정
 도구가 `npx`로 뜨기 때문입니다. `node --version`을 쳐 보고 아무것도 안 나오면
 [nodejs.org](https://nodejs.org)에서 먼저 설치하세요. 그 외에는 없습니다 —
 API 키도, 계정도, 설정 파일도 필요 없습니다.
@@ -238,6 +238,8 @@ Argus는 프로젝트 안의 `.argus/`에 기록을 남깁니다.
 ---
 
 ## 개발
+
+**리포 루트에서** 실행합니다 (경로가 이 폴더 기준이 아니라 루트 기준입니다):
 
 ```bash
 claude --plugin-dir ./argus-plugin-v2

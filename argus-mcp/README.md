@@ -6,58 +6,63 @@ reality later did. It does not score people or give verdicts.
 Part of [Argus](https://github.com/commet/Argus) · web app at
 [argus.voyage](https://argus.voyage) · MIT licensed.
 
-## Install
+## What using it looks like
 
-**Requirements:** **Node.js 18 or newer** (`node --version`); install from
-[nodejs.org](https://nodejs.org) if that prints nothing. No API key and no
-account — records are local files from the first call.
+You talk normally. Argus offers to keep one thing, and comes back later.
 
-Pick the section for your host. Every path below installs the same server.
+```text
+2026-08-19
+you    We're going with Postgres over DynamoDB — the join patterns kill us otherwise.
 
-### Codex (CLI or app)
+       ┌ Save this as a prediction?          (your host renders the form)
+       │ "Postgres handles our join patterns without a read-replica through Q4"
+       │ check by 2026-10-01
+       └ accept as written · edit the wording or the date · decline
 
-```bash
-codex mcp add argus-decision -- npx -y argus-decision-mcp
-codex mcp list        # argus-decision should be listed and enabled
+… six weeks later, in a different conversation …
+
+2026-10-01
+argus  One check is due — you saved this on 2026-08-19:
+       "Postgres handles our join patterns without a read-replica through Q4"
+       What actually happened?
+
+you    We added a read replica in September. Analytics queries, not joins.
+
+       Recorded. The original sentence stays exactly as you wrote it, your
+       answer is appended next to it, and nothing is scored.
 ```
 
-Restart Codex after adding the server. Conversations opened before `mcp add`
-do not gain newly registered tools; quit and reopen the app or start a new CLI
-session.
+Nothing is saved without you accepting it, and Argus never fills in the outcome
+for you.
 
-Argus confirms a prediction with a one-tap form before saving it. Codex shows
-that form under its default approval policy. If yours is set to `never`, or
-`approval_policy.granular.mcp_elicitations = false`, Codex may return a protocol
-`decline` without rendering the form. MCP currently supplies no marker that
-distinguishes that policy response from a fast intentional decline, so Argus
-must respect it as a decline. Enable MCP elicitations and retry if you need the
-confirmation form.
+## Install
 
-An AI-drafted **premise** works the same way but has a chat path: when the
-confirm window cannot reach the user (the host closes it unanswered), the draft
-comes back in the response, and once the user approves it in conversation the
-assistant records it by calling again with `chat_confirmed: true` — provenance
-stays `ai_surfaced`.
+**Requirements:** **Node.js 18 or newer** — Node 20 LTS is the tested version
+(`node --version`; get it from [nodejs.org](https://nodejs.org)). No API key and
+no account: records are local files from the first call.
+
+Pick your host. Every path below installs the same server.
 
 ### Claude Code
 
-The plugin wires this server for you, and adds the decision commands on top:
+The plugin wires this server for you and adds the decision commands on top:
 
 ```text
 /plugin marketplace add commet/Argus
 /plugin install argus@argus
 ```
 
-Restart Claude Code, then `/argus:settings doctor` confirms the wiring. Prefer
-the server alone, without the commands? Add it directly instead:
+Restart Claude Code, then `/argus:settings doctor` confirms the wiring.
+
+Want the server alone, without the commands? Add it directly:
 
 ```bash
-claude mcp add argus -- npx -y argus-decision-mcp        # this project only
-claude mcp add -s user argus -- npx -y argus-decision-mcp # every project
+claude mcp add argus -- npx -y argus-decision-mcp          # this project only
+claude mcp add -s user argus -- npx -y argus-decision-mcp  # every project
 ```
 
-`claude mcp add` defaults to the current project. Use `-s user` if you want
-Argus available everywhere.
+`claude mcp add` defaults to the current project — use `-s user` if you want
+Argus everywhere.
 
 ### Claude Desktop
 
@@ -91,14 +96,42 @@ it an absolute path. On Windows, escape the backslashes
 <details>
 <summary>Windows: server does not appear</summary>
 
-- Run the command by hand first — `npx -y argus-decision-mcp` should start and
-  wait silently. An error here is the real error.
+- Run the command by hand first. `npx -y argus-decision-mcp` prints one
+  privacy notice and then waits for a client — that is success, not a hang
+  (Ctrl-C to stop it). Any other output is the real error.
 - `npx` failing while it works in your terminal usually means npm is not
   installed globally. Check that `%APPDATA%\npm` exists; if not, run
   `npm install -g npm`.
 - If the log mentions an unexpanded `${APPDATA}`, add
   `"APPDATA": "C:\\Users\\you\\AppData\\Roaming\\"` to the `env` block above.
 - Logs: `%APPDATA%\Claude\logs\mcp*.log` (macOS: `~/Library/Logs/Claude`).
+
+</details>
+
+### Codex (CLI or app)
+
+```bash
+codex mcp add argus-decision -- npx -y argus-decision-mcp
+codex mcp list        # argus-decision should be listed and enabled
+```
+
+Restart Codex afterwards. A conversation opened before `mcp add` does not gain
+newly registered tools — quit and reopen the app, or start a new CLI session.
+
+<details>
+<summary>Codex: the confirmation form does not appear</summary>
+
+Argus confirms a prediction with a one-tap form before saving it. Codex renders
+that form under its default approval policy. If yours is `never`, or
+`approval_policy.granular.mcp_elicitations = false`, Codex returns a protocol
+`decline` without ever showing the form. MCP supplies no marker that separates
+that policy response from a fast intentional decline, so Argus has to respect it
+as a decline. Enable MCP elicitations and retry if you want the form.
+
+An AI-drafted **premise** has a chat fallback: when the confirm window cannot
+reach you, the draft comes back in the response, and once you approve it in
+conversation the assistant records it by calling again with
+`chat_confirmed: true`. Provenance stays `ai_surfaced` either way.
 
 </details>
 
@@ -118,21 +151,29 @@ it an absolute path. On Windows, escape the backslashes
 }
 ```
 
-Install once; there is nothing to update by hand. Leave the version off, as
+Install once; there is nothing to update by hand. **Leave the version off**, as
 above — `npx` re-resolves a bare package name on every launch, so each session
 starts the current build.
 
-Do **not** add a range like `@^2`. A range is satisfied by whatever is already
-in the npx cache, so it never consults the registry again. Measured on
-2026-07-29, same spec string both times, with the cache holding an older version
-that the range still allowed:
+<details>
+<summary>Why no version range — and why that matters</summary>
+
+Do **not** write a range like `@^2`. A range is satisfied by whatever already
+sits in the npx cache, so it never consults the registry again and the wire can
+stay frozen on an old build for weeks while everything looks healthy. Measured
+2026-07-29, same spec string both times, cache holding an older version the
+range still allowed:
 
 | spec | launched |
 |---|---|
 | `argus-decision-mcp` | the current release |
 | `argus-decision-mcp@^2.0.0` | the stale cached build |
 
-An exact pin (`@2.0.12`) is correct but freezes there until someone edits it.
+An exact pin is correct but freezes there until someone edits it. `argus_check_in`
+reports the version actually running (`data.server_version`) if you ever need to
+confirm which build answered.
+
+</details>
 
 ## Where your records live
 

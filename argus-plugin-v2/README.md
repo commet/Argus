@@ -47,7 +47,7 @@ with no grade:
 
 ## Install
 
-**Requirements:** Claude Code, and **Node.js 18 or newer** on your `PATH` — the
+**Requirements:** Claude Code, and **Node.js 18 or newer** on your `PATH` (20 LTS is the tested version) — the
 bundled decision tools run through `npx`. Check with `node --version`; if that
 prints nothing, install Node from [nodejs.org](https://nodejs.org) first.
 Nothing else: no API key, no account, no config file.
@@ -248,6 +248,9 @@ Review `.argus/` before sharing or committing it.
 ---
 
 ## Development
+
+From the **repository root** (these paths are relative to it, not to this
+folder):
 
 ```bash
 claude --plugin-dir ./argus-plugin-v2

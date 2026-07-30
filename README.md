@@ -63,12 +63,12 @@ Three doors, one loop. Start with whichever fits.
 | | Best for | Get started |
 |---|---|---|
 | 🌐 **Web app** | Anyone. Nothing to install, no signup. | Open **[argus.voyage](https://argus.voyage)** |
-| 🧩 **MCP server** | Any AI assistant that speaks MCP — Claude Desktop, Claude Code, Cursor… | `claude mcp add argus "--" npx -y argus-decision-mcp` |
+| 🧩 **MCP server** | Any AI assistant that speaks MCP — Claude Code, Claude Desktop, Codex, Cursor… | `claude mcp add argus -- npx -y argus-decision-mcp`<br><sub>other hosts → [argus-mcp/README.md](./argus-mcp/README.md)</sub> |
 | 🔌 **Claude Code plugin** | Deciding *inside* a codebase, over real PRs and files. | `/plugin marketplace add commet/Argus`<br>`/plugin install argus@argus` |
 
 <sub>New and not sure? The **web app** needs zero setup. Want Argus in every AI chat? The **MCP server** is the one. (MCP = Model Context Protocol — the open standard assistants use to load tools.) Full setup + tool list in **[argus-mcp/README.md](./argus-mcp/README.md)** and **[argus-plugin-v2/README.md](./argus-plugin-v2/README.md)**.</sub>
 
-<sub>**What you need:** the web app needs only a browser. The MCP server and the plugin need **Node.js 18+** on your `PATH` (`node --version`; get it from [nodejs.org](https://nodejs.org)). No API key, no account, no config file — records are local files from the first use.</sub>
+<sub>**What you need:** the web app needs only a browser. The MCP server and the plugin need **Node.js 18+** on your `PATH` — check with `node --version`, and get it from [nodejs.org](https://nodejs.org) if that prints nothing (20 LTS is the tested version). No API key, no account, no config file: records are local files from the first use.</sub>
 
 ---
 
@@ -256,7 +256,7 @@ and is never sent to our server.
 src/               # the web app (Next.js — argus.voyage)
 argus-mcp/         # the MCP server (npm: argus-decision-mcp, MIT)
 argus-plugin-v2/   # the Claude Code plugin (marketplace: argus, MIT)
-tools/argus-watch/ # a standalone decision-watch CLI
+tools/argus-watch/ # the earlier standalone watch CLI (superseded by the plugin; kept for reference, Korean docs)
 docs/ARGUS-BLUEPRINT.md   # the build canon (what gets built, in what order)
 ```
 
