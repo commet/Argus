@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import { stripLocale } from '@/lib/locale-path';
 import { AuthProvider, useAuth } from '@/lib/auth';
 import { AccountSyncToast } from '@/components/ui/AccountSyncToast';
+import { ForeignDataNotice } from '@/components/ui/ForeignDataNotice';
 import { SessionExpiredToast } from '@/components/ui/SessionExpiredToast';
 import { StorageErrorToast } from '@/components/ui/StorageErrorToast';
 import { Toast } from '@/components/ui/Toast';
@@ -95,6 +96,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
       <StoreInitializer />
       <AuthReadinessGate>{children}</AuthReadinessGate>
       <AccountSyncToast />
+      <ForeignDataNotice />
       {/* System alerts must exist on every viewport. They used to sit inside
           Header's desktop-only controls, so mobile storage failures and lapsed
           sessions were completely silent. */}

@@ -291,53 +291,70 @@ try {
     console.error(`installed runtime: ${JSON.stringify({ command: runtimeCommand, args: runtimeArgs })}`);
   }
 
-  const runtimeClient = new Client(
-    { name: 'argus-plugin-install-smoke', version: '1' },
-    { capabilities: {} },
-  );
-  const runtimeTransport = new StdioClientTransport({
-    // npm exposes npm/npx as .cmd shims on Windows. Claude Code knows how to launch
-    // that host command, but Node's direct spawn (used by this independent
-    // inventory check) needs the bounded cmd.exe shim explicitly.
-    command: runtimeCommand,
-    args: runtimeArgs,
-    // Never run npm exec from the argus-mcp source checkout. npm prefers a
-    // matching top-level local package there, but top-level packages do not get
-    // their own node_modules/.bin link. A real user's host starts in their
-    // project, so make the independent probe do the same.
-    cwd: journeyProject,
-    env: {
-      ...env,
-      CLAUDE_PROJECT_DIR: journeyProject,
-      ...installedEnv,
-    },
-  });
-  try {
-    await runtimeClient.connect(runtimeTransport);
-    const listed = await runtimeClient.listTools();
-    const toolNames = new Set(listed.tools.map((tool) => tool.name));
-    for (const expected of [
-      'argus_check_in',
-      'argus_predict',
-      'argus_resolve',
-      'argus_capture',
-      'argus_patterns',
-      'argus_settings',
-    ]) {
-      if (!toolNames.has(expected)) {
-        throw new Error(`installed MCP is missing public tool ${expected}: ${[...toolNames].join(', ')}`);
-      }
-    }
-    const checked = await runtimeClient.callTool({
-      name: 'argus_check_in',
-      arguments: { argus_dir: journeyArgusDir },
+  // Registry-propagation retry (2026-07-30, measured on the v2.0.18 run):
+  // seconds after `npm publish` returns, a registry edge can still resolve the
+  // bare name to the PREVIOUS version — this probe launched 2.0.17 and went red
+  // while 2.0.18 was in fact live. A bare name re-asks the registry on every
+  // launch, so the honest move is to relaunch a few times over ~1 minute
+  // before declaring the real 2.0.4-class accident (published build ≠ tag).
+  const launchAndCheck = async () => {
+    const runtimeClient = new Client(
+      { name: 'argus-plugin-install-smoke', version: '1' },
+      { capabilities: {} },
+    );
+    const runtimeTransport = new StdioClientTransport({
+      // npm exposes npm/npx as .cmd shims on Windows. Claude Code knows how to launch
+      // that host command, but Node's direct spawn (used by this independent
+      // inventory check) needs the bounded cmd.exe shim explicitly.
+      command: runtimeCommand,
+      args: runtimeArgs,
+      // Never run npm exec from the argus-mcp source checkout. npm prefers a
+      // matching top-level local package there, but top-level packages do not get
+      // their own node_modules/.bin link. A real user's host starts in their
+      // project, so make the independent probe do the same.
+      cwd: journeyProject,
+      env: {
+        ...env,
+        CLAUDE_PROJECT_DIR: journeyProject,
+        ...installedEnv,
+      },
     });
-    const reportedVersion = checked.structuredContent?.data?.server_version;
-    if (reportedVersion !== pinnedVersion) {
-      throw new Error(`installed MCP answered as ${reportedVersion}, expected exact pin ${pinnedVersion}`);
+    try {
+      await runtimeClient.connect(runtimeTransport);
+      const listed = await runtimeClient.listTools();
+      const toolNames = new Set(listed.tools.map((tool) => tool.name));
+      for (const expected of [
+        'argus_check_in',
+        'argus_predict',
+        'argus_resolve',
+        'argus_capture',
+        'argus_patterns',
+        'argus_settings',
+      ]) {
+        if (!toolNames.has(expected)) {
+          throw new Error(`installed MCP is missing public tool ${expected}: ${[...toolNames].join(', ')}`);
+        }
+      }
+      const checked = await runtimeClient.callTool({
+        name: 'argus_check_in',
+        arguments: { argus_dir: journeyArgusDir },
+      });
+      return checked.structuredContent?.data?.server_version;
+    } finally {
+      await runtimeClient.close();
     }
-  } finally {
-    await runtimeClient.close();
+  };
+  let reportedVersion;
+  for (let attempt = 1; attempt <= 6; attempt++) {
+    reportedVersion = await launchAndCheck();
+    if (reportedVersion === pinnedVersion) break;
+    if (attempt < 6) {
+      console.error(`installed MCP answered as ${reportedVersion}, expected ${pinnedVersion} — registry may still be propagating, retry ${attempt}/5 in 12s`);
+      await new Promise((resolve) => setTimeout(resolve, 12_000));
+    }
+  }
+  if (reportedVersion !== pinnedVersion) {
+    throw new Error(`installed MCP answered as ${reportedVersion}, expected exact pin ${pinnedVersion}`);
   }
 
   command(claudeBin, ['plugin', 'disable', 'argus@argus', '--scope', 'user'], { env });
