@@ -28,10 +28,13 @@ const DEFAULT_SETTINGS: Settings = {
   all_output_formats: false,
   new_arc_enabled: false,
   classic_session: false,
-  // The decision map is supporting evidence, not the first task. Fresh users
-  // begin with the slim spine and can expand it when they want to retrace.
-  // Returning users keep their explicit stored choice.
-  voyage_map_collapsed: true,
+  // Open. The decision path IS the product — a first-timer who never expands the
+  // spine never sees that their turns are being kept at all, and a vertical
+  // label is not an invitation. (This also puts the code back in line with the
+  // field's own contract in stores/types.ts, which has always said "Default OFF
+  // (expanded)"; the default had drifted to collapsed.) Returning users keep
+  // their explicit stored choice either way.
+  voyage_map_collapsed: false,
 };
 
 /**

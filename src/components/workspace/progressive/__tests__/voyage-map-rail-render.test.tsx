@@ -10,6 +10,8 @@
 import { describe, it, expect, vi } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { createElement } from 'react';
+import { readFileSync } from 'fs';
+import { join } from 'path';
 import type { ProgressiveSession, WorkerTask } from '@/stores/types';
 
 // ── Mutable mock state the mocks read at render time ──
@@ -107,5 +109,35 @@ describe('VoyageMapRail — collapsed spine', () => {
     expect(html).toContain('판단 경로');        // vertical label
     expect(html).toContain('>2<');              // waypoint count badge
     expect(html).not.toContain('SEACHART_STUB'); // graph not rendered while collapsed
+  });
+
+  it('does NOT flip the Korean label upside down', () => {
+    // `writing-mode: vertical-rl` + `rotate-180` is the standard Latin sidebar
+    // label: the flip turns a top-to-bottom run into a bottom-to-top one. Hangul
+    // is laid out as CJK — each syllable stays UPRIGHT in vertical-rl — so the
+    // same flip renders every character literally upside down, which is what
+    // shipped. Korean gets vertical-rl alone (its own native reading direction).
+    state.collapsed = true;
+    state.session = charted;
+    const html = renderToStaticMarkup(createElement(VoyageMapRail));
+    // The spine's only vertical text IS this label, and it is the only place the
+    // flip was ever used — so asserting over the whole spine is exact here.
+    expect(html).toContain('vertical-rl');
+    expect(html).not.toContain('rotate-180');
+  });
+});
+
+describe('the rail opens by default', () => {
+  it('ships expanded — the stored default and the component fallback agree', async () => {
+    // The decision path is the product; a first-timer who never expands the
+    // spine never learns their turns are being kept. The two places that decide
+    // this had DRIFTED: stores/types.ts documented "Default OFF (expanded)"
+    // while the store shipped `true` and the rail fell back to `?? true`.
+    const store = readFileSync(
+      join(__dirname, '..', '..', '..', '..', 'stores', 'useSettingsStore.ts'), 'utf-8');
+    const rail = readFileSync(
+      join(__dirname, '..', 'VoyageMapRail.tsx'), 'utf-8');
+    expect(store).toContain('voyage_map_collapsed: false');
+    expect(rail).toContain('voyage_map_collapsed ?? false');
   });
 });
