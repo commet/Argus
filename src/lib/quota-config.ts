@@ -5,8 +5,8 @@
  * (but the RPC takes `p_limit` as a param, so we don't hardcode on the DB side).
  *
  * USER-FACING COPY CONTRACT (H1-C6): never show these raw call counts to
- * users — every screen speaks in DECISIONS ("하루 결정 4~5개 분량"). One full
- * decision ≈ 10–15 calls, so ANON(50) ≈ 4–5 decisions and DAILY(80) ≈ 6–8.
+ * users — every screen speaks in DECISIONS rather than raw proxy calls
+ * (one full decision ≈ 10–15 calls).
  * Mixed units (calls on the login page, decisions in the workspace) made the
  * upgrade math impossible for users to do.
  */

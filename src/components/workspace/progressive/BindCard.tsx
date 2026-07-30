@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
-import { ArrowRight, Quote } from 'lucide-react';
+import { ArrowRight, CalendarDays, Quote } from 'lucide-react';
 import { useLocale } from '@/hooks/useLocale';
 import type { CheckInInterval } from '@/stores/types';
 
@@ -100,8 +100,6 @@ export function BindCard({
         check_in_at: customDate ? new Date(customDate).toISOString() : undefined,
       }
     : null);
-  const skip = () => proceedOnce(null);
-
   // Resolve a relative interval to a concrete date so "2주" reads as "2주 · 7월 8일".
   const dateLabel = (iv: CheckInInterval) => {
     const d = new Date(Date.now() + INTERVAL_DAYS[iv] * 86_400_000);
@@ -118,16 +116,16 @@ export function BindCard({
       transition={{ duration: 0.25 }}
       className="mx-auto w-full max-w-xl"
     >
-      <div className="overflow-hidden rounded-[18px] border border-[var(--border-subtle)] bg-[var(--surface)] shadow-sm">
+      <div className="overflow-hidden rounded-[22px] border border-[var(--border)] bg-[var(--surface)] shadow-[0_18px_50px_rgba(31,24,15,0.10)]">
         {/* The user's own words come first. The previous layout asked for a lean
             before visually re-establishing what the person had actually said,
             making the machine's prompt feel like the subject. */}
         {problem && (
-          <figure className="border-b border-[var(--border-subtle)] bg-[var(--bg)]/55 px-4 py-3.5 sm:px-5">
-            <figcaption className="mb-1.5 flex items-center justify-between gap-3 text-[12px] font-bold tracking-[0.12em] text-[var(--accent)]">
+          <figure className="border-b border-[var(--border-subtle)] bg-[var(--surface-2)]/65 px-5 py-4 sm:px-6 sm:py-5">
+            <figcaption className="mb-2 flex items-center justify-between gap-3 text-[11.5px] font-bold tracking-[0.11em] text-[var(--text-tertiary)]">
               <span className="flex items-center gap-2">
-                <Quote size={12} aria-hidden />
-                {L('내가 적은 상황 · 원문', 'What I wrote · original')}
+                <Quote size={13} className="text-[var(--accent)]" aria-hidden />
+                {L('처음 적은 상황', 'What I wrote')}
               </span>
               {problem.length > COLLAPSE_PROBLEM_AT && (
                 <button
@@ -141,7 +139,7 @@ export function BindCard({
               )}
             </figcaption>
             <blockquote
-              className={`text-[15.5px] font-semibold leading-[1.5] text-[var(--text-primary)] ${problemExpanded ? 'whitespace-pre-wrap break-words' : 'line-clamp-3'}`}
+              className={`text-[16px] font-semibold leading-[1.55] text-[var(--text-primary)] sm:text-[17px] ${problemExpanded ? 'whitespace-pre-wrap break-words' : 'line-clamp-3'}`}
               style={{ fontFamily: 'var(--font-display)' }}
             >
               {problem}
@@ -162,17 +160,17 @@ export function BindCard({
           </div>
         )}
 
-        <div className="px-4 py-4 sm:px-5 sm:py-5">
-          <p className="text-[12px] font-bold tracking-[0.12em] text-[var(--text-tertiary)]">
-            {L('검토 전 기준점 · 선택', 'Before-review baseline · optional')}
+        <div className="px-5 pb-0 pt-5 sm:px-6 sm:pt-6">
+          <p className="text-[11.5px] font-bold tracking-[0.11em] text-[var(--accent)]">
+            {L('검토 전 내 생각 · 선택', 'My view before review · optional')}
           </p>
-          <h2 className="mt-1 text-[18px] font-bold leading-snug text-[var(--text-primary)] sm:text-[19px]" style={{ fontFamily: 'var(--font-display)' }}>
-            {L('검토하기 전, 지금의 생각은 무엇인가요?', 'Before the review, what do you think right now?')}
+          <h2 className="mt-1.5 text-[19px] font-bold leading-snug text-[var(--text-primary)] sm:text-[21px]" style={{ fontFamily: 'var(--font-display)' }}>
+            {L('지금 생각을 한 줄로 남길까요?', 'Leave your current view in one line?')}
           </h2>
-          <p className="mt-1 text-[12px] leading-[1.5] text-[var(--text-tertiary)]">
+          <p className="mt-1.5 text-[12.5px] leading-[1.55] text-[var(--text-secondary)]">
             {L(
-              '이 문장은 검토 전 기준점으로만 남아요. 마지막에는 무엇이 바뀌었는지 보고 최종 판단을 따로 확정합니다.',
-              'This is only your pre-review baseline. At the end, you will see what changed and confirm a separate final judgment.',
+              '나중에 검토 뒤의 최종 판단과 나란히 볼 수 있어요.',
+              'You can compare it with your final judgment after the review.',
             )}
           </p>
 
@@ -188,20 +186,25 @@ export function BindCard({
               if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
                 // Enter never blocks: with no commitment it skips; with one it ties.
-                if (hasCommitment) tie();
-                else skip();
+                tie();
               }
             }}
-            rows={2}
+            rows={3}
             placeholder={L('예: 지금은 연기하는 쪽에 가깝다 — 리스크가 더 커 보여서', 'e.g. I am closer to deferring — the risk looks bigger')}
-            className="mt-3 w-full resize-none rounded-xl border border-[var(--border-subtle)] bg-[var(--bg)] px-3.5 py-2.5 text-[14px] leading-6 text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:border-[var(--primary)] focus:outline-none"
+            className="mt-3.5 w-full resize-none rounded-[14px] border border-[var(--border)] bg-[var(--bg)] px-4 py-3 text-[14px] leading-6 text-[var(--text-primary)] shadow-inner shadow-black/[0.02] placeholder:text-[var(--text-tertiary)] focus:border-[var(--primary)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/10"
           />
 
         {/* Check-in window — none preselected; an untapped default is never a commitment.
             Each chip shows its resolved date; "직접" picks a specific known day. */}
-        <div className="mt-2.5">
-          <span className="mb-1.5 block text-[13px] text-[var(--text-tertiary)]">{L('현실과 확인:', 'Check reality:')}</span>
-          <div className="grid grid-cols-3 gap-1.5 sm:flex sm:items-center sm:overflow-x-auto sm:pb-1">
+        <div className="mt-5 border-t border-[var(--border-subtle)] pt-4">
+          <div className="mb-2.5 flex items-start gap-2.5">
+            <CalendarDays size={16} className="mt-0.5 shrink-0 text-[var(--accent)]" aria-hidden />
+            <div>
+              <span className="block text-[13px] font-bold text-[var(--text-primary)]">{L('언제 다시 볼까요?', 'When should we revisit this?')}</span>
+              <span className="mt-0.5 block text-[11.5px] leading-4 text-[var(--text-tertiary)]">{L('선택한 날에 결과를 확인해요. 정하지 않아도 됩니다.', 'Check the outcome on that date. You can leave this unset.')}</span>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-stretch">
             {INTERVALS.map((iv) => (
               <button
                 key={iv.value}
@@ -209,58 +212,56 @@ export function BindCard({
                 onClick={() => { setInterval(interval === iv.value ? null : iv.value); setCustomDate(''); }}
                 disabled={proceeding}
                 aria-pressed={interval === iv.value && !customDate}
-                className={`min-w-0 rounded-lg border px-1.5 py-1.5 text-[12.5px] leading-4 transition-colors sm:shrink-0 sm:rounded-full sm:px-2.5 sm:py-1 sm:text-[13px] ${
+                className={`flex min-h-12 min-w-0 flex-col items-start justify-center rounded-xl border px-3 py-1.5 text-left transition-colors sm:min-h-11 sm:min-w-[88px] ${
                   interval === iv.value && !customDate
                     ? 'border-[var(--primary)] bg-[var(--primary)] text-[var(--bg)]'
                     : 'border-[var(--border-subtle)] text-[var(--text-secondary)] hover:border-[var(--text-tertiary)]'
                 }`}
               >
-                {(ko ? iv.ko : iv.en)} · {dateLabel(iv.value)}
+                <span className="text-[13px] font-bold leading-4">{ko ? iv.ko : iv.en}</span>
+                <span className={`mt-0.5 text-[11px] leading-4 ${
+                  interval === iv.value && !customDate ? 'opacity-75' : 'text-[var(--text-tertiary)]'
+                }`}>
+                  {dateLabel(iv.value)}
+                </span>
               </button>
             ))}
-            <input
-              type="date"
-              value={customDate}
-              min={minimumCustomDate}
-              disabled={proceeding}
-              onChange={(e) => { setCustomDate(e.target.value); if (e.target.value) setInterval(null); }}
-              className={`w-full min-w-0 rounded-lg border bg-[var(--bg)] px-1.5 py-1.5 text-[12.5px] cursor-pointer sm:w-[116px] sm:shrink-0 sm:rounded-full sm:px-2 sm:py-1 sm:text-[12.5px] ${
-                customDate ? 'border-[var(--primary)] text-[var(--primary)]' : 'border-[var(--border-subtle)] text-[var(--text-secondary)]'
-              }`}
-              aria-label={L('직접 확인일 고르기', 'Pick a custom review date')}
-              title={L('직접 고르기', 'Pick a date')}
-            />
+            <label className={`col-span-2 flex min-h-12 min-w-0 items-center gap-2 rounded-xl border bg-[var(--bg)] px-3 py-1.5 sm:col-auto sm:min-h-11 sm:w-[174px] ${
+              customDate ? 'border-[var(--primary)] text-[var(--primary)]' : 'border-[var(--border-subtle)] text-[var(--text-secondary)]'
+            }`}>
+              <span className="shrink-0 text-[12px] font-bold">{L('직접', 'Custom')}</span>
+              <input
+                type="date"
+                value={customDate}
+                min={minimumCustomDate}
+                disabled={proceeding}
+                onChange={(e) => { setCustomDate(e.target.value); if (e.target.value) setInterval(null); }}
+                className="min-w-0 flex-1 bg-transparent text-[12.5px] text-[var(--text-primary)] outline-none cursor-pointer"
+                aria-label={L('직접 확인일 고르기', 'Pick a custom review date')}
+                title={L('직접 고르기', 'Pick a date')}
+              />
+            </label>
           </div>
         </div>
 
-        <div className="mt-4 flex items-center justify-between gap-3">
-          {/* Dominant, unconditional skip. */}
-          <button
-            type="button"
-            onClick={skip}
-            disabled={proceeding}
-            className="min-h-11 text-left text-[12.5px] font-semibold text-[var(--text-secondary)] hover:text-[var(--text-primary)] disabled:cursor-wait disabled:opacity-50"
-          >
-            {L('아직 잘 모르겠어요 · 건너뛰기', "I'm not sure yet · skip")}
-          </button>
-
-          {/* Secondary — only meaningful once there's something to tie. */}
+        <div className="-mx-5 mt-5 flex flex-col gap-3 border-t border-[var(--border-subtle)] bg-[var(--surface-2)]/45 px-5 py-4 sm:-mx-6 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+          <p className="text-[12px] leading-[1.5] text-[var(--text-tertiary)]">
+            {L('입력과 날짜는 모두 선택 사항이에요.', 'The note and date are both optional.')}
+          </p>
           <button
             type="button"
             onClick={tie}
-            disabled={!hasCommitment || proceeding}
-            className={`inline-flex min-h-11 items-center justify-center gap-1.5 rounded-xl px-3.5 py-2 text-[12.5px] font-semibold transition-opacity ${
-              hasCommitment && !proceeding
-                ? 'bg-[var(--primary)] text-[var(--bg)]'
-                : 'cursor-default bg-[var(--surface-2)] text-[var(--text-tertiary)] opacity-50'
-            }`}
+            disabled={proceeding}
+            className="inline-flex min-h-11 w-full items-center justify-center gap-1.5 rounded-xl bg-[var(--primary)] px-4 py-2 text-[13px] font-semibold text-[var(--bg)] transition-transform hover:-translate-y-px disabled:cursor-wait disabled:opacity-50 sm:w-auto"
           >
-            {L('기준점 남기고 계속', 'Keep baseline & continue')}
+            {hasCommitment
+              ? L('이 기준점 남기고 계속', 'Keep this baseline & continue')
+              : L('건너뛰고 계속', 'Skip & continue')}
             <ArrowRight size={15} />
           </button>
         </div>
 
-        <p className="mt-2 text-[13px] leading-[1.45] text-[var(--text-tertiary)]">
+        <p className="pb-4 pt-3 text-[12.5px] leading-[1.5] text-[var(--text-tertiary)] sm:pb-5">
           {L('다음에는 결론을 바꿀 수 있는 한 가지 질문부터 봅니다.', 'Next, start with the one question that could change the call.')}
         </p>
         </div>

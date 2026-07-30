@@ -670,9 +670,6 @@ export function VoyageSea({
     wrecked: ships.filter((s) => s.state === 'wrecked').length,
   };
   const untended = counts.adrift + counts.wrecked;
-  // Zone tallies for the board's diagnostic quadrants (below).
-  const sailingN = ships.filter((s) => s.state === 'sailing' && !s.due).length;
-
   // ── the operable filters (B) — each isolates a real slice of the fleet.
   //    Clicking one dims everything else and reveals the matches' keywords, so
   //    the axes/states become something you ACT on, not just read. ──
@@ -687,6 +684,23 @@ export function VoyageSea({
   const filterList = FILTERS.map((f) => ({ ...f, n: ships.filter(f.test).length })).filter((f) => f.n > 0);
   const activeFilter = FILTERS.find((f) => f.key === filter) || null;
   const matchOf = (s: SeaShip) => !activeFilter || activeFilter.test(s);
+  const activeMatches = activeFilter ? placed.filter(activeFilter.test) : [];
+  const activeMatchCount = activeMatches.length;
+  const focusedPosition = (ship: Placed): { x: number; y: number } => {
+    if (!activeFilter || !activeFilter.test(ship) || activeMatches.length < 2) {
+      return { x: ship.x, y: ship.y };
+    }
+    const xs = activeMatches.map((entry) => entry.x);
+    const ys = activeMatches.map((entry) => entry.y);
+    const minX = Math.min(...xs);
+    const maxX = Math.max(...xs);
+    const minY = Math.min(...ys);
+    const maxY = Math.max(...ys);
+    return {
+      x: 12 + ((ship.x - minX) / Math.max(12, maxX - minX)) * 76,
+      y: 18 + ((ship.y - minY) / Math.max(14, maxY - minY)) * 62,
+    };
+  };
 
   // ── honest thresholds on the recency axis: the REAL 14d-adrift / 30d-wreck
   //    lines from voyage-state, placed by the same log scale. Turns "vaguely
@@ -872,6 +886,31 @@ export function VoyageSea({
         })}
       </div>
 
+      {activeFilter && (
+        <div className="mb-2 flex min-h-10 items-center gap-2 rounded-lg border border-[var(--border-subtle)] bg-[var(--surface)]/70 px-3">
+          <span className="shrink-0 text-[12px] font-semibold text-[var(--accent)]">
+            {L('확대 보기', 'Zoomed view')} · {activeMatchCount}
+          </span>
+          <select
+            value={focusedDecisionId && activeMatches.some((ship) => ship.id === focusedDecisionId) ? focusedDecisionId : ''}
+            onChange={(event) => {
+              const next = activeMatches.find((ship) => ship.id === event.target.value);
+              if (!next) return;
+              onFocusDecision?.(next.id, next.kind);
+              setActionShip(next.id);
+            }}
+            aria-label={L('확대한 결정 중 하나 선택', 'Choose a decision in the zoomed view')}
+            className="min-w-0 flex-1 bg-transparent py-2 text-[12.5px] font-medium text-[var(--text-primary)] outline-none"
+          >
+            <option value="">{L('이름으로 바로 찾기', 'Find one by name')}</option>
+            {activeMatches.map((ship) => <option key={ship.id} value={ship.id}>{ship.name}</option>)}
+          </select>
+          <button type="button" onClick={() => setFilter(null)} className="shrink-0 text-[12px] font-semibold text-[var(--text-tertiary)] hover:text-[var(--accent)]">
+            {L('전체로', 'Show all')}
+          </button>
+        </div>
+      )}
+
       {/* Phones cannot afford six sentence labels on 326px of water. A native
           finder makes every vessel directly reachable without blind taps; the
           chart then spends its scarce label space on the selected vessel. */}
@@ -947,7 +986,7 @@ export function VoyageSea({
         {/* honest recency thresholds — the real 14d / 30d lines, labeled. Only
             meaningful in the unresolved (upper) band, so they fade before the
             harbour. Real structure on the X axis (critique #4). */}
-        {thresholds.map((t) => (
+        {!activeFilter && thresholds.map((t) => (
           <div key={t.d} aria-hidden className="absolute top-[12%] pointer-events-none" style={{ left: `${t.x}%`, bottom: '30%' }}>
             <div className="absolute inset-y-0" style={{ width: 1, background: `repeating-linear-gradient(180deg, ${N.paper}2e 0 4px, transparent 4px 8px)` }} />
             <span className="absolute -top-1 left-1 whitespace-nowrap rounded-sm px-1 py-0.5 text-[12px] sm:text-[12.5px] font-mono" style={{ color: `${N.paper}c4`, background: 'rgba(2,28,27,.52)' }}>{t.label}</span>
@@ -962,41 +1001,6 @@ export function VoyageSea({
         <span className="absolute bottom-2.5 right-[2%] z-[3] rounded-sm px-1.5 py-0.5 text-[12px] sm:text-[12.5px] font-mono text-right pointer-events-none" style={{ color: `${N.paper}d0`, background: 'rgba(2,28,27,.58)' }}>
           {L('최근 확인', 'recently checked')} →
         </span>
-
-        {/* ── ZONE TAGS — the board's control surface. Each names a diagnostic
-              quadrant of the still-out band, shows its live count, and CLICKS to
-              work that slice (same filter engine as the chips below). This is
-              what makes the map a 판 you operate, not scenery you read. The
-              danger zone (놓치는 중) leads in amber — a fact, not a verdict. ── */}
-        {untended > 0 && (
-          <button
-            type="button"
-            onClick={() => setFilter(filter === 'idle' ? null : 'idle')}
-            aria-pressed={filter === 'idle'}
-            className="absolute top-[5.5%] left-[2.5%] z-[4] items-center gap-1.5 rounded-full pl-2.5 pr-3 py-1.5 cursor-pointer transition-colors hidden sm:inline-flex"
-            style={filter === 'idle'
-              ? { background: N.amber, color: N.card }
-              : { background: `${N.card}e0`, color: N.amber, boxShadow: `inset 0 0 0 1px ${N.amber}59` }}
-          >
-            <span aria-hidden className="w-1.5 h-1.5 rounded-full" style={{ background: filter === 'idle' ? N.card : N.amber }} />
-            <span className="text-[13px] font-semibold" style={{ fontFamily: 'var(--font-display)' }}>{L('확인 필요', 'needs attention')}</span>
-            <span className="text-[12.5px] font-mono tabular-nums font-bold">{untended}</span>
-          </button>
-        )}
-        {sailingN > 0 && (
-          <button
-            type="button"
-            onClick={() => setFilter(filter === 'sailing' ? null : 'sailing')}
-            aria-pressed={filter === 'sailing'}
-            className="absolute top-[5.5%] right-[2.5%] z-[4] items-center gap-1.5 rounded-full pl-3 pr-3 py-1.5 cursor-pointer transition-colors hidden sm:inline-flex"
-            style={filter === 'sailing'
-              ? { background: N.paper, color: N.ink }
-              : { background: `${N.card}e0`, color: `${N.ink}b0`, boxShadow: `inset 0 0 0 1px ${N.ink}2e` }}
-          >
-            <span className="text-[13px] font-semibold" style={{ fontFamily: 'var(--font-display)' }}>{L('진행 중', 'in progress')}</span>
-            <span className="text-[12.5px] font-mono tabular-nums font-bold">{sailingN}</span>
-          </button>
-        )}
 
         {/* ── "읽는 법" — the on-demand key. The whole map encodes position and
               colour as data; without this, a first-timer reads scenery, not a
@@ -1041,8 +1045,8 @@ export function VoyageSea({
                   {L(' — 왼쪽 오래 전 · 오른쪽 최근', ' — left: long ago · right: recent')}
                 </p>
               </div>
-              {/* state marks — the very same ShipMarks drawn on the water, named
-                  in plain terms (색으로도 구분: 금 끝남 · 주황 방치) */}
+              {/* State is carried by glyph first. Gold is reserved for a due
+                  action, never reused to mean "complete". */}
               <div className="grid grid-cols-2 gap-x-2 gap-y-1.5 mb-2.5 pt-2.5" style={{ borderTop: `1px solid ${N.ink}12` }}>
                 {([
                   { st: 'sailing', ko: '진행 중', en: 'in progress' },
@@ -1058,6 +1062,10 @@ export function VoyageSea({
                   </span>
                 ))}
               </div>
+              <p className="mb-2 flex items-center gap-2 text-[12px]" style={{ color: `${N.ink}c8` }}>
+                <span aria-hidden className="inline-flex h-4 w-4 rounded-full" style={{ border: `1.5px solid ${N.gold}`, boxShadow: `0 0 6px ${N.gold}66` }} />
+                {L('금색 테두리 = 지금 결과를 확인할 결정', 'Gold ring = outcome ready to review')}
+              </p>
               <p className="text-[12px] pt-2 flex items-center gap-1.5" style={{ color: `${N.ink}9a`, borderTop: `1px solid ${N.ink}12` }}>
                 <span aria-hidden style={{ color: N.gold }}>◆</span>
                 {L('표식을 누르면 결정을 열거나 결과를 확인할 수 있어요.', 'Select a marker to open the decision or review its outcome.')}
@@ -1070,7 +1078,7 @@ export function VoyageSea({
               exists only where two charted vessels literally stand on the same
               normalized premise. Desktop-only: at mobile density the chords
               read as clutter, and the portfolio judgment map carries the event. */}
-        {currents.length > 0 && (
+        {!activeFilter && currents.length > 0 && (
           <div aria-hidden className="absolute inset-0 z-[1] hidden sm:block">
             {currents.map((c) =>
               c.segs.map((s, i) => (
@@ -1124,11 +1132,12 @@ export function VoyageSea({
         {/* ── the ships ── */}
         <ul className="absolute inset-0 z-[2] list-none m-0 p-0">
           {placed.map((s, i) => {
+            const view = focusedPosition(s);
             const meta = VOYAGE_STATE_META[s.state];
             const stateLabel = s.beacon ? L('다시 볼 때', 'due back') : L(meta.ko, meta.en);
             const attention = s.state === 'adrift' || s.state === 'wrecked';
             const hasAttentionSignal = s.kind === 'project' && attentionSet.has(s.id) && !s.due;
-            const size = s.beacon ? 40 : dense ? (attention || hasAttentionSignal ? 17 : 15) : 24;
+            const size = s.beacon ? 40 : activeFilter && activeFilter.test(s) ? 25 : dense ? (attention || hasAttentionSignal ? 17 : 15) : 24;
             // Persistent labels are KEYWORDS (short), never full sentences.
             // Sparse fleet → keyword on everyone. Dense fleet → keyword only on
             // the DUE decisions ("중요 과제 중심"; they scatter, so few collide).
@@ -1151,7 +1160,9 @@ export function VoyageSea({
             const groundHue = shaky ? N.amber : N.gold;
             // A filter turns the map into a work slice: matches light up AND
             // reveal their keyword (few remain, so they fit); the rest recede.
-            const showKeyword = (activeFilter ? matches : !dense || s.due);
+            const showKeyword = activeFilter
+              ? matches && activeMatchCount <= 8
+              : !dense || (s.due && dueShips.length <= 4);
             // Mobile has no hover and (in dense mode) no labels — anonymous dots
             // you tap blind. So on mobile, still name the ships that are CALLING
             // (due + drifted): the few that need action get a keyword, the rest
@@ -1161,7 +1172,7 @@ export function VoyageSea({
               <li
                 key={s.id}
                 className="absolute"
-                style={{ left: `${s.x}%`, top: `${s.y}%` }}
+                style={{ left: `${view.x}%`, top: `${view.y}%` }}
               >
                 <button
                   type="button"
@@ -1180,7 +1191,7 @@ export function VoyageSea({
                   aria-label={`${s.name} — ${stateLabel} · ${s.sub}`}
                   className={`vsea-in relative -translate-x-1/2 -translate-y-1/2 flex flex-col items-center gap-1 p-1.5 sm:p-2 rounded-lg cursor-pointer group focus-visible:z-40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)] transition-[transform,opacity] duration-300 ${dimmed ? 'pointer-events-none' : 'hover:z-40 hover:-translate-y-[calc(50%+3px)]'}`}
                   data-voyage-selected={selected ? 'true' : 'false'}
-                  style={{ animationDelay: `${Math.min(i, 8) * 70}ms`, opacity: dimmed ? 0.1 : focusDimmed ? 0.38 : 1 }}
+                  style={{ animationDelay: `${Math.min(i, 8) * 70}ms`, opacity: dimmed ? 0 : focusDimmed ? 0.38 : 1 }}
                 >
                 {selected && (
                   <span

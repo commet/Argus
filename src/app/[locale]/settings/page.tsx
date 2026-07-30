@@ -14,7 +14,14 @@ import { useAuth } from '@/lib/auth';
 import type { LLMMode, LLMProvider } from '@/stores/types';
 import { Download, Upload, Trash2, Eye, EyeOff, Server, Globe, Check, MessageSquare, Unlink, User, BarChart3, FlaskConical, Send, Copy, KeyRound, Loader2, ChevronRight } from 'lucide-react';
 import { getObservationsSummary } from '@/lib/user-context';
-import { DEFAULT_OPENAI_MODEL, DEFAULT_GEMINI_MODEL } from '@/lib/llm-models';
+import {
+  ANTHROPIC_MODELS,
+  DEFAULT_ANTHROPIC_MODEL,
+  DEFAULT_GEMINI_MODEL,
+  DEFAULT_OPENAI_MODEL,
+  GEMINI_MODELS,
+  OPENAI_MODELS,
+} from '@/lib/llm-models';
 import { playTransitionTone, resumeAudioContext, startAmbient, stopAmbient, isAmbientPlaying } from '@/lib/audio';
 import { useSlackStore } from '@/stores/useSlackStore';
 import { useTelegramStore } from '@/stores/useTelegramStore';
@@ -27,15 +34,8 @@ import { verifyCurrentLlmConnection } from '@/lib/llm';
 import { LocaleSwitchConfirmation } from '@/components/ui/LocaleSwitchConfirmation';
 
 function buildLlmProviders(L: (ko: string, en: string) => string) {
-  // 버튼 라벨은 모두 '제공자 브랜드' 한 층위로 통일한다 (Claude / GPT / Gemini).
-  // 구체 모델명은 아래 detail 줄에서 말한다 — 예전엔 'GPT-4o'만 특정 모델명이라
-  // Claude·Gemini(브랜드)와 층위가 어긋났고, 'Claude Sonnet 4' 문구는 실제 라우팅
-  // (기본 Sonnet 4.6 · 어려운 판단 Opus 4.8)보다 낡아 있었다.
-  // model 칩은 모델이 고정된 Claude에만 붙인다. GPT·Gemini는 바로 아래
-  // 드롭다운에서 사용자가 직접 고르므로, 특정 모델명을 여기 박으면 선택값과
-  // 어긋난다 — 대신 '아래에서 선택'으로 안내한다.
   return [
-    { value: 'anthropic' as LLMProvider, label: 'Claude', model: 'Claude Sonnet 4.6', detail: L('복잡한 판단은 Opus 4.8로 올려서 처리해요', 'Hard calls escalate to Opus 4.8') },
+    { value: 'anthropic' as LLMProvider, label: 'Claude', detail: L('Sonnet·Opus·Fable 중에서 선택', 'Choose Sonnet, Opus, or Fable') },
     { value: 'openai' as LLMProvider, label: 'GPT', model: null as string | null, detail: L('본인의 OpenAI API 키로 연결 · 모델은 아래에서 선택', 'Your own OpenAI API key · pick the model below') },
     { value: 'gemini' as LLMProvider, label: 'Gemini', model: null as string | null, detail: L('본인의 Google AI API 키로 연결 · 모델은 아래에서 선택', 'Your own Google AI API key · pick the model below') },
   ];
@@ -43,8 +43,8 @@ function buildLlmProviders(L: (ko: string, en: string) => string) {
 
 function buildLlmModes(L: (ko: string, en: string) => string) {
   return [
-    { value: 'proxy' as LLMMode, label: L('프록시', 'Proxy'), description: L('API 키 없이 바로 써요 (권장)', 'No API key needed (recommended)'), available: true },
-    { value: 'direct' as LLMMode, label: L('직접 키', 'Direct Key'), description: L('본인의 API 키 사용. 제한 없음', 'Use your own API key. No limits'), available: true },
+    { value: 'proxy' as LLMMode, label: L('Argus 기본', 'Argus default'), description: L('API 키 없이 바로 사용 (기본값)', 'Use without an API key (default)'), available: true },
+    { value: 'direct' as LLMMode, label: L('내 API 키', 'My API key'), description: L('내 API 사용량으로 처리', 'Usage is billed to your API account'), available: true },
     { value: 'local' as LLMMode, label: L('로컬', 'Local'), description: L('Ollama 로컬 엔드포인트', 'Ollama local endpoint'), available: false },
   ];
 }
@@ -333,7 +333,6 @@ export default function SettingsPage() {
           const p = llmProviders.find((x) => x.value === (settings.llm_provider || 'anthropic'));
           return (
             <p className="text-[12.5px] mt-2 leading-relaxed">
-              {p?.model && <span className="font-semibold text-[var(--text-primary)]">{p.model} · </span>}
               <span className="text-[var(--text-tertiary)]">{p?.detail}</span>
             </p>
           );
@@ -365,6 +364,30 @@ export default function SettingsPage() {
               {llmModes.find(m => m.value === settings.llm_mode)?.description}
             </p>
           </fieldset>
+        )}
+
+        {(settings.llm_provider || 'anthropic') === 'anthropic' && (
+          <div className="animate-fade-in mt-4">
+            <label htmlFor="settings-anthropic-model" className="text-[12px] font-semibold text-[var(--text-secondary)] mb-1.5 block">{L('모델', 'Model')}</label>
+            <select
+              id="settings-anthropic-model"
+              value={settings.anthropic_model || DEFAULT_ANTHROPIC_MODEL}
+              onChange={(e) => { setKeyTest('idle'); updateSettings({ anthropic_model: e.target.value }); }}
+              className="min-h-11 w-full bg-[var(--bg)] border-[1.5px] border-[var(--border)] rounded-[10px] px-3.5 py-2.5 text-[14px] focus:outline-none focus:border-[var(--accent)] cursor-pointer"
+            >
+              {ANTHROPIC_MODELS.map((model) => (
+                <option key={model.id} value={model.id}>
+                  {model.name} — {L(model.noteKo, model.noteEn)} · {model.price}
+                </option>
+              ))}
+            </select>
+            <p className="mt-1.5 text-[12px] text-[var(--text-tertiary)]">
+              {L(
+                '입력 / 출력 100만 토큰당 API 요금(USD). Sonnet 5의 $2 / $10은 2026년 8월 31일까지의 출시 요금입니다.',
+                'API prices per 1M input / output tokens (USD). Sonnet 5’s $2 / $10 launch rate runs through August 31, 2026.',
+              )}
+            </p>
+          </div>
         )}
 
         {/* Anthropic API Key */}
@@ -432,13 +455,13 @@ export default function SettingsPage() {
                 onChange={(e) => { setKeyTest('idle'); updateSettings({ openai_model: e.target.value }); }}
                 className="min-h-11 w-full bg-[var(--bg)] border-[1.5px] border-[var(--border)] rounded-[10px] px-3.5 py-2.5 text-[14px] focus:outline-none focus:border-[var(--accent)] cursor-pointer"
               >
-                <option value="gpt-4o">GPT-4o — {L('균형 (추천)', 'Balanced (recommended)')}</option>
-                <option value="gpt-4o-mini">GPT-4o Mini — {L('빠르고 저렴', 'Fast & cheap')}</option>
-                <option value="gpt-4.1-mini">GPT-4.1 Mini — {L('최신 경량', 'Latest lightweight')}</option>
-                <option value="gpt-4.1-nano">GPT-4.1 Nano — {L('초경량', 'Ultra lightweight')}</option>
-                <option value="o3-mini">o3-mini — {L('추론 특화', 'Reasoning')}</option>
-                <option value="o4-mini">o4-mini — {L('최신 추론', 'Latest reasoning')}</option>
+                {OPENAI_MODELS.map((model) => (
+                  <option key={model.id} value={model.id}>
+                    {model.name} — {L(model.noteKo, model.noteEn)} · {model.price}
+                  </option>
+                ))}
               </select>
+              <p className="mt-1.5 text-[12px] text-[var(--text-tertiary)]">{L('입력 / 출력 100만 토큰당 표준 API 요금(USD)', 'Standard USD per 1M input / output tokens')}</p>
             </div>
           </div>
         )}
@@ -478,10 +501,13 @@ export default function SettingsPage() {
                 onChange={(e) => { setKeyTest('idle'); updateSettings({ gemini_model: e.target.value }); }}
                 className="min-h-11 w-full bg-[var(--bg)] border-[1.5px] border-[var(--border)] rounded-[10px] px-3.5 py-2.5 text-[14px] focus:outline-none focus:border-[var(--accent)] cursor-pointer"
               >
-                <option value="gemini-2.5-flash">Gemini 2.5 Flash — {L('빠르고 저렴 (추천)', 'Fast & cheap (recommended)')}</option>
-                <option value="gemini-2.5-pro">Gemini 2.5 Pro — {L('고품질', 'High quality')}</option>
-                <option value="gemini-2.0-flash">Gemini 2.0 Flash — {L('초경량', 'Ultra lightweight')}</option>
+                {GEMINI_MODELS.map((model) => (
+                  <option key={model.id} value={model.id}>
+                    {model.name} — {L(model.noteKo, model.noteEn)} · {model.price}
+                  </option>
+                ))}
               </select>
+              <p className="mt-1.5 text-[12px] text-[var(--text-tertiary)]">{L('입력 / 출력 100만 토큰당 표준 API 요금(USD)', 'Standard USD per 1M input / output tokens')}</p>
             </div>
           </div>
         )}
@@ -791,7 +817,7 @@ export default function SettingsPage() {
           ))}
         </div>
         <p className="text-[12.5px] text-[var(--text-tertiary)] mt-1.5">
-          {L('일부 UI는 아직 한국어로만 나와요.', 'Some UI text is still Korean-only.')}
+          {L('언어를 바꾸면 화면 문구가 바로 바뀝니다. 작성한 내용은 그대로 유지됩니다.', 'The interface updates immediately. Anything you wrote stays as-is.')}
         </p>
         </fieldset>
 
@@ -921,7 +947,7 @@ export default function SettingsPage() {
         <details className="group">
           <summary className="flex min-h-11 items-center gap-1.5 cursor-pointer select-none list-none text-[12px] text-[var(--text-secondary)] [&::-webkit-details-marker]:hidden">
             <ChevronRight size={14} className="shrink-0 text-[var(--text-tertiary)] transition-transform duration-200 group-open:rotate-90" />
-            {L('아직 다듬는 중인 기능이에요. 언제든 켜고 끌 수 있어요.', 'Features still being polished. Toggle anytime.')}
+            {L('아직 다듬는 중인 기능이에요. 언제든 켜고 끌 수 있어요.', 'Experimental features. Turn them on or off anytime.')}
           </summary>
           <div className="space-y-3 mt-4">
           {([
@@ -1112,8 +1138,10 @@ function TelegramBlock({ locale }: { locale: string }) {
   const loadConnections = useTelegramStore((s) => s.loadConnections);
   const startConnect = useTelegramStore((s) => s.startConnect);
   const disconnect = useTelegramStore((s) => s.disconnect);
+  const sendToTelegram = useTelegramStore((s) => s.sendToTelegram);
   const loadError = useTelegramStore((s) => s.loadError);
   const [pending, setPending] = useState(false);
+  const [testingChatId, setTestingChatId] = useState<string | null>(null);
   const [note, setNote] = useState<string | null>(null);
 
   useEffect(() => { loadConnections(); }, [loadConnections]);
@@ -1143,25 +1171,51 @@ function TelegramBlock({ locale }: { locale: string }) {
     }
   };
 
+  const handleTestMessage = async (chatId: string) => {
+    setNote(null);
+    setTestingChatId(chatId);
+    try {
+      const result = await sendToTelegram(
+        L('Argus 연결 확인', 'Argus connection check'),
+        L(
+          '텔레그램 알림이 정상적으로 연결됐어요. 확인일이 오면 이 채팅으로 알려드릴게요.',
+          'Telegram notifications are connected. A reminder will arrive in this chat when a review date is due.',
+        ),
+        { chatId, context: 'connection_test' },
+      );
+      setNote(result.ok
+        ? L('시험 메시지를 보냈어요. 지금 텔레그램에서 도착 여부를 확인해 주세요.', 'Test message sent. Check Telegram now.')
+        : L('시험 메시지를 보내지 못했어요. 연결 상태와 봇 설정을 확인해 주세요.', 'Could not send the test message. Check the connection and bot configuration.'));
+    } finally {
+      setTestingChatId(null);
+    }
+  };
+
   return (
     <IntegrationSection title="Telegram" defaultOpen={connections.length > 0}>
       {loadError && <p className="text-[12px] text-[var(--danger)] mb-2">{L('Telegram 연결 상태를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.', 'Could not load Telegram connection status. Please try again shortly.')}</p>}
       {connections.length > 0 ? (
         <div className="space-y-2">
           {connections.map((c) => (
-            <div key={c.id} className="flex items-center justify-between p-3 bg-[var(--bg)] rounded-lg">
-              <div>
+            <div key={c.id} className="flex flex-col gap-3 p-3 bg-[var(--bg)] rounded-lg sm:flex-row sm:items-center sm:justify-between">
+              <div className="min-w-0">
                 <p className="text-[14px] font-medium flex items-center gap-1.5">
                   <Check size={14} className="text-[var(--success)]" /> {c.chat_title || L('내 Telegram', 'My Telegram')}
                 </p>
-                <p className="text-[12px] text-[var(--text-secondary)]">{L('결과를 이 채팅으로 보내고, 봇에게 고민을 DM하면 바로 리프레임해 줘요', 'Send results here — and DM the bot a decision to get an instant reframe')}</p>
+                <p className="text-[12px] text-[var(--text-secondary)]">{L('확인일 알림과 공유한 결과를 이 채팅으로 보내요.', 'Review reminders and shared results are sent to this chat.')}</p>
               </div>
-              <Button variant="danger" size="sm" onClick={async () => {
-                const result = await disconnect(c.id);
-                if (!result.ok) setNote(L('연결을 해제하지 못했습니다. 연결은 그대로 유지됩니다.', 'Could not disconnect. The connection is still active.'));
-              }}>
-                <Unlink size={14} /> {L('연결 해제', 'Disconnect')}
-              </Button>
+              <div className="flex shrink-0 gap-2">
+                <Button variant="secondary" size="sm" onClick={() => handleTestMessage(c.chat_id)} disabled={testingChatId !== null}>
+                  {testingChatId === c.chat_id ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
+                  {L('시험 메시지', 'Test message')}
+                </Button>
+                <Button variant="danger" size="sm" onClick={async () => {
+                  const result = await disconnect(c.id);
+                  if (!result.ok) setNote(L('연결을 해제하지 못했습니다. 연결은 그대로 유지됩니다.', 'Could not disconnect. The connection is still active.'));
+                }}>
+                  <Unlink size={14} /> {L('연결 해제', 'Disconnect')}
+                </Button>
+              </div>
             </div>
           ))}
         </div>

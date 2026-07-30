@@ -2368,7 +2368,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
                   meta={meta}
                   onSkip={focusEscape ?? (teamReady ? onDeployWorkers : undefined)}
                   skipLabel={focusEscape
-                    ? L('그만 묻고 초안 만들기 — 지금까지 답한 것으로', 'Stop asking — draft from what I\'ve answered')
+                    ? L('지금까지 답한 내용으로 초안 만들기', 'Draft from my answers so far')
                     : (teamReady ? L('건너뛰고 팀 투입', 'Skip & start') : undefined)}
                 />
               );

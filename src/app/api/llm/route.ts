@@ -178,7 +178,14 @@ export async function POST(req: NextRequest) {
     const client = new Anthropic({ apiKey });
     const stream = body.stream === true;
 
-    // Model routing: fast=Haiku (cheap/fast), default=Sonnet, strong=Sonnet
+    // A user's explicit Settings choice wins. Legacy callers that only send a
+    // workload tier keep the old safe fallback.
+    const ALLOWED_MODELS = new Set([
+      'claude-sonnet-5',
+      'claude-opus-5',
+      'claude-opus-4-8',
+      'claude-fable-5',
+    ]);
     const MODEL_MAP: Record<string, string> = {
       fast: 'claude-haiku-4-5-20251001',
       default: 'claude-sonnet-4-6',
@@ -186,7 +193,10 @@ export async function POST(req: NextRequest) {
       // rolling 24h. Its final synthesis earns the strongest model.
       strong: 'claude-opus-4-8',
     };
-    const modelId = MODEL_MAP[body.model as string] || MODEL_MAP.default;
+    const requestedAnthropicModel = typeof body.anthropicModel === 'string' ? body.anthropicModel : '';
+    const modelId = ALLOWED_MODELS.has(requestedAnthropicModel)
+      ? requestedAnthropicModel
+      : MODEL_MAP[body.model as string] || MODEL_MAP.default;
 
     if (stream) {
       const anthropicStream = client.messages.stream({

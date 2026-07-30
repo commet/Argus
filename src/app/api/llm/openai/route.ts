@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 import { validateMessages, validateSystemPrompt, validateApiKey, validateRequest, normalizeMaxTokens } from '@/lib/llm-validation';
 
-const ALLOWED_MODELS = new Set(['gpt-4o', 'gpt-4o-mini', 'gpt-4.1-mini', 'gpt-4.1-nano', 'o3-mini', 'o4-mini']);
-const DEFAULT_MODEL = 'gpt-4o';
+const ALLOWED_MODELS = new Set(['gpt-5.6', 'gpt-5.6-terra', 'gpt-5.6-luna']);
+const DEFAULT_MODEL = 'gpt-5.6-terra';
 
 /**
  * OpenAI direct mode endpoint — uses the user's own OpenAI API key.
@@ -42,10 +42,12 @@ export async function POST(req: NextRequest) {
       })),
     ];
 
+    const tokenBudget = { max_completion_tokens: maxTokens };
+
     if (stream) {
       const openaiStream = await client.chat.completions.create({
         model: modelId,
-        max_tokens: maxTokens,
+        ...tokenBudget,
         messages: openaiMessages,
         stream: true,
       });
@@ -91,7 +93,7 @@ export async function POST(req: NextRequest) {
     // Non-streaming path
     const response = await client.chat.completions.create({
       model: modelId,
-      max_tokens: maxTokens,
+      ...tokenBudget,
       messages: openaiMessages,
     });
 

@@ -40,7 +40,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import type { WorkerPersona, DecisionContract, VoyageBranch } from '@/stores/types';
 import { ErrorBoundary } from '@/components/layout/ErrorBoundary';
 import { parsePartialAnalysis } from '@/lib/partial-analysis';
-import { DAILY_LIMIT } from '@/lib/quota-config';
 import { ArgusCompanionNote } from '@/components/brand/ArgusCompanionNote';
 import { Modal } from '@/components/ui/Modal';
 
@@ -709,7 +708,11 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem, fr
                     {/* "회" counts LLM calls, not sessions — a session uses 6–9.
                         Selling "30회" as 30 tries read as a lie by session 3.
                         Speak in the user's unit: decisions. */}
+<<<<<<< HEAD
                     <span className="text-[var(--text-secondary)]">{locale === 'ko' ? <>로그인 없이 <strong className="text-[var(--text-primary)]">하루 결정 4~5개</strong>를 살펴볼 수 있어요</> : <>Explore <strong className="text-[var(--text-primary)]">4–5 decisions a day</strong> without logging in</>}</span>
+=======
+                    <span className="text-[var(--text-secondary)]">{locale === 'ko' ? <>로그인 없이도 <strong className="text-[var(--text-primary)]">하루 약 2~3개 결정</strong>을 살펴볼 수 있어요</> : <>Explore <strong className="text-[var(--text-primary)]">about 2–3 decisions a day</strong> without logging in</>}</span>
+>>>>>>> origin/main
                   </div>
                   <LocaleLink href="/login" className="group -mr-2 inline-flex min-h-11 shrink-0 items-center gap-1 px-2 text-[12px] font-semibold text-[var(--accent)] hover:text-[var(--text-primary)] transition-colors">
                     {L('로그인', 'Log in')} <ChevronRight size={12} className="transition-transform group-hover:translate-x-0.5" />
@@ -724,13 +727,13 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem, fr
                   mid-step. Same loop, same vocabulary (audit P0 #3). */}
               <div className="mb-5">
                 <h2 className="text-[19px] md:text-[23px] font-semibold text-[var(--text-primary)] leading-tight mb-2.5" style={{ fontFamily: 'var(--font-display)' }}>
-                  {L('지금 들고 있는 결정은 어떤 가정 위에 서 있을까요?', "What assumptions does the decision you're holding rest on?")}
+                  {L('지금 들고 있는 결정은 어떤 가정 위에 서 있을까요?', 'What assumptions does your decision rest on?')}
                 </h2>
                 <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5 text-[12.5px] text-[var(--text-tertiary)]">
                   {[
                     L('상황을 적고', 'Describe the situation'),
-                    L('결정을 바꿀 전제를 짚고', 'surface what could change the call'),
-                    L('내 판단과 확인할 현실을 남겨요', 'keep your call and what reality should answer'),
+                    L('결정을 바꿀 전제를 짚고', 'Surface what could change the call'),
+                    L('내 판단과 확인할 현실을 남겨요', 'Record your call and what to check'),
                   ].map((step, i) => (
                     <React.Fragment key={i}>
                       {i > 0 && <ChevronRight size={11} className="text-[var(--text-tertiary)]/50 shrink-0" />}
@@ -795,7 +798,7 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem, fr
                     title={L('한 문장이면 충분해요.', 'One sentence is enough.')}
                     className="mb-3"
                   >
-                    {L('상황 속 전제와 지금 풀어야 할 질문을 함께 정리해요.', 'We will organize the premises and the question to solve now.')}
+                    {L('상황 속 전제와 지금 풀어야 할 질문을 함께 정리해요.', 'We’ll surface the assumptions and the question that matters now.')}
                   </ArgusCompanionNote>
                 )}
                 {/* PRIMARY input — lifted off the page with a soft shadow + a faint
@@ -875,20 +878,39 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem, fr
                   // them so is a false verdict about who they are. knew-you flag
                   // (or a live user) → honest "sign-in lapsed" copy instead.
                   (user || hasKnownUser()) ? (
-                    <div className="mt-3 p-4 rounded-xl bg-[var(--accent)]/8 border border-[var(--accent)]/20">
-                      <p className="text-[14px] font-bold text-[var(--text-primary)] mb-1">{L('로그인이 잠시 풀렸어요', 'Your sign-in lapsed')}</p>
-                      <p className="text-[12px] text-[var(--text-secondary)] mb-3 leading-relaxed">{L('적어주신 내용은 그대로 있어요. 다시 로그인하면 하던 자리에서 이어져요.', 'What you wrote is still here. Sign in again and pick up right where you were.')}</p>
-                      <LocaleLink href="/login?redirect=/workspace" className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-[var(--accent-fg)] text-[12px] font-semibold" style={{ background: 'var(--gradient-gold)' }}>
-                        {L('다시 로그인하고 이어가기', 'Sign in and continue')} <ChevronRight size={12} />
-                      </LocaleLink>
+                    <div role="alert" className="mt-4 rounded-2xl border-2 border-[var(--accent)]/45 bg-[var(--accent)]/10 p-4 shadow-[0_12px_30px_rgba(146,105,25,0.12)] sm:p-5">
+                      <div className="flex items-start gap-3">
+                        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--accent)] text-[var(--accent-fg)]">
+                          <AlertTriangle size={17} aria-hidden="true" />
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-[15px] font-bold text-[var(--text-primary)]">{L('로그인이 잠시 풀렸어요', 'Your sign-in lapsed')}</p>
+                          <p className="mt-1 text-[12.5px] leading-[1.6] text-[var(--text-secondary)]">{L('다시 로그인하면 계속 사용할 수 있어요.', 'Sign in again to continue using Argus.')}</p>
+                          <LocaleLink href="/login?redirect=/workspace" className="mt-3 inline-flex min-h-10 items-center justify-center gap-1.5 rounded-xl bg-[var(--primary)] px-4 py-2 text-[12.5px] font-semibold text-[var(--bg)]">
+                            {L('다시 로그인하고 이어가기', 'Sign in and continue')} <ChevronRight size={13} />
+                          </LocaleLink>
+                        </div>
+                      </div>
                     </div>
                   ) : (
-                    <div className="mt-3 p-4 rounded-xl bg-[var(--accent)]/8 border border-[var(--accent)]/20">
-                      <p className="text-[14px] font-bold text-[var(--text-primary)] mb-1">{L('무료 체험을 모두 사용했어요', 'Free trial limit reached')}</p>
-                      <p className="text-[12px] text-[var(--text-secondary)] mb-3 leading-relaxed">{L(`로그인하면 하루 ${DAILY_LIMIT}회까지 무료로 사용할 수 있습니다.`, `Sign in to get up to ${DAILY_LIMIT} free uses per day.`)}</p>
-                      <LocaleLink href="/login" className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-[var(--accent-fg)] text-[12px] font-semibold" style={{ background: 'var(--gradient-gold)' }}>
-                        {L('로그인', 'Sign In')} <ChevronRight size={12} />
-                      </LocaleLink>
+                    <div role="alert" className="mt-4 rounded-2xl border-2 border-[var(--accent)]/45 bg-[var(--accent)]/10 p-4 shadow-[0_12px_30px_rgba(146,105,25,0.12)] sm:p-5">
+                      <div className="flex items-start gap-3">
+                        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--accent)] text-[var(--accent-fg)]">
+                          <AlertTriangle size={17} aria-hidden="true" />
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-[15px] font-bold text-[var(--text-primary)]">{L('무료 사용량을 모두 썼어요', 'You’ve used the free allowance')}</p>
+                          <p className="mt-1 text-[12.5px] leading-[1.6] text-[var(--text-secondary)]">{L('로그인하면 계속 사용할 수 있어요.', 'Sign in to continue using Argus.')}</p>
+                          <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center">
+                            <LocaleLink href="/login?redirect=/workspace" className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-xl bg-[var(--primary)] px-4 py-2 text-[12.5px] font-semibold text-[var(--bg)]">
+                              {L('로그인하고 계속하기', 'Sign in and continue')} <ChevronRight size={13} />
+                            </LocaleLink>
+                            <LocaleLink href="/settings" className="inline-flex min-h-10 items-center justify-center px-2 text-[12px] font-semibold text-[var(--accent)] hover:underline">
+                              {L('API 키가 있다면 직접 연결', 'Or connect your own API key')}
+                            </LocaleLink>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   )
                 )}
@@ -899,17 +921,50 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem, fr
                   const isQuota = e.includes('한도') || e.includes('rate') || e.includes('limit') || e.includes('429') || e.includes('api 키') || e.includes('api key');
                   const isNetwork = e.includes('network') || e.includes('failed to fetch') || e.includes('fetch') || e.includes('네트워크') || e.includes('offline');
                   const isTimeout = e.includes('timeout') || e.includes('timed out') || e.includes('시간 초과') || e.includes('aborted');
+                  if (isQuota) {
+                    return (
+                      <div role="alert" className="mt-4 rounded-2xl border-2 border-[var(--accent)]/45 bg-[var(--accent)]/10 p-4 shadow-[0_12px_30px_rgba(146,105,25,0.12)] sm:p-5">
+                        <div className="flex items-start gap-3">
+                          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--accent)] text-[var(--accent-fg)]">
+                            <AlertTriangle size={17} aria-hidden="true" />
+                          </span>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-[15px] font-bold text-[var(--text-primary)]">
+                              {user
+                                ? L('오늘 제공된 사용량을 모두 썼어요', 'You’ve used today’s included allowance')
+                                : L('무료 사용량을 모두 썼어요', 'You’ve used the free allowance')}
+                            </p>
+                            <p className="mt-1 text-[12.5px] leading-[1.6] text-[var(--text-secondary)]">
+                              {user
+                                ? L('본인의 API 키를 연결하면 계속 사용할 수 있어요.', 'Connect your own API key to continue.')
+                                : L('로그인하면 계속 사용할 수 있어요.', 'Sign in to continue.')}
+                            </p>
+                            <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center">
+                              <LocaleLink
+                                href={user ? '/settings' : '/login?redirect=/workspace'}
+                                className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-xl bg-[var(--primary)] px-4 py-2 text-[12.5px] font-semibold text-[var(--bg)]"
+                              >
+                                {user
+                                  ? L('내 API 키 연결하기', 'Connect my API key')
+                                  : L('로그인하고 계속하기', 'Sign in and continue')}
+                                <ChevronRight size={13} />
+                              </LocaleLink>
+                              {!user && (
+                                <LocaleLink href="/settings" className="inline-flex min-h-10 items-center justify-center px-2 text-[12px] font-semibold text-[var(--accent)] hover:underline">
+                                  {L('API 키가 있다면 직접 연결', 'Or connect your own API key')}
+                                </LocaleLink>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  }
                   const msg = isServiceUnavailable
                     ? L(
                         '현재 분석 기능을 사용할 수 없어요. 적어주신 내용은 그대로 남아 있습니다. 운영자 쪽 설정이 복구되면 다시 시작할 수 있어요.',
                         'Analysis is temporarily unavailable. What you wrote is still here; you can continue once the service is restored.',
                       )
-                    : isQuota
-                    // Disambiguate anon "trial" from a logged-in user's daily quota —
-                    // a signed-in user hasn't hit a "trial", they've used today's allowance.
-                    ? (user
-                        ? L(`오늘의 무료 사용 한도(하루 ${DAILY_LIMIT}회)를 다 썼어요. 설정에서 본인의 API 키를 등록하면 무제한 사용이 가능합니다.`, `You've used today's free allowance (${DAILY_LIMIT}/day). Register your own API key in Settings for unlimited use.`)
-                        : L('무료 체험 한도에 도달했어요. 설정에서 본인의 API 키를 등록하면 무제한 사용이 가능합니다.', 'Free trial limit reached. Register your own API key in Settings for unlimited use.'))
                     : isNetwork
                       ? L('연결이 끊겼거나 불안정해요 — 적어주신 내용은 그대로 있어요. 연결을 확인하고 다시 시도해 주세요.', "Connection lost or unstable — what you wrote is still here. Check your connection and try again.")
                       : isTimeout
@@ -920,9 +975,9 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem, fr
                     // color and was making errors read like promotions. Quota
                     // guidance (an FYI, not a failure) keeps the accent tone.
                     <div role="alert" className={`mt-3 px-3 py-2.5 rounded-xl text-[13px] text-[var(--text-primary)] flex items-start gap-2 border ${
-                      isQuota ? 'bg-[var(--accent)]/5 border-[var(--accent)]/15' : 'bg-[var(--danger)]/5 border-[var(--danger)]/25'
+                      'bg-[var(--danger)]/5 border-[var(--danger)]/25'
                     }`}>
-                      <AlertTriangle size={14} aria-hidden="true" className={`shrink-0 mt-0.5 ${isQuota ? 'text-[var(--accent)]' : 'text-[var(--danger)]'}`} />
+                      <AlertTriangle size={14} aria-hidden="true" className="shrink-0 mt-0.5 text-[var(--danger)]" />
                       <div className="flex-1">
                         <span>{msg}</span>
                         <div className="mt-1.5 flex items-center gap-3">
@@ -1053,12 +1108,12 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem, fr
                             <button key={s.id} onClick={() => setDemoScenario(s)}
                               className="group flex min-w-0 cursor-pointer items-center gap-3 py-3 text-left transition-colors hover:bg-[var(--surface)]/45 sm:block sm:px-3 sm:py-4 first:sm:pl-0 last:sm:pr-0">
                               {art && (
-                                <div className={`relative shrink-0 overflow-hidden bg-[var(--bg)] ${muted ? 'h-11 w-11' : 'h-[72px] w-[112px] sm:aspect-[16/9] sm:h-auto sm:w-full'}`} aria-hidden="true">
+                                <div className={`relative shrink-0 overflow-hidden rounded-sm bg-[var(--bg)] ${muted ? 'h-16 w-24 sm:aspect-[16/9] sm:h-auto sm:w-full' : 'h-[72px] w-[112px] sm:aspect-[16/9] sm:h-auto sm:w-full'}`} aria-hidden="true">
                                   <Image
                                     src={art}
                                     alt=""
                                     fill
-                                    sizes={muted ? '44px' : '(max-width: 639px) 112px, 220px'}
+                                    sizes={muted ? '(max-width: 639px) 96px, 220px' : '(max-width: 639px) 112px, 220px'}
                                     loading={muted ? 'lazy' : 'eager'}
                                     className="object-cover opacity-90 transition-[transform,opacity] duration-500 ease-out motion-reduce:transition-none group-hover:opacity-100 motion-safe:group-hover:scale-[1.02]"
                                   />
@@ -1116,7 +1171,7 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem, fr
                   <p className="text-[14px] md:text-[15px] text-[var(--text-secondary)] leading-relaxed max-w-md mx-auto">
                     {locale === 'ko'
                       ? <>결정이 기대는 전제를 짚고, 지금 풀 질문을 좁혀요.<br className="hidden md:block" /> 검토 뒤에는 내 판단과 확인할 현실이 남습니다.</>
-                      : <>Surface what the decision rests on and narrow the question.<br className="hidden md:block" /> Leave with your call and the reality that can answer it.</>}
+                      : <>Surface what the decision rests on and narrow the question.<br className="hidden md:block" /> Leave with your decision and a clear way to check it against reality.</>}
                   </p>
                 </div>
               )}
@@ -1518,7 +1573,11 @@ function WorkspaceContent() {
               <div className="flex items-center gap-2 text-[12px]">
                 <Sparkles size={13} className="text-[var(--accent)] shrink-0" />
                 <span className="text-[var(--text-primary)]">
+<<<<<<< HEAD
                   {locale === 'ko' ? <>로그인 없이 <strong>하루 결정 4~5개 분량 무료</strong> · <LocaleLink href="/login" className="text-[var(--accent)] font-semibold underline">로그인</LocaleLink>하면 더 넉넉해요</> : <><strong>4–5 decisions/day free</strong> without login · <LocaleLink href="/login" className="text-[var(--accent)] font-semibold underline">log in</LocaleLink> for more</>}
+=======
+                  {locale === 'ko' ? <>일반적인 사용 기준, 로그인 없이 <strong>하루 약 2~3개 결정</strong> · <LocaleLink href="/login" className="text-[var(--accent)] font-semibold underline">로그인</LocaleLink>하면 약 4~5개</> : <>For typical use, <strong>about 2–3 decisions/day</strong> without login · <LocaleLink href="/login" className="text-[var(--accent)] font-semibold underline">log in</LocaleLink> for about 4–5</>}
+>>>>>>> origin/main
                 </span>
               </div>
             </div>
