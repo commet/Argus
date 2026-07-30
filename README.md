@@ -256,7 +256,7 @@ and is never sent to our server.
 src/               # the web app (Next.js — argus.voyage)
 argus-mcp/         # the MCP server (npm: argus-decision-mcp, MIT)
 argus-plugin-v2/   # the Claude Code plugin (marketplace: argus, MIT)
-tools/argus-watch/ # standalone watch CLI, predates the plugin — still runs (Korean docs)
+tools/argus-watch/ # internal: the prototype CLI the ledger format came from
 docs/ARGUS-BLUEPRINT.md   # the build canon (what gets built, in what order)
 ```
 

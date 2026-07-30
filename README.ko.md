@@ -250,7 +250,7 @@ npm run dev            # http://localhost:3000 에서 뜹니다
 src/               # 웹앱 (Next.js — argus.voyage)
 argus-mcp/         # MCP 서버 (npm: argus-decision-mcp, MIT)
 argus-plugin-v2/   # Claude Code 플러그인 (marketplace: argus, MIT)
-tools/argus-watch/ # 독립 실행형 감시 CLI · 플러그인보다 먼저 만든 것 (지금도 동작)
+tools/argus-watch/ # 내부용: 원장 형식이 나온 프로토타입 CLI
 docs/ARGUS-BLUEPRINT.md   # 빌드 정본 (무엇을 어떤 순서로 짓는가)
 ```
 
