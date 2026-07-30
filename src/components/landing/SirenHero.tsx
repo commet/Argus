@@ -166,8 +166,7 @@ export function SirenHero() {
                   if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') begin();
                 }}
                 placeholder={prompts[promptIndex]}
-                className="mt-3 w-full resize-none border-0 border-b bg-transparent px-1 pb-3 text-[16px] leading-7 text-[var(--bp-ink)] outline-none placeholder:italic placeholder:text-[var(--bp-ink-soft)]/75 focus:ring-0"
-                style={{ borderColor: 'var(--bp-ink-faint)', fontFamily: 'var(--font-display)' }}
+                className="mt-3 w-full resize-none border-0 border-b border-[var(--bp-ink-faint)] bg-transparent px-1 pb-3 text-[16px] leading-7 text-[var(--bp-ink)] outline-none [font-family:var(--font-display)] placeholder:italic placeholder:text-[var(--bp-ink-soft)]/75 focus:ring-0"
               />
               <div className="mt-3 flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
                 <span className="text-left text-[13px] leading-5 text-[var(--bp-ink-soft)]">
