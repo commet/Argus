@@ -1,5 +1,19 @@
 # Changelog
 
+## 2.0.14 - Formal questions without a question mark no longer sit in a premise slot
+
+- The Korean interrogative detector used two bare-jamo alternatives (`ㄹ까`,
+  `ㅂ니까`) that can never match composed hangul — dead rules, so "이게
+  사실입니까" was stored as a premise the user would later be asked to verify
+  against reality. Replaced with composed-syllable forms (할까/될까/볼까/갈까,
+  입니까/합니까/됩니까). Question-mark detection is unchanged and remains the
+  primary signal.
+- The plugin's hand-mirrored copy had garbled alternatives (`니까` caught causal
+  endings, demoting "예산이 없으니까." to an open question). All three copies —
+  webapp, this server, plugin — now agree, and the cross-surface parity test
+  carries the two boundary sentences that distinguish exactly this drift
+  (mutation-probed: re-breaking either copy turns the test red).
+
 ## 2.0.13 - A decline no longer takes the user's sentence with it, and one install stays current
 
 - **A decline ends the ask; it does not delete the draft.** The response used to
