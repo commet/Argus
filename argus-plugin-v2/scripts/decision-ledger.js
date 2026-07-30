@@ -33,7 +33,7 @@ const root = findProjectRoot();
  * MCP 사본이 같은 규칙을 쓴다 (agreement-pairs 등록부가 세 벌의 드리프트를 막는다).
  */
 const TRAILING_QUESTION_MARK = /[?？]\s*$/;
-const KO_INTERROGATIVE_ENDING = /(나요|까요|다까|을까|인가|는가|은가|습니까|니까|일까|던가)[.!\s]*$/;
+const KO_INTERROGATIVE_ENDING = /(나요|까요|을까|할까|될까|볼까|갈까|인가|는가|은가|습니까|입니까|합니까|됩니까|일까|던가)[.!\s]*$/;
 function isQuestionShaped(text) {
   const t = String(text || "").trim();
   if (!t) return false;
