@@ -13,6 +13,7 @@
  */
 
 let sessionSyncFailures = 0;
+let reportingTelemetryFailure = false;
 
 /** Number of swallowed async-write failures this session (a readable canary). */
 export function getSyncFailureCount(): number {
@@ -48,5 +49,28 @@ export function reportSyncFailure(
         detail: { status: 'error', context, message: opts.message },
       }),
     );
+  }
+
+  // A red badge only helps the person in the current tab. Persist confirmed
+  // cloud-write failures as product telemetry too, so the owner report can
+  // distinguish "the user left" from "their backup failed". Never recurse
+  // when the analytics insert itself is the failing write.
+  if (
+    typeof window !== 'undefined'
+    && context !== 'analytics'
+    && !reportingTelemetryFailure
+  ) {
+    reportingTelemetryFailure = true;
+    void import('./analytics')
+      .then(({ track }) => {
+        track('sync_write_failure', {
+          context,
+          message: opts.message?.slice(0, 240) || null,
+          surfaced: surface,
+        });
+      })
+      .finally(() => {
+        reportingTelemetryFailure = false;
+      });
   }
 }

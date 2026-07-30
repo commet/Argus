@@ -678,7 +678,10 @@ export const useProgressiveStore = create<ProgressiveState>((set, get) => ({
       updated_at: now,
     };
     const sessions = [...get().sessions, session];
-    persist(sessions);
+    // The first server copy is the most important one: without it an anonymous
+    // visitor can have a project row but no voyage row if they close the tab
+    // during the old 3-second trailing-debounce window.
+    persist(sessions, { immediate: id });
     set({ sessions, currentSessionId: id });
     track('progressive_session_created', { project_id: projectId });
     return id;

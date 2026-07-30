@@ -17,6 +17,7 @@ type Preset = {
 };
 
 const PRESETS: Preset[] = [
+  { id: 'internal_qa', ko: '내부 QA (통계 제외)', en: 'Internal QA (excluded)', source: 'internal_qa', medium: 'qa' },
   { id: 'kakao', ko: '카카오톡 대화방', en: 'KakaoTalk chat', source: 'kakao', medium: 'chat' },
   { id: 'threads', ko: 'Threads', en: 'Threads', source: 'threads', medium: 'social' },
   { id: 'instagram', ko: 'Instagram (스토리/게시물)', en: 'Instagram (story/post)', source: 'instagram', medium: 'social' },
@@ -33,7 +34,6 @@ const PRESETS: Preset[] = [
 
 const PATHS = [
   { value: '/', ko: '홈 (/)', en: 'Home (/)' },
-  { value: '/demo', ko: '데모 (/demo)', en: 'Demo (/demo)' },
   { value: '/workspace', ko: '워크스페이스 (/workspace)', en: 'Workspace (/workspace)' },
   { value: '/boss', ko: '팀장 대화 리허설 (/boss)', en: 'Manager conversation rehearsal (/boss)' },
   { value: '/agents', ko: 'AI 팀원 (/agents)', en: 'AI reviewers (/agents)' },

@@ -10,7 +10,9 @@ import { Compass, RefreshCw } from 'lucide-react';
 interface Metrics {
   generated_at: string;
   users_total: number;
+  anonymous_users_total?: number;
   users_with_projects: number;
+  anonymous_users_with_projects?: number;
   signups_7d: number;
   signups_30d: number;
   projects_total: number;
@@ -36,6 +38,13 @@ interface Metrics {
     verdicts: Record<string, number>;
   } | null;
   surface_funnel?: Record<'web' | 'mcp' | 'plugin', FunnelStageCounts>;
+  storage_health?: {
+    anonymous_projects: number;
+    anonymous_sessions: number;
+    anonymous_projects_missing_session: number;
+    sync_failures_24h: number;
+    sync_failures_7d: number;
+  };
   /** LLM health (2026-07-31 truncation sensor). Optional: an older cached RPC
    *  result simply hides the section. */
   llm?: {
@@ -252,12 +261,37 @@ export default function AdminPage() {
             </>
           )}
 
+          {metrics.storage_health && (
+            <>
+              <h2 className="mt-6 mb-2 text-[12px] font-bold uppercase tracking-wider text-[var(--text-tertiary)]">
+                {L('익명 기록 저장 상태', 'Anonymous backup health')}
+              </h2>
+              <div className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-4">
+                <Stat label={L('익명 프로젝트', 'Anon projects')} value={metrics.storage_health.anonymous_projects} />
+                <Stat label={L('익명 진행 기록', 'Anon sessions')} value={metrics.storage_health.anonymous_sessions} />
+                <Stat
+                  label={L('진행 기록 없는 프로젝트', 'Projects missing session')}
+                  value={metrics.storage_health.anonymous_projects_missing_session}
+                  accent={metrics.storage_health.anonymous_projects_missing_session > 0}
+                  hint={L('0이 정상', '0 is healthy')}
+                />
+                <Stat
+                  label={L('저장 실패', 'Write failures')}
+                  value={metrics.storage_health.sync_failures_24h}
+                  accent={metrics.storage_health.sync_failures_24h > 0}
+                  hint={`${L('7일', '7d')} ${metrics.storage_health.sync_failures_7d}`}
+                />
+              </div>
+            </>
+          )}
+
           {/* Accounts & growth — context, not the spine. One merged block:
               the old page said "funnel" twice and scattered 7d/30d deltas
               across three grids. */}
           <h2 className="text-[12px] font-bold uppercase tracking-wider text-[var(--text-tertiary)] mb-2">{L('계정 · 성장', 'Accounts & growth')}</h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-2">
-            <Stat label={L('가입', 'Signups')} value={metrics.users_total} hint={`+${metrics.signups_7d} ${L('7일', '7d')} · +${metrics.signups_30d} ${L('30일', '30d')}`} />
+            <Stat label={L('실제 가입', 'Registered users')} value={metrics.users_total} hint={`+${metrics.signups_7d} ${L('7일', '7d')} · +${metrics.signups_30d} ${L('30일', '30d')}`} />
+            <Stat label={L('익명 사용자', 'Anonymous users')} value={metrics.anonymous_users_total ?? 0} hint={`${L('프로젝트 보유', 'with project')} ${metrics.anonymous_users_with_projects ?? 0}`} />
             <Stat label={L('프로젝트 보유 계정', 'Accounts w/ project')} value={metrics.users_with_projects} />
             <Stat label={L('프로젝트', 'Projects')} value={metrics.projects_total} hint={`+${metrics.projects_7d} ${L('7일', '7d')} · +${metrics.projects_30d} ${L('30일', '30d')}`} />
             <Stat label={L('최근 프로젝트', 'Latest project')} value={fmtDate(metrics.latest_project)} />
