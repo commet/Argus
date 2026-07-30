@@ -26,7 +26,7 @@ vi.mock('@/lib/llm', () => ({
   callLLMStreamThenParse: vi.fn(),
 }));
 
-import { runInitialAnalysis, refineInitialFraming, runDeepening } from '@/lib/progressive-engine';
+import { runInitialAnalysis, refineInitialFraming, runDeepening, ensureCrisisResource } from '@/lib/progressive-engine';
 import { callLLMJson, callLLMStreamThenParse } from '@/lib/llm';
 import { classifyCrisis } from '@/lib/crisis-gate';
 import type { AnalysisSnapshot, FlowQuestion, FlowAnswer } from '@/stores/types';
@@ -153,6 +153,37 @@ describe('crisis backstop fires on the Q&A deepening path (F18)', () => {
     expect(mockJson).not.toHaveBeenCalled();
     expect(mockStream).not.toHaveBeenCalled();
     expect(question).toBeTruthy();
+  });
+});
+
+// F1 (sim campaign, heavy-09): the MODEL flagged crisis (request_type==='crisis')
+// on an input the deterministic regex missed — and the whole output carried ZERO
+// resources. The resource line is now a CODE guarantee on that path, never model
+// discretion.
+describe('F1 — a model-flagged crisis carries a real resource line BY CODE', () => {
+  it('appends the human-line resource when STEP-0 says crisis but the regex missed', async () => {
+    mockJson.mockResolvedValue({
+      real_question: '빚 상환을 어디서부터 정리할지',
+      request_type: 'crisis',
+      insight: '지금은 혼자 계산할 순간이 아니에요.',
+      hidden_assumptions: [],
+      skeleton: [],
+      next_question: null,
+    } as never);
+    const { snapshot } = await runInitialAnalysis('빚 문제로 요즘 너무 힘들어요. 어디서부터 손대야 할지 모르겠어요.');
+    expect(snapshot.crisis).toBeUndefined(); // the regex did NOT fire — exactly the gap this guards
+    expect(snapshot.insight).toContain('지금은 혼자 계산할 순간이 아니에요.');
+    expect(snapshot.insight).toMatch(/109|988/); // the 24h line, appended by code
+  });
+
+  it('does not double-append when the model already named a real line', () => {
+    const already = '자살예방상담 109(24시간)에 먼저 연락해 보세요.';
+    expect(ensureCrisisResource(already, 'ko')).toBe(already);
+  });
+
+  it('an empty crisis insight becomes the resource line alone (never empty-handed)', () => {
+    expect(ensureCrisisResource(undefined, 'ko')).toMatch(/109/);
+    expect(ensureCrisisResource('', 'en')).toMatch(/988/);
   });
 });
 

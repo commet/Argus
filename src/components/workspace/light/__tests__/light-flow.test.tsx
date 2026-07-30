@@ -363,6 +363,10 @@ describe('escalation', () => {
     expect(ctx.reason).toBe('escalate');
     expect(ctx.text).toContain(PROBLEM);
     expect(ctx.text).toContain('사실 요즘 매번 이래요');
+    // F9 (sim): the accepted escalation carries its intent + the named bigger
+    // question, so heavy STEP-0 cannot read it as a vent dead-end.
+    expect(ctx.text).toContain('함께 짚은 더 큰 질문: 이 모임이 나에게 아직 즐거운가?');
+    expect(ctx.text).toContain("'더 깊이 보기'를 직접 선택");
   });
 
   it('"다음에 볼래요" closes lightly without a handoff and without nagging', async () => {

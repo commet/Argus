@@ -50,6 +50,11 @@ const PATTERNS: Array<{ category: CrisisCategory; res: RegExp[] }> = [
       /drive\s+(somewhere\s+far\s+)?and\s+not\s+come\s+back/i,
       /\b(kill\s+myself|suicid|self[-\s]?harm)\b/i,
       /(죽고\s*싶|자살|자해|사라지고\s*싶|목숨을?\s*끊|살\s*이유가?\s*없|살고\s*싶지\s*않)/,
+      // 완곡어 (sim F1, heavy-09): 빚/채무 맥락의 "(그냥) 다/전부 정리해버리다" —
+      // 재정 파탄 화면에서 흔한 자해 완곡 표현. 채무 앵커 없이 "책상 다 정리"류는
+      // 잡지 않는다 (정밀 우선). 활용형(버릴까/버렸/버려)은 조합 음절이라 '버리'
+      // 리터럴로는 못 잡는다 — 음절 클래스로 매칭 (플러그인 낱자모 죽은 규칙 교훈).
+      /(빚|채무|대출|이자).{0,60}(그냥\s*)?(다|전부|모두|싹)\s*정리해\s*버[리려렸릴린]/,
     ],
   },
   {
@@ -76,6 +81,11 @@ const PATTERNS: Array<{ category: CrisisCategory; res: RegExp[] }> = [
     res: [
       /take\s+the\s+kids?\s+and\s+leave\s+(the\s+)?(state|country|town)/i,
       /before\s+the\s+custody\s+hearing.{0,40}without\s+telling/i,
+      // KO (sim F1 정적 감사: 이 카테고리는 한국어 패턴 0개였다 — 주 사용 언어가
+      // 한국어인 제품의 백스톱이 영어에 편향). EN 패턴의 거울: 양육권 절차 앞의
+      // 은닉 이동만 — 평범한 양육권 상담은 잡지 않는다 (정밀 우선).
+      /(양육권|친권).{0,30}(소송|재판|심판|심리|조정).{0,40}(몰래|말\s*없이|숨기)/,
+      /(아이|애들?|자녀)\s*(를|들을)?\s*데리고.{0,30}(몰래|말\s*없이).{0,30}(떠나|이사|출국|가\s*버리)/,
     ],
   },
   {
@@ -88,6 +98,11 @@ const PATTERNS: Array<{ category: CrisisCategory; res: RegExp[] }> = [
       /(life|all\s+(of\s+)?(my\s+)?|entire|whole|my\s+(life|entire))\s*savings\b.{0,45}(crypto|coin|meme|\d{2,3}x|guaranteed)/i,
       /(entire|whole|all\s+(of\s+)?(my\s+)?|my)\s*(401k|retirement)\b.{0,45}(crypto|coin|meme|\d{2,3}x|guaranteed)/i,
       /second\s+mortgage.{0,30}(crypto|coin|bet|\d{2,3}x)/i,
+      // KO (sim F1): 전 재산급 판돈 + 투기 신호의 2중 요건 — EN과 같은 정밀 편향.
+      // "주식 조금 사볼까" 같은 일상 투자 결정은 판돈 앵커가 없어 잡히지 않는다.
+      /(전\s*재산|전세\s*(보증)?금|노후\s*자금|퇴직금).{0,40}(코인|크립토|가상\s*화폐|주식|선물|레버리지|몰빵|올인)/,
+      /(대출|빚)\s*(을|를)?\s*(내서|받아서|끌어다|당겨서).{0,30}(코인|주식|선물|도박)/,
+      /(집|아파트)\s*담보.{0,30}(코인|주식|도박)/,
     ],
   },
   {
@@ -100,6 +115,10 @@ const PATTERNS: Array<{ category: CrisisCategory; res: RegExp[] }> = [
       /(meet|see)\s+(up\s+with\s+)?(a\s+)?(guy|man|girl|person)\s+I\s+met\s+online/i,
       /(guy|man|girl|person|someone)\s+(I\s+)?(met\s+)?online\b.{0,50}(wants?\s+(to\s+)?(meet|see)|come\s+over|meet\s+up|see\s+me)/i,
       /(meet\s+up|come\s+over|meet|see)\b.{0,40}(guy|man|girl|person|someone)\b.{0,20}(from|met)\s+online/i,
+      // KO (sim F1 정적 감사). EN과 같은 앵커: 미성년 자기 선언, 또는 온라인에서
+      // 만난 낯선 사람 + 만남 제안. 앵커 없는 일상 약속은 잡지 않는다.
+      /(저|전|나)\s*(이제\s*)?1[0-7]\s*살인데/,
+      /(인터넷|온라인|채팅|앱|게임)에서\s*만난\s*(사람|남자|여자|오빠|형|언니|누나).{0,40}(만나자|만나기로|보자|보재|오라|나오라|나오래)/,
     ],
   },
   {
@@ -107,6 +126,10 @@ const PATTERNS: Array<{ category: CrisisCategory; res: RegExp[] }> = [
     res: [
       /send(ing)?\s+the\s+(private\s+)?(screenshots?|photos?|nudes?|messages?|pictures?)\b.{0,60}(coworkers?|family|everyone|all\s+(her|his|their))/i,
       /\b(revenge\s+porn|expose\s+(her|him|them)\s+to\s+(everyone|all))\b/i,
+      // KO (sim F1 정적 감사). EN의 거울: 사적 자료 + 유포 의도. 복수 의도가
+      // 명확한 동사(유포/뿌리/퍼뜨리/폭로/박제)만 — "사진 보내달래"류는 제외.
+      /(전\s*남친|전\s*여친|전\s*남편|전\s*아내|헤어진\s*(남친|여친|애인)).{0,40}(사진|영상|캡처|대화\s*내용).{0,30}(유포|뿌리|퍼뜨리|폭로|박제)/,
+      /(나체|알몸|은밀한)\s*(사진|영상).{0,30}(회사|가족|지인|단톡|모두에게|다\s*보내|뿌리)/,
     ],
   },
 ];

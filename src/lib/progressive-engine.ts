@@ -44,7 +44,7 @@ import { runDebateRound, type DebateResult } from '@/lib/debate-engine';
 import { generateId } from '@/lib/uuid';
 import { useAgentStore } from '@/stores/useAgentStore';
 import { getCurrentLanguage, type Locale } from '@/lib/i18n';
-import { classifyCrisis, type CrisisSignal } from '@/lib/crisis-gate';
+import { classifyCrisis, formatConcernMessage, type CrisisSignal } from '@/lib/crisis-gate';
 import { assessFrameStatus } from '@/lib/judgment-gates';
 import type {
   AnalysisSnapshot,
@@ -549,6 +549,23 @@ function buildCrisisSnapshot(
 }
 
 /**
+ * F1 (sim campaign, heavy-09): a MODEL-flagged crisis (STEP-0 request_type ===
+ * 'crisis') that the deterministic regex missed produced an empty-handed answer —
+ * zero resources in the whole output. The resource line must be a CODE guarantee,
+ * never model discretion. STEP-0 gives no category, so the most general human-line
+ * concern (the self_harm copy: "a moment for a person, not a decision tool" + the
+ * 24h line) is appended to the insight — UNLESS the model's own text already
+ * carries a real hotline number. Exported pure for the wiring test.
+ */
+export function ensureCrisisResource(insight: string | undefined, locale: Locale): string {
+  const resource = formatConcernMessage('self_harm', locale === 'ko' ? 'ko' : 'en');
+  const text = (insight || '').trim();
+  if (!text) return resource;
+  if (/109|988|1366|1[-.\s]?800/.test(text)) return text; // a real line is already named
+  return `${text}\n\n${resource}`;
+}
+
+/**
  * Post-generation honesty scan (loop-17) — NON-BLOCKING. Run AFTER the analysis
  * has rendered; returns spans the model asserted as settled world-fact or
  * fabricated specifics the user never gave (the loop-16 failure mode). The caller
@@ -729,8 +746,9 @@ export async function runInitialAnalysis(
     // OPEN analyses may generate a memorable sentence that quietly resolves the
     // choice despite the prompt. Structurally use the neutral real question as
     // the first-frame insight. Non-open routes keep their direct one-line answer.
+    // A model-flagged crisis additionally gets the resource line BY CODE (F1).
     insight: result.request_type && result.request_type !== 'open'
-      ? result.insight
+      ? (result.request_type === 'crisis' ? ensureCrisisResource(result.insight, locale) : result.insight)
       : (result.real_question || (locale === 'ko' ? '무엇이 이 결정을 가르는지부터 확인해볼게요.' : 'Let’s first identify what this decision turns on.')),
     framing_confidence: framingConfidence,
     framing_locked: false,
@@ -866,7 +884,7 @@ export async function refineInitialFraming(
     hidden_assumptions: result.hidden_assumptions || [],
     skeleton: result.skeleton || [],
     insight: result.request_type && result.request_type !== 'open'
-      ? result.insight
+      ? (result.request_type === 'crisis' ? ensureCrisisResource(result.insight, locale) : result.insight)
       : (result.real_question || (locale === 'ko' ? '무엇이 이 결정을 가르는지부터 확인해볼게요.' : 'Let’s first identify what this decision turns on.')),
     framing_confidence: framingConfidence,
     framing_locked: false,

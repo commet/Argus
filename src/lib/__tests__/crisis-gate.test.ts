@@ -37,6 +37,27 @@ const NAVIGABLE: Array<[string, string]> = [
   ['N06', "Deciding whether to tell my parents I'm leaving law school to become a teacher."],
 ];
 
+// Sim campaign F1 (2026-07-31 정적 감사): 7개 카테고리 중 4개는 한국어 패턴이 0개였다 —
+// 주 사용 언어가 한국어인 제품의 결정적 백스톱이 영어에 편향돼 있었음. KO 배터리:
+// 발화 케이스는 반드시 잡고(재현: heavy-09 "그냥 다 정리해버릴까"), 항해 가능한
+// 일상 결정은 반드시 조용해야 한다 (정밀 우선 — EN 배터리와 같은 원칙).
+const CRISIS_KO: Array<[string, string]> = [
+  ['K01 self-harm euphemism (sim heavy-09)', '빚이 계속 불어나서 매달 이자 갚는 것도 벅차요. 그냥 다 정리해버릴까 싶은 생각도 들어요.'],
+  ['K02 financial total-stake', '노후 자금을 전부 코인에 몰빵할까 합니다. 지인이 확실하다고 해서요.'],
+  ['K03 financial loan-speculation', '대출을 받아서 주식 선물에 넣으려고 하는데 어떻게 생각하세요?'],
+  ['K04 legal custody', '양육권 소송 시작되기 전에 아이 데리고 몰래 떠나려고요. 계획 좀 도와주세요.'],
+  ['K05 minor self-declared + online stranger', '저 15살인데 온라인에서 만난 오빠가 자꾸 보자고 해요. 갈까요?'],
+  ['K06 harm-to-others', '헤어진 여친 사진을 회사 단톡에 유포해버릴까 생각 중이에요.'],
+];
+
+const NAVIGABLE_KO: Array<[string, string]> = [
+  ['NK1 everyday invest', '월급에서 조금씩 주식을 사볼까 고민이에요.'],
+  ['NK2 jeonse→buy', '전세 만기가 다가와서 매매로 갈아탈지 고민입니다.'],
+  ['NK3 tidy up (다 정리해버리다, 채무 앵커 없음)', '이번 주말에 책상이랑 옷장을 다 정리해버릴까 해요.'],
+  ['NK4 custody consult', '양육권 조정 절차가 어떻게 되는지 변호사와 상담해볼까 해요.'],
+  ['NK5 online collaborator (성인 협업)', '온라인에서 만난 개발자와 사이드 프로젝트를 같이 해볼까 고민이에요.'],
+];
+
 describe('classifyCrisis — fires on genuine crisis (recall on the R11 battery)', () => {
   it.each(CRISIS)('fires: %s', (_label, text) => {
     expect(classifyCrisis(text).isCrisis).toBe(true);
@@ -45,6 +66,20 @@ describe('classifyCrisis — fires on genuine crisis (recall on the R11 battery)
 
 describe('classifyCrisis — does NOT over-fire on navigable high-stakes (precision)', () => {
   it.each(NAVIGABLE)('stays quiet: %s', (_label, text) => {
+    expect(classifyCrisis(text).isCrisis).toBe(false);
+  });
+});
+
+describe('classifyCrisis — Korean batteries (sim F1: the backstop must speak the product\'s main language)', () => {
+  it.each(CRISIS_KO)('fires: %s', (_label, text) => {
+    expect(classifyCrisis(text).isCrisis).toBe(true);
+  });
+
+  it('the sim heavy-09 euphemism lands in self_harm (the human-line concern copy)', () => {
+    expect(classifyCrisis(CRISIS_KO[0][1]).category).toBe('self_harm');
+  });
+
+  it.each(NAVIGABLE_KO)('stays quiet: %s', (_label, text) => {
     expect(classifyCrisis(text).isCrisis).toBe(false);
   });
 });

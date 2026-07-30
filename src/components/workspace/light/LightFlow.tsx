@@ -144,9 +144,16 @@ export function LightFlow({
 
   useEffect(() => () => abortRef.current?.abort(), []);
 
-  const deepen = (reason: LightDeepenReason, qasNow: LightQA[] = qas) => {
+  const deepen = (
+    reason: LightDeepenReason,
+    qasNow: LightQA[] = qas,
+    // F9: an accepted escalation must carry its intent to the heavy flow —
+    // without it STEP-0 reads the emotional content as vent and dead-ends a
+    // user who explicitly asked to look deeper.
+    escalation?: { biggerQuestion?: string },
+  ) => {
     abortRef.current?.abort();
-    onDeepen({ text: composeDeepenText(problemText, qasNow, locale), qas: qasNow, reason });
+    onDeepen({ text: composeDeepenText(problemText, qasNow, locale, escalation), qas: qasNow, reason });
   };
 
   const submitAnswer = async () => {
@@ -451,7 +458,10 @@ export function LightFlow({
               <Button
                 variant="accent"
                 size="md"
-                onClick={() => { track('light_escalation_accepted'); deepen('escalate'); }}
+                onClick={() => {
+                  track('light_escalation_accepted');
+                  deepen('escalate', qas, { biggerQuestion: screen.biggerQuestion });
+                }}
               >
                 {L('지금 조금 더 볼래요', 'Look a bit further now')}
               </Button>

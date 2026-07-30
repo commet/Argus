@@ -290,6 +290,58 @@ describe('permission-to-return (design revision): the offer asks, it never prese
   });
 });
 
+describe('sim-campaign rules (2026-07-31): the light path holds the lines the sim broke', () => {
+  const KO_GATE = buildLightSystemPrompt('ko', 'gate');
+  const EN_GATE = buildLightSystemPrompt('en', 'gate');
+
+  it('F2 — a question that is not a decision routes heavy (info/how-to never gets a mirror ritual)', () => {
+    expect(KO_GATE).toContain('결정이 아닌 질문(뜻 풀이·방법·사실 문의)도 heavy로 분류하세요');
+    expect(EN_GATE).toContain('A question that is NOT a decision (a definition, a how-to, a fact) also routes heavy');
+  });
+
+  it('F11 — the first-question example is a SHAPE, not a script, and carries one question mark', () => {
+    expect(KO_GATE).toContain('형태 예시 (그대로 복사 금지 — 매번 사용자의 말로 새로 만드세요. 물음표는 한 번만)');
+    expect(EN_GATE).toContain('Shape example (never copy it verbatim');
+  });
+
+  it('F7 — the anchor covers tense/state: never assert the opposite of what was written', () => {
+    for (const prompt of KO_PROMPTS) {
+      expect(prompt).toContain('시제·진행 상태도 쓴 그대로만');
+      expect(prompt).toContain('✗ (상태를 안 밝혔는데) "아직 파티가 끝나지 않은 거네요"');
+    }
+    for (const prompt of EN_PROMPTS) {
+      expect(prompt).toContain('never assert the opposite or an unstated state of the world');
+    }
+  });
+
+  it('F10 — the leave-behind must be declarative, no interrogatives, no conditional forks', () => {
+    for (const prompt of KO_PROMPTS) {
+      expect(prompt).toContain('반드시 평서문으로');
+      expect(prompt).toContain('✗ "남편 반응이 어땠는가" ✓ "남편이 선물을 마음에 들어 했다"');
+    }
+    for (const prompt of EN_PROMPTS) {
+      expect(prompt).toContain('Always DECLARATIVE');
+    }
+  });
+
+  it('F9 — bigger_question must be the NAME of a concrete decision, not psychological rhetoric', () => {
+    for (const prompt of KO_PROMPTS) {
+      expect(prompt).toContain('bigger_question은 구체적인 결정의 이름이어야 합니다');
+    }
+    for (const prompt of EN_PROMPTS) {
+      expect(prompt).toContain('bigger_question must be the NAME of a concrete decision');
+    }
+  });
+
+  it('F6 — {오늘의 정리} may hold ONLY a user-stated lean; the sim quote is pinned as ✗', () => {
+    const NEXT_KO = buildLightSystemPrompt('ko', 'next', 1);
+    const NEXT_EN = buildLightSystemPrompt('en', 'next', 1);
+    expect(NEXT_KO).toContain('{오늘의 정리}에는 사용자가 직접 말한 기울기/결정만 넣을 수 있습니다');
+    expect(NEXT_KO).toContain('✗ (사용자가 안 정했는데) "그럼 부모님 뵙고 일요일 저녁에 밀린 일 하는 걸로 하고 —"');
+    expect(NEXT_EN).toContain('{today\'s call} may hold ONLY a lean/decision the user actually stated');
+  });
+});
+
 describe('retired vocabulary (창업자 지시): 초안/draft appears NOWHERE in the light path', () => {
   it('no light prompt uses 초안 or draft', () => {
     for (const prompt of [...KO_PROMPTS, ...EN_PROMPTS]) {

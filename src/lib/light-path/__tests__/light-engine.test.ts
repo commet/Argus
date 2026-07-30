@@ -30,6 +30,7 @@ import {
   clampLightDays,
   stripTrailingQuestion,
   stripOneLinePhrase,
+  isInterrogativeSentence,
   lightCheckBy,
   lightWhenLabel,
   buildLightSealContract,
@@ -507,5 +508,61 @@ describe('composeDeepenText — the heavy handoff carries the light Q&A', () => 
     expect(text).toContain('문제');
     expect(text).toContain('Q. 질문1');
     expect(text).toContain('A. 답1');
+  });
+});
+
+describe('composeDeepenText — an ACCEPTED escalation carries its intent (sim F9: the vent dead-end)', () => {
+  it('names the bigger question as the frame and states the user\'s explicit choice', () => {
+    const text = composeDeepenText(
+      '회식 가기 싫다',
+      [{ question: 'q', answer: '요즘 매번 이래요' }],
+      'ko',
+      { biggerQuestion: '이 팀에서 계속 일할지' },
+    );
+    expect(text).toContain('함께 짚은 더 큰 질문: 이 팀에서 계속 일할지');
+    expect(text).toContain("'더 깊이 보기'를 직접 선택");
+    // the original problem stays FIRST (it is the project title source)
+    expect(text.startsWith('회식 가기 싫다')).toBe(true);
+  });
+
+  it('carries the choice note even without a bigger question (defensive)', () => {
+    const text = composeDeepenText('문제', [], 'ko', {});
+    expect(text).toContain("'더 깊이 보기'를 직접 선택");
+    expect(text).not.toContain('함께 짚은 더 큰 질문');
+  });
+
+  it('EN variant states the same facts', () => {
+    const text = composeDeepenText('p', [], 'en', { biggerQuestion: 'whether to stay on this team' });
+    expect(text).toContain('The bigger question we named: whether to stay on this team');
+    expect(text).toContain('chose to open this question up');
+  });
+
+  it('without escalation the text is unchanged (no phantom intent on plain deepen)', () => {
+    expect(composeDeepenText('문제', [], 'ko')).toBe('문제');
+    expect(composeDeepenText('문제', [], 'ko')).not.toContain('더 깊이 보기');
+  });
+});
+
+describe('offer.sentence must be declarative (sim F10: 4/6 seals were ungradeable)', () => {
+  it('flags the sim campaign\'s interrogative payloads', () => {
+    expect(isInterrogativeSentence('남편 반응이 어땠는가')).toBe(true);          // light-01
+    expect(isInterrogativeSentence('주말 동안 만족스러웠는지 아니면 결국 뭘 먹었는지')).toBe(true); // light-03
+    expect(isInterrogativeSentence('내일 아침에도 사고 싶을까')).toBe(true);      // 합성 -ㄹ까 (조합형)
+    expect(isInterrogativeSentence('Did the evening feel right?')).toBe(true);
+  });
+
+  it('passes real declaratives', () => {
+    expect(isInterrogativeSentence('케이크 자르고 나오면 내일 안 피곤하다')).toBe(false);
+    expect(isInterrogativeSentence('살까 말까 고민을 오늘 끝냈다')).toBe(false);
+    expect(isInterrogativeSentence('My husband liked the gift')).toBe(false);
+  });
+
+  it('coerceOffer REJECTS an interrogative payload — the turn degrades honestly, never rewritten', () => {
+    const turn = coerceLightTurn(
+      { mirror: 'm.', action: 'offer', offer: { sentence: '남편 반응이 어땠는가', when: 'tomorrow_morning' } },
+      1,
+    );
+    expect(turn.offer).toBeUndefined();
+    expect(turn.action).toBe('close');
   });
 });
