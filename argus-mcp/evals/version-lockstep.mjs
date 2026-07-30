@@ -58,15 +58,36 @@ for (const [i, p] of (server.packages ?? []).entries()) {
   if (p.identifier) ok(`V2 server.json packages[${i}].identifier`, p.identifier === pkg.name, `${p.identifier} vs ${pkg.name}`);
 }
 
-// THE PIN — the one that decides which server a real user actually runs
+// WHICH SERVER A REAL USER ACTUALLY RUNS.
+//
+// This check used to demand an EXACT PIN, and the reasoning was sound at the
+// time: a plugin that names `@^1` launched a build from twelve days earlier
+// while every repo gate stayed green, so the fix was to name one immutable
+// version. The cost of that fix was that the version froze there until a person
+// edited it — and on 2026-07-29 the founder's Codex and the plugin were pinned
+// to two DIFFERENT versions, neither of them the current release.
+//
+// The premise was then measured rather than argued. Same spec string twice,
+// with the npx cache holding an older build that the spec still allowed:
+//
+//     argus-decision-mcp           → launched the current release
+//     argus-decision-mcp@^2.0.0    → launched the stale cached build
+//
+// So a RANGE freezes and a BARE NAME does not: npx must resolve a bare name
+// against the registry, while a range is satisfied by whatever is already in
+// the cache. The original incident was a range, and pinning fixed it by
+// accident — dropping the version entirely fixes it on purpose, and installs
+// stop needing maintenance.
+//
+// Hence the inversion: no version at all, and a range is now the failure.
 const spec = (mcpJson.mcpServers?.['argus-decision']?.args ?? []).find(
-  (a) => typeof a === 'string' && a.includes(`${pkg.name}@`));
-ok('V3 .mcp.json이 서버를 핀으로 잡는다', typeof spec === 'string', JSON.stringify(mcpJson.mcpServers));
+  (a) => typeof a === 'string' && a.includes(pkg.name));
+ok('V3 .mcp.json이 서버를 띄운다', typeof spec === 'string', JSON.stringify(mcpJson.mcpServers));
 if (spec) {
-  const pinned = new RegExp(`${escapedPackage}@(\\d+\\.\\d+\\.\\d+)`).exec(spec)?.[1] ?? '';
-  ok('V3 핀 = 배포되는 버전', pinned === SERVER_V,
-    `플러그인이 ${pinned}을 띄우는데 배포되는 것은 ${SERVER_V} — 사용자는 고친 것을 못 받습니다`);
-  ok('V3 핀이 범위가 아니라 정확한 버전', /^\d+\.\d+\.\d+$/.test(pinned), pinned);
+  const versioned = new RegExp(`${escapedPackage}@([^\\s"'()\`\\]]+)`).exec(spec)?.[1] ?? '';
+  ok('V3 플러그인이 버전을 박지 않는다 (설치 한 번으로 계속 최신)',
+    versioned === '',
+    `${versioned}에 고정돼 있다 — 이 플러그인을 깐 사람은 새 서버를 영영 못 받는다`);
 }
 
 // the marketplace speaks for the plugin in two places
@@ -83,16 +104,26 @@ ok('V5 plugin version is clean semver', /^\d+\.\d+\.\d+$/.test(plugin.version), 
 
 // The manifests can agree while the command a person copies still launches an
 // old or nonexistent server. Keep the public install pin in the same gate.
-const DOC_PINS = ['argus-mcp/README.md'];
-const pinRe = new RegExp(`${escapedPackage}@([^\\s"'()\`\\]]+)`, 'g');
-for (const rel of DOC_PINS) {
+// The command a person COPIES is its own failure surface, independent of the
+// manifests. It has been wrong twice in different ways: it once named an
+// unpublished 2.0.0 (`No matching version found` — the front door, dead, for
+// every hand-configured host), and it later named a real version that went
+// stale the moment the next release shipped.
+//
+// Same inversion as V3, and for the same measured reason. Install lines carry
+// no version; a range in one is a hard failure because it is the form that
+// silently freezes.
+const DOC_LINES = ['argus-mcp/README.md'];
+const specRe = new RegExp(`${escapedPackage}@([^\\s"'()\`\\]]+)`, 'g');
+for (const rel of DOC_LINES) {
   const body = fs.readFileSync(path.join(ROOT, rel), 'utf8');
-  const found = [...body.matchAll(pinRe)].map((match) => match[1]);
-  ok(`V6 ${rel}에 설치 핀이 있다`, found.length > 0, '설치 예시에 버전 핀이 없다');
-  for (const version of new Set(found)) {
-    ok(`V6 ${rel} 핀 ${version} = 배포 버전`, version === SERVER_V,
-      `문서 ${version} vs 배포 ${SERVER_V}`);
-  }
+  // The prose deliberately shows `@^2.0.0` and `@2.0.12` as the two forms NOT to
+  // use, so only look at lines a reader would copy: fenced commands and JSON args.
+  const copyable = body.split('\n').filter((l) => /^(codex mcp add|npx |claude mcp add)/.test(l.trim())
+    || /"args"\s*:/.test(l));
+  const found = copyable.flatMap((l) => [...l.matchAll(specRe)].map((m) => m[1]));
+  ok(`V6 ${rel} 설치 줄에 버전이 없다`, found.length === 0,
+    `복사되는 줄이 ${found.join(' · ')}에 고정한다 — 따라 한 사람은 거기서 멈춘다`);
 }
 
 const label = `${checks} checks · ${violations.length} violations`;

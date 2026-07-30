@@ -51,7 +51,7 @@ if (!fs.existsSync(registryFile)) {
     registry = JSON.parse(fs.readFileSync(registryFile, 'utf8'));
     say(`    registry OK — 등록 리포 ${Object.keys(registry.repositories || {}).length}개 (${registryFile})`);
   } catch {
-    say(`    ⚠ registry 파손 — JSON 파싱 실패 (${registryFile}). v2 쓰기는 명시 거절 상태다. 파일을 백업 후 확인할 것.`);
+    say(`    ⚠ registry 파손 — JSON 파싱 실패 (${registryFile}). v2 쓰기는 안전을 위해 멈춘 상태다. 파일을 백업 후 확인할 것.`);
   }
 }
 
@@ -93,7 +93,7 @@ if (repositoryId) {
   say(`[3] 내구 원장: ${ledgerFile}`);
   let lastEventId = null;
   if (!fs.existsSync(ledgerFile)) {
-    say('    원장 파일 없음 — 첫 v2 이벤트 때 태어난다 (미리 만들지 않는 게 정상).');
+    say('    원장 파일 없음 — 첫 v2 이벤트 때 만들어진다 (미리 만들지 않는 게 정상).');
   } else {
     let total = 0, corrupt = 0;
     try {
@@ -115,7 +115,7 @@ if (repositoryId) {
   const logbookFile = path.join(cwd, '.argus', 'LOGBOOK.md');
   say(`[4] LOGBOOK projection: ${logbookFile}`);
   if (!fs.existsSync(logbookFile)) {
-    say('    없음 — 다음 argus_check_in 또는 v2 쓰기에서 태어난다 (원장이 정본이라 손실 아님).');
+    say('    없음 — 다음 argus_check_in 또는 v2 쓰기에서 만들어진다 (원장이 정본이라 손실 아님).');
   } else {
     const m = /<!-- argus:last_event_id=([0-9A-HJKMNP-TV-Z]{26}|none) -->/.exec(fs.readFileSync(logbookFile, 'utf8'));
     if (!m) say('    ⚠ 커서 없음(손으로 고쳐졌거나 파손) — stale. argus_check_in이 재생성한다.');
@@ -132,7 +132,7 @@ if (repositoryId) {
     try {
       const holder = JSON.parse(fs.readFileSync(lockFile, 'utf8'));
       if (pidAlive(holder.pid)) say(`    보유 중 — pid ${holder.pid}, ${holder.started_at}부터. 살아있는 프로세스면 정상(쓰기 중), 오래 지속되면 그 프로세스를 확인.`);
-      else say(`    ⚠ 죽은 pid ${holder.pid}의 잔재 — 다음 쓰기가 자동 탈취한다 (수동 삭제 불필요).`);
+      else say(`    ⚠ 죽은 pid ${holder.pid}의 잔재 — 다음 쓰기가 자동으로 정리한다 (수동 삭제 불필요).`);
     } catch {
       say('    ⚠ 락 파일 파손 — 다음 쓰기의 stale 판정 경로가 처리한다.');
     }
@@ -219,20 +219,49 @@ for (const p of [path.join(cwd, '.argus', 'ledger', 'ledger.jsonl'), path.join(h
 //     모델에게 그 한 가지를 추가 확인시킨다 (honest gap: 모르는 건 모른다고).
 {
   say('[10] MCP 배선 버전:');
-  const mcpJson = path.join(__dirname, '..', '.mcp.json');
+  // CLAUDE_PLUGIN_ROOT is where the HOST actually installed this plugin, and it
+  // is what doctor should inspect — the checkout next to this script is only the
+  // same file by coincidence when run from a dev tree. It also means the wiring
+  // contract can be tested against a fixture: without this, doctor-cache-noise
+  // wrote a fixture .mcp.json that doctor never opened, so its pin assertions
+  // were reading the repo's own file and proving nothing (2026-07-29).
+  const pluginHome = process.env.CLAUDE_PLUGIN_ROOT || path.join(__dirname, '..');
+  const mcpJson = path.join(pluginHome, '.mcp.json');
   let pinned = null;
+  let launches = false;   // 배선 자체는 있는가 (버전 표기와 별개의 사실)
   try {
-    const wired = JSON.parse(fs.readFileSync(mcpJson, 'utf8')).mcpServers || {};
-    for (const s of Object.values(wired)) {
-      const spec = (s && Array.isArray(s.args) ? s.args : []).find(
-        (a) => typeof a === 'string' && a.includes('argus-decision-mcp@'),
-      );
-      const match = /argus-decision-mcp@(\d+\.\d+\.\d+|[^\s]+)/.exec(spec ?? '');
+    const servers = JSON.parse(fs.readFileSync(mcpJson, 'utf8')).mcpServers || {};
+    for (const s of Object.values(servers)) {
+      const args = s && Array.isArray(s.args) ? s.args : [];
+      let spec = args.find((a) => typeof a === 'string' && a.includes('argus-decision-mcp'));
+      // 2026-07-30: 배선이 런처(mcp-launch.js)를 거칠 수 있다 — 온라인이면 매
+      // 실행 최신, 오프라인이면 캐시로 기동. 스펙 문자열은 런처 안으로 옮겨
+      // 갔으므로 닥터도 런처를 따라가 읽는다 (배선을 못 읽는 닥터는 없는 닥터다).
+      if (!spec) {
+        const launcherArg = args.find((a) => typeof a === 'string' && /mcp-launch\.js$/.test(a));
+        if (launcherArg) {
+          const launcherPath = launcherArg.includes('${CLAUDE_PLUGIN_ROOT}')
+            ? launcherArg.replace('${CLAUDE_PLUGIN_ROOT}', pluginHome)
+            : launcherArg;
+          try {
+            const src = fs.readFileSync(launcherPath, 'utf8');
+            const m = /--package=(argus-decision-mcp[^"'\s]*)/.exec(src);
+            if (m) spec = m[1];
+          } catch { /* 런처 파일이 없으면 아래에서 배선 불완전으로 보고 */ }
+        }
+      }
+      if (!spec) continue;
+      launches = true;
+      const match = /argus-decision-mcp@(\d+\.\d+\.\d+|[^\s]+)/.exec(spec);
       if (match) { pinned = match[1]; break; }
     }
   } catch { /* 배선 파일 없음/파손 — 아래에서 정직하게 보고 */ }
 
-  if (!pinned) {
+  if (launches && !pinned) {
+    // 의도된 상태. 버전을 안 적으면 npx가 매 실행 레지스트리에 다시 물어보므로
+    // 한 번 설치하면 계속 최신이다 (2026-07-29 실측).
+    say(`    버전 고정 없음 — 매 실행 최신을 받는다 (${mcpJson})`);
+  } else if (!pinned) {
     say(`    ⚠ 배선 스펙을 읽지 못함 (${mcpJson}) — 플러그인 번들이 불완전하다. 플러그인 재설치 대상.`);
   } else if (!/^\d+\.\d+\.\d+$/.test(pinned)) {
     say(`    ⚠ 핀이 범위 스펙이다 (${pinned}) — npx가 캐시된 옛 설치본을 계속 재사용해 배선이 조용히 얼어붙는다. 정확 버전으로 핀할 것.`);
@@ -261,7 +290,12 @@ for (const p of [path.join(cwd, '.argus', 'ledger', 'ledger.jsonl'), path.join(h
     }
   }
   if (found.length === 0) {
-    say('    npx 캐시에 설치본 없음 — 다음 도구 호출에서 핀한 버전을 내려받는다 (정상).');
+    say('    npx 캐시에 설치본 없음 — 다음 도구 호출에서 내려받는다 (정상).');
+  } else if (launches && !pinned) {
+    // 버전을 안 박았으므로 "핀과 같다/다르다"는 말이 안 된다. npx가 매 실행
+    // 레지스트리에 다시 물으므로 남은 사본은 지난 실행의 흔적일 뿐이다.
+    const vs = [...new Set(found.map((f) => f.version))].sort().join(', ');
+    say(`    캐시에 남은 사본 ${found.length}개 (${vs}) — 무해: 버전을 안 박았으므로 npx가 매번 최신을 다시 받는다.`);
   } else {
     // 경고의 전제는 "범위 스펙이면 npx가 낡은 캐시를 재사용한다"였다. 핀이 정확
     // 버전인 지금은 낡은 사본이 선택될 수 없으므로 무해하다 — 그런데도 사본 하나당
@@ -279,7 +313,7 @@ for (const p of [path.join(cwd, '.argus', 'ledger', 'ledger.jsonl'), path.join(h
     } else {
       for (const f of found) {
         const isStale = exactPin && f.version !== pinned;
-        say(`    캐시 ${f.version}${isStale ? ` — ⚠ 핀(${pinned})과 다르다. 이 세션이 이걸 물고 있으면 낡은 배선이다` : ' (핀과 일치)'} — ${f.dir}`);
+        say(`    캐시 ${f.version}${isStale ? ` — ⚠ 핀(${pinned})과 다르다. 이 세션이 이 사본을 쓰고 있으면 낡은 배선이다` : ' (핀과 일치)'} — ${f.dir}`);
       }
     }
     if (pinned && found.every((f) => f.version !== pinned)) {
@@ -289,7 +323,7 @@ for (const p of [path.join(cwd, '.argus', 'ledger', 'ledger.jsonl'), path.join(h
   say('    실제로 돌고 있는 버전의 정본 = argus_check_in의 data.server_version (세션 안에서만 보인다).');
 }
 say('');
-say('진단 끝. 이 스크립트는 아무것도 고치지 않았다 — 수리 손잡이는 각 줄에 적힌 도구다.');
+say('진단 끝. 이 스크립트는 아무것도 고치지 않았다 — 고치는 방법은 각 줄에 적힌 도구다.');
 
 process.stdout.write(out.join('\n') + '\n');
 process.exit(0);

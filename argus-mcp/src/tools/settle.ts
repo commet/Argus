@@ -73,7 +73,7 @@ export const settle: ToolModule = {
         return envelope({
           ok: true, tool: 'argus_settle',
           surface: cardLocale === 'ko'
-            ? '정산 카드를 옆에 띄웠습니다. 카드에서 골라도 되고, 어떻게 됐는지 그냥 말해도 됩니다.'
+            ? '정산 카드를 옆에 띄웠습니다. 카드에서 고르셔도 되고, 어떻게 됐는지 말로 알려주셔도 됩니다.'
             : 'The settle card is up. Pick on the card, or just say what happened.',
           next_actions: ['stop'],
           data: {
@@ -333,9 +333,11 @@ export const settle: ToolModule = {
           const shown = connections.slice(0, 3).map((c) => c.decision_id);
           const extra = connections.length - shown.length;
           const q = sanitizeLine(brokenPremiseText, 80);
+          // "깨진"은 평결 어휘다 (mirror 규칙 — 웹 알림 메일은 같은 단어를 기계
+          // 테스트로 금지한다). 움직임은 사실, 깨짐은 판정 — 판정은 사용자 몫.
           connectionLine = locale === 'ko'
-            ? `\n방금 깨진 전제("${q}")와 같은 가정이나 근거에 선 다른 열린 결정: ${shown.join(', ')}${extra > 0 ? ` 외 ${extra}개` : ''}. argus_check_in으로 함께 볼 수 있어요.`
-            : `\nOther open decisions rest on the same assumption or fact as the one that just broke ("${q}"): ${shown.join(', ')}${extra > 0 ? ` (+${extra} more)` : ''}. Review them together with argus_check_in.`;
+            ? `\n방금 움직인 전제("${q}")와 같은 가정이나 근거에 선 다른 열린 결정: ${shown.join(', ')}${extra > 0 ? ` 외 ${extra}개` : ''}. argus_check_in으로 함께 볼 수 있습니다.`
+            : `\nOther open decisions rest on the same assumption or fact as the one that just moved ("${q}"): ${shown.join(', ')}${extra > 0 ? ` (+${extra} more)` : ''}. Review them together with argus_check_in.`;
         }
       }
 
@@ -446,7 +448,7 @@ async function deferStillPending(args: {
     const dq = sanitizeLine(current.predicate ?? id, 96);
     const asked = await elicitDetailed(
       locale === 'ko'
-        ? `"${dq}"\n\n아직 답이 안 나왔군요. 언제 다시 볼까요?\n하나 고른 뒤 Accept까지 진행하세요. 지금 정하기 어려우면 Decline (확인일은 ${oldCheckBy} 그대로).`
+        ? `"${dq}"\n\n아직 답이 나오지 않았습니다. 언제 다시 볼까요?\n하나 고른 뒤 Accept까지 진행하세요. 지금 정하기 어려우면 Decline (확인일은 ${oldCheckBy} 그대로).`
         : `"${dq}"\n\nNot answered yet. When should I look again?\nPick one, then continue to Accept. Decline to leave it (check-by stays ${oldCheckBy}).`,
       // 필수 필드 없음 — 같은 이유. 빈 채 Accept는 Decline과 같은 길로
       // 흐르고(newDate undefined → 아래 정직한 에러), 폼 안에서 막지 않는다.

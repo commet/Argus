@@ -30,6 +30,10 @@ describe('물음으로 판정하는 것', () => {
     '경쟁사가 같은 분기에 가격을 내릴까요',
     'Is the timeline realistic?',
     '팀 온도 파악을 이틀 만에 끝내는 게 맞습니까?',
+    // 물음표 없는 격식 의문형 — 낱자모 `ㅂ니까` 규칙은 조합형 텍스트에 맞을 수
+    // 없어서 이게 전제로 저장되고 있었다 (2026-07-30 실측, 죽은 규칙).
+    '이게 사실입니까',
+    '내년에도 이 인원으로 됩니까',
   ])('%s', (t) => {
     expect(isQuestionShaped(t)).toBe(true);
     expect(premiseShapeOf(t)).toBe('open_question');
@@ -52,6 +56,10 @@ describe('전제로 남겨야 하는 것 (조용한 손실 방지)', () => {
     '계약직 전환을 할지 말지는 다음 달 안에 정한다.',
     'Week-two retention is measured on a cohort large enough to be meaningful.',
     '투자 목적은 시세차익 실현이며, 실거주 계획 없음',
+    // `~(으)니까`는 이유이지 물음이 아니다 — 플러그인 사본이 `니까`로 깨져
+    // 이런 문장을 질문으로 강등시키고 있었다 (2026-07-30 실측 드리프트).
+    '지금은 예산이 없으니까.',
+    '어차피 서두를 이유가 없으니까!',
   ])('%s', (t) => {
     expect(isQuestionShaped(t)).toBe(false);
     expect(premiseShapeOf(t)).toBe('premise');
@@ -84,6 +92,11 @@ describe('플러그인 사본이 같은 규칙을 쓴다', () => {
     '계약직 전환을 할지 말지는 다음 달 안에 정한다.',
     '긴 지적을 씁니다. 그런데 이게 현실적으로 가능한가요?',
     '지금 팀이 못 하는 일이 사람 부족 때문인지 확인해야 한다.',
+    // 아래 두 샘플이 없으면 이 대조는 아무것도 못 잡는다 (2026-07-30 실측):
+    // 플러그인 정규식이 `니까`/`다까`로 깨져 있었는데 위 샘플들로는 전부
+    // 같은 답이 나와 초록이었다. 드리프트를 가르는 문장이어야 대조다.
+    '지금은 예산이 없으니까.', // 이유 종결 — 질문 아님 (깨진 `니까`는 질문이라 함)
+    '이게 사실입니까',          // 격식 의문 — 질문 (죽은 `ㅂ니까`는 못 잡음)
   ];
 
   it.each(SAME)('웹과 플러그인이 같은 답을 낸다: %s', (t) => {
@@ -115,6 +128,58 @@ describe('자동 추적이 물음을 전제로 저장하지 않는다', () => {
       '온보딩 기간은 3~6개월로 잡는다.',
     ]), Date.now());
     expect(items.map((i) => i.type)).toEqual(['premise', 'open_question', 'premise']);
+  });
+
+  it('분석이 화면에 보여준 가정(hidden_assumptions)도 풀에 들어간다', () => {
+    // 2026-07-30까지 여기서 버려졌다 — 화면은 "확인할 가정 3개"라고 말해놓고
+    // 추적 목록에는 안 넣는, 말과 행동이 갈라진 상태였다 (기획 1단계).
+    const s = {
+      id: 's1', project_id: 'p1',
+      snapshots: [{ hidden_assumptions: ['핵심 인력 이탈은 이번 분기에 없다.'] }],
+    } as unknown as ProgressiveSession;
+    const items = buildAutoTrackedPremiseItems('d1', s, Date.now());
+    expect(items.map((i) => i.text)).toContain('핵심 인력 이탈은 이번 분기에 없다.');
+  });
+
+  it('사용자가 자기 말로 적은 베팅(real_bet)이 기계 가정보다 먼저 산다', () => {
+    // 캡(5)에 잘릴 때 사람 문장이 살아남는 순서 보장.
+    const s = {
+      id: 's1', project_id: 'p1',
+      falsification: { real_bet: '다음 분기 매출이 지금 수준을 유지한다.' },
+      mix: { title: 't', executive_summary: 'e', sections: [], key_assumptions: ['a1 가정 문장.', 'a2 가정 문장.', 'a3 가정 문장.', 'a4 가정 문장.', 'a5 가정 문장.'], next_steps: [] },
+    } as unknown as ProgressiveSession;
+    const items = buildAutoTrackedPremiseItems('d1', s, Date.now());
+    expect(items).toHaveLength(5);
+    expect(items[0].text).toBe('다음 분기 매출이 지금 수준을 유지한다.');
+  });
+
+  it('표기만 다른 같은 주장은 하나만 저장된다 (같은 웹 조사를 두 번 안 한다)', () => {
+    const s = {
+      id: 's1', project_id: 'p1',
+      mix: { title: 't', executive_summary: 'e', sections: [], key_assumptions: ['다음 분기 매출이 지금 수준을 유지한다.'], next_steps: [] },
+      snapshots: [{ hidden_assumptions: ['다음 분기 매출은 확정 계약 기준으로 현재와 유사한 수준을 유지한다.'] }],
+    } as unknown as ProgressiveSession;
+    const items = buildAutoTrackedPremiseItems('d1', s, Date.now());
+    expect(items.map((i) => i.text)).toEqual(['다음 분기 매출이 지금 수준을 유지한다.']);
+  });
+
+  it('봉인 화면에서 ×로 뺀 문장은 저장되지 않는다 (deny → 저장 안 함)', () => {
+    // 2026-07-30 발견: 이 배선이 없어서, 사용자가 봉인 카드에서 뺀 전제가
+    // 추적 목록에 그대로 active 로 저장됐다. 사람이 아니라고 말한 것을
+    // 시스템이 계속 믿고 있었다.
+    const items = buildAutoTrackedPremiseItems('d1', session([
+      '다음 분기 매출이 지금 수준을 유지한다.',
+      '온보딩 기간은 3~6개월로 잡는다.',
+    ]), Date.now(), { excludeTexts: ['다음 분기 매출이 지금 수준을 유지한다.'] });
+    expect(items.map((i) => i.text)).toEqual(['온보딩 기간은 3~6개월로 잡는다.']);
+  });
+
+  it('표기만 다르게 뺀 것도 빠진다 (deny 가 조사 차이로 살아남지 않는다)', () => {
+    const items = buildAutoTrackedPremiseItems('d1', session([
+      '다음 분기 매출은 확정 계약 기준으로 현재와 유사한 수준을 유지한다.',
+      '온보딩 기간은 3~6개월로 잡는다.',
+    ]), Date.now(), { excludeTexts: ['다음 분기 매출이 지금 수준을 유지한다.'] });
+    expect(items.map((i) => i.text)).toEqual(['온보딩 기간은 3~6개월로 잡는다.']);
   });
 
   it('id 는 type 을 포함하므로 옮겨진 항목이 전제와 충돌하지 않는다', () => {

@@ -1,0 +1,31 @@
+# 바깥층 맥박 (2026-07-30) — 루프 맥박(daily-report 안)은 앱이 통째로 죽으면
+# 같이 죽는다. 이 워크플로는 앱 밖(GitHub 러너)에서 6시간마다 프로덕션이
+# 응답하는지 잰다. 실패하면 GitHub이 리포 소유자에게 실패 메일을 보낸다 —
+# 별도 알림 인프라 없이 "사이트가 죽으면 안다"가 성립한다.
+#
+# 원칙: 검사는 읽기 전용 GET 두 번뿐. 비용 0, 시크릿 0.
+name: Health pulse
+
+on:
+  schedule:
+    - cron: "15 */6 * * *" # 6시간마다 (부하 없는 분 선택)
+  workflow_dispatch:
+
+jobs:
+  pulse:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Production homepage answers
+        run: |
+          curl -fsS --max-time 30 -o /dev/null -w "argus.voyage/ko -> %{http_code} in %{time_total}s\n" https://argus.voyage/ko
+
+      - name: API layer answers (cron auth boundary alive)
+        run: |
+          # 인증 없이 401이 오는 것이 정상 — 401은 "라우트가 살아서 거절까지 했다"는
+          # 증거다. 5xx나 무응답만 빨간불로 만든다.
+          code=$(curl -sS --max-time 30 -o /dev/null -w "%{http_code}" https://argus.voyage/api/cron/premise-watch)
+          echo "premise-watch route -> $code"
+          if [ "$code" != "401" ]; then
+            echo "expected 401 (alive + auth boundary), got $code"; exit 1
+          fi

@@ -123,7 +123,7 @@ describe('ambient-due: single source of due counts (M1 §1.3)', () => {
     const res = await recall.handler({ argus_dir: dir, view: 'bearing', today_override: TODAY });
     const noted = appendDueNote('argus_recall', { argus_dir: dir, today_override: TODAY }, res);
     const surface = String((noted.structuredContent as Record<string, unknown>)['surface']);
-    expect(surface).toContain('그나저나');
+    expect(surface).toContain('참고로');
     expect(surface).toContain('argus_check_in');
   });
 

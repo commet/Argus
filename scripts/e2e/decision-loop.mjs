@@ -60,7 +60,9 @@ import { chromium } from '@playwright/test';
 const BASE = (process.env.ARGUS_BASE_URL ?? 'https://argus.voyage').replace(/\/$/, '');
 const LOCALE = process.env.ARGUS_LOCALE ?? 'ko';
 const MODE = process.env.E2E_MODE === 'signed-in' ? 'signed-in' : 'anon';
-const SHOT_DIR = process.env.E2E_SHOT_DIR ?? path.join('scripts', 'e2e', 'shots', MODE);
+// E2E_VIEWPORT=mobile → 폰 화면(390×844)으로 같은 여정 (2026-07-30).
+const MOBILE = process.env.E2E_VIEWPORT === 'mobile';
+const SHOT_DIR = process.env.E2E_SHOT_DIR ?? path.join('scripts', 'e2e', 'shots', MOBILE ? `${MODE}-mobile` : MODE);
 /** 분석 도착까지 (긴 쪽). */
 const ANALYSIS_TIMEOUT_MS = Number(process.env.ANALYSIS_TIMEOUT_MS ?? 210_000);
 /** 분석 이후 봉인까지의 전체 예산. 넉넉히 — 여기서 시간이 모자라 빨간불이 뜨면 거짓 빨간불이다. */
@@ -91,7 +93,8 @@ const browser = await chromium.launch({ headless: true });
 // 기본값에 기대면 Playwright 버전이 바뀌는 날 조용히 검사만 사라진다.
 const ctx = await browser.newContext({
   locale: `${LOCALE}-KR`,
-  viewport: { width: 1400, height: 1000 },
+  viewport: MOBILE ? { width: 390, height: 844 } : { width: 1400, height: 1000 },
+  ...(MOBILE ? { isMobile: true, hasTouch: true, deviceScaleFactor: 3 } : {}),
   acceptDownloads: true,
 });
 const page = await ctx.newPage();
@@ -442,6 +445,75 @@ try {
   step('7. 봉인 제안에 확인일이 박혀 있다', hasDate || isWitness,
     isWitness ? '증인 모드(확인일 없는 기록)로 떴다' : (hasDate ? '' : '확정 버튼에 날짜가 없다'));
 
+  // ── 7b. 봉인 전 확인 표면 — 추적될 전제를 보고 뺄 수 있다 (2026-07-30) ──
+  // 서랍을 열어 "확인일에 함께 볼 전제" 목록을 확인하고, 하나를 ×로 뺀 뒤
+  // 그 문장을 기억해 둔다. 봉인 후 /project 추적 목록에 **그 문장이 없어야**
+  // deny 배선이 산 것이다 — 화면에서 사라지는 것만 보면 절반이다.
+  let deniedPremise = '';
+  let editedSentence = '';
+  {
+    const drawerBtn = await clickable(/돌아올 때·함께 볼 항목 설정|함께 보관할 항목 보기|Set the return|See what will be kept/);
+    if (drawerBtn) { await drawerBtn.click(); await page.waitForTimeout(1200); }
+    const removeBtns = page.getByRole('button', { name: /이 전제 추적하지 않기|do not track this premise/ });
+    const nPremises = await removeBtns.count().catch(() => 0);
+    await shot('seal-drawer');
+    if (nPremises === 0) {
+      // 이번 실행의 분석이 술어와 겹치지 않는 가정을 안 냈을 수 있다 — 그건 앱
+      // 고장이 아니므로 빨간불이 아니다. 다만 조용히 초록으로 두지 않고 말한다.
+      console.log('   🟡 7b. 이번 실행에는 술어 밖 추적 전제가 없어 deny 배선을 못 쟀다 (앱 고장 아님)');
+    } else {
+      const firstItem = removeBtns.first();
+      deniedPremise = (await firstItem.locator('xpath=../span[1]').innerText().catch(() => '')).split('\n')[0].trim();
+      if (!deniedPremise) {
+        // 형제 span 을 못 읽으면 li 전체에서 추출
+        deniedPremise = (await firstItem.locator('xpath=..').innerText().catch(() => '')).split('\n')[0].replace(/×$/, '').trim();
+      }
+      await firstItem.click();
+      await page.waitForTimeout(800);
+      // 두 번 틀리고 배운 단정 (2026-07-30):
+      //   1차: 개수 감소 → 풀이 캡(5)보다 크면 다음 후보가 들어와 개수 유지 (정상 동작)
+      //   2차: 페이지 전체에서 문장 부재 → 같은 화면의 **완성 문서 본문**에 비슷한
+      //        문장이 살아 있어 거짓 빨간불
+      // 그래서 **서랍 목록 항목들만** 읽는다 — 재는 사실은 "뺀 그 문장이 이
+      // 목록에서 사라졌는가" 하나다.
+      const listedNow = await page
+        .locator('li', { has: page.getByRole('button', { name: /이 전제 추적하지 않기|do not track this premise/ }) })
+        .allInnerTexts().catch(() => []);
+      const key7b = deniedPremise.slice(0, 16);
+      const gone = key7b.length >= 8 && !listedNow.some((t) => t.includes(key7b));
+      step('7b. 봉인 서랍에서 추적 전제를 ×로 뺄 수 있다', gone,
+        gone ? `뺀 문장: "${deniedPremise.slice(0, 30)}…"` : `뺀 문장이 목록에 그대로 있다: "${key7b}…"`);
+
+      // ── 7c. 종이 봉인 순간에 보인다 (2026-07-30 — 숨은 opt-in → 보이는 opt-out)
+      // 실측 22건 중 켜진 종 0건의 원인은 스위치가 /project 에 숨어 있던 것.
+      // 이제 서랍의 premise 줄마다 종이 기본 켬으로 보여야 한다.
+      const bellsOn = await page.getByRole('button', { name: /이 전제 알림 끄기|mute alerts for this premise/ }).count().catch(() => 0);
+      step('7c. 추적 전제의 종이 기본 켬으로 보인다', bellsOn >= 1,
+        bellsOn >= 1 ? `켜진 종 ${bellsOn}개` : '서랍에 종이 없다 — 서버 감시가 또 숨었다');
+
+      // ── 7d. 인라인 수정 — 고쳐 쓰면 그 자리에서 내 문장이 된다 (2026-07-30)
+      const EDITED_SENTENCE = '수정 검증용 전제다. 이 문장은 실주행이 서랍에서 고쳐 썼다.';
+      const editBtns = page.getByRole('button', { name: /이 전제 고쳐 쓰기|rewrite this premise/ });
+      const nEditable = await editBtns.count().catch(() => 0);
+      if (nEditable === 0) {
+        console.log('   🟡 7d. 고쳐 쓸 전제 행이 없어 인라인 수정을 못 쟀다');
+      } else {
+        await editBtns.first().click();
+        const editInput = page.getByRole('textbox', { name: /전제 문장 고쳐 쓰기|rewrite this premise/ });
+        await editInput.fill(EDITED_SENTENCE);
+        await editInput.press('Enter');
+        await page.waitForTimeout(600);
+        const rows = await page
+          .locator('li', { has: page.getByRole('button', { name: /이 전제 추적하지 않기|do not track this premise/ }) })
+          .allInnerTexts().catch(() => []);
+        const shown = rows.some((t) => t.includes('수정 검증용 전제다') && /내 문장으로 기록|recorded as your words/.test(t));
+        step('7d. 서랍에서 전제를 고쳐 쓰면 내 문장으로 표시된다', shown,
+          shown ? '' : `고친 문장이 행에 안 보인다: ${rows.map((r) => r.slice(0, 24)).join(' | ')}`);
+        if (shown) editedSentence = EDITED_SENTENCE;
+      }
+    }
+  }
+
   if (MODE === 'signed-in') {
     // 로그인 상태에서만 달라지는 것: 익명용 고지가 없어야 한다.
     const anonNotice = /이 브라우저에 묶여 있어요|tied to this browser/.test(offerText);
@@ -458,6 +530,46 @@ try {
     const sealedText = await bodyText();
     const sealed = /그날 프로젝트 페이지에서 제가 먼저 물어볼게요|다시 묻거나 알림을 만들지 않습니다|bring it up first on the project page|No reminder or follow-up was created/.test(sealedText);
     step('8. 봉인이 실제로 성사된다', sealed, sealed ? '' : '봉인 후 확인 문구가 안 뜬다');
+
+    // ── 8b. 봉인이 저장한 전제에 종이 실제로 켜져 있다 (2026-07-30) ──────
+    // 화면(7c)이 보여준 것과 저장소가 같은 사실이어야 한다 — UI 멀쩡 ≠ 데이터 도착.
+    const bellStored = await page.evaluate(() => {
+      try {
+        const raw = localStorage.getItem('sot_decision_items');
+        if (!raw) return { n: 0, on: 0 };
+        const items = JSON.parse(raw);
+        const list = Array.isArray(items) ? items : Object.values(items).flat();
+        const premises = list.filter((i) => i && i.type === 'premise' && i.status === 'active');
+        return { n: premises.length, on: premises.filter((i) => i.external === true && i.alert && i.alert.mode === 'on_change').length };
+      } catch { return { n: -1, on: -1 }; }
+    });
+    if (bellStored.n === 0) {
+      console.log('   🟡 8b. 이번 실행엔 자동 추적 전제가 저장되지 않아 종 상태를 못 쟀다 (7b가 노랑이었으면 정상)');
+    } else {
+      step('8b. 저장된 추적 전제에 종(external+on_change)이 켜져 있다', bellStored.on >= 1,
+        `전제 ${bellStored.n}건 중 종 켜짐 ${bellStored.on}건`);
+    }
+
+    // ── 8c. 고쳐 쓴 전제가 이력째로 저장됐다 (2026-07-30) ─────────────────
+    // 화면(7d)의 "내 문장으로 기록"이 장식이 아니려면 저장소에 (a) 고친 문장
+    // (b) ai_edited_by_user 승격 (c) 지워지지 않은 원문(edits.from)이 있어야 한다.
+    if (editedSentence) {
+      const editedStored = await page.evaluate((sentence) => {
+        try {
+          const raw = localStorage.getItem('sot_decision_items');
+          if (!raw) return null;
+          const items = JSON.parse(raw);
+          const list = Array.isArray(items) ? items : Object.values(items).flat();
+          const hit = list.find((i) => i && i.text === sentence);
+          if (!hit) return null;
+          return { authored: hit.authored, from: hit.edits?.[0]?.from ?? '', edits: (hit.edits ?? []).length };
+        } catch { return null; }
+      }, editedSentence);
+      const ok = !!editedStored && editedStored.authored === 'ai_edited_by_user'
+        && editedStored.edits >= 1 && editedStored.from.length > 0 && editedStored.from !== editedSentence;
+      step('8c. 고쳐 쓴 전제가 이력째로 저장됐다 (원문 보존 + 내 문장 승격)', ok,
+        ok ? `원문: "${editedStored.from.slice(0, 24)}…"` : `저장 상태: ${JSON.stringify(editedStored)}`);
+    }
 
     // ── 9. 익명에게 정직한 고지 + 로그인 유도 ──────────────────────────
     // 여기가 그 사람이 처음으로 "지킬 가치가 있는 것"을 손에 쥔 순간이다.
@@ -550,6 +662,16 @@ try {
   const visible = projectText.includes(DECISION.slice(0, 18));
   step('10. /project 가 열리고 그 결정이 보인다', !projectWalled && visible,
     projectWalled ? '로그인 벽' : (visible ? '' : '결정이 목록에 없다'));
+
+  // ── 10b. deny 가 저장까지 막았다 ─────────────────────────────────────
+  // 서랍에서 ×로 뺀 문장이 /project 추적 목록에도 없어야 한다. 2026-07-30 전에는
+  // 화면에서만 사라지고 저장소에는 active 로 남았다 — 그 회귀를 여기서 막는다.
+  if (MODE === 'anon' && deniedPremise) {
+    const key = deniedPremise.slice(0, 16);
+    const leaked = key.length >= 8 && projectText.includes(key);
+    step('10b. ×로 뺀 전제가 추적 목록에 저장되지 않았다', !leaked,
+      leaked ? `뺀 문장이 /project 에 살아 있다: "${key}…"` : '');
+  }
 
   // ── 11. 뒷정리 = 삭제 경로 검사 (익명 전용) ──────────────────────────
   if (MODE === 'anon') {

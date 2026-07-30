@@ -20,7 +20,7 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/doctor.js"
      "⚠ Argus MCP가 구버전으로 연결됐다(옛 도구 이름이 보인다). 미연결이 아니라
      낡은 배선이다 — npx가 캐시된 옛 설치본을 재사용하고 있다.
      `npx clear-npx-cache` 또는 캐시 디렉터리 삭제 후 세션 재시작."
-   - 어느 쪽도 **없다** → "⚠ Argus MCP 서버 미연결 — 감지가 도구를 잃었다.
+   - 어느 쪽도 **없다** → "⚠ Argus MCP 서버 미연결 — 감지에 필요한 도구가 빠져 있다.
      `/mcp`로 연결 상태를 확인하라."
 2. **돌고 있는 버전**: 툴이 있으면 `argus_check_in`을 호출하고(읽기 전용)
    `data.server_version`을 [10]의 핀한 버전과 대조해 전달하라 — 같으면 "배선
@@ -32,10 +32,10 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/doctor.js"
    탓에 데스크탑 사용자에겐 이 항목이 통째로 사라져 있었다:
    - `card` → "정산 카드 OK — 확인일이 오면 옆에 카드가 떠서 결과를 눌러
      기록한다(대화로 그냥 말해도 된다)"
-   - `one_tap` → "픽커 OK — AI 초안 예측은 Accept/Decline 원탭으로 확인받는다
+   - `one_tap` → "확인 창 OK — AI 초안 예측은 Accept/Decline 한 번으로 확인받는다
      (입력칸 없이 Accept를 한 번 누르면 초안 그대로 기록)"
-   - `text_fallback` → "⚠ 이 호스트는 elicitation을 지원하지 않거나 현재
-     정책이 picker를 차단했다 — 확인은 대화 텍스트로 폴백된다(기능은 동작).
+   - `text_fallback` → "⚠ 이 호스트는 확인 창을 그리지 못하거나 정책이 막고
+     있다 — 확인은 대화로 대신 받는다(기능은 그대로 동작한다).
      Codex라면 `approval_policy.granular.mcp_elicitations=true`인지 확인하라.
      관리형 정책이 막으면 관리자 설정이 우선한다."
    셋 중 어느 값도 아니면 그 값을 그대로 적어라. 모르는 값을 조용히 빼면

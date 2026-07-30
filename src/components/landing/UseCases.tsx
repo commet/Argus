@@ -35,6 +35,7 @@ import { useLocale } from '@/hooks/useLocale';
 import { useScrollReveal } from '@/hooks/useScrollReveal';
 import { PaperGrain } from './voyage/atmosphere/PaperGrain';
 import { ArgusMascot } from '@/components/brand/ArgusMascot';
+import { ClauseText } from '@/components/landing/ClauseText';
 
 type Origin = 'write' | 'file';
 type Tone = 'risk' | 'green'; // did the world break the bet, or open the window?
@@ -169,9 +170,10 @@ export function UseCases() {
               quote starts on the same vertical edge. Without this the second
               line began where the quote mark did and read as pulled left.
               `pre-line` honours the deliberate \n in the seed copy. */}
-          <span style={{ flex: 1, minWidth: 0, whiteSpace: 'pre-line', paddingLeft: '0.58em', textIndent: '-0.58em' }}>
-            &ldquo;{L(c.seedKo, c.seedEn)}&rdquo;
-          </span>
+          <ClauseText
+            text={`“${L(c.seedKo, c.seedEn)}”`}
+            style={{ flex: 1, minWidth: 0, paddingLeft: '0.58em', textIndent: '-0.58em' }}
+          />
         </div>
       ) : (
         <div className="inline-flex items-start gap-2.5" style={{ background: 'var(--bp-paper-deep)', border: '1px solid var(--bp-ink-faint)', borderRadius: 3, padding: '9px 12px', alignSelf: 'flex-start', maxWidth: '100%' }}>
@@ -187,9 +189,11 @@ export function UseCases() {
         <div className="bp-mono" style={{ color: 'var(--bp-ink-soft)', fontSize: 12, letterSpacing: locale === 'ko' ? '0.06em' : '0.13em', textTransform: 'uppercase', fontWeight: 700, marginBottom: 6 }}>
           {L(c.betLabelKo, c.betLabelEn)}
         </div>
-        <div style={{ color: 'var(--bp-ink)', fontSize: 15.5, lineHeight: 1.55, fontWeight: 500 }}>
-          {L(c.betKo, c.betEn)}
-        </div>
+        <ClauseText
+          as="div"
+          text={L(c.betKo, c.betEn)}
+          style={{ color: 'var(--bp-ink)', fontSize: 15.5, lineHeight: 1.55, fontWeight: 500 }}
+        />
       </div>
 
       {/* … time passes … */}
@@ -205,9 +209,16 @@ export function UseCases() {
           the reality shift, then Argus's return as a bare question. Sits at the
           card's foot (mt-auto) so the three tap-backs line up. */}
       <div style={{ marginTop: 'auto' }}>
-        <div style={{ color: 'var(--bp-ink-soft)', fontSize: 14.5, lineHeight: 1.55, marginBottom: 10 }}>
-          {L(c.shiftKo, c.shiftEn)}
-        </div>
+        {/* What the world actually did. This is the card's pivot — the reader's
+            own "믿고 간 것" has just stopped being true — and it was set in
+            ink-soft at a SMALLER size than the premise it overturns, i.e. no
+            louder than the dashed divider above it. It now carries the card's
+            strongest body weight: the change is the news, the rest is setup. */}
+        <ClauseText
+          as="div"
+          text={L(c.shiftKo, c.shiftEn)}
+          style={{ color: 'var(--bp-ink)', fontSize: 17, lineHeight: 1.5, fontWeight: 700, letterSpacing: '-0.004em', marginBottom: 12 }}
+        />
         <div
           style={{
             display: 'flex', alignItems: 'flex-start', gap: 9,
@@ -222,9 +233,11 @@ export function UseCases() {
                 ? L('Argus가 때를 알려줍니다', 'Argus tells you when')
                 : L('Argus가 먼저 돌아옵니다', 'Argus comes back first')}
             </div>
-            <div style={{ color: 'var(--bp-ink)', fontSize: 15.5, lineHeight: 1.5, fontWeight: 500 }}>
-              {L(c.tapKo, c.tapEn)}
-            </div>
+            <ClauseText
+              as="div"
+              text={L(c.tapKo, c.tapEn)}
+              style={{ color: 'var(--bp-ink)', fontSize: 15.5, lineHeight: 1.5, fontWeight: 500 }}
+            />
           </div>
         </div>
       </div>
@@ -246,38 +259,47 @@ export function UseCases() {
         <div className="flex items-end justify-between gap-8">
           <div>
             {/* heading — lead with the recognizable feeling, not the mechanism */}
-            <h2
+            <ClauseText
+              as="h2"
+              wrap="balance"
               className={bk}
+              text={L('정하고 나면, 세상은 말없이 바뀝니다.', 'You decide — then the world quietly moves on.')}
               style={{ fontFamily: 'var(--font-display)', color: 'var(--bp-ink)', fontSize: 'clamp(22px, 3.2vw, 32px)', fontWeight: 700, lineHeight: 1.28, letterSpacing: '-0.01em', maxWidth: 680 }}
-            >
-              {L('정하고 나면, 세상은 말없이 바뀝니다.', 'You decide — then the world quietly moves on.')}
-            </h2>
-            <p className={bk} style={{ color: 'var(--bp-ink-soft)', fontSize: 'clamp(15px, 1.5vw, 15px)', lineHeight: 1.65, maxWidth: 620, marginTop: 12 }}>
-              {L(
-                '믿고 정했던 것이 흔들리거나, 기다리던 때가 오는 순간 — 대개는 아무도 알려주지 않죠. 그때 Argus가 먼저 당신에게 돌아옵니다. 실제로 이런 순간들이에요.',
-                'What your decision rested on shifts — or the moment you were waiting for finally arrives. Usually no one tells you. That’s when Argus comes back to you. Here’s what that looks like:',
+            />
+            {/* The authored newline is layer 1 of the break contract
+                (ClauseText): the sentence that names what Argus does starts its
+                own line instead of trailing off the end of the previous one. */}
+            <ClauseText
+              as="p"
+              className={bk}
+              text={L(
+                '믿고 정했던 것이 흔들리거나, 기다리던 때가 오는 순간 — 대개는 아무도 알려주지 않죠.\n그때 Argus가 먼저 당신에게 돌아옵니다. 실제로 이런 순간들이에요.',
+                'What your decision rested on shifts — or the moment you were waiting for finally lands. Usually no one tells you.\nThat’s when Argus comes back to you. Real ones:',
               )}
-            </p>
+              style={{ color: 'var(--bp-ink-soft)', fontSize: 'clamp(15px, 1.5vw, 15px)', lineHeight: 1.65, maxWidth: 620, marginTop: 12 }}
+            />
           </div>
+          {/* plate={false} → the alpha cutout, so the dog stands on the paper
+              instead of inside its own baked cream rectangle. */}
           <div className="hidden sm:block">
             <ArgusMascot
               moment="watching"
-              size="md"
+              size="lg"
               motion="still"
               plate={false}
               alt={L('세상의 변화를 지켜보는 Argus', 'Argus keeping watch as the world changes')}
-              className="argus-landing-watch opacity-85"
+              className="argus-landing-watch"
             />
           </div>
         </div>
         <div className="mt-5 sm:hidden">
           <ArgusMascot
             moment="watching"
-            size="sm"
+            size="md"
             motion="still"
             plate={false}
             alt={L('세상의 변화를 지켜보는 Argus', 'Argus keeping watch as the world changes')}
-            className="argus-landing-watch opacity-85"
+            className="argus-landing-watch"
           />
         </div>
 

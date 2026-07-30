@@ -18,6 +18,8 @@ import {
 import { investigatePremise, type InvestigationResult } from '@/lib/premise-researcher';
 import { webSearchEnabled } from '@/lib/web-research';
 import { logServerEvent } from '@/lib/server-events';
+import { dueDecisionItems, applyItemRecheck, buildItemAlertEmail } from '@/lib/decision-item-watch';
+import type { DecisionItem } from '@/lib/decision-items';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -250,8 +252,17 @@ export async function GET(req: Request) {
   if (!process.env.CRON_SECRET || !safeCompare(authHeader, `Bearer ${process.env.CRON_SECRET}`)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
-  if (!enabled()) return NextResponse.json({ ok: true, disabled: true, reason: 'PREMISE_WATCH_ENABLED not set' });
-  if (!webSearchEnabled()) return NextResponse.json({ ok: true, disabled: true, reason: 'web search not configured' });
+  // 꺼져 있어도 흔적은 남긴다 (2026-07-30): 이 두 early-return 이 무흔적이면
+  // 다음 날 user_events 에서 "돌았는데 꺼져 있었다"와 "아예 안 돌았다"가
+  // 구분되지 않는다 — 스위치를 켠 사람은 켜졌는지 데이터로 확인할 길이 없다.
+  if (!enabled()) {
+    logServerEvent('cron_premise_watch', { disabled: true, reason: 'kill_switch_off' }, { path: '/api/cron/premise-watch' });
+    return NextResponse.json({ ok: true, disabled: true, reason: 'PREMISE_WATCH_ENABLED not set' });
+  }
+  if (!webSearchEnabled()) {
+    logServerEvent('cron_premise_watch', { disabled: true, reason: 'web_search_not_configured' }, { path: '/api/cron/premise-watch' });
+    return NextResponse.json({ ok: true, disabled: true, reason: 'web search not configured' });
+  }
 
   const dryRun = new URL(req.url).searchParams.get('dry') === '1';
   const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
@@ -397,6 +408,68 @@ export async function GET(req: Request) {
     }
   }
 
+  // ── 두 번째 소스: 본선 전제 (decision_items, 2026-07-30) ─────────────────
+  // 이 크론은 그동안 review_receipts(문서 검수 경로)만 읽었다. 본선이 봉인 때
+  // 저장하는 decision_items 는 종(🔔=external+on_change, 명시적 opt-in)을 켜도
+  // push 알림이 영영 안 갔다 — "재확인 표시 켜짐"이라 말해놓고 울리지 않는 종.
+  // 저장소 이주는 하지 않는다. 소비자가 둘 다 읽는다. due 판정·되새김·이메일
+  // 재료는 순수 파일(decision-item-watch)에 있고 UI 와 같은 함수를 쓴다.
+  // 비용 가드는 위 루프와 **같은 예산**을 쓴다 — 소스가 늘었다고 캡이 늘면 안 된다.
+  let itemsResearched = 0;
+  let itemsFailed = 0;
+  const itemUpdates: DecisionItem[] = [];
+  const itemEmailsByUser = new Map<string, CompanionBriefEmail[]>();
+  {
+    const { data: itemRows, error: itemErr } = await supabase
+      .from('decision_items')
+      .select('*')
+      .eq('status', 'active')
+      .eq('type', 'premise')
+      .eq('external', true)
+      .limit(2000);
+    if (itemErr) {
+      console.error('[premise-watch] decision_items query error:', itemErr.message);
+    } else {
+      const due = dueDecisionItems((itemRows || []) as DecisionItem[], Date.now());
+      // 이메일 본문의 "어느 결정이었나"는 프로젝트 이름에서 온다 — 지어내지 않는다.
+      const projectIds = [...new Set(due.map((d) => (d.item as DecisionItem & { decision_id: string }).decision_id))];
+      const nameById = new Map<string, string>();
+      if (projectIds.length > 0) {
+        const { data: projRows } = await supabase.from('projects').select('id, name, user_id').in('id', projectIds);
+        for (const pr of projRows || []) nameById.set(pr.id, typeof pr.name === 'string' ? pr.name : '');
+      }
+      for (const { item, baselineYMD } of due) {
+        try {
+          const key = JSON.stringify([normalizePremiseText(item.text), 'premise', baselineYMD, null, null]);
+          let result = investigated.get(key);
+          if (!result) {
+            if (budget <= 0 || budgetLeft <= 0) { dropped++; continue; }
+            budget--; budgetLeft--; researched++; itemsResearched++;
+            result = await investigatePremise({ text: item.text, kind: 'premise', baselineYMD, locale: 'ko' });
+            investigated.set(key, result);
+          }
+          const nowISO = new Date().toISOString();
+          itemUpdates.push(applyItemRecheck(item, result, nowISO));
+          const rowUserId = (item as DecisionItem & { user_id?: string }).user_id;
+          if (result.verdict === 'material' && result.fact && rowUserId) {
+            const email = buildItemAlertEmail({
+              item,
+              projectName: nameById.get((item as DecisionItem & { decision_id: string }).decision_id) ?? '',
+              result,
+              baseUrl: `https://${process.env.EMAIL_FROM_DOMAIN || 'argus.voyage'}`,
+            });
+            const bucket = itemEmailsByUser.get(rowUserId) || [];
+            bucket.push(email);
+            itemEmailsByUser.set(rowUserId, bucket);
+          }
+        } catch (err) {
+          itemsFailed++;
+          console.error('[premise-watch] decision item failed:', item.id, err instanceof Error ? err.message : err);
+        }
+      }
+    }
+  }
+
   // Persist the recorded findings (skip on dry run).
   if (!dryRun) {
     for (const u of rowUpdates) {
@@ -405,6 +478,14 @@ export async function GET(req: Request) {
         .update({ data: u.data, next_check_by: u.next_check_by, updated_at: u.data.updated_at })
         .eq('id', u.id);
       if (upErr) console.error('[premise-watch] update error:', u.id, upErr.message);
+    }
+    // 시계 리셋은 verdict 무관 — 안 하면 같은 웹 검색 비용을 매일 낸다.
+    for (const it of itemUpdates) {
+      const { error: itemUpErr } = await supabase
+        .from('decision_items')
+        .update({ alert: it.alert, updated_at: it.updated_at })
+        .eq('id', it.id);
+      if (itemUpErr) console.error('[premise-watch] decision item update error:', it.id, itemUpErr.message);
     }
   }
 
@@ -417,6 +498,15 @@ export async function GET(req: Request) {
   const replyTo = process.env.COMPANION_REPLY_TO || `hello@${fromDomain}`;
   let emailed = 0;
   const skipped: string[] = [];
+
+  // 본선 전제 알림을 같은 발송 루프에 합친다 — 한 사용자에게 통이 두 개 생기면
+  // 같은 아침에 메일이 두 번 간다. 항목 쪽은 companion_notified_at 스탬프가
+  // 필요 없다(재확인 주기 자체가 dedup) — 그래서 rowIds 는 늘리지 않는다.
+  for (const [userId, emails] of itemEmailsByUser) {
+    const bucket = byUser.get(userId) || { rowIds: [], emails: [] };
+    bucket.emails.push(...emails);
+    byUser.set(userId, bucket);
+  }
 
   for (const [userId, bucket] of byUser) {
     if (dryRun || !resend) { emailed++; continue; }
@@ -441,7 +531,10 @@ export async function GET(req: Request) {
       }
     }
     if (failed) continue;
-    await supabase.from('review_receipts').update({ companion_notified_at: new Date().toISOString() }).in('id', bucket.rowIds);
+    // 본선 전제만 있던 통은 rowIds 가 비어 있다 — 빈 .in() 은 부르지 않는다.
+    if (bucket.rowIds.length > 0) {
+      await supabase.from('review_receipts').update({ companion_notified_at: new Date().toISOString() }).in('id', bucket.rowIds);
+    }
     emailed++;
   }
 
@@ -454,6 +547,10 @@ export async function GET(req: Request) {
   logServerEvent('cron_premise_watch', {
     dry_run: dryRun, researched, failed_premises: failedPremises,
     dropped_over_cap: dropped, emailed, merged_into_brief: mergedIntoBrief,
+    // 본선 전제(두 번째 소스)의 흔적 — 없으면 "본선까지 감시한다"는 말을
+    // 데이터로 반박도 증명도 못 한다.
+    items_researched: itemsResearched, items_failed: itemsFailed,
+    items_updated: itemUpdates.length, item_email_users: itemEmailsByUser.size,
   }, { path: '/api/cron/premise-watch' });
   return NextResponse.json({
     ok: true,
@@ -470,5 +567,10 @@ export async function GET(req: Request) {
     emailed,
     merged_into_brief: mergedIntoBrief,
     skipped: skipped.length,
+    // 두 번째 소스(본선 전제)의 계기 — user_events 와 같은 숫자를 응답에도.
+    items_researched: itemsResearched,
+    items_failed: itemsFailed,
+    items_updated: itemUpdates.length,
+    item_email_users: itemEmailsByUser.size,
   });
 }

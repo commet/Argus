@@ -41,6 +41,7 @@ export const SERVER_INSTRUCTIONS = [
   '- Prediction: when the user commits to one consequential, falsifiable claim, offer one concise draft with argus_predict. Use their wording, one claim only, and the horizon they gave (otherwise one week). The confirmation UI is the ask; do not ask twice. Questions, requests for advice, and ordinary tasks are not predictions.',
   '- Outcome: when the user explicitly states what happened to an open prediction, record it with argus_resolve in their words. Never infer an outcome and never praise, grade, or blame.',
   '- Assumption: for a consequential decision, argus_capture may preserve one load-bearing premise. If you surface it, label it ai_surfaced and let the user correct it. Never stack premises.',
+  '- Draft approval: an ai_surfaced draft normally confirms through the one-tap window. If that window returns no answer (some hosts close it by machine), ask the user through the host\'s own question UI when one exists (options with the full draft sentence as a preview) or in plain chat — then, only after their explicit yes, call again with chat_confirmed:true. Provenance stays ai_surfaced; never relabel a draft user_stated to get past the window, and never set chat_confirmed for a draft the user has not seen.',
   '',
   'Restraint is the default. Ignore trivial, reversible, logistical, already-closed, or stale signals. Offer once, accept a skip, and do nothing when unsure. Internal ids and errors are plumbing; recover quietly.',
 ].join('\n');

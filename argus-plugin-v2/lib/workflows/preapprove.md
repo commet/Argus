@@ -126,7 +126,7 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/decision-ledger.js" record \
 ## Step 3 — 반자동 정산 (실행 완료 후)
 
 계획이 실행된 흔적(해당 커밋/배포)이 보이고 check_by가 지났으면, 다음 preapprove 호출
-시작에 한 줄: `지난번 그 계획 — 그래서, 어떻게 됐어요?` → `/argus:check` 안내
+시작에 한 줄: `지난번 그 계획, 어떻게 됐어요?` → `/argus:check` 안내
 (플러그인의 정산 스킬 — 같은 ledger를 읽고 쓴다). pending = check_by 연장
 (amend, 이력 보존). `argus-watch` CLI가 설치된 환경에서는 `argus-watch settle
 <id>`도 같은 결과를 낸다 — 어느 쪽이든 판단 기록은 하나다.

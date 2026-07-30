@@ -8,7 +8,7 @@ reality later did. It does not score people or give verdicts.
 ### Codex (CLI or app)
 
 ```bash
-codex mcp add argus-decision -- npx -y argus-decision-mcp@2.0.12
+codex mcp add argus-decision -- npx -y argus-decision-mcp
 codex mcp list        # argus-decision should be listed and enabled
 ```
 
@@ -24,6 +24,12 @@ distinguishes that policy response from a fast intentional decline, so Argus
 must respect it as a decline. Enable MCP elicitations and retry if you need the
 confirmation form.
 
+An AI-drafted **premise** works the same way but has a chat path: when the
+confirm window cannot reach the user (the host closes it unanswered), the draft
+comes back in the response, and once the user approves it in conversation the
+assistant records it by calling again with `chat_confirmed: true` — provenance
+stays `ai_surfaced`.
+
 ### Claude Code
 
 ```bash
@@ -38,7 +44,7 @@ confirmation form.
   "mcpServers": {
     "argus-decision": {
       "command": "npx",
-      "args": ["-y", "argus-decision-mcp@2.0.12"],
+      "args": ["-y", "argus-decision-mcp"],
       "env": {
         "ARGUS_DIR": "/absolute/path/to/your/project/.argus"
       }
@@ -47,8 +53,21 @@ confirmation form.
 }
 ```
 
-Pin an exact version, not a range: `npx` reuses a cached install for a range
-spec, so `@latest` or `@^2` can silently keep running a build from weeks ago.
+Install once; there is nothing to update by hand. Leave the version off, as
+above — `npx` re-resolves a bare package name on every launch, so each session
+starts the current build.
+
+Do **not** add a range like `@^2`. A range is satisfied by whatever is already
+in the npx cache, so it never consults the registry again. Measured on
+2026-07-29, same spec string both times, with the cache holding an older version
+that the range still allowed:
+
+| spec | launched |
+|---|---|
+| `argus-decision-mcp` | the current release |
+| `argus-decision-mcp@^2.0.0` | the stale cached build |
+
+An exact pin (`@2.0.12`) is correct but freezes there until someone edits it.
 
 `ARGUS_DIR` is optional when the MCP host starts the server in the project
 directory. The default is `<current-project>/.argus`. A per-call absolute

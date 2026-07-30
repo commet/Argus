@@ -32,6 +32,7 @@ import { RecordStrip } from '@/components/ui/RecordStrip';
 import { RetroOnlyNotice } from '@/components/ui/RetroOnlyNotice';
 import { VoyageSea } from '@/components/projects/VoyageSea';
 import { JudgmentGraph } from '@/components/projects/JudgmentGraph';
+import { JudgmentPatternsCard } from '@/components/projects/JudgmentPatternsCard';
 import { VoyageMarker } from '@/components/projects/VoyageMarker';
 import { ProjectAttentionList } from '@/components/projects/ProjectAttentionList';
 import { Logbook } from '@/components/projects/Logbook';
@@ -122,6 +123,12 @@ export default function ProjectPage() {
   const [fromCheckin, setFromCheckin] = useState(false);
   const [returnId, setReturnId] = useState<string | null>(null);
   const [firstSettlementView, setFirstSettlementView] = useState<'same' | 'shifted' | 'unknown' | null>(null);
+  // ?open=<projectId> — 알림 메일의 돌아올 문 (2026-07-30). `return`과 달리 due
+  // 게이트가 없다: 전제가 움직였다는 메일은 결정이 due 가 아니어도 그 결정으로
+  // 바로 열려야 한다 (목록에 떨궈놓으면 "아 이거였지"가 한 단계 멀어진다).
+  // 사용자가 카드를 클릭한 것과 같은 선택 동작만 한다 — 모달도 기록도 없다.
+  const [openId, setOpenId] = useState<string | null>(null);
+  const openHandledRef = useRef(false);
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const from = params.get('from');
@@ -129,7 +136,16 @@ export default function ProjectPage() {
     setReturnId(params.get('return'));
     const first = params.get('first');
     setFirstSettlementView(first === 'same' || first === 'shifted' || first === 'unknown' ? first : null);
+    setOpenId(params.get('open'));
   }, []);
+
+  useEffect(() => {
+    if (!openId || openHandledRef.current) return;
+    const project = projects.find((p) => p.id === openId);
+    if (!project) return; // 아직 merge 전일 수 있다 — projects 가 바뀔 때 다시 온다
+    openHandledRef.current = true;
+    setCurrentProjectId(project.id);
+  }, [openId, projects, setCurrentProjectId]);
   // Settlement modal (W1.2 귀환 표면) — derived at render from contractStatus,
   // gated by a per-visit dismissed set. Deriving (instead of a getState()
   // snapshot in an effect) means the modal still opens when the async Supabase
@@ -723,6 +739,10 @@ export default function ProjectPage() {
               {/* ①.5 공유 지반 blast-radius — 움직인 전제와 그 위에 선 열린 내기.
                   facts-only(정산 카운트·drift 경보만), 공유 지반이 없으면 렌더 0. */}
               <JudgmentGraph receipts={reviewReceipts} locale={locale} />
+
+              {/* ①.6 기록이 보여주는 것 — 본선 전제의 연결·잔량·빈칸, 사실만.
+                  (기획 4단계 기본형, 2026-07-30). 셀 것이 없으면 렌더 0. */}
+              <JudgmentPatternsCard projects={projects} items={decisionItems} locale={locale} />
 
               {/* ② 해도 신호의 작업 목록 — check-ins, premise rechecks, deferred
                   questions and moved shared ground share one derivation. The sea

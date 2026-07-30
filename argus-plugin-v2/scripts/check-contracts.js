@@ -347,7 +347,7 @@ function main() {
     const first = clip(overdue[0].text, 80);
     if (locale === "ko") {
       process.stdout.write(
-        `Argus: 확인일이 지난 결정 계약 ${overdue[0].date}${overdue.length > 1 ? ` 외 ${overdue.length - 1}건` : ""} — "${first}" 이 예측, 현실은 어땠는지 정산할 때가 됐어요 (/argus:check).`
+        `Argus: 확인일이 지난 결정 ${overdue[0].date}${overdue.length > 1 ? ` 외 ${overdue.length - 1}건` : ""} — "${first}" 이 예측, 현실은 어땠는지 정산할 때가 됐어요 (/argus:check).`
       );
     } else {
       process.stdout.write(

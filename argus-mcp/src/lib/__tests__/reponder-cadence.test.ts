@@ -242,7 +242,7 @@ describe('open_question reconsider — end to end (M3)', () => {
     const noted2 = appendDueNote('argus_recall', { argus_dir: dir, today_override: LATER }, res2);
     const surface2 = String((noted2.structuredContent as Record<string, unknown>)['surface']);
     expect(surface2).toContain('미결 질문');
-    expect(surface2).toContain('그나저나');
+    expect(surface2).toContain('참고로');
   });
 
   it('still_open is refused on a premise (not an open_question) and on a resolved question', async () => {

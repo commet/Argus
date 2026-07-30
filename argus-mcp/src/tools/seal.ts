@@ -159,8 +159,34 @@ export const seal: ToolModule = {
         }
         const picked = asked.kind === 'accepted' ? asked.content : null;
         if (!picked) {
-          // A deliberate decline — record nothing, and do not re-ask.
-          return envelope({ ok: true, tool: 'argus_seal', surface: locale === 'ko' ? '기록하지 않았습니다.' : 'Not recorded.', next_actions: ['stop'], data: { sealed: false, choice: 'declined' } });
+          // A decline — record nothing, say nothing more, and DO NOT re-ask. The
+          // terse surface and `next_actions:['stop']` are deliberate: a "no"
+          // deserves silence, and pushing after one is the over-fire violation.
+          //
+          // What is NOT deliberate, and was the real injury (2026-07-29): the
+          // sentence the user had just written vanished with it. `data` carried
+          // only `{sealed:false, choice:'declined'}`, so when the picker had in
+          // fact never been drawn — a Codex approval policy answers `decline`
+          // itself, showing nobody anything — the user watched their prediction
+          // disappear and neither they nor the assistant could get it back.
+          //
+          // Whether the person declined or their host declined for them, there is
+          // no reading under which discarding their words is right. So the draft
+          // rides along, exactly as the no-answer branch above already does.
+          //
+          // This costs no inference. It does not guess who answered, does not
+          // read the clock, and does not touch the protocol action — the three
+          // things this codebase has now reverted twice, correctly. It only stops
+          // throwing away work.
+          return envelope({
+            ok: true, tool: 'argus_seal',
+            surface: locale === 'ko' ? '기록하지 않았습니다.' : 'Not recorded.',
+            next_actions: ['stop'],
+            data: {
+              sealed: false, choice: 'declined', predicate, check_by: checkBy,
+              retry_hint: 'the user\'s draft is preserved here; if they ask for it again, call argus_predict with predicate_owner:"user" and no confirm_draft',
+            },
+          });
         }
         // Accept. Apply any optional edits, then re-gate through validateSeal —
         // a vibe typed by the user is still unsettleable; refusing honestly beats

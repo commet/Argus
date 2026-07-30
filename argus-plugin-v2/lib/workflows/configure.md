@@ -57,12 +57,12 @@ You can skip — a generic decision-owner review is used."
 - **Yes** → gather the SEAT in ONE compact turn (one message, not six prompts —
   every field but `role` is skippable):
   - `role` — the chair they sit in; default `팀장` (ko) / `Team Lead` (en).
-  - `owns` — "그분이 책임지는 것 한 줄이면요? (예: 팀 로드맵과 서비스 안정성)" —
+  - `owns` — "그분이 책임지는 것을 한 줄로 적어주세요. (예: 팀 로드맵과 서비스 안정성)" —
     the single highest-value answer; encourage but never require.
   - `goals` — "요즘 그분의 최우선 목표는?" (one line).
   - `authority` — "그분이 직접 승인/반려할 수 있는 범위는? 위로 올려야 하는 건?"
   - `name` / `gender` — free text / `남`·`여` (`male`/`female`).
-  - `tone` *(optional, LAST, low-key)* — "말투 느낌을 정할까요? 아는 16-코드가
+  - `tone` *(optional, LAST, low-key)* — "말투 느낌을 정할까요? 아는 MBTI 코드가
     있으면 적어주세요 (예: ISTJ). 없으면 넘어가도 됩니다 — 말투일 뿐, 리뷰
     내용에는 영향이 없습니다." Do NOT quiz the user into a type (the old
     two-question mapper was personality theater — retired in O3 방3).

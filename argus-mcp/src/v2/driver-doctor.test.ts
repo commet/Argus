@@ -106,7 +106,7 @@ describe('argus doctor (P2-6)', () => {
     expect(out).toContain('stale — 커서 none');
     expect(out).toContain('argus_check_in');
     expect(out).toContain('죽은 pid 999999');
-    expect(out).toContain('자동 탈취');
+    expect(out).toContain('자동으로 정리');
   });
 
   it('[8] 자동 포착 큐 — opt-in OFF면 흔적 0이 정상으로, exhausted는 ⚠로 보고된다', () => {

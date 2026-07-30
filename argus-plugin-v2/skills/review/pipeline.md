@@ -396,7 +396,7 @@ next step action, and an optional decision-contract seed.
 
 **Coverage-gap guard:** read `workers.json` and count any `status: "error"` /
 `verification_failed` entries. If any worker failed, the read MUST open with a
-visible warning (ko: `⚠ 워커 {{M}}/{{N}} 실패 — 일부 도메인 분석 누락` · en:
+visible warning (ko: `⚠ 검토 {{M}}/{{N}} 실패 — 일부 영역 분석 누락` · en:
 `⚠ {{M}}/{{N}} workers failed — some domain analysis is missing`). Never present
 a read assembled from survivors as if coverage were complete.
 
@@ -555,7 +555,7 @@ Use artifacts in this order:
 states plainly that the axes line up so any reasonable branch lands the same;
 `why_this_course` names at most the ONE assumption the user is resting on (or a
 single supporting reason); `next_helm` may be a **done-handle** — "nothing else
-to decide here — go ahead" / "이 결정은 여기서 닫혀요 — 그대로 진행하세요" — which
+to decide here — go ahead" / "더 정할 것이 없습니다 — 그대로 진행하세요" — which
 is a first-class next action, not a failure to find work. Returning the handle on
 a flat decision is the product working correctly, not under-delivering.
 
@@ -597,7 +597,7 @@ Target length: 10-16 lines. Never exceed one terminal screen.
 
 **First-decision hint:** if this is the project's FIRST session (exactly one
 directory under `.argus/sessions/`), append one line after the read —
-ko: `첫 결정이 기록됐어요. /argus:history versions 로 언제든 돌아올 수 있고, /argus:help 가 안내예요.`
+ko: `첫 결정이 기록됐어요. /argus:history versions 로 언제든 돌아올 수 있고, 안내는 /argus:help에 있습니다.`
 en: `Your first decision is logged. /argus:history versions returns here anytime; /argus:help shows the map.`
 Never print it again after the first session.
 
@@ -625,7 +625,7 @@ not asked). It is a mirror the user may react to in their own words, not a modal
 that blocks:
 
 - Line (locale-aware, neutral tone): `출발할 때 당신은 "{{lean predicate verbatim}}"
-  이라고 했어요. 다 보고 난 지금도 그래요? (그대로면 넘어가도 돼요.)`
+  이라고 했어요. 다 보고 난 지금도 그래요? (그대로면 넘어가면 됩니다.)`
   (en: `When you set out you said "{{lean}}". Now that you've seen it all — does it
   still hold? (If it does, just carry on.)`)
 - Record a `wake` event ONLY if the user reacts (their next free-text turn):

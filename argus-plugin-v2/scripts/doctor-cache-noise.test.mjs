@@ -22,11 +22,27 @@ import { fileURLToPath } from 'node:url';
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const DOCTOR = path.join(HERE, 'doctor.js');
 const MCP_CONFIG = path.join(HERE, '..', '.mcp.json');
-const MCP_SPEC = Object.values(JSON.parse(fs.readFileSync(MCP_CONFIG, 'utf8')).mcpServers)
-  .flatMap((server) => server.args || [])
-  .find((arg) => typeof arg === 'string' && arg.includes('argus-decision-mcp@'));
-const PIN = /argus-decision-mcp@(\d+\.\d+\.\d+)/.exec(MCP_SPEC ?? '')?.[1];
-assert.match(PIN || '', /^\d+\.\d+\.\d+$/, 'plugin MCP must use an exact semver pin');
+// 2026-07-30: the wire goes through a launcher (online → registry-fresh,
+// offline → cached copy; measured: a bare `npm exec` HANGS with the registry
+// unreachable). The spec string therefore lives inside the launcher — follow it
+// like doctor does, and keep asserting the same two facts.
+const MCP_ARGS = Object.values(JSON.parse(fs.readFileSync(MCP_CONFIG, 'utf8')).mcpServers)
+  .flatMap((server) => server.args || []);
+const LAUNCHER_ARG = MCP_ARGS.find((arg) => typeof arg === 'string' && /mcp-launch\.js$/.test(arg));
+assert.ok(LAUNCHER_ARG, 'plugin .mcp.json must launch scripts/mcp-launch.js');
+const LAUNCHER_SRC = fs.readFileSync(path.join(HERE, 'mcp-launch.js'), 'utf8');
+const MCP_SPEC = (/--package=(argus-decision-mcp[^"'\s]*)/.exec(LAUNCHER_SRC) || [])[1];
+// The plugin deliberately names NO version: npx re-resolves a bare name every
+// launch, so one install stays current, while a range would be satisfied from
+// the cache forever (measured 2026-07-29). A version here is the regression.
+assert.ok(MCP_SPEC, 'mcp-launch.js must exec argus-decision-mcp');
+assert.doesNotMatch(String(MCP_SPEC), /argus-decision-mcp@/,
+  'plugin MCP must NOT pin a version — one install has to keep receiving fixes');
+// The launcher must keep BOTH halves of the measured tradeoff: fresh online
+// (no --offline on the default path) and alive offline (--offline fallback).
+assert.ok(LAUNCHER_SRC.includes("'--offline'") || LAUNCHER_SRC.includes('"--offline"'),
+  'mcp-launch.js must carry the measured --offline fallback');
+const PIN = '';
 
 function runDoctor(cacheRoot, pin) {
   const repo = fs.mkdtempSync(path.join(os.tmpdir(), 'argus-doc-repo-'));
@@ -35,7 +51,9 @@ function runDoctor(cacheRoot, pin) {
     mcpServers: {
       'argus-decision': {
         command: 'npm',
-        args: ['exec', '--yes', `--package=argus-decision-mcp@${pin}`, '--', 'argus-decision-mcp'],
+        args: pin
+          ? ['exec', '--yes', `--package=argus-decision-mcp@${pin}`, '--', 'argus-decision-mcp']
+          : ['exec', '--yes', '--package=argus-decision-mcp', '--', 'argus-decision-mcp'],
       },
     },
   }));
@@ -70,24 +88,28 @@ function check(name, cond, detail) {
 
 console.log('doctor [10] 캐시 노이즈 계약\n');
 
-// ① 핀이 캐시에 있음 + 낡은 사본 다수 → 접힘, 경고 없음
+// ① 버전 미고정(현재 배선) + 캐시에 남은 사본 다수 → 한 줄로 접힘, 경고 없음
+//
+// 이 파일이 지키는 것은 바뀌지 않았다: 무해한 캐시 잔물로 창업자 화면에
+// ⚠ 여섯 줄을 뿜지 않는다(2026-07-27 도그푸딩). 바뀐 것은 "무해한 이유"다 —
+// 예전엔 정확한 핀이라 낡은 걸 안 골랐고, 지금은 버전을 안 박아 npx가 매번 다시 받는다.
 {
-  const cache = makeCache([PIN, '1.3.0', '1.4.2', '1.5.0']);
-  const out = runDoctor(cache, PIN);
+  const cache = makeCache(['1.3.0', '1.4.2', '1.5.0']);
+  const out = runDoctor(cache, '');
   const block = out.slice(out.indexOf('[10]'));
-  check('일치 사본은 그대로 보인다', block.includes(`캐시 ${PIN} (핀과 일치)`), block.slice(0, 400));
-  check('낡은 사본은 한 줄로 접힌다', /낡은 사본 3개 \(1\.3\.0, 1\.4\.2, 1\.5\.0\)/.test(block), block.slice(0, 400));
-  check('접혔을 때 낡은-배선 경고가 없다', !/낡은 배선이다/.test(block), block.slice(0, 400));
+  check('버전 고정이 없다고 명시한다', /버전 고정 없음 — 매 실행 최신/.test(block), block.slice(0, 400));
+  check('남은 사본은 한 줄로 접힌다', /캐시에 남은 사본 3개 \(1\.3\.0, 1\.4\.2, 1\.5\.0\)/.test(block), block.slice(0, 400));
+  check('낙은-배선 경고를 띄우지 않는다', !/낡은 배선이다/.test(block), block.slice(0, 400));
+  check('⚠ 줄을 뿜지 않는다', !/⚠/.test(block), block.slice(0, 400));
   fs.rmSync(cache, { recursive: true, force: true });
 }
 
-// ② 핀이 캐시에 없음 → 예전처럼 각 줄 경고 (진짜 위험한 경우는 여전히 크게)
+// ② 범위 스펙은 여전히 위험하다 — 실측된 동결 경로이므로 크게 경고해야 한다.
 {
-  const cache = makeCache(['1.3.0', '1.5.0']);
-  const out = runDoctor(cache, PIN);
+  const cache = makeCache(['1.3.0']);
+  const out = runDoctor(cache, '^2');
   const block = out.slice(out.indexOf('[10]'));
-  check('핀 부재 시 사본마다 경고한다', (block.match(/낡은 배선이다/g) || []).length === 2, block.slice(0, 400));
-  check('핀이 캐시에 없다는 사실도 말한다', block.includes(`핀한 ${PIN}이 캐시에 없다`), block.slice(0, 400));
+  check('범위 스펙이면 경고한다', /범위 스펙이다/.test(block), block.slice(0, 400));
   fs.rmSync(cache, { recursive: true, force: true });
 }
 

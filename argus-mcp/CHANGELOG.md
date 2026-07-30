@@ -1,5 +1,91 @@
 # Changelog
 
+## 2.0.17 - The copy sweep reaches the terminal surfaces
+
+- Twelve Korean surface strings lose their chatty and translationese edges
+  (그나저나 / ~드릴게요 / ~볼게요 / "이 결정, 기록해뒀습니다" and friends);
+  the seal certificate's ownership lines unify on the product's 내 문장
+  vocabulary ("이 문장은 내 문장입니다" / "아직 내 문장이 아닙니다").
+- "방금 깨진 전제" becomes "방금 움직인 전제" (EN: broke → moved). Broken is a
+  verdict; movement is a fact — the same mirror rule the web alert emails
+  enforce by machine test now holds in the terminal, in both languages.
+
+## 2.0.16 - The server now teaches every host the chat-approval path
+
+- The server `instructions` (the one spec-sanctioned standing guidance) now
+  spell out what to do when the one-tap confirm window returns no answer: ask
+  through the host's own question UI when one exists — options with the full
+  draft sentence as a preview — or in plain chat, and only after the user's
+  explicit yes call again with `chat_confirmed:true`. Provenance stays
+  `ai_surfaced`; relabeling a draft `user_stated` to get past the window is
+  named as the forgery it is.
+- No tool behavior changes; 2.0.15 carried the mechanism, this release carries
+  the instruction that makes assistants actually use it.
+
+## 2.0.15 - The retry the confirm window promises is now actually possible
+
+- Measured on headless Claude Code (2026-07-30): the host declares elicitation,
+  then its machinery closes every confirm window in ~0ms. The no-answer
+  response said "once the user confirms in chat, call again" — but the retry
+  re-fired the same window, so an ai-drafted premise could NEVER be recorded on
+  such a host. That dead end quietly rewards the one thing this surface exists
+  to prevent: relabeling the draft `user_stated` to get past the picker.
+- New optional premise field `chat_confirmed`: the caller asserts the user
+  already approved this exact draft in conversation (their explicit yes, or a
+  host-side picker they answered). The confirm window is skipped; provenance
+  stays `ai_surfaced` untouched. Never set for a draft the user has not seen.
+- Hosts whose confirm window actually renders keep the exact old contract:
+  one-tap Accept records, Decline skips, and an unanswered window still
+  records nothing.
+
+## 2.0.14 - Formal questions without a question mark no longer sit in a premise slot
+
+- The Korean interrogative detector used two bare-jamo alternatives (`ㄹ까`,
+  `ㅂ니까`) that can never match composed hangul — dead rules, so "이게
+  사실입니까" was stored as a premise the user would later be asked to verify
+  against reality. Replaced with composed-syllable forms (할까/될까/볼까/갈까,
+  입니까/합니까/됩니까). Question-mark detection is unchanged and remains the
+  primary signal.
+- The plugin's hand-mirrored copy had garbled alternatives (`니까` caught causal
+  endings, demoting "예산이 없으니까." to an open question). All three copies —
+  webapp, this server, plugin — now agree, and the cross-surface parity test
+  carries the two boundary sentences that distinguish exactly this drift
+  (mutation-probed: re-breaking either copy turns the test red).
+
+## 2.0.13 - A decline no longer takes the user's sentence with it, and one install stays current
+
+- **A decline ends the ask; it does not delete the draft.** The response used to
+  carry only `{sealed:false, choice:"declined"}`, so the prediction the user had
+  just written was unrecoverable — by them or by the assistant. It now rides back
+  in `data` with its check-by date. The surface stays terse and `next_actions`
+  stays `["stop"]`: a "no" is still respected, and no second picker is ever shown.
+- This closes the real injury behind the 2.0.11/2.0.12 disagreement without
+  reopening it. The wire action is preserved exactly as MCP defines it — response
+  latency is not a render receipt, and a threshold calibrated on an idle machine
+  measurably broke on a loaded one. Nothing here infers who answered.
+- It matters most where nothing was drawn at all: a Codex approval policy that
+  blocks elicitations answers `decline` itself, showing the user no dialog. Their
+  words survive that now.
+
+### Install once; there is nothing to update by hand
+
+- **The plugin and the documented install lines no longer pin a version.**
+  Measured 2026-07-29, same spec string twice with the npx cache holding an older
+  build the spec still allowed: a bare name launched the current release, while
+  `@^2.0.0` launched the stale cached copy. npx must resolve a bare name against
+  the registry; a range is satisfied from cache and never asks again.
+- The 2026-07-13 incident that froze the wiring for twelve days was a RANGE. An
+  exact pin fixed it by accident and introduced the opposite failure — on
+  2026-07-29 the founder's Codex and the plugin pointed at two different
+  versions, neither of them current. Dropping the version fixes the original
+  problem on purpose.
+- Every gate that demanded a pin was inverted rather than deleted, and a range or
+  `@latest` in the wiring is now a hard failure. `doctor` reports the unpinned
+  state plainly instead of calling harmless cache leftovers a mismatch.
+- `doctor` now reads the plugin at `CLAUDE_PLUGIN_ROOT`. Its cache test had been
+  writing a fixture that doctor never opened, so those assertions were reading
+  the repo's own file and proving nothing.
+
 ## 2.0.12 - Final public surface and protocol-faithful decline
 
 - Keeps exactly six callable MCP tools and validates nested premise provenance

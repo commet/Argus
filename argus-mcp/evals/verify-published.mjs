@@ -53,7 +53,24 @@ const BUNDLE_MARKERS = [
   // render receipt or actor provenance. A stopwatch must not manufacture either
   // fact, so every wire-level decline remains a decline at every speed.
   ['decline 의미를 시간으로 바꾸지 않는다 (2.0.12)', /if \(res\.action === ["']decline["']\) return \{ kind: ["']declined["'] \}/],
+  // 2.0.13 — 거절해도 사용자가 쓴 문장은 응답에 남는다. 문자열 하나로 잡는 이유는
+  // 분기 모양은 번들러가 바꿀 수 있지만 이 키 이름은 호출부가 읽는 계약이라 못 바꿈이다.
+  ['거절해도 초안을 되돌려준다 (2.0.13)', 'draft is preserved here'],
   ['실패 fallback은 decline과 분리된다', 'Nothing recorded because the dialog returned no answer.'],
+  // 2.0.14 — 물음표 없는 격식 의문문("이게 사실입니까")이 전제로 저장되던 죽은
+  // 낱자모 규칙을 조합형 음절로 교체했다. 앵커는 정규식 소스의 조합형 대안 —
+  // 따옴표가 없어 esbuild 정규화의 영향을 받지 않고, 이 문자열이 곧 그 수정이다.
+  ['물음표 없는 격식 의문문을 잡는다 (2.0.14)', '할까|될까|볼까|갈까'],
+  // 2.0.15 — 기계가 확인창을 즉답으로 닫는 호스트에서 재시도 지침이 실행
+  // 가능해졌다. 앵커는 호출자가 읽는 retry_hint 계약 문자열.
+  ['대화 승인 재시도가 가능하다 (2.0.15)', 'chat_confirmed:true (without it this window fires again)'],
+  // 2.0.16 — 서버 지침이 chat-approval 경로를 모든 호스트에 가르친다. 앵커는
+  // 지침의 금지 문장(출처 위조 명명) — 따옴표 없음.
+  ['지침이 대화 승인 경로를 가르친다 (2.0.16)', 'never relabel a draft user_stated'],
+  // 2.0.17 — 터미널 표면 카피 정리. 번들은 한글 "문자열"을 \uXXXX 로 이스케이프
+  // 하므로(정규식 리터럴만 원문 유지 — 2.0.14 마커가 산 이유) 앵커는 양형을 다
+  // 받는 정규식이어야 한다. 원형 하나만 적으면 애초에 맞을 수 없는 마커다.
+  ['봉인 확인이 정리된 문장을 쓴다 (2.0.17)', /실제로 어떻게|\\uC2E4\\uC81C\\uB85C \\uC5B4\\uB5BB\\uAC8C/],
 ];
 
 /**

@@ -155,7 +155,7 @@ export function JudgmentReceipt(props: Props) {
           {isAiDraft && (
             <p className="mt-1.5 text-[12.5px] leading-[1.45] text-[var(--text-tertiary)]">
               {L(
-                'Argus가 초안으로 적어둔 문장이에요. 그대로 두셔도 되고 — 그러면 「AI가 쓴 문장」으로 기록돼요. 고쳐 쓰시면 사장님 문장이 됩니다.',
+                'Argus가 초안으로 적어둔 문장이에요. 그대로 두면 「AI가 쓴 문장」으로 기록되고, 고쳐 쓰면 내 문장으로 기록돼요.',
                 "Argus drafted this line. Keep it — it will be recorded as the AI's wording. Rewrite it and it becomes yours.",
               )}
             </p>

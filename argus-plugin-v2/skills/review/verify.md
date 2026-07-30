@@ -402,7 +402,7 @@ Korean:
 - Question: `검증에서 중요한 이슈가 나왔습니다. 어떻게 이어갈까요?`
 - Options:
   - `검증된 부분만 진행`
-  - `먼저 reviewers output 수정`
+  - `검토 결과 먼저 수정`
   - `사람 확인 후 재개`
 
 Persist the selected option to `ledger.user_choice`.

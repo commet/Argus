@@ -152,7 +152,7 @@ step turns a 30-second intake into an environment lottery.
    yields sheets of bare integers indistinguishable from data, a husk that
    would pass the sanity gate and feed a confident analysis of noise. Do not
    produce it. One line, ko: "엑셀은 구조를 잃지 않고 읽기 어려워요 — CSV나
-   PDF로 내보내 주시면 그대로 분석할게요." / en: "I can't read xlsx without
+   PDF로 내보내 주시면 그대로 분석합니다." / en: "I can't read xlsx without
    losing its structure — export to CSV or PDF and I'll work on that."
 4. **Legacy binary formats (`.ppt`, `.doc`, `.xls`, `.hwp`)** are NOT zip and
    have no dependency-free parser — do not guess. One honest line, ko: "이
@@ -302,8 +302,8 @@ infer resistance from tone or guess it from a first-time question.
   settlement seed on an already-made decision is ceremony-as-endorsement — see
   Forbidden patterns), no reviewers unless they ask. Write `request_type:
   "validation"` to the snapshot; set `decision_density` so sail does not escalate.
-  One escape line, e.g. ko: "이미 정한 걸로 보고 확인할 지점만 짚었어요 — 처음부터
-  다시 따져보길 원하면 말해줘요." / en: "Read this as already-decided, so I flagged
+  One escape line, e.g. ko: "이미 정한 것으로 보고 확인할 지점만 짚었어요 — 처음부터
+  다시 따져보길 원하면 말씀해 주세요." / en: "Read this as already-decided, so I flagged
   the one check worth making — say the word if you want it pressure-tested from
   scratch."
 - **`vent`** → reflect in ONE honest clause; do NOT fork or analyze. Then leave a
@@ -318,17 +318,17 @@ infer resistance from tone or guess it from a first-time question.
 - **`self_profiling`** → decline the cold-read honestly: a real read of how they
   decide is earned only from their own logged decisions (≥3 settled — the patterns
   sample-size bar), so name that and point them at building it (run a real
-  decision, settle it). No trait verdict, no session. ko: "어떤 결정자인지는 내가
-  지레짐작할 게 아니라 당신이 실제로 내린 결정들에서 드러나요 — 몇 번 결정하고
-  정산하면 그때 패턴으로 같이 봐요." / en: "What kind of decider you are isn't mine
+  decision, settle it). No trait verdict, no session. ko: "어떤 결정자인지는
+  지레짐작할 것이 아니라 실제로 내린 결정들에서 드러나요 — 몇 번 결정하고
+  정산하면 그때 패턴으로 같이 봅니다." / en: "What kind of decider you are isn't mine
   to guess — it shows up in the decisions you actually log. Run a few and settle
   them, and we'll read the pattern then."
 - **`open_decision` + `resistance`** → run Step 2 (the framing still has value),
   but surface the pattern as the live issue and do **not** spin up the probe/reviewers
   to generate more options. Condition on the observable, hand control back: ko:
-  "이 결정이 꽤 오래 열려 있고 새로 들어온 정보는 없는 것 같아요 — 그럼 분석이
-  빠진 조각이 아닐 수도 있어요. 제일 작은 실제 테스트 하나를 정해볼까요, 아니면
-  계속 틀을 잡아볼까요?" / en: "This has been open a while with no new
+  "이 결정이 꽤 오래 열려 있고 새로 들어온 정보는 없는 것 같아요 — 그렇다면 지금
+  부족한 것은 분석이 아닐 수도 있어요. 제일 작은 실제 테스트 하나를 정해볼까요,
+  아니면 계속 틀을 잡아볼까요?" / en: "This has been open a while with no new
   information — so more analysis may not be the missing piece. Want to set the
   smallest real-world test instead, or keep framing?" Route the test through the
   settle loop (`/argus:check`) rather than the reviewers.
@@ -442,11 +442,11 @@ If `framing_confidence < 70`:
 
    **locale: ko**
    - Title: "프레이밍 확인"
-   - Question: "위 real_question으로 진행할까요? (자신도가 낮습니다: {{score}}/100)"
+   - Question: "위 질문으로 진행할까요? (확신이 낮습니다: {{score}}/100)"
    - Options:
-     - "맞아, 이 방향으로 가자" → lock framing, proceed
-     - "내가 원래 생각한 것과 달라" → re-analyze with their correction
-     - "다시 설명해줄게" → accept new input, re-analyze
+     - "맞아요, 이 방향으로" → lock framing, proceed
+     - "원래 생각한 것과 달라요" → re-analyze with their correction
+     - "다시 설명할게요" → accept new input, re-analyze
 
    **locale: en**
    - Title: "Confirm framing"
@@ -551,12 +551,12 @@ Otherwise, repeat up to `max_rounds` times (default 3) or until the snapshot con
      has forks not yet asked: convert the highest-priority fork MECHANICALLY
      (no LLM) per `probe-prompts.md` §갈림→질문 — purpose_reading forks first,
      then variants count / anchor length; question quotes the `cause_quote` +
-     "이 선택에 따라 '{flipped_user_claim}'이 참도 거짓도 됩니다"; options =
+     "이 선택에 따라 '{flipped_user_claim}'의 참/거짓이 갈립니다"; options =
      the executors' actual variants + "직접 입력". **세션당 ≤2.** These are
      measurements, not AI opinions — never frame them as warnings.
-   - If `framing_confidence < 90` and not yet asked: ask a **strategic_fork** question to clarify the decision. Example: "이 결정에서 가장 중요한 건 (A) 속도 (B) 확실성 (C) 장기 유지보수 중 어느 쪽인가?"
-   - If weakest_assumption identified: ask a **weakness_check** question. Example: "너는 X를 전제하고 있는데, 이게 틀리면 결정이 바뀌어? (O/X)"
-   - Otherwise: ask a **skeleton_clarify** question. Example: "이 스켈레톤 중 어느 항목부터 자세히 채우는 게 가장 가치 있나?"
+   - If `framing_confidence < 90` and not yet asked: ask a **strategic_fork** question to clarify the decision. Example: "이 결정에서 가장 중요한 것은 (A) 속도 (B) 확실성 (C) 장기 유지보수 중 어느 쪽인가요?"
+   - If weakest_assumption identified: ask a **weakness_check** question. Example: "지금 X를 전제하고 있는데, 이게 틀리면 결정이 바뀌나요? (O/X)"
+   - Otherwise: ask a **skeleton_clarify** question. Example: "이 뼈대 중 어느 항목부터 자세히 채우는 것이 가장 가치 있나요?"
 
 2. Use **AskUserQuestion** to get user input. Include:
    - `header`: short title in config.locale
@@ -582,7 +582,7 @@ If `--no-minimal` was passed (typically via sail --quick/--full): skip directly 
 This is the one place clarify produces a directive. The full scaffold pipeline is bypassed because the routing math (rule 4 in Step 2) said it would over-engineer the answer.
 
 1. Construct `MinimalScaffold` (schema: `${CLAUDE_PLUGIN_ROOT}/data/schemas/minimal-scaffold.json`):
-   - `recommendation`: single-sentence imperative. "그냥 작업실로 바꿔. 신호 0이면 손해 0." Not "consider X if Y" — a directive.
+   - `recommendation`: single-sentence imperative. "그냥 작업실로 바꾸세요. 신호가 없으면 잃는 것도 없습니다." Not "consider X if Y" — a directive.
    - `one_check`: one thing the user verifies in <5 minutes that would flip the recommendation. If none exists, density was set wrong — go back to Step 2.
    - `caveat_if_signal_appears`: optional. Only when there's a real downstream signal worth watching post-action.
    - `_meta.mode = "minimal"`, `_meta.decision_density = "low"`, `_meta.framing_confidence`, `_meta.reversibility`, `_meta.skipped = ["team", "verify", "boss", "debate"]`.

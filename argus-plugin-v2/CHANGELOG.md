@@ -1,14 +1,76 @@
 # Changelog
 
+## 3.0.18 - 2026-07-30
+
+- **Copy sweep across every user-visible plugin surface** (founder's four
+  criteria: unclear, over-metaphorical, translationese, over-colloquial).
+  반말 leaks in clarify templates, the ~할게요/~볼래요 family, "오늘의 당신도"
+  translationese, elicitation/픽커/워커 jargon in doctor lines, "결정 계약"
+  legalese, and the unresolved 이(가) particle placeholder in the ambient nudge
+  are all gone. Sanctioned voyage identity (⚓, 항해일지) stays.
+- **Kind derivation re-synced to the canonical v3 pattern.** The plugin's
+  commitment regex carried a bare 합니다, so every polite Korean sentence —
+  including plain predictions like "…오를 것으로 예상합니다" — classified as a
+  commitment. Pre-existing red on the shared conformance fixture, found by
+  running the full plugin test set; the fixture passes again.
+
+## 3.0.17 - 2026-07-30
+
+- Premise edit options move to plain noun forms — `그대로 두기` · `다듬어 쓰기`
+  · `새로 쓰기` · `추적에서 빼기`. The previous first-person colloquial labels
+  ("맞아요, 그대로 둘게요") overreached; the surface should hand the user verbs,
+  not put words in their mouth (founder feedback, 2026-07-30).
+
+## 3.0.16 - 2026-07-30
+
+- **Offline no longer kills the decision tools.** Measured: with the registry
+  unreachable, the unpinned `npm exec` wire neither launched nor failed — it
+  hung, and the tools silently never appeared. The wire now goes through
+  `scripts/mcp-launch.js`: a 2.5s registry probe picks between the bare name
+  (online → always the current release, unchanged behavior) and `--offline`
+  (the newest cached copy, honest about staleness via doctor). Both paths
+  verified by launching the real server.
+- `doctor` and the cache-noise contract follow the spec string into the
+  launcher, so the no-pin invariant stays machine-checked.
+
+## 3.0.15 - 2026-07-30
+
+- **Re-cuts 3.0.14 under a number caches cannot confuse.** The unpin landed in
+  the repository without bumping the version, so the "3.0.14" a marketplace
+  install served still carried `argus-decision-mcp@2.0.12` — same number, two
+  different contents, and a version-keyed plugin cache has no reason to refresh.
+  Measured 2026-07-30: a fresh session on an up-to-date machine still launched
+  MCP 2.0.12. This is the same failure shape as MCP 2.0.4 (the gate compared
+  version strings, not contents); the fix is the same — never ship changed
+  wiring under an unchanged number.
+- No behavior change beyond finally receiving what 3.0.14's notes promised:
+  unpinned wire, current MCP each launch (2.0.14 today: composed-syllable
+  interrogative detection, so formal questions without a question mark land as
+  open questions, not premises).
+
 ## 3.0.14 - 2026-07-29
 
+- **The wiring no longer pins an MCP version, so one install keeps receiving
+  fixes.** Measured the same day, same spec string twice with an older build in
+  the npx cache: a bare package name launched the current release, `@^2.0.0`
+  launched the stale cached one. A range is satisfied from cache and never
+  re-asks the registry; a bare name has to.
+- Before this, installing the plugin froze you on whatever MCP version the
+  plugin shipped with. On 2026-07-29 the founder's Codex and this plugin pointed
+  at two different versions, neither of them current.
+- `doctor` now says "버전 고정 없음 — 매 실행 최신을 받는다" and folds leftover
+  cache copies into one harmless line, instead of comparing them to a pin that no
+  longer exists. It also reads the plugin at `CLAUDE_PLUGIN_ROOT` — the install
+  the host actually loaded, not the checkout beside the script.
+- Wire moves to `argus-decision-mcp` (unpinned), whose 2.0.13 keeps the user's
+  draft when a picker is declined — including when a host approval policy
+  declines it without drawing anything.
 - Removes the repository-local `.claude/skills`, `.claude/commands`, and
   `.claude/agents` remnants that Claude Code loaded beside the installed
   plugin. They exposed retired commands such as `argus-doctor`, `argus-help`,
   `argus-setup`, and `watch` while the packaged plugin correctly exposed five.
 - Extends plugin validation across the repository boundary so a local
   auto-discovered surface cannot silently bypass the five-command contract.
-- Continues to pin the published MCP 2.0.12; no MCP runtime behavior changed.
 
 ## 3.0.13 - 2026-07-29
 

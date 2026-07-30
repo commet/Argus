@@ -24,6 +24,7 @@ import { Fragment, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { useLocale } from '@/hooks/useLocale';
+import { ClauseText } from '@/components/landing/ClauseText';
 
 // ≤640px = the short 16:9 mobile band (the plate folio collapses to one column).
 function useIsNarrow() {
@@ -39,113 +40,92 @@ function useIsNarrow() {
   return n;
 }
 
-// One clause of the Homer quote, revealed by a FEATHERED ink mask sweeping
-// left→right over fully-formed (always-legible) glyphs, with a single hairline
-// "nib" of glow riding the wet edge. The mask alpha moves; the letters never do.
-function Clause({ text, ink, nib, halo, dur, delay }: { text: string; ink: string; nib: string; halo: string; dur: number; delay: number }) {
-  const MASK = 'linear-gradient(90deg, #000 0 62%, transparent 80%)';
+/**
+ * Caption pacing — 2026-07-29, the third attempt, and the first that changes the
+ * MECHANISM rather than the numbers.
+ *
+ * Founder, repeatedly: "나오다가 중간에 끊겼다가 이렇게 나오거든… 이거 뭐 시간
+ * 으로 계산해서 이렇게 해놓은거야?" Yes, it was — twice — and that was the bug.
+ * Two independent causes were live at once, and each previous pass fixed pacing
+ * while leaving the other in place:
+ *
+ * CAUSE 1 · a literal pause, authored in. The previous schedule spent 30% of the
+ *   quote's budget as SILENCE between clauses (CLAUSE_PAUSE_SHARE). On chapter I
+ *   that is a 0.99-SECOND dead stop between line 1 and line 2. Nothing was
+ *   dropping frames — the stop was in the spec.
+ *
+ * CAUSE 2 · the reveal was not something a browser can animate smoothly. Each
+ *   clause swept a `mask-position` and rode a nib animating `left`. `left` is a
+ *   LAYOUT property and `mask-position` a PAINT property; neither is composited,
+ *   so both ran layout/paint on the main thread every frame, over a decoding
+ *   video and a backdrop-filter panel. Measured on the real page (video paused,
+ *   4x CPU throttle, one reveal): 188 layout passes. After this rewrite: 14.
+ *   And because one mask spanned a whole block, a clause that wrapped revealed
+ *   BOTH its visual lines at once, in a diagonal band — out of reading order.
+ *
+ * The replacement: words ink in one at a time on a single CONSTANT cadence
+ * across the entire quote, animating only `opacity` and `transform` — the two
+ * properties the compositor owns. There is no per-clause anything, so there is
+ * no boundary left for a pause or a speed change to hide in, and a wrap can no
+ * longer scramble the order because each word is its own element in reading
+ * order. The window budgeting below is kept — that intent was right ("정박으로
+ * 계속 찬찬히 나오도록"): the quote still spends the chapter's own window rather
+ * than snapping done in 1.5s and freezing. It just spends it evenly.
+ */
+const QUOTE_START = 0.3;
+/** Share of the chapter window the quote may spend drawing. */
+const QUOTE_SHARE = 0.5;
+/** One word's own fade. Short: the cadence carries the pace, not the fade. */
+const WORD_FADE = 0.34;
+/** Beat between the last word landing and the attribution/Argus tail. */
+const TAIL_BEAT = 0.36;
+
+/** One constant per-word cadence, fitted to `window` seconds. */
+function quoteSchedule(text: string, narrow: boolean, window: number) {
+  const clauses = text.split('\n').map((c) => c.trim().split(' ').filter(Boolean));
+  const words = clauses.reduce((n, c) => n + c.length, 0);
+  // A chapter is never shorter than ~6.5s today, but never trust the data to
+  // stay that way: floor the budget so a short window can't make it a flicker.
+  const budget = Math.max(1.6, window * QUOTE_SHARE) * (narrow ? 0.92 : 1);
+  // Every word gets the same step — this is the whole fix for "중간에 끊겼다".
+  const step = words > 1 ? budget / words : 0;
+  const end = QUOTE_START + Math.max(0, words - 1) * step + WORD_FADE;
+  return { clauses, step, end };
+}
+
+// One clause = one block line. The words inside ink in on the shared cadence,
+// continuing across the line break rather than restarting at it.
+function Clause({ words, ink, halo, offset, step, rm }: { words: string[]; ink: string; halo: string; offset: number; step: number; rm: boolean }) {
   return (
-    <span style={{ position: 'relative', display: 'block' }}>
-      <motion.span
-        style={{
-          display: 'block', color: ink, textShadow: halo, willChange: 'mask-position',
-          maskImage: MASK, WebkitMaskImage: MASK,
-          maskSize: '168% 100%', WebkitMaskSize: '168% 100%',
-          maskRepeat: 'no-repeat', WebkitMaskRepeat: 'no-repeat',
-        }}
-        initial={{ maskPosition: '112% 0%' }}
-        animate={{ maskPosition: '0% 0%' }}
-        transition={{ duration: dur, delay, ease: [0.22, 0.61, 0.36, 1] }}
-      >
-        {text}
-      </motion.span>
-      <motion.span
-        aria-hidden="true"
-        style={{ position: 'absolute', top: '8%', bottom: '8%', width: 1.5, borderRadius: 1, background: nib, boxShadow: `0 0 5px 0.5px color-mix(in srgb, ${nib} 55%, transparent)` }}
-        initial={{ left: '-1%', opacity: 0 }}
-        animate={{ left: '101%', opacity: [0, 1, 1, 0] }}
-        transition={{ duration: dur, delay, ease: [0.22, 0.61, 0.36, 1], opacity: { times: [0, 0.08, 0.92, 1] } }}
-      />
+    <span style={{ display: 'block', color: ink, textShadow: halo }}>
+      {words.map((w, i) => (
+        <Fragment key={i}>
+          {i > 0 && ' '}
+          <motion.span
+            style={{ display: 'inline-block' }}
+            initial={rm ? false : { opacity: 0, y: 5 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: WORD_FADE, delay: QUOTE_START + (offset + i) * step, ease: [0.22, 0.61, 0.36, 1] }}
+          >
+            {w}
+          </motion.span>
+        </Fragment>
+      ))}
     </span>
   );
 }
 
-// Orchestrates the quote's clauses (split on the authored "\n") so each inks in
-// immediately after the previous. There is deliberately no inter-clause pause:
-// a pause made every authored line break look like a playback hitch.
-/**
- * Caption pacing, budgeted against the chapter's own on-screen window
- * (2026-07-28 — founder: "후다닥 나오다가 갑자기 멈췄다가 다시 진행된다.
- * 정박으로 계속 찬찬히 나오도록").
- *
- * The old schedule was window-blind: each clause was clamped to 0.46–0.85s with
- * ZERO pause between clauses, so chapter I finished drawing at ~1.5s and the
- * tail landed at ~1.8s — inside a 6.6s window. The remaining ~4.8s was a frozen
- * frame, and the 1.4–1.6s gap before the next chapter read as a second stop.
- * Hence "rushes, then stalls, then resumes".
- *
- * Now every chapter spends its own window: the quote draws across roughly the
- * first half of it, clauses breathe between one another, and the tail follows
- * after a beat — leaving the last stretch as reading time rather than dead air.
- */
-const QUOTE_START = 0.3;
-/** Share of the chapter window the quote may spend drawing (incl. its pauses). */
-const QUOTE_SHARE = 0.5;
-/** Of that quote budget, how much is silence between clauses. */
-const CLAUSE_PAUSE_SHARE = 0.3;
-/** Beat between the last clause landing and the attribution/Argus tail. */
-const TAIL_BEAT = 0.36;
-
-/** Per-clause draw durations + start delays, fitted to `window` seconds. */
-function quoteSchedule(text: string, narrow: boolean, window: number) {
-  const clauses = text.split('\n');
-  // A chapter is never shorter than ~6.5s today, but never trust the data to
-  // stay that way: floor the budget so a short window can't make it a flicker.
-  const budget = Math.max(1.6, window * QUOTE_SHARE) * (narrow ? 0.92 : 1);
-  const gaps = Math.max(0, clauses.length - 1);
-  const pauseEach = gaps ? (budget * CLAUSE_PAUSE_SHARE) / gaps : 0;
-  const drawBudget = budget - pauseEach * gaps;
-  // Longer clauses take proportionally longer to ink; the floor keeps a very
-  // short clause from snapping into place.
-  const weights = clauses.map((c) => Math.max(6, c.length));
-  const totalWeight = weights.reduce((a, b) => a + b, 0);
-  const durs = weights.map((w) => (w / totalWeight) * drawBudget);
-
-  let cursor = QUOTE_START;
-  const delays = durs.map((d) => {
-    const at = cursor;
-    cursor += d + pauseEach;
-    return at;
-  });
-  // `cursor` overshoots by one pause after the final clause — drop it so the
-  // tail follows the last clause, not the last pause.
-  const end = cursor - pauseEach;
-  return { clauses, durs, delays, end };
-}
-
-function InkedQuote({ text, ink, nib, halo, rm, narrow, window: win }: { text: string; ink: string; nib: string; halo: string; rm: boolean; narrow: boolean; window: number }) {
-  const { clauses, durs, delays } = quoteSchedule(text, narrow, win);
-  if (rm) return <>{clauses.map((c, i) => <span key={i} style={{ display: 'block', color: ink, textShadow: halo }}>{c}</span>)}</>;
+function InkedQuote({ text, ink, halo, rm, narrow, window: win }: { text: string; ink: string; halo: string; rm: boolean; narrow: boolean; window: number }) {
+  const { clauses, step } = quoteSchedule(text, narrow, win);
+  if (rm) return <>{clauses.map((w, i) => <span key={i} style={{ display: 'block', color: ink, textShadow: halo }}>{w.join(' ')}</span>)}</>;
+  // Running word offset per clause, derived rather than accumulated: a `let`
+  // reassigned inside the map is a render-time mutation (the React Compiler
+  // rejects it), and there are at most three clauses.
+  const offsetOf = (i: number) => clauses.slice(0, i).reduce((n, c) => n + c.length, 0);
   return (
     <>
-      {clauses.map((c, i) => (
-        <Clause key={i} text={c} ink={ink} nib={nib} halo={halo} dur={durs[i]} delay={delays[i]} />
-      ))}
-    </>
-  );
-}
-
-// Captions break at sentence/clause boundaries (a literal "\n" in the copy),
-// never wherever the line happens to fill — so a phrase like
-// "그 한 걸음을 또렷하게 내딛도록" always lands whole on its own line.
-function Lines({ text }: { text: string }) {
-  return (
-    <>
-      {text.split('\n').map((ln, i) => (
-        <Fragment key={i}>
-          {i > 0 && <br />}
-          {ln}
-        </Fragment>
+      {clauses.map((words, i) => (
+        <Clause key={i} words={words} ink={ink} halo={halo} offset={offsetOf(i)} step={step} rm={rm} />
       ))}
     </>
   );
@@ -236,7 +216,6 @@ function quoteEnd(text: string, narrow: boolean, window: number) {
 function PlateFolioCard({ active, L, locale, rm, narrow }: { active: Chapter; L: (ko: string, en: string) => string; locale: string; rm: boolean; narrow: boolean }) {
   const lure = !!active.lure, gold = !!active.gold;
   const quoteInk = lure ? 'var(--bp-lure)' : 'var(--bp-ink)';
-  const nib = lure ? 'var(--bp-lure)' : 'var(--bp-gold)';
   const bodyHalo = '0 0 1px var(--bp-paper), 0 0 3px var(--bp-paper), 0 0 8px var(--bp-paper), 0 0 14px var(--bp-paper)';
   const quoteHalo = lure
     ? '0 0 1px var(--bp-paper), 0 0 3px var(--bp-paper), 0 0 7px var(--bp-paper), 0 0 13px var(--bp-paper)'
@@ -257,22 +236,26 @@ function PlateFolioCard({ active, L, locale, rm, narrow }: { active: Chapter; L:
 
   // Hangul reads loose under the mono's wide tracking — settle to a tighter
   // target in Korean (Latin keeps the formal plate-caption tracking).
-  const ebFrom = locale === 'ko' ? '0.22em' : '0.34em';
+  // The tracking used to ANIMATE (0.22em → 0.14em). letter-spacing is a LAYOUT
+  // property, so that re-ran layout on the caption block every frame of the
+  // chapter change — the same class of bug as the old nib, right on top of the
+  // quote inking in. The settle now comes from `scale` (compositor-owned); the
+  // tracking is simply set.
   const ebTo = locale === 'ko' ? '0.14em' : '0.28em';
   const eyebrow = (
     <motion.span
       className="bp-mono"
-      initial={rm ? { opacity: 1 } : { opacity: 0, letterSpacing: ebFrom, scale: 1.06 }}
-      animate={{ opacity: 1, letterSpacing: ebTo, scale: 1 }}
+      initial={rm ? { opacity: 1 } : { opacity: 0, scale: 1.06 }}
+      animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.26, delay: rm ? 0 : 0.18, ease }}
-      style={{ display: 'inline-block', fontSize: 'clamp(11px, 1.05vw, 13px)', textTransform: 'uppercase', fontWeight: 700, color: eyebrowColor, textShadow: '0 0 2px var(--bp-paper), 0 0 5px var(--bp-paper), 0 0 10px var(--bp-paper)', transformOrigin: 'left center', whiteSpace: 'nowrap' }}
+      style={{ display: 'inline-block', fontSize: 'clamp(11px, 1.05vw, 13px)', letterSpacing: ebTo, textTransform: 'uppercase', fontWeight: 700, color: eyebrowColor, textShadow: '0 0 2px var(--bp-paper), 0 0 5px var(--bp-paper), 0 0 10px var(--bp-paper)', transformOrigin: 'left center', whiteSpace: 'nowrap' }}
     >
       {gold ? L('종장', 'Coda') : L(`${active.num} · ${active.ko}`, `${active.num} · ${active.en}`)}
     </motion.span>
   );
   const quote = (
-    <div className={bk} style={{ fontFamily: "'Nanum Myeongjo', var(--font-display), serif", fontWeight: 700, fontSize: 'clamp(21px, 2.6vw, 31px)', lineHeight: 1.32, letterSpacing: '0.005em', maxWidth: '52ch', whiteSpace: 'pre-line' }}>
-      <InkedQuote text={L(active.mythKo, active.mythEn)} ink={quoteInk} nib={nib} halo={quoteHalo} rm={rm} narrow={narrow} window={chapterWindow} />
+    <div className={bk} style={{ fontFamily: "'Nanum Myeongjo', var(--font-display), serif", fontWeight: 700, fontSize: 'clamp(21px, 2.6vw, 31px)', lineHeight: 1.32, letterSpacing: '0.005em', maxWidth: '52ch', textWrap: 'balance' }}>
+      <InkedQuote text={L(active.mythKo, active.mythEn)} ink={quoteInk} halo={quoteHalo} rm={rm} narrow={narrow} window={chapterWindow} />
     </div>
   );
   // attribution (who said the myth line) — held visually apart from the blue
@@ -280,13 +263,16 @@ function PlateFolioCard({ active, L, locale, rm, narrow }: { active: Chapter; L:
   // Both stay on a single line in the wide layout (the box is now wide enough).
   const tail = (
     <motion.div initial={rm ? { opacity: 1 } : { opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.36, delay: rm ? 0 : clusterDelay, ease }} style={{ marginTop: 16 }}>
-      <p className={bk} style={{ margin: 0, fontStyle: 'italic', fontWeight: 600, fontSize: 'clamp(12.5px, 1.2vw, 14.5px)', color: lure ? 'var(--bp-lure)' : 'var(--bp-ink)', opacity: 0.9, letterSpacing: '0.01em', whiteSpace: narrow ? 'normal' : 'nowrap', textShadow: bodyHalo }}>
-        — {L(active.attrKo, active.attrEn)}
-      </p>
+      <ClauseText
+        as="p"
+        className={bk}
+        text={`— ${L(active.attrKo, active.attrEn)}`}
+        style={{ margin: 0, fontStyle: 'italic', fontWeight: 600, fontSize: 'clamp(12.5px, 1.2vw, 14.5px)', color: lure ? 'var(--bp-lure)' : 'var(--bp-ink)', opacity: 0.9, letterSpacing: '0.01em', whiteSpace: narrow ? 'normal' : 'nowrap', textShadow: bodyHalo }}
+      />
       <div aria-hidden="true" style={{ height: 1, width: 30, background: 'var(--bp-ink-faint)', margin: '11px 0' }} />
-      <p className={bk} style={{ margin: 0, fontWeight: 600, fontSize: 'clamp(15.5px, 1.9vw, 20px)', lineHeight: 1.42, color: 'var(--bp-azure)', letterSpacing: '-0.004em', whiteSpace: narrow ? 'normal' : 'nowrap', textShadow: bodyHalo }}>
+      <p className={bk} style={{ margin: 0, fontWeight: 600, fontSize: 'clamp(15.5px, 1.9vw, 20px)', lineHeight: 1.42, color: 'var(--bp-azure)', letterSpacing: '-0.004em', whiteSpace: narrow ? 'normal' : 'nowrap', textShadow: bodyHalo, textWrap: 'balance' }}>
         <b style={{ fontWeight: 800, color: 'var(--bp-azure)' }}>Argus:</b>{' '}
-        <Lines text={L(active.lineKo, active.lineEn)} />
+        <ClauseText text={L(active.lineKo, active.lineEn)} />
       </p>
     </motion.div>
   );
@@ -426,9 +412,12 @@ function VoyageFilmStage({ onEnded }: { onEnded?: () => void }) {
             {introMode ? (
               <motion.div key="intro" style={{ textAlign: 'left' }} initial={rm ? { opacity: 1 } : { opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.4, ease: [0.22, 0.61, 0.36, 1] }}>
                 <span className="bp-mono" style={{ display: 'block', marginBottom: 9, fontSize: 11, letterSpacing: '0.22em', textTransform: 'uppercase', fontWeight: 700, color: 'var(--bp-ink)' }}>{L(INTRO.eyebrowKo, INTRO.eyebrowEn)}</span>
-                <p className={locale === 'ko' ? 'break-keep' : ''} style={{ margin: 0, fontWeight: 600, color: 'var(--bp-ink)', fontSize: 'clamp(15.5px, 4.4vw, 19px)', lineHeight: 1.5, letterSpacing: '-0.006em', textWrap: 'pretty' }}>
-                  <Lines text={L(INTRO.lineKo, INTRO.lineEn)} />
-                </p>
+                <ClauseText
+                  as="p"
+                  className={locale === 'ko' ? 'break-keep' : ''}
+                  text={L(INTRO.lineKo, INTRO.lineEn)}
+                  style={{ margin: 0, fontWeight: 600, color: 'var(--bp-ink)', fontSize: 'clamp(14.5px, 4.1vw, 19px)', lineHeight: 1.5, letterSpacing: '-0.006em' }}
+                />
               </motion.div>
             ) : gChapter ? (
               <motion.div key={gChapter.num} style={{ textAlign: 'left' }} initial={rm ? { opacity: 1 } : { opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.4, ease: [0.22, 0.61, 0.36, 1] }}>
@@ -535,9 +524,12 @@ function VoyageFilmStage({ onEnded }: { onEnded?: () => void }) {
               <span className="bp-mono" style={{ marginBottom: 11, fontSize: 'clamp(10px, 1.05vw, 11.5px)', letterSpacing: locale === 'ko' ? '0.13em' : '0.26em', textTransform: 'uppercase', fontWeight: 700, color: 'var(--bp-ink)', textShadow: '0 0 2px var(--bp-paper), 0 0 6px var(--bp-paper), 0 0 11px var(--bp-paper)' }}>
                 {L(INTRO.eyebrowKo, INTRO.eyebrowEn)}
               </span>
-              <p className={`${locale === 'ko' ? 'break-keep' : ''}`} style={{ margin: 0, fontWeight: 600, color: 'var(--bp-ink)', fontSize: 'clamp(16px, 2.15vw, 23px)', lineHeight: 1.5, letterSpacing: '-0.006em', maxWidth: 600, textWrap: 'pretty', textShadow: '0 0 1px var(--bp-paper), 0 0 4px var(--bp-paper), 0 0 10px var(--bp-paper), 0 0 17px var(--bp-paper)' }}>
-                <Lines text={L(INTRO.lineKo, INTRO.lineEn)} />
-              </p>
+              <ClauseText
+                as="p"
+                className={`${locale === 'ko' ? 'break-keep' : ''}`}
+                text={L(INTRO.lineKo, INTRO.lineEn)}
+                style={{ margin: 0, fontWeight: 600, color: 'var(--bp-ink)', fontSize: 'clamp(16px, 2.15vw, 23px)', lineHeight: 1.5, letterSpacing: '-0.006em', maxWidth: 680, textShadow: '0 0 1px var(--bp-paper), 0 0 4px var(--bp-paper), 0 0 10px var(--bp-paper), 0 0 17px var(--bp-paper)' }}
+              />
             </motion.div>
           </motion.div>
         )}
@@ -675,9 +667,12 @@ function VoyagePosterCard({ onPlay }: { onPlay: () => void }) {
         <span className="bp-mono" style={{ display: 'block', marginBottom: 7, fontSize: 10.5, letterSpacing: locale === 'ko' ? '0.13em' : '0.24em', textTransform: 'uppercase', fontWeight: 700, color: 'var(--bp-ink-soft)' }}>
           {L(INTRO.eyebrowKo, INTRO.eyebrowEn)}
         </span>
-        <p className={locale === 'ko' ? 'break-keep' : ''} style={{ margin: 0, fontWeight: 500, color: 'var(--bp-ink-soft)', fontSize: 'clamp(12.5px, 1.4vw, 14px)', lineHeight: 1.62, letterSpacing: '-0.004em', textWrap: 'pretty' }}>
-          <Lines text={L(INTRO.lineKo, INTRO.lineEn)} />
-        </p>
+        <ClauseText
+          as="p"
+          className={locale === 'ko' ? 'break-keep' : ''}
+          text={L(INTRO.lineKo, INTRO.lineEn)}
+          style={{ margin: 0, fontWeight: 500, color: 'var(--bp-ink-soft)', fontSize: 'clamp(12.5px, 1.4vw, 14px)', lineHeight: 1.62, letterSpacing: '-0.004em' }}
+        />
       </figcaption>
     </figure>
   );

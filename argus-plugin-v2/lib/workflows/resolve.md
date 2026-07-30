@@ -46,7 +46,7 @@ proposal, not a human-authorized record.
 
 Sort oldest first and handle at most three. If none are due, say:
 
-`No records are due. Next return: {{date or "none"}}.`
+`No records are due. Next check: {{date or "none"}}.`
 
 ## 2. Show the original before controls
 
@@ -94,7 +94,7 @@ Skip/cancel writes nothing.
 
 Use the question and exact answer labels for the record kind:
 
-- prediction — `오늘의 당신도 같은 조건에서 같은 판단을 했을까요? / Would
+- prediction — `같은 조건이 다시 와도 같은 판단을 하시겠어요? / Would
   you make the same call under the same conditions today?`
   - `같은 조건이라면 지금도 같은 판단을 하겠어요 / I would make the same
     call under the same conditions` → `same`
@@ -104,7 +104,7 @@ Use the question and exact answer labels for the record kind:
     standard` → `withdrawn`
   - `지금은 내 기준이 달라졌는지 모르겠어요 / I am not sure how my
     standard has changed` → `skipped`
-- commitment — `오늘의 당신도 같은 약속을 했을까요? / Would you make the
+- commitment — `같은 조건이 다시 와도 같은 약속을 하시겠어요? / Would you make the
   same commitment today?`
   - `지금도 같은 약속을 하겠어요 / I would make the same commitment today`
     → `same`
@@ -114,7 +114,7 @@ Use the question and exact answer labels for the record kind:
     → `withdrawn`
   - `지금은 같은 약속을 할지 모르겠어요 / I am not sure whether I would
     make it again` → `skipped`
-- declaration — `오늘의 당신도 같은 기준을 따를까요? / Would you follow the
+- declaration — `지금도 같은 기준을 따르시겠어요? / Would you follow the
   same standard today?`
   - `지금도 같은 기준을 따르겠어요 / I would still follow the same standard`
     → `same`
