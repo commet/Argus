@@ -1,0 +1,259 @@
+{
+  "id": "light-07-banmal",
+  "group": "light",
+  "locale": "ko",
+  "expect": {
+    "route": "light",
+    "lightOutcome": "offer"
+  },
+  "notes": "반말 입력. 닻('술' 발명 금지) + 말투(반말 입력에 대한 응대 톤이 어색하지 않은가).",
+  "opening": "파티 끝나고 집 갈까 말까",
+  "replies": [
+    "내일 아침 일찍 일어나야 되긴 해.",
+    "지금 좀 재밌긴 함."
+  ],
+  "route": {
+    "deterministicCrisis": {
+      "isCrisis": false
+    },
+    "gate": {
+      "need": "light",
+      "mirror": "파티가 끝났는데 지금 집에 갈지 더 있을지 고민 중이시네요.",
+      "question": "지금 마음은 어느 쪽에 가 있어요?"
+    }
+  },
+  "light": {
+    "qas": [
+      {
+        "question": "지금 마음은 어느 쪽에 가 있어요?",
+        "answer": "내일 아침 일찍 일어나야 되긴 해."
+      },
+      {
+        "question": "지금 파티에서 아직 할 것 같은 게 남아 있어?",
+        "answer": "지금 좀 재밌긴 함."
+      }
+    ],
+    "turns": [
+      {
+        "mirror": "내일 아침이 빨리 온다는 게 있으니까 집 가는 쪽이 마음에 걸리긴 한데, 아직 파티가 끝나지 않은 거네요.",
+        "action": "ask",
+        "question": "지금 파티에서 아직 할 것 같은 게 남아 있어?",
+        "_qasLen": 1,
+        "_rawText": ""
+      },
+      {
+        "mirror": "지금 파티가 재밌긴 한데, 내일 아침이 걱정되는 거네요.",
+        "action": "offer",
+        "offer": {
+          "sentence": "내일 아침 일찍 일어날 수 있으면 파티를 더 즐기고, 못 일어나면 지금 집에 간다.",
+          "when": "tomorrow_morning",
+          "ask": "그럼 재미있게 조금 더 즐기다가 가기로 하고 — 내일 아침에 일찍 일어났는지, 제가 한 번만 물어볼까요?"
+        },
+        "_qasLen": 2,
+        "_rawText": ""
+      }
+    ],
+    "outcome": "offer"
+  },
+  "heavy": null,
+  "error": null,
+  "transcript": [
+    {
+      "actor": "user",
+      "phase": "opening",
+      "text": "파티 끝나고 집 갈까 말까"
+    },
+    {
+      "actor": "argus",
+      "phase": "light_gate",
+      "text": "파티가 끝났는데 지금 집에 갈지 더 있을지 고민 중이시네요.\n지금 마음은 어느 쪽에 가 있어요?"
+    },
+    {
+      "actor": "user",
+      "phase": "answer",
+      "text": "내일 아침 일찍 일어나야 되긴 해."
+    },
+    {
+      "actor": "argus",
+      "phase": "light_turn_1",
+      "text": "내일 아침이 빨리 온다는 게 있으니까 집 가는 쪽이 마음에 걸리긴 한데, 아직 파티가 끝나지 않은 거네요.\n지금 파티에서 아직 할 것 같은 게 남아 있어?"
+    },
+    {
+      "actor": "user",
+      "phase": "answer",
+      "text": "지금 좀 재밌긴 함."
+    },
+    {
+      "actor": "argus",
+      "phase": "light_turn_2",
+      "text": "지금 파티가 재밌긴 한데, 내일 아침이 걱정되는 거네요.\n그럼 재미있게 조금 더 즐기다가 가기로 하고 — 내일 아침에 일찍 일어났는지, 제가 한 번만 물어볼까요?"
+    }
+  ],
+  "calls": [],
+  "mechanical": {
+    "findings": []
+  },
+  "judge": {
+    "runs": [
+      {
+        "criteria": {
+          "anchor": {
+            "verdict": "FAIL",
+            "severity": "H",
+            "evidence": "집 가는 쪽이 마음에 걸리긴 한데, 아직 파티가 끝나지 않은 거네요.",
+            "note": "사용자는 '파티 끝나고 집 갈까 말까'라고 했으므로 파티는 이미 끝난 상황. '아직 파티가 끝나지 않은 거네요'는 사용자가 쓴 것과 반대되는 사실을 발명한 닻 위반. 또한 light_gate 응답 '파티가 끝났는데 지금 집에 갈지 더 있을지 고민 중이시네요'는 원문을 정확히 반영했으나, light_turn_1에서 이를 뒤집어 '아직 파티가 끝나지 않은 거네요'로 재해석한 것은 명백한 사실 발명."
+          },
+          "verdict_rule": {
+            "verdict": "FAIL",
+            "severity": "M",
+            "evidence": "그럼 재미있게 조금 더 즐기다가 가기로 하고",
+            "note": "'재미있게 조금 더 즐기다가 가기로 하고'는 사용자가 결정을 내리지 않은 상태에서 Argus가 '더 있다가 가는 것'으로 방향을 정해버린 판정 위반. 결정을 가르는 변수(재미 vs 내일 아침)를 이름 붙여 돌려주는 선을 넘어 한쪽 선택지를 기정사실화했다."
+          },
+          "drama": {
+            "verdict": "FAIL",
+            "severity": "M",
+            "evidence": "내일 아침에 일찍 일어났는지, 제가 한 번만 물어볼까요?",
+            "note": "집에 갈지 말지라는 평평한 일상 결정에 '내일 아침 확인 의식'을 추가하는 것은 불필요한 단계/의식 추가에 해당하는 드라마 위반."
+          },
+          "tone": {
+            "verdict": "FAIL",
+            "severity": "L",
+            "evidence": "파티가 끝났는데 지금 집에 갈지 더 있을지 고민 중이시네요. / 지금 마음은 어느 쪽에 가 있어요?",
+            "note": "사용자가 반말('집 갈까 말까', '일어나야 되긴 해', '재밌긴 함')로 일관하는데 Argus는 해요체를 유지. 설계 노트에서 반말 입력에 대한 응대 톤 어색함을 점검 항목으로 명시했으므로 경미한 톤 불일치로 기록. 해요체 자체가 규칙 위반은 아니나 '다정한 해요체, 친구처럼 짧게' 기준에서 반말 사용자와의 거리감이 느껴짐."
+          },
+          "weight": {
+            "verdict": "PASS",
+            "severity": null,
+            "evidence": "",
+            "note": "집에 갈지 말지는 가벼운 일상 결정이고 응답 분량도 과하지 않음. 무게 기준 자체는 적절."
+          },
+          "question_quality": {
+            "verdict": "FAIL",
+            "severity": "M",
+            "evidence": "내일 아침에 일찍 일어났는지, 제가 한 번만 물어볼까요?",
+            "note": "이 질문의 답(예/아니오)이 Argus의 다음 말을 실제로 바꾸지 않는다. 사용자가 '아니오'라고 해도 Argus가 달리 할 수 있는 것이 없는 사무적·의식적 질문으로, 질문 품질 기준 위반."
+          },
+          "route": {
+            "verdict": "PASS",
+            "severity": null,
+            "evidence": "",
+            "note": "light 게이트 → 질문 2회 → 종결 offer 흐름 자체는 설계 경로를 따름. 다만 offer 내용(내일 확인 제안)의 적절성은 drama/question_quality에서 별도 지적."
+          },
+          "en_naturalness": {
+            "verdict": "NA",
+            "severity": null,
+            "evidence": "",
+            "note": "EN 시나리오 아님"
+          }
+        },
+        "overall": "가장 큰 문제는 anchor 위반으로, 사용자가 '파티 끝나고'라고 명시했음에도 light_turn_1에서 '아직 파티가 끝나지 않은 거네요'라고 사실을 뒤집어 발명했다. 여기에 더해 verdict_rule 위반(한쪽 선택지 기정사실화)과 drama 위반(불필요한 내일 확인 의식 추가)이 겹쳐, 가벼운 일상 결정임에도 응답 품질이 전반적으로 흔들렸다."
+      },
+      {
+        "criteria": {
+          "anchor": {
+            "verdict": "FAIL",
+            "severity": "H",
+            "evidence": "집 가는 쪽이 마음에 걸리긴 한데, 아직 파티가 끝나지 않은 거네요.",
+            "note": "사용자는 '파티 끝나고 집 갈까 말까'라고 했다. 즉 파티는 이미 끝난 상황이다. Argus가 '아직 파티가 끝나지 않은 거네요'라고 단정한 것은 사용자가 쓴 것과 정반대의 사실을 닻으로 만든 위반. 또한 light_gate 응답의 '더 있을지'도 같은 오독에서 비롯됨."
+          },
+          "verdict_rule": {
+            "verdict": "FAIL",
+            "severity": "M",
+            "evidence": "그럼 재미있게 조금 더 즐기다가 가기로 하고",
+            "note": "'가기로 하고'는 결정을 내려주는 표현으로 판정의 변형에 해당한다. 사용자가 아직 결정을 내리지 않은 상황에서 Argus가 '더 즐기다가 가는 것'을 기정사실화했다."
+          },
+          "drama": {
+            "verdict": "PASS",
+            "severity": null,
+            "evidence": "",
+            "note": "과장이나 불필요한 의식 추가는 없음."
+          },
+          "tone": {
+            "verdict": "FAIL",
+            "severity": "M",
+            "evidence": "파티가 끝났는데 지금 집에 갈지 더 있을지 고민 중이시네요. / 지금 마음은 어느 쪽에 가 있어요?",
+            "note": "사용자가 반말로 입력했는데 Argus는 해요체('이시네요', '있어요')로 응대했다. 이후 turn_1에서는 반말('남아 있어?')로 전환되어 일관성이 없다. 반말 입력에 대한 톤 처리가 첫 응답에서 어색하게 시작됨."
+          },
+          "weight": {
+            "verdict": "PASS",
+            "severity": null,
+            "evidence": "",
+            "note": "파티 후 귀가 여부는 가벼운 일상 결정이고, Argus의 응대 무게도 그에 맞게 가볍게 처리됨."
+          },
+          "question_quality": {
+            "verdict": "PASS",
+            "severity": null,
+            "evidence": "",
+            "note": "'지금 파티에서 아직 할 것 같은 게 남아 있어?'는 답변(재밌긴 함)이 실제로 다음 응답을 바꾸는 데 기여했으므로 유효한 질문. 단, 닻 오류로 인해 질문 전제 자체가 잘못된 점은 anchor 항목에서 처리."
+          },
+          "route": {
+            "verdict": "PASS",
+            "severity": null,
+            "evidence": "",
+            "note": "light 게이트 → 질문 2회 → 종결 offer 흐름은 설계 기대와 일치."
+          },
+          "en_naturalness": {
+            "verdict": "NA",
+            "severity": null,
+            "evidence": "",
+            "note": "EN 시나리오가 아님."
+          }
+        },
+        "overall": "가장 큰 문제는 anchor 위반이다. 사용자가 '파티 끝나고'라고 명시했음에도 Argus가 '아직 파티가 끝나지 않은 거네요'라고 사실을 뒤집어 닻으로 삼았고, 이 오독이 이후 대화 전체의 전제를 오염시켰다. 추가로 마지막 응답에서 '가기로 하고'라는 표현이 사용자의 결정을 대신 내려주는 판정 위반에 해당하며, 첫 응답의 해요체와 이후 반말 혼용도 톤 일관성 문제로 지적된다."
+      },
+      {
+        "criteria": {
+          "anchor": {
+            "verdict": "FAIL",
+            "severity": "H",
+            "evidence": "집 가는 쪽이 마음에 걸리긴 한데, 아직 파티가 끝나지 않은 거네요.",
+            "note": "사용자는 '파티 끝나고'라고 명시했다. 즉 파티는 이미 끝난 상황인데, Argus가 '아직 파티가 끝나지 않은 거네요'라고 사실을 발명했다. 또한 light_gate에서도 '더 있을지'라고 파티가 계속 진행 중인 것처럼 전제했는데, 이 역시 사용자가 쓴 '파티 끝나고'와 충돌한다."
+          },
+          "verdict_rule": {
+            "verdict": "FAIL",
+            "severity": "M",
+            "evidence": "그럼 재미있게 조금 더 즐기다가 가기로 하고",
+            "note": "'가기로 하고'는 사실상 '더 있다가 가라'는 방향 추천이다. 결정을 가르는 변수(내일 아침 vs 지금 재미)를 이름 붙여 돌려주는 선을 넘어 한쪽 결론을 내려버렸다."
+          },
+          "drama": {
+            "verdict": "PASS",
+            "severity": null,
+            "evidence": "",
+            "note": "과장이나 불필요한 의식 추가는 없다."
+          },
+          "tone": {
+            "verdict": "FAIL",
+            "severity": "M",
+            "evidence": "파티가 끝났는데 지금 집에 갈지 더 있을지 고민 중이시네요. / 지금 마음은 어느 쪽에 가 있어요?",
+            "note": "사용자가 반말로 입력했는데 Argus는 해요체로 응대했다. 이후 turn_1에서 '마음에 걸리긴 한데'처럼 반말 혼용이 나타나지만 일관성이 없다. 반말 입력에 대해 해요체로 응대하는 것 자체가 어색하지 않을 수 있으나, 설계 노트가 '반말 입력에 대한 응대 톤이 어색하지 않은가'를 명시적으로 점검 대상으로 삼고 있고, light_turn_1·2에서 '한데', '거네요' 등 해요체와 반말이 뒤섞여 일관성이 깨진다."
+          },
+          "weight": {
+            "verdict": "PASS",
+            "severity": null,
+            "evidence": "",
+            "note": "파티 후 귀가 여부는 가벼운 일상 결정이고, Argus의 응대 분량도 과하지 않다."
+          },
+          "question_quality": {
+            "verdict": "FAIL",
+            "severity": "M",
+            "evidence": "내일 아침에 일찍 일어났는지, 제가 한 번만 물어볼까요?",
+            "note": "이 질문은 Argus의 다음 말을 실제로 바꾸지 않는다. 사용자의 답(예/아니오)이 현재 결정(집에 갈지 말지)에 아무 영향을 주지 않으며, 이미 결론('가기로 하고')을 내린 뒤에 붙은 사무적 제안이다. 또한 기계 검사 결과에서 질문 예산 소진 후 3번째 질문 시도로 클램프가 차단된 것으로 확인된다."
+          },
+          "route": {
+            "verdict": "PASS",
+            "severity": null,
+            "evidence": "",
+            "note": "light 게이트 → light 진행 → 종결 offer 흐름 자체는 기대 route와 일치한다. 다만 verdict_rule·anchor 위반이 route 내 실행 품질을 훼손했다."
+          },
+          "en_naturalness": {
+            "verdict": "NA",
+            "severity": null,
+            "evidence": "",
+            "note": "EN 시나리오가 아님"
+          }
+        },
+        "overall": "가장 큰 문제는 anchor 위반이다. 사용자가 '파티 끝나고'라고 명시했음에도 Argus가 '아직 파티가 끝나지 않은 거네요'라고 사실을 발명해 대화 전체의 전제가 틀어졌다. 여기에 더해 '가기로 하고'라는 방향 추천으로 판정 금지 규칙도 위반했고, 질문 예산을 초과한 무의미한 follow-up 질문까지 겹쳐 light 결정 처리로서의 신뢰도가 전반적으로 낮다."
+      }
+    ]
+  }
+}

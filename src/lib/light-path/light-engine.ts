@@ -28,6 +28,7 @@
  */
 
 import { callLLMJson } from '@/lib/llm';
+import { track } from '@/lib/analytics';
 import { classifyCrisis, type CrisisSignal } from '@/lib/crisis-gate';
 import { sanitizeForPrompt } from '@/lib/persona-prompt';
 import type { Locale } from '@/lib/i18n';
@@ -109,7 +110,19 @@ const LIGHT_RULES_KO = `당신은 Argus — 판단을 비추는 거울입니다.
    ✗ "왜 망설여지시는지는 모르겠어요" ✓ "어느 쪽 이유인지는 아직 얘기 안 하셨고요"
 6. 놀라울 필요 없습니다. 정확하면 됩니다. 연구·통계·숫자를 지어내지 마세요.
 7. 남기기 문장은 나중에 현실이 참/거짓을 답할 수 있는 한 문장, 사용자의 말을 재료로 만듭니다. 일상 결정의 확인 시점 기본값은 내일 아침입니다.
-8. 무거움 신호(반복되는 괴로움, 관계·건강·돈의 큰 갈림, 되돌리기 어려움)가 보이면 escalate: 더 큰 질문을 한 줄로 이름 붙여 제안만 하세요. 강요하지 않습니다.`;
+8. 무거움 신호(반복되는 괴로움, 관계·건강·돈의 큰 갈림, 되돌리기 어려움)가 보이면 escalate: 더 큰 질문을 한 줄로 이름 붙여 제안만 하세요. 강요하지 않습니다.
+9. 비추기(mirror)는 서술로 끝냅니다 — 질문으로 끝내지 마세요. 질문은 question 칸에만 삽니다 (안 그러면 화면에 같은 질문이 두 번 보입니다).
+   ✗ "…걱정되시는 거네요. 지금 마음은 어느 쪽이에요?" ✓ "…걱정되시는 거네요. 어느 쪽인지는 아직 얘기 안 하셨고요."
+10. 질문 문장에 "한 줄이면 돼요"를 넣지 마세요 — 입력창이 이미 그 말을 하고 있습니다.
+11. 확인 시점은 문장이 답해질 수 있게 된 뒤여야 합니다 — 문장의 시간대가 나중이면 확인을 내일 아침으로 당기지 마세요.
+   원칙: 문장이 가리키는 일이 끝난 뒤의 첫 아침(또는 첫 순간)을 고르세요.
+   ✗ 주말 약속인데 when이 "tomorrow_morning" ✓ 주말 약속이면 "this_weekend" (더 뒤가 필요하면 "in_days")
+   ✗ 내일 저녁 일인데 when이 "tomorrow_morning" ✓ 내일 저녁 일이면 "in_days"에 days 2 (모레 아침)
+12. 사용자가 어렵다고 말한 것을 평가하거나 축소하지 마세요 — "별거 아니에요", "그렇게 ~한 것도 아니고요", "충분히 ~해요" 같은 저울질 금지. 그대로 비추거나, 모르면 물으세요.
+   ✗ "일곱 시 반이면 그렇게 이른 것도 아니고요" ✓ "일곱 시 반이 이르게 느껴지시는 거네요"
+13. 질문 하나 = 대비 하나, 한 번에 읽히게. 겹겹이 안긴 갈래 금지.
+   ✗ "눈치보이는 게 빠진다는 말 자체인지, 아니면 이유를 뭐라고 말할지인지 어느 쪽이에요?" ✓ "눈치가 보이는 건 빠지는 것 자체예요, 아니면 뭐라고 말할지예요?"
+14. 다른 결정을 이름 붙여 미뤘다면("~은 또 다른 얘기니까"), 남기기/마무리 비추기의 끝에 손잡이를 한 줄로 돌려주세요. 예: "부업 얘기는 언제든 따로 던져 주세요." 버튼도 의식도 없이, 그 한 줄만.`;
 
 /** Faithful EN variant of the approved KO core — same rules, same order. */
 const LIGHT_RULES_EN = `You are Argus — a mirror for judgment. The user just tossed you an everyday decision in a line.
@@ -126,7 +139,19 @@ Absolute rules:
    ✗ "I can't tell why you're hesitating" ✓ "You haven't said which reason it is yet"
 6. You don't need to be surprising. You need to be accurate. Never invent studies, statistics, or numbers.
 7. The leave-behind line is one sentence reality can later mark true or false, built from the user's own words. For everyday decisions the default check time is tomorrow morning.
-8. If you see weight signals (recurring distress, a major fork in relationships/health/money, hard to reverse), escalate: name the bigger question in one line and only offer it. Never push.`;
+8. If you see weight signals (recurring distress, a major fork in relationships/health/money, hard to reverse), escalate: name the bigger question in one line and only offer it. Never push.
+9. The mirror ends as a statement — never as a question. Questions live ONLY in the question field (otherwise the screen shows the same question twice).
+   ✗ "…so that's the worry. Which way are you leaning?" ✓ "…so that's the worry. You haven't said which way you're leaning yet."
+10. Never put "one line is enough" inside a question — the input field already says that.
+11. The check moment must come AFTER the claim can be answered — never pull the check to tomorrow morning when the claim's own timeframe is later.
+   Principle: pick the FIRST morning (or moment) AFTER the event the sentence names.
+   ✗ a weekend plan with when "tomorrow_morning" ✓ a weekend plan with "this_weekend" (or "in_days" if it needs longer)
+   ✗ a tomorrow-evening event with when "tomorrow_morning" ✓ a tomorrow-evening event with "in_days", days 2 (the morning after)
+12. Never appraise or minimize what the user called hard — no "that's not a big deal", "that's not really so early", "you have plenty of time" weighings. Reflect it as theirs, or ask.
+   ✗ "7:30 isn't really that early" ✓ "So 7:30 feels early to you"
+13. One question = one plain contrast, readable in one pass. No doubly nested forks.
+   ✗ "Is it that the awkwardness is about the fact of skipping itself, or about what reason you would give, which one is it?" ✓ "Is the awkward part skipping itself, or what to say?"
+14. If you explicitly deferred a named second decision ("that's a separate story"), end the offer/close mirror with ONE quiet line handing the handle back, e.g. "Toss me the side-job question any time, separately." No button, no ceremony — just the line.`;
 
 const GATE_SECTION_KO = `
 
@@ -136,7 +161,7 @@ heavy = 업무 산출물, 외부 청중, 큰 이해관계, 되돌리기 어려�
 확신이 없으면 heavy로 분류하세요. 무거운 결정을 가볍게 다루는 해가 가벼운 결정에 의식을 치르는 해보다 큽니다.
 
 [첫 생각 — 첫 질문 전용]
-입력에 갈림이 보이면 (할까 말까, A냐 B냐) 첫 질문은 지금 기운 쪽과 그 이유를 한 호흡에 자연스럽게 초대하세요. 예: "지금 마음은 어느 쪽에 가 있어요? 왜 그런지 한 줄이면 돼요."
+입력에 갈림이 보이면 (할까 말까, A냐 B냐) 첫 질문은 지금 기운 쪽과 그 이유를 한 호흡에 자연스럽게 초대하세요. 예: "지금 마음은 어느 쪽에 가 있어요? 왜 그런지도 같이요."
 규칙: 기울기를 제안하지 마세요. 답을 미리 채워주지 마세요. 건너뛰어도 잃는 것이 없습니다. 기울기 질문은 최대 한 번입니다.
 갈림이 안 보이면 평소의 열린 질문을 하세요. 그때는 이유가 곧 첫 생각입니다.
 
@@ -153,7 +178,7 @@ heavy = a work deliverable, an external audience, high stakes, hard to reverse, 
 When unsure, classify heavy. Under-treating a heavy decision is worse than ceremony on a light one.
 
 [First thought — first question only]
-If the input shows a visible fork (should I or not, A vs B), let the FIRST question naturally invite the current lean plus the reason in one breath. e.g. "Which way is your heart leaning right now? One line on why is enough."
+If the input shows a visible fork (should I or not, A vs B), let the FIRST question naturally invite the current lean plus the reason in one breath. e.g. "Which way is your heart leaning right now? And the why, too."
 Rules: never suggest a lean. Never pre-fill an answer. Skipping loses nothing. The lean question is asked at most once.
 No visible fork: ask the usual open question. The reason IS the first thought then.
 
@@ -250,6 +275,51 @@ function asTrimmedString(v: unknown): string {
   return typeof v === 'string' ? v.trim() : '';
 }
 
+/**
+ * Copy-redundancy guard 1 (production capture): the mirror must not end with a
+ * question when a question beat follows — the headline would repeat it word for
+ * word. Drops the mirror's trailing question SENTENCE (the reflective statement
+ * part stays); a mirror that was nothing but the question drops to ''.
+ */
+export function stripTrailingQuestion(mirror: string): string {
+  const t = (mirror || '').trim();
+  if (!/[?？]$/.test(t)) return t;
+  const body = t.slice(0, -1);
+  const idx = Math.max(
+    body.lastIndexOf('.'),
+    body.lastIndexOf('!'),
+    body.lastIndexOf('?'),
+    body.lastIndexOf('？'),
+    body.lastIndexOf('…'),
+    body.lastIndexOf('\n'),
+  );
+  return idx >= 0 ? t.slice(0, idx + 1).trim() : '';
+}
+
+/**
+ * Copy-redundancy guard 2 (production capture): "한 줄이면 돼요" / "one line is
+ * enough" belongs to the input placeholder ONLY — a question carrying it makes
+ * the phrase appear twice on one screen. Drops the sentence fragment holding
+ * the phrase; if that would empty the question, drops just the phrase.
+ */
+const ONE_LINE_PHRASE = /한\s*줄이면\s*돼요|one\s+line\s+is\s+enough/i;
+export function stripOneLinePhrase(text: string): string {
+  const t = (text || '').trim();
+  if (!ONE_LINE_PHRASE.test(t)) return t;
+  const withoutSentence = t
+    .replace(/[^.!?？\n]*(?:한\s*줄이면\s*돼요|one\s+line\s+is\s+enough)[^.!?？\n]*[.!…]?/gi, ' ')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+  if (withoutSentence) return withoutSentence;
+  const bare = t
+    .replace(/(?:한\s*줄이면\s*돼요|one\s+line\s+is\s+enough)/gi, ' ')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+  // Orphaned punctuation is not a question — an emptied question stays empty
+  // (the action clamps then degrade it honestly).
+  return /[\p{L}\p{N}]/u.test(bare) ? bare : '';
+}
+
 export function clampLightDays(v: unknown): number | undefined {
   const n = typeof v === 'number' ? v : typeof v === 'string' ? Number(v) : NaN;
   if (!Number.isFinite(n)) return undefined;
@@ -270,6 +340,26 @@ function coerceOffer(v: unknown): LightOffer | undefined {
     days = clampLightDays(o.days);
     if (days === undefined) when = 'tomorrow_morning'; // in_days without a usable number → default check time
   }
+  // Check-time sanity nudges (production captures: a weekend claim checked
+  // tomorrow morning — BEFORE the weekend; a tomorrow-EVENING claim checked
+  // tomorrow MORNING — before the event). These are cheap KEYWORD HEURISTICS,
+  // not semantics: the prompt's rule 11 ("first morning after the event") owns
+  // the real logic; the guards only remove the impossible-to-answer cases.
+  if (when === 'tomorrow_morning' && /주말|이번\s*주|다음\s*주|weekend/i.test(sentence)) {
+    // Weekend/this-week/next-week timeframe → Sunday. (다음 주 is
+    // under-corrected — Sunday is still earlier than next week's end — but
+    // strictly later than tomorrow.)
+    when = 'this_weekend';
+    days = undefined;
+  }
+  if (
+    when === 'tomorrow_morning'
+    && /내일.{0,20}(저녁|밤|회식)|(저녁|밤|회식).{0,20}내일|tomorrow.{0,24}(evening|night|dinner)/i.test(sentence)
+  ) {
+    // Tomorrow-evening event → the morning AFTER (in 2 days).
+    when = 'in_days';
+    days = 2;
+  }
   // The permission ask must FLOW — a bracketed 「quote」 would re-introduce the
   // contractual reading the ask exists to avoid, so brackets are stripped
   // structurally (the prompt also forbids them; prompt rules alone don't
@@ -284,8 +374,11 @@ export function coerceLightGate(raw: unknown): LightGateResult {
   if (!raw || typeof raw !== 'object') return { need: 'heavy' };
   const r = raw as Record<string, unknown>;
   if (r.need !== 'light') return { need: 'heavy' };
-  const mirror = asTrimmedString(r.mirror);
-  const question = asTrimmedString(r.question);
+  const question = stripOneLinePhrase(asTrimmedString(r.question));
+  // A question follows → the mirror may not end on one (redundancy guard 1).
+  const mirror = question
+    ? stripTrailingQuestion(asTrimmedString(r.mirror))
+    : asTrimmedString(r.mirror);
   // 'light' without both beats cannot be rendered — fall through to heavy
   // (when unsure → heavy) instead of fabricating the missing beat.
   if (!mirror || !question) return { need: 'heavy' };
@@ -301,8 +394,8 @@ export function coerceLightGate(raw: unknown): LightGateResult {
  */
 export function coerceLightTurn(raw: unknown, questionsAsked: number): LightTurn {
   const r = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
-  const mirror = asTrimmedString(r.mirror);
-  const question = asTrimmedString(r.question);
+  const rawMirror = asTrimmedString(r.mirror);
+  const question = stripOneLinePhrase(asTrimmedString(r.question));
   const offer = coerceOffer(r.offer);
   const esc = r.escalate && typeof r.escalate === 'object'
     ? asTrimmedString((r.escalate as Record<string, unknown>).bigger_question)
@@ -324,6 +417,13 @@ export function coerceLightTurn(raw: unknown, questionsAsked: number): LightTurn
   // Honest gaps: a claimed beat without its payload degrades, never fabricates.
   if (action === 'offer' && !offer) action = escalate ? 'escalate' : 'close';
   if (action === 'escalate' && !escalate) action = offer ? 'offer' : 'close';
+
+  // Redundancy guard 1: when a question beat follows (the next question or the
+  // permission ask), the mirror may not end on a question the headline would
+  // then repeat.
+  const mirror = action === 'ask' || action === 'offer'
+    ? stripTrailingQuestion(rawMirror)
+    : rawMirror;
 
   return {
     mirror,
@@ -366,9 +466,17 @@ export async function runLightGate(
       },
     );
     return coerceLightGate(raw);
-  } catch {
+  } catch (err) {
     // Fail open to the heavy flow — it owns error surfacing (quota, network, …)
-    // and "when unsure → heavy" is the light gate's own rule.
+    // and "when unsure → heavy" is the light gate's own rule. Quota fallthrough
+    // is COUNTED (not changed): quota-limited users silently miss the light
+    // path, and that rate must be visible. Duck-typed (never instanceof — the
+    // llm module is mocked in tests) against LLMError's category/message.
+    const category = (err as { category?: string } | null)?.category;
+    const message = err instanceof Error ? err.message : '';
+    if (category === 'rate_limit' || (category === 'auth' && message.startsWith('LOGIN_REQUIRED'))) {
+      try { track('light_gate_quota_fallback'); } catch { /* telemetry never blocks the fallback */ }
+    }
     return { need: 'heavy' };
   }
 }

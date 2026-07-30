@@ -16,14 +16,20 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 vi.mock('@/lib/llm', () => ({
   callLLMJson: vi.fn(),
 }));
+vi.mock('@/lib/analytics', () => ({
+  track: vi.fn(),
+}));
 
 import { callLLMJson } from '@/lib/llm';
+import { track } from '@/lib/analytics';
 import {
   runLightGate,
   runLightNext,
   coerceLightGate,
   coerceLightTurn,
   clampLightDays,
+  stripTrailingQuestion,
+  stripOneLinePhrase,
   lightCheckBy,
   lightWhenLabel,
   buildLightSealContract,
@@ -35,10 +41,12 @@ import {
 import { contractPhase, contractStatus } from '@/lib/decision-contract';
 
 const mockJson = vi.mocked(callLLMJson);
+const mockTrack = vi.mocked(track);
 const DAY = 86_400_000;
 
 beforeEach(() => {
   mockJson.mockReset();
+  mockTrack.mockReset();
 });
 
 describe('runLightGate — routing', () => {
@@ -77,6 +85,26 @@ describe('runLightGate — routing', () => {
     expect(await runLightGate('오늘 뭐 먹지', 'ko')).toEqual({ need: 'heavy' });
   });
 
+  it('a QUOTA failure still falls to heavy but is COUNTED (light_gate_quota_fallback)', async () => {
+    mockJson.mockRejectedValueOnce(Object.assign(new Error('요청 한도에 도달했습니다.'), { category: 'rate_limit' }));
+    expect(await runLightGate('오늘 뭐 먹지', 'ko')).toEqual({ need: 'heavy' });
+    expect(mockTrack).toHaveBeenCalledWith('light_gate_quota_fallback');
+  });
+
+  it('anonymous quota exhaustion (LOGIN_REQUIRED) is counted the same way', async () => {
+    mockJson.mockRejectedValueOnce(Object.assign(new Error('LOGIN_REQUIRED:무료 체험을 모두 사용했습니다.'), { category: 'auth' }));
+    expect(await runLightGate('오늘 뭐 먹지', 'ko')).toEqual({ need: 'heavy' });
+    expect(mockTrack).toHaveBeenCalledWith('light_gate_quota_fallback');
+  });
+
+  it('a non-quota failure (network / non-quota auth) is NOT counted as quota fallthrough', async () => {
+    mockJson.mockRejectedValueOnce(Object.assign(new Error('네트워크 연결에 실패했습니다.'), { category: 'network' }));
+    expect(await runLightGate('오늘 뭐 먹지', 'ko')).toEqual({ need: 'heavy' });
+    mockJson.mockRejectedValueOnce(Object.assign(new Error('인증에 실패했습니다.'), { category: 'auth' }));
+    expect(await runLightGate('오늘 뭐 먹지', 'ko')).toEqual({ need: 'heavy' });
+    expect(mockTrack).not.toHaveBeenCalledWith('light_gate_quota_fallback');
+  });
+
   it('the kill switch exists and is a boolean', () => {
     expect(typeof LIGHT_PATH_ENABLED).toBe('boolean');
   });
@@ -91,6 +119,75 @@ describe('coerceLightGate — defensive parsing', () => {
 
   it('heavy drops any stray mirror/question', () => {
     expect(coerceLightGate({ need: 'heavy', mirror: 'x', question: 'y' })).toEqual({ need: 'heavy' });
+  });
+});
+
+describe('copy-redundancy guards (production capture)', () => {
+  it('stripTrailingQuestion drops the mirror\'s trailing question sentence, keeps the statement', () => {
+    expect(stripTrailingQuestion('집에 가야 하나 싶으신 거네요. 지금 마음은 어느 쪽으로 좀 더 가 있어요?'))
+      .toBe('집에 가야 하나 싶으신 거네요.');
+    expect(stripTrailingQuestion('아쉬움이 남으시는 거네요! 어느 쪽이 커요?')).toBe('아쉬움이 남으시는 거네요!');
+    // only the LAST sentence is dropped — a mid-mirror question is the prompt's job
+    expect(stripTrailingQuestion('앞 질문 있고요? 뒤 질문도 있어요?')).toBe('앞 질문 있고요?');
+  });
+
+  it('a mirror that was ONLY a question drops to empty', () => {
+    expect(stripTrailingQuestion('지금 마음은 어느 쪽이에요?')).toBe('');
+  });
+
+  it('a statement mirror passes through untouched', () => {
+    expect(stripTrailingQuestion('내일 피곤만 아니면 되는 거네요.')).toBe('내일 피곤만 아니면 되는 거네요.');
+    expect(stripTrailingQuestion('')).toBe('');
+  });
+
+  it('the gate strips a question-ended mirror so the headline never repeats it', () => {
+    const gate = coerceLightGate({
+      need: 'light',
+      mirror: '더 있고 싶으신 거네요. 지금 마음은 어느 쪽으로 좀 더 가 있어요?',
+      question: '지금 마음은 어느 쪽으로 좀 더 가 있어요?',
+    });
+    expect(gate.mirror).toBe('더 있고 싶으신 거네요.');
+    expect(gate.question).toBe('지금 마음은 어느 쪽으로 좀 더 가 있어요?');
+  });
+
+  it('a gate mirror that was ONLY the duplicated question falls to heavy (nothing left to mirror)', () => {
+    expect(coerceLightGate({ need: 'light', mirror: '어느 쪽이에요?', question: '어느 쪽이에요?' }))
+      .toEqual({ need: 'heavy' });
+  });
+
+  it('turn coercion strips the trailing mirror question before ask and offer beats', () => {
+    const ask = coerceLightTurn(
+      { mirror: '피곤이 관건이네요. 내일 몇 시에 일어나요?', action: 'ask', question: '내일 몇 시에 일어나요?' },
+      0,
+    );
+    expect(ask.mirror).toBe('피곤이 관건이네요.');
+    const offer = coerceLightTurn(
+      { mirror: '되는 거네요. 물어볼까요?', action: 'offer', offer: { sentence: 's', when: 'tonight', ask: '제가 물어볼까요?' } },
+      1,
+    );
+    expect(offer.mirror).toBe('되는 거네요.');
+    // escalate/close mirrors are left alone — nothing follows that would repeat them
+    const close = coerceLightTurn({ mirror: '그런 상황이네요?', action: 'close' }, 1);
+    expect(close.mirror).toBe('그런 상황이네요?');
+  });
+
+  it('stripOneLinePhrase removes the placeholder\'s line from a question', () => {
+    expect(stripOneLinePhrase('지금 마음은 어느 쪽에 가 있어요? 왜 그런지 한 줄이면 돼요.'))
+      .toBe('지금 마음은 어느 쪽에 가 있어요?');
+    expect(stripOneLinePhrase('Which way are you leaning? One line is enough.'))
+      .toBe('Which way are you leaning?');
+    expect(stripOneLinePhrase('한 줄이면 돼요.')).toBe('');
+    expect(stripOneLinePhrase('어느 쪽이 커요?')).toBe('어느 쪽이 커요?');
+  });
+
+  it('the question field is cleaned through both gate and turn coercion', () => {
+    const gate = coerceLightGate({ need: 'light', mirror: '고민이시네요.', question: '어느 쪽이에요? 한 줄이면 돼요.' });
+    expect(gate.question).toBe('어느 쪽이에요?');
+    const turn = coerceLightTurn(
+      { mirror: 'm.', action: 'ask', question: '내일 몇 시에 일어나요? 한 줄이면 돼요.' },
+      0,
+    );
+    expect(turn.question).toBe('내일 몇 시에 일어나요?');
   });
 });
 
@@ -194,6 +291,43 @@ describe('days clamp (1–14)', () => {
       1,
     );
     expect(turn.offer).toEqual({ sentence: 's', when: 'in_days', days: 14 });
+  });
+});
+
+describe('check-time sanity (production capture: a weekend claim checked BEFORE the weekend)', () => {
+  const offerWith = (sentence: string, when: string) =>
+    coerceLightTurn({ mirror: 'm.', action: 'offer', offer: { sentence, when } }, 1).offer!;
+
+  it('a weekend claim pulled to tomorrow_morning is bumped to this_weekend', () => {
+    expect(offerWith('주말에 부모님 댁에 다녀왔다', 'tomorrow_morning').when).toBe('this_weekend');
+    expect(offerWith('이번 주 안에 답장을 보냈다', 'tomorrow_morning').when).toBe('this_weekend');
+    expect(offerWith('다음 주까지는 결정을 내렸다', 'tomorrow_morning').when).toBe('this_weekend');
+    expect(offerWith('I visited my parents this weekend', 'tomorrow_morning').when).toBe('this_weekend');
+  });
+
+  it('a claim without a later timeframe keeps tomorrow_morning', () => {
+    expect(offerWith('케이크 자르고 나오면 내일 안 피곤하다', 'tomorrow_morning').when).toBe('tomorrow_morning');
+  });
+
+  it('a tomorrow-EVENING claim pulled to tomorrow morning is bumped past the event (R3 capture)', () => {
+    const r3 = offerWith('내일 회식 빠지고 컨디션 챙기기로 했다', 'tomorrow_morning');
+    expect(r3.when).toBe('in_days');
+    expect(r3.days).toBe(2);
+    expect(offerWith('내일 저녁 약속을 지켰다', 'tomorrow_morning').when).toBe('in_days');
+    expect(offerWith('I kept tomorrow night free', 'tomorrow_morning').when).toBe('in_days');
+    // 내일 without an evening marker is answerable tomorrow morning — untouched
+    expect(offerWith('내일 일찍 일어났다', 'tomorrow_morning').when).toBe('tomorrow_morning');
+  });
+
+  it('an explicit non-tomorrow slot is never touched (the nudge only fixes the impossible case)', () => {
+    expect(offerWith('주말에 부모님 댁에 다녀왔다', 'this_weekend').when).toBe('this_weekend');
+    expect(offerWith('주말에 부모님 댁에 다녀왔다', 'tonight').when).toBe('tonight');
+    const inDays = coerceLightTurn(
+      { mirror: 'm.', action: 'offer', offer: { sentence: '주말에 다녀왔다', when: 'in_days', days: 5 } },
+      1,
+    ).offer!;
+    expect(inDays.when).toBe('in_days');
+    expect(inDays.days).toBe(5);
   });
 });
 

@@ -1269,7 +1269,7 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem, fr
                 <button
                   type="button"
                   onClick={() => { analyzeAbortRef.current?.abort(); setPhase('idle'); }}
-                  className="mt-3 text-[12.5px] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] underline underline-offset-2 cursor-pointer transition-colors"
+                  className="mt-1.5 inline-flex min-h-11 items-center px-3 text-[12.5px] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] underline underline-offset-2 cursor-pointer transition-colors"
                 >
                   {L('취소', 'Cancel')}
                 </button>

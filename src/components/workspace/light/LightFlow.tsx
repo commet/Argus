@@ -294,11 +294,13 @@ export function LightFlow({
       </motion.p>
     ) : null;
 
+  // Quiet links keep their visual size but carry a ≥44px hit area (mobile tap
+  // audit: they measured 20–33px).
   const deepenLink = (
     <button
       type="button"
       onClick={() => { track('light_deepen_clicked'); deepen('deepen_link'); }}
-      className="text-[12px] text-[var(--text-tertiary)] underline underline-offset-2 hover:text-[var(--text-secondary)] transition-colors cursor-pointer"
+      className="inline-flex min-h-11 items-center px-2 -mx-2 text-[12px] text-[var(--text-tertiary)] underline underline-offset-2 hover:text-[var(--text-secondary)] transition-colors cursor-pointer"
     >
       {L('더 깊이 보기', 'Look deeper')}
     </button>
@@ -338,7 +340,7 @@ export function LightFlow({
             {/* THE question — this screen's one serif headline. */}
             <motion.h2
               {...fadeUp(0.08)}
-              className="text-[18px] md:text-[21px] font-bold text-[var(--text-primary)] leading-[1.4] tracking-tight whitespace-pre-wrap break-words"
+              className="text-[18px] md:text-[21px] font-bold text-[var(--text-primary)] leading-[1.4] tracking-tight whitespace-pre-wrap break-keep break-words"
               style={{ fontFamily: 'var(--font-display)' }}
             >
               {screen.question}
@@ -399,7 +401,7 @@ export function LightFlow({
                   invented content). */}
               <motion.h2
                 {...fadeUp(0.08)}
-                className="text-[17px] md:text-[19px] font-bold text-[var(--text-primary)] leading-[1.5] tracking-tight whitespace-pre-wrap break-words"
+                className="text-[17px] md:text-[19px] font-bold text-[var(--text-primary)] leading-[1.5] tracking-tight whitespace-pre-wrap break-keep break-words"
                 style={{ fontFamily: 'var(--font-display)' }}
               >
                 {screen.offer.ask || L(
@@ -435,7 +437,7 @@ export function LightFlow({
             {/* This screen's serif headline is the recognition itself. */}
             <motion.h2
               {...fadeUp(0.08)}
-              className="text-[17px] md:text-[19px] font-bold text-[var(--text-primary)] leading-[1.45] tracking-tight"
+              className="text-[17px] md:text-[19px] font-bold text-[var(--text-primary)] leading-[1.45] tracking-tight break-keep break-words"
               style={{ fontFamily: 'var(--font-display)' }}
             >
               {L('오늘 것 하나가 아니라, 더 큰 얘기네요.', "This isn't just today's call. It's a bigger story.")}
@@ -476,7 +478,7 @@ export function LightFlow({
                 {/* The close line — this screen's serif headline. */}
                 <motion.h2
                   {...fadeUp(0)}
-                  className="text-[16px] md:text-[18px] font-bold text-[var(--text-primary)] leading-[1.5] tracking-tight"
+                  className="text-[16px] md:text-[18px] font-bold text-[var(--text-primary)] leading-[1.5] tracking-tight break-keep break-words"
                   style={{ fontFamily: 'var(--font-display)' }}
                 >
                   {ko
@@ -534,11 +536,11 @@ export function LightFlow({
                         </div>
                       ) : (
                         <motion.div {...fadeUp(0.32)} className="mt-3">
-                          <p className="text-[12.5px] text-[var(--text-tertiary)]">
+                          <p className="text-[12.5px] text-[var(--text-tertiary)] break-keep">
                             {L('이렇게 기억해 둘게요 —', "Here's how I'll remember it —")}
                           </p>
                           <p
-                            className="mt-2 text-[17px] md:text-[19px] leading-[1.6] text-[var(--text-primary)] break-words"
+                            className="mt-2 text-[17px] md:text-[19px] leading-[1.6] text-[var(--text-primary)] break-keep break-words"
                             style={{ fontFamily: 'var(--font-voice, serif)' }}
                           >
                             {screen.sentence}
@@ -556,7 +558,7 @@ export function LightFlow({
                           <button
                             type="button"
                             onClick={() => { setReceiptEdit(screen.sentence || ''); setEditingReceipt(true); }}
-                            className="mt-2.5 text-[12px] text-[var(--text-tertiary)] underline underline-offset-2 hover:text-[var(--text-secondary)] transition-colors cursor-pointer"
+                            className="mt-1 inline-flex min-h-11 items-center px-3 -mb-2 text-[12px] text-[var(--text-tertiary)] underline underline-offset-2 hover:text-[var(--text-secondary)] transition-colors cursor-pointer"
                           >
                             {L('고쳐도 돼요', 'You can fix it')}
                           </button>
@@ -568,7 +570,7 @@ export function LightFlow({
               </>
             ) : (
               <p
-                className="text-[15px] md:text-[16px] leading-[1.65] text-[var(--text-primary)]"
+                className="text-[15px] md:text-[16px] leading-[1.65] text-[var(--text-primary)] break-keep break-words"
                 style={{ fontFamily: 'var(--font-display)' }}
               >
                 {L('네, 여기까지도 충분해요. 필요하면 언제든요.', "That's plenty for today. I'm here whenever you need.")}
@@ -591,7 +593,7 @@ export function LightFlow({
             type="button"
             onClick={() => setRecordOpen((o) => !o)}
             aria-expanded={recordOpen}
-            className="flex items-center gap-1.5 px-1 py-1.5 text-[12.5px] font-medium text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors cursor-pointer"
+            className="flex min-h-11 items-center gap-1.5 px-1 text-[12.5px] font-medium text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors cursor-pointer"
           >
             <ChevronDown size={13} className={`transition-transform ${recordOpen ? '' : '-rotate-90'}`} />
             {L(`지금까지 나눈 이야기 ${qas.length}개`, `${qas.length} exchange${qas.length === 1 ? '' : 's'} so far`)}

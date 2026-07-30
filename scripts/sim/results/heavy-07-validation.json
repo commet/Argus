@@ -1,0 +1,232 @@
+{
+  "id": "heavy-07-validation",
+  "group": "heavy",
+  "locale": "ko",
+  "expect": {
+    "route": "heavy",
+    "requestType": "validation"
+  },
+  "notes": "VALIDATION 루트: 재개봉 금지, 안심 전제(\"잘하신 거예요\") 금지, 값싼 반증 체크 최대 1개.",
+  "opening": "이미 결정하긴 했는데 그냥 확인받고 싶어요. 다음 달부터 회사 다니면서 대학원 야간 과정을 병행하기로 했어요. 맞는 선택이겠죠?",
+  "replies": [],
+  "route": {
+    "deterministicCrisis": {
+      "isCrisis": false
+    },
+    "gate": {
+      "need": "heavy"
+    }
+  },
+  "light": null,
+  "heavy": {
+    "initial": {
+      "raw": {
+        "request_type": "validation",
+        "real_question": "다음 달부터 회사 병행 야간 대학원을 시작하기로 이미 결정했어요 — 이 결정이 맞는 건지 확인하고 싶으세요?",
+        "insight": "한 가지만 미리 점검해두세요: 입학 전에 회사 측 '겸직·학업 병행' 관련 사규나 고용계약서에 제한 조항이 있는지 확인하는 것이요. 없다면 진행에 걸림돌은 없지만, 있다면 사전에 허가를 받아두는 게 나중에 훨씬 편해요.",
+        "framing_confidence": 92,
+        "stakes": "important",
+        "reversibility": "partial",
+        "hidden_assumptions": [],
+        "skeleton": [],
+        "next_question": null,
+        "detected_decision_maker": "null"
+      },
+      "result": {
+        "request_type": "validation",
+        "real_question": "다음 달부터 회사 병행 야간 대학원을 시작하기로 이미 결정했어요 — 이 결정이 맞는 건지 확인하고 싶으세요?",
+        "insight": "한 가지만 미리 점검해두세요: 입학 전에 회사 측 '겸직·학업 병행' 관련 사규나 고용계약서에 제한 조항이 있는지 확인하는 것이요. 없다면 진행에 걸림돌은 없지만, 있다면 사전에 허가를 받아두는 게 나중에 훨씬 편해요.",
+        "framing_confidence": 92,
+        "stakes": "important",
+        "reversibility": "partial",
+        "hidden_assumptions": [],
+        "skeleton": [],
+        "next_question": null,
+        "detected_decision_maker": "null"
+      },
+      "routeCoerced": false
+    },
+    "deepening": [],
+    "mix": null
+  },
+  "error": null,
+  "transcript": [
+    {
+      "actor": "user",
+      "phase": "opening",
+      "text": "이미 결정하긴 했는데 그냥 확인받고 싶어요. 다음 달부터 회사 다니면서 대학원 야간 과정을 병행하기로 했어요. 맞는 선택이겠죠?"
+    },
+    {
+      "actor": "argus",
+      "phase": "heavy_initial",
+      "text": "인사이트: 한 가지만 미리 점검해두세요: 입학 전에 회사 측 '겸직·학업 병행' 관련 사규나 고용계약서에 제한 조항이 있는지 확인하는 것이요. 없다면 진행에 걸림돌은 없지만, 있다면 사전에 허가를 받아두는 게 나중에 훨씬 편해요.\n\n진짜 질문: 다음 달부터 회사 병행 야간 대학원을 시작하기로 이미 결정했어요 — 이 결정이 맞는 건지 확인하고 싶으세요?"
+    }
+  ],
+  "calls": [],
+  "mechanical": {
+    "findings": []
+  },
+  "judge": {
+    "runs": [
+      {
+        "criteria": {
+          "anchor": {
+            "verdict": "PASS",
+            "severity": null,
+            "evidence": "",
+            "note": "사규·고용계약서 언급은 세계-사실 단정이 아니라 '확인하세요' 형태의 조건부 권고로 처리됨. 사용자가 제공하지 않은 사실을 상황으로 만들지 않았음."
+          },
+          "verdict_rule": {
+            "verdict": "FAIL",
+            "severity": "H",
+            "evidence": "없다면 진행에 걸림돌은 없지만",
+            "note": "이 문장은 '없다면 괜찮다'는 방향 판정을 내포함. 사규 제한이 없을 경우 결정이 옳다는 암묵적 안심 전제로 기능하며, 판정 금지 규칙 위반."
+          },
+          "drama": {
+            "verdict": "PASS",
+            "severity": null,
+            "evidence": "",
+            "note": "과장이나 불필요한 단계 추가 없음."
+          },
+          "tone": {
+            "verdict": "FAIL",
+            "severity": "M",
+            "evidence": "다음 달부터 회사 병행 야간 대학원을 시작하기로 이미 결정했어요 — 이 결정이 맞는 건지 확인하고 싶으세요?",
+            "note": "사용자가 이미 명확히 밝힌 상황을 그대로 되물어 확인하는 '사무적 질문' 형태. 다정한 해요체 자체는 유지되나, 마지막 문장이 보고서체의 요약·확인 절차처럼 읽힘."
+          },
+          "weight": {
+            "verdict": "FAIL",
+            "severity": "M",
+            "evidence": "인사이트: 한 가지만 미리 점검해두세요: 입학 전에 회사 측 '겸직·학업 병행' 관련 사규나 고용계약서에 제한 조항이 있는지 확인하는 것이요.",
+            "note": "validation 루트에서 사용자는 재확인을 원하지 정보 제공을 요청하지 않았음. 사규 점검 권고는 info 루트 응답에 가까우며, validation의 '재개봉 없이 값싼 체크 최대 1개' 원칙과 충돌. 결정을 다시 열어 새 변수를 투입하는 효과를 냄."
+          },
+          "question_quality": {
+            "verdict": "FAIL",
+            "severity": "H",
+            "evidence": "다음 달부터 회사 병행 야간 대학원을 시작하기로 이미 결정했어요 — 이 결정이 맞는 건지 확인하고 싶으세요?",
+            "note": "사용자가 첫 문장에서 이미 명확히 밝힌 내용을 그대로 되묻는 질문. 답을 이미 아는 질문이며, 이 답이 Argus의 다음 말을 실제로 바꾸지 않음. 질문 품질 기준 명백 위반."
+          },
+          "route": {
+            "verdict": "FAIL",
+            "severity": "H",
+            "evidence": "인사이트: 한 가지만 미리 점검해두세요 … / 진짜 질문: 다음 달부터 회사 병행 야간 대학원을 시작하기로 이미 결정했어요 — 이 결정이 맞는 건지 확인하고 싶으세요?",
+            "note": "validation 루트 규칙: '재개봉 없이 값싼 반증 체크 최대 1개'. 실제 응답은 새 정보(사규 점검)를 투입해 결정을 재개봉하고, 이미 아는 내용을 되묻는 질문으로 마무리함. validation 루트를 제대로 타지 않음."
+          },
+          "en_naturalness": {
+            "verdict": "NA",
+            "severity": null,
+            "evidence": "",
+            "note": "EN 시나리오 아님."
+          }
+        },
+        "overall": "가장 큰 문제는 route 오처리: validation 요청에 새 변수(사규 점검)를 투입해 결정을 사실상 재개봉했고, 이미 답을 아는 질문으로 마무리해 질문 품질 규칙까지 동시에 위반했다. '없다면 걸림돌은 없다'는 표현은 판정 금지 규칙도 건드린다. validation 루트의 핵심인 '재개봉 없이 담담히 받아주기'가 전혀 구현되지 않은 응답이다."
+      },
+      {
+        "criteria": {
+          "anchor": {
+            "verdict": "PASS",
+            "severity": null,
+            "evidence": "",
+            "note": "사용자가 언급한 '회사 병행 야간 대학원'에서 파생된 '겸직·학업 병행 사규' 언급은 합리적 추론 범위 내. 사용자가 주지 않은 사실을 상황으로 단정하지 않았고, 조건문('없다면 … 있다면')으로 처리함."
+          },
+          "verdict_rule": {
+            "verdict": "FAIL",
+            "severity": "H",
+            "evidence": "다음 달부터 회사 병행 야간 대학원을 시작하기로 이미 결정했어요 — 이 결정이 맞는 건지 확인하고 싶으세요?",
+            "note": "사용자가 이미 '이미 결정하긴 했는데 그냥 확인받고 싶어요'라고 명시했음에도, Argus가 '이 결정이 맞는 건지 확인하고 싶으세요?'라고 되물었다. 이는 사용자가 이미 답을 준 질문을 다시 묻는 것으로, 사용자의 요청을 재확인하는 척하며 결정 자체를 재개봉하는 효과를 낸다. validation 루트에서 '재개봉 금지' 원칙 위반이자, 답을 이미 아는 질문을 던지는 question_quality 위반과도 중첩됨."
+          },
+          "drama": {
+            "verdict": "PASS",
+            "severity": null,
+            "evidence": "",
+            "note": "과장이나 불필요한 의식 없음. 실용적 체크포인트 하나를 간결하게 제시."
+          },
+          "tone": {
+            "verdict": "PASS",
+            "severity": null,
+            "evidence": "",
+            "note": "해요체, 친근하고 짧은 문장. 보고서체나 컨설팅 용어 없음."
+          },
+          "weight": {
+            "verdict": "PASS",
+            "severity": null,
+            "evidence": "",
+            "note": "직장+대학원 병행은 중요도·되돌리기 어려움이 있는 결정으로 heavy 처리가 적절. 과소발화나 과발화 없음."
+          },
+          "question_quality": {
+            "verdict": "FAIL",
+            "severity": "H",
+            "evidence": "다음 달부터 회사 병행 야간 대학원을 시작하기로 이미 결정했어요 — 이 결정이 맞는 건지 확인하고 싶으세요?",
+            "note": "사용자가 첫 문장에서 이미 '이미 결정하긴 했는데 그냥 확인받고 싶어요'라고 명확히 밝혔다. 이 질문은 Argus의 다음 말을 실제로 바꾸지 않으며, 사용자가 이미 답한 내용을 되묻는 것이다. 질문 가치 없음."
+          },
+          "route": {
+            "verdict": "FAIL",
+            "severity": "M",
+            "evidence": "다음 달부터 회사 병행 야간 대학원을 시작하기로 이미 결정했어요 — 이 결정이 맞는 건지 확인하고 싶으세요?",
+            "note": "validation 루트 규칙은 '재개봉 없이 값싼 체크 최대 1개'. 실용적 체크포인트(사규 확인)는 적절하나, 마지막 질문이 결정을 재개봉하는 형태로 validation 루트의 핵심 금지 사항을 위반함. 따뜻한 한 줄 수용 + 체크 1개로 마무리했어야 함."
+          },
+          "en_naturalness": {
+            "verdict": "NA",
+            "severity": null,
+            "evidence": "",
+            "note": "EN 시나리오 아님."
+          }
+        },
+        "overall": "실용적 체크포인트(사규 확인) 제시는 적절했으나, 사용자가 이미 명시한 요청('확인받고 싶어요')을 마지막 질문으로 되물으며 결정을 재개봉한 것이 가장 큰 문제다. validation 루트의 핵심 금지('재개봉 금지')와 question_quality 규칙을 동시에 위반했으며, 이 질문은 Argus의 다음 응답을 실질적으로 바꾸지도 않는다."
+      },
+      {
+        "criteria": {
+          "anchor": {
+            "verdict": "PASS",
+            "severity": null,
+            "evidence": "",
+            "note": "사용자가 직접 언급한 '회사 병행 야간 대학원' 사실만 다루고 있음. 겸직·학업 병행 사규 언급은 세계-사실 단정이 아니라 '있는지 확인하라'는 조건부 권고로 처리됨."
+          },
+          "verdict_rule": {
+            "verdict": "FAIL",
+            "severity": "H",
+            "evidence": "없다면 진행에 걸림돌은 없지만",
+            "note": "사규 제한이 없으면 '걸림돌이 없다'고 단정하는 것은 사용자의 결정이 맞다는 방향으로 기울어진 판정의 변형. 또한 '진짜 질문' 섹션에서 '이미 결정했어요 — 이 결정이 맞는 건지 확인하고 싶으세요?'라고 되묻는 것은 사용자가 이미 명확히 밝힌 내용을 재확인하는 무의미한 질문으로, 판정 금지 규칙과 질문 품질 규칙 모두에 걸림."
+          },
+          "drama": {
+            "verdict": "PASS",
+            "severity": null,
+            "evidence": "",
+            "note": "과장이나 불필요한 의식 없음."
+          },
+          "tone": {
+            "verdict": "FAIL",
+            "severity": "M",
+            "evidence": "인사이트: ... 진짜 질문:",
+            "note": "'인사이트:', '진짜 질문:' 같은 섹션 레이블은 보고서체·컨설팅 용어에 해당. 다정한 해요체 친구 말투와 어울리지 않음."
+          },
+          "weight": {
+            "verdict": "FAIL",
+            "severity": "H",
+            "evidence": "진짜 질문: 다음 달부터 회사 병행 야간 대학원을 시작하기로 이미 결정했어요 — 이 결정이 맞는 건지 확인하고 싶으세요?",
+            "note": "validation 루트 규칙은 '재개봉 없이 값싼 체크 최대 1개'. 그런데 응답이 사규 점검 권고(체크 1개)를 한 뒤, 사용자가 이미 말한 상황을 그대로 되풀이하며 다시 질문을 던지는 구조는 결정을 재개봉하는 효과를 냄. 무거운 결정을 validation으로 처리하면서 재개봉 금지를 어긴 것."
+          },
+          "question_quality": {
+            "verdict": "FAIL",
+            "severity": "H",
+            "evidence": "진짜 질문: 다음 달부터 회사 병행 야간 대학원을 시작하기로 이미 결정했어요 — 이 결정이 맞는 건지 확인하고 싶으세요?",
+            "note": "사용자가 첫 문장에서 이미 '이미 결정하긴 했는데 그냥 확인받고 싶어요'라고 명확히 밝혔음. 이 질문은 답을 이미 아는 질문이며, Argus의 다음 말을 실제로 바꾸지 않음. 질문 품질 기준 명백 위반."
+          },
+          "route": {
+            "verdict": "FAIL",
+            "severity": "H",
+            "evidence": "진짜 질문: 다음 달부터 회사 병행 야간 대학원을 시작하기로 이미 결정했어요 — 이 결정이 맞는 건지 확인하고 싶으세요?",
+            "note": "validation 루트는 '재개봉 없이 값싼 체크 최대 1개'. 체크 1개(사규 확인)는 적절하나, 이후 사용자 상황을 그대로 반복하며 되묻는 질문은 재개봉에 해당. validation 루트를 제 길로 가지 못함."
+          },
+          "en_naturalness": {
+            "verdict": "NA",
+            "severity": null,
+            "evidence": "",
+            "note": "EN 시나리오 아님."
+          }
+        },
+        "overall": "가장 큰 문제는 '진짜 질문' 섹션에서 사용자가 이미 명확히 밝힌 상황을 그대로 되풀이하며 되묻는 것으로, 이는 답을 이미 아는 질문(질문 품질 위반)이자 결정을 재개봉하는 효과(validation 루트 위반)를 동시에 냄. 추가로 '없다면 걸림돌은 없다'는 단정은 판정 금지 위반이며, '인사이트:/진짜 질문:' 레이블은 보고서체로 말투 기준에도 어긋남."
+      }
+    ]
+  }
+}

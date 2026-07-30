@@ -1,0 +1,208 @@
+{
+  "id": "heavy-08-info",
+  "group": "heavy",
+  "locale": "ko",
+  "expect": {
+    "route": "heavy",
+    "requestType": "info"
+  },
+  "notes": "INFO 루트: 그냥 답. 결정 기계를 돌리면 route 위반. 법률 용어 설명의 세계-사실 정직성도 관찰.",
+  "opening": "전세권 설정이 뭐예요? 등기부등본 보다가 나왔는데.",
+  "replies": [],
+  "route": {
+    "deterministicCrisis": {
+      "isCrisis": false
+    },
+    "gate": {
+      "need": "light",
+      "mirror": "등기부등본을 보다가 '전세권 설정'이라는 항목이 눈에 띄었는데, 그게 정확히 뭔지 모르시는 거네요.",
+      "question": "지금 그 등기부등본이 본인 집 것이에요, 아니면 세를 주거나 받으려고 확인 중이에요?"
+    }
+  },
+  "light": {
+    "qas": [],
+    "turns": [],
+    "outcome": "exhausted_replies"
+  },
+  "heavy": null,
+  "error": null,
+  "transcript": [
+    {
+      "actor": "user",
+      "phase": "opening",
+      "text": "전세권 설정이 뭐예요? 등기부등본 보다가 나왔는데."
+    },
+    {
+      "actor": "argus",
+      "phase": "light_gate",
+      "text": "등기부등본을 보다가 '전세권 설정'이라는 항목이 눈에 띄었는데, 그게 정확히 뭔지 모르시는 거네요.\n지금 그 등기부등본이 본인 집 것이에요, 아니면 세를 주거나 받으려고 확인 중이에요?"
+    }
+  ],
+  "calls": [],
+  "mechanical": {
+    "findings": []
+  },
+  "judge": {
+    "runs": [
+      {
+        "criteria": {
+          "anchor": {
+            "verdict": "PASS",
+            "severity": null,
+            "evidence": "",
+            "note": "사용자가 '등기부등본 보다가 나왔다'고 했고, Argus도 그 사실만 반영했다. 추가 발명 없음."
+          },
+          "verdict_rule": {
+            "verdict": "PASS",
+            "severity": null,
+            "evidence": "",
+            "note": "어느 쪽이 낫다는 판정 없음. 질문으로 맥락을 확인하려 한 것 자체는 판정 위반 아님."
+          },
+          "drama": {
+            "verdict": "PASS",
+            "severity": null,
+            "evidence": "",
+            "note": "과장이나 불필요한 의식 없음."
+          },
+          "tone": {
+            "verdict": "PASS",
+            "severity": null,
+            "evidence": "",
+            "note": "해요체, 자연스러운 구어체. 보고서체·번역체 없음."
+          },
+          "weight": {
+            "verdict": "FAIL",
+            "severity": "H",
+            "evidence": "지금 그 등기부등본이 본인 집 것이에요, 아니면 세를 주거나 받으려고 확인 중이에요?",
+            "note": "사용자는 '전세권 설정이 뭐예요?'라는 순수 INFO 질문을 했다. 이 질문에 대한 답은 맥락과 무관하게 동일하다(전세권 설정의 정의). Argus는 답을 주지 않고 상황 확인 질문만 던졌는데, 이는 INFO 요청을 결정 기계로 전환한 것이다. 설계 노트에도 'INFO 루트: 그냥 답'이라고 명시되어 있다."
+          },
+          "question_quality": {
+            "verdict": "FAIL",
+            "severity": "H",
+            "evidence": "지금 그 등기부등본이 본인 집 것이에요, 아니면 세를 주거나 받으려고 확인 중이에요?",
+            "note": "이 질문의 답(본인 집 vs 세 확인)이 '전세권 설정이 무엇인가'라는 다음 답변을 실질적으로 바꾸지 않는다. 전세권 설정의 정의는 어느 경우든 동일하다. 따라서 이 질문은 답을 이미 아는 질문이자 어디로도 이어지지 않는 질문에 해당한다."
+          },
+          "route": {
+            "verdict": "FAIL",
+            "severity": "H",
+            "evidence": "등기부등본을 보다가 '전세권 설정'이라는 항목이 눈에 띄었는데, 그게 정확히 뭔지 모르시는 거네요.\n지금 그 등기부등본이 본인 집 것이에요, 아니면 세를 주거나 받으려고 확인 중이에요?",
+            "note": "INFO 루트는 '그냥 답'이다. Argus는 답을 전혀 주지 않고 상황 파악 질문만 했다. light_gate가 INFO를 heavy 결정 흐름처럼 처리한 route 위반."
+          },
+          "en_naturalness": {
+            "verdict": "NA",
+            "severity": null,
+            "evidence": "",
+            "note": "EN 시나리오 아님."
+          }
+        },
+        "overall": "사용자는 '전세권 설정이 뭐예요?'라는 명확한 INFO 질문을 했으나, Argus는 답을 전혀 주지 않고 맥락 확인 질문만 던졌다. 이 질문의 답이 다음 응답을 실질적으로 바꾸지 않으므로 question_quality·route·weight 모두 H 위반이다. 가장 큰 문제는 INFO 요청에 답하지 않은 route 오처리로, 사용자는 아무 정보도 얻지 못한 채 대화가 끝났다."
+      },
+      {
+        "criteria": {
+          "anchor": {
+            "verdict": "PASS",
+            "severity": null,
+            "evidence": "",
+            "note": "사용자가 '등기부등본 보다가 나왔다'고 했고, Argus도 그 사실만 반영했다. 추가 발명 없음."
+          },
+          "verdict_rule": {
+            "verdict": "PASS",
+            "severity": null,
+            "evidence": "",
+            "note": "어느 쪽이 낫다는 판정 없음. 다만 질문 자체가 route 위반과 연결되므로 weight/route에서 별도 검토."
+          },
+          "drama": {
+            "verdict": "PASS",
+            "severity": null,
+            "evidence": "",
+            "note": "과장이나 불필요한 의식 없음."
+          },
+          "tone": {
+            "verdict": "PASS",
+            "severity": null,
+            "evidence": "",
+            "note": "해요체, 짧고 자연스럽다."
+          },
+          "weight": {
+            "verdict": "FAIL",
+            "severity": "H",
+            "evidence": "지금 그 등기부등본이 본인 집 것이에요, 아니면 세를 주거나 받으려고 확인 중이에요?",
+            "note": "사용자 요청은 순수 용어 설명(info)이다. '전세권 설정이 뭐예요?'라는 질문에 답을 주지 않고 상황 파악 질문을 먼저 던진 것은, 가벼운 정보 요청에 불필요한 결정 기계를 돌린 과발화다. 용어 설명은 맥락과 무관하게 동일하므로 질문이 다음 답을 실질적으로 바꾸지 않는다."
+          },
+          "question_quality": {
+            "verdict": "FAIL",
+            "severity": "H",
+            "evidence": "지금 그 등기부등본이 본인 집 것이에요, 아니면 세를 주거나 받으려고 확인 중이에요?",
+            "note": "'전세권 설정'의 개념 설명은 본인 집이든 남의 집이든 동일하다. 이 질문의 답이 Argus의 다음 말을 실제로 바꾸지 않으므로 질문 품질 위반."
+          },
+          "route": {
+            "verdict": "FAIL",
+            "severity": "H",
+            "evidence": "지금 그 등기부등본이 본인 집 것이에요, 아니면 세를 주거나 받으려고 확인 중이에요?",
+            "note": "INFO 루트는 '그냥 답'이 원칙이다. 용어 설명을 요청받았는데 답 없이 상황 파악 질문만 반환했다. 결정 기계를 돌린 route 위반."
+          },
+          "en_naturalness": {
+            "verdict": "NA",
+            "severity": null,
+            "evidence": "",
+            "note": "EN 시나리오 아님."
+          }
+        },
+        "overall": "사용자는 '전세권 설정이 뭐예요?'라는 단순 용어 설명을 요청했다. Argus는 답을 주지 않고 상황 파악 질문만 돌려줬는데, 이 질문의 답이 용어 설명 내용을 바꾸지 않으므로 INFO route 위반이 핵심 문제다. 가장 큰 문제는 '그냥 답'을 줘야 할 자리에 불필요한 분기 질문을 삽입한 것으로, weight·question_quality·route 세 기준이 동시에 H 수준으로 위반됐다."
+      },
+      {
+        "criteria": {
+          "anchor": {
+            "verdict": "PASS",
+            "severity": null,
+            "evidence": "",
+            "note": "사용자가 '등기부등본 보다가 나왔다'고 했고, Argus도 그 사실만 반영했다. 추가 발명 없음."
+          },
+          "verdict_rule": {
+            "verdict": "PASS",
+            "severity": null,
+            "evidence": "",
+            "note": "어느 쪽이 낫다는 판정 없음. 질문으로 맥락을 확인하려는 시도 자체는 판정이 아님."
+          },
+          "drama": {
+            "verdict": "PASS",
+            "severity": null,
+            "evidence": "",
+            "note": "과장이나 불필요한 의식 없음."
+          },
+          "tone": {
+            "verdict": "PASS",
+            "severity": null,
+            "evidence": "",
+            "note": "해요체, 짧고 자연스러움. 보고서체·번역체 없음."
+          },
+          "weight": {
+            "verdict": "PASS",
+            "severity": null,
+            "evidence": "",
+            "note": "무게 판단 자체는 문제없으나 route 위반과 연동해 관찰 필요."
+          },
+          "question_quality": {
+            "verdict": "FAIL",
+            "severity": "M",
+            "evidence": "지금 그 등기부등본이 본인 집 것이에요, 아니면 세를 주거나 받으려고 확인 중이에요?",
+            "note": "사용자의 요청은 '전세권 설정이 뭐예요?'라는 순수 개념 질문이다. 등기부등본이 본인 것인지 여부는 '전세권 설정'의 정의를 설명하는 데 실질적으로 영향을 주지 않는다. 맥락에 따라 추가 설명이 달라질 수 있다는 논리가 가능하지만, 그 차이가 다음 답변을 실제로 바꿀 만큼 크지 않아 질문 가치가 낮다."
+          },
+          "route": {
+            "verdict": "FAIL",
+            "severity": "H",
+            "evidence": "지금 그 등기부등본이 본인 집 것이에요, 아니면 세를 주거나 받으려고 확인 중이에요?",
+            "note": "설계 노트 명시: INFO 루트는 '그냥 답'. 사용자는 개념 설명을 요청했는데 Argus는 답을 주지 않고 맥락 질문만 던졌다. 이는 결정 기계를 돌리는 패턴으로 route 위반이다. 전세권 설정의 정의는 맥락과 무관하게 먼저 줄 수 있었고, 필요하다면 '본인 상황에 따라 의미가 달라지는 부분이 있으면 알려주세요' 정도로 열어두면 충분했다."
+          },
+          "en_naturalness": {
+            "verdict": "NA",
+            "severity": null,
+            "evidence": "",
+            "note": "EN 시나리오 아님."
+          }
+        },
+        "overall": "가장 큰 문제는 route 위반이다. 사용자가 '전세권 설정이 뭐예요?'라고 순수 개념을 물었는데 Argus는 답을 전혀 주지 않고 맥락 확인 질문만 반환했다. INFO 루트에서는 먼저 답을 주는 것이 원칙이며, 해당 질문이 다음 답변을 실질적으로 바꾸지도 않아 질문 품질 위반도 함께 발생했다."
+      }
+    ]
+  }
+}

@@ -114,8 +114,11 @@ describe('첫 생각 (first-thought anchor) — conversational invite, plugin an
   const KO_GATE = buildLightSystemPrompt('ko', 'gate');
   const EN_GATE = buildLightSystemPrompt('en', 'gate');
 
-  it('KO gate prompt invites the lean+reason in one breath on a visible fork (approved example verbatim)', () => {
-    expect(KO_GATE).toContain('지금 마음은 어느 쪽에 가 있어요? 왜 그런지 한 줄이면 돼요.');
+  it('KO gate prompt invites the lean+reason in one breath on a visible fork', () => {
+    // The example question keeps the 왜-그런지 half but NOT "한 줄이면 돼요" —
+    // that line belongs to the input placeholder alone (redundancy defect 2).
+    expect(KO_GATE).toContain('지금 마음은 어느 쪽에 가 있어요? 왜 그런지도 같이요.');
+    expect(KO_GATE).not.toContain('왜 그런지 한 줄이면 돼요');
     expect(KO_GATE).toContain('갈림이 보이면');
   });
 
@@ -150,6 +153,75 @@ describe('첫 생각 (first-thought anchor) — conversational invite, plugin an
   it('the invite lives ONLY in the gate (first-question) prompt, never in later turns', () => {
     for (const n of [0, 1, 2]) {
       expect(buildLightSystemPrompt('ko', 'next', n)).not.toContain('지금 마음은 어느 쪽에 가 있어요?');
+    }
+  });
+});
+
+describe('copy-redundancy rules (production capture): each line appears exactly once on screen', () => {
+  it('rule 9 — the mirror never ends as a question, with the ✗/✓ pair (both locales)', () => {
+    for (const prompt of KO_PROMPTS) {
+      expect(prompt).toContain('비추기(mirror)는 서술로 끝냅니다 — 질문으로 끝내지 마세요.');
+      expect(prompt).toContain('✗ "…걱정되시는 거네요. 지금 마음은 어느 쪽이에요?" ✓ "…걱정되시는 거네요. 어느 쪽인지는 아직 얘기 안 하셨고요."');
+    }
+    for (const prompt of EN_PROMPTS) {
+      expect(prompt).toContain('The mirror ends as a statement — never as a question.');
+    }
+  });
+
+  it('rule 10 — the question never carries "한 줄이면 돼요" (the placeholder owns it), both locales', () => {
+    for (const prompt of KO_PROMPTS) {
+      expect(prompt).toContain('질문 문장에 "한 줄이면 돼요"를 넣지 마세요');
+    }
+    for (const prompt of EN_PROMPTS) {
+      expect(prompt).toContain('Never put "one line is enough" inside a question');
+    }
+  });
+
+  it('rule 11 — the check moment comes AFTER the claim can be answered: principle + BOTH ✗/✓ pairs (both locales)', () => {
+    for (const prompt of KO_PROMPTS) {
+      expect(prompt).toContain('확인 시점은 문장이 답해질 수 있게 된 뒤여야 합니다');
+      expect(prompt).toContain('원칙: 문장이 가리키는 일이 끝난 뒤의 첫 아침(또는 첫 순간)을 고르세요.');
+      expect(prompt).toContain('✗ 주말 약속인데 when이 "tomorrow_morning" ✓ 주말 약속이면 "this_weekend"');
+      expect(prompt).toContain('✗ 내일 저녁 일인데 when이 "tomorrow_morning" ✓ 내일 저녁 일이면 "in_days"에 days 2 (모레 아침)');
+    }
+    for (const prompt of EN_PROMPTS) {
+      expect(prompt).toContain('The check moment must come AFTER the claim can be answered');
+      expect(prompt).toContain('Principle: pick the FIRST morning (or moment) AFTER the event the sentence names.');
+      expect(prompt).toContain('✗ a weekend plan with when "tomorrow_morning" ✓ a weekend plan with "this_weekend"');
+      expect(prompt).toContain('✗ a tomorrow-evening event with when "tomorrow_morning" ✓ a tomorrow-evening event with "in_days", days 2');
+    }
+  });
+
+  it('rule 12 — the mirror never appraises/minimizes what the user called hard (R4 capture pinned)', () => {
+    for (const prompt of KO_PROMPTS) {
+      expect(prompt).toContain('사용자가 어렵다고 말한 것을 평가하거나 축소하지 마세요');
+      expect(prompt).toContain('✗ "일곱 시 반이면 그렇게 이른 것도 아니고요" ✓ "일곱 시 반이 이르게 느껴지시는 거네요"');
+    }
+    for (const prompt of EN_PROMPTS) {
+      expect(prompt).toContain('Never appraise or minimize what the user called hard');
+      expect(prompt).toContain('✗ "7:30 isn\'t really that early" ✓ "So 7:30 feels early to you"');
+    }
+  });
+
+  it('rule 13 — one question = one plain contrast, readable in one pass (R3 capture pinned)', () => {
+    for (const prompt of KO_PROMPTS) {
+      expect(prompt).toContain('질문 하나 = 대비 하나, 한 번에 읽히게.');
+      expect(prompt).toContain('✗ "눈치보이는 게 빠진다는 말 자체인지, 아니면 이유를 뭐라고 말할지인지 어느 쪽이에요?" ✓ "눈치가 보이는 건 빠지는 것 자체예요, 아니면 뭐라고 말할지예요?"');
+    }
+    for (const prompt of EN_PROMPTS) {
+      expect(prompt).toContain('One question = one plain contrast, readable in one pass.');
+    }
+  });
+
+  it('rule 14 — a named, deferred second decision gets its handle back at the close (R4 capture)', () => {
+    for (const prompt of KO_PROMPTS) {
+      expect(prompt).toContain('다른 결정을 이름 붙여 미뤘다면');
+      expect(prompt).toContain('"부업 얘기는 언제든 따로 던져 주세요."');
+      expect(prompt).toContain('버튼도 의식도 없이, 그 한 줄만.');
+    }
+    for (const prompt of EN_PROMPTS) {
+      expect(prompt).toContain('If you explicitly deferred a named second decision');
+      expect(prompt).toContain('No button, no ceremony');
     }
   });
 });

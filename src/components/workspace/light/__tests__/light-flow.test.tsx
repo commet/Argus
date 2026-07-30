@@ -398,6 +398,37 @@ describe('deepen link (user correction affordance)', () => {
   });
 });
 
+describe('mobile ergonomics (tap-target audit + Korean line breaks)', () => {
+  const OFFER: LightTurn = {
+    mirror: '오늘은 일찍 자고 싶으신 거네요.',
+    action: 'offer',
+    offer: { sentence: '오늘은 12시 전에 잤다', when: 'tonight', ask: '오늘 밤에 제가 한 번만 물어볼까요?' },
+  };
+
+  it('quiet links keep visual size but carry a ≥44px hit area (min-h-11)', async () => {
+    renderFlow();
+    expect(buttonByText('더 깊이 보기')!.className).toContain('min-h-11');
+    await answerOnce('네', OFFER);
+    expect(buttonByText('지금까지 나눈 이야기')!.className).toContain('min-h-11');
+    await click(buttonByText('물어봐 주세요')!);
+    expect(buttonByText('고쳐도 돼요')!.className).toContain('min-h-11');
+  });
+
+  it('Korean display text keeps words intact (break-keep on the serif lines)', async () => {
+    renderFlow();
+    expect(container.querySelector('h2')!.className).toContain('break-keep');
+    await answerOnce('네', OFFER);
+    expect(container.querySelector('h2')!.className).toContain('break-keep');
+    await click(buttonByText('물어봐 주세요')!);
+    // close headline + the keepsake sentence both keep-all
+    const withKeepAll = Array.from(container.querySelectorAll('h2, p')).filter((el) =>
+      el.className.includes('break-keep'),
+    );
+    expect(withKeepAll.length).toBeGreaterThanOrEqual(2);
+    expect(container.textContent).toContain('오늘은 12시 전에 잤다');
+  });
+});
+
 describe('clean close', () => {
   it('"처음으로" on the close screen calls onClose', async () => {
     const { onClose } = renderFlow();
