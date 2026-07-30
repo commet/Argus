@@ -252,8 +252,17 @@ export async function GET(req: Request) {
   if (!process.env.CRON_SECRET || !safeCompare(authHeader, `Bearer ${process.env.CRON_SECRET}`)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
-  if (!enabled()) return NextResponse.json({ ok: true, disabled: true, reason: 'PREMISE_WATCH_ENABLED not set' });
-  if (!webSearchEnabled()) return NextResponse.json({ ok: true, disabled: true, reason: 'web search not configured' });
+  // 꺼져 있어도 흔적은 남긴다 (2026-07-30): 이 두 early-return 이 무흔적이면
+  // 다음 날 user_events 에서 "돌았는데 꺼져 있었다"와 "아예 안 돌았다"가
+  // 구분되지 않는다 — 스위치를 켠 사람은 켜졌는지 데이터로 확인할 길이 없다.
+  if (!enabled()) {
+    logServerEvent('cron_premise_watch', { disabled: true, reason: 'kill_switch_off' }, { path: '/api/cron/premise-watch' });
+    return NextResponse.json({ ok: true, disabled: true, reason: 'PREMISE_WATCH_ENABLED not set' });
+  }
+  if (!webSearchEnabled()) {
+    logServerEvent('cron_premise_watch', { disabled: true, reason: 'web_search_not_configured' }, { path: '/api/cron/premise-watch' });
+    return NextResponse.json({ ok: true, disabled: true, reason: 'web search not configured' });
+  }
 
   const dryRun = new URL(req.url).searchParams.get('dry') === '1';
   const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
@@ -558,5 +567,10 @@ export async function GET(req: Request) {
     emailed,
     merged_into_brief: mergedIntoBrief,
     skipped: skipped.length,
+    // 두 번째 소스(본선 전제)의 계기 — user_events 와 같은 숫자를 응답에도.
+    items_researched: itemsResearched,
+    items_failed: itemsFailed,
+    items_updated: itemUpdates.length,
+    item_email_users: itemEmailsByUser.size,
   });
 }
