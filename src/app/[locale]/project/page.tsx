@@ -32,6 +32,7 @@ import { RecordStrip } from '@/components/ui/RecordStrip';
 import { RetroOnlyNotice } from '@/components/ui/RetroOnlyNotice';
 import { VoyageSea } from '@/components/projects/VoyageSea';
 import { JudgmentGraph } from '@/components/projects/JudgmentGraph';
+import { JudgmentPatternsCard } from '@/components/projects/JudgmentPatternsCard';
 import { VoyageMarker } from '@/components/projects/VoyageMarker';
 import { ProjectAttentionList } from '@/components/projects/ProjectAttentionList';
 import { Logbook } from '@/components/projects/Logbook';
@@ -723,6 +724,10 @@ export default function ProjectPage() {
               {/* ①.5 공유 지반 blast-radius — 움직인 전제와 그 위에 선 열린 내기.
                   facts-only(정산 카운트·drift 경보만), 공유 지반이 없으면 렌더 0. */}
               <JudgmentGraph receipts={reviewReceipts} locale={locale} />
+
+              {/* ①.6 기록이 보여주는 것 — 본선 전제의 연결·잔량·빈칸, 사실만.
+                  (기획 4단계 기본형, 2026-07-30). 셀 것이 없으면 렌더 0. */}
+              <JudgmentPatternsCard projects={projects} items={decisionItems} locale={locale} />
 
               {/* ② 해도 신호의 작업 목록 — check-ins, premise rechecks, deferred
                   questions and moved shared ground share one derivation. The sea
