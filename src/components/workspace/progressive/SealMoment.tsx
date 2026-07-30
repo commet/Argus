@@ -175,6 +175,11 @@ export function SealMoment({
   // 종 끔 목록 (2026-07-30): premise 는 기본 켬(서버 감시), 끄는 스위치가 이
   // 서랍에 보인다 — 숨은 opt-in(실측 22건 중 0건 켜짐)을 보이는 opt-out 으로.
   const [bellOffTexts, setBellOffTexts] = useState<Set<string>>(new Set());
+  // 인라인 수정 (2026-07-30): 원문 → 고친 문장. 저장은 recordEdit('refine')로
+  // 가므로 AI 원문 보존 + 내 문장 승격이 자동이다. 키는 항상 풀의 원문 —
+  // 서랍 행의 정체성(×·종·수정 전부)이 한 키를 쓴다.
+  const [editedPremiseTexts, setEditedPremiseTexts] = useState<Map<string, string>>(new Map());
+  const [editingPremiseKey, setEditingPremiseKey] = useState<string | null>(null);
 
   /** 화면의 두 deny 를 합친 제외 목록. autoTrackPremises 와 서랍 미리보기가 같이 쓴다. */
   function excludedPremiseTexts(): string[] {
@@ -194,6 +199,7 @@ export function SealMoment({
     const items = buildAutoTrackedPremiseItems(project.id, voyage, now, {
       excludeTexts: excludedPremiseTexts(),
       bellOffTexts: [...bellOffTexts],
+      overrides: [...editedPremiseTexts].map(([from, to]) => ({ from, to })),
     });
     if (items.length > 0) addDecisionItems(items);
   }
@@ -213,12 +219,13 @@ export function SealMoment({
     return buildAutoTrackedPremiseItems(project.id, voyage, 0, {
       excludeTexts: [...droppedPremiseTexts],
       bellOffTexts: [...bellOffTexts],
+      overrides: [...editedPremiseTexts].map(([from, to]) => ({ from, to })),
     })
       .filter((item) => !predicateTexts.some((t) => t === item.text || sameClaim(t, item.text)));
     // currentVoyage 는 store selector 라 참조가 매번 같지 않다 — 봉인 전 화면에서
-    // 세션 내용이 더 바뀌지 않으므로 프로젝트/드롭/종 기준으로만 다시 계산한다.
+    // 세션 내용이 더 바뀌지 않으므로 프로젝트/드롭/종/수정 기준으로만 다시 계산한다.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [project.id, predicates, droppedPremiseTexts, bellOffTexts]);
+  }, [project.id, predicates, droppedPremiseTexts, bellOffTexts, editedPremiseTexts]);
 
   // 묶기(밧줄)에서 이미 확인일을 정했다면 그 선택이 이 카드의 시작값이다.
   // 실주행 재실사(2026-07-08)에서 발견: 1일로 묶었는데 완료 카드가 조용히
@@ -1354,8 +1361,38 @@ export function SealMoment({
                     <ul className="mt-2 space-y-1.5">
                       {extraTrackedPremises.map((item) => {
                         const watched = item.type === 'premise' && item.alert?.mode === 'on_change';
+                        // 행의 정체성 = 풀의 원문. 고쳐 쓴 행은 edits[0].from 이 원문이다 —
+                        // ×·종·수정이 전부 이 키로 움직여야 수정 후에도 스위치가 안 끊긴다.
+                        const rowKey = item.edits?.[0]?.from || item.text;
+                        const edited = editedPremiseTexts.has(rowKey);
+                        const isEditing = editingPremiseKey === rowKey;
                         return (
                         <li key={item.id} className="flex items-start gap-2 rounded-lg bg-[var(--bg)]/60 px-3 py-2 text-[12.5px] leading-[1.5] text-[var(--text-secondary)]">
+                          {isEditing ? (
+                            /* 인라인 수정 (2026-07-30) — 고친 문장은 recordEdit('refine')로
+                               저장돼 AI 원문이 이력에 남고 내 문장으로 승격된다. */
+                            <input
+                              autoFocus
+                              defaultValue={item.text}
+                              maxLength={400}
+                              aria-label={L('전제 문장 고쳐 쓰기', 'rewrite this premise')}
+                              className="flex-1 bg-transparent border-b border-[var(--accent)]/40 outline-none text-[12.5px] leading-[1.5] text-[var(--text-primary)] pb-0.5"
+                              onKeyDown={(e) => {
+                                if (e.key === 'Escape') { setEditingPremiseKey(null); return; }
+                                if (e.key !== 'Enter') return;
+                                const next = (e.target as HTMLInputElement).value.trim();
+                                setEditingPremiseKey(null);
+                                if (next.length < 4 || next === item.text) return;
+                                setEditedPremiseTexts((prev) => new Map(prev).set(rowKey, next));
+                              }}
+                              onBlur={(e) => {
+                                const next = e.target.value.trim();
+                                setEditingPremiseKey(null);
+                                if (next.length < 4 || next === item.text) return;
+                                setEditedPremiseTexts((prev) => new Map(prev).set(rowKey, next));
+                              }}
+                            />
+                          ) : (
                           <span className="flex-1">
                             {item.text}
                             {item.type === 'open_question' && (
@@ -1363,7 +1400,24 @@ export function SealMoment({
                                 {L('· 미결 질문으로 보관', '· kept as an open question')}
                               </span>
                             )}
+                            {edited && (
+                              <span className="ml-1.5 text-[11px] text-[var(--text-tertiary)]">
+                                {L('· 내 문장으로 기록', '· recorded as your words')}
+                              </span>
+                            )}
                           </span>
+                          )}
+                          {!isEditing && (
+                            <button
+                              type="button"
+                              onClick={() => setEditingPremiseKey(rowKey)}
+                              className="shrink-0 -mt-0.5 px-1 text-[12px] leading-none text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] cursor-pointer"
+                              title={L('고쳐 쓰기', 'rewrite')}
+                              aria-label={L('이 전제 고쳐 쓰기', 'rewrite this premise')}
+                            >
+                              ✎
+                            </button>
+                          )}
                           {/* 종 = 서버 감시 스위치 (2026-07-30). premise 만 —
                               미결 질문은 현실이 답해주지 않으니 종 대상이 아니다. */}
                           {item.type === 'premise' && (
@@ -1372,7 +1426,7 @@ export function SealMoment({
                               aria-pressed={watched}
                               onClick={() => setBellOffTexts((prev) => {
                                 const next = new Set(prev);
-                                if (next.has(item.text)) next.delete(item.text); else next.add(item.text);
+                                if (next.has(rowKey)) next.delete(rowKey); else next.add(rowKey);
                                 return next;
                               })}
                               className={`shrink-0 -mt-0.5 px-1 text-[13px] leading-none cursor-pointer ${watched ? 'text-[var(--accent)]' : 'text-[var(--text-tertiary)] opacity-60'}`}
@@ -1384,7 +1438,7 @@ export function SealMoment({
                           )}
                           <button
                             type="button"
-                            onClick={() => setDroppedPremiseTexts((prev) => new Set(prev).add(item.text))}
+                            onClick={() => setDroppedPremiseTexts((prev) => new Set(prev).add(rowKey))}
                             className="shrink-0 -mt-0.5 px-1 text-[14px] leading-none text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] cursor-pointer"
                             title={L('빼기', 'remove')}
                             aria-label={L('이 전제 추적하지 않기', 'do not track this premise')}

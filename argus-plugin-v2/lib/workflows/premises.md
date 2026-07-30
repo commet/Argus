@@ -107,11 +107,12 @@ NOT a statement about who the user is. Below the threshold: say nothing.
 ### Step 3 — Edit (on request)
 For `edit <ref>`, one `AskUserQuestion`:
 - Title: `Fix this item` (ko: `항목 수정`)
-- Show the current text, then:
-  - `맞아요, 그대로 둘게요` → action `accept`
-  - `조금 다듬을게요` → action `refine`, take the user's new text verbatim
-  - `틀렸어요, 다시 쓸게요` → action `replace`, take the user's new text verbatim
-  - `이건 빼주세요` → action `reject`
+- Show the current text, then (labels are plain noun forms — 창업자 피드백
+  2026-07-30: 과한 구어체 금지):
+  - `그대로 두기` → action `accept`
+  - `다듬어 쓰기` → action `refine`, take the user's new text verbatim
+  - `새로 쓰기` → action `replace`, take the user's new text verbatim
+  - `추적에서 빼기` → action `reject`
 Write the matching `edit` through the single-source CLI (never hand-write JSON,
 never rewrite prior lines):
 ```bash

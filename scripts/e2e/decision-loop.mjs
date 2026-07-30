@@ -450,6 +450,7 @@ try {
   // 그 문장을 기억해 둔다. 봉인 후 /project 추적 목록에 **그 문장이 없어야**
   // deny 배선이 산 것이다 — 화면에서 사라지는 것만 보면 절반이다.
   let deniedPremise = '';
+  let editedSentence = '';
   {
     const drawerBtn = await clickable(/돌아올 때·함께 볼 항목 설정|함께 보관할 항목 보기|Set the return|See what will be kept/);
     if (drawerBtn) { await drawerBtn.click(); await page.waitForTimeout(1200); }
@@ -489,6 +490,27 @@ try {
       const bellsOn = await page.getByRole('button', { name: /이 전제 알림 끄기|mute alerts for this premise/ }).count().catch(() => 0);
       step('7c. 추적 전제의 종이 기본 켬으로 보인다', bellsOn >= 1,
         bellsOn >= 1 ? `켜진 종 ${bellsOn}개` : '서랍에 종이 없다 — 서버 감시가 또 숨었다');
+
+      // ── 7d. 인라인 수정 — 고쳐 쓰면 그 자리에서 내 문장이 된다 (2026-07-30)
+      const EDITED_SENTENCE = '수정 검증용 전제다. 이 문장은 실주행이 서랍에서 고쳐 썼다.';
+      const editBtns = page.getByRole('button', { name: /이 전제 고쳐 쓰기|rewrite this premise/ });
+      const nEditable = await editBtns.count().catch(() => 0);
+      if (nEditable === 0) {
+        console.log('   🟡 7d. 고쳐 쓸 전제 행이 없어 인라인 수정을 못 쟀다');
+      } else {
+        await editBtns.first().click();
+        const editInput = page.getByRole('textbox', { name: /전제 문장 고쳐 쓰기|rewrite this premise/ });
+        await editInput.fill(EDITED_SENTENCE);
+        await editInput.press('Enter');
+        await page.waitForTimeout(600);
+        const rows = await page
+          .locator('li', { has: page.getByRole('button', { name: /이 전제 추적하지 않기|do not track this premise/ }) })
+          .allInnerTexts().catch(() => []);
+        const shown = rows.some((t) => t.includes('수정 검증용 전제다') && /내 문장으로 기록|recorded as your words/.test(t));
+        step('7d. 서랍에서 전제를 고쳐 쓰면 내 문장으로 표시된다', shown,
+          shown ? '' : `고친 문장이 행에 안 보인다: ${rows.map((r) => r.slice(0, 24)).join(' | ')}`);
+        if (shown) editedSentence = EDITED_SENTENCE;
+      }
     }
   }
 
@@ -526,6 +548,27 @@ try {
     } else {
       step('8b. 저장된 추적 전제에 종(external+on_change)이 켜져 있다', bellStored.on >= 1,
         `전제 ${bellStored.n}건 중 종 켜짐 ${bellStored.on}건`);
+    }
+
+    // ── 8c. 고쳐 쓴 전제가 이력째로 저장됐다 (2026-07-30) ─────────────────
+    // 화면(7d)의 "내 문장으로 기록"이 장식이 아니려면 저장소에 (a) 고친 문장
+    // (b) ai_edited_by_user 승격 (c) 지워지지 않은 원문(edits.from)이 있어야 한다.
+    if (editedSentence) {
+      const editedStored = await page.evaluate((sentence) => {
+        try {
+          const raw = localStorage.getItem('sot_decision_items');
+          if (!raw) return null;
+          const items = JSON.parse(raw);
+          const list = Array.isArray(items) ? items : Object.values(items).flat();
+          const hit = list.find((i) => i && i.text === sentence);
+          if (!hit) return null;
+          return { authored: hit.authored, from: hit.edits?.[0]?.from ?? '', edits: (hit.edits ?? []).length };
+        } catch { return null; }
+      }, editedSentence);
+      const ok = !!editedStored && editedStored.authored === 'ai_edited_by_user'
+        && editedStored.edits >= 1 && editedStored.from.length > 0 && editedStored.from !== editedSentence;
+      step('8c. 고쳐 쓴 전제가 이력째로 저장됐다 (원문 보존 + 내 문장 승격)', ok,
+        ok ? `원문: "${editedStored.from.slice(0, 24)}…"` : `저장 상태: ${JSON.stringify(editedStored)}`);
     }
 
     // ── 9. 익명에게 정직한 고지 + 로그인 유도 ──────────────────────────

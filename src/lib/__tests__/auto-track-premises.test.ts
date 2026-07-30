@@ -49,6 +49,30 @@ describe('buildAutoTrackedPremiseItems — §3.4 premises tracked at seal', () =
     expect(items[0].alert?.mode).not.toBe('on_change');
   });
 
+  it('서랍에서 고쳐 쓴 문장은 refine 이력으로 남는다 — AI 원문 보존 + 내 문장 승격', () => {
+    const items = buildAutoTrackedPremiseItems('projA',
+      session(['경쟁사가 이 기능을 아직 안 냈다']), NOW,
+      { overrides: [{ from: '경쟁사가 이 기능을 아직 안 냈다', to: '경쟁사 A는 이 기능을 올해 안에 못 낸다' }] });
+    expect(items).toHaveLength(1);
+    expect(items[0].text).toBe('경쟁사 A는 이 기능을 올해 안에 못 낸다');
+    expect(items[0].authored).toBe('ai_edited_by_user');
+    // 이전 문장이 지워지지 않는 것이 핵심이다 — 수정 이력이 곧 신호다.
+    expect(items[0].edits).toHaveLength(1);
+    expect(items[0].edits[0].from).toBe('경쟁사가 이 기능을 아직 안 냈다');
+    expect(items[0].edits[0].to).toBe('경쟁사 A는 이 기능을 올해 안에 못 낸다');
+    // 고쳐 쓴 전제도 종은 기본 켬 그대로다 (종 키는 원문).
+    expect(items[0].external).toBe(true);
+    expect(items[0].alert?.mode).toBe('on_change');
+  });
+
+  it('물음으로 고쳐 쓰면 자리도 미결 질문으로 옮겨진다 (자리는 최종 문장 기준)', () => {
+    const items = buildAutoTrackedPremiseItems('projA',
+      session(['다음 분기 매출이 지금 수준을 유지한다.']), NOW,
+      { overrides: [{ from: '다음 분기 매출이 지금 수준을 유지한다.', to: '다음 분기 매출이 정말 유지될까요?' }] });
+    expect(items[0].type).toBe('open_question');
+    expect(items[0].external).toBe(false);
+  });
+
   it("includes the user's flinch bet first when present", () => {
     const items = buildAutoTrackedPremiseItems('projA', session(['가정 A'], '내 진짜 베팅'), NOW);
     expect(items[0].text).toBe('내 진짜 베팅');

@@ -24,7 +24,7 @@
 
 import { premiseShapeOf, sameClaim } from './premise-shape';
 import { derivePremiseTexts } from './derive-premise-texts';
-import { createItem, type DecisionItem } from './decision-items';
+import { createItem, recordEdit, type DecisionItem } from './decision-items';
 import type { ProgressiveSession } from '@/stores/types';
 
 /** "A decision is 5 premises, not a wiki" (premises-core MAX_ACTIVE, §3.1b). */
@@ -54,20 +54,33 @@ export function buildAutoTrackedPremiseItems(
      * 빠진다. deny(×)와 다른 축: ×는 저장 자체를 막고, 종 끔은 조용한 추적이다.
      */
     bellOffTexts?: readonly string[];
+    /**
+     * 봉인 서랍에서 고쳐 쓴 문장들 (2026-07-30, 인라인 수정) — from 은 풀의
+     * 원문(정확 일치), to 는 사용자의 문장 그대로. 덮어쓰기가 아니라
+     * recordEdit('refine') 로 적는다: AI 원문(ai_original)은 이력에 보존되고,
+     * 출처는 ai_edited_by_user 로 승격된다 — 고치는 순간 사용자의 문장이 된다.
+     * 자리(kind)는 **최종 문장**으로 다시 판정한다 — 물음으로 고쳐 썼으면
+     * 미결 질문 자리로 간다.
+     */
+    overrides?: ReadonlyArray<{ from: string; to: string }>;
   } = {},
 ): DecisionItem[] {
   const excluded = (opts.excludeTexts ?? []).filter((t) => !!t && !!t.trim());
   const bellOff = (opts.bellOffTexts ?? []).filter((t) => !!t && !!t.trim());
+  const overrides = (opts.overrides ?? []).filter((o) => !!o.from?.trim() && !!o.to?.trim());
   const texts = derivePremiseTexts(session, [])
     .filter((t) => !excluded.some((x) => x === t || sameClaim(x, t)))
     .slice(0, AUTO_TRACK_CAP);
   return texts.map((text) => {
+    const override = overrides.find((o) => o.from === text);
+    const finalText = override ? override.to.trim() : text;
     // 2026-07-29: 여기가 나오는 문장을 **전부** 'premise' 로 못 박고 있었다.
     // 물음표로 끝나는 문장이 "확인할 전제"로 저장됐다 — 버리지 않고 제자리
-    // (open_question)로 옮긴다.
-    const kind = premiseShapeOf(text);
+    // (open_question)로 옮긴다. 자리는 최종 문장으로 판정한다.
+    const kind = premiseShapeOf(finalText);
+    // deny/종은 풀의 원문으로 매칭한다 — 서랍 행의 정체성은 원문이다.
     const watched = kind === 'premise' && !bellOff.some((x) => x === text || sameClaim(x, text));
-    const item = createItem(
+    let item = createItem(
       {
         decision_id: decisionId,
         type: kind,
@@ -79,6 +92,9 @@ export function buildAutoTrackedPremiseItems(
       },
       now,
     );
+    // 고쳐 쓴 문장은 덮어쓰기가 아니라 refine 이력으로 — AI 원문 보존 +
+    // ai_edited_by_user 승격이 recordEdit 한 곳에서 일어난다 (회계 단일 정본).
+    if (override) item = recordEdit(item, 'refine', finalText, now);
     // createItem 의 기본 알림 휴리스틱과 무관하게, 여기서는 서랍의 보이는
     // 스위치가 정본이다 — 켠 것은 on_change 로 못 박는다.
     return watched ? { ...item, alert: { ...item.alert, mode: 'on_change' as const } } : item;

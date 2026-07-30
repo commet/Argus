@@ -1,5 +1,12 @@
 # Changelog
 
+## 3.0.17 - 2026-07-30
+
+- Premise edit options move to plain noun forms — `그대로 두기` · `다듬어 쓰기`
+  · `새로 쓰기` · `추적에서 빼기`. The previous first-person colloquial labels
+  ("맞아요, 그대로 둘게요") overreached; the surface should hand the user verbs,
+  not put words in their mouth (founder feedback, 2026-07-30).
+
 ## 3.0.16 - 2026-07-30
 
 - **Offline no longer kills the decision tools.** Measured: with the registry
