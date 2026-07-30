@@ -17,7 +17,7 @@
     },
     {
       "path": "/api/cron/premise-watch",
-      "schedule": "30 22 * * *"
+      "schedule": "50 3 * * *"
     },
     {
       "path": "/api/cron/companion-brief",
