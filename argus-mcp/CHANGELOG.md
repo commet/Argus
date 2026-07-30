@@ -1,5 +1,17 @@
 # Changelog
 
+## 2.0.16 - The server now teaches every host the chat-approval path
+
+- The server `instructions` (the one spec-sanctioned standing guidance) now
+  spell out what to do when the one-tap confirm window returns no answer: ask
+  through the host's own question UI when one exists — options with the full
+  draft sentence as a preview — or in plain chat, and only after the user's
+  explicit yes call again with `chat_confirmed:true`. Provenance stays
+  `ai_surfaced`; relabeling a draft `user_stated` to get past the window is
+  named as the forgery it is.
+- No tool behavior changes; 2.0.15 carried the mechanism, this release carries
+  the instruction that makes assistants actually use it.
+
 ## 2.0.15 - The retry the confirm window promises is now actually possible
 
 - Measured on headless Claude Code (2026-07-30): the host declares elicitation,

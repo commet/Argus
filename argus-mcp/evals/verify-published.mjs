@@ -64,6 +64,9 @@ const BUNDLE_MARKERS = [
   // 2.0.15 — 기계가 확인창을 즉답으로 닫는 호스트에서 재시도 지침이 실행
   // 가능해졌다. 앵커는 호출자가 읽는 retry_hint 계약 문자열.
   ['대화 승인 재시도가 가능하다 (2.0.15)', 'chat_confirmed:true (without it this window fires again)'],
+  // 2.0.16 — 서버 지침이 chat-approval 경로를 모든 호스트에 가르친다. 앵커는
+  // 지침의 금지 문장(출처 위조 명명) — 따옴표 없음.
+  ['지침이 대화 승인 경로를 가르친다 (2.0.16)', 'never relabel a draft user_stated'],
 ];
 
 /**

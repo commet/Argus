@@ -22,15 +22,26 @@ import { fileURLToPath } from 'node:url';
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const DOCTOR = path.join(HERE, 'doctor.js');
 const MCP_CONFIG = path.join(HERE, '..', '.mcp.json');
-const MCP_SPEC = Object.values(JSON.parse(fs.readFileSync(MCP_CONFIG, 'utf8')).mcpServers)
-  .flatMap((server) => server.args || [])
-  .find((arg) => typeof arg === 'string' && arg.includes('argus-decision-mcp'));
+// 2026-07-30: the wire goes through a launcher (online → registry-fresh,
+// offline → cached copy; measured: a bare `npm exec` HANGS with the registry
+// unreachable). The spec string therefore lives inside the launcher — follow it
+// like doctor does, and keep asserting the same two facts.
+const MCP_ARGS = Object.values(JSON.parse(fs.readFileSync(MCP_CONFIG, 'utf8')).mcpServers)
+  .flatMap((server) => server.args || []);
+const LAUNCHER_ARG = MCP_ARGS.find((arg) => typeof arg === 'string' && /mcp-launch\.js$/.test(arg));
+assert.ok(LAUNCHER_ARG, 'plugin .mcp.json must launch scripts/mcp-launch.js');
+const LAUNCHER_SRC = fs.readFileSync(path.join(HERE, 'mcp-launch.js'), 'utf8');
+const MCP_SPEC = (/--package=(argus-decision-mcp[^"'\s]*)/.exec(LAUNCHER_SRC) || [])[1];
 // The plugin deliberately names NO version: npx re-resolves a bare name every
 // launch, so one install stays current, while a range would be satisfied from
 // the cache forever (measured 2026-07-29). A version here is the regression.
-assert.ok(MCP_SPEC, 'plugin .mcp.json must launch argus-decision-mcp');
+assert.ok(MCP_SPEC, 'mcp-launch.js must exec argus-decision-mcp');
 assert.doesNotMatch(String(MCP_SPEC), /argus-decision-mcp@/,
   'plugin MCP must NOT pin a version — one install has to keep receiving fixes');
+// The launcher must keep BOTH halves of the measured tradeoff: fresh online
+// (no --offline on the default path) and alive offline (--offline fallback).
+assert.ok(LAUNCHER_SRC.includes("'--offline'") || LAUNCHER_SRC.includes('"--offline"'),
+  'mcp-launch.js must carry the measured --offline fallback');
 const PIN = '';
 
 function runDoctor(cacheRoot, pin) {

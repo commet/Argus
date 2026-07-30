@@ -232,9 +232,24 @@ for (const p of [path.join(cwd, '.argus', 'ledger', 'ledger.jsonl'), path.join(h
   try {
     const servers = JSON.parse(fs.readFileSync(mcpJson, 'utf8')).mcpServers || {};
     for (const s of Object.values(servers)) {
-      const spec = (s && Array.isArray(s.args) ? s.args : []).find(
-        (a) => typeof a === 'string' && a.includes('argus-decision-mcp'),
-      );
+      const args = s && Array.isArray(s.args) ? s.args : [];
+      let spec = args.find((a) => typeof a === 'string' && a.includes('argus-decision-mcp'));
+      // 2026-07-30: 배선이 런처(mcp-launch.js)를 거칠 수 있다 — 온라인이면 매
+      // 실행 최신, 오프라인이면 캐시로 기동. 스펙 문자열은 런처 안으로 옮겨
+      // 갔으므로 닥터도 런처를 따라가 읽는다 (배선을 못 읽는 닥터는 없는 닥터다).
+      if (!spec) {
+        const launcherArg = args.find((a) => typeof a === 'string' && /mcp-launch\.js$/.test(a));
+        if (launcherArg) {
+          const launcherPath = launcherArg.includes('${CLAUDE_PLUGIN_ROOT}')
+            ? launcherArg.replace('${CLAUDE_PLUGIN_ROOT}', pluginHome)
+            : launcherArg;
+          try {
+            const src = fs.readFileSync(launcherPath, 'utf8');
+            const m = /--package=(argus-decision-mcp[^"'\s]*)/.exec(src);
+            if (m) spec = m[1];
+          } catch { /* 런처 파일이 없으면 아래에서 배선 불완전으로 보고 */ }
+        }
+      }
       if (!spec) continue;
       launches = true;
       const match = /argus-decision-mcp@(\d+\.\d+\.\d+|[^\s]+)/.exec(spec);

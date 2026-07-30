@@ -97,15 +97,16 @@ legacy Office/HWP formats, export to CSV/PDF first.
 Installing the plugin is the whole setup — there is no separate init step:
 
 - **Decision tools (MCP), wired automatically** — a bundled [`.mcp.json`](./.mcp.json)
-  registers the `argus-decision-mcp` stdio server **unpinned**, so the decision
-  tools (capture, record, predict, check-in, resolve, patterns, settings) are
-  available immediately and every session launches the current release. Leaving
-  the version off is deliberate: `npx` re-resolves a bare package name against
-  the registry each launch, while a range spec (`@^1`) is satisfied from cache
-  and can sit frozen on an old build indefinitely — and an exact pin freezes
-  there until someone edits it. `argus_check_in` reports the version actually
-  running (`data.server_version`) and `/argus:settings doctor` checks the
-  wiring, so a stale cache is visible instead of being felt as missing behavior.
+  launches the `argus-decision-mcp` stdio server through a small launcher
+  ([`scripts/mcp-launch.js`](./scripts/mcp-launch.js)), **unpinned**: online, it
+  resolves the bare name against the registry so every session runs the current
+  release; offline, it falls back to the newest cached copy instead of hanging
+  (measured 2026-07-30 — a plain `npm exec` neither starts nor fails when the
+  registry is unreachable). A range spec (`@^1`) would sit frozen on cache
+  forever, and an exact pin freezes until someone edits it — both measured, both
+  rejected. `argus_check_in` reports the version actually running
+  (`data.server_version`) and `/argus:settings doctor` checks the wiring, so a
+  stale cache is visible instead of being felt as missing behavior.
 - **Quiet hooks** — a session-start check that mentions decisions whose check-by
   date has arrived (and refreshes a stale decision view), plus an ambient trigger
   that may ask about at most one due item

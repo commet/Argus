@@ -37,11 +37,15 @@ describe('argus 플러그인 골격 — 하나의 설치 (O3 방1)', () => {
     const servers = mcp['mcpServers'] as Record<string, { command: string; args: string[] }>;
     const wired = Object.values(servers);
     expect(wired.length).toBeGreaterThan(0);
-    const argus = wired.find((s) => s.args.some((a) => a.includes('argus-decision-mcp')));
-    expect(argus, 'argus-decision-mcp가 배선되어 있어야 한다').toBeDefined();
-    expect(argus!.command).toBe('npm');
-    expect(argus!.args.slice(0, 2)).toEqual(['exec', '--yes']);
-    expect(argus!.args.at(-1)).toBe('argus-decision-mcp');
+    // 2026-07-30: 배선은 런처를 거친다 — 온라인이면 매 실행 최신(bare 이름
+    // 레지스트리 재조회), 오프라인이면 캐시 폴백(실측: 맨 npm exec 는 레지스트리
+    // 불달 시 뜨지도 실패하지도 않고 매달린다). 스펙 문자열은 런처 안에 산다.
+    const argus = wired.find((s) => s.args.some((a) => /mcp-launch\.js$/.test(a)));
+    expect(argus, 'mcp-launch.js 런처가 배선되어 있어야 한다').toBeDefined();
+    expect(argus!.command).toBe('node');
+    const launcherSrc = fs.readFileSync(path.join(PLUGIN, 'scripts', 'mcp-launch.js'), 'utf8');
+    expect(launcherSrc).toContain('--package=argus-decision-mcp');
+    expect(launcherSrc, '오프라인 폴백(--offline)이 런처의 존재 이유다').toContain('--offline');
 
     // 배선은 **버전을 적지 않는다.** 그 이유는 두 번의 사고와 한 번의 측정이다.
     //
@@ -65,18 +69,17 @@ describe('argus 플러그인 골격 — 하나의 설치 (O3 방1)', () => {
     //    맨 이름은 npx가 매번 레지스트리에 다시 물어야 하기 때문이다. ①은 범위였고,
     //    정확 핀은 그걸 우연히 고쳤다 — 버전을 빼면 의도적으로 고쳐지고, 설치가
     //    손볼 일이 없어진다.
-    const versioned = argus!.args.filter((a) => /argus-decision-mcp@/.test(a));
-    expect(versioned, '버전을 박으면 이 플러그인을 긐 사람은 새 서버를 영영 못 받는다')
-      .toEqual([]);
-    expect(argus!.args).toContain('--package=argus-decision-mcp');
+    expect(launcherSrc, '버전을 박으면 이 플러그인을 쓴 사람은 새 서버를 영영 못 받는다')
+      .not.toMatch(/argus-decision-mcp@/);
   });
 
   it('범위 스펙은 어느 자리에도 없다 (캐시에 얼어붙는 유일한 형태)', () => {
     const mcp = readJson(path.join(PLUGIN, '.mcp.json'));
     const servers = mcp['mcpServers'] as Record<string, { args: string[] }>;
     const all = Object.values(servers).flatMap((s) => s.args);
-    for (const arg of all) {
-      expect(arg, `${arg} — 범위/태그 스펙은 npx 캐시에 얼어붙는다 (실측 2026-07-29)`)
+    const launcherSrc = fs.readFileSync(path.join(PLUGIN, 'scripts', 'mcp-launch.js'), 'utf8');
+    for (const text of [...all, launcherSrc]) {
+      expect(text, '범위/태그 스펙은 npx 캐시에 얼어붙는다 (실측 2026-07-29)')
         .not.toMatch(/argus-decision-mcp@[\^~*]|argus-decision-mcp@latest/);
     }
   });

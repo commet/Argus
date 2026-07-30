@@ -1,8 +1,8 @@
 {
   "mcpServers": {
     "argus-decision": {
-      "command": "npm",
-      "args": ["exec", "--yes", "--package=argus-decision-mcp", "--", "argus-decision-mcp"],
+      "command": "node",
+      "args": ["${CLAUDE_PLUGIN_ROOT}/scripts/mcp-launch.js"],
       "env": {
         "ARGUS_DIR": "${CLAUDE_PROJECT_DIR}/.argus"
       }

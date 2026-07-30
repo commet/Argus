@@ -1,5 +1,17 @@
 # Changelog
 
+## 3.0.16 - 2026-07-30
+
+- **Offline no longer kills the decision tools.** Measured: with the registry
+  unreachable, the unpinned `npm exec` wire neither launched nor failed — it
+  hung, and the tools silently never appeared. The wire now goes through
+  `scripts/mcp-launch.js`: a 2.5s registry probe picks between the bare name
+  (online → always the current release, unchanged behavior) and `--offline`
+  (the newest cached copy, honest about staleness via doctor). Both paths
+  verified by launching the real server.
+- `doctor` and the cache-noise contract follow the spec string into the
+  launcher, so the no-pin invariant stays machine-checked.
+
 ## 3.0.15 - 2026-07-30
 
 - **Re-cuts 3.0.14 under a number caches cannot confuse.** The unpin landed in
