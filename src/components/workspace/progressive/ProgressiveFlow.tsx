@@ -2012,9 +2012,9 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
             ? answered
             : Math.max(answered + (asking ? 1 : 0), Math.min(maxR, 3));
           const cps: RailCheckpoint[] = [
-            { key: 'situation', label: L('상황', 'Case'), state: 'done', group: '정리', groupEn: 'Frame',
+            { key: 'situation', label: L('상황', 'Case'), state: 'done', group: '짚어보기', groupEn: 'Frame',
               title: L('처음 적어주신 상황으로 돌아가 보기', 'Look back at your original case') },
-            { key: 'rope', label: L('처음 생각', 'Initial view'), state: 'done', group: '정리', groupEn: 'Frame',
+            { key: 'rope', label: L('처음 생각', 'Initial view'), state: 'done', group: '짚어보기', groupEn: 'Frame',
               title: L('답을 듣기 전에 남긴 처음 생각', 'Your initial view before hearing the answer') },
           ];
           for (let i = 0; i < qTotal; i++) {
@@ -2026,7 +2026,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
               key: `q${i}`,
               label: isProbe ? L('갈림', 'Fork') : L(`질문${i + 1}`, `Q${i + 1}`),
               state: i < answered ? 'done' : (isCur ? 'current' : 'future'),
-              group: '정리', groupEn: 'Frame',
+              group: '짚어보기', groupEn: 'Frame',
               title: i < answered
                 ? (ansPreview ? L(`그때의 답: ${ansPreview}`, `Your answer: ${ansPreview}`) : undefined)
                 : isCur ? L('지금 답하고 있는 질문', 'The question you are answering')

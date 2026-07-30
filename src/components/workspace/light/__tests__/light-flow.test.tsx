@@ -31,6 +31,7 @@ vi.mock('@/lib/supabase', () => ({
 // framer-motion: render plain elements so screen swaps are synchronous in jsdom.
 vi.mock('framer-motion', () => ({
   AnimatePresence: ({ children }: { children?: React.ReactNode }) => createElement(React.Fragment, null, children),
+  useReducedMotion: () => true,
   motion: new Proxy({}, {
     get: (_t, tag: string) =>
       // eslint-disable-next-line react/display-name
@@ -40,6 +41,10 @@ vi.mock('framer-motion', () => ({
         return createElement(tag, { ...rest, ref }, children as React.ReactNode);
       }),
   }),
+}));
+// The mascot renders next/image internally — swap for a marker span in jsdom.
+vi.mock('@/components/brand/ArgusMascot', () => ({
+  ArgusMascot: () => createElement('span', { 'data-testid': 'argus-mascot' }),
 }));
 vi.mock('@/lib/light-path/light-engine', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/lib/light-path/light-engine')>();
@@ -132,6 +137,16 @@ describe('opening screen', () => {
     expect(container.querySelector('textarea[placeholder="한 줄이면 돼요"]')).toBeTruthy();
     assertNoGeneratedOptionButtons();
   });
+
+  it('the question owns the screen: one serif display headline (h2), mirror as secondary text', () => {
+    renderFlow();
+    const headlines = Array.from(container.querySelectorAll('h2'));
+    expect(headlines).toHaveLength(1);
+    expect(headlines[0].textContent).toContain(OPENING.question);
+    expect(headlines[0].style.fontFamily).toContain('--font-display');
+    // the mirror is NOT the headline
+    expect(headlines[0].textContent).not.toContain(OPENING.mirror);
+  });
 });
 
 describe('answer → next screen', () => {
@@ -214,6 +229,9 @@ describe('offer (남기기) — permission to return, not sentence-approval', ()
     expect(container.textContent).toContain('이렇게 기억해 둘게요');
     expect(container.textContent).toContain('케이크 자르고 나오면 내일 안 피곤하다');
     expect(buttonByText('고쳐도 돼요')).toBeTruthy();
+    // the keepsake: the mascot's quiet mark + the exact check date in numerals
+    expect(container.querySelector('[data-testid="argus-mascot"]')).toBeTruthy();
+    expect(container.textContent).toContain('확인 ·');
   });
 
   it('고쳐도 돼요 after accept updates the stored contract and flips authorship to the user', async () => {

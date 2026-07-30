@@ -33,6 +33,12 @@ const FULL_PRESENCE_SURFACES = new Set([
   'components/review/SettleModal.tsx',
   'components/ui/LoadingSteps.tsx',
   'components/workspace/InteractiveDemo.tsx',
+  // 가벼운 길 (light path): the gating/in-flow reading wait is canon state
+  // `watching` (a task underway — same state LoadingSteps wears), and the
+  // after-accept keepsake carries the `witness` mark (seal completion).
+  // Both are product states per docs/ARGUS-BRAND-CANON.md, not decoration.
+  'app/[locale]/workspace/page.tsx',
+  'components/workspace/light/LightFlow.tsx',
   'components/workspace/progressive/SealMoment.tsx',
 ]);
 

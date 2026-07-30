@@ -59,6 +59,15 @@ describe('the light prompt carries the approved rules verbatim', () => {
     expect(prompt).toContain('Never create answer options');
   });
 
+  it('gap-naming stays warm, never blunt (founder polish — the pair is pinned in both locales)', () => {
+    for (const prompt of KO_PROMPTS) {
+      expect(prompt).toContain('✗ "왜 망설여지시는지는 모르겠어요" ✓ "어느 쪽 이유인지는 아직 얘기 안 하셨고요"');
+    }
+    for (const prompt of EN_PROMPTS) {
+      expect(prompt).toContain('✗ "I can\'t tell why you\'re hesitating" ✓ "You haven\'t said which reason it is yet"');
+    }
+  });
+
   it('the gate criterion routes unsure → heavy (deliberate reverse of the ambient default)', () => {
     expect(buildLightSystemPrompt('ko', 'gate')).toContain('확신이 없으면 heavy');
     expect(buildLightSystemPrompt('en', 'gate')).toContain('When unsure, classify heavy.');
@@ -196,6 +205,16 @@ describe('permission-to-return (design revision): the offer asks, it never prese
     );
     expect(src).not.toMatch(/걸어\s*[두둘뒀]|베팅/);
     expect(src).not.toMatch(/\bbets?\b|\bbetting\b|\bwager/i);
+  });
+
+  it('the light surface carries NO emoji — presence is the mascot, never a glyph (grep guard)', () => {
+    const src = fs.readFileSync(
+      path.resolve(__dirname, '..', '..', '..', 'components', 'workspace', 'light', 'LightFlow.tsx'),
+      'utf8',
+    );
+    // Emoji/pictograph/dingbat planes (includes ✓/✗/⚡/★-adjacent symbol blocks
+    // and the variation selector). The mascot image is the only allowed presence.
+    expect(src).not.toMatch(/[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}\u{FE0F}\u{2B50}]/u);
   });
 });
 

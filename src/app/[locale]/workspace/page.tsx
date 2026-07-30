@@ -41,6 +41,7 @@ import type { WorkerPersona, DecisionContract, VoyageBranch } from '@/stores/typ
 import { ErrorBoundary } from '@/components/layout/ErrorBoundary';
 import { parsePartialAnalysis } from '@/lib/partial-analysis';
 import { ArgusCompanionNote } from '@/components/brand/ArgusCompanionNote';
+import { ArgusMascot } from '@/components/brand/ArgusMascot';
 import { Modal } from '@/components/ui/Modal';
 import { LIGHT_PATH_ENABLED } from '@/lib/light-path/light-engine';
 import type { LightDeepenContext } from '@/components/workspace/light/LightFlow';
@@ -1241,25 +1242,34 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem, fr
             </motion.div>
           )}
 
-          {/* ═══ GATING: 가벼운 길 판별 — one fast call decides light vs heavy ═══ */}
+          {/* ═══ GATING: 가벼운 길 판별 — one fast call decides light vs heavy.
+                 The reading state is Argus itself: the mascot's quiet breathing
+                 (stilled under prefers-reduced-motion), never a spinner or emoji. ═══ */}
           {phase === 'gating' && (
             <motion.div key="gating" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               transition={{ duration: 0.3, ease: EASE }} className="pt-8 md:pt-16">
-              <div className="flex items-center gap-3 px-5 py-3 rounded-full bg-[var(--bg)] border border-[var(--border-subtle)] w-fit max-w-full mb-8">
+              <div className="flex items-center gap-3 px-5 py-3 rounded-full bg-[var(--accent)]/[0.05] border border-[var(--accent)]/15 w-fit max-w-full mb-10 mx-auto">
                 <div className="w-5 h-5 rounded-full bg-[var(--text-primary)] flex items-center justify-center shrink-0">
                   <span className="text-[var(--bg)] text-[12.5px] font-bold">{L('나', 'Me')}</span>
                 </div>
                 <p className="text-[13px] text-[var(--text-secondary)] truncate">{problemInput}</p>
               </div>
-              <div className="flex items-center gap-2 px-1" aria-live="polite">
-                <motion.div animate={{ rotate: 360 }} transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}>
-                  <Sparkles size={14} className="text-[var(--accent)]" />
-                </motion.div>
-                <span className="text-[12.5px] text-[var(--text-secondary)]">{L('읽고 있어요', 'Reading')}</span>
+              <div className="flex flex-col items-center text-center" aria-live="polite">
+                <ArgusMascot
+                  moment="watching"
+                  size="md"
+                  plate={false}
+                  loading="eager"
+                  alt={L('적어주신 내용을 읽고 있는 Argus', 'Argus reading what you wrote')}
+                  className="opacity-95"
+                />
+                <p className="mt-4 text-[14px] font-semibold text-[var(--text-primary)]">
+                  {L('읽고 있어요', 'Reading')}
+                </p>
                 <button
                   type="button"
                   onClick={() => { analyzeAbortRef.current?.abort(); setPhase('idle'); }}
-                  className="ml-auto text-[12.5px] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] underline underline-offset-2 cursor-pointer transition-colors"
+                  className="mt-3 text-[12.5px] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] underline underline-offset-2 cursor-pointer transition-colors"
                 >
                   {L('취소', 'Cancel')}
                 </button>

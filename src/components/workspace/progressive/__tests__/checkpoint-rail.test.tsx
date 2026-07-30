@@ -16,10 +16,10 @@ const HULL_PATH = 'M2 11 L18 11 L15.5 15 L4.5 15 Z';
 
 // 상황·처음 생각·질문1·질문2(현재)·정리·봉인.
 const cps: RailCheckpoint[] = [
-  { key: 'situation', label: '상황', state: 'done', group: '정리', groupEn: 'Frame' },
-  { key: 'rope', label: '처음 생각', state: 'done', group: '정리', groupEn: 'Frame' },
-  { key: 'q0', label: '질문1', state: 'done', group: '정리', groupEn: 'Frame' },
-  { key: 'q1', label: '질문2', state: 'current', group: '정리', groupEn: 'Frame' },
+  { key: 'situation', label: '상황', state: 'done', group: '짚어보기', groupEn: 'Frame' },
+  { key: 'rope', label: '처음 생각', state: 'done', group: '짚어보기', groupEn: 'Frame' },
+  { key: 'q0', label: '질문1', state: 'done', group: '짚어보기', groupEn: 'Frame' },
+  { key: 'q1', label: '질문2', state: 'current', group: '짚어보기', groupEn: 'Frame' },
   { key: 'draft', label: '정리', state: 'future', group: '작성', groupEn: 'Writing' },
   { key: 'seal', label: '봉인', state: 'future', group: '확인', groupEn: 'Check' },
 ];
