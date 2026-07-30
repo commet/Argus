@@ -177,6 +177,17 @@ function eventOfferKey(id) {
   return (hash >>> 0).toString(36);
 }
 
+// Neutralize prompt-injection from untrusted ledger text before it rides the
+// injected instruction (replica of recall-signal.js's sanitize — the ledger is
+// user-writable data, not a trusted channel): drop control chars/newlines
+// (char-code, so no control-char regex literal), collapse whitespace, and strip
+// a leading [Argus]/argus token that could spoof the trusted nudge channel.
+function sanitize(t) {
+  let s = String(t || ''), out = '';
+  for (let i = 0; i < s.length; i++) out += s.charCodeAt(i) < 32 ? ' ' : s[i];
+  return out.replace(/\s+/g, ' ').replace(/^\s*\[?\s*argus\s*\]?\s*:?/i, '').trim();
+}
+
 const SRC = '[Argus sense — a deterministic every-turn hook. The judgment below is YOURS: diagnose meaning, not keywords. Speak to the user in their language. Mirror, never verdict.]';
 // Honest-gap surface (LLM-glue invariant): a broken wire must not fail silent.
 // If the MCP tools are missing the model says so ONCE — the user can then fix
@@ -185,7 +196,7 @@ const MCP_GUARD = 'If the Argus tools (argus_predict / argus_resolve / argus_cap
 
 function predList(preds) {
   return preds.slice(0, PRED_LIST_MAX)
-    .map((p) => `  - "${String(p).slice(0, PRED_CLIP)}"`)
+    .map((p) => `  - "${sanitize(p).slice(0, PRED_CLIP)}"`)
     .join('\n');
 }
 

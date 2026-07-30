@@ -6,7 +6,7 @@ body:
     attributes:
       value: |
         Thanks for the report. Please **do not** include API keys, tokens, or
-        other secrets. For security vulnerabilities, follow `SECURITY.md` instead
+        other secrets. For security vulnerabilities, follow `.github/SECURITY.md` instead
         of filing a public issue.
   - type: textarea
     id: what-happened

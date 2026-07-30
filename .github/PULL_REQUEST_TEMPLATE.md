@@ -1,6 +1,6 @@
 <!--
 Thanks for contributing to Argus! Keep PRs focused on one concern.
-See CONTRIBUTING.md for the full guide. Delete any section that doesn't apply.
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for the full guide. Delete any section that doesn't apply.
 -->
 
 ## What & why

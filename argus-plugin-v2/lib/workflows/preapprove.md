@@ -111,11 +111,16 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/decision-ledger.js" record \
   --predicate "<확인 가능한 한 문장>" --falsified-if "<반대 신호 한 문장>" \
   --check-by "<YYYY-MM-DD, 기본 +1w>" \
   --kind commitment --origin-utterance "<사용자가 승인한 계획 문장>" \
+  --proposal-ref "plugin:preapprove:<session>:draft" \
   --review-condition-status not_asked --authorization-ref "plugin:preapprove:<id>:direct"
 ```
 
 - `--id`를 생략하면 CLI가 `sha256(session|quote).slice(0,8)`로 계산 — 모델이 해시를
   손으로 만들 필요가 없다. 새 약속 기록은 `--check-by`를 생략하지 않는다.
+- `--author`는 넘기지 않는다 — predicate/falsified_if 문장은 preapprove이 깎은
+  **AI 초안**이고, 사용자의 "네"는 기록 승인이지 그 문장을 자기 말로 삼은 게
+  아니다. author 부재가 정직한 AI-경로 출처 표시이며(`author:"user"`는 사용자가
+  직접 쓴 문장 전용), 초안 계보는 `--proposal-ref`가 싣는다.
 - **쓰기 검증**: 명령 성공 후 `/argus:check --list`(또는 `status`)로 방금 봉인이
   잡히는지 확인. 실패했다면 다시 실행 — CLI는 append-only라 재실행이 안전하다.
 - `.argus/ledger/` 생성 시 `.argus/.gitignore`에 `ledger/` 줄이 있는지 확인하고

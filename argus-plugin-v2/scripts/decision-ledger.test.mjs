@@ -89,7 +89,10 @@ const AUTH = ['--authorization-ref', 'test:explicit-user-action'];
   ok('id derives as sha256(session|quote)', h.id === stableId('helm/2026-07-16', 'plan sentence') && s.id === h.id);
   ok('stakes passed through', h.stakes === 'high');
   ok('witness omits --check-by → seal has no check_by field', !('check_by' in s));
-  ok('every direct record is human-authored', s.author === 'user');
+  // Provenance is declared, never defaulted: with no --author the field is
+  // OMITTED (absence = unknown/AI-path); author:"user" is reserved for the
+  // user's own line on an explicitly confirmed path.
+  ok('record without --author omits the author field (absence = AI-path signal)', !('author' in s));
   rmSync(p, { recursive: true, force: true });
 }
 
@@ -128,6 +131,11 @@ const AUTH = ['--authorization-ref', 'test:explicit-user-action'];
   ok('AI lineage preserves proposal id and adoption purpose',
     sealed?.adoption_lineage?.[0]?.source_proposal_ref === 'proposal:1'
     && sealed?.adoption_lineage?.[0]?.adopted_as === 'wording');
+  ok('confirmed AI wording is tagged ai_surfaced, never relabeled user', sealed?.author === 'ai_surfaced');
+  ok('an unknown --author value exits non-zero', run(p, [
+    'record', '--id', 'ai-bad', '--predicate', 'AI draft', '--kind', 'witness',
+    '--author', 'robot', ...AUTH,
+  ]).status !== 0);
   rmSync(p, { recursive: true, force: true });
 }
 

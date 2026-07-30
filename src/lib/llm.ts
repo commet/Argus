@@ -37,6 +37,16 @@ export interface LLMOptions {
   model?: ModelTier;
   /** AbortController signal for cancellation */
   signal?: AbortSignal;
+  /**
+   * Mark the system prompt as STATIC (identical across calls/users for a given
+   * locale) so the Anthropic server routes wrap it in a prompt-cache block.
+   * The heavy prompts this exists for (initial analysis ≈7k tokens) are
+   * re-prefilled from scratch on every call otherwise — measured 2026-07-31.
+   * Only set this where the system string truly is byte-identical between
+   * calls: a dynamic system prompt would never hit and each write costs a 25%
+   * premium over plain input. OpenAI/Gemini paths ignore it.
+   */
+  cacheSystem?: boolean;
 }
 
 export interface StreamCallbacks {
@@ -681,6 +691,7 @@ async function callServerWithUserKey(
       maxTokens: options.maxTokens,
       model: options.model,
       anthropicModel,
+      cacheSystem: options.cacheSystem,
     }),
     signal: options.signal,
   });
@@ -699,7 +710,7 @@ async function callProxy(
   const res = await fetchWithRetry('/api/llm', {
     method: 'POST',
     headers,
-    body: JSON.stringify({ messages, system: options.system, maxTokens: options.maxTokens, model: options.model, anthropicModel }),
+    body: JSON.stringify({ messages, system: options.system, maxTokens: options.maxTokens, model: options.model, anthropicModel, cacheSystem: options.cacheSystem }),
     signal: options.signal,
   });
 
@@ -857,6 +868,7 @@ export async function callLLMStream(
     maxTokens: options.maxTokens,
     model: options.model,
     stream: true,
+    cacheSystem: options.cacheSystem,
   };
   if (isGemini) {
     bodyObj.apiKey = settings.gemini_api_key;
@@ -1057,6 +1069,8 @@ export async function callLLMStreamThenParse<T = unknown>(
   messages: LLMMessage[],
   options: LLMOptions & {
     shape?: Record<string, SchemaFieldType | FieldSchema>;
+    /** Internal recursion guard for the streaming retry below. */
+    _streamRetried?: boolean;
   },
   onToken: (text: string) => void
 ): Promise<T> {
@@ -1076,20 +1090,35 @@ export async function callLLMStreamThenParse<T = unknown>(
       : parsed;
   } catch (error) {
     // The streamed text didn't parse — almost always a mid-JSON truncation.
-    // Fall back to ONE clean non-streaming structured call (callLLMJson carries
-    // its own corrective parse-retry). This is the safety net under the
-    // stream-then-parse pattern: a truncated stream degrades to a re-fetch
-    // instead of a hard "JSON 파싱 실패" in the user's face. Only recover from
-    // parse/validation failures — never from abort / auth / rate-limit, which
-    // must surface unchanged.
+    // Only recover from parse/validation failures — never from abort / auth /
+    // rate-limit, which must surface unchanged.
     const recoverable = error instanceof LLMError &&
       (error.category === 'parse_failure' || error.category === 'validation');
     if (recoverable) {
+      // The user is about to pay for the same generation twice. Counted so the
+      // funnel can SEE how often the double-payment path fires (it ran at 44%
+      // of big calls for months with zero signal). Pairs with the server-side
+      // llm_truncation event, which records the usual root cause.
+      try { track('llm_stream_retry', { category: error.category, attempt: options._streamRetried ? 2 : 1 }); } catch { /* analytics never breaks the call */ }
       // A truncated stream is the likeliest cause, so a same-budget retry would
       // hit the same ceiling. Give the clean retry extra room (the server clamps
       // to its own cap), turning genuine length overflow into a recoverable case
       // too — not just markdown-wrapped / preamble malformations.
       const retryTokens = Math.min((options.maxTokens ?? 2000) + 2000, 8192);
+      // Retry STREAMING first. The old fallback went straight to a
+      // non-streaming call, so the user's screen froze for the entire second
+      // attempt — measured 49 seconds of dead UI on a production submit
+      // (2026-07-30, the 81-second question). Same request, same recovery,
+      // but the progress stays visible. One recursion only; a second parse
+      // failure falls through to callLLMJson, whose corrective-prompt retry
+      // handles the non-truncation malformations.
+      if (!options._streamRetried) {
+        return callLLMStreamThenParse<T>(
+          messages,
+          { ...options, maxTokens: retryTokens, _streamRetried: true },
+          onToken,
+        );
+      }
       return callLLMJson<T>(messages, { ...options, maxTokens: retryTokens });
     }
     throw error;

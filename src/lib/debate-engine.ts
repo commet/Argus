@@ -155,6 +155,11 @@ export async function runDebateRound(input: DebateInput): Promise<DebateResult |
       },
     );
 
+    // Honor the prompt's own honesty guard: severity "none" means the critic
+    // found no critical blind spot. Coercing it to 'important' manufactured a
+    // weakness the prompt explicitly forbids — a solid plan gets NO challenge.
+    if (result.severity === 'none') return null;
+
     return {
       challenge: result.challenge || '',
       targetAgent: result.target_agent || '',

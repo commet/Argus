@@ -1,5 +1,7 @@
 import { describe, it, expect } from 'vitest';
+import fs from 'fs';
 import { tmpArgusDir, body, isError } from '../../test-helpers.js';
+import { ledgerPath } from '../../lib/layout.js';
 import { premises } from '../premises.js';
 import { recheck } from '../recheck.js';
 import { seal } from '../seal.js';
@@ -186,7 +188,7 @@ describe('settle premise attribution stays on the individual receipt', () => {
 });
 
 describe('seal promotion (§5.4 — the assumption field is an alias into the premise set)', () => {
-  it('a named unverified_assumption becomes the first premise (user-sourced, unmonitored until marked external)', async () => {
+  it('a named unverified_assumption becomes the first premise (ai_surfaced draft — the field is model-fillable, so authorship is never forged; unmonitored until marked external)', async () => {
     const dir = tmpArgusDir();
     const r = await seal.handler({
       argus_dir: dir, id: 'promo', predicate: 'we cut over with no visible downtime',
@@ -200,8 +202,16 @@ describe('seal promotion (§5.4 — the assumption field is an alias into the pr
     const prems = await recall.handler({ argus_dir: dir, view: 'premises', id: 'promo', today_override: TODAY });
     const rows = (body(prems)['data'] as Record<string, unknown>)['premises'] as Array<Record<string, unknown>>;
     expect(rows).toHaveLength(1);
-    expect(rows[0]['source']).toBe('user_stated');
+    // Honest provenance: the receipt field is model-fillable, so the promotion
+    // records it as an AI-tagged draft with the original wording preserved —
+    // never silently user_stated (an amend transfers authorship honestly).
+    expect(rows[0]['source']).toBe('ai_surfaced');
     expect(rows[0]['load_bearing']).toBe(true);
+    // the ledger event itself preserves the draft wording as ai_original
+    const promoLine = fs.readFileSync(ledgerPath(dir), 'utf8').split('\n').filter(Boolean)
+      .map((l) => JSON.parse(l)).find((e) => e['event'] === 'premise_add');
+    expect(promoLine['source']).toBe('ai_surfaced');
+    expect(promoLine['ai_original']).toBe('the index rebuild fits inside the replication lag budget');
     expect(rows[0]['monitored']).toBe(false); // external unset — honest default, user arms it
 
     // receipt renders the premises summary from the fold

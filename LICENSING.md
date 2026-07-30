@@ -81,5 +81,5 @@ maintainer via <https://argus.voyage>.
 The plugins and MCP server are the parts meant to spread — the more people use
 them, the better for the project — so they're fully open (MIT). The web app is
 the product, so its source stays visible for trust and learning while remaining
-protected from commercial cloning. See [`SECURITY.md`](./SECURITY.md) for the
+protected from commercial cloning. See [`SECURITY.md`](./.github/SECURITY.md) for the
 security posture.

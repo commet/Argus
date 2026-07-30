@@ -228,13 +228,17 @@ export function CheckpointRail({ checkpoints, onJump }: {
           if (isActive) {
             return (
               <div key={band.group} className="contents">
-                <div className="flex-1 min-w-0 rounded-xl border border-[var(--accent)]/20 bg-[var(--accent)]/[0.04] pt-4 pb-2 px-3">
-                  <div className="text-[12.5px] font-bold uppercase tracking-[0.18em] text-[var(--accent)] mb-1.5">
+                <div className="flex-1 min-w-0 rounded-xl border border-[var(--accent)]/20 bg-[var(--accent)]/[0.04] pt-2 pb-2 px-3">
+                  <div className="text-[12.5px] font-bold uppercase tracking-[0.18em] text-[var(--accent)] mb-0.5">
                     {locale === 'ko' ? band.group : band.groupEn}
                   </div>
                   {/* 노드가 밴드 너비를 넘으면(질문 여러 개 + 좁은 화면) 페이지를
-                      가로로 밀지 않고 밴드 안에서만 스크롤 — 노드가 잘리지 않게. */}
-                  <div className="flex items-center gap-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                      가로로 밀지 않고 밴드 안에서만 스크롤 — 노드가 잘리지 않게.
+                      `pt`는 배의 자리다: overflow-x가 auto면 CSS는 overflow-y도
+                      visible로 두지 못하므로(한 축이 visible이 아니면 나머지는
+                      auto로 계산된다), 노드 위 -15px에 뜨는 배가 이 상자에
+                      그대로 잘려 나갔다. 안쪽 여백으로 배를 상자 안에 들인다. */}
+                  <div className="flex items-center gap-1 overflow-x-auto pt-[17px] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                     {band.nodes.map((node, ni) => {
                       const isCur = node.state === 'current';
                       const showShip = node.key === shipKey;
@@ -286,7 +290,10 @@ export function CheckpointRail({ checkpoints, onJump }: {
                         </span>
                       );
                       return (
-                        <div key={node.key} className="flex items-center gap-1 flex-1 min-w-0 justify-center">
+                        // 마지막 노드만 내용폭: [노드][선][노드]…[노드]가 한 사슬로
+                        // 이어져 선이 다음 점에 닿는다. justify-center로 각 칸에
+                        // 점을 띄우면 선이 칸 경계에서 끊겨 "빈 자"가 남는다.
+                        <div key={node.key} className={`flex items-center gap-1 min-w-0 ${ni < band.nodes.length - 1 ? 'flex-1' : ''}`}>
                           {clickable ? (
                             <button
                               type="button"
@@ -301,6 +308,10 @@ export function CheckpointRail({ checkpoints, onJump }: {
                             <div className="flex flex-col items-center px-1" title={title}>{inner}</div>
                           )}
                           {ni < band.nodes.length - 1 && (
+                            // 노드 사이를 끝까지 잇는 항로선. 창업자 스크린샷에서
+                            // "빈 자"로 읽혔던 건 선이 길어서가 아니라 그 위에 있어야
+                            // 할 배가 overflow에 잘려 사라진 채 선만 남아서였다 —
+                            // 배가 돌아온 지금, 끊긴 토막선이 오히려 고장처럼 보인다.
                             <span
                               className="flex-1 min-w-[8px] h-[2px] rounded-full"
                               style={{ background: node.state === 'done' ? 'var(--accent)' : 'var(--border-subtle)' }}

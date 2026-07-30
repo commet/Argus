@@ -217,7 +217,13 @@ export function MixPreview({ mix, dm, onDM, onSkip, busy, cmReview, debateResult
               </div>
               {primary === 'wrap' ? (
                 <>
-                  {/* Persona/stakeholder review is the prominent pre-finish step
+                  {/* Wording: "이해관계자 시점에서 검토 받아보기" was office-speak —
+                      a word nobody says out loud, for an action that is simply
+                      "let me see how the person reading this will take it". The
+                      line above already says "독자의 눈으로", so the button now
+                      matches it, and the no-name fallback is "읽을 사람" rather
+                      than a category noun.
+                      Persona review is the prominent pre-finish step
                       (gold). The falsification ladder ("부풀린 시나리오") is a real but
                       OPTIONAL extra, demoted to the quiet link below — per the
                       founder's call that getting a virtual reader's review matters
@@ -225,7 +231,7 @@ export function MixPreview({ mix, dm, onDM, onSkip, busy, cmReview, debateResult
                   <motion.button type="button" onClick={onDM} disabled={busy} aria-busy={busy} whileTap={{ scale: 0.98 }}
                     className="w-full flex items-center justify-center gap-2 px-5 py-3 text-[var(--accent-fg)] rounded-xl text-[14px] font-semibold shadow-[var(--shadow-sm)] cursor-pointer disabled:opacity-50"
                     style={{ background: 'var(--gradient-gold)' }}>
-                    {busy ? <Loader2 size={16} className="animate-spin" /> : <><UserCheck size={16} /> {L(`마무리 전에 — ${dm || '이해관계자'} 시점에서 검토 받아보기 →`, `Before wrapping up — get a review as ${dm || 'a stakeholder'} →`)}</>}
+                    {busy ? <Loader2 size={16} className="animate-spin" /> : <><UserCheck size={16} /> {L(`마무리 전에 — ${dm || '읽을 사람'} 눈으로 미리 보기 →`, `Before wrapping up — see it as ${dm || 'your reader'} would →`)}</>}
                   </motion.button>
                   <button type="button" onClick={onSkip} disabled={busy} className="w-full text-center text-[12px] text-[var(--text-tertiary)] hover:text-[var(--accent)] py-1 cursor-pointer"
                     style={{ transitionProperty: 'color', transitionDuration: '300ms', transitionTimingFunction: 'cubic-bezier(0.32,0.72,0,1)' }}>
