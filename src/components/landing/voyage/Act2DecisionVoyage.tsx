@@ -104,7 +104,7 @@ export function Act2DecisionVoyage() {
             as="p"
             wrap="balance"
             className={`text-center ${locale === 'ko' ? 'break-keep' : ''}`}
-            text={L('검토가 끝나면, 판단과 확인 계획이 한 장으로 남아요.', 'When the review ends, your decision and follow-up plan remain on one page.')}
+            text={L('검토가 끝나면, 내가 내린 결정과 나중에 확인할 것이 한 장에 남아요.', 'When the review ends, one page holds your decision and what to check later.')}
             style={{
               color: 'var(--bp-ink)',
               fontFamily: 'var(--font-display)',
@@ -144,7 +144,7 @@ export function Act2DecisionVoyage() {
             }}
           >
             {/* Head — eyebrow + sealed date on one line, then the title alone. */}
-            <div style={{ padding: 'clamp(18px, 2.4vw, 24px) clamp(18px, 2.4vw, 26px) clamp(15px, 1.8vw, 19px)' }}>
+            <div style={{ padding: 'clamp(19px, 2.5vw, 25px) clamp(18px, 2.4vw, 26px) clamp(17px, 2vw, 21px)' }}>
               <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 14 }}>
                 <span
                   className="bp-mono"
@@ -174,35 +174,35 @@ export function Act2DecisionVoyage() {
                   letterSpacing: '-0.012em',
                 }}
               >
-                {L('‘예산 2배’ 판단과 확인 계획', 'The “double the budget” decision and follow-up plan')}
+                {/* The reader's own question, verbatim — the plainest possible
+                    title, and no longer a near-repeat of the lead-in above. */}
+                {L('‘예산을 2배로 늘릴까?’', '“Should we double the budget?”')}
               </h3>
             </div>
 
             {/* The two facing columns — the call, and what reality will be asked.
                 One divider BETWEEN them only; it turns horizontal when they stack. */}
             <div
+              className="dr-cols"
               style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))',
                 borderTop: '1px solid var(--bp-ink-faint)',
                 background: 'color-mix(in srgb, var(--bp-paper-deep) 55%, var(--bp-paper))',
               }}
             >
               {[
                 [L('그때의 판단', 'The call then'), L('예산을 2배로 늘리지 않는다.\n몰려든 사람부터 남게 만든 뒤에 키운다.', 'Don’t double the budget yet.\nMake the incoming users stay first, then grow.')],
-                [L('확인할 현실', 'Reality to check'), L('한 달 뒤, 새로 온 사용자의 잔존율이\n실제로 올랐는가?', 'A month on — did retention of the\nnewly-arrived users actually rise?')],
-              ].map(([label, body], i) => (
+                [L('나중에 확인할 것', 'To check later'), L('한 달 뒤, 새로 온 사람들이\n실제로 더 남았는가?', 'A month on — did more of the\nnew users actually stay?')],
+              ].map(([label, body]) => (
                 <div
                   key={label}
-                  style={{
-                    padding: 'clamp(16px, 2vw, 21px) clamp(18px, 2.2vw, 24px)',
-                    // Divider only between the pair — never trailing off the last one.
-                    ...(i === 0 ? { boxShadow: 'inset -1px 0 0 var(--bp-ink-faint)' } : null),
-                  }}
+                  // Same side padding as the head above, so the label, the title
+                  // and the body all hang off ONE left edge. They were 2px apart,
+                  // which is exactly the kind of near-miss that reads as sloppy.
+                  style={{ padding: 'clamp(17px, 2.1vw, 22px) clamp(18px, 2.4vw, 26px)' }}
                 >
                   <div
                     className="bp-mono"
-                    style={{ color: 'var(--bp-ink)', opacity: 0.72, fontSize: 12, letterSpacing: '0.1em', textTransform: 'uppercase', fontWeight: 700 }}
+                    style={{ color: 'var(--bp-ink)', opacity: 0.66, fontSize: 11.5, letterSpacing: '0.12em', textTransform: 'uppercase', fontWeight: 700 }}
                   >
                     {label}
                   </div>
@@ -210,7 +210,7 @@ export function Act2DecisionVoyage() {
                     as="p"
                     className={locale === 'ko' ? 'break-keep' : ''}
                     text={body}
-                    style={{ marginTop: 9, color: 'var(--bp-ink)', fontSize: 'clamp(15px, 1.5vw, 16.5px)', lineHeight: 1.6 }}
+                    style={{ marginTop: 11, color: 'var(--bp-ink)', fontSize: 'clamp(15px, 1.5vw, 16.5px)', lineHeight: 1.6 }}
                   />
                 </div>
               ))}
@@ -227,24 +227,29 @@ export function Act2DecisionVoyage() {
                 textAlign: 'center',
               }}
             >
-              <div
-                className="bp-mono"
-                style={{
-                  color: 'var(--bp-ink)',
-                  opacity: 0.82,
-                  fontSize: 'clamp(12.5px, 1.15vw, 14px)',
-                  letterSpacing: locale === 'ko' ? '0.14em' : '0.2em',
-                  fontWeight: 700,
-                  textTransform: 'uppercase',
-                }}
-              >
-                {L('AI 판정 —— 없음', 'AI verdict —— none')}
+              <div className="flex items-center justify-center" style={{ gap: 14 }}>
+                <span aria-hidden="true" style={{ flex: 1, maxWidth: 72, height: 1, background: 'var(--bp-ink-faint)' }} />
+                <span
+                  className="bp-mono"
+                  style={{
+                    color: 'var(--bp-ink)',
+                    opacity: 0.8,
+                    fontSize: 'clamp(12px, 1.1vw, 13.5px)',
+                    letterSpacing: locale === 'ko' ? '0.14em' : '0.2em',
+                    fontWeight: 700,
+                    textTransform: 'uppercase',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {L('AI 판정 —— 없음', 'AI verdict —— none')}
+                </span>
+                <span aria-hidden="true" style={{ flex: 1, maxWidth: 72, height: 1, background: 'var(--bp-ink-faint)' }} />
               </div>
               <ClauseText
                 as="p"
                 className={locale === 'ko' ? 'break-keep' : ''}
-                text={L('AI는 대신 결론을 내리지 않습니다.\n기록한 판단과 이후의 실제 결과만 이 한 장에 남습니다.', 'AI does not decide for you.\nOnly your recorded decision and the later outcome remain on this page.')}
-                style={{ margin: '9px auto 0', maxWidth: 470, color: 'var(--bp-ink-soft)', fontSize: 'clamp(13.5px, 1.25vw, 14.5px)', lineHeight: 1.6 }}
+                text={L('AI가 대신 정해주지 않습니다.\n내가 적은 판단과, 나중에 실제로 어떻게 됐는지만 남습니다.', 'AI does not decide for you.\nOnly what you wrote, and what actually happened later.')}
+                style={{ margin: '11px auto 0', maxWidth: 440, color: 'var(--bp-ink-soft)', fontSize: 'clamp(12.5px, 1.15vw, 13.5px)', lineHeight: 1.65 }}
               />
             </div>
           </div>

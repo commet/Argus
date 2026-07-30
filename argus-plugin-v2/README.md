@@ -43,30 +43,14 @@ with no grade:
 └──────────────────  argus · prediction saved → reality recorded ⚓ ─┘
 ```
 
-What remains is a Judgment Receipt — your prediction and reality side by side,
-with no grade:
-
-```text
-┌─ ARGUS · JUDGMENT RECEIPT ───────────────────────────────────┐
-
-  What I predicted                              saved 2026-07-02
-    "churn stays flat for 30 days after the new pricing ships"
-    check-by 2026-08-01
-
-  What actually happened                     recorded 2026-08-03
-    Churn rose 2pp. Poor plan-migration messaging did most of it.
-
-  This call was made by: me (not the model)
-
-  ───────────────────────────────────────────────────────
-  AI VERDICT ON THIS DECISION ······················  NONE
-  The model never graded you. Reality answered.
-└──────────────────  argus · prediction saved → reality recorded ⚓ ─┘
-```
-
 ---
 
 ## Install
+
+**Requirements:** Claude Code, and **Node.js 18 or newer** on your `PATH` (20 LTS is the tested version) — the
+bundled decision tools run through `npx`. Check with `node --version`; if that
+prints nothing, install Node from [nodejs.org](https://nodejs.org) first.
+Nothing else: no API key, no account, no config file.
 
 In Claude Code:
 
@@ -75,7 +59,14 @@ In Claude Code:
 /plugin install argus@argus
 ```
 
-Restart Claude Code, then start with:
+Restart Claude Code. To confirm the install is wired, run:
+
+```text
+/argus:settings doctor
+```
+
+It is read-only and prints one line per check; anything it cannot verify it says
+plainly rather than guessing. Then start with:
 
 ```text
 /argus:review "Should we migrate from Firestore to Supabase?"
@@ -115,8 +106,19 @@ Installing the plugin is the whole setup — there is no separate init step:
 - **`/argus:settings doctor`** — a read-only self-diagnosis of the install and wiring. It
   repairs nothing; each line names the public tool that can.
 - **Statusline (optional)** — [`statusline/index.js`](./statusline/index.js) reads
-  your local decision records. Enable it with one line in `~/.claude/settings.json`:
-  `"statusLine": { "type": "command", "command": "node ${CLAUDE_PLUGIN_ROOT}/statusline/index.js" }`
+  your local decision records and shows at most one line under the prompt: an
+  overdue check first, silence when there is nothing worth the space. Turn it on
+  with `/argus:settings statusline on`, off again with `statusline off`.
+  That command writes the `statusLine` key into your own
+  `~/.claude/settings.json`, because a plugin cannot: Claude Code honours only
+  `agent` and `subagentStatusLine` from a plugin's settings. It refuses to
+  overwrite a statusline you already run (`--replace` takes it over, after a
+  backup), and it runs the command once before wiring it, so a broken line is
+  never saved. `/argus:settings doctor` reports the state either way.
+  Configuring it by hand also works — but write the **absolute path** to this
+  file, since `${CLAUDE_PLUGIN_ROOT}` expands in plugin components (skills,
+  hooks, monitors, MCP/LSP fields) and **not** in your settings, where it
+  silently collapses to a path that does not exist and blanks the line.
 
 Uninstalling the plugin never deletes your decision records — the files under
 `.argus/` (and `~/.argus`) are your data, not the plugin's.
@@ -147,9 +149,10 @@ Plain language:
 - `check` is the return loop — what is due now, show the original before asking,
   append the user's answer, save a candidate for later (`/argus:check <id>`),
   or re-check premises (`/argus:check premises`).
-- `history` is the record — decision log, one decision's version tree, a neutral
-  chronology, and `/argus:history scan` to recover
-  decisions from past Claude Code chats.
+- `history` is the record — decision log, one decision's version tree
+  (`/argus:history versions`), a principle you author yourself from what recurs
+  (`/argus:history principles`), and `/argus:history scan` to recover decisions
+  from past Claude Code chats.
 - `settings` is setup — language and boss persona, webapp pairing and sync.
 
 Older command names are retired. The former step commands are internal files;
@@ -194,7 +197,7 @@ Nothing is sent before browser approval. Auto-sync can be disabled with
 |---|---|
 | `/argus:review` | You want a decision or artifact pressure-tested by the full reviewer pipeline. |
 | `/argus:check` | A return is due, you want to append an answer, save a candidate (`<id>`), or re-check premises. |
-| `/argus:history` | You want the decision chronology, a version tree (`versions`), or `scan`. |
+| `/argus:history` | You want the decision chronology, a version tree (`versions`), a principle you author (`principles`), or `scan`. |
 | `/argus:settings` | You want to configure Argus or pair/sync the webapp (`connect`, `sync`). |
 | `/argus:help` | You want the shortest command map. |
 
@@ -245,6 +248,9 @@ Review `.argus/` before sharing or committing it.
 ---
 
 ## Development
+
+From the **repository root** (these paths are relative to it, not to this
+folder):
 
 ```bash
 claude --plugin-dir ./argus-plugin-v2

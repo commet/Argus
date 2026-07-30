@@ -322,6 +322,67 @@ for (const p of [path.join(cwd, '.argus', 'ledger', 'ledger.jsonl'), path.join(h
   }
   say('    실제로 돌고 있는 버전의 정본 = argus_check_in의 data.server_version (세션 안에서만 보인다).');
 }
+
+// 11. 상태줄 배선 — "받았는데 켜지지 않은" 표면 (2026-07-30 신설).
+//
+//     플러그인은 메인 statusLine 키를 실을 수 없다 (Claude Code가 플러그인
+//     settings.json에서 받는 건 agent와 subagentStatusLine 둘뿐). 그래서
+//     statusline/index.js는 설치한 모든 사용자에게 내려가고 아무에게서도 켜지지
+//     않는다 — 배선 없이 파일만 도착한 상태가 기본값이고, 그 사실은 어떤 화면
+//     에도 안 뜬다. 이 절이 그 침묵을 한 줄로 바꾼다.
+//
+//     읽기만 한다: 남의 statusLine 명령을 doctor가 실행하지는 않는다 (임의
+//     명령 실행은 진단의 몫이 아니다). 실제로 도는지의 확인은 statusline-wire의
+//     status가 자기 명령에 한해 수행한다.
+{
+  const claudeDir = process.env.CLAUDE_CONFIG_DIR || path.join(os.homedir(), '.claude');
+  const settingsFile = path.join(claudeDir, 'settings.json');
+  const pluginHome = process.env.CLAUDE_PLUGIN_ROOT || path.join(__dirname, '..');
+  const ourScript = path.resolve(pluginHome, 'statusline', 'index.js');
+  say(`[11] 상태줄 배선: ${settingsFile}`);
+
+  let settings = null;
+  let parseError = null;
+  try {
+    const raw = fs.readFileSync(settingsFile, 'utf8');
+    settings = JSON.parse(raw.charCodeAt(0) === 0xfeff ? raw.slice(1) : raw);
+  } catch (e) {
+    parseError = e && e.code === 'ENOENT' ? 'none' : 'broken';
+  }
+
+  if (parseError === 'none') {
+    say('    설정 파일 없음 — 상태줄 꺼짐. 켜려면 /argus:settings statusline on');
+  } else if (parseError === 'broken' || !settings || typeof settings !== 'object') {
+    say('    ⚠ 설정 파일을 읽지 못했다 (JSON 파손 가능) — 상태줄 상태를 판정할 수 없다. 손으로 확인할 것.');
+  } else {
+    const sl = settings.statusLine;
+    const cmd = sl && typeof sl === 'object' ? sl.command : undefined;
+    if (!sl) {
+      say('    꺼짐 — statusLine 키가 없다. 이게 기본값이다(플러그인은 이 키를 대신 실을 수 없다).');
+      say('    켜려면: /argus:settings statusline on');
+    } else if (typeof cmd !== 'string') {
+      say(`    ⚠ statusLine이 있는데 command가 문자열이 아니다 — Claude Code가 무시한다. /argus:settings statusline on --replace`);
+    } else {
+      // 경로만 보고 "우리 것"이라 우기지 않는다 — 대상 파일의 마커를 읽는다.
+      const m = cmd.match(/"([^"]+\.(?:js|mjs|cjs))"|'([^']+\.(?:js|mjs|cjs))'|(\S+\.(?:js|mjs|cjs))/);
+      const target = m ? (m[1] || m[2] || m[3]) : null;
+      let isArgus = false;
+      try { isArgus = fs.readFileSync(target, 'utf8').slice(0, 4096).includes('Argus Status Line'); } catch { /* 못 읽으면 아님 */ }
+      if (!isArgus) {
+        say(`    다른 상태줄이 걸려 있다: ${cmd}`);
+        say('    Argus 것으로 바꿀지는 사용자 판단이다 — /argus:settings statusline on --replace (백업 후 인수).');
+      } else if (path.resolve(target) === ourScript) {
+        say('    켜짐 — 이 플러그인의 상태줄이다. 실제로 도는지까지 보려면 /argus:settings statusline status');
+      } else {
+        say(`    ⚠ 켜졌지만 다른 사본을 가리킨다: ${target}`);
+        say(`    이 플러그인의 정본: ${ourScript} — 맞추려면 /argus:settings statusline on --replace`);
+      }
+      if (target && !fs.existsSync(target)) {
+        say(`    ⚠ 가리키는 파일이 없다 (${target}) — 명령이 실패하면 Claude Code는 상태줄을 빈칸으로 그린다(조용한 고장).`);
+      }
+    }
+  }
+}
 say('');
 say('진단 끝. 이 스크립트는 아무것도 고치지 않았다 — 고치는 방법은 각 줄에 적힌 도구다.');
 
