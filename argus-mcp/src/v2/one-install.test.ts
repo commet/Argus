@@ -186,7 +186,7 @@ describe('premises 스킬 — 미결 질문은 fork로 묻지 않는다 (스파�
   it('미결 질문은 사용자의 말(자유 텍스트)로만 닫힌다고 명시한다', () => {
     expect(body).toMatch(/op=resolve/); // MCP 정본과의 대응을 문서가 못박는다
     expect(body).toMatch(/NO A\/B fork|multiple-choice crux IS a fork/);
-    expect(body).toMatch(/열어둔 채로 둬도 괜찮아요/); // leave-open이 유효한 답
+    expect(body).toMatch(/열어둔 채로 두어도 됩니다/); // leave-open이 유효한 답
   });
 
   it('leave-open은 소비처 없는 이벤트를 만들지 않는다 (LLM-glue: 죽은 와이어 금지)', () => {

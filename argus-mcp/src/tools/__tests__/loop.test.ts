@@ -245,7 +245,7 @@ describe('check_in and today override', () => {
     const r = body(await checkIn.handler({ argus_dir: dir, today_override: '2026-08-16' }));
     const surface = String(r['surface']);
     expect(surface).toMatch(/예측을 저장한 지 \d+일/);
-    expect(surface).toContain('그때 당신은 이렇게 적었습니다');
+    expect(surface).toContain('그때 이렇게 적으셨습니다');
     expect(surface).toContain('지금 뽑는다');
   });
 

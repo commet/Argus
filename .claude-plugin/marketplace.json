@@ -8,14 +8,14 @@
   },
   "metadata": {
     "description": "Argus — keeps important decisions alive as courses.",
-    "version": "3.0.17"
+    "version": "3.0.18"
   },
   "plugins": [
     {
       "name": "argus",
       "source": "./argus-plugin-v2",
       "description": "Captures consequential judgments and their return conditions. Explicit deep review is bounded; standard use has no agent team.",
-      "version": "3.0.17",
+      "version": "3.0.18",
       "license": "MIT",
       "category": "productivity",
       "keywords": [

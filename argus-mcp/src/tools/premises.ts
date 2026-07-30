@@ -459,7 +459,7 @@ async function opAdd(
       // count + ref range (echoing five sentences would bury the confirmation).
       : (events.length === 1
           ? (ko
-              ? `방금 적어뒀습니다: '${oneLine(echo[0]?.text ?? '')}'. 잘못 적혔으면 그대로 말씀해 주세요. 바로잡은 내용도 기록에 남습니다.${monitoredNote}`
+              ? `방금 적어 두었습니다: '${oneLine(echo[0]?.text ?? '')}'. 잘못 적혔으면 그대로 말씀해 주세요. 바로잡은 내용도 기록에 남습니다.${monitoredNote}`
               // The Korean here says "tell me and I'll fix it, and the correction
               // stays on the record too". The English told the PERSON to call
               // `argus_capture` — a tool name they cannot type — and dropped the
@@ -472,7 +472,7 @@ async function opAdd(
 
   const noAnswerNote = noAnswerDraft
     ? (ko
-        ? ` 확인 창이 답을 받지 못해 이 한 줄은 빼두었습니다: "${oneLine(noAnswerDraft)}". 맞으면 말씀만 하세요.`
+        ? ` 확인 창이 답을 받지 못해 이 한 줄은 빼두었습니다: "${oneLine(noAnswerDraft)}". 맞으면 말씀해 주세요.`
         : ` The confirm window gave no answer, so this one was left out: "${oneLine(noAnswerDraft)}". Say the word if it belongs.`)
     : '';
 

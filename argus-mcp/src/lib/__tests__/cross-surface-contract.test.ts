@@ -109,7 +109,7 @@ describe('교차-표면 계약 — 세 두뇌, 같은 대답', () => {
     });
     expect(r.status).toBe(0);
     expect(r.stdout).toContain('alpha ships');
-    expect(r.stdout).toMatch(/1 decision contract|결정 계약/);
+    expect(r.stdout).toMatch(/1 decision contract|확인일이 지난 결정/);
     expect(r.stdout).not.toContain('beta metric');
     expect(r.stdout).not.toMatch(/외 \d+건| 2 /); // one due, not more
   });

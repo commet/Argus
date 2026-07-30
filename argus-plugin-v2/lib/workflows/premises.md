@@ -98,7 +98,7 @@ items (`source:"ai"`) vs how many the user overturned (an `edit` with action
 `refine`/`replace`/`reject`). If there are **≥4 AI items AND the user overturned
 ≥half**, print ONE neutral line (locale), never more:
 > AI가 뽑은 전제를 {{overturned}}/{{ai}} 고쳤어요 — 추출이 과하게 해석하는 것 같으면
-> 한마디 남겨줘요, 그쪽을 손볼게요. [피드백] [괜찮아요]
+> 알려주시면 추출 방식을 조정합니다. [피드백] [괜찮아요]
 
 This calibrates the *extraction*, not the person. It is NOT a principle (principles
 draw only from settled reality — `/argus:history principles` §Reality is the source) and
@@ -151,8 +151,8 @@ firing threshold is high, so silence is the common result.
    node "${CLAUDE_PLUGIN_ROOT}/scripts/decision-ledger.js" premises recheck --id <id> --last-value "<current factual line>"
    ```
 4. **If drifted → fire ONE alert** (literal, a fact + a question, never a verdict):
-   > 전제가 된 사실이 바뀜: "{{premise}}" → {{what changed}}.
-   > 이 결정 다시 볼래요?  [전제 수정] [이 알림 끄기] [넘어가기]
+   > 전제에 움직임: "{{premise}}" → {{what changed}}.
+   > 이 결정을 다시 볼까요?  [전제 수정] [이 알림 끄기] [넘어가기]
    Write the chosen reaction through the CLI (single-source, never hand-written):
    - `전제 수정` → `premises edit --id <id> --action replace --to "<user's wording>"`.
    - `이 알림 끄기` → `premises alert --id <id> --mode off`.
@@ -179,7 +179,7 @@ The only source is the user:
   tilt-tagging makes the violation worse (CLAUDE.md mirror clause, rounds 5–8).**
   1. Present the question verbatim — nothing else framing it.
   2. Ask, as free text (plain prose, NOT an `AskUserQuestion` chip fork):
-     > 지금 다시 본다면, 당신의 말로 어떻게 정리돼요? (열어둔 채로 둬도 괜찮아요 — 그것도 진짜 답이에요.)
+     > 지금 다시 본다면 이 질문에 어떻게 답하시겠어요? (열어둔 채로 두어도 됩니다 — 그것도 진짜 답입니다.)
      Do NOT generate example answers, starting points, or poles to think against —
      even "balanced" ones. The question stands bare; the user fills it.
   3. On a written answer, write an `edit` (`refine`) whose text is the USER's words

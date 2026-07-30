@@ -77,7 +77,7 @@ function harvestQueueStep(payload, home) {
     !i.exhausted && i.attempts < 3 &&
     !(i.lease && i.lease.expires_at > nowIso)).length;
   if (claimable > 0) {
-    return `Argus: 이전 세션에서 자동 포착할 기록 ${claimable}건이 대기 중입니다. 다음 Argus check-in이 제한된 수만 처리합니다.`;
+    return `Argus: 이전 세션에서 자동 포착할 기록 ${claimable}건이 대기 중입니다. 다음 확인 때 순서대로 처리합니다.`;
   }
   return null;
 }

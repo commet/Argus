@@ -2,7 +2,11 @@ const DECISION_KINDS = ["prediction", "commitment", "declaration", "witness"];
 
 const COMMITMENT_PATTERNS = [
   /\b(i\s+(?:will|commit|promise|am going to)|we\s+will)\b/i,
-  /(?:하겠습니다|할게요|합니다|하기로\s*(?:했다|한다)|약속(?:한다|할게|하겠다)|(?:수락|거절|진행|실행|선택)하겠다|지키겠다|하지\s*않겠다)/u,
+  // 정본은 argus-mcp/src/v3/kind.ts 의 같은 이름 상수다 (2026-07-30 동기화).
+  // 이전 판은 맨 `합니다`를 품어 "예상합니다"까지 전부 약속으로 먹었다 —
+  // 정중형 종결어미는 약속 어휘가 아니다. 공용 픽스처
+  // (data/contracts/judgment-foundation-conformance.json)가 이 드리프트를 잡는다.
+  /(?:하겠습니다|할게요|하기로\s*(?:했다|한다|합니다)|약속(?:한다|할게|하겠다)|(?:수락|거절|진행|실행|선택|중단|유지)합니다|(?:수락|거절|진행|실행|선택)하겠다|지키겠다|하지\s*않겠다)/u,
 ];
 
 const DECLARATION_PATTERNS = [

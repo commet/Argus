@@ -37,7 +37,7 @@ describe('M4 surface localization — the 6 dogfood tools', () => {
       argus_dir: dirKo, id: 'd1', decision: '리디자인을 지금 낼지 기다릴지',
       stakes: 'high', reversibility: 'one_way_door', status_quo: '현재 디자인 유지', today_override: TODAY,
     });
-    expect(surface(rKo)).toContain('기록해뒀습니다');
+    expect(surface(rKo)).toContain('기록해 두었습니다');
   });
 
   it('open_decision (RESTRAINT) — ko reason + coda', async () => {

@@ -51,7 +51,7 @@ if (!fs.existsSync(registryFile)) {
     registry = JSON.parse(fs.readFileSync(registryFile, 'utf8'));
     say(`    registry OK — 등록 리포 ${Object.keys(registry.repositories || {}).length}개 (${registryFile})`);
   } catch {
-    say(`    ⚠ registry 파손 — JSON 파싱 실패 (${registryFile}). v2 쓰기는 명시 거절 상태다. 파일을 백업 후 확인할 것.`);
+    say(`    ⚠ registry 파손 — JSON 파싱 실패 (${registryFile}). v2 쓰기는 안전을 위해 멈춘 상태다. 파일을 백업 후 확인할 것.`);
   }
 }
 
@@ -93,7 +93,7 @@ if (repositoryId) {
   say(`[3] 내구 원장: ${ledgerFile}`);
   let lastEventId = null;
   if (!fs.existsSync(ledgerFile)) {
-    say('    원장 파일 없음 — 첫 v2 이벤트 때 태어난다 (미리 만들지 않는 게 정상).');
+    say('    원장 파일 없음 — 첫 v2 이벤트 때 만들어진다 (미리 만들지 않는 게 정상).');
   } else {
     let total = 0, corrupt = 0;
     try {
@@ -115,7 +115,7 @@ if (repositoryId) {
   const logbookFile = path.join(cwd, '.argus', 'LOGBOOK.md');
   say(`[4] LOGBOOK projection: ${logbookFile}`);
   if (!fs.existsSync(logbookFile)) {
-    say('    없음 — 다음 argus_check_in 또는 v2 쓰기에서 태어난다 (원장이 정본이라 손실 아님).');
+    say('    없음 — 다음 argus_check_in 또는 v2 쓰기에서 만들어진다 (원장이 정본이라 손실 아님).');
   } else {
     const m = /<!-- argus:last_event_id=([0-9A-HJKMNP-TV-Z]{26}|none) -->/.exec(fs.readFileSync(logbookFile, 'utf8'));
     if (!m) say('    ⚠ 커서 없음(손으로 고쳐졌거나 파손) — stale. argus_check_in이 재생성한다.');
@@ -132,7 +132,7 @@ if (repositoryId) {
     try {
       const holder = JSON.parse(fs.readFileSync(lockFile, 'utf8'));
       if (pidAlive(holder.pid)) say(`    보유 중 — pid ${holder.pid}, ${holder.started_at}부터. 살아있는 프로세스면 정상(쓰기 중), 오래 지속되면 그 프로세스를 확인.`);
-      else say(`    ⚠ 죽은 pid ${holder.pid}의 잔재 — 다음 쓰기가 자동 탈취한다 (수동 삭제 불필요).`);
+      else say(`    ⚠ 죽은 pid ${holder.pid}의 잔재 — 다음 쓰기가 자동으로 정리한다 (수동 삭제 불필요).`);
     } catch {
       say('    ⚠ 락 파일 파손 — 다음 쓰기의 stale 판정 경로가 처리한다.');
     }
@@ -313,7 +313,7 @@ for (const p of [path.join(cwd, '.argus', 'ledger', 'ledger.jsonl'), path.join(h
     } else {
       for (const f of found) {
         const isStale = exactPin && f.version !== pinned;
-        say(`    캐시 ${f.version}${isStale ? ` — ⚠ 핀(${pinned})과 다르다. 이 세션이 이걸 물고 있으면 낡은 배선이다` : ' (핀과 일치)'} — ${f.dir}`);
+        say(`    캐시 ${f.version}${isStale ? ` — ⚠ 핀(${pinned})과 다르다. 이 세션이 이 사본을 쓰고 있으면 낡은 배선이다` : ' (핀과 일치)'} — ${f.dir}`);
       }
     }
     if (pinned && found.every((f) => f.version !== pinned)) {
@@ -323,7 +323,7 @@ for (const p of [path.join(cwd, '.argus', 'ledger', 'ledger.jsonl'), path.join(h
   say('    실제로 돌고 있는 버전의 정본 = argus_check_in의 data.server_version (세션 안에서만 보인다).');
 }
 say('');
-say('진단 끝. 이 스크립트는 아무것도 고치지 않았다 — 수리 손잡이는 각 줄에 적힌 도구다.');
+say('진단 끝. 이 스크립트는 아무것도 고치지 않았다 — 고치는 방법은 각 줄에 적힌 도구다.');
 
 process.stdout.write(out.join('\n') + '\n');
 process.exit(0);

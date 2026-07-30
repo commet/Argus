@@ -1,5 +1,19 @@
 # Changelog
 
+## 3.0.18 - 2026-07-30
+
+- **Copy sweep across every user-visible plugin surface** (founder's four
+  criteria: unclear, over-metaphorical, translationese, over-colloquial).
+  반말 leaks in clarify templates, the ~할게요/~볼래요 family, "오늘의 당신도"
+  translationese, elicitation/픽커/워커 jargon in doctor lines, "결정 계약"
+  legalese, and the unresolved 이(가) particle placeholder in the ambient nudge
+  are all gone. Sanctioned voyage identity (⚓, 항해일지) stays.
+- **Kind derivation re-synced to the canonical v3 pattern.** The plugin's
+  commitment regex carried a bare 합니다, so every polite Korean sentence —
+  including plain predictions like "…오를 것으로 예상합니다" — classified as a
+  commitment. Pre-existing red on the shared conformance fixture, found by
+  running the full plugin test set; the fixture passes again.
+
 ## 3.0.17 - 2026-07-30
 
 - Premise edit options move to plain noun forms — `그대로 두기` · `다듬어 쓰기`

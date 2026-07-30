@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.0.17 - The copy sweep reaches the terminal surfaces
+
+- Twelve Korean surface strings lose their chatty and translationese edges
+  (그나저나 / ~드릴게요 / ~볼게요 / "이 결정, 기록해뒀습니다" and friends);
+  the seal certificate's ownership lines unify on the product's 내 문장
+  vocabulary ("이 문장은 내 문장입니다" / "아직 내 문장이 아닙니다").
+- "방금 깨진 전제" becomes "방금 움직인 전제" (EN: broke → moved). Broken is a
+  verdict; movement is a fact — the same mirror rule the web alert emails
+  enforce by machine test now holds in the terminal, in both languages.
+
 ## 2.0.16 - The server now teaches every host the chat-approval path
 
 - The server `instructions` (the one spec-sanctioned standing guidance) now

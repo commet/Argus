@@ -86,7 +86,7 @@ AI-surfaced entry among its support, keep it visible ("4건 중 1건은 본인�
 
 **If nothing genuinely recurs** (every settle is a one-off, or Step 2 downgraded
 for scatter): say so in one line and stop — "아직 원칙으로 삼을 만큼 반복되는 건
-안 보여요 (정산 {{T}}건 · {{domains}} 영역) — 더 쌓이면 같이 봐요." Manufacturing a
+안 보여요 (정산 {{T}}건 · {{domains}} 영역) — 더 쌓이면 다시 봅니다." Manufacturing a
 principle on a thin record is a spine violation, not thoroughness.
 
 ## Step 4 — Ratify (the authorship stays with the user)
@@ -99,7 +99,7 @@ nudge:
   `이런 게 반복돼요: "{{evidence}}". 이걸 당신 원칙으로 삼을까요?`
 - Options:
   - `맞아요 — 원칙으로 기록` → ratified
-  - `맞는데 내 말로 다듬을게요` → ratified, but the user supplies the wording
+  - `내 말로 다듬어 기록` → ratified, but the user supplies the wording
   - `아니에요` → discard; note the read was off (this calibrates the *tool*)
   - `잘 모르겠어요` → leave open; resurface after more settles
 

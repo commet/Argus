@@ -86,8 +86,8 @@ describe('seal_text spine (renderSeal)', () => {
     expect(ai).toContain('You have not yet made them yours');
     expect(ai).not.toContain('These words are yours.');
     const aiKo = renderSeal({ ...base, predicate_owner: 'ai_surfaced', locale: 'ko' });
-    expect(aiKo).toContain('아직 당신이 확언하지 않았습니다');
-    expect(aiKo).not.toContain('이 문장은 당신의 것입니다');
+    expect(aiKo).toContain('아직 내 문장이 아닙니다');
+    expect(aiKo).not.toContain('이 문장은 내 문장입니다');
   });
 
   it('carries the quote, both dates, and the day diff from resolveToday', () => {
