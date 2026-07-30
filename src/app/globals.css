@@ -303,6 +303,60 @@ body {
    vanishing. The asset is now a real alpha cutout, so there is nothing to hide
    and no blend to apply; blending here would only muddy the ink. */
 .argus-landing-watch { mix-blend-mode: normal; }
+
+/* USE CASES gallery — three parallel stories sharing ONE baseline grid.
+
+   They tell the same story three times, so their beats have to sit on the same
+   lines. They did not: card 3 opens with a one-line file chip instead of a
+   two-line quote, which lifted its "믿고 간 것" label and its "… 두 달 뒤 …" rule
+   19px above the other two, while `margin-top: auto` on the tail pushed card 2's
+   one-line outcome into the middle of a gap. Three stories zigzagging past each
+   other is what reads as unfinished.
+
+   Six shared rows — chip · decision · premise · "…뒤…" · what changed · Argus
+   returns — with each card a `subgrid` spanning all six. Every beat then aligns
+   by construction, whatever the copy does.
+
+   Only from `md` up. Stacked in one column, subgrid would give each card its own
+   implicit rows (no alignment to gain), and the row-gap needed BETWEEN stacked
+   cards would leak into the six beats inside each one. */
+/* Decision-record card — the two facing columns.
+
+   The divider between them used to be a full-height rule that met the band's
+   top and bottom rules head-on, so the card read as a spreadsheet grid rather
+   than a document. It is now an INSET gutter rule: it stops short of both
+   horizontal rules, which is what separates a typeset column from a table cell.
+   Drawn as a background gradient, so it lives on the second column and simply
+   is not painted when the pair stacks. */
+.dr-cols { display: flex; flex-direction: column; }
+.dr-cols > * + * { border-top: 1px solid var(--bp-ink-faint); }
+@media (min-width: 640px) {
+  .dr-cols { flex-direction: row; }
+  .dr-cols > * { flex: 1 1 0; min-width: 0; }
+  .dr-cols > * + * {
+    border-top: 0;
+    background-image: linear-gradient(var(--bp-ink-faint), var(--bp-ink-faint));
+    background-size: 1px calc(100% - 36px);
+    background-position: left center;
+    background-repeat: no-repeat;
+  }
+}
+
+.uc-gallery { display: flex; flex-direction: column; gap: 20px; }
+@media (min-width: 768px) {
+  .uc-gallery {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-rows: repeat(6, auto);
+    column-gap: 20px;
+    row-gap: 0;
+  }
+  .uc-card {
+    display: grid;
+    grid-template-rows: subgrid;
+    grid-row: span 6;
+  }
+}
 @media (prefers-reduced-motion: reduce) {
   .voyage-anim, .voyage-fog, .argus-presence-breathe,
   .argus-presence-acknowledge, .argus-presence-return,

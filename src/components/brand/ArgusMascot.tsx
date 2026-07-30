@@ -16,10 +16,11 @@ export type ArgusMascotSize = 'sm' | 'md' | 'lg' | 'hero';
  *          nothing to hide behind and reads as a box floating on the page.
  * See the `plate` prop below for why this pairing exists rather than one file.
  */
-const MOMENT: Record<ArgusMoment, { src: string; cut: string; shape: 'portrait' | 'square' | 'wide'; position: string; motion: string }> = {
+const MOMENT: Record<ArgusMoment, { src: string; cut: string; cutAspect: number; shape: 'portrait' | 'square' | 'wide'; position: string; motion: string }> = {
   companion: {
     src: '/images/brand/argus-v2/argus-companion.jpg',
     cut: '/images/brand/argus-v2/argus-companion-cut.webp',
+    cutAspect: 481 / 900,
     shape: 'portrait',
     position: 'object-center',
     motion: 'argus-presence-breathe',
@@ -27,6 +28,7 @@ const MOMENT: Record<ArgusMoment, { src: string; cut: string; shape: 'portrait' 
   witness: {
     src: '/images/brand/argus-v2/argus-canon.jpg',
     cut: '/images/brand/argus-v2/argus-canon-cut.webp',
+    cutAspect: 674 / 900,
     shape: 'square',
     position: 'object-center',
     motion: 'argus-presence-acknowledge',
@@ -34,6 +36,7 @@ const MOMENT: Record<ArgusMoment, { src: string; cut: string; shape: 'portrait' 
   watching: {
     src: '/images/brand/argus-v2/argus-watching.jpg',
     cut: '/images/brand/argus-v2/argus-watching-cut.webp',
+    cutAspect: 809 / 575,
     shape: 'wide',
     position: 'object-center',
     motion: 'argus-presence-breathe',
@@ -41,6 +44,7 @@ const MOMENT: Record<ArgusMoment, { src: string; cut: string; shape: 'portrait' 
   returning: {
     src: '/images/brand/argus-v2/argus-returning.jpg',
     cut: '/images/brand/argus-v2/argus-returning-cut.webp',
+    cutAspect: 738 / 900,
     shape: 'square',
     position: 'object-center',
     motion: 'argus-presence-return',
@@ -48,6 +52,7 @@ const MOMENT: Record<ArgusMoment, { src: string; cut: string; shape: 'portrait' 
   settled: {
     src: '/images/brand/argus-v2/argus-returning.jpg',
     cut: '/images/brand/argus-v2/argus-returning-cut.webp',
+    cutAspect: 738 / 900,
     shape: 'square',
     position: 'object-center',
     motion: 'argus-presence-settle',
@@ -106,6 +111,14 @@ export function ArgusMascot({
   // box edge, which looks like a clipped sticker). Inside a plate the original
   // fills the frame edge to edge, as a mounted plate should.
   const bare = !plate;
+  // A plate-less box must be the ARTWORK's own shape. The SIZE map carries the
+  // plate's aspect (the JPEG's), so a cutout inside it gets letterboxed by
+  // object-contain — 17px of transparent margin on each side of the landing dog,
+  // which left the drawn figure visibly short of the column edge it was supposed
+  // to align with. Drop the width and let the true aspect set it.
+  const sizeClass = bare
+    ? SIZE[config.shape][size].replace(/(^|\s)w-\S+/, '$1w-auto')
+    : SIZE[config.shape][size];
   return (
     <span
       className={[
@@ -113,12 +126,12 @@ export function ArgusMascot({
         plate ? 'overflow-hidden rounded-[14px] bg-[#e9e3d8] shadow-[0_5px_18px_rgba(49,38,23,0.10)]' : '',
         motion === 'auto' ? config.motion : '',
         interactive ? 'argus-presence-interactive' : '',
-        SIZE[config.shape][size],
+        sizeClass,
         className,
       ].filter(Boolean).join(' ')}
       data-argus-moment={moment}
       data-interactive={interactive || undefined}
-      style={style}
+      style={bare ? { aspectRatio: String(config.cutAspect), ...style } : style}
     >
       <Image
         src={bare ? config.cut : config.src}

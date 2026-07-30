@@ -140,9 +140,9 @@ export function UseCases() {
   const renderCard = (c: Case, i: number) => (
     <div
       key={i}
-      className={`flex flex-col ${bk}`}
+      className={`uc-card ${bk}`}
       style={{
-        flex: '1 1 0', minWidth: 0,
+        minWidth: 0,
         background: 'var(--bp-paper)',
         borderRadius: 4,
         padding: 'clamp(20px, 2.4vw, 26px)',
@@ -205,20 +205,19 @@ export function UseCases() {
         <span aria-hidden="true" style={{ flex: 1, borderTop: '1px dashed var(--bp-ink-faint)' }} />
       </div>
 
-      {/* the tap-back — the one gold moment. A tint block (no border, no left bar),
-          the reality shift, then Argus's return as a bare question. Sits at the
-          card's foot (mt-auto) so the three tap-backs line up. */}
-      <div style={{ marginTop: 'auto' }}>
-        {/* What the world actually did. This is the card's pivot — the reader's
-            own "믿고 간 것" has just stopped being true — and it was set in
-            ink-soft at a SMALLER size than the premise it overturns, i.e. no
-            louder than the dashed divider above it. It now carries the card's
-            strongest body weight: the change is the news, the rest is setup. */}
-        <ClauseText
-          as="div"
-          text={L(c.shiftKo, c.shiftEn)}
-          style={{ color: 'var(--bp-ink)', fontSize: 17, lineHeight: 1.5, fontWeight: 700, letterSpacing: '-0.004em', marginBottom: 12 }}
-        />
+      {/* What the world actually did — its own row, so a one-line shift (card 2)
+          no longer floats in the middle of a tail block pushed down by mt-auto.
+          This is the card's pivot: the reader's own "믿고 간 것" has just stopped
+          being true, so it carries the strongest body weight in the card. */}
+      <ClauseText
+        as="div"
+        text={L(c.shiftKo, c.shiftEn)}
+        style={{ color: 'var(--bp-ink)', fontSize: 17, lineHeight: 1.5, fontWeight: 700, letterSpacing: '-0.004em' }}
+      />
+
+      {/* the tap-back — the one gold moment. A tint block (no border, no left
+          bar). Its own row, so the three land on one line whatever sits above. */}
+      <div style={{ marginTop: 12 }}>
         <div
           style={{
             display: 'flex', alignItems: 'flex-start', gap: 9,
@@ -249,14 +248,20 @@ export function UseCases() {
       <PaperGrain opacity={0.04} />
       <div className="relative w-full max-w-5xl mx-auto px-6 md:px-10" style={{ paddingTop: 'clamp(44px, 6vh, 84px)', paddingBottom: 'clamp(44px, 6vh, 84px)' }}>
         {/* eyebrow */}
-        <div className="flex items-center gap-3" style={{ marginBottom: 14 }}>
+        <div className="flex items-center gap-3" style={{ marginBottom: 18 }}>
           <span aria-hidden="true" style={{ width: 26, height: 1, background: 'var(--bp-ink-faint)' }} />
           <span className="bp-mono" style={{ color: 'var(--bp-ink-soft)', fontSize: 12.5, letterSpacing: locale === 'ko' ? '0.1em' : '0.22em', textTransform: 'uppercase', fontWeight: 500 }}>
             {L('USE CASES · 이런 결정에 씁니다', 'USE CASES · decisions people bring')}
           </span>
         </div>
 
-        <div className="flex items-end justify-between gap-8">
+        {/* Header. Was `justify-between`, which parked the text at its own
+            640px measure on the left and shoved a 192px dog to the far right —
+            a 234px hole between them, with nothing establishing that the gap was
+            deliberate. Now a two-column grid: the text column takes the measure
+            it needs, the figure column is exactly as wide as the figure, and the
+            gap between them is one declared value rather than leftover space. */}
+        <div className="grid items-end gap-x-[clamp(24px,4vw,56px)] sm:grid-cols-[minmax(0,1fr)_auto]">
           <div>
             {/* heading — lead with the recognizable feeling, not the mechanism */}
             <ClauseText
@@ -264,7 +269,7 @@ export function UseCases() {
               wrap="balance"
               className={bk}
               text={L('정하고 나면, 세상은 말없이 바뀝니다.', 'You decide — then the world quietly moves on.')}
-              style={{ fontFamily: 'var(--font-display)', color: 'var(--bp-ink)', fontSize: 'clamp(22px, 3.2vw, 32px)', fontWeight: 700, lineHeight: 1.28, letterSpacing: '-0.01em', maxWidth: 680 }}
+              style={{ fontFamily: 'var(--font-display)', color: 'var(--bp-ink)', fontSize: 'clamp(22px, 3.2vw, 32px)', fontWeight: 700, lineHeight: 1.28, letterSpacing: '-0.01em' }}
             />
             {/* The authored newline is layer 1 of the break contract
                 (ClauseText): the sentence that names what Argus does starts its
@@ -276,15 +281,18 @@ export function UseCases() {
                 '믿고 정했던 것이 흔들리거나, 기다리던 때가 오는 순간 — 대개는 아무도 알려주지 않죠.\n그때 Argus가 먼저 당신에게 돌아옵니다. 실제로 이런 순간들이에요.',
                 'What your decision rested on shifts — or the moment you were waiting for finally lands. Usually no one tells you.\nThat’s when Argus comes back to you. Real ones:',
               )}
-              style={{ color: 'var(--bp-ink-soft)', fontSize: 'clamp(15px, 1.5vw, 15px)', lineHeight: 1.65, maxWidth: 620, marginTop: 12 }}
+              style={{ color: 'var(--bp-ink-soft)', fontSize: 'clamp(15px, 1.5vw, 15px)', lineHeight: 1.65, maxWidth: '58ch', marginTop: 16 }}
             />
           </div>
-          {/* plate={false} → the alpha cutout, so the dog stands on the paper
-              instead of inside its own baked cream rectangle. */}
+          {/* plate={false} → the alpha cutout, and (since the box now takes the
+              artwork's own aspect) its right edge is the dog's right edge, so it
+              lands on the same rule as the gallery below instead of 17px short.
+              Sized up from `lg`: at 192x112 it read as a sticker dropped into a
+              large empty column rather than the counterweight to the heading. */}
           <div className="hidden sm:block">
             <ArgusMascot
               moment="watching"
-              size="lg"
+              size="hero"
               motion="still"
               plate={false}
               alt={L('세상의 변화를 지켜보는 Argus', 'Argus keeping watch as the world changes')}
@@ -304,12 +312,16 @@ export function UseCases() {
         </div>
 
         {/* three light cards — a recognition gallery, not a loop diagram */}
-        <div ref={ref} className="mt-9 flex flex-col md:flex-row md:items-stretch gap-5">
+        {/* The parent grid. Six rows — chip · decision · premise · "…뒤…" ·
+            what changed · Argus returns — shared by all three cards, so each
+            beat is one horizontal line across the gallery. Row gaps carry the
+            vertical rhythm that used to live in each child's marginTop. */}
+        <div ref={ref} className="uc-gallery mt-12">
           {CASES.map(renderCard)}
         </div>
 
         {/* the loop in one line + the one quiet product-level honesty */}
-        <p className={bk} style={{ color: 'var(--bp-ink-soft)', fontSize: 13.5, lineHeight: 1.6, marginTop: 24, opacity: 0.9, maxWidth: 720 }}>
+        <p className={bk} style={{ color: 'var(--bp-ink-soft)', fontSize: 13.5, lineHeight: 1.6, marginTop: 32, opacity: 0.9, maxWidth: 720 }}>
           {L(
             '결정의 근거를 기억했다 때가 오면 돌려드려요. 결정은 당신 몫이고, 질문의 치우침도 숨기지 않습니다.',
             'We return what your decision stood on when the time comes. The call is yours; we don’t hide our questions’ lean.',
