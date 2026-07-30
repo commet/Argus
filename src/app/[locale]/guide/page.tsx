@@ -254,11 +254,7 @@ export default function GuidePage() {
                 },
                 {
                   q: '무료로 어디까지 쓰나요?',
-<<<<<<< HEAD
-                  a: '로그인 없이 하루 결정 4~5개 분량, 로그인하면 더 넉넉해요.',
-=======
-                  a: '일반적인 사용 기준으로 로그인 없이 하루 약 2~3개, 로그인하면 약 4~5개 결정을 살펴볼 수 있어요. 문서 검토처럼 긴 작업은 더 빨리 소진될 수 있습니다.',
->>>>>>> origin/main
+                  a: '일반적인 사용 기준으로 로그인 없이 하루 약 4~5개, 로그인하면 약 6~8개 결정을 살펴볼 수 있어요. 문서 검토처럼 긴 작업은 더 빨리 소진될 수 있습니다.',
                 },
                 {
                   q: '결과 확인일이 오면 어디에서 알려주나요?',
@@ -289,11 +285,7 @@ export default function GuidePage() {
                 },
                 {
                   q: 'How much can I use for free?',
-<<<<<<< HEAD
-                  a: 'Without logging in, about 4–5 decisions a day; logging in gives you more room.',
-=======
-                  a: 'For typical use, you can explore about 2–3 decisions a day without logging in and about 4–5 when logged in. Longer work such as document review may use the allowance faster.',
->>>>>>> origin/main
+                  a: 'For typical use, you can explore about 4–5 decisions a day without logging in and about 6–8 when logged in. Longer work such as document review may use the allowance faster.',
                 },
                 {
                   q: 'How will Argus remind me?',

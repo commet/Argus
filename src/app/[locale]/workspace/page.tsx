@@ -708,11 +708,7 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem, fr
                     {/* "회" counts LLM calls, not sessions — a session uses 6–9.
                         Selling "30회" as 30 tries read as a lie by session 3.
                         Speak in the user's unit: decisions. */}
-<<<<<<< HEAD
-                    <span className="text-[var(--text-secondary)]">{locale === 'ko' ? <>로그인 없이 <strong className="text-[var(--text-primary)]">하루 결정 4~5개</strong>를 살펴볼 수 있어요</> : <>Explore <strong className="text-[var(--text-primary)]">4–5 decisions a day</strong> without logging in</>}</span>
-=======
-                    <span className="text-[var(--text-secondary)]">{locale === 'ko' ? <>로그인 없이도 <strong className="text-[var(--text-primary)]">하루 약 2~3개 결정</strong>을 살펴볼 수 있어요</> : <>Explore <strong className="text-[var(--text-primary)]">about 2–3 decisions a day</strong> without logging in</>}</span>
->>>>>>> origin/main
+                    <span className="text-[var(--text-secondary)]">{locale === 'ko' ? <>로그인 없이도 <strong className="text-[var(--text-primary)]">하루 약 4~5개 결정</strong>을 살펴볼 수 있어요</> : <>Explore <strong className="text-[var(--text-primary)]">about 4–5 decisions a day</strong> without logging in</>}</span>
                   </div>
                   <LocaleLink href="/login" className="group -mr-2 inline-flex min-h-11 shrink-0 items-center gap-1 px-2 text-[12px] font-semibold text-[var(--accent)] hover:text-[var(--text-primary)] transition-colors">
                     {L('로그인', 'Log in')} <ChevronRight size={12} className="transition-transform group-hover:translate-x-0.5" />
@@ -1573,11 +1569,7 @@ function WorkspaceContent() {
               <div className="flex items-center gap-2 text-[12px]">
                 <Sparkles size={13} className="text-[var(--accent)] shrink-0" />
                 <span className="text-[var(--text-primary)]">
-<<<<<<< HEAD
-                  {locale === 'ko' ? <>로그인 없이 <strong>하루 결정 4~5개 분량 무료</strong> · <LocaleLink href="/login" className="text-[var(--accent)] font-semibold underline">로그인</LocaleLink>하면 더 넉넉해요</> : <><strong>4–5 decisions/day free</strong> without login · <LocaleLink href="/login" className="text-[var(--accent)] font-semibold underline">log in</LocaleLink> for more</>}
-=======
-                  {locale === 'ko' ? <>일반적인 사용 기준, 로그인 없이 <strong>하루 약 2~3개 결정</strong> · <LocaleLink href="/login" className="text-[var(--accent)] font-semibold underline">로그인</LocaleLink>하면 약 4~5개</> : <>For typical use, <strong>about 2–3 decisions/day</strong> without login · <LocaleLink href="/login" className="text-[var(--accent)] font-semibold underline">log in</LocaleLink> for about 4–5</>}
->>>>>>> origin/main
+                  {locale === 'ko' ? <>일반적인 사용 기준, 로그인 없이 <strong>하루 약 4~5개 결정</strong> · <LocaleLink href="/login" className="text-[var(--accent)] font-semibold underline">로그인</LocaleLink>하면 약 6~8개</> : <>For typical use, <strong>about 4–5 decisions/day</strong> without login · <LocaleLink href="/login" className="text-[var(--accent)] font-semibold underline">log in</LocaleLink> for about 6–8</>}
                 </span>
               </div>
             </div>
