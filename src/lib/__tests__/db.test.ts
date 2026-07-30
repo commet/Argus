@@ -3,7 +3,12 @@ vi.mock('@/lib/supabase', () => ({
   getCurrentUserId: vi.fn(() => Promise.resolve(null)),
 }));
 
-vi.mock('@/lib/storage', () => ({
+// Partial mock: db.ts now reaches storage through account-scope too, which reads
+// STORAGE_KEYS at module load. A hand-listed stub silently drops whatever the real
+// module gains next, so keep the real exports and override only the two accessors
+// these tests assert on.
+vi.mock('@/lib/storage', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/lib/storage')>()),
   getStorage: vi.fn((_key: string, fallback: unknown) => fallback),
   setStorage: vi.fn(),
 }));

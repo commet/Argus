@@ -67,6 +67,8 @@ const CONTRACT: Record<keyof typeof STORAGE_KEYS, Decl> = {
   KNEW_YOU: { localOnly: '세션 만료 인식용 부울 1개(개인정보 없음) — 기기별 상태, 유실 무해(다음 로그인 때 재설정)' },
   THIRD_LOOP_SEEN: { localOnly: '3고리 의식 평생 1회 플래그(부울 1개) — 기기별 UI 상태, 유실 시 의식이 한 번 더 보일 뿐 무해' },
   RETRO_SETTLED: { localOnly: '회고→실봉인 전환 계측 플래그(부울 1개, 베팅③ 항목10) — 기기별 상태, 유실 시 first_real_seal_after_retro가 한 번 덜 잡힐 뿐 무해(사용자 데이터 아님)' },
+  DATA_OWNER: { localOnly: '이 기기 데이터의 주인 {userId,email} — 기기 상태이지 사용자 데이터가 아니다. 서버로 보낼 이유가 없고(계정별 행 소유자는 이미 user_id 컬럼이 정본), 유실되면 도장 없는 브라우저로 돌아갈 뿐 — 그때는 서버가 42501로 확정한 격리(FOREIGN_ROWS)가 대신 잡는다' },
+  FOREIGN_ROWS: { localOnly: '서버가 42501로 "다른 계정 것"이라 확정한 행 id 목록(table→ids) — 무한 재시도를 끊는 파생 캐시. 유실되면 다음 거부 때 다시 채워진다(사용자 데이터 아님)' },
 };
 
 /** 등록부 밖에서 발견됐지만 사유와 함께 허용된 키. 새 항목 추가는 곧
