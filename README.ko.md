@@ -13,7 +13,7 @@ Argus는 유창한 답이나 사후 확신이 덮어쓰기 전에, 결정을 그
 
 <p align="center">
   <a href="https://www.npmjs.com/package/argus-decision-mcp"><img src="https://img.shields.io/npm/v/argus-decision-mcp?color=A8842F&label=npm%20%C2%B7%20argus-decision-mcp" alt="npm 버전"></a>
-  <img src="https://img.shields.io/badge/Claude%20Code%20plugin-argus%402.19.1-667572" alt="Claude Code 플러그인">
+  <img src="https://img.shields.io/badge/Claude%20Code%20plugin-argus%403.0.15-667572" alt="Claude Code 플러그인">
   <img src="https://img.shields.io/badge/license-open--core-6E8261" alt="라이선스: open-core">
   <img src="https://img.shields.io/badge/local--first-계정%20불필요-242321" alt="로컬 우선">
 </p>

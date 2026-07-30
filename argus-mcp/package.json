@@ -1,6 +1,6 @@
 {
   "name": "argus-decision-mcp",
-  "version": "2.0.14",
+  "version": "2.0.15",
   "description": "Argus judgment-record MCP — preserve a user-authorized statement, its return condition, and later answers without scoring the person.",
   "type": "module",
   "main": "dist/index.js",

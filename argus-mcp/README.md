@@ -24,6 +24,12 @@ distinguishes that policy response from a fast intentional decline, so Argus
 must respect it as a decline. Enable MCP elicitations and retry if you need the
 confirmation form.
 
+An AI-drafted **premise** works the same way but has a chat path: when the
+confirm window cannot reach the user (the host closes it unanswered), the draft
+comes back in the response, and once the user approves it in conversation the
+assistant records it by calling again with `chat_confirmed: true` — provenance
+stays `ai_surfaced`.
+
 ### Claude Code
 
 ```bash

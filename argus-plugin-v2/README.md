@@ -97,13 +97,15 @@ legacy Office/HWP formats, export to CSV/PDF first.
 Installing the plugin is the whole setup — there is no separate init step:
 
 - **Decision tools (MCP), wired automatically** — a bundled [`.mcp.json`](./.mcp.json)
-  registers the `argus-decision-mcp` stdio server at an **exact pinned version**,
-  so the decision tools (capture, record, predict, check-in, resolve, patterns,
-  settings) are available to the model immediately. The pin is deliberate: `npx` reuses a
-  cached install whenever the spec is a range, so a `@^1`-style wire can sit
-  frozen on an old build indefinitely. `argus_check_in` reports the version it is
-  actually running (`data.server_version`) and `/argus:settings doctor` compares it to the
-  pin, so a stale wire is visible instead of being felt as missing behavior.
+  registers the `argus-decision-mcp` stdio server **unpinned**, so the decision
+  tools (capture, record, predict, check-in, resolve, patterns, settings) are
+  available immediately and every session launches the current release. Leaving
+  the version off is deliberate: `npx` re-resolves a bare package name against
+  the registry each launch, while a range spec (`@^1`) is satisfied from cache
+  and can sit frozen on an old build indefinitely — and an exact pin freezes
+  there until someone edits it. `argus_check_in` reports the version actually
+  running (`data.server_version`) and `/argus:settings doctor` checks the
+  wiring, so a stale cache is visible instead of being felt as missing behavior.
 - **Quiet hooks** — a session-start check that mentions decisions whose check-by
   date has arrived (and refreshes a stale decision view), plus an ambient trigger
   that may ask about at most one due item

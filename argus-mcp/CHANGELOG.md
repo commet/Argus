@@ -1,5 +1,21 @@
 # Changelog
 
+## 2.0.15 - The retry the confirm window promises is now actually possible
+
+- Measured on headless Claude Code (2026-07-30): the host declares elicitation,
+  then its machinery closes every confirm window in ~0ms. The no-answer
+  response said "once the user confirms in chat, call again" — but the retry
+  re-fired the same window, so an ai-drafted premise could NEVER be recorded on
+  such a host. That dead end quietly rewards the one thing this surface exists
+  to prevent: relabeling the draft `user_stated` to get past the picker.
+- New optional premise field `chat_confirmed`: the caller asserts the user
+  already approved this exact draft in conversation (their explicit yes, or a
+  host-side picker they answered). The confirm window is skipped; provenance
+  stays `ai_surfaced` untouched. Never set for a draft the user has not seen.
+- Hosts whose confirm window actually renders keep the exact old contract:
+  one-tap Accept records, Decline skips, and an unanswered window still
+  records nothing.
+
 ## 2.0.14 - Formal questions without a question mark no longer sit in a premise slot
 
 - The Korean interrogative detector used two bare-jamo alternatives (`ㄹ까`,

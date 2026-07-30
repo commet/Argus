@@ -66,6 +66,7 @@ const zPremiseInput = z.strictObject({
   monitoring_enabled: z.boolean().default(true).describe('Whether Argus should currently re-check/nudge this premise. This does not change whether the premise is important or externally verifiable.'),
   source: z.enum(['ai_surfaced', 'user_stated', 'ai', 'user']).optional().describe('Provenance. Never forge: "user_stated" = the user\'s own words; "ai_surfaced" = model-drafted (requires ai_original). Legacy aliases "user"/"ai" are accepted and normalized. Optional ONLY when from_capture is given (the capture\'s provenance carries over) — otherwise required.'),
   ai_original: z.string().max(400).optional().describe('REQUIRED when source="ai_surfaced": the model\'s original wording, preserved verbatim across later edits.'),
+  chat_confirmed: z.boolean().default(false).describe('TRUE only when the user has ALREADY approved this exact ai_surfaced draft in the conversation (their explicit yes, or a host picker they answered). Skips the one-tap confirm window; provenance stays ai_surfaced. Never set it for a draft the user has not seen — that forges the approval this field asserts.'),
   materiality_rule: zMaterialityRule.optional().describe('Optional: how re-checks decide "did this materially change?". Absent → an under-fire default heuristic (silence when unsure). Define it to be precise (e.g. threshold "drops below 4.0", step "any one-notch credit downgrade").'),
   recheck_cadence_days: z.number().int().min(1).max(365).optional().describe('Optional: how many days between reality re-checks for this fact (M1). Absent → a default derived from the rule type (a moving number is checked more often than slow-moving state). The user pins this; it only moves the DUE nudge, never blocks a recheck.'),
   reponder_cadence_days: z.number().int().min(1).max(365).optional().describe('Optional (kind="open_question" only): how many days between reconsider nudges — a "come back and see if you can answer this yet" timer (M3). Absent → a sensible default. Leaving the question open stays a valid answer; this only moves the nudge, never forces a resolution.'),
@@ -240,7 +241,16 @@ async function opAdd(
   let noAnswerDraft = '';
   {
     const aiDrafts = inputs.filter((p) => normalizePremiseSource(p.source) === 'ai_surfaced');
-    if (aiDrafts.length === 1 && canElicit()) {
+    // chat_confirmed = the retry contract's missing half (2026-07-30, measured).
+    // Both retry hints below say "once the user confirms in chat, call again" —
+    // but the retry re-fired this very window, and on a host whose machinery
+    // answers every elicitation instantly (headless Claude Code returns cancel
+    // in ~0ms; a person cannot read the draft that fast) the draft could NEVER
+    // be recorded. Worse: that dead end rewards relabeling the draft
+    // user_stated to get past the picker — the exact provenance lie this
+    // surface exists to prevent. The flag lets the caller assert the approval
+    // already happened in conversation; provenance stays ai_surfaced.
+    if (aiDrafts.length === 1 && aiDrafts[0].chat_confirmed !== true && canElicit()) {
       const draft = aiDrafts[0];
       const dLocale = resolveResponseLocale(dir, draft.text);
       // Native Accept/Decline (2026-07-24), mirroring seal: Accept → keep
@@ -278,7 +288,7 @@ async function opAdd(
               en: `Say "yes, that one" and I'll record this premise as is: "${draft.text}".`,
             },
             next_actions: ['argus_capture', 'stop'],
-            data: { id, premise_draft: draft.text, retry_hint: 'once the user confirms in chat, call argus_capture again with this premise and source:"ai_surfaced" + ai_original' },
+            data: { id, premise_draft: draft.text, retry_hint: 'once the user confirms in chat, call argus_capture again with this premise, source:"ai_surfaced" + ai_original, and chat_confirmed:true (without it this window fires again)' },
           });
         }
         noAnswerDraft = draft.text;
@@ -297,7 +307,7 @@ async function opAdd(
             next_actions: ['stop'],
             data: {
               recorded: false, choice: 'declined', id, premise_draft: draft.text,
-              retry_hint: 'the draft is preserved here; if the user asks for it again, call argus_capture with this premise and source:"ai_surfaced" + ai_original',
+              retry_hint: 'the draft is preserved here; if the user asks for it again, call argus_capture with this premise, source:"ai_surfaced" + ai_original, and chat_confirmed:true',
             },
           });
         }

@@ -34,6 +34,7 @@ const premiseInput = z.strictObject({
   monitoring_enabled: z.boolean().default(true).describe('이 전제를 현재 다시 확인하거나 알려줄지 정합니다. 꺼도 중요도나 검증 가능성은 바뀌지 않습니다.\n\nWhether Argus should currently re-check or nudge this premise. Turning it off does not change importance or verifiability.'),
   source: z.enum(['user_stated', 'ai_surfaced']).describe('필수: 이 문장을 말한 주체입니다. user_stated=사용자의 말, ai_surfaced=AI가 제시한 말(이때 ai_original도 함께). 사용자의 말을 AI의 말로 바꾸지 않습니다.'),
   ai_original: z.string().max(400).describe('source=ai_surfaced이면 필수: AI가 처음 제시한 원문입니다. Required with ai_surfaced.').optional(),
+  chat_confirmed: z.boolean().default(false).describe('사용자가 이 초안을 대화에서 이미 승인한 경우에만 true입니다. 확인창을 건너뛰고 ai_surfaced 표기 그대로 기록합니다. 사용자가 보지 않은 초안에는 절대 쓰지 않습니다.\n\nTRUE only when the user already approved this exact draft in conversation; skips the confirm window, provenance stays ai_surfaced.'),
   recheck_cadence_days: z.number().int().min(1).max(365).describe('이 사실을 다시 확인할 간격(일)입니다.').optional(),
   reconsider_cadence_days: z.number().int().min(1).max(365).describe('미결 질문을 다시 볼 간격(일)입니다.').optional(),
 }).superRefine((value, ctx) => {
