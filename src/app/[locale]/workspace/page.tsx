@@ -42,6 +42,8 @@ import { ErrorBoundary } from '@/components/layout/ErrorBoundary';
 import { parsePartialAnalysis } from '@/lib/partial-analysis';
 import { ArgusCompanionNote } from '@/components/brand/ArgusCompanionNote';
 import { Modal } from '@/components/ui/Modal';
+import { LIGHT_PATH_ENABLED } from '@/lib/light-path/light-engine';
+import type { LightDeepenContext } from '@/components/workspace/light/LightFlow';
 
 type InitialAnalysisResult = Awaited<ReturnType<typeof import('@/lib/progressive-engine').runInitialAnalysis>>;
 
@@ -64,6 +66,7 @@ const SynthesizeStep = dynamic(() => import('@/components/workspace/SynthesizeSt
 const ProgressiveFlow = dynamic(() => import('@/components/workspace/progressive/ProgressiveFlow').then((module) => module.ProgressiveFlow), { loading: WorkspaceChunkLoading });
 const InteractiveDemo = dynamic(() => import('@/components/workspace/InteractiveDemo').then((module) => module.InteractiveDemo), { loading: WorkspaceChunkLoading });
 const RetroSeal = dynamic(() => import('@/components/workspace/RetroSeal').then((module) => module.RetroSeal), { loading: WorkspaceChunkLoading });
+const LightFlow = dynamic(() => import('@/components/workspace/light/LightFlow').then((module) => module.LightFlow), { loading: WorkspaceChunkLoading });
 
 /** Stable empty-array fallback for the sessionBranches selector — a fresh `[]`
  *  literal on every render makes zustand see a new snapshot each time → React's
@@ -332,8 +335,11 @@ function ProgressiveLayout({ projectId, projectName, onReset }: { projectId: str
 
 /* EASE — imported from shared/constants */
 
-/* ─── HeroFlow: idle → assembling → analyzing → ready ─── */
-type HeroPhase = 'idle' | 'retro' | 'binding' | 'assembling' | 'analyzing' | 'ready';
+/* ─── HeroFlow: idle → (gating → light | binding) → assembling → analyzing → ready ───
+   'gating' + 'light' are the light-path (가벼운 길) seam: one fast routing call
+   decides whether an everyday decision gets the conversational LightFlow instead
+   of the full heavy pipeline. 'heavy' falls through to the unchanged flow. */
+type HeroPhase = 'idle' | 'retro' | 'gating' | 'light' | 'binding' | 'assembling' | 'analyzing' | 'ready';
 
 function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem, freshStart = false }: {
   onReady: (projectId: string) => void;
@@ -376,6 +382,9 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem, fr
   // 꾸리는 중'에서 영구 동결). One swap, no race.
   const analysisSettledRef = React.useRef<{ result?: InitialAnalysisResult; error?: unknown } | null>(null);
   const pendingTextRef = React.useRef<string>('');
+  // Light path (가벼운 길): the first beat (mirror + question) returned by the
+  // SAME gate call that routed here — no second call before the light screen.
+  const [lightOpening, setLightOpening] = useState<{ mirror: string; question: string } | null>(null);
   const searchParams = useSearchParams();
 
   // 착륙 등불 (P0-6 ②) — the landing surface finally knows about the return.
@@ -438,10 +447,27 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem, fr
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialProblem]);
 
+  // Fire the (heavy) analysis buffered behind the BindCard — the song is captured
+  // but not heard until the rope is tied. The promise never rejects — it settles
+  // to { result } | { error } so an early failure during binding is surfaced only
+  // when the user proceeds.
+  const beginBufferedAnalysis = (text: string) => {
+    const controller = new AbortController();
+    analyzeAbortRef.current = controller;
+    analysisSettledRef.current = null;
+    analysisRef.current = startAnalysis(text, controller);
+    analysisRef.current.then((s) => { analysisSettledRef.current = s; });
+  };
+
   // Phase 1 BIND — submit no longer goes straight into generation. It fires the
   // initial analysis IN PARALLEL (buffered, not revealed) and shows the BindCard so
   // the user can tie their own rope BEFORE hearing the AI ("rope before the Sirens").
   // proceedAfterBind() then reveals the assembling/analyzing beat and finalizes.
+  //
+  // Light-path seam (the ONLY routing edit): when enabled, ONE fast gate call runs
+  // FIRST. 'light' → render LightFlow and skip the heavy analysis call entirely
+  // (no bind ceremony on an everyday decision). 'heavy' (or any gate failure) →
+  // the existing behavior above, unchanged.
   const handleSubmit = (directText?: string) => {
     const text = (directText || problemInput).trim();
     if (!text || phase !== 'idle') return;
@@ -453,17 +479,53 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem, fr
     setPreviewPersonas(pool.slice(0, 4));
     track('workspace_problem_submit', { text_length: text.length, source: 'hero_flow' });
 
-    // Fire the analysis now; its stream is buffered (BindCard doesn't render it),
-    // so the song is captured but not heard until the rope is tied. The promise
-    // never rejects — it settles to { result } | { error } so an early failure
-    // during binding is surfaced only when the user proceeds.
-    const controller = new AbortController();
-    analyzeAbortRef.current = controller;
-    analysisSettledRef.current = null;
-    analysisRef.current = startAnalysis(text, controller);
-    analysisRef.current.then((s) => { analysisSettledRef.current = s; });
+    if (LIGHT_PATH_ENABLED) {
+      const controller = new AbortController();
+      analyzeAbortRef.current = controller;
+      analysisSettledRef.current = null;
+      setPhase('gating');
+      import('@/lib/light-path/light-engine')
+        .then(({ runLightGate }) => runLightGate(text, locale, controller.signal))
+        .then((gate) => {
+          if (controller.signal.aborted || phaseRef.current !== 'gating') return;
+          track('light_gate_routed', { need: gate.need });
+          if (gate.need === 'light' && gate.mirror && gate.question) {
+            setLightOpening({ mirror: gate.mirror, question: gate.question });
+            setPhase('light');
+            return;
+          }
+          beginBufferedAnalysis(text);
+          setPhase('binding');
+        })
+        .catch(() => {
+          // runLightGate never throws by contract; this is a chunk-load backstop.
+          if (controller.signal.aborted || phaseRef.current !== 'gating') return;
+          beginBufferedAnalysis(text);
+          setPhase('binding');
+        });
+      return;
+    }
 
+    beginBufferedAnalysis(text);
     setPhase('binding');
+  };
+
+  // Light → heavy handoff: escalation accept, the "더 깊이 보기" correction link,
+  // or a deterministic crisis fire on a light answer. The light Q&A travels
+  // INSIDE the problem text (composeDeepenText) — that is the wire the heavy
+  // flow actually reads (createSession / runInitialAnalysis). Crisis skips the
+  // bind ceremony and goes straight through; runInitialAnalysis re-fires
+  // classifyCrisis on this text, so the EXISTING crisis surface owns it.
+  const handleLightDeepen = (ctx: LightDeepenContext) => {
+    pendingTextRef.current = ctx.text;
+    setError(null);
+    setLightOpening(null);
+    beginBufferedAnalysis(ctx.text);
+    if (ctx.reason === 'crisis') {
+      void proceedAfterBind(null, { source: 'light_crisis' });
+    } else {
+      setPhase('binding');
+    }
   };
 
   const startAnalysis = (text: string, controller: AbortController) =>
@@ -486,7 +548,10 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem, fr
     })).then((result) => ({ result })).catch((error) => ({ error }));
 
   // Called by BindCard. `bind` = the rope (lean + check-in) or null on skip.
-  const proceedAfterBind = async (bind: BindResult | null) => {
+  // `opts.source === 'light_crisis'` = the light path routing a crisis answer
+  // straight through (no BindCard was shown) — skip the bind funnel event so
+  // the telemetry never claims a bind the user was never offered.
+  const proceedAfterBind = async (bind: BindResult | null, opts?: { source?: 'bind' | 'light_crisis' }) => {
     const text = pendingTextRef.current;
     const controller = analyzeAbortRef.current;
     if (!text || !controller) { setPhase('idle'); return; }
@@ -494,12 +559,14 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem, fr
     // The opening capture is a PRE-REVIEW BASELINE, not the closing seal. Keep
     // its analytics separate so the funnel cannot count one decision as sealed
     // twice or teach the UI the wrong mental model.
-    track('bind_resolved', {
-      committed: !!bind,
-      has_lean: !!bind?.lean,
-      has_date: !!(bind?.interval || bind?.check_in_at),
-      anonymous: !user,
-    });
+    if (opts?.source !== 'light_crisis') {
+      track('bind_resolved', {
+        committed: !!bind,
+        has_lean: !!bind?.lean,
+        has_date: !!(bind?.interval || bind?.check_in_at),
+        anonymous: !user,
+      });
+    }
 
     // Reveal the team-assembling → analyzing beat ONLY while we genuinely wait.
     // If the buffered analysis already settled (typical: a quota 429 that failed
@@ -1171,6 +1238,50 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem, fr
                   </p>
                 </div>
               )}
+            </motion.div>
+          )}
+
+          {/* ═══ GATING: 가벼운 길 판별 — one fast call decides light vs heavy ═══ */}
+          {phase === 'gating' && (
+            <motion.div key="gating" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              transition={{ duration: 0.3, ease: EASE }} className="pt-8 md:pt-16">
+              <div className="flex items-center gap-3 px-5 py-3 rounded-full bg-[var(--bg)] border border-[var(--border-subtle)] w-fit max-w-full mb-8">
+                <div className="w-5 h-5 rounded-full bg-[var(--text-primary)] flex items-center justify-center shrink-0">
+                  <span className="text-[var(--bg)] text-[12.5px] font-bold">{L('나', 'Me')}</span>
+                </div>
+                <p className="text-[13px] text-[var(--text-secondary)] truncate">{problemInput}</p>
+              </div>
+              <div className="flex items-center gap-2 px-1" aria-live="polite">
+                <motion.div animate={{ rotate: 360 }} transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}>
+                  <Sparkles size={14} className="text-[var(--accent)]" />
+                </motion.div>
+                <span className="text-[12.5px] text-[var(--text-secondary)]">{L('읽고 있어요', 'Reading')}</span>
+                <button
+                  type="button"
+                  onClick={() => { analyzeAbortRef.current?.abort(); setPhase('idle'); }}
+                  className="ml-auto text-[12.5px] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] underline underline-offset-2 cursor-pointer transition-colors"
+                >
+                  {L('취소', 'Cancel')}
+                </button>
+              </div>
+            </motion.div>
+          )}
+
+          {/* ═══ LIGHT: 가벼운 길 — 비추기 → 묻기 → 남기기 ═══ */}
+          {phase === 'light' && lightOpening && (
+            <motion.div key="light" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              transition={{ duration: 0.35, ease: EASE }} className="pt-4 md:pt-10">
+              <LightFlow
+                problemText={pendingTextRef.current}
+                opening={lightOpening}
+                onDeepen={handleLightDeepen}
+                onClose={() => {
+                  setLightOpening(null);
+                  setProblemInput('');
+                  setStreamingText('');
+                  setPhase('idle');
+                }}
+              />
             </motion.div>
           )}
 

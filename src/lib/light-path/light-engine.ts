@@ -1,0 +1,490 @@
+/**
+ * Light path (가벼운 길) — the conversational route for everyday decisions.
+ *
+ * Three beats, fixed rhythm, variable depth:
+ *   비추기 (mirror in the user's own words, name gaps honestly)
+ *   → 묻기 (ONE question at a time, max 2 total, free text only, NO tap options)
+ *   → 남기기 (offer ONE falsifiable line + a check date; declining is also completion).
+ *
+ * Structural invariants (code-enforced, not prompt-hoped):
+ *   - The deterministic crisis gate (classifyCrisis) runs BEFORE every LLM call —
+ *     on the opening text and on every subsequent answer. On fire the light flow
+ *     stops and the existing crisis surface owns it (never the light prompt).
+ *   - Max 2 questions per session is a HARD code clamp (coerceLightTurn), not a
+ *     prompt request. After 2, the turn is forced to offer or a plain close.
+ *   - The engine schema has NO options field (the anti-술 invariant): the model
+ *     cannot hand the user tap choices, and a stray `options` array in its JSON
+ *     is dropped by coercion. Answers are always the user's own words.
+ *   - Honest gap over fabrication: a turn that claims "offer" without a sentence
+ *     degrades to a plain close — we never invent the leave-behind line.
+ *   - When unsure → heavy. NOTE: this is deliberately the REVERSE of the ambient
+ *     under-fire default — here the user explicitly asked, and under-treating a
+ *     heavy decision is worse than ceremony on a light one.
+ *
+ * The seal (걸어둘게요) reuses the EXISTING decision-contract machinery: the
+ * record lands on project.decision_contract (projects table) with check_in_at,
+ * so it enters the same return loop every surface reads (useDueCount, /project
+ * due strip, checkin-due cron emails). No new storage keys, tables, or fields.
+ */
+
+import { callLLMJson } from '@/lib/llm';
+import { classifyCrisis, type CrisisSignal } from '@/lib/crisis-gate';
+import { sanitizeForPrompt } from '@/lib/persona-prompt';
+import type { Locale } from '@/lib/i18n';
+import {
+  buildEarlyContract,
+  webAiAttribution,
+  webUserAttribution,
+  adoptionLineageForSeal,
+} from '@/lib/decision-contract';
+import type { DecisionContract } from '@/stores/types';
+
+/** Kill switch — set to false to route every submission to the heavy flow. */
+export const LIGHT_PATH_ENABLED = true;
+
+export const LIGHT_MAX_QUESTIONS = 2;
+export const LIGHT_DAYS_MIN = 1;
+export const LIGHT_DAYS_MAX = 14;
+/** Attribution source_ref stamped on light-path seals. */
+export const LIGHT_SEAL_SOURCE_REF = 'workspace:light_path_seal';
+
+// ─── Types ───
+
+export interface LightQA {
+  question: string;
+  answer: string;
+}
+
+export type LightWhen = 'tonight' | 'tomorrow_morning' | 'this_weekend' | 'in_days';
+
+export interface LightOffer {
+  sentence: string;
+  when: LightWhen;
+  days?: number;
+}
+
+export interface LightGateResult {
+  need: 'light' | 'heavy';
+  /** Present only when need==='light' — the SAME call already produced the first beat. */
+  mirror?: string;
+  question?: string;
+}
+
+/** 'close' is a code-side outcome (clamp/degenerate output), never requested from the LLM. */
+export type LightAction = 'ask' | 'offer' | 'escalate' | 'close';
+
+export interface LightTurn {
+  mirror: string;
+  action: LightAction;
+  question?: string;
+  offer?: LightOffer;
+  escalate?: { bigger_question: string };
+  /** Deterministic pre-empt — set by classifyCrisis in code, NEVER by the LLM.
+   *  When present the caller must stop the light flow and route to the existing
+   *  crisis surface. */
+  crisis?: CrisisSignal;
+}
+
+// ─── System prompt (approved verbatim — do not rephrase) ───
+
+const LIGHT_RULES_KO = `당신은 Argus — 판단을 비추는 거울입니다. 사용자가 일상의 결정을 한 줄 던졌습니다.
+
+절대 규칙:
+1. 닻: 사용자의 상황이라고 말할 수 있는 것은 사용자가 실제로 쓴 것뿐입니다. 안 한 말을 상황으로 만들지 마세요 (예: '파티'에서 '술'을 연상해 언급하는 것 금지). 모르는 것은 모른다고 말하거나 질문하세요.
+2. 판정 금지: 어느 쪽이 낫다고 말하지 않습니다. 결정을 가르는 변수 하나를 이름 붙여 돌려줄 뿐입니다.
+3. 질문은 한 번에 하나, 전체 최대 2개. 답이 당신의 다음 말을 실제로 바꿀 질문만. 안 바꿀 거면 묻지 말고 남기기로 가세요.
+4. 보기(선택지)를 만들지 않습니다. 답은 사용자가 자기 말로 씁니다.
+5. 말투: 다정한 해요체, 친구처럼 짧게. 보고서 톤·번역체 금지.
+   ✗ "컨디션 관리 차원의 접근이 필요해요" ✓ "내일 피곤만 아니면 되는 거네요"
+   ✗ "~에 대한 우려가 있으시군요" ✓ "그게 걸리시는 거군요"
+6. 놀라울 필요 없습니다. 정확하면 됩니다. 연구·통계·숫자를 지어내지 마세요.
+7. 남기기 문장은 나중에 현실이 참/거짓을 답할 수 있는 한 문장, 사용자의 말을 재료로 만듭니다. 일상 결정의 확인 시점 기본값은 내일 아침입니다.
+8. 무거움 신호(반복되는 괴로움, 관계·건강·돈의 큰 갈림, 되돌리기 어려움)가 보이면 escalate: 더 큰 질문을 한 줄로 이름 붙여 제안만 하세요. 강요하지 않습니다.`;
+
+/** Faithful EN variant of the approved KO core — same rules, same order. */
+const LIGHT_RULES_EN = `You are Argus — a mirror for judgment. The user just tossed you an everyday decision in a line.
+
+Absolute rules:
+1. Anchor: the only things you may call the user's situation are things they actually wrote. Never turn what they didn't say into their situation (e.g. never mention 'drinks' just because they wrote 'party'). If you don't know something, say you don't know or ask.
+2. No verdicts: never say which side is better. You only name the one variable the decision turns on and hand it back.
+3. One question at a time, at most 2 in total. Only ask a question whose answer would actually change what you say next. If it wouldn't, don't ask — go to the leave-behind line.
+4. Never create answer options (multiple choice). The user writes the answer in their own words.
+5. Tone: warm and casual, short like a friend. No report tone, no translationese.
+   ✗ "This calls for a condition-management approach" ✓ "So it's fine as long as you're not wrecked tomorrow"
+   ✗ "I sense you have concerns regarding this" ✓ "So that's the part that nags you"
+6. You don't need to be surprising. You need to be accurate. Never invent studies, statistics, or numbers.
+7. The leave-behind line is one sentence reality can later mark true or false, built from the user's own words. For everyday decisions the default check time is tomorrow morning.
+8. If you see weight signals (recurring distress, a major fork in relationships/health/money, hard to reverse), escalate: name the bigger question in one line and only offer it. Never push.`;
+
+const GATE_SECTION_KO = `
+
+[분류 기준]
+light = 일상의 결정: 걸린 것이 작고, 되돌릴 수 있고, 개인적인 말투.
+heavy = 업무 산출물, 외부 청중, 큰 이해관계, 되돌리기 어려움, 위기에 가까움, 또는 사용자가 공들여 쓴 여러 문단.
+확신이 없으면 heavy로 분류하세요. 무거운 결정을 가볍게 다루는 해가 가벼운 결정에 의식을 치르는 해보다 큽니다.
+
+[출력]
+JSON만 출력하세요. 다른 텍스트 금지:
+{"need":"light" 또는 "heavy","mirror":"...","question":"..."}
+need가 "light"일 때만: mirror = 비추기(사용자의 말로 상황을 되비추고, 모르는 것은 모른다고 정직하게 이름 붙이기), question = 첫 질문 하나(규칙 3·4 준수). need가 "heavy"면 mirror와 question은 생략하세요.`;
+
+const GATE_SECTION_EN = `
+
+[Routing criterion]
+light = an everyday decision: low stakes, reversible, personal register.
+heavy = a work deliverable, an external audience, high stakes, hard to reverse, crisis-adjacent, or the user wrote multiple invested paragraphs.
+When unsure, classify heavy. Under-treating a heavy decision is worse than ceremony on a light one.
+
+[Output]
+Output JSON only. No other text:
+{"need":"light" or "heavy","mirror":"...","question":"..."}
+Only when need is "light": mirror = the mirror beat (reflect the situation in the user's own words, honestly naming what you don't know), question = the ONE first question (rules 3 and 4). When "heavy", omit mirror and question.`;
+
+function nextSectionKo(questionsAsked: number): string {
+  const budget = questionsAsked >= LIGHT_MAX_QUESTIONS
+    ? '질문 예산을 다 썼습니다. 더 묻지 마세요 — action은 "offer" 또는 "escalate"만 가능합니다.'
+    : `남은 질문 기회는 ${LIGHT_MAX_QUESTIONS - questionsAsked}개입니다.`;
+  return `
+
+[지금 상황]
+사용자가 지금까지 질문 ${questionsAsked}개에 답했습니다. ${budget}
+
+[출력]
+JSON만 출력하세요. 다른 텍스트 금지:
+{"mirror":"...","action":"ask" 또는 "offer" 또는 "escalate","question":"...","offer":{"sentence":"...","when":"tonight" 또는 "tomorrow_morning" 또는 "this_weekend" 또는 "in_days","days":숫자},"escalate":{"bigger_question":"..."}}
+- mirror: 방금 답을 반영해 상황을 다시 비추는 한두 문장 (규칙 1·5).
+- action "ask": question에 다음 질문 하나만 (규칙 3·4).
+- action "offer": offer.sentence에 규칙 7의 남기기 한 문장, when에 확인 시점 ("in_days"면 days는 1~14).
+- action "escalate": 규칙 8. escalate.bigger_question에 더 큰 질문 한 줄.`;
+}
+
+function nextSectionEn(questionsAsked: number): string {
+  const budget = questionsAsked >= LIGHT_MAX_QUESTIONS
+    ? 'The question budget is spent. Do not ask anything else — action must be "offer" or "escalate".'
+    : `You have ${LIGHT_MAX_QUESTIONS - questionsAsked} question(s) left.`;
+  return `
+
+[Where we are]
+The user has answered ${questionsAsked} question(s) so far. ${budget}
+
+[Output]
+Output JSON only. No other text:
+{"mirror":"...","action":"ask" or "offer" or "escalate","question":"...","offer":{"sentence":"...","when":"tonight" or "tomorrow_morning" or "this_weekend" or "in_days","days":number},"escalate":{"bigger_question":"..."}}
+- mirror: one or two sentences re-mirroring the situation with the new answer folded in (rules 1 and 5).
+- action "ask": exactly one next question in question (rules 3 and 4).
+- action "offer": the rule-7 leave-behind sentence in offer.sentence, the check time in when (for "in_days", days is 1 to 14).
+- action "escalate": rule 8 — the bigger question, one line, in escalate.bigger_question.`;
+}
+
+/** Build the light-path system prompt. Exported for the contract test. */
+export function buildLightSystemPrompt(
+  locale: Locale,
+  phase: 'gate' | 'next',
+  questionsAsked = 0,
+): string {
+  const rules = locale === 'ko' ? LIGHT_RULES_KO : LIGHT_RULES_EN;
+  if (phase === 'gate') return rules + (locale === 'ko' ? GATE_SECTION_KO : GATE_SECTION_EN);
+  return rules + (locale === 'ko' ? nextSectionKo(questionsAsked) : nextSectionEn(questionsAsked));
+}
+
+/** User prompt for the gate call. Exported for tests. */
+export function buildLightGateUserPrompt(problemText: string, locale: Locale): string {
+  const header = locale === 'ko' ? '사용자가 방금 쓴 것:' : 'What the user just wrote:';
+  return `${header}\n<user-data context="decision">\n${sanitizeForPrompt(problemText)}\n</user-data>`;
+}
+
+/** User prompt for subsequent turns. Exported for tests. */
+export function buildLightNextUserPrompt(
+  problemText: string,
+  qas: LightQA[],
+  locale: Locale,
+): string {
+  const ko = locale === 'ko';
+  const qaLines = qas
+    .map((qa, i) => `Q${i + 1}. ${sanitizeForPrompt(qa.question)}\nA${i + 1}. ${sanitizeForPrompt(qa.answer)}`)
+    .join('\n');
+  return [
+    ko ? '사용자가 처음 쓴 것:' : 'What the user first wrote:',
+    `<user-data context="decision">\n${sanitizeForPrompt(problemText)}\n</user-data>`,
+    '',
+    ko ? '지금까지의 문답 (질문은 당신, 답은 사용자):' : 'The exchange so far (questions were yours, answers are the user\'s):',
+    `<user-data context="answers">\n${qaLines}\n</user-data>`,
+  ].join('\n');
+}
+
+// ─── Defensive coercion (CLAUDE.md: LLM output may omit fields / add junk) ───
+
+function asTrimmedString(v: unknown): string {
+  return typeof v === 'string' ? v.trim() : '';
+}
+
+export function clampLightDays(v: unknown): number | undefined {
+  const n = typeof v === 'number' ? v : typeof v === 'string' ? Number(v) : NaN;
+  if (!Number.isFinite(n)) return undefined;
+  return Math.min(LIGHT_DAYS_MAX, Math.max(LIGHT_DAYS_MIN, Math.round(n)));
+}
+
+function coerceOffer(v: unknown): LightOffer | undefined {
+  if (!v || typeof v !== 'object') return undefined;
+  const o = v as Record<string, unknown>;
+  const sentence = asTrimmedString(o.sentence);
+  if (!sentence) return undefined; // honest gap: no sentence, no offer — never fabricate
+  let when: LightWhen =
+    o.when === 'tonight' || o.when === 'this_weekend' || o.when === 'in_days' || o.when === 'tomorrow_morning'
+      ? o.when
+      : 'tomorrow_morning'; // rule 7 default
+  let days: number | undefined;
+  if (when === 'in_days') {
+    days = clampLightDays(o.days);
+    if (days === undefined) when = 'tomorrow_morning'; // in_days without a usable number → default check time
+  }
+  return { sentence, when, ...(days !== undefined ? { days } : {}) };
+}
+
+/** Gate coercion. Anything short of a renderable light opening falls to heavy. */
+export function coerceLightGate(raw: unknown): LightGateResult {
+  if (!raw || typeof raw !== 'object') return { need: 'heavy' };
+  const r = raw as Record<string, unknown>;
+  if (r.need !== 'light') return { need: 'heavy' };
+  const mirror = asTrimmedString(r.mirror);
+  const question = asTrimmedString(r.question);
+  // 'light' without both beats cannot be rendered — fall through to heavy
+  // (when unsure → heavy) instead of fabricating the missing beat.
+  if (!mirror || !question) return { need: 'heavy' };
+  return { need: 'light', mirror, question };
+}
+
+/**
+ * Turn coercion + the HARD clamps. `questionsAsked` = number of already-answered
+ * questions in this session; at LIGHT_MAX_QUESTIONS a further 'ask' is forced to
+ * 'offer' (when the model supplied one) or a plain 'close' — never a third question.
+ * NOTE: any `options` field the model emits is structurally dropped (anti-술
+ * invariant — the light path never renders generated choices).
+ */
+export function coerceLightTurn(raw: unknown, questionsAsked: number): LightTurn {
+  const r = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
+  const mirror = asTrimmedString(r.mirror);
+  const question = asTrimmedString(r.question);
+  const offer = coerceOffer(r.offer);
+  const esc = r.escalate && typeof r.escalate === 'object'
+    ? asTrimmedString((r.escalate as Record<string, unknown>).bigger_question)
+    : '';
+  const escalate = esc ? { bigger_question: esc } : undefined;
+
+  let action: LightAction;
+  if (r.action === 'ask' || r.action === 'offer' || r.action === 'escalate' || r.action === 'close') {
+    action = r.action;
+  } else {
+    // Missing/garbled action: infer from what was actually produced.
+    action = question ? 'ask' : offer ? 'offer' : escalate ? 'escalate' : 'close';
+  }
+
+  // Hard clamp: max 2 questions per session, and an 'ask' without a question is empty.
+  if (action === 'ask' && (questionsAsked >= LIGHT_MAX_QUESTIONS || !question)) {
+    action = offer ? 'offer' : 'close';
+  }
+  // Honest gaps: a claimed beat without its payload degrades, never fabricates.
+  if (action === 'offer' && !offer) action = escalate ? 'escalate' : 'close';
+  if (action === 'escalate' && !escalate) action = offer ? 'offer' : 'close';
+
+  return {
+    mirror,
+    action,
+    ...(action === 'ask' ? { question } : {}),
+    ...(action === 'offer' && offer ? { offer } : {}),
+    ...(action === 'escalate' && escalate ? { escalate } : {}),
+  };
+}
+
+// ─── Engine calls ───
+
+/**
+ * ONE fast call that both routes AND, when light, returns the first beat
+ * (mirror + question) — no second call. The deterministic crisis classifier
+ * runs FIRST (zero tokens on a crisis input; the existing crisis handling owns
+ * it via the heavy path). Never throws: any failure returns heavy so the
+ * existing flow (with its full error surface) takes over.
+ */
+export async function runLightGate(
+  problemText: string,
+  locale: Locale,
+  signal?: AbortSignal,
+): Promise<LightGateResult> {
+  const text = (problemText || '').trim();
+  if (!text) return { need: 'heavy' };
+
+  const crisis = classifyCrisis(text);
+  if (crisis.isCrisis && crisis.category) return { need: 'heavy' };
+
+  try {
+    const raw = await callLLMJson<Record<string, unknown>>(
+      [{ role: 'user', content: buildLightGateUserPrompt(text, locale) }],
+      {
+        system: buildLightSystemPrompt(locale, 'gate'),
+        model: 'fast',
+        maxTokens: 500,
+        signal,
+        shape: { need: 'string' },
+      },
+    );
+    return coerceLightGate(raw);
+  } catch {
+    // Fail open to the heavy flow — it owns error surfacing (quota, network, …)
+    // and "when unsure → heavy" is the light gate's own rule.
+    return { need: 'heavy' };
+  }
+}
+
+/**
+ * Subsequent light turns. `qas` includes the just-answered pair. The crisis
+ * classifier screens EVERY answer before the LLM is called; on fire it returns
+ * a crisis-marked close so the caller can stop the light flow and route to the
+ * existing crisis surface. Throws on LLM failure (the caller offers retry).
+ */
+export async function runLightNext(
+  problemText: string,
+  qas: LightQA[],
+  locale: Locale,
+  signal?: AbortSignal,
+): Promise<LightTurn> {
+  const answersText = qas.map((qa) => qa.answer || '').join('  ');
+  const crisis = classifyCrisis(answersText);
+  if (crisis.isCrisis && crisis.category) {
+    return { mirror: '', action: 'close', crisis };
+  }
+
+  const raw = await callLLMJson<Record<string, unknown>>(
+    [{ role: 'user', content: buildLightNextUserPrompt(problemText, qas, locale) }],
+    {
+      system: buildLightSystemPrompt(locale, 'next', qas.length),
+      model: 'fast',
+      maxTokens: 700,
+      signal,
+      shape: { mirror: 'string', action: 'string' },
+    },
+  );
+  return coerceLightTurn(raw, qas.length);
+}
+
+// ─── check_by date math (founder-specified mapping) ───
+
+const DAY_MS = 86_400_000;
+
+/**
+ * when → concrete check date. tonight=today 21:00 · tomorrow_morning=next day
+ * 09:00 · this_weekend=next Sunday 10:00 · in_days=now+days (days clamped 1–14).
+ * Defensive: a slot already in the past rolls forward (tonight past 21:00 →
+ * tomorrow 21:00; Sunday past 10:00 → next Sunday) so a seal is never born due.
+ */
+export function lightCheckBy(when: LightWhen, days: number | undefined, now: number): Date {
+  if (when === 'tonight') {
+    const d = new Date(now);
+    d.setHours(21, 0, 0, 0);
+    if (d.getTime() <= now) d.setDate(d.getDate() + 1);
+    return d;
+  }
+  if (when === 'tomorrow_morning') {
+    const d = new Date(now);
+    d.setDate(d.getDate() + 1);
+    d.setHours(9, 0, 0, 0);
+    return d;
+  }
+  if (when === 'this_weekend') {
+    const d = new Date(now);
+    d.setDate(d.getDate() + ((7 - d.getDay()) % 7)); // 0 if already Sunday
+    d.setHours(10, 0, 0, 0);
+    if (d.getTime() <= now) d.setDate(d.getDate() + 7);
+    return d;
+  }
+  const n = clampLightDays(days) ?? LIGHT_DAYS_MIN;
+  return new Date(now + n * DAY_MS);
+}
+
+/** Human label for the check slot — used in the close line "걸어뒀어요. {확인 시점}에…". */
+export function lightWhenLabel(when: LightWhen, days: number | undefined, locale: Locale): string {
+  const ko = locale === 'ko';
+  switch (when) {
+    case 'tonight': return ko ? '오늘 밤 9시' : 'tonight at 9';
+    case 'tomorrow_morning': return ko ? '내일 아침' : 'tomorrow morning';
+    case 'this_weekend': return ko ? '이번 주 일요일' : 'this Sunday';
+    case 'in_days': {
+      const n = clampLightDays(days) ?? LIGHT_DAYS_MIN;
+      return ko ? `${n}일 뒤` : `in ${n} day${n === 1 ? '' : 's'}`;
+    }
+  }
+}
+
+// ─── Seal contract (REUSES the existing decision-contract machinery) ───
+
+export interface LightSealInput {
+  /** The falsifiable line as it will be sealed (already trimmed by the caller). */
+  sentence: string;
+  /** True when the user rewrote the AI-phrased line — provenance becomes user_reworded. */
+  edited: boolean;
+  when: LightWhen;
+  days?: number;
+  /** The original problem — kept as origin_utterance. */
+  problemText: string;
+}
+
+/**
+ * Build the light seal as a normal DecisionContract on project.decision_contract.
+ * Provenance is honest per the existing conventions:
+ *   - accepted as-is → predicate authored 'ai_surfaced' + webAiAttribution +
+ *     adoption_lineage (wording) — the machine phrased it, the user adopted it.
+ *   - edited → authored 'user' + webUserAttribution('user_reworded').
+ * closed_at + sealed_statement make contractPhase read 'sealed' (not a pre-review
+ * baseline awaiting a review that will never come), and check_in_at puts it on
+ * the SAME return loop as every other seal (due surfaces + check-in emails).
+ */
+export function buildLightSealContract(
+  projectId: string,
+  input: LightSealInput,
+  now: number,
+): DecisionContract | null {
+  const sentence = (input.sentence || '').trim();
+  if (!sentence) return null;
+
+  const checkBy = lightCheckBy(input.when, input.days, now);
+  const base = buildEarlyContract(
+    projectId,
+    { lean: sentence, check_in_at: checkBy.toISOString() },
+    now,
+  );
+  if (!base) return null;
+
+  const predicates = base.predicates.map((p) =>
+    p.source === 'user_lean'
+      ? input.edited
+        ? { ...p, authored: 'user' as const, attribution: webUserAttribution(now, LIGHT_SEAL_SOURCE_REF, 'user_reworded') }
+        : { ...p, authored: 'ai_surfaced' as const, attribution: webAiAttribution(now, LIGHT_SEAL_SOURCE_REF) }
+      : p,
+  );
+  const wordingId = predicates.find((p) => p.source === 'user_lean')?.id;
+  const lineage = input.edited ? [] : adoptionLineageForSeal(predicates, [], wordingId);
+
+  return {
+    ...base,
+    predicates,
+    sealed_statement: sentence,
+    origin_utterance: (input.problemText || '').trim() || sentence,
+    closed_at: new Date(now).toISOString(),
+    ...(lineage.length ? { adoption_lineage: lineage } : {}),
+  };
+}
+
+// ─── Heavy handoff context ───
+
+/**
+ * Compose the problem + the light Q&A into the text the heavy flow receives.
+ * This is the wire that actually reaches the heavy engine (createSession /
+ * runInitialAnalysis take the problem text) — the Q&A context travels WITH the
+ * decision instead of dangling in a store nothing on that path reads.
+ */
+export function composeDeepenText(problemText: string, qas: LightQA[], locale: Locale): string {
+  const text = (problemText || '').trim();
+  if (!qas.length) return text;
+  const header = locale === 'ko' ? '가볍게 먼저 나눈 문답:' : 'Notes from a quick first pass:';
+  const lines = qas.map((qa) => `Q. ${qa.question.trim()}\nA. ${qa.answer.trim()}`).join('\n');
+  return `${text}\n\n${header}\n${lines}`;
+}
