@@ -1,5 +1,7 @@
 # Argus Decision MCP
 
+[**English**](./README.md) | [한국어](./README.ko.md)
+
 Argus preserves consequential judgments, the assumptions behind them, and what
 reality later did. It does not score people or give verdicts.
 
