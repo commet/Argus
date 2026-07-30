@@ -179,15 +179,22 @@ try {
   command(claudeBin, ['--version'], { env });
   command(claudeBin, ['plugin', 'validate', stagedRepo], { env });
 
-  const mcpPin = readJson(path.join(stagedPlugin, '.mcp.json'))
-    .mcpServers?.['argus-decision']?.args?.find((arg) => /argus-decision-mcp/.test(arg));
+  // 2026-07-30: the wire goes through scripts/mcp-launch.js (online → registry-
+  // fresh bare name; offline → --offline cached copy, measured). The spec string
+  // lives in the launcher, so the smoke follows it there — same contract, new home.
+  const stagedArgs = readJson(path.join(stagedPlugin, '.mcp.json'))
+    .mcpServers?.['argus-decision']?.args ?? [];
+  const launcherArg = stagedArgs.find((arg) => /mcp-launch\.js$/.test(String(arg)));
+  if (!launcherArg) throw new Error('staged .mcp.json does not launch scripts/mcp-launch.js');
+  const launcherSrc = fs.readFileSync(path.join(stagedPlugin, 'scripts', 'mcp-launch.js'), 'utf8');
+  const mcpPin = (/--package=(argus-decision-mcp[^"'\s]*)/.exec(launcherSrc) || [])[1];
   // The plugin names no version on purpose (measured 2026-07-29: npx re-resolves
   // a bare name every launch, a range never does), so what has to be true here is
   // the opposite of a pin — and the release still has to actually be on npm, or
   // a bare name resolves to yesterday's build for everyone.
-  if (!mcpPin) throw new Error('staged .mcp.json does not launch argus-decision-mcp');
+  if (!mcpPin) throw new Error('staged mcp-launch.js does not exec argus-decision-mcp');
   if (/argus-decision-mcp@/.test(String(mcpPin))) {
-    throw new Error(`staged .mcp.json pins a version (${mcpPin}) — one install must keep receiving fixes`);
+    throw new Error(`staged wiring pins a version (${mcpPin}) — one install must keep receiving fixes`);
   }
   const pinnedVersion = readJson(path.join(mcpRoot, 'package.json')).version;
 
