@@ -16,6 +16,7 @@ import { ChevronRight, Check, X as XIcon } from 'lucide-react';
 import { useLocale } from '@/hooks/useLocale';
 import { Button } from '@/components/ui/Button';
 import { EASE } from '../shared/constants';
+import { VoyageProgress } from './voyage-progress';
 
 /* Phase-aware ambient glow — the page itself tells you where you are */
 export function PhaseAmbient({ phase }: { phase: string }) {
@@ -166,16 +167,11 @@ export function PhaseStatusBar({
         )}
       </div>
 
-      {/* Decorative activity line. It communicates motion without creating a
-          second visual theme or pretending to know percentage completion. */}
-      <div className="relative mt-2 h-px overflow-hidden bg-[var(--border-subtle)]" aria-hidden>
-        <motion.div
-          className="absolute inset-y-0 w-1/4 bg-[var(--accent)]/65"
-          initial={{ x: '-110%' }}
-          animate={{ x: ['-110%', '410%'] }}
-          transition={{ duration: showLongWait ? 3.8 : 2.8, repeat: Infinity, ease: 'linear' }}
-        />
-      </div>
+      {/* The crossing. Where reviewers are countable the ship's position is the
+          count — it advances only when one actually finishes — and otherwise it
+          sails without claiming a percentage. (The line this replaced looked
+          identical at 1/5 and at 4/5.) */}
+      <VoyageProgress done={workersDone} total={workersTotal} slow={showLongWait} />
     </motion.div>
   );
 }
