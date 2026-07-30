@@ -131,10 +131,13 @@ Respond in JSON. Concise — quality over volume.`,
 
 Analyze this and help me get started.
 
-JSON format:
+JSON format — emit the keys in EXACTLY this order (the response streams to the
+user's screen top-down, so the lines a person can act on must arrive before the
+long scaffolding arrays):
 {
   "request_type": "open | flat | vent | validation | info | resistance | self_profiling | crisis — your STEP 0 classification. ONLY 'open' gets a skeleton/plan; every other type MUST have skeleton [].",
   "real_question": "The ONE question I need to answer first (natural sentence, ends with ?)",
+  "insight": "For OPEN: two concise sentences — takeaway first, reason second. For other request types, follow the route rule above.",
   "framing_confidence": 85,
   "stakes": "routine | important | critical — how much rides on getting this right (routine = small/everyday/low-cost, critical = major, hard-to-walk-back consequences)",
   "reversibility": "reversible | partial | irreversible — how easily this could be undone if it goes wrong",
@@ -149,7 +152,6 @@ JSON format:
     "sequence word — action + why",
     "sequence word — final action + why"
   ],
-  "insight": "For OPEN: two concise sentences — takeaway first, reason second. For other request types, follow the route rule above.",
   "next_question": {
     "text": "Situation-shaping question (NOT admin details)",
     "subtext": "Why this changes everything (1 line)",

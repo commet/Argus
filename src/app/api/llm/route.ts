@@ -275,6 +275,23 @@ export async function POST(req: NextRequest) {
               // usage were being discarded. Server-side telemetry only — no user meter.
               try {
                 const final = await anthropicStream.finalMessage();
+                // Truncation sensor (2026-07-31). An output cut at max_tokens is
+                // not an error anywhere — the client's parse fallback recovers it
+                // and everything stays green — which is exactly how a 2x-latency
+                // double-call ran silently at 44% of big calls for months. Make
+                // the condition itself observable so the NEXT prompt that
+                // outgrows its budget turns a dial red instead of waiting to be
+                // felt. stop_reason is the authoritative signal, not out==cap.
+                if (final.stop_reason === 'max_tokens') {
+                  logServerEvent('llm_truncation', {
+                    model: final.model || modelId,
+                    tier: body.model || 'default',
+                    max_tokens: maxTokens,
+                    input_tokens: final.usage?.input_tokens,
+                    output_tokens: final.usage?.output_tokens,
+                    stream: true,
+                  }, { userId: auth?.userId ?? null, path: '/api/llm' });
+                }
                 logServerEvent('llm_usage', {
                   model: final.model || modelId,
                   tier: body.model || 'default',
@@ -331,6 +348,19 @@ export async function POST(req: NextRequest) {
     });
 
     const block = response.content.find((b) => b.type === 'text');
+    // Same truncation sensor as the streaming branch — the non-streaming path
+    // serves the retry/fallback calls, where a second cut becomes a user-facing
+    // parse error, so this signal matters here even more.
+    if (response.stop_reason === 'max_tokens') {
+      logServerEvent('llm_truncation', {
+        model: response.model || modelId,
+        tier: body.model || 'default',
+        max_tokens: maxTokens,
+        input_tokens: response.usage?.input_tokens,
+        output_tokens: response.usage?.output_tokens,
+        stream: false,
+      }, { userId: auth?.userId ?? null, path: '/api/llm' });
+    }
     // Capture run provenance + token cost (dims 8 & 10) — was discarded. Telemetry only.
     logServerEvent('llm_usage', {
       model: response.model || modelId,

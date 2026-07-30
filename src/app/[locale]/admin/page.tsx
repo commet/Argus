@@ -36,6 +36,17 @@ interface Metrics {
     verdicts: Record<string, number>;
   } | null;
   surface_funnel?: Record<'web' | 'mcp' | 'plugin', FunnelStageCounts>;
+  /** LLM health (2026-07-31 truncation sensor). Optional: an older cached RPC
+   *  result simply hides the section. */
+  llm?: {
+    truncation_7d: number;
+    truncation_24h: number;
+    stream_retry_7d: number;
+    errors_7d: number;
+    calls_7d: number;
+    cache_read_7d: number;
+    cache_write_7d: number;
+  };
   tables: Record<string, number>;
 }
 
@@ -216,6 +227,30 @@ export default function AdminPage() {
               </>
             );
           })()}
+
+          {/* LLM health — the silent-degradation sensors (2026-07-31). A cut-at-cap
+              generation errors NOWHERE (the client fallback recovers it), which is
+              how a 2x-latency double-call ran at 44% of big calls for months with
+              every dashboard green. Truncation should sit at 0; a rising number
+              means some prompt outgrew its budget and users are paying twice. */}
+          {metrics.llm && (
+            <>
+              <h2 className="text-[12px] font-bold uppercase tracking-wider text-[var(--text-tertiary)] mb-2">
+                {L('LLM 건강 (7일)', 'LLM health (7d)')}
+              </h2>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-2">
+                <Stat label={L('절단', 'Truncations')} value={metrics.llm.truncation_7d}
+                  accent={metrics.llm.truncation_7d > 0}
+                  hint={`${L('24시간', '24h')} ${metrics.llm.truncation_24h} · ${L('0이 정상', '0 is healthy')}`} />
+                <Stat label={L('스트림 재시도', 'Stream retries')} value={metrics.llm.stream_retry_7d}
+                  hint={L('사용자가 2배로 기다린 횟수', 'double-wait moments')} />
+                <Stat label={L('오류', 'Errors')} value={metrics.llm.errors_7d}
+                  hint={`${L('호출', 'calls')} ${metrics.llm.calls_7d}`} />
+                <Stat label={L('캐시 적중', 'Cache reads')} value={`${Math.round(metrics.llm.cache_read_7d / 1000)}k`}
+                  hint={`${L('기록', 'writes')} ${Math.round(metrics.llm.cache_write_7d / 1000)}k ${L('토큰', 'tokens')}`} />
+              </div>
+            </>
+          )}
 
           {/* Accounts & growth — context, not the spine. One merged block:
               the old page said "funnel" twice and scattered 7d/30d deltas

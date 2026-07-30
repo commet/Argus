@@ -1231,6 +1231,16 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem, fr
             const hasQuestion = !!partial.real_question;
             const hasAssumptions = partial.hidden_assumptions.length > 0;
             const hasSkeleton = partial.skeleton.length > 0;
+            // Non-open routes (vent/info/flat/…): the model's `insight` IS the
+            // deliverable, and request_type streams first so we know the route
+            // within seconds. Render the forming answer instead of leaving the
+            // user staring at their own echoed sentence for the whole wait.
+            // NEVER for 'open' — there the engine discards the model insight
+            // (structural neutrality) and showing a line that later vanishes
+            // would be the exact flicker-dishonesty the spine forbids.
+            const NON_OPEN_ROUTES = ['flat', 'vent', 'validation', 'info', 'resistance', 'self_profiling'];
+            const streamingAnswer = NON_OPEN_ROUTES.includes(partial.request_type) && partial.insight
+              ? partial.insight : null;
             return (
               <motion.div key="analyzing" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                 transition={{ duration: 0.4, ease: EASE }} className="pt-6 md:pt-10">
@@ -1281,6 +1291,28 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem, fr
                     )}
                   </div>
                 </motion.div>
+
+                {/* 비-open 경로: 답이 도착하는 대로 보여준다. 라벨은 최종 카드의
+                    기존 문구('현재까지의 내용으로 잡은 방향')를 그대로 재사용 —
+                    스트리밍 중 보인 문장이 착지 화면에서도 같은 이름으로 남는다. */}
+                {streamingAnswer && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.4, ease: EASE }}
+                    className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] p-5 md:p-6 mb-3"
+                  >
+                    <div className="text-[12px] font-medium text-[var(--text-tertiary)] mb-2.5">
+                      {L('현재까지의 내용으로 잡은 방향', 'Direction based on what we know so far')}
+                    </div>
+                    <div className="text-[14.5px] leading-[1.6] text-[var(--text-primary)] whitespace-pre-wrap break-words">
+                      {streamingAnswer}
+                      {!partial.insight_complete && (
+                        <span className="inline-block w-[2px] h-[15px] bg-[var(--accent)] ml-0.5 animate-pulse align-middle" />
+                      )}
+                    </div>
+                  </motion.div>
+                )}
 
                 {/* 채워지는 것들 — 개수 + 방금 도착한 항목 한 줄. 벽이 아니라 맥박. */}
                 {(hasAssumptions || hasSkeleton || partial.stage === 'assumptions' || partial.stage === 'skeleton') && (

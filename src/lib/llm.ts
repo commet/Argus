@@ -1095,6 +1095,11 @@ export async function callLLMStreamThenParse<T = unknown>(
     const recoverable = error instanceof LLMError &&
       (error.category === 'parse_failure' || error.category === 'validation');
     if (recoverable) {
+      // The user is about to pay for the same generation twice. Counted so the
+      // funnel can SEE how often the double-payment path fires (it ran at 44%
+      // of big calls for months with zero signal). Pairs with the server-side
+      // llm_truncation event, which records the usual root cause.
+      try { track('llm_stream_retry', { category: error.category, attempt: options._streamRetried ? 2 : 1 }); } catch { /* analytics never breaks the call */ }
       // A truncated stream is the likeliest cause, so a same-budget retry would
       // hit the same ceiling. Give the clean retry extra room (the server clamps
       // to its own cap), turning genuine length overflow into a recoverable case

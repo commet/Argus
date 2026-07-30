@@ -19,6 +19,16 @@ export interface PartialAnalysis {
   hidden_assumptions: string[];
   skeleton: string[];
   stage: PartialStage;
+  /** STEP-0 classification — streams FIRST, so the UI knows the route within
+   *  the opening seconds. Empty string until the field has streamed. */
+  request_type: string;
+  /** The model's direct answer. For non-open routes this IS the deliverable
+   *  (2026-07-31: it used to stream dead last and never render — a vent/info
+   *  user stared at their own echoed sentence for the whole wait). For OPEN
+   *  routes the engine discards it (structural neutrality), so the UI must
+   *  not render it there. */
+  insight: string;
+  insight_complete: boolean;
 }
 
 function unescapeJsonString(s: string): string {
@@ -101,8 +111,12 @@ function countArrayItems(text: string, key: string): number {
 
 export function parsePartialAnalysis(text: string): PartialAnalysis {
   const rq = extractStringField(text, 'real_question');
+  const insight = extractStringField(text, 'insight');
   const hidden_assumptions = extractCompleteStrings(text, 'hidden_assumptions');
   const skeleton = extractCompleteStrings(text, 'skeleton');
+  // Presence-based, so both key orders parse: the pre-2026-07-31 order
+  // (…skeleton, insight, next_question) and the streaming-first order
+  // (…insight, …, skeleton). A retried/cached response from either era renders.
   let stage: PartialStage = 'reading';
   if (text.includes('"skeleton"')) stage = 'skeleton';
   else if (text.includes('"hidden_assumptions"')) stage = 'assumptions';
@@ -113,6 +127,9 @@ export function parsePartialAnalysis(text: string): PartialAnalysis {
     hidden_assumptions,
     skeleton,
     stage,
+    request_type: extractStringField(text, 'request_type').value,
+    insight: insight.value,
+    insight_complete: insight.complete,
   };
 }
 
