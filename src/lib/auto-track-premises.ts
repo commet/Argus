@@ -14,7 +14,7 @@
  * a later manual import) produces the same ids and addItems() skips duplicates.
  */
 
-import { premiseShapeOf } from './premise-shape';
+import { premiseShapeOf, sameClaim } from './premise-shape';
 import { derivePremiseTexts } from './derive-premise-texts';
 import { createItem, type DecisionItem } from './decision-items';
 import type { ProgressiveSession } from '@/stores/types';
@@ -26,8 +26,27 @@ export function buildAutoTrackedPremiseItems(
   decisionId: string,
   session: ProgressiveSession | null | undefined,
   now: number,
+  opts: {
+    /**
+     * 봉인 화면에서 사용자가 ×로 뺀 문장들 (2026-07-30 — deny 배선).
+     *
+     * 그전까지 이 함수는 봉인 UI의 선택을 **전혀 받지 않았다.** 사용자가 봉인
+     * 카드에서 전제를 ×로 빼도 추적 저장소에는 그대로 active 로 저장됐다 —
+     * "선택에 따라서 저장한다"(창업자 기획 2단계)의 deny 쪽이 정확히 여기서
+     * 끊겨 있었다. 사람이 아니라고 말한 것을 시스템이 계속 믿는 것은, 없는
+     * 동의를 지어내는 것과 같은 부류의 거짓이다.
+     *
+     * 대조는 sameClaim — 봉인 카드의 술어 문장과 풀의 문장이 표기만 다른 같은
+     * 주장일 수 있다(실측: "매출이/매출은"). 글자 일치로만 거르면 뺀 것이
+     * 표기 차이로 살아남는다.
+     */
+    excludeTexts?: readonly string[];
+  } = {},
 ): DecisionItem[] {
-  const texts = derivePremiseTexts(session, []).slice(0, AUTO_TRACK_CAP);
+  const excluded = (opts.excludeTexts ?? []).filter((t) => !!t && !!t.trim());
+  const texts = derivePremiseTexts(session, [])
+    .filter((t) => !excluded.some((x) => x === t || sameClaim(x, t)))
+    .slice(0, AUTO_TRACK_CAP);
   return texts.map((text) =>
     createItem(
       {

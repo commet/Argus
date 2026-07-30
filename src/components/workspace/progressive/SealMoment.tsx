@@ -59,6 +59,7 @@ import { buildJudgmentCard } from '@/lib/judgment-card';
 import { closingJudgmentAuthorship } from '@/lib/judgment-authorship';
 import { derivePrimaryCheckpoint } from '@/lib/checkpoint-core';
 import { buildAutoTrackedPremiseItems } from '@/lib/auto-track-premises';
+import { sameClaim } from '@/lib/premise-shape';
 import { useDecisionItemsStore } from '@/stores/useDecisionItemsStore';
 import { useProgressiveStore } from '@/stores/useProgressiveStore';
 import { recordSignal } from '@/lib/signal-recorder';
@@ -161,14 +162,53 @@ export function SealMoment({
   const [signInError, setSignInError] = useState<string | null>(null);
   const [cardBusy, setCardBusy] = useState(false);
 
+  // ── 추적될 전제의 deny 배선 (2026-07-30) ─────────────────────────────
+  // 봉인 화면에서 ×로 뺀 것은 추적 저장소에도 저장되지 않아야 한다. 그전까지
+  // autoTrackPremises 는 화면의 선택을 전혀 받지 않아, 사용자가 "이건 아니야"라고
+  // 뺀 전제가 추적 목록에 그대로 active 로 남았다 — 기획 2단계(accept/deny)의
+  // deny 쪽이 끊긴 배선이었다.
+  //
+  // 뺄 수 있는 자리는 둘이고 둘 다 반영한다:
+  //   · 봉인 카드의 술어 ×      → dropped (술어 id) → 그 술어의 문장
+  //   · 서랍의 "추적할 전제" ×  → droppedPremiseTexts (문장 자체)
+  const [droppedPremiseTexts, setDroppedPremiseTexts] = useState<Set<string>>(new Set());
+
+  /** 화면의 두 deny 를 합친 제외 목록. autoTrackPremises 와 서랍 미리보기가 같이 쓴다. */
+  function excludedPremiseTexts(): string[] {
+    const fromPredicates = (Array.isArray(predicates) ? predicates : [])
+      .filter((p) => dropped.has(p.id))
+      .map((p) => (typeof p.text === 'string' ? p.text : ''))
+      .filter(Boolean);
+    return [...fromPredicates, ...droppedPremiseTexts];
+  }
+
   /** §3.4 — the decision's premises become tracked items at seal (auto, not a
    *  manual import). Idempotent + spine-safe (external:false → alert OFF). */
   function autoTrackPremises(now: number) {
     const voyage = currentVoyage();
     if (!voyage || voyage.project_id !== project.id) return; // only this project's flow
-    const items = buildAutoTrackedPremiseItems(project.id, voyage, now);
+    const items = buildAutoTrackedPremiseItems(project.id, voyage, now, { excludeTexts: excludedPremiseTexts() });
     if (items.length > 0) addDecisionItems(items);
   }
+
+  /**
+   * 서랍에 보여줄 "추가로 추적될 전제" — 술어 편집기에 이미 보이는 문장은 빼고,
+   * 사용자가 ×로 뺀 것도 뺀 나머지. **저장 함수와 같은 빌더를 쓴다** — 미리보기가
+   * 딴 계산을 하면 화면이 보여준 것과 저장된 것이 달라지고, 그건 확인 표면이
+   * 아니라 장식이 된다.
+   */
+  const extraTrackedPremises = useMemo(() => {
+    const voyage = currentVoyage();
+    if (!voyage || voyage.project_id !== project.id) return [];
+    const predicateTexts = (Array.isArray(predicates) ? predicates : [])
+      .map((p) => (typeof p.text === 'string' ? p.text : ''))
+      .filter(Boolean);
+    return buildAutoTrackedPremiseItems(project.id, voyage, 0, { excludeTexts: [...droppedPremiseTexts] })
+      .filter((item) => !predicateTexts.some((t) => t === item.text || sameClaim(t, item.text)));
+    // currentVoyage 는 store selector 라 참조가 매번 같지 않다 — 봉인 전 화면에서
+    // 세션 내용이 더 바뀌지 않으므로 프로젝트/드롭 기준으로만 다시 계산한다.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [project.id, predicates, droppedPremiseTexts]);
 
   // 묶기(밧줄)에서 이미 확인일을 정했다면 그 선택이 이 카드의 시작값이다.
   // 실주행 재실사(2026-07-08)에서 발견: 1일로 묶었는데 완료 카드가 조용히
@@ -1283,6 +1323,47 @@ export function SealMoment({
                   <p className="mt-2 text-[13px] text-amber-600 dark:text-amber-400">
                     {L('최소 1개는 남겨야 물어볼 수 있어요.', 'Keep at least one so I have something to ask about.')}
                   </p>
+                )}
+                {/* ── 확인일에 함께 볼 전제 (2026-07-30, 기획 2단계의 확인 표면) ──
+                    봉인하면 분석이 짚은 가정들이 추적 목록(decision_items)에
+                    저장된다. 그전까지는 **무엇이 저장되는지 봉인 전에 보여주는
+                    자리가 없었다** — 위 술어 편집기는 계약의 술어만 다루고, 추적
+                    풀에는 술어에 없는 문장(분석의 hidden_assumptions)도 들어간다.
+                    보지 못한 것은 accept 도 deny 도 할 수 없다.
+                    ×로 빼면 저장되지 않는다 (deny → 저장 안 함, MCP 픽커의
+                    Decline 과 같은 의미). 전부 AI가 짚은 문장이므로 그렇게 말한다. */}
+                {extraTrackedPremises.length > 0 && (
+                  <div className="mt-4">
+                    <p className="text-[12px] font-semibold text-[var(--text-secondary)]">
+                      {L('확인일에 함께 볼 전제 · AI가 분석에서 짚음', 'Premises to revisit · surfaced by the analysis')}
+                    </p>
+                    <p className="mt-0.5 text-[12px] text-[var(--text-tertiary)]">
+                      {L('×로 빼면 추적하지 않아요.', 'Remove with × and it will not be tracked.')}
+                    </p>
+                    <ul className="mt-2 space-y-1.5">
+                      {extraTrackedPremises.map((item) => (
+                        <li key={item.id} className="flex items-start gap-2 rounded-lg bg-[var(--bg)]/60 px-3 py-2 text-[12.5px] leading-[1.5] text-[var(--text-secondary)]">
+                          <span className="flex-1">
+                            {item.text}
+                            {item.type === 'open_question' && (
+                              <span className="ml-1.5 text-[11px] text-[var(--text-tertiary)]">
+                                {L('· 미결 질문으로 보관', '· kept as an open question')}
+                              </span>
+                            )}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => setDroppedPremiseTexts((prev) => new Set(prev).add(item.text))}
+                            className="shrink-0 -mt-0.5 px-1 text-[14px] leading-none text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] cursor-pointer"
+                            title={L('빼기', 'remove')}
+                            aria-label={L('이 전제 추적하지 않기', 'do not track this premise')}
+                          >
+                            ×
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
                 )}
               </div>
             </motion.div>

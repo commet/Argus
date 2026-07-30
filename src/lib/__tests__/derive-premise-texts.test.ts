@@ -36,10 +36,15 @@ describe('derivePremiseTexts', () => {
   });
 
   it('falls back to reframe hidden_assumptions only when the session has none', () => {
+    // 픽스처는 실제 문장 모양이어야 한다 — 'reframe a'/'reframe b' 같은 토막은
+    // 근사중복 판정(sameClaim)에서 낱말이 하나만 남아 서로 같은 주장으로 합쳐진다
+    // (2026-07-30, '전제 둘/전제 셋'과 같은 퇴화 사례).
     // session present but empty → still fall back
-    expect(derivePremiseTexts(session({ final_mix: { key_assumptions: [] } }), ['reframe a'])).toEqual(['reframe a']);
+    expect(derivePremiseTexts(session({ final_mix: { key_assumptions: [] } }), ['온보딩 기간은 3~6개월로 잡는다.']))
+      .toEqual(['온보딩 기간은 3~6개월로 잡는다.']);
     // no session at all
-    expect(derivePremiseTexts(null, ['reframe a', 'reframe b'])).toEqual(['reframe a', 'reframe b']);
+    expect(derivePremiseTexts(null, ['온보딩 기간은 3~6개월로 잡는다.', '핵심 인력 이탈은 이번 분기에 없다.']))
+      .toEqual(['온보딩 기간은 3~6개월로 잡는다.', '핵심 인력 이탈은 이번 분기에 없다.']);
   });
 
   it('dedupes and drops empty/whitespace entries', () => {

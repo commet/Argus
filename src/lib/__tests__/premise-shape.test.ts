@@ -117,6 +117,58 @@ describe('자동 추적이 물음을 전제로 저장하지 않는다', () => {
     expect(items.map((i) => i.type)).toEqual(['premise', 'open_question', 'premise']);
   });
 
+  it('분석이 화면에 보여준 가정(hidden_assumptions)도 풀에 들어간다', () => {
+    // 2026-07-30까지 여기서 버려졌다 — 화면은 "확인할 가정 3개"라고 말해놓고
+    // 추적 목록에는 안 넣는, 말과 행동이 갈라진 상태였다 (기획 1단계).
+    const s = {
+      id: 's1', project_id: 'p1',
+      snapshots: [{ hidden_assumptions: ['핵심 인력 이탈은 이번 분기에 없다.'] }],
+    } as unknown as ProgressiveSession;
+    const items = buildAutoTrackedPremiseItems('d1', s, Date.now());
+    expect(items.map((i) => i.text)).toContain('핵심 인력 이탈은 이번 분기에 없다.');
+  });
+
+  it('사용자가 자기 말로 적은 베팅(real_bet)이 기계 가정보다 먼저 산다', () => {
+    // 캡(5)에 잘릴 때 사람 문장이 살아남는 순서 보장.
+    const s = {
+      id: 's1', project_id: 'p1',
+      falsification: { real_bet: '다음 분기 매출이 지금 수준을 유지한다.' },
+      mix: { title: 't', executive_summary: 'e', sections: [], key_assumptions: ['a1 가정 문장.', 'a2 가정 문장.', 'a3 가정 문장.', 'a4 가정 문장.', 'a5 가정 문장.'], next_steps: [] },
+    } as unknown as ProgressiveSession;
+    const items = buildAutoTrackedPremiseItems('d1', s, Date.now());
+    expect(items).toHaveLength(5);
+    expect(items[0].text).toBe('다음 분기 매출이 지금 수준을 유지한다.');
+  });
+
+  it('표기만 다른 같은 주장은 하나만 저장된다 (같은 웹 조사를 두 번 안 한다)', () => {
+    const s = {
+      id: 's1', project_id: 'p1',
+      mix: { title: 't', executive_summary: 'e', sections: [], key_assumptions: ['다음 분기 매출이 지금 수준을 유지한다.'], next_steps: [] },
+      snapshots: [{ hidden_assumptions: ['다음 분기 매출은 확정 계약 기준으로 현재와 유사한 수준을 유지한다.'] }],
+    } as unknown as ProgressiveSession;
+    const items = buildAutoTrackedPremiseItems('d1', s, Date.now());
+    expect(items.map((i) => i.text)).toEqual(['다음 분기 매출이 지금 수준을 유지한다.']);
+  });
+
+  it('봉인 화면에서 ×로 뺀 문장은 저장되지 않는다 (deny → 저장 안 함)', () => {
+    // 2026-07-30 발견: 이 배선이 없어서, 사용자가 봉인 카드에서 뺀 전제가
+    // 추적 목록에 그대로 active 로 저장됐다. 사람이 아니라고 말한 것을
+    // 시스템이 계속 믿고 있었다.
+    const items = buildAutoTrackedPremiseItems('d1', session([
+      '다음 분기 매출이 지금 수준을 유지한다.',
+      '온보딩 기간은 3~6개월로 잡는다.',
+    ]), Date.now(), { excludeTexts: ['다음 분기 매출이 지금 수준을 유지한다.'] });
+    expect(items.map((i) => i.text)).toEqual(['온보딩 기간은 3~6개월로 잡는다.']);
+  });
+
+  it('표기만 다르게 뺀 것도 빠진다 (deny 가 조사 차이로 살아남지 않는다)', () => {
+    const items = buildAutoTrackedPremiseItems('d1', session([
+      '다음 분기 매출은 확정 계약 기준으로 현재와 유사한 수준을 유지한다.',
+      '온보딩 기간은 3~6개월로 잡는다.',
+    ]), Date.now(), { excludeTexts: ['다음 분기 매출이 지금 수준을 유지한다.'] });
+    expect(items.map((i) => i.text)).toEqual(['온보딩 기간은 3~6개월로 잡는다.']);
+  });
+
   it('id 는 type 을 포함하므로 옮겨진 항목이 전제와 충돌하지 않는다', () => {
     // stableItemId 가 type 을 키에 넣는다. 안 그러면 같은 문장의 전제/질문이
     // 같은 행을 덮어써 하나가 조용히 사라진다.

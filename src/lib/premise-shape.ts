@@ -58,3 +58,40 @@ export function isQuestionShaped(text: string | null | undefined): boolean {
 export function premiseShapeOf(text: string | null | undefined): PremiseShape {
   return isQuestionShaped(text) ? 'open_question' : 'premise';
 }
+
+/**
+ * 두 문장이 사실상 같은 주장인가 (2026-07-30 — judgment-card 에서 승격).
+ *
+ * 왜 여기로 왔나: 실주행 카드에 "다음 분기 매출이 지금 수준을 유지한다"와
+ * "다음 분기 매출은 확정 계약 기준으로 현재와 유사한 수준을 유지한다"가 **두 줄로**
+ * 찍혔다. 같은 생각 하나다. 이 판정이 카드 안에만 있으면 추적 저장소도 같은 병에
+ * 걸린다 — 같은 전제가 두 항목으로 저장되면 사용자는 같은 걸 두 번 확인하고,
+ * 전제 감시는 같은 웹 조사를 두 번 한다(비용). 문장 모양의 판정은 전부 이 파일 —
+ * 그래야 카드와 저장소가 다른 답을 내는 날이 안 온다.
+ *
+ * 한국어 함정: 교착어라 같은 낱말이 자리마다 다른 꼬리를 단다. "매출이"와
+ * "매출은"을 다른 낱말로 세면 같은 문장의 겹침이 0.67에서 멈춰 통과한다(실측).
+ * 그래서 조사를 떼고 센다. 과잉 절단 방지: 떼고 한 글자만 남으면 원형을 쓴다.
+ *
+ * 판정은 보수적으로 — 겹침이 확실할 때(작은 쪽 기준 70%)만 같은 주장으로 본다.
+ * 서로 다른 전제를 잘못 합치면 현실 대조 대상이 조용히 사라진다. 그쪽이 더
+ * 알아채기 어려운 고장이다.
+ */
+export function sameClaim(a: string, b: string): boolean {
+  const PARTICLE = /(으로|에서|부터|까지|이|가|은|는|을|를|의|에|로|와|과|도|만)$/;
+  const stem = (w: string) => {
+    const s = w.replace(PARTICLE, '');
+    return s.length >= 2 ? s : w;
+  };
+  const tokens = (s: string) => new Set(
+    s.toLowerCase().replace(/[^\p{L}\p{N}\s]/gu, ' ').split(/\s+/)
+      .filter((w) => w.length >= 2).map(stem),
+  );
+  const ta = tokens(a);
+  const tb = tokens(b);
+  if (ta.size === 0 || tb.size === 0) return false;
+  let shared = 0;
+  for (const w of ta) if (tb.has(w)) shared++;
+  // 작은 쪽 기준 — 한쪽이 길게 부연했을 뿐인 경우를 잡아야 한다.
+  return shared / Math.min(ta.size, tb.size) >= 0.7;
+}
