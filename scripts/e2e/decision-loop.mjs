@@ -466,12 +466,17 @@ try {
       }
       await firstItem.click();
       await page.waitForTimeout(800);
-      // 개수로 재면 안 된다 (2026-07-30 실측): 풀이 캡(5)보다 크면 하나를 빼도
-      // 다음 후보가 그 자리에 들어와 개수가 유지된다 — 그건 올바른 동작이다.
-      // 재야 할 사실은 "**뺀 그 문장**이 목록에서 사라졌는가"다.
-      const drawerAfter = await bodyText();
+      // 두 번 틀리고 배운 단정 (2026-07-30):
+      //   1차: 개수 감소 → 풀이 캡(5)보다 크면 다음 후보가 들어와 개수 유지 (정상 동작)
+      //   2차: 페이지 전체에서 문장 부재 → 같은 화면의 **완성 문서 본문**에 비슷한
+      //        문장이 살아 있어 거짓 빨간불
+      // 그래서 **서랍 목록 항목들만** 읽는다 — 재는 사실은 "뺀 그 문장이 이
+      // 목록에서 사라졌는가" 하나다.
+      const listedNow = await page
+        .locator('li', { has: page.getByRole('button', { name: /이 전제 추적하지 않기|do not track this premise/ }) })
+        .allInnerTexts().catch(() => []);
       const key7b = deniedPremise.slice(0, 16);
-      const gone = key7b.length >= 8 && !drawerAfter.includes(key7b);
+      const gone = key7b.length >= 8 && !listedNow.some((t) => t.includes(key7b));
       step('7b. 봉인 서랍에서 추적 전제를 ×로 뺄 수 있다', gone,
         gone ? `뺀 문장: "${deniedPremise.slice(0, 30)}…"` : `뺀 문장이 목록에 그대로 있다: "${key7b}…"`);
     }
