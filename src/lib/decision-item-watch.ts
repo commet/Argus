@@ -1,5 +1,5 @@
 import type { DecisionItem } from './decision-items';
-import { isItemDueForRecheck } from './decision-items';
+import { isItemDueForRecheck, isItemDueForReconsider } from './decision-items';
 import type { InvestigationResult } from './premise-researcher';
 
 /**
@@ -41,6 +41,32 @@ export function dueDecisionItems(items: readonly DecisionItem[], now: number): D
       item,
       baselineYMD: (item.alert?.last_checked ?? item.created_at ?? new Date(now).toISOString()).slice(0, 10),
     }));
+}
+
+/**
+ * 오늘 되새김(reconsider)이 도래한 본선 미결 질문들 (2026-07-30).
+ *
+ * T3(미결 질문)는 단독 메일 금지·브리프 전용이 기계 규칙(notification-gate
+ * t3_brief_only)이다 — 그래서 이 목록의 소비자는 premise-watch 가 아니라
+ * companion-brief 크론이고, 실어 나르는 것도 질문 원문뿐이다(선택지·예시·기울기
+ * 금지, 열어둔 채 두는 것도 유효한 답). due 판정은 UI 배지와 같은 함수
+ * (isItemDueForReconsider) — 두 표면 한 두뇌.
+ */
+export function dueReconsiderItems(items: readonly DecisionItem[], now: number): DecisionItem[] {
+  return (Array.isArray(items) ? items : []).filter((i) => isItemDueForReconsider(i, now));
+}
+
+/**
+ * 되새김을 브리프에 실어 보냈다는 사실만 시계에 적는다 — 답을 강요하지 않았고
+ * 답이 오지도 않았으므로 mode/dismissals 는 건드리지 않는다. 이 스탬프가 없으면
+ * 같은 질문이 매일 아침 브리프에 다시 실린다 (되새김 주기의 의미가 사라진다).
+ */
+export function applyReconsiderNudge(item: DecisionItem, nowISO: string): DecisionItem {
+  return {
+    ...item,
+    alert: { ...item.alert, last_checked: nowISO },
+    updated_at: nowISO,
+  };
 }
 
 /**

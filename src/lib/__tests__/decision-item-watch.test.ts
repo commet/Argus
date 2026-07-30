@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { dueDecisionItems, applyItemRecheck, buildItemAlertEmail } from '../decision-item-watch';
-import { isItemDueForRecheck, createItem, DECISION_ITEM_RECHECK_CADENCE_DAYS, type DecisionItem } from '../decision-items';
+import { dueDecisionItems, applyItemRecheck, buildItemAlertEmail, dueReconsiderItems, applyReconsiderNudge } from '../decision-item-watch';
+import { isItemDueForRecheck, isItemDueForReconsider, createItem, DECISION_ITEM_RECHECK_CADENCE_DAYS, DECISION_ITEM_REPONDER_CADENCE_DAYS, type DecisionItem } from '../decision-items';
 
 /**
  * 본선 전제 → 서버 감시 배선 가드 (2026-07-30 신설).
@@ -113,5 +113,43 @@ describe('알림 이메일 — 변화를 가져다 놓을 뿐, 판정하지 않�
     // 알림은 자기가 말하는 그 결정으로 열려야 한다.
     expect(email.url).toBe('https://argus.voyage/ko/project?open=d1');
     expect(email.markdown).toContain('https://argus.voyage/ko/project?open=d1');
+  });
+});
+
+describe('본선 미결 질문 되새김 (2026-07-30, 두-표면 4호)', () => {
+  const DAYS = (n: number) => new Date(NOW - n * DAY).toISOString();
+  function question(over: Partial<DecisionItem> = {}): DecisionItem {
+    const base = createItem({
+      decision_id: 'd1', type: 'open_question',
+      text: '첫 유입 채널을 어디로 할 것인가?',
+      source: 'ai', external: false, load_bearing: false,
+      ai_original: '첫 유입 채널을 어디로 할 것인가?',
+    }, NOW - (DECISION_ITEM_REPONDER_CADENCE_DAYS + 1) * DAY);
+    return { ...base, ...over };
+  }
+
+  it('되새김 판정은 UI 배지와 같은 함수다 (두 표면 한 두뇌)', () => {
+    const due = question();
+    const fresh = question({ created_at: DAYS(3) });
+    const backedOff = question({ alert: { mode: 'off', dismissals: 2 } });
+    for (const q of [due, fresh, backedOff]) {
+      expect(dueReconsiderItems([q], NOW).length > 0).toBe(isItemDueForReconsider(q, NOW));
+    }
+    expect(dueReconsiderItems([due], NOW)).toHaveLength(1);
+    expect(dueReconsiderItems([fresh, backedOff], NOW)).toHaveLength(0);
+  });
+
+  it('premise 는 되새김 대상이 아니다 (그쪽은 재확인 경로)', () => {
+    expect(dueReconsiderItems([item()], NOW)).toHaveLength(0);
+  });
+
+  it('브리프에 실으면 시계가 리셋되고, mode·dismissals 는 그대로다', () => {
+    const q = question({ alert: { mode: 'off', dismissals: 1 } });
+    expect(dueReconsiderItems([q], NOW)).toHaveLength(1);
+    const stamped = applyReconsiderNudge(q, new Date(NOW).toISOString());
+    // 안 찍으면 같은 질문이 매일 아침 브리프에 다시 실린다.
+    expect(dueReconsiderItems([stamped], NOW)).toHaveLength(0);
+    expect(stamped.alert?.mode).toBe('off');
+    expect(stamped.alert?.dismissals).toBe(1);
   });
 });

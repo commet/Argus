@@ -7,6 +7,8 @@ import { notificationGateAllowsSend } from '@/lib/notification-gate';
 import type { JudgmentReceipt } from '@/lib/review';
 import { isMonitored, isReconsiderable, nextRecheckDue, nextReponderDue } from '@/lib/premises-core';
 import { logServerEvent } from '@/lib/server-events';
+import { dueReconsiderItems, applyReconsiderNudge } from '@/lib/decision-item-watch';
+import type { DecisionItem } from '@/lib/decision-items';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -181,6 +183,59 @@ export async function GET(req: Request) {
     byUser.set(row.user_id, bucket);
   }
 
+  // ── 두 번째 소스: 본선 미결 질문 (decision_items, 2026-07-30) ─────────────
+  // T3(미결 질문)는 단독 메일 금지·브리프 전용이 기계 규칙(t3_brief_only)이다.
+  // 그런데 이 브리프도 그동안 review_receipts 만 읽어서, 본선이 봉인 때 저장한
+  // 미결 질문은 21일 되새김이 영영 안 갔다 — 두 저장소가 같은 일을 하는데
+  // 소비자가 한쪽만 읽는 결함의 네 번째 표본. 저장소 이주는 하지 않는다;
+  // 소비자가 둘 다 읽는다. due 판정은 UI 배지와 같은 함수(dueReconsiderItems →
+  // isItemDueForReconsider), 실어 나르는 것은 질문 원문뿐(선택지·기울기 금지).
+  let itemQuestionCount = 0;
+  const itemNudgeUpdates = new Map<string, DecisionItem[]>();
+  {
+    const { data: qRows, error: qErr } = await supabase
+      .from('decision_items')
+      .select('*')
+      .eq('status', 'active')
+      .eq('type', 'open_question')
+      .limit(2000);
+    if (qErr) {
+      console.error('[companion-brief] decision_items query error:', qErr.message);
+    } else {
+      const due = dueReconsiderItems((qRows || []) as DecisionItem[], Date.now());
+      const byDecision = new Map<string, DecisionItem[]>();
+      for (const it of due) {
+        const list = byDecision.get(it.decision_id) ?? [];
+        list.push(it);
+        byDecision.set(it.decision_id, list);
+      }
+      const nameById = new Map<string, string>();
+      const decisionIds = [...byDecision.keys()];
+      if (decisionIds.length > 0) {
+        const { data: projRows } = await supabase.from('projects').select('id, name').in('id', decisionIds);
+        for (const pr of projRows || []) nameById.set(pr.id, typeof pr.name === 'string' ? pr.name : '');
+      }
+      const nowISO = new Date().toISOString();
+      for (const [decisionId, items] of byDecision) {
+        const userId = (items[0] as DecisionItem & { user_id?: string }).user_id;
+        if (!userId) continue;
+        const bucket = byUser.get(userId) || { rowIds: [], briefs: [], clearRows: [] };
+        bucket.briefs.push({
+          source_title: nameById.get(decisionId) || '결정',
+          core_question: '',
+          origin: 'web',
+          predicates: [],
+          open_questions: items.map((it, i): OpenQuestionNudge => ({ ordinal: i + 1, text: it.text })),
+        });
+        byUser.set(userId, bucket);
+        const arr = itemNudgeUpdates.get(userId) ?? [];
+        arr.push(...items.map((it) => applyReconsiderNudge(it, nowISO)));
+        itemNudgeUpdates.set(userId, arr);
+        itemQuestionCount += items.length;
+      }
+    }
+  }
+
   const resendKey = process.env.RESEND_API_KEY;
   if (!resendKey && !dryRun) {
     return NextResponse.json({ error: 'Email is not configured on this deployment.' }, { status: 503 });
@@ -237,6 +292,15 @@ export async function GET(req: Request) {
           .update({ data: row.data, updated_at: new Date().toISOString() })
           .eq('id', row.id);
       }
+      // 본선 미결 질문의 되새김 시계 — 발송이 성사된 사용자 것만 찍는다
+      // (실패하면 안 찍고 내일 다시 실린다).
+      for (const it of itemNudgeUpdates.get(userId) ?? []) {
+        const { error: itemErr } = await supabase
+          .from('decision_items')
+          .update({ alert: it.alert, updated_at: it.updated_at })
+          .eq('id', it.id);
+        if (itemErr) console.error('[companion-brief] item nudge stamp error:', it.id, itemErr.message);
+      }
     }
     sent++;
   }
@@ -244,6 +308,9 @@ export async function GET(req: Request) {
   // 계기 (2026-07-29): 이 크론이 돌았는지·누구에게 갔는지 데이터로 답할 수 있게.
   logServerEvent('cron_companion_brief', {
     dry_run: dryRun, due_users: byUser.size, emailed: sent, skipped: skipped.length,
+    // 본선 미결 질문(두 번째 소스)의 흔적 — 없으면 "본선 질문도 되새긴다"는
+    // 말을 데이터로 증명도 반박도 못 한다.
+    item_questions: itemQuestionCount, item_question_users: itemNudgeUpdates.size,
   }, { path: '/api/cron/companion-brief' });
   return NextResponse.json({
     ok: true,
@@ -251,6 +318,8 @@ export async function GET(req: Request) {
     due_users: byUser.size,
     emailed: sent,
     skipped: skipped.length,
+    item_questions: itemQuestionCount,
+    item_question_users: itemNudgeUpdates.size,
     date: today,
   });
 }
