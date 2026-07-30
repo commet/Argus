@@ -74,6 +74,8 @@ const BUNDLE_MARKERS = [
   // 2.0.18 — 사람이 직접 실행하면 조용한 매달림 대신 첫 화면. 앵커는 ASCII 라
   // 이스케이프 함정이 없다.
   ['직접 실행하면 첫 화면이 뜬다 (2.0.18)', 'just talk about a decision as usual'],
+  // 2.0.19 — 프로젝트 아닌 폴더는 개인 홈 원장. 앵커는 홈 폴백 stderr 한 줄(ASCII).
+  ['앱 대화가 원장을 조각내지 않는다 (2.0.19)', 'using the personal home ledger'],
 ];
 
 /**

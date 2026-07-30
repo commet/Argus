@@ -1,5 +1,23 @@
 # Changelog
 
+## 2.0.19 - App conversations stop fragmenting the ledger
+
+- Measured in the Codex desktop app: it creates a fresh folder per
+  conversation, and the old default (always `<cwd>/.argus`) gave every
+  conversation an orphan ledger — records were never seen again once the
+  chat closed. The default now follows one rule: **project evidence decides
+  where the ledger lives.** Inside a git repo, or where an `.argus` already
+  exists → the project ledger, exactly as before. Anywhere else (temp
+  folders, per-conversation app folders) → the personal home ledger
+  (`ARGUS_HOME` or `~/.argus`), so app conversations share one record.
+- Verified live: a prediction saved in one simulated app conversation is
+  visible from a second one, and no orphan `.argus` is created. The first
+  home fallback per process says so on stderr, so "where did my records go"
+  has a one-line answer.
+- Explicit settings always win: per-call `argus_dir`, then `ARGUS_DIR`.
+  One logical judgment dataset per user is the target model
+  (ADR 2026-07-27); this removes the sharpest fragmentation against it.
+
 ## 2.0.18 - Running it by hand no longer looks broken
 
 - A human typing `npx argus-decision-mcp` in a terminal used to get one
