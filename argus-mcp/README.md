@@ -90,10 +90,10 @@ close is not enough):
 }
 ```
 
-`ARGUS_DIR` matters more here than in a terminal host: a desktop app has no
-"current project", so without it the server has no obvious place to write. Give
-it an absolute path. On Windows, escape the backslashes
-(`"C:\\Users\\you\\decisions\\.argus"`).
+`ARGUS_DIR` is optional here too — a desktop app has no "current project", so
+records go to your personal home ledger (`~/.argus`) by default rather than
+scattering. Set it when you want them somewhere specific. On Windows, escape the
+backslashes (`"C:\\Users\\you\\decisions\\.argus"`).
 
 <details>
 <summary>Windows: server does not appear</summary>
@@ -179,7 +179,7 @@ confirm which build answered.
 
 ## Where your records live
 
-One ledger per project, on your disk, from the first call — nothing to set up.
+On your disk from the first call — nothing to set up.
 
 `ARGUS_DIR` is optional. The default follows one rule — *project evidence
 decides where the ledger lives*:
