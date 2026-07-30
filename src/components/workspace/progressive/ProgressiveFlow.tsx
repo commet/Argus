@@ -96,7 +96,8 @@ import { neutralizeLeanText } from '@/lib/lean-scan';
 import { QuestionCard } from './shared/QuestionCard';
 import { parseTraceLocator, TRACE_NAVIGATE_EVENT } from '@/lib/evidence-trace';
 
-function DeepJudgmentEntry({
+// Exported for the render test + visual check (see __tests__/deep-judgment-entry-render).
+export function DeepJudgmentEntry({
   active,
   recommended,
   ownApiKey,
@@ -113,24 +114,51 @@ function DeepJudgmentEntry({
 }) {
   const locale = useLocale();
   const L = (ko: string, en: string) => locale === 'ko' ? ko : en;
+
+  // What the deep path actually adds, as facts rather than adjectives. The
+  // recommended card used to spend its whole body on WHY it was suggested and
+  // put the cost line in tertiary grey underneath, so the reader had to infer
+  // what they'd get. These are the three things that change.
+  const offer = ownApiKey
+    ? [
+        L('독립 전문 시각 2', '2 independent specialist views'),
+        L('되돌리기 어려우면 반론 1', '1 critic when hard to reverse'),
+        L('개인 API · 횟수 제한 없음', 'Own API · no usage limit'),
+      ]
+    : [
+        L('독립 전문 시각 2', '2 independent specialist views'),
+        L('되돌리기 어려우면 반론 1', '1 critic when hard to reverse'),
+        L('24시간에 한 번 무료', 'Free once per 24 hours'),
+      ];
+
   return (
-    <div className={`mb-5 rounded-xl border px-4 py-3 ${
+    <div className={`mb-5 rounded-xl border px-4 py-3.5 ${
       active
         ? 'border-[var(--accent)]/35 bg-[var(--accent)]/[0.06]'
         : recommended
-          ? 'border-amber-500/30 bg-amber-500/[0.05]'
+          // Was border-amber-500/30 + bg /[0.05] — a tint so faint the card read
+          // as disabled, next to a ghost-outline button. If this path is worth
+          // suggesting at all it has to be legible as an offer.
+          ? 'border-amber-500/55 bg-amber-500/[0.11] shadow-[0_1px_0_rgba(0,0,0,0.02),0_10px_24px_-18px_rgba(180,83,9,0.55)]'
           : 'border-[var(--border-subtle)] bg-[var(--surface)]'
     }`}>
-      <div className="flex items-start justify-between gap-3">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
-          <p className="text-[12.5px] font-semibold text-[var(--text-primary)]">
+          <p className={`flex items-center gap-1.5 font-bold ${
+            recommended && !active
+              ? 'text-[14px] text-amber-700 dark:text-amber-300'
+              : 'text-[13px] text-[var(--text-primary)]'
+          }`}>
+            {recommended && !active && <Sparkles size={14} className="shrink-0" />}
             {active
               ? L('심층 판단이 켜져 있어요', 'Deep judgment is on')
               : recommended
                 ? L('이 과제는 심층 판단을 써볼 만해요', 'This decision may benefit from deep judgment')
                 : L('더 강한 검증이 필요하면', 'When you want stronger verification')}
           </p>
-          <p className="mt-1 text-[13px] leading-[1.55] text-[var(--text-tertiary)]">
+          <p className={`mt-1.5 text-[13px] leading-[1.55] ${
+            recommended && !active ? 'text-[var(--text-secondary)]' : 'text-[var(--text-tertiary)]'
+          }`}>
             {active
               ? L(
                   '최대 두 개의 전문 시각과, 되돌리기 어려운 과제일 때만 반론 하나를 더 붙입니다.',
@@ -147,23 +175,40 @@ function DeepJudgmentEntry({
                   )}
           </p>
           {!active && (
-            <p className="mt-1 text-[12.5px] text-[var(--text-tertiary)]">
-              {ownApiKey
-                ? L('개인 API 연결됨 · 횟수 제한 없음', 'Own API connected · no Argus usage limit')
-                : L('Argus 제공 모델 · 24시간에 한 번, 시작한 과제는 끝까지 이어갈 수 있음', 'Argus-provided model · once per 24 hours; the started session can be resumed')}
-            </p>
+            // Concrete, countable, no adjectives — the quota is one of the three
+            // rather than a grey footnote hanging under the paragraph.
+            <ul className="mt-2.5 flex flex-wrap gap-1.5" aria-label={L('심층 판단으로 더해지는 것', 'What deep judgment adds')}>
+              {offer.map((item) => (
+                <li
+                  key={item}
+                  className={`rounded-md px-2 py-1 text-[12px] font-semibold ${
+                    recommended
+                      ? 'bg-amber-500/[0.16] text-amber-800 dark:bg-amber-400/[0.14] dark:text-amber-200'
+                      : 'bg-[var(--bg-subtle,var(--surface))] text-[var(--text-tertiary)] ring-1 ring-[var(--border-subtle)]'
+                  }`}
+                >
+                  {item}
+                </li>
+              ))}
+            </ul>
           )}
-          {error && <p className="mt-1.5 text-[13px] text-[var(--danger)]">{error}</p>}
+          {error && <p className="mt-2 text-[13px] text-[var(--danger)]">{error}</p>}
         </div>
         {!active && (
           <button
             type="button"
             disabled={busy}
             onClick={onEnable}
-            className="inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-lg border border-[var(--accent)]/35 px-3 text-[12px] font-semibold text-[var(--accent)] transition-colors hover:bg-[var(--accent)]/[0.08] disabled:opacity-50"
+            className={`inline-flex min-h-11 shrink-0 items-center justify-center gap-1.5 rounded-lg px-4 text-[13px] font-bold transition-colors disabled:opacity-50 ${
+              recommended
+                // Filled, not a ghost outline: on the one screen where this path
+                // is worth suggesting, the action should look like the action.
+                ? 'bg-amber-600 text-white hover:bg-amber-700 dark:bg-amber-500 dark:text-amber-950 dark:hover:bg-amber-400'
+                : 'border border-[var(--accent)]/35 text-[var(--accent)] hover:bg-[var(--accent)]/[0.08]'
+            }`}
           >
-            {busy ? <Loader2 size={13} className="animate-spin" /> : <Sparkles size={13} />}
-            {L('심층 판단', 'Go deep')}
+            {busy ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
+            {recommended ? L('심층 판단 켜기', 'Go deep') : L('심층 판단', 'Go deep')}
           </button>
         )}
       </div>
