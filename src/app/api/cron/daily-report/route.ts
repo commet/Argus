@@ -288,20 +288,24 @@ export async function GET(req: Request) {
     return rows;
   };
 
-  let yesterdayRaw: Record<string, unknown>[];
   let twoWeekRaw: Record<string, unknown>[];
   try {
-    [yesterdayRaw, twoWeekRaw] = await Promise.all([
-      loadEvents('session_id, event_name, properties, user_id, page_path, referrer, created_at', yesterday.start, yesterday.end),
-      loadEvents('session_id, event_name, properties, user_id, page_path, referrer, created_at', twoWeeksAgo.start, yesterday.end),
-    ]);
+    // One fortnight query is enough: yesterday is a slice of the same rows.
+    // The previous implementation scanned and transferred yesterday twice.
+    twoWeekRaw = await loadEvents(
+      'session_id, event_name, properties, user_id, page_path, referrer, created_at',
+      twoWeeksAgo.start,
+      yesterday.end,
+    );
   } catch (err) {
     console.error('[daily-report] analytics query error:', err);
     return NextResponse.json({ error: 'Failed to load analytics' }, { status: 500 });
   }
 
-  const yesterdayEvents = yesterdayRaw as unknown as EventRow[];
   const twoWeekEvents = twoWeekRaw as unknown as EventRow[];
+  const yesterdayEvents = twoWeekEvents.filter(
+    e => e.created_at >= yesterday.start && e.created_at <= yesterday.end,
+  );
 
   // Owner session filter: any session that has an owner user_id event
   const ownerSessionIds = new Set<string>();
@@ -315,11 +319,6 @@ export async function GET(req: Request) {
   const ext14 = twoWeekEvents.filter(e => !ownerSessionIds.has(e.session_id) && e.session_id !== 'server');
 
   // ─── 3. All-time cumulative stats ───
-  const { count: totalUsers } = await supabase
-    .from('projects')
-    .select('user_id', { count: 'exact', head: true })
-    .not('user_id', 'in', `(${[...ownerIds].map(id => `"${id}"`).join(',') || '""'})`);
-  // More direct: just count non-owner auth users
   const cumulativeUsers = externalUsers.length;
 
   const { count: cumulativeProjects } = await supabase
@@ -330,12 +329,12 @@ export async function GET(req: Request) {
   // Completions: progressive_sessions where phase=complete OR final_deliverable is set
   const { data: allProgressive } = await supabase
     .from('progressive_sessions')
-    .select('project_id, user_id, data, created_at, updated_at')
+    .select('project_id, user_id, phase, final_deliverable:data->>final_deliverable')
     .limit(5000);
   const cumulativeCompletions = (allProgressive || []).filter(s => {
     if (s.user_id && ownerIds.has(s.user_id)) return false;
-    const phase = (s.data as { phase?: string })?.phase;
-    const fd = (s.data as { final_deliverable?: string })?.final_deliverable;
+    const phase = s.phase;
+    const fd = s.final_deliverable;
     return phase === 'complete' || (fd && fd.length > 0);
   }).length;
 
@@ -345,13 +344,13 @@ export async function GET(req: Request) {
   const [{ data: recentProjects, error: projectsError }, { data: recentSessions, error: sessionsError }] = await Promise.all([
     supabase
       .from('projects')
-      .select('id, user_id, created_at, decision_contract')
+      .select('id, user_id, created_at')
       .gte('created_at', previousDay.start)
       .lte('created_at', yesterday.end)
       .limit(5000),
     supabase
       .from('progressive_sessions')
-      .select('project_id, user_id, created_at, updated_at, phase, data')
+      .select('project_id, user_id, created_at')
       .gte('created_at', previousDay.start)
       .lte('created_at', yesterday.end)
       .limit(5000),
@@ -367,9 +366,6 @@ export async function GET(req: Request) {
   const sessionsPrevious = externalRecentSessions.filter(r => r.created_at >= previousDay.start && r.created_at <= previousDay.end);
   const allSessionProjectIds = new Set((allProgressive || []).map(s => s.project_id).filter(Boolean));
   const projectsMissingSession = projectsYesterday.filter(p => !allSessionProjectIds.has(p.id));
-
-  // Ignore the unused first `totalUsers` query — we use externalUsers.length for accuracy
-  void totalUsers;
 
   // ─── 3.5 Classify every external session: human / bot / internal ───
   // Referrer-spam crawlers and the founder's own anonymous QA sweeps used to be

@@ -42,6 +42,14 @@ describe('daily analytics contract', () => {
     expect(route).not.toContain('.limit(200000)');
   });
 
+  it('loads the fortnight once and avoids transferring full voyage JSON for metrics', () => {
+    const route = source('src/app/api/cron/daily-report/route.ts');
+    expect(route.match(/twoWeekRaw = await loadEvents/g)).toHaveLength(1);
+    expect(route).toContain("final_deliverable:data->>final_deliverable");
+    expect(route).not.toContain(".select('project_id, user_id, data, created_at, updated_at')");
+    expect(route).not.toContain(".select('project_id, user_id, created_at, updated_at, phase, data')");
+  });
+
   it('classifies traffic through the shared, unit-tested helpers', () => {
     const route = source('src/app/api/cron/daily-report/route.ts');
     // No copy-pasted classifier in the route — it imports the single source.
