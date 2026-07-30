@@ -8,9 +8,14 @@
  *
  *   argus-mcp/package.json              what npm publishes
  *   argus-mcp/server.json               what the MCP registry records
- *   argus-plugin-v2/.mcp.json           the `npx argus-decision-mcp@X` PIN
+ *   argus-plugin-v2/.mcp.json           how an install LAUNCHES the server
  *   argus-plugin-v2/.claude-plugin/…    the plugin's own version
  *   .claude-plugin/marketplace.json     twice, in two objects
+ *
+ * The third line used to be a literal `npx argus-decision-mcp@X` pin. It is now a
+ * local launcher (2026-07-30, offline-alive), so this gate follows the delegation
+ * instead of reading `.mcp.json` alone — see V3 below. The invariant is unchanged
+ * and merely inverted: that launch path must name the package UNPINNED.
  *
  * The pin is the dangerous one. If it lags, every user of the new plugin keeps
  * launching the OLD server — silently, because both halves are internally
@@ -80,14 +85,56 @@ for (const [i, p] of (server.packages ?? []).entries()) {
 // stop needing maintenance.
 //
 // Hence the inversion: no version at all, and a range is now the failure.
-const spec = (mcpJson.mcpServers?.['argus-decision']?.args ?? []).find(
-  (a) => typeof a === 'string' && a.includes(pkg.name));
-ok('V3 .mcp.json이 서버를 띄운다', typeof spec === 'string', JSON.stringify(mcpJson.mcpServers));
-if (spec) {
-  const versioned = new RegExp(`${escapedPackage}@([^\\s"'()\`\\]]+)`).exec(spec)?.[1] ?? '';
+// 2026-07-30: the wire moved, the invariant did not. `.mcp.json` used to name the
+// package itself; it now runs a local launcher (scripts/mcp-launch.js) that probes
+// the registry and calls `npm exec` on the bare name, so an offline machine gets
+// the newest CACHED server instead of a hang. Asserting on `.mcp.json` alone made
+// this gate fail on a release that KEPT the invariant — a stale gate reporting a
+// product fault. So follow the delegation: whichever file carries the spec is the
+// file that must carry it unpinned.
+const launchArgs = mcpJson.mcpServers?.['argus-decision']?.args ?? [];
+const relativeLauncher = launchArgs
+  .find((a) => typeof a === 'string' && /\$\{CLAUDE_PLUGIN_ROOT\}\/.+\.(?:js|mjs|cjs)$/.test(a))
+  ?.replace('${CLAUDE_PLUGIN_ROOT}/', '');
+const launcherPath = relativeLauncher
+  ? path.join(ROOT, 'argus-plugin-v2', relativeLauncher)
+  : null;
+// A launcher named in the manifest but missing from the repo would leave every
+// install with no server at all — the loudest possible version mismatch.
+ok('V3 .mcp.json이 가리키는 런처가 실재한다',
+  !launcherPath || fs.existsSync(launcherPath),
+  `${relativeLauncher} 파일이 없다`);
+
+const launcherSource = launcherPath && fs.existsSync(launcherPath)
+  ? fs.readFileSync(launcherPath, 'utf8')
+  : '';
+// Comment lines are stripped: this repo's own prose documents the OLD pinned wire,
+// and the launcher's header explains the offline decision using the package name.
+// Matching those would let a real pin hide behind a comment.
+const launcherCode = launcherSource
+  .split('\n')
+  .filter((line) => {
+    const t = line.trimStart();
+    return !t.startsWith('*') && !t.startsWith('//') && !t.startsWith('/*');
+  })
+  .join('\n');
+// EVERY place the launch path names the package, not just the first. The first
+// occurrence inside the launcher is its registry-probe URL, which can never carry
+// a version — keying on that one line let a pinned `--package=name@2.0.0` pass
+// this gate green (caught by mutation, 2026-07-30).
+const mentions = [
+  ...launchArgs.filter((a) => typeof a === 'string' && a.includes(pkg.name)),
+  ...launcherCode.split('\n').filter((line) => line.includes(pkg.name)),
+];
+ok('V3 .mcp.json이 서버를 띄운다', mentions.length > 0,
+  `어디에서도 ${pkg.name}을 띄우지 않는다: ${JSON.stringify(mcpJson.mcpServers)}`);
+if (mentions.length > 0) {
+  const pinned = mentions
+    .map((m) => new RegExp(`${escapedPackage}@([^\\s"'()\`\\]]+)`).exec(m)?.[1])
+    .filter(Boolean);
   ok('V3 플러그인이 버전을 박지 않는다 (설치 한 번으로 계속 최신)',
-    versioned === '',
-    `${versioned}에 고정돼 있다 — 이 플러그인을 깐 사람은 새 서버를 영영 못 받는다`);
+    pinned.length === 0,
+    `${pinned.join(', ')}에 고정돼 있다 — 이 플러그인을 깐 사람은 새 서버를 영영 못 받는다`);
 }
 
 // the marketplace speaks for the plugin in two places
