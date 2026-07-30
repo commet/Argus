@@ -1,5 +1,20 @@
 # Changelog
 
+## 3.0.15 - 2026-07-30
+
+- **Re-cuts 3.0.14 under a number caches cannot confuse.** The unpin landed in
+  the repository without bumping the version, so the "3.0.14" a marketplace
+  install served still carried `argus-decision-mcp@2.0.12` — same number, two
+  different contents, and a version-keyed plugin cache has no reason to refresh.
+  Measured 2026-07-30: a fresh session on an up-to-date machine still launched
+  MCP 2.0.12. This is the same failure shape as MCP 2.0.4 (the gate compared
+  version strings, not contents); the fix is the same — never ship changed
+  wiring under an unchanged number.
+- No behavior change beyond finally receiving what 3.0.14's notes promised:
+  unpinned wire, current MCP each launch (2.0.14 today: composed-syllable
+  interrogative detection, so formal questions without a question mark land as
+  open questions, not premises).
+
 ## 3.0.14 - 2026-07-29
 
 - **The wiring no longer pins an MCP version, so one install keeps receiving
