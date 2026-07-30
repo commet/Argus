@@ -251,7 +251,15 @@ function CollapsedSpine({ onExpand }: { onExpand: () => void }) {
         <PanelLeftOpen size={16} />
       </span>
 
-      <span className="text-[12.5px] font-bold uppercase tracking-[0.2em] text-[var(--text-tertiary)] group-hover:text-[var(--accent)] [writing-mode:vertical-rl] rotate-180 transition-colors">
+      {/* `rotate-180` is the standard trick for a Latin sidebar label: vertical-rl
+          lays it top-to-bottom, and the flip makes it read bottom-to-top. Hangul
+          is NOT laid out that way — vertical-rl keeps each syllable upright (it
+          is CJK, `text-orientation: mixed`), so the same flip turns every
+          character literally upside down. Korean therefore takes vertical-rl
+          alone and reads downward, which is its own native vertical direction. */}
+      <span
+        className={`text-[12.5px] font-bold uppercase tracking-[0.2em] text-[var(--text-tertiary)] group-hover:text-[var(--accent)] [writing-mode:vertical-rl] transition-colors ${locale === 'ko' ? '' : 'rotate-180'}`}
+      >
         {L('판단 경로', 'Decision path')}
       </span>
 
@@ -324,7 +332,8 @@ export function VoyageMapViews({
 export function VoyageMapRail() {
   const locale = useLocale();
   const L = (ko: string, en: string) => (locale === 'ko' ? ko : en);
-  const collapsed = useSettingsStore(s => s.settings.voyage_map_collapsed ?? true);
+  // Fallback matches the store default (open) — a stored value still wins.
+  const collapsed = useSettingsStore(s => s.settings.voyage_map_collapsed ?? false);
   const updateSettings = useSettingsStore(s => s.updateSettings);
 
   if (collapsed) {
