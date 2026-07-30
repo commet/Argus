@@ -281,6 +281,20 @@ jobs:
       - name: Argus picker-surface parity
         run: node argus-plugin-v2/scripts/picker-surface-parity.test.mjs
 
+      # scripts/*.test.mjs 전체 자동 발견 스위프 (2026-07-30). 위의 이름 나열
+      # 방식은 새 테스트 파일이 "추가는 됐는데 아무도 안 부르는" 상태를 허용한다 —
+      # judgment-foundation.test.mjs 가 정확히 그렇게 빠진 채 main 에서 조용히
+      # 빨간불이었다(공용 픽스처 위반: 맨 `합니다`가 정중형 예측을 약속으로 분류).
+      # 파일이 생기는 순간 CI 에 물리게 글롭으로 전부 돌린다. 위 개별 스텝들과
+      # 일부 중복 실행되지만 전부 1초 미만 테스트라 비용보다 구멍이 비싸다.
+      - name: Argus plugin test sweep (auto-discovers every scripts/*.test.mjs)
+        run: |
+          set -e
+          for f in argus-plugin-v2/scripts/*.test.mjs; do
+            echo "== $f"
+            node "$f"
+          done
+
       - name: Argus plugin validate
         run: node argus-plugin-v2/scripts/validate-plugin.js && node argus-plugin-v2/scripts/simulate-plugin.js
 
