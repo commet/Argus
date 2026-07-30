@@ -238,7 +238,7 @@ npm install
 npm run dev            # runs at http://localhost:3000
 ```
 
-See [CONTRIBUTING.md](./CONTRIBUTING.md) for the repo layout, the CI checks, and
+See [CONTRIBUTING.md](./.github/CONTRIBUTING.md) for the repo layout, the CI checks, and
 the conventions reviewers look for.
 
 **API key (optional, web).** By default the web app works through a server proxy.
@@ -259,7 +259,7 @@ argus-plugin-v2/   # the Claude Code plugin (marketplace: argus, MIT)
 docs/ARGUS-BLUEPRINT.md   # the build canon (what gets built, in what order)
 ```
 
-Details → [CONTRIBUTING.md](./CONTRIBUTING.md).
+Details → [CONTRIBUTING.md](./.github/CONTRIBUTING.md).
 
 ---
 

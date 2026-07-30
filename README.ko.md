@@ -234,7 +234,7 @@ npm install
 npm run dev            # http://localhost:3000 에서 뜹니다
 ```
 
-리포 구조, CI 검사, 리뷰 관례는 [CONTRIBUTING.md](./CONTRIBUTING.md) 에 있습니다.
+리포 구조, CI 검사, 리뷰 관례는 [CONTRIBUTING.md](./.github/CONTRIBUTING.md) 에 있습니다.
 
 **API 키(웹, 선택).** 웹앱은 기본적으로 서버 프록시를 거칩니다. 사용량 제한 없이
 쓰고 싶으면 설정 페이지에서 "Direct Key" 모드를 골라 Anthropic API 키를
@@ -253,7 +253,7 @@ argus-plugin-v2/   # Claude Code 플러그인 (marketplace: argus, MIT)
 docs/ARGUS-BLUEPRINT.md   # 빌드 정본 (무엇을 어떤 순서로 짓는가)
 ```
 
-자세히 → [CONTRIBUTING.md](./CONTRIBUTING.md).
+자세히 → [CONTRIBUTING.md](./.github/CONTRIBUTING.md).
 
 ---
 
