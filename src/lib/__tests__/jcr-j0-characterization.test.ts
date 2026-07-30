@@ -110,7 +110,7 @@ describe('J6 known debt — capture has two brains and no production consumer', 
       'argus-mcp/src/v2/capture-runtime.ts',
       'argus-mcp/src/v2/harvest.ts',
     ]);
-    expect(sessionStart).toContain('다음 Argus check-in이 제한된 수만 처리합니다.');
+    expect(sessionStart).toContain('다음 확인 때 순서대로 처리합니다.');
   });
 
   it('routes foreground scan and background queue through the canonical capture runtime', () => {

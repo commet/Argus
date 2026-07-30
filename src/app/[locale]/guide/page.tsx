@@ -254,7 +254,7 @@ export default function GuidePage() {
                 },
                 {
                   q: '무료로 어디까지 쓰나요?',
-                  a: '로그인 없이 하루 결정 2~3개 분량, 로그인하면 더 넉넉해요.',
+                  a: '로그인 없이 하루 결정 4~5개 분량, 로그인하면 더 넉넉해요.',
                 },
                 {
                   q: "'물어봐 준다'는 게 어떻게 오나요?",
@@ -285,7 +285,7 @@ export default function GuidePage() {
                 },
                 {
                   q: 'How much can I use for free?',
-                  a: 'Without logging in, about 2–3 decisions a day; logging in gives you more room.',
+                  a: 'Without logging in, about 4–5 decisions a day; logging in gives you more room.',
                 },
                 {
                   q: 'How does "coming back to ask" work?',
