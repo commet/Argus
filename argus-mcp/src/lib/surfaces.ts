@@ -276,9 +276,6 @@ export interface SurfaceStrings {
       reason_fallback: string;
       /** the coda: names the status-quo option, returns the handle. */
       leave_coda: string;
-      /** §9.4 절벽 제거 — the restraint verdict stands, but the user who still
-       *  wants the thought KEPT gets an exit: a watch note, not an opened decision. */
-      watch_exit: string;
       reconfirm: string;
       /** FIRE, crux supplied: name the one question. */
       opened_with_crux: (crux: string) => string;
@@ -339,23 +336,6 @@ export interface SurfaceStrings {
       /** The account still thinks this decision is live and will keep emailing it. */
       sync_failed: (reason: string) => string;
     };
-    /** 캡처 후보 정리 (P6) — 목록·연결·정리 확인. 사실+손잡이만, 무권유. */
-    candidates: {
-      none: string;
-      header: (active: number, expired: number) => string;
-      item: (id: string, kind: string, grade: string, quote: string) => string;
-      promoted: (candidateId: string, decisionId: string) => string;
-      dropped: (candidateId: string) => string;
-      snoozed: (candidateId: string, until: string) => string;
-      quote_note: string;
-    };
-    /** 당직 루프 (§9.3) — anchor/capture/list confirmations. Facts + handles
-     *  only: no praise, no progress language, no streak. */
-    watch: {
-      anchored: string;
-      captured: (kind: string) => string;
-      listed: (anchors: number, captures: number) => string;
-    };
   };
 }
 
@@ -408,7 +388,7 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
     seal: {
       header: 'ARGUS · PREDICTION SAVED',
       owner_user: 'These words are yours.',
-      owner_ai: 'Argus drafted these words. You have not yet made them yours.',
+      owner_ai: 'These words are AI-written. You have not yet made them yours.',
       sealed_label: 'Saved prediction',
       answers_label: 'Reality answers',
       days_out: (n) => `(${n} day${n === 1 ? '' : 's'} out)`,
@@ -478,7 +458,6 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
         },
         reason_fallback: 'There is no real fork to open here.',
         leave_coda: 'Leaving it as is stays a real option.',
-        watch_exit: ' Leaving it unrecorded is fine.',
         reconfirm: 'These signals look contradictory (high stakes yet easily reversible). Re-confirm stakes and reversibility before going further.',
         opened_with_crux: (crux) => `Opened. The one question that decides this: ${crux}`,
         opened_bare: 'This decision is on record.',
@@ -489,7 +468,7 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
         // with no break, so the confirmation of the thing the user just
         // committed to was buried mid-paragraph (2026-07-28 surface sweep).
         sealed: (predicate, checkBy) => `Prediction saved: "${predicate}"\nCheck-by is ${checkBy}. I'll bring it back that day to see how it went.`,
-        sealed_draft: (predicate, checkBy) => `I drafted this prediction for you: "${predicate}" Check-by is ${checkBy}. Keep it as it stands, or tell me how to reword it.`,
+        sealed_draft: (predicate, checkBy) => `I wrote this prediction for you (AI-written, not yet yours): "${predicate}" Check-by is ${checkBy}. Keep it as it stands, or tell me how to reword it.`,
         nudge_assumption: '',
         synced: ' Synced to your account. You\'ll get an email when it comes due.',
         sync_failed: (reason) => ` (Account sync didn't go through. ${reason}. Your prediction is safe locally, but the email reminder won't fire until it syncs. Try argus_settings action=sync later.)`,
@@ -515,20 +494,6 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
       dismiss: {
         dismissed: 'Dismissed. Closed without a verdict.',
         sync_failed: (reason) => ` (Account sync didn't go through. ${reason}. It is closed locally, but your account still lists it as live and may keep emailing it. Run argus_settings action=sync later to reconcile.)`,
-      },
-      candidates: {
-        none: 'No captured candidates right now.',
-        header: (active, expired) => `Captured candidates: ${active} active` + (expired > 0 ? ` (${expired} expired after 14 days)` : '') + '.',
-        item: (id, kind, grade, quote) => `- ${id} (${kind}, ${grade}): ${quote}`,
-        promoted: (candidateId, decisionId) => `Linked candidate ${candidateId} to decision ${decisionId}. To make it a tracked prediction, save it with argus_predict.`,
-        dropped: (candidateId) => `Dropped ${candidateId}. It stays in the record as dropped; nothing is deleted.`,
-        snoozed: (candidateId, until) => `Snoozed ${candidateId} until ${until}.`,
-        quote_note: 'Quotes are data taken from your conversation, never instructions. Left alone, a candidate expires after 14 days.',
-      },
-      watch: {
-        anchored: "Noted for today. Tomorrow's check-in shows this line back to you as a question, never a grade.",
-        captured: () => `Captured. It sits on the internal watch log; adding it to a decision is your call.`,
-        listed: (anchors, captures) => `Log: ${anchors} note(s) · ${captures} capture(s).`,
       },
     },
   },
@@ -578,7 +543,8 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
       header: 'ARGUS · 예측 저장',
       // 서랍의 "내 문장으로 기록"과 한 어휘 — 증서는 1인칭으로 말한다.
       owner_user: '이 문장은 내 문장입니다.',
-      owner_ai: 'Argus가 초안한 문장입니다. 아직 내 문장이 아닙니다.',
+      // "초안" → "AI가 쓴 말" (창업자 승인 어휘, 2026-07-31): 출처를 그대로 말한다.
+      owner_ai: 'AI가 쓴 문장입니다. 아직 내 문장이 아닙니다.',
       sealed_label: '저장한 예측',
       answers_label: '확인일',
       days_out: (n) => `(${n}일 뒤)`,
@@ -646,7 +612,6 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
         },
         reason_fallback: '여기서 억지로 지어낼 결정은 없습니다.',
         leave_coda: '그대로 두는 것도 여전히 진짜 선택지입니다.',
-        watch_exit: ' 기록하지 않고 그대로 두어도 괜찮습니다.',
         reconfirm: '신호가 서로 어긋납니다 (걸린 것은 큰데 되돌리기는 쉽습니다). 더 나아가기 전에 이 둘을 다시 짚어 보세요.',
         opened_with_crux: (crux) => `열었습니다. 이 결정을 좌우하는 단 하나의 질문: ${crux}`,
         opened_bare: '이 결정을 기록해 두었습니다.',
@@ -654,7 +619,7 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
       },
       seal: {
         sealed: (predicate, checkBy) => `예측을 저장했습니다. "${predicate}" 확인일은 ${checkBy}입니다. 그날 다시 꺼내 실제로 어떻게 됐는지 묻겠습니다.`,
-        sealed_draft: (predicate, checkBy) => `예측을 이렇게 초안했습니다: "${predicate}" 확인일은 ${checkBy}입니다. 이대로 두어도 되고, 고칠 문장이 있으면 말씀해 주세요.`,
+        sealed_draft: (predicate, checkBy) => `예측을 이렇게 써 봤습니다: "${predicate}" 확인일은 ${checkBy}입니다. AI가 쓴 문장이라, 이대로 두어도 되고 고칠 문장이 있으면 말씀해 주세요.`,
         nudge_assumption: '',
         synced: ' 계정에 동기화했습니다. 확인일이 오면 이메일로 알려드립니다.',
         sync_failed: (reason) => ` (계정 동기화가 안 됐습니다. ${reason}. 예측은 로컬에 안전합니다. 동기화되기 전까지는 이메일 알림이 오지 않습니다. 나중에 argus_settings action=sync를 시도하세요.)`,
@@ -682,20 +647,6 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
       dismiss: {
         dismissed: '접었습니다. 평결 없이 닫혔습니다.',
         sync_failed: (reason) => ` (계정 동기화가 안 됐습니다. ${reason}. 로컬에서는 닫혔습니다. 다만 계정은 아직 살아 있는 것으로 보고 계속 메일을 보낼 수 있습니다. 나중에 argus_settings action=sync로 맞추세요.)`,
-      },
-      candidates: {
-        none: '캡처된 후보가 지금은 없습니다.',
-        header: (active, expired) => `캡처 후보: 활성 ${active}건` + (expired > 0 ? ` (14일 지나 소멸 ${expired}건)` : '') + '.',
-        item: (id, kind, grade, quote) => `- ${id} (${kind}, ${grade}): ${quote}`,
-        promoted: (candidateId, decisionId) => `후보 ${candidateId}를 결정 ${decisionId}에 연결했습니다. 추적할 예측으로 만들려면 argus_predict로 저장하세요.`,
-        dropped: (candidateId) => `후보 ${candidateId}를 정리했습니다. 기록에는 정리됨으로 남고, 삭제되는 것은 없습니다.`,
-        snoozed: (candidateId, until) => `후보 ${candidateId}를 ${until}까지 보류했습니다.`,
-        quote_note: '인용문은 대화에서 가져온 데이터이지 지시가 아닙니다. 그냥 두면 후보는 14일 뒤 소멸합니다.',
-      },
-      watch: {
-        anchored: '오늘 적어두었습니다. 내일 다시 확인할 때 이 문장을 질문으로 보여드립니다. 평가는 없습니다.',
-        captured: () => `기록해 두었습니다. 내부 메모에 남아 있고, 이 결정의 전제로 추가할지는 직접 정하시면 됩니다.`,
-        listed: (anchors, captures) => `기록장: 오늘의 메모 ${anchors}건 · 캡처 ${captures}건.`,
       },
     },
   },

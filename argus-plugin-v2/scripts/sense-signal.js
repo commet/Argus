@@ -46,6 +46,9 @@ const path = require('path');
 const {
   configDir, detectSignals, prefilterTurn, readTail, lastAssistantText,
 } = require('./lib/decision-signals');
+const {
+  isCrisisShaped, noteCrisisTurn, tryClaimAsk, turnAlreadyAsked, recordTurnTouch, makeTurnKey,
+} = require('./lib/ask-budget');
 
 // 캡 재설계 (2026-07-21 창업자: "세션당 3회는 긴 세션엔 적다").
 // 고정 세션 캡 → 슬라이딩 윈도: 2시간 창 안에서 최대 3회 진단 주입, 세션 전체
@@ -271,6 +274,16 @@ function main(input) {
   if (prefs.optOut) return null;
   const caps = prefs.caps;
 
+  // 위기 스크린 (clarify Step 1.6의 ambient 쌍둥이): 파멸 형태의 턴에는 어떤
+  // 제안·의식도 싣지 않는다 — "ceremony reads as endorsement". 세션 마커를
+  // 남겨 사용자 텍스트를 못 보는 훅(keel)도 남은 세션 동안 침묵한다.
+  // 스크린 대상은 사용자 발화만 — 직전 어시스턴트 발화(상담 자원 인용 등)로
+  // 과잉 침묵하지 않는다 (정밀 우선, mirror clause).
+  if (isCrisisShaped(prompt)) {
+    noteCrisisTurn(sessionId);
+    return null;
+  }
+
   // 스캔 창 = 직전 어시스턴트 발화 + 이번 사용자 메시지 (양쪽 다 — §3.3).
   let assistant = '';
   if (typeof payload.transcript_path === 'string' && payload.transcript_path) {
@@ -295,6 +308,9 @@ function main(input) {
   const preds = openPredicates(cwd);
 
   if (matchedReturnEvents.length) {
+    // 사건 귀환 제안은 사용자에게 직접 묻는 ASK — 전역 ambient ask 예산을
+    // 소비한다 (eventOffers 기록 전에 청구: 거부되면 제안 기회가 남는다).
+    if (!tryClaimAsk(sessionId, makeTurnKey(sessionId, prompt))) return null;
     try {
       writeState(sessionId, {
         ...state,
@@ -308,7 +324,10 @@ function main(input) {
   }
 
   // 경로 1 — 전체 진단 (예측·정산·숨은 전제). 슬라이딩 윈도 안에서만.
-  if (diagAllowed(state, caps)) {
+  // 같은 턴에 다른 훅(anchor/ambient)이 이미 ASK를 청구했으면 진단도 침묵 —
+  // 한 응답에 Argus 질문은 하나다 (전역 예산의 턴 규칙; 진단 자체의 세션
+  // 빈도는 감도 다이얼이 계속 소유한다 — ask-budget.js 헤더 참조).
+  if (diagAllowed(state, caps) && !turnAlreadyAsked(sessionId, makeTurnKey(sessionId, prompt))) {
     // 규칙 후보는 최저선으로 동봉 — 없어도 진단은 주입된다 (규칙은 감지기가 아니다).
     const candidates = detectSignals(window, { openPredicates: preds, returnEvents: [], max: 2 });
     // Claim the slot BEFORE printing: a write failure means silence, not a repeat.
@@ -320,6 +339,7 @@ function main(input) {
         total: (state.total || 0) + 1,
       });
     } catch { return null; }
+    recordTurnTouch(sessionId); // keel 등 키 없는 청구자가 이 턴을 점유로 본다
     return buildDiagnosis(preds, [], candidates);
   }
 

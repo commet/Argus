@@ -24,6 +24,7 @@
 const fs = require("fs");
 const path = require("path");
 const { configDir, hasDoneSignal, readTail, lastUserText, pruneMarkers } = require("./lib/decision-signals");
+const { isCrisisShaped, tryClaimAsk, makeTurnKey } = require("./lib/ask-budget");
 
 // seen (permanent) = "this session was nudged/anchored". recall uses it to tell an ON
 // session (handled in-session) from an OFF one — the live argus-anchored marker is
@@ -86,6 +87,14 @@ function main() {
   if (!text) return;
   const utter = lastUserText(text, partial);
   if (!hasDoneSignal(utter)) return; // prev session closed no decision → silence
+
+  // Crisis screen: never ask "how did it turn out?" about a ruin-shaped close.
+  if (isCrisisShaped(utter)) return;
+
+  // Global ambient ask budget (shared across the five ambient hooks). Claim
+  // BEFORE the recalled marker so a denied ask can still recall later.
+  const sessionId = (data && data.session_id) || prev.id;
+  if (!tryClaimAsk(sessionId, makeTurnKey(sessionId, "session-start-recall"))) return;
 
   // Claim the once-per-prev-session slot BEFORE printing (write-fail → silence).
   const marker = recalledMarker(prev.id);

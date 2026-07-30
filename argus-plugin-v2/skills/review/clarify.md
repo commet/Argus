@@ -424,7 +424,16 @@ Rules (keep it restrained):
 - **Append-only, emit once:** if `.argus/items.jsonl` already has an `extract` line
   for this `decision_id`, do NOT re-emit (a later deepening round leaves the items
   alone — the user's edits via `/argus:check premises` are the authority, never overwritten).
-- Do not print anything about this to the user — it is a silent side-write.
+- **Silent write, disclosed once (tranche-4 audit):** the write itself stays quiet
+  (no per-item chatter), but the run's user-facing summary — Step 5a/5b's print, or
+  the sail card when `--invoked-via-sail` — MUST include ONE line naming how many
+  premises were kept and that monitoring can be turned off. ko: "전제 {{n}}건을 같이
+  적어뒀어요 — 확인·수정·감시 끄기는 /argus:check premises." / en: "Kept {{n}}
+  premises alongside this decision — review, edit, or turn monitoring off with
+  /argus:check premises." Recurring re-check reminders the user never opted into are
+  a consent gap, not restraint. Auto-enrollment in monitoring stays NARROW: only a
+  `load_bearing` + `external` **premise** starts at `on_change` (the reducer enforces
+  exactly this — everything else starts `off`); do not widen it.
 
 ### Step 3 — Framing validation (conditional)
 
@@ -472,7 +481,12 @@ run the reviewers, so there is no song to tie a rope against — skip silently).
 lean ONLY when the user **volunteered one in their own problem text** — a
 directional statement they already made ("내 생각엔 X로 가야", "I think we should
 ship", "we're leaning toward B"). Never a two-pole fork, never a directional
-nudge, never a manufactured lean.
+nudge, never a manufactured lean. (Scope note: this ban governs the review
+pipeline's BIND only. The ambient anchor hook — a user-initiated conversational
+moment, before any Argus analysis exists — is a different surface with its own
+crisis screen, consequential-only gate, and shared ask budget; its lean question
+anchors a before-point where no engine output can pressure the answer, so it is
+not the pre-ask this rule retires.)
 
 Then:
 
@@ -658,6 +672,8 @@ Run `team.md` to deploy the agents.
 {{else}}
 **Not yet ready for team deployment.** Run `clarify.md --continue` to add another round, or invoke `team.md --force` to proceed on current snapshot.
 {{endif}}
+
+{{if premises_emitted}}**Premises kept:** {{n}} — review, edit, or turn monitoring off with `/argus:check premises` (render in config.locale; see Step 3.5 disclosure rule){{endif}}
 
 **Session:** `.argus/sessions/{{id}}/`
 ```

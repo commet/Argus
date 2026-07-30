@@ -131,7 +131,7 @@ function lastUserText(tail, partial) {
 function pruneMarkers(maxAgeMs) {
   const base = configDir();
   const cutoff = Date.now() - maxAgeMs;
-  for (const name of ["argus-anchored", "argus-seen", "argus-waked", "argus-recalled", "argus-sensed"]) {
+  for (const name of ["argus-anchored", "argus-seen", "argus-waked", "argus-recalled", "argus-sensed", "argus-ask-budget", "argus-crisis"]) {
     const dir = path.join(base, name);
     let entries;
     try { entries = fs.readdirSync(dir); } catch { continue; }

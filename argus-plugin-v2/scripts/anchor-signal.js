@@ -26,6 +26,7 @@
 const fs = require("fs");
 const path = require("path");
 const { configDir, hasStartSignal } = require("./lib/decision-signals");
+const { isCrisisShaped, noteCrisisTurn, tryClaimAsk, makeTurnKey } = require("./lib/ask-budget");
 
 // argus-anchored = the CURRENT armed decision (set here, CONSUMED by wake/commit when the
 // decision closes, so a later strong START re-arms — once per DECISION, not once per
@@ -40,17 +41,23 @@ function seenMarker(sessionId) {
 
 // The context handed to the main Claude agent. NOT shown verbatim to the user —
 // it instructs Claude HOW to weave the anchor naturally (UX §9: no meta-question).
+// Consequential-only is the ENTRY condition, not a trailing footnote (tranche-4
+// audit): this ambient anchor fires at a user-initiated moment, BEFORE any Argus
+// analysis exists — a different surface from the review pipeline's BIND, whose
+// no-pre-ask rule (clarify.md Step 3.4) governs the pipeline only.
 const NUDGE = [
-  "[Argus] The user seems to be weighing a decision that reality will only answer later.",
-  "BEFORE you give your answer, weave ONE natural line into your reply asking where they",
-  "currently lean — e.g. \"먼저 — 지금은 어느 쪽으로 더 기울어요? 한 줄이면 돼요\" (use the",
+  "[Argus] The user may be weighing a decision that reality will only answer later.",
+  "FIRST judge whether it is genuinely consequential (real stakes, hard to reverse,",
+  "reality-settled). If it is trivial, reversible, routine, already-decided, or carries any",
+  "crisis/safety/ruin shape, ignore this entirely and ask nothing. ONLY for a consequential",
+  "decision: BEFORE you give your answer, weave ONE natural line into your reply asking where",
+  "they currently lean — e.g. \"먼저 — 지금은 어느 쪽으로 더 기울어요? 한 줄이면 돼요\" (use the",
   "user's language). This is their ANCHOR: the pre-answer read the later \"wake\" compares",
   "against. Rules: (1) it is a natural part of your reply, NOT a separate meta-prompt or a",
   "[yes/no] gate; (2) NEVER suggest a lean or pre-fill it — they word it themselves (no",
   "borrowed rope); (3) it is optional — if they skip, lose nothing and never re-ask; (4) do",
   "this at most once. If they give a line, you may offer to record it with /argus (their",
-  "choice). If this prompt is not actually a 걸-만한(consequential, reality-settled) decision,",
-  "ignore this entirely.",
+  "choice).",
 ].join(" ");
 
 function main() {
@@ -83,6 +90,19 @@ function main() {
   }
 
   if (!hasStartSignal(prompt)) return; // no START signal → silence (default)
+
+  // Crisis screen (ambient twin of clarify Step 1.6): a lean pre-ask on a
+  // ruin-shaped bet reads as endorsement of proceeding. Mark the session so
+  // text-blind hooks (keel) also stay silent.
+  if (isCrisisShaped(prompt)) {
+    noteCrisisTurn(sessionId);
+    return;
+  }
+
+  // Global ambient ask budget (shared across all five ambient hooks): max 1
+  // injected ask per turn, 3 per session. Claim BEFORE the anchor markers so a
+  // denied ask leaves this decision free to anchor on a later turn.
+  if (!tryClaimAsk(sessionId, makeTurnKey(sessionId, prompt))) return;
 
   // Arm the slot AND record that this session was nudged (seen, permanent — recall reads
   // it). Write before printing so a write failure means silence, not a repeating nudge.

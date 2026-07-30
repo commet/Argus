@@ -75,7 +75,7 @@ current state. Filter to the target decision. Group by type.
 ```text
 ## Argus - Tracked items ({{decision, clipped 48}})
 
-AI extracted these. Fix anything that is wrong.
+These are AI-written (ko: "AI가 쓴 항목"). Fix anything that is wrong.
 
 Premises
   [P1] {{text}}   {{alert: 🔔 on / 🔕 off}}{{if edited}} (edited){{endif}}

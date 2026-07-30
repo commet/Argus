@@ -163,6 +163,11 @@ export const openDecision: ToolModule = {
           id,
           crux_question: crux,
           crux_question_provenance: crux ? 'ai_surfaced' : undefined,
+          // The spine-mandated product-level disclosure of the irreducible
+          // residual lean (mirror clause): naming the load-bearing question
+          // faintly points at the flip. A KNOWN-LIMIT fact riding in data —
+          // never a verdict, never appended to the surface as a directive.
+          lean_disclosure: T.lean_disclosure,
           load_bearing_assumption: a['load_bearing_assumption'] ?? null,
           restraint_option: a['status_quo'],
           fork_emitted: false,

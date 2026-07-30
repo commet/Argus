@@ -40,6 +40,7 @@
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
+const { isCrisisShaped, noteCrisisTurn, tryClaimAsk, makeTurnKey } = require('../scripts/lib/ask-budget');
 
 const COOLDOWN_MS = 4 * 60 * 60 * 1000; // 세션 밖 재발사 간격 (4시간)
 
@@ -106,6 +107,20 @@ function main(input) {
   const settleDue = Number((/## 결과를 확인할 예측 \((\d+)\)/.exec(logbook) || [])[1] || 0);
   const premiseDue = Number((/## 다시 확인할 전제 \((\d+)\)/.exec(logbook) || [])[1] || 0);
   if (settleDue + premiseDue === 0) return null; // 게이트: 침묵이 기본값
+
+  // 3.5) 위기 스크린 + 전역 ambient ask 예산 (다섯 훅 공용). 파멸 형태의 턴에
+  //      묵은 due를 들이미는 것도 의식이다 — 침묵. 예산은 자기 쿨다운 기록보다
+  //      먼저 청구해 거부 시 4시간 쿨다운을 태우지 않는다.
+  const promptText = typeof payload.user_message === 'string' && payload.user_message
+    ? payload.user_message
+    : typeof payload.prompt === 'string' ? payload.prompt : '';
+  if (isCrisisShaped(promptText)) {
+    noteCrisisTurn(sessionId);
+    return null;
+  }
+  // session_id 부재 시 예산은 건너뛴다 — 이 훅의 4시간 시간 쿨다운이 세션
+  // 가드를 대신한다는 기존 계약(⑮) 유지. 세션이 있으면 전역 예산이 우선한다.
+  if (sessionId && !tryClaimAsk(sessionId, makeTurnKey(sessionId, promptText))) return null;
 
   // 4) 발사 기록 먼저 (원자적 tmp+rename — harvest 큐와 같은 자세). 기록에
   //    실패하면 발사하지 않는다: 상한 없는 nudge보다 한 번 거르는 게 낫다.

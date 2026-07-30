@@ -40,19 +40,21 @@ const PREMISE_BODY = '기준금리가 2026년 내내 3.5%로 유지된다';
 let home: string;
 let repoDir: string;
 let dataDir: string;
+let cfgDir: string; // 전역 ask 예산(argus-ask-budget)이 쓰는 CLAUDE_CONFIG_DIR — 실 ~/.claude 오염 금지
 
 beforeEach(() => {
   home = fs.mkdtempSync(path.join(os.tmpdir(), 'argus-amb-home-'));
   repoDir = fs.mkdtempSync(path.join(os.tmpdir(), 'argus-amb-repo-'));
   dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'argus-amb-data-'));
+  cfgDir = fs.mkdtempSync(path.join(os.tmpdir(), 'argus-amb-cfg-'));
 });
 afterEach(() => {
-  for (const d of [home, repoDir, dataDir]) fs.rmSync(d, { recursive: true, force: true });
+  for (const d of [home, repoDir, dataDir, cfgDir]) fs.rmSync(d, { recursive: true, force: true });
 });
 
 function run(sessionId = 'sess-1', envOver: Record<string, string | undefined> = {}): string {
   const env: Record<string, string | undefined> = {
-    ...process.env, ARGUS_HOME: home, CLAUDE_PLUGIN_DATA: dataDir, ...envOver,
+    ...process.env, ARGUS_HOME: home, CLAUDE_PLUGIN_DATA: dataDir, CLAUDE_CONFIG_DIR: cfgDir, ...envOver,
   };
   for (const k of Object.keys(env)) { if (env[k] === undefined) delete env[k]; }
   return execFileSync('node', [HOOK], {

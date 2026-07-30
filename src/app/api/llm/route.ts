@@ -33,11 +33,30 @@ async function verifyAuth(req: NextRequest): Promise<{ userId: string; token: st
 }
 
 /**
+ * A rate check has THREE honest answers, not two (2026-07-30 incident lesson:
+ * an RPC permission error was relayed as "quota used up" — never tell a user
+ * they are out of quota because of our own check failing):
+ *   { ok: true, allowed }  — the RPC answered; `allowed:false` is a REAL quota no.
+ *   { ok: false, code }    — the RPC itself errored; still fail-closed (the model
+ *                            is not called), but surfaced as a temporary 503,
+ *                            never as the quota message.
+ */
+type RateCheck = { ok: true; allowed: boolean } | { ok: false; code: string };
+
+/** The 503 body for an RPC-errored check — "일시적인 확인 문제", not a quota lie. */
+const RATE_CHECK_UNAVAILABLE =
+  'A temporary problem on our side while checking your quota. Your quota was not used. Please try again in a moment.';
+
+function rpcErrorCode(error: { code?: string; message?: string }): string {
+  return error.code || error.message || 'unknown';
+}
+
+/**
  * Atomic rate limiter via Supabase RPC.
  * - Runs as SECURITY DEFINER (user cannot tamper with the table)
  * - Single INSERT ... ON CONFLICT with WHERE count < limit (no race condition)
  */
-async function checkRateLimit(userId: string, token: string): Promise<boolean> {
+async function checkRateLimit(userId: string, token: string): Promise<RateCheck> {
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -50,12 +69,12 @@ async function checkRateLimit(userId: string, token: string): Promise<boolean> {
   });
 
   if (error) {
-    // RPC error — fail closed (deny the request)
+    // RPC error — fail closed, but distinguished from an honest quota "no"
     console.error('[rate-limit] RPC error:', error.message);
-    return false;
+    return { ok: false, code: rpcErrorCode(error) };
   }
 
-  return data === true;
+  return { ok: true, allowed: data === true };
 }
 
 
@@ -63,7 +82,7 @@ async function checkRateLimit(userId: string, token: string): Promise<boolean> {
  * Anonymous rate limiting via Supabase (persistent across serverless instances).
  * Uses a dedicated RPC that doesn't require auth — takes a hashed IP instead.
  */
-async function checkAnonRateLimit(ip: string): Promise<boolean> {
+async function checkAnonRateLimit(ip: string): Promise<RateCheck> {
   // Hash IP so raw addresses aren't stored in the rate_limits table
   const encoder = new TextEncoder();
   const data = encoder.encode(`anon:${ip}`);
@@ -83,12 +102,12 @@ async function checkAnonRateLimit(ip: string): Promise<boolean> {
   });
 
   if (error) {
-    // RPC error — fail closed (deny the request)
+    // RPC error — fail closed, but distinguished from an honest quota "no"
     console.error('[rate-limit] anon RPC error:', error.message);
-    return false;
+    return { ok: false, code: rpcErrorCode(error) };
   }
 
-  return allowed === true;
+  return { ok: true, allowed: allowed === true };
 }
 
 /**
@@ -99,7 +118,7 @@ async function checkAnonRateLimit(ip: string): Promise<boolean> {
  */
 const GLOBAL_SENTINEL_HASH = '00000000000000000000000000000001';
 
-async function checkGlobalRateLimit(): Promise<boolean> {
+async function checkGlobalRateLimit(): Promise<RateCheck> {
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -112,10 +131,10 @@ async function checkGlobalRateLimit(): Promise<boolean> {
 
   if (error) {
     console.error('[rate-limit] global RPC error:', error.message);
-    return false;
+    return { ok: false, code: rpcErrorCode(error) };
   }
 
-  return allowed === true;
+  return { ok: true, allowed: allowed === true };
 }
 
 export async function POST(req: NextRequest) {
@@ -170,16 +189,27 @@ export async function POST(req: NextRequest) {
     // fall through to the model call — quotas are a prod-abuse concern.
   } else if (auth) {
     // Logged-in user: DAILY_LIMIT/day via Supabase RPC
-    const allowed = await checkRateLimit(auth.userId, auth.token);
-    if (!allowed) {
+    const check = await checkRateLimit(auth.userId, auth.token);
+    if (!check.ok) {
+      // RPC ERROR is not a quota "no" — never tell the user their quota is used
+      // up because our permission/config broke (2026-07-30 incident lesson).
+      logServerEvent('server_rate_limit_rpc_error', { fn: 'check_and_increment_rate_limit', code: check.code }, { userId: auth.userId, path: '/api/llm' });
+      return NextResponse.json({ error: RATE_CHECK_UNAVAILABLE }, { status: 503 });
+    }
+    if (!check.allowed) {
       logServerEvent('server_rate_limited', { kind: 'auth_daily', limit: DAILY_LIMIT }, { userId: auth.userId, path: '/api/llm' });
       return NextResponse.json(
         { error: `Today's free quota (${DAILY_LIMIT} calls) is used up. Enter your own API key in Settings for unlimited use.` },
         { status: 429 }
       );
     }
-    // Also burn the anon quota for this IP so user can't strip auth and get extra calls
-    await checkAnonRateLimit(ip);
+    // Also burn the anon quota for this IP so user can't strip auth and get extra
+    // calls. Best-effort: its result is ignored, but an RPC error is still logged
+    // (observability, never a user-facing 503 on this secondary burn).
+    const burn = await checkAnonRateLimit(ip);
+    if (!burn.ok) {
+      logServerEvent('server_rate_limit_rpc_error', { fn: 'check_anon_rate_limit', code: burn.code, secondary: 'auth_ip_burn' }, { userId: auth.userId, path: '/api/llm' });
+    }
   } else {
     // Bot/cost-abuse defense on the anonymous paid path (inert until
     // TURNSTILE_SECRET_KEY is set — see src/lib/turnstile.ts). Raises the cost of
@@ -190,8 +220,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Verification required. Please try again.', needsCaptcha: true }, { status: 403 });
     }
     // Anonymous: ANON_LIMIT/day per IP
-    const allowed = await checkAnonRateLimit(ip);
-    if (!allowed) {
+    const check = await checkAnonRateLimit(ip);
+    if (!check.ok) {
+      logServerEvent('server_rate_limit_rpc_error', { fn: 'check_anon_rate_limit', code: check.code }, { path: '/api/llm' });
+      return NextResponse.json({ error: RATE_CHECK_UNAVAILABLE }, { status: 503 });
+    }
+    if (!check.allowed) {
       logServerEvent('server_rate_limited', { kind: 'anon_daily', limit: ANON_LIMIT }, { path: '/api/llm' });
       return NextResponse.json(
         { error: `Free trial quota exhausted. Log in to keep using up to ${DAILY_LIMIT} free calls per day!`, needsLogin: true },
@@ -204,8 +238,12 @@ export async function POST(req: NextRequest) {
   // counter reflects calls that would actually reach the model. Per-IP limits
   // cannot bound many IPs at once; this bounds the day's total bill.
   if (!devSkipRateLimit) {
-    const globalAllowed = await checkGlobalRateLimit();
-    if (!globalAllowed) {
+    const globalCheck = await checkGlobalRateLimit();
+    if (!globalCheck.ok) {
+      logServerEvent('server_rate_limit_rpc_error', { fn: 'check_anon_rate_limit', code: globalCheck.code, secondary: 'global_daily' }, { userId: auth?.userId ?? null, path: '/api/llm' });
+      return NextResponse.json({ error: RATE_CHECK_UNAVAILABLE }, { status: 503 });
+    }
+    if (!globalCheck.allowed) {
       logServerEvent('server_rate_limited', { kind: 'global_daily', limit: GLOBAL_LIMIT }, { userId: auth?.userId ?? null, path: '/api/llm' });
       return NextResponse.json(
         { error: 'The free service hit today\'s overall capacity. Please try again tomorrow, or enter your own API key in Settings to continue now.' },

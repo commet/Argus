@@ -77,7 +77,9 @@ function harvestQueueStep(payload, home) {
     !i.exhausted && i.attempts < 3 &&
     !(i.lease && i.lease.expires_at > nowIso)).length;
   if (claimable > 0) {
-    return `Argus: 이전 세션에서 자동 포착할 기록 ${claimable}건이 대기 중입니다. 다음 확인 때 순서대로 처리합니다.`;
+    // 환영 블록과 같은 계약: 문구를 박아 전달하지 않고 "사용자의 언어로
+    // 전하라"고 지시한다 (additionalContext는 Claude에게 가는 컨텍스트다).
+    return `[Argus: 아래 내용을 사용자에게 그의 언어로 짧게 전하라.] 이전 세션에서 자동 포착할 기록 ${claimable}건이 대기 중입니다. 다음 확인 때 순서대로 처리합니다.`;
   }
   return null;
 }
@@ -167,7 +169,8 @@ function main(input) {
   const fresh = cursor !== null && cursor[1] === (lastEventId ?? 'none');
 
   if (!fresh) {
-    lines.push('Argus: 이 워크스페이스의 LOGBOOK이 최신 판단 기록보다 뒤처져 있거나 없습니다. ' +
+    // 환영 블록과 같은 계약: 사용자에게는 그의 언어로 전달하라는 지시로 감싼다.
+    lines.push('[Argus: 아래 내용을 사용자에게 그의 언어로 짧게 전하라.] 이 워크스페이스의 LOGBOOK이 최신 판단 기록보다 뒤처져 있거나 없습니다. ' +
       '`argus_check_in`을 호출하면 자동 재생성됩니다 (판단 기록은 보존되고, LOGBOOK은 언제든 다시 만들 수 있습니다).');
   }
   // fresh일 때 due 건수는 여기서 발화하지 않는다 (O3 방2): SessionStart의 due
