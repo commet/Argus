@@ -34,6 +34,15 @@ async function main() {
     runLifecycleCli(process.argv[2]!, process.argv.slice(3));
     return;
   }
+  // 사람이 직접 쳤을 때의 첫 화면 (2026-07-30): help 요청이거나 stdin 이
+  // 키보드(TTY)면 조용히 매달리는 대신 연결 안내를 보여주고 끝낸다.
+  // 호스트는 파이프로 띄우므로 여기 걸리지 않는다. --stdio 로 강제 서버 가능.
+  const wantsHelp = ['help', '--help', '-h'].includes(process.argv[2] ?? '');
+  const { isHumanTerminal, buildFirstRunHelp } = await import('./lib/first-run-help.js');
+  if (wantsHelp || (isHumanTerminal() && !process.argv.includes('--stdio'))) {
+    process.stdout.write(buildFirstRunHelp() + '\n');
+    return;
+  }
   const server = await createServer();
   const transport = new StdioServerTransport();
   await server.connect(transport);

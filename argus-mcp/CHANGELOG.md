@@ -1,5 +1,17 @@
 # Changelog
 
+## 2.0.18 - Running it by hand no longer looks broken
+
+- A human typing `npx argus-decision-mcp` in a terminal used to get one
+  stderr line and a silent hang — indistinguishable from a crash, and the
+  very first impression a curious new user gets. When stdin is a TTY (a
+  keyboard, not a host pipe) the server now prints a one-screen card
+  instead: what this is, the two wire-up commands (Claude Code / Codex),
+  and the one on-ramp that matters — nothing to learn, just talk about a
+  decision. `help` / `--help` / `-h` show the same card; `--stdio` forces
+  server mode for the rare TTY-allocating host. Hosts launch over pipes
+  and never hit this gate.
+
 ## 2.0.17 - The copy sweep reaches the terminal surfaces
 
 - Twelve Korean surface strings lose their chatty and translationese edges
