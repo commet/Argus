@@ -108,7 +108,10 @@ describe('알림 이메일 — 변화를 가져다 놓을 뿐, 판정하지 않�
     expect(email.markdown).toContain('직접 판단해 주세요');
   });
 
-  it('돌아올 문이 있다 (알림은 막다른 길이면 안 된다)', () => {
-    expect(email.markdown).toContain('https://argus.voyage/ko/project');
+  it('돌아올 문이 그 결정으로 바로 열린다 (?open= 딥링크, 2026-07-30)', () => {
+    // 목록에 떨궈놓으면 어느 결정 얘기였는지 한 단계 더 찾아야 한다 —
+    // 알림은 자기가 말하는 그 결정으로 열려야 한다.
+    expect(email.url).toBe('https://argus.voyage/ko/project?open=d1');
+    expect(email.markdown).toContain('https://argus.voyage/ko/project?open=d1');
   });
 });

@@ -92,6 +92,11 @@ export function buildItemAlertEmail(input: {
   const subject = ko
     ? `전제에 움직임 — ${name.slice(0, 40)}`
     : `A premise moved — ${name.slice(0, 40)}`;
+  // 돌아올 문은 그 결정으로 **바로** 열린다 (2026-07-30) — /project 목록에
+  // 떨궈놓으면 어느 결정 얘기였는지 한 단계 더 찾아야 한다. ?open= 은 due
+  // 게이트 없는 단순 선택이라 알림의 문으로 안전하다.
+  const decisionId = (input.item as DecisionItem & { decision_id?: string }).decision_id;
+  const url = `${input.baseUrl}/ko/project${decisionId ? `?open=${encodeURIComponent(decisionId)}` : ''}`;
   const lines = [
     ko ? `「${name}」을(를) 봉인할 때 이 전제 위에 서 있었어요:` : `When you sealed "${name}", it rested on this premise:`,
     '',
@@ -105,7 +110,7 @@ export function buildItemAlertEmail(input: {
     ko
       ? '이게 그 결정을 흔드는지는 직접 판단해 주세요 — 기록은 여기에 있어요:'
       : 'Whether this moves your decision is your call — the record is here:',
-    `${input.baseUrl}/ko/project`,
+    url,
   ];
-  return { subject, markdown: lines.join('\n'), url: `${input.baseUrl}/ko/project` };
+  return { subject, markdown: lines.join('\n'), url };
 }

@@ -479,6 +479,13 @@ try {
       const gone = key7b.length >= 8 && !listedNow.some((t) => t.includes(key7b));
       step('7b. 봉인 서랍에서 추적 전제를 ×로 뺄 수 있다', gone,
         gone ? `뺀 문장: "${deniedPremise.slice(0, 30)}…"` : `뺀 문장이 목록에 그대로 있다: "${key7b}…"`);
+
+      // ── 7c. 종이 봉인 순간에 보인다 (2026-07-30 — 숨은 opt-in → 보이는 opt-out)
+      // 실측 22건 중 켜진 종 0건의 원인은 스위치가 /project 에 숨어 있던 것.
+      // 이제 서랍의 premise 줄마다 종이 기본 켬으로 보여야 한다.
+      const bellsOn = await page.getByRole('button', { name: /이 전제 알림 끄기|mute alerts for this premise/ }).count().catch(() => 0);
+      step('7c. 추적 전제의 종이 기본 켬으로 보인다', bellsOn >= 1,
+        bellsOn >= 1 ? `켜진 종 ${bellsOn}개` : '서랍에 종이 없다 — 서버 감시가 또 숨었다');
     }
   }
 
@@ -498,6 +505,25 @@ try {
     const sealedText = await bodyText();
     const sealed = /그날 프로젝트 페이지에서 제가 먼저 물어볼게요|다시 묻거나 알림을 만들지 않습니다|bring it up first on the project page|No reminder or follow-up was created/.test(sealedText);
     step('8. 봉인이 실제로 성사된다', sealed, sealed ? '' : '봉인 후 확인 문구가 안 뜬다');
+
+    // ── 8b. 봉인이 저장한 전제에 종이 실제로 켜져 있다 (2026-07-30) ──────
+    // 화면(7c)이 보여준 것과 저장소가 같은 사실이어야 한다 — UI 멀쩡 ≠ 데이터 도착.
+    const bellStored = await page.evaluate(() => {
+      try {
+        const raw = localStorage.getItem('sot_decision_items');
+        if (!raw) return { n: 0, on: 0 };
+        const items = JSON.parse(raw);
+        const list = Array.isArray(items) ? items : Object.values(items).flat();
+        const premises = list.filter((i) => i && i.type === 'premise' && i.status === 'active');
+        return { n: premises.length, on: premises.filter((i) => i.external === true && i.alert && i.alert.mode === 'on_change').length };
+      } catch { return { n: -1, on: -1 }; }
+    });
+    if (bellStored.n === 0) {
+      console.log('   🟡 8b. 이번 실행엔 자동 추적 전제가 저장되지 않아 종 상태를 못 쟀다 (7b가 노랑이었으면 정상)');
+    } else {
+      step('8b. 저장된 추적 전제에 종(external+on_change)이 켜져 있다', bellStored.on >= 1,
+        `전제 ${bellStored.n}건 중 종 켜짐 ${bellStored.on}건`);
+    }
 
     // ── 9. 익명에게 정직한 고지 + 로그인 유도 ──────────────────────────
     // 여기가 그 사람이 처음으로 "지킬 가치가 있는 것"을 손에 쥔 순간이다.

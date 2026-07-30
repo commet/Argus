@@ -123,6 +123,12 @@ export default function ProjectPage() {
   const [fromCheckin, setFromCheckin] = useState(false);
   const [returnId, setReturnId] = useState<string | null>(null);
   const [firstSettlementView, setFirstSettlementView] = useState<'same' | 'shifted' | 'unknown' | null>(null);
+  // ?open=<projectId> — 알림 메일의 돌아올 문 (2026-07-30). `return`과 달리 due
+  // 게이트가 없다: 전제가 움직였다는 메일은 결정이 due 가 아니어도 그 결정으로
+  // 바로 열려야 한다 (목록에 떨궈놓으면 "아 이거였지"가 한 단계 멀어진다).
+  // 사용자가 카드를 클릭한 것과 같은 선택 동작만 한다 — 모달도 기록도 없다.
+  const [openId, setOpenId] = useState<string | null>(null);
+  const openHandledRef = useRef(false);
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const from = params.get('from');
@@ -130,7 +136,16 @@ export default function ProjectPage() {
     setReturnId(params.get('return'));
     const first = params.get('first');
     setFirstSettlementView(first === 'same' || first === 'shifted' || first === 'unknown' ? first : null);
+    setOpenId(params.get('open'));
   }, []);
+
+  useEffect(() => {
+    if (!openId || openHandledRef.current) return;
+    const project = projects.find((p) => p.id === openId);
+    if (!project) return; // 아직 merge 전일 수 있다 — projects 가 바뀔 때 다시 온다
+    openHandledRef.current = true;
+    setCurrentProjectId(project.id);
+  }, [openId, projects, setCurrentProjectId]);
   // Settlement modal (W1.2 귀환 표면) — derived at render from contractStatus,
   // gated by a per-visit dismissed set. Deriving (instead of a getState()
   // snapshot in an effect) means the modal still opens when the async Supabase

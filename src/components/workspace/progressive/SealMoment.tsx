@@ -172,6 +172,9 @@ export function SealMoment({
   //   · 봉인 카드의 술어 ×      → dropped (술어 id) → 그 술어의 문장
   //   · 서랍의 "추적할 전제" ×  → droppedPremiseTexts (문장 자체)
   const [droppedPremiseTexts, setDroppedPremiseTexts] = useState<Set<string>>(new Set());
+  // 종 끔 목록 (2026-07-30): premise 는 기본 켬(서버 감시), 끄는 스위치가 이
+  // 서랍에 보인다 — 숨은 opt-in(실측 22건 중 0건 켜짐)을 보이는 opt-out 으로.
+  const [bellOffTexts, setBellOffTexts] = useState<Set<string>>(new Set());
 
   /** 화면의 두 deny 를 합친 제외 목록. autoTrackPremises 와 서랍 미리보기가 같이 쓴다. */
   function excludedPremiseTexts(): string[] {
@@ -183,11 +186,15 @@ export function SealMoment({
   }
 
   /** §3.4 — the decision's premises become tracked items at seal (auto, not a
-   *  manual import). Idempotent + spine-safe (external:false → alert OFF). */
+   *  manual import). Idempotent. premise 는 기본 종 켬(서랍의 보이는 스위치가
+   *  정본), open_question 은 종 대상 아님. */
   function autoTrackPremises(now: number) {
     const voyage = currentVoyage();
     if (!voyage || voyage.project_id !== project.id) return; // only this project's flow
-    const items = buildAutoTrackedPremiseItems(project.id, voyage, now, { excludeTexts: excludedPremiseTexts() });
+    const items = buildAutoTrackedPremiseItems(project.id, voyage, now, {
+      excludeTexts: excludedPremiseTexts(),
+      bellOffTexts: [...bellOffTexts],
+    });
     if (items.length > 0) addDecisionItems(items);
   }
 
@@ -203,12 +210,15 @@ export function SealMoment({
     const predicateTexts = (Array.isArray(predicates) ? predicates : [])
       .map((p) => (typeof p.text === 'string' ? p.text : ''))
       .filter(Boolean);
-    return buildAutoTrackedPremiseItems(project.id, voyage, 0, { excludeTexts: [...droppedPremiseTexts] })
+    return buildAutoTrackedPremiseItems(project.id, voyage, 0, {
+      excludeTexts: [...droppedPremiseTexts],
+      bellOffTexts: [...bellOffTexts],
+    })
       .filter((item) => !predicateTexts.some((t) => t === item.text || sameClaim(t, item.text)));
     // currentVoyage 는 store selector 라 참조가 매번 같지 않다 — 봉인 전 화면에서
-    // 세션 내용이 더 바뀌지 않으므로 프로젝트/드롭 기준으로만 다시 계산한다.
+    // 세션 내용이 더 바뀌지 않으므로 프로젝트/드롭/종 기준으로만 다시 계산한다.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [project.id, predicates, droppedPremiseTexts]);
+  }, [project.id, predicates, droppedPremiseTexts, bellOffTexts]);
 
   // 묶기(밧줄)에서 이미 확인일을 정했다면 그 선택이 이 카드의 시작값이다.
   // 실주행 재실사(2026-07-08)에서 발견: 1일로 묶었는데 완료 카드가 조용히
@@ -654,7 +664,8 @@ export function SealMoment({
       `DTSTAMP:${stamp}`,
       `DTSTART;VALUE=DATE:${ymd}`,
       `SUMMARY:${icsEscape(summary)}`,
-      `DESCRIPTION:${icsEscape(`${window.location.origin}${withLocale(locale, '/project')}`)}`,
+      // 열면 그 결정으로 바로 (2026-07-30, 알림 메일과 같은 ?open= 문).
+      `DESCRIPTION:${icsEscape(`${window.location.origin}${withLocale(locale, '/project')}?open=${project.id}`)}`,
       'END:VEVENT',
       'END:VCALENDAR',
     ];
@@ -1338,10 +1349,12 @@ export function SealMoment({
                       {L('확인일에 함께 볼 전제 · AI가 분석에서 짚음', 'Premises to revisit · surfaced by the analysis')}
                     </p>
                     <p className="mt-0.5 text-[12px] text-[var(--text-tertiary)]">
-                      {L('×로 빼면 추적하지 않아요.', 'Remove with × and it will not be tracked.')}
+                      {L('바뀌면 알려드려요 — 종을 끄면 조용히 추적만 하고, ×로 빼면 추적하지 않아요.', 'You will hear when one moves — mute the bell to track quietly, remove with × to not track.')}
                     </p>
                     <ul className="mt-2 space-y-1.5">
-                      {extraTrackedPremises.map((item) => (
+                      {extraTrackedPremises.map((item) => {
+                        const watched = item.type === 'premise' && item.alert?.mode === 'on_change';
+                        return (
                         <li key={item.id} className="flex items-start gap-2 rounded-lg bg-[var(--bg)]/60 px-3 py-2 text-[12.5px] leading-[1.5] text-[var(--text-secondary)]">
                           <span className="flex-1">
                             {item.text}
@@ -1351,6 +1364,24 @@ export function SealMoment({
                               </span>
                             )}
                           </span>
+                          {/* 종 = 서버 감시 스위치 (2026-07-30). premise 만 —
+                              미결 질문은 현실이 답해주지 않으니 종 대상이 아니다. */}
+                          {item.type === 'premise' && (
+                            <button
+                              type="button"
+                              aria-pressed={watched}
+                              onClick={() => setBellOffTexts((prev) => {
+                                const next = new Set(prev);
+                                if (next.has(item.text)) next.delete(item.text); else next.add(item.text);
+                                return next;
+                              })}
+                              className={`shrink-0 -mt-0.5 px-1 text-[13px] leading-none cursor-pointer ${watched ? 'text-[var(--accent)]' : 'text-[var(--text-tertiary)] opacity-60'}`}
+                              title={watched ? L('바뀌면 알림 — 끄려면 클릭', 'alerts on change — click to mute') : L('조용히 추적 — 켜려면 클릭', 'tracking quietly — click to watch')}
+                              aria-label={watched ? L('이 전제 알림 끄기', 'mute alerts for this premise') : L('이 전제 알림 켜기', 'watch this premise for change')}
+                            >
+                              {watched ? '🔔' : '🔕'}
+                            </button>
+                          )}
                           <button
                             type="button"
                             onClick={() => setDroppedPremiseTexts((prev) => new Set(prev).add(item.text))}
@@ -1361,7 +1392,8 @@ export function SealMoment({
                             ×
                           </button>
                         </li>
-                      ))}
+                        );
+                      })}
                     </ul>
                   </div>
                 )}
