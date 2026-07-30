@@ -168,6 +168,7 @@ const GATE_SECTION_KO = `
 [분류 기준]
 light = 일상의 결정: 걸린 것이 작고, 되돌릴 수 있고, 개인적인 말투.
 heavy = 업무 산출물, 외부 청중, 큰 이해관계, 되돌리기 어려움, 위기에 가까움, 또는 사용자가 공들여 쓴 여러 문단.
+단, 길이는 무게가 아닙니다 — 문단이 많아도 수다·일상 어조에 걸린 것이 작으면 light입니다 ('공들여 쓴'은 이해관계의 신호일 때만 무게입니다).
 결정이 아닌 질문(뜻 풀이·방법·사실 문의)도 heavy로 분류하세요 — 무거워서가 아니라, 답을 바로 주는 경로가 그쪽에 있습니다. 되묻지 말고 넘기세요.
 확신이 없으면 heavy로 분류하세요. 무거운 결정을 가볍게 다루는 해가 가벼운 결정에 의식을 치르는 해보다 큽니다.
 
@@ -187,6 +188,7 @@ const GATE_SECTION_EN = `
 [Routing criterion]
 light = an everyday decision: low stakes, reversible, personal register.
 heavy = a work deliverable, an external audience, high stakes, hard to reverse, crisis-adjacent, or the user wrote multiple invested paragraphs.
+But length is not weight — many paragraphs in a chatty, everyday register with small stakes stay light ("invested" counts only as a stakes signal).
 A question that is NOT a decision (a definition, a how-to, a fact) also routes heavy — not because it is heavy, but because the answering path lives there. Do not answer a question with a question; hand it over.
 When unsure, classify heavy. Under-treating a heavy decision is worse than ceremony on a light one.
 
@@ -222,6 +224,8 @@ JSON만 출력하세요. 다른 텍스트 금지:
   · offer.ask = 비추기에서 자연스럽게 이어지는 허락 문장 하나. 패턴: "그럼 {오늘의 정리}하는 걸로 하고 — {확인 시점}에 {확인할 것}, 제가 한 번만 물어볼까요?" ({오늘의 정리}와 {확인할 것}은 사용자의 말로).
   · {오늘의 정리}에는 사용자가 직접 말한 기울기/결정만 넣을 수 있습니다. 아직 안 정했으면 "~하는 걸로 하고"를 통째로 버리고, 어느 쪽도 확정하지 않는 중립 허락문으로 — 확인할 사실만 남기세요. 되묻는 수사의문("아니면 ~해볼 만한지")으로 재심의를 이어가지도 마세요.
     ✗ (사용자가 안 정했는데) "그럼 부모님 뵙고 일요일 저녁에 밀린 일 하는 걸로 하고 —" ✓ "그럼 주말을 보내 보시고 — 일요일 저녁에 어떻게 하셨는지, 제가 한 번만 물어볼까요?"
+  · 이 금지는 ask 문장 전체에 적용됩니다 — {확인할 것} 안에서도 안 내린 결정을 전제하지 마세요.
+    ✗ (구매를 안 정했는데) "새 노트북으로 실제로 편집이 잘 되는지" ✓ "노트북을 어떻게 하기로 했는지"
   · ask 규칙: 괄호 인용(「」) 금지. 내기 어휘(걸다·걸어두다·베팅) 금지 — 사용자에게 보이는 모든 문장에서.
 - action "escalate": 규칙 8. escalate.bigger_question에 더 큰 질문 한 줄.`;
 }
@@ -247,6 +251,8 @@ Output JSON only. No other text:
   · offer.ask = ONE permission sentence flowing naturally out of the mirror. Pattern: "So let's go with {today's call in their words} — and {check time}, {the thing to check}, want me to ask you just once?"
   · {today's call} may hold ONLY a lean/decision the user actually stated. If they have not decided, drop "let's go with" entirely and use a neutral permission framing — name only the fact to check, settling neither side. No rhetorical re-deliberation either ("or whether you could just...").
     ✗ (user undecided) "So let's go with visiting your parents and doing the backlog Sunday evening —" ✓ "So see how the weekend goes — and Sunday evening, how it actually went, want me to ask you just once?"
+  · The ban binds the WHOLE ask — never presuppose the undecided choice inside {the thing to check} either.
+    ✗ (purchase undecided) "whether editing runs well on the new laptop" ✓ "what you ended up deciding about the laptop"
   · ask rules: no bracketed 「quote」. No betting vocabulary in anything the user sees.
 - action "escalate": rule 8 — the bigger question, one line, in escalate.bigger_question.`;
 }
@@ -320,6 +326,23 @@ export function stripTrailingQuestion(mirror: string): string {
  * the phrase appear twice on one screen. Drops the sentence fragment holding
  * the phrase; if that would empty the question, drops just the phrase.
  */
+/**
+ * F11 residual (sim re-run, mech): "한 번에 하나" said the rule, and the fast
+ * tier still emitted two question marks in one question. Keep the FIRST '?'
+ * (the main ask) and soften every later one to a period — Korean polite
+ * request endings ("~실래요.", "~까요.") stay grammatical with a period, so no
+ * content is rewritten, only punctuation.
+ */
+export function limitQuestionMarks(text: string): string {
+  const t = (text || '').trim();
+  if (((t.match(/[?？]/g)) || []).length < 2) return t;
+  let seen = false;
+  return t.replace(/[?？]/g, (m) => {
+    if (!seen) { seen = true; return m; }
+    return '.';
+  });
+}
+
 const ONE_LINE_PHRASE = /한\s*줄이면\s*돼요|one\s+line\s+is\s+enough/i;
 export function stripOneLinePhrase(text: string): string {
   const t = (text || '').trim();
@@ -400,7 +423,7 @@ function coerceOffer(v: unknown): LightOffer | undefined {
   // structurally (the prompt also forbids them; prompt rules alone don't
   // survive weak tiers). Absent/empty → undefined; the UI composes a
   // mechanical fallback from the when label.
-  const ask = asTrimmedString(o.ask).replace(/[「」]/g, '').trim() || undefined;
+  const ask = limitQuestionMarks(asTrimmedString(o.ask).replace(/[「」]/g, '').trim()) || undefined;
   return { sentence, when, ...(days !== undefined ? { days } : {}), ...(ask ? { ask } : {}) };
 }
 
@@ -409,7 +432,7 @@ export function coerceLightGate(raw: unknown): LightGateResult {
   if (!raw || typeof raw !== 'object') return { need: 'heavy' };
   const r = raw as Record<string, unknown>;
   if (r.need !== 'light') return { need: 'heavy' };
-  const question = stripOneLinePhrase(asTrimmedString(r.question));
+  const question = limitQuestionMarks(stripOneLinePhrase(asTrimmedString(r.question)));
   // A question follows → the mirror may not end on one (redundancy guard 1).
   const mirror = question
     ? stripTrailingQuestion(asTrimmedString(r.mirror))
@@ -430,7 +453,7 @@ export function coerceLightGate(raw: unknown): LightGateResult {
 export function coerceLightTurn(raw: unknown, questionsAsked: number): LightTurn {
   const r = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
   const rawMirror = asTrimmedString(r.mirror);
-  const question = stripOneLinePhrase(asTrimmedString(r.question));
+  const question = limitQuestionMarks(stripOneLinePhrase(asTrimmedString(r.question)));
   const offer = coerceOffer(r.offer);
   const esc = r.escalate && typeof r.escalate === 'object'
     ? asTrimmedString((r.escalate as Record<string, unknown>).bigger_question)
@@ -517,6 +540,31 @@ export async function runLightGate(
 }
 
 /**
+ * F6 structural clamp (sim: 5 fast-tier runs, 5 variants of the same violation
+ * — "~하는 걸로 하고", "새 노트북을 사서", "새 노트북으로 실제로 어떻게
+ * 작업되는지" — each escaping the previous prompt rule; prompt rules alone do
+ * not survive the weak tier, R29's lesson again). So the guard is structural:
+ * a model-composed ask survives ONLY when the user actually STATED a decision
+ * somewhere in their own words ("사기로 했어요", "갈래", "decided to…") — the
+ * one case where restating their call is honest mirroring. On an UNDECIDED
+ * session the tailored ask is dropped entirely and the UI's neutral when-label
+ * fallback renders ("{확인 시점}에 제가 한 번만 물어볼까요?") — mechanical,
+ * presupposition-free by construction. Deliberate trade: tailoring is lost on
+ * undecided sessions; neutrality is not negotiable there (value ∝ tilt).
+ */
+// [가-힣]기로 (했|정했) covers 사기로 했/가기로 했/하기로 정했 — a bare 하기로
+// literal misses ordinary verb stems (same composed-syllable trap as ㄹ까).
+const STATED_DECISION = /[가-힣]기로\s*(?:했|정했)|결정했|할래|살래|갈래|보낼래|버릴래|going\s+to\s|decided\s+to\s|i'?ll\s/i;
+export function neutralizeUndecidedAsk(turn: LightTurn, problemText: string, qas: LightQA[]): LightTurn {
+  if (!turn.offer?.ask) return turn;
+  const userTexts = [problemText, ...qas.map((qa) => qa.answer || '')];
+  if (userTexts.some((t) => STATED_DECISION.test(t || ''))) return turn;
+  const { ask: _dropped, ...offer } = turn.offer;
+  void _dropped;
+  return { ...turn, offer };
+}
+
+/**
  * Subsequent light turns. `qas` includes the just-answered pair. The crisis
  * classifier screens EVERY answer before the LLM is called; on fire it returns
  * a crisis-marked close so the caller can stop the light flow and route to the
@@ -544,7 +592,7 @@ export async function runLightNext(
       shape: { mirror: 'string', action: 'string' },
     },
   );
-  return coerceLightTurn(raw, qas.length);
+  return neutralizeUndecidedAsk(coerceLightTurn(raw, qas.length), problemText, qas);
 }
 
 // ─── check_by date math (founder-specified mapping) ───

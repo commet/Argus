@@ -299,6 +299,12 @@ describe('sim-campaign rules (2026-07-31): the light path holds the lines the si
     expect(EN_GATE).toContain('A question that is NOT a decision (a definition, a how-to, a fact) also routes heavy');
   });
 
+  it('F4① — length is not weight: a chatty long everyday input stays light', () => {
+    expect(KO_GATE).toContain('단, 길이는 무게가 아닙니다');
+    expect(KO_GATE).toContain('문단이 많아도 수다·일상 어조에 걸린 것이 작으면 light');
+    expect(EN_GATE).toContain('But length is not weight');
+  });
+
   it('F11 — the first-question example is a SHAPE, not a script, and carries one question mark', () => {
     expect(KO_GATE).toContain('형태 예시 (그대로 복사 금지 — 매번 사용자의 말로 새로 만드세요. 물음표는 한 번만)');
     expect(EN_GATE).toContain('Shape example (never copy it verbatim');
@@ -339,6 +345,15 @@ describe('sim-campaign rules (2026-07-31): the light path holds the lines the si
     expect(NEXT_KO).toContain('{오늘의 정리}에는 사용자가 직접 말한 기울기/결정만 넣을 수 있습니다');
     expect(NEXT_KO).toContain('✗ (사용자가 안 정했는데) "그럼 부모님 뵙고 일요일 저녁에 밀린 일 하는 걸로 하고 —"');
     expect(NEXT_EN).toContain('{today\'s call} may hold ONLY a lean/decision the user actually stated');
+  });
+
+  it('F6 residual (sim re-run, light-02): the presupposition ban binds the WHOLE ask incl. {확인할 것}', () => {
+    const NEXT_KO = buildLightSystemPrompt('ko', 'next', 1);
+    const NEXT_EN = buildLightSystemPrompt('en', 'next', 1);
+    expect(NEXT_KO).toContain('이 금지는 ask 문장 전체에 적용됩니다');
+    expect(NEXT_KO).toContain('✗ (구매를 안 정했는데) "새 노트북으로 실제로 편집이 잘 되는지"');
+    expect(NEXT_EN).toContain('The ban binds the WHOLE ask');
+    expect(NEXT_EN).toContain('whether editing runs well on the new laptop');
   });
 });
 

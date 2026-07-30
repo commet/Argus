@@ -31,6 +31,8 @@ import {
   stripTrailingQuestion,
   stripOneLinePhrase,
   isInterrogativeSentence,
+  neutralizeUndecidedAsk,
+  limitQuestionMarks,
   lightCheckBy,
   lightWhenLabel,
   buildLightSealContract,
@@ -179,6 +181,18 @@ describe('copy-redundancy guards (production capture)', () => {
       .toBe('Which way are you leaning?');
     expect(stripOneLinePhrase('한 줄이면 돼요.')).toBe('');
     expect(stripOneLinePhrase('어느 쪽이 커요?')).toBe('어느 쪽이 커요?');
+  });
+
+  it('limitQuestionMarks keeps the FIRST ? and softens later ones (F11 residual, mech-caught)', () => {
+    expect(limitQuestionMarks('지금 마음은 어느 쪽에 가 있어요? 왜 그런지도 함께 알려 주실래요?'))
+      .toBe('지금 마음은 어느 쪽에 가 있어요? 왜 그런지도 함께 알려 주실래요.');
+    expect(limitQuestionMarks('어느 쪽이에요?')).toBe('어느 쪽이에요?');
+    expect(limitQuestionMarks('진술문입니다.')).toBe('진술문입니다.');
+  });
+
+  it('a double-question payload is clamped through gate coercion', () => {
+    const gate = coerceLightGate({ need: 'light', mirror: '고민이시네요.', question: 'A예요? B예요?' });
+    expect(gate.question).toBe('A예요? B예요.');
   });
 
   it('the question field is cleaned through both gate and turn coercion', () => {
@@ -540,6 +554,53 @@ describe('composeDeepenText — an ACCEPTED escalation carries its intent (sim F
   it('without escalation the text is unchanged (no phantom intent on plain deepen)', () => {
     expect(composeDeepenText('문제', [], 'ko')).toBe('문제');
     expect(composeDeepenText('문제', [], 'ko')).not.toContain('더 깊이 보기');
+  });
+});
+
+describe('neutralizeUndecidedAsk — F6 structural clamp (5 fast-tier runs, 5 phrasings of the same smuggle)', () => {
+  const offerTurn = (ask: string) => ({
+    mirror: 'm.',
+    action: 'offer' as const,
+    offer: { sentence: '새 노트북으로 편집을 시작했다', when: 'tomorrow_morning' as const, ask },
+  });
+
+  it('an UNDECIDED session always gets the neutral fallback — the model ask is dropped whole', async () => {
+    mockJson.mockResolvedValueOnce({
+      mirror: 'm.',
+      action: 'offer',
+      offer: { sentence: '새 노트북으로 편집을 시작했다', when: 'tomorrow_morning', ask: '일주일 뒤에 새 노트북으로 실제로 어떻게 작업되는지, 제가 한 번만 물어볼까요?' },
+    });
+    const turn = await runLightNext(
+      '노트북을 새로 살까 말까 고민 중이에요',
+      [{ question: 'q', answer: '영상 편집을 새로 시작해보고 싶은데 지금 걸로는 버벅여요' }],
+      'ko',
+    );
+    expect(turn.action).toBe('offer');
+    expect(turn.offer?.ask).toBeUndefined(); // presupposition cannot ride ANY phrasing
+    expect(turn.offer?.sentence).toBe('새 노트북으로 편집을 시작했다'); // the internal record stays
+  });
+
+  it('keeps the model ask when the user DID state the decision in their own words', async () => {
+    mockJson.mockResolvedValueOnce({
+      mirror: 'm.',
+      action: 'offer',
+      offer: { sentence: '노트북을 샀다', when: 'tomorrow_morning', ask: '그럼 사는 걸로 하고 — 내일 아침에 제가 한 번만 물어볼까요?' },
+    });
+    const turn = await runLightNext(
+      '노트북 고민',
+      [{ question: 'q', answer: '그냥 사기로 했어요. 더 미루면 편집을 못 해요.' }],
+      'ko',
+    );
+    expect(turn.offer?.ask).toContain('사는 걸로 하고');
+  });
+
+  it('recognizes stated decisions across ordinary verb stems (가기로 했/살래/decided to)', () => {
+    const ask = '그럼 가는 걸로 하고 — 내일 아침에 제가 한 번만 물어볼까요?';
+    expect(neutralizeUndecidedAsk(offerTurn(ask), '문제', [{ question: 'q', answer: '집에 가기로 했어요' }]).offer?.ask).toBe(ask);
+    expect(neutralizeUndecidedAsk(offerTurn(ask), '문제', [{ question: 'q', answer: '그냥 살래요' }]).offer?.ask).toBe(ask);
+    expect(neutralizeUndecidedAsk(offerTurn(ask), 'p', [{ question: 'q', answer: 'I decided to buy it' }]).offer?.ask).toBe(ask);
+    // undecided phrasing keeps NOTHING
+    expect(neutralizeUndecidedAsk(offerTurn(ask), '문제', [{ question: 'q', answer: '아직 모르겠어요' }]).offer?.ask).toBeUndefined();
   });
 });
 

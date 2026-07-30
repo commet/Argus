@@ -104,14 +104,20 @@ function push(transcript, actor, phase, text, meta) {
   transcript.push({ actor, phase, text: (text || '').trim(), ...(meta ? { meta } : {}) });
 }
 
-function lightTurnText(turn, locale) {
+function lightTurnText(turn, locale, brain) {
   const parts = [];
   if (turn.mirror) parts.push(turn.mirror);
   if (turn.action === 'ask' && turn.question) parts.push(turn.question);
   if (turn.action === 'offer' && turn.offer) {
+    // Mirror the REAL UI: when ask is absent (or was clamped), LightFlow.tsx
+    // composes the neutral when-label fallback. Judging a raw placeholder here
+    // flagged a harness artifact as a product route failure (light-02 re-run).
+    const label = brain.lightWhenLabel(turn.offer.when, turn.offer.days, locale);
     parts.push(turn.offer.ask
       ? turn.offer.ask
-      : `[ask 누락 → UI 기계 폴백: "{${turn.offer.when}} 확인" 버튼]`);
+      : (locale === 'ko'
+        ? `${label}에 제가 한 번만 물어볼까요?`
+        : `Want me to ask you just once, ${label}?`));
   }
   if (turn.action === 'escalate' && turn.escalate) parts.push(turn.escalate.bigger_question);
   if (turn.action === 'close' && turn.crisis) parts.push(`[crisis 게이트 발화: ${turn.crisis.category}]`);
@@ -204,7 +210,7 @@ async function runScenario(engine, sc) {
           .filter((c) => callBelongsTo(c, sc))
           .map((c) => c.rawText || '').join('\n');
         turns.push(turn);
-        push(transcript, 'argus', `light_turn_${turns.length}`, lightTurnText(turn, sc.locale));
+        push(transcript, 'argus', `light_turn_${turns.length}`, lightTurnText(turn, sc.locale, engine));
         if (turn.crisis) { outcome = 'crisis'; pendingQuestion = null; break; }
         if (turn.action === 'ask') { pendingQuestion = turn.question; continue; }
         outcome = turn.action; // offer | escalate | close

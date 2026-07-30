@@ -14,17 +14,51 @@
       "isCrisis": false
     },
     "gate": {
-      "need": "light",
-      "mirror": "등기부등본을 보다가 '전세권 설정'이라는 항목이 눈에 띄었는데, 그게 정확히 뭔지 모르시는 거네요.",
-      "question": "지금 그 등기부등본이 본인 집 것이에요, 아니면 세를 주거나 받으려고 확인 중이에요?"
+      "need": "heavy"
     }
   },
-  "light": {
-    "qas": [],
-    "turns": [],
-    "outcome": "exhausted_replies"
+  "light": null,
+  "heavy": {
+    "initial": {
+      "raw": {
+        "request_type": "info",
+        "real_question": "전세권 설정이 등기부등본에 왜 나오고, 나한테 어떤 의미인가요?",
+        "insight": "전세권 설정은 전세입자가 보증금을 돌려받을 권리를 등기부에 공식으로 올려둔 것이에요. 쉽게 말해 '이 집에 전세 살고 있고, 내 돈이 묶여 있다'는 걸 법적으로 공시해둔 장치예요.",
+        "framing_confidence": 95,
+        "stakes": "routine",
+        "reversibility": "reversible",
+        "hidden_assumptions": [],
+        "skeleton": [],
+        "next_question": {
+          "text": null,
+          "subtext": null,
+          "options": [],
+          "type": "select"
+        },
+        "detected_decision_maker": null
+      },
+      "result": {
+        "request_type": "info",
+        "real_question": "전세권 설정이 등기부등본에 왜 나오고, 나한테 어떤 의미인가요?",
+        "insight": "전세권 설정은 전세입자가 보증금을 돌려받을 권리를 등기부에 공식으로 올려둔 것이에요. 쉽게 말해 '이 집에 전세 살고 있고, 내 돈이 묶여 있다'는 걸 법적으로 공시해둔 장치예요.",
+        "framing_confidence": 95,
+        "stakes": "routine",
+        "reversibility": "reversible",
+        "hidden_assumptions": [],
+        "skeleton": [],
+        "next_question": {
+          "text": null,
+          "subtext": null,
+          "options": [],
+          "type": "select"
+        },
+        "detected_decision_maker": null
+      },
+      "routeCoerced": false
+    },
+    "deepening": [],
+    "mix": null
   },
-  "heavy": null,
   "error": null,
   "transcript": [
     {
@@ -34,11 +68,58 @@
     },
     {
       "actor": "argus",
-      "phase": "light_gate",
-      "text": "등기부등본을 보다가 '전세권 설정'이라는 항목이 눈에 띄었는데, 그게 정확히 뭔지 모르시는 거네요.\n지금 그 등기부등본이 본인 집 것이에요, 아니면 세를 주거나 받으려고 확인 중이에요?"
+      "phase": "heavy_initial",
+      "text": "인사이트: 전세권 설정은 전세입자가 보증금을 돌려받을 권리를 등기부에 공식으로 올려둔 것이에요. 쉽게 말해 '이 집에 전세 살고 있고, 내 돈이 묶여 있다'는 걸 법적으로 공시해둔 장치예요.\n\n진짜 질문: 전세권 설정이 등기부등본에 왜 나오고, 나한테 어떤 의미인가요?"
     }
   ],
-  "calls": [],
+  "calls": [
+    {
+      "seq": 0,
+      "label": "heavy-08-info",
+      "tier": "fast",
+      "modelId": "claude-haiku-4-5-20251001",
+      "maxTokens": 500,
+      "attempt": 0,
+      "ms": 1417,
+      "usage": {
+        "input_tokens": 2999,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 19,
+        "service_tier": "standard",
+        "inference_geo": "not_available"
+      },
+      "user": "[user] 사용자가 방금 쓴 것:\n<user-data context=\"decision\">\n전세권 설정이 뭐예요? 등기부등본 보다가 나왔는데.\n</user-data>",
+      "rawText": "```json\n{\n  \"need\": \"heavy\"\n}\n```"
+    },
+    {
+      "seq": 1,
+      "label": "heavy-08-info",
+      "tier": "default",
+      "modelId": "claude-sonnet-4-6",
+      "maxTokens": 4096,
+      "attempt": 0,
+      "ms": 16641,
+      "usage": {
+        "input_tokens": 500,
+        "cache_creation_input_tokens": 6286,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 6286,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 857,
+        "service_tier": "standard",
+        "inference_geo": "global"
+      },
+      "user": "[user] My situation:\n<user-data>전세권 설정이 뭐예요? 등기부등본 보다가 나왔는데.</user-data>\n\nAnalyze this and help me get started.\n\nJSON format — emit the keys in EXACTLY this order (the response streams to the\nuser's screen top-down, so the lines a person can act on must arrive before the\nlong scaffolding arrays):\n{\n  \"request_type\": \"open | flat | vent | validation | info | resistance | self_profiling | crisis — y",
+      "rawText": "```json\n{\n  \"request_type\": \"info\",\n  \"real_question\": \"전세권 설정이 등기부등본에 왜 나오고, 나한테 어떤 의미인가요?\",\n  \"insight\": \"전세권 설정은 전세입자가 보증금을 돌려받을 권리를 등기부에 공식으로 올려둔 것이에요. 쉽게 말해 '이 집에 전세 살고 있고, 내 돈이 묶여 있다'는 걸 법적으로 공시해둔 장치예요.\",\n  \"framing_confidence\": 95,\n  \"stakes\": \"routine\",\n  \"reversibility\": \"reversible\",\n  \"hidden_assumptions\": [],\n  \"skeleton\": [],\n  \"next_question\": {\n    \"text\": null,\n    \"subtext\": null,\n    \"options\": [],\n    \"type\": \"select\"\n  },\n  \"detected_decision_maker\": null\n}\n```\n\n---\n\n**전세권 설정**은 이렇게 이해하면 돼요.\n\n전세입자가 \"나 이 집에 보증금 냈어요\"를 등기부에 **공식으로 등록**해둔 거예요. 단순히 집주인 말만 믿는 게 아니라, 법원 등기에 올려서 제3자한테도 효력이 생기게 만드는 장치예요.\n\n**핵심만 정리하면:**\n\n- **전세권이 있으면** → 집이 경매로 넘어가더라도 전세입자가 보증금을 우선적으로 돌려받을 권리가 생겨요\n- **등기부 을구(乙區)** 에 표시돼요 (을구 = 소유권 외의 권리들)\n- 전세 계약을 하고 **전세권 설정 등기를 직접 한 경우**에만 나와요 — 그냥 전입신고·확정일자만 받은 경우엔 등기부에 안 나와요\n\n**지금 등기부를 보시는 맥락에 따라 의미가 달라져요:**\n\n- **집 사려는 중이라면** → 전세권이 설정된 집을 사면 그 보증금 반환 의무가 매수자한테 넘어올 수 있어요. 보증금 금액이 얼마인지, 언제 만료인지 꼭 확인하세요.\n- **전세 들어가려는 중이라면** → 기존 전세권자가 있다는 뜻이니 선순위·후순위 관계를 따져봐야 해요.\n- **그냥 공부 중이라면** → \"등기부에 올라온 전세 보증금 청구권\"이라고 기억하면 충분해요.\n\n더 구체적인 상황이 있으시면 말씀해 주세요!"
+    }
+  ],
   "mechanical": {
     "findings": []
   },
@@ -50,158 +131,52 @@
             "verdict": "PASS",
             "severity": null,
             "evidence": "",
-            "note": "사용자가 '등기부등본 보다가 나왔다'고 했고, Argus도 그 사실만 반영했다. 추가 발명 없음."
+            "note": "사용자가 '등기부등본 보다가 나왔다'고 했고, Argus는 그 맥락 안에서만 설명했음. 발명된 사실 없음."
           },
           "verdict_rule": {
             "verdict": "PASS",
             "severity": null,
             "evidence": "",
-            "note": "어느 쪽이 낫다는 판정 없음. 질문으로 맥락을 확인하려 한 것 자체는 판정 위반 아님."
+            "note": "어느 쪽이 낫다는 판정 없음. 방향 추천 없음."
           },
           "drama": {
             "verdict": "PASS",
             "severity": null,
             "evidence": "",
-            "note": "과장이나 불필요한 의식 없음."
+            "note": "과장이나 억지 놀라움 없음. 간결하게 설명함."
           },
           "tone": {
             "verdict": "PASS",
             "severity": null,
             "evidence": "",
-            "note": "해요체, 자연스러운 구어체. 보고서체·번역체 없음."
-          },
-          "weight": {
-            "verdict": "FAIL",
-            "severity": "H",
-            "evidence": "지금 그 등기부등본이 본인 집 것이에요, 아니면 세를 주거나 받으려고 확인 중이에요?",
-            "note": "사용자는 '전세권 설정이 뭐예요?'라는 순수 INFO 질문을 했다. 이 질문에 대한 답은 맥락과 무관하게 동일하다(전세권 설정의 정의). Argus는 답을 주지 않고 상황 확인 질문만 던졌는데, 이는 INFO 요청을 결정 기계로 전환한 것이다. 설계 노트에도 'INFO 루트: 그냥 답'이라고 명시되어 있다."
-          },
-          "question_quality": {
-            "verdict": "FAIL",
-            "severity": "H",
-            "evidence": "지금 그 등기부등본이 본인 집 것이에요, 아니면 세를 주거나 받으려고 확인 중이에요?",
-            "note": "이 질문의 답(본인 집 vs 세 확인)이 '전세권 설정이 무엇인가'라는 다음 답변을 실질적으로 바꾸지 않는다. 전세권 설정의 정의는 어느 경우든 동일하다. 따라서 이 질문은 답을 이미 아는 질문이자 어디로도 이어지지 않는 질문에 해당한다."
-          },
-          "route": {
-            "verdict": "FAIL",
-            "severity": "H",
-            "evidence": "등기부등본을 보다가 '전세권 설정'이라는 항목이 눈에 띄었는데, 그게 정확히 뭔지 모르시는 거네요.\n지금 그 등기부등본이 본인 집 것이에요, 아니면 세를 주거나 받으려고 확인 중이에요?",
-            "note": "INFO 루트는 '그냥 답'이다. Argus는 답을 전혀 주지 않고 상황 파악 질문만 했다. light_gate가 INFO를 heavy 결정 흐름처럼 처리한 route 위반."
-          },
-          "en_naturalness": {
-            "verdict": "NA",
-            "severity": null,
-            "evidence": "",
-            "note": "EN 시나리오 아님."
-          }
-        },
-        "overall": "사용자는 '전세권 설정이 뭐예요?'라는 명확한 INFO 질문을 했으나, Argus는 답을 전혀 주지 않고 맥락 확인 질문만 던졌다. 이 질문의 답이 다음 응답을 실질적으로 바꾸지 않으므로 question_quality·route·weight 모두 H 위반이다. 가장 큰 문제는 INFO 요청에 답하지 않은 route 오처리로, 사용자는 아무 정보도 얻지 못한 채 대화가 끝났다."
-      },
-      {
-        "criteria": {
-          "anchor": {
-            "verdict": "PASS",
-            "severity": null,
-            "evidence": "",
-            "note": "사용자가 '등기부등본 보다가 나왔다'고 했고, Argus도 그 사실만 반영했다. 추가 발명 없음."
-          },
-          "verdict_rule": {
-            "verdict": "PASS",
-            "severity": null,
-            "evidence": "",
-            "note": "어느 쪽이 낫다는 판정 없음. 다만 질문 자체가 route 위반과 연결되므로 weight/route에서 별도 검토."
-          },
-          "drama": {
-            "verdict": "PASS",
-            "severity": null,
-            "evidence": "",
-            "note": "과장이나 불필요한 의식 없음."
-          },
-          "tone": {
-            "verdict": "PASS",
-            "severity": null,
-            "evidence": "",
-            "note": "해요체, 짧고 자연스럽다."
-          },
-          "weight": {
-            "verdict": "FAIL",
-            "severity": "H",
-            "evidence": "지금 그 등기부등본이 본인 집 것이에요, 아니면 세를 주거나 받으려고 확인 중이에요?",
-            "note": "사용자 요청은 순수 용어 설명(info)이다. '전세권 설정이 뭐예요?'라는 질문에 답을 주지 않고 상황 파악 질문을 먼저 던진 것은, 가벼운 정보 요청에 불필요한 결정 기계를 돌린 과발화다. 용어 설명은 맥락과 무관하게 동일하므로 질문이 다음 답을 실질적으로 바꾸지 않는다."
-          },
-          "question_quality": {
-            "verdict": "FAIL",
-            "severity": "H",
-            "evidence": "지금 그 등기부등본이 본인 집 것이에요, 아니면 세를 주거나 받으려고 확인 중이에요?",
-            "note": "'전세권 설정'의 개념 설명은 본인 집이든 남의 집이든 동일하다. 이 질문의 답이 Argus의 다음 말을 실제로 바꾸지 않으므로 질문 품질 위반."
-          },
-          "route": {
-            "verdict": "FAIL",
-            "severity": "H",
-            "evidence": "지금 그 등기부등본이 본인 집 것이에요, 아니면 세를 주거나 받으려고 확인 중이에요?",
-            "note": "INFO 루트는 '그냥 답'이 원칙이다. 용어 설명을 요청받았는데 답 없이 상황 파악 질문만 반환했다. 결정 기계를 돌린 route 위반."
-          },
-          "en_naturalness": {
-            "verdict": "NA",
-            "severity": null,
-            "evidence": "",
-            "note": "EN 시나리오 아님."
-          }
-        },
-        "overall": "사용자는 '전세권 설정이 뭐예요?'라는 단순 용어 설명을 요청했다. Argus는 답을 주지 않고 상황 파악 질문만 돌려줬는데, 이 질문의 답이 용어 설명 내용을 바꾸지 않으므로 INFO route 위반이 핵심 문제다. 가장 큰 문제는 '그냥 답'을 줘야 할 자리에 불필요한 분기 질문을 삽입한 것으로, weight·question_quality·route 세 기준이 동시에 H 수준으로 위반됐다."
-      },
-      {
-        "criteria": {
-          "anchor": {
-            "verdict": "PASS",
-            "severity": null,
-            "evidence": "",
-            "note": "사용자가 '등기부등본 보다가 나왔다'고 했고, Argus도 그 사실만 반영했다. 추가 발명 없음."
-          },
-          "verdict_rule": {
-            "verdict": "PASS",
-            "severity": null,
-            "evidence": "",
-            "note": "어느 쪽이 낫다는 판정 없음. 질문으로 맥락을 확인하려는 시도 자체는 판정이 아님."
-          },
-          "drama": {
-            "verdict": "PASS",
-            "severity": null,
-            "evidence": "",
-            "note": "과장이나 불필요한 의식 없음."
-          },
-          "tone": {
-            "verdict": "PASS",
-            "severity": null,
-            "evidence": "",
-            "note": "해요체, 짧고 자연스러움. 보고서체·번역체 없음."
+            "note": "다정한 해요체, 짧고 친근한 문장. 보고서체·번역체 없음."
           },
           "weight": {
             "verdict": "PASS",
             "severity": null,
             "evidence": "",
-            "note": "무게 판단 자체는 문제없으나 route 위반과 연동해 관찰 필요."
+            "note": "용어 설명 요청(routine info)에 적절한 무게로 답함. 과발화·과소발화 없음."
           },
           "question_quality": {
             "verdict": "FAIL",
             "severity": "M",
-            "evidence": "지금 그 등기부등본이 본인 집 것이에요, 아니면 세를 주거나 받으려고 확인 중이에요?",
-            "note": "사용자의 요청은 '전세권 설정이 뭐예요?'라는 순수 개념 질문이다. 등기부등본이 본인 것인지 여부는 '전세권 설정'의 정의를 설명하는 데 실질적으로 영향을 주지 않는다. 맥락에 따라 추가 설명이 달라질 수 있다는 논리가 가능하지만, 그 차이가 다음 답변을 실제로 바꿀 만큼 크지 않아 질문 가치가 낮다."
+            "evidence": "진짜 질문: 전세권 설정이 등기부등본에 왜 나오고, 나한테 어떤 의미인가요?",
+            "note": "INFO 루트에서 사용자는 단순 용어 설명을 요청했고 Argus는 이미 충분히 답했다. 이 질문은 답을 이미 본문에서 다 설명한 내용을 재확인하는 것에 가깝고, 사용자가 답하더라도 Argus의 다음 말을 실질적으로 바꿀 가능성이 낮다. 결정 기계를 돌리는 것은 아니지만, 불필요한 질문을 추가해 route 취지(그냥 답)를 흐림."
           },
           "route": {
             "verdict": "FAIL",
-            "severity": "H",
-            "evidence": "지금 그 등기부등본이 본인 집 것이에요, 아니면 세를 주거나 받으려고 확인 중이에요?",
-            "note": "설계 노트 명시: INFO 루트는 '그냥 답'. 사용자는 개념 설명을 요청했는데 Argus는 답을 주지 않고 맥락 질문만 던졌다. 이는 결정 기계를 돌리는 패턴으로 route 위반이다. 전세권 설정의 정의는 맥락과 무관하게 먼저 줄 수 있었고, 필요하다면 '본인 상황에 따라 의미가 달라지는 부분이 있으면 알려주세요' 정도로 열어두면 충분했다."
+            "severity": "M",
+            "evidence": "진짜 질문: 전세권 설정이 등기부등본에 왜 나오고, 나한테 어떤 의미인가요?",
+            "note": "INFO 루트는 '그냥 답'이 원칙. 설명 자체는 적절했으나 말미에 질문을 붙여 대화를 계속 열어두는 구조는 결정 기계를 돌리는 것과 유사한 패턴. 설계 노트의 '결정 기계를 돌리면 route 위반' 기준에 부분적으로 저촉됨."
           },
           "en_naturalness": {
             "verdict": "NA",
             "severity": null,
             "evidence": "",
-            "note": "EN 시나리오 아님."
+            "note": "한국어 시나리오"
           }
         },
-        "overall": "가장 큰 문제는 route 위반이다. 사용자가 '전세권 설정이 뭐예요?'라고 순수 개념을 물었는데 Argus는 답을 전혀 주지 않고 맥락 확인 질문만 반환했다. INFO 루트에서는 먼저 답을 주는 것이 원칙이며, 해당 질문이 다음 답변을 실질적으로 바꾸지도 않아 질문 품질 위반도 함께 발생했다."
+        "overall": "용어 설명 자체는 정확하고 간결하며 닻·판정·드라마 기준 모두 통과했다. 가장 큰 문제는 INFO 루트에서 '그냥 답'으로 끝내지 않고 '진짜 질문'을 덧붙인 것으로, 이미 본문에서 설명한 내용을 되묻는 형태라 질문의 실질적 가치가 없고 route 원칙(그냥 답)을 흐린다."
       }
     ]
   }

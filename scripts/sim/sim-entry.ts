@@ -19,6 +19,7 @@ export {
   runLightNext,
   composeDeepenText,
   buildLightSystemPrompt,
+  lightWhenLabel,
   LIGHT_MAX_QUESTIONS,
 } from '@/lib/light-path/light-engine';
 export { classifyCrisis } from '@/lib/crisis-gate';
