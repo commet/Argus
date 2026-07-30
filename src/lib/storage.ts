@@ -57,6 +57,16 @@ export const STORAGE_KEYS = {
   // 완주=병목 해소" 주장의 유일한 실증 신호). 기기별 부울 1개, 유실 무해
   // (계측이 한 번 덜 잡힐 뿐 — 사용자 데이터 아님).
   RETRO_SETTLED: 'argus:retro-settled',
+  // 이 기기 데이터의 주인 (2026-07-30 계정 충돌 근원 분석). localStorage에는
+  // 소유자 표시가 없어서, 계정을 바꿔 로그인하면 앞 계정의 행을 새 계정 이름으로
+  // 밀어넣다가 RLS에 영구 거부당했다(그 배치가 새 계정의 정상 행까지 같이 막음).
+  // {userId, email} 한 개 — 사용자 데이터가 아니라 기기 상태이므로 서버에 보내지
+  // 않는다. 로그아웃(clearAllStorage)에서 함께 지워지는 것이 정확한 동작이다.
+  DATA_OWNER: 'sot_data_owner',
+  // 서버가 42501로 "다른 계정 것"이라 확정한 행 id 목록 (table → ids). 대기
+  // 목록에서 빼서 무한 재시도를 끝내는 용도. 파생 상태이며 유실되면 다음 거부
+  // 때 다시 채워진다 — 사용자 데이터 아님.
+  FOREIGN_ROWS: 'sot_foreign_rows',
 } as const;
 
 export function getStorage<T>(key: string, fallback: T): T {

@@ -15,6 +15,11 @@ import {
   prepareAnonymousAccountTransfer,
 } from './anonymous-account-transfer';
 import { reportSyncFailure } from './sync-health';
+import {
+  announceForeignData,
+  localDataBelongsToAnotherAccount,
+  stampDataOwner,
+} from './account-scope';
 
 interface AuthContextType {
   user: User | null;
@@ -113,6 +118,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           if (!transfer.ok) {
             reportSyncFailure('anonymous-account-transfer', { message: transfer.error || 'claim failed' });
           }
+          // The transfer above re-keys an ANONYMOUS pile to this account, which is
+          // legitimate. What it cannot do is hand one permanent account's rows to
+          // another — so before sweeping the local pile upward, check whose it is.
+          // Migrating it anyway is what left this browser unable to back anything
+          // up (2026-07-30); the user, not this code, resolves the mismatch.
+          const signedInUser = (await getSessionWithTimeout())?.user;
+          if (signedInUser && localDataBelongsToAnotherAccount(signedInUser.id)) {
+            announceForeignData('stamp');
+            return null;
+          }
+          if (signedInUser) stampDataOwner(signedInUser.id, signedInUser.email);
           if (!forceLocalMigration && !transfer.needed) return null;
           const migrated = await migrateLocalToAccount();
           return { ...migrated, partial: migrated.partial || !transfer.ok };

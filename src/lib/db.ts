@@ -3,6 +3,13 @@ import { getStorage, setStorage } from './storage';
 import { handleError } from './error-handler';
 import { log } from './logger';
 import { reportSyncFailure, reportSyncSuccess } from './sync-health';
+import {
+  announceForeignData,
+  getForeignIds,
+  isForeignOwnerError,
+  localDataBelongsToAnotherAccount,
+  markForeignRows,
+} from './account-scope';
 
 /**
  * Database abstraction layer.
@@ -51,6 +58,66 @@ function sanitizeItem(item: any): any {
     ...rest
   } = item;
   return rest;
+}
+
+/**
+ * Upper bound on the one-by-one retry below. A pathological pile (hundreds of
+ * rows) must not turn one failed batch into a request storm; past the cap the
+ * remainder keeps the ordinary batch failure. Logged, never silent — a truncated
+ * sweep that reports success reads as "all covered" when it wasn't.
+ */
+const PER_ROW_RETRY_CAP = 300;
+
+interface PushOutcome {
+  pushed: number;
+  /** ids the server proved belong to another account (42501). */
+  foreign: string[];
+  /** rows that failed for any other reason — a real, retryable sync failure. */
+  failed: number;
+  message?: string;
+}
+
+/**
+ * Push rows for the signed-in account, surviving a single poisoned row.
+ *
+ * A PostgREST upsert of N rows is ONE statement: if the server refuses one row,
+ * all N roll back. That is how a browser carrying another account's decisions
+ * stopped backing up the user's OWN new work — the healthy rows were hostages of
+ * the rejected ones, on every load, forever. So on a batch failure we retry row
+ * by row: whatever is genuinely this account's lands, and each refusal is
+ * attributed to the row that caused it instead of to the whole pile.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function pushRowsResilient(table: TableName, rows: any[], userId: string): Promise<PushOutcome> {
+  const onConflict = upsertConflictTarget(table);
+  const payload = rows.map((item) => ({ ...sanitizeItem(item), user_id: userId }));
+
+  const { error } = await supabase.from(table).upsert(payload, { onConflict });
+  if (!error) return { pushed: rows.length, foreign: [], failed: 0 };
+
+  if (rows.length === 1) {
+    return isForeignOwnerError(error)
+      ? { pushed: 0, foreign: [String(rows[0]?.id)], failed: 0, message: error.message }
+      : { pushed: 0, foreign: [], failed: 1, message: error.message };
+  }
+
+  const attempts = Math.min(rows.length, PER_ROW_RETRY_CAP);
+  if (attempts < rows.length) {
+    log.error(`push ${table}: batch refused; retrying only the first ${attempts} of ${rows.length} rows individually`, { context: 'db' });
+  }
+
+  let pushed = 0;
+  let failed = rows.length - attempts; // rows past the cap stay unbacked — counted, not hidden
+  const foreign: string[] = [];
+  let message = error.message;
+  for (let i = 0; i < attempts; i++) {
+    const { error: rowError } = await supabase.from(table).upsert(payload[i], { onConflict });
+    if (!rowError) { pushed++; continue; }
+    message = rowError.message;
+    if (isForeignOwnerError(rowError)) foreign.push(String(rows[i]?.id));
+    else failed++;
+  }
+  return { pushed, foreign, failed, message };
 }
 
 // ─── Merge Logic ───
@@ -162,7 +229,12 @@ async function loadAndMergeUncached<T extends Timestamped>(
     // but was excluded from `localOnly`, leaving cloud backup pending forever
     // until the user happened to edit it again.
     const remoteById = new Map(remote.map((item) => [item.id, item]));
+    // Rows the server already proved belong to a different account are excluded,
+    // or the pile below re-fails identically on every load and the badge can
+    // never clear (2026-07-30: exactly that, permanently).
+    const quarantined = getForeignIds(table);
     const pendingUpload = merged.filter((item) => {
+      if (quarantined.has(item.id)) return false;
       const remoteItem = remoteById.get(item.id);
       if (!remoteItem) return true;
       const localTime = item.updated_at || item.created_at || '';
@@ -170,16 +242,26 @@ async function loadAndMergeUncached<T extends Timestamped>(
       return localTime > remoteTime;
     });
     if (pendingUpload.length > 0) {
-      const { error: pushError } = await supabase
-        .from(table)
-        .upsert(
-          pendingUpload.map(item => ({ ...sanitizeItem(item), user_id: userId })),
-          { onConflict: upsertConflictTarget(table) },
-        );
-      if (pushError) {
-        log.error(`push pending local rows to ${table}: ${pushError.message}`, { context: 'db' });
-        reportSyncFailure(`push:${table}`, { message: pushError.message });
+      // Stamped to someone else → do not write at all. Attempting it either gets
+      // refused (the loud case) or, for rows that never reached the server,
+      // SUCCEEDS and silently re-homes another account's work under this one.
+      // The second is worse for being invisible, so this gate precedes the write.
+      if (localDataBelongsToAnotherAccount(userId)) {
+        announceForeignData('stamp');
+        return merged;
+      }
+      const outcome = await pushRowsResilient(table, pendingUpload, userId);
+      if (outcome.foreign.length > 0) {
+        markForeignRows(table, outcome.foreign);
+        log.error(`push ${table}: ${outcome.foreign.length} row(s) belong to another account — quarantined`, { context: 'db' });
+        announceForeignData('rejected');
+      }
+      if (outcome.failed > 0) {
+        log.error(`push pending local rows to ${table}: ${outcome.message}`, { context: 'db' });
+        reportSyncFailure(`push:${table}`, { message: outcome.message });
       } else {
+        // Every row this account may own is now in the cloud. The foreign ones are
+        // not "pending backup" — they are somebody else's, and the notice says so.
         reportSyncSuccess();
       }
     } else {
@@ -208,21 +290,25 @@ export async function syncToSupabase(table: TableName, localItems: any[]): Promi
   const userId = await getCurrentUserId();
   if (!userId || localItems.length === 0) return;
 
+  // Bulk sweeps of the local pile are gated on ownership; a single row the user
+  // is writing right now is not (see upsertToSupabase). The pile is historical
+  // and may be another account's; the keystroke is always the current account's.
+  if (localDataBelongsToAnotherAccount(userId)) {
+    announceForeignData('stamp');
+    return;
+  }
+
   try {
-    const itemsWithUser = localItems.map((item) => ({
-      ...sanitizeItem(item),
-      user_id: userId,
-    }));
-
-    const { error } = await supabase
-      .from(table)
-      .upsert(itemsWithUser, { onConflict: upsertConflictTarget(table) });
-
-    if (error) {
-      log.error(`sync to ${table} failed: ${error.message}`, { context: 'db' });
+    const outcome = await pushRowsResilient(table, localItems, userId);
+    if (outcome.foreign.length > 0) {
+      markForeignRows(table, outcome.foreign);
+      announceForeignData('rejected');
+    }
+    if (outcome.failed > 0) {
+      log.error(`sync to ${table} failed: ${outcome.message}`, { context: 'db' });
       // Surface to the user via the SyncStatus badge — this path carries agents/
       // XP/boss personas and was the only write helper not reporting failures.
-      reportSyncFailure(`sync:${table}`, { message: error.message });
+      reportSyncFailure(`sync:${table}`, { message: outcome.message });
     } else { reportSyncSuccess(); } // P1-C1: green badge only after a confirmed write
   } catch (err) {
     log.error(`sync to ${table} error`, { context: 'db', data: err });
@@ -275,6 +361,16 @@ export async function upsertToSupabase(table: TableName, item: any): Promise<voi
       );
 
     if (error) {
+      // A single write is never gated on the owner stamp — it carries work the
+      // user is doing NOW. But if the server says the row is another account's,
+      // record that so the periodic sweeps stop re-offering it and the user is
+      // told once, instead of a badge that reddens forever with no explanation.
+      if (isForeignOwnerError(error)) {
+        markForeignRows(table, [String(item?.id)]);
+        log.error(`upsert to ${table}: row belongs to another account — quarantined`, { context: 'db' });
+        announceForeignData('rejected');
+        return;
+      }
       log.error(`upsert to ${table} failed: ${error.message}`, { context: 'db' });
       // Light the SyncStatus badge — this is the cloud-persistence path for
       // sealed decision contracts, predicate grades and the full voyage
