@@ -60,7 +60,9 @@ import { chromium } from '@playwright/test';
 const BASE = (process.env.ARGUS_BASE_URL ?? 'https://argus.voyage').replace(/\/$/, '');
 const LOCALE = process.env.ARGUS_LOCALE ?? 'ko';
 const MODE = process.env.E2E_MODE === 'signed-in' ? 'signed-in' : 'anon';
-const SHOT_DIR = process.env.E2E_SHOT_DIR ?? path.join('scripts', 'e2e', 'shots', MODE);
+// E2E_VIEWPORT=mobile → 폰 화면(390×844)으로 같은 여정 (2026-07-30).
+const MOBILE = process.env.E2E_VIEWPORT === 'mobile';
+const SHOT_DIR = process.env.E2E_SHOT_DIR ?? path.join('scripts', 'e2e', 'shots', MOBILE ? `${MODE}-mobile` : MODE);
 /** 분석 도착까지 (긴 쪽). */
 const ANALYSIS_TIMEOUT_MS = Number(process.env.ANALYSIS_TIMEOUT_MS ?? 210_000);
 /** 분석 이후 봉인까지의 전체 예산. 넉넉히 — 여기서 시간이 모자라 빨간불이 뜨면 거짓 빨간불이다. */
@@ -91,7 +93,8 @@ const browser = await chromium.launch({ headless: true });
 // 기본값에 기대면 Playwright 버전이 바뀌는 날 조용히 검사만 사라진다.
 const ctx = await browser.newContext({
   locale: `${LOCALE}-KR`,
-  viewport: { width: 1400, height: 1000 },
+  viewport: MOBILE ? { width: 390, height: 844 } : { width: 1400, height: 1000 },
+  ...(MOBILE ? { isMobile: true, hasTouch: true, deviceScaleFactor: 3 } : {}),
   acceptDownloads: true,
 });
 const page = await ctx.newPage();
