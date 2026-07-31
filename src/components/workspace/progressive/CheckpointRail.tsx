@@ -84,7 +84,7 @@ export function CheckpointRail({
       initial={{ opacity: 0, y: -4 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35, ease: EASE }}
-      className="mb-5 mt-1 px-1"
+      className="mb-3 mt-0 px-1"
       aria-label={L(
         `진행 ${currentIndex + 1}/${checkpoints.length}: ${current.label}`,
         `Progress ${currentIndex + 1}/${checkpoints.length}: ${current.label}`,

@@ -14,7 +14,13 @@ import { localizePersona } from '@/lib/worker-personas';
 
 import { sanitizeForPrompt as sanitize } from './persona-prompt';
 import { GLOBAL_QUESTION_INSTRUCTION } from './question-rules';
-import { KOREAN_VOICE_RULES } from './prompt-voice';
+import { ARGUS_PRODUCT_FACTS, KOREAN_VOICE_RULES } from './prompt-voice';
+import {
+  buildDeepeningJudgmentPrompt,
+  buildInitialJudgmentPrompt,
+  buildJudgmentSynthesisPrompt,
+  buildRefinementJudgmentPrompt,
+} from './judgment-harness-v2';
 
 // ─── Locale type (matches useLocale.ts) ───
 
@@ -26,14 +32,25 @@ type Locale = 'ko' | 'en';
  *  in a party question. */
 const WORLD_FACT_HONESTY_GUARD = `WORLD-FACT HONESTY (no web access — no laundered recall): never assert an outside-world fact the user or the provided material did not give (prices, statistics — incl. plausible behavioral/social statistics like 지속률·성공률 — studies, dates, regulations, what a company/product currently does, "research shows…"). Either leave it out, or state it CONDITIONALLY and name where to verify ("~라면 …일 수 있어요 — X에서 직접 확인하세요"). A declaratively asserted number/study that was never provided is a fabrication even when it sounds plausible — an honest gap beats a confident invention.`;
 
-const ARGUS_PRODUCT_FACTS = `ARGUS PRODUCT-FACT HONESTY:
-- argus_predict saves to the local .argus directory by default. It does NOT, by itself, write directly into the Argus web workspace or arm account email.
-- Web/account records and reminders require an explicit account bridge: ARGUS_TOKEN in MCP configuration, or an argus_settings connect/sync flow.
-- Never invent, imply, or recommend an Argus integration behavior beyond those facts. If the user's task does not require product instructions, omit them entirely.`;
+// Single source lives in prompt-voice.ts so the v2 judgment harness injects the
+// identical text (a second copy here is exactly the drift CLAUDE.md forbids).
+
+/**
+ * Judgment-harness kill switch.
+ *
+ * The v2 harness (judgment-harness-v2.ts) replaced four prompt builders at
+ * once. The ADR requires a proven downgrade path before rollout — and a
+ * downgrade path that nothing can reach is fiction, not a path. Set
+ * `NEXT_PUBLIC_JUDGMENT_HARNESS_V2=off` (Vercel env → redeploy) to fall back to
+ * the pre-2026-07-31 prompts without reverting the commit. That is the ONLY
+ * thing keeping the four `buildLegacy*` functions below alive; when the harness
+ * is settled in production they should be deleted outright, not left to rot.
+ */
+const HARNESS_V2 = process.env.NEXT_PUBLIC_JUDGMENT_HARNESS_V2 !== 'off';
 
 // ─── 1. Initial Analysis (skeleton in 30 seconds) ───
 
-export function buildInitialAnalysisPrompt(problemText: string, locale: Locale = 'en'): {
+function buildLegacyInitialAnalysisPrompt(problemText: string, locale: Locale = 'en'): {
   system: string;
   user: string;
 } {
@@ -57,7 +74,7 @@ GATE B — META-ABOUT-THE-USER: SELF-PROFILING (the request asks Argus to charac
 
 If NEITHER gate fires, classify the request type:
 - VENT (emotional, no decision asked, "just venting"): reflect in ONE warm line. Do NOT reframe / skeleton / fork. Set real_question to the surface text, skeleton to [], next_question to null.
-- VALIDATION / CLOSED ("already decided", "just logging it", "sanity-check me"): respect it — do NOT reopen or reframe. Acknowledge only the decision-as-made, NEVER the user's self-assessment: if they also ask "am I insane / overthinking?", decline the verdict in BOTH directions (or skip it) and go straight to the check — NEVER preface it with a normalizing/reassuring premise ("that's not crazy", "you're not overthinking") — including the RHETORICAL-QUESTION form of the same lean ("does the fact that others disagree actually change your reason?"), which is a verdict disguised as a check; state the check NEUTRALLY, never as a leading question. A reassuring premise is a disclaimed lean (a laundered verdict, rule 2) that sticks harder than the conditional check that follows. Offer at most ONE cheap falsifiable check in insight; skeleton []. THE CHECK STANDS ALONE (sim F3): never attach a condition-framed reassurance to it — "사규 제한이 없다면 진행에 걸림돌은 없지만" is the same laundered verdict with a condition bolted on; state the check ("사규에 겸업 제한이 있는지만 확인해 보세요") and STOP, no "없다면/된다면 괜찮다" clause. The SENTENCE FORM itself is banned in every wording (the v2 rerun merely rephrased it — "취업규칙…확인해 보세요. 없다면 걸림돌은 없어요." is the SAME laundered verdict): any sentence shaped "[조건]없다면/없으면/된다면 + 걸림돌·문제 없음·괜찮음·지장 없음" may not appear; a code post-scan strips it, so writing it only mutilates your reply. And never counter-ask what their own sentence already told you — they wrote "이미 결정했는데 맞는 선택이겠죠?" and got back "이 결정이 맞는 건지 확인하고 싶으세요?" (an answer-knowing re-question): real_question RESTATES their decision as made, it never re-asks it. AND THE ACKNOWLEDGMENT IS NOT OPTIONAL (batch-3 rerun: a validation reply opened with the check and never received the decision): the insight OPENS with ONE plain line receiving the decision as made ("다음 달부터 병행하기로 하셨군요 — 그건 정해진 걸로 둘게요."), THEN the single neutral check. Check-only with no receiving line reads as ignoring what they told you. (But a coercion-shaped "is this right?" already fired GATE A — it is CRISIS, not VALIDATION.)
+- VALIDATION / CLOSED ("already decided", "just logging it", "sanity-check me"): respect it — do NOT reopen or reframe. Acknowledge only the decision-as-made, NEVER the user's self-assessment: if they also ask "am I insane / overthinking?", decline the verdict in BOTH directions (or skip it) and go straight to the check — NEVER preface it with a normalizing/reassuring premise ("that's not crazy", "you're not overthinking") — including the RHETORICAL-QUESTION form of the same lean ("does the fact that others disagree actually change your reason?"), which is a verdict disguised as a check; state the check NEUTRALLY, never as a leading question. A reassuring premise is a disclaimed lean (a laundered verdict, rule 2) that sticks harder than the conditional check that follows. Offer at most ONE cheap falsifiable check in insight; skeleton []. The check must be directly anchored to a concrete constraint the user named; NEVER invent an employer rule, contract term, regulation, deadline, or outside risk just to have a check. If their words provide no grounded cheap check, stop after receiving the decision. THE CHECK STANDS ALONE (sim F3): never attach a condition-framed reassurance to it — "사규 제한이 없다면 진행에 걸림돌은 없지만" is the same laundered verdict with a condition bolted on; state the check ("사규에 겸업 제한이 있는지만 확인해 보세요") and STOP, no "없다면/된다면 괜찮다" clause. The SENTENCE FORM itself is banned in every wording (the v2 rerun merely rephrased it — "취업규칙…확인해 보세요. 없다면 걸림돌은 없어요." is the SAME laundered verdict): any sentence shaped "[조건]없다면/없으면/된다면 + 걸림돌·문제 없음·괜찮음·지장 없음" may not appear; a code post-scan strips it, so writing it only mutilates your reply. And never counter-ask what their own sentence already told you — they wrote "이미 결정했는데 맞는 선택이겠죠?" and got back "이 결정이 맞는 건지 확인하고 싶으세요?" (an answer-knowing re-question): real_question RESTATES their decision as made, it never re-asks it. AND THE ACKNOWLEDGMENT IS NOT OPTIONAL (batch-3 rerun: a validation reply opened with the check and never received the decision): the insight OPENS with ONE plain line receiving the decision as made ("다음 달부터 병행하기로 하셨군요 — 그건 정해진 걸로 둘게요."), THEN the single neutral check. Check-only with no receiving line reads as ignoring what they told you. (But a coercion-shaped "is this right?" already fired GATE A — it is CRISIS, not VALIDATION.)
 - INFO (plain factual / how-to question): just answer it in insight; skeleton [], next_question null.
 - FLAT (genuinely low-stakes / reversible / already-equal — any reasonable choice lands the same): do NOT invent a "Real Question" different from the surface. Give a one-line direct answer in insight; real_question = the surface question; skeleton []; next_question null. (Over-firing on a flat decision is the single most-measured harm.)
 - RESISTANCE (a decision long-pending with NO new information — repeated back-and-forth, "keep putting it off", "going in circles for months"): the bottleneck is avoidance, not analysis. Name ONLY the observable pattern (long-open + no new info — never "you're avoiding it", which is a verdict about them), offer ONE small real-world test that would break the stall, and do NOT generate more options / forks / a 5-step plan (more analysis just feeds the avoidance). skeleton [].
@@ -124,8 +141,8 @@ Your job (OPEN decisions only): In ONE pass, give them:
    - "Why did the client invite your team to pitch?" (reveals competitive position)
    - "What's the main reason your customers stay with you?" (reveals strategic position)`}
    Offer 3-4 concrete options. Self-check: mentally trace where each option leads. If two options lead to the same next step, they're not different enough — replace one.
-   The subtext should create ANTICIPATION — make the user feel "my answer to this will actually change the plan."
-   ${locale === 'ko' ? 'Example subtext good: "이 하나가 기획안의 구조를 완전히 바꿔요"\nExample subtext bad: "이 정보가 필요해요" (사무적)' : 'Example subtext good: "This single answer completely changes the plan\'s structure"\nExample subtext bad: "We need this information" (administrative)'}
+   The subtext should explain PRECISELY what comparison or next step the answer informs. Never inflate its importance with "completely changes," "decides everything," "크게 좌우해요," or "완전히 달라져요" unless that causal claim is logically guaranteed by the user's own facts.
+   ${locale === 'ko' ? 'Example subtext good: "이 답에 따라 두 제안에서 먼저 확인할 위험이 달라져요"\nExample subtext bad: "이 하나가 기획안의 구조를 완전히 바꿔요" (근거 없이 중요도를 부풀림)\nExample subtext bad: "이 정보가 필요해요" (사무적)' : 'Example subtext good: "This answer changes which risk to verify first in each offer."\nExample subtext bad: "This single answer completely changes the plan" (inflated causal claim)\nExample subtext bad: "We need this information" (administrative)'}
 
 5. Insight — for an OPEN decision, write TWO concise sentences with distinct jobs.
    - Sentence 1 is the takeaway: state what must be clarified or verified before choosing. Lead with the conclusion, not commentary about the user's wording.
@@ -174,9 +191,18 @@ long scaffolding arrays):
   };
 }
 
+export function buildInitialAnalysisPrompt(problemText: string, locale: Locale = 'en'): {
+  system: string;
+  user: string;
+} {
+  return HARNESS_V2
+    ? buildInitialJudgmentPrompt(problemText, locale)
+    : buildLegacyInitialAnalysisPrompt(problemText, locale);
+}
+
 // ─── 2. Deepening Analysis (Q&A-driven updates) ───
 
-export function buildDeepeningPrompt(
+function buildLegacyDeepeningPrompt(
   problemText: string,
   currentSnapshot: AnalysisSnapshot,
   questionsAndAnswers: Array<{ question: FlowQuestion; answer: FlowAnswer }>,
@@ -234,10 +260,12 @@ QUESTION RULES (critical — this determines the quality of the entire session):
 - ANCHOR RULE: never invent a dimension the user's words don't contain. Reference only what the user actually said — e.g. never surface '술' from '파티'. A question built on an invented detail poisons the whole session.
 - Reference their answer directly: ${locale === 'ko' ? '"경쟁사 때문이라고 하셨는데, 그러면..."' : '"Since you mentioned it\'s about the competitor, then..."'}
 - Don't re-ask a theme the user already answered.
+- Don't re-ask a question you already offered even when the user replied with something else. Treat the skipped point as unresolved evidence, absorb the new information, and either ask a different load-bearing question or finish. Repetition makes their new answer feel ignored.
 - Questions should be SITUATION-SHAPING, not administrative:
   BAD: "What format should the document be?" / "Who's the audience?"
   GOOD: "Why did they choose your team for this?" / "What happens if this doesn't work?"
 - Offer 3-4 concrete options. Each option should lead to a DIFFERENT strategy.
+- The subtext names the specific comparison or next step the answer informs. Do not claim that one contextual detail "greatly determines credibility," "completely changes the plan," "크게 좌우해요," or "완전히 달라져요" unless the user's own facts logically guarantee that causal weight.
 - OPTION NEUTRALITY (sim F12): an option's text is a STATE DESCRIPTION the user recognizes as theirs — NEVER a conclusion, direction, or recommendation riding inside an option. ✗ "솔직히 18개월이라고 하니까 불안해요 → 리스크 회피 성향이 강하다면, 지금 회사 카운터오퍼 쪽이 더 맞는 방향일 수 있어요" (a verdict collected by a tap) ✓ "솔직히 18개월이라는 기간 자체가 불안해요" (their state, no direction). The analysis does the work — the options never do.
 - Keep concise — this is a conversation, not an essay.
 ${locale === 'ko' ? `\n${KOREAN_VOICE_RULES}\n` : ''}
@@ -266,6 +294,23 @@ JSON:
   "ready_for_mix": ${isLastRound ? 'true' : 'true|false — true when another answer would NOT meaningfully change the analysis (honest early stop); false only when the next_question above is genuinely load-bearing'}
 }`,
   };
+}
+
+export function buildDeepeningPrompt(
+  problemText: string,
+  currentSnapshot: AnalysisSnapshot,
+  questionsAndAnswers: Array<{ question: FlowQuestion; answer: FlowAnswer }>,
+  round: number,
+  maxRounds: number,
+  locale: Locale = 'en',
+): { system: string; user: string } {
+  return HARNESS_V2
+    ? buildDeepeningJudgmentPrompt(
+      problemText, currentSnapshot, questionsAndAnswers, round, maxRounds, locale,
+    )
+    : buildLegacyDeepeningPrompt(
+      problemText, currentSnapshot, questionsAndAnswers, round, maxRounds, locale,
+    );
 }
 
 // ─── 2b. Execution Plan (generated in its OWN call from round 1+) ───
@@ -494,7 +539,7 @@ ${context.peerResults ? 'Previous team results are shown above — build on thei
 
 import type { LeadSynthesisResult } from '@/stores/types';
 
-export function buildMixPrompt(
+function buildLegacyMixPrompt(
   problemText: string,
   snapshots: AnalysisSnapshot[],
   questionsAndAnswers: Array<{ question: FlowQuestion; answer: FlowAnswer }>,
@@ -699,6 +744,30 @@ JSON format:
 }
 
 // ─── 4. Decision-Maker Feedback (DEPRECATED — use review-prompt.ts) ───
+
+export function buildMixPrompt(
+  problemText: string,
+  snapshots: AnalysisSnapshot[],
+  questionsAndAnswers: Array<{ question: FlowQuestion; answer: FlowAnswer }>,
+  decisionMaker: string | null,
+  workerResults?: Array<{ task: string; result: string; name?: string; workerId?: string; taskGroupId?: string; authored?: 'user' | 'ai' }>,
+  locale: Locale = 'en',
+  leadSynthesis?: LeadSynthesisResult | null,
+  blockedTasks?: string[],
+): { system: string; user: string } {
+  // leadSynthesis / blockedTasks are NOT decorative: the lead call is already
+  // paid for upstream, and a blocked task is the honest-gap surface. Dropping
+  // either here would be a silently broken wire (CLAUDE.md — type the verbs).
+  return HARNESS_V2
+    ? buildJudgmentSynthesisPrompt(
+      problemText, snapshots, questionsAndAnswers, locale,
+      workerResults, leadSynthesis, blockedTasks,
+    )
+    : buildLegacyMixPrompt(
+      problemText, snapshots, questionsAndAnswers, decisionMaker,
+      workerResults, locale, leadSynthesis, blockedTasks,
+    );
+}
 
 /** @deprecated Use buildReviewPrompt from review-prompt.ts instead */
 export function buildDMFeedbackPrompt(
@@ -984,7 +1053,7 @@ JSON format:
 
 // ─── 1b. Framing Refinement (when user rejects Round 1 question) ───
 
-export function buildInitialRefinementPrompt(
+function buildLegacyInitialRefinementPrompt(
   problemText: string,
   rejectedQuestion: string,
   rejectionReason: string,
@@ -999,7 +1068,7 @@ The user saw your initial "real question" and REJECTED it. Their feedback tells 
 STEP 0 — RE-CLASSIFY BEFORE RE-ANALYZING. A rejected framing often means the request was never an OPEN decision at all — the rejection may be telling you "stop analyzing me". Re-run the route in order; the first that fires wins:
 - CRISIS (imminent harm to a person — self-harm / abuse / coercion / scam-shaped): no planning machinery. Name the dynamic plainly, point to one real resource; skeleton [], next_question null.
 - VENT (emotional, no decision asked): reflect in ONE warm line in insight. skeleton [], next_question null.
-- VALIDATION / CLOSED (already decided, just logging or sanity-checking): respect it — do NOT reopen. At most ONE cheap falsifiable check in insight; skeleton [], next_question null. The check stands alone — no condition-framed reassurance ("없다면 걸림돌은 없지만"), no re-asking what they already stated.
+- VALIDATION / CLOSED (already decided, just logging or sanity-checking): respect it — do NOT reopen. At most ONE cheap falsifiable check in insight; skeleton [], next_question null. Use a check only when it is anchored to a concrete constraint the user actually named; otherwise stop after acknowledging the decision. Never invent an employer rule, contract term, regulation, deadline, or outside risk to manufacture a check. The check stands alone — no condition-framed reassurance ("없다면 걸림돌은 없지만"), no re-asking what they already stated.
 - INFO (plain factual / how-to): just answer it in insight; skeleton [], next_question null.
 - FLAT (genuinely low-stakes / reversible / either-way-equal): one-line direct answer in insight; real_question = the surface question; skeleton [], next_question null.
 - OPEN (a real undecided question with genuine leverage): ONLY this gets a new skeleton and a next question. When unsure, prefer the light touch.
@@ -1049,6 +1118,17 @@ JSON format:
   "detected_decision_maker": "CEO|Team Lead|Investor|null"
 }`,
   };
+}
+
+export function buildInitialRefinementPrompt(
+  problemText: string,
+  rejectedQuestion: string,
+  rejectionReason: string,
+  locale: Locale = 'en',
+): { system: string; user: string } {
+  return HARNESS_V2
+    ? buildRefinementJudgmentPrompt(problemText, rejectedQuestion, rejectionReason, locale)
+    : buildLegacyInitialRefinementPrompt(problemText, rejectedQuestion, rejectionReason, locale);
 }
 
 // ─── 6. Navigator Meta-Review ───

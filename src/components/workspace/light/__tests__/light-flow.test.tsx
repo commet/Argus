@@ -200,13 +200,13 @@ describe('offer (남기기) — permission to return, not sentence-approval', ()
     assertNoGeneratedOptionButtons();
   });
 
-  it('a missing ask falls back to a mechanical when-label question (never invented content)', async () => {
+  it('a missing ask names what the later check will ask instead of showing a vague permission question', async () => {
     renderFlow();
     await answerOnce('내일 피곤할까 봐요', {
       ...OFFER_TURN,
       offer: { sentence: '케이크 자르고 나오면 내일 안 피곤하다', when: 'tomorrow_morning' },
     });
-    expect(container.textContent).toContain('내일 아침에 제가 한 번만 물어볼까요?');
+    expect(container.textContent).toContain('내일 아침에 실제로 어떻게 됐는지, 제가 한 번만 물어볼까요?');
   });
 
   it('accepting records via the project store with honest ai-wording provenance and shows the receipt', async () => {

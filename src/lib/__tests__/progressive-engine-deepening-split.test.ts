@@ -107,6 +107,33 @@ describe('deepening narrative no longer carries the plan; plan is a separate cal
     expect(mockJson.mock.calls.some(([, options]) => isPlanCall(options))).toBe(false);
   });
 
+  it('does not auto-close a critical decision after the first answer', async () => {
+    mockStream.mockResolvedValue({
+      ...NARRATIVE,
+      ready_for_mix: true,
+      next_question: null,
+    } as never);
+    mockJson.mockResolvedValue({
+      text: 'What would disprove the promotion promise?',
+      subtext: 'One more concrete check keeps the comparison honest.',
+      options: ['A written timeline exists', 'Only a verbal mention exists'],
+      type: 'select',
+    } as never);
+
+    const result = await runDeepening(
+      PROBLEM,
+      { ...baseSnapshot, stakes: 'critical', reversibility: 'partial' },
+      [{ question: q, answer: ans }],
+      0,
+      3,
+      [{ ...baseSnapshot, stakes: 'critical', reversibility: 'partial' }],
+      () => {},
+    );
+
+    expect(result.readyForMix).toBe(false);
+    expect(result.question).not.toBeNull();
+  });
+
   it('plan-call failure is best-effort: the turn still resolves and keeps the prior plan', async () => {
     mockJson.mockImplementation(async (_messages, options) => {
       if (isPlanCall(options)) throw new Error('plan call exploded');

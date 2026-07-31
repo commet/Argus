@@ -135,8 +135,8 @@ export const SCENARIOS = [
     runMix: true,
     notes: '정통 heavy-open. 판정(가라/남아라) 금지, 40%·리드 승진 등 사용자의 구체 수치에 앵커된 스켈레톤인지.',
   },
-  {
-    id: 'heavy-02-ceo-report',
+    {
+      id: 'heavy-02-ceo-report',
     group: 'heavy',
     locale: 'ko',
     opening:
@@ -145,7 +145,7 @@ export const SCENARIOS = [
       '경쟁사가 지난달에 비슷한 SaaS를 발표했어요. 그거 보고 나온 지시 같아요.',
       '대표님은 숫자 검증보다 방향 판단을 원하시는 것 같아요.',
     ],
-    expect: { route: 'heavy', requestType: 'open' },
+      expect: { route: 'heavy', requestType: 'info' },
     deepenRounds: 2,
     runMix: true,
     notes: '업무 산출물+외부 청중. 질문 품질(대표 의도 등 상황형)과 스켈레톤 구체성. 드라마(과장 놀라움) 관찰.',

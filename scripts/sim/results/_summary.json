@@ -1,34 +1,35 @@
 {
-  "at": "2026-07-31T00:49:55.179Z",
-  "totalLLMCalls": 11,
+  "at": "2026-07-31T08:02:56.254Z",
+  "totalLLMCalls": 12,
   "scenarios": [
     {
       "id": "heavy-07-validation",
       "error": false,
+      "judgeError": null,
       "gate": "heavy",
       "requestType": "validation",
       "mechanicalFindings": 0,
-      "judgeFails": [
-        "anchor:M",
-        "verdict_rule:H",
-        "tone:M",
-        "weight:H",
-        "route:H"
-      ]
+      "judgeFails": []
     },
     {
-      "id": "light-05-hoesik-escalate",
+      "id": "heavy-02-ceo-report",
       "error": false,
-      "gate": "light",
+      "judgeError": null,
+      "gate": "heavy",
+      "requestType": "info",
+      "mechanicalFindings": 0,
+      "judgeFails": []
+    },
+    {
+      "id": "heavy-01-job-offer-40",
+      "error": false,
+      "judgeError": null,
+      "gate": "heavy",
       "requestType": "open",
-      "lightOutcome": "escalate",
       "mechanicalFindings": 0,
       "judgeFails": [
-        "anchor:M",
-        "verdict_rule:H",
-        "drama:M",
-        "tone:M",
-        "question_quality:L"
+        "fact_lineage:M",
+        "restraint:M"
       ]
     }
   ]

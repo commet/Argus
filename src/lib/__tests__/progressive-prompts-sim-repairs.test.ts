@@ -1,166 +1,104 @@
 /**
- * Sim-campaign heavy-path prompt repairs (scripts/sim/REPORT.md, 2026-07-31).
+ * Active judgment-harness regression contract.
  *
- * Each pin carries the sim finding it kills:
- *  F1② heavy-09: crisis output shipped with ZERO resources → the resource must
- *      live inside the insight text (code append stays the floor).
- *  F3  heavy-07: "사규 제한이 없다면 진행에 걸림돌은 없지만" (condition-framed
- *      reassurance) + "이 결정이 맞는 건지 확인하고 싶으세요?" (answer-knowing
- *      counter-ask) → the check stands alone, no re-question.
- *  F4② light-09: the engine classified stakes=routine/reversibility=reversible
- *      and STILL ran the full ritual — the ceremony-follows-weight rule existed
- *      only in the deepening prompt, not the initial one.
- *  F5  light-09: "실제로 등록 지속률 차이가 크거든요" — plausible social
- *      statistics were leaking through a guard whose examples were all
- *      prices/regulations.
- *  F8  light-06: a one-line problem got a 5-step plan in the first response
- *      while framing was admittedly unclear → volume follows confidence.
- *  F12 heavy-01: "지금 회사 카운터오퍼 쪽이 더 맞는 방향일 수 있어요" inside a
- *      tap option — a verdict collected by a tap.
- *  F14 heavy-05: "밑 빠진 독에 물 붓는" — a doomed metaphor convicting one side
- *      of a conflict while shaped as a question.
+ * Historical versions pinned dozens of exact sentences from the retired
+ * 1,400-line prompt. These tests pin behavior that must survive a rewrite:
+ * safety, groundedness, route restraint, question novelty, and no forced plan.
  */
 
 import { describe, expect, it } from 'vitest';
 import type { AnalysisSnapshot } from '@/stores/types';
 import {
-  buildInitialAnalysisPrompt,
   buildDeepeningPrompt,
+  buildInitialAnalysisPrompt,
   buildInitialRefinementPrompt,
 } from '../progressive-prompts';
+import {
+  dropRepeatedQuestion,
+  ensureCrisisResource,
+  validationAcknowledgementOnly,
+} from '../progressive-guards';
 
 const snapshot = {
   version: 1,
-  real_question: '무엇을 먼저 확인해야 할까?',
-  insight: '',
-  hidden_assumptions: ['가정 하나'],
-  skeleton: ['먼저 확인한다'],
+  real_question: '이직 제안을 일주일 안에 답해야 하는 상황',
+  hidden_assumptions: [],
+  skeleton: [],
+  request_type: 'open',
   stakes: 'important',
   reversibility: 'partial',
-  request_type: 'open',
-} as unknown as AnalysisSnapshot;
+} as AnalysisSnapshot;
 
-const initial = buildInitialAnalysisPrompt('테스트 문제', 'ko');
-const deepening = buildDeepeningPrompt('테스트 문제', snapshot, [], 1, 3, 'ko');
-const refinement = buildInitialRefinementPrompt('테스트 문제', '반려된 질문', '반려 이유', 'ko');
+describe('active prompt safety and route restraint', () => {
+  const initial = buildInitialAnalysisPrompt('결정이 어려워요.', 'ko');
+  const refinement = buildInitialRefinementPrompt(
+    '결정이 어려워요.',
+    'A와 B 중 무엇이 진짜 질문인가요?',
+    '그게 아니라 일정이 문제예요.',
+    'ko',
+  );
 
-describe('F1② — the crisis resource lives INSIDE the insight (prompt line; code append stays the floor)', () => {
-  it('GATE A demands a concrete reachable resource in the insight text', () => {
-    expect(initial.system).toContain('THE RESOURCE LIVES INSIDE THE INSIGHT TEXT');
-    expect(initial.system).toContain('자살예방상담 109(24시간)');
-    expect(initial.system).toContain('no reachable resource is a FAILURE');
+  it('keeps a reachable crisis resource and rejects guaranteed comfort', () => {
+    expect(initial.system).toContain('109');
+    expect(initial.system).toContain('reachable resource');
+    expect(initial.system).toContain('Do not promise that a solution or safe path is guaranteed');
+    expect(ensureCrisisResource('', 'ko')).toContain('109');
   });
 
-  it('bans the unbacked world-promise comfort line the sim caught', () => {
-    expect(initial.system).toContain('반드시 해결 가능한 경로가 있어요');
-    expect(initial.system).toContain('fabricated world-fact, not a resource');
-  });
-});
-
-describe('F3 — validation: the check stands alone', () => {
-  it('bans the condition-framed reassurance with the sim quote as ✗', () => {
-    expect(initial.system).toContain('THE CHECK STANDS ALONE');
-    expect(initial.system).toContain('사규 제한이 없다면 진행에 걸림돌은 없지만');
-    expect(initial.system).toContain('no "없다면/된다면 괜찮다" clause');
+  it('keeps validation closed unless the user named a concrete constraint', () => {
+    expect(initial.system).toContain('receive the decision as already made');
+    expect(initial.system).toContain('directly named by the user');
+    expect(validationAcknowledgementOnly(
+      '다음 달부터 시작하기로 결정하셨군요. 회사 허가는 확인해 보세요.',
+      'ko',
+    )).toBe('다음 달부터 시작하기로 결정하셨군요. 제가 맞다고 대신 확정하진 않을게요.');
   });
 
-  it('bans the answer-knowing counter-ask with the sim quote', () => {
-    expect(initial.system).toContain('이 결정이 맞는 건지 확인하고 싶으세요?');
-    expect(initial.system).toContain('RESTATES their decision as made');
+  it('reclassifies a rejected frame and never uses the rejected AI question as evidence', () => {
+    expect(refinement.system).toContain('Re-classify the route');
+    expect(refinement.system).toContain('never the rejected AI question');
+    expect(refinement.system).toContain('skeleton remains []');
   });
 
-  it('the refinement route carries the short form of the same rule', () => {
-    expect(refinement.system).toContain('The check stands alone');
-    expect(refinement.system).toContain('없다면 걸림돌은 없지만');
-  });
-});
-
-describe('R1 (v2) — the conditional-reassurance SENTENCE FORM is banned in every wording', () => {
-  it('pins the v2 rerun rephrase as the same violation and announces the code post-scan', () => {
-    expect(initial.system).toContain('없다면 걸림돌은 없어요.');
-    expect(initial.system).toContain('The SENTENCE FORM itself is banned in every wording');
-    expect(initial.system).toContain('a code post-scan strips it');
-  });
-
-  it('batch-3 rerun: the validation reply must OPEN by receiving the decision as made', () => {
-    expect(initial.system).toContain('THE ACKNOWLEDGMENT IS NOT OPTIONAL');
-    expect(initial.system).toContain('그건 정해진 걸로 둘게요');
+  it('does not manufacture a binary real question or a first-turn plan', () => {
+    expect(initial.system).toMatch(/Do not manufacture a\s+binary/);
+    expect(initial.system).toContain('skeleton MUST remain []');
+    expect(initial.system).toContain('"frame_line"');
   });
 });
 
-describe('R2 (v2) — an accepted escalation arrives to MINIMAL first contact', () => {
-  it('the hand-up marker classifies OPEN (never VENT) with one crux and no 5-step plan', () => {
-    expect(initial.system).toContain('ESCALATION ARRIVAL');
-    expect(initial.system).toContain("'더 깊이 보기'를 직접 선택");
-    expect(initial.system).toContain('classify OPEN — never VENT');
-    expect(initial.system).toContain('skeleton at most 2 lines');
-    expect(initial.system).toContain('NO 5-step plan');
+describe('answer update fidelity', () => {
+  const deepening = buildDeepeningPrompt(
+    '이직 제안을 받았어요.',
+    snapshot,
+    [{
+      question: { id: 'q1', text: '무엇이 가장 걸리나요?', type: 'short', engine_phase: 'reframe' },
+      answer: { question_id: 'q1', value: '런웨이가 18개월이래요.' },
+    }],
+    1,
+    3,
+    'ko',
+  );
+
+  it('treats an off-axis answer as a redirection instead of repeating the old question', () => {
+    expect(deepening.system).toContain('answer off-axis with new information');
+    expect(deepening.system).toContain('rather than returning to the skipped question');
   });
 
-  it('pins the tilted recognition line from the sim as ✗', () => {
-    expect(initial.system).toContain('✗ "조건이 하나도 안 떠오른다면, 그 자체가 중요한 신호예요"');
-  });
-});
-
-describe('R7 (v2) — the shared voice rules ban the leaked vocabulary at the source', () => {
-  it('names 베팅/초안/걸어두다 with their honest replacements', () => {
-    expect(deepening.system).toContain('금지 어휘');
-    expect(deepening.system).toContain('"베팅"(→ 판단)');
-    expect(deepening.system).toContain('"초안"(→ 밑그림)');
-  });
-});
-
-describe('F4② — ceremony follows weight in the FIRST response too', () => {
-  it('the initial prompt now carries the routine+reversible reduction rule', () => {
-    expect(initial.system).toContain('CEREMONY FOLLOWS WEIGHT');
-    expect(initial.system).toContain('stakes=routine AND reversibility=reversible');
-    expect(initial.system).toContain('skeleton at most 2 lines');
-    expect(initial.system).toContain('skip the BREADTH sweeps');
+  it('does not convert a newly mentioned fact into a plan or outside-world implication', () => {
+    expect(deepening.system).toContain('skeleton MUST remain []');
+    expect(deepening.system).toContain('Do not translate a newly mentioned fact');
   });
 
-  it('names the self-contradiction the sim measured', () => {
-    expect(initial.system).toContain('Self-classifying a decision as light and then running heavy ceremony on it is a self-contradiction');
-  });
-});
-
-describe('F5 — world-fact guard covers plausible social/behavioral statistics', () => {
-  it('initial prompt pins the 등록 지속률 fabrication as ✗', () => {
-    expect(initial.system).toContain('SOCIAL/BEHAVIORAL statistics');
-    expect(initial.system).toContain('집 앞이랑 먼 곳은 실제로 등록 지속률 차이가 크거든요');
+  it('drops exact and near-paraphrase question repeats by code', () => {
+    expect(dropRepeatedQuestion(
+      { text: '리드 승진 얘기는 누구한테 들었어요? 직속 상사가 말했나요?' },
+      ['리드 승진 얘기가 어느 정도예요? 윗사람한테 직접 들었나요?'],
+    )).toBeNull();
   });
 
-  it('the deepening prompt names the same class', () => {
-    expect(deepening.system).toContain('behavioral/social statistics');
-    expect(deepening.system).toContain('지속률·성공률');
-  });
-});
-
-describe('F8 — skeleton volume follows framing confidence', () => {
-  it('below-70 framing shrinks the skeleton to verification actions only', () => {
-    expect(initial.system).toContain('VOLUME FOLLOWS CONFIDENCE');
-    expect(initial.system).toContain('at most 2 lines, verification/clarification actions only');
-    expect(initial.system).toContain('fabricated confidence');
-  });
-});
-
-describe('F12 — options never carry a direction', () => {
-  it('the deepening question rules pin the sim quote as a verdict-by-tap', () => {
-    expect(deepening.system).toContain('OPTION NEUTRALITY');
-    expect(deepening.system).toContain('지금 회사 카운터오퍼 쪽이 더 맞는 방향일 수 있어요');
-    expect(deepening.system).toContain('a verdict collected by a tap');
-  });
-});
-
-describe('F14 — no side-taking metaphors', () => {
-  it('both prompt stages ban the doomed-metaphor framing with the sim quote', () => {
-    for (const system of [initial.system, deepening.system]) {
-      expect(system).toContain('METAPHOR GUARD');
-      expect(system).toContain('밑 빠진 독에 물 붓는');
-    }
-  });
-
-  it('a metaphor is allowed only when it mirrors the user\'s own words', () => {
-    expect(initial.system).toContain('ONLY when the user used it first');
-    expect(deepening.system).toContain('only when the user used it first');
+  it('forbids loaded metaphors and importance inflation', () => {
+    expect(deepening.system).toContain('Do not introduce a loaded metaphor');
+    expect(deepening.system).toContain('Never repeat a question already asked');
   });
 });

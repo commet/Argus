@@ -195,7 +195,7 @@ function ProgressiveLayout({ projectId, projectName, onReset }: { projectId: str
       <div className="absolute inset-0 pointer-events-none" style={{ background: 'var(--gradient-concert-hall)' }} />
       <Graticule opacity={0.02} spacing={18} />
 
-      <div className="relative pt-8 md:pt-12 pb-16">
+      <div className="relative pt-5 md:pt-8 pb-16">
         {/* Desktop (xl+): the flow column sits DEAD-CENTRE of the viewport, with
             the Voyage Map rail floating in the mirror-image RIGHT gutter. Two
             equal flex-1 spacers flank the capped flow column so the centre never
@@ -210,7 +210,7 @@ function ProgressiveLayout({ projectId, projectName, onReset }: { projectId: str
               long lines truncate. Bottom padding clears the stacked mobile drawers. */}
           <div className={`w-full max-w-2xl min-w-0 lg:pb-0 ${mobileWorkerShow && mobileLogShow ? 'pb-[calc(120px+env(safe-area-inset-bottom))]' : (mobileWorkerShow || mobileLogShow) ? 'pb-[calc(64px+env(safe-area-inset-bottom))]' : ''}`}>
         {/* Project header */}
-        <div className="max-w-2xl mx-auto mb-6 flex items-center justify-between">
+        <div className="max-w-2xl mx-auto mb-3 flex items-center justify-between">
           <div className="flex items-center gap-2 min-w-0">
             <FolderOpen size={14} className="text-[var(--accent)] shrink-0" />
             <span

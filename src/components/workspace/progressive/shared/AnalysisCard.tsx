@@ -107,6 +107,7 @@ export function AnalysisCard({
   const integrityPending = snapshot.version === 0 && (
     snapshot.lean_flags === undefined || snapshot.honesty_flags === undefined
   );
+  const terminalRoute = !!snapshot.request_type && snapshot.request_type !== 'open';
   const initialOpenInsight = snapshot.version === 0
     && !(snapshot.request_type && snapshot.request_type !== 'open')
     ? snapshot.real_question
@@ -116,9 +117,10 @@ export function AnalysisCard({
     : initialOpenInsight;
   const visibleSkeleton = snapshot.version === 0 ? [] : snapshot.skeleton;
   const visibleAssumptions = snapshot.version === 0 ? [] : snapshot.hidden_assumptions;
+  const revealsExecutionPlan = !!(showExecutionPlan && snapshot.execution_plan?.steps?.length);
   const hasSupportingDetail = visibleSkeleton.length > 0
     || visibleAssumptions.length > 0
-    || !!(showExecutionPlan && snapshot.execution_plan?.steps?.length);
+    || revealsExecutionPlan;
   const summaryLine = safeInsight || snapshot.real_question;
   const courseSummary = splitCourseSummary(summaryLine);
   // An answer is not "reflected" until the snapshot version that incorporated
@@ -146,8 +148,8 @@ export function AnalysisCard({
         onClick={() => { if (hasSupportingDetail) setCollapsed(false); }}
         disabled={!hasSupportingDetail}
         aria-label={hasSupportingDetail
-          ? L('Argus가 찾은 진짜 질문: 근거와 계획 보기', 'The real question Argus surfaced: view rationale and plan')
-          : L('Argus가 찾은 진짜 질문', 'The real question Argus surfaced')}
+          ? L('지금 살펴볼 것: 근거와 계획 보기', 'What we are examining: view rationale and plan')
+          : L('지금 살펴볼 것', 'What we are examining')}
         initial={{ opacity: 0, y: 6 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, ease: EASE }}
@@ -159,7 +161,9 @@ export function AnalysisCard({
             <span className="size-1 rounded-full bg-[var(--accent)]/75" />
           </div>
           <div className={`text-[12px] font-bold text-[var(--accent)] ${locale === 'ko' ? 'tracking-[0.02em]' : 'uppercase tracking-[0.14em]'}`}>
-            {L('Argus가 찾은 진짜 질문', 'The real question Argus surfaced')}
+            {terminalRoute
+              ? L('지금 들은 내용', 'What I heard')
+              : L('지금 살펴볼 것', 'What we are examining')}
           </div>
           <p className="mt-1 hidden text-[12.5px] text-[var(--text-tertiary)] leading-[1.5] tabular-nums sm:block">
             {refinementStatus}
@@ -223,7 +227,9 @@ export function AnalysisCard({
             <div className="flex items-start justify-between gap-3 mb-1.5">
               <div>
                 <div className={`text-[12px] font-bold text-[var(--accent)] ${locale === 'ko' ? 'tracking-[0.02em]' : 'uppercase tracking-[0.15em]'}`}>
-                  {L('Argus가 찾은 진짜 질문', 'The real question Argus surfaced')}
+                  {terminalRoute
+                    ? L('지금 들은 내용', 'What I heard')
+                    : L('지금 살펴볼 것', 'What we are examining')}
                 </div>
                 <p className="mt-1 text-[12.5px] text-[var(--text-tertiary)] tabular-nums">
                   {refinementStatus}
@@ -247,16 +253,18 @@ export function AnalysisCard({
             <div className="mb-2" />
 
             {/* Real question — single source of truth, no line-through. */}
-            <div className="mb-5">
-              <AnimatePresence mode="wait">
-                <motion.h2 key={snapshot.real_question} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }}
-                  transition={{ duration: 0.5, ease: EASE }}
-                  className="text-[18px] md:text-[22px] font-bold text-[var(--text-primary)] leading-[1.35] tracking-tight"
-                  style={{ fontFamily: 'var(--font-display)' }}>
-                  {snapshot.real_question}
-                </motion.h2>
-              </AnimatePresence>
-            </div>
+            {!terminalRoute && (
+              <div className="mb-5">
+                <AnimatePresence mode="wait">
+                  <motion.h2 key={snapshot.real_question} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }}
+                    transition={{ duration: 0.5, ease: EASE }}
+                    className="text-[18px] md:text-[22px] font-bold text-[var(--text-primary)] leading-[1.35] tracking-tight"
+                    style={{ fontFamily: 'var(--font-display)' }}>
+                    {snapshot.real_question}
+                  </motion.h2>
+                </AnimatePresence>
+              </div>
+            )}
 
             {/* Insight — editorial thesis + support. A quiet tint separates the
                 thought without introducing another ornamental card. */}
@@ -266,7 +274,9 @@ export function AnalysisCard({
                   transition={{ duration: 0.4, ease: EASE }} className="overflow-hidden mb-6">
                   <div className="border-t border-[var(--border-subtle)] pt-4">
                     <div className="text-[12px] font-bold text-[var(--accent)] uppercase tracking-[0.15em] mb-1.5">
-                      {L('핵심', 'Key Insight')}
+                      {hasChanges
+                        ? L('방금 달라진 것', 'What just changed')
+                        : L('지금 보이는 것', 'What is visible now')}
                     </div>
                     <p className="text-[15px] md:text-[16px] text-[var(--text-primary)] leading-[1.6] font-semibold">
                       {renderText(courseSummary.thesis)}
@@ -398,7 +408,13 @@ export function AnalysisCard({
                 this reveals the per-step bodies, the assumptions block, and the
                 execution plan. Hint the hidden assumption count so the user
                 knows there's more worth a tap. */}
-            {(activeSkeleton.length > 0 || activeAssumptions.length > 0) && (
+            {/* The toggle appears ONLY when opening it actually reveals
+                something. It used to key off skeleton/assumptions alone, so
+                with no premises the execution plan became unreachable (the
+                button never rendered) — and with premises but nothing behind
+                them it opened onto an empty block. One honest predicate now
+                covers every branch the expanded body renders. */}
+            {(activeSkeleton.length > 0 || activeAssumptions.length > 0 || revealsExecutionPlan) && (
               <button
                 type="button"
                 onClick={() => setDetailOpen(o => !o)}

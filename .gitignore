@@ -55,6 +55,10 @@ next-env.d.ts
 # scratch: build-log captures and Playwright MCP page snapshots (dev-only, never commit)
 /.post/
 /.playwright-mcp/
+/.playwright-cli/
+# scratch: harness run logs, pids, and QA screenshots (repo is public — these
+# capture live account content and were staged by accident once already)
+/output/
 
 # argus-watch + local working data: personal — never commit (repo is public)
 /.argus/

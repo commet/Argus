@@ -49,21 +49,36 @@ import { limitQuestionMarks } from '@/lib/light-path/light-engine';
 // Pure post-generation guards — shared with the sim harness so the judge
 // measures shipped output, not raw model output (see progressive-guards.ts).
 import {
+  dropRepeatedQuestion,
   ensureCrisisResource,
+  guardLowConfidenceOpeningQuestion,
+  lowConfidenceOpeningCopy,
   stripConditionalReassurance,
+  stripUnearnedRanking,
+  validationAcknowledgementOnly,
   truncateLowConfidenceSkeleton,
   capEscalationArrival,
   scrubBannedVocabulary,
   scrubList,
 } from '@/lib/progressive-guards';
 export {
+  dropRepeatedQuestion,
   ensureCrisisResource,
+  guardLowConfidenceOpeningQuestion,
+  lowConfidenceOpeningCopy,
   stripConditionalReassurance,
+  stripUnearnedRanking,
+  validationAcknowledgementOnly,
   truncateLowConfidenceSkeleton,
   capEscalationArrival,
   scrubBannedVocabulary,
 } from '@/lib/progressive-guards';
 import { assessFrameStatus } from '@/lib/judgment-gates';
+import {
+  applyPremiseDeltas,
+  clampSynthesisToLivingState,
+  coercePremiseCandidates,
+} from '@/lib/judgment-state-contract';
 import type {
   AnalysisSnapshot,
   ConvergenceMetrics,
@@ -81,10 +96,14 @@ import { resolveContributorsHeuristic, type WorkerSource } from '@/lib/attributi
 // ─── Response shapes from LLM ───
 
 interface InitialAnalysisResponse {
+  frame_line?: string;
   real_question: string;
   framing_confidence?: number;
   why_this_matters?: string;
-  hidden_assumptions: string[];
+  /** Raw model proposals. The runtime converts only grounded candidates into
+   * the legacy snapshot string[] representation. */
+  premise_candidates?: unknown;
+  hidden_assumptions?: string[];
   skeleton: string[];
   /** The one-line answer the model is asked to produce (prompt JSON: "insight").
    *  For a non-open route (flat/vent/info/validation/…) this IS the deliverable —
@@ -138,15 +157,32 @@ function toStringOptions(opts: unknown): string[] | undefined {
   return Array.isArray(opts) ? opts.filter((o): o is string => typeof o === 'string') : undefined;
 }
 
-export function applyRouteContract<T extends { request_type?: string; skeleton?: string[] }>(
+export function applyRouteContract<T extends {
+  request_type?: string;
+  skeleton?: string[];
+  hidden_assumptions?: string[];
+  next_question?: unknown;
+}>(
   result: T,
 ): { result: T; coerced: boolean } {
   const rt = result.request_type;
-  if (rt && NON_OPEN_REQUEST_TYPES.has(rt) && Array.isArray(result.skeleton) && result.skeleton.length > 0) {
+  if (rt && NON_OPEN_REQUEST_TYPES.has(rt)) {
+    const coerced = (Array.isArray(result.skeleton) && result.skeleton.length > 0)
+      || (Array.isArray(result.hidden_assumptions) && result.hidden_assumptions.length > 0)
+      || result.next_question != null;
+    if (!coerced) return { result, coerced: false };
     // The model classified this as a non-open request but still built a plan —
     // an internal contradiction. Honor the restraint side (the spine-safe
     // direction): a non-open request gets no manufactured plan.
-    return { result: { ...result, skeleton: [] }, coerced: true };
+    return {
+      result: {
+        ...result,
+        skeleton: [],
+        hidden_assumptions: [],
+        next_question: null,
+      },
+      coerced: true,
+    };
   }
   return { result, coerced: false };
 }
@@ -166,8 +202,11 @@ interface ExecutionPlanStep {
 
 interface DeepeningResponse {
   insight: string;
+  frame_line?: string;
   real_question: string;
-  hidden_assumptions: string[];
+  /** State transition proposals; omission preserves the current premise list. */
+  premise_changes?: unknown;
+  hidden_assumptions?: string[];
   skeleton: string[];
   execution_plan?: {
     steps: ExecutionPlanStep[];
@@ -720,13 +759,21 @@ export async function runInitialAnalysis(
   const result = onToken
     ? await callLLMStreamThenParse<InitialAnalysisResponse>(
         [{ role: 'user', content: user }],
-        { system, maxTokens: 4096, signal, cacheSystem: true, shape: { real_question: 'string', hidden_assumptions: 'array', skeleton: 'array', next_question: 'object' } },
+        { system, maxTokens: 4096, signal, cacheSystem: true, shape: { frame_line: 'string', real_question: 'string', premise_candidates: 'array', skeleton: 'array', next_question: 'object' } },
         onToken,
       )
     : await callLLMJson<InitialAnalysisResponse>(
         [{ role: 'user', content: user }],
-        { system, maxTokens: 4096, signal, cacheSystem: true, shape: { real_question: 'string', hidden_assumptions: 'array', skeleton: 'array', next_question: 'object' } },
+        { system, maxTokens: 4096, signal, cacheSystem: true, shape: { frame_line: 'string', real_question: 'string', premise_candidates: 'array', skeleton: 'array', next_question: 'object' } },
       );
+
+  result.real_question = result.frame_line || result.real_question;
+  result.skeleton = [];
+  // A premise is a proposal until it proves lineage to the user's words.
+  // Non-open routes carry no decision premises at all.
+  result.hidden_assumptions = result.request_type === 'open'
+    ? coercePremiseCandidates(result.premise_candidates, problemText).premises
+    : [];
 
   // R31 — runtime route-contract guard: a non-open request that nonetheless built
   // a plan is the model ignoring the STEP-0 under-fire gate (R29: ~44% on weak/mid
@@ -752,8 +799,9 @@ export async function runInitialAnalysis(
   const routedInsight = result.request_type === 'crisis'
     ? ensureCrisisResource(result.insight, locale)
     : result.request_type === 'validation'
-      ? stripConditionalReassurance(result.insight)
-      : result.insight;
+      ? validationAcknowledgementOnly(stripConditionalReassurance(result.insight), locale)
+      // Ranking the user's own concerns is a verdict about them on every route.
+      : stripUnearnedRanking(result.insight);
 
   const snapshot: AnalysisSnapshot = {
     version: 0,
@@ -766,9 +814,11 @@ export async function runInitialAnalysis(
     // choice despite the prompt. Structurally use the neutral real question as
     // the first-frame insight. Non-open routes keep their direct one-line answer.
     // A model-flagged crisis additionally gets the resource line BY CODE (F1).
-    insight: result.request_type && result.request_type !== 'open'
-      ? (routedInsight ? scrubBannedVocabulary(routedInsight) : routedInsight)
-      : (result.real_question || (locale === 'ko' ? '무엇이 이 결정을 가르는지부터 확인해볼게요.' : 'Let’s first identify what this decision turns on.')),
+    insight: result.request_type === 'open' && routingFramingConfidence < 70
+      ? lowConfidenceOpeningCopy(locale).insight
+      : result.request_type && result.request_type !== 'open'
+        ? (routedInsight ? scrubBannedVocabulary(routedInsight) : routedInsight)
+        : (result.real_question || (locale === 'ko' ? '무엇이 이 결정을 가르는지부터 확인해볼게요.' : 'Let’s first identify what this decision turns on.')),
     framing_confidence: framingConfidence,
     framing_locked: false,
     // R32 — wire the model's STEP-0 classification onto the snapshot so the flow
@@ -831,13 +881,24 @@ export async function runInitialAnalysis(
   if (onTypedUpgrade) {
     // Show the legacy question NOW; upgrade in the background (best-effort —
     // abort/failure leaves the legacy question standing, which is honest).
-    question = guardFinalQuestion(legacyQuestion, locale, seed) ?? legacyQuestion;
+    question = guardLowConfidenceOpeningQuestion(
+      guardFinalQuestion(legacyQuestion, locale, seed) ?? legacyQuestion,
+      routingFramingConfidence,
+      locale,
+    ) ?? legacyQuestion;
     pickAndGenerateTypedQuestion(typedArgs[0], typedArgs[1], signal)
-      .then((t) => { if (t) onTypedUpgrade(t, legacyQuestion.id); })
+      .then((t) => {
+        const guarded = guardLowConfidenceOpeningQuestion(t, routingFramingConfidence, locale);
+        if (guarded) onTypedUpgrade(guarded, legacyQuestion.id);
+      })
       .catch(() => { /* upgrade is optional polish, never a failure */ });
   } else {
     const typed = await pickAndGenerateTypedQuestion(typedArgs[0], typedArgs[1], signal);
-    question = guardFinalQuestion(typed ?? legacyQuestion, locale, seed) ?? legacyQuestion;
+    question = guardLowConfidenceOpeningQuestion(
+      guardFinalQuestion(typed ?? legacyQuestion, locale, seed) ?? legacyQuestion,
+      routingFramingConfidence,
+      locale,
+    ) ?? legacyQuestion;
   }
 
   return {
@@ -884,13 +945,22 @@ export async function refineInitialFraming(
   const result = onToken
     ? await callLLMStreamThenParse<InitialAnalysisResponse>(
         [{ role: 'user', content: user }],
-        { system, maxTokens: 4096, signal, cacheSystem: true, shape: { real_question: 'string', hidden_assumptions: 'array', skeleton: 'array', next_question: 'object' } },
+        { system, maxTokens: 4096, signal, cacheSystem: true, shape: { frame_line: 'string', real_question: 'string', premise_candidates: 'array', skeleton: 'array', next_question: 'object' } },
         onToken,
       )
     : await callLLMJson<InitialAnalysisResponse>(
         [{ role: 'user', content: user }],
-        { system, maxTokens: 4096, signal, cacheSystem: true, shape: { real_question: 'string', hidden_assumptions: 'array', skeleton: 'array', next_question: 'object' } },
+        { system, maxTokens: 4096, signal, cacheSystem: true, shape: { frame_line: 'string', real_question: 'string', premise_candidates: 'array', skeleton: 'array', next_question: 'object' } },
       );
+
+  result.real_question = result.frame_line || result.real_question;
+  result.skeleton = [];
+  result.hidden_assumptions = result.request_type === 'open'
+    ? coercePremiseCandidates(
+      result.premise_candidates,
+      `${problemText}\n${rejectionReason}`,
+    ).premises
+    : [];
 
   const { result: contractResult } = applyRouteContract(result);
   Object.assign(result, contractResult);
@@ -900,8 +970,9 @@ export async function refineInitialFraming(
   const refinedRoutedInsight = result.request_type === 'crisis'
     ? ensureCrisisResource(result.insight, locale)
     : result.request_type === 'validation'
-      ? stripConditionalReassurance(result.insight)
-      : result.insight;
+      ? validationAcknowledgementOnly(stripConditionalReassurance(result.insight), locale)
+      // Ranking the user's own concerns is a verdict about them on every route.
+      : stripUnearnedRanking(result.insight);
 
   const snapshot: AnalysisSnapshot = {
     version: 0,
@@ -1013,13 +1084,28 @@ export async function runDeepening(
   const result = onToken
     ? await callLLMStreamThenParse<DeepeningResponse>(
         [{ role: 'user', content: user }],
-        { system, maxTokens: 2500, signal, shape: { insight: 'string', real_question: 'string', hidden_assumptions: 'array', skeleton: 'array', ready_for_mix: 'boolean' } },
+        { system, maxTokens: 2500, signal, shape: { insight: 'string', frame_line: 'string', real_question: 'string', premise_changes: 'array', skeleton: 'array', ready_for_mix: 'boolean' } },
         onToken,
       )
     : await callLLMJson<DeepeningResponse>(
         [{ role: 'user', content: user }],
-        { system, maxTokens: 2500, signal, shape: { insight: 'string', real_question: 'string', hidden_assumptions: 'array', skeleton: 'array', ready_for_mix: 'boolean' } },
+        { system, maxTokens: 2500, signal, shape: { insight: 'string', frame_line: 'string', real_question: 'string', premise_changes: 'array', skeleton: 'array', ready_for_mix: 'boolean' } },
       );
+
+  result.real_question = result.frame_line || result.real_question;
+  result.skeleton = [];
+  const userCorpus = [
+    problemText,
+    ...questionsAndAnswers.map((qa) => String(qa.answer.value ?? '')),
+  ].join('\n');
+  const latestAnswer = String(questionsAndAnswers.at(-1)?.answer.value ?? '');
+  const premiseTransition = applyPremiseDeltas(
+    currentSnapshot.hidden_assumptions || [],
+    result.premise_changes,
+    userCorpus,
+    latestAnswer,
+  );
+  const nextPremises = premiseTransition.premises;
 
   // ── Call B: execution_plan in its own robust, plan-only deep-mode call. ──
   // Generated from the freshly-deepened analysis (Call A's output). It gets the
@@ -1034,7 +1120,7 @@ export async function runDeepening(
         problemText,
         {
           real_question: result.real_question || currentSnapshot.real_question,
-          hidden_assumptions: result.hidden_assumptions || currentSnapshot.hidden_assumptions,
+          hidden_assumptions: nextPremises,
           skeleton: result.skeleton || currentSnapshot.skeleton,
         },
         questionsAndAnswers, round, availableAgents, locale, leadContext, registeredPersonas,
@@ -1061,11 +1147,13 @@ export async function runDeepening(
   const snapshot: AnalysisSnapshot = {
     version: currentSnapshot.version + 1,
     real_question: result.real_question || currentSnapshot.real_question,
-    hidden_assumptions: result.hidden_assumptions || currentSnapshot.hidden_assumptions,
+    hidden_assumptions: nextPremises,
     // R7 — heavy prose passes the banned-vocabulary scrub on every round.
     skeleton: scrubList(result.skeleton || currentSnapshot.skeleton),
     execution_plan: executionPlan,
-    insight: result.insight ? scrubBannedVocabulary(result.insight) : result.insight,
+    insight: result.insight
+      ? scrubBannedVocabulary(stripUnearnedRanking(result.insight) || result.insight)
+      : result.insight,
     framing_confidence: currentSnapshot.framing_confidence,
     framing_locked: currentSnapshot.framing_locked,
     // Carry the deterministic crisis flag forward so the resource banner stays
@@ -1080,7 +1168,7 @@ export async function runDeepening(
     frame_status: assessFrameStatus({
       realQuestion: result.real_question || currentSnapshot.real_question || '',
       surfaceQuestion: problemText,
-      assumptions: result.hidden_assumptions || currentSnapshot.hidden_assumptions || [],
+      assumptions: nextPremises,
     }),
   };
 
@@ -1093,12 +1181,24 @@ export async function runDeepening(
   const llmSaysReady = result.ready_for_mix === true;
   const convergenceSaysReady = convergence.is_converged;
   const isMaxRound = round >= maxRounds - 1;
+  const fatigueDetected = detectFatigue(
+    questionsAndAnswers.map((qa) => ({ value: String(qa.answer?.value ?? '') })),
+  );
+  // A single answer is too thin a basis for closing a critical or irreversible
+  // decision automatically. The user can still take the always-visible
+  // "wrap up from my answers so far" exit; this guard only prevents the model
+  // from declaring the inquiry complete on their behalf after one tap.
+  const needsSecondLook = currentSnapshot.stakes === 'critical'
+    || currentSnapshot.reversibility === 'irreversible';
+  const minimumInquiryEarned = !needsSecondLook
+    || questionsAndAnswers.length >= 2
+    || fatigueDetected;
 
   // 적응형 수렴: 최대 라운드라도 수렴 안 됐으면 강제하지 않음 → 대신 선택지 제시
   let shouldProceedToMix: boolean;
   let question: FlowQuestion | null;
 
-  if (llmSaysReady || convergenceSaysReady) {
+  if ((llmSaysReady || convergenceSaysReady) && minimumInquiryEarned) {
     // 수렴 완료
     shouldProceedToMix = true;
     question = null;
@@ -1137,7 +1237,7 @@ export async function runDeepening(
       workerOutputsReady: round >= 1,
       requestType: snapshot.request_type,
       // §7 — stop asking optional questions once the user reads as tired.
-      fatigueDetected: detectFatigue(questionsAndAnswers.map((qa) => ({ value: String(qa.answer?.value ?? '') }))),
+      fatigueDetected,
     };
     const genCtx = {
       problemText,
@@ -1154,13 +1254,17 @@ export async function runDeepening(
       requestType: snapshot.request_type,
     };
 
-    const legacyQuestion: FlowQuestion | null = result.next_question
+    const nextQuestion = dropRepeatedQuestion(
+      result.next_question,
+      questionsAndAnswers.map((qa) => qa.question.text),
+    );
+    const legacyQuestion: FlowQuestion | null = nextQuestion
       ? {
           id: generateId(),
-          text: result.next_question.text,
-          subtext: result.next_question.subtext,
-          options: toStringOptions(result.next_question.options),
-          type: result.next_question.type || 'select',
+          text: nextQuestion.text,
+          subtext: nextQuestion.subtext,
+          options: toStringOptions(nextQuestion.options),
+          type: nextQuestion.type || 'select',
           engine_phase: round >= 1 ? 'recast' : 'reframe',
         }
       : null;
@@ -1175,7 +1279,24 @@ export async function runDeepening(
         .catch(() => { /* best-effort upgrade */ });
     } else {
       const typed = await pickAndGenerateTypedQuestion(stateCtx, genCtx, signal);
-      question = guardFinalQuestion(typed ?? legacyQuestion, locale, snapshot.real_question || problemText);
+      const minimumInquiryFallback: FlowQuestion | null = !minimumInquiryEarned
+        ? {
+            id: generateId(),
+            text: locale === 'ko'
+              ? '지금까지 나온 말 중, 아직 실제로 확인되지 않은 약속이나 조건은 무엇인가요?'
+              : 'Which promise or condition mentioned so far has not yet been verified?',
+            subtext: locale === 'ko'
+              ? '한 번 더 묻되, 결론을 늘이지 않고 실제로 확인할 한 가지를 찾습니다.'
+              : 'One more question identifies a concrete check without prolonging the decision.',
+            type: 'short',
+            engine_phase: round >= 1 ? 'recast' : 'reframe',
+          }
+        : null;
+      question = guardFinalQuestion(
+        typed ?? legacyQuestion ?? minimumInquiryFallback,
+        locale,
+        snapshot.real_question || problemText,
+      );
     }
   }
 
@@ -1284,6 +1405,8 @@ export async function runMix(
     if (!salvaged) throw e;
     result = salvaged as MixResponse;
   }
+
+  result = clampSynthesisToLivingState(result, snapshots.at(-1));
 
   // Build name → workerId lookup for attribution resolution.
   const nameToId = new Map<string, string>();

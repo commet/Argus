@@ -116,8 +116,8 @@ function lightTurnText(turn, locale, brain) {
     parts.push(turn.offer.ask
       ? turn.offer.ask
       : (locale === 'ko'
-        ? `${label}에 제가 한 번만 물어볼까요?`
-        : `Want me to ask you just once, ${label}?`));
+        ? `${label}에 실제로 어떻게 됐는지, 제가 한 번만 물어볼까요?`
+        : `Want me to ask once ${label} how it actually went?`));
   }
   if (turn.action === 'escalate' && turn.escalate) parts.push(turn.escalate.bigger_question);
   if (turn.action === 'close' && turn.crisis) parts.push(`[crisis 게이트 발화: ${turn.crisis.category}]`);
@@ -125,16 +125,22 @@ function lightTurnText(turn, locale, brain) {
 }
 
 function heavyInitialText(r) {
+  // The production crisis surface is a dedicated concern banner; it does not
+  // dress the user's own words up as an Argus-authored "real question".
+  if (r.request_type === 'crisis') {
+    return r.insight ? `안전 안내: ${r.insight}` : '안전 안내';
+  }
   const parts = [];
-  if (r.insight) parts.push(`인사이트: ${r.insight}`);
-  if (r.real_question) parts.push(`진짜 질문: ${r.real_question}`);
+  const terminal = r.request_type && r.request_type !== 'open';
+  if (r.insight) parts.push(r.insight);
+  if (!terminal && r.real_question) parts.push(`지금 살펴볼 것: ${r.real_question}`);
   if (Array.isArray(r.hidden_assumptions) && r.hidden_assumptions.length) {
     parts.push(`숨은 전제:\n- ${r.hidden_assumptions.join('\n- ')}`);
   }
   if (Array.isArray(r.skeleton) && r.skeleton.length) {
     parts.push(`플랜:\n- ${r.skeleton.join('\n- ')}`);
   }
-  const q = r.next_question;
+  const q = terminal ? null : r.next_question;
   if (q && typeof q === 'object' && q.text) {
     const opts = Array.isArray(q.options) && q.options.length ? `\n(선택지: ${q.options.join(' / ')})` : '';
     parts.push(`다음 질문: ${q.text}${q.subtext ? `\n(부제: ${q.subtext})` : ''}${opts}`);
@@ -349,9 +355,10 @@ function mechanicalChecks(record) {
     }
   }
 
-  // 4) heavy route contract — non-open with a plan or a next question
+  // 4) heavy route contract — judge the guarded product result. Raw model
+  // disobedience is prompt telemetry, not a shipped route-contract failure.
   if (record.heavy && record.heavy.initial) {
-    const raw = record.heavy.initial.raw || {};
+    const raw = record.heavy.initial.result || {};
     const rt = raw.request_type;
     const nonOpen = ['vent', 'validation', 'info', 'self_profiling', 'flat', 'resistance', 'crisis'];
     if (nonOpen.includes(rt)) {
@@ -464,6 +471,7 @@ async function main() {
   const summary = records.map((r) => ({
     id: r.id,
     error: !!r.error,
+    judgeError: r.judge?.runs?.[0]?.error || null,
     gate: r.route?.gate?.need,
     requestType: r.heavy?.initial?.raw?.request_type,
     lightOutcome: r.light?.outcome,
@@ -478,7 +486,15 @@ async function main() {
     scenarios: summary,
   }, null, 2), 'utf8');
   console.log('\n=== SUMMARY ===');
-  console.table(summary.map((s) => ({ id: s.id, gate: s.gate, rt: s.requestType || '-', light: s.lightOutcome || '-', mech: s.mechanicalFindings, judge: s.judgeFails.join(',') || 'clean', err: s.error ? 'Y' : '' })));
+  console.table(summary.map((s) => ({
+    id: s.id,
+    gate: s.gate,
+    rt: s.requestType || '-',
+    light: s.lightOutcome || '-',
+    mech: s.mechanicalFindings,
+    judge: s.judgeError ? 'ERROR' : s.judgeFails.join(',') || 'clean',
+    err: s.error ? 'Y' : '',
+  })));
   console.log(`total LLM calls: ${shim.callsUsed()}`);
 }
 

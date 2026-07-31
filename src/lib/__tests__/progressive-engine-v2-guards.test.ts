@@ -29,6 +29,7 @@ import {
   stripConditionalReassurance,
   truncateLowConfidenceSkeleton,
   scrubBannedVocabulary,
+  stripUnearnedRanking,
   capEscalationArrival,
 } from '@/lib/progressive-engine';
 import { composeDeepenText } from '@/lib/light-path/light-engine';
@@ -91,17 +92,26 @@ describe('R4 — truncateLowConfidenceSkeleton (volume follows confidence, by co
     expect(truncateLowConfidenceSkeleton(undefined, 45)).toEqual([]);
   });
 
-  it('wires into runInitialAnalysis (sim light-06: confidence 45 shipped 5 steps)', async () => {
+  it('wires into runInitialAnalysis — a shaky frame now ships NO plan and an open question', async () => {
+    // The v2 harness superseded the truncation on this surface: a conversation
+    // turn ships no plan at any confidence, and below 70 the model's invented
+    // binary is replaced by an open question so the user supplies the axis.
     mockJson.mockResolvedValue({
       real_question: '퇴사하고 여행을 갈지 정하는 게 맞나요?',
       request_type: 'open',
       framing_confidence: 45,
       hidden_assumptions: ['a'],
       skeleton: ['s1', 's2', 's3', 's4', 's5'],
-      next_question: null,
+      next_question: { text: '돈이 문제인가요, 번아웃이 문제인가요?', type: 'select', options: ['돈', '번아웃'] },
     } as never);
-    const { snapshot } = await runInitialAnalysis('퇴사하고 여행이나 갈까');
-    expect(snapshot.skeleton).toHaveLength(2);
+    const { snapshot, question } = await runInitialAnalysis('퇴사하고 여행이나 갈까');
+    expect(snapshot.skeleton).toEqual([]);
+    // (Engine locale resolves to en under test; the ko copy is the same rule.)
+    expect(question.text).toBe('What feels most unresolved about this situation right now?');
+    expect(question.options ?? []).toEqual([]);
+    // The replacement keeps the flow's identity — an id-less question can never
+    // be answered or matched to its receipt.
+    expect(question.id).toBeTruthy();
   });
 });
 
@@ -154,8 +164,11 @@ describe('R2 (batch 3) — an accepted escalation gets MINIMAL first contact BY 
     } as never);
     const marked = composeDeepenText('회식 가기 싫다', [{ question: 'q', answer: '몇 달째 힘들어' }], 'ko', { biggerQuestion: '이 회사에서 계속 일할지' });
     const { snapshot } = await runInitialAnalysis(marked);
-    expect(snapshot.skeleton).toHaveLength(2);
-    expect(snapshot.hidden_assumptions).toHaveLength(1);
+    // Arrival is minimal by TWO independent floors now: the conversation
+    // surface ships no plan, and the premise contract admits nothing the user's
+    // own words don't carry (these bare 'a1/a2/a3' strings never had lineage).
+    expect(snapshot.skeleton).toEqual([]);
+    expect(snapshot.hidden_assumptions).toEqual([]);
   });
 });
 
@@ -172,5 +185,31 @@ describe('R8 — a heavy question never carries two question marks', () => {
     const { question } = await runInitialAnalysis('공동창업자와 방향이 갈립니다');
     expect((question.text.match(/[?？]/g) || []).length).toBeLessThanOrEqual(1);
     expect(question.text).toContain('보고 있는 상황인가요?');
+  });
+});
+
+describe('ownership — Argus never ranks the user’s own concerns for them', () => {
+  it('drops the comparative sentence and keeps the rest of the mirror', () => {
+    const out = stripUnearnedRanking(
+      '스타트업이 시리즈B에 런웨이 18개월이라는 걸 직접 확인하셨어요. '
+      + '연봉 40% 차이보다 그쪽 회사의 지속 가능성이 더 걸리는 지점인 거죠.',
+    );
+    expect(out).toBe('스타트업이 시리즈B에 런웨이 18개월이라는 걸 직접 확인하셨어요.');
+  });
+
+  it('catches the rewordings the prompt ban failed to stop', () => {
+    expect(stripUnearnedRanking('A보다 B가 더 앞에 있는 거죠. 남는 문장.')).toBe('남는 문장.');
+    expect(stripUnearnedRanking('돈에 비해 커리어가 더 중요하신 것 같아요. 남는 문장.')).toBe('남는 문장.');
+    expect(stripUnearnedRanking('Stability matters more than salary here. Kept.')).toBe('Kept.');
+  });
+
+  it('leaves a mirror that merely reports what the user said', () => {
+    const plain = '승진이 아직 구두로만 나온 얘기라는 걸 알려주셨어요.';
+    expect(stripUnearnedRanking(plain)).toBe(plain);
+  });
+
+  it('never empties the insight, even when every sentence ranks', () => {
+    const all = 'A보다 B가 더 걸려요.';
+    expect(stripUnearnedRanking(all)).toBe(all);
   });
 });

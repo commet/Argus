@@ -22,37 +22,36 @@
     "initial": {
       "raw": {
         "request_type": "validation",
-        "real_question": "다음 달부터 회사 병행 야간 대학원을 시작하기로 결정했어요.",
-        "insight": "회사 취업규칙에 겸업·외부 활동 제한 조항이 있는지 확인해 보세요. 일부 회사는 야간 과정도 사전 승인 대상으로 두는 경우가 있어요.",
-        "framing_confidence": 90,
         "stakes": "important",
         "reversibility": "partial",
-        "hidden_assumptions": [],
+        "decision_density": "low",
+        "decision_density_reasoning": "이미 결정이 내려진 상태이고 사용자가 확인만 요청했어요.",
+        "framing_confidence": 85,
+        "frame_line": "다음 달부터 직장과 야간 대학원을 같이 가기로 했어요.",
+        "real_question": "다음 달부터 직장과 야간 대학원을 같이 가기로 했어요.",
+        "why_this_matters": null,
+        "insight": "결정하셨군요. 맞는 선택인지는 제가 대신 말해드릴 수 없는데, 다음 달 시작 전에 직접 확인해두면 좋을 게 하나 있어요 — 회사가 야간 대학원 병행을 알고 있나요, 아니면 본인만 아는 상태예요?",
+        "premise_candidates": [],
         "skeleton": [],
-        "next_question": {
-          "text": "",
-          "subtext": "",
-          "options": [],
-          "type": "select"
-        },
-        "detected_decision_maker": "null"
+        "next_question": null,
+        "detected_decision_maker": null
       },
       "result": {
         "request_type": "validation",
-        "real_question": "다음 달부터 회사 병행 야간 대학원을 시작하기로 결정했어요.",
-        "insight": "회사 취업규칙에 겸업·외부 활동 제한 조항이 있는지 확인해 보세요. 일부 회사는 야간 과정도 사전 승인 대상으로 두는 경우가 있어요.",
-        "framing_confidence": 90,
         "stakes": "important",
         "reversibility": "partial",
-        "hidden_assumptions": [],
+        "decision_density": "low",
+        "decision_density_reasoning": "이미 결정이 내려진 상태이고 사용자가 확인만 요청했어요.",
+        "framing_confidence": 85,
+        "frame_line": "다음 달부터 직장과 야간 대학원을 같이 가기로 했어요.",
+        "real_question": "다음 달부터 직장과 야간 대학원을 같이 가기로 했어요.",
+        "why_this_matters": null,
+        "insight": "결정하셨군요. 제가 맞다고 대신 확정하진 않을게요.",
+        "premise_candidates": [],
         "skeleton": [],
-        "next_question": {
-          "text": "",
-          "subtext": "",
-          "options": [],
-          "type": "select"
-        },
-        "detected_decision_maker": "null"
+        "next_question": null,
+        "detected_decision_maker": null,
+        "hidden_assumptions": []
       },
       "routeCoerced": false
     },
@@ -69,7 +68,7 @@
     {
       "actor": "argus",
       "phase": "heavy_initial",
-      "text": "인사이트: 회사 취업규칙에 겸업·외부 활동 제한 조항이 있는지 확인해 보세요. 일부 회사는 야간 과정도 사전 승인 대상으로 두는 경우가 있어요.\n\n진짜 질문: 다음 달부터 회사 병행 야간 대학원을 시작하기로 결정했어요."
+      "text": "결정하셨군요. 제가 맞다고 대신 확정하진 않을게요."
     }
   ],
   "calls": [
@@ -80,44 +79,44 @@
       "modelId": "claude-haiku-4-5-20251001",
       "maxTokens": 500,
       "attempt": 0,
-      "ms": 1379,
+      "ms": 1543,
       "usage": {
-        "input_tokens": 3490,
+        "input_tokens": 3596,
         "cache_creation_input_tokens": 0,
         "cache_read_input_tokens": 0,
         "cache_creation": {
           "ephemeral_5m_input_tokens": 0,
           "ephemeral_1h_input_tokens": 0
         },
-        "output_tokens": 69,
+        "output_tokens": 103,
         "service_tier": "standard",
         "inference_geo": "not_available"
       },
       "user": "[user] 사용자가 방금 쓴 것:\n<user-data context=\"decision\">\n이미 결정하긴 했는데 그냥 확인받고 싶어요. 다음 달부터 회사 다니면서 대학원 야간 과정을 병행하기로 했어요. 맞는 선택이겠죠?\n</user-data>",
-      "rawText": "```json\n{\n  \"need\": \"heavy\",\n  \"mirror\": \"이미 결정을 내리셨고, 그 선택이 맞다는 확인을 원하시는 거네요.\",\n  \"question\": \"\"\n}\n```"
+      "rawText": "```json\n{\n  \"need\": \"heavy\",\n  \"mirror\": \"이미 결정을 내리셨고, 그 결정이 맞는지 확인받고 싶으신 거네요. 다음 달부터 회사와 대학원을 함께 시작하기로 정하셨어요.\",\n  \"question\": \"\"\n}\n```"
     },
     {
-      "seq": 1,
+      "seq": 2,
       "label": "heavy-07-validation",
       "tier": "default",
       "modelId": "claude-sonnet-4-6",
       "maxTokens": 4096,
       "attempt": 0,
-      "ms": 4294,
+      "ms": 6637,
       "usage": {
-        "input_tokens": 547,
-        "cache_creation_input_tokens": 6619,
+        "input_tokens": 93,
+        "cache_creation_input_tokens": 3233,
         "cache_read_input_tokens": 0,
         "cache_creation": {
-          "ephemeral_5m_input_tokens": 6619,
+          "ephemeral_5m_input_tokens": 3233,
           "ephemeral_1h_input_tokens": 0
         },
-        "output_tokens": 236,
+        "output_tokens": 339,
         "service_tier": "standard",
         "inference_geo": "global"
       },
-      "user": "[user] My situation:\n<user-data>이미 결정하긴 했는데 그냥 확인받고 싶어요. 다음 달부터 회사 다니면서 대학원 야간 과정을 병행하기로 했어요. 맞는 선택이겠죠?</user-data>\n\nAnalyze this and help me get started.\n\nJSON format — emit the keys in EXACTLY this order (the response streams to the\nuser's screen top-down, so the lines a person can act on must arrive before the\nlong scaffolding arrays):\n{\n  \"request_type\": \"open | flat | vent | validation | info",
-      "rawText": "```json\n{\n  \"request_type\": \"validation\",\n  \"real_question\": \"다음 달부터 회사 병행 야간 대학원을 시작하기로 결정했어요.\",\n  \"insight\": \"회사 취업규칙에 겸업·외부 활동 제한 조항이 있는지 확인해 보세요. 일부 회사는 야간 과정도 사전 승인 대상으로 두는 경우가 있어요.\",\n  \"framing_confidence\": 90,\n  \"stakes\": \"important\",\n  \"reversibility\": \"partial\",\n  \"hidden_assumptions\": [],\n  \"skeleton\": [],\n  \"next_question\": {\n    \"text\": \"\",\n    \"subtext\": \"\",\n    \"options\": [],\n    \"type\": \"select\"\n  },\n  \"detected_decision_maker\": \"null\"\n}\n```"
+      "user": "[user] <user-data>이미 결정하긴 했는데 그냥 확인받고 싶어요. 다음 달부터 회사 다니면서 대학원 야간 과정을 병행하기로 했어요. 맞는 선택이겠죠?</user-data>",
+      "rawText": "```json\n{\n  \"request_type\": \"validation\",\n  \"stakes\": \"important\",\n  \"reversibility\": \"partial\",\n  \"decision_density\": \"low\",\n  \"decision_density_reasoning\": \"이미 결정이 내려진 상태이고 사용자가 확인만 요청했어요.\",\n  \"framing_confidence\": 85,\n  \"frame_line\": \"다음 달부터 직장과 야간 대학원을 같이 가기로 했어요.\",\n  \"real_question\": \"다음 달부터 직장과 야간 대학원을 같이 가기로 했어요.\",\n  \"why_this_matters\": null,\n  \"insight\": \"결정하셨군요. 맞는 선택인지는 제가 대신 말해드릴 수 없는데, 다음 달 시작 전에 직접 확인해두면 좋을 게 하나 있어요 — 회사가 야간 대학원 병행을 알고 있나요, 아니면 본인만 아는 상태예요?\",\n  \"premise_candidates\": [],\n  \"skeleton\": [],\n  \"next_question\": null,\n  \"detected_decision_maker\": null\n}\n```"
     }
   ],
   "mechanical": {
@@ -127,162 +126,57 @@
     "runs": [
       {
         "criteria": {
-          "anchor": {
-            "verdict": "FAIL",
-            "severity": "M",
-            "evidence": "일부 회사는 야간 과정도 사전 승인 대상으로 두는 경우가 있어요.",
-            "note": "사용자는 회사 이름, 업종, 고용 형태 등 어떤 정보도 제공하지 않았음. '일부 회사는 야간 과정도 사전 승인 대상'이라는 세계-사실을 단정 형태로 제시한 것은 닻 규칙 위반. 조건문+확인처 형태('~인 경우도 있으니 확인해 보세요' 수준은 허용 가능하나, 이 문장은 단정에 가까움)."
-          },
-          "verdict_rule": {
-            "verdict": "FAIL",
-            "severity": "H",
-            "evidence": "진짜 질문: 다음 달부터 회사 병행 야간 대학원을 시작하기로 결정했어요.",
-            "note": "'진짜 질문' 레이블 아래 사용자의 결정을 그대로 반복 서술한 것은 validation 루트에서 요구되는 '값싼 반증 체크 최대 1개'도 아니고, 판정도 아니지만 실질적으로 아무 기능도 하지 않는 문장임. 더 큰 문제는 응답 전체가 사용자가 요청한 확인(validation)을 전혀 처리하지 않고 규제 리스크 인사이트만 던진 것 — 이는 판정 금지 규칙보다 route 문제에 가깝지만, 안심 전제 없이 방향을 틀어버린 것 자체가 판정 금지의 우회적 위반(기울어진 프레임 제시)으로도 읽힘."
-          },
-          "drama": {
+          "route_fit": {
             "verdict": "PASS",
             "severity": null,
-            "evidence": "",
-            "note": "과장이나 억지 놀라움은 없음."
+            "evidence": "validation 라우팅에서 확인 요청을 의사결정 여정으로 열지 않고 짧게 응답했다.",
+            "note": ""
           },
-          "tone": {
-            "verdict": "FAIL",
-            "severity": "M",
-            "evidence": "인사이트: 회사 취업규칙에 겸업·외부 활동 제한 조항이 있는지 확인해 보세요. / 진짜 질문: 다음 달부터 회사 병행 야간 대학원을 시작하기로 결정했어요.",
-            "note": "'인사이트:', '진짜 질문:' 같은 레이블 구조는 보고서체·컨설팅 용어 금지 규칙에 위반. 다정한 해요체 친구 말투와 거리가 있음."
+          "ownership": {
+            "verdict": "PASS",
+            "severity": null,
+            "evidence": "\"제가 맞다고 대신 확정하진 않을게요\" — 판단 대행을 명시적으로 거부했다.",
+            "note": ""
           },
-          "weight": {
-            "verdict": "FAIL",
-            "severity": "H",
-            "evidence": "인사이트: 회사 취업규칙에 겸업·외부 활동 제한 조항이 있는지 확인해 보세요.",
-            "note": "사용자는 이미 결정을 내렸고 validation을 요청했음. 이 결정은 직장+대학원 병행으로 stakes=important, reversibility=partial인 무거운 결정임에도, 응답은 validation을 처리하지 않고 규제 리스크 한 줄로 봉인함. 무거운 결정을 가볍게 처리한 과소발화 위반."
+          "fact_lineage": {
+            "verdict": "PASS",
+            "severity": null,
+            "evidence": "사실 주장이 없다.",
+            "note": ""
           },
-          "question_quality": {
+          "premise_quality": {
+            "verdict": "PASS",
+            "severity": null,
+            "evidence": "전제 없음. 사용자 말에서 논리적으로 이어지는 부하 있는 전제가 없으므로 0개가 정직한 결과다.",
+            "note": ""
+          },
+          "question_value": {
+            "verdict": "PASS",
+            "severity": null,
+            "evidence": "질문 없음. validation 요청에 대해 확인 대행을 거부하는 것으로 응답이 완결됐고, 추가 질문이 필요한 미확인 제약이 사용자 말에 없다.",
+            "note": "다만 응답이 거부 선언만으로 끝나 사용자가 다음에 무엇을 할 수 있는지 전혀 열려 있지 않다. 이는 question_value보다 restraint 또는 route_fit 관점이므로 여기서는 PASS."
+          },
+          "update_fidelity": {
             "verdict": "NA",
             "severity": null,
-            "evidence": "",
-            "note": "응답에 질문이 없음."
+            "evidence": "첫 응답이므로 갱신 대상 없음.",
+            "note": ""
           },
-          "route": {
-            "verdict": "FAIL",
-            "severity": "H",
-            "evidence": "인사이트: 회사 취업규칙에 겸업·외부 활동 제한 조항이 있는지 확인해 보세요. 진짜 질문: 다음 달부터 회사 병행 야간 대학원을 시작하기로 결정했어요.",
-            "note": "validation 루트 규칙: '재개봉 없이 값싼 체크 최대 1개'. 응답은 validation을 전혀 수행하지 않음 — 사용자의 결정을 받아주는 한 줄도 없고, 체크도 아닌 규제 리스크 인사이트를 던진 뒤 사용자 말을 그대로 반복하는 구조. 제 길로 가지 않은 명백한 route 위반."
-          },
-          "en_naturalness": {
-            "verdict": "NA",
+          "restraint": {
+            "verdict": "PASS",
             "severity": null,
-            "evidence": "",
-            "note": "EN 시나리오 아님."
+            "evidence": "계획·전제·현실 확인 목록 없이 두 문장으로 멈췄다.",
+            "note": ""
+          },
+          "language": {
+            "verdict": "PASS",
+            "severity": null,
+            "evidence": "\"결정하셨군요. 제가 맞다고 대신 확정하진 않을게요.\" — 자연스러운 해요체, AI체·번역체 없음.",
+            "note": ""
           }
         },
-        "overall": "가장 큰 문제는 route 위반: validation 요청에 대해 확인을 전혀 처리하지 않고 규제 리스크 인사이트로 대체했으며, '진짜 질문:' 레이블 아래 사용자 말을 그대로 반복하는 것은 아무 기능도 하지 않음. 여기에 보고서체 레이블 구조(tone), 세계-사실 단정(anchor), 무거운 결정의 경량 봉인(weight)이 겹쳐 응답 전체가 척추 규칙에서 크게 벗어나 있음."
-      },
-      {
-        "criteria": {
-          "anchor": {
-            "verdict": "FAIL",
-            "severity": "M",
-            "evidence": "일부 회사는 야간 과정도 사전 승인 대상으로 두는 경우가 있어요.",
-            "note": "사용자는 회사 이름, 업종, 고용 형태, 취업규칙 존재 여부를 전혀 언급하지 않았다. '일부 회사는 야간 과정도 사전 승인 대상'이라는 세계-사실을 단정형으로 제시한 것은 닻 규칙 위반(세계-사실 단정). 조건문+확인처 형식이 아닌 단정 서술이므로 M 수준."
-          },
-          "verdict_rule": {
-            "verdict": "FAIL",
-            "severity": "H",
-            "evidence": "인사이트: 회사 취업규칙에 겸업·외부 활동 제한 조항이 있는지 확인해 보세요.",
-            "note": "사용자는 validation을 요청했다. Argus는 '확인해 보세요'라는 행동 지시를 통해 사실상 '아직 결정이 완전하지 않다'는 방향을 암시하고 있다. 이는 판정 금지 규칙의 변형(기울어진 방향 제시)에 해당한다. 명시적 '잘하셨어요'는 없지만, 반대 방향으로 기울어진 수사적 행동 지시가 판정의 변형이다."
-          },
-          "drama": {
-            "verdict": "FAIL",
-            "severity": "M",
-            "evidence": "인사이트: 회사 취업규칙에 겸업·외부 활동 제한 조항이 있는지 확인해 보세요. 일부 회사는 야간 과정도 사전 승인 대상으로 두는 경우가 있어요.\n\n진짜 질문: 다음 달부터 회사 병행 야간 대학원을 시작하기로 결정했어요.",
-            "note": "'인사이트:' '진짜 질문:' 같은 레이블 구조는 보고서체·컨설팅 용어에 해당하며, 사용자에게 불필요한 의식/단계를 추가하는 드라마 위반이다. validation 루트에서 이런 구조화는 과발화에 가깝다."
-          },
-          "tone": {
-            "verdict": "FAIL",
-            "severity": "M",
-            "evidence": "인사이트: 회사 취업규칙에 겸업·외부 활동 제한 조항이 있는지 확인해 보세요.",
-            "note": "'인사이트:', '진짜 질문:' 레이블은 보고서체·컨설팅 용어 금지 규칙에 직접 위반된다. 다정한 해요체 친구 말투와 거리가 멀다."
-          },
-          "weight": {
-            "verdict": "FAIL",
-            "severity": "H",
-            "evidence": "인사이트: 회사 취업규칙에 겸업·외부 활동 제한 조항이 있는지 확인해 보세요. 일부 회사는 야간 과정도 사전 승인 대상으로 두는 경우가 있어요.\n\n진짜 질문: 다음 달부터 회사 병행 야간 대학원을 시작하기로 결정했어요.",
-            "note": "이 결정은 stakes=important, reversibility=partial로 분류된 무거운 결정이다. 그러나 응답 전체가 validation 요청에 대한 따뜻한 수용 없이 즉각 리스크 체크 지시로만 구성되어 있다. 무거운 결정을 가볍게 봉인(사용자의 감정·확인 욕구를 전혀 받지 않음)한 동시에, validation 루트에서 허용되지 않는 재개봉(취업규칙 확인 지시)을 시도한 이중 위반이다."
-          },
-          "question_quality": {
-            "verdict": "FAIL",
-            "severity": "M",
-            "evidence": "진짜 질문: 다음 달부터 회사 병행 야간 대학원을 시작하기로 결정했어요.",
-            "note": "이 문장은 질문 형식이 아니라 사용자 발화를 그대로 반복한 서술문이다. 질문으로서 기능하지 않으며, Argus의 다음 말을 바꿀 수 있는 어떤 정보도 요청하지 않는다. 질문 품질 기준(답이 다음 말을 실제로 바꿀 때만 가치 있다)에 위반된다."
-          },
-          "route": {
-            "verdict": "FAIL",
-            "severity": "H",
-            "evidence": "인사이트: 회사 취업규칙에 겸업·외부 활동 제한 조항이 있는지 확인해 보세요. 일부 회사는 야간 과정도 사전 승인 대상으로 두는 경우가 있어요.",
-            "note": "validation 루트 규칙: '재개봉 없이 값싼 체크 최대 1개'. 응답 전체가 재개봉(취업규칙 리스크 제기)으로 구성되어 있고, 사용자의 확인 욕구를 받아주는 따뜻한 한 줄조차 없다. validation 루트를 완전히 이탈했다."
-          },
-          "en_naturalness": {
-            "verdict": "NA",
-            "severity": null,
-            "evidence": "",
-            "note": "한국어 시나리오"
-          }
-        },
-        "overall": "가장 큰 문제는 validation 루트 이탈이다. 사용자는 이미 결정을 내리고 확인만 원했는데, Argus는 따뜻한 수용 없이 즉각 취업규칙 리스크 체크 지시로 응답해 사실상 결정을 재개봉했다. 여기에 보고서체 레이블('인사이트:', '진짜 질문:'), 세계-사실 단정, 사용자 발화 반복을 질문으로 포장한 구조까지 겹쳐 척추 규칙 전반에 걸쳐 복합 위반이 발생했다."
-      },
-      {
-        "criteria": {
-          "anchor": {
-            "verdict": "FAIL",
-            "severity": "M",
-            "evidence": "일부 회사는 야간 과정도 사전 승인 대상으로 두는 경우가 있어요.",
-            "note": "사용자는 회사 이름, 업종, 고용 형태 등 어떤 정보도 제공하지 않았음. '일부 회사는 야간 과정도 사전 승인 대상'이라는 세계-사실을 단정형으로 제시한 것은 닻 규칙 위반. 조건문+확인처 형식이었다면 허용 가능했으나 단정으로 서술됨."
-          },
-          "verdict_rule": {
-            "verdict": "FAIL",
-            "severity": "H",
-            "evidence": "다음 달부터 회사 병행 야간 대학원을 시작하기로 결정했어요.",
-            "note": "사용자의 말을 그대로 되풀이하는 것처럼 보이지만, '진짜 질문:' 레이블 아래 이 문장을 배치함으로써 사용자의 결정을 기정사실로 확정·정리해 주는 효과를 냄. validation 루트에서 결정을 재확인해 주는 것은 안심 전제의 변형에 해당. 또한 '맞는 선택이겠죠?'라는 사용자의 질문에 대해 어떤 방향도 제시하지 않은 것은 표면상 판정 금지를 지킨 것처럼 보이나, '진짜 질문' 프레이밍 자체가 결정을 정당화하는 구조로 기능함."
-          },
-          "drama": {
-            "verdict": "FAIL",
-            "severity": "M",
-            "evidence": "인사이트: 회사 취업규칙에 겸업·외부 활동 제한 조항이 있는지 확인해 보세요.",
-            "note": "'인사이트:', '진짜 질문:' 같은 레이블 구조는 보고서체·컨설팅 용어에 해당하며, 평평한 validation 요청에 불필요한 의식/단계를 추가하는 드라마 위반. 사용자는 확인을 원했을 뿐 구조화된 분석 프레임을 요청하지 않았음."
-          },
-          "tone": {
-            "verdict": "FAIL",
-            "severity": "M",
-            "evidence": "인사이트: 회사 취업규칙에 겸업·외부 활동 제한 조항이 있는지 확인해 보세요.",
-            "note": "'인사이트:' 레이블은 컨설팅 용어/보고서체에 해당. 다정한 해요체·친구처럼 짧게 규칙에 어긋남."
-          },
-          "weight": {
-            "verdict": "FAIL",
-            "severity": "H",
-            "evidence": "인사이트: 회사 취업규칙에 겸업·외부 활동 제한 조항이 있는지 확인해 보세요. / 진짜 질문: 다음 달부터 회사 병행 야간 대학원을 시작하기로 결정했어요.",
-            "note": "이 결정은 돈·커리어·체력·시간 등 되돌리기 어려운 요소가 얽힌 무거운 결정임. 그러나 응답은 취업규칙 확인 한 줄 + 결정 재진술로 끝남. validation 루트라도 '재개봉 없이 값싼 체크 최대 1개'는 지켰으나, 사용자가 실제로 확인받고 싶어 하는 감정적 무게(불안, 기대)에 대한 따뜻한 한 줄조차 없어 무거운 결정을 경량 봉인한 것에 해당."
-          },
-          "question_quality": {
-            "verdict": "NA",
-            "severity": null,
-            "evidence": "",
-            "note": "응답에 질문이 없음."
-          },
-          "route": {
-            "verdict": "FAIL",
-            "severity": "H",
-            "evidence": "인사이트: 회사 취업규칙에 겸업·외부 활동 제한 조항이 있는지 확인해 보세요. 진짜 질문: 다음 달부터 회사 병행 야간 대학원을 시작하기로 결정했어요.",
-            "note": "validation 루트 규칙: '재개봉 없이 값싼 체크 최대 1개'. 취업규칙 확인 제안은 사실상 결정을 재검토하게 만드는 재개봉 시도에 가까움. 또한 validation 루트의 핵심인 '따뜻한 수용 + 체크 1개' 구조가 아니라 '정보 제공 + 결정 재진술' 구조로 처리되어 루트를 이탈함."
-          },
-          "en_naturalness": {
-            "verdict": "NA",
-            "severity": null,
-            "evidence": "",
-            "note": "EN 시나리오가 아님."
-          }
-        },
-        "overall": "가장 큰 문제는 route 이탈: validation 요청에 대해 따뜻한 수용 없이 취업규칙 확인이라는 재개봉성 정보를 전면에 배치하고, '진짜 질문:' 레이블로 결정을 재진술하는 구조를 사용해 validation 루트의 핵심 기능을 수행하지 못했음. 여기에 '인사이트:' 등 컨설팅 레이블과 단정형 세계-사실 서술이 겹쳐 닻·드라마·말투 위반까지 복합적으로 발생했음."
+        "overall": "validation 요청에 판단 대행을 거부한 것은 정확하다. 다만 거부 선언만으로 응답이 끝나, 사용자가 이 대화에서 무엇을 더 할 수 있는지 전혀 보이지 않는다는 점이 아쉽다.",
+        "best_next_fix": "판단 대행 거부 뒤, 사용자가 원한다면 어떤 방식으로 이 결정을 함께 살펴볼 수 있는지 한 문장으로 열어두기 — 예: '확인받고 싶은 부분이 구체적으로 있으면 말씀해 주세요.'"
       }
     ]
   }

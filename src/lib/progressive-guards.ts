@@ -17,6 +17,55 @@
 import { formatConcernMessage } from '@/lib/crisis-gate';
 import type { Locale } from '@/lib/i18n';
 
+export function lowConfidenceOpeningCopy(locale: Locale): {
+  insight: string;
+  question: { text: string; type: 'short'; options: string[]; subtext?: undefined };
+} {
+  return locale === 'ko'
+    ? {
+        insight: '아직 무엇이 이 판단을 움직이는지는 정해지지 않았어요.',
+        question: {
+          text: '이 상황에서 지금 가장 마음에 걸리는 건 뭐예요?',
+          type: 'short',
+          options: [],
+        },
+      }
+    : {
+        insight: 'It is not clear yet what this judgment turns on.',
+        question: {
+          text: 'What feels most unresolved about this situation right now?',
+          type: 'short',
+          options: [],
+        },
+      };
+}
+
+/**
+ * A low-confidence frame is a hypothesis, not UI. Keep the first interaction
+ * open so the user supplies the missing axis instead of selecting an invented
+ * binary.
+ */
+export function guardLowConfidenceOpeningQuestion<T extends {
+  text?: string;
+  type?: string;
+  options?: unknown[];
+  subtext?: string;
+}>(
+  question: T | null | undefined,
+  reportedConfidence: number | null | undefined,
+  locale: Locale,
+): T | null {
+  if (reportedConfidence != null && reportedConfidence >= 70) return question ?? null;
+  const open = lowConfidenceOpeningCopy(locale).question;
+  // Identity (id, engine_phase) belongs to the flow, not to the copy: replacing
+  // the whole object dropped the id, and an id-less question can no longer be
+  // answered, upgraded, or matched to its receipt. Overlay the copy instead —
+  // and clear the old subtext, which explained a question that no longer exists.
+  return question
+    ? ({ ...question, ...open, subtext: undefined } as unknown as T)
+    : (open as unknown as T);
+}
+
 /**
  * F1 (sim, heavy-09): a MODEL-flagged crisis (STEP-0 request_type === 'crisis')
  * that the deterministic regex missed produced an empty-handed answer — zero
@@ -50,6 +99,95 @@ export function stripConditionalReassurance(insight: string | undefined): string
   const kept = sentences.filter((s) => !COND.test(s));
   const out = kept.join(' ').trim();
   return out || insight;
+}
+
+/**
+ * A validation route may contain one grounded check, but the current
+ * string-only response has no provenance with which code can prove that check
+ * came from the user. Until the richer premise contract is wired, keep only
+ * the receiving sentence.
+ */
+export function validationAcknowledgementOnly(
+  insight: string | undefined,
+  locale: Locale = 'ko',
+): string | undefined {
+  if (!insight) return insight;
+  const first = insight.match(/^.*?[.!?。](?:\s|$)/)?.[0]?.trim();
+  const receiving = first || insight.trim();
+  const boundary = locale === 'ko'
+    ? '제가 맞다고 대신 확정하진 않을게요.'
+    : "I won't declare it right on your behalf.";
+  if (locale === 'ko' && /대신\s*(확정|판단)|맞다고\s*(말|확정)/.test(receiving)) return receiving;
+  if (locale !== 'ko' && /on your behalf|declare it right/i.test(receiving)) return receiving;
+  return `${receiving} ${boundary}`;
+}
+
+/**
+ * Ownership (v3 sim, heavy-01, reproduced across judge re-runs): the mirror
+ * ranked the user's own concerns for them — "연봉 40% 차이보다 그쪽 회사의
+ * 지속 가능성이 더 걸리는 지점인 거죠." Which of their concerns weighs more is
+ * the one thing only they can say; asserting it is a verdict about the user
+ * (CLAUDE.md rule 2), and it survives whether they answered directly or
+ * redirected.
+ *
+ * The prompt bans it and the model reworded around the ban on the very next
+ * run — the same failure that put stripConditionalReassurance here — so the
+ * SENTENCE FORM is owned by code. Drops any sentence comparing two of the
+ * user's concerns by weight; never empties the insight (the mirror survives).
+ */
+const UNEARNED_RANKING =
+  /(보다|비해)[^.!?…\n]*(더|덜)\s*[^.!?…\n]*(걸리|걸려|중요|앞[에서]|무겁|무거|크게|우선|신경|마음)|\b(matters?|weighs?|counts?|concerns?)\s+more\s+than\b|\bmore\s+of\s+a\s+(concern|worry)\s+than\b/;
+export function stripUnearnedRanking(insight: string | undefined): string | undefined {
+  if (!insight) return insight;
+  const sentences = insight.split(/(?<=[.!?…])\s+/);
+  const kept = sentences.filter((s) => !UNEARNED_RANKING.test(s));
+  const out = kept.join(' ').trim();
+  return out || insight;
+}
+
+function normalizeQuestionForRepeat(text: string): string {
+  return text.normalize('NFKC').toLocaleLowerCase().replace(/[^\p{L}\p{N}]+/gu, '');
+}
+
+function questionBigramSimilarity(a: string, b: string): number {
+  const left = Array.from(normalizeQuestionForRepeat(a));
+  const right = Array.from(normalizeQuestionForRepeat(b));
+  if (left.length < 12 || right.length < 12) return 0;
+  const counts = new Map<string, number>();
+  for (let i = 0; i < left.length - 1; i += 1) {
+    const gram = `${left[i]}${left[i + 1]}`;
+    counts.set(gram, (counts.get(gram) || 0) + 1);
+  }
+  let overlap = 0;
+  for (let i = 0; i < right.length - 1; i += 1) {
+    const gram = `${right[i]}${right[i + 1]}`;
+    const count = counts.get(gram) || 0;
+    if (count > 0) {
+      overlap += 1;
+      counts.set(gram, count - 1);
+    }
+  }
+  return (2 * overlap) / ((left.length - 1) + (right.length - 1));
+}
+
+/**
+ * Drop an exact or near-paraphrase repeat so a useful off-axis answer cannot
+ * be followed by the same information request in slightly different wording.
+ * The threshold is intentionally high: false negatives are safer than deleting
+ * a genuinely new question.
+ */
+export function dropRepeatedQuestion<T extends { text?: string }>(
+  question: T | null | undefined,
+  previouslyAsked: string[],
+): T | null {
+  if (!question?.text) return question ?? null;
+  const normalized = normalizeQuestionForRepeat(question.text);
+  if (!normalized) return null;
+  return previouslyAsked.some((text) =>
+    normalizeQuestionForRepeat(text) === normalized
+    || questionBigramSimilarity(text, question.text || '') >= 0.28)
+    ? null
+    : question;
 }
 
 /**

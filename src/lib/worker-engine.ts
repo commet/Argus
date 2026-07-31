@@ -32,6 +32,14 @@ export interface WorkerContext {
   qaHistory: Array<{ q: string; a: string }>;
   peerResults?: string;  // 이전 스테이지 완료 결과 (context-strategy의 'focused' 모드에서 사용)
   sessionId?: string;
+  /**
+   * The decision workspace already decomposes a deep run into bounded,
+   * independently-routed workers. Letting each of those workers recursively
+   * plan another 2–4 calls makes cost and latency unpredictable without adding
+   * an independent point of view. Other explicit orchestration surfaces can
+   * keep the autonomous planner by leaving this enabled.
+   */
+  allowAutonomousPlanning?: boolean;
 }
 
 // ─── Types ───
@@ -101,7 +109,7 @@ export async function runWorkerTask(
   // ─── Agent 자율 계획 (Planning Gate) ───
   // Level 3+ 에이전트 + 복합 task → 다단계 계획 후 실행
   // Planning 실패 시 아래 기존 단일 호출로 fallback
-  if (shouldPlan(task, agent) && agent) {
+  if (context.allowAutonomousPlanning !== false && shouldPlan(task, agent) && agent) {
     try {
       const capabilities = (task.delegation_depth || 0) === 0
         ? getAvailableCapabilities(task.agent_id)

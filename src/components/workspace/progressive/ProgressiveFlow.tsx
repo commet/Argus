@@ -890,6 +890,10 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
       hiddenAssumptions: latest?.hidden_assumptions ?? [],
       qaHistory: qa.map(q => ({ q: q.question.text, a: q.answer.value })),
       sessionId: session.id,
+      // The workspace has already bounded and routed the review team (2 AI
+      // lenses, or 2 + a critic for critical/irreversible decisions). Do not
+      // let every selected reviewer recursively spawn another private team.
+      allowAutonomousPlanning: false,
     };
     workerAbortRef.current?.abort();
     workerAbortRef.current = new AbortController();
@@ -2029,7 +2033,14 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
             rectangle BEHIND the rounded status pill ("box on a box"); fade it to
             transparent at the bottom so it masks the nav seam up top but leaves no
             visible edge under the pill (which carries its own surface + blur). */}
-        <div ref={statusBarRef} className="sticky top-16 z-30 mb-6 pt-2 pb-1 bg-gradient-to-b from-[var(--bg)] via-[var(--bg)] to-transparent">
+        {(busy
+          || phase === 'analyzing'
+          || phase === 'mixing'
+          || phase === 'lead_synthesizing'
+          || workers.some(w => w.status === 'running' || w.status === 'ai_preparing')
+          || streamingText !== null
+          || !!error) && (
+        <div ref={statusBarRef} className="sticky top-16 z-30 mb-4 pt-2 pb-1 bg-gradient-to-b from-[var(--bg)] via-[var(--bg)] to-transparent">
           <PhaseStatusBar
             phase={phase} busy={busy}
             hasQuestion={!!curQ && !busy && phase === 'conversing'}
@@ -2125,6 +2136,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
             </motion.div>}
           </AnimatePresence>
         </div>
+        )}
 
         <div className="space-y-5 md:space-y-8">
           {/* The user's words are the root record, not a one-line breadcrumb.
@@ -2300,7 +2312,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
           )}
 
           {/* Question FIRST — user action at the top, not buried below */}
-          <div ref={questionRef}>
+          <div ref={questionRef} className="scroll-mt-20 md:scroll-mt-24">
             {/* (The "팀은 이미 준비됐어요…(선택)" banner was removed: the
                 question meta ("질문 N/M · 선택") and the skip chip ("건너뛰고
                 팀 투입") already say optional — three voices for one fact.) */}

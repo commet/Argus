@@ -32,9 +32,16 @@ const NON_OPEN = ['vent', 'validation', 'info', 'self_profiling', 'flat', 'resis
 
 describe('applyRouteContract — enforces the restraint structural contract', () => {
   it.each(NON_OPEN)('blanks a manufactured plan when request_type is non-open (%s)', (rt) => {
-    const { result, coerced } = applyRouteContract({ request_type: rt, skeleton: ['step 1', 'step 2'] });
+    const { result, coerced } = applyRouteContract({
+      request_type: rt,
+      skeleton: ['step 1', 'step 2'],
+      hidden_assumptions: ['made up'],
+      next_question: { text: 'another question' },
+    });
     expect(coerced).toBe(true);
     expect(result.skeleton).toEqual([]);
+    expect(result.hidden_assumptions).toEqual([]);
+    expect(result.next_question).toBeNull();
   });
 
   it('leaves an open-decision plan untouched', () => {
@@ -92,7 +99,7 @@ describe('runInitialAnalysis pins request_type on the snapshot (R31+R32 together
     expect(snapshot.skeleton).toEqual([]); // R31 contract guard blanked the plan
   });
 
-  it('an open classification keeps its plan and is pinned open', async () => {
+  it('an open classification is pinned open without pre-building a plan', async () => {
     mockJson.mockResolvedValue({
       real_question: '핵심 질문은?',
       insight: '지금 이직하는 쪽이 정답이다.',
@@ -104,7 +111,7 @@ describe('runInitialAnalysis pins request_type on the snapshot (R31+R32 together
     } as never);
     const { snapshot } = await runInitialAnalysis('이직할지 남을지 큰 결정이야');
     expect(snapshot.request_type).toBe('open');
-    expect(snapshot.skeleton.length).toBeGreaterThan(0);
+    expect(snapshot.skeleton).toEqual([]);
     expect(snapshot.insight).toBe('핵심 질문은?');
   });
 });

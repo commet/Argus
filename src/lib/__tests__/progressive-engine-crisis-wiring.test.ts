@@ -92,7 +92,11 @@ describe('crisis backstop does NOT false-fire (precision / mirror clause)', () =
 
     expect(snapshot.crisis).toBeUndefined();
     expect(mockJson).toHaveBeenCalled(); // the LLM WAS consulted
-    expect(snapshot.skeleton.length).toBeGreaterThan(0);
+    // The model's own framing reached the snapshot — the proof that the normal
+    // path ran end-to-end. (This used to assert a non-empty skeleton; the
+    // conversation surface now ships no plan at all, so a plan can no longer
+    // stand in for "the model was heard".)
+    expect(snapshot.real_question).toBe('What is the real question here?');
   });
 });
 

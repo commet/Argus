@@ -62,19 +62,38 @@ describe('F1(1) — the mix renders the user’s calls as an authoritative, non-
     expect(user).toMatch(/provisional/i);
   });
 
-  it('keeps the generated brief concise and does not request duplicate flat content', () => {
+  it('asks for the smallest faithful receipt — no section, assumption, or step quota', () => {
     const { system, user } = buildMixPrompt('problem', [snap], [], null, [
       { task: 'market sizing', result: 'TAM is $2B', authored: 'ai', name: '규민', workerId: 'w1' },
     ], 'en');
 
-    expect(system).toContain('3-5 sections total');
-    expect(system).toContain('Each section: 2-3 sentences');
-    // Honest count — the fixed "exactly 3" quota was a manufactured-content
-    // mandate; the brief now asks for as many real steps as exist, capped at 3.
-    expect(system).toContain('up to 3');
+    // The caps ("3-5 sections", "exactly 3 next steps") were themselves the
+    // manufactured-content mandate: a quota is met by invention when the
+    // material runs out. What replaces them is an emptiness licence.
+    expect(system).not.toMatch(/\d\s*-\s*\d\s+sections/i);
     expect(system).not.toContain('exactly 3');
-    expect(system).toContain('OMIT "content"');
-    expect(user).not.toContain('Flat section content');
+    expect(system).toContain('sections are optional');
+    expect(system).toContain('[] is valid');
+    expect(system).toContain('Add no new fact, premise, risk, option, stakeholder, metric, action, or');
+    expect(user).toContain('Produce the smallest faithful judgment receipt.');
+  });
+
+  it('carries the AI lead read as a LEAD, never as a vote that settles anything', () => {
+    const { system, user } = buildMixPrompt('problem', [snap], [], null, [], 'en', {
+      lead_agent_id: 'l1',
+      lead_agent_name: 'Lead',
+      integrated_analysis: 'The two offers differ mainly on runway.',
+      key_findings: ['runway is the live variable'],
+      unresolved_tensions: ['salary vs stability'],
+      open_question: 'Which risk is the user actually carrying?',
+    });
+
+    // The lead call is paid for upstream — dropping its output on the floor was
+    // a silently broken wire, and promoting it to a verdict is a spine breach.
+    expect(user).toContain('The two offers differ mainly on runway.');
+    expect(user).toContain('AI LEAD READ');
+    expect(system).toContain('leads, not evidence or votes');
+    expect(system).toContain('No count of agreeing reviews makes a claim verified');
   });
 
   it('keeps the final rewrite bounded instead of expanding an already-complete draft', () => {

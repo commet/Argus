@@ -49,6 +49,7 @@ export function useWorkerContext(): WorkerContext | null {
     realQuestion: latest.real_question,
     skeleton: latest.skeleton,
     hiddenAssumptions: latest.hidden_assumptions,
+    allowAutonomousPlanning: false,
     qaHistory: session.questions.map((q, i) => ({
       q: q.text,
       a: session.answers[i]?.value ?? '',

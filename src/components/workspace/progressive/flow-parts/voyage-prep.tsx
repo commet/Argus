@@ -34,9 +34,6 @@ export function VoyagePrepSummary({
   const integrityPending = snapshot.version === 0 && (
     snapshot.lean_flags === undefined || snapshot.honesty_flags === undefined
   );
-  const topAssumption = snapshot.version === 0 || integrityPending
-    ? undefined
-    : (snapshot.hidden_assumptions || [])[0];
   const initialOpenInsight = snapshot.version === 0
     && !(snapshot.request_type && snapshot.request_type !== 'open')
     ? snapshot.real_question
@@ -95,7 +92,7 @@ export function VoyagePrepSummary({
               <div className="text-[12px] font-bold text-[var(--accent)] uppercase tracking-[0.15em] mb-1.5 flex items-center gap-1.5">
                 <Compass size={11} className="shrink-0" />
                 {safeInsight
-                  ? L('팀이 정리한 방향', 'The direction the team organized')
+                  ? L('지금까지 답변에서 정리된 내용', 'What your answers have clarified')
                   : L('지금 풀어야 할 질문', 'The question to solve now')}
               </div>
               <p className="text-[15px] md:text-[16px] text-[var(--text-primary)] leading-relaxed font-medium">
@@ -112,16 +109,6 @@ export function VoyagePrepSummary({
                   {L('점선 그은 곳은 아직 확인 안 된 부분이에요 — 짚어보면 어디서 확인할지 알려드려요.',
                      'Dotted spans are things we couldn’t verify — hover to see where to check.')}
                 </p>
-              )}
-              {topAssumption && (
-                <div className="mt-3 pt-2.5 border-t border-dashed border-[var(--border-subtle)]">
-                  <p className="text-[12px] text-[var(--text-tertiary)] leading-relaxed">
-                    {/* Tag provenance — this premise was filled in by the AI, not
-                        stated by the user (same honesty as MirrorBeat). */}
-                    <span className="text-[var(--text-secondary)] font-medium">{L('AI가 임시로 둔 전제 · ', 'Working premise from AI · ')}</span>
-                    {topAssumption}
-                  </p>
-                </div>
               )}
             </div>
 

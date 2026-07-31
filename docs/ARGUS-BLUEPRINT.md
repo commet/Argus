@@ -1088,6 +1088,51 @@ witness는 침묵한다.
 
 ---
 
+### 9.11 트랙 H · 대화가 아니라 살아 있는 판단 상태 (2026-07-31 창업자 지시)
+
+정본 ADR: `docs/ADR-2026-07-31-interactive-judgment-harness.md`.
+
+핵심 경험은 `말하기 → 비춰보기 → 한 가지 묻기 → 달라진 것 보기 → 내 판단으로
+남기기 → 현실과 다시 보기`다. 모델은 완성된 분석 스냅샷을 쓰지 않고 출처가 붙은
+상태 변경안을 제안한다. 런타임 검증과 reducer만 상태를 바꿀 수 있으며, AI 문장은
+사용자의 명시적 채택 없이 사용자 판단으로 승격되지 않는다.
+
+**H0 · 계약과 실패 재현 (진행 중):** 강제 개수 프롬프트 제거, 전제 출처·변화
+계약, 사실/전제 혼동 fixture, skipped-question·validation·info 회귀 사례, 반복 실행
+채점기를 만든다. 한 번의 성공 transcript는 준공 증거가 아니다.
+
+> H0 시공 시점(2026-07-31) 실측으로 남기는 사실 세 가지 — 다음 세션이 다시
+> 발견하지 않도록. (1) 대화 턴의 `skeleton`은 **항상 빈 배열**이다. 그래서 최종
+> 정리의 `next_steps`도 늘 비어 있다 — 확인할 것은 산문 안에 남고, 목록은 전제와
+> 같은 출처 계약이 생긴 뒤에 되살린다. (2) 전제 앵커는 **어디서 왔는지로** 검사
+> 기준이 갈린다: 방금 한 답변에서 인용했으면 통과, 옛 서술에서 골랐으면 인과
+> 표현이 있어야 한다. 초기 규칙(늘 인과 표현 요구)은 실주행에서 진짜 전제를
+> 100% 떨어뜨렸다. (3) `NEXT_PUBLIC_JUDGMENT_HARNESS_V2=off`로 옛 프롬프트에
+> 되돌릴 수 있다 — `buildLegacy*` 4개가 살아 있는 유일한 이유다.
+
+**H1 · 살아 있는 상태:** stable entity id, source anchor, authority, premise status,
+state delta, question target/purpose를 typed reducer로 접는다. 기존
+`AnalysisSnapshot.hidden_assumptions`는 이행기 projection일 뿐 정본이 아니다.
+
+**H2 · 변화가 보이는 화면:** 매 답변 뒤 새 보고서 대신 `바뀐 것 / 그대로인 것 /
+아직 모르는 것`을 보여준다. AI 제안의 수정·거절, 사용자 문장 봉인, 처리 실패 뒤
+답변 보존을 데스크톱·모바일에서 완주한다.
+
+**H3 · 한 데이터셋 수렴:** 사용자 행위는 기존 account canonical event gateway에
+먼저 append한다. `progressive_sessions`는 workflow/read projection으로 낮추고,
+`final_mix`에서 전제를 재추출하는 신규 쓰기를 중단한다. 로컬 MCP/plugin은
+one-dataset ADR의 같은 envelope와 consent 경계를 따른다.
+
+**H4 · 현실 검증:** 반복 모델 실행·metamorphic·event replay·브라우저 완주에 더해
+전제 수정/거절률, 질문 반복률, 답변→변화 표시 지연, 봉인 전 이탈, 명시 채택률,
+귀환 응답률을 본다. 모델 채점은 보조 신호이며 사용자 경험의 판정자가 아니다.
+
+**무접촉 경계:** O4/JCR 기억 주입, 새 공개 recall 기능, 새 독립 ledger, legacy
+writer 제거, Telegram/MCP 공개 wire 변경, 공정 5 progressive 전면 cutover는 각각
+기존 승인·migration gate 없이 이 트랙이 건드리지 않는다.
+
+---
+
 ## 마지막 장 — 이 설계도의 봉인
 
 > **예측:** 공정 0~2를 순서대로 완료하면, 그 시점의 신규 사용자 코호트에서

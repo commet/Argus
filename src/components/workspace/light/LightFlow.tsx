@@ -417,8 +417,8 @@ export function LightFlow({
                 style={{ fontFamily: 'var(--font-display)' }}
               >
                 {screen.offer.ask || L(
-                  `${lightWhenLabel(screen.offer.when, screen.offer.days, locale)}에 제가 한 번만 물어볼까요?`,
-                  `Want me to ask you just once, ${lightWhenLabel(screen.offer.when, screen.offer.days, locale)}?`,
+                  `${lightWhenLabel(screen.offer.when, screen.offer.days, locale)}에 실제로 어떻게 됐는지, 제가 한 번만 물어볼까요?`,
+                  `Want me to ask once ${lightWhenLabel(screen.offer.when, screen.offer.days, locale)} how it actually went?`,
                 )}
               </motion.h2>
               <div className="mt-5 flex flex-col sm:flex-row sm:items-center gap-2">
