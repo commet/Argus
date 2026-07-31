@@ -108,7 +108,7 @@ describe('R4 — truncateLowConfidenceSkeleton (volume follows confidence, by co
 describe('R7 — scrubBannedVocabulary (heavy prose had no vocabulary guard)', () => {
   it('swaps the two leaked tokens with natural Korean', () => {
     expect(scrubBannedVocabulary('이건 40% 인상에 대한 베팅이에요')).toBe('이건 40% 인상에 대한 판단이에요');
-    expect(scrubBannedVocabulary('먼저 초안을 만들어 보세요')).toBe('먼저 밑그림을 만들어 보세요');
+    expect(scrubBannedVocabulary('먼저 초안을 만들어 보세요')).toBe('먼저 정리을 만들어 보세요');
     expect(scrubBannedVocabulary('깨끗한 문장')).toBe('깨끗한 문장');
   });
 
@@ -125,7 +125,7 @@ describe('R7 — scrubBannedVocabulary (heavy prose had no vocabulary guard)', (
     expect(snapshot.insight).not.toContain('베팅');
     expect(snapshot.insight).not.toContain('초안');
     expect(snapshot.insight).toContain('판단');
-    expect(snapshot.insight).toContain('밑그림');
+    expect(snapshot.insight).toContain('정리');
   });
 });
 
