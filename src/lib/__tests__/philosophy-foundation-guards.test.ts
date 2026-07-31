@@ -360,7 +360,13 @@ describe('philosophy foundation Phase 0 guards', () => {
       join(process.cwd(), 'src/components/workspace/progressive/SealMoment.tsx'),
       'utf8',
     );
-    expect(source).toContain('const recoveryJudgment = humanJudgment.trim() || baselineJudgment');
+    // The judgment comes from what the USER put there — never the project title.
+    // (The literal `humanJudgment.trim() || baselineJudgment` was replaced on
+    // 2026-08-01: the box is pre-filled with the AI draft, so "non-empty box"
+    // was not evidence of authorship. The rule pinned here is unchanged.)
+    expect(source).toContain('const recoveryJudgment =');
+    expect(source).toContain('judgmentTouched ? humanJudgment.trim()');
+    expect(source).toContain('|| baselineJudgment');
     expect(source).not.toContain('const finalJudgment = recoveryJudgment || summary');
     expect(source).toContain('disabled={!humanJudgment.trim() && !baselineJudgment}');
     expect(source).toContain("selectedKind === 'witness' ? undefined : iv");

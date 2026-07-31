@@ -549,7 +549,13 @@ export function SealMoment({
   // effects so the artifact behaves identically downstream.
   function manualSeal(iv: CheckInInterval = interval) {
     const summary = (typeof project?.name === 'string' ? project.name : '').trim();
-    const recoveryJudgment = humanJudgment.trim() || baselineJudgment;
+    // The box is PRE-FILLED with the AI draft, so "whatever is in the box" is
+    // not the same thing as "what the user wrote". Untouched box + an existing
+    // baseline ⇒ seal the baseline, which is what this screen's own copy
+    // promises ("검토 전에 직접 남긴 문장을 기준으로 기록합니다"). Sealing the
+    // AI's decision_read here and calling it theirs was a Rule-1 authorship lie.
+    const typedJudgment = judgmentTouched ? humanJudgment.trim() : '';
+    const recoveryJudgment = typedJudgment || baselineJudgment || humanJudgment.trim();
     if (!summary || !recoveryJudgment) return;
     const now = Date.now();
     const existing = project.decision_contract;
@@ -565,12 +571,18 @@ export function SealMoment({
       || c.predicates.find((p) => p.source === 'user_lean')?.text
       || '';
     const finalJudgment = recoveryJudgment;
+    // Authorship is decided in ONE pure place (judgment-authorship.ts) — the
+    // same call the normal seal path makes. Hardcoding 'user' here meant an
+    // untouched AI draft was stamped as the user's own words.
+    const recoveryAuthorship = closingJudgmentAuthorship({
+      text: finalJudgment, aiDraft: aiDraftJudgment, touched: judgmentTouched, now,
+    });
     const finalPredicate = {
       id: stablePredicateId('user_lean', finalJudgment),
       text: finalJudgment,
       source: 'user_lean' as const,
-      authored: 'user' as const,
-      attribution: webUserAttribution(now, 'workspace:closing_judgment_recovery'),
+      authored: recoveryAuthorship.authored,
+      attribution: recoveryAuthorship.attribution,
     };
     const finalizedDraft = {
       ...c,
@@ -764,23 +776,25 @@ export function SealMoment({
           </h3>
           <p className="mt-2.5 text-[13px] text-[var(--text-secondary)] leading-[1.5] max-w-sm mx-auto">
             {baselineJudgment
-              ? L('검토 전에 직접 남긴 문장을 기준으로 기록합니다.', 'This uses the sentence you wrote before the review.')
+              ? L('검토 전에 직접 남기신 문장이에요. 그대로 둬도 되고, 고쳐도 돼요.', 'This is the sentence you wrote before the review. Keep it, or change it.')
               : L('분석에서 확인할 문장을 뽑지 못했어요. 남길 문장을 한 줄로 적어 주세요.', 'Argus could not extract a reliable line to revisit. Write the sentence you want to keep.')}
           </p>
           <div className="mx-auto mt-5 max-w-md text-left">
-            {!baselineJudgment && (
-              <label className="block text-[12px] font-semibold text-[var(--text-secondary)]">
-                {L('내가 남길 문장', 'The sentence I want to keep')}
-                <textarea
-                  value={humanJudgment}
-                  onChange={(event) => setHumanJudgment(event.target.value)}
-                  maxLength={4000}
-                  rows={3}
-                  placeholder={L('예: 권한과 역할이 문서에 적힐 때만 옮긴다.', 'Example: I will move only if the role and authority are written down.')}
-                  className="mt-2 w-full resize-none rounded-xl border border-[var(--border)] bg-[var(--bg)] px-3.5 py-3 text-[13px] font-normal leading-6 text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:border-[var(--accent)]/55 focus:outline-none"
-                />
-              </label>
-            )}
+            {/* The box is ALWAYS shown. It used to be hidden whenever a baseline
+                existed, so the sentence being sealed as the user's own was one
+                they could not see, let alone edit — and what actually got sealed
+                was the pre-filled AI draft. Show exactly what will be recorded. */}
+            <label className="block text-[12px] font-semibold text-[var(--text-secondary)]">
+              {L('내가 남길 문장', 'The sentence I want to keep')}
+              <textarea
+                value={judgmentTouched ? humanJudgment : (baselineJudgment || humanJudgment)}
+                onChange={(event) => { setJudgmentTouched(true); setHumanJudgment(event.target.value); }}
+                maxLength={4000}
+                rows={3}
+                placeholder={L('예: 권한과 역할이 문서에 적힐 때만 옮긴다.', 'Example: I will move only if the role and authority are written down.')}
+                className="mt-2 w-full resize-none rounded-xl border border-[var(--border)] bg-[var(--bg)] px-3.5 py-3 text-[13px] font-normal leading-6 text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:border-[var(--accent)]/55 focus:outline-none"
+              />
+            </label>
             <KindChoice
               value={selectedKind}
               onChange={(value) => setKindOverride(value)}
