@@ -594,24 +594,21 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem, fr
       if (settled.error) throw settled.error;
       const result = settled.result!;
 
-      // ADD-4: 스트림은 정상 종료됐지만 파싱 결과가 비어있는 경우(첫 상호작용의 malformed JSON 등).
-      // skeleton·hidden_assumptions가 모두 비면 분석이 사실상 실패한 것 — 재시도 가능한 에러로 표면화.
-      // 단, 의도적으로 비어 있는 VALID 종착 상태는 에러로 튕기지 않는다:
-      //   - 위기 백업(crisis): skeleton 억제가 설계.
-      //   - 비-open 경로(flat/vent/info/validation/resistance/self_profiling) 또는 flat 프레임:
-      //     STEP-0 분류상 plan을 만들지 않는 게 정상이고, 한 줄 답(insight)이 곧 결과물이다.
-      //     이 경우 ProgressiveFlow가 terminal 분석 카드로 insight를 렌더하므로, skeleton이
-      //     비어도 실패가 아니다. (insight조차 없으면 진짜 빈 결과이므로 아래 가드가 잡는다.)
-      const rt = result.snapshot.request_type;
-      const isDeliberatelyTerminal =
-        result.snapshot.crisis?.isCrisis ||
-        (((rt && rt !== 'open') || result.snapshot.frame_status === 'flat') &&
-          !!result.snapshot.insight?.trim());
-      if (
-        !isDeliberatelyTerminal &&
-        result.snapshot.skeleton.length === 0 &&
-        result.snapshot.hidden_assumptions.length === 0
-      ) {
+      // ADD-4: 스트림은 정상 종료됐지만 파싱 결과가 비어있는 경우(첫 상호작용의 malformed JSON 등)를
+      // 재시도 가능한 에러로 표면화한다.
+      //
+      // 2026-07-31 — 이 가드는 "계획과 전제가 비면 실패"였다. 판단 하네스 v2에서
+      // 대화 턴은 **설계상 계획을 만들지 않고**(skeleton 항상 []), 사용자 말에 근거가
+      // 없으면 전제도 **정직하게 빈 채로** 시작한다. 그래서 옛 조건은 정상 응답을
+      // 실패로 튕겨냈다 — 프로덕션에서 무거운 길 첫 화면이 "분석에 실패했어요"로
+      // 죽었고, 원인은 모델이 아니라 이 줄이었다. (CLAUDE.md: 빈 결과는 정직한
+      // 상태이지 고장이 아니다 — 고장은 **보여줄 것도 물어볼 것도 없는** 경우다.)
+      const shownSomething = !!result.snapshot.real_question?.trim()
+        || !!result.snapshot.insight?.trim();
+      const canContinue = !!result.question?.text?.trim()
+        || !!result.snapshot.crisis?.isCrisis
+        || !!(result.snapshot.request_type && result.snapshot.request_type !== 'open');
+      if (!shownSomething || !canContinue) {
         throw new Error(L('분석 결과를 받지 못했어요. 잠시 후 다시 시도해 주세요.', "Couldn't read the analysis result. Please try again."));
       }
 
