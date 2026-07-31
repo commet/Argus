@@ -31,7 +31,7 @@ const session = {
     who: 'ai',
     expected_output: '분석',
     status: 'done',
-    persona: { id: 'p1', name: '분석가', nameEn: 'Analyst', role: '리서치', roleEn: 'Research' },
+    persona: { id: 'numbers', name: '분석가', nameEn: 'Analyst', role: '리서치', roleEn: 'Research' },
     level: 'senior',
     stream_text: '',
     result: '**핵심 발견**\n현재 자료만으로 기존 고객의 가격 민감도를 단정할 수 없다.',

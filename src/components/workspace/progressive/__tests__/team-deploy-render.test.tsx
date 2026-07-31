@@ -44,7 +44,7 @@ const base = (over: Partial<WorkerTask>): WorkerTask => ({
 const workers: WorkerTask[] = [
   base({
     id: 'ai1', task_group_id: 'g1', agent_type: 'ai', agent_id: 'sophie',
-    persona: persona('sophie', '소피'),
+    persona: persona('numbers', '소피'),
     assignment_reason: '시장 분석에 가장 적합 · 다음 후보 마커스',
   }),
   base({
@@ -91,7 +91,7 @@ describe("captain's-seat render (TeamDeployBanner)", () => {
 
 describe('axis ②: VerificationGate render', () => {
   const unreviewed: WorkerTask[] = [
-    base({ id: 'u1', status: 'done', result: '핵심 발견: 가격이 아니라 온보딩이 이탈 원인', approved: null, persona: persona('sophie', '소피') }),
+    base({ id: 'u1', status: 'done', result: '핵심 발견: 가격이 아니라 온보딩이 이탈 원인', approved: null, persona: persona('numbers', '소피') }),
   ];
 
   it('warns and lists unreviewed work, with a disabled sail + explicit override', () => {
