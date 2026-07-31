@@ -325,6 +325,20 @@ export function getPersonaPool(locale: Locale = 'ko'): WorkerPersona[] {
   return [...builtins, ...customs];
 }
 
+// ─── User-authored identity ───
+// A custom persona, or a builtin the user renamed, carries the USER's chosen
+// name. That name is their artifact — display layers strip the builtin
+// costumes (functional review labels) but must never anonymize user-authored
+// names (honest-authorship: the user's words stay theirs).
+
+const BUILTIN_IDS = new Set(BUILTIN_PERSONAS.map(p => p.id));
+
+export function isUserAuthoredPersona(p: WorkerPersona): boolean {
+  if (!BUILTIN_IDS.has(p.id)) return true;
+  const { nameOverrides } = loadCustomization();
+  return Boolean(nameOverrides[p.id]);
+}
+
 export function getKeywordMap(): Array<{ keywords: string[]; personaId: string }> {
   const { customPersonas } = loadCustomization();
   const customKeywords = customPersonas

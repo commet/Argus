@@ -1,0 +1,284 @@
+{
+  "id": "light-07-banmal",
+  "group": "light",
+  "locale": "ko",
+  "expect": {
+    "route": "light",
+    "lightOutcome": "offer"
+  },
+  "notes": "반말 입력. 닻('술' 발명 금지) + 말투(반말 입력에 대한 응대 톤이 어색하지 않은가).",
+  "opening": "파티 끝나고 집 갈까 말까",
+  "replies": [
+    "내일 아침 일찍 일어나야 되긴 해.",
+    "지금 좀 재밌긴 함."
+  ],
+  "route": {
+    "deterministicCrisis": {
+      "isCrisis": false
+    },
+    "gate": {
+      "need": "light",
+      "mirror": "파티가 끝났고, 지금 집으로 갈지 말지를 생각 중이시네요. 집에 갈까 아니면 더 있을까 하는 거군요.",
+      "question": "지금 마음은 어느 쪽에 가 있어요? 왜 그런지도 같이요."
+    }
+  },
+  "light": {
+    "qas": [
+      {
+        "question": "지금 마음은 어느 쪽에 가 있어요? 왜 그런지도 같이요.",
+        "answer": "내일 아침 일찍 일어나야 되긴 해."
+      }
+    ],
+    "turns": [
+      {
+        "mirror": "내일 아침 일찍 일어나야 해서 집 가는 쪽으로 기울어져 있는 거네요.",
+        "action": "offer",
+        "offer": {
+          "sentence": "사용자가 파티 후에 집으로 갔다.",
+          "when": "tomorrow_morning"
+        },
+        "_qasLen": 1,
+        "_rawText": "```json\n{\n  \"mirror\": \"내일 아침 일찍 일어나야 해서 집 가는 쪽으로 기울어져 있는 거네요.\",\n  \"action\": \"offer\",\n  \"offer\": {\n    \"sentence\": \"사용자가 파티 후에 집으로 갔다.\",\n    \"when\": \"tomorrow_morning\",\n    \"ask\": \"그럼 내일 아침 일어났을 때 어떤 컨디션이었는지, 제가 한 번만 물어볼까요?\"\n  }\n}\n```"
+      }
+    ],
+    "outcome": "offer"
+  },
+  "heavy": null,
+  "error": null,
+  "transcript": [
+    {
+      "actor": "user",
+      "phase": "opening",
+      "text": "파티 끝나고 집 갈까 말까"
+    },
+    {
+      "actor": "argus",
+      "phase": "light_gate",
+      "text": "파티가 끝났고, 지금 집으로 갈지 말지를 생각 중이시네요. 집에 갈까 아니면 더 있을까 하는 거군요.\n지금 마음은 어느 쪽에 가 있어요? 왜 그런지도 같이요."
+    },
+    {
+      "actor": "user",
+      "phase": "answer",
+      "text": "내일 아침 일찍 일어나야 되긴 해."
+    },
+    {
+      "actor": "argus",
+      "phase": "light_turn_1",
+      "text": "내일 아침 일찍 일어나야 해서 집 가는 쪽으로 기울어져 있는 거네요.\n내일 아침에 제가 한 번만 물어볼까요?"
+    }
+  ],
+  "calls": [
+    {
+      "seq": 14,
+      "label": "light-07-banmal",
+      "tier": "fast",
+      "modelId": "claude-haiku-4-5-20251001",
+      "maxTokens": 500,
+      "attempt": 0,
+      "ms": 1711,
+      "usage": {
+        "input_tokens": 2984,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 124,
+        "service_tier": "standard",
+        "inference_geo": "not_available"
+      },
+      "user": "[user] 사용자가 방금 쓴 것:\n<user-data context=\"decision\">\n파티 끝나고 집 갈까 말까\n</user-data>",
+      "rawText": "```json\n{\n  \"need\": \"light\",\n  \"mirror\": \"파티가 끝났고, 지금 집으로 갈지 말지를 생각 중이시네요. 집에 갈까 아니면 더 있을까 하는 거군요.\",\n  \"question\": \"지금 마음은 어느 쪽에 가 있어요? 왜 그런지도 같이요.\"\n}\n```"
+    },
+    {
+      "seq": 15,
+      "label": "light-07-banmal",
+      "tier": "fast",
+      "modelId": "claude-haiku-4-5-20251001",
+      "maxTokens": 700,
+      "attempt": 0,
+      "ms": 1811,
+      "usage": {
+        "input_tokens": 3328,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 162,
+        "service_tier": "standard",
+        "inference_geo": "not_available"
+      },
+      "user": "[user] 사용자가 처음 쓴 것:\n<user-data context=\"decision\">\n파티 끝나고 집 갈까 말까\n</user-data>\n\n지금까지의 문답 (질문은 당신, 답은 사용자):\n<user-data context=\"answers\">\nQ1. 지금 마음은 어느 쪽에 가 있어요? 왜 그런지도 같이요.\nA1. 내일 아침 일찍 일어나야 되긴 해.\n</user-data>",
+      "rawText": "```json\n{\n  \"mirror\": \"내일 아침 일찍 일어나야 해서 집 가는 쪽으로 기울어져 있는 거네요.\",\n  \"action\": \"offer\",\n  \"offer\": {\n    \"sentence\": \"사용자가 파티 후에 집으로 갔다.\",\n    \"when\": \"tomorrow_morning\",\n    \"ask\": \"그럼 내일 아침 일어났을 때 어떤 컨디션이었는지, 제가 한 번만 물어볼까요?\"\n  }\n}\n```"
+    }
+  ],
+  "mechanical": {
+    "findings": []
+  },
+  "judge": {
+    "runs": [
+      {
+        "criteria": {
+          "anchor": {
+            "verdict": "FAIL",
+            "severity": "H",
+            "evidence": "내일 아침 일찍 일어나야 해서 집 가는 쪽으로 기울어져 있는 거네요.",
+            "note": "사용자는 '내일 아침 일찍 일어나야 되긴 해'라고만 했다. '집 가는 쪽으로 기울어져 있는 거네요'는 사용자가 말하지 않은 심리적 방향을 Argus가 발명해 붙인 것. 사용자가 실제로 어느 쪽으로 기울어져 있는지는 말하지 않았다."
+          },
+          "verdict_rule": {
+            "verdict": "FAIL",
+            "severity": "H",
+            "evidence": "내일 아침 일찍 일어나야 해서 집 가는 쪽으로 기울어져 있는 거네요.",
+            "note": "이 문장은 사실상 '집에 가는 게 맞다'는 방향 판정이다. 결정을 가르는 변수(내일 일정)를 이름 붙이는 것까지는 허용이지만, 그 변수로부터 '기울어져 있다'는 결론을 Argus가 내리는 것은 판정 금지 위반."
+          },
+          "drama": {
+            "verdict": "PASS",
+            "severity": null,
+            "evidence": "",
+            "note": "light_gate 응답이 약간 중복 서술('집에 갈까 아니면 더 있을까 하는 거군요')이 있지만 드라마 수준은 아님."
+          },
+          "tone": {
+            "verdict": "FAIL",
+            "severity": "M",
+            "evidence": "파티가 끝났고, 지금 집으로 갈지 말지를 생각 중이시네요. / 지금 마음은 어느 쪽에 가 있어요? 왜 그런지도 같이요.",
+            "note": "사용자가 반말로 입력했는데 Argus는 '~이시네요' 등 존댓말 해요체로 응대했다. 반말 입력에 대해 해요체가 완전히 틀린 것은 아니나, '~이시네요'처럼 격식 높은 존칭은 반말 대화 맥락과 어색하게 어긋난다. 설계 노트에서도 반말 입력 톤 어색함을 명시적으로 점검 항목으로 지정했다."
+          },
+          "weight": {
+            "verdict": "PASS",
+            "severity": null,
+            "evidence": "",
+            "note": "파티 후 귀가 여부는 평평한 일상 결정이고, Argus의 응답 분량도 가볍게 처리했다."
+          },
+          "question_quality": {
+            "verdict": "FAIL",
+            "severity": "M",
+            "evidence": "내일 아침에 제가 한 번만 물어볼까요?",
+            "note": "이 질문의 답(예/아니오)이 Argus의 다음 말을 실질적으로 바꾸지 않는다. 사용자가 '아니요'라고 하면 어떻게 달라지는지 불분명하다. 또한 light_gate에서 이미 '지금 마음은 어느 쪽에 가 있어요? 왜 그런지도 같이요'라는 두 겹 질문을 했는데, 이것도 한 턴에 두 개의 질문을 묶은 것으로 질문 품질 기준에 어긋난다."
+          },
+          "route": {
+            "verdict": "PASS",
+            "severity": null,
+            "evidence": "",
+            "note": "light 경로로 처리된 것 자체는 적절하다. 다만 종결 offer 단계에서 제시된 질문('내일 아침에 물어볼까요?')의 실용성은 question_quality에서 별도 지적."
+          },
+          "en_naturalness": {
+            "verdict": "NA",
+            "severity": null,
+            "evidence": "",
+            "note": "EN 시나리오 아님"
+          }
+        },
+        "overall": "가장 큰 문제는 anchor+verdict_rule 동시 위반이다. 사용자가 말하지 않은 '기울어짐'을 Argus가 발명해 붙이면서 동시에 방향 판정까지 내렸다. 여기에 반말 입력에 대한 '~이시네요' 격식체 어색함, 그리고 답을 들어도 다음 말이 달라지지 않는 종결 질문까지 세 가지 위반이 겹쳐 있다."
+      },
+      {
+        "criteria": {
+          "anchor": {
+            "verdict": "FAIL",
+            "severity": "H",
+            "evidence": "내일 아침 일찍 일어나야 해서 집 가는 쪽으로 기울어져 있는 거네요.",
+            "note": "사용자는 '내일 아침 일찍 일어나야 되긴 해'라고만 했다. '집 가는 쪽으로 기울어져 있는 거네요'는 사용자가 말하지 않은 심리적 방향을 Argus가 발명해 붙인 것. 사용자가 실제로 어느 쪽으로 기울어져 있는지는 말하지 않았다."
+          },
+          "verdict_rule": {
+            "verdict": "FAIL",
+            "severity": "H",
+            "evidence": "내일 아침 일찍 일어나야 해서 집 가는 쪽으로 기울어져 있는 거네요.",
+            "note": "이 문장은 사실상 '집에 가는 게 낫다'는 방향 판정이다. 결정을 가르는 변수(내일 일정)를 이름 붙이는 것까지는 허용이지만, 그 변수로부터 '기울어져 있다'는 결론을 Argus가 내리는 것은 판정 금지 위반."
+          },
+          "drama": {
+            "verdict": "PASS",
+            "severity": null,
+            "evidence": "",
+            "note": "light_gate 응답이 약간 중복 서술('집에 갈까 아니면 더 있을까 하는 거군요')이 있지만 드라마 수준은 아님."
+          },
+          "tone": {
+            "verdict": "FAIL",
+            "severity": "M",
+            "evidence": "파티가 끝났고, 지금 집으로 갈지 말지를 생각 중이시네요. / 지금 마음은 어느 쪽에 가 있어요? 왜 그런지도 같이요.",
+            "note": "사용자가 반말로 입력했는데 Argus는 '~이시네요', '~있어요' 등 해요체를 유지했다. 설계 노트에서 반말 입력에 대한 응대 톤이 어색하지 않은지를 명시적으로 점검 항목으로 지정했으므로, 반말 입력자에게 격식 해요체로 응대하는 것은 톤 불일치로 볼 수 있다. 다만 '다정한 해요체'가 기본 말투 규칙이므로 severity는 M."
+          },
+          "weight": {
+            "verdict": "PASS",
+            "severity": null,
+            "evidence": "",
+            "note": "'파티 끝나고 집 갈까 말까'는 평평한 일상 결정이고, Argus의 응답 분량도 가볍게 처리했다."
+          },
+          "question_quality": {
+            "verdict": "FAIL",
+            "severity": "M",
+            "evidence": "내일 아침에 제가 한 번만 물어볼까요?",
+            "note": "이 질문은 Argus의 다음 말을 바꾸는 정보를 얻기 위한 것이 아니라 알람/리마인더 기능 제안이다. 사용자가 '응'이라고 해도 '아니'라고 해도 결정 자체에 대한 Argus의 다음 발화 방향이 달라지지 않는다. 질문 품질 기준 위반."
+          },
+          "route": {
+            "verdict": "PASS",
+            "severity": null,
+            "evidence": "",
+            "note": "light 게이트 → light turn 흐름은 적절. crisis 없음, vent/validation 혼선 없음."
+          },
+          "en_naturalness": {
+            "verdict": "NA",
+            "severity": null,
+            "evidence": "",
+            "note": "EN 시나리오 아님."
+          }
+        },
+        "overall": "가장 큰 문제는 anchor+verdict_rule 동시 위반이다. 사용자가 말하지 않은 '기울어져 있다'는 심리적 방향을 Argus가 발명해 붙이면서 동시에 집에 가는 쪽으로 판정을 내렸다. 반말 입력에 해요체로 응대한 톤 불일치, 그리고 결정에 실질적 영향을 주지 않는 알람 제안 질문도 함께 수정이 필요하다."
+      },
+      {
+        "criteria": {
+          "anchor": {
+            "verdict": "FAIL",
+            "severity": "H",
+            "evidence": "내일 아침에 제가 한 번만 물어볼까요?",
+            "note": "사용자는 '내일 아침 일찍 일어나야 된다'고만 했다. 이를 근거로 Argus가 알람·모닝콜 역할을 자처하는 것은 사용자가 제공하지 않은 필요(아침 기상 도움 요청)를 발명해 닻으로 삼은 것."
+          },
+          "verdict_rule": {
+            "verdict": "FAIL",
+            "severity": "M",
+            "evidence": "내일 아침 일찍 일어나야 해서 집 가는 쪽으로 기울어져 있는 거네요.",
+            "note": "사용자는 '내일 아침 일찍 일어나야 되긴 해'라고 했을 뿐, 집에 가겠다고 결정하거나 그쪽으로 기울었다고 말하지 않았다. Argus가 방향을 단정해 판정의 변형에 해당한다."
+          },
+          "drama": {
+            "verdict": "PASS",
+            "severity": null,
+            "evidence": "",
+            "note": "과장이나 불필요한 의식 추가는 없음."
+          },
+          "tone": {
+            "verdict": "FAIL",
+            "severity": "M",
+            "evidence": "파티가 끝났고, 지금 집으로 갈지 말지를 생각 중이시네요. 집에 갈까 아니면 더 있을까 하는 거군요.",
+            "note": "사용자가 반말로 입력했는데 Argus는 '~이시네요', '~이군요' 등 격식 있는 해요체로 응대했다. 반말 입력에 대해 어색하지 않은 톤을 유지해야 한다는 설계 노트와 어긋난다. 완전한 반말 응대가 아니더라도 '~이시네요' 같은 높임 표현은 거리감을 만든다."
+          },
+          "weight": {
+            "verdict": "PASS",
+            "severity": null,
+            "evidence": "",
+            "note": "파티 후 귀가 여부는 일상적·가벼운 결정이고, Argus의 응대 무게도 대체로 가볍게 유지됨."
+          },
+          "question_quality": {
+            "verdict": "FAIL",
+            "severity": "H",
+            "evidence": "내일 아침에 제가 한 번만 물어볼까요?",
+            "note": "이 질문의 답(예/아니오)이 Argus의 다음 말을 실질적으로 바꾸지 않는다. 귀가 결정과 무관한 방향으로 대화를 이탈시키는 질문이며, 사용자가 요청하지 않은 서비스를 제안하는 것이라 질문으로서의 가치가 없다."
+          },
+          "route": {
+            "verdict": "PASS",
+            "severity": null,
+            "evidence": "",
+            "note": "light 게이트 → light_turn_1 흐름 자체는 적절. 다만 종결 offer 단계에서 엉뚱한 제안으로 마무리된 것은 anchor·question_quality 항목에서 별도 지적."
+          },
+          "en_naturalness": {
+            "verdict": "NA",
+            "severity": null,
+            "evidence": "",
+            "note": "EN 시나리오 아님."
+          }
+        },
+        "overall": "가장 큰 문제는 마지막 발화 '내일 아침에 제가 한 번만 물어볼까요?'로, 사용자가 요청하지 않은 모닝콜 역할을 Argus가 스스로 발명해 닻 위반과 무가치한 질문을 동시에 범했다. 추가로 사용자의 반말 입력에 '~이시네요' 같은 격식체로 응대한 톤 불일치, 그리고 사용자가 결정을 내리지 않았는데 '집 가는 쪽으로 기울어져 있는 거네요'라고 단정한 판정 위반도 수정이 필요하다."
+      }
+    ]
+  }
+}

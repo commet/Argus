@@ -1,4 +1,4 @@
-import { localizePersona } from '@/lib/worker-personas';
+import { isUserAuthoredPersona, localizePersona } from '@/lib/worker-personas';
 import type { WorkerPersona } from '@/stores/types';
 
 /** The engine may use personas internally, but the product surface names the
@@ -8,6 +8,9 @@ export const personaReviewLabel = (
   locale: 'ko' | 'en',
 ): string => {
   if (!p) return locale === 'ko' ? 'AI 검토' : 'AI review';
+  // A user-authored persona (custom, or a builtin the user renamed) keeps the
+  // user's chosen name — only the builtin costumes get functional labels.
+  if (isUserAuthoredPersona(p)) return localizePersona(p, locale).name;
   const evidence = new Set(['researcher', 'research_director', 'intern']);
   const risk = new Set(['critic']);
   const synthesis = new Set(['navigator', 'chief_strategist']);

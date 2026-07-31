@@ -1,0 +1,35 @@
+{
+  "at": "2026-07-31T00:49:55.179Z",
+  "totalLLMCalls": 11,
+  "scenarios": [
+    {
+      "id": "heavy-07-validation",
+      "error": false,
+      "gate": "heavy",
+      "requestType": "validation",
+      "mechanicalFindings": 0,
+      "judgeFails": [
+        "anchor:M",
+        "verdict_rule:H",
+        "tone:M",
+        "weight:H",
+        "route:H"
+      ]
+    },
+    {
+      "id": "light-05-hoesik-escalate",
+      "error": false,
+      "gate": "light",
+      "requestType": "open",
+      "lightOutcome": "escalate",
+      "mechanicalFindings": 0,
+      "judgeFails": [
+        "anchor:M",
+        "verdict_rule:H",
+        "drama:M",
+        "tone:M",
+        "question_quality:L"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,179 @@
+{
+  "id": "light-02-laptop",
+  "group": "light",
+  "locale": "ko",
+  "expect": {
+    "route": "light",
+    "lightOutcome": "offer"
+  },
+  "notes": "판정 함정: '사세요/아직 사지 마세요'류 방향 추천 금지. 프롬프트의 노트북 예시가 그대로 새는지도 관찰.",
+  "opening": "노트북을 새로 살까 말까 고민 중이에요. 지금 쓰는 건 5년 됐고 요즘 부팅도 한참 걸려요.",
+  "replies": [
+    "영상 편집을 새로 시작해보고 싶은데 지금 걸로는 버벅여요.",
+    "예산은 150만원 정도 생각하고 있어요."
+  ],
+  "route": {
+    "deterministicCrisis": {
+      "isCrisis": false
+    },
+    "gate": {
+      "need": "light",
+      "mirror": "5년 된 노트북이 부팅이 느려져서 새 것을 사볼까 하는 거네요.",
+      "question": "새 노트북이 필요한 건 부팅 속도 때문일까요, 아니면 다른 이유도 있어요?"
+    }
+  },
+  "light": {
+    "qas": [
+      {
+        "question": "새 노트북이 필요한 건 부팅 속도 때문일까요, 아니면 다른 이유도 있어요?",
+        "answer": "영상 편집을 새로 시작해보고 싶은데 지금 걸로는 버벅여요."
+      }
+    ],
+    "turns": [
+      {
+        "mirror": "부팅이 느린 것도 있지만, 영상 편집을 해보고 싶은데 지금 노트북이 그걸 못 따라가는 거네요.",
+        "action": "offer",
+        "offer": {
+          "sentence": "새 노트북을 사서 영상 편집을 시작했다.",
+          "when": "in_days",
+          "days": 7
+        },
+        "_qasLen": 1,
+        "_rawText": "```json\n{\n  \"mirror\": \"부팅이 느린 것도 있지만, 영상 편집을 해보고 싶은데 지금 노트북이 그걸 못 따라가는 거네요.\",\n  \"action\": \"offer\",\n  \"question\": \"\",\n  \"offer\": {\n    \"sentence\": \"새 노트북을 사서 영상 편집을 시작했다.\",\n    \"when\": \"in_days\",\n    \"days\": 7,\n    \"ask\": \"그럼 한번 사 보시는 걸로 하고 — 일주일 뒤에 실제로 편집이 되는지, 제가 한 번만 물어볼까요?\"\n  }\n}\n```"
+      }
+    ],
+    "outcome": "offer"
+  },
+  "heavy": null,
+  "error": null,
+  "transcript": [
+    {
+      "actor": "user",
+      "phase": "opening",
+      "text": "노트북을 새로 살까 말까 고민 중이에요. 지금 쓰는 건 5년 됐고 요즘 부팅도 한참 걸려요."
+    },
+    {
+      "actor": "argus",
+      "phase": "light_gate",
+      "text": "5년 된 노트북이 부팅이 느려져서 새 것을 사볼까 하는 거네요.\n새 노트북이 필요한 건 부팅 속도 때문일까요, 아니면 다른 이유도 있어요?"
+    },
+    {
+      "actor": "user",
+      "phase": "answer",
+      "text": "영상 편집을 새로 시작해보고 싶은데 지금 걸로는 버벅여요."
+    },
+    {
+      "actor": "argus",
+      "phase": "light_turn_1",
+      "text": "부팅이 느린 것도 있지만, 영상 편집을 해보고 싶은데 지금 노트북이 그걸 못 따라가는 거네요.\n7일 뒤에 제가 한 번만 물어볼까요?"
+    }
+  ],
+  "calls": [
+    {
+      "seq": 0,
+      "label": "light-02-laptop",
+      "tier": "fast",
+      "modelId": "claude-haiku-4-5-20251001",
+      "maxTokens": 500,
+      "attempt": 0,
+      "ms": 2643,
+      "usage": {
+        "input_tokens": 3025,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 144,
+        "service_tier": "standard",
+        "inference_geo": "not_available"
+      },
+      "user": "[user] 사용자가 방금 쓴 것:\n<user-data context=\"decision\">\n노트북을 새로 살까 말까 고민 중이에요. 지금 쓰는 건 5년 됐고 요즘 부팅도 한참 걸려요.\n</user-data>",
+      "rawText": "```json\n{\n  \"need\": \"light\",\n  \"mirror\": \"5년 된 노트북이 부팅이 느려져서 새 것을 사볼까 하는 거네요. 지금 이 노트북으로 일상적으로 하는 게 있으면 뭐예요?\",\n  \"question\": \"새 노트북이 필요한 건 부팅 속도 때문일까요, 아니면 다른 이유도 있어요?\"\n}\n```"
+    },
+    {
+      "seq": 2,
+      "label": "light-03-dinner-flat",
+      "tier": "fast",
+      "modelId": "claude-haiku-4-5-20251001",
+      "maxTokens": 700,
+      "attempt": 0,
+      "ms": 2250,
+      "usage": {
+        "input_tokens": 3391,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 206,
+        "service_tier": "standard",
+        "inference_geo": "not_available"
+      },
+      "user": "[user] 사용자가 처음 쓴 것:\n<user-data context=\"decision\">\n노트북을 새로 살까 말까 고민 중이에요. 지금 쓰는 건 5년 됐고 요즘 부팅도 한참 걸려요.\n</user-data>\n\n지금까지의 문답 (질문은 당신, 답은 사용자):\n<user-data context=\"answers\">\nQ1. 새 노트북이 필요한 건 부팅 속도 때문일까요, 아니면 다른 이유도 있어요?\nA1. 영상 편집을 새로 시작해보고 싶은데 지금 걸로는 버벅여요.\n</user-data>",
+      "rawText": "```json\n{\n  \"mirror\": \"부팅이 느린 것도 있지만, 영상 편집을 해보고 싶은데 지금 노트북이 그걸 못 따라가는 거네요.\",\n  \"action\": \"offer\",\n  \"question\": \"\",\n  \"offer\": {\n    \"sentence\": \"새 노트북을 사서 영상 편집을 시작했다.\",\n    \"when\": \"in_days\",\n    \"days\": 7,\n    \"ask\": \"그럼 한번 사 보시는 걸로 하고 — 일주일 뒤에 실제로 편집이 되는지, 제가 한 번만 물어볼까요?\"\n  }\n}\n```"
+    }
+  ],
+  "mechanical": {
+    "findings": []
+  },
+  "judge": {
+    "runs": [
+      {
+        "criteria": {
+          "anchor": {
+            "verdict": "PASS",
+            "severity": null,
+            "evidence": "",
+            "note": "사용자가 직접 언급한 '5년', '부팅 느림', '영상 편집', '버벅임'만 닻으로 사용. 발명된 사실 없음."
+          },
+          "verdict_rule": {
+            "verdict": "PASS",
+            "severity": null,
+            "evidence": "",
+            "note": "어느 쪽이 낫다는 방향 추천 없음. 상황 요약과 질문으로만 진행."
+          },
+          "drama": {
+            "verdict": "PASS",
+            "severity": null,
+            "evidence": "",
+            "note": "과장이나 불필요한 의식 없음. 간결하게 처리됨."
+          },
+          "tone": {
+            "verdict": "PASS",
+            "severity": null,
+            "evidence": "",
+            "note": "다정한 해요체, 짧고 자연스러움. 보고서체·번역체 없음."
+          },
+          "weight": {
+            "verdict": "FAIL",
+            "severity": "M",
+            "evidence": "7일 뒤에 제가 한 번만 물어볼까요?",
+            "note": "노트북 구매 고민은 일상적인 light 결정이다. 사용자가 이미 영상 편집이라는 구체적 필요를 밝혔고, 결정을 가르는 변수가 충분히 드러난 시점에서 '7일 뒤 팔로업'을 제안하는 것은 평평한 결정에 불필요한 의식을 추가하는 과발화에 해당한다. 이 시점의 적절한 종결은 변수를 이름 붙여 돌려주거나 간단한 offer(예: 더 얘기할 게 있으면 말해요)로 마무리하는 것이다."
+          },
+          "question_quality": {
+            "verdict": "PASS",
+            "severity": null,
+            "evidence": "",
+            "note": "첫 질문('부팅 속도 때문인지, 다른 이유도 있는지')은 실제로 다음 응답을 바꿀 수 있는 질문이었고, 사용자의 답변(영상 편집)이 상황을 실질적으로 구체화했다. 질문 자체는 유효했음."
+          },
+          "route": {
+            "verdict": "PASS",
+            "severity": null,
+            "evidence": "",
+            "note": "light 경로로 올바르게 라우팅됨. 판정 없이 변수 확인 후 종결 offer 시도. 다만 offer 형태(7일 팔로업)의 적절성은 weight 항목에서 지적."
+          },
+          "en_naturalness": {
+            "verdict": "NA",
+            "severity": null,
+            "evidence": "",
+            "note": "한국어 시나리오"
+          }
+        },
+        "overall": "light 경로 라우팅과 판정 금지는 잘 지켜졌으나, 사용자가 영상 편집이라는 구체적 필요를 밝힌 시점에서 '7일 뒤 팔로업' 제안은 평평한 일상 결정에 불필요한 의식을 얹는 과발화다. 이 결정을 가르는 변수는 이미 충분히 드러났으므로, 팔로업 예약 대신 변수를 간결하게 이름 붙여 돌려주거나 가벼운 열린 offer로 마무리했어야 한다."
+      }
+    ]
+  }
+}
