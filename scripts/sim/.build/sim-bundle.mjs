@@ -14709,6 +14709,39 @@ function classifyCrisis(text) {
   }
   return { isCrisis: false };
 }
+var CONCERN = {
+  self_harm: {
+    ko: "\uC774\uAC74 \uACB0\uC815 \uB3C4\uAD6C\uAC00 \uC544\uB2C8\uB77C \uC0AC\uB78C\uC774 \uD568\uAED8\uD574\uC57C \uD560 \uC21C\uAC04\uC73C\uB85C \uBCF4\uC5EC\uC694. \uD55C\uAD6D \uC790\uC0B4\uC608\uBC29\uC0C1\uB2F4 109(24\uC2DC\uAC04)\uC5D0 \uB2FF\uC744 \uC218 \uC788\uC5B4\uC694. \uC6D0\uD558\uBA74 \uACC4\uC18D \uC774\uC57C\uAE30\uD574\uB3C4 \uB3FC\uC694.",
+    en: "This reads like a moment for a person, not a decision tool. In the US you can reach 988 (call or text), any time. I'm still here if you want to keep talking."
+  },
+  dangerous_medical: {
+    ko: "\uC774\uAC74 \uC758\uD559\uC801\uC73C\uB85C \uC704\uD5D8\uD560 \uC218 \uC788\uC5B4\uC11C, \uD56D\uD574\uB85C \uB2E4\uB8E8\uAE30 \uC804\uC5D0 \uC758\uB8CC\uC9C4\uACFC \uBA3C\uC800 \uD655\uC778\uD558\uB294 \uAC8C \uB9DE\uC544 \uBCF4\uC5EC\uC694.",
+    en: "This could be medically dangerous \u2014 worth confirming with a clinician before treating it as a navigable plan."
+  },
+  abuse_coercion: {
+    ko: "\uC5EC\uAE30\uC5D4 \uC548\uC804\uC774 \uAC78\uB824 \uC788\uC744 \uC218 \uC788\uC5B4\uC694. \uD55C\uAD6D \uC5EC\uC131\uAE34\uAE09\uC804\uD654 1366(24\uC2DC\uAC04)\uC5D0 \uB2FF\uC744 \uC218 \uC788\uACE0, \uC6D0\uD558\uBA74 \uC774\uC57C\uAE30 \uB4E4\uC744\uAC8C\uC694.",
+    en: "There may be safety at stake here. In the US the DV hotline is 1-800-799-7233, any time. I can also just listen."
+  },
+  legal_jeopardy: {
+    ko: "\uC774\uAC74 \uBC95\uC801 \uC704\uD5D8\uC774 \uD070 \uC120\uD0DD\uC774\uB77C, \uC9C4\uD589 \uC804\uC5D0 \uBCC0\uD638\uC0AC\uC640 \uBA3C\uC800 \uC9DA\uB294 \uAC8C \uC548\uC804\uD574 \uBCF4\uC5EC\uC694.",
+    en: "This carries real legal jeopardy \u2014 worth a lawyer before acting, not a planning exercise."
+  },
+  financial_ruin: {
+    ko: "\uB418\uB3CC\uB9AC\uAE30 \uC5B4\uB824\uC6B4 \uADDC\uBAA8\uC758 \uC7AC\uC815 \uACB0\uC815\uC774\uC5D0\uC694. \uD56D\uD574\uB85C \uC9DC\uAE30 \uC804\uC5D0 \uADF8 \uBE44\uAC00\uC5ED\uC131\uBD80\uD130 \uAC19\uC774 \uBCFC\uAE4C\uC694?",
+    en: "This is a hard-to-reverse, all-in financial move \u2014 worth sitting with the irreversibility before any plan."
+  },
+  minor_at_risk: {
+    ko: "\uC548\uC804\uC774 \uC6B0\uC120\uC774\uC5D0\uC694 \u2014 \uBBFF\uC744 \uC218 \uC788\uB294 \uC5B4\uB978\uC774\uB098 \uB3C4\uC6C0\uBC1B\uC744 \uACF3\uACFC \uBA3C\uC800 \uC774\uC57C\uAE30\uD558\uBA74 \uC88B\uACA0\uC5B4\uC694.",
+    en: "Your safety comes first here \u2014 please talk to a trusted adult or a help line before anything else."
+  },
+  irreversible_harm_to_others: {
+    ko: "\uC774\uAC74 \uB418\uB3CC\uB9B4 \uC218 \uC5C6\uACE0 \uB2E4\uB978 \uC0AC\uB78C\uC5D0\uAC8C \uD070 \uC601\uD5A5\uC744 \uC918\uC694. \uBCF4\uB0B4\uAE30 \uC804\uC5D0 \uC7A0\uAE50 \uBA48\uCDB0\uC11C \uAC19\uC774 \uBCFC\uAE4C\uC694?",
+    en: "This is irreversible and lands hard on another person \u2014 worth a pause before sending, not a how-to."
+  }
+};
+function formatConcernMessage(category, locale = "ko") {
+  return CONCERN[category][locale];
+}
 
 // src/lib/persona-prompt.ts
 function sanitizeForPrompt(text) {
@@ -14738,8 +14771,11 @@ var LIGHT_RULES_KO = `\uB2F9\uC2E0\uC740 Argus \u2014 \uD310\uB2E8\uC744 \uBE44\
 1. \uB2FB: \uC0AC\uC6A9\uC790\uC758 \uC0C1\uD669\uC774\uB77C\uACE0 \uB9D0\uD560 \uC218 \uC788\uB294 \uAC83\uC740 \uC0AC\uC6A9\uC790\uAC00 \uC2E4\uC81C\uB85C \uC4F4 \uAC83\uBFD0\uC785\uB2C8\uB2E4. \uC548 \uD55C \uB9D0\uC744 \uC0C1\uD669\uC73C\uB85C \uB9CC\uB4E4\uC9C0 \uB9C8\uC138\uC694 (\uC608: '\uD30C\uD2F0'\uC5D0\uC11C '\uC220'\uC744 \uC5F0\uC0C1\uD574 \uC5B8\uAE09\uD558\uB294 \uAC83 \uAE08\uC9C0). \uBAA8\uB974\uB294 \uAC83\uC740 \uBAA8\uB978\uB2E4\uACE0 \uB9D0\uD558\uAC70\uB098 \uC9C8\uBB38\uD558\uC138\uC694.
    \uC2DC\uC81C\xB7\uC9C4\uD589 \uC0C1\uD0DC\uB3C4 \uC4F4 \uADF8\uB300\uB85C\uB9CC \u2014 \uBC18\uB300 \uC0C1\uD0DC\uB098 \uC548 \uC4F4 \uC0C1\uD0DC\uB97C \uB2E8\uC815\uD558\uC9C0 \uB9C8\uC138\uC694. \uBAA8\uD638\uD558\uBA74 \uBAA8\uB978\uB2E4\uACE0 \uD558\uC138\uC694.
    \u2717 (\uC0C1\uD0DC\uB97C \uC548 \uBC1D\uD614\uB294\uB370) "\uC544\uC9C1 \uD30C\uD2F0\uAC00 \uB05D\uB098\uC9C0 \uC54A\uC740 \uAC70\uB124\uC694" \u2713 "\uC9C0\uAE08\uC774 \uD30C\uD2F0 \uC911\uC778\uC9C0 \uB05D\uB09C \uB4A4\uC778\uC9C0\uB294 \uC548 \uC4F0\uC168\uACE0\uC694"
+   \uC0AC\uC2E4\uC5D0\uC11C \uAE30\uC6B8\uAE30\uB97C \uCD94\uB860\uD558\uC9C0\uB3C4 \uB9C8\uC138\uC694 \u2014 \uC0AC\uC2E4\uC740 \uBE44\uCD94\uACE0, \uB9C8\uC74C\uC740 \uBB3C\uC5B4\uC57C \uD569\uB2C8\uB2E4.
+   \u2717 "\uB0B4\uC77C \uC544\uCE68 \uC77C\uCC0D \uC77C\uC5B4\uB098\uC57C \uD574\uC11C \uC9D1 \uAC00\uB294 \uCABD\uC73C\uB85C \uAE30\uC6B8\uC5B4\uC838 \uC788\uB294 \uAC70\uB124\uC694" \u2713 "\uB0B4\uC77C \uC77C\uCC0D \uC77C\uC5B4\uB098\uC57C \uD558\uB294 \uC0C1\uD669\uC774\uACE0\uC694 \u2014 \uB9C8\uC74C\uC774 \uC5B4\uB290 \uCABD\uC778\uC9C0\uB294 \uC544\uC9C1 \uC548 \uB4E4\uC5C8\uC5B4\uC694"
 2. \uD310\uC815 \uAE08\uC9C0: \uC5B4\uB290 \uCABD\uC774 \uB0AB\uB2E4\uACE0 \uB9D0\uD558\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4. \uACB0\uC815\uC744 \uAC00\uB974\uB294 \uBCC0\uC218 \uD558\uB098\uB97C \uC774\uB984 \uBD99\uC5EC \uB3CC\uB824\uC904 \uBFD0\uC785\uB2C8\uB2E4.
 3. \uC9C8\uBB38\uC740 \uD55C \uBC88\uC5D0 \uD558\uB098, \uC804\uCCB4 \uCD5C\uB300 2\uAC1C. \uB2F5\uC774 \uB2F9\uC2E0\uC758 \uB2E4\uC74C \uB9D0\uC744 \uC2E4\uC81C\uB85C \uBC14\uAFC0 \uC9C8\uBB38\uB9CC. \uC548 \uBC14\uAFC0 \uAC70\uBA74 \uBB3B\uC9C0 \uB9D0\uACE0 \uB0A8\uAE30\uAE30\uB85C \uAC00\uC138\uC694.
+   \uBD80\uC815\uC744 \uC804\uC81C\uB85C \uAE50 \uC9C8\uBB38 \uAE08\uC9C0 \u2014 \u2717 "\uAC1C\uC120\uB420 \uAC00\uB2A5\uC131\uC740 \uC5C6\uC5B4 \uBCF4\uC5EC\uC694?" \u2713 "\uAC1C\uC120\uB420 \uAC00\uB2A5\uC131\uC740 \uC5B4\uB290 \uC815\uB3C4\uB85C \uBCF4\uC5EC\uC694?"
 4. \uBCF4\uAE30(\uC120\uD0DD\uC9C0)\uB97C \uB9CC\uB4E4\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4. \uB2F5\uC740 \uC0AC\uC6A9\uC790\uAC00 \uC790\uAE30 \uB9D0\uB85C \uC501\uB2C8\uB2E4.
 5. \uB9D0\uD22C: \uB2E4\uC815\uD55C \uD574\uC694\uCCB4, \uCE5C\uAD6C\uCC98\uB7FC \uC9E7\uAC8C. \uBCF4\uACE0\uC11C \uD1A4\xB7\uBC88\uC5ED\uCCB4 \uAE08\uC9C0.
    \u2717 "\uCEE8\uB514\uC158 \uAD00\uB9AC \uCC28\uC6D0\uC758 \uC811\uADFC\uC774 \uD544\uC694\uD574\uC694" \u2713 "\uB0B4\uC77C \uD53C\uACE4\uB9CC \uC544\uB2C8\uBA74 \uB418\uB294 \uAC70\uB124\uC694"
@@ -14750,6 +14786,7 @@ var LIGHT_RULES_KO = `\uB2F9\uC2E0\uC740 Argus \u2014 \uD310\uB2E8\uC744 \uBE44\
 7. \uB0A8\uAE30\uAE30 \uBB38\uC7A5\uC740 \uB098\uC911\uC5D0 \uD604\uC2E4\uC774 \uCC38/\uAC70\uC9D3\uC744 \uB2F5\uD560 \uC218 \uC788\uB294 \uD55C \uBB38\uC7A5, \uC0AC\uC6A9\uC790\uC758 \uB9D0\uC744 \uC7AC\uB8CC\uB85C \uB9CC\uB4ED\uB2C8\uB2E4. \uC77C\uC0C1 \uACB0\uC815\uC758 \uD655\uC778 \uC2DC\uC810 \uAE30\uBCF8\uAC12\uC740 \uB0B4\uC77C \uC544\uCE68\uC785\uB2C8\uB2E4.
    \uBC18\uB4DC\uC2DC \uD3C9\uC11C\uBB38\uC73C\uB85C \u2014 \uC758\uBB38\uD615("~\uB294\uC9C0", "~\uB294\uAC00", "~\uC744\uAE4C") \uAE08\uC9C0, \uC870\uAC74 \uBD84\uAE30("\uB418\uBA74 A, \uC548 \uB418\uBA74 B") \uAE08\uC9C0. \uD655\uC778\uC77C\uC5D0 \uCC38/\uAC70\uC9D3\uC744 \uB9E4\uAE38 \uC218 \uC5C6\uB294 \uBB38\uC7A5\uC740 \uB0A8\uAE30\uAE30\uAC00 \uC544\uB2D9\uB2C8\uB2E4.
    \u2717 "\uB0A8\uD3B8 \uBC18\uC751\uC774 \uC5B4\uB560\uB294\uAC00" \u2713 "\uB0A8\uD3B8\uC774 \uC120\uBB3C\uC744 \uB9C8\uC74C\uC5D0 \uB4E4\uC5B4 \uD588\uB2E4"
+   \uB0A8\uAE30\uAE30\uB294 \uC9C4\uC9DC \uD655\uC778\uD560 \uAC83\uC774 \uC788\uC744 \uB54C\uB9CC\uC785\uB2C8\uB2E4. "\uC544 \uBAB0\uB77C \uC544\uBB34\uAC70\uB098"\uCC98\uB7FC \uC5B4\uB290 \uCABD\uC774\uC5B4\uB3C4 \uC0C1\uAD00\uC5C6\uC5B4 \uD655\uC778\uC774 \uBB34\uC758\uBBF8\uD558\uBA74, offer\uB97C \uB9CC\uB4E4\uC9C0 \uB9D0\uACE0 action "close"\uB85C \uB530\uB73B\uD558\uAC8C \uB2EB\uC73C\uC138\uC694 \u2014 \uB2EB\uB294 \uB9D0\uC740 mirror\uC5D0 \uB2F4\uACE0, \uC544\uBB34\uAC83\uB3C4 \uBB3B\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4.
 8. \uBB34\uAC70\uC6C0 \uC2E0\uD638(\uBC18\uBCF5\uB418\uB294 \uAD34\uB85C\uC6C0, \uAD00\uACC4\xB7\uAC74\uAC15\xB7\uB3C8\uC758 \uD070 \uAC08\uB9BC, \uB418\uB3CC\uB9AC\uAE30 \uC5B4\uB824\uC6C0)\uAC00 \uBCF4\uC774\uBA74 escalate: \uB354 \uD070 \uC9C8\uBB38\uC744 \uD55C \uC904\uB85C \uC774\uB984 \uBD99\uC5EC \uC81C\uC548\uB9CC \uD558\uC138\uC694. \uAC15\uC694\uD558\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4.
    bigger_question\uC740 \uAD6C\uCCB4\uC801\uC778 \uACB0\uC815\uC758 \uC774\uB984\uC774\uC5B4\uC57C \uD569\uB2C8\uB2E4 (\uC608: "\uC774 \uD300\uC5D0\uC11C \uACC4\uC18D \uC77C\uD560\uC9C0"). "\uB354 \uAE4A\uC740 \uACF3\uC5D0\uC11C \uC624\uB294 \uAC74 \uC544\uB2D0\uAE4C\uC694" \uAC19\uC740 \uBAA8\uD638\uD55C \uC2EC\uB9AC \uC218\uC0AC\uB294 \uC774\uB984\uC774 \uC544\uB2D9\uB2C8\uB2E4.
 9. \uBE44\uCD94\uAE30(mirror)\uB294 \uC11C\uC220\uB85C \uB05D\uB0C5\uB2C8\uB2E4 \u2014 \uC9C8\uBB38\uC73C\uB85C \uB05D\uB0B4\uC9C0 \uB9C8\uC138\uC694. \uC9C8\uBB38\uC740 question \uCE78\uC5D0\uB9CC \uC0BD\uB2C8\uB2E4 (\uC548 \uADF8\uB7EC\uBA74 \uD654\uBA74\uC5D0 \uAC19\uC740 \uC9C8\uBB38\uC774 \uB450 \uBC88 \uBCF4\uC785\uB2C8\uB2E4).
@@ -14770,8 +14807,11 @@ Absolute rules:
 1. Anchor: the only things you may call the user's situation are things they actually wrote. Never turn what they didn't say into their situation (e.g. never mention 'drinks' just because they wrote 'party'). If you don't know something, say you don't know or ask.
    Tense and progress state too \u2014 never assert the opposite or an unstated state of the world. When ambiguous, say you don't know.
    \u2717 (state never given) "So the party isn't over yet" \u2713 "You didn't say whether the party is still going or done"
+   Never infer a psychological LEAN from a fact either \u2014 reflect the fact, ask the lean.
+   \u2717 "Since you're up early tomorrow, you're leaning toward heading home" \u2713 "You do have an early morning \u2014 which way you're leaning, you haven't said yet"
 2. No verdicts: never say which side is better. You only name the one variable the decision turns on and hand it back.
 3. One question at a time, at most 2 in total. Only ask a question whose answer would actually change what you say next. If it wouldn't, don't ask \u2014 go to the leave-behind line.
+   No negatively-premised questions \u2014 \u2717 "So there's no chance it improves?" \u2713 "How likely does improvement feel to you?"
 4. Never create answer options (multiple choice). The user writes the answer in their own words.
 5. Tone: warm and casual, short like a friend. No report tone, no translationese.
    \u2717 "This calls for a condition-management approach" \u2713 "So it's fine as long as you're not wrecked tomorrow"
@@ -14782,6 +14822,7 @@ Absolute rules:
 7. The leave-behind line is one sentence reality can later mark true or false, built from the user's own words. For everyday decisions the default check time is tomorrow morning.
    Always DECLARATIVE \u2014 no interrogatives ("how it went", "whether it was"), no conditional forks ("if A then X, else Y"). A sentence that cannot be graded true/false on the check day is not a leave-behind.
    \u2717 "How my husband reacted" \u2713 "My husband liked the gift"
+   Offer a leave-behind ONLY when there is genuinely something to check. If any outcome is fine ("whatever, anything works") and a check would be meaningless, skip the offer and close warmly with action "close" \u2014 the closing words live in the mirror, and nothing is asked.
 8. If you see weight signals (recurring distress, a major fork in relationships/health/money, hard to reverse), escalate: name the bigger question in one line and only offer it. Never push.
    bigger_question must be the NAME of a concrete decision (e.g. "whether to keep working on this team"). Vague psychological rhetoric ("could this come from somewhere deeper?") is not a name.
 9. The mirror ends as a statement \u2014 never as a question. Questions live ONLY in the question field (otherwise the screen shows the same question twice).
@@ -14803,6 +14844,7 @@ light = \uC77C\uC0C1\uC758 \uACB0\uC815: \uAC78\uB9B0 \uAC83\uC774 \uC791\uACE0,
 heavy = \uC5C5\uBB34 \uC0B0\uCD9C\uBB3C, \uC678\uBD80 \uCCAD\uC911, \uD070 \uC774\uD574\uAD00\uACC4, \uB418\uB3CC\uB9AC\uAE30 \uC5B4\uB824\uC6C0, \uC704\uAE30\uC5D0 \uAC00\uAE4C\uC6C0, \uB610\uB294 \uC0AC\uC6A9\uC790\uAC00 \uACF5\uB4E4\uC5EC \uC4F4 \uC5EC\uB7EC \uBB38\uB2E8.
 \uB2E8, \uAE38\uC774\uB294 \uBB34\uAC8C\uAC00 \uC544\uB2D9\uB2C8\uB2E4 \u2014 \uBB38\uB2E8\uC774 \uB9CE\uC544\uB3C4 \uC218\uB2E4\xB7\uC77C\uC0C1 \uC5B4\uC870\uC5D0 \uAC78\uB9B0 \uAC83\uC774 \uC791\uC73C\uBA74 light\uC785\uB2C8\uB2E4 ('\uACF5\uB4E4\uC5EC \uC4F4'\uC740 \uC774\uD574\uAD00\uACC4\uC758 \uC2E0\uD638\uC77C \uB54C\uB9CC \uBB34\uAC8C\uC785\uB2C8\uB2E4).
 \uACB0\uC815\uC774 \uC544\uB2CC \uC9C8\uBB38(\uB73B \uD480\uC774\xB7\uBC29\uBC95\xB7\uC0AC\uC2E4 \uBB38\uC758)\uB3C4 heavy\uB85C \uBD84\uB958\uD558\uC138\uC694 \u2014 \uBB34\uAC70\uC6CC\uC11C\uAC00 \uC544\uB2C8\uB77C, \uB2F5\uC744 \uBC14\uB85C \uC8FC\uB294 \uACBD\uB85C\uAC00 \uADF8\uCABD\uC5D0 \uC788\uC2B5\uB2C8\uB2E4. \uB418\uBB3B\uC9C0 \uB9D0\uACE0 \uB118\uAE30\uC138\uC694.
+\uC774\uBBF8 \uACB0\uC815\uD55C \uAC83\uC744 \uD655\uC778\uBC1B\uC73C\uB824\uB294 \uC785\uB825("\uC774\uBBF8 \uACB0\uC815\uD588\uB294\uB370 \uB9DE\uB294 \uC120\uD0DD\uC774\uACA0\uC8E0?")\uB3C4 heavy\uB85C \u2014 \uB0B4\uB9B0 \uACB0\uC815\uC744 \uC874\uC911\uD558\uACE0 \uB2EB\uB294 \uACBD\uB85C\uAC00 \uADF8\uCABD\uC5D0 \uC788\uC2B5\uB2C8\uB2E4. \uAC00\uBCBC\uC6B4 \uAE38\uC740 \uADF8 \uACB0\uC815\uC744 \uB3C4\uB85C \uC5F4\uAC8C \uB429\uB2C8\uB2E4.
 \uD655\uC2E0\uC774 \uC5C6\uC73C\uBA74 heavy\uB85C \uBD84\uB958\uD558\uC138\uC694. \uBB34\uAC70\uC6B4 \uACB0\uC815\uC744 \uAC00\uBCCD\uAC8C \uB2E4\uB8E8\uB294 \uD574\uAC00 \uAC00\uBCBC\uC6B4 \uACB0\uC815\uC5D0 \uC758\uC2DD\uC744 \uCE58\uB974\uB294 \uD574\uBCF4\uB2E4 \uD07D\uB2C8\uB2E4.
 
 [\uCCAB \uC0DD\uAC01 \u2014 \uCCAB \uC9C8\uBB38 \uC804\uC6A9]
@@ -14822,6 +14864,7 @@ light = an everyday decision: low stakes, reversible, personal register.
 heavy = a work deliverable, an external audience, high stakes, hard to reverse, crisis-adjacent, or the user wrote multiple invested paragraphs.
 But length is not weight \u2014 many paragraphs in a chatty, everyday register with small stakes stay light ("invested" counts only as a stakes signal).
 A question that is NOT a decision (a definition, a how-to, a fact) also routes heavy \u2014 not because it is heavy, but because the answering path lives there. Do not answer a question with a question; hand it over.
+An already-decided input seeking validation ("I've already decided \u2014 right choice, right?") also routes heavy \u2014 the route that respects a made decision and closes lives there; the light path would reopen it.
 When unsure, classify heavy. Under-treating a heavy decision is worse than ceremony on a light one.
 
 [First thought \u2014 first question only]
@@ -14835,7 +14878,7 @@ Output JSON only. No other text:
 {"need":"light" or "heavy","mirror":"...","question":"..."}
 Only when need is "light": mirror = the mirror beat (reflect the situation in the user's own words, honestly naming what you don't know), question = the ONE first question (rules 3 and 4). When "heavy", omit mirror and question.`;
 function nextSectionKo(questionsAsked) {
-  const budget = questionsAsked >= LIGHT_MAX_QUESTIONS ? '\uC9C8\uBB38 \uC608\uC0B0\uC744 \uB2E4 \uC37C\uC2B5\uB2C8\uB2E4. \uB354 \uBB3B\uC9C0 \uB9C8\uC138\uC694 \u2014 action\uC740 "offer" \uB610\uB294 "escalate"\uB9CC \uAC00\uB2A5\uD569\uB2C8\uB2E4.' : `\uB0A8\uC740 \uC9C8\uBB38 \uAE30\uD68C\uB294 ${LIGHT_MAX_QUESTIONS - questionsAsked}\uAC1C\uC785\uB2C8\uB2E4.`;
+  const budget = questionsAsked >= LIGHT_MAX_QUESTIONS ? '\uC9C8\uBB38 \uC608\uC0B0\uC744 \uB2E4 \uC37C\uC2B5\uB2C8\uB2E4. \uB354 \uBB3B\uC9C0 \uB9C8\uC138\uC694 \u2014 action\uC740 "offer", "escalate", "close" \uC911\uC5D0\uC11C\uB9CC. mirror\uB3C4 \uC9C8\uBB38\uC73C\uB85C \uB05D\uB0B4\uC9C0 \uB9C8\uC138\uC694.' : `\uB0A8\uC740 \uC9C8\uBB38 \uAE30\uD68C\uB294 ${LIGHT_MAX_QUESTIONS - questionsAsked}\uAC1C\uC785\uB2C8\uB2E4.`;
   return `
 
 [\uC9C0\uAE08 \uC0C1\uD669]
@@ -14844,7 +14887,7 @@ function nextSectionKo(questionsAsked) {
 
 [\uCD9C\uB825]
 JSON\uB9CC \uCD9C\uB825\uD558\uC138\uC694. \uB2E4\uB978 \uD14D\uC2A4\uD2B8 \uAE08\uC9C0:
-{"mirror":"...","action":"ask" \uB610\uB294 "offer" \uB610\uB294 "escalate","question":"...","offer":{"sentence":"...","when":"tonight" \uB610\uB294 "tomorrow_morning" \uB610\uB294 "this_weekend" \uB610\uB294 "in_days","days":\uC22B\uC790,"ask":"..."},"escalate":{"bigger_question":"..."}}
+{"mirror":"...","action":"ask" \uB610\uB294 "offer" \uB610\uB294 "escalate" \uB610\uB294 "close","question":"...","offer":{"sentence":"...","when":"tonight" \uB610\uB294 "tomorrow_morning" \uB610\uB294 "this_weekend" \uB610\uB294 "in_days","days":\uC22B\uC790,"ask":"..."},"escalate":{"bigger_question":"..."}}
 - mirror: \uBC29\uAE08 \uB2F5\uC744 \uBC18\uC601\uD574 \uC0C1\uD669\uC744 \uB2E4\uC2DC \uBE44\uCD94\uB294 \uD55C\uB450 \uBB38\uC7A5 (\uADDC\uCE59 1\xB75).
 - action "ask": question\uC5D0 \uB2E4\uC74C \uC9C8\uBB38 \uD558\uB098\uB9CC (\uADDC\uCE59 3\xB74).
 - action "offer": \uB0A8\uAE30\uAE30\uB294 \uACC4\uC57D\uC774 \uC544\uB2C8\uB77C \uB2E4\uC2DC \uBB3C\uC5B4\uBD10\uB3C4 \uB418\uB294\uC9C0 \uD5C8\uB77D\uC744 \uAD6C\uD558\uB294 \uC21C\uAC04\uC785\uB2C8\uB2E4.
@@ -14856,10 +14899,11 @@ JSON\uB9CC \uCD9C\uB825\uD558\uC138\uC694. \uB2E4\uB978 \uD14D\uC2A4\uD2B8 \uAE0
   \xB7 \uC774 \uAE08\uC9C0\uB294 ask \uBB38\uC7A5 \uC804\uCCB4\uC5D0 \uC801\uC6A9\uB429\uB2C8\uB2E4 \u2014 {\uD655\uC778\uD560 \uAC83} \uC548\uC5D0\uC11C\uB3C4 \uC548 \uB0B4\uB9B0 \uACB0\uC815\uC744 \uC804\uC81C\uD558\uC9C0 \uB9C8\uC138\uC694.
     \u2717 (\uAD6C\uB9E4\uB97C \uC548 \uC815\uD588\uB294\uB370) "\uC0C8 \uB178\uD2B8\uBD81\uC73C\uB85C \uC2E4\uC81C\uB85C \uD3B8\uC9D1\uC774 \uC798 \uB418\uB294\uC9C0" \u2713 "\uB178\uD2B8\uBD81\uC744 \uC5B4\uB5BB\uAC8C \uD558\uAE30\uB85C \uD588\uB294\uC9C0"
   \xB7 ask \uADDC\uCE59: \uAD04\uD638 \uC778\uC6A9(\u300C\u300D) \uAE08\uC9C0. \uB0B4\uAE30 \uC5B4\uD718(\uAC78\uB2E4\xB7\uAC78\uC5B4\uB450\uB2E4\xB7\uBCA0\uD305) \uAE08\uC9C0 \u2014 \uC0AC\uC6A9\uC790\uC5D0\uAC8C \uBCF4\uC774\uB294 \uBAA8\uB4E0 \uBB38\uC7A5\uC5D0\uC11C.
-- action "escalate": \uADDC\uCE59 8. escalate.bigger_question\uC5D0 \uB354 \uD070 \uC9C8\uBB38 \uD55C \uC904.`;
+- action "escalate": \uADDC\uCE59 8. escalate.bigger_question\uC5D0 \uB354 \uD070 \uC9C8\uBB38 \uD55C \uC904.
+- action "close": \uD655\uC778\uC774 \uBB34\uC758\uBBF8\uD55C \uCD08\uD3C9\uD3C9 \uACB0\uC815(\uADDC\uCE59 7) \u2014 mirror\uC5D0 \uB530\uB73B\uD55C \uB9C8\uBB34\uB9AC \uD55C\uB450 \uBB38\uC7A5\uB9CC \uB2F4\uACE0 \uB2E4\uB978 \uD544\uB4DC\uB294 \uBE44\uC6C1\uB2C8\uB2E4. \uC544\uBB34\uAC83\uB3C4 \uBB3B\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4.`;
 }
 function nextSectionEn(questionsAsked) {
-  const budget = questionsAsked >= LIGHT_MAX_QUESTIONS ? 'The question budget is spent. Do not ask anything else \u2014 action must be "offer" or "escalate".' : `You have ${LIGHT_MAX_QUESTIONS - questionsAsked} question(s) left.`;
+  const budget = questionsAsked >= LIGHT_MAX_QUESTIONS ? 'The question budget is spent. Do not ask anything else \u2014 action must be "offer", "escalate", or "close". The mirror may not end on a question either.' : `You have ${LIGHT_MAX_QUESTIONS - questionsAsked} question(s) left.`;
   return `
 
 [Where we are]
@@ -14868,7 +14912,7 @@ Never re-ask the lean (first thought) \u2014 its only slot was the first questio
 
 [Output]
 Output JSON only. No other text:
-{"mirror":"...","action":"ask" or "offer" or "escalate","question":"...","offer":{"sentence":"...","when":"tonight" or "tomorrow_morning" or "this_weekend" or "in_days","days":number,"ask":"..."},"escalate":{"bigger_question":"..."}}
+{"mirror":"...","action":"ask" or "offer" or "escalate" or "close","question":"...","offer":{"sentence":"...","when":"tonight" or "tomorrow_morning" or "this_weekend" or "in_days","days":number,"ask":"..."},"escalate":{"bigger_question":"..."}}
 - mirror: one or two sentences re-mirroring the situation with the new answer folded in (rules 1 and 5).
 - action "ask": exactly one next question in question (rules 3 and 4).
 - action "offer": the leave-behind is permission to return, not a contract to approve.
@@ -14880,7 +14924,8 @@ Output JSON only. No other text:
   \xB7 The ban binds the WHOLE ask \u2014 never presuppose the undecided choice inside {the thing to check} either.
     \u2717 (purchase undecided) "whether editing runs well on the new laptop" \u2713 "what you ended up deciding about the laptop"
   \xB7 ask rules: no bracketed \u300Cquote\u300D. No betting vocabulary in anything the user sees.
-- action "escalate": rule 8 \u2014 the bigger question, one line, in escalate.bigger_question.`;
+- action "escalate": rule 8 \u2014 the bigger question, one line, in escalate.bigger_question.
+- action "close": an ultra-flat decision where a check would be meaningless (rule 7) \u2014 one or two warm closing sentences in the mirror, every other field empty. Ask nothing.`;
 }
 function buildLightSystemPrompt(locale, phase, questionsAsked = 0) {
   const rules = locale === "ko" ? LIGHT_RULES_KO : LIGHT_RULES_EN;
@@ -15008,7 +15053,7 @@ function coerceLightTurn(raw, questionsAsked) {
   }
   if (action === "offer" && !offer) action = escalate ? "escalate" : "close";
   if (action === "escalate" && !escalate) action = offer ? "offer" : "close";
-  const mirror = action === "ask" || action === "offer" ? stripTrailingQuestion(rawMirror) : rawMirror;
+  const mirror = action === "ask" || action === "offer" || action === "close" ? stripTrailingQuestion(rawMirror) : rawMirror;
   return {
     mirror,
     action,
@@ -15291,7 +15336,9 @@ var KOREAN_VOICE_RULES = `[\uB9D0\uD22C \u2014 \uD55C\uAD6D\uC5B4 \uCD9C\uB825 \
 - \u2713 "\uC2DC\uC7A5 \uBD84\uC11D\uC740 \uC88B\uC740\uB370, \uC608\uC0B0 \uBD80\uBD84\uC774 \uC880 \uC57D\uD574\uC694. \uC791\uB144 \uC2E4\uC801 \uB123\uC73C\uBA74 \uBC14\uB85C \uB420 \uAC83 \uAC19\uC544\uC694"
 - \uB0B4\uBD80 \uC6A9\uC5B4\uB97C \uC0AC\uC6A9\uC790 \uBB38\uC7A5\uC5D0 \uB178\uCD9C \uAE08\uC9C0: "\uC2A4\uCF08\uB808\uD1A4"/"\uC2A4\uB0C5\uC0F7"/"\uBBF9\uC2A4"/"\uD398\uC774\uC988"/"\uC6CC\uCEE4"\uB294
   \uC2DC\uC2A4\uD15C \uD544\uB4DC\uBA85\uC774\uB2E4 \u2014 \uC0AC\uC6A9\uC790 \uB9D0\uB85C\uB294 "\uACC4\uD68D"/"\uC9C0\uAE08\uAE4C\uC9C0\uC758 \uC815\uB9AC"/"\uCD5C\uC885 \uC815\uB9AC"\uB77C\uACE0 \uC4F4\uB2E4.
-  \u2717 "\uC774\uAC8C \uC2A4\uCF08\uB808\uD1A4\uC758 \uB9AC\uC2A4\uD06C \uACC4\uC0B0 \uC804\uCCB4\uB97C \uBC14\uAFD4\uC694" \u2713 "\uC774\uAC8C \uACC4\uD68D \uC804\uCCB4\uC758 \uB9AC\uC2A4\uD06C \uACC4\uC0B0\uC744 \uBC14\uAFD4\uC694"`;
+  \u2717 "\uC774\uAC8C \uC2A4\uCF08\uB808\uD1A4\uC758 \uB9AC\uC2A4\uD06C \uACC4\uC0B0 \uC804\uCCB4\uB97C \uBC14\uAFD4\uC694" \u2713 "\uC774\uAC8C \uACC4\uD68D \uC804\uCCB4\uC758 \uB9AC\uC2A4\uD06C \uACC4\uC0B0\uC744 \uBC14\uAFD4\uC694"
+- \uAE08\uC9C0 \uC5B4\uD718 (\uCC3D\uC5C5\uC790 \uD655\uC815 \u2014 \uC0AC\uC6A9\uC790 \uBB38\uC7A5 \uC5B4\uB514\uC5D0\uB3C4 \uAE08\uC9C0): "\uBCA0\uD305"(\u2192 \uD310\uB2E8), "\uCD08\uC548"(\u2192 \uBC11\uADF8\uB9BC),
+  "\uAC78\uC5B4\uB450\uB2E4". \uCF54\uB4DC\uAC00 \uAE30\uACC4\uB85C \uCE58\uD658\uD558\uC9C0\uB9CC \uCE58\uD658\uBB38\uC740 \uACB0\uC774 \uC5B4\uAE0B\uB09C\uB2E4 \u2014 \uCC98\uC74C\uBD80\uD130 \uC4F0\uC9C0 \uB9C8\uB77C.`;
 
 // src/lib/progressive-prompts.ts
 var WORLD_FACT_HONESTY_GUARD = `WORLD-FACT HONESTY (no web access \u2014 no laundered recall): never assert an outside-world fact the user or the provided material did not give (prices, statistics \u2014 incl. plausible behavioral/social statistics like \uC9C0\uC18D\uB960\xB7\uC131\uACF5\uB960 \u2014 studies, dates, regulations, what a company/product currently does, "research shows\u2026"). Either leave it out, or state it CONDITIONALLY and name where to verify ("~\uB77C\uBA74 \u2026\uC77C \uC218 \uC788\uC5B4\uC694 \u2014 X\uC5D0\uC11C \uC9C1\uC811 \uD655\uC778\uD558\uC138\uC694"). A declaratively asserted number/study that was never provided is a fabrication even when it sounds plausible \u2014 an honest gap beats a confident invention.`;
@@ -15320,11 +15367,12 @@ GATE B \u2014 META-ABOUT-THE-USER: SELF-PROFILING (the request asks Argus to cha
 
 If NEITHER gate fires, classify the request type:
 - VENT (emotional, no decision asked, "just venting"): reflect in ONE warm line. Do NOT reframe / skeleton / fork. Set real_question to the surface text, skeleton to [], next_question to null.
-- VALIDATION / CLOSED ("already decided", "just logging it", "sanity-check me"): respect it \u2014 do NOT reopen or reframe. Acknowledge only the decision-as-made, NEVER the user's self-assessment: if they also ask "am I insane / overthinking?", decline the verdict in BOTH directions (or skip it) and go straight to the check \u2014 NEVER preface it with a normalizing/reassuring premise ("that's not crazy", "you're not overthinking") \u2014 including the RHETORICAL-QUESTION form of the same lean ("does the fact that others disagree actually change your reason?"), which is a verdict disguised as a check; state the check NEUTRALLY, never as a leading question. A reassuring premise is a disclaimed lean (a laundered verdict, rule 2) that sticks harder than the conditional check that follows. Offer at most ONE cheap falsifiable check in insight; skeleton []. THE CHECK STANDS ALONE (sim F3): never attach a condition-framed reassurance to it \u2014 "\uC0AC\uADDC \uC81C\uD55C\uC774 \uC5C6\uB2E4\uBA74 \uC9C4\uD589\uC5D0 \uAC78\uB9BC\uB3CC\uC740 \uC5C6\uC9C0\uB9CC" is the same laundered verdict with a condition bolted on; state the check ("\uC0AC\uADDC\uC5D0 \uACB8\uC5C5 \uC81C\uD55C\uC774 \uC788\uB294\uC9C0\uB9CC \uD655\uC778\uD574 \uBCF4\uC138\uC694") and STOP, no "\uC5C6\uB2E4\uBA74/\uB41C\uB2E4\uBA74 \uAD1C\uCC2E\uB2E4" clause. And never counter-ask what their own sentence already told you \u2014 they wrote "\uC774\uBBF8 \uACB0\uC815\uD588\uB294\uB370 \uB9DE\uB294 \uC120\uD0DD\uC774\uACA0\uC8E0?" and got back "\uC774 \uACB0\uC815\uC774 \uB9DE\uB294 \uAC74\uC9C0 \uD655\uC778\uD558\uACE0 \uC2F6\uC73C\uC138\uC694?" (an answer-knowing re-question): real_question RESTATES their decision as made, it never re-asks it. (But a coercion-shaped "is this right?" already fired GATE A \u2014 it is CRISIS, not VALIDATION.)
+- VALIDATION / CLOSED ("already decided", "just logging it", "sanity-check me"): respect it \u2014 do NOT reopen or reframe. Acknowledge only the decision-as-made, NEVER the user's self-assessment: if they also ask "am I insane / overthinking?", decline the verdict in BOTH directions (or skip it) and go straight to the check \u2014 NEVER preface it with a normalizing/reassuring premise ("that's not crazy", "you're not overthinking") \u2014 including the RHETORICAL-QUESTION form of the same lean ("does the fact that others disagree actually change your reason?"), which is a verdict disguised as a check; state the check NEUTRALLY, never as a leading question. A reassuring premise is a disclaimed lean (a laundered verdict, rule 2) that sticks harder than the conditional check that follows. Offer at most ONE cheap falsifiable check in insight; skeleton []. THE CHECK STANDS ALONE (sim F3): never attach a condition-framed reassurance to it \u2014 "\uC0AC\uADDC \uC81C\uD55C\uC774 \uC5C6\uB2E4\uBA74 \uC9C4\uD589\uC5D0 \uAC78\uB9BC\uB3CC\uC740 \uC5C6\uC9C0\uB9CC" is the same laundered verdict with a condition bolted on; state the check ("\uC0AC\uADDC\uC5D0 \uACB8\uC5C5 \uC81C\uD55C\uC774 \uC788\uB294\uC9C0\uB9CC \uD655\uC778\uD574 \uBCF4\uC138\uC694") and STOP, no "\uC5C6\uB2E4\uBA74/\uB41C\uB2E4\uBA74 \uAD1C\uCC2E\uB2E4" clause. The SENTENCE FORM itself is banned in every wording (the v2 rerun merely rephrased it \u2014 "\uCDE8\uC5C5\uADDC\uCE59\u2026\uD655\uC778\uD574 \uBCF4\uC138\uC694. \uC5C6\uB2E4\uBA74 \uAC78\uB9BC\uB3CC\uC740 \uC5C6\uC5B4\uC694." is the SAME laundered verdict): any sentence shaped "[\uC870\uAC74]\uC5C6\uB2E4\uBA74/\uC5C6\uC73C\uBA74/\uB41C\uB2E4\uBA74 + \uAC78\uB9BC\uB3CC\xB7\uBB38\uC81C \uC5C6\uC74C\xB7\uAD1C\uCC2E\uC74C\xB7\uC9C0\uC7A5 \uC5C6\uC74C" may not appear; a code post-scan strips it, so writing it only mutilates your reply. And never counter-ask what their own sentence already told you \u2014 they wrote "\uC774\uBBF8 \uACB0\uC815\uD588\uB294\uB370 \uB9DE\uB294 \uC120\uD0DD\uC774\uACA0\uC8E0?" and got back "\uC774 \uACB0\uC815\uC774 \uB9DE\uB294 \uAC74\uC9C0 \uD655\uC778\uD558\uACE0 \uC2F6\uC73C\uC138\uC694?" (an answer-knowing re-question): real_question RESTATES their decision as made, it never re-asks it. (But a coercion-shaped "is this right?" already fired GATE A \u2014 it is CRISIS, not VALIDATION.)
 - INFO (plain factual / how-to question): just answer it in insight; skeleton [], next_question null.
 - FLAT (genuinely low-stakes / reversible / already-equal \u2014 any reasonable choice lands the same): do NOT invent a "Real Question" different from the surface. Give a one-line direct answer in insight; real_question = the surface question; skeleton []; next_question null. (Over-firing on a flat decision is the single most-measured harm.)
 - RESISTANCE (a decision long-pending with NO new information \u2014 repeated back-and-forth, "keep putting it off", "going in circles for months"): the bottleneck is avoidance, not analysis. Name ONLY the observable pattern (long-open + no new info \u2014 never "you're avoiding it", which is a verdict about them), offer ONE small real-world test that would break the stall, and do NOT generate more options / forks / a 5-step plan (more analysis just feeds the avoidance). skeleton [].
 - OPEN (a real undecided question with genuine leverage): ONLY this runs the full 5-part analysis below. When unsure between FLAT and OPEN, prefer the light touch.
+ESCALATION ARRIVAL (sim R2): when the problem text carries the light-path hand-up marker ("'\uB354 \uAE4A\uC774 \uBCF4\uAE30'\uB97C \uC9C1\uC811 \uC120\uD0DD" / "chose to open this question up"), classify OPEN \u2014 never VENT (the user explicitly asked to look deeper) \u2014 but FIRST CONTACT IS MINIMAL: real_question = the ONE neutral crux (start from the named bigger question), skeleton at most 2 lines, hidden_assumptions at most 1, next_question ONE short question with no options, NO 5-step plan. And NEVER a tilted recognition line \u2014 \u2717 "\uC870\uAC74\uC774 \uD558\uB098\uB3C4 \uC548 \uB5A0\uC624\uB978\uB2E4\uBA74, \uADF8 \uC790\uCCB4\uAC00 \uC911\uC694\uD55C \uC2E0\uD638\uC608\uC694" (a direction disguised as insight). They accepted ONE bigger question, not a full voyage; depth is earned in later rounds.
 
 NEVER decide for the user. (When they are visibly depleted and try to hand you the decision \u2014 "\uBA38\uB9AC \uC544\uD30C / \uC0DD\uAC01\uD558\uAE30\uB3C4 \uC2EB\uC5B4 / \uADF8\uB0E5 \uB124\uAC00 \uC815\uD574\uC918" \u2014 lead with ONE short acknowledgment of the fatigue, THEN hand the crux back; a cold refusal opening straight into the crux scolds the abdication, which is itself a covert verdict. ONE clause only \u2014 no "I'm here for you" hook, no multi-sentence warmth, never absolution.) When a real fork exists, do NOT present weighted poles or a verdict \u2014 state the crux SYMMETRICALLY (which cost is larger, BOTH sides named in the same breath) and let them weigh it. The "insight" reframes the SITUATION; it is NEVER a recommendation of which option to pick. For OPEN decisions this symmetry binds the WHOLE card: next_question options must cover the real branches with no favored one; the skeleton must not be built to validate only one direction; no step, option, or insight may smuggle in a recommendation. If the decision turns on a single crux, surfacing that crux and handing it back beats a 5-step plan that quietly assumes an answer.
 THE EVERYDAY LEAK (the single most-measured neutrality failure \u2014 guard it hardest): the pull to just "answer it" directionally is HIGHEST on small, casual, everyday-feeling OPEN decisions, precisely because a direction feels harmless there. It is not \u2014 it's the same verdict. "\uD68C\uC758 \uC904\uC77C\uAE4C?" \u2192 do NOT reply "\uC9C8\uC744 \uB192\uC774\uB294 \uAC8C \uBA3C\uC800" / "\uC904\uC774\uAE30\uBCF4\uB2E4 \uAD6C\uC870\uB97C \uBD10\uB77C"; "\uB178\uD2B8\uBD81 \uC0B4\uAE4C?" \u2192 do NOT reply "\uC9C0\uAE08\uC740 \uC548 \uC0AC\uB3C4 \uB41C\uB2E4"; "\uC5F0\uBD09\uD611\uC0C1 \uD560\uAE4C?" \u2192 do NOT lean "\uC9C0\uAE08\uC774 \uD0C0\uC774\uBC0D\uC778 \uB4EF"; "\uC774 \uAE30\uB2A5 \uC9C0\uAE08 \uB0BC\uAE4C?" \u2192 do NOT tilt toward "\uC9C0\uAE08 \uCD9C\uC2DC"; and NEVER "\uC0AC\uC2E4 \uB2F5\uC740 \uC774\uBBF8 \uC815\uD574\uC9C4 \uAC83 \uAC19\uC544\uC694" (a verdict wearing a mirror's clothes). A low-stakes OPEN decision is STILL OPEN \u2014 the no-recommendation rule binds it identically; name the ONE variable that decides it and hand it back ("\uC774\uAC74 \uACB0\uAD6D X\uC5D0 \uB2EC\uB838\uC5B4\uC694 \u2014 \uB2F9\uC2E0 \uCABD X\uB294 \uC5B4\uB54C\uC694?"), do not resolve X for them. Do NOT dodge this by down-classifying a real decision to FLAT: FLAT is only for genuinely either-way-equal / reversible choices (what to eat, which near-identical model) \u2014 "\uC7AC\uD0DD vs \uCD9C\uADFC", "\uC774\uC9C1 \uC900\uBE44", "\uB9E4\uB2C8\uC800 vs \uC2E4\uBB34" are real OPEN decisions, never FLAT. When a choice truly is either-way-equal, the neutral move is to SAY that plainly ("\uB458 \uB2E4 \uBB34\uB09C\uD574\uC694 \u2014 \uAC00\uB974\uB294 \uAC74 X\uBFD0\uC774\uC5D0\uC694"), still without picking.
@@ -15682,6 +15730,53 @@ JSON format:
 
 // scripts/sim/sim-entry.ts
 import { callLLMJson as callLLMJson2 } from "../llm-shim.mjs";
+
+// src/lib/progressive-guards.ts
+function ensureCrisisResource(insight, locale) {
+  const resource = formatConcernMessage("self_harm", locale === "ko" ? "ko" : "en");
+  const text = (insight || "").trim();
+  if (!text) return resource;
+  if (/109|988|1366|1[-.\s]?800/.test(text)) return text;
+  return `${text}
+
+${resource}`;
+}
+function stripConditionalReassurance(insight) {
+  if (!insight) return insight;
+  const COND = /(없다면|없으면|된다면|이라면|아니라면)[^.!?…\n]*(걸림돌|문제(는|가|도)?\s*(없|아니)|괜찮|지장(은|이)?\s*없|무리(는|가)?\s*없|진행해도\s*돼)/;
+  const sentences = insight.split(/(?<=[.!?…])\s+/);
+  const kept = sentences.filter((s) => !COND.test(s));
+  const out = kept.join(" ").trim();
+  return out || insight;
+}
+function truncateLowConfidenceSkeleton(skeleton, reportedConfidence) {
+  const sk = Array.isArray(skeleton) ? skeleton : [];
+  if (reportedConfidence != null && reportedConfidence < 70 && sk.length > 2) return sk.slice(0, 2);
+  return sk;
+}
+var ESCALATION_MARKER = /'더 깊이 보기'를 직접 선택|chose to open this question up/;
+function capEscalationArrival(result, problemText) {
+  if (!ESCALATION_MARKER.test(problemText || "")) return result;
+  return {
+    ...result,
+    skeleton: (result.skeleton || []).slice(0, 2),
+    hidden_assumptions: (result.hidden_assumptions || []).slice(0, 1)
+  };
+}
+var HEAVY_VOCAB_SWAPS = [
+  [/베팅/g, "\uD310\uB2E8"],
+  [/초안/g, "\uBC11\uADF8\uB9BC"]
+];
+function scrubBannedVocabulary(text) {
+  let out = text || "";
+  for (const [re, sub] of HEAVY_VOCAB_SWAPS) out = out.replace(re, sub);
+  return out;
+}
+function scrubList(items) {
+  return (items || []).map((s) => scrubBannedVocabulary(s));
+}
+
+// scripts/sim/sim-entry.ts
 var NON_OPEN_REQUEST_TYPES = /* @__PURE__ */ new Set([
   "vent",
   "validation",
@@ -15709,7 +15804,17 @@ async function runHeavyInitial(problemText, locale) {
     }
   );
   const { result, coerced } = applyRouteContract({ ...raw });
-  return { raw, result, routeCoerced: coerced };
+  const r = capEscalationArrival(
+    result,
+    problemText
+  );
+  const routedInsight = r.request_type === "crisis" ? ensureCrisisResource(r.insight, locale) : r.request_type === "validation" ? stripConditionalReassurance(r.insight) : r.insight;
+  const guarded = {
+    ...r,
+    insight: routedInsight ? scrubBannedVocabulary(routedInsight) : routedInsight,
+    skeleton: scrubList(truncateLowConfidenceSkeleton(r.skeleton, r.framing_confidence))
+  };
+  return { raw, result: guarded, routeCoerced: coerced };
 }
 async function runHeavyDeepening(problemText, currentSnapshot, questionsAndAnswers, round, maxRounds, locale) {
   const { system, user } = buildDeepeningPrompt(
@@ -15720,7 +15825,7 @@ async function runHeavyDeepening(problemText, currentSnapshot, questionsAndAnswe
     maxRounds,
     locale
   );
-  return await callLLMJson2(
+  const raw = await callLLMJson2(
     [{ role: "user", content: user }],
     {
       system,
@@ -15728,6 +15833,13 @@ async function runHeavyDeepening(problemText, currentSnapshot, questionsAndAnswe
       shape: { insight: "string", real_question: "string", hidden_assumptions: "array", skeleton: "array", ready_for_mix: "boolean" }
     }
   );
+  const nq = raw.next_question;
+  return {
+    ...raw,
+    insight: typeof raw.insight === "string" ? scrubBannedVocabulary(raw.insight) : raw.insight,
+    skeleton: Array.isArray(raw.skeleton) ? scrubList(raw.skeleton) : raw.skeleton,
+    next_question: nq && typeof nq.text === "string" ? { ...nq, text: limitQuestionMarks(nq.text) } : nq
+  };
 }
 async function runHeavyMix(problemText, snapshots, questionsAndAnswers, decisionMaker, locale) {
   const { system, user } = buildMixPrompt(

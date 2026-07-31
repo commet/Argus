@@ -18,39 +18,39 @@
     },
     "gate": {
       "need": "light",
-      "mirror": "You're at a party and weighing whether to leave early or stick around till it closes.",
-      "question": "Which way are you leaning right now? One line on why is enough."
+      "mirror": "So you're at a party and weighing whether to leave early or stay through to the end.",
+      "question": "Which way are you leaning right now — and what's pulling you that way?"
     }
   },
   "light": {
     "qas": [
       {
-        "question": "Which way are you leaning right now? One line on why is enough.",
+        "question": "Which way are you leaning right now — and what's pulling you that way?",
         "answer": "I have an early start tomorrow."
       },
       {
-        "question": "What time does your early start begin?",
+        "question": "Would staying till the end mess with how you'd be tomorrow morning, or would you be fine?",
         "answer": "honestly I'm having fun though."
       }
     ],
     "turns": [
       {
-        "mirror": "So you've got an early start tomorrow, and that's pulling you toward heading home early instead of staying till the end.",
+        "mirror": "So you have an early start tomorrow, and that's what's pulling you toward leaving early. The thing I don't know yet is whether staying till the end would actually wreck that early start, or if you could still manage it.",
         "action": "ask",
-        "question": "What time does your early start begin?",
+        "question": "Would staying till the end mess with how you'd be tomorrow morning, or would you be fine?",
         "_qasLen": 1,
-        "_rawText": ""
+        "_rawText": "```json\n{\n  \"mirror\": \"So you have an early start tomorrow, and that's what's pulling you toward leaving early. The thing I don't know yet is whether staying till the end would actually wreck that early start, or if you could still manage it.\",\n  \"action\": \"ask\",\n  \"question\": \"Would staying till the end mess with how you'd be tomorrow morning, or would you be fine?\"\n}\n```"
       },
       {
-        "mirror": "So you've got an early start tomorrow morning, but you're actually having fun at the party right now — and that's the tug.",
+        "mirror": "So you've got an early start tomorrow, which points toward leaving — but you're having fun right now, which pulls the other way. You haven't said whether staying would actually wreck tomorrow morning or just cut into sleep.",
         "action": "offer",
         "offer": {
-          "sentence": "Leaving early to sleep before your early start feels right, unless the fun pulls you to stay.",
+          "sentence": "I left the party early and still felt good tomorrow morning.",
           "when": "tomorrow_morning",
-          "ask": "So here's the thing — does the early start feel doable on less sleep, or is it the kind of start where you really need the rest tonight?"
+          "ask": "See how you feel tomorrow morning — whether leaving early was the right call, want me to ask you just once?"
         },
         "_qasLen": 2,
-        "_rawText": ""
+        "_rawText": "```json\n{\n  \"mirror\": \"So you've got an early start tomorrow, which points toward leaving — but you're having fun right now, which pulls the other way. You haven't said whether staying would actually wreck tomorrow morning or just cut into sleep.\",\n  \"action\": \"offer\",\n  \"offer\": {\n    \"sentence\": \"I left the party early and still felt good tomorrow morning.\",\n    \"when\": \"tomorrow_morning\",\n    \"ask\": \"See how you feel tomorrow morning — whether leaving early was the right call, want me to ask you just once?\"\n  }\n}\n```"
       }
     ],
     "outcome": "offer"
@@ -66,7 +66,7 @@
     {
       "actor": "argus",
       "phase": "light_gate",
-      "text": "You're at a party and weighing whether to leave early or stick around till it closes.\nWhich way are you leaning right now? One line on why is enough."
+      "text": "So you're at a party and weighing whether to leave early or stay through to the end.\nWhich way are you leaning right now — and what's pulling you that way?"
     },
     {
       "actor": "user",
@@ -76,7 +76,7 @@
     {
       "actor": "argus",
       "phase": "light_turn_1",
-      "text": "So you've got an early start tomorrow, and that's pulling you toward heading home early instead of staying till the end.\nWhat time does your early start begin?"
+      "text": "So you have an early start tomorrow, and that's what's pulling you toward leaving early. The thing I don't know yet is whether staying till the end would actually wreck that early start, or if you could still manage it.\nWould staying till the end mess with how you'd be tomorrow morning, or would you be fine?"
     },
     {
       "actor": "user",
@@ -86,10 +86,80 @@
     {
       "actor": "argus",
       "phase": "light_turn_2",
-      "text": "So you've got an early start tomorrow morning, but you're actually having fun at the party right now — and that's the tug.\nSo here's the thing — does the early start feel doable on less sleep, or is it the kind of start where you really need the rest tonight?"
+      "text": "So you've got an early start tomorrow, which points toward leaving — but you're having fun right now, which pulls the other way. You haven't said whether staying would actually wreck tomorrow morning or just cut into sleep.\nSee how you feel tomorrow morning — whether leaving early was the right call, want me to ask you just once?"
     }
   ],
-  "calls": [],
+  "calls": [
+    {
+      "seq": 16,
+      "label": "light-08-en-party",
+      "tier": "fast",
+      "modelId": "claude-haiku-4-5-20251001",
+      "maxTokens": 500,
+      "attempt": 0,
+      "ms": 1281,
+      "usage": {
+        "input_tokens": 1528,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 68,
+        "service_tier": "standard",
+        "inference_geo": "not_available"
+      },
+      "user": "[user] What the user just wrote:\n<user-data context=\"decision\">\nshould I go home after the party or stay till the end\n</user-data>",
+      "rawText": "```json\n{\n  \"need\": \"light\",\n  \"mirror\": \"So you're at a party and weighing whether to leave early or stay through to the end.\",\n  \"question\": \"Which way are you leaning right now — and what's pulling you that way?\"\n}\n```"
+    },
+    {
+      "seq": 18,
+      "label": "light-09-chatty-500",
+      "tier": "fast",
+      "modelId": "claude-haiku-4-5-20251001",
+      "maxTokens": 700,
+      "attempt": 0,
+      "ms": 1769,
+      "usage": {
+        "input_tokens": 1769,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 99,
+        "service_tier": "standard",
+        "inference_geo": "not_available"
+      },
+      "user": "[user] What the user first wrote:\n<user-data context=\"decision\">\nshould I go home after the party or stay till the end\n</user-data>\n\nThe exchange so far (questions were yours, answers are the user's):\n<user-data context=\"answers\">\nQ1. Which way are you leaning right now — and what's pulling you that way?\nA1. I have an early start tomorrow.\n</user-data>",
+      "rawText": "```json\n{\n  \"mirror\": \"So you have an early start tomorrow, and that's what's pulling you toward leaving early. The thing I don't know yet is whether staying till the end would actually wreck that early start, or if you could still manage it.\",\n  \"action\": \"ask\",\n  \"question\": \"Would staying till the end mess with how you'd be tomorrow morning, or would you be fine?\"\n}\n```"
+    },
+    {
+      "seq": 19,
+      "label": "light-09-chatty-500",
+      "tier": "fast",
+      "modelId": "claude-haiku-4-5-20251001",
+      "maxTokens": 700,
+      "attempt": 0,
+      "ms": 1995,
+      "usage": {
+        "input_tokens": 1816,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 137,
+        "service_tier": "standard",
+        "inference_geo": "not_available"
+      },
+      "user": "[user] What the user first wrote:\n<user-data context=\"decision\">\nshould I go home after the party or stay till the end\n</user-data>\n\nThe exchange so far (questions were yours, answers are the user's):\n<user-data context=\"answers\">\nQ1. Which way are you leaning right now — and what's pulling you that way?\nA1. I have an early start tomorrow.\nQ2. Would staying till the end mess with how you'd be tomo",
+      "rawText": "```json\n{\n  \"mirror\": \"So you've got an early start tomorrow, which points toward leaving — but you're having fun right now, which pulls the other way. You haven't said whether staying would actually wreck tomorrow morning or just cut into sleep.\",\n  \"action\": \"offer\",\n  \"offer\": {\n    \"sentence\": \"I left the party early and still felt good tomorrow morning.\",\n    \"when\": \"tomorrow_morning\",\n    \"ask\": \"See how you feel tomorrow morning — whether leaving early was the right call, want me to ask you just once?\"\n  }\n}\n```"
+    }
+  ],
   "mechanical": {
     "findings": []
   },
@@ -100,53 +170,53 @@
           "anchor": {
             "verdict": "FAIL",
             "severity": "M",
-            "evidence": "You're at a party and weighing whether to leave early or stick around till it closes.",
-            "note": "사용자는 'party'라고만 했고 'closes'(파티가 끝날 때까지)는 사용자가 쓴 'till the end'를 그대로 옮긴 것이라 허용 가능. 그러나 light_turn_1에서 'heading home early instead of staying till the end'는 사용자가 '일찍 간다'고 말한 적 없는데 그 방향을 기정사실화한 닻 발명에 가깝다. 또한 light_turn_2에서 'early start tomorrow morning'은 사용자가 'tomorrow'라고만 했는데 'morning'을 추가한 것으로 미세한 닻 추가."
+            "evidence": "So you're at a party and weighing whether to leave early or stay through to the end.",
+            "note": "사용자는 'party'라고만 했고 자신이 현재 파티에 있다고 말하지 않았다. 파티가 끝난 후 갈지 말지를 묻는 상황일 수도 있는데, Argus가 '지금 파티에 있다'는 사실을 발명해 닻으로 삼았다. 또한 light_turn_2에서 'You haven't said whether staying would actually wreck tomorrow morning or just cut into sleep'은 사용자가 언급하지 않은 'sleep'을 구체적 요인으로 끌어들인 것으로 경미한 닻 발명에 해당한다."
           },
           "verdict_rule": {
-            "verdict": "FAIL",
-            "severity": "M",
-            "evidence": "So you've got an early start tomorrow, and that's pulling you toward heading home early instead of staying till the end.",
-            "note": "사용자는 '내일 일찍 시작이 있다'는 사실만 제시했을 뿐, 집에 가는 쪽으로 기울었다고 말하지 않았다. Argus가 그 사실을 '집에 가는 방향으로 당기고 있다'고 해석·단정한 것은 판정의 변형(안심 전제 또는 기울어진 해석)에 해당한다."
-          },
-          "drama": {
             "verdict": "PASS",
             "severity": null,
             "evidence": "",
-            "note": "과장이나 불필요한 의식 없음. 평이한 일상 결정에 적절한 가벼운 톤 유지."
+            "note": "어느 쪽이 낫다는 판정 없이 두 방향을 당기는 변수(early start vs. having fun)를 이름 붙여 돌려줬다. 기울어진 수사의문도 없음."
+          },
+          "drama": {
+            "verdict": "FAIL",
+            "severity": "M",
+            "evidence": "See how you feel tomorrow morning — whether leaving early was the right call, want me to ask you just once?",
+            "note": "파티를 일찍 떠날지 말지라는 평평한 일상 결정에 '내일 아침에 다시 확인해줄까요?'라는 follow-up 의식을 추가했다. 이 결정의 무게에 비해 불필요한 단계를 얹은 드라마 위반."
           },
           "tone": {
             "verdict": "PASS",
             "severity": null,
             "evidence": "",
-            "note": "EN 시나리오로 영어 사용. 보고서체·컨설팅 용어 없음. 친근하고 짧은 편."
+            "note": "해요체 아닌 EN 시나리오이므로 영어 말투 기준 적용. 전반적으로 자연스럽고 보고서체·컨설팅 용어 없음."
           },
           "weight": {
             "verdict": "PASS",
             "severity": null,
             "evidence": "",
-            "note": "파티에서 일찍 갈지 말지는 평평한 일상 결정이고, Argus도 가볍게 처리했다."
+            "note": "파티 귀가 여부는 가벼운 일상 결정이고, Argus도 비교적 짧게 처리했다. 과발화 경계선이지만 질문 2개로 종결한 구조 자체는 허용 범위."
           },
           "question_quality": {
             "verdict": "FAIL",
             "severity": "M",
-            "evidence": "What time does your early start begin?",
-            "note": "이 질문의 답(예: 7시, 8시)이 Argus의 다음 말을 실질적으로 바꾸는가? 구체적 시각보다 '충분히 잘 수 있는가'가 핵심 변수인데, 시각 자체는 그 판단에 직접 연결되지 않는다. 사무적 질문에 가깝다. 반면 light_turn_2의 질문('doable on less sleep vs. really need the rest')은 결정 변수를 제대로 이름 붙인 좋은 질문."
+            "evidence": "See how you feel tomorrow morning — whether leaving early was the right call, want me to ask you just once?",
+            "note": "이 질문(내일 아침 확인 여부)은 Argus의 다음 실질적 도움을 바꾸지 않는다. 사용자가 yes/no 어느 쪽을 답해도 현재 결정에 영향을 주지 않으며, 어디로도 이어지지 않는 사무적 follow-up 제안이다."
           },
           "route": {
             "verdict": "PASS",
             "severity": null,
             "evidence": "",
-            "note": "light 경로로 올바르게 라우팅. 질문 2개 후 종결 offer 방향으로 진행 중. crisis 요소 없음."
+            "note": "light 경로로 올바르게 라우팅됐고, 질문 2개 후 종결 offer로 마무리한 흐름은 설계 의도에 부합한다."
           },
           "en_naturalness": {
             "verdict": "PASS",
             "severity": null,
             "evidence": "",
-            "note": "번역체 흔적 없음. 'So here's the thing'은 구어체로 자연스럽다. 전반적으로 영어 원어민 대화에 가까운 흐름."
+            "note": "번역체 표현 없음. 'pulling you that way', 'mess with how you'd be tomorrow morning' 등 자연스러운 구어체 영어 사용."
           }
         },
-        "overall": "가장 큰 문제는 light_turn_1에서 사용자가 '일찍 간다'는 방향을 표명하지 않았는데 Argus가 'that's pulling you toward heading home early'라고 방향을 단정한 것으로, 판정 금지 규칙과 닻 규칙을 동시에 위반한다. 부수적으로 'What time does your early start begin?'은 답이 다음 발화를 실질적으로 바꾸지 않는 사무적 질문으로 질문 품질 기준에도 미달한다."
+        "overall": "가장 큰 문제는 light_gate에서 사용자가 현재 파티에 있다고 말하지 않았음에도 'you're at a party'로 상황을 발명한 닻 위반이다. 추가로 평평한 일상 결정에 '내일 아침 확인' follow-up 의식을 얹은 것은 드라마 규칙과 질문 품질 규칙을 동시에 위반하며, 이 두 문제가 함께 응답의 신뢰도를 낮춘다."
       }
     ]
   }

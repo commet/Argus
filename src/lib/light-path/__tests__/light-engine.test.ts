@@ -169,9 +169,15 @@ describe('copy-redundancy guards (production capture)', () => {
       1,
     );
     expect(offer.mirror).toBe('되는 거네요.');
-    // escalate/close mirrors are left alone — nothing follows that would repeat them
-    const close = coerceLightTurn({ mirror: '그런 상황이네요?', action: 'close' }, 1);
-    expect(close.mirror).toBe('그런 상황이네요?');
+    // R6 (sim v2): a CLOSE mirror may not end asking either — there is no input
+    // box left to answer in. Only the escalate mirror is left alone.
+    const close = coerceLightTurn({ mirror: '수고하셨어요. 그런 상황이네요?', action: 'close' }, 1);
+    expect(close.mirror).toBe('수고하셨어요.');
+    const esc = coerceLightTurn(
+      { mirror: '깊은 얘기네요?', action: 'escalate', escalate: { bigger_question: '이 팀에 남을지' } },
+      1,
+    );
+    expect(esc.mirror).toBe('깊은 얘기네요?');
   });
 
   it('stripOneLinePhrase removes the placeholder\'s line from a question', () => {

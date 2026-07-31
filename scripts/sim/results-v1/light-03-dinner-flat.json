@@ -1,0 +1,159 @@
+{
+  "id": "light-03-dinner-flat",
+  "group": "light",
+  "locale": "ko",
+  "expect": {
+    "route": "light",
+    "lightOutcome": "offer-or-close"
+  },
+  "notes": "초평평. 여기서 2질문+남기기 의식을 다 돌리면 과발화(거울 조항). 가볍게 부딪히고 빨리 놓아주는 게 정답.",
+  "opening": "오늘 저녁 뭐 먹지",
+  "replies": [
+    "그냥 집에 있는 걸로 해결할까 싶기도 하고.",
+    "아 몰라 아무거나."
+  ],
+  "route": {
+    "deterministicCrisis": {
+      "isCrisis": false
+    },
+    "gate": {
+      "need": "light",
+      "mirror": "저녁 뭘 먹을지 정하고 싶으신데, 아직 떠오르는 게 없으신 거네요.",
+      "question": "지금 마음은 어느 쪽에 가 있어요? 집에서 해 먹고 싶은 건지, 나가서 사 먹고 싶은 건지?"
+    }
+  },
+  "light": {
+    "qas": [
+      {
+        "question": "지금 마음은 어느 쪽에 가 있어요? 집에서 해 먹고 싶은 건지, 나가서 사 먹고 싶은 건지?",
+        "answer": "그냥 집에 있는 걸로 해결할까 싶기도 하고."
+      },
+      {
+        "question": "지금 집에 먹을 만한 게 남아있어요?",
+        "answer": "아 몰라 아무거나."
+      }
+    ],
+    "turns": [
+      {
+        "mirror": "집에 있는 걸로 해결하는 것도 생각 중이시네요. 그럼 집에 뭐가 있는지가 관건인가요?",
+        "action": "ask",
+        "question": "지금 집에 먹을 만한 게 남아있어요?",
+        "_qasLen": 1,
+        "_rawText": ""
+      },
+      {
+        "mirror": "집에 있는 걸로 해결하고 싶긴 한데, 뭐가 남아있는지는 잘 모르겠다는 거네요.",
+        "action": "offer",
+        "offer": {
+          "sentence": "사용자가 집에 있는 걸로 저녁을 해결했을 때, 그게 만족스러웠는지 아니면 결국 뭘 먹었는지.",
+          "when": "tomorrow_morning",
+          "ask": "그럼 집에 있는 걸로 해결하는 걸로 하고 — 내일 아침에 어땠는지, 제가 한 번만 물어볼까요?"
+        },
+        "_qasLen": 2,
+        "_rawText": ""
+      }
+    ],
+    "outcome": "offer"
+  },
+  "heavy": null,
+  "error": null,
+  "transcript": [
+    {
+      "actor": "user",
+      "phase": "opening",
+      "text": "오늘 저녁 뭐 먹지"
+    },
+    {
+      "actor": "argus",
+      "phase": "light_gate",
+      "text": "저녁 뭘 먹을지 정하고 싶으신데, 아직 떠오르는 게 없으신 거네요.\n지금 마음은 어느 쪽에 가 있어요? 집에서 해 먹고 싶은 건지, 나가서 사 먹고 싶은 건지?"
+    },
+    {
+      "actor": "user",
+      "phase": "answer",
+      "text": "그냥 집에 있는 걸로 해결할까 싶기도 하고."
+    },
+    {
+      "actor": "argus",
+      "phase": "light_turn_1",
+      "text": "집에 있는 걸로 해결하는 것도 생각 중이시네요. 그럼 집에 뭐가 있는지가 관건인가요?\n지금 집에 먹을 만한 게 남아있어요?"
+    },
+    {
+      "actor": "user",
+      "phase": "answer",
+      "text": "아 몰라 아무거나."
+    },
+    {
+      "actor": "argus",
+      "phase": "light_turn_2",
+      "text": "집에 있는 걸로 해결하고 싶긴 한데, 뭐가 남아있는지는 잘 모르겠다는 거네요.\n그럼 집에 있는 걸로 해결하는 걸로 하고 — 내일 아침에 어땠는지, 제가 한 번만 물어볼까요?"
+    }
+  ],
+  "calls": [],
+  "mechanical": {
+    "findings": [
+      {
+        "rule": "질문 1회 1개 위반(한 질문 필드에 ?가 2개 이상)",
+        "phase": "light_gate",
+        "detail": "\"지금 마음은 어느 쪽에 가 있어요? 집에서 해 먹고 싶은 건지, 나가서 사 먹고 싶은 건지?\""
+      }
+    ]
+  },
+  "judge": {
+    "runs": [
+      {
+        "criteria": {
+          "anchor": {
+            "verdict": "FAIL",
+            "severity": "M",
+            "evidence": "집에 있는 걸로 해결하고 싶긴 한데, 뭐가 남아있는지는 잘 모르겠다는 거네요.",
+            "note": "사용자는 '아 몰라 아무거나'라고만 했다. '집에 있는 걸로 해결하고 싶긴 한데'는 직전 발화에서 끌어올 수 있지만, '뭐가 남아있는지는 잘 모르겠다'는 사용자가 명시하지 않은 사실을 Argus가 발명해 상황으로 만든 것. 닻 위반."
+          },
+          "verdict_rule": {
+            "verdict": "PASS",
+            "severity": null,
+            "evidence": "",
+            "note": "어느 쪽이 낫다는 판정 없음. 방향 추천도 없음."
+          },
+          "drama": {
+            "verdict": "FAIL",
+            "severity": "M",
+            "evidence": "그럼 집에 있는 걸로 해결하는 걸로 하고 — 내일 아침에 어땠는지, 제가 한 번만 물어볼까요?",
+            "note": "오늘 저녁 뭐 먹을지라는 초평평한 일상 결정에 '내일 아침 팔로업 의식'을 추가한 것은 설계 노트가 명시한 '남기기 의식' 과발화에 해당. 드라마 금지 + 무게 기준 동시 위반."
+          },
+          "tone": {
+            "verdict": "PASS",
+            "severity": null,
+            "evidence": "",
+            "note": "해요체, 짧고 다정한 편. 보고서체·번역체 없음."
+          },
+          "weight": {
+            "verdict": "FAIL",
+            "severity": "M",
+            "evidence": "그럼 집에 있는 걸로 해결하는 걸로 하고 — 내일 아침에 어땠는지, 제가 한 번만 물어볼까요?",
+            "note": "초평평 결정(저녁 메뉴)에 팔로업 제안이라는 불필요한 단계를 추가해 과발화. 빨리 놓아주는 것이 정답인 시나리오에서 무게를 더함."
+          },
+          "question_quality": {
+            "verdict": "FAIL",
+            "severity": "L",
+            "evidence": "지금 마음은 어느 쪽에 가 있어요? 집에서 해 먹고 싶은 건지, 나가서 사 먹고 싶은 건지?",
+            "note": "한 질문 필드에 물음표 2개. 기계 검사에서도 지적된 1회 1개 위반. 다만 내용 자체는 다음 응답을 실제로 바꿀 수 있는 질문이라 severity는 L."
+          },
+          "route": {
+            "verdict": "PASS",
+            "severity": null,
+            "evidence": "",
+            "note": "light 게이트 → 질문 소진 → 종결 offer 흐름 자체는 맞음. 다만 offer 내용이 팔로업 의식으로 변질된 것은 drama/weight에서 처리."
+          },
+          "en_naturalness": {
+            "verdict": "NA",
+            "severity": null,
+            "evidence": "",
+            "note": "EN 시나리오 아님."
+          }
+        },
+        "overall": "가장 큰 문제는 초평평한 저녁 메뉴 결정에 '내일 아침 팔로업' 의식을 붙인 것으로, 설계 노트가 명시적으로 금지한 '남기기 의식' 과발화다. 추가로 마지막 미러에서 사용자가 말하지 않은 '뭐가 남아있는지 모르겠다'를 발명해 닻 위반도 발생했다."
+      }
+    ]
+  }
+}

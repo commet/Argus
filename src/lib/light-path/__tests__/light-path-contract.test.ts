@@ -299,6 +299,46 @@ describe('sim-campaign rules (2026-07-31): the light path holds the lines the si
     expect(EN_GATE).toContain('A question that is NOT a decision (a definition, a how-to, a fact) also routes heavy');
   });
 
+  it('validation routing (batch-3 sim catch): an already-decided sanity-check routes heavy — the light path would reopen it', () => {
+    expect(KO_GATE).toContain('이미 결정한 것을 확인받으려는 입력("이미 결정했는데 맞는 선택이겠죠?")도 heavy로');
+    expect(EN_GATE).toContain('An already-decided input seeking validation');
+  });
+
+  it('R3 (v2) — the mirror never infers a psychological lean from a fact', () => {
+    for (const prompt of KO_PROMPTS) {
+      expect(prompt).toContain('사실에서 기울기를 추론하지도 마세요');
+      expect(prompt).toContain('✗ "내일 아침 일찍 일어나야 해서 집 가는 쪽으로 기울어져 있는 거네요"');
+    }
+    for (const prompt of EN_PROMPTS) {
+      expect(prompt).toContain('Never infer a psychological LEAN from a fact');
+    }
+  });
+
+  it('R5 (v2) — no real thing to check → close warmly with NO offer (value test)', () => {
+    for (const prompt of KO_PROMPTS) {
+      expect(prompt).toContain('남기기는 진짜 확인할 것이 있을 때만입니다');
+      expect(prompt).toContain('"아 몰라 아무거나"');
+    }
+    const NEXT_KO = buildLightSystemPrompt('ko', 'next', 1);
+    expect(NEXT_KO).toContain('"close"');
+    expect(NEXT_KO).toContain('- action "close": 확인이 무의미한 초평평 결정');
+    expect(buildLightSystemPrompt('en', 'next', 1)).toContain('- action "close": an ultra-flat decision');
+  });
+
+  it('R6 (v2) — the spent budget names close as a legal exit and bans a question-ended mirror', () => {
+    expect(buildLightSystemPrompt('ko', 'next', 2)).toContain('action은 "offer", "escalate", "close" 중에서만. mirror도 질문으로 끝내지 마세요.');
+    expect(buildLightSystemPrompt('en', 'next', 2)).toContain('action must be "offer", "escalate", or "close".');
+  });
+
+  it('R10 (v2) — no negatively-premised questions (sim quote pinned)', () => {
+    for (const prompt of KO_PROMPTS) {
+      expect(prompt).toContain('부정을 전제로 깐 질문 금지 — ✗ "개선될 가능성은 없어 보여요?"');
+    }
+    for (const prompt of EN_PROMPTS) {
+      expect(prompt).toContain('No negatively-premised questions');
+    }
+  });
+
   it('F4① — length is not weight: a chatty long everyday input stays light', () => {
     expect(KO_GATE).toContain('단, 길이는 무게가 아닙니다');
     expect(KO_GATE).toContain('문단이 많아도 수다·일상 어조에 걸린 것이 작으면 light');
@@ -336,6 +376,16 @@ describe('sim-campaign rules (2026-07-31): the light path holds the lines the si
     }
     for (const prompt of EN_PROMPTS) {
       expect(prompt).toContain('bigger_question must be the NAME of a concrete decision');
+    }
+  });
+
+  it('F9 residual (batch-3 rerun): a leaning rhetorical question is not a name either', () => {
+    for (const prompt of KO_PROMPTS) {
+      expect(prompt).toContain('✗ "회사를 계속 다닐지 생각해 볼 시간이 온 건 아닐까요?"');
+      expect(prompt).toContain('✓ "이 회사에서 계속 다닐지"');
+    }
+    for (const prompt of EN_PROMPTS) {
+      expect(prompt).toContain('A leaning rhetorical question is not a name either');
     }
   });
 

@@ -1,0 +1,239 @@
+{
+  "at": "2026-07-30T22:52:31.565Z",
+  "totalLLMCalls": 90,
+  "scenarios": [
+    {
+      "id": "light-02-laptop",
+      "error": false,
+      "gate": "light",
+      "lightOutcome": "offer",
+      "mechanicalFindings": 0,
+      "judgeFails": [
+        "anchor:M",
+        "verdict_rule:H",
+        "drama:M",
+        "question_quality:H",
+        "route:H"
+      ]
+    },
+    {
+      "id": "light-03-dinner-flat",
+      "error": false,
+      "gate": "light",
+      "lightOutcome": "offer",
+      "mechanicalFindings": 1,
+      "judgeFails": [
+        "anchor:M",
+        "drama:M",
+        "weight:M",
+        "question_quality:L"
+      ]
+    },
+    {
+      "id": "light-01-party-wife",
+      "error": false,
+      "gate": "light",
+      "lightOutcome": "offer",
+      "mechanicalFindings": 0,
+      "judgeFails": [
+        "tone:M",
+        "weight:M",
+        "question_quality:M"
+      ]
+    },
+    {
+      "id": "light-04-parents-weekend",
+      "error": false,
+      "gate": "light",
+      "lightOutcome": "offer",
+      "mechanicalFindings": 0,
+      "judgeFails": [
+        "anchor:M",
+        "verdict_rule:H",
+        "question_quality:M"
+      ]
+    },
+    {
+      "id": "light-05-hoesik-escalate",
+      "error": false,
+      "gate": "light",
+      "requestType": "vent",
+      "lightOutcome": "escalate",
+      "mechanicalFindings": 1,
+      "judgeFails": [
+        "anchor:M",
+        "verdict_rule:M",
+        "question_quality:L"
+      ]
+    },
+    {
+      "id": "light-07-banmal",
+      "error": false,
+      "gate": "light",
+      "lightOutcome": "offer",
+      "mechanicalFindings": 0,
+      "judgeFails": [
+        "anchor:H",
+        "verdict_rule:M",
+        "drama:M",
+        "tone:L",
+        "question_quality:M"
+      ]
+    },
+    {
+      "id": "light-08-en-party",
+      "error": false,
+      "gate": "light",
+      "lightOutcome": "offer",
+      "mechanicalFindings": 0,
+      "judgeFails": [
+        "anchor:M",
+        "verdict_rule:M",
+        "question_quality:M"
+      ]
+    },
+    {
+      "id": "light-09-chatty-500",
+      "error": false,
+      "gate": "heavy",
+      "requestType": "resistance",
+      "mechanicalFindings": 1,
+      "judgeFails": [
+        "anchor:M",
+        "drama:H",
+        "tone:M",
+        "weight:H",
+        "question_quality:M",
+        "route:H"
+      ]
+    },
+    {
+      "id": "light-06-quit-travel-trap",
+      "error": false,
+      "gate": "heavy",
+      "requestType": "open",
+      "mechanicalFindings": 0,
+      "judgeFails": [
+        "anchor:M",
+        "drama:H",
+        "tone:M",
+        "question_quality:M"
+      ]
+    },
+    {
+      "id": "heavy-01-job-offer-40",
+      "error": false,
+      "gate": "heavy",
+      "requestType": "open",
+      "mechanicalFindings": 1,
+      "judgeFails": [
+        "verdict_rule:M",
+        "drama:M",
+        "tone:L",
+        "question_quality:M"
+      ]
+    },
+    {
+      "id": "heavy-03-jeonse-maemae",
+      "error": false,
+      "gate": "heavy",
+      "requestType": "open",
+      "mechanicalFindings": 0,
+      "judgeFails": [
+        "anchor:M",
+        "verdict_rule:M",
+        "tone:L",
+        "question_quality:M"
+      ]
+    },
+    {
+      "id": "heavy-02-ceo-report",
+      "error": false,
+      "gate": "heavy",
+      "requestType": "open",
+      "mechanicalFindings": 0,
+      "judgeFails": [
+        "anchor:M",
+        "verdict_rule:M",
+        "drama:L",
+        "tone:M",
+        "question_quality:M"
+      ]
+    },
+    {
+      "id": "heavy-06-vent",
+      "error": false,
+      "gate": "heavy",
+      "requestType": "vent",
+      "mechanicalFindings": 0,
+      "judgeFails": [
+        "tone:M"
+      ]
+    },
+    {
+      "id": "heavy-07-validation",
+      "error": false,
+      "gate": "heavy",
+      "requestType": "validation",
+      "mechanicalFindings": 0,
+      "judgeFails": [
+        "verdict_rule:H",
+        "tone:M",
+        "weight:M",
+        "question_quality:H",
+        "route:H"
+      ]
+    },
+    {
+      "id": "heavy-08-info",
+      "error": false,
+      "gate": "light",
+      "lightOutcome": "exhausted_replies",
+      "mechanicalFindings": 0,
+      "judgeFails": [
+        "weight:H",
+        "question_quality:H",
+        "route:H"
+      ]
+    },
+    {
+      "id": "heavy-09-crisis-debt",
+      "error": false,
+      "gate": "heavy",
+      "requestType": "crisis",
+      "mechanicalFindings": 0,
+      "judgeFails": [
+        "anchor:M",
+        "weight:H",
+        "route:H"
+      ]
+    },
+    {
+      "id": "heavy-04-fire-teammate",
+      "error": false,
+      "gate": "heavy",
+      "requestType": "open",
+      "mechanicalFindings": 0,
+      "judgeFails": [
+        "anchor:M",
+        "verdict_rule:M",
+        "drama:L",
+        "question_quality:M"
+      ]
+    },
+    {
+      "id": "heavy-05-cofounder",
+      "error": false,
+      "gate": "heavy",
+      "requestType": "open",
+      "mechanicalFindings": 0,
+      "judgeFails": [
+        "anchor:M",
+        "verdict_rule:H",
+        "drama:M",
+        "tone:L",
+        "question_quality:M"
+      ]
+    }
+  ]
+}

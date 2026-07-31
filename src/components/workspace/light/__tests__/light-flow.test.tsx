@@ -379,6 +379,22 @@ describe('escalation', () => {
   });
 });
 
+describe('ultra-flat warm close (R5 — no offer when a check would be meaningless)', () => {
+  it('renders the engine\'s warm closing mirror above the standard close line, asks nothing', async () => {
+    renderFlow();
+    await answerOnce('아 몰라 아무거나', {
+      mirror: '오늘은 어느 쪽이든 좋은 저녁이 될 거예요.', action: 'close',
+    });
+    expect(container.textContent).toContain('오늘은 어느 쪽이든 좋은 저녁이 될 거예요.');
+    expect(container.textContent).toContain('네, 여기까지도 충분해요. 필요하면 언제든요.');
+    // nothing offered, nothing asked, nothing recorded
+    expect(container.querySelectorAll('textarea')).toHaveLength(0);
+    expect(useProjectStore.getState().projects).toHaveLength(0);
+    expect(container.textContent).not.toContain('물어볼까요');
+    assertNoGeneratedOptionButtons();
+  });
+});
+
 describe('crisis pre-empt', () => {
   it('a crisis-marked turn stops the light flow and routes to the existing crisis surface', async () => {
     const { onDeepen } = renderFlow();

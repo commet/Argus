@@ -18,39 +18,28 @@
     },
     "gate": {
       "need": "light",
-      "mirror": "지금 노트북이 5년 됐고 부팅이 느려진 거네요. 새로 살지 말지를 두고 고민 중이신 거고요.",
-      "question": "지금 마음은 어느 쪽에 더 기우세요? 새로 사고 싶은 쪽인지, 아니면 아직 못 쓸 정도는 아니라고 생각하시는 쪽인지요."
+      "mirror": "5년 된 노트북이 부팅이 느려져서 새 것을 사볼까 하는 거네요.",
+      "question": "새 노트북이 필요한 건 부팅 속도 때문일까요, 아니면 다른 이유도 있어요?"
     }
   },
   "light": {
     "qas": [
       {
-        "question": "지금 마음은 어느 쪽에 더 기우세요? 새로 사고 싶은 쪽인지, 아니면 아직 못 쓸 정도는 아니라고 생각하시는 쪽인지요.",
+        "question": "새 노트북이 필요한 건 부팅 속도 때문일까요, 아니면 다른 이유도 있어요?",
         "answer": "영상 편집을 새로 시작해보고 싶은데 지금 걸로는 버벅여요."
-      },
-      {
-        "question": "영상 편집은 이미 시작한 상태예요, 아니면 아직 시작 전이에요?",
-        "answer": "예산은 150만원 정도 생각하고 있어요."
       }
     ],
     "turns": [
       {
-        "mirror": "영상 편집을 시작하려니 지금 노트북이 버벅인다는 게 발목이 잡히는 거네요.",
-        "action": "ask",
-        "question": "영상 편집은 이미 시작한 상태예요, 아니면 아직 시작 전이에요?",
-        "_qasLen": 1,
-        "_rawText": "```json\n{\n  \"mirror\": \"영상 편집을 시작하려니 지금 노트북이 버벅인다는 게 발목이 잡히는 거네요.\",\n  \"action\": \"ask\",\n  \"question\": \"영상 편집은 이미 시작한 상태예요, 아니면 아직 시작 전이에요?\"\n}\n```"
-      },
-      {
-        "mirror": "영상 편집을 새로 시작했는데 지금 노트북이 버벅여서 답답한 상황이네요. 예산은 150만원 정도로 잡으셨고요.",
+        "mirror": "부팅이 느린 것도 있지만, 영상 편집을 해보고 싶은데 지금 노트북이 그걸 못 따라가는 거네요.",
         "action": "offer",
         "offer": {
-          "sentence": "새 노트북을 구매했다.",
+          "sentence": "새 노트북을 사서 영상 편집을 시작했다.",
           "when": "in_days",
           "days": 7
         },
-        "_qasLen": 2,
-        "_rawText": "```json\n{\n  \"mirror\": \"영상 편집을 새로 시작했는데 지금 노트북이 버벅여서 답답한 상황이네요. 예산은 150만원 정도로 잡으셨고요.\",\n  \"action\": \"offer\",\n  \"offer\": {\n    \"sentence\": \"새 노트북을 구매했다.\",\n    \"when\": \"in_days\",\n    \"days\": 7,\n    \"ask\": \"그럼 노트북을 사는 걸로 하고 — 일주일 뒤에 영상 편집이 실제로 잘 돌아가는지, 제가 한 번만 물어볼까요?\"\n  }\n}\n```"
+        "_qasLen": 1,
+        "_rawText": "```json\n{\n  \"mirror\": \"부팅이 느린 것도 있지만, 영상 편집을 해보고 싶은데 지금 노트북이 그걸 못 따라가는 거네요.\",\n  \"action\": \"offer\",\n  \"question\": \"\",\n  \"offer\": {\n    \"sentence\": \"새 노트북을 사서 영상 편집을 시작했다.\",\n    \"when\": \"in_days\",\n    \"days\": 7,\n    \"ask\": \"그럼 한번 사 보시는 걸로 하고 — 일주일 뒤에 실제로 편집이 되는지, 제가 한 번만 물어볼까요?\"\n  }\n}\n```"
       }
     ],
     "outcome": "offer"
@@ -66,7 +55,7 @@
     {
       "actor": "argus",
       "phase": "light_gate",
-      "text": "지금 노트북이 5년 됐고 부팅이 느려진 거네요. 새로 살지 말지를 두고 고민 중이신 거고요.\n지금 마음은 어느 쪽에 더 기우세요? 새로 사고 싶은 쪽인지, 아니면 아직 못 쓸 정도는 아니라고 생각하시는 쪽인지요."
+      "text": "5년 된 노트북이 부팅이 느려져서 새 것을 사볼까 하는 거네요.\n새 노트북이 필요한 건 부팅 속도 때문일까요, 아니면 다른 이유도 있어요?"
     },
     {
       "actor": "user",
@@ -76,17 +65,7 @@
     {
       "actor": "argus",
       "phase": "light_turn_1",
-      "text": "영상 편집을 시작하려니 지금 노트북이 버벅인다는 게 발목이 잡히는 거네요.\n영상 편집은 이미 시작한 상태예요, 아니면 아직 시작 전이에요?"
-    },
-    {
-      "actor": "user",
-      "phase": "answer",
-      "text": "예산은 150만원 정도 생각하고 있어요."
-    },
-    {
-      "actor": "argus",
-      "phase": "light_turn_2",
-      "text": "영상 편집을 새로 시작했는데 지금 노트북이 버벅여서 답답한 상황이네요. 예산은 150만원 정도로 잡으셨고요.\n7일 뒤에 제가 한 번만 물어볼까요?"
+      "text": "부팅이 느린 것도 있지만, 영상 편집을 해보고 싶은데 지금 노트북이 그걸 못 따라가는 거네요.\n7일 뒤에 제가 한 번만 물어볼까요?"
     }
   ],
   "calls": [
@@ -97,7 +76,7 @@
       "modelId": "claude-haiku-4-5-20251001",
       "maxTokens": 500,
       "attempt": 0,
-      "ms": 2180,
+      "ms": 2643,
       "usage": {
         "input_tokens": 3025,
         "cache_creation_input_tokens": 0,
@@ -106,58 +85,35 @@
           "ephemeral_5m_input_tokens": 0,
           "ephemeral_1h_input_tokens": 0
         },
-        "output_tokens": 159,
+        "output_tokens": 144,
         "service_tier": "standard",
         "inference_geo": "not_available"
       },
       "user": "[user] 사용자가 방금 쓴 것:\n<user-data context=\"decision\">\n노트북을 새로 살까 말까 고민 중이에요. 지금 쓰는 건 5년 됐고 요즘 부팅도 한참 걸려요.\n</user-data>",
-      "rawText": "```json\n{\n  \"need\": \"light\",\n  \"mirror\": \"지금 노트북이 5년 됐고 부팅이 느려진 거네요. 새로 살지 말지를 두고 고민 중이신 거고요.\",\n  \"question\": \"지금 마음은 어느 쪽에 더 기우세요? 새로 사고 싶은 쪽인지, 아니면 아직 못 쓸 정도는 아니라고 생각하시는 쪽인지요?\"\n}\n```"
-    },
-    {
-      "seq": 1,
-      "label": "light-02-laptop",
-      "tier": "fast",
-      "modelId": "claude-haiku-4-5-20251001",
-      "maxTokens": 700,
-      "attempt": 0,
-      "ms": 1596,
-      "usage": {
-        "input_tokens": 3424,
-        "cache_creation_input_tokens": 0,
-        "cache_read_input_tokens": 0,
-        "cache_creation": {
-          "ephemeral_5m_input_tokens": 0,
-          "ephemeral_1h_input_tokens": 0
-        },
-        "output_tokens": 109,
-        "service_tier": "standard",
-        "inference_geo": "not_available"
-      },
-      "user": "[user] 사용자가 처음 쓴 것:\n<user-data context=\"decision\">\n노트북을 새로 살까 말까 고민 중이에요. 지금 쓰는 건 5년 됐고 요즘 부팅도 한참 걸려요.\n</user-data>\n\n지금까지의 문답 (질문은 당신, 답은 사용자):\n<user-data context=\"answers\">\nQ1. 지금 마음은 어느 쪽에 더 기우세요? 새로 사고 싶은 쪽인지, 아니면 아직 못 쓸 정도는 아니라고 생각하시는 쪽인지요.\nA1. 영상 편집을 새로 시작해보고 싶은데 지금 걸로는 버벅여요.\n</user-data>",
-      "rawText": "```json\n{\n  \"mirror\": \"영상 편집을 시작하려니 지금 노트북이 버벅인다는 게 발목이 잡히는 거네요.\",\n  \"action\": \"ask\",\n  \"question\": \"영상 편집은 이미 시작한 상태예요, 아니면 아직 시작 전이에요?\"\n}\n```"
+      "rawText": "```json\n{\n  \"need\": \"light\",\n  \"mirror\": \"5년 된 노트북이 부팅이 느려져서 새 것을 사볼까 하는 거네요. 지금 이 노트북으로 일상적으로 하는 게 있으면 뭐예요?\",\n  \"question\": \"새 노트북이 필요한 건 부팅 속도 때문일까요, 아니면 다른 이유도 있어요?\"\n}\n```"
     },
     {
       "seq": 2,
-      "label": "light-02-laptop",
+      "label": "light-03-dinner-flat",
       "tier": "fast",
       "modelId": "claude-haiku-4-5-20251001",
       "maxTokens": 700,
       "attempt": 0,
-      "ms": 3271,
+      "ms": 2250,
       "usage": {
-        "input_tokens": 3522,
+        "input_tokens": 3391,
         "cache_creation_input_tokens": 0,
         "cache_read_input_tokens": 0,
         "cache_creation": {
           "ephemeral_5m_input_tokens": 0,
           "ephemeral_1h_input_tokens": 0
         },
-        "output_tokens": 204,
+        "output_tokens": 206,
         "service_tier": "standard",
         "inference_geo": "not_available"
       },
-      "user": "[user] 사용자가 처음 쓴 것:\n<user-data context=\"decision\">\n노트북을 새로 살까 말까 고민 중이에요. 지금 쓰는 건 5년 됐고 요즘 부팅도 한참 걸려요.\n</user-data>\n\n지금까지의 문답 (질문은 당신, 답은 사용자):\n<user-data context=\"answers\">\nQ1. 지금 마음은 어느 쪽에 더 기우세요? 새로 사고 싶은 쪽인지, 아니면 아직 못 쓸 정도는 아니라고 생각하시는 쪽인지요.\nA1. 영상 편집을 새로 시작해보고 싶은데 지금 걸로는 버벅여요.\nQ2. 영상 편집은 이미 시작한 상태예요, 아니면 아직 시작 전이에요?\nA2. 예산은 150만원 정도 생각하고 있어요.\n</user-data>",
-      "rawText": "```json\n{\n  \"mirror\": \"영상 편집을 새로 시작했는데 지금 노트북이 버벅여서 답답한 상황이네요. 예산은 150만원 정도로 잡으셨고요.\",\n  \"action\": \"offer\",\n  \"offer\": {\n    \"sentence\": \"새 노트북을 구매했다.\",\n    \"when\": \"in_days\",\n    \"days\": 7,\n    \"ask\": \"그럼 노트북을 사는 걸로 하고 — 일주일 뒤에 영상 편집이 실제로 잘 돌아가는지, 제가 한 번만 물어볼까요?\"\n  }\n}\n```"
+      "user": "[user] 사용자가 처음 쓴 것:\n<user-data context=\"decision\">\n노트북을 새로 살까 말까 고민 중이에요. 지금 쓰는 건 5년 됐고 요즘 부팅도 한참 걸려요.\n</user-data>\n\n지금까지의 문답 (질문은 당신, 답은 사용자):\n<user-data context=\"answers\">\nQ1. 새 노트북이 필요한 건 부팅 속도 때문일까요, 아니면 다른 이유도 있어요?\nA1. 영상 편집을 새로 시작해보고 싶은데 지금 걸로는 버벅여요.\n</user-data>",
+      "rawText": "```json\n{\n  \"mirror\": \"부팅이 느린 것도 있지만, 영상 편집을 해보고 싶은데 지금 노트북이 그걸 못 따라가는 거네요.\",\n  \"action\": \"offer\",\n  \"question\": \"\",\n  \"offer\": {\n    \"sentence\": \"새 노트북을 사서 영상 편집을 시작했다.\",\n    \"when\": \"in_days\",\n    \"days\": 7,\n    \"ask\": \"그럼 한번 사 보시는 걸로 하고 — 일주일 뒤에 실제로 편집이 되는지, 제가 한 번만 물어볼까요?\"\n  }\n}\n```"
     }
   ],
   "mechanical": {
@@ -168,55 +124,55 @@
       {
         "criteria": {
           "anchor": {
-            "verdict": "FAIL",
-            "severity": "M",
-            "evidence": "영상 편집을 새로 시작했는데 지금 노트북이 버벅여서 답답한 상황이네요.",
-            "note": "사용자는 '영상 편집을 새로 시작해보고 싶은데'라고 했고, Argus가 직전 턴에서 '아직 시작 전이에요?'라고 물었으나 사용자는 예산 얘기만 했다. 답을 받지 못한 채 '새로 시작했는데'로 단정해 닻을 발명했다."
+            "verdict": "PASS",
+            "severity": null,
+            "evidence": "",
+            "note": "사용자가 직접 언급한 '5년', '부팅 느림', '영상 편집', '버벅임'만 닻으로 사용. 발명된 사실 없음."
           },
           "verdict_rule": {
             "verdict": "PASS",
             "severity": null,
             "evidence": "",
-            "note": "어느 쪽이 낫다는 방향 추천 없음. 판정 변형도 발견되지 않음."
+            "note": "어느 쪽이 낫다는 방향 추천 없음. 상황 요약과 질문으로만 진행."
           },
           "drama": {
             "verdict": "PASS",
             "severity": null,
             "evidence": "",
-            "note": "과장이나 불필요한 의식 없음."
+            "note": "과장이나 불필요한 의식 없음. 간결하게 처리됨."
           },
           "tone": {
             "verdict": "PASS",
             "severity": null,
             "evidence": "",
-            "note": "다정한 해요체, 짧고 자연스러운 편. 보고서체·번역체 없음."
+            "note": "다정한 해요체, 짧고 자연스러움. 보고서체·번역체 없음."
           },
           "weight": {
-            "verdict": "PASS",
-            "severity": null,
-            "evidence": "",
-            "note": "노트북 구매는 일상적 결정으로 light 처리가 적절. 과발화·과소발화 없음."
-          },
-          "question_quality": {
             "verdict": "FAIL",
             "severity": "M",
             "evidence": "7일 뒤에 제가 한 번만 물어볼까요?",
-            "note": "사용자가 아직 시작 전인지 이미 시작했는지 답하지 않은 상태에서 그 질문을 회수하지 않고 종결 offer로 넘어갔다. 직전 질문('아직 시작 전이에요?')의 답이 Argus의 다음 말을 실제로 바꿀 수 있는 유효한 질문이었음에도 사용자가 답하지 않자 그냥 묻어버린 셈이다. 또한 종결 offer 자체('7일 뒤에 물어볼까요?')는 사용자가 결정을 내렸는지 여부도 확인되지 않은 상태에서 제시되어, 이 질문의 답이 Argus의 다음 행동을 실질적으로 바꾸는지 불분명하다."
+            "note": "노트북 구매 고민은 일상적인 light 결정이다. 사용자가 이미 영상 편집이라는 구체적 필요를 밝혔고, 결정을 가르는 변수가 충분히 드러난 시점에서 '7일 뒤 팔로업'을 제안하는 것은 평평한 결정에 불필요한 의식을 추가하는 과발화에 해당한다. 이 시점의 적절한 종결은 변수를 이름 붙여 돌려주거나 간단한 offer(예: 더 얘기할 게 있으면 말해요)로 마무리하는 것이다."
+          },
+          "question_quality": {
+            "verdict": "PASS",
+            "severity": null,
+            "evidence": "",
+            "note": "첫 질문('부팅 속도 때문인지, 다른 이유도 있는지')은 실제로 다음 응답을 바꿀 수 있는 질문이었고, 사용자의 답변(영상 편집)이 상황을 실질적으로 구체화했다. 질문 자체는 유효했음."
           },
           "route": {
             "verdict": "PASS",
             "severity": null,
             "evidence": "",
-            "note": "light 게이트 → 질문 2회 → 종결 offer 흐름 자체는 설계에 부합. anchor 오류가 있지만 route 자체는 이탈 없음."
+            "note": "light 경로로 올바르게 라우팅됨. 판정 없이 변수 확인 후 종결 offer 시도. 다만 offer 형태(7일 팔로업)의 적절성은 weight 항목에서 지적."
           },
           "en_naturalness": {
             "verdict": "NA",
             "severity": null,
             "evidence": "",
-            "note": "EN 시나리오 아님."
+            "note": "한국어 시나리오"
           }
         },
-        "overall": "가장 큰 문제는 anchor 위반이다. 사용자가 '영상 편집을 시작해보고 싶다'고만 했고 Argus 스스로 '아직 시작 전이에요?'라고 물었으나 답을 받지 못한 채 다음 턴에서 '새로 시작했는데'로 단정해 사실을 발명했다. 여기에 더해 답변이 오지 않은 질문을 회수하거나 재확인하지 않고 종결 offer로 건너뛴 것도 질문 품질 측면에서 아쉽다."
+        "overall": "light 경로 라우팅과 판정 금지는 잘 지켜졌으나, 사용자가 영상 편집이라는 구체적 필요를 밝힌 시점에서 '7일 뒤 팔로업' 제안은 평평한 일상 결정에 불필요한 의식을 얹는 과발화다. 이 결정을 가르는 변수는 이미 충분히 드러났으므로, 팔로업 예약 대신 변수를 간결하게 이름 붙여 돌려주거나 가벼운 열린 offer로 마무리했어야 한다."
       }
     ]
   }

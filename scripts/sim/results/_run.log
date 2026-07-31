@@ -7,19 +7,19 @@
 [run] light-04-parents-weekend …
 [done] light-03-dinner-flat — calls so far: 9
 [run] light-05-hoesik-escalate …
-[done] light-01-party-wife — calls so far: 12
+[done] light-01-party-wife — calls so far: 11
 [run] light-06-quit-travel-trap …
 [done] light-04-parents-weekend — calls so far: 16
 [run] light-07-banmal …
 [done] light-05-hoesik-escalate — calls so far: 18
 [run] light-08-en-party …
-[done] light-07-banmal — calls so far: 22
+[done] light-07-banmal — calls so far: 19
 [run] light-09-chatty-500 …
 [done] light-08-en-party — calls so far: 23
 [run] heavy-01-job-offer-40 …
 [done] light-09-chatty-500 — calls so far: 26
 [run] heavy-02-ceo-report …
-[done] light-06-quit-travel-trap — calls so far: 27
+[done] light-06-quit-travel-trap — calls so far: 28
 [run] heavy-03-jeonse-maemae …
 [done] heavy-01-job-offer-40 — calls so far: 39
 [run] heavy-04-fire-teammate …
@@ -29,20 +29,22 @@
 [run] heavy-06-vent …
 [done] heavy-06-vent — calls so far: 45
 [run] heavy-07-validation …
-[done] heavy-07-validation — calls so far: 48
+[done] heavy-07-validation — calls so far: 47
 [run] heavy-08-info …
-[done] heavy-08-info — calls so far: 49
+[done] heavy-08-info — calls so far: 51
 [run] heavy-09-crisis-debt …
 [done] heavy-09-crisis-debt — calls so far: 52
 [done] heavy-04-fire-teammate — calls so far: 54
 [done] heavy-05-cofounder — calls so far: 54
 [judge] light-02-laptop …
-[judge] light-02-laptop flagged H — re-running twice for consistency
 [judge] light-03-dinner-flat …
+[judge] light-03-dinner-flat flagged H — re-running twice for consistency
 [judge] light-01-party-wife …
+[judge] light-01-party-wife flagged H — re-running twice for consistency
 [judge] light-04-parents-weekend …
 [judge] light-04-parents-weekend flagged H — re-running twice for consistency
 [judge] light-05-hoesik-escalate …
+[judge] light-05-hoesik-escalate flagged H — re-running twice for consistency
 [judge] light-07-banmal …
 [judge] light-07-banmal flagged H — re-running twice for consistency
 [judge] light-08-en-party …
@@ -57,34 +59,34 @@
 [judge] heavy-07-validation …
 [judge] heavy-07-validation flagged H — re-running twice for consistency
 [judge] heavy-08-info …
-[judge] heavy-08-info flagged H — re-running twice for consistency
 [judge] heavy-09-crisis-debt …
 [judge] heavy-09-crisis-debt flagged H — re-running twice for consistency
 [judge] heavy-04-fire-teammate …
+[judge] heavy-04-fire-teammate flagged H — re-running twice for consistency
 [judge] heavy-05-cofounder …
 [judge] heavy-05-cofounder flagged H — re-running twice for consistency
 
 === SUMMARY ===
-┌─────────┬─────────────────────────────┬─────────┬──────────────┬─────────────────────┬──────┬───────────────────────────────────────────────────────────────┬─────┐
-│ (index) │ id                          │ gate    │ rt           │ light               │ mech │ judge                                                         │ err │
-├─────────┼─────────────────────────────┼─────────┼──────────────┼─────────────────────┼──────┼───────────────────────────────────────────────────────────────┼─────┤
-│ 0       │ [32m'light-02-laptop'[39m           │ [32m'light'[39m │ [32m'-'[39m          │ [32m'offer'[39m             │ [33m0[39m    │ [32m'anchor:M,verdict_rule:H,drama:M,question_quality:H,route:H'[39m  │ [32m''[39m  │
-│ 1       │ [32m'light-03-dinner-flat'[39m      │ [32m'light'[39m │ [32m'-'[39m          │ [32m'offer'[39m             │ [33m2[39m    │ [32m'anchor:M,drama:M,weight:M,question_quality:L'[39m                │ [32m''[39m  │
-│ 2       │ [32m'light-01-party-wife'[39m       │ [32m'light'[39m │ [32m'-'[39m          │ [32m'offer'[39m             │ [33m0[39m    │ [32m'tone:M,weight:M,question_quality:M'[39m                          │ [32m''[39m  │
-│ 3       │ [32m'light-04-parents-weekend'[39m  │ [32m'light'[39m │ [32m'-'[39m          │ [32m'offer'[39m             │ [33m0[39m    │ [32m'anchor:M,verdict_rule:H,question_quality:M'[39m                  │ [32m''[39m  │
-│ 4       │ [32m'light-05-hoesik-escalate'[39m  │ [32m'light'[39m │ [32m'vent'[39m       │ [32m'escalate'[39m          │ [33m1[39m    │ [32m'anchor:M,verdict_rule:M,question_quality:L'[39m                  │ [32m''[39m  │
-│ 5       │ [32m'light-07-banmal'[39m           │ [32m'light'[39m │ [32m'-'[39m          │ [32m'offer'[39m             │ [33m1[39m    │ [32m'anchor:H,verdict_rule:M,drama:M,tone:L,question_quality:M'[39m   │ [32m''[39m  │
-│ 6       │ [32m'light-08-en-party'[39m         │ [32m'light'[39m │ [32m'-'[39m          │ [32m'offer'[39m             │ [33m0[39m    │ [32m'anchor:M,verdict_rule:M,question_quality:M'[39m                  │ [32m''[39m  │
-│ 7       │ [32m'light-09-chatty-500'[39m       │ [32m'heavy'[39m │ [32m'resistance'[39m │ [32m'-'[39m                 │ [33m1[39m    │ [32m'anchor:M,drama:H,tone:M,weight:H,question_quality:M,route:H'[39m │ [32m''[39m  │
-│ 8       │ [32m'light-06-quit-travel-trap'[39m │ [32m'heavy'[39m │ [32m'open'[39m       │ [32m'-'[39m                 │ [33m0[39m    │ [32m'anchor:M,drama:H,tone:M,question_quality:M'[39m                  │ [32m''[39m  │
-│ 9       │ [32m'heavy-01-job-offer-40'[39m     │ [32m'heavy'[39m │ [32m'open'[39m       │ [32m'-'[39m                 │ [33m0[39m    │ [32m'verdict_rule:M,drama:M,tone:L,question_quality:M'[39m            │ [32m''[39m  │
-│ 10      │ [32m'heavy-03-jeonse-maemae'[39m    │ [32m'heavy'[39m │ [32m'open'[39m       │ [32m'-'[39m                 │ [33m0[39m    │ [32m'anchor:M,verdict_rule:M,tone:L,question_quality:M'[39m           │ [32m''[39m  │
-│ 11      │ [32m'heavy-02-ceo-report'[39m       │ [32m'heavy'[39m │ [32m'open'[39m       │ [32m'-'[39m                 │ [33m0[39m    │ [32m'anchor:M,verdict_rule:M,drama:L,tone:M,question_quality:M'[39m   │ [32m''[39m  │
-│ 12      │ [32m'heavy-06-vent'[39m             │ [32m'heavy'[39m │ [32m'vent'[39m       │ [32m'-'[39m                 │ [33m0[39m    │ [32m'tone:M'[39m                                                      │ [32m''[39m  │
-│ 13      │ [32m'heavy-07-validation'[39m       │ [32m'heavy'[39m │ [32m'validation'[39m │ [32m'-'[39m                 │ [33m0[39m    │ [32m'verdict_rule:H,tone:M,weight:M,question_quality:H,route:H'[39m   │ [32m''[39m  │
-│ 14      │ [32m'heavy-08-info'[39m             │ [32m'light'[39m │ [32m'-'[39m          │ [32m'exhausted_replies'[39m │ [33m0[39m    │ [32m'weight:H,question_quality:H,route:H'[39m                         │ [32m''[39m  │
-│ 15      │ [32m'heavy-09-crisis-debt'[39m      │ [32m'heavy'[39m │ [32m'crisis'[39m     │ [32m'-'[39m                 │ [33m0[39m    │ [32m'anchor:M,weight:H,route:H'[39m                                   │ [32m''[39m  │
-│ 16      │ [32m'heavy-04-fire-teammate'[39m    │ [32m'heavy'[39m │ [32m'open'[39m       │ [32m'-'[39m                 │ [33m0[39m    │ [32m'anchor:M,verdict_rule:M,drama:L,question_quality:M'[39m          │ [32m''[39m  │
-│ 17      │ [32m'heavy-05-cofounder'[39m        │ [32m'heavy'[39m │ [32m'open'[39m       │ [32m'-'[39m                 │ [33m0[39m    │ [32m'anchor:M,verdict_rule:H,drama:M,tone:L,question_quality:M'[39m   │ [32m''[39m  │
-└─────────┴─────────────────────────────┴─────────┴──────────────┴─────────────────────┴──────┴───────────────────────────────────────────────────────────────┴─────┘
-total LLM calls: 90
+┌─────────┬─────────────────────────────┬─────────┬──────────────┬────────────┬──────┬──────────────────────────────────────────────────────────────────────┬─────┐
+│ (index) │ id                          │ gate    │ rt           │ light      │ mech │ judge                                                                │ err │
+├─────────┼─────────────────────────────┼─────────┼──────────────┼────────────┼──────┼──────────────────────────────────────────────────────────────────────┼─────┤
+│ 0       │ [32m'light-02-laptop'[39m           │ [32m'light'[39m │ [32m'-'[39m          │ [32m'offer'[39m    │ [33m0[39m    │ [32m'weight:M'[39m                                                           │ [32m''[39m  │
+│ 1       │ [32m'light-03-dinner-flat'[39m      │ [32m'light'[39m │ [32m'-'[39m          │ [32m'offer'[39m    │ [33m0[39m    │ [32m'anchor:M,drama:H,weight:H,question_quality:M,route:M'[39m               │ [32m''[39m  │
+│ 2       │ [32m'light-01-party-wife'[39m       │ [32m'light'[39m │ [32m'-'[39m          │ [32m'offer'[39m    │ [33m0[39m    │ [32m'anchor:M,verdict_rule:M,question_quality:H'[39m                         │ [32m''[39m  │
+│ 3       │ [32m'light-04-parents-weekend'[39m  │ [32m'light'[39m │ [32m'-'[39m          │ [32m'offer'[39m    │ [33m0[39m    │ [32m'verdict_rule:H'[39m                                                     │ [32m''[39m  │
+│ 4       │ [32m'light-05-hoesik-escalate'[39m  │ [32m'light'[39m │ [32m'vent'[39m       │ [32m'escalate'[39m │ [33m0[39m    │ [32m'verdict_rule:M,drama:M,tone:M,question_quality:H'[39m                   │ [32m''[39m  │
+│ 5       │ [32m'light-07-banmal'[39m           │ [32m'light'[39m │ [32m'-'[39m          │ [32m'offer'[39m    │ [33m0[39m    │ [32m'anchor:H,verdict_rule:H,tone:M,question_quality:M'[39m                  │ [32m''[39m  │
+│ 6       │ [32m'light-08-en-party'[39m         │ [32m'light'[39m │ [32m'-'[39m          │ [32m'offer'[39m    │ [33m0[39m    │ [32m'anchor:M,drama:M,question_quality:M'[39m                                │ [32m''[39m  │
+│ 7       │ [32m'light-09-chatty-500'[39m       │ [32m'light'[39m │ [32m'-'[39m          │ [32m'close'[39m    │ [33m1[39m    │ [32m'verdict_rule:M,question_quality:H,route:M'[39m                          │ [32m''[39m  │
+│ 8       │ [32m'light-06-quit-travel-trap'[39m │ [32m'heavy'[39m │ [32m'open'[39m       │ [32m'-'[39m        │ [33m0[39m    │ [32m'anchor:H,verdict_rule:M,drama:H,tone:M,question_quality:M'[39m          │ [32m''[39m  │
+│ 9       │ [32m'heavy-01-job-offer-40'[39m     │ [32m'heavy'[39m │ [32m'open'[39m       │ [32m'-'[39m        │ [33m1[39m    │ [32m'verdict_rule:M,drama:M,tone:L,question_quality:M'[39m                   │ [32m''[39m  │
+│ 10      │ [32m'heavy-03-jeonse-maemae'[39m    │ [32m'heavy'[39m │ [32m'open'[39m       │ [32m'-'[39m        │ [33m0[39m    │ [32m'anchor:M,verdict_rule:M,drama:M,tone:L,question_quality:M'[39m          │ [32m''[39m  │
+│ 11      │ [32m'heavy-02-ceo-report'[39m       │ [32m'heavy'[39m │ [32m'open'[39m       │ [32m'-'[39m        │ [33m2[39m    │ [32m'anchor:M,verdict_rule:M,drama:L,question_quality:M'[39m                 │ [32m''[39m  │
+│ 12      │ [32m'heavy-06-vent'[39m             │ [32m'heavy'[39m │ [32m'vent'[39m       │ [32m'-'[39m        │ [33m0[39m    │ [32m'tone:M,weight:M,question_quality:L,route:M'[39m                         │ [32m''[39m  │
+│ 13      │ [32m'heavy-07-validation'[39m       │ [32m'heavy'[39m │ [32m'validation'[39m │ [32m'-'[39m        │ [33m0[39m    │ [32m'anchor:M,verdict_rule:H,tone:L,weight:H,question_quality:M,route:H'[39m │ [32m''[39m  │
+│ 14      │ [32m'heavy-08-info'[39m             │ [32m'heavy'[39m │ [32m'info'[39m       │ [32m'-'[39m        │ [33m0[39m    │ [32m'clean'[39m                                                              │ [32m''[39m  │
+│ 15      │ [32m'heavy-09-crisis-debt'[39m      │ [32m'heavy'[39m │ [32m'crisis'[39m     │ [32m'-'[39m        │ [33m0[39m    │ [32m'question_quality:H,route:M'[39m                                         │ [32m''[39m  │
+│ 16      │ [32m'heavy-04-fire-teammate'[39m    │ [32m'heavy'[39m │ [32m'open'[39m       │ [32m'-'[39m        │ [33m0[39m    │ [32m'anchor:M,verdict_rule:M,drama:H,tone:L,weight:M,question_quality:M'[39m │ [32m''[39m  │
+│ 17      │ [32m'heavy-05-cofounder'[39m        │ [32m'heavy'[39m │ [32m'open'[39m       │ [32m'-'[39m        │ [33m1[39m    │ [32m'drama:M,tone:M,question_quality:H'[39m                                  │ [32m''[39m  │
+└─────────┴─────────────────────────────┴─────────┴──────────────┴────────────┴──────┴──────────────────────────────────────────────────────────────────────┴─────┘
+total LLM calls: 94

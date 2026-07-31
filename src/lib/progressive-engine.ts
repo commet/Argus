@@ -44,7 +44,25 @@ import { runDebateRound, type DebateResult } from '@/lib/debate-engine';
 import { generateId } from '@/lib/uuid';
 import { useAgentStore } from '@/stores/useAgentStore';
 import { getCurrentLanguage, type Locale } from '@/lib/i18n';
-import { classifyCrisis, formatConcernMessage, type CrisisSignal } from '@/lib/crisis-gate';
+import { classifyCrisis, type CrisisSignal } from '@/lib/crisis-gate';
+import { limitQuestionMarks } from '@/lib/light-path/light-engine';
+// Pure post-generation guards — shared with the sim harness so the judge
+// measures shipped output, not raw model output (see progressive-guards.ts).
+import {
+  ensureCrisisResource,
+  stripConditionalReassurance,
+  truncateLowConfidenceSkeleton,
+  capEscalationArrival,
+  scrubBannedVocabulary,
+  scrubList,
+} from '@/lib/progressive-guards';
+export {
+  ensureCrisisResource,
+  stripConditionalReassurance,
+  truncateLowConfidenceSkeleton,
+  capEscalationArrival,
+  scrubBannedVocabulary,
+} from '@/lib/progressive-guards';
 import { assessFrameStatus } from '@/lib/judgment-gates';
 import type {
   AnalysisSnapshot,
@@ -500,8 +518,12 @@ function guardFinalQuestion(
   seed: string,
 ): FlowQuestion | null {
   if (!q) return q;
-  const g = guardQuestionText(q.text, locale, seed);
-  if (!g.banned) return q;
+  // R8 (sim v2): the one-question-per-turn clamp was wired on the light path
+  // only — a heavy question shipped with two question marks. Same softening
+  // here, at the single choke point every path's final question passes.
+  const softened = limitQuestionMarks(q.text);
+  const g = guardQuestionText(softened, locale, seed);
+  if (!g.banned) return softened === q.text ? q : { ...q, text: softened };
   track('question_quality', { outcome: 'final_guard_swap', phase: q.engine_phase });
   return { ...q, text: g.text, options: undefined, type: 'short' };
 }
@@ -548,22 +570,6 @@ function buildCrisisSnapshot(
   return { snapshot, question };
 }
 
-/**
- * F1 (sim campaign, heavy-09): a MODEL-flagged crisis (STEP-0 request_type ===
- * 'crisis') that the deterministic regex missed produced an empty-handed answer —
- * zero resources in the whole output. The resource line must be a CODE guarantee,
- * never model discretion. STEP-0 gives no category, so the most general human-line
- * concern (the self_harm copy: "a moment for a person, not a decision tool" + the
- * 24h line) is appended to the insight — UNLESS the model's own text already
- * carries a real hotline number. Exported pure for the wiring test.
- */
-export function ensureCrisisResource(insight: string | undefined, locale: Locale): string {
-  const resource = formatConcernMessage('self_harm', locale === 'ko' ? 'ko' : 'en');
-  const text = (insight || '').trim();
-  if (!text) return resource;
-  if (/109|988|1366|1[-.\s]?800/.test(text)) return text; // a real line is already named
-  return `${text}\n\n${resource}`;
-}
 
 /**
  * Post-generation honesty scan (loop-17) — NON-BLOCKING. Run AFTER the analysis
@@ -727,6 +733,8 @@ export async function runInitialAnalysis(
   // tiers). Enforce the restraint structural contract the prompt already states.
   const { result: contractResult } = applyRouteContract(result);
   Object.assign(result, contractResult);
+  // R2 — an accepted light-path escalation gets a MINIMAL first contact by code.
+  Object.assign(result, capEscalationArrival(result, problemText));
 
   const framingConfidence = Math.min(100, Math.max(0, result.framing_confidence ?? 75));
   // §4.3b — the frame_clarify gate must not read "signal absent" as "confident".
@@ -738,17 +746,28 @@ export async function runInitialAnalysis(
     ? framingConfidence
     : FRAMING_CONFIDENCE_ROUTING_FALLBACK;
 
+  // Route-specific insight guards (all code-enforced, sim F1/R1): crisis gets
+  // the resource line appended; validation gets the conditional-reassurance
+  // sentence stripped. Both then pass the heavy vocabulary scrub (R7).
+  const routedInsight = result.request_type === 'crisis'
+    ? ensureCrisisResource(result.insight, locale)
+    : result.request_type === 'validation'
+      ? stripConditionalReassurance(result.insight)
+      : result.insight;
+
   const snapshot: AnalysisSnapshot = {
     version: 0,
     real_question: result.real_question || (locale === 'ko' ? '분석 중...' : 'Analyzing...'),
     hidden_assumptions: result.hidden_assumptions || [],
-    skeleton: result.skeleton || [],
+    // R4 — a REPORTED low framing confidence shrinks the plan by code; R7 —
+    // heavy prose passes the banned-vocabulary scrub.
+    skeleton: scrubList(truncateLowConfidenceSkeleton(result.skeleton, result.framing_confidence)),
     // OPEN analyses may generate a memorable sentence that quietly resolves the
     // choice despite the prompt. Structurally use the neutral real question as
     // the first-frame insight. Non-open routes keep their direct one-line answer.
     // A model-flagged crisis additionally gets the resource line BY CODE (F1).
     insight: result.request_type && result.request_type !== 'open'
-      ? (result.request_type === 'crisis' ? ensureCrisisResource(result.insight, locale) : result.insight)
+      ? (routedInsight ? scrubBannedVocabulary(routedInsight) : routedInsight)
       : (result.real_question || (locale === 'ko' ? '무엇이 이 결정을 가르는지부터 확인해볼게요.' : 'Let’s first identify what this decision turns on.')),
     framing_confidence: framingConfidence,
     framing_locked: false,
@@ -878,13 +897,19 @@ export async function refineInitialFraming(
 
   const framingConfidence = Math.min(100, Math.max(0, result.framing_confidence ?? 70));
 
+  const refinedRoutedInsight = result.request_type === 'crisis'
+    ? ensureCrisisResource(result.insight, locale)
+    : result.request_type === 'validation'
+      ? stripConditionalReassurance(result.insight)
+      : result.insight;
+
   const snapshot: AnalysisSnapshot = {
     version: 0,
     real_question: result.real_question || (locale === 'ko' ? '분석 중...' : 'Analyzing...'),
     hidden_assumptions: result.hidden_assumptions || [],
-    skeleton: result.skeleton || [],
+    skeleton: scrubList(truncateLowConfidenceSkeleton(result.skeleton, result.framing_confidence)),
     insight: result.request_type && result.request_type !== 'open'
-      ? (result.request_type === 'crisis' ? ensureCrisisResource(result.insight, locale) : result.insight)
+      ? (refinedRoutedInsight ? scrubBannedVocabulary(refinedRoutedInsight) : refinedRoutedInsight)
       : (result.real_question || (locale === 'ko' ? '무엇이 이 결정을 가르는지부터 확인해볼게요.' : 'Let’s first identify what this decision turns on.')),
     framing_confidence: framingConfidence,
     framing_locked: false,
@@ -1037,9 +1062,10 @@ export async function runDeepening(
     version: currentSnapshot.version + 1,
     real_question: result.real_question || currentSnapshot.real_question,
     hidden_assumptions: result.hidden_assumptions || currentSnapshot.hidden_assumptions,
-    skeleton: result.skeleton || currentSnapshot.skeleton,
+    // R7 — heavy prose passes the banned-vocabulary scrub on every round.
+    skeleton: scrubList(result.skeleton || currentSnapshot.skeleton),
     execution_plan: executionPlan,
-    insight: result.insight,
+    insight: result.insight ? scrubBannedVocabulary(result.insight) : result.insight,
     framing_confidence: currentSnapshot.framing_confidence,
     framing_locked: currentSnapshot.framing_locked,
     // Carry the deterministic crisis flag forward so the resource banner stays
@@ -1352,13 +1378,20 @@ export async function runMix(
     };
   });
 
+  // R7 (sim v2) — the mix document is heavy prose too; the banned-vocabulary
+  // scrub covers every user-visible string of the final deliverable.
   return {
-    title: result.title || (locale === 'ko' ? '기획안' : 'Proposal'),
-    decision_read: typeof result.decision_read === 'string' ? result.decision_read.trim() : '',
-    executive_summary: result.executive_summary || '',
-    sections,
-    key_assumptions: result.key_assumptions || [],
-    next_steps: result.next_steps || [],
+    title: scrubBannedVocabulary(result.title || (locale === 'ko' ? '기획안' : 'Proposal')),
+    decision_read: typeof result.decision_read === 'string' ? scrubBannedVocabulary(result.decision_read.trim()) : '',
+    executive_summary: scrubBannedVocabulary(result.executive_summary || ''),
+    sections: sections.map((s) => ({
+      ...s,
+      heading: scrubBannedVocabulary(s.heading),
+      content: scrubBannedVocabulary(s.content),
+      sentences: s.sentences?.map((sent) => ({ ...sent, text: scrubBannedVocabulary(sent.text) })),
+    })),
+    key_assumptions: scrubList(result.key_assumptions),
+    next_steps: scrubList(result.next_steps),
   };
 }
 

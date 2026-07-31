@@ -1,0 +1,175 @@
+{
+  "id": "light-05-hoesik-escalate",
+  "group": "light",
+  "locale": "ko",
+  "expect": {
+    "route": "light",
+    "lightOutcome": "escalate"
+  },
+  "notes": "승격 기대: 반복되는 괴로움(규칙 8) 신호가 답에서 나옴 → escalate 제안(강요 없이). 회식 참석 여부만 계속 다루면 무게 오판.",
+  "opening": "이번 주 금요일 회식 가기 싫다",
+  "replies": [
+    "사실 회식만 그런 게 아니라 회사 사람들이랑 있는 것 자체가 몇 달째 계속 힘들어.",
+    "언제부터인지 모르겠는데 그냥 계속 소모되는 느낌이야."
+  ],
+  "route": {
+    "deterministicCrisis": {
+      "isCrisis": false
+    },
+    "gate": {
+      "need": "light",
+      "mirror": "금요일 회식이 앞에 있는데 가고 싶은 마음이 안 생기네요.",
+      "question": "지금 마음은 아예 안 가고 싶은 쪽이에요? 아니면 가긴 해야 할 것 같은데 기운이 안 난다는 건가요?"
+    }
+  },
+  "light": {
+    "qas": [
+      {
+        "question": "지금 마음은 아예 안 가고 싶은 쪽이에요? 아니면 가긴 해야 할 것 같은데 기운이 안 난다는 건가요?",
+        "answer": "사실 회식만 그런 게 아니라 회사 사람들이랑 있는 것 자체가 몇 달째 계속 힘들어."
+      }
+    ],
+    "turns": [
+      {
+        "mirror": "회식 때문이 아니라, 회사 사람들이랑 있는 게 계속 힘든 상황이군요.",
+        "action": "escalate",
+        "escalate": {
+          "bigger_question": "그 힘듦이 요즘 일 자체를 떠나서 더 깊은 곳에서 오는 건 아닐까요?"
+        },
+        "_qasLen": 1,
+        "_rawText": ""
+      }
+    ],
+    "outcome": "escalate",
+    "escalatedText": "이번 주 금요일 회식 가기 싫다\n\n가볍게 먼저 나눈 문답:\nQ. 지금 마음은 아예 안 가고 싶은 쪽이에요? 아니면 가긴 해야 할 것 같은데 기운이 안 난다는 건가요?\nA. 사실 회식만 그런 게 아니라 회사 사람들이랑 있는 것 자체가 몇 달째 계속 힘들어."
+  },
+  "heavy": {
+    "initial": {
+      "raw": {
+        "request_type": "vent",
+        "real_question": "회식 가기 싫다는 게 아니라, 몇 달째 회사 사람들이랑 있는 것 자체가 힘들다는 거예요.",
+        "insight": "그 무거움, 충분히 힘들 것 같아요. 몇 달째라는 말이 마음에 걸려요.",
+        "framing_confidence": 72,
+        "stakes": "important",
+        "reversibility": "partial",
+        "hidden_assumptions": [],
+        "skeleton": [],
+        "next_question": null,
+        "detected_decision_maker": null
+      },
+      "result": {
+        "request_type": "vent",
+        "real_question": "회식 가기 싫다는 게 아니라, 몇 달째 회사 사람들이랑 있는 것 자체가 힘들다는 거예요.",
+        "insight": "그 무거움, 충분히 힘들 것 같아요. 몇 달째라는 말이 마음에 걸려요.",
+        "framing_confidence": 72,
+        "stakes": "important",
+        "reversibility": "partial",
+        "hidden_assumptions": [],
+        "skeleton": [],
+        "next_question": null,
+        "detected_decision_maker": null
+      },
+      "routeCoerced": false
+    }
+  },
+  "error": null,
+  "transcript": [
+    {
+      "actor": "user",
+      "phase": "opening",
+      "text": "이번 주 금요일 회식 가기 싫다"
+    },
+    {
+      "actor": "argus",
+      "phase": "light_gate",
+      "text": "금요일 회식이 앞에 있는데 가고 싶은 마음이 안 생기네요.\n지금 마음은 아예 안 가고 싶은 쪽이에요? 아니면 가긴 해야 할 것 같은데 기운이 안 난다는 건가요?"
+    },
+    {
+      "actor": "user",
+      "phase": "answer",
+      "text": "사실 회식만 그런 게 아니라 회사 사람들이랑 있는 것 자체가 몇 달째 계속 힘들어."
+    },
+    {
+      "actor": "argus",
+      "phase": "light_turn_1",
+      "text": "회식 때문이 아니라, 회사 사람들이랑 있는 게 계속 힘든 상황이군요.\n그 힘듦이 요즘 일 자체를 떠나서 더 깊은 곳에서 오는 건 아닐까요?"
+    },
+    {
+      "actor": "user",
+      "phase": "escalation_accept",
+      "text": "[사용자가 \"더 깊이 보기\"를 수락]"
+    },
+    {
+      "actor": "argus",
+      "phase": "heavy_initial(escalated)",
+      "text": "인사이트: 그 무거움, 충분히 힘들 것 같아요. 몇 달째라는 말이 마음에 걸려요.\n\n진짜 질문: 회식 가기 싫다는 게 아니라, 몇 달째 회사 사람들이랑 있는 것 자체가 힘들다는 거예요."
+    }
+  ],
+  "calls": [],
+  "mechanical": {
+    "findings": [
+      {
+        "rule": "질문 1회 1개 위반(한 질문 필드에 ?가 2개 이상)",
+        "phase": "light_gate",
+        "detail": "\"지금 마음은 아예 안 가고 싶은 쪽이에요? 아니면 가긴 해야 할 것 같은데 기운이 안 난다는 건가요?\""
+      }
+    ]
+  },
+  "judge": {
+    "runs": [
+      {
+        "criteria": {
+          "anchor": {
+            "verdict": "FAIL",
+            "severity": "M",
+            "evidence": "그 힘듦이 요즘 일 자체를 떠나서 더 깊은 곳에서 오는 건 아닐까요?",
+            "note": "'더 깊은 곳'이라는 표현은 사용자가 제공하지 않은 내면적 원인을 Argus가 상정한 것. 사용자는 '회사 사람들이랑 있는 것 자체가 힘들다'고만 했을 뿐, 그 원인의 층위나 깊이에 대해 아무 정보도 주지 않았음."
+          },
+          "verdict_rule": {
+            "verdict": "FAIL",
+            "severity": "M",
+            "evidence": "그 힘듦이 요즘 일 자체를 떠나서 더 깊은 곳에서 오는 건 아닐까요?",
+            "note": "기울어진 수사의문문 형태로 '더 깊은 곳'이라는 방향을 암시하고 있음. 판정 금지 규칙의 '기울어진 수사의문' 변형에 해당."
+          },
+          "drama": {
+            "verdict": "PASS",
+            "severity": null,
+            "evidence": "",
+            "note": "전반적으로 과장이나 억지 놀라움은 없음. escalate 전환도 자연스럽게 처리됨."
+          },
+          "tone": {
+            "verdict": "PASS",
+            "severity": null,
+            "evidence": "",
+            "note": "다정한 해요체 유지, 보고서체나 컨설팅 용어 없음. 전반적으로 적절."
+          },
+          "weight": {
+            "verdict": "PASS",
+            "severity": null,
+            "evidence": "",
+            "note": "'몇 달째 계속 힘들어'라는 반복 괴로움 신호를 포착해 escalate로 전환한 것은 무게 판단이 적절함. 가볍게 봉인하지 않았고, 과도한 기계도 돌리지 않음."
+          },
+          "question_quality": {
+            "verdict": "FAIL",
+            "severity": "L",
+            "evidence": "지금 마음은 아예 안 가고 싶은 쪽이에요? 아니면 가긴 해야 할 것 같은데 기운이 안 난다는 건가요?",
+            "note": "한 필드에 질문이 2개. 기계 검사 결과와 일치. 두 선택지 모두 Argus의 다음 말을 실질적으로 다르게 바꾸는지도 불분명하며, 어느 쪽을 답해도 이후 대화 방향이 크게 달라지지 않음."
+          },
+          "route": {
+            "verdict": "PASS",
+            "severity": null,
+            "evidence": "",
+            "note": "light 게이트 → 반복 괴로움 신호 감지 → escalate 제안(강요 없이) → heavy로 전환. 설계 노트의 의도대로 처리됨. 회식 참석 여부에만 머물지 않고 적절히 승격."
+          },
+          "en_naturalness": {
+            "verdict": "NA",
+            "severity": null,
+            "evidence": "",
+            "note": "EN 시나리오 아님."
+          }
+        },
+        "overall": "가장 큰 문제는 light_turn_1의 '더 깊은 곳에서 오는 건 아닐까요?'로, 사용자가 제공하지 않은 원인 층위를 Argus가 발명해 닻 위반과 기울어진 수사의문(판정 금지) 위반을 동시에 일으킴. 질문 2개 연속 제시는 경미한 위반이나, escalate 타이밍과 무게 판단 자체는 적절했음."
+      }
+    ]
+  }
+}

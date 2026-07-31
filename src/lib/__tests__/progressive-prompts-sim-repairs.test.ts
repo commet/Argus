@@ -75,6 +75,41 @@ describe('F3 — validation: the check stands alone', () => {
   });
 });
 
+describe('R1 (v2) — the conditional-reassurance SENTENCE FORM is banned in every wording', () => {
+  it('pins the v2 rerun rephrase as the same violation and announces the code post-scan', () => {
+    expect(initial.system).toContain('없다면 걸림돌은 없어요.');
+    expect(initial.system).toContain('The SENTENCE FORM itself is banned in every wording');
+    expect(initial.system).toContain('a code post-scan strips it');
+  });
+
+  it('batch-3 rerun: the validation reply must OPEN by receiving the decision as made', () => {
+    expect(initial.system).toContain('THE ACKNOWLEDGMENT IS NOT OPTIONAL');
+    expect(initial.system).toContain('그건 정해진 걸로 둘게요');
+  });
+});
+
+describe('R2 (v2) — an accepted escalation arrives to MINIMAL first contact', () => {
+  it('the hand-up marker classifies OPEN (never VENT) with one crux and no 5-step plan', () => {
+    expect(initial.system).toContain('ESCALATION ARRIVAL');
+    expect(initial.system).toContain("'더 깊이 보기'를 직접 선택");
+    expect(initial.system).toContain('classify OPEN — never VENT');
+    expect(initial.system).toContain('skeleton at most 2 lines');
+    expect(initial.system).toContain('NO 5-step plan');
+  });
+
+  it('pins the tilted recognition line from the sim as ✗', () => {
+    expect(initial.system).toContain('✗ "조건이 하나도 안 떠오른다면, 그 자체가 중요한 신호예요"');
+  });
+});
+
+describe('R7 (v2) — the shared voice rules ban the leaked vocabulary at the source', () => {
+  it('names 베팅/초안/걸어두다 with their honest replacements', () => {
+    expect(deepening.system).toContain('금지 어휘');
+    expect(deepening.system).toContain('"베팅"(→ 판단)');
+    expect(deepening.system).toContain('"초안"(→ 밑그림)');
+  });
+});
+
 describe('F4② — ceremony follows weight in the FIRST response too', () => {
   it('the initial prompt now carries the routine+reversible reduction rule', () => {
     expect(initial.system).toContain('CEREMONY FOLLOWS WEIGHT');

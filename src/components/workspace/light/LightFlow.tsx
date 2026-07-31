@@ -74,6 +74,9 @@ type Screen =
       /** The sealed contract's exact check date — the keepsake sets it in
        *  tabular numerals. */
       checkInAt?: string;
+      /** R5 (초평평): when the engine closes warmly instead of offering, its
+       *  mirror carries the closing words — shown above the standard line. */
+      closeMirror?: string;
     };
 
 /** The keepsake's date line — the one concrete number on the card. */
@@ -187,8 +190,10 @@ export function LightFlow({
         setScreen({ kind: 'escalate', mirror: turn.mirror, biggerQuestion: turn.escalate.bigger_question });
         track('light_escalation_offered');
       } else {
-        // Plain close — the engine had nothing honest to ask or leave behind.
-        setScreen({ kind: 'closed', variant: 'declined' });
+        // Plain close — an ultra-flat decision (nothing worth checking) or a
+        // degenerate turn. The engine's warm closing words, when present, ride
+        // the mirror (R5: no offer ceremony when a check would be meaningless).
+        setScreen({ kind: 'closed', variant: 'declined', closeMirror: turn.mirror || undefined });
       }
     } catch {
       if (controller.signal.aborted) return;
@@ -579,12 +584,19 @@ export function LightFlow({
                 )}
               </>
             ) : (
-              <p
-                className="text-[15px] md:text-[16px] leading-[1.65] text-[var(--text-primary)] break-keep break-words"
-                style={{ fontFamily: 'var(--font-display)' }}
-              >
-                {L('네, 여기까지도 충분해요. 필요하면 언제든요.', "That's plenty for today. I'm here whenever you need.")}
-              </p>
+              <>
+                {screen.closeMirror && (
+                  <p className="mb-2 text-[13.5px] md:text-[14px] text-[var(--text-secondary)] leading-[1.7] break-keep break-words whitespace-pre-wrap">
+                    {screen.closeMirror}
+                  </p>
+                )}
+                <p
+                  className="text-[15px] md:text-[16px] leading-[1.65] text-[var(--text-primary)] break-keep break-words"
+                  style={{ fontFamily: 'var(--font-display)' }}
+                >
+                  {L('네, 여기까지도 충분해요. 필요하면 언제든요.', "That's plenty for today. I'm here whenever you need.")}
+                </p>
+              </>
             )}
             <div className="mt-5">
               <Button variant="secondary" size="sm" onClick={onClose}>

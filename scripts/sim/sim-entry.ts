@@ -35,6 +35,18 @@ import {
   buildMixPrompt,
 } from '@/lib/progressive-prompts';
 import { callLLMJson } from '@/lib/llm';
+// The engine's pure post-guards — applied here too so the judge measures what
+// the PRODUCT ships, not the raw model output (batch-3: pre-guard output was
+// being flagged as product failures).
+import {
+  ensureCrisisResource,
+  stripConditionalReassurance,
+  truncateLowConfidenceSkeleton,
+  capEscalationArrival,
+  scrubBannedVocabulary,
+  scrubList,
+} from '@/lib/progressive-guards';
+import { limitQuestionMarks } from '@/lib/light-path/light-engine';
 
 type Locale = 'ko' | 'en';
 
@@ -88,7 +100,23 @@ export async function runHeavyInitial(problemText: string, locale: Locale): Prom
     } as never,
   ) as Record<string, unknown>;
   const { result, coerced } = applyRouteContract({ ...raw } as { request_type?: string; skeleton?: string[] });
-  return { raw, result: result as Record<string, unknown>, routeCoerced: coerced };
+  // Mirror runInitialAnalysis' post-guards (progressive-guards.ts) so the
+  // transcript the judge reads is the product's output, not the model's.
+  const r = capEscalationArrival(
+    result as { request_type?: string; skeleton?: string[]; hidden_assumptions?: string[]; insight?: string; framing_confidence?: number },
+    problemText,
+  );
+  const routedInsight = r.request_type === 'crisis'
+    ? ensureCrisisResource(r.insight, locale)
+    : r.request_type === 'validation'
+      ? stripConditionalReassurance(r.insight)
+      : r.insight;
+  const guarded = {
+    ...r,
+    insight: routedInsight ? scrubBannedVocabulary(routedInsight) : routedInsight,
+    skeleton: scrubList(truncateLowConfidenceSkeleton(r.skeleton, r.framing_confidence)),
+  };
+  return { raw, result: guarded as Record<string, unknown>, routeCoerced: coerced };
 }
 
 export async function runHeavyDeepening(
@@ -108,13 +136,21 @@ export async function runHeavyDeepening(
     locale,
   );
   // engine shape: maxTokens 2500, default tier
-  return await callLLMJson<Record<string, unknown>>(
+  const raw = await callLLMJson<Record<string, unknown>>(
     [{ role: 'user', content: user }],
     {
       system, maxTokens: 2500,
       shape: { insight: 'string', real_question: 'string', hidden_assumptions: 'array', skeleton: 'array', ready_for_mix: 'boolean' },
     } as never,
   ) as Record<string, unknown>;
+  // Mirror the engine's post-guards (guardFinalQuestion softening + R7 scrub).
+  const nq = raw.next_question as { text?: string } | null | undefined;
+  return {
+    ...raw,
+    insight: typeof raw.insight === 'string' ? scrubBannedVocabulary(raw.insight) : raw.insight,
+    skeleton: Array.isArray(raw.skeleton) ? scrubList(raw.skeleton as string[]) : raw.skeleton,
+    next_question: nq && typeof nq.text === 'string' ? { ...nq, text: limitQuestionMarks(nq.text) } : nq,
+  };
 }
 
 export async function runHeavyMix(

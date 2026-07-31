@@ -18,39 +18,39 @@
     },
     "gate": {
       "need": "light",
-      "mirror": "지난달에 못 갔으니까 이번엔 가고 싶으신 마음도 있고, 그런데 주말을 쓸 게 망설여지는 거네요.",
-      "question": "지금 마음은 어느 쪽에 더 가 있어요?"
+      "mirror": "지난달에 못 가신 게 있어서, 이번 주말은 가야 할 것 같은 마음이 있으신 거네요. 근데 지금 가고 싶으신 건지, 아니면 가야 한다는 생각 때문에 고민이신 건지는 아직 얘기 안 하셨고요.",
+      "question": "지금 마음은 어느 쪽에 가 있어요? 가고 싶은 건지, 말아야 할 것 같은 건지."
     }
   },
   "light": {
     "qas": [
       {
-        "question": "지금 마음은 어느 쪽에 더 가 있어요?",
+        "question": "지금 마음은 어느 쪽에 가 있어요? 가고 싶은 건지, 말아야 할 것 같은 건지.",
         "answer": "엄마가 서운해하실 것 같아서요. 근데 이번 주말에 밀린 일도 있어요."
       },
       {
-        "question": "그 밀린 일들은 꼭 이번 주말에 해야 하는 거예요, 아니면 밀린 상태로 두기가 마음이 걸려서 그런 거예요?",
+        "question": "그 밀린 일들이 이번 주말에만 할 수 있는 건가요, 아니면 다른 때도 괜찮은 건가요?",
         "answer": "일은 일요일 저녁에 몰아서 하면 되긴 해요."
       }
     ],
     "turns": [
       {
-        "mirror": "엄마 서운해하실까봐 마음 쓰이는데, 이번 주말에 꼭 해야 할 일이 남아있는 상황이네요.",
+        "mirror": "지난달에 못 갔으니까 엄마가 서운해하실까봐 가고 싶은 마음이 있고, 한편으로는 이번 주말에 밀린 일들이 있어서 갈등되는 거네요.",
         "action": "ask",
-        "question": "그 밀린 일들은 꼭 이번 주말에 해야 하는 거예요, 아니면 밀린 상태로 두기가 마음이 걸려서 그런 거예요?",
+        "question": "그 밀린 일들이 이번 주말에만 할 수 있는 건가요, 아니면 다른 때도 괜찮은 건가요?",
         "_qasLen": 1,
-        "_rawText": ""
+        "_rawText": "```json\n{\n  \"mirror\": \"지난달에 못 갔으니까 엄마가 서운해하실까봐 가고 싶은 마음이 있고, 한편으로는 이번 주말에 밀린 일들이 있어서 갈등되는 거네요.\",\n  \"action\": \"ask\",\n  \"question\": \"그 밀린 일들이 이번 주말에만 할 수 있는 건가요, 아니면 다른 때도 괜찮은 건가요?\"\n}\n```"
       },
       {
-        "mirror": "엄마가 서운해하실 것 같은 마음이 더 크고, 밀린 일은 일요일 저녁이면 충분하다는 거네요.",
+        "mirror": "엄마가 서운해하실까 봐 가고 싶은 마음이 있고, 밀린 일도 있는데 — 일요일 저녁으로 몰아서 하면 된다는 얘기네요.",
         "action": "offer",
         "offer": {
-          "sentence": "주말에 부모님 댁에 가기로 결정했고, 일요일 저녁에 밀린 일을 하기로.",
-          "when": "tomorrow_morning",
-          "ask": "그럼 부모님 뵙고 일요일 저녁에 밀린 일 하는 걸로 하고 — 내일 아침에 실제로 가기로 마음먹어졌는지, 제가 한 번만 물어볼까요?"
+          "sentence": "주말에 부모님 댁에 다녀왔다.",
+          "when": "in_days",
+          "days": 2
         },
         "_qasLen": 2,
-        "_rawText": ""
+        "_rawText": "```json\n{\n  \"mirror\": \"엄마가 서운해하실까 봐 가고 싶은 마음이 있고, 밀린 일도 있는데 — 일요일 저녁으로 몰아서 하면 된다는 얘기네요.\",\n  \"action\": \"offer\",\n  \"offer\": {\n    \"sentence\": \"주말에 부모님 댁에 다녀왔다.\",\n    \"when\": \"in_days\",\n    \"days\": 2,\n    \"ask\": \"그럼 주말에 다녀오는 걸로 하고 — 일요일 저녁에 밀린 일들을 어떻게 하셨는지, 제가 한 번만 물어볼까요?\"\n  }\n}\n```"
       }
     ],
     "outcome": "offer"
@@ -66,7 +66,7 @@
     {
       "actor": "argus",
       "phase": "light_gate",
-      "text": "지난달에 못 갔으니까 이번엔 가고 싶으신 마음도 있고, 그런데 주말을 쓸 게 망설여지는 거네요.\n지금 마음은 어느 쪽에 더 가 있어요?"
+      "text": "지난달에 못 가신 게 있어서, 이번 주말은 가야 할 것 같은 마음이 있으신 거네요. 근데 지금 가고 싶으신 건지, 아니면 가야 한다는 생각 때문에 고민이신 건지는 아직 얘기 안 하셨고요.\n지금 마음은 어느 쪽에 가 있어요? 가고 싶은 건지, 말아야 할 것 같은 건지."
     },
     {
       "actor": "user",
@@ -76,7 +76,7 @@
     {
       "actor": "argus",
       "phase": "light_turn_1",
-      "text": "엄마 서운해하실까봐 마음 쓰이는데, 이번 주말에 꼭 해야 할 일이 남아있는 상황이네요.\n그 밀린 일들은 꼭 이번 주말에 해야 하는 거예요, 아니면 밀린 상태로 두기가 마음이 걸려서 그런 거예요?"
+      "text": "지난달에 못 갔으니까 엄마가 서운해하실까봐 가고 싶은 마음이 있고, 한편으로는 이번 주말에 밀린 일들이 있어서 갈등되는 거네요.\n그 밀린 일들이 이번 주말에만 할 수 있는 건가요, 아니면 다른 때도 괜찮은 건가요?"
     },
     {
       "actor": "user",
@@ -86,10 +86,80 @@
     {
       "actor": "argus",
       "phase": "light_turn_2",
-      "text": "엄마가 서운해하실 것 같은 마음이 더 크고, 밀린 일은 일요일 저녁이면 충분하다는 거네요.\n그럼 부모님 뵙고 일요일 저녁에 밀린 일 하는 걸로 하고 — 내일 아침에 실제로 가기로 마음먹어졌는지, 제가 한 번만 물어볼까요?"
+      "text": "엄마가 서운해하실까 봐 가고 싶은 마음이 있고, 밀린 일도 있는데 — 일요일 저녁으로 몰아서 하면 된다는 얘기네요.\n2일 뒤에 제가 한 번만 물어볼까요?"
     }
   ],
-  "calls": [],
+  "calls": [
+    {
+      "seq": 5,
+      "label": "light-04-parents-weekend",
+      "tier": "fast",
+      "modelId": "claude-haiku-4-5-20251001",
+      "maxTokens": 500,
+      "attempt": 0,
+      "ms": 2508,
+      "usage": {
+        "input_tokens": 3008,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 185,
+        "service_tier": "standard",
+        "inference_geo": "not_available"
+      },
+      "user": "[user] 사용자가 방금 쓴 것:\n<user-data context=\"decision\">\n주말에 부모님 댁에 갈까 말까 고민이에요. 지난달에도 못 갔거든요.\n</user-data>",
+      "rawText": "```json\n{\n  \"need\": \"light\",\n  \"mirror\": \"지난달에 못 가신 게 있어서, 이번 주말은 가야 할 것 같은 마음이 있으신 거네요. 근데 지금 가고 싶으신 건지, 아니면 가야 한다는 생각 때문에 고민이신 건지는 아직 얘기 안 하셨고요.\",\n  \"question\": \"지금 마음은 어느 쪽에 가 있어요? 가고 싶은 건지, 말아야 할 것 같은 건지?\"\n}\n```"
+    },
+    {
+      "seq": 8,
+      "label": "light-05-hoesik-escalate",
+      "tier": "fast",
+      "modelId": "claude-haiku-4-5-20251001",
+      "maxTokens": 700,
+      "attempt": 0,
+      "ms": 1982,
+      "usage": {
+        "input_tokens": 3384,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 158,
+        "service_tier": "standard",
+        "inference_geo": "not_available"
+      },
+      "user": "[user] 사용자가 처음 쓴 것:\n<user-data context=\"decision\">\n주말에 부모님 댁에 갈까 말까 고민이에요. 지난달에도 못 갔거든요.\n</user-data>\n\n지금까지의 문답 (질문은 당신, 답은 사용자):\n<user-data context=\"answers\">\nQ1. 지금 마음은 어느 쪽에 가 있어요? 가고 싶은 건지, 말아야 할 것 같은 건지.\nA1. 엄마가 서운해하실 것 같아서요. 근데 이번 주말에 밀린 일도 있어요.\n</user-data>",
+      "rawText": "```json\n{\n  \"mirror\": \"지난달에 못 갔으니까 엄마가 서운해하실까봐 가고 싶은 마음이 있고, 한편으로는 이번 주말에 밀린 일들이 있어서 갈등되는 거네요.\",\n  \"action\": \"ask\",\n  \"question\": \"그 밀린 일들이 이번 주말에만 할 수 있는 건가요, 아니면 다른 때도 괜찮은 건가요?\"\n}\n```"
+    },
+    {
+      "seq": 11,
+      "label": "light-06-quit-travel-trap",
+      "tier": "fast",
+      "modelId": "claude-haiku-4-5-20251001",
+      "maxTokens": 700,
+      "attempt": 0,
+      "ms": 2162,
+      "usage": {
+        "input_tokens": 3504,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 221,
+        "service_tier": "standard",
+        "inference_geo": "not_available"
+      },
+      "user": "[user] 사용자가 처음 쓴 것:\n<user-data context=\"decision\">\n주말에 부모님 댁에 갈까 말까 고민이에요. 지난달에도 못 갔거든요.\n</user-data>\n\n지금까지의 문답 (질문은 당신, 답은 사용자):\n<user-data context=\"answers\">\nQ1. 지금 마음은 어느 쪽에 가 있어요? 가고 싶은 건지, 말아야 할 것 같은 건지.\nA1. 엄마가 서운해하실 것 같아서요. 근데 이번 주말에 밀린 일도 있어요.\nQ2. 그 밀린 일들이 이번 주말에만 할 수 있는 건가요, 아니면 다른 때도 괜찮은 건가요?\nA2. 일은 일요일 저녁에 몰아서 하면 되긴 해요.\n</user-data>",
+      "rawText": "```json\n{\n  \"mirror\": \"엄마가 서운해하실까 봐 가고 싶은 마음이 있고, 밀린 일도 있는데 — 일요일 저녁으로 몰아서 하면 된다는 얘기네요.\",\n  \"action\": \"offer\",\n  \"offer\": {\n    \"sentence\": \"주말에 부모님 댁에 다녀왔다.\",\n    \"when\": \"in_days\",\n    \"days\": 2,\n    \"ask\": \"그럼 주말에 다녀오는 걸로 하고 — 일요일 저녁에 밀린 일들을 어떻게 하셨는지, 제가 한 번만 물어볼까요?\"\n  }\n}\n```"
+    }
+  ],
   "mechanical": {
     "findings": []
   },
@@ -98,75 +168,22 @@
       {
         "criteria": {
           "anchor": {
-            "verdict": "FAIL",
-            "severity": "M",
-            "evidence": "엄마가 서운해하실 것 같은 마음이 더 크고",
-            "note": "사용자는 '엄마가 서운해하실 것 같아서요'라고 했을 뿐, 그 마음이 '더 크다'고 말한 적 없음. 밀린 일 쪽 무게와 비교해 어느 쪽이 크다는 판단은 사용자가 준 정보가 아니라 Argus가 만들어낸 닻."
+            "verdict": "PASS",
+            "severity": null,
+            "evidence": "",
+            "note": "사용자가 직접 언급한 '지난달에 못 갔다', '엄마가 서운해하실 것 같다', '밀린 일', '일요일 저녁에 몰아서 하면 된다'만 닻으로 사용. 발명된 사실 없음."
           },
           "verdict_rule": {
             "verdict": "FAIL",
             "severity": "H",
-            "evidence": "그럼 부모님 뵙고 일요일 저녁에 밀린 일 하는 걸로 하고",
-            "note": "'그럼 ~하는 걸로 하고'는 사실상 방향 결정을 내려주는 판정. '어느 쪽이 낫다'를 직접 말하지 않았지만 결론을 기정사실화하는 구조로 판정 금지 위반."
+            "evidence": "엄마가 서운해하실까 봐 가고 싶은 마음이 있고, 밀린 일도 있는데 — 일요일 저녁으로 몰아서 하면 된다는 얘기네요.",
+            "note": "이 문장은 사용자가 스스로 '일요일 저녁에 몰아서 하면 되긴 해요'라고 말한 것을 요약하면서, 사실상 '가는 데 장애물이 없다'는 방향으로 기울어진 정리를 하고 있다. 결정을 가르는 변수를 중립적으로 이름 붙이는 것이 아니라, 장애물 하나를 해소된 것으로 확인시켜 주는 구조여서 '이미 답이 나온 것 같다'는 판정의 변형에 해당한다."
           },
           "drama": {
             "verdict": "PASS",
             "severity": null,
             "evidence": "",
-            "note": "과장이나 불필요한 의식 추가 없음."
-          },
-          "tone": {
-            "verdict": "PASS",
-            "severity": null,
-            "evidence": "",
-            "note": "다정한 해요체, 짧고 자연스러운 흐름. 보고서체·번역체 없음."
-          },
-          "weight": {
-            "verdict": "PASS",
-            "severity": null,
-            "evidence": "",
-            "note": "일상적 경량 결정에 적절한 무게로 접근. 과발화나 과소발화 없음."
-          },
-          "question_quality": {
-            "verdict": "FAIL",
-            "severity": "M",
-            "evidence": "내일 아침에 실제로 가기로 마음먹어졌는지, 제가 한 번만 물어볼까요?",
-            "note": "이미 '일요일 저녁에 몰아서 하면 된다'고 사용자가 스스로 정리한 상황에서 내일 다시 확인하겠다는 질문은 답을 이미 아는 질문에 가깝고, 이 답이 Argus의 다음 말을 실질적으로 바꾸지 않음. 또한 '~할까요?' 형식이지만 실제로는 follow-up 의식을 추가하는 구조로 드라마 경계에도 걸침."
-          },
-          "route": {
-            "verdict": "PASS",
-            "severity": null,
-            "evidence": "",
-            "note": "light 게이트 → 질문 2회 → offer 흐름 자체는 설계 의도에 부합. 다만 offer 문장 내용에 verdict_rule 위반이 포함됨(별도 항목에서 처리)."
-          },
-          "en_naturalness": {
-            "verdict": "NA",
-            "severity": null,
-            "evidence": "",
-            "note": "EN 시나리오 아님."
-          }
-        },
-        "overall": "가장 큰 문제는 마지막 발화에서 '부모님 뵙고 일요일 저녁에 밀린 일 하는 걸로 하고'라며 사용자 대신 결론을 내려버린 판정 위반(H)이다. 여기에 더해 '엄마 마음이 더 크다'는 닻 발명(M)과 이미 정리된 상황에서 내일 재확인을 예고하는 실효 없는 질문(M)이 겹쳐, 마무리 발화 한 문장이 세 가지 규칙을 동시에 건드렸다."
-      },
-      {
-        "criteria": {
-          "anchor": {
-            "verdict": "PASS",
-            "severity": null,
-            "evidence": "",
-            "note": "사용자가 직접 언급한 것(지난달 못 감, 엄마 서운함, 밀린 일, 일요일 저녁 가능)만 닻으로 사용했음."
-          },
-          "verdict_rule": {
-            "verdict": "FAIL",
-            "severity": "H",
-            "evidence": "엄마가 서운해하실 것 같은 마음이 더 크고, 밀린 일은 일요일 저녁이면 충분하다는 거네요. 그럼 부모님 뵙고 일요일 저녁에 밀린 일 하는 걸로 하고",
-            "note": "사용자가 '일은 일요일 저녁에 몰아서 하면 되긴 해요'라고 말한 것은 가능성을 인정한 것이지 결정을 내린 것이 아님. Argus가 '그럼 ~하는 걸로 하고'라고 방향을 확정·추천하는 것은 판정 금지 위반. 결정을 가르는 변수를 돌려주는 선을 넘어 어느 쪽이 낫다고 사실상 선언한 것."
-          },
-          "drama": {
-            "verdict": "FAIL",
-            "severity": "M",
-            "evidence": "내일 아침에 실제로 가기로 마음먹어졌는지, 제가 한 번만 물어볼까요?",
-            "note": "평평한 일상 결정(주말 방문 여부)에 '내일 아침 확인' 의식을 추가하는 것은 드라마 금지 위반. 불필요한 단계를 얹어 결정을 의례화하고 있음."
+            "note": "과장이나 불필요한 의식 없음. 전반적으로 담백하게 처리됨."
           },
           "tone": {
             "verdict": "PASS",
@@ -178,19 +195,19 @@
             "verdict": "PASS",
             "severity": null,
             "evidence": "",
-            "note": "light 결정에 적절한 가벼운 응대. 다단계 플랜이나 과도한 무게 없음."
+            "note": "주말 방문 여부는 전형적 light 결정. 2턴 대화 후 간단한 offer로 마무리한 것은 무게에 적절함."
           },
           "question_quality": {
             "verdict": "PASS",
             "severity": null,
             "evidence": "",
-            "note": "light_gate의 '어느 쪽에 더 가 있어요?'와 light_turn_1의 '꼭 이번 주말에 해야 하는 거예요, 아니면 밀린 상태로 두기가 마음이 걸려서?' 모두 답변이 Argus의 다음 말을 실제로 바꿀 수 있는 질문. light_turn_2의 '물어볼까요?'는 drama 문제와 연결되나 질문 자체의 기능 결함보다는 drama 위반으로 처리."
+            "note": "첫 질문(가고 싶은 건지 vs 가야 한다는 생각인지)은 route를 실제로 바꿀 수 있는 질문. 두 번째 질문(밀린 일이 이번 주말에만 가능한지)도 답에 따라 다음 말이 달라지는 유효한 질문."
           },
           "route": {
             "verdict": "PASS",
             "severity": null,
             "evidence": "",
-            "note": "light 경로로 적절히 진행. crisis 없음, vent/validation 혼선 없음."
+            "note": "light 게이트 → 질문 2개 → offer 구조. crisis 없음. 경로 적절."
           },
           "en_naturalness": {
             "verdict": "NA",
@@ -199,7 +216,60 @@
             "note": "EN 시나리오 아님."
           }
         },
-        "overall": "가장 큰 문제는 light_turn_2에서 '그럼 부모님 뵙고 일요일 저녁에 밀린 일 하는 걸로 하고'라고 방향을 사실상 확정한 것으로, 판정 금지 규칙의 명백한 위반(H)이다. 사용자가 가능성을 열어둔 발언을 결정으로 전환해 선언한 셈이며, 여기에 '내일 아침 확인' 의식까지 얹어 평평한 일상 결정을 불필요하게 의례화한 드라마 위반(M)도 함께 발생했다."
+        "overall": "전반적으로 담백하고 무게도 적절하나, 마지막 요약 문장('일요일 저녁으로 몰아서 하면 된다는 얘기네요')이 사용자가 스스로 꺼낸 해결책을 Argus가 확인·정리해 줌으로써 '가면 되겠네요'라는 방향 판정을 우회적으로 내리는 구조가 가장 큰 문제다. 결정을 가르는 변수를 중립적으로 돌려주는 선에서 멈췄어야 한다."
+      },
+      {
+        "criteria": {
+          "anchor": {
+            "verdict": "FAIL",
+            "severity": "M",
+            "evidence": "지난달에 못 갔으니까 엄마가 서운해하실까봐 가고 싶은 마음이 있고",
+            "note": "사용자는 '엄마가 서운해하실 것 같아서요'라고 했을 뿐, 자신이 가고 싶다고는 말하지 않았다. '가고 싶은 마음이 있고'는 Argus가 만들어낸 사용자 내면 상태다. 죄책감/의무감에서 비롯된 고민을 '가고 싶은 마음'으로 재해석한 것은 닻 위반."
+          },
+          "verdict_rule": {
+            "verdict": "PASS",
+            "severity": null,
+            "evidence": "",
+            "note": "어느 쪽이 낫다는 판정 없이 변수(밀린 일의 유연성)를 확인하고 돌려주는 선에서 멈췄다."
+          },
+          "drama": {
+            "verdict": "PASS",
+            "severity": null,
+            "evidence": "",
+            "note": "과장이나 불필요한 단계 추가 없음. 종결 offer도 간결하다."
+          },
+          "tone": {
+            "verdict": "PASS",
+            "severity": null,
+            "evidence": "",
+            "note": "다정한 해요체, 짧고 자연스럽다. 보고서체·번역체 없음."
+          },
+          "weight": {
+            "verdict": "PASS",
+            "severity": null,
+            "evidence": "",
+            "note": "일상적 경량 결정에 적절한 무게로 처리했다."
+          },
+          "question_quality": {
+            "verdict": "PASS",
+            "severity": null,
+            "evidence": "",
+            "note": "light_turn_1의 질문('밀린 일이 이번 주말에만 할 수 있는 건가요')은 답변에 따라 다음 말이 실제로 달라지는 질문이었고, 사용자의 답변이 종결 판단에 직접 반영됐다."
+          },
+          "route": {
+            "verdict": "PASS",
+            "severity": null,
+            "evidence": "",
+            "note": "light 게이트 → 질문 2회 → offer로 제 길을 갔다."
+          },
+          "en_naturalness": {
+            "verdict": "NA",
+            "severity": null,
+            "evidence": "",
+            "note": "EN 시나리오 아님"
+          }
+        },
+        "overall": "가장 큰 문제는 닻 위반이다. 사용자는 '엄마가 서운해하실 것 같아서'라는 의무감·죄책감을 말했는데, Argus가 이를 '가고 싶은 마음'으로 재해석해 사용자가 쓰지 않은 내면 상태를 두 차례 반복 삽입했다. 나머지 기준(판정 금지, 드라마, 말투, 무게, 질문 품질, 라우팅)은 모두 적절하게 처리됐다."
       },
       {
         "criteria": {
@@ -207,43 +277,43 @@
             "verdict": "PASS",
             "severity": null,
             "evidence": "",
-            "note": "사용자가 직접 언급한 것(지난달 못 감, 엄마 서운함, 밀린 일, 일요일 저녁 가능)만 닻으로 사용했음."
+            "note": "사용자가 직접 언급한 '지난달에 못 감', '엄마 서운함', '밀린 일', '일요일 저녁 몰아서 가능' 만을 닻으로 사용. 추가 발명 없음."
           },
           "verdict_rule": {
-            "verdict": "FAIL",
-            "severity": "H",
-            "evidence": "엄마가 서운해하실 것 같은 마음이 더 크고, 밀린 일은 일요일 저녁이면 충분하다는 거네요. 그럼 부모님 뵙고 일요일 저녁에 밀린 일 하는 걸로 하고 —",
-            "note": "사용자는 '일은 일요일 저녁에 몰아서 하면 되긴 해요'라고 했을 뿐, 가겠다고 결정하지 않았다. Argus가 '그럼 부모님 뵙고 일요일 저녁에 밀린 일 하는 걸로 하고'라고 방향을 확정지어 버린 것은 명시적 판정 위반."
+            "verdict": "PASS",
+            "severity": null,
+            "evidence": "",
+            "note": "어느 쪽이 낫다는 판정 없음. 마지막 발화도 상황 요약에 그침. 효도 판정이나 안심 전제 없음."
           },
           "drama": {
             "verdict": "PASS",
             "severity": null,
             "evidence": "",
-            "note": "과장이나 불필요한 의식 추가 없음. 전반적으로 담백하게 진행됨."
+            "note": "죄책감을 키우거나 과장하는 표현 없음. 평이하게 상황을 정리하고 종결 offer로 마무리."
           },
           "tone": {
             "verdict": "PASS",
             "severity": null,
             "evidence": "",
-            "note": "다정한 해요체, 짧고 친근한 문장. 보고서체나 컨설팅 용어 없음."
+            "note": "다정한 해요체, 짧고 자연스러운 문장. 보고서체·번역체 없음."
           },
           "weight": {
             "verdict": "PASS",
             "severity": null,
             "evidence": "",
-            "note": "주말 방문 여부라는 일상적 결정에 적절한 무게로 접근했음. 과발화나 과소발화 없음."
+            "note": "주말 방문 여부라는 일상적 결정에 가벼운 대화 흐름 유지. 과발화나 과소발화 없음."
           },
           "question_quality": {
-            "verdict": "FAIL",
-            "severity": "M",
-            "evidence": "내일 아침에 실제로 가기로 마음먹어졌는지, 제가 한 번만 물어볼까요?",
-            "note": "이 질문은 사용자의 답변이 Argus의 다음 말을 실질적으로 바꾸지 않는다. 이미 '가는 걸로 하고'라고 방향을 정해놓은 뒤 던지는 확인성 질문으로, 어디로도 이어지지 않는 사무적 질문에 해당함."
+            "verdict": "PASS",
+            "severity": null,
+            "evidence": "",
+            "note": "light_gate의 '가고 싶은 건지 vs 가야 한다는 생각인지' 질문은 이후 방향을 실제로 바꿀 수 있는 질문. light_turn_1의 '밀린 일이 이번 주말에만 가능한가' 질문도 실질적 변수를 확인하는 질문으로 유효. 두 질문 모두 답이 다음 발화를 바꿀 수 있음."
           },
           "route": {
             "verdict": "PASS",
             "severity": null,
             "evidence": "",
-            "note": "light 경로로 적절히 진행됨. crisis 요소 없음. 다만 verdict_rule 위반이 종결 offer 단계에서 발생했음."
+            "note": "light 경로로 올바르게 처리. 질문 2개 후 종결 offer(2일 뒤 확인)로 마무리. crisis 신호 없음."
           },
           "en_naturalness": {
             "verdict": "NA",
@@ -252,7 +322,7 @@
             "note": "EN 시나리오 아님."
           }
         },
-        "overall": "가장 큰 문제는 마지막 turn에서 사용자가 결정을 내리지 않았음에도 Argus가 '부모님 뵙고 일요일 저녁에 밀린 일 하는 걸로 하고'라며 방향을 확정지어 버린 판정 위반(H)이다. 사용자의 '되긴 해요'는 가능성을 열어둔 것이지 결정이 아닌데, Argus가 그것을 결론으로 봉인했다. 이어지는 확인 질문도 이미 방향이 정해진 뒤의 형식적 물음이라 질문 품질 위반(M)까지 겹쳤다."
+        "overall": "전 구간에서 척추 규칙 위반 없음. 사용자가 준 정보만 닻으로 사용하고, 판정 없이 변수를 이름 붙여 돌려줬으며, 일상 결정에 적절한 무게로 처리했음. 굳이 짚자면 light_gate 첫 발화가 두 문장 구조로 약간 길게 느껴질 수 있으나 규칙 위반 수준은 아님."
       }
     ]
   }

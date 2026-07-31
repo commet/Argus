@@ -216,8 +216,10 @@ async function runScenario(engine, sc) {
         outcome = turn.action; // offer | escalate | close
         pendingQuestion = null;
         if (turn.action === 'escalate' && sc.acceptEscalation) {
-          // heavy handoff — the REAL wire (composeDeepenText)
-          const composed = engine.composeDeepenText(sc.opening, qas, sc.locale);
+          // heavy handoff — the REAL wire (composeDeepenText). F9: the real UI
+          // (LightFlow.deepen) passes the escalation intent — mirror it.
+          const composed = engine.composeDeepenText(sc.opening, qas, sc.locale,
+            { biggerQuestion: turn.escalate.bigger_question });
           record.light = { qas, turns, outcome, escalatedText: composed };
           push(transcript, 'user', 'escalation_accept', '[사용자가 "더 깊이 보기"를 수락]');
           const heavy = await engine.runHeavyInitial(composed, sc.locale);
