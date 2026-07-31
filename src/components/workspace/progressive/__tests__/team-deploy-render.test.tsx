@@ -63,21 +63,22 @@ const html = renderToStaticMarkup(createElement(TeamDeployBanner, {
 
 describe("captain's-seat render (TeamDeployBanner)", () => {
   it('surfaces the why-this-agent rationale on the AI worker', () => {
-    expect(html).toContain('시장 분석에 가장 적합 · 다음 후보 마커스');
+    expect(html).toContain('시장 분석에 가장 적합');
+    expect(html).not.toContain('마커스');
   });
 
-  it('keeps advanced controls behind the "팀 손보기" toggle by default (Hick’s Law)', () => {
+  it('keeps advanced controls behind the "검토 조정" toggle by default (Hick’s Law)', () => {
     // Collapsed default: the team composition (names, roles, rationale) is visible,
     // but swap/remove and the per-group track selector stay hidden until the captain
     // opens "Adjust team". The expanded state is exercised in flow-interactions.
-    expect(html).toContain('팀 손보기');
-    expect(html).not.toContain('이 팀원 교체');
+    expect(html).toContain('검토 조정');
+    expect(html).not.toContain('검토 방식 바꾸기');
     expect(html).not.toContain('누가 맡을까요?');
   });
 
   it('still renders the self-judgment row and the start CTA in the preview', () => {
     expect(html).toContain('내 판단');
-    expect(html).toContain('팀 투입');
+    expect(html).toContain('검토 시작');
   });
 
   it('does not attach a rationale line to the self worker', () => {
@@ -100,7 +101,8 @@ describe('axis ②: VerificationGate render', () => {
       onSail: () => {}, onOverride: () => {}, onClose: () => {},
     }));
     expect(html).toContain('확인하지 않은 분석이 있어요');
-    expect(html).toContain('소피');
+    expect(html).toContain('전문 검토');
+    expect(html).not.toContain('소피');
     expect(html).toContain('반영');
     expect(html).toContain('제외');
     expect(html).toContain('1개 남음');                       // draft disabled, shows remaining

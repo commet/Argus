@@ -268,11 +268,11 @@ describe('TeamDeployBanner — track switch + replace', () => {
       workers: [worker({ id: 'a1', task_group_id: 'g1', agent_type: 'ai', persona: persona('s', '소피'), assignment_reason: '시장 분석에 가장 적합' })],
       onDeploy: vi.fn(), onSetGroupTrack, onReplaceWorker, onRemoveWorker: vi.fn(),
     }));
-    // Hick's Law: customization is collapsed by default — open "팀 손보기" (Adjust team) first.
-    click(byText('팀 손보기'));
+    // Hick's Law: customization is collapsed by default — open review adjustment first.
+    click(byText('검토 조정'));
     click(byText('내가 직접')); expect(onSetGroupTrack).toHaveBeenCalledWith('g1', 'self');
     click(byText('사람에게')); expect(onSetGroupTrack).toHaveBeenCalledWith('g1', 'human');
-    click(byText('이 팀원 교체')); expect(onReplaceWorker).toHaveBeenCalledWith('a1');
+    click(byText('검토 방식 바꾸기')); expect(onReplaceWorker).toHaveBeenCalledWith('a1');
   });
 });
 

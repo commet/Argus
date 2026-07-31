@@ -87,25 +87,11 @@ export function AttributedSection({ section, index, honestyFlags }: {
         <h3 className="text-[16px] md:text-[17px] font-bold text-[var(--text-primary)] leading-[1.35] flex-1 tracking-tight">{section.heading}</h3>
         {hasUnreviewed && (
           <span
-            title={L('이 부분에 기여한 팀원 보고를 아직 직접 확인하지 않았어요. 위 "열어보기"에서 반영하거나 제외할 수 있어요.', "You haven't reviewed the AI reports behind this section yet — open the reports above to apply or exclude them.")}
+            title={L('이 부분에 반영된 검토 보고를 아직 직접 확인하지 않았어요. 위 "열어보기"에서 반영하거나 제외할 수 있어요.', "You haven't reviewed the AI reports behind this section yet — open the reports above to apply or exclude them.")}
             className="shrink-0 text-[12.5px] font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)] border border-[var(--border)] rounded-full px-1.5 py-0.5"
           >
             {L('검토 전', 'unreviewed')}
           </span>
-        )}
-        {contributors.length > 0 && (
-          <div className="flex -space-x-1.5 shrink-0">
-            {contributors.map(w => (
-              <div
-                key={w.id}
-                className="w-5 h-5 rounded-full flex items-center justify-center text-[12px] border-2 border-[var(--surface)]"
-                style={{ backgroundColor: (w.persona?.color || 'var(--accent)') + '25', color: w.persona?.color }}
-                title={personaName(w.persona, locale)}
-              >
-                {w.persona?.emoji}
-              </div>
-            ))}
-          </div>
         )}
       </div>
 
@@ -182,7 +168,7 @@ function SentenceStream({ section, sectionIndex, workers, honestyFlags }: {
                     }}
                     transition={{ duration: 0.2, ease: EASE }}
                     className="inline-block w-[4px] h-[4px] rounded-full"
-                    style={{ backgroundColor: d.persona?.color || 'var(--accent)' }}
+                    style={{ backgroundColor: 'var(--accent)' }}
                     title={personaName(d.persona, locale)}
                   />
                 ))}

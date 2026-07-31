@@ -2,24 +2,16 @@
 
 import { useEffect, useId, useRef, useState } from 'react';
 import { motion, AnimatePresence, useAnimationControls } from 'framer-motion';
-import { Users, ChevronUp, X, Settings, Plus, Trash2, Loader2 } from 'lucide-react';
+import { ScanSearch, ChevronUp, X, Loader2 } from 'lucide-react';
 import { useProgressiveStore } from '@/stores/useProgressiveStore';
 import { useShallow } from 'zustand/react/shallow';
 import { WorkerAvatar, AvatarRow } from './WorkerAvatar';
 import { TypingDots } from './shared/AgentVisuals';
 import { AgentSidebar } from './AgentSidebar';
 import { useAgentAttentionStore } from '@/stores/useAgentAttentionStore';
-import {
-  getBuiltinPersonas,
-  loadCustomization,
-  updatePersonaName,
-  addCustomPersona,
-  removeCustomPersona,
-  type CustomPersonaInput,
-} from '@/lib/worker-personas';
 import type { WorkerTask } from '@/stores/types';
+import { personaReviewLabel } from './shared/persona-format';
 import type { WorkerContext } from '@/lib/worker-engine';
-import { useAgentStore } from '@/stores/useAgentStore';
 import { useLocale } from '@/hooks/useLocale';
 import { EASE } from './shared/constants';
 const EMPTY: WorkerTask[] = [];
@@ -77,152 +69,9 @@ function sortedWorkers(workers: WorkerTask[]): WorkerTask[] {
   return [...workers].sort((a, b) => (order[a.status] ?? 5) - (order[b.status] ?? 5));
 }
 
-// ─── Persona Settings Panel ───
+// ─── Review header ───
 
-const EMOJI_OPTIONS = ['🔍', '🎯', '📊', '✍️', '⚠️', '🎨', '⚖️', '📝', '⚙️', '📋', '🧠', '💡', '🛡️', '📈', '🎤', '🌍'];
-const COLOR_OPTIONS = ['#3B82F6', '#8B5CF6', '#10B981', '#F59E0B', '#EF4444', '#EC4899', '#6B7280', '#06B6D4', '#14B8A6', '#A855F7'];
-
-function PersonaSettings({ onClose }: { onClose: () => void }) {
-  const locale = useLocale();
-  const L = (ko: string, en: string) => locale === 'ko' ? ko : en;
-  const builtins = getBuiltinPersonas(locale);
-  const [customization, setCustomization] = useState(loadCustomization);
-  const [addMode, setAddMode] = useState(false);
-  const [newPersona, setNewPersona] = useState<CustomPersonaInput>({
-    id: '', name: '', role: '', emoji: '🧠', expertise: '', tone: '', color: '#3B82F6', keywords: [],
-  });
-  const [keywordInput, setKeywordInput] = useState('');
-
-  const handleNameChange = (id: string, name: string) => {
-    updatePersonaName(id, name);
-    setCustomization(loadCustomization());
-  };
-
-  const handleAddPersona = () => {
-    if (!newPersona.name.trim() || !newPersona.role.trim()) return;
-    const id = `custom_${Date.now()}`;
-    const keywords = keywordInput.split(',').map(k => k.trim()).filter(Boolean);
-    addCustomPersona({ ...newPersona, id, keywords });
-    setCustomization(loadCustomization());
-    setNewPersona({ id: '', name: '', role: '', emoji: '🧠', expertise: '', tone: '', color: '#3B82F6', keywords: [] });
-    setKeywordInput('');
-    setAddMode(false);
-  };
-
-  const handleRemoveCustom = (id: string) => {
-    removeCustomPersona(id);
-    setCustomization(loadCustomization());
-  };
-
-  return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <span className="text-[12px] font-semibold text-[var(--text-primary)]">{L('팀원 설정', 'Team Settings')}</span>
-        <button onClick={onClose} className="text-[12px] text-[var(--accent)] cursor-pointer">{L('완료', 'Done')}</button>
-      </div>
-
-      {/* Built-in persona names */}
-      <div className="space-y-1.5">
-        <p className="text-[12.5px] text-[var(--text-secondary)] font-medium">{L('기본 팀원 이름 변경', 'Rename default members')}</p>
-        {builtins.map(p => (
-          <div key={p.id} className="flex items-center gap-2">
-            <span className="text-[13px] w-6 text-center">{p.emoji}</span>
-            <input
-              defaultValue={customization.nameOverrides[p.id] || p.name}
-              placeholder={p.name}
-              maxLength={20}
-              onBlur={(e) => handleNameChange(p.id, e.target.value)}
-              className="flex-1 px-2 py-1 rounded-lg bg-[var(--bg)] border border-[var(--border-subtle)] text-[12.5px] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:outline-none focus:border-[var(--accent)]/30"
-            />
-            <span className="text-[12px] text-[var(--text-secondary)] w-20 truncate">{p.role}</span>
-          </div>
-        ))}
-      </div>
-
-      {/* Custom personas */}
-      {customization.customPersonas.length > 0 && (
-        <div className="space-y-1.5">
-          <p className="text-[12px] text-[var(--text-tertiary)] font-medium">{L('추가된 팀원', 'Custom members')}</p>
-          {customization.customPersonas.map(p => (
-            <div key={p.id} className="flex items-center gap-2">
-              <span className="text-[13px] w-6 text-center">{p.emoji}</span>
-              <span className="flex-1 text-[12.5px] text-[var(--text-primary)]">{p.name}</span>
-              <span className="text-[12.5px] text-[var(--text-tertiary)]">{p.role}</span>
-              <button onClick={() => handleRemoveCustom(p.id)} className="p-1.5 text-red-500 hover:text-[var(--danger)] hover:bg-[var(--danger)]/10 rounded-lg cursor-pointer transition-colors" aria-label={L('삭제', 'Delete')}>
-                <Trash2 size={13} />
-              </button>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Add new persona */}
-      {!addMode ? (
-        <button
-          onClick={() => setAddMode(true)}
-          className="flex items-center gap-1.5 text-[12.5px] text-[var(--accent)] hover:underline cursor-pointer"
-        >
-          <Plus size={12} /> {L('새 팀원 추가', 'Add new member')}
-        </button>
-      ) : (
-        <div className="space-y-2 p-3 rounded-xl bg-[var(--bg)] border border-[var(--border-subtle)]">
-          <p className="text-[12px] font-semibold text-[var(--text-primary)]">{L('새 팀원', 'New member')}</p>
-
-          {/* Emoji picker */}
-          <div className="flex flex-wrap gap-1">
-            {EMOJI_OPTIONS.map(e => (
-              <button key={e} onClick={() => setNewPersona(p => ({ ...p, emoji: e }))}
-                className={`text-[14px] w-7 h-7 rounded-lg cursor-pointer ${newPersona.emoji === e ? 'bg-[var(--accent)]/10 ring-1 ring-[var(--accent)]/30' : 'hover:bg-[var(--bg)]'}`}>
-                {e}
-              </button>
-            ))}
-          </div>
-
-          <div className="flex gap-2">
-            <input value={newPersona.name} onChange={e => setNewPersona(p => ({ ...p, name: e.target.value }))}
-              placeholder={L('이름', 'Name')} maxLength={10}
-              className="flex-1 px-2 py-1.5 rounded-lg bg-[var(--surface)] border border-[var(--border-subtle)] text-[12.5px] focus:outline-none focus:border-[var(--accent)]/30" />
-            <input value={newPersona.role} onChange={e => setNewPersona(p => ({ ...p, role: e.target.value }))}
-              placeholder={L('역할 (e.g., 데이터 사이언티스트)', 'Role (e.g., Data Scientist)')} maxLength={20}
-              className="flex-1 px-2 py-1.5 rounded-lg bg-[var(--surface)] border border-[var(--border-subtle)] text-[12.5px] focus:outline-none focus:border-[var(--accent)]/30" />
-          </div>
-
-          <textarea value={newPersona.expertise} onChange={e => setNewPersona(p => ({ ...p, expertise: e.target.value }))}
-            placeholder={L('전문 영역 설명 (프롬프트에 주입됩니다)', 'Describe expertise (injected into prompts)')} maxLength={100}
-            className="w-full px-2 py-1.5 rounded-lg bg-[var(--surface)] border border-[var(--border-subtle)] text-[12.5px] resize-none focus:outline-none focus:border-[var(--accent)]/30" rows={2} />
-
-          <input value={newPersona.tone} onChange={e => setNewPersona(p => ({ ...p, tone: e.target.value }))}
-            placeholder={L('말투 스타일 (e.g., 데이터 기반으로 차분하게)', 'Tone style (e.g., calm and data-driven)')} maxLength={60}
-            className="w-full px-2 py-1.5 rounded-lg bg-[var(--surface)] border border-[var(--border-subtle)] text-[12.5px] focus:outline-none focus:border-[var(--accent)]/30" />
-
-          <input value={keywordInput} onChange={e => setKeywordInput(e.target.value)} maxLength={120}
-            placeholder={L('매칭 키워드 (쉼표 구분: 데이터, 분석, ML)', 'Matching keywords (comma-separated: data, analysis, ML)')}
-            className="w-full px-2 py-1.5 rounded-lg bg-[var(--surface)] border border-[var(--border-subtle)] text-[12.5px] focus:outline-none focus:border-[var(--accent)]/30" />
-
-          {/* Color picker */}
-          <div className="flex gap-1">
-            {COLOR_OPTIONS.map(c => (
-              <button key={c} onClick={() => setNewPersona(p => ({ ...p, color: c }))}
-                className={`w-5 h-5 rounded-full cursor-pointer ${newPersona.color === c ? 'ring-2 ring-offset-1 ring-[var(--accent)]' : ''}`}
-                style={{ backgroundColor: c }} />
-            ))}
-          </div>
-
-          <div className="flex justify-end gap-2">
-            <button onClick={() => setAddMode(false)} className="px-3 py-1.5 text-[12px] text-[var(--text-tertiary)] cursor-pointer">{L('취소', 'Cancel')}</button>
-            <button onClick={handleAddPersona} disabled={!newPersona.name.trim() || !newPersona.role.trim()}
-              className="px-3 py-1.5 text-[12px] text-[var(--accent-fg)] font-semibold rounded-lg disabled:opacity-30 cursor-pointer"
-              style={{ background: 'var(--gradient-gold)' }}>{L('추가', 'Add')}</button>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ─── Team header with active personas ───
-
-function TeamHeader({ workers, onOpenSettings, settingsOpen }: { workers: WorkerTask[]; onOpenSettings: () => void; settingsOpen: boolean }) {
+function ReviewHeader({ workers }: { workers: WorkerTask[] }) {
   const locale = useLocale();
   const L = (ko: string, en: string) => locale === 'ko' ? ko : en;
   const doneCount = workers.filter(w => w.status === 'done').length;
@@ -231,32 +80,22 @@ function TeamHeader({ workers, onOpenSettings, settingsOpen }: { workers: Worker
   const attentionCount = workers.filter(workerNeedsAttention).length;
   const pendingCount = Math.max(0, workers.length - settledCount - runningCount);
 
-  const activeEmojis = workers
-    .filter(w => (w.status === 'running' || w.status === 'ai_preparing') && w.persona)
-    .map(w => w.persona!.emoji);
-
   return (
     <>
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Users size={14} className="text-[var(--accent)]" />
-          <span className="text-[13px] font-semibold text-[var(--text-primary)]">{L('팀', 'Team')}</span>
+          <ScanSearch size={14} className="text-[var(--accent)]" />
+          <span className="text-[13px] font-semibold text-[var(--text-primary)]">{L('검토 진행', 'Review progress')}</span>
           <span className="text-[12.5px] text-[var(--text-secondary)] bg-[var(--bg)] px-2 py-0.5 rounded-full">
             {settledCount}/{workers.length}
           </span>
-          {activeEmojis.length > 0 && (
-            <span className="text-[12px]">{activeEmojis.join('')}</span>
-          )}
         </div>
-        <button type="button" onClick={onOpenSettings} aria-expanded={settingsOpen} aria-controls="worker-team-settings" className="p-2 text-[var(--text-tertiary)] hover:text-[var(--accent)] hover:bg-[var(--bg)] rounded-lg cursor-pointer transition-colors" title={L('팀원 설정', 'Team settings')} aria-label={L('팀원 설정', 'Team settings')}>
-          <Settings size={14} />
-        </button>
       </div>
 
       {/* Progress bar */}
       <div
         role="progressbar"
-        aria-label={L('팀 작업 처리 상태', 'Team task status')}
+        aria-label={L('검토 처리 상태', 'Review status')}
         aria-valuemin={0}
         aria-valuemax={workers.length}
         aria-valuenow={settledCount}
@@ -275,10 +114,10 @@ function TeamHeader({ workers, onOpenSettings, settingsOpen }: { workers: Worker
       {/* Status summary */}
       <p className="text-[12px] text-[var(--text-secondary)]" aria-live="polite">
         {[
-          runningCount > 0 ? L(`${runningCount}명 작업 중`, `${runningCount} working`) : '',
+          runningCount > 0 ? L(`${runningCount}건 검토 중`, `${runningCount} in progress`) : '',
           attentionCount > 0 ? L(`${attentionCount}건 확인 필요`, `${attentionCount} need attention`) : '',
-          pendingCount > 0 ? L(`${pendingCount}명 대기 중`, `${pendingCount} pending`) : '',
-        ].filter(Boolean).join(' · ') || L('모든 작업 완료', 'All tasks complete')}
+          pendingCount > 0 ? L(`${pendingCount}건 대기 중`, `${pendingCount} pending`) : '',
+        ].filter(Boolean).join(' · ') || L('모든 검토 완료', 'All reviews complete')}
       </p>
     </>
   );
@@ -316,7 +155,6 @@ function statusText(worker: WorkerTask, locale: string = 'ko'): string {
 export function WorkerPanel({ className }: { className?: string }) {
   const locale = useLocale();
   const workers = useWorkers();
-  const [showSettings, setShowSettings] = useState(false);
 
   if (workers.length === 0) return null;
 
@@ -324,18 +162,7 @@ export function WorkerPanel({ className }: { className?: string }) {
 
   return (
     <div className={`p-4 space-y-3 ${className ?? ''}`}>
-      <TeamHeader workers={workers} settingsOpen={showSettings} onOpenSettings={() => setShowSettings(!showSettings)} />
-
-      <AnimatePresence>
-        {showSettings && (
-          <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.3, ease: EASE }} className="overflow-hidden">
-            <div id="worker-team-settings" className="pb-3 border-b border-[var(--border-subtle)]">
-              <PersonaSettings onClose={() => setShowSettings(false)} />
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <ReviewHeader workers={workers} />
 
       {/* Compact status rows — no result bodies */}
       <div className="space-y-1">
@@ -347,15 +174,7 @@ export function WorkerPanel({ className }: { className?: string }) {
             <WorkerAvatar persona={w.persona} size="sm" pulse={w.status === 'running'} />
             <div className="flex-1 min-w-0">
               <p className="text-[12px] font-medium text-[var(--text-primary)] truncate">
-                {w.persona?.name || 'AI'}
-                {(() => {
-                  const lv = w.agent_id ? useAgentStore.getState().getAgent(w.agent_id)?.level : undefined;
-                  return lv != null && lv >= 2 ? (
-                    <span className="agent-lv ml-1" style={{ fontSize: 12.5, padding: '0px 5px' }} data-level={lv}>
-                      Lv.{lv}
-                    </span>
-                  ) : null;
-                })()}
+                {w.persona ? personaReviewLabel(w.persona, locale) : (locale === 'ko' ? 'AI 검토' : 'AI review')}
               </p>
               <p className="text-[12.5px] text-[var(--text-secondary)] truncate" title={w.task}>{w.task}</p>
             </div>
@@ -512,8 +331,8 @@ export function WorkerDrawer({ className }: { className?: string }) {
             >
               <div className="flex items-center justify-between px-4 py-3.5 border-b border-[var(--border-subtle)] shrink-0">
                 <div className="flex items-center gap-2">
-                  <Users size={14} className="text-[var(--accent)]" />
-                  <span id={drawerTitleId} className="text-[13px] font-semibold text-[var(--text-primary)]">{L('팀', 'Team')}</span>
+                  <ScanSearch size={14} className="text-[var(--accent)]" />
+                  <span id={drawerTitleId} className="text-[13px] font-semibold text-[var(--text-primary)]">{L('검토 진행', 'Review progress')}</span>
                   <span className="text-[12.5px] text-[var(--text-secondary)] bg-[var(--bg)] px-2 py-0.5 rounded-full">
                     {settledCount}/{workers.length}
                   </span>

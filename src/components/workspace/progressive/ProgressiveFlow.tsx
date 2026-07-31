@@ -65,7 +65,7 @@ export { DMFeedback, VerificationGate, TeamDeployBanner, FinalCard }; // back-co
 // E-1 (2026-07-29): the presentational half moved to ./flow-parts/* verbatim.
 // Re-exported here so every existing import path — including the render tests
 // that reach in for MirrorBeat / TerminalRouteCard — keeps working unchanged.
-import { ReviewerBadge, StreamSnippet, LeadSynthesisCard, type StreamKind } from './flow-parts/stream-cards';
+import { StreamSnippet, LeadSynthesisCard, type StreamKind } from './flow-parts/stream-cards';
 import { PhaseAmbient, PhaseStatusBar, PhaseDivider, TestRecover, CompassRose, WaveDivider, type StatusMode } from './flow-parts/phase-chrome';
 import { VoyagePrepSummary, MirrorBeat, TerminalRouteCard, TERMINAL_ROUTE_COPY } from './flow-parts/voyage-prep';
 import { AnsweredPills, FramingConfirmation, PipelineExitOptions } from './flow-parts/framing';
@@ -117,83 +117,24 @@ export function DeepJudgmentEntry({
   const locale = useLocale();
   const L = (ko: string, en: string) => locale === 'ko' ? ko : en;
 
-  // What the deep path actually adds, as facts rather than adjectives. The
-  // recommended card used to spend its whole body on WHY it was suggested and
-  // put the cost line in tertiary grey underneath, so the reader had to infer
-  // what they'd get. These are the three things that change.
   const offer = ownApiKey
-    ? [
-        L('독립 전문 시각 2', '2 independent specialist views'),
-        L('되돌리기 어려우면 반론 1', '1 critic when hard to reverse'),
-        L('개인 API · 횟수 제한 없음', 'Own API · no usage limit'),
-      ]
-    : [
-        L('독립 전문 시각 2', '2 independent specialist views'),
-        L('되돌리기 어려우면 반론 1', '1 critic when hard to reverse'),
-        L('24시간에 한 번 무료', 'Free once per 24 hours'),
-      ];
+    ? L('전문 검토 2 · 필요할 때 위험 검토 1 · 개인 API', '2 specialist reviews · 1 risk review when needed · own API')
+    : L('전문 검토 2 · 필요할 때 위험 검토 1 · 24시간에 한 번', '2 specialist reviews · 1 risk review when needed · once per 24 hours');
 
   return (
-    <div className={`mb-5 rounded-xl border px-4 py-3.5 ${
-      active
-        ? 'border-[var(--accent)]/35 bg-[var(--accent)]/[0.06]'
-        : recommended
-          // Was border-amber-500/30 + bg /[0.05] — a tint so faint the card read
-          // as disabled, next to a ghost-outline button. If this path is worth
-          // suggesting at all it has to be legible as an offer.
-          ? 'border-amber-500/55 bg-amber-500/[0.11] shadow-[0_1px_0_rgba(0,0,0,0.02),0_10px_24px_-18px_rgba(180,83,9,0.55)]'
-          : 'border-[var(--border-subtle)] bg-[var(--surface)]'
-    }`}>
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+    <div className="mb-3 border-y border-[var(--border-subtle)] py-3">
+      <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
-          <p className={`flex items-center gap-1.5 font-bold ${
-            recommended && !active
-              ? 'text-[14px] text-amber-700 dark:text-amber-300'
-              : 'text-[13px] text-[var(--text-primary)]'
-          }`}>
-            {recommended && !active && <Sparkles size={14} className="shrink-0" />}
+          <p className="text-[13px] font-semibold text-[var(--text-primary)]">
             {active
-              ? L('심층 판단이 켜져 있어요', 'Deep judgment is on')
+              ? L('심층 검토 사용 중', 'Deep review is on')
               : recommended
-                ? L('이 과제는 심층 판단을 써볼 만해요', 'This decision may benefit from deep judgment')
-                : L('더 강한 검증이 필요하면', 'When you want stronger verification')}
+                ? L('이 결정은 한 번 더 검토해볼 만해요', 'This decision may benefit from another review')
+                : L('검토를 더 붙이고 싶다면', 'If you want another layer of review')}
           </p>
-          <p className={`mt-1.5 text-[13px] leading-[1.55] ${
-            recommended && !active ? 'text-[var(--text-secondary)]' : 'text-[var(--text-tertiary)]'
-          }`}>
-            {active
-              ? L(
-                  '최대 두 개의 전문 시각과, 되돌리기 어려운 과제일 때만 반론 하나를 더 붙입니다.',
-                  'Up to two specialist views, plus one critic only when the decision is hard to reverse.',
-                )
-              : recommended
-                ? L(
-                    '영향이 크거나 전제가 여러 개라서, 짧은 기본 경로보다 독립 검토가 도움 될 수 있어요.',
-                    'The stakes or assumptions make independent checks more useful than the short default path.',
-                  )
-                : L(
-                    '기본 경로는 에이전트 팀 없이 판단을 정리합니다. 필요할 때만 여기서 심층 경로로 바꿀 수 있어요.',
-                    'The default path organizes the judgment without an agent team. Switch here only when you need it.',
-                  )}
+          <p className="mt-0.5 text-[12.5px] text-[var(--text-tertiary)] leading-[1.5]">
+            {active ? L('전문 검토와 필요한 위험 검토를 거쳐 종합합니다.', 'Specialist and needed risk reviews are synthesized.') : offer}
           </p>
-          {!active && (
-            // Concrete, countable, no adjectives — the quota is one of the three
-            // rather than a grey footnote hanging under the paragraph.
-            <ul className="mt-2.5 flex flex-wrap gap-1.5" aria-label={L('심층 판단으로 더해지는 것', 'What deep judgment adds')}>
-              {offer.map((item) => (
-                <li
-                  key={item}
-                  className={`rounded-md px-2 py-1 text-[12px] font-semibold ${
-                    recommended
-                      ? 'bg-amber-500/[0.16] text-amber-800 dark:bg-amber-400/[0.14] dark:text-amber-200'
-                      : 'bg-[var(--bg-subtle,var(--surface))] text-[var(--text-tertiary)] ring-1 ring-[var(--border-subtle)]'
-                  }`}
-                >
-                  {item}
-                </li>
-              ))}
-            </ul>
-          )}
           {error && <p className="mt-2 text-[13px] text-[var(--danger)]">{error}</p>}
         </div>
         {!active && (
@@ -201,16 +142,10 @@ export function DeepJudgmentEntry({
             type="button"
             disabled={busy}
             onClick={onEnable}
-            className={`inline-flex min-h-11 shrink-0 items-center justify-center gap-1.5 rounded-lg px-4 text-[13px] font-bold transition-colors disabled:opacity-50 ${
-              recommended
-                // Filled, not a ghost outline: on the one screen where this path
-                // is worth suggesting, the action should look like the action.
-                ? 'bg-amber-600 text-white hover:bg-amber-700 dark:bg-amber-500 dark:text-amber-950 dark:hover:bg-amber-400'
-                : 'border border-[var(--accent)]/35 text-[var(--accent)] hover:bg-[var(--accent)]/[0.08]'
-            }`}
+            className="inline-flex min-h-10 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-[var(--accent)]/30 px-3 text-[12.5px] font-semibold text-[var(--accent)] transition-colors hover:bg-[var(--accent)]/[0.06] disabled:opacity-50"
           >
             {busy ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
-            {recommended ? L('심층 판단 켜기', 'Go deep') : L('심층 판단', 'Go deep')}
+            {L('심층 검토 켜기', 'Turn on deep review')}
           </button>
         )}
       </div>
@@ -1766,7 +1701,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
       scrollToRef(finalRef, 'top');
       track('flow_done', { project_id: projectId, rounds: round });
     }
-    catch (e) { setStreamingText(null); if (!(e instanceof DOMException && e.name === 'AbortError')) setError(e instanceof Error ? e.message : L('최종 문서를 만들다 막혔어요 — 팀 분석은 그대로 있으니, 다시 시도하면 이어서 만들어요.', "Hit a snag building the final document — the team's analysis is safe; try again and it picks up from there.")); scrollToRef(statusBarRef); }
+    catch (e) { setStreamingText(null); if (!(e instanceof DOMException && e.name === 'AbortError')) setError(e instanceof Error ? e.message : L('최종 문서를 만들다 막혔어요 — 검토 결과는 그대로 있으니, 다시 시도하면 이어서 만들어요.', "Hit a snag building the final document — the review results are safe; try again and it picks up from there.")); scrollToRef(statusBarRef); }
     finally { setBusy(false); setSubstage(null); abortRef.current = null; }
   };
 
@@ -2104,7 +2039,6 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
             workersDone={workers.filter(w => w.status === 'done').length}
             workersTotal={workers.length}
             elapsedLabel={elapsedLabel}
-            leadAgentName={session?.lead_agent?.agent_name}
             substage={substage}
             isLongWait={isLongWait}
             onCancel={busy ? () => abortRef.current?.abort() : undefined}
@@ -2192,11 +2126,11 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
           </AnimatePresence>
         </div>
 
-        <div className="space-y-8">
+        <div className="space-y-5 md:space-y-8">
           {/* The user's words are the root record, not a one-line breadcrumb.
               Keep them visibly above every model-surfaced direction, with
               authorship explicit and enough height to re-read the decision. */}
-          <div className="border-y border-[var(--border)] bg-[var(--surface)]/35 px-4 py-4 md:px-5">
+          <div className="border-y border-[var(--border)] bg-[var(--surface)]/35 px-3 py-3 md:px-5 md:py-4">
             <motion.button
               ref={problemRef}
               type="button"
@@ -2213,18 +2147,12 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
                 </span>
               </span>
               <p
-                className={`mt-2 text-[16px] md:text-[17px] font-semibold text-[var(--text-primary)] leading-[1.62] tracking-[-0.01em] transition-colors group-hover:text-[var(--accent-fg)] ${problemExpanded ? 'whitespace-pre-wrap break-words' : 'line-clamp-4'}`}
+                className={`mt-2 text-[15px] md:text-[17px] font-semibold text-[var(--text-primary)] leading-[1.58] md:leading-[1.62] tracking-[-0.01em] transition-colors group-hover:text-[var(--accent-fg)] ${problemExpanded ? 'whitespace-pre-wrap break-words' : 'line-clamp-2 md:line-clamp-4'}`}
                 style={{ fontFamily: 'var(--font-display)' }}
               >
                 {session.problem_text}
               </p>
             </motion.button>
-            <div className="mt-3 flex items-center justify-between gap-3 border-t border-[var(--border-subtle)] pt-3">
-              <ReviewerBadge reviewerId={session.reviewer_agent_id || null} />
-              <span className="text-right text-[12.5px] text-[var(--text-tertiary)]">
-                {L('AI가 정리한 내용은 아래에서 따로 표시돼요', 'AI-surfaced material stays separate below')}
-              </span>
-            </div>
           </div>
 
           {/* Crisis backstop (decision 3: warn + a real resource, NEVER block).
@@ -2339,7 +2267,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
               It used to hide behind "지금까지의 기록 ▾" — the one piece the user
               called "important" was invisible by default. */}
           {latest && !final_ && !crisisBlocking && phase === 'conversing' && (
-            <div ref={analysisCardRef} className="mb-7">
+            <div ref={analysisCardRef} className="mb-4 md:mb-7">
               <AnalysisCard
                 snapshot={latest}
                 prevSnapshot={snapshots.length > 1 ? snapshots[snapshots.length - 2] : null}
@@ -2353,17 +2281,6 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
                 defaultCollapsed={phase === 'conversing' && !mix && !suppressQuestion}
               />
             </div>
-          )}
-
-          {latest?.request_type === 'open' && !final_ && !mix && !crisisBlocking && phase === 'conversing' && (
-            <DeepJudgmentEntry
-              active={deepMode}
-              recommended={deepRecommendation.recommended}
-              ownApiKey={hasOwnApiKey(llmSettings)}
-              busy={deepGateBusy}
-              error={deepGateError ?? deepFundingError}
-              onEnable={onEnableDeepJudgment}
-            />
           )}
 
           {/* Terminal route closure — a non-open/flat route suppresses the
@@ -2384,27 +2301,6 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
 
           {/* Question FIRST — user action at the top, not buried below */}
           <div ref={questionRef}>
-            {/* First-time onboarding — explains *why* we're asking the user
-                questions and what happens after. Shown only on the very
-                first question of a session; disappears once the user has
-                answered anything. */}
-            {curQ && !busy && phase === 'conversing' && round === 0 && answers.length === 0 && !crisisBlocking && !suppressQuestion && (
-              <motion.div
-                initial={{ opacity: 0, y: -4 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.45, ease: EASE, delay: 0.15 }}
-                className="flex items-start gap-2.5 px-4 py-3 mb-4 rounded-xl bg-[var(--accent)]/[0.05] border border-[var(--accent)]/20"
-              >
-                <span className="text-[15px] shrink-0 leading-none mt-0.5">💬</span>
-                {/* One line, not the whole pipeline: the analysis above + the
-                    question below already show what's happening. */}
-                <p className="text-[12.5px] text-[var(--text-secondary)] leading-[1.55]">
-                  {locale === 'ko'
-                    ? <>답할수록 방향이 <strong className="text-[var(--text-primary)]">뚜렷</strong>해져요.</>
-                    : <>Each answer sharpens the <strong className="text-[var(--text-primary)]">direction</strong>.</>}
-                </p>
-              </motion.div>
-            )}
             {/* (The "팀은 이미 준비됐어요…(선택)" banner was removed: the
                 question meta ("질문 N/M · 선택") and the skip chip ("건너뛰고
                 팀 투입") already say optional — three voices for one fact.) */}
@@ -2448,6 +2344,16 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
                 />
               );
             })()}
+            {latest?.request_type === 'open' && !final_ && !mix && !crisisBlocking && phase === 'conversing' && (
+              <DeepJudgmentEntry
+                active={deepMode}
+                recommended={deepRecommendation.recommended}
+                ownApiKey={hasOwnApiKey(llmSettings)}
+                busy={deepGateBusy}
+                error={deepGateError ?? deepFundingError}
+                onEnable={onEnableDeepJudgment}
+              />
+            )}
           </div>
 
           {/* W1.6 focus mode: the standing escape hatch + the ONE record toggle.
@@ -2518,18 +2424,18 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
                 {/* Progress — clickable dots + N/total */}
                 <div className="flex items-center justify-between px-1">
                   <span className="text-[12px] font-semibold text-[var(--text-secondary)]">
-                    {L('에이전트 검토', 'Review agents')}
+                    {L('검토 결과', 'Review results')}
                     {remainingToReview > 0 && (
                       <span className="font-normal text-[var(--text-tertiary)] ml-1.5">· {L(`${remainingToReview}명 남음`, `${remainingToReview} left`)}</span>
                     )}
                   </span>
-                  <nav className="flex items-center gap-2.5" aria-label={L('에이전트 보고서 이동', 'Navigate agent reports')}>
+                  <nav className="flex items-center gap-2.5" aria-label={L('검토 보고서 이동', 'Navigate review reports')}>
                     <div className="flex items-center gap-1.5">
                       {ordered.map((w, i) => (
                         <button type="button" key={w.id} onClick={() => setReviewCursor(i)}
                           aria-label={L(
-                            `${i + 1}/${total} · ${w.persona?.name || 'AI'} · ${handled(w) ? '검토 완료' : '검토 전'}`,
-                            `${i + 1}/${total} · ${w.persona?.nameEn || w.persona?.name || 'AI'} · ${handled(w) ? 'reviewed' : 'not reviewed'}`,
+                            `${i + 1}/${total} · ${personaName(w.persona, locale) || 'AI 검토'} · ${handled(w) ? '검토 완료' : '검토 전'}`,
+                            `${i + 1}/${total} · ${personaName(w.persona, locale) || 'AI review'} · ${handled(w) ? 'reviewed' : 'not reviewed'}`,
                           )}
                           aria-current={i === cursor ? 'step' : undefined}
                           className={`rounded-full transition-all cursor-pointer ${
@@ -2600,7 +2506,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
           {/* PhaseDivider: Team analysis complete → create draft. Gated on crewSettled
               so it never claims "팀 분석 완료" while workers are still running (0/4). */}
           {shouldMix && !busy && phase === 'conversing' && !curQ && crewSettled && (
-            <PhaseDivider done={L('팀 분석 완료', 'Team analysis done')} next={L('정리 시작', 'Start the write-up')} yourTurn />
+            <PhaseDivider done={L('검토 완료', 'Reviews complete')} next={L('정리 시작', 'Start the write-up')} yourTurn />
           )}
 
           {/* UserNotesInput — add your thoughts AFTER the crew finishes (so there's
@@ -2618,7 +2524,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
               <textarea
                 value={session?.user_notes || ''}
                 onChange={(e) => store.setUserNotes(e.target.value || null)}
-                placeholder={L('팀 분석에 빠진 것, 강조할 점, 방향 수정 등', 'What the team missed, what to emphasize, direction changes...')}
+                placeholder={L('검토에서 빠진 것, 강조할 점, 방향 수정 등', 'What the reviews missed, what to emphasize, direction changes...')}
                 rows={3} maxLength={500}
                 className="w-full px-4 py-3 rounded-xl bg-[var(--bg)] border border-[var(--border-subtle)] text-base md:text-[13px] text-[var(--text-primary)] leading-relaxed resize-none focus:outline-none focus:border-[var(--accent)]/40 transition-all placeholder:text-[var(--text-tertiary)]"
               />
@@ -2681,7 +2587,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
               shown in FULL here. During conversing it's rendered collapsed ABOVE
               the question instead (out of the record gate, see top of MAIN).
               Crisis blocking still suppresses the decision chrome. */}
-          {(phase !== 'conversing' || mix) && latest && !final_ && !crisisBlocking && (
+          {((phase !== 'conversing' && phase !== 'analyzing') || mix) && latest && !final_ && !crisisBlocking && (
             <div>
               <AnalysisCard
                 snapshot={latest}
@@ -2794,6 +2700,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
                 onRevisit={onRevisitAnswer}
                 focusIndex={railQFocus?.index ?? null}
                 focusNonce={railQFocus?.nonce}
+                reflecting={phase === 'analyzing'}
               />
             </div>
           )}
@@ -3102,7 +3009,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
           activePathIds={activeDraftPathIds}
           previewNodeId={previewDraftId}
           rootLabel={L('v0 (초기 분석)', 'v0 (initial analysis)')}
-          rootSummary={L('에이전트 팀의 첫 합성', 'First team synthesis')}
+          rootSummary={L('첫 검토 종합', 'First review synthesis')}
           onClose={() => setDrawerOpen(false)}
           onPreview={(id) => setPreviewDraftId(id)}
           onBranch={handleBranchToDraft}

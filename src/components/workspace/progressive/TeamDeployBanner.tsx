@@ -4,10 +4,9 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Plus, Repeat, X as XIcon, Compass, Sparkles, Brain, UserCheck, Pencil, ChevronRight, SlidersHorizontal } from 'lucide-react';
 import { useLocale } from '@/hooks/useLocale';
-import { getAgentStats } from '@/lib/agent-stats';
 import type { WorkerTask } from '@/stores/types';
 import { WorkerAvatar } from './WorkerAvatar';
-import { personaName, personaRole } from './shared/persona-format';
+import { personaName, personaRole, publicAssignmentReason } from './shared/persona-format';
 import { EASE } from './shared/constants';
 
 /* ═══ Team Deploy Banner — 팀 구성 확인 ═══ */
@@ -100,9 +99,9 @@ export function TeamDeployBanner({
         className="group/row flex items-start gap-3 py-2.5 first:pt-0 last:pb-0">
         {/* Avatar */}
         {w.agent_type === 'human'
-          ? <div className="w-8 h-8 rounded-full bg-[var(--bg)] flex items-center justify-center text-[14px] shrink-0 mt-0.5 border border-[var(--border-subtle)]">👤</div>
+          ? <div className="w-8 h-8 rounded-full bg-[var(--bg)] flex items-center justify-center shrink-0 mt-0.5 border border-[var(--border-subtle)]"><UserCheck size={14} /></div>
           : w.agent_type === 'self'
-            ? <div className="w-8 h-8 rounded-full bg-[var(--bg)] flex items-center justify-center text-[14px] shrink-0 mt-0.5 border border-[var(--border-subtle)]">🧠</div>
+            ? <div className="w-8 h-8 rounded-full bg-[var(--bg)] flex items-center justify-center shrink-0 mt-0.5 border border-[var(--border-subtle)]"><Brain size={14} /></div>
             : <WorkerAvatar persona={w.persona} size="md" />
         }
         {/* Content — two-tier hierarchy:
@@ -126,7 +125,6 @@ export function TeamDeployBanner({
               tertiary tone so it reads as supporting metadata. */}
           {(roleText
             || ((w.agent_type || 'ai') === 'ai' && w.persona?.expertise)
-            || ((w.agent_type || 'ai') === 'ai' && w.agent_id)
           ) && (
             <div className="flex items-center gap-x-1.5 text-[12.5px] text-[var(--text-tertiary)] mt-0.5 leading-snug">
               {roleText && <span className="truncate">{roleText}</span>}
@@ -136,24 +134,6 @@ export function TeamDeployBanner({
               {(w.agent_type || 'ai') === 'ai' && w.persona?.expertise && (
                 <span className="truncate">{w.persona.expertise}</span>
               )}
-              {(w.agent_type || 'ai') === 'ai' && w.agent_id && (() => {
-                const stats = getAgentStats(w.agent_id);
-                if (!stats) return null;
-                const together = stats.totalTasks + stats.totalSyntheses;
-                return (
-                  <span className="shrink-0 ml-auto inline-flex items-center gap-1 tabular-nums">
-                    <span className="text-[var(--accent)]/75 font-medium">Lv.{stats.agent.level}</span>
-                    {together > 0
-                      ? <span>· {together}{L('회', '×')}</span>
-                      : <span className="text-[var(--accent)]/60">· {L('처음', 'first')}</span>}
-                    {stats.observationCount >= 3 && (
-                      <span className="inline-flex items-center gap-0.5 text-[var(--accent)]/70">
-                        <Brain size={9} className="inline" />{stats.observationCount}
-                      </span>
-                    )}
-                  </span>
-                );
-              })()}
             </div>
           )}
           {/* Why-this-agent — one quiet line surfacing the router's rationale
@@ -162,7 +142,7 @@ export function TeamDeployBanner({
           {isAI && w.assignment_reason && (
             <div className="flex items-start gap-1 text-[12.5px] text-[var(--text-tertiary)] mt-1 leading-snug">
               <Compass size={10} className="shrink-0 mt-[2px] text-[var(--accent)]/55" />
-              <span className="min-w-0">{w.assignment_reason}</span>
+              <span className="min-w-0">{publicAssignmentReason(w.assignment_reason)}</span>
             </div>
           )}
           {/* Scope preview — neutral tone, no color pills */}
@@ -214,8 +194,8 @@ export function TeamDeployBanner({
               <button
                 onClick={() => onReplaceWorker!(w.id)}
                 className="w-9 h-9 rounded-full flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--accent)] hover:bg-[var(--accent)]/[0.08] transition-colors cursor-pointer"
-                aria-label={L('이 팀원 교체', 'Replace this member')}
-                title={L('이 팀원 교체', 'Replace this member')}
+                aria-label={L('검토 방식 바꾸기', 'Change review lens')}
+                title={L('검토 방식 바꾸기', 'Change review lens')}
               >
                 <Repeat size={15} />
               </button>
@@ -224,8 +204,8 @@ export function TeamDeployBanner({
               <button
                 onClick={() => onRemoveWorker!(w.id)}
                 className="w-9 h-9 rounded-full flex items-center justify-center text-[var(--text-secondary)] hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors cursor-pointer"
-                aria-label={L('이 팀원 빼기', 'Remove this member')}
-                title={L('이 팀원 빼기', 'Remove this member')}
+                aria-label={L('이 검토 빼기', 'Remove this review')}
+                title={L('이 검토 빼기', 'Remove this review')}
               >
                 <XIcon size={15} />
               </button>
@@ -246,15 +226,15 @@ export function TeamDeployBanner({
       <div className="flex items-start justify-between mb-4 gap-3">
         <div className="min-w-0">
           <div className="text-[12px] font-bold text-[var(--accent)] uppercase tracking-[0.14em] mb-1">
-            {L('투입할 팀', 'Your team')}
+            {L('검토 구성', 'Review plan')}
           </div>
           <p className="text-[14px] text-[var(--text-secondary)]">
-            {L(`${total}명이 분석할 준비가 됐어요`, `${total} teammates ready to work`)}
+            {L(`${total}건의 검토를 준비했어요`, `${total} reviews are ready`)}
           </p>
           <p className="text-[12px] text-[var(--text-tertiary)] mt-1 leading-relaxed">
             {adjusting
-              ? L('맡을 사람을 바꾸거나, 빼거나, 더할 수 있어요.', 'Swap, remove, or add who handles what.')
-              : L('그대로 시작해도 되고, 손보고 시작해도 돼요.', 'Start as-is, or adjust the team first.')}
+              ? L('검토 방식을 바꾸거나 빼고, 필요한 시각을 더할 수 있어요.', 'Change, remove, or add review lenses.')
+              : L('그대로 시작하거나 검토 구성을 조정할 수 있어요.', 'Start as-is or adjust the review plan.')}
           </p>
         </div>
         {canAdjust && (
@@ -269,7 +249,7 @@ export function TeamDeployBanner({
             }`}
           >
             <SlidersHorizontal size={12} />
-            {adjusting ? L('완료', 'Done') : L('팀 손보기', 'Adjust team')}
+            {adjusting ? L('완료', 'Done') : L('검토 조정', 'Adjust reviews')}
           </button>
         )}
       </div>
@@ -305,10 +285,10 @@ export function TeamDeployBanner({
               <div className="flex items-start justify-between gap-3 mb-2.5">
                 <div className="flex-1 min-w-0">
                   <div className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[var(--text-tertiary)] mb-1 flex items-center gap-1.5 flex-wrap">
-                    <span>{L(`Task ${gi + 1}`, `Task ${gi + 1}`)}</span>
+                    <span>{L(`검토 ${gi + 1}`, `Review ${gi + 1}`)}</span>
                     {groupSize > 1 && (
                       <span className="text-[var(--accent)] normal-case tracking-normal">
-                        · {groupSize}{L('명', groupSize > 1 ? ' members' : ' member')}
+                        · {groupSize}{L('개 시각', groupSize > 1 ? ' lenses' : ' lens')}
                       </span>
                     )}
                     {taskEdited && (
@@ -367,8 +347,8 @@ export function TeamDeployBanner({
                         : 'text-[var(--text-tertiary)] bg-[var(--bg)] border border-[var(--border-subtle)] cursor-not-allowed opacity-60'
                     }`}
                     title={canAdd
-                      ? L('이 task에 다른 시각 추가', 'Add another perspective to this task')
-                      : L('최대 5명까지 추가할 수 있어요', 'Up to 5 personas per task')}
+                      ? L('이 작업에 다른 검토 추가', 'Add another review to this task')
+                      : L('한 작업에는 검토를 5개까지 둘 수 있어요', 'Up to 5 reviews per task')}
                   >
                     <Plus size={11} />
                     {canAdd ? L('다른 시각', 'Another lens') : L('가득', 'Full')}
@@ -426,8 +406,7 @@ export function TeamDeployBanner({
         })}
       </div>
 
-      {/* Free-mode "+ 새 팀원 추가" — agent-centric. The pool modal computes
-          the best-matching task per persona and adds them directly. */}
+      {/* Free-mode review addition. The pool modal computes the best task. */}
       {adjusting && onOpenFreePool && (() => {
         const everyGroupFull = groups.length > 0 && groups.every(g => g.members.length >= MAX_PERSONAS_PER_GROUP);
         return (
@@ -440,13 +419,13 @@ export function TeamDeployBanner({
                 : 'border border-[var(--accent)]/25 text-[var(--accent)] hover:bg-[var(--accent)]/[0.04] hover:border-[var(--accent)]/45 cursor-pointer'
             }`}
             title={everyGroupFull
-              ? L('모든 task가 5명으로 가득 찼어요', 'Every task is at 5 personas')
-              : L('어울리는 task에 자동으로 배정됩니다', 'Automatically matched to the best-fitting task')}
+              ? L('모든 작업에 검토가 5개씩 있어요', 'Every task has 5 reviews')
+              : L('가장 잘 맞는 작업에 자동으로 연결돼요', 'Automatically matched to the best-fitting task')}
           >
             <Plus size={12} />
-            {L('새 팀원 추가', 'Add a team member')}
+            {L('검토 추가', 'Add a review')}
             <span className="text-[12px] text-[var(--text-tertiary)] font-normal">
-              {everyGroupFull ? '' : L(' · 어울리는 task에 자동 배정', ' · auto-match to a task')}
+              {everyGroupFull ? '' : L(' · 알맞은 작업에 자동 연결', ' · auto-match to a task')}
             </span>
           </button>
         );
@@ -460,7 +439,7 @@ export function TeamDeployBanner({
         transition={{ delay: 0.15 + groups.length * staggerDelay, duration: 0.4, ease: EASE }}
         className="mt-5 w-full flex items-center justify-center gap-2 px-5 py-3.5 text-[var(--accent-fg)] rounded-xl text-[14px] font-semibold cursor-pointer shadow-[var(--shadow-sm)] hover:shadow-[var(--shadow-lg)] transition-shadow"
         style={{ background: 'var(--gradient-gold)' }}>
-        {L('팀 투입', 'Start')} <ChevronRight size={14} />
+        {L('검토 시작', 'Start reviews')} <ChevronRight size={14} />
       </motion.button>
     </motion.div>
   );

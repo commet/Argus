@@ -207,7 +207,7 @@ export function TrialSail({ paragraph }: { paragraph: string }) {
                 // Honest no-show: a frozen skeleton reads as "loading stuck" —
                 // say plainly that this reading never arrived.
                 <p className="text-[12.5px] text-[var(--text-tertiary)] leading-[1.5]">
-                  {L('이 팀원의 응답을 받지 못했어요.', "This review didn't arrive.")}
+                  {L('이 검토의 응답을 받지 못했어요.', "This review didn't arrive.")}
                 </p>
               ) : (
                 <div className="space-y-1.5">

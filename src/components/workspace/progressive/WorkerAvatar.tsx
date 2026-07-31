@@ -1,10 +1,12 @@
 'use client';
 
+import { ScanSearch } from 'lucide-react';
+import { useLocale } from '@/hooks/useLocale';
 import type { WorkerPersona } from '@/stores/types';
+import { personaReviewLabel } from './shared/persona-format';
 
 /**
- * Persona Avatar — 컬러 이니셜 + 역할 아이콘
- * 이모지 대신 따뜻하면서 프로페셔널한 아바타.
+ * Review marker — a quiet functional mark, not a fictional person's avatar.
  */
 export function WorkerAvatar({
   persona,
@@ -15,38 +17,27 @@ export function WorkerAvatar({
   size?: 'sm' | 'md' | 'lg';
   pulse?: boolean;
 }) {
+  const locale = useLocale();
   const dims = { sm: 'w-6 h-6', md: 'w-8 h-8', lg: 'w-10 h-10' };
-  const textSize = { sm: 'text-[12px]', md: 'text-[12px]', lg: 'text-[14px]' };
-  const iconSize = { sm: 'text-[7px]', md: 'text-[8px]', lg: 'text-[12.5px]' };
+  const iconSize = { sm: 12, md: 14, lg: 17 };
 
   if (!persona) {
     return (
       <div className={`${dims[size]} rounded-full bg-[var(--border-subtle)] flex items-center justify-center shrink-0`}>
-        <span className={`${textSize[size]} font-bold text-[var(--text-tertiary)]`}>?</span>
+        <ScanSearch size={iconSize[size]} className="text-[var(--text-tertiary)]" aria-hidden />
       </div>
     );
   }
 
-  const initial = persona.name.charAt(0);
-  const bgColor = `${persona.color}18`; // 10% opacity hex
-  const borderColor = `${persona.color}40`; // 25% opacity
+  const label = personaReviewLabel(persona, locale);
 
   return (
     <div
-      className={`${dims[size]} rounded-full flex items-center justify-center shrink-0 relative ${pulse ? 'animate-pulse' : ''}`}
-      style={{
-        backgroundColor: bgColor,
-        border: `1.5px solid ${borderColor}`,
-      }}
-      aria-label={`${persona.name} · ${persona.role}`}
+      className={`${dims[size]} rounded-full flex items-center justify-center shrink-0 relative border border-[var(--border)] bg-[var(--surface)] text-[var(--text-secondary)] ${pulse ? 'animate-pulse' : ''}`}
+      aria-label={label}
       role="img"
     >
-      <span className={`${textSize[size]} font-bold`} style={{ color: persona.color }}>
-        {initial}
-      </span>
-      <span className={`absolute -bottom-0.5 -right-0.5 ${iconSize[size]} leading-none`} aria-hidden="true">
-        {persona.emoji}
-      </span>
+      <ScanSearch size={iconSize[size]} strokeWidth={1.7} aria-hidden />
     </div>
   );
 }

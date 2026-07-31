@@ -82,9 +82,9 @@ describe('DecisionEvidenceMap', () => {
     expect(text()).toContain('기존 고객 이탈 없이 전환율 12%');
 
     const buttons = Array.from(container.querySelectorAll('button'));
-    const team = buttons.find((button) => button.textContent?.includes('팀 분석'))!;
+    const team = buttons.find((button) => button.textContent?.includes('검토 결과'))!;
     act(() => team.dispatchEvent(new MouseEvent('click', { bubbles: true })));
-    expect(text()).toContain('분석가');
+    expect(text()).toContain('전문 검토');
     expect(text()).toContain('현재 자료만으로 기존 고객의 가격 민감도를 단정할 수 없다.');
 
     const checks = Array.from(container.querySelectorAll('button')).find((button) => button.textContent?.includes('아직 확인할 것'))!;

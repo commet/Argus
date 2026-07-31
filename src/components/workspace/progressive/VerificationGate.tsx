@@ -96,7 +96,7 @@ export function VerificationGate({ workers, anyRunning, onApprove, onReject, onR
               <p className="text-[12px] text-[var(--text-secondary)] mt-0.5 leading-snug">
                 {allClear
                   ? L('이제 정리할 수 있어요.', 'Ready to wrap it up.')
-                  : L(`팀원 ${remaining}명의 결과를 아직 안 봤어요. 반영할지 빼고 갈지 한 번씩만 정해주세요 — 그대로 다 반영하고 가도 돼요.`, `You haven't looked at ${remaining} result${remaining > 1 ? 's' : ''} yet. Mark each as keep or skip — or just include them all and go.`)}
+                  : L(`검토 결과 ${remaining}건을 아직 안 봤어요. 반영할지 뺄지 정해주세요 — 그대로 모두 반영하고 가도 돼요.`, `You haven't looked at ${remaining} result${remaining > 1 ? 's' : ''} yet. Mark each as keep or skip — or just include them all and go.`)}
               </p>
             </div>
             <button type="button" onClick={onClose} className="shrink-0 min-w-[44px] min-h-[44px] inline-flex items-center justify-center rounded-lg hover:bg-[var(--bg)] cursor-pointer" aria-label={L('닫기', 'Close')}>

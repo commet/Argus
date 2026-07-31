@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * PersonaPoolModal — overlay for picking a persona to add to the team.
+ * PersonaPoolModal — overlay for adding a review lens.
  *
  * Two modes:
  *   • mode='task'  — user clicked "+ 다른 시각 추가" on a specific task.
@@ -20,16 +20,16 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X as XIcon, Search, Sparkles, Check, ArrowRight, Brain } from 'lucide-react';
+import { X as XIcon, Search, Sparkles, Check, ArrowRight } from 'lucide-react';
 import { useLocale } from '@/hooks/useLocale';
 import { getPersonaPool } from '@/lib/worker-personas';
 import { useAgentStore } from '@/stores/useAgentStore';
 import { agentToWorkerPersona } from '@/lib/agent-adapters';
-import { getAgentStats } from '@/lib/agent-stats';
 import type { Agent } from '@/stores/agent-types';
 import type { WorkerPersona } from '@/stores/types';
 import { EASE } from './shared/constants';
 import { WorkerAvatar } from './WorkerAvatar';
+import { personaReviewLabel } from './shared/persona-format';
 
 export interface PoolModalGroupInfo {
   groupId: string;
@@ -254,14 +254,14 @@ export function PersonaPoolModal({
   const targetGroupFull = !!targetGroup && targetGroup.memberCount >= maxPerGroup;
 
   const { recommended, others, filtered } = useMemo(() => {
-    // Filter by query (matches name / role / expertise)
+    // Search the actual review scope, never the hidden routing identity.
     const q = query.trim().toLowerCase();
     const matchesQuery = (p: PersonaPlacement) => {
       if (!q) return true;
       return (
-        p.persona.name.toLowerCase().includes(q) ||
         p.persona.role.toLowerCase().includes(q) ||
-        p.persona.expertise.toLowerCase().includes(q)
+        p.persona.expertise.toLowerCase().includes(q) ||
+        (p.matchedTask || '').toLowerCase().includes(q)
       );
     };
     const matched = placements.filter(matchesQuery);
@@ -304,19 +304,6 @@ export function PersonaPoolModal({
             : L('이미 추가됨', 'Already in'))
       : p.reason === 'all-full' ? L('빈 자리 없음', 'No room')
       : null;
-    // Pull live growth stats only when this persona is a real Agent.
-    // Custom personas just don't get the cue line.
-    const stats = p.agent ? getAgentStats(p.agent.id) : null;
-    const together = stats ? stats.totalTasks + stats.totalSyntheses : 0;
-    const familiarityLabel = stats
-      ? (together === 0
-          ? L('처음 모시는 분', 'First time')
-          : stats.familiarity === 'few'
-            ? L(`${together}번 함께`, `${together}× together`)
-            : stats.familiarity === 'familiar'
-              ? L(`${together}번 함께 · 익숙한 동료`, `${together}× together · familiar`)
-              : L(`${together}번 함께 · 오랜 동료`, `${together}× together · long-time partner`))
-      : null;
     return (
       <button
         key={p.persona.id}
@@ -331,29 +318,12 @@ export function PersonaPoolModal({
         <WorkerAvatar persona={p.persona} size="md" />
         <div className="flex-1 min-w-0">
           <div className="flex items-baseline gap-1.5 flex-wrap">
-            <span className="text-[14px] font-semibold text-[var(--text-primary)]">{p.persona.name}</span>
+            <span className="text-[14px] font-semibold text-[var(--text-primary)]">{personaReviewLabel(p.persona, locale)}</span>
             <span className="text-[12.5px] text-[var(--text-tertiary)]">{p.persona.role}</span>
-            {stats && (
-              <span className="text-[12px] font-medium text-[var(--accent)]/80 tabular-nums">
-                Lv.{stats.agent.level}
-              </span>
-            )}
           </div>
           <p className="text-[12px] text-[var(--text-secondary)] line-clamp-2 mt-0.5 leading-[1.5]">
             {p.persona.expertise}
           </p>
-          {/* Growth cue — together count + observation badge. Tertiary tone
-              so it doesn't compete with the primary task-match preview. */}
-          {familiarityLabel && (
-            <div className="mt-1 flex items-center gap-1.5 text-[12px] text-[var(--text-tertiary)]">
-              <span>{familiarityLabel}</span>
-              {stats && stats.observationCount >= 3 && (
-                <span className="inline-flex items-center gap-0.5 text-[var(--accent)]/70">
-                  <Brain size={9} /> {stats.observationCount}
-                </span>
-              )}
-            </div>
-          )}
           {/* Free-mode preview: which task this persona will land in */}
           {mode === 'free' && p.matchedTask && p.reason === 'addable' && (
             <div className="mt-1.5 flex items-center gap-1 text-[12.5px] text-[var(--accent)] line-clamp-1">
@@ -376,15 +346,15 @@ export function PersonaPoolModal({
 
   // Header content varies by mode
   const headerEyebrow = mode === 'task'
-    ? L('이 작업에 추가할 팀원', 'Add to this task')
+    ? L('이 작업에 검토 추가', 'Add a review to this task')
     : mode === 'replace'
-      ? L('이 팀원과 교체', 'Replace this member')
-      : L('새 팀원 추가', 'Add a team member');
+      ? L('검토 방식 바꾸기', 'Change review lens')
+      : L('검토 추가', 'Add a review');
   const headerTitle = mode === 'task'
     ? (targetGroup?.task || L('작업', 'task'))
     : mode === 'replace'
       ? (replaceInfo?.task || L('작업', 'task'))
-      : L('어떤 분을 모실지 골라주세요. 어울리는 작업에 자동으로 배정돼요.', "Pick someone — we'll match them to the most fitting task automatically.");
+      : L('필요한 검토를 고르면 가장 잘 맞는 작업에 연결해요.', "Choose a review and we'll connect it to the best-fitting task.");
   const headerSub = mode === 'task'
     ? targetGroup?.aiScope || null
     : mode === 'replace'
@@ -409,7 +379,7 @@ export function PersonaPoolModal({
           <motion.div
             role="dialog"
             aria-modal="true"
-            aria-label={mode === 'replace' ? L('팀원 교체', 'Replace member') : L('팀원 추가', 'Add a team member')}
+            aria-label={mode === 'replace' ? L('검토 방식 바꾸기', 'Change review lens') : L('검토 추가', 'Add a review')}
             initial={{ opacity: 0, y: 24, scale: 0.97 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 12, scale: 0.98 }}
@@ -450,7 +420,7 @@ export function PersonaPoolModal({
                     type="text"
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
-                    placeholder={L('이름 · 역할 · 전문 분야로 검색', 'Search name, role, or expertise')}
+                    placeholder={L('역할 · 전문 분야 · 작업으로 검색', 'Search role, expertise, or task')}
                     className="w-full pl-9 pr-3 py-2 rounded-xl text-[13px] bg-[var(--bg)] border border-[var(--border-subtle)] placeholder:text-[var(--text-tertiary)] focus:outline-none focus:border-[var(--accent)]/40"
                   />
                 </div>
@@ -473,7 +443,7 @@ export function PersonaPoolModal({
                   <>
                     {filtered.length === 0 ? (
                       <p className="text-center text-[12px] text-[var(--text-tertiary)] py-8">
-                        {L('일치하는 페르소나가 없어요', 'No personas match')}
+                        {L('일치하는 검토 방식이 없어요', 'No reviews match')}
                       </p>
                     ) : (
                       <div className="space-y-2">
@@ -491,8 +461,8 @@ export function PersonaPoolModal({
                           <Sparkles size={11} className="text-[var(--accent)]" />
                           <span className="text-[12px] font-bold uppercase tracking-[0.16em] text-[var(--accent)]">
                             {mode === 'task' || mode === 'replace'
-                              ? L('이 작업에 잘 맞는 팀원', 'Recommended for this task')
-                              : L('지금 팀에 잘 어울릴 팀원', 'Recommended for your team')}
+                              ? L('이 작업에 잘 맞는 검토', 'Recommended for this task')
+                              : L('지금 필요한 검토', 'Recommended reviews')}
                           </span>
                         </div>
                         <div className="space-y-2">
@@ -504,7 +474,7 @@ export function PersonaPoolModal({
                       <div>
                         <div className="px-2 mb-2 mt-1">
                           <span className="text-[12px] font-bold uppercase tracking-[0.16em] text-[var(--text-tertiary)]">
-                            {recommended.length > 0 ? L('전체 풀', 'All personas') : L('팀원 풀', 'Persona pool')}
+                            {recommended.length > 0 ? L('다른 검토', 'Other reviews') : L('검토 목록', 'Review options')}
                           </span>
                         </div>
                         <div className="space-y-2">

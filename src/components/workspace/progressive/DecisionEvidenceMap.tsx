@@ -99,7 +99,7 @@ export function DecisionEvidenceMap({ onNavigate }: { onNavigate?: () => void } 
     {
       key: 'team' as const,
       icon: Bot,
-      label: L('팀 분석', 'Team analysis'),
+      label: L('검토 결과', 'Review results'),
       count: model.teamRows.length,
       tone: 'text-[var(--accent)]',
     },

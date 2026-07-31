@@ -48,10 +48,10 @@ export function PhaseAmbient({ phase }: { phase: string }) {
 export type StatusMode = 'ai_working' | 'your_turn' | 'phase_done';
 
 export function PhaseStatusBar({
-  phase, busy, hasQuestion, deployReady, shouldMix, workersRunning, workersDone, workersTotal, elapsedLabel, leadAgentName, substage, isLongWait, onCancel,
+  phase, busy, hasQuestion, deployReady, shouldMix, workersRunning, workersDone, workersTotal, elapsedLabel, substage, isLongWait, onCancel,
 }: {
   phase: string; busy: boolean; hasQuestion: boolean; deployReady: boolean; shouldMix: boolean;
-  workersRunning: number; workersDone: number; workersTotal: number; elapsedLabel: string; leadAgentName?: string;
+  workersRunning: number; workersDone: number; workersTotal: number; elapsedLabel: string;
   // Optional fine-grained step for long async work (e.g. mix pipeline has 4
   // serial LLM calls — surface which one is running now, not just "Drafting…").
   substage?: string | null;
@@ -73,10 +73,10 @@ export function PhaseStatusBar({
   if (busy || phase === 'analyzing' || phase === 'mixing' || phase === 'lead_synthesizing') {
     mode = 'ai_working';
     if (phase === 'analyzing') {
-      label = L('지금 답할 질문을 정리하고 있어요', 'Organizing the question to answer');
+      label = L('방금 답변을 반영하고 있어요', 'Reflecting your latest answer');
       sub = workersRunning > 0 ? L(`AI 검토 ${workersDone}/${workersTotal} 완료`, `${workersDone}/${workersTotal} AI reviewers finished`) : '';
     } else if (phase === 'lead_synthesizing') {
-      label = L(`${leadAgentName || '리드'}가 팀 결과를 통합하는 중`, `${leadAgentName || 'Lead'} is synthesizing findings`);
+      label = L('검토 결과를 종합하고 있어요', 'Synthesizing the reviews');
     } else if (phase === 'mixing') {
       label = L('정리하고 있어요', 'Wrapping up');
     } else {
@@ -92,7 +92,7 @@ export function PhaseStatusBar({
     sub = L('팀 구성을 확인하고 시작하세요', 'Review the team and start');
   } else if (shouldMix) {
     mode = 'your_turn';
-    label = L('팀 분석이 끝났어요', 'Team analysis complete');
+    label = L('검토가 끝났어요', 'Reviews complete');
     sub = L('정리를 시작하세요', 'Ready to wrap up');
   } else if (workersRunning > 0) {
     mode = 'ai_working';

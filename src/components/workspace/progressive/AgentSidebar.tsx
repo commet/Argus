@@ -6,15 +6,14 @@ import { Check, Loader2, ChevronDown, Sparkles, ArrowRight, RefreshCw, AlertCirc
 import { useWorkers, useWorkerContext } from './WorkerPanel';
 import { WorkerAvatar } from './WorkerAvatar';
 import type { WorkerTask, PipelineStage } from '@/stores/types';
-import { useAgentStore } from '@/stores/useAgentStore';
 import { useProgressiveStore } from '@/stores/useProgressiveStore';
 import { useLocale } from '@/hooks/useLocale';
 import { EASE } from './shared/constants';
 import { renderMd } from './shared/renderMd';
-import { TypingDots, AvatarRipple, ShimmerBar, tickersFor, useAttentionPulse, AttentionFlash } from './shared/AgentVisuals';
+import { TypingDots, ShimmerBar, tickersFor, useAttentionPulse, AttentionFlash } from './shared/AgentVisuals';
 import { useAgentAttentionStore } from '@/stores/useAgentAttentionStore';
 import { useWorkerActions } from '@/hooks/useWorkerActions';
-import { localizePersona } from '@/lib/worker-personas';
+import { personaReviewLabel } from './shared/persona-format';
 
 // ─── Status helpers ───
 
@@ -84,9 +83,6 @@ function AgentRow({ worker, expanded, onToggle, enterIndex, onRetry }: {
   const isDone = worker.status === 'done';
   const isWorking = isWorkingStatus(worker.status);
   const isError = worker.status === 'error';
-
-  const personaColor = worker.persona?.color || 'var(--accent)';
-  const lv = worker.agent_id ? useAgentStore.getState().getAgent(worker.agent_id)?.level : undefined;
 
   // ── Attention ping — brief gold flash when user submits input
   const pulsing = useAttentionPulse(isWorking);
@@ -168,8 +164,8 @@ function AgentRow({ worker, expanded, onToggle, enterIndex, onRetry }: {
         'border-[var(--border-subtle)] bg-[var(--surface)]'
       }`}
     >
-      <AttentionFlash active={pulsing} color={personaColor} />
-      {isWorking && <ShimmerBar color={personaColor} />}
+      <AttentionFlash active={pulsing} color="var(--accent)" />
+      {isWorking && <ShimmerBar color="var(--accent)" />}
 
       {/* Completion celebration sweep — a single golden bar sliding across the row when auto-revealed */}
       {autoRevealed && (
@@ -191,19 +187,13 @@ function AgentRow({ worker, expanded, onToggle, enterIndex, onRetry }: {
         className={`w-full flex items-center gap-3 p-3 ${isDone ? 'cursor-pointer' : 'cursor-default'}`}
       >
         <div className="relative shrink-0">
-          {isWorking && <AvatarRipple color={personaColor} />}
           <WorkerAvatar persona={worker.persona} size="sm" pulse={isWorking} />
         </div>
         <div className="flex-1 text-left min-w-0">
           <div className="flex items-center gap-1.5">
             <span className="text-[13px] font-semibold text-[var(--text-primary)] truncate">
-              {worker.persona ? localizePersona(worker.persona, locale).name : 'AI'}
+              {worker.persona ? personaReviewLabel(worker.persona, locale) : L('AI 검토', 'AI review')}
             </span>
-            {lv != null && lv >= 2 && (
-              <span className="agent-lv" style={{ fontSize: 12.5, padding: '0px 5px' }} data-level={lv}>
-                Lv.{lv}
-              </span>
-            )}
           </div>
           {isWorking && (
             <div className="mt-0.5 h-[15px] relative overflow-hidden">
@@ -214,18 +204,17 @@ function AgentRow({ worker, expanded, onToggle, enterIndex, onRetry }: {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -6 }}
                   transition={{ duration: 0.35, ease: EASE }}
-                  className="text-[12.5px] truncate flex items-center gap-1.5 absolute inset-0"
-                  style={{ color: personaColor }}
+                  className="text-[12.5px] truncate flex items-center gap-1.5 absolute inset-0 text-[var(--text-secondary)]"
                 >
                   <span className="truncate">{liveLine}</span>
-                  <TypingDots color={personaColor} />
+                  <TypingDots />
                 </motion.p>
               </AnimatePresence>
             </div>
           )}
           {isDone && worker.completion_note && (
             <p className="text-[12.5px] text-[var(--text-secondary)] mt-0.5 italic truncate">
-              &ldquo;{worker.completion_note}&rdquo;
+              &ldquo;{worker.completion_note.replace(/^[^:\n]{1,24}:\s*/, '')}&rdquo;
             </p>
           )}
           {isError && worker.error && (
@@ -498,7 +487,7 @@ export function AgentSidebar({ className }: { className?: string }) {
             <Loader2 size={18} className="animate-spin text-[var(--accent)]" />
           </div>
           <p className="text-[12.5px] text-[var(--text-secondary)] font-medium">
-            {L(`${pendingCount}명의 팀원 배정 중`, `Assembling ${pendingCount} team members`)}
+            {L(`${pendingCount}건의 검토를 준비하고 있어요`, `Preparing ${pendingCount} reviews`)}
           </p>
           <p className="text-[12px] text-[var(--text-tertiary)]">
             {L('잠시만요', 'One moment')}<TypingDots />
@@ -550,7 +539,7 @@ export function AgentSidebar({ className }: { className?: string }) {
             className="flex items-center gap-2 px-3 pt-1 text-[12px] text-[var(--text-tertiary)]"
           >
             <span className="w-1 h-1 rounded-full bg-[var(--text-tertiary)]/40" />
-            <span>{L(`${pendingCount}명 더 합류 예정`, `${pendingCount} more joining`)}</span>
+            <span>{L(`${pendingCount}건 더 준비 중`, `${pendingCount} more preparing`)}</span>
           </motion.div>
         )}
       </div>

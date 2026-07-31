@@ -21,7 +21,7 @@ import { EASE, SPRING } from '../shared/constants';
 /** P1-2 과거 답 수정 진입로 (B-7): a pill taps open to the full Q/A; when a
  *  pre-answer checkpoint exists, "이 답부터 다시" forks a NEW branch there —
  *  the current course is preserved (변침도 기록), the question re-presents. */
-export function AnsweredPills({ qaPairs, canRevisit, onRevisit, focusIndex, focusNonce }: {
+export function AnsweredPills({ qaPairs, canRevisit, onRevisit, focusIndex, focusNonce, reflecting = false }: {
   qaPairs: Array<{ question: FlowQuestion; answer: FlowAnswer | null }>;
   /** Per-ANSWER-index: is there a checkpoint to fork from? */
   canRevisit?: (answerIndex: number) => boolean;
@@ -30,6 +30,9 @@ export function AnsweredPills({ qaPairs, canRevisit, onRevisit, focusIndex, focu
    *  focusNonce가 바뀔 때마다 focusIndex번째 답을 연다(같은 질문 반복 클릭도 재발화). */
   focusIndex?: number | null;
   focusNonce?: number;
+  /** The latest answer has been stored but its replacement snapshot has not
+   * arrived yet. Never call it "used in analysis" during this gap. */
+  reflecting?: boolean;
 }) {
   const locale = useLocale();
   const disclosureBaseId = useId();
@@ -64,7 +67,9 @@ export function AnsweredPills({ qaPairs, canRevisit, onRevisit, focusIndex, focu
         ))}
         <motion.span initial={{ opacity: 0, x: -4 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3 }}
           className="text-[12.5px] font-medium text-[var(--accent)]/80 flex items-center gap-1">
-          <ArrowRight size={11} /> {locale === 'ko' ? '분석에 반영' : 'used in analysis'}
+          <ArrowRight size={11} /> {reflecting
+            ? (locale === 'ko' ? '방금 답변 반영 중' : 'reflecting latest answer')
+            : (locale === 'ko' ? '분석에 반영됨' : 'reflected in analysis')}
         </motion.span>
       </div>
 

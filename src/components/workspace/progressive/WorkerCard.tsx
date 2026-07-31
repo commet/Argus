@@ -7,10 +7,10 @@ import { useProgressiveStore } from '@/stores/useProgressiveStore';
 import type { WorkerTask } from '@/stores/types';
 import { resolveAgentType } from '@/stores/types';
 import { WorkerAvatar } from './WorkerAvatar';
-import { useAgentStore } from '@/stores/useAgentStore';
 import { usePersonaStore } from '@/stores/usePersonaStore';
 import { useLocale } from '@/hooks/useLocale';
 import { localizePersona } from '@/lib/worker-personas';
+import { personaReviewLabel } from './shared/persona-format';
 import { recordHitReaction } from '@/lib/hit-rate';
 import { recordStrategyOutcome } from '@/lib/context-strategy';
 import { selectContextStrategy } from '@/lib/context-strategy';
@@ -135,7 +135,7 @@ function ResultModal({ worker, content, onClose, onApprove, onReject }: {
           <WorkerAvatar persona={worker.persona} size="lg" />
           <div className="flex-1 min-w-0">
             <p id={titleId} className="text-[15px] font-semibold text-[var(--text-primary)] truncate">
-              {worker.persona ? localizePersona(worker.persona, locale).name : 'AI'}
+              {worker.persona ? personaReviewLabel(worker.persona, locale) : L('AI 검토', 'AI review')}
             </p>
             <p className="text-[13px] text-[var(--text-secondary)] truncate">
               {worker.persona ? localizePersona(worker.persona, locale).role : ''} · {worker.task}
@@ -221,7 +221,9 @@ export const WorkerReportBlock = memo(function WorkerReportBlock({
     // AI task with draft (legacy both or new ai+self_scope): pre-fill with draft
     (worker.who === 'both' || (aTypeInit === 'ai' && worker.self_scope)) && worker.result ? worker.result : ''
   );
-  const persona = worker.persona ? localizePersona(worker.persona, locale) : null;
+  const persona = worker.persona
+    ? { ...localizePersona(worker.persona, locale), name: personaReviewLabel(worker.persona, locale) }
+    : null;
 
   const statusLabel: string = ({
     pending: L('대기 중', 'Pending'),
@@ -510,10 +512,6 @@ export const WorkerReportBlock = memo(function WorkerReportBlock({
   const isApproved = worker.approved === true;
   const keyFinding = extractKeyFinding(worker.result);
   const hasMore = (worker.result || '').length > 160;
-  const agentLevel = worker.agent_id
-    ? useAgentStore.getState().getAgent(worker.agent_id)?.level
-    : undefined;
-
   return (
     <>
       <motion.div
@@ -531,11 +529,6 @@ export const WorkerReportBlock = memo(function WorkerReportBlock({
             <p className="text-[14px] font-medium text-[var(--text-primary)]">
               {persona?.name || 'AI'}
               <span className="text-[var(--text-secondary)] font-normal ml-1.5 text-[12px]">{persona?.role}</span>
-              {agentLevel != null && agentLevel >= 2 && (
-                <span className="agent-lv ml-1.5" data-level={agentLevel} style={{ fontSize: 12, padding: '1px 6px' }}>
-                  Lv.{agentLevel}
-                </span>
-              )}
               {isApproved && <span className="ml-2 text-[12.5px] text-[var(--accent)] font-medium">{L('반영', 'Applied')}</span>}
               {isRejected && <span className="ml-2 text-[12.5px] text-[var(--text-tertiary)] font-medium">{L('제외', 'Excluded')}</span>}
             </p>
@@ -667,7 +660,7 @@ export const WorkerReportBlock = memo(function WorkerReportBlock({
                         <button
                           onClick={() => onReassign(worker.id)}
                           className="inline-flex items-center gap-1 text-[12.5px] text-[var(--accent)] hover:underline cursor-pointer transition-colors">
-                          <Repeat size={10} /> {L('다른 에이전트로', 'Different agent')}
+                          <Repeat size={10} /> {L('다른 검토로', 'Different review')}
                         </button>
                       )}
                       <span className="text-[12px] text-[var(--text-tertiary)]">

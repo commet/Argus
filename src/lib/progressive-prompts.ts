@@ -392,19 +392,19 @@ export function buildWorkerTaskPrompt(
   // ─── System prompt: persona + skills + level ───
   const systemParts: string[] = [];
 
-  // 1. Persona identity (agent first, persona fallback)
-  //    Localize persona fields so the LLM system prompt matches the target output language.
+  // 1. Assigned review lens. The old prompt introduced a fictional coworker by
+  // name ("You are 규민…"). Names add theater, not capability: routing,
+  // frameworks, level directives and validation below do the real work.
   if (agent) {
-    const agentName = (locale === 'en' && agent.nameEn) ? agent.nameEn : agent.name;
     const agentRole = (locale === 'en' && agent.roleEn) ? agent.roleEn : agent.role;
-    systemParts.push(`You are ${agentName}, ${agentRole}.
+    systemParts.push(`You are the assigned specialist reviewer. Your working lens is ${agentRole}.
 ${agent.expertise || ''}
 ${agent.tone || ''}`);
     const agentCtx = buildAgentContext(agent);
     if (agentCtx) systemParts.push(agentCtx);
   } else if (persona) {
     const p = localizePersona(persona, locale);
-    systemParts.push(`You are ${p.name}, ${p.role}.
+    systemParts.push(`You are the assigned specialist reviewer. Your working lens is ${p.role}.
 ${p.expertise}
 ${p.tone}`);
   }
@@ -527,7 +527,7 @@ export function buildMixPrompt(
   const systemPrompt = leadSynthesis
     ? `You are a professional document editor. Always respond in ${lang}.
 
-A domain expert (${leadSynthesis.lead_agent_name}) has already synthesized the team's findings into an integrated analysis. Your job is to format this into a polished, professional document. ${audienceLine}
+A synthesis pass has already integrated the specialist reviews. Your job is to format this into a polished, professional document. ${audienceLine}
 
 Rules:
 - The lead expert's synthesis is your PRIMARY source. Preserve their strategic logic and the open question / unresolved tensions they surfaced. The lead does NOT pick a side — do not manufacture one.
@@ -584,7 +584,7 @@ ATTRIBUTION (required when worker results are provided):
   // Lead synthesis block for user prompt
   const leadBlock = leadSynthesis
     ? `
-Lead Expert Synthesis (by ${leadSynthesis.lead_agent_name}):
+Integrated synthesis:
 ${leadSynthesis.integrated_analysis}
 
 Key findings:

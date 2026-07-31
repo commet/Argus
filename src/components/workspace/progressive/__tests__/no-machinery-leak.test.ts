@@ -84,11 +84,8 @@ describe('progressive flow: LeadSynthesisCard spine (F5)', () => {
   const card = src.slice(src.indexOf('function LeadSynthesisCard'), src.indexOf('function LeadSynthesisCard') + 6000);
 
   it('surfaces the WORK as the byline, not the agent as an author (de-personified)', () => {
-    // The lead name must be demoted to a quiet "· {name}" coverage tag, and the
-    // work label ("팀이 모은 결론") must come BEFORE the name in the header (work leads).
-    expect(card).toContain('· {synthesis.lead_agent_name}');
-    expect(card.indexOf("L('팀이 모은 결론'")).toBeGreaterThan(-1);
-    expect(card.indexOf("L('팀이 모은 결론'")).toBeLessThan(card.indexOf('synthesis.lead_agent_name'));
+    expect(card).toContain("L('검토 종합'");
+    expect(card).not.toContain('synthesis.lead_agent_name');
   });
 
   it('renders the asymptote disclosure at the crux (CLAUDE.md-mandated, was missing)', () => {

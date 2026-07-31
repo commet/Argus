@@ -116,3 +116,4 @@ e2e-shots/
 card-preview/
 
 .vercel
+.env*.local

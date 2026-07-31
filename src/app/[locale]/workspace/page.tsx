@@ -40,7 +40,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import type { WorkerPersona, DecisionContract, VoyageBranch } from '@/stores/types';
 import { ErrorBoundary } from '@/components/layout/ErrorBoundary';
 import { parsePartialAnalysis } from '@/lib/partial-analysis';
-import { ArgusCompanionNote } from '@/components/brand/ArgusCompanionNote';
 import { ArgusMascot } from '@/components/brand/ArgusMascot';
 import { Modal } from '@/components/ui/Modal';
 import { LIGHT_PATH_ENABLED } from '@/lib/light-path/light-engine';
@@ -854,21 +853,28 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem, fr
                   {L('분야나 형식은 상관없어요. 떠오르는 대로 적어주세요.', 'Any field or format is fine. Describe it however it comes to mind.')}
                 </p>
                 {projects.length === 0 && (
-                  <ArgusCompanionNote
-                    moment="companion"
-                    compact
-                    bare
-                    mascotClassName="!h-14 !w-11"
-                    title={L('한 문장이면 충분해요.', 'One sentence is enough.')}
-                    className="mb-3"
+                  <figure
+                    className="relative -mx-2 h-[180px] overflow-hidden rounded-[22px] border border-[var(--border)]/70 bg-[var(--surface)] shadow-[var(--shadow-sm)] md:-mx-16 md:h-[230px]"
+                    aria-label={L('한 줄의 생각이 확인할 항로로 이어지는 해도', 'A chart where one line of thought becomes a course to check')}
                   >
-                    {L('상황 속 전제와 지금 풀어야 할 질문을 함께 정리해요.', 'We’ll surface the assumptions and the question that matters now.')}
-                  </ArgusCompanionNote>
+                    <Image
+                      src="/images/workspace/decision-course-entry-v1.webp"
+                      alt=""
+                      fill
+                      priority
+                      sizes="(max-width: 768px) 100vw, 800px"
+                      className="object-cover object-[50%_48%]"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-b from-[var(--surface)]/5 via-transparent to-[var(--surface)]/45" aria-hidden />
+                    <figcaption className="absolute left-4 top-4 rounded-full border border-white/30 bg-[#f7efe0]/75 px-3 py-1.5 text-[12px] font-semibold text-[#4a4439] shadow-sm backdrop-blur-sm md:left-5 md:top-5">
+                      {L('한 문장이면 충분해요', 'One sentence is enough')}
+                    </figcaption>
+                  </figure>
                 )}
                 {/* PRIMARY input — lifted off the page with a soft shadow + a faint
                     accent border so it reads as THE thing to do, not just one more
                     same-toned card among the demo tiles below. */}
-                <div className="rounded-2xl border border-[var(--accent)]/25 bg-[var(--surface)]/90 overflow-hidden shadow-[var(--shadow-sm)] focus-within:border-[var(--accent)]/55 focus-within:shadow-[var(--shadow-md)] transition-all">
+                <div className={`relative rounded-2xl border border-[var(--accent)]/25 bg-[var(--surface)]/95 overflow-hidden shadow-[var(--shadow-md)] focus-within:border-[var(--accent)]/55 focus-within:shadow-[var(--shadow-lg)] transition-all ${projects.length === 0 ? '-mt-12 mx-2 md:-mt-14 md:mx-0' : ''}`}>
                   {justFromDemo && (
                     <div className="px-4 md:px-5 py-2.5 bg-[var(--accent)]/8 border-b border-[var(--accent)]/15 text-[12px] text-[var(--accent)] flex items-center gap-2">
                       <Sparkles size={12} className="shrink-0" />

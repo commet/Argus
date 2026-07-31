@@ -17,6 +17,7 @@ import { motion } from 'framer-motion';
 import { Check, AlertTriangle, RefreshCw, ChevronDown } from 'lucide-react';
 import { useLocale } from '@/hooks/useLocale';
 import type { WorkerTask } from '@/stores/types';
+import { personaReviewLabel, publicAssignmentReason } from './shared/persona-format';
 
 /** Last visible chunk of the live stream — the "typing" effect, cheap. */
 function streamTail(text: string, max = 90): string {
@@ -27,7 +28,7 @@ function streamTail(text: string, max = 90): string {
 /** First line of the finished work — the takeaway, not the document. */
 function firstLine(w: WorkerTask): string {
   const src = w.completion_note || w.result || '';
-  const line = src.replace(/^#+\s*/, '').split('\n').find((l) => l.trim().length > 0) || '';
+  const line = src.replace(/^#+\s*/, '').replace(/^[^:\n]{1,24}:\s*/, '').split('\n').find((l) => l.trim().length > 0) || '';
   return line.length > 110 ? line.slice(0, 110) + '…' : line;
 }
 
@@ -159,7 +160,7 @@ export function CrewAtWork({ workers, onRetry, reportsOpen, onToggleReports, her
           aria-expanded={reportsOpen}
           className="text-[13px] font-medium text-[var(--text-tertiary)] hover:text-[var(--accent)] cursor-pointer transition-colors"
         >
-          {reportsOpen ? L('보고 접기 ▴', 'Hide reports ▴') : L('팀원 보고 열어보기 ▾', 'Open reviewer reports ▾')}
+          {reportsOpen ? L('보고 접기 ▴', 'Hide reports ▴') : L('검토 보고 열어보기 ▾', 'Open review reports ▾')}
         </button>
       )}
       {/* Privacy recap only — the always-visible orienting line above now teaches
@@ -180,13 +181,11 @@ export function CrewAtWork({ workers, onRetry, reportsOpen, onToggleReports, her
           // old `|| '선원'` fallback stamped meaningless "선원/Crew" on rows that
           // are actually "당신이 정해요" / "사람에게 물어봐요". Name the row by
           // what it IS instead — never the empty "선원" placeholder.
-          const personaName = locale === 'en' ? (w.persona?.nameEn || w.persona?.name) : w.persona?.name;
-          const name = personaName
+          const reviewLabel = w.persona ? personaReviewLabel(w.persona, locale) : '';
+          const name = reviewLabel
             || (at === 'self' ? L('나', 'You')
               : at === 'human' ? L('외부 담당자', 'External contact')
               : L('AI 검토자', 'AI reviewer'));
-          const emoji = w.persona?.emoji
-            || (at === 'self' ? '🙋' : at === 'human' ? '✉️' : '🔍');
           const purpose = at === 'ai'
             ? L('AI가 대신 봐요', 'Handled by AI')
             : at === 'self'
@@ -200,7 +199,7 @@ export function CrewAtWork({ workers, onRetry, reportsOpen, onToggleReports, her
               transition={{ delay: i * 0.12, duration: 0.35 }}
               className="flex items-start gap-2.5 rounded-xl bg-[var(--bg)] border border-[var(--border-subtle)] px-3 py-2.5"
             >
-              <span className="text-[15px] shrink-0 leading-none mt-0.5" aria-hidden>{emoji}</span>
+              <span className="mt-1 size-2 rounded-full border border-[var(--accent)]/55 bg-[var(--surface)] shrink-0" aria-hidden />
               <div className="flex-1 min-w-0">
                 <div className="flex items-baseline gap-2">
                   <span className="text-[12px] font-semibold text-[var(--text-primary)]">{name}</span>
@@ -221,7 +220,7 @@ export function CrewAtWork({ workers, onRetry, reportsOpen, onToggleReports, her
                 {/* Why THIS lens was assigned (router rationale) — quiet, guarded;
                     absent → render nothing (never fabricate). */}
                 {at === 'ai' && w.assignment_reason && (
-                  <p className="text-[12.5px] text-[var(--text-tertiary)] mt-0.5 leading-[1.5]">↳ {w.assignment_reason}</p>
+                  <p className="text-[12.5px] text-[var(--text-tertiary)] mt-0.5 leading-[1.5]">↳ {publicAssignmentReason(w.assignment_reason)}</p>
                 )}
                 {/* The theater: live stream tail while running; takeaway when done;
                     an honest line + inline retry when the work didn't land. */}
@@ -278,8 +277,8 @@ export function CrewAtWork({ workers, onRetry, reportsOpen, onToggleReports, her
                 })() : (w.status === 'error' || w.status === 'validation_failed') ? (
                   <p className="text-[13px] text-[var(--text-tertiary)] mt-1 leading-[1.5]">
                     {w.status === 'validation_failed'
-                      ? L('이 팀원의 결과를 확인하지 못했어요.', 'This review did not pass validation.')
-                      : L('이 팀원의 작업을 받지 못했어요.', 'This review did not arrive.')}
+                      ? L('이 검토 결과를 확인하지 못했어요.', 'This review did not pass validation.')
+                      : L('이 검토 결과를 받지 못했어요.', 'This review did not arrive.')}
                     {onRetry && (
                       <button
                         onClick={() => onRetry(w.id)}

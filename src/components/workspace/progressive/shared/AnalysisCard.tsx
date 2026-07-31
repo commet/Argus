@@ -116,12 +116,19 @@ export function AnalysisCard({
     : initialOpenInsight;
   const visibleSkeleton = snapshot.version === 0 ? [] : snapshot.skeleton;
   const visibleAssumptions = snapshot.version === 0 ? [] : snapshot.hidden_assumptions;
+  const hasSupportingDetail = visibleSkeleton.length > 0
+    || visibleAssumptions.length > 0
+    || !!(showExecutionPlan && snapshot.execution_plan?.steps?.length);
   const summaryLine = safeInsight || snapshot.real_question;
   const courseSummary = splitCourseSummary(summaryLine);
-  const refinementStatus = answerCount > 0
+  // An answer is not "reflected" until the snapshot version that incorporated
+  // it has arrived. `answers.length` increments immediately on submit; using it
+  // alone made the old snapshot falsely claim the new answer was already used.
+  const reflectedAnswerCount = Math.min(answerCount, Math.max(0, snapshot.version));
+  const refinementStatus = reflectedAnswerCount > 0
     ? isActive
-      ? L(`${answerCount}개 답변 반영 · 계속 조정 중`, `${answerCount} answers reflected · still refining`)
-      : L(`${answerCount}개 답변 반영 · 방향 정리됨`, `${answerCount} answers reflected · direction clarified`)
+      ? L(`${reflectedAnswerCount}개 답변 반영 · 계속 조정 중`, `${reflectedAnswerCount} answers reflected · still refining`)
+      : L(`${reflectedAnswerCount}개 답변 반영 · 방향 정리됨`, `${reflectedAnswerCount} answers reflected · direction clarified`)
     : hasChanges
       ? isActive
         ? L('방금 답변 반영 · 계속 조정 중', 'Latest answer reflected · still refining')
@@ -136,12 +143,15 @@ export function AnalysisCard({
     return (
       <motion.button
         type="button"
-        onClick={() => setCollapsed(false)}
-        aria-label={L('Argus가 찾은 진짜 질문: 근거와 계획 보기', 'The real question Argus surfaced: view rationale and plan')}
+        onClick={() => { if (hasSupportingDetail) setCollapsed(false); }}
+        disabled={!hasSupportingDetail}
+        aria-label={hasSupportingDetail
+          ? L('Argus가 찾은 진짜 질문: 근거와 계획 보기', 'The real question Argus surfaced: view rationale and plan')
+          : L('Argus가 찾은 진짜 질문', 'The real question Argus surfaced')}
         initial={{ opacity: 0, y: 6 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, ease: EASE }}
-        className="w-full text-left grid gap-3 sm:grid-cols-[132px_minmax(0,1fr)] sm:gap-7 border-y border-[var(--border)] py-5 cursor-pointer group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/35 focus-visible:ring-offset-4 focus-visible:ring-offset-[var(--bg)]"
+        className={`w-full text-left grid gap-2 sm:grid-cols-[132px_minmax(0,1fr)] sm:gap-7 border-y border-[var(--border)] py-4 md:py-5 group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/35 focus-visible:ring-offset-4 focus-visible:ring-offset-[var(--bg)] ${hasSupportingDetail ? 'cursor-pointer' : 'cursor-default'}`}
       >
         <div className="min-w-0 sm:pt-0.5">
           <div className="flex items-center gap-2 mb-1.5" aria-hidden>
@@ -151,13 +161,13 @@ export function AnalysisCard({
           <div className={`text-[12px] font-bold text-[var(--accent)] ${locale === 'ko' ? 'tracking-[0.02em]' : 'uppercase tracking-[0.14em]'}`}>
             {L('Argus가 찾은 진짜 질문', 'The real question Argus surfaced')}
           </div>
-          <p className="mt-1 text-[12.5px] text-[var(--text-tertiary)] leading-[1.5] tabular-nums">
+          <p className="mt-1 hidden text-[12.5px] text-[var(--text-tertiary)] leading-[1.5] tabular-nums sm:block">
             {refinementStatus}
           </p>
         </div>
 
         <div className="min-w-0">
-          <p className="text-[17px] md:text-[18px] font-semibold text-[var(--text-primary)] leading-[1.48] tracking-[-0.012em] line-clamp-3" style={{ fontFamily: 'var(--font-display)' }}>
+          <p className="text-[16px] md:text-[18px] font-semibold text-[var(--text-primary)] leading-[1.45] md:leading-[1.48] tracking-[-0.012em] line-clamp-3" style={{ fontFamily: 'var(--font-display)' }}>
             {renderText(courseSummary.thesis)}
           </p>
           {courseSummary.support && (
@@ -174,10 +184,12 @@ export function AnalysisCard({
                 {assumeCount > 0 && <span>{L(`확인할 가정 ${assumeCount}개`, `${assumeCount} assumptions to verify`)}</span>}
               </div>
             )}
-            <span className="inline-flex items-center gap-1 font-semibold text-[var(--text-secondary)] transition-colors group-hover:text-[var(--accent)]">
-              {L('근거와 계획 보기', 'View rationale and plan')}
-              <ChevronDown size={12} aria-hidden />
-            </span>
+            {hasSupportingDetail && (
+              <span className="inline-flex items-center gap-1 font-semibold text-[var(--text-secondary)] transition-colors group-hover:text-[var(--accent)]">
+                {L('근거와 계획 보기', 'View rationale and plan')}
+                <ChevronDown size={12} aria-hidden />
+              </span>
+            )}
           </div>
         </div>
       </motion.button>

@@ -15,50 +15,9 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronRight, ChevronDown, AlertTriangle, Sparkles } from 'lucide-react';
 import { useLocale } from '@/hooks/useLocale';
-import { useAgentStore } from '@/stores/useAgentStore';
 import type { LeadSynthesisResult } from '@/stores/types';
 import { EASE } from '../shared/constants';
 import { parsePartialAnalysis, parsePartialDoc, parsePartialFeedback } from '@/lib/partial-analysis';
-
-/* Reviewer 배지 — 저장된 팀장이 있으면 세션 내내 노출 */
-export function ReviewerBadge({ reviewerId }: { reviewerId: string | null }) {
-  const agent = useAgentStore(s => reviewerId ? s.agents.find(a => a.id === reviewerId) : undefined);
-  const locale = useLocale();
-  const L = (ko: string, en: string) => locale === 'ko' ? ko : en;
-  if (!agent) return null;
-  const code = agent.personality_code;
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: -4 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.3, duration: 0.4, ease: EASE }}
-      className="flex items-center gap-2 px-4 py-2 rounded-full max-w-full"
-      style={{
-        background: 'linear-gradient(135deg, rgba(91,33,182,0.06) 0%, rgba(30,58,138,0.06) 100%)',
-        border: '1px dashed rgba(91,33,182,0.25)',
-      }}
-      title={agent.personality_profile?.bossVibe || L('저장된 팀장이 이 기획을 리뷰합니다', 'Your saved manager will review this plan')}
-    >
-      <motion.span
-        className="text-[14px] leading-none"
-        animate={{ scale: [1, 1.08, 1] }}
-        transition={{ repeat: Infinity, duration: 3.5, ease: 'easeInOut' }}
-      >
-        {agent.emoji}
-      </motion.span>
-      <span className="text-[12.5px] font-semibold text-[var(--text-primary)] truncate max-w-[140px]">
-        {agent.name}
-      </span>
-      {code && (
-        <span className="text-[12px] font-bold tracking-wider text-[var(--text-tertiary)]">
-          {code}
-        </span>
-      )}
-      {/* (Removed "· 이 기획을 봅니다" — the badge's title tooltip already says
-          the reviewer reviews this plan; the visible caption re-narrated it.) */}
-    </motion.div>
-  );
-}
 
 /* ═══ StreamSnippet — live preview of any in-progress JSON stream ═══
  * LLM calls during analysis/mix/DM/final all stream tokens. Rather than a
@@ -181,10 +140,7 @@ export function LeadSynthesisCard({ synthesis }: { synthesis: LeadSynthesisResul
                 authored an opinion — mirror MixPreview's de-personification. The
                 work leads; the lead name is a quiet coverage signal (who pulled
                 the lenses together), never an authorial byline. */}
-            <span className="text-[13px] font-semibold text-[var(--text-primary)]">{L('팀이 모은 결론', 'Team summary')}</span>
-            {synthesis.lead_agent_name && (
-              <span className="text-[12.5px] text-[var(--text-tertiary)] ml-2">· {synthesis.lead_agent_name}</span>
-            )}
+            <span className="text-[13px] font-semibold text-[var(--text-primary)]">{L('검토 종합', 'Review synthesis')}</span>
           </div>
           {/* Value-first: takeaway visible while still collapsed. */}
           {collapsed && teaser && (
