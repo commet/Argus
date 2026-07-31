@@ -44,9 +44,11 @@ export function StreamSnippet({ text, kind }: { text: string | null; kind: Strea
     headline = p.real_question;
     headlineComplete = p.real_question_complete;
     if (p.hidden_assumptions.length > 0) counts.push({ label: L('확인할 가정', 'assumptions to check'), value: p.hidden_assumptions.length });
-    if (p.skeleton.length > 0) counts.push({ label: L('문서 구성', 'document sections'), value: p.skeleton.length });
+    if (p.skeleton.length > 0) counts.push({ label: L('확인할 것', 'to verify'), value: p.skeleton.length });
     stageLabel =
-      p.stage === 'skeleton' ? L('문서 구성을 잡는 중', 'Structuring the document')
+      // No document is being built during a conversation turn — by this field
+      // the model is choosing what to ask (v2 judgment harness).
+      p.stage === 'skeleton' ? L('무엇을 물어볼지 고르는 중', 'Choosing what to ask')
       : p.stage === 'assumptions' ? L('확인할 가정을 정리하는 중', 'Organizing assumptions to check')
       : p.stage === 'question' ? L('지금 풀어야 할 질문을 다듬는 중', 'Sharpening the question to solve')
       : L('상황을 읽는 중', 'Reading the situation');

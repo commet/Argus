@@ -1349,7 +1349,9 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem, fr
                 case 'reading': return L('상황을 읽는 중', 'Reading the situation');
                 case 'question': return L('지금 풀어야 할 질문을 정리하는 중', 'Organizing the question to solve');
                 case 'assumptions': return L('확인할 가정을 살펴보는 중', 'Reviewing assumptions to check');
-                case 'skeleton': return L('문서 구성을 잡는 중', 'Structuring the document');
+                // The conversation turn builds no document — by the time the
+                // stream reaches this field it is choosing what to ask.
+                case 'skeleton': return L('무엇을 물어볼지 고르는 중', 'Choosing what to ask');
               }
             })();
             const hasQuestion = !!partial.real_question;
@@ -1438,8 +1440,11 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem, fr
                   </motion.div>
                 )}
 
-                {/* 채워지는 것들 — 개수 + 방금 도착한 항목 한 줄. 벽이 아니라 맥박. */}
-                {(hasAssumptions || hasSkeleton || partial.stage === 'assumptions' || partial.stage === 'skeleton') && (
+                {/* 채워지는 것들 — 개수 + 방금 도착한 항목 한 줄. 벽이 아니라 맥박.
+                    개수가 0이면 아예 그리지 않는다: v2 하네스에서 전제 0은 정직한
+                    상태인데, "확인할 가정 0 · 문서 구성 0"을 띄우면 화면이 제 손으로
+                    "여긴 비었어요"라고 광고하게 된다 (프로덕션 실주행에서 확인). */}
+                {(hasAssumptions || hasSkeleton) && (
                   <motion.div
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
@@ -1447,14 +1452,17 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem, fr
                     className="px-1.5 space-y-1"
                   >
                     <div className="flex items-center gap-3 text-[13px] text-[var(--text-tertiary)] tabular-nums">
-                      <span className={hasAssumptions ? 'text-[var(--text-secondary)]' : ''}>
-                        {L(`확인할 가정 ${partial.hidden_assumptions.length}`, `${partial.hidden_assumptions.length} assumptions to check`)}
-                      </span>
-                      <span aria-hidden>·</span>
-                      <span className={hasSkeleton ? 'text-[var(--text-secondary)]' : ''}>
-                        {L(`문서 구성 ${partial.skeleton.length}`, `${partial.skeleton.length} document sections`)}
-                      </span>
-                      <span className="text-[var(--text-tertiary)]/70">{L('— 분석이 끝나면 전문이 열려요', '— full text opens when analysis lands')}</span>
+                      {hasAssumptions && (
+                        <span className="text-[var(--text-secondary)]">
+                          {L(`확인할 가정 ${partial.hidden_assumptions.length}`, `${partial.hidden_assumptions.length} assumptions to check`)}
+                        </span>
+                      )}
+                      {hasAssumptions && hasSkeleton && <span aria-hidden>·</span>}
+                      {hasSkeleton && (
+                        <span className="text-[var(--text-secondary)]">
+                          {L(`확인할 것 ${partial.skeleton.length}`, `${partial.skeleton.length} to verify`)}
+                        </span>
+                      )}
                     </div>
                     {/* 마지막으로 도착한 항목 하나만 — 살아있다는 신호 */}
                     {(() => {
