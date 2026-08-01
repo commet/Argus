@@ -8,6 +8,8 @@ import type { Agent, InnerMonologueArchiveEntry } from '@/stores/agent-types';
 import { getLevelProgress, AGENT_LEVELS } from '@/stores/agent-types';
 import { PersonaRefinementSection } from './PersonaRefinementSection';
 import { useLocale } from '@/hooks/useLocale';
+import { ScanSearch } from 'lucide-react';
+import { isBuiltinReviewRole, publicAgentLabel } from './agent-format';
 
 const EASE = [0.32, 0.72, 0, 1] as const;
 
@@ -53,7 +55,8 @@ export function AgentProfile({ agent, onClose }: AgentProfileProps) {
   const L = (ko: string, en: string) => locale === 'ko' ? ko : en;
   const GROUP_LABELS = getGroupLabels(locale);
   const OBS_CATEGORY_LABELS = getObsCategoryLabels(locale);
-  const displayName = (locale === 'en' && agent.nameEn) ? agent.nameEn : agent.name;
+  const builtinRole = isBuiltinReviewRole(agent);
+  const displayName = publicAgentLabel(agent, locale);
   const displayRole = (locale === 'en' && agent.roleEn) ? agent.roleEn : agent.role;
   const displayExpertise = (locale === 'en' && agent.expertiseEn) ? agent.expertiseEn : agent.expertise;
   const displayTone = (locale === 'en' && agent.toneEn) ? agent.toneEn : agent.tone;
@@ -122,7 +125,7 @@ export function AgentProfile({ agent, onClose }: AgentProfileProps) {
                 border: `2px solid ${agent.color}30`,
               }}
             >
-              {agent.emoji}
+              {builtinRole ? <ScanSearch size={24} aria-hidden="true" /> : agent.emoji}
             </div>
 
             {/* Identity */}
@@ -138,7 +141,7 @@ export function AgentProfile({ agent, onClose }: AgentProfileProps) {
               </p>
 
               {/* Level + XP */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 10 }}>
+              {!builtinRole && <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 10 }}>
                 <span className="agent-lv" data-level={agent.level} style={{ fontSize: 11 }}>
                   Lv.{agent.level}
                 </span>
@@ -153,7 +156,7 @@ export function AgentProfile({ agent, onClose }: AgentProfileProps) {
                 <span style={{ fontSize: 10, color: 'var(--text-tertiary)', fontVariantNumeric: 'tabular-nums' }}>
                   {isMaxLevel ? 'MAX' : `${current}/${next}`}
                 </span>
-              </div>
+              </div>}
             </div>
           </div>
         </div>

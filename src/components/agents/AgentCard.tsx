@@ -3,6 +3,8 @@
 import type { Agent } from '@/stores/agent-types';
 import { getLevelProgress } from '@/stores/agent-types';
 import { useLocale } from '@/hooks/useLocale';
+import { ScanSearch } from 'lucide-react';
+import { isBuiltinReviewRole, publicAgentLabel } from './agent-format';
 
 type Locale = 'ko' | 'en';
 
@@ -15,7 +17,8 @@ export function AgentCard({ agent, onClick }: AgentCardProps) {
   const locale = useLocale();
   const { progress } = getLevelProgress(agent.xp);
   const isNavigator = agent.id === 'navigator';
-  const displayName = locale === 'en' && agent.nameEn ? agent.nameEn : agent.name;
+  const builtinRole = isBuiltinReviewRole(agent);
+  const displayName = publicAgentLabel(agent, locale);
   const displayRole = locale === 'en' && agent.roleEn ? agent.roleEn : agent.role;
 
   if (!agent.unlocked) {
@@ -35,10 +38,10 @@ export function AgentCard({ agent, onClick }: AgentCardProps) {
       tabIndex={0}
       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick?.(); } }}
     >
-      <div className="agent-card-emoji">{agent.emoji}</div>
+      <div className="agent-card-emoji" aria-hidden="true">{builtinRole ? <ScanSearch size={19} /> : agent.emoji}</div>
       <div className="agent-card-role">{displayRole}</div>
       <div className="agent-card-name">{displayName}</div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+      {!builtinRole && <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
         <span className="agent-lv" data-level={agent.level}>
           Lv.{agent.level}
         </span>
@@ -47,8 +50,8 @@ export function AgentCard({ agent, onClick }: AgentCardProps) {
             {obsLabel}
           </span>
         )}
-      </div>
-      <div className="agent-xp-bar">
+      </div>}
+      {!builtinRole && <div className="agent-xp-bar">
         <div
           className="agent-xp-fill"
           style={{
@@ -56,7 +59,7 @@ export function AgentCard({ agent, onClick }: AgentCardProps) {
             background: agent.color,
           }}
         />
-      </div>
+      </div>}
     </div>
   );
 }
@@ -73,7 +76,7 @@ function LockedAgentCard({ agent, isNavigator, locale, displayName, displayRole 
   return (
     <div className={`agent-card agent-card-locked ${isNavigator ? 'agent-card-navigator' : ''}`}>
       <div className="agent-lock">
-        <div className="agent-lock-icon">🔒</div>
+        <div className="agent-lock-icon" aria-hidden="true">◇</div>
         <div className="agent-card-name" style={{ opacity: 0.4 }}>{displayName}</div>
         <div className="agent-card-role" style={{ opacity: 0.5 }}>{displayRole}</div>
         <div className="agent-lock-text">{conditionText}</div>
