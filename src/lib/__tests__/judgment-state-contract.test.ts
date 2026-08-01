@@ -60,7 +60,10 @@ describe('judgment premise state contract', () => {
   it('accepts only a premise anchored to the user words', () => {
     const result = coercePremiseCandidates([
       {
-        text: '8월 15일 전에 배포해야 약속을 지킬 수 있다는 전제',
+        // The control used to be "8월 15일 전에 배포해야 약속을 지킬 수 있다는
+        // 전제" — the anchor with "전제" stapled on, which is the very defect
+        // the claim band now catches. A real premise goes past the quote.
+        text: '지금 개선을 멈춰야 8월 15일을 맞출 수 있다',
         anchor_quote: '8월 15일 홍보 약속 때문에 그 전에 배포해야 해요',
         support_kind: 'explicit_reason',
         if_false_changes: '배포 시점과 개선 범위를 다시 비교해야 한다',
@@ -73,7 +76,7 @@ describe('judgment premise state contract', () => {
       },
     ], '8월 15일 홍보 약속 때문에 그 전에 배포해야 해요. 자꾸 개선하면 시간이 지연되네요.');
 
-    expect(result.premises).toEqual(['8월 15일 전에 배포해야 약속을 지킬 수 있다는 전제']);
+    expect(result.premises).toEqual(['지금 개선을 멈춰야 8월 15일을 맞출 수 있다']);
     expect(result.audit[1]).toMatchObject({ accepted: false, reason: 'anchor_not_in_user_words' });
   });
 
@@ -114,7 +117,7 @@ describe('judgment premise state contract', () => {
       ['첫 전제', '둘째 전제'],
       [{
         action: 'add',
-        text: '셋째 전제',
+        text: '확정된 예산 안에서는 이 안이 유일하게 완주 가능하다',
         anchor_quote: '예산이 정해졌기 때문에 이 안을 골라야 해요',
         support_kind: 'explicit_reason',
         if_false_changes: '예산 비교가 달라진다',
@@ -128,6 +131,9 @@ describe('judgment premise state contract', () => {
   });
 
   it('does not turn a mentioned fact into a premise', () => {
+    // It is not dropped — it is filed as what it is. The user still sees the
+    // sentence, alongside their own words; it simply stops being something
+    // Argus asks them to go verify, and stops occupying a premise slot.
     const result = coercePremiseCandidates([{
       text: '스타트업 런웨이가 18개월이라는 전제',
       anchor_quote: '런웨이는 18개월 정도래요',
@@ -136,9 +142,12 @@ describe('judgment premise state contract', () => {
     }], '오퍼 준 회사는 시리즈B고, 물어보니 런웨이는 18개월 정도래요.');
 
     expect(result.premises).toEqual([]);
+    expect(result.records[0]).toMatchObject({ kind: 'fact' });
     expect(result.audit[0]).toMatchObject({
-      accepted: false,
-      reason: 'explicit_support_not_in_anchor',
+      accepted: true,
+      declared_kind: 'premise',
+      recorded_kind: 'fact',
+      reason: 'restates_anchor_recorded_as_fact',
     });
   });
 
@@ -162,16 +171,27 @@ describe('judgment premise state contract', () => {
 
     it('accepts an anchor quoted from the answer the user just gave', () => {
       const result = applyPremiseDeltas([], delta, corpus, '오퍼 준 회사는 시리즈B고, 물어보니 런웨이는 18개월 정도래요.');
-      expect(result.premises).toEqual(['오퍼 회사의 런웨이 18개월이 판단에 걸리는 조건이다']);
+      // Volunteered in reply to "가장 마음에 걸리는 게 뭐예요?", so the act of
+      // answering supplies the stance the quote itself does not carry. It is
+      // recorded as their standard, which is what "이게 걸린다" is — and a
+      // standard is never something Argus asks them to go verify, so it is not
+      // in the checkable list.
+      expect(result.records[0]).toMatchObject({
+        text: '오퍼 회사의 런웨이 18개월이 판단에 걸리는 조건이다',
+        kind: 'standard',
+      });
+      expect(result.premises).toEqual([]);
       expect(result.audit[0]).toMatchObject({ accepted: true });
     });
 
     it('still refuses a bare fact lifted from the earlier narration', () => {
-      // Same delta, but the latest answer is about something else entirely —
-      // so the anchor is old narration and must carry the connective itself.
+      // Same delta, but the latest answer is about something else entirely — so
+      // the anchor is old narration. And the text says the number "판단에
+      // 걸린다", which is a claim about what weighs on THEM: it needs their own
+      // weighing word in the quote, and this quote has none.
       const result = applyPremiseDeltas([], delta, corpus, '승진 얘기는 아직 문서가 없어요');
       expect(result.premises).toEqual([]);
-      expect(result.audit[0]).toMatchObject({ reason: 'explicit_support_not_in_anchor' });
+      expect(result.audit[0]).toMatchObject({ reason: 'standard_without_user_stance' });
     });
 
     it('refuses an anchor that appears in neither, however plausible', () => {

@@ -31,6 +31,7 @@ import {
   type WeaknessCheckEffect,
   type FrameClarifyEffect,
 } from '@/lib/question-types';
+import { policyFor } from '@/lib/decisive-premises';
 import { pickSafeFallbackQuestion } from '@/lib/question-fallbacks';
 import { FRAMING_CONFIDENCE_ROUTING_FALLBACK } from '@/lib/question-rules';
 import { detectFatigue } from '@/lib/fatigue-signal';
@@ -78,14 +79,34 @@ import {
   type AdmittedPremise,
 } from '@/lib/judgment-state-contract';
 
-/** Keep the records in lockstep with whatever survived the route/escalation
- *  caps: the text list is the authority on WHICH premises shipped, the records
- *  supply their lineage. A premise with no matching record still renders — it
- *  just shows no source line. */
+/**
+ * Keep the records in lockstep with whatever survived the route/escalation caps.
+ *
+ * `texts` (hidden_assumptions) is the authority on which CLAIMS shipped, since
+ * that is the list the caps operate on. But since 2026-08-02 it deliberately
+ * carries claims only — facts and standards never appear there, because every
+ * legacy surface renders that list under the words "확인할 가정". Aligning
+ * purely by text would therefore delete them, so non-competing records are
+ * carried through on their own and only the claims are filtered by the caps.
+ */
 function alignRecords(records: AdmittedPremise[], texts: string[]): AdmittedPremise[] {
-  const byText = new Map(records.map((r) => [r.text.trim(), r]));
-  return (texts || []).map((text) => byText.get(text.trim())
-    ?? { text, anchor_quote: '', if_false_changes: '', support_kind: 'explicit_reason' as const, kind: 'premise' as const });
+  const shipped = new Set((texts || []).map((t) => t.trim()));
+  const kept = (records || []).filter(
+    (r) => !policyFor(r.kind).competes || shipped.has(r.text.trim()),
+  );
+  // A claim that shipped without a matching record still renders; it just has
+  // no source line to show.
+  const known = new Set(kept.map((r) => r.text.trim()));
+  const orphans = (texts || [])
+    .filter((t) => !known.has(t.trim()))
+    .map((text) => ({
+      text,
+      anchor_quote: '',
+      if_false_changes: '',
+      support_kind: 'explicit_reason' as const,
+      kind: 'premise' as const,
+    }));
+  return [...kept, ...orphans];
 }
 
 /** Snapshots written before 2026-08-01 carry text only. Read them as records
