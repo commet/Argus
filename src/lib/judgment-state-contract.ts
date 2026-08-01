@@ -26,7 +26,7 @@
  * weighing words. Both still need lineage — that test was never the problem.
  */
 
-import { asKind, policyFor, type PremiseKind } from '@/lib/decisive-premises';
+import { KIND_POLICY, asKind, policyFor, type PremiseKind } from '@/lib/decisive-premises';
 
 export type { PremiseKind };
 
@@ -215,11 +215,39 @@ export function claimBand(text: string, anchorQuote: string): ClaimBand {
   };
 }
 
-/** True when the text goes beyond its anchor far enough to be a claim rather
- *  than a restatement of something the user already said. */
+/**
+ * Hedges. A sentence carrying one is not yet answerable by anything — "집주인이
+ * 올려달라고 할 것 같기도 하고요" cannot be right or wrong, so it can never
+ * settle and never teach.
+ */
+const HEDGE = /것\s*같|듯|아마|싶은|싶어|지\s*않을까|할지도|모르겠|같기도|생각도\s*들|\b(maybe|might|probably|possibly|seems?|i think|not sure|could be)\b/i;
+
+/**
+ * Did the text take the user's hedge off?
+ *
+ * This is the second way to go beyond a quote, and the one a word-count cannot
+ * see. Turning "올려달라고 할 것 같기도 하고요" into "올려달라고 할 것이다"
+ * adds no vocabulary and adds the only thing that matters: the sentence becomes
+ * something reality can answer. Measured — heavy-03 proposed exactly that,
+ * with a counterfactual and a concrete observable attached, and the lexical
+ * band demoted the best item of the run to a bare fact.
+ *
+ * The claim has to be the HARDENED one; a text that keeps the hedge has done
+ * nothing but move it.
+ */
+export function hardensAHedge(text: string, anchorQuote: string): boolean {
+  return HEDGE.test(comparable(anchorQuote)) && !HEDGE.test(comparable(text));
+}
+
+/**
+ * True when the text goes beyond its anchor far enough to be a claim rather
+ * than a restatement — either lexically (it says new things) or modally (it
+ * says the same thing in a form that can turn out false).
+ */
 export function statesAClaim(text: string, anchorQuote: string): boolean {
   const band = claimBand(text, anchorQuote);
-  return band.novelty >= CLAIM_NOVELTY_FLOOR && band.novel_count >= CLAIM_NOVEL_TOKENS_FLOOR;
+  const lexical = band.novelty >= CLAIM_NOVELTY_FLOOR && band.novel_count >= CLAIM_NOVEL_TOKENS_FLOOR;
+  return lexical || hardensAHedge(text, anchorQuote);
 }
 
 interface SynthesisSectionLike {
@@ -338,21 +366,35 @@ function gateByKind(
    *  were asked what bears on the call and this is what they wrote. Demanding a
    *  connective on top of it rejected 100% of real premises in the live run. */
   stanceFromContext = false,
+  /** Present only when the model named what would be SEEN. A prediction owes
+   *  this; nothing else does. */
+  observable = '',
 ): KindGate {
+  const band = claimBand(text, anchorQuote);
+
   // What the sentence DOES outranks what the model called it. A text asserting
   // that something weighs on this person is a standard however it was labelled,
   // and it must clear the standard's gate rather than the premise's.
-  const kind = attributesStanceToUser(text) ? 'standard' : asKind(declared);
-  const policy = policyFor(kind);
-  const band = claimBand(text, anchorQuote);
+  let kind = attributesStanceToUser(text) ? 'standard' : asKind(declared);
 
-  if (policy.needsStance && !stanceFromContext && !hasExplicitSupportSignal(anchorQuote)) {
-    return { ok: false, kind, reason: 'standard_without_user_stance', band };
+  if (KIND_POLICY[kind].needsStance) {
+    return stanceFromContext || hasExplicitSupportSignal(anchorQuote)
+      ? { ok: true, kind, reason: 'grounded', band }
+      : { ok: false, kind, reason: 'standard_without_user_stance', band };
   }
-  if (policy.needsClaim && !statesAClaim(text, anchorQuote)) {
+
+  // A prediction with no way to check it is an assumption with a date on it, so
+  // it is read as one rather than refused — and then has to clear that gate.
+  let reason = 'grounded';
+  if (KIND_POLICY[kind].needsObservable && !observable) {
+    kind = 'premise';
+    reason = 'prediction_without_observable_read_as_premise';
+  }
+
+  if (KIND_POLICY[kind].needsClaim && !statesAClaim(text, anchorQuote)) {
     return { ok: true, kind: 'fact', reason: 'restates_anchor_recorded_as_fact', band };
   }
-  return { ok: true, kind, reason: 'grounded', band };
+  return { ok: true, kind, reason, band };
 }
 
 function asRecord(value: unknown): Record<string, unknown> | null {
@@ -436,7 +478,7 @@ export function coercePremiseCandidates(
       });
       continue;
     }
-    const gate = gateByKind(item?.kind, text, anchorQuote);
+    const gate = gateByKind(item?.kind, text, anchorQuote, false, cleanText(item?.observable));
     const entry = {
       action: 'initial' as const,
       text,
@@ -544,6 +586,7 @@ export function applyPremiseDeltas(
         text,
         anchorQuote,
         isTraceableQuote(anchorQuote, latestAnswer),
+        cleanText(item?.observable),
       );
       const entry = {
         action,
@@ -630,7 +673,7 @@ export function applyPremiseDeltas(
 
     // A revise anchor is already required to come from the latest answer, so
     // its stance is supplied by the act of answering.
-    const revised = gateByKind(item?.kind, text, anchorQuote, true);
+    const revised = gateByKind(item?.kind, text, anchorQuote, true, cleanText(item?.observable));
     records[existingIndex] = {
       text,
       anchor_quote: anchorQuote,

@@ -87,6 +87,61 @@ describe('the near edge: a restatement is a fact, and says so', () => {
   });
 });
 
+describe('the other way to go beyond a quote: take the hedge off', () => {
+  // heavy-03, verbatim. The best item of that entire run, and the lexical band
+  // demoted it to a bare fact because it reuses the anchor's words.
+  const LANDLORD = {
+    text: '집주인이 전세금을 올려달라고 할 것이다',
+    anchor_quote: '집주인이 전세금을 올려달라고 할 것 같기도 하고요',
+    support_kind: 'explicit_expectation',
+    if_false_changes: '지금 전세를 유지하는 선택지가 훨씬 편해지고, 매매를 서두를 이유가 줄어든다',
+    kind: 'prediction',
+    observable: '만기 전 집주인에게 갱신 의사를 물어봤을 때 나오는 답',
+  };
+  const CORPUS_03 = '전세 만기가 4개월 남았는데 이참에 매매로 갈아탈까 고민이에요. '
+    + '집주인이 전세금을 올려달라고 할 것 같기도 하고요.';
+
+  it('keeps a prediction that adds no vocabulary at all', () => {
+    const { records } = coercePremiseCandidates([LANDLORD], CORPUS_03);
+    expect(records[0]).toMatchObject({ kind: 'prediction' });
+    // Word-for-word it is nearly the anchor. What it added is answerability.
+    expect(claimBand(LANDLORD.text, LANDLORD.anchor_quote).novelty).toBeLessThan(0.34);
+    expect(statesAClaim(LANDLORD.text, LANDLORD.anchor_quote)).toBe(true);
+  });
+
+  it('is not fooled by a text that just moves the hedge around', () => {
+    expect(statesAClaim('집주인이 전세금을 올려달라고 할 것 같다', LANDLORD.anchor_quote)).toBe(false);
+  });
+
+  it('reads a prediction with no way to check it as the assumption it is', () => {
+    const { records, audit } = coercePremiseCandidates(
+      [{ ...LANDLORD, observable: '' }],
+      CORPUS_03,
+    );
+    // Not refused. A claim with nothing to observe is still a claim — it just
+    // cannot promise a settle date, so it stops being called a prediction and
+    // has to clear the assumption's gate instead. This one does, on the hedge.
+    expect(records[0].kind).toBe('premise');
+    expect(audit[0]).toMatchObject({
+      accepted: true,
+      declared_kind: 'prediction',
+      recorded_kind: 'premise',
+      reason: 'prediction_without_observable_read_as_premise',
+    });
+  });
+
+  it('a bare restatement with no observable still lands as a fact', () => {
+    const { records } = coercePremiseCandidates([{
+      text: '전세 만기가 4개월 남았다',
+      anchor_quote: '전세 만기가 4개월 남았는데',
+      support_kind: 'explicit_condition',
+      if_false_changes: '시점이 달라진다',
+      kind: 'prediction',
+    }], CORPUS_03);
+    expect(records[0].kind).toBe('fact');
+  });
+});
+
 describe('a standard may not be built out of our reading of them', () => {
   it('admits one when their own weighing word is in the quote', () => {
     const { records } = coercePremiseCandidates([STANDARD], CORPUS);

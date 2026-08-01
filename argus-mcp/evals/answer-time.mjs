@@ -82,7 +82,7 @@ await client.connect(new StdioClientTransport({ command: process.execPath, args:
 const call = (n, a) => client.callTool({ name: n, arguments: { argus_dir: dir, ...a } }, undefined, { timeout: 120_000 });
 
 // ── A1: a seal the user confirmed slowly ────────────────────────────────────
-await call('argus_predict', {
+const sealResult = await call('argus_predict', {
   id: 'slow-seal', predicate: 'the record is dated when the person answered',
   check_by: '2026-12-31', predicate_owner: 'ai_surfaced', confirm_draft: true,
 });
@@ -110,6 +110,10 @@ const lines = fs.readdirSync(path.join(dir, 'ledger'))
 
 const seal = lines.find((e) => e.id === 'slow-seal' && e.event === 'seal');
 const resolve = lines.find((e) => e.event === 'premise_resolve');
+
+if (process.env['ANSWER_TIME_DEBUG'] === '1') {
+  console.error(JSON.stringify({ sealResult, answeredAt: Object.fromEntries(answeredAt), seal, resolve }, null, 2));
+}
 
 for (const [id, ev, kind, label] of [
   ['A1', seal, 'confirm', '봉인'],

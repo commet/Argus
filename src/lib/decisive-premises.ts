@@ -58,6 +58,10 @@ export interface KindPolicy {
    *  standard needs this: it is a claim about what matters to THEM, so their
    *  own weighing word has to be in the quote or it is our attribution. */
   needsStance: boolean;
+  /** Admission requires naming what would be SEEN. A prediction nobody could
+   *  ever check is not a prediction; it is an assumption with a date on it,
+   *  and it is read as one rather than refused. */
+  needsObservable: boolean;
 }
 
 /**
@@ -70,11 +74,15 @@ export interface KindPolicy {
  * lacking a connective) and under-rejected (it waved through bare facts).
  */
 export const KIND_POLICY: Record<PremiseKind, KindPolicy> = {
-  fact: { verifiable: false, competes: false, needsClaim: false, needsStance: false },
-  premise: { verifiable: true, competes: true, needsClaim: true, needsStance: false },
-  prediction: { verifiable: true, competes: true, needsClaim: true, needsStance: false },
-  standard: { verifiable: false, competes: false, needsClaim: false, needsStance: true },
-  open_question: { verifiable: true, competes: false, needsClaim: false, needsStance: false },
+  fact: { verifiable: false, competes: false, needsClaim: false, needsStance: false, needsObservable: false },
+  premise: { verifiable: true, competes: true, needsClaim: true, needsStance: false, needsObservable: false },
+  // A prediction is NOT gated on saying something new. Its whole job is to turn
+  // a hedge into something reality can answer — "올려달라고 할 것 같기도
+  // 하고요" into "올려달라고 할 것이다" — which adds no vocabulary at all. What
+  // it owes instead is a way to check it.
+  prediction: { verifiable: true, competes: true, needsClaim: false, needsStance: false, needsObservable: true },
+  standard: { verifiable: false, competes: false, needsClaim: false, needsStance: true, needsObservable: false },
+  open_question: { verifiable: true, competes: false, needsClaim: false, needsStance: false, needsObservable: false },
 };
 
 export const PREMISE_KINDS = Object.keys(KIND_POLICY) as PremiseKind[];

@@ -1,10 +1,14 @@
 // src/lib/decisive-premises.ts
 var KIND_POLICY = {
-  fact: { verifiable: false, competes: false, needsClaim: false, needsStance: false },
-  premise: { verifiable: true, competes: true, needsClaim: true, needsStance: false },
-  prediction: { verifiable: true, competes: true, needsClaim: true, needsStance: false },
-  standard: { verifiable: false, competes: false, needsClaim: false, needsStance: true },
-  open_question: { verifiable: true, competes: false, needsClaim: false, needsStance: false }
+  fact: { verifiable: false, competes: false, needsClaim: false, needsStance: false, needsObservable: false },
+  premise: { verifiable: true, competes: true, needsClaim: true, needsStance: false, needsObservable: false },
+  // A prediction is NOT gated on saying something new. Its whole job is to turn
+  // a hedge into something reality can answer — "올려달라고 할 것 같기도
+  // 하고요" into "올려달라고 할 것이다" — which adds no vocabulary at all. What
+  // it owes instead is a way to check it.
+  prediction: { verifiable: true, competes: true, needsClaim: false, needsStance: false, needsObservable: true },
+  standard: { verifiable: false, competes: false, needsClaim: false, needsStance: true, needsObservable: false },
+  open_question: { verifiable: true, competes: false, needsClaim: false, needsStance: false, needsObservable: false }
 };
 var PREMISE_KINDS = Object.keys(KIND_POLICY);
 function asKind(value) {
@@ -144,9 +148,14 @@ function claimBand(text, anchorQuote) {
     novel_count: novel.length
   };
 }
+var HEDGE = /것\s*같|듯|아마|싶은|싶어|지\s*않을까|할지도|모르겠|같기도|생각도\s*들|\b(maybe|might|probably|possibly|seems?|i think|not sure|could be)\b/i;
+function hardensAHedge(text, anchorQuote) {
+  return HEDGE.test(comparable(anchorQuote)) && !HEDGE.test(comparable(text));
+}
 function statesAClaim(text, anchorQuote) {
   const band = claimBand(text, anchorQuote);
-  return band.novelty >= CLAIM_NOVELTY_FLOOR && band.novel_count >= CLAIM_NOVEL_TOKENS_FLOOR;
+  const lexical = band.novelty >= CLAIM_NOVELTY_FLOOR && band.novel_count >= CLAIM_NOVEL_TOKENS_FLOOR;
+  return lexical || hardensAHedge(text, anchorQuote);
 }
 function clampSynthesisToLivingState(result, living) {
   const records = (living?.premise_records || []).filter(Boolean);
@@ -174,17 +183,21 @@ var MAX_RECORDS = 4;
 function claimCount(records) {
   return records.filter((r) => policyFor(r.kind).competes).length;
 }
-function gateByKind(declared, text, anchorQuote, stanceFromContext = false) {
-  const kind = attributesStanceToUser(text) ? "standard" : asKind(declared);
-  const policy = policyFor(kind);
+function gateByKind(declared, text, anchorQuote, stanceFromContext = false, observable = "") {
   const band = claimBand(text, anchorQuote);
-  if (policy.needsStance && !stanceFromContext && !hasExplicitSupportSignal(anchorQuote)) {
-    return { ok: false, kind, reason: "standard_without_user_stance", band };
+  let kind = attributesStanceToUser(text) ? "standard" : asKind(declared);
+  if (KIND_POLICY[kind].needsStance) {
+    return stanceFromContext || hasExplicitSupportSignal(anchorQuote) ? { ok: true, kind, reason: "grounded", band } : { ok: false, kind, reason: "standard_without_user_stance", band };
   }
-  if (policy.needsClaim && !statesAClaim(text, anchorQuote)) {
+  let reason = "grounded";
+  if (KIND_POLICY[kind].needsObservable && !observable) {
+    kind = "premise";
+    reason = "prediction_without_observable_read_as_premise";
+  }
+  if (KIND_POLICY[kind].needsClaim && !statesAClaim(text, anchorQuote)) {
     return { ok: true, kind: "fact", reason: "restates_anchor_recorded_as_fact", band };
   }
-  return { ok: true, kind, reason: "grounded", band };
+  return { ok: true, kind, reason, band };
 }
 function asRecord(value) {
   return value != null && typeof value === "object" && !Array.isArray(value) ? value : null;
@@ -241,7 +254,7 @@ function coercePremiseCandidates(raw, userCorpus) {
       });
       continue;
     }
-    const gate = gateByKind(item?.kind, text, anchorQuote);
+    const gate = gateByKind(item?.kind, text, anchorQuote, false, cleanText(item?.observable));
     const entry = {
       action: "initial",
       text,
@@ -324,7 +337,8 @@ function applyPremiseDeltas(currentRecords, raw, fullUserCorpus, latestAnswer) {
         item?.kind,
         text,
         anchorQuote,
-        isTraceableQuote(anchorQuote, latestAnswer)
+        isTraceableQuote(anchorQuote, latestAnswer),
+        cleanText(item?.observable)
       );
       const entry = {
         action,
@@ -403,7 +417,7 @@ function applyPremiseDeltas(currentRecords, raw, fullUserCorpus, latestAnswer) {
       audit.push({ accepted: false, action, previous_text: previousText, text, reason: "duplicate" });
       continue;
     }
-    const revised = gateByKind(item?.kind, text, anchorQuote, true);
+    const revised = gateByKind(item?.kind, text, anchorQuote, true, cleanText(item?.observable));
     records[existingIndex] = {
       text,
       anchor_quote: anchorQuote,
@@ -434,5 +448,6 @@ export {
   claimBand,
   clampSynthesisToLivingState,
   coercePremiseCandidates,
+  hardensAHedge,
   statesAClaim
 };
