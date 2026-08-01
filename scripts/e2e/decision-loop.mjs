@@ -251,7 +251,7 @@ const BROKEN = /다시 시도해 주세요|막혔어요|Please try again|Hit a s
  *
  * 그래서 별도 종료 코드(3)로 나가고, CI 에서는 경고로만 남긴다.
  */
-const QUOTA = /무료 체험을 모두 사용했어요|하루 50회까지|Free trial used up|You've used your free/;
+const QUOTA = /무료 체험을 모두 사용했어요|무료 사용량을 모두 썼어요|오늘 제공된 사용량을 모두 썼어요|하루 50회까지|Free trial used up|You've used your free|You’ve used the free allowance|You’ve used today’s included allowance/;
 
 /** 한도 소진으로 검사를 접는다. 앱 실패(1)와 다른 코드(3)로 나간다. */
 function outOfQuota() {
@@ -443,7 +443,7 @@ try {
   await shot('seal-offer');
   const offerText = await bodyText();
   // 확인일이 실제로 박혀 있어야 한다. 날짜 없는 "확정"은 귀환 약속이 아니다.
-  const hasDate = /확정 · .*에 확인|check on /.test(offerText);
+  const hasDate = /확정 · .*에 확인|이 문장 기록.*에 확인|check on |Save this sentence.*check on/.test(offerText);
   const isWitness = /이 원문 그대로 기록|Save exactly as written/.test(offerText);
   step('7. 봉인 제안에 확인일이 박혀 있다', hasDate || isWitness,
     isWitness ? '증인 모드(확인일 없는 기록)로 떴다' : (hasDate ? '' : '확정 버튼에 날짜가 없다'));
@@ -526,7 +526,10 @@ try {
     console.log('\n(signed-in 모드는 여기서 멈춘다 — 봉인 성사는 익명 경로가 매번 검증한다)');
   } else {
     // ── 8. 봉인 성사 ───────────────────────────────────────────────────
-    const sealBtn = await clickable(/판단 기록 확정|이 원문 그대로 기록|Confirm this judgment|Save exactly as written/);
+    // Two honest destinations: a dated return, or witness mode (keep only,
+    // no reminder). The old selector admitted witness at step 7 and then looked
+    // only for the dated legacy button here, producing a null.click crash.
+    const sealBtn = await clickable(/판단 기록 확정|이 문장 기록.*에 확인|이 원문 그대로 기록|Confirm this judgment|Save this sentence.*check on|Save exactly as written/);
     await sealBtn.click();
     await page.waitForTimeout(9000);
     await shot('sealed');

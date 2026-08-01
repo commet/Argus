@@ -424,7 +424,11 @@ async function runProfile(name) {
     // ask varies, what may never happen does not.
     {
       await call('argus_predict', { id: 'pq', predicate: '4분기 재고 회전율이 6을 넘는다', check_by: '2026-12-31', predicate_owner: 'user', today_override: T0 });
-      await call('argus_capture', { id: 'pq', action: 'add_context', today_override: T0, premises: [{ text: '엔터프라이즈 플랜을 분리할지 말지', kind: 'open_question', source: 'user_stated' }] });
+      // `user_stated` is an attribution claim, so the public contract requires
+      // the user's actual words. Without the quote this fixture is correctly
+      // downgraded to ai_surfaced and hostile/canceling hosts decline it, leaving
+      // no P1 for the resolution checks below. Keep the scenario truly user-owned.
+      await call('argus_capture', { id: 'pq', action: 'add_context', today_override: T0, premises: [{ text: '엔터프라이즈 플랜을 분리할지 말지', kind: 'open_question', source: 'user_stated', anchor_quote: '엔터프라이즈 플랜을 분리할지 말지' }] });
       // No `decision` — on a host with a picker this must REACH THE USER.
       const { sc } = await call('argus_capture', { id: 'pq', action: 'answer_question', ref: 'P1', today_override: '2026-07-20' });
       ok(name, 'E1 no unhandled throw (I5)', sc?.error_code !== 'INTERNAL_ERROR', brief(sc, 200));
