@@ -404,6 +404,19 @@ export function AnalysisCard({
                           i < activeAssumptions.length - 1 ? 'border-b border-[var(--border-subtle)]/40' : ''
                         } ${d.status === 'new' ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)]'}`}>
                         <KindChip kind={record?.kind} locale={locale} />
+                        {/* "Visible stability is valid" is what the update
+                            contract promises the model, and until now the
+                            screen did not keep it: a row carried forward
+                            unchanged looked identical to one written this
+                            turn, so an answer that legitimately changed
+                            nothing read as an answer that landed nowhere.
+                            Marking only what is NEW makes the rest legible as
+                            stable by contrast, without tagging every row. */}
+                        {hasChanges && d.status === 'new' && (
+                          <span className="shrink-0 text-[10px] font-semibold leading-none text-[var(--accent)]/80 self-center">
+                            {L('새로', 'new')}
+                          </span>
+                        )}
                         <div className="min-w-0">
                           <p className="text-[13px] leading-[1.65]">{renderText(d.text)}</p>
                           {detailOpen && record?.anchor_quote && (

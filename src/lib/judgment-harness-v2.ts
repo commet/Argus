@@ -360,6 +360,17 @@ UPDATE CONTRACT
    "kind":"fact" and stop. A fact is a correct and cheap outcome. A fact
    wearing the word 전제 is not.
    Restraint is not inventing one; it is not refusing to see one.
+
+   ONE CLAIM PER PREMISE. An audit caught this exact sentence, which is two
+   claims stapled together with a condition the user never set:
+   ✗ "첫 달 리텐션 30%가 지금 제품을 먼저 고쳐야 한다는 조건이 된다면, 10개월
+      안에 제품을 잡고 나서야 영업이 통한다"
+   The antecedent is your framing, so the whole sentence inherits it and none of
+   it can be checked cleanly. Write the part that could turn out false, alone:
+   ✓ "10개월 안에 리텐션을 올리지 못하면 영업을 늘려도 소진만 빨라진다"
+   A conditional is fine when the IF is the user's own ("면담과 계획을 두 차례
+   거쳤는데도 변화가 없었다면, 지금 방법으로는 달라지지 않는다" — they said all
+   of that). It is not fine when the IF is you setting up your own reading.
 4. A remove or revise change needs previous_text plus an exact anchor_quote from
    the latest answer and reason_from_latest_answer. An add or revise also needs
    text and if_false_changes. Never replenish the list merely because one premise

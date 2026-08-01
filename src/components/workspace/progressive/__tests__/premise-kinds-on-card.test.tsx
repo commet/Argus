@@ -116,6 +116,34 @@ describe('the collapsed count is a number the user can check', () => {
   });
 });
 
+describe('stability is visible, not just claimed', () => {
+  // The update contract promises the model "visible stability is valid" — an
+  // answer that changes nothing is an honest outcome. The screen did not keep
+  // that promise: a row carried forward looked identical to one written this
+  // turn, so the sim judge read a correctly-preserved premise as the model
+  // failing to re-examine it. Marking only what is NEW makes the rest legible
+  // as stable by contrast, without tagging every row.
+  const prev = {
+    ...mixed,
+    version: 1,
+    premise_records: mixed.premise_records!.slice(0, 2),
+    hidden_assumptions: ['지금 방법으로는 달라지지 않는다'],
+  } as AnalysisSnapshot;
+
+  it('marks the row this turn added', () => {
+    const html = renderToStaticMarkup(
+      <AnalysisCard snapshot={mixed} prevSnapshot={prev} locale="ko" />,
+    );
+    expect(html).toContain('새로');
+    // Exactly one — the standard is the only row that was not there before.
+    expect(html.match(/새로/g) || []).toHaveLength(1);
+  });
+
+  it('marks nothing on a first render, where nothing has changed yet', () => {
+    expect(render(mixed)).not.toContain('새로');
+  });
+});
+
 describe('an unscanned first snapshot shows nothing', () => {
   it('holds every row back until neutrality scanning has run', () => {
     // version 0 is the pre-scan state. promotion-basics guards the wiring;
