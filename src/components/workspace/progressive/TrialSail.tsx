@@ -33,7 +33,7 @@ import { useEffect, useMemo } from 'react';
 // a superseded run must not touch the store.
 let trialSailRunSeq = 0;
 import { motion, AnimatePresence } from 'framer-motion';
-import { Anchor, Quote, Scale } from 'lucide-react';
+import { Anchor, Quote, Scale, ScanSearch } from 'lucide-react';
 import { useLocale } from '@/hooks/useLocale';
 import { useProbeStore } from '@/stores/useProbeStore';
 import { runDivergenceProbe, runAblationProbe } from '@/lib/probe-engine';
@@ -64,7 +64,7 @@ export function TrialSail({ paragraph }: { paragraph: string }) {
   const ablationFailed = useProbeStore((s) => s.ablationFailed);
 
   // Display-only crew labels — stable for the component's lifetime.
-  const labels = useMemo(() => probeExecutorLabels(N_EXECUTORS), []);
+  const labels = useMemo(() => probeExecutorLabels(N_EXECUTORS, locale), [locale]);
 
   // Self-drive once per session. StrictMode-safe: dev double-mount aborts
   // run #1 in cleanup and RESETS to idle so mount #2 re-runs cleanly; a run
@@ -157,15 +157,13 @@ export function TrialSail({ paragraph }: { paragraph: string }) {
       transition={{ duration: 0.5, ease: EASE }}
       className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] p-4 md:p-5 space-y-3"
     >
-      {/* The honest frame: same text, read separately. "AI 선원" is explicit —
-          without it, "줬어요" read as "my confidential plan went to PEOPLE"
-          (novice audit, a would-quit moment). */}
+      {/* Blind repeated reads measure divergence; they are not an expert panel. */}
       <div>
         <p className="text-[13.5px] font-semibold text-[var(--text-primary)]">
-          {L(`적으신 내용을 AI 검토자 ${N_EXECUTORS}명이 그대로 읽었어요`, `${N_EXECUTORS} AI reviewers read your text, as-is`)}
+          {L('같은 내용을 독립적으로 다시 읽어, 해석이 갈리는지 확인했어요', 'Argus reread the same text independently to check where interpretations diverge')}
         </p>
         <p className="text-[13px] text-[var(--text-tertiary)] mt-0.5">
-          {L('같은 글을 따로따로 읽었어요 — 서로 다른 지시는 없었고, 내용은 분석에만 쓰여요.', 'Each read the same text separately — no differing instructions, and it stays inside the analysis.')}
+          {L('매번 같은 글과 같은 조건을 썼고, 내용은 이 판단을 검토하는 데만 써요.', 'Each read used the same text and conditions, only for reviewing this judgment.')}
         </p>
       </div>
 
@@ -182,7 +180,7 @@ export function TrialSail({ paragraph }: { paragraph: string }) {
               }`}
             >
               <div className="flex items-center gap-1.5 mb-2">
-                <span className="text-[14px]" aria-hidden>{label.avatar}</span>
+                <ScanSearch size={13} className="text-[var(--text-tertiary)]" aria-hidden />
                 <span className="text-[12px] font-semibold text-[var(--text-primary)]">{label.name}</span>
                 {!sample && (
                   <span className={`ml-auto text-[12px] text-[var(--text-tertiary)] ${done ? '' : 'animate-pulse'}`}>
@@ -289,8 +287,8 @@ export function TrialSail({ paragraph }: { paragraph: string }) {
                 <Anchor size={12} className="text-[var(--text-tertiary)] mt-0.5 shrink-0" />
                 <p className="text-[12px] text-[var(--text-secondary)] leading-[1.55]">
                   {L(
-                    'AI 검토자들이 같은 결론에 도달했어요. 이 글 안에서는 뚜렷한 갈림이 없었고, 남은 위험은 글 밖에서 확인해야 해요. 바로 마무리해도 괜찮아요.',
-                    'The AI reviewers reached the same conclusion. Nothing clearly forked inside this text; the remaining risk needs checking outside it. You can move straight to the finish.',
+                    '이번 독립 검토들 사이에서는 해석이 갈리지 않았어요. 이것만으로 결론이 맞다는 뜻은 아니며, 남은 위험은 글 밖에서 확인해야 해요.',
+                    'These independent reads did not diverge. That alone does not make the conclusion correct; the remaining risk still needs checking outside the text.',
                   )}
                 </p>
               </div>
