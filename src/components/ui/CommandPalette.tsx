@@ -86,7 +86,7 @@ export function CommandPalette({ open, onClose, locale, items }: CommandPaletteP
       initialFocusRef={inputRef}
       closeLabel={L('빠른 이동 닫기', 'Close quick navigation')}
     >
-      <div className="-m-6">
+      <div className="-m-4 sm:-m-6">
         <div className="relative border-b border-[var(--border-subtle)]">
           <Search
             size={18}

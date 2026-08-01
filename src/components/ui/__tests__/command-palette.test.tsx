@@ -40,6 +40,12 @@ const key = (element: Element, value: string, isComposing = false) => act(() => 
 });
 
 describe('CommandPalette — search-first keyboard flow', () => {
+  it('matches the modal padding at mobile and desktop widths', () => {
+    renderPalette();
+    const panel = document.querySelector('.-m-4.sm\\:-m-6');
+    expect(panel).toBeTruthy();
+  });
+
   it('focuses the search field and gives it an accessible name', async () => {
     renderPalette();
     await act(async () => { await new Promise(resolve => setTimeout(resolve, 20)); });
