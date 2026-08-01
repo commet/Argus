@@ -213,3 +213,36 @@ describe('ownership — Argus never ranks the user’s own concerns for them', (
     expect(stripUnearnedRanking(all)).toBe(all);
   });
 });
+
+describe('the pass that read the person owns the question', () => {
+  it('keeps the harness question instead of running the second, narrower prompt', async () => {
+    mockJson.mockResolvedValue({
+      real_question: '리드 승진과 이직 오퍼 사이에서 일주일 안에 정해야 하는 상황이에요.',
+      request_type: 'open',
+      framing_confidence: 62,
+      next_question: {
+        text: '지금 제일 걸리는 게 뭐예요 — 연봉이요, 아니면 리드 승진 가능성이요?',
+        type: 'short',
+      },
+    } as never);
+    const { question } = await runInitialAnalysis(
+      '연봉 40% 오퍼를 받았고, 지금 회사에서는 리드 승진 얘기가 나오는 중이에요.',
+    );
+    // Both sides are quoted from the user, so this is listening, not a
+    // manufactured fork — and no second prompt gets to overwrite it.
+    expect(question.text).toContain('리드 승진 가능성이요?');
+    expect(mockJson).toHaveBeenCalledTimes(1);
+  });
+
+  it('falls back to the typed layer when the harness asked nothing grounded', async () => {
+    mockJson.mockResolvedValue({
+      real_question: '무엇을 먼저 확인할까요?',
+      request_type: 'open',
+      framing_confidence: 62,
+      next_question: { text: '가장 중요한 게 뭐예요?', type: 'short' },
+    } as never);
+    const { question } = await runInitialAnalysis('연봉 40% 오퍼를 받았어요.');
+    expect(question.id).toBeTruthy();
+    expect(mockJson.mock.calls.length).toBeGreaterThan(1);
+  });
+});

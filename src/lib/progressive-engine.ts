@@ -52,6 +52,7 @@ import {
   dropRepeatedQuestion,
   ensureCrisisResource,
   guardLowConfidenceOpeningQuestion,
+  questionEchoesUser,
   lowConfidenceOpeningCopy,
   stripConditionalReassurance,
   stripUnearnedRanking,
@@ -906,6 +907,20 @@ export async function runInitialAnalysis(
   ] as const;
 
   const seed = snapshot.real_question || problemText;
+  // THE HARNESS'S OWN QUESTION WINS WHEN IT IS GROUNDED.
+  //
+  // The typed-question layer runs a SECOND, narrower prompt that sees a summary
+  // instead of the situation, and its output was replacing the question written
+  // by the pass that actually read the person. Measured in production: the
+  // harness wrote "지금 이 결정에서 제일 걸리는 게 뭐예요 — 연봉이요, 아니면
+  // 리드 승진 가능성이요?" (both sides quoted from them) and the screen showed
+  // "이 상황에서 지금 가장 마음에 걸리는 건 뭐예요?" — a question for anybody.
+  // The typed layer is a FALLBACK for when the harness didn't ask something
+  // grounded, not an upgrade over one that did.
+  const harnessQuestion = result.next_question?.text
+    && questionEchoesUser(result.next_question.text, problemText)
+    ? legacyQuestion
+    : null;
   let question: FlowQuestion;
   if (onTypedUpgrade) {
     // Show the legacy question NOW; upgrade in the background (best-effort —
@@ -915,14 +930,18 @@ export async function runInitialAnalysis(
       problemText,
       locale,
     ) ?? legacyQuestion;
-    pickAndGenerateTypedQuestion(typedArgs[0], typedArgs[1], signal)
-      .then((t) => {
-        const guarded = guardLowConfidenceOpeningQuestion(t, problemText, locale);
-        if (guarded) onTypedUpgrade(guarded, legacyQuestion.id);
-      })
-      .catch(() => { /* upgrade is optional polish, never a failure */ });
+    if (!harnessQuestion) {
+      pickAndGenerateTypedQuestion(typedArgs[0], typedArgs[1], signal)
+        .then((t) => {
+          const guarded = guardLowConfidenceOpeningQuestion(t, problemText, locale);
+          if (guarded) onTypedUpgrade(guarded, legacyQuestion.id);
+        })
+        .catch(() => { /* upgrade is optional polish, never a failure */ });
+    }
   } else {
-    const typed = await pickAndGenerateTypedQuestion(typedArgs[0], typedArgs[1], signal);
+    const typed = harnessQuestion
+      ? null
+      : await pickAndGenerateTypedQuestion(typedArgs[0], typedArgs[1], signal);
     question = guardLowConfidenceOpeningQuestion(
       guardFinalQuestion(typed ?? legacyQuestion, locale, seed) ?? legacyQuestion,
       problemText,
