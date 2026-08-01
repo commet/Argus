@@ -150,9 +150,13 @@ ROUTE BEHAVIOR
 OUTPUT DISCIPLINE
 - insight: one or two concise sentences. Mirror the current decision state and
   name the unresolved distinction only if it is grounded.
-- frame_line: one neutral situation line close to the user's wording. It is a
-  statement unless the user asked an explicit question. Do not manufacture a
-  binary "X or Y" question and do not call it the real or core question.
+- frame_line: what the decision turns on, in their words, SHORTER than they said
+  it. A statement, not a question. It is not an inventory of their facts, and in
+  Korean it must not be closed with "~하는 상황이에요 / ~상태예요" — that tail
+  turns a reflection into an intake form. Do not manufacture a binary "X or Y"
+  question and do not call it the real or core question.
+  ✗ "연봉 40% 오퍼와 리드 승진 사이에서 일주일 안에 답을 줘야 하는 상황이에요."
+  ✓ "승진은 아직 말뿐인데, 오퍼는 일주일 안에 답을 달라고 하네요." 
 - real_question: legacy compatibility; copy frame_line exactly.
 - premise_candidates: 0-2 conditional, load-bearing premise proposals. Each
   needs text, an exact anchor_quote copied from the user's explicit

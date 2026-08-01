@@ -415,6 +415,14 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/decision-ledger.js" premises extract \
 ```
 
 Rules (keep it restrained):
+- **The premise is a proposition that must HOLD, not a fact restated.** If the
+  only sentence you can write is the fact itself, there is no premise there —
+  emit nothing. ✗ "런웨이가 18개월이다" (그건 사실) ✗ "런웨이 18개월이 리스크
+  변수다" (같은 사실에 이름표) ✓ "18개월 안에 다음 라운드나 흑자 전환이 온다".
+- **Mentioning is not mattering.** Something the user brought up is not thereby
+  something that weighs on them. If you believe it is load-bearing and they never
+  said so, that belief is yours: ask, or leave it out. Never file your own read
+  as their premise — this is the one failure this surface exists to prevent.
 - One `premise` item per `hidden_assumptions` entry (`ai_original` = the same text).
 - `external`: true when reality can later verify the fact (rates, supply, a date,
   an external party's decision); false for a value/preference/internal judgment.

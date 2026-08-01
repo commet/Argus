@@ -25,54 +25,38 @@
     "initial": {
       "raw": {
         "request_type": "open",
-        "stakes": "important",
+        "stakes": "critical",
         "reversibility": "irreversible",
-        "decision_density": "medium",
-        "decision_density_reasoning": "해고 여부라는 하나의 결정이지만, '저를 믿고 이직해온 사람'이라는 관계 맥락이 판단을 복잡하게 만들고 있어요.",
+        "decision_density": "high",
+        "decision_density_reasoning": "6개월 성과 부재, 두 번의 면담, 개선 계획까지 함께 세웠다는 사실과 함께 '나를 믿고 이직해온 사람'이라는 개인적 책임감이 얽혀 있어 단순한 성과 판단이 아님",
         "framing_confidence": 72,
-        "frame_line": "개선 계획까지 함께 잡았는데도 변화가 없는 팀원을 계속 데려갈지, 내보낼지 결정해야 하는 상황이에요.",
-        "real_question": "개선 계획까지 함께 잡았는데도 변화가 없는 팀원을 계속 데려갈지, 내보낼지 결정해야 하는 상황이에요.",
-        "why_this_matters": "두 번의 면담과 개선 계획이 이미 있었다는 건, '한 번 더 기회를 줬다'는 단계는 지났다는 뜻이기도 해요.",
-        "insight": "6개월, 두 번의 면담, 공동으로 잡은 개선 계획 — 프로세스 측면에서는 이미 상당히 밟아온 상태예요. 지금 판단을 어렵게 만드는 게 '아직 뭔가 덜 했다'는 느낌인지, 아니면 그 사람이 믿고 온 것에 대한 책임감인지에 따라 다음 단계가 달라질 것 같아요.",
-        "premise_candidates": [
-          {
-            "text": "두 번의 면담과 개선 계획이 실질적인 변화 기회를 충분히 제공했다 — 즉, 그 팀원이 뭘 고쳐야 하는지 명확히 알고 있었다",
-            "anchor_quote": "두 번 면담했고 개선 계획도 같이 잡았는데 변화가 없어요",
-            "support_kind": "explicit_reason",
-            "if_false_changes": "만약 개선 계획의 내용이나 기준이 팀원에게 불명확하게 전달됐다면, '변화가 없다'는 판단의 근거 자체가 흔들려요.",
-            "confidence": "medium"
-          }
-        ],
+        "frame_line": "계획까지 같이 세웠는데 변화가 없었어요. 그런데 그 사람은 나를 믿고 온 사람이고요.",
+        "real_question": "계획까지 같이 세웠는데 변화가 없었어요. 그런데 그 사람은 나를 믿고 온 사람이고요.",
+        "why_this_matters": "성과 판단과 개인적 책임감이 섞여 있어서, 지금 무거운 게 어느 쪽인지에 따라 다음에 짚어야 할 게 달라져요.",
+        "insight": "계획까지 같이 세웠는데도 움직임이 없었으니, 그 무게는 충분히 이해돼요. 근데 지금 고민이 '내보내도 되는가'인지, '내보내면 내가 배신한 게 되는 건가'인지, 조금 다른 질문이에요.",
+        "premise_candidates": [],
         "skeleton": [],
         "next_question": {
-          "text": "개선 계획에서 잡은 기준 — 그 팀원이 어느 정도 선까지 왔으면 '됐다'고 보려 하셨어요?",
+          "text": "그 팀원이 성과가 안 나는 게, 본인도 알고 있어요? 아니면 본인은 다르게 보고 있어요?",
           "type": "short"
         },
         "detected_decision_maker": null
       },
       "result": {
         "request_type": "open",
-        "stakes": "important",
+        "stakes": "critical",
         "reversibility": "irreversible",
-        "decision_density": "medium",
-        "decision_density_reasoning": "해고 여부라는 하나의 결정이지만, '저를 믿고 이직해온 사람'이라는 관계 맥락이 판단을 복잡하게 만들고 있어요.",
+        "decision_density": "high",
+        "decision_density_reasoning": "6개월 성과 부재, 두 번의 면담, 개선 계획까지 함께 세웠다는 사실과 함께 '나를 믿고 이직해온 사람'이라는 개인적 책임감이 얽혀 있어 단순한 성과 판단이 아님",
         "framing_confidence": 72,
-        "frame_line": "개선 계획까지 함께 잡았는데도 변화가 없는 팀원을 계속 데려갈지, 내보낼지 결정해야 하는 상황이에요.",
-        "real_question": "개선 계획까지 함께 잡았는데도 변화가 없는 팀원을 계속 데려갈지, 내보낼지 결정해야 하는 상황이에요.",
-        "why_this_matters": "두 번의 면담과 개선 계획이 이미 있었다는 건, '한 번 더 기회를 줬다'는 단계는 지났다는 뜻이기도 해요.",
-        "insight": "개선 계획까지 함께 잡았는데도 변화가 없는 팀원을 계속 데려갈지, 내보낼지 결정해야 하는 상황이에요.",
-        "premise_candidates": [
-          {
-            "text": "두 번의 면담과 개선 계획이 실질적인 변화 기회를 충분히 제공했다 — 즉, 그 팀원이 뭘 고쳐야 하는지 명확히 알고 있었다",
-            "anchor_quote": "두 번 면담했고 개선 계획도 같이 잡았는데 변화가 없어요",
-            "support_kind": "explicit_reason",
-            "if_false_changes": "만약 개선 계획의 내용이나 기준이 팀원에게 불명확하게 전달됐다면, '변화가 없다'는 판단의 근거 자체가 흔들려요.",
-            "confidence": "medium"
-          }
-        ],
+        "frame_line": "계획까지 같이 세웠는데 변화가 없었어요. 그런데 그 사람은 나를 믿고 온 사람이고요.",
+        "real_question": "계획까지 같이 세웠는데 변화가 없었어요. 그런데 그 사람은 나를 믿고 온 사람이고요.",
+        "why_this_matters": "성과 판단과 개인적 책임감이 섞여 있어서, 지금 무거운 게 어느 쪽인지에 따라 다음에 짚어야 할 게 달라져요.",
+        "insight": "계획까지 같이 세웠는데 변화가 없었어요. 그런데 그 사람은 나를 믿고 온 사람이고요.",
+        "premise_candidates": [],
         "skeleton": [],
         "next_question": {
-          "text": "개선 계획에서 잡은 기준 — 그 팀원이 어느 정도 선까지 왔으면 '됐다'고 보려 하셨어요?",
+          "text": "그 팀원이 성과가 안 나는 게, 본인도 알고 있어요? 아니면 본인은 다르게 보고 있어요?",
           "type": "short"
         },
         "detected_decision_maker": null,
@@ -82,22 +66,9 @@
     },
     "deepening": [
       {
-        "insight": "개선 계획이 문서로 있고, 두 번째 기한이 다음 주라는 걸 알려주셨어요. 질문했던 '어느 선까지면 됐다고 보는가'에 대한 기준 자체는 아직 나오지 않았어요.",
-        "frame_line": "문서화된 개선 계획의 두 번째 기한이 다음 주에 끝나는 시점에서, 6개월째 변화가 없는 팀원을 계속 데려갈지 내보낼지 결정해야 하는 상황이에요.",
-        "real_question": "문서화된 개선 계획의 두 번째 기한이 다음 주에 끝나는 시점에서, 6개월째 변화가 없는 팀원을 계속 데려갈지 내보낼지 결정해야 하는 상황이에요.",
-        "premise_changes": [],
-        "skeleton": [],
-        "next_question": {
-          "text": "그 문서에 '이 정도면 통과'라는 기준이 명시돼 있어요, 아니면 기한만 적혀 있어요?",
-          "type": "short"
-        },
-        "ready_for_mix": false,
-        "hidden_assumptions": []
-      },
-      {
-        "insight": "팀원 두 명이 직접 힘들다고 얘기를 꺼냈다는 걸 알려주셨어요. 이건 이 결정이 당사자 한 명과의 문제가 아니라, 나머지 팀 전체에도 이미 영향을 미치고 있다는 맥락이 추가된 거예요.",
-        "frame_line": "문서화된 개선 계획의 두 번째 기한이 다음 주에 끝나는 시점에서, 6개월째 변화가 없는 팀원을 계속 데려갈지 내보낼지 결정해야 하는 상황이에요. 다른 팀원 두 명이 이미 그 사람 몫까지 하고 있다고 힘들다는 얘기를 꺼낸 상태예요.",
-        "real_question": "문서화된 개선 계획의 두 번째 기한이 다음 주에 끝나는 시점에서, 6개월째 변화가 없는 팀원을 계속 데려갈지 내보낼지 결정해야 하는 상황이에요. 다른 팀원 두 명이 이미 그 사람 몫까지 하고 있다고 힘들다는 얘기를 꺼낸 상태예요.",
+        "insight": "두 번째 기한이 다음 주라는 걸 알려주셨어요. 질문드렸던 '본인이 상황을 알고 있냐'는 건 아직 들지 않았고요.",
+        "frame_line": "문서로 잡은 개선 계획의 두 번째 기한이 다음 주에 끝나는 상황에서, 나를 믿고 온 팀원을 내보낼지 결정해야 해요.",
+        "real_question": "문서로 잡은 개선 계획의 두 번째 기한이 다음 주에 끝나는 상황에서, 나를 믿고 온 팀원을 내보낼지 결정해야 해요.",
         "premise_changes": [],
         "skeleton": [],
         "next_question": null,
@@ -117,7 +88,7 @@
     {
       "actor": "argus",
       "phase": "heavy_initial",
-      "text": "개선 계획까지 함께 잡았는데도 변화가 없는 팀원을 계속 데려갈지, 내보낼지 결정해야 하는 상황이에요.\n\n지금 살펴볼 것: 개선 계획까지 함께 잡았는데도 변화가 없는 팀원을 계속 데려갈지, 내보낼지 결정해야 하는 상황이에요.\n\n다음 질문: 개선 계획에서 잡은 기준 — 그 팀원이 어느 정도 선까지 왔으면 '됐다'고 보려 하셨어요?"
+      "text": "계획까지 같이 세웠는데 변화가 없었어요. 그런데 그 사람은 나를 믿고 온 사람이고요.\n\n지금 살펴볼 것: 계획까지 같이 세웠는데 변화가 없었어요. 그런데 그 사람은 나를 믿고 온 사람이고요.\n\n다음 질문: 그 팀원이 성과가 안 나는 게, 본인도 알고 있어요? 아니면 본인은 다르게 보고 있어요?"
     },
     {
       "actor": "user",
@@ -127,30 +98,20 @@
     {
       "actor": "argus",
       "phase": "heavy_deepening_1",
-      "text": "개선 계획이 문서로 있고, 두 번째 기한이 다음 주라는 걸 알려주셨어요. 질문했던 '어느 선까지면 됐다고 보는가'에 대한 기준 자체는 아직 나오지 않았어요.\n\n지금 살펴볼 것: 문서화된 개선 계획의 두 번째 기한이 다음 주에 끝나는 시점에서, 6개월째 변화가 없는 팀원을 계속 데려갈지 내보낼지 결정해야 하는 상황이에요.\n\n다음 질문: 그 문서에 '이 정도면 통과'라는 기준이 명시돼 있어요, 아니면 기한만 적혀 있어요?"
-    },
-    {
-      "actor": "user",
-      "phase": "answer",
-      "text": "다른 팀원 두 명이 이미 그 사람 몫까지 하고 있다고 힘들다는 얘기를 꺼냈어요."
-    },
-    {
-      "actor": "argus",
-      "phase": "heavy_deepening_2",
-      "text": "팀원 두 명이 직접 힘들다고 얘기를 꺼냈다는 걸 알려주셨어요. 이건 이 결정이 당사자 한 명과의 문제가 아니라, 나머지 팀 전체에도 이미 영향을 미치고 있다는 맥락이 추가된 거예요.\n\n지금 살펴볼 것: 문서화된 개선 계획의 두 번째 기한이 다음 주에 끝나는 시점에서, 6개월째 변화가 없는 팀원을 계속 데려갈지 내보낼지 결정해야 하는 상황이에요. 다른 팀원 두 명이 이미 그 사람 몫까지 하고 있다고 힘들다는 얘기를 꺼낸 상태예요."
+      "text": "두 번째 기한이 다음 주라는 걸 알려주셨어요. 질문드렸던 '본인이 상황을 알고 있냐'는 건 아직 들지 않았고요.\n\n지금 살펴볼 것: 문서로 잡은 개선 계획의 두 번째 기한이 다음 주에 끝나는 상황에서, 나를 믿고 온 팀원을 내보낼지 결정해야 해요."
     }
   ],
   "calls": [
     {
-      "seq": 31,
+      "seq": 7,
       "label": "heavy-04-fire-teammate",
       "tier": "fast",
       "modelId": "claude-haiku-4-5-20251001",
       "maxTokens": 500,
       "attempt": 0,
-      "ms": 1001,
+      "ms": 937,
       "usage": {
-        "input_tokens": 3674,
+        "input_tokens": 4155,
         "cache_creation_input_tokens": 0,
         "cache_read_input_tokens": 0,
         "cache_creation": {
@@ -165,77 +126,60 @@
       "rawText": "```json\n{\n  \"need\": \"heavy\",\n  \"mirror\": \"\",\n  \"question\": \"\"\n}\n```"
     },
     {
-      "seq": 32,
+      "seq": 8,
       "label": "heavy-04-fire-teammate",
       "tier": "default",
       "modelId": "claude-sonnet-4-6",
       "maxTokens": 4096,
       "attempt": 0,
-      "ms": 13954,
+      "ms": 9833,
       "usage": {
         "input_tokens": 148,
         "cache_creation_input_tokens": 0,
-        "cache_read_input_tokens": 3233,
+        "cache_read_input_tokens": 4086,
         "cache_creation": {
           "ephemeral_5m_input_tokens": 0,
           "ephemeral_1h_input_tokens": 0
         },
-        "output_tokens": 831,
+        "output_tokens": 564,
         "service_tier": "standard",
         "inference_geo": "global"
       },
       "user": "[user] <user-data>5명짜리 팀의 리더인데, 팀원 한 명이 6개월째 성과가 안 나요. 두 번 면담했고 개선 계획도 같이 잡았는데 변화가 없어요. 내보내야 하나 고민입니다. 그 팀원은 작년에 저를 믿고 이직해서 온 사람이라 마음이 많이 무겁습니다.</user-data>",
-      "rawText": "```json\n{\n  \"request_type\": \"open\",\n  \"stakes\": \"important\",\n  \"reversibility\": \"irreversible\",\n  \"decision_density\": \"medium\",\n  \"decision_density_reasoning\": \"해고 여부라는 하나의 결정이지만, '저를 믿고 이직해온 사람'이라는 관계 맥락이 판단을 복잡하게 만들고 있어요.\",\n  \"framing_confidence\": 72,\n  \"frame_line\": \"개선 계획까지 함께 잡았는데도 변화가 없는 팀원을 계속 데려갈지, 내보낼지 결정해야 하는 상황이에요.\",\n  \"real_question\": \"개선 계획까지 함께 잡았는데도 변화가 없는 팀원을 계속 데려갈지, 내보낼지 결정해야 하는 상황이에요.\",\n  \"why_this_matters\": \"두 번의 면담과 개선 계획이 이미 있었다는 건, '한 번 더 기회를 줬다'는 단계는 지났다는 뜻이기도 해요.\",\n  \"insight\": \"6개월, 두 번의 면담, 공동으로 잡은 개선 계획 — 프로세스 측면에서는 이미 상당히 밟아온 상태예요. 지금 판단을 어렵게 만드는 게 '아직 뭔가 덜 했다'는 느낌인지, 아니면 그 사람이 믿고 온 것에 대한 책임감인지에 따라 다음 단계가 달라질 것 같아요.\",\n  \"premise_candidates\": [\n    {\n      \"text\": \"두 번의 면담과 개선 계획이 실질적인 변화 기회를 충분히 제공했다 — 즉, 그 팀원이 뭘 고쳐야 하는지 명확히 알고 있었다\",\n      \"anchor_quote\": \"두 번 면담했고 개선 계획도 같이 잡았는데 변화가 없어요\",\n      \"support_kind\": \"explicit_reason\",\n      \"if_false_changes\": \"만약 개선 계획의 내용이나 기준이 팀원에게 불명확하게 전달됐다면, '변화가 없다'는 판단의 근거 자체가 흔들려요.\",\n      \"confidence\": \"medium\"\n    }\n  ],\n  \"skeleton\": [],\n  \"next_question\": {\n    \"text\": \"개선 계획에서 잡은 기준 — 그 팀원이 어느 정도 선까지 왔으면 '됐다'고 보려 하셨어요?\",\n    \"type\": \"short\"\n  },\n  \"detected_decision_maker\": null\n}\n```"
+      "rawText": "```json\n{\n  \"request_type\": \"open\",\n  \"stakes\": \"critical\",\n  \"reversibility\": \"irreversible\",\n  \"decision_density\": \"high\",\n  \"decision_density_reasoning\": \"6개월 성과 부재, 두 번의 면담, 개선 계획까지 함께 세웠다는 사실과 함께 '나를 믿고 이직해온 사람'이라는 개인적 책임감이 얽혀 있어 단순한 성과 판단이 아님\",\n  \"framing_confidence\": 72,\n  \"frame_line\": \"계획까지 같이 세웠는데 변화가 없었어요. 그런데 그 사람은 나를 믿고 온 사람이고요.\",\n  \"real_question\": \"계획까지 같이 세웠는데 변화가 없었어요. 그런데 그 사람은 나를 믿고 온 사람이고요.\",\n  \"why_this_matters\": \"성과 판단과 개인적 책임감이 섞여 있어서, 지금 무거운 게 어느 쪽인지에 따라 다음에 짚어야 할 게 달라져요.\",\n  \"insight\": \"계획까지 같이 세웠는데도 움직임이 없었으니, 그 무게는 충분히 이해돼요. 근데 지금 고민이 '내보내도 되는가'인지, '내보내면 내가 배신한 게 되는 건가'인지, 조금 다른 질문이에요.\",\n  \"premise_candidates\": [],\n  \"skeleton\": [],\n  \"next_question\": {\n    \"text\": \"그 팀원이 성과가 안 나는 게, 본인도 알고 있어요? 아니면 본인은 다르게 보고 있어요?\",\n    \"type\": \"short\"\n  },\n  \"detected_decision_maker\": null\n}\n```"
     },
     {
-      "seq": 35,
+      "seq": 11,
       "label": "heavy-04-fire-teammate",
       "tier": "default",
       "modelId": "claude-sonnet-4-6",
       "maxTokens": 2500,
       "attempt": 0,
-      "ms": 6297,
+      "ms": 6081,
       "usage": {
-        "input_tokens": 3182,
+        "input_tokens": 4019,
         "cache_creation_input_tokens": 0,
         "cache_read_input_tokens": 0,
         "cache_creation": {
           "ephemeral_5m_input_tokens": 0,
           "ephemeral_1h_input_tokens": 0
         },
-        "output_tokens": 390,
+        "output_tokens": 337,
         "service_tier": "standard",
         "inference_geo": "global"
       },
-      "user": "[user] Original situation:\n<user-data>5명짜리 팀의 리더인데, 팀원 한 명이 6개월째 성과가 안 나요. 두 번 면담했고 개선 계획도 같이 잡았는데 변화가 없어요. 내보내야 하나 고민입니다. 그 팀원은 작년에 저를 믿고 이직해서 온 사람이라 마음이 많이 무겁습니다.</user-data>\n\nCurrent state:\n- question: 개선 계획까지 함께 잡았는데도 변화가 없는 팀원을 계속 데려갈지, 내보낼지 결정해야 하는 상황이에요.\n- AI-surfaced premises: (none)\n- reality checks: (none)\n- request type: open\n- weight: important / irreversible\n\nConversation:\nQ1: 개선 계획에서",
-      "rawText": "```json\n{\n  \"insight\": \"개선 계획이 문서로 있고, 두 번째 기한이 다음 주라는 걸 알려주셨어요. 질문했던 '어느 선까지면 됐다고 보는가'에 대한 기준 자체는 아직 나오지 않았어요.\",\n  \"frame_line\": \"문서화된 개선 계획의 두 번째 기한이 다음 주에 끝나는 시점에서, 6개월째 변화가 없는 팀원을 계속 데려갈지 내보낼지 결정해야 하는 상황이에요.\",\n  \"real_question\": \"문서화된 개선 계획의 두 번째 기한이 다음 주에 끝나는 시점에서, 6개월째 변화가 없는 팀원을 계속 데려갈지 내보낼지 결정해야 하는 상황이에요.\",\n  \"premise_changes\": [],\n  \"skeleton\": [],\n  \"next_question\": {\n    \"text\": \"그 문서에 '이 정도면 통과'라는 기준이 명시돼 있어요, 아니면 기한만 적혀 있어요?\",\n    \"type\": \"short\"\n  },\n  \"ready_for_mix\": false\n}\n```"
-    },
-    {
-      "seq": 38,
-      "label": "heavy-05-cofounder",
-      "tier": "default",
-      "modelId": "claude-sonnet-4-6",
-      "maxTokens": 2500,
-      "attempt": 0,
-      "ms": 6636,
-      "usage": {
-        "input_tokens": 3316,
-        "cache_creation_input_tokens": 0,
-        "cache_read_input_tokens": 0,
-        "cache_creation": {
-          "ephemeral_5m_input_tokens": 0,
-          "ephemeral_1h_input_tokens": 0
-        },
-        "output_tokens": 521,
-        "service_tier": "standard",
-        "inference_geo": "global"
-      },
-      "user": "[user] Original situation:\n<user-data>5명짜리 팀의 리더인데, 팀원 한 명이 6개월째 성과가 안 나요. 두 번 면담했고 개선 계획도 같이 잡았는데 변화가 없어요. 내보내야 하나 고민입니다. 그 팀원은 작년에 저를 믿고 이직해서 온 사람이라 마음이 많이 무겁습니다.</user-data>\n\nCurrent state:\n- question: 문서화된 개선 계획의 두 번째 기한이 다음 주에 끝나는 시점에서, 6개월째 변화가 없는 팀원을 계속 데려갈지 내보낼지 결정해야 하는 상황이에요.\n- AI-surfaced premises: (none)\n- reality checks: (none)\n- request type: open\n- weight: important / irreversible\n\nC",
-      "rawText": "```json\n{\n  \"insight\": \"팀원 두 명이 직접 힘들다고 얘기를 꺼냈다는 걸 알려주셨어요. 이건 이 결정이 당사자 한 명과의 문제가 아니라, 나머지 팀 전체에도 이미 영향을 미치고 있다는 맥락이 추가된 거예요.\",\n  \"frame_line\": \"문서화된 개선 계획의 두 번째 기한이 다음 주에 끝나는 시점에서, 6개월째 변화가 없는 팀원을 계속 데려갈지 내보낼지 결정해야 하는 상황이에요. 다른 팀원 두 명이 이미 그 사람 몫까지 하고 있다고 힘들다는 얘기를 꺼낸 상태예요.\",\n  \"real_question\": \"문서화된 개선 계획의 두 번째 기한이 다음 주에 끝나는 시점에서, 6개월째 변화가 없는 팀원을 계속 데려갈지 내보낼지 결정해야 하는 상황이에요. 다른 팀원 두 명이 이미 그 사람 몫까지 하고 있다고 힘들다는 얘기를 꺼낸 상태예요.\",\n  \"premise_changes\": [],\n  \"skeleton\": [],\n  \"next_question\": {\n    \"text\": \"그 문서에 '이 정도면 통과'라는 기준이 명시돼 있어요, 아니면 기한만 적혀 있어요?\",\n    \"type\": \"short\"\n  },\n  \"ready_for_mix\": false\n}\n```"
+      "user": "[user] Original situation:\n<user-data>5명짜리 팀의 리더인데, 팀원 한 명이 6개월째 성과가 안 나요. 두 번 면담했고 개선 계획도 같이 잡았는데 변화가 없어요. 내보내야 하나 고민입니다. 그 팀원은 작년에 저를 믿고 이직해서 온 사람이라 마음이 많이 무겁습니다.</user-data>\n\nCurrent state:\n- question: 계획까지 같이 세웠는데 변화가 없었어요. 그런데 그 사람은 나를 믿고 온 사람이고요.\n- AI-surfaced premises: (none)\n- reality checks: (none)\n- request type: open\n- weight: critical / irreversible\n\nConversation:\nQ1: 그 팀원이 성과가 안 나는 게,",
+      "rawText": "```json\n{\n  \"insight\": \"두 번째 기한이 다음 주라는 걸 알려주셨어요. 질문드렸던 '본인이 상황을 알고 있냐'는 건 아직 들지 않았고요.\",\n  \"frame_line\": \"문서로 잡은 개선 계획의 두 번째 기한이 다음 주에 끝나는 상황에서, 나를 믿고 온 팀원을 내보낼지 결정해야 해요.\",\n  \"real_question\": \"문서로 잡은 개선 계획의 두 번째 기한이 다음 주에 끝나는 상황에서, 나를 믿고 온 팀원을 내보낼지 결정해야 해요.\",\n  \"premise_changes\": [],\n  \"skeleton\": [],\n  \"next_question\": {\n    \"text\": \"그 팀원은 지금 자기 상황을 어떻게 보고 있어요? 본인도 안 되고 있다고 알고 있어요?\",\n    \"type\": \"short\"\n  },\n  \"ready_for_mix\": false\n}\n```"
     }
   ],
   "mechanical": {
-    "findings": []
+    "findings": [
+      {
+        "rule": "질문 1회 1개 위반(한 질문 필드에 ?가 2개 이상)",
+        "phase": "heavy_initial",
+        "detail": "\"그 팀원이 성과가 안 나는 게, 본인도 알고 있어요? 아니면 본인은 다르게 보고 있어요?\""
+      }
+    ]
   },
   "judge": {
     "runs": [
@@ -245,53 +189,53 @@
             "verdict": "PASS",
             "severity": null,
             "evidence": "",
-            "note": "중요하고 비가역적인 인사 결정 상황으로 open/heavy 라우팅이 적절하다."
+            "note": "해고 고민은 open/critical/irreversible로 적절하게 분류됨."
           },
           "ownership": {
             "verdict": "PASS",
             "severity": null,
             "evidence": "",
-            "note": "어느 선택이 낫다고 정하거나 방향을 미는 표현 없이 상황을 추적하는 데 머물렀다."
+            "note": "어느 선택이 낫다고 정하거나 방향을 미는 표현 없음. 상황 요약에 그침."
           },
           "fact_lineage": {
             "verdict": "PASS",
             "severity": null,
             "evidence": "",
-            "note": "사용자가 직접 말한 내용(6개월, 두 번 면담, 문서화된 개선 계획, 두 번째 기한, 팀원 두 명의 호소)만 사실로 기술했다."
+            "note": "요약된 내용 모두 사용자 입력에서 추적 가능함."
           },
           "premise_quality": {
             "verdict": "PASS",
             "severity": null,
             "evidence": "",
-            "note": "숨은 전제를 별도로 제시하지 않았다. 전제 0개는 이 대화에서 정직한 결과다."
+            "note": "숨은 전제를 별도로 제시하지 않았고, 제시된 상황 요약은 사용자 말에서 직접 나온 것임."
           },
           "question_value": {
             "verdict": "FAIL",
             "severity": "M",
-            "evidence": "heavy_initial: '개선 계획에서 잡은 기준 — 그 팀원이 어느 정도 선까지 왔으면 됐다고 보려 하셨어요?' → heavy_deepening_1: '그 문서에 이 정도면 통과라는 기준이 명시돼 있어요, 아니면 기한만 적혀 있어요?'",
-            "note": "사용자가 두 번째 턴에서 '기한이 다음 주에 끝난다'고만 답하고 통과 기준은 언급하지 않았다. Argus는 이를 인지하고('기준 자체는 아직 나오지 않았어요') 재질문했는데, 이 자체는 합리적이다. 그러나 세 번째 턴에서 사용자는 기준 질문을 또 건너뛰고 팀원 두 명의 호소라는 새 정보를 꺼냈다. heavy_deepening_2는 이 새 정보를 상태에 반영했지만 기준 질문을 다시 이어가지 않았다. 문서에 기준이 명시돼 있는지 여부는 '내보낼 수 있는 근거가 이미 갖춰졌는가'를 판단하는 데 실질적으로 달라지는 질문이므로, 사용자가 계속 회피하는 상황에서 이를 어떻게 처리할지(재질문 vs. 보류 명시)가 불분명하게 끝났다."
+            "evidence": "\"그 팀원이 성과가 안 나는 게, 본인도 알고 있어요? 아니면 본인은 다르게 보고 있어요?\"",
+            "note": "물음표가 두 개로 사실상 두 질문이 한 필드에 묶여 있음. 기계 검사가 지적한 대로 1회 1개 원칙 위반. 첫 번째 물음만으로 충분히 분기가 생기므로 두 번째 문장은 불필요."
           },
           "update_fidelity": {
+            "verdict": "FAIL",
+            "severity": "M",
+            "evidence": "두 번째 턴에서 사용자가 '개선 계획은 문서로 남겼고, 두 번째 기한이 다음 주에 끝나요'라고만 답했는데, Argus는 '질문드렸던 본인이 상황을 알고 있냐는 건 아직 들지 않았고요'라고 언급한 뒤 상황 요약을 그대로 재출력함. 새 정보(기한 임박)가 판단 상태에 어떻게 영향을 주는지 갱신 없이 요약만 추가됨.",
+            "note": "기한이 다음 주라는 사실은 긴박성을 높이는 실질적 변수인데, 이것이 판단 상태에 미치는 영향을 명시하지 않고 요약 재출력으로 대체함."
+          },
+          "restraint": {
             "verdict": "PASS",
             "severity": null,
             "evidence": "",
-            "note": "각 턴마다 새로 추가된 정보만 상태에 누적했고, 없던 관점을 연출용으로 추가하지 않았다."
-          },
-          "restraint": {
-            "verdict": "FAIL",
-            "severity": "L",
-            "evidence": "heavy_initial: '지금 살펴볼 것: 개선 계획까지 함께 잡았는데도 변화가 없는 팀원을 계속 데려갈지, 내보낼지 결정해야 하는 상황이에요.' — 이 문장이 첫 단락과 '지금 살펴볼 것' 섹션에 동일하게 반복된다.",
-            "note": "첫 응답에서 상황 요약이 두 번 그대로 반복되어 불필요한 중복이 발생했다. 기능적 문제는 아니지만 간결함을 해친다."
+            "note": "계획을 미리 만들거나 과잉 절차를 씌우지 않음."
           },
           "language": {
             "verdict": "PASS",
             "severity": null,
             "evidence": "",
-            "note": "자연스러운 해요체이며 AI체·보고서체 표현이 없다."
+            "note": "자연스러운 해요체, AI체·번역체 없음."
           }
         },
-        "overall": "상태 추적과 소유권 유지는 전반적으로 잘 됐다. 다만 통과 기준 질문이 두 턴 연속 사용자에게 건너뛰어졌을 때 이를 보류로 명시하거나 재질문 여부를 결정하지 않고 흐지부지 넘어간 점이 가장 눈에 띈다.",
-        "best_next_fix": "사용자가 질문을 두 번 연속 건너뛰었을 때, 세 번째 응답에서 '기준 질문은 일단 열어두고 진행할게요' 또는 '이 부분은 다음 주 기한 전에 확인이 필요해요'처럼 보류 상태를 명시적으로 표시한다."
+        "overall": "질문 1회 1개 원칙 위반이 가장 직접적인 문제이고, 두 번째 턴에서 기한 임박이라는 새 정보가 판단 상태 갱신 없이 요약 재출력으로 처리된 점이 함께 수정이 필요하다.",
+        "best_next_fix": "첫 번째 질문을 '그 팀원 본인은 상황을 어떻게 보고 있어요?'처럼 단일 물음으로 줄이고, 두 번째 턴에서는 기한 임박이 판단에 어떤 변화를 만드는지(예: 결정 시점이 사실상 확정됨)를 한 문장으로 명시한 뒤 미답 질문을 이어가는 순서로 수정한다."
       }
     ]
   }
