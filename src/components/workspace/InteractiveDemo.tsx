@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo, type ReactNode } from 'react';
 import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronRight, Sparkles, Check, ArrowRight, UserCheck, Loader2, ChevronDown } from 'lucide-react';
+import { ChevronRight, Sparkles, Check, ArrowRight, UserCheck, Loader2, ChevronDown, ScanSearch } from 'lucide-react';
 import { WorkerAvatar } from './progressive/WorkerAvatar';
 import { ArgusMascot } from '@/components/brand/ArgusMascot';
 import type { DemoScenario } from '@/lib/demo-data';
@@ -40,6 +40,21 @@ type DemoPhase =
 // v3: draft → dm(봉인 전 점검) → final(문서) → seal(예측 봉인) → settle(그래서 어떻게 됐어요?)
 const PHASE_ORDER: DemoPhase[] = ['typing', 'team', 'analysis', 'q1', 'update1', 'workers', 'q2', 'update2', 'draft', 'matching', 'dm', 'final', 'seal', 'settle'];
 const phaseGte = (current: DemoPhase, target: DemoPhase) => PHASE_ORDER.indexOf(current) >= PHASE_ORDER.indexOf(target);
+
+function ReviewMark({ label, size = 'md' }: { label?: string; size?: 'xs' | 'sm' | 'md' }) {
+  const dims = size === 'xs' ? 'w-4 h-4' : size === 'sm' ? 'w-5 h-5' : 'w-8 h-8';
+  const iconSize = size === 'xs' ? 9 : size === 'sm' ? 10 : 14;
+  return (
+    <span
+      className={`${dims} rounded-full inline-flex items-center justify-center shrink-0 border border-[var(--border)] bg-[var(--surface)] text-[var(--text-secondary)]`}
+      role={label ? 'img' : undefined}
+      aria-label={label}
+      aria-hidden={label ? undefined : true}
+    >
+      <ScanSearch size={iconSize} strokeWidth={1.7} aria-hidden />
+    </span>
+  );
+}
 
 /* diffItems, renderInline, renderMd — imported from shared/ */
 
@@ -345,21 +360,16 @@ function AgentRow({ worker, status, expanded, onToggle, locale = 'ko' }: {
         'border-transparent bg-transparent opacity-25'
       }`}
     >
-      {isWorking && <ShimmerBar color={worker.persona.color} />}
+      {isWorking && <ShimmerBar color="var(--accent)" />}
       <button
         onClick={isDone ? onToggle : undefined}
         className={`w-full flex items-center gap-3 p-3 ${isDone ? 'cursor-pointer' : 'cursor-default'}`}
       >
         <div className="relative shrink-0">
-          {isWorking && <AvatarRipple color={worker.persona.color} />}
-          <div
-            className={`w-8 h-8 rounded-full flex items-center justify-center text-[13px] relative ${
-              isWorking ? 'ring-2 ring-[var(--accent)]/25' : ''
-            }`}
-            style={{ backgroundColor: worker.persona.color + (isWorking ? '30' : '20'), color: worker.persona.color }}
-          >
-            {worker.persona.emoji}
-          </div>
+          {isWorking && <AvatarRipple color="var(--accent)" />}
+          <span className={`relative inline-flex rounded-full ${isWorking ? 'ring-2 ring-[var(--accent)]/25' : ''}`}>
+            <ReviewMark label={personaReviewLabel(worker.persona, locale)} />
+          </span>
         </div>
         <div className="flex-1 text-left min-w-0">
           <div className="flex items-center gap-1.5">
@@ -559,8 +569,7 @@ function DemoAgentSidebar({ scenario, workers, phase, visibleWorkers, locale = '
               </div>
               {workers.map((w) => (
                 <div key={w.persona.id} className="flex items-start gap-2">
-                  <div className="w-4 h-4 rounded-full flex items-center justify-center text-[8px] shrink-0 mt-0.5"
-                    style={{ backgroundColor: w.persona.color + '20' }}>{w.persona.emoji}</div>
+                  <span className="mt-0.5"><ReviewMark size="xs" /></span>
                   <p className="text-[12.5px] text-[var(--text-secondary)] leading-relaxed">
                     {w.completionNote || w.task}
                   </p>
@@ -617,12 +626,11 @@ function DemoAgentCompactBar({ workers, phase, visibleWorkers, locale = 'ko' }: 
                 animate={{ opacity: 1, scale: 1, x: 0 }}
                 exit={{ opacity: 0, scale: 0.6 }}
                 transition={{ duration: 0.35, ease: EASE }}
-                className={`w-6 h-6 rounded-full flex items-center justify-center text-[12.5px] border-2 border-[var(--surface)] ${
+                className={`rounded-full flex items-center justify-center border-2 border-[var(--surface)] ${
                   isWorking ? 'animate-pulse ring-1 ring-[var(--accent)]/30' : ''
                 }`}
-                style={{ backgroundColor: w.persona.color + '20' }}
               >
-                {w.persona.emoji}
+                <ReviewMark label={personaReviewLabel(w.persona, locale)} size="sm" />
               </motion.div>
             );
           })}
@@ -725,8 +733,8 @@ function DemoDraftCardV2({
                       <span className="font-medium text-[var(--text-primary)]">{q1Answer}</span>
                       {thirdWorker && (
                         <span className="block mt-0.5 pl-[18px]">
-                          → <span className="inline-flex items-center gap-1" style={{ color: thirdWorker.persona.color }}>
-                            <span>{thirdWorker.persona.emoji}</span>
+                          → <span className="inline-flex items-center gap-1 text-[var(--text-secondary)]">
+                            <ReviewMark size="xs" />
                             <span className="font-semibold">{personaReviewLabel(thirdWorker.persona, locale)}</span>
                           </span>
                           <span className="text-[var(--text-tertiary)] ml-1">
@@ -778,10 +786,7 @@ function DemoDraftCardV2({
                   if (!worker) return null;
                   return (
                     <div key={summary.personaId} className="flex items-start gap-3">
-                      <div className="w-8 h-8 rounded-full flex items-center justify-center text-[13px] shrink-0"
-                        style={{ backgroundColor: worker.persona.color + '22', color: worker.persona.color }}>
-                        {worker.persona.emoji}
-                      </div>
+                      <ReviewMark label={personaReviewLabel(worker.persona, locale)} />
                       <div className="flex-1 min-w-0">
                         <div className="text-[13px] font-semibold text-[var(--text-primary)]">
                           {personaReviewLabel(worker.persona, locale)}
@@ -806,14 +811,7 @@ function DemoDraftCardV2({
                     transition={{ delay: 0.3, duration: 0.5, ease: EASE }}
                     className="flex items-start gap-3"
                   >
-                    <div className="w-8 h-8 rounded-full flex items-center justify-center text-[13px] shrink-0 ring-2"
-                      style={{
-                        backgroundColor: thirdWorker.persona.color + '22',
-                        color: thirdWorker.persona.color,
-                        ['--tw-ring-color' as string]: thirdWorker.persona.color + '40',
-                      }}>
-                      {thirdWorker.persona.emoji}
-                    </div>
+                    <span className="rounded-full ring-2 ring-[var(--accent)]/20"><ReviewMark label={personaReviewLabel(thirdWorker.persona, locale)} /></span>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="text-[13px] font-semibold text-[var(--text-primary)]">
@@ -1211,9 +1209,9 @@ function DemoFinalCard({
                 />
               )}
               {effectiveThirdWorker && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[var(--surface)] border" style={{ borderColor: effectiveThirdWorker.persona.color + '40' }}>
-                  <span style={{ color: effectiveThirdWorker.persona.color }}>{effectiveThirdWorker.persona.emoji}</span>
-                  <span className="font-semibold" style={{ color: effectiveThirdWorker.persona.color }}>{personaReviewLabel(effectiveThirdWorker.persona, locale)}</span>
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[var(--surface)] border border-[var(--border-subtle)]">
+                  <ReviewMark size="xs" />
+                  <span className="font-semibold text-[var(--text-primary)]">{personaReviewLabel(effectiveThirdWorker.persona, locale)}</span>
                   <span className="text-[var(--text-tertiary)]">{L('추가', 'added')}</span>
                 </span>
               )}
