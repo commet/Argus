@@ -31,12 +31,10 @@ export function AgentCard({ agent, onClick }: AgentCardProps) {
     : `${obsCount} observation${obsCount === 1 ? '' : 's'}`;
 
   return (
-    <div
+    <button
+      type="button"
       className={`agent-card ${isNavigator ? 'agent-card-navigator' : ''}`}
       onClick={onClick}
-      role="button"
-      tabIndex={0}
-      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick?.(); } }}
     >
       <div className="agent-card-emoji" aria-hidden="true">{builtinRole ? <ScanSearch size={19} /> : agent.emoji}</div>
       <div className="agent-card-role">{displayRole}</div>
@@ -60,7 +58,7 @@ export function AgentCard({ agent, onClick }: AgentCardProps) {
           }}
         />
       </div>}
-    </div>
+    </button>
   );
 }
 
