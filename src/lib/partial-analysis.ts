@@ -109,17 +109,37 @@ function countArrayItems(text: string, key: string): number {
   return items;
 }
 
+/** Premise candidates stream as objects; the screen only ever shows their text.
+ *  Pull out each COMPLETE "text": "…" so a half-written one never flickers. */
+function extractCandidateTexts(text: string): string[] {
+  const start = text.indexOf('"premise_candidates"');
+  if (start < 0) return [];
+  const out: string[] = [];
+  const re = new RegExp('"text"\\s*:\\s*"((?:[^"\\\\]|\\\\.)*)"', 'g');
+  re.lastIndex = start;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(text)) !== null) {
+    try { out.push(JSON.parse(`"${m[1]}"`)); } catch { /* not yet closed */ }
+  }
+  return out;
+}
+
 export function parsePartialAnalysis(text: string): PartialAnalysis {
   const rq = extractStringField(text, 'real_question');
   const insight = extractStringField(text, 'insight');
-  const hidden_assumptions = extractCompleteStrings(text, 'hidden_assumptions');
+  // The v2 harness emits premise_candidates (objects) and a permanently empty
+  // skeleton. Reading only the old key names meant the whole first analysis
+  // streamed with nothing visible while premises were actually arriving.
+  const legacyAssumptions = extractCompleteStrings(text, 'hidden_assumptions');
+  const hidden_assumptions = legacyAssumptions.length > 0
+    ? legacyAssumptions
+    : extractCandidateTexts(text);
   const skeleton = extractCompleteStrings(text, 'skeleton');
-  // Presence-based, so both key orders parse: the pre-2026-07-31 order
-  // (…skeleton, insight, next_question) and the streaming-first order
-  // (…insight, …, skeleton). A retried/cached response from either era renders.
   let stage: PartialStage = 'reading';
-  if (text.includes('"skeleton"')) stage = 'skeleton';
-  else if (text.includes('"hidden_assumptions"')) stage = 'assumptions';
+  // Not the skeleton key: it is always present and always empty now, so it
+  // fired instantly and pinned the label to the last stage from the first byte.
+  if (text.includes('"next_question"')) stage = 'skeleton';
+  else if (hidden_assumptions.length > 0 || text.includes('"premise_candidates"')) stage = 'assumptions';
   else if (rq.value) stage = 'question';
   return {
     real_question: rq.value,

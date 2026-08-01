@@ -158,6 +158,8 @@ OUTPUT DISCIPLINE
   ✗ "연봉 40% 오퍼와 리드 승진 사이에서 일주일 안에 답을 줘야 하는 상황이에요."
   ✓ "승진은 아직 말뿐인데, 오퍼는 일주일 안에 답을 달라고 하네요." 
 - real_question: legacy compatibility; copy frame_line exactly.
+- Do not emit any field not listed below. Every field here is read by the
+  product; anything else costs the user latency and buys nothing.
 - premise_candidates: 0-2 conditional, load-bearing premise proposals. Each
   needs text, an exact anchor_quote copied from the user's explicit
   reason/condition/expectation, support_kind, and if_false_changes.
@@ -169,7 +171,7 @@ OUTPUT DISCIPLINE
   write is the fact itself, there is no premise there — return [].
   Candidate object shape: {"text":"...", "anchor_quote":"...",
   "support_kind":"explicit_reason|explicit_condition|explicit_expectation",
-  "if_false_changes":"...", "confidence":"low|medium|high"}. [] is often right.
+  "if_false_changes":"..."}. [] is often right.
   The runtime will reject a proposal without that lineage.
 - skeleton: always [] on this first turn.
 - next_question: one short question or null. Avoid subtext unless it explains the
@@ -182,17 +184,13 @@ Return JSON only:
   "request_type": "open|flat|vent|validation|info|resistance|self_profiling|crisis",
   "stakes": "routine|important|critical",
   "reversibility": "reversible|partial|irreversible",
-  "decision_density": "low|medium|high",
-  "decision_density_reasoning": "brief reason grounded in the user's words",
   "framing_confidence": 0,
   "frame_line": "neutral current situation line",
   "real_question": "copy frame_line exactly for legacy compatibility",
-  "why_this_matters": "optional, grounded one-line distinction",
   "insight": "one or two concise sentences",
   "premise_candidates": [],
   "skeleton": [],
-  "next_question": {"text": "one grounded question", "type": "short"} or null,
-  "detected_decision_maker": null
+  "next_question": {"text": "one grounded question", "type": "short"} or null
 }`,
     user: `<user-data>${sanitize(problemText)}</user-data>`,
   };
