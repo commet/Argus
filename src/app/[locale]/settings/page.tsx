@@ -305,7 +305,7 @@ export default function SettingsPage() {
           <h2 className="text-[15px] font-bold">{L('AI 엔진', 'AI Engine')}</h2>
         </div>
         <p className="text-[12px] text-[var(--text-secondary)] mb-4">
-          {L('결정을 분석할 때 사용할 AI를 정해요.', 'Choose which AI helps analyze your decisions.')}
+          {L('판단을 살펴볼 때 사용할 AI를 정해요.', 'Choose the AI Argus uses to examine a judgment.')}
         </p>
 
         {/* Provider — 한 층위(브랜드) 세그먼트. 'GPT-4o' 같은 특정 모델명을 버튼에
@@ -507,7 +507,12 @@ export default function SettingsPage() {
                   </option>
                 ))}
               </select>
-              <p className="mt-1.5 text-[12px] text-[var(--text-tertiary)]">{L('입력 / 출력 100만 토큰당 표준 API 요금(USD)', 'Standard USD per 1M input / output tokens')}</p>
+              <p className="mt-1.5 text-[12px] text-[var(--text-tertiary)]">
+                {L(
+                  '입력 / 출력 100만 토큰당 표준 API 요금(USD). Gemini 3.1 Pro의 $2 / $12는 입력 20만 토큰 이하 기준입니다.',
+                  'Standard USD per 1M input / output tokens. Gemini 3.1 Pro’s $2 / $12 rate applies at 200K input tokens or less.',
+                )}
+              </p>
             </div>
           </div>
         )}
@@ -1223,7 +1228,7 @@ function TelegramBlock({ locale }: { locale: string }) {
         <div className="flex items-center justify-between p-3 bg-[var(--bg)] rounded-lg gap-3">
           <div>
             <p className="text-[14px] font-medium">{L('Telegram에 연결하기', 'Connect to Telegram')}</p>
-            <p className="text-[12px] text-[var(--text-secondary)]">{L('결과를 Telegram으로 직접 공유', 'Share results directly to Telegram')}</p>
+            <p className="text-[12px] text-[var(--text-secondary)]">{L('확인일 알림과 공유한 판단 기록을 Telegram으로', 'Receive review reminders and shared judgment records in Telegram')}</p>
           </div>
           <Button variant="secondary" size="sm" onClick={handleConnect} disabled={pending}>
             {pending ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />} {L('연결하기', 'Connect')}
