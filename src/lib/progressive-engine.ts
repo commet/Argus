@@ -52,6 +52,7 @@ import { limitQuestionMarks } from '@/lib/light-path/light-engine';
 import {
   dropRepeatedQuestion,
   ensureCrisisResource,
+  dropManufacturedFork,
   guardLowConfidenceOpeningQuestion,
   questionEchoesUser,
   lowConfidenceOpeningCopy,
@@ -1349,6 +1350,11 @@ export async function runDeepening(
       result.next_question,
       questionsAndAnswers.map((qa) => qa.question.text),
     );
+    // Everything the user has written by now. A fork THEY drew is theirs to be
+    // asked about, and by round 3 they may have drawn it in an answer rather
+    // than in the opener.
+    const userCorpus = [problemText, ...questionsAndAnswers.map((qa) => String(qa.answer.value ?? ''))]
+      .filter(Boolean).join('\n');
     const legacyQuestion: FlowQuestion | null = nextQuestion
       ? {
           id: generateId(),
@@ -1364,9 +1370,16 @@ export async function runDeepening(
       // P1-3: the user sees the next question immediately (the deepening
       // answer already arrived); the typed upgrade lands ~5–10s later and
       // swaps in only while the question is still unanswered.
-      question = guardFinalQuestion(legacyQuestion, locale, snapshot.real_question || problemText);
+      question = guardFinalQuestion(
+        dropManufacturedFork(legacyQuestion, userCorpus),
+        locale,
+        snapshot.real_question || problemText,
+      );
       pickAndGenerateTypedQuestion(stateCtx, genCtx, signal)
-        .then((t) => { if (t) onTypedUpgrade(t, legacyQuestion.id); })
+        .then((t) => {
+          const kept = dropManufacturedFork(t, userCorpus);
+          if (kept) onTypedUpgrade(kept, legacyQuestion.id);
+        })
         .catch(() => { /* best-effort upgrade */ });
     } else {
       const typed = await pickAndGenerateTypedQuestion(stateCtx, genCtx, signal);
@@ -1384,7 +1397,9 @@ export async function runDeepening(
           }
         : null;
       question = guardFinalQuestion(
-        typed ?? legacyQuestion ?? minimumInquiryFallback,
+        dropManufacturedFork(typed, userCorpus)
+          ?? dropManufacturedFork(legacyQuestion, userCorpus)
+          ?? minimumInquiryFallback,
         locale,
         snapshot.real_question || problemText,
       );

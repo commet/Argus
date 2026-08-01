@@ -55,10 +55,20 @@ export function questionEchoesUser(questionText: string, userText: string): bool
   if (/[가-힣]/.test(u)) {
     // Korean packs meaning densely and glues particles on, so a shared run of
     // four syllables ("리드 승진") is already a content match.
-    for (let i = 0; i + 4 <= u.length; i += 1) {
-      const span = u.slice(i, i + 4);
-      if (!/[가-힣]/.test(span)) continue;
-      if (q.includes(span)) return true;
+    //
+    // SYLLABLES, not characters. Sliding over the raw string counted spaces and
+    // punctuation toward the four, so "다음 주" — three syllables and a space —
+    // scored as a content match. Measured 2026-08-02: that is what let the live
+    // app ship "…무게를 더하는 건가요? 아니면 별개로 마음에 걸리는 부분인가요"
+    // on round 3. The fork guard asked whether the question stood on the user's
+    // words, this said yes on a bare time reference, and a manufactured binary
+    // reached a person. Both sides are stripped so a window can span a word
+    // boundary the way "리드 승진" → "리드승진" needs it to.
+    const strip = (s: string) => s.replace(/[^가-힣0-9a-z]/g, '');
+    const su = strip(u);
+    const sq = strip(q);
+    for (let i = 0; i + 4 <= su.length; i += 1) {
+      if (sq.includes(su.slice(i, i + 4))) return true;
     }
     return false;
   }
@@ -94,6 +104,38 @@ export function questionManufacturesFork(
   const forked = /아니면|,\s*또는|\b(?:or)\b/i.test(t)
     || /(가요|나요|까요|예요|이에요)\s*[,，]\s*[^,，]{2,}(가요|나요|까요|예요|이에요)/.test(t);
   return forked && !questionEchoesUser(t, userText);
+}
+
+/**
+ * The same rule, for every turn after the first.
+ *
+ * `guardLowConfidenceOpeningQuestion` was only ever wired to the opening turn,
+ * so rounds 2, 3 and 4 emitted questions nothing checked. Driving the real app
+ * on 2026-08-02 produced this on round 3, which is the exact shape the spine
+ * forbids — an engine-weighted two-pole fork handed to the user as if the poles
+ * were theirs:
+ *
+ *   "그 두 분 얘기가, 다음 주 결정에 무게를 더하는 건가요?
+ *    아니면 별개로 마음에 걸리는 부분인가요."
+ *
+ * A later turn drops the fork rather than replacing it. The opening copy is
+ * written for first contact and would read as a reset mid-conversation, and
+ * rewriting the model's question into a single pole would be Argus authoring
+ * the question — the callers already fall through to a typed question or to no
+ * question at all, and no question is a valid, restrained outcome.
+ *
+ * The corpus is everything the user has written by now, not just the opener:
+ * a fork THEY drew ("A랑 B 중에 고민이에요") is theirs to be asked about, and by
+ * round 3 they may have drawn it in an answer.
+ */
+export function dropManufacturedFork<T extends {
+  text?: string;
+  options?: unknown[];
+}>(question: T | null | undefined, userCorpus: string): T | null {
+  if (!question?.text) return null;
+  return questionManufacturesFork(question.text, question.options, userCorpus)
+    ? null
+    : question;
 }
 
 /**
