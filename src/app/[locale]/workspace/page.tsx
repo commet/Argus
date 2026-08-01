@@ -773,7 +773,7 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem, fr
                     {/* "회" counts LLM calls, not sessions — a session uses 6–9.
                         Selling "30회" as 30 tries read as a lie by session 3.
                         Speak in the user's unit: decisions. */}
-                    <span className="text-[var(--text-secondary)]">{locale === 'ko' ? <>로그인 없이도 <strong className="text-[var(--text-primary)]">하루 약 4~5개 결정</strong>을 살펴볼 수 있어요</> : <>Explore <strong className="text-[var(--text-primary)]">about 4–5 decisions a day</strong> without logging in</>}</span>
+                    <span className="text-[var(--text-secondary)]">{locale === 'ko' ? <>로그인하면 <strong className="text-[var(--text-primary)]">기기를 바꿔도 기록과 확인 날짜</strong>가 이어져요</> : <>Log in to keep <strong className="text-[var(--text-primary)]">records and review dates</strong> across devices</>}</span>
                   </div>
                   <LocaleLink href="/login" className="group -mr-2 inline-flex min-h-11 shrink-0 items-center gap-1 px-2 text-[12px] font-semibold text-[var(--accent)] hover:text-[var(--text-primary)] transition-colors">
                     {L('로그인', 'Log in')} <ChevronRight size={12} className="transition-transform group-hover:translate-x-0.5" />
@@ -1739,7 +1739,7 @@ function WorkspaceContent() {
               <div className="flex items-center gap-2 text-[12px]">
                 <Sparkles size={13} className="text-[var(--accent)] shrink-0" />
                 <span className="text-[var(--text-primary)]">
-                  {locale === 'ko' ? <>일반적인 사용 기준, 로그인 없이 <strong>하루 약 4~5개 결정</strong> · <LocaleLink href="/login" className="text-[var(--accent)] font-semibold underline">로그인</LocaleLink>하면 약 6~8개</> : <>For typical use, <strong>about 4–5 decisions/day</strong> without login · <LocaleLink href="/login" className="text-[var(--accent)] font-semibold underline">log in</LocaleLink> for about 6–8</>}
+                  {locale === 'ko' ? <>기기를 바꿔도 기록과 확인 날짜를 이어보려면 <LocaleLink href="/login" className="text-[var(--accent)] font-semibold underline">로그인</LocaleLink>해 주세요</> : <><LocaleLink href="/login" className="text-[var(--accent)] font-semibold underline">Log in</LocaleLink> to keep records and review dates across devices</>}
                 </span>
               </div>
             </div>
