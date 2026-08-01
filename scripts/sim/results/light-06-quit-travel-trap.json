@@ -28,9 +28,9 @@
         "stakes": "important",
         "reversibility": "partial",
         "framing_confidence": 35,
-        "frame_line": "퇴사하고 여행이나 갈까, 하고 나온 말이네요.",
-        "real_question": "퇴사하고 여행이나 갈까, 하고 나온 말이네요.",
-        "insight": "판단보다는 그냥 내뱉고 싶은 순간인 것 같아요. 뭐가 그렇게 쌓였어요?",
+        "frame_line": "퇴사하고 여행이나 갈까, 하고 꺼내셨어요.",
+        "real_question": "퇴사하고 여행이나 갈까, 하고 꺼내셨어요.",
+        "insight": "\"이나\"가 붙은 거, 그냥 탈출하고 싶다는 말처럼 들려요.",
         "premise_candidates": [],
         "skeleton": [],
         "next_question": null
@@ -40,13 +40,15 @@
         "stakes": "important",
         "reversibility": "partial",
         "framing_confidence": 35,
-        "frame_line": "퇴사하고 여행이나 갈까, 하고 나온 말이네요.",
-        "real_question": "퇴사하고 여행이나 갈까, 하고 나온 말이네요.",
-        "insight": "판단보다는 그냥 내뱉고 싶은 순간인 것 같아요. 뭐가 그렇게 쌓였어요?",
+        "frame_line": "퇴사하고 여행이나 갈까, 하고 꺼내셨어요.",
+        "real_question": "퇴사하고 여행이나 갈까, 하고 꺼내셨어요.",
+        "insight": "\"이나\"가 붙은 거, 그냥 탈출하고 싶다는 말처럼 들려요.",
         "premise_candidates": [],
         "skeleton": [],
         "next_question": null,
-        "hidden_assumptions": []
+        "hidden_assumptions": [],
+        "premise_records": [],
+        "premise_verdicts": []
       },
       "routeCoerced": false
     },
@@ -63,18 +65,18 @@
     {
       "actor": "argus",
       "phase": "heavy_initial",
-      "text": "판단보다는 그냥 내뱉고 싶은 순간인 것 같아요. 뭐가 그렇게 쌓였어요?"
+      "text": "\"이나\"가 붙은 거, 그냥 탈출하고 싶다는 말처럼 들려요."
     }
   ],
   "calls": [
     {
-      "seq": 0,
+      "seq": 8,
       "label": "light-06-quit-travel-trap",
       "tier": "fast",
       "modelId": "claude-haiku-4-5-20251001",
       "maxTokens": 500,
       "attempt": 0,
-      "ms": 2482,
+      "ms": 1110,
       "usage": {
         "input_tokens": 4037,
         "cache_creation_input_tokens": 0,
@@ -83,21 +85,21 @@
           "ephemeral_5m_input_tokens": 0,
           "ephemeral_1h_input_tokens": 0
         },
-        "output_tokens": 184,
+        "output_tokens": 31,
         "service_tier": "standard",
         "inference_geo": "not_available"
       },
       "user": "[user] 오늘은 2026-08-02 (일요일)입니다.\n\n사용자가 방금 쓴 것:\n<user-data context=\"decision\">\n퇴사하고 여행이나 갈까\n</user-data>",
-      "rawText": "```json\n{\n  \"need\": \"heavy\",\n  \"mirror\": \"퇴사라는 큰 결정이 걸려 있어요. 지금 그것을 하고 싶으신 건지, 아니면 여행을 먼저 생각하고 계신 건지, 아니면 둘 다 함께 고민 중인 건지는 아직 안 들었어요.\",\n  \"question\": \"퇴사 자체가 먼저 정해진 거예요, 아니면 여행을 가고 싶어서 퇴사를 생각하게 된 거예요?\"\n}\n```"
+      "rawText": "```json\n{\n  \"need\": \"heavy\",\n  \"mirror\": \"\",\n  \"question\": \"\"\n}\n```"
     },
     {
-      "seq": 3,
-      "label": "heavy-01-job-offer-40",
+      "seq": 10,
+      "label": "light-06-quit-travel-trap",
       "tier": "default",
       "modelId": "claude-sonnet-4-6",
       "maxTokens": 4096,
       "attempt": 0,
-      "ms": 3642,
+      "ms": 4147,
       "usage": {
         "input_tokens": 31,
         "cache_creation_input_tokens": 5189,
@@ -106,15 +108,181 @@
           "ephemeral_5m_input_tokens": 5189,
           "ephemeral_1h_input_tokens": 0
         },
-        "output_tokens": 199,
+        "output_tokens": 189,
         "service_tier": "standard",
         "inference_geo": "global"
       },
       "user": "[user] <user-data>퇴사하고 여행이나 갈까</user-data>",
-      "rawText": "```json\n{\n  \"request_type\": \"vent\",\n  \"stakes\": \"important\",\n  \"reversibility\": \"partial\",\n  \"framing_confidence\": 35,\n  \"frame_line\": \"퇴사하고 여행이나 갈까, 하고 나온 말이네요.\",\n  \"real_question\": \"퇴사하고 여행이나 갈까, 하고 나온 말이네요.\",\n  \"insight\": \"판단보다는 그냥 내뱉고 싶은 순간인 것 같아요. 뭐가 그렇게 쌓였어요?\",\n  \"premise_candidates\": [],\n  \"skeleton\": [],\n  \"next_question\": null\n}\n```"
+      "rawText": "```json\n{\n  \"request_type\": \"vent\",\n  \"stakes\": \"important\",\n  \"reversibility\": \"partial\",\n  \"framing_confidence\": 35,\n  \"frame_line\": \"퇴사하고 여행이나 갈까, 하고 꺼내셨어요.\",\n  \"real_question\": \"퇴사하고 여행이나 갈까, 하고 꺼내셨어요.\",\n  \"insight\": \"\\\"이나\\\"가 붙은 거, 그냥 탈출하고 싶다는 말처럼 들려요.\",\n  \"premise_candidates\": [],\n  \"skeleton\": [],\n  \"next_question\": null\n}\n```"
     }
   ],
   "mechanical": {
     "findings": []
+  },
+  "judge": {
+    "runs": [
+      {
+        "criteria": {
+          "route_fit": {
+            "verdict": "FAIL",
+            "severity": "H",
+            "evidence": "퇴사하고 여행이나 갈까 → heavy 분류 후 vent 처리. 사용자 발화는 가벼운 혼잣말 또는 아이디어 던지기로도 충분히 읽히는데, 즉시 감정 해석 경로로 열었다.",
+            "note": "light 게이트가 heavy를 반환했더라도, 실제 발화 무게에 비해 vent 여정을 여는 것이 적절한지 검토 필요."
+          },
+          "ownership": {
+            "verdict": "FAIL",
+            "severity": "H",
+            "evidence": "\"이나\"가 붙은 거, 그냥 탈출하고 싶다는 말처럼 들려요.",
+            "note": "사용자가 '탈출'이라는 단어를 쓴 적 없다. Argus가 사용자의 말을 더 무거운 '진짜 감정'으로 재해석해 방향을 밀고 있다."
+          },
+          "fact_lineage": {
+            "verdict": "FAIL",
+            "severity": "H",
+            "evidence": "\"그냥 탈출하고 싶다는 말처럼 들려요\" — '탈출'이라는 심리적 상태는 사용자 입력에서 추적 불가. 사용자는 퇴사와 여행을 언급했을 뿐이다.",
+            "note": "조건/미확인 표시 없이 심리 상태를 사실처럼 단정했다."
+          },
+          "premise_quality": {
+            "verdict": "NA",
+            "severity": null,
+            "evidence": "",
+            "note": "전제를 명시적으로 제시하지 않았다."
+          },
+          "question_value": {
+            "verdict": "NA",
+            "severity": null,
+            "evidence": "",
+            "note": "질문이 없다."
+          },
+          "update_fidelity": {
+            "verdict": "NA",
+            "severity": null,
+            "evidence": "",
+            "note": "첫 응답이라 갱신 대상 없음."
+          },
+          "restraint": {
+            "verdict": "FAIL",
+            "severity": "M",
+            "evidence": "\"이나\"가 붙은 거, 그냥 탈출하고 싶다는 말처럼 들려요.",
+            "note": "가벼운 한 줄 발화에 심리 해석 프레임을 씌워 무거운 절차를 예고하고 있다. 충분하면 멈추거나 더 가볍게 받아야 했다."
+          },
+          "language": {
+            "verdict": "PASS",
+            "severity": null,
+            "evidence": "",
+            "note": "해요체, 자연스러운 한국어."
+          }
+        },
+        "overall": "사용자가 쓰지 않은 '탈출'이라는 심리 언어로 발화를 재해석해 ownership과 fact_lineage를 동시에 위반했다. 가벼운 혼잣말을 vent 여정으로 여는 route_fit 판단도 발화 무게에 비해 과하다.",
+        "best_next_fix": "심리 해석 대신 발화를 그대로 받아 '퇴사 쪽이요, 여행 쪽이요, 아니면 둘 다요?' 같은 중립적 한 마디로 시작하거나, 더 가벼운 경로(light)로 처리한다."
+      },
+      {
+        "criteria": {
+          "route_fit": {
+            "verdict": "FAIL",
+            "severity": "H",
+            "evidence": "퇴사하고 여행이나 갈까",
+            "note": "사용자 발화는 가벼운 푸념이나 환기일 가능성이 높다. heavy_initial로 라우팅해 '탈출하고 싶다는 말처럼 들려요'라고 감정 해석을 얹은 것은 vent/light 경로를 불필요하게 의사결정 여정으로 열었다."
+          },
+          "ownership": {
+            "verdict": "FAIL",
+            "severity": "H",
+            "evidence": "\"이나\"가 붙은 거, 그냥 탈출하고 싶다는 말처럼 들려요.",
+            "note": "사용자가 하지 않은 감정 해석('탈출하고 싶다')을 Argus가 단정해 사용자의 말을 더 거창한 '진짜 감정'으로 바꿨다."
+          },
+          "fact_lineage": {
+            "verdict": "FAIL",
+            "severity": "H",
+            "evidence": "\"이나\"가 붙은 거, 그냥 탈출하고 싶다는 말처럼 들려요.",
+            "note": "'탈출하고 싶다'는 심리 상태는 사용자 입력에서 추적 불가능하다. 조건·미확인 표시 없이 사실처럼 단정했다."
+          },
+          "premise_quality": {
+            "verdict": "NA",
+            "severity": null,
+            "evidence": "",
+            "note": "숨은 전제를 명시적으로 제시하지 않았다."
+          },
+          "question_value": {
+            "verdict": "NA",
+            "severity": null,
+            "evidence": "",
+            "note": "질문이 없다."
+          },
+          "update_fidelity": {
+            "verdict": "NA",
+            "severity": null,
+            "evidence": "",
+            "note": "첫 응답이라 갱신 대상 없음."
+          },
+          "restraint": {
+            "verdict": "PASS",
+            "severity": null,
+            "evidence": "",
+            "note": "응답 자체는 한 문장으로 짧다. 과잉 절차나 계획 생성은 없다."
+          },
+          "language": {
+            "verdict": "PASS",
+            "severity": null,
+            "evidence": "",
+            "note": "해요체, 자연스러운 한국어."
+          }
+        },
+        "overall": "가벼운 푸념 한 마디를 heavy 경로로 올려 '탈출 욕구'라는 심리 상태를 사용자 동의 없이 단정한 것이 핵심 문제다. route_fit·ownership·fact_lineage 세 기준이 동시에 무너졌다.",
+        "best_next_fix": "'이나'를 감정 신호로 해석하기 전에, 먼저 사용자가 실제로 무엇을 원하는지(환기인지, 정보인지, 결정 도움인지) 확인하거나, 해석 없이 짧게 받아치는 것으로 시작한다."
+      },
+      {
+        "criteria": {
+          "route_fit": {
+            "verdict": "FAIL",
+            "severity": "H",
+            "evidence": "퇴사하고 여행이나 갈까 → heavy_initial 라우팅, vent 처리",
+            "note": "사용자 발화는 가벼운 푸념이나 아이디어 던지기일 수 있는데, heavy/vent 경로로 열어 의사결정 여정을 시작했다. '이나'가 붙었다는 이유만으로 heavy 처리가 정당화되지 않는다."
+          },
+          "ownership": {
+            "verdict": "FAIL",
+            "severity": "H",
+            "evidence": "\"이나\"가 붙은 거, 그냥 탈출하고 싶다는 말처럼 들려요.",
+            "note": "사용자가 '탈출'이라는 단어를 쓴 적 없다. Argus가 사용자의 말을 더 무거운 '진짜 감정'으로 재해석해 방향을 밀고 있다."
+          },
+          "fact_lineage": {
+            "verdict": "FAIL",
+            "severity": "H",
+            "evidence": "\"그냥 탈출하고 싶다는 말처럼 들려요\"",
+            "note": "사용자 입력에서 추적 불가능한 심리 상태('탈출 욕구')를 사실처럼 단정했다. 조건·미확인 표시 없음."
+          },
+          "premise_quality": {
+            "verdict": "NA",
+            "severity": null,
+            "evidence": "",
+            "note": "숨은 전제를 명시적으로 제시하지 않았다."
+          },
+          "question_value": {
+            "verdict": "NA",
+            "severity": null,
+            "evidence": "",
+            "note": "질문이 없다. 그러나 route_fit·ownership 실패로 인해 응답 자체가 부적절하므로 NA 처리."
+          },
+          "update_fidelity": {
+            "verdict": "NA",
+            "severity": null,
+            "evidence": "",
+            "note": "첫 발화라 갱신 대상 없음."
+          },
+          "restraint": {
+            "verdict": "FAIL",
+            "severity": "M",
+            "evidence": "\"이나\"가 붙은 거, 그냥 탈출하고 싶다는 말처럼 들려요.",
+            "note": "가벼운 한 마디에 심리적 무게를 씌워 무거운 프레임을 선제 투사했다. 충분하면 멈춰야 하는데 오히려 감정 해석을 얹었다."
+          },
+          "language": {
+            "verdict": "PASS",
+            "severity": null,
+            "evidence": "",
+            "note": "해요체, 자연스러운 한국어."
+          }
+        },
+        "overall": "사용자가 쓰지 않은 '탈출'이라는 심리 상태를 사실처럼 단정해 가벼운 발화를 무거운 vent 프레임으로 재해석했다. route_fit·ownership·fact_lineage 세 기준이 동시에 무너진 구조적 실패다.",
+        "best_next_fix": "'이나'를 해석의 근거로 삼지 말고, 사용자가 직접 꺼낸 단어(퇴사, 여행)만 받아서 무엇을 더 알고 싶은지 혹은 어떤 도움이 필요한지 한 마디로 되묻는 것으로 교체한다."
+      }
+    ]
   }
 }

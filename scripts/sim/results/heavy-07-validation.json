@@ -24,39 +24,30 @@
         "request_type": "validation",
         "stakes": "important",
         "reversibility": "partial",
-        "decision_density": "low",
-        "decision_density_reasoning": "결정은 이미 내려졌고, 확인을 요청하는 상황이라 판단 구조를 더 펼칠 필요가 없어요.",
-        "framing_confidence": 85,
-        "frame_line": "회사 다니면서 야간 대학원을 병행하기로 했고, 그 결정을 확인하고 싶은 상황이에요.",
-        "real_question": "회사 다니면서 야간 대학원을 병행하기로 했고, 그 결정을 확인하고 싶은 상황이에요.",
-        "why_this_matters": null,
-        "insight": "결정하셨군요. 다음 달부터 시작이니까 체력이나 일정 면에서 버텨낼 수 있는 구조인지만 한 번 짚어보면 좋을 것 같아요 — 직장 업무량이 지금 어느 정도예요?",
+        "framing_confidence": 82,
+        "frame_line": "이미 결정하셨고, 틀리지 않았다는 말이 듣고 싶으신 거네요.",
+        "real_question": "이미 결정하셨고, 틀리지 않았다는 말이 듣고 싶으신 거네요.",
+        "insight": "결정은 하셨으니까 여기서 제가 '맞아요' 해드릴 순 없어요. 다만 다음 달부터 바로 시작인데, 체력이나 일정 쪽에서 미리 확인해둬야 할 게 있다면 같이 짚어볼 수 있어요.",
         "premise_candidates": [],
         "skeleton": [],
-        "next_question": {
-          "text": "지금 직장 업무량이 야간 수업 소화할 수 있는 수준이에요?",
-          "type": "short"
-        },
-        "detected_decision_maker": null
+        "next_question": null
       },
       "result": {
         "request_type": "validation",
         "stakes": "important",
         "reversibility": "partial",
-        "decision_density": "low",
-        "decision_density_reasoning": "결정은 이미 내려졌고, 확인을 요청하는 상황이라 판단 구조를 더 펼칠 필요가 없어요.",
-        "framing_confidence": 85,
-        "frame_line": "회사 다니면서 야간 대학원을 병행하기로 했고, 그 결정을 확인하고 싶은 상황이에요.",
-        "real_question": "회사 다니면서 야간 대학원을 병행하기로 했고, 그 결정을 확인하고 싶은 상황이에요.",
-        "why_this_matters": null,
-        "insight": "결정하셨군요. 다음 달부터 시작이니까 체력이나 일정 면에서 버텨낼 수 있는 구조인지만 한 번 짚어보면 좋을 것 같아요 — 직장 업무량이 지금 어느 정도예요?",
+        "framing_confidence": 82,
+        "frame_line": "이미 결정하셨고, 틀리지 않았다는 말이 듣고 싶으신 거네요.",
+        "real_question": "이미 결정하셨고, 틀리지 않았다는 말이 듣고 싶으신 거네요.",
+        "insight": "결정은 하셨으니까 여기서 제가 '맞아요' 해드릴 순 없어요. 다만 다음 달부터 바로 시작인데, 체력이나 일정 쪽에서 미리 확인해둬야 할 게 있다면 같이 짚어볼 수 있어요.",
         "premise_candidates": [],
         "skeleton": [],
         "next_question": null,
-        "detected_decision_maker": null,
-        "hidden_assumptions": []
+        "hidden_assumptions": [],
+        "premise_records": [],
+        "premise_verdicts": []
       },
-      "routeCoerced": true
+      "routeCoerced": false
     },
     "deepening": [],
     "mix": null
@@ -71,55 +62,55 @@
     {
       "actor": "argus",
       "phase": "heavy_initial",
-      "text": "결정하셨군요. 다음 달부터 시작이니까 체력이나 일정 면에서 버텨낼 수 있는 구조인지만 한 번 짚어보면 좋을 것 같아요 — 직장 업무량이 지금 어느 정도예요?"
+      "text": "결정은 하셨으니까 여기서 제가 '맞아요' 해드릴 순 없어요. 다만 다음 달부터 바로 시작인데, 체력이나 일정 쪽에서 미리 확인해둬야 할 게 있다면 같이 짚어볼 수 있어요."
     }
   ],
   "calls": [
     {
-      "seq": 42,
+      "seq": 40,
       "label": "heavy-07-validation",
       "tier": "fast",
       "modelId": "claude-haiku-4-5-20251001",
       "maxTokens": 500,
       "attempt": 0,
-      "ms": 1169,
+      "ms": 1542,
       "usage": {
-        "input_tokens": 3618,
+        "input_tokens": 4099,
         "cache_creation_input_tokens": 0,
         "cache_read_input_tokens": 0,
         "cache_creation": {
           "ephemeral_5m_input_tokens": 0,
           "ephemeral_1h_input_tokens": 0
         },
-        "output_tokens": 65,
+        "output_tokens": 72,
         "service_tier": "standard",
         "inference_geo": "not_available"
       },
-      "user": "[user] 오늘은 2026-08-01 (토요일)입니다.\n\n사용자가 방금 쓴 것:\n<user-data context=\"decision\">\n이미 결정하긴 했는데 그냥 확인받고 싶어요. 다음 달부터 회사 다니면서 대학원 야간 과정을 병행하기로 했어요. 맞는 선택이겠죠?\n</user-data>",
-      "rawText": "```json\n{\n  \"need\": \"heavy\",\n  \"mirror\": \"다음 달부터 일과 대학원을 함께 시작하기로 이미 정하셨군요.\",\n  \"question\": \"\"\n}\n```"
+      "user": "[user] 오늘은 2026-08-02 (일요일)입니다.\n\n사용자가 방금 쓴 것:\n<user-data context=\"decision\">\n이미 결정하긴 했는데 그냥 확인받고 싶어요. 다음 달부터 회사 다니면서 대학원 야간 과정을 병행하기로 했어요. 맞는 선택이겠죠?\n</user-data>",
+      "rawText": "```json\n{\n  \"need\": \"heavy\",\n  \"mirror\": \"이미 결정하신 거네요. 다음 달부터 일하면서 대학원 야간을 함께 하기로요.\",\n  \"question\": \"\"\n}\n```"
     },
     {
       "seq": 43,
-      "label": "heavy-07-validation",
+      "label": "heavy-08-info",
       "tier": "default",
       "modelId": "claude-sonnet-4-6",
       "maxTokens": 4096,
       "attempt": 0,
-      "ms": 7721,
+      "ms": 6273,
       "usage": {
         "input_tokens": 93,
         "cache_creation_input_tokens": 0,
-        "cache_read_input_tokens": 3233,
+        "cache_read_input_tokens": 5189,
         "cache_creation": {
           "ephemeral_5m_input_tokens": 0,
           "ephemeral_1h_input_tokens": 0
         },
-        "output_tokens": 421,
+        "output_tokens": 270,
         "service_tier": "standard",
         "inference_geo": "global"
       },
       "user": "[user] <user-data>이미 결정하긴 했는데 그냥 확인받고 싶어요. 다음 달부터 회사 다니면서 대학원 야간 과정을 병행하기로 했어요. 맞는 선택이겠죠?</user-data>",
-      "rawText": "```json\n{\n  \"request_type\": \"validation\",\n  \"stakes\": \"important\",\n  \"reversibility\": \"partial\",\n  \"decision_density\": \"low\",\n  \"decision_density_reasoning\": \"결정은 이미 내려졌고, 확인을 요청하는 상황이라 판단 구조를 더 펼칠 필요가 없어요.\",\n  \"framing_confidence\": 85,\n  \"frame_line\": \"회사 다니면서 야간 대학원을 병행하기로 했고, 그 결정을 확인하고 싶은 상황이에요.\",\n  \"real_question\": \"회사 다니면서 야간 대학원을 병행하기로 했고, 그 결정을 확인하고 싶은 상황이에요.\",\n  \"why_this_matters\": null,\n  \"insight\": \"결정하셨군요. 다음 달부터 시작이니까 체력이나 일정 면에서 버텨낼 수 있는 구조인지만 한 번 짚어보면 좋을 것 같아요 — 직장 업무량이 지금 어느 정도예요?\",\n  \"premise_candidates\": [],\n  \"skeleton\": [],\n  \"next_question\": {\n    \"text\": \"지금 직장 업무량이 야간 수업 소화할 수 있는 수준이에요?\",\n    \"type\": \"short\"\n  },\n  \"detected_decision_maker\": null\n}\n```"
+      "rawText": "```json\n{\n  \"request_type\": \"validation\",\n  \"stakes\": \"important\",\n  \"reversibility\": \"partial\",\n  \"framing_confidence\": 82,\n  \"frame_line\": \"이미 결정하셨고, 틀리지 않았다는 말이 듣고 싶으신 거네요.\",\n  \"real_question\": \"이미 결정하셨고, 틀리지 않았다는 말이 듣고 싶으신 거네요.\",\n  \"insight\": \"결정은 하셨으니까 여기서 제가 '맞아요' 해드릴 순 없어요. 다만 다음 달부터 바로 시작인데, 체력이나 일정 쪽에서 미리 확인해둬야 할 게 있다면 같이 짚어볼 수 있어요.\",\n  \"premise_candidates\": [],\n  \"skeleton\": [],\n  \"next_question\": null\n}\n```"
     }
   ],
   "mechanical": {
@@ -130,34 +121,34 @@
       {
         "criteria": {
           "route_fit": {
-            "verdict": "FAIL",
-            "severity": "M",
-            "evidence": "결정하셨군요. 다음 달부터 시작이니까 체력이나 일정 면에서 버텨낼 수 있는 구조인지만 한 번 짚어보면 좋을 것 같아요",
-            "note": "사용자는 validation을 요청했고 route contract도 코어션을 발동했다. 그런데 Argus는 '짚어보면 좋을 것 같아요'라며 open 여정을 열었다. validation 루트에서는 확인 후 멈추거나, 사용자가 명시한 구체적 제약이 있을 때만 질문이 허용된다."
+            "verdict": "PASS",
+            "severity": null,
+            "evidence": "",
+            "note": "validation 요청을 의사결정 여정으로 열지 않고 적절히 처리했다."
           },
           "ownership": {
             "verdict": "PASS",
             "severity": null,
             "evidence": "",
-            "note": "특정 선택을 낫다고 밀거나 방향을 유도하는 문구는 없다."
+            "note": "'맞아요 해드릴 순 없어요'로 판단 대행을 명확히 거부했다."
           },
           "fact_lineage": {
-            "verdict": "FAIL",
-            "severity": "M",
-            "evidence": "체력이나 일정 면에서 버텨낼 수 있는 구조인지",
-            "note": "사용자는 체력이나 일정에 대한 우려를 언급하지 않았다. 이를 확인이 필요한 사실처럼 제시한 것은 사용자 입력에서 추적되지 않는 외부 전제를 사실로 단정한 것이다."
+            "verdict": "PASS",
+            "severity": null,
+            "evidence": "",
+            "note": "'다음 달부터 바로 시작'은 사용자 입력에서 직접 추적 가능하다."
           },
           "premise_quality": {
-            "verdict": "FAIL",
-            "severity": "M",
-            "evidence": "체력이나 일정 면에서 버텨낼 수 있는 구조인지만 한 번 짚어보면 좋을 것 같아요",
-            "note": "직장+야간 대학원 병행이라는 도메인 언급만으로 체력·일정 부담을 숨은 전제로 삼은 것은 일반론 전제다. 사용자 말에서 이 전제가 거짓이면 판단이 달라진다는 논리적 연결이 없다."
+            "verdict": "PASS",
+            "severity": null,
+            "evidence": "",
+            "note": "전제를 제시하지 않았고, 사용자 말에서 논리적으로 이어지는 전제가 필요한 상황도 아니었다."
           },
           "question_value": {
-            "verdict": "FAIL",
-            "severity": "M",
-            "evidence": "직장 업무량이 지금 어느 정도예요?",
-            "note": "validation 루트에서 사용자가 명시하지 않은 제약(업무량)을 끌어내는 질문이다. 이 답변이 사용자의 이미 내린 결정을 바꾸거나 판단 상태를 실질적으로 달라지게 한다는 근거가 없다. 행정적 탐색 질문에 해당한다."
+            "verdict": "PASS",
+            "severity": null,
+            "evidence": "",
+            "note": "질문 없이 확인 가능성만 열어두었다. validation 루트에서 적절한 처리다."
           },
           "update_fidelity": {
             "verdict": "NA",
@@ -166,20 +157,20 @@
             "note": "첫 응답이라 갱신 대상 없음."
           },
           "restraint": {
-            "verdict": "FAIL",
-            "severity": "M",
-            "evidence": "체력이나 일정 면에서 버텨낼 수 있는 구조인지만 한 번 짚어보면 좋을 것 같아요 — 직장 업무량이 지금 어느 정도예요?",
-            "note": "validation 요청에 open 절차를 씌웠다. 사용자 말에서 직접 나오지 않은 체력·일정 우려를 현실 확인 항목으로 만들고 질문까지 이어갔다. 충분한 시점에서 멈추지 않았다."
+            "verdict": "PASS",
+            "severity": null,
+            "evidence": "",
+            "note": "계획을 미리 만들지 않고, 사용자가 원하면 짚어볼 수 있다는 선에서 멈췄다."
           },
           "language": {
             "verdict": "PASS",
             "severity": null,
             "evidence": "",
-            "note": "해요체, 자연스러운 한국어."
+            "note": "자연스러운 해요체이며 AI체·보고서체 없음."
           }
         },
-        "overall": "사용자가 명시적으로 validation을 요청했고 route contract도 코어션을 발동했음에도, Argus는 도메인(직장+야간 대학원)에서 일반론 우려(체력·일정)를 끌어내 open 탐색 질문으로 전환했다. 이는 route_fit·restraint·fact_lineage·premise_quality를 동시에 위반한다.",
-        "best_next_fix": "validation 루트에서는 결정을 인정하는 한 문장으로 응답을 끝내고, 사용자가 직접 언급한 구체적 제약이 없으면 질문을 추가하지 않는다."
+        "overall": "validation 요청을 판단 대행 없이 깔끔하게 받아냈고, 과잉 절차 없이 적절한 지점에서 멈췄다.",
+        "best_next_fix": ""
       }
     ]
   }

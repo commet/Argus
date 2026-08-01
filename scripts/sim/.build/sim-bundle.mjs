@@ -15624,15 +15624,22 @@ var ARGUS_PRODUCT_FACTS = `ARGUS PRODUCT-FACT HONESTY:
 
 // src/lib/decisive-premises.ts
 var KIND_POLICY = {
-  fact: { verifiable: false, competes: false, needsClaim: false, needsStance: false, needsObservable: false },
-  premise: { verifiable: true, competes: true, needsClaim: true, needsStance: false, needsObservable: false },
+  // The required fields are per kind for the same reason the gates are. Asking
+  // every proposal for a counterfactual meant the model could not file an
+  // honest fact at all: told "if you cannot say what it licenses, record the
+  // plain fact and stop", it did exactly that and was refused with
+  // missing_required_field — twice in one measured run.
+  fact: { verifiable: false, competes: false, needsClaim: false, needsStance: false, needsObservable: false, needsCounterfactual: false, needsSupportKind: false },
+  premise: { verifiable: true, competes: true, needsClaim: true, needsStance: false, needsObservable: false, needsCounterfactual: true, needsSupportKind: true },
   // A prediction is NOT gated on saying something new. Its whole job is to turn
   // a hedge into something reality can answer — "올려달라고 할 것 같기도
   // 하고요" into "올려달라고 할 것이다" — which adds no vocabulary at all. What
   // it owes instead is a way to check it.
-  prediction: { verifiable: true, competes: true, needsClaim: false, needsStance: false, needsObservable: true },
-  standard: { verifiable: false, competes: false, needsClaim: false, needsStance: true, needsObservable: false },
-  open_question: { verifiable: true, competes: false, needsClaim: false, needsStance: false, needsObservable: false }
+  prediction: { verifiable: true, competes: true, needsClaim: false, needsStance: false, needsObservable: true, needsCounterfactual: true, needsSupportKind: true },
+  // "이게 틀리면 무엇이 달라지나요" about someone's own weighting is a question
+  // nobody may ask them, so a standard never owes a counterfactual.
+  standard: { verifiable: false, competes: false, needsClaim: false, needsStance: true, needsObservable: false, needsCounterfactual: false, needsSupportKind: true },
+  open_question: { verifiable: true, competes: false, needsClaim: false, needsStance: false, needsObservable: false, needsCounterfactual: false, needsSupportKind: false }
 };
 var PREMISE_KINDS = Object.keys(KIND_POLICY);
 function asKind(value) {
@@ -15643,18 +15650,26 @@ function policyFor(kind) {
   return KIND_POLICY[asKind(kind)];
 }
 
-// src/lib/judgment-state-contract.ts
-function checkableTexts(records) {
-  return records.filter((r) => policyFor(r.kind).competes).map((r) => r.text);
+// src/lib/premise-claim.ts
+function cleanText(value) {
+  return typeof value === "string" ? value.trim().replace(/\s+/g, " ") : "";
 }
-function stripModelOnly(item) {
-  if (!item) return item;
-  if ("decisive" in item) {
-    const { decisive: _ignored, ...rest } = item;
-    void _ignored;
-    return rest;
-  }
-  return item;
+function comparable(value) {
+  return value.normalize("NFKC").trim().replace(/\s+/g, " ").toLocaleLowerCase();
+}
+function isTraceableQuote(quote, userText) {
+  const needle = comparable(quote);
+  const haystack = comparable(userText);
+  return needle.length > 0 && haystack.includes(needle);
+}
+var SUPPORT_KINDS = /* @__PURE__ */ new Set([
+  "explicit_reason",
+  "explicit_condition",
+  "explicit_expectation"
+]);
+function hasExplicitSupportSignal(text) {
+  const normalized = comparable(text);
+  return /(때문|그래서|이라서|라서|으니까|니까|다면|라면|하면|이면|전제|기대|믿|것 같|거라|될 것|할 것|중요|기준|우선순위|우선|걸리|걸려|부담|불안|포기|조건|원하|바라)|\b(because|since|if|unless|expect|assume|believe|count on|depend|rely|matters?|important|likely|probably|worried|worries|concern|prefer|priority|trade-?off|give up)\b/i.test(normalized);
 }
 var STOP_TOKENS = /* @__PURE__ */ new Set([
   "\uADF8",
@@ -15781,6 +15796,20 @@ function statesAClaim(text, anchorQuote) {
   const lexical = band.novelty >= CLAIM_NOVELTY_FLOOR && band.novel_count >= CLAIM_NOVEL_TOKENS_FLOOR;
   return lexical || hardensAHedge(text, anchorQuote);
 }
+
+// src/lib/judgment-state-contract.ts
+function checkableTexts(records) {
+  return records.filter((r) => policyFor(r.kind).competes).map((r) => r.text);
+}
+function stripModelOnly(item) {
+  if (!item) return item;
+  if ("decisive" in item) {
+    const { decisive: _ignored, ...rest } = item;
+    void _ignored;
+    return rest;
+  }
+  return item;
+}
 function clampSynthesisToLivingState(result, living) {
   const records = (living?.premise_records || []).filter(Boolean);
   const assumptions = records.length > 0 ? records.filter((r) => policyFor(r.kind).competes).map((r) => cleanText(r.text)).filter((text) => text.length > 0) : (living?.hidden_assumptions || []).filter((item) => typeof item === "string" && item.trim().length > 0).map((item) => cleanText(item));
@@ -15826,29 +15855,16 @@ function gateByKind(declared, text, anchorQuote, stanceFromContext = false, obse
 function asRecord(value) {
   return value != null && typeof value === "object" && !Array.isArray(value) ? value : null;
 }
-function cleanText(value) {
-  return typeof value === "string" ? value.trim().replace(/\s+/g, " ") : "";
-}
-function comparable(value) {
-  return value.normalize("NFKC").trim().replace(/\s+/g, " ").toLocaleLowerCase();
-}
-function isTraceableQuote(quote, userText) {
-  const needle = comparable(quote);
-  const haystack = comparable(userText);
-  return needle.length > 0 && haystack.includes(needle);
-}
-var SUPPORT_KINDS = /* @__PURE__ */ new Set([
-  "explicit_reason",
-  "explicit_condition",
-  "explicit_expectation"
-]);
-function hasExplicitSupportSignal(text) {
-  const normalized = comparable(text);
-  return /(때문|그래서|이라서|라서|으니까|니까|다면|라면|하면|이면|전제|기대|믿|것 같|거라|될 것|할 것|중요|기준|우선순위|우선|걸리|걸려|부담|불안|포기|조건|원하|바라)|\b(because|since|if|unless|expect|assume|believe|count on|depend|rely|matters?|important|likely|probably|worried|worries|concern|prefer|priority|trade-?off|give up)\b/i.test(normalized);
-}
 function findExisting(premises, candidate) {
   const target = comparable(candidate);
   return premises.findIndex((premise) => comparable(premise) === target);
+}
+function missingRequiredField(declared, text, anchorQuote, supportKind, ifFalseChanges) {
+  if (!text || !anchorQuote) return true;
+  const policy = policyFor(declared);
+  if (policy.needsSupportKind && !SUPPORT_KINDS.has(supportKind)) return true;
+  if (policy.needsCounterfactual && !ifFalseChanges) return true;
+  return false;
 }
 function coercePremiseCandidates(raw, userCorpus) {
   const records = [];
@@ -15860,11 +15876,12 @@ function coercePremiseCandidates(raw, userCorpus) {
     const anchorQuote = cleanText(item?.anchor_quote);
     const supportKind = cleanText(item?.support_kind);
     const ifFalseChanges = cleanText(item?.if_false_changes);
-    if (!text || !anchorQuote || !ifFalseChanges || !SUPPORT_KINDS.has(supportKind)) {
+    if (missingRequiredField(item?.kind, text, anchorQuote, supportKind, ifFalseChanges)) {
       audit.push({
         accepted: false,
         action: "initial",
         text: text || void 0,
+        declared_kind: asKind(item?.kind),
         reason: "missing_required_field"
       });
       continue;
@@ -15906,7 +15923,7 @@ function coercePremiseCandidates(raw, userCorpus) {
       text,
       anchor_quote: anchorQuote,
       if_false_changes: ifFalseChanges,
-      support_kind: supportKind,
+      support_kind: SUPPORT_KINDS.has(supportKind) ? supportKind : "explicit_reason",
       kind: gate.kind,
       ...cleanText(item?.observable) ? { observable: cleanText(item?.observable) } : {}
     });
@@ -15981,8 +15998,14 @@ function applyPremiseDeltas(currentRecords, raw, fullUserCorpus, latestAnswer) {
       continue;
     }
     if (action === "add") {
-      if (!text || !anchorQuote || !ifFalseChanges || !SUPPORT_KINDS.has(supportKind)) {
-        audit.push({ accepted: false, action, text: text || void 0, reason: "missing_required_field" });
+      if (missingRequiredField(item?.kind, text, anchorQuote, supportKind, ifFalseChanges)) {
+        audit.push({
+          accepted: false,
+          action,
+          text: text || void 0,
+          declared_kind: asKind(item?.kind),
+          reason: "missing_required_field"
+        });
         continue;
       }
       if (!isTraceableQuote(anchorQuote, fullUserCorpus)) {
@@ -16023,7 +16046,7 @@ function applyPremiseDeltas(currentRecords, raw, fullUserCorpus, latestAnswer) {
         text,
         anchor_quote: anchorQuote,
         if_false_changes: ifFalseChanges,
-        support_kind: supportKind,
+        support_kind: SUPPORT_KINDS.has(supportKind) ? supportKind : "explicit_reason",
         kind: gate.kind,
         ...cleanText(item?.observable) ? { observable: cleanText(item?.observable) } : {}
       });
@@ -16058,12 +16081,13 @@ function applyPremiseDeltas(currentRecords, raw, fullUserCorpus, latestAnswer) {
       audit.push({ accepted: true, action, previous_text: previousText, reason: "latest_answer_grounded" });
       continue;
     }
-    if (!text || !ifFalseChanges || !SUPPORT_KINDS.has(supportKind)) {
+    if (missingRequiredField(item?.kind, text, anchorQuote, supportKind, ifFalseChanges)) {
       audit.push({
         accepted: false,
         action,
         previous_text: previousText,
         text: text || void 0,
+        declared_kind: asKind(item?.kind),
         reason: "missing_required_field"
       });
       continue;
@@ -16078,7 +16102,7 @@ function applyPremiseDeltas(currentRecords, raw, fullUserCorpus, latestAnswer) {
       text,
       anchor_quote: anchorQuote,
       if_false_changes: ifFalseChanges,
-      support_kind: supportKind,
+      support_kind: SUPPORT_KINDS.has(supportKind) ? supportKind : "explicit_reason",
       kind: revised.kind,
       ...cleanText(item?.observable) ? { observable: cleanText(item?.observable) } : {}
     };
@@ -17011,10 +17035,11 @@ function questionEchoesUser(questionText, userText) {
   const u = (userText || "").normalize("NFKC").toLocaleLowerCase();
   if (!q || !u) return false;
   if (/[가-힣]/.test(u)) {
-    for (let i = 0; i + 4 <= u.length; i += 1) {
-      const span = u.slice(i, i + 4);
-      if (!/[가-힣]/.test(span)) continue;
-      if (q.includes(span)) return true;
+    const strip = (s) => s.replace(/[^가-힣0-9a-z]/g, "");
+    const su = strip(u);
+    const sq = strip(q);
+    for (let i = 0; i + 4 <= su.length; i += 1) {
+      if (sq.includes(su.slice(i, i + 4))) return true;
     }
     return false;
   }

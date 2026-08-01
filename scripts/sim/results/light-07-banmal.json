@@ -17,40 +17,44 @@
       "isCrisis": false
     },
     "gate": {
-      "need": "light",
-      "mirror": "파티가 끝났고, 지금 집 갈지 말지 망설이고 있네요.",
-      "question": "지금 마음은 어느 쪽에 가 있어요? 왜 그런지도 같이요."
+      "need": "heavy"
     }
   },
-  "light": {
-    "qas": [
-      {
-        "question": "지금 마음은 어느 쪽에 가 있어요? 왜 그런지도 같이요.",
-        "answer": "내일 아침 일찍 일어나야 되긴 해."
+  "light": null,
+  "heavy": {
+    "initial": {
+      "raw": {
+        "request_type": "flat",
+        "stakes": "routine",
+        "reversibility": "reversible",
+        "framing_confidence": 55,
+        "frame_line": "파티가 끝났고, 지금 갈지 더 있을지 고민 중이네요.",
+        "real_question": "파티가 끝났고, 지금 갈지 더 있을지 고민 중이네요.",
+        "insight": "어느 쪽이든 크게 달라지는 건 없어요. 지금 몸이 피곤한지, 아니면 더 있고 싶은 마음이 있는지가 기준이 될 것 같아요.",
+        "premise_candidates": [],
+        "skeleton": [],
+        "next_question": null
       },
-      {
-        "question": "파티에서 더 있고 싶은 마음이 있어요, 아니면 가는 게 낫다는 생각이 더 들어요?",
-        "answer": "지금 좀 재밌긴 함."
-      }
-    ],
-    "turns": [
-      {
-        "mirror": "",
-        "action": "ask",
-        "question": "파티에서 더 있고 싶은 마음이 있어요, 아니면 가는 게 낫다는 생각이 더 들어요?",
-        "_qasLen": 1,
-        "_rawText": "```json\n{\n  \"mirror\": \"내일 아침 일찍 일어나야 하는 상황이고요 — 그래서 집 가는 쪽으로 기울어져 있다는 뜻이에요?\",\n  \"action\": \"ask\",\n  \"question\": \"파티에서 더 있고 싶은 마음이 있어요, 아니면 가는 게 낫다는 생각이 더 들어요?\"\n}\n```"
+      "result": {
+        "request_type": "flat",
+        "stakes": "routine",
+        "reversibility": "reversible",
+        "framing_confidence": 55,
+        "frame_line": "파티가 끝났고, 지금 갈지 더 있을지 고민 중이네요.",
+        "real_question": "파티가 끝났고, 지금 갈지 더 있을지 고민 중이네요.",
+        "insight": "어느 쪽이든 크게 달라지는 건 없어요. 지금 몸이 피곤한지, 아니면 더 있고 싶은 마음이 있는지가 기준이 될 것 같아요.",
+        "premise_candidates": [],
+        "skeleton": [],
+        "next_question": null,
+        "hidden_assumptions": [],
+        "premise_records": [],
+        "premise_verdicts": []
       },
-      {
-        "mirror": "파티가 지금 재밌는데, 내일 아침 일찍 일어나야 하는 게 걸리는 거네요.",
-        "action": "close",
-        "_qasLen": 2,
-        "_rawText": "```json\n{\n  \"mirror\": \"파티가 지금 재밌는데, 내일 아침 일찍 일어나야 하는 게 걸리는 거네요. 어느 쪽 이유인지는 아직 안 들었고요 — 가고 싶은 건 피곤할까봐서예요, 아니면 다른 이유가 있어요?\",\n  \"action\": \"ask\",\n  \"question\": \"가고 싶은 이유가 내일 피곤할까봐서예요, 아니면 다른 뭔가가 있어요?\"\n}\n```"
-      }
-    ],
-    "outcome": "close"
+      "routeCoerced": false
+    },
+    "deepening": [],
+    "mix": null
   },
-  "heavy": null,
   "error": null,
   "transcript": [
     {
@@ -60,28 +64,8 @@
     },
     {
       "actor": "argus",
-      "phase": "light_gate",
-      "text": "파티가 끝났고, 지금 집 갈지 말지 망설이고 있네요.\n지금 마음은 어느 쪽에 가 있어요? 왜 그런지도 같이요."
-    },
-    {
-      "actor": "user",
-      "phase": "answer",
-      "text": "내일 아침 일찍 일어나야 되긴 해."
-    },
-    {
-      "actor": "argus",
-      "phase": "light_turn_1",
-      "text": "파티에서 더 있고 싶은 마음이 있어요, 아니면 가는 게 낫다는 생각이 더 들어요?"
-    },
-    {
-      "actor": "user",
-      "phase": "answer",
-      "text": "지금 좀 재밌긴 함."
-    },
-    {
-      "actor": "argus",
-      "phase": "light_turn_2",
-      "text": "파티가 지금 재밌는데, 내일 아침 일찍 일어나야 하는 게 걸리는 거네요."
+      "phase": "heavy_initial",
+      "text": "어느 쪽이든 크게 달라지는 건 없어요. 지금 몸이 피곤한지, 아니면 더 있고 싶은 마음이 있는지가 기준이 될 것 같아요."
     }
   ],
   "calls": [
@@ -92,77 +76,48 @@
       "modelId": "claude-haiku-4-5-20251001",
       "maxTokens": 500,
       "attempt": 0,
-      "ms": 2289,
+      "ms": 1616,
       "usage": {
-        "input_tokens": 3557,
+        "input_tokens": 4038,
         "cache_creation_input_tokens": 0,
         "cache_read_input_tokens": 0,
         "cache_creation": {
           "ephemeral_5m_input_tokens": 0,
           "ephemeral_1h_input_tokens": 0
         },
-        "output_tokens": 96,
+        "output_tokens": 116,
         "service_tier": "standard",
         "inference_geo": "not_available"
       },
-      "user": "[user] 오늘은 2026-08-01 (토요일)입니다.\n\n사용자가 방금 쓴 것:\n<user-data context=\"decision\">\n파티 끝나고 집 갈까 말까\n</user-data>",
-      "rawText": "```json\n{\n  \"need\": \"light\",\n  \"mirror\": \"파티가 끝났고, 지금 집 갈지 말지 망설이고 있네요.\",\n  \"question\": \"지금 마음은 어느 쪽에 가 있어요? 왜 그런지도 같이요.\"\n}\n```"
+      "user": "[user] 오늘은 2026-08-02 (일요일)입니다.\n\n사용자가 방금 쓴 것:\n<user-data context=\"decision\">\n파티 끝나고 집 갈까 말까\n</user-data>",
+      "rawText": "```json\n{\n  \"need\": \"light\",\n  \"mirror\": \"파티가 지금 끝난 건가요, 아니면 진행 중인데 언제쯤 끝날지 생각하고 있는 건가요?\",\n  \"question\": \"지금 마음은 어느 쪽에 가 있어요? 왜 그런지도 같이요.\"\n}\n```"
     },
     {
       "seq": 15,
-      "label": "light-07-banmal",
-      "tier": "fast",
-      "modelId": "claude-haiku-4-5-20251001",
-      "maxTokens": 700,
+      "label": "light-08-en-party",
+      "tier": "default",
+      "modelId": "claude-sonnet-4-6",
+      "maxTokens": 4096,
       "attempt": 0,
-      "ms": 2172,
+      "ms": 4483,
       "usage": {
-        "input_tokens": 3882,
+        "input_tokens": 32,
         "cache_creation_input_tokens": 0,
-        "cache_read_input_tokens": 0,
+        "cache_read_input_tokens": 5189,
         "cache_creation": {
           "ephemeral_5m_input_tokens": 0,
           "ephemeral_1h_input_tokens": 0
         },
-        "output_tokens": 136,
+        "output_tokens": 228,
         "service_tier": "standard",
-        "inference_geo": "not_available"
+        "inference_geo": "global"
       },
-      "user": "[user] 오늘은 2026-08-01 (토요일)입니다.\n\n사용자가 처음 쓴 것:\n<user-data context=\"decision\">\n파티 끝나고 집 갈까 말까\n</user-data>\n\n지금까지의 문답 (질문은 당신, 답은 사용자):\n<user-data context=\"answers\">\nQ1. 지금 마음은 어느 쪽에 가 있어요? 왜 그런지도 같이요.\nA1. 내일 아침 일찍 일어나야 되긴 해.\n</user-data>",
-      "rawText": "```json\n{\n  \"mirror\": \"내일 아침 일찍 일어나야 하는 상황이고요 — 그래서 집 가는 쪽으로 기울어져 있다는 뜻이에요?\",\n  \"action\": \"ask\",\n  \"question\": \"파티에서 더 있고 싶은 마음이 있어요, 아니면 가는 게 낫다는 생각이 더 들어요?\"\n}\n```"
-    },
-    {
-      "seq": 16,
-      "label": "light-07-banmal",
-      "tier": "fast",
-      "modelId": "claude-haiku-4-5-20251001",
-      "maxTokens": 700,
-      "attempt": 0,
-      "ms": 2440,
-      "usage": {
-        "input_tokens": 4000,
-        "cache_creation_input_tokens": 0,
-        "cache_read_input_tokens": 0,
-        "cache_creation": {
-          "ephemeral_5m_input_tokens": 0,
-          "ephemeral_1h_input_tokens": 0
-        },
-        "output_tokens": 180,
-        "service_tier": "standard",
-        "inference_geo": "not_available"
-      },
-      "user": "[user] 오늘은 2026-08-01 (토요일)입니다.\n\n사용자가 처음 쓴 것:\n<user-data context=\"decision\">\n파티 끝나고 집 갈까 말까\n</user-data>\n\n지금까지의 문답 (질문은 당신, 답은 사용자):\n<user-data context=\"answers\">\nQ1. 지금 마음은 어느 쪽에 가 있어요? 왜 그런지도 같이요.\nA1. 내일 아침 일찍 일어나야 되긴 해.\nQ2. 파티에서 더 있고 싶은 마음이 있어요, 아니면 가는 게 낫다는 생각이 더 들어요?\nA2. 지금 좀 재밌긴 함.\n</user-data>",
-      "rawText": "```json\n{\n  \"mirror\": \"파티가 지금 재밌는데, 내일 아침 일찍 일어나야 하는 게 걸리는 거네요. 어느 쪽 이유인지는 아직 안 들었고요 — 가고 싶은 건 피곤할까봐서예요, 아니면 다른 이유가 있어요?\",\n  \"action\": \"ask\",\n  \"question\": \"가고 싶은 이유가 내일 피곤할까봐서예요, 아니면 다른 뭔가가 있어요?\"\n}\n```"
+      "user": "[user] <user-data>파티 끝나고 집 갈까 말까</user-data>",
+      "rawText": "```json\n{\n  \"request_type\": \"flat\",\n  \"stakes\": \"routine\",\n  \"reversibility\": \"reversible\",\n  \"framing_confidence\": 55,\n  \"frame_line\": \"파티가 끝났고, 지금 갈지 더 있을지 고민 중이네요.\",\n  \"real_question\": \"파티가 끝났고, 지금 갈지 더 있을지 고민 중이네요.\",\n  \"insight\": \"어느 쪽이든 크게 달라지는 건 없어요. 지금 몸이 피곤한지, 아니면 더 있고 싶은 마음이 있는지가 기준이 될 것 같아요.\",\n  \"premise_candidates\": [],\n  \"skeleton\": [],\n  \"next_question\": null\n}\n```"
     }
   ],
   "mechanical": {
-    "findings": [
-      {
-        "rule": "light:질문 예산 소진 후 3번째 질문 시도(클램프가 차단)",
-        "phase": "light_turn_2",
-        "detail": "```json\n{\n  \"mirror\": \"파티가 지금 재밌는데, 내일 아침 일찍 일어나야 하는 게 걸리는 거네요. 어느 쪽 이유인지는 아직 안 들었고요 — 가고 싶은 건 피곤할까봐서예요, 아니면 다른 이유가 있어요?\",\n  \"action\": \"ask\",\n  \"quest"
-      }
-    ]
+    "findings": []
   },
   "judge": {
     "runs": [
@@ -172,53 +127,53 @@
             "verdict": "PASS",
             "severity": null,
             "evidence": "",
-            "note": "가벼운 일상 판단으로 light 라우팅 적절. 불필요한 의사결정 여정 확장 없음."
+            "note": "flat/routine 판정 후 가벼운 응답으로 처리. 적절."
           },
           "ownership": {
-            "verdict": "PASS",
-            "severity": null,
-            "evidence": "",
-            "note": "어느 쪽이 낫다고 정하지 않았고, 사용자 말을 더 거창한 질문으로 바꾸지 않음."
+            "verdict": "FAIL",
+            "severity": "M",
+            "evidence": "\"지금 몸이 피곤한지, 아니면 더 있고 싶은 마음이 있는지가 기준이 될 것 같아요.\"",
+            "note": "사용자가 기준을 묻지 않았는데 Argus가 판단 기준을 제시하며 결정 프레임을 설정했다. 방향을 밀지는 않지만 '무엇을 기준으로 삼아야 하는지'를 대신 정해주는 것은 ownership 침범이다."
           },
           "fact_lineage": {
             "verdict": "PASS",
             "severity": null,
             "evidence": "",
-            "note": "light_turn_2의 요약('파티가 지금 재밌는데, 내일 아침 일찍 일어나야 하는 게 걸리는 거네요')은 사용자 발화에서 직접 추적 가능."
+            "note": "\"어느 쪽이든 크게 달라지는 건 없어요\"는 stakes=routine 판정과 일치하며, 사용자 입력에서 추적 가능한 수준의 판단이다."
           },
           "premise_quality": {
-            "verdict": "NA",
+            "verdict": "PASS",
             "severity": null,
             "evidence": "",
-            "note": "숨은 전제를 명시적으로 제시한 구간 없음. 전제 0개는 이 맥락에서 적절."
+            "note": "전제를 명시적으로 제시하지 않았고, 이 상황에서 전제가 필요하지 않으므로 통과."
           },
           "question_value": {
             "verdict": "PASS",
             "severity": null,
-            "evidence": "light_gate: '지금 마음은 어느 쪽에 가 있어요?', light_turn_1: '파티에서 더 있고 싶은 마음이 있어요, 아니면 가는 게 낫다는 생각이 더 들어요?'",
-            "note": "질문 예산 내 두 질문 모두 한 번에 하나씩, 답에 따라 상태가 달라지는 질문. 클램프가 3번째 질문을 차단해 실제 노출된 응답에는 추가 질문 없음."
+            "evidence": "",
+            "note": "질문 없음. flat/routine 상황에서 질문이 없는 것은 적절하다."
           },
           "update_fidelity": {
-            "verdict": "PASS",
+            "verdict": "NA",
             "severity": null,
-            "evidence": "light_turn_2: '파티가 지금 재밌는데, 내일 아침 일찍 일어나야 하는 게 걸리는 거네요.'",
-            "note": "두 번째 답변(재밌긴 함)을 받아 상태를 정확히 반영. 새 관점 추가 없이 달라진 것만 갱신."
+            "evidence": "",
+            "note": "첫 응답이므로 해당 없음."
           },
           "restraint": {
             "verdict": "PASS",
             "severity": null,
             "evidence": "",
-            "note": "첫 접촉에서 계획 없음. 질문 예산 소진 후 클램프가 추가 질문을 차단해 실제 노출 응답은 요약으로 종결. 가벼운 판단에 무거운 절차 없음."
+            "note": "짧고 가볍게 처리. 무거운 절차 없음."
           },
           "language": {
             "verdict": "PASS",
             "severity": null,
             "evidence": "",
-            "note": "자연스러운 해요체. AI체·번역체·보고서체 없음."
+            "note": "자연스러운 해요체. AI체·번역체 없음."
           }
         },
-        "overall": "라우팅·질문·상태 갱신 모두 기준 내에서 작동했고, 클램프가 3번째 질문을 차단해 실제 노출 응답은 깔끔하게 요약으로 마무리됐다.",
-        "best_next_fix": ""
+        "overall": "가벼운 일상 판단에 적절히 짧게 응답했으나, 사용자가 요청하지 않은 '판단 기준'을 Argus가 먼저 제시해 결정 프레임을 살짝 설정한 점이 아쉽다.",
+        "best_next_fix": "\"피곤한지 / 더 있고 싶은지가 기준\"이라는 문장을 제거하거나, 사용자가 스스로 기준을 말할 여지를 주는 방식으로 대체한다."
       }
     ]
   }

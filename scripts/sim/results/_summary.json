@@ -1,7 +1,129 @@
 {
-  "at": "2026-08-01T17:12:30.268Z",
-  "totalLLMCalls": 18,
+  "at": "2026-08-01T18:11:14.942Z",
+  "totalLLMCalls": 67,
   "scenarios": [
+    {
+      "id": "light-02-laptop",
+      "error": false,
+      "judgeError": null,
+      "gate": "light",
+      "lightOutcome": "offer",
+      "mechanicalFindings": 0,
+      "judgeFails": [
+        "question_value:M"
+      ]
+    },
+    {
+      "id": "light-01-party-wife",
+      "error": false,
+      "judgeError": null,
+      "gate": "light",
+      "lightOutcome": "close",
+      "mechanicalFindings": 0,
+      "judgeFails": [
+        "update_fidelity:M"
+      ]
+    },
+    {
+      "id": "light-03-dinner-flat",
+      "error": false,
+      "judgeError": null,
+      "gate": "light",
+      "lightOutcome": "close",
+      "mechanicalFindings": 0,
+      "judgeFails": [
+        "route_fit:M",
+        "question_value:M",
+        "restraint:M"
+      ]
+    },
+    {
+      "id": "light-04-parents-weekend",
+      "error": false,
+      "judgeError": null,
+      "gate": "light",
+      "lightOutcome": "close",
+      "mechanicalFindings": 0,
+      "judgeFails": [
+        "ownership:M"
+      ]
+    },
+    {
+      "id": "light-06-quit-travel-trap",
+      "error": false,
+      "judgeError": null,
+      "gate": "heavy",
+      "requestType": "vent",
+      "mechanicalFindings": 0,
+      "judgeFails": [
+        "route_fit:H",
+        "ownership:H",
+        "fact_lineage:H",
+        "restraint:M"
+      ]
+    },
+    {
+      "id": "light-05-hoesik-escalate",
+      "error": false,
+      "judgeError": null,
+      "gate": "light",
+      "requestType": "open",
+      "lightOutcome": "escalate",
+      "mechanicalFindings": 0,
+      "judgeFails": [
+        "ownership:M",
+        "question_value:L",
+        "restraint:M",
+        "language:L"
+      ]
+    },
+    {
+      "id": "light-07-banmal",
+      "error": false,
+      "judgeError": null,
+      "gate": "heavy",
+      "requestType": "flat",
+      "mechanicalFindings": 0,
+      "judgeFails": [
+        "ownership:M"
+      ]
+    },
+    {
+      "id": "light-08-en-party",
+      "error": false,
+      "judgeError": null,
+      "gate": "light",
+      "lightOutcome": "close",
+      "mechanicalFindings": 0,
+      "judgeFails": [
+        "question_value:M",
+        "update_fidelity:M"
+      ]
+    },
+    {
+      "id": "light-09-chatty-500",
+      "error": false,
+      "judgeError": null,
+      "gate": "light",
+      "lightOutcome": "close",
+      "mechanicalFindings": 0,
+      "judgeFails": [
+        "ownership:M",
+        "question_value:M",
+        "update_fidelity:M"
+      ]
+    },
+    {
+      "id": "heavy-02-ceo-report",
+      "error": false,
+      "judgeError": null,
+      "gate": "heavy",
+      "requestType": "info",
+      "mechanicalFindings": 0,
+      "judgeFails": [
+        "fact_lineage:M"
+      ]
+    },
     {
       "id": "heavy-04-fire-teammate",
       "error": false,
@@ -9,7 +131,11 @@
       "gate": "heavy",
       "requestType": "open",
       "mechanicalFindings": 0,
-      "judgeFails": []
+      "judgeFails": [
+        "premise_quality:M",
+        "question_value:M",
+        "update_fidelity:M"
+      ]
     },
     {
       "id": "heavy-01-job-offer-40",
@@ -17,8 +143,10 @@
       "judgeError": null,
       "gate": "heavy",
       "requestType": "open",
-      "mechanicalFindings": 1,
-      "judgeFails": []
+      "mechanicalFindings": 0,
+      "judgeFails": [
+        "premise_quality:M"
+      ]
     },
     {
       "id": "heavy-03-jeonse-maemae",
@@ -26,6 +154,44 @@
       "judgeError": null,
       "gate": "heavy",
       "requestType": "open",
+      "mechanicalFindings": 0,
+      "judgeFails": [
+        "fact_lineage:M"
+      ]
+    },
+    {
+      "id": "heavy-06-vent",
+      "error": false,
+      "judgeError": null,
+      "gate": "heavy",
+      "requestType": "vent",
+      "mechanicalFindings": 0,
+      "judgeFails": []
+    },
+    {
+      "id": "heavy-07-validation",
+      "error": false,
+      "judgeError": null,
+      "gate": "heavy",
+      "requestType": "validation",
+      "mechanicalFindings": 0,
+      "judgeFails": []
+    },
+    {
+      "id": "heavy-09-crisis-debt",
+      "error": false,
+      "judgeError": null,
+      "gate": "heavy",
+      "requestType": "crisis",
+      "mechanicalFindings": 0,
+      "judgeFails": []
+    },
+    {
+      "id": "heavy-08-info",
+      "error": false,
+      "judgeError": null,
+      "gate": "heavy",
+      "requestType": "info",
       "mechanicalFindings": 0,
       "judgeFails": []
     },
@@ -36,7 +202,10 @@
       "gate": "heavy",
       "requestType": "open",
       "mechanicalFindings": 0,
-      "judgeFails": []
+      "judgeFails": [
+        "fact_lineage:M",
+        "premise_quality:M"
+      ]
     }
   ]
 }
