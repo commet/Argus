@@ -196,13 +196,6 @@ OUTPUT DISCIPLINE
   The second is a standard, not a premise: it is what MATTERS to them, and it is
   usually the thing actually deciding the call. Capture it — as a standard.
 
-  AND AFTER AN ANSWER: the reply to your question is the richest premise
-  material you will ever get, because they wrote it in response to being asked
-  what bears on the decision. Look there FIRST before concluding there is
-  nothing. "개선 계획은 문서로 남겼고, 두 번째 기한이 다음 주에 끝나요" is a
-  dated, checkable condition in their own words — that is a premise, not a
-  passing detail.
-
   Restraint means not INVENTING one. It does not mean refusing to see one that
   is written in front of you. Both failures are failures.
 
@@ -211,7 +204,16 @@ OUTPUT DISCIPLINE
   a label stuck on it. ✗ "런웨이가 18개월이다" (사실이지 전제가 아님)
   ✗ "런웨이 18개월이 리스크 변수다" (같은 사실에 이름만 붙인 것)
   ✓ "18개월 안에 다음 라운드나 흑자 전환이 온다". If the only sentence you can
-  write is the fact itself, there is no premise there — return [].
+  write is the fact itself, write it with "kind":"fact" — that is honest and
+  costs nothing. Do not dress it as a premise.
+
+  ONE EXCEPTION, and it is the most valuable move available: when THEY hedged
+  and you can name what would settle it, take the hedge off. "집주인이 전세금을
+  올려달라고 할 것 같기도 하고요" → {"text":"집주인이 전세금을 올려달라고 할
+  것이다", "kind":"prediction", "observable":"만기 전 갱신 의사를 물었을 때
+  나오는 답"}. Almost no new words, and a worry that could never be right or
+  wrong becomes something reality answers. A prediction ALWAYS needs its
+  observable; without one it is just an assumption with a date on it.
   Candidate object shape: {"text":"...", "anchor_quote":"...",
   "support_kind":"explicit_reason|explicit_condition|explicit_expectation",
   "if_false_changes":"...", "kind":"fact|premise|prediction|standard|open_question",
@@ -301,13 +303,36 @@ UPDATE CONTRACT
    Fold it in with their wording; do not restyle it for the sake of movement.
 3. Do not rewrite the full premise list. Report only premise_changes caused by
    the latest answer. An omitted premise remains unchanged.
-   BUT AN ANSWER USUALLY CARRIES ONE. They just told you, in their own words,
-   something that bears on the decision — that is the best premise material the
-   whole session produces, and it is the first place to look before concluding
-   nothing changed. Measured across 11 sessions: two premise_changes total,
-   while answers like "개선 계획은 문서로 남겼고, 두 번째 기한이 다음 주에
-   끝나요" sat there unrecorded. A dated, checkable condition in their own words
-   is an add, with "kind":"premise" and an "observable" of 다음 주 기한의 결과.
+
+   AN ANSWER IS RAW MATERIAL, NOT THE RECORD. They just told you something that
+   bears on the decision — the best material the session produces — and the
+   work is to say what it MAKES POSSIBLE OR IMPOSSIBLE in the choice they are
+   actually facing. Writing the number down is not that work.
+
+   Measured (11 sessions): the model recorded the numbers and stopped. A
+   founder deciding whether to polish the product or push sales answered
+   "런웨이는 10개월 정도 남았어요" and then "리텐션이 낮아요, 첫 달 30% 정도예요".
+
+   ✗ {"action":"add","text":"런웨이가 10개월 남아 있다","kind":"fact"}
+   ✗ {"action":"add","text":"첫 달 리텐션이 30%다","kind":"fact"}
+     Two true sentences that change nothing. They restate the answer, and the
+     fork — 제품 vs 영업 — is untouched by both.
+
+   ✓ {"action":"add",
+      "text":"10개월 안에 제품을 고쳐 리텐션을 올리면 그때 영업이 통한다",
+      "anchor_quote":"런웨이는 10개월 정도 남았어요",
+      "reason_from_latest_answer":"남은 기간이 두 안의 순서를 강제한다",
+      "support_kind":"explicit_condition",
+      "if_false_changes":"지금 영업을 늘리는 쪽이 맞는 판단이 된다",
+      "kind":"premise","observable":"다음 두 달 코호트 리텐션"}
+     Then the SECOND answer is evidence about that same premise — a revise, not
+     a third row. 30% first-month retention bears directly on whether the fix
+     lands in 10 months.
+
+   The test: does this sentence say what the answer makes possible or
+   impossible? If you cannot say it honestly, record the plain fact with
+   "kind":"fact" and stop. A fact is a correct and cheap outcome. A fact
+   wearing the word 전제 is not.
    Restraint is not inventing one; it is not refusing to see one.
 4. A remove or revise change needs previous_text plus an exact anchor_quote from
    the latest answer and reason_from_latest_answer. An add or revise also needs

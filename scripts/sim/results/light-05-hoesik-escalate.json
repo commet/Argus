@@ -18,30 +18,30 @@
     },
     "gate": {
       "need": "light",
-      "mirror": "이번 주 금요일 회식이 가기 싫으신 거네요. 지금 마음은 가는 쪽인지 안 가는 쪽인지는 아직 얘기 안 하셨고요.",
-      "question": "지금 마음은 어느 쪽에 가 있어요? 왜 그런지도 같이요."
+      "mirror": "이번 주 금요일 회식이 걸리시는 거네요.",
+      "question": "지금 마음은 어느 쪽에 가 있어요? 안 가고 싶은 건지, 가야 하나 싶은 건지."
     }
   },
   "light": {
     "qas": [
       {
-        "question": "지금 마음은 어느 쪽에 가 있어요? 왜 그런지도 같이요.",
+        "question": "지금 마음은 어느 쪽에 가 있어요? 안 가고 싶은 건지, 가야 하나 싶은 건지.",
         "answer": "사실 회식만 그런 게 아니라 회사 사람들이랑 있는 것 자체가 몇 달째 계속 힘들어."
       }
     ],
     "turns": [
       {
-        "mirror": "회식 하나의 문제가 아니라, 회사 사람들과 함께 있는 것 자체가 계속 힘들어지고 있는 상태네요.",
+        "mirror": "회식 문제가 아니라, 회사 사람들이랑 함께 있는 것 자체가 몇 달 동안 계속 힘들어진 거네요.",
         "action": "escalate",
         "escalate": {
           "bigger_question": "이 회사에서 계속 다닐지"
         },
         "_qasLen": 1,
-        "_rawText": "```json\n{\n  \"mirror\": \"회식 하나의 문제가 아니라, 회사 사람들과 함께 있는 것 자체가 계속 힘들어지고 있는 상태네요.\",\n  \"action\": \"escalate\",\n  \"escalate\": {\n    \"bigger_question\": \"이 회사에서 계속 다닐지\"\n  }\n}\n```"
+        "_rawText": "```json\n{\n  \"mirror\": \"회식 문제가 아니라, 회사 사람들이랑 함께 있는 것 자체가 몇 달 동안 계속 힘들어진 거네요.\",\n  \"action\": \"escalate\",\n  \"escalate\": {\n    \"bigger_question\": \"이 회사에서 계속 다닐지\"\n  }\n}\n```"
       }
     ],
     "outcome": "escalate",
-    "escalatedText": "이번 주 금요일 회식 가기 싫다\n\n가볍게 먼저 나눈 문답:\nQ. 지금 마음은 어느 쪽에 가 있어요? 왜 그런지도 같이요.\nA. 사실 회식만 그런 게 아니라 회사 사람들이랑 있는 것 자체가 몇 달째 계속 힘들어.\n\n함께 짚은 더 큰 질문: 이 회사에서 계속 다닐지\n(방금 '더 깊이 보기'를 직접 선택해 이 질문을 열어 보기로 했습니다.)"
+    "escalatedText": "이번 주 금요일 회식 가기 싫다\n\n가볍게 먼저 나눈 문답:\nQ. 지금 마음은 어느 쪽에 가 있어요? 안 가고 싶은 건지, 가야 하나 싶은 건지.\nA. 사실 회식만 그런 게 아니라 회사 사람들이랑 있는 것 자체가 몇 달째 계속 힘들어.\n\n함께 짚은 더 큰 질문: 이 회사에서 계속 다닐지\n(방금 '더 깊이 보기'를 직접 선택해 이 질문을 열어 보기로 했습니다.)"
   },
   "heavy": {
     "initial": {
@@ -49,40 +49,31 @@
         "request_type": "open",
         "stakes": "important",
         "reversibility": "partial",
-        "decision_density": "low",
-        "decision_density_reasoning": "사용자가 방금 더 큰 질문을 열기로 했을 뿐, 구체적인 조건이나 대안은 아직 나오지 않았어요.",
-        "framing_confidence": 55,
-        "frame_line": "몇 달째 회사 사람들과 함께 있는 것 자체가 힘든 상태에서, 이 회사를 계속 다닐지 보려고 해요.",
-        "real_question": "몇 달째 회사 사람들과 함께 있는 것 자체가 힘든 상태에서, 이 회사를 계속 다닐지 보려고 해요.",
-        "why_this_matters": null,
-        "insight": "회식 얘기로 시작했는데, 사람들과 있는 것 자체가 몇 달째 힘들다고 하셨어요. 그게 이 질문의 출발점이에요.",
+        "framing_confidence": 62,
+        "frame_line": "회식이 싫은 게 아니라, 몇 달째 회사 사람들이랑 있는 것 자체가 힘드신 거네요.",
+        "real_question": "회식이 싫은 게 아니라, 몇 달째 회사 사람들이랑 있는 것 자체가 힘드신 거네요.",
+        "insight": "회식 한 번의 문제가 아니라 더 오래된 무언가가 쌓여 있는 것 같아요. 근데 그게 '이 회사를 떠나야 하나'로 이어지는 건지, 아니면 다른 뭔가인지는 아직 잘 모르겠어요.",
         "premise_candidates": [],
         "skeleton": [],
         "next_question": {
-          "text": "그 '힘들다'는 게 어떤 종류예요 — 지치는 건지, 뭔가 안 맞는 건지, 아니면 다른 뭔가인지요?",
+          "text": "몇 달째 힘들다고 하셨는데, 처음에 뭔가 달라졌던 시점이 있었어요?",
           "type": "short"
-        },
-        "detected_decision_maker": null
+        }
       },
       "result": {
         "request_type": "open",
         "stakes": "important",
         "reversibility": "partial",
-        "decision_density": "low",
-        "decision_density_reasoning": "사용자가 방금 더 큰 질문을 열기로 했을 뿐, 구체적인 조건이나 대안은 아직 나오지 않았어요.",
-        "framing_confidence": 55,
-        "frame_line": "몇 달째 회사 사람들과 함께 있는 것 자체가 힘든 상태에서, 이 회사를 계속 다닐지 보려고 해요.",
-        "real_question": "몇 달째 회사 사람들과 함께 있는 것 자체가 힘든 상태에서, 이 회사를 계속 다닐지 보려고 해요.",
-        "why_this_matters": null,
-        "insight": "몇 달째 회사 사람들과 함께 있는 것 자체가 힘든 상태에서, 이 회사를 계속 다닐지 보려고 해요.",
+        "framing_confidence": 62,
+        "frame_line": "회식이 싫은 게 아니라, 몇 달째 회사 사람들이랑 있는 것 자체가 힘드신 거네요.",
+        "real_question": "회식이 싫은 게 아니라, 몇 달째 회사 사람들이랑 있는 것 자체가 힘드신 거네요.",
+        "insight": "회식이 싫은 게 아니라, 몇 달째 회사 사람들이랑 있는 것 자체가 힘드신 거네요.",
         "premise_candidates": [],
         "skeleton": [],
         "next_question": {
-          "text": "이 상황에서 지금 가장 마음에 걸리는 건 뭐예요?",
-          "type": "short",
-          "options": []
+          "text": "몇 달째 힘들다고 하셨는데, 처음에 뭔가 달라졌던 시점이 있었어요?",
+          "type": "short"
         },
-        "detected_decision_maker": null,
         "hidden_assumptions": []
       },
       "routeCoerced": false
@@ -98,7 +89,7 @@
     {
       "actor": "argus",
       "phase": "light_gate",
-      "text": "이번 주 금요일 회식이 가기 싫으신 거네요. 지금 마음은 가는 쪽인지 안 가는 쪽인지는 아직 얘기 안 하셨고요.\n지금 마음은 어느 쪽에 가 있어요? 왜 그런지도 같이요."
+      "text": "이번 주 금요일 회식이 걸리시는 거네요.\n지금 마음은 어느 쪽에 가 있어요? 안 가고 싶은 건지, 가야 하나 싶은 건지."
     },
     {
       "actor": "user",
@@ -108,7 +99,7 @@
     {
       "actor": "argus",
       "phase": "light_turn_1",
-      "text": "회식 하나의 문제가 아니라, 회사 사람들과 함께 있는 것 자체가 계속 힘들어지고 있는 상태네요.\n이 회사에서 계속 다닐지"
+      "text": "회식 문제가 아니라, 회사 사람들이랑 함께 있는 것 자체가 몇 달 동안 계속 힘들어진 거네요.\n이 회사에서 계속 다닐지"
     },
     {
       "actor": "user",
@@ -118,139 +109,81 @@
     {
       "actor": "argus",
       "phase": "heavy_initial(escalated)",
-      "text": "몇 달째 회사 사람들과 함께 있는 것 자체가 힘든 상태에서, 이 회사를 계속 다닐지 보려고 해요.\n\n지금 살펴볼 것: 몇 달째 회사 사람들과 함께 있는 것 자체가 힘든 상태에서, 이 회사를 계속 다닐지 보려고 해요.\n\n다음 질문: 이 상황에서 지금 가장 마음에 걸리는 건 뭐예요?"
+      "text": "회식이 싫은 게 아니라, 몇 달째 회사 사람들이랑 있는 것 자체가 힘드신 거네요.\n\n지금 살펴볼 것: 회식이 싫은 게 아니라, 몇 달째 회사 사람들이랑 있는 것 자체가 힘드신 거네요.\n\n다음 질문: 몇 달째 힘들다고 하셨는데, 처음에 뭔가 달라졌던 시점이 있었어요?"
     }
   ],
   "calls": [
     {
-      "seq": 6,
+      "seq": 0,
       "label": "light-05-hoesik-escalate",
       "tier": "fast",
       "modelId": "claude-haiku-4-5-20251001",
       "maxTokens": 500,
       "attempt": 0,
-      "ms": 1975,
+      "ms": 1695,
       "usage": {
-        "input_tokens": 3559,
+        "input_tokens": 4040,
         "cache_creation_input_tokens": 0,
         "cache_read_input_tokens": 0,
         "cache_creation": {
           "ephemeral_5m_input_tokens": 0,
           "ephemeral_1h_input_tokens": 0
         },
-        "output_tokens": 134,
+        "output_tokens": 102,
         "service_tier": "standard",
         "inference_geo": "not_available"
       },
-      "user": "[user] 오늘은 2026-08-01 (토요일)입니다.\n\n사용자가 방금 쓴 것:\n<user-data context=\"decision\">\n이번 주 금요일 회식 가기 싫다\n</user-data>",
-      "rawText": "```json\n{\n  \"need\": \"light\",\n  \"mirror\": \"이번 주 금요일 회식이 가기 싫으신 거네요. 지금 마음은 가는 쪽인지 안 가는 쪽인지는 아직 얘기 안 하셨고요.\",\n  \"question\": \"지금 마음은 어느 쪽에 가 있어요? 왜 그런지도 같이요.\"\n}\n```"
+      "user": "[user] 오늘은 2026-08-02 (일요일)입니다.\n\n사용자가 방금 쓴 것:\n<user-data context=\"decision\">\n이번 주 금요일 회식 가기 싫다\n</user-data>",
+      "rawText": "```json\n{\n  \"need\": \"light\",\n  \"mirror\": \"이번 주 금요일 회식이 걸리시는 거네요.\",\n  \"question\": \"지금 마음은 어느 쪽에 가 있어요? 안 가고 싶은 건지, 가야 하나 싶은 건지.\"\n}\n```"
     },
     {
-      "seq": 9,
-      "label": "light-05-hoesik-escalate",
+      "seq": 1,
+      "label": "heavy-01-job-offer-40",
       "tier": "fast",
       "modelId": "claude-haiku-4-5-20251001",
       "maxTokens": 700,
       "attempt": 0,
-      "ms": 1455,
+      "ms": 2292,
       "usage": {
-        "input_tokens": 3912,
+        "input_tokens": 4407,
         "cache_creation_input_tokens": 0,
         "cache_read_input_tokens": 0,
         "cache_creation": {
           "ephemeral_5m_input_tokens": 0,
           "ephemeral_1h_input_tokens": 0
         },
-        "output_tokens": 113,
+        "output_tokens": 114,
         "service_tier": "standard",
         "inference_geo": "not_available"
       },
-      "user": "[user] 오늘은 2026-08-01 (토요일)입니다.\n\n사용자가 처음 쓴 것:\n<user-data context=\"decision\">\n이번 주 금요일 회식 가기 싫다\n</user-data>\n\n지금까지의 문답 (질문은 당신, 답은 사용자):\n<user-data context=\"answers\">\nQ1. 지금 마음은 어느 쪽에 가 있어요? 왜 그런지도 같이요.\nA1. 사실 회식만 그런 게 아니라 회사 사람들이랑 있는 것 자체가 몇 달째 계속 힘들어.\n</user-data>",
-      "rawText": "```json\n{\n  \"mirror\": \"회식 하나의 문제가 아니라, 회사 사람들과 함께 있는 것 자체가 계속 힘들어지고 있는 상태네요.\",\n  \"action\": \"escalate\",\n  \"escalate\": {\n    \"bigger_question\": \"이 회사에서 계속 다닐지\"\n  }\n}\n```"
+      "user": "[user] 오늘은 2026-08-02 (일요일)입니다.\n\n사용자가 처음 쓴 것:\n<user-data context=\"decision\">\n이번 주 금요일 회식 가기 싫다\n</user-data>\n\n지금까지의 문답 (질문은 당신, 답은 사용자):\n<user-data context=\"answers\">\nQ1. 지금 마음은 어느 쪽에 가 있어요? 안 가고 싶은 건지, 가야 하나 싶은 건지.\nA1. 사실 회식만 그런 게 아니라 회사 사람들이랑 있는 것 자체가 몇 달째 계속 힘들어.\n</user-data>",
+      "rawText": "```json\n{\n  \"mirror\": \"회식 문제가 아니라, 회사 사람들이랑 함께 있는 것 자체가 몇 달 동안 계속 힘들어진 거네요.\",\n  \"action\": \"escalate\",\n  \"escalate\": {\n    \"bigger_question\": \"이 회사에서 계속 다닐지\"\n  }\n}\n```"
     },
     {
-      "seq": 10,
-      "label": "light-05-hoesik-escalate",
+      "seq": 4,
+      "label": "heavy-01-job-offer-40",
       "tier": "default",
       "modelId": "claude-sonnet-4-6",
       "maxTokens": 4096,
       "attempt": 0,
-      "ms": 8277,
+      "ms": 6957,
       "usage": {
-        "input_tokens": 213,
-        "cache_creation_input_tokens": 3233,
-        "cache_read_input_tokens": 0,
+        "input_tokens": 227,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 5189,
         "cache_creation": {
-          "ephemeral_5m_input_tokens": 3233,
+          "ephemeral_5m_input_tokens": 0,
           "ephemeral_1h_input_tokens": 0
         },
-        "output_tokens": 446,
+        "output_tokens": 354,
         "service_tier": "standard",
         "inference_geo": "global"
       },
-      "user": "[user] <user-data>이번 주 금요일 회식 가기 싫다 가볍게 먼저 나눈 문답: Q. 지금 마음은 어느 쪽에 가 있어요? 왜 그런지도 같이요. A. 사실 회식만 그런 게 아니라 회사 사람들이랑 있는 것 자체가 몇 달째 계속 힘들어. 함께 짚은 더 큰 질문: 이 회사에서 계속 다닐지 (방금 '더 깊이 보기'를 직접 선택해 이 질문을 열어 보기로 했습니다.)</user-data>",
-      "rawText": "```json\n{\n  \"request_type\": \"open\",\n  \"stakes\": \"important\",\n  \"reversibility\": \"partial\",\n  \"decision_density\": \"low\",\n  \"decision_density_reasoning\": \"사용자가 방금 더 큰 질문을 열기로 했을 뿐, 구체적인 조건이나 대안은 아직 나오지 않았어요.\",\n  \"framing_confidence\": 55,\n  \"frame_line\": \"몇 달째 회사 사람들과 함께 있는 것 자체가 힘든 상태에서, 이 회사를 계속 다닐지 보려고 해요.\",\n  \"real_question\": \"몇 달째 회사 사람들과 함께 있는 것 자체가 힘든 상태에서, 이 회사를 계속 다닐지 보려고 해요.\",\n  \"why_this_matters\": null,\n  \"insight\": \"회식 얘기로 시작했는데, 사람들과 있는 것 자체가 몇 달째 힘들다고 하셨어요. 그게 이 질문의 출발점이에요.\",\n  \"premise_candidates\": [],\n  \"skeleton\": [],\n  \"next_question\": {\n    \"text\": \"그 '힘들다'는 게 어떤 종류예요 — 지치는 건지, 뭔가 안 맞는 건지, 아니면 다른 뭔가인지요?\",\n    \"type\": \"short\"\n  },\n  \"detected_decision_maker\": null\n}\n```"
+      "user": "[user] <user-data>이번 주 금요일 회식 가기 싫다 가볍게 먼저 나눈 문답: Q. 지금 마음은 어느 쪽에 가 있어요? 안 가고 싶은 건지, 가야 하나 싶은 건지. A. 사실 회식만 그런 게 아니라 회사 사람들이랑 있는 것 자체가 몇 달째 계속 힘들어. 함께 짚은 더 큰 질문: 이 회사에서 계속 다닐지 (방금 '더 깊이 보기'를 직접 선택해 이 질문을 열어 보기로 했습니다.)</user-data>",
+      "rawText": "```json\n{\n  \"request_type\": \"open\",\n  \"stakes\": \"important\",\n  \"reversibility\": \"partial\",\n  \"framing_confidence\": 62,\n  \"frame_line\": \"회식이 싫은 게 아니라, 몇 달째 회사 사람들이랑 있는 것 자체가 힘드신 거네요.\",\n  \"real_question\": \"회식이 싫은 게 아니라, 몇 달째 회사 사람들이랑 있는 것 자체가 힘드신 거네요.\",\n  \"insight\": \"회식 한 번의 문제가 아니라 더 오래된 무언가가 쌓여 있는 것 같아요. 근데 그게 '이 회사를 떠나야 하나'로 이어지는 건지, 아니면 다른 뭔가인지는 아직 잘 모르겠어요.\",\n  \"premise_candidates\": [],\n  \"skeleton\": [],\n  \"next_question\": {\n    \"text\": \"몇 달째 힘들다고 하셨는데, 처음에 뭔가 달라졌던 시점이 있었어요?\",\n    \"type\": \"short\"\n  }\n}\n```"
     }
   ],
   "mechanical": {
     "findings": []
-  },
-  "judge": {
-    "runs": [
-      {
-        "criteria": {
-          "route_fit": {
-            "verdict": "PASS",
-            "severity": null,
-            "evidence": "",
-            "note": "light에서 시작해 사용자가 '더 깊이 보기'를 수락한 뒤 heavy로 escalate한 흐름은 적절하다."
-          },
-          "ownership": {
-            "verdict": "PASS",
-            "severity": null,
-            "evidence": "",
-            "note": "어느 선택이 낫다고 정하거나 방향을 미는 표현 없음."
-          },
-          "fact_lineage": {
-            "verdict": "PASS",
-            "severity": null,
-            "evidence": "",
-            "note": "사실로 단정한 외부 정보 없음. 사용자 말에서 추적 가능한 내용만 사용."
-          },
-          "premise_quality": {
-            "verdict": "PASS",
-            "severity": null,
-            "evidence": "",
-            "note": "숨은 전제를 명시적으로 제시하지 않았고, 사용자 말에서 직접 이어지는 요약만 있다."
-          },
-          "question_value": {
-            "verdict": "FAIL",
-            "severity": "M",
-            "evidence": "light_gate: '지금 마음은 어느 쪽에 가 있어요? 왜 그런지도 같이요.' / heavy_initial: '이 상황에서 지금 가장 마음에 걸리는 건 뭐예요?'",
-            "note": "light_gate 질문은 '가는 쪽인지 안 가는 쪽인지'를 물었는데, 사용자는 그 답 대신 '회사 사람들과 있는 것 자체가 힘들다'는 더 근본적인 맥락을 꺼냈다. 이 답변은 원래 질문의 범위를 넘어섰으므로 heavy_initial에서 새 질문을 여는 것은 자연스럽다. 그러나 heavy_initial 질문 '가장 마음에 걸리는 건 뭐예요?'는 사용자가 이미 '회사 사람들과 함께 있는 것 자체가 힘들다'고 구체적으로 말한 상태에서 다시 열린 질문으로 되돌아가는 것이라 정보 가치가 낮다. 판단 상태를 실질적으로 바꿀 더 좁은 질문(예: 힘든 상황이 언제부터인지, 무엇이 계기였는지 등)이 더 적절했을 것이다."
-          },
-          "update_fidelity": {
-            "verdict": "FAIL",
-            "severity": "M",
-            "evidence": "'지금 살펴볼 것: 몇 달째 회사 사람들과 함께 있는 것 자체가 힘든 상태에서, 이 회사를 계속 다닐지 보려고 해요.' 문장이 바로 위 요약과 거의 동일하게 반복됨.",
-            "note": "heavy_initial에서 '지금 살펴볼 것' 항목이 바로 앞 요약 문장을 그대로 되풀이하고 있다. 새 답변(사용자의 수락)이 가져온 실질적 변화를 보여주지 못하고 연출용 반복에 그쳤다."
-          },
-          "restraint": {
-            "verdict": "PASS",
-            "severity": null,
-            "evidence": "",
-            "note": "첫 접촉에서 계획을 미리 만들지 않았고, 현실 확인 항목도 없다."
-          },
-          "language": {
-            "verdict": "PASS",
-            "severity": null,
-            "evidence": "",
-            "note": "해요체 자연스럽고 AI체·보고서체 없음."
-          }
-        },
-        "overall": "heavy_initial에서 '지금 살펴볼 것' 문장이 바로 위 요약을 그대로 반복해 update_fidelity가 낮고, 이어지는 질문도 사용자가 이미 답한 범위를 다시 여는 수준이라 정보 가치가 제한적이다.",
-        "best_next_fix": "heavy_initial의 '지금 살펴볼 것' 반복 문장을 제거하고, 질문을 '몇 달째 힘들어진 게 언제부터였어요?' 같이 사용자가 아직 말하지 않은 구체적 지점을 겨냥하도록 좁힌다."
-      }
-    ]
   }
 }

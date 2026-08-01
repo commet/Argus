@@ -28,30 +28,30 @@
         "stakes": "critical",
         "reversibility": "irreversible",
         "framing_confidence": 82,
-        "frame_line": "계획까지 같이 세웠는데 안 움직였네요. 근데 저를 믿고 온 사람이라는 게 이 결정을 더 무겁게 만들고 있고요.",
-        "real_question": "계획까지 같이 세웠는데 안 움직였네요. 근데 저를 믿고 온 사람이라는 게 이 결정을 더 무겁게 만들고 있고요.",
-        "insight": "성과 판단 자체보다, 내 권유로 온 사람이라는 사실이 이 결정을 흐리게 만들고 있어요. 두 가지가 섞여 있어서 어느 쪽으로도 손이 안 가는 거일 수 있어요.",
+        "frame_line": "계획까지 같이 세웠는데 안 움직였네요. 그래서 더 어려우신 거고요.",
+        "real_question": "계획까지 같이 세웠는데 안 움직였네요. 그래서 더 어려우신 거고요.",
+        "insight": "할 수 있는 걸 다 했다는 느낌과, 그 사람이 저를 믿고 왔다는 사실이 서로 당기고 있어요. 지금 결정을 어렵게 만드는 게 둘 중 어느 쪽인지, 아니면 둘 다인지가 아직 안 보여요.",
         "premise_candidates": [
           {
-            "text": "면담과 개선 계획을 두 차례 거쳤는데도 변화가 없었다면, 지금 방법으로는 달라지지 않는다",
+            "text": "면담과 개선 계획으로도 변화가 없었으니, 지금 방법 안에서는 더 이상 쓸 수 있는 카드가 없다",
             "anchor_quote": "두 번 면담했고 개선 계획도 같이 잡았는데 변화가 없어요",
             "support_kind": "explicit_reason",
-            "if_false_changes": "아직 시도 안 한 방법이 남아 있다는 뜻이므로, 내보내는 판단이 이르다",
+            "if_false_changes": "아직 안 써본 방법이 있다면 내보내는 판단이 이르다",
             "kind": "premise",
-            "observable": "두 번째 개선 계획의 기한이 언제 끝나는지"
+            "observable": "다음으로 시도할 수 있는 구체적인 개입이 떠오르는지 여부"
           },
           {
-            "text": "내 권유로 이직해 온 사람이라는 사실이 이 결정을 무겁게 만든다",
+            "text": "내 권유로 이직해 온 사람이라는 사실이 이 결정을 무겁게 만들고 있다",
             "anchor_quote": "저를 믿고 이직해서 온 사람이라 마음이 많이 무겁습니다",
             "support_kind": "explicit_reason",
-            "if_false_changes": "그 관계가 없었다면 성과만 놓고 보는 결정이 된다",
+            "if_false_changes": "성과만 놓고 보는 결정이 된다",
             "kind": "standard",
             "observable": ""
           }
         ],
         "skeleton": [],
         "next_question": {
-          "text": "두 번째 개선 계획, 기한이 언제까지예요?",
+          "text": "6개월 동안 성과가 안 난다고 하셨는데, 그 팀원 본인은 지금 상황을 어떻게 보고 있는지 얘기한 적 있어요?",
           "type": "short"
         }
       },
@@ -60,91 +60,59 @@
         "stakes": "critical",
         "reversibility": "irreversible",
         "framing_confidence": 82,
-        "frame_line": "계획까지 같이 세웠는데 안 움직였네요. 근데 저를 믿고 온 사람이라는 게 이 결정을 더 무겁게 만들고 있고요.",
-        "real_question": "계획까지 같이 세웠는데 안 움직였네요. 근데 저를 믿고 온 사람이라는 게 이 결정을 더 무겁게 만들고 있고요.",
-        "insight": "계획까지 같이 세웠는데 안 움직였네요. 근데 저를 믿고 온 사람이라는 게 이 결정을 더 무겁게 만들고 있고요.",
+        "frame_line": "계획까지 같이 세웠는데 안 움직였네요. 그래서 더 어려우신 거고요.",
+        "real_question": "계획까지 같이 세웠는데 안 움직였네요. 그래서 더 어려우신 거고요.",
+        "insight": "계획까지 같이 세웠는데 안 움직였네요. 그래서 더 어려우신 거고요.",
         "premise_candidates": [
           {
-            "text": "면담과 개선 계획을 두 차례 거쳤는데도 변화가 없었다면, 지금 방법으로는 달라지지 않는다",
+            "text": "면담과 개선 계획으로도 변화가 없었으니, 지금 방법 안에서는 더 이상 쓸 수 있는 카드가 없다",
             "anchor_quote": "두 번 면담했고 개선 계획도 같이 잡았는데 변화가 없어요",
             "support_kind": "explicit_reason",
-            "if_false_changes": "아직 시도 안 한 방법이 남아 있다는 뜻이므로, 내보내는 판단이 이르다",
+            "if_false_changes": "아직 안 써본 방법이 있다면 내보내는 판단이 이르다",
             "kind": "premise",
-            "observable": "두 번째 개선 계획의 기한이 언제 끝나는지"
+            "observable": "다음으로 시도할 수 있는 구체적인 개입이 떠오르는지 여부"
           },
           {
-            "text": "내 권유로 이직해 온 사람이라는 사실이 이 결정을 무겁게 만든다",
+            "text": "내 권유로 이직해 온 사람이라는 사실이 이 결정을 무겁게 만들고 있다",
             "anchor_quote": "저를 믿고 이직해서 온 사람이라 마음이 많이 무겁습니다",
             "support_kind": "explicit_reason",
-            "if_false_changes": "그 관계가 없었다면 성과만 놓고 보는 결정이 된다",
+            "if_false_changes": "성과만 놓고 보는 결정이 된다",
             "kind": "standard",
             "observable": ""
           }
         ],
         "skeleton": [],
         "next_question": {
-          "text": "두 번째 개선 계획, 기한이 언제까지예요?",
+          "text": "6개월 동안 성과가 안 난다고 하셨는데, 그 팀원 본인은 지금 상황을 어떻게 보고 있는지 얘기한 적 있어요?",
           "type": "short"
         },
         "hidden_assumptions": [
-          "내 권유로 이직해 온 사람이라는 사실이 이 결정을 무겁게 만든다"
+          "면담과 개선 계획으로도 변화가 없었으니, 지금 방법 안에서는 더 이상 쓸 수 있는 카드가 없다"
         ]
       },
       "routeCoerced": false
     },
     "deepening": [
       {
-        "insight": "두 번째 기한이 다음 주라는 걸 알려주셨어요. 문서로 남겨둔 상태라는 것도요. 그러면 지금은 아직 기한 전이고, 결정 타이밍이 바로 다음 주랑 붙어 있는 거네요.",
-        "frame_line": "저를 믿고 이직해 온 팀원이 6개월째 성과가 없고, 문서로 남긴 두 번째 개선 계획의 기한이 다음 주에 끝나는 시점에서, 내보낼지를 고민 중이에요.",
-        "real_question": "저를 믿고 이직해 온 팀원이 6개월째 성과가 없고, 문서로 남긴 두 번째 개선 계획의 기한이 다음 주에 끝나는 시점에서, 내보낼지를 고민 중이에요.",
+        "insight": "다음 주에 두 번째 기한이 끝난다고 하셨어요. 그러면 지금 고민이 '내보낼까'가 아니라 '다음 주 이후에 뭐라고 할까'로 이미 좁혀진 거네요. 그 팀원이 상황을 어떻게 보는지는 아직 안 들었어요.",
+        "frame_line": "작년에 믿고 이직해온 팀원을 내보낼지 고민 중인데, 문서로 남긴 개선 계획의 두 번째 기한이 다음 주에 끝나요.",
+        "real_question": "작년에 믿고 이직해온 팀원을 내보낼지 고민 중인데, 문서로 남긴 개선 계획의 두 번째 기한이 다음 주에 끝나요.",
         "premise_changes": [
           {
             "action": "add",
-            "text": "문서로 남긴 두 번째 개선 계획의 기한이 다음 주에 끝난다",
-            "anchor_quote": "개선 계획은 문서로 남겼고, 두 번째 기한이 다음 주에 끝나요",
-            "reason_from_latest_answer": "결정이 다음 주 기한 결과와 직접 연결되는 시점 조건이 생겼어요",
+            "text": "두 번째 기한이 다음 주에 끝난다",
+            "anchor_quote": "두 번째 기한이 다음 주에 끝나요",
+            "reason_from_latest_answer": "결정 시점이 열린 미래가 아니라 다음 주로 고정되어 있다",
             "support_kind": "explicit_condition",
-            "if_false_changes": "기한이 더 남아 있다면 지금 결정 시점이 달라져요",
-            "kind": "premise",
-            "observable": "다음 주 기한 종료 시점에 개선 여부"
+            "if_false_changes": "지금 당장 결정을 내릴 긴박함이 없어진다",
+            "kind": "fact"
           }
         ],
         "skeleton": [],
-        "next_question": {
-          "text": "다음 주 기한이 끝났을 때 결과가 어떻든, 그 결과가 결정을 바꿔줄 거라고 보세요?",
-          "type": "short"
-        },
+        "next_question": null,
         "ready_for_mix": false,
         "hidden_assumptions": [
-          "내 권유로 이직해 온 사람이라는 사실이 이 결정을 무겁게 만든다",
-          "문서로 남긴 두 번째 개선 계획의 기한이 다음 주에 끝난다"
-        ]
-      },
-      {
-        "insight": "다음 주 기한 결과 얘기 대신, 다른 팀원 두 명이 이미 힘들다고 꺼냈다는 걸 알려주셨어요. 결정이 그 한 명만의 문제가 아닌 거죠.",
-        "frame_line": "저를 믿고 이직해 온 팀원이 6개월째 성과가 없고, 다른 팀원 두 명이 그 몫까지 하면서 힘들다고 얘기를 꺼낸 시점에서, 내보낼지를 고민 중이에요.",
-        "real_question": "저를 믿고 이직해 온 팀원이 6개월째 성과가 없고, 다른 팀원 두 명이 그 몫까지 하면서 힘들다고 얘기를 꺼낸 시점에서, 내보낼지를 고민 중이에요.",
-        "premise_changes": [
-          {
-            "action": "add",
-            "text": "다른 팀원 두 명이 이미 그 사람 몫까지 하고 있고, 힘들다는 말을 꺼낸 상태다",
-            "anchor_quote": "다른 팀원 두 명이 이미 그 사람 몫까지 하고 있다고 힘들다는 얘기를 꺼냈어요",
-            "reason_from_latest_answer": "결정이 해당 팀원 한 명의 성과 문제를 넘어, 나머지 팀 전체에 이미 영향을 주고 있음을 사용자가 명시했다",
-            "support_kind": "explicit_condition",
-            "if_false_changes": "팀 전체 영향이 없다면, 결정의 무게중심이 그 팀원 개인의 회복 가능성 쪽으로만 남는다",
-            "kind": "fact",
-            "observable": "두 팀원이 힘들다고 꺼낸 말이 일회성인지, 지속되는 상황인지"
-          }
-        ],
-        "skeleton": [],
-        "next_question": {
-          "text": "그 두 분이 힘들다고 꺼낸 게 이번이 처음이에요, 아니면 전에도 있었어요?",
-          "type": "short"
-        },
-        "ready_for_mix": false,
-        "hidden_assumptions": [
-          "내 권유로 이직해 온 사람이라는 사실이 이 결정을 무겁게 만든다",
-          "문서로 남긴 두 번째 개선 계획의 기한이 다음 주에 끝난다"
+          "면담과 개선 계획으로도 변화가 없었으니, 지금 방법 안에서는 더 이상 쓸 수 있는 카드가 없다"
         ]
       }
     ],
@@ -160,7 +128,7 @@
     {
       "actor": "argus",
       "phase": "heavy_initial",
-      "text": "계획까지 같이 세웠는데 안 움직였네요. 근데 저를 믿고 온 사람이라는 게 이 결정을 더 무겁게 만들고 있고요.\n\n지금 살펴볼 것: 계획까지 같이 세웠는데 안 움직였네요. 근데 저를 믿고 온 사람이라는 게 이 결정을 더 무겁게 만들고 있고요.\n\n숨은 전제:\n- 내 권유로 이직해 온 사람이라는 사실이 이 결정을 무겁게 만든다\n\n다음 질문: 두 번째 개선 계획, 기한이 언제까지예요?"
+      "text": "계획까지 같이 세웠는데 안 움직였네요. 그래서 더 어려우신 거고요.\n\n지금 살펴볼 것: 계획까지 같이 세웠는데 안 움직였네요. 그래서 더 어려우신 거고요.\n\n숨은 전제:\n- 면담과 개선 계획으로도 변화가 없었으니, 지금 방법 안에서는 더 이상 쓸 수 있는 카드가 없다\n\n다음 질문: 6개월 동안 성과가 안 난다고 하셨는데, 그 팀원 본인은 지금 상황을 어떻게 보고 있는지 얘기한 적 있어요?"
     },
     {
       "actor": "user",
@@ -170,28 +138,18 @@
     {
       "actor": "argus",
       "phase": "heavy_deepening_1",
-      "text": "두 번째 기한이 다음 주라는 걸 알려주셨어요. 문서로 남겨둔 상태라는 것도요. 그러면 지금은 아직 기한 전이고, 결정 타이밍이 바로 다음 주랑 붙어 있는 거네요.\n\n지금 살펴볼 것: 저를 믿고 이직해 온 팀원이 6개월째 성과가 없고, 문서로 남긴 두 번째 개선 계획의 기한이 다음 주에 끝나는 시점에서, 내보낼지를 고민 중이에요.\n\n숨은 전제:\n- 내 권유로 이직해 온 사람이라는 사실이 이 결정을 무겁게 만든다\n- 문서로 남긴 두 번째 개선 계획의 기한이 다음 주에 끝난다\n\n다음 질문: 다음 주 기한이 끝났을 때 결과가 어떻든, 그 결과가 결정을 바꿔줄 거라고 보세요?"
-    },
-    {
-      "actor": "user",
-      "phase": "answer",
-      "text": "다른 팀원 두 명이 이미 그 사람 몫까지 하고 있다고 힘들다는 얘기를 꺼냈어요."
-    },
-    {
-      "actor": "argus",
-      "phase": "heavy_deepening_2",
-      "text": "다음 주 기한 결과 얘기 대신, 다른 팀원 두 명이 이미 힘들다고 꺼냈다는 걸 알려주셨어요. 결정이 그 한 명만의 문제가 아닌 거죠.\n\n지금 살펴볼 것: 저를 믿고 이직해 온 팀원이 6개월째 성과가 없고, 다른 팀원 두 명이 그 몫까지 하면서 힘들다고 얘기를 꺼낸 시점에서, 내보낼지를 고민 중이에요.\n\n숨은 전제:\n- 내 권유로 이직해 온 사람이라는 사실이 이 결정을 무겁게 만든다\n- 문서로 남긴 두 번째 개선 계획의 기한이 다음 주에 끝난다\n\n다음 질문: 그 두 분이 힘들다고 꺼낸 게 이번이 처음이에요, 아니면 전에도 있었어요?"
+      "text": "다음 주에 두 번째 기한이 끝난다고 하셨어요. 그러면 지금 고민이 '내보낼까'가 아니라 '다음 주 이후에 뭐라고 할까'로 이미 좁혀진 거네요. 그 팀원이 상황을 어떻게 보는지는 아직 안 들었어요.\n\n지금 살펴볼 것: 작년에 믿고 이직해온 팀원을 내보낼지 고민 중인데, 문서로 남긴 개선 계획의 두 번째 기한이 다음 주에 끝나요.\n\n숨은 전제:\n- 면담과 개선 계획으로도 변화가 없었으니, 지금 방법 안에서는 더 이상 쓸 수 있는 카드가 없다"
     }
   ],
   "calls": [
     {
-      "seq": 4,
+      "seq": 7,
       "label": "heavy-04-fire-teammate",
       "tier": "fast",
       "modelId": "claude-haiku-4-5-20251001",
       "maxTokens": 500,
       "attempt": 0,
-      "ms": 1031,
+      "ms": 833,
       "usage": {
         "input_tokens": 4155,
         "cache_creation_input_tokens": 0,
@@ -208,50 +166,27 @@
       "rawText": "```json\n{\n  \"need\": \"heavy\",\n  \"mirror\": \"\",\n  \"question\": \"\"\n}\n```"
     },
     {
-      "seq": 6,
+      "seq": 9,
       "label": "heavy-04-fire-teammate",
       "tier": "default",
       "modelId": "claude-sonnet-4-6",
       "maxTokens": 4096,
       "attempt": 0,
-      "ms": 9764,
+      "ms": 11514,
       "usage": {
         "input_tokens": 148,
         "cache_creation_input_tokens": 0,
-        "cache_read_input_tokens": 5120,
+        "cache_read_input_tokens": 5189,
         "cache_creation": {
           "ephemeral_5m_input_tokens": 0,
           "ephemeral_1h_input_tokens": 0
         },
-        "output_tokens": 721,
+        "output_tokens": 719,
         "service_tier": "standard",
         "inference_geo": "global"
       },
       "user": "[user] <user-data>5명짜리 팀의 리더인데, 팀원 한 명이 6개월째 성과가 안 나요. 두 번 면담했고 개선 계획도 같이 잡았는데 변화가 없어요. 내보내야 하나 고민입니다. 그 팀원은 작년에 저를 믿고 이직해서 온 사람이라 마음이 많이 무겁습니다.</user-data>",
-      "rawText": "```json\n{\n  \"request_type\": \"open\",\n  \"stakes\": \"critical\",\n  \"reversibility\": \"irreversible\",\n  \"framing_confidence\": 82,\n  \"frame_line\": \"계획까지 같이 세웠는데 안 움직였네요. 근데 저를 믿고 온 사람이라는 게 이 결정을 더 무겁게 만들고 있고요.\",\n  \"real_question\": \"계획까지 같이 세웠는데 안 움직였네요. 근데 저를 믿고 온 사람이라는 게 이 결정을 더 무겁게 만들고 있고요.\",\n  \"insight\": \"성과 판단 자체보다, 내 권유로 온 사람이라는 사실이 이 결정을 흐리게 만들고 있어요. 두 가지가 섞여 있어서 어느 쪽으로도 손이 안 가는 거일 수 있어요.\",\n  \"premise_candidates\": [\n    {\n      \"text\": \"면담과 개선 계획을 두 차례 거쳤는데도 변화가 없었다면, 지금 방법으로는 달라지지 않는다\",\n      \"anchor_quote\": \"두 번 면담했고 개선 계획도 같이 잡았는데 변화가 없어요\",\n      \"support_kind\": \"explicit_reason\",\n      \"if_false_changes\": \"아직 시도 안 한 방법이 남아 있다는 뜻이므로, 내보내는 판단이 이르다\",\n      \"kind\": \"premise\",\n      \"observable\": \"두 번째 개선 계획의 기한이 언제 끝나는지\"\n    },\n    {\n      \"text\": \"내 권유로 이직해 온 사람이라는 사실이 이 결정을 무겁게 만든다\",\n      \"anchor_quote\": \"저를 믿고 이직해서 온 사람이라 마음이 많이 무겁습니다\",\n      \"support_kind\": \"explicit_reason\",\n      \"if_false_changes\": \"그 관계가 없었다면 성과만 놓고 보는 결정이 된다\",\n      \"kind\": \"standard\",\n      \"observable\": \"\"\n    }\n  ],\n  \"skeleton\": [],\n  \"next_question\": {\n    \"text\": \"두 번째 개선 계획, 기한이 언제까지예요?\",\n    \"type\": \"short\"\n  }\n}\n```"
-    },
-    {
-      "seq": 8,
-      "label": "heavy-04-fire-teammate",
-      "tier": "default",
-      "modelId": "claude-sonnet-4-6",
-      "maxTokens": 2500,
-      "attempt": 0,
-      "ms": 10518,
-      "usage": {
-        "input_tokens": 4282,
-        "cache_creation_input_tokens": 0,
-        "cache_read_input_tokens": 0,
-        "cache_creation": {
-          "ephemeral_5m_input_tokens": 0,
-          "ephemeral_1h_input_tokens": 0
-        },
-        "output_tokens": 642,
-        "service_tier": "standard",
-        "inference_geo": "global"
-      },
-      "user": "[user] Original situation:\n<user-data>5명짜리 팀의 리더인데, 팀원 한 명이 6개월째 성과가 안 나요. 두 번 면담했고 개선 계획도 같이 잡았는데 변화가 없어요. 내보내야 하나 고민입니다. 그 팀원은 작년에 저를 믿고 이직해서 온 사람이라 마음이 많이 무겁습니다.</user-data>\n\nCurrent state:\n- question: 계획까지 같이 세웠는데 안 움직였네요. 근데 저를 믿고 온 사람이라는 게 이 결정을 더 무겁게 만들고 있고요.\n- AI-surfaced premises: 내 권유로 이직해 온 사람이라는 사실이 이 결정을 무겁게 만든다\n- reality checks: (none)\n- request type: open\n- weight: critical / irreve",
-      "rawText": "```json\n{\n  \"insight\": \"두 번째 기한이 다음 주라는 걸 알려주셨어요. 문서로 남겨둔 상태라는 것도요. 그러면 지금은 아직 기한 전이고, 결정 타이밍이 바로 다음 주랑 붙어 있는 거네요.\",\n  \"frame_line\": \"저를 믿고 이직해 온 팀원이 6개월째 성과가 없고, 문서로 남긴 두 번째 개선 계획의 기한이 다음 주에 끝나는 시점에서, 내보낼지를 고민 중이에요.\",\n  \"real_question\": \"저를 믿고 이직해 온 팀원이 6개월째 성과가 없고, 문서로 남긴 두 번째 개선 계획의 기한이 다음 주에 끝나는 시점에서, 내보낼지를 고민 중이에요.\",\n  \"premise_changes\": [\n    {\n      \"action\": \"add\",\n      \"text\": \"문서로 남긴 두 번째 개선 계획의 기한이 다음 주에 끝난다\",\n      \"anchor_quote\": \"개선 계획은 문서로 남겼고, 두 번째 기한이 다음 주에 끝나요\",\n      \"reason_from_latest_answer\": \"결정이 다음 주 기한 결과와 직접 연결되는 시점 조건이 생겼어요\",\n      \"support_kind\": \"explicit_condition\",\n      \"if_false_changes\": \"기한이 더 남아 있다면 지금 결정 시점이 달라져요\",\n      \"kind\": \"premise\",\n      \"observable\": \"다음 주 기한 종료 시점에 개선 여부\"\n    }\n  ],\n  \"skeleton\": [],\n  \"next_question\": {\n    \"text\": \"다음 주 기한이 끝났을 때 결과가 어떻든, 그 결과가 결정을 바꿔줄 거라고 보세요?\",\n    \"type\": \"short\"\n  },\n  \"ready_for_mix\": false\n}\n```"
+      "rawText": "```json\n{\n  \"request_type\": \"open\",\n  \"stakes\": \"critical\",\n  \"reversibility\": \"irreversible\",\n  \"framing_confidence\": 82,\n  \"frame_line\": \"계획까지 같이 세웠는데 안 움직였네요. 그래서 더 어려우신 거고요.\",\n  \"real_question\": \"계획까지 같이 세웠는데 안 움직였네요. 그래서 더 어려우신 거고요.\",\n  \"insight\": \"할 수 있는 걸 다 했다는 느낌과, 그 사람이 저를 믿고 왔다는 사실이 서로 당기고 있어요. 지금 결정을 어렵게 만드는 게 둘 중 어느 쪽인지, 아니면 둘 다인지가 아직 안 보여요.\",\n  \"premise_candidates\": [\n    {\n      \"text\": \"면담과 개선 계획으로도 변화가 없었으니, 지금 방법 안에서는 더 이상 쓸 수 있는 카드가 없다\",\n      \"anchor_quote\": \"두 번 면담했고 개선 계획도 같이 잡았는데 변화가 없어요\",\n      \"support_kind\": \"explicit_reason\",\n      \"if_false_changes\": \"아직 안 써본 방법이 있다면 내보내는 판단이 이르다\",\n      \"kind\": \"premise\",\n      \"observable\": \"다음으로 시도할 수 있는 구체적인 개입이 떠오르는지 여부\"\n    },\n    {\n      \"text\": \"내 권유로 이직해 온 사람이라는 사실이 이 결정을 무겁게 만들고 있다\",\n      \"anchor_quote\": \"저를 믿고 이직해서 온 사람이라 마음이 많이 무겁습니다\",\n      \"support_kind\": \"explicit_reason\",\n      \"if_false_changes\": \"성과만 놓고 보는 결정이 된다\",\n      \"kind\": \"standard\",\n      \"observable\": \"\"\n    }\n  ],\n  \"skeleton\": [],\n  \"next_question\": {\n    \"text\": \"6개월 동안 성과가 안 난다고 하셨는데, 그 팀원 본인은 지금 상황을 어떻게 보고 있는지 얘기한 적 있어요?\",\n    \"type\": \"short\"\n  }\n}\n```"
     },
     {
       "seq": 12,
@@ -260,82 +195,24 @@
       "modelId": "claude-sonnet-4-6",
       "maxTokens": 2500,
       "attempt": 0,
-      "ms": 10861,
+      "ms": 8631,
       "usage": {
-        "input_tokens": 4454,
+        "input_tokens": 4698,
         "cache_creation_input_tokens": 0,
         "cache_read_input_tokens": 0,
         "cache_creation": {
           "ephemeral_5m_input_tokens": 0,
           "ephemeral_1h_input_tokens": 0
         },
-        "output_tokens": 732,
+        "output_tokens": 551,
         "service_tier": "standard",
         "inference_geo": "global"
       },
-      "user": "[user] Original situation:\n<user-data>5명짜리 팀의 리더인데, 팀원 한 명이 6개월째 성과가 안 나요. 두 번 면담했고 개선 계획도 같이 잡았는데 변화가 없어요. 내보내야 하나 고민입니다. 그 팀원은 작년에 저를 믿고 이직해서 온 사람이라 마음이 많이 무겁습니다.</user-data>\n\nCurrent state:\n- question: 저를 믿고 이직해 온 팀원이 6개월째 성과가 없고, 문서로 남긴 두 번째 개선 계획의 기한이 다음 주에 끝나는 시점에서, 내보낼지를 고민 중이에요.\n- AI-surfaced premises: 내 권유로 이직해 온 사람이라는 사실이 이 결정을 무겁게 만든다 / 문서로 남긴 두 번째 개선 계획의 기한이 다음 주에 끝난다\n- reality checks:",
-      "rawText": "```json\n{\n  \"insight\": \"다음 주 기한 결과 얘기 대신, 다른 팀원 두 명이 이미 힘들다고 꺼냈다는 걸 알려주셨어요. 결정이 그 한 명만의 문제가 아닌 거죠.\",\n  \"frame_line\": \"저를 믿고 이직해 온 팀원이 6개월째 성과가 없고, 다른 팀원 두 명이 그 몫까지 하면서 힘들다고 얘기를 꺼낸 시점에서, 내보낼지를 고민 중이에요.\",\n  \"real_question\": \"저를 믿고 이직해 온 팀원이 6개월째 성과가 없고, 다른 팀원 두 명이 그 몫까지 하면서 힘들다고 얘기를 꺼낸 시점에서, 내보낼지를 고민 중이에요.\",\n  \"premise_changes\": [\n    {\n      \"action\": \"add\",\n      \"text\": \"다른 팀원 두 명이 이미 그 사람 몫까지 하고 있고, 힘들다는 말을 꺼낸 상태다\",\n      \"anchor_quote\": \"다른 팀원 두 명이 이미 그 사람 몫까지 하고 있다고 힘들다는 얘기를 꺼냈어요\",\n      \"reason_from_latest_answer\": \"결정이 해당 팀원 한 명의 성과 문제를 넘어, 나머지 팀 전체에 이미 영향을 주고 있음을 사용자가 명시했다\",\n      \"support_kind\": \"explicit_condition\",\n      \"if_false_changes\": \"팀 전체 영향이 없다면, 결정의 무게중심이 그 팀원 개인의 회복 가능성 쪽으로만 남는다\",\n      \"kind\": \"fact\",\n      \"observable\": \"두 팀원이 힘들다고 꺼낸 말이 일회성인지, 지속되는 상황인지\"\n    }\n  ],\n  \"skeleton\": [],\n  \"next_question\": {\n    \"text\": \"그 두 분이 힘들다고 꺼낸 게 이번이 처음이에요, 아니면 전에도 있었어요?\",\n    \"type\": \"short\"\n  },\n  \"ready_for_mix\": false\n}\n```"
+      "user": "[user] Original situation:\n<user-data>5명짜리 팀의 리더인데, 팀원 한 명이 6개월째 성과가 안 나요. 두 번 면담했고 개선 계획도 같이 잡았는데 변화가 없어요. 내보내야 하나 고민입니다. 그 팀원은 작년에 저를 믿고 이직해서 온 사람이라 마음이 많이 무겁습니다.</user-data>\n\nCurrent state:\n- question: 계획까지 같이 세웠는데 안 움직였네요. 그래서 더 어려우신 거고요.\n- AI-surfaced premises: 면담과 개선 계획으로도 변화가 없었으니, 지금 방법 안에서는 더 이상 쓸 수 있는 카드가 없다\n- reality checks: (none)\n- request type: open\n- weight: critical / irreversible\n",
+      "rawText": "```json\n{\n  \"insight\": \"다음 주에 두 번째 기한이 끝난다고 하셨어요. 그러면 지금 고민이 '내보낼까'가 아니라 '다음 주 이후에 뭐라고 할까'로 이미 좁혀진 거네요. 그 팀원이 상황을 어떻게 보는지는 아직 안 들었어요.\",\n  \"frame_line\": \"작년에 믿고 이직해온 팀원을 내보낼지 고민 중인데, 문서로 남긴 개선 계획의 두 번째 기한이 다음 주에 끝나요.\",\n  \"real_question\": \"작년에 믿고 이직해온 팀원을 내보낼지 고민 중인데, 문서로 남긴 개선 계획의 두 번째 기한이 다음 주에 끝나요.\",\n  \"premise_changes\": [\n    {\n      \"action\": \"add\",\n      \"text\": \"두 번째 기한이 다음 주에 끝난다\",\n      \"anchor_quote\": \"두 번째 기한이 다음 주에 끝나요\",\n      \"reason_from_latest_answer\": \"결정 시점이 열린 미래가 아니라 다음 주로 고정되어 있다\",\n      \"support_kind\": \"explicit_condition\",\n      \"if_false_changes\": \"지금 당장 결정을 내릴 긴박함이 없어진다\",\n      \"kind\": \"fact\"\n    }\n  ],\n  \"skeleton\": [],\n  \"next_question\": {\n    \"text\": \"그 팀원 본인은 이번 기한을 어떻게 받아들이고 있는지, 얘기가 된 적 있어요?\",\n    \"type\": \"short\"\n  },\n  \"ready_for_mix\": false\n}\n```"
     }
   ],
   "mechanical": {
     "findings": []
-  },
-  "judge": {
-    "runs": [
-      {
-        "criteria": {
-          "route_fit": {
-            "verdict": "PASS",
-            "severity": null,
-            "evidence": "",
-            "note": "open/critical/irreversible 라우팅이 적절하고, 각 턴이 필요한 만큼만 진행됐어요."
-          },
-          "ownership": {
-            "verdict": "PASS",
-            "severity": null,
-            "evidence": "",
-            "note": "어느 선택이 낫다고 정하거나 방향을 미는 표현이 없어요. '결정이 그 한 명만의 문제가 아닌 거죠'는 사용자가 준 정보를 요약한 것으로 방향 유도로 보기 어려워요."
-          },
-          "fact_lineage": {
-            "verdict": "PASS",
-            "severity": null,
-            "evidence": "",
-            "note": "사실로 쓴 내용이 모두 사용자 입력에서 추적 가능해요. 외부 사실이나 조직 사정을 단정한 부분 없어요."
-          },
-          "premise_quality": {
-            "verdict": "FAIL",
-            "severity": "M",
-            "evidence": "heavy_deepening_2의 숨은 전제: '문서로 남긴 두 번째 개선 계획의 기한이 다음 주에 끝난다' — 이 전제는 사용자가 직접 말한 사실이지 숨은 전제가 아니에요. 거짓이어도 판단이 달라지는 논리적 전제가 아니라 이미 확인된 사실을 전제 칸에 반복 기재한 거예요.",
-            "note": "heavy_deepening_1에서 이미 확인된 사실이 deepening_2에서도 숨은 전제로 유지됐어요. 새 답변(팀원 두 명의 호소)이 이 전제를 바꾸지 않았으므로 그대로 두는 건 이해되지만, 사실 진술을 전제 칸에 두는 구조 자체가 premise_quality 기준에 맞지 않아요."
-          },
-          "question_value": {
-            "verdict": "PASS",
-            "severity": null,
-            "evidence": "",
-            "note": "각 질문이 하나씩이고, 답에 따라 판단 상태가 실제로 달라지는 질문이에요. deepening_2의 질문(팀원 호소가 처음인지 아닌지)도 상황의 누적 여부를 확인하는 유효한 질문이에요."
-          },
-          "update_fidelity": {
-            "verdict": "FAIL",
-            "severity": "M",
-            "evidence": "사용자가 deepening_1의 질문('다음 주 기한 결과가 결정을 바꿔줄 거라고 보세요?')에 직접 답하지 않고 새 정보(팀원 두 명의 호소)를 줬어요. Argus는 '다음 주 기한 결과 얘기 대신'이라고 인정했지만, 기한 관련 전제('문서로 남긴 두 번째 개선 계획의 기한이 다음 주에 끝난다')를 그대로 유지했어요. 새 정보가 기한의 결정적 의미를 약화시켰는지 여부를 상태에 반영하지 않은 거예요.",
-            "note": "팀원 두 명의 호소가 추가되면서 '기한 결과가 결정을 바꿔줄 것인가'라는 질문의 무게가 달라졌을 수 있는데, 전제 목록이 그대로 유지됐어요."
-          },
-          "restraint": {
-            "verdict": "PASS",
-            "severity": null,
-            "evidence": "",
-            "note": "첫 접촉에서 계획을 미리 만들지 않았고, 현실 확인도 사용자 말에서 직접 나온 것만 다뤘어요."
-          },
-          "language": {
-            "verdict": "PASS",
-            "severity": null,
-            "evidence": "",
-            "note": "자연스러운 해요체이고 AI체·보고서체가 없어요."
-          }
-        },
-        "overall": "전제 칸에 이미 확인된 사실을 반복 기재하는 구조적 문제가 있고, 사용자가 질문을 우회한 뒤 상태 갱신이 불완전했어요. 나머지 흐름은 안정적이에요.",
-        "best_next_fix": "숨은 전제는 '거짓이면 판단이 달라지는 논리적 가정'만 남기고, 사용자가 직접 말한 사실은 전제 칸에서 제거하세요."
-      }
-    ]
   }
 }

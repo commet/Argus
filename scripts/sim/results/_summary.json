@@ -1,29 +1,25 @@
 {
-  "at": "2026-08-01T15:24:50.558Z",
-  "totalLLMCalls": 24,
+  "at": "2026-08-01T16:51:01.129Z",
+  "totalLLMCalls": 22,
   "scenarios": [
     {
-      "id": "heavy-02-ceo-report",
+      "id": "light-06-quit-travel-trap",
       "error": false,
       "judgeError": null,
       "gate": "heavy",
-      "requestType": "info",
+      "requestType": "vent",
       "mechanicalFindings": 0,
-      "judgeFails": [
-        "ownership:M"
-      ]
+      "judgeFails": []
     },
     {
-      "id": "heavy-03-jeonse-maemae",
+      "id": "light-05-hoesik-escalate",
       "error": false,
       "judgeError": null,
-      "gate": "heavy",
+      "gate": "light",
       "requestType": "open",
+      "lightOutcome": "escalate",
       "mechanicalFindings": 0,
-      "judgeFails": [
-        "premise_quality:M",
-        "restraint:L"
-      ]
+      "judgeFails": []
     },
     {
       "id": "heavy-04-fire-teammate",
@@ -32,10 +28,7 @@
       "gate": "heavy",
       "requestType": "open",
       "mechanicalFindings": 0,
-      "judgeFails": [
-        "premise_quality:M",
-        "update_fidelity:M"
-      ]
+      "judgeFails": []
     },
     {
       "id": "heavy-01-job-offer-40",
@@ -43,11 +36,17 @@
       "judgeError": null,
       "gate": "heavy",
       "requestType": "open",
+      "mechanicalFindings": 1,
+      "judgeFails": []
+    },
+    {
+      "id": "heavy-03-jeonse-maemae",
+      "error": false,
+      "judgeError": null,
+      "gate": "heavy",
+      "requestType": "open",
       "mechanicalFindings": 0,
-      "judgeFails": [
-        "question_value:M",
-        "update_fidelity:M"
-      ]
+      "judgeFails": []
     },
     {
       "id": "heavy-05-cofounder",
@@ -56,10 +55,7 @@
       "gate": "heavy",
       "requestType": "open",
       "mechanicalFindings": 0,
-      "judgeFails": [
-        "ownership:M",
-        "premise_quality:M"
-      ]
+      "judgeFails": []
     }
   ]
 }

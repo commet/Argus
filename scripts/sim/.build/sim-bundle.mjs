@@ -15789,13 +15789,6 @@ OUTPUT DISCIPLINE
   The second is a standard, not a premise: it is what MATTERS to them, and it is
   usually the thing actually deciding the call. Capture it \u2014 as a standard.
 
-  AND AFTER AN ANSWER: the reply to your question is the richest premise
-  material you will ever get, because they wrote it in response to being asked
-  what bears on the decision. Look there FIRST before concluding there is
-  nothing. "\uAC1C\uC120 \uACC4\uD68D\uC740 \uBB38\uC11C\uB85C \uB0A8\uACBC\uACE0, \uB450 \uBC88\uC9F8 \uAE30\uD55C\uC774 \uB2E4\uC74C \uC8FC\uC5D0 \uB05D\uB098\uC694" is a
-  dated, checkable condition in their own words \u2014 that is a premise, not a
-  passing detail.
-
   Restraint means not INVENTING one. It does not mean refusing to see one that
   is written in front of you. Both failures are failures.
 
@@ -15804,7 +15797,16 @@ OUTPUT DISCIPLINE
   a label stuck on it. \u2717 "\uB7F0\uC6E8\uC774\uAC00 18\uAC1C\uC6D4\uC774\uB2E4" (\uC0AC\uC2E4\uC774\uC9C0 \uC804\uC81C\uAC00 \uC544\uB2D8)
   \u2717 "\uB7F0\uC6E8\uC774 18\uAC1C\uC6D4\uC774 \uB9AC\uC2A4\uD06C \uBCC0\uC218\uB2E4" (\uAC19\uC740 \uC0AC\uC2E4\uC5D0 \uC774\uB984\uB9CC \uBD99\uC778 \uAC83)
   \u2713 "18\uAC1C\uC6D4 \uC548\uC5D0 \uB2E4\uC74C \uB77C\uC6B4\uB4DC\uB098 \uD751\uC790 \uC804\uD658\uC774 \uC628\uB2E4". If the only sentence you can
-  write is the fact itself, there is no premise there \u2014 return [].
+  write is the fact itself, write it with "kind":"fact" \u2014 that is honest and
+  costs nothing. Do not dress it as a premise.
+
+  ONE EXCEPTION, and it is the most valuable move available: when THEY hedged
+  and you can name what would settle it, take the hedge off. "\uC9D1\uC8FC\uC778\uC774 \uC804\uC138\uAE08\uC744
+  \uC62C\uB824\uB2EC\uB77C\uACE0 \uD560 \uAC83 \uAC19\uAE30\uB3C4 \uD558\uACE0\uC694" \u2192 {"text":"\uC9D1\uC8FC\uC778\uC774 \uC804\uC138\uAE08\uC744 \uC62C\uB824\uB2EC\uB77C\uACE0 \uD560
+  \uAC83\uC774\uB2E4", "kind":"prediction", "observable":"\uB9CC\uAE30 \uC804 \uAC31\uC2E0 \uC758\uC0AC\uB97C \uBB3C\uC5C8\uC744 \uB54C
+  \uB098\uC624\uB294 \uB2F5"}. Almost no new words, and a worry that could never be right or
+  wrong becomes something reality answers. A prediction ALWAYS needs its
+  observable; without one it is just an assumption with a date on it.
   Candidate object shape: {"text":"...", "anchor_quote":"...",
   "support_kind":"explicit_reason|explicit_condition|explicit_expectation",
   "if_false_changes":"...", "kind":"fact|premise|prediction|standard|open_question",
@@ -15857,13 +15859,36 @@ UPDATE CONTRACT
    Fold it in with their wording; do not restyle it for the sake of movement.
 3. Do not rewrite the full premise list. Report only premise_changes caused by
    the latest answer. An omitted premise remains unchanged.
-   BUT AN ANSWER USUALLY CARRIES ONE. They just told you, in their own words,
-   something that bears on the decision \u2014 that is the best premise material the
-   whole session produces, and it is the first place to look before concluding
-   nothing changed. Measured across 11 sessions: two premise_changes total,
-   while answers like "\uAC1C\uC120 \uACC4\uD68D\uC740 \uBB38\uC11C\uB85C \uB0A8\uACBC\uACE0, \uB450 \uBC88\uC9F8 \uAE30\uD55C\uC774 \uB2E4\uC74C \uC8FC\uC5D0
-   \uB05D\uB098\uC694" sat there unrecorded. A dated, checkable condition in their own words
-   is an add, with "kind":"premise" and an "observable" of \uB2E4\uC74C \uC8FC \uAE30\uD55C\uC758 \uACB0\uACFC.
+
+   AN ANSWER IS RAW MATERIAL, NOT THE RECORD. They just told you something that
+   bears on the decision \u2014 the best material the session produces \u2014 and the
+   work is to say what it MAKES POSSIBLE OR IMPOSSIBLE in the choice they are
+   actually facing. Writing the number down is not that work.
+
+   Measured (11 sessions): the model recorded the numbers and stopped. A
+   founder deciding whether to polish the product or push sales answered
+   "\uB7F0\uC6E8\uC774\uB294 10\uAC1C\uC6D4 \uC815\uB3C4 \uB0A8\uC558\uC5B4\uC694" and then "\uB9AC\uD150\uC158\uC774 \uB0AE\uC544\uC694, \uCCAB \uB2EC 30% \uC815\uB3C4\uC608\uC694".
+
+   \u2717 {"action":"add","text":"\uB7F0\uC6E8\uC774\uAC00 10\uAC1C\uC6D4 \uB0A8\uC544 \uC788\uB2E4","kind":"fact"}
+   \u2717 {"action":"add","text":"\uCCAB \uB2EC \uB9AC\uD150\uC158\uC774 30%\uB2E4","kind":"fact"}
+     Two true sentences that change nothing. They restate the answer, and the
+     fork \u2014 \uC81C\uD488 vs \uC601\uC5C5 \u2014 is untouched by both.
+
+   \u2713 {"action":"add",
+      "text":"10\uAC1C\uC6D4 \uC548\uC5D0 \uC81C\uD488\uC744 \uACE0\uCCD0 \uB9AC\uD150\uC158\uC744 \uC62C\uB9AC\uBA74 \uADF8\uB54C \uC601\uC5C5\uC774 \uD1B5\uD55C\uB2E4",
+      "anchor_quote":"\uB7F0\uC6E8\uC774\uB294 10\uAC1C\uC6D4 \uC815\uB3C4 \uB0A8\uC558\uC5B4\uC694",
+      "reason_from_latest_answer":"\uB0A8\uC740 \uAE30\uAC04\uC774 \uB450 \uC548\uC758 \uC21C\uC11C\uB97C \uAC15\uC81C\uD55C\uB2E4",
+      "support_kind":"explicit_condition",
+      "if_false_changes":"\uC9C0\uAE08 \uC601\uC5C5\uC744 \uB298\uB9AC\uB294 \uCABD\uC774 \uB9DE\uB294 \uD310\uB2E8\uC774 \uB41C\uB2E4",
+      "kind":"premise","observable":"\uB2E4\uC74C \uB450 \uB2EC \uCF54\uD638\uD2B8 \uB9AC\uD150\uC158"}
+     Then the SECOND answer is evidence about that same premise \u2014 a revise, not
+     a third row. 30% first-month retention bears directly on whether the fix
+     lands in 10 months.
+
+   The test: does this sentence say what the answer makes possible or
+   impossible? If you cannot say it honestly, record the plain fact with
+   "kind":"fact" and stop. A fact is a correct and cheap outcome. A fact
+   wearing the word \uC804\uC81C is not.
    Restraint is not inventing one; it is not refusing to see one.
 4. A remove or revise change needs previous_text plus an exact anchor_quote from
    the latest answer and reason_from_latest_answer. An add or revise also needs
@@ -16444,7 +16469,31 @@ function buildMixPrompt(problemText, snapshots, questionsAndAnswers, decisionMak
 // scripts/sim/sim-entry.ts
 import { callLLMJson as callLLMJson2 } from "../llm-shim.mjs";
 
+// src/lib/decisive-premises.ts
+var KIND_POLICY = {
+  fact: { verifiable: false, competes: false, needsClaim: false, needsStance: false, needsObservable: false },
+  premise: { verifiable: true, competes: true, needsClaim: true, needsStance: false, needsObservable: false },
+  // A prediction is NOT gated on saying something new. Its whole job is to turn
+  // a hedge into something reality can answer — "올려달라고 할 것 같기도
+  // 하고요" into "올려달라고 할 것이다" — which adds no vocabulary at all. What
+  // it owes instead is a way to check it.
+  prediction: { verifiable: true, competes: true, needsClaim: false, needsStance: false, needsObservable: true },
+  standard: { verifiable: false, competes: false, needsClaim: false, needsStance: true, needsObservable: false },
+  open_question: { verifiable: true, competes: false, needsClaim: false, needsStance: false, needsObservable: false }
+};
+var PREMISE_KINDS = Object.keys(KIND_POLICY);
+function asKind(value) {
+  const k = typeof value === "string" ? value.trim() : "";
+  return PREMISE_KINDS.includes(k) ? k : "premise";
+}
+function policyFor(kind) {
+  return KIND_POLICY[asKind(kind)];
+}
+
 // src/lib/judgment-state-contract.ts
+function checkableTexts(records) {
+  return records.filter((r) => policyFor(r.kind).competes).map((r) => r.text);
+}
 function stripModelOnly(item) {
   if (!item) return item;
   if ("decisive" in item) {
@@ -16454,20 +16503,135 @@ function stripModelOnly(item) {
   }
   return item;
 }
-var PREMISE_KINDS = /* @__PURE__ */ new Set([
-  "fact",
+var STOP_TOKENS = /* @__PURE__ */ new Set([
+  "\uADF8",
+  "\uC774",
+  "\uC800",
+  "\uAC83",
+  "\uC218",
+  "\uB54C",
+  "\uB4F1",
+  "\uBC0F",
+  "\uB354",
+  "\uC880",
+  "\uC798",
+  "\uC548",
+  "\uBABB",
+  "\uB610",
+  "\uB098",
+  "\uB108",
+  "\uB0B4",
+  "\uC81C",
+  "\uC800\uD76C",
+  "\uC6B0\uB9AC",
+  "\uAC70",
+  "\uAC8C",
+  "\uAC74",
+  "\uC810",
+  "\uBD84",
+  "\uC911",
+  "\uD6C4",
+  "\uC804",
+  "the",
+  "a",
+  "an",
+  "and",
+  "or",
+  "but",
+  "if",
+  "of",
+  "to",
+  "in",
+  "on",
+  "at",
+  "is",
+  "are",
+  "be",
+  "been",
+  "that",
+  "this",
+  "it",
+  "as",
+  "for",
+  "with",
+  "my",
+  "i",
+  "we",
+  "they",
+  // Slot names. "런웨이가 18개월이라는 전제" is the anchor with the word
+  // "전제" stapled on — the model naming the box it is filling, which the
+  // harness prompt already calls out (✗ "같은 사실에 이름만 붙인 것"). Left
+  // countable, these words were enough novelty to pass a restatement as a claim.
+  "\uC804\uC81C",
+  "\uAC00\uC815",
+  "\uC870\uAC74",
+  "\uBCC0\uC218",
+  "\uC694\uC778",
+  "\uB9AC\uC2A4\uD06C",
+  "\uC774\uC288",
+  "\uC9C0\uC810",
+  "\uBD80\uBD84",
+  "\uCE21\uBA74",
+  "\uC0C1\uD669",
+  "\uC0C1\uD0DC",
+  "\uD3EC\uC778\uD2B8",
+  "\uBB38\uC81C",
+  "\uC0AC\uC2E4",
+  "\uC598\uAE30",
+  "\uC774\uC57C\uAE30",
   "premise",
-  "prediction",
-  "standard",
-  "open_question"
+  "assumption",
+  "condition",
+  "factor",
+  "risk",
+  "issue",
+  "point",
+  "situation",
+  "state",
+  "aspect",
+  "thing",
+  "fact"
 ]);
-function asKind(value) {
-  const k = cleanText(value);
-  return PREMISE_KINDS.has(k) ? k : "premise";
+var STANCE_CLAIM = new RegExp(
+  "(\uB9C8\uC74C\uC5D0\\s*\uAC78\uB9AC|\uAC78\uB9AC\uB294|\uAC78\uB824\\s*\uD558|\uBB34\uAC81|\uBD80\uB2F4|\uBD88\uC548|\uC2E0\uACBD\\s*(\uC4F0|\uC368)|\uC911\uC694\uD558|\uC911\uC2DC|\uC6B0\uC120\uC21C\uC704|\uAE30\uC900\uC774\uB2E4|\uAE30\uC900\uC774\\s*(\uB41C|\uB418)|\uB192\uAC8C\\s*\uBCF4|\uD06C\uAC8C\\s*\uBCF4|\uB0AE\uAC8C\\s*\uBCF4|\uC911\uC694\uD558\uAC8C\\s*\uBCF4|\uBCF4\uACE0\\s*\uC788|\uC0DD\uAC01\uD558\uACE0\\s*\uC788|\uBBFF\uACE0\\s*\uC788|\uAE30\uB300\uD558\uACE0\\s*\uC788|\uC5EC\uAE30\uACE0\\s*\uC788|\uC5EC\uAE34\uB2E4)|\\b(matters? to|weighs? on|cares? (most )?about|believes?|expects?|values?|prioriti[sz]es?)\\b",
+  "i"
+);
+function attributesStanceToUser(text) {
+  return STANCE_CLAIM.test(comparable(text));
+}
+function stemToken(token) {
+  return /[가-힣]/.test(token) ? token.slice(0, 2) : token.slice(0, 4);
+}
+function contentStems(text) {
+  const stems = comparable(text).split(/[^\p{L}\p{N}]+/u).filter((token) => token.length > 0 && !STOP_TOKENS.has(token)).map(stemToken);
+  return [...new Set(stems)];
+}
+var CLAIM_NOVELTY_FLOOR = 0.34;
+var CLAIM_NOVEL_TOKENS_FLOOR = 2;
+function claimBand(text, anchorQuote) {
+  const stems = contentStems(text);
+  const anchor = new Set(contentStems(anchorQuote));
+  if (stems.length === 0) return { novelty: 0, anchor_overlap: 0, novel_count: 0 };
+  const novel = stems.filter((s) => !anchor.has(s));
+  return {
+    novelty: novel.length / stems.length,
+    anchor_overlap: stems.length - novel.length,
+    novel_count: novel.length
+  };
+}
+var HEDGE = /것\s*같|듯|아마|싶은|싶어|지\s*않을까|할지도|모르겠|같기도|생각도\s*들|\b(maybe|might|probably|possibly|seems?|i think|not sure|could be)\b/i;
+function hardensAHedge(text, anchorQuote) {
+  return HEDGE.test(comparable(anchorQuote)) && !HEDGE.test(comparable(text));
+}
+function statesAClaim(text, anchorQuote) {
+  const band = claimBand(text, anchorQuote);
+  const lexical = band.novelty >= CLAIM_NOVELTY_FLOOR && band.novel_count >= CLAIM_NOVEL_TOKENS_FLOOR;
+  return lexical || hardensAHedge(text, anchorQuote);
 }
 function clampSynthesisToLivingState(result, living) {
-  const assumptions = (living?.hidden_assumptions || []).filter((item) => typeof item === "string" && item.trim().length > 0).map((item) => cleanText(item));
-  const checkableCount = (living?.premise_records || []).filter((r) => r && cleanText(r.if_false_changes).length > 0).length;
+  const records = (living?.premise_records || []).filter(Boolean);
+  const assumptions = records.length > 0 ? records.filter((r) => policyFor(r.kind).competes).map((r) => cleanText(r.text)).filter((text) => text.length > 0) : (living?.hidden_assumptions || []).filter((item) => typeof item === "string" && item.trim().length > 0).map((item) => cleanText(item));
+  const checkableCount = records.filter((r) => policyFor(r.kind).verifiable && cleanText(r.if_false_changes).length > 0).length;
   const modelSteps = (result.next_steps || []).filter((item) => typeof item === "string" && item.trim().length > 0).map((item) => cleanText(item));
   const nextSteps = modelSteps.slice(0, checkableCount);
   const assumptionHeading = /(전제|가정|아직.*(?:확인|모르)|확인되지|assumptions?|unverified|unknown)/i;
@@ -16485,7 +16649,27 @@ function clampSynthesisToLivingState(result, living) {
     next_steps: nextSteps
   };
 }
-var MAX_PREMISES = 2;
+var MAX_CLAIMS = 2;
+var MAX_RECORDS = 4;
+function claimCount(records) {
+  return records.filter((r) => policyFor(r.kind).competes).length;
+}
+function gateByKind(declared, text, anchorQuote, stanceFromContext = false, observable = "") {
+  const band = claimBand(text, anchorQuote);
+  let kind = attributesStanceToUser(text) ? "standard" : asKind(declared);
+  if (KIND_POLICY[kind].needsStance) {
+    return stanceFromContext || hasExplicitSupportSignal(anchorQuote) ? { ok: true, kind, reason: "grounded", band } : { ok: false, kind, reason: "standard_without_user_stance", band };
+  }
+  let reason = "grounded";
+  if (KIND_POLICY[kind].needsObservable && !observable) {
+    kind = "premise";
+    reason = "prediction_without_observable_read_as_premise";
+  }
+  if (KIND_POLICY[kind].needsClaim && !statesAClaim(text, anchorQuote)) {
+    return { ok: true, kind: "fact", reason: "restates_anchor_recorded_as_fact", band };
+  }
+  return { ok: true, kind, reason, band };
+}
 function asRecord(value) {
   return value != null && typeof value === "object" && !Array.isArray(value) ? value : null;
 }
@@ -16541,21 +16725,28 @@ function coercePremiseCandidates(raw, userCorpus) {
       });
       continue;
     }
-    if (!hasExplicitSupportSignal(anchorQuote)) {
-      audit.push({
-        accepted: false,
-        action: "initial",
-        text,
-        reason: "explicit_support_not_in_anchor"
-      });
+    const gate = gateByKind(item?.kind, text, anchorQuote, false, cleanText(item?.observable));
+    const entry = {
+      action: "initial",
+      text,
+      declared_kind: asKind(item?.kind),
+      recorded_kind: gate.kind,
+      band: gate.band
+    };
+    if (!gate.ok) {
+      audit.push({ ...entry, accepted: false, reason: gate.reason });
       continue;
     }
     if (findExisting(records.map((r) => r.text), text) >= 0) {
-      audit.push({ accepted: false, action: "initial", text, reason: "duplicate" });
+      audit.push({ ...entry, accepted: false, reason: "duplicate" });
       continue;
     }
-    if (records.length >= MAX_PREMISES) {
-      audit.push({ accepted: false, action: "initial", text, reason: "premise_limit" });
+    if (policyFor(gate.kind).competes && claimCount(records) >= MAX_CLAIMS) {
+      audit.push({ ...entry, accepted: false, reason: "premise_limit" });
+      continue;
+    }
+    if (records.length >= MAX_RECORDS) {
+      audit.push({ ...entry, accepted: false, reason: "record_limit" });
       continue;
     }
     records.push({
@@ -16563,12 +16754,12 @@ function coercePremiseCandidates(raw, userCorpus) {
       anchor_quote: anchorQuote,
       if_false_changes: ifFalseChanges,
       support_kind: supportKind,
-      kind: asKind(item?.kind),
+      kind: gate.kind,
       ...cleanText(item?.observable) ? { observable: cleanText(item?.observable) } : {}
     });
-    audit.push({ accepted: true, action: "initial", text, reason: "grounded" });
+    audit.push({ ...entry, accepted: true, reason: gate.reason });
   }
-  return { premises: records.map((r) => r.text), records, audit };
+  return { premises: checkableTexts(records), records, audit };
 }
 function applyPremiseDeltas(currentRecords, raw, fullUserCorpus, latestAnswer) {
   const records = (currentRecords || []).map((entry) => {
@@ -16576,7 +16767,7 @@ function applyPremiseDeltas(currentRecords, raw, fullUserCorpus, latestAnswer) {
       return entry.trim() ? { text: cleanText(entry), anchor_quote: "", if_false_changes: "", support_kind: "explicit_reason", kind: "premise" } : null;
     }
     return entry && typeof entry.text === "string" && entry.text.trim() ? { ...entry, text: cleanText(entry.text) } : null;
-  }).filter((r) => r !== null).slice(0, MAX_PREMISES);
+  }).filter((r) => r !== null).slice(0, MAX_RECORDS);
   const premises = records.map((r) => r.text);
   const audit = [];
   const deltas = Array.isArray(raw) ? raw : [];
@@ -16613,17 +16804,34 @@ function applyPremiseDeltas(currentRecords, raw, fullUserCorpus, latestAnswer) {
         audit.push({ accepted: false, action, text, reason: "anchor_not_in_user_words" });
         continue;
       }
-      const fromLatestAnswer = isTraceableQuote(anchorQuote, latestAnswer);
-      if (!fromLatestAnswer && !hasExplicitSupportSignal(anchorQuote)) {
-        audit.push({ accepted: false, action, text, reason: "explicit_support_not_in_anchor" });
+      const gate = gateByKind(
+        item?.kind,
+        text,
+        anchorQuote,
+        isTraceableQuote(anchorQuote, latestAnswer),
+        cleanText(item?.observable)
+      );
+      const entry = {
+        action,
+        text,
+        declared_kind: asKind(item?.kind),
+        recorded_kind: gate.kind,
+        band: gate.band
+      };
+      if (!gate.ok) {
+        audit.push({ ...entry, accepted: false, reason: gate.reason });
         continue;
       }
       if (findExisting(premises, text) >= 0) {
-        audit.push({ accepted: false, action, text, reason: "duplicate" });
+        audit.push({ ...entry, accepted: false, reason: "duplicate" });
         continue;
       }
-      if (records.length >= MAX_PREMISES) {
-        audit.push({ accepted: false, action, text, reason: "premise_limit" });
+      if (policyFor(gate.kind).competes && claimCount(records) >= MAX_CLAIMS) {
+        audit.push({ ...entry, accepted: false, reason: "premise_limit" });
+        continue;
+      }
+      if (records.length >= MAX_RECORDS) {
+        audit.push({ ...entry, accepted: false, reason: "record_limit" });
         continue;
       }
       records.push({
@@ -16631,11 +16839,11 @@ function applyPremiseDeltas(currentRecords, raw, fullUserCorpus, latestAnswer) {
         anchor_quote: anchorQuote,
         if_false_changes: ifFalseChanges,
         support_kind: supportKind,
-        kind: asKind(item?.kind),
+        kind: gate.kind,
         ...cleanText(item?.observable) ? { observable: cleanText(item?.observable) } : {}
       });
       premises.push(text);
-      audit.push({ accepted: true, action, text, reason: "grounded" });
+      audit.push({ ...entry, accepted: true, reason: gate.reason });
       continue;
     }
     const existingIndex = findExisting(premises, previousText);
@@ -16680,12 +16888,13 @@ function applyPremiseDeltas(currentRecords, raw, fullUserCorpus, latestAnswer) {
       audit.push({ accepted: false, action, previous_text: previousText, text, reason: "duplicate" });
       continue;
     }
+    const revised = gateByKind(item?.kind, text, anchorQuote, true, cleanText(item?.observable));
     records[existingIndex] = {
       text,
       anchor_quote: anchorQuote,
       if_false_changes: ifFalseChanges,
       support_kind: supportKind,
-      kind: asKind(item?.kind),
+      kind: revised.kind,
       ...cleanText(item?.observable) ? { observable: cleanText(item?.observable) } : {}
     };
     premises[existingIndex] = text;
@@ -16694,14 +16903,14 @@ function applyPremiseDeltas(currentRecords, raw, fullUserCorpus, latestAnswer) {
       action,
       previous_text: previousText,
       text,
+      declared_kind: asKind(item?.kind),
+      recorded_kind: revised.kind,
+      band: revised.band,
       reason: "latest_answer_grounded"
     });
   }
-  return {
-    premises: records.slice(0, MAX_PREMISES).map((r) => r.text),
-    records: records.slice(0, MAX_PREMISES),
-    audit
-  };
+  const kept = records.slice(0, MAX_RECORDS);
+  return { premises: checkableTexts(kept), records: kept, audit };
 }
 
 // src/lib/progressive-guards.ts

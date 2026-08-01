@@ -88,6 +88,7 @@ const census = {
   sessionsWithRecord: 0,
   openWithRecord: 0,
   openWithClaim: 0,
+  openWithSettleable: 0,
   nonOpenWithRecord: [],
   proposed: 0,
   admitted: 0,
@@ -157,12 +158,20 @@ for (const file of files.sort()) {
     if (rec.if_false_changes) census.withIfFalse += 1;
   }
   const hasClaim = row.records.some((x) => x.kind === 'premise' || x.kind === 'prediction');
+  // An honest open_question with an observable is ALSO something reality will
+  // answer, and sometimes it is the more honest thing to leave the user with.
+  // Reading coverage as claims-only pushes toward manufacturing a premise where
+  // "nobody has checked this yet" was the truthful record.
+  const hasSettleable = row.records.some(
+    (x) => x.kind === 'premise' || x.kind === 'prediction' || x.kind === 'open_question',
+  );
   if (row.records.length > 0) {
     census.sessionsWithRecord += 1;
     if (isOpen) census.openWithRecord += 1;
     else census.nonOpenWithRecord.push({ id: r.id, route, kept: row.records.length });
   }
   if (isOpen && hasClaim) census.openWithClaim += 1;
+  if (isOpen && hasSettleable) census.openWithSettleable += 1;
   row.route = route;
   census.perSession.push(row);
 }
@@ -181,7 +190,8 @@ console.log(`\nPREMISE CENSUS — ${dir}  (${census.sessions} sessions, 0 LLM ca
 console.log('SUPPLY — did the model look, where looking was the job?');
 line('OPEN sessions', `${census.openSessions}/${census.sessions}`);
 line('open: anything kept', `${census.openWithRecord}/${census.openSessions}  ${pct(census.openWithRecord, census.openSessions)}`);
-line('open: a CLAIM kept', `${census.openWithClaim}/${census.openSessions}  ${pct(census.openWithClaim, census.openSessions)}  <- the promise`);
+line('open: SETTLEABLE kept', `${census.openWithSettleable}/${census.openSessions}  ${pct(census.openWithSettleable, census.openSessions)}  <- the promise`);
+line('open: a CLAIM kept', `${census.openWithClaim}/${census.openSessions}  ${pct(census.openWithClaim, census.openSessions)}`);
 line('non-open that recorded', `${census.nonOpenWithRecord.length}  ${census.nonOpenWithRecord.length === 0 ? '(correct: restraint held)' : JSON.stringify(census.nonOpenWithRecord)}`);
 line('proposals', String(census.proposed));
 line('declared kinds', JSON.stringify(census.declared));
