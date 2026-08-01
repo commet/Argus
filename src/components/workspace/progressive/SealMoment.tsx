@@ -123,6 +123,7 @@ export function SealMoment({
   gate,
   closing = false,
   openChecks = [],
+  onCheckNow,
 }: {
   project: Project;
   /** Falsifiable predictions derived from this voyage (live path). */
@@ -131,6 +132,11 @@ export function SealMoment({
    *  so settle can ask "did you check it?". Auto-carried; the user can drop any before
    *  sealing (founder setting). Empty when the scan found nothing carriable. */
   openChecks?: OpenCheck[];
+  /** Opens the return/settlement surface. Without it the workspace showed
+   *  "돌아오셨네요 — …에 물어보기로 한 게 있어요" on the due day and then offered
+   *  no way to answer: the CTA inside the record card is gated on this prop, and
+   *  only /project ever passed it. */
+  onCheckNow?: () => void;
   /** §0 sealing restraint inputs (from the analysis snapshot). When routine +
    *  reversible + confident, the seal records a single light check instead of the
    *  full multi-predicate contract (CLAUDE.md mirror clause — don't over-fire
@@ -743,7 +749,7 @@ export function SealMoment({
   // After it stamps closed_at (or on a return-day / non-closing surface), delegate.
   const playClosingCeremony = closing && !contract?.closed_at;
   if (contract && scene === 'ask' && !playClosingCeremony) {
-    return <DecisionContractCard project={project} livePredicates={predicates} />;
+    return <DecisionContractCard project={project} livePredicates={predicates} onCheckNow={onCheckNow} />;
   }
 
   // Zero machine-derived predicates. Two very different worlds (see flatDecision):

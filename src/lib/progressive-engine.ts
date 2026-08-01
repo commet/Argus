@@ -1196,6 +1196,12 @@ export async function runDeepening(
     real_question: result.real_question || currentSnapshot.real_question,
     hidden_assumptions: nextPremises,
     premise_records: alignRecords(premiseTransition.records, nextPremises),
+    // Weight has to survive the round. Without it the §0 sealing gate read
+    // 'important / partial' from its own defaults on every snapshot after the
+    // first, so a routine reversible call still got the full closing ceremony —
+    // the over-fire the gate exists to prevent.
+    stakes: currentSnapshot.stakes,
+    reversibility: currentSnapshot.reversibility,
     // R7 — heavy prose passes the banned-vocabulary scrub on every round.
     skeleton: scrubList(result.skeleton || currentSnapshot.skeleton),
     execution_plan: executionPlan,
@@ -1863,8 +1869,13 @@ export async function runFinalDeliverable(
       : mix.decision_read,
     executive_summary: result.executive_summary || mix.executive_summary,
     sections: rewrittenSections,
-    key_assumptions: result.key_assumptions || mix.key_assumptions,
-    next_steps: result.next_steps || mix.next_steps,
+    // The finalizer runs the LEGACY prompt and is not clamped, so anything it
+    // invents here becomes a SEALED PREDICATE — extractPredicatesFromSession
+    // prefers final_mix over mix. The living state already decided these two
+    // lists; a rewrite may polish prose, not repopulate them. (`[]` is truthy
+    // in JS, so an empty model array silently beat the real list here too.)
+    key_assumptions: mix.key_assumptions,
+    next_steps: mix.next_steps,
   };
 
   return {

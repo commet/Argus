@@ -92,6 +92,7 @@ import { deriveCurrentBearing } from '@/lib/current-bearing';
 import { EASE, SPRING } from './shared/constants';
 import { parsePartialAnalysis, parsePartialDoc, parsePartialFeedback } from '@/lib/partial-analysis';
 import { AnalysisCard } from './shared/AnalysisCard';
+import { SettlementModal } from '@/components/projects/SettlementModal';
 import { HonestyShaded } from './shared/HonestyShaded';
 import { locateFlag } from '@/lib/honesty-scan';
 import { neutralizeLeanText } from '@/lib/lean-scan';
@@ -352,6 +353,9 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
   // user dismisses it. Parent-owned so it stays gone across re-renders/rounds
   // (restraint > engagement — never re-nag the same premise).
   const [mirrorSeen, setMirrorSeen] = useState(false);
+  /** The return surface, opened from the due-day card. It used to exist only on
+   *  /project, so the workspace announced a return and gave no way to answer. */
+  const [settleOpen, setSettleOpen] = useState(false);
   const [streamingText, setStreamingText] = useState<string | null>(null);
   // Verification gate — open when the captain tries to sail with unreviewed work.
   const [verifyGateOpen, setVerifyGateOpen] = useState(false);
@@ -2887,7 +2891,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
                 SealMoment) leads the scene instead of hiding below the fold. */}
             {contractDue && contractProject && (
               <div className="mb-4">
-                <SealMoment project={contractProject} predicates={contractPredicates} openChecks={openChecks} gate={sealGate} />
+                <SealMoment project={contractProject} predicates={contractPredicates} openChecks={openChecks} gate={sealGate} onCheckNow={() => setSettleOpen(true)} />
               </div>
             )}
             {/* ① 산출물 ("가져가실 것") — the document is what the user takes
@@ -2943,7 +2947,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
                 before ever seeing it — the closing scene must come before the
                 exits, never compete with them. */}
             {contractProject && !contractDue && (
-              <SealMoment project={contractProject} predicates={contractPredicates} openChecks={openChecks} gate={sealGate} closing />
+              <SealMoment project={contractProject} predicates={contractPredicates} openChecks={openChecks} gate={sealGate} onCheckNow={() => setSettleOpen(true)} closing />
             )}
 
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }} className="pt-10 pb-16">
@@ -3185,6 +3189,9 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
             </footer>
           </div>
         </div>
+      )}
+      {settleOpen && contractProject && (
+        <SettlementModal project={contractProject} onClose={() => setSettleOpen(false)} />
       )}
     </>
   );

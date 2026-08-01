@@ -3,8 +3,8 @@
 import { useState } from 'react';
 import { useLocale } from '@/hooks/useLocale';
 import { useProjectStore } from '@/stores/useProjectStore';
-import type { ContractSettlement, Project } from '@/stores/types';
-import { appendContractSettlement, decisionKind } from '@/lib/decision-contract';
+import type { ContractSettlement, DecisionContract, PredicateVerdict, Project } from '@/stores/types';
+import { appendContractSettlement, decisionKind, gradePredicate } from '@/lib/decision-contract';
 import {
   axesWithPresentStandard,
   FOUNDATION_SETTLEMENT_OPTIONS,
@@ -198,6 +198,14 @@ export function FoundationSettlementModal({ project, onClose }: FoundationSettle
               </div>
             )}
 
+            <PremiseReturn
+              contract={contract}
+              ko={ko}
+              onGrade={(predicateId, verdict) => {
+                updateDecisionContract(project.id, (current) =>
+                  (current ? gradePredicate(current, predicateId, verdict, Date.now()) : current));
+              }}
+            />
             {saved ? (
               <div className="space-y-3">
             <p className="text-[15px] font-semibold leading-6 text-[var(--text-primary)]">
@@ -311,5 +319,82 @@ function PrimaryButton({ onClick, children }: { onClick: () => void; children: R
     <button type="button" onClick={onClick} className="w-full rounded-xl bg-[var(--text-primary)] px-4 py-3 text-[13px] font-semibold text-[var(--bg)]">
       {children}
     </button>
+  );
+}
+
+/**
+ * What Argus wrote down, coming back to be answered.
+ *
+ * The premises were collected with real care — each one had to quote the user
+ * and say what changes if it turns out false — and then they were never shown
+ * again. The return screen read one sentence and nothing else, so the whole
+ * premise pipeline was write-only and the track record (held / broke) could
+ * only ever stay empty.
+ *
+ * This is the other half of collecting: a premise you never check was never a
+ * premise, just a note. Grading is optional — a return is complete without it.
+ */
+function PremiseReturn({
+  contract,
+  ko,
+  onGrade,
+}: {
+  contract: DecisionContract;
+  ko: boolean;
+  onGrade: (predicateId: string, verdict: PredicateVerdict) => void;
+}) {
+  const L = (k: string, e: string) => (ko ? k : e);
+  const [graded, setGraded] = useState<Record<string, PredicateVerdict>>({});
+  // The sealed sentence is answered by the main question above; these are the
+  // things it rested on.
+  const premises = (contract.predicates || [])
+    .filter((p) => p.source !== 'user_lean' && p.text?.trim())
+    .slice(0, 3);
+  if (premises.length === 0) return null;
+
+  const CHOICES: Array<{ verdict: PredicateVerdict; ko: string; en: string }> = [
+    { verdict: 'happened', ko: '맞았어요', en: 'Held up' },
+    { verdict: 'missed', ko: '아니었어요', en: 'Turned out wrong' },
+    { verdict: 'unknown', ko: '아직 몰라요', en: 'Still cannot tell' },
+  ];
+
+  return (
+    <div className="rounded-xl border border-[var(--border)] bg-[var(--bg)] px-3.5 py-3">
+      <p className="text-[12.5px] font-semibold text-[var(--text-tertiary)]">
+        {L('그때 이게 맞다고 보고 결정하셨어요', 'The decision rested on these')}
+      </p>
+      <div className="mt-2.5 space-y-3">
+        {premises.map((premise) => {
+          const answer = graded[premise.id] ?? premise.verdict;
+          return (
+            <div key={premise.id}>
+              <p className="text-[13px] leading-[1.6] text-[var(--text-primary)]">{premise.text}</p>
+              <div className="mt-1.5 flex flex-wrap gap-1.5">
+                {CHOICES.map((choice) => (
+                  <button
+                    key={choice.verdict}
+                    type="button"
+                    onClick={() => {
+                      setGraded((prev) => ({ ...prev, [premise.id]: choice.verdict }));
+                      onGrade(premise.id, choice.verdict);
+                    }}
+                    className={`rounded-full border px-2.5 py-1 text-[12px] transition-colors ${
+                      answer === choice.verdict
+                        ? 'border-[var(--accent)] bg-[var(--accent)]/10 text-[var(--text-primary)]'
+                        : 'border-[var(--border)] text-[var(--text-secondary)] hover:border-[var(--accent)]/50'
+                    }`}
+                  >
+                    {L(choice.ko, choice.en)}
+                  </button>
+                ))}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      <p className="mt-2.5 text-[12px] leading-5 text-[var(--text-tertiary)]">
+        {L('안 고르셔도 돼요. 답한 것만 기록에 남습니다.', 'Optional — only what you answer is recorded.')}
+      </p>
+    </div>
   );
 }

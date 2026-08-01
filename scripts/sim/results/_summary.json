@@ -1,32 +1,9 @@
 {
-  "at": "2026-08-01T07:53:20.025Z",
-  "totalLLMCalls": 20,
+  "at": "2026-08-01T07:58:03.274Z",
+  "totalLLMCalls": 23,
   "scenarios": [
     {
-      "id": "light-01-party-wife",
-      "error": false,
-      "judgeError": null,
-      "gate": "light",
-      "lightOutcome": "offer",
-      "mechanicalFindings": 0,
-      "judgeFails": [
-        "question_value:M"
-      ]
-    },
-    {
-      "id": "light-02-laptop",
-      "error": false,
-      "judgeError": null,
-      "gate": "light",
-      "lightOutcome": "close",
-      "mechanicalFindings": 0,
-      "judgeFails": [
-        "question_value:M",
-        "update_fidelity:M"
-      ]
-    },
-    {
-      "id": "light-04-parents-weekend",
+      "id": "light-03-dinner-flat",
       "error": false,
       "judgeError": null,
       "gate": "light",
@@ -37,15 +14,26 @@
       ]
     },
     {
-      "id": "heavy-04-fire-teammate",
+      "id": "light-09-chatty-500",
+      "error": false,
+      "judgeError": null,
+      "gate": "light",
+      "lightOutcome": "offer",
+      "mechanicalFindings": 0,
+      "judgeFails": [
+        "ownership:M",
+        "question_value:M"
+      ]
+    },
+    {
+      "id": "heavy-05-cofounder",
       "error": false,
       "judgeError": null,
       "gate": "heavy",
       "requestType": "open",
-      "mechanicalFindings": 1,
+      "mechanicalFindings": 0,
       "judgeFails": [
-        "question_value:M",
-        "update_fidelity:M"
+        "question_value:M"
       ]
     },
     {
@@ -56,9 +44,20 @@
       "requestType": "open",
       "mechanicalFindings": 0,
       "judgeFails": [
-        "fact_lineage:M",
+        "premise_quality:M",
         "question_value:M",
         "update_fidelity:M"
+      ]
+    },
+    {
+      "id": "heavy-03-jeonse-maemae",
+      "error": false,
+      "judgeError": null,
+      "gate": "heavy",
+      "requestType": "open",
+      "mechanicalFindings": 0,
+      "judgeFails": [
+        "question_value:M"
       ]
     }
   ]

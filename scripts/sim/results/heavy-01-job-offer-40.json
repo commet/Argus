@@ -28,16 +28,16 @@
         "stakes": "important",
         "reversibility": "partial",
         "decision_density": "medium",
-        "decision_density_reasoning": "연봉 오퍼와 승진 가능성이라는 두 축이 있지만, 어느 쪽이 더 걸리는지는 아직 나오지 않았어요.",
+        "decision_density_reasoning": "연봉 오퍼와 승진 가능성이라는 두 갈래가 있지만, 아직 어느 쪽이 더 걸리는지 나오지 않았어요.",
         "framing_confidence": 62,
         "frame_line": "승진은 아직 말뿐인데, 오퍼는 일주일 안에 답을 달라고 하네요.",
         "real_question": "승진은 아직 말뿐인데, 오퍼는 일주일 안에 답을 달라고 하네요.",
-        "why_this_matters": "승진이 확정된 얘기인지 아닌지에 따라 지금 회사 쪽의 무게가 꽤 달라져요.",
-        "insight": "연봉 40%는 숫자가 뚜렷한데, 리드 승진은 '얘기가 나오는 중'이에요. 두 가지가 같은 무게로 놓여 있지 않아요.",
+        "why_this_matters": null,
+        "insight": "지금 회사 승진이 구두로만 나온 얘기라는 게 포인트예요. 그게 얼마나 확실한 얘기인지에 따라 이 결정이 달라질 수 있어요.",
         "premise_candidates": [],
         "skeleton": [],
         "next_question": {
-          "text": "리드 승진 얘기가 나온다는 게, 누가 언제까지라고 얘기해준 건가요, 아니면 분위기상 그런 방향인 건가요?",
+          "text": "리드 승진 얘기, 누가 어느 정도로 꺼낸 거예요? 그냥 나온 얘기인지, 아니면 타임라인 같은 것도 나왔는지요.",
           "type": "short"
         },
         "detected_decision_maker": null
@@ -47,16 +47,16 @@
         "stakes": "important",
         "reversibility": "partial",
         "decision_density": "medium",
-        "decision_density_reasoning": "연봉 오퍼와 승진 가능성이라는 두 축이 있지만, 어느 쪽이 더 걸리는지는 아직 나오지 않았어요.",
+        "decision_density_reasoning": "연봉 오퍼와 승진 가능성이라는 두 갈래가 있지만, 아직 어느 쪽이 더 걸리는지 나오지 않았어요.",
         "framing_confidence": 62,
         "frame_line": "승진은 아직 말뿐인데, 오퍼는 일주일 안에 답을 달라고 하네요.",
         "real_question": "승진은 아직 말뿐인데, 오퍼는 일주일 안에 답을 달라고 하네요.",
-        "why_this_matters": "승진이 확정된 얘기인지 아닌지에 따라 지금 회사 쪽의 무게가 꽤 달라져요.",
+        "why_this_matters": null,
         "insight": "승진은 아직 말뿐인데, 오퍼는 일주일 안에 답을 달라고 하네요.",
         "premise_candidates": [],
         "skeleton": [],
         "next_question": {
-          "text": "리드 승진 얘기가 나온다는 게, 누가 언제까지라고 얘기해준 건가요, 아니면 분위기상 그런 방향인 건가요?",
+          "text": "리드 승진 얘기, 누가 어느 정도로 꺼낸 거예요? 그냥 나온 얘기인지, 아니면 타임라인 같은 것도 나왔는지요.",
           "type": "short"
         },
         "detected_decision_maker": null,
@@ -66,56 +66,56 @@
     },
     "deepening": [
       {
-        "insight": "승진 질문에 대한 답 대신 오퍼 회사 정보를 알려주셨어요. 시리즈B에 런웨이 18개월이라는 걸 직접 확인하셨다는 거고요.",
-        "frame_line": "연봉 40% 오퍼 (시리즈B, 런웨이 18개월) vs 지금 회사 안정적인 팀 — 일주일 안에 답을 줘야 해요.",
-        "real_question": "연봉 40% 오퍼 (시리즈B, 런웨이 18개월) vs 지금 회사 안정적인 팀 — 일주일 안에 답을 줘야 해요.",
+        "insight": "승진 질문에 스타트업 정보로 답하셨어요. 시리즈B에 런웨이 18개월이라는 걸 알려주셨고요.",
+        "frame_line": "연봉 40% 오퍼 — 시리즈B, 런웨이 18개월 — 를 일주일 안에 답해야 하는데, 지금 회사 리드 승진은 아직 구체적인 얘기가 나온 건지 모르는 상태예요.",
+        "real_question": "연봉 40% 오퍼 — 시리즈B, 런웨이 18개월 — 를 일주일 안에 답해야 하는데, 지금 회사 리드 승진은 아직 구체적인 얘기가 나온 건지 모르는 상태예요.",
         "premise_changes": [],
         "skeleton": [],
         "next_question": {
-          "text": "런웨이 18개월이라는 게 이 결정에서 얼마나 걸리는 거예요?",
+          "text": "런웨이 18개월, 이 결정에서 얼마나 걸리는 부분이에요?",
           "type": "short"
         },
         "ready_for_mix": false,
         "hidden_assumptions": []
       },
       {
-        "insight": "승진이 구두로만 나온 얘기라는 걸 알려주셨어요. 지금 비교하고 계신 게 확정된 오퍼 vs 아직 말뿐인 승진인 거네요.",
-        "frame_line": "연봉 40% 오퍼 (시리즈B, 런웨이 18개월) vs 지금 회사 안정적인 팀 — 승진은 구두로만 나온 상태에서 일주일 안에 답을 줘야 해요.",
-        "real_question": "연봉 40% 오퍼 (시리즈B, 런웨이 18개월) vs 지금 회사 안정적인 팀 — 승진은 구두로만 나온 상태에서 일주일 안에 답을 줘야 해요.",
+        "insight": "승진 얘기가 구두로만 나왔다는 걸 알려주셨어요. 문서도 타임라인도 없는 상태네요.",
+        "frame_line": "연봉 40% 오퍼를 일주일 안에 답해야 하는데, 지금 회사 리드 승진은 구두로만 나온 얘기라 확정된 게 없어요.",
+        "real_question": "연봉 40% 오퍼를 일주일 안에 답해야 하는데, 지금 회사 리드 승진은 구두로만 나온 얘기라 확정된 게 없어요.",
         "premise_changes": [
           {
             "action": "add",
-            "text": "지금 회사 리드 승진은 구두로만 나온 얘기고 문서로 확정된 건 없다",
+            "text": "지금 회사 리드 승진은 구두로만 나온 얘기이고, 문서로 확정된 건 없다.",
             "anchor_quote": "지금 회사 승진은 구두로만 나온 얘기고 문서로 확정된 건 없어요",
-            "reason_from_latest_answer": "승진이 확정된 조건이 아님을 사용자가 직접 밝혔고, 이게 false라면(승진이 문서로 확정돼 있다면) 두 선택지의 무게가 달라진다",
+            "reason_from_latest_answer": "승진의 구체성 수준이 명확해졌고, 이 결정에서 승진 쪽의 무게가 달라질 수 있다.",
             "support_kind": "explicit_condition",
-            "if_false_changes": "지금 회사 승진이 문서화된 확정 조건이었다면 두 선택지의 비교 무게가 달라진다"
+            "if_false_changes": "문서화된 승진 약속이 있다면 지금 회사를 떠나는 비용이 달라진다."
           }
         ],
         "skeleton": [],
         "next_question": null,
         "ready_for_mix": false,
         "hidden_assumptions": [
-          "지금 회사 리드 승진은 구두로만 나온 얘기고 문서로 확정된 건 없다"
+          "지금 회사 리드 승진은 구두로만 나온 얘기이고, 문서로 확정된 건 없다."
         ]
       }
     ],
     "mix": {
-      "title": "연봉 40% 오퍼 vs 지금 회사 구두 승진 — 일주일 안에 답",
-      "decision_read": "확정된 건 스타트업 오퍼뿐이고, 지금 회사 승진은 아직 말뿐인 채로 일주일 기한이 붙어 있어요.",
-      "executive_summary": "비교하고 계신 두 가지 중 하나는 문서로 된 오퍼고, 하나는 구두로만 나온 얘기예요. 오퍼 쪽은 연봉 40% 상승이지만 런웨이 18개월짜리 시리즈B고, 승진 쪽은 내년 초라는 시점도 확정된 게 아니에요. 두 선택지의 확실성 자체가 다른 상태예요.",
+      "title": "연봉 40% 오퍼 vs 구두 승진 얘기, 일주일 안에 답해야 하는 건",
+      "decision_read": "오퍼는 일주일 안에 답해야 하고, 지금 회사 리드 승진은 구두로만 나온 얘기라 확정된 게 없어요. 런웨이 18개월이 이 결정에서 얼마나 걸리는지는 아직 안 나왔어요.",
+      "executive_summary": "스타트업 오퍼는 연봉 40%에 시리즈B, 런웨이 18개월이에요. 지금 회사 리드 승진은 구두로만 나온 얘기고, 문서도 타임라인도 없어요. 두 쪽 다 불확실한 게 있는 채로 기한이 일주일이에요.",
       "sections": [
         {
           "heading": "확인된 것",
-          "content": "스타트업 오퍼: 연봉 40% 인상, 시리즈B, 런웨이 18개월, 일주일 내 답변 요구. 지금 회사: 팀 분위기 좋고 안정적, 리드 승진은 구두로만 나온 얘기고 문서로 확정된 건 없음."
+          "content": "스타트업 오퍼: 연봉 40% 인상, 시리즈B, 런웨이 18개월. 지금 회사: 팀 분위기 좋고 안정적, 리드 승진 얘기는 구두로만 나온 상태, 문서 없음. 답변 기한: 일주일."
         },
         {
           "heading": "아직 확인되지 않은 것",
-          "content": "런웨이 18개월이 이 결정에서 얼마나 걸리는지 — 질문을 드렸는데 아직 답이 없어요. 지금 회사 승진이 누가, 언제까지라고 얘기해준 건지도 확인되지 않았어요."
+          "content": "런웨이 18개월이 이 결정에서 얼마나 걸리는 부분인지 말씀을 안 하셨어요. 지금 회사 승진 얘기가 누구한테서, 어느 정도 온도로 나온 건지도 안 나왔고요."
         }
       ],
       "key_assumptions": [
-        "지금 회사 리드 승진은 구두로만 나온 얘기고 문서로 확정된 건 없다"
+        "지금 회사 리드 승진은 구두로만 나온 얘기이고, 문서로 확정된 건 없다."
       ],
       "next_steps": []
     }
@@ -130,7 +130,7 @@
     {
       "actor": "argus",
       "phase": "heavy_initial",
-      "text": "승진은 아직 말뿐인데, 오퍼는 일주일 안에 답을 달라고 하네요.\n\n지금 살펴볼 것: 승진은 아직 말뿐인데, 오퍼는 일주일 안에 답을 달라고 하네요.\n\n다음 질문: 리드 승진 얘기가 나온다는 게, 누가 언제까지라고 얘기해준 건가요, 아니면 분위기상 그런 방향인 건가요?"
+      "text": "승진은 아직 말뿐인데, 오퍼는 일주일 안에 답을 달라고 하네요.\n\n지금 살펴볼 것: 승진은 아직 말뿐인데, 오퍼는 일주일 안에 답을 달라고 하네요.\n\n다음 질문: 리드 승진 얘기, 누가 어느 정도로 꺼낸 거예요? 그냥 나온 얘기인지, 아니면 타임라인 같은 것도 나왔는지요."
     },
     {
       "actor": "user",
@@ -140,7 +140,7 @@
     {
       "actor": "argus",
       "phase": "heavy_deepening_1",
-      "text": "승진 질문에 대한 답 대신 오퍼 회사 정보를 알려주셨어요. 시리즈B에 런웨이 18개월이라는 걸 직접 확인하셨다는 거고요.\n\n지금 살펴볼 것: 연봉 40% 오퍼 (시리즈B, 런웨이 18개월) vs 지금 회사 안정적인 팀 — 일주일 안에 답을 줘야 해요.\n\n다음 질문: 런웨이 18개월이라는 게 이 결정에서 얼마나 걸리는 거예요?"
+      "text": "승진 질문에 스타트업 정보로 답하셨어요. 시리즈B에 런웨이 18개월이라는 걸 알려주셨고요.\n\n지금 살펴볼 것: 연봉 40% 오퍼 — 시리즈B, 런웨이 18개월 — 를 일주일 안에 답해야 하는데, 지금 회사 리드 승진은 아직 구체적인 얘기가 나온 건지 모르는 상태예요.\n\n다음 질문: 런웨이 18개월, 이 결정에서 얼마나 걸리는 부분이에요?"
     },
     {
       "actor": "user",
@@ -150,23 +150,23 @@
     {
       "actor": "argus",
       "phase": "heavy_deepening_2",
-      "text": "승진이 구두로만 나온 얘기라는 걸 알려주셨어요. 지금 비교하고 계신 게 확정된 오퍼 vs 아직 말뿐인 승진인 거네요.\n\n지금 살펴볼 것: 연봉 40% 오퍼 (시리즈B, 런웨이 18개월) vs 지금 회사 안정적인 팀 — 승진은 구두로만 나온 상태에서 일주일 안에 답을 줘야 해요.\n\n숨은 전제:\n- 지금 회사 리드 승진은 구두로만 나온 얘기고 문서로 확정된 건 없다"
+      "text": "승진 얘기가 구두로만 나왔다는 걸 알려주셨어요. 문서도 타임라인도 없는 상태네요.\n\n지금 살펴볼 것: 연봉 40% 오퍼를 일주일 안에 답해야 하는데, 지금 회사 리드 승진은 구두로만 나온 얘기라 확정된 게 없어요.\n\n숨은 전제:\n- 지금 회사 리드 승진은 구두로만 나온 얘기이고, 문서로 확정된 건 없다."
     },
     {
       "actor": "argus",
       "phase": "heavy_mix",
-      "text": "제목: 연봉 40% 오퍼 vs 지금 회사 구두 승진 — 일주일 안에 답\n\ndecision_read: 확정된 건 스타트업 오퍼뿐이고, 지금 회사 승진은 아직 말뿐인 채로 일주일 기한이 붙어 있어요.\n\n요약: 비교하고 계신 두 가지 중 하나는 문서로 된 오퍼고, 하나는 구두로만 나온 얘기예요. 오퍼 쪽은 연봉 40% 상승이지만 런웨이 18개월짜리 시리즈B고, 승진 쪽은 내년 초라는 시점도 확정된 게 아니에요. 두 선택지의 확실성 자체가 다른 상태예요.\n\n## 확인된 것\n스타트업 오퍼: 연봉 40% 인상, 시리즈B, 런웨이 18개월, 일주일 내 답변 요구. 지금 회사: 팀 분위기 좋고 안정적, 리드 승진은 구두로만 나온 얘기고 문서로 확정된 건 없음.\n\n## 아직 확인되지 않은 것\n런웨이 18개월이 이 결정에서 얼마나 걸리는지 — 질문을 드렸는데 아직 답이 없어요. 지금 회사 승진이 누가, 언제까지라고 얘기해준 건지도 확인되지 않았어요.\n\n전제:\n- 지금 회사 리드 승진은 구두로만 나온 얘기고 문서로 확정된 건 없다"
+      "text": "제목: 연봉 40% 오퍼 vs 구두 승진 얘기, 일주일 안에 답해야 하는 건\n\ndecision_read: 오퍼는 일주일 안에 답해야 하고, 지금 회사 리드 승진은 구두로만 나온 얘기라 확정된 게 없어요. 런웨이 18개월이 이 결정에서 얼마나 걸리는지는 아직 안 나왔어요.\n\n요약: 스타트업 오퍼는 연봉 40%에 시리즈B, 런웨이 18개월이에요. 지금 회사 리드 승진은 구두로만 나온 얘기고, 문서도 타임라인도 없어요. 두 쪽 다 불확실한 게 있는 채로 기한이 일주일이에요.\n\n## 확인된 것\n스타트업 오퍼: 연봉 40% 인상, 시리즈B, 런웨이 18개월. 지금 회사: 팀 분위기 좋고 안정적, 리드 승진 얘기는 구두로만 나온 상태, 문서 없음. 답변 기한: 일주일.\n\n## 아직 확인되지 않은 것\n런웨이 18개월이 이 결정에서 얼마나 걸리는 부분인지 말씀을 안 하셨어요. 지금 회사 승진 얘기가 누구한테서, 어느 정도 온도로 나온 건지도 안 나왔고요.\n\n전제:\n- 지금 회사 리드 승진은 구두로만 나온 얘기이고, 문서로 확정된 건 없다."
     }
   ],
   "calls": [
     {
-      "seq": 5,
+      "seq": 0,
       "label": "heavy-01-job-offer-40",
       "tier": "fast",
       "modelId": "claude-haiku-4-5-20251001",
       "maxTokens": 500,
       "attempt": 0,
-      "ms": 850,
+      "ms": 1901,
       "usage": {
         "input_tokens": 4160,
         "cache_creation_input_tokens": 0,
@@ -175,104 +175,104 @@
           "ephemeral_5m_input_tokens": 0,
           "ephemeral_1h_input_tokens": 0
         },
-        "output_tokens": 31,
+        "output_tokens": 148,
         "service_tier": "standard",
         "inference_geo": "not_available"
       },
       "user": "[user] 오늘은 2026-08-01 (토요일)입니다.\n\n사용자가 방금 쓴 것:\n<user-data context=\"decision\">\n3년차 백엔드 개발자예요. 지금 회사는 안정적이고 팀 분위기도 좋은데, 어제 스타트업에서 연봉 40% 올려주는 이직 오퍼를 받았어요. 지금 회사에서는 내년 초 리드 승진 얘기가 나오는 중이고요. 오퍼는 일주일 안에 답을 줘야 해요.\n</user-data>",
-      "rawText": "```json\n{\n  \"need\": \"heavy\",\n  \"mirror\": \"\",\n  \"question\": \"\"\n}\n```"
+      "rawText": "```json\n{\n  \"need\": \"heavy\",\n  \"mirror\": \"3년차에 접어들었고, 지금 회사는 안정적이고 팀도 좋은데 어제 스타트업에서 40% 인상 오퍼를 받으셨어요. 동시에 내년 초 리드 승진 얘기도 나오는 중이고, 일주일 안에 답을 결정해야 하는 상황이네요.\",\n  \"question\": \"\"\n}\n```"
     },
     {
-      "seq": 6,
+      "seq": 2,
       "label": "heavy-01-job-offer-40",
       "tier": "default",
       "modelId": "claude-sonnet-4-6",
       "maxTokens": 4096,
       "attempt": 0,
-      "ms": 7797,
+      "ms": 7260,
       "usage": {
         "input_tokens": 153,
-        "cache_creation_input_tokens": 4086,
+        "cache_creation_input_tokens": 4238,
         "cache_read_input_tokens": 0,
         "cache_creation": {
-          "ephemeral_5m_input_tokens": 4086,
+          "ephemeral_5m_input_tokens": 4238,
           "ephemeral_1h_input_tokens": 0
         },
-        "output_tokens": 465,
+        "output_tokens": 428,
         "service_tier": "standard",
         "inference_geo": "global"
       },
       "user": "[user] <user-data>3년차 백엔드 개발자예요. 지금 회사는 안정적이고 팀 분위기도 좋은데, 어제 스타트업에서 연봉 40% 올려주는 이직 오퍼를 받았어요. 지금 회사에서는 내년 초 리드 승진 얘기가 나오는 중이고요. 오퍼는 일주일 안에 답을 줘야 해요.</user-data>",
-      "rawText": "```json\n{\n  \"request_type\": \"open\",\n  \"stakes\": \"important\",\n  \"reversibility\": \"partial\",\n  \"decision_density\": \"medium\",\n  \"decision_density_reasoning\": \"연봉 오퍼와 승진 가능성이라는 두 축이 있지만, 어느 쪽이 더 걸리는지는 아직 나오지 않았어요.\",\n  \"framing_confidence\": 62,\n  \"frame_line\": \"승진은 아직 말뿐인데, 오퍼는 일주일 안에 답을 달라고 하네요.\",\n  \"real_question\": \"승진은 아직 말뿐인데, 오퍼는 일주일 안에 답을 달라고 하네요.\",\n  \"why_this_matters\": \"승진이 확정된 얘기인지 아닌지에 따라 지금 회사 쪽의 무게가 꽤 달라져요.\",\n  \"insight\": \"연봉 40%는 숫자가 뚜렷한데, 리드 승진은 '얘기가 나오는 중'이에요. 두 가지가 같은 무게로 놓여 있지 않아요.\",\n  \"premise_candidates\": [],\n  \"skeleton\": [],\n  \"next_question\": {\n    \"text\": \"리드 승진 얘기가 나온다는 게, 누가 언제까지라고 얘기해준 건가요, 아니면 분위기상 그런 방향인 건가요?\",\n    \"type\": \"short\"\n  },\n  \"detected_decision_maker\": null\n}\n```"
+      "rawText": "```json\n{\n  \"request_type\": \"open\",\n  \"stakes\": \"important\",\n  \"reversibility\": \"partial\",\n  \"decision_density\": \"medium\",\n  \"decision_density_reasoning\": \"연봉 오퍼와 승진 가능성이라는 두 갈래가 있지만, 아직 어느 쪽이 더 걸리는지 나오지 않았어요.\",\n  \"framing_confidence\": 62,\n  \"frame_line\": \"승진은 아직 말뿐인데, 오퍼는 일주일 안에 답을 달라고 하네요.\",\n  \"real_question\": \"승진은 아직 말뿐인데, 오퍼는 일주일 안에 답을 달라고 하네요.\",\n  \"why_this_matters\": null,\n  \"insight\": \"지금 회사 승진이 구두로만 나온 얘기라는 게 포인트예요. 그게 얼마나 확실한 얘기인지에 따라 이 결정이 달라질 수 있어요.\",\n  \"premise_candidates\": [],\n  \"skeleton\": [],\n  \"next_question\": {\n    \"text\": \"리드 승진 얘기, 누가 어느 정도로 꺼낸 거예요? 그냥 나온 얘기인지, 아니면 타임라인 같은 것도 나왔는지요.\",\n    \"type\": \"short\"\n  },\n  \"detected_decision_maker\": null\n}\n```"
+    },
+    {
+      "seq": 8,
+      "label": "heavy-05-cofounder",
+      "tier": "default",
+      "modelId": "claude-sonnet-4-6",
+      "maxTokens": 2500,
+      "attempt": 0,
+      "ms": 5952,
+      "usage": {
+        "input_tokens": 4032,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 352,
+        "service_tier": "standard",
+        "inference_geo": "global"
+      },
+      "user": "[user] Original situation:\n<user-data>3년차 백엔드 개발자예요. 지금 회사는 안정적이고 팀 분위기도 좋은데, 어제 스타트업에서 연봉 40% 올려주는 이직 오퍼를 받았어요. 지금 회사에서는 내년 초 리드 승진 얘기가 나오는 중이고요. 오퍼는 일주일 안에 답을 줘야 해요.</user-data>\n\nCurrent state:\n- question: 승진은 아직 말뿐인데, 오퍼는 일주일 안에 답을 달라고 하네요.\n- AI-surfaced premises: (none)\n- reality checks: (none)\n- request type: open\n- weight: important / partial\n\nConversation:\nQ1: 리드 승진 얘기, 누가 어느 정도로 꺼낸 거예요? 그냥",
+      "rawText": "```json\n{\n  \"insight\": \"승진 질문에 스타트업 정보로 답하셨어요. 시리즈B에 런웨이 18개월이라는 걸 알려주셨고요.\",\n  \"frame_line\": \"연봉 40% 오퍼 — 시리즈B, 런웨이 18개월 — 를 일주일 안에 답해야 하는데, 지금 회사 리드 승진은 아직 구체적인 얘기가 나온 건지 모르는 상태예요.\",\n  \"real_question\": \"연봉 40% 오퍼 — 시리즈B, 런웨이 18개월 — 를 일주일 안에 답해야 하는데, 지금 회사 리드 승진은 아직 구체적인 얘기가 나온 건지 모르는 상태예요.\",\n  \"premise_changes\": [],\n  \"skeleton\": [],\n  \"next_question\": {\n    \"text\": \"런웨이 18개월, 이 결정에서 얼마나 걸리는 부분이에요?\",\n    \"type\": \"short\"\n  },\n  \"ready_for_mix\": false\n}\n```"
     },
     {
       "seq": 10,
-      "label": "heavy-04-fire-teammate",
+      "label": "heavy-05-cofounder",
       "tier": "default",
       "modelId": "claude-sonnet-4-6",
       "maxTokens": 2500,
       "attempt": 0,
-      "ms": 6550,
+      "ms": 7963,
       "usage": {
-        "input_tokens": 4024,
+        "input_tokens": 4164,
         "cache_creation_input_tokens": 0,
         "cache_read_input_tokens": 0,
         "cache_creation": {
           "ephemeral_5m_input_tokens": 0,
           "ephemeral_1h_input_tokens": 0
         },
-        "output_tokens": 319,
+        "output_tokens": 527,
         "service_tier": "standard",
         "inference_geo": "global"
       },
-      "user": "[user] Original situation:\n<user-data>3년차 백엔드 개발자예요. 지금 회사는 안정적이고 팀 분위기도 좋은데, 어제 스타트업에서 연봉 40% 올려주는 이직 오퍼를 받았어요. 지금 회사에서는 내년 초 리드 승진 얘기가 나오는 중이고요. 오퍼는 일주일 안에 답을 줘야 해요.</user-data>\n\nCurrent state:\n- question: 승진은 아직 말뿐인데, 오퍼는 일주일 안에 답을 달라고 하네요.\n- AI-surfaced premises: (none)\n- reality checks: (none)\n- request type: open\n- weight: important / partial\n\nConversation:\nQ1: 리드 승진 얘기가 나온다는 게, 누가 언제까지라고 얘기",
-      "rawText": "```json\n{\n  \"insight\": \"승진 질문에 대한 답 대신 오퍼 회사 정보를 알려주셨어요. 시리즈B에 런웨이 18개월이라는 걸 직접 확인하셨다는 거고요.\",\n  \"frame_line\": \"연봉 40% 오퍼 (시리즈B, 런웨이 18개월) vs 지금 회사 안정적인 팀 — 일주일 안에 답을 줘야 해요.\",\n  \"real_question\": \"연봉 40% 오퍼 (시리즈B, 런웨이 18개월) vs 지금 회사 안정적인 팀 — 일주일 안에 답을 줘야 해요.\",\n  \"premise_changes\": [],\n  \"skeleton\": [],\n  \"next_question\": {\n    \"text\": \"런웨이 18개월이라는 게 이 결정에서 얼마나 걸리는 거예요?\",\n    \"type\": \"short\"\n  },\n  \"ready_for_mix\": false\n}\n```"
+      "user": "[user] Original situation:\n<user-data>3년차 백엔드 개발자예요. 지금 회사는 안정적이고 팀 분위기도 좋은데, 어제 스타트업에서 연봉 40% 올려주는 이직 오퍼를 받았어요. 지금 회사에서는 내년 초 리드 승진 얘기가 나오는 중이고요. 오퍼는 일주일 안에 답을 줘야 해요.</user-data>\n\nCurrent state:\n- question: 연봉 40% 오퍼 — 시리즈B, 런웨이 18개월 — 를 일주일 안에 답해야 하는데, 지금 회사 리드 승진은 아직 구체적인 얘기가 나온 건지 모르는 상태예요.\n- AI-surfaced premises: (none)\n- reality checks: (none)\n- request type: open\n- weight: important / parti",
+      "rawText": "```json\n{\n  \"insight\": \"승진 얘기가 구두로만 나왔다는 걸 알려주셨어요. 문서도 타임라인도 없는 상태네요.\",\n  \"frame_line\": \"연봉 40% 오퍼를 일주일 안에 답해야 하는데, 지금 회사 리드 승진은 구두로만 나온 얘기라 확정된 게 없어요.\",\n  \"real_question\": \"연봉 40% 오퍼를 일주일 안에 답해야 하는데, 지금 회사 리드 승진은 구두로만 나온 얘기라 확정된 게 없어요.\",\n  \"premise_changes\": [\n    {\n      \"action\": \"add\",\n      \"text\": \"지금 회사 리드 승진은 구두로만 나온 얘기이고, 문서로 확정된 건 없다.\",\n      \"anchor_quote\": \"지금 회사 승진은 구두로만 나온 얘기고 문서로 확정된 건 없어요\",\n      \"reason_from_latest_answer\": \"승진의 구체성 수준이 명확해졌고, 이 결정에서 승진 쪽의 무게가 달라질 수 있다.\",\n      \"support_kind\": \"explicit_condition\",\n      \"if_false_changes\": \"문서화된 승진 약속이 있다면 지금 회사를 떠나는 비용이 달라진다.\"\n    }\n  ],\n  \"skeleton\": [],\n  \"next_question\": {\n    \"text\": \"런웨이 18개월이라는 게 이 결정에서 얼마나 걸리는 부분이에요?\",\n    \"type\": \"short\"\n  },\n  \"ready_for_mix\": false\n}\n```"
     },
     {
-      "seq": 12,
-      "label": "heavy-04-fire-teammate",
-      "tier": "default",
-      "modelId": "claude-sonnet-4-6",
-      "maxTokens": 2500,
-      "attempt": 0,
-      "ms": 8561,
-      "usage": {
-        "input_tokens": 4131,
-        "cache_creation_input_tokens": 0,
-        "cache_read_input_tokens": 0,
-        "cache_creation": {
-          "ephemeral_5m_input_tokens": 0,
-          "ephemeral_1h_input_tokens": 0
-        },
-        "output_tokens": 608,
-        "service_tier": "standard",
-        "inference_geo": "global"
-      },
-      "user": "[user] Original situation:\n<user-data>3년차 백엔드 개발자예요. 지금 회사는 안정적이고 팀 분위기도 좋은데, 어제 스타트업에서 연봉 40% 올려주는 이직 오퍼를 받았어요. 지금 회사에서는 내년 초 리드 승진 얘기가 나오는 중이고요. 오퍼는 일주일 안에 답을 줘야 해요.</user-data>\n\nCurrent state:\n- question: 연봉 40% 오퍼 (시리즈B, 런웨이 18개월) vs 지금 회사 안정적인 팀 — 일주일 안에 답을 줘야 해요.\n- AI-surfaced premises: (none)\n- reality checks: (none)\n- request type: open\n- weight: important / partial\n\nConversation:\nQ1: 리드 승",
-      "rawText": "```json\n{\n  \"insight\": \"승진이 구두로만 나온 얘기라는 걸 알려주셨어요. 지금 비교하고 계신 게 확정된 오퍼 vs 아직 말뿐인 승진인 거네요.\",\n  \"frame_line\": \"연봉 40% 오퍼 (시리즈B, 런웨이 18개월) vs 지금 회사 안정적인 팀 — 승진은 구두로만 나온 상태에서 일주일 안에 답을 줘야 해요.\",\n  \"real_question\": \"연봉 40% 오퍼 (시리즈B, 런웨이 18개월) vs 지금 회사 안정적인 팀 — 승진은 구두로만 나온 상태에서 일주일 안에 답을 줘야 해요.\",\n  \"premise_changes\": [\n    {\n      \"action\": \"add\",\n      \"text\": \"지금 회사 리드 승진은 구두로만 나온 얘기고 문서로 확정된 건 없다\",\n      \"anchor_quote\": \"지금 회사 승진은 구두로만 나온 얘기고 문서로 확정된 건 없어요\",\n      \"reason_from_latest_answer\": \"승진이 확정된 조건이 아님을 사용자가 직접 밝혔고, 이게 false라면(승진이 문서로 확정돼 있다면) 두 선택지의 무게가 달라진다\",\n      \"support_kind\": \"explicit_condition\",\n      \"if_false_changes\": \"지금 회사 승진이 문서화된 확정 조건이었다면 두 선택지의 비교 무게가 달라진다\"\n    }\n  ],\n  \"skeleton\": [],\n  \"next_question\": {\n    \"text\": \"런웨이 18개월이라는 게 이 결정에서 얼마나 걸리는 거예요?\",\n    \"type\": \"short\"\n  },\n  \"ready_for_mix\": false\n}\n```"
-    },
-    {
-      "seq": 14,
-      "label": "heavy-04-fire-teammate",
+      "seq": 13,
+      "label": "heavy-05-cofounder",
       "tier": "default",
       "modelId": "claude-sonnet-4-6",
       "maxTokens": 5500,
       "attempt": 0,
-      "ms": 12330,
+      "ms": 11326,
       "usage": {
-        "input_tokens": 3404,
+        "input_tokens": 3375,
         "cache_creation_input_tokens": 0,
         "cache_read_input_tokens": 0,
         "cache_creation": {
           "ephemeral_5m_input_tokens": 0,
           "ephemeral_1h_input_tokens": 0
         },
-        "output_tokens": 755,
+        "output_tokens": 750,
         "service_tier": "standard",
         "inference_geo": "global"
       },
-      "user": "[user] Original situation:\n<user-data>3년차 백엔드 개발자예요. 지금 회사는 안정적이고 팀 분위기도 좋은데, 어제 스타트업에서 연봉 40% 올려주는 이직 오퍼를 받았어요. 지금 회사에서는 내년 초 리드 승진 얘기가 나오는 중이고요. 오퍼는 일주일 안에 답을 줘야 해요.</user-data>\n\nFinal living state:\n- question: 연봉 40% 오퍼 (시리즈B, 런웨이 18개월) vs 지금 회사 안정적인 팀 — 승진은 구두로만 나온 상태에서 일주일 안에 답을 줘야 해요.\n- insight: 승진이 구두로만 나온 얘기라는 걸 알려주셨어요. 지금 비교하고 계신 게 확정된 오퍼 vs 아직 말뿐인 승진인 거네요.\n- AI-surfaced premises: 지금 회사 리",
-      "rawText": "```json\n{\n  \"title\": \"연봉 40% 오퍼 vs 지금 회사 구두 승진 — 일주일 안에 답\",\n  \"decision_read\": \"확정된 건 스타트업 오퍼뿐이고, 지금 회사 승진은 아직 말뿐인 채로 일주일 기한이 붙어 있어요.\",\n  \"executive_summary\": \"비교하고 계신 두 가지 중 하나는 문서로 된 오퍼고, 하나는 구두로만 나온 얘기예요. 오퍼 쪽은 연봉 40% 상승이지만 런웨이 18개월짜리 시리즈B고, 승진 쪽은 내년 초라는 시점도 확정된 게 아니에요. 두 선택지의 확실성 자체가 다른 상태예요.\",\n  \"sections\": [\n    {\n      \"heading\": \"확인된 것\",\n      \"content\": \"스타트업 오퍼: 연봉 40% 인상, 시리즈B, 런웨이 18개월, 일주일 내 답변 요구. 지금 회사: 팀 분위기 좋고 안정적, 리드 승진은 구두로만 나온 얘기고 문서로 확정된 건 없음.\"\n    },\n    {\n      \"heading\": \"아직 확인되지 않은 것\",\n      \"content\": \"런웨이 18개월이 이 결정에서 얼마나 걸리는지 — 질문을 드렸는데 아직 답이 없어요. 지금 회사 승진이 누가, 언제까지라고 얘기해준 건지도 확인되지 않았어요.\"\n    }\n  ],\n  \"key_assumptions\": [\n    {\n      \"proposition\": \"지금 회사 리드 승진은 구두로만 나온 얘기고 문서로 확정된 건 없다.\",\n      \"user_quote\": \"지금 회사 승진은 구두로만 나온 얘기고 문서로 확정된 건 없어요.\",\n      \"이게 틀리면\": \"승진이 문서로 확정돼 있다면, 두 선택지의 확실성 차이가 지금보다 훨씬 줄어들어요.\"\n    }\n  ],\n  \"next_steps\": [\n    \"승진이 문서로 확정돼 있는지 지금 회사에 확인해보기\"\n  ]\n}\n```"
+      "user": "[user] Original situation:\n<user-data>3년차 백엔드 개발자예요. 지금 회사는 안정적이고 팀 분위기도 좋은데, 어제 스타트업에서 연봉 40% 올려주는 이직 오퍼를 받았어요. 지금 회사에서는 내년 초 리드 승진 얘기가 나오는 중이고요. 오퍼는 일주일 안에 답을 줘야 해요.</user-data>\n\nFinal living state:\n- question: 연봉 40% 오퍼를 일주일 안에 답해야 하는데, 지금 회사 리드 승진은 구두로만 나온 얘기라 확정된 게 없어요.\n- insight: 승진 얘기가 구두로만 나왔다는 걸 알려주셨어요. 문서도 타임라인도 없는 상태네요.\n- AI-surfaced premises: 지금 회사 리드 승진은 구두로만 나온 얘기이고, 문서로 확정된 건 없다.\n- ",
+      "rawText": "```json\n{\n  \"title\": \"연봉 40% 오퍼 vs 구두 승진 얘기, 일주일 안에 답해야 하는 건\",\n  \"decision_read\": \"오퍼는 일주일 안에 답해야 하고, 지금 회사 리드 승진은 구두로만 나온 얘기라 확정된 게 없어요. 런웨이 18개월이 이 결정에서 얼마나 걸리는지는 아직 안 나왔어요.\",\n  \"executive_summary\": \"스타트업 오퍼는 연봉 40%에 시리즈B, 런웨이 18개월이에요. 지금 회사 리드 승진은 구두로만 나온 얘기고, 문서도 타임라인도 없어요. 두 쪽 다 불확실한 게 있는 채로 기한이 일주일이에요.\",\n  \"sections\": [\n    {\n      \"heading\": \"확인된 것\",\n      \"content\": \"스타트업 오퍼: 연봉 40% 인상, 시리즈B, 런웨이 18개월. 지금 회사: 팀 분위기 좋고 안정적, 리드 승진 얘기는 구두로만 나온 상태, 문서 없음. 답변 기한: 일주일.\"\n    },\n    {\n      \"heading\": \"아직 확인되지 않은 것\",\n      \"content\": \"런웨이 18개월이 이 결정에서 얼마나 걸리는 부분인지 말씀을 안 하셨어요. 지금 회사 승진 얘기가 누구한테서, 어느 정도 온도로 나온 건지도 안 나왔고요.\"\n    }\n  ],\n  \"key_assumptions\": [\n    {\n      \"proposition\": \"지금 회사 리드 승진은 구두로만 나온 얘기이고, 문서로 확정된 건 없다.\",\n      \"user_quote\": \"지금 회사 승진은 구두로만 나온 얘기고 문서로 확정된 건 없어요.\",\n      \"이게 틀리면\": \"문서나 타임라인이 있다면, 지금 회사 쪽의 무게가 달라져요.\"\n    }\n  ],\n  \"next_steps\": [\n    \"지금 회사 승진이 문서나 타임라인으로 확정된 게 있는지 확인하기.\"\n  ]\n}\n```"
     }
   ],
   "mechanical": {
@@ -286,53 +286,53 @@
             "verdict": "PASS",
             "severity": null,
             "evidence": "",
-            "note": "open/important/partial 라우팅으로 의사결정 여정을 진행한 것은 적절해요."
+            "note": "open/important/partial로 분류하고 heavy_initial → deepening → mix 흐름을 탄 것은 적절해요."
           },
           "ownership": {
             "verdict": "PASS",
             "severity": null,
             "evidence": "",
-            "note": "어느 쪽이 낫다고 정하거나 방향을 미는 표현이 없어요. '두 선택지의 확실성 자체가 다른 상태예요'는 사실 정리이지 방향 제시가 아니에요."
+            "note": "어느 쪽이 낫다는 방향 제시 없이 확인된 것과 미확인 것만 정리했어요."
           },
           "fact_lineage": {
-            "verdict": "FAIL",
-            "severity": "M",
-            "evidence": "heavy_deepening_1: '런웨이 18개월이라는 게 이 결정에서 얼마나 걸리는 거예요?' — 사용자가 런웨이를 언급한 것은 맞지만, 런웨이가 '이 결정에서 걸리는 시간'과 직결된다는 프레임은 사용자 입력에서 추적되지 않아요. 런웨이를 리스크 지표로 읽는 것은 외부 해석이에요.",
-            "note": "런웨이 18개월을 사용자가 직접 언급했으므로 사실 자체는 문제없지만, 그것이 '이 결정에서 얼마나 걸리는지'라는 시간 단위 질문으로 연결되는 논리는 Argus가 만든 것이에요."
-          },
-          "premise_quality": {
             "verdict": "PASS",
             "severity": null,
             "evidence": "",
-            "note": "'지금 회사 리드 승진은 구두로만 나온 얘기고 문서로 확정된 건 없다'는 사용자가 직접 말한 내용이고, 거짓이면 두 선택지의 확실성 비교가 달라지므로 load-bearing 전제예요."
+            "note": "시리즈B, 런웨이 18개월, 구두 승진 모두 사용자 발화에서 직접 추적돼요."
+          },
+          "premise_quality": {
+            "verdict": "FAIL",
+            "severity": "M",
+            "evidence": "숨은 전제: '지금 회사 리드 승진은 구두로만 나온 얘기이고, 문서로 확정된 건 없다.'",
+            "note": "이건 사용자가 직접 말한 사실이지 숨은 전제가 아니에요. 숨은 전제는 명시되지 않았지만 판단에 깔려 있는 가정이어야 하는데, 여기서는 사용자 발화를 그대로 전제 칸에 옮겨 놓은 거예요. 거짓이면 판단이 달라지는 구조도 아니고, 이미 확인된 사실을 전제로 포장한 셈이에요."
           },
           "question_value": {
             "verdict": "FAIL",
             "severity": "M",
-            "evidence": "heavy_deepening_1: '런웨이 18개월이라는 게 이 결정에서 얼마나 걸리는 거예요?' — 질문 자체가 모호해요. '얼마나 걸리는'이 무엇을 묻는지 불분명하고, 사용자는 이 질문에 답하지 않고 승진 확정 여부를 말했어요. 또한 heavy_initial에서 승진 확정 여부를 물었는데 사용자가 런웨이 정보로 답했을 때, heavy_deepening_1은 그 미답 질문을 추적하지 않고 새 질문을 냈어요.",
-            "note": "heavy_mix의 '아직 확인되지 않은 것'에서 두 미답 질문을 모두 나열한 것은 정직하지만, 대화 흐름에서 질문 관리가 일관되지 않았어요."
+            "evidence": "heavy_initial: '리드 승진 얘기, 누가 어느 정도로 꺼낸 거예요?' → heavy_deepening_1에서 사용자가 승진 질문 대신 스타트업 정보로 답했는데, heavy_mix '아직 확인되지 않은 것'에 '지금 회사 승진 얘기가 누구한테서, 어느 정도 온도로 나온 건지도 안 나왔고요'라고 재등장해요.",
+            "note": "사용자가 승진 질문을 건너뛰고 다른 정보를 줬을 때 그 질문을 다시 꺼내는 건 반복 질문이에요. 사용자가 의도적으로 답하지 않은 것을 미확인 항목으로 계속 올려두는 것도 같은 문제예요."
           },
           "update_fidelity": {
             "verdict": "FAIL",
             "severity": "M",
-            "evidence": "heavy_deepening_1: 사용자가 승진 질문에 답하지 않고 런웨이 정보를 줬는데, Argus는 '승진 질문에 대한 답 대신 오퍼 회사 정보를 알려주셨어요'라고 인식은 했지만 상태 갱신은 런웨이 추가에 그쳤어요. 미답 상태인 승진 확정 여부가 '아직 확인되지 않은 것'으로 명시되지 않고 다음 질문으로 넘어갔어요.",
-            "note": "heavy_mix에서 뒤늦게 두 미답 항목을 모두 나열했지만, 그 사이 heavy_deepening_1과 heavy_deepening_2에서 상태 추적이 불완전했어요."
+            "evidence": "heavy_deepening_1: '다음 질문: 런웨이 18개월, 이 결정에서 얼마나 걸리는 부분이에요?' → heavy_deepening_2에서 사용자는 승진 구두 확인 답변을 줬는데, 런웨이 질문에 대한 답은 없었어요. heavy_mix decision_read: '런웨이 18개월이 이 결정에서 얼마나 걸리는지는 아직 안 나왔어요'라고 명시했어요.",
+            "note": "런웨이 질문에 답이 없었다는 걸 정직하게 표시한 건 맞아요. 그런데 heavy_deepening_2에서 런웨이 미답 상태를 갱신하지 않고 승진 구두 확인만 처리한 채 넘어간 뒤, mix에서야 미확인으로 올린 건 한 턴 늦은 갱신이에요. deepening_2 시점에 '런웨이 질문에 답이 없었다'는 상태를 명시했어야 해요."
           },
           "restraint": {
             "verdict": "PASS",
             "severity": null,
             "evidence": "",
-            "note": "계획을 미리 만들거나 무거운 절차를 씌우지 않았어요. heavy_mix의 요약도 사용자 말에서 나온 것만 정리했어요."
+            "note": "계획을 미리 만들거나 과도한 절차를 씌우지 않았어요."
           },
           "language": {
             "verdict": "PASS",
             "severity": null,
             "evidence": "",
-            "note": "해요체가 자연스럽고 AI체·보고서체가 없어요."
+            "note": "해요체가 자연스럽고 AI체·보고서체 없어요."
           }
         },
-        "overall": "런웨이 질문의 논리 연결이 외부 해석에 기대고 있고, 미답 질문 추적이 대화 중간에 끊겼다가 마지막에 뒤늦게 복원된 점이 가장 큰 문제예요.",
-        "best_next_fix": "사용자가 이전 질문에 답하지 않고 새 정보를 줬을 때, 미답 질문을 즉시 '아직 확인되지 않은 것'으로 명시하고 새 질문과 분리해서 관리하세요."
+        "overall": "사용자 발화를 그대로 '숨은 전제'로 포장한 것과, 건너뛴 질문을 미확인 항목으로 계속 올려두는 반복이 가장 실질적인 문제예요.",
+        "best_next_fix": "숨은 전제 칸에는 사용자가 명시하지 않았지만 판단에 깔린 가정만 넣고, 사용자가 답하지 않은 질문은 한 번만 시도한 뒤 미확인으로 올리지 않거나 올리더라도 '사용자가 답하지 않은 질문'임을 구분해서 표시하세요."
       }
     ]
   }

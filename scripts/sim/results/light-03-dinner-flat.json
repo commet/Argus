@@ -18,34 +18,23 @@
     },
     "gate": {
       "need": "light",
-      "mirror": "오늘 저녁 뭘 먹을지 결정하지 못한 상태네요.",
-      "question": "지금 마음은 어느 쪽에 가 있어요? 뭔가 먹고 싶은 게 있어요, 아니면 뭘 먹을지 몰라서 고민인 거예요."
+      "mirror": "오늘 저녁 뭘 먹을지 고민 중이신 거네요.",
+      "question": "지금 마음에 떠오르는 게 있어요, 아니면 아무것도 없어요?"
     }
   },
   "light": {
     "qas": [
       {
-        "question": "지금 마음은 어느 쪽에 가 있어요? 뭔가 먹고 싶은 게 있어요, 아니면 뭘 먹을지 몰라서 고민인 거예요.",
+        "question": "지금 마음에 떠오르는 게 있어요, 아니면 아무것도 없어요?",
         "answer": "그냥 집에 있는 걸로 해결할까 싶기도 하고."
-      },
-      {
-        "question": "다른 쪽은 뭐예요? 밖에 나가서 뭔가 사 먹고 싶은 건지, 아니면 집밥 말고 뭔가 다른 게 떠오르는 건지.",
-        "answer": "아 몰라 아무거나."
       }
     ],
     "turns": [
       {
-        "mirror": "집에 있는 걸로 할까 싶은 마음이 있으시고요 — 근데 뭔가 다른 생각도 있는 상태네요.",
-        "action": "ask",
-        "question": "다른 쪽은 뭐예요? 밖에 나가서 뭔가 사 먹고 싶은 건지, 아니면 집밥 말고 뭔가 다른 게 떠오르는 건지.",
-        "_qasLen": 1,
-        "_rawText": "```json\n{\n  \"mirror\": \"집에 있는 걸로 할까 싶은 마음이 있으시고요 — 근데 뭔가 다른 생각도 있는 상태네요.\",\n  \"action\": \"ask\",\n  \"question\": \"다른 쪽은 뭐예요? 밖에 나가서 뭔가 사 먹고 싶은 건지, 아니면 집밥 말고 뭔가 다른 게 떠오르는 건지.\"\n}\n```"
-      },
-      {
-        "mirror": "집에 있는 걸로 할까 싶기도 하고, 어느 쪽이든 상관없다는 거네요.",
+        "mirror": "집에 있는 걸로 하면 되지 않을까 싶으신 거네요.",
         "action": "close",
-        "_qasLen": 2,
-        "_rawText": "```json\n{\n  \"mirror\": \"집에 있는 걸로 할까 싶기도 하고, 어느 쪽이든 상관없다는 거네요.\",\n  \"action\": \"close\"\n}\n```"
+        "_qasLen": 1,
+        "_rawText": "```json\n{\n  \"mirror\": \"집에 있는 걸로 하면 되지 않을까 싶으신 거네요.\",\n  \"action\": \"offer\",\n  \"offer\": {\n    \"sentence\": \"오늘 저녁을 집에 있는 걸로 해결했다.\",\n    \"when\": \"tomorrow_morning\",\n    \"ask\": \"그럼 집에서 해결하는 걸로 하고 — 내일 아침에 그렇게 하셨는지, 제가 한 번만 물어볼까요?\"\n  }\n}\n```"
       }
     ],
     "outcome": "close"
@@ -61,7 +50,7 @@
     {
       "actor": "argus",
       "phase": "light_gate",
-      "text": "오늘 저녁 뭘 먹을지 결정하지 못한 상태네요.\n지금 마음은 어느 쪽에 가 있어요? 뭔가 먹고 싶은 게 있어요, 아니면 뭘 먹을지 몰라서 고민인 거예요."
+      "text": "오늘 저녁 뭘 먹을지 고민 중이신 거네요.\n지금 마음에 떠오르는 게 있어요, 아니면 아무것도 없어요?"
     },
     {
       "actor": "user",
@@ -71,17 +60,7 @@
     {
       "actor": "argus",
       "phase": "light_turn_1",
-      "text": "집에 있는 걸로 할까 싶은 마음이 있으시고요 — 근데 뭔가 다른 생각도 있는 상태네요.\n다른 쪽은 뭐예요? 밖에 나가서 뭔가 사 먹고 싶은 건지, 아니면 집밥 말고 뭔가 다른 게 떠오르는 건지."
-    },
-    {
-      "actor": "user",
-      "phase": "answer",
-      "text": "아 몰라 아무거나."
-    },
-    {
-      "actor": "argus",
-      "phase": "light_turn_2",
-      "text": "집에 있는 걸로 할까 싶기도 하고, 어느 쪽이든 상관없다는 거네요."
+      "text": "집에 있는 걸로 하면 되지 않을까 싶으신 거네요."
     }
   ],
   "calls": [
@@ -92,67 +71,44 @@
       "modelId": "claude-haiku-4-5-20251001",
       "maxTokens": 500,
       "attempt": 0,
-      "ms": 1554,
+      "ms": 1646,
       "usage": {
-        "input_tokens": 3556,
+        "input_tokens": 4037,
         "cache_creation_input_tokens": 0,
         "cache_read_input_tokens": 0,
         "cache_creation": {
           "ephemeral_5m_input_tokens": 0,
           "ephemeral_1h_input_tokens": 0
         },
-        "output_tokens": 129,
+        "output_tokens": 92,
         "service_tier": "standard",
         "inference_geo": "not_available"
       },
       "user": "[user] 오늘은 2026-08-01 (토요일)입니다.\n\n사용자가 방금 쓴 것:\n<user-data context=\"decision\">\n오늘 저녁 뭐 먹지\n</user-data>",
-      "rawText": "```json\n{\n  \"need\": \"light\",\n  \"mirror\": \"오늘 저녁 뭘 먹을지 결정하지 못한 상태네요.\",\n  \"question\": \"지금 마음은 어느 쪽에 가 있어요? 뭔가 먹고 싶은 게 있어요, 아니면 뭘 먹을지 몰라서 고민인 거예요?\"\n}\n```"
+      "rawText": "```json\n{\n  \"need\": \"light\",\n  \"mirror\": \"오늘 저녁 뭘 먹을지 고민 중이신 거네요.\",\n  \"question\": \"지금 마음에 떠오르는 게 있어요, 아니면 아무것도 없어요?\"\n}\n```"
     },
     {
       "seq": 1,
-      "label": "light-03-dinner-flat",
+      "label": "heavy-01-job-offer-40",
       "tier": "fast",
       "modelId": "claude-haiku-4-5-20251001",
       "maxTokens": 700,
       "attempt": 0,
-      "ms": 2101,
+      "ms": 2313,
       "usage": {
-        "input_tokens": 3921,
+        "input_tokens": 4367,
         "cache_creation_input_tokens": 0,
         "cache_read_input_tokens": 0,
         "cache_creation": {
           "ephemeral_5m_input_tokens": 0,
           "ephemeral_1h_input_tokens": 0
         },
-        "output_tokens": 155,
+        "output_tokens": 165,
         "service_tier": "standard",
         "inference_geo": "not_available"
       },
-      "user": "[user] 오늘은 2026-08-01 (토요일)입니다.\n\n사용자가 처음 쓴 것:\n<user-data context=\"decision\">\n오늘 저녁 뭐 먹지\n</user-data>\n\n지금까지의 문답 (질문은 당신, 답은 사용자):\n<user-data context=\"answers\">\nQ1. 지금 마음은 어느 쪽에 가 있어요? 뭔가 먹고 싶은 게 있어요, 아니면 뭘 먹을지 몰라서 고민인 거예요.\nA1. 그냥 집에 있는 걸로 해결할까 싶기도 하고.\n</user-data>",
-      "rawText": "```json\n{\n  \"mirror\": \"집에 있는 걸로 할까 싶은 마음이 있으시고요 — 근데 뭔가 다른 생각도 있는 상태네요.\",\n  \"action\": \"ask\",\n  \"question\": \"다른 쪽은 뭐예요? 밖에 나가서 뭔가 사 먹고 싶은 건지, 아니면 집밥 말고 뭔가 다른 게 떠오르는 건지.\"\n}\n```"
-    },
-    {
-      "seq": 4,
-      "label": "light-03-dinner-flat",
-      "tier": "fast",
-      "modelId": "claude-haiku-4-5-20251001",
-      "maxTokens": 700,
-      "attempt": 0,
-      "ms": 1249,
-      "usage": {
-        "input_tokens": 4061,
-        "cache_creation_input_tokens": 0,
-        "cache_read_input_tokens": 0,
-        "cache_creation": {
-          "ephemeral_5m_input_tokens": 0,
-          "ephemeral_1h_input_tokens": 0
-        },
-        "output_tokens": 66,
-        "service_tier": "standard",
-        "inference_geo": "not_available"
-      },
-      "user": "[user] 오늘은 2026-08-01 (토요일)입니다.\n\n사용자가 처음 쓴 것:\n<user-data context=\"decision\">\n오늘 저녁 뭐 먹지\n</user-data>\n\n지금까지의 문답 (질문은 당신, 답은 사용자):\n<user-data context=\"answers\">\nQ1. 지금 마음은 어느 쪽에 가 있어요? 뭔가 먹고 싶은 게 있어요, 아니면 뭘 먹을지 몰라서 고민인 거예요.\nA1. 그냥 집에 있는 걸로 해결할까 싶기도 하고.\nQ2. 다른 쪽은 뭐예요? 밖에 나가서 뭔가 사 먹고 싶은 건지, 아니면 집밥 말고 뭔가 다른 게 떠오르는 건지.\nA2. 아 몰라 아무거나.\n</user-data>",
-      "rawText": "```json\n{\n  \"mirror\": \"집에 있는 걸로 할까 싶기도 하고, 어느 쪽이든 상관없다는 거네요.\",\n  \"action\": \"close\"\n}\n```"
+      "user": "[user] 오늘은 2026-08-01 (토요일)입니다.\n\n사용자가 처음 쓴 것:\n<user-data context=\"decision\">\n오늘 저녁 뭐 먹지\n</user-data>\n\n지금까지의 문답 (질문은 당신, 답은 사용자):\n<user-data context=\"answers\">\nQ1. 지금 마음에 떠오르는 게 있어요, 아니면 아무것도 없어요?\nA1. 그냥 집에 있는 걸로 해결할까 싶기도 하고.\n</user-data>",
+      "rawText": "```json\n{\n  \"mirror\": \"집에 있는 걸로 하면 되지 않을까 싶으신 거네요.\",\n  \"action\": \"offer\",\n  \"offer\": {\n    \"sentence\": \"오늘 저녁을 집에 있는 걸로 해결했다.\",\n    \"when\": \"tomorrow_morning\",\n    \"ask\": \"그럼 집에서 해결하는 걸로 하고 — 내일 아침에 그렇게 하셨는지, 제가 한 번만 물어볼까요?\"\n  }\n}\n```"
     }
   ],
   "mechanical": {
@@ -163,16 +119,16 @@
       {
         "criteria": {
           "route_fit": {
-            "verdict": "FAIL",
-            "severity": "M",
-            "evidence": "light_gate: '오늘 저녁 뭘 먹을지 결정하지 못한 상태네요. 지금 마음은 어느 쪽에 가 있어요?' / light_turn_1: '다른 쪽은 뭐예요? 밖에 나가서 뭔가 사 먹고 싶은 건지, 아니면 집밥 말고 뭔가 다른 게 떠오르는 건지.'",
-            "note": "'오늘 저녁 뭐 먹지'는 flat 또는 가벼운 vent에 가깝다. 의사결정 여정으로 열 필요가 없는 상황에서 두 번의 질문으로 판단 추적 절차를 진행했다."
+            "verdict": "PASS",
+            "severity": null,
+            "evidence": "",
+            "note": "flat 라우팅을 의사결정 여정으로 열지 않고 light 게이트에서 질문 1개 후 종결했다."
           },
           "ownership": {
             "verdict": "FAIL",
             "severity": "M",
-            "evidence": "light_gate: '지금 마음은 어느 쪽에 가 있어요? 뭔가 먹고 싶은 게 있어요, 아니면 뭘 먹을지 몰라서 고민인 거예요.' / light_turn_1: '근데 뭔가 다른 생각도 있는 상태네요.'",
-            "note": "사용자가 말하지 않은 '다른 생각'을 있다고 전제하고, 이분법적 선택지 문구로 방향을 유도했다. '아 몰라 아무거나'는 그 유도에 대한 거부 신호였다."
+            "evidence": "\"집에 있는 걸로 하면 되지 않을까 싶으신 거네요.\"",
+            "note": "사용자는 '~할까 싶기도 하고'로 아직 결정하지 않은 상태인데, Argus가 '하면 되지 않을까'라는 수사의문 형태로 방향을 밀었다."
           },
           "fact_lineage": {
             "verdict": "PASS",
@@ -181,38 +137,38 @@
             "note": "외부 사실이나 만들어낸 정보 없음."
           },
           "premise_quality": {
-            "verdict": "FAIL",
-            "severity": "M",
-            "evidence": "light_turn_1: '근데 뭔가 다른 생각도 있는 상태네요.'",
-            "note": "사용자는 '집에 있는 걸로 할까 싶기도 하고'라고만 했다. '다른 생각도 있다'는 전제는 사용자 말에서 논리적으로 이어지지 않는 빈칸 채우기 전제다."
+            "verdict": "PASS",
+            "severity": null,
+            "evidence": "",
+            "note": "전제를 제시하지 않았고, 이 맥락에서 전제가 0개인 것은 적절하다."
           },
           "question_value": {
-            "verdict": "FAIL",
-            "severity": "M",
-            "evidence": "light_gate: '뭔가 먹고 싶은 게 있어요, 아니면 뭘 먹을지 몰라서 고민인 거예요.' / light_turn_1: '밖에 나가서 뭔가 사 먹고 싶은 건지, 아니면 집밥 말고 뭔가 다른 게 떠오르는 건지.'",
-            "note": "두 질문 모두 인위적인 객관식 분기이며, 이 맥락에서 답에 따라 판단 상태가 실질적으로 달라지지 않는다. 사용자의 '아 몰라 아무거나'가 질문 가치 없음을 확인해준다."
+            "verdict": "PASS",
+            "severity": null,
+            "evidence": "",
+            "note": "light_gate에서 질문 1개('마음에 떠오르는 게 있어요, 아니면 아무것도 없어요?')를 했고, 답변 후 종결했다. 질문 자체는 상태를 구분하는 데 유효했다."
           },
           "update_fidelity": {
             "verdict": "PASS",
             "severity": null,
             "evidence": "",
-            "note": "light_turn_2는 '아 몰라 아무거나'를 받아 절차를 종결했다. 새 관점을 만들지 않았다."
+            "note": "사용자 답변을 받아 종결로 이어졌고, 새 전제나 관점을 추가하지 않았다."
           },
           "restraint": {
-            "verdict": "FAIL",
-            "severity": "M",
-            "evidence": "light_gate 첫 응답부터 질문 시작, light_turn_1에서 두 번째 질문 추가.",
-            "note": "'오늘 저녁 뭐 먹지'처럼 가벼운 발화에 두 번의 추적 질문은 과잉 절차다. 첫 접촉에서 멈추거나 단순 반응으로 충분했다."
+            "verdict": "PASS",
+            "severity": null,
+            "evidence": "",
+            "note": "가벼운 저녁 고민에 무거운 절차를 씌우지 않고 짧게 마무리했다."
           },
           "language": {
             "verdict": "PASS",
             "severity": null,
             "evidence": "",
-            "note": "해요체 자연스럽고 번역투 없음."
+            "note": "해요체, 자연스러운 한국어."
           }
         },
-        "overall": "'오늘 저녁 뭐 먹지'는 flat 발화인데 의사결정 여정으로 열어 두 번의 객관식 질문을 던졌고, 사용자의 '아 몰라 아무거나'는 그 과잉 절차에 대한 거부였다. route_fit과 restraint가 핵심 문제다.",
-        "best_next_fix": "flat/vent 신호에서는 첫 응답에 질문을 달지 않거나 최대 한 번으로 제한하고, 이분법적 선택지 문구 대신 열린 여지만 짧게 남기는 것."
+        "overall": "light_turn_1의 '하면 되지 않을까 싶으신 거네요'가 수사의문 형태로 사용자의 미결 상태를 결론 쪽으로 살짝 밀었다. 나머지는 적절하게 짧고 절제되어 있다.",
+        "best_next_fix": "light_turn_1 마무리를 '집에 있는 걸로 해결할까 싶으신 거네요.' 처럼 방향 없이 반영하는 문장으로 바꾼다."
       }
     ]
   }

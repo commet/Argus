@@ -15743,9 +15743,13 @@ ROUTE BEHAVIOR
 OUTPUT DISCIPLINE
 - insight: one or two concise sentences. Mirror the current decision state and
   name the unresolved distinction only if it is grounded.
-- frame_line: one neutral situation line close to the user's wording. It is a
-  statement unless the user asked an explicit question. Do not manufacture a
-  binary "X or Y" question and do not call it the real or core question.
+- frame_line: what the decision turns on, in their words, SHORTER than they said
+  it. A statement, not a question. It is not an inventory of their facts, and in
+  Korean it must not be closed with "~\uD558\uB294 \uC0C1\uD669\uC774\uC5D0\uC694 / ~\uC0C1\uD0DC\uC608\uC694" \u2014 that tail
+  turns a reflection into an intake form. Do not manufacture a binary "X or Y"
+  question and do not call it the real or core question.
+  \u2717 "\uC5F0\uBD09 40% \uC624\uD37C\uC640 \uB9AC\uB4DC \uC2B9\uC9C4 \uC0AC\uC774\uC5D0\uC11C \uC77C\uC8FC\uC77C \uC548\uC5D0 \uB2F5\uC744 \uC918\uC57C \uD558\uB294 \uC0C1\uD669\uC774\uC5D0\uC694."
+  \u2713 "\uC2B9\uC9C4\uC740 \uC544\uC9C1 \uB9D0\uBFD0\uC778\uB370, \uC624\uD37C\uB294 \uC77C\uC8FC\uC77C \uC548\uC5D0 \uB2F5\uC744 \uB2EC\uB77C\uACE0 \uD558\uB124\uC694." 
 - real_question: legacy compatibility; copy frame_line exactly.
 - premise_candidates: 0-2 conditional, load-bearing premise proposals. Each
   needs text, an exact anchor_quote copied from the user's explicit
