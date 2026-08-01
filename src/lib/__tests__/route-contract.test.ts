@@ -41,7 +41,15 @@ describe('applyRouteContract — enforces the restraint structural contract', ()
     expect(coerced).toBe(true);
     expect(result.skeleton).toEqual([]);
     expect(result.hidden_assumptions).toEqual([]);
-    expect(result.next_question).toBeNull();
+    // A question is an intrusion when someone is venting, being told who they
+    // are, or has a flat call — but info and validation are explicitly invited
+    // by the prompt to ask ONE clarifying line, and deleting it left the reply
+    // dangling after it had just promised a next step.
+    if (rt === 'info' || rt === 'validation') {
+      expect(result.next_question).not.toBeNull();
+    } else {
+      expect(result.next_question).toBeNull();
+    }
   });
 
   it('leaves an open-decision plan untouched', () => {

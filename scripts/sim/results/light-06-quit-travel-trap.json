@@ -24,33 +24,41 @@
   "heavy": {
     "initial": {
       "raw": {
-        "request_type": "vent",
+        "request_type": "open",
         "stakes": "important",
         "reversibility": "partial",
         "decision_density": "low",
-        "decision_density_reasoning": "사용자가 구체적인 조건이나 맥락 없이 감정 섞인 혼잣말 수준으로 꺼낸 말이라 결정 정보가 거의 없음",
+        "decision_density_reasoning": "아직 이유나 조건이 거의 없고, 방향만 떠올린 상태예요.",
         "framing_confidence": 40,
-        "real_question": "퇴사하고 여행이나 갈까",
+        "frame_line": "퇴사하고 여행을 가는 걸 생각하고 있어요.",
+        "real_question": "퇴사하고 여행을 가는 걸 생각하고 있어요.",
         "why_this_matters": null,
-        "insight": "지금 많이 지치셨나 봐요.",
+        "insight": "지금은 어떤 맥락에서 이 생각이 나온 건지가 없어서 더 들어야 해요.",
         "premise_candidates": [],
         "skeleton": [],
-        "next_question": null,
+        "next_question": {
+          "text": "지금 퇴사 쪽으로 기울게 된 계기가 뭐예요?",
+          "type": "short"
+        },
         "detected_decision_maker": null
       },
       "result": {
-        "request_type": "vent",
+        "request_type": "open",
         "stakes": "important",
         "reversibility": "partial",
         "decision_density": "low",
-        "decision_density_reasoning": "사용자가 구체적인 조건이나 맥락 없이 감정 섞인 혼잣말 수준으로 꺼낸 말이라 결정 정보가 거의 없음",
+        "decision_density_reasoning": "아직 이유나 조건이 거의 없고, 방향만 떠올린 상태예요.",
         "framing_confidence": 40,
-        "real_question": "퇴사하고 여행이나 갈까",
+        "frame_line": "퇴사하고 여행을 가는 걸 생각하고 있어요.",
+        "real_question": "퇴사하고 여행을 가는 걸 생각하고 있어요.",
         "why_this_matters": null,
-        "insight": "지금 많이 지치셨나 봐요.",
+        "insight": "퇴사하고 여행을 가는 걸 생각하고 있어요.",
         "premise_candidates": [],
         "skeleton": [],
-        "next_question": null,
+        "next_question": {
+          "text": "지금 퇴사 쪽으로 기울게 된 계기가 뭐예요?",
+          "type": "short"
+        },
         "detected_decision_maker": null,
         "hidden_assumptions": []
       },
@@ -69,58 +77,116 @@
     {
       "actor": "argus",
       "phase": "heavy_initial",
-      "text": "인사이트: 지금 많이 지치셨나 봐요."
+      "text": "퇴사하고 여행을 가는 걸 생각하고 있어요.\n\n지금 살펴볼 것: 퇴사하고 여행을 가는 걸 생각하고 있어요.\n\n다음 질문: 지금 퇴사 쪽으로 기울게 된 계기가 뭐예요?"
     }
   ],
   "calls": [
     {
-      "seq": 11,
+      "seq": 0,
       "label": "light-06-quit-travel-trap",
       "tier": "fast",
       "modelId": "claude-haiku-4-5-20251001",
       "maxTokens": 500,
       "attempt": 0,
-      "ms": 1335,
+      "ms": 1552,
       "usage": {
-        "input_tokens": 3534,
+        "input_tokens": 3556,
         "cache_creation_input_tokens": 0,
         "cache_read_input_tokens": 0,
         "cache_creation": {
           "ephemeral_5m_input_tokens": 0,
           "ephemeral_1h_input_tokens": 0
         },
-        "output_tokens": 87,
+        "output_tokens": 31,
         "service_tier": "standard",
         "inference_geo": "not_available"
       },
-      "user": "[user] 사용자가 방금 쓴 것:\n<user-data context=\"decision\">\n퇴사하고 여행이나 갈까\n</user-data>",
-      "rawText": "```json\n{\n  \"need\": \"heavy\",\n  \"mirror\": \"퇴사를 생각하고 계신 거네요.\",\n  \"question\": \"퇴사를 하기로 거의 결정한 상태예요, 아니면 아직 고민 중이에요?\"\n}\n```"
+      "user": "[user] 오늘은 2026-08-01 (토요일)입니다.\n\n사용자가 방금 쓴 것:\n<user-data context=\"decision\">\n퇴사하고 여행이나 갈까\n</user-data>",
+      "rawText": "```json\n{\n  \"need\": \"heavy\",\n  \"mirror\": \"\",\n  \"question\": \"\"\n}\n```"
     },
     {
-      "seq": 13,
-      "label": "light-06-quit-travel-trap",
+      "seq": 2,
+      "label": "light-08-en-party",
       "tier": "default",
       "modelId": "claude-sonnet-4-6",
       "maxTokens": 4096,
       "attempt": 0,
-      "ms": 4855,
+      "ms": 7752,
       "usage": {
         "input_tokens": 31,
-        "cache_creation_input_tokens": 2117,
+        "cache_creation_input_tokens": 3233,
         "cache_read_input_tokens": 0,
         "cache_creation": {
-          "ephemeral_5m_input_tokens": 2117,
+          "ephemeral_5m_input_tokens": 3233,
           "ephemeral_1h_input_tokens": 0
         },
-        "output_tokens": 223,
+        "output_tokens": 298,
         "service_tier": "standard",
         "inference_geo": "global"
       },
       "user": "[user] <user-data>퇴사하고 여행이나 갈까</user-data>",
-      "rawText": "```json\n{\n  \"request_type\": \"vent\",\n  \"stakes\": \"important\",\n  \"reversibility\": \"partial\",\n  \"decision_density\": \"low\",\n  \"decision_density_reasoning\": \"사용자가 구체적인 조건이나 맥락 없이 감정 섞인 혼잣말 수준으로 꺼낸 말이라 결정 정보가 거의 없음\",\n  \"framing_confidence\": 40,\n  \"real_question\": \"퇴사하고 여행이나 갈까\",\n  \"why_this_matters\": null,\n  \"insight\": \"지금 많이 지치셨나 봐요.\",\n  \"premise_candidates\": [],\n  \"skeleton\": [],\n  \"next_question\": null,\n  \"detected_decision_maker\": null\n}\n```"
+      "rawText": "```json\n{\n  \"request_type\": \"open\",\n  \"stakes\": \"important\",\n  \"reversibility\": \"partial\",\n  \"decision_density\": \"low\",\n  \"decision_density_reasoning\": \"아직 이유나 조건이 거의 없고, 방향만 떠올린 상태예요.\",\n  \"framing_confidence\": 40,\n  \"frame_line\": \"퇴사하고 여행을 가는 걸 생각하고 있어요.\",\n  \"real_question\": \"퇴사하고 여행을 가는 걸 생각하고 있어요.\",\n  \"why_this_matters\": null,\n  \"insight\": \"지금은 어떤 맥락에서 이 생각이 나온 건지가 없어서 더 들어야 해요.\",\n  \"premise_candidates\": [],\n  \"skeleton\": [],\n  \"next_question\": {\"text\": \"지금 퇴사 쪽으로 기울게 된 계기가 뭐예요?\", \"type\": \"short\"},\n  \"detected_decision_maker\": null\n}\n```"
     }
   ],
   "mechanical": {
     "findings": []
+  },
+  "judge": {
+    "runs": [
+      {
+        "criteria": {
+          "route_fit": {
+            "verdict": "PASS",
+            "severity": null,
+            "evidence": "",
+            "note": "퇴사+여행 조합은 실질적 결정이 걸린 open으로 볼 수 있어 heavy/open 라우팅은 수용 가능하다."
+          },
+          "ownership": {
+            "verdict": "PASS",
+            "severity": null,
+            "evidence": "",
+            "note": "어느 방향이 낫다는 암시 없이 계기를 묻는 데 그쳤다."
+          },
+          "fact_lineage": {
+            "verdict": "PASS",
+            "severity": null,
+            "evidence": "",
+            "note": "사용자 말을 그대로 반영했고 외부 사실을 단정하지 않았다."
+          },
+          "premise_quality": {
+            "verdict": "PASS",
+            "severity": null,
+            "evidence": "",
+            "note": "전제를 제시하지 않았다. 사용자 입력에서 추출할 수 있는 부하 있는 전제가 없으므로 0개는 정직한 결과다."
+          },
+          "question_value": {
+            "verdict": "PASS",
+            "severity": null,
+            "evidence": "",
+            "note": "퇴사 쪽으로 기울게 된 계기는 판단 상태를 실질적으로 달라지게 할 수 있는 첫 질문으로 적절하다."
+          },
+          "update_fidelity": {
+            "verdict": "NA",
+            "severity": null,
+            "evidence": "",
+            "note": "첫 턴이라 갱신 대상 없음."
+          },
+          "restraint": {
+            "verdict": "FAIL",
+            "severity": "L",
+            "evidence": "지금 살펴볼 것: 퇴사하고 여행을 가는 걸 생각하고 있어요.",
+            "note": "'지금 살펴볼 것'이라는 헤더는 사용자 말을 그대로 되풀이하는 것 외에 아무 정보도 추가하지 않는다. 첫 접촉에서 절차 프레임을 씌우는 불필요한 형식이다."
+          },
+          "language": {
+            "verdict": "PASS",
+            "severity": null,
+            "evidence": "",
+            "note": "해요체, 자연스러운 한국어."
+          }
+        },
+        "overall": "실질적인 판단 오류는 없고 질문도 적절하다. 다만 '지금 살펴볼 것' 헤더가 사용자 말을 그대로 반복하는 빈 형식으로 불필요한 절차감을 준다.",
+        "best_next_fix": "'지금 살펴볼 것:' 헤더 줄을 제거하고 질문만 남긴다."
+      }
+    ]
   }
 }

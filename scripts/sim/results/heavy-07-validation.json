@@ -25,12 +25,12 @@
         "stakes": "important",
         "reversibility": "partial",
         "decision_density": "low",
-        "decision_density_reasoning": "이미 결정이 내려진 상태이고 사용자가 확인만 요청했어요.",
+        "decision_density_reasoning": "결정이 이미 났고, 확인을 원한다고 직접 말했어요.",
         "framing_confidence": 85,
-        "frame_line": "다음 달부터 직장과 야간 대학원을 같이 가기로 했어요.",
-        "real_question": "다음 달부터 직장과 야간 대학원을 같이 가기로 했어요.",
+        "frame_line": "다음 달부터 직장과 야간 대학원을 함께 가기로 했어요.",
+        "real_question": "다음 달부터 직장과 야간 대학원을 함께 가기로 했어요.",
         "why_this_matters": null,
-        "insight": "결정하셨군요. 맞는 선택인지는 제가 대신 말해드릴 수 없는데, 다음 달 시작 전에 직접 확인해두면 좋을 게 하나 있어요 — 회사가 야간 대학원 병행을 알고 있나요, 아니면 본인만 아는 상태예요?",
+        "insight": "결정하셨군요. 한 가지만 — 야간 과정 일정이랑 지금 회사 업무 강도가 실제로 겹치는 부분 미리 확인해두셨어요?",
         "premise_candidates": [],
         "skeleton": [],
         "next_question": null,
@@ -41,12 +41,12 @@
         "stakes": "important",
         "reversibility": "partial",
         "decision_density": "low",
-        "decision_density_reasoning": "이미 결정이 내려진 상태이고 사용자가 확인만 요청했어요.",
+        "decision_density_reasoning": "결정이 이미 났고, 확인을 원한다고 직접 말했어요.",
         "framing_confidence": 85,
-        "frame_line": "다음 달부터 직장과 야간 대학원을 같이 가기로 했어요.",
-        "real_question": "다음 달부터 직장과 야간 대학원을 같이 가기로 했어요.",
+        "frame_line": "다음 달부터 직장과 야간 대학원을 함께 가기로 했어요.",
+        "real_question": "다음 달부터 직장과 야간 대학원을 함께 가기로 했어요.",
         "why_this_matters": null,
-        "insight": "결정하셨군요. 제가 맞다고 대신 확정하진 않을게요.",
+        "insight": "결정하셨군요. 한 가지만 — 야간 과정 일정이랑 지금 회사 업무 강도가 실제로 겹치는 부분 미리 확인해두셨어요?",
         "premise_candidates": [],
         "skeleton": [],
         "next_question": null,
@@ -68,55 +68,55 @@
     {
       "actor": "argus",
       "phase": "heavy_initial",
-      "text": "결정하셨군요. 제가 맞다고 대신 확정하진 않을게요."
+      "text": "결정하셨군요. 한 가지만 — 야간 과정 일정이랑 지금 회사 업무 강도가 실제로 겹치는 부분 미리 확인해두셨어요?"
     }
   ],
   "calls": [
     {
-      "seq": 0,
+      "seq": 9,
       "label": "heavy-07-validation",
       "tier": "fast",
       "modelId": "claude-haiku-4-5-20251001",
       "maxTokens": 500,
       "attempt": 0,
-      "ms": 1543,
+      "ms": 1433,
       "usage": {
-        "input_tokens": 3596,
+        "input_tokens": 3618,
         "cache_creation_input_tokens": 0,
         "cache_read_input_tokens": 0,
         "cache_creation": {
           "ephemeral_5m_input_tokens": 0,
           "ephemeral_1h_input_tokens": 0
         },
-        "output_tokens": 103,
+        "output_tokens": 83,
         "service_tier": "standard",
         "inference_geo": "not_available"
       },
-      "user": "[user] 사용자가 방금 쓴 것:\n<user-data context=\"decision\">\n이미 결정하긴 했는데 그냥 확인받고 싶어요. 다음 달부터 회사 다니면서 대학원 야간 과정을 병행하기로 했어요. 맞는 선택이겠죠?\n</user-data>",
-      "rawText": "```json\n{\n  \"need\": \"heavy\",\n  \"mirror\": \"이미 결정을 내리셨고, 그 결정이 맞는지 확인받고 싶으신 거네요. 다음 달부터 회사와 대학원을 함께 시작하기로 정하셨어요.\",\n  \"question\": \"\"\n}\n```"
+      "user": "[user] 오늘은 2026-08-01 (토요일)입니다.\n\n사용자가 방금 쓴 것:\n<user-data context=\"decision\">\n이미 결정하긴 했는데 그냥 확인받고 싶어요. 다음 달부터 회사 다니면서 대학원 야간 과정을 병행하기로 했어요. 맞는 선택이겠죠?\n</user-data>",
+      "rawText": "```json\n{\n  \"need\": \"heavy\",\n  \"mirror\": \"다음 달부터 회사와 대학원 야간 과정을 함께하기로 이미 결정하셨네요. 그 결정을 존중합니다.\",\n  \"question\": \"\"\n}\n```"
     },
     {
-      "seq": 2,
+      "seq": 11,
       "label": "heavy-07-validation",
       "tier": "default",
       "modelId": "claude-sonnet-4-6",
       "maxTokens": 4096,
       "attempt": 0,
-      "ms": 6637,
+      "ms": 5508,
       "usage": {
         "input_tokens": 93,
-        "cache_creation_input_tokens": 3233,
-        "cache_read_input_tokens": 0,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 3233,
         "cache_creation": {
-          "ephemeral_5m_input_tokens": 3233,
+          "ephemeral_5m_input_tokens": 0,
           "ephemeral_1h_input_tokens": 0
         },
-        "output_tokens": 339,
+        "output_tokens": 290,
         "service_tier": "standard",
         "inference_geo": "global"
       },
       "user": "[user] <user-data>이미 결정하긴 했는데 그냥 확인받고 싶어요. 다음 달부터 회사 다니면서 대학원 야간 과정을 병행하기로 했어요. 맞는 선택이겠죠?</user-data>",
-      "rawText": "```json\n{\n  \"request_type\": \"validation\",\n  \"stakes\": \"important\",\n  \"reversibility\": \"partial\",\n  \"decision_density\": \"low\",\n  \"decision_density_reasoning\": \"이미 결정이 내려진 상태이고 사용자가 확인만 요청했어요.\",\n  \"framing_confidence\": 85,\n  \"frame_line\": \"다음 달부터 직장과 야간 대학원을 같이 가기로 했어요.\",\n  \"real_question\": \"다음 달부터 직장과 야간 대학원을 같이 가기로 했어요.\",\n  \"why_this_matters\": null,\n  \"insight\": \"결정하셨군요. 맞는 선택인지는 제가 대신 말해드릴 수 없는데, 다음 달 시작 전에 직접 확인해두면 좋을 게 하나 있어요 — 회사가 야간 대학원 병행을 알고 있나요, 아니면 본인만 아는 상태예요?\",\n  \"premise_candidates\": [],\n  \"skeleton\": [],\n  \"next_question\": null,\n  \"detected_decision_maker\": null\n}\n```"
+      "rawText": "```json\n{\n  \"request_type\": \"validation\",\n  \"stakes\": \"important\",\n  \"reversibility\": \"partial\",\n  \"decision_density\": \"low\",\n  \"decision_density_reasoning\": \"결정이 이미 났고, 확인을 원한다고 직접 말했어요.\",\n  \"framing_confidence\": 85,\n  \"frame_line\": \"다음 달부터 직장과 야간 대학원을 함께 가기로 했어요.\",\n  \"real_question\": \"다음 달부터 직장과 야간 대학원을 함께 가기로 했어요.\",\n  \"why_this_matters\": null,\n  \"insight\": \"결정하셨군요. 한 가지만 — 야간 과정 일정이랑 지금 회사 업무 강도가 실제로 겹치는 부분 미리 확인해두셨어요?\",\n  \"premise_candidates\": [],\n  \"skeleton\": [],\n  \"next_question\": null,\n  \"detected_decision_maker\": null\n}\n```"
     }
   ],
   "mechanical": {
@@ -129,54 +129,54 @@
           "route_fit": {
             "verdict": "PASS",
             "severity": null,
-            "evidence": "validation 라우팅에서 확인 요청을 의사결정 여정으로 열지 않고 짧게 응답했다.",
-            "note": ""
+            "evidence": "",
+            "note": "validation 라우팅에서 확인 질문 하나로 마무리. 의사결정 여정으로 확장하지 않음."
           },
           "ownership": {
             "verdict": "PASS",
             "severity": null,
-            "evidence": "\"제가 맞다고 대신 확정하진 않을게요\" — 판단 대행을 명시적으로 거부했다.",
-            "note": ""
+            "evidence": "",
+            "note": "'맞는 선택이겠죠?'에 대해 맞다/틀리다 판정 없이 실질 확인 질문으로 응답. 방향을 밀지 않음."
           },
           "fact_lineage": {
             "verdict": "PASS",
             "severity": null,
-            "evidence": "사실 주장이 없다.",
-            "note": ""
+            "evidence": "",
+            "note": "'야간 과정 일정', '회사 업무 강도' 모두 사용자 입력에서 직접 추적 가능한 요소."
           },
           "premise_quality": {
             "verdict": "PASS",
             "severity": null,
-            "evidence": "전제 없음. 사용자 말에서 논리적으로 이어지는 부하 있는 전제가 없으므로 0개가 정직한 결과다.",
-            "note": ""
+            "evidence": "",
+            "note": "전제를 별도로 제시하지 않음. 질문 자체가 사용자 말에서 논리적으로 이어지는 실질 확인 사항."
           },
           "question_value": {
             "verdict": "PASS",
             "severity": null,
-            "evidence": "질문 없음. validation 요청에 대해 확인 대행을 거부하는 것으로 응답이 완결됐고, 추가 질문이 필요한 미확인 제약이 사용자 말에 없다.",
-            "note": "다만 응답이 거부 선언만으로 끝나 사용자가 다음에 무엇을 할 수 있는지 전혀 열려 있지 않다. 이는 question_value보다 restraint 또는 route_fit 관점이므로 여기서는 PASS."
+            "evidence": "",
+            "note": "'야간 과정 일정이랑 지금 회사 업무 강도가 실제로 겹치는 부분 미리 확인해두셨어요?' — 병행 결정의 핵심 실행 가능성을 묻는 단일 질문. 답에 따라 판단 상태가 달라짐."
           },
           "update_fidelity": {
             "verdict": "NA",
             "severity": null,
-            "evidence": "첫 응답이므로 갱신 대상 없음.",
-            "note": ""
+            "evidence": "",
+            "note": "첫 응답이므로 갱신 대상 없음."
           },
           "restraint": {
             "verdict": "PASS",
             "severity": null,
-            "evidence": "계획·전제·현실 확인 목록 없이 두 문장으로 멈췄다.",
-            "note": ""
+            "evidence": "",
+            "note": "계획·항목·절차 없이 한 문장 확인으로 충분히 멈춤."
           },
           "language": {
             "verdict": "PASS",
             "severity": null,
-            "evidence": "\"결정하셨군요. 제가 맞다고 대신 확정하진 않을게요.\" — 자연스러운 해요체, AI체·번역체 없음.",
-            "note": ""
+            "evidence": "",
+            "note": "자연스러운 해요체. AI체·번역체 없음."
           }
         },
-        "overall": "validation 요청에 판단 대행을 거부한 것은 정확하다. 다만 거부 선언만으로 응답이 끝나, 사용자가 이 대화에서 무엇을 더 할 수 있는지 전혀 보이지 않는다는 점이 아쉽다.",
-        "best_next_fix": "판단 대행 거부 뒤, 사용자가 원한다면 어떤 방식으로 이 결정을 함께 살펴볼 수 있는지 한 문장으로 열어두기 — 예: '확인받고 싶은 부분이 구체적으로 있으면 말씀해 주세요.'"
+        "overall": "validation 라우팅에 정확히 맞는 응답. 사용자 말에서 직접 나온 실행 가능성 확인 질문 하나로 깔끔하게 마무리했고, 방향을 밀거나 절차를 부풀리지 않음.",
+        "best_next_fix": ""
       }
     ]
   }

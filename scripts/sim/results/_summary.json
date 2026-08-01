@@ -1,7 +1,43 @@
 {
-  "at": "2026-07-31T08:02:56.254Z",
-  "totalLLMCalls": 12,
+  "at": "2026-08-01T07:08:53.704Z",
+  "totalLLMCalls": 23,
   "scenarios": [
+    {
+      "id": "light-08-en-party",
+      "error": false,
+      "judgeError": null,
+      "gate": "light",
+      "lightOutcome": "close",
+      "mechanicalFindings": 0,
+      "judgeFails": [
+        "ownership:M",
+        "question_value:M"
+      ]
+    },
+    {
+      "id": "light-01-party-wife",
+      "error": false,
+      "judgeError": null,
+      "gate": "light",
+      "lightOutcome": "offer",
+      "mechanicalFindings": 0,
+      "judgeFails": [
+        "ownership:M",
+        "question_value:M",
+        "restraint:M"
+      ]
+    },
+    {
+      "id": "light-06-quit-travel-trap",
+      "error": false,
+      "judgeError": null,
+      "gate": "heavy",
+      "requestType": "open",
+      "mechanicalFindings": 0,
+      "judgeFails": [
+        "restraint:L"
+      ]
+    },
     {
       "id": "heavy-07-validation",
       "error": false,
@@ -28,8 +64,9 @@
       "requestType": "open",
       "mechanicalFindings": 0,
       "judgeFails": [
-        "fact_lineage:M",
-        "restraint:M"
+        "ownership:M",
+        "question_value:M",
+        "update_fidelity:M"
       ]
     }
   ]

@@ -188,19 +188,24 @@ export function applyRouteContract<T extends {
 ): { result: T; coerced: boolean } {
   const rt = result.request_type;
   if (rt && NON_OPEN_REQUEST_TYPES.has(rt)) {
+    // Some non-open routes are allowed exactly ONE clarifying line, because the
+    // prompt itself asks for it: "'어디서부터 할지 모르겠다' is not a request for
+    // a template; it may first need one line asking which part is actually
+    // stuck." Deleting it left replies dangling mid-thought — one measured run
+    // ended on "어느 쪽인지에 따라 다음 발걸음이 바뀌어요." and then simply
+    // stopped, having just promised a next step. Venting and crisis still get
+    // no question: there, a question is the intrusion.
+    const mayAskOnce = rt === 'info' || rt === 'validation';
     const coerced = (Array.isArray(result.skeleton) && result.skeleton.length > 0)
       || (Array.isArray(result.hidden_assumptions) && result.hidden_assumptions.length > 0)
-      || result.next_question != null;
+      || (!mayAskOnce && result.next_question != null);
     if (!coerced) return { result, coerced: false };
-    // The model classified this as a non-open request but still built a plan —
-    // an internal contradiction. Honor the restraint side (the spine-safe
-    // direction): a non-open request gets no manufactured plan.
     return {
       result: {
         ...result,
         skeleton: [],
         hidden_assumptions: [],
-        next_question: null,
+        next_question: mayAskOnce ? result.next_question : null,
       },
       coerced: true,
     };

@@ -14934,9 +14934,17 @@ function buildLightSystemPrompt(locale, phase, questionsAsked = 0) {
   if (phase === "gate") return rules + (locale === "ko" ? GATE_SECTION_KO : GATE_SECTION_EN);
   return rules + (locale === "ko" ? nextSectionKo(questionsAsked) : nextSectionEn(questionsAsked));
 }
+function todayLine(locale, now = /* @__PURE__ */ new Date()) {
+  const iso = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+  const ko2 = ["\uC77C", "\uC6D4", "\uD654", "\uC218", "\uBAA9", "\uAE08", "\uD1A0"][now.getDay()];
+  const en2 = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][now.getDay()];
+  return locale === "ko" ? `\uC624\uB298\uC740 ${iso} (${ko2}\uC694\uC77C)\uC785\uB2C8\uB2E4.` : `Today is ${iso} (${en2}).`;
+}
 function buildLightGateUserPrompt(problemText, locale) {
   const header = locale === "ko" ? "\uC0AC\uC6A9\uC790\uAC00 \uBC29\uAE08 \uC4F4 \uAC83:" : "What the user just wrote:";
-  return `${header}
+  return `${todayLine(locale)}
+
+${header}
 <user-data context="decision">
 ${sanitizeForPrompt(problemText)}
 </user-data>`;
@@ -14946,6 +14954,8 @@ function buildLightNextUserPrompt(problemText, qas, locale) {
   const qaLines = qas.map((qa, i) => `Q${i + 1}. ${sanitizeForPrompt(qa.question)}
 A${i + 1}. ${sanitizeForPrompt(qa.answer)}`).join("\n");
   return [
+    todayLine(locale),
+    "",
     ko2 ? "\uC0AC\uC6A9\uC790\uAC00 \uCC98\uC74C \uC4F4 \uAC83:" : "What the user first wrote:",
     `<user-data context="decision">
 ${sanitizeForPrompt(problemText)}
@@ -15005,11 +15015,18 @@ function isInterrogativeSentence(sentence) {
   if (!t) return false;
   return /[?？]\s*$/.test(t) || /(?:는지|는가|[가-힣]까)(?:요)?\s*[.!…]?\s*$/.test(t);
 }
-function coerceOffer(v) {
+function offerPicksUnstatedSide(sentence, userTexts) {
+  if (!userTexts.some((t) => (t || "").trim().length > 0)) return false;
+  const decided = userTexts.some((t) => STATED_DECISION.test(t || ""));
+  if (decided) return false;
+  return /(했다|갔다|왔다|샀다|남았다|나왔다|끝냈다|골랐다|정했다)\s*[.!]?\s*$|\b(?:i|we)\s+(?:stayed|left|went|bought|took|chose|skipped|declined|finished)\b/i.test(sentence.trim());
+}
+function coerceOffer(v, userTexts = []) {
   if (!v || typeof v !== "object") return void 0;
   const o = v;
   const sentence = asTrimmedString(o.sentence);
   if (!sentence) return void 0;
+  if (offerPicksUnstatedSide(sentence, userTexts)) return void 0;
   if (isInterrogativeSentence(sentence)) return void 0;
   let when = o.when === "tonight" || o.when === "this_weekend" || o.when === "in_days" || o.when === "tomorrow_morning" ? o.when : "tomorrow_morning";
   let days;
@@ -15037,11 +15054,11 @@ function coerceLightGate(raw) {
   if (!mirror || !question) return { need: "heavy" };
   return { need: "light", mirror, question };
 }
-function coerceLightTurn(raw, questionsAsked) {
+function coerceLightTurn(raw, questionsAsked, userTexts = []) {
   const r = raw && typeof raw === "object" ? raw : {};
   const rawMirror = asTrimmedString(r.mirror);
   const question = limitQuestionMarks(stripOneLinePhrase(asTrimmedString(r.question)));
-  const offer = coerceOffer(r.offer);
+  const offer = coerceOffer(r.offer, userTexts);
   const esc = r.escalate && typeof r.escalate === "object" ? asTrimmedString(r.escalate.bigger_question) : "";
   const escalate = esc ? { bigger_question: esc } : void 0;
   let action;
@@ -15093,11 +15110,16 @@ async function runLightGate(problemText, locale, signal) {
     return { need: "heavy" };
   }
 }
-var STATED_DECISION = /[가-힣]기로\s*(?:했|정했)|결정했|할래|살래|갈래|보낼래|버릴래|going\s+to\s|decided\s+to\s|i'?ll\s/i;
+var STATED_DECISION = /[가-힣]기로\s*(?:했|정했)|결정했|할래|살래|갈래|보낼래|버릴래|\bgoing\s+to\s|\bdecided\s+to\s|\bi'?ll\s/i;
+var ASK_PRESUMES_OUTCOME = /(했|하기로|가기로|사기로|보내기로|일찍|끝까지|안\s*하기로)\s*(?:했|한|하신|하기로)|\b(?:you|i)\s+(?:stayed|left|went|bought|took|skipped|declined)\b/i;
+var ASK_IS_NEUTRAL = /어떻게\s*(?:됐|하셨|되셨)|how\s+it\s+(?:went|turned)|what\s+(?:you\s+)?(?:did|ended)/i;
 function neutralizeUndecidedAsk(turn, problemText, qas) {
-  if (!turn.offer?.ask) return turn;
+  const ask = turn.offer?.ask;
+  if (!ask) return turn;
   const userTexts = [problemText, ...qas.map((qa) => qa.answer || "")];
-  if (userTexts.some((t) => STATED_DECISION.test(t || ""))) return turn;
+  const userDecided = userTexts.some((t) => STATED_DECISION.test(t || ""));
+  if (userDecided) return turn;
+  if (ASK_IS_NEUTRAL.test(ask) && !ASK_PRESUMES_OUTCOME.test(ask)) return turn;
   const { ask: _dropped, ...offer } = turn.offer;
   void _dropped;
   return { ...turn, offer };
@@ -15118,7 +15140,8 @@ async function runLightNext(problemText, qas, locale, signal) {
       shape: { mirror: "string", action: "string" }
     }
   );
-  return neutralizeUndecidedAsk(coerceLightTurn(raw, qas.length), problemText, qas);
+  const userTexts = [problemText, ...qas.map((qa) => qa.answer || "")];
+  return neutralizeUndecidedAsk(coerceLightTurn(raw, qas.length, userTexts), problemText, qas);
 }
 function lightWhenLabel(when, days, locale) {
   const ko2 = locale === "ko";
@@ -15863,8 +15886,10 @@ SYNTHESIS CONTRACT
    Omit an empty job. Never write general domain exposition.
 6. key_assumptions may only restate final-state hidden assumptions. Do not add or
    replenish them. [] is valid.
-7. next_steps may only restate final-state reality checks. Do not create advice,
-   deadlines, owners, or exercises. [] is valid.
+7. next_steps may ONLY restate, one-for-one, the "\uC774\uAC8C \uD2C0\uB9AC\uBA74" line already
+   attached to a premise below \u2014 that is the check, and it is already grounded
+   in the user's words. Never more items than there are premises. No advice, no
+   deadlines, no owners, no exercises. [] is valid and common.
 8. AI reviews and the AI lead read are leads, not evidence or votes. Include one
    only when it points to material already present, and keep its uncertainty
    visible. No count of agreeing reviews makes a claim verified.
@@ -15890,7 +15915,10 @@ Return JSON only:
 Final living state:
 - question: ${sanitizeForPrompt(latest?.real_question || problemText)}
 - insight: ${sanitizeForPrompt(latest?.insight || "")}
-- AI-surfaced premises: ${(latest?.hidden_assumptions || []).map(sanitizeForPrompt).join(" / ") || "(none)"}
+- AI-surfaced premises: ${(latest?.premise_records || []).length > 0 ? (latest?.premise_records || []).map((p) => `
+  \xB7 ${sanitizeForPrompt(p.text)}
+    (\uC0AC\uC6A9\uC790 \uB9D0: "${sanitizeForPrompt(p.anchor_quote)}")
+    \uC774\uAC8C \uD2C0\uB9AC\uBA74: ${sanitizeForPrompt(p.if_false_changes)}`).join("") : (latest?.hidden_assumptions || []).map(sanitizeForPrompt).join(" / ") || "(none)"}
 - reality checks already present: ${(latest?.skeleton || []).map(sanitizeForPrompt).join(" / ") || "(none)"}
 
 User conversation:
@@ -16335,15 +16363,18 @@ import { callLLMJson as callLLMJson2 } from "../llm-shim.mjs";
 // src/lib/judgment-state-contract.ts
 function clampSynthesisToLivingState(result, living) {
   const assumptions = (living?.hidden_assumptions || []).filter((item) => typeof item === "string" && item.trim().length > 0).map((item) => cleanText(item));
-  const nextSteps = (living?.skeleton || []).filter((item) => typeof item === "string" && item.trim().length > 0).map((item) => cleanText(item));
-  const unsupportedAssumptionHeading = /(전제|가정|아직.*(?:확인|모르)|확인되지|현실.*확인|assumptions?|unverified|unknown|reality checks?|to verify)/i;
-  const unsupportedActionHeading = /(다음\s*(?:단계|행동)|행동\s*계획|실행\s*계획|next steps?|action plans?|execution plans?)/i;
+  const checkableCount = (living?.premise_records || []).filter((r) => r && cleanText(r.if_false_changes).length > 0).length;
+  const modelSteps = (result.next_steps || []).filter((item) => typeof item === "string" && item.trim().length > 0).map((item) => cleanText(item));
+  const nextSteps = modelSteps.slice(0, checkableCount);
+  const assumptionHeading = /(전제|가정|아직.*(?:확인|모르)|확인되지|assumptions?|unverified|unknown)/i;
+  const realityCheckHeading = /(현실.*확인|확인할\s*것|reality checks?|to verify)/i;
+  const actionHeading = /(다음\s*(?:단계|행동)|행동\s*계획|실행\s*계획|next steps?|action plans?|execution plans?)/i;
   return {
     ...result,
     sections: (result.sections || []).filter((section) => {
       const heading = cleanText(section?.heading);
-      if (assumptions.length === 0 && unsupportedAssumptionHeading.test(heading)) return false;
-      if (nextSteps.length === 0 && unsupportedActionHeading.test(heading)) return false;
+      if (assumptions.length === 0 && assumptionHeading.test(heading)) return false;
+      if (nextSteps.length === 0 && (realityCheckHeading.test(heading) || actionHeading.test(heading))) return false;
       return true;
     }),
     key_assumptions: assumptions,
@@ -16379,7 +16410,7 @@ function findExisting(premises, candidate) {
   return premises.findIndex((premise) => comparable(premise) === target);
 }
 function coercePremiseCandidates(raw, userCorpus) {
-  const premises = [];
+  const records = [];
   const audit = [];
   const candidates = Array.isArray(raw) ? raw : [];
   for (const value of candidates) {
@@ -16415,21 +16446,32 @@ function coercePremiseCandidates(raw, userCorpus) {
       });
       continue;
     }
-    if (findExisting(premises, text) >= 0) {
+    if (findExisting(records.map((r) => r.text), text) >= 0) {
       audit.push({ accepted: false, action: "initial", text, reason: "duplicate" });
       continue;
     }
-    if (premises.length >= MAX_PREMISES) {
+    if (records.length >= MAX_PREMISES) {
       audit.push({ accepted: false, action: "initial", text, reason: "premise_limit" });
       continue;
     }
-    premises.push(text);
+    records.push({
+      text,
+      anchor_quote: anchorQuote,
+      if_false_changes: ifFalseChanges,
+      support_kind: supportKind
+    });
     audit.push({ accepted: true, action: "initial", text, reason: "grounded" });
   }
-  return { premises, audit };
+  return { premises: records.map((r) => r.text), records, audit };
 }
-function applyPremiseDeltas(currentPremises, raw, fullUserCorpus, latestAnswer) {
-  const premises = currentPremises.filter((premise) => typeof premise === "string" && premise.trim().length > 0).map((premise) => cleanText(premise)).slice(0, MAX_PREMISES);
+function applyPremiseDeltas(currentRecords, raw, fullUserCorpus, latestAnswer) {
+  const records = (currentRecords || []).map((entry) => {
+    if (typeof entry === "string") {
+      return entry.trim() ? { text: cleanText(entry), anchor_quote: "", if_false_changes: "", support_kind: "explicit_reason" } : null;
+    }
+    return entry && typeof entry.text === "string" && entry.text.trim() ? { ...entry, text: cleanText(entry.text) } : null;
+  }).filter((r) => r !== null).slice(0, MAX_PREMISES);
+  const premises = records.map((r) => r.text);
   const audit = [];
   const deltas = Array.isArray(raw) ? raw : [];
   for (const value of deltas) {
@@ -16474,10 +16516,16 @@ function applyPremiseDeltas(currentPremises, raw, fullUserCorpus, latestAnswer) 
         audit.push({ accepted: false, action, text, reason: "duplicate" });
         continue;
       }
-      if (premises.length >= MAX_PREMISES) {
+      if (records.length >= MAX_PREMISES) {
         audit.push({ accepted: false, action, text, reason: "premise_limit" });
         continue;
       }
+      records.push({
+        text,
+        anchor_quote: anchorQuote,
+        if_false_changes: ifFalseChanges,
+        support_kind: supportKind
+      });
       premises.push(text);
       audit.push({ accepted: true, action, text, reason: "grounded" });
       continue;
@@ -16504,6 +16552,7 @@ function applyPremiseDeltas(currentPremises, raw, fullUserCorpus, latestAnswer) 
       continue;
     }
     if (action === "remove") {
+      records.splice(existingIndex, 1);
       premises.splice(existingIndex, 1);
       audit.push({ accepted: true, action, previous_text: previousText, reason: "latest_answer_grounded" });
       continue;
@@ -16523,6 +16572,12 @@ function applyPremiseDeltas(currentPremises, raw, fullUserCorpus, latestAnswer) 
       audit.push({ accepted: false, action, previous_text: previousText, text, reason: "duplicate" });
       continue;
     }
+    records[existingIndex] = {
+      text,
+      anchor_quote: anchorQuote,
+      if_false_changes: ifFalseChanges,
+      support_kind: supportKind
+    };
     premises[existingIndex] = text;
     audit.push({
       accepted: true,
@@ -16532,29 +16587,93 @@ function applyPremiseDeltas(currentPremises, raw, fullUserCorpus, latestAnswer) 
       reason: "latest_answer_grounded"
     });
   }
-  return { premises: premises.slice(0, MAX_PREMISES), audit };
+  return {
+    premises: records.slice(0, MAX_PREMISES).map((r) => r.text),
+    records: records.slice(0, MAX_PREMISES),
+    audit
+  };
 }
 
 // src/lib/progressive-guards.ts
 function lowConfidenceOpeningCopy(locale) {
-  return locale === "ko" ? {
-    insight: "\uC544\uC9C1 \uBB34\uC5C7\uC774 \uC774 \uD310\uB2E8\uC744 \uC6C0\uC9C1\uC774\uB294\uC9C0\uB294 \uC815\uD574\uC9C0\uC9C0 \uC54A\uC558\uC5B4\uC694.",
-    question: {
-      text: "\uC774 \uC0C1\uD669\uC5D0\uC11C \uC9C0\uAE08 \uAC00\uC7A5 \uB9C8\uC74C\uC5D0 \uAC78\uB9AC\uB294 \uAC74 \uBB50\uC608\uC694?",
-      type: "short",
-      options: []
-    }
-  } : {
-    insight: "It is not clear yet what this judgment turns on.",
-    question: {
-      text: "What feels most unresolved about this situation right now?",
-      type: "short",
-      options: []
-    }
-  };
+  return locale === "ko" ? { question: { text: "\uC774 \uC0C1\uD669\uC5D0\uC11C \uC9C0\uAE08 \uAC00\uC7A5 \uB9C8\uC74C\uC5D0 \uAC78\uB9AC\uB294 \uAC74 \uBB50\uC608\uC694?", type: "short", options: [] } } : { question: { text: "What feels most unresolved about this situation right now?", type: "short", options: [] } };
 }
-function guardLowConfidenceOpeningQuestion(question, reportedConfidence, locale) {
-  if (reportedConfidence != null && reportedConfidence >= 70) return question ?? null;
+var ENGLISH_FILLER = /* @__PURE__ */ new Set([
+  "about",
+  "there",
+  "their",
+  "would",
+  "could",
+  "should",
+  "think",
+  "thinking",
+  "really",
+  "going",
+  "other",
+  "because",
+  "which",
+  "where",
+  "while",
+  "still",
+  "thing",
+  "things",
+  "something",
+  "anything",
+  "better",
+  "right",
+  "maybe",
+  "whether",
+  "between",
+  "these",
+  "those",
+  "being",
+  "having",
+  "doing",
+  "over",
+  "more",
+  "much",
+  "them",
+  "that",
+  "this",
+  "with",
+  "from",
+  "want",
+  "need",
+  "know",
+  "like",
+  "just",
+  "been",
+  "have",
+  "what",
+  "when",
+  "they",
+  "some"
+]);
+function questionEchoesUser(questionText, userText) {
+  const q = (questionText || "").normalize("NFKC").toLocaleLowerCase();
+  const u = (userText || "").normalize("NFKC").toLocaleLowerCase();
+  if (!q || !u) return false;
+  if (/[가-힣]/.test(u)) {
+    for (let i = 0; i + 4 <= u.length; i += 1) {
+      const span = u.slice(i, i + 4);
+      if (!/[가-힣]/.test(span)) continue;
+      if (q.includes(span)) return true;
+    }
+    return false;
+  }
+  const content = (u.match(/[a-z][a-z']{3,}/g) || []).filter((w) => !ENGLISH_FILLER.has(w));
+  return content.some((w) => new RegExp(`\\b${w}`, "i").test(q));
+}
+function questionManufacturesFork(text, options, userText) {
+  const opts = (options || []).filter((o) => typeof o === "string" && !!o.trim());
+  if (opts.length > 0) return !opts.every((o) => questionEchoesUser(o, userText));
+  const forked = /아니면|,\s*또는|\b(?:or)\b/i.test(text || "");
+  return forked && !questionEchoesUser(text, userText);
+}
+function guardLowConfidenceOpeningQuestion(question, problemText, locale) {
+  if (question?.text && !questionManufacturesFork(question.text, question.options, problemText)) {
+    return question;
+  }
   const open = lowConfidenceOpeningCopy(locale).question;
   return question ? { ...question, ...open, subtext: void 0 } : open;
 }
@@ -16574,15 +16693,6 @@ function stripConditionalReassurance(insight) {
   const kept = sentences.filter((s) => !COND.test(s));
   const out = kept.join(" ").trim();
   return out || insight;
-}
-function validationAcknowledgementOnly(insight, locale = "ko") {
-  if (!insight) return insight;
-  const first = insight.match(/^.*?[.!?。](?:\s|$)/)?.[0]?.trim();
-  const receiving = first || insight.trim();
-  const boundary = locale === "ko" ? "\uC81C\uAC00 \uB9DE\uB2E4\uACE0 \uB300\uC2E0 \uD655\uC815\uD558\uC9C4 \uC54A\uC744\uAC8C\uC694." : "I won't declare it right on your behalf.";
-  if (locale === "ko" && /대신\s*(확정|판단)|맞다고\s*(말|확정)/.test(receiving)) return receiving;
-  if (locale !== "ko" && /on your behalf|declare it right/i.test(receiving)) return receiving;
-  return `${receiving} ${boundary}`;
 }
 function normalizeQuestionForRepeat(text) {
   return text.normalize("NFKC").toLocaleLowerCase().replace(/[^\p{L}\p{N}]+/gu, "");
@@ -16613,19 +16723,10 @@ function dropRepeatedQuestion(question, previouslyAsked) {
   if (!normalized) return null;
   return previouslyAsked.some((text) => normalizeQuestionForRepeat(text) === normalized || questionBigramSimilarity(text, question.text || "") >= 0.28) ? null : question;
 }
-function truncateLowConfidenceSkeleton(skeleton, reportedConfidence) {
-  const sk = Array.isArray(skeleton) ? skeleton : [];
-  if (reportedConfidence != null && reportedConfidence < 70 && sk.length > 2) return sk.slice(0, 2);
-  return sk;
-}
 var ESCALATION_MARKER = /'더 깊이 보기'를 직접 선택|chose to open this question up/;
 function capEscalationArrival(result, problemText) {
   if (!ESCALATION_MARKER.test(problemText || "")) return result;
-  return {
-    ...result,
-    skeleton: (result.skeleton || []).slice(0, 2),
-    hidden_assumptions: (result.hidden_assumptions || []).slice(0, 1)
-  };
+  return { ...result, hidden_assumptions: (result.hidden_assumptions || []).slice(0, 1) };
 }
 var HEAVY_VOCAB_SWAPS = [
   [/베팅/g, "\uD310\uB2E8"],
@@ -16706,16 +16807,14 @@ async function runHeavyInitial(problemText, locale) {
     result,
     problemText
   );
-  const routedInsight = r.request_type === "crisis" ? ensureCrisisResource(r.insight, locale) : r.request_type === "validation" ? validationAcknowledgementOnly(stripConditionalReassurance(r.insight), locale) : r.insight;
-  const reportedConfidence = typeof r.framing_confidence === "number" ? r.framing_confidence : null;
-  const lowConfidenceOpen = r.request_type === "open" && (reportedConfidence == null || reportedConfidence < 70);
+  const routedInsight = r.request_type === "crisis" ? ensureCrisisResource(r.insight, locale) : r.request_type === "validation" ? stripConditionalReassurance(r.insight) : r.insight;
   const guarded = {
     ...r,
-    insight: lowConfidenceOpen ? lowConfidenceOpeningCopy(locale).insight : routedInsight ? scrubBannedVocabulary(routedInsight) : routedInsight,
-    skeleton: scrubList(truncateLowConfidenceSkeleton(r.skeleton, r.framing_confidence)),
+    insight: r.request_type && r.request_type !== "open" ? routedInsight ? scrubBannedVocabulary(routedInsight) : routedInsight : typeof r.real_question === "string" ? r.real_question : routedInsight,
+    skeleton: [],
     next_question: r.request_type === "open" ? guardLowConfidenceOpeningQuestion(
       r.next_question,
-      reportedConfidence,
+      problemText,
       locale
     ) : r.next_question
   };
@@ -16746,7 +16845,12 @@ async function runHeavyDeepening(problemText, currentSnapshot, questionsAndAnswe
   ].join("\n");
   const latestAnswer = String(questionsAndAnswers.at(-1)?.answer.value ?? "");
   const nextPremises = applyPremiseDeltas(
-    currentSnapshot.hidden_assumptions,
+    (currentSnapshot.hidden_assumptions || []).map((text) => ({
+      text,
+      anchor_quote: "",
+      if_false_changes: "",
+      support_kind: "explicit_reason"
+    })),
     raw.premise_changes,
     userCorpus,
     latestAnswer

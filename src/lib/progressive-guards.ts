@@ -84,10 +84,16 @@ export function questionManufacturesFork(
   options: unknown[] | undefined,
   userText: string,
 ): boolean {
-  const opts = (options || []).filter((o): o is string => typeof o === 'string' && !!o.trim());
-  if (opts.length > 0) return !opts.every((o) => questionEchoesUser(o, userText));
-  const forked = /아니면|,\s*또는|\b(?:or)\b/i.test(text || '');
-  return forked && !questionEchoesUser(text, userText);
+  // Only the TEXT can disqualify a question. Invented option chips are stripped
+  // separately — throwing away a specific question because its chips were
+  // paraphrases is how the canned opener ended up on nearly every screen.
+  void options;
+  const t = text || '';
+  // Korean draws a binary two ways: with a connective ("A요, 아니면 B요?"), and
+  // without one, by simply repeating the interrogative ("A인가요, B인가요?").
+  const forked = /아니면|,\s*또는|\b(?:or)\b/i.test(t)
+    || /(가요|나요|까요|예요|이에요)\s*[,，]\s*[^,，]{2,}(가요|나요|까요|예요|이에요)/.test(t);
+  return forked && !questionEchoesUser(t, userText);
 }
 
 /**
@@ -115,7 +121,16 @@ export function guardLowConfidenceOpeningQuestion<T extends {
   locale: Locale,
 ): T | null {
   if (question?.text && !questionManufacturesFork(question.text, question.options, problemText)) {
-    return question;
+    // The question stays. Its option chips only stay if the user drew them —
+    // a chip they never wrote is a choice handed to them, and answering in
+    // their own words is always available and always better.
+    const chips = (question.options || [])
+      .filter((o): o is string => typeof o === 'string' && !!o.trim())
+      .filter((o) => questionEchoesUser(o, problemText));
+    if (chips.length === (question.options || []).length) return question;
+    return chips.length >= 2
+      ? ({ ...question, options: chips } as T)
+      : ({ ...question, options: undefined, type: 'short' } as unknown as T);
   }
   const open = lowConfidenceOpeningCopy(locale).question;
   // Identity (id, engine_phase) belongs to the flow, not to the copy: replacing
