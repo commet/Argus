@@ -79,7 +79,7 @@ describe('synthesis honesty', () => {
 
   it('cannot replenish premises or invent next steps', () => {
     expect(prompt.system).toContain('key_assumptions may only restate');
-    expect(prompt.system).toContain('next_steps may only restate');
+    expect(prompt.system).toContain('next_steps may ONLY restate, one-for-one');
     expect(prompt.system).toContain('[] is valid');
   });
 

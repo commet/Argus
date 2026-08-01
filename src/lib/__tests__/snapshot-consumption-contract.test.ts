@@ -29,6 +29,8 @@ const CONSUMPTION_CONTRACT: Record<string, Site> = {
   version: 'meta',                       // diff/version tracking
   real_question: 'mix-context',
   hidden_assumptions: 'mix-context',
+  premise_records: 'ui',                 // AnalysisCard: the user's own words +
+                                         // "이게 아니라면 →" under each premise
   skeleton: 'mix-context',
   execution_plan: 'workers',             // initWorkers → the crew
   insight: 'mix-context',

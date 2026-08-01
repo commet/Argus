@@ -1268,10 +1268,33 @@ export interface FlowAnswer {
   value: string;
 }
 
+/** One AI-surfaced premise, with the lineage that let it into the state.
+ *
+ *  The runtime already validates all of this before admitting a premise
+ *  (judgment-state-contract.ts) and then threw it away, flattening to
+ *  `hidden_assumptions: string[]`. Keeping it is what lets the product SHOW its
+ *  work — the user's own sentence underneath, and what changes if the premise
+ *  turns out wrong. That last field is also the reality check, already grounded,
+ *  so the closing record never has to invent one. ADR-2026-07-31 H1. */
+export interface PremiseRecord {
+  /** The proposition that has to hold for the decision to work. */
+  text: string;
+  /** Verbatim from the user — verified by substring match, never paraphrased. */
+  anchor_quote: string;
+  /** What changes if it turns out false. The reality check, written in advance. */
+  if_false_changes: string;
+  support_kind: 'explicit_reason' | 'explicit_condition' | 'explicit_expectation';
+}
+
 export interface AnalysisSnapshot {
   version: number;
   real_question: string;
   hidden_assumptions: string[];
+  /** The typed form of `hidden_assumptions` — same items, same order, with
+   *  lineage. Optional: absent on snapshots written before 2026-08-01 and on
+   *  non-open routes. Lives inside the progressive_sessions JSONB blob, so
+   *  adding it is not a schema drift. */
+  premise_records?: PremiseRecord[];
   skeleton: string[];
   execution_plan?: {
     steps: {

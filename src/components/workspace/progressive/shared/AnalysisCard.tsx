@@ -317,21 +317,44 @@ export function AnalysisCard({
                     {L('확인할 가정', 'Assumptions to verify')}
                   </span>
                 </div>
-                {/* Compact numbered items */}
+                {/* Each premise shows its work: the user's own sentence it
+                    stands on, and what changes if it turns out wrong. Both were
+                    already validated on the way in and used to be discarded —
+                    without them a premise is just an assertion about someone. */}
                 <div className="px-4 pb-3.5 space-y-0">
-                  {activeAssumptions.map((d, i) => (
-                    <motion.div key={`${snapshot.version}-a${i}`}
-                      initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: i * 0.06, duration: 0.35, ease: EASE }}
-                      className={`flex items-baseline gap-3 py-2 transition-colors duration-1000 ${
-                        i < activeAssumptions.length - 1 ? 'border-b border-[var(--border-subtle)]/40' : ''
-                      } ${d.status === 'new' ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)]'}`}>
-                      <span className="text-[12.5px] font-semibold tabular-nums shrink-0 text-[var(--text-tertiary)]">
-                        {i + 1}
-                      </span>
-                      <p className="text-[13px] leading-[1.65]">{renderText(d.text)}</p>
-                    </motion.div>
-                  ))}
+                  {activeAssumptions.map((d, i) => {
+                    const record = (snapshot.premise_records || [])
+                      .find(r => r.text.trim() === d.text.trim());
+                    return (
+                      <motion.div key={`${snapshot.version}-a${i}`}
+                        initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: i * 0.06, duration: 0.35, ease: EASE }}
+                        className={`flex items-baseline gap-3 py-2 transition-colors duration-1000 ${
+                          i < activeAssumptions.length - 1 ? 'border-b border-[var(--border-subtle)]/40' : ''
+                        } ${d.status === 'new' ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)]'}`}>
+                        <span className="text-[12.5px] font-semibold tabular-nums shrink-0 text-[var(--text-tertiary)]">
+                          {i + 1}
+                        </span>
+                        <div className="min-w-0">
+                          <p className="text-[13px] leading-[1.65]">{renderText(d.text)}</p>
+                          {record?.anchor_quote && (
+                            <p className="mt-1 text-[12px] leading-[1.6] text-[var(--text-tertiary)]">
+                              {L('내가 쓴 말', 'your words')}
+                              <span className="mx-1.5 opacity-50">·</span>
+                              <span className="italic">“{record.anchor_quote}”</span>
+                            </p>
+                          )}
+                          {record?.if_false_changes && (
+                            <p className="mt-0.5 text-[12px] leading-[1.6] text-[var(--text-secondary)]">
+                              {L('이게 아니라면', 'if this is wrong')}
+                              <span className="mx-1.5 opacity-50">→</span>
+                              {renderText(record.if_false_changes)}
+                            </p>
+                          )}
+                        </div>
+                      </motion.div>
+                    );
+                  })}
                 </div>
               </motion.div>
             )}

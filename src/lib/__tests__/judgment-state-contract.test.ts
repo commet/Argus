@@ -31,15 +31,30 @@ describe('judgment premise state contract', () => {
     const result = clampSynthesisToLivingState({
       sections: [{ heading: '전제', content: '내용' }],
       key_assumptions: ['모델이 새로 만든 전제'],
-      next_steps: ['모델이 새로 만든 행동'],
+      next_steps: ['모델이 새로 만든 행동', '두 번째로 지어낸 행동'],
     }, {
       hidden_assumptions: ['사용자가 확인한 전제'],
-      skeleton: ['사용자가 채택한 행동'],
+      // One premise carries a counterfactual, so exactly one check may be kept.
+      premise_records: [{ text: '사용자가 확인한 전제', if_false_changes: '판단이 달라진다' }],
     });
 
     expect(result.key_assumptions).toEqual(['사용자가 확인한 전제']);
-    expect(result.next_steps).toEqual(['사용자가 채택한 행동']);
+    expect(result.next_steps).toEqual(['모델이 새로 만든 행동']);
     expect(result.sections).toHaveLength(1);
+  });
+
+  it('allows no checks at all when no premise carries a counterfactual', () => {
+    const result = clampSynthesisToLivingState({
+      sections: [
+        { heading: '확인된 것', content: '내용' },
+        { heading: '현실에서 확인할 것', content: '지어낸 확인' },
+      ],
+      key_assumptions: [],
+      next_steps: ['지어낸 확인'],
+    }, { hidden_assumptions: [], premise_records: [] });
+
+    expect(result.next_steps).toEqual([]);
+    expect(result.sections.map((s) => s.heading)).toEqual(['확인된 것']);
   });
 
   it('accepts only a premise anchored to the user words', () => {

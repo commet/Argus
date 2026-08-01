@@ -34,8 +34,20 @@ export interface PremiseAuditEntry {
 }
 
 export interface PremiseContractResult {
+  /** Legacy projection: text only, for every consumer that predates records. */
   premises: string[];
+  /** Same items, same order, with the lineage that admitted them. */
+  records: AdmittedPremise[];
   audit: PremiseAuditEntry[];
+}
+
+/** An admitted premise and the evidence that let it in. Mirrors PremiseRecord
+ *  in stores/types.ts; kept structural here so this file stays import-light. */
+export interface AdmittedPremise {
+  text: string;
+  anchor_quote: string;
+  if_false_changes: string;
+  support_kind: PremiseCandidate['support_kind'];
 }
 
 interface SynthesisSectionLike {
@@ -57,26 +69,43 @@ export function clampSynthesisToLivingState<
   },
 >(
   result: T,
-  living: { hidden_assumptions?: string[]; skeleton?: string[] } | null | undefined,
+  living: {
+    hidden_assumptions?: string[];
+    premise_records?: { text: string; if_false_changes?: string }[];
+    skeleton?: string[];
+  } | null | undefined,
 ): T {
   const assumptions = (living?.hidden_assumptions || [])
     .filter((item): item is string => typeof item === 'string' && item.trim().length > 0)
     .map((item) => cleanText(item));
-  const nextSteps = (living?.skeleton || [])
+
+  // What to check next is not invented — it is the counterfactual each premise
+  // already carries ("이게 틀리면 무엇이 달라지는가"), which the premise contract
+  // validated on the way in. So the receipt can name checks WITHOUT a second
+  // source of truth: at most one per premise, and none when there are none.
+  const checkableCount = (living?.premise_records || [])
+    .filter((r) => r && cleanText(r.if_false_changes).length > 0).length;
+  const modelSteps = (result.next_steps || [])
     .filter((item): item is string => typeof item === 'string' && item.trim().length > 0)
     .map((item) => cleanText(item));
+  const nextSteps = modelSteps.slice(0, checkableCount);
 
-  const unsupportedAssumptionHeading =
-    /(전제|가정|아직.*(?:확인|모르)|확인되지|현실.*확인|assumptions?|unverified|unknown|reality checks?|to verify)/i;
-  const unsupportedActionHeading =
+  // Two different jobs, two different sources — folding them into one regex
+  // meant an empty premise list also deleted the reality-check section, and a
+  // session WITH premises kept a reality-check section nothing grounded.
+  const assumptionHeading =
+    /(전제|가정|아직.*(?:확인|모르)|확인되지|assumptions?|unverified|unknown)/i;
+  const realityCheckHeading =
+    /(현실.*확인|확인할\s*것|reality checks?|to verify)/i;
+  const actionHeading =
     /(다음\s*(?:단계|행동)|행동\s*계획|실행\s*계획|next steps?|action plans?|execution plans?)/i;
 
   return {
     ...result,
     sections: (result.sections || []).filter((section) => {
       const heading = cleanText(section?.heading);
-      if (assumptions.length === 0 && unsupportedAssumptionHeading.test(heading)) return false;
-      if (nextSteps.length === 0 && unsupportedActionHeading.test(heading)) return false;
+      if (assumptions.length === 0 && assumptionHeading.test(heading)) return false;
+      if (nextSteps.length === 0 && (realityCheckHeading.test(heading) || actionHeading.test(heading))) return false;
       return true;
     }),
     key_assumptions: assumptions,
@@ -138,7 +167,7 @@ export function coercePremiseCandidates(
   raw: unknown,
   userCorpus: string,
 ): PremiseContractResult {
-  const premises: string[] = [];
+  const records: AdmittedPremise[] = [];
   const audit: PremiseAuditEntry[] = [];
   const candidates = Array.isArray(raw) ? raw : [];
 
@@ -176,32 +205,49 @@ export function coercePremiseCandidates(
       });
       continue;
     }
-    if (findExisting(premises, text) >= 0) {
+    if (findExisting(records.map((r) => r.text), text) >= 0) {
       audit.push({ accepted: false, action: 'initial', text, reason: 'duplicate' });
       continue;
     }
-    if (premises.length >= MAX_PREMISES) {
+    if (records.length >= MAX_PREMISES) {
       audit.push({ accepted: false, action: 'initial', text, reason: 'premise_limit' });
       continue;
     }
 
-    premises.push(text);
+    records.push({
+      text,
+      anchor_quote: anchorQuote,
+      if_false_changes: ifFalseChanges,
+      support_kind: supportKind as PremiseCandidate['support_kind'],
+    });
     audit.push({ accepted: true, action: 'initial', text, reason: 'grounded' });
   }
 
-  return { premises, audit };
+  return { premises: records.map((r) => r.text), records, audit };
 }
 
 export function applyPremiseDeltas(
-  currentPremises: string[],
+  /** Records carry lineage; bare strings are accepted so snapshots written
+   *  before 2026-08-01 (and any legacy caller) keep working. */
+  currentRecords: Array<AdmittedPremise | string>,
   raw: unknown,
   fullUserCorpus: string,
   latestAnswer: string,
 ): PremiseContractResult {
-  const premises = currentPremises
-    .filter((premise): premise is string => typeof premise === 'string' && premise.trim().length > 0)
-    .map((premise) => cleanText(premise))
+  const records = (currentRecords || [])
+    .map((entry): AdmittedPremise | null => {
+      if (typeof entry === 'string') {
+        return entry.trim()
+          ? { text: cleanText(entry), anchor_quote: '', if_false_changes: '', support_kind: 'explicit_reason' }
+          : null;
+      }
+      return entry && typeof entry.text === 'string' && entry.text.trim()
+        ? { ...entry, text: cleanText(entry.text) }
+        : null;
+    })
+    .filter((r): r is AdmittedPremise => r !== null)
     .slice(0, MAX_PREMISES);
+  const premises = records.map((r) => r.text);
   const audit: PremiseAuditEntry[] = [];
   const deltas = Array.isArray(raw) ? raw : [];
 
@@ -257,10 +303,16 @@ export function applyPremiseDeltas(
         audit.push({ accepted: false, action, text, reason: 'duplicate' });
         continue;
       }
-      if (premises.length >= MAX_PREMISES) {
+      if (records.length >= MAX_PREMISES) {
         audit.push({ accepted: false, action, text, reason: 'premise_limit' });
         continue;
       }
+      records.push({
+        text,
+        anchor_quote: anchorQuote,
+        if_false_changes: ifFalseChanges,
+        support_kind: supportKind as PremiseCandidate['support_kind'],
+      });
       premises.push(text);
       audit.push({ accepted: true, action, text, reason: 'grounded' });
       continue;
@@ -289,6 +341,7 @@ export function applyPremiseDeltas(
     }
 
     if (action === 'remove') {
+      records.splice(existingIndex, 1);
       premises.splice(existingIndex, 1);
       audit.push({ accepted: true, action, previous_text: previousText, reason: 'latest_answer_grounded' });
       continue;
@@ -312,6 +365,12 @@ export function applyPremiseDeltas(
       continue;
     }
 
+    records[existingIndex] = {
+      text,
+      anchor_quote: anchorQuote,
+      if_false_changes: ifFalseChanges,
+      support_kind: supportKind as PremiseCandidate['support_kind'],
+    };
     premises[existingIndex] = text;
     audit.push({
       accepted: true,
@@ -322,5 +381,9 @@ export function applyPremiseDeltas(
     });
   }
 
-  return { premises: premises.slice(0, MAX_PREMISES), audit };
+  return {
+    premises: records.slice(0, MAX_PREMISES).map((r) => r.text),
+    records: records.slice(0, MAX_PREMISES),
+    audit,
+  };
 }

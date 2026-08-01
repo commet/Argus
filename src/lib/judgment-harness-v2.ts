@@ -376,8 +376,10 @@ SYNTHESIS CONTRACT
    Omit an empty job. Never write general domain exposition.
 6. key_assumptions may only restate final-state hidden assumptions. Do not add or
    replenish them. [] is valid.
-7. next_steps may only restate final-state reality checks. Do not create advice,
-   deadlines, owners, or exercises. [] is valid.
+7. next_steps may ONLY restate, one-for-one, the "이게 틀리면" line already
+   attached to a premise below — that is the check, and it is already grounded
+   in the user's words. Never more items than there are premises. No advice, no
+   deadlines, no owners, no exercises. [] is valid and common.
 8. AI reviews and the AI lead read are leads, not evidence or votes. Include one
    only when it points to material already present, and keep its uncertainty
    visible. No count of agreeing reviews makes a claim verified.
@@ -403,7 +405,13 @@ Return JSON only:
 Final living state:
 - question: ${sanitize(latest?.real_question || problemText)}
 - insight: ${sanitize(latest?.insight || '')}
-- AI-surfaced premises: ${(latest?.hidden_assumptions || []).map(sanitize).join(' / ') || '(none)'}
+- AI-surfaced premises: ${(latest?.premise_records || []).length > 0
+      ? (latest?.premise_records || []).map((p) =>
+        `
+  · ${sanitize(p.text)}
+    (사용자 말: "${sanitize(p.anchor_quote)}")
+    이게 틀리면: ${sanitize(p.if_false_changes)}`).join('')
+      : ((latest?.hidden_assumptions || []).map(sanitize).join(' / ') || '(none)')}
 - reality checks already present: ${(latest?.skeleton || []).map(sanitize).join(' / ') || '(none)'}
 
 User conversation:

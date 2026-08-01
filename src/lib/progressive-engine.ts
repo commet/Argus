@@ -74,7 +74,32 @@ import {
   applyPremiseDeltas,
   clampSynthesisToLivingState,
   coercePremiseCandidates,
+  type AdmittedPremise,
 } from '@/lib/judgment-state-contract';
+
+/** Keep the records in lockstep with whatever survived the route/escalation
+ *  caps: the text list is the authority on WHICH premises shipped, the records
+ *  supply their lineage. A premise with no matching record still renders — it
+ *  just shows no source line. */
+function alignRecords(records: AdmittedPremise[], texts: string[]): AdmittedPremise[] {
+  const byText = new Map(records.map((r) => [r.text.trim(), r]));
+  return (texts || []).map((text) => byText.get(text.trim())
+    ?? { text, anchor_quote: '', if_false_changes: '', support_kind: 'explicit_reason' as const });
+}
+
+/** Snapshots written before 2026-08-01 carry text only. Read them as records
+ *  with no lineage rather than losing the premise entirely. */
+function recordsFromSnapshot(snapshot: {
+  premise_records?: AdmittedPremise[];
+  hidden_assumptions?: string[];
+}): AdmittedPremise[] {
+  if (Array.isArray(snapshot.premise_records) && snapshot.premise_records.length > 0) {
+    return snapshot.premise_records;
+  }
+  return (snapshot.hidden_assumptions || []).map((text) => ({
+    text, anchor_quote: '', if_false_changes: '', support_kind: 'explicit_reason' as const,
+  }));
+}
 import type {
   AnalysisSnapshot,
   ConvergenceMetrics,
@@ -767,9 +792,10 @@ export async function runInitialAnalysis(
   result.skeleton = [];
   // A premise is a proposal until it proves lineage to the user's words.
   // Non-open routes carry no decision premises at all.
-  result.hidden_assumptions = result.request_type === 'open'
-    ? coercePremiseCandidates(result.premise_candidates, problemText).premises
-    : [];
+  const initialPremises = result.request_type === 'open'
+    ? coercePremiseCandidates(result.premise_candidates, problemText)
+    : { premises: [], records: [], audit: [] };
+  result.hidden_assumptions = initialPremises.premises;
 
   // R31 — runtime route-contract guard: a non-open request that nonetheless built
   // a plan is the model ignoring the STEP-0 under-fire gate (R29: ~44% on weak/mid
@@ -803,8 +829,8 @@ export async function runInitialAnalysis(
     version: 0,
     real_question: result.real_question || (locale === 'ko' ? '분석 중...' : 'Analyzing...'),
     hidden_assumptions: result.hidden_assumptions || [],
-    // R4 — a REPORTED low framing confidence shrinks the plan by code; R7 —
-    // heavy prose passes the banned-vocabulary scrub.
+    premise_records: alignRecords(initialPremises.records, result.hidden_assumptions || []),
+    // A conversation turn writes no plan (judgment harness v2).
     skeleton: [],
     // OPEN analyses may generate a memorable sentence that quietly resolves the
     // choice despite the prompt. Structurally use the neutral real question as
@@ -953,12 +979,10 @@ export async function refineInitialFraming(
 
   result.real_question = result.frame_line || result.real_question;
   result.skeleton = [];
-  result.hidden_assumptions = result.request_type === 'open'
-    ? coercePremiseCandidates(
-      result.premise_candidates,
-      `${problemText}\n${rejectionReason}`,
-    ).premises
-    : [];
+  const refinedPremises = result.request_type === 'open'
+    ? coercePremiseCandidates(result.premise_candidates, `${problemText}\n${rejectionReason}`)
+    : { premises: [] as string[], records: [] as AdmittedPremise[], audit: [] };
+  result.hidden_assumptions = refinedPremises.premises;
 
   const { result: contractResult } = applyRouteContract(result);
   Object.assign(result, contractResult);
@@ -976,6 +1000,7 @@ export async function refineInitialFraming(
     version: 0,
     real_question: result.real_question || (locale === 'ko' ? '분석 중...' : 'Analyzing...'),
     hidden_assumptions: result.hidden_assumptions || [],
+    premise_records: alignRecords(refinedPremises.records, result.hidden_assumptions || []),
     skeleton: [],
     insight: result.request_type && result.request_type !== 'open'
       ? (refinedRoutedInsight ? scrubBannedVocabulary(refinedRoutedInsight) : refinedRoutedInsight)
@@ -1098,7 +1123,7 @@ export async function runDeepening(
   ].join('\n');
   const latestAnswer = String(questionsAndAnswers.at(-1)?.answer.value ?? '');
   const premiseTransition = applyPremiseDeltas(
-    currentSnapshot.hidden_assumptions || [],
+    recordsFromSnapshot(currentSnapshot),
     result.premise_changes,
     userCorpus,
     latestAnswer,
@@ -1146,6 +1171,7 @@ export async function runDeepening(
     version: currentSnapshot.version + 1,
     real_question: result.real_question || currentSnapshot.real_question,
     hidden_assumptions: nextPremises,
+    premise_records: alignRecords(premiseTransition.records, nextPremises),
     // R7 — heavy prose passes the banned-vocabulary scrub on every round.
     skeleton: scrubList(result.skeleton || currentSnapshot.skeleton),
     execution_plan: executionPlan,

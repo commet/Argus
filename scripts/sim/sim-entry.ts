@@ -225,7 +225,9 @@ export async function runHeavyDeepening(
   ].join('\n');
   const latestAnswer = String(questionsAndAnswers.at(-1)?.answer.value ?? '');
   const nextPremises = applyPremiseDeltas(
-    currentSnapshot.hidden_assumptions,
+    (currentSnapshot.hidden_assumptions || []).map((text: string) => ({
+      text, anchor_quote: '', if_false_changes: '', support_kind: 'explicit_reason' as const,
+    })),
     raw.premise_changes,
     userCorpus,
     latestAnswer,

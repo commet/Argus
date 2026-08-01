@@ -90,7 +90,7 @@ describe('Argus judgment harness v2', () => {
 
     expect(prompt.system).toContain('judgment receipt, not a report');
     expect(prompt.system).toContain('Add no new fact, premise, risk');
-    expect(prompt.system).toContain('next_steps may only restate');
+    expect(prompt.system).toContain('next_steps may ONLY restate, one-for-one');
     expect(prompt.system).toContain('"key_assumptions": []');
     expect(prompt.system).not.toContain('3-5 sections');
   });
