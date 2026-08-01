@@ -185,7 +185,7 @@ export function CrewAtWork({ workers, onRetry, reportsOpen, onToggleReports, her
           const name = reviewLabel
             || (at === 'self' ? L('나', 'You')
               : at === 'human' ? L('외부 담당자', 'External contact')
-              : L('AI 검토자', 'AI reviewer'));
+              : L('AI 검토', 'AI review'));
           const purpose = at === 'ai'
             ? L('AI가 대신 봐요', 'Handled by AI')
             : at === 'self'

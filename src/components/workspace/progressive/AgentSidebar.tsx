@@ -442,12 +442,12 @@ export function AgentSidebar({ className }: { className?: string }) {
       {/* Header */}
       <div className="flex items-center justify-between">
         <span className="text-[12.5px] font-bold uppercase tracking-[0.12em] text-[var(--text-secondary)]">
-          {L('분석 팀', 'Analysis Team')}
+          {L('검토 과정', 'Review process')}
         </span>
         {runningCount > 0 && (
           <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-[var(--accent)]/10 text-[12px] text-[var(--accent)] font-semibold">
             <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent)] animate-pulse" />
-            {runningCount} {L('분석 중', 'analyzing')}
+            {L(`${runningCount}개 검토 중`, `${runningCount} review${runningCount === 1 ? '' : 's'} running`)}
             <TypingDots />
           </span>
         )}

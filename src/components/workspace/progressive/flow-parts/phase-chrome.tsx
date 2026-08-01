@@ -74,7 +74,7 @@ export function PhaseStatusBar({
     mode = 'ai_working';
     if (phase === 'analyzing') {
       label = L('방금 답변을 반영하고 있어요', 'Reflecting your latest answer');
-      sub = workersRunning > 0 ? L(`AI 검토 ${workersDone}/${workersTotal} 완료`, `${workersDone}/${workersTotal} AI reviewers finished`) : '';
+      sub = workersRunning > 0 ? L(`검토 ${workersDone}/${workersTotal} 완료`, `${workersDone}/${workersTotal} reviews finished`) : '';
     } else if (phase === 'lead_synthesizing') {
       label = L('검토 결과를 종합하고 있어요', 'Synthesizing the reviews');
     } else if (phase === 'mixing') {

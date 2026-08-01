@@ -286,7 +286,7 @@ function CollapsedSpine({ onExpand }: { onExpand: () => void }) {
           </span>
         )}
         {running > 0 && (
-          <span className="relative flex items-center justify-center" title={L('분석 중인 AI 검토자', 'AI reviewers working')}>
+          <span className="relative flex items-center justify-center" title={L('진행 중인 검토', 'Reviews in progress')}>
             <span className="absolute w-3 h-3 rounded-full bg-[var(--accent)]/25 animate-ping" />
             <span className="w-2 h-2 rounded-full bg-[var(--accent)]" />
           </span>

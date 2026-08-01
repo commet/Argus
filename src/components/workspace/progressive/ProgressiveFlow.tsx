@@ -964,7 +964,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
     ).catch((err) => {
       console.error('[Worker orchestration error]', err);
       if (mountedRef.current) {
-        setError(err instanceof Error ? err.message : L('에이전트 작업 중 오류가 발생했습니다.', 'Agent task error occurred.'));
+        setError(err instanceof Error ? err.message : L('검토 중 오류가 발생했습니다.', 'A review error occurred.'));
       }
     }).finally(() => {
       // Release the re-entrancy guard so a genuine later resume/retry can run.
