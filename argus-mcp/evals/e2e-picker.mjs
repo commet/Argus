@@ -149,7 +149,12 @@ check('날짜 조정 → 문장 유지 + 확인일 이동', seal2?.data?.status 
 //    outcome만 받고 what_happened가 없으면 픽커 뒤에서 WHAT_HAPPENED_REQUIRED로
 //    막다르던 버그가 있었다. 단위테스트만 있으면 "픽커 뒤 막다름" 계열이 다시
 //    숨을 수 있으므로 실 elicitation 왕복으로 잡는다.
-await callData('argus_predict', { id: 'e2e-settle', predicate: 'the pinned wire reaches the next session', check_by: '2026-08-01', predicate_owner: 'user' });
+// Never pin this to a calendar date. The old 2026-08-01 fixture became "today"
+// and the seal correctly refused it (check-by must be in the future); the eval
+// then blamed resolve with NO_PRIOR_SEAL even though no prior seal existed.
+const settleCheckBy = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+const settleSeal = await callData('argus_predict', { id: 'e2e-settle', predicate: 'the pinned wire reaches the next session', check_by: settleCheckBy, predicate_owner: 'user' });
+check('정산 전 예측이 먼저 봉인됨', settleSeal?.ok === true && settleSeal?.data?.status === 'sealed', JSON.stringify({ ok: settleSeal?.ok, status: settleSeal?.data?.status, err: settleSeal?.error_code }));
 elicitCount = 0;
 nextResp = { action: 'accept', content: { outcome: 'held', what_happened: '다음 세션이 핀한 버전으로 붙었다' } };
 const settled = await callData('argus_resolve', { id: 'e2e-settle' });

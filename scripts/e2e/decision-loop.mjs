@@ -131,7 +131,7 @@ const STATES = [
   {
     id: 'seal_offer',
     // 봉인 종막. 목적지 — 여기서 행진을 멈춘다.
-    match: async () => await clickable(/판단 기록 확정|이 원문 그대로 기록|Confirm this judgment|Save exactly as written/),
+    match: async () => await clickable(/판단 기록 확정|이 원문 그대로 기록|이 문장 기록.*확인|Confirm this judgment|Save exactly as written|Save this sentence.*check on/),
     act: async () => 'ARRIVED',
   },
   {
@@ -179,7 +179,10 @@ const STATES = [
   },
   {
     id: 'mix',
-    match: async () => await clickable(/이 방향으로 초안 만들기|Create the draft/),
+    // The product no longer calls this a draft: after the questions it offers
+    // to organize what the person has said. Keep the legacy labels so a rolling
+    // deployment cannot strand the same journey between versions.
+    match: async () => await clickable(/이 방향으로 정리하기|이 방향으로 초안 만들기|Organize in this direction|Create the draft/),
     act: async (el) => { await el.click(); return 'ACTED'; },
   },
   {
@@ -376,8 +379,8 @@ try {
   await page.waitForTimeout(9000);
   await shot('baseline');
   const baselineText = await bodyText();
-  const sawBaseline = /검토 전 기준점|기준점 남기고/.test(baselineText);
-  step('2. 시작하면 검토 전 기준점 단계가 온다', sawBaseline, sawBaseline ? '' : '기준점 화면이 안 나옴');
+  const sawBaseline = /검토 전 (?:내 생각|기준점)|지금 생각을 한 줄로|기준점 남기고/.test(baselineText);
+  step('2. 시작하면 검토 전 내 생각 단계가 온다', sawBaseline, sawBaseline ? '' : '검토 전 내 생각 화면이 안 나옴');
 
   // ── 3. 기준점을 남기고 계속 → 분석 도착 ──────────────────────────────
   const lean = page.locator('textarea');
