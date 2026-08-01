@@ -722,7 +722,7 @@ export default function SettingsPage() {
           <h2 className="text-[15px] font-bold">{L('내 프로필', 'My Profile')}</h2>
         </div>
         <p className="text-[12px] text-[var(--text-secondary)] mb-4">
-          {L('검토 피드백(상사 시점)의 톤과 깊이를 정하는 데 써요.', 'Tunes the tone and depth of your review feedback.')}
+          {L('검토 피드백의 말투와 깊이를 맞추는 데 써요.', 'Tunes the tone and depth of your review feedback.')}
         </p>
         <div className="space-y-3">
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -1246,7 +1246,7 @@ function TelegramBlock({ locale }: { locale: string }) {
       {note && <p className="text-[12px] text-[var(--text-secondary)] mt-2">{note}</p>}
       {connections.length === 0 && (
         <button type="button" onClick={() => loadConnections()} className="min-h-[44px] text-[13px] text-[var(--text-tertiary)] hover:text-[var(--accent)] mt-1.5 cursor-pointer transition-colors">
-          {L('연결했는데 안 보이면 새로고침', 'Connected but not showing? Refresh')}
+          {L('연결 상태 다시 확인', 'Check connection again')}
         </button>
       )}
     </IntegrationSection>
