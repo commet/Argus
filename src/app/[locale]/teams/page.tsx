@@ -204,7 +204,7 @@ export default function TeamsPage() {
         <p className="text-[12.5px] font-semibold tracking-[0.12em] text-[var(--accent)]">{L('사람과 함께 검토', 'REVIEW WITH PEOPLE')}</p>
         <h1 className="mt-2 text-[28px] font-bold tracking-[-0.035em] text-[var(--text-primary)]">{L('팀의 시선을 한곳에 모으세요', 'Bring the team’s perspectives together')}</h1>
         <p className="mt-2 text-[14px] leading-7 text-[var(--text-secondary)]">
-          {L('결정을 공유하고, 서로의 답을 보기 전에 각자 의견을 남긴 뒤 한꺼번에 공개할 수 있어요. AI 검토자와 달리 이곳의 팀은 초대한 실제 사람들입니다.', 'Share a decision, let each person respond independently, then publish the round together. Unlike AI reviewers, these teams are made of people you invite.')}
+          {L('결정을 공유하고, 서로의 답을 보기 전에 각자 의견을 남긴 뒤 한꺼번에 공개할 수 있어요. AI 검토 방식과 달리 이곳의 팀은 초대한 실제 사람들입니다.', 'Share a decision, let each person respond independently, then publish the round together. Unlike AI review modes, these teams are made of people you invite.')}
         </p>
       </header>
 

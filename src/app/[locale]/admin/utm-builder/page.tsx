@@ -36,7 +36,7 @@ const PATHS = [
   { value: '/', ko: '홈 (/)', en: 'Home (/)' },
   { value: '/workspace', ko: '워크스페이스 (/workspace)', en: 'Workspace (/workspace)' },
   { value: '/boss', ko: '팀장 대화 리허설 (/boss)', en: 'Manager conversation rehearsal (/boss)' },
-  { value: '/agents', ko: 'AI 팀원 (/agents)', en: 'AI reviewers (/agents)' },
+  { value: '/agents', ko: 'AI 검토 방식 (/agents)', en: 'AI review modes (/agents)' },
 ];
 
 const BASE_URL = 'https://argus.voyage';

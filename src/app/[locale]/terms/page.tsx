@@ -30,7 +30,7 @@ export default function TermsPage() {
         <section>
           <h2 className="text-[16px] font-bold mb-2">{L('제2조 (서비스의 내용)', 'Article 2 (Service Description)')}</h2>
           <p>{L(
-            '서비스는 의사결정 지원 도구로, 질문 명확화, AI 에이전트 기반 분석·검토, 이해관계자 시뮬레이션, 결정 기록 및 사후 확인 기능을 제공합니다. 서비스의 구체적인 기능과 범위는 회사의 판단에 따라 변경될 수 있습니다.',
+            '서비스는 의사결정 지원 도구로, 질문 명확화, AI 기반 분석·검토, 이해관계자 시뮬레이션, 결정 기록 및 사후 확인 기능을 제공합니다. 서비스의 구체적인 기능과 범위는 회사의 판단에 따라 변경될 수 있습니다.',
             'The Service is a decision-support tool offering question clarification, AI-agent analysis and review, stakeholder simulation, and decision records with later follow-up. Specific features and scope may change at the Company\'s discretion.',
           )}</p>
         </section>

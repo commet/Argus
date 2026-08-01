@@ -59,8 +59,8 @@ const LEGS: Leg[] = [
     leg: { ko: '제2구간', en: 'Leg II' },
     name: { ko: '듣기', en: 'Listen' },
     essence: {
-      ko: '여러 AI 검토자가 다른 관점과 빠진 근거를 보여줍니다.',
-      en: 'Several AI reviewers surface different perspectives and missing evidence.',
+      ko: '판단에 필요한 검토가 전제와 빠진 근거를 드러냅니다.',
+      en: 'The reviews this judgment needs surface assumptions and missing evidence.',
     },
     detail: {
       ko: 'AI가 대신 결정하지 않습니다. 최종 판단은 사용자가 확인합니다.',
