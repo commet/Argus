@@ -11,12 +11,21 @@ describe('notification gate reflection', () => {
     ['checkin-due', 'T1_RETURN'],
     ['telegram-reminders', 'T1_RETURN'],
     ['companion-brief', 'T5_WEEKLY_BRIEF'],
-    ['premise-watch', 'T2_PREMISE_DRIFT'],
   ])('%s user-facing sends pass through the gate as %s', (name, type) => {
     const source = route(name);
     expect(source).toContain('@/lib/notification-gate');
     expect(source).toContain('notificationGateAllowsSend');
     expect(source).toContain(`type: '${type}'`);
+  });
+
+  it('premise-watch reaches the T2 gate through its route-safe helper', () => {
+    const source = route('premise-watch');
+    const helper = readFileSync(join(process.cwd(), 'src/lib/premise-watch-routing.ts'), 'utf8');
+    expect(source).toContain("from '@/lib/premise-watch-routing'");
+    expect(source).toContain('buildPremiseWatchAlert');
+    expect(helper).toContain('@/lib/notification-gate');
+    expect(helper).toContain('notificationGateAllowsSend');
+    expect(helper).toContain("type: 'T2_PREMISE_DRIFT'");
   });
 
   it('checkin-due also routes the T4 first-settlement invitation through the gate', () => {
