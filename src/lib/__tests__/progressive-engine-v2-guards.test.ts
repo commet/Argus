@@ -27,7 +27,6 @@ vi.mock('@/lib/llm', () => ({
 import {
   runInitialAnalysis,
   stripConditionalReassurance,
-  truncateLowConfidenceSkeleton,
   scrubBannedVocabulary,
   stripUnearnedRanking,
   capEscalationArrival,
@@ -76,26 +75,12 @@ describe('R1 — stripConditionalReassurance (the sentence form is the violation
   });
 });
 
-describe('R4 — truncateLowConfidenceSkeleton (volume follows confidence, by code)', () => {
-  const FIVE = ['s1', 's2', 's3', 's4', 's5'];
-
-  it('a REPORTED confidence below 70 truncates the plan to 2', () => {
-    expect(truncateLowConfidenceSkeleton(FIVE, 45)).toEqual(['s1', 's2']);
-    expect(truncateLowConfidenceSkeleton(FIVE, 69)).toEqual(['s1', 's2']);
-  });
-
-  it('a confident or UNREPORTED framing never shrinks a legitimate plan', () => {
-    expect(truncateLowConfidenceSkeleton(FIVE, 70)).toEqual(FIVE);
-    expect(truncateLowConfidenceSkeleton(FIVE, 90)).toEqual(FIVE);
-    expect(truncateLowConfidenceSkeleton(FIVE, undefined)).toEqual(FIVE);
-    expect(truncateLowConfidenceSkeleton(FIVE, null)).toEqual(FIVE);
-    expect(truncateLowConfidenceSkeleton(undefined, 45)).toEqual([]);
-  });
-
-  it('wires into runInitialAnalysis — a shaky frame now ships NO plan and an open question', async () => {
+describe('a conversation turn ships no plan, and an invented fork is opened up', () => {
+  it('wires into runInitialAnalysis — a shaky frame ships NO plan, and an INVENTED fork is opened up', async () => {
     // The v2 harness superseded the truncation on this surface: a conversation
-    // turn ships no plan at any confidence, and below 70 the model's invented
-    // binary is replaced by an open question so the user supplies the axis.
+    // turn ships no plan at any confidence. And the branches here ("돈" /
+    // "번아웃") appear nowhere in what the user wrote — a choice manufactured
+    // for them — so the question is replaced by an open one.
     mockJson.mockResolvedValue({
       real_question: '퇴사하고 여행을 갈지 정하는 게 맞나요?',
       request_type: 'open',
@@ -112,6 +97,23 @@ describe('R4 — truncateLowConfidenceSkeleton (volume follows confidence, by co
     // The replacement keeps the flow's identity — an id-less question can never
     // be answered or matched to its receipt.
     expect(question.id).toBeTruthy();
+  });
+
+  it('a low self-score no longer discards a question written about THIS person', async () => {
+    // The measured regression: this exact question was thrown away at
+    // confidence 62, and the fact it asked about became the session's only
+    // premise two rounds later.
+    mockJson.mockResolvedValue({
+      real_question: '리드 승진과 이직 오퍼 사이에서 일주일 안에 정해야 하는 상황이에요.',
+      request_type: 'open',
+      framing_confidence: 62,
+      next_question: {
+        text: "리드 승진 얘기가 '나오는 중'이라고 하셨는데, 구두로 오간 얘기예요?",
+        type: 'short',
+      },
+    } as never);
+    const { question } = await runInitialAnalysis('지금 회사에서는 내년 초 리드 승진 얘기가 나오는 중이고요.');
+    expect(question.text).toContain('구두로 오간 얘기예요?');
   });
 });
 
@@ -140,13 +142,11 @@ describe('R7 — scrubBannedVocabulary (heavy prose had no vocabulary guard)', (
 });
 
 describe('R2 (batch 3) — an accepted escalation gets MINIMAL first contact BY CODE', () => {
-  const FIVE = { skeleton: ['s1', 's2', 's3', 's4', 's5'], hidden_assumptions: ['a1', 'a2', 'a3'] };
+  const FIVE = { hidden_assumptions: ['a1', 'a2', 'a3'] };
 
-  it('caps skeleton to 2 and assumptions to 1 when the hand-up marker is present', () => {
+  it('caps assumptions to 1 when the hand-up marker is present', () => {
     const marked = composeDeepenText('회식 가기 싫다', [], 'ko', { biggerQuestion: '이 회사에서 계속 일할지' });
-    const capped = capEscalationArrival(FIVE, marked);
-    expect(capped.skeleton).toEqual(['s1', 's2']);
-    expect(capped.hidden_assumptions).toEqual(['a1']);
+    expect(capEscalationArrival(FIVE, marked).hidden_assumptions).toEqual(['a1']);
   });
 
   it('never touches an ordinary submission (no marker)', () => {

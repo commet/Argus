@@ -50,8 +50,6 @@ import {
   guardLowConfidenceOpeningQuestion,
   lowConfidenceOpeningCopy,
   stripConditionalReassurance,
-  validationAcknowledgementOnly,
-  truncateLowConfidenceSkeleton,
   capEscalationArrival,
   scrubBannedVocabulary,
   scrubList,
@@ -172,25 +170,22 @@ export async function runHeavyInitial(problemText: string, locale: Locale): Prom
   const routedInsight = r.request_type === 'crisis'
     ? ensureCrisisResource(r.insight, locale)
     : r.request_type === 'validation'
-      ? validationAcknowledgementOnly(stripConditionalReassurance(r.insight), locale)
+      ? stripConditionalReassurance(r.insight)
       : r.insight;
-  const reportedConfidence = typeof r.framing_confidence === 'number'
-    ? r.framing_confidence
-    : null;
-  const lowConfidenceOpen = r.request_type === 'open'
-    && (reportedConfidence == null || reportedConfidence < 70);
+  // Mirror the product exactly: an open decision's opening line is its FRAME,
+  // and the model's question survives when it stands on the user's own words.
   const guarded = {
     ...r,
-    insight: lowConfidenceOpen
-      ? lowConfidenceOpeningCopy(locale).insight
-      : routedInsight
-        ? scrubBannedVocabulary(routedInsight)
-        : routedInsight,
-    skeleton: scrubList(truncateLowConfidenceSkeleton(r.skeleton, r.framing_confidence)),
+    insight: r.request_type && r.request_type !== 'open'
+      ? (routedInsight ? scrubBannedVocabulary(routedInsight) : routedInsight)
+      : (typeof (r as { real_question?: unknown }).real_question === 'string'
+        ? (r as { real_question: string }).real_question
+        : routedInsight),
+    skeleton: [],
     next_question: r.request_type === 'open'
       ? guardLowConfidenceOpeningQuestion(
           r.next_question as { text?: string; type?: string; options?: unknown[]; subtext?: string } | null,
-          reportedConfidence,
+          problemText,
           locale,
         )
       : r.next_question,

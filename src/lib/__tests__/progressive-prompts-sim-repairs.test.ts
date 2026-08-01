@@ -16,7 +16,7 @@ import {
 import {
   dropRepeatedQuestion,
   ensureCrisisResource,
-  validationAcknowledgementOnly,
+  stripConditionalReassurance,
 } from '../progressive-guards';
 
 const snapshot = {
@@ -48,10 +48,11 @@ describe('active prompt safety and route restraint', () => {
   it('keeps validation closed unless the user named a concrete constraint', () => {
     expect(initial.system).toContain('receive the decision as already made');
     expect(initial.system).toContain('directly named by the user');
-    expect(validationAcknowledgementOnly(
+    // The reply receives the decision AND keeps the one grounded check; only a
+    // verdict dressed as a condition is removed.
+    expect(stripConditionalReassurance(
       '다음 달부터 시작하기로 결정하셨군요. 회사 허가는 확인해 보세요.',
-      'ko',
-    )).toBe('다음 달부터 시작하기로 결정하셨군요. 제가 맞다고 대신 확정하진 않을게요.');
+    )).toBe('다음 달부터 시작하기로 결정하셨군요. 회사 허가는 확인해 보세요.');
   });
 
   it('reclassifies a rejected frame and never uses the rejected AI question as evidence', () => {

@@ -97,7 +97,11 @@ function grant(overrides: Partial<InfluenceGrant> = {}): InfluenceGrant {
     surfaces: ['web'],
     scope: { domain: 'product_launch', project_id: 'p1' },
     starts_at: '2026-07-01T00:00:00.000Z',
-    expires_at: '2026-08-01T00:00:00.000Z',
+    // Derived from NOW, never a wall-clock literal: one path in the live
+    // context builder reads the real clock, so a fixed date silently turned
+    // this suite red the morning it passed (2026-08-01). A fixture that
+    // expires is a test that measures the calendar.
+    expires_at: new Date(Date.parse(NOW) + 365 * 24 * 60 * 60 * 1000).toISOString(),
     authorized_by: 'user',
     status: 'active',
     ...overrides,

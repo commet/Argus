@@ -17,33 +17,92 @@
 import { formatConcernMessage } from '@/lib/crisis-gate';
 import type { Locale } from '@/lib/i18n';
 
+/** The last-resort opener, used only when the model manufactured the fork. */
 export function lowConfidenceOpeningCopy(locale: Locale): {
-  insight: string;
   question: { text: string; type: 'short'; options: string[]; subtext?: undefined };
 } {
   return locale === 'ko'
-    ? {
-        insight: '아직 무엇이 이 판단을 움직이는지는 정해지지 않았어요.',
-        question: {
-          text: '이 상황에서 지금 가장 마음에 걸리는 건 뭐예요?',
-          type: 'short',
-          options: [],
-        },
-      }
-    : {
-        insight: 'It is not clear yet what this judgment turns on.',
-        question: {
-          text: 'What feels most unresolved about this situation right now?',
-          type: 'short',
-          options: [],
-        },
-      };
+    ? { question: { text: '이 상황에서 지금 가장 마음에 걸리는 건 뭐예요?', type: 'short', options: [] } }
+    : { question: { text: 'What feels most unresolved about this situation right now?', type: 'short', options: [] } };
 }
 
 /**
- * A low-confidence frame is a hypothesis, not UI. Keep the first interaction
- * open so the user supplies the missing axis instead of selecting an invented
- * binary.
+ * Does this question actually stand on something the user wrote?
+ *
+ * Not a similarity score — a plain check for a run of the user's own words
+ * inside the question. It is how you tell "리드 승진 얘기가 '나오는 중'이라고
+ * 하셨는데, 구두로 오간 얘기예요?" (grounded in their sentence) from "지금 가장
+ * 마음에 걸리는 건 뭐예요?" (could be asked of anybody about anything).
+ *
+ * Korean needs a shorter span than English because content words are denser and
+ * particles glue on; 4 syllables is about "리드 승진". Stop-ish spans made of
+ * pure whitespace/punctuation don't count.
+ */
+const ENGLISH_FILLER = new Set([
+  'about', 'there', 'their', 'would', 'could', 'should', 'think', 'thinking',
+  'really', 'going', 'other', 'because', 'which', 'where', 'while', 'still',
+  'thing', 'things', 'something', 'anything', 'better', 'right', 'maybe',
+  'whether', 'between', 'these', 'those', 'being', 'having', 'doing', 'over',
+  'more', 'much', 'them', 'that', 'this', 'with', 'from', 'want', 'need',
+  'know', 'like', 'just', 'been', 'have', 'what', 'when', 'they', 'some',
+]);
+
+export function questionEchoesUser(questionText: string, userText: string): boolean {
+  const q = (questionText || '').normalize('NFKC').toLocaleLowerCase();
+  const u = (userText || '').normalize('NFKC').toLocaleLowerCase();
+  if (!q || !u) return false;
+
+  if (/[가-힣]/.test(u)) {
+    // Korean packs meaning densely and glues particles on, so a shared run of
+    // four syllables ("리드 승진") is already a content match.
+    for (let i = 0; i + 4 <= u.length; i += 1) {
+      const span = u.slice(i, i + 4);
+      if (!/[가-힣]/.test(span)) continue;
+      if (q.includes(span)) return true;
+    }
+    return false;
+  }
+
+  // English shares connective tissue between any two sentences — "about ",
+  // "think", "would" — so a raw substring match said every question echoed the
+  // user. Match on CONTENT words only.
+  const content = (u.match(/[a-z][a-z']{3,}/g) || []).filter((w) => !ENGLISH_FILLER.has(w));
+  return content.some((w) => new RegExp(`\\b${w}`, 'i').test(q));
+}
+
+/**
+ * Did the model invent the fork rather than find it?
+ *
+ * A question that offers branches is only honest when the branches are the
+ * user's. "돈이 문제인가요, 번아웃이 문제인가요?" put to someone who wrote
+ * "퇴사하고 여행이나 갈까" hands them a choice they never made — the
+ * manufactured binary the mirror clause forbids. The same question WITH those
+ * words in their message is just good listening.
+ */
+export function questionManufacturesFork(
+  text: string,
+  options: unknown[] | undefined,
+  userText: string,
+): boolean {
+  const opts = (options || []).filter((o): o is string => typeof o === 'string' && !!o.trim());
+  if (opts.length > 0) return !opts.every((o) => questionEchoesUser(o, userText));
+  const forked = /아니면|,\s*또는|\b(?:or)\b/i.test(text || '');
+  return forked && !questionEchoesUser(text, userText);
+}
+
+/**
+ * Keep the model's question unless it manufactured the fork.
+ *
+ * This used to discard the question whenever the model self-reported framing
+ * confidence under 70 — and open decisions self-report 55–62 as a matter of
+ * course, so it fired almost every session and replaced a question written
+ * about THIS person with one that could be asked of anybody. One measured run
+ * threw away "리드 승진 얘기가 '나오는 중'이라고 하셨는데, 구두로 오간
+ * 얘기예요?" — and that exact fact became the session's only recorded premise
+ * two rounds later. The model had listened; the code overruled it.
+ *
+ * What actually needed guarding was never the model's confidence in itself. It
+ * was the invented either/or. So that is all this blocks now.
  */
 export function guardLowConfidenceOpeningQuestion<T extends {
   text?: string;
@@ -52,10 +111,12 @@ export function guardLowConfidenceOpeningQuestion<T extends {
   subtext?: string;
 }>(
   question: T | null | undefined,
-  reportedConfidence: number | null | undefined,
+  problemText: string,
   locale: Locale,
 ): T | null {
-  if (reportedConfidence != null && reportedConfidence >= 70) return question ?? null;
+  if (question?.text && !questionManufacturesFork(question.text, question.options, problemText)) {
+    return question;
+  }
   const open = lowConfidenceOpeningCopy(locale).question;
   // Identity (id, engine_phase) belongs to the flow, not to the copy: replacing
   // the whole object dropped the id, and an id-less question can no longer be
@@ -102,38 +163,12 @@ export function stripConditionalReassurance(insight: string | undefined): string
 }
 
 /**
- * A validation route may contain one grounded check, but the current
- * string-only response has no provenance with which code can prove that check
- * came from the user. Until the richer premise contract is wired, keep only
- * the receiving sentence.
- */
-export function validationAcknowledgementOnly(
-  insight: string | undefined,
-  locale: Locale = 'ko',
-): string | undefined {
-  if (!insight) return insight;
-  const first = insight.match(/^.*?[.!?。](?:\s|$)/)?.[0]?.trim();
-  const receiving = first || insight.trim();
-  const boundary = locale === 'ko'
-    ? '제가 맞다고 대신 확정하진 않을게요.'
-    : "I won't declare it right on your behalf.";
-  if (locale === 'ko' && /대신\s*(확정|판단)|맞다고\s*(말|확정)/.test(receiving)) return receiving;
-  if (locale !== 'ko' && /on your behalf|declare it right/i.test(receiving)) return receiving;
-  return `${receiving} ${boundary}`;
-}
-
-/**
  * Ownership (v3 sim, heavy-01, reproduced across judge re-runs): the mirror
  * ranked the user's own concerns for them — "연봉 40% 차이보다 그쪽 회사의
  * 지속 가능성이 더 걸리는 지점인 거죠." Which of their concerns weighs more is
- * the one thing only they can say; asserting it is a verdict about the user
- * (CLAUDE.md rule 2), and it survives whether they answered directly or
- * redirected.
- *
- * The prompt bans it and the model reworded around the ban on the very next
- * run — the same failure that put stripConditionalReassurance here — so the
- * SENTENCE FORM is owned by code. Drops any sentence comparing two of the
- * user's concerns by weight; never empties the insight (the mirror survives).
+ * the one thing only they can say. The prompt banned it and the model reworded
+ * around the ban on the very next run, so the SENTENCE FORM is owned by code.
+ * Never empties the insight — the mirror survives, the ranking does not.
  */
 const UNEARNED_RANKING =
   /(보다|비해)[^.!?…\n]*(더|덜)\s*[^.!?…\n]*(걸리|걸려|중요|앞[에서]|무겁|무거|크게|우선|신경|마음)|\b(matters?|weighs?|counts?|concerns?)\s+more\s+than\b|\bmore\s+of\s+a\s+(concern|worry)\s+than\b/;
@@ -191,21 +226,6 @@ export function dropRepeatedQuestion<T extends { text?: string }>(
 }
 
 /**
- * R4 (sim v2): "framing_confidence<70 → skeleton ≤2" existed only as prose and
- * the model ignored it (light-06: confidence 45, skeleton 5). Purely
- * subtractive code enforcement, applyRouteContract-style: only a REPORTED low
- * confidence truncates — an absent report never shrinks a legitimate plan.
- */
-export function truncateLowConfidenceSkeleton(
-  skeleton: string[] | undefined,
-  reportedConfidence: number | null | undefined,
-): string[] {
-  const sk = Array.isArray(skeleton) ? skeleton : [];
-  if (reportedConfidence != null && reportedConfidence < 70 && sk.length > 2) return sk.slice(0, 2);
-  return sk;
-}
-
-/**
  * R2 (sim batch-3): the ESCALATION ARRIVAL minimal-structure rule went into the
  * prompt and the very next run still shipped a 5-step plan + full assumption
  * list on first contact. Enforce the caps by code: when the problem text
@@ -214,16 +234,12 @@ export function truncateLowConfidenceSkeleton(
  * subtractive; depth is earned in later rounds.
  */
 const ESCALATION_MARKER = /'더 깊이 보기'를 직접 선택|chose to open this question up/;
-export function capEscalationArrival<T extends { skeleton?: string[]; hidden_assumptions?: string[] }>(
+export function capEscalationArrival<T extends { hidden_assumptions?: string[] }>(
   result: T,
   problemText: string,
 ): T {
   if (!ESCALATION_MARKER.test(problemText || '')) return result;
-  return {
-    ...result,
-    skeleton: (result.skeleton || []).slice(0, 2),
-    hidden_assumptions: (result.hidden_assumptions || []).slice(0, 1),
-  };
+  return { ...result, hidden_assumptions: (result.hidden_assumptions || []).slice(0, 1) };
 }
 
 /**

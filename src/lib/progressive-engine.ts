@@ -55,8 +55,6 @@ import {
   lowConfidenceOpeningCopy,
   stripConditionalReassurance,
   stripUnearnedRanking,
-  validationAcknowledgementOnly,
-  truncateLowConfidenceSkeleton,
   capEscalationArrival,
   scrubBannedVocabulary,
   scrubList,
@@ -68,8 +66,6 @@ export {
   lowConfidenceOpeningCopy,
   stripConditionalReassurance,
   stripUnearnedRanking,
-  validationAcknowledgementOnly,
-  truncateLowConfidenceSkeleton,
   capEscalationArrival,
   scrubBannedVocabulary,
 } from '@/lib/progressive-guards';
@@ -799,7 +795,7 @@ export async function runInitialAnalysis(
   const routedInsight = result.request_type === 'crisis'
     ? ensureCrisisResource(result.insight, locale)
     : result.request_type === 'validation'
-      ? validationAcknowledgementOnly(stripConditionalReassurance(result.insight), locale)
+      ? stripConditionalReassurance(result.insight)
       // Ranking the user's own concerns is a verdict about them on every route.
       : stripUnearnedRanking(result.insight);
 
@@ -809,14 +805,16 @@ export async function runInitialAnalysis(
     hidden_assumptions: result.hidden_assumptions || [],
     // R4 — a REPORTED low framing confidence shrinks the plan by code; R7 —
     // heavy prose passes the banned-vocabulary scrub.
-    skeleton: scrubList(truncateLowConfidenceSkeleton(result.skeleton, result.framing_confidence)),
+    skeleton: [],
     // OPEN analyses may generate a memorable sentence that quietly resolves the
     // choice despite the prompt. Structurally use the neutral real question as
     // the first-frame insight. Non-open routes keep their direct one-line answer.
     // A model-flagged crisis additionally gets the resource line BY CODE (F1).
-    insight: result.request_type === 'open' && routingFramingConfidence < 70
-      ? lowConfidenceOpeningCopy(locale).insight
-      : result.request_type && result.request_type !== 'open'
+    // An open decision shows the FRAME as its opening line. It used to show a
+    // canned "아직 무엇이 이 판단을 움직이는지는 정해지지 않았어요" whenever the
+    // model self-scored under 70 — which open decisions routinely do — so the
+    // first thing most people read was Argus saying it had nothing.
+    insight: result.request_type && result.request_type !== 'open'
         ? (routedInsight ? scrubBannedVocabulary(routedInsight) : routedInsight)
         : (result.real_question || (locale === 'ko' ? '무엇이 이 결정을 가르는지부터 확인해볼게요.' : 'Let’s first identify what this decision turns on.')),
     framing_confidence: framingConfidence,
@@ -883,12 +881,12 @@ export async function runInitialAnalysis(
     // abort/failure leaves the legacy question standing, which is honest).
     question = guardLowConfidenceOpeningQuestion(
       guardFinalQuestion(legacyQuestion, locale, seed) ?? legacyQuestion,
-      routingFramingConfidence,
+      problemText,
       locale,
     ) ?? legacyQuestion;
     pickAndGenerateTypedQuestion(typedArgs[0], typedArgs[1], signal)
       .then((t) => {
-        const guarded = guardLowConfidenceOpeningQuestion(t, routingFramingConfidence, locale);
+        const guarded = guardLowConfidenceOpeningQuestion(t, problemText, locale);
         if (guarded) onTypedUpgrade(guarded, legacyQuestion.id);
       })
       .catch(() => { /* upgrade is optional polish, never a failure */ });
@@ -896,7 +894,7 @@ export async function runInitialAnalysis(
     const typed = await pickAndGenerateTypedQuestion(typedArgs[0], typedArgs[1], signal);
     question = guardLowConfidenceOpeningQuestion(
       guardFinalQuestion(typed ?? legacyQuestion, locale, seed) ?? legacyQuestion,
-      routingFramingConfidence,
+      problemText,
       locale,
     ) ?? legacyQuestion;
   }
@@ -970,7 +968,7 @@ export async function refineInitialFraming(
   const refinedRoutedInsight = result.request_type === 'crisis'
     ? ensureCrisisResource(result.insight, locale)
     : result.request_type === 'validation'
-      ? validationAcknowledgementOnly(stripConditionalReassurance(result.insight), locale)
+      ? stripConditionalReassurance(result.insight)
       // Ranking the user's own concerns is a verdict about them on every route.
       : stripUnearnedRanking(result.insight);
 
@@ -978,7 +976,7 @@ export async function refineInitialFraming(
     version: 0,
     real_question: result.real_question || (locale === 'ko' ? '분석 중...' : 'Analyzing...'),
     hidden_assumptions: result.hidden_assumptions || [],
-    skeleton: scrubList(truncateLowConfidenceSkeleton(result.skeleton, result.framing_confidence)),
+    skeleton: [],
     insight: result.request_type && result.request_type !== 'open'
       ? (refinedRoutedInsight ? scrubBannedVocabulary(refinedRoutedInsight) : refinedRoutedInsight)
       : (result.real_question || (locale === 'ko' ? '무엇이 이 결정을 가르는지부터 확인해볼게요.' : 'Let’s first identify what this decision turns on.')),
