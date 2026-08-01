@@ -51,7 +51,7 @@ export function DecisionEvidenceMap({ onNavigate }: { onNavigate?: () => void } 
     const conclusionKind = finalMix
       ? L('현재 문서의 핵심 주장', 'Core claim in the current document')
       : latest
-        ? L('지금 붙잡고 있는 질문', 'Question currently under review')
+        ? L('지금 이해한 상황', 'The situation as understood')
         : L('처음 적은 상황', 'Original situation');
 
     const userSources = trace.sources.filter((source) => source.kind === 'message');
@@ -205,7 +205,7 @@ export function DecisionEvidenceMap({ onNavigate }: { onNavigate?: () => void } 
                               <CircleHelp size={12} className="mt-0.5 shrink-0 text-[var(--text-tertiary)]" />
                               <div>
                                 <p className="text-[13px] leading-[1.5] text-[var(--text-primary)]">{assumption}</p>
-                                <p className="mt-0.5 text-[13px] text-[var(--text-tertiary)]">{L('문서 전체가 기대는 가정', 'Assumption supporting the document as a whole')}</p>
+                                <p className="mt-0.5 text-[13px] text-[var(--text-tertiary)]">{L('아직 확인되지 않은 전제', 'A premise not yet verified')}</p>
                               </div>
                             </div>
                           ))}

@@ -240,7 +240,7 @@ export function JudgmentReceipt(props: Props) {
                 {receipt.real_question && (
                   <div>
                     <p className="text-[12.5px] text-[var(--text-tertiary)] mb-1">
-                      {L('그때의 진짜 질문', 'The real question then')}
+                      {L('그때 짚었던 핵심', 'The crux at the time')}
                     </p>
                     <p className="text-[var(--text-primary)] font-medium" style={{ fontFamily: 'var(--font-voice, serif)' }}>
                       &ldquo;{receipt.real_question}&rdquo;

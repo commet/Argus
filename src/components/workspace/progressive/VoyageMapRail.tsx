@@ -125,7 +125,11 @@ function VoyageMapHero({ surface = 'rail' }: { surface?: 'rail' | 'modal' }) {
         )}
       </div>
 
-      {hasChart && (
+      {/* Only when a cell has something to say. The strip used to render on
+          "a chart exists", so the standard session showed
+          「지금 · 현재 지점 | 1 갈래 | 0 확인할 전제」 — three cells announcing
+          that nothing had happened yet. */}
+      {hasChart && (shownWp || branches.length > 1 || currentAssumptions > 0) && (
         <div data-testid="route-reading-strip" className="mb-2.5 flex items-center border-y border-[var(--border-subtle)] py-2 text-[12.5px]">
           <span className="min-w-0 flex-1 pr-2 text-[var(--text-secondary)]">
             <span className="block text-[13px] font-bold text-[var(--text-tertiary)]">{L('지금', 'Now')}</span>
@@ -133,14 +137,18 @@ function VoyageMapHero({ surface = 'rail' }: { surface?: 'rail' | 'modal' }) {
               {shownWp?.headline || L('현재 지점', 'Current point')}
             </strong>
           </span>
-          <span className="shrink-0 border-l border-[var(--border-subtle)] px-2 text-center text-[var(--text-tertiary)]">
-            <strong className="block font-mono text-[13px] text-[var(--text-primary)]">{branches.length}</strong>
-            {L('갈래', 'paths')}
-          </span>
-          <span className="shrink-0 border-l border-[var(--border-subtle)] pl-2 text-center text-[var(--text-tertiary)]">
-            <strong className={`block font-mono text-[13px] ${currentAssumptions > 0 ? 'text-amber-700 dark:text-amber-400' : 'text-[var(--text-primary)]'}`}>{currentAssumptions}</strong>
-            {L('확인할 전제', 'assumptions')}
-          </span>
+          {branches.length > 1 && (
+            <span className="shrink-0 border-l border-[var(--border-subtle)] px-2 text-center text-[var(--text-tertiary)]">
+              <strong className="block font-mono text-[13px] text-[var(--text-primary)]">{branches.length}</strong>
+              {L('갈래', 'paths')}
+            </span>
+          )}
+          {currentAssumptions > 0 && (
+            <span className="shrink-0 border-l border-[var(--border-subtle)] pl-2 text-center text-[var(--text-tertiary)]">
+              <strong className="block font-mono text-[13px] text-amber-700 dark:text-amber-400">{currentAssumptions}</strong>
+              {L('확인할 전제', 'assumptions')}
+            </span>
+          )}
         </div>
       )}
 

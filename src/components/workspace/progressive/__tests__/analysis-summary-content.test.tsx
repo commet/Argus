@@ -55,7 +55,7 @@ describe('AnalysisCard 접힌 항로 — 결론, 이유, 근거가 한 흐름', 
     expect(html).not.toContain('표현이 핵심이에요');
     expect(html).toContain('계획 3단계');
     expect(html).toContain('확인할 가정 2개');
-    expect(html).toContain('근거와 계획 보기');
+    expect(html).toContain('근거 보기');
   });
 
   it('초안 이후에는 더 조정 중인 것처럼 말하지 않는다', () => {

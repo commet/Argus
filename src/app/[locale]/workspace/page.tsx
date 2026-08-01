@@ -27,6 +27,7 @@ import { track } from '@/lib/analytics';
 import { useAuth, hasKnownUser } from '@/lib/auth';
 import { ensureUserId } from '@/lib/supabase';
 import { LocaleLink } from '@/components/ui/LocaleLink';
+import { personaReviewLabel } from '@/components/workspace/progressive/shared/persona-format';
 import { Button } from '@/components/ui/Button';
 import { Graticule } from '@/components/ui/VoyageElements';
 import { EASE } from '@/components/workspace/progressive/shared/constants';
@@ -787,13 +788,13 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem, fr
                   mid-step. Same loop, same vocabulary (audit P0 #3). */}
               <div className="mb-5">
                 <h2 className="text-[19px] md:text-[23px] font-semibold text-[var(--text-primary)] leading-tight mb-2.5" style={{ fontFamily: 'var(--font-display)' }}>
-                  {L('지금 들고 있는 결정은 어떤 가정 위에 서 있을까요?', 'What assumptions does your decision rest on?')}
+                  {L('요즘 정해야 하는 일, 편하게 적어주세요', 'Tell me what you have to decide')}
                 </h2>
                 <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5 text-[12.5px] text-[var(--text-tertiary)]">
                   {[
-                    L('상황을 적고', 'Describe the situation'),
-                    L('결정을 바꿀 전제를 짚고', 'Surface what could change the call'),
-                    L('내 판단과 확인할 현실을 남겨요', 'Record your call and what to check'),
+                    L('읽고 되짚어 드리고', 'I read it back to you'),
+                    L('딱 한 가지를 여쭤보고', 'I ask one thing'),
+                    L('결정과 확인할 날짜를 남겨요', 'You keep your call and a date'),
                   ].map((step, i) => (
                     <React.Fragment key={i}>
                       {i > 0 && <ChevronRight size={11} className="text-[var(--text-tertiary)]/50 shrink-0" />}
@@ -844,10 +845,10 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem, fr
                   is reserved for first-time users (no projects yet). */}
               <div className="mb-3">
                 <label htmlFor="workspace-decision-input" className="block text-[15px] md:text-[16px] font-semibold text-[var(--text-primary)] mb-1.5">
-                  {L('어떤 상황인가요?', "What's the situation?")}
+                  {L('무슨 일인지 적어주세요', 'What is going on?')}
                 </label>
                 <p id="workspace-decision-help" className="text-[13px] text-[var(--text-secondary)] mb-2 leading-relaxed">
-                  {L('분야나 형식은 상관없어요. 떠오르는 대로 적어주세요.', 'Any field or format is fine. Describe it however it comes to mind.')}
+                  {L('정리해서 안 쓰셔도 돼요. 말하듯이 적으면 됩니다.', "No need to tidy it up — write it the way you'd say it.")}
                 </p>
                 {projects.length === 0 && (
                   <figure
@@ -1327,7 +1328,10 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem, fr
                     transition={{ delay: 0.2 + i * 0.3, duration: 0.4, ease: EASE }}
                     className="flex items-center gap-3">
                     <WorkerAvatar persona={p} size="sm" />
-                    <span className="text-[13px] font-medium text-[var(--text-primary)]">{p.name}</span>
+                    {/* The avatar already resolves to a functional label; the
+                        text next to it was still printing the builtin fictional
+                        name (다은 / 현우 / 규민 / 서연) on the real entry path. */}
+                    <span className="text-[13px] font-medium text-[var(--text-primary)]">{personaReviewLabel(p, locale)}</span>
                     <span className="text-[12.5px] text-[var(--text-tertiary)]">{p.role}</span>
                   </motion.div>
                 ))}
@@ -1335,7 +1339,9 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem, fr
                   className="text-[12.5px] text-[var(--text-tertiary)] pt-1">
                   {/* Honest framing: the initial pass is a single read that finds the real
                       question; this crew does its individual work later, at the worker stage. */}
-                  {L('AI 검토자 4명이 이 상황을 따로 살펴보고 있어요 — 먼저 지금 풀어야 할 질문을 정리합니다...', 'Four AI reviewers are looking at this separately — first, organizing the question to solve...')}
+                  {/* One read is running right now; the review lenses come later.
+                      Claiming four simultaneous reviewers was simply untrue. */}
+                  {L('먼저 적어주신 상황을 처음부터 끝까지 읽고 있어요...', 'Reading what you wrote, start to finish...')}
                 </motion.p>
               </div>
             </motion.div>
@@ -1347,7 +1353,7 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem, fr
             const stageLabel = (() => {
               switch (partial.stage) {
                 case 'reading': return L('상황을 읽는 중', 'Reading the situation');
-                case 'question': return L('지금 풀어야 할 질문을 정리하는 중', 'Organizing the question to solve');
+                case 'question': return L('상황을 정리하는 중', 'Putting the situation together');
                 case 'assumptions': return L('확인할 가정을 살펴보는 중', 'Reviewing assumptions to check');
                 // The conversation turn builds no document — by the time the
                 // stream reaches this field it is choosing what to ask.
@@ -1408,7 +1414,7 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem, fr
                   className="rounded-2xl border border-[var(--accent)]/15 bg-[var(--surface)] p-5 md:p-6 mb-3"
                 >
                   <div className="text-[12px] font-bold text-[var(--accent)] uppercase tracking-[0.15em] mb-2.5">
-                    {L('지금 풀어야 할 질문', 'The question to solve now')}
+                    {L('지금 이해한 상황', 'What I heard')}
                   </div>
                   <div className="text-[17px] md:text-[19px] leading-[1.45] text-[var(--text-primary)] whitespace-pre-wrap break-words min-h-[28px]" style={{ fontFamily: 'var(--font-display)' }}>
                     {hasQuestion ? partial.real_question : <span className="text-[var(--text-tertiary)] text-[13px]" style={{ fontFamily: 'inherit' }}>{L('찾는 중...', 'Searching...')}</span>}

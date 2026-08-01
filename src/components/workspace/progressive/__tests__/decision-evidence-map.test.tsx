@@ -91,7 +91,7 @@ describe('DecisionEvidenceMap', () => {
     act(() => checks.dispatchEvent(new MouseEvent('click', { bubbles: true })));
     expect(text()).toContain('경쟁사도 비슷한 가격을 받고 있다');
     expect(text()).toContain('경쟁사 가격표 · 현재 월 요금');
-    expect(text()).toContain('문서 전체가 기대는 가정');
+    expect(text()).toContain('아직 확인되지 않은 전제');
   });
 
   it('emits a canonical locator when a source is opened', () => {

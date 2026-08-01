@@ -52,7 +52,7 @@ describe('공정 5 exit · 항로 카드 기본 상태 = 접힘', () => {
     const html = render(true);
     // 접힌 상태의 값: 무엇을 향해 가는지 + 펼칠 수 있다는 사실.
     expect(html).toContain('계획 3단계');
-    expect(html).toContain('근거와 계획 보기');
+    expect(html).toContain('근거 보기');
     // 그리고 전문은 실제로 감춰져 있어야 한다 — 이게 "접힘"의 정의다.
     expect(html).not.toContain(STEP_BODY);
   });

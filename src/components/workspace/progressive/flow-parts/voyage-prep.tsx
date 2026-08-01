@@ -93,7 +93,7 @@ export function VoyagePrepSummary({
                 <Compass size={11} className="shrink-0" />
                 {safeInsight
                   ? L('지금까지 답변에서 정리된 내용', 'What your answers have clarified')
-                  : L('지금 풀어야 할 질문', 'The question to solve now')}
+                  : L('지금 이해한 상황', 'What I heard')}
               </div>
               <p className="text-[15px] md:text-[16px] text-[var(--text-primary)] leading-relaxed font-medium">
                 {safeInsight

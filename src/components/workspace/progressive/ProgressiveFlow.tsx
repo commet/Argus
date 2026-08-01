@@ -2327,10 +2327,14 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
               const meta = isProbeQ
                 ? L('갈림 확인 · 선택', 'Fork check · optional')
                 : teamReady
-                  ? L(`질문 ${qNow}/${maxR} · 선택`, `Question ${qNow}/${maxR} · optional`)
+                  // No denominator: it came from a settings value, not from
+                  // anything this turn produced, and the engine stops asking the
+                  // moment nothing more would change the picture — so "질문 1/3"
+                  // routinely ended at one and read like a broken promise.
+                  ? L(`질문 ${qNow} · 선택`, `Question ${qNow} · optional`)
                   : isLast
-                    ? L(`질문 ${qNow}/${maxR} · 마지막 질문이에요`, `Question ${qNow}/${maxR} · last one`)
-                    : L(`질문 ${qNow}/${maxR}`, `Question ${qNow}/${maxR}`);
+                    ? L(`질문 ${qNow} · 마지막 질문이에요`, `Question ${qNow} · last one`)
+                    : L(`질문 ${qNow}`, `Question ${qNow}`);
               // W1.6: in focus mode EVERY question carries the way out, inside
               // the card where the user is looking — never a hidden footer link.
               const focusEscape = focusMode && snapshots.length > 0

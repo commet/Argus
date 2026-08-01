@@ -50,7 +50,7 @@ export function StreamSnippet({ text, kind }: { text: string | null; kind: Strea
       // the model is choosing what to ask (v2 judgment harness).
       p.stage === 'skeleton' ? L('무엇을 물어볼지 고르는 중', 'Choosing what to ask')
       : p.stage === 'assumptions' ? L('확인할 가정을 정리하는 중', 'Organizing assumptions to check')
-      : p.stage === 'question' ? L('지금 풀어야 할 질문을 다듬는 중', 'Sharpening the question to solve')
+      : p.stage === 'question' ? L('상황을 정리하는 중', 'Putting the situation together')
       : L('상황을 읽는 중', 'Reading the situation');
   } else if (kind === 'doc') {
     const p = parsePartialDoc(text);

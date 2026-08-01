@@ -148,7 +148,7 @@ export function AnalysisCard({
         onClick={() => { if (hasSupportingDetail) setCollapsed(false); }}
         disabled={!hasSupportingDetail}
         aria-label={hasSupportingDetail
-          ? L('지금 살펴볼 것: 근거와 계획 보기', 'What we are examining: view rationale and plan')
+          ? L('지금 살펴볼 것: 근거 보기', 'What we are examining: view the rationale')
           : L('지금 살펴볼 것', 'What we are examining')}
         initial={{ opacity: 0, y: 6 }}
         animate={{ opacity: 1, y: 0 }}
@@ -190,7 +190,7 @@ export function AnalysisCard({
             )}
             {hasSupportingDetail && (
               <span className="inline-flex items-center gap-1 font-semibold text-[var(--text-secondary)] transition-colors group-hover:text-[var(--accent)]">
-                {L('근거와 계획 보기', 'View rationale and plan')}
+                {L('근거 보기', 'View the rationale')}
                 <ChevronDown size={12} aria-hidden />
               </span>
             )}
@@ -448,7 +448,7 @@ export function AnalysisCard({
                   <>{L('요약만 보기', 'Summary only')} <ChevronUp size={13} /></>
                 ) : (
                   <>
-                    {L('근거와 계획 보기', 'View rationale and plan')}
+                    {L('근거 보기', 'View the rationale')}
                     {activeAssumptions.length > 0 && (
                       <span className="text-[var(--text-tertiary)] font-normal">
                         {L(`· 확인할 가정 ${activeAssumptions.length}개`, `· ${activeAssumptions.length} assumptions to verify`)}

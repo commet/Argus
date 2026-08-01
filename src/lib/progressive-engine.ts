@@ -1231,13 +1231,17 @@ export async function runDeepening(
     shouldProceedToMix = false;
     question = {
       id: generateId(),
+      // The convergence gauge was REMOVED from the UI on purpose — it surfaced an
+      // uncalibrated score as a verdict about the user's thinking. It leaked back
+      // in through this fallback question. assessConvergence still routes
+      // internally; it does not get to grade anyone out loud.
       text: locale === 'ko'
-        ? `아직 완전히 명확하지 않습니다 (명확도: ${convergence.score}%). 어떻게 할까요?`
-        : `Not fully clear yet (clarity: ${convergence.score}%). What would you like to do?`,
+        ? '여기서 어떻게 할까요?'
+        : 'Where would you like to take it from here?',
       subtext: convergence.guidance,
       options: locale === 'ko'
-        ? ['지금 바로 문서로 만들기', '한 라운드 더 진행하기', '문제를 다시 정의하기']
-        : ['Create the document now', 'Go one more round', 'Redefine the problem'],
+        ? ['지금까지 답한 내용으로 정리하기', '한 가지만 더 짚어보기', '질문을 다시 잡기']
+        : ['Wrap up with what we have', 'Look at one more thing', 'Reframe the question'],
       type: 'select',
       engine_phase: 'reframe',
     };

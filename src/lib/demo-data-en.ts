@@ -155,38 +155,38 @@ export function buildFinal(
 // ─── Shared Personas ───
 
 const SUJIN: WorkerPersona = {
-  id: 'researcher', name: 'Sophie', role: 'Research Analyst',
-  emoji: '🔍', expertise: 'Market research, data analysis', tone: 'Thorough and evidence-based', color: '#3B82F6',
+  id: 'researcher', name: 'Evidence check', role: 'Research Analyst',
+  emoji: '', expertise: 'Market research, data analysis', tone: 'Thorough and evidence-based', color: '#3B82F6',
 };
 const HYUNWOO: WorkerPersona = {
-  id: 'strategist', name: 'Nathan', role: 'Strategist',
-  emoji: '🎯', expertise: 'Strategy design, positioning', tone: 'Direct and to the point', color: '#8B5CF6',
+  id: 'strategist', name: 'Specialist review', role: 'Strategist',
+  emoji: '', expertise: 'Strategy design, positioning', tone: 'Direct and to the point', color: '#8B5CF6',
 };
 const MINJAE: WorkerPersona = {
-  id: 'numbers', name: 'Ethan', role: 'Numbers Analyst',
-  emoji: '📊', expertise: 'Finance, quantitative analysis', tone: 'Numbers-driven', color: '#10B981',
+  id: 'numbers', name: 'Numbers review', role: 'Numbers Analyst',
+  emoji: '', expertise: 'Finance, quantitative analysis', tone: 'Numbers-driven', color: '#10B981',
 };
 const DONGHYUK: WorkerPersona = {
-  id: 'critic', name: 'Blake', role: 'Risk Reviewer',
-  emoji: '⚠️', expertise: 'Risk analysis, counterarguments', tone: 'Sharp but constructive', color: '#EF4444',
+  id: 'critic', name: 'Risk review', role: 'Risk Reviewer',
+  emoji: '', expertise: 'Risk analysis, counterarguments', tone: 'Sharp but constructive', color: '#EF4444',
 };
 const SEOYEON: WorkerPersona = {
-  id: 'copywriter', name: 'Claire', role: 'Copywriter',
-  emoji: '✍️', expertise: 'Document structuring, persuasive writing', tone: 'Clear and compelling', color: '#F59E0B',
+  id: 'copywriter', name: 'Copy pass', role: 'Copywriter',
+  emoji: '', expertise: 'Document structuring, persuasive writing', tone: 'Clear and compelling', color: '#F59E0B',
 };
 
 // ─── Scenario 1 third-worker pool (joins based on Q1 answer) ───
 const DOHYUN: WorkerPersona = {
   id: 'biz_analyst', name: 'Owen', role: 'Business Strategist',
-  emoji: '📈', expertise: 'Existing vs new business comparison, synergy/risk', tone: 'Balanced and measured', color: '#EC4899',
+  emoji: '', expertise: 'Existing vs new business comparison, synergy/risk', tone: 'Balanced and measured', color: '#EC4899',
 };
 const JIYUN: WorkerPersona = {
-  id: 'pm', name: 'Riley', role: 'Execution PM',
-  emoji: '🛠', expertise: 'Weekly milestones, Go/No-Go criteria', tone: 'Practical and clear', color: '#14B8A6',
+  id: 'pm', name: 'Execution review', role: 'Execution PM',
+  emoji: '', expertise: 'Weekly milestones, Go/No-Go criteria', tone: 'Practical and clear', color: '#14B8A6',
 };
 const YUNSEO: WorkerPersona = {
-  id: 'interviewer', name: 'Maya', role: 'User Researcher',
-  emoji: '💬', expertise: 'Interview design, intent discovery, listening', tone: 'Gentle and organizing', color: '#F97316',
+  id: 'interviewer', name: 'User research', role: 'User Researcher',
+  emoji: '', expertise: 'Interview design, intent discovery, listening', tone: 'Gentle and organizing', color: '#F97316',
 };
 
 // ═══════════════════════════════════════════════════════════════
@@ -240,8 +240,8 @@ const scenario1: DemoScenario = {
           persona: MINJAE,
           task: 'Reverse-engineer competitor pricing + break-even',
           completionNote: '1/3 the price, 48% margin. Profitable at 25 customers.',
-          joinMessage: 'The competitor opened the market — we differentiate on price. 📊 Ethan joined.',
-          result: '**Took Nathan\'s structure (2 dedicated devs / 4-week MVP) and built a price model by reverse-engineering the competitor.**\n\n| Item | Competitor | Us |\n|---|---|---|\n| Monthly subscription | $800-2000 | **$290** (1/3) |\n| Setup | Separate consulting | Free (pre-trained) |\n| Target | Enterprise | E-commerce sellers |\n\n**Margin structure:** AI cost is around $0.05 per query. SMB sellers average ~3,000 queries/month, so AI cost per customer is ~$150. At $290 subscription, **margin per customer is $140 (48%)**.\n\n**6-month costs:**\n- Headcount: existing salaries ($0 incremental)\n- Infrastructure: $12,000\n- Marketing: $3,000\n- **Total: $15,000**\n\n**Break-even: 25 paying customers.** (Revenue $7,250 - AI cost $3,750 - fixed $2,500 = $1,000 profit)',
+          joinMessage: 'The competitor opened the market — we differentiate on price. 📊 Numbers review joined.',
+          result: '**Took Specialist review\'s structure (2 dedicated devs / 4-week MVP) and built a price model by reverse-engineering the competitor.**\n\n| Item | Competitor | Us |\n|---|---|---|\n| Monthly subscription | $800-2000 | **$290** (1/3) |\n| Setup | Separate consulting | Free (pre-trained) |\n| Target | Enterprise | E-commerce sellers |\n\n**Margin structure:** AI cost is around $0.05 per query. SMB sellers average ~3,000 queries/month, so AI cost per customer is ~$150. At $290 subscription, **margin per customer is $140 (48%)**.\n\n**6-month costs:**\n- Headcount: existing salaries ($0 incremental)\n- Infrastructure: $12,000\n- Marketing: $3,000\n- **Total: $15,000**\n\n**Break-even: 25 paying customers.** (Revenue $7,250 - AI cost $3,750 - fixed $2,500 = $1,000 profit)',
         },
         snapshotPatch: {
           real_question: 'The competitor opened the market. The question narrows: "Can we pull 2 of our 5 people to build something the competitor can\'t do, in 4 weeks?" Just that.',
@@ -268,7 +268,7 @@ const scenario1: DemoScenario = {
           task: 'Existing vs new venture comparison simulation',
           completionNote: 'Existing +12% vs new +35%. New venture wins after 6 months.',
           joinMessage: 'When revenue is flat, the plan IS the comparison. 📈 Owen joined.',
-          result: '**Took Nathan\'s structure (2 dedicated devs) and ran a 6-month simulation comparing it to improving the existing business.**\n\n| 6 months out | Improve existing | New venture (AI support) |\n|---|---|---|\n| Revenue impact | +12% (gradual) | **+35%** (new revenue stream) |\n| Risk | Low | Medium (2-person reallocation impact) |\n| Initial investment | $0 | $15,000 |\n| Downside | None | -8% (sunk if it fails) |\n\n**Reading the table:**\n- Improving the existing product is safe but **doesn\'t solve the underlying reason revenue isn\'t growing.**\n- The new venture has higher expected value, but the real risk is the 2-person reallocation.\n- **Nathan\'s "2 dedicated + 3 maintenance" structure caps the downside at -8% instead of -20%.**\n\n**Synergy line:** About 20% of our existing customer base are e-commerce sellers. Some of the first 25 can come straight from there.',
+          result: '**Took Specialist review\'s structure (2 dedicated devs) and ran a 6-month simulation comparing it to improving the existing business.**\n\n| 6 months out | Improve existing | New venture (AI support) |\n|---|---|---|\n| Revenue impact | +12% (gradual) | **+35%** (new revenue stream) |\n| Risk | Low | Medium (2-person reallocation impact) |\n| Initial investment | $0 | $15,000 |\n| Downside | None | -8% (sunk if it fails) |\n\n**Reading the table:**\n- Improving the existing product is safe but **doesn\'t solve the underlying reason revenue isn\'t growing.**\n- The new venture has higher expected value, but the real risk is the 2-person reallocation.\n- **Specialist review\'s "2 dedicated + 3 maintenance" structure caps the downside at -8% instead of -20%.**\n\n**Synergy line:** About 20% of our existing customer base are e-commerce sellers. Some of the first 25 can come straight from there.',
         },
         snapshotPatch: {
           real_question: 'Revenue is stalling. So the question is: "Improving the existing business vs starting a new venture — which is better?" That comparison needs to be in the plan, or leadership won\'t approve.',
@@ -294,8 +294,8 @@ const scenario1: DemoScenario = {
           persona: JIYUN,
           task: 'First 4-week execution milestones + Go/No-Go criteria',
           completionNote: 'Week 4 demo to one seller is the Go/No-Go.',
-          joinMessage: 'When the decision is already made, the plan IS the execution roadmap. 🛠 Riley joined.',
-          result: '**Took Nathan\'s structure (2 dedicated devs / 4-week MVP) and broke it into the first 4 weeks of milestones.**\n\n| Week | What we do | Check | Output |\n|---|---|---|---|\n| Week 1 | Pre-training PoC (50 industry terms) | Working in a day? | One demo video |\n| Week 2 | API + templates | 5 categories complete? | Postman tests |\n| Week 3 | Simple dashboard | Auto-response rate 70%? | Demo recording |\n| Week 4 | **Beta demo to 1 seller** | Does the customer say "I\'d use this"? | One-page CEO report |\n\n**Go/No-Go in one line:**\n- ✅ Week 4 seller says "I\'d use this" → continue\n- ❌ Pre-training PoC fails by Week 2 → stop, write off sunk cost\n\n**Risk mitigation:** Week 2 PoC might not work. Have a Plan B ready in advance so Weeks 3-4 don\'t become wasted time.',
+          joinMessage: 'When the decision is already made, the plan IS the execution roadmap. 🛠 Execution review joined.',
+          result: '**Took Specialist review\'s structure (2 dedicated devs / 4-week MVP) and broke it into the first 4 weeks of milestones.**\n\n| Week | What we do | Check | Output |\n|---|---|---|---|\n| Week 1 | Pre-training PoC (50 industry terms) | Working in a day? | One demo video |\n| Week 2 | API + templates | 5 categories complete? | Postman tests |\n| Week 3 | Simple dashboard | Auto-response rate 70%? | Demo recording |\n| Week 4 | **Beta demo to 1 seller** | Does the customer say "I\'d use this"? | One-page CEO report |\n\n**Go/No-Go in one line:**\n- ✅ Week 4 seller says "I\'d use this" → continue\n- ❌ Pre-training PoC fails by Week 2 → stop, write off sunk cost\n\n**Risk mitigation:** Week 2 PoC might not work. Have a Plan B ready in advance so Weeks 3-4 don\'t become wasted time.',
         },
         snapshotPatch: {
           real_question: 'The CEO already wants to do this. So the question shrinks: "What can 5 people build in the first month?" That one line is what gets approved.',
@@ -321,8 +321,8 @@ const scenario1: DemoScenario = {
           persona: YUNSEO,
           task: 'CEO intent confirmation + seller interview design',
           completionNote: 'One line for the CEO + 3 questions for 3 sellers.',
-          joinMessage: 'When the direction is fuzzy, interviews are the starting point. 💬 Maya joined.',
-          result: '**Even with Nathan\'s structure (2 dedicated / 4-week MVP), two conversations need to happen first.**\n\n**① One line to the CEO (one Slack message)**\n\n> "Is this because of the competitor news, or revenue, or something else?"\n\nThis one line turns 3 days into 3 hours. A 15-minute conversation saves 2 weeks.\n\n**② 3 sellers, 3 core questions (15-minute calls each)**\n\n1. "How do you handle customer support today?" (current state)\n2. "If an AI handled 80% of replies for $290/month, would you use it?" (price + function)\n3. "What\'s the most frustrating CS task right now?" (opportunity)\n\n**Output:** Map responses on two axes — price sensitivity / feature priority — onto one page → CEO mid-check.\n\n**Time:** Direction locked within 3 days → remaining 11 days are actual planning time.',
+          joinMessage: 'When the direction is fuzzy, interviews are the starting point. 💬 User research joined.',
+          result: '**Even with Specialist review\'s structure (2 dedicated / 4-week MVP), two conversations need to happen first.**\n\n**① One line to the CEO (one Slack message)**\n\n> "Is this because of the competitor news, or revenue, or something else?"\n\nThis one line turns 3 days into 3 hours. A 15-minute conversation saves 2 weeks.\n\n**② 3 sellers, 3 core questions (15-minute calls each)**\n\n1. "How do you handle customer support today?" (current state)\n2. "If an AI handled 80% of replies for $290/month, would you use it?" (price + function)\n3. "What\'s the most frustrating CS task right now?" (opportunity)\n\n**Output:** Map responses on two axes — price sensitivity / feature priority — onto one page → CEO mid-check.\n\n**Time:** Direction locked within 3 days → remaining 11 days are actual planning time.',
         },
         snapshotPatch: {
           real_question: 'There\'s only one question to answer — "Why is the CEO asking *now*?" Without that, 30 pages drifts off-course and gets rewritten. One Slack message resolves it.',
@@ -434,8 +434,8 @@ const scenario1: DemoScenario = {
     {
       persona: HYUNWOO,
       task: '4-week MVP structure + headcount allocation',
-      completionNote: 'Took Sophie\'s 3 weaknesses and built a structure that works in 4 weeks.',
-      result: '**Took the e-commerce seller focus + 3 weaknesses Sophie identified, and laid out a 4-week MVP.**\n\n| Competitor weakness | Our direction |\n|---|---|\n| 2-week setup | E-commerce pre-training → **1-day setup** |\n| Misses industry terms | Built-in industry templates, "return request" recognized instantly |\n| $800/month | 1/3 or less. → Pricing model handled by whoever joins next. |\n\n**Headcount allocation (this is the core of approval):**\n- **2 dedicated** (1 senior + 1 junior) — pre-training model + API\n- **3 stay on existing maintenance.** If something breaks, 1 of the dedicated 2 returns immediately.\n\n**4-week MVP scope:** Auto-response + e-commerce templates + simple dashboard.\n\nThis structure protects the existing product *while* putting something working in front of the CEO in 4 weeks.',
+      completionNote: 'Took Evidence check\'s 3 weaknesses and built a structure that works in 4 weeks.',
+      result: '**Took the e-commerce seller focus + 3 weaknesses Evidence check identified, and laid out a 4-week MVP.**\n\n| Competitor weakness | Our direction |\n|---|---|\n| 2-week setup | E-commerce pre-training → **1-day setup** |\n| Misses industry terms | Built-in industry templates, "return request" recognized instantly |\n| $800/month | 1/3 or less. → Pricing model handled by whoever joins next. |\n\n**Headcount allocation (this is the core of approval):**\n- **2 dedicated** (1 senior + 1 junior) — pre-training model + API\n- **3 stay on existing maintenance.** If something breaks, 1 of the dedicated 2 returns immediately.\n\n**4-week MVP scope:** Auto-response + e-commerce templates + simple dashboard.\n\nThis structure protects the existing product *while* putting something working in front of the CEO in 4 weeks.',
     },
   ],
 
@@ -466,7 +466,7 @@ const scenario1: DemoScenario = {
     decisionLineDefault: 'In 4 weeks, I\'ll demo a working beta to one e-commerce seller.',
     workerSummariesDefault: [
       {
-        personaId: 'researcher', // SUJIN — Sophie
+        personaId: 'researcher', // SUJIN — Evidence check
         headline: 'Market narrowing + competitor weaknesses',
         lines: [
           '3 candidates compared → **e-commerce sellers** are the entry point (large retailers ❌, local shops ❌)',
@@ -474,7 +474,7 @@ const scenario1: DemoScenario = {
         ],
       },
       {
-        personaId: 'strategist', // HYUNWOO — Nathan
+        personaId: 'strategist', // HYUNWOO — Specialist review
         headline: '4-week MVP + headcount',
         lines: [
           'Structure that flips all 3 weaknesses — pre-trained 1-day setup + industry templates',
@@ -703,11 +703,11 @@ const scenario2: DemoScenario = {
           persona: JIYUN,
           task: 'Post-pitch 2-week PoC schedule + Go/No-Go',
           completionNote: 'A schedule that gets a working demo out by Week 2.',
-          joinMessage: 'Speed has to be proven with a schedule. 🛠 Riley joined.',
-          result: '**Took Nathan\'s last slide ("here\'s what I\'ll send you in 2 weeks") and turned it into an actual schedule.**\n\n| Week | What | Output | Go/No-Go |\n|---|---|---|---|\n| W1 D1-2 | 1:1 with logistics lead → real data samples + 3 core scenarios | Data / scenarios | If no samples, flag immediately |\n| W1 D3-5 | Adapt existing project architecture → port auto-classification engine | One working demo video | No video = No-Go |\n| W2 D1-3 | UI + 3 scenario flows | Demoable screens | If stuck, cut to 1 scenario |\n| W2 D4-5 | Demo to logistics lead + feedback | Demo video + feedback notes | Reaction decides full-build kickoff |\n\n**Why Company S can\'t use this schedule:**\n- Company S burns 6-8 weeks on kickoff reporting → PM assignment → requirements doc. At our Week 2, they\'re still assigning the PM.\n- We already have the past-project code to adapt. Starting from zero like Company S is structurally incompatible with 2 weeks.\n\n**The promise at the pitch:** "I\'ll show you a working version before the ink on the contract dries."',
+          joinMessage: 'Speed has to be proven with a schedule. 🛠 Execution review joined.',
+          result: '**Took Specialist review\'s last slide ("here\'s what I\'ll send you in 2 weeks") and turned it into an actual schedule.**\n\n| Week | What | Output | Go/No-Go |\n|---|---|---|---|\n| W1 D1-2 | 1:1 with logistics lead → real data samples + 3 core scenarios | Data / scenarios | If no samples, flag immediately |\n| W1 D3-5 | Adapt existing project architecture → port auto-classification engine | One working demo video | No video = No-Go |\n| W2 D1-3 | UI + 3 scenario flows | Demoable screens | If stuck, cut to 1 scenario |\n| W2 D4-5 | Demo to logistics lead + feedback | Demo video + feedback notes | Reaction decides full-build kickoff |\n\n**Why Company S can\'t use this schedule:**\n- Company S burns 6-8 weeks on kickoff reporting → PM assignment → requirements doc. At our Week 2, they\'re still assigning the PM.\n- We already have the past-project code to adapt. Starting from zero like Company S is structurally incompatible with 2 weeks.\n\n**The promise at the pitch:** "I\'ll show you a working version before the ink on the contract dries."',
         },
         snapshotPatch: {
-          real_question: 'You picked the speed attack. So the question narrows: "Can we actually show something working in 2 weeks?" Riley\'s schedule is the proof.',
+          real_question: 'You picked the speed attack. So the question narrows: "Can we actually show something working in 2 weeks?" Execution review\'s schedule is the proof.',
           hidden_assumptions: [
             'Company S spends 6-8 weeks on the requirements doc alone. Showing something that works in that window makes "same $300K, different pace" visible to the decision-maker.',
             'The 2-week prototype isn\'t built from scratch — it\'s an adaptation of the past project\'s code. Only a team with prior work can do this.',
@@ -715,7 +715,7 @@ const scenario2: DemoScenario = {
           ],
           skeleton: [
             'First — check which past-project modules can be reused. Open the Postman collection.',
-            'Then — put Riley\'s schedule on the last slide of the pitch. Week by week, what you\'ll show.',
+            'Then — put Execution review\'s schedule on the last slide of the pitch. Week by week, what you\'ll show.',
             'Core line — "I\'ll send you a working version within 2 weeks of the pitch." This closes the meeting.',
             'Rehearse — expect "is that actually possible?" Have a past-project example ready.',
             'Safety net — one fallback scenario if the demo fails. "If we get stuck, Week 2 shrinks to a single scenario." Pre-announcing this actually builds trust.',
@@ -730,18 +730,18 @@ const scenario2: DemoScenario = {
           persona: YUNSEO,
           task: 'Extract 3 real problems from the past 6 months of conversations',
           completionNote: 'Pulled 3 real problems from meeting notes, Slack, and minutes.',
-          joinMessage: 'Information you already hold is the strongest weapon. 💬 Maya joined.',
+          joinMessage: 'Information you already hold is the strongest weapon. 💬 User research joined.',
           result: '**Went back through everything we have from the past project with the logistics lead.** Meeting notes, minutes, Slack DMs — all of it.\n\n**Three recurring real problems:**\n\n> **Problem 1 — "Inventory movement isn\'t showing up in real time."**\n>\n> Source: 2024-05-23 meeting notes (said directly by the logistics lead)\n> "When we move stock from warehouse B to C, it only shows up the next day. If an order comes in between, inventory is off and shipping gets delayed."\n\n> **Problem 2 — "Every department sees different KPI dashboards, so Monday meetings don\'t work."**\n>\n> Source: 2024-07-12 minutes\n> "Sales, logistics, and customer service are all looking at different numbers. We spend 30 minutes of Monday\'s meeting just explaining the same number."\n\n> **Problem 3 — "The warehouse staff\'s mobile app is slow."**\n>\n> Source: Slack DM, 2024-09-04\n> "Every scan takes 3 seconds. A thousand scans a day means the staff spends an hour just waiting."\n\n**Put these 3 quotes directly in the first 12 minutes of the pitch.** When the logistics lead sees their own words on a slide — internal support ticks up a notch. For the decision-maker, it\'s proof "this team has been listening for 6 months."\n\n**Why Company S can\'t use this:** No prior conversation history. They\'d need to visit the client and start with "what\'s the problem?" — which happens 3-4 weeks after kickoff.\n\n**Check before the pitch:** Before putting the quotes on slides, ping the logistics lead: "Would it be okay to quote these in the pitch?" One sentence is enough.',
         },
         snapshotPatch: {
-          real_question: 'You picked the information attack. Proving at the pitch that we already know. Maya pulled three sentences from old conversations. That\'s the spine of the first 12 minutes.',
+          real_question: 'You picked the information attack. Proving at the pitch that we already know. User research pulled three sentences from old conversations. That\'s the spine of the first 12 minutes.',
           hidden_assumptions: [
             'Company S has zero prior relationship with the client, so their pitch opens with questions at the "is that number right?" level. We have 6 months of logs. That\'s a structural advantage.',
             'Quoting the logistics lead directly is a double-edged sword. Confirming the quotes in advance strengthens the internal alliance. Dropping them cold can feel invasive.',
             'The decision-maker doesn\'t hear everything the lead thinks about. When the lead\'s words appear on a slide, the decision-maker discovers "this is what our lead has been worrying about" — the pitch also delivers value *to* the decision-maker.',
           ],
           skeleton: [
-            'Today — Maya already combed the past project notes, Slack, and minutes. Three sentences are ready.',
+            'Today — User research already combed the past project notes, Slack, and minutes. Three sentences are ready.',
             'Tomorrow — quick confirm with the logistics lead: "Would it be okay to quote these three in the pitch?"',
             'After confirm — those three sentences become the spine of the first 12 minutes. One sentence per slide.',
             'Next to each quote — one line on "how we\'d solve this." (Details come in the build phase.)',
@@ -757,18 +757,18 @@ const scenario2: DemoScenario = {
           persona: MINJAE,
           task: 'Reverse-engineer $300K budget + $100K savings proposal',
           completionNote: 'Same outcome, about $100K stays with the client.',
-          joinMessage: 'To win the decision-maker on price, the numbers come first. 📊 Ethan joined.',
-          result: '**Built the numbers slide for Nathan\'s "how we\'re different from Company S" chapter.** Broke the $300K down into what actually gets spent and what doesn\'t.\n\n**Company S $300K estimated structure** (mid-size SI industry averages — not Company S\'s actual internal numbers):\n\n| Line item | Share | Amount | Meaning |\n|---|---|---|---|\n| Senior labor | 25% | $75K | 1 full-time PM |\n| Outsourced dev labor | 35% | $105K | Actual build work |\n| Overhead | 20% | $60K | HQ costs |\n| Margin | 20% | $60K | Company S profit |\n| **Total** | **100%** | **$300K** | |\n\n**Our $180K structure** (actual costs):\n\n| Line item | Amount | Meaning |\n|---|---|---|\n| 3 seniors × 6 months | $135K | Direct labor |\n| Infrastructure/cloud | $15K | Dev + ops |\n| Internal overhead | $10K | Our 8-person company\'s real overhead |\n| Margin | $20K | (Honest) |\n| **Total** | **$180K** | |\n\n**The $120K gap is cash the decision-maker can actually use:**\n- **Contingency** (project risk buffer)\n- **Phase 2 expansion** funding\n- **Retained cash** — stays on the balance sheet\n\n**Last slide of the pitch, directly to the decision-maker:**\n> "You handed me $300K. I need $180K. The remaining $120K stays with you."\n\n**Why Company S can\'t use this:** Disclosing internal cost structure + margin compression is structurally impossible at a large SI firm. It requires HQ approval that doesn\'t come at the proposal stage.\n\n**Honest risk:** This proposal significantly cuts our margin. Only works as a first-contract / reference-building play. Add a contract clause: **"exclusive reference rights for the first year."**',
+          joinMessage: 'To win the decision-maker on price, the numbers come first. 📊 Numbers review joined.',
+          result: '**Built the numbers slide for Specialist review\'s "how we\'re different from Company S" chapter.** Broke the $300K down into what actually gets spent and what doesn\'t.\n\n**Company S $300K estimated structure** (mid-size SI industry averages — not Company S\'s actual internal numbers):\n\n| Line item | Share | Amount | Meaning |\n|---|---|---|---|\n| Senior labor | 25% | $75K | 1 full-time PM |\n| Outsourced dev labor | 35% | $105K | Actual build work |\n| Overhead | 20% | $60K | HQ costs |\n| Margin | 20% | $60K | Company S profit |\n| **Total** | **100%** | **$300K** | |\n\n**Our $180K structure** (actual costs):\n\n| Line item | Amount | Meaning |\n|---|---|---|\n| 3 seniors × 6 months | $135K | Direct labor |\n| Infrastructure/cloud | $15K | Dev + ops |\n| Internal overhead | $10K | Our 8-person company\'s real overhead |\n| Margin | $20K | (Honest) |\n| **Total** | **$180K** | |\n\n**The $120K gap is cash the decision-maker can actually use:**\n- **Contingency** (project risk buffer)\n- **Phase 2 expansion** funding\n- **Retained cash** — stays on the balance sheet\n\n**Last slide of the pitch, directly to the decision-maker:**\n> "You handed me $300K. I need $180K. The remaining $120K stays with you."\n\n**Why Company S can\'t use this:** Disclosing internal cost structure + margin compression is structurally impossible at a large SI firm. It requires HQ approval that doesn\'t come at the proposal stage.\n\n**Honest risk:** This proposal significantly cuts our margin. Only works as a first-contract / reference-building play. Add a contract clause: **"exclusive reference rights for the first year."**',
         },
         snapshotPatch: {
-          real_question: 'You picked the price attack. There\'s only one thing to prove — "Why $180K is enough for the same outcome, not $300K." Ethan broke it down.',
+          real_question: 'You picked the price attack. There\'s only one thing to prove — "Why $180K is enough for the same outcome, not $300K." Numbers review broke it down.',
           hidden_assumptions: [
             'Large SI quotes carry heavy HQ overhead and margin. We don\'t, so the same outcome can come at a lower price. This is industry-average estimation, not Company S\'s actual internals — make that distinction clear at the pitch.',
             'Framing the $120K gap as "we\'re cheap" vs "stays with you" lands very differently. "Money left in your organization" is vastly more direct value for the decision-maker.',
             'This proposal seriously compresses our margin. Only works as a first-contract reference play. Internal alignment — "this is not a repeatable model" — has to happen before we commit.',
           ],
           skeleton: [
-            'First — Ethan\'s cost breakdown table becomes the hero slide of chapter 2. Company S estimate vs our actual, side by side.',
+            'First — Numbers review\'s cost breakdown table becomes the hero slide of chapter 2. Company S estimate vs our actual, side by side.',
             'Then — frame it as "$120K stays with the client." That\'s what lodges in the decision-maker\'s head.',
             'Must include — one line: "This is an estimate based on mid-size SI industry averages." Honesty builds trust.',
             'Contract — pre-draft the "first-year exclusive reference" clause. This is how we justify the margin cut internally.',
@@ -785,7 +785,7 @@ const scenario2: DemoScenario = {
           task: 'Design the 20% performance-linked fee structure',
           completionNote: 'A structure where 20% of the fee is held back if results miss.',
           joinMessage: 'Risk-sharing eases the decision-maker\'s burden. 📈 Owen joined.',
-          result: '**Reframed Nathan\'s "promise" chapter as a performance-linked contract.**\n\n**Base structure:**\n- **20% of contract value is performance-linked** ($36K on a $180K contract)\n- The other 80% ($144K) is paid normally — we cover the development regardless\n- **Three performance criteria** written into the contract\n\n**Three performance metrics** (tied directly to the real pains Maya found from the logistics lead):\n\n| Metric | How to measure | Threshold | If missed |\n|---|---|---|---|\n| Shipping processing time | System average processing time | 30% faster than today | $12K held back |\n| Inventory error rate | Monthly inventory audit variance | 50% fewer errors | $12K held back |\n| Floor satisfaction | Quarterly user survey | 3.8+ out of 5 | $12K held back |\n\n**All three hit → 20% paid in full. Partial misses → only that portion held back.**\n\n**Why Company S can\'t use this:**\n- Fixed-price contracts are the standard at large SI firms. Performance-linked terms count as financial risk at HQ, so they won\'t survive the proposal review.\n- This single clause proves the structural gap. **"We stand behind the result"** is a sentence a large firm cannot write.\n\n**Last slide of the pitch, directly to the decision-maker:**\n> "We stand behind the result. This clause goes into the contract as-is."\n\n**Honest risk (our side):**\n- All three metrics currently have no baseline measurement. We need to **do baseline measurement together before the contract is signed.** That\'s the first 2 weeks of work.\n- Maximum loss on a miss: $36K. About 2 months of team payroll. Manageable, but not trivial.',
+          result: '**Reframed Specialist review\'s "promise" chapter as a performance-linked contract.**\n\n**Base structure:**\n- **20% of contract value is performance-linked** ($36K on a $180K contract)\n- The other 80% ($144K) is paid normally — we cover the development regardless\n- **Three performance criteria** written into the contract\n\n**Three performance metrics** (tied directly to the real pains User research found from the logistics lead):\n\n| Metric | How to measure | Threshold | If missed |\n|---|---|---|---|\n| Shipping processing time | System average processing time | 30% faster than today | $12K held back |\n| Inventory error rate | Monthly inventory audit variance | 50% fewer errors | $12K held back |\n| Floor satisfaction | Quarterly user survey | 3.8+ out of 5 | $12K held back |\n\n**All three hit → 20% paid in full. Partial misses → only that portion held back.**\n\n**Why Company S can\'t use this:**\n- Fixed-price contracts are the standard at large SI firms. Performance-linked terms count as financial risk at HQ, so they won\'t survive the proposal review.\n- This single clause proves the structural gap. **"We stand behind the result"** is a sentence a large firm cannot write.\n\n**Last slide of the pitch, directly to the decision-maker:**\n> "We stand behind the result. This clause goes into the contract as-is."\n\n**Honest risk (our side):**\n- All three metrics currently have no baseline measurement. We need to **do baseline measurement together before the contract is signed.** That\'s the first 2 weeks of work.\n- Maximum loss on a miss: $36K. About 2 months of team payroll. Manageable, but not trivial.',
         },
         snapshotPatch: {
           real_question: 'You picked the risk-sharing attack. The decision-maker\'s biggest fear is "paying and getting nothing." Owen took 20% of that fear onto our side of the ledger.',
@@ -898,7 +898,7 @@ const scenario2: DemoScenario = {
       persona: HYUNWOO,
       task: 'Pitch 3-chapter skeleton + 30-minute time box',
       completionNote: '20 of the 30 minutes are about the client.',
-      result: '**Took Sophie\'s 3 weapons and laid out a 3-chapter pitch.** 30 minutes, run in the exact opposite direction of how Company S spends their time.\n\n| Chapter | Title | Time | Core |\n|---|---|---|---|\n| 1 | **"The client\'s real problem"** | 12 min | Quote 3 conversations with the logistics lead. Proof: "we\'ve been listening" |\n| 2 | **"How we differ from Company S"** | 8 min | One comparison table on what\'s different for the same $300K *(details filled in by whoever joins next)* |\n| 3 | **"Here\'s what I\'ll send you one week after the pitch"** | 10 min | Post-pitch deliverable promise — action, not words |\n\n**What the time split means:**\n- Company S spends **15 of 30 minutes introducing their company** (standard 15-slide formula).\n- We spend **20 minutes on the client\'s story**.\n- That difference is what stays in the decision-maker\'s memory.\n\n**Pitch room setup:**\n- **All 3 seniors present.** Questions answered in the room. Company S sends sales + PM.\n- One person driving slides, the other two taking notes + ready for questions.\n- "The people who answer questions in real-time are sitting here" — that\'s what 8 people actually gives you.\n\nThe **decisive last line** of the last slide gets finished by whoever joins next.',
+      result: '**Took Evidence check\'s 3 weapons and laid out a 3-chapter pitch.** 30 minutes, run in the exact opposite direction of how Company S spends their time.\n\n| Chapter | Title | Time | Core |\n|---|---|---|---|\n| 1 | **"The client\'s real problem"** | 12 min | Quote 3 conversations with the logistics lead. Proof: "we\'ve been listening" |\n| 2 | **"How we differ from Company S"** | 8 min | One comparison table on what\'s different for the same $300K *(details filled in by whoever joins next)* |\n| 3 | **"Here\'s what I\'ll send you one week after the pitch"** | 10 min | Post-pitch deliverable promise — action, not words |\n\n**What the time split means:**\n- Company S spends **15 of 30 minutes introducing their company** (standard 15-slide formula).\n- We spend **20 minutes on the client\'s story**.\n- That difference is what stays in the decision-maker\'s memory.\n\n**Pitch room setup:**\n- **All 3 seniors present.** Questions answered in the room. Company S sends sales + PM.\n- One person driving slides, the other two taking notes + ready for questions.\n- "The people who answer questions in real-time are sitting here" — that\'s what 8 people actually gives you.\n\nThe **decisive last line** of the last slide gets finished by whoever joins next.',
     },
   ],
 
@@ -928,7 +928,7 @@ const scenario2: DemoScenario = {
     decisionLineDefault: 'Company S comes to introduce themselves; we come to solve your problem.',
     workerSummariesDefault: [
       {
-        personaId: 'researcher', // SUJIN — Sophie
+        personaId: 'researcher', // SUJIN — Evidence check
         headline: 'Company S vs us information gap',
         lines: [
           'Company S pattern: PM+outsourced / 15-slide company intro / requirements doc 6-8 weeks',
@@ -936,7 +936,7 @@ const scenario2: DemoScenario = {
         ],
       },
       {
-        personaId: 'strategist', // HYUNWOO — Nathan
+        personaId: 'strategist', // HYUNWOO — Specialist review
         headline: 'Pitch 3-chapter skeleton',
         lines: [
           '12 min client problem + 8 min Company S difference + 10 min "here\'s what I\'ll send in a week"',
@@ -1173,11 +1173,11 @@ const scenario3: DemoScenario = {
           persona: MINJAE,
           task: 'Calculate the price cut limit where margin survives',
           completionNote: '15% is the floor. A full 30% match is impossible.',
-          joinMessage: 'A defensive gut has to be checked against the numbers. 📊 Ethan joined.',
-          result: '**Recalculated Nathan\'s Scenario A (match the cut) from a margin-first angle.**\n\n**Current structure (our side, estimates):**\n- Monthly revenue $100K\n- Estimated margin ~30% → monthly profit $30K\n- Fixed costs (payroll, infra) ~$70K\n\n**Price cut simulation:**\n\n| Cut | Monthly revenue | Monthly profit | Profit change |\n|---|---|---|---|\n| 0% (current) | $100K | $30K | baseline |\n| 10% | $90K | $20K | **-33%** |\n| 15% | $85K | $15K | **-50%** |\n| 20% | $80K | $10K | **-67%** |\n| 30% (match Company T) | $70K | **$0** | **-100%** |\n\n**Reading it:**\n- 30% cut = $0 monthly profit. Structurally impossible to sustain.\n- **10-15% is the floor.** Anything below that tips into structural loss.\n- But 10-15% doesn\'t catch Company T\'s 30%. **"Match the cut" is fundamentally not a viable strategy.**\n\n**🔍 What the instinct missed:**\n> The biggest trap in matching isn\'t "how much to cut." It\'s **"why are you cutting?" — and you have no answer when existing customers ask.** Once you cut, existing customers start thinking "so they were ripping us off," and trust starts bleeding.\n\n**Realistic path:**\nInstead of a blanket cut, **"only offer a 15% discount to customers who come asking to match Company T"** — that\'s actually workable. Everyone else stays at full price.\n\n*Estimate caveat: 30% margin is an assumption. Need finance to confirm actual numbers first.*',
+          joinMessage: 'A defensive gut has to be checked against the numbers. 📊 Numbers review joined.',
+          result: '**Recalculated Specialist review\'s Scenario A (match the cut) from a margin-first angle.**\n\n**Current structure (our side, estimates):**\n- Monthly revenue $100K\n- Estimated margin ~30% → monthly profit $30K\n- Fixed costs (payroll, infra) ~$70K\n\n**Price cut simulation:**\n\n| Cut | Monthly revenue | Monthly profit | Profit change |\n|---|---|---|---|\n| 0% (current) | $100K | $30K | baseline |\n| 10% | $90K | $20K | **-33%** |\n| 15% | $85K | $15K | **-50%** |\n| 20% | $80K | $10K | **-67%** |\n| 30% (match Company T) | $70K | **$0** | **-100%** |\n\n**Reading it:**\n- 30% cut = $0 monthly profit. Structurally impossible to sustain.\n- **10-15% is the floor.** Anything below that tips into structural loss.\n- But 10-15% doesn\'t catch Company T\'s 30%. **"Match the cut" is fundamentally not a viable strategy.**\n\n**🔍 What the instinct missed:**\n> The biggest trap in matching isn\'t "how much to cut." It\'s **"why are you cutting?" — and you have no answer when existing customers ask.** Once you cut, existing customers start thinking "so they were ripping us off," and trust starts bleeding.\n\n**Realistic path:**\nInstead of a blanket cut, **"only offer a 15% discount to customers who come asking to match Company T"** — that\'s actually workable. Everyone else stays at full price.\n\n*Estimate caveat: 30% margin is an assumption. Need finance to confirm actual numbers first.*',
         },
         snapshotPatch: {
-          real_question: 'Following the "match the cut" instinct, the real question is one thing — "How far can we survive cutting?" Ethan found the floor.',
+          real_question: 'Following the "match the cut" instinct, the real question is one thing — "How far can we survive cutting?" Numbers review found the floor.',
           hidden_assumptions: [
             'The instinct to match is normal. In the face of churn fear, it feels like the safest option.',
             'But when you run the margin math, a 30% match is structurally impossible. You have to see the gap between instinct and numbers.',
@@ -1200,11 +1200,11 @@ const scenario3: DemoScenario = {
           persona: JIYUN,
           task: 'Simulate whether the value script actually lands in sales conversations',
           completionNote: 'The script alone isn\'t enough. It needs a discount-authority matrix alongside.',
-          joinMessage: 'Whether the instinct survives in the field is what matters. 🛠 Riley joined.',
-          result: '**Pressure-tested Nathan\'s Scenario B (value defense) from a sales-floor angle.**\n\n**"Why we\'re worth more" value script (3 lines):**\n> 1. "We respond within 4 hours. Company T averages 24."\n> 2. "We come pre-configured for your industry. Company T needs template customization."\n> 3. "At Company T\'s price, getting our level of service ends up costing extra anyway."\n\n**Field simulation (sales rep A roleplay):**\n- Customer: "Company T is 30% cheaper."\n- Rep: *delivers lines 1-3*\n- Customer: "Okay, I hear that, but 30% is still a lot."\n- Rep: *stuck* → **the discount request repeats because the rep has no authority.**\n\n**🔍 What the instinct missed:**\n> The value script alone isn\'t enough. **"What do we do when the customer still wants a discount after hearing the script three times?"** isn\'t defined. If the rep ends with "I\'m sorry" and no discount authority, that customer walks out of the room. **A discount-authority matrix has to ride with the script.**\n\n**Recommended reinforcement — 3-tier matrix:**\n\n| Tier | Customer count | Revenue share | Response |\n|---|---|---|---|\n| **Top** | 20 | 60% | Value script + **15% selective discount if churn risk** (sales lead approval) |\n| **Mid** | 40 | 35% | Value script only, no discount |\n| **Bottom** | 20 | 5% | Allow natural churn (revenue impact under 1%) |\n\nWithout this matrix, "I want a discount too" spreads to all 80 and the strategy degenerates into Scenario A. The matrix is how the instinct survives in the field.',
+          joinMessage: 'Whether the instinct survives in the field is what matters. 🛠 Execution review joined.',
+          result: '**Pressure-tested Specialist review\'s Scenario B (value defense) from a sales-floor angle.**\n\n**"Why we\'re worth more" value script (3 lines):**\n> 1. "We respond within 4 hours. Company T averages 24."\n> 2. "We come pre-configured for your industry. Company T needs template customization."\n> 3. "At Company T\'s price, getting our level of service ends up costing extra anyway."\n\n**Field simulation (sales rep A roleplay):**\n- Customer: "Company T is 30% cheaper."\n- Rep: *delivers lines 1-3*\n- Customer: "Okay, I hear that, but 30% is still a lot."\n- Rep: *stuck* → **the discount request repeats because the rep has no authority.**\n\n**🔍 What the instinct missed:**\n> The value script alone isn\'t enough. **"What do we do when the customer still wants a discount after hearing the script three times?"** isn\'t defined. If the rep ends with "I\'m sorry" and no discount authority, that customer walks out of the room. **A discount-authority matrix has to ride with the script.**\n\n**Recommended reinforcement — 3-tier matrix:**\n\n| Tier | Customer count | Revenue share | Response |\n|---|---|---|---|\n| **Top** | 20 | 60% | Value script + **15% selective discount if churn risk** (sales lead approval) |\n| **Mid** | 40 | 35% | Value script only, no discount |\n| **Bottom** | 20 | 5% | Allow natural churn (revenue impact under 1%) |\n\nWithout this matrix, "I want a discount too" spreads to all 80 and the strategy degenerates into Scenario A. The matrix is how the instinct survives in the field.',
         },
         snapshotPatch: {
-          real_question: 'The "protect the value" instinct is right. The real question is — "How does the sales team actually execute it in the field?" Riley built the matrix.',
+          real_question: 'The "protect the value" instinct is right. The real question is — "How does the sales team actually execute it in the field?" Execution review built the matrix.',
           hidden_assumptions: [
             'The value instinct is close to the correct answer. Given the switching cost of the top 20 customers, there\'s no reason to get pulled into a price war.',
             'But if you only ship the script, the field ends with "no discount authority" and customers still leave. The authority matrix is how the instinct gets executed.',
@@ -1228,7 +1228,7 @@ const scenario3: DemoScenario = {
           task: 'Company T vs our long-term endurance',
           completionNote: 'Company T: 12-18 months. Us: 24+ months. But with a condition.',
           joinMessage: 'The wait strategy needs a long-term view to back it up. 📈 Owen joined.',
-          result: '**Rechecked Nathan\'s Scenario C (wait) from a Company T vs us endurance angle.**\n\n**Company T endurance estimate** (based on public info Sophie collected):\n- Series B ~$20M raised (2 months ago)\n- Monthly burn estimate: payroll + marketing + discount absorption = $1.5-2M/month\n- **Runway: roughly 12-18 months**\n- After that, if they can\'t raise again → price normalization or shrinking operations\n\n**Our endurance** (current structure):\n- Monthly revenue $100K, monthly profit $30K (at 30% margin, estimated)\n- With 6+ months of cash reserves, **we can handle churn up to 15% for 18+ months.**\n- But above 25% churn, fixed costs ($70K) start threatening the whole structure.\n\n**Three conditions for winning the endurance war:**\n1. **Churn defended under 15%** (don\'t let 3.75% escalate)\n2. **Top 20 customers (60% of revenue) stay locked** — if they move, the structure collapses\n3. **Maintain 6+ months cash reserves** — operational runway in an emergency\n\n**🔍 What the instinct missed:**\n> "Wait" turning into "do nothing" is dangerous. **You have to wait *while* actively defending the top 20.** By the time they start moving, it\'s already too late. Waiting is "no blanket response" — it\'s not "no monitoring."\n\n**Recommended reinforcement:**\n- Wait strategy = "no blanket price cut" + "**dedicated manager regular contact with top 20, intensified**"\n- Monthly churn dashboard. If it goes over 5%, trigger partial response.\n- Pre-book the 12-month reassessment meeting on the calendar.\n\n*Estimate caveat: Company T\'s monthly burn rate is based on industry averages, not precise numbers. Flag it as "estimated" in the report.*',
+          result: '**Rechecked Specialist review\'s Scenario C (wait) from a Company T vs us endurance angle.**\n\n**Company T endurance estimate** (based on public info Evidence check collected):\n- Series B ~$20M raised (2 months ago)\n- Monthly burn estimate: payroll + marketing + discount absorption = $1.5-2M/month\n- **Runway: roughly 12-18 months**\n- After that, if they can\'t raise again → price normalization or shrinking operations\n\n**Our endurance** (current structure):\n- Monthly revenue $100K, monthly profit $30K (at 30% margin, estimated)\n- With 6+ months of cash reserves, **we can handle churn up to 15% for 18+ months.**\n- But above 25% churn, fixed costs ($70K) start threatening the whole structure.\n\n**Three conditions for winning the endurance war:**\n1. **Churn defended under 15%** (don\'t let 3.75% escalate)\n2. **Top 20 customers (60% of revenue) stay locked** — if they move, the structure collapses\n3. **Maintain 6+ months cash reserves** — operational runway in an emergency\n\n**🔍 What the instinct missed:**\n> "Wait" turning into "do nothing" is dangerous. **You have to wait *while* actively defending the top 20.** By the time they start moving, it\'s already too late. Waiting is "no blanket response" — it\'s not "no monitoring."\n\n**Recommended reinforcement:**\n- Wait strategy = "no blanket price cut" + "**dedicated manager regular contact with top 20, intensified**"\n- Monthly churn dashboard. If it goes over 5%, trigger partial response.\n- Pre-book the 12-month reassessment meeting on the calendar.\n\n*Estimate caveat: Company T\'s monthly burn rate is based on industry averages, not precise numbers. Flag it as "estimated" in the report.*',
         },
         snapshotPatch: {
           real_question: 'The "don\'t move" instinct is reasonable. The real question is one thing — "How do we protect the top 20 while we wait?" Owen laid out the conditions.',
@@ -1254,11 +1254,11 @@ const scenario3: DemoScenario = {
           persona: YUNSEO,
           task: 'Validate whether customers would accept a premium repositioning',
           completionNote: 'Attractive, but needs 6 months of lead time. Not doable by Friday.',
-          joinMessage: 'A counter-attack is exciting, but customer perception has to catch up. 💬 Maya joined.',
-          result: '**Validated Nathan\'s Scenario D (premium repositioning) from a customer perception angle.**\n\n**What does "move upmarket as premium" actually mean?**\n- Raise pricing 2-3x above Company T\n- Redesign features/services for customers "with more to spend"\n- Stop competing in the same market as low-cost players like Company T\n\n**Current perception of the 80 customers (estimate):**\n- Most customers perceive current pricing as "reasonable." Raising it suddenly gets "why all of a sudden?"\n- Premium brand transitions usually need **6-12 months of lead time**. Perception doesn\'t shift overnight.\n- You can raise at contract renewal naturally, but renewal is annual, so the effect is slow.\n\n**🔍 What the instinct missed:**\n> Premium repositioning is attractive, but **it doesn\'t fit the "report by Friday" timeline.** This is a 6-month strategy, not a Friday answer. Trying to execute the instinct as-is, the leadership meeting stalls on "what are we supposed to do right now?"\n\n**Recommended — short-term/mid-term two-track:**\n\n| Timeframe | Strategy | Concrete actions |\n|---|---|---|\n| **Short-term** (this quarter) | Selective discounts + value script (Scenario B) | 15% discount for 10 at-risk customers, value delivery to the other 70 |\n| **Mid-term** (6 months) | Start designing premium tier | Interview top 20, validate premium value hypothesis |\n| **Long-term** (12 months) | Launch premium tier + price increase at renewal | Natural transition at renewal |\n\nFor Friday\'s meeting, bringing a **"short-term B + mid-term D"** two-step roadmap is realistic. Doesn\'t kill the instinct, keeps it alive within the schedule.',
+          joinMessage: 'A counter-attack is exciting, but customer perception has to catch up. 💬 User research joined.',
+          result: '**Validated Specialist review\'s Scenario D (premium repositioning) from a customer perception angle.**\n\n**What does "move upmarket as premium" actually mean?**\n- Raise pricing 2-3x above Company T\n- Redesign features/services for customers "with more to spend"\n- Stop competing in the same market as low-cost players like Company T\n\n**Current perception of the 80 customers (estimate):**\n- Most customers perceive current pricing as "reasonable." Raising it suddenly gets "why all of a sudden?"\n- Premium brand transitions usually need **6-12 months of lead time**. Perception doesn\'t shift overnight.\n- You can raise at contract renewal naturally, but renewal is annual, so the effect is slow.\n\n**🔍 What the instinct missed:**\n> Premium repositioning is attractive, but **it doesn\'t fit the "report by Friday" timeline.** This is a 6-month strategy, not a Friday answer. Trying to execute the instinct as-is, the leadership meeting stalls on "what are we supposed to do right now?"\n\n**Recommended — short-term/mid-term two-track:**\n\n| Timeframe | Strategy | Concrete actions |\n|---|---|---|\n| **Short-term** (this quarter) | Selective discounts + value script (Scenario B) | 15% discount for 10 at-risk customers, value delivery to the other 70 |\n| **Mid-term** (6 months) | Start designing premium tier | Interview top 20, validate premium value hypothesis |\n| **Long-term** (12 months) | Launch premium tier + price increase at renewal | Natural transition at renewal |\n\nFor Friday\'s meeting, bringing a **"short-term B + mid-term D"** two-step roadmap is realistic. Doesn\'t kill the instinct, keeps it alive within the schedule.',
         },
         snapshotPatch: {
-          real_question: '"This is an opportunity" might be the right answer long-term. The real question is — "What do we do *right now* while preparing the 6-month premium pivot?" Maya solved it with a two-track.',
+          real_question: '"This is an opportunity" might be the right answer long-term. The real question is — "What do we do *right now* while preparing the 6-month premium pivot?" User research solved it with a two-track.',
           hidden_assumptions: [
             'Offensive instincts often prove rational in the long run. Company T\'s price cut lowers the market price band, so we can move up into the empty space above.',
             'But you can\'t ignore the time constraint. Showing up at Friday\'s leadership meeting with "let\'s go premium" gets "and what about right now?" — no answer.',
@@ -1368,7 +1368,7 @@ const scenario3: DemoScenario = {
       persona: HYUNWOO,
       task: '4 response scenarios — simulated on $100K monthly revenue',
       completionNote: 'All 4 are valid. Which one is right depends on your instinct.',
-      result: '**Built 4 scenario simulations on Sophie\'s data.** On purpose, no recommendation — the right answer shifts based on instinct.\n\n| | A. Match the cut | B. Selective discount + value defense | C. Wait / endure | D. Premium repositioning |\n|---|---|---|---|---|\n| Price | Blanket cut | 15% discount only for 10 at-risk | Hold | Raise instead |\n| Churn (6 mo) | ~0% | 3-5% (bottom tier) | 10-15% | 5-10% (transition) |\n| Monthly profit change | **-75%** ($30K → $7.5K) | **-3%** (~$29K) | 0% now, -15% in 6 mo | -10% short-term, +20% long-term |\n| Lead time | Immediate | Within a week | Immediate (monitoring) | **6+ months** |\n| Core risk | Margin collapse | Discount requests spread | Top 20 left unguarded | Perception shift fails |\n\n**The essence of each scenario:**\n- **A** comes from the instinct "stopping churn is priority one."\n- **B** comes from the balanced instinct "protect price, but block the real risks."\n- **C** comes from the wait instinct "Company T will break first."\n- **D** comes from the offensive instinct "use this to move up."\n\n**Next step:** Which scenario to pick is a call on your instinct. **Whether the instinct actually holds up** gets validated by whoever joins next. Every instinct misses something.',
+      result: '**Built 4 scenario simulations on Evidence check\'s data.** On purpose, no recommendation — the right answer shifts based on instinct.\n\n| | A. Match the cut | B. Selective discount + value defense | C. Wait / endure | D. Premium repositioning |\n|---|---|---|---|---|\n| Price | Blanket cut | 15% discount only for 10 at-risk | Hold | Raise instead |\n| Churn (6 mo) | ~0% | 3-5% (bottom tier) | 10-15% | 5-10% (transition) |\n| Monthly profit change | **-75%** ($30K → $7.5K) | **-3%** (~$29K) | 0% now, -15% in 6 mo | -10% short-term, +20% long-term |\n| Lead time | Immediate | Within a week | Immediate (monitoring) | **6+ months** |\n| Core risk | Margin collapse | Discount requests spread | Top 20 left unguarded | Perception shift fails |\n\n**The essence of each scenario:**\n- **A** comes from the instinct "stopping churn is priority one."\n- **B** comes from the balanced instinct "protect price, but block the real risks."\n- **C** comes from the wait instinct "Company T will break first."\n- **D** comes from the offensive instinct "use this to move up."\n\n**Next step:** Which scenario to pick is a call on your instinct. **Whether the instinct actually holds up** gets validated by whoever joins next. Every instinct misses something.',
     },
   ],
 
@@ -1398,7 +1398,7 @@ const scenario3: DemoScenario = {
     decisionLineDefault: 'Selective discounts + value clarification. Protect margin while defending.',
     workerSummariesDefault: [
       {
-        personaId: 'researcher', // SUJIN — Sophie
+        personaId: 'researcher', // SUJIN — Evidence check
         headline: 'Company T background + our 80-customer reality',
         lines: [
           'Company T Series B $20M → 12-18 month runway (monthly burn $1.5-2M, estimated)',
@@ -1406,7 +1406,7 @@ const scenario3: DemoScenario = {
         ],
       },
       {
-        personaId: 'strategist', // HYUNWOO — Nathan
+        personaId: 'strategist', // HYUNWOO — Specialist review
         headline: '4 scenarios compared',
         lines: [
           'Match -75% / Selective discount -3% / Wait -15% / Premium (6-month lead time)',
