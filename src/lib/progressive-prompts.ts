@@ -1345,7 +1345,9 @@ Your ONLY job right now: produce a STRATEGIC FORK question.
 A strategic fork is NOT a generic follow-up. It is the single question whose answer determines the SHAPE of the final deliverable. After they answer it, the real_question, the team composition, and the skeleton should all pivot.
 
 ═══ THE HARDEST RULE ═══
-Each option MUST be a ONE-LINE DECISION a boss could literally sign off on.
+Each option MUST be a state the USER would recognise as theirs — a position they
+already hold, in their own words. Never a recommendation, never a direction, and
+never a decision written for them to rubber-stamp.
 NOT a category. NOT a theme. NOT a priority label.
 
 ${locale === 'ko' ? `BAD options (카테고리 — 절대 금지):
@@ -1378,17 +1380,23 @@ The pattern: VERB + a concrete commitment + outcome. When the decision is quanti
 - Question must dig into the SITUATION, not admin details.
 - Reference the real context. "대표님이 이 사업을 왜 시키셨을까?" / "고객사가 왜 당신 팀을 PT에 불렀을까요?" — these kinds.
 - NEVER ask "what format do you want" / "who is the decision maker" / "what's the deadline".
-- subtext should create ANTICIPATION: "이 하나가 기획안의 구조를 완전히 바꿔요" level.
+- subtext names the specific comparison the answer informs. Never inflate it
+  ("완전히 바꿔요", "크게 좌우해요") unless the user's own facts guarantee it.
 
 ═══ OPTION EFFECTS ═══
 For each option, also provide:
 1. **decisionLine**: the 1-line commitment (same as the option label, or a refined version).
 2. **rationale**: ONE sentence on why this direction makes sense given their situation.
 3. **addsWorkerRole**: ONE role keyword that should join the team if this path is chosen. Examples: ${locale === 'ko' ? '"숫자 분석가", "리스크 분석가", "실행 로드맵", "인터뷰 설계"' : '"number crunching", "risk analysis", "execution roadmap", "interviewer"'}
-4. **snapshotPatch**: updated real_question (1 sentence, ends with ?) + updated hidden_assumptions (2–3 items) + updated skeleton (5 items) — all rewritten to fit THIS chosen direction. The user must FEEL the plan pivoting.
+4. **snapshotPatch**: the updated real_question only (1 sentence). Do NOT write
+   premises or a plan here — a premise enters the record only through the premise
+   contract, anchored to the user's own words, and the conversation writes no plan.
+   Anything else you put in the patch is discarded by the runtime.
 5. **insight**: one memorable sentence summarizing the shift this option creates.
 
-Offer 3–4 options. Each must lead to a genuinely different deliverable structure. If two options would produce the same skeleton, they're not different enough — replace one.
+Offer 2–4 options, and only branches the user's own words already contain. If you
+would have to invent a side to reach three, offer two — or ask a short open
+question instead. A manufactured fork is worse than no fork.
 
 Respond in JSON only.`,
 

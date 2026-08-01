@@ -175,8 +175,19 @@ export function applySnapshotPatch(
   return {
     ...snapshot,
     real_question: patch.real_question ?? snapshot.real_question,
-    hidden_assumptions: patch.hidden_assumptions ?? snapshot.hidden_assumptions,
-    skeleton: patch.skeleton ?? snapshot.skeleton,
+    // PREMISES AND PLAN ARE NOT PATCHABLE FROM A TAP.
+    //
+    // A typed question's options carry a `snapshotPatch` the model wrote in
+    // advance — including 2–3 hidden_assumptions and a 5-step skeleton. Applying
+    // those wrote model-invented premises straight into the living state with no
+    // anchor, no counterfactual, and no trip through the premise contract: one
+    // tap and Argus "knew" things the user never said. The contract is the only
+    // door (judgment-state-contract.ts), and the conversation writes no plan.
+    //
+    // What a tap legitimately updates is the FRAMING — the question being asked
+    // and the line describing it.
+    hidden_assumptions: snapshot.hidden_assumptions,
+    skeleton: snapshot.skeleton,
     insight: patch.insight ?? snapshot.insight,
   };
 }

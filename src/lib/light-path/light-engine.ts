@@ -282,10 +282,21 @@ export function buildLightSystemPrompt(
   return rules + (locale === 'ko' ? nextSectionKo(questionsAsked) : nextSectionEn(questionsAsked));
 }
 
+/** The model is asked to choose WHEN to come back, so it has to know when now
+ *  is. Without this it picked "이번 주 일요일" for an event the user had placed
+ *  on 다음 주 토요일 — a check arriving before the thing it asks about. Weekday
+ *  included because Korean plans are spoken in weekdays. */
+export function todayLine(locale: Locale, now: Date = new Date()): string {
+  const iso = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  const ko = ['일', '월', '화', '수', '목', '금', '토'][now.getDay()];
+  const en = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][now.getDay()];
+  return locale === 'ko' ? `오늘은 ${iso} (${ko}요일)입니다.` : `Today is ${iso} (${en}).`;
+}
+
 /** User prompt for the gate call. Exported for tests. */
 export function buildLightGateUserPrompt(problemText: string, locale: Locale): string {
   const header = locale === 'ko' ? '사용자가 방금 쓴 것:' : 'What the user just wrote:';
-  return `${header}\n<user-data context="decision">\n${sanitizeForPrompt(problemText)}\n</user-data>`;
+  return `${todayLine(locale)}\n\n${header}\n<user-data context="decision">\n${sanitizeForPrompt(problemText)}\n</user-data>`;
 }
 
 /** User prompt for subsequent turns. Exported for tests. */
@@ -299,6 +310,8 @@ export function buildLightNextUserPrompt(
     .map((qa, i) => `Q${i + 1}. ${sanitizeForPrompt(qa.question)}\nA${i + 1}. ${sanitizeForPrompt(qa.answer)}`)
     .join('\n');
   return [
+    todayLine(locale),
+    '',
     ko ? '사용자가 처음 쓴 것:' : 'What the user first wrote:',
     `<user-data context="decision">\n${sanitizeForPrompt(problemText)}\n</user-data>`,
     '',
@@ -395,11 +408,36 @@ export function isInterrogativeSentence(sentence: string): boolean {
   return /[?？]\s*$/.test(t) || /(?:는지|는가|[가-힣]까)(?:요)?\s*[.!…]?\s*$/.test(t);
 }
 
-function coerceOffer(v: unknown): LightOffer | undefined {
+/**
+ * Did the leave-behind sentence pick a side the user never picked?
+ *
+ * Measured: a user whose last words were "honestly I'm having fun though" —
+ * still undecided — had "I stayed till the end and still made my early start
+ * tomorrow without dragging" sealed as their judgment. The sentence chose the
+ * branch AND predicted it worked out. What reality later answers has to be
+ * something the person actually committed to.
+ *
+ * The permission to state an outcome comes from the user's own words: if they
+ * said which way they were going, the sentence may say so too.
+ */
+export function offerPicksUnstatedSide(sentence: string, userTexts: string[]): boolean {
+  // No user text to judge against ⇒ no grounds to overrule the model. Absence of
+  // evidence is not evidence of indecision.
+  if (!userTexts.some((t) => (t || '').trim().length > 0)) return false;
+  const decided = userTexts.some((t) => STATED_DECISION.test(t || ''));
+  if (decided) return false;
+  return /(했다|갔다|왔다|샀다|남았다|나왔다|끝냈다|골랐다|정했다)\s*[.!]?\s*$|\b(?:i|we)\s+(?:stayed|left|went|bought|took|chose|skipped|declined|finished)\b/i
+    .test(sentence.trim());
+}
+
+function coerceOffer(v: unknown, userTexts: string[] = []): LightOffer | undefined {
   if (!v || typeof v !== 'object') return undefined;
   const o = v as Record<string, unknown>;
   const sentence = asTrimmedString(o.sentence);
   if (!sentence) return undefined; // honest gap: no sentence, no offer — never fabricate
+  // Never seal a decision on someone's behalf. Degrading to no offer is honest;
+  // a record of a choice they didn't make is not.
+  if (offerPicksUnstatedSide(sentence, userTexts)) return undefined;
   // F10: an interrogative payload cannot be graded true/false at settle — reject
   // the offer (the turn degrades honestly; we never rewrite it into a claim).
   if (isInterrogativeSentence(sentence)) return undefined;
@@ -464,11 +502,16 @@ export function coerceLightGate(raw: unknown): LightGateResult {
  * NOTE: any `options` field the model emits is structurally dropped (anti-술
  * invariant — the light path never renders generated choices).
  */
-export function coerceLightTurn(raw: unknown, questionsAsked: number): LightTurn {
+export function coerceLightTurn(
+  raw: unknown,
+  questionsAsked: number,
+  /** The user's own words so far — the only licence to state an outcome. */
+  userTexts: string[] = [],
+): LightTurn {
   const r = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
   const rawMirror = asTrimmedString(r.mirror);
   const question = limitQuestionMarks(stripOneLinePhrase(asTrimmedString(r.question)));
-  const offer = coerceOffer(r.offer);
+  const offer = coerceOffer(r.offer, userTexts);
   const esc = r.escalate && typeof r.escalate === 'object'
     ? asTrimmedString((r.escalate as Record<string, unknown>).bigger_question)
     : '';
@@ -570,12 +613,39 @@ export async function runLightGate(
  */
 // [가-힣]기로 (했|정했) covers 사기로 했/가기로 했/하기로 정했 — a bare 하기로
 // literal misses ordinary verb stems (same composed-syllable trap as ㄹ까).
-const STATED_DECISION = /[가-힣]기로\s*(?:했|정했)|결정했|할래|살래|갈래|보낼래|버릴래|going\s+to\s|decided\s+to\s|i'?ll\s/i;
+// \b anchors matter: without them "stay till the end" matched the `i'll` branch
+// on the letters inside "t-i-l-l", and one English session's fate was decided by
+// a substring accident.
+const STATED_DECISION = /[가-힣]기로\s*(?:했|정했)|결정했|할래|살래|갈래|보낼래|버릴래|\bgoing\s+to\s|\bdecided\s+to\s|\bi'?ll\s/i;
+
+/**
+ * The ask is the last sentence a light session says, so it is worth getting
+ * right. It may not settle a choice the user never made — but it also may not
+ * be replaced by boilerplate just because they haven't decided yet.
+ *
+ * Measured: this dropped the model's tailored ask in 5 of 5 Korean sessions,
+ * and five different people got the identical "…에 실제로 어떻게 됐는지, 제가
+ * 한 번만 물어볼까요?" — a sentence with no subject. One of the discarded ones
+ * was "그럼 토요일 모임에서 어떻게 하셨는지, 제가 한 번만 물어볼까요?", which
+ * presupposes nothing at all. It never needed neutralising.
+ *
+ * So the test is what the ask CLAIMS, not whether the user sounds decided: an
+ * ask that merely asks how it went is always fine; one that states an outcome
+ * needs the user to have stated it.
+ */
+const ASK_PRESUMES_OUTCOME =
+  /(했|하기로|가기로|사기로|보내기로|일찍|끝까지|안\s*하기로)\s*(?:했|한|하신|하기로)|\b(?:you|i)\s+(?:stayed|left|went|bought|took|skipped|declined)\b/i;
+const ASK_IS_NEUTRAL = /어떻게\s*(?:됐|하셨|되셨)|how\s+it\s+(?:went|turned)|what\s+(?:you\s+)?(?:did|ended)/i;
+
 export function neutralizeUndecidedAsk(turn: LightTurn, problemText: string, qas: LightQA[]): LightTurn {
-  if (!turn.offer?.ask) return turn;
+  const ask = turn.offer?.ask;
+  if (!ask) return turn;
   const userTexts = [problemText, ...qas.map((qa) => qa.answer || '')];
-  if (userTexts.some((t) => STATED_DECISION.test(t || ''))) return turn;
-  const { ask: _dropped, ...offer } = turn.offer;
+  const userDecided = userTexts.some((t) => STATED_DECISION.test(t || ''));
+  if (userDecided) return turn;
+  // Undecided is fine as long as the ask does not pretend otherwise.
+  if (ASK_IS_NEUTRAL.test(ask) && !ASK_PRESUMES_OUTCOME.test(ask)) return turn;
+  const { ask: _dropped, ...offer } = turn.offer!;
   void _dropped;
   return { ...turn, offer };
 }
@@ -608,7 +678,8 @@ export async function runLightNext(
       shape: { mirror: 'string', action: 'string' },
     },
   );
-  return neutralizeUndecidedAsk(coerceLightTurn(raw, qas.length), problemText, qas);
+  const userTexts = [problemText, ...qas.map((qa) => qa.answer || '')];
+  return neutralizeUndecidedAsk(coerceLightTurn(raw, qas.length, userTexts), problemText, qas);
 }
 
 // ─── check_by date math (founder-specified mapping) ───

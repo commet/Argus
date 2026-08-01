@@ -574,7 +574,7 @@ describe('neutralizeUndecidedAsk — F6 structural clamp (5 fast-tier runs, 5 ph
     mockJson.mockResolvedValueOnce({
       mirror: 'm.',
       action: 'offer',
-      offer: { sentence: '새 노트북으로 편집을 시작했다', when: 'tomorrow_morning', ask: '일주일 뒤에 새 노트북으로 실제로 어떻게 작업되는지, 제가 한 번만 물어볼까요?' },
+      offer: { sentence: '새 노트북으로 편집이 매끄러웠다', when: 'tomorrow_morning', ask: '일주일 뒤에 새 노트북을 사서 실제로 편집을 시작하셨는지, 제가 한 번만 물어볼까요?' },
     });
     const turn = await runLightNext(
       '노트북을 새로 살까 말까 고민 중이에요',
@@ -582,8 +582,25 @@ describe('neutralizeUndecidedAsk — F6 structural clamp (5 fast-tier runs, 5 ph
       'ko',
     );
     expect(turn.action).toBe('offer');
-    expect(turn.offer?.ask).toBeUndefined(); // presupposition cannot ride ANY phrasing
-    expect(turn.offer?.sentence).toBe('새 노트북으로 편집을 시작했다'); // the internal record stays
+    // An ask that PRESUMES they bought it cannot ride any phrasing…
+    expect(turn.offer?.ask).toBeUndefined();
+  });
+
+  it('…but a neutral ask survives an undecided session (it presumes nothing)', async () => {
+    // Dropping these too gave five different people the same subject-less
+    // sentence; the discarded originals named the actual occasion.
+    mockJson.mockResolvedValueOnce({
+      mirror: 'm.',
+      action: 'offer',
+      offer: { sentence: '내일 아침에 후회하지 않았다', when: 'tomorrow_morning', ask: '그럼 토요일 모임에서 어떻게 하셨는지, 제가 한 번만 물어볼까요?' },
+    });
+    const turn = await runLightNext(
+      '토요일 모임에 갈지 말지 고민이에요',
+      [{ question: 'q', answer: '아직 잘 모르겠어요' }],
+      'ko',
+    );
+    expect(turn.offer?.ask).toBe('그럼 토요일 모임에서 어떻게 하셨는지, 제가 한 번만 물어볼까요?');
+    expect(turn.offer?.sentence).toBe('내일 아침에 후회하지 않았다'); // the internal record stays
   });
 
   it('keeps the model ask when the user DID state the decision in their own words', async () => {
