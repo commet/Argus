@@ -61,6 +61,9 @@ export default function SettingsPage() {
   // identity holding real rows, so erasure must key on the SESSION, not on `user`.
   const { user, session } = useAuth();
   const { settings, loadSettings, updateSettings } = useSettingsStore();
+  const selectedAnthropicModel = ANTHROPIC_MODELS.find((model) => model.id === (settings.anthropic_model || DEFAULT_ANTHROPIC_MODEL));
+  const selectedOpenAiModel = OPENAI_MODELS.find((model) => model.id === (settings.openai_model || DEFAULT_OPENAI_MODEL));
+  const selectedGeminiModel = GEMINI_MODELS.find((model) => model.id === (settings.gemini_model || DEFAULT_GEMINI_MODEL));
   const [showKey, setShowKey] = useState(false);
   const [keyTest, setKeyTest] = useState<'idle' | 'testing' | 'ok' | 'error'>('idle');
   const [resetModal, setResetModal] = useState(false);
@@ -377,11 +380,12 @@ export default function SettingsPage() {
             >
               {ANTHROPIC_MODELS.map((model) => (
                 <option key={model.id} value={model.id}>
-                  {model.name} — {L(model.noteKo, model.noteEn)} · {model.price}
+                  {model.name} · {model.price}
                 </option>
               ))}
             </select>
             <p className="mt-1.5 text-[12px] text-[var(--text-tertiary)]">
+              {selectedAnthropicModel ? `${L(selectedAnthropicModel.noteKo, selectedAnthropicModel.noteEn)} · ` : ''}
               {L(
                 '입력 / 출력 100만 토큰당 API 요금(USD). Sonnet 5의 $2 / $10은 2026년 8월 31일까지의 출시 요금입니다.',
                 'API prices per 1M input / output tokens (USD). Sonnet 5’s $2 / $10 launch rate runs through August 31, 2026.',
@@ -457,11 +461,14 @@ export default function SettingsPage() {
               >
                 {OPENAI_MODELS.map((model) => (
                   <option key={model.id} value={model.id}>
-                    {model.name} — {L(model.noteKo, model.noteEn)} · {model.price}
+                    {model.name} · {model.price}
                   </option>
                 ))}
               </select>
-              <p className="mt-1.5 text-[12px] text-[var(--text-tertiary)]">{L('입력 / 출력 100만 토큰당 표준 API 요금(USD)', 'Standard USD per 1M input / output tokens')}</p>
+              <p className="mt-1.5 text-[12px] text-[var(--text-tertiary)]">
+                {selectedOpenAiModel ? `${L(selectedOpenAiModel.noteKo, selectedOpenAiModel.noteEn)} · ` : ''}
+                {L('입력 / 출력 100만 토큰당 표준 API 요금(USD)', 'Standard USD per 1M input / output tokens')}
+              </p>
             </div>
           </div>
         )}
@@ -503,11 +510,12 @@ export default function SettingsPage() {
               >
                 {GEMINI_MODELS.map((model) => (
                   <option key={model.id} value={model.id}>
-                    {model.name} — {L(model.noteKo, model.noteEn)} · {model.price}
+                    {model.name} · {model.price}
                   </option>
                 ))}
               </select>
               <p className="mt-1.5 text-[12px] text-[var(--text-tertiary)]">
+                {selectedGeminiModel ? `${L(selectedGeminiModel.noteKo, selectedGeminiModel.noteEn)} · ` : ''}
                 {L(
                   '입력 / 출력 100만 토큰당 표준 API 요금(USD). Gemini 3.1 Pro의 $2 / $12는 입력 20만 토큰 이하 기준입니다.',
                   'Standard USD per 1M input / output tokens. Gemini 3.1 Pro’s $2 / $12 rate applies at 200K input tokens or less.',
