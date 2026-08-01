@@ -34,4 +34,11 @@ describe('authentication session continuity contract', () => {
       expect(source).toContain('motion-reduce:animate-none');
     }
   });
+
+  it('describes AI review as roles, not a fictional team the user owns', () => {
+    expect(authGuard).toContain('AI 검토 방식은 로그인이 필요해요');
+    expect(authGuard).toContain('검토 역할과 범위');
+    expect(authGuard).not.toContain('나만의 리뷰어 팀');
+    expect(authGuard).not.toContain('your own reviewer team');
+  });
 });

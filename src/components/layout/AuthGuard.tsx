@@ -45,10 +45,10 @@ function getCopy(page: PageKey, ko: boolean, knewYou: boolean) {
       };
     case 'agents':
       return {
-        title: L('AI 검토자는 로그인이 필요해요', 'AI reviewers need an account'),
+        title: L('AI 검토 방식은 로그인이 필요해요', 'AI review modes need an account'),
         description: L(
-          '로그인하면 나만의 리뷰어 팀을 저장하고, 워크스페이스에서 바로 쓸 수 있어요.',
-          'Sign in to save your own reviewer team and use them directly in the workspace.',
+          '로그인하면 사용할 수 있는 검토 역할과 범위를 살펴보고 워크스페이스에 적용할 수 있어요.',
+          'Sign in to review the available roles and apply the ones your judgment needs.',
         ),
       };
     case 'teams':
