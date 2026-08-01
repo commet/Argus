@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { AnimatePresence } from 'framer-motion';
+import { UserCheck } from 'lucide-react';
 import { LocaleLink } from '@/components/ui/LocaleLink';
 import { useAgentStore } from '@/stores/useAgentStore';
 import type { Agent, AgentChain } from '@/stores/agent-types';
@@ -11,24 +12,24 @@ import { useLocale } from '@/hooks/useLocale';
 
 type Locale = 'ko' | 'en';
 
-function getGroupMeta(locale: Locale): Record<string, { label: string; emoji: string }> {
+function getGroupMeta(locale: Locale): Record<string, { label: string }> {
   if (locale === 'ko') {
     return {
-      research: { label: '리서치', emoji: '🔍' },
-      strategy: { label: '전략', emoji: '🎯' },
-      production: { label: '실행', emoji: '⚡' },
-      validation: { label: '검증', emoji: '🛡️' },
-      people: { label: '사람들', emoji: '👥' },
-      special: { label: '총괄', emoji: '🧭' },
+      research: { label: '근거' },
+      strategy: { label: '구조' },
+      production: { label: '전문 분야' },
+      validation: { label: '위험' },
+      people: { label: '사람의 관점' },
+      special: { label: '종합' },
     };
   }
   return {
-    research: { label: 'Research', emoji: '🔍' },
-    strategy: { label: 'Strategy', emoji: '🎯' },
-    production: { label: 'Execution', emoji: '⚡' },
-    validation: { label: 'Validation', emoji: '🛡️' },
-    people: { label: 'People', emoji: '👥' },
-    special: { label: 'Lead', emoji: '🧭' },
+    research: { label: 'Evidence' },
+    strategy: { label: 'Structure' },
+    production: { label: 'Specialist fields' },
+    validation: { label: 'Risk' },
+    people: { label: 'Human perspectives' },
+    special: { label: 'Synthesis' },
   };
 }
 
@@ -49,8 +50,8 @@ export function AgentHub() {
   if (agents.length === 0) {
     return (
       <div className="agent-hub" aria-busy="true" aria-live="polite">
-        <h1 className="agent-hub-title">{L('AI 검토자', 'AI reviewers')}</h1>
-        <p className="agent-hub-subtitle">{L('결정을 서로 다른 관점에서 살펴보는 AI 역할들이에요.', 'These AI roles review decisions from different perspectives.')}</p>
+        <h1 className="agent-hub-title">{L('AI 검토 방식', 'AI review modes')}</h1>
+        <p className="agent-hub-subtitle">{L('판단의 성격에 따라 필요한 역할만 골라 씁니다.', 'Argus uses only the roles a judgment actually needs.')}</p>
         <div className="mt-6 space-y-8">
           {[0, 1, 2].map((sectionIdx) => (
             <section key={sectionIdx} className="space-y-3">
@@ -89,11 +90,9 @@ export function AgentHub() {
 
   return (
     <div className="agent-hub">
-      {/* W1.5④ 선원 명부 — a roster you BROWSE, not a page you manage. All
-          crew sail from the first voyage; XP/level is progression flavor. */}
-      <h1 className="agent-hub-title">{L('AI 검토자', 'AI reviewers')}</h1>
+      <h1 className="agent-hub-title">{L('AI 검토 방식', 'AI review modes')}</h1>
       <p className="agent-hub-subtitle">
-        {L('결정을 서로 다른 관점에서 살펴보는 AI 역할들이에요. 실제 협업 팀은 팀 메뉴에서 따로 관리합니다.', 'These AI roles review decisions from different perspectives. Manage collaborators separately under Teams.')}
+        {L('판단의 성격에 따라 필요한 역할만 골라 씁니다. 실제 사람과의 협업은 팀에서 따로 관리합니다.', 'Argus uses only the roles a judgment actually needs. Manage collaboration with real people separately under Teams.')}
       </p>
 
       {/* 체인 에이전트: 리서치 */}
@@ -138,7 +137,7 @@ export function AgentHub() {
             <AgentCard key={agent.id} agent={agent} onClick={() => agent.unlocked && setSelectedAgent(agent)} />
           ))}
           <LocaleLink href="/boss" className="agent-card agent-card-boss-cta" style={{ textDecoration: 'none' }}>
-            <div className="agent-card-emoji">👔</div>
+            <div className="agent-card-emoji" aria-hidden="true"><UserCheck size={19} strokeWidth={1.7} /></div>
             <div className="agent-card-role">{L('팀장 시뮬레이터', 'Boss Simulator')}</div>
             <div className="agent-card-name">{L('내 팀장은 뭐라고 할까?', 'What would my boss say?')}</div>
             <span style={{
@@ -174,10 +173,9 @@ export function AgentHub() {
 
 // ─── Sub-components ───
 
-function SectionHeader({ meta, extra }: { meta: { label: string; emoji: string }; extra?: React.ReactNode }) {
+function SectionHeader({ meta, extra }: { meta: { label: string }; extra?: React.ReactNode }) {
   return (
     <div className="agent-section-header">
-      <span style={{ fontSize: 14 }}>{meta.emoji}</span>
       <span className="agent-section-name">{meta.label}</span>
       {extra}
     </div>
@@ -187,7 +185,7 @@ function SectionHeader({ meta, extra }: { meta: { label: string; emoji: string }
 function ChainSection({ chain, agents, meta, onSelect }: {
   chain: AgentChain;
   agents: Agent[];
-  meta: { label: string; emoji: string };
+  meta: { label: string };
   onSelect: (agent: Agent) => void;
 }) {
   const locale = useLocale();
@@ -227,7 +225,7 @@ function ChainSection({ chain, agents, meta, onSelect }: {
 
 function GroupSection({ agents, meta, onSelect }: {
   agents: Agent[];
-  meta: { label: string; emoji: string };
+  meta: { label: string };
   onSelect: (agent: Agent) => void;
 }) {
   return (
