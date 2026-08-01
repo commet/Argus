@@ -38,7 +38,11 @@ function KindChip({ kind, locale }: { kind: string | undefined; locale: 'ko' | '
   const needsChecking = policyFor(kind).competes;
   return (
     <span
-      className={`shrink-0 rounded-[5px] px-1.5 py-[3px] text-[10.5px] font-bold leading-none tracking-[0.02em] ${
+      // Fixed width so the sentences start on one line. Seen on screen, chips
+      // of 가정 / 내 기준 / 사실 sized to their own text left the rows ragged and
+      // the list stopped being scannable — the labels are a column, and a
+      // column that does not line up is decoration.
+      className={`shrink-0 inline-flex justify-center min-w-[3.5rem] rounded-[5px] px-1.5 py-[3px] text-[10.5px] font-bold leading-none tracking-[0.02em] ${
         needsChecking
           ? 'bg-[var(--accent)]/[0.11] text-[var(--accent)]'
           : 'bg-[var(--text-tertiary)]/[0.10] text-[var(--text-tertiary)]'

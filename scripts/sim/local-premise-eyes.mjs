@@ -102,7 +102,10 @@ try {
   // The summary view — this is where the rows became visible in this branch.
   log('SUMMARY:', JSON.stringify(await readBlock()));
 
-  const toggle = page.locator('button', { hasText: '근거와 계획 보기' }).first();
+  // The peek's own label is "근거 보기"; the expanded card's is "자세히 보기".
+  // Naming the wrong one silently produced "no toggle present" and a run that
+  // proved nothing about the block it was written to look at.
+  const toggle = page.locator('button', { hasText: /근거( 보기|와 계획 보기)/ }).first();
   if (await toggle.count()) {
     await toggle.click().catch(() => {});
     await page.waitForTimeout(1400);
@@ -112,7 +115,7 @@ try {
     log('no 근거와 계획 보기 toggle present');
   }
 
-  const detail = page.locator('button', { hasText: '자세히' }).first();
+  const detail = page.locator('button', { hasText: /자세히|근거와 계획/ }).first();
   if (await detail.count()) {
     await detail.click().catch(() => {});
     await page.waitForTimeout(1400);
