@@ -344,11 +344,26 @@ export function AnalysisCard({
                               <span className="italic">“{record.anchor_quote}”</span>
                             </p>
                           )}
-                          {record?.if_false_changes && (
+                          {/* A standard is the user's own weighting. It is not
+                              checked and never graded — saying "이게 아니라면"
+                              about someone's values would be grading them. */}
+                          {record?.kind !== 'standard' && record?.if_false_changes && (
                             <p className="mt-0.5 text-[12px] leading-[1.6] text-[var(--text-secondary)]">
                               {L('이게 아니라면', 'if this is wrong')}
                               <span className="mx-1.5 opacity-50">→</span>
                               {renderText(record.if_false_changes)}
+                            </p>
+                          )}
+                          {record?.kind !== 'standard' && record?.observable && (
+                            <p className="mt-0.5 text-[12px] leading-[1.6] text-[var(--text-tertiary)]">
+                              {L('무엇을 보면 아나', 'how you would know')}
+                              <span className="mx-1.5 opacity-50">→</span>
+                              {renderText(record.observable)}
+                            </p>
+                          )}
+                          {record?.kind === 'standard' && (
+                            <p className="mt-0.5 text-[12px] leading-[1.6] text-[var(--text-tertiary)]">
+                              {L('내 기준 · 확인 대상 아님', 'your own standard — not something to check')}
                             </p>
                           )}
                         </div>

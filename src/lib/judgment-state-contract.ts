@@ -7,12 +7,15 @@
  * and transition audit at the engine boundary.
  */
 
+export type PremiseKind = 'fact' | 'premise' | 'prediction' | 'standard' | 'open_question';
+
 export interface PremiseCandidate {
   text: string;
   anchor_quote: string;
   support_kind: 'explicit_reason' | 'explicit_condition' | 'explicit_expectation';
   if_false_changes: string;
-  confidence?: 'low' | 'medium' | 'high';
+  kind?: PremiseKind;
+  observable?: string;
 }
 
 export interface PremiseDelta {
@@ -48,6 +51,19 @@ export interface AdmittedPremise {
   anchor_quote: string;
   if_false_changes: string;
   support_kind: PremiseCandidate['support_kind'];
+  kind: PremiseKind;
+  observable?: string;
+}
+
+const PREMISE_KINDS = new Set<PremiseKind>([
+  'fact', 'premise', 'prediction', 'standard', 'open_question',
+]);
+
+/** Unknown or absent → 'premise', the conservative reading: it gets verified
+ *  rather than silently skipped or silently graded. */
+function asKind(value: unknown): PremiseKind {
+  const k = cleanText(value) as PremiseKind;
+  return PREMISE_KINDS.has(k) ? k : 'premise';
 }
 
 interface SynthesisSectionLike {
@@ -219,6 +235,8 @@ export function coercePremiseCandidates(
       anchor_quote: anchorQuote,
       if_false_changes: ifFalseChanges,
       support_kind: supportKind as PremiseCandidate['support_kind'],
+      kind: asKind(item?.kind),
+      ...(cleanText(item?.observable) ? { observable: cleanText(item?.observable) } : {}),
     });
     audit.push({ accepted: true, action: 'initial', text, reason: 'grounded' });
   }
@@ -238,7 +256,7 @@ export function applyPremiseDeltas(
     .map((entry): AdmittedPremise | null => {
       if (typeof entry === 'string') {
         return entry.trim()
-          ? { text: cleanText(entry), anchor_quote: '', if_false_changes: '', support_kind: 'explicit_reason' }
+          ? { text: cleanText(entry), anchor_quote: '', if_false_changes: '', support_kind: 'explicit_reason', kind: 'premise' as const }
           : null;
       }
       return entry && typeof entry.text === 'string' && entry.text.trim()
@@ -312,6 +330,8 @@ export function applyPremiseDeltas(
         anchor_quote: anchorQuote,
         if_false_changes: ifFalseChanges,
         support_kind: supportKind as PremiseCandidate['support_kind'],
+        kind: asKind(item?.kind),
+        ...(cleanText(item?.observable) ? { observable: cleanText(item?.observable) } : {}),
       });
       premises.push(text);
       audit.push({ accepted: true, action, text, reason: 'grounded' });
@@ -370,6 +390,8 @@ export function applyPremiseDeltas(
       anchor_quote: anchorQuote,
       if_false_changes: ifFalseChanges,
       support_kind: supportKind as PremiseCandidate['support_kind'],
+      kind: asKind(item?.kind),
+      ...(cleanText(item?.observable) ? { observable: cleanText(item?.observable) } : {}),
     };
     premises[existingIndex] = text;
     audit.push({

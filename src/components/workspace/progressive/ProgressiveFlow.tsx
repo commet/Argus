@@ -182,6 +182,10 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
       // F1: the user's own committed direction (strategic_fork) must seal as
       // theirs, not get laundered through the mix into an ai_surfaced assumption.
       user_judgment: { decision_line: (session?.snapshots ?? []).slice(-1)[0]?.decision_line },
+      // Carry the typed premises so the sealed predicate keeps its kind and the
+      // observable — that is what lets the return ask about the thing itself,
+      // and what keeps a 'standard' from ever being graded.
+      premise_records: (session?.snapshots ?? []).slice(-1)[0]?.premise_records,
     }),
     [session?.mix, session?.final_mix, session?.dm_feedback, session?.debate_result, session?.falsification, session?.snapshots],
   );

@@ -85,20 +85,28 @@ import {
 function alignRecords(records: AdmittedPremise[], texts: string[]): AdmittedPremise[] {
   const byText = new Map(records.map((r) => [r.text.trim(), r]));
   return (texts || []).map((text) => byText.get(text.trim())
-    ?? { text, anchor_quote: '', if_false_changes: '', support_kind: 'explicit_reason' as const });
+    ?? { text, anchor_quote: '', if_false_changes: '', support_kind: 'explicit_reason' as const, kind: 'premise' as const });
 }
 
 /** Snapshots written before 2026-08-01 carry text only. Read them as records
  *  with no lineage rather than losing the premise entirely. */
 function recordsFromSnapshot(snapshot: {
-  premise_records?: AdmittedPremise[];
+  premise_records?: Array<Partial<AdmittedPremise> & { text: string }>;
   hidden_assumptions?: string[];
 }): AdmittedPremise[] {
   if (Array.isArray(snapshot.premise_records) && snapshot.premise_records.length > 0) {
-    return snapshot.premise_records;
+    return snapshot.premise_records.map((r) => ({
+      text: r.text,
+      anchor_quote: r.anchor_quote || '',
+      if_false_changes: r.if_false_changes || '',
+      support_kind: r.support_kind || 'explicit_reason',
+      kind: r.kind || 'premise',
+      ...(r.observable ? { observable: r.observable } : {}),
+    }));
   }
   return (snapshot.hidden_assumptions || []).map((text) => ({
     text, anchor_quote: '', if_false_changes: '', support_kind: 'explicit_reason' as const,
+    kind: 'premise' as const,
   }));
 }
 import type {

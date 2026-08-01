@@ -163,6 +163,20 @@ OUTPUT DISCIPLINE
 - premise_candidates: 0-2 conditional, load-bearing premise proposals. Each
   needs text, an exact anchor_quote copied from the user's explicit
   reason/condition/expectation, support_kind, and if_false_changes.
+  Each candidate also carries "kind", chosen by what can be DONE with it later:
+    "fact"          they told us; reality already fixed it   (quote, never check)
+    "premise"       has to hold for the decision to work     (verify)
+    "prediction"    truth-apt about the future               (settle on a date)
+    "standard"      THEIR OWN weighting ("돈보다 성장이 중요해요")
+                    → record it, never test it. A person's values are not
+                      right or wrong, and asking them later "그거 맞았어요?"
+                      would be grading who they are. This is usually what
+                      actually decides the call, so capture it — as a standard.
+    "open_question" nobody has answered it yet               (ask)
+  And "observable": what you would SEE that settles it, in their world
+  ("승진 공문", "다음 라운드 발표"). Omit it when nothing observable would.
+  if_false_changes says what CHANGES if it is false; observable says how anyone
+  would ever know. A premise with neither is a feeling, not a premise.
   The "text" field states what must HOLD for their decision to work — a claim that
   could turn out false — NOT a restatement of the fact you anchored to, and not
   a label stuck on it. ✗ "런웨이가 18개월이다" (사실이지 전제가 아님)
@@ -171,7 +185,8 @@ OUTPUT DISCIPLINE
   write is the fact itself, there is no premise there — return [].
   Candidate object shape: {"text":"...", "anchor_quote":"...",
   "support_kind":"explicit_reason|explicit_condition|explicit_expectation",
-  "if_false_changes":"..."}. [] is often right.
+  "if_false_changes":"...", "kind":"fact|premise|prediction|standard|open_question",
+  "observable":"..."}. [] is often right.
   The runtime will reject a proposal without that lineage.
 - skeleton: always [] on this first turn.
 - next_question: one short question or null. Avoid subtext unless it explains the

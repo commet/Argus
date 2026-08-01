@@ -656,6 +656,12 @@ export interface Predicate {
   source: PredicateSource;
   /** For risk-sourced predicates. */
   category?: ClassifiedRisk['category'];
+  /** Carried from the premise this came from. 'standard' is never graded —
+   *  reality does not settle a person's own weighting. Absent = 'premise'. */
+  premise_kind?: PremiseKind;
+  /** What the user said would show it, carried to the return so the check-in
+   *  can ask about the thing itself instead of "실제로 어떻게 됐나요?". */
+  observable?: string;
   /** The persona the prediction is about, when known (risk source) — drives specificity. */
   persona_id?: string;
   /** User's later grade. Absent/`pending` until they return to score it. */
@@ -1276,9 +1282,33 @@ export interface FlowAnswer {
  *  work — the user's own sentence underneath, and what changes if the premise
  *  turns out wrong. That last field is also the reality check, already grounded,
  *  so the closing record never has to invent one. ADR-2026-07-31 H1. */
+/**
+ * What KIND of thing this is — chosen by what can be done with it later, which
+ * is the only distinction that earns its keep:
+ *
+ *   fact          the user told us; reality already fixed it   → quote, never check
+ *   premise       has to hold for the decision to work         → verify
+ *   prediction    truth-apt about the future                   → settle on a date
+ *   standard      the user's OWN weighting ("돈보다 성장")      → record, NEVER judge
+ *   open_question nobody has answered it yet                   → ask
+ *
+ * `standard` is the one the old single bucket handled worst. A person's values
+ * are usually what actually decides the call, and they are exactly what Argus
+ * must never grade — filing them as premises meant later asking "그거 맞았어요?"
+ * about someone's values. Separating them is what lets the return skip them.
+ */
+export type PremiseKind = 'fact' | 'premise' | 'prediction' | 'standard' | 'open_question';
+
 export interface PremiseRecord {
   /** The proposition that has to hold for the decision to work. */
   text: string;
+  /** Defaults to 'premise' on records written before 2026-08-01. */
+  kind?: PremiseKind;
+  /** What you would OBSERVE that settles it, in the user's world ("승진 공문",
+   *  "다음 라운드 발표"). `if_false_changes` says what would change if it were
+   *  false; this says how you would ever know. Without it a return can only ask
+   *  "실제로 어떻게 됐나요?" — with it, it can ask about the thing itself. */
+  observable?: string;
   /** Verbatim from the user — verified by substring match, never paraphrased. */
   anchor_quote: string;
   /** What changes if it turns out false. The reality check, written in advance. */

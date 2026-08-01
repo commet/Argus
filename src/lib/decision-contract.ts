@@ -17,6 +17,7 @@
  */
 
 import type {
+  PremiseKind,
   RecastItem,
   FeedbackRecord,
   ClassifiedRisk,
@@ -433,6 +434,10 @@ export interface SessionPredicateInput {
   mix?: MixResult | null;
   /** Structured final pass; preferred over `mix` when present. */
   final_mix?: MixResult | null;
+  /** The living state's typed premises, so the sealed predicate keeps the kind
+   *  and the observable. Without them the return can only ask a generic
+   *  question, and a 'standard' would be graded like a claim about the world. */
+  premise_records?: Array<{ text: string; kind?: PremiseKind; observable?: string }>;
   dm_feedback?: DMFeedbackResult | null;
   debate_result?: {
     challenge: string;
@@ -518,15 +523,21 @@ export function extractPredicatesFromSession(s: SessionPredicateInput, recordedA
     });
     if (p) governing.push(p);
   }
+  const recordByText = new Map(
+    (s.premise_records ?? []).map((r) => [r.text.trim(), r]),
+  );
   for (const a of finalMix?.key_assumptions ?? []) {
     if (governing.length >= MAX_LIVE_GOVERNING) break;
     // key_assumptions are AI-authored (the mix draft) — tag them ai_surfaced so a held
     // machine assumption never inflates the user's own skill-wins in summarizeGrades (R58).
+    const record = recordByText.get(a.trim());
     const p = add({
       text: a,
       source: 'governing_idea',
       authored: 'ai_surfaced',
       attribution: webAiAttribution(recordedAt, 'workspace:mix_assumption'),
+      ...(record?.kind ? { premise_kind: record.kind } : {}),
+      ...(record?.observable ? { observable: record.observable } : {}),
     });
     if (p) governing.push(p);
   }

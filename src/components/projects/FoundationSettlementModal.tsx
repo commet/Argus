@@ -349,6 +349,9 @@ function PremiseReturn({
   // things it rested on.
   const premises = (contract.predicates || [])
     .filter((p) => p.source !== 'user_lean' && p.text?.trim())
+    // A standard is the user's own weighting. Reality does not settle it, and
+    // asking "그거 맞았어요?" about someone's values grades who they are.
+    .filter((p) => p.premise_kind !== 'standard')
     .slice(0, 3);
   if (premises.length === 0) return null;
 
@@ -369,6 +372,13 @@ function PremiseReturn({
           return (
             <div key={premise.id}>
               <p className="text-[13px] leading-[1.6] text-[var(--text-primary)]">{premise.text}</p>
+              {premise.observable && (
+                <p className="mt-0.5 text-[12px] leading-5 text-[var(--text-tertiary)]">
+                  {L('보기로 한 것', 'what you said would show it')}
+                  <span className="mx-1.5 opacity-50">·</span>
+                  {premise.observable}
+                </p>
+              )}
               <div className="mt-1.5 flex flex-wrap gap-1.5">
                 {CHOICES.map((choice) => (
                   <button

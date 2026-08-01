@@ -227,6 +227,7 @@ export async function runHeavyDeepening(
   const nextPremises = applyPremiseDeltas(
     (currentSnapshot.hidden_assumptions || []).map((text: string) => ({
       text, anchor_quote: '', if_false_changes: '', support_kind: 'explicit_reason' as const,
+      kind: 'premise' as const,
     })),
     raw.premise_changes,
     userCorpus,
