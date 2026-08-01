@@ -671,6 +671,20 @@ export interface Predicate {
    *  risk): reasoned vs luck/external. Separates judgment-wins from luck-wins in
    *  the track record. Cleared when the verdict returns to pending. */
   basis?: PredicateBasis;
+  /** How sure the USER said they were, in their own words, at the moment they
+   *  sealed. Not a probability and never Argus's estimate.
+   *
+   *  Without it a settled record says only "맞았다 / 틀렸다", which teaches
+   *  almost nothing: being wrong about a coin-flip and being wrong about
+   *  something you were sure of are different events, and only the second is
+   *  worth noticing. Pairing what they SAID with what happened is the whole
+   *  mechanism by which judgment improves (Tetlock: feedback on stated
+   *  confidence, not on outcomes alone).
+   *
+   *  Recorded, paired, and shown back as their own two sentences. It is never
+   *  scored, averaged into a tier, or used to route anything — that would make
+   *  it a verdict about the person (CLAUDE.md rule 2). */
+  stated_confidence?: 'even' | 'likely' | 'near_certain';
   /** Authorship of a governing-bet predicate sourced from the flinch step
    *  (`Falsification.real_bet_authored`). 'ai_surfaced' = the machine-surfaced
    *  belief stood in as the bet via the no-friction skip, NOT a prediction the

@@ -276,6 +276,10 @@ export function SealMoment({
   }, [project.id]);
   const [humanJudgment, setHumanJudgment] = useState(aiDraftJudgment);
   const [judgmentTouched, setJudgmentTouched] = useState(false);
+  /** How sure the user says they are, in their own words. Optional — skipping
+   *  loses nothing except what the return could otherwise have shown them. */
+  const [statedConfidence, setStatedConfidence] =
+    useState<'even' | 'likely' | 'near_certain' | null>(null);
   /** 손대지 않은 초안을 그대로 확정했는가 — 출처를 정직하게 가르는 유일한 기준. */
   const keptAiDraft = !judgmentTouched
     && !!aiDraftJudgment
@@ -431,6 +435,7 @@ export function SealMoment({
           source: 'user_lean' as const,
           authored: authorship.authored,
           attribution: authorship.attribution,
+          ...(statedConfidence ? { stated_confidence: statedConfidence } : {}),
         }
       : null;
     // 같은 문장이 두 번 실리지 않게 **글자로도** 거른다. 마무리 판단이 시험 단계의
@@ -1209,6 +1214,10 @@ export function SealMoment({
           L={L}
         />
 
+        {selectedKind !== 'witness' && (
+          <ConfidenceChoice value={statedConfidence} onChange={setStatedConfidence} L={L} />
+        )}
+
         {/* Judgment Receipt — seal과 settle을 하나의 오브젝트로 묶는 진입점.
             사용자가 human_judgment를 작성하면 봉인 시 함께 저장된다. */}
         {kept.length > 0 && (() => {
@@ -1602,6 +1611,56 @@ function PredicateEditor({
           );
         })}
       </ul>
+    </div>
+  );
+}
+
+/**
+ * "How sure are you?" — asked once, in their words, never scored.
+ *
+ * A settled record that says only 맞았다/틀렸다 teaches almost nothing: being
+ * wrong about a coin flip and being wrong about something you were certain of
+ * are different events, and only the second is worth a person's attention. The
+ * return pairs this sentence with what actually happened and shows both — no
+ * average, no tier, no grade. Skipping is free; it only costs the user what the
+ * return could otherwise have shown them.
+ */
+function ConfidenceChoice({
+  value,
+  onChange,
+  L,
+}: {
+  value: 'even' | 'likely' | 'near_certain' | null;
+  onChange: (v: 'even' | 'likely' | 'near_certain' | null) => void;
+  L: (ko: string, en: string) => string;
+}) {
+  const OPTIONS: Array<{ id: 'even' | 'likely' | 'near_certain'; ko: string; en: string }> = [
+    { id: 'even', ko: '반반이에요', en: 'Could go either way' },
+    { id: 'likely', ko: '그럴 것 같아요', en: 'Probably' },
+    { id: 'near_certain', ko: '거의 확실해요', en: 'Almost certain' },
+  ];
+  return (
+    <div className="mt-3">
+      <p className="text-[12.5px] text-[var(--text-secondary)]">
+        {L('지금 얼마나 그럴 것 같으세요?', 'How likely does this feel right now?')}
+        <span className="ml-1.5 text-[var(--text-tertiary)]">{L('선택', 'optional')}</span>
+      </p>
+      <div className="mt-1.5 flex flex-wrap gap-1.5">
+        {OPTIONS.map((option) => (
+          <button
+            key={option.id}
+            type="button"
+            onClick={() => onChange(value === option.id ? null : option.id)}
+            className={`rounded-full border px-3 py-1.5 text-[12.5px] transition-colors ${
+              value === option.id
+                ? 'border-[var(--accent)] bg-[var(--accent)]/10 text-[var(--text-primary)]'
+                : 'border-[var(--border)] text-[var(--text-secondary)] hover:border-[var(--accent)]/50'
+            }`}
+          >
+            {L(option.ko, option.en)}
+          </button>
+        ))}
+      </div>
     </div>
   );
 }

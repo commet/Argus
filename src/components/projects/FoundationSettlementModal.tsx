@@ -198,6 +198,7 @@ export function FoundationSettlementModal({ project, onClose }: FoundationSettle
               </div>
             )}
 
+            <ConfidencePairing contract={contract} ko={ko} />
             <PremiseReturn
               contract={contract}
               ko={ko}
@@ -405,6 +406,46 @@ function PremiseReturn({
       <p className="mt-2.5 text-[12px] leading-5 text-[var(--text-tertiary)]">
         {L('안 고르셔도 돼요. 답한 것만 기록에 남습니다.', 'Optional — only what you answer is recorded.')}
       </p>
+    </div>
+  );
+}
+
+/**
+ * What they said, next to what happened.
+ *
+ * This is the only place the loop can actually teach: an outcome on its own is
+ * noise, but "거의 확실해요 → 아니었어요" is a thing a person notices about
+ * themselves. It is shown as two of their own facts side by side — never a
+ * score, never a rate, never a label about the kind of judge they are. The
+ * moment it becomes a number it stops being feedback and becomes a verdict
+ * (CLAUDE.md rule 2).
+ */
+function ConfidencePairing({ contract, ko }: { contract: DecisionContract; ko: boolean }) {
+  const L = (k: string, e: string) => (ko ? k : e);
+  const said = contract.predicates?.find((p) => p.stated_confidence)?.stated_confidence;
+  if (!said) return null;
+  const SAID: Record<string, { ko: string; en: string }> = {
+    even: { ko: '반반이에요', en: 'could go either way' },
+    likely: { ko: '그럴 것 같아요', en: 'probably' },
+    near_certain: { ko: '거의 확실해요', en: 'almost certain' },
+  };
+  const settled = contract.settlements?.at(-1);
+  return (
+    <div className="rounded-xl bg-[var(--bg)] px-3.5 py-3">
+      <p className="text-[12.5px] leading-5 text-[var(--text-secondary)]">
+        {L('그때 이렇게 보셨어요', 'Back then you said')}
+        <span className="mx-1.5 opacity-50">·</span>
+        <span className="font-semibold text-[var(--text-primary)]">
+          {L(SAID[said].ko, SAID[said].en)}
+        </span>
+      </p>
+      {settled?.response_text && (
+        <p className="mt-1 text-[12.5px] leading-5 text-[var(--text-secondary)]">
+          {L('실제로는', 'What happened')}
+          <span className="mx-1.5 opacity-50">·</span>
+          <span className="font-semibold text-[var(--text-primary)]">{settled.response_text}</span>
+        </p>
+      )}
     </div>
   );
 }
