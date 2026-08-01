@@ -3,10 +3,51 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { useState } from 'react';
-import type { AnalysisSnapshot } from '@/stores/types';
+import type { AnalysisSnapshot, PremiseRecord } from '@/stores/types';
+import { kindLabel, policyFor, premiseListHeading } from '@/lib/decisive-premises';
 import { EASE } from './constants';
 import { diffItems } from './diffItems';
 import type { ReactNode } from 'react';
+
+/**
+ * What the card shows, typed. Snapshots written before 2026-08-01 carry only
+ * `hidden_assumptions`, and back then that list genuinely was all assumptions —
+ * so reading them as 'premise' is the truthful legacy default, not a guess.
+ */
+function premiseRowsOf(snapshot: AnalysisSnapshot): PremiseRecord[] {
+  if (snapshot.premise_records?.length) return snapshot.premise_records;
+  return (snapshot.hidden_assumptions || []).map((text) => ({
+    text,
+    anchor_quote: '',
+    if_false_changes: '',
+    support_kind: 'explicit_reason' as const,
+    kind: 'premise' as const,
+  }));
+}
+
+/**
+ * The kind, said out loud on the row.
+ *
+ * A number ("1 2 3") was carrying no information — these are not ordered steps —
+ * while the one thing the row genuinely needed to say was what KIND of thing it
+ * is, since that decides whether the user is being asked to go check it. Only
+ * the kinds that need checking take the accent; context stays quiet. That is
+ * the whole hierarchy, and it is about the item, never about the person.
+ */
+function KindChip({ kind, locale }: { kind: string | undefined; locale: 'ko' | 'en' }) {
+  const needsChecking = policyFor(kind).competes;
+  return (
+    <span
+      className={`shrink-0 rounded-[5px] px-1.5 py-[3px] text-[10.5px] font-bold leading-none tracking-[0.02em] ${
+        needsChecking
+          ? 'bg-[var(--accent)]/[0.11] text-[var(--accent)]'
+          : 'bg-[var(--text-tertiary)]/[0.10] text-[var(--text-tertiary)]'
+      }`}
+    >
+      {kindLabel(kind, locale)}
+    </span>
+  );
+}
 
 // ─── Inline formatting helpers ───
 
@@ -116,7 +157,14 @@ export function AnalysisCard({
     ? undefined
     : initialOpenInsight;
   const visibleSkeleton = snapshot.version === 0 ? [] : snapshot.skeleton;
-  const visibleAssumptions = snapshot.version === 0 ? [] : snapshot.hidden_assumptions;
+  // Render from the TYPED records. `hidden_assumptions` deliberately carries
+  // claims only — every legacy surface prints it under the words "확인할 가정" —
+  // so reading it here would silently drop every fact and standard the contract
+  // admitted, and the user would never see the material their decision rests on.
+  const premiseRecords = snapshot.version === 0 ? [] : premiseRowsOf(snapshot);
+  const visibleAssumptions = premiseRecords.map((r) => r.text);
+  // The count in the eyebrow says "확인할 가정", so it counts only assumptions.
+  const claimCount = premiseRecords.filter((r) => policyFor(r.kind).competes).length;
   const revealsExecutionPlan = !!(showExecutionPlan && snapshot.execution_plan?.steps?.length);
   const hasSupportingDetail = visibleSkeleton.length > 0
     || visibleAssumptions.length > 0
@@ -141,7 +189,12 @@ export function AnalysisCard({
   // while the user is still answering. Tap to expand.
   if (collapsed) {
     const stepCount = visibleSkeleton.length;
-    const assumeCount = visibleAssumptions.length;
+    // Counts what the label says it counts. When nothing needs verifying but
+    // material was collected, say THAT instead of inflating the assumption
+    // count with facts — a number the user can check is worth more than a
+    // bigger one they cannot.
+    const assumeCount = claimCount;
+    const notedCount = visibleAssumptions.length - claimCount;
     return (
       <motion.button
         type="button"
@@ -181,11 +234,13 @@ export function AnalysisCard({
           )}
 
           <div className="mt-3 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[12.5px] tabular-nums">
-            {(stepCount > 0 || assumeCount > 0) && (
+            {(stepCount > 0 || assumeCount > 0 || notedCount > 0) && (
               <div className="flex items-center gap-2 text-[var(--text-tertiary)]">
                 {stepCount > 0 && <span>{L(`계획 ${stepCount}단계`, `${stepCount}-step plan`)}</span>}
-                {stepCount > 0 && assumeCount > 0 && <span aria-hidden>·</span>}
+                {stepCount > 0 && (assumeCount > 0 || notedCount > 0) && <span aria-hidden>·</span>}
                 {assumeCount > 0 && <span>{L(`확인할 가정 ${assumeCount}개`, `${assumeCount} assumptions to verify`)}</span>}
+                {assumeCount > 0 && notedCount > 0 && <span aria-hidden>·</span>}
+                {notedCount > 0 && <span>{L(`짚어둔 것 ${notedCount}개`, `${notedCount} noted`)}</span>}
               </div>
             )}
             {hasSupportingDetail && (
@@ -203,8 +258,11 @@ export function AnalysisCard({
   const skeletonDiff = hasChanges
     ? diffItems(prevSnapshot!.skeleton, visibleSkeleton)
     : visibleSkeleton.map(s => ({ text: s, status: 'same' as const }));
+  // Diff against the previous RECORDS for the same reason the render reads
+  // them: comparing against hidden_assumptions would show every fact as newly
+  // "removed" the moment the list narrowed to claims.
   const assumptionDiff = hasChanges
-    ? diffItems(prevSnapshot!.hidden_assumptions, visibleAssumptions)
+    ? diffItems(premiseRowsOf(prevSnapshot!).map((r) => r.text), visibleAssumptions)
     : visibleAssumptions.map(a => ({ text: a, status: 'same' as const }));
 
   const activeAssumptions = assumptionDiff.filter(d => d.status !== 'removed');
@@ -305,7 +363,13 @@ export function AnalysisCard({
               ))}
             </AnimatePresence>
 
-            {detailOpen && activeAssumptions.length > 0 && (
+            {/* WHAT it rests on is always visible; WHY each item is here waits
+                behind 자세히 보기. The summary used to hide the whole block, so
+                the card said "확인할 가정 2개" and showed neither — a count the
+                reader had no way to check, guarding the one thing this product
+                exists to surface. The supporting lines are what made the block
+                too heavy to leave open, and they are what stayed behind. */}
+            {activeAssumptions.length > 0 && (
               <motion.div
                 initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.4, ease: EASE }}
@@ -313,8 +377,11 @@ export function AnalysisCard({
                 {/* Callout header — neutral tone, no team avatars
                     (team belongs in worker panel, not inside this block) */}
                 <div className="flex items-center gap-2 px-4 pt-3.5 pb-2">
-                  <span className="text-[12px] font-bold text-[var(--text-secondary)] uppercase tracking-[0.15em]">
-                    {L('확인할 가정', 'Assumptions to verify')}
+                  <span className={`text-[12px] font-bold text-[var(--text-secondary)] ${locale === 'ko' ? 'tracking-[0.02em]' : 'uppercase tracking-[0.15em]'}`}>
+                    {/* Narrows to "확인할 가정" only when the list really is all
+                        assumptions. Calling a list that contains the user's own
+                        facts by that name is the lie this block exists to end. */}
+                    {premiseListHeading(premiseRecords, locale)}
                   </span>
                 </div>
                 {/* Each premise shows its work: the user's own sentence it
@@ -323,47 +390,53 @@ export function AnalysisCard({
                     without them a premise is just an assertion about someone. */}
                 <div className="px-4 pb-3.5 space-y-0">
                   {activeAssumptions.map((d, i) => {
-                    const record = (snapshot.premise_records || [])
+                    const record = premiseRecords
                       .find(r => r.text.trim() === d.text.trim());
                     return (
                       <motion.div key={`${snapshot.version}-a${i}`}
                         initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: i * 0.06, duration: 0.35, ease: EASE }}
-                        className={`flex items-baseline gap-3 py-2 transition-colors duration-1000 ${
+                        className={`flex items-baseline gap-2.5 py-2.5 transition-colors duration-1000 ${
                           i < activeAssumptions.length - 1 ? 'border-b border-[var(--border-subtle)]/40' : ''
                         } ${d.status === 'new' ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)]'}`}>
-                        <span className="text-[12.5px] font-semibold tabular-nums shrink-0 text-[var(--text-tertiary)]">
-                          {i + 1}
-                        </span>
+                        <KindChip kind={record?.kind} locale={locale} />
                         <div className="min-w-0">
                           <p className="text-[13px] leading-[1.65]">{renderText(d.text)}</p>
-                          {record?.anchor_quote && (
+                          {detailOpen && record?.anchor_quote && (
                             <p className="mt-1 text-[12px] leading-[1.6] text-[var(--text-tertiary)]">
                               {L('내가 쓴 말', 'your words')}
                               <span className="mx-1.5 opacity-50">·</span>
                               <span className="italic">“{record.anchor_quote}”</span>
                             </p>
                           )}
-                          {/* A standard is the user's own weighting. It is not
-                              checked and never graded — saying "이게 아니라면"
-                              about someone's values would be grading them. */}
-                          {record?.kind !== 'standard' && record?.if_false_changes && (
+                          {/* "이게 아니라면" and "무엇을 보면 아나" are the two
+                              halves of a checkable claim, so they appear only on
+                              kinds reality can settle. Printing them on a
+                              standard would ask someone to falsify their own
+                              values; printing them on a fact would ask them to
+                              go verify a sentence they had just written. */}
+                          {detailOpen && policyFor(record?.kind).verifiable && record?.if_false_changes && (
                             <p className="mt-0.5 text-[12px] leading-[1.6] text-[var(--text-secondary)]">
                               {L('이게 아니라면', 'if this is wrong')}
                               <span className="mx-1.5 opacity-50">→</span>
                               {renderText(record.if_false_changes)}
                             </p>
                           )}
-                          {record?.kind !== 'standard' && record?.observable && (
+                          {detailOpen && policyFor(record?.kind).verifiable && record?.observable && (
                             <p className="mt-0.5 text-[12px] leading-[1.6] text-[var(--text-tertiary)]">
                               {L('무엇을 보면 아나', 'how you would know')}
                               <span className="mx-1.5 opacity-50">→</span>
                               {renderText(record.observable)}
                             </p>
                           )}
-                          {record?.kind === 'standard' && (
+                          {detailOpen && record?.kind === 'standard' && (
                             <p className="mt-0.5 text-[12px] leading-[1.6] text-[var(--text-tertiary)]">
                               {L('내 기준 · 확인 대상 아님', 'your own standard — not something to check')}
+                            </p>
+                          )}
+                          {detailOpen && record?.kind === 'fact' && (
+                            <p className="mt-0.5 text-[12px] leading-[1.6] text-[var(--text-tertiary)]">
+                              {L('이미 확정된 것 · 확인 대상 아님', 'already settled — not something to check')}
                             </p>
                           )}
                         </div>
@@ -466,7 +539,9 @@ export function AnalysisCard({
                     {L('근거 보기', 'View the rationale')}
                     {activeAssumptions.length > 0 && (
                       <span className="text-[var(--text-tertiary)] font-normal">
-                        {L(`· 확인할 가정 ${activeAssumptions.length}개`, `· ${activeAssumptions.length} assumptions to verify`)}
+                        {claimCount > 0
+                          ? L(`· 확인할 가정 ${claimCount}개`, `· ${claimCount} assumptions to verify`)
+                          : L(`· 짚어둔 것 ${activeAssumptions.length}개`, `· ${activeAssumptions.length} noted`)}
                       </span>
                     )}
                     <ChevronDown size={13} />

@@ -63,8 +63,13 @@ describe('promotion-critical web basics', () => {
     expect(card).toContain('snapshot.lean_flags === undefined || snapshot.honesty_flags === undefined');
     expect(flow).toContain('latestSnapshotVersion, store]);');
     expect(flow).not.toContain('Promise.all([\n      needsHonesty');
-    expect(card).toContain('const visibleSkeleton = snapshot.version === 0 ? [] : snapshot.skeleton');
-    expect(card).toContain('const visibleAssumptions = snapshot.version === 0 ? [] : snapshot.hidden_assumptions');
+    // The card must show nothing from an unscanned first snapshot. Pinning the
+    // exact assignment line meant the guard broke when the card started reading
+    // typed records instead of the string list — a rename turning a real
+    // property red, which teaches the next session to edit the test.
+    // premise-kinds-on-card.test.tsx renders version 0 and asserts the silence.
+    expect(card).toMatch(/const visibleSkeleton = snapshot\.version === 0 \? \[\]/);
+    expect(card).toMatch(/snapshot\.version === 0 \? \[\] : premiseRowsOf\(snapshot\)/);
     expect(engine.match(/result\.request_type && result\.request_type !== 'open'/g)?.length).toBeGreaterThanOrEqual(2);
   });
 
