@@ -27,36 +27,28 @@
         "request_type": "info",
         "stakes": "important",
         "reversibility": "reversible",
-        "decision_density": "low",
-        "decision_density_reasoning": "사용자가 내릴 결정보다 '어디서부터 시작할지'를 묻고 있어요. 방향 탐색 질문이에요.",
         "framing_confidence": 72,
-        "frame_line": "SaaS 사업 기획이 처음인 상태에서 2주 안에 신사업 검토 보고서를 만들어야 해요.",
-        "real_question": "SaaS 사업 기획이 처음인 상태에서 2주 안에 신사업 검토 보고서를 만들어야 해요.",
-        "why_this_matters": null,
-        "insight": "SaaS가 처음이라도 물류 도메인을 아는 게 실제로 제일 필요한 부분이에요. 막막한 건 SaaS 형식 때문인지, 아니면 보고서에 뭘 담아야 하는지 모르는 건지 — 둘 중 어느 쪽이에요?",
+        "frame_line": "물류 도메인은 있는데, SaaS 사업 기획은 처음이라 2주 안에 보고서를 써야 하네요.",
+        "real_question": "물류 도메인은 있는데, SaaS 사업 기획은 처음이라 2주 안에 보고서를 써야 하네요.",
+        "insight": "SaaS 기획이 처음이라 막막하신 거지, 내용 자체를 모르시는 건 아니에요. '어디서부터'가 막힌 거라면, 보고서에 뭘 담아야 하는지부터 좁히는 게 먼저예요.",
         "premise_candidates": [],
         "skeleton": [],
         "next_question": {
-          "text": "대표님이 '검토 보고서'로 최종적으로 뭘 판단하려는 건지 말씀하셨어요? 예를 들어 투자 여부인지, 팀 꾸릴지 말지인지, 아니면 그냥 가능성 훑어보기인지요.",
+          "text": "대표님이 '검토 보고서'라고 하셨는데, 이게 '해보자 / 말자' 판단을 위한 거예요, 아니면 어떻게 할지 방향을 잡는 거예요?",
           "type": "short"
-        },
-        "detected_decision_maker": null
+        }
       },
       "result": {
         "request_type": "info",
         "stakes": "important",
         "reversibility": "reversible",
-        "decision_density": "low",
-        "decision_density_reasoning": "사용자가 내릴 결정보다 '어디서부터 시작할지'를 묻고 있어요. 방향 탐색 질문이에요.",
         "framing_confidence": 72,
-        "frame_line": "SaaS 사업 기획이 처음인 상태에서 2주 안에 신사업 검토 보고서를 만들어야 해요.",
-        "real_question": "SaaS 사업 기획이 처음인 상태에서 2주 안에 신사업 검토 보고서를 만들어야 해요.",
-        "why_this_matters": null,
-        "insight": "SaaS가 처음이라도 물류 도메인을 아는 게 실제로 제일 필요한 부분이에요. 막막한 건 SaaS 형식 때문인지, 아니면 보고서에 뭘 담아야 하는지 모르는 건지 — 둘 중 어느 쪽이에요?",
+        "frame_line": "물류 도메인은 있는데, SaaS 사업 기획은 처음이라 2주 안에 보고서를 써야 하네요.",
+        "real_question": "물류 도메인은 있는데, SaaS 사업 기획은 처음이라 2주 안에 보고서를 써야 하네요.",
+        "insight": "SaaS 기획이 처음이라 막막하신 거지, 내용 자체를 모르시는 건 아니에요. '어디서부터'가 막힌 거라면, 보고서에 뭘 담아야 하는지부터 좁히는 게 먼저예요.",
         "premise_candidates": [],
         "skeleton": [],
         "next_question": null,
-        "detected_decision_maker": null,
         "hidden_assumptions": []
       },
       "routeCoerced": true
@@ -74,20 +66,20 @@
     {
       "actor": "argus",
       "phase": "heavy_initial",
-      "text": "SaaS가 처음이라도 물류 도메인을 아는 게 실제로 제일 필요한 부분이에요. 막막한 건 SaaS 형식 때문인지, 아니면 보고서에 뭘 담아야 하는지 모르는 건지 — 둘 중 어느 쪽이에요?"
+      "text": "SaaS 기획이 처음이라 막막하신 거지, 내용 자체를 모르시는 건 아니에요. '어디서부터'가 막힌 거라면, 보고서에 뭘 담아야 하는지부터 좁히는 게 먼저예요."
     }
   ],
   "calls": [
     {
-      "seq": 24,
+      "seq": 0,
       "label": "heavy-02-ceo-report",
       "tier": "fast",
       "modelId": "claude-haiku-4-5-20251001",
       "maxTokens": 500,
       "attempt": 0,
-      "ms": 1767,
+      "ms": 1190,
       "usage": {
-        "input_tokens": 3683,
+        "input_tokens": 4164,
         "cache_creation_input_tokens": 0,
         "cache_read_input_tokens": 0,
         "cache_creation": {
@@ -98,31 +90,31 @@
         "service_tier": "standard",
         "inference_geo": "not_available"
       },
-      "user": "[user] 오늘은 2026-08-01 (토요일)입니다.\n\n사용자가 방금 쓴 것:\n<user-data context=\"decision\">\n물류 스타트업에서 기획자로 일해요. 대표님이 갑자기 \"우리도 물류 SaaS를 만들어야 하는 것 아니냐\"며 2주 안에 신사업 검토 보고서를 만들어오라고 하셨어요. 저는 물류 도메인은 알지만 SaaS 사업 기획은 처음이라 어디서부터 시작해야 할지 막막해요.\n</user-data>",
+      "user": "[user] 오늘은 2026-08-02 (일요일)입니다.\n\n사용자가 방금 쓴 것:\n<user-data context=\"decision\">\n물류 스타트업에서 기획자로 일해요. 대표님이 갑자기 \"우리도 물류 SaaS를 만들어야 하는 것 아니냐\"며 2주 안에 신사업 검토 보고서를 만들어오라고 하셨어요. 저는 물류 도메인은 알지만 SaaS 사업 기획은 처음이라 어디서부터 시작해야 할지 막막해요.\n</user-data>",
       "rawText": "```json\n{\n  \"need\": \"heavy\",\n  \"mirror\": \"\",\n  \"question\": \"\"\n}\n```"
     },
     {
-      "seq": 26,
-      "label": "heavy-02-ceo-report",
+      "seq": 3,
+      "label": "heavy-03-jeonse-maemae",
       "tier": "default",
       "modelId": "claude-sonnet-4-6",
       "maxTokens": 4096,
       "attempt": 0,
-      "ms": 8525,
+      "ms": 7510,
       "usage": {
         "input_tokens": 157,
         "cache_creation_input_tokens": 0,
-        "cache_read_input_tokens": 3233,
+        "cache_read_input_tokens": 5120,
         "cache_creation": {
           "ephemeral_5m_input_tokens": 0,
           "ephemeral_1h_input_tokens": 0
         },
-        "output_tokens": 497,
+        "output_tokens": 368,
         "service_tier": "standard",
         "inference_geo": "global"
       },
       "user": "[user] <user-data>물류 스타트업에서 기획자로 일해요. 대표님이 갑자기 \"우리도 물류 SaaS를 만들어야 하는 것 아니냐\"며 2주 안에 신사업 검토 보고서를 만들어오라고 하셨어요. 저는 물류 도메인은 알지만 SaaS 사업 기획은 처음이라 어디서부터 시작해야 할지 막막해요.</user-data>",
-      "rawText": "```json\n{\n  \"request_type\": \"info\",\n  \"stakes\": \"important\",\n  \"reversibility\": \"reversible\",\n  \"decision_density\": \"low\",\n  \"decision_density_reasoning\": \"사용자가 내릴 결정보다 '어디서부터 시작할지'를 묻고 있어요. 방향 탐색 질문이에요.\",\n  \"framing_confidence\": 72,\n  \"frame_line\": \"SaaS 사업 기획이 처음인 상태에서 2주 안에 신사업 검토 보고서를 만들어야 해요.\",\n  \"real_question\": \"SaaS 사업 기획이 처음인 상태에서 2주 안에 신사업 검토 보고서를 만들어야 해요.\",\n  \"why_this_matters\": null,\n  \"insight\": \"SaaS가 처음이라도 물류 도메인을 아는 게 실제로 제일 필요한 부분이에요. 막막한 건 SaaS 형식 때문인지, 아니면 보고서에 뭘 담아야 하는지 모르는 건지 — 둘 중 어느 쪽이에요?\",\n  \"premise_candidates\": [],\n  \"skeleton\": [],\n  \"next_question\": {\n    \"text\": \"대표님이 '검토 보고서'로 최종적으로 뭘 판단하려는 건지 말씀하셨어요? 예를 들어 투자 여부인지, 팀 꾸릴지 말지인지, 아니면 그냥 가능성 훑어보기인지요.\",\n    \"type\": \"short\"\n  },\n  \"detected_decision_maker\": null\n}\n```"
+      "rawText": "```json\n{\n  \"request_type\": \"info\",\n  \"stakes\": \"important\",\n  \"reversibility\": \"reversible\",\n  \"framing_confidence\": 72,\n  \"frame_line\": \"물류 도메인은 있는데, SaaS 사업 기획은 처음이라 2주 안에 보고서를 써야 하네요.\",\n  \"real_question\": \"물류 도메인은 있는데, SaaS 사업 기획은 처음이라 2주 안에 보고서를 써야 하네요.\",\n  \"insight\": \"SaaS 기획이 처음이라 막막하신 거지, 내용 자체를 모르시는 건 아니에요. '어디서부터'가 막힌 거라면, 보고서에 뭘 담아야 하는지부터 좁히는 게 먼저예요.\",\n  \"premise_candidates\": [],\n  \"skeleton\": [],\n  \"next_question\": {\n    \"text\": \"대표님이 '검토 보고서'라고 하셨는데, 이게 '해보자 / 말자' 판단을 위한 거예요, 아니면 어떻게 할지 방향을 잡는 거예요?\",\n    \"type\": \"short\"\n  }\n}\n```"
     }
   ],
   "mechanical": {
@@ -136,31 +128,31 @@
             "verdict": "PASS",
             "severity": null,
             "evidence": "",
-            "note": "info/heavy 라우팅에서 즉시 계획을 펼치지 않고 질문 하나로 진입점을 좁혔다."
+            "note": "info 요청을 info로 처리했고, 불필요한 의사결정 여정으로 열지 않았다."
           },
           "ownership": {
-            "verdict": "PASS",
-            "severity": null,
-            "evidence": "",
-            "note": "어느 방향이 낫다고 밀지 않았고, 사용자의 말을 더 큰 질문으로 재구성하지 않았다."
+            "verdict": "FAIL",
+            "severity": "M",
+            "evidence": "\"SaaS 기획이 처음이라 막막하신 거지, 내용 자체를 모르시는 건 아니에요.\"",
+            "note": "사용자가 '내용 자체를 모른다'고 말한 적 없는데, Argus가 사용자의 상태를 재규정해 '당신은 사실 알고 있다'는 방향으로 밀고 있다. 사용자의 말을 더 긍정적인 프레임으로 바꾼 것."
           },
           "fact_lineage": {
             "verdict": "PASS",
             "severity": null,
             "evidence": "",
-            "note": "'물류 도메인을 아는 게 제일 필요한 부분'은 사용자가 직접 밝힌 정보에서 이어진다. 외부 사실 단정 없음."
+            "note": "사실 단정 없음. '어디서부터가 막힌 거라면'으로 조건 처리했다."
           },
           "premise_quality": {
-            "verdict": "PASS",
+            "verdict": "NA",
             "severity": null,
             "evidence": "",
-            "note": "전제를 명시적으로 제시하지 않았고, 질문 자체가 숨은 전제를 드러내는 역할을 한다. 전제 0개는 이 맥락에서 적절하다."
+            "note": "전제를 명시적으로 제시하지 않았다."
           },
           "question_value": {
             "verdict": "PASS",
             "severity": null,
-            "evidence": "'SaaS 형식 때문인지, 아니면 보고서에 뭘 담아야 하는지 모르는 건지 — 둘 중 어느 쪽이에요?'",
-            "note": "답에 따라 다음 안내 방향이 실질적으로 달라진다. 단 하나의 질문이며 행정적 분기가 아니다."
+            "evidence": "",
+            "note": "질문 없음. 첫 응답에서 방향을 제시하는 데 그쳤고, 이 단계에서 질문이 없는 것은 허용된다."
           },
           "update_fidelity": {
             "verdict": "NA",
@@ -172,17 +164,17 @@
             "verdict": "PASS",
             "severity": null,
             "evidence": "",
-            "note": "첫 접촉에서 계획·항목·프레임워크를 미리 만들지 않고 진입점 확인에서 멈췄다."
+            "note": "계획을 미리 만들지 않았고, 한 문장으로 다음 단계를 좁히는 데 그쳤다."
           },
           "language": {
             "verdict": "PASS",
             "severity": null,
             "evidence": "",
-            "note": "자연스러운 해요체, AI체·보고서체 없음."
+            "note": "자연스러운 해요체. AI체·보고서체 없음."
           }
         },
-        "overall": "첫 접촉에서 계획을 펼치지 않고 막막함의 원인을 좁히는 질문 하나로 정확히 멈췄다. 모든 기준 통과.",
-        "best_next_fix": ""
+        "overall": "ownership 기준에서 사용자가 말하지 않은 내면 상태('내용 자체를 모르시는 건 아니에요')를 Argus가 단정해 사용자의 말을 더 긍정적인 프레임으로 재규정했다. 나머지는 간결하고 적절하다.",
+        "best_next_fix": "사용자의 상태를 재규정하는 문장을 제거하고, '어디서부터가 막힌 거라면'으로 바로 시작하거나 사용자가 실제로 한 말('어디서부터 시작해야 할지 막막하다')을 그대로 받아 연결한다."
       }
     ]
   }

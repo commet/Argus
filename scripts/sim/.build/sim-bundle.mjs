@@ -15751,9 +15751,54 @@ OUTPUT DISCIPLINE
   \u2717 "\uC5F0\uBD09 40% \uC624\uD37C\uC640 \uB9AC\uB4DC \uC2B9\uC9C4 \uC0AC\uC774\uC5D0\uC11C \uC77C\uC8FC\uC77C \uC548\uC5D0 \uB2F5\uC744 \uC918\uC57C \uD558\uB294 \uC0C1\uD669\uC774\uC5D0\uC694."
   \u2713 "\uC2B9\uC9C4\uC740 \uC544\uC9C1 \uB9D0\uBFD0\uC778\uB370, \uC624\uD37C\uB294 \uC77C\uC8FC\uC77C \uC548\uC5D0 \uB2F5\uC744 \uB2EC\uB77C\uACE0 \uD558\uB124\uC694." 
 - real_question: legacy compatibility; copy frame_line exactly.
+- Do not emit any field not listed below. Every field here is read by the
+  product; anything else costs the user latency and buys nothing.
 - premise_candidates: 0-2 conditional, load-bearing premise proposals. Each
   needs text, an exact anchor_quote copied from the user's explicit
   reason/condition/expectation, support_kind, and if_false_changes.
+  Each candidate also carries "kind", chosen by what can be DONE with it later:
+    "fact"          they told us; reality already fixed it   (quote, never check)
+    "premise"       has to hold for the decision to work     (verify)
+    "prediction"    truth-apt about the future               (settle on a date)
+    "standard"      THEIR OWN weighting ("\uB3C8\uBCF4\uB2E4 \uC131\uC7A5\uC774 \uC911\uC694\uD574\uC694")
+                    \u2192 record it, never test it. A person's values are not
+                      right or wrong, and asking them later "\uADF8\uAC70 \uB9DE\uC558\uC5B4\uC694?"
+                      would be grading who they are. This is usually what
+                      actually decides the call, so capture it \u2014 as a standard.
+    "open_question" nobody has answered it yet               (ask)
+  And "observable": what you would SEE that settles it, in their world
+  ("\uC2B9\uC9C4 \uACF5\uBB38", "\uB2E4\uC74C \uB77C\uC6B4\uB4DC \uBC1C\uD45C"). Omit it when nothing observable would.
+  if_false_changes says what CHANGES if it is false; observable says how anyone
+  would ever know. A premise with neither is a feeling, not a premise.
+  WHERE TO LOOK. Measured: across 11 real sessions the model proposed TWO
+  premises total, while the users' own sentences carried them plainly. Every
+  rule above says what a premise is NOT; here is what one IS, on real material.
+
+  User wrote: "\uB450 \uBC88 \uBA74\uB2F4\uD588\uACE0 \uAC1C\uC120 \uACC4\uD68D\uB3C4 \uAC19\uC774 \uC7A1\uC558\uB294\uB370 \uBCC0\uD654\uAC00 \uC5C6\uC5B4\uC694.
+               \uC791\uB144\uC5D0 \uC800\uB97C \uBBFF\uACE0 \uC774\uC9C1\uD574\uC11C \uC628 \uC0AC\uB78C\uC774\uB77C \uB9C8\uC74C\uC774 \uB9CE\uC774 \uBB34\uAC81\uC2B5\uB2C8\uB2E4."
+  \u2192 {"text": "\uBA74\uB2F4\uACFC \uACC4\uD68D\uC73C\uB85C \uB2EC\uB77C\uC9C8 \uC0AC\uB78C\uC774\uC5C8\uB2E4\uBA74 6\uAC1C\uC6D4 \uC548\uC5D0 \uC2E0\uD638\uAC00 \uBCF4\uC600\uB2E4",
+     "anchor_quote": "\uB450 \uBC88 \uBA74\uB2F4\uD588\uACE0 \uAC1C\uC120 \uACC4\uD68D\uB3C4 \uAC19\uC774 \uC7A1\uC558\uB294\uB370 \uBCC0\uD654\uAC00 \uC5C6\uC5B4\uC694",
+     "support_kind": "explicit_reason",
+     "if_false_changes": "\uC544\uC9C1 \uBC29\uBC95\uC744 \uC548 \uC368\uBCF8 \uAC83\uC774\uBBC0\uB85C \uB0B4\uBCF4\uB0B4\uB294 \uD310\uB2E8\uC774 \uC774\uB974\uB2E4",
+     "kind": "premise", "observable": "\uB2E4\uC74C \uC8FC \uAE30\uD55C\uC758 \uACB0\uACFC"}
+  \u2192 {"text": "\uB0B4 \uAD8C\uC720\uB85C \uC628 \uC0AC\uB78C\uC774\uB77C\uB294 \uC0AC\uC2E4\uC774 \uC774 \uACB0\uC815\uC744 \uBB34\uAC81\uAC8C \uB9CC\uB4E0\uB2E4",
+     "anchor_quote": "\uC800\uB97C \uBBFF\uACE0 \uC774\uC9C1\uD574\uC11C \uC628 \uC0AC\uB78C\uC774\uB77C \uB9C8\uC74C\uC774 \uB9CE\uC774 \uBB34\uAC81\uC2B5\uB2C8\uB2E4",
+     "support_kind": "explicit_reason",
+     "if_false_changes": "\uC131\uACFC\uB9CC \uB193\uACE0 \uBCF4\uB294 \uACB0\uC815\uC774 \uB41C\uB2E4",
+     "kind": "standard"}
+  The second is a standard, not a premise: it is what MATTERS to them, and it is
+  usually the thing actually deciding the call. Capture it \u2014 as a standard.
+
+  AND AFTER AN ANSWER: the reply to your question is the richest premise
+  material you will ever get, because they wrote it in response to being asked
+  what bears on the decision. Look there FIRST before concluding there is
+  nothing. "\uAC1C\uC120 \uACC4\uD68D\uC740 \uBB38\uC11C\uB85C \uB0A8\uACBC\uACE0, \uB450 \uBC88\uC9F8 \uAE30\uD55C\uC774 \uB2E4\uC74C \uC8FC\uC5D0 \uB05D\uB098\uC694" is a
+  dated, checkable condition in their own words \u2014 that is a premise, not a
+  passing detail.
+
+  Restraint means not INVENTING one. It does not mean refusing to see one that
+  is written in front of you. Both failures are failures.
+
   The "text" field states what must HOLD for their decision to work \u2014 a claim that
   could turn out false \u2014 NOT a restatement of the fact you anchored to, and not
   a label stuck on it. \u2717 "\uB7F0\uC6E8\uC774\uAC00 18\uAC1C\uC6D4\uC774\uB2E4" (\uC0AC\uC2E4\uC774\uC9C0 \uC804\uC81C\uAC00 \uC544\uB2D8)
@@ -15762,7 +15807,8 @@ OUTPUT DISCIPLINE
   write is the fact itself, there is no premise there \u2014 return [].
   Candidate object shape: {"text":"...", "anchor_quote":"...",
   "support_kind":"explicit_reason|explicit_condition|explicit_expectation",
-  "if_false_changes":"...", "confidence":"low|medium|high"}. [] is often right.
+  "if_false_changes":"...", "kind":"fact|premise|prediction|standard|open_question",
+  "observable":"..."}. [] is often right.
   The runtime will reject a proposal without that lineage.
 - skeleton: always [] on this first turn.
 - next_question: one short question or null. Avoid subtext unless it explains the
@@ -15775,17 +15821,13 @@ Return JSON only:
   "request_type": "open|flat|vent|validation|info|resistance|self_profiling|crisis",
   "stakes": "routine|important|critical",
   "reversibility": "reversible|partial|irreversible",
-  "decision_density": "low|medium|high",
-  "decision_density_reasoning": "brief reason grounded in the user's words",
   "framing_confidence": 0,
   "frame_line": "neutral current situation line",
   "real_question": "copy frame_line exactly for legacy compatibility",
-  "why_this_matters": "optional, grounded one-line distinction",
   "insight": "one or two concise sentences",
   "premise_candidates": [],
   "skeleton": [],
-  "next_question": {"text": "one grounded question", "type": "short"} or null,
-  "detected_decision_maker": null
+  "next_question": {"text": "one grounded question", "type": "short"} or null
 }`,
     user: `<user-data>${sanitizeForPrompt(problemText)}</user-data>`
   };
@@ -15815,6 +15857,14 @@ UPDATE CONTRACT
    Fold it in with their wording; do not restyle it for the sake of movement.
 3. Do not rewrite the full premise list. Report only premise_changes caused by
    the latest answer. An omitted premise remains unchanged.
+   BUT AN ANSWER USUALLY CARRIES ONE. They just told you, in their own words,
+   something that bears on the decision \u2014 that is the best premise material the
+   whole session produces, and it is the first place to look before concluding
+   nothing changed. Measured across 11 sessions: two premise_changes total,
+   while answers like "\uAC1C\uC120 \uACC4\uD68D\uC740 \uBB38\uC11C\uB85C \uB0A8\uACBC\uACE0, \uB450 \uBC88\uC9F8 \uAE30\uD55C\uC774 \uB2E4\uC74C \uC8FC\uC5D0
+   \uB05D\uB098\uC694" sat there unrecorded. A dated, checkable condition in their own words
+   is an add, with "kind":"premise" and an "observable" of \uB2E4\uC74C \uC8FC \uAE30\uD55C\uC758 \uACB0\uACFC.
+   Restraint is not inventing one; it is not refusing to see one.
 4. A remove or revise change needs previous_text plus an exact anchor_quote from
    the latest answer and reason_from_latest_answer. An add or revise also needs
    text and if_false_changes. Never replenish the list merely because one premise
@@ -15822,7 +15872,10 @@ UPDATE CONTRACT
    Change object shape: {"action":"add|remove|revise", "previous_text":"...",
    "text":"...", "anchor_quote":"...", "reason_from_latest_answer":"...",
    "support_kind":"explicit_reason|explicit_condition|explicit_expectation",
-   "if_false_changes":"..."}. Omit fields that do not apply.
+   "if_false_changes":"...",
+   "kind":"fact|premise|prediction|standard|open_question", "observable":"..."}.
+   Omit fields that do not apply, but NEVER omit "kind" on an add \u2014 the same
+   five kinds as the first turn, and they decide what is done with it later.
    A newly supplied fact resolves or qualifies an existing premise; it does not
    become a replacement premise unless the user explicitly made it a reason,
    condition, or expectation.
@@ -16392,6 +16445,26 @@ function buildMixPrompt(problemText, snapshots, questionsAndAnswers, decisionMak
 import { callLLMJson as callLLMJson2 } from "../llm-shim.mjs";
 
 // src/lib/judgment-state-contract.ts
+function stripModelOnly(item) {
+  if (!item) return item;
+  if ("decisive" in item) {
+    const { decisive: _ignored, ...rest } = item;
+    void _ignored;
+    return rest;
+  }
+  return item;
+}
+var PREMISE_KINDS = /* @__PURE__ */ new Set([
+  "fact",
+  "premise",
+  "prediction",
+  "standard",
+  "open_question"
+]);
+function asKind(value) {
+  const k = cleanText(value);
+  return PREMISE_KINDS.has(k) ? k : "premise";
+}
 function clampSynthesisToLivingState(result, living) {
   const assumptions = (living?.hidden_assumptions || []).filter((item) => typeof item === "string" && item.trim().length > 0).map((item) => cleanText(item));
   const checkableCount = (living?.premise_records || []).filter((r) => r && cleanText(r.if_false_changes).length > 0).length;
@@ -16445,7 +16518,7 @@ function coercePremiseCandidates(raw, userCorpus) {
   const audit = [];
   const candidates = Array.isArray(raw) ? raw : [];
   for (const value of candidates) {
-    const item = asRecord(value);
+    const item = stripModelOnly(asRecord(value));
     const text = cleanText(item?.text);
     const anchorQuote = cleanText(item?.anchor_quote);
     const supportKind = cleanText(item?.support_kind);
@@ -16489,7 +16562,9 @@ function coercePremiseCandidates(raw, userCorpus) {
       text,
       anchor_quote: anchorQuote,
       if_false_changes: ifFalseChanges,
-      support_kind: supportKind
+      support_kind: supportKind,
+      kind: asKind(item?.kind),
+      ...cleanText(item?.observable) ? { observable: cleanText(item?.observable) } : {}
     });
     audit.push({ accepted: true, action: "initial", text, reason: "grounded" });
   }
@@ -16498,7 +16573,7 @@ function coercePremiseCandidates(raw, userCorpus) {
 function applyPremiseDeltas(currentRecords, raw, fullUserCorpus, latestAnswer) {
   const records = (currentRecords || []).map((entry) => {
     if (typeof entry === "string") {
-      return entry.trim() ? { text: cleanText(entry), anchor_quote: "", if_false_changes: "", support_kind: "explicit_reason" } : null;
+      return entry.trim() ? { text: cleanText(entry), anchor_quote: "", if_false_changes: "", support_kind: "explicit_reason", kind: "premise" } : null;
     }
     return entry && typeof entry.text === "string" && entry.text.trim() ? { ...entry, text: cleanText(entry.text) } : null;
   }).filter((r) => r !== null).slice(0, MAX_PREMISES);
@@ -16506,7 +16581,7 @@ function applyPremiseDeltas(currentRecords, raw, fullUserCorpus, latestAnswer) {
   const audit = [];
   const deltas = Array.isArray(raw) ? raw : [];
   for (const value of deltas) {
-    const item = asRecord(value);
+    const item = stripModelOnly(asRecord(value));
     const action = cleanText(item?.action);
     const previousText = cleanText(item?.previous_text);
     const text = cleanText(item?.text);
@@ -16555,7 +16630,9 @@ function applyPremiseDeltas(currentRecords, raw, fullUserCorpus, latestAnswer) {
         text,
         anchor_quote: anchorQuote,
         if_false_changes: ifFalseChanges,
-        support_kind: supportKind
+        support_kind: supportKind,
+        kind: asKind(item?.kind),
+        ...cleanText(item?.observable) ? { observable: cleanText(item?.observable) } : {}
       });
       premises.push(text);
       audit.push({ accepted: true, action, text, reason: "grounded" });
@@ -16607,7 +16684,9 @@ function applyPremiseDeltas(currentRecords, raw, fullUserCorpus, latestAnswer) {
       text,
       anchor_quote: anchorQuote,
       if_false_changes: ifFalseChanges,
-      support_kind: supportKind
+      support_kind: supportKind,
+      kind: asKind(item?.kind),
+      ...cleanText(item?.observable) ? { observable: cleanText(item?.observable) } : {}
     };
     premises[existingIndex] = text;
     audit.push({
@@ -16882,7 +16961,8 @@ async function runHeavyDeepening(problemText, currentSnapshot, questionsAndAnswe
       text,
       anchor_quote: "",
       if_false_changes: "",
-      support_kind: "explicit_reason"
+      support_kind: "explicit_reason",
+      kind: "premise"
     })),
     raw.premise_changes,
     userCorpus,

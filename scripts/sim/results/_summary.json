@@ -1,52 +1,16 @@
 {
-  "at": "2026-08-01T07:58:03.274Z",
-  "totalLLMCalls": 23,
+  "at": "2026-08-01T15:24:50.558Z",
+  "totalLLMCalls": 24,
   "scenarios": [
     {
-      "id": "light-03-dinner-flat",
+      "id": "heavy-02-ceo-report",
       "error": false,
       "judgeError": null,
-      "gate": "light",
-      "lightOutcome": "close",
+      "gate": "heavy",
+      "requestType": "info",
       "mechanicalFindings": 0,
       "judgeFails": [
         "ownership:M"
-      ]
-    },
-    {
-      "id": "light-09-chatty-500",
-      "error": false,
-      "judgeError": null,
-      "gate": "light",
-      "lightOutcome": "offer",
-      "mechanicalFindings": 0,
-      "judgeFails": [
-        "ownership:M",
-        "question_value:M"
-      ]
-    },
-    {
-      "id": "heavy-05-cofounder",
-      "error": false,
-      "judgeError": null,
-      "gate": "heavy",
-      "requestType": "open",
-      "mechanicalFindings": 0,
-      "judgeFails": [
-        "question_value:M"
-      ]
-    },
-    {
-      "id": "heavy-01-job-offer-40",
-      "error": false,
-      "judgeError": null,
-      "gate": "heavy",
-      "requestType": "open",
-      "mechanicalFindings": 0,
-      "judgeFails": [
-        "premise_quality:M",
-        "question_value:M",
-        "update_fidelity:M"
       ]
     },
     {
@@ -57,7 +21,44 @@
       "requestType": "open",
       "mechanicalFindings": 0,
       "judgeFails": [
-        "question_value:M"
+        "premise_quality:M",
+        "restraint:L"
+      ]
+    },
+    {
+      "id": "heavy-04-fire-teammate",
+      "error": false,
+      "judgeError": null,
+      "gate": "heavy",
+      "requestType": "open",
+      "mechanicalFindings": 0,
+      "judgeFails": [
+        "premise_quality:M",
+        "update_fidelity:M"
+      ]
+    },
+    {
+      "id": "heavy-01-job-offer-40",
+      "error": false,
+      "judgeError": null,
+      "gate": "heavy",
+      "requestType": "open",
+      "mechanicalFindings": 0,
+      "judgeFails": [
+        "question_value:M",
+        "update_fidelity:M"
+      ]
+    },
+    {
+      "id": "heavy-05-cofounder",
+      "error": false,
+      "judgeError": null,
+      "gate": "heavy",
+      "requestType": "open",
+      "mechanicalFindings": 0,
+      "judgeFails": [
+        "ownership:M",
+        "premise_quality:M"
       ]
     }
   ]

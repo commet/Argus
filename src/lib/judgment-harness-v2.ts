@@ -177,6 +177,35 @@ OUTPUT DISCIPLINE
   ("승진 공문", "다음 라운드 발표"). Omit it when nothing observable would.
   if_false_changes says what CHANGES if it is false; observable says how anyone
   would ever know. A premise with neither is a feeling, not a premise.
+  WHERE TO LOOK. Measured: across 11 real sessions the model proposed TWO
+  premises total, while the users' own sentences carried them plainly. Every
+  rule above says what a premise is NOT; here is what one IS, on real material.
+
+  User wrote: "두 번 면담했고 개선 계획도 같이 잡았는데 변화가 없어요.
+               작년에 저를 믿고 이직해서 온 사람이라 마음이 많이 무겁습니다."
+  → {"text": "면담과 계획으로 달라질 사람이었다면 6개월 안에 신호가 보였다",
+     "anchor_quote": "두 번 면담했고 개선 계획도 같이 잡았는데 변화가 없어요",
+     "support_kind": "explicit_reason",
+     "if_false_changes": "아직 방법을 안 써본 것이므로 내보내는 판단이 이르다",
+     "kind": "premise", "observable": "다음 주 기한의 결과"}
+  → {"text": "내 권유로 온 사람이라는 사실이 이 결정을 무겁게 만든다",
+     "anchor_quote": "저를 믿고 이직해서 온 사람이라 마음이 많이 무겁습니다",
+     "support_kind": "explicit_reason",
+     "if_false_changes": "성과만 놓고 보는 결정이 된다",
+     "kind": "standard"}
+  The second is a standard, not a premise: it is what MATTERS to them, and it is
+  usually the thing actually deciding the call. Capture it — as a standard.
+
+  AND AFTER AN ANSWER: the reply to your question is the richest premise
+  material you will ever get, because they wrote it in response to being asked
+  what bears on the decision. Look there FIRST before concluding there is
+  nothing. "개선 계획은 문서로 남겼고, 두 번째 기한이 다음 주에 끝나요" is a
+  dated, checkable condition in their own words — that is a premise, not a
+  passing detail.
+
+  Restraint means not INVENTING one. It does not mean refusing to see one that
+  is written in front of you. Both failures are failures.
+
   The "text" field states what must HOLD for their decision to work — a claim that
   could turn out false — NOT a restatement of the fact you anchored to, and not
   a label stuck on it. ✗ "런웨이가 18개월이다" (사실이지 전제가 아님)
@@ -272,6 +301,14 @@ UPDATE CONTRACT
    Fold it in with their wording; do not restyle it for the sake of movement.
 3. Do not rewrite the full premise list. Report only premise_changes caused by
    the latest answer. An omitted premise remains unchanged.
+   BUT AN ANSWER USUALLY CARRIES ONE. They just told you, in their own words,
+   something that bears on the decision — that is the best premise material the
+   whole session produces, and it is the first place to look before concluding
+   nothing changed. Measured across 11 sessions: two premise_changes total,
+   while answers like "개선 계획은 문서로 남겼고, 두 번째 기한이 다음 주에
+   끝나요" sat there unrecorded. A dated, checkable condition in their own words
+   is an add, with "kind":"premise" and an "observable" of 다음 주 기한의 결과.
+   Restraint is not inventing one; it is not refusing to see one.
 4. A remove or revise change needs previous_text plus an exact anchor_quote from
    the latest answer and reason_from_latest_answer. An add or revise also needs
    text and if_false_changes. Never replenish the list merely because one premise
@@ -279,7 +316,10 @@ UPDATE CONTRACT
    Change object shape: {"action":"add|remove|revise", "previous_text":"...",
    "text":"...", "anchor_quote":"...", "reason_from_latest_answer":"...",
    "support_kind":"explicit_reason|explicit_condition|explicit_expectation",
-   "if_false_changes":"..."}. Omit fields that do not apply.
+   "if_false_changes":"...",
+   "kind":"fact|premise|prediction|standard|open_question", "observable":"..."}.
+   Omit fields that do not apply, but NEVER omit "kind" on an add — the same
+   five kinds as the first turn, and they decide what is done with it later.
    A newly supplied fact resolves or qualifies an existing premise; it does not
    become a replacement premise unless the user explicitly made it a reason,
    condition, or expectation.
