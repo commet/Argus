@@ -177,14 +177,14 @@ export function deriveWaypoint(args: DeriveWaypointArgs): Waypoint | null {
     }
 
     case 'crew_done': {
-      // sighting: the team returned with material intelligence. Fills the
+      // sighting: the reviews returned material intelligence. Fills the
       // execution beat between a course change and the anchorage (otherwise the
       // log would jump straight from the turn to arrival).
       const reported = state.workers.filter(w => w.status === 'done' && w.result);
       if (reported.length === 0) return null;
       const head = ko
-        ? `팀이 ${reported.length}개 영역을 조사해 보고했다`
-        : `The team reported on ${reported.length} area${reported.length > 1 ? 's' : ''}`;
+        ? `검토가 ${reported.length}개 영역의 결과를 남겼다`
+        : `Reviews returned findings across ${reported.length} area${reported.length > 1 ? 's' : ''}`;
       return make('sighting', head);
     }
 
@@ -210,7 +210,7 @@ export function deriveWaypoint(args: DeriveWaypointArgs): Waypoint | null {
       // the mark is purely that people carry some of the work.
       const handBuilt = added > 0 || swapped > 0;
       const headline = handBuilt
-        ? (ko ? '선장이 팀을 직접 짰다' : 'The captain hand-built the crew')
+        ? (ko ? '검토 구성을 직접 바꿨다' : 'The review setup was changed by hand')
         : (ko ? '사람이 직접 맡은 부분이 있다' : 'Some parts are handled by people');
       return make('helm', headline, { significance: parts.join(' · ') });
     }

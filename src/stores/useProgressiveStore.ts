@@ -178,8 +178,8 @@ function defaultCheckpointLabel(stage: VoyageStage, round: number): string {
   switch (stage) {
     case 'origin':     return ko ? '출발' : 'Origin';
     case 'briefing':   return ko ? `질문 정리 ${round}` : `Question framing ${round}`;
-    case 'crew_set':   return ko ? 'AI 팀 구성' : 'AI team ready';
-    case 'crew_done':  return ko ? 'AI 팀원 검토 완료' : 'AI review complete';
+    case 'crew_set':   return ko ? '검토 구성' : 'Review setup';
+    case 'crew_done':  return ko ? '검토 완료' : 'Review complete';
     case 'mix':        return ko ? '정리' : 'Write-up';
     case 'review':     return ko ? '리뷰어 검토' : 'Review';
     case 'anchor':     return ko ? '완료' : 'Complete';

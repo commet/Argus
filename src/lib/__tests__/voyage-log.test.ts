@@ -167,25 +167,25 @@ describe('deriveWaypoint — Chronicler salience gate', () => {
     }
   });
 
-  it('crew_set with hand-added members → helm (captain hand-built the crew)', () => {
+  it('crew_set with hand-added reviews → helm (review setup changed)', () => {
     const workers = [
       { status: 'pending', task: 'a', agent_type: 'ai', added_manually: false },
       { status: 'pending', task: 'b', agent_type: 'ai', added_manually: true },
     ] as unknown as VoyageCheckpointState['workers'];
     const wp = deriveWaypoint({ newCheckpoint: cp('crew_set', baseState({ workers })), prevState: baseState({}), problemText: 'x' });
     expect(wp?.type).toBe('helm');
-    expect(wp?.headline).toContain('hand-built');
+    expect(wp?.headline).toContain('review setup');
     expect(wp?.significance).toContain('1 hand-picked');
   });
 
-  it('crew_set with a re-cast (swapped) member → helm (captain hand-built)', () => {
+  it('crew_set with a re-cast review → helm (review setup changed)', () => {
     const workers = [
       { status: 'pending', task: 'a', agent_type: 'ai', added_manually: false, user_assigned: true },
       { status: 'pending', task: 'b', agent_type: 'ai', added_manually: false },
     ] as unknown as VoyageCheckpointState['workers'];
     const wp = deriveWaypoint({ newCheckpoint: cp('crew_set', baseState({ workers })), prevState: baseState({}), problemText: 'x' });
     expect(wp?.type).toBe('helm');
-    expect(wp?.headline).toContain('hand-built');
+    expect(wp?.headline).toContain('review setup');
     expect(wp?.significance).toContain('1 re-cast');
   });
 
