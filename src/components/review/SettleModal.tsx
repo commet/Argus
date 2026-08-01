@@ -6,7 +6,7 @@
  * The old prediction and the reality sit on one screen; no praise, no blame.
  */
 
-import { useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { useLocale } from '@/hooks/useLocale';
@@ -31,6 +31,27 @@ export function SettleModal({
   const [learned, setLearned] = useState('');
   const [newDate, setNewDate] = useState('');
   const today = new Date().toISOString().slice(0, 10);
+  const titleId = useId();
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+
+  useEffect(() => {
+    const previousFocus = document.activeElement as HTMLElement | null;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const frame = requestAnimationFrame(() => dialogRef.current?.focus());
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onCloseRef.current();
+    };
+    document.addEventListener('keydown', closeOnEscape);
+    return () => {
+      cancelAnimationFrame(frame);
+      document.removeEventListener('keydown', closeOnEscape);
+      document.body.style.overflow = previousOverflow;
+      previousFocus?.focus?.();
+    };
+  }, []);
 
   // "아직 불분명" is not an outcome — reality has not answered, so the honest move
   // is to pick a new date, not to file a settlement. Choosing it opens the date
@@ -48,17 +69,25 @@ export function SettleModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40" onClick={onClose}>
-      <div className="w-full max-w-lg max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+      <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        tabIndex={-1}
+        className="w-full max-w-lg max-h-[90dvh] overflow-y-auto focus:outline-none"
+        onClick={(e) => e.stopPropagation()}
+      >
         <Card variant="elevated">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-3">
               <ArgusMascot moment="returning" size="sm" alt="" />
               <div>
                 <p className="text-[12px] font-bold uppercase tracking-[0.16em] text-[var(--text-tertiary)]">{L('결과 확인', 'Outcome review')}</p>
-                <h3 className="text-[16px] font-bold text-[var(--text-primary)]">{L('실제로 어떻게 됐나요?', 'What actually happened?')}</h3>
+                <h3 id={titleId} className="text-[16px] font-bold text-[var(--text-primary)]">{L('실제로 어떻게 됐나요?', 'What actually happened?')}</h3>
               </div>
             </div>
-            <button onClick={onClose} className="text-[var(--text-tertiary)] text-[18px] leading-none">×</button>
+            <button type="button" onClick={onClose} aria-label={L('닫기', 'Close')} className="flex min-h-11 min-w-11 items-center justify-center rounded-lg text-[var(--text-tertiary)] text-[18px] leading-none hover:bg-[var(--bg)]">×</button>
           </div>
 
           {/* the past prediction — shown, not graded */}
@@ -77,8 +106,10 @@ export function SettleModal({
           <div className="flex flex-wrap gap-1.5 mb-3">
             {OUTCOMES.map((o) => (
               <button
+                type="button"
                 key={o.id}
                 onClick={() => setOutcome(o.id)}
+                aria-pressed={outcome === o.id}
                 className={`px-3 py-1.5 text-[12px] rounded-full border ${
                   outcome === o.id
                     ? 'border-[var(--accent)] bg-[var(--accent)]/10 text-[var(--accent)]'
@@ -92,12 +123,13 @@ export function SettleModal({
 
           {/* Deferring? Then nothing happened yet — asking "what happened" would be
               a question about a thing that has not occurred. Ask why instead. */}
-          <label className="block text-[12.5px] font-bold text-[var(--text-secondary)] mb-1">
+          <label htmlFor="settle-what-happened" className="block text-[12.5px] font-bold text-[var(--text-secondary)] mb-1">
             {deferring
               ? L('아직 답이 안 나온 이유 (선택)', 'Why it has not answered yet (optional)')
               : L('무슨 일이 있었나요? (선택)', 'What happened? (optional)')}
           </label>
           <textarea
+            id="settle-what-happened"
             value={what}
             onChange={(e) => setWhat(e.target.value)}
             maxLength={500}
@@ -110,8 +142,9 @@ export function SettleModal({
           {/* 배운 점 — Settlement View §937 "아래: 배운 점". Nothing to learn from a
               non-answer, so it is hidden while deferring. */}
           {!deferring && (<>
-          <label className="block text-[12.5px] font-bold text-[var(--text-secondary)] mb-1 mt-3">{L('배운 점 (선택)', 'What you learned (optional)')}</label>
+          <label htmlFor="settle-learned" className="block text-[12.5px] font-bold text-[var(--text-secondary)] mb-1 mt-3">{L('배운 점 (선택)', 'What you learned (optional)')}</label>
           <textarea
+            id="settle-learned"
             value={learned}
             onChange={(e) => setLearned(e.target.value)}
             maxLength={500}
