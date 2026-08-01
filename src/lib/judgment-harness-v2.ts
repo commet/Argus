@@ -19,6 +19,7 @@ import type {
 } from '@/stores/types';
 import { sanitizeForPrompt as sanitize } from '@/lib/persona-prompt';
 import { ARGUS_PRODUCT_FACTS, KOREAN_VOICE_RULES } from '@/lib/prompt-voice';
+import { verdictInstruction } from '@/lib/judgment-state-contract';
 
 type Locale = 'ko' | 'en';
 
@@ -284,6 +285,19 @@ export function buildDeepeningJudgmentPrompt(
   ).join('\n\n');
   const finalRound = round >= maxRounds - 1;
 
+  // The deterministic half of the loop, reporting to the probabilistic half.
+  // Without this the model repeats a demoted move on every round, because
+  // nothing ever tells it the move was demoted — the plausible output looked
+  // accepted from where it was standing.
+  const verdicts = (currentSnapshot.premise_verdicts || []);
+  const verdictBlock = verdicts.length > 0
+    ? `\nWHAT HAPPENED TO YOUR LAST PROPOSALS (the runtime reporting an outcome,
+not a critic — this is already done, so just make the next move):
+${verdicts.map((v) => `- "${sanitize(v.text)}" — you called it ${v.declared}; ${
+      v.recorded ? `recorded as ${v.recorded}. ` : 'not recorded. '
+    }${verdictInstruction(v.reason)}`).join('\n')}\n`
+    : '';
+
   return {
     system: `You are Argus updating a living judgment state after one new answer.
 
@@ -383,7 +397,7 @@ Current state:
 
 Conversation:
 ${history || '(none)'}
-
+${verdictBlock}
 Update only what the latest answer changed.`,
   };
 }

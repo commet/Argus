@@ -1,26 +1,7 @@
 {
-  "at": "2026-08-01T16:51:01.129Z",
-  "totalLLMCalls": 22,
+  "at": "2026-08-01T17:12:30.268Z",
+  "totalLLMCalls": 18,
   "scenarios": [
-    {
-      "id": "light-06-quit-travel-trap",
-      "error": false,
-      "judgeError": null,
-      "gate": "heavy",
-      "requestType": "vent",
-      "mechanicalFindings": 0,
-      "judgeFails": []
-    },
-    {
-      "id": "light-05-hoesik-escalate",
-      "error": false,
-      "judgeError": null,
-      "gate": "light",
-      "requestType": "open",
-      "lightOutcome": "escalate",
-      "mechanicalFindings": 0,
-      "judgeFails": []
-    },
     {
       "id": "heavy-04-fire-teammate",
       "error": false,

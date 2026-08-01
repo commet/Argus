@@ -290,6 +290,38 @@ function coercePremiseCandidates(raw, userCorpus) {
   }
   return { premises: checkableTexts(records), records, audit };
 }
+function verdictsWorthTelling(audit) {
+  return (audit || []).filter((entry) => entry.text && entry.declared_kind && (!entry.accepted || entry.declared_kind !== entry.recorded_kind)).map((entry) => ({
+    text: entry.text,
+    declared: entry.declared_kind,
+    ...entry.accepted ? { recorded: entry.recorded_kind } : {},
+    reason: entry.reason
+  }));
+}
+function verdictInstruction(reason) {
+  switch (reason) {
+    case "restates_anchor_recorded_as_fact":
+      return "it repeats its own anchor, so it was filed as a fact. If it really is load-bearing, say what that fact makes possible or impossible in THIS decision. If you cannot, leaving it as a fact is the right outcome.";
+    case "standard_without_user_stance":
+      return "it states what weighs on this person, but the quote does not carry their own weighing words \u2014 so it was refused rather than put in their mouth. Ask them instead of asserting it.";
+    case "prediction_without_observable_read_as_premise":
+      return "no observable, so it cannot promise a settle date and was filed as an assumption. Name what would be SEEN and it can be a prediction.";
+    case "anchor_not_in_user_words":
+      return "the quote does not appear in anything they wrote. Quote exactly.";
+    case "premise_limit":
+      return "two assumptions are already open. Revise one instead of stacking a third.";
+    case "record_limit":
+      return "the record is full. Revise or remove before adding.";
+    case "duplicate":
+      return "already recorded.";
+    case "missing_required_field":
+      return "an add needs text, anchor_quote, support_kind and if_false_changes.";
+    case "latest_answer_evidence_missing":
+      return "a change to an existing item needs a quote from the answer they just gave.";
+    default:
+      return reason;
+  }
+}
 function applyPremiseDeltas(currentRecords, raw, fullUserCorpus, latestAnswer) {
   const records = (currentRecords || []).map((entry) => {
     if (typeof entry === "string") {
@@ -449,5 +481,7 @@ export {
   clampSynthesisToLivingState,
   coercePremiseCandidates,
   hardensAHedge,
-  statesAClaim
+  statesAClaim,
+  verdictInstruction,
+  verdictsWorthTelling
 };

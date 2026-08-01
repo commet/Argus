@@ -445,6 +445,27 @@ function findExisting(premises: string[], candidate: string): number {
   return premises.findIndex((premise) => comparable(premise) === target);
 }
 
+/**
+ * The fields a proposal owes, decided by what it says it is.
+ *
+ * Checked against the DECLARED kind, not the recorded one: the model committed
+ * to a shape when it chose the label, and a premise offered with no consequence
+ * is incomplete even if the contract would later have filed it as a fact.
+ */
+function missingRequiredField(
+  declared: unknown,
+  text: string,
+  anchorQuote: string,
+  supportKind: string,
+  ifFalseChanges: string,
+): boolean {
+  if (!text || !anchorQuote) return true;
+  const policy = policyFor(declared);
+  if (policy.needsSupportKind && !SUPPORT_KINDS.has(supportKind)) return true;
+  if (policy.needsCounterfactual && !ifFalseChanges) return true;
+  return false;
+}
+
 export function coercePremiseCandidates(
   raw: unknown,
   userCorpus: string,
@@ -460,11 +481,12 @@ export function coercePremiseCandidates(
     const supportKind = cleanText(item?.support_kind);
     const ifFalseChanges = cleanText(item?.if_false_changes);
 
-    if (!text || !anchorQuote || !ifFalseChanges || !SUPPORT_KINDS.has(supportKind)) {
+    if (missingRequiredField(item?.kind, text, anchorQuote, supportKind, ifFalseChanges)) {
       audit.push({
         accepted: false,
         action: 'initial',
         text: text || undefined,
+        declared_kind: asKind(item?.kind),
         reason: 'missing_required_field',
       });
       continue;
@@ -507,7 +529,7 @@ export function coercePremiseCandidates(
       text,
       anchor_quote: anchorQuote,
       if_false_changes: ifFalseChanges,
-      support_kind: supportKind as PremiseCandidate['support_kind'],
+      support_kind: (SUPPORT_KINDS.has(supportKind) ? supportKind : 'explicit_reason') as PremiseCandidate['support_kind'],
       kind: gate.kind,
       ...(cleanText(item?.observable) ? { observable: cleanText(item?.observable) } : {}),
     });
@@ -515,6 +537,68 @@ export function coercePremiseCandidates(
   }
 
   return { premises: checkableTexts(records), records, audit };
+}
+
+/**
+ * The audit, reduced to what is worth telling the model next turn.
+ *
+ * A clean acceptance says nothing — silence is the reward. Only a demotion or a
+ * refusal is carried, because those are the moves the model would otherwise
+ * repeat unchanged: it has no way to know its proposal was filed as something
+ * else, so on the next answer it makes the same one again. Measured in the
+ * 2026-08-02 run: heavy-01 offered a verbatim copy of the user's answer as a
+ * premise on round 2 after the same thing had already happened on round 1.
+ */
+export function verdictsWorthTelling(audit: PremiseAuditEntry[]): Array<{
+  text: string;
+  declared: PremiseKind;
+  recorded?: PremiseKind;
+  reason: string;
+}> {
+  return (audit || [])
+    .filter((entry) => entry.text && entry.declared_kind
+      && (!entry.accepted || entry.declared_kind !== entry.recorded_kind))
+    .map((entry) => ({
+      text: entry.text as string,
+      declared: entry.declared_kind as PremiseKind,
+      ...(entry.accepted ? { recorded: entry.recorded_kind } : {}),
+      reason: entry.reason,
+    }));
+}
+
+/**
+ * What to DO about it, in one line, phrased as the next move rather than as a
+ * complaint. The runtime is reporting an outcome that already happened — it is
+ * not a critic, and a scolding tone buys nothing but hedging on the next turn.
+ */
+export function verdictInstruction(reason: string): string {
+  switch (reason) {
+    case 'restates_anchor_recorded_as_fact':
+      return 'it repeats its own anchor, so it was filed as a fact. If it really is '
+        + 'load-bearing, say what that fact makes possible or impossible in THIS '
+        + 'decision. If you cannot, leaving it as a fact is the right outcome.';
+    case 'standard_without_user_stance':
+      return 'it states what weighs on this person, but the quote does not carry '
+        + 'their own weighing words — so it was refused rather than put in their '
+        + 'mouth. Ask them instead of asserting it.';
+    case 'prediction_without_observable_read_as_premise':
+      return 'no observable, so it cannot promise a settle date and was filed as an '
+        + 'assumption. Name what would be SEEN and it can be a prediction.';
+    case 'anchor_not_in_user_words':
+      return 'the quote does not appear in anything they wrote. Quote exactly.';
+    case 'premise_limit':
+      return 'two assumptions are already open. Revise one instead of stacking a third.';
+    case 'record_limit':
+      return 'the record is full. Revise or remove before adding.';
+    case 'duplicate':
+      return 'already recorded.';
+    case 'missing_required_field':
+      return 'an add needs text, anchor_quote, support_kind and if_false_changes.';
+    case 'latest_answer_evidence_missing':
+      return 'a change to an existing item needs a quote from the answer they just gave.';
+    default:
+      return reason;
+  }
 }
 
 export function applyPremiseDeltas(
@@ -570,8 +654,11 @@ export function applyPremiseDeltas(
     }
 
     if (action === 'add') {
-      if (!text || !anchorQuote || !ifFalseChanges || !SUPPORT_KINDS.has(supportKind)) {
-        audit.push({ accepted: false, action, text: text || undefined, reason: 'missing_required_field' });
+      if (missingRequiredField(item?.kind, text, anchorQuote, supportKind, ifFalseChanges)) {
+        audit.push({
+          accepted: false, action, text: text || undefined,
+          declared_kind: asKind(item?.kind), reason: 'missing_required_field',
+        });
         continue;
       }
       if (!isTraceableQuote(anchorQuote, fullUserCorpus)) {
@@ -615,7 +702,7 @@ export function applyPremiseDeltas(
         text,
         anchor_quote: anchorQuote,
         if_false_changes: ifFalseChanges,
-        support_kind: supportKind as PremiseCandidate['support_kind'],
+        support_kind: (SUPPORT_KINDS.has(supportKind) ? supportKind : 'explicit_reason') as PremiseCandidate['support_kind'],
         kind: gate.kind,
         ...(cleanText(item?.observable) ? { observable: cleanText(item?.observable) } : {}),
       });
@@ -655,12 +742,13 @@ export function applyPremiseDeltas(
 
     // A revise/remove anchor is already required to come from the latest answer
     // (checked above), so the same reasoning applies: no connective demanded.
-    if (!text || !ifFalseChanges || !SUPPORT_KINDS.has(supportKind)) {
+    if (missingRequiredField(item?.kind, text, anchorQuote, supportKind, ifFalseChanges)) {
       audit.push({
         accepted: false,
         action,
         previous_text: previousText,
         text: text || undefined,
+        declared_kind: asKind(item?.kind),
         reason: 'missing_required_field',
       });
       continue;
@@ -678,7 +766,7 @@ export function applyPremiseDeltas(
       text,
       anchor_quote: anchorQuote,
       if_false_changes: ifFalseChanges,
-      support_kind: supportKind as PremiseCandidate['support_kind'],
+      support_kind: (SUPPORT_KINDS.has(supportKind) ? supportKind : 'explicit_reason') as PremiseCandidate['support_kind'],
       kind: revised.kind,
       ...(cleanText(item?.observable) ? { observable: cleanText(item?.observable) } : {}),
     };

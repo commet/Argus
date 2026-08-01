@@ -74,6 +74,7 @@ export {
 import { assessFrameStatus } from '@/lib/judgment-gates';
 import {
   applyPremiseDeltas,
+  verdictsWorthTelling,
   clampSynthesisToLivingState,
   coercePremiseCandidates,
   type AdmittedPremise,
@@ -865,6 +866,7 @@ export async function runInitialAnalysis(
     real_question: result.real_question || (locale === 'ko' ? '분석 중...' : 'Analyzing...'),
     hidden_assumptions: result.hidden_assumptions || [],
     premise_records: alignRecords(initialPremises.records, result.hidden_assumptions || []),
+    premise_verdicts: verdictsWorthTelling(initialPremises.audit),
     // A conversation turn writes no plan (judgment harness v2).
     skeleton: [],
     // OPEN analyses may generate a memorable sentence that quietly resolves the
@@ -1054,6 +1056,7 @@ export async function refineInitialFraming(
     real_question: result.real_question || (locale === 'ko' ? '분석 중...' : 'Analyzing...'),
     hidden_assumptions: result.hidden_assumptions || [],
     premise_records: alignRecords(refinedPremises.records, result.hidden_assumptions || []),
+    premise_verdicts: verdictsWorthTelling(refinedPremises.audit),
     skeleton: [],
     insight: result.request_type && result.request_type !== 'open'
       ? (refinedRoutedInsight ? scrubBannedVocabulary(refinedRoutedInsight) : refinedRoutedInsight)
@@ -1225,6 +1228,7 @@ export async function runDeepening(
     real_question: result.real_question || currentSnapshot.real_question,
     hidden_assumptions: nextPremises,
     premise_records: alignRecords(premiseTransition.records, nextPremises),
+    premise_verdicts: verdictsWorthTelling(premiseTransition.audit),
     // Weight has to survive the round. Without it the §0 sealing gate read
     // 'important / partial' from its own defaults on every snapshot after the
     // first, so a routine reversible call still got the full closing ceremony —

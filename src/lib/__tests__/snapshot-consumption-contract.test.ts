@@ -18,19 +18,31 @@ import { readFileSync } from 'fs';
 import { join } from 'path';
 import { MIX_CONTEXT_FIELDS, compactSnapshots } from '@/lib/compact-context';
 import type { AnalysisSnapshot } from '@/stores/types';
+import { buildDeepeningJudgmentPrompt } from '@/lib/judgment-harness-v2';
 
 const ROOT = join(__dirname, '..', '..');
 const typesSrc = readFileSync(join(ROOT, 'stores', 'types.ts'), 'utf8');
 
 /** Where each AnalysisSnapshot field is consumed. Adding a field to the type
  *  without adding it here fails the "no unclassified field" test below. */
-type Site = 'mix-context' | 'workers' | 'routing' | 'seal-gate' | 'flinch' | 'ui' | 'meta';
+// 'harness-feedback' is a real seventh destination, added 2026-08-02: a field
+// the runtime writes and hands BACK to the model on the next turn. Filing it
+// under 'mix-context' would have been the cheap move and a false one — that set
+// is checked against compact-context's exhaustive projector, and a field that
+// never reaches the synthesis would have had to be excused there instead.
+type Site = 'mix-context' | 'workers' | 'routing' | 'seal-gate' | 'flinch' | 'ui'
+  | 'harness-feedback' | 'meta';
 const CONSUMPTION_CONTRACT: Record<string, Site> = {
   version: 'meta',                       // diff/version tracking
   real_question: 'mix-context',
   hidden_assumptions: 'mix-context',
   premise_records: 'ui',                 // AnalysisCard: the user's own words +
                                          // "이게 아니라면 →" under each premise
+  premise_verdicts: 'harness-feedback',  // buildDeepeningJudgmentPrompt: the
+                                         // contract's own verdict on the last
+                                         // proposals, handed back to the model
+                                         // so a demotion teaches within the
+                                         // session instead of repeating
   skeleton: 'mix-context',
   execution_plan: 'workers',             // initWorkers → the crew
   insight: 'mix-context',
@@ -78,6 +90,28 @@ describe('AnalysisSnapshot consumption contract', () => {
   it('every field declares a consumption site (add a field → classify it here)', () => {
     const unclassified = fields.filter(f => !(f in CONSUMPTION_CONTRACT));
     expect(unclassified, `unclassified AnalysisSnapshot fields — declare where each is consumed: ${unclassified.join(', ')}`).toEqual([]);
+  });
+
+  it('every harness-feedback field actually reaches the next prompt', () => {
+    // Same standard the mix fields are held to: not "mentioned in the source"
+    // but present in the built prompt. A feedback field that never reaches the
+    // model is the write-only failure this whole contract exists to catch.
+    const feedback = fields.filter(f => CONSUMPTION_CONTRACT[f] === 'harness-feedback');
+    const snap = {
+      version: 1,
+      real_question: 'q',
+      hidden_assumptions: [],
+      skeleton: [],
+      premise_verdicts: [{
+        text: 'SENTINEL_premise_verdicts',
+        declared: 'premise',
+        recorded: 'fact',
+        reason: 'restates_anchor_recorded_as_fact',
+      }],
+    } as unknown as AnalysisSnapshot;
+    const { user } = buildDeepeningJudgmentPrompt('problem', snap, [], 1, 3, 'ko');
+    const missing = feedback.filter(f => !user.includes(`SENTINEL_${f}`));
+    expect(missing, `harness-feedback fields never reach the prompt: ${missing.join(', ')}`).toEqual([]);
   });
 
   it('the contract has no stale entries (removed from the type)', () => {

@@ -26,19 +26,19 @@
       "raw": {
         "request_type": "open",
         "stakes": "critical",
-        "reversibility": "partial",
-        "framing_confidence": 72,
-        "frame_line": "전세금 인상 가능성이 있고, 지금 움직이면 3억 넘는 대출이 따라와요.",
-        "real_question": "전세금 인상 가능성이 있고, 지금 움직이면 3억 넘는 대출이 따라와요.",
-        "insight": "매매로 갈아타야 할 이유와 무서운 이유가 같은 시점에 겹쳐 있어요. 집주인이 실제로 올려달라고 할지 여부가 지금 계획 전체의 무게를 바꿔요.",
+        "reversibility": "irreversible",
+        "framing_confidence": 62,
+        "frame_line": "전세 올려달라는 말이 나오기 전에, 3억 넘는 대출이 먼저 무섭다고 하셨어요.",
+        "real_question": "전세 올려달라는 말이 나오기 전에, 3억 넘는 대출이 먼저 무섭다고 하셨어요.",
+        "insight": "집주인이 전세금을 올리냐 마냐가 이 결정에서 얼마나 달라지는지가 아직 안 보여요. 매매를 고민하게 된 게 대출이 무서워도 지금이 타이밍이라는 생각 때문인지, 아니면 전세 연장이 불안해서 밀려온 건지에 따라 보는 게 달라질 것 같아요.",
         "premise_candidates": [
           {
-            "text": "집주인이 만기 때 전세금을 올려달라고 할 것이다",
+            "text": "집주인이 이번 만기에 전세금을 올려달라고 할 것이다",
             "anchor_quote": "집주인이 전세금을 올려달라고 할 것 같기도 하고요",
-            "support_kind": "explicit_expectation",
-            "if_false_changes": "현 전세를 그대로 유지하는 선택지가 살아나서, 지금 당장 매매를 결정해야 할 이유가 줄어든다",
+            "support_kind": "explicit_condition",
+            "if_false_changes": "전세 연장이 가능해지므로 4개월 안에 결정해야 한다는 압박이 줄어든다",
             "kind": "prediction",
-            "observable": "만기 전에 집주인한테 갱신 의사를 물어봤을 때 나오는 답"
+            "observable": "집주인에게 갱신 의사를 물었을 때 나오는 답"
           }
         ],
         "skeleton": [],
@@ -50,19 +50,19 @@
       "result": {
         "request_type": "open",
         "stakes": "critical",
-        "reversibility": "partial",
-        "framing_confidence": 72,
-        "frame_line": "전세금 인상 가능성이 있고, 지금 움직이면 3억 넘는 대출이 따라와요.",
-        "real_question": "전세금 인상 가능성이 있고, 지금 움직이면 3억 넘는 대출이 따라와요.",
-        "insight": "전세금 인상 가능성이 있고, 지금 움직이면 3억 넘는 대출이 따라와요.",
+        "reversibility": "irreversible",
+        "framing_confidence": 62,
+        "frame_line": "전세 올려달라는 말이 나오기 전에, 3억 넘는 대출이 먼저 무섭다고 하셨어요.",
+        "real_question": "전세 올려달라는 말이 나오기 전에, 3억 넘는 대출이 먼저 무섭다고 하셨어요.",
+        "insight": "전세 올려달라는 말이 나오기 전에, 3억 넘는 대출이 먼저 무섭다고 하셨어요.",
         "premise_candidates": [
           {
-            "text": "집주인이 만기 때 전세금을 올려달라고 할 것이다",
+            "text": "집주인이 이번 만기에 전세금을 올려달라고 할 것이다",
             "anchor_quote": "집주인이 전세금을 올려달라고 할 것 같기도 하고요",
-            "support_kind": "explicit_expectation",
-            "if_false_changes": "현 전세를 그대로 유지하는 선택지가 살아나서, 지금 당장 매매를 결정해야 할 이유가 줄어든다",
+            "support_kind": "explicit_condition",
+            "if_false_changes": "전세 연장이 가능해지므로 4개월 안에 결정해야 한다는 압박이 줄어든다",
             "kind": "prediction",
-            "observable": "만기 전에 집주인한테 갱신 의사를 물어봤을 때 나오는 답"
+            "observable": "집주인에게 갱신 의사를 물었을 때 나오는 답"
           }
         ],
         "skeleton": [],
@@ -71,79 +71,128 @@
           "type": "short"
         },
         "hidden_assumptions": [
-          "집주인이 만기 때 전세금을 올려달라고 할 것이다"
-        ]
+          "집주인이 이번 만기에 전세금을 올려달라고 할 것이다"
+        ],
+        "premise_records": [
+          {
+            "text": "집주인이 이번 만기에 전세금을 올려달라고 할 것이다",
+            "anchor_quote": "집주인이 전세금을 올려달라고 할 것 같기도 하고요",
+            "if_false_changes": "전세 연장이 가능해지므로 4개월 안에 결정해야 한다는 압박이 줄어든다",
+            "support_kind": "explicit_condition",
+            "kind": "prediction",
+            "observable": "집주인에게 갱신 의사를 물었을 때 나오는 답"
+          }
+        ],
+        "premise_verdicts": []
       },
       "routeCoerced": false
     },
     "deepening": [
       {
-        "insight": "집주인 얘기 대신 소득을 말씀해주셨어요. 월 900 실수령이면 3억 대출 원리금이 실제로 감당 가능한 범위인지가 이 결정에서 달라지는 지점이에요.",
-        "frame_line": "전세금 인상 가능성이 있는 상황에서, 월 실수령 900 맞벌이로 3억 넘는 대출을 끌고 갈 수 있는지가 갈리는 지점이에요.",
-        "real_question": "전세금 인상 가능성이 있는 상황에서, 월 실수령 900 맞벌이로 3억 넘는 대출을 끌고 갈 수 있는지가 갈리는 지점이에요.",
+        "insight": "집주인 얘기는 넘어가시고 월 실수령 900이라고 알려주셨어요. 3억 대출이 무섭다고 하셨으니, 이 숫자가 그 무게를 가늠하는 데 쓰신 것 같아요. 근데 그게 '감당된다'는 건지 '그래도 무섭다'는 건지는 아직 안 들었어요.",
+        "frame_line": "전세 만기 4개월 안에, 3억 넘는 대출을 안고 7억 초반 아파트로 갈지 말지 — 맞벌이 월 실수령 900 기준으로 그 무게가 어느 정도인지가 지금 걸려 있어요.",
+        "real_question": "전세 만기 4개월 안에, 3억 넘는 대출을 안고 7억 초반 아파트로 갈지 말지 — 맞벌이 월 실수령 900 기준으로 그 무게가 어느 정도인지가 지금 걸려 있어요.",
         "premise_changes": [
           {
             "action": "add",
-            "text": "월 실수령 900에서 3억 초과 대출 원리금을 감당할 수 있다",
+            "text": "월 실수령 900만 원이 대출 감당 여부의 기준선이다",
             "anchor_quote": "맞벌이고 월 실수령 합쳐서 900 정도예요",
-            "reason_from_latest_answer": "소득 규모가 대출 감당 가능 여부를 직접 결정한다",
+            "reason_from_latest_answer": "3억 대출이 무섭다고 한 맥락에서 수입을 꺼냈으니, 이 숫자가 감당 가능 여부를 따지는 데 쓰이는 조건이다",
             "support_kind": "explicit_condition",
-            "if_false_changes": "매매로 가는 게 지금 시점에서는 무리가 되고, 전세 연장 쪽을 먼저 봐야 한다",
-            "kind": "premise",
-            "observable": "현재 고정지출 제외 후 월 가용금액"
-          }
-        ],
-        "skeleton": [],
-        "next_question": {
-          "text": "월 900에서 지금 고정 지출 빼면 실제로 얼마나 남아요?",
-          "type": "short"
-        },
-        "ready_for_mix": false,
-        "hidden_assumptions": [
-          "집주인이 만기 때 전세금을 올려달라고 할 것이다",
-          "월 실수령 900에서 3억 초과 대출 원리금을 감당할 수 있다"
-        ]
-      },
-      {
-        "insight": "집주인한테서 아직 직접 연락은 없었어요. 근데 주변 전세가 많이 올랐다는 걸 알고 계신 거니까, 올려달라고 할 가능성이 있다고 보시는 거죠. 확인된 건 아닌데 피부로 느끼시는 거고요.",
-        "frame_line": "집주인 말은 아직 없지만 주변 전세가 많이 오른 상황에서, 월 실수령 900 맞벌이로 3억 넘는 대출을 끌고 갈 수 있는지가 갈리는 지점이에요.",
-        "real_question": "집주인 말은 아직 없지만 주변 전세가 많이 오른 상황에서, 월 실수령 900 맞벌이로 3억 넘는 대출을 끌고 갈 수 있는지가 갈리는 지점이에요.",
-        "premise_changes": [
-          {
-            "action": "revise",
-            "previous_text": "집주인이 만기 때 전세금을 올려달라고 할 것이다",
-            "text": "집주인한테서 직접 연락은 없지만, 주변 전세가 많이 올랐다는 걸 알고 있어서 인상 요구가 올 가능성이 있다고 보고 있다",
-            "anchor_quote": "집주인이 아직 말은 없는데, 주변 전세가 많이 올랐다고 들었어요",
-            "reason_from_latest_answer": "확정된 사실이 아니라 시세 흐름을 근거로 가능성을 열어두고 있는 것",
-            "support_kind": "explicit_expectation",
-            "if_false_changes": "전세 유지가 현실적인 선택지로 남고, 매매 전환의 긴박성이 줄어든다",
+            "if_false_changes": "대출 규모가 감당 가능한지 여부 자체가 달라진다",
             "kind": "premise"
           }
         ],
         "skeleton": [],
-        "next_question": null,
+        "next_question": {
+          "text": "월 900에서 대출 이자 나가면 '이 정도면 된다' 싶으세요, 아니면 그래도 빡세다 싶으세요?",
+          "type": "short"
+        },
         "ready_for_mix": false,
         "hidden_assumptions": [
-          "월 실수령 900에서 3억 초과 대출 원리금을 감당할 수 있다"
-        ]
+          "집주인이 이번 만기에 전세금을 올려달라고 할 것이다",
+          "월 실수령 900만 원이 대출 감당 여부의 기준선이다"
+        ],
+        "premise_records": [
+          {
+            "text": "집주인이 이번 만기에 전세금을 올려달라고 할 것이다",
+            "anchor_quote": "",
+            "if_false_changes": "",
+            "support_kind": "explicit_reason",
+            "kind": "premise"
+          },
+          {
+            "text": "월 실수령 900만 원이 대출 감당 여부의 기준선이다",
+            "anchor_quote": "맞벌이고 월 실수령 합쳐서 900 정도예요",
+            "if_false_changes": "대출 규모가 감당 가능한지 여부 자체가 달라진다",
+            "support_kind": "explicit_condition",
+            "kind": "premise"
+          }
+        ],
+        "premise_verdicts": []
+      },
+      {
+        "insight": "집주인한테 직접 들은 건 아직 없고, 주변 전세가 올랐다는 걸 들으셨다는 거네요. 인상 요구가 올 거라는 느낌의 근거가 생긴 거예요. 다만 실제로 올지, 얼마나 올지는 아직 모르는 상태고요.",
+        "frame_line": "전세 만기 4개월 안에, 3억 넘는 대출을 안고 7억 초반 아파트로 갈지 말지 — 집주인이 직접 말한 건 없지만 주변 전세가 많이 오른 걸 들은 상태에서 결정을 봐야 해요.",
+        "real_question": "전세 만기 4개월 안에, 3억 넘는 대출을 안고 7억 초반 아파트로 갈지 말지 — 집주인이 직접 말한 건 없지만 주변 전세가 많이 오른 걸 들은 상태에서 결정을 봐야 해요.",
+        "premise_changes": [
+          {
+            "action": "revise",
+            "previous_text": "집주인이 이번 만기에 전세금을 올려달라고 할 것이다",
+            "text": "집주인이 인상을 요구할 가능성이 있다 — 직접 말은 없었지만 주변 전세가 많이 올랐다는 걸 들었다",
+            "anchor_quote": "집주인이 아직 말은 없는데, 주변 전세가 많이 올랐다고 들었어요",
+            "reason_from_latest_answer": "직접 확인된 사실이 아니라 주변 시세 정보를 근거로 한 추측임이 드러났다",
+            "support_kind": "explicit_condition",
+            "if_false_changes": "현 전세를 그냥 연장할 수 있는 선택지가 훨씬 무거워진다",
+            "kind": "premise"
+          }
+        ],
+        "skeleton": [],
+        "next_question": {
+          "text": "주변 전세가 얼마나 올랐는지 대략 파악이 돼 있으세요? 지금 보증금 4억에서 얼마 정도 더 올라올 것 같다는 감이 있으신가요.",
+          "type": "short"
+        },
+        "ready_for_mix": false,
+        "hidden_assumptions": [
+          "집주인이 인상을 요구할 가능성이 있다 — 직접 말은 없었지만 주변 전세가 많이 올랐다는 걸 들었다",
+          "월 실수령 900만 원이 대출 감당 여부의 기준선이다"
+        ],
+        "premise_records": [
+          {
+            "text": "집주인이 인상을 요구할 가능성이 있다 — 직접 말은 없었지만 주변 전세가 많이 올랐다는 걸 들었다",
+            "anchor_quote": "집주인이 아직 말은 없는데, 주변 전세가 많이 올랐다고 들었어요",
+            "if_false_changes": "현 전세를 그냥 연장할 수 있는 선택지가 훨씬 무거워진다",
+            "support_kind": "explicit_condition",
+            "kind": "premise"
+          },
+          {
+            "text": "월 실수령 900만 원이 대출 감당 여부의 기준선이다",
+            "anchor_quote": "",
+            "if_false_changes": "",
+            "support_kind": "explicit_reason",
+            "kind": "premise"
+          }
+        ],
+        "premise_verdicts": []
       }
     ],
     "mix": {
-      "title": "전세 만기 4개월 — 매매 전환 검토",
-      "decision_read": "매매로 갈지 전세를 유지할지 아직 열려 있고, 월 900 실수령에서 3억 넘는 대출을 실제로 감당할 수 있는지가 확인되지 않은 채로 남아 있어요.",
-      "executive_summary": "전세 보증금 4억에 3억 초과 대출을 더해 7억 초반 아파트를 사는 구조예요. 집주인한테서 직접 연락은 없었지만 주변 시세가 올랐다는 건 알고 계시고요. 월 실수령 900에서 고정 지출을 빼고 원리금을 감당할 수 있는지가 아직 확인되지 않았어요.",
+      "title": "전세 만기 4개월 — 7억 초반 매매로 갈아탈지 말지",
+      "decision_read": "월 실수령 900에서 3억 넘는 대출을 감당할 수 있는지, 그리고 집주인이 실제로 인상 요구를 할지 — 이 두 가지가 아직 열려 있어요.",
+      "executive_summary": "전세금 4억, 보는 아파트 7억 초반, 대출 3억 이상이 필요한 구도예요. 집주인한테 직접 들은 건 없고 주변 전세가 올랐다는 걸 들은 상태예요. 월 900에서 이자 나갔을 때 빡센지 아닌지는 아직 확인이 안 됐어요.",
       "sections": [
         {
           "heading": "확인된 것",
-          "content": "전세 만기 4개월 남음. 현재 전세 보증금 4억. 보고 있는 아파트 7억 초반. 필요 대출 3억 초과. 맞벌이, 월 실수령 합산 900. 집주인한테서 직접 연락은 아직 없음. 주변 전세가 많이 올랐다는 건 인지하고 있음."
+          "content": "전세 만기 4개월 남음. 현재 전세 보증금 4억. 보고 있는 아파트 7억 초반, 대출 3억 이상 필요. 맞벌이, 월 실수령 합산 약 900만 원. 주변 전세가 많이 올랐다고 들었음. 집주인한테 직접 들은 말은 없음."
         },
         {
           "heading": "아직 확인되지 않은 것",
-          "content": "월 900에서 현재 고정 지출을 빼고 실제로 얼마가 남는지 확인되지 않았어요. 그게 없으면 3억 초과 대출 원리금을 감당할 수 있는지 판단이 서지 않아요."
+          "content": "월 900에서 대출 이자 빠졌을 때 '된다'인지 '빡세다'인지 — 본인 기준이 아직 안 나왔어요. 집주인이 실제로 인상 요구를 할지, 한다면 얼마를 요구할지도 모르는 상태예요."
         }
       ],
       "key_assumptions": [
-        "월 실수령 900에서 3억 초과 대출 원리금을 감당할 수 있다"
+        "집주인이 인상을 요구할 가능성이 있다 — 직접 말은 없었지만 주변 전세가 많이 올랐다는 걸 들었다",
+        "월 실수령 900만 원이 대출 감당 여부의 기준선이다"
       ],
       "next_steps": []
     }
@@ -158,7 +207,7 @@
     {
       "actor": "argus",
       "phase": "heavy_initial",
-      "text": "전세금 인상 가능성이 있고, 지금 움직이면 3억 넘는 대출이 따라와요.\n\n지금 살펴볼 것: 전세금 인상 가능성이 있고, 지금 움직이면 3억 넘는 대출이 따라와요.\n\n숨은 전제:\n- 집주인이 만기 때 전세금을 올려달라고 할 것이다\n\n다음 질문: 집주인한테 아직 직접 물어보진 않으신 거예요?"
+      "text": "전세 올려달라는 말이 나오기 전에, 3억 넘는 대출이 먼저 무섭다고 하셨어요.\n\n지금 살펴볼 것: 전세 올려달라는 말이 나오기 전에, 3억 넘는 대출이 먼저 무섭다고 하셨어요.\n\n숨은 전제:\n- 집주인이 이번 만기에 전세금을 올려달라고 할 것이다\n\n다음 질문: 집주인한테 아직 직접 물어보진 않으신 거예요?"
     },
     {
       "actor": "user",
@@ -168,7 +217,7 @@
     {
       "actor": "argus",
       "phase": "heavy_deepening_1",
-      "text": "집주인 얘기 대신 소득을 말씀해주셨어요. 월 900 실수령이면 3억 대출 원리금이 실제로 감당 가능한 범위인지가 이 결정에서 달라지는 지점이에요.\n\n지금 살펴볼 것: 전세금 인상 가능성이 있는 상황에서, 월 실수령 900 맞벌이로 3억 넘는 대출을 끌고 갈 수 있는지가 갈리는 지점이에요.\n\n숨은 전제:\n- 집주인이 만기 때 전세금을 올려달라고 할 것이다\n- 월 실수령 900에서 3억 초과 대출 원리금을 감당할 수 있다\n\n다음 질문: 월 900에서 지금 고정 지출 빼면 실제로 얼마나 남아요?"
+      "text": "집주인 얘기는 넘어가시고 월 실수령 900이라고 알려주셨어요. 3억 대출이 무섭다고 하셨으니, 이 숫자가 그 무게를 가늠하는 데 쓰신 것 같아요. 근데 그게 '감당된다'는 건지 '그래도 무섭다'는 건지는 아직 안 들었어요.\n\n지금 살펴볼 것: 전세 만기 4개월 안에, 3억 넘는 대출을 안고 7억 초반 아파트로 갈지 말지 — 맞벌이 월 실수령 900 기준으로 그 무게가 어느 정도인지가 지금 걸려 있어요.\n\n숨은 전제:\n- 집주인이 이번 만기에 전세금을 올려달라고 할 것이다\n- 월 실수령 900만 원이 대출 감당 여부의 기준선이다\n\n다음 질문: 월 900에서 대출 이자 나가면 '이 정도면 된다' 싶으세요, 아니면 그래도 빡세다 싶으세요?"
     },
     {
       "actor": "user",
@@ -178,23 +227,23 @@
     {
       "actor": "argus",
       "phase": "heavy_deepening_2",
-      "text": "집주인한테서 아직 직접 연락은 없었어요. 근데 주변 전세가 많이 올랐다는 걸 알고 계신 거니까, 올려달라고 할 가능성이 있다고 보시는 거죠. 확인된 건 아닌데 피부로 느끼시는 거고요.\n\n지금 살펴볼 것: 집주인 말은 아직 없지만 주변 전세가 많이 오른 상황에서, 월 실수령 900 맞벌이로 3억 넘는 대출을 끌고 갈 수 있는지가 갈리는 지점이에요.\n\n숨은 전제:\n- 월 실수령 900에서 3억 초과 대출 원리금을 감당할 수 있다"
+      "text": "집주인한테 직접 들은 건 아직 없고, 주변 전세가 올랐다는 걸 들으셨다는 거네요. 인상 요구가 올 거라는 느낌의 근거가 생긴 거예요. 다만 실제로 올지, 얼마나 올지는 아직 모르는 상태고요.\n\n지금 살펴볼 것: 전세 만기 4개월 안에, 3억 넘는 대출을 안고 7억 초반 아파트로 갈지 말지 — 집주인이 직접 말한 건 없지만 주변 전세가 많이 오른 걸 들은 상태에서 결정을 봐야 해요.\n\n숨은 전제:\n- 집주인이 인상을 요구할 가능성이 있다 — 직접 말은 없었지만 주변 전세가 많이 올랐다는 걸 들었다\n- 월 실수령 900만 원이 대출 감당 여부의 기준선이다\n\n다음 질문: 주변 전세가 얼마나 올랐는지 대략 파악이 돼 있으세요? 지금 보증금 4억에서 얼마 정도 더 올라올 것 같다는 감이 있으신가요."
     },
     {
       "actor": "argus",
       "phase": "heavy_mix",
-      "text": "제목: 전세 만기 4개월 — 매매 전환 검토\n\ndecision_read: 매매로 갈지 전세를 유지할지 아직 열려 있고, 월 900 실수령에서 3억 넘는 대출을 실제로 감당할 수 있는지가 확인되지 않은 채로 남아 있어요.\n\n요약: 전세 보증금 4억에 3억 초과 대출을 더해 7억 초반 아파트를 사는 구조예요. 집주인한테서 직접 연락은 없었지만 주변 시세가 올랐다는 건 알고 계시고요. 월 실수령 900에서 고정 지출을 빼고 원리금을 감당할 수 있는지가 아직 확인되지 않았어요.\n\n## 확인된 것\n전세 만기 4개월 남음. 현재 전세 보증금 4억. 보고 있는 아파트 7억 초반. 필요 대출 3억 초과. 맞벌이, 월 실수령 합산 900. 집주인한테서 직접 연락은 아직 없음. 주변 전세가 많이 올랐다는 건 인지하고 있음.\n\n## 아직 확인되지 않은 것\n월 900에서 현재 고정 지출을 빼고 실제로 얼마가 남는지 확인되지 않았어요. 그게 없으면 3억 초과 대출 원리금을 감당할 수 있는지 판단이 서지 않아요.\n\n전제:\n- 월 실수령 900에서 3억 초과 대출 원리금을 감당할 수 있다"
+      "text": "제목: 전세 만기 4개월 — 7억 초반 매매로 갈아탈지 말지\n\ndecision_read: 월 실수령 900에서 3억 넘는 대출을 감당할 수 있는지, 그리고 집주인이 실제로 인상 요구를 할지 — 이 두 가지가 아직 열려 있어요.\n\n요약: 전세금 4억, 보는 아파트 7억 초반, 대출 3억 이상이 필요한 구도예요. 집주인한테 직접 들은 건 없고 주변 전세가 올랐다는 걸 들은 상태예요. 월 900에서 이자 나갔을 때 빡센지 아닌지는 아직 확인이 안 됐어요.\n\n## 확인된 것\n전세 만기 4개월 남음. 현재 전세 보증금 4억. 보고 있는 아파트 7억 초반, 대출 3억 이상 필요. 맞벌이, 월 실수령 합산 약 900만 원. 주변 전세가 많이 올랐다고 들었음. 집주인한테 직접 들은 말은 없음.\n\n## 아직 확인되지 않은 것\n월 900에서 대출 이자 빠졌을 때 '된다'인지 '빡세다'인지 — 본인 기준이 아직 안 나왔어요. 집주인이 실제로 인상 요구를 할지, 한다면 얼마를 요구할지도 모르는 상태예요.\n\n전제:\n- 집주인이 인상을 요구할 가능성이 있다 — 직접 말은 없었지만 주변 전세가 많이 올랐다는 걸 들었다\n- 월 실수령 900만 원이 대출 감당 여부의 기준선이다"
     }
   ],
   "calls": [
     {
-      "seq": 5,
+      "seq": 0,
       "label": "heavy-03-jeonse-maemae",
       "tier": "fast",
       "modelId": "claude-haiku-4-5-20251001",
       "maxTokens": 500,
       "attempt": 0,
-      "ms": 1650,
+      "ms": 1786,
       "usage": {
         "input_tokens": 4154,
         "cache_creation_input_tokens": 0,
@@ -211,96 +260,96 @@
       "rawText": "```json\n{\n  \"need\": \"heavy\",\n  \"mirror\": \"\",\n  \"question\": \"\"\n}\n```"
     },
     {
-      "seq": 6,
-      "label": "heavy-03-jeonse-maemae",
+      "seq": 3,
+      "label": "heavy-04-fire-teammate",
       "tier": "default",
       "modelId": "claude-sonnet-4-6",
       "maxTokens": 4096,
       "attempt": 0,
-      "ms": 8440,
+      "ms": 9253,
       "usage": {
         "input_tokens": 147,
-        "cache_creation_input_tokens": 0,
-        "cache_read_input_tokens": 5189,
+        "cache_creation_input_tokens": 5189,
+        "cache_read_input_tokens": 0,
         "cache_creation": {
-          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_5m_input_tokens": 5189,
           "ephemeral_1h_input_tokens": 0
         },
-        "output_tokens": 502,
+        "output_tokens": 549,
         "service_tier": "standard",
         "inference_geo": "global"
       },
       "user": "[user] <user-data>전세 만기가 4개월 남았는데 이참에 매매로 갈아탈까 고민이에요. 지금 전세 보증금은 4억이고, 보고 있는 아파트는 7억 초반이에요. 대출을 3억 넘게 받아야 해서 무섭긴 한데, 집주인이 전세금을 올려달라고 할 것 같기도 하고요.</user-data>",
-      "rawText": "```json\n{\n  \"request_type\": \"open\",\n  \"stakes\": \"critical\",\n  \"reversibility\": \"partial\",\n  \"framing_confidence\": 72,\n  \"frame_line\": \"전세금 인상 가능성이 있고, 지금 움직이면 3억 넘는 대출이 따라와요.\",\n  \"real_question\": \"전세금 인상 가능성이 있고, 지금 움직이면 3억 넘는 대출이 따라와요.\",\n  \"insight\": \"매매로 갈아타야 할 이유와 무서운 이유가 같은 시점에 겹쳐 있어요. 집주인이 실제로 올려달라고 할지 여부가 지금 계획 전체의 무게를 바꿔요.\",\n  \"premise_candidates\": [\n    {\n      \"text\": \"집주인이 만기 때 전세금을 올려달라고 할 것이다\",\n      \"anchor_quote\": \"집주인이 전세금을 올려달라고 할 것 같기도 하고요\",\n      \"support_kind\": \"explicit_expectation\",\n      \"if_false_changes\": \"현 전세를 그대로 유지하는 선택지가 살아나서, 지금 당장 매매를 결정해야 할 이유가 줄어든다\",\n      \"kind\": \"prediction\",\n      \"observable\": \"만기 전에 집주인한테 갱신 의사를 물어봤을 때 나오는 답\"\n    }\n  ],\n  \"skeleton\": [],\n  \"next_question\": {\n    \"text\": \"집주인한테 아직 직접 물어보진 않으신 거예요?\",\n    \"type\": \"short\"\n  }\n}\n```"
+      "rawText": "```json\n{\n  \"request_type\": \"open\",\n  \"stakes\": \"critical\",\n  \"reversibility\": \"irreversible\",\n  \"framing_confidence\": 62,\n  \"frame_line\": \"전세 올려달라는 말이 나오기 전에, 3억 넘는 대출이 먼저 무섭다고 하셨어요.\",\n  \"real_question\": \"전세 올려달라는 말이 나오기 전에, 3억 넘는 대출이 먼저 무섭다고 하셨어요.\",\n  \"insight\": \"집주인이 전세금을 올리냐 마냐가 이 결정에서 얼마나 달라지는지가 아직 안 보여요. 매매를 고민하게 된 게 대출이 무서워도 지금이 타이밍이라는 생각 때문인지, 아니면 전세 연장이 불안해서 밀려온 건지에 따라 보는 게 달라질 것 같아요.\",\n  \"premise_candidates\": [\n    {\n      \"text\": \"집주인이 이번 만기에 전세금을 올려달라고 할 것이다\",\n      \"anchor_quote\": \"집주인이 전세금을 올려달라고 할 것 같기도 하고요\",\n      \"support_kind\": \"explicit_condition\",\n      \"if_false_changes\": \"전세 연장이 가능해지므로 4개월 안에 결정해야 한다는 압박이 줄어든다\",\n      \"kind\": \"prediction\",\n      \"observable\": \"집주인에게 갱신 의사를 물었을 때 나오는 답\"\n    }\n  ],\n  \"skeleton\": [],\n  \"next_question\": {\n    \"text\": \"집주인한테 아직 직접 물어보진 않으신 거예요?\",\n    \"type\": \"short\"\n  }\n}\n```"
     },
     {
-      "seq": 10,
+      "seq": 4,
       "label": "heavy-04-fire-teammate",
       "tier": "default",
       "modelId": "claude-sonnet-4-6",
       "maxTokens": 2500,
       "attempt": 0,
-      "ms": 10274,
+      "ms": 11050,
       "usage": {
-        "input_tokens": 4619,
+        "input_tokens": 4630,
         "cache_creation_input_tokens": 0,
         "cache_read_input_tokens": 0,
         "cache_creation": {
           "ephemeral_5m_input_tokens": 0,
           "ephemeral_1h_input_tokens": 0
         },
-        "output_tokens": 575,
+        "output_tokens": 676,
         "service_tier": "standard",
         "inference_geo": "global"
       },
-      "user": "[user] Original situation:\n<user-data>전세 만기가 4개월 남았는데 이참에 매매로 갈아탈까 고민이에요. 지금 전세 보증금은 4억이고, 보고 있는 아파트는 7억 초반이에요. 대출을 3억 넘게 받아야 해서 무섭긴 한데, 집주인이 전세금을 올려달라고 할 것 같기도 하고요.</user-data>\n\nCurrent state:\n- question: 전세금 인상 가능성이 있고, 지금 움직이면 3억 넘는 대출이 따라와요.\n- AI-surfaced premises: 집주인이 만기 때 전세금을 올려달라고 할 것이다\n- reality checks: (none)\n- request type: open\n- weight: critical / partial\n\nConversation:\nQ1: 집주인한테 아직 ",
-      "rawText": "```json\n{\n  \"insight\": \"집주인 얘기 대신 소득을 말씀해주셨어요. 월 900 실수령이면 3억 대출 원리금이 실제로 감당 가능한 범위인지가 이 결정에서 달라지는 지점이에요.\",\n  \"frame_line\": \"전세금 인상 가능성이 있는 상황에서, 월 실수령 900 맞벌이로 3억 넘는 대출을 끌고 갈 수 있는지가 갈리는 지점이에요.\",\n  \"real_question\": \"전세금 인상 가능성이 있는 상황에서, 월 실수령 900 맞벌이로 3억 넘는 대출을 끌고 갈 수 있는지가 갈리는 지점이에요.\",\n  \"premise_changes\": [\n    {\n      \"action\": \"add\",\n      \"text\": \"월 실수령 900에서 3억 초과 대출 원리금을 감당할 수 있다\",\n      \"anchor_quote\": \"맞벌이고 월 실수령 합쳐서 900 정도예요\",\n      \"reason_from_latest_answer\": \"소득 규모가 대출 감당 가능 여부를 직접 결정한다\",\n      \"support_kind\": \"explicit_condition\",\n      \"if_false_changes\": \"매매로 가는 게 지금 시점에서는 무리가 되고, 전세 연장 쪽을 먼저 봐야 한다\",\n      \"kind\": \"premise\",\n      \"observable\": \"현재 고정지출 제외 후 월 가용금액\"\n    }\n  ],\n  \"skeleton\": [],\n  \"next_question\": {\n    \"text\": \"월 900에서 지금 고정 지출 빼면 실제로 얼마나 남아요?\",\n    \"type\": \"short\"\n  },\n  \"ready_for_mix\": false\n}\n```"
+      "user": "[user] Original situation:\n<user-data>전세 만기가 4개월 남았는데 이참에 매매로 갈아탈까 고민이에요. 지금 전세 보증금은 4억이고, 보고 있는 아파트는 7억 초반이에요. 대출을 3억 넘게 받아야 해서 무섭긴 한데, 집주인이 전세금을 올려달라고 할 것 같기도 하고요.</user-data>\n\nCurrent state:\n- question: 전세 올려달라는 말이 나오기 전에, 3억 넘는 대출이 먼저 무섭다고 하셨어요.\n- AI-surfaced premises: 집주인이 이번 만기에 전세금을 올려달라고 할 것이다\n- reality checks: (none)\n- request type: open\n- weight: critical / irreversible\n\nConversation:\nQ1",
+      "rawText": "```json\n{\n  \"insight\": \"집주인 얘기는 넘어가시고 월 실수령 900이라고 알려주셨어요. 3억 대출이 무섭다고 하셨으니, 이 숫자가 그 무게를 가늠하는 데 쓰신 것 같아요. 근데 그게 '감당된다'는 건지 '그래도 무섭다'는 건지는 아직 안 들었어요.\",\n  \"frame_line\": \"전세 만기 4개월 안에, 3억 넘는 대출을 안고 7억 초반 아파트로 갈지 말지 — 맞벌이 월 실수령 900 기준으로 그 무게가 어느 정도인지가 지금 걸려 있어요.\",\n  \"real_question\": \"전세 만기 4개월 안에, 3억 넘는 대출을 안고 7억 초반 아파트로 갈지 말지 — 맞벌이 월 실수령 900 기준으로 그 무게가 어느 정도인지가 지금 걸려 있어요.\",\n  \"premise_changes\": [\n    {\n      \"action\": \"add\",\n      \"text\": \"월 실수령 900만 원이 대출 감당 여부의 기준선이다\",\n      \"anchor_quote\": \"맞벌이고 월 실수령 합쳐서 900 정도예요\",\n      \"reason_from_latest_answer\": \"3억 대출이 무섭다고 한 맥락에서 수입을 꺼냈으니, 이 숫자가 감당 가능 여부를 따지는 데 쓰이는 조건이다\",\n      \"support_kind\": \"explicit_condition\",\n      \"if_false_changes\": \"대출 규모가 감당 가능한지 여부 자체가 달라진다\",\n      \"kind\": \"premise\"\n    }\n  ],\n  \"skeleton\": [],\n  \"next_question\": {\n    \"text\": \"월 900에서 대출 이자 나가면 '이 정도면 된다' 싶으세요, 아니면 그래도 빡세다 싶으세요?\",\n    \"type\": \"short\"\n  },\n  \"ready_for_mix\": false\n}\n```"
     },
     {
-      "seq": 13,
+      "seq": 8,
       "label": "heavy-04-fire-teammate",
       "tier": "default",
       "modelId": "claude-sonnet-4-6",
       "maxTokens": 2500,
       "attempt": 0,
-      "ms": 10949,
+      "ms": 11782,
       "usage": {
-        "input_tokens": 4765,
+        "input_tokens": 4806,
         "cache_creation_input_tokens": 0,
         "cache_read_input_tokens": 0,
         "cache_creation": {
           "ephemeral_5m_input_tokens": 0,
           "ephemeral_1h_input_tokens": 0
         },
-        "output_tokens": 685,
+        "output_tokens": 750,
         "service_tier": "standard",
         "inference_geo": "global"
       },
-      "user": "[user] Original situation:\n<user-data>전세 만기가 4개월 남았는데 이참에 매매로 갈아탈까 고민이에요. 지금 전세 보증금은 4억이고, 보고 있는 아파트는 7억 초반이에요. 대출을 3억 넘게 받아야 해서 무섭긴 한데, 집주인이 전세금을 올려달라고 할 것 같기도 하고요.</user-data>\n\nCurrent state:\n- question: 전세금 인상 가능성이 있는 상황에서, 월 실수령 900 맞벌이로 3억 넘는 대출을 끌고 갈 수 있는지가 갈리는 지점이에요.\n- AI-surfaced premises: 집주인이 만기 때 전세금을 올려달라고 할 것이다 / 월 실수령 900에서 3억 초과 대출 원리금을 감당할 수 있다\n- reality checks: (none)\n- request ty",
-      "rawText": "```json\n{\n  \"insight\": \"집주인한테서 아직 직접 연락은 없었어요. 근데 주변 전세가 많이 올랐다는 걸 알고 계신 거니까, 올려달라고 할 가능성이 있다고 보시는 거죠. 확인된 건 아닌데 피부로 느끼시는 거고요.\",\n  \"frame_line\": \"집주인 말은 아직 없지만 주변 전세가 많이 오른 상황에서, 월 실수령 900 맞벌이로 3억 넘는 대출을 끌고 갈 수 있는지가 갈리는 지점이에요.\",\n  \"real_question\": \"집주인 말은 아직 없지만 주변 전세가 많이 오른 상황에서, 월 실수령 900 맞벌이로 3억 넘는 대출을 끌고 갈 수 있는지가 갈리는 지점이에요.\",\n  \"premise_changes\": [\n    {\n      \"action\": \"revise\",\n      \"previous_text\": \"집주인이 만기 때 전세금을 올려달라고 할 것이다\",\n      \"text\": \"집주인한테서 직접 연락은 없지만, 주변 전세가 많이 올랐다는 걸 알고 있어서 인상 요구가 올 가능성이 있다고 보고 있다\",\n      \"anchor_quote\": \"집주인이 아직 말은 없는데, 주변 전세가 많이 올랐다고 들었어요\",\n      \"reason_from_latest_answer\": \"확정된 사실이 아니라 시세 흐름을 근거로 가능성을 열어두고 있는 것\",\n      \"support_kind\": \"explicit_expectation\",\n      \"if_false_changes\": \"전세 유지가 현실적인 선택지로 남고, 매매 전환의 긴박성이 줄어든다\",\n      \"kind\": \"premise\"\n    }\n  ],\n  \"skeleton\": [],\n  \"next_question\": {\n    \"text\": \"월 900에서 지금 고정 지출 빼면 실제로 얼마나 남아요?\",\n    \"type\": \"short\"\n  },\n  \"ready_for_mix\": false\n}\n```"
+      "user": "[user] Original situation:\n<user-data>전세 만기가 4개월 남았는데 이참에 매매로 갈아탈까 고민이에요. 지금 전세 보증금은 4억이고, 보고 있는 아파트는 7억 초반이에요. 대출을 3억 넘게 받아야 해서 무섭긴 한데, 집주인이 전세금을 올려달라고 할 것 같기도 하고요.</user-data>\n\nCurrent state:\n- question: 전세 만기 4개월 안에, 3억 넘는 대출을 안고 7억 초반 아파트로 갈지 말지 — 맞벌이 월 실수령 900 기준으로 그 무게가 어느 정도인지가 지금 걸려 있어요.\n- AI-surfaced premises: 집주인이 이번 만기에 전세금을 올려달라고 할 것이다 / 월 실수령 900만 원이 대출 감당 여부의 기준선이다\n- reality checks: ",
+      "rawText": "```json\n{\n  \"insight\": \"집주인한테 직접 들은 건 아직 없고, 주변 전세가 올랐다는 걸 들으셨다는 거네요. 인상 요구가 올 거라는 느낌의 근거가 생긴 거예요. 다만 실제로 올지, 얼마나 올지는 아직 모르는 상태고요.\",\n  \"frame_line\": \"전세 만기 4개월 안에, 3억 넘는 대출을 안고 7억 초반 아파트로 갈지 말지 — 집주인이 직접 말한 건 없지만 주변 전세가 많이 오른 걸 들은 상태에서 결정을 봐야 해요.\",\n  \"real_question\": \"전세 만기 4개월 안에, 3억 넘는 대출을 안고 7억 초반 아파트로 갈지 말지 — 집주인이 직접 말한 건 없지만 주변 전세가 많이 오른 걸 들은 상태에서 결정을 봐야 해요.\",\n  \"premise_changes\": [\n    {\n      \"action\": \"revise\",\n      \"previous_text\": \"집주인이 이번 만기에 전세금을 올려달라고 할 것이다\",\n      \"text\": \"집주인이 인상을 요구할 가능성이 있다 — 직접 말은 없었지만 주변 전세가 많이 올랐다는 걸 들었다\",\n      \"anchor_quote\": \"집주인이 아직 말은 없는데, 주변 전세가 많이 올랐다고 들었어요\",\n      \"reason_from_latest_answer\": \"직접 확인된 사실이 아니라 주변 시세 정보를 근거로 한 추측임이 드러났다\",\n      \"support_kind\": \"explicit_condition\",\n      \"if_false_changes\": \"현 전세를 그냥 연장할 수 있는 선택지가 훨씬 무거워진다\",\n      \"kind\": \"premise\"\n    }\n  ],\n  \"skeleton\": [],\n  \"next_question\": {\n    \"text\": \"주변 전세가 얼마나 올랐는지 대략 파악이 돼 있으세요? 지금 보증금 4억에서 얼마 정도 더 올라올 것 같다는 감이 있으신가요?\",\n    \"type\": \"short\"\n  },\n  \"ready_for_mix\": false\n}\n```"
     },
     {
-      "seq": 17,
-      "label": "heavy-05-cofounder",
+      "seq": 11,
+      "label": "heavy-04-fire-teammate",
       "tier": "default",
       "modelId": "claude-sonnet-4-6",
       "maxTokens": 5500,
       "attempt": 0,
-      "ms": 11338,
+      "ms": 14207,
       "usage": {
-        "input_tokens": 3380,
+        "input_tokens": 3476,
         "cache_creation_input_tokens": 0,
         "cache_read_input_tokens": 0,
         "cache_creation": {
           "ephemeral_5m_input_tokens": 0,
           "ephemeral_1h_input_tokens": 0
         },
-        "output_tokens": 766,
+        "output_tokens": 912,
         "service_tier": "standard",
         "inference_geo": "global"
       },
-      "user": "[user] Original situation:\n<user-data>전세 만기가 4개월 남았는데 이참에 매매로 갈아탈까 고민이에요. 지금 전세 보증금은 4억이고, 보고 있는 아파트는 7억 초반이에요. 대출을 3억 넘게 받아야 해서 무섭긴 한데, 집주인이 전세금을 올려달라고 할 것 같기도 하고요.</user-data>\n\nFinal living state:\n- question: 집주인 말은 아직 없지만 주변 전세가 많이 오른 상황에서, 월 실수령 900 맞벌이로 3억 넘는 대출을 끌고 갈 수 있는지가 갈리는 지점이에요.\n- insight: 집주인한테서 아직 직접 연락은 없었어요. 근데 주변 전세가 많이 올랐다는 걸 알고 계신 거니까, 올려달라고 할 가능성이 있다고 보시는 거죠. 확인된 건 아닌데 피부로 느끼시는",
-      "rawText": "```json\n{\n  \"title\": \"전세 만기 4개월 — 매매 전환 검토\",\n  \"decision_read\": \"매매로 갈지 전세를 유지할지 아직 열려 있고, 월 900 실수령에서 3억 넘는 대출을 실제로 감당할 수 있는지가 확인되지 않은 채로 남아 있어요.\",\n  \"executive_summary\": \"전세 보증금 4억에 3억 초과 대출을 더해 7억 초반 아파트를 사는 구조예요. 집주인한테서 직접 연락은 없었지만 주변 시세가 올랐다는 건 알고 계시고요. 월 실수령 900에서 고정 지출을 빼고 원리금을 감당할 수 있는지가 아직 확인되지 않았어요.\",\n  \"sections\": [\n    {\n      \"heading\": \"확인된 것\",\n      \"content\": \"전세 만기 4개월 남음. 현재 전세 보증금 4억. 보고 있는 아파트 7억 초반. 필요 대출 3억 초과. 맞벌이, 월 실수령 합산 900. 집주인한테서 직접 연락은 아직 없음. 주변 전세가 많이 올랐다는 건 인지하고 있음.\"\n    },\n    {\n      \"heading\": \"아직 확인되지 않은 것\",\n      \"content\": \"월 900에서 현재 고정 지출을 빼고 실제로 얼마가 남는지 확인되지 않았어요. 그게 없으면 3억 초과 대출 원리금을 감당할 수 있는지 판단이 서지 않아요.\"\n    }\n  ],\n  \"key_assumptions\": [\n    {\n      \"proposition\": \"월 실수령 900에서 3억 초과 대출 원리금을 감당할 수 있다\",\n      \"user_anchor\": \"맞벌이고 월 실수령 합쳐서 900 정도예요\",\n      \"if_false\": \"매매 전환 자체가 지금 시점에선 무리한 구조가 돼요\"\n    }\n  ],\n  \"next_steps\": [\n    \"월 900에서 현재 고정 지출을 빼고 실제로 얼마가 남는지 확인하기 — 이게 틀리면 매매 전환 자체가 지금 시점에선 무리한 구조가 돼요\"\n  ]\n}\n```"
+      "user": "[user] Original situation:\n<user-data>전세 만기가 4개월 남았는데 이참에 매매로 갈아탈까 고민이에요. 지금 전세 보증금은 4억이고, 보고 있는 아파트는 7억 초반이에요. 대출을 3억 넘게 받아야 해서 무섭긴 한데, 집주인이 전세금을 올려달라고 할 것 같기도 하고요.</user-data>\n\nFinal living state:\n- question: 전세 만기 4개월 안에, 3억 넘는 대출을 안고 7억 초반 아파트로 갈지 말지 — 집주인이 직접 말한 건 없지만 주변 전세가 많이 오른 걸 들은 상태에서 결정을 봐야 해요.\n- insight: 집주인한테 직접 들은 건 아직 없고, 주변 전세가 올랐다는 걸 들으셨다는 거네요. 인상 요구가 올 거라는 느낌의 근거가 생긴 거예요. 다만 실제로",
+      "rawText": "```json\n{\n  \"title\": \"전세 만기 4개월 — 7억 초반 매매로 갈아탈지 말지\",\n  \"decision_read\": \"월 실수령 900에서 3억 넘는 대출을 감당할 수 있는지, 그리고 집주인이 실제로 인상 요구를 할지 — 이 두 가지가 아직 열려 있어요.\",\n  \"executive_summary\": \"전세금 4억, 보는 아파트 7억 초반, 대출 3억 이상이 필요한 구도예요. 집주인한테 직접 들은 건 없고 주변 전세가 올랐다는 걸 들은 상태예요. 월 900에서 이자 나갔을 때 빡센지 아닌지는 아직 확인이 안 됐어요.\",\n  \"sections\": [\n    {\n      \"heading\": \"확인된 것\",\n      \"content\": \"전세 만기 4개월 남음. 현재 전세 보증금 4억. 보고 있는 아파트 7억 초반, 대출 3억 이상 필요. 맞벌이, 월 실수령 합산 약 900만 원. 주변 전세가 많이 올랐다고 들었음. 집주인한테 직접 들은 말은 없음.\"\n    },\n    {\n      \"heading\": \"아직 확인되지 않은 것\",\n      \"content\": \"월 900에서 대출 이자 빠졌을 때 '된다'인지 '빡세다'인지 — 본인 기준이 아직 안 나왔어요. 집주인이 실제로 인상 요구를 할지, 한다면 얼마를 요구할지도 모르는 상태예요.\"\n    }\n  ],\n  \"key_assumptions\": [\n    {\n      \"proposition\": \"집주인이 전세 인상을 요구할 가능성이 있다\",\n      \"user_quote\": \"주변 전세가 많이 올랐다고 들었어요\",\n      \"if_false\": \"인상 요구가 없다면, 지금 전세를 유지하는 선택지의 무게가 달라져요\"\n    },\n    {\n      \"proposition\": \"월 실수령 900만 원이 대출 감당 여부를 판단하는 기준선이다\",\n      \"user_quote\": \"맞벌이고 월 실수령 합쳐서 900 정도예요\",\n      \"if_false\": \"실제 고정 지출이나 저축 목표가 따로 있으면, 900 전체를 기준으로 보는 것 자체가 달라져요\"\n    }\n  ],\n  \"next_steps\": [\n    \"집주인 인상 요구가 실제로 없다면, 전세 유지 선택지의 비중이 달라지는지 확인\",\n    \"월 900에서 이자 빠진 뒤 실제 생활이 된다는 기준이 어디인지 확인\"\n  ]\n}\n```"
     }
   ],
   "mechanical": {

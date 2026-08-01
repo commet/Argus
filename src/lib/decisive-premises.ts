@@ -62,6 +62,13 @@ export interface KindPolicy {
    *  ever check is not a prediction; it is an assumption with a date on it,
    *  and it is read as one rather than refused. */
   needsObservable: boolean;
+  /** Admission requires `if_false_changes`. Only a claim owes one: "what
+   *  changes if this fact you told me is false" has no answer, and "what
+   *  changes if your value is wrong" is not a question anyone may ask. */
+  needsCounterfactual: boolean;
+  /** Admission requires `support_kind`. A fact supports nothing; it is just
+   *  something they said. */
+  needsSupportKind: boolean;
 }
 
 /**
@@ -74,15 +81,22 @@ export interface KindPolicy {
  * lacking a connective) and under-rejected (it waved through bare facts).
  */
 export const KIND_POLICY: Record<PremiseKind, KindPolicy> = {
-  fact: { verifiable: false, competes: false, needsClaim: false, needsStance: false, needsObservable: false },
-  premise: { verifiable: true, competes: true, needsClaim: true, needsStance: false, needsObservable: false },
+  // The required fields are per kind for the same reason the gates are. Asking
+  // every proposal for a counterfactual meant the model could not file an
+  // honest fact at all: told "if you cannot say what it licenses, record the
+  // plain fact and stop", it did exactly that and was refused with
+  // missing_required_field — twice in one measured run.
+  fact: { verifiable: false, competes: false, needsClaim: false, needsStance: false, needsObservable: false, needsCounterfactual: false, needsSupportKind: false },
+  premise: { verifiable: true, competes: true, needsClaim: true, needsStance: false, needsObservable: false, needsCounterfactual: true, needsSupportKind: true },
   // A prediction is NOT gated on saying something new. Its whole job is to turn
   // a hedge into something reality can answer — "올려달라고 할 것 같기도
   // 하고요" into "올려달라고 할 것이다" — which adds no vocabulary at all. What
   // it owes instead is a way to check it.
-  prediction: { verifiable: true, competes: true, needsClaim: false, needsStance: false, needsObservable: true },
-  standard: { verifiable: false, competes: false, needsClaim: false, needsStance: true, needsObservable: false },
-  open_question: { verifiable: true, competes: false, needsClaim: false, needsStance: false, needsObservable: false },
+  prediction: { verifiable: true, competes: true, needsClaim: false, needsStance: false, needsObservable: true, needsCounterfactual: true, needsSupportKind: true },
+  // "이게 틀리면 무엇이 달라지나요" about someone's own weighting is a question
+  // nobody may ask them, so a standard never owes a counterfactual.
+  standard: { verifiable: false, competes: false, needsClaim: false, needsStance: true, needsObservable: false, needsCounterfactual: false, needsSupportKind: true },
+  open_question: { verifiable: true, competes: false, needsClaim: false, needsStance: false, needsObservable: false, needsCounterfactual: false, needsSupportKind: false },
 };
 
 export const PREMISE_KINDS = Object.keys(KIND_POLICY) as PremiseKind[];

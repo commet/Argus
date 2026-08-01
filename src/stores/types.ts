@@ -1317,6 +1317,17 @@ export interface FlowAnswer {
  */
 export type PremiseKind = 'fact' | 'premise' | 'prediction' | 'standard' | 'open_question';
 
+/** One proposal that the admission contract did not take at face value. */
+export interface PremiseVerdict {
+  text: string;
+  /** What the model called it. */
+  declared: PremiseKind;
+  /** What it was actually filed as. Absent when the proposal was refused. */
+  recorded?: PremiseKind;
+  /** The contract's machine reason, e.g. 'restates_anchor_recorded_as_fact'. */
+  reason: string;
+}
+
 export interface PremiseRecord {
   /** The proposition that has to hold for the decision to work. */
   text: string;
@@ -1357,6 +1368,20 @@ export interface AnalysisSnapshot {
    *  non-open routes. Lives inside the progressive_sessions JSONB blob, so
    *  adding it is not a schema drift. */
   premise_records?: PremiseRecord[];
+  /**
+   * What the admission contract DID with the model's last proposals, when it
+   * did something other than accept them as offered.
+   *
+   * The contract already computes a precise verdict for every proposal —
+   * "this repeats its own anchor", "this attributes a weighting the quote does
+   * not carry" — and until now it threw that verdict away. The model then made
+   * the same move on the next turn, having never been told. Carrying it into
+   * the next prompt is the deterministic half of the loop teaching the
+   * probabilistic half, inside a single session.
+   *
+   * Only demotions and refusals are kept. A clean acceptance is silence.
+   */
+  premise_verdicts?: PremiseVerdict[];
   skeleton: string[];
   execution_plan?: {
     steps: {

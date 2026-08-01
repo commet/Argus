@@ -40,6 +40,7 @@ import {
   applyPremiseDeltas,
   clampSynthesisToLivingState,
   coercePremiseCandidates,
+  verdictsWorthTelling,
 } from '@/lib/judgment-state-contract';
 // The engine's pure post-guards — applied here too so the judge measures what
 // the PRODUCT ships, not the raw model output (batch-3: pre-guard output was
@@ -147,9 +148,14 @@ export async function runHeavyInitial(problemText: string, locale: Locale): Prom
   ) as Record<string, unknown>;
   raw.real_question = raw.frame_line || raw.real_question;
   raw.skeleton = [];
-  const groundedPremises = raw.request_type === 'open'
-    ? coercePremiseCandidates(raw.premise_candidates, problemText).premises
-    : [];
+  // Keep the WHOLE contract result, not just the texts. The sim used to take
+  // `.premises` and rebuild bare records next round, so kind, anchor and
+  // observable died between turns and every carried item read as an untyped
+  // premise — the harness measuring a shape the product does not have.
+  const admitted = raw.request_type === 'open'
+    ? coercePremiseCandidates(raw.premise_candidates, problemText)
+    : { premises: [], records: [], audit: [] };
+  const groundedPremises = admitted.premises;
   const { result, coerced } = applyRouteContract({
     ...raw,
     hidden_assumptions: groundedPremises,
@@ -190,7 +196,15 @@ export async function runHeavyInitial(problemText: string, locale: Locale): Prom
         )
       : r.next_question,
   };
-  return { raw, result: guarded as Record<string, unknown>, routeCoerced: coerced };
+  return {
+    raw,
+    result: {
+      ...(guarded as Record<string, unknown>),
+      premise_records: admitted.records,
+      premise_verdicts: verdictsWorthTelling(admitted.audit),
+    },
+    routeCoerced: coerced,
+  };
 }
 
 export async function runHeavyDeepening(
@@ -224,15 +238,14 @@ export async function runHeavyDeepening(
     ...questionsAndAnswers.map((qa) => String(qa.answer.value ?? '')),
   ].join('\n');
   const latestAnswer = String(questionsAndAnswers.at(-1)?.answer.value ?? '');
-  const nextPremises = applyPremiseDeltas(
-    (currentSnapshot.hidden_assumptions || []).map((text: string) => ({
+  const snapshotRecords = (currentSnapshot as unknown as { premise_records?: never[] }).premise_records;
+  const carried = snapshotRecords?.length
+    ? snapshotRecords
+    : (currentSnapshot.hidden_assumptions || []).map((text: string) => ({
       text, anchor_quote: '', if_false_changes: '', support_kind: 'explicit_reason' as const,
       kind: 'premise' as const,
-    })),
-    raw.premise_changes,
-    userCorpus,
-    latestAnswer,
-  ).premises;
+    })) as never[];
+  const transition = applyPremiseDeltas(carried, raw.premise_changes, userCorpus, latestAnswer);
   // Mirror the engine's post-guards (guardFinalQuestion softening + R7 scrub).
   const nq = dropRepeatedQuestion(
     raw.next_question as { text?: string } | null | undefined,
@@ -240,7 +253,9 @@ export async function runHeavyDeepening(
   );
   return {
     ...raw,
-    hidden_assumptions: nextPremises,
+    hidden_assumptions: transition.premises,
+    premise_records: transition.records,
+    premise_verdicts: verdictsWorthTelling(transition.audit),
     insight: typeof raw.insight === 'string' ? scrubBannedVocabulary(raw.insight) : raw.insight,
     skeleton: Array.isArray(raw.skeleton) ? scrubList(raw.skeleton as string[]) : raw.skeleton,
     next_question: nq && typeof nq.text === 'string' ? { ...nq, text: limitQuestionMarks(nq.text) } : nq,

@@ -204,3 +204,48 @@ describe('the kind decides what comes back on the return day', () => {
     expect(premisesToRevisit(items).map((p) => p.kind)).toEqual(['premise', 'open_question']);
   });
 });
+
+describe('what a proposal owes depends on what it says it is', () => {
+  it('lets an honest fact in without a counterfactual', () => {
+    // The prompt tells the model: if you cannot say what the fact licenses,
+    // record the plain fact and stop. It did exactly that, twice in one
+    // measured run, and was refused for missing if_false_changes — a field
+    // that has no meaning for a fact ("what changes if this thing you told me
+    // is false"). The instruction and the door disagreed; the door was wrong.
+    const { records, audit } = coercePremiseCandidates([{
+      text: '런웨이가 10개월이다',
+      anchor_quote: '런웨이는 10개월 정도 남았어요',
+      kind: 'fact',
+    }], '런웨이는 10개월 정도 남았어요.');
+    expect(audit[0]).toMatchObject({ accepted: true });
+    expect(records[0].kind).toBe('fact');
+  });
+
+  it('still refuses a premise offered with no consequence', () => {
+    const { audit } = coercePremiseCandidates([{
+      ...SHARP_PREMISE,
+      if_false_changes: '',
+    }], CORPUS);
+    expect(audit[0]).toMatchObject({
+      accepted: false,
+      reason: 'missing_required_field',
+      declared_kind: 'premise',
+    });
+  });
+
+  it('never lets anything in without lineage, whatever kind it claims', () => {
+    for (const kind of ['fact', 'premise', 'prediction', 'standard', 'open_question']) {
+      const { audit } = coercePremiseCandidates([{ text: '무언가', kind }], CORPUS);
+      expect(audit[0].accepted, `${kind} entered with no anchor`).toBe(false);
+    }
+  });
+
+  it('does not ask a standard what would change if the user\'s values were wrong', () => {
+    const { records, audit } = coercePremiseCandidates([{
+      ...STANDARD,
+      if_false_changes: '',
+    }], CORPUS);
+    expect(audit[0]).toMatchObject({ accepted: true });
+    expect(records[0].kind).toBe('standard');
+  });
+});
