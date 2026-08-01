@@ -126,6 +126,20 @@ describe('BindCard — authorship before commitment', () => {
     const customDate = container.querySelector('input[type="date"]');
     expect(customDate?.getAttribute('aria-label')).toContain('직접 확인일');
   });
+
+  it('keeps optional review dates folded behind one accessible control on phones', () => {
+    render(createElement(BindCard, { problem: '결정할 일이 있어요', onProceed: vi.fn() }));
+    const disclosure = byText('언제 다시 볼까요? · 선택').closest('button')!;
+    expect(disclosure.getAttribute('aria-expanded')).toBe('false');
+    const optionsId = disclosure.getAttribute('aria-controls');
+    const options = optionsId ? container.querySelector(`#${optionsId}`) : null;
+    expect(options?.className).toContain('hidden');
+    expect(options?.className).toContain('sm:flex');
+
+    click(disclosure);
+    expect(disclosure.getAttribute('aria-expanded')).toBe('true');
+    expect(options?.className).toContain('grid');
+  });
 });
 
 describe('QuestionCard — meta + skip', () => {

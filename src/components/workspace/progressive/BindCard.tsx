@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
-import { ArrowRight, CalendarDays, Quote } from 'lucide-react';
+import { ArrowRight, CalendarDays, ChevronDown, Quote } from 'lucide-react';
 import { useLocale } from '@/hooks/useLocale';
 import type { CheckInInterval } from '@/stores/types';
 
@@ -70,6 +70,7 @@ export function BindCard({
   const [lean, setLean] = useState('');
   const [interval, setInterval] = useState<CheckInInterval | null>(null);
   const [customDate, setCustomDate] = useState(''); // a specific picked date (yyyy-mm-dd)
+  const [dateOpen, setDateOpen] = useState(false);
   const [problemExpanded, setProblemExpanded] = useState(false);
   const [proceeding, setProceeding] = useState(false);
   const proceedingRef = useRef(false);
@@ -195,16 +196,36 @@ export function BindCard({
           />
 
         {/* Check-in window — none preselected; an untapped default is never a commitment.
-            Each chip shows its resolved date; "직접" picks a specific known day. */}
+            Each chip shows its resolved date; "직접" picks a specific known day.
+            On phones this optional choice starts folded so the primary thought
+            and continue action remain one short reading path. Desktop keeps the
+            choices open because they fit beside one another without burying it. */}
         <div className="mt-5 border-t border-[var(--border-subtle)] pt-4">
-          <div className="mb-2.5 flex items-start gap-2.5">
+          <button
+            type="button"
+            onClick={() => setDateOpen((open) => !open)}
+            aria-expanded={dateOpen}
+            aria-controls="bind-review-date-options"
+            className="flex min-h-11 w-full items-center gap-2.5 text-left sm:hidden"
+          >
+            <CalendarDays size={16} className="mt-0.5 shrink-0 text-[var(--accent)]" aria-hidden />
+            <span className="min-w-0 flex-1">
+              <span className="block text-[13px] font-bold text-[var(--text-primary)]">{L('언제 다시 볼까요? · 선택', 'When should we revisit? · optional')}</span>
+              <span className="mt-0.5 block text-[11.5px] leading-4 text-[var(--text-tertiary)]">{L('원하면 날짜를 정할 수 있어요.', 'Set a date if it would help.')}</span>
+            </span>
+            <ChevronDown size={16} aria-hidden className={`shrink-0 text-[var(--text-tertiary)] transition-transform ${dateOpen ? 'rotate-180' : ''}`} />
+          </button>
+          <div className="mb-2.5 hidden items-start gap-2.5 sm:flex">
             <CalendarDays size={16} className="mt-0.5 shrink-0 text-[var(--accent)]" aria-hidden />
             <div>
               <span className="block text-[13px] font-bold text-[var(--text-primary)]">{L('언제 다시 볼까요?', 'When should we revisit this?')}</span>
               <span className="mt-0.5 block text-[11.5px] leading-4 text-[var(--text-tertiary)]">{L('선택한 날에 결과를 확인해요. 정하지 않아도 됩니다.', 'Check the outcome on that date. You can leave this unset.')}</span>
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-stretch">
+          <div
+            id="bind-review-date-options"
+            className={`${dateOpen ? 'mt-2.5 grid' : 'hidden'} grid-cols-2 gap-2 sm:mt-0 sm:flex sm:flex-wrap sm:items-stretch`}
+          >
             {INTERVALS.map((iv) => (
               <button
                 key={iv.value}
