@@ -127,13 +127,18 @@ export function ShareComposer({ open, onClose, getText, getTitle, shareContext =
             <span className="text-[12.5px] font-bold uppercase tracking-wider text-[var(--text-tertiary)]">{title || L('미리보기', 'Preview')}</span>
             <div className="flex gap-1.5">
               <button
+                type="button"
                 onClick={handleCopy}
+                aria-live="polite"
+                aria-label={copied ? L('복사됨', 'Copied') : L('내용 복사', 'Copy content')}
                 className="inline-flex items-center gap-1 text-[12.5px] text-[var(--text-secondary)] hover:text-[var(--accent)] px-2 py-1 rounded-md transition-colors cursor-pointer"
               >
                 {copied ? <Check size={12} /> : <CopyIcon size={12} />} {copied ? L('복사됨', 'Copied') : L('복사', 'Copy')}
               </button>
               <button
+                type="button"
                 onClick={handleDownload}
+                aria-label={L('마크다운 파일로 저장', 'Download as a Markdown file')}
                 className="inline-flex items-center gap-1 text-[12.5px] text-[var(--text-secondary)] hover:text-[var(--accent)] px-2 py-1 rounded-md transition-colors cursor-pointer"
               >
                 <Download size={12} /> .md
@@ -151,6 +156,7 @@ export function ShareComposer({ open, onClose, getText, getTitle, shareContext =
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-2">
             {(Object.keys(channelMeta) as Channel[]).map((ch) => (
               <button
+                type="button"
                 key={ch}
                 onClick={() => setActive(active === ch ? null : ch)}
                 // `ready` 는 2026-07-29 까지 계산만 되고 **아무 데서도 읽히지 않았다** —
