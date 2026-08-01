@@ -65,13 +65,13 @@ export default function GuidePage() {
     ? [
         '상황을 한 줄 적어요 → 진짜 질문과 숨은 가정이 드러납니다',
         'AI 의견을 보기 전에 내 예상을 한 줄 남겨요 → 선택사항이며, 나중에 실제 결과와 비교해요',
-        'AI 검토자가 숨은 전제와 열린 질문을 보여줘요 → 필요한 곳을 고치고 마지막 문장은 내가 확정해요',
+        'Argus가 숨은 전제와 열린 질문을 보여줘요 → 필요한 곳을 고치고 마지막 문장은 내가 확정해요',
         '날짜나 사건이 오면 그때 문장부터 다시 봐요 → 현실과 지금의 기준을 따로 답하고, 점수는 매기지 않아요',
       ]
     : [
         'Write the situation in one line → the real question and hidden assumptions surface',
         'Leave your initial expectation before seeing the AI view → optional, and useful for later comparison',
-        'AI reviewers surface hidden premises and open questions → revise what needs work, then confirm the final sentence yourself',
+        'Argus surfaces hidden premises and open questions → revise what needs work, then confirm the final sentence yourself',
         'Return on the date or event you chose and read the original first → answer reality and your present standard separately, with no score',
       ];
 
@@ -97,8 +97,8 @@ export default function GuidePage() {
     {
       href: '/agents',
       icon: Bot,
-      label: L('AI 검토자', 'AI reviewers'),
-      desc: L('분석 단계에서 병렬로 일하는 전문 에이전트들을 구경할 수 있어요.', 'Meet the specialist agents that work in parallel during analysis.'),
+      label: L('AI 검토 방식', 'AI review modes'),
+      desc: L('어떤 검토 역할이 있고, 각각 언제 쓰이는지 살펴볼 수 있어요.', 'See which review roles exist and when each one is useful.'),
     },
   ];
 
