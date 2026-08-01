@@ -484,7 +484,7 @@ function LoginContent() {
             href="/workspace"
             className="inline-flex min-h-11 items-center text-[12px] text-[var(--text-tertiary)] hover:text-[var(--accent)] transition-colors"
           >
-            {L('로그인 없이 계속 → 일반적인 사용 기준 하루 약 4~5개', 'Continue without login → about 4–5 decisions/day for typical use')}
+            {L('로그인 없이 계속 →', 'Continue without login →')}
           </LocaleLink>
         </div>
       </div>

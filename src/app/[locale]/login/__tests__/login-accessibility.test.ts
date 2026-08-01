@@ -28,5 +28,7 @@ describe('login accessibility contract', () => {
     expect(source).toContain('판단 기록을 초대한 사람과 공유');
     expect(source).not.toContain('결정 6~8개');
     expect(source).not.toContain('리뷰어 팀 저장');
+    expect(source).not.toContain('4~5');
+    expect(source).not.toContain('4–5 decisions/day');
   });
 });
