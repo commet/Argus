@@ -237,6 +237,58 @@ export function stripUnearnedRanking(insight: string | undefined): string | unde
   return out || insight;
 }
 
+/**
+ * Reading the user's GRAMMAR as evidence about their feelings.
+ *
+ * Measured 2026-08-02, the worst single line the sim has produced. Someone
+ * wrote six words — "퇴사하고 여행이나 갈까" — and Argus answered:
+ *
+ *   "'이나'가 붙은 거, 그냥 탈출하고 싶다는 말처럼 들려요."
+ *
+ * It analysed their PARTICLE and returned a psychological state they had never
+ * named. The independent judge scored three separate H failures on that one
+ * sentence (route_fit, ownership, fact_lineage) — H being "제품 정체성을 직접
+ * 훼손". It is the manufactured-meaning trap in its purest form: a person's
+ * choice of ending is not a confession, and telling someone what their word
+ * choice reveals about them is the one thing the spine forbids outright.
+ *
+ * SILENCE IS NOT DATA already says what they did NOT say carries no meaning.
+ * This is its twin, and the sharper of the two: HOW they said it carries none
+ * either.
+ *
+ * Only the mechanically certain half is clamped here — a sentence that points
+ * at the user's own wording as its evidence. The other half (naming an inner
+ * state they never named) is semantic and lives in the prompt, where it can be
+ * measured rather than guessed at.
+ */
+const WORD_CHOICE_READING = new RegExp(
+  // '이나'가 붙은 거 / "여행이나"라고 쓰신 걸 보면 / 그 표현을 보면
+  '[\'"“”‘’][^\'"“”‘’]{1,20}[\'"“”‘’]\\s*(가|이|을|를|라고|이라고)?\\s*(붙|쓰|적|말씀|하신|한 것|한 거)'
+  + '|(표현|말투|단어|어투|말씨|어감|뉘앙스)\\s*(을|를|이|가|에서)?\\s*보면'
+  + '|(표현|말투|단어|어투|말씨|어감|뉘앙스)(을|를|이|가)?\\s*(쓰신|고르신|택하신|선택하신)'
+  + '|라고\\s*(하신|쓰신|말씀하신)\\s*(거|것|걸|점)'
+  + '|\\b(the way you (put|said|phrased)|your (word|phrasing|wording) (choice )?(suggests|tells|says))\\b',
+  'i',
+);
+
+/**
+ * Drop any sentence whose evidence is the user's own phrasing.
+ *
+ * Returns '' when nothing survives, rather than falling back to the original.
+ * `stripUnearnedRanking` keeps the original in that case on purpose — a ranked
+ * sentence is still mostly about the decision. A sentence reading someone's
+ * grammar is ENTIRELY the violation, so handing it back would defeat the guard,
+ * and the caller decides what an honest empty means on its route.
+ */
+export function stripWordChoiceReading(insight: string | undefined): string {
+  if (!insight) return '';
+  return insight
+    .split(/(?<=[.!?…])\s+/)
+    .filter((s) => !WORD_CHOICE_READING.test(s))
+    .join(' ')
+    .trim();
+}
+
 function normalizeQuestionForRepeat(text: string): string {
   return text.normalize('NFKC').toLocaleLowerCase().replace(/[^\p{L}\p{N}]+/gu, '');
 }

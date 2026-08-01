@@ -58,6 +58,7 @@ import {
   lowConfidenceOpeningCopy,
   stripConditionalReassurance,
   stripUnearnedRanking,
+  stripWordChoiceReading,
   capEscalationArrival,
   scrubBannedVocabulary,
   scrubList,
@@ -69,6 +70,7 @@ export {
   lowConfidenceOpeningCopy,
   stripConditionalReassurance,
   stripUnearnedRanking,
+  stripWordChoiceReading,
   capEscalationArrival,
   scrubBannedVocabulary,
 } from '@/lib/progressive-guards';
@@ -855,12 +857,17 @@ export async function runInitialAnalysis(
   // Route-specific insight guards (all code-enforced, sim F1/R1): crisis gets
   // the resource line appended; validation gets the conditional-reassurance
   // sentence stripped. Both then pass the heavy vocabulary scrub (R7).
+  // Reading the user's own grammar back to them as evidence about their inner
+  // state is a spine violation on EVERY route, so it is stripped before the
+  // route-specific guards — including on crisis, where the resource line is
+  // then appended to whatever honestly survives.
+  const literalInsight = stripWordChoiceReading(result.insight);
   const routedInsight = result.request_type === 'crisis'
-    ? ensureCrisisResource(result.insight, locale)
+    ? ensureCrisisResource(literalInsight || result.real_question, locale)
     : result.request_type === 'validation'
-      ? stripConditionalReassurance(result.insight)
+      ? stripConditionalReassurance(literalInsight)
       // Ranking the user's own concerns is a verdict about them on every route.
-      : stripUnearnedRanking(result.insight);
+      : stripUnearnedRanking(literalInsight);
 
   const snapshot: AnalysisSnapshot = {
     version: 0,
@@ -878,8 +885,13 @@ export async function runInitialAnalysis(
     // canned "아직 무엇이 이 판단을 움직이는지는 정해지지 않았어요" whenever the
     // model self-scored under 70 — which open decisions routinely do — so the
     // first thing most people read was Argus saying it had nothing.
+    // When the word-choice guard empties a non-open insight, the honest
+    // replacement is their own frame — SHORTER than they said it, in their
+    // words, by contract — not silence and not a canned sentence about them.
     insight: result.request_type && result.request_type !== 'open'
-        ? (routedInsight ? scrubBannedVocabulary(routedInsight) : routedInsight)
+        ? (routedInsight
+          ? scrubBannedVocabulary(routedInsight)
+          : (result.real_question || routedInsight))
         : (result.real_question || (locale === 'ko' ? '무엇이 이 결정을 가르는지부터 확인해볼게요.' : 'Let’s first identify what this decision turns on.')),
     framing_confidence: framingConfidence,
     framing_locked: false,
