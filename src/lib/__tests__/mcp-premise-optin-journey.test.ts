@@ -8,8 +8,8 @@
  * If any hop drops the wire, this goes red instead of a silent nothing.
  */
 import { describe, expect, it } from 'vitest';
-import { sanitizeTrackedPremises } from '../../app/api/mcp/seal/route';
-import { buildPremiseWatchAlert } from '../../app/api/cron/premise-watch/route';
+import { sanitizeTrackedPremises } from '../mcp-seal-routing';
+import { buildPremiseWatchAlert } from '../premise-watch-routing';
 import { isMonitored } from '../premises-core';
 import type { JudgmentReceipt } from '../review';
 import type { InvestigationResult } from '../premise-researcher';

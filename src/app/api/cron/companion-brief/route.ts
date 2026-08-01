@@ -2,10 +2,11 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { Resend } from 'resend';
 import { markdownToEmailHtml } from '@/lib/email-html';
-import { buildCompanionBrief, companionBriefItemCount, type DueReceiptBrief, type DuePredicate, type DuePremiseNudge, type OpenQuestionNudge, type PremiseChange } from '@/lib/companion-brief';
+import { buildCompanionBrief, companionBriefItemCount, type DueReceiptBrief, type DuePredicate, type DuePremiseNudge, type OpenQuestionNudge } from '@/lib/companion-brief';
+import { clearPendingBriefChanges, dueOpenQuestions, pendingBriefChanges } from '@/lib/companion-brief-routing';
 import { notificationGateAllowsSend } from '@/lib/notification-gate';
 import type { JudgmentReceipt } from '@/lib/review';
-import { isMonitored, isReconsiderable, nextRecheckDue, nextReponderDue } from '@/lib/premises-core';
+import { isMonitored, nextRecheckDue } from '@/lib/premises-core';
 import { logServerEvent } from '@/lib/server-events';
 import { dueReconsiderItems, applyReconsiderNudge } from '@/lib/decision-item-watch';
 import type { DecisionItem } from '@/lib/decision-items';
@@ -67,61 +68,6 @@ function duePremiseNudges(receipt: JudgmentReceipt, todayYMD: string): DuePremis
       return due === null || due <= todayYMD;
     })
     .map((p) => ({ ordinal: p.ordinal, text: p.text, last_finding: p.last_recheck?.finding }));
-}
-
-export function dueOpenQuestions(receipt: JudgmentReceipt, todayYMD: string): OpenQuestionNudge[] {
-  const armed = receipt.state === 'sealed'
-    || (receipt.falsifiable_followups || []).some((f) => f.sealed_at && !f.settled_at);
-  if (!armed) return [];
-  return (receipt.tracked_premises || [])
-    .filter((p) => isReconsiderable(p))
-    .filter((p) => {
-      const due = nextReponderDue(p); // null = no anchor → due now
-      return due === null || due <= todayYMD;
-    })
-    .map((p) => ({ ordinal: p.ordinal, text: p.text }));
-}
-
-function parseSourceDetail(detail?: string): { source_url: string; source_date?: string } {
-  if (!detail) return { source_url: '' };
-  const m = /^(.*?)\s+\((\d{4}-\d{2}-\d{2})\)$/.exec(detail);
-  if (m) return { source_url: m[1], source_date: m[2] };
-  return { source_url: detail };
-}
-
-export function pendingBriefChanges(receipt: JudgmentReceipt): PremiseChange[] {
-  return (receipt.tracked_premises || [])
-    .filter((p) => p.last_recheck?.brief_pending)
-    .map((p) => {
-      const last = p.last_recheck!;
-      const source = parseSourceDetail(last.source_detail);
-      return {
-        ordinal: p.ordinal,
-        premise_id: p.premise_id,
-        text: p.text,
-        ...(last.baseline_finding ? { baseline: last.baseline_finding } : {}),
-        ...(typeof last.baseline_numeric_value === 'number' ? { baseline_numeric_value: last.baseline_numeric_value } : {}),
-        fact: last.finding,
-        ...(typeof last.numeric_value === 'number' ? { current_value: last.numeric_value } : {}),
-        source_url: source.source_url,
-        source_date: source.source_date,
-        checked_at: last.ts,
-        confidence: last.confidence,
-        kind: p.kind,
-      };
-    });
-}
-
-export function clearPendingBriefChanges(receipt: JudgmentReceipt): JudgmentReceipt {
-  return {
-    ...receipt,
-    tracked_premises: (receipt.tracked_premises || []).map((p) => {
-      if (!p.last_recheck?.brief_pending) return p;
-      const { brief_pending: _pending, brief_kind: _kind, ...last } = p.last_recheck;
-      void _pending; void _kind;
-      return { ...p, last_recheck: last };
-    }),
-  };
 }
 
 export async function GET(req: Request) {

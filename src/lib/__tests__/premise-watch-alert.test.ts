@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildPremiseWatchAlert } from '../../app/api/cron/premise-watch/route';
+import { buildPremiseWatchAlert } from '../premise-watch-routing';
 import { findForbiddenNotificationVocabulary } from '../notification-copy';
 import type { JudgmentReceipt } from '../review';
 import type { PremiseState } from '../premises-core';

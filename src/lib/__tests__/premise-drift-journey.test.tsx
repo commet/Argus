@@ -16,8 +16,8 @@
 
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
-import { applyWatchRecheck, buildPremiseWatchAlert } from '../../app/api/cron/premise-watch/route';
-import { clearPendingBriefChanges, pendingBriefChanges } from '../../app/api/cron/companion-brief/route';
+import { applyWatchRecheck, buildPremiseWatchAlert } from '../premise-watch-routing';
+import { clearPendingBriefChanges, pendingBriefChanges } from '../companion-brief-routing';
 import { buildCompanionBrief } from '../companion-brief';
 import { findForbiddenNotificationVocabulary } from '../notification-copy';
 import { isDueForRecheck, type PremiseState } from '../premises-core';

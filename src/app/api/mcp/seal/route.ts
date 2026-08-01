@@ -3,6 +3,7 @@ import { createHash } from 'crypto';
 import { adminClient } from '@/lib/share-guard';
 import { isTokenExpired } from '@/lib/plugin-token';
 import type { JudgmentReceipt } from '@/lib/review';
+import { sanitizeTrackedPremises } from '@/lib/mcp-seal-routing';
 
 /**
  * MCP → account bridge (design: "MCP도 이메일로 귀환"). The argus-decision-mcp `argus_seal`
@@ -50,31 +51,6 @@ interface SealPayload {
 /** Sanitize opt-in premises to the PremiseState shape premise-watch consumes —
  *  bounded (≤7, text ≤400), monitored-only fields; never trust the wire.
  *  Exported for the M3 seam test (MCP wire shape → premise-watch consumption). */
-export function sanitizeTrackedPremises(raw: unknown): JudgmentReceipt['tracked_premises'] {
-  if (!Array.isArray(raw)) return undefined;
-  const out = raw.slice(0, 7).flatMap((p) => {
-    if (!p || typeof p !== 'object') return [];
-    const r = p as Record<string, unknown>;
-    if (typeof r.text !== 'string' || !r.text.trim()) return [];
-    return [{
-      premise_id: typeof r.premise_id === 'string' ? r.premise_id.slice(0, 64) : `p_${Math.random().toString(36).slice(2, 10)}`,
-      ordinal: typeof r.ordinal === 'number' ? r.ordinal : 0,
-      kind: 'premise' as const,
-      text: r.text.slice(0, 400),
-      external: r.external === true,
-      load_bearing: r.load_bearing === true,
-      source: r.source === 'user_stated' ? ('user_stated' as const) : ('ai_surfaced' as const),
-      ...(typeof r.ai_original === 'string' ? { ai_original: r.ai_original.slice(0, 400) } : {}),
-      ...(typeof r.recheck_cadence_days === 'number' ? { recheck_cadence_days: r.recheck_cadence_days } : {}),
-      status: 'active' as const,
-      amend_history: [],
-      recheck_count: 0,
-      auto_watch: true, // the whole point of the opt-in: the watcher may re-check it
-    }];
-  });
-  return out.length > 0 ? (out as JudgmentReceipt['tracked_premises']) : undefined;
-}
-
 /**
  * MCP outcome vocabulary → the web's.
  *

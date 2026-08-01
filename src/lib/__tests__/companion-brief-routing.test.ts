@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { buildCompanionBrief } from '../companion-brief';
-import { clearPendingBriefChanges, dueOpenQuestions, pendingBriefChanges } from '../../app/api/cron/companion-brief/route';
+import { clearPendingBriefChanges, dueOpenQuestions, pendingBriefChanges } from '../companion-brief-routing';
 import type { JudgmentReceipt } from '../review';
 
 function receipt(overrides: Partial<JudgmentReceipt> = {}): JudgmentReceipt {

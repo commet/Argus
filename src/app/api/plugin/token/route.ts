@@ -10,7 +10,7 @@ import { pluginTokenExpiry } from '@/lib/plugin-token';
  * ONCE and never stored; we keep only its SHA-256 hash. Listing and revoking
  * happen client-side against plugin_tokens (RLS, metadata columns only).
  */
-export function hashToken(raw: string): string {
+function hashToken(raw: string): string {
   return createHash('sha256').update(raw).digest('hex');
 }
 
