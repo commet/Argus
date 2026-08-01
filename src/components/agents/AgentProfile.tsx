@@ -68,11 +68,15 @@ export function AgentProfile({ agent, onClose }: AgentProfileProps) {
   // Tab focus-trap, and return focus to the trigger on close — so keyboard /
   // switch users aren't stranded behind the overlay.
   const dialogRef = useRef<HTMLDivElement>(null);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
   useEffect(() => {
     const prevFocus = document.activeElement as HTMLElement | null;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
     dialogRef.current?.focus();
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') { e.stopPropagation(); onClose(); return; }
+      if (e.key === 'Escape') { e.stopPropagation(); onCloseRef.current(); return; }
       if (e.key !== 'Tab' || !dialogRef.current) return;
       const focusable = dialogRef.current.querySelectorAll<HTMLElement>(
         'a[href], button:not([disabled]), textarea, input, select, [tabindex]:not([tabindex="-1"])',
@@ -84,8 +88,12 @@ export function AgentProfile({ agent, onClose }: AgentProfileProps) {
       else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
     };
     document.addEventListener('keydown', onKey);
-    return () => { document.removeEventListener('keydown', onKey); prevFocus?.focus?.(); };
-  }, [onClose]);
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      document.body.style.overflow = previousOverflow;
+      prevFocus?.focus?.();
+    };
+  }, []);
 
   return (
     <motion.div
@@ -108,6 +116,7 @@ export function AgentProfile({ agent, onClose }: AgentProfileProps) {
         {/* Header */}
         <div className="relative px-6 pt-6 pb-4 shrink-0" style={{ borderBottom: `3px solid ${agent.color}` }}>
           <button
+            type="button"
             onClick={onClose}
             className="absolute top-4 right-4 p-2.5 min-w-[44px] min-h-[44px] inline-flex items-center justify-center hover:bg-[var(--bg)] rounded-lg cursor-pointer transition-colors"
             aria-label={L('닫기', 'Close')}
