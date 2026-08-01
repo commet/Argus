@@ -16665,14 +16665,16 @@ function questionEchoesUser(questionText, userText) {
   return content.some((w) => new RegExp(`\\b${w}`, "i").test(q));
 }
 function questionManufacturesFork(text, options, userText) {
-  const opts = (options || []).filter((o) => typeof o === "string" && !!o.trim());
-  if (opts.length > 0) return !opts.every((o) => questionEchoesUser(o, userText));
-  const forked = /아니면|,\s*또는|\b(?:or)\b/i.test(text || "");
-  return forked && !questionEchoesUser(text, userText);
+  void options;
+  const t = text || "";
+  const forked = /아니면|,\s*또는|\b(?:or)\b/i.test(t) || /(가요|나요|까요|예요|이에요)\s*[,，]\s*[^,，]{2,}(가요|나요|까요|예요|이에요)/.test(t);
+  return forked && !questionEchoesUser(t, userText);
 }
 function guardLowConfidenceOpeningQuestion(question, problemText, locale) {
   if (question?.text && !questionManufacturesFork(question.text, question.options, problemText)) {
-    return question;
+    const chips = (question.options || []).filter((o) => typeof o === "string" && !!o.trim()).filter((o) => questionEchoesUser(o, problemText));
+    if (chips.length === (question.options || []).length) return question;
+    return chips.length >= 2 ? { ...question, options: chips } : { ...question, options: void 0, type: "short" };
   }
   const open = lowConfidenceOpeningCopy(locale).question;
   return question ? { ...question, ...open, subtext: void 0 } : open;

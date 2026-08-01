@@ -34,6 +34,8 @@ const premiseInput = z.strictObject({
   monitoring_enabled: z.boolean().default(true).describe('이 전제를 현재 다시 확인하거나 알려줄지 정합니다. 꺼도 중요도나 검증 가능성은 바뀌지 않습니다.\n\nWhether Argus should currently re-check or nudge this premise. Turning it off does not change importance or verifiability.'),
   source: z.enum(['user_stated', 'ai_surfaced']).describe('필수: 이 문장을 말한 주체입니다. user_stated=사용자의 말, ai_surfaced=AI가 제시한 말(이때 ai_original도 함께). 사용자의 말을 AI의 말로 바꾸지 않습니다.'),
   ai_original: z.string().max(400).describe('source=ai_surfaced이면 필수: AI가 처음 제시한 원문입니다. Required with ai_surfaced.').optional(),
+  anchor_quote: z.string().min(3).max(400).describe('source=user_stated이면 필수: 이 전제의 근거가 된 사용자의 말 그대로. 인용할 수 없으면 당신의 해석이므로 ai_surfaced입니다.\n\nRequired with user_stated: the user’s own words this rests on, verbatim. If you cannot quote them, it is your inference: use ai_surfaced.').optional(),
+  if_false_changes: z.string().max(400).describe('이 전제가 틀리면 결정에서 무엇이 달라지는지 한 줄. 나중에 무엇을 확인할지가 여기서 나옵니다.\n\nOne line: what changes in the decision if this turns out false. This is what gets re-checked later.').optional(),
   chat_confirmed: z.boolean().default(false).describe('사용자가 이 초안을 대화에서 이미 승인한 경우에만 true입니다. 확인창을 건너뛰고 ai_surfaced 표기 그대로 기록합니다. 사용자가 보지 않은 초안에는 절대 쓰지 않습니다.\n\nTRUE only when the user already approved this exact draft in conversation; skips the confirm window, provenance stays ai_surfaced.'),
   recheck_cadence_days: z.number().int().min(1).max(365).describe('이 사실을 다시 확인할 간격(일)입니다.').optional(),
   reconsider_cadence_days: z.number().int().min(1).max(365).describe('미결 질문을 다시 볼 간격(일)입니다.').optional(),
@@ -45,6 +47,17 @@ const premiseInput = z.strictObject({
       message: 'source=ai_surfaced requires ai_original; use source=user_stated when these are the user’s words',
     });
   }
+}).transform((value) => {
+  // Attributing a sentence to the user is a claim, and a claim needs evidence.
+  // Nothing here can read the conversation, so the evidence is the quote itself:
+  // no quote, no attribution. This DOWNGRADES rather than rejects — the premise
+  // is still worth recording, it just stops being the user's word. The failure
+  // direction matters: an inference wrongly stamped "the user said this" is the
+  // one error the whole design exists to prevent.
+  if (value.source === 'user_stated' && !value.anchor_quote?.trim()) {
+    return { ...value, source: 'ai_surfaced' as const, ai_original: value.ai_original?.trim() || value.text };
+  }
+  return value;
 });
 
 const common = {

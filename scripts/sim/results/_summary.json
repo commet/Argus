@@ -1,13 +1,28 @@
 {
-  "at": "2026-08-01T07:08:53.704Z",
-  "totalLLMCalls": 23,
+  "at": "2026-08-01T07:47:08.791Z",
+  "totalLLMCalls": 68,
   "scenarios": [
     {
-      "id": "light-08-en-party",
+      "id": "light-03-dinner-flat",
       "error": false,
       "judgeError": null,
       "gate": "light",
       "lightOutcome": "close",
+      "mechanicalFindings": 0,
+      "judgeFails": [
+        "route_fit:M",
+        "ownership:M",
+        "premise_quality:M",
+        "question_value:M",
+        "restraint:M"
+      ]
+    },
+    {
+      "id": "light-02-laptop",
+      "error": false,
+      "judgeError": null,
+      "gate": "light",
+      "lightOutcome": "offer",
       "mechanicalFindings": 0,
       "judgeFails": [
         "ownership:M",
@@ -19,12 +34,34 @@
       "error": false,
       "judgeError": null,
       "gate": "light",
-      "lightOutcome": "offer",
+      "lightOutcome": "close",
       "mechanicalFindings": 0,
       "judgeFails": [
-        "ownership:M",
+        "fact_lineage:M"
+      ]
+    },
+    {
+      "id": "light-04-parents-weekend",
+      "error": false,
+      "judgeError": null,
+      "gate": "light",
+      "lightOutcome": "close",
+      "mechanicalFindings": 0,
+      "judgeFails": [
+        "ownership:M"
+      ]
+    },
+    {
+      "id": "light-05-hoesik-escalate",
+      "error": false,
+      "judgeError": null,
+      "gate": "light",
+      "requestType": "open",
+      "lightOutcome": "escalate",
+      "mechanicalFindings": 0,
+      "judgeFails": [
         "question_value:M",
-        "restraint:M"
+        "update_fidelity:M"
       ]
     },
     {
@@ -35,17 +72,46 @@
       "requestType": "open",
       "mechanicalFindings": 0,
       "judgeFails": [
+        "question_value:M",
         "restraint:L"
       ]
     },
     {
-      "id": "heavy-07-validation",
+      "id": "light-07-banmal",
       "error": false,
       "judgeError": null,
-      "gate": "heavy",
-      "requestType": "validation",
-      "mechanicalFindings": 0,
+      "gate": "light",
+      "lightOutcome": "close",
+      "mechanicalFindings": 1,
       "judgeFails": []
+    },
+    {
+      "id": "light-08-en-party",
+      "error": false,
+      "judgeError": null,
+      "gate": "light",
+      "lightOutcome": "close",
+      "mechanicalFindings": 0,
+      "judgeFails": [
+        "ownership:M",
+        "fact_lineage:M",
+        "update_fidelity:M"
+      ]
+    },
+    {
+      "id": "light-09-chatty-500",
+      "error": false,
+      "judgeError": null,
+      "gate": "light",
+      "lightOutcome": "offer",
+      "mechanicalFindings": 0,
+      "judgeFails": [
+        "ownership:M",
+        "premise_quality:M",
+        "question_value:M",
+        "update_fidelity:M",
+        "restraint:L"
+      ]
     },
     {
       "id": "heavy-02-ceo-report",
@@ -64,10 +130,89 @@
       "requestType": "open",
       "mechanicalFindings": 0,
       "judgeFails": [
-        "ownership:M",
+        "fact_lineage:M",
         "question_value:M",
+        "update_fidelity:M",
+        "language:L"
+      ]
+    },
+    {
+      "id": "heavy-04-fire-teammate",
+      "error": false,
+      "judgeError": null,
+      "gate": "heavy",
+      "requestType": "open",
+      "mechanicalFindings": 0,
+      "judgeFails": [
+        "question_value:M",
+        "restraint:L"
+      ]
+    },
+    {
+      "id": "heavy-03-jeonse-maemae",
+      "error": false,
+      "judgeError": null,
+      "gate": "heavy",
+      "requestType": "open",
+      "mechanicalFindings": 1,
+      "judgeFails": [
+        "question_value:L",
         "update_fidelity:M"
       ]
+    },
+    {
+      "id": "heavy-06-vent",
+      "error": false,
+      "judgeError": null,
+      "gate": "heavy",
+      "requestType": "vent",
+      "mechanicalFindings": 0,
+      "judgeFails": []
+    },
+    {
+      "id": "heavy-07-validation",
+      "error": false,
+      "judgeError": null,
+      "gate": "heavy",
+      "requestType": "validation",
+      "mechanicalFindings": 0,
+      "judgeFails": [
+        "route_fit:M",
+        "fact_lineage:M",
+        "premise_quality:M",
+        "question_value:M",
+        "restraint:M"
+      ]
+    },
+    {
+      "id": "heavy-09-crisis-debt",
+      "error": false,
+      "judgeError": null,
+      "gate": "heavy",
+      "requestType": "crisis",
+      "mechanicalFindings": 0,
+      "judgeFails": []
+    },
+    {
+      "id": "heavy-05-cofounder",
+      "error": false,
+      "judgeError": null,
+      "gate": "heavy",
+      "requestType": "open",
+      "mechanicalFindings": 0,
+      "judgeFails": [
+        "fact_lineage:M",
+        "question_value:M"
+      ]
+    },
+    {
+      "id": "heavy-08-info",
+      "error": false,
+      "judgeError": "JSON 파싱 실패: LLM이 유효하지 않은 형식으로 응답했습니다.",
+      "gate": "heavy",
+      "requestType": "info",
+      "mechanicalFindings": 0,
+      "judgeFails": []
     }
   ]
 }

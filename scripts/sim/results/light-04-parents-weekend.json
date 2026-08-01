@@ -18,41 +18,37 @@
     },
     "gate": {
       "need": "light",
-      "mirror": "지난달에 못 가셨으니까 이번엔 가야 할 것 같은데, 마음이 갈리시는 거네요.",
-      "question": "지금 마음은 어느 쪽에 기울어 있어요? 그 이유가 뭔지도 궁금해요."
+      "mirror": "지난달에 못 가셨으니까 이번주말에 가야 하는 건 아닌지 하는 마음이 있으신 거네요. 근데 가고 싶으신 건지, 아니면 가야 한다는 생각이 강한 건지는 아직 안 들었어요.",
+      "question": "지금 마음은 어느 쪽에 가 있어요? 가보고 싶으신 건가요, 아니면 가기가 쉽지 않으신 건가요."
     }
   },
   "light": {
     "qas": [
       {
-        "question": "지금 마음은 어느 쪽에 기울어 있어요? 그 이유가 뭔지도 궁금해요.",
+        "question": "지금 마음은 어느 쪽에 가 있어요? 가보고 싶으신 건가요, 아니면 가기가 쉽지 않으신 건가요.",
         "answer": "엄마가 서운해하실 것 같아서요. 근데 이번 주말에 밀린 일도 있어요."
       },
       {
-        "question": "밀린 일이 이번 주말에 꼭 해야 하는 건가요, 아니면 다른 때로 밀 수도 있는 건가요?",
+        "question": "밀린 일이 이번 주말에 꼭 해야 하는 건가요, 아니면 미뤄도 괜찮은 건가요?",
         "answer": "일은 일요일 저녁에 몰아서 하면 되긴 해요."
       }
     ],
     "turns": [
       {
-        "mirror": "엄마가 서운해하실까 걱정되시는 것과 이번 주말에 밀린 일이 있는 것, 두 가지가 양쪽에서 당기고 있네요.",
+        "mirror": "지난달에 못 가서 엄마가 서운해하실 것 같은 마음이 있고, 동시에 이번 주말에 밀린 일들이 있는 상황이네요.",
         "action": "ask",
-        "question": "밀린 일이 이번 주말에 꼭 해야 하는 건가요, 아니면 다른 때로 밀 수도 있는 건가요?",
+        "question": "밀린 일이 이번 주말에 꼭 해야 하는 건가요, 아니면 미뤄도 괜찮은 건가요?",
         "_qasLen": 1,
-        "_rawText": "```json\n{\n  \"mirror\": \"엄마가 서운해하실까 걱정되시는 것과 이번 주말에 밀린 일이 있는 것, 두 가지가 양쪽에서 당기고 있네요.\",\n  \"action\": \"ask\",\n  \"question\": \"밀린 일이 이번 주말에 꼭 해야 하는 건가요, 아니면 다른 때로 밀 수도 있는 건가요?\"\n}\n```"
+        "_rawText": "```json\n{\n  \"mirror\": \"지난달에 못 가서 엄마가 서운해하실 것 같은 마음이 있고, 동시에 이번 주말에 밀린 일들이 있는 상황이네요.\",\n  \"action\": \"ask\",\n  \"question\": \"밀린 일이 이번 주말에 꼭 해야 하는 건가요, 아니면 미뤄도 괜찮은 건가요?\"\n}\n```"
       },
       {
-        "mirror": "엄마가 서운해하실까 봐 마음이 쓰이시고, 밀린 일도 있긴 한데 일요일 저녁에 몰아서 하면 되는 상황이네요.",
-        "action": "offer",
-        "offer": {
-          "sentence": "주말에 부모님 댁에 갔다.",
-          "when": "this_weekend"
-        },
+        "mirror": "엄마가 서운해할까 봐 가고 싶으신데, 일요일 저녁에 밀린 일을 몰아서 하면 된다는 거네요. 지난달에 못 가신 것도 있고요.",
+        "action": "close",
         "_qasLen": 2,
-        "_rawText": "```json\n{\n  \"mirror\": \"엄마가 서운해하실까 봐 마음이 쓰이시고, 밀린 일도 있긴 한데 일요일 저녁에 몰아서 하면 되는 상황이네요.\",\n  \"action\": \"offer\",\n  \"offer\": {\n    \"sentence\": \"주말에 부모님 댁에 갔다.\",\n    \"when\": \"this_weekend\",\n    \"ask\": \"그럼 주말을 보내 보시고 — 결국 가기로 하셨는지, 제가 한 번만 물어볼까요?\"\n  }\n}\n```"
+        "_rawText": "```json\n{\n  \"mirror\": \"엄마가 서운해할까 봐 가고 싶으신데, 일요일 저녁에 밀린 일을 몰아서 하면 된다는 거네요. 지난달에 못 가신 것도 있고요.\",\n  \"action\": \"offer\",\n  \"offer\": {\n    \"sentence\": \"사용자가 주말에 부모님 댁에 갔다.\",\n    \"when\": \"in_days\",\n    \"days\": 2,\n    \"ask\": \"그럼 주말에 부모님을 뵙고 — 일요일 저녁에 어떻게 하셨는지, 제가 한 번만 물어볼까요?\"\n  }\n}\n```"
       }
     ],
-    "outcome": "offer"
+    "outcome": "close"
   },
   "heavy": null,
   "error": null,
@@ -65,7 +61,7 @@
     {
       "actor": "argus",
       "phase": "light_gate",
-      "text": "지난달에 못 가셨으니까 이번엔 가야 할 것 같은데, 마음이 갈리시는 거네요.\n지금 마음은 어느 쪽에 기울어 있어요? 그 이유가 뭔지도 궁금해요."
+      "text": "지난달에 못 가셨으니까 이번주말에 가야 하는 건 아닌지 하는 마음이 있으신 거네요. 근데 가고 싶으신 건지, 아니면 가야 한다는 생각이 강한 건지는 아직 안 들었어요.\n지금 마음은 어느 쪽에 가 있어요? 가보고 싶으신 건가요, 아니면 가기가 쉽지 않으신 건가요."
     },
     {
       "actor": "user",
@@ -75,7 +71,7 @@
     {
       "actor": "argus",
       "phase": "light_turn_1",
-      "text": "엄마가 서운해하실까 걱정되시는 것과 이번 주말에 밀린 일이 있는 것, 두 가지가 양쪽에서 당기고 있네요.\n밀린 일이 이번 주말에 꼭 해야 하는 건가요, 아니면 다른 때로 밀 수도 있는 건가요?"
+      "text": "지난달에 못 가서 엄마가 서운해하실 것 같은 마음이 있고, 동시에 이번 주말에 밀린 일들이 있는 상황이네요.\n밀린 일이 이번 주말에 꼭 해야 하는 건가요, 아니면 미뤄도 괜찮은 건가요?"
     },
     {
       "actor": "user",
@@ -85,7 +81,7 @@
     {
       "actor": "argus",
       "phase": "light_turn_2",
-      "text": "엄마가 서운해하실까 봐 마음이 쓰이시고, 밀린 일도 있긴 한데 일요일 저녁에 몰아서 하면 되는 상황이네요.\n이번 주 일요일에 실제로 어떻게 됐는지, 제가 한 번만 물어볼까요?"
+      "text": "엄마가 서운해할까 봐 가고 싶으신데, 일요일 저녁에 밀린 일을 몰아서 하면 된다는 거네요. 지난달에 못 가신 것도 있고요."
     }
   ],
   "calls": [
@@ -96,21 +92,21 @@
       "modelId": "claude-haiku-4-5-20251001",
       "maxTokens": 500,
       "attempt": 0,
-      "ms": 1573,
+      "ms": 2436,
       "usage": {
-        "input_tokens": 3559,
+        "input_tokens": 3581,
         "cache_creation_input_tokens": 0,
         "cache_read_input_tokens": 0,
         "cache_creation": {
           "ephemeral_5m_input_tokens": 0,
           "ephemeral_1h_input_tokens": 0
         },
-        "output_tokens": 118,
+        "output_tokens": 184,
         "service_tier": "standard",
         "inference_geo": "not_available"
       },
-      "user": "[user] 사용자가 방금 쓴 것:\n<user-data context=\"decision\">\n주말에 부모님 댁에 갈까 말까 고민이에요. 지난달에도 못 갔거든요.\n</user-data>",
-      "rawText": "```json\n{\n  \"need\": \"light\",\n  \"mirror\": \"지난달에 못 가셨으니까 이번엔 가야 할 것 같은데, 마음이 갈리시는 거네요.\",\n  \"question\": \"지금 마음은 어느 쪽에 기울어 있어요? 그 이유가 뭔지도 궁금해요.\"\n}\n```"
+      "user": "[user] 오늘은 2026-08-01 (토요일)입니다.\n\n사용자가 방금 쓴 것:\n<user-data context=\"decision\">\n주말에 부모님 댁에 갈까 말까 고민이에요. 지난달에도 못 갔거든요.\n</user-data>",
+      "rawText": "```json\n{\n  \"need\": \"light\",\n  \"mirror\": \"지난달에 못 가셨으니까 이번주말에 가야 하는 건 아닌지 하는 마음이 있으신 거네요. 근데 가고 싶으신 건지, 아니면 가야 한다는 생각이 강한 건지는 아직 안 들었어요.\",\n  \"question\": \"지금 마음은 어느 쪽에 가 있어요? 가보고 싶으신 건가요, 아니면 가기가 쉽지 않으신 건가요?\"\n}\n```"
     },
     {
       "seq": 8,
@@ -119,47 +115,105 @@
       "modelId": "claude-haiku-4-5-20251001",
       "maxTokens": 700,
       "attempt": 0,
-      "ms": 1736,
+      "ms": 1771,
       "usage": {
-        "input_tokens": 3911,
+        "input_tokens": 3948,
         "cache_creation_input_tokens": 0,
         "cache_read_input_tokens": 0,
         "cache_creation": {
           "ephemeral_5m_input_tokens": 0,
           "ephemeral_1h_input_tokens": 0
         },
-        "output_tokens": 146,
+        "output_tokens": 142,
         "service_tier": "standard",
         "inference_geo": "not_available"
       },
-      "user": "[user] 사용자가 처음 쓴 것:\n<user-data context=\"decision\">\n주말에 부모님 댁에 갈까 말까 고민이에요. 지난달에도 못 갔거든요.\n</user-data>\n\n지금까지의 문답 (질문은 당신, 답은 사용자):\n<user-data context=\"answers\">\nQ1. 지금 마음은 어느 쪽에 기울어 있어요? 그 이유가 뭔지도 궁금해요.\nA1. 엄마가 서운해하실 것 같아서요. 근데 이번 주말에 밀린 일도 있어요.\n</user-data>",
-      "rawText": "```json\n{\n  \"mirror\": \"엄마가 서운해하실까 걱정되시는 것과 이번 주말에 밀린 일이 있는 것, 두 가지가 양쪽에서 당기고 있네요.\",\n  \"action\": \"ask\",\n  \"question\": \"밀린 일이 이번 주말에 꼭 해야 하는 건가요, 아니면 다른 때로 밀 수도 있는 건가요?\"\n}\n```"
+      "user": "[user] 오늘은 2026-08-01 (토요일)입니다.\n\n사용자가 처음 쓴 것:\n<user-data context=\"decision\">\n주말에 부모님 댁에 갈까 말까 고민이에요. 지난달에도 못 갔거든요.\n</user-data>\n\n지금까지의 문답 (질문은 당신, 답은 사용자):\n<user-data context=\"answers\">\nQ1. 지금 마음은 어느 쪽에 가 있어요? 가보고 싶으신 건가요, 아니면 가기가 쉽지 않으신 건가요.\nA1. 엄마가 서운해하실 것 같아서요. 근데 이번 주말에 밀린 일도 있어요.\n</user-data>",
+      "rawText": "```json\n{\n  \"mirror\": \"지난달에 못 가서 엄마가 서운해하실 것 같은 마음이 있고, 동시에 이번 주말에 밀린 일들이 있는 상황이네요.\",\n  \"action\": \"ask\",\n  \"question\": \"밀린 일이 이번 주말에 꼭 해야 하는 건가요, 아니면 미뤄도 괜찮은 건가요?\"\n}\n```"
     },
     {
-      "seq": 10,
+      "seq": 11,
       "label": "light-05-hoesik-escalate",
       "tier": "fast",
       "modelId": "claude-haiku-4-5-20251001",
       "maxTokens": 700,
       "attempt": 0,
-      "ms": 2624,
+      "ms": 2916,
       "usage": {
-        "input_tokens": 4047,
+        "input_tokens": 4081,
         "cache_creation_input_tokens": 0,
         "cache_read_input_tokens": 0,
         "cache_creation": {
           "ephemeral_5m_input_tokens": 0,
           "ephemeral_1h_input_tokens": 0
         },
-        "output_tokens": 185,
+        "output_tokens": 215,
         "service_tier": "standard",
         "inference_geo": "not_available"
       },
-      "user": "[user] 사용자가 처음 쓴 것:\n<user-data context=\"decision\">\n주말에 부모님 댁에 갈까 말까 고민이에요. 지난달에도 못 갔거든요.\n</user-data>\n\n지금까지의 문답 (질문은 당신, 답은 사용자):\n<user-data context=\"answers\">\nQ1. 지금 마음은 어느 쪽에 기울어 있어요? 그 이유가 뭔지도 궁금해요.\nA1. 엄마가 서운해하실 것 같아서요. 근데 이번 주말에 밀린 일도 있어요.\nQ2. 밀린 일이 이번 주말에 꼭 해야 하는 건가요, 아니면 다른 때로 밀 수도 있는 건가요?\nA2. 일은 일요일 저녁에 몰아서 하면 되긴 해요.\n</user-data>",
-      "rawText": "```json\n{\n  \"mirror\": \"엄마가 서운해하실까 봐 마음이 쓰이시고, 밀린 일도 있긴 한데 일요일 저녁에 몰아서 하면 되는 상황이네요.\",\n  \"action\": \"offer\",\n  \"offer\": {\n    \"sentence\": \"주말에 부모님 댁에 갔다.\",\n    \"when\": \"this_weekend\",\n    \"ask\": \"그럼 주말을 보내 보시고 — 결국 가기로 하셨는지, 제가 한 번만 물어볼까요?\"\n  }\n}\n```"
+      "user": "[user] 오늘은 2026-08-01 (토요일)입니다.\n\n사용자가 처음 쓴 것:\n<user-data context=\"decision\">\n주말에 부모님 댁에 갈까 말까 고민이에요. 지난달에도 못 갔거든요.\n</user-data>\n\n지금까지의 문답 (질문은 당신, 답은 사용자):\n<user-data context=\"answers\">\nQ1. 지금 마음은 어느 쪽에 가 있어요? 가보고 싶으신 건가요, 아니면 가기가 쉽지 않으신 건가요.\nA1. 엄마가 서운해하실 것 같아서요. 근데 이번 주말에 밀린 일도 있어요.\nQ2. 밀린 일이 이번 주말에 꼭 해야 하는 건가요, 아니면 미뤄도 괜찮은 건가요?\nA2. 일은 일요일 저녁에 몰아서 하면 되긴 해요.\n</user-data>",
+      "rawText": "```json\n{\n  \"mirror\": \"엄마가 서운해할까 봐 가고 싶으신데, 일요일 저녁에 밀린 일을 몰아서 하면 된다는 거네요. 지난달에 못 가신 것도 있고요.\",\n  \"action\": \"offer\",\n  \"offer\": {\n    \"sentence\": \"사용자가 주말에 부모님 댁에 갔다.\",\n    \"when\": \"in_days\",\n    \"days\": 2,\n    \"ask\": \"그럼 주말에 부모님을 뵙고 — 일요일 저녁에 어떻게 하셨는지, 제가 한 번만 물어볼까요?\"\n  }\n}\n```"
     }
   ],
   "mechanical": {
     "findings": []
+  },
+  "judge": {
+    "runs": [
+      {
+        "criteria": {
+          "route_fit": {
+            "verdict": "PASS",
+            "severity": null,
+            "evidence": "",
+            "note": "light 게이트로 열고 두 번의 질문 후 종결. 가벼운 고민에 적절한 규모."
+          },
+          "ownership": {
+            "verdict": "FAIL",
+            "severity": "M",
+            "evidence": "\"엄마가 서운해할까 봐 가고 싶으신데\" — 사용자는 '엄마가 서운해하실 것 같아서'라고 했을 뿐, 자신이 가고 싶다고 말한 적 없음. Argus가 '가고 싶다'는 동기를 사용자 말에 없는 방향으로 재구성함.",
+            "note": "사용자의 말을 더 선명한 '진짜 마음'으로 바꾼 케이스."
+          },
+          "fact_lineage": {
+            "verdict": "PASS",
+            "severity": null,
+            "evidence": "",
+            "note": "외부 사실 단정 없음. 사용자 발화에서 추적 가능한 내용만 사용."
+          },
+          "premise_quality": {
+            "verdict": "NA",
+            "severity": null,
+            "evidence": "",
+            "note": "숨은 전제를 명시적으로 제시하지 않은 대화 흐름."
+          },
+          "question_value": {
+            "verdict": "PASS",
+            "severity": null,
+            "evidence": "첫 질문: 가고 싶은지 vs 가야 한다는 생각인지 → 판단 상태를 가르는 질문. 두 번째 질문: 밀린 일이 이번 주말에 꼭 해야 하는지 → 실제 제약 확인. 각각 한 번씩, 답에 따라 상태가 달라짐.",
+            "note": ""
+          },
+          "update_fidelity": {
+            "verdict": "PASS",
+            "severity": null,
+            "evidence": "일요일 저녁에 몰아서 하면 된다는 답변 후 그 내용을 그대로 반영해 종결. 새 관점 추가 없음.",
+            "note": ""
+          },
+          "restraint": {
+            "verdict": "PASS",
+            "severity": null,
+            "evidence": "",
+            "note": "두 질문 후 충분하다고 판단해 멈춤. 계획이나 과잉 절차 없음."
+          },
+          "language": {
+            "verdict": "PASS",
+            "severity": null,
+            "evidence": "",
+            "note": "자연스러운 해요체. AI체·번역체 없음."
+          }
+        },
+        "overall": "핵심 문제는 ownership 하나: 사용자가 '엄마가 서운해하실 것 같아서'라고 말한 것을 Argus가 '가고 싶다'는 내적 동기로 재해석해 방향을 밀었다. 나머지 흐름은 적절하게 작동했다.",
+        "best_next_fix": "light_turn_2 종결 문장에서 '가고 싶으신데' 대신 '엄마 마음이 신경 쓰이시는 거네요' 처럼 사용자가 실제로 쓴 표현으로 돌려놓는다."
+      }
+    ]
   }
 }

@@ -18,7 +18,7 @@
     },
     "gate": {
       "need": "light",
-      "mirror": "지금 노트북이 5년 됐고 부팅이 오래 걸리는 상황이네요. 새로 살지 말지가 걸려 있고요.",
+      "mirror": "지금 쓰는 노트북이 5년 됐고 부팅이 오래 걸리는 상황이네요. 새로 살지 말지가 걸려 있고요.",
       "question": "지금 마음은 어느 쪽에 가 있어요? 왜 그런지도 같이요."
     }
   },
@@ -31,15 +31,15 @@
     ],
     "turns": [
       {
-        "mirror": "지금 노트북으로 영상 편집을 시작하고 싶은데, 5년 된 기계가 버벅여서 그게 걸리는 거네요.",
+        "mirror": "지금 노트북이 영상 편집할 때 버벅인다는 거네요. 새로 사는 쪽으로 기울어져 있는 상태고요.",
         "action": "offer",
         "offer": {
-          "sentence": "새 노트북으로 영상 편집을 실제로 잘 할 수 있었다.",
+          "sentence": "새 노트북을 샀을 때 영상 편집이 실제로 잘 됐다.",
           "when": "in_days",
           "days": 7
         },
         "_qasLen": 1,
-        "_rawText": "```json\n{\n  \"mirror\": \"지금 노트북으로 영상 편집을 시작하고 싶은데, 5년 된 기계가 버벅여서 그게 걸리는 거네요.\",\n  \"action\": \"offer\",\n  \"offer\": {\n    \"sentence\": \"새 노트북으로 영상 편집을 실제로 잘 할 수 있었다.\",\n    \"when\": \"in_days\",\n    \"days\": 7,\n    \"ask\": \"그럼 새 노트북을 사서 편집을 해 보시는 걸로 하고 — 일주일 뒤에 실제로 잘 되는지, 제가 한 번만 물어볼까요?\"\n  }\n}\n```"
+        "_rawText": "```json\n{\n  \"mirror\": \"지금 노트북이 영상 편집할 때 버벅인다는 거네요. 새로 사는 쪽으로 기울어져 있는 상태고요.\",\n  \"action\": \"offer\",\n  \"offer\": {\n    \"sentence\": \"새 노트북을 샀을 때 영상 편집이 실제로 잘 됐다.\",\n    \"when\": \"in_days\",\n    \"days\": 7,\n    \"ask\": \"그럼 새 노트북으로 영상 편집을 해보는 걸로 하고 — 일주일 뒤에 실제로 잘 돌아가는지, 제가 한 번만 물어볼까요?\"\n  }\n}\n```"
       }
     ],
     "outcome": "offer"
@@ -55,7 +55,7 @@
     {
       "actor": "argus",
       "phase": "light_gate",
-      "text": "지금 노트북이 5년 됐고 부팅이 오래 걸리는 상황이네요. 새로 살지 말지가 걸려 있고요.\n지금 마음은 어느 쪽에 가 있어요? 왜 그런지도 같이요."
+      "text": "지금 쓰는 노트북이 5년 됐고 부팅이 오래 걸리는 상황이네요. 새로 살지 말지가 걸려 있고요.\n지금 마음은 어느 쪽에 가 있어요? 왜 그런지도 같이요."
     },
     {
       "actor": "user",
@@ -65,7 +65,7 @@
     {
       "actor": "argus",
       "phase": "light_turn_1",
-      "text": "지금 노트북으로 영상 편집을 시작하고 싶은데, 5년 된 기계가 버벅여서 그게 걸리는 거네요.\n7일 뒤에 실제로 어떻게 됐는지, 제가 한 번만 물어볼까요?"
+      "text": "지금 노트북이 영상 편집할 때 버벅인다는 거네요. 새로 사는 쪽으로 기울어져 있는 상태고요.\n7일 뒤에 실제로 어떻게 됐는지, 제가 한 번만 물어볼까요?"
     }
   ],
   "calls": [
@@ -76,47 +76,105 @@
       "modelId": "claude-haiku-4-5-20251001",
       "maxTokens": 500,
       "attempt": 0,
-      "ms": 1612,
+      "ms": 2973,
       "usage": {
-        "input_tokens": 3576,
+        "input_tokens": 3598,
         "cache_creation_input_tokens": 0,
         "cache_read_input_tokens": 0,
         "cache_creation": {
           "ephemeral_5m_input_tokens": 0,
           "ephemeral_1h_input_tokens": 0
         },
-        "output_tokens": 118,
+        "output_tokens": 123,
         "service_tier": "standard",
         "inference_geo": "not_available"
       },
-      "user": "[user] 사용자가 방금 쓴 것:\n<user-data context=\"decision\">\n노트북을 새로 살까 말까 고민 중이에요. 지금 쓰는 건 5년 됐고 요즘 부팅도 한참 걸려요.\n</user-data>",
-      "rawText": "```json\n{\n  \"need\": \"light\",\n  \"mirror\": \"지금 노트북이 5년 됐고 부팅이 오래 걸리는 상황이네요. 새로 살지 말지가 걸려 있고요.\",\n  \"question\": \"지금 마음은 어느 쪽에 가 있어요? 왜 그런지도 같이요.\"\n}\n```"
+      "user": "[user] 오늘은 2026-08-01 (토요일)입니다.\n\n사용자가 방금 쓴 것:\n<user-data context=\"decision\">\n노트북을 새로 살까 말까 고민 중이에요. 지금 쓰는 건 5년 됐고 요즘 부팅도 한참 걸려요.\n</user-data>",
+      "rawText": "```json\n{\n  \"need\": \"light\",\n  \"mirror\": \"지금 쓰는 노트북이 5년 됐고 부팅이 오래 걸리는 상황이네요. 새로 살지 말지가 걸려 있고요.\",\n  \"question\": \"지금 마음은 어느 쪽에 가 있어요? 왜 그런지도 같이요.\"\n}\n```"
     },
     {
-      "seq": 2,
+      "seq": 3,
       "label": "light-03-dinner-flat",
       "tier": "fast",
       "modelId": "claude-haiku-4-5-20251001",
       "maxTokens": 700,
       "attempt": 0,
-      "ms": 3123,
+      "ms": 2456,
       "usage": {
-        "input_tokens": 3915,
+        "input_tokens": 3937,
         "cache_creation_input_tokens": 0,
         "cache_read_input_tokens": 0,
         "cache_creation": {
           "ephemeral_5m_input_tokens": 0,
           "ephemeral_1h_input_tokens": 0
         },
-        "output_tokens": 217,
+        "output_tokens": 220,
         "service_tier": "standard",
         "inference_geo": "not_available"
       },
-      "user": "[user] 사용자가 처음 쓴 것:\n<user-data context=\"decision\">\n노트북을 새로 살까 말까 고민 중이에요. 지금 쓰는 건 5년 됐고 요즘 부팅도 한참 걸려요.\n</user-data>\n\n지금까지의 문답 (질문은 당신, 답은 사용자):\n<user-data context=\"answers\">\nQ1. 지금 마음은 어느 쪽에 가 있어요? 왜 그런지도 같이요.\nA1. 영상 편집을 새로 시작해보고 싶은데 지금 걸로는 버벅여요.\n</user-data>",
-      "rawText": "```json\n{\n  \"mirror\": \"지금 노트북으로 영상 편집을 시작하고 싶은데, 5년 된 기계가 버벅여서 그게 걸리는 거네요.\",\n  \"action\": \"offer\",\n  \"offer\": {\n    \"sentence\": \"새 노트북으로 영상 편집을 실제로 잘 할 수 있었다.\",\n    \"when\": \"in_days\",\n    \"days\": 7,\n    \"ask\": \"그럼 새 노트북을 사서 편집을 해 보시는 걸로 하고 — 일주일 뒤에 실제로 잘 되는지, 제가 한 번만 물어볼까요?\"\n  }\n}\n```"
+      "user": "[user] 오늘은 2026-08-01 (토요일)입니다.\n\n사용자가 처음 쓴 것:\n<user-data context=\"decision\">\n노트북을 새로 살까 말까 고민 중이에요. 지금 쓰는 건 5년 됐고 요즘 부팅도 한참 걸려요.\n</user-data>\n\n지금까지의 문답 (질문은 당신, 답은 사용자):\n<user-data context=\"answers\">\nQ1. 지금 마음은 어느 쪽에 가 있어요? 왜 그런지도 같이요.\nA1. 영상 편집을 새로 시작해보고 싶은데 지금 걸로는 버벅여요.\n</user-data>",
+      "rawText": "```json\n{\n  \"mirror\": \"지금 노트북이 영상 편집할 때 버벅인다는 거네요. 새로 사는 쪽으로 기울어져 있는 상태고요.\",\n  \"action\": \"offer\",\n  \"offer\": {\n    \"sentence\": \"새 노트북을 샀을 때 영상 편집이 실제로 잘 됐다.\",\n    \"when\": \"in_days\",\n    \"days\": 7,\n    \"ask\": \"그럼 새 노트북으로 영상 편집을 해보는 걸로 하고 — 일주일 뒤에 실제로 잘 돌아가는지, 제가 한 번만 물어볼까요?\"\n  }\n}\n```"
     }
   ],
   "mechanical": {
     "findings": []
+  },
+  "judge": {
+    "runs": [
+      {
+        "criteria": {
+          "route_fit": {
+            "verdict": "PASS",
+            "severity": null,
+            "evidence": "",
+            "note": "light 게이트로 처리하고 질문 1개 후 종결 오퍼로 마무리. 적절한 경로."
+          },
+          "ownership": {
+            "verdict": "FAIL",
+            "severity": "M",
+            "evidence": "\"새로 사는 쪽으로 기울어져 있는 상태고요.\"",
+            "note": "사용자는 '영상 편집을 새로 시작해보고 싶은데 지금 걸로는 버벅여요'라고 했을 뿐, 새로 사는 쪽으로 기울었다고 명시하지 않았다. Argus가 방향을 단정해 요약한 것은 소유권 침해다."
+          },
+          "fact_lineage": {
+            "verdict": "PASS",
+            "severity": null,
+            "evidence": "",
+            "note": "외부 사실이나 통계를 단정하지 않았다."
+          },
+          "premise_quality": {
+            "verdict": "PASS",
+            "severity": null,
+            "evidence": "",
+            "note": "전제를 별도로 제시하지 않았고, 이 대화에서 그것이 필요한 상황도 아니었다."
+          },
+          "question_value": {
+            "verdict": "FAIL",
+            "severity": "M",
+            "evidence": "\"7일 뒤에 실제로 어떻게 됐는지, 제가 한 번만 물어볼까요?\"",
+            "note": "사용자가 팔로업을 요청하지 않았고, 이 질문에 대한 답이 현재 판단 상태나 다음 확인을 달라지게 하지 않는다. 종결 오퍼 자체는 허용되나, 이 형태는 행정적 질문에 가깝다."
+          },
+          "update_fidelity": {
+            "verdict": "PASS",
+            "severity": null,
+            "evidence": "",
+            "note": "사용자의 새 답변(영상 편집 목적, 버벅임)을 반영해 요약을 갱신했다."
+          },
+          "restraint": {
+            "verdict": "PASS",
+            "severity": null,
+            "evidence": "",
+            "note": "계획을 미리 만들거나 무거운 절차를 씌우지 않았다."
+          },
+          "language": {
+            "verdict": "PASS",
+            "severity": null,
+            "evidence": "",
+            "note": "자연스러운 해요체. AI체·번역체 없음."
+          }
+        },
+        "overall": "사용자가 명시하지 않은 '새로 사는 쪽으로 기울어져 있다'는 방향을 Argus가 단정해 소유권을 침해했고, 팔로업 질문은 판단에 실질적 영향이 없는 행정적 질문이다.",
+        "best_next_fix": "light_turn_1에서 방향 단정 제거: '새로 사는 쪽으로 기울어져 있는 상태고요' → '영상 편집을 시작하려는데 지금 노트북이 버벅인다는 거네요' 정도로 사실만 반영한다."
+      }
+    ]
   }
 }
