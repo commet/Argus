@@ -206,12 +206,7 @@ function LoginContent() {
             <ul className="space-y-2 text-[13px] text-[var(--text-primary)]">
               <li className="flex items-start gap-2">
                 <Zap size={14} className="text-[var(--accent)] shrink-0 mt-0.5" />
-                {/* Quota copy speaks in DECISIONS, the unit users actually think
-                    in — raw call counts are an internal metric (H1-C6). The
-                    call→decision conversion note lives in quota-config.ts. */}
-                <span>{locale === 'ko'
-                  ? <>하루 <strong>결정 6~8개 분량</strong> 무료 (로그인 없이는 4~5개)</>
-                  : <><strong>About 6–8 decisions a day</strong> free (4–5 without login)</>}</span>
+                <span>{L('기기가 바뀌어도 저장한 판단과 확인일 이어보기', 'Keep saved judgments and review dates across devices')}</span>
               </li>
               <li className="flex items-start gap-2">
                 <FolderOpen size={14} className="text-[var(--accent)] shrink-0 mt-0.5" />
@@ -219,7 +214,7 @@ function LoginContent() {
               </li>
               <li className="flex items-start gap-2">
                 <Users size={14} className="text-[var(--accent)] shrink-0 mt-0.5" />
-                <span>{L('나만의 리뷰어 팀 저장 · 어디서든 호출', 'Save your reviewer team and call them anywhere')}</span>
+                <span>{L('판단 기록을 초대한 사람과 공유 · 의견 모으기', 'Share judgment records with invited people and gather feedback')}</span>
               </li>
               <li className="flex items-start gap-2">
                 <MessageSquare size={14} className="text-[var(--accent)] shrink-0 mt-0.5" />

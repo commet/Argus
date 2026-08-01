@@ -22,4 +22,11 @@ describe('login accessibility contract', () => {
     expect(source).toContain('role="status"');
     expect(source).toContain('aria-busy={submitting}');
   });
+
+  it('describes durable account value without promising a temporary quota or an AI team', () => {
+    expect(source).toContain('기기가 바뀌어도 저장한 판단과 확인일 이어보기');
+    expect(source).toContain('판단 기록을 초대한 사람과 공유');
+    expect(source).not.toContain('결정 6~8개');
+    expect(source).not.toContain('리뷰어 팀 저장');
+  });
 });
