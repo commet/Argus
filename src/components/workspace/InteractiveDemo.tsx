@@ -17,6 +17,7 @@ import { QuestionCard } from './progressive/shared/QuestionCard';
 import { CheckpointRail, type RailCheckpoint } from './progressive/CheckpointRail';
 import { TypingDots, AvatarRipple, ShimmerBar, tickersFor } from './progressive/shared/AgentVisuals';
 import { DEMO_SCENARIO_ART } from '@/lib/demo-scenario-art';
+import { personaReviewLabel } from './progressive/shared/persona-format';
 
 /* ═══ Phase State Machine ═══ */
 type DemoPhase =
@@ -191,13 +192,13 @@ function TeamEntrance({ scenario, onDone, locale = 'ko' }: { scenario: DemoScena
           transition={{ delay: 0.2 + i * 0.3, duration: 0.4, ease: EASE }}
           className="flex items-center gap-3">
           <WorkerAvatar persona={p} size="sm" />
-          <span className="text-[13px] font-medium text-[var(--text-primary)]">{p.name}</span>
+          <span className="text-[13px] font-medium text-[var(--text-primary)]">{personaReviewLabel(p, locale)}</span>
           <span className="text-[12.5px] text-[var(--text-tertiary)]">{p.role}</span>
         </motion.div>
       ))}
       <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.2, duration: 0.4 }}
         className="text-[12.5px] text-[var(--text-tertiary)] pt-1">
-        {locale === 'ko' ? 'AI 검토자들이 각자 다른 관점에서 검토를 시작해요.' : 'AI reviewers are starting from different perspectives.'}
+        {locale === 'ko' ? '이 판단에 필요한 검토 방식이 정해졌어요.' : 'Argus selected the review modes this judgment needs.'}
       </motion.p>
     </motion.div>
   );
@@ -225,7 +226,7 @@ function TeamEntranceTrigger({ onDone }: { onDone: () => void }) {
    WORKER MINI BAR — inline status indicator
    ═══════════════════════════════════════════════════════════ */
 
-function WorkerMiniBar({ scenario, visibleCount }: { scenario: DemoScenario; visibleCount: number }) {
+function WorkerMiniBar({ scenario, visibleCount, locale = 'ko' }: { scenario: DemoScenario; visibleCount: number; locale?: 'ko' | 'en' }) {
   const total = scenario.workers.length;
   const pct = total > 0 ? Math.round((visibleCount / total) * 100) : 0;
   return (
@@ -241,7 +242,7 @@ function WorkerMiniBar({ scenario, visibleCount }: { scenario: DemoScenario; vis
           <div key={w.persona.id} className="flex items-center gap-1.5">
             <WorkerAvatar persona={w.persona} size="sm" pulse={i >= visibleCount} />
             <span className={`text-[12.5px] transition-colors duration-300 ${i < visibleCount ? 'text-[var(--text-primary)] font-medium' : 'text-[var(--text-tertiary)]'}`}>
-              {w.persona.name}
+              {personaReviewLabel(w.persona, locale)}
             </span>
             {i < visibleCount && <Check size={10} className="text-emerald-500" />}
           </div>
@@ -255,7 +256,7 @@ function WorkerMiniBar({ scenario, visibleCount }: { scenario: DemoScenario; vis
    WORKER REPORT — inline report block
    ═══════════════════════════════════════════════════════════ */
 
-function DemoWorkerReport({ worker }: { worker: DemoScenario['workers'][number] }) {
+function DemoWorkerReport({ worker, locale = 'ko' }: { worker: DemoScenario['workers'][number]; locale?: 'ko' | 'en' }) {
   return (
     <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease: EASE }}>
       <div className="flex items-start gap-3">
@@ -263,7 +264,7 @@ function DemoWorkerReport({ worker }: { worker: DemoScenario['workers'][number] 
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
             <WorkerAvatar persona={worker.persona} size="sm" />
-            <span className="text-[13px] font-semibold text-[var(--text-primary)]">{worker.persona.name}</span>
+            <span className="text-[13px] font-semibold text-[var(--text-primary)]">{personaReviewLabel(worker.persona, locale)}</span>
             <span className="text-[12.5px] text-[var(--text-tertiary)]">{worker.persona.role}</span>
           </div>
           <p className="text-[12.5px] text-[var(--accent)] mb-2 pl-0.5">{worker.task}</p>
@@ -362,7 +363,7 @@ function AgentRow({ worker, status, expanded, onToggle, locale = 'ko' }: {
         </div>
         <div className="flex-1 text-left min-w-0">
           <div className="flex items-center gap-1.5">
-            <span className="text-[13px] font-semibold text-[var(--text-primary)] truncate">{worker.persona.name}</span>
+            <span className="text-[13px] font-semibold text-[var(--text-primary)] truncate">{personaReviewLabel(worker.persona, locale)}</span>
             <span className="text-[12.5px] text-[var(--text-tertiary)] truncate">{worker.persona.role}</span>
           </div>
           {isWorking && (
@@ -449,18 +450,18 @@ function DemoAgentSidebar({ scenario, workers, phase, visibleWorkers, locale = '
     <div className="p-4 space-y-3.5">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <span className="text-[12.5px] font-bold uppercase tracking-[0.12em] text-[var(--text-secondary)]">{L('분석 팀', 'Analysis Team')}</span>
+        <span className="text-[12.5px] font-bold uppercase tracking-[0.12em] text-[var(--text-secondary)]">{L('검토 과정', 'Review process')}</span>
         {phase === 'analysis' && (
           <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}
             className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-[var(--bg)] text-[12px] text-[var(--text-tertiary)] font-medium">
             <span className="w-1.5 h-1.5 rounded-full bg-[var(--text-tertiary)] animate-pulse" />
-            {L('모이는 중', 'assembling')}
+            {L('고르는 중', 'selecting')}
           </motion.span>
         )}
         {workingCount > 0 && phaseGte(phase, 'q1') && !phaseGte(phase, 'draft') && (
           <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-[var(--accent)]/10 text-[12px] text-[var(--accent)] font-semibold">
             <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent)] animate-pulse" />
-            {L(`${workingCount}명 분석 중`, `${workingCount} analyzing`)}
+            {L(`${workingCount}개 검토 중`, `${workingCount} reviews running`)}
           </span>
         )}
         {phaseGte(phase, 'draft') && (
@@ -513,9 +514,9 @@ function DemoAgentSidebar({ scenario, workers, phase, visibleWorkers, locale = '
               ?
             </div>
             <div className="flex-1 min-w-0">
-              <div className="text-[12px] font-semibold text-[var(--text-primary)]">{L('? — 세 번째 동료', '? — Third teammate')}</div>
+              <div className="text-[12px] font-semibold text-[var(--text-primary)]">{L('? — 추가 검토', '? — Additional review')}</div>
               <p className="text-[12px] text-[var(--accent)] leading-snug mt-0.5">
-                {L('당신의 Q1 답에 따라 누가 합류할지 정해져요', 'Your answer to Q1 decides who joins')}
+                {L('당신의 Q1 답에 따라 필요한 검토가 달라져요', 'Your answer to Q1 determines the next review')}
               </p>
             </div>
           </motion.div>
@@ -535,7 +536,7 @@ function DemoAgentSidebar({ scenario, workers, phase, visibleWorkers, locale = '
               className="flex items-center gap-2 px-3 pt-1 text-[12px] text-[var(--text-tertiary)]"
             >
               <span className="w-1 h-1 rounded-full bg-[var(--text-tertiary)]/40" />
-              <span>{L(`${pending}명 더 합류 예정`, `${pending} more joining`)}</span>
+              <span>{L(`${pending}개 검토 대기`, `${pending} more review${pending === 1 ? '' : 's'} pending`)}</span>
             </motion.div>
           );
         })()}
@@ -628,7 +629,7 @@ function DemoAgentCompactBar({ workers, phase, visibleWorkers, locale = 'ko' }: 
         </AnimatePresence>
       </div>
       <span className="text-[12px] text-[var(--text-secondary)] flex-1 inline-flex items-center gap-1.5">
-        {allDone ? (locale === 'ko' ? '분석 완료' : 'Analysis done') : <>{locale === 'ko' ? `${workingCount}명 분석 중` : `${workingCount} analyzing`} <TypingDots /></>}
+        {allDone ? (locale === 'ko' ? '검토 완료' : 'Review complete') : <>{locale === 'ko' ? `${workingCount}개 검토 중` : `${workingCount} reviews running`} <TypingDots /></>}
       </span>
       {workingCount > 0 && !allDone && (
         <Loader2 size={11} className="animate-spin text-[var(--accent)]" />
@@ -726,10 +727,10 @@ function DemoDraftCardV2({
                         <span className="block mt-0.5 pl-[18px]">
                           → <span className="inline-flex items-center gap-1" style={{ color: thirdWorker.persona.color }}>
                             <span>{thirdWorker.persona.emoji}</span>
-                            <span className="font-semibold">{thirdWorker.persona.name}</span>
+                            <span className="font-semibold">{personaReviewLabel(thirdWorker.persona, locale)}</span>
                           </span>
                           <span className="text-[var(--text-tertiary)] ml-1">
-                            {L('합류', 'joined')}
+                            {L('추가됨', 'added')}
                           </span>
                         </span>
                       )}
@@ -766,10 +767,10 @@ function DemoDraftCardV2({
               </p>
             </div>
 
-            {/* 팀이 만든 한 줄들 */}
+            {/* 검토에서 남은 한 줄들 */}
             <div>
               <h3 className="text-[12.5px] font-bold text-[var(--text-tertiary)] uppercase tracking-wider mb-3.5">
-                {L('팀이 만든 한 줄들', 'What the team built')}
+                {L('검토에서 남은 한 줄들', 'What each review surfaced')}
               </h3>
               <div className="space-y-4">
                 {draft.workerSummariesDefault.map((summary) => {
@@ -783,7 +784,7 @@ function DemoDraftCardV2({
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="text-[13px] font-semibold text-[var(--text-primary)]">
-                          {worker.persona.name}
+                          {personaReviewLabel(worker.persona, locale)}
                           <span className="text-[var(--text-tertiary)] font-normal ml-1.5">— {summary.headline}</span>
                         </div>
                         <ul className="mt-1 space-y-1">
@@ -816,11 +817,11 @@ function DemoDraftCardV2({
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="text-[13px] font-semibold text-[var(--text-primary)]">
-                          {thirdWorker.persona.name}
+                          {personaReviewLabel(thirdWorker.persona, locale)}
                         </span>
                         <span className="text-[12.5px] text-[var(--text-tertiary)]">— {thirdWorker.task}</span>
                         <span className="text-[12.5px] font-semibold px-1.5 py-0.5 rounded-full bg-[var(--accent)]/10 text-[var(--accent)]">
-                          {L('당신의 답으로 합류', 'joined by your choice')}
+                          {L('당신의 답으로 추가', 'added from your answer')}
                         </span>
                       </div>
                       <p className="mt-1 text-[12px] md:text-[13px] text-[var(--text-secondary)] leading-[1.6] italic">
@@ -1212,8 +1213,8 @@ function DemoFinalCard({
               {effectiveThirdWorker && (
                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[var(--surface)] border" style={{ borderColor: effectiveThirdWorker.persona.color + '40' }}>
                   <span style={{ color: effectiveThirdWorker.persona.color }}>{effectiveThirdWorker.persona.emoji}</span>
-                  <span className="font-semibold" style={{ color: effectiveThirdWorker.persona.color }}>{effectiveThirdWorker.persona.name}</span>
-                  <span className="text-[var(--text-tertiary)]">{L('합류', 'joined')}</span>
+                  <span className="font-semibold" style={{ color: effectiveThirdWorker.persona.color }}>{personaReviewLabel(effectiveThirdWorker.persona, locale)}</span>
+                  <span className="text-[var(--text-tertiary)]">{L('추가', 'added')}</span>
                 </span>
               )}
               {effectiveDm && (
