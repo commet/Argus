@@ -41,6 +41,9 @@ export interface LedgerEventInput {
   monitoring_enabled?: boolean;
   source?: string;
   ai_original?: string;
+  /** The user's own words a premise rests on (premise_add) — persisted so the
+   *  terminal can show its lineage the way the browser card does. */
+  anchor_quote?: string;
   /** M2 materiality rule (jsonb-nested on premise_add) — no schema migration. */
   materiality_rule?: unknown;
   /** M1 re-check cadence in days (jsonb-nested on premise_add/amend) — no migration. */

@@ -19,6 +19,11 @@ const PAIRS: Array<[string, string]> = [
   ['src/lib/numeric-drift.ts', 'argus-mcp/src/lib/numeric-drift.ts'],
   ['src/lib/premises-core.ts', 'argus-mcp/src/lib/premises-core.ts'],
   ['src/lib/premise-shape.ts', 'argus-mcp/src/lib/premise-shape.ts'],
+  // Added 2026-08-02. What counts as a CLAIM rather than the user's own
+  // sentence handed back has to mean the same thing in the browser and in a
+  // terminal — an agent makes exactly the same move a browser model does.
+  ['src/lib/decisive-premises.ts', 'argus-mcp/src/lib/decisive-premises.ts'],
+  ['src/lib/premise-claim.ts', 'argus-mcp/src/lib/premise-claim.ts'],
 ];
 
 /** Strip the `.js` extension the MCP copy adds to relative imports. */

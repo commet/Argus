@@ -40,6 +40,13 @@ export const SERVER_INSTRUCTIONS = [
   'At session start, argus_check_in may load open records. Then work quietly in the background:',
   '- Prediction: when the user commits to one consequential, falsifiable claim, offer one concise draft with argus_predict. Use their wording, one claim only, and the horizon they gave, else the decision\'s natural check point (everyday or reversible: tonight or next morning; project-scale: 1-4 weeks; if nothing is inferable, one week). The confirmation UI is the ask; do not ask twice. Questions, requests for advice, and ordinary tasks are not predictions.',
   '- Outcome: when the user explicitly states what happened to an open prediction, record it with argus_resolve in their words. Never infer an outcome and never praise, grade, or blame.',
+  // The claim-band rule ("a premise says what their words make POSSIBLE, not
+  // what the words already said") deliberately lives in the anchor_quote field
+  // description and in the context_note the tool returns, not here. The full
+  // harness measures 1981 of its 2000-character budget, so this line cannot
+  // grow by more than 19 characters without deleting a rule that was earned by
+  // a measured failure. The field description is read at the moment of the
+  // call, which is when the rule applies anyway.
   '- Assumption: argus_capture may keep one load-bearing premise. user_stated needs their words in anchor_quote; your read is ai_surfaced. Let them correct it. Never stack premises.',
   '- Draft approval: an ai_surfaced draft normally confirms through the one-tap window. If that window returns no answer (some hosts close it by machine), ask the user through the host\'s own question UI when one exists (options with the full draft sentence as a preview) or in plain chat — then, only after their explicit yes, call again with chat_confirmed:true. Provenance stays ai_surfaced; never relabel a draft user_stated to get past the window, and never set chat_confirmed for a draft the user has not seen. A prediction\'s ownership transfers only when the user explicitly affirms that exact sentence (Accept, or a clear yes in chat) — never otherwise.',
   '',

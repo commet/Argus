@@ -185,6 +185,11 @@ export const recall: ToolModule = {
             // provenance — the declared reader of ai_original (plan v5 §6.4)
             source: p.source,
             ...(p.ai_original && p.ai_original !== p.text ? { ai_original: p.ai_original, edited_by_user: true } : {}),
+            // The user's own sentence this rests on. The browser card prints it
+            // under every premise as "내가 쓴 말"; the terminal collected it and
+            // had nowhere to put it, so a host could only ever echo our wording
+            // back at the person who supplied the original.
+            ...(p.anchor_quote ? { anchor_quote: p.anchor_quote } : {}),
             edits: p.amend_history.length,
             // staleness, honestly (plan v5 §5-3): never pretend liveness
             last_checked: last,
@@ -273,6 +278,11 @@ export const recall: ToolModule = {
             // provenance is the line between your reasoning and the model's draft.
             source: p.source,
             ...(p.ai_original && p.ai_original !== p.text ? { ai_original: p.ai_original, edited_by_user: true } : {}),
+            // The user's own sentence this rests on. The browser card prints it
+            // under every premise as "내가 쓴 말"; the terminal collected it and
+            // had nowhere to put it, so a host could only ever echo our wording
+            // back at the person who supplied the original.
+            ...(p.anchor_quote ? { anchor_quote: p.anchor_quote } : {}),
             ...(c.broken_premise_id && p.premise_id === c.broken_premise_id ? { you_named_broken: true } : {}),
           })),
         }));

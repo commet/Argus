@@ -120,6 +120,14 @@ export interface PremiseState {
    * default (enabled when the premise is external and load-bearing). This is
    * deliberately independent from material importance and verifiability. */
   monitoring_enabled?: boolean;
+  /** The user's own words this premise rests on, verbatim.
+   *
+   *  Collected since the provenance work and thrown away ever since: the schema
+   *  asked for it, used it once to decide user_stated vs ai_surfaced, and never
+   *  stored it. So the terminal could never show what the browser card shows
+   *  under every premise — "내가 쓴 말" — and nothing downstream could check the
+   *  lineage it had already been handed. */
+  anchor_quote?: string;
   source: PremiseSource;
   /** The AI's original wording, preserved across user edits — the provenance the
    *  receipt's authorship honesty rests on. Its declared reader is the recall

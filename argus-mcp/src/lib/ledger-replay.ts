@@ -309,6 +309,7 @@ export function replayLedger(argusDir: string, today: string): LedgerState {
           ...(typeof ev['monitoring_enabled'] === 'boolean' ? { monitoring_enabled: ev['monitoring_enabled'] } : {}),
           source: normalizePremiseSource(ev['source']),
           ...(typeof ev['ai_original'] === 'string' ? { ai_original: ev['ai_original'] } : {}),
+          ...(typeof ev['anchor_quote'] === 'string' ? { anchor_quote: ev['anchor_quote'] } : {}),
           ...(isMaterialityRule(ev['materiality_rule']) ? { materiality_rule: ev['materiality_rule'] as PremiseState['materiality_rule'] } : {}),
           ...(typeof ev['recheck_cadence_days'] === 'number' && Number.isFinite(ev['recheck_cadence_days']) ? { recheck_cadence_days: ev['recheck_cadence_days'] } : {}),
           ...(typeof ev['reponder_cadence_days'] === 'number' && Number.isFinite(ev['reponder_cadence_days']) ? { reponder_cadence_days: ev['reponder_cadence_days'] } : {}),
@@ -436,6 +437,7 @@ export function replayLedger(argusDir: string, today: string): LedgerState {
           text: ev['text'],
           source: normalizePremiseSource(ev['source']),
           ...(typeof ev['ai_original'] === 'string' ? { ai_original: ev['ai_original'] } : {}),
+          ...(typeof ev['anchor_quote'] === 'string' ? { anchor_quote: ev['anchor_quote'] } : {}),
           ts: ev['ts'] as string | undefined,
         });
         break;

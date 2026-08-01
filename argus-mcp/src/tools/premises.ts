@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { isQuestionShaped } from '../lib/premise-shape.js';
+import { statesAClaim } from '../lib/premise-claim.js';
 import { resolveToolArgusDir } from '../lib/argus-dir.js';
 import { replayLedger } from '../lib/ledger-replay.js';
 import { resolveToday, logicalNow } from '../lib/resolve-today.js';
@@ -66,6 +67,7 @@ const zPremiseInput = z.strictObject({
   monitoring_enabled: z.boolean().default(true).describe('Whether Argus should currently re-check/nudge this premise. This does not change whether the premise is important or externally verifiable.'),
   source: z.enum(['ai_surfaced', 'user_stated', 'ai', 'user']).optional().describe('Provenance. Never forge: "user_stated" = the user\'s own words; "ai_surfaced" = model-drafted (requires ai_original). Legacy aliases "user"/"ai" are accepted and normalized. Optional ONLY when from_capture is given (the capture\'s provenance carries over) — otherwise required.'),
   ai_original: z.string().max(400).optional().describe('REQUIRED when source="ai_surfaced": the model\'s original wording, preserved verbatim across later edits.'),
+  anchor_quote: z.string().max(400).optional().describe('The user’s own words this rests on, verbatim. Stored with the premise now, and checked: a sentence that only repeats its own quote is recorded as context rather than as something to re-check later.'),
   chat_confirmed: z.boolean().default(false).describe('TRUE only when the user has ALREADY approved this exact ai_surfaced draft in the conversation (their explicit yes, or a host picker they answered). Skips the one-tap confirm window; provenance stays ai_surfaced. Never set it for a draft the user has not seen — that forges the approval this field asserts.'),
   materiality_rule: zMaterialityRule.optional().describe('Optional: how re-checks decide "did this materially change?". Absent → an under-fire default heuristic (silence when unsure). Define it to be precise (e.g. threshold "drops below 4.0", step "any one-notch credit downgrade").'),
   recheck_cadence_days: z.number().int().min(1).max(365).optional().describe('Optional: how many days between reality re-checks for this fact (M1). Absent → a default derived from the rule type (a moving number is checked more often than slow-moving state). The user pins this; it only moves the DUE nudge, never blocks a recheck.'),
@@ -377,13 +379,33 @@ async function opAdd(
     return toolError({ ok: false, tool: 'argus_premises', error_code: 'PREMISE_CAP', message: `At most ${MAX_LOAD_BEARING} load-bearing premises (${lbExisting} already marked).`, recovery: 'Load-bearing means the decision flips if it is wrong — if three qualify, the sharpest one is hiding among them.' });
   }
 
+  // The claim band, shared byte-for-byte with the webapp (premise-claim.ts).
+  // An agent in a terminal makes exactly the move a model in a browser makes:
+  // it hands the user's own sentence back with the word "premise" on it. The
+  // host asked for anchor_quote and never checked it against the text, so a
+  // pure restatement was stored as something to re-check for months.
+  //
+  // It is NOT refused. The sentence is real and the user said it; it is just
+  // not an assumption, so it does not get marked load-bearing and does not join
+  // the re-check queue. The downgrade is visible in the echo and named in
+  // next_actions, following the same idiom as the user_stated → ai_surfaced
+  // downgrade one layer up: never reject the material, never mislabel it.
+  const restated = new Set<string>();
+  const scored = fresh.map((p) => {
+    const quote = typeof p.anchor_quote === 'string' ? p.anchor_quote : '';
+    if (!quote || p.kind !== 'premise' || statesAClaim(p.text, quote)) return p;
+    restated.add(p.text);
+    return { ...p, load_bearing: false, monitoring_enabled: false };
+  });
+
   let nextOrdinal = existing.reduce((m, p) => Math.max(m, p.ordinal), 0) + 1;
-  const events: LedgerEventInput[] = fresh.map((p) => ({
+  const events: LedgerEventInput[] = scored.map((p) => ({
     id, event: 'premise_add' as const,
     premise_id: premiseId(id, p.kind, p.text),
     ordinal: nextOrdinal++,
     kind: p.kind, text: p.text,
     external: p.external, load_bearing: p.load_bearing,
+    ...(typeof p.anchor_quote === 'string' && p.anchor_quote ? { anchor_quote: p.anchor_quote } : {}),
     monitoring_enabled: p.monitoring_enabled,
     source: normalizePremiseSource(p.source),
     ...(p.ai_original ? { ai_original: p.ai_original } : {}),
@@ -422,6 +444,12 @@ async function opAdd(
     ref: `P${e.ordinal}`, premise_id: e.premise_id, kind: e.kind, text: e.text,
     external: e.external, load_bearing: e.load_bearing, source: e.source,
     ...(e['ai_original'] ? { ai_original: e['ai_original'] } : {}),
+    ...(e['anchor_quote'] ? { anchor_quote: e['anchor_quote'] } : {}),
+    // Named on the item it happened to, so a host rendering the echo shows the
+    // downgrade beside the sentence rather than as a footnote about "one of
+    // these". `data` is what the model reads; `surface` is the human's line and
+    // a person does not need to hear about the taxonomy.
+    ...(e.text && restated.has(e.text) ? { recorded_as: 'context' as const } : {}),
     monitored: e.kind === 'premise' && e.external === true && e.load_bearing === true && e.monitoring_enabled !== false,
   }));
   const monitoredCount = echo.filter((p) => p.monitored).length;
@@ -480,7 +508,17 @@ async function opAdd(
     ok: true, tool: 'argus_premises',
     surface: surface + noAnswerNote,
     next_actions: ['argus_predict', 'argus_patterns', 'leave_as_is'],
-    data: { id, premises: echo, skipped_duplicates: skippedDup, ...(dupRetired.length ? { skipped_retired: dupRetired } : {}), ...(noAnswerDraft ? { unanswered_draft: noAnswerDraft } : {}), ledger_events_written: events.map(() => 'premise_add') },
+    data: {
+      id,
+      premises: echo,
+      ...(restated.size > 0 ? {
+        context_note: 'One or more premises only repeat the quote they rest on, so they are '
+          + 'recorded as context: kept on the record, not marked load-bearing, not queued for '
+          + 're-checking. If one really is load-bearing, add it again saying what that fact '
+          + 'makes possible or impossible in THIS decision. If you cannot say that honestly, '
+          + 'leaving it as context is the right outcome.',
+      } : {}),
+      skipped_duplicates: skippedDup, ...(dupRetired.length ? { skipped_retired: dupRetired } : {}), ...(noAnswerDraft ? { unanswered_draft: noAnswerDraft } : {}), ledger_events_written: events.map(() => 'premise_add') },
   });
 }
 
