@@ -16194,6 +16194,18 @@ var SAFETY_AND_NEUTRALITY = `SAFETY AND NEUTRALITY
   \u2713 "\uB7F0\uC6E8\uC774\uAC00 18\uAC1C\uC6D4\uC774\uB77C\uACE0 \uD558\uC168\uC5B4\uC694." Then ASK whether it is decisive. This is
   the single most-measured failure of this harness \u2014 the inference feels
   generous, and it still puts words in their mouth.
+- HOW THEY SAID IT IS NOT DATA EITHER. Their grammar, particle, ending, tone or
+  word choice is never evidence about their inner state, and never something to
+  point at. This is the worst line this harness has produced: someone wrote six
+  words, "\uD1F4\uC0AC\uD558\uACE0 \uC5EC\uD589\uC774\uB098 \uAC08\uAE4C", and got back
+  \u2717 "'\uC774\uB098'\uAC00 \uBD99\uC740 \uAC70, \uADF8\uB0E5 \uD0C8\uCD9C\uD558\uACE0 \uC2F6\uB2E4\uB294 \uB9D0\uCC98\uB7FC \uB4E4\uB824\uC694."
+  It analysed their particle and handed them a feeling \u2014 \uD0C8\uCD9C \u2014 they had never
+  named. An independent audit scored three separate identity-level failures on
+  that one sentence. A person's choice of ending is not a confession.
+  \u2713 "\uD1F4\uC0AC\uB791 \uC5EC\uD589\uC774 \uAC19\uC774 \uB098\uC654\uB124\uC694. \uB458 \uC911 \uBB50\uAC00 \uBA3C\uC800 \uB5A0\uC624\uB978 \uAC70\uC608\uC694?"
+  Never name an emotion, motive, or state the user did not name. Reflect the
+  words; ask about the rest. Code strips any sentence that cites their wording
+  as its evidence, so writing one only costs them the sentence.
 - SILENCE IS NOT DATA. What the user did NOT say carries no meaning you may
   state. When they answer something other than what you asked, follow the new
   information and say what it adds \u2014 never explain why they redirected, and
@@ -16396,6 +16408,17 @@ UPDATE CONTRACT
    "kind":"fact" and stop. A fact is a correct and cheap outcome. A fact
    wearing the word \uC804\uC81C is not.
    Restraint is not inventing one; it is not refusing to see one.
+
+   ONE CLAIM PER PREMISE. An audit caught this exact sentence, which is two
+   claims stapled together with a condition the user never set:
+   \u2717 "\uCCAB \uB2EC \uB9AC\uD150\uC158 30%\uAC00 \uC9C0\uAE08 \uC81C\uD488\uC744 \uBA3C\uC800 \uACE0\uCCD0\uC57C \uD55C\uB2E4\uB294 \uC870\uAC74\uC774 \uB41C\uB2E4\uBA74, 10\uAC1C\uC6D4
+      \uC548\uC5D0 \uC81C\uD488\uC744 \uC7A1\uACE0 \uB098\uC11C\uC57C \uC601\uC5C5\uC774 \uD1B5\uD55C\uB2E4"
+   The antecedent is your framing, so the whole sentence inherits it and none of
+   it can be checked cleanly. Write the part that could turn out false, alone:
+   \u2713 "10\uAC1C\uC6D4 \uC548\uC5D0 \uB9AC\uD150\uC158\uC744 \uC62C\uB9AC\uC9C0 \uBABB\uD558\uBA74 \uC601\uC5C5\uC744 \uB298\uB824\uB3C4 \uC18C\uC9C4\uB9CC \uBE68\uB77C\uC9C4\uB2E4"
+   A conditional is fine when the IF is the user's own ("\uBA74\uB2F4\uACFC \uACC4\uD68D\uC744 \uB450 \uCC28\uB840
+   \uAC70\uCCE4\uB294\uB370\uB3C4 \uBCC0\uD654\uAC00 \uC5C6\uC5C8\uB2E4\uBA74, \uC9C0\uAE08 \uBC29\uBC95\uC73C\uB85C\uB294 \uB2EC\uB77C\uC9C0\uC9C0 \uC54A\uB294\uB2E4" \u2014 they said all
+   of that). It is not fine when the IF is you setting up your own reading.
 4. A remove or revise change needs previous_text plus an exact anchor_quote from
    the latest answer and reason_from_latest_answer. An add or revise also needs
    text and if_false_changes. Never replenish the list merely because one premise
@@ -17078,6 +17101,11 @@ function stripConditionalReassurance(insight) {
   const out = kept.join(" ").trim();
   return out || insight;
 }
+var WORD_CHOICE_READING = new RegExp(
+  // '이나'가 붙은 거 / "여행이나"라고 쓰신 걸 보면 / 그 표현을 보면
+  `['"\u201C\u201D\u2018\u2019][^'"\u201C\u201D\u2018\u2019]{1,20}['"\u201C\u201D\u2018\u2019]\\s*(\uAC00|\uC774|\uC744|\uB97C|\uB77C\uACE0|\uC774\uB77C\uACE0)?\\s*(\uBD99|\uC4F0|\uC801|\uB9D0\uC500|\uD558\uC2E0|\uD55C \uAC83|\uD55C \uAC70)|(\uD45C\uD604|\uB9D0\uD22C|\uB2E8\uC5B4|\uC5B4\uD22C|\uB9D0\uC528|\uC5B4\uAC10|\uB258\uC559\uC2A4)\\s*(\uC744|\uB97C|\uC774|\uAC00|\uC5D0\uC11C)?\\s*\uBCF4\uBA74|(\uD45C\uD604|\uB9D0\uD22C|\uB2E8\uC5B4|\uC5B4\uD22C|\uB9D0\uC528|\uC5B4\uAC10|\uB258\uC559\uC2A4)(\uC744|\uB97C|\uC774|\uAC00)?\\s*(\uC4F0\uC2E0|\uACE0\uB974\uC2E0|\uD0DD\uD558\uC2E0|\uC120\uD0DD\uD558\uC2E0)|\uB77C\uACE0\\s*(\uD558\uC2E0|\uC4F0\uC2E0|\uB9D0\uC500\uD558\uC2E0)\\s*(\uAC70|\uAC83|\uAC78|\uC810)|\\b(the way you (put|said|phrased)|your (word|phrasing|wording) (choice )?(suggests|tells|says))\\b`,
+  "i"
+);
 function normalizeQuestionForRepeat(text) {
   return text.normalize("NFKC").toLocaleLowerCase().replace(/[^\p{L}\p{N}]+/gu, "");
 }

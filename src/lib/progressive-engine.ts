@@ -58,6 +58,7 @@ import {
   lowConfidenceOpeningCopy,
   stripConditionalReassurance,
   stripUnearnedRanking,
+  stripFrameSeizure,
   stripWordChoiceReading,
   capEscalationArrival,
   scrubBannedVocabulary,
@@ -70,6 +71,7 @@ export {
   lowConfidenceOpeningCopy,
   stripConditionalReassurance,
   stripUnearnedRanking,
+  stripFrameSeizure,
   stripWordChoiceReading,
   capEscalationArrival,
   scrubBannedVocabulary,
@@ -861,7 +863,7 @@ export async function runInitialAnalysis(
   // state is a spine violation on EVERY route, so it is stripped before the
   // route-specific guards — including on crisis, where the resource line is
   // then appended to whatever honestly survives.
-  const literalInsight = stripWordChoiceReading(result.insight);
+  const literalInsight = stripFrameSeizure(stripWordChoiceReading(result.insight));
   const routedInsight = result.request_type === 'crisis'
     ? ensureCrisisResource(literalInsight || result.real_question, locale)
     : result.request_type === 'validation'
@@ -1251,9 +1253,16 @@ export async function runDeepening(
     // R7 — heavy prose passes the banned-vocabulary scrub on every round.
     skeleton: scrubList(result.skeleton || currentSnapshot.skeleton),
     execution_plan: executionPlan,
-    insight: result.insight
-      ? scrubBannedVocabulary(stripUnearnedRanking(result.insight) || result.insight)
-      : result.insight,
+    // Both identity-level guards run here too. Round 2 is where the frame gets
+    // taken — the model has just heard something and reaches to re-explain the
+    // decision back at the person — and until 2026-08-02 nothing on this path
+    // looked at the insight except the ranking strip. When they empty it, the
+    // user's own frame stands in; it is their words made shorter, by contract.
+    insight: (() => {
+      const literal = stripFrameSeizure(stripWordChoiceReading(result.insight));
+      if (!literal) return result.real_question || currentSnapshot.real_question;
+      return scrubBannedVocabulary(stripUnearnedRanking(literal) || literal);
+    })(),
     framing_confidence: currentSnapshot.framing_confidence,
     framing_locked: currentSnapshot.framing_locked,
     // Carry the deterministic crisis flag forward so the resource banner stays

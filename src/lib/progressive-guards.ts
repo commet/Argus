@@ -289,6 +289,59 @@ export function stripWordChoiceReading(insight: string | undefined): string {
     .trim();
 }
 
+/**
+ * Telling someone their question is not their question.
+ *
+ * Measured 2026-08-02, unanimous H across three independent judge runs — the
+ * only unanimous H the sim has produced. A team lead wrote "내보내야 하나
+ * 고민입니다" and after one answer Argus replied:
+ *
+ *   "'내보낼지'를 고민하는 게 아니라, 다음 주 기한 결과를 보고 어떻게 할지
+ *    판단하는 순서가 이미 설계되어 있는 거예요."
+ *
+ * That is the frame taken. Rule 8 of the judgment contract — "do not replace
+ * their question with a grander one" — and rule 9 of the synthesis contract,
+ * which bans "진짜 질문" outright, both forbid it. But rule 9 was only ever
+ * enforced on the receipt, and this sentence is an insight on round 2, where
+ * nothing looked.
+ *
+ * The detectable shape is narrow on purpose. "A가 아니라 B" is ordinary Korean
+ * and usually about the world ("호가가 아니라 실제 가격이 핵심이에요" is fine).
+ * What is never fine is negating the user's own act of deciding: nobody may
+ * tell a person they are not deliberating about the thing they said they are
+ * deliberating about.
+ */
+const FRAME_SEIZURE = new RegExp(
+  // Two shapes, both narrow. Nominalised — "고민하는 게 아니라" — and
+  // subject-negated — "질문이 그게 아니라". In the second the particle has to
+  // sit directly on the noun, so "선택지가 두 개가 아니라" (an ordinary factual
+  // correction) does not match.
+  '(고민|질문|결정|선택|판단|묻고|정하)[가-힣]*\\s*(게|것이|것도|문제가|문제는|일이)\\s*아니라'
+  + '|(고민|질문|결정|선택|판단)(이|가|은|는)\\s*[가-힣\\s]{0,6}아니라'
+  // '내보낼지'를 …하는 게 아니라 — their own word, quoted and then denied
+  + '|[\'"“”‘’][^\'"“”‘’]{1,24}[\'"“”‘’]\\s*(을|를|이|가|은|는)?\\s*[가-힣\\s]{0,12}아니라'
+  // the frame seized by naming itself
+  + '|(진짜|사실|핵심|본질적인|실제)\\s*(질문|문제|고민)(은|는|이)'
+  + '|\\b(the real question is|what you.?re (actually|really) (deciding|asking)|it.?s not (really )?about)\\b',
+  'i',
+);
+
+/**
+ * Drop any sentence that redefines what the user said they are deciding.
+ *
+ * Returns '' when nothing survives — same reasoning as stripWordChoiceReading:
+ * a sentence of this shape is entirely the violation, so handing it back would
+ * defeat the guard, and the caller substitutes the user's own frame.
+ */
+export function stripFrameSeizure(insight: string | undefined): string {
+  if (!insight) return '';
+  return insight
+    .split(/(?<=[.!?…])\s+/)
+    .filter((s) => !FRAME_SEIZURE.test(s))
+    .join(' ')
+    .trim();
+}
+
 function normalizeQuestionForRepeat(text: string): string {
   return text.normalize('NFKC').toLocaleLowerCase().replace(/[^\p{L}\p{N}]+/gu, '');
 }

@@ -15,7 +15,7 @@
  * twin and the sharper of the two: HOW they said it carries no meaning either.
  */
 import { describe, expect, it } from 'vitest';
-import { stripWordChoiceReading } from '../progressive-guards';
+import { stripFrameSeizure, stripWordChoiceReading } from '../progressive-guards';
 
 describe('the measured line', () => {
   it('does not survive', () => {
@@ -99,5 +99,57 @@ describe('an emptied insight is honest, not silent', () => {
     expect(chain).toContain('ensureCrisisResource(literalInsight');
     expect(chain).toContain('stripConditionalReassurance(literalInsight)');
     expect(chain).toContain('stripUnearnedRanking(literalInsight)');
+  });
+});
+
+/**
+ * The frame taken — the only unanimous H the sim has ever produced (three
+ * independent judge runs, 2026-08-02).
+ *
+ * A team lead wrote "내보내야 하나 고민입니다". After one answer Argus said:
+ *
+ *   "'내보낼지'를 고민하는 게 아니라, 다음 주 기한 결과를 보고 어떻게 할지
+ *    판단하는 순서가 이미 설계되어 있는 거예요."
+ *
+ * Rule 8 forbids replacing their question with a grander one and rule 9 bans
+ * "진짜 질문" outright — but rule 9 was enforced only on the receipt, and this
+ * was an insight on round 2, where nothing looked.
+ */
+describe('nobody may tell a person their question is not their question', () => {
+  it('drops the measured sentence', () => {
+    expect(stripFrameSeizure(
+      "'내보낼지'를 고민하는 게 아니라, 다음 주 기한 결과를 보고 어떻게 할지 판단하는 순서가 이미 설계되어 있는 거예요.",
+    )).toBe('');
+  });
+
+  it.each([
+    ['negates their deliberation', '지금 고민하는 게 아니라 시점을 정하는 문제예요.'],
+    ['negates their question', '질문이 그게 아니라 다른 데 있어요.'],
+    ['names the frame it is taking', '진짜 질문은 언제 정리하느냐예요.'],
+    ['핵심 문제는', '핵심 문제는 성과가 아니라 신뢰예요.'],
+    ['english', "The real question is whether you can afford to wait."],
+    ['english soft', "It's not really about the deadline."],
+  ])('%s', (_l, sentence) => {
+    expect(stripFrameSeizure(sentence)).toBe('');
+  });
+
+  it.each([
+    // "A가 아니라 B" is ordinary Korean and usually about the WORLD, not about
+    // what the user is deciding. Catching it would gut normal reflection.
+    '호가가 아니라 실제 거래가를 보셔야 해요.',
+    '기한은 다음 주가 아니라 그다음 주예요.',
+    '문서로 남긴 건 계획이지 약속이 아니라고 하셨어요.',
+    '두 번째 기한이 다음 주에 끝나요.',
+  ])('leaves ordinary contrast alone: %s', (sentence) => {
+    expect(stripFrameSeizure(sentence)).toBe(sentence);
+  });
+
+  it('runs on the deepening turn, which is where the frame gets taken', async () => {
+    const { readFileSync } = await import('node:fs');
+    const src = readFileSync('src/lib/progressive-engine.ts', 'utf8');
+    expect(src).toContain('stripFrameSeizure(stripWordChoiceReading(result.insight))');
+    // And the deepening path falls back to the user's own frame, not to silence
+    // and not to the sentence it just refused.
+    expect(src).toContain('return result.real_question || currentSnapshot.real_question;');
   });
 });
