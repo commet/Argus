@@ -53,6 +53,26 @@ export interface AdmittedPremise {
   support_kind: PremiseCandidate['support_kind'];
   kind: PremiseKind;
   observable?: string;
+  /** Set by the USER only, later, and never present on model output — the
+   *  runtime strips it (see stripModelOnly). Whether being wrong here would
+   *  have moved this particular person is a fact about them. */
+  decisive?: 'flips' | 'holds';
+}
+
+/**
+ * A model may describe consequences; it may not decide what matters to someone.
+ * `decisive` is the user's answer to "이게 틀렸다면 다른 선택을 하셨을까요?", so
+ * anything arriving under that key from a model is dropped rather than trusted —
+ * a fail-closed boundary, not a lint.
+ */
+function stripModelOnly<T extends Record<string, unknown>>(item: T | null): T | null {
+  if (!item) return item;
+  if ('decisive' in item) {
+    const { decisive: _ignored, ...rest } = item;
+    void _ignored;
+    return rest as T;
+  }
+  return item;
 }
 
 const PREMISE_KINDS = new Set<PremiseKind>([
@@ -188,7 +208,7 @@ export function coercePremiseCandidates(
   const candidates = Array.isArray(raw) ? raw : [];
 
   for (const value of candidates) {
-    const item = asRecord(value);
+    const item = stripModelOnly(asRecord(value));
     const text = cleanText(item?.text);
     const anchorQuote = cleanText(item?.anchor_quote);
     const supportKind = cleanText(item?.support_kind);
@@ -270,7 +290,7 @@ export function applyPremiseDeltas(
   const deltas = Array.isArray(raw) ? raw : [];
 
   for (const value of deltas) {
-    const item = asRecord(value);
+    const item = stripModelOnly(asRecord(value));
     const action = cleanText(item?.action) as PremiseDelta['action'];
     const previousText = cleanText(item?.previous_text);
     const text = cleanText(item?.text);

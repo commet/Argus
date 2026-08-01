@@ -437,7 +437,14 @@ export interface SessionPredicateInput {
   /** The living state's typed premises, so the sealed predicate keeps the kind
    *  and the observable. Without them the return can only ask a generic
    *  question, and a 'standard' would be graded like a claim about the world. */
-  premise_records?: Array<{ text: string; kind?: PremiseKind; observable?: string }>;
+  premise_records?: Array<{
+    text: string;
+    kind?: PremiseKind;
+    observable?: string;
+    /** The user's own call on whether this would have flipped them. Carried so
+     *  the return can spend its one moment on what they said carries weight. */
+    decisive?: 'flips' | 'holds';
+  }>;
   dm_feedback?: DMFeedbackResult | null;
   debate_result?: {
     challenge: string;
@@ -538,6 +545,7 @@ export function extractPredicatesFromSession(s: SessionPredicateInput, recordedA
       attribution: webAiAttribution(recordedAt, 'workspace:mix_assumption'),
       ...(record?.kind ? { premise_kind: record.kind } : {}),
       ...(record?.observable ? { observable: record.observable } : {}),
+      ...(record?.decisive ? { decisive: record.decisive } : {}),
     });
     if (p) governing.push(p);
   }

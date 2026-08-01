@@ -5,6 +5,7 @@ import { useLocale } from '@/hooks/useLocale';
 import { useProjectStore } from '@/stores/useProjectStore';
 import type { ContractSettlement, DecisionContract, PredicateVerdict, Project } from '@/stores/types';
 import { appendContractSettlement, decisionKind, gradePredicate } from '@/lib/decision-contract';
+import { premisesToRevisit } from '@/lib/decisive-premises';
 import {
   axesWithPresentStandard,
   FOUNDATION_SETTLEMENT_OPTIONS,
@@ -348,12 +349,15 @@ function PremiseReturn({
   const [graded, setGraded] = useState<Record<string, PredicateVerdict>>({});
   // The sealed sentence is answered by the main question above; these are the
   // things it rested on.
-  const premises = (contract.predicates || [])
-    .filter((p) => p.source !== 'user_lean' && p.text?.trim())
-    // A standard is the user's own weighting. Reality does not settle it, and
-    // asking "그거 맞았어요?" about someone's values grades who they are.
-    .filter((p) => p.premise_kind !== 'standard')
-    .slice(0, 3);
+  // One shared rule (decisive-premises.ts): standards are never checked, and
+  // once the user has said which premises would have flipped them, only those
+  // come back — the return gets one moment of attention and should spend it on
+  // what they told us carries the weight.
+  const premises = premisesToRevisit(
+    (contract.predicates || [])
+      .filter((p) => p.source !== 'user_lean' && p.text?.trim())
+      .map((p) => ({ ...p, kind: p.premise_kind, decisive: p.decisive })),
+  ).slice(0, 3);
   if (premises.length === 0) return null;
 
   const CHOICES: Array<{ verdict: PredicateVerdict; ko: string; en: string }> = [

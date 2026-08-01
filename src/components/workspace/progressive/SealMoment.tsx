@@ -40,6 +40,12 @@ import { useProjectStore } from '@/stores/useProjectStore';
 import type { Project, Predicate, PredicateSource, CheckInInterval, OpenCheck, DecisionKind } from '@/stores/types';
 import { deriveDecisionKind } from '@/lib/decision-kernel';
 import {
+  carriedPremises,
+  decisiveAnswerLabel,
+  decisiveQuestion,
+  type Decisive,
+} from '@/lib/decisive-premises';
+import {
   contractFromPredicates,
   withCheckIn,
   withoutReturn,
@@ -156,6 +162,7 @@ export function SealMoment({
   const addDecisionItems = useDecisionItemsStore((s) => s.addItems);
   const currentVoyage = useProgressiveStore((s) => s.currentSession);
   const setSealPromptDismissed = useProgressiveStore((s) => s.setSealPromptDismissed);
+  const setPremiseDecisive = useProgressiveStore((s) => s.setPremiseDecisive);
   const persistedDismissedAt = useProgressiveStore((s) => {
     const active = s.sessions.find((item) => item.id === s.currentSessionId && item.project_id === project.id);
     if (active) return active.seal_prompt_dismissed_at ?? null;
@@ -280,6 +287,9 @@ export function SealMoment({
    *  loses nothing except what the return could otherwise have shown them. */
   const [statedConfidence, setStatedConfidence] =
     useState<'even' | 'likely' | 'near_certain' | null>(null);
+  /** The user's own call on which premises would have moved them. Keyed by
+   *  premise text — the ids are regenerated at seal time. */
+  const [decisive, setDecisive] = useState<Record<string, Decisive>>({});
   /** 손대지 않은 초안을 그대로 확정했는가 — 출처를 정직하게 가르는 유일한 기준. */
   const keptAiDraft = !judgmentTouched
     && !!aiDraftJudgment
@@ -423,6 +433,9 @@ export function SealMoment({
     // predicate with that exact line and make it the primary return checkpoint.
     // 문장을 누가 썼는지의 판정은 **순수 함수 한 곳**에 있다 (judgment-authorship.ts).
     // 여기 인라인으로 두면 순수 테스트가 못 읽고, 검사기가 못 읽는 규칙은 없는 규칙이다.
+    // Write the user's own calls onto the living record FIRST — the contract is
+    // built from those records, so an answer that never lands there was theatre.
+    setPremiseDecisive(decisive);
     const authorship = finalJudgment
       ? closingJudgmentAuthorship({
           text: finalJudgment, aiDraft: aiDraftJudgment, touched: judgmentTouched, now,
@@ -585,6 +598,7 @@ export function SealMoment({
     // Authorship is decided in ONE pure place (judgment-authorship.ts) — the
     // same call the normal seal path makes. Hardcoding 'user' here meant an
     // untouched AI draft was stamped as the user's own words.
+    setPremiseDecisive(decisive);
     const recoveryAuthorship = closingJudgmentAuthorship({
       text: finalJudgment, aiDraft: aiDraftJudgment, touched: judgmentTouched, now,
     });
@@ -1218,6 +1232,24 @@ export function SealMoment({
           <ConfidenceChoice value={statedConfidence} onChange={setStatedConfidence} L={L} />
         )}
 
+        {selectedKind !== 'witness' && (
+          <DecisiveChoice
+            premises={carriedPremises(
+              ((currentVoyage()?.snapshots ?? []).slice(-1)[0]?.premise_records ?? []).map((r) => ({
+                ...r, decisive: decisive[r.text] ?? r.decisive,
+              })),
+            )}
+            answers={decisive}
+            onAnswer={(text, value) => setDecisive((prev) => (
+              prev[text] === value
+                ? Object.fromEntries(Object.entries(prev).filter(([k]) => k !== text))
+                : { ...prev, [text]: value }
+            ))}
+            locale={locale}
+            L={L}
+          />
+        )}
+
         {/* Judgment Receipt — seal과 settle을 하나의 오브젝트로 묶는 진입점.
             사용자가 human_judgment를 작성하면 봉인 시 함께 저장된다. */}
         {kept.length > 0 && (() => {
@@ -1659,6 +1691,66 @@ function ConfidenceChoice({
           >
             {L(option.ko, option.en)}
           </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * The one question only the person can answer.
+ *
+ * A premise matters exactly insofar as it would have changed the choice. If it
+ * is true whichever way you go, it is background — and bringing it back on the
+ * check-in date is noise dressed as diligence. The same answer also says which
+ * branch the premise belongs to, which is why one question closes two gaps.
+ *
+ * Asked here and nowhere else: mid-conversation it would be interrogation, and
+ * the user is already committing at this moment. At most two, one tap each,
+ * skippable — unanswered stays carried, because silence is not a "no".
+ */
+function DecisiveChoice({
+  premises,
+  answers,
+  onAnswer,
+  locale,
+  L,
+}: {
+  premises: Array<{ text: string; if_false_changes?: string }>;
+  answers: Record<string, Decisive>;
+  onAnswer: (text: string, value: Decisive) => void;
+  locale: 'ko' | 'en';
+  L: (ko: string, en: string) => string;
+}) {
+  const shown = premises.slice(0, 2);
+  if (shown.length === 0) return null;
+  return (
+    <div className="mt-3 border-t border-[var(--border-subtle)] pt-3">
+      <p className="text-[12.5px] text-[var(--text-secondary)]">
+        {decisiveQuestion(locale)}
+        <span className="ml-1.5 text-[var(--text-tertiary)]">{L('선택', 'optional')}</span>
+      </p>
+      <div className="mt-2 space-y-2.5">
+        {shown.map((premise) => (
+          <div key={premise.text}>
+            <p className="text-[13px] leading-[1.55] text-[var(--text-primary)]">{premise.text}</p>
+            <div className="mt-1.5 flex flex-wrap gap-1.5">
+              {(['flips', 'holds'] as const).map((value) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => onAnswer(premise.text, value)}
+                  className={`rounded-full border px-3 py-1 text-[12px] transition-colors ${
+                    answers[premise.text] === value
+                      ? 'border-[var(--accent)] bg-[var(--accent)]/10 text-[var(--text-primary)]'
+                      : 'border-[var(--border)] text-[var(--text-secondary)] hover:border-[var(--accent)]/50'
+                  }`}
+                >
+                  {decisiveAnswerLabel(value, locale)}
+                </button>
+              ))}
+            </div>
+          </div>
         ))}
       </div>
     </div>

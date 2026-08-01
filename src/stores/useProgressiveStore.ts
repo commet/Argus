@@ -248,6 +248,9 @@ interface ProgressiveState {
    *  setMix forces phase 'dm_feedback', which would yank back a user who has
    *  already moved past the draft when the async scan resolves. */
   patchMix: (mix: MixResult) => void;
+  /** The user's own call on which premises would have flipped the decision.
+   *  Written onto the latest snapshot's records so it survives to the seal. */
+  setPremiseDecisive: (answers: Record<string, 'flips' | 'holds'>) => void;
   setDMFeedback: (feedback: DMFeedbackResult) => void;
   toggleFix: (concernIndex: number) => void;
   /** Persist the committed overreach/flinch result. Additive — never touches
@@ -857,6 +860,26 @@ export const useProgressiveStore = create<ProgressiveState>((set, get) => ({
     const { currentSessionId } = get();
     if (!currentSessionId) return;
     const sessions = updateSession(get().sessions, currentSessionId, () => ({ mix }));
+    persist(sessions);
+    set({ sessions });
+  },
+
+  setPremiseDecisive: (answers) => {
+    const { currentSessionId, sessions: current } = get();
+    if (!currentSessionId || Object.keys(answers).length === 0) return;
+    const session = current.find((item) => item.id === currentSessionId);
+    const snapshots = session?.snapshots ?? [];
+    if (snapshots.length === 0) return;
+    const last = snapshots[snapshots.length - 1];
+    const patched = {
+      ...last,
+      premise_records: (last.premise_records ?? []).map((record) => (
+        answers[record.text] ? { ...record, decisive: answers[record.text] } : record
+      )),
+    };
+    const sessions = updateSession(current, currentSessionId, () => ({
+      snapshots: [...snapshots.slice(0, -1), patched],
+    }));
     persist(sessions);
     set({ sessions });
   },

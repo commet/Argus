@@ -186,6 +186,8 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
       // observable — that is what lets the return ask about the thing itself,
       // and what keeps a 'standard' from ever being graded.
       premise_records: (session?.snapshots ?? []).slice(-1)[0]?.premise_records,
+      // (the user's `decisive` answers are written onto these records by
+      //  SealMoment before it seals — see setPremiseDecisive)
     }),
     [session?.mix, session?.final_mix, session?.dm_feedback, session?.debate_result, session?.falsification, session?.snapshots],
   );

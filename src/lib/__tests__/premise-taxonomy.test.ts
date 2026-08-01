@@ -18,6 +18,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { coercePremiseCandidates } from '@/lib/judgment-state-contract';
 import { extractPredicatesFromSession } from '@/lib/decision-contract';
+import { carriedPremises, premisesToRevisit } from '@/lib/decisive-premises';
 
 const read = (p: string) => readFileSync(join(process.cwd(), p), 'utf8');
 
@@ -55,9 +56,13 @@ describe("a person's own standard is recorded, never tested", () => {
     expect(preds.find((p) => p.text === '돈보다 성장이 중요하다')?.premise_kind).toBe('standard');
   });
 
-  it('the return screen refuses to put a standard up for grading', () => {
-    const settlement = read('src/components/projects/FoundationSettlementModal.tsx');
-    expect(settlement).toContain("premise_kind !== 'standard'");
+  it('the shared rule excludes it from anything reality is asked to settle', () => {
+    // The rule lives in decisive-premises.ts so the seal, the return and the
+    // card cannot drift apart on what "matters" means.
+    const standard = { text: '돈보다 성장이 중요하다', kind: 'standard' as const };
+    const premise = { text: '승진이 문서로 확정된다', kind: 'premise' as const };
+    expect(carriedPremises([standard, premise])).toEqual([premise]);
+    expect(premisesToRevisit([standard, premise])).toEqual([premise]);
   });
 
   it('the card marks it as not something to check', () => {

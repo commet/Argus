@@ -662,6 +662,10 @@ export interface Predicate {
   /** What the user said would show it, carried to the return so the check-in
    *  can ask about the thing itself instead of "실제로 어떻게 됐나요?". */
   observable?: string;
+  /** The user's own call on whether being wrong here would have changed the
+   *  choice. Only 'flips' premises are worth bringing back — the rest are
+   *  background, and returning them is noise dressed as diligence. */
+  decisive?: 'flips' | 'holds';
   /** The persona the prediction is about, when known (risk source) — drives specificity. */
   persona_id?: string;
   /** User's later grade. Absent/`pending` until they return to score it. */
@@ -1323,6 +1327,20 @@ export interface PremiseRecord {
    *  false; this says how you would ever know. Without it a return can only ask
    *  "실제로 어떻게 됐나요?" — with it, it can ask about the thing itself. */
   observable?: string;
+  /** Would being wrong about this have changed the choice?
+   *
+   *  This is the whole reason a premise is worth anything. A premise that is
+   *  equally true whichever way you go is background, not a premise — it does
+   *  not bear on the decision at all. And "being wrong here would send me the
+   *  other way" IS what it means for a premise to belong to a branch, so this
+   *  one answer closes both the ranking question and the alternatives question
+   *  at once.
+   *
+   *  ONLY THE USER MAY SET THIS. The model writes `if_false_changes` — its own
+   *  read of the consequence — but whether that consequence would actually move
+   *  this person is a fact about them, and inferring it would be Argus deciding
+   *  what matters to someone. The runtime strips it from model output. */
+  decisive?: 'flips' | 'holds';
   /** Verbatim from the user — verified by substring match, never paraphrased. */
   anchor_quote: string;
   /** What changes if it turns out false. The reality check, written in advance. */
