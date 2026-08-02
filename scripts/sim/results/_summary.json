@@ -1,6 +1,6 @@
 {
-  "at": "2026-08-02T08:22:04.533Z",
-  "totalLLMCalls": 16,
+  "at": "2026-08-02T08:36:04.295Z",
+  "totalLLMCalls": 21,
   "scenarios": [
     {
       "id": "heavy-05-cofounder",
@@ -39,6 +39,15 @@
         "premise_quality:M",
         "question_value:M"
       ]
+    },
+    {
+      "id": "heavy-10-launch-baseline",
+      "error": false,
+      "judgeError": null,
+      "gate": "heavy",
+      "requestType": "open",
+      "mechanicalFindings": 0,
+      "judgeFails": []
     }
   ]
 }

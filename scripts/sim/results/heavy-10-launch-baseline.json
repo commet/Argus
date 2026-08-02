@@ -1,0 +1,358 @@
+{
+  "id": "heavy-10-launch-baseline",
+  "group": "heavy",
+  "locale": "ko",
+  "expect": {
+    "route": "heavy",
+    "requestType": "open"
+  },
+  "notes": "실사용 회귀: 검토 전 기준점이 이미 \"공개하되 치명적 오류만\"이라고 정했다. 첫 질문이 공개/연기 또는 치명적 기준을 다시 묻거나, 답 뒤 무엇이 바뀌었는지 보이지 않으면 실패.",
+  "opening": "오래 준비한 서비스를 이번 주에 공개하려고 하는데, 아직 고칠 게 계속 보여서 지금 홍보를 시작해도 될지 모르겠어. 늦추면 기회를 놓칠 것 같고, 내보냈다가 첫인상을 망칠까 걱정돼.",
+  "baseline": "이번 주에 공개하되, 첫 사용자에게 치명적인 오류만 더 확인하고 홍보를 시작하고 싶다.",
+  "replies": [
+    "사실 정해진 행사나 고객 약속은 없어. 경쟁 서비스가 먼저 알려질까 불안하고, 오래 미룬 만큼 이번 주에는 끝내고 싶다는 마음이 커.",
+    "가입과 첫 결과 생성이 막히는 오류만 치명적이라고 볼게. 나머지는 공개 뒤에도 고칠 수 있어."
+  ],
+  "route": {
+    "deterministicCrisis": {
+      "isCrisis": false
+    },
+    "gate": {
+      "need": "heavy"
+    }
+  },
+  "light": null,
+  "heavy": {
+    "initial": {
+      "raw": {
+        "request_type": "open",
+        "stakes": "important",
+        "reversibility": "partial",
+        "framing_confidence": 65,
+        "frame_line": "치명적인 오류만 확인하고 시작하겠다는 건데, 그 '치명적'의 선이 아직 안 그어졌어요.",
+        "real_question": "치명적인 오류만 확인하고 시작하겠다는 건데, 그 '치명적'의 선이 아직 안 그어졌어요.",
+        "insight": "고칠 게 계속 보인다는 거랑 치명적인 오류만 거른다는 거, 그 경계가 지금 제일 애매한 지점 같아요.",
+        "premise_candidates": [],
+        "skeleton": [],
+        "next_question": {
+          "text": "지금 보이는 고칠 것들 중에서, 뭐가 '치명적'이고 뭐가 그냥 '더 나아질 여지'인지 구분이 되세요?",
+          "type": "short"
+        }
+      },
+      "result": {
+        "request_type": "open",
+        "stakes": "important",
+        "reversibility": "partial",
+        "framing_confidence": 65,
+        "frame_line": "치명적인 오류만 확인하고 시작하겠다는 건데, 그 '치명적'의 선이 아직 안 그어졌어요.",
+        "real_question": "치명적인 오류만 확인하고 시작하겠다는 건데, 그 '치명적'의 선이 아직 안 그어졌어요.",
+        "insight": "치명적인 오류만 확인하고 시작하겠다는 건데, 그 '치명적'의 선이 아직 안 그어졌어요.",
+        "premise_candidates": [],
+        "skeleton": [],
+        "next_question": {
+          "text": "지금 보이는 고칠 것들 중에서, 뭐가 '치명적'이고 뭐가 그냥 '더 나아질 여지'인지 구분이 되세요?",
+          "type": "short"
+        },
+        "hidden_assumptions": [],
+        "pre_review_baseline": "이번 주에 공개하되, 첫 사용자에게 치명적인 오류만 더 확인하고 홍보를 시작하고 싶다.",
+        "premise_records": [],
+        "premise_verdicts": []
+      },
+      "routeCoerced": false
+    },
+    "deepening": [
+      {
+        "insight": "치명적 오류 기준을 묻는 질문에는 답이 없었고, 대신 이번 주 공개를 밀어붙이는 이유가 나왔어요. 정해진 행사나 고객 약속은 없고, 경쟁사가 먼저 나올까 하는 불안이랑 오래 미뤄온 걸 이번 주엔 끝내고 싶은 마음이 크다고 하셨어요.",
+        "frame_line": "이번 주에 공개하되 치명적인 오류만 확인하고 시작하고 싶은데, 정해진 일정은 없고 이번 주를 고집하는 이유는 경쟁사 선점 불안과 이번엔 끝내고 싶은 마음이에요.",
+        "real_question": "이번 주에 공개하되 치명적인 오류만 확인하고 시작하고 싶은데, 정해진 일정은 없고 이번 주를 고집하는 이유는 경쟁사 선점 불안과 이번엔 끝내고 싶은 마음이에요.",
+        "premise_changes": [
+          {
+            "action": "add",
+            "text": "정해진 일정이 없으니 이번 주 공개 압박은 경쟁사가 먼저 나올까 하는 불안에서 온다",
+            "anchor_quote": "경쟁 서비스가 먼저 알려질까 불안하고",
+            "reason_from_latest_answer": "외부 일정 없이도 이번 주를 고집하는 이유로 경쟁사 불안을 직접 꼽았다",
+            "support_kind": "explicit_reason",
+            "if_false_changes": "경쟁사 움직임이 실제로 없다면 이번 주에 꼭 끝내야 할 이유가 약해진다",
+            "kind": "premise",
+            "observable": "경쟁 서비스의 실제 공개 시점이나 관련 소식"
+          }
+        ],
+        "skeleton": [],
+        "next_question": {
+          "text": "경쟁 서비스가 먼저 나올 수 있다는 게, 실제로 그런 낌새를 들으신 거예요, 아니면 막연히 불안하신 쪽이에요?",
+          "type": "short"
+        },
+        "ready_for_mix": false,
+        "hidden_assumptions": [],
+        "premise_records": [
+          {
+            "text": "정해진 일정이 없으니 이번 주 공개 압박은 경쟁사가 먼저 나올까 하는 불안에서 온다",
+            "anchor_quote": "경쟁 서비스가 먼저 알려질까 불안하고",
+            "if_false_changes": "경쟁사 움직임이 실제로 없다면 이번 주에 꼭 끝내야 할 이유가 약해진다",
+            "support_kind": "explicit_reason",
+            "kind": "standard",
+            "observable": "경쟁 서비스의 실제 공개 시점이나 관련 소식"
+          }
+        ],
+        "premise_verdicts": [
+          {
+            "text": "정해진 일정이 없으니 이번 주 공개 압박은 경쟁사가 먼저 나올까 하는 불안에서 온다",
+            "declared": "premise",
+            "recorded": "standard",
+            "reason": "grounded"
+          }
+        ]
+      },
+      {
+        "insight": "치명적 기준을 스스로 정하셨어요. 가입이랑 첫 결과 생성이 막히는 것만 치명적이고, 나머지는 공개 후에도 고칠 수 있다고요.",
+        "frame_line": "이번 주에 공개하되, 가입과 첫 결과 생성이 막히는 오류만 확인하고 나머지는 공개 후에 고치려는 결정이에요.",
+        "real_question": "이번 주에 공개하되, 가입과 첫 결과 생성이 막히는 오류만 확인하고 나머지는 공개 후에 고치려는 결정이에요.",
+        "premise_changes": [
+          {
+            "action": "add",
+            "text": "가입과 첫 결과 생성이 막히는 오류만 치명적이고, 나머지는 공개 후에도 고칠 수 있다",
+            "anchor_quote": "가입과 첫 결과 생성이 막히는 오류만 치명적이라고 볼게. 나머지는 공개 뒤에도 고칠 수 있어.",
+            "reason_from_latest_answer": "치명적과 여지를 나누는 기준을 스스로 정하셨어요",
+            "support_kind": "explicit_condition",
+            "if_false_changes": "이 기준 밖의 오류도 치명적이라고 보게 되면 공개 시점이나 범위를 다시 봐야 해요",
+            "kind": "standard",
+            "observable": "가입 및 첫 결과 생성 테스트 결과"
+          }
+        ],
+        "skeleton": [],
+        "next_question": {
+          "text": "지금 가입이랑 첫 결과 생성 흐름에서 실제로 걸리는 오류가 있어요, 아니면 아직 확인 전이에요?",
+          "type": "short"
+        },
+        "ready_for_mix": false,
+        "hidden_assumptions": [],
+        "premise_records": [
+          {
+            "text": "가입과 첫 결과 생성이 막히는 오류만 치명적이고, 나머지는 공개 후에도 고칠 수 있다",
+            "anchor_quote": "가입과 첫 결과 생성이 막히는 오류만 치명적이라고 볼게. 나머지는 공개 뒤에도 고칠 수 있어.",
+            "if_false_changes": "이 기준 밖의 오류도 치명적이라고 보게 되면 공개 시점이나 범위를 다시 봐야 해요",
+            "support_kind": "explicit_condition",
+            "kind": "standard",
+            "observable": "가입 및 첫 결과 생성 테스트 결과"
+          }
+        ],
+        "premise_verdicts": []
+      }
+    ],
+    "mix": null
+  },
+  "error": null,
+  "transcript": [
+    {
+      "actor": "user",
+      "phase": "opening",
+      "text": "오래 준비한 서비스를 이번 주에 공개하려고 하는데, 아직 고칠 게 계속 보여서 지금 홍보를 시작해도 될지 모르겠어. 늦추면 기회를 놓칠 것 같고, 내보냈다가 첫인상을 망칠까 걱정돼."
+    },
+    {
+      "actor": "user",
+      "phase": "pre_review_baseline",
+      "text": "이번 주에 공개하되, 첫 사용자에게 치명적인 오류만 더 확인하고 홍보를 시작하고 싶다."
+    },
+    {
+      "actor": "argus",
+      "phase": "heavy_initial",
+      "text": "치명적인 오류만 확인하고 시작하겠다는 건데, 그 '치명적'의 선이 아직 안 그어졌어요.\n\n지금 살펴볼 것: 치명적인 오류만 확인하고 시작하겠다는 건데, 그 '치명적'의 선이 아직 안 그어졌어요.\n\n다음 질문: 지금 보이는 고칠 것들 중에서, 뭐가 '치명적'이고 뭐가 그냥 '더 나아질 여지'인지 구분이 되세요?"
+    },
+    {
+      "actor": "user",
+      "phase": "answer",
+      "text": "사실 정해진 행사나 고객 약속은 없어. 경쟁 서비스가 먼저 알려질까 불안하고, 오래 미룬 만큼 이번 주에는 끝내고 싶다는 마음이 커."
+    },
+    {
+      "actor": "argus",
+      "phase": "heavy_deepening_1",
+      "text": "치명적 오류 기준을 묻는 질문에는 답이 없었고, 대신 이번 주 공개를 밀어붙이는 이유가 나왔어요. 정해진 행사나 고객 약속은 없고, 경쟁사가 먼저 나올까 하는 불안이랑 오래 미뤄온 걸 이번 주엔 끝내고 싶은 마음이 크다고 하셨어요.\n\n지금 살펴볼 것: 이번 주에 공개하되 치명적인 오류만 확인하고 시작하고 싶은데, 정해진 일정은 없고 이번 주를 고집하는 이유는 경쟁사 선점 불안과 이번엔 끝내고 싶은 마음이에요.\n\n다음 질문: 경쟁 서비스가 먼저 나올 수 있다는 게, 실제로 그런 낌새를 들으신 거예요, 아니면 막연히 불안하신 쪽이에요?"
+    },
+    {
+      "actor": "user",
+      "phase": "answer",
+      "text": "가입과 첫 결과 생성이 막히는 오류만 치명적이라고 볼게. 나머지는 공개 뒤에도 고칠 수 있어."
+    },
+    {
+      "actor": "argus",
+      "phase": "heavy_deepening_2",
+      "text": "치명적 기준을 스스로 정하셨어요. 가입이랑 첫 결과 생성이 막히는 것만 치명적이고, 나머지는 공개 후에도 고칠 수 있다고요.\n\n지금 살펴볼 것: 이번 주에 공개하되, 가입과 첫 결과 생성이 막히는 오류만 확인하고 나머지는 공개 후에 고치려는 결정이에요.\n\n다음 질문: 지금 가입이랑 첫 결과 생성 흐름에서 실제로 걸리는 오류가 있어요, 아니면 아직 확인 전이에요?"
+    }
+  ],
+  "calls": [
+    {
+      "seq": 0,
+      "label": "heavy-10-launch-baseline",
+      "tier": "fast",
+      "modelId": "claude-haiku-4-5-20251001",
+      "maxTokens": 500,
+      "attempt": 0,
+      "ms": 4576,
+      "usage": {
+        "input_tokens": 5050,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 225,
+        "service_tier": "standard",
+        "inference_geo": "not_available"
+      },
+      "user": "[user] 오늘은 2026-08-02 (일요일)입니다.\n\n사용자가 방금 쓴 것:\n<user-data context=\"decision\">\n오래 준비한 서비스를 이번 주에 공개하려고 하는데, 아직 고칠 게 계속 보여서 지금 홍보를 시작해도 될지 모르겠어. 늦추면 기회를 놓칠 것 같고, 내보냈다가 첫인상을 망칠까 걱정돼.\n</user-data>",
+      "rawText": "```json\n{\n  \"need\": \"heavy\",\n  \"mirror\": \"오래 준비한 서비스를 이번 주에 공개하려던 계획이 있고, 지금 고칠 점이 계속 눈에 띄네요. 늦추는 쪽은 기회를 놓칠까 봐 두렵고, 내보내는 쪽은 첫인상이 망가질까 봐 걱정되는 거네요.\",\n  \"question\": \"지금 보이는 고칠 점들이 첫인상을 좌우할 만큼 중요한 거예요, 아니면 고칠 수 있지만 꼭 이번주여야 하는 건 아닌 거예요?\"\n}\n```"
+    },
+    {
+      "seq": 1,
+      "label": "heavy-10-launch-baseline",
+      "tier": "default",
+      "modelId": "claude-sonnet-5",
+      "maxTokens": 4096,
+      "attempt": 0,
+      "ms": 17028,
+      "usage": {
+        "input_tokens": 198,
+        "cache_creation_input_tokens": 7374,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 7374,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 1266,
+        "output_tokens_details": {
+          "thinking_tokens": 921
+        },
+        "service_tier": "standard",
+        "inference_geo": "global"
+      },
+      "user": "[user] <user-data>오래 준비한 서비스를 이번 주에 공개하려고 하는데, 아직 고칠 게 계속 보여서 지금 홍보를 시작해도 될지 모르겠어. 늦추면 기회를 놓칠 것 같고, 내보냈다가 첫인상을 망칠까 걱정돼.</user-data>\n\n<pre-review-baseline>이번 주에 공개하되, 첫 사용자에게 치명적인 오류만 더 확인하고 홍보를 시작하고 싶다.</pre-review-baseline>",
+      "rawText": "{\n  \"request_type\": \"open\",\n  \"stakes\": \"important\",\n  \"reversibility\": \"partial\",\n  \"framing_confidence\": 65,\n  \"frame_line\": \"치명적인 오류만 확인하고 시작하겠다는 건데, 그 '치명적'의 선이 아직 안 그어졌어요.\",\n  \"real_question\": \"치명적인 오류만 확인하고 시작하겠다는 건데, 그 '치명적'의 선이 아직 안 그어졌어요.\",\n  \"insight\": \"고칠 게 계속 보인다는 거랑 치명적인 오류만 거른다는 거, 그 경계가 지금 제일 애매한 지점 같아요.\",\n  \"premise_candidates\": [],\n  \"skeleton\": [],\n  \"next_question\": {\n    \"text\": \"지금 보이는 고칠 것들 중에서, 뭐가 '치명적'이고 뭐가 그냥 '더 나아질 여지'인지 구분이 되세요?\",\n    \"type\": \"short\"\n  }\n}"
+    },
+    {
+      "seq": 2,
+      "label": "heavy-10-launch-baseline",
+      "tier": "default",
+      "modelId": "claude-sonnet-5",
+      "maxTokens": 2500,
+      "attempt": 0,
+      "ms": 26731,
+      "usage": {
+        "input_tokens": 6946,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 2285,
+        "output_tokens_details": {
+          "thinking_tokens": 1509
+        },
+        "service_tier": "standard",
+        "inference_geo": "global"
+      },
+      "user": "[user] Original situation:\n<user-data>오래 준비한 서비스를 이번 주에 공개하려고 하는데, 아직 고칠 게 계속 보여서 지금 홍보를 시작해도 될지 모르겠어. 늦추면 기회를 놓칠 것 같고, 내보냈다가 첫인상을 망칠까 걱정돼.</user-data>\n\nCurrent state:\n- question: 치명적인 오류만 확인하고 시작하겠다는 건데, 그 '치명적'의 선이 아직 안 그어졌어요.\n- user's pre-review baseline: 이번 주에 공개하되, 첫 사용자에게 치명적인 오류만 더 확인하고 홍보를 시작하고 싶다.\n- AI-surfaced premises: (none)\n- reality checks: (none)\n- request type: open\n- weight: impor",
+      "rawText": "{\n  \"insight\": \"치명적 오류 기준을 묻는 질문에는 답이 없었고, 대신 이번 주 공개를 밀어붙이는 이유가 나왔어요. 정해진 행사나 고객 약속은 없고, 경쟁사가 먼저 나올까 하는 불안이랑 오래 미뤄온 걸 이번 주엔 끝내고 싶은 마음이 크다고 하셨어요.\",\n  \"frame_line\": \"이번 주에 공개하되 치명적인 오류만 확인하고 시작하고 싶은데, 정해진 일정은 없고 이번 주를 고집하는 이유는 경쟁사 선점 불안과 이번엔 끝내고 싶은 마음이에요.\",\n  \"real_question\": \"이번 주에 공개하되 치명적인 오류만 확인하고 시작하고 싶은데, 정해진 일정은 없고 이번 주를 고집하는 이유는 경쟁사 선점 불안과 이번엔 끝내고 싶은 마음이에요.\",\n  \"premise_changes\": [\n    {\n      \"action\": \"add\",\n      \"text\": \"정해진 일정이 없으니 이번 주 공개 압박은 경쟁사가 먼저 나올까 하는 불안에서 온다\",\n      \"anchor_quote\": \"경쟁 서비스가 먼저 알려질까 불안하고\",\n      \"reason_from_latest_answer\": \"외부 일정 없이도 이번 주를 고집하는 이유로 경쟁사 불안을 직접 꼽았다\",\n      \"support_kind\": \"explicit_reason\",\n      \"if_false_changes\": \"경쟁사 움직임이 실제로 없다면 이번 주에 꼭 끝내야 할 이유가 약해진다\",\n      \"kind\": \"premise\",\n      \"observable\": \"경쟁 서비스의 실제 공개 시점이나 관련 소식\"\n    }\n  ],\n  \"skeleton\": [],\n  \"next_question\": {\n    \"text\": \"경쟁 서비스가 먼저 나올 수 있다는 게, 실제로 그런 낌새를 들으신 거예요, 아니면 막연히 불안하신 쪽이에요?\",\n    \"type\": \"short\"\n  },\n  \"ready_for_mix\": false\n}"
+    },
+    {
+      "seq": 3,
+      "label": "heavy-10-launch-baseline",
+      "tier": "default",
+      "modelId": "claude-sonnet-5",
+      "maxTokens": 2500,
+      "attempt": 0,
+      "ms": 18303,
+      "usage": {
+        "input_tokens": 7126,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 1695,
+        "output_tokens_details": {
+          "thinking_tokens": 1053
+        },
+        "service_tier": "standard",
+        "inference_geo": "global"
+      },
+      "user": "[user] Original situation:\n<user-data>오래 준비한 서비스를 이번 주에 공개하려고 하는데, 아직 고칠 게 계속 보여서 지금 홍보를 시작해도 될지 모르겠어. 늦추면 기회를 놓칠 것 같고, 내보냈다가 첫인상을 망칠까 걱정돼.</user-data>\n\nCurrent state:\n- question: 이번 주에 공개하되 치명적인 오류만 확인하고 시작하고 싶은데, 정해진 일정은 없고 이번 주를 고집하는 이유는 경쟁사 선점 불안과 이번엔 끝내고 싶은 마음이에요.\n- user's pre-review baseline: 이번 주에 공개하되, 첫 사용자에게 치명적인 오류만 더 확인하고 홍보를 시작하고 싶다.\n- AI-surfaced premises: (none)\n- reality checks: (n",
+      "rawText": "{\n  \"insight\": \"치명적 기준을 스스로 정하셨어요. 가입이랑 첫 결과 생성이 막히는 것만 치명적이고, 나머지는 공개 후에도 고칠 수 있다고요.\",\n  \"frame_line\": \"이번 주에 공개하되, 가입과 첫 결과 생성이 막히는 오류만 확인하고 나머지는 공개 후에 고치려는 결정이에요.\",\n  \"real_question\": \"이번 주에 공개하되, 가입과 첫 결과 생성이 막히는 오류만 확인하고 나머지는 공개 후에 고치려는 결정이에요.\",\n  \"premise_changes\": [\n    {\n      \"action\": \"add\",\n      \"text\": \"가입과 첫 결과 생성이 막히는 오류만 치명적이고, 나머지는 공개 후에도 고칠 수 있다\",\n      \"anchor_quote\": \"가입과 첫 결과 생성이 막히는 오류만 치명적이라고 볼게. 나머지는 공개 뒤에도 고칠 수 있어.\",\n      \"reason_from_latest_answer\": \"치명적과 여지를 나누는 기준을 스스로 정하셨어요\",\n      \"support_kind\": \"explicit_condition\",\n      \"if_false_changes\": \"이 기준 밖의 오류도 치명적이라고 보게 되면 공개 시점이나 범위를 다시 봐야 해요\",\n      \"kind\": \"standard\",\n      \"observable\": \"가입 및 첫 결과 생성 테스트 결과\"\n    }\n  ],\n  \"skeleton\": [],\n  \"next_question\": {\n    \"text\": \"지금 가입이랑 첫 결과 생성 흐름에서 실제로 걸리는 오류가 있어요, 아니면 아직 확인 전이에요?\",\n    \"type\": \"short\"\n  },\n  \"ready_for_mix\": false\n}"
+    }
+  ],
+  "mechanical": {
+    "findings": []
+  },
+  "judge": {
+    "runs": [
+      {
+        "criteria": {
+          "route_fit": {
+            "verdict": "PASS",
+            "severity": null,
+            "evidence": "heavy_initial, heavy_deepening_1, heavy_deepening_2 모두 open 여정을 유지하며 점진적으로 좁혀감",
+            "note": "important/partial reversibility에 맞는 깊이"
+          },
+          "ownership": {
+            "verdict": "PASS",
+            "severity": null,
+            "evidence": "'경쟁 서비스가 먼저 나올 수 있다는 게, 실제로 그런 낌새를 들으신 거예요, 아니면 막연히 불안하신 쪽이에요?'",
+            "note": "선택을 대신 정하지 않고 사용자가 정한 기준을 그대로 따라감"
+          },
+          "fact_lineage": {
+            "verdict": "PASS",
+            "severity": null,
+            "evidence": "'정해진 행사나 고객 약속은 없고, 경쟁사가 먼저 나올까 하는 불안이랑'",
+            "note": "사용자 발화를 그대로 반영, 외부 사실 단정 없음"
+          },
+          "premise_quality": {
+            "verdict": "PASS",
+            "severity": null,
+            "evidence": "'치명적 오류 기준을 묻는 질문에는 답이 없었고, 대신 이번 주 공개를 밀어붙이는 이유가 나왔어요'",
+            "note": "실제 발화 간극을 짚었고 일반론적 전제 없음"
+          },
+          "question_value": {
+            "verdict": "PASS",
+            "severity": null,
+            "evidence": "'지금 가입이랑 첫 결과 생성 흐름에서 실제로 걸리는 오류가 있어요, 아니면 아직 확인 전이에요?'",
+            "note": "직전 답변(치명적 기준 확정)에서 논리적으로 이어지는 다음 확인, 답에 따라 상태가 갈림"
+          },
+          "update_fidelity": {
+            "verdict": "PASS",
+            "severity": null,
+            "evidence": "heavy_deepening_2가 '치명적 기준을 스스로 정하셨어요'로 시작하며 새 답변만 반영",
+            "note": "이전 불안/경쟁사 논의를 반복하지 않고 새 정보에 집중"
+          },
+          "restraint": {
+            "verdict": "PASS",
+            "severity": null,
+            "evidence": "세 응답 모두 짧고 질문 하나씩만 제시, 계획이나 절차 나열 없음",
+            "note": "과잉 절차 없음"
+          },
+          "language": {
+            "verdict": "PASS",
+            "severity": null,
+            "evidence": "'가입이랑 첫 결과 생성이 막히는 것만 치명적이고, 나머지는 공개 후에도 고칠 수 있다고요.'",
+            "note": "자연스러운 해요체, 번역투 없음"
+          },
+          "baseline_use": {
+            "verdict": "PASS",
+            "severity": null,
+            "evidence": "heavy_initial이 '치명적인 오류만 확인하고 시작하겠다는 건데'로 기준점의 조건을 그대로 이어받아 질문함",
+            "note": "기준점의 선택(치명적 오류만 확인)을 덮어쓰지 않고 그 정의를 좁히는 질문으로 이어감, 이미 답한 것을 다시 묻지 않음"
+          },
+          "update_legibility": {
+            "verdict": "PASS",
+            "severity": null,
+            "evidence": "'치명적 기준을 스스로 정하셨어요'라고 명시하며 이전 단계(불안 확인)와 구분되는 새 상태를 보여줌",
+            "note": "각 단계에서 무엇이 새로 확정됐는지 명확히 구분됨"
+          }
+        },
+        "overall": "기준점의 조건을 존중하며 '치명적'의 정의를 사용자 스스로 좁히도록 유도했고, 각 답변마다 상태 변화가 명확하게 드러났다.",
+        "best_next_fix": ""
+      }
+    ]
+  }
+}
