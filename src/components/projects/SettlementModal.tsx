@@ -275,7 +275,18 @@ function LegacySettlementModal({
     // Learning signal — settlement is the return half of the loop; its verdict
     // is the ground truth the product is built to accumulate (2026-06-13 fix).
     recordSignal({ project_id: project.id, tool: 'voyage', signal_type: 'predicate_settled', signal_data: { verdict } });
-    track('decision_graded', { verdict });
+    const isPrimaryCheckpoint = primaryPred?.id === predicateId;
+    track('decision_graded', {
+      project_id: project.id,
+      verdict,
+      primary_checkpoint: isPrimaryCheckpoint,
+    });
+    if (isPrimaryCheckpoint) {
+      track('return_answered', {
+        project_id: project.id,
+        verdict,
+      });
+    }
   }
 
   /** The light second tap: the user's own read of WHY a win went their way.
@@ -300,6 +311,11 @@ function LegacySettlementModal({
       : { kind: 'manual', value: '', auto_due: false };
     updateProject(project.id, { decision_contract: { ...amended, ambiguity: { reason, next_handle } } });
     recordSignal({ project_id: project.id, tool: 'voyage', signal_type: 'predicate_settled', signal_data: { ambiguity: reason } });
+    track('return_deferred', {
+      project_id: project.id,
+      reason,
+      next_handle: next_handle.kind,
+    });
     onClose();
   }
 
