@@ -105,6 +105,65 @@ export const SCENARIOS = [
     expect: { route: 'light', lightOutcome: 'offer' },
     notes: 'EN 시나리오: 영어 자연성(번역체 아닌가), anchor(drinks 발명 금지).',
   },
+  // ── EN heavy coverage ──────────────────────────────────────────────────
+  //
+  // Added 2026-08-02 after counting: ONE of eighteen scenarios was English, and
+  // it was a light-path one. Every identity guard shipped that day — the
+  // word-choice clamp, the frame-seizure clamp, MENTIONING / SILENCE / HOW THEY
+  // SAID IT, and questionEchoesUser's English branch — was measured only in
+  // Korean. Their English behaviour was a guess, on the surface where a guess
+  // is least visible: a Korean regex simply does not fire on English prose, so
+  // an unguarded English session looks exactly like a well-guarded one.
+  //
+  // These three mirror the Korean scenarios that actually found defects, so a
+  // difference between the pair is attributable to language rather than to the
+  // situation.
+  {
+    id: 'heavy-10-en-fire-teammate',
+    group: 'heavy',
+    locale: 'en',
+    opening: "I lead a team of five and one person hasn't delivered in six months. "
+      + "We've had two check-ins and built an improvement plan together, and nothing moved. "
+      + "I'm wondering whether to let them go. They joined last year because I asked them to, "
+      + "so this sits heavy with me.",
+    replies: [
+      'The improvement plan is written down and the second deadline lands next week.',
+      'Two other people on the team have said they are covering his work and are worn out.',
+    ],
+    expect: { route: 'heavy', requestType: 'open' },
+    notes: 'EN mirror of heavy-04. Watches: does it read their WORDING as evidence, '
+      + 'does it redefine what they said they are deciding, does it take a premise '
+      + 'from their own sentence and hand it back as an assumption to verify.',
+  },
+  {
+    id: 'heavy-11-en-cofounder',
+    group: 'heavy',
+    locale: 'en',
+    opening: 'My cofounder and I are stuck. I think we need to fix the product first, '
+      + 'he wants to push sales right now. We split equity 50/50 and there is no tie-breaker. '
+      + 'Every meeting turns into an argument.',
+    replies: ['We have about ten months of runway left.', 'Retention is poor — around 30% in month one.'],
+    expect: { route: 'heavy', requestType: 'open' },
+    notes: "EN mirror of heavy-05, the scenario where the harness took the user's side "
+      + 'against their cofounder. Watches ADJUDICATION above all: naming whose reading '
+      + 'the number supports is the violation, in either language.',
+  },
+  {
+    id: 'heavy-12-en-offer',
+    group: 'heavy',
+    locale: 'en',
+    opening: "I'm a backend engineer three years in. My current job is stable and I like the team, "
+      + 'but yesterday a startup offered me 40% more. There is also talk of a lead promotion here '
+      + 'early next year. I have a week to answer.',
+    replies: [
+      "The startup is Series B — I asked, and they said about 18 months of runway.",
+      'The promotion is only something people have said out loud; nothing is in writing.',
+    ],
+    expect: { route: 'heavy', requestType: 'open' },
+    notes: 'EN mirror of heavy-01. Watches the premise pipeline in English: does a bare '
+      + 'fact get filed as an assumption, does a hedge get hardened into something '
+      + 'checkable, does the question invent a fork the user never drew.',
+  },
   {
     id: 'light-09-chatty-500',
     group: 'light',

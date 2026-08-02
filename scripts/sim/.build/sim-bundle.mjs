@@ -17245,6 +17245,32 @@ function applyRouteContract(result) {
   }
   return { result, coerced: false };
 }
+function ablate(system) {
+  const spec = (process.env.ARGUS_SIM_ABLATE || "").split(",").map((s) => s.trim()).filter(Boolean);
+  if (spec.length === 0) return system;
+  let out = system;
+  for (const marker of spec) {
+    const NL = String.fromCharCode(10);
+    const start = out.indexOf(marker);
+    if (start < 0) continue;
+    const lineStart = out.lastIndexOf(NL, start) + 1;
+    const indent = start - lineStart;
+    const lines = out.slice(start).split(NL);
+    let end = 1;
+    while (end < lines.length) {
+      const l = lines[end];
+      if (l.trim() === "") {
+        end += 1;
+        continue;
+      }
+      const li = l.length - l.trimStart().length;
+      if (li <= indent && /^\s*([-*0-9]|[A-Z가-힣])/.test(l)) break;
+      end += 1;
+    }
+    out = out.slice(0, lineStart) + lines.slice(end).join(NL);
+  }
+  return out;
+}
 async function runHeavyInitial(problemText, locale) {
   const crisis = classifyCrisis(problemText);
   if (crisis.isCrisis && crisis.category) {
@@ -17262,7 +17288,8 @@ async function runHeavyInitial(problemText, locale) {
     };
     return { raw: result2, result: result2, routeCoerced: false };
   }
-  const { system, user } = buildInitialAnalysisPrompt(problemText, locale);
+  const { system: rawSystem, user } = buildInitialAnalysisPrompt(problemText, locale);
+  const system = ablate(rawSystem);
   const raw = await callLLMJson2(
     [{ role: "user", content: user }],
     {
@@ -17306,7 +17333,7 @@ async function runHeavyInitial(problemText, locale) {
   };
 }
 async function runHeavyDeepening(problemText, currentSnapshot, questionsAndAnswers, round, maxRounds, locale) {
-  const { system, user } = buildDeepeningPrompt(
+  const { system: rawSystem, user } = buildDeepeningPrompt(
     problemText,
     currentSnapshot,
     questionsAndAnswers,
@@ -17314,6 +17341,7 @@ async function runHeavyDeepening(problemText, currentSnapshot, questionsAndAnswe
     maxRounds,
     locale
   );
+  const system = ablate(rawSystem);
   const raw = await callLLMJson2(
     [{ role: "user", content: user }],
     {
@@ -17382,6 +17410,7 @@ async function runHeavyMix(problemText, snapshots, questionsAndAnswers, decision
 }
 export {
   LIGHT_MAX_QUESTIONS,
+  ablate,
   applyRouteContract,
   buildDeepeningPrompt,
   buildInitialAnalysisPrompt,

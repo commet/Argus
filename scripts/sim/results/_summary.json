@@ -1,19 +1,7 @@
 {
-  "at": "2026-08-02T01:23:46.756Z",
-  "totalLLMCalls": 8,
+  "at": "2026-08-02T08:22:04.533Z",
+  "totalLLMCalls": 16,
   "scenarios": [
-    {
-      "id": "heavy-07-validation",
-      "error": false,
-      "judgeError": null,
-      "gate": "heavy",
-      "requestType": "validation",
-      "mechanicalFindings": 0,
-      "judgeFails": [
-        "ownership:M",
-        "fact_lineage:M"
-      ]
-    },
     {
       "id": "heavy-05-cofounder",
       "error": false,
@@ -25,6 +13,31 @@
         "premise_quality:M",
         "question_value:M",
         "update_fidelity:M"
+      ]
+    },
+    {
+      "id": "heavy-04-fire-teammate",
+      "error": false,
+      "judgeError": null,
+      "gate": "heavy",
+      "requestType": "open",
+      "mechanicalFindings": 0,
+      "judgeFails": [
+        "ownership:M",
+        "premise_quality:M",
+        "question_value:M"
+      ]
+    },
+    {
+      "id": "heavy-01-job-offer-40",
+      "error": false,
+      "judgeError": null,
+      "gate": "heavy",
+      "requestType": "open",
+      "mechanicalFindings": 0,
+      "judgeFails": [
+        "premise_quality:M",
+        "question_value:M"
       ]
     }
   ]

@@ -1,0 +1,16 @@
+{
+  "heavy-01-job-offer-40": {
+    "premise_quality": 2,
+    "question_value": 2
+  },
+  "heavy-04-fire-teammate": {
+    "ownership": 2,
+    "premise_quality": 2,
+    "question_value": 2
+  },
+  "heavy-05-cofounder": {
+    "premise_quality": 2,
+    "question_value": 2,
+    "update_fidelity": 2
+  }
+}
