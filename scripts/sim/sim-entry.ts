@@ -152,7 +152,7 @@ export function ablate(system: string): string {
   return out;
 }
 
-export async function runHeavyInitial(problemText: string, locale: Locale): Promise<{
+export async function runHeavyInitial(problemText: string, locale: Locale, preReviewBaseline?: string): Promise<{
   raw: Record<string, unknown>;
   result: Record<string, unknown>;
   routeCoerced: boolean;
@@ -178,7 +178,9 @@ export async function runHeavyInitial(problemText: string, locale: Locale): Prom
     return { raw: result, result, routeCoerced: false };
   }
 
-  const { system: rawSystem, user } = buildInitialAnalysisPrompt(problemText, locale);
+  const baseline = preReviewBaseline?.trim() || '';
+  const userCorpus = baseline ? `${problemText}\n${baseline}` : problemText;
+  const { system: rawSystem, user } = buildInitialAnalysisPrompt(problemText, locale, baseline);
   const system = ablate(rawSystem);
   // engine shape: maxTokens 4096, default tier, cacheSystem, same shape map
   const raw = await callLLMJson<Record<string, unknown>>(
@@ -195,7 +197,7 @@ export async function runHeavyInitial(problemText: string, locale: Locale): Prom
   // observable died between turns and every carried item read as an untyped
   // premise — the harness measuring a shape the product does not have.
   const admitted = raw.request_type === 'open'
-    ? coercePremiseCandidates(raw.premise_candidates, problemText)
+    ? coercePremiseCandidates(raw.premise_candidates, userCorpus)
     : { premises: [], records: [], audit: [] };
   const groundedPremises = admitted.premises;
   const { result, coerced } = applyRouteContract({
@@ -213,7 +215,7 @@ export async function runHeavyInitial(problemText: string, locale: Locale): Prom
       framing_confidence?: number;
       next_question?: { text?: string; type?: string; options?: unknown[]; subtext?: string } | null;
     },
-    problemText,
+    userCorpus,
   );
   const routedInsight = r.request_type === 'crisis'
     ? ensureCrisisResource(r.insight, locale)
@@ -224,6 +226,7 @@ export async function runHeavyInitial(problemText: string, locale: Locale): Prom
   // and the model's question survives when it stands on the user's own words.
   const guarded = {
     ...r,
+    ...(baseline ? { pre_review_baseline: baseline } : {}),
     insight: r.request_type && r.request_type !== 'open'
       ? (routedInsight ? scrubBannedVocabulary(routedInsight) : routedInsight)
       : (typeof (r as { real_question?: unknown }).real_question === 'string'

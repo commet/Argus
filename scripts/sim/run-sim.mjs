@@ -242,7 +242,7 @@ async function runScenario(engine, sc) {
       if (!record.light) record.light = { qas, turns, outcome };
     } else {
       // ── heavy path ──
-      const initial = await engine.runHeavyInitial(sc.opening, sc.locale);
+      const initial = await engine.runHeavyInitial(sc.opening, sc.locale, sc.baseline);
       record.heavy = { initial, deepening: [], mix: null };
       push(transcript, 'argus', 'heavy_initial', heavyInitialText(initial.result));
 
@@ -252,6 +252,7 @@ async function runScenario(engine, sc) {
         version: 1,
         insight: initial.result.insight,
         real_question: initial.result.real_question || '',
+        pre_review_baseline: initial.result.pre_review_baseline,
         hidden_assumptions: initial.result.hidden_assumptions || [],
         skeleton: initial.result.skeleton || [],
         stakes: initial.result.stakes,
@@ -279,6 +280,7 @@ async function runScenario(engine, sc) {
           version: snapshot.version + 1,
           insight: deep.insight,
           real_question: deep.real_question || snapshot.real_question,
+          pre_review_baseline: snapshot.pre_review_baseline,
           hidden_assumptions: deep.hidden_assumptions || snapshot.hidden_assumptions,
           skeleton: deep.skeleton || snapshot.skeleton,
           stakes: snapshot.stakes,
