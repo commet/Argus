@@ -14743,6 +14743,175 @@ function formatConcernMessage(category, locale = "ko") {
   return CONCERN[category][locale];
 }
 
+// src/lib/progressive-guards.ts
+function lowConfidenceOpeningCopy(locale) {
+  return locale === "ko" ? { question: { text: "\uC774 \uC0C1\uD669\uC5D0\uC11C \uC9C0\uAE08 \uAC00\uC7A5 \uB9C8\uC74C\uC5D0 \uAC78\uB9AC\uB294 \uAC74 \uBB50\uC608\uC694?", type: "short", options: [] } } : { question: { text: "What feels most unresolved about this situation right now?", type: "short", options: [] } };
+}
+var ENGLISH_FILLER = /* @__PURE__ */ new Set([
+  "about",
+  "there",
+  "their",
+  "would",
+  "could",
+  "should",
+  "think",
+  "thinking",
+  "really",
+  "going",
+  "other",
+  "because",
+  "which",
+  "where",
+  "while",
+  "still",
+  "thing",
+  "things",
+  "something",
+  "anything",
+  "better",
+  "right",
+  "maybe",
+  "whether",
+  "between",
+  "these",
+  "those",
+  "being",
+  "having",
+  "doing",
+  "over",
+  "more",
+  "much",
+  "them",
+  "that",
+  "this",
+  "with",
+  "from",
+  "want",
+  "need",
+  "know",
+  "like",
+  "just",
+  "been",
+  "have",
+  "what",
+  "when",
+  "they",
+  "some"
+]);
+function questionEchoesUser(questionText, userText) {
+  const q = (questionText || "").normalize("NFKC").toLocaleLowerCase();
+  const u = (userText || "").normalize("NFKC").toLocaleLowerCase();
+  if (!q || !u) return false;
+  if (/[가-힣]/.test(u)) {
+    const strip = (s) => s.replace(/[^가-힣0-9a-z]/g, "");
+    const su = strip(u);
+    const sq = strip(q);
+    for (let i = 0; i + 4 <= su.length; i += 1) {
+      if (sq.includes(su.slice(i, i + 4))) return true;
+    }
+    return false;
+  }
+  const content = (u.match(/[a-z][a-z']{3,}/g) || []).filter((w) => !ENGLISH_FILLER.has(w));
+  return content.some((w) => new RegExp(`\\b${w}`, "i").test(q));
+}
+function questionManufacturesFork(text, options, userText) {
+  void options;
+  const t = text || "";
+  const forked = /아니면|,\s*또는|\b(?:or)\b/i.test(t) || /(가요|나요|까요|예요|이에요)\s*[,，]\s*[^,，]{2,}(가요|나요|까요|예요|이에요)/.test(t);
+  return forked && !questionEchoesUser(t, userText);
+}
+function dropManufacturedFork(question, userCorpus) {
+  if (!question?.text) return null;
+  return questionManufacturesFork(question.text, question.options, userCorpus) ? null : question;
+}
+function guardLowConfidenceOpeningQuestion(question, problemText, locale) {
+  if (question?.text && !questionManufacturesFork(question.text, question.options, problemText)) {
+    const chips = (question.options || []).filter((o) => typeof o === "string" && !!o.trim()).filter((o) => questionEchoesUser(o, problemText));
+    if (chips.length === (question.options || []).length) return question;
+    return chips.length >= 2 ? { ...question, options: chips } : { ...question, options: void 0, type: "short" };
+  }
+  const open = lowConfidenceOpeningCopy(locale).question;
+  return question ? { ...question, ...open, subtext: void 0 } : open;
+}
+function ensureCrisisResource(insight, locale) {
+  const resource = formatConcernMessage("self_harm", locale === "ko" ? "ko" : "en");
+  const text = (insight || "").trim();
+  if (!text) return resource;
+  if (/109|988|1366|1[-.\s]?800/.test(text)) return text;
+  return `${text}
+
+${resource}`;
+}
+function stripConditionalReassurance(insight) {
+  if (!insight) return insight;
+  const COND = /(없다면|없으면|된다면|이라면|아니라면)[^.!?…\n]*(걸림돌|문제(는|가|도)?\s*(없|아니)|괜찮|지장(은|이)?\s*없|무리(는|가)?\s*없|진행해도\s*돼)/;
+  const sentences = insight.split(/(?<=[.!?…])\s+/);
+  const kept = sentences.filter((s) => !COND.test(s));
+  const out = kept.join(" ").trim();
+  return out || insight;
+}
+var WORD_CHOICE_READING = new RegExp(
+  // '이나'가 붙은 거 / "여행이나"라고 쓰신 걸 보면 / 그 표현을 보면
+  `['"\u201C\u201D\u2018\u2019][^'"\u201C\u201D\u2018\u2019]{1,20}['"\u201C\u201D\u2018\u2019]\\s*(\uAC00|\uC774|\uC744|\uB97C|\uB77C\uACE0|\uC774\uB77C\uACE0)?\\s*(\uBD99|\uC4F0|\uC801|\uB9D0\uC500|\uD558\uC2E0|\uD55C \uAC83|\uD55C \uAC70)|(\uD45C\uD604|\uB9D0\uD22C|\uB2E8\uC5B4|\uC5B4\uD22C|\uB9D0\uC528|\uC5B4\uAC10|\uB258\uC559\uC2A4)\\s*(\uC744|\uB97C|\uC774|\uAC00|\uC5D0\uC11C)?\\s*\uBCF4\uBA74|(\uD45C\uD604|\uB9D0\uD22C|\uB2E8\uC5B4|\uC5B4\uD22C|\uB9D0\uC528|\uC5B4\uAC10|\uB258\uC559\uC2A4)(\uC744|\uB97C|\uC774|\uAC00)?\\s*(\uC4F0\uC2E0|\uACE0\uB974\uC2E0|\uD0DD\uD558\uC2E0|\uC120\uD0DD\uD558\uC2E0)|\uB77C\uACE0\\s*(\uD558\uC2E0|\uC4F0\uC2E0|\uB9D0\uC500\uD558\uC2E0)\\s*(\uAC70|\uAC83|\uAC78|\uC810)|\\b(the way you (put|said|phrased)|your (word|phrasing|wording) (choice )?(suggests|tells|says))\\b`,
+  "i"
+);
+var FRAME_SEIZURE = new RegExp(
+  // Two shapes, both narrow. Nominalised — "고민하는 게 아니라" — and
+  // subject-negated — "질문이 그게 아니라". In the second the particle has to
+  // sit directly on the noun, so "선택지가 두 개가 아니라" (an ordinary factual
+  // correction) does not match.
+  `(\uACE0\uBBFC|\uC9C8\uBB38|\uACB0\uC815|\uC120\uD0DD|\uD310\uB2E8|\uBB3B\uACE0|\uC815\uD558)[\uAC00-\uD7A3]*\\s*(\uAC8C|\uAC83\uC774|\uAC83\uB3C4|\uBB38\uC81C\uAC00|\uBB38\uC81C\uB294|\uC77C\uC774)\\s*\uC544\uB2C8\uB77C|(\uACE0\uBBFC|\uC9C8\uBB38|\uACB0\uC815|\uC120\uD0DD|\uD310\uB2E8)(\uC774|\uAC00|\uC740|\uB294)\\s*[\uAC00-\uD7A3\\s]{0,6}\uC544\uB2C8\uB77C|['"\u201C\u201D\u2018\u2019][^'"\u201C\u201D\u2018\u2019]{1,24}['"\u201C\u201D\u2018\u2019]\\s*(\uC744|\uB97C|\uC774|\uAC00|\uC740|\uB294)?\\s*[\uAC00-\uD7A3\\s]{0,12}\uC544\uB2C8\uB77C|(\uC9C4\uC9DC|\uC0AC\uC2E4|\uD575\uC2EC|\uBCF8\uC9C8\uC801\uC778|\uC2E4\uC81C)\\s*(\uC9C8\uBB38|\uBB38\uC81C|\uACE0\uBBFC)(\uC740|\uB294|\uC774)|\\b(the real question is|what you.?re (actually|really) (deciding|asking)|it.?s not (really )?about)\\b`,
+  "i"
+);
+function normalizeQuestionForRepeat(text) {
+  return text.normalize("NFKC").toLocaleLowerCase().replace(/[^\p{L}\p{N}]+/gu, "");
+}
+function questionBigramSimilarity(a, b) {
+  const left = Array.from(normalizeQuestionForRepeat(a));
+  const right = Array.from(normalizeQuestionForRepeat(b));
+  if (left.length < 12 || right.length < 12) return 0;
+  const counts = /* @__PURE__ */ new Map();
+  for (let i = 0; i < left.length - 1; i += 1) {
+    const gram = `${left[i]}${left[i + 1]}`;
+    counts.set(gram, (counts.get(gram) || 0) + 1);
+  }
+  let overlap = 0;
+  for (let i = 0; i < right.length - 1; i += 1) {
+    const gram = `${right[i]}${right[i + 1]}`;
+    const count = counts.get(gram) || 0;
+    if (count > 0) {
+      overlap += 1;
+      counts.set(gram, count - 1);
+    }
+  }
+  return 2 * overlap / (left.length - 1 + (right.length - 1));
+}
+function dropRepeatedQuestion(question, previouslyAsked) {
+  if (!question?.text) return question ?? null;
+  const normalized = normalizeQuestionForRepeat(question.text);
+  if (!normalized) return null;
+  return previouslyAsked.some((text) => normalizeQuestionForRepeat(text) === normalized || questionBigramSimilarity(text, question.text || "") >= 0.28) ? null : question;
+}
+var ESCALATION_MARKER = /'더 깊이 보기'를 직접 선택|chose to open this question up/;
+function capEscalationArrival(result, problemText) {
+  if (!ESCALATION_MARKER.test(problemText || "")) return result;
+  return { ...result, hidden_assumptions: (result.hidden_assumptions || []).slice(0, 1) };
+}
+var HEAVY_VOCAB_SWAPS = [
+  [/베팅/g, "\uD310\uB2E8"],
+  // '밑그림' was a rejected vocabulary candidate — the ratified scheme is the
+  // 정리 axis (founder ruling 2026-07-31), so model-emitted 초안 becomes 정리.
+  [/초안/g, "\uC815\uB9AC"]
+];
+function scrubBannedVocabulary(text) {
+  let out = text || "";
+  for (const [re, sub] of HEAVY_VOCAB_SWAPS) out = out.replace(re, sub);
+  return out;
+}
+function scrubList(items) {
+  return (items || []).map((s) => scrubBannedVocabulary(s));
+}
+
 // src/lib/persona-prompt.ts
 function sanitizeForPrompt(text) {
   if (!text) return "";
@@ -15082,7 +15251,10 @@ function coerceLightGate(raw) {
 function coerceLightTurn(raw, questionsAsked, userTexts = []) {
   const r = raw && typeof raw === "object" ? raw : {};
   const rawMirror = stripSuppliedLean(asTrimmedString(r.mirror), userTexts);
-  const question = limitQuestionMarks(stripOneLinePhrase(asTrimmedString(r.question)));
+  const question = dropManufacturedFork(
+    { text: limitQuestionMarks(stripOneLinePhrase(asTrimmedString(r.question))) },
+    userTexts.join("\n")
+  )?.text ?? "";
   const offer = coerceOffer(r.offer, userTexts);
   const esc = r.escalate && typeof r.escalate === "object" ? asTrimmedString(r.escalate.bigger_question) : "";
   const escalate = esc ? { bigger_question: esc } : void 0;
@@ -17015,173 +17187,6 @@ function buildMixPrompt(problemText, snapshots, questionsAndAnswers, decisionMak
 
 // scripts/sim/sim-entry.ts
 import { callLLMJson as callLLMJson2 } from "../llm-shim.mjs";
-
-// src/lib/progressive-guards.ts
-function lowConfidenceOpeningCopy(locale) {
-  return locale === "ko" ? { question: { text: "\uC774 \uC0C1\uD669\uC5D0\uC11C \uC9C0\uAE08 \uAC00\uC7A5 \uB9C8\uC74C\uC5D0 \uAC78\uB9AC\uB294 \uAC74 \uBB50\uC608\uC694?", type: "short", options: [] } } : { question: { text: "What feels most unresolved about this situation right now?", type: "short", options: [] } };
-}
-var ENGLISH_FILLER = /* @__PURE__ */ new Set([
-  "about",
-  "there",
-  "their",
-  "would",
-  "could",
-  "should",
-  "think",
-  "thinking",
-  "really",
-  "going",
-  "other",
-  "because",
-  "which",
-  "where",
-  "while",
-  "still",
-  "thing",
-  "things",
-  "something",
-  "anything",
-  "better",
-  "right",
-  "maybe",
-  "whether",
-  "between",
-  "these",
-  "those",
-  "being",
-  "having",
-  "doing",
-  "over",
-  "more",
-  "much",
-  "them",
-  "that",
-  "this",
-  "with",
-  "from",
-  "want",
-  "need",
-  "know",
-  "like",
-  "just",
-  "been",
-  "have",
-  "what",
-  "when",
-  "they",
-  "some"
-]);
-function questionEchoesUser(questionText, userText) {
-  const q = (questionText || "").normalize("NFKC").toLocaleLowerCase();
-  const u = (userText || "").normalize("NFKC").toLocaleLowerCase();
-  if (!q || !u) return false;
-  if (/[가-힣]/.test(u)) {
-    const strip = (s) => s.replace(/[^가-힣0-9a-z]/g, "");
-    const su = strip(u);
-    const sq = strip(q);
-    for (let i = 0; i + 4 <= su.length; i += 1) {
-      if (sq.includes(su.slice(i, i + 4))) return true;
-    }
-    return false;
-  }
-  const content = (u.match(/[a-z][a-z']{3,}/g) || []).filter((w) => !ENGLISH_FILLER.has(w));
-  return content.some((w) => new RegExp(`\\b${w}`, "i").test(q));
-}
-function questionManufacturesFork(text, options, userText) {
-  void options;
-  const t = text || "";
-  const forked = /아니면|,\s*또는|\b(?:or)\b/i.test(t) || /(가요|나요|까요|예요|이에요)\s*[,，]\s*[^,，]{2,}(가요|나요|까요|예요|이에요)/.test(t);
-  return forked && !questionEchoesUser(t, userText);
-}
-function guardLowConfidenceOpeningQuestion(question, problemText, locale) {
-  if (question?.text && !questionManufacturesFork(question.text, question.options, problemText)) {
-    const chips = (question.options || []).filter((o) => typeof o === "string" && !!o.trim()).filter((o) => questionEchoesUser(o, problemText));
-    if (chips.length === (question.options || []).length) return question;
-    return chips.length >= 2 ? { ...question, options: chips } : { ...question, options: void 0, type: "short" };
-  }
-  const open = lowConfidenceOpeningCopy(locale).question;
-  return question ? { ...question, ...open, subtext: void 0 } : open;
-}
-function ensureCrisisResource(insight, locale) {
-  const resource = formatConcernMessage("self_harm", locale === "ko" ? "ko" : "en");
-  const text = (insight || "").trim();
-  if (!text) return resource;
-  if (/109|988|1366|1[-.\s]?800/.test(text)) return text;
-  return `${text}
-
-${resource}`;
-}
-function stripConditionalReassurance(insight) {
-  if (!insight) return insight;
-  const COND = /(없다면|없으면|된다면|이라면|아니라면)[^.!?…\n]*(걸림돌|문제(는|가|도)?\s*(없|아니)|괜찮|지장(은|이)?\s*없|무리(는|가)?\s*없|진행해도\s*돼)/;
-  const sentences = insight.split(/(?<=[.!?…])\s+/);
-  const kept = sentences.filter((s) => !COND.test(s));
-  const out = kept.join(" ").trim();
-  return out || insight;
-}
-var WORD_CHOICE_READING = new RegExp(
-  // '이나'가 붙은 거 / "여행이나"라고 쓰신 걸 보면 / 그 표현을 보면
-  `['"\u201C\u201D\u2018\u2019][^'"\u201C\u201D\u2018\u2019]{1,20}['"\u201C\u201D\u2018\u2019]\\s*(\uAC00|\uC774|\uC744|\uB97C|\uB77C\uACE0|\uC774\uB77C\uACE0)?\\s*(\uBD99|\uC4F0|\uC801|\uB9D0\uC500|\uD558\uC2E0|\uD55C \uAC83|\uD55C \uAC70)|(\uD45C\uD604|\uB9D0\uD22C|\uB2E8\uC5B4|\uC5B4\uD22C|\uB9D0\uC528|\uC5B4\uAC10|\uB258\uC559\uC2A4)\\s*(\uC744|\uB97C|\uC774|\uAC00|\uC5D0\uC11C)?\\s*\uBCF4\uBA74|(\uD45C\uD604|\uB9D0\uD22C|\uB2E8\uC5B4|\uC5B4\uD22C|\uB9D0\uC528|\uC5B4\uAC10|\uB258\uC559\uC2A4)(\uC744|\uB97C|\uC774|\uAC00)?\\s*(\uC4F0\uC2E0|\uACE0\uB974\uC2E0|\uD0DD\uD558\uC2E0|\uC120\uD0DD\uD558\uC2E0)|\uB77C\uACE0\\s*(\uD558\uC2E0|\uC4F0\uC2E0|\uB9D0\uC500\uD558\uC2E0)\\s*(\uAC70|\uAC83|\uAC78|\uC810)|\\b(the way you (put|said|phrased)|your (word|phrasing|wording) (choice )?(suggests|tells|says))\\b`,
-  "i"
-);
-var FRAME_SEIZURE = new RegExp(
-  // Two shapes, both narrow. Nominalised — "고민하는 게 아니라" — and
-  // subject-negated — "질문이 그게 아니라". In the second the particle has to
-  // sit directly on the noun, so "선택지가 두 개가 아니라" (an ordinary factual
-  // correction) does not match.
-  `(\uACE0\uBBFC|\uC9C8\uBB38|\uACB0\uC815|\uC120\uD0DD|\uD310\uB2E8|\uBB3B\uACE0|\uC815\uD558)[\uAC00-\uD7A3]*\\s*(\uAC8C|\uAC83\uC774|\uAC83\uB3C4|\uBB38\uC81C\uAC00|\uBB38\uC81C\uB294|\uC77C\uC774)\\s*\uC544\uB2C8\uB77C|(\uACE0\uBBFC|\uC9C8\uBB38|\uACB0\uC815|\uC120\uD0DD|\uD310\uB2E8)(\uC774|\uAC00|\uC740|\uB294)\\s*[\uAC00-\uD7A3\\s]{0,6}\uC544\uB2C8\uB77C|['"\u201C\u201D\u2018\u2019][^'"\u201C\u201D\u2018\u2019]{1,24}['"\u201C\u201D\u2018\u2019]\\s*(\uC744|\uB97C|\uC774|\uAC00|\uC740|\uB294)?\\s*[\uAC00-\uD7A3\\s]{0,12}\uC544\uB2C8\uB77C|(\uC9C4\uC9DC|\uC0AC\uC2E4|\uD575\uC2EC|\uBCF8\uC9C8\uC801\uC778|\uC2E4\uC81C)\\s*(\uC9C8\uBB38|\uBB38\uC81C|\uACE0\uBBFC)(\uC740|\uB294|\uC774)|\\b(the real question is|what you.?re (actually|really) (deciding|asking)|it.?s not (really )?about)\\b`,
-  "i"
-);
-function normalizeQuestionForRepeat(text) {
-  return text.normalize("NFKC").toLocaleLowerCase().replace(/[^\p{L}\p{N}]+/gu, "");
-}
-function questionBigramSimilarity(a, b) {
-  const left = Array.from(normalizeQuestionForRepeat(a));
-  const right = Array.from(normalizeQuestionForRepeat(b));
-  if (left.length < 12 || right.length < 12) return 0;
-  const counts = /* @__PURE__ */ new Map();
-  for (let i = 0; i < left.length - 1; i += 1) {
-    const gram = `${left[i]}${left[i + 1]}`;
-    counts.set(gram, (counts.get(gram) || 0) + 1);
-  }
-  let overlap = 0;
-  for (let i = 0; i < right.length - 1; i += 1) {
-    const gram = `${right[i]}${right[i + 1]}`;
-    const count = counts.get(gram) || 0;
-    if (count > 0) {
-      overlap += 1;
-      counts.set(gram, count - 1);
-    }
-  }
-  return 2 * overlap / (left.length - 1 + (right.length - 1));
-}
-function dropRepeatedQuestion(question, previouslyAsked) {
-  if (!question?.text) return question ?? null;
-  const normalized = normalizeQuestionForRepeat(question.text);
-  if (!normalized) return null;
-  return previouslyAsked.some((text) => normalizeQuestionForRepeat(text) === normalized || questionBigramSimilarity(text, question.text || "") >= 0.28) ? null : question;
-}
-var ESCALATION_MARKER = /'더 깊이 보기'를 직접 선택|chose to open this question up/;
-function capEscalationArrival(result, problemText) {
-  if (!ESCALATION_MARKER.test(problemText || "")) return result;
-  return { ...result, hidden_assumptions: (result.hidden_assumptions || []).slice(0, 1) };
-}
-var HEAVY_VOCAB_SWAPS = [
-  [/베팅/g, "\uD310\uB2E8"],
-  // '밑그림' was a rejected vocabulary candidate — the ratified scheme is the
-  // 정리 axis (founder ruling 2026-07-31), so model-emitted 초안 becomes 정리.
-  [/초안/g, "\uC815\uB9AC"]
-];
-function scrubBannedVocabulary(text) {
-  let out = text || "";
-  for (const [re, sub] of HEAVY_VOCAB_SWAPS) out = out.replace(re, sub);
-  return out;
-}
-function scrubList(items) {
-  return (items || []).map((s) => scrubBannedVocabulary(s));
-}
-
-// scripts/sim/sim-entry.ts
 var NON_OPEN_REQUEST_TYPES = /* @__PURE__ */ new Set([
   "vent",
   "validation",

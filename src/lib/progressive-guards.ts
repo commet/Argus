@@ -104,6 +104,22 @@ export function questionManufacturesFork(
   const forked = /아니면|,\s*또는|\b(?:or)\b/i.test(t)
     || /(가요|나요|까요|예요|이에요)\s*[,，]\s*[^,，]{2,}(가요|나요|까요|예요|이에요)/.test(t);
   return forked && !questionEchoesUser(t, userText);
+  //
+  // KNOWN GAP, measured and deliberately not closed. The right rule is that
+  // EVERY pole must be the user's, not just one — the model builds a binary by
+  // taking what they said and inventing its opposite, so a fork usually echoes
+  // one side. Measured 2026-08-02: "나가서 뭔가 먹고 싶으신 건지, 아니면 집에
+  // 있는 게 편하긴 한데…" survived on "집에 있" alone, from someone who wrote
+  // "그냥 집에 있는 걸로 해결할까" and nothing about going out.
+  //
+  // Per-pole checking was implemented and reverted, because no span length
+  // works: 4 syllables is too coarse for a short pole ("연봉이요" is theirs and
+  // scores zero), and 2 is loose enough that "마음" passes anything. Both
+  // settings break a case the other gets right. Shipping either would trade a
+  // measured failure for a different measured failure, so the gap stays open
+  // and named. The scenario it was found on (light-03, "오늘 저녁 뭐 먹지") is a
+  // FLAT decision that should not have reached a second question at all — the
+  // fork is a symptom there, and restraint is the actual cure.
 }
 
 /**

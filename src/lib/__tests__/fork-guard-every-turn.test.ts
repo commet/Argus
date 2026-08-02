@@ -84,3 +84,17 @@ describe('the engine runs it on the deepening turn, not only the first', () => {
     expect(deepening).toContain('dropManufacturedFork(typed, userCorpus)');
   });
 });
+
+describe('the pole gap, kept visible', () => {
+  // The rule this SHOULD enforce is that every pole is the user's. It is not
+  // enforced, and the comment in progressive-guards says why: no span length
+  // separates "연봉이요" (theirs, 2 syllables) from "마음에" (generic, 2
+  // syllables). This test asserts the CURRENT behaviour so the gap is visible
+  // rather than assumed closed — if someone finds a real fix, this goes red and
+  // that is the signal to delete it.
+  it('still lets a one-sided fork through', () => {
+    const said = '그냥 집에 있는 걸로 해결할까 싶기도 하고.';
+    const q = '나가서 뭔가 먹고 싶으신 건지, 아니면 집에 있는 게 편하긴 한데 뭔가 마음에 걸려서인지.';
+    expect(questionManufacturesFork(q, undefined, said)).toBe(false);
+  });
+});

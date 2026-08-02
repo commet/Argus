@@ -30,6 +30,7 @@
 import { callLLMJson } from '@/lib/llm';
 import { track } from '@/lib/analytics';
 import { classifyCrisis, type CrisisSignal } from '@/lib/crisis-gate';
+import { dropManufacturedFork } from '@/lib/progressive-guards';
 import { sanitizeForPrompt } from '@/lib/persona-prompt';
 import type { Locale } from '@/lib/i18n';
 import {
@@ -571,7 +572,20 @@ export function coerceLightTurn(
   // A lean with no source in their words never reaches the screen. userTexts is
   // already here for the offer clamp; it is the same licence question.
   const rawMirror = stripSuppliedLean(asTrimmedString(r.mirror), userTexts);
-  const question = limitQuestionMarks(stripOneLinePhrase(asTrimmedString(r.question)));
+  // Same fork rule as the heavy path, same shared implementation. The light
+  // path had none, and it was the most common failure on the board: five
+  // scenarios asked "A예요, 아니면 B예요?" where neither pole came from the
+  // user. Rule 13 already limits a question to ONE contrast, but a contrast the
+  // user drew and a contrast we invented look identical until you check their
+  // words — which is exactly what questionManufacturesFork does.
+  //
+  // Dropping it needs no new machinery: the clamp below already turns an 'ask'
+  // without a question into an offer or a warm close, which is the honest
+  // outcome when the only question available was one we made up.
+  const question = dropManufacturedFork(
+    { text: limitQuestionMarks(stripOneLinePhrase(asTrimmedString(r.question))) },
+    userTexts.join('\n'),
+  )?.text ?? '';
   const offer = coerceOffer(r.offer, userTexts);
   const esc = r.escalate && typeof r.escalate === 'object'
     ? asTrimmedString((r.escalate as Record<string, unknown>).bigger_question)

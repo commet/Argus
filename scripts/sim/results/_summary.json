@@ -1,28 +1,45 @@
 {
-  "at": "2026-08-02T00:18:13.699Z",
-  "totalLLMCalls": 8,
+  "at": "2026-08-02T00:27:58.260Z",
+  "totalLLMCalls": 11,
   "scenarios": [
     {
-      "id": "light-07-banmal",
+      "id": "light-02-laptop",
+      "error": false,
+      "judgeError": null,
+      "gate": "light",
+      "lightOutcome": "close",
+      "mechanicalFindings": 0,
+      "judgeFails": []
+    },
+    {
+      "id": "light-03-dinner-flat",
       "error": false,
       "judgeError": null,
       "gate": "light",
       "lightOutcome": "close",
       "mechanicalFindings": 0,
       "judgeFails": [
-        "question_value:M"
+        "route_fit:M",
+        "ownership:M",
+        "premise_quality:M",
+        "question_value:M",
+        "restraint:M"
       ]
     },
     {
-      "id": "light-04-parents-weekend",
+      "id": "light-05-hoesik-escalate",
       "error": false,
       "judgeError": null,
       "gate": "light",
-      "lightOutcome": "close",
+      "requestType": "open",
+      "lightOutcome": "escalate",
       "mechanicalFindings": 0,
       "judgeFails": [
+        "premise_quality:M",
         "question_value:M",
-        "update_fidelity:M"
+        "update_fidelity:M",
+        "restraint:L",
+        "language:L"
       ]
     }
   ]
