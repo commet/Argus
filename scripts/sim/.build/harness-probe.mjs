@@ -215,7 +215,7 @@ function voice(locale) {
   return locale === "ko" ? `Answer in natural Korean \uD574\uC694\uCCB4. Avoid translated, corporate, or report-like phrasing.
 ${KOREAN_VOICE_RULES}` : "Answer in natural, direct English. Avoid corporate or therapeutic filler.";
 }
-function buildInitialJudgmentPrompt(problemText, locale = "en") {
+function buildInitialJudgmentPrompt(problemText, locale = "en", preReviewBaseline) {
   return {
     system: `You are Argus: a judgment harness that helps a person see what their
 decision currently rests on. You are not a committee, coach, or answer engine.
@@ -322,6 +322,18 @@ OUTPUT DISCIPLINE
 - framing_confidence measures confidence that you understood the question, not
   confidence about which choice is right.
 
+PRE-REVIEW BASELINE
+- When a <pre-review-baseline> block is present, it is the user's own current
+  view written before hearing Argus. Treat it as first-class user evidence.
+- Do not ask them to restate a choice, condition, concern, or threshold they
+  already put in that baseline. Ask only about a remaining load-bearing gap.
+- The baseline is not a final verdict and may change, but you may not silently
+  replace it or describe it as an AI conclusion.
+- A pre-review lean is NOT proof that the decision is made. Preserve an open
+  route unless the user explicitly says they already decided or committed.
+  "I want to / I'm leaning toward" is still open; "I decided / I already said
+  yes" is validation.
+
 Return JSON only:
 {
   "request_type": "open|flat|vent|validation|info|resistance|self_profiling|crisis",
@@ -335,7 +347,9 @@ Return JSON only:
   "skeleton": [],
   "next_question": {"text": "one grounded question", "type": "short"} or null
 }`,
-    user: `<user-data>${sanitizeForPrompt(problemText)}</user-data>`
+    user: `<user-data>${sanitizeForPrompt(problemText)}</user-data>${preReviewBaseline?.trim() ? `
+
+<pre-review-baseline>${sanitizeForPrompt(preReviewBaseline)}</pre-review-baseline>` : ""}`
   };
 }
 function buildRefinementJudgmentPrompt(problemText, rejectedQuestion, rejectionReason, locale = "en") {
@@ -385,6 +399,8 @@ ${SAFETY_AND_NEUTRALITY}
 UPDATE CONTRACT
 1. The latest answer is evidence about the user's situation. It is not permission
    to add adjacent expert knowledge.
+   The pre-review baseline, when present in Current state, is also user evidence.
+   Do not re-ask a choice, condition, concern, or threshold already written there.
 2. Preserve every field the answer did not change. Visible stability is valid.
    But frame_line tracks what the decision IS, so a hard constraint the user just
    supplied belongs in it ("\u2026\uC2B9\uC9C4\uC740 \uC544\uC9C1 \uAD6C\uB450\uB85C\uB9CC \uB098\uC628 \uC0C1\uD0DC\uC5D0\uC11C\u2026"). A frame that
@@ -477,6 +493,7 @@ Return JSON only:
 
 Current state:
 - question: ${sanitizeForPrompt(currentSnapshot.real_question)}
+- user's pre-review baseline: ${currentSnapshot.pre_review_baseline ? sanitizeForPrompt(currentSnapshot.pre_review_baseline) : "(none)"}
 - AI-surfaced premises: ${(currentSnapshot.hidden_assumptions || []).map(sanitizeForPrompt).join(" / ") || "(none)"}
 - reality checks: ${(currentSnapshot.skeleton || []).map(sanitizeForPrompt).join(" / ") || "(none)"}
 - request type: ${currentSnapshot.request_type || "open"}
