@@ -42,6 +42,10 @@ export interface TelegramSemanticDeps {
   // Semantic handlers only require the attempt to settle. The production
   // sender additionally returns whether Telegram accepted the delivery.
   send: (chatId: number | string, html: string, keyboard?: unknown) => Promise<unknown>;
+  recordReturn?: (
+    event: 'return_answered' | 'return_deferred',
+    properties: Record<string, unknown>,
+  ) => Promise<unknown>;
   /** Injectable for deterministic runs; production uses the real clock/ids. */
   now?: () => Date;
   newId?: () => string;
@@ -244,6 +248,11 @@ export async function handleFoundationContractSettlement(
         : `I could not record the answer (${appended.code}).`);
       return true;
     }
+    await deps.recordReturn?.('return_answered', {
+      project_id: row.id,
+      channel: 'telegram',
+      contract_kind: kind,
+    });
     await admin.from('telegram_decisions')
       .update({ status: 'settled', outcome: null, settled_at: recordedAt })
       .eq('id', row.id).eq('user_id', userId).eq('status', 'sealed');
@@ -293,6 +302,11 @@ export async function handleFoundationContractSettlement(
       : 'The record changed or could not be saved. Reopen the project and try again.');
     return true;
   }
+  await deps.recordReturn?.('return_answered', {
+    project_id: row.id,
+    channel: 'telegram',
+    contract_kind: kind,
+  });
   await admin.from('telegram_decisions')
     .update({ status: 'settled', outcome: null, settled_at: recordedAt })
     .eq('id', row.id).eq('user_id', userId).eq('status', 'sealed');
@@ -360,6 +374,11 @@ export async function handleSemanticContractSettlement(
       await send(chatId, locale === 'ko' ? `기록을 미루지 못했어요 (${appended.code}).` : `I could not defer the record (${appended.code}).`);
       return true;
     }
+    await deps.recordReturn?.('return_deferred', {
+      project_id: row.id,
+      channel: 'telegram',
+      next_handle_kind: 'relative_1w',
+    });
     // The legacy jsonb remains a notification projection only. Its date must
     // follow the event so the existing reminder cron does not send stale mail.
     await admin.from('projects').update({ decision_contract: amendCheckIn(contract, '1w', nowDate().getTime()) }).eq('id', row.id).eq('user_id', userId);

@@ -26,6 +26,7 @@ import { recastSystemPrompt, coerceRecast, recastToMarkdown, RECAST_TOOL_NAME, R
 import { callAnthropicJson } from '@/lib/llm-server';
 import { markdownToTelegramHtml, markdownToTelegramLight as lightHtml } from '@/lib/telegram-format';
 import { tgSendMessage as sendMessage, tgSendChatAction, tgAnswerCallback as answerCallback } from '@/lib/telegram-api';
+import { persistServerEvent } from '@/lib/server-events';
 
 /**
  * Telegram bot webhook. Authenticated via the X-Telegram-Bot-Api-Secret-Token
@@ -524,7 +525,14 @@ async function handleSealConfirm(chatId: number | string, userId: string, action
 // The semantic ledger brain lives in lib/telegram-semantic (one source shared
 // with the dogfood runner). The route only binds the real client + sender.
 function semanticDeps() {
-  return { admin: adminClient(), send: sendMessage };
+  return {
+    admin: adminClient(),
+    send: sendMessage,
+    recordReturn: (
+      event: 'return_answered' | 'return_deferred',
+      properties: Record<string, unknown>,
+    ) => persistServerEvent(event, properties, { path: '/api/telegram/webhook' }),
+  };
 }
 
 async function handleFoundationSettlement(
@@ -614,6 +622,12 @@ async function handleContractSettlement(
       : 'Understood — I’ll stop asking. The decision stays open on your project page, right where you left it.');
     return;
   }
+
+  await persistServerEvent(result.deferred ? 'return_deferred' : 'return_answered', {
+    project_id: row.id,
+    channel: 'telegram',
+    verdict: intent.outcome,
+  }, { path: '/api/telegram/webhook' });
 
   // Mirror-row sync: telegram-sync plants a telegram_decisions row with
   // id=projectId (source='web'). Settle/extend BOTH so the warm daily cron and
@@ -727,11 +741,20 @@ async function handleSettle(
   if (outcome === 'later') {
     const newCheck = kstDatePlus(14);
     const history = Array.isArray(dec.history) ? dec.history : [];
-    await admin.from('telegram_decisions').update({
+    const { error: deferError } = await admin.from('telegram_decisions').update({
       check_by: newCheck,
       reminded_at: null,
       history: [...history, { check_by: dec.check_by, amended_at: new Date().toISOString() }],
     }).eq('id', id);
+    if (deferError) {
+      await sendMessage(chatId, locale === 'ko' ? '기록을 미루지 못했어요. 다시 시도해 주세요.' : 'I could not defer the record. Please try again.');
+      return;
+    }
+    await persistServerEvent('return_deferred', {
+      project_id: id,
+      channel: 'telegram',
+      next_handle_kind: 'relative_2w',
+    }, { path: '/api/telegram/webhook' });
     // Half-settlement fix (P0-2 ③): a web-mirrored row (telegram-sync, row id ==
     // project id) must extend the WEB contract too, or the web keeps nagging.
     if (dec.source === 'web') await bridgeWebContract(id, userId, { outcome: 'pending' });
@@ -745,9 +768,18 @@ async function handleSettle(
     await sendMessage(chatId, '알 수 없는 응답이에요.');
     return;
   }
-  await admin.from('telegram_decisions').update({
+  const { error: settleError } = await admin.from('telegram_decisions').update({
     status: 'settled', outcome, settled_at: new Date().toISOString(),
   }).eq('id', id);
+  if (settleError) {
+    await sendMessage(chatId, locale === 'ko' ? '답을 기록하지 못했어요. 다시 시도해 주세요.' : 'I could not record that answer. Please try again.');
+    return;
+  }
+  await persistServerEvent('return_answered', {
+    project_id: id,
+    channel: 'telegram',
+    verdict: outcome,
+  }, { path: '/api/telegram/webhook' });
   // Half-settlement fix (P0-2 ③): answering here must also close the web
   // contract, so the badge · /project · email re-nag all go dark in one answer.
   if (dec.source === 'web') {
