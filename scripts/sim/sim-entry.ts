@@ -182,11 +182,12 @@ export async function runHeavyInitial(problemText: string, locale: Locale, preRe
   const userCorpus = baseline ? `${problemText}\n${baseline}` : problemText;
   const { system: rawSystem, user } = buildInitialAnalysisPrompt(problemText, locale, baseline);
   const system = ablate(rawSystem);
-  // engine shape: maxTokens 4096, default tier, cacheSystem, same shape map
+  // Mirror the bounded first-turn product call exactly. Drift here would make
+  // latency and truncation experiments price a different engine than users run.
   const raw = await callLLMJson<Record<string, unknown>>(
     [{ role: 'user', content: user }],
     {
-      system, maxTokens: 4096, cacheSystem: true,
+      system, maxTokens: 2048, cacheSystem: true,
       shape: { frame_line: 'string', real_question: 'string', premise_candidates: 'array', skeleton: 'array', next_question: 'object' },
     } as never,
   ) as Record<string, unknown>;

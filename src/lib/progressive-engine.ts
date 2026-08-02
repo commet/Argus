@@ -815,22 +815,22 @@ export async function runInitialAnalysis(
   const { system, user } = buildInitialAnalysisPrompt(problemText, locale, baseline);
 
   // Stream: real-time display then JSON parse, or standard approach.
-  // maxTokens 4096 (was 2000): the full Korean OPEN-decision JSON measures
-  // ~3,900 output tokens, so the old budget truncated ~44% of streams mid-JSON
-  // (7-day production count) — every one of those re-ran the whole call and
-  // froze the screen for the retry. The cap is a ceiling, not a target: short
-  // routes (vent/info/flat) still stop where they stop.
+  // Judgment harness v2 no longer emits plans or option bundles on the first
+  // turn. Its measured launch regression used 1,266 output tokens including
+  // adaptive thinking (2026-08-02); retaining the legacy 4,096 ceiling gives
+  // the first impression far more generation room than its typed contract can
+  // consume. Keep later deepening budgets untouched: those measured up to 2,285.
   // cacheSystem: the ~7k-token system prompt is byte-identical per locale, so
   // it prompt-caches across all calls and users.
   const result = onToken
     ? await callLLMStreamThenParse<InitialAnalysisResponse>(
         [{ role: 'user', content: user }],
-        { system, maxTokens: 4096, signal, cacheSystem: true, shape: { frame_line: 'string', real_question: 'string', premise_candidates: 'array', skeleton: 'array', next_question: 'object' } },
+        { system, maxTokens: 2048, signal, cacheSystem: true, shape: { frame_line: 'string', real_question: 'string', premise_candidates: 'array', skeleton: 'array', next_question: 'object' } },
         onToken,
       )
     : await callLLMJson<InitialAnalysisResponse>(
         [{ role: 'user', content: user }],
-        { system, maxTokens: 4096, signal, cacheSystem: true, shape: { frame_line: 'string', real_question: 'string', premise_candidates: 'array', skeleton: 'array', next_question: 'object' } },
+        { system, maxTokens: 2048, signal, cacheSystem: true, shape: { frame_line: 'string', real_question: 'string', premise_candidates: 'array', skeleton: 'array', next_question: 'object' } },
       );
 
   result.real_question = result.frame_line || result.real_question;
@@ -1039,17 +1039,16 @@ export async function refineInitialFraming(
     problemText, rejectedQuestion, rejectionReason, locale,
   );
 
-  // Same budget/caching rationale as runInitialAnalysis: identical output
-  // shape (full re-analysis), static-per-locale system prompt.
+  // Same bounded first-turn shape and caching rationale as runInitialAnalysis.
   const result = onToken
     ? await callLLMStreamThenParse<InitialAnalysisResponse>(
         [{ role: 'user', content: user }],
-        { system, maxTokens: 4096, signal, cacheSystem: true, shape: { frame_line: 'string', real_question: 'string', premise_candidates: 'array', skeleton: 'array', next_question: 'object' } },
+        { system, maxTokens: 2048, signal, cacheSystem: true, shape: { frame_line: 'string', real_question: 'string', premise_candidates: 'array', skeleton: 'array', next_question: 'object' } },
         onToken,
       )
     : await callLLMJson<InitialAnalysisResponse>(
         [{ role: 'user', content: user }],
-        { system, maxTokens: 4096, signal, cacheSystem: true, shape: { frame_line: 'string', real_question: 'string', premise_candidates: 'array', skeleton: 'array', next_question: 'object' } },
+        { system, maxTokens: 2048, signal, cacheSystem: true, shape: { frame_line: 'string', real_question: 'string', premise_candidates: 'array', skeleton: 'array', next_question: 'object' } },
       );
 
   result.real_question = result.frame_line || result.real_question;

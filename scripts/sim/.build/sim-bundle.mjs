@@ -16445,7 +16445,9 @@ function voice(locale) {
   return locale === "ko" ? `Answer in natural Korean \uD574\uC694\uCCB4. Avoid translated, corporate, or report-like phrasing.
 ${KOREAN_VOICE_RULES}` : "Answer in natural, direct English. Avoid corporate or therapeutic filler.";
 }
-function buildInitialJudgmentPrompt(problemText, locale = "en", preReviewBaseline) {
+function buildInitialJudgmentPrompt(problemText, locale = "en") {
+  const current = typeof problemText === "string" ? { situation: problemText } : problemText;
+  const preReviewBaseline = current.preReviewBaseline;
   return {
     system: `You are Argus: a judgment harness that helps a person see what their
 decision currently rests on. You are not a committee, coach, or answer engine.
@@ -16577,7 +16579,7 @@ Return JSON only:
   "skeleton": [],
   "next_question": {"text": "one grounded question", "type": "short"} or null
 }`,
-    user: `<user-data>${sanitizeForPrompt(problemText)}</user-data>${preReviewBaseline?.trim() ? `
+    user: `<user-data>${sanitizeForPrompt(current.situation)}</user-data>${preReviewBaseline?.trim() ? `
 
 <pre-review-baseline>${sanitizeForPrompt(preReviewBaseline)}</pre-review-baseline>` : ""}`
   };
@@ -16951,7 +16953,10 @@ long scaffolding arrays):
   };
 }
 function buildInitialAnalysisPrompt(problemText, locale = "en", preReviewBaseline) {
-  return HARNESS_V2 ? buildInitialJudgmentPrompt(problemText, locale, preReviewBaseline) : buildLegacyInitialAnalysisPrompt(problemText, locale);
+  return HARNESS_V2 ? buildInitialJudgmentPrompt(
+    preReviewBaseline ? { situation: problemText, preReviewBaseline } : problemText,
+    locale
+  ) : buildLegacyInitialAnalysisPrompt(problemText, locale);
 }
 function buildLegacyDeepeningPrompt(problemText, currentSnapshot, questionsAndAnswers, round, maxRounds, locale = "en") {
   const lang = locale === "ko" ? "Korean" : "English";
@@ -17314,7 +17319,7 @@ ${baseline}` : problemText;
     [{ role: "user", content: user }],
     {
       system,
-      maxTokens: 4096,
+      maxTokens: 2048,
       cacheSystem: true,
       shape: { frame_line: "string", real_question: "string", premise_candidates: "array", skeleton: "array", next_question: "object" }
     }
