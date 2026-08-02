@@ -6,7 +6,7 @@ import { useState } from 'react';
 import type { AnalysisSnapshot, PremiseRecord } from '@/stores/types';
 import { kindLabel, policyFor, premiseListHeading } from '@/lib/decisive-premises';
 import { EASE } from './constants';
-import { diffItems } from './diffItems';
+import { diffItems, diffPremiseRows, type PremiseDiffItem } from './diffItems';
 import type { ReactNode } from 'react';
 
 /**
@@ -264,9 +264,10 @@ export function AnalysisCard({
     : visibleSkeleton.map(s => ({ text: s, status: 'same' as const }));
   // Diff against the previous RECORDS for the same reason the render reads
   // them: comparing against hidden_assumptions would show every fact as newly
-  // "removed" the moment the list narrowed to claims.
-  const assumptionDiff = hasChanges
-    ? diffItems(premiseRowsOf(prevSnapshot!).map((r) => r.text), visibleAssumptions)
+  // "removed" the moment the list narrowed to claims. Records, not texts —
+  // they carry the lineage that tells a rewrite apart from a replacement.
+  const assumptionDiff: PremiseDiffItem[] = hasChanges
+    ? diffPremiseRows(premiseRowsOf(prevSnapshot!), premiseRecords)
     : visibleAssumptions.map(a => ({ text: a, status: 'same' as const }));
 
   const activeAssumptions = assumptionDiff.filter(d => d.status !== 'removed');
@@ -402,7 +403,7 @@ export function AnalysisCard({
                         transition={{ delay: i * 0.06, duration: 0.35, ease: EASE }}
                         className={`flex items-baseline gap-2.5 py-2.5 transition-colors duration-1000 ${
                           i < activeAssumptions.length - 1 ? 'border-b border-[var(--border-subtle)]/40' : ''
-                        } ${d.status === 'new' ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)]'}`}>
+                        } ${d.status === 'same' ? 'text-[var(--text-secondary)]' : 'text-[var(--text-primary)]'}`}>
                         <KindChip kind={record?.kind} locale={locale} />
                         {/* "Visible stability is valid" is what the update
                             contract promises the model, and until now the
@@ -410,15 +411,28 @@ export function AnalysisCard({
                             unchanged looked identical to one written this
                             turn, so an answer that legitimately changed
                             nothing read as an answer that landed nowhere.
-                            Marking only what is NEW makes the rest legible as
+                            Marking only what MOVED makes the rest legible as
                             stable by contrast, without tagging every row. */}
-                        {hasChanges && d.status === 'new' && (
+                        {hasChanges && d.status !== 'same' && (
                           <span className="shrink-0 text-[10px] font-semibold leading-none text-[var(--accent)]/80 self-center">
-                            {L('새로', 'new')}
+                            {d.status === 'revised' ? L('고쳐 씀', 'revised') : L('새로', 'new')}
                           </span>
                         )}
                         <div className="min-w-0">
                           <p className="text-[13px] leading-[1.65]">{renderText(d.text)}</p>
+                          {/* The sentence this replaced, shown next to the one
+                              that replaced it. Not behind 자세히 보기 and not in
+                              the red strike-through row above: a rewrite the
+                              user's own answer caused is the clearest evidence
+                              they get that talking to this thing did anything,
+                              and it was being rendered as a deletion. */}
+                          {d.status === 'revised' && d.previousText && (
+                            <p className="mt-1 text-[12px] leading-[1.6] text-[var(--text-tertiary)]">
+                              {L('고치기 전', 'before')}
+                              <span className="mx-1.5 opacity-50">·</span>
+                              <span className="italic">“{d.previousText}”</span>
+                            </p>
+                          )}
                           {detailOpen && record?.anchor_quote && (
                             <p className="mt-1 text-[12px] leading-[1.6] text-[var(--text-tertiary)]">
                               {L('내가 쓴 말', 'your words')}

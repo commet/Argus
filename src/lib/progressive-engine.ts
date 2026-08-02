@@ -129,6 +129,10 @@ function recordsFromSnapshot(snapshot: {
       support_kind: r.support_kind || 'explicit_reason',
       kind: r.kind || 'premise',
       ...(r.observable ? { observable: r.observable } : {}),
+      // Lineage survives the round trip. Dropping it here would erase the
+      // revision the moment the next turn read the snapshot back, which is the
+      // same class of loss this whole field exists to close.
+      ...(r.revised_from ? { revised_from: r.revised_from } : {}),
     }));
   }
   return (snapshot.hidden_assumptions || []).map((text) => ({

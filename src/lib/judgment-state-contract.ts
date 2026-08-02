@@ -118,22 +118,45 @@ export interface AdmittedPremise {
    *  runtime strips it (see stripModelOnly). Whether being wrong here would
    *  have moved this particular person is a fact about them. */
   decisive?: 'flips' | 'holds';
+  /**
+   * The sentence this one replaced, when an accepted `revise` rewrote it.
+   *
+   * Without it a revision is unreconstructable downstream: a reader comparing
+   * two snapshots sees one text absent and another present, and set difference
+   * cannot tell "their answer sharpened this" from "one died, one was born".
+   * The card rendered the first as the second — the old sentence struck through
+   * in red — so the most encouraging thing this product can show a person was
+   * displayed as a deletion.
+   *
+   * Written by the runtime from the record it actually overwrote, never from
+   * the model's `previous_text` (which is only a lookup key and may match
+   * loosely) and never from model output at all — lineage the model asserted
+   * would let it take credit for an answer that changed nothing.
+   *
+   * Durable, not per-turn. Whether it counts as "changed just now" is decided
+   * by comparing against the previous snapshot, so a record revised three turns
+   * ago keeps its lineage without claiming to be new.
+   */
+  revised_from?: string;
 }
 
 /**
- * A model may describe consequences; it may not decide what matters to someone.
- * `decisive` is the user's answer to "이게 틀렸다면 다른 선택을 하셨을까요?", so
- * anything arriving under that key from a model is dropped rather than trusted —
+ * A model may describe consequences; it may not decide what matters to someone,
+ * and it may not narrate what its own proposal did to the record.
+ *
+ * `decisive` is the user's answer to "이게 틀렸다면 다른 선택을 하셨을까요?".
+ * `revised_from` is the runtime's account of what a delta actually overwrote.
+ * Both arriving under those keys from a model are dropped rather than trusted —
  * a fail-closed boundary, not a lint.
  */
+const MODEL_MAY_NOT_SET = ['decisive', 'revised_from'] as const;
+
 function stripModelOnly<T extends Record<string, unknown>>(item: T | null): T | null {
   if (!item) return item;
-  if ('decisive' in item) {
-    const { decisive: _ignored, ...rest } = item;
-    void _ignored;
-    return rest as T;
-  }
-  return item;
+  if (!MODEL_MAY_NOT_SET.some((key) => key in item)) return item;
+  const rest = { ...item };
+  for (const key of MODEL_MAY_NOT_SET) delete rest[key];
+  return rest as T;
 }
 
 interface SynthesisSectionLike {
@@ -611,6 +634,11 @@ export function applyPremiseDeltas(
     // A revise anchor is already required to come from the latest answer, so
     // its stance is supplied by the act of answering.
     const revised = gateByKind(item?.kind, text, anchorQuote, true, cleanText(item?.observable));
+    // The record that is about to be overwritten — not the model's
+    // `previous_text`, which findExisting matched loosely and which may differ
+    // from what is actually on file. Lineage has to name the sentence the
+    // reader last saw, or the screen shows them a "before" they never read.
+    const overwritten = records[existingIndex].text;
     records[existingIndex] = {
       text,
       anchor_quote: anchorQuote,
@@ -618,6 +646,10 @@ export function applyPremiseDeltas(
       support_kind: (SUPPORT_KINDS.has(supportKind) ? supportKind : 'explicit_reason') as PremiseCandidate['support_kind'],
       kind: revised.kind,
       ...(cleanText(item?.observable) ? { observable: cleanText(item?.observable) } : {}),
+      // A revise whose text is unchanged after normalisation is a keep wearing
+      // another label; claiming lineage for it would put a "changed" mark on a
+      // row that did not move.
+      ...(comparable(overwritten) === comparable(text) ? {} : { revised_from: overwritten }),
     };
     premises[existingIndex] = text;
     audit.push({

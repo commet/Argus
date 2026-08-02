@@ -1357,6 +1357,14 @@ export interface PremiseRecord {
   /** What changes if it turns out false. The reality check, written in advance. */
   if_false_changes: string;
   support_kind: 'explicit_reason' | 'explicit_condition' | 'explicit_expectation';
+  /** The sentence this one replaced, when the user's answer revised it.
+   *
+   *  Set by the runtime on an accepted `revise` delta and stripped from model
+   *  output. Without it two snapshots differ only by set membership, and a
+   *  revision is indistinguishable from a deletion plus an unrelated arrival —
+   *  which is exactly how the card used to render it. See AdmittedPremise in
+   *  judgment-state-contract.ts for the full reasoning. */
+  revised_from?: string;
 }
 
 export interface AnalysisSnapshot {
