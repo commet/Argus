@@ -183,11 +183,16 @@ async function runScenario(engine, sc) {
   const record = {
     id: sc.id, group: sc.group, locale: sc.locale,
     expect: sc.expect, notes: sc.notes,
-    opening: sc.opening, replies: sc.replies,
+    opening: sc.opening, baseline: sc.baseline ?? null, replies: sc.replies,
     route: {}, light: null, heavy: null, error: null,
   };
 
   push(transcript, 'user', 'opening', sc.opening);
+  // The heavy UI asks for this before revealing the buffered first analysis.
+  // The production engine currently starts that call before the baseline is
+  // known; keeping it as a distinct, visible user turn lets the judge catch a
+  // first question that simply asks for the answer the person already wrote.
+  if (sc.baseline) push(transcript, 'user', 'pre_review_baseline', sc.baseline);
 
   try {
     // Deterministic crisis check (recorded — the light gate runs it internally too)
@@ -444,6 +449,9 @@ async function main() {
         `light 게이트: ${rec.route?.gate?.need || '?'}`,
         rec.light ? `light 진행: 질문 ${rec.light.qas?.length || 0}개 답변됨 → 종결 ${rec.light.outcome}` : null,
         rec.heavy?.initial ? `heavy 분류: request_type=${rec.heavy.initial.raw?.request_type} stakes=${rec.heavy.initial.raw?.stakes} reversibility=${rec.heavy.initial.raw?.reversibility}${rec.heavy.initial.routeCoerced ? ' (route contract 코어션 발동!)' : ''}` : null,
+        rec.calls?.length
+          ? `LLM 호출: ${rec.calls.length}회 · 합계 ${Math.round(rec.calls.reduce((sum, call) => sum + (call.ms || 0), 0) / 100) / 10}초 · 최장 ${Math.round(Math.max(...rec.calls.map((call) => call.ms || 0)) / 100) / 10}초`
+          : null,
       ].filter(Boolean).join('\n');
 
       shim.setCallLabel(`judge:${rec.id}`);

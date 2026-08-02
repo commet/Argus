@@ -47,6 +47,15 @@ Argus의 목적은 답을 대신 정하는 것이 아니라, 사용자의 판단
 8. language
    - 한국어는 자연스러운 해요체이고 AI체·번역체·보고서체가 아니다.
    - 영어는 자연스럽고 번역투가 아니다.
+9. baseline_use
+   - "검토 전 내 생각"이 기록에 있으면 그 내용도 사용자 입력이다.
+   - 다음 질문이 이미 기준점에서 답한 선택·조건·우려를 다시 묻지 않고,
+     AI가 기준점을 결론처럼 덮어쓰지도 않는다.
+   - 기준점이 없는 시나리오는 NA다.
+10. update_legibility
+   - 답변 뒤 출력만 읽어도 무엇이 바뀌었고, 그대로고, 아직 모르는지
+     구별할 수 있다. 이전 분석을 새 답의 결과처럼 반복하지 않는다.
+   - 답변 뒤 Argus 출력이 없는 시나리오는 NA다.
 
 판정 규칙:
 - verdict는 PASS, FAIL, NA 중 하나.
@@ -67,7 +76,9 @@ JSON만 출력:
     "question_value": {"verdict":"PASS|FAIL|NA","severity":null,"evidence":"","note":""},
     "update_fidelity": {"verdict":"PASS|FAIL|NA","severity":null,"evidence":"","note":""},
     "restraint": {"verdict":"PASS|FAIL|NA","severity":null,"evidence":"","note":""},
-    "language": {"verdict":"PASS|FAIL|NA","severity":null,"evidence":"","note":""}
+    "language": {"verdict":"PASS|FAIL|NA","severity":null,"evidence":"","note":""},
+    "baseline_use": {"verdict":"PASS|FAIL|NA","severity":null,"evidence":"","note":""},
+    "update_legibility": {"verdict":"PASS|FAIL|NA","severity":null,"evidence":"","note":""}
   },
   "overall": "가장 중요한 관찰 한두 문장",
   "best_next_fix": "가장 작은 다음 수정 한 가지 또는 빈 문자열"
