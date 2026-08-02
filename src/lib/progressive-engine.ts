@@ -115,8 +115,22 @@ function alignRecords(records: AdmittedPremise[], texts: string[]): AdmittedPrem
   return [...kept, ...orphans];
 }
 
-/** Snapshots written before 2026-08-01 carry text only. Read them as records
- *  with no lineage rather than losing the premise entirely. */
+/**
+ * Read the living premises back out of the last snapshot, so the next turn
+ * revises the record instead of starting from nothing.
+ *
+ * THIS FUNCTION MUST BE TOTAL OVER PremiseRecord. It enumerates fields by hand,
+ * which means a field added to the type is dropped here by default and the loss
+ * is invisible: the turn still runs, the model still answers, the record just
+ * quietly forgets something. `decisive` was lost exactly this way — the user's
+ * own answer to "이게 틀렸다면 다른 선택을 하셨을까요?", the one field on this
+ * record a model is forbidden to write, erased by the next turn if they backed
+ * out of the seal instead of finishing it. snapshot-record-round-trip.test.ts
+ * fails the build if a field is added and not carried here.
+ *
+ * Snapshots written before 2026-08-01 carry text only. Read them as records with
+ * no lineage rather than losing the premise entirely.
+ */
 function recordsFromSnapshot(snapshot: {
   premise_records?: Array<Partial<AdmittedPremise> & { text: string }>;
   hidden_assumptions?: string[];
@@ -129,6 +143,11 @@ function recordsFromSnapshot(snapshot: {
       support_kind: r.support_kind || 'explicit_reason',
       kind: r.kind || 'premise',
       ...(r.observable ? { observable: r.observable } : {}),
+      // The user's own call, carried forward on a premise that survives the
+      // turn unchanged. A `revise` rebuilds the record from scratch and so
+      // drops it — correctly: their answer was about the sentence that just
+      // stopped being on file.
+      ...(r.decisive ? { decisive: r.decisive } : {}),
       // Lineage survives the round trip. Dropping it here would erase the
       // revision the moment the next turn read the snapshot back, which is the
       // same class of loss this whole field exists to close.
