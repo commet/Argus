@@ -83,6 +83,7 @@ const REAL_WORK_EVENTS = new Set([
   'loop_converged',
   'decision_sealed',
   'review_completed',
+  'record_connection_opened',
 ]);
 // Subset that specifically means "reached the finish line".
 const COMPLETION_EVENTS = new Set(['flow_done', 'progressive_draft_promoted', 'loop_converged']);
@@ -431,6 +432,8 @@ export async function GET(req: Request) {
   const completedPrevious = humanAggPrevious.filter(a => a.completed).length;
   const sealedY = humanAggY.filter(a => a.eventNames.has('decision_sealed')).length;
   const sealedPrevious = humanAggPrevious.filter(a => a.eventNames.has('decision_sealed')).length;
+  const recordConnectionsY = humanAggY.filter(a => a.eventNames.has('record_connection_opened')).length;
+  const recordConnectionsPrevious = humanAggPrevious.filter(a => a.eventNames.has('record_connection_opened')).length;
 
   // A return can span sessions and days, so count distinct projects instead of
   // clicks. Older events without project_id fall back to one count per session.
@@ -710,6 +713,7 @@ export async function GET(req: Request) {
     { label: '상황 제출', current: submittedY, previous: submittedPrevious },
     { label: '완주', current: completedY, previous: completedPrevious },
     { label: '결정 확정', current: sealedY, previous: sealedPrevious },
+    { label: '과거 기록 다시 봄', current: recordConnectionsY, previous: recordConnectionsPrevious },
     { label: '현실 확인 열림', current: returnsOpenedY.size, previous: returnsOpenedPrevious.size },
     { label: '현실 확인 답변', current: returnsAnsweredY.size, previous: returnsAnsweredPrevious.size },
     { label: '현실 확인 미룸', current: returnsDeferredY.size, previous: returnsDeferredPrevious.size },

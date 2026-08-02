@@ -88,6 +88,12 @@ describe('daily analytics contract', () => {
     expect(route).toContain('사용자 원문은 수집하지 않음');
   });
 
+  it('reports whether people return from a record connection to a decision', () => {
+    const route = source('src/app/api/cron/daily-report/route.ts');
+    expect(route).toContain("eventNames.has('record_connection_opened')");
+    expect(route).toContain("label: '과거 기록 다시 봄'");
+  });
+
   it('renders the anonymous-visit detail section in the email', () => {
     const route = source('src/app/api/cron/daily-report/route.ts');
     expect(route).toContain('익명 방문 상세');

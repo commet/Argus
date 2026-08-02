@@ -22,6 +22,7 @@ import { judgmentPatternFacts, type PatternDecision } from '@/lib/judgment-patte
 import { isBaselineOnlyContract } from '@/lib/decision-contract';
 import type { DecisionItem } from '@/lib/decision-items';
 import type { Project } from '@/stores/types';
+import { track } from '@/lib/analytics';
 
 export function JudgmentPatternsCard({ projects, items, locale, onSelectDecision }: {
   projects: Project[];
@@ -58,6 +59,13 @@ export function JudgmentPatternsCard({ projects, items, locale, onSelectDecision
   const hiddenCount = (facts.shared.length - sharedVisible.length)
     + (facts.questions.length - questionsVisible.length)
     + (facts.bare.length - bareVisible.length);
+  const openDecision = (decisionId: string, kind: 'shared_premise' | 'open_question' | 'missing_premise', linkedDecisions = 1) => {
+    if (!onSelectDecision) return;
+    // The compounding-value signal contains shape only. Decision names,
+    // questions, and premises remain in the user's record, never analytics.
+    track('record_connection_opened', { kind, linked_decisions: linkedDecisions });
+    onSelectDecision(decisionId);
+  };
 
   return (
     <Card>
@@ -65,7 +73,7 @@ export function JudgmentPatternsCard({ projects, items, locale, onSelectDecision
         {L('기록이 보여주는 것', 'What the record shows')}
       </h3>
       <p className="mt-0.5 text-[12px] text-[var(--text-tertiary)]">
-        {L('세기만 했어요 — 뜻을 정하는 건 여기서 하지 않아요.', 'Counted, not judged — what it means is yours to decide.')}
+        {L('기록에서 확인된 연결만 모았어요. 해석이나 평가는 덧붙이지 않았어요.', 'Only connections present in the record are shown. No interpretation or rating was added.')}
       </p>
 
       {facts.shared.length > 0 && (
@@ -91,7 +99,7 @@ export function JudgmentPatternsCard({ projects, items, locale, onSelectDecision
                         {index > 0 && <span aria-hidden> · </span>}
                         <button
                           type="button"
-                          onClick={() => onSelectDecision?.(id)}
+                          onClick={() => openDecision(id, 'shared_premise', g.decisionIds.length)}
                           disabled={!onSelectDecision}
                           className="underline decoration-[var(--border)] underline-offset-2 hover:text-[var(--accent)] hover:decoration-[var(--accent)] disabled:no-underline disabled:cursor-default"
                         >{name.slice(0, 18)}</button>
@@ -122,7 +130,7 @@ export function JudgmentPatternsCard({ projects, items, locale, onSelectDecision
                   {' · '}{L(`${q.openForDays}일째 열려 있어요`, `open for ${q.openForDays} days`)}
                 </span></span>
                 {onSelectDecision && (
-                  <button type="button" onClick={() => onSelectDecision(q.decisionId)} className="shrink-0 font-semibold text-[var(--accent)] hover:underline underline-offset-2">
+                  <button type="button" onClick={() => openDecision(q.decisionId, 'open_question')} className="shrink-0 font-semibold text-[var(--accent)] hover:underline underline-offset-2">
                     {L('결정 열기', 'Open')}
                   </button>
                 )}
@@ -144,7 +152,7 @@ export function JudgmentPatternsCard({ projects, items, locale, onSelectDecision
                 {index > 0 && <span aria-hidden> · </span>}
                 <button
                   type="button"
-                  onClick={() => onSelectDecision?.(d.id)}
+                  onClick={() => openDecision(d.id, 'missing_premise')}
                   disabled={!onSelectDecision}
                   className="underline decoration-[var(--border)] underline-offset-2 hover:text-[var(--accent)] hover:decoration-[var(--accent)] disabled:no-underline disabled:cursor-default"
                 >{d.name.slice(0, 22)}</button>

@@ -1,5 +1,7 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { JudgmentPatternsCard } from '../JudgmentPatternsCard';
 import type { Project } from '@/stores/types';
 import { createItem } from '@/lib/decision-items';
@@ -26,6 +28,18 @@ describe('JudgmentPatternsCard navigation', () => {
     expect(html).toContain('<button');
     expect(html).toContain('출시 시점');
     expect(html).toContain('채용 계획');
+    expect(html).toContain('기록에서 확인된 연결만 모았어요');
+  });
+
+  it('keeps record-reuse telemetry free of the record wording', () => {
+    const source = readFileSync(
+      resolve(process.cwd(), 'src/components/projects/JudgmentPatternsCard.tsx'),
+      'utf8',
+    );
+    const event = source.slice(source.indexOf("track('record_connection_opened'"), source.indexOf("track('record_connection_opened'") + 180);
+    expect(event).toContain('kind');
+    expect(event).toContain('linked_decisions');
+    expect(event).not.toMatch(/\b(text|name|question|premise)\s*:/);
   });
 
   it('says when compact mode has hidden records', () => {
