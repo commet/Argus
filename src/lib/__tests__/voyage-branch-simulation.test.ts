@@ -154,6 +154,18 @@ describe('Voyage branch layer', () => {
       expect(s.waypoints![0].checkpoint_id).toBe(cp!.id);
     });
 
+    it('keeps the origin idempotent when the mount effect is replayed', () => {
+      const sid = startSession();
+      const first = api().recordCheckpoint('origin');
+      const replay = api().recordCheckpoint('origin');
+      const s = session(sid);
+
+      expect(replay?.id).toBe(first?.id);
+      expect(s.checkpoints).toHaveLength(1);
+      expect(s.waypoints).toHaveLength(1);
+      expect(s.branches).toHaveLength(1);
+    });
+
     it('does not append a waypoint for a non-salient process stage (crew_set)', () => {
       const sid = startSession();
       api().recordCheckpoint('origin');       // 1 waypoint (departure)

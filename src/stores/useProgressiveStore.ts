@@ -1646,9 +1646,19 @@ export const useProgressiveStore = create<ProgressiveState>((set, get) => ({
     const session = get().currentSession();
     if (!session) return null;
 
-    // Avoid duplicate origin: if this is the very first checkpoint and
-    // the session has nothing meaningful yet, still record it — that's
-    // the rewindable "before anything happened" state.
+    // React Strict Mode may replay the first-mount effect before its closure
+    // sees the store update. Origin is the unique root of a voyage, so make
+    // its creation idempotent at the store boundary instead of trusting UI
+    // timing. This also prevents duplicate "시작" entries in the logbook.
+    if (stage === 'origin') {
+      const existingOrigin = (session.checkpoints || []).find(
+        checkpoint => checkpoint.stage === 'origin' && checkpoint.parent_id === null,
+      );
+      if (existingOrigin) return existingOrigin;
+    }
+
+    // If this is the very first checkpoint, still record it — that's the
+    // rewindable "before anything happened" state.
     // P1-4: intern the bulky strings into the session pool — the snapshot
     // stores refs, not copies. `blobs` accumulates into checkpoint_blobs below.
     const blobs = { ...(session.checkpoint_blobs || {}) };
