@@ -1404,7 +1404,7 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem, fr
                   className="rounded-2xl border border-[var(--accent)]/15 bg-[var(--surface)] p-5 md:p-6 mb-3"
                 >
                   <div className="text-[12px] font-bold text-[var(--accent)] uppercase tracking-[0.15em] mb-2.5">
-                    {L('지금 이해한 상황', 'What I heard')}
+                    {L('지금 확인할 질문', 'The question to check now')}
                   </div>
                   <div className="text-[17px] md:text-[19px] leading-[1.45] text-[var(--text-primary)] whitespace-pre-wrap break-words min-h-[28px]" style={{ fontFamily: 'var(--font-display)' }}>
                     {hasQuestion ? partial.real_question : <span className="text-[var(--text-tertiary)] text-[13px]" style={{ fontFamily: 'inherit' }}>{L('찾는 중...', 'Searching...')}</span>}
