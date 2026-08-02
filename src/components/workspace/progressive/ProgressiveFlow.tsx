@@ -71,6 +71,7 @@ import { VoyagePrepSummary, MirrorBeat, TerminalRouteCard, TERMINAL_ROUTE_COPY }
 import { AnsweredPills, FramingConfirmation, PipelineExitOptions } from './flow-parts/framing';
 export { MirrorBeat, TerminalRouteCard };
 import { CurrentBearingCard } from './CurrentBearingCard';
+import { analysisDelta } from './shared/analysisDelta';
 import { SealMoment } from './SealMoment';
 import { TrialSail } from './TrialSail';
 import { CrewAtWork } from './CrewAtWork';
@@ -1189,6 +1190,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
       return;
     }
     if (!curQ || busy || !latest) return;
+    const answerStartedAt = performance.now();
     const ans: FlowAnswer = { question_id: curQ.id, value };
     // Answering dismisses the MirrorBeat — recognition needs no "got it" button;
     // reading the premise then answering IS the whole interaction.
@@ -1295,7 +1297,21 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
         weakest_assumption: weakEffect?.weakestAssumption ?? latest.weakest_assumption ?? r.snapshot.weakest_assumption,
         next_three_days: weakEffect?.nextThreeDays ?? latest.next_three_days ?? r.snapshot.next_three_days,
       };
+      const answerDelta = analysisDelta(latest, mergedSnapshot);
       store.addSnapshot(mergedSnapshot); store.advanceRound();
+      // Product truth, not engagement theatre: did this question earn the
+      // user's effort by moving any decision-bearing state? Never send the
+      // question, answer, premise, or decision wording to analytics.
+      track('answer_reflected', {
+        duration_ms: Math.round(performance.now() - answerStartedAt),
+        round: round + 1,
+        material_change: answerDelta.materialChange,
+        question_changed: answerDelta.questionChanged,
+        decision_changed: answerDelta.decisionChanged,
+        plan_changed: answerDelta.planChanged,
+        premises_added: answerDelta.premisesAdded,
+        premises_removed: answerDelta.premisesRemoved,
+      });
       // Prepare workers when execution_plan appears
       const existingWorkers = store.currentSession()?.workers ?? [];
       const currentDeployPhase = store.currentSession()?.worker_deploy_phase ?? 'none';
