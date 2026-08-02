@@ -27,18 +27,15 @@ import { track } from '@/lib/analytics';
 import { useAuth, hasKnownUser } from '@/lib/auth';
 import { ensureUserId } from '@/lib/supabase';
 import { LocaleLink } from '@/components/ui/LocaleLink';
-import { personaReviewLabel } from '@/components/workspace/progressive/shared/persona-format';
 import { Button } from '@/components/ui/Button';
 import { Graticule } from '@/components/ui/VoyageElements';
 import { EASE } from '@/components/workspace/progressive/shared/constants';
-import { getPersonaPool } from '@/lib/worker-personas';
-import { WorkerAvatar, AvatarRow } from '@/components/workspace/progressive/WorkerAvatar';
 import { BindCard, type BindResult } from '@/components/workspace/progressive/BindCard';
 import { getDemoScenarios } from '@/lib/demo-data';
 import type { DemoScenario } from '@/lib/demo-data';
 import { DEMO_SCENARIO_ART } from '@/lib/demo-scenario-art';
 import { motion, AnimatePresence } from 'framer-motion';
-import type { WorkerPersona, DecisionContract, VoyageBranch } from '@/stores/types';
+import type { DecisionContract, VoyageBranch } from '@/stores/types';
 import { ErrorBoundary } from '@/components/layout/ErrorBoundary';
 import { parsePartialAnalysis } from '@/lib/partial-analysis';
 import { ArgusMascot } from '@/components/brand/ArgusMascot';
@@ -359,7 +356,6 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem, fr
   const [demoScenario, setDemoScenario] = useState<DemoScenario | null>(null);
   const [problemInput, setProblemInput] = useState('');
   const [streamingText, setStreamingText] = useState('');
-  const [previewPersonas, setPreviewPersonas] = useState<WorkerPersona[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [justFromDemo, setJustFromDemo] = useState(false);
   const [showAllProjects, setShowAllProjects] = useState(false);
@@ -476,8 +472,6 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem, fr
 
     pendingTextRef.current = text;
     setError(null);
-    const pool = getPersonaPool(locale);
-    setPreviewPersonas(pool.slice(0, 4));
     track('workspace_problem_submit', { text_length: text.length, source: 'hero_flow' });
 
     if (LIGHT_PATH_ENABLED) {
@@ -1317,42 +1311,25 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem, fr
             </motion.div>
           )}
 
-          {/* ═══ ASSEMBLING: 팀 등장 ═══ */}
+          {/* ═══ ASSEMBLING: acknowledge the user's record without staging a
+              fictional team. The first pass is one read; review lenses only
+              appear later when work is actually divided. ═══ */}
           {phase === 'assembling' && (
             <motion.div key="assembling" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              transition={{ duration: 0.4, ease: EASE }} className="pt-8 md:pt-16">
-
-              {/* 축소된 입력 */}
-              <motion.div layout className="flex items-center gap-3 px-5 py-3 rounded-full bg-[var(--bg)] border border-[var(--border-subtle)] w-fit max-w-full mb-8">
-                <div className="w-5 h-5 rounded-full bg-[var(--text-primary)] flex items-center justify-center shrink-0">
-                  <span className="text-[var(--bg)] text-[12.5px] font-bold">{L('나', 'Me')}</span>
-                </div>
-                <p className="text-[13px] text-[var(--text-secondary)] truncate">{problemInput}</p>
-              </motion.div>
-
-              {/* 팀 등장 */}
-              <div className="rounded-xl bg-[var(--accent)]/[0.03] border border-[var(--accent)]/10 p-4 space-y-2.5">
-                {previewPersonas.map((p, i) => (
-                  <motion.div key={p.id}
-                    initial={{ opacity: 0, x: -16 }} animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.2 + i * 0.3, duration: 0.4, ease: EASE }}
-                    className="flex items-center gap-3">
-                    <WorkerAvatar persona={p} size="sm" />
-                    {/* The avatar already resolves to a functional label; the
-                        text next to it was still printing the builtin fictional
-                        name (다은 / 현우 / 규민 / 서연) on the real entry path. */}
-                    <span className="text-[13px] font-medium text-[var(--text-primary)]">{personaReviewLabel(p, locale)}</span>
-                    <span className="text-[12.5px] text-[var(--text-tertiary)]">{p.role}</span>
+              transition={{ duration: 0.3, ease: EASE }} className="pt-6 md:pt-10">
+              <div className="rounded-2xl border border-[var(--accent)]/15 bg-[var(--surface)] p-5 md:p-6">
+                <div className="flex items-center gap-2 mb-3" aria-live="polite">
+                  <motion.div animate={{ rotate: 360 }} transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}>
+                    <Sparkles size={14} className="text-[var(--accent)]" />
                   </motion.div>
-                ))}
-                <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.2, duration: 0.4 }}
-                  className="text-[12.5px] text-[var(--text-tertiary)] pt-1">
-                  {/* Honest framing: the initial pass is a single read that finds the real
-                      question; this crew does its individual work later, at the worker stage. */}
-                  {/* One read is running right now; the review lenses come later.
-                      Claiming four simultaneous reviewers was simply untrue. */}
-                  {L('먼저 적어주신 상황을 처음부터 끝까지 읽고 있어요...', 'Reading what you wrote, start to finish...')}
-                </motion.p>
+                  <span className="text-[12px] font-medium text-[var(--accent)]">
+                    {L('내 기준과 상황을 읽는 중', 'Reading your situation and baseline')}
+                  </span>
+                </div>
+                <p className="text-[14px] leading-[1.6] text-[var(--text-secondary)] line-clamp-2">{problemInput}</p>
+                <p className="text-[12.5px] text-[var(--text-tertiary)] mt-4">
+                  {L('다음에는 결론을 바꿀 수 있는 질문 하나를 보여드려요.', 'Next, you will see one question that could change the decision.')}
+                </p>
               </div>
             </motion.div>
           )}
@@ -1387,9 +1364,12 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem, fr
               <motion.div key="analyzing" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                 transition={{ duration: 0.4, ease: EASE }} className="pt-6 md:pt-10">
 
-                {/* 상단: 팀 아바타 + 문제 echo */}
-                <div className="flex items-center gap-3 mb-5">
-                  <AvatarRow personas={previewPersonas} />
+                {/* The source record, not a fictional crew, anchors the wait. */}
+                <div className="flex items-center gap-2 mb-5 min-w-0">
+                  <span className="text-[11px] font-medium text-[var(--text-tertiary)] shrink-0">
+                    {L('내가 적은 상황', 'My situation')}
+                  </span>
+                  <span className="w-px h-3 bg-[var(--border)] shrink-0" aria-hidden="true" />
                   <p className="text-[13px] text-[var(--text-secondary)] truncate flex-1">{problemInput}</p>
                 </div>
 
