@@ -30,11 +30,11 @@
         "framing_confidence": 40,
         "frame_line": "퇴사랑 여행이 같이 나왔네요.",
         "real_question": "퇴사랑 여행이 같이 나왔네요.",
-        "insight": "퇴사 쪽인지, 여행 쪽인지, 아니면 둘 다인지 아직 잘 모르겠어요.",
+        "insight": "퇴사가 먼저인지, 여행이 먼저인지, 아니면 둘 다 그냥 지금 상황에서 벗어나고 싶다는 건지 — 아직 어느 쪽인지 모르겠어요.",
         "premise_candidates": [],
         "skeleton": [],
         "next_question": {
-          "text": "지금 더 급한 게 퇴사예요, 여행이에요?",
+          "text": "퇴사랑 여행 중에 뭐가 먼저 떠오른 거예요?",
           "type": "short"
         }
       },
@@ -49,9 +49,8 @@
         "premise_candidates": [],
         "skeleton": [],
         "next_question": {
-          "text": "이 상황에서 지금 가장 마음에 걸리는 건 뭐예요?",
-          "type": "short",
-          "options": []
+          "text": "퇴사랑 여행 중에 뭐가 먼저 떠오른 거예요?",
+          "type": "short"
         },
         "hidden_assumptions": [],
         "premise_records": [],
@@ -72,18 +71,18 @@
     {
       "actor": "argus",
       "phase": "heavy_initial",
-      "text": "퇴사랑 여행이 같이 나왔네요.\n\n지금 살펴볼 것: 퇴사랑 여행이 같이 나왔네요.\n\n다음 질문: 이 상황에서 지금 가장 마음에 걸리는 건 뭐예요?"
+      "text": "퇴사랑 여행이 같이 나왔네요.\n\n지금 살펴볼 것: 퇴사랑 여행이 같이 나왔네요.\n\n다음 질문: 퇴사랑 여행 중에 뭐가 먼저 떠오른 거예요?"
     }
   ],
   "calls": [
     {
-      "seq": 0,
+      "seq": 10,
       "label": "light-06-quit-travel-trap",
       "tier": "fast",
       "modelId": "claude-haiku-4-5-20251001",
       "maxTokens": 500,
       "attempt": 0,
-      "ms": 1240,
+      "ms": 741,
       "usage": {
         "input_tokens": 4037,
         "cache_creation_input_tokens": 0,
@@ -100,13 +99,13 @@
       "rawText": "```json\n{\n  \"need\": \"heavy\",\n  \"mirror\": \"\",\n  \"question\": \"\"\n}\n```"
     },
     {
-      "seq": 3,
-      "label": "heavy-05-cofounder",
+      "seq": 11,
+      "label": "light-06-quit-travel-trap",
       "tier": "default",
       "modelId": "claude-sonnet-4-6",
       "maxTokens": 4096,
       "attempt": 0,
-      "ms": 3957,
+      "ms": 4804,
       "usage": {
         "input_tokens": 31,
         "cache_creation_input_tokens": 5475,
@@ -115,12 +114,12 @@
           "ephemeral_5m_input_tokens": 5475,
           "ephemeral_1h_input_tokens": 0
         },
-        "output_tokens": 213,
+        "output_tokens": 254,
         "service_tier": "standard",
         "inference_geo": "global"
       },
       "user": "[user] <user-data>퇴사하고 여행이나 갈까</user-data>",
-      "rawText": "```json\n{\n  \"request_type\": \"open\",\n  \"stakes\": \"important\",\n  \"reversibility\": \"partial\",\n  \"framing_confidence\": 40,\n  \"frame_line\": \"퇴사랑 여행이 같이 나왔네요.\",\n  \"real_question\": \"퇴사랑 여행이 같이 나왔네요.\",\n  \"insight\": \"퇴사 쪽인지, 여행 쪽인지, 아니면 둘 다인지 아직 잘 모르겠어요.\",\n  \"premise_candidates\": [],\n  \"skeleton\": [],\n  \"next_question\": {\"text\": \"지금 더 급한 게 퇴사예요, 여행이에요?\", \"type\": \"short\"}\n}\n```"
+      "rawText": "```json\n{\n  \"request_type\": \"open\",\n  \"stakes\": \"important\",\n  \"reversibility\": \"partial\",\n  \"framing_confidence\": 40,\n  \"frame_line\": \"퇴사랑 여행이 같이 나왔네요.\",\n  \"real_question\": \"퇴사랑 여행이 같이 나왔네요.\",\n  \"insight\": \"퇴사가 먼저인지, 여행이 먼저인지, 아니면 둘 다 그냥 지금 상황에서 벗어나고 싶다는 건지 — 아직 어느 쪽인지 모르겠어요.\",\n  \"premise_candidates\": [],\n  \"skeleton\": [],\n  \"next_question\": {\"text\": \"퇴사랑 여행 중에 뭐가 먼저 떠오른 거예요?\", \"type\": \"short\"}\n}\n```"
     }
   ],
   "mechanical": {
@@ -134,13 +133,13 @@
             "verdict": "PASS",
             "severity": null,
             "evidence": "",
-            "note": "퇴사+여행 조합은 실질적 결정 탐색으로 open 라우팅 적절."
+            "note": "퇴사+여행 조합은 open/important/partial reversibility로 분류 적절. heavy_initial 진입 타당."
           },
           "ownership": {
             "verdict": "PASS",
             "severity": null,
             "evidence": "",
-            "note": "방향을 밀거나 선택지를 제시하지 않았음."
+            "note": "어느 쪽이 낫다는 방향 제시 없음. 질문도 중립적."
           },
           "fact_lineage": {
             "verdict": "PASS",
@@ -149,38 +148,38 @@
             "note": "사실 주장 없음."
           },
           "premise_quality": {
-            "verdict": "PASS",
-            "severity": null,
-            "evidence": "",
-            "note": "전제 제시 없음. 사용자 입력에서 추출할 수 있는 부하 있는 전제가 없으므로 0개는 정직한 결과."
-          },
-          "question_value": {
             "verdict": "FAIL",
             "severity": "M",
-            "evidence": "\"이 상황에서 지금 가장 마음에 걸리는 건 뭐예요?\"",
-            "note": "퇴사와 여행이 함께 나온 맥락에서 '마음에 걸리는 것'을 묻는 건 너무 포괄적이고 방향이 없다. 퇴사가 이미 결정된 건지, 여행이 퇴사의 이유인지 수단인지조차 불분명한 상태에서 '걱정'을 전제하는 질문이 되어버린다. 답에 따라 다음 확인이 실제로 달라지는 구조가 약하다."
+            "evidence": "\"지금 살펴볼 것: 퇴사랑 여행이 같이 나왔네요.\"",
+            "note": "이 문장은 '숨은 전제'나 '현실 확인 항목'으로 제시됐지만, 사용자 말을 그대로 반복한 것에 불과하다. 거짓이어도 판단이 달라지지 않고, 빈칸을 채우는 정보도 없다. 전제 역할을 하지 못하는 항목을 전제처럼 배치한 것."
+          },
+          "question_value": {
+            "verdict": "PASS",
+            "severity": null,
+            "evidence": "\"퇴사랑 여행 중에 뭐가 먼저 떠오른 거예요?\"",
+            "note": "답에 따라 퇴사 의향인지 여행 욕구인지 판단 방향이 달라진다. 하나의 질문, 중립적, 가치 있음."
           },
           "update_fidelity": {
             "verdict": "NA",
             "severity": null,
             "evidence": "",
-            "note": "첫 응답이라 갱신 없음."
+            "note": "첫 응답이라 갱신 대상 없음."
           },
           "restraint": {
             "verdict": "FAIL",
             "severity": "L",
             "evidence": "\"지금 살펴볼 것: 퇴사랑 여행이 같이 나왔네요.\"",
-            "note": "첫 문장을 그대로 반복하는 '지금 살펴볼 것' 섹션은 정보 없이 구조만 추가한 과잉 절차다. 가벼운 발화에 보고서 형식을 씌운 것."
+            "note": "사용자 말을 그대로 되풀이하는 항목을 '살펴볼 것'이라는 절차 레이블로 포장했다. 실질 정보 없이 형식만 추가된 과잉."
           },
           "language": {
-            "verdict": "FAIL",
-            "severity": "L",
-            "evidence": "\"지금 살펴볼 것: 퇴사랑 여행이 같이 나왔네요.\"",
-            "note": "콜론+반복 구조는 자연스러운 해요체 대화가 아니라 보고서체에 가깝다."
+            "verdict": "PASS",
+            "severity": null,
+            "evidence": "",
+            "note": "해요체 자연스럽고 AI체·보고서체 없음."
           }
         },
-        "overall": "'지금 살펴볼 것' 섹션이 첫 문장을 그대로 되풀이하며 보고서 형식을 만들고, 질문도 퇴사/여행의 관계나 현재 상태를 좁히지 못한 채 '마음에 걸리는 것'이라는 넓은 감정 탐색으로 열려 있다.",
-        "best_next_fix": "'지금 살펴볼 것' 섹션을 제거하고, 질문을 퇴사 결정 여부나 여행의 역할(이유 vs 수단)을 좁히는 방향으로 교체한다."
+        "overall": "'지금 살펴볼 것' 항목이 사용자 말을 그대로 반복하는 데 그쳐 전제도 현실 확인도 아닌 빈 절차가 됐다. 질문 자체는 적절하므로 그 항목만 제거하면 응답이 깔끔해진다.",
+        "best_next_fix": "'지금 살펴볼 것: 퇴사랑 여행이 같이 나왔네요.' 줄을 삭제하고 첫 문장 바로 뒤에 질문을 이어붙인다."
       }
     ]
   }

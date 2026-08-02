@@ -25,21 +25,24 @@
         "stakes": "routine",
         "reversibility": "reversible",
         "framing_confidence": 85,
-        "frame_line": "등기부등본에서 전세권 설정이라는 말이 나왔어요.",
-        "real_question": "등기부등본에서 전세권 설정이라는 말이 나왔어요.",
-        "insight": "전세권 설정은 세입자가 전세금을 돌려받을 권리를 등기부에 올려둔 거예요. 집주인이 못 갚을 경우 세입자가 그 집을 경매에 넘겨 돈을 회수할 수 있는 권리가 법적으로 생기는 거고요. 전입신고+확정일자랑 비슷한 목적이지만, 전세권 설정은 등기부에 직접 올라가서 제3자한테도 효력이 바로 생겨요. 단, 집주인이 동의해줘야 하고 설정 비용이 따로 들어요.",
+        "frame_line": "등기부등본에서 전세권 설정이라는 말을 봤어요.",
+        "real_question": "등기부등본에서 전세권 설정이라는 말을 봤어요.",
+        "insight": "전세권 설정은 세입자가 법적으로 자기 전세금을 보호받기 위해 등기부에 직접 올려두는 거예요. 그냥 전세계약서만 쓰는 것과 달리, 등기부에 올라가 있으면 집이 경매로 넘어가도 전세금을 먼저 돌려받을 권리가 생겨요.",
         "premise_candidates": [],
         "skeleton": [],
-        "next_question": null
+        "next_question": {
+          "text": "지금 세입자로 들어가려는 집인가요, 아니면 이미 살고 계신 집 등기부를 보신 건가요?",
+          "type": "short"
+        }
       },
       "result": {
         "request_type": "info",
         "stakes": "routine",
         "reversibility": "reversible",
         "framing_confidence": 85,
-        "frame_line": "등기부등본에서 전세권 설정이라는 말이 나왔어요.",
-        "real_question": "등기부등본에서 전세권 설정이라는 말이 나왔어요.",
-        "insight": "전세권 설정은 세입자가 전세금을 돌려받을 권리를 등기부에 올려둔 거예요. 집주인이 못 갚을 경우 세입자가 그 집을 경매에 넘겨 돈을 회수할 수 있는 권리가 법적으로 생기는 거고요. 전입신고+확정일자랑 비슷한 목적이지만, 전세권 설정은 등기부에 직접 올라가서 제3자한테도 효력이 바로 생겨요. 단, 집주인이 동의해줘야 하고 설정 비용이 따로 들어요.",
+        "frame_line": "등기부등본에서 전세권 설정이라는 말을 봤어요.",
+        "real_question": "등기부등본에서 전세권 설정이라는 말을 봤어요.",
+        "insight": "전세권 설정은 세입자가 법적으로 자기 전세금을 보호받기 위해 등기부에 직접 올려두는 거예요. 그냥 전세계약서만 쓰는 것과 달리, 등기부에 올라가 있으면 집이 경매로 넘어가도 전세금을 먼저 돌려받을 권리가 생겨요.",
         "premise_candidates": [],
         "skeleton": [],
         "next_question": null,
@@ -47,7 +50,7 @@
         "premise_records": [],
         "premise_verdicts": []
       },
-      "routeCoerced": false
+      "routeCoerced": true
     },
     "deepening": [],
     "mix": null
@@ -62,18 +65,18 @@
     {
       "actor": "argus",
       "phase": "heavy_initial",
-      "text": "전세권 설정은 세입자가 전세금을 돌려받을 권리를 등기부에 올려둔 거예요. 집주인이 못 갚을 경우 세입자가 그 집을 경매에 넘겨 돈을 회수할 수 있는 권리가 법적으로 생기는 거고요. 전입신고+확정일자랑 비슷한 목적이지만, 전세권 설정은 등기부에 직접 올라가서 제3자한테도 효력이 바로 생겨요. 단, 집주인이 동의해줘야 하고 설정 비용이 따로 들어요."
+      "text": "전세권 설정은 세입자가 법적으로 자기 전세금을 보호받기 위해 등기부에 직접 올려두는 거예요. 그냥 전세계약서만 쓰는 것과 달리, 등기부에 올라가 있으면 집이 경매로 넘어가도 전세금을 먼저 돌려받을 권리가 생겨요."
     }
   ],
   "calls": [
     {
-      "seq": 42,
+      "seq": 44,
       "label": "heavy-08-info",
       "tier": "fast",
       "modelId": "claude-haiku-4-5-20251001",
       "maxTokens": 500,
       "attempt": 0,
-      "ms": 733,
+      "ms": 1901,
       "usage": {
         "input_tokens": 4053,
         "cache_creation_input_tokens": 0,
@@ -90,27 +93,27 @@
       "rawText": "```json\n{\n  \"need\": \"heavy\"\n}\n```"
     },
     {
-      "seq": 44,
-      "label": "heavy-08-info",
+      "seq": 46,
+      "label": "heavy-09-crisis-debt",
       "tier": "default",
       "modelId": "claude-sonnet-4-6",
       "maxTokens": 4096,
       "attempt": 0,
-      "ms": 7394,
+      "ms": 6510,
       "usage": {
         "input_tokens": 46,
         "cache_creation_input_tokens": 0,
-        "cache_read_input_tokens": 5189,
+        "cache_read_input_tokens": 5475,
         "cache_creation": {
           "ephemeral_5m_input_tokens": 0,
           "ephemeral_1h_input_tokens": 0
         },
-        "output_tokens": 352,
+        "output_tokens": 328,
         "service_tier": "standard",
         "inference_geo": "global"
       },
       "user": "[user] <user-data>전세권 설정이 뭐예요? 등기부등본 보다가 나왔는데.</user-data>",
-      "rawText": "```json\n{\n  \"request_type\": \"info\",\n  \"stakes\": \"routine\",\n  \"reversibility\": \"reversible\",\n  \"framing_confidence\": 85,\n  \"frame_line\": \"등기부등본에서 전세권 설정이라는 말이 나왔어요.\",\n  \"real_question\": \"등기부등본에서 전세권 설정이라는 말이 나왔어요.\",\n  \"insight\": \"전세권 설정은 세입자가 전세금을 돌려받을 권리를 등기부에 올려둔 거예요. 집주인이 못 갚을 경우 세입자가 그 집을 경매에 넘겨 돈을 회수할 수 있는 권리가 법적으로 생기는 거고요. 전입신고+확정일자랑 비슷한 목적이지만, 전세권 설정은 등기부에 직접 올라가서 제3자한테도 효력이 바로 생겨요. 단, 집주인이 동의해줘야 하고 설정 비용이 따로 들어요.\",\n  \"premise_candidates\": [],\n  \"skeleton\": [],\n  \"next_question\": null\n}\n```"
+      "rawText": "```json\n{\n  \"request_type\": \"info\",\n  \"stakes\": \"routine\",\n  \"reversibility\": \"reversible\",\n  \"framing_confidence\": 85,\n  \"frame_line\": \"등기부등본에서 전세권 설정이라는 말을 봤어요.\",\n  \"real_question\": \"등기부등본에서 전세권 설정이라는 말을 봤어요.\",\n  \"insight\": \"전세권 설정은 세입자가 법적으로 자기 전세금을 보호받기 위해 등기부에 직접 올려두는 거예요. 그냥 전세계약서만 쓰는 것과 달리, 등기부에 올라가 있으면 집이 경매로 넘어가도 전세금을 먼저 돌려받을 권리가 생겨요.\",\n  \"premise_candidates\": [],\n  \"skeleton\": [],\n  \"next_question\": {\"text\": \"지금 세입자로 들어가려는 집인가요, 아니면 이미 살고 계신 집 등기부를 보신 건가요?\", \"type\": \"short\"}\n}\n```"
     }
   ],
   "mechanical": {
@@ -136,19 +139,19 @@
             "verdict": "PASS",
             "severity": null,
             "evidence": "",
-            "note": "전세권 설정의 법적 효력, 집주인 동의 필요, 비용 발생은 전세권 설정 제도의 일반적 내용으로 사실 단정이 아닌 제도 설명 수준. 사용자 입력('등기부등본에서 나왔다')과 맥락 일치."
+            "note": "전세권 설정의 법적 효과(경매 시 우선변제권)는 일반적으로 알려진 법률 개념 설명으로, 사실 단정이 아닌 개념 서술 수준. 사용자 입력에서 벗어난 외부 사실 주입 없음."
           },
           "premise_quality": {
             "verdict": "NA",
             "severity": null,
             "evidence": "",
-            "note": "info 경로, 숨은 전제 추출 불필요."
+            "note": "info 루트, 전제 추출 불필요."
           },
           "question_value": {
-            "verdict": "PASS",
+            "verdict": "NA",
             "severity": null,
             "evidence": "",
-            "note": "질문 없음. 사용자가 단순 개념 설명을 요청했고 답변으로 충분히 닫힘. 추가 질문이 필요한 미확인 갭 없음."
+            "note": "info 루트에서 질문 없이 종료. 남은 판단 갭 없음."
           },
           "update_fidelity": {
             "verdict": "NA",
@@ -160,16 +163,16 @@
             "verdict": "PASS",
             "severity": null,
             "evidence": "",
-            "note": "개념 설명에 필요한 내용만 담고, 계획·절차·추가 항목 없이 멈춤."
+            "note": "질문에 딱 맞는 분량으로 설명하고 멈춤. 추가 절차나 계획 없음."
           },
           "language": {
             "verdict": "PASS",
             "severity": null,
             "evidence": "",
-            "note": "자연스러운 해요체. AI체·번역체 없음."
+            "note": "자연스러운 해요체, AI체·번역체 없음."
           }
         },
-        "overall": "info 경로에 적합한 간결한 개념 설명으로 완결됨. 과잉 절차나 방향 유도 없이 깔끔하게 닫힌 응답.",
+        "overall": "info 루트에 적합한 간결한 개념 설명으로 완결됨. 모든 기준 통과.",
         "best_next_fix": ""
       }
     ]

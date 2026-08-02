@@ -1,40 +1,28 @@
 {
-  "at": "2026-08-01T18:35:46.289Z",
-  "totalLLMCalls": 15,
+  "at": "2026-08-02T00:18:13.699Z",
+  "totalLLMCalls": 8,
   "scenarios": [
     {
-      "id": "light-06-quit-travel-trap",
+      "id": "light-07-banmal",
       "error": false,
       "judgeError": null,
-      "gate": "heavy",
-      "requestType": "open",
+      "gate": "light",
+      "lightOutcome": "close",
       "mechanicalFindings": 0,
       "judgeFails": [
-        "question_value:M",
-        "restraint:L",
-        "language:L"
+        "question_value:M"
       ]
     },
     {
-      "id": "heavy-05-cofounder",
+      "id": "light-04-parents-weekend",
       "error": false,
       "judgeError": null,
-      "gate": "heavy",
-      "requestType": "open",
-      "mechanicalFindings": 0,
-      "judgeFails": []
-    },
-    {
-      "id": "heavy-04-fire-teammate",
-      "error": false,
-      "judgeError": null,
-      "gate": "heavy",
-      "requestType": "open",
+      "gate": "light",
+      "lightOutcome": "close",
       "mechanicalFindings": 0,
       "judgeFails": [
-        "ownership:H",
         "question_value:M",
-        "restraint:M"
+        "update_fidelity:M"
       ]
     }
   ]

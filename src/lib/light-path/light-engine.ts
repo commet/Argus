@@ -113,7 +113,15 @@ const LIGHT_RULES_KO = `당신은 Argus — 판단을 비추는 거울입니다.
    "~하는 상황이에요 / ~상태예요 / ~상황이네요"로 문장을 닫지 마세요 — 실측에서 열 줄 중 아홉이 이 꼬리였고, 사람은 남의 고민을 이렇게 되비추지 않습니다.
    ✗ "지금 쓰는 노트북이 5년 됐고 부팅이 오래 걸리는 상황이네요. 새로 살지 말지가 걸려 있고요."
    ✓ "5년 쓰셨고, 이제 켜는 것부터 답답하신 거네요."
-   ✓ (가장 사람다웠던 실제 출력) "지난달에 못 가셨으니까 이번 주말엔 가야 하는 거 아닌가 싶으신 거네요. 근데 가고 싶으신 건지, 가야 한다는 생각이 강한 건지는 아직 안 들었어요."
+   ✓ "지난달에도 못 가셨고, 이번 주말도 같은 자리에 서 계신 거네요. 가고 싶으신 건지 가야 한다는 쪽인지는 아직 안 들었고요."
+   ✗ "지난달에 못 가셨으니까 이번 주말엔 가야 하는 거 아닌가 싶으신 거네요."
+     이 문장은 오랫동안 이 규칙의 ✓ 예시였습니다. 따뜻하고 사람 같아서요.
+     그런데 규칙 1을 정확히 어깁니다 — 사용자는 "지난달에도 못 갔다"는 사실만
+     줬고, "가야 하는 거 아닌가"는 우리가 얹은 결론입니다. 독립 감사에서 세 번
+     연속 최고 심각도를 받았고, 모델은 이 예시를 그대로 베껴 썼습니다.
+     사실에서 결론으로 넘어가는 다리("~니까 ~싶으신 거네요")가 함정이에요.
+     따뜻함은 사실을 짧게 되비추는 데서 나오지, 마음을 대신 정해주는 데서
+     나오지 않습니다.
    사용자가 쓴 단어를 그대로 쓰세요 — "빡세다"를 "부담이 크시군요"로 번역하지 마세요.
    한 문장에 "~고/~인데/~라서"로 세 가지를 잇지 마세요. 짧게 끊으세요.
    ✗ "컨디션 관리 차원의 접근이 필요해요" ✓ "내일 피곤만 아니면 되는 거네요"
@@ -334,6 +342,50 @@ function asTrimmedString(v: unknown): string {
 }
 
 /**
+ * Handing someone a lean they never stated.
+ *
+ * Rule 1 of the light prompt already says it — "사실에서 기울기를 추론하지도
+ * 마세요 — 사실은 비추고, 마음은 물어야 합니다" — with its own ✗ example. The
+ * model reworded around it anyway, twice, in the run that measured this:
+ *
+ *   user "내일 아침 일찍 일어나야 되긴 해"
+ *   ✗    "내일 아침 일찍 일어나야 하니까 집 가는 쪽이 끌리시는 거네요."
+ *
+ *   user "엄마가 서운해하실 것 같아서요. 근데 밀린 일도 있어요"
+ *   ✗    "엄마가 서운해하실까 봐 가고 싶으신데, 밀린 일이 걸려 있는 거."
+ *
+ * Both took a FACT the user supplied and returned an INCLINATION as if it were
+ * theirs. Fixing the prompt's contradictory exemplar cleared the gate beat and
+ * left the turn beat doing it — the shape survives a ban and only dies to a
+ * clamp, which is this codebase's most repeated lesson.
+ *
+ * The escape: when the user has expressed any inclination of their own, saying
+ * it back is honest mirroring and nothing is stripped. Only a lean with no
+ * source in their words is removed.
+ */
+const SUPPLIED_LEAN = new RegExp(
+  '(쪽이|쪽으로|쪽에)\\s*[가-힣]{0,4}\\s*(끌리|기울|땡기|마음이 가)'
+  + '|(낫겠|나을)[가-힣]*\\s*(다는\\s*)?싶으신'
+  + '|[가-힣]+고\\s*싶으신(데|\\s*건데|\\s*거네요|\\s*거예요|\\s*거죠)'
+  + '|\\b(leaning toward|you.?d rather|inclined to)\\b',
+  'i',
+);
+
+/** Any inclination in the user's OWN words. Its presence is the licence to
+ *  reflect one back. */
+const USER_STATED_LEAN = /끌리|기울|땡기|싶어|싶은|싶긴|싶다|낫겠|나을|가고 싶|하고 싶|\b(rather|prefer|leaning|want to)\b/i;
+
+export function stripSuppliedLean(mirror: string, userTexts: string[] = []): string {
+  const said = (userTexts || []).join(' ');
+  if (USER_STATED_LEAN.test(said)) return mirror || '';
+  return (mirror || '')
+    .split(/(?<=[.!?…])\s+/)
+    .filter((s) => !SUPPLIED_LEAN.test(s))
+    .join(' ')
+    .trim();
+}
+
+/**
  * Copy-redundancy guard 1 (production capture): the mirror must not end with a
  * question when a question beat follows — the headline would repeat it word for
  * word. Drops the mirror's trailing question SENTENCE (the reflective statement
@@ -516,7 +568,9 @@ export function coerceLightTurn(
   userTexts: string[] = [],
 ): LightTurn {
   const r = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
-  const rawMirror = asTrimmedString(r.mirror);
+  // A lean with no source in their words never reaches the screen. userTexts is
+  // already here for the offer clamp; it is the same licence question.
+  const rawMirror = stripSuppliedLean(asTrimmedString(r.mirror), userTexts);
   const question = limitQuestionMarks(stripOneLinePhrase(asTrimmedString(r.question)));
   const offer = coerceOffer(r.offer, userTexts);
   const esc = r.escalate && typeof r.escalate === 'object'

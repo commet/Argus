@@ -39,7 +39,11 @@ const CTRL_OR_FFFD = /[\u0080-\u009f\ufffd]/;
 // Legit prose never has '?' immediately followed by two Hangul syllables,
 // or doubled '??' straight after Hangul (nullish coalescing sits after
 // identifiers/brackets, not Hangul).
-const LOSSY_HANGUL = /\?[가-힣]{2}|[가-힣]\?\?/;
+// The lookbehind excludes a '?' that is a REGEX QUANTIFIER: `(다는)?싶으신`
+// inside a Korean-matching pattern is ordinary source, and without this the
+// guard blocks any optional group placed before Hangul — a real false positive
+// hit on 2026-08-02 while adding a light-path clamp.
+const LOSSY_HANGUL = /(?<![)\]*+?])\?[가-힣]{2}|[가-힣]\?\?/;
 
 describe('mojibake guard — src tree is clean UTF-8 Korean', () => {
   const files = walk(SRC);

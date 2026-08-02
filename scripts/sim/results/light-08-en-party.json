@@ -18,34 +18,34 @@
     },
     "gate": {
       "need": "light",
-      "mirror": "You're at a party and trying to figure out whether to leave earlier or stick around till it winds down. You haven't said what's pulling you toward home or what would make staying worth it.",
-      "question": "Which way is your heart leaning right now—and what's the reason?"
+      "mirror": "You're at a party right now and trying to figure out whether to head home before it wraps or stick around till the end. You haven't said what's pulling you toward leaving — whether it's early plans tomorrow, energy, or something else.",
+      "question": "What way is your heart leaning right now? And what's the reason."
     }
   },
   "light": {
     "qas": [
       {
-        "question": "Which way is your heart leaning right now—and what's the reason?",
+        "question": "What way is your heart leaning right now? And what's the reason.",
         "answer": "I have an early start tomorrow."
       },
       {
-        "question": "How early does tomorrow start?",
+        "question": "Are you having a good time at the party right now?",
         "answer": "honestly I'm having fun though."
       }
     ],
     "turns": [
       {
-        "mirror": "So you have an early start tomorrow — that's the pull toward heading home. You haven't said yet how early, or how you're actually leaning between the two.",
+        "mirror": "So you've got an early start tomorrow — that's pulling you toward heading home. The party itself, you haven't said whether you're enjoying it or want to leave it.",
         "action": "ask",
-        "question": "How early does tomorrow start?",
+        "question": "Are you having a good time at the party right now?",
         "_qasLen": 1,
-        "_rawText": "```json\n{\n  \"mirror\": \"So you have an early start tomorrow — that's the pull toward heading home. You haven't said yet how early, or how you're actually leaning between the two.\",\n  \"action\": \"ask\",\n  \"question\": \"How early does tomorrow start?\"\n}\n```"
+        "_rawText": "```json\n{\n  \"mirror\": \"So you've got an early start tomorrow — that's pulling you toward heading home. The party itself, you haven't said whether you're enjoying it or want to leave it.\",\n  \"action\": \"ask\",\n  \"question\": \"Are you having a good time at the party right now?\"\n}\n```"
       },
       {
-        "mirror": "So you've got an early start tomorrow, and you're also having fun right now. You haven't said what time tomorrow is yet.",
+        "mirror": "So you're having fun right now, but you've got an early start tomorrow morning — that's the thing pulling the other way.",
         "action": "close",
         "_qasLen": 2,
-        "_rawText": "```json\n{\n  \"mirror\": \"So you've got an early start tomorrow, and you're also having fun right now. You haven't said what time tomorrow is yet.\",\n  \"action\": \"offer\",\n  \"question\": \"\",\n  \"offer\": {\n    \"sentence\": \"I left early and still made my early start tomorrow.\",\n    \"when\": \"tomorrow_morning\",\n    \"days\": 1,\n    \"ask\": \"So see how leaving early sits with tomorrow morning — did you manage the early start okay, want me to ask you just once?\"\n  },\n  \"escalate\": {}\n}\n```"
+        "_rawText": "```json\n{\n  \"mirror\": \"So you're having fun right now, but you've got an early start tomorrow morning — that's the thing pulling the other way.\",\n  \"action\": \"offer\",\n  \"offer\": {\n    \"sentence\": \"I stayed at the party and felt okay tomorrow morning.\",\n    \"when\": \"tomorrow_morning\",\n    \"days\": 1,\n    \"ask\": \"See how tomorrow morning actually feels — whether staying was fine or whether the early start hit harder than you expected, want me to ask you just once?\"\n  }\n}\n```"
       }
     ],
     "outcome": "close"
@@ -61,7 +61,7 @@
     {
       "actor": "argus",
       "phase": "light_gate",
-      "text": "You're at a party and trying to figure out whether to leave earlier or stick around till it winds down. You haven't said what's pulling you toward home or what would make staying worth it.\nWhich way is your heart leaning right now—and what's the reason?"
+      "text": "You're at a party right now and trying to figure out whether to head home before it wraps or stick around till the end. You haven't said what's pulling you toward leaving — whether it's early plans tomorrow, energy, or something else.\nWhat way is your heart leaning right now? And what's the reason."
     },
     {
       "actor": "user",
@@ -71,7 +71,7 @@
     {
       "actor": "argus",
       "phase": "light_turn_1",
-      "text": "So you have an early start tomorrow — that's the pull toward heading home. You haven't said yet how early, or how you're actually leaning between the two.\nHow early does tomorrow start?"
+      "text": "So you've got an early start tomorrow — that's pulling you toward heading home. The party itself, you haven't said whether you're enjoying it or want to leave it.\nAre you having a good time at the party right now?"
     },
     {
       "actor": "user",
@@ -81,18 +81,18 @@
     {
       "actor": "argus",
       "phase": "light_turn_2",
-      "text": "So you've got an early start tomorrow, and you're also having fun right now. You haven't said what time tomorrow is yet."
+      "text": "So you're having fun right now, but you've got an early start tomorrow morning — that's the thing pulling the other way."
     }
   ],
   "calls": [
     {
-      "seq": 14,
+      "seq": 16,
       "label": "light-08-en-party",
       "tier": "fast",
       "modelId": "claude-haiku-4-5-20251001",
       "maxTokens": 500,
       "attempt": 0,
-      "ms": 1486,
+      "ms": 1642,
       "usage": {
         "input_tokens": 1816,
         "cache_creation_input_tokens": 0,
@@ -101,21 +101,21 @@
           "ephemeral_5m_input_tokens": 0,
           "ephemeral_1h_input_tokens": 0
         },
-        "output_tokens": 87,
+        "output_tokens": 98,
         "service_tier": "standard",
         "inference_geo": "not_available"
       },
       "user": "[user] Today is 2026-08-02 (Sunday).\n\nWhat the user just wrote:\n<user-data context=\"decision\">\nshould I go home after the party or stay till the end\n</user-data>",
-      "rawText": "```json\n{\n  \"need\": \"light\",\n  \"mirror\": \"You're at a party and trying to figure out whether to leave earlier or stick around till it winds down. You haven't said what's pulling you toward home or what would make staying worth it.\",\n  \"question\": \"Which way is your heart leaning right now—and what's the reason?\"\n}\n```"
+      "rawText": "```json\n{\n  \"need\": \"light\",\n  \"mirror\": \"You're at a party right now and trying to figure out whether to head home before it wraps or stick around till the end. You haven't said what's pulling you toward leaving — whether it's early plans tomorrow, energy, or something else.\",\n  \"question\": \"What way is your heart leaning right now? And what's the reason?\"\n}\n```"
     },
     {
-      "seq": 16,
+      "seq": 17,
       "label": "light-08-en-party",
       "tier": "fast",
       "modelId": "claude-haiku-4-5-20251001",
       "maxTokens": 700,
       "attempt": 0,
-      "ms": 1762,
+      "ms": 1911,
       "usage": {
         "input_tokens": 2057,
         "cache_creation_input_tokens": 0,
@@ -124,35 +124,35 @@
           "ephemeral_5m_input_tokens": 0,
           "ephemeral_1h_input_tokens": 0
         },
-        "output_tokens": 72,
+        "output_tokens": 79,
         "service_tier": "standard",
         "inference_geo": "not_available"
       },
-      "user": "[user] Today is 2026-08-02 (Sunday).\n\nWhat the user first wrote:\n<user-data context=\"decision\">\nshould I go home after the party or stay till the end\n</user-data>\n\nThe exchange so far (questions were yours, answers are the user's):\n<user-data context=\"answers\">\nQ1. Which way is your heart leaning right now—and what's the reason?\nA1. I have an early start tomorrow.\n</user-data>",
-      "rawText": "```json\n{\n  \"mirror\": \"So you have an early start tomorrow — that's the pull toward heading home. You haven't said yet how early, or how you're actually leaning between the two.\",\n  \"action\": \"ask\",\n  \"question\": \"How early does tomorrow start?\"\n}\n```"
+      "user": "[user] Today is 2026-08-02 (Sunday).\n\nWhat the user first wrote:\n<user-data context=\"decision\">\nshould I go home after the party or stay till the end\n</user-data>\n\nThe exchange so far (questions were yours, answers are the user's):\n<user-data context=\"answers\">\nQ1. What way is your heart leaning right now? And what's the reason.\nA1. I have an early start tomorrow.\n</user-data>",
+      "rawText": "```json\n{\n  \"mirror\": \"So you've got an early start tomorrow — that's pulling you toward heading home. The party itself, you haven't said whether you're enjoying it or want to leave it.\",\n  \"action\": \"ask\",\n  \"question\": \"Are you having a good time at the party right now?\"\n}\n```"
     },
     {
-      "seq": 18,
+      "seq": 19,
       "label": "light-09-chatty-500",
       "tier": "fast",
       "modelId": "claude-haiku-4-5-20251001",
       "maxTokens": 700,
       "attempt": 0,
-      "ms": 3138,
+      "ms": 1911,
       "usage": {
-        "input_tokens": 2103,
+        "input_tokens": 2109,
         "cache_creation_input_tokens": 0,
         "cache_read_input_tokens": 0,
         "cache_creation": {
           "ephemeral_5m_input_tokens": 0,
           "ephemeral_1h_input_tokens": 0
         },
-        "output_tokens": 142,
+        "output_tokens": 132,
         "service_tier": "standard",
         "inference_geo": "not_available"
       },
-      "user": "[user] Today is 2026-08-02 (Sunday).\n\nWhat the user first wrote:\n<user-data context=\"decision\">\nshould I go home after the party or stay till the end\n</user-data>\n\nThe exchange so far (questions were yours, answers are the user's):\n<user-data context=\"answers\">\nQ1. Which way is your heart leaning right now—and what's the reason?\nA1. I have an early start tomorrow.\nQ2. How early does tomorrow start",
-      "rawText": "```json\n{\n  \"mirror\": \"So you've got an early start tomorrow, and you're also having fun right now. You haven't said what time tomorrow is yet.\",\n  \"action\": \"offer\",\n  \"question\": \"\",\n  \"offer\": {\n    \"sentence\": \"I left early and still made my early start tomorrow.\",\n    \"when\": \"tomorrow_morning\",\n    \"days\": 1,\n    \"ask\": \"So see how leaving early sits with tomorrow morning — did you manage the early start okay, want me to ask you just once?\"\n  },\n  \"escalate\": {}\n}\n```"
+      "user": "[user] Today is 2026-08-02 (Sunday).\n\nWhat the user first wrote:\n<user-data context=\"decision\">\nshould I go home after the party or stay till the end\n</user-data>\n\nThe exchange so far (questions were yours, answers are the user's):\n<user-data context=\"answers\">\nQ1. What way is your heart leaning right now? And what's the reason.\nA1. I have an early start tomorrow.\nQ2. Are you having a good time at",
+      "rawText": "```json\n{\n  \"mirror\": \"So you're having fun right now, but you've got an early start tomorrow morning — that's the thing pulling the other way.\",\n  \"action\": \"offer\",\n  \"offer\": {\n    \"sentence\": \"I stayed at the party and felt okay tomorrow morning.\",\n    \"when\": \"tomorrow_morning\",\n    \"days\": 1,\n    \"ask\": \"See how tomorrow morning actually feels — whether staying was fine or whether the early start hit harder than you expected, want me to ask you just once?\"\n  }\n}\n```"
     }
   ],
   "mechanical": {
@@ -166,53 +166,53 @@
             "verdict": "PASS",
             "severity": null,
             "evidence": "",
-            "note": "Light gate correctly identified and closed after two turns. No crisis escalation needed."
+            "note": "Light gate correctly identified and closed after two answers. No unnecessary escalation."
           },
           "ownership": {
             "verdict": "PASS",
             "severity": null,
             "evidence": "",
-            "note": "No direction pushed. Argus tracked what the user said without steering toward either option."
+            "note": "Argus summarized the tension without pushing toward either option. No directive language."
           },
           "fact_lineage": {
             "verdict": "PASS",
             "severity": null,
             "evidence": "",
-            "note": "All stated facts (early start, having fun) trace directly to user input."
+            "note": "All stated facts trace directly to user input: early start tomorrow, having fun at the party."
           },
           "premise_quality": {
-            "verdict": "NA",
+            "verdict": "PASS",
             "severity": null,
             "evidence": "",
-            "note": "No premises were surfaced. The decision is simple enough that none were needed."
+            "note": "No premises were asserted. The gate response named possible reasons ('early plans tomorrow, energy, or something else') as examples, not facts — acceptable framing."
           },
           "question_value": {
-            "verdict": "FAIL",
-            "severity": "M",
-            "evidence": "light_turn_1: 'How early does tomorrow start?' — light_turn_2 repeats the gap: 'You haven't said what time tomorrow is yet.'",
-            "note": "The exact start time is an administrative detail that doesn't change the core tension the user already named: early start vs. having fun. Asking it twice without getting an answer, and then closing without it, reveals it wasn't load-bearing. The question should not have been asked."
+            "verdict": "PASS",
+            "severity": null,
+            "evidence": "",
+            "note": "Two questions asked sequentially: (1) which way are you leaning and why, (2) are you enjoying the party. Each was load-bearing and answered. No repetition."
           },
           "update_fidelity": {
-            "verdict": "FAIL",
-            "severity": "M",
-            "evidence": "light_turn_2: 'You haven't said what time tomorrow is yet.' — The user answered the prior question ('which way is your heart leaning') with 'honestly I'm having fun though,' which is a meaningful update (fun side now named). Argus acknowledged the fun but re-flagged the unanswered time question as if it were still the key missing piece, rather than recognizing the tension is now fully named on both sides.",
-            "note": "After the user's second answer, both sides of the tension are on the table. The response should reflect that the picture is now complete, not that a time detail is still outstanding."
+            "verdict": "PASS",
+            "severity": null,
+            "evidence": "",
+            "note": "light_turn_2 correctly reflects both pieces of information now in hand — early start and having fun — without adding new angles."
           },
           "restraint": {
             "verdict": "PASS",
             "severity": null,
             "evidence": "",
-            "note": "No heavy procedure applied to a light decision. Closed at the right gate."
+            "note": "Closed after the two answers were sufficient to map the tension. No plan, no extra procedure."
           },
           "language": {
             "verdict": "PASS",
             "severity": null,
             "evidence": "",
-            "note": "Natural English throughout, no translation artifacts."
+            "note": "Natural, conversational English throughout. No translation artifacts."
           }
         },
-        "overall": "The core flaw is that 'how early?' was asked as if it were load-bearing, but the user's two answers already named both sides of the tension (early start, having fun) — making the time detail irrelevant. Asking it once was marginal; carrying it forward as an open gap in turn 2 misrepresents the state of the decision.",
-        "best_next_fix": "After the user names both sides of a tension, treat the picture as complete and close — don't carry forward an unanswered administrative detail as if it still changes anything."
+        "overall": "Clean light-route execution: two targeted questions surfaced the only real tension (fun vs. early start), and the session closed without overreach or direction.",
+        "best_next_fix": ""
       }
     ]
   }

@@ -24,10 +24,10 @@
         "request_type": "validation",
         "stakes": "important",
         "reversibility": "partial",
-        "framing_confidence": 82,
-        "frame_line": "이미 결정하셨고, 틀리지 않았다는 말이 듣고 싶으신 거네요.",
-        "real_question": "이미 결정하셨고, 틀리지 않았다는 말이 듣고 싶으신 거네요.",
-        "insight": "결정은 하셨으니까 여기서 제가 '맞아요' 해드릴 순 없어요. 다만 다음 달부터 바로 시작인데, 체력이나 일정 쪽에서 미리 확인해둬야 할 게 있다면 같이 짚어볼 수 있어요.",
+        "framing_confidence": 85,
+        "frame_line": "다음 달부터 회사랑 야간 대학원을 같이 가기로 이미 정하셨네요.",
+        "real_question": "다음 달부터 회사랑 야간 대학원을 같이 가기로 이미 정하셨네요.",
+        "insight": "결정하셨네요. 한 가지만 — 회사 쪽에서 야간 과정 병행을 알고 있어요?",
         "premise_candidates": [],
         "skeleton": [],
         "next_question": null
@@ -36,10 +36,10 @@
         "request_type": "validation",
         "stakes": "important",
         "reversibility": "partial",
-        "framing_confidence": 82,
-        "frame_line": "이미 결정하셨고, 틀리지 않았다는 말이 듣고 싶으신 거네요.",
-        "real_question": "이미 결정하셨고, 틀리지 않았다는 말이 듣고 싶으신 거네요.",
-        "insight": "결정은 하셨으니까 여기서 제가 '맞아요' 해드릴 순 없어요. 다만 다음 달부터 바로 시작인데, 체력이나 일정 쪽에서 미리 확인해둬야 할 게 있다면 같이 짚어볼 수 있어요.",
+        "framing_confidence": 85,
+        "frame_line": "다음 달부터 회사랑 야간 대학원을 같이 가기로 이미 정하셨네요.",
+        "real_question": "다음 달부터 회사랑 야간 대학원을 같이 가기로 이미 정하셨네요.",
+        "insight": "결정하셨네요. 한 가지만 — 회사 쪽에서 야간 과정 병행을 알고 있어요?",
         "premise_candidates": [],
         "skeleton": [],
         "next_question": null,
@@ -62,18 +62,18 @@
     {
       "actor": "argus",
       "phase": "heavy_initial",
-      "text": "결정은 하셨으니까 여기서 제가 '맞아요' 해드릴 순 없어요. 다만 다음 달부터 바로 시작인데, 체력이나 일정 쪽에서 미리 확인해둬야 할 게 있다면 같이 짚어볼 수 있어요."
+      "text": "결정하셨네요. 한 가지만 — 회사 쪽에서 야간 과정 병행을 알고 있어요?"
     }
   ],
   "calls": [
     {
-      "seq": 40,
+      "seq": 41,
       "label": "heavy-07-validation",
       "tier": "fast",
       "modelId": "claude-haiku-4-5-20251001",
       "maxTokens": 500,
       "attempt": 0,
-      "ms": 1542,
+      "ms": 753,
       "usage": {
         "input_tokens": 4099,
         "cache_creation_input_tokens": 0,
@@ -82,35 +82,35 @@
           "ephemeral_5m_input_tokens": 0,
           "ephemeral_1h_input_tokens": 0
         },
-        "output_tokens": 72,
+        "output_tokens": 31,
         "service_tier": "standard",
         "inference_geo": "not_available"
       },
       "user": "[user] 오늘은 2026-08-02 (일요일)입니다.\n\n사용자가 방금 쓴 것:\n<user-data context=\"decision\">\n이미 결정하긴 했는데 그냥 확인받고 싶어요. 다음 달부터 회사 다니면서 대학원 야간 과정을 병행하기로 했어요. 맞는 선택이겠죠?\n</user-data>",
-      "rawText": "```json\n{\n  \"need\": \"heavy\",\n  \"mirror\": \"이미 결정하신 거네요. 다음 달부터 일하면서 대학원 야간을 함께 하기로요.\",\n  \"question\": \"\"\n}\n```"
+      "rawText": "```json\n{\n  \"need\": \"heavy\",\n  \"mirror\": \"\",\n  \"question\": \"\"\n}\n```"
     },
     {
       "seq": 43,
-      "label": "heavy-08-info",
+      "label": "heavy-07-validation",
       "tier": "default",
       "modelId": "claude-sonnet-4-6",
       "maxTokens": 4096,
       "attempt": 0,
-      "ms": 6273,
+      "ms": 5240,
       "usage": {
         "input_tokens": 93,
         "cache_creation_input_tokens": 0,
-        "cache_read_input_tokens": 5189,
+        "cache_read_input_tokens": 5475,
         "cache_creation": {
           "ephemeral_5m_input_tokens": 0,
           "ephemeral_1h_input_tokens": 0
         },
-        "output_tokens": 270,
+        "output_tokens": 294,
         "service_tier": "standard",
         "inference_geo": "global"
       },
       "user": "[user] <user-data>이미 결정하긴 했는데 그냥 확인받고 싶어요. 다음 달부터 회사 다니면서 대학원 야간 과정을 병행하기로 했어요. 맞는 선택이겠죠?</user-data>",
-      "rawText": "```json\n{\n  \"request_type\": \"validation\",\n  \"stakes\": \"important\",\n  \"reversibility\": \"partial\",\n  \"framing_confidence\": 82,\n  \"frame_line\": \"이미 결정하셨고, 틀리지 않았다는 말이 듣고 싶으신 거네요.\",\n  \"real_question\": \"이미 결정하셨고, 틀리지 않았다는 말이 듣고 싶으신 거네요.\",\n  \"insight\": \"결정은 하셨으니까 여기서 제가 '맞아요' 해드릴 순 없어요. 다만 다음 달부터 바로 시작인데, 체력이나 일정 쪽에서 미리 확인해둬야 할 게 있다면 같이 짚어볼 수 있어요.\",\n  \"premise_candidates\": [],\n  \"skeleton\": [],\n  \"next_question\": null\n}\n```"
+      "rawText": "```json\n{\n  \"request_type\": \"validation\",\n  \"stakes\": \"important\",\n  \"reversibility\": \"partial\",\n  \"framing_confidence\": 85,\n  \"frame_line\": \"다음 달부터 회사랑 야간 대학원을 같이 가기로 이미 정하셨네요.\",\n  \"real_question\": \"다음 달부터 회사랑 야간 대학원을 같이 가기로 이미 정하셨네요.\",\n  \"insight\": \"결정하셨네요. 한 가지만 — 회사 쪽에서 야간 과정 병행을 알고 있어요?\",\n  \"premise_candidates\": [],\n  \"skeleton\": [],\n  \"next_question\": null\n}\n```\n\n다음 달부터 같이 달리기로 정하셨군요.\n\n한 가지만요 — 회사에서 야간 과정 병행하는 거 알고 있어요? 업무 강도나 야근이 변수가 될 수 있어서요."
     }
   ],
   "mechanical": {
@@ -124,52 +124,52 @@
             "verdict": "PASS",
             "severity": null,
             "evidence": "",
-            "note": "validation 요청을 의사결정 여정으로 열지 않고 적절히 처리했다."
+            "note": "validation 라우팅에서 확인 절차 없이 단일 질문으로 마무리. 의사결정 여정으로 열지 않음."
           },
           "ownership": {
             "verdict": "PASS",
             "severity": null,
             "evidence": "",
-            "note": "'맞아요 해드릴 순 없어요'로 판단 대행을 명확히 거부했다."
+            "note": "'맞는 선택이겠죠?'에 대해 맞다/틀리다 판정 없이 질문으로 응답. 방향을 밀지 않음."
           },
           "fact_lineage": {
             "verdict": "PASS",
             "severity": null,
             "evidence": "",
-            "note": "'다음 달부터 바로 시작'은 사용자 입력에서 직접 추적 가능하다."
+            "note": "사실 단정 없음. 질문 형태로만 제시."
           },
           "premise_quality": {
             "verdict": "PASS",
             "severity": null,
             "evidence": "",
-            "note": "전제를 제시하지 않았고, 사용자 말에서 논리적으로 이어지는 전제가 필요한 상황도 아니었다."
+            "note": "전제 0개. 사용자 말에서 grounded gap이 충분히 공급되지 않은 상황에서 정직한 결과."
           },
           "question_value": {
             "verdict": "PASS",
             "severity": null,
             "evidence": "",
-            "note": "질문 없이 확인 가능성만 열어두었다. validation 루트에서 적절한 처리다."
+            "note": "'회사 쪽에서 야간 과정 병행을 알고 있어요?'는 사용자가 언급하지 않은 실질적 변수(고용주 인지 여부)를 확인하며, 답에 따라 판단 상태가 달라질 수 있음. 단일 질문."
           },
           "update_fidelity": {
             "verdict": "NA",
             "severity": null,
             "evidence": "",
-            "note": "첫 응답이라 갱신 대상 없음."
+            "note": "첫 응답이므로 갱신 대상 없음."
           },
           "restraint": {
             "verdict": "PASS",
             "severity": null,
             "evidence": "",
-            "note": "계획을 미리 만들지 않고, 사용자가 원하면 짚어볼 수 있다는 선에서 멈췄다."
+            "note": "계획·항목·절차 없이 한 문장 확인 + 한 질문으로 충분히 멈춤."
           },
           "language": {
             "verdict": "PASS",
             "severity": null,
             "evidence": "",
-            "note": "자연스러운 해요체이며 AI체·보고서체 없음."
+            "note": "'결정하셨네요. 한 가지만 —' 자연스러운 해요체. AI체·번역체 없음."
           }
         },
-        "overall": "validation 요청을 판단 대행 없이 깔끔하게 받아냈고, 과잉 절차 없이 적절한 지점에서 멈췄다.",
+        "overall": "validation 라우팅에 정확히 맞는 응답. 결정을 존중하면서 사용자가 언급하지 않은 실질적 변수 하나만 짚었고, 방향을 밀거나 절차를 씌우지 않음.",
         "best_next_fix": ""
       }
     ]
