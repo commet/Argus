@@ -11,6 +11,7 @@ import {
 import { loopPulse } from '@/lib/loop-pulse';
 import { distinctReturnProjects } from '@/lib/return-analytics';
 import { sealCostLine, sealCostSummary } from '@/lib/seal-cost';
+import { summarizeAnswerReflections } from '@/lib/answer-reflection-analytics';
 import { logServerEvent } from '@/lib/server-events';
 
 export const runtime = 'nodejs';
@@ -641,6 +642,7 @@ export async function GET(req: Request) {
   // What the last stage COST. A conversion rate into the seal says how many
   // got there; this says how far away it was.
   const sealCost = sealCostSummary(extY, humanSessionIds);
+  const answerReflections = summarizeAnswerReflections(extY, humanSessionIds);
 
   // ─── 10. Errors ───
   const errorBreakdown = new Map<string, number>();
@@ -970,6 +972,20 @@ export async function GET(req: Request) {
       <p style="font-size: 11px; color: ${C.muted}; margin: 8px 0 0; font-weight: 600;">깊은 길 · ${escHtml(sealCostLine(sealCost))}</p>
     </td></tr>
   </table>
+
+  ${answerReflections.total > 0 ? `
+  <!-- ════════ QUESTION VALUE ════════ -->
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background: ${C.card}; border: 1px solid ${C.border}; border-radius: 14px; margin-bottom: 16px;">
+    <tr><td style="padding: 18px 20px;">
+      <p style="font-size: 10px; font-weight: 700; color: ${C.faint}; margin: 0 0 10px; letter-spacing: 0.12em; text-transform: uppercase;">질문이 실제로 한 일</p>
+      <table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr>
+        <td style="padding-right: 8px;"><p style="font-size: 24px; font-weight: 800; color: ${answerReflections.movedRate >= 60 ? C.growth : C.warm}; margin: 0;">${answerReflections.movedRate}%</p><p style="font-size: 11px; color: ${C.muted}; margin: 3px 0 0;">판단 상태를 움직임 · ${answerReflections.moved}/${answerReflections.total}</p></td>
+        <td style="padding: 0 8px; text-align: center;"><p style="font-size: 20px; font-weight: 800; color: ${answerReflections.unchanged > 0 ? C.warm : C.text}; margin: 0;">${answerReflections.unchanged}</p><p style="font-size: 11px; color: ${C.muted}; margin: 3px 0 0;">변화 없음</p></td>
+        <td style="padding-left: 8px; text-align: right;"><p style="font-size: 16px; font-weight: 800; color: ${C.text}; margin: 0;">${answerReflections.p50Ms === null ? '—' : `${(answerReflections.p50Ms / 1000).toFixed(1)}초`} / ${answerReflections.p95Ms === null ? '—' : `${(answerReflections.p95Ms / 1000).toFixed(1)}초`}</p><p style="font-size: 11px; color: ${C.muted}; margin: 3px 0 0;">반영 p50 / p95</p></td>
+      </tr></table>
+      <p style="font-size: 10px; color: ${C.faint}; margin: 10px 0 0;">문구만 바뀐 전제는 변화로 세지 않음 · 사용자 원문은 수집하지 않음</p>
+    </td></tr>
+  </table>` : ''}
 
   <!-- ════════ 7-DAY TREND (today highlighted) ════════ -->
   <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background: ${C.card}; border: 1px solid ${C.border}; border-radius: 14px; margin-bottom: 16px;">

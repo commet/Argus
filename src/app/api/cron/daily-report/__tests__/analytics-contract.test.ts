@@ -80,6 +80,14 @@ describe('daily analytics contract', () => {
     expect(route).not.toContain("{ label: '초안 생성'");
   });
 
+  it('surfaces question value and tail latency without user wording', () => {
+    const route = source('src/app/api/cron/daily-report/route.ts');
+    expect(route).toContain('summarizeAnswerReflections(extY, humanSessionIds)');
+    expect(route).toContain('질문이 실제로 한 일');
+    expect(route).toContain('반영 p50 / p95');
+    expect(route).toContain('사용자 원문은 수집하지 않음');
+  });
+
   it('renders the anonymous-visit detail section in the email', () => {
     const route = source('src/app/api/cron/daily-report/route.ts');
     expect(route).toContain('익명 방문 상세');
