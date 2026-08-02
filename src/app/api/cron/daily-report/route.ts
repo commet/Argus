@@ -209,6 +209,30 @@ type EventRow = {
   created_at: string;
 };
 
+function serverEventProjects(
+  events: EventRow[],
+  eventName: string,
+  ownerIds: Set<string>,
+  channel?: 'email' | 'telegram',
+): Set<string> {
+  return new Set(events
+    .filter(e => (
+      e.session_id === 'server'
+      && e.event_name === eventName
+      && (!e.user_id || !ownerIds.has(e.user_id))
+      && (!channel || e.properties?.channel === channel)
+    ))
+    .map(e => e.properties?.project_id)
+    .filter((id): id is string => typeof id === 'string' && id.trim().length > 0)
+    .map(id => `project:${id}`));
+}
+
+function intersectionSize(left: Set<string>, right: Set<string>): number {
+  let count = 0;
+  for (const value of left) if (right.has(value)) count++;
+  return count;
+}
+
 type UserRow = { id: string; email: string | null; created_at: string; user_metadata: Record<string, unknown> | null; is_anonymous: boolean };
 
 // ───── Handler ─────
@@ -310,8 +334,8 @@ export async function GET(req: Request) {
 
   // Owner session filter: any session that has an owner user_id event
   const ownerSessionIds = new Set<string>();
-  for (const e of yesterdayEvents) if (e.user_id && ownerIds.has(e.user_id)) ownerSessionIds.add(e.session_id);
-  for (const e of twoWeekEvents) if (e.user_id && ownerIds.has(e.user_id)) ownerSessionIds.add(e.session_id);
+  for (const e of yesterdayEvents) if (e.session_id !== 'server' && e.user_id && ownerIds.has(e.user_id)) ownerSessionIds.add(e.session_id);
+  for (const e of twoWeekEvents) if (e.session_id !== 'server' && e.user_id && ownerIds.has(e.user_id)) ownerSessionIds.add(e.session_id);
 
   const extYAll = yesterdayEvents.filter(e => !ownerSessionIds.has(e.session_id));
   // Server-side telemetry uses one synthetic "server" session. Keep it for the
@@ -386,6 +410,11 @@ export async function GET(req: Request) {
   const anonInternal = anonAggY.filter(a => bucketY.get(a.sessionId) === 'internal');
 
   const previousEvents = ext14.filter(e => e.created_at >= previousDay.start && e.created_at <= previousDay.end);
+  const previousServerEvents = twoWeekEvents.filter(e => (
+    e.session_id === 'server'
+    && e.created_at >= previousDay.start
+    && e.created_at <= previousDay.end
+  ));
   const previousAgg = aggregateSessions(previousEvents);
   const humanAggPrevious = [...previousAgg.values()].filter(a => bucketSession(a, ownerIds) === 'human');
   const humanPreviousSessionIds = new Set(humanAggPrevious.map(a => a.sessionId));
@@ -404,11 +433,35 @@ export async function GET(req: Request) {
   // A return can span sessions and days, so count distinct projects instead of
   // clicks. Older events without project_id fall back to one count per session.
   const returnsOpenedY = distinctReturnProjects(extY, 'return_opened', humanSessionIds);
-  const returnsAnsweredY = distinctReturnProjects(extY, 'return_answered', humanSessionIds);
-  const returnsDeferredY = distinctReturnProjects(extY, 'return_deferred', humanSessionIds);
+  const returnsOpenedFromEmailY = distinctReturnProjects(
+    extY.filter(e => e.properties?.source === 'email_cta'),
+    'return_opened',
+    humanSessionIds,
+  );
+  const returnsAnsweredY = new Set([
+    ...distinctReturnProjects(extY, 'return_answered', humanSessionIds),
+    ...serverEventProjects(yesterdayEvents, 'return_answered', ownerIds),
+  ]);
+  const returnsDeferredY = new Set([
+    ...distinctReturnProjects(extY, 'return_deferred', humanSessionIds),
+    ...serverEventProjects(yesterdayEvents, 'return_deferred', ownerIds),
+  ]);
   const returnsOpenedPrevious = distinctReturnProjects(previousEvents, 'return_opened', humanPreviousSessionIds);
-  const returnsAnsweredPrevious = distinctReturnProjects(previousEvents, 'return_answered', humanPreviousSessionIds);
-  const returnsDeferredPrevious = distinctReturnProjects(previousEvents, 'return_deferred', humanPreviousSessionIds);
+  const returnsAnsweredPrevious = new Set([
+    ...distinctReturnProjects(previousEvents, 'return_answered', humanPreviousSessionIds),
+    ...serverEventProjects(previousServerEvents, 'return_answered', ownerIds),
+  ]);
+  const returnsDeferredPrevious = new Set([
+    ...distinctReturnProjects(previousEvents, 'return_deferred', humanPreviousSessionIds),
+    ...serverEventProjects(previousServerEvents, 'return_deferred', ownerIds),
+  ]);
+  const emailRemindersSentY = serverEventProjects(yesterdayEvents, 'return_reminder_sent', ownerIds, 'email');
+  const telegramRemindersSentY = serverEventProjects(yesterdayEvents, 'return_reminder_sent', ownerIds, 'telegram');
+  const telegramAnswersY = serverEventProjects(yesterdayEvents, 'return_answered', ownerIds, 'telegram');
+  const emailReturnsY = intersectionSize(emailRemindersSentY, returnsOpenedFromEmailY);
+  const telegramReturnsY = intersectionSize(telegramRemindersSentY, telegramAnswersY);
+  const emailReturnRateY = emailRemindersSentY.size ? Math.round((emailReturnsY / emailRemindersSentY.size) * 100) : 0;
+  const telegramReturnRateY = telegramRemindersSentY.size ? Math.round((telegramReturnsY / telegramRemindersSentY.size) * 100) : 0;
   const returnProjectsTouchedY = new Set([...returnsOpenedY, ...returnsAnsweredY, ...returnsDeferredY]);
   const returnCompletionRateY = returnProjectsTouchedY.size
     ? Math.round((returnsAnsweredY.size / returnProjectsTouchedY.size) * 100)
@@ -720,6 +773,21 @@ export async function GET(req: Request) {
     <tr><td style="padding: 20px;">
       <p style="font-size: 10px; font-weight: 800; color: ${C.primary}; margin: 0 0 4px; letter-spacing: 0.12em; text-transform: uppercase;">판단 귀환 · 어제</p>
       <p style="font-size: 12px; color: ${C.muted}; margin: 0 0 16px;">예전에 남긴 판단을 다시 열어 현실과 대조한 프로젝트입니다.</p>
+      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background: ${C.card}; border: 1px solid #bfdbfe; border-radius: 10px; margin-bottom: 16px;">
+        <tr>
+          <td style="padding: 11px 12px; font-size: 11px; color: ${C.text}; font-weight: 700;">이메일</td>
+          <td style="padding: 11px 8px; font-size: 11px; color: ${C.muted}; text-align: right;">발송 ${emailRemindersSentY.size}</td>
+          <td style="padding: 11px 8px; font-size: 11px; color: ${C.text}; text-align: right;">→ 열림 ${emailReturnsY}</td>
+          <td style="padding: 11px 12px; font-size: 12px; color: ${C.primary}; font-weight: 800; text-align: right;">${emailReturnRateY}%</td>
+        </tr>
+        <tr>
+          <td style="padding: 11px 12px; font-size: 11px; color: ${C.text}; font-weight: 700; border-top: 1px solid ${C.borderSubtle};">Telegram</td>
+          <td style="padding: 11px 8px; font-size: 11px; color: ${C.muted}; text-align: right; border-top: 1px solid ${C.borderSubtle};">발송 ${telegramRemindersSentY.size}</td>
+          <td style="padding: 11px 8px; font-size: 11px; color: ${C.text}; text-align: right; border-top: 1px solid ${C.borderSubtle};">→ 답변 ${telegramReturnsY}</td>
+          <td style="padding: 11px 12px; font-size: 12px; color: ${C.primary}; font-weight: 800; text-align: right; border-top: 1px solid ${C.borderSubtle};">${telegramReturnRateY}%</td>
+        </tr>
+      </table>
+      <p style="font-size: 10px; color: ${C.faint}; margin: -8px 0 14px;">같은 날 발송한 프로젝트만 연결한 전환 · 내부 계정 제외</p>
       <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
         <tr>
           <td style="width: 25%; text-align: center;"><p style="font-size: 25px; font-weight: 800; color: ${C.text}; margin: 0;">${returnsOpenedY.size}</p><p style="font-size: 10px; color: ${C.muted}; margin: 3px 0 0;">열어봄</p></td>
@@ -1023,6 +1091,10 @@ export async function GET(req: Request) {
       returns_answered_yesterday: returnsAnsweredY.size,
       returns_deferred_yesterday: returnsDeferredY.size,
       return_completion_rate_yesterday: returnCompletionRateY,
+      email_reminders_sent_yesterday: emailRemindersSentY.size,
+      email_returns_yesterday: emailReturnsY,
+      telegram_reminders_sent_yesterday: telegramRemindersSentY.size,
+      telegram_returns_yesterday: telegramReturnsY,
       projects_missing_session: projectsMissingSession.length,
       sync_write_failures: syncWriteFailures.length,
       campaigns: campaignEntries.length,

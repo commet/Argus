@@ -159,7 +159,7 @@ export async function GET(req: Request) {
             channel: 'email',
             wave: reminderCount + 1,
             final_wave: isFinalWave,
-          }, { path: '/api/cron/checkin-due' });
+          }, { userId: r.user_id, path: '/api/cron/checkin-due' });
           nextContract = { ...nextContract, reminder_sent_at: stamp };
           changed = true;
           t1WaveChanged = true;
@@ -193,7 +193,7 @@ export async function GET(req: Request) {
           await persistServerEvent('first_settlement_invite_sent', {
             project_id: r.id,
             channel: 'email',
-          }, { path: '/api/cron/checkin-due' });
+          }, { userId: r.user_id, path: '/api/cron/checkin-due' });
           nextContract = { ...nextContract, first_settlement_invited_at: stamp };
           changed = true;
           firstSettlementSent++;
@@ -260,7 +260,7 @@ export async function GET(req: Request) {
             deliveries: delivered,
             wave: reminderCount + 1,
             final_wave: isFinalWave,
-          }, { path: '/api/cron/checkin-due' });
+          }, { userId: r.user_id, path: '/api/cron/checkin-due' });
           nextContract = { ...nextContract, telegram_reminder_sent_at: stamp };
           changed = true;
           telegramSent += delivered;

@@ -151,7 +151,7 @@ export async function GET(req: Request) {
         project_id: d.id,
         channel: 'telegram',
         source: d.source,
-      }, { path: '/api/cron/telegram-reminders' });
+      }, { userId: d.user_id, path: '/api/cron/telegram-reminders' });
       sent++;
     } catch (err) {
       console.error('[cron/telegram-reminders] send failed for', d.id, err);

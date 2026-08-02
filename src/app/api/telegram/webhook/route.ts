@@ -524,14 +524,14 @@ async function handleSealConfirm(chatId: number | string, userId: string, action
 //    not hear the answer. The parser was already complete; this is the wiring. ──
 // The semantic ledger brain lives in lib/telegram-semantic (one source shared
 // with the dogfood runner). The route only binds the real client + sender.
-function semanticDeps() {
+function semanticDeps(userId: string) {
   return {
     admin: adminClient(),
     send: sendMessage,
     recordReturn: (
       event: 'return_answered' | 'return_deferred',
       properties: Record<string, unknown>,
-    ) => persistServerEvent(event, properties, { path: '/api/telegram/webhook' }),
+    ) => persistServerEvent(event, properties, { userId, path: '/api/telegram/webhook' }),
   };
 }
 
@@ -553,7 +553,7 @@ async function handleFoundationSettlement(
     return;
   }
   await handleFoundationContractSettlement(
-    semanticDeps(),
+    semanticDeps(userId),
     chatId,
     userId,
     row,
@@ -581,7 +581,7 @@ async function handleContractSettlement(
     await sendMessage(chatId, '그 결정을 찾을 수 없어요.');
     return;
   }
-  if (await handleSemanticContractSettlement(semanticDeps(), chatId, userId, row, contract, intent, receiptRef)) return;
+  if (await handleSemanticContractSettlement(semanticDeps(userId), chatId, userId, row, contract, intent, receiptRef)) return;
   const locale = detectSettlementLocale(row.name, ...(Array.isArray(contract.predicates) ? contract.predicates : []).map((p) => p?.text));
   if (contract.kind && contract.kind !== 'witness' && !['pending', 'mute'].includes(intent.outcome)) {
     await sendMessage(
@@ -627,7 +627,7 @@ async function handleContractSettlement(
     project_id: row.id,
     channel: 'telegram',
     verdict: intent.outcome,
-  }, { path: '/api/telegram/webhook' });
+  }, { userId, path: '/api/telegram/webhook' });
 
   // Mirror-row sync: telegram-sync plants a telegram_decisions row with
   // id=projectId (source='web'). Settle/extend BOTH so the warm daily cron and
@@ -754,7 +754,7 @@ async function handleSettle(
       project_id: id,
       channel: 'telegram',
       next_handle_kind: 'relative_2w',
-    }, { path: '/api/telegram/webhook' });
+    }, { userId, path: '/api/telegram/webhook' });
     // Half-settlement fix (P0-2 ③): a web-mirrored row (telegram-sync, row id ==
     // project id) must extend the WEB contract too, or the web keeps nagging.
     if (dec.source === 'web') await bridgeWebContract(id, userId, { outcome: 'pending' });
@@ -779,7 +779,7 @@ async function handleSettle(
     project_id: id,
     channel: 'telegram',
     verdict: outcome,
-  }, { path: '/api/telegram/webhook' });
+  }, { userId, path: '/api/telegram/webhook' });
   // Half-settlement fix (P0-2 ③): answering here must also close the web
   // contract, so the badge · /project · email re-nag all go dark in one answer.
   if (dec.source === 'web') {
@@ -873,7 +873,7 @@ export async function POST(req: NextRequest) {
       // Web-contract settle buttons (stl1|/stl|) — first, before the reframe chain.
       const semanticClose = parseSemanticCloseCallback(data);
       if (semanticClose) {
-        await handleSemanticContractClose(semanticDeps(), chatId, userId, semanticClose.projectId, semanticClose.contractId, receiptRef);
+        await handleSemanticContractClose(semanticDeps(userId), chatId, userId, semanticClose.projectId, semanticClose.contractId, receiptRef);
         return NextResponse.json({ ok: true });
       }
 

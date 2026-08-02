@@ -29,4 +29,12 @@ describe('daily return-loop reporting', () => {
     expect(route).toContain('returns_answered_yesterday: returnsAnsweredY.size');
     expect(route).toContain('returns_deferred_yesterday: returnsDeferredY.size');
   });
+
+  it('compares each reminder channel with its real return action', () => {
+    expect(route).toContain("serverEventProjects(yesterdayEvents, 'return_reminder_sent', ownerIds, 'email')");
+    expect(route).toContain("serverEventProjects(yesterdayEvents, 'return_reminder_sent', ownerIds, 'telegram')");
+    expect(route).toContain('→ 열림 ${emailReturnsY}');
+    expect(route).toContain('→ 답변 ${telegramReturnsY}');
+    expect(route).toContain('같은 날 발송한 프로젝트만 연결한 전환 · 내부 계정 제외');
+  });
 });
