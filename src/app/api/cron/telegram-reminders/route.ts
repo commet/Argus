@@ -9,7 +9,7 @@ import {
 } from '@/lib/telegram-settlement';
 import { notificationGateAllowsSend } from '@/lib/notification-gate';
 import type { DecisionContract } from '@/stores/types';
-import { logServerEvent } from '@/lib/server-events';
+import { persistServerEvent } from '@/lib/server-events';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -142,9 +142,16 @@ export async function GET(req: Request) {
       }
       if (!delivered) throw new Error('Telegram rejected both HTML and plain-text delivery');
 
-      await admin.from('telegram_decisions')
+      const { error: stampError } = await admin.from('telegram_decisions')
         .update({ reminded_at: new Date().toISOString() })
         .eq('id', d.id);
+      if (stampError) throw new Error(`reminder stamp update failed: ${stampError.message}`);
+
+      await persistServerEvent('return_reminder_sent', {
+        project_id: d.id,
+        channel: 'telegram',
+        source: d.source,
+      }, { path: '/api/cron/telegram-reminders' });
       sent++;
     } catch (err) {
       console.error('[cron/telegram-reminders] send failed for', d.id, err);
@@ -152,6 +159,6 @@ export async function GET(req: Request) {
   }
 
   // 계기 (2026-07-29): 텔레그램 귀환 알림도 같은 이유로 흔적을 남긴다.
-  logServerEvent('cron_telegram_reminders', { due: due?.length ?? 0, sent }, { path: '/api/cron/telegram-reminders' });
+  await persistServerEvent('cron_telegram_reminders', { due: due?.length ?? 0, sent }, { path: '/api/cron/telegram-reminders' });
   return NextResponse.json({ ok: true, date: today, due: due?.length ?? 0, sent });
 }

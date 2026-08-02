@@ -48,16 +48,16 @@ describe('크론은 자기가 돌았다는 흔적을 남긴다', () => {
     expect(routes.length).toBeGreaterThanOrEqual(4);
   });
 
-  it('사람에게 무언가 보내는 크론은 모두 logServerEvent 를 부른다', () => {
+  it('사람에게 무언가 보내는 크론은 모두 서버 이벤트를 남긴다', () => {
     const silent = routes.filter((name) => {
       if (name in WAIVED) return false;
       const src = readFileSync(join(CRON_DIR, name, 'route.ts'), 'utf8');
-      return !src.includes('logServerEvent(');
+      return !src.includes('logServerEvent(') && !src.includes('persistServerEvent(');
     });
     expect(
       silent,
       `이 크론들은 돌고도 흔적을 남기지 않는다. "돌았는데 조용했다"와 "아예 안 돌았다"를 `
-      + `구분할 수 없으면 완주율은 영원히 추측이다. logServerEvent 를 부르거나, `
+      + `구분할 수 없으면 완주율은 영원히 추측이다. 서버 이벤트를 남기거나, `
       + `사유와 함께 WAIVED 에 적어라: ${silent.join(', ')}`,
     ).toEqual([]);
   });
@@ -75,8 +75,21 @@ describe('크론은 자기가 돌았다는 흔적을 남긴다', () => {
   it('귀환 루프의 심장(checkin-due)은 보낸 건수를 기록한다', () => {
     // 건수 없는 "돌았다"는 계기가 아니다 — 0통 보낸 밤과 5통 보낸 밤이 같아 보인다.
     const src = readFileSync(join(CRON_DIR, 'checkin-due', 'route.ts'), 'utf8');
-    expect(src).toMatch(/logServerEvent\(\s*'cron_checkin_due'/);
+    expect(src).toMatch(/await persistServerEvent\(\s*'cron_checkin_due'/);
     expect(src).toContain('candidates:');
     expect(src).toContain('sent');
+  });
+
+  it('귀환 알림은 성공한 프로젝트와 채널을 저장 완료까지 기다린다', () => {
+    const emailBridge = readFileSync(join(CRON_DIR, 'checkin-due', 'route.ts'), 'utf8');
+    const telegram = readFileSync(join(CRON_DIR, 'telegram-reminders', 'route.ts'), 'utf8');
+
+    for (const src of [emailBridge, telegram]) {
+      expect(src).toContain("await persistServerEvent('return_reminder_sent'");
+      expect(src).toContain('project_id:');
+      expect(src).toContain("channel: 'telegram'");
+    }
+    expect(emailBridge).toContain("channel: 'email'");
+    expect(telegram).toContain('if (stampError) throw new Error');
   });
 });

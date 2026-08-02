@@ -12,7 +12,7 @@ import { buildProjectReturnUrl, returnEmailSubject } from '@/lib/return-email';
 import { notificationGateAllowsSend } from '@/lib/notification-gate';
 import { buildFirstSettlementEmail, firstSettlementAnchor, isFirstSettlementInviteDue } from '@/lib/first-settlement';
 import type { DecisionContract } from '@/stores/types';
-import { logServerEvent } from '@/lib/server-events';
+import { persistServerEvent } from '@/lib/server-events';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -154,6 +154,12 @@ export async function GET(req: Request) {
           });
           const emailError = resendEmailErrorMessage(emailResult);
           if (emailError) throw new Error(`email send failed: ${emailError}`);
+          await persistServerEvent('return_reminder_sent', {
+            project_id: r.id,
+            channel: 'email',
+            wave: reminderCount + 1,
+            final_wave: isFinalWave,
+          }, { path: '/api/cron/checkin-due' });
           nextContract = { ...nextContract, reminder_sent_at: stamp };
           changed = true;
           t1WaveChanged = true;
@@ -184,6 +190,10 @@ export async function GET(req: Request) {
           });
           const emailError = resendEmailErrorMessage(emailResult);
           if (emailError) throw new Error(`first settlement email failed: ${emailError}`);
+          await persistServerEvent('first_settlement_invite_sent', {
+            project_id: r.id,
+            channel: 'email',
+          }, { path: '/api/cron/checkin-due' });
           nextContract = { ...nextContract, first_settlement_invited_at: stamp };
           changed = true;
           firstSettlementSent++;
@@ -244,6 +254,13 @@ export async function GET(req: Request) {
           }
         }
         if (delivered > 0) {
+          await persistServerEvent('return_reminder_sent', {
+            project_id: r.id,
+            channel: 'telegram',
+            deliveries: delivered,
+            wave: reminderCount + 1,
+            final_wave: isFinalWave,
+          }, { path: '/api/cron/checkin-due' });
           nextContract = { ...nextContract, telegram_reminder_sent_at: stamp };
           changed = true;
           telegramSent += delivered;
@@ -268,7 +285,7 @@ export async function GET(req: Request) {
   // 그전까지 크론 4개는 아무것도 기록하지 않아서, 봉인 18건이 남아 있는데도
   // "확인일에 알림이 갔는가"를 물으면 답할 곳이 없었다 — 제품의 북극성이
   // '봉인→귀환→정산 완주'인데 그 가운데 칸에 계기가 없었다.
-  logServerEvent('cron_checkin_due', {
+  await persistServerEvent('cron_checkin_due', {
     candidates: due.length, sent, first_settlement_sent: firstSettlementSent,
     telegram_sent: telegramSent, failures: failures.length,
   }, { path: '/api/cron/checkin-due' });
