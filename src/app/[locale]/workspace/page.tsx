@@ -378,6 +378,11 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem, fr
   // production bundle wedges on (재실사 2026-07-08: 429 사용자 화면이 '팀을
   // 꾸리는 중'에서 영구 동결). One swap, no race.
   const analysisSettledRef = React.useRef<{ result?: InitialAnalysisResult; error?: unknown } | null>(null);
+  const analysisTimingRef = React.useRef<{
+    startedAt: number;
+    firstTokenSeen: boolean;
+    hasBaseline: boolean;
+  } | null>(null);
   const pendingTextRef = React.useRef<string>('');
   // Light path (가벼운 길): the first beat (mirror + question) returned by the
   // SAME gate call that routed here — no second call before the light screen.
@@ -453,6 +458,16 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem, fr
     const controller = new AbortController();
     analyzeAbortRef.current = controller;
     analysisSettledRef.current = null;
+    analysisTimingRef.current = {
+      startedAt: performance.now(),
+      firstTokenSeen: false,
+      hasBaseline: !!preReviewBaseline?.trim(),
+    };
+    track('first_analysis_start', {
+      text_length: text.length,
+      has_baseline: analysisTimingRef.current.hasBaseline,
+      anonymous: !user,
+    });
     analysisRef.current = startAnalysis(text, controller, preReviewBaseline);
     analysisRef.current.then((s) => { analysisSettledRef.current = s; });
   };
@@ -535,10 +550,18 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem, fr
   const startAnalysis = (text: string, controller: AbortController, preReviewBaseline?: string) =>
     import('@/lib/progressive-engine').then(({ runInitialAnalysis }) => runInitialAnalysis(text, (token) => {
       setStreamingText(token);
+      const timing = analysisTimingRef.current;
+      if (timing && !timing.firstTokenSeen) {
+        timing.firstTokenSeen = true;
+        track('first_analysis_first_token', {
+          duration_ms: Math.round(performance.now() - timing.startedAt),
+          has_baseline: timing.hasBaseline,
+          anonymous: !user,
+        });
+      }
       if (phaseRef.current === 'assembling') {
         if (timerRef.current) clearTimeout(timerRef.current);
         setPhase('analyzing');
-        track('first_analysis_start', { text_length: text.length, anonymous: !user });
       }
     }, controller.signal, (typedQ, replacesId) => {
       // P1-3: the first question shows instantly (legacy); the typed upgrade
@@ -647,6 +670,18 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem, fr
       progressiveStore.addQuestion(result.question);
       progressiveStore.setPhase('conversing');
 
+      const timing = analysisTimingRef.current;
+      if (timing) {
+        track('first_analysis_ready', {
+          duration_ms: Math.round(performance.now() - timing.startedAt),
+          first_token_seen: timing.firstTokenSeen,
+          has_baseline: timing.hasBaseline,
+          has_question: !!result.question?.text?.trim(),
+          request_type: result.snapshot.request_type || 'open',
+          anonymous: !user,
+        });
+      }
+
       setPhase('ready');
       onReady(pid);
     } catch (err) {
@@ -660,6 +695,15 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem, fr
         return;
       }
       const errMsg = err instanceof Error ? err.message : String(err);
+      const timing = analysisTimingRef.current;
+      if (timing) {
+        track('first_analysis_failed', {
+          duration_ms: Math.round(performance.now() - timing.startedAt),
+          first_token_seen: timing.firstTokenSeen,
+          has_baseline: timing.hasBaseline,
+          anonymous: !user,
+        });
+      }
       // LLM layer가 던지는 분류 신호:
       //   - "LOGIN_REQUIRED:..." prefix → 익명 무료 체험 소진 (categorizeError at 429+needsLogin)
       //   - "한도" / "rate" → 로그인 사용자의 일반 rate limit
