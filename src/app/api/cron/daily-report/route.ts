@@ -9,6 +9,7 @@ import {
   type AnonBucket,
 } from '@/lib/analytics-reporting';
 import { loopPulse } from '@/lib/loop-pulse';
+import { distinctReturnProjects } from '@/lib/return-analytics';
 import { logServerEvent } from '@/lib/server-events';
 
 export const runtime = 'nodejs';
@@ -387,6 +388,7 @@ export async function GET(req: Request) {
   const previousEvents = ext14.filter(e => e.created_at >= previousDay.start && e.created_at <= previousDay.end);
   const previousAgg = aggregateSessions(previousEvents);
   const humanAggPrevious = [...previousAgg.values()].filter(a => bucketSession(a, ownerIds) === 'human');
+  const humanPreviousSessionIds = new Set(humanAggPrevious.map(a => a.sessionId));
 
   // ─── 4. Yesterday top-line (humans only) ───
   const sessionsY = humanSessionIds;
@@ -398,6 +400,19 @@ export async function GET(req: Request) {
   const completedPrevious = humanAggPrevious.filter(a => a.completed).length;
   const sealedY = humanAggY.filter(a => a.eventNames.has('decision_sealed')).length;
   const sealedPrevious = humanAggPrevious.filter(a => a.eventNames.has('decision_sealed')).length;
+
+  // A return can span sessions and days, so count distinct projects instead of
+  // clicks. Older events without project_id fall back to one count per session.
+  const returnsOpenedY = distinctReturnProjects(extY, 'return_opened', humanSessionIds);
+  const returnsAnsweredY = distinctReturnProjects(extY, 'return_answered', humanSessionIds);
+  const returnsDeferredY = distinctReturnProjects(extY, 'return_deferred', humanSessionIds);
+  const returnsOpenedPrevious = distinctReturnProjects(previousEvents, 'return_opened', humanPreviousSessionIds);
+  const returnsAnsweredPrevious = distinctReturnProjects(previousEvents, 'return_answered', humanPreviousSessionIds);
+  const returnsDeferredPrevious = distinctReturnProjects(previousEvents, 'return_deferred', humanPreviousSessionIds);
+  const returnProjectsTouchedY = new Set([...returnsOpenedY, ...returnsAnsweredY, ...returnsDeferredY]);
+  const returnCompletionRateY = returnProjectsTouchedY.size
+    ? Math.round((returnsAnsweredY.size / returnProjectsTouchedY.size) * 100)
+    : 0;
 
   // ─── 5. 7-day trend (daily HUMAN session count) + WoW comparison ───
   // Classify the whole fortnight the same way, then count each human session
@@ -630,6 +645,9 @@ export async function GET(req: Request) {
     { label: '상황 제출', current: submittedY, previous: submittedPrevious },
     { label: '완주', current: completedY, previous: completedPrevious },
     { label: '결정 확정', current: sealedY, previous: sealedPrevious },
+    { label: '현실 확인 열림', current: returnsOpenedY.size, previous: returnsOpenedPrevious.size },
+    { label: '현실 확인 답변', current: returnsAnsweredY.size, previous: returnsAnsweredPrevious.size },
+    { label: '현실 확인 미룸', current: returnsDeferredY.size, previous: returnsDeferredPrevious.size },
     { label: '신규 가입', current: signupDetails.length, previous: previousSignups.length },
     { label: '서버 프로젝트', current: projectsYesterday.length, previous: projectsPrevious.length },
     { label: '서버 진행 기록', current: sessionsYesterday.length, previous: sessionsPrevious.length },
@@ -694,6 +712,23 @@ export async function GET(req: Request) {
         }).join('')}
       </table>
       <p style="font-size: 10px; color: ${C.faint}; margin: 10px 0 0; text-align: right;">전일 → 어제 → 증감</p>
+    </td></tr>
+  </table>
+
+  <!-- ════════ RETURN LOOP ════════ -->
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background: ${C.primaryLight}; border: 1px solid #bfdbfe; border-radius: 14px; margin-bottom: 16px;">
+    <tr><td style="padding: 20px;">
+      <p style="font-size: 10px; font-weight: 800; color: ${C.primary}; margin: 0 0 4px; letter-spacing: 0.12em; text-transform: uppercase;">판단 귀환 · 어제</p>
+      <p style="font-size: 12px; color: ${C.muted}; margin: 0 0 16px;">예전에 남긴 판단을 다시 열어 현실과 대조한 프로젝트입니다.</p>
+      <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+        <tr>
+          <td style="width: 25%; text-align: center;"><p style="font-size: 25px; font-weight: 800; color: ${C.text}; margin: 0;">${returnsOpenedY.size}</p><p style="font-size: 10px; color: ${C.muted}; margin: 3px 0 0;">열어봄</p></td>
+          <td style="width: 25%; text-align: center; border-left: 1px solid #bfdbfe;"><p style="font-size: 25px; font-weight: 800; color: ${C.growth}; margin: 0;">${returnsAnsweredY.size}</p><p style="font-size: 10px; color: ${C.muted}; margin: 3px 0 0;">답함</p></td>
+          <td style="width: 25%; text-align: center; border-left: 1px solid #bfdbfe;"><p style="font-size: 25px; font-weight: 800; color: ${C.warm}; margin: 0;">${returnsDeferredY.size}</p><p style="font-size: 10px; color: ${C.muted}; margin: 3px 0 0;">다음으로 미룸</p></td>
+          <td style="width: 25%; text-align: center; border-left: 1px solid #bfdbfe;"><p style="font-size: 25px; font-weight: 800; color: ${C.primary}; margin: 0;">${returnCompletionRateY}%</p><p style="font-size: 10px; color: ${C.muted}; margin: 3px 0 0;">확인 완료율</p></td>
+        </tr>
+      </table>
+      <p style="font-size: 10px; color: ${C.faint}; margin: 12px 0 0;">프로젝트 기준 중복 제거 · 확인 완료율 = 답한 프로젝트 ÷ 어제 귀환 활동이 있었던 프로젝트</p>
     </td></tr>
   </table>
 
@@ -984,6 +1019,10 @@ export async function GET(req: Request) {
       cumulative_completions: cumulativeCompletions,
       projects_yesterday: projectsYesterday.length,
       progressive_sessions_yesterday: sessionsYesterday.length,
+      returns_opened_yesterday: returnsOpenedY.size,
+      returns_answered_yesterday: returnsAnsweredY.size,
+      returns_deferred_yesterday: returnsDeferredY.size,
+      return_completion_rate_yesterday: returnCompletionRateY,
       projects_missing_session: projectsMissingSession.length,
       sync_write_failures: syncWriteFailures.length,
       campaigns: campaignEntries.length,
