@@ -108,7 +108,7 @@ export async function anthropicText({ system, messages, model = 'default', maxTo
     }
     const data = await res.json();
     const text = (data.content || []).filter((b) => b.type === 'text').map((b) => b.text).join('');
-    return { text, usage: data.usage, modelId };
+    return { text, usage: data.usage, modelId, stopReason: data.stop_reason || null };
   }
   throw lastErr || new LLMError('API retries exhausted', { category: 'overloaded', retryable: true });
 }
@@ -236,7 +236,7 @@ export async function callLLMJson(messages, options = { system: '' }) {
     };
     const started = Date.now();
     try {
-      const { text, usage, modelId } = await anthropicText({
+      const { text, usage, modelId, stopReason } = await anthropicText({
         system: options.system,
         messages: currentMessages,
         model: options.model || 'default',
@@ -246,6 +246,7 @@ export async function callLLMJson(messages, options = { system: '' }) {
       entry.rawText = text;
       entry.usage = usage;
       entry.modelId = modelId;
+      entry.stopReason = stopReason;
       entry.ms = Date.now() - started;
       const parsed = parseJSON(text);
       const out = options.shape ? validateShape(parsed, options.shape) : parsed;

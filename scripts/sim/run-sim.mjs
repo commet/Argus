@@ -311,7 +311,7 @@ async function runScenario(engine, sc) {
   record.transcript = transcript;
   record.calls = shim.callLog.slice(callStart).filter((c) => callBelongsTo(c, sc)).map((c) => ({
     seq: c.seq, label: c.label, tier: c.tier, modelId: c.modelId, maxTokens: c.maxTokens,
-    attempt: c.attempt, ms: c.ms, usage: c.usage, error: c.error,
+    attempt: c.attempt, ms: c.ms, usage: c.usage, stopReason: c.stopReason, error: c.error,
     user: (c.user || '').slice(0, 400), // keeps post-hoc attribution possible (recheck.mjs)
     rawText: c.rawText, // full raw for mechanical checks / audit
   }));
