@@ -111,6 +111,47 @@ export interface SimQA {
   answer: { question_id: string; value: string };
 }
 
+/**
+ * ABLATION — harness only, never reachable from the product.
+ *
+ * Every rule in this harness was added because a run measured a failure, and
+ * not one of them has ever been tested by REMOVAL. A guard nobody has seen the
+ * absence of is a guard nobody has priced: it may be carrying the whole result,
+ * or it may be dead weight the model would behave identically without, and the
+ * prompt only ever grows because there is no evidence for deleting anything.
+ *
+ * ARGUS_SIM_ABLATE is a comma-separated list of block markers. Each one removes
+ * the bullet or paragraph that STARTS with that marker from the system prompt,
+ * leaving everything else byte-identical. Comparing judge verdicts with and
+ * without a block is that block's marginal value, measured rather than assumed.
+ */
+export function ablate(system: string): string {
+  const spec = (process.env.ARGUS_SIM_ABLATE || '').split(',').map((s) => s.trim()).filter(Boolean);
+  if (spec.length === 0) return system;
+  let out = system;
+  for (const marker of spec) {
+    // A block runs from its marker to the next line that starts at the same or
+    // lower indentation with a new bullet/heading — i.e. its own continuation
+    // lines go with it, and its neighbours do not.
+    const NL = String.fromCharCode(10);
+    const start = out.indexOf(marker);
+    if (start < 0) continue;
+    const lineStart = out.lastIndexOf(NL, start) + 1;
+    const indent = start - lineStart;
+    const lines = out.slice(start).split(NL);
+    let end = 1;
+    while (end < lines.length) {
+      const l = lines[end];
+      if (l.trim() === '') { end += 1; continue; }
+      const li = l.length - l.trimStart().length;
+      if (li <= indent && /^\s*([-*0-9]|[A-Z가-힣])/.test(l)) break;
+      end += 1;
+    }
+    out = out.slice(0, lineStart) + lines.slice(end).join(NL);
+  }
+  return out;
+}
+
 export async function runHeavyInitial(problemText: string, locale: Locale): Promise<{
   raw: Record<string, unknown>;
   result: Record<string, unknown>;
@@ -137,7 +178,8 @@ export async function runHeavyInitial(problemText: string, locale: Locale): Prom
     return { raw: result, result, routeCoerced: false };
   }
 
-  const { system, user } = buildInitialAnalysisPrompt(problemText, locale);
+  const { system: rawSystem, user } = buildInitialAnalysisPrompt(problemText, locale);
+  const system = ablate(rawSystem);
   // engine shape: maxTokens 4096, default tier, cacheSystem, same shape map
   const raw = await callLLMJson<Record<string, unknown>>(
     [{ role: 'user', content: user }],
@@ -215,7 +257,7 @@ export async function runHeavyDeepening(
   maxRounds: number,
   locale: Locale,
 ): Promise<Record<string, unknown>> {
-  const { system, user } = buildDeepeningPrompt(
+  const { system: rawSystem, user } = buildDeepeningPrompt(
     problemText,
     currentSnapshot as never,
     questionsAndAnswers as never,
@@ -223,6 +265,7 @@ export async function runHeavyDeepening(
     maxRounds,
     locale,
   );
+  const system = ablate(rawSystem);
   // engine shape: maxTokens 2500, default tier
   const raw = await callLLMJson<Record<string, unknown>>(
     [{ role: 'user', content: user }],
