@@ -83,6 +83,32 @@ describe('AnalysisCard 접힌 항로 — 결론, 이유, 근거가 한 흐름', 
     expect(html).not.toContain('전제 +');
   });
 
+  it('계보가 있는 전제 수정은 추가·삭제가 아니라 다듬음으로 보인다', () => {
+    const previous = {
+      ...snapshot,
+      version: 1,
+      premise_records: [{
+        text: '현 회사에서 성장하기 어렵다', anchor_quote: '', if_false_changes: '',
+        support_kind: 'explicit_reason', kind: 'premise',
+      }],
+    } as AnalysisSnapshot;
+    const current = {
+      ...snapshot,
+      version: 2,
+      premise_records: [{
+        text: '현 역할에서는 다음 반기 성장 기회가 제한적이다',
+        revised_from: '현 회사에서 성장하기 어렵다',
+        anchor_quote: '', if_false_changes: '', support_kind: 'explicit_reason', kind: 'premise',
+      }],
+    } as AnalysisSnapshot;
+    const html = renderToStaticMarkup(
+      <AnalysisCard snapshot={current} prevSnapshot={previous} defaultCollapsed locale="ko" />,
+    );
+    expect(html).toContain('전제 다듬음 1');
+    expect(html).not.toContain('전제 +1');
+    expect(html).not.toContain('전제 −1');
+  });
+
   it('초안 이후에는 더 조정 중인 것처럼 말하지 않는다', () => {
     const html = renderToStaticMarkup(
       <AnalysisCard

@@ -63,6 +63,7 @@ function DeltaLine({ delta, locale }: {
     delta.questionChanged ? L('핵심 질문 조정', 'question adjusted') : '',
     delta.decisionChanged ? L('판단문 조정', 'judgment adjusted') : '',
     delta.planChanged ? L('계획 조정', 'plan adjusted') : '',
+    delta.premisesRevised > 0 ? L(`전제 다듬음 ${delta.premisesRevised}`, `premises revised ${delta.premisesRevised}`) : '',
     delta.premisesAdded > 0 ? L(`전제 +${delta.premisesAdded}`, `premises +${delta.premisesAdded}`) : '',
     delta.premisesRemoved > 0 ? L(`전제 −${delta.premisesRemoved}`, `premises −${delta.premisesRemoved}`) : '',
   ].filter(Boolean);

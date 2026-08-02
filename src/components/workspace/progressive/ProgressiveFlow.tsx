@@ -1311,6 +1311,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
         plan_changed: answerDelta.planChanged,
         premises_added: answerDelta.premisesAdded,
         premises_removed: answerDelta.premisesRemoved,
+        premises_revised: answerDelta.premisesRevised,
       });
       // Prepare workers when execution_plan appears
       const existingWorkers = store.currentSession()?.workers ?? [];

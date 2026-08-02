@@ -8,6 +8,7 @@ describe('answer reflection telemetry', () => {
     expect(source.indexOf('const answerDelta = analysisDelta(latest, mergedSnapshot)'))
       .toBeLessThan(source.indexOf("track('answer_reflected'"));
     expect(source).toContain('material_change: answerDelta.materialChange');
+    expect(source).toContain('premises_revised: answerDelta.premisesRevised');
     expect(source).toContain('duration_ms: Math.round(performance.now() - answerStartedAt)');
   });
 
