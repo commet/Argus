@@ -752,7 +752,12 @@ export default function ProjectPage() {
 
               {/* ①.6 기록이 보여주는 것 — 본선 전제의 연결·잔량·빈칸, 사실만.
                   (기획 4단계 기본형, 2026-07-30). 셀 것이 없으면 렌더 0. */}
-              <JudgmentPatternsCard projects={projects} items={decisionItems} locale={locale} />
+              <JudgmentPatternsCard
+                projects={projects}
+                items={decisionItems}
+                locale={locale}
+                onSelectDecision={openProject}
+              />
 
               {/* ② 해도 신호의 작업 목록 — check-ins, premise rechecks, deferred
                   questions and moved shared ground share one derivation. The sea

@@ -23,10 +23,11 @@ import { isBaselineOnlyContract } from '@/lib/decision-contract';
 import type { DecisionItem } from '@/lib/decision-items';
 import type { Project } from '@/stores/types';
 
-export function JudgmentPatternsCard({ projects, items, locale }: {
+export function JudgmentPatternsCard({ projects, items, locale, onSelectDecision }: {
   projects: Project[];
   items: DecisionItem[];
   locale: string;
+  onSelectDecision?: (decisionId: string) => void;
 }) {
   const ko = locale === 'ko';
   const L = (k: string, e: string) => (ko ? k : e);
@@ -75,7 +76,21 @@ export function JudgmentPatternsCard({ projects, items, locale }: {
                 <p className="mt-1 text-[12px] text-[var(--text-secondary)]">
                   {L(`결정 ${g.decisionIds.length}건이 이 전제 위에 있어요`, `${g.decisionIds.length} decisions rest on this`)}
                   {' · '}
-                  {g.decisionIds.slice(0, 2).map((id) => nameOf.get(id) || '').filter(Boolean).map((n) => n.slice(0, 18)).join(' · ')}
+                  {g.decisionIds.slice(0, 2).map((id, index) => {
+                    const name = nameOf.get(id);
+                    if (!name) return null;
+                    return (
+                      <span key={id}>
+                        {index > 0 && <span aria-hidden> · </span>}
+                        <button
+                          type="button"
+                          onClick={() => onSelectDecision?.(id)}
+                          disabled={!onSelectDecision}
+                          className="underline decoration-[var(--border)] underline-offset-2 hover:text-[var(--accent)] hover:decoration-[var(--accent)] disabled:no-underline disabled:cursor-default"
+                        >{name.slice(0, 18)}</button>
+                      </span>
+                    );
+                  })}
                 </p>
               </li>
             ))}
@@ -94,11 +109,16 @@ export function JudgmentPatternsCard({ projects, items, locale }: {
           </p>
           <ul className="mt-2 space-y-1.5">
             {facts.questions.slice(0, 3).map((q) => (
-              <li key={`${q.decisionId}:${q.text}`} className="text-[12.5px] leading-[1.5] text-[var(--text-secondary)]">
-                {q.text}
+              <li key={`${q.decisionId}:${q.text}`} className="flex items-start justify-between gap-3 text-[12.5px] leading-[1.5] text-[var(--text-secondary)]">
+                <span>{q.text}
                 <span className="text-[var(--text-tertiary)]">
                   {' · '}{L(`${q.openForDays}일째 열려 있어요`, `open for ${q.openForDays} days`)}
-                </span>
+                </span></span>
+                {onSelectDecision && (
+                  <button type="button" onClick={() => onSelectDecision(q.decisionId)} className="shrink-0 font-semibold text-[var(--accent)] hover:underline underline-offset-2">
+                    {L('결정 열기', 'Open')}
+                  </button>
+                )}
               </li>
             ))}
           </ul>
@@ -112,7 +132,17 @@ export function JudgmentPatternsCard({ projects, items, locale }: {
             {L('전제 없이 봉인된 결정', 'Sealed without recorded premises')}
           </p>
           <p className="mt-1.5 text-[12.5px] leading-[1.5] text-[var(--text-secondary)]">
-            {facts.bare.slice(0, 2).map((d) => d.name.slice(0, 22)).filter(Boolean).join(' · ')}
+            {facts.bare.slice(0, 2).map((d, index) => d.name && (
+              <span key={d.id}>
+                {index > 0 && <span aria-hidden> · </span>}
+                <button
+                  type="button"
+                  onClick={() => onSelectDecision?.(d.id)}
+                  disabled={!onSelectDecision}
+                  className="underline decoration-[var(--border)] underline-offset-2 hover:text-[var(--accent)] hover:decoration-[var(--accent)] disabled:no-underline disabled:cursor-default"
+                >{d.name.slice(0, 22)}</button>
+              </span>
+            ))}
             {facts.bare.length > 2 ? L(` 외 ${facts.bare.length - 2}건`, ` and ${facts.bare.length - 2} more`) : ''}
           </p>
           <p className="mt-1 text-[11.5px] text-[var(--text-tertiary)]">
