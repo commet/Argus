@@ -34,6 +34,8 @@ type Site = 'mix-context' | 'workers' | 'routing' | 'seal-gate' | 'flinch' | 'ui
   | 'harness-feedback' | 'meta';
 const CONSUMPTION_CONTRACT: Record<string, Site> = {
   version: 'meta',                       // diff/version tracking
+  pre_review_baseline: 'harness-feedback', // current-turn evidence carried into
+                                           // later questions; never profile memory
   real_question: 'mix-context',
   hidden_assumptions: 'mix-context',
   premise_records: 'ui',                 // AnalysisCard: the user's own words +
@@ -102,6 +104,7 @@ describe('AnalysisSnapshot consumption contract', () => {
       real_question: 'q',
       hidden_assumptions: [],
       skeleton: [],
+      pre_review_baseline: 'SENTINEL_pre_review_baseline',
       premise_verdicts: [{
         text: 'SENTINEL_premise_verdicts',
         declared: 'premise',

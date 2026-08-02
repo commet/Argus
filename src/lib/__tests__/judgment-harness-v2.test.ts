@@ -20,9 +20,11 @@ describe('Argus judgment harness v2', () => {
 
   it('treats the pre-review baseline as user evidence across the first and later turns', () => {
     const initial = buildInitialJudgmentPrompt(
-      '이번 주에 공개할지 고민이에요.',
+      {
+        situation: '이번 주에 공개할지 고민이에요.',
+        preReviewBaseline: '이번 주에 공개하되 치명적인 오류만 먼저 확인하고 싶어요.',
+      },
       'ko',
-      '이번 주에 공개하되 치명적인 오류만 먼저 확인하고 싶어요.',
     );
     expect(initial.user).toContain('<pre-review-baseline>');
     expect(initial.user).toContain('치명적인 오류만 먼저 확인');

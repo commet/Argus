@@ -147,11 +147,25 @@ function voice(locale: Locale): string {
     : 'Answer in natural, direct English. Avoid corporate or therapeutic filler.';
 }
 
+/** Everything the first judgment turn may know about this decision.
+ *
+ * Keep this envelope deliberately smaller than a user/session object. The
+ * baseline is authored in the immediately preceding UI, so it is current-turn
+ * evidence—not a remembered preference or a profile inferred elsewhere.
+ */
+export interface CurrentDecisionInput {
+  situation: string;
+  preReviewBaseline?: string;
+}
+
 export function buildInitialJudgmentPrompt(
-  problemText: string,
+  problemText: string | CurrentDecisionInput,
   locale: Locale = 'en',
-  preReviewBaseline?: string,
 ): { system: string; user: string } {
+  const current = typeof problemText === 'string'
+    ? { situation: problemText }
+    : problemText;
+  const preReviewBaseline = current.preReviewBaseline;
   return {
     system: `You are Argus: a judgment harness that helps a person see what their
 decision currently rests on. You are not a committee, coach, or answer engine.
@@ -283,7 +297,7 @@ Return JSON only:
   "skeleton": [],
   "next_question": {"text": "one grounded question", "type": "short"} or null
 }`,
-    user: `<user-data>${sanitize(problemText)}</user-data>${preReviewBaseline?.trim()
+    user: `<user-data>${sanitize(current.situation)}</user-data>${preReviewBaseline?.trim()
       ? `\n\n<pre-review-baseline>${sanitize(preReviewBaseline)}</pre-review-baseline>`
       : ''}`,
   };

@@ -196,7 +196,12 @@ export function buildInitialAnalysisPrompt(problemText: string, locale: Locale =
   user: string;
 } {
   return HARNESS_V2
-    ? buildInitialJudgmentPrompt(problemText, locale, preReviewBaseline)
+    ? buildInitialJudgmentPrompt(
+        preReviewBaseline
+          ? { situation: problemText, preReviewBaseline }
+          : problemText,
+        locale,
+      )
     : buildLegacyInitialAnalysisPrompt(problemText, locale);
 }
 
