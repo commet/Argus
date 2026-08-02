@@ -81,8 +81,15 @@ export function sealedWithoutPremises(
   decisions: readonly PatternDecision[] | undefined,
   items: readonly DecisionItem[] | undefined,
 ): PatternDecision[] {
-  const withItems = new Set(activeItems([...(items ?? [])]).map((i) => i.decision_id));
-  return (decisions ?? []).filter((d) => d.sealed && !withItems.has(d.id));
+  // The label says premises, so only a premise can satisfy it. An unanswered
+  // question, observation, or criterion is useful material but does not tell
+  // us what the sealed judgment rests on.
+  const withPremises = new Set(
+    activeItems([...(items ?? [])])
+      .filter((item) => item.type === 'premise')
+      .map((item) => item.decision_id),
+  );
+  return (decisions ?? []).filter((d) => d.sealed && !withPremises.has(d.id));
 }
 
 /** 화면 한 장에 다 넣기 위한 묶음. */

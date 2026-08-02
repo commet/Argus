@@ -77,7 +77,7 @@ describe('미결 질문 잔량', () => {
 });
 
 describe('전제 없이 봉인된 결정', () => {
-  it('봉인됐고 활성 항목이 0인 결정만 센다', () => {
+  it('봉인됐고 활성 전제가 0인 결정만 센다', () => {
     const bare = sealedWithoutPremises(
       [
         { id: 'd1', name: '채용', sealed: true },
@@ -87,6 +87,15 @@ describe('전제 없이 봉인된 결정', () => {
       [item('d1', '다음 분기 매출이 지금 수준을 유지한다.')],
     );
     expect(bare.map((d) => d.id)).toEqual(['d2']);
+  });
+
+  it('열린 질문이나 메모를 전제로 잘못 세지 않는다', () => {
+    const question = { ...item('d1', '누가 최종 승인하는가?'), type: 'open_question' as const };
+    const bare = sealedWithoutPremises(
+      [{ id: 'd1', name: '출시', sealed: true }],
+      [question],
+    );
+    expect(bare.map((decision) => decision.id)).toEqual(['d1']);
   });
 });
 
