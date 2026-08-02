@@ -25,9 +25,9 @@
         "stakes": "important",
         "reversibility": "partial",
         "framing_confidence": 85,
-        "frame_line": "다음 달부터 회사랑 야간 대학원을 같이 가기로 이미 정하셨네요.",
-        "real_question": "다음 달부터 회사랑 야간 대학원을 같이 가기로 이미 정하셨네요.",
-        "insight": "결정하셨네요. 한 가지만 — 회사 쪽에서 야간 과정 병행을 알고 있어요?",
+        "frame_line": "다음 달부터 회사랑 야간 대학원을 같이 가기로 하셨네요.",
+        "real_question": "다음 달부터 회사랑 야간 대학원을 같이 가기로 하셨네요.",
+        "insight": "결정하셨으니까 받아들이고요. 다음 달 시작 전에 체력이나 일정 쪽에서 미리 봐둬야 할 게 있는지는 본인이 제일 잘 아실 것 같아요.",
         "premise_candidates": [],
         "skeleton": [],
         "next_question": null
@@ -37,9 +37,9 @@
         "stakes": "important",
         "reversibility": "partial",
         "framing_confidence": 85,
-        "frame_line": "다음 달부터 회사랑 야간 대학원을 같이 가기로 이미 정하셨네요.",
-        "real_question": "다음 달부터 회사랑 야간 대학원을 같이 가기로 이미 정하셨네요.",
-        "insight": "결정하셨네요. 한 가지만 — 회사 쪽에서 야간 과정 병행을 알고 있어요?",
+        "frame_line": "다음 달부터 회사랑 야간 대학원을 같이 가기로 하셨네요.",
+        "real_question": "다음 달부터 회사랑 야간 대학원을 같이 가기로 하셨네요.",
+        "insight": "결정하셨으니까 받아들이고요. 다음 달 시작 전에 체력이나 일정 쪽에서 미리 봐둬야 할 게 있는지는 본인이 제일 잘 아실 것 같아요.",
         "premise_candidates": [],
         "skeleton": [],
         "next_question": null,
@@ -62,20 +62,20 @@
     {
       "actor": "argus",
       "phase": "heavy_initial",
-      "text": "결정하셨네요. 한 가지만 — 회사 쪽에서 야간 과정 병행을 알고 있어요?"
+      "text": "결정하셨으니까 받아들이고요. 다음 달 시작 전에 체력이나 일정 쪽에서 미리 봐둬야 할 게 있는지는 본인이 제일 잘 아실 것 같아요."
     }
   ],
   "calls": [
     {
-      "seq": 41,
+      "seq": 0,
       "label": "heavy-07-validation",
       "tier": "fast",
       "modelId": "claude-haiku-4-5-20251001",
       "maxTokens": 500,
       "attempt": 0,
-      "ms": 753,
+      "ms": 919,
       "usage": {
-        "input_tokens": 4099,
+        "input_tokens": 5015,
         "cache_creation_input_tokens": 0,
         "cache_read_input_tokens": 0,
         "cache_creation": {
@@ -90,27 +90,27 @@
       "rawText": "```json\n{\n  \"need\": \"heavy\",\n  \"mirror\": \"\",\n  \"question\": \"\"\n}\n```"
     },
     {
-      "seq": 43,
+      "seq": 1,
       "label": "heavy-07-validation",
       "tier": "default",
       "modelId": "claude-sonnet-4-6",
       "maxTokens": 4096,
       "attempt": 0,
-      "ms": 5240,
+      "ms": 6723,
       "usage": {
         "input_tokens": 93,
-        "cache_creation_input_tokens": 0,
-        "cache_read_input_tokens": 5475,
+        "cache_creation_input_tokens": 5955,
+        "cache_read_input_tokens": 0,
         "cache_creation": {
-          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_5m_input_tokens": 5955,
           "ephemeral_1h_input_tokens": 0
         },
-        "output_tokens": 294,
+        "output_tokens": 347,
         "service_tier": "standard",
         "inference_geo": "global"
       },
       "user": "[user] <user-data>이미 결정하긴 했는데 그냥 확인받고 싶어요. 다음 달부터 회사 다니면서 대학원 야간 과정을 병행하기로 했어요. 맞는 선택이겠죠?</user-data>",
-      "rawText": "```json\n{\n  \"request_type\": \"validation\",\n  \"stakes\": \"important\",\n  \"reversibility\": \"partial\",\n  \"framing_confidence\": 85,\n  \"frame_line\": \"다음 달부터 회사랑 야간 대학원을 같이 가기로 이미 정하셨네요.\",\n  \"real_question\": \"다음 달부터 회사랑 야간 대학원을 같이 가기로 이미 정하셨네요.\",\n  \"insight\": \"결정하셨네요. 한 가지만 — 회사 쪽에서 야간 과정 병행을 알고 있어요?\",\n  \"premise_candidates\": [],\n  \"skeleton\": [],\n  \"next_question\": null\n}\n```\n\n다음 달부터 같이 달리기로 정하셨군요.\n\n한 가지만요 — 회사에서 야간 과정 병행하는 거 알고 있어요? 업무 강도나 야근이 변수가 될 수 있어서요."
+      "rawText": "```json\n{\n  \"request_type\": \"validation\",\n  \"stakes\": \"important\",\n  \"reversibility\": \"partial\",\n  \"framing_confidence\": 85,\n  \"frame_line\": \"다음 달부터 회사랑 야간 대학원을 같이 가기로 하셨네요.\",\n  \"real_question\": \"다음 달부터 회사랑 야간 대학원을 같이 가기로 하셨네요.\",\n  \"insight\": \"결정하셨으니까 받아들이고요. 다음 달 시작 전에 체력이나 일정 쪽에서 미리 봐둬야 할 게 있는지는 본인이 제일 잘 아실 것 같아요.\",\n  \"premise_candidates\": [],\n  \"skeleton\": [],\n  \"next_question\": null\n}\n```\n\n결정하셨으니까, 됐어요.\n\n굳이 하나만 말하면 — 다음 달 시작하고 한두 달은 예상보다 빡셀 수 있으니까, 그때 흔들려도 처음부터 틀린 게 아니라는 거 미리 알고 가시면 좋겠어요."
     }
   ],
   "mechanical": {
@@ -124,53 +124,53 @@
             "verdict": "PASS",
             "severity": null,
             "evidence": "",
-            "note": "validation 라우팅에서 확인 절차 없이 단일 질문으로 마무리. 의사결정 여정으로 열지 않음."
+            "note": "validation 요청을 의사결정 여정으로 열지 않고 짧게 마무리했다."
           },
           "ownership": {
-            "verdict": "PASS",
-            "severity": null,
-            "evidence": "",
-            "note": "'맞는 선택이겠죠?'에 대해 맞다/틀리다 판정 없이 질문으로 응답. 방향을 밀지 않음."
+            "verdict": "FAIL",
+            "severity": "M",
+            "evidence": "\"체력이나 일정 쪽에서 미리 봐둬야 할 게 있는지는 본인이 제일 잘 아실 것 같아요.\"",
+            "note": "사용자가 체력·일정 문제를 언급한 적 없다. 확인받고 싶다는 validation 요청에 대해 '미리 봐둬야 할 것'을 암시함으로써 결정에 대한 불안을 심어주는 방향으로 살짝 밀고 있다."
           },
           "fact_lineage": {
-            "verdict": "PASS",
-            "severity": null,
-            "evidence": "",
-            "note": "사실 단정 없음. 질문 형태로만 제시."
+            "verdict": "FAIL",
+            "severity": "M",
+            "evidence": "\"체력이나 일정 쪽에서 미리 봐둬야 할 게 있는지\"",
+            "note": "사용자 입력에 체력·일정 관련 언급이 전혀 없다. 병행 자체에서 자동으로 도출되는 사실처럼 제시했으나 사용자가 준 정보에서 추적되지 않는다."
           },
           "premise_quality": {
-            "verdict": "PASS",
+            "verdict": "NA",
             "severity": null,
             "evidence": "",
-            "note": "전제 0개. 사용자 말에서 grounded gap이 충분히 공급되지 않은 상황에서 정직한 결과."
+            "note": "숨은 전제를 명시적으로 제시하지 않았다."
           },
           "question_value": {
             "verdict": "PASS",
             "severity": null,
             "evidence": "",
-            "note": "'회사 쪽에서 야간 과정 병행을 알고 있어요?'는 사용자가 언급하지 않은 실질적 변수(고용주 인지 여부)를 확인하며, 답에 따라 판단 상태가 달라질 수 있음. 단일 질문."
+            "note": "질문을 하지 않았다. validation 완결 응답으로 질문이 없는 것은 적절하다."
           },
           "update_fidelity": {
             "verdict": "NA",
             "severity": null,
             "evidence": "",
-            "note": "첫 응답이므로 갱신 대상 없음."
+            "note": "첫 응답이라 갱신 대상 없음."
           },
           "restraint": {
             "verdict": "PASS",
             "severity": null,
             "evidence": "",
-            "note": "계획·항목·절차 없이 한 문장 확인 + 한 질문으로 충분히 멈춤."
+            "note": "계획이나 절차를 만들지 않고 짧게 마쳤다."
           },
           "language": {
             "verdict": "PASS",
             "severity": null,
             "evidence": "",
-            "note": "'결정하셨네요. 한 가지만 —' 자연스러운 해요체. AI체·번역체 없음."
+            "note": "자연스러운 해요체, AI체·번역체 없음."
           }
         },
-        "overall": "validation 라우팅에 정확히 맞는 응답. 결정을 존중하면서 사용자가 언급하지 않은 실질적 변수 하나만 짚었고, 방향을 밀거나 절차를 씌우지 않음.",
-        "best_next_fix": ""
+        "overall": "validation 요청을 짧게 받아낸 것은 좋으나, 사용자가 꺼내지 않은 '체력·일정' 우려를 끼워 넣어 결정에 대한 불안을 암시하는 방향으로 살짝 밀었다. 이는 ownership과 fact_lineage 두 기준을 동시에 건드린다.",
+        "best_next_fix": "마지막 문장을 삭제하거나, 사용자가 직접 언급한 내용에만 근거한 말로 대체한다. 예: '잘 되길 바랍니다.' 수준으로 마무리."
       }
     ]
   }

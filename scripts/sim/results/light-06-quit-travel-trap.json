@@ -27,14 +27,14 @@
         "request_type": "open",
         "stakes": "important",
         "reversibility": "partial",
-        "framing_confidence": 40,
+        "framing_confidence": 45,
         "frame_line": "퇴사랑 여행이 같이 나왔네요.",
         "real_question": "퇴사랑 여행이 같이 나왔네요.",
-        "insight": "퇴사가 먼저인지, 여행이 먼저인지, 아니면 둘 다 그냥 지금 상황에서 벗어나고 싶다는 건지 — 아직 어느 쪽인지 모르겠어요.",
+        "insight": "퇴사가 먼저인지, 여행이 먼저인지, 아니면 둘 다 지금 상황에서 벗어나고 싶다는 얘긴지 아직 안 들었어요.",
         "premise_candidates": [],
         "skeleton": [],
         "next_question": {
-          "text": "퇴사랑 여행 중에 뭐가 먼저 떠오른 거예요?",
+          "text": "퇴사 쪽이 더 먼저 떠오른 거예요, 아니면 여행이요?",
           "type": "short"
         }
       },
@@ -42,15 +42,16 @@
         "request_type": "open",
         "stakes": "important",
         "reversibility": "partial",
-        "framing_confidence": 40,
+        "framing_confidence": 45,
         "frame_line": "퇴사랑 여행이 같이 나왔네요.",
         "real_question": "퇴사랑 여행이 같이 나왔네요.",
         "insight": "퇴사랑 여행이 같이 나왔네요.",
         "premise_candidates": [],
         "skeleton": [],
         "next_question": {
-          "text": "퇴사랑 여행 중에 뭐가 먼저 떠오른 거예요?",
-          "type": "short"
+          "text": "이 상황에서 지금 가장 마음에 걸리는 건 뭐예요?",
+          "type": "short",
+          "options": []
         },
         "hidden_assumptions": [],
         "premise_records": [],
@@ -71,20 +72,20 @@
     {
       "actor": "argus",
       "phase": "heavy_initial",
-      "text": "퇴사랑 여행이 같이 나왔네요.\n\n지금 살펴볼 것: 퇴사랑 여행이 같이 나왔네요.\n\n다음 질문: 퇴사랑 여행 중에 뭐가 먼저 떠오른 거예요?"
+      "text": "퇴사랑 여행이 같이 나왔네요.\n\n지금 살펴볼 것: 퇴사랑 여행이 같이 나왔네요.\n\n다음 질문: 이 상황에서 지금 가장 마음에 걸리는 건 뭐예요?"
     }
   ],
   "calls": [
     {
-      "seq": 10,
+      "seq": 8,
       "label": "light-06-quit-travel-trap",
       "tier": "fast",
       "modelId": "claude-haiku-4-5-20251001",
       "maxTokens": 500,
       "attempt": 0,
-      "ms": 741,
+      "ms": 2508,
       "usage": {
-        "input_tokens": 4037,
+        "input_tokens": 4953,
         "cache_creation_input_tokens": 0,
         "cache_read_input_tokens": 0,
         "cache_creation": {
@@ -99,27 +100,27 @@
       "rawText": "```json\n{\n  \"need\": \"heavy\",\n  \"mirror\": \"\",\n  \"question\": \"\"\n}\n```"
     },
     {
-      "seq": 11,
+      "seq": 10,
       "label": "light-06-quit-travel-trap",
       "tier": "default",
       "modelId": "claude-sonnet-4-6",
       "maxTokens": 4096,
       "attempt": 0,
-      "ms": 4804,
+      "ms": 4638,
       "usage": {
         "input_tokens": 31,
-        "cache_creation_input_tokens": 5475,
+        "cache_creation_input_tokens": 5616,
         "cache_read_input_tokens": 0,
         "cache_creation": {
-          "ephemeral_5m_input_tokens": 5475,
+          "ephemeral_5m_input_tokens": 5616,
           "ephemeral_1h_input_tokens": 0
         },
-        "output_tokens": 254,
+        "output_tokens": 246,
         "service_tier": "standard",
         "inference_geo": "global"
       },
       "user": "[user] <user-data>퇴사하고 여행이나 갈까</user-data>",
-      "rawText": "```json\n{\n  \"request_type\": \"open\",\n  \"stakes\": \"important\",\n  \"reversibility\": \"partial\",\n  \"framing_confidence\": 40,\n  \"frame_line\": \"퇴사랑 여행이 같이 나왔네요.\",\n  \"real_question\": \"퇴사랑 여행이 같이 나왔네요.\",\n  \"insight\": \"퇴사가 먼저인지, 여행이 먼저인지, 아니면 둘 다 그냥 지금 상황에서 벗어나고 싶다는 건지 — 아직 어느 쪽인지 모르겠어요.\",\n  \"premise_candidates\": [],\n  \"skeleton\": [],\n  \"next_question\": {\"text\": \"퇴사랑 여행 중에 뭐가 먼저 떠오른 거예요?\", \"type\": \"short\"}\n}\n```"
+      "rawText": "```json\n{\n  \"request_type\": \"open\",\n  \"stakes\": \"important\",\n  \"reversibility\": \"partial\",\n  \"framing_confidence\": 45,\n  \"frame_line\": \"퇴사랑 여행이 같이 나왔네요.\",\n  \"real_question\": \"퇴사랑 여행이 같이 나왔네요.\",\n  \"insight\": \"퇴사가 먼저인지, 여행이 먼저인지, 아니면 둘 다 지금 상황에서 벗어나고 싶다는 얘긴지 아직 안 들었어요.\",\n  \"premise_candidates\": [],\n  \"skeleton\": [],\n  \"next_question\": {\"text\": \"퇴사 쪽이 더 먼저 떠오른 거예요, 아니면 여행이요?\", \"type\": \"short\"}\n}\n```"
     }
   ],
   "mechanical": {
@@ -133,53 +134,53 @@
             "verdict": "PASS",
             "severity": null,
             "evidence": "",
-            "note": "퇴사+여행 조합은 open/important/partial reversibility로 분류 적절. heavy_initial 진입 타당."
+            "note": "퇴사+여행 조합은 open/important/partial로 분류한 것이 합리적이고, heavy_initial로 진입한 것도 적절하다."
           },
           "ownership": {
             "verdict": "PASS",
             "severity": null,
             "evidence": "",
-            "note": "어느 쪽이 낫다는 방향 제시 없음. 질문도 중립적."
+            "note": "방향을 밀거나 선택지를 제시하지 않았다."
           },
           "fact_lineage": {
             "verdict": "PASS",
             "severity": null,
             "evidence": "",
-            "note": "사실 주장 없음."
+            "note": "사실 주장이 없다."
           },
           "premise_quality": {
-            "verdict": "FAIL",
-            "severity": "M",
-            "evidence": "\"지금 살펴볼 것: 퇴사랑 여행이 같이 나왔네요.\"",
-            "note": "이 문장은 '숨은 전제'나 '현실 확인 항목'으로 제시됐지만, 사용자 말을 그대로 반복한 것에 불과하다. 거짓이어도 판단이 달라지지 않고, 빈칸을 채우는 정보도 없다. 전제 역할을 하지 못하는 항목을 전제처럼 배치한 것."
-          },
-          "question_value": {
             "verdict": "PASS",
             "severity": null,
-            "evidence": "\"퇴사랑 여행 중에 뭐가 먼저 떠오른 거예요?\"",
-            "note": "답에 따라 퇴사 의향인지 여행 욕구인지 판단 방향이 달라진다. 하나의 질문, 중립적, 가치 있음."
+            "evidence": "",
+            "note": "전제를 제시하지 않았다. 사용자 입력에서 load-bearing gap이 명확히 드러나지 않은 상태이므로 0개는 정직한 결과다."
+          },
+          "question_value": {
+            "verdict": "FAIL",
+            "severity": "M",
+            "evidence": "다음 질문: 이 상황에서 지금 가장 마음에 걸리는 건 뭐예요?",
+            "note": "질문 자체가 나쁜 것은 아니지만, '이 상황에서'라는 수식어가 사용자가 말하지 않은 '상황'을 전제한다. 또한 '가장 마음에 걸리는 것'을 묻는 것은 사용자가 무언가를 걱정하고 있다는 암묵적 전제를 깔고 있어 가볍게 던진 말을 무거운 고민으로 프레이밍할 위험이 있다. 단순히 '지금 어떤 생각이에요?' 정도가 더 중립적이다."
           },
           "update_fidelity": {
             "verdict": "NA",
             "severity": null,
             "evidence": "",
-            "note": "첫 응답이라 갱신 대상 없음."
+            "note": "첫 응답이라 해당 없음."
           },
           "restraint": {
             "verdict": "FAIL",
             "severity": "L",
-            "evidence": "\"지금 살펴볼 것: 퇴사랑 여행이 같이 나왔네요.\"",
-            "note": "사용자 말을 그대로 되풀이하는 항목을 '살펴볼 것'이라는 절차 레이블로 포장했다. 실질 정보 없이 형식만 추가된 과잉."
+            "evidence": "지금 살펴볼 것: 퇴사랑 여행이 같이 나왔네요.",
+            "note": "'지금 살펴볼 것'이라는 섹션 헤더가 그 아래 내용('퇴사랑 여행이 같이 나왔네요')과 동일해 구조적 과잉이다. 첫 접촉에서 절차 레이블을 붙이는 것은 가벼운 말에 무거운 형식을 씌우는 것에 해당한다."
           },
           "language": {
             "verdict": "PASS",
             "severity": null,
             "evidence": "",
-            "note": "해요체 자연스럽고 AI체·보고서체 없음."
+            "note": "해요체이고 자연스럽다."
           }
         },
-        "overall": "'지금 살펴볼 것' 항목이 사용자 말을 그대로 반복하는 데 그쳐 전제도 현실 확인도 아닌 빈 절차가 됐다. 질문 자체는 적절하므로 그 항목만 제거하면 응답이 깔끔해진다.",
-        "best_next_fix": "'지금 살펴볼 것: 퇴사랑 여행이 같이 나왔네요.' 줄을 삭제하고 첫 문장 바로 뒤에 질문을 이어붙인다."
+        "overall": "질문이 '마음에 걸리는 것'을 묻는 방식으로 사용자의 가벼운 발화를 걱정·고민의 프레임으로 살짝 밀고 있고, '지금 살펴볼 것' 헤더가 불필요한 절차감을 더한다.",
+        "best_next_fix": "'가장 마음에 걸리는 건 뭐예요?' 대신 '지금 어떤 쪽으로 마음이 가요?' 처럼 방향성 없이 열어두는 질문으로 교체하고, '지금 살펴볼 것' 헤더를 제거한다."
       }
     ]
   }

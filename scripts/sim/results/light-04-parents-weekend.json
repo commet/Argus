@@ -19,33 +19,33 @@
     "gate": {
       "need": "light",
       "mirror": "지난달에도 못 가셨고, 이번 주말도 같은 자리에 서 계신 거네요.",
-      "question": "지금 마음은 어느 쪽에 가 있어요? 가고 싶으신 건지, 가야 한다는 쪽인지."
+      "question": "지금 마음은 어느 쪽에 가 있어요? 가고 싶으신 건지, 아니면 가야 한다는 쪽인지."
     }
   },
   "light": {
     "qas": [
       {
-        "question": "지금 마음은 어느 쪽에 가 있어요? 가고 싶으신 건지, 가야 한다는 쪽인지.",
+        "question": "지금 마음은 어느 쪽에 가 있어요? 가고 싶으신 건지, 아니면 가야 한다는 쪽인지.",
         "answer": "엄마가 서운해하실 것 같아서요. 근데 이번 주말에 밀린 일도 있어요."
       },
       {
-        "question": "밀린 일이 이번 주말에 꼭 해야 하는 건가요, 아니면 늘어져도 괜찮은 건가요?",
+        "question": "밀린 일이 이번 주말에 꼭 해야 하는 건지, 아니면 미뤄도 괜찮은 건지 어느 쪽이에요?",
         "answer": "일은 일요일 저녁에 몰아서 하면 되긴 해요."
       }
     ],
     "turns": [
       {
-        "mirror": "지난달에도 못 가셨고, 이번 주말도 같은 자리에 서 계신 거네요. 엄마 서운함이 걸려 있으면서, 한편으로는 밀린 일이 있으신 거고요.",
+        "mirror": "지난달에도 못 가셨고, 이번 주말도 같은 자리에 서 계신 거네요. 엄마가 서운해하실 것 같은데, 밀린 일도 있고.",
         "action": "ask",
-        "question": "밀린 일이 이번 주말에 꼭 해야 하는 건가요, 아니면 늘어져도 괜찮은 건가요?",
+        "question": "밀린 일이 이번 주말에 꼭 해야 하는 건지, 아니면 미뤄도 괜찮은 건지 어느 쪽이에요?",
         "_qasLen": 1,
-        "_rawText": "```json\n{\n  \"mirror\": \"지난달에도 못 가셨고, 이번 주말도 같은 자리에 서 계신 거네요. 엄마 서운함이 걸려 있으면서, 한편으로는 밀린 일이 있으신 거고요.\",\n  \"action\": \"ask\",\n  \"question\": \"밀린 일이 이번 주말에 꼭 해야 하는 건가요, 아니면 늘어져도 괜찮은 건가요?\"\n}\n```"
+        "_rawText": "```json\n{\n  \"mirror\": \"지난달에도 못 가셨고, 이번 주말도 같은 자리에 서 계신 거네요. 엄마가 서운해하실 것 같은데, 밀린 일도 있고.\",\n  \"action\": \"ask\",\n  \"question\": \"밀린 일이 이번 주말에 꼭 해야 하는 건지, 아니면 미뤄도 괜찮은 건지 어느 쪽이에요?\"\n}\n```"
       },
       {
-        "mirror": "지난달에도 못 갔고, 엄마가 서운해하실 것 같으신데 밀린 일도 있으신 거네요. 일은 일요일 저녁에 몰아서 해도 되는 상황이고요.",
+        "mirror": "엄마가 서운해하실까봐 가고 싶으신 마음이 있고, 밀린 일은 일요일 저녁에 하면 되는 상황이네요.",
         "action": "close",
         "_qasLen": 2,
-        "_rawText": "```json\n{\n  \"mirror\": \"지난달에도 못 갔고, 엄마가 서운해하실 것 같으신데 밀린 일도 있으신 거네요. 일은 일요일 저녁에 몰아서 해도 되는 상황이고요.\",\n  \"action\": \"offer\",\n  \"offer\": {\n    \"sentence\": \"주말에 부모님 댁에 갔다.\",\n    \"when\": \"in_days\",\n    \"days\": 2,\n    \"ask\": \"그럼 주말을 부모님 댁에서 보내 보시고 — 월요일 아침에 어떻게 되셨는지, 제가 한 번만 물어볼까요?\"\n  }\n}\n```"
+        "_rawText": "```json\n{\n  \"mirror\": \"엄마가 서운해하실까봐 가고 싶으신 마음이 있고, 밀린 일은 일요일 저녁에 하면 되는 상황이네요.\",\n  \"action\": \"offer\",\n  \"offer\": {\n    \"sentence\": \"사용자가 부모님 댁을 방문했고, 일요일 저녁에 밀린 일을 진행했다.\",\n    \"when\": \"in_days\",\n    \"days\": 2,\n    \"ask\": \"그럼 이번 주말에 부모님 댁에 가기로 하고 — 월요일 아침에 어떻게 되셨는지, 제가 한 번만 물어볼까요?\"\n  }\n}\n```"
       }
     ],
     "outcome": "close"
@@ -61,7 +61,7 @@
     {
       "actor": "argus",
       "phase": "light_gate",
-      "text": "지난달에도 못 가셨고, 이번 주말도 같은 자리에 서 계신 거네요.\n지금 마음은 어느 쪽에 가 있어요? 가고 싶으신 건지, 가야 한다는 쪽인지."
+      "text": "지난달에도 못 가셨고, 이번 주말도 같은 자리에 서 계신 거네요.\n지금 마음은 어느 쪽에 가 있어요? 가고 싶으신 건지, 아니면 가야 한다는 쪽인지."
     },
     {
       "actor": "user",
@@ -71,7 +71,7 @@
     {
       "actor": "argus",
       "phase": "light_turn_1",
-      "text": "지난달에도 못 가셨고, 이번 주말도 같은 자리에 서 계신 거네요. 엄마 서운함이 걸려 있으면서, 한편으로는 밀린 일이 있으신 거고요.\n밀린 일이 이번 주말에 꼭 해야 하는 건가요, 아니면 늘어져도 괜찮은 건가요?"
+      "text": "지난달에도 못 가셨고, 이번 주말도 같은 자리에 서 계신 거네요. 엄마가 서운해하실 것 같은데, 밀린 일도 있고.\n밀린 일이 이번 주말에 꼭 해야 하는 건지, 아니면 미뤄도 괜찮은 건지 어느 쪽이에요?"
     },
     {
       "actor": "user",
@@ -81,78 +81,78 @@
     {
       "actor": "argus",
       "phase": "light_turn_2",
-      "text": "지난달에도 못 갔고, 엄마가 서운해하실 것 같으신데 밀린 일도 있으신 거네요. 일은 일요일 저녁에 몰아서 해도 되는 상황이고요."
+      "text": "엄마가 서운해하실까봐 가고 싶으신 마음이 있고, 밀린 일은 일요일 저녁에 하면 되는 상황이네요."
     }
   ],
   "calls": [
     {
-      "seq": 0,
+      "seq": 5,
       "label": "light-04-parents-weekend",
       "tier": "fast",
       "modelId": "claude-haiku-4-5-20251001",
       "maxTokens": 500,
       "attempt": 0,
-      "ms": 1613,
+      "ms": 1752,
       "usage": {
-        "input_tokens": 4366,
+        "input_tokens": 4978,
         "cache_creation_input_tokens": 0,
         "cache_read_input_tokens": 0,
         "cache_creation": {
           "ephemeral_5m_input_tokens": 0,
           "ephemeral_1h_input_tokens": 0
         },
-        "output_tokens": 115,
+        "output_tokens": 119,
         "service_tier": "standard",
         "inference_geo": "not_available"
       },
       "user": "[user] 오늘은 2026-08-02 (일요일)입니다.\n\n사용자가 방금 쓴 것:\n<user-data context=\"decision\">\n주말에 부모님 댁에 갈까 말까 고민이에요. 지난달에도 못 갔거든요.\n</user-data>",
-      "rawText": "```json\n{\n  \"need\": \"light\",\n  \"mirror\": \"지난달에도 못 가셨고, 이번 주말도 같은 자리에 서 계신 거네요.\",\n  \"question\": \"지금 마음은 어느 쪽에 가 있어요? 가고 싶으신 건지, 가야 한다는 쪽인지.\"\n}\n```"
+      "rawText": "```json\n{\n  \"need\": \"light\",\n  \"mirror\": \"지난달에도 못 가셨고, 이번 주말도 같은 자리에 서 계신 거네요.\",\n  \"question\": \"지금 마음은 어느 쪽에 가 있어요? 가고 싶으신 건지, 아니면 가야 한다는 쪽인지.\"\n}\n```"
     },
     {
-      "seq": 1,
-      "label": "light-07-banmal",
+      "seq": 7,
+      "label": "light-05-hoesik-escalate",
       "tier": "fast",
       "modelId": "claude-haiku-4-5-20251001",
       "maxTokens": 700,
       "attempt": 0,
-      "ms": 2190,
+      "ms": 2114,
       "usage": {
-        "input_tokens": 4723,
+        "input_tokens": 5339,
         "cache_creation_input_tokens": 0,
         "cache_read_input_tokens": 0,
         "cache_creation": {
           "ephemeral_5m_input_tokens": 0,
           "ephemeral_1h_input_tokens": 0
         },
-        "output_tokens": 158,
+        "output_tokens": 154,
         "service_tier": "standard",
         "inference_geo": "not_available"
       },
-      "user": "[user] 오늘은 2026-08-02 (일요일)입니다.\n\n사용자가 처음 쓴 것:\n<user-data context=\"decision\">\n주말에 부모님 댁에 갈까 말까 고민이에요. 지난달에도 못 갔거든요.\n</user-data>\n\n지금까지의 문답 (질문은 당신, 답은 사용자):\n<user-data context=\"answers\">\nQ1. 지금 마음은 어느 쪽에 가 있어요? 가고 싶으신 건지, 가야 한다는 쪽인지.\nA1. 엄마가 서운해하실 것 같아서요. 근데 이번 주말에 밀린 일도 있어요.\n</user-data>",
-      "rawText": "```json\n{\n  \"mirror\": \"지난달에도 못 가셨고, 이번 주말도 같은 자리에 서 계신 거네요. 엄마 서운함이 걸려 있으면서, 한편으로는 밀린 일이 있으신 거고요.\",\n  \"action\": \"ask\",\n  \"question\": \"밀린 일이 이번 주말에 꼭 해야 하는 건가요, 아니면 늘어져도 괜찮은 건가요?\"\n}\n```"
+      "user": "[user] 오늘은 2026-08-02 (일요일)입니다.\n\n사용자가 처음 쓴 것:\n<user-data context=\"decision\">\n주말에 부모님 댁에 갈까 말까 고민이에요. 지난달에도 못 갔거든요.\n</user-data>\n\n지금까지의 문답 (질문은 당신, 답은 사용자):\n<user-data context=\"answers\">\nQ1. 지금 마음은 어느 쪽에 가 있어요? 가고 싶으신 건지, 아니면 가야 한다는 쪽인지.\nA1. 엄마가 서운해하실 것 같아서요. 근데 이번 주말에 밀린 일도 있어요.\n</user-data>",
+      "rawText": "```json\n{\n  \"mirror\": \"지난달에도 못 가셨고, 이번 주말도 같은 자리에 서 계신 거네요. 엄마가 서운해하실 것 같은데, 밀린 일도 있고.\",\n  \"action\": \"ask\",\n  \"question\": \"밀린 일이 이번 주말에 꼭 해야 하는 건지, 아니면 미뤄도 괜찮은 건지 어느 쪽이에요?\"\n}\n```"
     },
     {
-      "seq": 4,
-      "label": "light-07-banmal",
+      "seq": 9,
+      "label": "light-06-quit-travel-trap",
       "tier": "fast",
       "modelId": "claude-haiku-4-5-20251001",
       "maxTokens": 700,
       "attempt": 0,
-      "ms": 2247,
+      "ms": 2144,
       "usage": {
-        "input_tokens": 4856,
+        "input_tokens": 5480,
         "cache_creation_input_tokens": 0,
         "cache_read_input_tokens": 0,
         "cache_creation": {
           "ephemeral_5m_input_tokens": 0,
           "ephemeral_1h_input_tokens": 0
         },
-        "output_tokens": 217,
+        "output_tokens": 225,
         "service_tier": "standard",
         "inference_geo": "not_available"
       },
-      "user": "[user] 오늘은 2026-08-02 (일요일)입니다.\n\n사용자가 처음 쓴 것:\n<user-data context=\"decision\">\n주말에 부모님 댁에 갈까 말까 고민이에요. 지난달에도 못 갔거든요.\n</user-data>\n\n지금까지의 문답 (질문은 당신, 답은 사용자):\n<user-data context=\"answers\">\nQ1. 지금 마음은 어느 쪽에 가 있어요? 가고 싶으신 건지, 가야 한다는 쪽인지.\nA1. 엄마가 서운해하실 것 같아서요. 근데 이번 주말에 밀린 일도 있어요.\nQ2. 밀린 일이 이번 주말에 꼭 해야 하는 건가요, 아니면 늘어져도 괜찮은 건가요?\nA2. 일은 일요일 저녁에 몰아서 하면 되긴 해요.\n</user-data>",
-      "rawText": "```json\n{\n  \"mirror\": \"지난달에도 못 갔고, 엄마가 서운해하실 것 같으신데 밀린 일도 있으신 거네요. 일은 일요일 저녁에 몰아서 해도 되는 상황이고요.\",\n  \"action\": \"offer\",\n  \"offer\": {\n    \"sentence\": \"주말에 부모님 댁에 갔다.\",\n    \"when\": \"in_days\",\n    \"days\": 2,\n    \"ask\": \"그럼 주말을 부모님 댁에서 보내 보시고 — 월요일 아침에 어떻게 되셨는지, 제가 한 번만 물어볼까요?\"\n  }\n}\n```"
+      "user": "[user] 오늘은 2026-08-02 (일요일)입니다.\n\n사용자가 처음 쓴 것:\n<user-data context=\"decision\">\n주말에 부모님 댁에 갈까 말까 고민이에요. 지난달에도 못 갔거든요.\n</user-data>\n\n지금까지의 문답 (질문은 당신, 답은 사용자):\n<user-data context=\"answers\">\nQ1. 지금 마음은 어느 쪽에 가 있어요? 가고 싶으신 건지, 아니면 가야 한다는 쪽인지.\nA1. 엄마가 서운해하실 것 같아서요. 근데 이번 주말에 밀린 일도 있어요.\nQ2. 밀린 일이 이번 주말에 꼭 해야 하는 건지, 아니면 미뤄도 괜찮은 건지 어느 쪽이에요?\nA2. 일은 일요일 저녁에 몰아서 하면 되긴 해요.\n</user-data>",
+      "rawText": "```json\n{\n  \"mirror\": \"엄마가 서운해하실까봐 가고 싶으신 마음이 있고, 밀린 일은 일요일 저녁에 하면 되는 상황이네요.\",\n  \"action\": \"offer\",\n  \"offer\": {\n    \"sentence\": \"사용자가 부모님 댁을 방문했고, 일요일 저녁에 밀린 일을 진행했다.\",\n    \"when\": \"in_days\",\n    \"days\": 2,\n    \"ask\": \"그럼 이번 주말에 부모님 댁에 가기로 하고 — 월요일 아침에 어떻게 되셨는지, 제가 한 번만 물어볼까요?\"\n  }\n}\n```"
     }
   ],
   "mechanical": {
@@ -166,53 +166,53 @@
             "verdict": "PASS",
             "severity": null,
             "evidence": "",
-            "note": "light 게이트로 처리하고 2회 질문 후 종결. 가벼운 일상 고민에 적절한 경로."
+            "note": "light 게이트로 처리하고 질문 2개 답변 후 종결. 과도한 절차 없음."
           },
           "ownership": {
             "verdict": "PASS",
             "severity": null,
             "evidence": "",
-            "note": "어느 쪽이 낫다고 정하거나 방향을 미는 표현 없음."
+            "note": "light_turn_2에서 상황을 요약만 하고 어느 쪽이 낫다는 방향을 밀지 않음."
           },
           "fact_lineage": {
             "verdict": "PASS",
             "severity": null,
             "evidence": "",
-            "note": "모든 서술이 사용자 발화에서 추적 가능."
+            "note": "모든 내용이 사용자 발화에서 추적 가능함."
           },
           "premise_quality": {
             "verdict": "NA",
             "severity": null,
             "evidence": "",
-            "note": "숨은 전제를 명시적으로 제시하지 않음. 이 흐름에서 필요하지 않았으므로 NA."
+            "note": "숨은 전제를 명시적으로 제시하지 않았고, 이 대화에서 필요하지 않았음."
           },
           "question_value": {
-            "verdict": "FAIL",
-            "severity": "M",
-            "evidence": "light_gate: '지금 마음은 어느 쪽에 가 있어요? 가고 싶으신 건지, 가야 한다는 쪽인지.' → 사용자가 다음 발화에서 '엄마가 서운해하실 것 같아서요'라고 답했는데, light_turn_1이 이 답을 반영하지 않고 '밀린 일이 이번 주말에 꼭 해야 하는 건가요'로 넘어감. 첫 질문의 답(가야 한다는 쪽)이 실질적으로 확인됐음에도 그 상태 변화를 명시하지 않은 채 두 번째 질문으로 이동.",
-            "note": "첫 질문이 무의미했던 건 아니지만, 답을 받은 뒤 그 답이 판단에 어떻게 반영됐는지 보이지 않아 질문 가치가 소진되지 않은 것처럼 처리됨."
+            "verdict": "PASS",
+            "severity": null,
+            "evidence": "light_gate: '지금 마음은 어느 쪽에 가 있어요?', light_turn_1: '밀린 일이 이번 주말에 꼭 해야 하는 건지, 아니면 미뤄도 괜찮은 건지'",
+            "note": "두 질문 모두 한 번에 하나씩, 답에 따라 판단 상태가 실제로 달라지는 질문. 종결 시 추가 질문 없음."
           },
           "update_fidelity": {
-            "verdict": "FAIL",
-            "severity": "M",
-            "evidence": "light_turn_1 첫 문장: '지난달에도 못 가셨고, 이번 주말도 같은 자리에 서 계신 거네요.' — 이는 light_gate의 첫 문장과 동일한 요약이며, 사용자가 '엄마 서운함'과 '밀린 일'이라는 새 정보를 준 뒤에도 상태가 갱신되지 않고 그대로 반복됨.",
-            "note": "새 답변 이후 달라진 것만 반영해야 하는데, 이전 요약을 그대로 앞에 붙이는 패턴이 반복되어 갱신 충실도가 낮음."
+            "verdict": "PASS",
+            "severity": null,
+            "evidence": "light_turn_2: '밀린 일은 일요일 저녁에 하면 되는 상황이네요'",
+            "note": "사용자의 새 답변(일요일 저녁에 몰아서 하면 됨)을 반영해 상황 요약이 갱신됨. 새 전제 추가 없음."
           },
           "restraint": {
             "verdict": "PASS",
             "severity": null,
             "evidence": "",
-            "note": "계획 생성 없음. 가벼운 고민에 무거운 절차 없음."
+            "note": "충분한 정보가 모인 뒤 요약으로 종결. 추가 계획이나 현실 확인 항목 없음."
           },
           "language": {
             "verdict": "PASS",
             "severity": null,
             "evidence": "",
-            "note": "해요체, 자연스러운 한국어."
+            "note": "자연스러운 해요체. AI체·번역체 없음."
           }
         },
-        "overall": "첫 질문의 답을 받은 뒤 상태 갱신 없이 이전 요약을 그대로 반복하는 패턴이 두 턴에 걸쳐 나타남. 사용자가 새 정보를 줄 때마다 달라진 부분만 반영해야 하는데, 고정된 요약 문장을 앞에 붙이는 방식이 update_fidelity와 question_value 모두를 약화시킴.",
-        "best_next_fix": "각 턴 시작 요약을 이전 턴과 동일하게 반복하지 말고, 직전 답변으로 달라진 것만 한 문장으로 갱신해서 시작할 것."
+        "overall": "가벼운 일상 고민을 적절한 경로로 처리하고, 두 질문으로 핵심 제약을 확인한 뒤 깔끔하게 종결했음. 전 구간에서 방향을 밀거나 사실을 만들어낸 흔적이 없음.",
+        "best_next_fix": ""
       }
     ]
   }

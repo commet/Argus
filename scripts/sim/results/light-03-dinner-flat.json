@@ -18,23 +18,23 @@
     },
     "gate": {
       "need": "light",
-      "mirror": "오늘 저녁 뭘 먹을지 고르는 거네요.",
-      "question": "지금 마음은 어느 쪽에 가 있어요? 뭘 먹고 싶은지, 아니면 뭘 먹을지 정하기가 힘든 건지."
+      "mirror": "오늘 저녁 뭘 먹을지 고르는 중이네요.",
+      "question": "지금 마음은 어느 쪽에 가 있어요? 뭘 먹고 싶은 건지도 같이요."
     }
   },
   "light": {
     "qas": [
       {
-        "question": "지금 마음은 어느 쪽에 가 있어요? 뭘 먹고 싶은지, 아니면 뭘 먹을지 정하기가 힘든 건지.",
+        "question": "지금 마음은 어느 쪽에 가 있어요? 뭘 먹고 싶은 건지도 같이요.",
         "answer": "그냥 집에 있는 걸로 해결할까 싶기도 하고."
       }
     ],
     "turns": [
       {
-        "mirror": "집에 있는 걸로 기울어 계시네요.",
+        "mirror": "집에 있는 걸로 충분한 기울기네요.",
         "action": "close",
         "_qasLen": 1,
-        "_rawText": "```json\n{\n  \"mirror\": \"집에 있는 걸로 기울어 계시네요.\",\n  \"action\": \"close\"\n}\n```"
+        "_rawText": "```json\n{\n  \"mirror\": \"집에 있는 걸로 충분한 기울기네요.\",\n  \"action\": \"close\"\n}\n```"
       }
     ],
     "outcome": "close"
@@ -50,7 +50,7 @@
     {
       "actor": "argus",
       "phase": "light_gate",
-      "text": "오늘 저녁 뭘 먹을지 고르는 거네요.\n지금 마음은 어느 쪽에 가 있어요? 뭘 먹고 싶은지, 아니면 뭘 먹을지 정하기가 힘든 건지."
+      "text": "오늘 저녁 뭘 먹을지 고르는 중이네요.\n지금 마음은 어느 쪽에 가 있어요? 뭘 먹고 싶은 건지도 같이요."
     },
     {
       "actor": "user",
@@ -60,7 +60,7 @@
     {
       "actor": "argus",
       "phase": "light_turn_1",
-      "text": "집에 있는 걸로 기울어 계시네요."
+      "text": "집에 있는 걸로 충분한 기울기네요."
     }
   ],
   "calls": [
@@ -71,7 +71,7 @@
       "modelId": "claude-haiku-4-5-20251001",
       "maxTokens": 500,
       "attempt": 0,
-      "ms": 1905,
+      "ms": 1548,
       "usage": {
         "input_tokens": 4953,
         "cache_creation_input_tokens": 0,
@@ -80,12 +80,12 @@
           "ephemeral_5m_input_tokens": 0,
           "ephemeral_1h_input_tokens": 0
         },
-        "output_tokens": 117,
+        "output_tokens": 99,
         "service_tier": "standard",
         "inference_geo": "not_available"
       },
       "user": "[user] 오늘은 2026-08-02 (일요일)입니다.\n\n사용자가 방금 쓴 것:\n<user-data context=\"decision\">\n오늘 저녁 뭐 먹지\n</user-data>",
-      "rawText": "```json\n{\n  \"need\": \"light\",\n  \"mirror\": \"오늘 저녁 뭘 먹을지 고르는 거네요.\",\n  \"question\": \"지금 마음은 어느 쪽에 가 있어요? 뭘 먹고 싶은지, 아니면 뭘 먹을지 정하기가 힘든 건지.\"\n}\n```"
+      "rawText": "```json\n{\n  \"need\": \"light\",\n  \"mirror\": \"오늘 저녁 뭘 먹을지 고르는 중이네요.\",\n  \"question\": \"지금 마음은 어느 쪽에 가 있어요? 뭘 먹고 싶은 건지도 같이요.\"\n}\n```"
     },
     {
       "seq": 1,
@@ -94,21 +94,21 @@
       "modelId": "claude-haiku-4-5-20251001",
       "maxTokens": 700,
       "attempt": 0,
-      "ms": 1160,
+      "ms": 3517,
       "usage": {
-        "input_tokens": 5311,
+        "input_tokens": 5292,
         "cache_creation_input_tokens": 0,
         "cache_read_input_tokens": 0,
         "cache_creation": {
           "ephemeral_5m_input_tokens": 0,
           "ephemeral_1h_input_tokens": 0
         },
-        "output_tokens": 44,
+        "output_tokens": 45,
         "service_tier": "standard",
         "inference_geo": "not_available"
       },
-      "user": "[user] 오늘은 2026-08-02 (일요일)입니다.\n\n사용자가 처음 쓴 것:\n<user-data context=\"decision\">\n오늘 저녁 뭐 먹지\n</user-data>\n\n지금까지의 문답 (질문은 당신, 답은 사용자):\n<user-data context=\"answers\">\nQ1. 지금 마음은 어느 쪽에 가 있어요? 뭘 먹고 싶은지, 아니면 뭘 먹을지 정하기가 힘든 건지.\nA1. 그냥 집에 있는 걸로 해결할까 싶기도 하고.\n</user-data>",
-      "rawText": "```json\n{\n  \"mirror\": \"집에 있는 걸로 기울어 계시네요.\",\n  \"action\": \"close\"\n}\n```"
+      "user": "[user] 오늘은 2026-08-02 (일요일)입니다.\n\n사용자가 처음 쓴 것:\n<user-data context=\"decision\">\n오늘 저녁 뭐 먹지\n</user-data>\n\n지금까지의 문답 (질문은 당신, 답은 사용자):\n<user-data context=\"answers\">\nQ1. 지금 마음은 어느 쪽에 가 있어요? 뭘 먹고 싶은 건지도 같이요.\nA1. 그냥 집에 있는 걸로 해결할까 싶기도 하고.\n</user-data>",
+      "rawText": "```json\n{\n  \"mirror\": \"집에 있는 걸로 충분한 기울기네요.\",\n  \"action\": \"close\"\n}\n```"
     }
   ],
   "mechanical": {
@@ -122,52 +122,52 @@
             "verdict": "PASS",
             "severity": null,
             "evidence": "",
-            "note": "가벼운 일상 질문을 light로 처리하고 한 턴 후 종결. 적절."
+            "note": "가벼운 저녁 메뉴 고민을 light 경로로 처리하고 한 번의 질문 후 종결한 것은 적절하다."
           },
           "ownership": {
             "verdict": "PASS",
             "severity": null,
             "evidence": "",
-            "note": "'집에 있는 걸로 기울어 계시네요'는 사용자 말을 그대로 반영한 것으로 방향을 밀지 않음."
+            "note": "'집에 있는 걸로 충분한 기울기네요'는 사용자의 말을 반영한 것이며 방향을 밀거나 선택을 대신 정하지 않았다."
           },
           "fact_lineage": {
             "verdict": "PASS",
             "severity": null,
             "evidence": "",
-            "note": "사실 주장 없음."
+            "note": "사실 주장 없음. 사용자 말만 반영했다."
           },
           "premise_quality": {
             "verdict": "PASS",
             "severity": null,
             "evidence": "",
-            "note": "전제 없음. 이 맥락에서 적절."
+            "note": "전제 없음. 이 가벼운 판단에서 전제가 필요한 논리적 빈틈이 없으므로 정상이다."
           },
           "question_value": {
             "verdict": "PASS",
             "severity": null,
             "evidence": "",
-            "note": "첫 턴 질문('뭘 먹고 싶은지, 아니면 정하기가 힘든 건지')은 상태를 구분하는 유효한 질문. 사용자가 답한 뒤 추가 질문 없이 종결."
+            "note": "첫 질문('지금 마음은 어느 쪽에 가 있어요?')은 사용자의 상태를 파악하는 데 필요했고, 답변 후 추가 질문 없이 종결한 것은 적절하다."
           },
           "update_fidelity": {
             "verdict": "PASS",
             "severity": null,
             "evidence": "",
-            "note": "사용자 답변을 받아 상태를 반영하고 종결. 새 전제나 관점 추가 없음."
+            "note": "사용자가 '집에 있는 걸로 해결할까 싶기도 하고'라고 답하자 그 기울기를 그대로 반영하고 멈췄다."
           },
           "restraint": {
             "verdict": "PASS",
             "severity": null,
             "evidence": "",
-            "note": "계획·절차 없이 한 턴으로 충분히 처리하고 멈춤."
+            "note": "계획·절차·추가 확인 없이 충분한 지점에서 멈췄다."
           },
           "language": {
             "verdict": "PASS",
             "severity": null,
             "evidence": "",
-            "note": "자연스러운 해요체. AI체·번역체 없음."
+            "note": "'충분한 기울기네요'는 다소 독특한 표현이나 AI체나 번역체는 아니며 자연스러운 해요체 범위 안에 있다."
           }
         },
-        "overall": "가벼운 일상 질문을 과잉 절차 없이 한 턴으로 처리하고 정직하게 종결한 깔끔한 응답.",
+        "overall": "가벼운 메뉴 고민을 light 경로로 정확히 처리했고, 한 번의 질문으로 사용자의 기울기를 확인한 뒤 군더더기 없이 종결했다. 전 기준 이상 없음.",
         "best_next_fix": ""
       }
     ]

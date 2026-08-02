@@ -18,23 +18,34 @@
     },
     "gate": {
       "need": "light",
-      "mirror": "5년을 써 오셨고, 지금 켜는 것부터 답답하신 거네요.",
-      "question": "지금 마음은 어느 쪽에 가 있어요? 새로 사는 쪽이 끌리는 건지, 아니면 더 써야 한다는 쪽인지."
+      "mirror": "5년 쓰셨고, 이제 켜는 것부터 답답하신 거네요.",
+      "question": "지금 마음은 어느 쪽에 가 있어요? 새로 사고 싶으신 건지, 아니면 이대로 써도 될 것 같으신 건지."
     }
   },
   "light": {
     "qas": [
       {
-        "question": "지금 마음은 어느 쪽에 가 있어요? 새로 사는 쪽이 끌리는 건지, 아니면 더 써야 한다는 쪽인지.",
+        "question": "지금 마음은 어느 쪽에 가 있어요? 새로 사고 싶으신 건지, 아니면 이대로 써도 될 것 같으신 건지.",
         "answer": "영상 편집을 새로 시작해보고 싶은데 지금 걸로는 버벅여요."
+      },
+      {
+        "question": "영상 편집은 언제쯤 시작하려고 생각하셨어요?",
+        "answer": "예산은 150만원 정도 생각하고 있어요."
       }
     ],
     "turns": [
       {
-        "mirror": "영상 편집을 해보고 싶은데, 지금 노트북이 버벅여서 막히는 거네요.",
-        "action": "close",
+        "mirror": "지금 노트북으로는 영상 편집이 버벅인다는 게 막히는 거네요. 편집을 시작하고 싶은데 도구가 따라가지 못하는 상황이고요.",
+        "action": "ask",
+        "question": "영상 편집은 언제쯤 시작하려고 생각하셨어요?",
         "_qasLen": 1,
-        "_rawText": "```json\n{\n  \"mirror\": \"영상 편집을 해보고 싶은데, 지금 노트북이 버벅여서 막히는 거네요.\",\n  \"action\": \"offer\",\n  \"offer\": {\n    \"sentence\": \"새 노트북으로 영상 편집을 시작했다.\",\n    \"when\": \"in_days\",\n    \"days\": 7,\n    \"ask\": \"그럼 새 노트북을 사서 영상 편집을 해 보시는 걸로 하고 — 일주일 뒤에 실제로 편집이 잘 되는지, 제가 한 번만 물어볼까요?\"\n  }\n}\n```"
+        "_rawText": "```json\n{\n  \"mirror\": \"지금 노트북으로는 영상 편집이 버벅인다는 게 막히는 거네요. 편집을 시작하고 싶은데 도구가 따라가지 못하는 상황이고요.\",\n  \"action\": \"ask\",\n  \"question\": \"영상 편집은 언제쯤 시작하려고 생각하셨어요?\"\n}\n```"
+      },
+      {
+        "mirror": "5년 쓰신 노트북이 이제 부팅부터 답답하고, 영상 편집을 새로 시작하려니 버벅이는 게 느껴지시는 거네요. 150만원대로 생각하고 계시고.",
+        "action": "close",
+        "_qasLen": 2,
+        "_rawText": "```json\n{\n  \"mirror\": \"5년 쓰신 노트북이 이제 부팅부터 답답하고, 영상 편집을 새로 시작하려니 버벅이는 게 느껴지시는 거네요. 150만원대로 생각하고 계시고.\",\n  \"action\": \"offer\",\n  \"offer\": {\n    \"sentence\": \"사용자가 150만원대 노트북을 구매해서 영상 편집을 시작했다.\",\n    \"when\": \"in_days\",\n    \"days\": 7,\n    \"ask\": \"그럼 새 노트북으로 갈아타는 걸로 하고 — 일주일 뒤에 영상 편집이 실제로 돌아가는지, 제가 한 번만 물어볼까요?\"\n  }\n}\n```"
       }
     ],
     "outcome": "close"
@@ -50,7 +61,7 @@
     {
       "actor": "argus",
       "phase": "light_gate",
-      "text": "5년을 써 오셨고, 지금 켜는 것부터 답답하신 거네요.\n지금 마음은 어느 쪽에 가 있어요? 새로 사는 쪽이 끌리는 건지, 아니면 더 써야 한다는 쪽인지."
+      "text": "5년 쓰셨고, 이제 켜는 것부터 답답하신 거네요.\n지금 마음은 어느 쪽에 가 있어요? 새로 사고 싶으신 건지, 아니면 이대로 써도 될 것 같으신 건지."
     },
     {
       "actor": "user",
@@ -60,7 +71,17 @@
     {
       "actor": "argus",
       "phase": "light_turn_1",
-      "text": "영상 편집을 해보고 싶은데, 지금 노트북이 버벅여서 막히는 거네요."
+      "text": "지금 노트북으로는 영상 편집이 버벅인다는 게 막히는 거네요. 편집을 시작하고 싶은데 도구가 따라가지 못하는 상황이고요.\n영상 편집은 언제쯤 시작하려고 생각하셨어요?"
+    },
+    {
+      "actor": "user",
+      "phase": "answer",
+      "text": "예산은 150만원 정도 생각하고 있어요."
+    },
+    {
+      "actor": "argus",
+      "phase": "light_turn_2",
+      "text": "5년 쓰신 노트북이 이제 부팅부터 답답하고, 영상 편집을 새로 시작하려니 버벅이는 게 느껴지시는 거네요. 150만원대로 생각하고 계시고."
     }
   ],
   "calls": [
@@ -71,44 +92,67 @@
       "modelId": "claude-haiku-4-5-20251001",
       "maxTokens": 500,
       "attempt": 0,
-      "ms": 2008,
+      "ms": 1805,
       "usage": {
-        "input_tokens": 4383,
+        "input_tokens": 4995,
         "cache_creation_input_tokens": 0,
         "cache_read_input_tokens": 0,
         "cache_creation": {
           "ephemeral_5m_input_tokens": 0,
           "ephemeral_1h_input_tokens": 0
         },
-        "output_tokens": 124,
+        "output_tokens": 121,
         "service_tier": "standard",
         "inference_geo": "not_available"
       },
       "user": "[user] 오늘은 2026-08-02 (일요일)입니다.\n\n사용자가 방금 쓴 것:\n<user-data context=\"decision\">\n노트북을 새로 살까 말까 고민 중이에요. 지금 쓰는 건 5년 됐고 요즘 부팅도 한참 걸려요.\n</user-data>",
-      "rawText": "```json\n{\n  \"need\": \"light\",\n  \"mirror\": \"5년을 써 오셨고, 지금 켜는 것부터 답답하신 거네요.\",\n  \"question\": \"지금 마음은 어느 쪽에 가 있어요? 새로 사는 쪽이 끌리는 건지, 아니면 더 써야 한다는 쪽인지.\"\n}\n```"
+      "rawText": "```json\n{\n  \"need\": \"light\",\n  \"mirror\": \"5년 쓰셨고, 이제 켜는 것부터 답답하신 거네요.\",\n  \"question\": \"지금 마음은 어느 쪽에 가 있어요? 새로 사고 싶으신 건지, 아니면 이대로 써도 될 것 같으신 건지.\"\n}\n```"
     },
     {
-      "seq": 3,
-      "label": "light-05-hoesik-escalate",
+      "seq": 2,
+      "label": "light-03-dinner-flat",
       "tier": "fast",
       "modelId": "claude-haiku-4-5-20251001",
       "maxTokens": 700,
       "attempt": 0,
-      "ms": 1968,
+      "ms": 2628,
       "usage": {
-        "input_tokens": 4749,
+        "input_tokens": 5359,
         "cache_creation_input_tokens": 0,
         "cache_read_input_tokens": 0,
         "cache_creation": {
           "ephemeral_5m_input_tokens": 0,
           "ephemeral_1h_input_tokens": 0
         },
-        "output_tokens": 199,
+        "output_tokens": 126,
         "service_tier": "standard",
         "inference_geo": "not_available"
       },
-      "user": "[user] 오늘은 2026-08-02 (일요일)입니다.\n\n사용자가 처음 쓴 것:\n<user-data context=\"decision\">\n노트북을 새로 살까 말까 고민 중이에요. 지금 쓰는 건 5년 됐고 요즘 부팅도 한참 걸려요.\n</user-data>\n\n지금까지의 문답 (질문은 당신, 답은 사용자):\n<user-data context=\"answers\">\nQ1. 지금 마음은 어느 쪽에 가 있어요? 새로 사는 쪽이 끌리는 건지, 아니면 더 써야 한다는 쪽인지.\nA1. 영상 편집을 새로 시작해보고 싶은데 지금 걸로는 버벅여요.\n</user-data>",
-      "rawText": "```json\n{\n  \"mirror\": \"영상 편집을 해보고 싶은데, 지금 노트북이 버벅여서 막히는 거네요.\",\n  \"action\": \"offer\",\n  \"offer\": {\n    \"sentence\": \"새 노트북으로 영상 편집을 시작했다.\",\n    \"when\": \"in_days\",\n    \"days\": 7,\n    \"ask\": \"그럼 새 노트북을 사서 영상 편집을 해 보시는 걸로 하고 — 일주일 뒤에 실제로 편집이 잘 되는지, 제가 한 번만 물어볼까요?\"\n  }\n}\n```"
+      "user": "[user] 오늘은 2026-08-02 (일요일)입니다.\n\n사용자가 처음 쓴 것:\n<user-data context=\"decision\">\n노트북을 새로 살까 말까 고민 중이에요. 지금 쓰는 건 5년 됐고 요즘 부팅도 한참 걸려요.\n</user-data>\n\n지금까지의 문답 (질문은 당신, 답은 사용자):\n<user-data context=\"answers\">\nQ1. 지금 마음은 어느 쪽에 가 있어요? 새로 사고 싶으신 건지, 아니면 이대로 써도 될 것 같으신 건지.\nA1. 영상 편집을 새로 시작해보고 싶은데 지금 걸로는 버벅여요.\n</user-data>",
+      "rawText": "```json\n{\n  \"mirror\": \"지금 노트북으로는 영상 편집이 버벅인다는 게 막히는 거네요. 편집을 시작하고 싶은데 도구가 따라가지 못하는 상황이고요.\",\n  \"action\": \"ask\",\n  \"question\": \"영상 편집은 언제쯤 시작하려고 생각하셨어요?\"\n}\n```"
+    },
+    {
+      "seq": 4,
+      "label": "light-03-dinner-flat",
+      "tier": "fast",
+      "modelId": "claude-haiku-4-5-20251001",
+      "maxTokens": 700,
+      "attempt": 0,
+      "ms": 3020,
+      "usage": {
+        "input_tokens": 5463,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 245,
+        "service_tier": "standard",
+        "inference_geo": "not_available"
+      },
+      "user": "[user] 오늘은 2026-08-02 (일요일)입니다.\n\n사용자가 처음 쓴 것:\n<user-data context=\"decision\">\n노트북을 새로 살까 말까 고민 중이에요. 지금 쓰는 건 5년 됐고 요즘 부팅도 한참 걸려요.\n</user-data>\n\n지금까지의 문답 (질문은 당신, 답은 사용자):\n<user-data context=\"answers\">\nQ1. 지금 마음은 어느 쪽에 가 있어요? 새로 사고 싶으신 건지, 아니면 이대로 써도 될 것 같으신 건지.\nA1. 영상 편집을 새로 시작해보고 싶은데 지금 걸로는 버벅여요.\nQ2. 영상 편집은 언제쯤 시작하려고 생각하셨어요?\nA2. 예산은 150만원 정도 생각하고 있어요.\n</user-data>",
+      "rawText": "```json\n{\n  \"mirror\": \"5년 쓰신 노트북이 이제 부팅부터 답답하고, 영상 편집을 새로 시작하려니 버벅이는 게 느껴지시는 거네요. 150만원대로 생각하고 계시고.\",\n  \"action\": \"offer\",\n  \"offer\": {\n    \"sentence\": \"사용자가 150만원대 노트북을 구매해서 영상 편집을 시작했다.\",\n    \"when\": \"in_days\",\n    \"days\": 7,\n    \"ask\": \"그럼 새 노트북으로 갈아타는 걸로 하고 — 일주일 뒤에 영상 편집이 실제로 돌아가는지, 제가 한 번만 물어볼까요?\"\n  }\n}\n```"
     }
   ],
   "mechanical": {
@@ -122,53 +166,53 @@
             "verdict": "PASS",
             "severity": null,
             "evidence": "",
-            "note": "light 게이트로 진입해 질문 1개 후 종결. 가벼운 구매 고민을 의사결정 여정으로 과도하게 열지 않았다."
+            "note": "light 게이트로 처리하고 2회 턴 후 종결. 의사결정 여정을 과도하게 열지 않았음."
           },
           "ownership": {
             "verdict": "PASS",
             "severity": null,
             "evidence": "",
-            "note": "어느 쪽이 낫다는 방향 제시 없이 사용자 말을 그대로 반영했다."
+            "note": "어느 쪽이 낫다는 방향 제시 없음. 사용자 말을 더 거창한 질문으로 바꾸지 않음."
           },
           "fact_lineage": {
             "verdict": "PASS",
             "severity": null,
             "evidence": "",
-            "note": "5년, 부팅 느림, 영상 편집 시작, 버벅임 모두 사용자 입력에서 직접 추적 가능하다."
+            "note": "5년, 부팅 느림, 영상 편집 버벅임, 150만원 모두 사용자 발화에서 추적 가능."
           },
           "premise_quality": {
-            "verdict": "PASS",
+            "verdict": "NA",
             "severity": null,
             "evidence": "",
-            "note": "전제를 별도로 제시하지 않았다. 사용자 말에서 충분히 읽히는 상황이므로 0개는 적절하다."
+            "note": "숨은 전제를 명시적으로 제시하지 않음. 이 흐름에서 필요한 전제가 없으므로 NA."
           },
           "question_value": {
-            "verdict": "PASS",
-            "severity": null,
-            "evidence": "",
-            "note": "light_gate에서 '지금 마음은 어느 쪽에 가 있어요?' 한 가지만 물었고, 사용자가 답한 뒤 light_turn_1에서 추가 질문 없이 종결했다."
+            "verdict": "FAIL",
+            "severity": "M",
+            "evidence": "light_turn_1: '영상 편집은 언제쯤 시작하려고 생각하셨어요?'",
+            "note": "사용자는 이미 '새로 시작해보고 싶다'고 했고, 예산(150만원)을 바로 다음 발화에서 제시했다. 시작 시점 질문은 구매 판단에 실질적으로 영향을 주는 분기를 만들지 못하며, 사용자가 곧바로 예산으로 넘어간 것을 보면 답변 필요성이 낮은 행정 질문에 가깝다."
           },
           "update_fidelity": {
             "verdict": "PASS",
             "severity": null,
             "evidence": "",
-            "note": "사용자의 두 번째 답변(영상 편집, 버벅임)을 그대로 반영해 상태를 갱신했고, 새 전제나 관점을 추가하지 않았다."
+            "note": "light_turn_2에서 이전 정보(5년, 부팅, 버벅임)와 새 정보(150만원)를 함께 정리. 새 관점을 인위적으로 추가하지 않음."
           },
           "restraint": {
             "verdict": "PASS",
             "severity": null,
             "evidence": "",
-            "note": "첫 접촉에서 계획을 만들지 않았고, 충분한 정보가 모이자 멈췄다."
+            "note": "계획이나 무거운 절차 없이 요약 후 종결. 가벼운 판단에 적절한 무게."
           },
           "language": {
             "verdict": "PASS",
             "severity": null,
             "evidence": "",
-            "note": "자연스러운 해요체이며 AI체·보고서체 없음."
+            "note": "자연스러운 해요체. AI체·번역체 없음."
           }
         },
-        "overall": "전 구간에서 사용자 말을 벗어난 추가 없이 깔끔하게 종결했다. 특별히 지적할 문제가 없다.",
-        "best_next_fix": ""
+        "overall": "전반적으로 가볍고 깔끔하게 처리됐으나, light_turn_1의 시작 시점 질문이 판단 상태를 실질적으로 바꾸지 못하는 행정 질문에 가까워 질문 가치가 낮다.",
+        "best_next_fix": "light_turn_1 질문을 삭제하거나, 판단에 실제로 영향을 주는 내용(예: 편집 규모나 용도)으로 교체한다."
       }
     ]
   }

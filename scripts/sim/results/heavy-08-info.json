@@ -25,13 +25,13 @@
         "stakes": "routine",
         "reversibility": "reversible",
         "framing_confidence": 85,
-        "frame_line": "등기부등본에서 전세권 설정이라는 말을 봤어요.",
-        "real_question": "등기부등본에서 전세권 설정이라는 말을 봤어요.",
-        "insight": "전세권 설정은 세입자가 법적으로 자기 전세금을 보호받기 위해 등기부에 직접 올려두는 거예요. 그냥 전세계약서만 쓰는 것과 달리, 등기부에 올라가 있으면 집이 경매로 넘어가도 전세금을 먼저 돌려받을 권리가 생겨요.",
+        "frame_line": "등기부등본에서 전세권 설정이라는 말을 보셨네요.",
+        "real_question": "등기부등본에서 전세권 설정이라는 말을 보셨네요.",
+        "insight": "전세권 설정은 세입자가 전세금을 돌려받을 권리를 등기부에 공식으로 올려두는 거예요. 그냥 전세 계약만 하면 계약서만 있는 건데, 전세권을 설정하면 등기부에 '이 집에 이만큼 전세금이 걸려 있다'고 기록이 남아요. 집이 경매로 넘어가도 등기 순위에 따라 전세금을 돌려받을 수 있는 권리가 생기는 거죠.",
         "premise_candidates": [],
         "skeleton": [],
         "next_question": {
-          "text": "지금 세입자로 들어가려는 집인가요, 아니면 이미 살고 계신 집 등기부를 보신 건가요?",
+          "text": "지금 세입자 입장에서 보시는 거예요, 아니면 집주인이나 매수 검토 쪽에서 보시는 거예요?",
           "type": "short"
         }
       },
@@ -40,9 +40,9 @@
         "stakes": "routine",
         "reversibility": "reversible",
         "framing_confidence": 85,
-        "frame_line": "등기부등본에서 전세권 설정이라는 말을 봤어요.",
-        "real_question": "등기부등본에서 전세권 설정이라는 말을 봤어요.",
-        "insight": "전세권 설정은 세입자가 법적으로 자기 전세금을 보호받기 위해 등기부에 직접 올려두는 거예요. 그냥 전세계약서만 쓰는 것과 달리, 등기부에 올라가 있으면 집이 경매로 넘어가도 전세금을 먼저 돌려받을 권리가 생겨요.",
+        "frame_line": "등기부등본에서 전세권 설정이라는 말을 보셨네요.",
+        "real_question": "등기부등본에서 전세권 설정이라는 말을 보셨네요.",
+        "insight": "전세권 설정은 세입자가 전세금을 돌려받을 권리를 등기부에 공식으로 올려두는 거예요. 그냥 전세 계약만 하면 계약서만 있는 건데, 전세권을 설정하면 등기부에 '이 집에 이만큼 전세금이 걸려 있다'고 기록이 남아요. 집이 경매로 넘어가도 등기 순위에 따라 전세금을 돌려받을 수 있는 권리가 생기는 거죠.",
         "premise_candidates": [],
         "skeleton": [],
         "next_question": null,
@@ -65,55 +65,55 @@
     {
       "actor": "argus",
       "phase": "heavy_initial",
-      "text": "전세권 설정은 세입자가 법적으로 자기 전세금을 보호받기 위해 등기부에 직접 올려두는 거예요. 그냥 전세계약서만 쓰는 것과 달리, 등기부에 올라가 있으면 집이 경매로 넘어가도 전세금을 먼저 돌려받을 권리가 생겨요."
+      "text": "전세권 설정은 세입자가 전세금을 돌려받을 권리를 등기부에 공식으로 올려두는 거예요. 그냥 전세 계약만 하면 계약서만 있는 건데, 전세권을 설정하면 등기부에 '이 집에 이만큼 전세금이 걸려 있다'고 기록이 남아요. 집이 경매로 넘어가도 등기 순위에 따라 전세금을 돌려받을 수 있는 권리가 생기는 거죠."
     }
   ],
   "calls": [
     {
-      "seq": 44,
+      "seq": 42,
       "label": "heavy-08-info",
       "tier": "fast",
       "modelId": "claude-haiku-4-5-20251001",
       "maxTokens": 500,
       "attempt": 0,
-      "ms": 1901,
+      "ms": 777,
       "usage": {
-        "input_tokens": 4053,
+        "input_tokens": 4969,
         "cache_creation_input_tokens": 0,
         "cache_read_input_tokens": 0,
         "cache_creation": {
           "ephemeral_5m_input_tokens": 0,
           "ephemeral_1h_input_tokens": 0
         },
-        "output_tokens": 19,
+        "output_tokens": 31,
         "service_tier": "standard",
         "inference_geo": "not_available"
       },
       "user": "[user] 오늘은 2026-08-02 (일요일)입니다.\n\n사용자가 방금 쓴 것:\n<user-data context=\"decision\">\n전세권 설정이 뭐예요? 등기부등본 보다가 나왔는데.\n</user-data>",
-      "rawText": "```json\n{\n  \"need\": \"heavy\"\n}\n```"
+      "rawText": "```json\n{\n  \"need\": \"heavy\",\n  \"mirror\": \"\",\n  \"question\": \"\"\n}\n```"
     },
     {
-      "seq": 46,
-      "label": "heavy-09-crisis-debt",
+      "seq": 43,
+      "label": "heavy-08-info",
       "tier": "default",
       "modelId": "claude-sonnet-4-6",
       "maxTokens": 4096,
       "attempt": 0,
-      "ms": 6510,
+      "ms": 7182,
       "usage": {
         "input_tokens": 46,
         "cache_creation_input_tokens": 0,
-        "cache_read_input_tokens": 5475,
+        "cache_read_input_tokens": 5616,
         "cache_creation": {
           "ephemeral_5m_input_tokens": 0,
           "ephemeral_1h_input_tokens": 0
         },
-        "output_tokens": 328,
+        "output_tokens": 383,
         "service_tier": "standard",
         "inference_geo": "global"
       },
       "user": "[user] <user-data>전세권 설정이 뭐예요? 등기부등본 보다가 나왔는데.</user-data>",
-      "rawText": "```json\n{\n  \"request_type\": \"info\",\n  \"stakes\": \"routine\",\n  \"reversibility\": \"reversible\",\n  \"framing_confidence\": 85,\n  \"frame_line\": \"등기부등본에서 전세권 설정이라는 말을 봤어요.\",\n  \"real_question\": \"등기부등본에서 전세권 설정이라는 말을 봤어요.\",\n  \"insight\": \"전세권 설정은 세입자가 법적으로 자기 전세금을 보호받기 위해 등기부에 직접 올려두는 거예요. 그냥 전세계약서만 쓰는 것과 달리, 등기부에 올라가 있으면 집이 경매로 넘어가도 전세금을 먼저 돌려받을 권리가 생겨요.\",\n  \"premise_candidates\": [],\n  \"skeleton\": [],\n  \"next_question\": {\"text\": \"지금 세입자로 들어가려는 집인가요, 아니면 이미 살고 계신 집 등기부를 보신 건가요?\", \"type\": \"short\"}\n}\n```"
+      "rawText": "```json\n{\n  \"request_type\": \"info\",\n  \"stakes\": \"routine\",\n  \"reversibility\": \"reversible\",\n  \"framing_confidence\": 85,\n  \"frame_line\": \"등기부등본에서 전세권 설정이라는 말을 보셨네요.\",\n  \"real_question\": \"등기부등본에서 전세권 설정이라는 말을 보셨네요.\",\n  \"insight\": \"전세권 설정은 세입자가 전세금을 돌려받을 권리를 등기부에 공식으로 올려두는 거예요. 그냥 전세 계약만 하면 계약서만 있는 건데, 전세권을 설정하면 등기부에 '이 집에 이만큼 전세금이 걸려 있다'고 기록이 남아요. 집이 경매로 넘어가도 등기 순위에 따라 전세금을 돌려받을 수 있는 권리가 생기는 거죠.\",\n  \"premise_candidates\": [],\n  \"skeleton\": [],\n  \"next_question\": {\"text\": \"지금 세입자 입장에서 보시는 거예요, 아니면 집주인이나 매수 검토 쪽에서 보시는 거예요?\", \"type\": \"short\"}\n}\n```"
     }
   ],
   "mechanical": {
@@ -127,52 +127,52 @@
             "verdict": "PASS",
             "severity": null,
             "evidence": "",
-            "note": "info 요청에 정보 제공으로 응답. 의사결정 여정으로 열지 않음."
+            "note": "info 라우팅에 맞게 개념 설명으로 응답했고 의사결정 여정을 열지 않았다."
           },
           "ownership": {
             "verdict": "PASS",
             "severity": null,
             "evidence": "",
-            "note": "방향을 밀거나 선택을 대신 정하는 표현 없음."
+            "note": "어느 선택이 낫다거나 방향을 미는 표현 없음."
           },
           "fact_lineage": {
             "verdict": "PASS",
             "severity": null,
             "evidence": "",
-            "note": "전세권 설정의 법적 효과(경매 시 우선변제권)는 일반적으로 알려진 법률 개념 설명으로, 사실 단정이 아닌 개념 서술 수준. 사용자 입력에서 벗어난 외부 사실 주입 없음."
+            "note": "전세권 설정의 법적 개념 설명은 일반적으로 알려진 법률 개념이며, 사실 단정이 아닌 설명 수준으로 서술했다. 사용자 입력에서 추적 불가한 구체 수치나 사정을 단정하지 않았다."
           },
           "premise_quality": {
             "verdict": "NA",
             "severity": null,
             "evidence": "",
-            "note": "info 루트, 전제 추출 불필요."
+            "note": "info 라우팅이고 전제 추출이 필요한 판단 상황이 아니다."
           },
           "question_value": {
-            "verdict": "NA",
+            "verdict": "PASS",
             "severity": null,
             "evidence": "",
-            "note": "info 루트에서 질문 없이 종료. 남은 판단 갭 없음."
+            "note": "질문 없음. 사용자가 개념을 물었고 답이 충분하므로 질문이 없는 것이 올바른 결과다."
           },
           "update_fidelity": {
             "verdict": "NA",
             "severity": null,
             "evidence": "",
-            "note": "단일 턴."
+            "note": "첫 응답이라 갱신 상황 없음."
           },
           "restraint": {
             "verdict": "PASS",
             "severity": null,
             "evidence": "",
-            "note": "질문에 딱 맞는 분량으로 설명하고 멈춤. 추가 절차나 계획 없음."
+            "note": "개념 설명에 필요한 범위만 다뤘고, 추가 절차나 계획을 얹지 않았다."
           },
           "language": {
             "verdict": "PASS",
             "severity": null,
             "evidence": "",
-            "note": "자연스러운 해요체, AI체·번역체 없음."
+            "note": "자연스러운 해요체이며 AI체·번역체 없음."
           }
         },
-        "overall": "info 루트에 적합한 간결한 개념 설명으로 완결됨. 모든 기준 통과.",
+        "overall": "info 라우팅에 정확히 맞는 간결한 개념 설명이고, 과잉 절차나 방향 유도 없이 깔끔하게 마무리됐다.",
         "best_next_fix": ""
       }
     ]

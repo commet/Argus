@@ -28,13 +28,13 @@
         "stakes": "important",
         "reversibility": "reversible",
         "framing_confidence": 72,
-        "frame_line": "물류는 아는데 SaaS 기획은 처음이고, 2주 안에 보고서를 내야 하네요.",
-        "real_question": "물류는 아는데 SaaS 기획은 처음이고, 2주 안에 보고서를 내야 하네요.",
-        "insight": "신사업 검토 보고서니까 '우리가 만들 수 있냐'보다 '만들 가치가 있냐'를 먼저 잡는 게 순서예요. 어디서부터 막막한지가 좀 더 분명해야 시작점을 잡을 수 있어요.",
+        "frame_line": "물류는 알고, SaaS 기획은 처음인데 2주 안에 보고서를 내야 하네요.",
+        "real_question": "물류는 알고, SaaS 기획은 처음인데 2주 안에 보고서를 내야 하네요.",
+        "insight": "막막한 게 SaaS라서인지, 신사업 보고서 자체가 처음이라서인지에 따라 시작점이 달라요. 먼저 어느 쪽이 더 막히는지 짚으면 뭘 채워야 할지 좁혀져요.",
         "premise_candidates": [],
         "skeleton": [],
         "next_question": {
-          "text": "막막하다고 하셨는데, 보고서 구성 자체를 어떻게 짜야 할지 모르는 건지, SaaS 사업의 내용을 어떻게 채워야 할지 모르는 건지 — 어느 쪽이에요?",
+          "text": "이번 보고서에서 대표님이 제일 궁금해하실 게 뭔지 감이 잡혀요? 아니면 그것부터가 막막한 거예요?",
           "type": "short"
         }
       },
@@ -43,9 +43,9 @@
         "stakes": "important",
         "reversibility": "reversible",
         "framing_confidence": 72,
-        "frame_line": "물류는 아는데 SaaS 기획은 처음이고, 2주 안에 보고서를 내야 하네요.",
-        "real_question": "물류는 아는데 SaaS 기획은 처음이고, 2주 안에 보고서를 내야 하네요.",
-        "insight": "신사업 검토 보고서니까 '우리가 만들 수 있냐'보다 '만들 가치가 있냐'를 먼저 잡는 게 순서예요. 어디서부터 막막한지가 좀 더 분명해야 시작점을 잡을 수 있어요.",
+        "frame_line": "물류는 알고, SaaS 기획은 처음인데 2주 안에 보고서를 내야 하네요.",
+        "real_question": "물류는 알고, SaaS 기획은 처음인데 2주 안에 보고서를 내야 하네요.",
+        "insight": "막막한 게 SaaS라서인지, 신사업 보고서 자체가 처음이라서인지에 따라 시작점이 달라요. 먼저 어느 쪽이 더 막히는지 짚으면 뭘 채워야 할지 좁혀져요.",
         "premise_candidates": [],
         "skeleton": [],
         "next_question": null,
@@ -68,55 +68,55 @@
     {
       "actor": "argus",
       "phase": "heavy_initial",
-      "text": "신사업 검토 보고서니까 '우리가 만들 수 있냐'보다 '만들 가치가 있냐'를 먼저 잡는 게 순서예요. 어디서부터 막막한지가 좀 더 분명해야 시작점을 잡을 수 있어요."
+      "text": "막막한 게 SaaS라서인지, 신사업 보고서 자체가 처음이라서인지에 따라 시작점이 달라요. 먼저 어느 쪽이 더 막히는지 짚으면 뭘 채워야 할지 좁혀져요."
     }
   ],
   "calls": [
     {
-      "seq": 23,
+      "seq": 21,
       "label": "heavy-02-ceo-report",
       "tier": "fast",
       "modelId": "claude-haiku-4-5-20251001",
       "maxTokens": 500,
       "attempt": 0,
-      "ms": 980,
+      "ms": 1279,
       "usage": {
-        "input_tokens": 4164,
+        "input_tokens": 5080,
         "cache_creation_input_tokens": 0,
         "cache_read_input_tokens": 0,
         "cache_creation": {
           "ephemeral_5m_input_tokens": 0,
           "ephemeral_1h_input_tokens": 0
         },
-        "output_tokens": 32,
+        "output_tokens": 31,
         "service_tier": "standard",
         "inference_geo": "not_available"
       },
       "user": "[user] 오늘은 2026-08-02 (일요일)입니다.\n\n사용자가 방금 쓴 것:\n<user-data context=\"decision\">\n물류 스타트업에서 기획자로 일해요. 대표님이 갑자기 \"우리도 물류 SaaS를 만들어야 하는 것 아니냐\"며 2주 안에 신사업 검토 보고서를 만들어오라고 하셨어요. 저는 물류 도메인은 알지만 SaaS 사업 기획은 처음이라 어디서부터 시작해야 할지 막막해요.\n</user-data>",
-      "rawText": "```json\n{\n  \"need\": \"heavy\",\n  \"mirror\": null,\n  \"question\": null\n}\n```"
+      "rawText": "```json\n{\n  \"need\": \"heavy\",\n  \"mirror\": \"\",\n  \"question\": \"\"\n}\n```"
     },
     {
       "seq": 24,
-      "label": "heavy-02-ceo-report",
+      "label": "heavy-03-jeonse-maemae",
       "tier": "default",
       "modelId": "claude-sonnet-4-6",
       "maxTokens": 4096,
       "attempt": 0,
-      "ms": 6248,
+      "ms": 6338,
       "usage": {
         "input_tokens": 157,
         "cache_creation_input_tokens": 0,
-        "cache_read_input_tokens": 5475,
+        "cache_read_input_tokens": 5616,
         "cache_creation": {
           "ephemeral_5m_input_tokens": 0,
           "ephemeral_1h_input_tokens": 0
         },
-        "output_tokens": 375,
+        "output_tokens": 338,
         "service_tier": "standard",
         "inference_geo": "global"
       },
       "user": "[user] <user-data>물류 스타트업에서 기획자로 일해요. 대표님이 갑자기 \"우리도 물류 SaaS를 만들어야 하는 것 아니냐\"며 2주 안에 신사업 검토 보고서를 만들어오라고 하셨어요. 저는 물류 도메인은 알지만 SaaS 사업 기획은 처음이라 어디서부터 시작해야 할지 막막해요.</user-data>",
-      "rawText": "```json\n{\n  \"request_type\": \"info\",\n  \"stakes\": \"important\",\n  \"reversibility\": \"reversible\",\n  \"framing_confidence\": 72,\n  \"frame_line\": \"물류는 아는데 SaaS 기획은 처음이고, 2주 안에 보고서를 내야 하네요.\",\n  \"real_question\": \"물류는 아는데 SaaS 기획은 처음이고, 2주 안에 보고서를 내야 하네요.\",\n  \"insight\": \"신사업 검토 보고서니까 '우리가 만들 수 있냐'보다 '만들 가치가 있냐'를 먼저 잡는 게 순서예요. 어디서부터 막막한지가 좀 더 분명해야 시작점을 잡을 수 있어요.\",\n  \"premise_candidates\": [],\n  \"skeleton\": [],\n  \"next_question\": {\n    \"text\": \"막막하다고 하셨는데, 보고서 구성 자체를 어떻게 짜야 할지 모르는 건지, SaaS 사업의 내용을 어떻게 채워야 할지 모르는 건지 — 어느 쪽이에요?\",\n    \"type\": \"short\"\n  }\n}\n```"
+      "rawText": "```json\n{\n  \"request_type\": \"info\",\n  \"stakes\": \"important\",\n  \"reversibility\": \"reversible\",\n  \"framing_confidence\": 72,\n  \"frame_line\": \"물류는 알고, SaaS 기획은 처음인데 2주 안에 보고서를 내야 하네요.\",\n  \"real_question\": \"물류는 알고, SaaS 기획은 처음인데 2주 안에 보고서를 내야 하네요.\",\n  \"insight\": \"막막한 게 SaaS라서인지, 신사업 보고서 자체가 처음이라서인지에 따라 시작점이 달라요. 먼저 어느 쪽이 더 막히는지 짚으면 뭘 채워야 할지 좁혀져요.\",\n  \"premise_candidates\": [],\n  \"skeleton\": [],\n  \"next_question\": {\n    \"text\": \"이번 보고서에서 대표님이 제일 궁금해하실 게 뭔지 감이 잡혀요? 아니면 그것부터가 막막한 거예요?\",\n    \"type\": \"short\"\n  }\n}\n```"
     }
   ],
   "mechanical": {
@@ -130,53 +130,53 @@
             "verdict": "PASS",
             "severity": null,
             "evidence": "",
-            "note": "info 요청을 heavy로 처리하되 즉각 계획을 펼치지 않고 시작점 확인으로 좁혔다."
+            "note": "info/heavy 라우팅에서 첫 질문 하나로 시작점을 좁히는 적절한 진입."
           },
           "ownership": {
             "verdict": "PASS",
             "severity": null,
             "evidence": "",
-            "note": "어느 방향이 낫다고 정하거나 선택지를 제시하지 않았다."
+            "note": "어느 쪽이 막히는지 묻는 것으로 방향을 사용자에게 돌렸고, 선택지를 밀거나 답을 정하지 않음."
           },
           "fact_lineage": {
             "verdict": "PASS",
             "severity": null,
             "evidence": "",
-            "note": "'만들 가치가 있냐'를 먼저 잡는다는 프레임은 사실 단정이 아닌 접근 제안이며, 사용자 입력 범위 안에 있다."
+            "note": "사실 단정 없음. 사용자 말에서 직접 나온 내용만 언급."
           },
           "premise_quality": {
             "verdict": "PASS",
             "severity": null,
             "evidence": "",
-            "note": "숨은 전제를 명시적으로 제시하지 않았고, 전제 0개는 이 맥락에서 실패가 아니다."
+            "note": "전제 없음. 사용자 입력에서 load-bearing 전제를 끌어낼 근거가 충분하지 않은 상태이므로 0개가 정직한 결과."
           },
           "question_value": {
-            "verdict": "FAIL",
-            "severity": "M",
-            "evidence": "\"어디서부터 막막한지가 좀 더 분명해야 시작점을 잡을 수 있어요.\"",
-            "note": "사용자는 이미 '어디서부터 시작해야 할지 막막하다'고 명시했다. 막막한 지점을 되묻는 것은 사용자가 이미 답한 내용을 다시 요구하는 셈이다. 질문이 판단 상태를 실질적으로 달리 만들지 않는다."
+            "verdict": "PASS",
+            "severity": null,
+            "evidence": "",
+            "note": "'SaaS라서인지, 신사업 보고서 자체가 처음이라서인지' — 답에 따라 다음 확인 방향이 실제로 달라지는 단일 질문."
           },
           "update_fidelity": {
             "verdict": "NA",
             "severity": null,
             "evidence": "",
-            "note": "첫 응답이라 갱신 대상 없음."
+            "note": "첫 턴이므로 해당 없음."
           },
           "restraint": {
             "verdict": "PASS",
             "severity": null,
             "evidence": "",
-            "note": "계획을 미리 펼치지 않고 짧게 멈췄다."
+            "note": "계획·프레임워크·항목 목록 없이 질문 하나로 멈춤. 2주 마감이나 대표 의도 등 언급되지 않은 맥락을 끌어들이지 않음."
           },
           "language": {
             "verdict": "PASS",
             "severity": null,
             "evidence": "",
-            "note": "해요체, 자연스럽다."
+            "note": "자연스러운 해요체. AI체·보고서체 없음."
           }
         },
-        "overall": "계획을 미리 펼치지 않은 절제는 좋으나, 사용자가 이미 '어디서부터 시작해야 할지 모르겠다'고 밝혔음에도 같은 내용을 되묻는 질문은 정보 가치가 없다.",
-        "best_next_fix": "사용자가 이미 '전체가 막막하다'고 답했으므로, 되묻는 대신 SaaS 신사업 검토에서 가장 먼저 확인해야 할 한 가지 구체적 지점(예: 타깃 고객 또는 기존 경쟁 제품 현황)을 직접 제시하거나, 그 지점을 좁히는 실질적 질문 하나로 교체한다."
+        "overall": "첫 턴에서 막막함의 원인을 두 축으로 좁히는 단일 질문만 던지고 멈춘 것은 restraint와 question_value 모두 충족하는 정직한 응답이다.",
+        "best_next_fix": ""
       }
     ]
   }

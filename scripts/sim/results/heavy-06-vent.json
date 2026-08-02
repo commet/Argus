@@ -27,7 +27,7 @@
         "framing_confidence": 85,
         "frame_line": "결정도 아니고, 그냥 다 지쳐있는 거네요.",
         "real_question": "결정도 아니고, 그냥 다 지쳐있는 거네요.",
-        "insight": "그냥 힘들다고 해도 되는 거예요. 뭔가 정리하거나 풀어야 한다는 거 없어요.",
+        "insight": "그냥 힘들다는 말, 잘 들었어요.",
         "premise_candidates": [],
         "skeleton": [],
         "next_question": null
@@ -39,7 +39,7 @@
         "framing_confidence": 85,
         "frame_line": "결정도 아니고, 그냥 다 지쳐있는 거네요.",
         "real_question": "결정도 아니고, 그냥 다 지쳐있는 거네요.",
-        "insight": "그냥 힘들다고 해도 되는 거예요. 뭔가 정리하거나 풀어야 한다는 거 없어요.",
+        "insight": "그냥 힘들다는 말, 잘 들었어요.",
         "premise_candidates": [],
         "skeleton": [],
         "next_question": null,
@@ -62,55 +62,55 @@
     {
       "actor": "argus",
       "phase": "heavy_initial",
-      "text": "그냥 힘들다고 해도 되는 거예요. 뭔가 정리하거나 풀어야 한다는 거 없어요."
+      "text": "그냥 힘들다는 말, 잘 들었어요."
     }
   ],
   "calls": [
     {
-      "seq": 39,
+      "seq": 37,
       "label": "heavy-06-vent",
       "tier": "fast",
       "modelId": "claude-haiku-4-5-20251001",
       "maxTokens": 500,
       "attempt": 0,
-      "ms": 1545,
+      "ms": 887,
       "usage": {
-        "input_tokens": 4071,
+        "input_tokens": 4987,
         "cache_creation_input_tokens": 0,
         "cache_read_input_tokens": 0,
         "cache_creation": {
           "ephemeral_5m_input_tokens": 0,
           "ephemeral_1h_input_tokens": 0
         },
-        "output_tokens": 82,
+        "output_tokens": 31,
         "service_tier": "standard",
         "inference_geo": "not_available"
       },
       "user": "[user] 오늘은 2026-08-02 (일요일)입니다.\n\n사용자가 방금 쓴 것:\n<user-data context=\"decision\">\n그냥 요즘 다 힘드네요. 뭘 결정하고 싶은 것도 아니고, 그냥 다 지치네요.\n</user-data>",
-      "rawText": "```json\n{\n  \"need\": \"heavy\",\n  \"mirror\": \"요즘 다 힘들고 지친 상태시네요. 결정할 것 같은 것도 없고, 그냥 피곤하신 거군요.\",\n  \"question\": \"\"\n}\n```"
+      "rawText": "```json\n{\n  \"need\": \"heavy\",\n  \"mirror\": \"\",\n  \"question\": \"\"\n}\n```"
     },
     {
-      "seq": 40,
-      "label": "heavy-06-vent",
+      "seq": 39,
+      "label": "heavy-07-validation",
       "tier": "default",
       "modelId": "claude-sonnet-4-6",
       "maxTokens": 4096,
       "attempt": 0,
-      "ms": 12007,
+      "ms": 3208,
       "usage": {
         "input_tokens": 64,
         "cache_creation_input_tokens": 0,
-        "cache_read_input_tokens": 5475,
+        "cache_read_input_tokens": 5616,
         "cache_creation": {
           "ephemeral_5m_input_tokens": 0,
           "ephemeral_1h_input_tokens": 0
         },
-        "output_tokens": 194,
+        "output_tokens": 168,
         "service_tier": "standard",
         "inference_geo": "global"
       },
       "user": "[user] <user-data>그냥 요즘 다 힘드네요. 뭘 결정하고 싶은 것도 아니고, 그냥 다 지치네요.</user-data>",
-      "rawText": "```json\n{\n  \"request_type\": \"vent\",\n  \"stakes\": \"routine\",\n  \"reversibility\": \"reversible\",\n  \"framing_confidence\": 85,\n  \"frame_line\": \"결정도 아니고, 그냥 다 지쳐있는 거네요.\",\n  \"real_question\": \"결정도 아니고, 그냥 다 지쳐있는 거네요.\",\n  \"insight\": \"그냥 힘들다고 해도 되는 거예요. 뭔가 정리하거나 풀어야 한다는 거 없어요.\",\n  \"premise_candidates\": [],\n  \"skeleton\": [],\n  \"next_question\": null\n}\n```"
+      "rawText": "```json\n{\n  \"request_type\": \"vent\",\n  \"stakes\": \"routine\",\n  \"reversibility\": \"reversible\",\n  \"framing_confidence\": 85,\n  \"frame_line\": \"결정도 아니고, 그냥 다 지쳐있는 거네요.\",\n  \"real_question\": \"결정도 아니고, 그냥 다 지쳐있는 거네요.\",\n  \"insight\": \"그냥 힘들다는 말, 잘 들었어요.\",\n  \"premise_candidates\": [],\n  \"skeleton\": [],\n  \"next_question\": null\n}\n```"
     }
   ],
   "mechanical": {
@@ -124,13 +124,13 @@
             "verdict": "PASS",
             "severity": null,
             "evidence": "",
-            "note": "vent 라우팅에서 의사결정 여정을 열지 않고 수용으로 마무리했다."
+            "note": "vent 라우팅에서 짧은 수용으로 마무리. 의사결정 여정으로 열지 않음."
           },
           "ownership": {
             "verdict": "PASS",
             "severity": null,
             "evidence": "",
-            "note": "방향을 밀거나 선택지를 제시하지 않았다."
+            "note": "방향을 밀거나 질문을 거창하게 바꾸지 않음."
           },
           "fact_lineage": {
             "verdict": "PASS",
@@ -142,34 +142,34 @@
             "verdict": "NA",
             "severity": null,
             "evidence": "",
-            "note": "전제 제시 없음. vent 라우팅에서 적절하다."
+            "note": "전제 없음. vent 라우팅에서 적절한 결과."
           },
           "question_value": {
             "verdict": "PASS",
             "severity": null,
             "evidence": "",
-            "note": "질문 없음. vent에서 필요한 질문이 남지 않았으므로 통과."
+            "note": "질문 없음. 사용자가 '결정하고 싶은 것도 아니다'라고 명시했으므로 질문 부재가 올바른 선택."
           },
           "update_fidelity": {
             "verdict": "NA",
             "severity": null,
             "evidence": "",
-            "note": "후속 답변 없음."
+            "note": "첫 응답, 갱신 대상 없음."
           },
           "restraint": {
             "verdict": "PASS",
             "severity": null,
             "evidence": "",
-            "note": "한 문장 수용으로 충분히 멈췄다."
+            "note": "한 문장으로 충분히 멈춤. 계획·절차 없음."
           },
           "language": {
             "verdict": "PASS",
             "severity": null,
             "evidence": "",
-            "note": "자연스러운 해요체."
+            "note": "자연스러운 해요체. AI체·번역체 없음."
           }
         },
-        "overall": "vent 라우팅에 정확히 맞는 최소한의 수용 응답이다. 과잉 절차나 방향 유도 없이 깔끔하게 마무리됐다.",
+        "overall": "vent 라우팅에 완전히 맞는 응답. 사용자가 결정 의사가 없음을 명시한 상황에서 한 문장 수용으로 멈춘 것이 정직하고 적절한 결과다.",
         "best_next_fix": ""
       }
     ]

@@ -1,26 +1,30 @@
 {
-  "at": "2026-08-02T01:09:09.739Z",
-  "totalLLMCalls": 6,
+  "at": "2026-08-02T01:23:46.756Z",
+  "totalLLMCalls": 8,
   "scenarios": [
     {
-      "id": "light-03-dinner-flat",
+      "id": "heavy-07-validation",
       "error": false,
       "judgeError": null,
-      "gate": "light",
-      "lightOutcome": "close",
-      "mechanicalFindings": 0,
-      "judgeFails": []
-    },
-    {
-      "id": "light-01-party-wife",
-      "error": false,
-      "judgeError": null,
-      "gate": "light",
-      "lightOutcome": "close",
+      "gate": "heavy",
+      "requestType": "validation",
       "mechanicalFindings": 0,
       "judgeFails": [
         "ownership:M",
         "fact_lineage:M"
+      ]
+    },
+    {
+      "id": "heavy-05-cofounder",
+      "error": false,
+      "judgeError": null,
+      "gate": "heavy",
+      "requestType": "open",
+      "mechanicalFindings": 0,
+      "judgeFails": [
+        "premise_quality:M",
+        "question_value:M",
+        "update_fidelity:M"
       ]
     }
   ]
