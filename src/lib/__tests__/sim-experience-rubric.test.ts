@@ -12,6 +12,8 @@ describe('judgment simulation covers the visible product loop', () => {
     expect(judge).toContain('baseline_use');
     expect(judge).toContain('update_legibility');
     expect(judge).toContain('이전 분석을 새 답의 결과처럼 반복하지 않는다');
+    expect(judge).toContain('`사용자/${turn.phase}`');
+    expect(judge).toContain('절대 NA로 판정하지 않는다');
   });
 
   it('replays a real baseline-before-analysis journey and reports call latency', () => {

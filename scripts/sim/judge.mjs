@@ -52,6 +52,10 @@ Argus의 목적은 답을 대신 정하는 것이 아니라, 사용자의 판단
    - 다음 질문이 이미 기준점에서 답한 선택·조건·우려를 다시 묻지 않고,
      AI가 기준점을 결론처럼 덮어쓰지도 않는다.
    - 기준점이 없는 시나리오는 NA다.
+   - 기록에 [사용자/pre_review_baseline]이 있으면 절대 NA로 판정하지 않는다.
+     첫 Argus 질문이 그 기준점에서 이미 밝힌 고민·선택·조건을 포괄적으로
+     다시 묻는 것도 실패다. 예: 사용자가 "치명적 오류만 확인하고 공개"라고
+     썼는데 "지금 가장 마음에 걸리는 건?"이라고 되묻는 경우.
 10. update_legibility
    - 답변 뒤 출력만 읽어도 무엇이 바뀌었고, 그대로고, 아직 모르는지
      구별할 수 있다. 이전 분석을 새 답의 결과처럼 반복하지 않는다.
@@ -103,7 +107,7 @@ GROUNDING OVERRIDE — this is binding:
 
 export function buildJudgeUserPrompt(scenario, transcript, routeSummary, mechanical) {
   const lines = transcript.map((turn) => {
-    const actor = turn.actor === 'user' ? '사용자' : `Argus/${turn.phase}`;
+    const actor = turn.actor === 'user' ? `사용자/${turn.phase}` : `Argus/${turn.phase}`;
     return `[${actor}]\n${turn.text}`;
   }).join('\n\n');
   const findings = mechanical?.findings?.length
