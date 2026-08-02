@@ -19,31 +19,26 @@
     },
     "gate": {
       "need": "light",
-      "mirror": "다음 주 토요일 모임이 끝나면 빠져나올지 남편이랑 끝까지 있을지가 걸려 있는 거네요. 요즘 피곤해서 일찍 나가고 싶은데, 남편은 좀 더 있다가 가고 싶어 하는 눈치라고 봤어요.",
-      "question": "지금 마음은 어느 쪽에 더 가 있어요?"
+      "mirror": "다음 주 토요일 모임이 끝나고 나갈 때를 놓고 생각 중이네요. 피곤한 쪽이 더 크신 것 같고, 남편분은 늦게까지 있고 싶으신 눈치라고.",
+      "question": "지금 마음은 일찍 나가는 쪽에 더 기울어 있어요? 아니면 남편분과 함께 있는 쪽이 마음에 걸려서예요."
     }
   },
   "light": {
     "qas": [
       {
-        "question": "지금 마음은 어느 쪽에 더 가 있어요?",
+        "question": "지금 마음은 일찍 나가는 쪽에 더 기울어 있어요? 아니면 남편분과 함께 있는 쪽이 마음에 걸려서예요.",
         "answer": "피곤한 쪽이 더 커. 지난주부터 잠을 계속 설쳤거든."
       }
     ],
     "turns": [
       {
-        "mirror": "지난주부터 계속 설쳤으니까 피곤한 게 맞네요. 남편은 늦게까지 있고 싶은데, 당신은 일찍 나가고 싶은 거고.",
-        "action": "offer",
-        "offer": {
-          "sentence": "사용자가 남편과 따로 떠났다.",
-          "when": "in_days",
-          "days": 2
-        },
+        "mirror": "지난주부터 계속 설치셨고, 피곤한 쪽이 훨씬 크신 거네요. 남편분한테는 아직 얘기 안 해보신 거고요.",
+        "action": "close",
         "_qasLen": 1,
-        "_rawText": "```json\n{\n  \"mirror\": \"지난주부터 계속 설쳤으니까 피곤한 게 맞네요. 남편은 늦게까지 있고 싶은데, 당신은 일찍 나가고 싶은 거고.\",\n  \"action\": \"offer\",\n  \"offer\": {\n    \"sentence\": \"사용자가 남편과 따로 떠났다.\",\n    \"when\": \"in_days\",\n    \"days\": 2,\n    \"ask\": \"그럼 토요일 모임에서 어떻게 하기로 했는지, 제가 한 번만 물어볼까요?\"\n  }\n}\n```"
+        "_rawText": "```json\n{\n  \"mirror\": \"지난주부터 계속 설치셨고, 피곤한 쪽이 훨씬 크신 거네요. 남편분한테는 아직 얘기 안 해보신 거고요.\",\n  \"action\": \"offer\",\n  \"offer\": {\n    \"sentence\": \"사용자가 모임 중간이나 끝날 때쯤 남편에게 먼저 피곤함을 말했다.\",\n    \"when\": \"in_days\",\n    \"days\": 2,\n    \"ask\": \"그럼 토요일에 남편분께 지난주부터 피곤했다는 얘기 한 번 해 보시고 — 모임 뒤에 어떻게 하기로 했는지, 제가 일요일 아침에 물어볼까요?\"\n  }\n}\n```"
       }
     ],
-    "outcome": "offer"
+    "outcome": "close"
   },
   "heavy": null,
   "error": null,
@@ -56,7 +51,7 @@
     {
       "actor": "argus",
       "phase": "light_gate",
-      "text": "다음 주 토요일 모임이 끝나면 빠져나올지 남편이랑 끝까지 있을지가 걸려 있는 거네요. 요즘 피곤해서 일찍 나가고 싶은데, 남편은 좀 더 있다가 가고 싶어 하는 눈치라고 봤어요.\n지금 마음은 어느 쪽에 더 가 있어요?"
+      "text": "다음 주 토요일 모임이 끝나고 나갈 때를 놓고 생각 중이네요. 피곤한 쪽이 더 크신 것 같고, 남편분은 늦게까지 있고 싶으신 눈치라고.\n지금 마음은 일찍 나가는 쪽에 더 기울어 있어요? 아니면 남편분과 함께 있는 쪽이 마음에 걸려서예요."
     },
     {
       "actor": "user",
@@ -66,7 +61,7 @@
     {
       "actor": "argus",
       "phase": "light_turn_1",
-      "text": "지난주부터 계속 설쳤으니까 피곤한 게 맞네요. 남편은 늦게까지 있고 싶은데, 당신은 일찍 나가고 싶은 거고.\n2일 뒤에 실제로 어떻게 됐는지, 제가 한 번만 물어볼까요?"
+      "text": "지난주부터 계속 설치셨고, 피곤한 쪽이 훨씬 크신 거네요. 남편분한테는 아직 얘기 안 해보신 거고요."
     }
   ],
   "calls": [
@@ -77,44 +72,44 @@
       "modelId": "claude-haiku-4-5-20251001",
       "maxTokens": 500,
       "attempt": 0,
-      "ms": 2272,
+      "ms": 2495,
       "usage": {
-        "input_tokens": 4145,
+        "input_tokens": 5061,
         "cache_creation_input_tokens": 0,
         "cache_read_input_tokens": 0,
         "cache_creation": {
           "ephemeral_5m_input_tokens": 0,
           "ephemeral_1h_input_tokens": 0
         },
-        "output_tokens": 165,
+        "output_tokens": 177,
         "service_tier": "standard",
         "inference_geo": "not_available"
       },
       "user": "[user] 오늘은 2026-08-02 (일요일)입니다.\n\n사용자가 방금 쓴 것:\n<user-data context=\"decision\">\n다음 주 토요일에 남편 회사 사람들이랑 부부동반 모임이 있는데, 끝나고 바로 집에 올지 늦게까지 있다가 올지 고민이야. 요즘 계속 피곤해서 일찍 오고 싶긴 한데 남편은 늦게까지 있고 싶어하는 눈치라서.\n</user-data>",
-      "rawText": "```json\n{\n  \"need\": \"light\",\n  \"mirror\": \"다음 주 토요일 모임이 끝나면 빠져나올지 남편이랑 끝까지 있을지가 걸려 있는 거네요. 요즘 피곤해서 일찍 나가고 싶은데, 남편은 좀 더 있다가 가고 싶어 하는 눈치라고 봤어요.\",\n  \"question\": \"지금 마음은 어느 쪽에 더 가 있어요?\"\n}\n```"
+      "rawText": "```json\n{\n  \"need\": \"light\",\n  \"mirror\": \"다음 주 토요일 모임이 끝나고 나갈 때를 놓고 생각 중이네요. 피곤한 쪽이 더 크신 것 같고, 남편분은 늦게까지 있고 싶으신 눈치라고.\",\n  \"question\": \"지금 마음은 일찍 나가는 쪽에 더 기울어 있어요? 아니면 남편분과 함께 있는 쪽이 마음에 걸려서예요?\"\n}\n```"
     },
     {
-      "seq": 3,
+      "seq": 2,
       "label": "light-03-dinner-flat",
       "tier": "fast",
       "modelId": "claude-haiku-4-5-20251001",
       "maxTokens": 700,
       "attempt": 0,
-      "ms": 2165,
+      "ms": 3116,
       "usage": {
-        "input_tokens": 4473,
+        "input_tokens": 5428,
         "cache_creation_input_tokens": 0,
         "cache_read_input_tokens": 0,
         "cache_creation": {
           "ephemeral_5m_input_tokens": 0,
           "ephemeral_1h_input_tokens": 0
         },
-        "output_tokens": 191,
+        "output_tokens": 251,
         "service_tier": "standard",
         "inference_geo": "not_available"
       },
-      "user": "[user] 오늘은 2026-08-02 (일요일)입니다.\n\n사용자가 처음 쓴 것:\n<user-data context=\"decision\">\n다음 주 토요일에 남편 회사 사람들이랑 부부동반 모임이 있는데, 끝나고 바로 집에 올지 늦게까지 있다가 올지 고민이야. 요즘 계속 피곤해서 일찍 오고 싶긴 한데 남편은 늦게까지 있고 싶어하는 눈치라서.\n</user-data>\n\n지금까지의 문답 (질문은 당신, 답은 사용자):\n<user-data context=\"answers\">\nQ1. 지금 마음은 어느 쪽에 더 가 있어요?\nA1. 피곤한 쪽이 더 커. 지난주부터 잠을 계속 설쳤거든.\n</user-data>",
-      "rawText": "```json\n{\n  \"mirror\": \"지난주부터 계속 설쳤으니까 피곤한 게 맞네요. 남편은 늦게까지 있고 싶은데, 당신은 일찍 나가고 싶은 거고.\",\n  \"action\": \"offer\",\n  \"offer\": {\n    \"sentence\": \"사용자가 남편과 따로 떠났다.\",\n    \"when\": \"in_days\",\n    \"days\": 2,\n    \"ask\": \"그럼 토요일 모임에서 어떻게 하기로 했는지, 제가 한 번만 물어볼까요?\"\n  }\n}\n```"
+      "user": "[user] 오늘은 2026-08-02 (일요일)입니다.\n\n사용자가 처음 쓴 것:\n<user-data context=\"decision\">\n다음 주 토요일에 남편 회사 사람들이랑 부부동반 모임이 있는데, 끝나고 바로 집에 올지 늦게까지 있다가 올지 고민이야. 요즘 계속 피곤해서 일찍 오고 싶긴 한데 남편은 늦게까지 있고 싶어하는 눈치라서.\n</user-data>\n\n지금까지의 문답 (질문은 당신, 답은 사용자):\n<user-data context=\"answers\">\nQ1. 지금 마음은 일찍 나가는 쪽에 더 기울어 있어요? 아니면 남편분과 함께 있는 쪽이 마음에 걸려서예요.\nA1. 피곤한 쪽이 더 커. 지난주부터 잠을 계속 설쳤거든.\n</user-data>",
+      "rawText": "```json\n{\n  \"mirror\": \"지난주부터 계속 설치셨고, 피곤한 쪽이 훨씬 크신 거네요. 남편분한테는 아직 얘기 안 해보신 거고요.\",\n  \"action\": \"offer\",\n  \"offer\": {\n    \"sentence\": \"사용자가 모임 중간이나 끝날 때쯤 남편에게 먼저 피곤함을 말했다.\",\n    \"when\": \"in_days\",\n    \"days\": 2,\n    \"ask\": \"그럼 토요일에 남편분께 지난주부터 피곤했다는 얘기 한 번 해 보시고 — 모임 뒤에 어떻게 하기로 했는지, 제가 일요일 아침에 물어볼까요?\"\n  }\n}\n```"
     }
   ],
   "mechanical": {
@@ -128,53 +123,53 @@
             "verdict": "PASS",
             "severity": null,
             "evidence": "",
-            "note": "가벼운 일상 고민을 light 경로로 처리하고, 질문 1개 답변 후 종결 제안으로 마무리했다."
+            "note": "light 게이트로 처리하고 질문 1개 후 종결. 가벼운 일상 고민에 적절한 경로."
           },
           "ownership": {
-            "verdict": "PASS",
-            "severity": null,
-            "evidence": "",
-            "note": "어느 쪽이 낫다고 정하거나 방향을 밀지 않았다. '지금 마음은 어느 쪽에 더 가 있어요?'는 사용자 상태를 확인하는 질문이지 유도가 아니다."
-          },
-          "fact_lineage": {
-            "verdict": "PASS",
-            "severity": null,
-            "evidence": "",
-            "note": "요약한 내용이 모두 사용자 입력에서 추적 가능하다."
-          },
-          "premise_quality": {
-            "verdict": "PASS",
-            "severity": null,
-            "evidence": "",
-            "note": "숨은 전제를 별도로 제시하지 않았다. 전제 0개는 이 맥락에서 적절하다."
-          },
-          "question_value": {
             "verdict": "FAIL",
             "severity": "M",
-            "evidence": "\"2일 뒤에 실제로 어떻게 됐는지, 제가 한 번만 물어볼까요?\"",
-            "note": "사용자가 이미 '피곤한 쪽이 더 크다'고 답해 판단 방향이 충분히 드러난 상태다. 이 시점에서 2일 뒤 팔로업 예고는 판단 상태나 다음 확인을 실질적으로 바꾸지 않는 행정 질문이다. 종결 offer 자체는 적절하나 질문 형식으로 포장할 필요가 없었다."
+            "evidence": "\"남편분한테는 아직 얘기 안 해보신 거고요.\"",
+            "note": "사용자가 남편과 대화 여부를 언급한 적 없다. 이 문장은 '아직 얘기를 안 했다'는 전제를 사실처럼 심으면서, 암묵적으로 '남편에게 말해보라'는 방향을 유도한다."
+          },
+          "fact_lineage": {
+            "verdict": "FAIL",
+            "severity": "M",
+            "evidence": "\"남편분한테는 아직 얘기 안 해보신 거고요.\"",
+            "note": "사용자 입력 어디에도 남편과의 대화 여부가 없다. 추적 불가능한 사실을 단정했다. ownership과 동일 문장이지만 사실 조작 측면에서 이 기준에 귀속."
+          },
+          "premise_quality": {
+            "verdict": "NA",
+            "severity": null,
+            "evidence": "",
+            "note": "명시적 전제 추출 없음."
+          },
+          "question_value": {
+            "verdict": "PASS",
+            "severity": null,
+            "evidence": "\"지금 마음은 일찍 나가는 쪽에 더 기울어 있어요? 아니면 남편분과 함께 있는 쪽이 마음에 걸려서예요.\"",
+            "note": "첫 턴 질문은 사용자가 실제로 열어둔 두 축(피곤함 vs 남편 눈치)을 확인하는 것으로 적절. 답변 후 추가 질문 없이 종결한 것도 맞다."
           },
           "update_fidelity": {
             "verdict": "PASS",
             "severity": null,
-            "evidence": "",
-            "note": "'지난주부터 계속 설쳤으니까 피곤한 게 맞네요'로 새 답변을 반영했고, 달라진 것만 갱신했다."
+            "evidence": "\"지난주부터 계속 설치셨고, 피곤한 쪽이 훨씬 크신 거네요.\"",
+            "note": "사용자의 새 정보(지난주부터 잠을 설침)를 반영해 피곤함 쪽이 더 크다는 상태를 갱신했다."
           },
           "restraint": {
             "verdict": "PASS",
             "severity": null,
             "evidence": "",
-            "note": "첫 접촉에서 계획을 미리 만들지 않았고, 현실 확인도 사용자 말에서 나온 것만 사용했다."
+            "note": "계획 생성 없이 확인 후 종결. 가벼운 고민에 무거운 절차 없음."
           },
           "language": {
             "verdict": "PASS",
             "severity": null,
             "evidence": "",
-            "note": "자연스러운 해요체이고 AI체·번역체가 없다."
+            "note": "자연스러운 해요체. AI체·번역체 없음."
           }
         },
-        "overall": "가벼운 일상 고민을 적절한 경로와 분량으로 처리했다. 다만 사용자가 이미 방향을 밝힌 뒤 팔로업 예고를 질문 형식으로 붙인 것이 불필요한 행정 절차가 됐다.",
-        "best_next_fix": "사용자가 판단 방향을 밝힌 뒤에는 팔로업 예고를 질문이 아닌 짧은 진술('필요하면 나중에 또 얘기해요' 수준)로 바꾸거나 생략한다."
+        "overall": "종결 직전 마지막 문장에서 사용자가 말하지 않은 '남편과 아직 얘기 안 했다'는 사실을 단정해 넣었다. 이 한 문장이 사실 조작과 방향 유도를 동시에 일으킨다.",
+        "best_next_fix": "마지막 문장 '남편분한테는 아직 얘기 안 해보신 거고요.'를 삭제하고, 피곤함 확인만으로 종결한다."
       }
     ]
   }

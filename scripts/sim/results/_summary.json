@@ -1,9 +1,9 @@
 {
-  "at": "2026-08-02T00:27:58.260Z",
-  "totalLLMCalls": 11,
+  "at": "2026-08-02T01:09:09.739Z",
+  "totalLLMCalls": 6,
   "scenarios": [
     {
-      "id": "light-02-laptop",
+      "id": "light-03-dinner-flat",
       "error": false,
       "judgeError": null,
       "gate": "light",
@@ -12,34 +12,15 @@
       "judgeFails": []
     },
     {
-      "id": "light-03-dinner-flat",
+      "id": "light-01-party-wife",
       "error": false,
       "judgeError": null,
       "gate": "light",
       "lightOutcome": "close",
       "mechanicalFindings": 0,
       "judgeFails": [
-        "route_fit:M",
         "ownership:M",
-        "premise_quality:M",
-        "question_value:M",
-        "restraint:M"
-      ]
-    },
-    {
-      "id": "light-05-hoesik-escalate",
-      "error": false,
-      "judgeError": null,
-      "gate": "light",
-      "requestType": "open",
-      "lightOutcome": "escalate",
-      "mechanicalFindings": 0,
-      "judgeFails": [
-        "premise_quality:M",
-        "question_value:M",
-        "update_fidelity:M",
-        "restraint:L",
-        "language:L"
+        "fact_lineage:M"
       ]
     }
   ]

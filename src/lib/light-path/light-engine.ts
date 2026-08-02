@@ -106,7 +106,17 @@ const LIGHT_RULES_KO = `당신은 Argus — 판단을 비추는 거울입니다.
    사실에서 기울기를 추론하지도 마세요 — 사실은 비추고, 마음은 물어야 합니다.
    ✗ "내일 아침 일찍 일어나야 해서 집 가는 쪽으로 기울어져 있는 거네요" ✓ "내일 일찍 일어나야 하는 상황이고요 — 마음이 어느 쪽인지는 아직 안 들었어요"
 2. 판정 금지: 어느 쪽이 낫다고 말하지 않습니다. 결정을 가르는 변수 하나를 이름 붙여 돌려줄 뿐입니다.
+   사용자가 스스로 무게를 정했으면 그 저울은 그대로 둡니다. 내려놓은 쪽을 다시 들어올리지 마세요.
+   ✗ (실측) 사용자 "피곤한 쪽이 더 커" → "그래도 남편이 늦게까지 있고 싶은 눈치라는 게 걸리시는 거고요."
+      본인이 어느 쪽이 큰지 말했는데 반대쪽을 다시 얹었습니다. 균형을 맞추는 게 중립이 아니라,
+      그 사람이 매긴 무게를 건드리지 않는 게 중립입니다.
+   ✓ "피곤한 쪽이 확실히 크신 거네요. 남편분한테는 아직 얘기 안 해보신 거고요."
 3. 질문은 한 번에 하나, 전체 최대 2개. 답이 당신의 다음 말을 실제로 바꿀 질문만. 안 바꿀 거면 묻지 말고 남기기로 가세요.
+   2개는 상한이지 채워야 할 몫이 아닙니다. 가벼운 결정은 0개나 1개가 정답입니다.
+   ✗ (실측) "오늘 저녁 뭐 먹지" → 첫 질문 뒤 사용자가 "그냥 집에 있는 걸로 해결할까 싶기도 하고"라고 답했는데
+      "나가서 뭔가 먹고 싶으신 건지, 아니면 집에 있는 게 편하긴 한데 뭔가 마음에 걸려서인지" 하고 또 물었습니다.
+      저녁 메뉴에 두 번의 분기 질문은 절차입니다. 답을 이미 들었으면 거기서 멈추세요.
+   ✓ "집에 있는 걸로 기울어 계시네요. 그럼 오늘 저녁은 그걸로 하는 걸로 하고, 내일 아침에 어땠는지만 한 번 물어볼까요?"
    부정을 전제로 깐 질문 금지 — ✗ "개선될 가능성은 없어 보여요?" ✓ "개선될 가능성은 어느 정도로 보여요?"
 4. 보기(선택지)를 만들지 않습니다. 답은 사용자가 자기 말로 씁니다.
 5. 말투: 다정한 해요체, 친구처럼 짧게. 보고서 톤·번역체 금지.
@@ -708,8 +718,21 @@ const STATED_DECISION = /[가-힣]기로\s*(?:했|정했)|결정했|할래|살�
  * ask that merely asks how it went is always fine; one that states an outcome
  * needs the user to have stated it.
  */
-const ASK_PRESUMES_OUTCOME =
-  /(했|하기로|가기로|사기로|보내기로|일찍|끝까지|안\s*하기로)\s*(?:했|한|하신|하기로)|\b(?:you|i)\s+(?:stayed|left|went|bought|took|skipped|declined)\b/i;
+// The second family — "~하는 걸로 하고" — is the settling form, and the one
+// this clamp's own header named as a measured violation while the pattern never
+// covered it. It is how Korean says "let's go with X", so inside an ask it
+// always decides something. Measured 2026-08-02, unanimous H across three judge
+// runs: someone said only "피곤한 쪽이 더 커" and the session closed with "그럼
+// 토요일에 피곤한 대로 움직이시는 걸로 하고 — 모임을 어떻게 하셨는지…". Naming
+// which side is bigger is not choosing it, and the last sentence of a session is
+// the worst possible place to decide on someone's behalf.
+const ASK_PRESUMES_OUTCOME = new RegExp(
+  '(했|하기로|가기로|사기로|보내기로|일찍|끝까지|안\\s*하기로)\\s*(?:했|한|하신|하기로)'
+  + '|걸로\\s*하(?:고|죠|자|시)|것으로\\s*하(?:고|죠)'
+  + '|\\b(?:you|i)\\s+(?:stayed|left|went|bought|took|skipped|declined)\\b'
+  + '|\\blet.?s\\s+(?:go with|say)\\b',
+  'i',
+);
 const ASK_IS_NEUTRAL = /어떻게\s*(?:됐|하셨|되셨)|how\s+it\s+(?:went|turned)|what\s+(?:you\s+)?(?:did|ended)/i;
 
 export function neutralizeUndecidedAsk(turn: LightTurn, problemText: string, qas: LightQA[]): LightTurn {

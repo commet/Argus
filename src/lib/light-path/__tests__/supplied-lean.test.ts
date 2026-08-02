@@ -74,3 +74,54 @@ describe('the turn beat runs it, which is where it survived', () => {
     expect(src).toContain('✗ "지난달에 못 가셨으니까 이번 주말엔 가야 하는 거 아닌가 싶으신 거네요."');
   });
 });
+
+/**
+ * The last sentence of a session is the worst place to decide for someone.
+ *
+ * The F6 clamp already exists and its own header names "~하는 걸로 하고" as one
+ * of the measured violations — while the pattern it ships never matched it.
+ * Unanimous H across three judge runs, 2026-08-02: the user said only "피곤한
+ * 쪽이 더 커" and the session closed with "그럼 토요일에 피곤한 대로 움직이시는
+ * 걸로 하고 — 모임을 어떻게 하셨는지, 제가 한 번만 물어볼까요?".
+ *
+ * Naming which side is bigger is not choosing it.
+ */
+describe('an ask may not settle what the user did not', () => {
+  const undecided = { problemText: '모임 끝나고 바로 올지 늦게까지 있을지 고민이야.', qas: [{ question: '지금 마음은?', answer: '피곤한 쪽이 더 커.' }] };
+  const turn = (ask: string) => ({
+    mirror: '피곤한 쪽이 크신 거네요.',
+    action: 'offer' as const,
+    offer: { sentence: '토요일 모임에서 일찍 나왔다', when: 'in_days' as const, days: 2, ask },
+  });
+
+  it('drops the settling ask', async () => {
+    const { neutralizeUndecidedAsk } = await import('../light-engine');
+    const out = neutralizeUndecidedAsk(
+      turn('그럼 토요일에 피곤한 대로 움직이시는 걸로 하고 — 모임을 어떻게 하셨는지, 제가 한 번만 물어볼까요?'),
+      undecided.problemText,
+      undecided.qas,
+    );
+    expect(out.offer?.ask).toBeUndefined();
+  });
+
+  it('keeps an ask that only asks how it went', async () => {
+    // The clamp's own lesson from an earlier run: dropping every tailored ask
+    // gave five different people the same subject-less sentence. An ask that
+    // presupposes nothing never needed neutralising.
+    const { neutralizeUndecidedAsk } = await import('../light-engine');
+    const ask = '그럼 토요일 모임에서 어떻게 하셨는지, 제가 한 번만 물어볼까요?';
+    const out = neutralizeUndecidedAsk(turn(ask), undecided.problemText, undecided.qas);
+    expect(out.offer?.ask).toBe(ask);
+  });
+
+  it('keeps a settling ask when the USER settled it', async () => {
+    const { neutralizeUndecidedAsk } = await import('../light-engine');
+    const ask = '그럼 일찍 나오시는 걸로 하고 — 토요일에 어떻게 됐는지 물어볼까요?';
+    const out = neutralizeUndecidedAsk(
+      turn(ask),
+      undecided.problemText,
+      [{ question: '어떻게 하실 거예요?', answer: '그냥 일찍 나오기로 했어.' }],
+    );
+    expect(out.offer?.ask).toBe(ask);
+  });
+});
