@@ -2152,7 +2152,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
           {/* The user's words are the root record, not a one-line breadcrumb.
               Keep them visibly above every model-surfaced direction, with
               authorship explicit and enough height to re-read the decision. */}
-          <div className="border-y border-[var(--border)] bg-[var(--surface)]/35 px-3 py-3 md:px-5 md:py-4">
+          <div className="border-y border-[var(--border)] bg-[var(--surface)]/35 px-3 py-2.5 md:px-5 md:py-4">
             <motion.button
               ref={problemRef}
               type="button"
@@ -2169,7 +2169,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
                 </span>
               </span>
               <p
-                className={`mt-2 text-[15px] md:text-[17px] font-semibold text-[var(--text-primary)] leading-[1.58] md:leading-[1.62] tracking-[-0.01em] transition-colors group-hover:text-[var(--accent-fg)] ${problemExpanded ? 'whitespace-pre-wrap break-words' : 'line-clamp-2 md:line-clamp-4'}`}
+                className={`mt-1.5 text-[14px] md:mt-2 md:text-[17px] font-semibold text-[var(--text-primary)] leading-[1.58] md:leading-[1.62] tracking-[-0.01em] transition-colors group-hover:text-[var(--accent-fg)] ${problemExpanded ? 'whitespace-pre-wrap break-words' : 'line-clamp-1 md:line-clamp-4'}`}
                 style={{ fontFamily: 'var(--font-display)' }}
               >
                 {session.problem_text}
