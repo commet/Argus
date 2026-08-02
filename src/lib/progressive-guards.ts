@@ -228,7 +228,10 @@ export function ensureCrisisResource(insight: string | undefined, locale: Locale
  */
 export function stripConditionalReassurance(insight: string | undefined): string | undefined {
   if (!insight) return insight;
-  const COND = /(없다면|없으면|된다면|이라면|아니라면)[^.!?…\n]*(걸림돌|문제(는|가|도)?\s*(없|아니)|괜찮|지장(은|이)?\s*없|무리(는|가)?\s*없|진행해도\s*돼)/;
+  // The English clause was missing entirely — not thin, absent. A guard with no
+  // branch for a language cannot fail on it, which is why the gap survived a
+  // suite that has been green for weeks.
+  const COND = /(없다면|없으면|된다면|이라면|아니라면)[^.!?…\n]*(걸림돌|문제(는|가|도)?\s*(없|아니)|괜찮|지장(은|이)?\s*없|무리(는|가)?\s*없|진행해도\s*돼)|\b(if|as long as|assuming|provided)\b[^.!?…\n]*\b(no (real )?(problem|issue|obstacle|blocker|downside)|not (really )?a (problem|issue|concern)|nothing (is )?(standing|stopping|holding)|you(\'|’)?re (fine|good|clear|all set)|(fine|safe|clear|free) to (go|proceed|move|do))\b/i;
   const sentences = insight.split(/(?<=[.!?…])\s+/);
   const kept = sentences.filter((s) => !COND.test(s));
   const out = kept.join(' ').trim();
@@ -243,12 +246,39 @@ export function stripConditionalReassurance(insight: string | undefined): string
  * around the ban on the very next run, so the SENTENCE FORM is owned by code.
  * Never empties the insight — the mirror survives, the ranking does not.
  */
+// The English half covered comparatives ("X matters more than Y") and nothing
+// else, so the commonest English form of the same violation — a superlative
+// naming which of their concerns is the big one — went through untouched.
+// `risk` is deliberately absent: ranking risks in the WORLD is analysis, and
+// this guard is about ranking what weighs on the PERSON.
 const UNEARNED_RANKING =
-  /(보다|비해)[^.!?…\n]*(더|덜)\s*[^.!?…\n]*(걸리|걸려|중요|앞[에서]|무겁|무거|크게|우선|신경|마음)|\b(matters?|weighs?|counts?|concerns?)\s+more\s+than\b|\bmore\s+of\s+a\s+(concern|worry)\s+than\b/;
+  /(보다|비해)[^.!?…\n]*(더|덜)\s*[^.!?…\n]*(걸리|걸려|중요|앞[에서]|무겁|무거|크게|우선|신경|마음)|\b(matters?|weighs?|counts?|concerns?)\s+more\s+than\b|\bmore\s+of\s+a\s+(concern|worry)\s+than\b|\bthe\s+(most|biggest|main|primary|chief)\s+(important|pressing|significant|urgent)?\s*(factor|concern|worry|issue|consideration|thing)\b|\bwhat\s+(really\s+)?matters\s+(most|more)\b/i;
+/**
+ * Their ranking, attributed to them, is not an unearned ranking.
+ *
+ * "AND WHEN THEY DO SAY IT, IT STANDS" is a rule of the judgment contract, and
+ * this guard was breaking it. Found 2026-08-03 while measuring the English
+ * branches: "You said the title matters more than the money" was being deleted
+ * by the `matters more than` clause — Argus quoting the user's own weighing back
+ * to them, erased as if Argus had done the weighing.
+ *
+ * That is the worse of the two failure directions. A missed ranking is one bad
+ * sentence; a deleted attribution takes the user's voice out of their own
+ * mirror, which is the thing the product is for.
+ */
+const ATTRIBUTED_TO_USER = new RegExp(
+  '(말씀하셨|말씀하신|하셨듯|하신 대로|라고 하셨|쓰셨|적으셨|하셨는데|하셨고)'
+  + '|\\b(you (said|wrote|told me|mentioned|put it)|as you (said|put it|described)'
+  + '|by your own)\\b',
+  'i',
+);
+
 export function stripUnearnedRanking(insight: string | undefined): string | undefined {
   if (!insight) return insight;
   const sentences = insight.split(/(?<=[.!?…])\s+/);
-  const kept = sentences.filter((s) => !UNEARNED_RANKING.test(s));
+  const kept = sentences.filter(
+    (s) => !UNEARNED_RANKING.test(s) || ATTRIBUTED_TO_USER.test(s),
+  );
   const out = kept.join(' ').trim();
   return out || insight;
 }
@@ -277,13 +307,49 @@ export function stripUnearnedRanking(insight: string | undefined): string | unde
  * state they never named) is semantic and lives in the prompt, where it can be
  * measured rather than guessed at.
  */
+/**
+ * ── The English branch, and why it was worth nothing ────────────────────────
+ *
+ * Measured 2026-08-03: of ten English sentences of exactly this violation, this
+ * guard caught two. Both catches were the two shapes someone had already
+ * imagined while writing the alternation; every shape an English speaker
+ * actually reaches for went straight through. The other guards in this file
+ * scored the same way, and one had no English clause at all.
+ *
+ * The mechanism is the LLM-glue invariant aimed at our own guards: a regex that
+ * cannot fire is indistinguishable from a regex with nothing to catch. Same code
+ * path, same green suite, same silence — so an unguarded English session looked
+ * exactly like a well-guarded one.
+ *
+ * The rule underneath is one clause: a sentence whose EVIDENCE is the user's own
+ * utterance. Encoded as (their utterance) followed by (an inference verb) inside
+ * one sentence, which is narrower than either half alone. That matters here —
+ * "you said X matters more than Y" is the user's own ranking being quoted back,
+ * which the contract explicitly protects (AND WHEN THEY DO SAY IT, IT STANDS),
+ * so the naming-a-word half requires an actual quoted fragment.
+ */
+const EN_UTTERANCE = '(the way|how) you (put|said|phrased|worded|framed|described|wrote)'
+  + '|your (tone|phrasing|wording|language|framing|word choice|choice of words)'
+  + '|the fact that you (led|started|opened|began) with';
+
 const WORD_CHOICE_READING = new RegExp(
   // '이나'가 붙은 거 / "여행이나"라고 쓰신 걸 보면 / 그 표현을 보면
   '[\'"“”‘’][^\'"“”‘’]{1,20}[\'"“”‘’]\\s*(가|이|을|를|라고|이라고)?\\s*(붙|쓰|적|말씀|하신|한 것|한 거)'
   + '|(표현|말투|단어|어투|말씨|어감|뉘앙스)\\s*(을|를|이|가|에서)?\\s*보면'
   + '|(표현|말투|단어|어투|말씨|어감|뉘앙스)(을|를|이|가)?\\s*(쓰신|고르신|택하신|선택하신)'
   + '|라고\\s*(하신|쓰신|말씀하신)\\s*(거|것|걸|점)'
-  + '|\\b(the way you (put|said|phrased)|your (word|phrasing|wording) (choice )?(suggests|tells|says))\\b',
+  // Their utterance, named as such. Always the violation — there is no honest
+  // reading of someone's tone.
+  + `|\\b(${EN_UTTERANCE})\\b`
+  // Their utterance, QUOTED, followed by what it supposedly shows. The quote is
+  // required: without it "you said the offer matters more" — them, being quoted
+  // — would be deleted as if Argus had said it.
+  + '|\\b(you (said|wrote|used|chose)|the (word|phrase|term|expression)|that)\\s*'
+  + '[\'"“”‘’][^\'"“”‘’]{1,24}[\'"“”‘’][^.!?…\\n]*'
+  + '\\b(read|reads|sound|sounds|suggest|suggests|tell|tells|say|says|mean|means'
+  + '|reveal|reveals|matter|matters|instead of|rather than|is doing|at the (end|start|beginning))\\b'
+  // "Calling it a break rather than quitting says something."
+  + '|\\bcalling it\\b[^.!?…\\n]*\\b(rather than|instead of)\\b',
   'i',
 );
 
@@ -338,7 +404,24 @@ const FRAME_SEIZURE = new RegExp(
   + '|[\'"“”‘’][^\'"“”‘’]{1,24}[\'"“”‘’]\\s*(을|를|이|가|은|는)?\\s*[가-힣\\s]{0,12}아니라'
   // the frame seized by naming itself
   + '|(진짜|사실|핵심|본질적인|실제)\\s*(질문|문제|고민)(은|는|이)'
-  + '|\\b(the real question is|what you.?re (actually|really) (deciding|asking)|it.?s not (really )?about)\\b',
+  // ── English. The three clauses that used to live here matched CONTRACTIONS
+  // ONLY — `you.?re`, `it.?s` — so "What you are actually deciding is when" and
+  // "It is not really about the money" both sailed past, and careful prose is
+  // exactly where a model stops contracting. Measured 2026-08-03: one of nine.
+  //
+  // Every shape below negates the user's own act of deciding, or renames what
+  // they said they were deciding about. Ordinary factual correction is not in
+  // here: "The number in the letter is gross, not net" must survive, which is
+  // why `not` alone is never enough — it has to attach to their question.
+  + '|\\bthe (real|actual|deeper|underlying|bigger|true|core) '
+  + '(question|issue|problem|decision|choice|thing)\\b'
+  + '|\\bwhat you(\'|’|\\s+a)?re (actually|really|truly) '
+  + '(deciding|asking|choosing|weighing|facing)\\b'
+  + '|\\b(it|this|that)(\'|’)?s? (is )?not (really |actually )?(a question )?about\\b'
+  + '|\\byou(\'|’|\\s+a)?re not (choosing|deciding|asking|weighing)\\b'
+  + '|\\bthe (question|decision|choice) (is|\'s|’s) not\\b'
+  + '|\\bunderneath (that|this|your) (question|decision|problem|choice)\\b'
+  + '|\\byou think (this|that|it) is about\\b[^.!?…\\n]*\\bbut\\b',
   'i',
 );
 
