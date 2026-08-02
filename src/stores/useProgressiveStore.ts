@@ -501,6 +501,29 @@ function migrateSessionDrafts(sessions: ProgressiveSession[]): ProgressiveSessio
 }
 
 /**
+ * Repair the duplicate departure waypoint produced by the pre-idempotency
+ * Strict Mode mount race. A voyage has exactly one origin; keep the earliest
+ * departure narration and leave checkpoints intact so old branch references
+ * remain valid.
+ */
+export function migrateDuplicateOriginWaypoints(sessions: ProgressiveSession[]): ProgressiveSession[] {
+  return sessions.map((session) => {
+    let sawDeparture = false;
+    let changed = false;
+    const waypoints = (session.waypoints || []).filter((waypoint) => {
+      if (waypoint.type !== 'departure') return true;
+      if (!sawDeparture) {
+        sawDeparture = true;
+        return true;
+      }
+      changed = true;
+      return false;
+    });
+    return changed ? { ...session, waypoints } : session;
+  });
+}
+
+/**
  * Synthesize a single "main course" branch for sessions that already carry
  * checkpoints but no `branches[]` (pre-branching sessions). The branch is
  * metadata only — its lineage is derived from the checkpoint tree at read time
@@ -607,7 +630,7 @@ export const useProgressiveStore = create<ProgressiveState>((set, get) => ({
 
   loadSessions: () => {
     const local = getStorage<ProgressiveSession[]>(STORAGE_KEYS.PROGRESSIVE_SESSIONS, []);
-    const migrated = migrateMix(migrateSessionDrafts(migrateBranches(migrateWorkers(local))));
+    const migrated = migrateMix(migrateSessionDrafts(migrateBranches(migrateDuplicateOriginWaypoints(migrateWorkers(local)))));
     set({ sessions: migrated });
 
     // Async: merge with Supabase remote sessions (cross-device sync)
@@ -646,7 +669,7 @@ export const useProgressiveStore = create<ProgressiveState>((set, get) => ({
             }
 
             if (changed) {
-              const merged = migrateMix(migrateSessionDrafts(migrateBranches(migrateWorkers(Array.from(localMap.values())))));
+              const merged = migrateMix(migrateSessionDrafts(migrateBranches(migrateDuplicateOriginWaypoints(migrateWorkers(Array.from(localMap.values()))))));
               setStorage(STORAGE_KEYS.PROGRESSIVE_SESSIONS, merged);
               set({ sessions: merged });
             }
