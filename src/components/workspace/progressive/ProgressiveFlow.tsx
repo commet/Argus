@@ -2370,7 +2370,10 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
                 />
               );
             })()}
-            {latest?.request_type === 'open' && !final_ && !mix && !crisisBlocking && phase === 'conversing' && (
+            {/* One screen, one demand: an unanswered question owns this space.
+                Offer additional review only in the quiet beat between questions.
+                If the user already started it, keep its status visible. */}
+            {latest?.request_type === 'open' && !final_ && !mix && !crisisBlocking && phase === 'conversing' && (!curQ || deepMode) && (
               <DeepJudgmentEntry
                 active={deepMode}
                 recommended={deepRecommendation.recommended}
