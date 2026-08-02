@@ -29,5 +29,9 @@ describe('judgment simulation covers the visible product loop', () => {
     const shim = readSim('llm-shim.mjs');
     expect(shim).toContain("default: 'claude-sonnet-5'");
     expect(shim).toContain('rejectsSampling');
+    expect(shim).toContain("body.thinking = { type: 'disabled' }");
+    const judge = readSim('judge.mjs');
+    expect(judge).toContain('assertCompleteJudgeResult');
+    expect(judge).toContain('judge_incomplete: missing');
   });
 });

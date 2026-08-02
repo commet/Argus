@@ -56,6 +56,8 @@ Argus의 목적은 답을 대신 정하는 것이 아니라, 사용자의 판단
      첫 Argus 질문이 그 기준점에서 이미 밝힌 고민·선택·조건을 포괄적으로
      다시 묻는 것도 실패다. 예: 사용자가 "치명적 오류만 확인하고 공개"라고
      썼는데 "지금 가장 마음에 걸리는 건?"이라고 되묻는 경우.
+   - 반대로 "~하고 싶다"는 검토 전 기울기를 이미 확정한 결정으로 읽어
+     validation으로 닫는 것도 실패다. 명시적인 확정 발화만 닫을 수 있다.
 10. update_legibility
    - 답변 뒤 출력만 읽어도 무엇이 바뀌었고, 그대로고, 아직 모르는지
      구별할 수 있다. 이전 분석을 새 답의 결과처럼 반복하지 않는다.
@@ -105,6 +107,21 @@ GROUNDING OVERRIDE — this is binding:
   the visible transcript.
 `;
 
+const REQUIRED_CRITERIA = [
+  'route_fit', 'ownership', 'fact_lineage', 'premise_quality',
+  'question_value', 'update_fidelity', 'restraint', 'language',
+  'baseline_use', 'update_legibility',
+];
+
+export function assertCompleteJudgeResult(parsed) {
+  const criteria = parsed?.criteria;
+  const missing = REQUIRED_CRITERIA.filter((key) => !criteria?.[key]?.verdict);
+  if (missing.length > 0) {
+    throw new Error(`judge_incomplete: missing ${missing.join(', ')}`);
+  }
+  return parsed;
+}
+
 export function buildJudgeUserPrompt(scenario, transcript, routeSummary, mechanical) {
   const lines = transcript.map((turn) => {
     const actor = turn.actor === 'user' ? `사용자/${turn.phase}` : `Argus/${turn.phase}`;
@@ -139,10 +156,14 @@ export async function judgeTranscript(scenario, transcript, routeSummary, mechan
       content: buildJudgeUserPrompt(scenario, transcript, routeSummary, mechanical),
     }],
     model: 'default',
-    maxTokens: 2500,
+    maxTokens: 3500,
     temperature: 0,
+    // Bounded JSON classification, not product reasoning. Sonnet 5 adaptive
+    // thinking can consume the budget before all criteria are emitted; a JSON
+    // repair can then make that fragment look like a complete green result.
+    thinkingDisabled: true,
   });
-  return { parsed: parseJSON(text), rawText: text, usage };
+  return { parsed: assertCompleteJudgeResult(parseJSON(text)), rawText: text, usage };
 }
 
 export function judgeHasH(judgeParsed) {

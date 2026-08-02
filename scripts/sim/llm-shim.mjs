@@ -53,7 +53,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 /** Raw Anthropic messages call with retry/backoff. Used by the shimmed
  *  callLLM* surface AND directly by the judge (temperature 0). */
-export async function anthropicText({ system, messages, model = 'default', maxTokens = 2000, temperature, cacheSystem = false }) {
+export async function anthropicText({ system, messages, model = 'default', maxTokens = 2000, temperature, cacheSystem = false, thinkingDisabled = false }) {
   if (!apiKey) throw new LLMError('ANTHROPIC_API_KEY is not set', { category: 'auth' });
   if (budget.used >= budget.max) {
     throw new LLMError(`LLM call budget exhausted (${budget.used}/${budget.max})`, { category: 'budget' });
@@ -70,6 +70,7 @@ export async function anthropicText({ system, messages, model = 'default', maxTo
       : system,
     messages: messages.map((m) => ({ role: m.role, content: m.content })),
   };
+  if (thinkingDisabled) body.thinking = { type: 'disabled' };
   // Sonnet/Opus/Fable 5 reject non-default sampling parameters. The old judge
   // requested temperature=0; carrying it across the model upgrade turns every
   // otherwise-valid evaluation into HTTP 400. Omitting it is also what the web
