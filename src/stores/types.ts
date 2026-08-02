@@ -1431,9 +1431,7 @@ export interface AnalysisSnapshot {
   stakes?: 'routine' | 'important' | 'critical';
   reversibility?: 'reversible' | 'partial' | 'irreversible';
 
-  // Convergence tracking (Weakness C fix)
-  convergence_score?: number;       // 0-100: 질문 안정성 + 가정 감소 종합
-  convergence_trend?: 'improving' | 'stable' | 'declining' | 'unclear';
+  // Convergence tracking (Weakness C fix)       // 0-100: 질문 안정성 + 가정 감소 종합
 
   // ── Under-fire judgment gates (ported from plugin v2.6) ──
   /** step-0: the model's own STEP-0 classification (R31/R32 — now WIRED: set by

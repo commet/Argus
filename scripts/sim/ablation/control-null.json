@@ -1,8 +1,7 @@
 {
   "heavy-01-job-offer-40": {
-    "ownership": 2,
     "question_value": 2,
-    "restraint": 1
+    "update_fidelity": 2
   },
   "heavy-04-fire-teammate": {
     "question_value": 2

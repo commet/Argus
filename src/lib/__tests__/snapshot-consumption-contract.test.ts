@@ -55,8 +55,6 @@ const CONSUMPTION_CONTRACT: Record<string, Site> = {
   framing_override_reason: 'ui',
   stakes: 'seal-gate',                   // shouldSealContract
   reversibility: 'seal-gate',
-  convergence_score: 'routing',
-  convergence_trend: 'routing',
   request_type: 'routing',               // terminal-route gate
   readiness: 'routing',
   frame_status: 'routing',               // over-fire mirror clause

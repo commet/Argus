@@ -1287,8 +1287,12 @@ export async function runDeepening(
 
   // Adaptive convergence: 스냅샷 전체 + 새 스냅샷으로 수렴도 계산
   const convergence = assessConvergence([...allSnapshots, snapshot]);
-  snapshot.convergence_score = convergence.score;
-  snapshot.convergence_trend = convergence.trend;
+  // convergence_score / convergence_trend were copied onto the snapshot here
+  // and read by nothing, in any file, for months — while the consumption
+  // contract declared them 'routing'. The convergence VALUES are alive and
+  // load-bearing (is_converged gates readiness, guidance becomes a question
+  // subtext) and are read straight off the local object; the snapshot copies
+  // were duplicated state that could only ever drift from it.
 
   // LLM이 ready라고 했거나, 수렴도가 충분하면 Mix 가능
   const llmSaysReady = result.ready_for_mix === true;
