@@ -384,7 +384,14 @@ const SUPPLIED_LEAN = new RegExp(
 
 /** Any inclination in the user's OWN words. Its presence is the licence to
  *  reflect one back. */
-const USER_STATED_LEAN = /끌리|기울|땡기|싶어|싶은|싶긴|싶다|낫겠|나을|가고 싶|하고 싶|\b(rather|prefer|leaning|want to)\b/i;
+// "tempted", "inclined", "would like" and "feel like ~ing" are how English says
+// 끌린다, and none of them were here — so a user who HAD voiced a lean was
+// treated as having voiced none, and their own inclination was scrubbed out of
+// the mirror. `feel like` is required to carry a gerund: "I feel like staying"
+// is a lean, "I feel like I should decide tonight" is deliberation, and reading
+// the second as the first would licence Argus to hand someone a lean they never
+// expressed — the fabrication this whole pair of patterns exists to prevent.
+const USER_STATED_LEAN = /끌리|기울|땡기|싶어|싶은|싶긴|싶다|낫겠|나을|가고 싶|하고 싶|\b(rather|prefer|leaning|want to|tempted|inclined|would like)\b|\bfeel(?:s)?\s+like\s+\w+ing\b/i;
 
 export function stripSuppliedLean(mirror: string, userTexts: string[] = []): string {
   const said = (userTexts || []).join(' ');
@@ -475,7 +482,14 @@ export function isInterrogativeSentence(sentence: string): boolean {
   if (!t) return false;
   // NOTE: [가-힣]까 (not a bare ㄹ까) — a jamo pattern never matches composed
   // syllables (갈까/살까/볼까), the exact dead-rule class the plugin audit found.
-  return /[?？]\s*$/.test(t) || /(?:는지|는가|[가-힣]까)(?:요)?\s*[.!…]?\s*$/.test(t);
+  // English marks an indirect question at the FRONT, not the end, and carries no
+  // question mark when it is a fragment. Korean got 는지/는가/[가-힣]까; English
+  // got the question mark alone, so "Whether the early start was worth
+  // protecting" would have been sealed as a claim and then graded true or false
+  // at settle — which is not a thing it can be.
+  return /[?？]\s*$/.test(t)
+    || /(?:는지|는가|[가-힣]까)(?:요)?\s*[.!…]?\s*$/.test(t)
+    || /^(?:whether|how\s+(?:much|many|long|far|often)|what\s+(?:if|to))\b/i.test(t);
 }
 
 /**
@@ -490,14 +504,29 @@ export function isInterrogativeSentence(sentence: string): boolean {
  * The permission to state an outcome comes from the user's own words: if they
  * said which way they were going, the sentence may say so too.
  */
+const ENGLISH_TOOK_A_SIDE = new RegExp(
+  '\\b(?:i|we)\\s+(?:'
+  + 'ended\\s+up\\s+\\w+ing|turned\\s+(?:it\\s+)?down|said\\s+(?:no|yes)|went\\s+with'
+  + '|stayed|left|went|bought|took|chose|skipped|declined|finished'
+  + '|cancell?ed|kept|signed|ordered|booked|quit|accepted|paid|sent|moved'
+  + ')\\b',
+  'i',
+);
+
 export function offerPicksUnstatedSide(sentence: string, userTexts: string[]): boolean {
   // No user text to judge against ⇒ no grounds to overrule the model. Absence of
   // evidence is not evidence of indecision.
   if (!userTexts.some((t) => (t || '').trim().length > 0)) return false;
   const decided = userTexts.some((t) => STATED_DECISION.test(t || ''));
   if (decided) return false;
-  return /(했다|갔다|왔다|샀다|남았다|나왔다|끝냈다|골랐다|정했다)\s*[.!]?\s*$|\b(?:i|we)\s+(?:stayed|left|went|bought|took|chose|skipped|declined|finished)\b/i
-    .test(sentence.trim());
+  // The English list was nine verbs written from imagination. Measured
+  // 2026-08-03: seven of nine realistic English sentences that seal a branch
+  // went straight through — "I kept the apartment", "I signed the lease", "I
+  // turned down the offer", "I ended up cancelling the trip". Each of those
+  // would have been recorded as that person's own judgment and graded against
+  // reality weeks later.
+  return /(했다|갔다|왔다|샀다|남았다|나왔다|끝냈다|골랐다|정했다)\s*[.!]?\s*$/.test(sentence.trim())
+    || ENGLISH_TOOK_A_SIDE.test(sentence.trim());
 }
 
 function coerceOffer(v: unknown, userTexts: string[] = []): LightOffer | undefined {
@@ -701,7 +730,12 @@ export async function runLightGate(
 // \b anchors matter: without them "stay till the end" matched the `i'll` branch
 // on the letters inside "t-i-l-l", and one English session's fate was decided by
 // a substring accident.
-const STATED_DECISION = /[가-힣]기로\s*(?:했|정했)|결정했|할래|살래|갈래|보낼래|버릴래|\bgoing\s+to\s|\bdecided\s+to\s|\bi'?ll\s/i;
+// The English half was `going to` / `decided to` / `i'll`. A miss here is not
+// harmless: this is the ESCAPE, so a decision it fails to recognise makes
+// offerPicksUnstatedSide eat a legitimate offer from someone who HAD decided.
+// Measured 2026-08-03: "I'm gonna skip it", "I will take the offer" and "I am
+// going with the cheaper one" were all read as undecided.
+const STATED_DECISION = /[가-힣]기로\s*(?:했|정했)|결정했|할래|살래|갈래|보낼래|버릴래|\bgoing\s+to\s|\bgoing\s+with\s|\bgonna\s|\bdecided\s+(?:to|on)\s|\bi'?ll\s|\bi\s+will\s|\bi(?:'m|\s+am)\s+taking\s/i;
 
 /**
  * The ask is the last sentence a light session says, so it is worth getting
@@ -729,11 +763,32 @@ const STATED_DECISION = /[가-힣]기로\s*(?:했|정했)|결정했|할래|살�
 const ASK_PRESUMES_OUTCOME = new RegExp(
   '(했|하기로|가기로|사기로|보내기로|일찍|끝까지|안\\s*하기로)\\s*(?:했|한|하신|하기로)'
   + '|걸로\\s*하(?:고|죠|자|시)|것으로\\s*하(?:고|죠)'
-  + '|\\b(?:you|i)\\s+(?:stayed|left|went|bought|took|skipped|declined)\\b'
+  + '|\\b(?:you|i)\\s+(?:stayed|left|went|bought|took|skipped|declined'
+  + '|cancell?ed|kept|signed|ordered|booked|quit|accepted|chose)\\b'
+  // Broadening ASK_IS_NEUTRAL below made the gerund form reachable: "how
+  // staying till the end worked out" asks how it went AND names the branch as
+  // taken. Naming a side inside a neutral-sounding ask is the same violation
+  // wearing a friendlier sentence.
+  + '|\\bhow\\s+(?:you\\s+)?(?:staying|leaving|going|skipping|buying|taking'
+  + '|cancell?ing|keeping|declining|quitting|signing|ordering|booking)\\b'
   + '|\\blet.?s\\s+(?:go with|say)\\b',
   'i',
 );
-const ASK_IS_NEUTRAL = /어떻게\s*(?:됐|하셨|되셨)|how\s+it\s+(?:went|turned)|what\s+(?:you\s+)?(?:did|ended)/i;
+// The Korean side of this clamp was FIXED after it discarded the model's
+// tailored ask in 5 of 5 sessions and five different people received the same
+// subjectless boilerplate. The English side still had the original bug on
+// 2026-08-03: this pattern demanded the literal words "how it went", so
+// "Can I ask how Saturday went?" — which presumes nothing whatsoever — failed
+// the neutrality test and was thrown away. All four realistic neutral English
+// asks were dropped. The rule was always "an ask that merely asks how it went
+// is fine"; only the Korean half of it had been written down.
+const ASK_IS_NEUTRAL = new RegExp(
+  '어떻게\\s*(?:됐|하셨|되셨)'
+  + '|\\bhow\\b[^.?!]{0,40}\\b(?:went|turned\\s+out|worked\\s+out|felt|panned\\s+out|ended\\s+up)\\b'
+  + '|\\bwhat\\s+happened\\b'
+  + '|\\bwhat\\s+(?:you\\s+)?(?:did|ended)\\b',
+  'i',
+);
 
 export function neutralizeUndecidedAsk(turn: LightTurn, problemText: string, qas: LightQA[]): LightTurn {
   const ask = turn.offer?.ask;
