@@ -448,27 +448,27 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem, fr
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialProblem]);
 
-  // Fire the (heavy) analysis buffered behind the BindCard — the song is captured
-  // but not heard until the rope is tied. The promise never rejects — it settles
-  // to { result } | { error } so an early failure during binding is surfaced only
-  // when the user proceeds.
-  const beginBufferedAnalysis = (text: string) => {
+  // Start heavy analysis only after the pre-review baseline is resolved. That
+  // baseline is user evidence, not decorative chronology: beginning the call
+  // behind the BindCard made the first question unable to use the very thought
+  // the user had just written. The promise never rejects so failures still
+  // surface through the existing recovery UI.
+  const beginHeavyAnalysis = (text: string, preReviewBaseline?: string) => {
     const controller = new AbortController();
     analyzeAbortRef.current = controller;
     analysisSettledRef.current = null;
-    analysisRef.current = startAnalysis(text, controller);
+    analysisRef.current = startAnalysis(text, controller, preReviewBaseline);
     analysisRef.current.then((s) => { analysisSettledRef.current = s; });
   };
 
-  // Phase 1 BIND — submit no longer goes straight into generation. It fires the
-  // initial analysis IN PARALLEL (buffered, not revealed) and shows the BindCard so
-  // the user can tie their own rope BEFORE hearing the AI ("rope before the Sirens").
-  // proceedAfterBind() then reveals the assembling/analyzing beat and finalizes.
+  // Phase 1 BIND — submit no longer goes straight into heavy generation. The
+  // BindCard captures the person's own view BEFORE Argus speaks; only then does
+  // proceedAfterBind() send both the situation and that baseline to analysis.
   //
   // Light-path seam (the ONLY routing edit): when enabled, ONE fast gate call runs
   // FIRST. 'light' → render LightFlow and skip the heavy analysis call entirely
   // (no bind ceremony on an everyday decision). 'heavy' (or any gate failure) →
-  // the existing behavior above, unchanged.
+  // collect the baseline, then begin the heavy call.
   const handleSubmit = (directText?: string) => {
     const text = (directText || problemInput).trim();
     if (!text || phase !== 'idle') return;
@@ -495,19 +495,25 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem, fr
             setPhase('light');
             return;
           }
-          beginBufferedAnalysis(text);
+          analyzeAbortRef.current = null;
+          analysisRef.current = null;
+          analysisSettledRef.current = null;
           setPhase('binding');
         })
         .catch(() => {
           // runLightGate never throws by contract; this is a chunk-load backstop.
           if (controller.signal.aborted || phaseRef.current !== 'gating') return;
-          beginBufferedAnalysis(text);
+          analyzeAbortRef.current = null;
+          analysisRef.current = null;
+          analysisSettledRef.current = null;
           setPhase('binding');
         });
       return;
     }
 
-    beginBufferedAnalysis(text);
+    analyzeAbortRef.current = null;
+    analysisRef.current = null;
+    analysisSettledRef.current = null;
     setPhase('binding');
   };
 
@@ -521,15 +527,18 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem, fr
     pendingTextRef.current = ctx.text;
     setError(null);
     setLightOpening(null);
-    beginBufferedAnalysis(ctx.text);
     if (ctx.reason === 'crisis') {
+      beginHeavyAnalysis(ctx.text);
       void proceedAfterBind(null, { source: 'light_crisis' });
     } else {
+      analyzeAbortRef.current = null;
+      analysisRef.current = null;
+      analysisSettledRef.current = null;
       setPhase('binding');
     }
   };
 
-  const startAnalysis = (text: string, controller: AbortController) =>
+  const startAnalysis = (text: string, controller: AbortController, preReviewBaseline?: string) =>
     import('@/lib/progressive-engine').then(({ runInitialAnalysis }) => runInitialAnalysis(text, (token) => {
       setStreamingText(token);
       if (phaseRef.current === 'assembling') {
@@ -546,7 +555,7 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem, fr
       if (last?.id === replacesId && s.answers.length < s.questions.length) {
         progressiveStore.replaceLatestQuestion(typedQ);
       }
-    })).then((result) => ({ result })).catch((error) => ({ error }));
+    }, preReviewBaseline)).then((result) => ({ result })).catch((error) => ({ error }));
 
   // Called by BindCard. `bind` = the rope (lean + check-in) or null on skip.
   // `opts.source === 'light_crisis'` = the light path routing a crisis answer
@@ -554,8 +563,13 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem, fr
   // the telemetry never claims a bind the user was never offered.
   const proceedAfterBind = async (bind: BindResult | null, opts?: { source?: 'bind' | 'light_crisis' }) => {
     const text = pendingTextRef.current;
+    if (!text) { setPhase('idle'); return; }
+
+    if (!analysisRef.current && !analysisSettledRef.current) {
+      beginHeavyAnalysis(text, bind?.lean);
+    }
     const controller = analyzeAbortRef.current;
-    if (!text || !controller) { setPhase('idle'); return; }
+    if (!controller) { setPhase('idle'); return; }
 
     // The opening capture is a PRE-REVIEW BASELINE, not the closing seal. Keep
     // its analytics separate so the funnel cannot count one decision as sealed
@@ -569,13 +583,9 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem, fr
       });
     }
 
-    // Reveal the team-assembling → analyzing beat ONLY while we genuinely wait.
-    // If the buffered analysis already settled (typical: a quota 429 that failed
-    // in ~1s while the user was still typing the rope), entering assembling and
-    // leaving it in the same beat fires two back-to-back AnimatePresence
-    // (mode=wait) swaps — the production bundle wedges on that race and the
-    // user freezes on '팀을 꾸리는 중' forever (재실사 2026-07-08 실증). With a
-    // settled result we jump straight to the outcome: one swap, no race.
+    // Reveal the assembling → analyzing beat only while we genuinely wait. A
+    // crisis handoff may already have started the call; ordinary heavy sessions
+    // start immediately above with their baseline attached.
     const preSettled = analysisSettledRef.current;
     if (!preSettled) {
       setPhase('assembling');

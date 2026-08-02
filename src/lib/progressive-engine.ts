@@ -788,6 +788,8 @@ export async function runInitialAnalysis(
    *  the caller swaps it in via replaceLatestQuestion if the user hasn't
    *  answered yet. Without it, behavior is unchanged (await typed). */
   onTypedUpgrade?: (typed: FlowQuestion, replacesQuestionId: string) => void,
+  /** The user's own view captured before Argus reveals its first analysis. */
+  preReviewBaseline?: string,
 ): Promise<{
   snapshot: AnalysisSnapshot;
   question: FlowQuestion;
@@ -808,7 +810,9 @@ export async function runInitialAnalysis(
     return { snapshot, question, detectedDM: null };
   }
 
-  const { system, user } = buildInitialAnalysisPrompt(problemText, locale);
+  const baseline = preReviewBaseline?.trim() || '';
+  const userCorpus = baseline ? `${problemText}\n${baseline}` : problemText;
+  const { system, user } = buildInitialAnalysisPrompt(problemText, locale, baseline);
 
   // Stream: real-time display then JSON parse, or standard approach.
   // maxTokens 4096 (was 2000): the full Korean OPEN-decision JSON measures
@@ -834,7 +838,7 @@ export async function runInitialAnalysis(
   // A premise is a proposal until it proves lineage to the user's words.
   // Non-open routes carry no decision premises at all.
   const initialPremises = result.request_type === 'open'
-    ? coercePremiseCandidates(result.premise_candidates, problemText)
+    ? coercePremiseCandidates(result.premise_candidates, userCorpus)
     : { premises: [], records: [], audit: [] };
   result.hidden_assumptions = initialPremises.premises;
 
@@ -874,6 +878,7 @@ export async function runInitialAnalysis(
   const snapshot: AnalysisSnapshot = {
     version: 0,
     real_question: result.real_question || (locale === 'ko' ? '분석 중...' : 'Analyzing...'),
+    ...(baseline ? { pre_review_baseline: baseline } : {}),
     hidden_assumptions: result.hidden_assumptions || [],
     premise_records: alignRecords(initialPremises.records, result.hidden_assumptions || []),
     premise_verdicts: verdictsWorthTelling(initialPremises.audit),
@@ -909,7 +914,7 @@ export async function runInitialAnalysis(
     // manufactured ceremony (CLAUDE.md mirror clause).
     frame_status: assessFrameStatus({
       realQuestion: result.real_question || '',
-      surfaceQuestion: problemText,
+      surfaceQuestion: userCorpus,
       assumptions: result.hidden_assumptions || [],
     }),
     // Decision weight for the §0 sealing restraint gate. Safe defaults: only the
@@ -941,7 +946,7 @@ export async function runInitialAnalysis(
       requestType: snapshot.request_type,
     },
     {
-      problemText,
+      problemText: userCorpus,
       snapshot: {
         real_question: snapshot.real_question,
         hidden_assumptions: snapshot.hidden_assumptions,
@@ -964,7 +969,7 @@ export async function runInitialAnalysis(
   // The typed layer is a FALLBACK for when the harness didn't ask something
   // grounded, not an upgrade over one that did.
   const harnessQuestion = result.next_question?.text
-    && questionEchoesUser(result.next_question.text, problemText)
+    && questionEchoesUser(result.next_question.text, userCorpus)
     ? legacyQuestion
     : null;
   let question: FlowQuestion;
@@ -973,13 +978,13 @@ export async function runInitialAnalysis(
     // abort/failure leaves the legacy question standing, which is honest).
     question = guardLowConfidenceOpeningQuestion(
       guardFinalQuestion(legacyQuestion, locale, seed) ?? legacyQuestion,
-      problemText,
+      userCorpus,
       locale,
     ) ?? legacyQuestion;
     if (!harnessQuestion) {
       pickAndGenerateTypedQuestion(typedArgs[0], typedArgs[1], signal)
         .then((t) => {
-          const guarded = guardLowConfidenceOpeningQuestion(t, problemText, locale);
+          const guarded = guardLowConfidenceOpeningQuestion(t, userCorpus, locale);
           if (guarded) onTypedUpgrade(guarded, legacyQuestion.id);
         })
         .catch(() => { /* upgrade is optional polish, never a failure */ });
@@ -990,7 +995,7 @@ export async function runInitialAnalysis(
       : await pickAndGenerateTypedQuestion(typedArgs[0], typedArgs[1], signal);
     question = guardLowConfidenceOpeningQuestion(
       guardFinalQuestion(typed ?? legacyQuestion, locale, seed) ?? legacyQuestion,
-      problemText,
+      userCorpus,
       locale,
     ) ?? legacyQuestion;
   }
@@ -1374,7 +1379,7 @@ export async function runDeepening(
     // Everything the user has written by now. A fork THEY drew is theirs to be
     // asked about, and by round 3 they may have drawn it in an answer rather
     // than in the opener.
-    const userCorpus = [problemText, ...questionsAndAnswers.map((qa) => String(qa.answer.value ?? ''))]
+    const userCorpus = [problemText, currentSnapshot.pre_review_baseline, ...questionsAndAnswers.map((qa) => String(qa.answer.value ?? ''))]
       .filter(Boolean).join('\n');
     const legacyQuestion: FlowQuestion | null = nextQuestion
       ? {

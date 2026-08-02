@@ -1362,6 +1362,9 @@ export interface PremiseRecord {
 export interface AnalysisSnapshot {
   version: number;
   real_question: string;
+  /** User-authored view captured before Argus revealed its first analysis.
+   *  It remains evidence on later turns and is never treated as an AI verdict. */
+  pre_review_baseline?: string;
   hidden_assumptions: string[];
   /** The typed form of `hidden_assumptions` — same items, same order, with
    *  lineage. Optional: absent on snapshots written before 2026-08-01 and on

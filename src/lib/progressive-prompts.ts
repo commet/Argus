@@ -191,12 +191,12 @@ long scaffolding arrays):
   };
 }
 
-export function buildInitialAnalysisPrompt(problemText: string, locale: Locale = 'en'): {
+export function buildInitialAnalysisPrompt(problemText: string, locale: Locale = 'en', preReviewBaseline?: string): {
   system: string;
   user: string;
 } {
   return HARNESS_V2
-    ? buildInitialJudgmentPrompt(problemText, locale)
+    ? buildInitialJudgmentPrompt(problemText, locale, preReviewBaseline)
     : buildLegacyInitialAnalysisPrompt(problemText, locale);
 }
 

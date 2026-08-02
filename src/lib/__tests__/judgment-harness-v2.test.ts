@@ -18,6 +18,38 @@ describe('Argus judgment harness v2', () => {
     expect(prompt.system).not.toContain('Offer 3-4');
   });
 
+  it('treats the pre-review baseline as user evidence across the first and later turns', () => {
+    const initial = buildInitialJudgmentPrompt(
+      '이번 주에 공개할지 고민이에요.',
+      'ko',
+      '이번 주에 공개하되 치명적인 오류만 먼저 확인하고 싶어요.',
+    );
+    expect(initial.user).toContain('<pre-review-baseline>');
+    expect(initial.user).toContain('치명적인 오류만 먼저 확인');
+    expect(initial.system).toContain('Do not ask them to restate');
+    expect(initial.system).toContain('A pre-review lean is NOT proof');
+    expect(initial.system).toContain("I want to / I'm leaning toward");
+
+    const later = buildDeepeningJudgmentPrompt(
+      '이번 주에 공개할지 고민이에요.',
+      {
+        version: 0,
+        real_question: '공개 시점을 정해야 해요.',
+        pre_review_baseline: '이번 주에 공개하되 치명적인 오류만 먼저 확인하고 싶어요.',
+        hidden_assumptions: [],
+        skeleton: [],
+        request_type: 'open',
+      },
+      [],
+      0,
+      3,
+      'ko',
+    );
+    expect(later.user).toContain("user's pre-review baseline");
+    expect(later.user).toContain('치명적인 오류만 먼저 확인');
+    expect(later.system).toContain('Do not re-ask');
+  });
+
   it('forbids importing an adjacent expert domain just to fill the frame', () => {
     const prompt = buildInitialJudgmentPrompt('노트북을 바꿀까 고민이에요.', 'ko');
 

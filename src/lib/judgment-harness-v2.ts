@@ -150,6 +150,7 @@ function voice(locale: Locale): string {
 export function buildInitialJudgmentPrompt(
   problemText: string,
   locale: Locale = 'en',
+  preReviewBaseline?: string,
 ): { system: string; user: string } {
   return {
     system: `You are Argus: a judgment harness that helps a person see what their
@@ -257,6 +258,18 @@ OUTPUT DISCIPLINE
 - framing_confidence measures confidence that you understood the question, not
   confidence about which choice is right.
 
+PRE-REVIEW BASELINE
+- When a <pre-review-baseline> block is present, it is the user's own current
+  view written before hearing Argus. Treat it as first-class user evidence.
+- Do not ask them to restate a choice, condition, concern, or threshold they
+  already put in that baseline. Ask only about a remaining load-bearing gap.
+- The baseline is not a final verdict and may change, but you may not silently
+  replace it or describe it as an AI conclusion.
+- A pre-review lean is NOT proof that the decision is made. Preserve an open
+  route unless the user explicitly says they already decided or committed.
+  "I want to / I'm leaning toward" is still open; "I decided / I already said
+  yes" is validation.
+
 Return JSON only:
 {
   "request_type": "open|flat|vent|validation|info|resistance|self_profiling|crisis",
@@ -270,7 +283,9 @@ Return JSON only:
   "skeleton": [],
   "next_question": {"text": "one grounded question", "type": "short"} or null
 }`,
-    user: `<user-data>${sanitize(problemText)}</user-data>`,
+    user: `<user-data>${sanitize(problemText)}</user-data>${preReviewBaseline?.trim()
+      ? `\n\n<pre-review-baseline>${sanitize(preReviewBaseline)}</pre-review-baseline>`
+      : ''}`,
   };
 }
 
@@ -341,6 +356,8 @@ ${SAFETY_AND_NEUTRALITY}
 UPDATE CONTRACT
 1. The latest answer is evidence about the user's situation. It is not permission
    to add adjacent expert knowledge.
+   The pre-review baseline, when present in Current state, is also user evidence.
+   Do not re-ask a choice, condition, concern, or threshold already written there.
 2. Preserve every field the answer did not change. Visible stability is valid.
    But frame_line tracks what the decision IS, so a hard constraint the user just
    supplied belongs in it ("…승진은 아직 구두로만 나온 상태에서…"). A frame that
@@ -433,6 +450,7 @@ Return JSON only:
 
 Current state:
 - question: ${sanitize(currentSnapshot.real_question)}
+- user's pre-review baseline: ${currentSnapshot.pre_review_baseline ? sanitize(currentSnapshot.pre_review_baseline) : '(none)'}
 - AI-surfaced premises: ${(currentSnapshot.hidden_assumptions || []).map(sanitize).join(' / ') || '(none)'}
 - reality checks: ${(currentSnapshot.skeleton || []).map(sanitize).join(' / ') || '(none)'}
 - request type: ${currentSnapshot.request_type || 'open'}
