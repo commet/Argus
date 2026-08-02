@@ -14,10 +14,13 @@
  * in sim-entry.ts) imports THIS module via the esbuild alias in run-sim.mjs.
  */
 
-// ─── Tier → model (copy of /api/llm route MODEL_MAP — keep in sync by eye) ───
+// ─── Tier → effective product default ───
+// Browser calls always carry the settings-store choice. The store's current
+// default is Sonnet 5, so using the route's legacy no-choice fallback here made
+// the simulator grade a model new users do not actually run.
 export const MODEL_MAP = {
   fast: 'claude-haiku-4-5-20251001',
-  default: 'claude-sonnet-4-6',
+  default: 'claude-sonnet-5',
   strong: 'claude-opus-4-8',
 };
 
@@ -67,7 +70,12 @@ export async function anthropicText({ system, messages, model = 'default', maxTo
       : system,
     messages: messages.map((m) => ({ role: m.role, content: m.content })),
   };
-  if (temperature !== undefined) body.temperature = temperature;
+  // Sonnet/Opus/Fable 5 reject non-default sampling parameters. The old judge
+  // requested temperature=0; carrying it across the model upgrade turns every
+  // otherwise-valid evaluation into HTTP 400. Omitting it is also what the web
+  // runtime does for these adaptive-thinking models.
+  const rejectsSampling = /^claude-(?:sonnet|opus|fable)-5$/.test(modelId);
+  if (temperature !== undefined && !rejectsSampling) body.temperature = temperature;
 
   let lastErr;
   for (let attempt = 0; attempt < 4; attempt++) {

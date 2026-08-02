@@ -22,4 +22,10 @@ describe('judgment simulation covers the visible product loop', () => {
     expect(runner).toContain("'pre_review_baseline'");
     expect(runner).toContain('LLM 호출:');
   });
+
+  it('grades the model new users actually run without forbidden sampling parameters', () => {
+    const shim = readSim('llm-shim.mjs');
+    expect(shim).toContain("default: 'claude-sonnet-5'");
+    expect(shim).toContain('rejectsSampling');
+  });
 });

@@ -22,7 +22,7 @@ async function call<T = Record<string, unknown>>(system: string, user: string): 
       const r = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
         headers: { 'content-type': 'application/json', 'x-api-key': KEY!, 'anthropic-version': '2023-06-01' },
-        body: JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 2000, system, messages: [{ role: 'user', content: user }] }),
+        body: JSON.stringify({ model: process.env.ARGUS_EVAL_MODEL || 'claude-sonnet-5', max_tokens: 2000, system, messages: [{ role: 'user', content: user }] }),
         signal: AbortSignal.timeout(30000),
       });
       const j = (await r.json()) as AnthropicResp;
