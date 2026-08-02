@@ -163,7 +163,7 @@ export function BindCard({
 
         <div className="px-5 pb-0 pt-5 sm:px-6 sm:pt-6">
           <p className="text-[11.5px] font-bold tracking-[0.11em] text-[var(--accent)]">
-            {L('검토 전 내 생각 · 선택', 'My view before review · optional')}
+            {L('검토 전 · 선택 사항', 'Before the review · optional')}
           </p>
           <h2 className="mt-1.5 text-[19px] font-bold leading-snug text-[var(--text-primary)] sm:text-[21px]" style={{ fontFamily: 'var(--font-display)' }}>
             {L('지금 생각을 한 줄로 남길까요?', 'Leave your current view in one line?')}

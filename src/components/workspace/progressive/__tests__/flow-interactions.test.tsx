@@ -90,6 +90,8 @@ describe('BindCard — authorship before commitment', () => {
     }));
     const text = container.textContent || '';
     expect(text).toContain('처음 적은 상황');
+    expect(text).toContain('검토 전 · 선택 사항');
+    expect(text).not.toContain('검토 전 내 생각 · 선택');
     expect(text.indexOf('내가 직접 적은 원래 결정')).toBeLessThan(text.indexOf('AI가 새로 찾은 질문'));
     expect(text.indexOf('내가 직접 적은 원래 결정')).toBeLessThan(text.indexOf('지금 생각을 한 줄로 남길까요?'));
     expect(container.querySelector('textarea')?.hasAttribute('autofocus')).toBe(false);
