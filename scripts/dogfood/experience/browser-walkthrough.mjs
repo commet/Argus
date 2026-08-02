@@ -46,6 +46,12 @@ const ASSERT = process.env.CI_ASSERT === '1';
 const LOCALE = process.env.ARGUS_LOCALE ?? 'ko';
 const HEADLESS = process.env.HEADLESS !== 'false';
 const MAX_STEPS = Number(process.env.MAX_STEPS ?? 16);
+const VIEWPORT = process.env.ARGUS_VIEWPORT === 'mobile'
+  ? { width: 390, height: 844 }
+  : {
+      width: Number(process.env.ARGUS_VIEWPORT_WIDTH ?? 1280),
+      height: Number(process.env.ARGUS_VIEWPORT_HEIGHT ?? 900),
+    };
 const DECISION = process.env.ARGUS_DECISION
   ?? '다음 분기에 신규 채용을 할지, 지금 팀으로 버틸지 결정해야 하는데 근거가 애매해.';
 
@@ -59,9 +65,10 @@ function executablePath() {
 }
 
 const ADVANCE = /(다음|계속|진행|시작|봉인|생성|만들|확인|좋아요|네,|적용|저장|완료|정산|기록|next|continue|start|seal|generate|create|confirm|looks good|apply|save|done|settle)/i;
-const AVOID = /(취소|삭제|뒤로|닫기|로그아웃|이전|건너뛰|cancel|delete|back|close|logout|previous|skip|sign out)/i;
+const AVOID = /(취소|삭제|뒤로|닫기|로그아웃|이전|건너뛰|더보기 메뉴|전체 보기|접기|빠른 이동|open next\.js dev tools|cancel|delete|back|close|logout|previous|skip|sign out)/i;
 const ERROR_TEXT = /(오류|실패|문제가 발생|다시 시도|something went wrong|error|failed|try again)/i;
 const MILESTONE = /(봉인했|Sealed|봉인 완료|정산|입항|settle|기록을 종결|closed)/i;
+const BUSY_TEXT = /(상황을 읽는 중|찾는 중|답변 반영 중|추가 검토 중|분석 중|기다려 주세요|reading the situation|finding the question|applying your answer|reviewing|analyzing|please wait)/i;
 
 function ts() {
   // Date.now is fine here (this is a runner on the founder's machine, not a
@@ -82,7 +89,7 @@ async function main() {
   let shotN = 0;
 
   const browser = await chromium.launch({ headless: HEADLESS, executablePath: executablePath() });
-  const context = await browser.newContext({ viewport: { width: 1280, height: 900 }, locale: LOCALE });
+  const context = await browser.newContext({ viewport: VIEWPORT, locale: LOCALE });
   const page = await context.newPage();
 
   page.on('console', (msg) => {
@@ -194,6 +201,17 @@ async function main() {
             issues.push({ kind: 'visible-error', at: page.url(), detail: (text.match(ERROR_TEXT) || [])[0] });
           }
 
+          // A model turn is intentionally tens of seconds. Repeated loading
+          // frames are progress, not a dead end; do not click unrelated chrome
+          // or trip the stuck detector while the product says it is working.
+          if (BUSY_TEXT.test(text)) {
+            console.log('  … waiting for the current model turn');
+            lastSig = '';
+            stuck = 0;
+            await page.waitForTimeout(3500);
+            continue;
+          }
+
           // Fill a blocking empty input if the flow is waiting on the user.
           const emptyBox = page.locator('textarea:visible, input[type=text]:visible').first();
           if (await emptyBox.count() > 0 && !(await emptyBox.inputValue().catch(() => 'x'))) {
@@ -209,7 +227,12 @@ async function main() {
             const label = ((await b.innerText().catch(() => '')) || (await b.getAttribute('aria-label').catch(() => '')) || '').trim();
             if (!label) continue;
             if (AVOID.test(label)) continue;
-            const score = ADVANCE.test(label) ? label.length + 100 : 1;
+            // Header/nav utilities and dev overlays are never progress. Prefer a
+            // concise, explicit action inside main over a long card that merely
+            // happens to contain an advance-like word.
+            if (await b.locator('xpath=ancestor::header | ancestor::nav').count()) continue;
+            const inMain = await b.locator('xpath=ancestor::main').count() > 0;
+            const score = (ADVANCE.test(label) ? 200 : 0) + (inMain ? 100 : 0) - Math.min(label.length, 80);
             if (score > pickedScore) { pickedScore = score; picked = { b, label }; }
           }
 
@@ -243,7 +266,7 @@ async function main() {
   const lines = [];
   lines.push(`# Browser loop walkthrough — ${new Date().toISOString()}`);
   lines.push('');
-  lines.push(`- app: ${BASE} · locale: ${LOCALE} · ${ANON ? 'LOGGED OUT (no account)' : `account: ${EMAIL?.replace(/(.).*(@.*)/, '$1***$2')}`}`);
+  lines.push(`- app: ${BASE} · locale: ${LOCALE} · viewport: ${VIEWPORT.width}×${VIEWPORT.height} · ${ANON ? 'LOGGED OUT (no account)' : `account: ${EMAIL?.replace(/(.).*(@.*)/, '$1***$2')}`}`);
   lines.push(`- steps walked: **${result.steps}** · stopped because: ${result.stoppedReason ?? '—'}`);
   lines.push(`- milestone reached: ${result.reachedMilestone ? `**${result.reachedMilestone}**` : '**none** (loop did not visibly complete)'}`);
   lines.push(`- your decision text landed on later screens: ${result.contentLanded === null ? 'n/a' : result.contentLanded ? '**yes**' : '**NO — content disappeared, worth checking**'}`);
