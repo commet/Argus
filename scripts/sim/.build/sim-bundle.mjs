@@ -75,7 +75,7 @@ var init_sync_health = __esm({
   }
 });
 
-// node_modules/tslib/tslib.es6.mjs
+// ../argus-codex/node_modules/tslib/tslib.es6.mjs
 var tslib_es6_exports = {};
 __export(tslib_es6_exports, {
   __addDisposableResource: () => __addDisposableResource,
@@ -514,7 +514,7 @@ function __rewriteRelativeImportExtension(path, preserveJsx) {
 }
 var extendStatics, __assign, __createBinding, __setModuleDefault, ownKeys, _SuppressedError, tslib_es6_default;
 var init_tslib_es6 = __esm({
-  "node_modules/tslib/tslib.es6.mjs"() {
+  "../argus-codex/node_modules/tslib/tslib.es6.mjs"() {
     extendStatics = function(d, b) {
       extendStatics = Object.setPrototypeOf || { __proto__: [] } instanceof Array && function(d2, b2) {
         d2.__proto__ = b2;
@@ -600,9 +600,9 @@ var init_tslib_es6 = __esm({
   }
 });
 
-// node_modules/@supabase/functions-js/dist/main/helper.js
+// ../argus-codex/node_modules/@supabase/functions-js/dist/main/helper.js
 var require_helper = __commonJS({
-  "node_modules/@supabase/functions-js/dist/main/helper.js"(exports) {
+  "../argus-codex/node_modules/@supabase/functions-js/dist/main/helper.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.resolveFetch = void 0;
@@ -616,9 +616,9 @@ var require_helper = __commonJS({
   }
 });
 
-// node_modules/@supabase/functions-js/dist/main/types.js
+// ../argus-codex/node_modules/@supabase/functions-js/dist/main/types.js
 var require_types = __commonJS({
-  "node_modules/@supabase/functions-js/dist/main/types.js"(exports) {
+  "../argus-codex/node_modules/@supabase/functions-js/dist/main/types.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.FunctionRegion = exports.FunctionsHttpError = exports.FunctionsRelayError = exports.FunctionsFetchError = exports.FunctionsError = void 0;
@@ -669,9 +669,9 @@ var require_types = __commonJS({
   }
 });
 
-// node_modules/@supabase/functions-js/dist/main/FunctionsClient.js
+// ../argus-codex/node_modules/@supabase/functions-js/dist/main/FunctionsClient.js
 var require_FunctionsClient = __commonJS({
-  "node_modules/@supabase/functions-js/dist/main/FunctionsClient.js"(exports) {
+  "../argus-codex/node_modules/@supabase/functions-js/dist/main/FunctionsClient.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.FunctionsClient = void 0;
@@ -820,9 +820,9 @@ var require_FunctionsClient = __commonJS({
   }
 });
 
-// node_modules/@supabase/functions-js/dist/main/index.js
+// ../argus-codex/node_modules/@supabase/functions-js/dist/main/index.js
 var require_main = __commonJS({
-  "node_modules/@supabase/functions-js/dist/main/index.js"(exports) {
+  "../argus-codex/node_modules/@supabase/functions-js/dist/main/index.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.FunctionRegion = exports.FunctionsRelayError = exports.FunctionsHttpError = exports.FunctionsFetchError = exports.FunctionsError = exports.FunctionsClient = void 0;
@@ -849,7 +849,7 @@ var require_main = __commonJS({
   }
 });
 
-// node_modules/@supabase/postgrest-js/dist/index.mjs
+// ../argus-codex/node_modules/@supabase/postgrest-js/dist/index.mjs
 function _typeof(o) {
   "@babel/helpers - typeof";
   return _typeof = "function" == typeof Symbol && "symbol" == typeof Symbol.iterator ? function(o$1) {
@@ -903,7 +903,7 @@ function _objectSpread2(e) {
 }
 var PostgrestError, PostgrestBuilder, PostgrestTransformBuilder, PostgrestReservedCharsRegexp, PostgrestFilterBuilder, PostgrestQueryBuilder, PostgrestClient;
 var init_dist = __esm({
-  "node_modules/@supabase/postgrest-js/dist/index.mjs"() {
+  "../argus-codex/node_modules/@supabase/postgrest-js/dist/index.mjs"() {
     PostgrestError = class extends Error {
       /**
       * @example
@@ -3246,9 +3246,9 @@ ${cause.stack}`;
   }
 });
 
-// node_modules/@supabase/realtime-js/dist/main/lib/websocket-factory.js
+// ../argus-codex/node_modules/@supabase/realtime-js/dist/main/lib/websocket-factory.js
 var require_websocket_factory = __commonJS({
-  "node_modules/@supabase/realtime-js/dist/main/lib/websocket-factory.js"(exports) {
+  "../argus-codex/node_modules/@supabase/realtime-js/dist/main/lib/websocket-factory.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.WebSocketFactory = void 0;
@@ -3370,9 +3370,9 @@ Suggested solution: ${env.workaround}`;
   }
 });
 
-// node_modules/@supabase/realtime-js/dist/main/lib/version.js
+// ../argus-codex/node_modules/@supabase/realtime-js/dist/main/lib/version.js
 var require_version = __commonJS({
-  "node_modules/@supabase/realtime-js/dist/main/lib/version.js"(exports) {
+  "../argus-codex/node_modules/@supabase/realtime-js/dist/main/lib/version.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.version = void 0;
@@ -3380,9 +3380,9 @@ var require_version = __commonJS({
   }
 });
 
-// node_modules/@supabase/realtime-js/dist/main/lib/constants.js
+// ../argus-codex/node_modules/@supabase/realtime-js/dist/main/lib/constants.js
 var require_constants = __commonJS({
-  "node_modules/@supabase/realtime-js/dist/main/lib/constants.js"(exports) {
+  "../argus-codex/node_modules/@supabase/realtime-js/dist/main/lib/constants.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.CONNECTION_STATE = exports.TRANSPORTS = exports.CHANNEL_EVENTS = exports.CHANNEL_STATES = exports.SOCKET_STATES = exports.MAX_PUSH_BUFFER_SIZE = exports.WS_CLOSE_NORMAL = exports.DEFAULT_TIMEOUT = exports.VERSION = exports.DEFAULT_VSN = exports.VSN_2_0_0 = exports.VSN_1_0_0 = exports.DEFAULT_VERSION = void 0;
@@ -3433,9 +3433,9 @@ var require_constants = __commonJS({
   }
 });
 
-// node_modules/@supabase/realtime-js/dist/main/lib/serializer.js
+// ../argus-codex/node_modules/@supabase/realtime-js/dist/main/lib/serializer.js
 var require_serializer = __commonJS({
-  "node_modules/@supabase/realtime-js/dist/main/lib/serializer.js"(exports) {
+  "../argus-codex/node_modules/@supabase/realtime-js/dist/main/lib/serializer.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     var Serializer = class {
@@ -3580,9 +3580,9 @@ var require_serializer = __commonJS({
   }
 });
 
-// node_modules/@supabase/realtime-js/dist/main/lib/timer.js
+// ../argus-codex/node_modules/@supabase/realtime-js/dist/main/lib/timer.js
 var require_timer = __commonJS({
-  "node_modules/@supabase/realtime-js/dist/main/lib/timer.js"(exports) {
+  "../argus-codex/node_modules/@supabase/realtime-js/dist/main/lib/timer.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     var Timer = class {
@@ -3612,9 +3612,9 @@ var require_timer = __commonJS({
   }
 });
 
-// node_modules/@supabase/realtime-js/dist/main/lib/transformers.js
+// ../argus-codex/node_modules/@supabase/realtime-js/dist/main/lib/transformers.js
 var require_transformers = __commonJS({
-  "node_modules/@supabase/realtime-js/dist/main/lib/transformers.js"(exports) {
+  "../argus-codex/node_modules/@supabase/realtime-js/dist/main/lib/transformers.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.httpEndpointURL = exports.toTimestampString = exports.toArray = exports.toJson = exports.toNumber = exports.toBoolean = exports.convertCell = exports.convertColumn = exports.convertChangeData = exports.PostgresTypes = void 0;
@@ -3791,9 +3791,9 @@ var require_transformers = __commonJS({
   }
 });
 
-// node_modules/@supabase/realtime-js/dist/main/lib/push.js
+// ../argus-codex/node_modules/@supabase/realtime-js/dist/main/lib/push.js
 var require_push = __commonJS({
-  "node_modules/@supabase/realtime-js/dist/main/lib/push.js"(exports) {
+  "../argus-codex/node_modules/@supabase/realtime-js/dist/main/lib/push.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     var constants_1 = require_constants();
@@ -3898,9 +3898,9 @@ var require_push = __commonJS({
   }
 });
 
-// node_modules/@supabase/realtime-js/dist/main/RealtimePresence.js
+// ../argus-codex/node_modules/@supabase/realtime-js/dist/main/RealtimePresence.js
 var require_RealtimePresence = __commonJS({
-  "node_modules/@supabase/realtime-js/dist/main/RealtimePresence.js"(exports) {
+  "../argus-codex/node_modules/@supabase/realtime-js/dist/main/RealtimePresence.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.REALTIME_PRESENCE_LISTEN_EVENTS = void 0;
@@ -4138,9 +4138,9 @@ var require_RealtimePresence = __commonJS({
   }
 });
 
-// node_modules/@supabase/realtime-js/dist/main/RealtimeChannel.js
+// ../argus-codex/node_modules/@supabase/realtime-js/dist/main/RealtimeChannel.js
 var require_RealtimeChannel = __commonJS({
-  "node_modules/@supabase/realtime-js/dist/main/RealtimeChannel.js"(exports) {
+  "../argus-codex/node_modules/@supabase/realtime-js/dist/main/RealtimeChannel.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.REALTIME_CHANNEL_STATES = exports.REALTIME_SUBSCRIBE_STATES = exports.REALTIME_LISTEN_TYPES = exports.REALTIME_POSTGRES_CHANGES_LISTEN_EVENT = void 0;
@@ -4750,9 +4750,9 @@ var require_RealtimeChannel = __commonJS({
   }
 });
 
-// node_modules/@supabase/realtime-js/dist/main/RealtimeClient.js
+// ../argus-codex/node_modules/@supabase/realtime-js/dist/main/RealtimeClient.js
 var require_RealtimeClient = __commonJS({
-  "node_modules/@supabase/realtime-js/dist/main/RealtimeClient.js"(exports) {
+  "../argus-codex/node_modules/@supabase/realtime-js/dist/main/RealtimeClient.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     var tslib_1 = (init_tslib_es6(), __toCommonJS(tslib_es6_exports));
@@ -5534,9 +5534,9 @@ Option 2: Install and provide the "ws" package:
   }
 });
 
-// node_modules/@supabase/realtime-js/dist/main/index.js
+// ../argus-codex/node_modules/@supabase/realtime-js/dist/main/index.js
 var require_main2 = __commonJS({
-  "node_modules/@supabase/realtime-js/dist/main/index.js"(exports) {
+  "../argus-codex/node_modules/@supabase/realtime-js/dist/main/index.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.WebSocketFactory = exports.REALTIME_CHANNEL_STATES = exports.REALTIME_SUBSCRIBE_STATES = exports.REALTIME_PRESENCE_LISTEN_EVENTS = exports.REALTIME_POSTGRES_CHANGES_LISTEN_EVENT = exports.REALTIME_LISTEN_TYPES = exports.RealtimeClient = exports.RealtimeChannel = exports.RealtimePresence = void 0;
@@ -5567,7 +5567,7 @@ var require_main2 = __commonJS({
   }
 });
 
-// node_modules/iceberg-js/dist/index.mjs
+// ../argus-codex/node_modules/iceberg-js/dist/index.mjs
 function buildUrl(baseUrl, path, query) {
   const url = new URL(path, baseUrl);
   if (query) {
@@ -5643,7 +5643,7 @@ function namespaceToPath2(namespace) {
 }
 var IcebergError, NamespaceOperations, TableOperations, IcebergRestCatalog;
 var init_dist2 = __esm({
-  "node_modules/iceberg-js/dist/index.mjs"() {
+  "../argus-codex/node_modules/iceberg-js/dist/index.mjs"() {
     IcebergError = class extends Error {
       constructor(message, opts) {
         super(message);
@@ -6105,7 +6105,7 @@ var init_dist2 = __esm({
   }
 });
 
-// node_modules/@supabase/storage-js/dist/index.mjs
+// ../argus-codex/node_modules/@supabase/storage-js/dist/index.mjs
 function isStorageError(error) {
   return typeof error === "object" && error !== null && "__isStorageError" in error;
 }
@@ -6195,7 +6195,7 @@ function createFetchApi(namespace = "storage") {
 }
 var StorageError, StorageApiError, StorageUnknownError, resolveFetch, isPlainObject, recursiveToCamel, isValidBucketName, _getErrorMessage, handleError, _getRequestParams, defaultApi, get, post, put, head, remove, vectorsApi, BaseApiClient, StreamDownloadBuilder, _Symbol$toStringTag, BlobDownloadBuilder, DEFAULT_SEARCH_OPTIONS, DEFAULT_FILE_OPTIONS, StorageFileApi, version, DEFAULT_HEADERS, StorageBucketApi, StorageAnalyticsClient, VectorIndexApi, VectorDataApi, VectorBucketApi, StorageVectorsClient, VectorBucketScope, VectorIndexScope, StorageClient;
 var init_dist3 = __esm({
-  "node_modules/@supabase/storage-js/dist/index.mjs"() {
+  "../argus-codex/node_modules/@supabase/storage-js/dist/index.mjs"() {
     init_dist2();
     StorageError = class extends Error {
       constructor(message, namespace = "storage", status, statusCode) {
@@ -8532,9 +8532,9 @@ var init_dist3 = __esm({
   }
 });
 
-// node_modules/@supabase/auth-js/dist/main/lib/version.js
+// ../argus-codex/node_modules/@supabase/auth-js/dist/main/lib/version.js
 var require_version2 = __commonJS({
-  "node_modules/@supabase/auth-js/dist/main/lib/version.js"(exports) {
+  "../argus-codex/node_modules/@supabase/auth-js/dist/main/lib/version.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.version = void 0;
@@ -8542,9 +8542,9 @@ var require_version2 = __commonJS({
   }
 });
 
-// node_modules/@supabase/auth-js/dist/main/lib/constants.js
+// ../argus-codex/node_modules/@supabase/auth-js/dist/main/lib/constants.js
 var require_constants2 = __commonJS({
-  "node_modules/@supabase/auth-js/dist/main/lib/constants.js"(exports) {
+  "../argus-codex/node_modules/@supabase/auth-js/dist/main/lib/constants.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.JWKS_TTL = exports.BASE64URL_REGEX = exports.API_VERSIONS = exports.API_VERSION_HEADER_NAME = exports.NETWORK_FAILURE = exports.DEFAULT_HEADERS = exports.AUDIENCE = exports.STORAGE_KEY = exports.GOTRUE_URL = exports.EXPIRY_MARGIN_MS = exports.AUTO_REFRESH_TICK_THRESHOLD = exports.AUTO_REFRESH_TICK_DURATION_MS = void 0;
@@ -8573,9 +8573,9 @@ var require_constants2 = __commonJS({
   }
 });
 
-// node_modules/@supabase/auth-js/dist/main/lib/errors.js
+// ../argus-codex/node_modules/@supabase/auth-js/dist/main/lib/errors.js
 var require_errors = __commonJS({
-  "node_modules/@supabase/auth-js/dist/main/lib/errors.js"(exports) {
+  "../argus-codex/node_modules/@supabase/auth-js/dist/main/lib/errors.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.AuthInvalidJwtError = exports.AuthWeakPasswordError = exports.AuthRetryableFetchError = exports.AuthPKCECodeVerifierMissingError = exports.AuthPKCEGrantCodeExchangeError = exports.AuthImplicitGrantRedirectError = exports.AuthInvalidCredentialsError = exports.AuthInvalidTokenResponseError = exports.AuthSessionMissingError = exports.CustomAuthError = exports.AuthUnknownError = exports.AuthApiError = exports.AuthError = void 0;
@@ -8720,9 +8720,9 @@ var require_errors = __commonJS({
   }
 });
 
-// node_modules/@supabase/auth-js/dist/main/lib/base64url.js
+// ../argus-codex/node_modules/@supabase/auth-js/dist/main/lib/base64url.js
 var require_base64url = __commonJS({
-  "node_modules/@supabase/auth-js/dist/main/lib/base64url.js"(exports) {
+  "../argus-codex/node_modules/@supabase/auth-js/dist/main/lib/base64url.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.byteToBase64URL = byteToBase64URL;
@@ -8910,9 +8910,9 @@ var require_base64url = __commonJS({
   }
 });
 
-// node_modules/@supabase/auth-js/dist/main/lib/helpers.js
+// ../argus-codex/node_modules/@supabase/auth-js/dist/main/lib/helpers.js
 var require_helpers = __commonJS({
-  "node_modules/@supabase/auth-js/dist/main/lib/helpers.js"(exports) {
+  "../argus-codex/node_modules/@supabase/auth-js/dist/main/lib/helpers.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.Deferred = exports.removeItemAsync = exports.getItemAsync = exports.setItemAsync = exports.looksLikeFetchResponse = exports.resolveFetch = exports.supportsLocalStorage = exports.isBrowser = void 0;
@@ -9226,9 +9226,9 @@ var require_helpers = __commonJS({
   }
 });
 
-// node_modules/@supabase/auth-js/dist/main/lib/fetch.js
+// ../argus-codex/node_modules/@supabase/auth-js/dist/main/lib/fetch.js
 var require_fetch = __commonJS({
-  "node_modules/@supabase/auth-js/dist/main/lib/fetch.js"(exports) {
+  "../argus-codex/node_modules/@supabase/auth-js/dist/main/lib/fetch.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.handleError = handleError2;
@@ -9381,9 +9381,9 @@ var require_fetch = __commonJS({
   }
 });
 
-// node_modules/@supabase/auth-js/dist/main/lib/types.js
+// ../argus-codex/node_modules/@supabase/auth-js/dist/main/lib/types.js
 var require_types2 = __commonJS({
-  "node_modules/@supabase/auth-js/dist/main/lib/types.js"(exports) {
+  "../argus-codex/node_modules/@supabase/auth-js/dist/main/lib/types.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.SIGN_OUT_SCOPES = void 0;
@@ -9391,9 +9391,9 @@ var require_types2 = __commonJS({
   }
 });
 
-// node_modules/@supabase/auth-js/dist/main/GoTrueAdminApi.js
+// ../argus-codex/node_modules/@supabase/auth-js/dist/main/GoTrueAdminApi.js
 var require_GoTrueAdminApi = __commonJS({
-  "node_modules/@supabase/auth-js/dist/main/GoTrueAdminApi.js"(exports) {
+  "../argus-codex/node_modules/@supabase/auth-js/dist/main/GoTrueAdminApi.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     var tslib_1 = (init_tslib_es6(), __toCommonJS(tslib_es6_exports));
@@ -9970,9 +9970,9 @@ var require_GoTrueAdminApi = __commonJS({
   }
 });
 
-// node_modules/@supabase/auth-js/dist/main/lib/local-storage.js
+// ../argus-codex/node_modules/@supabase/auth-js/dist/main/lib/local-storage.js
 var require_local_storage = __commonJS({
-  "node_modules/@supabase/auth-js/dist/main/lib/local-storage.js"(exports) {
+  "../argus-codex/node_modules/@supabase/auth-js/dist/main/lib/local-storage.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.memoryLocalStorageAdapter = memoryLocalStorageAdapter;
@@ -9992,9 +9992,9 @@ var require_local_storage = __commonJS({
   }
 });
 
-// node_modules/@supabase/auth-js/dist/main/lib/locks.js
+// ../argus-codex/node_modules/@supabase/auth-js/dist/main/lib/locks.js
 var require_locks = __commonJS({
-  "node_modules/@supabase/auth-js/dist/main/lib/locks.js"(exports) {
+  "../argus-codex/node_modules/@supabase/auth-js/dist/main/lib/locks.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.ProcessLockAcquireTimeoutError = exports.NavigatorLockAcquireTimeoutError = exports.LockAcquireTimeoutError = exports.internals = void 0;
@@ -10157,9 +10157,9 @@ var require_locks = __commonJS({
   }
 });
 
-// node_modules/@supabase/auth-js/dist/main/lib/polyfills.js
+// ../argus-codex/node_modules/@supabase/auth-js/dist/main/lib/polyfills.js
 var require_polyfills = __commonJS({
-  "node_modules/@supabase/auth-js/dist/main/lib/polyfills.js"(exports) {
+  "../argus-codex/node_modules/@supabase/auth-js/dist/main/lib/polyfills.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.polyfillGlobalThis = polyfillGlobalThis;
@@ -10184,9 +10184,9 @@ var require_polyfills = __commonJS({
   }
 });
 
-// node_modules/@supabase/auth-js/dist/main/lib/web3/ethereum.js
+// ../argus-codex/node_modules/@supabase/auth-js/dist/main/lib/web3/ethereum.js
 var require_ethereum = __commonJS({
-  "node_modules/@supabase/auth-js/dist/main/lib/web3/ethereum.js"(exports) {
+  "../argus-codex/node_modules/@supabase/auth-js/dist/main/lib/web3/ethereum.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.getAddress = getAddress;
@@ -10262,9 +10262,9 @@ ${suffix}`;
   }
 });
 
-// node_modules/@supabase/auth-js/dist/main/lib/webauthn.errors.js
+// ../argus-codex/node_modules/@supabase/auth-js/dist/main/lib/webauthn.errors.js
 var require_webauthn_errors = __commonJS({
-  "node_modules/@supabase/auth-js/dist/main/lib/webauthn.errors.js"(exports) {
+  "../argus-codex/node_modules/@supabase/auth-js/dist/main/lib/webauthn.errors.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.WebAuthnUnknownError = exports.WebAuthnError = void 0;
@@ -10446,9 +10446,9 @@ var require_webauthn_errors = __commonJS({
   }
 });
 
-// node_modules/@supabase/auth-js/dist/main/lib/webauthn.js
+// ../argus-codex/node_modules/@supabase/auth-js/dist/main/lib/webauthn.js
 var require_webauthn = __commonJS({
-  "node_modules/@supabase/auth-js/dist/main/lib/webauthn.js"(exports) {
+  "../argus-codex/node_modules/@supabase/auth-js/dist/main/lib/webauthn.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.WebAuthnApi = exports.DEFAULT_REQUEST_OPTIONS = exports.DEFAULT_CREATION_OPTIONS = exports.webAuthnAbortService = exports.WebAuthnAbortService = exports.identifyAuthenticationError = exports.identifyRegistrationError = exports.isWebAuthnError = exports.WebAuthnError = void 0;
@@ -11004,9 +11004,9 @@ var require_webauthn = __commonJS({
   }
 });
 
-// node_modules/@supabase/auth-js/dist/main/GoTrueClient.js
+// ../argus-codex/node_modules/@supabase/auth-js/dist/main/GoTrueClient.js
 var require_GoTrueClient = __commonJS({
-  "node_modules/@supabase/auth-js/dist/main/GoTrueClient.js"(exports) {
+  "../argus-codex/node_modules/@supabase/auth-js/dist/main/GoTrueClient.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     var tslib_1 = (init_tslib_es6(), __toCommonJS(tslib_es6_exports));
@@ -13745,9 +13745,9 @@ var require_GoTrueClient = __commonJS({
   }
 });
 
-// node_modules/@supabase/auth-js/dist/main/AuthAdminApi.js
+// ../argus-codex/node_modules/@supabase/auth-js/dist/main/AuthAdminApi.js
 var require_AuthAdminApi = __commonJS({
-  "node_modules/@supabase/auth-js/dist/main/AuthAdminApi.js"(exports) {
+  "../argus-codex/node_modules/@supabase/auth-js/dist/main/AuthAdminApi.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     var tslib_1 = (init_tslib_es6(), __toCommonJS(tslib_es6_exports));
@@ -13757,9 +13757,9 @@ var require_AuthAdminApi = __commonJS({
   }
 });
 
-// node_modules/@supabase/auth-js/dist/main/AuthClient.js
+// ../argus-codex/node_modules/@supabase/auth-js/dist/main/AuthClient.js
 var require_AuthClient = __commonJS({
-  "node_modules/@supabase/auth-js/dist/main/AuthClient.js"(exports) {
+  "../argus-codex/node_modules/@supabase/auth-js/dist/main/AuthClient.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     var tslib_1 = (init_tslib_es6(), __toCommonJS(tslib_es6_exports));
@@ -13769,9 +13769,9 @@ var require_AuthClient = __commonJS({
   }
 });
 
-// node_modules/@supabase/auth-js/dist/main/index.js
+// ../argus-codex/node_modules/@supabase/auth-js/dist/main/index.js
 var require_main3 = __commonJS({
-  "node_modules/@supabase/auth-js/dist/main/index.js"(exports) {
+  "../argus-codex/node_modules/@supabase/auth-js/dist/main/index.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.processLock = exports.lockInternals = exports.NavigatorLockAcquireTimeoutError = exports.navigatorLock = exports.AuthClient = exports.AuthAdminApi = exports.GoTrueClient = exports.GoTrueAdminApi = void 0;
@@ -13802,7 +13802,7 @@ var require_main3 = __commonJS({
   }
 });
 
-// node_modules/@supabase/supabase-js/dist/index.mjs
+// ../argus-codex/node_modules/@supabase/supabase-js/dist/index.mjs
 var dist_exports = {};
 __export(dist_exports, {
   FunctionRegion: () => import_functions_js.FunctionRegion,
@@ -13906,7 +13906,7 @@ function shouldShowDeprecationWarning() {
 }
 var import_functions_js, import_realtime_js, import_auth_js, version2, JS_ENV, DEFAULT_HEADERS2, DEFAULT_GLOBAL_OPTIONS, DEFAULT_DB_OPTIONS, DEFAULT_AUTH_OPTIONS, DEFAULT_REALTIME_OPTIONS, resolveFetch2, resolveHeadersConstructor, fetchWithAuth, SupabaseAuthClient, SupabaseClient, createClient;
 var init_dist4 = __esm({
-  "node_modules/@supabase/supabase-js/dist/index.mjs"() {
+  "../argus-codex/node_modules/@supabase/supabase-js/dist/index.mjs"() {
     import_functions_js = __toESM(require_main(), 1);
     init_dist();
     import_realtime_js = __toESM(require_main2(), 1);
@@ -16445,7 +16445,7 @@ function voice(locale) {
   return locale === "ko" ? `Answer in natural Korean \uD574\uC694\uCCB4. Avoid translated, corporate, or report-like phrasing.
 ${KOREAN_VOICE_RULES}` : "Answer in natural, direct English. Avoid corporate or therapeutic filler.";
 }
-function buildInitialJudgmentPrompt(problemText, locale = "en") {
+function buildInitialJudgmentPrompt(problemText, locale = "en", preReviewBaseline) {
   return {
     system: `You are Argus: a judgment harness that helps a person see what their
 decision currently rests on. You are not a committee, coach, or answer engine.
@@ -16552,6 +16552,18 @@ OUTPUT DISCIPLINE
 - framing_confidence measures confidence that you understood the question, not
   confidence about which choice is right.
 
+PRE-REVIEW BASELINE
+- When a <pre-review-baseline> block is present, it is the user's own current
+  view written before hearing Argus. Treat it as first-class user evidence.
+- Do not ask them to restate a choice, condition, concern, or threshold they
+  already put in that baseline. Ask only about a remaining load-bearing gap.
+- The baseline is not a final verdict and may change, but you may not silently
+  replace it or describe it as an AI conclusion.
+- A pre-review lean is NOT proof that the decision is made. Preserve an open
+  route unless the user explicitly says they already decided or committed.
+  "I want to / I'm leaning toward" is still open; "I decided / I already said
+  yes" is validation.
+
 Return JSON only:
 {
   "request_type": "open|flat|vent|validation|info|resistance|self_profiling|crisis",
@@ -16565,7 +16577,9 @@ Return JSON only:
   "skeleton": [],
   "next_question": {"text": "one grounded question", "type": "short"} or null
 }`,
-    user: `<user-data>${sanitizeForPrompt(problemText)}</user-data>`
+    user: `<user-data>${sanitizeForPrompt(problemText)}</user-data>${preReviewBaseline?.trim() ? `
+
+<pre-review-baseline>${sanitizeForPrompt(preReviewBaseline)}</pre-review-baseline>` : ""}`
   };
 }
 function buildDeepeningJudgmentPrompt(problemText, currentSnapshot, questionsAndAnswers, round, maxRounds, locale = "en") {
@@ -16592,6 +16606,8 @@ ${SAFETY_AND_NEUTRALITY}
 UPDATE CONTRACT
 1. The latest answer is evidence about the user's situation. It is not permission
    to add adjacent expert knowledge.
+   The pre-review baseline, when present in Current state, is also user evidence.
+   Do not re-ask a choice, condition, concern, or threshold already written there.
 2. Preserve every field the answer did not change. Visible stability is valid.
    But frame_line tracks what the decision IS, so a hard constraint the user just
    supplied belongs in it ("\u2026\uC2B9\uC9C4\uC740 \uC544\uC9C1 \uAD6C\uB450\uB85C\uB9CC \uB098\uC628 \uC0C1\uD0DC\uC5D0\uC11C\u2026"). A frame that
@@ -16684,6 +16700,7 @@ Return JSON only:
 
 Current state:
 - question: ${sanitizeForPrompt(currentSnapshot.real_question)}
+- user's pre-review baseline: ${currentSnapshot.pre_review_baseline ? sanitizeForPrompt(currentSnapshot.pre_review_baseline) : "(none)"}
 - AI-surfaced premises: ${(currentSnapshot.hidden_assumptions || []).map(sanitizeForPrompt).join(" / ") || "(none)"}
 - reality checks: ${(currentSnapshot.skeleton || []).map(sanitizeForPrompt).join(" / ") || "(none)"}
 - request type: ${currentSnapshot.request_type || "open"}
@@ -16933,8 +16950,8 @@ long scaffolding arrays):
 }`
   };
 }
-function buildInitialAnalysisPrompt(problemText, locale = "en") {
-  return HARNESS_V2 ? buildInitialJudgmentPrompt(problemText, locale) : buildLegacyInitialAnalysisPrompt(problemText, locale);
+function buildInitialAnalysisPrompt(problemText, locale = "en", preReviewBaseline) {
+  return HARNESS_V2 ? buildInitialJudgmentPrompt(problemText, locale, preReviewBaseline) : buildLegacyInitialAnalysisPrompt(problemText, locale);
 }
 function buildLegacyDeepeningPrompt(problemText, currentSnapshot, questionsAndAnswers, round, maxRounds, locale = "en") {
   const lang = locale === "ko" ? "Korean" : "English";
@@ -17271,7 +17288,7 @@ function ablate(system) {
   }
   return out;
 }
-async function runHeavyInitial(problemText, locale) {
+async function runHeavyInitial(problemText, locale, preReviewBaseline) {
   const crisis = classifyCrisis(problemText);
   if (crisis.isCrisis && crisis.category) {
     const result2 = {
@@ -17288,7 +17305,10 @@ async function runHeavyInitial(problemText, locale) {
     };
     return { raw: result2, result: result2, routeCoerced: false };
   }
-  const { system: rawSystem, user } = buildInitialAnalysisPrompt(problemText, locale);
+  const baseline = preReviewBaseline?.trim() || "";
+  const userCorpus = baseline ? `${problemText}
+${baseline}` : problemText;
+  const { system: rawSystem, user } = buildInitialAnalysisPrompt(problemText, locale, baseline);
   const system = ablate(rawSystem);
   const raw = await callLLMJson2(
     [{ role: "user", content: user }],
@@ -17301,7 +17321,7 @@ async function runHeavyInitial(problemText, locale) {
   );
   raw.real_question = raw.frame_line || raw.real_question;
   raw.skeleton = [];
-  const admitted = raw.request_type === "open" ? coercePremiseCandidates(raw.premise_candidates, problemText) : { premises: [], records: [], audit: [] };
+  const admitted = raw.request_type === "open" ? coercePremiseCandidates(raw.premise_candidates, userCorpus) : { premises: [], records: [], audit: [] };
   const groundedPremises = admitted.premises;
   const { result, coerced } = applyRouteContract({
     ...raw,
@@ -17309,11 +17329,12 @@ async function runHeavyInitial(problemText, locale) {
   });
   const r = capEscalationArrival(
     result,
-    problemText
+    userCorpus
   );
   const routedInsight = r.request_type === "crisis" ? ensureCrisisResource(r.insight, locale) : r.request_type === "validation" ? stripConditionalReassurance(r.insight) : r.insight;
   const guarded = {
     ...r,
+    ...baseline ? { pre_review_baseline: baseline } : {},
     insight: r.request_type && r.request_type !== "open" ? routedInsight ? scrubBannedVocabulary(routedInsight) : routedInsight : typeof r.real_question === "string" ? r.real_question : routedInsight,
     skeleton: [],
     next_question: r.request_type === "open" ? guardLowConfidenceOpeningQuestion(

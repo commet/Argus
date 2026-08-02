@@ -23,6 +23,7 @@ describe('judgment simulation covers the visible product loop', () => {
     expect(scenarios).toContain('첫 사용자에게 치명적인 오류만 더 확인');
     expect(runner).toContain("'pre_review_baseline'");
     expect(runner).toContain('LLM 호출:');
+    expect(runner).toContain("flag('--build-only')");
   });
 
   it('grades the model new users actually run without forbidden sampling parameters', () => {

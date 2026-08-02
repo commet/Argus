@@ -5,6 +5,7 @@
  *   node scripts/sim/run-sim.mjs --only id1,id2  # subset
  *   node scripts/sim/run-sim.mjs --skip-judge    # engines only
  *   node scripts/sim/run-sim.mjs --judge-only    # re-judge existing results
+ *   node scripts/sim/run-sim.mjs --build-only    # refresh bundled engine, zero API calls
  *
  * PHASE A: read-only on src/. The real brains are bundled (esbuild) from src/
  * with '@/lib/llm' aliased to ./llm-shim.mjs (Node transport, call log, budget).
@@ -400,6 +401,10 @@ function mechanicalChecks(record) {
 // ─── main ───
 
 async function main() {
+  if (flag('--build-only')) {
+    await bundle();
+    return;
+  }
   loadEnv();
   shim.setApiKey(process.env.ANTHROPIC_API_KEY);
   shim.setBudget(Number(opt('--budget') || 200));
