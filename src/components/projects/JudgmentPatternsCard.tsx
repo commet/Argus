@@ -15,7 +15,7 @@
  * 없다"는 판정처럼 읽힌다 — 침묵이 정직하다.
  */
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { GitBranch, CircleHelp, FileQuestion } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { judgmentPatternFacts, type PatternDecision } from '@/lib/judgment-patterns';
@@ -31,6 +31,7 @@ export function JudgmentPatternsCard({ projects, items, locale, onSelectDecision
 }) {
   const ko = locale === 'ko';
   const L = (k: string, e: string) => (ko ? k : e);
+  const [expanded, setExpanded] = useState(false);
 
   const facts = useMemo(() => {
     const decisions: PatternDecision[] = (projects ?? [])
@@ -51,6 +52,12 @@ export function JudgmentPatternsCard({ projects, items, locale, onSelectDecision
 
   const hasAnything = facts.shared.length > 0 || facts.questions.length > 0 || facts.bare.length > 0;
   if (!hasAnything) return null;
+  const sharedVisible = expanded ? facts.shared : facts.shared.slice(0, 3);
+  const questionsVisible = expanded ? facts.questions : facts.questions.slice(0, 3);
+  const bareVisible = expanded ? facts.bare : facts.bare.slice(0, 2);
+  const hiddenCount = (facts.shared.length - sharedVisible.length)
+    + (facts.questions.length - questionsVisible.length)
+    + (facts.bare.length - bareVisible.length);
 
   return (
     <Card>
@@ -68,7 +75,7 @@ export function JudgmentPatternsCard({ projects, items, locale, onSelectDecision
             {L('같은 전제 위에 선 결정들', 'Decisions standing on the same premise')}
           </p>
           <ul className="mt-2 space-y-2">
-            {facts.shared.slice(0, 3).map((g) => (
+            {sharedVisible.map((g) => (
               <li key={g.text} className="rounded-lg bg-[var(--accent)]/[0.04] px-3.5 py-2.5">
                 <p className="text-[13px] leading-[1.5] text-[var(--text-primary)]" style={{ fontFamily: 'var(--font-voice, serif)' }}>
                   &ldquo;{g.text}&rdquo;
@@ -108,7 +115,7 @@ export function JudgmentPatternsCard({ projects, items, locale, onSelectDecision
             {L('아직 답하지 않은 질문', 'Questions still open')}
           </p>
           <ul className="mt-2 space-y-1.5">
-            {facts.questions.slice(0, 3).map((q) => (
+            {questionsVisible.map((q) => (
               <li key={`${q.decisionId}:${q.text}`} className="flex items-start justify-between gap-3 text-[12.5px] leading-[1.5] text-[var(--text-secondary)]">
                 <span>{q.text}
                 <span className="text-[var(--text-tertiary)]">
@@ -132,7 +139,7 @@ export function JudgmentPatternsCard({ projects, items, locale, onSelectDecision
             {L('전제 없이 봉인된 결정', 'Sealed without recorded premises')}
           </p>
           <p className="mt-1.5 text-[12.5px] leading-[1.5] text-[var(--text-secondary)]">
-            {facts.bare.slice(0, 2).map((d, index) => d.name && (
+            {bareVisible.map((d, index) => d.name && (
               <span key={d.id}>
                 {index > 0 && <span aria-hidden> · </span>}
                 <button
@@ -143,12 +150,24 @@ export function JudgmentPatternsCard({ projects, items, locale, onSelectDecision
                 >{d.name.slice(0, 22)}</button>
               </span>
             ))}
-            {facts.bare.length > 2 ? L(` 외 ${facts.bare.length - 2}건`, ` and ${facts.bare.length - 2} more`) : ''}
           </p>
           <p className="mt-1 text-[11.5px] text-[var(--text-tertiary)]">
             {L('무엇 위에 서 있는지가 적히지 않았어요 — 확인일에 물어볼 거리가 그만큼 적어요.', 'What these rest on was not recorded — there is that much less to check on the return date.')}
           </p>
         </div>
+      )}
+
+      {(hiddenCount > 0 || expanded) && (
+        <button
+          type="button"
+          onClick={() => setExpanded((open) => !open)}
+          aria-expanded={expanded}
+          className="mt-4 min-h-11 w-full border-t border-[var(--border-subtle)] pt-3 text-left text-[12.5px] font-semibold text-[var(--accent)] hover:underline underline-offset-2 sm:min-h-0"
+        >
+          {expanded
+            ? L('기록 접기', 'Show less')
+            : L(`나머지 ${hiddenCount}건 보기`, `Show ${hiddenCount} more`)}
+        </button>
       )}
     </Card>
   );

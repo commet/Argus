@@ -27,4 +27,29 @@ describe('JudgmentPatternsCard navigation', () => {
     expect(html).toContain('출시 시점');
     expect(html).toContain('채용 계획');
   });
+
+  it('says when compact mode has hidden records', () => {
+    const projects = Array.from({ length: 4 }, (_, index) => ({
+      id: `d${index}`,
+      name: `결정 ${index}`,
+      decision_contract: {},
+    })) as Project[];
+    const items = projects.map((project, index) => ({
+      ...createItem({
+        decision_id: project.id,
+        type: 'premise',
+        text: `아직 답하지 않은 질문 ${index}?`,
+        source: 'user',
+        external: false,
+        load_bearing: false,
+      }, Date.now() - index * 86_400_000),
+      type: 'open_question' as const,
+    }));
+    const html = renderToStaticMarkup(
+      <JudgmentPatternsCard projects={projects} items={items} locale="ko" onSelectDecision={() => {}} />,
+    );
+    // Four questions are compacted to three: the omitted record is not silent.
+    expect(html).toContain('나머지 1건 보기');
+    expect(html).toContain('aria-expanded="false"');
+  });
 });
