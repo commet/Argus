@@ -31,6 +31,19 @@
  * Deliberately weaker than the per-type contract next door, which proves the
  * VALUE reaches its consumer. This one only proves someone reads the field at
  * all — which is exactly the check that was missing everywhere else.
+ *
+ * KNOWN BLIND SPOT, measured 2026-08-03. Matching is by NAME, not by type, so a
+ * field is "alive" as soon as ANY type's copy of that name is read. Predicate
+ * carried an `observable` that no call site in either tree ever read — the
+ * return asked its generic question instead of the one the field existed to
+ * make possible — and this guard stayed green throughout, because
+ * PremiseRecord.observable is read on the analysis card.
+ *
+ * Type-aware matching would need real type resolution, which is a different and
+ * much heavier tool. Until then the honest statement of what this guard buys is:
+ * it catches a name nothing reads anywhere, and it cannot catch a name that is
+ * read somewhere else. Watch a type here AND write the narrow per-type check
+ * when the field is load-bearing.
  */
 import { describe, expect, it } from 'vitest';
 import { readdirSync, readFileSync, statSync } from 'node:fs';
@@ -45,7 +58,7 @@ const typesSrc = readFileSync(TYPES, 'utf8');
  * promise the product silently stops keeping, which is why they are here and a
  * UI prop type is not. Add a type when it starts holding judgment state.
  */
-const WATCHED = ['AnalysisSnapshot', 'PremiseRecord', 'PremiseVerdict', 'DecisionContract'];
+const WATCHED = ['AnalysisSnapshot', 'PremiseRecord', 'PremiseVerdict', 'DecisionContract', 'Predicate'];
 
 /**
  * Fields whose only reader is somewhere this test cannot see, with the reason.

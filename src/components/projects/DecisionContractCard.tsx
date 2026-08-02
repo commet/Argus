@@ -113,6 +113,54 @@ export function predicateQuestion(p: Predicate, ko: boolean): string {
   return ko ? `실제로 일어났나요 — ${p.text}` : `Did it happen — ${p.text}`;
 }
 
+/**
+ * Where to look, in the user's own world.
+ *
+ * `observable` exists for exactly this moment. Its own doc comment says so:
+ * "carried to the return so the check-in can ask about the thing itself instead
+ * of 실제로 어떻게 됐나요?". The model is asked for it, the contract gate can
+ * refuse a prediction that lacks one, `extractPredicatesFromSession` copies it
+ * onto the sealed predicate, and it is stored on every contract that has one.
+ *
+ * Nothing read it. Not one call site, in either tree. So the return asked the
+ * generic question the field was added to replace, and the difference between
+ * "did it happen" and "did the renewal notice arrive before the deadline" — the
+ * difference between a settle someone can answer from memory and one they have
+ * to go look up — was written, stored, and dropped.
+ *
+ * The field-liveness guard could not see this: it matches on NAME, and
+ * `observable` is read on PremiseRecord elsewhere, so the name looked alive
+ * while this type's copy was dead. That limit is documented in the guard; this
+ * is what it costs.
+ */
+export function predicateObservable(p: Predicate, ko: boolean): string {
+  const observable = (p.observable || '').trim();
+  if (!observable) return '';
+  return ko ? `무엇을 보면 아나 — ${observable}` : `Where to look — ${observable}`;
+}
+
+/**
+ * The user's own call first.
+ *
+ * `decisive` is their answer to whether being wrong here would have changed the
+ * choice, and the type says plainly that only 'flips' is worth bringing back
+ * because the rest is "background, and returning them is noise dressed as
+ * diligence". The return listed them in extraction order, so the premise they
+ * said would have flipped their decision could sit below one they had already
+ * called background.
+ *
+ * Stable and non-destructive: nothing is dropped, and predicates with no answer
+ * keep their relative order between the two groups. Dropping them would be
+ * Argus deciding which of their premises stops mattering.
+ */
+export function decisiveFirst(predicates: Predicate[]): Predicate[] {
+  const rank = (p: Predicate) => (p.decisive === 'flips' ? 0 : p.decisive === 'holds' ? 2 : 1);
+  return [...predicates]
+    .map((p, i) => ({ p, i }))
+    .sort((a, b) => rank(a.p) - rank(b.p) || a.i - b.i)
+    .map(({ p }) => p);
+}
+
 /** A "good outcome" verdict where crediting the user's judgment is at stake — a
  *  held bet or an avoided risk. Only here do we offer the optional basis tap;
  *  asking "luck or skill?" about a loss or an unknown would be noise. */

@@ -49,7 +49,7 @@ import { Modal } from '@/components/ui/Modal';
 import { LocaleLink } from '@/components/ui/LocaleLink';
 import { recordSignal } from '@/lib/signal-recorder';
 import { track } from '@/lib/analytics';
-import { verdictButtons, predicateQuestion, isCreditClaimingOutcome, basisOptions } from './DecisionContractCard';
+import { verdictButtons, predicateQuestion, predicateObservable, decisiveFirst, isCreditClaimingOutcome, basisOptions } from './DecisionContractCard';
 import { CheckpointReturnCard } from './CheckpointReturnCard';
 import { generateGrowthNote } from '@/lib/growth-note';
 import { applySettlementReceipt } from '@/lib/settlement-receipt';
@@ -142,7 +142,12 @@ function LegacySettlementModal({
     ? predicates.find((p) => p.id === primaryCheckpoint.predicate_id) ?? null
     : null;
   const showCheckpoint = !!(primaryCheckpoint && primaryPred);
-  const listPredicates = showCheckpoint ? predicates.filter((p) => p.id !== primaryPred!.id) : predicates;
+  // The premise the user said would have FLIPPED their decision leads. Their
+  // own call on what carries weight is the only ordering this surface has any
+  // business using, and it was being ignored in favour of extraction order.
+  const listPredicates = decisiveFirst(
+    showCheckpoint ? predicates.filter((p) => p.id !== primaryPred!.id) : predicates,
+  );
   const requiredRemainder = listPredicates.filter(isUserOwnedPredicate);
   const optionalPredicates = listPredicates.filter((p) => !isUserOwnedPredicate(p));
   // loop-17 B — the unverified facts carried from seal. At settle we ASK whether they
@@ -488,6 +493,14 @@ function LegacySettlementModal({
                     )}
                   </p>
                 </div>
+                {/* What they said they would SEE. The difference between a
+                    settle answerable from memory and one they have to go look
+                    up — stored on the contract all along, read by nobody. */}
+                {predicateObservable(p, ko) && (
+                  <p className="mt-1 pl-[21px] text-[12px] leading-[1.5] text-[var(--text-tertiary)]">
+                    {predicateObservable(p, ko)}
+                  </p>
+                )}
                 <div className="flex flex-wrap gap-1.5 mt-2 pl-[21px]">
                   {/* 3-tap settle: resolved verdicts only. The 4th path ("아직")
                       lives at the contract level below — it extends, not resolves. */}
@@ -590,6 +603,11 @@ function LegacySettlementModal({
                         </span>
                       </p>
                     </div>
+                    {predicateObservable(p, ko) && (
+                      <p className="mt-1 pl-[21px] text-[12px] leading-[1.5] text-[var(--text-tertiary)]">
+                        {predicateObservable(p, ko)}
+                      </p>
+                    )}
                     <div className="mt-2 flex flex-wrap gap-1.5 pl-[21px]">
                       {verdictButtons(p.source, ko)
                         .filter((v) => v.value !== 'unknown')
