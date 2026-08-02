@@ -35,13 +35,14 @@ export async function tgSendMessage(
   chatId: number | string,
   html: string,
   keyboard?: unknown,
-): Promise<void> {
+): Promise<boolean> {
   const base = { chat_id: chatId, disable_web_page_preview: true, ...(keyboard ? { reply_markup: keyboard } : {}) };
   const res = await tgCall('sendMessage', { ...base, text: html, parse_mode: 'HTML' });
-  if (!res || res.ok === false) {
-    const plain = html.replace(/<\/?[^>]+>/g, '');
-    await tgCall('sendMessage', { ...base, text: plain });
-  }
+  if (res?.ok) return true;
+
+  const plain = html.replace(/<\/?[^>]+>/g, '');
+  const fallback = await tgCall('sendMessage', { ...base, text: plain });
+  return fallback?.ok === true;
 }
 
 export async function tgSendChatAction(chatId: number | string, action = 'typing'): Promise<void> {

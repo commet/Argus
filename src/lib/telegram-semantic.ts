@@ -39,7 +39,9 @@ type AdminClient = any;
 
 export interface TelegramSemanticDeps {
   admin: AdminClient;
-  send: (chatId: number | string, html: string, keyboard?: unknown) => Promise<void>;
+  // Semantic handlers only require the attempt to settle. The production
+  // sender additionally returns whether Telegram accepted the delivery.
+  send: (chatId: number | string, html: string, keyboard?: unknown) => Promise<unknown>;
   /** Injectable for deterministic runs; production uses the real clock/ids. */
   now?: () => Date;
   newId?: () => string;

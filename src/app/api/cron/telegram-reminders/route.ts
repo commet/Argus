@@ -116,11 +116,12 @@ export async function GET(req: Request) {
         reminderCount: 0,
         contentCount: 1,
       })) continue;
+      let delivered: boolean;
       if (contract?.kind) {
         const foundationLocale = detectLocale(
           `${webProject?.name ?? d.decision ?? ''} ${contract.predicates?.[0]?.text ?? ''}`,
         );
-        await tgSendMessage(
+        delivered = await tgSendMessage(
           d.chat_id,
           settlementReminderText({
             projectName: webProject?.name || d.decision,
@@ -133,12 +134,14 @@ export async function GET(req: Request) {
           foundationSettlementReplyMarkup(d.id, contract.id, contract.kind, foundationLocale),
         );
       } else {
-        await tgSendMessage(
+        delivered = await tgSendMessage(
           d.chat_id,
           markdownToTelegramLight(settleQuestionMarkdown(d.decision, d.predicate, locale)),
           settleKeyboard(d.id, locale),
         );
       }
+      if (!delivered) throw new Error('Telegram rejected both HTML and plain-text delivery');
+
       await admin.from('telegram_decisions')
         .update({ reminded_at: new Date().toISOString() })
         .eq('id', d.id);
