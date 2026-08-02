@@ -1,18 +1,13 @@
 {
   "heavy-01-job-offer-40": {
     "ownership": 2,
-    "fact_lineage": 2,
-    "premise_quality": 2,
     "question_value": 2,
-    "update_fidelity": 2
+    "restraint": 1
   },
   "heavy-04-fire-teammate": {
-    "fact_lineage": 2,
-    "premise_quality": 2,
-    "update_fidelity": 2
+    "question_value": 2
   },
   "heavy-05-cofounder": {
-    "question_value": 2,
-    "update_fidelity": 2
+    "question_value": 2
   }
 }

@@ -28,13 +28,13 @@
         "stakes": "critical",
         "reversibility": "partial",
         "framing_confidence": 62,
-        "frame_line": "방향이 갈리는데 어느 쪽도 결정을 강제할 수 없어요.",
-        "real_question": "방향이 갈리는데 어느 쪽도 결정을 강제할 수 없어요.",
-        "insight": "제품이냐 영업이냐의 싸움처럼 보이지만, 50:50에 결정 규정이 없는 구조에서는 둘 중 뭐가 맞든 막힐 수 있어요. 지금 가장 걸리는 게 방향 자체예요, 아니면 그 친구와 계속 같이 갈 수 있을지예요?",
+        "frame_line": "방향이 다른데 결정권이 없으니, 회의가 싸움이 되고 있네요.",
+        "real_question": "방향이 다른데 결정권이 없으니, 회의가 싸움이 되고 있네요.",
+        "insight": "제품이냐 영업이냐보다, 지금 두 분이 막힌 지점은 '누가 어떤 결정을 할 수 있냐'는 구조 자체예요. 그게 없으니 내용 싸움이 계속 반복되는 거고요.",
         "premise_candidates": [],
         "skeleton": [],
         "next_question": {
-          "text": "지금 가장 걸리는 게 방향 자체예요, 아니면 그 친구와 계속 같이 갈 수 있을지예요?",
+          "text": "지금 이 갈등에서 원하시는 게 뭐예요 — 방향을 관철하고 싶은 건지, 아니면 같이 가는 방법을 찾고 싶은 건지요?",
           "type": "short"
         }
       },
@@ -43,9 +43,9 @@
         "stakes": "critical",
         "reversibility": "partial",
         "framing_confidence": 62,
-        "frame_line": "방향이 갈리는데 어느 쪽도 결정을 강제할 수 없어요.",
-        "real_question": "방향이 갈리는데 어느 쪽도 결정을 강제할 수 없어요.",
-        "insight": "방향이 갈리는데 어느 쪽도 결정을 강제할 수 없어요.",
+        "frame_line": "방향이 다른데 결정권이 없으니, 회의가 싸움이 되고 있네요.",
+        "real_question": "방향이 다른데 결정권이 없으니, 회의가 싸움이 되고 있네요.",
+        "insight": "방향이 다른데 결정권이 없으니, 회의가 싸움이 되고 있네요.",
         "premise_candidates": [],
         "skeleton": [],
         "next_question": {
@@ -61,75 +61,63 @@
     },
     "deepening": [
       {
-        "insight": "10개월이라는 숫자가 나왔어요. 방향을 못 정한 채로 버틸 수 있는 시간이 얼마인지 윤곽이 생겼고요.",
-        "frame_line": "제품이냐 영업이냐, 둘 다 결정을 강제할 수 없는 50:50 구조에서 — 런웨이 10개월이 남은 채로 — 방향을 어떻게 잡을지.",
-        "real_question": "제품이냐 영업이냐, 둘 다 결정을 강제할 수 없는 50:50 구조에서 — 런웨이 10개월이 남은 채로 — 방향을 어떻게 잡을지.",
+        "insight": "런웨이 10개월이라고 하셨어요. 이게 제품이냐 영업이냐 논쟁에 시간 압박을 얹는 건지, 아니면 그 자체로 더 급한 문제인지는 아직 안 나왔어요.",
+        "frame_line": "제품 vs 영업 방향이 갈리는데 결정권 규정이 없고, 런웨이는 10개월 남은 상태에서 공동창업자와 계속 부딪히고 있어요.",
+        "real_question": "제품 vs 영업 방향이 갈리는데 결정권 규정이 없고, 런웨이는 10개월 남은 상태에서 공동창업자와 계속 부딪히고 있어요.",
         "premise_changes": [
           {
             "action": "add",
-            "text": "런웨이 10개월 안에 방향이 잡히지 않으면 선택지 자체가 줄어든다",
+            "text": "런웨이가 10개월 남아 있다",
             "anchor_quote": "런웨이는 10개월 정도 남았어요",
-            "reason_from_latest_answer": "시간 제약이 구체적으로 드러나면서 교착 상태를 방치할 수 있는 여지가 어느 정도인지 달라졌다",
-            "support_kind": "explicit_condition",
-            "if_false_changes": "런웨이가 더 길면 지금의 교착 상태를 버티면서 데이터를 더 모은 뒤 결정할 수 있다",
-            "kind": "premise",
-            "observable": "현재 번 레이트와 잔여 자금"
+            "reason_from_latest_answer": "결정을 미룰 수 있는 시간의 범위가 드러났다",
+            "kind": "fact"
           }
         ],
         "skeleton": [],
         "next_question": {
-          "text": "그 10개월이라는 숫자, 두 분이 같은 숫자로 보고 계세요?",
+          "text": "런웨이 10개월이 이 갈등에서 어떻게 걸려 있어요? 빨리 결론 내야 한다는 압박인지, 아니면 다른 의미인지요.",
           "type": "short"
         },
         "ready_for_mix": false,
-        "hidden_assumptions": [
-          "런웨이 10개월 안에 방향이 잡히지 않으면 선택지 자체가 줄어든다"
-        ],
+        "hidden_assumptions": [],
         "premise_records": [
           {
-            "text": "런웨이 10개월 안에 방향이 잡히지 않으면 선택지 자체가 줄어든다",
+            "text": "런웨이가 10개월 남아 있다",
             "anchor_quote": "런웨이는 10개월 정도 남았어요",
-            "if_false_changes": "런웨이가 더 길면 지금의 교착 상태를 버티면서 데이터를 더 모은 뒤 결정할 수 있다",
-            "support_kind": "explicit_condition",
-            "kind": "premise",
-            "observable": "현재 번 레이트와 잔여 자금"
+            "if_false_changes": "",
+            "support_kind": "explicit_reason",
+            "kind": "fact"
           }
         ],
         "premise_verdicts": []
       },
       {
-        "insight": "런웨이 질문에 리텐션 30%로 답하셨어요. 두 분이 같은 숫자를 보고 있는지는 아직 안 나왔고, 리텐션 30%가 이 갈등에서 어떤 무게인지도 아직 안 들었어요.",
-        "frame_line": "제품이냐 영업이냐, 둘 다 결정을 강제할 수 없는 50:50 구조에서 — 런웨이 10개월이 남은 채로 — 방향을 어떻게 잡을지.",
-        "real_question": "제품이냐 영업이냐, 둘 다 결정을 강제할 수 없는 50:50 구조에서 — 런웨이 10개월이 남은 채로 — 방향을 어떻게 잡을지.",
+        "insight": "리텐션 30%라는 숫자가 나왔어요. 이게 두 분 갈등의 핵심 재료인데, 이 숫자를 두 분이 같은 뜻으로 보고 있는지는 아직 안 나왔어요. 한 쪽은 '그러니까 제품을 먼저'로 읽고, 다른 쪽은 '그러니까 영업으로 더 빨리 채워야'로 읽을 수도 있거든요.",
+        "frame_line": "제품 vs 영업 방향이 갈리는데 결정권 규정이 없고, 런웨이 10개월에 첫 달 리텐션 30%인 상태에서 공동창업자와 계속 부딪히고 있어요.",
+        "real_question": "제품 vs 영업 방향이 갈리는데 결정권 규정이 없고, 런웨이 10개월에 첫 달 리텐션 30%인 상태에서 공동창업자와 계속 부딪히고 있어요.",
         "premise_changes": [
           {
             "action": "add",
             "text": "첫 달 리텐션이 30%다",
             "anchor_quote": "리텐션이 낮아요. 첫 달 30% 정도예요.",
-            "reason_from_latest_answer": "현재 제품 상태를 가늠할 수 있는 구체적 수치가 처음 나왔다",
+            "reason_from_latest_answer": "두 분이 방향을 다르게 보는 근거가 될 수 있는 숫자가 처음 나왔다",
             "support_kind": "explicit_reason",
-            "if_false_changes": "리텐션이 다른 수치라면 제품 다듬기의 시급성 판단이 달라진다",
+            "if_false_changes": "리텐션이 다른 수준이라면 어느 방향이 더 급한지 판단 자체가 달라진다",
             "kind": "fact"
           }
         ],
         "skeleton": [],
-        "next_question": null,
+        "next_question": {
+          "text": "이 리텐션 숫자를 공동창업자 분도 알고 있어요? 알고 있다면 그 친구는 이걸 어떻게 해석하던가요.",
+          "type": "short"
+        },
         "ready_for_mix": false,
-        "hidden_assumptions": [
-          "런웨이 10개월 안에 방향이 잡히지 않으면 선택지 자체가 줄어든다"
-        ],
+        "hidden_assumptions": [],
         "premise_records": [
-          {
-            "text": "런웨이 10개월 안에 방향이 잡히지 않으면 선택지 자체가 줄어든다",
-            "anchor_quote": "",
-            "if_false_changes": "",
-            "support_kind": "explicit_reason",
-            "kind": "premise"
-          },
           {
             "text": "첫 달 리텐션이 30%다",
             "anchor_quote": "리텐션이 낮아요. 첫 달 30% 정도예요.",
-            "if_false_changes": "리텐션이 다른 수치라면 제품 다듬기의 시급성 판단이 달라진다",
+            "if_false_changes": "리텐션이 다른 수준이라면 어느 방향이 더 급한지 판단 자체가 달라진다",
             "support_kind": "explicit_reason",
             "kind": "fact"
           }
@@ -149,7 +137,7 @@
     {
       "actor": "argus",
       "phase": "heavy_initial",
-      "text": "방향이 갈리는데 어느 쪽도 결정을 강제할 수 없어요.\n\n지금 살펴볼 것: 방향이 갈리는데 어느 쪽도 결정을 강제할 수 없어요.\n\n다음 질문: 이 상황에서 지금 가장 마음에 걸리는 건 뭐예요?"
+      "text": "방향이 다른데 결정권이 없으니, 회의가 싸움이 되고 있네요.\n\n지금 살펴볼 것: 방향이 다른데 결정권이 없으니, 회의가 싸움이 되고 있네요.\n\n다음 질문: 이 상황에서 지금 가장 마음에 걸리는 건 뭐예요?"
     },
     {
       "actor": "user",
@@ -159,7 +147,7 @@
     {
       "actor": "argus",
       "phase": "heavy_deepening_1",
-      "text": "10개월이라는 숫자가 나왔어요. 방향을 못 정한 채로 버틸 수 있는 시간이 얼마인지 윤곽이 생겼고요.\n\n지금 살펴볼 것: 제품이냐 영업이냐, 둘 다 결정을 강제할 수 없는 50:50 구조에서 — 런웨이 10개월이 남은 채로 — 방향을 어떻게 잡을지.\n\n숨은 전제:\n- 런웨이 10개월 안에 방향이 잡히지 않으면 선택지 자체가 줄어든다\n\n다음 질문: 그 10개월이라는 숫자, 두 분이 같은 숫자로 보고 계세요?"
+      "text": "런웨이 10개월이라고 하셨어요. 이게 제품이냐 영업이냐 논쟁에 시간 압박을 얹는 건지, 아니면 그 자체로 더 급한 문제인지는 아직 안 나왔어요.\n\n지금 살펴볼 것: 제품 vs 영업 방향이 갈리는데 결정권 규정이 없고, 런웨이는 10개월 남은 상태에서 공동창업자와 계속 부딪히고 있어요.\n\n다음 질문: 런웨이 10개월이 이 갈등에서 어떻게 걸려 있어요? 빨리 결론 내야 한다는 압박인지, 아니면 다른 의미인지요."
     },
     {
       "actor": "user",
@@ -169,7 +157,7 @@
     {
       "actor": "argus",
       "phase": "heavy_deepening_2",
-      "text": "런웨이 질문에 리텐션 30%로 답하셨어요. 두 분이 같은 숫자를 보고 있는지는 아직 안 나왔고, 리텐션 30%가 이 갈등에서 어떤 무게인지도 아직 안 들었어요.\n\n지금 살펴볼 것: 제품이냐 영업이냐, 둘 다 결정을 강제할 수 없는 50:50 구조에서 — 런웨이 10개월이 남은 채로 — 방향을 어떻게 잡을지.\n\n숨은 전제:\n- 런웨이 10개월 안에 방향이 잡히지 않으면 선택지 자체가 줄어든다"
+      "text": "리텐션 30%라는 숫자가 나왔어요. 이게 두 분 갈등의 핵심 재료인데, 이 숫자를 두 분이 같은 뜻으로 보고 있는지는 아직 안 나왔어요. 한 쪽은 '그러니까 제품을 먼저'로 읽고, 다른 쪽은 '그러니까 영업으로 더 빨리 채워야'로 읽을 수도 있거든요.\n\n지금 살펴볼 것: 제품 vs 영업 방향이 갈리는데 결정권 규정이 없고, 런웨이 10개월에 첫 달 리텐션 30%인 상태에서 공동창업자와 계속 부딪히고 있어요.\n\n다음 질문: 이 리텐션 숫자를 공동창업자 분도 알고 있어요? 알고 있다면 그 친구는 이걸 어떻게 해석하던가요."
     }
   ],
   "calls": [
@@ -180,7 +168,7 @@
       "modelId": "claude-haiku-4-5-20251001",
       "maxTokens": 500,
       "attempt": 0,
-      "ms": 2527,
+      "ms": 2568,
       "usage": {
         "input_tokens": 5058,
         "cache_creation_input_tokens": 0,
@@ -189,12 +177,12 @@
           "ephemeral_5m_input_tokens": 0,
           "ephemeral_1h_input_tokens": 0
         },
-        "output_tokens": 177,
+        "output_tokens": 200,
         "service_tier": "standard",
         "inference_geo": "not_available"
       },
       "user": "[user] 오늘은 2026-08-02 (일요일)입니다.\n\n사용자가 방금 쓴 것:\n<user-data context=\"decision\">\n공동창업자와 갈등이 깊어졌어요. 저는 제품을 더 다듬어야 한다고 보고, 그 친구는 지금 당장 영업을 늘려야 한다고 해요. 지분은 50:50이고 결정권 규정은 따로 없어요. 요즘은 회의만 하면 언성이 높아져요.\n</user-data>",
-      "rawText": "```json\n{\n  \"need\": \"heavy\",\n  \"mirror\": \"공동창업자와 제품 방향을 두고 자꾸 부딪히고 있네요. 지분도 같고 결정 규칙도 없는 상황에서 어느 쪽도 물러설 수 없는 거고요. 회의 자체가 소모적으로 변했고요.\",\n  \"question\": \"지금 가장 걸리는 게 의견 차이 자체인가요, 아니면 그걸 어떻게 풀어야 할지인가요?\"\n}\n```"
+      "rawText": "```json\n{\n  \"need\": \"heavy\",\n  \"mirror\": \"공동창업자와 제품 방향을 놓고 의견이 갈려 있고, 회의 때마다 목소리가 커지는 상태네요. 지분도 같고 결정 규정도 없어서 어느 쪽이 우선인지 정할 수 없는 상황이고요.\",\n  \"question\": \"지금 가장 걸리는 게 뭐예요 — 제품을 더 다듬어야 한다는 확신 자체인지, 아니면 그 친구와 어떻게 결정을 내릴지인지?\"\n}\n```"
     },
     {
       "seq": 3,
@@ -203,21 +191,21 @@
       "modelId": "claude-sonnet-4-6",
       "maxTokens": 4096,
       "attempt": 0,
-      "ms": 5643,
+      "ms": 6586,
       "usage": {
         "input_tokens": 135,
         "cache_creation_input_tokens": 0,
-        "cache_read_input_tokens": 5669,
+        "cache_read_input_tokens": 5955,
         "cache_creation": {
           "ephemeral_5m_input_tokens": 0,
           "ephemeral_1h_input_tokens": 0
         },
-        "output_tokens": 346,
+        "output_tokens": 337,
         "service_tier": "standard",
         "inference_geo": "global"
       },
       "user": "[user] <user-data>공동창업자와 갈등이 깊어졌어요. 저는 제품을 더 다듬어야 한다고 보고, 그 친구는 지금 당장 영업을 늘려야 한다고 해요. 지분은 50:50이고 결정권 규정은 따로 없어요. 요즘은 회의만 하면 언성이 높아져요.</user-data>",
-      "rawText": "```json\n{\n  \"request_type\": \"open\",\n  \"stakes\": \"critical\",\n  \"reversibility\": \"partial\",\n  \"framing_confidence\": 62,\n  \"frame_line\": \"방향이 갈리는데 어느 쪽도 결정을 강제할 수 없어요.\",\n  \"real_question\": \"방향이 갈리는데 어느 쪽도 결정을 강제할 수 없어요.\",\n  \"insight\": \"제품이냐 영업이냐의 싸움처럼 보이지만, 50:50에 결정 규정이 없는 구조에서는 둘 중 뭐가 맞든 막힐 수 있어요. 지금 가장 걸리는 게 방향 자체예요, 아니면 그 친구와 계속 같이 갈 수 있을지예요?\",\n  \"premise_candidates\": [],\n  \"skeleton\": [],\n  \"next_question\": {\n    \"text\": \"지금 가장 걸리는 게 방향 자체예요, 아니면 그 친구와 계속 같이 갈 수 있을지예요?\",\n    \"type\": \"short\"\n  }\n}\n```"
+      "rawText": "```json\n{\n  \"request_type\": \"open\",\n  \"stakes\": \"critical\",\n  \"reversibility\": \"partial\",\n  \"framing_confidence\": 62,\n  \"frame_line\": \"방향이 다른데 결정권이 없으니, 회의가 싸움이 되고 있네요.\",\n  \"real_question\": \"방향이 다른데 결정권이 없으니, 회의가 싸움이 되고 있네요.\",\n  \"insight\": \"제품이냐 영업이냐보다, 지금 두 분이 막힌 지점은 '누가 어떤 결정을 할 수 있냐'는 구조 자체예요. 그게 없으니 내용 싸움이 계속 반복되는 거고요.\",\n  \"premise_candidates\": [],\n  \"skeleton\": [],\n  \"next_question\": {\n    \"text\": \"지금 이 갈등에서 원하시는 게 뭐예요 — 방향을 관철하고 싶은 건지, 아니면 같이 가는 방법을 찾고 싶은 건지요?\",\n    \"type\": \"short\"\n  }\n}\n```"
     },
     {
       "seq": 4,
@@ -226,44 +214,44 @@
       "modelId": "claude-sonnet-4-6",
       "maxTokens": 2500,
       "attempt": 0,
-      "ms": 13121,
+      "ms": 8375,
       "usage": {
-        "input_tokens": 5307,
+        "input_tokens": 5595,
         "cache_creation_input_tokens": 0,
         "cache_read_input_tokens": 0,
         "cache_creation": {
           "ephemeral_5m_input_tokens": 0,
           "ephemeral_1h_input_tokens": 0
         },
-        "output_tokens": 583,
+        "output_tokens": 481,
         "service_tier": "standard",
         "inference_geo": "global"
       },
-      "user": "[user] Original situation:\n<user-data>공동창업자와 갈등이 깊어졌어요. 저는 제품을 더 다듬어야 한다고 보고, 그 친구는 지금 당장 영업을 늘려야 한다고 해요. 지분은 50:50이고 결정권 규정은 따로 없어요. 요즘은 회의만 하면 언성이 높아져요.</user-data>\n\nCurrent state:\n- question: 방향이 갈리는데 어느 쪽도 결정을 강제할 수 없어요.\n- AI-surfaced premises: (none)\n- reality checks: (none)\n- request type: open\n- weight: critical / partial\n\nConversation:\nQ1: 이 상황에서 지금 가장 마음에 걸리는 건 뭐예요?\nA1: 런웨이는 10개월 정도 남았어요.",
-      "rawText": "```json\n{\n  \"insight\": \"10개월이라는 숫자가 나왔어요. 방향을 못 정한 채로 버틸 수 있는 시간이 얼마인지 윤곽이 생겼고요.\",\n  \"frame_line\": \"제품이냐 영업이냐, 둘 다 결정을 강제할 수 없는 50:50 구조에서 — 런웨이 10개월이 남은 채로 — 방향을 어떻게 잡을지.\",\n  \"real_question\": \"제품이냐 영업이냐, 둘 다 결정을 강제할 수 없는 50:50 구조에서 — 런웨이 10개월이 남은 채로 — 방향을 어떻게 잡을지.\",\n  \"premise_changes\": [\n    {\n      \"action\": \"add\",\n      \"text\": \"런웨이 10개월 안에 방향이 잡히지 않으면 선택지 자체가 줄어든다\",\n      \"anchor_quote\": \"런웨이는 10개월 정도 남았어요\",\n      \"reason_from_latest_answer\": \"시간 제약이 구체적으로 드러나면서 교착 상태를 방치할 수 있는 여지가 어느 정도인지 달라졌다\",\n      \"support_kind\": \"explicit_condition\",\n      \"if_false_changes\": \"런웨이가 더 길면 지금의 교착 상태를 버티면서 데이터를 더 모은 뒤 결정할 수 있다\",\n      \"kind\": \"premise\",\n      \"observable\": \"현재 번 레이트와 잔여 자금\"\n    }\n  ],\n  \"skeleton\": [],\n  \"next_question\": {\n    \"text\": \"그 10개월이라는 숫자, 두 분이 같은 숫자로 보고 계세요?\",\n    \"type\": \"short\"\n  },\n  \"ready_for_mix\": false\n}\n```"
+      "user": "[user] Original situation:\n<user-data>공동창업자와 갈등이 깊어졌어요. 저는 제품을 더 다듬어야 한다고 보고, 그 친구는 지금 당장 영업을 늘려야 한다고 해요. 지분은 50:50이고 결정권 규정은 따로 없어요. 요즘은 회의만 하면 언성이 높아져요.</user-data>\n\nCurrent state:\n- question: 방향이 다른데 결정권이 없으니, 회의가 싸움이 되고 있네요.\n- AI-surfaced premises: (none)\n- reality checks: (none)\n- request type: open\n- weight: critical / partial\n\nConversation:\nQ1: 이 상황에서 지금 가장 마음에 걸리는 건 뭐예요?\nA1: 런웨이는 10개월 정도 남",
+      "rawText": "```json\n{\n  \"insight\": \"런웨이 10개월이라고 하셨어요. 이게 제품이냐 영업이냐 논쟁에 시간 압박을 얹는 건지, 아니면 그 자체로 더 급한 문제인지는 아직 안 나왔어요.\",\n  \"frame_line\": \"제품 vs 영업 방향이 갈리는데 결정권 규정이 없고, 런웨이는 10개월 남은 상태에서 공동창업자와 계속 부딪히고 있어요.\",\n  \"real_question\": \"제품 vs 영업 방향이 갈리는데 결정권 규정이 없고, 런웨이는 10개월 남은 상태에서 공동창업자와 계속 부딪히고 있어요.\",\n  \"premise_changes\": [\n    {\n      \"action\": \"add\",\n      \"text\": \"런웨이가 10개월 남아 있다\",\n      \"anchor_quote\": \"런웨이는 10개월 정도 남았어요\",\n      \"reason_from_latest_answer\": \"결정을 미룰 수 있는 시간의 범위가 드러났다\",\n      \"kind\": \"fact\"\n    }\n  ],\n  \"skeleton\": [],\n  \"next_question\": {\n    \"text\": \"런웨이 10개월이 이 갈등에서 어떻게 걸려 있어요? 빨리 결론 내야 한다는 압박인지, 아니면 다른 의미인지요.\",\n    \"type\": \"short\"\n  },\n  \"ready_for_mix\": false\n}\n```"
     },
     {
-      "seq": 8,
+      "seq": 7,
       "label": "heavy-05-cofounder",
       "tier": "default",
       "modelId": "claude-sonnet-4-6",
       "maxTokens": 2500,
       "attempt": 0,
-      "ms": 9777,
+      "ms": 10436,
       "usage": {
-        "input_tokens": 5454,
+        "input_tokens": 5729,
         "cache_creation_input_tokens": 0,
         "cache_read_input_tokens": 0,
         "cache_creation": {
           "ephemeral_5m_input_tokens": 0,
           "ephemeral_1h_input_tokens": 0
         },
-        "output_tokens": 550,
+        "output_tokens": 648,
         "service_tier": "standard",
         "inference_geo": "global"
       },
-      "user": "[user] Original situation:\n<user-data>공동창업자와 갈등이 깊어졌어요. 저는 제품을 더 다듬어야 한다고 보고, 그 친구는 지금 당장 영업을 늘려야 한다고 해요. 지분은 50:50이고 결정권 규정은 따로 없어요. 요즘은 회의만 하면 언성이 높아져요.</user-data>\n\nCurrent state:\n- question: 제품이냐 영업이냐, 둘 다 결정을 강제할 수 없는 50:50 구조에서 — 런웨이 10개월이 남은 채로 — 방향을 어떻게 잡을지.\n- AI-surfaced premises: 런웨이 10개월 안에 방향이 잡히지 않으면 선택지 자체가 줄어든다\n- reality checks: (none)\n- request type: open\n- weight: critical / parti",
-      "rawText": "```json\n{\n  \"insight\": \"런웨이 질문에 리텐션 30%로 답하셨어요. 두 분이 같은 숫자를 보고 있는지는 아직 안 나왔고, 리텐션 30%가 이 갈등에서 어떤 무게인지도 아직 안 들었어요.\",\n  \"frame_line\": \"제품이냐 영업이냐, 둘 다 결정을 강제할 수 없는 50:50 구조에서 — 런웨이 10개월이 남은 채로 — 방향을 어떻게 잡을지.\",\n  \"real_question\": \"제품이냐 영업이냐, 둘 다 결정을 강제할 수 없는 50:50 구조에서 — 런웨이 10개월이 남은 채로 — 방향을 어떻게 잡을지.\",\n  \"premise_changes\": [\n    {\n      \"action\": \"add\",\n      \"text\": \"첫 달 리텐션이 30%다\",\n      \"anchor_quote\": \"리텐션이 낮아요. 첫 달 30% 정도예요.\",\n      \"reason_from_latest_answer\": \"현재 제품 상태를 가늠할 수 있는 구체적 수치가 처음 나왔다\",\n      \"support_kind\": \"explicit_reason\",\n      \"if_false_changes\": \"리텐션이 다른 수치라면 제품 다듬기의 시급성 판단이 달라진다\",\n      \"kind\": \"fact\"\n    }\n  ],\n  \"skeleton\": [],\n  \"next_question\": {\n    \"text\": \"리텐션 30%라는 숫자, 공동창업자 분도 같은 숫자로 보고 계세요?\",\n    \"type\": \"short\"\n  },\n  \"ready_for_mix\": false\n}\n```"
+      "user": "[user] Original situation:\n<user-data>공동창업자와 갈등이 깊어졌어요. 저는 제품을 더 다듬어야 한다고 보고, 그 친구는 지금 당장 영업을 늘려야 한다고 해요. 지분은 50:50이고 결정권 규정은 따로 없어요. 요즘은 회의만 하면 언성이 높아져요.</user-data>\n\nCurrent state:\n- question: 제품 vs 영업 방향이 갈리는데 결정권 규정이 없고, 런웨이는 10개월 남은 상태에서 공동창업자와 계속 부딪히고 있어요.\n- AI-surfaced premises: (none)\n- reality checks: (none)\n- request type: open\n- weight: critical / partial\n\nConversation:\nQ1: 이 상황에서 지금 가장",
+      "rawText": "```json\n{\n  \"insight\": \"리텐션 30%라는 숫자가 나왔어요. 이게 두 분 갈등의 핵심 재료인데, 이 숫자를 두 분이 같은 뜻으로 보고 있는지는 아직 안 나왔어요. 한 쪽은 '그러니까 제품을 먼저'로 읽고, 다른 쪽은 '그러니까 영업으로 더 빨리 채워야'로 읽을 수도 있거든요.\",\n  \"frame_line\": \"제품 vs 영업 방향이 갈리는데 결정권 규정이 없고, 런웨이 10개월에 첫 달 리텐션 30%인 상태에서 공동창업자와 계속 부딪히고 있어요.\",\n  \"real_question\": \"제품 vs 영업 방향이 갈리는데 결정권 규정이 없고, 런웨이 10개월에 첫 달 리텐션 30%인 상태에서 공동창업자와 계속 부딪히고 있어요.\",\n  \"premise_changes\": [\n    {\n      \"action\": \"add\",\n      \"text\": \"첫 달 리텐션이 30%다\",\n      \"anchor_quote\": \"리텐션이 낮아요. 첫 달 30% 정도예요.\",\n      \"reason_from_latest_answer\": \"두 분이 방향을 다르게 보는 근거가 될 수 있는 숫자가 처음 나왔다\",\n      \"support_kind\": \"explicit_reason\",\n      \"if_false_changes\": \"리텐션이 다른 수준이라면 어느 방향이 더 급한지 판단 자체가 달라진다\",\n      \"kind\": \"fact\"\n    }\n  ],\n  \"skeleton\": [],\n  \"next_question\": {\n    \"text\": \"이 리텐션 숫자를 공동창업자 분도 알고 있어요? 알고 있다면 그 친구는 이걸 어떻게 해석하던가요?\",\n    \"type\": \"short\"\n  },\n  \"ready_for_mix\": false\n}\n```"
     }
   ],
   "mechanical": {
@@ -277,53 +265,53 @@
             "verdict": "PASS",
             "severity": null,
             "evidence": "",
-            "note": "50:50 지분·결정권 없음·런웨이·리텐션 등 실질적 판단 요소가 있는 open/critical 상황으로 heavy 라우팅 적절."
+            "note": "50:50 지분, 결정권 규정 없음, 런웨이 10개월, 리텐션 30% — 실질적 의사결정 상황으로 open/critical 라우팅 적절."
           },
           "ownership": {
             "verdict": "PASS",
             "severity": null,
             "evidence": "",
-            "note": "어느 방향이 낫다고 정하거나 선택지를 밀지 않았고, 사용자 말을 더 거창한 질문으로 바꾸지 않았음."
+            "note": "어느 방향이 맞다는 판단 없이 사용자가 제시한 정보를 추적하는 데 머물렀음."
           },
           "fact_lineage": {
             "verdict": "PASS",
             "severity": null,
             "evidence": "",
-            "note": "런웨이 10개월, 리텐션 30%, 50:50 구조 모두 사용자 입력에서 직접 추적 가능. 외부 사실 단정 없음."
+            "note": "리텐션 30%, 런웨이 10개월 모두 사용자 발화에서 직접 나온 수치. '한 쪽은 제품 먼저, 다른 쪽은 영업으로 채워야로 읽을 수도 있다'는 가능성으로 제시했고 단정하지 않음."
           },
           "premise_quality": {
-            "verdict": "FAIL",
-            "severity": "M",
-            "evidence": "숨은 전제: '런웨이 10개월 안에 방향이 잡히지 않으면 선택지 자체가 줄어든다' — deepening_1과 deepening_2에서 동일하게 반복됨.",
-            "note": "이 전제는 런웨이가 유한하다는 사실의 재서술에 가깝고, 거짓이어도 판단이 달라지지 않는다(런웨이가 있어도 방향 미결은 문제). 또한 deepening_2에서 새 정보(리텐션 30%)가 들어왔음에도 전제가 갱신되지 않고 그대로 복사됐다."
+            "verdict": "PASS",
+            "severity": null,
+            "evidence": "",
+            "note": "heavy_deepening_2에서 '같은 숫자를 다르게 읽을 수 있다'는 전제는 50:50 교착 + 방향 불일치라는 사용자 말에서 논리적으로 이어지며, 거짓이면 다음 질문의 필요성이 달라짐."
           },
           "question_value": {
             "verdict": "FAIL",
             "severity": "M",
-            "evidence": "deepening_2: '두 분이 같은 숫자로 보고 계세요?'라는 질문이 사용자의 다음 답변(리텐션 30%)에서 응답되지 않았는데, deepening_2는 이를 '아직 안 나왔고'라고만 언급하고 같은 질문을 재발하지 않은 채 새 질문도 없이 마무리됨.",
-            "note": "미답 질문을 명시적으로 보류 처리하거나 리텐션 30%가 그 질문보다 더 중요한 갭임을 확인하는 질문으로 전환했어야 한다. 현재 상태는 열린 질문이 공중에 떠 있는 채로 회차가 끝남."
+            "evidence": "heavy_deepening_1: '런웨이 10개월이 이 갈등에서 어떻게 걸려 있어요? 빨리 결론 내야 한다는 압박인지, 아니면 다른 의미인지요.'",
+            "note": "사용자는 '런웨이는 10개월 정도 남았어요'라고 직접 답했는데, Argus는 그 의미를 되묻고 있음. 런웨이가 시간 압박이라는 것은 이미 문맥에서 충분히 읽히고, '다른 의미'가 무엇인지 열어두는 것은 실질적 분기를 만들지 못함. 답에 따라 판단 상태가 달라지는 질문이라고 보기 어려움."
           },
           "update_fidelity": {
-            "verdict": "FAIL",
-            "severity": "M",
-            "evidence": "deepening_2의 '지금 살펴볼 것'과 '숨은 전제'가 deepening_1과 동일하게 복사됨. 리텐션 30%라는 새 정보가 들어왔음에도 상태 요약이 갱신되지 않았음.",
-            "note": "리텐션 30%는 '제품을 더 다듬어야 한다'는 사용자 입장을 뒷받침하는 구체적 데이터로, 갈등 구조의 무게를 바꾸는 정보다. 이를 반영한 상태 갱신이 필요했다."
+            "verdict": "PASS",
+            "severity": null,
+            "evidence": "",
+            "note": "각 턴마다 '지금 살펴볼 것'이 새 정보(런웨이, 리텐션)를 누적 반영하고 있음."
           },
           "restraint": {
             "verdict": "PASS",
             "severity": null,
             "evidence": "",
-            "note": "계획을 미리 만들거나 무거운 절차를 씌우지 않았음. 현실 확인도 사용자 말에서 나온 것만 사용."
+            "note": "계획이나 해결책을 미리 제시하지 않고 정보 추적에 머물렀음."
           },
           "language": {
             "verdict": "PASS",
             "severity": null,
             "evidence": "",
-            "note": "자연스러운 해요체, AI체·보고서체 없음."
+            "note": "자연스러운 해요체. 보고서체나 AI체 없음."
           }
         },
-        "overall": "리텐션 30%라는 판단 무게가 있는 새 정보가 들어왔는데 상태 요약과 전제가 그대로 복사되어 update_fidelity가 실패했고, 그 결과 미답 질문도 공중에 떠 있는 채로 회차가 끝났다.",
-        "best_next_fix": "deepening_2의 '지금 살펴볼 것'에 리텐션 30%를 반영해 상태를 갱신하고, 미답 질문(같은 숫자를 보고 있는지)을 리텐션 데이터가 두 사람 모두에게 공유된 사실인지 확인하는 질문으로 흡수·전환한다."
+        "overall": "전반적으로 소유권과 사실 추적을 잘 지켰으나, heavy_deepening_1의 질문은 사용자가 이미 런웨이를 시간 압박으로 제시한 상황에서 그 의미를 다시 묻는 낮은 정보가치 질문이었음.",
+        "best_next_fix": "heavy_deepening_1에서 런웨이의 의미를 되묻는 대신, 런웨이와 리텐션이 함께 나오기 전까지는 질문을 아끼거나 '런웨이가 10개월이면 이 방향 결정이 더 급해지겠네요'로 상태만 반영하고 다음 정보를 기다리는 것이 적절했음."
       }
     ]
   }

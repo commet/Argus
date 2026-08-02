@@ -76,7 +76,19 @@ export async function anthropicText({ system, messages, model = 'default', maxTo
   // otherwise-valid evaluation into HTTP 400. Omitting it is also what the web
   // runtime does for these adaptive-thinking models.
   const rejectsSampling = /^claude-(?:sonnet|opus|fable)-5$/.test(modelId);
-  if (temperature !== undefined && !rejectsSampling) body.temperature = temperature;
+  // ARGUS_SIM_TEMP existed to pin engine sampling for the ablation study, so
+  // the only difference between two arms would be the prompt. On the shipping
+  // model it CANNOT: the same rejection above applies, and the run stalls on
+  // retried 400s. It stays as a no-op on those models and works if the map
+  // ever points at one that accepts sampling.
+  //
+  // The consequence is load-bearing for how the study is read: determinism is
+  // not available, so the noise floor is irreducible by this route and only a
+  // control arm plus repeated samples can separate a rule from variance.
+  const pinned = process.env.ARGUS_SIM_TEMP;
+  const temp = temperature !== undefined ? temperature
+    : (pinned !== undefined && pinned !== '' ? Number(pinned) : undefined);
+  if (temp !== undefined && Number.isFinite(temp) && !rejectsSampling) body.temperature = temp;
 
   let lastErr;
   for (let attempt = 0; attempt < 4; attempt++) {

@@ -26,9 +26,32 @@
  * violation it was meant to prevent, and a worked example whose content leaked
  * into the scenario it was drawn from. Neither was findable by adding anything.
  *
- * Judge verdicts are noisy, so a single run is a hint, not a finding. The
- * summary prints per-criterion deltas and the transcripts stay on disk; treat
- * anything under two criteria of movement as noise.
+ * READ EVERY DELTA AGAINST THE CONTROL ARM, NEVER AGAINST ZERO.
+ *
+ * The first version of this study had no control and produced a confident
+ * table: +8 load-bearing, -3 harmful, two deletion candidates. It was almost
+ * entirely noise, and the same output proved it — four unrelated ablations had
+ * each "fixed" the identical criterion on the identical scenario, which cannot
+ * be causal. Judge verdicts on three scenarios swing more run-to-run than most
+ * rules move them.
+ *
+ * The fix is a CONTROL arm: run the same configuration twice and change
+ * nothing. Its delta IS the noise floor, measured rather than assumed, and
+ * every arm is read against it. An arm under the floor is not a small effect —
+ * it is no measurement.
+ *
+ * DETERMINISM IS NOT AVAILABLE, and that is not a detail. Pinning temperature
+ * would have made the prompt the only difference between arms; the shipping
+ * model rejects sampling parameters outright (HTTP 400 — found by the other
+ * agent working this repo while this study was running, which is why the pin
+ * is a documented no-op in llm-shim rather than a feature). So the floor cannot
+ * be lowered by making runs identical. It can only be beaten by samples:
+ *
+ *   node scripts/sim/ablate.mjs --repeat 3
+ *
+ * costs three times as much and shrinks the floor by roughly sqrt(3). Before
+ * deleting or reverting a rule on the strength of a row, raise --repeat until
+ * that row clears the floor it prints.
  */
 
 import { spawnSync } from 'node:child_process';
@@ -60,6 +83,7 @@ const RULES = [
 const args = process.argv.slice(2);
 const opt = (n) => { const i = args.indexOf(n); return i >= 0 ? args[i + 1] : undefined; };
 const only = (opt('--only') || '').split(',').map((s) => s.trim()).filter(Boolean);
+const repeat = Math.max(1, Number(opt('--repeat') || 1));
 const scenarios = opt('--scenarios')
   || 'heavy-01-job-offer-40,heavy-04-fire-teammate,heavy-05-cofounder,heavy-03-jeonse-maemae';
 
@@ -85,15 +109,45 @@ fs.mkdirSync(OUT, { recursive: true });
   console.log(`[ablate] ${plan.length} markers verified present`);
 }
 
-/** One run of the real sim, with the judge, returning per-scenario verdicts. */
+/**
+ * One arm, averaged over `repeat` runs. Averaging is the only lever left for
+ * separating a rule from variance once determinism is off the table, and it is
+ * why the summary refuses to call anything a deletion candidate below the floor.
+ */
 function run(label, ablateSpec) {
+  if (repeat === 1) return runOnce(label, ablateSpec);
+  const runs = [];
+  for (let i = 0; i < repeat; i += 1) runs.push(runOnce(`${label}#${i + 1}`, ablateSpec));
+  const merged = {};
+  for (const id of scenarios.split(',')) {
+    merged[id] = {};
+    const keys = new Set(runs.flatMap((r) => Object.keys(r[id] || {})));
+    for (const k of keys) {
+      const mean = runs.reduce((a, r) => a + ((r[id] || {})[k] || 0), 0) / repeat;
+      if (mean > 0) merged[id][k] = mean;
+    }
+  }
+  fs.writeFileSync(path.join(OUT, `${label}.json`), JSON.stringify(merged, null, 2));
+  return merged;
+}
+
+/** A single run of the real sim, with the judge, returning per-scenario verdicts. */
+function runOnce(label, ablateSpec) {
   console.log(`\n[${label}] ${ablateSpec || '(baseline — nothing removed)'}`);
   const res = spawnSync(
     process.execPath,
     [path.join(SIM, 'run-sim.mjs'), '--only', scenarios],
     {
       cwd: path.resolve(SIM, '..', '..'),
-      env: { ...process.env, ARGUS_SIM_ABLATE: ablateSpec || '' },
+      // Kept and passed, but a NO-OP on the shipping model, which rejects
+      // sampling parameters (see llm-shim). It only takes effect if the model
+      // map ever points at one that accepts them — until then the noise floor
+      // is beaten with --repeat, not with determinism.
+      env: {
+        ...process.env,
+        ARGUS_SIM_ABLATE: ablateSpec || '',
+        ARGUS_SIM_TEMP: process.env.ARGUS_SIM_TEMP ?? '0',
+      },
       encoding: 'utf8',
       timeout: 20 * 60 * 1000,
     },
@@ -121,7 +175,26 @@ const score = (v) => Object.values(v).reduce((a, b) => a + b, 0);
 const total = (o) => Object.values(o).reduce((a, v) => a + score(v), 0);
 
 const baseline = run('baseline', '');
-console.log(`\nbaseline harm score: ${total(baseline)}  ${JSON.stringify(baseline)}`);
+console.log(`\nbaseline harm score: ${total(baseline)}`);
+
+// THE CONTROL ARM. Run the identical configuration again and change nothing.
+// Whatever moves between these two runs is the noise floor, and any ablation
+// delta smaller than it is unmeasurable however confident the table looks.
+// Without this the first study read +8 as load-bearing and -3 as harmful while
+// four unrelated arms had each "fixed" the same criterion on the same scenario,
+// which cannot be causal.
+const control = run('control-null', '');
+const noise = Math.abs(total(control) - total(baseline));
+let controlMoves = 0;
+for (const id of Object.keys(baseline)) {
+  const b = baseline[id] || {};
+  const a = control[id] || {};
+  for (const k of new Set([...Object.keys(b), ...Object.keys(a)])) {
+    if ((b[k] || 0) !== (a[k] || 0)) controlMoves += 1;
+  }
+}
+console.log(`\nNOISE FLOOR — same config twice: harm delta ${noise}, ${controlMoves} criteria moved`);
+console.log('Any arm at or under that is not distinguishable from doing nothing.\n');
 
 const rows = [];
 for (const rule of plan) {
@@ -140,12 +213,16 @@ for (const rule of plan) {
 }
 
 console.log('\n\nABLATION SUMMARY  (harm score: H=3 M=2 L=1, higher is worse)\n');
+const floor = Math.max(noise, 2);
 console.log('  removing this rule ...          delta   reading');
 for (const r of rows.sort((a, b) => b.delta - a.delta)) {
-  const reading = r.delta >= 2 ? 'LOAD-BEARING — keep'
-    : r.delta <= -2 ? 'HARMFUL — the rule is making it worse'
-      : 'no measured effect — deletion candidate';
+  // Read against the CONTROL, never against zero.
+  const reading = Math.abs(r.delta) <= floor
+    ? `under the noise floor (${floor}) — this run says nothing about it`
+    : r.delta > floor ? 'LOAD-BEARING — keep'
+      : 'removing it measured BETTER — re-run before believing it';
   console.log(`  ${r.id.padEnd(16)} ${r.what.slice(0, 30).padEnd(32)} ${String(r.delta).padStart(4)}   ${reading}`);
 }
-console.log(`\n  transcripts: ${OUT}`);
-console.log('  One run per arm is a hint, not a finding — re-run a surprising row before acting on it.\n');
+console.log(`\n  noise floor from the control arm: ${noise} (${controlMoves} criteria moved with NO change at all)`);
+console.log(`  transcripts: ${OUT}`);
+console.log('  A delta under the floor is not a small effect — it is no measurement.\n');
