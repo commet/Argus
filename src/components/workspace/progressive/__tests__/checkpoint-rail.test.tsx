@@ -66,6 +66,14 @@ describe('CheckpointRail — 3밴드 정거장 상태바', () => {
     expect(html).toContain('4/6');
   });
 
+  it('모바일에서는 질문을 밀어내지 않는 한 줄 진행표만 남긴다', () => {
+    expect(html).toContain('sm:hidden');
+    expect(html).toContain('hidden sm:block');
+    expect(html).toContain('hidden flex-wrap');
+    // The compact line shares the rail's accessible 4/6 truth.
+    expect(html).toContain('Progress 4/6');
+  });
+
   it('회항 기능이 없으면 지나온 밴드를 가짜 버튼으로 만들지 않는다', () => {
     const pastBand: RailCheckpoint[] = cps.map((checkpoint) => {
       if (checkpoint.group === '정리') return { ...checkpoint, state: 'done' };

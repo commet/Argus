@@ -102,7 +102,22 @@ export function CheckpointRail({
         </span>
       </div>
 
-      <div className="relative mt-3">
+      {/* On a phone the current question is the main event. The full three-band
+          map and every reached stop remain useful on larger canvases, but on a
+          390px viewport they consumed roughly a quarter of the first screen
+          before the user could even see the question. Keep the same progress
+          truth in a thin line; the persistent "현재 판단 경로" control above
+          owns detailed navigation on small screens. */}
+      <div className="relative mt-2 h-1 overflow-hidden rounded-full bg-[var(--border-subtle)] sm:hidden" aria-hidden>
+        <motion.div
+          className="h-full rounded-full bg-[var(--accent)]"
+          initial={{ width: 0 }}
+          animate={{ width: `${progress}%` }}
+          transition={{ duration: 0.45, ease: EASE }}
+        />
+      </div>
+
+      <div className="relative mt-3 hidden sm:block">
         <div className="absolute left-0 right-0 top-[22px] h-px bg-[var(--border-subtle)]" aria-hidden />
         <motion.div
           className="absolute left-0 top-[22px] h-px bg-[var(--accent)]"
@@ -143,7 +158,7 @@ export function CheckpointRail({
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5" aria-label={L('지나온 단계', 'Reached checkpoints')}>
+      <div className="hidden flex-wrap items-center gap-x-3 gap-y-1.5 sm:flex" aria-label={L('지나온 단계', 'Reached checkpoints')}>
         {reached.map(checkpoint => {
           const done = checkpoint.state === 'done';
           const skipped = checkpoint.state === 'skipped';
