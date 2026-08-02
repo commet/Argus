@@ -119,8 +119,8 @@ export function DeepJudgmentEntry({
   const L = (ko: string, en: string) => locale === 'ko' ? ko : en;
 
   const offer = ownApiKey
-    ? L('전문 검토 2 · 필요할 때 위험 검토 1 · 개인 API', '2 specialist reviews · 1 risk review when needed · own API')
-    : L('전문 검토 2 · 필요할 때 위험 검토 1 · 24시간에 한 번', '2 specialist reviews · 1 risk review when needed · once per 24 hours');
+    ? L('근거·반대 가능성·빠뜨린 위험 확인 · 개인 API', 'Check evidence, counter-cases, and missed risks · own API')
+    : L('근거·반대 가능성·빠뜨린 위험 확인 · 24시간에 한 번', 'Check evidence, counter-cases, and missed risks · once per 24 hours');
 
   return (
     <div className="mb-3 border-y border-[var(--border-subtle)] py-3">
@@ -128,13 +128,13 @@ export function DeepJudgmentEntry({
         <div className="min-w-0">
           <p className="text-[13px] font-semibold text-[var(--text-primary)]">
             {active
-              ? L('심층 검토 사용 중', 'Deep review is on')
+              ? L('추가 검토 중', 'Additional review in progress')
               : recommended
-                ? L('이 결정은 한 번 더 검토해볼 만해요', 'This decision may benefit from another review')
-                : L('검토를 더 붙이고 싶다면', 'If you want another layer of review')}
+                ? L('이 결정은 근거와 반대 가능성을 한 번 더 볼 수 있어요', 'This decision may benefit from checking its evidence and counter-case')
+                : L('근거와 위험을 더 확인하고 싶다면', 'If you want to check the evidence and risks further')}
           </p>
           <p className="mt-0.5 text-[12.5px] text-[var(--text-tertiary)] leading-[1.5]">
-            {active ? L('전문 검토와 필요한 위험 검토를 거쳐 종합합니다.', 'Specialist and needed risk reviews are synthesized.') : offer}
+            {active ? L('근거와 반대 가능성을 나눠 확인한 뒤 한 번에 정리해요.', 'Evidence and counter-cases are checked separately, then brought together.') : offer}
           </p>
           {error && <p className="mt-2 text-[13px] text-[var(--danger)]">{error}</p>}
         </div>
@@ -146,7 +146,7 @@ export function DeepJudgmentEntry({
             className="inline-flex min-h-10 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-[var(--accent)]/30 px-3 text-[12.5px] font-semibold text-[var(--accent)] transition-colors hover:bg-[var(--accent)]/[0.06] disabled:opacity-50"
           >
             {busy ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
-            {L('심층 검토 켜기', 'Turn on deep review')}
+            {L('근거와 위험 더 확인하기', 'Check evidence and risks')}
           </button>
         )}
       </div>
