@@ -65,7 +65,7 @@ function executablePath() {
 }
 
 const ADVANCE = /(다음|계속|진행|시작|봉인|생성|만들|확인|좋아요|네,|적용|저장|완료|정산|기록|next|continue|start|seal|generate|create|confirm|looks good|apply|save|done|settle)/i;
-const AVOID = /(취소|삭제|뒤로|닫기|로그아웃|이전|건너뛰|더보기 메뉴|전체 보기|접기|빠른 이동|open next\.js dev tools|cancel|delete|back|close|logout|previous|skip|sign out)/i;
+const AVOID = /(취소|삭제|뒤로|닫기|로그아웃|이전|건너뛰|더보기 메뉴|전체 보기|접기|빠른 이동|결정 기록|지금까지의 기록|전체 결정 지도|타임라인|open next\.js dev tools|decision log|timeline|full decision map|cancel|delete|back|close|logout|previous|skip|sign out)/i;
 const ERROR_TEXT = /(오류|실패|문제가 발생|다시 시도|something went wrong|error|failed|try again)/i;
 const MILESTONE = /(봉인했|Sealed|봉인 완료|정산|입항|settle|기록을 종결|closed)/i;
 const BUSY_TEXT = /(상황을 읽는 중|찾는 중|답변 반영 중|추가 검토 중|분석 중|기다려 주세요|reading the situation|finding the question|applying your answer|reviewing|analyzing|please wait)/i;
@@ -216,6 +216,9 @@ async function main() {
           const emptyBox = page.locator('textarea:visible, input[type=text]:visible').first();
           if (await emptyBox.count() > 0 && !(await emptyBox.inputValue().catch(() => 'x'))) {
             await emptyBox.fill('네, 이 방향으로 좀 더 구체화해 줘.').catch(() => {});
+            // Let controlled-input state commit so its adjacent submit button
+            // becomes enabled before candidate collection.
+            await page.waitForTimeout(250);
           }
 
           // Choose the most "advance-y" enabled, visible button we can click.
