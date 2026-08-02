@@ -11,6 +11,7 @@ import {
 import { loopPulse } from '@/lib/loop-pulse';
 import { distinctReturnProjects } from '@/lib/return-analytics';
 import { sealCostLine, sealCostSummary } from '@/lib/seal-cost';
+import { loopClosure, loopClosureLine } from '@/lib/loop-closure';
 import { summarizeAnswerReflections } from '@/lib/answer-reflection-analytics';
 import { logServerEvent } from '@/lib/server-events';
 
@@ -365,6 +366,29 @@ export async function GET(req: Request) {
     const fd = s.final_deliverable;
     return phase === 'complete' || (fd && fd.length > 0);
   }).length;
+
+  // ─── Did the loop close? ───
+  // Not an event count. Seals and returns belong to different cohorts days or
+  // weeks apart, so no ratio between them means anything; the question is
+  // per-decision and lives on the contract. Owner rows are dropped for the same
+  // reason they are everywhere else in this report — dogfooding is not demand.
+  const { data: contractRows, error: contractError } = await supabase
+    .from('projects')
+    .select('user_id, decision_contract')
+    .not('decision_contract', 'is', null)
+    .limit(5000);
+  if (contractError) {
+    throw new Error(`loop closure query failed: ${contractError.message}`);
+  }
+  const closure = loopClosure(
+    (contractRows || [])
+      .filter(r => !ownerIds.has(r.user_id))
+      .map(r => {
+        const c = r.decision_contract as { check_in_at?: string; settled_at?: string } | null;
+        return { check_in_at: c?.check_in_at ?? null, settled_at: c?.settled_at ?? null };
+      }),
+    Date.now(),
+  );
 
   // Daily persistence truth comes from the product tables, not from browser
   // events. This exposes the exact "project exists, voyage backup does not"
@@ -788,7 +812,12 @@ export async function GET(req: Request) {
   <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background: ${C.primaryLight}; border: 1px solid #bfdbfe; border-radius: 14px; margin-bottom: 16px;">
     <tr><td style="padding: 20px;">
       <p style="font-size: 10px; font-weight: 800; color: ${C.primary}; margin: 0 0 4px; letter-spacing: 0.12em; text-transform: uppercase;">판단 귀환 · 어제</p>
-      <p style="font-size: 12px; color: ${C.muted}; margin: 0 0 16px;">예전에 남긴 판단을 다시 열어 현실과 대조한 프로젝트입니다.</p>
+      <p style="font-size: 12px; color: ${C.muted}; margin: 0 0 12px;">예전에 남긴 판단을 다시 열어 현실과 대조한 프로젝트입니다.</p>
+      <!-- Loop closure — per-decision and cumulative, not an event count.
+           Everything else in this block is "yesterday"; this is the only line
+           that says whether a sealed decision ever gets answered at all. -->
+      <p style="font-size: 12px; color: ${C.text}; font-weight: 700; margin: 0 0 4px;">고리가 닫혔나 · 누적</p>
+      <p style="font-size: 12px; color: ${C.muted}; margin: 0 0 16px;">${escHtml(loopClosureLine(closure))}</p>
       <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background: ${C.card}; border: 1px solid #bfdbfe; border-radius: 10px; margin-bottom: 16px;">
         <tr>
           <td style="padding: 11px 12px; font-size: 11px; color: ${C.text}; font-weight: 700;">이메일</td>
@@ -1123,6 +1152,13 @@ export async function GET(req: Request) {
       returns_answered_yesterday: returnsAnsweredY.size,
       returns_deferred_yesterday: returnsDeferredY.size,
       return_completion_rate_yesterday: returnCompletionRateY,
+      // Cumulative and per-decision. `loop_closure_rate` is null when nothing
+      // has come due — a rate that was never measured must not read as zero.
+      loop_closure_due: closure.due,
+      loop_closure_settled: closure.settled,
+      loop_closure_rate: closure.rate,
+      loop_closure_still_open: closure.stillOpen,
+      loop_closure_undateable: closure.undateable,
       email_reminders_sent_yesterday: emailRemindersSentY.size,
       email_returns_yesterday: emailReturnsY,
       telegram_reminders_sent_yesterday: telegramRemindersSentY.size,
