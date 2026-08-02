@@ -203,6 +203,32 @@ export function SealMoment({
     return [...fromPredicates, ...droppedPremiseTexts];
   }
 
+  /**
+   * What this seal cost the person, in turns and minutes.
+   *
+   * The report has always counted seals and never counted their price, and only
+   * the price says whether the entrance to the loop sits too far from the door.
+   * Counts of the user's own activity, never a reading of the user: "the median
+   * seal costs N answers" is a fact about the product, and nothing here is
+   * allowed to become a fact about them.
+   *
+   * Returns an empty object rather than zeros when the session cannot be found —
+   * a zero would make the flow look free, which is the exact thing being
+   * measured.
+   */
+  function sealCost(): { answers?: number; minutes?: number } {
+    const voyage = currentVoyage();
+    if (!voyage || voyage.project_id !== project.id) return {};
+    const startedAt = Date.parse(voyage.created_at || '');
+    const cost: { answers?: number; minutes?: number } = {
+      answers: (voyage.answers || []).length,
+    };
+    if (Number.isFinite(startedAt)) {
+      cost.minutes = Math.max(0, Math.round((Date.now() - startedAt) / 60000));
+    }
+    return cost;
+  }
+
   /** §3.4 — the decision's premises become tracked items at seal (auto, not a
    *  manual import). Idempotent. premise 는 기본 종 켬(서랍의 보이는 스위치가
    *  정본), open_question 은 종 대상 아님. */
@@ -559,7 +585,7 @@ export function SealMoment({
     if (firstSeal) {
       recordSignal({ project_id: project.id, tool: 'voyage', signal_type: 'seal_accepted', signal_data: { interval: iv, predicates: finalized.predicates.length, kind: selectedKind } });
       // Also in the main funnel (user_events) — this is the activation north-star.
-      track('decision_sealed', { interval: iv, predicates: finalized.predicates.length, augmented: !!existing, mode: decision.mode, kind: selectedKind });
+      track('decision_sealed', { interval: iv, predicates: finalized.predicates.length, augmented: !!existing, mode: decision.mode, kind: selectedKind, ...sealCost() });
       // Retro→real conversion signal (항목10): only if a retro loop was settled first.
       fireFirstRealSealAfterRetro();
     }
@@ -686,7 +712,7 @@ export function SealMoment({
     setInterval(iv);
     setScene(reducedMotion ? 'sealed' : 'sealing');
     recordSignal({ project_id: project.id, tool: 'voyage', signal_type: 'seal_accepted', signal_data: { interval: iv, predicates: finalized.predicates.length, mode: 'manual_recovery', kind: selectedKind } });
-    track('decision_sealed', { interval: iv, predicates: finalized.predicates.length, mode: 'manual_recovery', kind: selectedKind });
+    track('decision_sealed', { interval: iv, predicates: finalized.predicates.length, mode: 'manual_recovery', kind: selectedKind, ...sealCost() });
     // Retro→real conversion signal (항목10): only if a retro loop was settled first.
     fireFirstRealSealAfterRetro();
   }

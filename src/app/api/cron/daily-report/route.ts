@@ -10,6 +10,7 @@ import {
 } from '@/lib/analytics-reporting';
 import { loopPulse } from '@/lib/loop-pulse';
 import { distinctReturnProjects } from '@/lib/return-analytics';
+import { sealCostLine, sealCostSummary } from '@/lib/seal-cost';
 import { logServerEvent } from '@/lib/server-events';
 
 export const runtime = 'nodejs';
@@ -623,6 +624,19 @@ export async function GET(req: Request) {
     { label: 'Reframe/Recast', keys: ['reframe_complete', 'recast_complete'] },
     { label: '초안 생성', keys: ['progressive_draft_added'] },
     { label: '완주', keys: ['flow_done', 'progressive_draft_promoted', 'loop_converged'] },
+    // The funnel used to stop one step short of the product. Everything Argus
+    // has that a chat window does not — a dated sentence, settlement, the
+    // return, the record of how this person's judgment actually performed — is
+    // stored behind the seal, and the conversion INTO it was the one rate the
+    // daily report never showed. The seal count existed, but per user and on a
+    // different denominator, so "of the people who finished the flow, how many
+    // sealed" could not be read off anything.
+    //
+    // Session-scoped like every stage above it, which means a seal that happens
+    // days later in a fresh session is not counted here. That undercount is the
+    // honest reading of a one-sitting funnel; the user-scoped total is still
+    // reported separately as 결정 확정.
+    { label: '봉인', keys: ['decision_sealed'] },
   ];
   const funnelCounts = funnelStages.map(stage => {
     const sid = new Set(extY
@@ -631,6 +645,9 @@ export async function GET(req: Request) {
     return { label: stage.label, sessions: sid.size };
   });
   const funnelTop = funnelCounts[0].sessions || 1;
+  // What the last stage COST. A conversion rate into the seal says how many
+  // got there; this says how far away it was.
+  const sealCost = sealCostSummary(extY, humanSessionIds);
 
   // ─── 10. Errors ───
   const errorBreakdown = new Map<string, number>();
@@ -956,6 +973,7 @@ export async function GET(req: Request) {
         }).join('')}
       </table>
       <p style="font-size: 10px; color: ${C.faint}; margin: 10px 0 0;">바 길이는 세션 시작 대비 %, 우측은 직전 단계에서의 이탈률 (빨강: 50% 이상 이탈)</p>
+      <p style="font-size: 11px; color: ${C.muted}; margin: 8px 0 0; font-weight: 600;">${escHtml(sealCostLine(sealCost))}</p>
     </td></tr>
   </table>
 
