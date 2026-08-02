@@ -7,6 +7,7 @@ import type { AnalysisSnapshot, PremiseRecord } from '@/stores/types';
 import { kindLabel, policyFor, premiseListHeading } from '@/lib/decisive-premises';
 import { EASE } from './constants';
 import { diffItems, diffPremiseRows, type PremiseDiffItem } from './diffItems';
+import { analysisDelta } from './analysisDelta';
 import type { ReactNode } from 'react';
 
 /**
@@ -141,6 +142,7 @@ export function AnalysisCard({
 }: AnalysisCardProps) {
   const L = (ko: string, en: string) => locale === 'ko' ? ko : en;
   const hasChanges = !!prevSnapshot && snapshot.version > (prevSnapshot.version ?? 0);
+  const delta = analysisDelta(prevSnapshot, snapshot);
   const [collapsed, setCollapsed] = useState(defaultCollapsed);
   // Expanded card defaults to a SCANNABLE summary — key insight + step
   // headlines only. The full per-step explanations, the assumptions block,
@@ -338,7 +340,9 @@ export function AnalysisCard({
                   <div className="border-t border-[var(--border-subtle)] pt-4">
                     <div className="text-[12px] font-bold text-[var(--accent)] uppercase tracking-[0.15em] mb-1.5">
                       {hasChanges
-                        ? L('방금 달라진 것', 'What just changed')
+                        ? delta.materialChange
+                          ? L('방금 달라진 것', 'What just changed')
+                          : L('답을 반영해도 유지된 것', 'What held after your answer')
                         : L('지금 보이는 것', 'What is visible now')}
                     </div>
                     <p className="text-[15px] md:text-[16px] text-[var(--text-primary)] leading-[1.6] font-semibold">
