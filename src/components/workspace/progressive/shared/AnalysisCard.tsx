@@ -54,6 +54,27 @@ function KindChip({ kind, locale }: { kind: string | undefined; locale: 'ko' | '
   );
 }
 
+function DeltaLine({ delta, locale }: {
+  delta: ReturnType<typeof analysisDelta>;
+  locale: 'ko' | 'en';
+}) {
+  const L = (ko: string, en: string) => locale === 'ko' ? ko : en;
+  const parts = [
+    delta.questionChanged ? L('핵심 질문 조정', 'question adjusted') : '',
+    delta.decisionChanged ? L('판단문 조정', 'judgment adjusted') : '',
+    delta.planChanged ? L('계획 조정', 'plan adjusted') : '',
+    delta.premisesAdded > 0 ? L(`전제 +${delta.premisesAdded}`, `premises +${delta.premisesAdded}`) : '',
+    delta.premisesRemoved > 0 ? L(`전제 −${delta.premisesRemoved}`, `premises −${delta.premisesRemoved}`) : '',
+  ].filter(Boolean);
+  return (
+    <p className="text-[11.5px] leading-5 text-[var(--text-tertiary)]" aria-live="polite">
+      {parts.length > 0
+        ? parts.join(' · ')
+        : L('핵심 질문·전제·계획 유지', 'Question, premises, and plan held')}
+    </p>
+  );
+}
+
 // ─── Inline formatting helpers ───
 
 /** Parse **bold** syntax in text */
@@ -256,6 +277,7 @@ export function AnalysisCard({
               </span>
             )}
           </div>
+          {hasChanges && <div className="mt-1.5"><DeltaLine delta={delta} locale={locale} /></div>}
         </div>
       </motion.button>
     );
@@ -299,6 +321,7 @@ export function AnalysisCard({
                 <p className="mt-1 text-[12.5px] text-[var(--text-tertiary)] tabular-nums">
                   {refinementStatus}
                 </p>
+                {hasChanges && <div className="mt-0.5"><DeltaLine delta={delta} locale={locale} /></div>}
               </div>
               {defaultCollapsed && (
                 <button

@@ -58,6 +58,31 @@ describe('AnalysisCard 접힌 항로 — 결론, 이유, 근거가 한 흐름', 
     expect(html).toContain('근거 보기');
   });
 
+  it('답변 뒤 무엇이 움직였는지 모델 문단을 해석하지 않아도 보인다', () => {
+    const previous = {
+      ...snapshot,
+      version: 1,
+      real_question: '지금 이직해야 할까?',
+      hidden_assumptions: ['현 회사에서 더 성장하기 어렵다'],
+    } as AnalysisSnapshot;
+    const html = renderToStaticMarkup(
+      <AnalysisCard snapshot={snapshot} prevSnapshot={previous} defaultCollapsed locale="ko" />,
+    );
+    expect(html).toContain('핵심 질문 조정');
+    expect(html).toContain('전제 +2');
+    expect(html).toContain('전제 −1');
+  });
+
+  it('유지된 답도 반영되지 않은 것처럼 숨기지 않는다', () => {
+    const previous = { ...snapshot, version: 1 } as AnalysisSnapshot;
+    const current = { ...snapshot, version: 2 } as AnalysisSnapshot;
+    const html = renderToStaticMarkup(
+      <AnalysisCard snapshot={current} prevSnapshot={previous} defaultCollapsed locale="ko" />,
+    );
+    expect(html).toContain('핵심 질문·전제·계획 유지');
+    expect(html).not.toContain('전제 +');
+  });
+
   it('초안 이후에는 더 조정 중인 것처럼 말하지 않는다', () => {
     const html = renderToStaticMarkup(
       <AnalysisCard
