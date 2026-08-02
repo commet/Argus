@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { isQuestionShaped } from '../lib/premise-shape.js';
-import { statesAClaim } from '../lib/premise-claim.js';
+import { attributesStanceToUser, hasExplicitSupportSignal, statesAClaim } from '../lib/premise-claim.js';
 import { resolveToolArgusDir } from '../lib/argus-dir.js';
 import { replayLedger } from '../lib/ledger-replay.js';
 import { resolveToday, logicalNow } from '../lib/resolve-today.js';
@@ -390,9 +390,41 @@ async function opAdd(
   // the re-check queue. The downgrade is visible in the echo and named in
   // next_actions, following the same idiom as the user_stated → ai_surfaced
   // downgrade one layer up: never reject the material, never mislabel it.
+  //
+  // The claim band's SECOND rule was never wired here, and it is the sharper of
+  // the two. `attributesStanceToUser` asks whether a sentence claims something
+  // about the user's inner weighting — what matters to them, what they believe,
+  // what weighs on them. On the web such a sentence is a STANDARD whatever the
+  // model labelled it, and a standard is REFUSED unless the quote carries the
+  // user's own weighing words, because relabelling it would launder it.
+  //
+  // In a terminal none of that ran. An agent could record "연봉보다 팀이 더
+  // 중요하다" as a load-bearing premise with source=user_stated and a quote that
+  // said nothing of the sort — and here it is worse than on the web, because a
+  // load-bearing external premise is MONITORED. Argus would come back weeks
+  // later and ask the user to re-check a belief they had never expressed, in
+  // their own voice, on their own record.
+  //
+  // Downgraded, never refused — this file's idiom. The sentence stays; it stops
+  // being load-bearing, stops being monitored, and stops claiming they said it.
+  // The provenance step mirrors the user_stated → ai_surfaced downgrade in
+  // public-tools: an inference wrongly stamped "the user said this" is the one
+  // error the whole design exists to prevent.
   const restated = new Set<string>();
+  const unconfirmedStance = new Set<string>();
   const scored = fresh.map((p) => {
     const quote = typeof p.anchor_quote === 'string' ? p.anchor_quote : '';
+    if (p.kind === 'premise' && attributesStanceToUser(p.text) && !hasExplicitSupportSignal(quote)) {
+      unconfirmedStance.add(p.text);
+      return {
+        ...p,
+        load_bearing: false,
+        monitoring_enabled: false,
+        ...(p.source === 'user_stated'
+          ? { source: 'ai_surfaced' as const, ai_original: p.ai_original?.trim() || p.text }
+          : {}),
+      };
+    }
     if (!quote || p.kind !== 'premise' || statesAClaim(p.text, quote)) return p;
     restated.add(p.text);
     return { ...p, load_bearing: false, monitoring_enabled: false };
@@ -450,6 +482,7 @@ async function opAdd(
     // these". `data` is what the model reads; `surface` is the human's line and
     // a person does not need to hear about the taxonomy.
     ...(e.text && restated.has(e.text) ? { recorded_as: 'context' as const } : {}),
+    ...(e.text && unconfirmedStance.has(e.text) ? { recorded_as: 'unconfirmed_stance' as const } : {}),
     monitored: e.kind === 'premise' && e.external === true && e.load_bearing === true && e.monitoring_enabled !== false,
   }));
   const monitoredCount = echo.filter((p) => p.monitored).length;
@@ -511,6 +544,13 @@ async function opAdd(
     data: {
       id,
       premises: echo,
+      ...(unconfirmedStance.size > 0 ? {
+        stance_note: 'One or more premises state what matters to the user, or what they '
+          + 'believe, without their own weighing words in the quote. Those are recorded as '
+          + 'unconfirmed: kept, not marked load-bearing, not monitored, and not attributed to '
+          + 'them. Ask them whether it is true rather than asserting it, then add it again '
+          + 'with what they say.',
+      } : {}),
       ...(restated.size > 0 ? {
         context_note: 'One or more premises only repeat the quote they rest on, so they are '
           + 'recorded as context: kept on the record, not marked load-bearing, not queued for '
