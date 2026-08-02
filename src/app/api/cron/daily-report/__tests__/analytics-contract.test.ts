@@ -66,6 +66,20 @@ describe('daily analytics contract', () => {
     expect(route).toContain('humanSessionIds.has(e.session_id)');
   });
 
+  it('reports the current judgment-value funnel, not retired workflow steps', () => {
+    const route = source('src/app/api/cron/daily-report/route.ts');
+    for (const event of [
+      'workspace_problem_submit',
+      'bind_resolved',
+      'flow_answer',
+      'answer_reflected',
+      'decision_sealed',
+    ]) expect(route).toContain(`'${event}'`);
+    expect(route).toContain('첫 가치 깔때기');
+    expect(route).not.toContain("{ label: 'Reframe/Recast'");
+    expect(route).not.toContain("{ label: '초안 생성'");
+  });
+
   it('renders the anonymous-visit detail section in the email', () => {
     const route = source('src/app/api/cron/daily-report/route.ts');
     expect(route).toContain('익명 방문 상세');

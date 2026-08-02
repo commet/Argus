@@ -616,27 +616,20 @@ export async function GET(req: Request) {
   const topUser = topRanked ? userById.get(topRanked.uid) : null;
   const topUserActivity = topRanked;
 
-  // ─── 9. Funnel ───
+  // ─── 9. Product-value funnel ───
+  // This must describe the product people use NOW. Reframe/Recast and draft
+  // generation were implementation milestones from the old workflow; counting
+  // them made a healthy report possible even when nobody experienced Argus's
+  // actual contract: own view → useful question → visible change → own record.
   const funnelStages = [
-    { label: '세션 시작', keys: ['session_start', 'page_view'] },
-    { label: '랜딩 CTA', keys: ['landing_hero_submit', 'landing_cta_click'] },
-    { label: 'Workspace 진입', keys: ['workspace_enter', 'workspace_problem_submit'] },
-    { label: 'Reframe/Recast', keys: ['reframe_complete', 'recast_complete'] },
-    { label: '초안 생성', keys: ['progressive_draft_added'] },
-    { label: '완주', keys: ['flow_done', 'progressive_draft_promoted', 'loop_converged'] },
-    // The funnel used to stop one step short of the product. Everything Argus
-    // has that a chat window does not — a dated sentence, settlement, the
-    // return, the record of how this person's judgment actually performed — is
-    // stored behind the seal, and the conversion INTO it was the one rate the
-    // daily report never showed. The seal count existed, but per user and on a
-    // different denominator, so "of the people who finished the flow, how many
-    // sealed" could not be read off anything.
-    //
-    // Session-scoped like every stage above it, which means a seal that happens
-    // days later in a fresh session is not counted here. That undercount is the
-    // honest reading of a one-sitting funnel; the user-scoped total is still
-    // reported separately as 결정 확정.
-    { label: '봉인', keys: ['decision_sealed'] },
+    { label: '상황 제출', keys: ['workspace_problem_submit'] },
+    // bind_resolved includes both a captured baseline and an explicit skip;
+    // the contract permits either, and the committed property separates them
+    // when we need the finer cut. A silent missing baseline is not counted.
+    { label: '검토 전 생각 확인', keys: ['bind_resolved'] },
+    { label: '질문에 답함', keys: ['flow_answer', 'light_question_answered'] },
+    { label: '변화까지 받음', keys: ['answer_reflected', 'light_seal_offered'] },
+    { label: '판단 기록', keys: ['decision_sealed', 'light_seal_accepted'] },
   ];
   const funnelCounts = funnelStages.map(stage => {
     const sid = new Set(extY
@@ -948,10 +941,11 @@ export async function GET(req: Request) {
     </td></tr>
   </table>` : ''}
 
-  <!-- ════════ FUNNEL (visual bars) ════════ -->
+  <!-- ════════ PRODUCT-VALUE FUNNEL (visual bars) ════════ -->
   <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background: ${C.card}; border: 1px solid ${C.border}; border-radius: 14px; margin-bottom: 16px;">
     <tr><td style="padding: 20px;">
-      <p style="font-size: 10px; font-weight: 700; color: ${C.faint}; margin: 0 0 14px; letter-spacing: 0.12em; text-transform: uppercase;">깔때기 · 어제 세션 기준</p>
+      <p style="font-size: 10px; font-weight: 700; color: ${C.faint}; margin: 0 0 4px; letter-spacing: 0.12em; text-transform: uppercase;">첫 가치 깔때기 · 어제 세션 기준</p>
+      <p style="font-size: 11px; color: ${C.muted}; margin: 0 0 14px;">상황을 낸 뒤, 자기 생각과 질문을 거쳐 실제 판단 기록까지 간 사람</p>
       <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="font-size: 12px;">
         ${funnelCounts.map((f, i) => {
           const pct = Math.round((f.sessions / funnelTop) * 100);
@@ -972,8 +966,8 @@ export async function GET(req: Request) {
           </tr>`;
         }).join('')}
       </table>
-      <p style="font-size: 10px; color: ${C.faint}; margin: 10px 0 0;">바 길이는 세션 시작 대비 %, 우측은 직전 단계에서의 이탈률 (빨강: 50% 이상 이탈)</p>
-      <p style="font-size: 11px; color: ${C.muted}; margin: 8px 0 0; font-weight: 600;">${escHtml(sealCostLine(sealCost))}</p>
+      <p style="font-size: 10px; color: ${C.faint}; margin: 10px 0 0;">바 길이는 상황 제출 대비 %, 우측은 직전 단계에서의 이탈률 (빨강: 50% 이상 이탈) · 가벼운 길과 깊은 길의 동등한 순간을 함께 셈</p>
+      <p style="font-size: 11px; color: ${C.muted}; margin: 8px 0 0; font-weight: 600;">깊은 길 · ${escHtml(sealCostLine(sealCost))}</p>
     </td></tr>
   </table>
 
