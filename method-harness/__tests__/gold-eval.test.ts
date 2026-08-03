@@ -93,7 +93,7 @@ describe('gold-case adversarial battery', () => {
   });
 
   it('decision-opening cases: the fire-gate does fire (restraint, not paralysis)', () => {
-    const opening = GOLD_CASES.filter((c) => c.axis.route === 'decision' && c.axis.bottleneck !== 'none_flat' && /고민|할까|결정/.test(c.utterance));
+    const opening = GOLD_CASES.filter((c) => c.axis.route === 'decision' && c.axis.bottleneck !== 'none_flat' && /고민|할까|결정|정해야/.test(c.utterance));
     expect(opening.length).toBeGreaterThanOrEqual(3);
     resetEventIds();
     const l = new Ledger();

@@ -24,12 +24,18 @@ export type FireDecision =
   | { fire: false; reason: 'flat_context' | 'no_open_decision' | 'closed_decision' };
 
 // Signals that the user is actually opening a decision, not just working.
-const DECISION_ASK_PATTERNS = [/할까\s*말까/, /해야\s*할까/, /고민/, /결정/, /어떻게\s*하지/, /선택/, /갈림길/, /should\s+(i|we)\b/i, /deciding\s+(between|whether)/i, /torn\s+between/i];
+// The gold-eval battery caught the first version missing "~할까 해" (the
+// thinking-of-doing opener, gc03) — widened, with an explicit flatness
+// suppressor so gc02-style "딱히 상관없어" still gets restraint. Flatness
+// beats opening: a stated don't-care is the user answering the fire-gate.
+const DECISION_ASK_PATTERNS = [/할까\s*말까/, /해야\s*할까/, /[할일]까(\s*해|\s*하는|\s*싶|요)?[.\s]|[할일]까$/, /고민/, /결정/, /정해야/, /[을를지]\s*정할/, /어떻게\s*하지/, /선택/, /갈림길/, /should\s+(i|we)\b/i, /deciding\s+(between|whether)/i, /torn\s+between/i];
+const FLATNESS_PATTERNS = [/상관없/, /딱히/, /아무래도\s*좋/, /either\s+way/i, /doesn.t\s+really\s+matter/i];
 const CLOSED_PATTERNS = [/이미\s*(결정|정)했/, /끝난\s*일/, /already\s+decided/i, /signed/i];
 
 export function fireGate(ledger: Ledger, ctx: McpContext): FireDecision {
   if (ctx.userInvokedArgus) return { fire: true, reason: 'user_invoked' };
   if (CLOSED_PATTERNS.some((p) => p.test(ctx.hostUtterance))) return { fire: false, reason: 'closed_decision' };
+  if (FLATNESS_PATTERNS.some((p) => p.test(ctx.hostUtterance))) return { fire: false, reason: 'flat_context' };
   if (ctx.caseId) {
     const state = foldCase(ledger, ctx.caseId);
     if (state.state !== 'REVIEWED' && state.state !== 'STOPPED') {
