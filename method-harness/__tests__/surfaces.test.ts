@@ -187,3 +187,29 @@ describe('three-surface parity (§11.3) — one meaning everywhere', () => {
     expect(webCore).toEqual(mcpCore);
   });
 });
+
+describe('recommendation provenance (improvement pass)', () => {
+  it('a delivered recommendation leaves an ai_proposal trace even without a card candidate', () => {
+    const e = engineWithAdoptedCard();
+    const turn: ArgusTurn = {
+      phase: 'improve',
+      route: 'decision',
+      caseFit: 'in_scope',
+      primaryMove: { type: 'recommendation', content: '제한 실행을 권합니다', whyNow: 'readiness 충족' },
+      claims: [{ text: '빨리 반응을 보고 싶어', source: 'user', authority: 'said', citation: 'utt_000001' }],
+      recommendation: {
+        readiness: 'ready',
+        kind: 'directional',
+        initiative: 'pushed',
+        proposal: '핵심 범위 제한 실행',
+        rationale: '빨리 반응을 보고 싶다는 기준 아래',
+        valueClaimRefs: ['utt_000001'],
+        changeCondition: '대상이 대표성이 없으면 바뀜',
+      },
+    };
+    const result = e.receiveTurn(turn, T(5));
+    expect(result.ok).toBe(true);
+    const traces = e.ledger.forCase('c1').filter((ev) => ev.type === 'ai_proposal' && ev.description.startsWith('recommendation:'));
+    expect(traces).toHaveLength(1); // H2's comparison anchor exists even if never adopted
+  });
+});

@@ -91,6 +91,20 @@ export class SessionEngine {
         draft: result.turn.decisionRecordCandidate,
       });
     }
+    // Recommendations leave a provenance trace even without a card candidate —
+    // otherwise a delivered recommendation the user never adopted would vanish
+    // from the ledger, and the recall probe would have nothing to compare
+    // against when a user remembers an AI suggestion as their own (H2).
+    if (result.ok && result.turn.recommendation) {
+      this.ledger.append({
+        id: nextEventId('prp'),
+        caseId: this.caseId,
+        at: now,
+        type: 'ai_proposal',
+        description: `recommendation:${result.turn.recommendation.kind}: ${result.turn.recommendation.proposal.slice(0, 120)}`,
+        payloadKind: 'move',
+      });
+    }
     return result;
   }
 
