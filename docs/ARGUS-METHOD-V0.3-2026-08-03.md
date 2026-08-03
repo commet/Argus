@@ -5,6 +5,7 @@
 Date: 2026-08-03
 Status: **SUPERSEDED by `ARGUS-METHOD-V0.4-2026-08-03.md` — 열람용 이력 문서. 정본 아님**
 Supersedes: `ARGUS-METHOD-V0.1`, `ARGUS-METHOD-V0.2`
+Design history: `docs/ARGUS-METHOD-CONTEXT-2026-08-04.md`
 Scope: method, AI operating contract, product boundary, evidence gate, web/MCP/plugin semantics
 
 ---
