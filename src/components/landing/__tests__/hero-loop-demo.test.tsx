@@ -5,11 +5,13 @@
  * fixture data must keep the consumption contract the component depends on.
  *
  * Pinned here:
- *   - fixture contract: 3 examples per locale (job/hire/home), every question
- *     option has its own refined snapshot, seal example present;
- *   - the honest provenance label is ALWAYS visible;
+ *   - fixture contract: ko carries job/hire/home, en carries job/home (the
+ *     English 'hire' problem is withheld while the harness answers it in
+ *     Korean), every sample reply has its own refined snapshot, seal present;
+ *   - the honest provenance label is ALWAYS visible, and the example replies
+ *     are labeled as ours rather than presented as product-offered options;
  *   - beat flow: problem → analysis card (real question) + question card →
- *     option click swaps in that option's refined analysis → seal + return
+ *     sample-reply tap swaps in that reply's refined analysis → seal + return
  *     beats land on timers → CTA hands control back (onStartOwn).
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
@@ -35,23 +37,41 @@ vi.mock('framer-motion', () => ({
 import { HeroLoopDemo } from '../HeroLoopDemo';
 
 describe('hero demo fixtures — consumption contract', () => {
-  it('has 3 examples per locale, refined snapshots for every option, and a seal line', () => {
+  const EXPECTED_IDS = { ko: ['hire', 'home', 'job'], en: ['home', 'job'] } as const;
+
+  it('carries the expected examples per locale, with a refined snapshot behind every sample reply', () => {
     for (const locale of ['ko', 'en'] as const) {
       const examples = HERO_DEMO_EXAMPLES[locale];
-      expect(examples.map((e) => e.id).sort()).toEqual(['hire', 'home', 'job']);
+      expect(examples.map((e) => e.id).sort()).toEqual([...EXPECTED_IDS[locale]]);
       for (const ex of examples) {
         expect(ex.problem.length).toBeGreaterThan(10);
         expect(ex.initial.real_question.length).toBeGreaterThan(5);
-        expect(ex.initial.next_question.options.length).toBeGreaterThanOrEqual(2);
+        expect(ex.initial.next_question.text.length).toBeGreaterThan(5);
+        expect(ex.sampleAnswers.length).toBeGreaterThanOrEqual(2);
         expect(ex.sealExample.length).toBeGreaterThan(10);
         expect(ex.initial.skeleton.length).toBeLessThanOrEqual(5);
-        for (const opt of ex.initial.next_question.options) {
-          const refined = ex.refined[opt];
-          expect(refined, `${locale}/${ex.id} option "${opt}" has no refined snapshot`).toBeTruthy();
+        for (const reply of ex.sampleAnswers) {
+          const refined = ex.refined[reply];
+          expect(refined, `${locale}/${ex.id} reply "${reply}" has no refined snapshot`).toBeTruthy();
           expect(refined.real_question.length).toBeGreaterThan(5);
           expect(refined.insight.length).toBeGreaterThan(5);
         }
       }
+    }
+  });
+
+  it('keeps the English set free of the Korean locale leak that withheld en/hire', () => {
+    const hangul = /[가-힣]/;
+    for (const ex of HERO_DEMO_EXAMPLES.en) {
+      const productText = [
+        ex.initial.real_question,
+        ex.initial.insight ?? '',
+        ex.initial.next_question.text,
+        ...ex.initial.hidden_assumptions,
+        ...ex.initial.skeleton,
+        ...Object.values(ex.refined).flatMap((r) => [r.real_question, r.insight, ...r.skeleton]),
+      ].join(' ');
+      expect(hangul.test(productText), `en/${ex.id} contains Korean product copy`).toBe(false);
     }
   });
 });
@@ -99,14 +119,17 @@ describe('HeroLoopDemo render', () => {
     expect(host.textContent).toContain(ex.initial.real_question);
     expect(host.textContent).toContain(ex.initial.next_question.text);
 
-    // Click the first option → that option's OWN refined snapshot renders.
-    const opt = ex.initial.next_question.options[0];
-    const btn = Array.from(host.querySelectorAll('button')).find((b) => b.textContent?.includes(opt))!;
+    // The replies are framed as ours, not as choices the product offered.
+    expect(host.textContent).toContain('예시 답변을 눌러보세요');
+
+    // Tap the first sample reply → that reply's OWN refined snapshot renders.
+    const reply = ex.sampleAnswers[0];
+    const btn = Array.from(host.querySelectorAll('button')).find((b) => b.textContent?.includes(reply))!;
     expect(btn).toBeTruthy();
     act(() => { btn.click(); });
-    // QuestionCard defers onAnswer by 300ms; seal at +2600ms, return at +4600ms.
+    // seal at +2600ms, return at +4600ms.
     act(() => { vi.advanceTimersByTime(5000); });
-    expect(host.textContent).toContain(ex.refined[opt].real_question);
+    expect(host.textContent).toContain(ex.refined[reply].real_question);
     expect(host.textContent).toContain(ex.sealExample);
     expect(host.textContent).toContain('그래서, 어떻게 됐어요?');
 

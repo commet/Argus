@@ -34,10 +34,14 @@ const HeroLoopDemo = dynamic(
 
 // Chip labels are tiny and hardcoded here on purpose: importing the demo data
 // module for labels would pull every fixture into the first paint.
-const DEMO_CHIPS: Array<{ id: string; ko: string; en: string }> = [
-  { id: 'job', ko: '받은 이직 제안', en: 'A job offer' },
-  { id: 'hire', ko: '첫 직원 채용', en: 'A first hire' },
-  { id: 'home', ko: '전세냐 매수냐', en: 'Rent or buy' },
+//
+// `locales` must match the ids present in HERO_DEMO_EXAMPLES for that locale —
+// a chip with no fixture opens an empty panel. 'hire' is ko-only until the
+// harness stops answering that English problem in Korean (see hero-demo-data).
+const DEMO_CHIPS: Array<{ id: string; ko: string; en: string; locales: Array<'ko' | 'en'> }> = [
+  { id: 'job', ko: '받은 이직 제안', en: 'A job offer', locales: ['ko', 'en'] },
+  { id: 'hire', ko: '첫 직원 채용', en: 'A first hire', locales: ['ko'] },
+  { id: 'home', ko: '전세냐 매수냐', en: 'Rent or buy', locales: ['ko', 'en'] },
 ];
 
 export function SirenHero() {
@@ -214,7 +218,7 @@ export function SirenHero() {
               <Play size={12} aria-hidden style={{ color: 'var(--bp-gold-deep)' }} />
               {L('쓰기 전에 30초 구경', 'Watch a 30s example first')}
             </span>
-            {DEMO_CHIPS.map((c) => (
+            {DEMO_CHIPS.filter((c) => c.locales.includes(ko ? 'ko' : 'en')).map((c) => (
               <button
                 key={c.id}
                 type="button"

@@ -15,9 +15,11 @@
  *   pretended. The panel is labeled "미리 준비된 예시" at all times.
  * - Rendering reuses the real workspace cards (AnalysisCard / QuestionCard),
  *   so the demo cannot drift from the product's actual first screen.
- * - Each answer option maps to its own real refined snapshot (generated per
- *   option) — a click leads to that choice's actual continuation, not a canned
- *   one-size continuation.
+ * - The v2 harness asks a SHORT question and offers no options, so the question
+ *   card renders exactly that. The example replies underneath are OURS, marked
+ *   as examples, and each maps to its own real refined snapshot generated from
+ *   that reply — a tap leads to that answer's actual continuation, never a
+ *   canned one-size one.
  * - The seal beat shows an example closing line clearly marked as an example;
  *   the return beat states only what the product actually does (comes back on
  *   the check date with the record).
@@ -122,10 +124,11 @@ export function HeroLoopDemo({
   }, [beat]);
 
   const handleAnswer = (value: string) => {
-    // Free text is disabled in the demo; value is always one of the options.
+    // Value is always one of the authored sample replies — the demo has no free
+    // text, because only these replies have a real generated continuation.
     setAnswer(value);
     setBeat('refined');
-    track('landing_demo_answer', { example: ex.id, option_index: ex.initial.next_question.options.indexOf(value) });
+    track('landing_demo_answer', { example: ex.id, option_index: ex.sampleAnswers.indexOf(value) });
     later(() => setBeat('seal'), 2600);
     later(() => {
       setBeat('return');
@@ -198,16 +201,51 @@ export function HeroLoopDemo({
               <AnalysisCard snapshot={v1} prevSnapshot={v0} isActive={false} locale={locale} answerCount={1} />
             )}
 
-            {/* Beat 2b — the real question card */}
+            {/* Beat 2b — the real question card.
+                v2 asks a SHORT question and offers no options, so the card is
+                rendered exactly as the product renders it: question only, no
+                buttons, no input. The example replies below are ours, and are
+                labeled as such — presenting them inside the card would claim
+                the product offered choices it did not. */}
             {beat === 'analysis' && (
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.7, duration: 0.4 }}>
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.7, duration: 0.4 }}
+                className="space-y-3"
+              >
                 <QuestionCard
                   question={ex.initial.next_question}
                   onAnswer={handleAnswer}
                   allowFreeText={false}
                   locale={locale}
-                  meta={L('1번째 질문 · 눌러서 골라보세요', 'Question 1 · tap an option')}
+                  meta={L('1번째 질문', 'Question 1')}
                 />
+                <div className="rounded-xl border border-dashed border-[var(--border-subtle)] px-4 py-3.5">
+                  <p className="mb-2.5 text-[12px] font-semibold text-[var(--text-tertiary)]">
+                    {L(
+                      '실제로는 여기에 직접 답을 씁니다. 예시 답변을 눌러보세요 —',
+                      'You would type your own answer here. Tap an example reply —',
+                    )}
+                    <br />
+                    {L(
+                      '각 답변마다 실제로 생성된 후속 분석이 이어집니다.',
+                      'each one has its own real, generated continuation.',
+                    )}
+                  </p>
+                  <div className="flex flex-col gap-2">
+                    {ex.sampleAnswers.map((reply) => (
+                      <button
+                        key={reply}
+                        type="button"
+                        onClick={() => handleAnswer(reply)}
+                        className="min-h-11 rounded-lg border border-[var(--border-subtle)] bg-[var(--surface)] px-3.5 py-2.5 text-left text-[13.5px] leading-relaxed text-[var(--text-primary)] transition-colors hover:border-[var(--accent)] cursor-pointer"
+                      >
+                        {reply}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </motion.div>
             )}
 
