@@ -1155,8 +1155,8 @@ writer 제거, Telegram/MCP 공개 wire 변경, 공정 5 progressive 전면 cuto
 ### 9.12 트랙 R · Argus 방법론과 제품 방향의 원점 재설계 (2026-08-03 창업자 지시)
 
 방법론의 구현 전 최종 정본:
-`docs/ARGUS-METHOD-V0.4-2026-08-03.md`.
-(v0.3은 superseded 이력 문서로 보존한다.)
+`docs/ARGUS-METHOD-V0.5-2026-08-03.md`.
+(v0.1~v0.4는 superseded 이력 문서로 보존한다.)
 
 창업자 지시에 따라 기존 구현·스키마·화면을 전제로 삼지 않고 Argus의 방향을
 다시 설계한다. 이 트랙의 목표는 빠른 기능 추가가 아니라, 능동적 코칭·결정 실행·
@@ -1191,6 +1191,17 @@ frame 제안에는 반증 조건을 의무화한다 — 영향력은 태그가 �
 기계 대조하며, 실패 시 reversible로 강등한다. (5) HOLD는 가설당 1회로 제한한다.
 (6) Decision Card에 stakes·confidence 표지·기각 대안·date backstop·lineage를
 추가한다(강제 생성 금지).
+
+**v0.5 종합 판정 (2026-08-03):** v0.1/v0.2 원문이 repo에 보존된 뒤 재검토한
+결과, v0.3의 압축이 실제 자산을 함께 떨어뜨렸음이 확인되어 정본을 v0.5로
+교체한다. v0.4의 열두 수정은 전부 유지하고, v0.1/v0.2에서 다음을 복원한다:
+BASELINE(AI 이전 상태 보존 — 영향력 측정의 제1 도구), 내용 종류별 검증 구분
+(Value/Belief/Forecast/Evidence/Constraint/Alternative/Commitment), return
+portfolio(4종, 하나만 활성, 연쇄), recommendation readiness 3-state와 추천
+4종, 질문의 반사실 branching 검사(envelope로 기계화), prompt stack L0–L6과
+data-not-instructions, turn task 유형화, bounded critic 단일 예외, 확률 opt-in
+4조건, kill-criteria 축소 지도(HOLD의 행동 규칙), 가치 층계, 열린 연구 질문
+표. v0.5 §0.2의 계보 표가 네 판의 기여·한계와 복원 목록의 정본이다.
 
 **단계:**
 
