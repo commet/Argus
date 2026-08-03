@@ -1154,9 +1154,23 @@ writer 제거, Telegram/MCP 공개 wire 변경, 공정 5 progressive 전면 cuto
 
 ### 9.12 트랙 R · Argus 방법론과 제품 방향의 원점 재설계 (2026-08-03 창업자 지시)
 
-방법론의 구현 전 최종 정본:
-`docs/ARGUS-METHOD-V0.5-2026-08-03.md`.
-(v0.1~v0.4는 superseded 이력 문서로 보존한다.)
+방법론의 최종 정본:
+`docs/ARGUS-METHOD-V1.0.md` (STABLE — 이후 변경은 R gate 증거 또는 창업자
+지시에 의한 1.x delta로만).
+(v0.1~v0.8은 superseded 이력 문서로 보존한다. v0.6~v0.8은 v1.0에 통합된
+개정 문서다: v0.6 운영 현실·시간, v0.7 적대적 경제학·측정 정직성, v0.8 복리
+구조. 검토 맥락은 `docs/ARGUS-METHOD-CONTEXT-2026-08-04.md`.)
+
+**v1.0 확정 판정 (2026-08-04):** v0.5 이후 세 독립 비판 pass를 통과해 확정.
+핵심 추가: 전역 귀환 예산과 DORMANT 생애주기, 세션 간 재유도 규칙, 한 턴 한
+인지 요구, 감정의 세 지위, stakes×개시주체 추천 위계(pushed×major×one_way
+directional 금지), harness 성능 예산과 degrade ladder, 영향력 측정기의
+Goodhart 방어(봉인), validator 기계/비기계 전수 명세, model 회귀 그물, 빈도
+문제의 명시와 구조적 답(portfolio·MCP·집단 복리), 여섯 문장 문법(보이는 헌법),
+세 겹의 복리 자산(기록·Playbook·method telemetry)과 그 경계, 기각 대안의
+반사실 debrief. **R1(method manual)·R2(offline harness)의 착공을 이 정본이
+승인한다** — 무접촉 경계(기존 공개 UI·DB schema·canonical writer·알림 불변)는
+그대로 유지된다.
 
 설계 과정과 검토 context를 보존하는 비규범 companion:
 `docs/ARGUS-METHOD-CONTEXT-2026-08-04.md`. 이 문서는 v0.3의 권한을 대체하지 않고,
