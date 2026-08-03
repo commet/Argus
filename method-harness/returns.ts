@@ -91,3 +91,20 @@ export function composeReturnOpening(state: CaseState): { question: string; awai
     '지난 결정 이후 실제로 일어난 일';
   return { question: state.card.question, awaitedSignal: awaited };
 }
+
+// DORMANT cases exert no scheduling pressure (v1.0 §5.1 × §7.2 — found in the
+// improvement pass: without this, a sleeping case's return kept eating the
+// global budget and crowding out live cases). Reopening restores candidacy.
+export function activeReturnCandidates(
+  states: Array<{ state: CaseState['state']; caseId: string; card?: { stakes: { weight: StakesWeight; reversibility: Reversibility } }; activeReturn?: { contract: ReturnContractDraft } }>,
+  userPrioritizedCaseIds: ReadonlySet<string> = new Set(),
+): ReturnCandidate[] {
+  return states
+    .filter((s) => s.state !== 'DORMANT' && s.activeReturn && s.card)
+    .map((s) => ({
+      caseId: s.caseId,
+      contract: s.activeReturn!.contract,
+      stakes: s.card!.stakes,
+      userPrioritized: userPrioritizedCaseIds.has(s.caseId),
+    }));
+}

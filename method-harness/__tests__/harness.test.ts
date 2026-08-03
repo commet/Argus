@@ -240,3 +240,19 @@ describe('isolation guard — the non-contact boundary, mechanized', () => {
     }
   });
 });
+
+describe('DORMANT cases exert no return pressure (improvement pass)', () => {
+  it('excludes dormant cases from the global budget candidates; reopening restores them', async () => {
+    const { activeReturnCandidates } = await import('../returns');
+    const mk = (caseId: string, state: 'AWAITING_SIGNAL' | 'DORMANT') => ({
+      caseId,
+      state: state as 'AWAITING_SIGNAL' | 'DORMANT',
+      card: { stakes: { weight: 'major' as const, reversibility: 'one_way' as const } },
+      activeReturn: { contract: { kind: 'outcome' as const, trigger: { type: 'date' as const, date: '2026-08-10T00:00:00.000Z' } } },
+    });
+    const sleeping = activeReturnCandidates([mk('c1', 'AWAITING_SIGNAL'), mk('c2', 'DORMANT')]);
+    expect(sleeping.map((c) => c.caseId)).toEqual(['c1']); // the dormant case is silent
+    const awake = activeReturnCandidates([mk('c1', 'AWAITING_SIGNAL'), mk('c2', 'AWAITING_SIGNAL')]);
+    expect(awake).toHaveLength(2); // reopening restores candidacy
+  });
+});
