@@ -34,6 +34,9 @@ When adding a field to any TypeScript interface (e.g., `Persona`, `RecastStep`),
 > **Planning amendment — Track R (2026-08-03, founder-directed):** the runtime
 > rules below remain binding on the currently shipped product until an explicit
 > R4 migration, but they are **not a constraint on R0–R3 method research**.
+> A fresh Track R reviewer must read `docs/ARGUS-METHOD-CONTEXT-2026-08-04.md`
+> for the decision history, then `docs/ARGUS-METHOD-V0.3-2026-08-03.md` for the
+> normative proposal. The context document explains; it does not override v0.3.
 > `docs/ARGUS-METHOD-V0.3-2026-08-03.md` reopens the broad prohibition on
 > directional coaching. The planning-canon replacement is `honest agency`: Argus may
 > actively analyze, challenge, generate alternatives, research, simulate, and
