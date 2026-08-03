@@ -1155,7 +1155,8 @@ writer 제거, Telegram/MCP 공개 wire 변경, 공정 5 progressive 전면 cuto
 ### 9.12 트랙 R · Argus 방법론과 제품 방향의 원점 재설계 (2026-08-03 창업자 지시)
 
 방법론의 구현 전 최종 정본:
-`docs/ARGUS-METHOD-V0.3-2026-08-03.md`.
+`docs/ARGUS-METHOD-V0.4-2026-08-03.md`.
+(v0.3은 superseded 이력 문서로 보존한다.)
 
 창업자 지시에 따라 기존 구현·스키마·화면을 전제로 삼지 않고 Argus의 방향을
 다시 설계한다. 이 트랙의 목표는 빠른 기능 추가가 아니라, 능동적 코칭·결정 실행·
@@ -1179,6 +1180,18 @@ Decision Graph는 저장 정본이 아니라 폐기 가능한 session working mo
 revocable Learning Projection으로 분리한다. 7개 archetype router와 EDQI 유사 점수,
 범용 사용자군은 폐기한다. v1은 창업자·제품 책임자의 제품/시장 결정으로 좁힌다.
 
+**v0.4 개정 판정 (2026-08-03):** v0.3의 수렴은 유지하되, 독립 검토가 확인한
+결함 12건을 고쳐 정본을 v0.4로 교체한다. 핵심 개정: (1) R3-A 단일 세션 비교는
+필요조건으로 강등하고 판정력은 R3-B loop 증거에 둔다 — baseline에는 방법
+카드를 prompt로 받은 일반 AI를 포함한다(제품이 자기 프롬프트를 이겨야 한다).
+(2) fire-gate와 form을 분리해 선행 over-fire 증거와 honest agency를 화해시키고,
+frame 제안에는 반증 조건을 의무화한다 — 영향력은 태그가 아니라 구조로 통제한다.
+(3) 귀환은 관찰 우선(기록 공개 전 관찰·무보조 회상 수집)으로 순서를 확정한다.
+(4) directional 추천의 가치 근거는 validator가 ledger의 user_said/adopted와
+기계 대조하며, 실패 시 reversible로 강등한다. (5) HOLD는 가설당 1회로 제한한다.
+(6) Decision Card에 stakes·confidence 표지·기각 대안·date backstop·lineage를
+추가한다(강제 생성 금지).
+
 **단계:**
 
 - **R0 · 방향과 주장:** 대상 사용자, 해결할 문제, 가치 순간, 비목표, 반증 조건.
@@ -1199,6 +1212,11 @@ revocable Learning Projection으로 분리한다. 7개 archetype router와 EDQI 
 **무접촉 경계:** R0~R3는 기획·연구·offline harness·평가 fixture만 소유한다.
 기존 공개 UI, DB schema, canonical writer, MCP/플러그인 명령, 알림 배관을 변경하지
 않는다. 기존 H/F/O 공정의 완료 체크를 R의 근거로 자동 승격하지 않는다.
+**단일 예외 (v0.4 amendment):** R3-B에 한해 초대 전용·비공개·폐기 전제의
+pilot harness(R2 harness + 최소 대화 통로)를 허용한다 — 공개 UI·canonical
+schema·기존 배관·알림은 불변이며, pilot 종료 시 데이터 반출·삭제와 함께
+폐기한다. 이 예외 없이는 R3-B의 실행 수단이 정의되지 않는다는 검토 결론에
+따른 amendment다.
 
 ---
 
