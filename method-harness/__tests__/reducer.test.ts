@@ -35,11 +35,20 @@ describe('adoption gate — nothing is canonical before a user act', () => {
   it('an AI proposal alone leaves no card in the fold', () => {
     const l = ledgerWith(
       ev('user_utterance', '2026-08-04T00:00:00.000Z', { text: '출시 고민이야' }),
+      ev('baseline_captured', '2026-08-04T00:00:30.000Z', { lean: '미루는 쪽', statedReasons: [], consideredAlternatives: [] }),
       ev('ai_proposal', '2026-08-04T00:01:00.000Z', { description: 'card draft', payloadKind: 'card_draft', draft: CARD }),
     );
     const s = foldCase(l, 'c1');
     expect(s.card).toBeUndefined();
     expect(s.state).toBe('OPEN');
+  });
+
+  it('an AI proposal BEFORE baseline capture/absence throws — the constitution clause is mechanical, not prose', () => {
+    const l = ledgerWith(
+      ev('user_utterance', '2026-08-04T00:00:00.000Z', { text: '출시 고민이야' }),
+      ev('ai_proposal', '2026-08-04T00:01:00.000Z', { description: 'card draft', payloadKind: 'card_draft', draft: CARD }),
+    );
+    expect(() => foldCase(l, 'c1')).toThrowError(/PROPOSAL_BEFORE_BASELINE/);
   });
 
   it('action_reported before adoption throws — canonical write without adoption', () => {
@@ -195,14 +204,30 @@ describe('re-derivation (§6.1) — working models rebuild from durable layers o
   it('returns card + source events + approved lessons, and nothing model-authored', () => {
     const l = ledgerWith(
       ev('user_utterance', '2026-08-04T00:00:00.000Z', { text: '출시 고민' }),
+      ev('baseline_not_captured', '2026-08-04T00:00:30.000Z', {}),
       ev('ai_proposal', '2026-08-04T00:01:00.000Z', { description: '지난 세션의 화려한 분석 산문', payloadKind: 'move' }),
       ev('card_adopted', '2026-08-04T00:02:00.000Z', { cardId: 'k1', card: CARD, adoption: { mode: 'accept' } }),
       ev('lesson_candidate', '2026-08-04T00:03:00.000Z', { text: '작은 pilot 먼저', scope: '출시 결정' }),
     );
     const inputs = rebuildWorkingModelInputs(l, 'c1');
     expect(inputs.card?.cardId).toBe('k1');
-    expect(inputs.sourceEvents.map((e) => e.type)).toEqual(['user_utterance']); // ai_proposal is unrepresentable here
+    // ai_proposal is unrepresentable in RederivationInputs; baseline_captured
+    // would appear but honest absence does not carry content
+    expect(inputs.sourceEvents.map((e) => e.type)).toEqual(['user_utterance']);
     expect(inputs.approvedLessons).toHaveLength(0); // candidate ≠ approved
+  });
+
+  it('lesson approval does not mutate a previously held state snapshot', () => {
+    const l = ledgerWith(
+      ev('card_adopted', '2026-08-04T00:00:00.000Z', { cardId: 'k1', card: CARD, adoption: { mode: 'accept' } }),
+      ev('lesson_candidate', '2026-08-04T00:01:00.000Z', { text: '작은 pilot 먼저', scope: '출시 결정' }),
+    );
+    const before = foldCase(l, 'c1');
+    const candidateId = before.lessons[0].id;
+    l.append(ev('lesson_approved', '2026-08-04T00:02:00.000Z', { candidateId, expiry: { reviewAfterUses: 3 } }));
+    const after = foldCase(l, 'c1');
+    expect(after.lessons[0].approved).toBe(true);
+    expect(before.lessons[0].approved).toBe(false); // the earlier snapshot stays untouched
   });
 });
 

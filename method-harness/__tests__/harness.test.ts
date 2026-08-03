@@ -106,6 +106,12 @@ describe('influence instruments (§9.5) — Goodhart-hardened', () => {
     expect(isMaterialEdit(draft, rewritten)).toBe(true);
   });
 
+  it('a numeric change is material even when the surface diff is tiny (review-pass fix)', () => {
+    const draft = '핵심 온보딩 흐름을 20명에게 2주간 제한 공개한다';
+    const scheduleDoubled = '핵심 온보딩 흐름을 20명에게 3주간 제한 공개한다';
+    expect(isMaterialEdit(draft, scheduleDoubled)).toBe(true); // 2주→3주는 일정의 결정 변경이다
+  });
+
   it('declines are excluded from the denominator', () => {
     expect(verbatimAdoptionRate([{ draftText: 'a', adoptedText: '', adoption: { mode: 'decline' } }])).toBe(0);
   });

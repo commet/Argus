@@ -53,10 +53,23 @@ export function applyEvent(prev: CaseState, event: LedgerEvent): CaseState {
   switch (event.type) {
     case 'user_utterance':
     case 'external_source':
-    case 'ai_proposal':
-      // Proposals never mutate canonical state (§10.1). They are visible in the
-      // ledger for provenance, but the fold ignores their content entirely.
       return s;
+
+    case 'ai_proposal': {
+      // Proposals never mutate canonical state (§10.1) — but the constitution's
+      // BASELINE clause ("preserve the pre-AI position BEFORE directional
+      // help") is mechanical here, not aspirational: no AI proposal may fold
+      // before the case's baseline was either captured or honestly declared
+      // absent. (Added by the implementation review pass — the rule existed in
+      // prose only, which is exactly the silent-wire failure this repo bans.)
+      if (s.baseline === undefined) {
+        throw new HarnessViolation(
+          'PROPOSAL_BEFORE_BASELINE',
+          'an AI proposal cannot fold before baseline_captured or baseline_not_captured',
+        );
+      }
+      return s;
+    }
 
     case 'baseline_captured': {
       if (s.baseline && s.baseline !== 'not_captured') {
@@ -174,11 +187,14 @@ export function applyEvent(prev: CaseState, event: LedgerEvent): CaseState {
       return s;
     }
     case 'lesson_approved': {
-      const lesson = s.lessons.find((l) => l.id === event.candidateId);
-      if (!lesson) {
+      const idx = s.lessons.findIndex((l) => l.id === event.candidateId);
+      if (idx === -1) {
         throw new HarnessViolation('APPROVE_UNKNOWN_LESSON', `lesson candidate ${event.candidateId} not found`);
       }
-      lesson.approved = true;
+      // Replace, don't mutate — the array is copied but its objects were
+      // shared with the previous state; in-place mutation would corrupt any
+      // held prior snapshot (found by the implementation review pass).
+      s.lessons[idx] = { ...s.lessons[idx], approved: true };
       return s;
     }
 

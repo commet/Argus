@@ -46,7 +46,17 @@ export function editMateriality(draft: string, adopted: string): number {
   return union === 0 ? 0 : (union - shared) / union;
 }
 
+// Numbers are semantically heavy but lexically light: "2주간"→"3주간" is one
+// bigram apart yet doubles nothing less than the schedule. Any change to the
+// numeric content is material regardless of the surface diff ratio.
+// (Found by the implementation's own adversarial review pass.)
+const numericTokens = (s: string): string => {
+  const m = s.match(/\d+(?:[.,]\d+)?/g) ?? [];
+  return [...m].sort().join('|');
+};
+
 export function isMaterialEdit(draft: string, adopted: string): boolean {
+  if (numericTokens(draft) !== numericTokens(adopted)) return true;
   return editMateriality(draft, adopted) >= MATERIAL_EDIT_THRESHOLD;
 }
 

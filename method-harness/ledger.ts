@@ -68,6 +68,12 @@ export function claimTracesToUser(ledger: Ledger, eventId: string, quotedText: s
 // Pulled vs pushed (v1.0 §4.4 hierarchy): a recommendation is "pulled" only if
 // the ledger holds a user utterance asking for direction. Machine-checkable —
 // the model's own `initiative` field is a claim to verify, not a fact.
+//
+// HONEST LIMIT (implementation review pass): this pattern list is a heuristic
+// classifier and can false-positive ("추천해줬던 거 별로였어" matches /추천/).
+// In the R3-B pilot harness, pulled status is confirmed by an explicit user
+// act (a request command), making detection exact; until then this leans
+// permissive, and the R1 evaluator audits pulled/pushed labels on gold cases.
 const PULL_PATTERNS = [/추천/, /권해/, /어떻게\s*하는\s*게\s*좋/, /뭘\s*골라/, /어느\s*쪽/, /\brecommend/i, /what\s+would\s+you\s+(do|choose|pick)/i, /which\s+(one\s+)?should\s+i/i, /your\s+(call|recommendation|take)/i];
 
 export function userPulledRecommendation(ledger: Ledger, caseId: string): boolean {
