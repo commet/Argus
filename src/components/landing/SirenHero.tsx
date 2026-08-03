@@ -15,7 +15,8 @@
  */
 
 import { useEffect, useRef, useState } from 'react';
-import { ArrowRight, FileSearch } from 'lucide-react';
+import dynamic from 'next/dynamic';
+import { ArrowRight, FileSearch, Play } from 'lucide-react';
 import { useLocale } from '@/hooks/useLocale';
 import { useLocaleRouter } from '@/hooks/useLocaleRouter';
 import { LocaleLink } from '@/components/ui/LocaleLink';
@@ -24,12 +25,29 @@ import { ClauseText } from '@/components/landing/ClauseText';
 import { VoyageFilm } from './films/VoyageFilm';
 import { track } from '@/lib/analytics';
 
+// Loaded only when a demo chip is clicked — the fixture data (real precomputed
+// analyses) must not ride in the landing's main bundle.
+const HeroLoopDemo = dynamic(
+  () => import('./HeroLoopDemo').then((m) => m.HeroLoopDemo),
+  { ssr: false },
+);
+
+// Chip labels are tiny and hardcoded here on purpose: importing the demo data
+// module for labels would pull every fixture into the first paint.
+const DEMO_CHIPS: Array<{ id: string; ko: string; en: string }> = [
+  { id: 'job', ko: '받은 이직 제안', en: 'A job offer' },
+  { id: 'hire', ko: '첫 직원 채용', en: 'A first hire' },
+  { id: 'home', ko: '전세냐 매수냐', en: 'Rent or buy' },
+];
+
 export function SirenHero() {
   const locale = useLocale();
   const ko = locale === 'ko';
   const L = (k: string, e: string) => (ko ? k : e);
   const router = useLocaleRouter();
   const [text, setText] = useState('');
+  const [demoId, setDemoId] = useState<string | null>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
   const prompts = [
     L('예) 받은 이직 제안, 받아들일까?', 'e.g. Take the job offer I just got?'),
     L('예) 이 기능, 이번 분기에 낼까?', 'e.g. Ship this feature this quarter?'),
@@ -157,6 +175,7 @@ export function SirenHero() {
               </label>
               <textarea
                 id="hero-decision"
+                ref={inputRef}
                 value={text}
                 maxLength={600}
                 rows={2}
@@ -184,6 +203,30 @@ export function SirenHero() {
                 </button>
               </div>
             </div>
+          </div>
+
+          {/* Example walkthrough chips (2026-07-31, launch-day funnel read):
+              visitors scroll, don't type — nobody arrives with a dilemma loaded.
+              One tap opens a precomputed run of the REAL first screen (30s, no
+              wait, no cost), then hands the pen back to their own decision. */}
+          <div className="bp-fade-up mx-auto mt-4 flex max-w-xl flex-wrap items-center justify-center gap-2 lg:mx-0 lg:justify-start" style={{ animationDelay: '205ms' }}>
+            <span className="inline-flex items-center gap-1.5 text-[13px]" style={{ color: 'var(--bp-ink-soft)' }}>
+              <Play size={12} aria-hidden style={{ color: 'var(--bp-gold-deep)' }} />
+              {L('쓰기 전에 30초 구경', 'Watch a 30s example first')}
+            </span>
+            {DEMO_CHIPS.map((c) => (
+              <button
+                key={c.id}
+                type="button"
+                onClick={() => {
+                  track('landing_demo_open', { example: c.id });
+                  setDemoId(c.id);
+                }}
+                className="inline-flex min-h-9 cursor-pointer items-center rounded-full border border-[var(--bp-ink-faint)] bg-[var(--bp-paper)] px-3.5 text-[13px] font-medium text-[var(--bp-ink)] transition-colors hover:border-[var(--bp-gold-deep)]"
+              >
+                {L(c.ko, c.en)}
+              </button>
+            ))}
           </div>
 
           <div className="bp-fade-up mt-4 flex justify-center lg:justify-start" style={{ animationDelay: '230ms' }}>
@@ -214,6 +257,24 @@ export function SirenHero() {
           <VoyageFilm />
         </div>
       </div>
+
+      {demoId && (
+        <HeroLoopDemo
+          exampleId={demoId}
+          locale={ko ? 'ko' : 'en'}
+          onClose={() => setDemoId(null)}
+          onStartOwn={() => {
+            setDemoId(null);
+            requestAnimationFrame(() => {
+              const el = inputRef.current;
+              if (el) {
+                el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                el.focus();
+              }
+            });
+          }}
+        />
+      )}
     </section>
   );
 }
