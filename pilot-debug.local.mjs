@@ -1,0 +1,10 @@
+import { chromium } from '@playwright/test';
+const browser = await chromium.launch({ headless: true, executablePath: '/opt/pw-browsers/chromium', args: ['--no-proxy-server'] });
+const page = await browser.newPage();
+const errs = [];
+page.on('console', (m) => errs.push(m.type() + ':' + m.text().slice(0, 150)));
+await page.goto('http://127.0.0.1:3777/method-pilot', { waitUntil: 'networkidle' }).catch(() => {});
+await page.waitForTimeout(6000);
+console.log('MAIN HTML:', await page.evaluate(() => document.querySelector('main')?.outerHTML.slice(0, 300)));
+console.log('LOGS:', errs.filter((e) => !/webpack-hmr|CERT|Download the React/.test(e)).slice(0, 10).join('\n') || '(none)');
+await browser.close();

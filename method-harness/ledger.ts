@@ -92,6 +92,25 @@ export function resetEventIds(): void {
   counter = 0;
 }
 
+// After restoring a persisted ledger, the id counter must move past every
+// restored suffix or new appends would collide with history (found while
+// building the pilot surface's persistence).
+export function seedEventIdsFrom(events: ReadonlyArray<{ id: string }>): void {
+  for (const e of events) {
+    const suffix = e.id.split('_').pop();
+    if (!suffix) continue;
+    const n = parseInt(suffix, 36);
+    if (Number.isFinite(n) && n > counter) counter = n;
+  }
+}
+
+export function restoreLedger(events: readonly LedgerEvent[]): Ledger {
+  const ledger = new Ledger();
+  for (const e of events) ledger.append(e);
+  seedEventIdsFrom(events);
+  return ledger;
+}
+
 export function isoAfter(base: IsoTime, ms: number): IsoTime {
   return new Date(new Date(base).getTime() + ms).toISOString();
 }

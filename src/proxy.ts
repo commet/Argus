@@ -36,6 +36,10 @@ const RESERVED_ROOT_PATHS = new Set([
   // less — served by app/d/[token] under the root layout, not [locale]. Leave
   // them alone so the proxy doesn't 307 them to /{locale}/d/… (which has no route).
   'd',
+  // ARGUS METHOD R3-B pilot 채널 (BLUEPRINT §9.12 단일 예외) — 초대 전용,
+  // 한국어 단일, chrome-less. [locale] 밖 root layout에서 서빙되므로 locale
+  // 리다이렉트 대상이 아니다.
+  'method-pilot',
 ]);
 
 function isLocale(seg: string | undefined): seg is Locale {

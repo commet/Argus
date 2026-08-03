@@ -227,9 +227,14 @@ describe('isolation guard — the non-contact boundary, mechanized', () => {
     }
   });
 
-  it('src/ imports nothing from method-harness/', () => {
+  it('src/ imports nothing from method-harness/ — except the §15.5 pilot channel', () => {
+    // The ONE authorized exception (v1.0 §15.5, BLUEPRINT §9.12 amendment):
+    // the invite-only pilot page is the R3-B conversation channel and reads
+    // the harness read-only. Everything else in src/ stays untouched.
+    const PILOT_CHANNEL = /src\/app\/method-pilot\//;
     const srcRoot = join(harnessRoot, '..', 'src');
     for (const file of tsFiles(srcRoot)) {
+      if (PILOT_CHANNEL.test(file.replace(/\\/g, '/'))) continue;
       const content = readFileSync(file, 'utf8');
       expect(content, `${file} must not import the harness`).not.toMatch(/from\s+['"].*method-harness/);
     }
