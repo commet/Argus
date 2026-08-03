@@ -31,6 +31,17 @@ When adding a field to any TypeScript interface (e.g., `Persona`, `RecastStep`),
 
 ## Principle: The Zero-Judgment Gate (every new user-facing surface)
 
+> **Planning amendment — Track R (2026-08-03, founder-directed):** the runtime
+> rules below remain binding on the currently shipped product until an explicit
+> R4 migration, but they are **not a constraint on R0–R3 method research**.
+> `docs/ARGUS-METHOD-V0.3-2026-08-03.md` reopens the broad prohibition on
+> directional coaching. The planning-canon replacement is `honest agency`: Argus may
+> actively analyze, challenge, generate alternatives, research, simulate, and
+> make conditional recommendations, while never laundering AI advice into the
+> user's decision or inference into reality. Do not implement that change in a
+> live surface before the R3 evidence gate and the corresponding Blueprint/
+> runtime amendment.
+
 Argus's spine is `maximum generation, zero judgment`. Before shipping any new
 surface, pass it through one gate:
 

@@ -1152,6 +1152,56 @@ writer 제거, Telegram/MCP 공개 wire 변경, 공정 5 progressive 전면 cuto
 
 ---
 
+### 9.12 트랙 R · Argus 방법론과 제품 방향의 원점 재설계 (2026-08-03 창업자 지시)
+
+방법론의 구현 전 최종 정본:
+`docs/ARGUS-METHOD-V0.3-2026-08-03.md`.
+
+창업자 지시에 따라 기존 구현·스키마·화면을 전제로 삼지 않고 Argus의 방향을
+다시 설계한다. 이 트랙의 목표는 빠른 기능 추가가 아니라, 능동적 코칭·결정 실행·
+현실 귀환·반복 학습이 하나의 검증 가능한 방법이 되도록 만드는 것이다.
+
+**방향 변경:** `zero judgment`의 저자성·현실성 보호는 유지하지만, 이를 방향 제시와
+직접 도움의 금지로 해석하지 않는다. Argus는 근거와 불확실성을 밝힌 채 질문,
+반론, 대안 생성, 조사, 시뮬레이션, 실험 설계, 조건부 추천을 능동적으로 제공할 수
+있다. 다만 AI의 제안을 사용자 판단으로, 추론을 사실로, 결과를 결정 품질로 조용히
+승격하지 않는다.
+
+**위계:** R 문서는 방법론·사용자 가치·개입 정책의 구현 전 정본이다. 기존 F/H/K/E/JCR
+문서는 연구 자료와 무결성 제약으로 읽으며, 기존 구현은 방법론의 제약 조건이 아니다.
+R의 결론이 기존 제품 계약과 충돌하면 곧바로 코드를 바꾸지 않고, 먼저 이 BLUEPRINT의
+해당 계약을 명시적으로 amendment한 뒤 구현한다.
+
+**v0.3 수렴 판정:** 사용자에게는 `UNDERSTAND → IMPROVE → MOVE → RETURN`만
+보인다. 내부 품질 기준은 검증된 여섯 Decision Quality 요건으로 줄인다. full
+Decision Graph는 저장 정본이 아니라 폐기 가능한 session working model이다.
+장기 진실은 Source/Observation Ledger, user-adopted Decision Record,
+revocable Learning Projection으로 분리한다. 7개 archetype router와 EDQI 유사 점수,
+범용 사용자군은 폐기한다. v1은 창업자·제품 책임자의 제품/시장 결정으로 좁힌다.
+
+**단계:**
+
+- **R0 · 방향과 주장:** 대상 사용자, 해결할 문제, 가치 순간, 비목표, 반증 조건.
+- **R1 · 방법 매뉴얼:** 여섯 Decision Quality 요건, 한 턴 한 개입, 질문·추천·중단
+  규칙, Decision Loop, Return/Learning Loop, 사례·반례, 평가자 매뉴얼.
+- **R2 · 하네스 계약:** disposable Working Model과 adoption-gated Decision Record,
+  모델과 결정론 코드의 권한, typed turn contract, 공통 사건, 웹·MCP·플러그인
+  projection, 실패·abstention·재시도 규칙.
+- **R3 · 구현 전 증거:** 30개 blinded case에서 일반 챗·정적 worksheet·Argus 비교,
+  대상 사용자 15명의 실제 결정과 최소 5개의 실제 return을 사전 봉인된 gate로
+  검토한다. 이 단계 전 신규 공개 흐름 구현 금지.
+- **R4 · 수렴 계획:** 통과한 방법만 대상으로 유지/재단조/폐기 및 migration 계획.
+- **R5 · 한 개 vertical slice:** 한 대상군·한 결정 유형·primary surface에서
+  코칭→결정→귀환을 완주하고 두 번째 surface에서 의미 연속성을 증명한다. 세 표면의
+  semantic parity fixture는 유지하되 세 production surface를 동시에 만들지 않는다.
+  R3 통과 전 착공하지 않는다.
+
+**무접촉 경계:** R0~R3는 기획·연구·offline harness·평가 fixture만 소유한다.
+기존 공개 UI, DB schema, canonical writer, MCP/플러그인 명령, 알림 배관을 변경하지
+않는다. 기존 H/F/O 공정의 완료 체크를 R의 근거로 자동 승격하지 않는다.
+
+---
+
 ## 마지막 장 — 이 설계도의 봉인
 
 > **예측:** 공정 0~2를 순서대로 완료하면, 그 시점의 신규 사용자 코호트에서
