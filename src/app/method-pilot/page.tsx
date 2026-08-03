@@ -117,7 +117,7 @@ function Btn({ children, onClick, kind = 'primary', disabled }: { children: Reac
         ? 'border border-[var(--accent)]/40 text-[var(--accent)] hover:bg-[var(--accent)]/[0.06]'
         : 'text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]';
   return (
-    <button type="button" disabled={disabled} onClick={onClick} className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${cls}`}>
+    <button type="button" disabled={disabled} onClick={onClick} className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)] ${cls}`}>
       {children}
     </button>
   );
@@ -314,7 +314,7 @@ export default function MethodPilotPage() {
       <div className="mx-auto max-w-2xl px-5 py-10 space-y-6">
         {/* header */}
         <header className="space-y-3">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-wrap items-baseline justify-between gap-y-2">
             <h1 className="text-xl font-semibold tracking-tight">Argus Method Pilot</h1>
             <div className="flex items-center gap-2 text-[11px]">
               <span className="rounded-full bg-[var(--accent)]/[0.1] text-[var(--accent)] px-2.5 py-1 font-medium">R3-B 채널</span>
@@ -396,14 +396,14 @@ export default function MethodPilotPage() {
                 className="w-full resize-none rounded-lg border border-black/[0.08] dark:border-white/[0.1] bg-transparent px-3 py-2.5 font-mono text-[12px] outline-none focus:border-[var(--accent)]/50"
               />
               {pasteError && <p className="mt-2 text-[13px] text-amber-600 dark:text-amber-400">{pasteError}</p>}
-              <div className="mt-3 flex items-center justify-between">
+              <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
                 <Btn kind="ghost" onClick={runDemo}>데모 시나리오로 보기</Btn>
                 <Btn onClick={pasteEnvelope} disabled={!envelopeJson.trim()}>검증하고 반영</Btn>
               </div>
             </Panel>
 
             {view && (
-              <div className="space-y-3">
+              <div className="space-y-3" aria-live="polite">
                 {view.blocks.filter((b) => b.kind !== 'adoption' && b.kind !== 'card').map((b, i) => (
                   <Panel key={i} tone={b.kind === 'validator_notice' ? 'warn' : b.kind === 'adoption' ? 'accent' : 'default'}>
                     <Label>{b.title}</Label>
@@ -441,7 +441,7 @@ export default function MethodPilotPage() {
                   )}
                   {pendingCard.nextAction && <CardRow k="다음 행동" v={`${pendingCard.nextAction.action} (${pendingCard.nextAction.owner}, ${pendingCard.nextAction.byOrWhen})`} />}
                 </dl>
-                <div className="mt-4 flex items-center justify-between">
+                <div className="mt-4 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <Btn kind="quiet" onClick={() => adopt('decline')}>보류 — 카드 없이 끝내기</Btn>
                   <div className="flex gap-2">
                     {editingCard ? (
@@ -512,7 +512,7 @@ export default function MethodPilotPage() {
             />
             <div className="mt-3 flex items-center justify-between">
               <label className="flex items-center gap-2 text-[13px] text-[var(--text-secondary)]">
-                <select value={obsKind} onChange={(e) => setObsKind(e.target.value as 'direct' | 'relayed')} className="rounded-md border border-black/[0.08] dark:border-white/[0.1] bg-[var(--surface)] px-2 py-1 text-[13px]">
+                <select aria-label="관찰 출처" value={obsKind} onChange={(e) => setObsKind(e.target.value as 'direct' | 'relayed')} className="rounded-md border border-black/[0.08] dark:border-white/[0.1] bg-[var(--surface)] px-2 py-1 text-[13px]">
                   <option value="direct">직접 관찰</option>
                   <option value="relayed">전달받음</option>
                 </select>
