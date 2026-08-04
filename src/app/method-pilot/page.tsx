@@ -4,15 +4,18 @@
 // 초대 전용·비공개·폐기 전제. 이 페이지는 method-harness를 읽기 전용으로
 // 사용하는 유일한 src/ 지점이다 (isolation guard의 명시적 예외).
 //
-// 이 페이지가 하는 일: 여섯 문장 문법(§2.1)을 그대로 화면 뼈대로 삼아
-// 한 결정을 UNDERSTAND → IMPROVE → MOVE → RETURN까지 완주시킨다.
+// 2026-08-04 방향성 검토(창업자 세션) 반영: 화면의 언어는 방법론이 아니라
+// 사람의 언어다. 사용자가 보는 것은 "기록 → 점검 → 현실 → 대조" 네 걸음뿐이고,
+// 계기판(ledger 카운터, prompt packet, envelope JSON)은 엔지니어 패널 뒤로
+// 접힌다. 하네스 의미론은 그대로다 — 바뀐 것은 투영(presentation)뿐이다.
+//
 // LLM 호출은 이 페이지에 없다 — 컴파일된 packet을 아무 모델에나 주고
-// envelope JSON을 붙여넣으면 validator가 눈앞에서 판정한다. (데모 시나리오
-// 버튼은 모델 없이 전체 루프를 60초에 보여준다.)
+// envelope JSON을 붙여넣으면 validator가 눈앞에서 판정한다. (예시 버튼은
+// 모델 없이 전체 루프를 60초에 보여준다.)
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { SessionEngine } from '../../../method-harness/surfaces/engine';
-import { renderTurn, SIX_SENTENCES, type WebView } from '../../../method-harness/surfaces/web';
+import { renderTurn, type WebView } from '../../../method-harness/surfaces/web';
 import { restoreLedger } from '../../../method-harness/ledger';
 import { RECALL_PROBE_WORDING, isMaterialEdit } from '../../../method-harness/influence';
 import { projectCard } from '../../../method-harness/projection';
@@ -29,6 +32,57 @@ const now = () => new Date().toISOString();
 const plusDays = (d: number) => new Date(Date.now() + d * 86_400_000).toISOString();
 
 // ---------------------------------------------------------------------------
+// 사람의 언어 — 내부 상태·용어를 화면에 그대로 흘리지 않는다 (방향성 검토).
+// 의미는 하네스가 정본이고, 여기는 표시만 바꾼다.
+// ---------------------------------------------------------------------------
+
+const STATE_LABELS: Record<CaseState['state'], string> = {
+  OPEN: '진행 중',
+  DECIDED: '결정함',
+  TESTING: '시험해보는 중',
+  RESEARCHING: '조사하기로 함',
+  DEFERRED: '기한 있는 보류',
+  REFRAMED: '질문을 다시 잡음',
+  STOPPED: '여기서 멈춤',
+  ACTING: '실행 중',
+  AWAITING_SIGNAL: '결과를 기다리는 중',
+  RETURNED: '돌아봄',
+  REVIEWED: '한 바퀴 완료',
+  DORMANT: '잠시 접어둠',
+};
+
+const RETURN_KIND_LABELS: Record<string, string> = {
+  commitment: '행동을 시작했는지 확인',
+  signal: '기다리던 신호 확인',
+  outcome: '결과 확인',
+  learning: '배운 것 확인',
+};
+
+// 하네스 투영 텍스트의 내부 표기를 화면용 한국어로 치환 (표시 전용).
+function koDisplay(text: string): string {
+  return text
+    .replace(/none_stated/g, '기울기 없이 시작')
+    .replace(/not_captured/g, '기록하지 않고 시작')
+    .replace(/\[uncertain\]/g, '(확신 낮음)')
+    .replace(/\[confident\]/g, '(확신 있음)')
+    .replace(/\[contested\]/g, '(이견 있음)')
+    .replace(/— owner: /g, '— 담당: ')
+    .replace(/귀환: commitment/g, '돌아보기: 행동 확인부터')
+    .replace(/귀환: outcome/g, '돌아보기: 결과 확인')
+    .replace(/귀환: signal/g, '돌아보기: 신호 확인')
+    .replace(/귀환: learning/g, '돌아보기: 배움 확인');
+}
+
+const BELIEF_CONFIDENCE_KO: Record<string, string> = {
+  confident: '확신 있음',
+  uncertain: '확신 낮음',
+  contested: '이견 있음',
+};
+
+// 네 걸음 — 화면의 뼈대. 여섯 문장 문법은 엔지니어 패널에서만 보인다.
+const JOURNEY = ['결정을 기록', 'AI가 한 가지만 점검', '현실에서 실행', '기억과 기록을 대조'] as const;
+
+// ---------------------------------------------------------------------------
 // Baseline extraction — 추출이지 심문이 아니다 (§2.2). 휴리스틱은 미기록을
 // 허용하지만, 추출 실패는 결함이므로 사용자가 확인·수정한다.
 // ---------------------------------------------------------------------------
@@ -41,7 +95,7 @@ function extractBaseline(text: string): { lean: string | 'none_stated'; statedRe
 }
 
 // ---------------------------------------------------------------------------
-// 데모 시나리오 — 모델 없이 유효한 envelope 하나. validator를 통과하는 형태
+// 예시 시나리오 — 모델 없이 유효한 envelope 하나. validator를 통과하는 형태
 // 그대로이며, 붙여넣기 경로와 완전히 같은 코드 경로를 지난다.
 // ---------------------------------------------------------------------------
 
@@ -55,7 +109,7 @@ function demoTurn(utteranceEventId: string, utterance: string): ArgusTurn {
       type: 'reframe',
       content:
         '지금 결정은 두 선택지 중 고르기보다, 이번 행동으로 무엇을 확인하고 싶은지 정하는 문제로 보입니다. 확인하려는 것 하나를 고정하면 범위와 시점이 따라옵니다.',
-      whyNow: '검증 목표와 실행 범위가 섞여 있어 frame이 병목입니다',
+      whyNow: '무엇을 확인하려는지와 얼마나 완성할지가 한 덩어리로 섞여 있는 것이 지금의 걸림돌입니다',
       falsifier: '만약 이번 선택이 학습이 아니라 확정된 약속(계약·일정) 이행을 위한 것이라면 이 재구성은 틀렸습니다',
     },
     question: {
@@ -288,7 +342,7 @@ export default function MethodPilotPage() {
   };
 
   const resetAll = () => {
-    if (!window.confirm('pilot ledger를 완전히 삭제합니다 (폐기 전제 계약). 계속할까요?')) return;
+    if (!window.confirm('지금까지의 기록을 전부 삭제합니다. 되돌릴 수 없어요. 계속할까요?')) return;
     if (typeof window !== 'undefined') localStorage.removeItem(STORAGE_KEYS.METHOD_PILOT_LEDGER);
     window.location.reload();
   };
@@ -305,7 +359,7 @@ export default function MethodPilotPage() {
 
   // ----- derived -----------------------------------------------------------
 
-  const sentenceIndex = stepSentence(step);
+  const journeyIndex = stepJourney(step);
   const activeReturn = state.activeReturn;
   const returnDue = activeReturn && activeReturn.contract.trigger.type === 'date' ? new Date(activeReturn.contract.trigger.date).getTime() <= Date.now() : true;
 
@@ -313,34 +367,52 @@ export default function MethodPilotPage() {
     <main className="min-h-screen bg-[var(--bg)] text-[var(--text-primary,#1c1917)]">
       <div className="mx-auto max-w-2xl px-5 py-10 space-y-6">
         {/* header */}
-        <header className="space-y-3">
+        <header className="space-y-4">
           <div className="flex flex-wrap items-baseline justify-between gap-y-2">
-            <h1 className="text-xl font-semibold tracking-tight">Argus Method Pilot</h1>
+            <h1 className="text-xl font-semibold tracking-tight">Argus</h1>
             <div className="flex items-center gap-2 text-[11px]">
-              <span className="rounded-full bg-[var(--accent)]/[0.1] text-[var(--accent)] px-2.5 py-1 font-medium">R3-B 채널</span>
-              <span className="rounded-full bg-black/[0.05] dark:bg-white/[0.08] px-2.5 py-1 text-[var(--text-tertiary)]">비공개 · 폐기 전제</span>
+              <span className="rounded-full bg-[var(--accent)]/[0.1] text-[var(--accent)] px-2.5 py-1 font-medium">초대판</span>
+              <span className="rounded-full bg-black/[0.05] dark:bg-white/[0.08] px-2.5 py-1 text-[var(--text-tertiary)]">비공개 · 이 기기에만 저장</span>
             </div>
           </div>
-          {/* 여섯 문장 — 화면의 뼈대 (§2.1) */}
-          <ol className="space-y-0.5">
-            {SIX_SENTENCES.map((s, i) => (
-              <li key={s} className={`text-[13px] leading-relaxed transition-colors ${i === sentenceIndex ? 'text-[var(--accent)] font-medium' : 'text-[var(--text-tertiary)]/60'}`}>
-                {s}
+          <p className="text-[15px] leading-relaxed text-[var(--text-secondary)]">
+            AI를 아무리 써도, 결정은 당신의 것으로.
+            <br />
+            <span className="text-[13px] text-[var(--text-tertiary)]">
+              결정을 짧게 기록해두면 — 결과가 나왔을 때, 그때의 기억과 기록을 나란히 보여드립니다.
+            </span>
+          </p>
+          {/* 네 걸음 진행 표시 */}
+          <ol className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[12px]">
+            {JOURNEY.map((label, i) => (
+              <li key={label} className="flex items-center gap-1.5">
+                {i > 0 && <span aria-hidden className="text-[var(--text-tertiary)]/40">→</span>}
+                <span
+                  className={`rounded-full px-2.5 py-1 transition-colors ${
+                    i === journeyIndex
+                      ? 'bg-[var(--accent)]/[0.12] text-[var(--accent)] font-medium'
+                      : i < journeyIndex || step === 'reviewed'
+                        ? 'text-[var(--text-secondary)]'
+                        : 'text-[var(--text-tertiary)]/60'
+                  }`}
+                >
+                  {label}
+                </span>
               </li>
             ))}
           </ol>
         </header>
 
-        {/* STEP 1 — 말해 주세요 */}
+        {/* STEP 1 — 결정을 기록 */}
         {step === 'listen' && (
           <Panel>
-            <Label>말해 주세요</Label>
+            <Label>지금 앞에 있는 결정</Label>
             <textarea
               value={utterance}
               onChange={(e) => setUtterance(e.target.value)}
               maxLength={2000}
               rows={5}
-              placeholder="지금 앞에 있는 결정을 평소 말투 그대로 적어 주세요. 기울어진 쪽이 있다면 그것도요."
+              placeholder="평소 말투 그대로 적어 주세요. 마음이 기운 쪽이 있다면 그것도요. (예: 새 온보딩을 다듬어서 다음 달에 열지, 지금 일부에게 먼저 열지 고민이야)"
               className="w-full resize-none rounded-lg border border-black/[0.08] dark:border-white/[0.1] bg-transparent px-4 py-3 text-[15px] leading-relaxed outline-none focus:border-[var(--accent)]/50"
             />
             <div className="mt-3 flex justify-end">
@@ -352,23 +424,24 @@ export default function MethodPilotPage() {
         {/* STEP 1.5 — baseline 확인 (추출, 심문 아님) */}
         {step === 'baseline' && (
           <Panel tone="accent">
-            <Label>시작 상태 보존 — AI가 돕기 전의 당신</Label>
+            <Label>AI가 말하기 전, 지금의 내 생각</Label>
             <p className="text-[13px] text-[var(--text-secondary)] mb-3 leading-relaxed">
-              말씀에서 추출한 것입니다. 고치거나, 기록 없이 진행할 수 있습니다. 이 스냅샷은 나중에 &ldquo;AI가 나를 얼마나 움직였는가&rdquo;를 잴 유일한 기준점입니다.
+              방금 쓰신 글에서 뽑아봤어요. 다르면 고쳐 주세요. 이걸 남겨두는 이유는 하나 —
+              나중에 &ldquo;이 결정이 정말 내 생각이었나&rdquo;를 확인할 수 있는 유일한 출발점이기 때문입니다.
             </p>
             <div className="space-y-3">
               <div>
-                <Label>현재 기울기 (없으면 비워두세요)</Label>
+                <Label>지금 기운 쪽 (없으면 비워두세요)</Label>
                 <input value={baselineLean} onChange={(e) => setBaselineLean(e.target.value)} maxLength={200} className="w-full rounded-lg border border-black/[0.08] dark:border-white/[0.1] bg-[var(--surface)] px-3 py-2 text-sm outline-none focus:border-[var(--accent)]/50" />
               </div>
               <div>
-                <Label>말한 이유 (줄바꿈으로 구분)</Label>
+                <Label>그 이유 (줄바꿈으로 구분)</Label>
                 <textarea value={baselineReasons} onChange={(e) => setBaselineReasons(e.target.value)} maxLength={600} rows={2} className="w-full resize-none rounded-lg border border-black/[0.08] dark:border-white/[0.1] bg-[var(--surface)] px-3 py-2 text-sm outline-none focus:border-[var(--accent)]/50" />
               </div>
             </div>
             <div className="mt-4 flex items-center justify-between">
-              <Btn kind="quiet" onClick={() => confirmBaseline(true)}>기록 없이 진행 (미기록으로 남습니다)</Btn>
-              <Btn onClick={() => confirmBaseline(false)}>이대로 보존</Btn>
+              <Btn kind="quiet" onClick={() => confirmBaseline(true)}>남기지 않고 진행</Btn>
+              <Btn onClick={() => confirmBaseline(false)}>이대로 남기기</Btn>
             </div>
           </Panel>
         )}
@@ -376,31 +449,21 @@ export default function MethodPilotPage() {
         {/* STEP 2 — 코칭 턴 */}
         {step === 'coach' && (
           <>
-            <Panel>
-              <Label>지금 가장 도움이 되는 한 가지</Label>
-              <p className="text-[13px] text-[var(--text-secondary)] leading-relaxed mb-4">
-                아래 packet을 아무 모델에나 주고 envelope JSON을 붙여넣으면, validator가 그 출력을 눈앞에서 판정합니다. 모델 없이 보려면 데모 시나리오를 여세요.
-              </p>
-              <details className="mb-4 group">
-                <summary className="cursor-pointer text-[13px] font-medium text-[var(--accent)] select-none">컴파일된 prompt packet (L0–L6) 열기</summary>
-                <pre className="mt-2 max-h-64 overflow-auto rounded-lg bg-black/[0.04] dark:bg-white/[0.05] p-3 text-[11px] leading-relaxed whitespace-pre-wrap">
-                  {engine.compilePacket('web', utterance || '(이번 턴 입력)', 'diagnose_and_propose')}
-                </pre>
-              </details>
-              <textarea
-                value={envelopeJson}
-                onChange={(e) => setEnvelopeJson(e.target.value)}
-                maxLength={20000}
-                rows={4}
-                placeholder='모델이 반환한 ArgusTurn envelope JSON을 붙여넣으세요 — {"phase":"understand", ...}'
-                className="w-full resize-none rounded-lg border border-black/[0.08] dark:border-white/[0.1] bg-transparent px-3 py-2.5 font-mono text-[12px] outline-none focus:border-[var(--accent)]/50"
-              />
-              {pasteError && <p className="mt-2 text-[13px] text-amber-600 dark:text-amber-400">{pasteError}</p>}
-              <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
-                <Btn kind="ghost" onClick={runDemo}>데모 시나리오로 보기</Btn>
-                <Btn onClick={pasteEnvelope} disabled={!envelopeJson.trim()}>검증하고 반영</Btn>
-              </div>
-            </Panel>
+            {!view && (
+              <Panel>
+                <Label>AI가 한 가지만 점검합니다</Label>
+                <p className="text-[13px] text-[var(--text-secondary)] leading-relaxed mb-4">
+                  조언을 쏟아내지 않습니다. 지금 이 결정에서 가장 무게가 실리는 한 지점만 짚고,
+                  그 짚기가 틀렸다면 언제 틀린 것인지도 함께 말합니다. 마지막 선택은 언제나 당신이 합니다.
+                </p>
+                <div className="flex justify-end">
+                  <Btn onClick={runDemo}>점검 받기 (예시 응답)</Btn>
+                </div>
+                <p className="mt-3 text-[11px] text-[var(--text-tertiary)] leading-relaxed">
+                  초대판에는 모델이 연결되어 있지 않아 예시 응답으로 흐름을 보여드립니다. 실제 모델 연결은 아래 엔지니어 패널에서.
+                </p>
+              </Panel>
+            )}
 
             {view && (
               <div className="space-y-3" aria-live="polite">
@@ -410,7 +473,7 @@ export default function MethodPilotPage() {
                     <p className="text-[14px] leading-relaxed whitespace-pre-wrap">{b.body}</p>
                     {b.meta?.falsifier && (
                       <p className="mt-2 rounded-lg bg-[var(--accent)]/[0.06] px-3 py-2 text-[12px] text-[var(--text-secondary)] leading-relaxed">
-                        이 재구성이 틀리려면: {b.meta.falsifier}
+                        이 짚기가 틀리려면: {b.meta.falsifier}
                       </p>
                     )}
                     {b.meta?.authority && <p className="mt-2 text-[11px] text-[var(--text-tertiary)]">{b.meta.authority}</p>}
@@ -421,7 +484,10 @@ export default function MethodPilotPage() {
 
             {pendingCard && (
               <Panel tone="accent">
-                <Label>Decision Card 후보 — 채택은 한 번의 행위입니다</Label>
+                <Label>이대로 기록해둘까요?</Label>
+                <p className="text-[12px] text-[var(--text-tertiary)] mb-3 leading-relaxed">
+                  아래는 제안일 뿐입니다 — 당신이 채택해야 당신의 결정으로 기록됩니다. 고쳐서 남기면 고친 부분은 당신의 것으로 표시됩니다.
+                </p>
                 <dl className="space-y-2 text-[14px] leading-relaxed">
                   <CardRow k="결정" v={pendingCard.question} />
                   {editingCard ? (
@@ -434,22 +500,22 @@ export default function MethodPilotPage() {
                   )}
                   <CardRow k="기준" v={pendingCard.rationale.values.join(' · ')} />
                   {pendingCard.rationale.materialBeliefs.map((b) => (
-                    <CardRow key={b.belief} k="중요 가정" v={`${b.belief} [${b.confidence}]`} />
+                    <CardRow key={b.belief} k="중요 가정" v={`${b.belief} (${BELIEF_CONFIDENCE_KO[b.confidence] ?? b.confidence})`} />
                   ))}
                   {pendingCard.rationale.rejectedAlternative && (
-                    <CardRow k="기각한 대안" v={`${pendingCard.rationale.rejectedAlternative.alternative} — ${pendingCard.rationale.rejectedAlternative.reason}`} />
+                    <CardRow k="접어둔 대안" v={`${pendingCard.rationale.rejectedAlternative.alternative} — ${pendingCard.rationale.rejectedAlternative.reason}`} />
                   )}
                   {pendingCard.nextAction && <CardRow k="다음 행동" v={`${pendingCard.nextAction.action} (${pendingCard.nextAction.owner}, ${pendingCard.nextAction.byOrWhen})`} />}
                 </dl>
                 <div className="mt-4 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
-                  <Btn kind="quiet" onClick={() => adopt('decline')}>보류 — 카드 없이 끝내기</Btn>
+                  <Btn kind="quiet" onClick={() => adopt('decline')}>기록 없이 끝내기</Btn>
                   <div className="flex gap-2">
                     {editingCard ? (
-                      <Btn onClick={() => adopt('edit')}>수정해서 채택</Btn>
+                      <Btn onClick={() => adopt('edit')}>수정해서 남기기</Btn>
                     ) : (
                       <>
-                        <Btn kind="ghost" onClick={() => setEditingCard(true)}>고쳐서 채택</Btn>
-                        <Btn onClick={() => adopt('accept')}>이대로 채택</Btn>
+                        <Btn kind="ghost" onClick={() => setEditingCard(true)}>고쳐서 남기기</Btn>
+                        <Btn onClick={() => adopt('accept')}>이대로 남기기</Btn>
                       </>
                     )}
                   </div>
@@ -459,39 +525,40 @@ export default function MethodPilotPage() {
           </>
         )}
 
-        {/* STEP 3 — 채택 후: 카드 + 귀환 대기 + 행동 보고 */}
+        {/* STEP 3 — 채택 후: 카드 + 돌아오기 대기 + 행동 보고 */}
         {(step === 'acting' || step === 'return_observe' || step === 'return_probe') && state.card && (
           <Panel>
-            <Label>채택된 결정 {state.baseline && state.baseline !== 'not_captured' ? '· 처음과의 delta 포함' : ''}</Label>
+            <Label>남겨둔 결정</Label>
             {step === 'return_observe' || step === 'return_probe' ? (
               <p className="text-[14px] leading-relaxed text-[var(--text-secondary)]">
                 {/* 관찰 전에는 질문과 기다리던 signal만 (§7.3) — 선택·이유는 잠겨 있습니다 */}
                 <span className="font-medium text-[var(--text-primary,inherit)]">{engine.openReturn().question}</span>
                 <br />기다리던 것: {engine.openReturn().awaitedSignal}
-                <br /><span className="text-[12px] text-[var(--text-tertiary)]">당시의 선택과 이유는 관찰을 들은 뒤에 열립니다.</span>
+                <br /><span className="text-[12px] text-[var(--text-tertiary)]">그때의 선택과 이유는, 무슨 일이 있었는지 들은 다음에 열려요.</span>
               </p>
             ) : (
-              <pre className="whitespace-pre-wrap text-[14px] leading-relaxed font-sans">{projectCard(state, 'web').text}</pre>
+              <pre className="whitespace-pre-wrap text-[14px] leading-relaxed font-sans">{koDisplay(projectCard(state, 'web').text)}</pre>
             )}
           </Panel>
         )}
 
         {step === 'acting' && state.card && (
           <Panel>
-            <Label>현실에서 — 상태: {state.state}</Label>
+            <Label>지금 — {STATE_LABELS[state.state]}</Label>
             {activeReturn ? (
               <p className="text-[13px] text-[var(--text-secondary)] leading-relaxed mb-3">
-                귀환 대기 · {activeReturn.contract.kind}
-                {state.queuedReturns.length > 0 && ` (이후 ${state.queuedReturns.length}건 연쇄 대기)`}
+                다음 돌아보기: {RETURN_KIND_LABELS[activeReturn.contract.kind] ?? activeReturn.contract.kind}
+                {activeReturn.contract.trigger.type === 'date' && ` · ${new Date(activeReturn.contract.trigger.date).toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' })}쯤`}
+                {state.queuedReturns.length > 0 && ` (그 다음 ${state.queuedReturns.length}번 더)`}
               </p>
             ) : (
-              <p className="text-[13px] text-[var(--text-secondary)] mb-3">활성 귀환이 없습니다.</p>
+              <p className="text-[13px] text-[var(--text-secondary)] mb-3">예정된 돌아보기가 없습니다.</p>
             )}
             <div className="flex items-center justify-between">
-              <Btn kind="ghost" onClick={() => { engine.reportAction('행동 시작 보고', now()); persist(); }}>행동 시작을 보고</Btn>
+              <Btn kind="ghost" onClick={() => { engine.reportAction('행동 시작 보고', now()); persist(); }}>행동을 시작했어요</Btn>
               {activeReturn && (
                 <Btn onClick={() => setStep('return_observe')} disabled={false}>
-                  {returnDue ? '귀환 열기' : '지금 미리 귀환 열기'}
+                  {returnDue ? '지금 돌아보기' : '미리 돌아보기'}
                 </Btn>
               )}
             </div>
@@ -501,23 +568,23 @@ export default function MethodPilotPage() {
         {/* STEP 4 — RETURN: 관찰이 기록보다 먼저 */}
         {step === 'return_observe' && (
           <Panel tone="accent">
-            <Label>먼저, 실제로 무슨 일이 있었나요</Label>
+            <Label>먼저 — 실제로 무슨 일이 있었나요?</Label>
             <textarea
               value={observation}
               onChange={(e) => setObservation(e.target.value)}
               maxLength={2000}
               rows={4}
-              placeholder="일어난 일을 그대로 적어 주세요 — 숫자·사건·출처. 해석은 다음 단계에서."
+              placeholder="일어난 일을 그대로 적어 주세요 — 숫자, 사건, 들은 말. 잘했다/못했다 판단은 잠시 미뤄두세요."
               className="w-full resize-none rounded-lg border border-black/[0.08] dark:border-white/[0.1] bg-[var(--surface)] px-4 py-3 text-[15px] leading-relaxed outline-none focus:border-[var(--accent)]/50"
             />
             <div className="mt-3 flex items-center justify-between">
               <label className="flex items-center gap-2 text-[13px] text-[var(--text-secondary)]">
                 <select aria-label="관찰 출처" value={obsKind} onChange={(e) => setObsKind(e.target.value as 'direct' | 'relayed')} className="rounded-md border border-black/[0.08] dark:border-white/[0.1] bg-[var(--surface)] px-2 py-1 text-[13px]">
-                  <option value="direct">직접 관찰</option>
-                  <option value="relayed">전달받음</option>
+                  <option value="direct">직접 봤어요</option>
+                  <option value="relayed">전해 들었어요</option>
                 </select>
               </label>
-              <Btn onClick={submitObservation} disabled={!observation.trim()}>관찰 기록</Btn>
+              <Btn onClick={submitObservation} disabled={!observation.trim()}>기록</Btn>
             </div>
           </Panel>
         )}
@@ -543,17 +610,20 @@ export default function MethodPilotPage() {
         {step === 'return_reveal' && state.card && (
           <>
             <Panel>
-              <Label>이제 — 당시의 기록</Label>
-              <pre className="whitespace-pre-wrap text-[14px] leading-relaxed font-sans">{projectCard(state, 'web').text}</pre>
+              <Label>이제 — 그때의 기록</Label>
+              <pre className="whitespace-pre-wrap text-[14px] leading-relaxed font-sans">{koDisplay(projectCard(state, 'web').text)}</pre>
               {state.recallProbeAnswer && (
                 <div className="mt-3 rounded-lg bg-[var(--accent)]/[0.06] px-4 py-3">
-                  <Label>방금의 기억 vs 당시의 기록</Label>
+                  <Label>방금의 기억 vs 그때의 기록</Label>
                   <p className="text-[13px] leading-relaxed text-[var(--text-secondary)]">기억: {state.recallProbeAnswer}</p>
+                  <p className="mt-1.5 text-[11px] text-[var(--text-tertiary)] leading-relaxed">
+                    둘이 다르다면 — 그 차이가 이 도구가 존재하는 이유입니다. 결과를 알고 나면 누구나 이유를 다시 씁니다.
+                  </p>
                 </div>
               )}
               {state.observations.length > 0 && (
                 <div className="mt-3">
-                  <Label>관찰</Label>
+                  <Label>실제로 일어난 일</Label>
                   {state.observations.map((o) => (
                     <p key={o.id} className="text-[13px] leading-relaxed text-[var(--text-secondary)]">{o.text}</p>
                   ))}
@@ -561,24 +631,24 @@ export default function MethodPilotPage() {
               )}
             </Panel>
             <Panel>
-              <Label>Debrief — 순서대로 하나씩</Label>
+              <Label>같이 돌아보기 — 순서대로 하나씩</Label>
               <ol className="list-decimal ml-4 space-y-1.5 text-[13px] leading-relaxed text-[var(--text-secondary)]">
-                <li>이 관찰은 당시의 어떤 가정에 답했나요? (해석은 당신의 몫입니다)</li>
-                <li>당시 알 수 있던 것 기준으로, 과정은 충분했나요?</li>
+                <li>일어난 일은 그때의 어떤 가정에 답했나요? (해석은 당신의 몫입니다)</li>
+                <li>그때 알 수 있던 것만 놓고 보면, 결정 과정은 충분했나요?</li>
                 <li>운이나 환경 변화는 무엇이었나요?</li>
                 {state.card.rationale.rejectedAlternative && (
-                  <li>이 관찰이 기각했던 대안({state.card.rationale.rejectedAlternative.alternative})의 전제도 건드리나요?</li>
+                  <li>접어뒀던 대안({state.card.rationale.rejectedAlternative.alternative})에 대한 생각도 달라지나요?</li>
                 )}
-                <li>다음 유사 결정에서 유지·수정할 규칙이 있다면 아래에 남기세요 — 없으면 비워두세요. 정직한 &lsquo;no lesson&rsquo;도 결과입니다.</li>
+                <li>다음 비슷한 결정에서 기억할 것이 있다면 아래에 — 없으면 비워두세요. &lsquo;배운 것 없음&rsquo;도 정직한 답입니다.</li>
               </ol>
               <div className="mt-3 space-y-2">
-                <input value={lessonText} onChange={(e) => setLessonText(e.target.value)} maxLength={300} placeholder="lesson 후보 (선택) — 범위가 제한된 한 문장" className="w-full rounded-lg border border-black/[0.08] dark:border-white/[0.1] bg-[var(--surface)] px-3 py-2 text-sm outline-none focus:border-[var(--accent)]/50" />
+                <input value={lessonText} onChange={(e) => setLessonText(e.target.value)} maxLength={300} placeholder="다음에 기억할 것 (선택) — 한 문장으로" className="w-full rounded-lg border border-black/[0.08] dark:border-white/[0.1] bg-[var(--surface)] px-3 py-2 text-sm outline-none focus:border-[var(--accent)]/50" />
                 {lessonText.trim() && (
-                  <input value={lessonScope} onChange={(e) => setLessonScope(e.target.value)} maxLength={120} placeholder="적용 범위 — 어떤 결정에서만 유효한가요?" className="w-full rounded-lg border border-black/[0.08] dark:border-white/[0.1] bg-[var(--surface)] px-3 py-2 text-sm outline-none focus:border-[var(--accent)]/50" />
+                  <input value={lessonScope} onChange={(e) => setLessonScope(e.target.value)} maxLength={120} placeholder="어떤 결정에서만 유효한가요? (예: 출시 범위 결정)" className="w-full rounded-lg border border-black/[0.08] dark:border-white/[0.1] bg-[var(--surface)] px-3 py-2 text-sm outline-none focus:border-[var(--accent)]/50" />
                 )}
               </div>
               <div className="mt-4 flex justify-end">
-                <Btn onClick={closeReturn}>귀환 닫기{state.queuedReturns.length > 0 ? ' — 다음 귀환이 활성화됩니다' : ''}</Btn>
+                <Btn onClick={closeReturn}>돌아보기 마치기{state.queuedReturns.length > 0 ? ' — 다음 확인이 예약됩니다' : ''}</Btn>
               </div>
             </Panel>
           </>
@@ -586,13 +656,13 @@ export default function MethodPilotPage() {
 
         {step === 'reviewed' && (
           <Panel tone="accent">
-            <Label>루프 완주</Label>
+            <Label>한 바퀴 완주</Label>
             <p className="text-[15px] leading-relaxed">
-              한 결정이 현실까지 다녀왔습니다. 기록·관찰·기억이 전부 시간 순서 그대로 보존되어 있습니다 — 아무것도 덮어쓰이지 않았습니다.
+              한 결정이 현실까지 다녀왔습니다. 그때의 생각, 실제로 일어난 일, 방금의 기억 — 전부 시간 순서 그대로 남아 있고, 아무것도 덮어쓰이지 않았습니다.
             </p>
             {state.lessons.length > 0 && (
               <div className="mt-3">
-                <Label>남긴 lesson 후보</Label>
+                <Label>다음에 기억할 것</Label>
                 {state.lessons.map((l) => (
                   <p key={l.id} className="text-[13px] text-[var(--text-secondary)]">{l.text} <span className="text-[var(--text-tertiary)]">— {l.scope}</span></p>
                 ))}
@@ -601,12 +671,47 @@ export default function MethodPilotPage() {
           </Panel>
         )}
 
+        {/* 엔지니어 패널 — 계기판은 여기에만. 기본은 접힘. */}
+        <details className="group rounded-xl border border-black/[0.05] dark:border-white/[0.06] px-5 py-3">
+          <summary className="cursor-pointer select-none text-[12px] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]">
+            엔지니어 패널 — 내부 상태·모델 연결 (일반 사용에는 필요 없습니다)
+          </summary>
+          <div className="mt-3 space-y-4 text-[12px] text-[var(--text-secondary)]">
+            <p>
+              ledger {engine.ledger.all().length} events · 내부 상태 {state.state}
+              {activeReturn && ` · return ${activeReturn.contract.kind}`}
+            </p>
+            <div>
+              <Label>컴파일된 prompt packet (L0–L6)</Label>
+              <pre className="max-h-64 overflow-auto rounded-lg bg-black/[0.04] dark:bg-white/[0.05] p-3 text-[11px] leading-relaxed whitespace-pre-wrap">
+                {engine.compilePacket('web', utterance || '(이번 턴 입력)', 'diagnose_and_propose')}
+              </pre>
+            </div>
+            <div>
+              <Label>모델 응답(ArgusTurn envelope JSON) 직접 반영</Label>
+              <textarea
+                value={envelopeJson}
+                onChange={(e) => setEnvelopeJson(e.target.value)}
+                maxLength={20000}
+                rows={4}
+                placeholder='위 packet을 모델에 주고 받은 envelope JSON을 붙여넣으세요 — {"phase":"understand", ...}'
+                className="w-full resize-none rounded-lg border border-black/[0.08] dark:border-white/[0.1] bg-transparent px-3 py-2.5 font-mono text-[12px] outline-none focus:border-[var(--accent)]/50"
+                disabled={step !== 'coach'}
+              />
+              {step !== 'coach' && <p className="mt-1 text-[11px] text-[var(--text-tertiary)]">점검 단계에서만 반영할 수 있습니다.</p>}
+              {pasteError && <p className="mt-2 text-[13px] text-amber-600 dark:text-amber-400">{pasteError}</p>}
+              <div className="mt-2 flex justify-end">
+                <Btn onClick={pasteEnvelope} disabled={step !== 'coach' || !envelopeJson.trim()}>검증하고 반영</Btn>
+              </div>
+            </div>
+          </div>
+        </details>
+
         {/* footer */}
-        <footer className="flex items-center justify-between pt-2 text-[12px] text-[var(--text-tertiary)]">
-          <span>ledger {engine.ledger.all().length} events · 상태 {state.state}</span>
+        <footer className="flex items-center justify-end pt-2 text-[12px] text-[var(--text-tertiary)]">
           <span className="flex gap-3">
-            <button type="button" onClick={exportJson} className="hover:text-[var(--text-secondary)]">내보내기</button>
-            <button type="button" onClick={resetAll} className="hover:text-[var(--text-secondary)]">폐기</button>
+            <button type="button" onClick={exportJson} className="hover:text-[var(--text-secondary)]">기록 내려받기</button>
+            <button type="button" onClick={resetAll} className="hover:text-[var(--text-secondary)]">전부 삭제</button>
           </span>
         </footer>
       </div>
@@ -623,15 +728,15 @@ function CardRow({ k, v }: { k: string; v: string }) {
   );
 }
 
-function stepSentence(step: FlowStep): number {
+function stepJourney(step: FlowStep): number {
   switch (step) {
-    case 'listen': return 0;
-    case 'baseline': return 1;
-    case 'coach': return 2;
-    case 'acting': return 4;
+    case 'listen':
+    case 'baseline': return 0;
+    case 'coach': return 1;
+    case 'acting': return 2;
     case 'return_observe':
     case 'return_probe':
-    case 'return_reveal': return 5;
+    case 'return_reveal': return 3;
     case 'reviewed': return 3;
   }
 }
