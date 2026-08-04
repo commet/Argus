@@ -35,15 +35,24 @@ When adding a field to any TypeScript interface (e.g., `Persona`, `RecastStep`),
 > rules below remain binding on the currently shipped product until an explicit
 > R4 migration, but they are **not a constraint on R0–R3 method research**.
 > A fresh Track R reviewer must read `docs/ARGUS-METHOD-CONTEXT-2026-08-04.md`
-> for the decision history, then `docs/ARGUS-METHOD-V0.3-2026-08-03.md` for the
-> normative proposal. The context document explains; it does not override v0.3.
-> `docs/ARGUS-METHOD-V0.3-2026-08-03.md` reopens the broad prohibition on
-> directional coaching. The planning-canon replacement is `honest agency`: Argus may
-> actively analyze, challenge, generate alternatives, research, simulate, and
-> make conditional recommendations, while never laundering AI advice into the
-> user's decision or inference into reality. Do not implement that change in a
-> live surface before the R3 evidence gate and the corresponding Blueprint/
-> runtime amendment.
+> for the decision history, then the current method canon for the normative
+> proposal. The context document explains; it does not override the canon.
+> `docs/ARGUS-METHOD-V1.0.md` (STABLE; supersedes v0.1–v0.8) reopens the broad
+> prohibition on directional coaching. The planning-canon replacement is `honest
+> agency`: Argus may actively analyze, challenge, generate alternatives, research,
+> simulate, and make conditional recommendations, while never laundering AI advice
+> into the user's decision or inference into reality. v1.0 reconciles this with
+> the over-fire stress-test evidence below: the fire-or-not gate and the
+> no-verdict-about-the-person rule survive unchanged in every regime; within
+> user-hired decision work, influence is controlled by structure (pre-advice
+> baselines, falsifiable reframes, ledger-checked recommendation grounding, a
+> stakes-by-initiative hierarchy that forbids AI-pushed directional
+> recommendations at major/one-way stakes, observation-first returns, and sealed
+> adoption metrics) — not by provenance tags or disclaimers, which the stress
+> test showed cannot neutralize tilt. R1 (method manual) and R2 (offline
+> harness under `method-harness/`) are authorized; do not implement any of this
+> in a live surface before the R3 evidence gate and the corresponding
+> Blueprint/runtime amendment.
 
 Argus's spine is `maximum generation, zero judgment`. Before shipping any new
 surface, pass it through one gate:

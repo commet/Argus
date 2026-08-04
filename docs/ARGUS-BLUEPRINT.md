@@ -1154,8 +1154,23 @@ writer 제거, Telegram/MCP 공개 wire 변경, 공정 5 progressive 전면 cuto
 
 ### 9.12 트랙 R · Argus 방법론과 제품 방향의 원점 재설계 (2026-08-03 창업자 지시)
 
-방법론의 구현 전 최종 정본:
-`docs/ARGUS-METHOD-V0.3-2026-08-03.md`.
+방법론의 최종 정본:
+`docs/ARGUS-METHOD-V1.0.md` (STABLE — 이후 변경은 R gate 증거 또는 창업자
+지시에 의한 1.x delta로만).
+(v0.1~v0.8은 superseded 이력 문서로 보존한다. v0.6~v0.8은 v1.0에 통합된
+개정 문서다: v0.6 운영 현실·시간, v0.7 적대적 경제학·측정 정직성, v0.8 복리
+구조. 검토 맥락은 `docs/ARGUS-METHOD-CONTEXT-2026-08-04.md`.)
+
+**v1.0 확정 판정 (2026-08-04):** v0.5 이후 세 독립 비판 pass를 통과해 확정.
+핵심 추가: 전역 귀환 예산과 DORMANT 생애주기, 세션 간 재유도 규칙, 한 턴 한
+인지 요구, 감정의 세 지위, stakes×개시주체 추천 위계(pushed×major×one_way
+directional 금지), harness 성능 예산과 degrade ladder, 영향력 측정기의
+Goodhart 방어(봉인), validator 기계/비기계 전수 명세, model 회귀 그물, 빈도
+문제의 명시와 구조적 답(portfolio·MCP·집단 복리), 여섯 문장 문법(보이는 헌법),
+세 겹의 복리 자산(기록·Playbook·method telemetry)과 그 경계, 기각 대안의
+반사실 debrief. **R1(method manual)·R2(offline harness)의 착공을 이 정본이
+승인한다** — 무접촉 경계(기존 공개 UI·DB schema·canonical writer·알림 불변)는
+그대로 유지된다.
 
 설계 과정과 검토 context를 보존하는 비규범 companion:
 `docs/ARGUS-METHOD-CONTEXT-2026-08-04.md`. 이 문서는 v0.3의 권한을 대체하지 않고,
@@ -1183,6 +1198,29 @@ Decision Graph는 저장 정본이 아니라 폐기 가능한 session working mo
 revocable Learning Projection으로 분리한다. 7개 archetype router와 EDQI 유사 점수,
 범용 사용자군은 폐기한다. v1은 창업자·제품 책임자의 제품/시장 결정으로 좁힌다.
 
+**v0.4 개정 판정 (2026-08-03):** v0.3의 수렴은 유지하되, 독립 검토가 확인한
+결함 12건을 고쳐 정본을 v0.4로 교체한다. 핵심 개정: (1) R3-A 단일 세션 비교는
+필요조건으로 강등하고 판정력은 R3-B loop 증거에 둔다 — baseline에는 방법
+카드를 prompt로 받은 일반 AI를 포함한다(제품이 자기 프롬프트를 이겨야 한다).
+(2) fire-gate와 form을 분리해 선행 over-fire 증거와 honest agency를 화해시키고,
+frame 제안에는 반증 조건을 의무화한다 — 영향력은 태그가 아니라 구조로 통제한다.
+(3) 귀환은 관찰 우선(기록 공개 전 관찰·무보조 회상 수집)으로 순서를 확정한다.
+(4) directional 추천의 가치 근거는 validator가 ledger의 user_said/adopted와
+기계 대조하며, 실패 시 reversible로 강등한다. (5) HOLD는 가설당 1회로 제한한다.
+(6) Decision Card에 stakes·confidence 표지·기각 대안·date backstop·lineage를
+추가한다(강제 생성 금지).
+
+**v0.5 종합 판정 (2026-08-03):** v0.1/v0.2 원문이 repo에 보존된 뒤 재검토한
+결과, v0.3의 압축이 실제 자산을 함께 떨어뜨렸음이 확인되어 정본을 v0.5로
+교체한다. v0.4의 열두 수정은 전부 유지하고, v0.1/v0.2에서 다음을 복원한다:
+BASELINE(AI 이전 상태 보존 — 영향력 측정의 제1 도구), 내용 종류별 검증 구분
+(Value/Belief/Forecast/Evidence/Constraint/Alternative/Commitment), return
+portfolio(4종, 하나만 활성, 연쇄), recommendation readiness 3-state와 추천
+4종, 질문의 반사실 branching 검사(envelope로 기계화), prompt stack L0–L6과
+data-not-instructions, turn task 유형화, bounded critic 단일 예외, 확률 opt-in
+4조건, kill-criteria 축소 지도(HOLD의 행동 규칙), 가치 층계, 열린 연구 질문
+표. v0.5 §0.2의 계보 표가 네 판의 기여·한계와 복원 목록의 정본이다.
+
 **단계:**
 
 - **R0 · 방향과 주장:** 대상 사용자, 해결할 문제, 가치 순간, 비목표, 반증 조건.
@@ -1203,6 +1241,11 @@ revocable Learning Projection으로 분리한다. 7개 archetype router와 EDQI 
 **무접촉 경계:** R0~R3는 기획·연구·offline harness·평가 fixture만 소유한다.
 기존 공개 UI, DB schema, canonical writer, MCP/플러그인 명령, 알림 배관을 변경하지
 않는다. 기존 H/F/O 공정의 완료 체크를 R의 근거로 자동 승격하지 않는다.
+**단일 예외 (v0.4 amendment):** R3-B에 한해 초대 전용·비공개·폐기 전제의
+pilot harness(R2 harness + 최소 대화 통로)를 허용한다 — 공개 UI·canonical
+schema·기존 배관·알림은 불변이며, pilot 종료 시 데이터 반출·삭제와 함께
+폐기한다. 이 예외 없이는 R3-B의 실행 수단이 정의되지 않는다는 검토 결론에
+따른 amendment다.
 
 ---
 

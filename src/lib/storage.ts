@@ -67,6 +67,11 @@ export const STORAGE_KEYS = {
   // 목록에서 빼서 무한 재시도를 끝내는 용도. 파생 상태이며 유실되면 다음 거부
   // 때 다시 채워진다 — 사용자 데이터 아님.
   FOREIGN_ROWS: 'sot_foreign_rows',
+  // ARGUS METHOD v1.0 R3-B pilot 채널 (BLUEPRINT §9.12 단일 예외). 초대
+  // 전용·비공개·폐기 전제의 pilot ledger — method-harness의 event 배열을
+  // 이 기기에만 보관한다. pilot 종료 시 반출·삭제가 계약이므로 서버 동기화
+  // 대상이 아니며, 기존 canonical writer·schema를 일절 건드리지 않는다.
+  METHOD_PILOT_LEDGER: 'argus_method_pilot_ledger',
 } as const;
 
 export function getStorage<T>(key: string, fallback: T): T {

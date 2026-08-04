@@ -25,6 +25,7 @@ type Decl = { table: string } | { localOnly: string };
 
 /** 키별 영속성 선언 — 새 키를 추가하면 여기서 결정을 내려야 한다. */
 const CONTRACT: Record<keyof typeof STORAGE_KEYS, Decl> = {
+  METHOD_PILOT_LEDGER: { localOnly: 'R3-B pilot 채널 (BLUEPRINT §9.12 단일 예외) — 초대 전용·폐기 전제 pilot ledger. pilot 종료 시 반출·삭제 계약이므로 서버 동기화 금지' },
   REFRAME_LIST: { table: 'reframe_items' },
   SYNTHESIZE_LIST: { table: 'synthesize_items' },
   RECAST_LIST: { table: 'recast_items' },
