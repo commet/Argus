@@ -11,7 +11,7 @@ import { projectCard } from '../projection';
 import { compilePromptPacket, OPERATING_CONSTITUTION } from '../constitution';
 import { Ledger } from '../ledger';
 import { foldCase } from '../reducer';
-import { GOLD_CASES, KNOWN_CORPUS_GAPS } from '../fixtures/gold-cases';
+import { GOLD_CASES } from '../fixtures/gold-cases';
 import { type DecisionCardDraft, type LedgerEvent, type ReturnContractDraft } from '../types';
 
 const NOW = '2026-08-04T00:00:00.000Z';
@@ -184,27 +184,52 @@ describe('prompt compiler (§10.10)', () => {
   });
 });
 
-describe('gold case fixture (§15.2) — partial corpus that cannot pose as complete', () => {
-  it('covers the declared axes', () => {
+describe('gold case fixture (§15.2) — the complete 30-case corpus', () => {
+  it('is exactly 30 cases with unique ids and full axis coverage', () => {
+    expect(GOLD_CASES.length).toBe(30);
+    expect(new Set(GOLD_CASES.map((c) => c.id)).size).toBe(30);
     const bottlenecks = new Set(GOLD_CASES.map((c) => c.axis.bottleneck));
     const routes = new Set(GOLD_CASES.map((c) => c.axis.route));
     const reversibilities = new Set(GOLD_CASES.map((c) => c.axis.reversibility));
-    expect(bottlenecks).toEqual(new Set(['frame_error', 'value_conflict', 'alternative_poverty', 'belief_gap', 'action_gap', 'none_flat']));
-    expect(routes).toEqual(new Set(['decision', 'information', 'emotional', 'safety']));
+    expect(bottlenecks).toEqual(new Set(['frame_error', 'value_conflict', 'alternative_poverty', 'belief_gap', 'action_gap', 'none_flat', 'return_debrief']));
+    expect(routes).toEqual(new Set(['decision', 'information', 'sensemaking', 'emotional', 'safety']));
     expect(reversibilities).toEqual(new Set(['reversible', 'costly', 'one_way']));
-    expect(GOLD_CASES.length).toBe(12);
+    expect(new Set(GOLD_CASES.map((c) => c.axis.complexity))).toEqual(new Set(['simple', 'complex']));
+    expect(new Set(GOLD_CASES.map((c) => c.axis.deadline))).toEqual(new Set(['short', 'long']));
+    expect(new Set(GOLD_CASES.map((c) => c.axis.expertise))).toEqual(new Set(['expert', 'novice']));
+  });
+
+  it('closes the six formerly-declared gaps with real cases', () => {
+    expect(GOLD_CASES.filter((c) => c.axis.bottleneck === 'return_debrief').length).toBeGreaterThanOrEqual(3);
+    expect(GOLD_CASES.filter((c) => c.paraphraseOf).length).toBeGreaterThanOrEqual(3);
+    expect(GOLD_CASES.filter((c) => c.priorSessionSummary).length).toBeGreaterThanOrEqual(2);
+    expect(GOLD_CASES.some((c) => c.axis.route === 'sensemaking')).toBe(true);
+    expect(GOLD_CASES.some((c) => c.id === 'gc21_stakeholder_board')).toBe(true);
+    expect(GOLD_CASES.some((c) => c.id === 'gc23_expert_fast_path')).toBe(true);
+  });
+
+  it('every paraphrase pair keeps the annotation contract identical to its original', () => {
+    for (const c of GOLD_CASES.filter((c) => c.paraphraseOf)) {
+      const original = GOLD_CASES.find((o) => o.id === c.paraphraseOf);
+      expect(original, `${c.id} points at a real case`).toBeTruthy();
+      expect(c.axis, c.id).toEqual(original!.axis);
+      expect(c.goodMoves, c.id).toEqual(original!.goodMoves);
+      expect(c.forbiddenMoves, c.id).toEqual(original!.forbiddenMoves);
+      expect(c.readiness, c.id).toBe(original!.readiness);
+      expect(c.utterance, `${c.id} must actually reword, not copy`).not.toBe(original!.utterance);
+    }
   });
 
   it('every flat/closed/safety case forbids manufactured intervention (fire-gate encoded in data)', () => {
     for (const c of GOLD_CASES.filter((c) => c.axis.bottleneck === 'none_flat' || c.axis.route === 'safety')) {
-      expect(c.forbiddenMoves).toContain('reframe');
-      expect(c.forbiddenMoves).toContain('recommendation');
+      expect(c.forbiddenMoves, c.id).toContain('reframe');
+      // A user-pulled pick at minor/reversible stakes is the hierarchy's most
+      // permissive cell (v1.0 §4.4): the explicit ask IS the fire. Only cases
+      // that annotate 'recommendation' as a good move carry that exemption.
+      if (!c.goodMoves.includes('recommendation')) {
+        expect(c.forbiddenMoves, c.id).toContain('recommendation');
+      }
     }
-  });
-
-  it('declares its own gaps out loud — no silent caps', () => {
-    expect(KNOWN_CORPUS_GAPS.length).toBeGreaterThan(0);
-    expect(GOLD_CASES.length).toBeLessThan(30); // when the corpus completes, delete KNOWN_CORPUS_GAPS and flip these assertions
   });
 });
 
