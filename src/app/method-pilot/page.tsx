@@ -26,8 +26,39 @@ import {
   type LedgerEvent,
 } from '../../../method-harness/types';
 import { STORAGE_KEYS, getStorage, setStorage } from '@/lib/storage';
+import { callLLMJson } from '@/lib/llm';
 
 const CASE_ID = 'pilot_case';
+
+// ArgusTurn envelope 스키마 지시 — 모델 호출은 페이지(=최소 러너)가 소유한다.
+// 하네스 packet은 방법을, 이 블록은 출력 형태만 지시한다. validator가 최종 심판.
+const ENVELOPE_INSTRUCTION = `위 packet의 방법을 따라 이번 턴을 수행하고, 아래 TypeScript 형태의 ArgusTurn JSON 하나만 출력하세요. 마크다운·설명 없이 { 로 시작해 } 로 끝나는 순수 JSON. 모든 문자열 내용은 한국어로.
+
+{
+  "phase": "understand" | "improve" | "move" | "return",
+  "route": "decision" | "information" | "sensemaking" | "emotional" | "safety",
+  "caseFit": "in_scope" | "light_help" | "out_of_scope" | "safety_route",
+  "primaryMove": {
+    "type": "mirror"|"reframe"|"value_clarification"|"alternative_generation"|"research"|"claim_source_split"|"competing_hypotheses"|"outside_view"|"premortem"|"tradeoff_comparison"|"experiment_design"|"recommendation"|"next_action_concretion"|"deliberate_defer"|"stop",
+    "content": "이번 턴의 한 가지 기여 (2~4문장)",
+    "whyNow": "왜 지금 이것인가 (1문장)",
+    "falsifier": "type이 reframe이면 필수 — 이 재구성이 틀렸음을 보여줄 관찰 가능한 사실"
+  },
+  "question": { "text": "...", "materialEffect": "...", "branches": [{"responseShape":"...","expectedNextMove":"..."}, ...] } (선택 — 답이 다음 수를 실제로 바꿀 때만, 가지 2개 이상),
+  "decisionRecordCandidate": {
+    "question": "결정 질문 (사용자 표현 유지)",
+    "stakes": { "weight": "minor"|"significant"|"major", "reversibility": "reversible"|"costly"|"one_way" },
+    "adoptedState": "decide"|"test"|"research"|"defer"|"reframe"|"stop",
+    "choiceOrPolicy": "제안하는 선택/정책 한 문장",
+    "rationale": { "values": ["..."], "materialBeliefs": [{"belief":"...","confidence":"confident"|"uncertain"|"contested"}], "rejectedAlternative": {"alternative":"...","reason":"..."} },
+    "nextAction": { "action": "...", "owner": "...", "byOrWhen": "..." },
+    "returnContract": { "kind": "commitment", "trigger": {"type":"date","date":"<ISO, 지금+3일>"}, "nextInChain": { "kind":"outcome", "trigger": {"type":"signal","expectedSignal":"...","dateBackstop":"<ISO, 지금+21일>"}, "expectedSignal":"..." } }
+  } (선택 — 결정이 실제로 열려 있을 때만),
+  "claims": [{"text":"...","source":"user"|"ai","authority":"said"|"proposed"|"inferred","citation":"이벤트 id (없으면 생략)"}],
+  "abstentions": ["근거가 없어 비워둔 것"] (선택)
+}
+
+규칙: (user,said)·(ai,proposed)·(ai,inferred)만 유효한 claim 조합. 사용자가 말하지 않은 것을 user로 표시하지 말 것. 평평한 상황이면 primaryMove.type을 "stop" 또는 "mirror"로 하고 카드를 제안하지 말 것.`;
 const now = () => new Date().toISOString();
 const plusDays = (d: number) => new Date(Date.now() + d * 86_400_000).toISOString();
 
@@ -188,7 +219,11 @@ export default function MethodPilotPage() {
   const [loaded, setLoaded] = useState(false);
 
   // inputs
+  const [entryMode, setEntryMode] = useState<'decision' | 'conversation'>('decision');
   const [utterance, setUtterance] = useState('');
+  const [lastTurn, setLastTurn] = useState<ArgusTurn | null>(null);
+  const [liveLoading, setLiveLoading] = useState(false);
+  const [liveError, setLiveError] = useState<string | null>(null);
   const [baselineLean, setBaselineLean] = useState('');
   const [baselineReasons, setBaselineReasons] = useState('');
   const [envelopeJson, setEnvelopeJson] = useState('');
@@ -271,9 +306,29 @@ export default function MethodPilotPage() {
     const result = engine.receiveTurn(turn, now());
     persist();
     setView(renderTurn(result, engine.state()));
+    setLastTurn(result.turn);
     if (result.ok && result.turn.decisionRecordCandidate) {
       setPendingCard(result.turn.decisionRecordCandidate);
       setEditChoice(result.turn.decisionRecordCandidate.choiceOrPolicy);
+    }
+  };
+
+  // 실모델 점검 — 기존 LLM 설정(프록시 또는 본인 키)을 그대로 탄다. 실패하면
+  // 정직하게 이유를 보여주고 예시 응답 경로를 남긴다 (조용한 대체 없음).
+  const runLive = async () => {
+    setLiveError(null);
+    setLiveLoading(true);
+    try {
+      const packet = engine.compilePacket('web', utterance || '(이번 턴 입력)', 'diagnose_and_propose');
+      const turn = await callLLMJson<ArgusTurn>(
+        [{ role: 'user', content: ENVELOPE_INSTRUCTION }],
+        { system: packet, maxTokens: 3000 },
+      );
+      applyTurn(turn);
+    } catch (e) {
+      setLiveError(e instanceof Error ? e.message : 'AI 호출에 실패했습니다.');
+    } finally {
+      setLiveLoading(false);
     }
   };
 
@@ -403,16 +458,45 @@ export default function MethodPilotPage() {
           </ol>
         </header>
 
-        {/* STEP 1 — 결정을 기록 */}
+        {/* STEP 1 — 결정을 기록 (직접 쓰기 또는 이미 있는 AI 대화 붙여넣기) */}
         {step === 'listen' && (
           <Panel>
-            <Label>지금 앞에 있는 결정</Label>
+            <div className="mb-3 flex gap-1.5 text-[12px]">
+              <button
+                type="button"
+                onClick={() => setEntryMode('decision')}
+                className={`rounded-full px-3 py-1.5 transition-colors ${entryMode === 'decision' ? 'bg-[var(--accent)]/[0.12] text-[var(--accent)] font-medium' : 'text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]'}`}
+              >
+                결정 적기
+              </button>
+              <button
+                type="button"
+                onClick={() => setEntryMode('conversation')}
+                className={`rounded-full px-3 py-1.5 transition-colors ${entryMode === 'conversation' ? 'bg-[var(--accent)]/[0.12] text-[var(--accent)] font-medium' : 'text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]'}`}
+              >
+                AI 대화 붙여넣기
+              </button>
+            </div>
+            {entryMode === 'conversation' ? (
+              <>
+                <Label>방금 AI와 나눈 대화, 결정은 누가 한 걸까요?</Label>
+                <p className="text-[13px] text-[var(--text-secondary)] mb-2 leading-relaxed">
+                  ChatGPT·Claude와 나눈 대화를 그대로 붙여넣으세요. 어디까지가 당신 생각이고 어디부터가 AI 생각인지, 바로 나눠서 보여드립니다.
+                </p>
+              </>
+            ) : (
+              <Label>지금 앞에 있는 결정</Label>
+            )}
             <textarea
               value={utterance}
               onChange={(e) => setUtterance(e.target.value)}
-              maxLength={2000}
-              rows={5}
-              placeholder="평소 말투 그대로 적어 주세요. 마음이 기운 쪽이 있다면 그것도요. (예: 새 온보딩을 다듬어서 다음 달에 열지, 지금 일부에게 먼저 열지 고민이야)"
+              maxLength={entryMode === 'conversation' ? 20000 : 2000}
+              rows={entryMode === 'conversation' ? 8 : 5}
+              placeholder={
+                entryMode === 'conversation'
+                  ? '대화 전체를 복사해서 붙여넣으세요 — 편집하지 않아도 됩니다.'
+                  : '평소 말투 그대로 적어 주세요. 마음이 기운 쪽이 있다면 그것도요. (예: 새 온보딩을 다듬어서 다음 달에 열지, 지금 일부에게 먼저 열지 고민이야)'
+              }
               className="w-full resize-none rounded-lg border border-black/[0.08] dark:border-white/[0.1] bg-transparent px-4 py-3 text-[15px] leading-relaxed outline-none focus:border-[var(--accent)]/50"
             />
             <div className="mt-3 flex justify-end">
@@ -456,12 +540,16 @@ export default function MethodPilotPage() {
                   조언을 쏟아내지 않습니다. 지금 이 결정에서 가장 무게가 실리는 한 지점만 짚고,
                   그 짚기가 틀렸다면 언제 틀린 것인지도 함께 말합니다. 마지막 선택은 언제나 당신이 합니다.
                 </p>
-                <div className="flex justify-end">
-                  <Btn onClick={runDemo}>점검 받기 (예시 응답)</Btn>
+                {liveError && (
+                  <p className="mb-3 rounded-lg bg-amber-500/[0.08] px-3 py-2 text-[12px] leading-relaxed text-amber-700 dark:text-amber-400">
+                    AI 연결 실패: {liveError}
+                    <br />설정에서 AI 연결을 확인하거나, 예시 응답으로 흐름을 먼저 볼 수 있습니다.
+                  </p>
+                )}
+                <div className="flex items-center justify-end gap-2">
+                  {liveError && <Btn kind="ghost" onClick={runDemo}>예시 응답으로 보기</Btn>}
+                  <Btn onClick={runLive} disabled={liveLoading}>{liveLoading ? '점검 중… 몇 초 걸립니다' : '점검 받기'}</Btn>
                 </div>
-                <p className="mt-3 text-[11px] text-[var(--text-tertiary)] leading-relaxed">
-                  초대판에는 모델이 연결되어 있지 않아 예시 응답으로 흐름을 보여드립니다. 실제 모델 연결은 아래 엔지니어 패널에서.
-                </p>
               </Panel>
             )}
 
@@ -480,6 +568,42 @@ export default function MethodPilotPage() {
                   </Panel>
                 ))}
               </div>
+            )}
+
+            {view && lastTurn && (
+              <Panel>
+                <Label>저자 구분 — 지금까지 누가 무엇을 말했나</Label>
+                <div className="space-y-3 text-[13px] leading-relaxed">
+                  <div>
+                    <p className="font-medium text-[var(--text-primary,inherit)] mb-1">당신에게서 온 것</p>
+                    {state.baseline && state.baseline !== 'not_captured' && state.baseline.lean !== 'none_stated' && (
+                      <p className="text-[var(--text-secondary)]">기울기: {state.baseline.lean}</p>
+                    )}
+                    {lastTurn.claims.filter((c) => c.source === 'user').map((c, i) => (
+                      <p key={i} className="text-[var(--text-secondary)]">&ldquo;{c.text}&rdquo;</p>
+                    ))}
+                    {(!state.baseline || state.baseline === 'not_captured' || state.baseline.lean === 'none_stated') &&
+                      lastTurn.claims.filter((c) => c.source === 'user').length === 0 && (
+                        <p className="text-[var(--text-tertiary)]">아직 기울기 없이 시작했습니다 — 그것도 정직한 출발점입니다.</p>
+                      )}
+                  </div>
+                  <div>
+                    <p className="font-medium text-[var(--text-primary,inherit)] mb-1">AI가 얹은 것 (제안일 뿐)</p>
+                    <p className="text-[var(--text-secondary)]">{lastTurn.primaryMove.content}</p>
+                    {lastTurn.claims.filter((c) => c.source === 'ai').map((c, i) => (
+                      <p key={i} className="text-[var(--text-secondary)]">{c.text}</p>
+                    ))}
+                  </div>
+                  <div>
+                    <p className="font-medium text-[var(--text-primary,inherit)] mb-1">아직 아무도 정하지 않은 것</p>
+                    <p className="text-[var(--text-secondary)]">
+                      {pendingCard
+                        ? '아래 카드는 후보입니다 — 당신이 남겨야 당신의 결정이 됩니다.'
+                        : '이번 턴에는 결정 후보가 없습니다. 결정은 열려 있습니다.'}
+                    </p>
+                  </div>
+                </div>
+              </Panel>
             )}
 
             {pendingCard && (
