@@ -1183,7 +1183,7 @@ Goodhart 방어(봉인), validator 기계/비기계 전수 명세, model 회귀 
 | `ARGUS-METHOD-V1.0.md` | STABLE 정본 | 방법 — 규범의 최종 권위 |
 | `ARGUS-R3A-MEASUREMENT-CONTRACT-2026-08-04.md` | SEALED | 측정 — probe 문안·임계·판정선. 첫 run 이후 소급 수정 불가 |
 | `ARGUS-R3B-INTERVIEW-SCRIPT-2026-08-04.md` | SEALED | 사람에게 묻는 절차와 사전 등록된 판정표 |
-| `ARGUS-PRODUCT-PLAN-2026-08-05.md` | DRAFT | 제품 형태 — 방법을 어떤 형태로 시장에 내보낼지 |
+| `ARGUS-PRODUCT-PLAN-2026-08-05.md` | FINAL CANDIDATE | 제품 형태와 R 트랙 일정 — **R 트랙 작업의 순서는 이 문서 §6이 정본이며, 본 BLUEPRINT §6 공정표는 기존 제품 유지보수에만 적용된다** (2026-08-05 창업자 질의에 따른 명시) |
 | `ARGUS-METHOD-CONTEXT-2026-08-04.md` | 비규범 | 결정 이력 (설명일 뿐 정본을 이기지 못함) |
 | `ARGUS-R2-HARNESS-BLUEPRINT`, `ARGUS-R2-IMPLEMENTATION-REVIEW`, `ARGUS-ONE-PAGE-CARD` | 산출물 | R2 하네스 설계·리뷰, R1 facilitator 카드 |
 
