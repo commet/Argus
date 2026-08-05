@@ -1,5 +1,40 @@
 # Argus — Development Guidelines
 
+## Commands
+
+```bash
+npm test                  # vitest run (전체) · npm test -- <경로>로 좁힌다
+npx tsc --noEmit          # 타입 체크 (CI의 check 잡이 돌리는 것과 동일)
+npm run lint              # eslint src --max-warnings=145 (임계 초과 시 실패)
+npm run dev               # next dev — predev가 argus-mcp를 먼저 빌드한다
+npm run build             # next build (prebuild도 kernel:build 경유)
+```
+
+게이트·검증:
+
+```bash
+npm run preflight:dogfood # 배포 전 전체 관문 (build+test+lint+gates+eval+plugin 검증)
+npm run gates             # 플러그인 gate 검증      npm run eval:static  # 정적 eval
+npm run experience:web    # 실브라우저 워크스루 (샌드박스 chromium 경로 자동 처리)
+npm run dogfood           # 커널 도그푸드 러너      npm run e2e:loop     # 결정 루프 E2E
+```
+
+- PR을 막는 것은 CI의 **check** 잡 = typecheck + `npm test` + lint. 로컬에서 이 셋을
+  통과시키고 올린다. 나머지 스크립트는 `package.json` 참조.
+- **웹앱은 Supabase 환경변수 없이 로컬 기동하면 `/[locale]` 경로가 500이다.** 키 없는
+  환경에서 UI를 확인해야 하면 localStorage-only 화면(`/method-pilot`)만 뜬다 — 코드
+  결함으로 오진하지 말 것.
+
+## 저장소 지도
+
+| 경로 | 무엇 | 라이선스 존 |
+|---|---|---|
+| `src/` | Next.js 16 앱 (App Router, `[locale]` 라우팅은 `src/proxy.ts`가 처리) | 앱 |
+| `src/lib/__tests__/` | **가드 테스트가 사는 곳** — 아래 원칙들을 기계로 강제 | 앱 |
+| `method-harness/` | Track R 오프라인 하네스. `src/`와 상호 import 금지 (테스트가 차단) | 앱 |
+| `docs/` | 정본 문서 (BLUEPRINT = 빌드 순서, ARGUS-METHOD-V1.0 = 방법 정본) | — |
+| `argus-mcp/`, `argus-plugin-v2/` | MIT 존 — **PR은 앱 존과 섞지 않는다** | MIT |
+
 ## 빌드 정본 (모든 세션의 첫 규칙, 2026-07-07)
 
 빌드 순서의 정본은 `docs/ARGUS-BLUEPRINT.md`다. 세션 시작 시 그 문서의
@@ -18,14 +53,13 @@ EVIDENCE 맵 갱신과 함께만 (개수·파일 실존을 CI가 대조). 시공
 
 When adding a field to any TypeScript interface (e.g., `Persona`, `RecastStep`), check ALL of these:
 
-1. **Type definition** (`stores/types.ts`) — add the field
+1. **Type definition** (`src/stores/types.ts`) — add the field
 2. **Store creator** (e.g., `createPersona()` in `usePersonaStore.ts`) — map the field explicitly
 3. **Store defaults** (e.g., `DEFAULT_PERSONAS`) — include the field with a realistic value
-4. **Supabase table** — add the column via `apply_migration`
-5. **All prompts that use this type** — update every system prompt that injects this data
-   - `PersonaFeedbackStep.tsx` FEEDBACK_SYSTEM
-   - `RefinementLoopStep.tsx` re-review prompt
-   - `RecastStep.tsx` SYSTEM_PROMPT
+4. **Supabase table** — add the column via `apply_migration` (아래 Schema Sync 규약)
+5. **All prompts that use this type** — 프롬프트 위치는 리팩터링으로 계속 움직인다.
+   파일명을 외우지 말고 그때그때 찾는다:
+   `grep -rn "SYSTEM_PROMPT\|SystemPrompt\|<user-data>" src/lib src/components`
 6. **UI that displays this type** — update cards, forms, detail views
 7. **Handoff/conversion functions** — `autoPersonaToFull()`, `buildDecomposeContext()`, etc.
 
@@ -82,28 +116,24 @@ Invariant design notes, kept privately):
    intervene* in the user's stead.** A surface over-fires when it manufactures a
    fork on a genuinely flat decision, runs ceremony on a low-stakes/reversible
    one, reopens a decision the user already closed, or pushes engagement when
-   "stay / do nothing" is the right answer. The default must be *restraint*
-   (name at most one load-bearing assumption + return the handle), not a weighted
-   two-pole fork — never emit an engine-weighted pole to the user. Rationale and
-   evidence: the 4-round engine stress test
-   (`internal design notes`) found a find-the-leverage
-   engine over-fires on 60% of flat cases and tilts forks in ways `ai_surfaced`
-   tagging cannot neutralize. Honest provenance is necessary but **not** sufficient.
-   **Refinement (rounds 5–8, `internal design notes`):**
-   the restraint default *works* — flipping to an under-fire default killed flat
-   over-fire (60%→0%) and the redesign halved total harm vs the old engine
-   (11→6) — so the fix is real, but two rules fall out of it. (a) **Firing form =
-   a bare neutral crux *question*, never a directional statement, never a
-   two-pole fork, and NEVER a disclaimed lean** ("this leans toward X, but it's
-   not my verdict" still tested as a spine violation — you cannot launder a
-   verdict by tagging it; per-output tilt-tagging makes the violation *worse*).
-   (b) The *fire-or-not* gate must run **before** the form — a crux-question
-   template left as the default will manufacture a question on a flat case. The
-   residual lean that survives all of this is irreducible (`value ∝ leverage ∝
-   tilt`: the highest-leverage assumption is the one that most points at the
-   flip) — so `zero judgment` is an **asymptote you approach and disclose at the
-   product level**, not a state you claim. Never write "we don't judge"; write
-   "we surface the one question, and name the faint lean as a known limit."
+   "stay / do nothing" is the right answer. Three rules follow:
+   - **Default = restraint.** Name at most one load-bearing assumption and return
+     the handle. Never emit an engine-weighted pole to the user.
+   - **Firing form = a bare neutral crux *question*.** Never a directional
+     statement, never a two-pole fork, and **never a disclaimed lean** ("this
+     leans toward X, but it's not my verdict" tested as a spine violation — you
+     cannot launder a verdict by tagging it; per-output tilt-tagging makes it
+     *worse*). Honest provenance is necessary but **not** sufficient.
+   - **The fire-or-not gate runs BEFORE the form.** A crux-question template left
+     as the default will manufacture a question on a flat case.
+
+   The residual lean that survives all of this is irreducible (`value ∝ leverage
+   ∝ tilt`) — so `zero judgment` is an **asymptote you approach and disclose at
+   the product level**, not a state you claim. Never write "we don't judge";
+   write "we surface the one question, and name the faint lean as a known limit."
+   (Evidence: the 8-round engine stress test — flat-case over-fire 60%→0% under a
+   restraint default, total harm 11→6. Numbers live in the internal design notes,
+   not here.)
 
 ## Principle: Honest Structure over Plausible Fabrication (the LLM-glue invariant, 2026-07-05 근원 분석)
 
@@ -155,11 +185,11 @@ no-bidder escalation, DAG/topological scheduling, classification **abstention**
 Never copy-paste a system prompt to a second location. Extract it to a shared
 function in a lib file so the two surfaces can't drift.
 
-Resolved: the former `FEEDBACK_SYSTEM` duplication (PersonaFeedbackStep /
-RefinementLoopStep) is centralized in `src/lib/persona-prompt.ts`
-(`buildFeedbackSystemPrompt`). The positive pattern to copy: `reframeSystemPrompt()`
-(`src/lib/reframe-core.ts`) is the single brain shared by the web ReframeStep AND
-the Telegram bot, so it can't drift.
+The positive pattern to copy: `reframeSystemPrompt()` (`src/lib/reframe-core.ts`)
+is the single brain shared by the web ReframeStep AND the Telegram bot, so it
+can't drift. `src/lib/persona-prompt.ts` (`buildFeedbackSystemPrompt`)는 같은
+방식으로 중앙화된 페르소나 프롬프트다 — 현재 직접 소비자는 테스트뿐이므로,
+페르소나 피드백 표면을 다시 열 때 새로 쓰지 말고 이것을 부른다.
 
 Deliberate NON-violation (do not "fix" this): `recastSystemPrompt()`
 (`src/lib/recast-core.ts`) and `RecastStep.tsx`'s prompt look like duplicates but
@@ -242,11 +272,16 @@ SELECT column_name FROM information_schema.columns WHERE table_name = 'TABLE_NAM
 
 ## Architecture Notes
 
-- **localStorage first, Supabase async** — app works offline, syncs when connected
+- **localStorage first, Supabase async** — app works offline, syncs when connected.
+  이것이 아래 Persistence·Schema Sync 규약이 존재하는 이유다: 로컬만 읽는 UI는
+  서버에 데이터가 안 닿아도 멀쩡해 보인다.
 - **Zustand stores** — each store has loadData (merge local+remote), mutation methods
 - **Context chain** — typed data flows: decompose → recast → persona-feedback → refinement
 - **Quality signals** — `signal-recorder.ts` records implicit user behavior for learning
 - **Handoff store** — transient data between steps, consumed on mount via `useEffect([], [])`
+- **Track R (`method-harness/`)** — 이벤트 소싱 원장 + 결정론 validator. `src/`와
+  무접촉이 원칙이며, 유일한 예외는 `src/app/method-pilot/`(R3-B 파일럿 통로)다.
+  이 경계는 `method-harness/__tests__/harness.test.ts`가 기계로 지킨다.
 
 ## LLM Prompt Injection Guidelines
 
