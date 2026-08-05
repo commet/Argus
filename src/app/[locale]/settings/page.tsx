@@ -1312,6 +1312,15 @@ function PluginTokenBlock({ locale }: { locale: string }) {
       <div className="flex items-center justify-between gap-3">
         <div>
           <p className="text-[12px] text-[var(--text-secondary)]">{L('플러그인: /argus:settings connect 후 /argus:settings sync. MCP: 아래 ARGUS_TOKEN을 설정에 넣으면 기록한 예측의 확인 알림을 이메일과 대시보드에서 받을 수 있어요.', 'Plugin: run /argus:settings connect, then /argus:settings sync. MCP: add the ARGUS_TOKEN below to receive check-in reminders for recorded predictions by email and in the dashboard.')}</p>
+          {/* 원격 커넥터(Claude 등)는 토큰을 손으로 옮기지 않는다 — 연결 버튼 한 번이다.
+              안내 페이지가 어디서도 링크되지 않으면 지어 놓고 아무도 못 찾는다. */}
+          <p className="text-[12px] text-[var(--text-secondary)] mt-1.5">
+            {L('Claude 같은 AI에 바로 연결하려면 ', 'To connect an AI like Claude directly, ')}
+            <a href={`/${locale}/connect`} className="underline text-[var(--accent)] hover:opacity-80">
+              {L('연결 안내', 'see the connect guide')}
+            </a>
+            {L(' — 토큰을 복사할 필요가 없습니다.', ' — no token copying needed.')}
+          </p>
         </div>
         <Button variant="secondary" size="sm" onClick={issue} disabled={busy}>
           {busy ? <Loader2 size={14} className="animate-spin" /> : <KeyRound size={14} />} {L('새 토큰 발급', 'Issue token')}

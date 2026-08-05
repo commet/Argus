@@ -108,6 +108,13 @@ export default function ConnectGuidePage() {
               '· You can revoke the connection in Settings; access ends immediately.',
             )}
           </li>
+          {/* 문장이 아니라 발급되는 토큰에 새겨진 사실이다 (plugin-token-auth.ts). */}
+          <li>
+            {L(
+              '· 이 연결이 받는 권한은 결정 기록뿐입니다 — 터미널 플러그인 쪽 계정 데이터에는 닿지 않습니다.',
+              '· The connection is scoped to decisions only — it cannot reach your terminal plugin data.',
+            )}
+          </li>
         </ul>
       </div>
     </div>
