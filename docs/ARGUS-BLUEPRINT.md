@@ -1176,6 +1176,19 @@ Goodhart 방어(봉인), validator 기계/비기계 전수 명세, model 회귀 
 `docs/ARGUS-METHOD-CONTEXT-2026-08-04.md`. 이 문서는 v0.3의 권한을 대체하지 않고,
 처음 읽는 사람과 AI가 출발점·버린 선택지·이론적 한계·미해결 가설을 복원하게 한다.
 
+**이 트랙에 등록된 문서 (창업자 승인, 정본 위계 순):**
+
+| 문서 | 지위 | 무엇을 정하나 |
+|---|---|---|
+| `ARGUS-METHOD-V1.0.md` | STABLE 정본 | 방법 — 규범의 최종 권위 |
+| `ARGUS-R3A-MEASUREMENT-CONTRACT-2026-08-04.md` | SEALED | 측정 — probe 문안·임계·판정선. 첫 run 이후 소급 수정 불가 |
+| `ARGUS-R3B-INTERVIEW-SCRIPT-2026-08-04.md` | SEALED | 사람에게 묻는 절차와 사전 등록된 판정표 |
+| `ARGUS-PRODUCT-PLAN-2026-08-05.md` | DRAFT | 제품 형태 — 방법을 어떤 형태로 시장에 내보낼지 |
+| `ARGUS-METHOD-CONTEXT-2026-08-04.md` | 비규범 | 결정 이력 (설명일 뿐 정본을 이기지 못함) |
+| `ARGUS-R2-HARNESS-BLUEPRINT`, `ARGUS-R2-IMPLEMENTATION-REVIEW`, `ARGUS-ONE-PAGE-CARD` | 산출물 | R2 하네스 설계·리뷰, R1 facilitator 카드 |
+
+새 문서는 이 표에 등록하지 않으면 §8 대기 목록 규칙 위반이다.
+
 창업자 지시에 따라 기존 구현·스키마·화면을 전제로 삼지 않고 Argus의 방향을
 다시 설계한다. 이 트랙의 목표는 빠른 기능 추가가 아니라, 능동적 코칭·결정 실행·
 현실 귀환·반복 학습이 하나의 검증 가능한 방법이 되도록 만드는 것이다.
