@@ -20,8 +20,17 @@ npm run experience:web:selftest # 브라우저 엔진 자체검사 — 로컬 �
 ARGUS_BASE_URL=http://localhost:3000 npm run e2e:loop   # 결정 루프 E2E
 ```
 
-- PR을 막는 것은 CI의 **check** 잡 = typecheck + `npm test` + lint. 로컬에서 이 셋을
-  통과시키고 올린다. 나머지 스크립트는 `package.json` 참조.
+- PR을 막는 것은 CI의 **check** 잡이고, 그 잡은 위 셋보다 훨씬 넓다:
+  argus-mcp 패키지(빌드·타입·타르볼 E2E·호스트 적합성)와 argus-plugin-v2
+  게이트 20여 개까지 같이 돈다. 앱 쪽 스텝만 로컬과 대응된다.
+  - CI: `npx tsc --noEmit` · `npx eslint src/` · **`npx vitest run --coverage`**
+  - **CI의 테스트는 커버리지 ratchet이 걸려 있다** (`vitest.config.ts` thresholds:
+    lines 30 / stmts 29 / funcs 24 / branches 22). `npm test`는 커버리지를 안 재므로
+    **로컬 초록 → CI 빨강**이 가능하다. 커버리지를 낮출 만한 변경(테스트 없는 큰
+    파일 추가 등)은 `npx vitest run --coverage`로 먼저 확인한다.
+  - lint는 반대로 로컬이 더 엄하다 (로컬 `--max-warnings=145`, CI는 무제한).
+  - argus-mcp / argus-plugin-v2를 건드렸다면 로컬 `npm test`로는 아무것도 검증되지
+    않는다 — 그 존은 자체 하네스를 갖고 있고 CI에서만 돈다.
 - **`e2e:loop`·`e2e:surfaces`는 기본 대상이 프로덕션(`https://argus.voyage`)이다.**
   `ARGUS_BASE_URL`을 주지 않으면 로컬 변경분이 아니라 배포본을 검사한다. 클라우드
   세션에서는 외부 접속이 막혀 `ERR_TUNNEL_CONNECTION_FAILED`로 죽는다 — 앱 결함이
@@ -38,7 +47,7 @@ ARGUS_BASE_URL=http://localhost:3000 npm run e2e:loop   # 결정 루프 E2E
 | 경로 | 무엇 | 라이선스 존 |
 |---|---|---|
 | `src/` | Next.js 16 앱 (App Router, `[locale]` 라우팅은 `src/proxy.ts`가 처리) | 앱 |
-| `src/lib/__tests__/` | **가드 테스트가 사는 곳** — 아래 원칙들을 기계로 강제 | 앱 |
+| `src/lib/__tests__/` | **가드 테스트 276개** — 아래 원칙 대부분을 기계로 강제 | 앱 |
 | `method-harness/` | Track R 오프라인 하네스. `src/`와 상호 import 금지 (테스트가 차단) | 앱 |
 | `docs/` | 정본 문서 (BLUEPRINT = 빌드 순서, ARGUS-METHOD-V1.0 = 방법 정본) | — |
 | `argus-mcp/`, `argus-plugin-v2/` | MIT 존 — **PR은 앱 존과 섞지 않는다** | MIT |
