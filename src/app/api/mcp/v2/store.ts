@@ -72,12 +72,29 @@ export async function persistNewEvents(
   return fresh.length;
 }
 
+// upsert 를 쓰지 않는 이유: `onConflict: 'id'` 는 소유자를 조건에 걸 수 없어서,
+// 남의 case_id 로 부르면 그 행의 `user_id` 를 **덮어써서 가져간다**. 지금은
+// caseId 를 서버가 만들고 다른 핸들러가 먼저 원장으로 막기 때문에 도달 불가능한
+// 경로지만, 그 안전이 이 함수 바깥의 불변식에 기대고 있다. 여기서 잠근다:
+// 갱신은 소유자 조건으로만, 그리고 남의 행이면 PK 충돌로 **크게 실패한다**.
 export async function upsertCase(userId: string, caseId: string, title: string, state: string): Promise<void> {
   const admin = adminClient();
-  const { error } = await admin
+  const updated_at = new Date().toISOString();
+
+  const { data: touched, error: updateError } = await admin
     .from('argus_cases')
-    .upsert({ id: caseId, user_id: userId, title, state, updated_at: new Date().toISOString() }, { onConflict: 'id' });
-  if (error) throw new Error(`case upsert failed: ${error.message}`);
+    .update({ title, state, updated_at })
+    .eq('id', caseId)
+    .eq('user_id', userId)
+    .select('id')
+    .maybeSingle();
+  if (updateError) throw new Error(`case update failed: ${updateError.message}`);
+  if (touched) return;
+
+  const { error: insertError } = await admin
+    .from('argus_cases')
+    .insert({ id: caseId, user_id: userId, title, state, updated_at });
+  if (insertError) throw new Error(`case insert failed: ${insertError.message}`);
 }
 
 // 귀환 계약을 크론이 읽을 수 있는 자리에 둔다. 계획의 마일스톤이 여기로 온다.
