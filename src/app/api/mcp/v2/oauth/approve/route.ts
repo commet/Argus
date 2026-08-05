@@ -46,13 +46,21 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'invalid_request' }, { status: 400 });
   }
 
-  const admin = adminClient();
-  const { data } = await admin
-    .from('argus_oauth_clients')
-    .select('client_id, client_name, redirect_uris')
-    .eq('client_id', clientId)
-    .maybeSingle();
-  const client = data as ClientRow | null;
+  let admin: ReturnType<typeof adminClient>;
+  let client: ClientRow | null;
+  try {
+    admin = adminClient();
+    const { data, error } = await admin
+      .from('argus_oauth_clients')
+      .select('client_id, client_name, redirect_uris')
+      .eq('client_id', clientId)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    client = data as ClientRow | null;
+  } catch (e) {
+    console.error('[mcp/v2/oauth/approve] client lookup failed:', e);
+    return NextResponse.json({ error: 'temporarily_unavailable' }, { status: 503 });
+  }
   // 동의 화면의 URL 은 사용자가 고칠 수 있다. 그러므로 authorize 에서 한 검사를
   // **여기서 다시 한다** — 앞 화면의 검사를 방어로 믿으면 그 URL 을 손보는 것만으로
   // 등록되지 않은 곳으로 코드가 간다.

@@ -58,14 +58,18 @@ export async function POST(req: NextRequest) {
   const clientId = randomCode('argus_client_', 16);
   const clientName = safeName(body.client_name);
 
-  const { error } = await adminClient().from('argus_oauth_clients').insert({
-    client_id: clientId,
-    client_name: clientName,
-    redirect_uris: redirectUris,
-    token_endpoint_auth_method: 'none',
-  });
-  if (error) {
-    console.error('[mcp/v2/oauth/register] insert failed:', error.message);
+  try {
+    const { error } = await adminClient().from('argus_oauth_clients').insert({
+      client_id: clientId,
+      client_name: clientName,
+      redirect_uris: redirectUris,
+      token_endpoint_auth_method: 'none',
+    });
+    if (error) throw new Error(error.message);
+  } catch (e) {
+    // adminClient() 자체가 던질 수 있다(설정 누락). 던진 것을 그대로 새어 나가게
+    // 두면 클라이언트는 사양 밖의 500을 받고 OAuth 오류로 해석하지 못한다.
+    console.error('[mcp/v2/oauth/register] insert failed:', e);
     return err('temporarily_unavailable', 'could not register client', 503);
   }
 

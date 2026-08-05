@@ -36,12 +36,23 @@ export async function GET(req: NextRequest) {
   if (!clientId) return plainError('client_id 가 없습니다. 먼저 동적 등록(/api/mcp/v2/oauth/register)을 거쳐야 합니다.');
   if (!redirectUri) return plainError('redirect_uri 가 없습니다.');
 
-  const { data } = await adminClient()
-    .from('argus_oauth_clients')
-    .select('client_id, client_name, redirect_uris')
-    .eq('client_id', clientId)
-    .maybeSingle();
-  const client = data as ClientRow | null;
+  // 저장소가 죽었을 때 브라우저에 빈 500을 주면, 사용자는 커넥터 설정 화면에서
+  // "설정 실패"만 보고 무엇이 틀렸는지 영영 모른다. 이 화면은 **사람이 읽는**
+  // 유일한 지점이므로 여기서 삼키지 말고 사람의 문장으로 끝낸다.
+  // (2026-08-05 로컬 실행에서 발견 — 키 없는 환경에서 blank 500 이었다.)
+  let client: ClientRow | null;
+  try {
+    const { data, error } = await adminClient()
+      .from('argus_oauth_clients')
+      .select('client_id, client_name, redirect_uris')
+      .eq('client_id', clientId)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    client = data as ClientRow | null;
+  } catch (e) {
+    console.error('[mcp/v2/oauth/authorize] client lookup failed:', e);
+    return plainError('지금은 연결 정보를 확인할 수 없습니다. 잠시 뒤 다시 시도해 주세요.', 503);
+  }
   if (!client) return plainError('등록되지 않은 client_id 입니다. 커넥터를 지우고 다시 추가해 주세요.');
   if (!redirectUriRegistered(client, redirectUri)) {
     return plainError('redirect_uri 가 이 클라이언트에 등록된 것과 정확히 일치하지 않습니다.');

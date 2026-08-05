@@ -60,13 +60,25 @@ export async function POST(req: NextRequest) {
   if (code.length < 30 || code.length > 200) return oauthError('invalid_grant');
   if (!isPkce(params.code_verifier)) return oauthError('invalid_grant', 400, 'code_verifier missing or malformed');
 
-  const admin = adminClient();
-  const { data, error } = await admin
-    .from('argus_oauth_grants')
-    .select('id, client_id, user_id, code_challenge, redirect_uri, scope, status, expires_at')
-    .eq('code_hash', sha256(code))
-    .maybeSingle();
-  if (error || !data) return oauthError('invalid_grant');
+  let admin: ReturnType<typeof adminClient>;
+  let data: unknown;
+  try {
+    admin = adminClient();
+    const res = await admin
+      .from('argus_oauth_grants')
+      .select('id, client_id, user_id, code_challenge, redirect_uri, scope, status, expires_at')
+      .eq('code_hash', sha256(code))
+      .maybeSingle();
+    // 조회 오류와 "그런 코드 없음"을 구분한다. 저장소 장애를 invalid_grant 로
+    // 돌려주면 클라이언트는 코드를 버리고 흐름을 처음부터 다시 돌리는데,
+    // 그래도 여전히 실패한다 — 원인이 코드가 아니기 때문이다.
+    if (res.error) throw new Error(res.error.message);
+    data = res.data;
+  } catch (e) {
+    console.error('[mcp/v2/oauth/token] grant lookup failed:', e);
+    return oauthError('temporarily_unavailable', 503);
+  }
+  if (!data) return oauthError('invalid_grant');
 
   const grant = data as {
     id: string;

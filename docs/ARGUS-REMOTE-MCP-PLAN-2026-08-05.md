@@ -258,6 +258,29 @@ MCP 서버는 먼저 말을 걸 수 없다는 제약은 사실이지만, 놓친 
 이제 성공 응답 끝에 최대 2건까지 붙는다(자제 규칙). 이메일은 채팅으로 다시
 돌아오지 않는 사람을 위해 남긴다.
 
+**5주차 실측 (로컬 서버 기동 후 curl — 추측이 아니라 응답 본문):**
+
+| 무엇 | 결과 |
+|---|---|
+| `/.well-known/oauth-protected-resource` (+ `/api/mcp/v2` 변형) | 200, 같은 문서 |
+| `/.well-known/oauth-authorization-server` (+ 변형) | 200, 세 엔드포인트가 실재 경로를 가리킴 |
+| `POST /api/mcp/v2` 무인증 | 401 + `WWW-Authenticate: Bearer realm="argus", resource_metadata=…` |
+| `GET /api/mcp/v2` | 405 + `Allow: POST` |
+| `register` — 평문 http redirect_uri | 400 `invalid_redirect_uri` |
+| `register` — `client_secret_post` 요구 | 400 `invalid_client_metadata` (공개 클라이언트만) |
+| `token` — form-encoded 파싱 | 사양 형식을 실제로 읽음 (`grant_type` 인식 확인) |
+| `token` — PKCE 없는 교환 | 400 `invalid_grant` |
+| `authorize` — client_id 없음 / 미등록 | 사람이 읽는 400 / 503 |
+| locale 없는 `/connect/mcp?…` | 307, **쿼리 보존 확인** (인가 파라미터가 살아서 동의 화면에 도달) |
+
+**이 실측에서 발견해 고친 것:** 저장소가 죽었을 때 `authorize`가 브라우저에
+**빈 500**을 주고 있었다. 사용자는 커넥터 설정 화면에서 "설정 실패"만 보고
+무엇이 틀렸는지 영영 모른다 — 이 화면은 사람이 읽는 유일한 지점이므로 삼키면
+안 된다. 네 라우트 전부 저장소 장애를 사양 안의 오류(`temporarily_unavailable`)
+또는 사람의 문장으로 끝내도록 고쳤다. (`/[locale]` 페이지가 이 환경에서 500인
+것은 CLAUDE.md가 적어 둔 키 부재 현상이며 코드 결함이 아니다 — 로그에서
+`src/lib/supabase.ts` 모듈 평가 실패로 확인.)
+
 **아직 열려 있는 것 (정직한 공백):**
 - 마이그레이션 `20260805170000_argus_remote_oauth.sql`이 **아직 프로덕션에 적용되지
   않았다.** 적용 전에는 원격 커넥터 연결이 500으로 실패한다.
