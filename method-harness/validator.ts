@@ -99,6 +99,39 @@ export function validateTurn(input: ArgusTurn, ctx: ValidationContext): Validati
     }
   }
 
+  // ---- check 6b: EVERY user-sourced claim must trace to the ledger.
+  // A legal (user, said) pair is not evidence that the user said it — the pair
+  // check above only rejects impossible combinations. Without this, a model can
+  // emit an invented sentence tagged source:'user' and any surface that groups
+  // claims by author will quote it back to the user as their own words. That is
+  // the authorship lie CLAUDE.md rule 1 forbids, and it was reachable on every
+  // turn that carried no recommendation (the lineage guard used to run only
+  // inside the recommendation block).
+  //
+  // Downgrade rather than reject: the turn's substance may still be useful, and
+  // silently DROPPING the claim would hide the model's overreach. Reassigning it
+  // to (ai, inferred) states the truth — "this sentence is the model's reading,
+  // not your words" — and the downgrade is rendered, never swallowed.
+  if (turn.claims.some((c) => c.source === 'user')) {
+    const relabelled: string[] = [];
+    const claims = turn.claims.map((claim) => {
+      if (claim.source !== 'user') return claim;
+      const trace = claim.citation
+        ? claimTracesToUser(ctx.ledger, claim.citation, claim.text)
+        : { ok: false, reason: 'no citation' };
+      if (trace.ok) return claim;
+      relabelled.push(`"${claim.text.slice(0, 40)}" (${trace.reason})`);
+      return { ...claim, source: 'ai' as const, authority: 'inferred' as const };
+    });
+    if (relabelled.length > 0) {
+      downgrades.push({
+        code: 'user_claim_without_lineage_to_ai',
+        detail: `claims re-attributed to the model — no ledger lineage: ${relabelled.join('; ')}`,
+      });
+      turn = { ...turn, claims };
+    }
+  }
+
   // ---- recommendation checks ----------------------------------------------
   if (turn.recommendation) {
     // check 11: no recommendations on the safety route, ever.

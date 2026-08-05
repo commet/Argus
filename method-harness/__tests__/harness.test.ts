@@ -225,8 +225,12 @@ describe('gold case fixture (§15.2) — the complete 30-case corpus', () => {
       expect(c.forbiddenMoves, c.id).toContain('reframe');
       // A user-pulled pick at minor/reversible stakes is the hierarchy's most
       // permissive cell (v1.0 §4.4): the explicit ask IS the fire. Only cases
-      // that annotate 'recommendation' as a good move carry that exemption.
-      if (!c.goodMoves.includes('recommendation')) {
+      // that annotate 'recommendation' as a good move carry that exemption —
+      // and NEVER on the safety route, where validator check 11 rejects
+      // recommendations unconditionally. (Found by the code-review pass: the
+      // first version of this exemption covered safety cases too, so a future
+      // safety case annotated with 'recommendation' would have passed silently.)
+      if (c.axis.route === 'safety' || !c.goodMoves.includes('recommendation')) {
         expect(c.forbiddenMoves, c.id).toContain('recommendation');
       }
     }

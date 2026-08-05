@@ -1,7 +1,11 @@
 import fs from 'node:fs';
 
 /**
- * 브라우저 실행 파일 경로 — 모든 Playwright 스크립트의 단일 출처.
+ * 브라우저 실행 파일 경로 — e2e·dogfood 스크립트의 단일 출처.
+ *
+ * 아직 연결되지 않은 launcher가 남아 있다 (uiux-loop/*, preview-judgment-card,
+ * sim/*). 그 중 headless로 도는 것들은 클라우드에서 같은 이유로 죽는다 —
+ * 손볼 때 이 함수로 옮긴다.
  *
  * 왜 필요한가: 창업자 기기에는 Playwright가 자기 브라우저를 갖고 있지만,
  * 개발 샌드박스(클라우드 세션)는 고정 경로에 특정 빌드를 둔다. 이 함수 없이

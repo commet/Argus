@@ -9,9 +9,11 @@
 // 계기판(ledger 카운터, prompt packet, envelope JSON)은 엔지니어 패널 뒤로
 // 접힌다. 하네스 의미론은 그대로다 — 바뀐 것은 투영(presentation)뿐이다.
 //
-// LLM 호출은 이 페이지에 없다 — 컴파일된 packet을 아무 모델에나 주고
-// envelope JSON을 붙여넣으면 validator가 눈앞에서 판정한다. (예시 버튼은
-// 모델 없이 전체 루프를 60초에 보여준다.)
+// LLM 호출: 이 페이지가 **최소 러너**로서 소유한다 (engine.ts는 오프라인을
+// 유지하고, 호출은 R3-A/B 러너의 몫이라는 §11.1 배치를 그대로 따른다).
+// runLive가 packet을 컴파일해 모델에 주고, 돌아온 envelope은 예외 없이
+// validator를 통과한다. 모델 없이 보려면 예시 시나리오, 직접 붙여넣으려면
+// 엔지니어 패널.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { SessionEngine } from '../../../method-harness/surfaces/engine';
@@ -30,8 +32,11 @@ import { callLLMJson } from '@/lib/llm';
 
 const CASE_ID = 'pilot_case';
 
-// ArgusTurn envelope 스키마 지시 — 모델 호출은 페이지(=최소 러너)가 소유한다.
-// 하네스 packet은 방법을, 이 블록은 출력 형태만 지시한다. validator가 최종 심판.
+// ArgusTurn envelope 스키마 지시.
+// 대부분은 출력 형태지만, 마지막 두 줄(합법 claim 쌍·평평하면 stop/mirror)은
+// 방법 규칙의 재진술이다 — OPERATING_CONSTITUTION이 이미 말한 것을 모델이
+// 형태와 함께 보도록 옮겨둔 것이고, 새 규범을 만들지 않는다. 둘이 어긋나면
+// constitution이 이기며, 최종 심판은 어느 쪽도 아닌 validator다.
 const ENVELOPE_INSTRUCTION = `위 packet의 방법을 따라 이번 턴을 수행하고, 아래 TypeScript 형태의 ArgusTurn JSON 하나만 출력하세요. 마크다운·설명 없이 { 로 시작해 } 로 끝나는 순수 JSON. 모든 문자열 내용은 한국어로.
 
 {
@@ -110,7 +115,9 @@ const BELIEF_CONFIDENCE_KO: Record<string, string> = {
   contested: '이견 있음',
 };
 
-// 네 걸음 — 화면의 뼈대. 여섯 문장 문법은 엔지니어 패널에서만 보인다.
+// 네 걸음 — 화면의 뼈대. 여섯 문장 문법(web.ts SIX_SENTENCES)은 이 파일럿에서
+// 사용자에게 노출하지 않는다: 방법론 어휘를 화면에서 걷어내는 것이 평문화의
+// 목적이었다. 문법 자체는 web 표면의 정본으로 남아 있다.
 const JOURNEY = ['결정을 기록', 'AI가 한 가지만 점검', '현실에서 실행', '기억과 기록을 대조'] as const;
 
 // ---------------------------------------------------------------------------
@@ -276,6 +283,30 @@ export default function MethodPilotPage() {
   const submitUtterance = () => {
     const text = utterance.trim();
     if (!text) return;
+    if (entryMode === 'conversation') {
+      // 붙여넣은 대화는 사용자의 말이 아니다 — AI 발화가 섞여 있다. 이것을
+      // user_utterance 로 넣으면 세 가지가 동시에 망가진다: (1) 화면이 AI
+      // 문장을 "당신에게서 온 것"으로 표시하고, (2) claimTracesToUser 가
+      // 전사본의 아무 AI 문장이나 user_said 로 통과시켜 계보 검사가 무력화되고,
+      // (3) userPulledRecommendation 이 전사본 속 "추천"에 걸려 initiative 를
+      // pulled 로 뒤집어 major/one_way 방어를 끈다. 그래서 외부 출처로 기록한다.
+      engine.ledger.append({
+        id: `ext_${Date.now().toString(36)}`,
+        caseId: CASE_ID,
+        at: now(),
+        type: 'external_source',
+        description: `붙여넣은 AI 대화 (${text.length}자)`,
+        sourceRef: 'pasted_conversation',
+      });
+      // 기준선 자동 추출도 금지 — AI가 이미 말한 뒤의 전사본에서 "AI가 말하기
+      // 전의 내 생각"을 뽑는 것은 정의상 불가능하다. 빈 칸으로 두고 사용자가
+      // 직접 적게 한다.
+      setBaselineLean('');
+      setBaselineReasons('');
+      persist();
+      setStep('baseline');
+      return;
+    }
     engine.recordUtterance(text, now());
     const extracted = extractBaseline(text);
     setBaselineLean(extracted.lean === 'none_stated' ? '' : extracted.lean);
@@ -306,7 +337,9 @@ export default function MethodPilotPage() {
     const result = engine.receiveTurn(turn, now());
     persist();
     setView(renderTurn(result, engine.state()));
-    setLastTurn(result.turn);
+    // 거부된 턴의 내용은 저자 패널에 올리지 않는다 — check 6이 막은 laundering
+    // 을 렌더 층에서 되살리는 꼴이 된다. 거부 사유는 view가 이미 보여준다.
+    setLastTurn(result.ok ? result.turn : null);
     if (result.ok && result.turn.decisionRecordCandidate) {
       setPendingCard(result.turn.decisionRecordCandidate);
       setEditChoice(result.turn.decisionRecordCandidate.choiceOrPolicy);
@@ -359,7 +392,22 @@ export default function MethodPilotPage() {
       mode === 'edit'
         ? { mode: 'edit_then_accept' as const, editedFields: ['choiceOrPolicy'], materialEdit: isMaterialEdit(pendingCard.choiceOrPolicy, finalCard.choiceOrPolicy) }
         : { mode: 'accept' as const };
-    engine.adoptCard(finalCard, adoption, now());
+    // armReturn 은 백스톱 없는 event/signal 트리거에 HarnessViolation 을 던진다.
+    // validateTurn 은 카드 '안'의 returnContract 를 보지 않으므로 모델이 그 필드를
+    // 빠뜨린 카드가 여기까지 올 수 있다. 잡지 않으면 card_adopted 는 원장에
+    // 들어갔는데 persist 도 화면 전환도 안 되고, 다시 누르면 중복 채택이 된다.
+    try {
+      engine.adoptCard(finalCard, adoption, now());
+    } catch (e) {
+      persist(); // 이미 append 된 채택 사건을 잃지 않는다
+      setPendingCard(null);
+      setEditingCard(false);
+      setLiveError(
+        `결정은 기록됐지만 돌아보기 예약에 실패했습니다: ${e instanceof Error ? e.message : String(e)} — 아래에서 직접 예약할 수 있습니다.`,
+      );
+      setStep('acting');
+      return;
+    }
     persist();
     setPendingCard(null);
     setEditingCard(false);
@@ -553,6 +601,22 @@ export default function MethodPilotPage() {
               </Panel>
             )}
 
+            {/* 턴이 끝났는데 카드 후보가 없으면(평평한 상황·거부된 턴) 여기가
+                막다른 길이 된다 — 점검 패널은 view가 생기면 사라지기 때문이다.
+                다시 점검하거나 기록 없이 끝낼 길을 항상 남긴다. */}
+            {view && !pendingCard && (
+              <Panel>
+                <Label>다음</Label>
+                <p className="text-[13px] text-[var(--text-secondary)] leading-relaxed mb-3">
+                  이번 턴에는 남길 결정 후보가 없습니다. 더 볼 것이 있으면 다시 점검하고, 없으면 여기서 끝내도 됩니다.
+                </p>
+                <div className="flex items-center justify-between">
+                  <Btn kind="quiet" onClick={() => { setView(null); setLastTurn(null); }}>다시 쓰기</Btn>
+                  <Btn onClick={runLive} disabled={liveLoading}>{liveLoading ? '점검 중…' : '한 번 더 점검'}</Btn>
+                </div>
+              </Panel>
+            )}
+
             {view && (
               <div className="space-y-3" aria-live="polite">
                 {view.blocks.filter((b) => b.kind !== 'adoption' && b.kind !== 'card').map((b, i) => (
@@ -579,18 +643,18 @@ export default function MethodPilotPage() {
                     {state.baseline && state.baseline !== 'not_captured' && state.baseline.lean !== 'none_stated' && (
                       <p className="text-[var(--text-secondary)]">기울기: {state.baseline.lean}</p>
                     )}
-                    {lastTurn.claims.filter((c) => c.source === 'user').map((c, i) => (
+                    {(lastTurn.claims || []).filter((c) => c.source === 'user').map((c, i) => (
                       <p key={i} className="text-[var(--text-secondary)]">&ldquo;{c.text}&rdquo;</p>
                     ))}
                     {(!state.baseline || state.baseline === 'not_captured' || state.baseline.lean === 'none_stated') &&
-                      lastTurn.claims.filter((c) => c.source === 'user').length === 0 && (
+                      (lastTurn.claims || []).filter((c) => c.source === 'user').length === 0 && (
                         <p className="text-[var(--text-tertiary)]">아직 기울기 없이 시작했습니다 — 그것도 정직한 출발점입니다.</p>
                       )}
                   </div>
                   <div>
                     <p className="font-medium text-[var(--text-primary,inherit)] mb-1">AI가 얹은 것 (제안일 뿐)</p>
                     <p className="text-[var(--text-secondary)]">{lastTurn.primaryMove.content}</p>
-                    {lastTurn.claims.filter((c) => c.source === 'ai').map((c, i) => (
+                    {(lastTurn.claims || []).filter((c) => c.source === 'ai').map((c, i) => (
                       <p key={i} className="text-[var(--text-secondary)]">{c.text}</p>
                     ))}
                   </div>

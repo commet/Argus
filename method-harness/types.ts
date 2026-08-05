@@ -254,7 +254,8 @@ export interface RederivationInputs {
 export type DowngradeCode =
   | 'reframe_without_falsifier_to_question'
   | 'directional_ungrounded_to_process'
-  | 'directional_pushed_at_major_one_way';
+  | 'directional_pushed_at_major_one_way'
+  | 'user_claim_without_lineage_to_ai';
 
 export type RejectCode =
   | 'unknown_move_type'
