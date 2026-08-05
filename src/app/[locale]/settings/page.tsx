@@ -1253,7 +1253,7 @@ function TelegramBlock({ locale }: { locale: string }) {
   );
 }
 
-interface PluginToken { id: string; label: string | null; last_used_at: string | null; created_at: string }
+interface PluginToken { id: string; label: string | null; last_used_at: string | null; created_at: string; scope?: string | null }
 
 function PluginTokenBlock({ locale }: { locale: string }) {
   const L = (ko: string, en: string) => (locale === 'ko' ? ko : en);
@@ -1266,12 +1266,20 @@ function PluginTokenBlock({ locale }: { locale: string }) {
   const [error, setError] = useState('');
 
   const load = useCallback(async () => {
-    const { data, error: loadError } = await supabase
+    // scope 는 마이그레이션 20260805190000 이후에만 존재한다. 아직 적용되지 않은
+    // 환경에서 목록 전체가 죽으면 안 되므로 없으면 없는 대로 읽는다.
+    const withScope = await supabase
       .from('plugin_tokens')
-      .select('id, label, last_used_at, created_at')
+      .select('id, label, last_used_at, created_at, scope')
       .order('created_at', { ascending: false });
-    if (loadError) { setError(locale === 'ko' ? '토큰 목록을 불러오지 못했습니다.' : 'Could not load tokens.'); return; }
-    setTokens(data || []);
+    const result = withScope.error
+      ? await supabase
+          .from('plugin_tokens')
+          .select('id, label, last_used_at, created_at')
+          .order('created_at', { ascending: false })
+      : withScope;
+    if (result.error) { setError(locale === 'ko' ? '토큰 목록을 불러오지 못했습니다.' : 'Could not load tokens.'); return; }
+    setTokens((result.data || []) as PluginToken[]);
   }, [locale]);
   useEffect(() => { void load(); }, [load]);
 
@@ -1368,7 +1376,13 @@ function PluginTokenBlock({ locale }: { locale: string }) {
           {tokens.map((t) => (
             <div key={t.id} className="flex items-center justify-between text-[12px] px-2.5 py-1.5 rounded-md bg-[var(--bg)]">
               <span className="text-[var(--text-secondary)]">
-                {t.label || 'CLI'} · <span className="text-[var(--text-tertiary)]">{t.last_used_at ? L('최근 사용 ', 'used ') + t.last_used_at.slice(0, 10) : L('미사용', 'unused')}</span>
+                {t.label || 'CLI'}
+                {/* 원격 커넥터 토큰은 결정 표면만 연다 — 목록에서 계정 전체 토큰과
+                    구분되지 않으면 사용자는 무엇을 해지하는지 모른 채 해지한다. */}
+                {t.scope === 'argus.decisions' && (
+                  <span className="ml-1.5 text-[11px] text-[var(--text-tertiary)]">{L('· 결정만', '· decisions only')}</span>
+                )}
+                {' · '}<span className="text-[var(--text-tertiary)]">{t.last_used_at ? L('최근 사용 ', 'used ') + t.last_used_at.slice(0, 10) : L('미사용', 'unused')}</span>
               </span>
               <button type="button" onClick={() => revoke(t.id)} className="min-h-11 px-2 text-[var(--text-tertiary)] hover:text-[var(--danger)] cursor-pointer transition-colors">
                 {L('해지', 'Revoke')}

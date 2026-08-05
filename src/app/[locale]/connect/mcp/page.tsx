@@ -108,6 +108,15 @@ function RemoteConnectApproval() {
           <ul className="mt-2 space-y-1">
             <li>{L('· 대신 결정하거나 실행하지 않습니다', '· It will not decide or act for you')}</li>
             <li>{L('· 당신에 대한 점수·등급을 만들지 않습니다', '· It will not score or rate you')}</li>
+            {/* 문장이 아니라 토큰에 새겨진 사실이다 — 이 연결이 받는 자격증명은
+                `argus.decisions` 범위로 발급되고, 서버가 다른 표면에서 거부한다
+                (plugin-token-auth.ts · plugin-token-scope.test.ts). */}
+            <li>
+              {L(
+                '· 터미널 플러그인 쪽 계정 데이터(파일 적재·영수증 변경)에는 접근하지 않습니다',
+                '· It cannot reach the terminal plugin surfaces (file ingest, receipt changes)',
+              )}
+            </li>
           </ul>
         </div>
 

@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createHash } from 'crypto';
 import { adminClient } from '@/lib/share-guard';
-import { isTokenExpired } from '@/lib/plugin-token';
+import { authenticatePluginToken, SCOPE_FULL } from '@/lib/plugin-token-auth';
 import type { JudgmentReceipt } from '@/lib/review';
 import { sanitizeTrackedPremises } from '@/lib/mcp-seal-routing';
 
@@ -22,10 +21,6 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 const MAX_BODY_BYTES = 64 * 1024;
-
-function hashToken(raw: string): string {
-  return createHash('sha256').update(raw).digest('hex');
-}
 
 interface SealPayload {
   action?: 'seal' | 'settle' | 'defer' | 'dismiss';
@@ -120,25 +115,20 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Payload too large' }, { status: 413 });
   }
 
-  const authHeader = req.headers.get('authorization');
-  if (!authHeader?.startsWith('Bearer ')) {
-    return NextResponse.json({ error: 'Missing token. Set ARGUS_TOKEN in your MCP config.' }, { status: 401 });
-  }
-  const raw = authHeader.slice(7).trim();
-  if (!raw.startsWith('argus_pat_')) {
-    return NextResponse.json({ error: 'Invalid token format' }, { status: 401 });
+  // 계정 전체 범위. 이 엔드포인트는 영수증을 만들고 상태를 바꾼다 — 원격
+  // 커넥터의 `argus.decisions` 토큰에는 열어 주지 않는다.
+  const auth = await authenticatePluginToken(req.headers.get('authorization'), SCOPE_FULL);
+  if (!auth.ok) {
+    if (auth.reason === 'insufficient_scope') {
+      return NextResponse.json({ error: 'This token is not scoped for account seals' }, { status: 403 });
+    }
+    return NextResponse.json(
+      { error: 'Missing, invalid, revoked, or expired token. Set ARGUS_TOKEN in your MCP config.' },
+      { status: 401 },
+    );
   }
 
   const admin = adminClient();
-  const { data: tokenRow } = await admin
-    .from('plugin_tokens')
-    .select('id, user_id, expires_at')
-    .eq('token_hash', hashToken(raw))
-    .single();
-  if (!tokenRow || isTokenExpired(tokenRow.expires_at)) {
-    return NextResponse.json({ error: 'Unknown, revoked, or expired token' }, { status: 401 });
-  }
-
   let body: SealPayload;
   try {
     body = (await req.json()) as SealPayload;
@@ -153,8 +143,7 @@ export async function POST(req: NextRequest) {
   const now = new Date().toISOString();
   const action = body.action ?? 'seal';
 
-  admin.from('plugin_tokens').update({ last_used_at: now }).eq('id', tokenRow.id)
-    .then(({ error }) => { if (error) console.error('[mcp/seal] last_used:', error.message); });
+  // last_used 스탬프는 authenticatePluginToken 이 이미 찍었다 (한 곳에서만).
 
   // ── DISMISS: the user set this decision aside in the terminal. The account must
   //    stop nudging it. `archived` (not `settled`) is the honest state: nothing
@@ -166,7 +155,7 @@ export async function POST(req: NextRequest) {
       .from('review_receipts')
       .select('data')
       .eq('id', rowId(id))
-      .eq('user_id', tokenRow.user_id)
+      .eq('user_id', auth.userId)
       .is('deleted_at', null)
       .single();
     if (!existing?.data) {
@@ -179,7 +168,7 @@ export async function POST(req: NextRequest) {
       .from('review_receipts')
       .update({ state: 'archived', next_check_by: null, data: receipt })
       .eq('id', rowId(id))
-      .eq('user_id', tokenRow.user_id);
+      .eq('user_id', auth.userId);
     if (error) {
       console.error('[mcp/seal] dismiss update:', error.message);
       return NextResponse.json({ error: 'dismiss failed' }, { status: 502 });
@@ -198,7 +187,7 @@ export async function POST(req: NextRequest) {
       .from('review_receipts')
       .select('data')
       .eq('id', rowId(id))
-      .eq('user_id', tokenRow.user_id)
+      .eq('user_id', auth.userId)
       .is('deleted_at', null)
       .single();
     if (!existing?.data) {
@@ -222,7 +211,7 @@ export async function POST(req: NextRequest) {
       .from('review_receipts')
       .update({ state: 'sealed', next_check_by: newCheckBy, data: receipt })
       .eq('id', rowId(id))
-      .eq('user_id', tokenRow.user_id);
+      .eq('user_id', auth.userId);
     if (error) {
       console.error('[mcp/seal] defer update:', error.message);
       return NextResponse.json({ error: 'defer failed' }, { status: 502 });
@@ -252,7 +241,7 @@ export async function POST(req: NextRequest) {
       .from('review_receipts')
       .select('data')
       .eq('id', rowId(id))
-      .eq('user_id', tokenRow.user_id)
+      .eq('user_id', auth.userId)
       .is('deleted_at', null)
       .single();
     if (!existing?.data) {
@@ -271,7 +260,7 @@ export async function POST(req: NextRequest) {
       .from('review_receipts')
       .update({ state: 'settled', next_check_by: null, data: receipt })
       .eq('id', rowId(id))
-      .eq('user_id', tokenRow.user_id);
+      .eq('user_id', auth.userId);
     if (error) {
       console.error('[mcp/seal] settle update:', error.message);
       return NextResponse.json({ error: 'settle failed' }, { status: 502 });
@@ -287,7 +276,7 @@ export async function POST(req: NextRequest) {
   const { error } = await admin.from('review_receipts').upsert(
     {
       id: rowId(id),
-      user_id: tokenRow.user_id,
+      user_id: auth.userId,
       state: 'sealed',
       source_title: receipt.source_title,
       source_kind: 'mcp_file',

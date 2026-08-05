@@ -4,6 +4,7 @@ import { randomBytes, createHash } from 'crypto';
 import { validateContentType, validateOrigin } from '@/lib/api-security';
 import { adminClient } from '@/lib/share-guard';
 import { pluginTokenExpiry } from '@/lib/plugin-token';
+import { insertFullScopeToken } from '@/lib/plugin-token-auth';
 
 /**
  * Issue a personal access token for `argus push`. The raw token is returned
@@ -51,7 +52,8 @@ export async function POST(req: NextRequest) {
   }
 
   const raw = `argus_pat_${randomBytes(24).toString('hex')}`;
-  const { error: insErr } = await admin.from('plugin_tokens').insert({
+  // 사용자가 자기 브라우저 세션으로 직접 뽑은 토큰 — CLI 가 쓰는 계정 전체 범위.
+  const { error: insErr } = await insertFullScopeToken(admin, {
     user_id: user.id,
     token_hash: hashToken(raw),
     label,

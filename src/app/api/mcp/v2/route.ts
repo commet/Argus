@@ -102,6 +102,14 @@ export async function POST(req: NextRequest) {
 
   const auth = await authenticate(req.headers.get('authorization'));
   if (!auth.ok) {
+    // 범위 부족은 재인증해도 열리지 않는 문이다 — 401 로 돌려주면 클라이언트가
+    // OAuth 흐름을 무한히 다시 돈다. 403 으로 끝낸다 (RFC 6750 §3.1).
+    if (auth.reason === 'insufficient_scope') {
+      return NextResponse.json(rpcError(null, RPC.INVALID_REQUEST, 'forbidden: insufficient_scope'), {
+        status: 403,
+        headers: { 'WWW-Authenticate': `Bearer realm="argus", error="insufficient_scope"` },
+      });
+    }
     // MCP 클라이언트는 401 + WWW-Authenticate 를 보고 OAuth 흐름을 시작한다.
     return NextResponse.json(rpcError(null, RPC.INVALID_REQUEST, `unauthorized: ${auth.reason}`), {
       status: 401,

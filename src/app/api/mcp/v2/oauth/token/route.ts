@@ -15,6 +15,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { randomBytes } from 'crypto';
 import { adminClient } from '@/lib/share-guard';
 import { PLUGIN_TOKEN_TTL_DAYS, pluginTokenExpiry } from '@/lib/plugin-token';
+import { SCOPE_DECISIONS } from '@/lib/plugin-token-auth';
 import { isPkce, pkceChallenge, REMOTE_SCOPE, sha256 } from '../lib';
 
 export const runtime = 'nodejs';
@@ -130,6 +131,9 @@ export async function POST(req: NextRequest) {
     token_hash: sha256(accessToken),
     label: (client as { client_name?: string } | null)?.client_name ?? 'MCP client',
     expires_at: tokenExpiry,
+    // 동의 화면이 약속한 범위를 **토큰에 실제로 새긴다.** 이것이 없으면 같은
+    // PAT 으로 ingest·seal 까지 열려, 화면의 문장이 거짓말이 된다.
+    scope: SCOPE_DECISIONS,
   });
   if (tokenError) {
     console.error('[mcp/v2/oauth/token] token insert failed:', tokenError.message);
