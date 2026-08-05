@@ -12,6 +12,7 @@ import { loopPulse } from '@/lib/loop-pulse';
 import { distinctReturnProjects } from '@/lib/return-analytics';
 import { sealCostLine, sealCostSummary } from '@/lib/seal-cost';
 import { loopClosure, loopClosureLine } from '@/lib/loop-closure';
+import { conversion, weeklyVerdict } from '@/lib/report-verdict';
 import { summarizeAnswerReflections } from '@/lib/answer-reflection-analytics';
 import { logServerEvent } from '@/lib/server-events';
 
@@ -257,10 +258,16 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  // A report nobody can look at without SENDING it is a report nobody iterates
+  // on — which is how fifteen blocks accumulated with the load-bearing numbers
+  // rendered as grey footnotes. `?preview=1` returns the same HTML, builds the
+  // same way, and sends nothing.
+  const preview = new URL(req.url).searchParams.get('preview') === '1';
+
   const missingConfig = [
     ['NEXT_PUBLIC_SUPABASE_URL', process.env.NEXT_PUBLIC_SUPABASE_URL],
     ['SUPABASE_SERVICE_ROLE_KEY', process.env.SUPABASE_SERVICE_ROLE_KEY],
-    ['RESEND_API_KEY', process.env.RESEND_API_KEY],
+    ...(preview ? [] : [['RESEND_API_KEY', process.env.RESEND_API_KEY] as [string, string | undefined]]),
     ['REPORT_EMAIL', isValidEmailAddress(REPORT_EMAIL) ? 'configured' : ''],
     ['OWNER_EMAILS', OWNER_EMAILS.length > 0 && OWNER_EMAILS.every(isValidEmailAddress) ? 'configured' : ''],
   ].filter(([, value]) => !value).map(([name]) => name);
@@ -526,6 +533,58 @@ export async function GET(req: Request) {
   const wowDelta = deltaLabel(thisWeekAvg, lastWeekAvg);
   const yesterdayVsWeekAvg = deltaLabel(sessionsY.size, thisWeekAvg);
 
+  // Hoisted above the verdict: a missing collector outranks every demand
+  // number below it, so the verdict has to be able to see it.
+  const pulse = loopPulse(yesterdayEvents.map((e) => e.event_name));
+
+  /**
+   * The day synthetic runs began declaring themselves.
+   *
+   * Everything written before it includes our own e2e traffic with no way to
+   * separate it — 64 of 88 production sessions in the fortnight to 2026-08-05
+   * were fixtures, and they sealed, so the seal rate above is inflated by them.
+   * A prettier layout over polluted numbers is a more convincing wrong answer,
+   * which is worse than the version that was hard to read.
+   *
+   * The banner retires itself: once the seven-day window starts after this
+   * date, the comparison is false and nothing renders. No cleanup needed.
+   */
+  const SYNTHETIC_MARKING_SINCE = '2026-08-05';
+
+  // ─── 5b. The seven-day verdict ───
+  // Everything above is yesterday-vs-the-day-before. At this volume that delta
+  // is noise, so the block that LEADS the email is computed over seven days
+  // from data already in memory (ext14) — no extra queries.
+  const thisWeekSet = new Set(thisWeek);
+  const human7 = new Set<string>();
+  for (const a of agg14.values()) {
+    if (bucketSession(a, ownerIds) !== 'human') continue;
+    if (thisWeekSet.has(kstDateString(new Date(a.firstAt)))) human7.add(a.sessionId);
+  }
+  const ext7 = ext14.filter(e => human7.has(e.session_id));
+  const reach7 = (names: string[]) => new Set(
+    ext7.filter(e => names.includes(e.event_name)).map(e => e.session_id),
+  ).size;
+  const entered7 = reach7(['workspace_enter', 'workspace_problem_submit']);
+  const completed7 = reach7(['flow_done', 'progressive_draft_promoted', 'loop_converged']);
+  const sealed7 = reach7(['decision_sealed']);
+  const loginTried7 = reach7(['login_attempt']);
+  const loginOk7 = reach7(['login_success']);
+  const sealCost7 = sealCostSummary(ext7, human7);
+  const weekStartIso = kstRange(7).start;
+  const signups7 = allUsers.filter(u => !u.is_anonymous && u.created_at >= weekStartIso
+    && !ownerIds.has(u.id)).length;
+  const verdict = weeklyVerdict({
+    sessions: human7.size,
+    signups: signups7,
+    completed: completed7,
+    sealed: sealed7,
+    due: closure.due,
+    settled: closure.settled,
+    undateable: closure.undateable,
+    missingCrons: pulse.missing.length,
+  });
+
   // ─── 6. Source breakdown + per-source completion (humans only) ───
   const sourceStats: Record<string, { sessions: number; completions: number }> = {};
   const campaignStats: Record<string, {
@@ -677,7 +736,6 @@ export async function GET(req: Request) {
   const funnelTop = funnelCounts[0].sessions || 1;
   // What the last stage COST. A conversion rate into the seal says how many
   // got there; this says how far away it was.
-  const sealCost = sealCostSummary(extY, humanSessionIds);
   // The front door, now that it can be measured at all. Until 2026-08-05
   // `login_success` did not exist, so this rate could not be computed and the
   // report showed attempts and failures with no arrival to put them against.
@@ -745,7 +803,6 @@ export async function GET(req: Request) {
   // 크론 흔적은 session_id 'server' 로 남으므로 사람 필터 전의 전체 이벤트로
   // 잰다. 빠진 크론이 있으면 메일 맨 위에 소리 내어 올린다 — 지금까지는
   // 사람이 DB를 열어봐야만 알 수 있던 사실이었다.
-  const pulse = loopPulse(yesterdayEvents.map((e) => e.event_name));
   logServerEvent('loop_pulse', { ok: pulse.ok, missing: pulse.missing, seen: pulse.seen.length }, { path: '/api/cron/daily-report' });
 
   // ───── Build HTML ─────
@@ -799,6 +856,42 @@ export async function GET(req: Request) {
     </td></tr>
   </table>
 
+  <!-- ════════ THE WEEK, AND WHAT IT SAYS ════════
+       The email's fifteen blocks are almost all yesterday-vs-the-day-before,
+       which at this volume is noise wearing a percentage. This one is seven
+       days, and it carries the four numbers that actually decide the product —
+       each of which used to be 11px grey text underneath something else. -->
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background: ${C.card}; border: 2px solid ${verdict.stage === 'broken' ? C.decline : C.primary}; border-radius: 14px; margin-bottom: 16px;">
+    <tr><td style="padding: 20px;">
+      <p style="font-size: 10px; font-weight: 800; color: ${verdict.stage === 'broken' ? C.decline : C.primary}; margin: 0 0 6px; letter-spacing: 0.12em; text-transform: uppercase;">지난 7일 · 지금 사실인 것</p>
+      ${thisWeek[0] < SYNTHETIC_MARKING_SINCE ? `<p style="font-size: 11px; line-height: 1.5; color: ${C.decline}; background: ${C.declineBg}; border-radius: 8px; padding: 8px 10px; margin: 0 0 12px; font-weight: 700;">이 창에는 ${SYNTHETIC_MARKING_SINCE} 이전의 자동 실행(E2E)이 섞여 있습니다 — 봉인·완주 숫자는 부풀려져 있습니다. 표식 이후 데이터만으로 채워지면 이 줄은 저절로 사라집니다.</p>` : ''}
+      <p style="font-size: 15px; line-height: 1.5; font-weight: 750; color: ${C.text}; margin: 0 0 16px;">${escHtml(verdict.headline)}</p>
+      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="font-size: 12px;">
+        <tr style="border-top: 1px solid ${C.borderSubtle};">
+          <td style="padding: 9px 0; color: ${C.muted}; width: 92px;">왔나</td>
+          <td style="padding: 9px 0; color: ${C.text}; font-weight: 700;">사람 세션 ${human7.size} · 가입 ${signups7}</td>
+        </tr>
+        <tr style="border-top: 1px solid ${C.borderSubtle};">
+          <td style="padding: 9px 0; color: ${C.muted};">정문</td>
+          <td style="padding: 9px 0; color: ${C.text}; font-weight: 700;">로그인 ${escHtml(conversion(loginTried7, loginOk7))}</td>
+        </tr>
+        <tr style="border-top: 1px solid ${C.borderSubtle};">
+          <td style="padding: 9px 0; color: ${C.muted};">깊은 길</td>
+          <td style="padding: 9px 0; color: ${C.text}; font-weight: 700;">입장 ${entered7} → 완주 ${escHtml(conversion(entered7, completed7))} → 봉인 ${escHtml(conversion(completed7, sealed7))}</td>
+        </tr>
+        <tr style="border-top: 1px solid ${C.borderSubtle};">
+          <td style="padding: 9px 0; color: ${C.muted};">봉인 비용</td>
+          <td style="padding: 9px 0; color: ${C.text}; font-weight: 700;">${escHtml(sealCostLine(sealCost7))}</td>
+        </tr>
+        <tr style="border-top: 1px solid ${C.borderSubtle};">
+          <td style="padding: 9px 0; color: ${C.muted};">고리</td>
+          <td style="padding: 9px 0; color: ${C.text}; font-weight: 700;">${escHtml(loopClosureLine(closure))}</td>
+        </tr>
+      </table>
+      <p style="font-size: 10px; color: ${C.faint}; margin: 12px 0 0;">7일 창 · 사람으로 분류한 세션만 · 자동 실행(synthetic) 제외 · 고리는 누적</p>
+    </td></tr>
+  </table>
+
   <!-- ════════ LOOP PULSE ════════ -->
   ${pulse.ok
     ? `<p style="font-size: 11px; color: ${C.faint}; margin: 0 0 16px; text-align: center;">루프 맥박 정상 — 어제 크론 ${pulse.seen.length}/${pulse.seen.length}개 실행 흔적 확인</p>`
@@ -838,8 +931,6 @@ export async function GET(req: Request) {
       <!-- Loop closure — per-decision and cumulative, not an event count.
            Everything else in this block is "yesterday"; this is the only line
            that says whether a sealed decision ever gets answered at all. -->
-      <p style="font-size: 12px; color: ${C.text}; font-weight: 700; margin: 0 0 4px;">고리가 닫혔나 · 누적</p>
-      <p style="font-size: 12px; color: ${C.muted}; margin: 0 0 16px;">${escHtml(loopClosureLine(closure))}</p>
       <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background: ${C.card}; border: 1px solid #bfdbfe; border-radius: 10px; margin-bottom: 16px;">
         <tr>
           <td style="padding: 11px 12px; font-size: 11px; color: ${C.text}; font-weight: 700;">이메일</td>
@@ -1024,7 +1115,6 @@ export async function GET(req: Request) {
         }).join('')}
       </table>
       <p style="font-size: 10px; color: ${C.faint}; margin: 10px 0 0;">바 길이는 상황 제출 대비 %, 우측은 직전 단계에서의 이탈률 (빨강: 50% 이상 이탈) · 가벼운 길과 깊은 길의 동등한 순간을 함께 셈</p>
-      <p style="font-size: 11px; color: ${C.muted}; margin: 8px 0 0; font-weight: 600;">깊은 길 · ${escHtml(sealCostLine(sealCost))}</p>
       <p style="font-size: 11px; color: ${C.muted}; margin: 4px 0 0; font-weight: 600;">${escHtml(loginLine)}</p>
     </td></tr>
   </table>
@@ -1148,11 +1238,19 @@ export async function GET(req: Request) {
 </html>
   `.trim();
 
+  if (preview) {
+    // Same HTML, same build path, no delivery. The alternative — reading the
+    // template in source — is how a block ends up 11px grey and nobody notices.
+    return new NextResponse(html, {
+      headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' },
+    });
+  }
+
   try {
     const { error: sendError } = await resend.emails.send({
       from: `Argus <hello@${process.env.EMAIL_FROM_DOMAIN || 'argus.voyage'}>`,
       to: REPORT_EMAIL,
-      subject: `[Argus] ${kstDate} — 방문 ${sessionsY.size} · 제출 ${submittedY} · 완주 ${completedY} · 저장 누락 ${projectsMissingSession.length}`,
+      subject: `[Argus] ${kstDate} — ${verdict.headline.slice(0, 46)}`,
       html,
     });
     if (sendError) throw new Error(`Resend rejected the daily report: ${sendError.message}`);
@@ -1185,6 +1283,15 @@ export async function GET(req: Request) {
       login_attempts_yesterday: loginTried,
       login_success_yesterday: loginOk,
       login_failures_yesterday: loginBad,
+      week_sessions: human7.size,
+      week_signups: signups7,
+      week_entered: entered7,
+      week_completed: completed7,
+      week_sealed: sealed7,
+      week_login_attempts: loginTried7,
+      week_login_success: loginOk7,
+      verdict_stage: verdict.stage,
+      verdict: verdict.headline,
       email_reminders_sent_yesterday: emailRemindersSentY.size,
       email_returns_yesterday: emailReturnsY,
       telegram_reminders_sent_yesterday: telegramRemindersSentY.size,
