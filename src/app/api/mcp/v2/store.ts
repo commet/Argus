@@ -101,7 +101,11 @@ export async function armReturns(
   if (error) throw new Error(`return arm failed: ${error.message}`);
 }
 
-const CASE_COLUMNS = 'id, title, state, updated_at, choice, last_observation, recall_gap, settled_at';
+// `*` 인 이유: 정산 투영 넷은 마이그레이션 20260805180000 이후에만 있다. 컬럼을
+// 명시하면 그 마이그레이션 전에는 **조회 자체가 실패해** argus_recall 이 통째로
+// 죽는다 — 의도한 것은 "투영이 없으면 제목 목록으로 물러난다"였지 "도구가
+// 에러를 낸다"가 아니었다. `*` 면 있으면 읽고 없으면 undefined 로 물러난다.
+const CASE_COLUMNS = '*';
 
 export async function listCases(userId: string, limit = 20): Promise<CaseRow[]> {
   const admin = adminClient();

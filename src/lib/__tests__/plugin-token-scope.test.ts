@@ -96,6 +96,15 @@ describe('소비 경로', () => {
     });
   }
 
+  it('토큰 조회는 컬럼 이름을 명시하지 않는다 — 마이그레이션 전에도 살아야 한다', () => {
+    // 컬럼을 명시하면 scope 컬럼이 없는 환경에서 조회가 실패해 **모든** PAT
+    // 인증이 죽는다(기존 CLI 사용자 포함). 코드가 마이그레이션보다 먼저
+    // 배포되는 것은 정상 순서이므로, 이 선택은 취향이 아니라 요구사항이다.
+    const src = read('lib/plugin-token-auth.ts');
+    expect(src).toContain("from('plugin_tokens')\n    .select('*')");
+    expect(src).not.toMatch(/\.select\('[^*]*scope/);
+  });
+
   it('원격 MCP 표면은 좁은 범위로 충분하다', () => {
     const src = read('app/api/mcp/v2/auth.ts');
     expect(src).toContain('SCOPE_DECISIONS');

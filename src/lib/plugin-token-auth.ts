@@ -61,9 +61,14 @@ export async function authenticatePluginToken(
   if (!raw.startsWith('argus_pat_')) return { ok: false, reason: 'malformed' };
 
   const admin = adminClient();
+  // `select('*')` 인 이유: `scope` 는 마이그레이션 20260805190000 이후에만 있고,
+  // 컬럼 이름을 명시하면 그 컬럼이 없는 환경에서 **조회 자체가 실패해** 모든
+  // PAT 인증이 죽는다(기존 CLI 사용자 포함). `*` 는 있으면 읽고 없으면 없는
+  // 대로 온다 — undefined 는 아래에서 `argus.full` 로 읽힌다. 서버 전용
+  // service role 조회이므로 token_hash 가 같이 오는 것은 노출이 아니다.
   const { data: row } = await admin
     .from('plugin_tokens')
-    .select('id, user_id, expires_at, scope')
+    .select('*')
     .eq('token_hash', hashPluginToken(raw))
     .single();
 
