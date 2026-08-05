@@ -99,6 +99,11 @@ const ROGUE_ALLOWLIST: Record<string, string> = {
   // 아니라 **Supabase 테이블 이름**이다 — 서버에만 존재하고 localStorage에는
   // 아무것도 쓰지 않는다. 계정 삭제·내보내기 등록은 별도로 되어 있다
   // (user-data-tables.ts + erasure-coverage.test.ts, 같은 커밋).
+  // 귀환 크론의 분석 이벤트 이름 (2026-08-05). 스토리지 키가 아니라 user_events
+  // 의 event_name 이다. H-B("기한이 오면 돌아와 적는가")의 분모가 이 이벤트로
+  // 생기므로, 이름이 바뀌면 측정이 끊긴다 — 값은 고정이다.
+  argus_return_sent: '스토리지 키 아님 — 귀환 발송 분석 이벤트 (cron/argus-returns). H-B의 분모',
+  argus_return_cron_run: '스토리지 키 아님 — 귀환 크론 실행 요약 이벤트 (동)',
   argus_cases: '스토리지 키 아님 — 원격 MCP 파일럿 서버 테이블 (마이그레이션 20260805100000)',
   argus_events: '스토리지 키 아님 — 원격 MCP 파일럿 append-only 원장 테이블 (동)',
   argus_returns: '스토리지 키 아님 — 원격 MCP 파일럿 귀환 계약 테이블, 크론이 읽는다 (동)',
