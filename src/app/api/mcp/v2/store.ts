@@ -106,6 +106,42 @@ export async function listCases(userId: string, limit = 20): Promise<CaseRow[]> 
   return (data ?? []) as CaseRow[];
 }
 
+// 기한이 지난 귀환 — **채팅 안에서 알리기 위한** 조회.
+//
+// 이메일은 진짜 push지만 받은편지함 → 클릭 → 웹페이지라는 이동을 요구한다.
+// 사용자가 이미 AI 채팅에 있다면 거기서 알리는 것이 이동 0이다. MCP 서버는
+// 먼저 말을 걸 수 없으므로, **다음에 어떤 도구든 불릴 때 그 응답에 얹는다.**
+// 이메일은 채팅으로 다시 오지 않는 사람을 위한 backstop으로 남는다.
+export async function dueReturns(userId: string, now: string, limit = 3) {
+  const admin = adminClient();
+  const { data, error } = await admin
+    .from('argus_returns')
+    .select('case_id, kind, due_at, from_step, status')
+    .eq('user_id', userId)
+    .in('status', ['armed', 'sent'])
+    .lte('due_at', now)
+    .order('due_at', { ascending: true })
+    .limit(limit);
+  if (error) return []; // 알림은 부가 기능이다 — 실패해도 본 작업을 막지 않는다
+  return data ?? [];
+}
+
+// 정산이 끝난 귀환은 닫는다. 안 닫으면 채팅 안 알림이 영원히 같은 결정을
+// 다시 부른다 — 그것이 곧 과발화다(닫힌 결정을 다시 여는 것, CLAUDE.md 거울 조항).
+//
+// argus_events 와 달리 이 테이블은 원장이 아니라 **스케줄러의 작업 큐**다.
+// 크론이 이미 status 를 'sent' 로 옮기는 것과 같은 층위의 갱신이다.
+export async function completeReturns(userId: string, caseId: string): Promise<void> {
+  const admin = adminClient();
+  await admin
+    .from('argus_returns')
+    .update({ status: 'completed', completed_at: new Date().toISOString() })
+    .eq('user_id', userId)
+    .eq('case_id', caseId)
+    .in('status', ['armed', 'sent']);
+  // 실패해도 던지지 않는다 — 정산은 이미 원장에 기록됐고, 이건 큐 정리다.
+}
+
 export async function knownEventIds(userId: string, caseId: string): Promise<Set<string>> {
   const admin = adminClient();
   const { data, error } = await admin

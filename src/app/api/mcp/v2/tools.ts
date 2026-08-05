@@ -5,6 +5,11 @@
 //
 // 없는 도구가 왜 없는지도 기록한다 — 나중에 "왜 채택 도구가 호스트 승인으로
 // 안 되지?"를 다시 묻지 않도록.
+//
+// **선언이 곧 계약이다.** 이 스키마는 모델이 읽는 유일한 사양이므로, 핸들러가
+// 실제로 읽는 인자는 전부 여기 선언돼 있어야 하고(안 그러면 모델이 보낼 줄
+// 모른다), 여기 선언된 인자는 전부 핸들러가 소비해야 한다(안 그러면 모델은
+// 반영됐다고 믿는다). 둘 다 tools-contract.test.ts 가 기계로 대조한다.
 
 export interface ToolDef {
   name: string;
@@ -13,18 +18,35 @@ export interface ToolDef {
   inputSchema: { type: 'object'; properties: Record<string, unknown>; required?: string[] };
 }
 
+const STEP_SCHEMA = {
+  type: 'object',
+  properties: {
+    what: { type: 'string', description: '무엇을 하는가. 한 문장.' },
+    kind: { type: 'string', enum: ['prepare', 'investigate', 'execute'], description: '준비 / 조사 / 실행' },
+    byOrWhen: { type: 'string', description: '언제까지 또는 어떤 조건에서. 사람이 읽는 표현.' },
+    dueDate: { type: 'string', description: 'ISO 8601 날짜. 붙이면 이 단계가 돌아보기 약속이 된다.' },
+  },
+  required: ['what', 'kind', 'byOrWhen'],
+} as const;
+
 export const TOOLS: ToolDef[] = [
   {
     name: 'argus_open',
     title: '결정 열기',
     description:
-      '사용자가 앞에 둔 결정을 연다. 사용자가 이미 말한 것에서 현재 기울기와 이유를 추출해 함께 기록한다(심문하지 않는다). 아직 조언하지 않는다. 결정이 열려 있지 않거나 평평한 상황이면 이 도구를 부르지 말 것.',
+      '사용자가 앞에 둔 결정을 연다. 사용자가 이미 말한 것에서 현재 기울기와 이유를 추출해 함께 기록한다(심문하지 않는다). 아직 조언하지 않는다. 결정이 열려 있지 않거나 평평한 상황이면 이 도구를 부르지 말 것 — 서버도 같은 관문을 다시 돌리며, 통과하지 못하면 열지 않는다.',
     inputSchema: {
       type: 'object',
       properties: {
         utterance: { type: 'string', description: '사용자가 결정을 말한 원문. 요약하지 말고 그대로.' },
         lean: { type: 'string', description: '사용자가 밝힌 현재 기울기. 말하지 않았으면 생략(지어내지 말 것).' },
         statedReasons: { type: 'array', items: { type: 'string' }, description: '사용자가 실제로 말한 이유만.' },
+        consideredAlternatives: { type: 'array', items: { type: 'string' }, description: '사용자가 이미 저울질한 대안만.' },
+        userInvoked: {
+          type: 'boolean',
+          description:
+            '사용자가 **명시적으로** Argus를 부르거나 "기록해줘"라고 했는가. 당신이 이 도구를 부르기로 판단한 것은 여기에 해당하지 않는다 — 그때는 false 로 두고 관문에 맡길 것.',
+        },
       },
       required: ['utterance'],
     },
@@ -33,10 +55,24 @@ export const TOOLS: ToolDef[] = [
     name: 'argus_sharpen',
     title: '한 가지만 점검',
     description:
-      '이 결정에서 가장 하중이 큰 가정 하나와, 그 짚기가 틀렸음을 보여줄 관찰 가능한 사실을 돌려준다. 한 턴에 한 가지만. 평평한 결정에는 침묵한다.',
+      '**두 번 부른다.** 처음에 caseId만 보내면 무엇을 지켜야 하는지와 사용자가 실제로 말한 것을 돌려준다. 그다음 당신이 정한 짚기를 assumption·falsifier와 함께 다시 보내면 검증기를 통과시켜 원장에 남긴다. 두 번째 호출을 하지 않으면 그 짚기는 기록되지 않는다. 한 턴에 한 가지만, 방향은 정해주지 않는다.',
     inputSchema: {
       type: 'object',
-      properties: { caseId: { type: 'string' } },
+      properties: {
+        caseId: { type: 'string' },
+        assumption: { type: 'string', description: '하중이 가장 큰 가정 하나. 방향 문장이 아니라 가정이어야 한다.' },
+        falsifier: {
+          type: 'string',
+          description: '이 가정이 틀렸음을 보여줄 관찰 가능한 사실. 없으면 검증기가 짚기를 질문으로 낮춘다.',
+        },
+        whyNow: { type: 'string', description: '왜 지금 이것을 짚는가.' },
+        moveType: {
+          type: 'string',
+          enum: ['reframe', 'value_clarification', 'competing_hypotheses', 'premortem', 'outside_view'],
+          description: '기본값 reframe.',
+        },
+        abstentions: { type: 'array', items: { type: 'string' }, description: '모르는 채로 비워 둔 것을 이름 붙여 남긴다.' },
+      },
       required: ['caseId'],
     },
   },
@@ -44,11 +80,17 @@ export const TOOLS: ToolDef[] = [
     name: 'argus_plan',
     title: '실행 계획',
     description:
-      '**사용자가 채택한 결정에 대해서만** 준비·조사·실행 목록과 순서·기한을 만든다. 각 마일스톤이 곧 돌아보기 약속이 된다. 모르는 것은 지어내지 말고 "확인 필요"로 남긴다. 채택 전에는 부르지 말 것.',
+      '**사용자가 채택한 결정에 대해서만** 준비·조사·실행 목록과 순서·기한을 만든다. dueDate가 붙은 앞의 세 단계가 곧 돌아보기 약속이 된다. 모르는 것은 지어내지 말고 openQuestions에 "확인 필요: …"로 남긴다. 채택 전에 부르면 서버가 거부한다.',
     inputSchema: {
       type: 'object',
       properties: {
         caseId: { type: 'string' },
+        steps: { type: 'array', items: STEP_SCHEMA, description: '실행 순서. 비우면 형태 안내만 돌려준다.' },
+        openQuestions: {
+          type: 'array',
+          items: { type: 'string' },
+          description: '아직 모르는 것. 단계로 지어내는 대신 여기에 남긴다.',
+        },
         horizonDays: { type: 'number', description: '계획 기간(일). 기본 21.' },
       },
       required: ['caseId'],
@@ -58,13 +100,49 @@ export const TOOLS: ToolDef[] = [
     name: 'argus_adopt',
     title: '사용자 채택',
     description:
-      '사용자가 명시적으로 "이대로 하겠다"고 말했을 때만 부른다. 이 호출만이 결정을 사용자의 것으로 기록한다. 모델의 판단이나 호스트의 승인으로 대신할 수 없다.',
+      '사용자가 명시적으로 "이대로 하겠다"고 말했을 때만 부른다. 이 호출만이 결정을 사용자의 것으로 기록한다. 모델의 판단이나 호스트의 승인으로 대신할 수 없다. stakes를 보내지 않으면 서버가 가장 엄격한 쪽(major / one_way)으로 닫고 그 사실을 응답에 밝힌다.',
     inputSchema: {
       type: 'object',
       properties: {
         caseId: { type: 'string' },
         choiceOrPolicy: { type: 'string', description: '사용자가 채택한 선택. 사용자가 고쳤으면 고친 문장으로.' },
+        question: {
+          type: 'string',
+          description:
+            '이 결정이 답하는 **질문**. 선택이 아니다 — 돌아볼 때 선택을 감춘 채 이 질문만 먼저 보여준다. 생략하면 결정을 연 원문을 쓴다.',
+        },
         edited: { type: 'boolean', description: '사용자가 제안을 수정했는가.' },
+        adoptedState: {
+          type: 'string',
+          enum: ['decide', 'test', 'research', 'defer', 'reframe', 'stop'],
+          description: '무엇으로 채택했는가. 기본 decide.',
+        },
+        stakes: {
+          type: 'object',
+          properties: {
+            weight: { type: 'string', enum: ['minor', 'significant', 'major'] },
+            reversibility: { type: 'string', enum: ['reversible', 'costly', 'one_way'] },
+          },
+          description: '이 결정의 하중. 사용자의 말에서 판단하고, 모르면 보내지 말 것(지어내지 말 것).',
+        },
+        values: { type: 'array', items: { type: 'string' }, description: '사용자가 말한 가치 기준만.' },
+        materialBeliefs: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              belief: { type: 'string' },
+              confidence: { type: 'string', enum: ['confident', 'uncertain', 'contested'] },
+            },
+            required: ['belief'],
+          },
+          description: '이 선택을 떠받치는 사실 믿음. 틀리면 결정이 바뀌는 것만.',
+        },
+        rejectedAlternative: {
+          type: 'object',
+          properties: { alternative: { type: 'string' }, reason: { type: 'string' } },
+          description: '사용자가 버린 대안과 그 이유.',
+        },
       },
       required: ['caseId', 'choiceOrPolicy'],
     },
@@ -73,13 +151,15 @@ export const TOOLS: ToolDef[] = [
     name: 'argus_return',
     title: '돌아보기',
     description:
-      '기한이 된 결정을 돌아본다. **순서가 규칙이다**: 먼저 실제로 무슨 일이 있었는지 듣고, 그다음 당시 왜 그렇게 정했는지 기억을 묻고, 그러고 나서야 그때의 기록을 연다. 기록을 먼저 보여주면 기억이 오염된다.',
+      '기한이 된 결정을 돌아본다. **순서가 규칙이다**: 먼저 실제로 무슨 일이 있었는지 듣고, 그다음 당시 왜 그렇게 정했는지 기억을 묻고, 그러고 나서야 그때의 기록을 연다. 기록을 먼저 보여주면 기억이 오염된다. 서버가 이 순서를 강제하므로 건너뛸 수 없다.',
     inputSchema: {
       type: 'object',
       properties: {
         caseId: { type: 'string' },
         observation: { type: 'string', description: '실제로 일어난 일. 해석 말고 사실.' },
         recall: { type: 'string', description: '당시 왜 그렇게 정했는지에 대한 사용자의 기억. 관찰을 받은 뒤에만.' },
+        observedAt: { type: 'string', description: '그 일이 실제로 일어난 시각(ISO 8601). 지금이 아니면 반드시.' },
+        relayed: { type: 'boolean', description: '사용자가 직접 본 것이 아니라 전해 들은 것인가.' },
       },
       required: ['caseId'],
     },
@@ -88,10 +168,13 @@ export const TOOLS: ToolDef[] = [
     name: 'argus_recall',
     title: '지난 결정 불러오기',
     description:
-      '지난 결정·계획·정산 결과를 불러온다. 비슷한 결정을 다시 만났을 때 지난번에 무엇을 가정했고 실제로 어떻게 됐는지 확인하는 용도.',
+      '지난 결정·계획·정산 결과를 불러온다. 비슷한 결정을 다시 만났을 때 지난번에 무엇을 가정했고 실제로 어떻게 됐는지 확인하는 용도. query를 주면 결정 질문에서 그 말이 들어간 것만 거르고, 몇 건 중 몇 건인지 함께 밝힌다.',
     inputSchema: {
       type: 'object',
-      properties: { query: { type: 'string' }, limit: { type: 'number' } },
+      properties: {
+        query: { type: 'string', description: '결정 질문에서 찾을 말. 비우면 최근 순 전체.' },
+        limit: { type: 'number', description: '최대 건수 (1–20, 기본 10).' },
+      },
     },
   },
 ];

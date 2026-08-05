@@ -4,17 +4,10 @@
 // 이 문서가 없으면 401은 막다른 길이 된다 — 가리키는 곳이 실재해야 한다.
 
 import { NextRequest, NextResponse } from 'next/server';
+import { protectedResourceMetadata } from '@/lib/mcp-discovery';
 
 export function GET(req: NextRequest) {
-  const origin = new URL(req.url).origin;
-  return NextResponse.json(
-    {
-      resource: `${origin}/api/mcp/v2`,
-      authorization_servers: [origin],
-      bearer_methods_supported: ['header'],
-      scopes_supported: ['argus.decisions'],
-      resource_documentation: `${origin}/method-pilot`,
-    },
-    { headers: { 'Cache-Control': 'public, max-age=3600' } },
-  );
+  return NextResponse.json(protectedResourceMetadata(new URL(req.url).origin), {
+    headers: { 'Cache-Control': 'public, max-age=3600' },
+  });
 }

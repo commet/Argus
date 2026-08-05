@@ -61,6 +61,22 @@ export async function GET(req: NextRequest) {
     else expiredTokens = tks?.length ?? 0;
   }
 
+  // Sweep spent/expired OAuth authorization codes. They are single-use and
+  // live 10 minutes; without a sweep the table grows forever and keeps hashed
+  // one-time secrets around long after they can do any good. Deleting a
+  // consumed code cannot revoke anything — the durable credential is the PAT
+  // above, which has its own expiry.
+  let sweptGrants = 0;
+  {
+    const { data: rows, error: grantErr } = await admin
+      .from('argus_oauth_grants')
+      .delete()
+      .lt('expires_at', new Date().toISOString())
+      .select('id');
+    if (grantErr) console.error('[cron/expire-tokens] argus_oauth_grants sweep failed:', grantErr.message);
+    else sweptGrants = rows?.length ?? 0;
+  }
+
   // Update has_pending_humans for affected sessions
   const sessionIds = [...new Set((expired || []).map(e => e.session_id))];
   for (const sid of sessionIds) {
@@ -83,5 +99,11 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  return NextResponse.json({ ok: true, expired: expired?.length ?? 0, sessions: sessionIds.length, plugin_tokens_expired: expiredTokens });
+  return NextResponse.json({
+    ok: true,
+    expired: expired?.length ?? 0,
+    sessions: sessionIds.length,
+    plugin_tokens_expired: expiredTokens,
+    oauth_grants_swept: sweptGrants,
+  });
 }

@@ -107,6 +107,10 @@ const ROGUE_ALLOWLIST: Record<string, string> = {
   argus_cases: '스토리지 키 아님 — 원격 MCP 파일럿 서버 테이블 (마이그레이션 20260805100000)',
   argus_events: '스토리지 키 아님 — 원격 MCP 파일럿 append-only 원장 테이블 (동)',
   argus_returns: '스토리지 키 아님 — 원격 MCP 파일럿 귀환 계약 테이블, 크론이 읽는다 (동)',
+  argus_oauth_clients: '스토리지 키 아님 — 원격 커넥터 동적 등록 클라이언트 테이블 (마이그레이션 20260805170000)',
+  argus_oauth_grants: '스토리지 키 아님 — 원격 커넥터 1회용 인가 코드 테이블 (동). 해시만 저장',
+  argus_client_: '스토리지 키 아님 — 동적 등록 client_id 접두사 (api/mcp/v2/oauth/lib.ts). 비밀이 아니며 공개 식별자다',
+  argus_code_: '스토리지 키 아님 — 인가 코드 접두사. 원문은 어디에도 저장 안 함, sha256 해시만 argus_oauth_grants 에 (동)',
   // 만들지 **않기로** 한 도구(tools.ts DELIBERATELY_ABSENT)는 여기 넣지 않는다:
   // 객체 키라 리터럴이 아니고, 이 스캐너는 테스트 파일을 훑지 않으므로 등재하면
   // "유령 면제"로 잡힌다. 그 가드가 옳다 — 죽은 면제는 남기지 않는다.

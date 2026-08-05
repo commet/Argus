@@ -58,6 +58,9 @@ export const USER_DATA_TABLES = [
   // "폐기 전제" 계약이 지켜지지 않는다.
   'argus_cases',
   'argus_events',
+  // 원격 커넥터 OAuth 인가 코드 (2026-08-05). 1회용·단명이지만 user_id가 있으므로
+  // 같은 규칙이 적용된다. 짝인 argus_oauth_clients 는 user_id가 없어 여기 없다.
+  'argus_oauth_grants',
   'argus_returns',
   'mcp_account_authorizations',
   'outcome_records',
