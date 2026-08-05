@@ -81,6 +81,12 @@ export function errorRedirect(redirectUri: string, state: string | null, error: 
   return u.toString();
 }
 
+// 같은 커넥터의 재등록을 알아보기 위한 지문. 콜백 목록은 순서가 달라도 같은
+// 클라이언트이므로 정렬해서 넣는다.
+export function clientFingerprint(name: string, redirectUris: readonly string[]): string {
+  return sha256(`${name}\n${[...redirectUris].sort().join('\n')}`);
+}
+
 export interface ClientRow {
   client_id: string;
   client_name: string;

@@ -4,6 +4,8 @@
 // 준수를 테스트가 대신 보증해야 한다. 각 케이스는 "클라이언트가 실제로 보내는
 // 바이트"를 그대로 쓴다.
 
+import { readFileSync } from 'fs';
+import { join } from 'path';
 import { describe, expect, it } from 'vitest';
 import {
   isJsonRpcRequest,
@@ -109,5 +111,31 @@ describe('도구 표면 (기획서 §4 — 여섯 개 고정)', () => {
     const plan = TOOLS.find((t) => t.name === 'argus_plan')!;
     expect(plan.description).toMatch(/채택/);
     expect(plan.description).toMatch(/확인 필요/); // 정직한 공백
+  });
+});
+
+// initialize 의 instructions 는 호스트가 모델 맥락에 얹는 **유일한** 사양이다.
+// 여기 없는 것은 모델이 하지 않으므로, 이 문자열이 전략을 담고 있어야 한다.
+describe('서버 지시문 (모델이 읽는 유일한 사양)', () => {
+  // route.ts 를 직접 import 하면 next/server 와 인증 배관이 딸려 온다.
+  // 여기서 재는 것은 문자열이므로 소스에서 읽는다.
+  const routeSrc = readFileSync(join(__dirname, '..', 'route.ts'), 'utf8');
+
+  it('침묵이 기본값임을 못박는다 (과발화 방지)', () => {
+    expect(routeSrc).toMatch(/침묵이 기본값/);
+    expect(routeSrc).toMatch(/평평한 상황/);
+  });
+
+  it('조언보다 지난 정산을 먼저 보라고 말한다 — 없으면 argus_recall 은 영영 불리지 않는다', () => {
+    expect(routeSrc).toMatch(/조언하기 전에 argus_recall 을 먼저/);
+  });
+
+  it('대신 결정하지 않는다는 것과 관찰 우선 순서를 담는다', () => {
+    expect(routeSrc).toMatch(/대신 결정하지 않습니다/);
+    expect(routeSrc).toMatch(/무슨 일이 있었는지부터 듣습니다/);
+  });
+
+  it('사용자 점수·등급 금지를 담는다 (zero-judgment 규칙 2)', () => {
+    expect(routeSrc).toMatch(/점수 매기거나 등급을 붙이지 않습니다/);
   });
 });

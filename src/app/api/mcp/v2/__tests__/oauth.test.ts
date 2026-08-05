@@ -11,6 +11,7 @@
 import { createHash, randomBytes } from 'crypto';
 import { describe, expect, it } from 'vitest';
 import {
+  clientFingerprint,
   errorRedirect,
   isPkce,
   pkceChallenge,
@@ -136,5 +137,27 @@ describe('발견 문서 — 401 이 막다른 길이 되지 않아야 한다', (
   it('두 문서가 같은 리소스와 같은 scope 를 말한다', () => {
     expect(pr.resource).toBe(`${ORIGIN}/api/mcp/v2`);
     expect(pr.scopes_supported).toEqual(as.scopes_supported);
+  });
+});
+
+describe('재등록 멱등 — 인증 없이 열린 표면을 무한히 쌓이지 않게', () => {
+  const URIS = ['https://claude.ai/api/mcp/auth_callback', 'https://claude.ai/alt'];
+
+  it('같은 (이름, 콜백)이면 같은 지문 — 콜백 순서가 달라도', () => {
+    expect(clientFingerprint('Claude', URIS)).toBe(clientFingerprint('Claude', [...URIS].reverse()));
+  });
+
+  it('이름이 다르면 다른 지문', () => {
+    expect(clientFingerprint('Claude', URIS)).not.toBe(clientFingerprint('ChatGPT', URIS));
+  });
+
+  it('콜백이 하나라도 다르면 다른 지문 — 다른 곳으로 코드가 갈 수 있으므로 같은 클라이언트가 아니다', () => {
+    expect(clientFingerprint('Claude', URIS)).not.toBe(clientFingerprint('Claude', [...URIS, 'https://evil.com/cb']));
+  });
+
+  it('지문에서 원본을 되돌릴 수 없다 (해시)', () => {
+    const fp = clientFingerprint('Claude', URIS);
+    expect(fp).not.toContain('claude.ai');
+    expect(fp).toMatch(/^[a-f0-9]{64}$/);
   });
 });

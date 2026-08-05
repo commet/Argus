@@ -13,7 +13,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { adminClient } from '@/lib/share-guard';
-import { randomCode, REMOTE_SCOPE, safeName, validRedirectUri } from '../lib';
+import { clientFingerprint, randomCode, REMOTE_SCOPE, safeName, validRedirectUri } from '../lib';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -55,21 +55,38 @@ export async function POST(req: NextRequest) {
     return err('invalid_client_metadata', 'authorization_code is the only supported grant type');
   }
 
-  const clientId = randomCode('argus_client_', 16);
   const clientName = safeName(body.client_name);
+  const fingerprint = clientFingerprint(clientName, redirectUris);
 
+  // 재등록은 멱등이다. 커넥터는 재연결할 때마다 등록하므로, 매번 새 행을 만들면
+  // 인증 없이 열린 이 표면이 무한히 쌓인다. 같은 (이름, 콜백)이면 같은 client_id.
+  let clientId: string;
   try {
-    const { error } = await adminClient().from('argus_oauth_clients').insert({
-      client_id: clientId,
-      client_name: clientName,
-      redirect_uris: redirectUris,
-      token_endpoint_auth_method: 'none',
-    });
-    if (error) throw new Error(error.message);
+    const admin = adminClient();
+    const { data: existing, error: readError } = await admin
+      .from('argus_oauth_clients')
+      .select('client_id')
+      .eq('fingerprint', fingerprint)
+      .maybeSingle();
+    if (readError) throw new Error(readError.message);
+
+    if (existing) {
+      clientId = (existing as { client_id: string }).client_id;
+    } else {
+      clientId = randomCode('argus_client_', 16);
+      const { error } = await admin.from('argus_oauth_clients').insert({
+        client_id: clientId,
+        client_name: clientName,
+        redirect_uris: redirectUris,
+        fingerprint,
+        token_endpoint_auth_method: 'none',
+      });
+      if (error) throw new Error(error.message);
+    }
   } catch (e) {
     // adminClient() 자체가 던질 수 있다(설정 누락). 던진 것을 그대로 새어 나가게
     // 두면 클라이언트는 사양 밖의 500을 받고 OAuth 오류로 해석하지 못한다.
-    console.error('[mcp/v2/oauth/register] insert failed:', e);
+    console.error('[mcp/v2/oauth/register] register failed:', e);
     return err('temporarily_unavailable', 'could not register client', 503);
   }
 

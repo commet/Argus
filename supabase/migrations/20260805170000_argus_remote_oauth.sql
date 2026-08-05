@@ -13,6 +13,13 @@ create table if not exists public.argus_oauth_clients (
   client_id       text primary key,
   client_name     text not null default 'MCP client',
   redirect_uris   text[] not null,
+  -- 같은 (이름, 콜백 목록)으로 다시 등록하면 새 행을 만들지 않고 기존 것을 돌려준다.
+  -- 등록은 사양상 **인증 없이** 열려 있으므로(그 시점엔 아직 자격증명이 없다)
+  -- 무한히 쌓일 수 있는 표면이다. 재등록을 멱등으로 만들면 행 수가 "서로 다른
+  -- 커넥터 종류"로 묶인다 — 커넥터는 재연결 때마다 다시 등록하므로 이것이
+  -- 정상 동작이기도 하다. client_id 는 사양상 공개 식별자이고, 그것만으로는
+  -- 아무 권한도 없다(PKCE + 사용자 동의 + redirect_uri 정확 일치가 모두 필요).
+  fingerprint     text not null unique,
   -- 공개 클라이언트만 지원한다: 비밀을 안전하게 보관할 수 없는 곳(브라우저·
   -- 커넥터)이므로 client_secret 대신 PKCE 가 유일한 증명이다. 비밀을 발급하면
   -- 보관되지 않는 비밀을 검증하는 척하게 된다.
