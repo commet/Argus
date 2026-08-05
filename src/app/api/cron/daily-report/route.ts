@@ -105,6 +105,8 @@ type SessionAgg = {
   visitedAdmin: boolean;
   visitedPrivacy: boolean;
   visitedTerms: boolean;
+  /** Any event in the session declared itself an automated run. */
+  synthetic: boolean;
   didRealWork: boolean;
   reachedWorkspace: boolean;
   completed: boolean;
@@ -138,6 +140,7 @@ function aggregateSessions(events: EventRow[]): Map<string, SessionAgg> {
         visitedAdmin: false,
         visitedPrivacy: false,
         visitedTerms: false,
+        synthetic: false,
         didRealWork: false,
         reachedWorkspace: false,
         completed: false,
@@ -147,6 +150,7 @@ function aggregateSessions(events: EventRow[]): Map<string, SessionAgg> {
       map.set(e.session_id, a);
     }
     a.events++;
+    if ((e.properties as Record<string, unknown> | null)?.synthetic === true) a.synthetic = true;
     a.eventNames.add(e.event_name);
     if (e.user_id && !a.userId) a.userId = e.user_id;
     if (e.page_path) {
@@ -181,6 +185,10 @@ function aggregateSessions(events: EventRow[]): Map<string, SessionAgg> {
  * (they authenticated). Anonymous sessions go through the shared heuristic.
  */
 function bucketSession(a: SessionAgg, ownerIds: Set<string>): AnonBucket {
+  // Checked before the userId branch: the signed-in e2e mode logs into the
+  // dogfood account, so without this a declared machine would be counted as a
+  // person the moment it authenticated.
+  if (a.synthetic) return 'internal';
   if (a.userId) return ownerIds.has(a.userId) ? 'internal' : 'human';
   return classifyAnonSession({
     events: a.events,
@@ -191,6 +199,7 @@ function bucketSession(a: SessionAgg, ownerIds: Set<string>): AnonBucket {
     visitedAdmin: a.visitedAdmin,
     localesTouched: a.locales.size,
     visitedLegalPair: a.visitedPrivacy && a.visitedTerms,
+    synthetic: a.synthetic,
   });
 }
 
@@ -669,6 +678,19 @@ export async function GET(req: Request) {
   // What the last stage COST. A conversion rate into the seal says how many
   // got there; this says how far away it was.
   const sealCost = sealCostSummary(extY, humanSessionIds);
+  // The front door, now that it can be measured at all. Until 2026-08-05
+  // `login_success` did not exist, so this rate could not be computed and the
+  // report showed attempts and failures with no arrival to put them against.
+  const authSessions = (name: string) => new Set(extY
+    .filter(e => e.event_name === name && humanSessionIds.has(e.session_id))
+    .map(e => e.session_id)).size;
+  const loginTried = authSessions('login_attempt');
+  const loginOk = authSessions('login_success');
+  const loginBad = authSessions('login_failure');
+  const loginLine = loginTried === 0
+    ? '정문 · 어제 로그인 시도 없음'
+    : `정문 · 로그인 시도 ${loginTried} → 성공 ${loginOk} · 실패 ${loginBad}`
+      + ` (${Math.round((loginOk / loginTried) * 100)}%)`;
   const answerReflections = summarizeAnswerReflections(extY, humanSessionIds);
 
   // ─── 10. Errors ───
@@ -1003,6 +1025,7 @@ export async function GET(req: Request) {
       </table>
       <p style="font-size: 10px; color: ${C.faint}; margin: 10px 0 0;">바 길이는 상황 제출 대비 %, 우측은 직전 단계에서의 이탈률 (빨강: 50% 이상 이탈) · 가벼운 길과 깊은 길의 동등한 순간을 함께 셈</p>
       <p style="font-size: 11px; color: ${C.muted}; margin: 8px 0 0; font-weight: 600;">깊은 길 · ${escHtml(sealCostLine(sealCost))}</p>
+      <p style="font-size: 11px; color: ${C.muted}; margin: 4px 0 0; font-weight: 600;">${escHtml(loginLine)}</p>
     </td></tr>
   </table>
 
@@ -1159,6 +1182,9 @@ export async function GET(req: Request) {
       loop_closure_rate: closure.rate,
       loop_closure_still_open: closure.stillOpen,
       loop_closure_undateable: closure.undateable,
+      login_attempts_yesterday: loginTried,
+      login_success_yesterday: loginOk,
+      login_failures_yesterday: loginBad,
       email_reminders_sent_yesterday: emailRemindersSentY.size,
       email_returns_yesterday: emailReturnsY,
       telegram_reminders_sent_yesterday: telegramRemindersSentY.size,

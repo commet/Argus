@@ -97,6 +97,27 @@ const ctx = await browser.newContext({
   ...(MOBILE ? { isMobile: true, hasTouch: true, deviceScaleFactor: 3 } : {}),
   acceptDownloads: true,
 });
+/**
+ * Declare this run a machine, before the first page script runs.
+ *
+ * BASE defaults to https://argus.voyage, so every CI push and every local run
+ * writes real anonymous users, real projects and real events into the founder's
+ * only instrument. Measured 2026-08-05: 64 of the 88 production progressive
+ * sessions in two weeks were these fixtures — the decision below appeared 44
+ * times — and all of them were counted as people. classifyAnonSession could not
+ * have caught them: a Playwright context arriving with no referrer, one locale
+ * and few pages looks exactly like a first-time visitor.
+ *
+ * So the run says so itself and the report quarantines it by fact. Keep this in
+ * sync with SYNTHETIC_RUN_KEY in src/lib/analytics.ts — synthetic-run-marker.test.ts
+ * fails if the two strings drift.
+ */
+await ctx.addInitScript(() => {
+  try {
+    sessionStorage.setItem('argus:synthetic', '1');
+    localStorage.setItem('argus:synthetic', '1');
+  } catch { /* storage unavailable — the run is still honest about everything else */ }
+});
 const page = await ctx.newPage();
 page.on('pageerror', (e) => pageErrors.push(String(e).slice(0, 200)));
 
@@ -637,6 +658,14 @@ try {
 
         if (minted) {
           const fresh = await browser.newContext({ locale: `${LOCALE}-KR` });
+          /** Same declaration as the main context — a share-link visit is still a machine.
+           *  Keep in sync with SYNTHETIC_RUN_KEY (src/lib/analytics.ts). */
+          await fresh.addInitScript(() => {
+            try {
+              sessionStorage.setItem('argus:synthetic', '1');
+              localStorage.setItem('argus:synthetic', '1');
+            } catch { /* storage unavailable */ }
+          });
           const fp = await fresh.newPage();
           let opened = false;
           let why = '';

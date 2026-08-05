@@ -45,6 +45,14 @@ const WALL_MARKERS = ['로그인이 필요해요', 'need an account', 'needs an 
 const failures = [];
 const browser = await chromium.launch({ headless: true });
 const ctx = await browser.newContext({ locale: `${LOCALE}-KR`, viewport: { width: 1280, height: 900 } });
+/** Same declaration as the main context — a share-link visit is still a machine.
+ *  Keep in sync with SYNTHETIC_RUN_KEY (src/lib/analytics.ts). */
+await ctx.addInitScript(() => {
+  try {
+    sessionStorage.setItem('argus:synthetic', '1');
+    localStorage.setItem('argus:synthetic', '1');
+  } catch { /* storage unavailable */ }
+});
 const page = await ctx.newPage();
 
 const pageErrors = [];

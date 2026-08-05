@@ -90,6 +90,14 @@ async function main() {
 
   const browser = await chromium.launch({ headless: HEADLESS, executablePath: executablePath() });
   const context = await browser.newContext({ viewport: VIEWPORT, locale: LOCALE });
+  /** Same declaration as the main context — a share-link visit is still a machine.
+   *  Keep in sync with SYNTHETIC_RUN_KEY (src/lib/analytics.ts). */
+  await context.addInitScript(() => {
+    try {
+      sessionStorage.setItem('argus:synthetic', '1');
+      localStorage.setItem('argus:synthetic', '1');
+    } catch { /* storage unavailable */ }
+  });
   const page = await context.newPage();
 
   page.on('console', (msg) => {

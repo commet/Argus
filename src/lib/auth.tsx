@@ -252,9 +252,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signInWithEmail = async (email: string, password: string) => {
     track('login_attempt', { method: 'email' });
     const transfer = await prepareAnonymousAccountTransfer();
-    if (!transfer.ok) return { error: transferPreparationError() };
+    // Was a silent return: the login was blocked, the user saw an error, and the
+    // funnel recorded an attempt that simply never resolved. The Google path
+    // above already reported this failure; email did not, so the two doors
+    // disagreed about what counts as a failure.
+    if (!transfer.ok) {
+      track('login_failure', { method: 'email', reason: transfer.error || 'transfer_prepare_failed' });
+      return { error: transferPreparationError() };
+    }
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) track('login_failure', { method: 'email', reason: error.message.slice(0, 80) });
+    // The front door could see people fail and never see anyone succeed.
+    // Measured 2026-08-05: 146 login_attempt, 94 login_failure, and
+    // login_success did not exist anywhere in the codebase — so "0 successes"
+    // was not a finding, it was an unwired sensor, and no login conversion rate
+    // could ever be computed. A gate that measures nothing, on the front door.
+    else track('login_success', { method: 'email' });
     return { error: error ? translateError(error.message) : null };
   };
 

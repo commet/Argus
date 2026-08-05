@@ -117,6 +117,43 @@ function getSessionId(): string {
   return _sessionId;
 }
 
+/**
+ * The key an automated run sets on itself, before the first page script runs.
+ *
+ * Measured 2026-08-05 against production: of 88 progressive sessions in two
+ * weeks, 64 carried the same six problem texts — our own e2e fixtures. The
+ * top one appeared 44 times. `scripts/e2e/decision-loop.mjs` defaults to
+ * https://argus.voyage, so every CI push and every local run wrote real
+ * anonymous users, real projects and real events into the founder's only
+ * instrument, and every one of them was counted as a person.
+ *
+ * classifyAnonSession could not catch them, and no heuristic could: a Playwright
+ * context navigating straight to the app has no referrer, one locale, few pages
+ * — it looks exactly like a first-time visitor, because behaviourally it is one.
+ *
+ * So the run DECLARES itself instead of being detected. Same doctrine as the
+ * rest of this codebase: deterministic structure over plausible inference. The
+ * scripts set this key in an init script; every event they cause then carries
+ * `synthetic: true`, and the report quarantines them by fact rather than guess.
+ *
+ * A human could set this key and disappear from the funnel. That costs us one
+ * person's data and is not a threat — the failure that matters is the opposite
+ * one, where a machine is counted as demand.
+ */
+export const SYNTHETIC_RUN_KEY = 'argus:synthetic';
+
+function isSyntheticRun(): boolean {
+  try {
+    return sessionStorage.getItem(SYNTHETIC_RUN_KEY) === '1'
+      || localStorage.getItem(SYNTHETIC_RUN_KEY) === '1';
+  } catch {
+    // Storage can throw in a locked-down context. An unreadable marker means
+    // "not declared", which counts the run as human — the safe direction is to
+    // keep a real person's data, never to invent a machine.
+    return false;
+  }
+}
+
 /** Session-level metadata — computed once, attached to every event */
 let _sessionMeta: Record<string, unknown> | null = null;
 
@@ -130,6 +167,9 @@ function getSessionMeta(): Record<string, unknown> {
     lang: navigator.language,
     touch: 'ontouchstart' in window,
     returning: !!localStorage.getItem('ov_returning'),
+    // Attached here rather than at each call site so it cannot be forgotten on
+    // one event: every row a synthetic run produces carries the mark.
+    ...(isSyntheticRun() ? { synthetic: true } : {}),
   };
   // Mark as returning for next session
   localStorage.setItem('ov_returning', '1');

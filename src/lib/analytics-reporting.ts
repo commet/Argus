@@ -149,6 +149,15 @@ export interface AnonSessionFeatures {
   localesTouched: number;
   /** Saw BOTH the privacy and terms pages (route-walker fingerprint). */
   visitedLegalPair: boolean;
+  /**
+   * The run declared itself automated (analytics.SYNTHETIC_RUN_KEY).
+   *
+   * Not a heuristic and not overridable by the ones below: a Playwright context
+   * that navigates straight to the app has no referrer, one locale and few
+   * pages, so every signature in this function reads it as a first-time human —
+   * which behaviourally it is. Detection cannot win here; declaration can.
+   */
+  synthetic?: boolean;
 }
 
 /**
@@ -165,6 +174,10 @@ export interface AnonSessionFeatures {
  *    (saw privacy AND terms with several other pages)
  */
 export function classifyAnonSession(f: AnonSessionFeatures): AnonBucket {
+  // A declared machine, before any inference. Measured 2026-08-05: 64 of 88
+  // production sessions in two weeks were our own e2e fixtures, all bucketed
+  // 'human', because nothing here could tell them apart from a real visitor.
+  if (f.synthetic) return 'internal';
   const host = referrerHost(f.referrer);
   const utmSource = (f.utmSource || '').toLowerCase();
   if (utmSource === 'internal' || utmSource === 'qa' || utmSource === 'internal_qa') return 'internal';

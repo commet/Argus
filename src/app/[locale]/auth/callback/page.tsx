@@ -6,6 +6,7 @@ import { useLocale } from '@/hooks/useLocale';
 import { useLocaleRouter } from '@/hooks/useLocaleRouter';
 import { safePostAuthRedirect } from '@/lib/auth-redirect';
 import { claimAnonymousAccountTransfer } from '@/lib/anonymous-account-transfer';
+import { track } from '@/lib/analytics';
 
 export default function AuthCallbackPage() {
   const router = useLocaleRouter();
@@ -18,6 +19,10 @@ export default function AuthCallbackPage() {
       // OAuth provider returned an error (e.g., user denied access)
       const errorParam = params.get('error');
       if (errorParam) {
+        // The provider's own refusal never reached the funnel: signInWithGoogle
+        // reports the failures it can see locally, but a denial happens on the
+        // provider's page and comes back here.
+        track('login_failure', { method: 'google', reason: 'oauth_denied' });
         router.replace('/login?error=oauth_denied');
         return;
       }
@@ -37,10 +42,12 @@ export default function AuthCallbackPage() {
             }),
           ]);
           if (exchanged.error) {
+            track('login_failure', { method: 'google', reason: 'code_exchange_failed' });
             router.replace('/login?error=auth_failed');
             return;
           }
         } catch {
+          track('login_failure', { method: 'google', reason: 'code_exchange_threw' });
           router.replace('/login?error=auth_failed');
           return;
         } finally {
@@ -53,6 +60,11 @@ export default function AuthCallbackPage() {
       // fast redirect from aborting the only in-flight request after OAuth/email
       // confirmation.
       await claimAnonymousAccountTransfer();
+
+      // OAuth only completes HERE, after a full-page redirect, so this is the
+      // single place a Google sign-in can be observed to have worked. Without
+      // it the funnel saw every attempt and no arrival.
+      if (code) track('login_success', { method: 'google' });
 
       const stashed = sessionStorage.getItem('argus:postAuthRedirect');
       if (stashed) sessionStorage.removeItem('argus:postAuthRedirect');
