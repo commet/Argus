@@ -28,11 +28,14 @@ import {
   armReturns,
   completeReturns,
   dueReturns,
+  getCase,
   knownEventIds,
   loadEngine,
   listCases,
   persistNewEvents,
+  projectOutcome,
   upsertCase,
+  type CaseRow,
 } from './store';
 
 const now = () => new Date().toISOString();
@@ -499,6 +502,16 @@ export async function handleReturn(userId: string, args: Args) {
   await upsertCase(userId, caseId, revealed.card?.question ?? caseId, engine.state().state);
   // 스케줄러 큐도 닫는다 — 안 닫으면 크론 메일과 채팅 알림이 계속 온다.
   await completeReturns(userId, caseId);
+  // 정산 결과를 케이스 행에 투영한다. **이 한 줄이 해자다**: 다음에 비슷한
+  // 결정을 만났을 때 argus_recall 이 "지난번엔 이렇게 가정했고 실제로는
+  // 이랬다"를 돌려줄 수 있는 것은 여기서 남긴 것 때문이다. 없으면 이 제품은
+  // 계획만 내주는 범용 AI와 구분되지 않는다.
+  await projectOutcome(userId, caseId, {
+    choice: revealed.card?.choiceOrPolicy,
+    observation,
+    recall,
+    settledAt: now(),
+  });
 
   return ok(
     userId,
@@ -513,14 +526,55 @@ export async function handleReturn(userId: string, args: Args) {
   );
 }
 
+// 정산이 끝난 결정 한 건을 **그때의 가정과 실제로 일어난 일**로 되돌려준다.
+// 이것이 이 도구의 존재 이유다 — 제목 목록은 범용 AI도 낼 수 있지만, 사용자가
+// 그때 무엇을 믿었고 현실이 무엇이라 답했는지는 기록해 둔 쪽만 말할 수 있다.
+function settledSummary(c: CaseRow): string {
+  const lines = [`결정: ${c.title ?? c.id}`];
+  if (c.choice) lines.push(`그때의 선택: ${c.choice}`);
+  if (c.recall_gap) lines.push(`정산 직전에 기억한 이유: "${c.recall_gap}"`);
+  if (c.last_observation) lines.push(`실제로 일어난 일: "${c.last_observation}"`);
+  if (c.settled_at) lines.push(`정산: ${c.settled_at.slice(0, 10)}`);
+  return lines.join('\n');
+}
+
 export async function handleRecall(userId: string, args: Args) {
+  const caseId = str(args.caseId);
+
+  // 한 건을 콕 집어 물으면 그 건의 정산을 통째로 돌려준다.
+  if (caseId) {
+    const c = await getCase(userId, caseId);
+    if (!c) return toolText('그 id 의 결정이 없습니다.', true);
+    if (!c.settled_at) {
+      // 아직 정산 안 된 것을 정산된 것처럼 말하지 않는다.
+      return ok(
+        userId,
+        `${c.title ?? c.id} — 아직 정산되지 않았습니다 (현재 ${c.state}).\n` +
+          '기한이 오면 무슨 일이 있었는지부터 묻습니다. 지금 결과를 아신다면 argus_return 으로 여십시오.',
+        caseId,
+      );
+    }
+    return ok(
+      userId,
+      `${settledSummary(c)}\n\n` +
+        '기억과 실제가 다르다면 그 차이가 이 기록이 존재하는 이유입니다 — ' +
+        '결과를 알고 나면 누구나 이유를 다시 씁니다.',
+      caseId,
+    );
+  }
+
   const limit = typeof args.limit === 'number' ? Math.min(Math.max(Math.trunc(args.limit), 1), 20) : 10;
   const query = str(args.query);
   // query는 선언만 하고 버리면 모델이 걸러졌다고 믿는다 — 유령 파라미터는
   // "그럴듯함이 맞음으로 위장"하는 전형이다. 실제로 거르고, 걸렀다고 말한다.
   const all = await listCases(userId, query ? 100 : limit);
   const needle = query.toLowerCase();
-  const cases = (query ? all.filter((c) => (c.title ?? c.id).toLowerCase().includes(needle)) : all).slice(0, limit);
+  const matches = query
+    ? all.filter((c) =>
+        [c.title ?? c.id, c.choice ?? '', c.last_observation ?? ''].some((f) => f.toLowerCase().includes(needle)),
+      )
+    : all;
+  const cases = matches.slice(0, limit);
 
   if (cases.length === 0) {
     return ok(
@@ -530,9 +584,37 @@ export async function handleRecall(userId: string, args: Args) {
         : '아직 기록된 결정이 없습니다.',
     );
   }
-  return ok(
-    userId,
-    (query ? `"${query}"로 거른 지난 결정 (${cases.length}/${all.length}건):\n` : '지난 결정들:\n') +
-      cases.map((c) => `· ${c.title ?? c.id} — ${c.state} (${c.updated_at.slice(0, 10)}, id: ${c.id})`).join('\n'),
-  );
+
+  // 정산된 것을 먼저 보여준다. 이 목록에서 가치가 있는 것은 "무엇을 정했나"가
+  // 아니라 "무엇이 실제로 일어났나"이기 때문이다.
+  const settled = cases.filter((c) => c.settled_at);
+  const open = cases.filter((c) => !c.settled_at);
+  const parts: string[] = [];
+  if (query) {
+    // 조용한 절삭 금지: 몇 건이 걸렸고 그중 몇 건을 보여주는지 밝힌다.
+    parts.push(
+      `"${query}"로 거른 지난 결정 ${matches.length}건 (기록 전체 ${all.length}건)` +
+        (cases.length < matches.length ? ` — 최근 ${cases.length}건만 표시합니다.` : ''),
+    );
+  }
+
+  if (settled.length > 0) {
+    parts.push(
+      `현실이 답을 준 결정 ${settled.length}건:\n` +
+        settled
+          .map((c) => `· ${c.title ?? c.id} → 실제로: "${c.last_observation}" (${c.settled_at!.slice(0, 10)}, id: ${c.id})`)
+          .join('\n'),
+    );
+  }
+  if (open.length > 0) {
+    parts.push(
+      `아직 정산되지 않은 결정 ${open.length}건:\n` +
+        open.map((c) => `· ${c.title ?? c.id} — ${c.state} (${c.updated_at.slice(0, 10)}, id: ${c.id})`).join('\n'),
+    );
+  }
+  if (settled.length > 0) {
+    parts.push('한 건을 자세히 보려면 caseId 와 함께 다시 부르십시오 — 그때의 가정과 실제가 나란히 나옵니다.');
+  }
+
+  return ok(userId, parts.join('\n\n'));
 }

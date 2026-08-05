@@ -168,11 +168,12 @@ export const TOOLS: ToolDef[] = [
     name: 'argus_recall',
     title: '지난 결정 불러오기',
     description:
-      '지난 결정·계획·정산 결과를 불러온다. 비슷한 결정을 다시 만났을 때 지난번에 무엇을 가정했고 실제로 어떻게 됐는지 확인하는 용도. query를 주면 결정 질문에서 그 말이 들어간 것만 거르고, 몇 건 중 몇 건인지 함께 밝힌다.',
+      '**비슷한 결정을 다시 만났을 때 먼저 부른다.** 지난번에 무엇을 골랐고, 정산 직전에 이유를 어떻게 기억했고, 현실이 실제로 무엇이라 답했는지를 돌려준다. 새로 조언하기 전에 이것부터 확인하십시오 — 일반적인 조언은 어디서나 얻을 수 있지만 이 사람의 지난 정산은 여기에만 있습니다. caseId를 주면 그 한 건을 자세히, 없으면 목록(정산된 것 먼저)을 돌려준다.',
     inputSchema: {
       type: 'object',
       properties: {
-        query: { type: 'string', description: '결정 질문에서 찾을 말. 비우면 최근 순 전체.' },
+        caseId: { type: 'string', description: '한 건을 자세히 볼 때. 그때의 선택·기억·실제가 나란히 나온다.' },
+        query: { type: 'string', description: '결정 질문·선택·실제 결과에서 찾을 말. 비우면 최근 순 전체.' },
         limit: { type: 'number', description: '최대 건수 (1–20, 기본 10).' },
       },
     },

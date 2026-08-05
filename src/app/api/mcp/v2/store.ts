@@ -18,6 +18,13 @@ export interface CaseRow {
   title: string | null;
   state: string;
   updated_at: string;
+  // 정산 투영 (마이그레이션 20260805180000). 원장에서 재생 가능한 캐시이며,
+  // 이 넷이 있어야 `argus_recall` 이 "지난번에 실제로 어떻게 됐는지"를 말할 수
+  // 있다 — 그것이 범용 AI가 못 하는 유일한 것이다.
+  choice?: string | null;
+  last_observation?: string | null;
+  recall_gap?: string | null;
+  settled_at?: string | null;
 }
 
 // 원장을 읽어 하네스 엔진을 복원한다. 케이스가 없으면 빈 엔진 —
@@ -94,16 +101,52 @@ export async function armReturns(
   if (error) throw new Error(`return arm failed: ${error.message}`);
 }
 
+const CASE_COLUMNS = 'id, title, state, updated_at, choice, last_observation, recall_gap, settled_at';
+
 export async function listCases(userId: string, limit = 20): Promise<CaseRow[]> {
   const admin = adminClient();
   const { data, error } = await admin
     .from('argus_cases')
-    .select('id, title, state, updated_at')
+    .select(CASE_COLUMNS)
     .eq('user_id', userId)
     .order('updated_at', { ascending: false })
     .limit(limit);
   if (error) throw new Error(`case list failed: ${error.message}`);
   return (data ?? []) as CaseRow[];
+}
+
+export async function getCase(userId: string, caseId: string): Promise<CaseRow | null> {
+  const admin = adminClient();
+  const { data, error } = await admin
+    .from('argus_cases')
+    .select(CASE_COLUMNS)
+    .eq('user_id', userId)
+    .eq('id', caseId)
+    .maybeSingle();
+  if (error) throw new Error(`case read failed: ${error.message}`);
+  return (data ?? null) as CaseRow | null;
+}
+
+// 정산 결과를 케이스 행에 투영한다. 원장이 정본이고 이것은 캐시다 — 그래서
+// 실패해도 던지지 않는다. 던지면 이미 원장에 들어간 정산이 사용자에게는
+// 실패로 보인다(실제로는 성공했다).
+export async function projectOutcome(
+  userId: string,
+  caseId: string,
+  outcome: { choice?: string; observation: string; recall: string; settledAt: string },
+): Promise<void> {
+  const admin = adminClient();
+  const { error } = await admin
+    .from('argus_cases')
+    .update({
+      ...(outcome.choice ? { choice: outcome.choice } : {}),
+      last_observation: outcome.observation,
+      recall_gap: outcome.recall,
+      settled_at: outcome.settledAt,
+    })
+    .eq('id', caseId)
+    .eq('user_id', userId);
+  if (error) console.error('[mcp/v2] outcome projection failed:', error.message);
 }
 
 // 기한이 지난 귀환 — **채팅 안에서 알리기 위한** 조회.

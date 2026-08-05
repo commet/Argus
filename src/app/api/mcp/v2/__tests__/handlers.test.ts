@@ -14,7 +14,17 @@ import type { LedgerEvent } from '../../../../../../method-harness/types';
 
 // ── 메모리 원장 (append-only 를 그대로 흉내 낸다) ─────────────────────────
 const events = new Map<string, LedgerEvent[]>();
-const cases = new Map<string, { id: string; title: string; state: string; updated_at: string }>();
+type Row = {
+  id: string;
+  title: string;
+  state: string;
+  updated_at: string;
+  choice?: string | null;
+  last_observation?: string | null;
+  recall_gap?: string | null;
+  settled_at?: string | null;
+};
+const cases = new Map<string, Row>();
 let returns: Array<{ case_id: string; kind: string; due_at: string; from_step?: string | null; status: string }> = [];
 
 vi.mock('../store', () => ({
@@ -29,9 +39,26 @@ vi.mock('../store', () => ({
     return fresh.length;
   },
   upsertCase: async (_u: string, caseId: string, title: string, state: string) => {
-    cases.set(caseId, { id: caseId, title, state, updated_at: new Date().toISOString() });
+    cases.set(caseId, { ...(cases.get(caseId) ?? {}), id: caseId, title, state, updated_at: new Date().toISOString() });
   },
   listCases: async () => [...cases.values()].sort((a, b) => b.updated_at.localeCompare(a.updated_at)),
+  getCase: async (_u: string, caseId: string) => cases.get(caseId) ?? null,
+  projectOutcome: async (
+    _u: string,
+    caseId: string,
+    o: { choice?: string; observation: string; recall: string; settledAt: string },
+  ) => {
+    const row = cases.get(caseId);
+    if (row) {
+      cases.set(caseId, {
+        ...row,
+        choice: o.choice ?? row.choice,
+        last_observation: o.observation,
+        recall_gap: o.recall,
+        settled_at: o.settledAt,
+      });
+    }
+  },
   armReturns: async (_u: string, caseId: string, rs: Array<{ kind: string; dueAt: string; fromStep?: string }>) => {
     for (const r of rs) returns.push({ case_id: caseId, kind: r.kind, due_at: r.dueAt, from_step: r.fromStep, status: 'armed' });
   },
@@ -301,7 +328,7 @@ describe('argus_recall — query 가 실제로 거른다', () => {
     const res = await handleRecall(U, { query: '채용' });
     expect(text(res)).toContain('채용');
     expect(text(res)).not.toContain('가격을 올릴까');
-    expect(text(res)).toContain('1/2건');
+    expect(text(res)).toContain('지난 결정 1건 (기록 전체 2건)');
   });
 
   it('겹치는 것이 없으면 없다고 말한다 (빈 목록을 전체인 척하지 않는다)', async () => {
@@ -402,5 +429,76 @@ describe('과거 기한은 계획으로 들어오지 못한다', () => {
     });
     expect(isErr(res)).toBe(true);
     expect(text(res)).toContain('날짜가 아니다');
+  });
+});
+
+// ── 해자: 정산 결과가 다음 결정으로 돌아온다 ─────────────────────────────
+//
+// 이 제품이 범용 AI와 갈리는 유일한 지점이다. 계획은 어디서나 받을 수 있지만
+// "지난번엔 이렇게 가정했고 현실은 이렇게 답했다"는 기록해 둔 쪽만 말할 수 있다.
+describe('argus_recall — 정산된 것이 실제로 돌아온다', () => {
+  async function settledCase(utterance = '가격을 올릴까 말까 고민이야') {
+    const id = await openCase(utterance);
+    await handleAdopt(U, { caseId: id, choiceOrPolicy: '10% 인상' });
+    await handlePlan(U, {
+      caseId: id,
+      steps: [{ what: '이탈률 확인', kind: 'investigate', byOrWhen: '2주', dueDate: '2099-09-01T00:00:00Z' }],
+    });
+    await handleReturn(U, { caseId: id, observation: '이탈은 3%였고 매출은 8% 늘었다' });
+    await handleReturn(U, {
+      caseId: id,
+      observation: '이탈은 3%였고 매출은 8% 늘었다',
+      recall: '고객이 가격에 민감할까 봐 망설였다',
+    });
+    return id;
+  }
+
+  it('정산이 끝나면 그때의 선택·기억·실제가 케이스에 남는다', async () => {
+    const id = await settledCase();
+    const row = cases.get(id)!;
+    expect(row.choice).toBe('10% 인상');
+    expect(row.last_observation).toContain('이탈은 3%');
+    expect(row.recall_gap).toContain('망설였다');
+    expect(row.settled_at).toBeTruthy();
+  });
+
+  it('한 건을 물으면 그때의 가정과 실제를 나란히 돌려준다', async () => {
+    const id = await settledCase();
+    const res = await handleRecall(U, { caseId: id });
+    expect(text(res)).toContain('10% 인상');
+    expect(text(res)).toContain('망설였다');
+    expect(text(res)).toContain('이탈은 3%');
+    expect(text(res)).toContain('결과를 알고 나면 누구나 이유를 다시 씁니다');
+  });
+
+  it('목록은 정산된 것을 먼저, 실제로 일어난 일과 함께 보여준다', async () => {
+    await settledCase();
+    await openCase('채용을 미룰까 고민이야');
+    const res = await handleRecall(U, {});
+    const body = text(res);
+    expect(body).toContain('현실이 답을 준 결정 1건');
+    expect(body).toContain('실제로: "이탈은 3%였고 매출은 8% 늘었다"');
+    expect(body).toContain('아직 정산되지 않은 결정 1건');
+    expect(body.indexOf('현실이 답을 준')).toBeLessThan(body.indexOf('아직 정산되지 않은'));
+  });
+
+  it('아직 정산 안 된 것을 정산된 것처럼 말하지 않는다', async () => {
+    const id = await openCase();
+    const res = await handleRecall(U, { caseId: id });
+    expect(text(res)).toContain('아직 정산되지 않았습니다');
+    expect(text(res)).not.toContain('실제로 일어난 일');
+  });
+
+  it('없는 id 는 없다고 말한다 (빈 기록을 지어내지 않는다)', async () => {
+    const res = await handleRecall(U, { caseId: 'case_유령' });
+    expect(isErr(res)).toBe(true);
+  });
+
+  it('검색어는 실제 결과 문장에도 걸린다 — "그때 매출이 어땠더라"로 찾을 수 있어야 한다', async () => {
+    await settledCase();
+    await openCase('채용을 미룰까 고민이야');
+    const res = await handleRecall(U, { query: '매출' });
+    expect(text(res)).toContain('현실이 답을 준 결정 1건');
+    expect(text(res)).not.toContain('채용을 미룰까');
   });
 });
