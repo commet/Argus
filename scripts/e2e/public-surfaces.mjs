@@ -22,6 +22,7 @@
  *   ARGUS_BASE_URL=https://argus.voyage node scripts/e2e/public-surfaces.mjs
  */
 import { chromium } from '@playwright/test';
+import { playwrightExecutablePath } from '../lib/playwright-executable.mjs';
 
 const BASE = (process.env.ARGUS_BASE_URL ?? 'https://argus.voyage').replace(/\/$/, '');
 const LOCALE = process.env.ARGUS_LOCALE ?? 'ko';
@@ -43,7 +44,7 @@ const ROUTES = [
 const WALL_MARKERS = ['로그인이 필요해요', 'need an account', 'needs an account', '다시 오셨네요', 'Welcome back'];
 
 const failures = [];
-const browser = await chromium.launch({ headless: true });
+const browser = await chromium.launch({ headless: true, executablePath: playwrightExecutablePath() });
 const ctx = await browser.newContext({ locale: `${LOCALE}-KR`, viewport: { width: 1280, height: 900 } });
 const page = await ctx.newPage();
 

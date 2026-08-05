@@ -56,6 +56,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { chromium } from '@playwright/test';
+import { playwrightExecutablePath } from '../lib/playwright-executable.mjs';
 
 const BASE = (process.env.ARGUS_BASE_URL ?? 'https://argus.voyage').replace(/\/$/, '');
 const LOCALE = process.env.ARGUS_LOCALE ?? 'ko';
@@ -88,7 +89,7 @@ function step(name, ok, detail = '') {
   if (!ok) failures.push(`${name}${detail ? `: ${detail}` : ''}`);
 }
 
-const browser = await chromium.launch({ headless: true });
+const browser = await chromium.launch({ headless: true, executablePath: playwrightExecutablePath() });
 // acceptDownloads 를 명시한다 — 판단 카드 검사가 "파일이 실제로 온다"를 재는데,
 // 기본값에 기대면 Playwright 버전이 바뀌는 날 조용히 검사만 사라진다.
 const ctx = await browser.newContext({

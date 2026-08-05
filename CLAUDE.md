@@ -10,17 +10,25 @@ npm run dev               # next dev — predev가 argus-mcp를 먼저 빌드한
 npm run build             # next build (prebuild도 kernel:build 경유)
 ```
 
-게이트·검증:
+게이트·검증 (2026-08-05 전부 실행 확인):
 
 ```bash
-npm run preflight:dogfood # 배포 전 전체 관문 (build+test+lint+gates+eval+plugin 검증)
-npm run gates             # 플러그인 gate 검증      npm run eval:static  # 정적 eval
-npm run experience:web    # 실브라우저 워크스루 (샌드박스 chromium 경로 자동 처리)
-npm run dogfood           # 커널 도그푸드 러너      npm run e2e:loop     # 결정 루프 E2E
+npm run preflight:dogfood      # 배포 전 전체 관문 (build+test+lint+gates+eval+plugin)
+npm run gates                  # 플러그인 gate      npm run eval:static  # 정적 eval
+npm run dogfood                # 커널 도그푸드 (모델 없이 300+ 스텝 시뮬레이션)
+npm run experience:web:selftest # 브라우저 엔진 자체검사 — 로컬 서버라 네트워크 무관
+ARGUS_BASE_URL=http://localhost:3000 npm run e2e:loop   # 결정 루프 E2E
 ```
 
 - PR을 막는 것은 CI의 **check** 잡 = typecheck + `npm test` + lint. 로컬에서 이 셋을
   통과시키고 올린다. 나머지 스크립트는 `package.json` 참조.
+- **`e2e:loop`·`e2e:surfaces`는 기본 대상이 프로덕션(`https://argus.voyage`)이다.**
+  `ARGUS_BASE_URL`을 주지 않으면 로컬 변경분이 아니라 배포본을 검사한다. 클라우드
+  세션에서는 외부 접속이 막혀 `ERR_TUNNEL_CONNECTION_FAILED`로 죽는다 — 앱 결함이
+  아니다. 네트워크 없이 브라우저 경로를 확인하려면 `experience:web:selftest`.
+- **브라우저 실행 경로는 `scripts/lib/playwright-executable.mjs`가 단일 출처다.**
+  새 Playwright 스크립트는 `chromium.launch({ executablePath: playwrightExecutablePath() })`로
+  띄운다. 빠뜨리면 샌드박스에서만 죽고 창업자 기기에서는 멀쩡해 재현이 안 된다.
 - **웹앱은 Supabase 환경변수 없이 로컬 기동하면 `/[locale]` 경로가 500이다.** 키 없는
   환경에서 UI를 확인해야 하면 localStorage-only 화면(`/method-pilot`)만 뜬다 — 코드
   결함으로 오진하지 말 것.
