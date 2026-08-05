@@ -256,17 +256,40 @@ describe('isolation guard — the non-contact boundary, mechanized', () => {
     }
   });
 
-  it('src/ imports nothing from method-harness/ — except the §15.5 pilot channel', () => {
-    // The ONE authorized exception (v1.0 §15.5, BLUEPRINT §9.12 amendment):
-    // the invite-only pilot page is the R3-B conversation channel and reads
-    // the harness read-only. Everything else in src/ stays untouched.
-    const PILOT_CHANNEL = /src\/app\/method-pilot\//;
+  it('src/ imports nothing from method-harness/ — except the two authorized pilot channels', () => {
+    // AUTHORIZED EXCEPTIONS — both are R3-B pilot channels under v1.0 §15.5,
+    // registered in BLUEPRINT §9.12. Each was opened by an explicit founder
+    // decision, never by widening this regex quietly:
+    //
+    //   1. src/app/method-pilot/    — the invite-only pilot page (2026-08-04)
+    //   2. src/app/api/mcp/v2/      — the remote MCP surface (2026-08-05)
+    //
+    // The second exists because the remote surface must share ONE brain with
+    // the pilot: copying the harness server-side would split the canon in two,
+    // which is the failure this whole guard exists to prevent. Conditions that
+    // keep it inside the §15.5 exception (see ARGUS-REMOTE-MCP-PLAN §2.5):
+    // invite-only, no directory listing before the H-B gate, discardable
+    // tables, canonical schema untouched, existing plumbing untouched.
+    //
+    // Adding a third entry requires the same treatment: a founder decision, a
+    // dated line here, and a registered plan document. Do not append silently.
+    const AUTHORIZED_CHANNELS = [/src\/app\/method-pilot\//, /src\/app\/api\/mcp\/v2\//];
     const srcRoot = join(harnessRoot, '..', 'src');
     for (const file of tsFiles(srcRoot)) {
-      if (PILOT_CHANNEL.test(file.replace(/\\/g, '/'))) continue;
+      const p = file.replace(/\\/g, '/');
+      if (AUTHORIZED_CHANNELS.some((c) => c.test(p))) continue;
       const content = readFileSync(file, 'utf8');
       expect(content, `${file} must not import the harness`).not.toMatch(/from\s+['"].*method-harness/);
     }
+  });
+
+  it('the authorized channel list stays exactly two — a third needs a founder decision', () => {
+    // The guard above can be defeated by appending to its array. This test
+    // makes that widening itself visible: the count is the contract.
+    const self = readFileSync(join(__dirname, 'harness.test.ts'), 'utf8');
+    const declared = self.match(/const AUTHORIZED_CHANNELS = \[([^\]]*)\]/);
+    expect(declared, 'the channel list must remain greppable').toBeTruthy();
+    expect(declared![1].split(',').filter((s) => s.trim()).length).toBe(2);
   });
 });
 
