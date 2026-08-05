@@ -8,6 +8,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { authenticate, wwwAuthenticate } from './auth';
 import {
+  handleAdopt,
+  handleOpen,
+  handlePlan,
+  handleRecall,
+  handleReturn,
+  handleSharpen,
+} from './handlers';
+import {
   isJsonRpcRequest,
   negotiateVersion,
   rpcError,
@@ -21,16 +29,25 @@ import { TOOLS } from './tools';
 
 const MAX_BODY_BYTES = 256 * 1024;
 
-// 도구 실행은 2주차에 하네스로 배선한다. 지금은 **정직한 미구현**을 돌려준다 —
-// 그럴듯한 가짜 응답을 만들지 않는다 (LLM-glue 규칙 1: 공백은 이름 붙여 드러낸다).
-async function callTool(name: string, _args: Record<string, unknown>, _userId: string) {
-  const known = TOOLS.some((t) => t.name === name);
-  if (!known) return toolText(`알 수 없는 도구: ${name}`, true);
-  return toolText(
-    `${name}은(는) 아직 배선되지 않았습니다 (원격 MCP 2주차 산출물). ` +
-      '이 응답은 자리표시가 아니라 정직한 미구현 보고입니다 — 결과를 지어내지 않습니다.',
-    true,
-  );
+// 도구 실행 — 하네스로 배선됨 (handlers.ts). 이 파일은 이름을 보고 넘길 뿐,
+// 방법 규칙은 하나도 갖지 않는다.
+async function callTool(name: string, args: Record<string, unknown>, userId: string) {
+  switch (name) {
+    case 'argus_open':
+      return handleOpen(userId, args);
+    case 'argus_sharpen':
+      return handleSharpen(userId, args);
+    case 'argus_plan':
+      return handlePlan(userId, args);
+    case 'argus_adopt':
+      return handleAdopt(userId, args);
+    case 'argus_return':
+      return handleReturn(userId, args);
+    case 'argus_recall':
+      return handleRecall(userId, args);
+    default:
+      return toolText(`알 수 없는 도구: ${name}`, true);
+  }
 }
 
 async function dispatch(method: string, params: Record<string, unknown>, id: JsonRpcId, userId: string) {

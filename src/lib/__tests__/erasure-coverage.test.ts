@@ -139,6 +139,10 @@ function deriveNonUserIdUserReferencesFromMigrations(): string[] {
  */
 const LIVE_USER_SCOPED_TABLES = [
   'accuracy_ratings', 'agent_activities', 'agent_chains', 'agents',
+  // R3-B 원격 MCP 파일럿 (2026-08-05). 파일럿 전용 테이블이지만 user_id가 있으므로
+  // 계정 삭제·내보내기가 반드시 훑어야 한다 — "폐기 전제" 계약은 사용자가 지울 수
+  // 있을 때만 참이다.
+  'argus_cases', 'argus_events', 'argus_returns',
   'decision_items', 'decision_quality_scores', 'deep_judgment_usage', 'epistemic_account_policies',
   'epistemic_artifact_descriptors', 'epistemic_authority_events', 'epistemic_command_receipts', 'epistemic_context_traces', 'epistemic_erasure_receipts',
   'epistemic_projection_outbox', 'epistemic_recall_documents', 'epistemic_recall_projection_state', 'epistemic_restore_receipts', 'epistemic_use_receipts', 'feedback_records', 'human_agent_messages',

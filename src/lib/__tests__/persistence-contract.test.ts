@@ -95,6 +95,13 @@ const ROGUE_ALLOWLIST: Record<string, string> = {
   argus_adopt: '스토리지 키 아님 — 원격 MCP 도구 이름 (api/mcp/v2/tools.ts)',
   argus_return: '스토리지 키 아님 — 원격 MCP 도구 이름 (api/mcp/v2/tools.ts)',
   argus_recall: '스토리지 키 아님 — 원격 MCP 도구 이름 (api/mcp/v2/tools.ts)',
+  // 원격 MCP 서버 원장 테이블 이름 3개 (2026-08-05). 브라우저 스토리지 키가
+  // 아니라 **Supabase 테이블 이름**이다 — 서버에만 존재하고 localStorage에는
+  // 아무것도 쓰지 않는다. 계정 삭제·내보내기 등록은 별도로 되어 있다
+  // (user-data-tables.ts + erasure-coverage.test.ts, 같은 커밋).
+  argus_cases: '스토리지 키 아님 — 원격 MCP 파일럿 서버 테이블 (마이그레이션 20260805100000)',
+  argus_events: '스토리지 키 아님 — 원격 MCP 파일럿 append-only 원장 테이블 (동)',
+  argus_returns: '스토리지 키 아님 — 원격 MCP 파일럿 귀환 계약 테이블, 크론이 읽는다 (동)',
   // 만들지 **않기로** 한 도구(tools.ts DELIBERATELY_ABSENT)는 여기 넣지 않는다:
   // 객체 키라 리터럴이 아니고, 이 스캐너는 테스트 파일을 훑지 않으므로 등재하면
   // "유령 면제"로 잡힌다. 그 가드가 옳다 — 죽은 면제는 남기지 않는다.
