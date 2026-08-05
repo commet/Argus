@@ -8,6 +8,7 @@ import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
 import { chromium } from '@playwright/test';
+import { playwrightExecutablePath as sandboxChrome } from '../../lib/playwright-executable.mjs';
 
 const PAGES = {
   '/ko/login': `<h1>로그인</h1><form><input type="email"><input type="password">
@@ -27,10 +28,7 @@ const server = http.createServer((req, res) => {
   res.end(`<!doctype html><meta charset=utf-8>${PAGES[url] ?? '<h1>404</h1>'}`);
 });
 
-function sandboxChrome() {
-  const p = '/opt/pw-browsers/chromium-1194/chrome-linux/chrome';
-  return fs.existsSync(p) ? p : undefined;
-}
+// 브라우저 경로는 scripts/lib/playwright-executable.mjs 가 단일 출처다.
 
 await new Promise((r) => server.listen(0, r));
 const port = server.address().port;

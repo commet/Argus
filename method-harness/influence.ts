@@ -12,11 +12,11 @@ import { type AdoptionMode, type CaseState } from './types';
 // 1. Verbatim adoption rate — with material-edit detection
 // ---------------------------------------------------------------------------
 
-// Sealed in the measurement contract (v1.0 §9.5). An edit changing less than
-// this fraction of semantic units is cosmetic: the adoption still counts as
-// verbatim. Changing the threshold post-observation is an amendment, not a fix.
-// (0.25 is the pre-seal placeholder; the cosmetic/material fixture pair in
-// harness.test.ts is the regression anchor for whatever value gets sealed.)
+// SEALED at 0.25 by docs/ARGUS-R3A-MEASUREMENT-CONTRACT-2026-08-04.md §1.
+// An edit changing less than this fraction of semantic units is cosmetic: the
+// adoption still counts as verbatim. Changing the value is a contract
+// amendment (pre-first-run only), never a fix — the cosmetic/material fixture
+// pair in harness.test.ts is the regression anchor.
 export const MATERIAL_EDIT_THRESHOLD = 0.25;
 
 // Character bigrams, spacing/punctuation-normalized. Word-level units misfire
@@ -81,7 +81,8 @@ export function verbatimAdoptionRate(records: AdoptionRecord[]): number {
 // 2. Blind recall probe — frozen wording
 // ---------------------------------------------------------------------------
 
-// Frozen by the measurement contract (v0.7 amendment 8). One open sentence.
+// Frozen by docs/ARGUS-R3A-MEASUREMENT-CONTRACT-2026-08-04.md §1 (lineage:
+// v0.7 amendment 8). One open sentence.
 // Any rephrasing — especially a leading one ("당신의 원래 생각은 X였죠?") —
 // is a contract amendment, not a copy tweak. Code that composes return turns
 // must use this constant, never inline prose.

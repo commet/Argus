@@ -137,6 +137,15 @@ export function applyEvent(prev: CaseState, event: LedgerEvent): CaseState {
       return s;
     }
 
+    case 'plan_adopted': {
+      // 계획은 채택된 결정에만 붙는다. 카드가 없으면 아직 사용자의 결정이 아닌
+      // 것에 실행 순서를 붙이는 셈이므로 크게 실패한다 (plan.ts와 같은 규칙,
+      // 여기서는 원장 층에서 강제).
+      requireCard(s, 'plan_adopted');
+      s.plan = event.plan;
+      return s;
+    }
+
     case 'observation': {
       s.observations.push({ id: event.id, text: event.text, at: event.observedAt });
       if (s.state === 'AWAITING_SIGNAL' || s.state === 'ACTING') s.state = 'RETURNED';

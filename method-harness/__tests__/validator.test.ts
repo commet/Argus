@@ -124,6 +124,40 @@ describe('check 5 — directional recommendation grounding (§4.4)', () => {
     changeCondition: '대상이 핵심 segment가 아니면 바뀜',
   });
 
+  // check 6b — the authorship hole the code-review pass found: a legal
+  // (user, said) PAIR is not evidence that the user said it. Before this, the
+  // lineage guard ran only inside the recommendation block, so any turn without
+  // a recommendation could hand a surface an invented sentence tagged as the
+  // user's own words.
+  it('re-attributes an invented user claim to the model when it has no ledger lineage', () => {
+    const ctx = ctxWith(['온보딩을 어떻게 할지 고민이야']);
+    const turn = baseTurn({
+      claims: [{ text: '나는 완성도보다 속도가 중요하다고 생각한다', source: 'user', authority: 'said', citation: 'u0' }],
+    });
+    const r = validateTurn(turn, ctx);
+    expect(r.turn.claims[0].source).toBe('ai');
+    expect(r.turn.claims[0].authority).toBe('inferred');
+    expect(r.downgrades.map((d) => d.code)).toContain('user_claim_without_lineage_to_ai');
+  });
+
+  it('re-attributes a user claim carrying no citation at all', () => {
+    const ctx = ctxWith(['온보딩을 어떻게 할지 고민이야']);
+    const turn = baseTurn({ claims: [{ text: '아무 말', source: 'user', authority: 'said' }] });
+    const r = validateTurn(turn, ctx);
+    expect(r.turn.claims[0].source).toBe('ai');
+    expect(r.downgrades.map((d) => d.code)).toContain('user_claim_without_lineage_to_ai');
+  });
+
+  it('leaves a genuinely traceable user claim alone', () => {
+    const ctx = ctxWith(['온보딩 고민이야. 나는 빨리 반응을 보고 싶어']);
+    const turn = baseTurn({
+      claims: [{ text: '빨리 반응을 보고 싶어', source: 'user', authority: 'said', citation: 'u0' }],
+    });
+    const r = validateTurn(turn, ctx);
+    expect(r.turn.claims[0].source).toBe('user');
+    expect(r.downgrades.map((d) => d.code)).not.toContain('user_claim_without_lineage_to_ai');
+  });
+
   it('demotes a directional rec whose value refs do not exist in the ledger', () => {
     const ctx = ctxWith(['추천해줘. 빨리 반응을 보고 싶어'], { weight: 'significant', reversibility: 'costly' });
     const turn = baseTurn({ recommendation: recommendation(['ghost_ref']) });

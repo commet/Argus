@@ -85,6 +85,31 @@ const ROGUE_ALLOWLIST: Record<string, string> = {
   argus_metrics: '스토리지 키 아님 — 운영자 계기판 집계용 Postgres RPC 이름 (admin/page.tsx, supabase.rpc)',
   argus_pat_: '스토리지 키 아님 — 플러그인 푸시 개인 액세스 토큰(PAT)의 접두사. 원문은 어디에도 저장 안 함, sha256 해시만 plugin_tokens 테이블에 (api/plugin/ingest·token)',
   argus_anon_transfer: 'localStorage가 아닌 HttpOnly·SameSite 일회용 계정 이전 쿠키. 브라우저 JS가 읽을 수 없고 서버 DB 트랜잭션 성공 후 즉시 삭제',
+  // 원격 MCP 도구 이름 6개 (2026-08-05). 스토리지 키가 아니라 **MCP 프로토콜의
+  // 도구 식별자**다 — 모델이 tools/call로 부르는 이름이며 어디에도 저장되지
+  // 않는다. 이름을 바꾸면 이미 연결한 클라이언트가 깨지므로 값은 고정이다.
+  // (기획서: ARGUS-REMOTE-MCP-PLAN-2026-08-05 §4 — 도구는 여섯 개로 고정)
+  argus_open: '스토리지 키 아님 — 원격 MCP 도구 이름 (api/mcp/v2/tools.ts)',
+  argus_sharpen: '스토리지 키 아님 — 원격 MCP 도구 이름 (api/mcp/v2/tools.ts)',
+  argus_plan: '스토리지 키 아님 — 원격 MCP 도구 이름 (api/mcp/v2/tools.ts)',
+  argus_adopt: '스토리지 키 아님 — 원격 MCP 도구 이름 (api/mcp/v2/tools.ts)',
+  argus_return: '스토리지 키 아님 — 원격 MCP 도구 이름 (api/mcp/v2/tools.ts)',
+  argus_recall: '스토리지 키 아님 — 원격 MCP 도구 이름 (api/mcp/v2/tools.ts)',
+  // 원격 MCP 서버 원장 테이블 이름 3개 (2026-08-05). 브라우저 스토리지 키가
+  // 아니라 **Supabase 테이블 이름**이다 — 서버에만 존재하고 localStorage에는
+  // 아무것도 쓰지 않는다. 계정 삭제·내보내기 등록은 별도로 되어 있다
+  // (user-data-tables.ts + erasure-coverage.test.ts, 같은 커밋).
+  // 귀환 크론의 분석 이벤트 이름 (2026-08-05). 스토리지 키가 아니라 user_events
+  // 의 event_name 이다. H-B("기한이 오면 돌아와 적는가")의 분모가 이 이벤트로
+  // 생기므로, 이름이 바뀌면 측정이 끊긴다 — 값은 고정이다.
+  argus_return_sent: '스토리지 키 아님 — 귀환 발송 분석 이벤트 (cron/argus-returns). H-B의 분모',
+  argus_return_cron_run: '스토리지 키 아님 — 귀환 크론 실행 요약 이벤트 (동)',
+  argus_cases: '스토리지 키 아님 — 원격 MCP 파일럿 서버 테이블 (마이그레이션 20260805100000)',
+  argus_events: '스토리지 키 아님 — 원격 MCP 파일럿 append-only 원장 테이블 (동)',
+  argus_returns: '스토리지 키 아님 — 원격 MCP 파일럿 귀환 계약 테이블, 크론이 읽는다 (동)',
+  // 만들지 **않기로** 한 도구(tools.ts DELIBERATELY_ABSENT)는 여기 넣지 않는다:
+  // 객체 키라 리터럴이 아니고, 이 스캐너는 테스트 파일을 훑지 않으므로 등재하면
+  // "유령 면제"로 잡힌다. 그 가드가 옳다 — 죽은 면제는 남기지 않는다.
 };
 
 function walk(dir: string, acc: string[] = []): string[] {

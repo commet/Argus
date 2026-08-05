@@ -11,7 +11,7 @@ import { projectCard } from '../projection';
 import { compilePromptPacket, OPERATING_CONSTITUTION } from '../constitution';
 import { Ledger } from '../ledger';
 import { foldCase } from '../reducer';
-import { GOLD_CASES, KNOWN_CORPUS_GAPS } from '../fixtures/gold-cases';
+import { GOLD_CASES } from '../fixtures/gold-cases';
 import { type DecisionCardDraft, type LedgerEvent, type ReturnContractDraft } from '../types';
 
 const NOW = '2026-08-04T00:00:00.000Z';
@@ -184,27 +184,56 @@ describe('prompt compiler (§10.10)', () => {
   });
 });
 
-describe('gold case fixture (§15.2) — partial corpus that cannot pose as complete', () => {
-  it('covers the declared axes', () => {
+describe('gold case fixture (§15.2) — the complete 30-case corpus', () => {
+  it('is exactly 30 cases with unique ids and full axis coverage', () => {
+    expect(GOLD_CASES.length).toBe(30);
+    expect(new Set(GOLD_CASES.map((c) => c.id)).size).toBe(30);
     const bottlenecks = new Set(GOLD_CASES.map((c) => c.axis.bottleneck));
     const routes = new Set(GOLD_CASES.map((c) => c.axis.route));
     const reversibilities = new Set(GOLD_CASES.map((c) => c.axis.reversibility));
-    expect(bottlenecks).toEqual(new Set(['frame_error', 'value_conflict', 'alternative_poverty', 'belief_gap', 'action_gap', 'none_flat']));
-    expect(routes).toEqual(new Set(['decision', 'information', 'emotional', 'safety']));
+    expect(bottlenecks).toEqual(new Set(['frame_error', 'value_conflict', 'alternative_poverty', 'belief_gap', 'action_gap', 'none_flat', 'return_debrief']));
+    expect(routes).toEqual(new Set(['decision', 'information', 'sensemaking', 'emotional', 'safety']));
     expect(reversibilities).toEqual(new Set(['reversible', 'costly', 'one_way']));
-    expect(GOLD_CASES.length).toBe(12);
+    expect(new Set(GOLD_CASES.map((c) => c.axis.complexity))).toEqual(new Set(['simple', 'complex']));
+    expect(new Set(GOLD_CASES.map((c) => c.axis.deadline))).toEqual(new Set(['short', 'long']));
+    expect(new Set(GOLD_CASES.map((c) => c.axis.expertise))).toEqual(new Set(['expert', 'novice']));
+  });
+
+  it('closes the six formerly-declared gaps with real cases', () => {
+    expect(GOLD_CASES.filter((c) => c.axis.bottleneck === 'return_debrief').length).toBeGreaterThanOrEqual(3);
+    expect(GOLD_CASES.filter((c) => c.paraphraseOf).length).toBeGreaterThanOrEqual(3);
+    expect(GOLD_CASES.filter((c) => c.priorSessionSummary).length).toBeGreaterThanOrEqual(2);
+    expect(GOLD_CASES.some((c) => c.axis.route === 'sensemaking')).toBe(true);
+    expect(GOLD_CASES.some((c) => c.id === 'gc21_stakeholder_board')).toBe(true);
+    expect(GOLD_CASES.some((c) => c.id === 'gc23_expert_fast_path')).toBe(true);
+  });
+
+  it('every paraphrase pair keeps the annotation contract identical to its original', () => {
+    for (const c of GOLD_CASES.filter((c) => c.paraphraseOf)) {
+      const original = GOLD_CASES.find((o) => o.id === c.paraphraseOf);
+      expect(original, `${c.id} points at a real case`).toBeTruthy();
+      expect(c.axis, c.id).toEqual(original!.axis);
+      expect(c.goodMoves, c.id).toEqual(original!.goodMoves);
+      expect(c.forbiddenMoves, c.id).toEqual(original!.forbiddenMoves);
+      expect(c.readiness, c.id).toBe(original!.readiness);
+      expect(c.utterance, `${c.id} must actually reword, not copy`).not.toBe(original!.utterance);
+    }
   });
 
   it('every flat/closed/safety case forbids manufactured intervention (fire-gate encoded in data)', () => {
     for (const c of GOLD_CASES.filter((c) => c.axis.bottleneck === 'none_flat' || c.axis.route === 'safety')) {
-      expect(c.forbiddenMoves).toContain('reframe');
-      expect(c.forbiddenMoves).toContain('recommendation');
+      expect(c.forbiddenMoves, c.id).toContain('reframe');
+      // A user-pulled pick at minor/reversible stakes is the hierarchy's most
+      // permissive cell (v1.0 §4.4): the explicit ask IS the fire. Only cases
+      // that annotate 'recommendation' as a good move carry that exemption —
+      // and NEVER on the safety route, where validator check 11 rejects
+      // recommendations unconditionally. (Found by the code-review pass: the
+      // first version of this exemption covered safety cases too, so a future
+      // safety case annotated with 'recommendation' would have passed silently.)
+      if (c.axis.route === 'safety' || !c.goodMoves.includes('recommendation')) {
+        expect(c.forbiddenMoves, c.id).toContain('recommendation');
+      }
     }
-  });
-
-  it('declares its own gaps out loud — no silent caps', () => {
-    expect(KNOWN_CORPUS_GAPS.length).toBeGreaterThan(0);
-    expect(GOLD_CASES.length).toBeLessThan(30); // when the corpus completes, delete KNOWN_CORPUS_GAPS and flip these assertions
   });
 });
 
@@ -227,17 +256,40 @@ describe('isolation guard — the non-contact boundary, mechanized', () => {
     }
   });
 
-  it('src/ imports nothing from method-harness/ — except the §15.5 pilot channel', () => {
-    // The ONE authorized exception (v1.0 §15.5, BLUEPRINT §9.12 amendment):
-    // the invite-only pilot page is the R3-B conversation channel and reads
-    // the harness read-only. Everything else in src/ stays untouched.
-    const PILOT_CHANNEL = /src\/app\/method-pilot\//;
+  it('src/ imports nothing from method-harness/ — except the two authorized pilot channels', () => {
+    // AUTHORIZED EXCEPTIONS — both are R3-B pilot channels under v1.0 §15.5,
+    // registered in BLUEPRINT §9.12. Each was opened by an explicit founder
+    // decision, never by widening this regex quietly:
+    //
+    //   1. src/app/method-pilot/    — the invite-only pilot page (2026-08-04)
+    //   2. src/app/api/mcp/v2/      — the remote MCP surface (2026-08-05)
+    //
+    // The second exists because the remote surface must share ONE brain with
+    // the pilot: copying the harness server-side would split the canon in two,
+    // which is the failure this whole guard exists to prevent. Conditions that
+    // keep it inside the §15.5 exception (see ARGUS-REMOTE-MCP-PLAN §2.5):
+    // invite-only, no directory listing before the H-B gate, discardable
+    // tables, canonical schema untouched, existing plumbing untouched.
+    //
+    // Adding a third entry requires the same treatment: a founder decision, a
+    // dated line here, and a registered plan document. Do not append silently.
+    const AUTHORIZED_CHANNELS = [/src\/app\/method-pilot\//, /src\/app\/api\/mcp\/v2\//];
     const srcRoot = join(harnessRoot, '..', 'src');
     for (const file of tsFiles(srcRoot)) {
-      if (PILOT_CHANNEL.test(file.replace(/\\/g, '/'))) continue;
+      const p = file.replace(/\\/g, '/');
+      if (AUTHORIZED_CHANNELS.some((c) => c.test(p))) continue;
       const content = readFileSync(file, 'utf8');
       expect(content, `${file} must not import the harness`).not.toMatch(/from\s+['"].*method-harness/);
     }
+  });
+
+  it('the authorized channel list stays exactly two — a third needs a founder decision', () => {
+    // The guard above can be defeated by appending to its array. This test
+    // makes that widening itself visible: the count is the contract.
+    const self = readFileSync(join(__dirname, 'harness.test.ts'), 'utf8');
+    const declared = self.match(/const AUTHORIZED_CHANNELS = \[([^\]]*)\]/);
+    expect(declared, 'the channel list must remain greppable').toBeTruthy();
+    expect(declared![1].split(',').filter((s) => s.trim()).length).toBe(2);
   });
 });
 

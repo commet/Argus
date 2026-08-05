@@ -34,6 +34,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { chromium } from '@playwright/test';
+import { playwrightExecutablePath as executablePath } from '../../lib/playwright-executable.mjs';
 
 const BASE = (process.env.ARGUS_BASE_URL ?? 'https://argus.voyage').replace(/\/$/, '');
 const EMAIL = process.env.DOGFOOD_EMAIL;
@@ -55,14 +56,7 @@ const VIEWPORT = process.env.ARGUS_VIEWPORT === 'mobile'
 const DECISION = process.env.ARGUS_DECISION
   ?? '다음 분기에 신규 채용을 할지, 지금 팀으로 버틸지 결정해야 하는데 근거가 애매해.';
 
-// The founder's machine has its own Playwright browser; the dev sandbox pins a
-// specific build. Prefer an explicit path, else a known sandbox path, else let
-// Playwright find its own install (the normal case on your machine).
-function executablePath() {
-  if (process.env.PW_EXECUTABLE) return process.env.PW_EXECUTABLE;
-  const sandbox = '/opt/pw-browsers/chromium-1194/chrome-linux/chrome';
-  return fs.existsSync(sandbox) ? sandbox : undefined;
-}
+// 브라우저 경로는 scripts/lib/playwright-executable.mjs 가 단일 출처다.
 
 const ADVANCE = /(다음|계속|진행|시작|봉인|생성|만들|확인|좋아요|네,|적용|저장|완료|정산|기록|next|continue|start|seal|generate|create|confirm|looks good|apply|save|done|settle)/i;
 const AVOID = /(취소|삭제|뒤로|닫기|로그아웃|이전|건너뛰|더보기 메뉴|전체 보기|접기|빠른 이동|결정 기록|지금까지의 기록|전체 결정 지도|타임라인|open next\.js dev tools|decision log|timeline|full decision map|cancel|delete|back|close|logout|previous|skip|sign out)/i;

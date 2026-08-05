@@ -111,6 +111,26 @@ describe('gold-case adversarial battery', () => {
     expect(r.rejections.map((x) => x.code)).toContain('recommendation_on_safety_route');
   });
 
+  it('metamorphic stability (R2): the fire-gate decision is identical across every paraphrase pair', () => {
+    // Same decision, different wording — the machine-side layer must not flip.
+    // (The model-side half of this suite — primary-move stability — runs in
+    // R3-A with live transcripts; the annotation contract for it is asserted
+    // in harness.test.ts via axis/move equality.)
+    const pairs = GOLD_CASES.filter((c) => c.paraphraseOf);
+    expect(pairs.length).toBeGreaterThanOrEqual(3);
+    for (const p of pairs) {
+      const original = GOLD_CASES.find((o) => o.id === p.paraphraseOf)!;
+      resetEventIds();
+      const l = new Ledger();
+      const a = fireGate(l, { hostUtterance: original.utterance, userInvokedArgus: false });
+      const b = fireGate(l, { hostUtterance: p.utterance, userInvokedArgus: false });
+      expect(b.fire, `${p.id} vs ${original.id}`).toBe(a.fire);
+      // and the decision agrees with the annotation: flat pairs stay silent,
+      // open-decision pairs fire.
+      expect(a.fire, original.id).toBe(original.axis.bottleneck !== 'none_flat');
+    }
+  });
+
   it('baseline extraction coverage over the corpus annotations is 100% recallable in principle', () => {
     // The corpus annotates which utterances contain a lean. The harness-side
     // coverage function must classify a perfect extractor at 1.0 and a lazy

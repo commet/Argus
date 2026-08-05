@@ -9,6 +9,7 @@
 import { compilePromptPacket, type LensKey, type Surface, type TurnTask } from '../constitution';
 import { Ledger, nextEventId } from '../ledger';
 import { foldCase, rebuildWorkingModelInputs } from '../reducer';
+import { assertPlanAllowed, planReturnSummary, returnsFromPlan, validatePlan, type PlanValidation } from '../plan';
 import { composeReturnOpening } from '../returns';
 import { validateTurn } from '../validator';
 import {
@@ -16,6 +17,7 @@ import {
   type ArgusTurn,
   type CaseState,
   type DecisionCardDraft,
+  type ExecutionPlan,
   HarnessViolation,
   type IsoTime,
   type ReturnContractDraft,
@@ -75,6 +77,14 @@ export class SessionEngine {
   // for drafts the user never adopts.
   receiveTurn(turn: ArgusTurn, now: IsoTime): ValidationResult {
     const state = this.state();
+    // 같은 이유(append-only 원장 오염 방지)로 여기서도 먼저 막는다: 기준선이
+    // 기록되기 전의 AI 제안은 reducer가 fold 때 거부하는데, 그때는 이미 늦다.
+    if (state.baseline === undefined) {
+      throw new HarnessViolation(
+        'PROPOSAL_BEFORE_BASELINE',
+        'an AI proposal cannot be recorded before baseline_captured or baseline_not_captured (rejected before append)',
+      );
+    }
     const result = validateTurn(turn, {
       ledger: this.ledger,
       caseId: this.caseId,
@@ -134,6 +144,45 @@ export class SessionEngine {
     }
   }
 
+  // -- PLAN (MOVE와 RETURN을 잇는 다리) -------------------------------------
+
+  // 계획 제안 — AI가 만든다. 아직 사용자의 것이 아니므로 원장에는 제안으로만
+  // 남고, 상태를 바꾸지 않는다.
+  proposePlan(plan: ExecutionPlan, now: IsoTime): PlanValidation {
+    const check = validatePlan(plan);
+    if (check.ok) {
+      this.ledger.append({
+        id: nextEventId('prp'),
+        caseId: this.caseId,
+        at: now,
+        type: 'ai_proposal',
+        description: `plan:${plan.steps.length}단계/${plan.horizonDays}일`,
+        payloadKind: 'move',
+      });
+    }
+    return check;
+  }
+
+  // 계획 채택 — 사용자의 행위. 이 호출만이 계획을 정본으로 만들고, **여기서
+  // 마일스톤이 귀환 계약이 된다.** 이 한 줄이 제품 전략의 핵심 연결이다:
+  // 사용자가 돌아보기를 따로 승낙하지 않아도, 계획을 받으면 정산 약속이 생긴다.
+  adoptPlan(plan: ExecutionPlan, now: IsoTime): { returnsArmed: number; summary: string } {
+    const state = this.state();
+    assertPlanAllowed(state);
+    const check = validatePlan(plan);
+    if (!check.ok) {
+      throw new HarnessViolation('PLAN_INVALID', `계획이 형태를 갖추지 못했다: ${check.problems.join('; ')}`);
+    }
+
+    this.ledger.append({ id: nextEventId('pln'), caseId: this.caseId, at: now, type: 'plan_adopted', plan });
+
+    const planned = returnsFromPlan(plan);
+    for (const p of planned) {
+      this.ledger.append({ id: nextEventId('ret'), caseId: this.caseId, at: now, type: 'return_armed', contract: p.contract });
+    }
+    return { returnsArmed: planned.length, summary: planReturnSummary(plan) };
+  }
+
   reportAction(description: string, now: IsoTime): void {
     this.ledger.append({ id: nextEventId('act'), caseId: this.caseId, at: now, type: 'action_reported', description });
   }
@@ -148,11 +197,32 @@ export class SessionEngine {
     this.ledger.append({ id: nextEventId('obs'), caseId: this.caseId, at: now, type: 'observation', text, sourceKind, observedAt });
   }
 
+  // 아래 두 메서드는 **넣기 전에** 검사한다. reducer도 같은 불변식을 갖고 있지만
+  // 그것은 fold 시점에 던지므로, 원장에는 이미 위반 이벤트가 들어간 뒤다.
+  // 메모리 원장에서는 무해했다 — 엔진을 버리면 그만이니까. 그러나 원격 표면의
+  // 서버 원장은 **append-only**여서 넣은 것을 지울 수 없고, 오염 이벤트 하나가
+  // 그 케이스의 이후 모든 읽기를 영구히 실패시킨다.
+  // (2026-08-05 원격 MCP 3주차에서 발견 — 로컬 파일럿에서는 드러나지 않던 결함.)
+  // reducer의 검사는 그대로 둔다: 다른 경로로 들어온 원장도 지켜야 하므로,
+  // 여기는 방어의 첫 겹이지 유일한 겹이 아니다.
+
   recordRecallProbeAnswer(text: string, now: IsoTime): void {
+    if (this.state().recordRevealed) {
+      throw new HarnessViolation(
+        'PROBE_AFTER_REVEAL',
+        'recall probe must be collected before the record is revealed (rejected before append)',
+      );
+    }
     this.ledger.append({ id: nextEventId('rcl'), caseId: this.caseId, at: now, type: 'recall_probe_answer', text });
   }
 
   revealRecord(now: IsoTime): CaseState {
+    if (this.state().observations.length === 0) {
+      throw new HarnessViolation(
+        'REVEAL_BEFORE_OBSERVATION',
+        'the record may not be revealed before an observation is collected (rejected before append)',
+      );
+    }
     this.ledger.append({ id: nextEventId('rvl'), caseId: this.caseId, at: now, type: 'record_revealed' });
     return this.state();
   }

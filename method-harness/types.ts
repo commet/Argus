@@ -130,6 +130,38 @@ export interface ReturnContractDraft {
   nextInChain?: ReturnContractDraft; // activated only when this one closes (§7.2)
 }
 
+// ---------------------------------------------------------------------------
+// Execution plan (제품 기획안 §3-3, v1.0의 `process` 추천)
+// ---------------------------------------------------------------------------
+//
+// 계획은 **채택된 결정에 대해서만** 존재한다. "A 대신 B를 고르라"(directional)가
+// 아니라 "당신이 정한 것을 이 순서로 옮기라"(process)이므로 zero-judgment와
+// 양립한다 — 결정은 이미 사용자 것이다.
+//
+// 이 타입의 하중은 `dueDate`에 있다: 날짜가 붙은 단계는 곧 귀환 계약이 된다
+// (plan.ts). 사용자가 "돌아보기를 예약하시겠습니까"라는 별도 부담을 지지 않고,
+// 계획을 받는 것만으로 정산 약속이 생긴다.
+
+export type PlanStepKind = 'prepare' | 'investigate' | 'execute';
+
+export interface PlanStep {
+  what: string;
+  kind: PlanStepKind;
+  byOrWhen: string; // 사람의 언어 ("다음 주 화요일까지")
+  // 기계가 읽는 기한. 있으면 이 단계가 귀환 계약이 된다. 없으면 순서만 있는
+  // 단계다 — 모든 단계에 날짜를 강제하면 계획이 관료제가 된다.
+  dueDate?: IsoTime;
+  owner?: string;
+}
+
+export interface ExecutionPlan {
+  steps: PlanStep[];
+  horizonDays: number;
+  // 계획이 답할 수 없는 것. 모델이 지어내는 대신 이름 붙여 남기는 자리다
+  // (LLM-glue 규칙 1: 정직한 공백). 비어 있어도 되지만, 모르면서 비우면 안 된다.
+  openQuestions: string[];
+}
+
 export interface MaterialBelief {
   belief: string;
   confidence: BeliefConfidence;
@@ -197,6 +229,7 @@ export type LedgerEvent =
   | (EventBase & { type: 'lesson_approved'; candidateId: string; expiry: IsoTime | { reviewAfterUses: number } })
   | (EventBase & { type: 'case_dormant' })
   | (EventBase & { type: 'case_reopened' })
+  | (EventBase & { type: 'plan_adopted'; plan: ExecutionPlan }) // 사용자 행위 — 제안만으로는 성립하지 않는다
   | (EventBase & { type: 'case_linked'; relatesTo: string; confirmedByUser: boolean });
 
 // ---------------------------------------------------------------------------
@@ -232,6 +265,7 @@ export interface CaseState {
   activeReturn?: ActiveReturn;
   queuedReturns: ReturnContractDraft[]; // chain links waiting for activation
   observations: Array<{ id: string; text: string; at: IsoTime }>;
+  plan?: ExecutionPlan; // 채택된 실행 계획 (없으면 계획 없이 진행한 것 — 정상)
   recallProbeAnswer?: string;
   recordRevealed: boolean;
   lessons: Array<{ id: string; text: string; scope: string; approved: boolean }>;
@@ -254,7 +288,8 @@ export interface RederivationInputs {
 export type DowngradeCode =
   | 'reframe_without_falsifier_to_question'
   | 'directional_ungrounded_to_process'
-  | 'directional_pushed_at_major_one_way';
+  | 'directional_pushed_at_major_one_way'
+  | 'user_claim_without_lineage_to_ai';
 
 export type RejectCode =
   | 'unknown_move_type'

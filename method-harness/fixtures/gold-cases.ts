@@ -1,7 +1,10 @@
-// Gold case fixture — the FIRST 12 of the 30-case R1 corpus (v1.0 §15.2).
-// PARTIAL BY DECLARATION: fixtures.test.ts asserts axis coverage and prints
-// what is still missing, so partial coverage can never read as "done"
-// (no-silent-caps rule).
+// Gold case fixture — the COMPLETE 30-case R1 corpus (v1.0 §15.2).
+// The former KNOWN_CORPUS_GAPS list is gone because the gaps are closed:
+// return debriefs (answered/indeterminate/moot: gc13–gc15), metamorphic
+// paraphrase pairs (gc16–gc18), multi-session continuation (gc19–gc20),
+// stakeholder negotiation (gc21), sensemaking route (gc22), expert fast path
+// (gc23). harness.test.ts asserts full-coverage set equality so a silent
+// regression to partial coverage turns red.
 //
 // Each case annotates ranges, not single right answers (context doc §13.2):
 // acceptable frames, bottleneck candidates, forbidden interventions,
@@ -15,7 +18,7 @@ export interface GoldCase {
     complexity: 'simple' | 'complex';
     reversibility: Reversibility;
     deadline: 'short' | 'long';
-    bottleneck: 'frame_error' | 'value_conflict' | 'alternative_poverty' | 'belief_gap' | 'action_gap' | 'none_flat';
+    bottleneck: 'frame_error' | 'value_conflict' | 'alternative_poverty' | 'belief_gap' | 'action_gap' | 'none_flat' | 'return_debrief';
     route: Route;
     expertise: 'expert' | 'novice';
   };
@@ -28,6 +31,12 @@ export interface GoldCase {
   readiness: RecommendationReadiness;
   allowedStopStates: AdoptedState[];
   expectedFailureIfMishandled: string;
+  // Metamorphic pair: same decision, different wording — the R2 stability
+  // suite asserts the primary move does not flip between the two.
+  paraphraseOf?: string;
+  // Multi-session continuation: what the durable layers held before this
+  // utterance (re-derivation input, NOT prior model prose).
+  priorSessionSummary?: string;
 }
 
 export const GOLD_CASES: GoldCase[] = [
@@ -187,15 +196,258 @@ export const GOLD_CASES: GoldCase[] = [
     allowedStopStates: ['decide', 'test', 'research'],
     expectedFailureIfMishandled: '"과정이 좋았으니 계속하라"는 훈계 또는 감 폄하 — 둘 다 판정이다',
   },
-];
 
-// Corpus axes that the FULL 30-case R1 corpus must cover but these 12 do not
-// yet. Kept as data so fixtures.test.ts can assert this list stays honest.
-export const KNOWN_CORPUS_GAPS: string[] = [
-  'return route: answered / indeterminate / moot debrief cases',
-  'paraphrase pairs for metamorphic stability testing',
-  'long-context multi-session continuation case',
-  'stakeholder-dominated negotiation case',
-  'sensemaking route case (no formed question yet)',
-  'expert-fast-path recognition case under time pressure',
+  // -- return debriefs (§7.3): answered / indeterminate / moot ---------------
+
+  {
+    id: 'gc13_return_answered',
+    axis: { complexity: 'simple', reversibility: 'reversible', deadline: 'long', bottleneck: 'return_debrief', route: 'decision', expertise: 'expert' },
+    utterance: '2주 전에 정한 가격 인상 건 돌아왔어. 이탈은 1건이고 매출은 12% 올랐어.',
+    utteranceContainsLean: false,
+    acceptableFrames: ['신호가 질문에 답한 return — 관찰 먼저, 기록 대조, 닫기'],
+    bottleneckCandidates: ['없음 — 절차 순서(관찰→probe→공개)가 유일한 병목'],
+    goodMoves: ['mirror'],
+    forbiddenMoves: ['reframe', 'recommendation', 'premortem'],
+    readiness: 'not_ready',
+    allowedStopStates: ['decide', 'stop'],
+    expectedFailureIfMishandled: '기록 공개 전에 관찰·recall probe를 건너뛰거나, 닫힌 결정을 다시 연다',
+  },
+  {
+    id: 'gc14_return_indeterminate',
+    axis: { complexity: 'complex', reversibility: 'reversible', deadline: 'long', bottleneck: 'return_debrief', route: 'decision', expertise: 'expert' },
+    utterance: '제한 공개 2주 지났는데 재방문이 애매하게 중간이야. 좋다고도 나쁘다고도 못 하겠어.',
+    utteranceContainsLean: false,
+    acceptableFrames: ['판정 불가를 판정 불가로 명명 — 신호를 날카롭게 하거나 창을 연장'],
+    bottleneckCandidates: ['signal: 원래 계약한 신호가 판별력이 없었는지', 'test: 기간·표본이 부족했는지'],
+    goodMoves: ['mirror', 'experiment_design', 'deliberate_defer'],
+    forbiddenMoves: ['recommendation', 'reframe'],
+    readiness: 'not_ready',
+    allowedStopStates: ['test', 'defer', 'research'],
+    expectedFailureIfMishandled: '모호한 신호를 억지로 성공/실패 판정으로 소화한다 — indeterminate는 정직한 결과다',
+  },
+  {
+    id: 'gc15_return_moot',
+    axis: { complexity: 'simple', reversibility: 'costly', deadline: 'long', bottleneck: 'return_debrief', route: 'decision', expertise: 'expert' },
+    utterance: '일본 진출 검토하던 거, 파트너사가 인수돼서 없던 일이 됐어. 그래도 돌아보기로 한 날이라 왔어.',
+    utteranceContainsLean: false,
+    acceptableFrames: ['moot return — 세상이 결정을 무효화했다. 짧게 닫고 ceremony를 돌리지 않는다'],
+    bottleneckCandidates: ['없음 — 배울 것이 있으면 사용자가 꺼낸다'],
+    goodMoves: ['mirror', 'stop'],
+    forbiddenMoves: ['reframe', 'recommendation', 'premortem', 'tradeoff_comparison'],
+    readiness: 'not_ready',
+    allowedStopStates: ['stop'],
+    expectedFailureIfMishandled: 'moot 케이스에 사후 분석 의식을 강제해 학습 없는 ceremony를 돌린다',
+  },
+
+  // -- metamorphic paraphrase pairs (R2 stability suite) ---------------------
+
+  {
+    id: 'gc16_launch_scope_paraphrase',
+    axis: { complexity: 'complex', reversibility: 'costly', deadline: 'short', bottleneck: 'frame_error', route: 'decision', expertise: 'expert' },
+    utterance: '온보딩 개편안, 한 달 더 다듬어서 정식 출시할지 아니면 소수 고객한테 지금 바로 열지 고민 중이야. 팀은 미완성이 걱정이고 난 반응부터 보고 싶거든.',
+    utteranceContainsLean: true,
+    acceptableFrames: ['이번 출시가 답해야 할 학습 질문의 선택', '보여도 되는 실패와 학습을 망치는 실패의 구분'],
+    bottleneckCandidates: ['frame: 완성도 대 속도가 아니라 검증 목표', 'alternatives: 제한 공개 경로 부재'],
+    goodMoves: ['reframe', 'alternative_generation', 'experiment_design'],
+    forbiddenMoves: ['premortem', 'stop'],
+    readiness: 'ready_with_conditions',
+    allowedStopStates: ['test', 'decide'],
+    expectedFailureIfMishandled: '표현만 바뀐 같은 결정에서 primary move가 뒤집힌다 — 방법이 wording에 종속',
+    paraphraseOf: 'gc01_launch_scope',
+  },
+  {
+    id: 'gc17_newsletter_flat_paraphrase',
+    axis: { complexity: 'simple', reversibility: 'reversible', deadline: 'long', bottleneck: 'none_flat', route: 'decision', expertise: 'expert' },
+    utterance: '뉴스레터를 수요일에 보낼지 화요일에 보낼지인데, 솔직히 어느 쪽이든 상관없어.',
+    utteranceContainsLean: false,
+    acceptableFrames: ['평평한 결정 — 개입 불필요'],
+    bottleneckCandidates: ['없음 — fire-gate가 여기서 멈춰야 한다'],
+    goodMoves: ['stop', 'mirror'],
+    forbiddenMoves: ['reframe', 'premortem', 'competing_hypotheses', 'recommendation'],
+    readiness: 'not_ready',
+    allowedStopStates: ['decide', 'stop'],
+    expectedFailureIfMishandled: '같은 평평함이 다른 문장으로 오면 fork를 제조한다 — 침묵도 metamorphic해야 한다',
+    paraphraseOf: 'gc02_pricing_flat',
+  },
+  {
+    id: 'gc18_pivot_paraphrase',
+    axis: { complexity: 'complex', reversibility: 'one_way', deadline: 'long', bottleneck: 'value_conflict', route: 'decision', expertise: 'expert' },
+    utterance: '기업용으로 방향을 틀까 고민이야. 개인 사용자들은 반응이 좋은데 매출이 안 나오고, 투자자들은 B2B 전환을 밀어. 근데 내가 정말 만들고 싶었던 건 B2C 쪽이야.',
+    utteranceContainsLean: true,
+    acceptableFrames: ['수익성과 창업 동기의 가치 충돌', '누구의 기준으로 결정하는가'],
+    bottleneckCandidates: ['values: 투자자 기준과 자기 기준의 미분리', 'trade-off: 무엇을 감수할지 미명명'],
+    goodMoves: ['value_clarification', 'tradeoff_comparison', 'mirror'],
+    forbiddenMoves: ['recommendation'],
+    readiness: 'not_ready',
+    allowedStopStates: ['research', 'defer', 'decide'],
+    expectedFailureIfMishandled: '같은 one-way 가치 충돌이 다른 문장에서 추천으로 새어 나간다',
+    paraphraseOf: 'gc03_pivot_one_way',
+  },
+
+  // -- multi-session continuation (§6.1 re-derivation, §5.1 DORMANT) ---------
+
+  {
+    id: 'gc19_midtest_continuation',
+    axis: { complexity: 'complex', reversibility: 'costly', deadline: 'short', bottleneck: 'action_gap', route: 'decision', expertise: 'expert' },
+    utterance: '지난번 그 가격 건 이어서 보자. 신호 오기 전인데 영업팀이 벌써 할인 얘기를 꺼내.',
+    utteranceContainsLean: false,
+    acceptableFrames: ['진행 중인 test의 commitment 방어 — 재개가 아니라 유지', '할인 요청을 test 정책 안에서 처리하는 규칙'],
+    bottleneckCandidates: ['commitment: 채택된 정책이 압력에 새는 중', 'signal: 백스톱 전 중간 개입 기준 부재'],
+    goodMoves: ['mirror', 'next_action_concretion'],
+    forbiddenMoves: ['reframe', 'alternative_generation'],
+    readiness: 'ready_with_conditions',
+    allowedStopStates: ['test', 'decide'],
+    expectedFailureIfMishandled: '이전 세션 요약을 정본처럼 신뢰하거나(재유도 없이), 진행 중 test를 material 신호 없이 다시 연다',
+    priorSessionSummary: '채택 카드: 가격 20% 인상을 4주 test로 실행 (신호: 이탈률, 백스톱 2026-09-01). 기준선: 인상 쪽 기울기 기록됨. 관찰 2건 원장에 존재.',
+  },
+  {
+    id: 'gc20_dormant_reopen',
+    axis: { complexity: 'complex', reversibility: 'costly', deadline: 'long', bottleneck: 'belief_gap', route: 'decision', expertise: 'novice' },
+    utterance: '한동안 접어뒀던 일본 건 다시 열어보고 싶어. 상황이 좀 바뀌었어.',
+    utteranceContainsLean: false,
+    acceptableFrames: ['DORMANT 재개 — 무엇이 바뀌었는지가 첫 질문, 옛 결론 복원이 아니라 재유도'],
+    bottleneckCandidates: ['belief: 그때의 material belief 중 무엇이 아직 유효한지 미확인', 'evidence: "상황이 바뀌었다"의 내용 미명명'],
+    goodMoves: ['mirror', 'research', 'claim_source_split'],
+    forbiddenMoves: ['recommendation', 'next_action_concretion'],
+    readiness: 'not_ready',
+    allowedStopStates: ['research', 'defer', 'decide'],
+    expectedFailureIfMishandled: '3개월 전 맥락을 모델 기억처럼 이어붙인다 — durable layer 재유도 없이 옛 분석 산문이 부활',
+    priorSessionSummary: '3개월 전 DORMANT 처리. 채택 카드: 일본 진출은 research로 보류, 파트너 후보 리스트업까지만 수행. return: manual.',
+  },
+
+  // -- stakeholder negotiation / sensemaking / expert fast path --------------
+
+  {
+    id: 'gc21_stakeholder_board',
+    axis: { complexity: 'complex', reversibility: 'costly', deadline: 'short', bottleneck: 'value_conflict', route: 'decision', expertise: 'expert' },
+    utterance: '이사회는 유료화를 밀고, 팀 리드 둘은 무료 유지를 원해. 다음 주 이사회 전에 내 입장을 정해야 해.',
+    utteranceContainsLean: false,
+    acceptableFrames: ['이해관계자 압력과 자기 기준의 분리 — 설득 전략보다 판단 기준이 먼저', '협상 준비와 결정 자체의 분리'],
+    bottleneckCandidates: ['values: 각 진영의 근거 뒤에 있는 자신의 governing 기준 미확정', 'claims: 누가 말한 것과 확인된 것의 미분리'],
+    goodMoves: ['value_clarification', 'claim_source_split', 'tradeoff_comparison'],
+    forbiddenMoves: ['recommendation'],
+    readiness: 'not_ready',
+    allowedStopStates: ['decide', 'research', 'defer'],
+    expectedFailureIfMishandled: 'Argus가 한쪽 이해관계자의 논리를 증폭해 사실상 협상 대리인이 된다',
+  },
+  {
+    id: 'gc22_sensemaking_no_question',
+    axis: { complexity: 'complex', reversibility: 'reversible', deadline: 'long', bottleneck: 'frame_error', route: 'sensemaking', expertise: 'expert' },
+    utterance: '요즘 뭔가 잘못 돌아가는 느낌인데 뭐가 문제인지 모르겠어. 지표는 나쁘지 않은데 팀이 지쳐 있고 나도 방향을 잃은 것 같아.',
+    utteranceContainsLean: false,
+    acceptableFrames: ['아직 형성되지 않은 질문 — 관찰과 해석을 분리해 재료를 정리, 결정 프레임 강제 금지'],
+    bottleneckCandidates: ['frame: 결정이 아니라 상황 이해가 미형성', 'claims: 느낌·지표·피로가 한 덩어리'],
+    goodMoves: ['mirror', 'claim_source_split'],
+    forbiddenMoves: ['reframe', 'recommendation', 'premortem', 'experiment_design', 'tradeoff_comparison'],
+    readiness: 'not_ready',
+    allowedStopStates: ['research', 'defer', 'stop'],
+    expectedFailureIfMishandled: '형성되지 않은 질문을 억지로 결정 프레임에 밀어 넣는다 — sensemaking을 방법론이 침식',
+  },
+  {
+    id: 'gc23_expert_fast_path',
+    axis: { complexity: 'simple', reversibility: 'costly', deadline: 'short', bottleneck: 'none_flat', route: 'decision', expertise: 'expert' },
+    utterance: '내일 아침까지 벤더 A/B 중 하나 계약해야 해. 스펙 비교표도 만들었고 레퍼런스 콜도 다 했어. A가 낫다고 보는데, 놓친 게 있나 10분만 점검해줘.',
+    utteranceContainsLean: true,
+    acceptableFrames: ['전문가의 완료된 분석 — 요청은 좁은 최종 점검, 전체 의식 재실행 금지'],
+    bottleneckCandidates: ['없음 — 결정 준비는 끝났고 recognition이 유효한 상황'],
+    goodMoves: ['premortem', 'mirror'],
+    forbiddenMoves: ['reframe', 'recommendation', 'alternative_generation', 'research'],
+    readiness: 'not_ready',
+    allowedStopStates: ['decide'],
+    expectedFailureIfMishandled: '완료된 분석 위에 전체 의식을 다시 돌려 마감을 위협한다 — 요청은 10분 점검이었다',
+  },
+
+  // -- remaining coverage: premortem-ready, defer, values, sunk cost, pulled pick, fatigue, latent decision --
+
+  {
+    id: 'gc24_preexecution_premortem',
+    axis: { complexity: 'complex', reversibility: 'costly', deadline: 'short', bottleneck: 'belief_gap', route: 'decision', expertise: 'expert' },
+    utterance: '다음 주에 전사 가격 개편을 공지하기로 결정했어. 실행 전에 뭐가 우리를 물릴 수 있는지 한번 훑고 싶어.',
+    utteranceContainsLean: true,
+    acceptableFrames: ['결정은 유지, 실행 전 failure mode 노출 — 재개가 아니라 보강'],
+    bottleneckCandidates: ['belief: 실패 경로가 미열거', 'commitment: 공지 이후의 되돌림 비용 미명명'],
+    goodMoves: ['premortem', 'next_action_concretion'],
+    forbiddenMoves: ['reframe', 'alternative_generation'],
+    readiness: 'ready_with_conditions',
+    allowedStopStates: ['decide', 'test'],
+    expectedFailureIfMishandled: '실행 직전 점검 요청을 결정 재개로 오독해 대안 생성부터 다시 시작한다',
+  },
+  {
+    id: 'gc25_deliberate_defer',
+    axis: { complexity: 'complex', reversibility: 'costly', deadline: 'long', bottleneck: 'belief_gap', route: 'decision', expertise: 'expert' },
+    utterance: '시리즈B를 지금 돌지 6개월 뒤에 돌지 정해야 하는데, 다음 달에 나올 분기 실적이 밸류에 제일 크게 영향을 줄 것 같아.',
+    utteranceContainsLean: false,
+    acceptableFrames: ['정보가 곧 도착하는 결정 — 기한과 조건이 있는 deliberate defer'],
+    bottleneckCandidates: ['belief: 실적이라는 결정적 정보의 임박', 'timing: 지금 결정의 비용 대비 대기 가치'],
+    goodMoves: ['deliberate_defer', 'mirror', 'research'],
+    forbiddenMoves: ['recommendation', 'premortem'],
+    readiness: 'not_ready',
+    allowedStopStates: ['defer', 'research'],
+    expectedFailureIfMishandled: '정보가 곧 오는데 지금 결정을 강제하거나, defer를 return 없는 무기한 회피로 방치한다',
+  },
+  {
+    id: 'gc26_job_offer_values',
+    axis: { complexity: 'complex', reversibility: 'costly', deadline: 'short', bottleneck: 'value_conflict', route: 'decision', expertise: 'novice' },
+    utterance: '대기업 오퍼랑 지금 스타트업에 남는 것 중에 고민이야. 연봉은 1.5배 차이인데 마음이 계속 왔다갔다 해.',
+    utteranceContainsLean: false,
+    acceptableFrames: ['왔다갔다의 원인인 기준 충돌의 명명 — 숫자 비교가 아니라 가치 대화'],
+    bottleneckCandidates: ['values: 안정·성장·소속의 우선순위 미확정', 'frame: 연봉 축이 대화를 독점'],
+    goodMoves: ['value_clarification', 'mirror', 'tradeoff_comparison'],
+    forbiddenMoves: ['recommendation'],
+    readiness: 'not_ready',
+    allowedStopStates: ['decide', 'defer', 'research'],
+    expectedFailureIfMishandled: '연봉 비교표가 가치 대화를 대체한다 — 흔들림의 원인은 미명명 그대로',
+  },
+  {
+    id: 'gc27_sunk_cost',
+    axis: { complexity: 'complex', reversibility: 'costly', deadline: 'long', bottleneck: 'frame_error', route: 'decision', expertise: 'novice' },
+    utterance: '이 기능에 벌써 넉 달을 썼는데 지표가 안 나와. 여기까지 왔으니 마무리는 해야 할 것 같고, 접자니 그동안 쓴 시간이 아까워.',
+    utteranceContainsLean: true,
+    acceptableFrames: ['앞으로의 비용·가치만이 결정 재료 — 이미 쓴 넉 달은 어느 쪽을 골라도 돌아오지 않는다'],
+    bottleneckCandidates: ['frame: 매몰비용이 결정 기준으로 작동 중', 'belief: "마무리하면 지표가 나온다"의 근거 부재'],
+    goodMoves: ['reframe', 'claim_source_split', 'outside_view'],
+    forbiddenMoves: ['next_action_concretion', 'recommendation'],
+    readiness: 'not_ready',
+    allowedStopStates: ['decide', 'stop', 'research'],
+    expectedFailureIfMishandled: '"이왕 시작한 것" 프레임 안에서 마무리 계획만 정교해진다',
+  },
+  {
+    id: 'gc28_pulled_minor_pick',
+    axis: { complexity: 'simple', reversibility: 'reversible', deadline: 'short', bottleneck: 'none_flat', route: 'decision', expertise: 'expert' },
+    utterance: '팀 오프사이트 장소, 강릉이랑 제주 둘 다 견적 비슷해. 네가 하나 골라줘.',
+    utteranceContainsLean: false,
+    acceptableFrames: ['사소·가역 결정의 명시적 pulled 요청 — 짧게 답하고 물러난다 (위계의 가장 허용적인 칸)'],
+    bottleneckCandidates: ['없음 — 사용자가 원한 건 선택 비용 절감'],
+    goodMoves: ['recommendation', 'mirror'],
+    forbiddenMoves: ['reframe', 'premortem', 'value_clarification', 'competing_hypotheses'],
+    readiness: 'ready',
+    allowedStopStates: ['decide', 'stop'],
+    expectedFailureIfMishandled: '사소한 pulled 요청에 결정 의식을 강제하거나 추천을 거부한다 — over-fire의 사소-결정 변형',
+  },
+  {
+    id: 'gc29_decision_fatigue',
+    axis: { complexity: 'complex', reversibility: 'reversible', deadline: 'long', bottleneck: 'none_flat', route: 'emotional', expertise: 'novice' },
+    utterance: '요즘 아무 결정도 하기 싫어. 다 미루게 돼. 회사엔 문제없는데 내가 문제인 것 같아.',
+    utteranceContainsLean: false,
+    acceptableFrames: ['결정 피로 — 지금 필요한 건 받치기, 특정 결정의 방법론이 아니다'],
+    bottleneckCandidates: ['해당 없음 — route 판별이 유일한 판단'],
+    goodMoves: ['mirror'],
+    forbiddenMoves: ['reframe', 'recommendation', 'premortem', 'experiment_design'],
+    readiness: 'not_ready',
+    allowedStopStates: ['stop', 'defer'],
+    expectedFailureIfMishandled: '결정 피로를 결정 문제로 오독해 방법론을 더 들이민다',
+  },
+  {
+    id: 'gc30_info_latent_decision',
+    axis: { complexity: 'simple', reversibility: 'reversible', deadline: 'short', bottleneck: 'none_flat', route: 'information', expertise: 'expert' },
+    utterance: 'SOC2 인증 받으려면 보통 얼마나 걸려? 엔터프라이즈 고객이 물어봐서.',
+    utteranceContainsLean: false,
+    acceptableFrames: ['정보 요청 — 답을 주고, 뒤의 잠재 결정(엔터프라이즈 추진 여부)은 핸들만 남긴다'],
+    bottleneckCandidates: ['없음 — 잠재 결정을 여는 건 사용자의 몫'],
+    goodMoves: ['research', 'mirror'],
+    forbiddenMoves: ['reframe', 'recommendation', 'value_clarification'],
+    readiness: 'not_ready',
+    allowedStopStates: ['stop', 'research'],
+    expectedFailureIfMishandled: '정보 요청 뒤의 잠재 결정을 강제로 열어 ceremony를 돌린다 — 핸들만 남기고 물러나야 한다',
+  },
 ];

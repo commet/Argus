@@ -53,6 +53,12 @@ export const USER_DATA_TABLES = [
   // Short-lived hashed OAuth/device codes for MCP account connection. Has a
   // `user_id`, so it is user-scoped by this file's own rule — it was live from
   // 20260716 but missing here until 2026-07-28, i.e. absent from every export.
+  // R3-B 원격 MCP 파일럿 원장 (2026-08-05). 파일럿 전용이지만 user_id가 있으므로
+  // 계정 삭제·내보내기에 반드시 포함된다 — 파일럿이라는 이유로 빠뜨리면
+  // "폐기 전제" 계약이 지켜지지 않는다.
+  'argus_cases',
+  'argus_events',
+  'argus_returns',
   'mcp_account_authorizations',
   'outcome_records',
   'personas',
