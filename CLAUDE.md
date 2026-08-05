@@ -13,10 +13,9 @@ npm run build             # next build (prebuild도 kernel:build 경유)
 게이트·검증 (2026-08-05 전부 실행 확인):
 
 ```bash
-npm run preflight:dogfood      # 배포 전 전체 관문 (build+test+lint+gates+eval+plugin)
-npm run gates                  # 플러그인 gate      npm run eval:static  # 정적 eval
-npm run dogfood                # 커널 도그푸드 (모델 없이 300+ 스텝 시뮬레이션)
-npm run experience:web:selftest # 브라우저 엔진 자체검사 — 로컬 서버라 네트워크 무관
+npm run preflight:dogfood       # 배포 전 전체 관문 (build+test+lint+gates+eval+plugin)
+npm run dogfood                 # 커널 도그푸드 (모델 없이 300+ 스텝)
+npm run experience:web:selftest # 브라우저 엔진 자체검사 — 로컬 서버, 네트워크 무관
 ARGUS_BASE_URL=http://localhost:3000 npm run e2e:loop   # 결정 루프 E2E
 ```
 
@@ -67,27 +66,21 @@ EVIDENCE 맵 갱신과 함께만 (개수·파일 실존을 CI가 대조). 시공
 
 When adding a field to any TypeScript interface (e.g., `Persona`, `RecastStep`), check ALL of these:
 
-1. **Type definition** (`src/stores/types.ts`) — add the field
-2. **Store creator** (e.g., `createPersona()` in `usePersonaStore.ts`) — map the field explicitly
-3. **Store defaults** (e.g., `DEFAULT_PERSONAS`) — include the field with a realistic value
-4. **Supabase table** — add the column via `apply_migration` (아래 Schema Sync 규약)
-5. **All prompts that use this type** — 프롬프트 위치는 리팩터링으로 계속 움직인다.
-   파일명을 외우지 말고 그때그때 찾는다:
+1. **타입 정의** (`src/stores/types.ts`) → **store creator**(`createPersona()` 등에서
+   명시적으로 매핑) → **store defaults**(`DEFAULT_PERSONAS` 등에 현실적인 값)
+2. **Supabase 컬럼** — `apply_migration` (아래 Schema Sync 규약)
+3. **그 타입을 쓰는 모든 프롬프트** — 위치는 리팩터링으로 계속 움직이니 파일명을
+   외우지 말고 찾는다:
    `grep -rn "SYSTEM_PROMPT\|SystemPrompt\|<user-data>" src/lib src/components`
-6. **UI that displays this type** — update cards, forms, detail views
-7. **Handoff/conversion functions** — `autoPersonaToFull()`, `buildDecomposeContext()`, etc.
+4. **표시 UI**(카드·폼·상세) 와 **handoff/변환 함수**(`autoPersonaToFull()`,
+   `buildDecomposeContext()` 등)
 
 ## Principle: The Zero-Judgment Gate (every new user-facing surface)
 
-> **Track R 수정조항 (2026-08-03, 창업자 지시):** 아래 런타임 규칙은 현행 제품에
-> 유효하되 **R0–R3 방법 연구를 구속하지 않는다.** 방법 정본은
-> `docs/ARGUS-METHOD-V1.0.md`(STABLE), 결정 이력은
-> `docs/ARGUS-METHOD-CONTEXT-2026-08-04.md`(설명일 뿐 정본을 이기지 못함).
-> v1.0의 정본은 `honest agency` — 능동 분석·도전·대안 생성·조건부 추천은 허용,
-> AI 조언을 사용자 결정으로 또는 추론을 현실로 세탁하는 것은 금지. 영향력은
-> 태그가 아니라 구조로 통제한다(사전 기준선·반증 조건·원장 대조·stakes×initiative
-> 위계·관찰 우선 귀환·봉인된 지표). **R3 증거 게이트 전에는 라이브 표면에
-> 구현하지 않는다.**
+> **Track R 수정조항 (2026-08-03, 창업자 지시):** 아래 규칙은 현행 제품에
+> 유효하되 **R0–R3 방법 연구는 구속하지 않는다.** 방법 정본은
+> `docs/ARGUS-METHOD-V1.0.md`(STABLE, `honest agency`).
+> **R3 증거 게이트 전에는 라이브 표면에 구현하지 않는다.**
 
 Argus's spine is `maximum generation, zero judgment`. Before shipping any new
 surface, pass it through one gate:
@@ -240,9 +233,8 @@ SELECT column_name FROM information_schema.columns WHERE table_name = 'TABLE_NAM
 - **Context chain** — decompose → recast → persona-feedback → refinement
 - **Handoff store** — 단계 간 임시 데이터, mount 시 `useEffect([], [])`로 소비
 - **Quality signals** — `signal-recorder.ts`가 암묵적 사용자 행동을 기록
-- **Track R (`method-harness/`)** — 이벤트 소싱 원장 + 결정론 validator. `src/`와
-  무접촉이 원칙이고 유일한 예외는 `src/app/method-pilot/`이며, 그 경계는
-  `harness.test.ts`가 기계로 지킨다.
+- **Track R (`method-harness/`)** — 이벤트 소싱 원장 + 결정론 validator.
+  `src/`와 무접촉, 유일한 예외는 `src/app/method-pilot/` (경계는 테스트가 강제).
 
 ## LLM Prompt Injection Guidelines
 
