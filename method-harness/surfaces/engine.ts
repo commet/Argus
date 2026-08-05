@@ -9,6 +9,7 @@
 import { compilePromptPacket, type LensKey, type Surface, type TurnTask } from '../constitution';
 import { Ledger, nextEventId } from '../ledger';
 import { foldCase, rebuildWorkingModelInputs } from '../reducer';
+import { assertPlanAllowed, planReturnSummary, returnsFromPlan, validatePlan, type PlanValidation } from '../plan';
 import { composeReturnOpening } from '../returns';
 import { validateTurn } from '../validator';
 import {
@@ -16,6 +17,7 @@ import {
   type ArgusTurn,
   type CaseState,
   type DecisionCardDraft,
+  type ExecutionPlan,
   HarnessViolation,
   type IsoTime,
   type ReturnContractDraft,
@@ -132,6 +134,45 @@ export class SessionEngine {
       // on close (§7.2).
       this.ledger.append({ id: nextEventId('ret'), caseId: this.caseId, at: now, type: 'return_armed', contract: contract.nextInChain });
     }
+  }
+
+  // -- PLAN (MOVE와 RETURN을 잇는 다리) -------------------------------------
+
+  // 계획 제안 — AI가 만든다. 아직 사용자의 것이 아니므로 원장에는 제안으로만
+  // 남고, 상태를 바꾸지 않는다.
+  proposePlan(plan: ExecutionPlan, now: IsoTime): PlanValidation {
+    const check = validatePlan(plan);
+    if (check.ok) {
+      this.ledger.append({
+        id: nextEventId('prp'),
+        caseId: this.caseId,
+        at: now,
+        type: 'ai_proposal',
+        description: `plan:${plan.steps.length}단계/${plan.horizonDays}일`,
+        payloadKind: 'move',
+      });
+    }
+    return check;
+  }
+
+  // 계획 채택 — 사용자의 행위. 이 호출만이 계획을 정본으로 만들고, **여기서
+  // 마일스톤이 귀환 계약이 된다.** 이 한 줄이 제품 전략의 핵심 연결이다:
+  // 사용자가 돌아보기를 따로 승낙하지 않아도, 계획을 받으면 정산 약속이 생긴다.
+  adoptPlan(plan: ExecutionPlan, now: IsoTime): { returnsArmed: number; summary: string } {
+    const state = this.state();
+    assertPlanAllowed(state);
+    const check = validatePlan(plan);
+    if (!check.ok) {
+      throw new HarnessViolation('PLAN_INVALID', `계획이 형태를 갖추지 못했다: ${check.problems.join('; ')}`);
+    }
+
+    this.ledger.append({ id: nextEventId('pln'), caseId: this.caseId, at: now, type: 'plan_adopted', plan });
+
+    const planned = returnsFromPlan(plan);
+    for (const p of planned) {
+      this.ledger.append({ id: nextEventId('ret'), caseId: this.caseId, at: now, type: 'return_armed', contract: p.contract });
+    }
+    return { returnsArmed: planned.length, summary: planReturnSummary(plan) };
   }
 
   reportAction(description: string, now: IsoTime): void {
