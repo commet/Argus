@@ -380,8 +380,24 @@ try {
     await page.waitForTimeout(9000);
     await shot('after-login');
     const stillLogin = /\/login/.test(page.url());
-    step('0b. 로그인이 성사된다', !stillLogin, stillLogin ? '로그인 페이지에 그대로 머문다' : '');
-    if (stillLogin) throw new Error('로그인 실패');
+    // 실패했으면 **화면이 뭐라고 했는지**를 가져온다. 예전에는 "로그인 페이지에
+    // 그대로 머문다"만 남겨서, 자격증명이 틀린 것인지 인증 서버가 죽은 것인지
+    // 앱이 깨진 것인지 구분하려면 스크린샷을 받아 눈으로 봐야 했다 — 로그를
+    // 읽는 사람이 원인을 못 고르는 실패 메시지는 절반만 정직한 것이다.
+    let reason = '로그인 페이지에 그대로 머문다';
+    if (stillLogin) {
+      const alertText = await page
+        .locator('[role=alert]')
+        .first()
+        .textContent({ timeout: 3000 })
+        .catch(() => null);
+      const shown = (alertText || '').trim();
+      reason = shown
+        ? `로그인 페이지에 그대로 머문다 — 화면 메시지: "${shown}"`
+        : '로그인 페이지에 그대로 머문다 (화면에 오류 메시지도 없다 — 제출 자체가 안 갔거나 응답이 없다)';
+    }
+    step('0b. 로그인이 성사된다', !stillLogin, stillLogin ? reason : '');
+    if (stillLogin) throw new Error(`로그인 실패 — ${reason}`);
   }
 
   // ── 1. 본선이 열린다 ─────────────────────────────────────────────────
