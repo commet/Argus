@@ -129,4 +129,27 @@ describe('buildTheaterReport', () => {
     expect(report.text).toContain('채점할 수 없습니다');
     expect(report.text).toContain('1/1 적중');
   });
+
+  it('표본 미달이면 퍼센트 대신 "아직 모릅니다" — 3건짜리 비율은 소음이다', () => {
+    const report = buildTheaterReport([{ gradeLabel: 'graded', title: 't', body: 'b', correct: true }], {
+      matchRate: 1,
+      matchSample: 2,
+      outcomeRate: 0.5,
+      outcomeSample: 2,
+    });
+    expect(report.text).toContain('아직 모릅니다');
+    expect(report.text).not.toContain('100%');
+  });
+
+  it('표본이 차면 두 숫자를 분리해서 싣고, 채점 대상이 분신임을 밝힌다', () => {
+    const report = buildTheaterReport([], {
+      matchRate: 0.75,
+      matchSample: 4,
+      outcomeRate: 0.5,
+      outcomeSample: 6,
+    });
+    expect(report.text).toContain('75% (4건)');
+    expect(report.text).toContain('50% (6건)');
+    expect(report.text).toContain('당신이 아니라 분신의 예측을 채점한 것');
+  });
 });

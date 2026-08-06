@@ -25,6 +25,8 @@ export interface CaseRow {
   last_observation?: string | null;
   recall_gap?: string | null;
   settled_at?: string | null;
+  // TWIN — 극장의 "가지 않은 길" 재료 (마이그레이션 20260806080000).
+  rejected_alternative?: string | null;
 }
 
 // 원장을 읽어 하네스 엔진을 복원한다. 케이스가 없으면 빈 엔진 —
@@ -154,13 +156,22 @@ export async function getCase(userId: string, caseId: string): Promise<CaseRow |
 export async function projectOutcome(
   userId: string,
   caseId: string,
-  outcome: { choice?: string; observation: string; recall: string; settledAt: string },
+  outcome: {
+    choice?: string;
+    observation: string;
+    recall: string;
+    settledAt: string;
+    // TWIN: 극장의 "가지 않은 길" 재생 재료. 원장 안(카드 rationale)에 있지만
+    // 주간 배치가 케이스마다 원장을 fold 하면 그것이 배치의 지연이 된다.
+    rejectedAlternative?: string;
+  },
 ): Promise<void> {
   const admin = adminClient();
   const { error } = await admin
     .from('argus_cases')
     .update({
       ...(outcome.choice ? { choice: outcome.choice } : {}),
+      ...(outcome.rejectedAlternative ? { rejected_alternative: outcome.rejectedAlternative } : {}),
       last_observation: outcome.observation,
       recall_gap: outcome.recall,
       settled_at: outcome.settledAt,

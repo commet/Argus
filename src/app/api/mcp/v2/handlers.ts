@@ -26,6 +26,7 @@ import {
 import { divergenceCrux } from '@/lib/twin/divergence';
 import { extractProfileFromSettlement, profileLines } from '@/lib/twin/profile';
 import { generateAndSealShadow, gradeRevealedShadows, revealShadowsText, runAfterResponse } from '@/lib/twin/shadow';
+import { twinScore } from '@/lib/twin/store';
 import { toolText } from './protocol';
 import {
   armReturns,
@@ -538,6 +539,7 @@ export async function handleReturn(userId: string, args: Args) {
   // 계획만 내주는 범용 AI와 구분되지 않는다.
   await projectOutcome(userId, caseId, {
     choice: revealed.card?.choiceOrPolicy,
+    rejectedAlternative: revealed.card?.rationale?.rejectedAlternative?.alternative,
     observation,
     recall,
     settledAt: now(),
@@ -548,7 +550,21 @@ export async function handleReturn(userId: string, args: Args) {
   // 채점(3치 판정)은 LLM 호출이므로 응답을 막지 않고 뒤에서 돈다.
   const shadow = await revealShadowsText(userId, caseId);
   if (shadow.revealed.length > 0) {
-    runAfterResponse(() => gradeRevealedShadows(shadow.revealed, observation));
+    // 채택 기록을 함께 넘긴다 — outcome 예측은 관찰과, choice/deviation 예측은
+    // **실제 채택**과 대조된다. 후자를 넘기지 않으면 match rate 의 모수가
+    // 영영 0 이 되고, 봉인해 둔 예측이 죽은 데이터가 된다.
+    const adoptedLean =
+      revealed.baseline && revealed.baseline !== 'not_captured' && revealed.baseline.lean !== 'none_stated'
+        ? revealed.baseline.lean
+        : undefined;
+    const adoptedChoice = revealed.card?.choiceOrPolicy;
+    runAfterResponse(() =>
+      gradeRevealedShadows(
+        shadow.revealed,
+        observation,
+        adoptedChoice ? { choice: adoptedChoice, lean: adoptedLean } : undefined,
+      ),
+    );
   }
 
   // 프로필 추출 (TWIN §4.1) — 방금 정산된 케이스 하나에서만. 검증(증거 실존·
@@ -676,6 +692,20 @@ export async function handleRecall(userId: string, args: Args) {
     const lines = await profileLines(userId, 5);
     if (lines.length > 0) {
       parts.push('정산에서 관찰된 판단 패턴 (편집·삭제 가능, 근거 케이스 첨부):\n' + lines.map((l) => `· ${l}`).join('\n'));
+    }
+    // 분신 성적 (TWIN §4.2). **사람이 아니라 예측을 채점한 것**이고, 표본
+    // 미달이면 숫자를 감춘다 — 3건짜리 퍼센트는 정보가 아니라 소음이다.
+    const score = await twinScore(userId);
+    const MIN = 3;
+    if (score.matchSample >= MIN || score.outcomeSample >= MIN) {
+      const bits: string[] = [];
+      if (score.matchSample >= MIN) {
+        bits.push(`당신의 선택을 맞힌 비율 ${Math.round(score.matchRate! * 100)}% (${score.matchSample}건)`);
+      }
+      if (score.outcomeSample >= MIN) {
+        bits.push(`현실을 맞힌 비율 ${Math.round(score.outcomeRate! * 100)}% (${score.outcomeSample}건)`);
+      }
+      parts.push(`분신 성적 (분신의 예측을 채점한 것입니다 — 사용자에 대한 평가가 아닙니다): ${bits.join(' · ')}`);
     }
   }
 

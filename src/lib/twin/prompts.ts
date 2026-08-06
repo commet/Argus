@@ -86,6 +86,26 @@ export function buildVerdictUser(expectation: string, observation: string): stri
   return `봉인됐던 예측:\n"${expectation}"\n\n정산 때 사용자가 말한 실제 관찰:\n"${observation}"`;
 }
 
+// choice/deviation 예측의 채점 — 현실이 아니라 **사용자의 실제 채택**과 대조한다.
+// 여기가 match rate 의 재료다 ("분신이 나를 얼마나 아는가"). 문자열 비교로는
+// 안 되는 이유: "3개월 계약직"과 "단기 계약으로 먼저"는 같은 선택이다.
+export function buildChoiceVerdictUser(
+  target: 'choice' | 'deviation',
+  expectation: string,
+  adoptedChoice: string,
+  lean?: string,
+): string {
+  if (target === 'deviation') {
+    return (
+      `봉인됐던 이탈 예측:\n"${expectation}"\n\n` +
+      `결정을 열 때 사용자가 밝힌 기울기: "${lean ?? '(없음)'}"\n` +
+      `최종적으로 채택한 것: "${adoptedChoice}"\n\n` +
+      '실제로 기울기에서 이탈했는지를 먼저 판단하고, 그것이 예측과 맞는지 판정하라.'
+    );
+  }
+  return `봉인됐던 선택 예측:\n"${expectation}"\n\n사용자가 실제로 채택한 것:\n"${adoptedChoice}"`;
+}
+
 export const VERDICT_SCHEMA = {
   type: 'object' as const,
   properties: {

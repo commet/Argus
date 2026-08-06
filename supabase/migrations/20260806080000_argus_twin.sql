@@ -95,6 +95,17 @@ create table if not exists public.argus_simulation_runs (
 );
 create index if not exists argus_sim_user_idx on public.argus_simulation_runs (user_id, created_at desc);
 
+-- ── 3.5 기각 대안 투영 ───────────────────────────────────────────────────
+-- "가지 않은 길" 재생의 재료. 원장에는 채택 카드의 rationale 안에 있지만,
+-- 극장 크론이 사용자 10명 × 케이스 전부의 원장을 fold 하면 그것이 주간
+-- 배치의 지연이 된다 (argus_cases 투영 넷과 같은 캐시 규칙). 정산 시점에
+-- 한 번 투영한다.
+alter table public.argus_cases
+  add column if not exists rejected_alternative text;
+
+comment on column public.argus_cases.rejected_alternative is
+  'TWIN — 채택 때 사용자가 버린 대안. 극장의 "가지 않은 길" 재생 재료. 원장에서 재생 가능한 캐시.';
+
 -- ── 4. resolved case bank (전역) ─────────────────────────────────────────
 create table if not exists public.argus_case_bank (
   id              text primary key,

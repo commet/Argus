@@ -11,10 +11,13 @@ import {
   buildTheaterReport,
   ensureCaseBankSeeded,
   playBankCase,
+  replayUntakenPath,
   unplayedBankCases,
+  unreplayedUntakenPaths,
   type TheaterItem,
 } from '@/lib/twin/theater';
 import { profileLines } from '@/lib/twin/profile';
+import { twinScore } from '@/lib/twin/store';
 import { persistServerEvent } from '@/lib/server-events';
 
 export const runtime = 'nodejs';
@@ -66,6 +69,13 @@ export async function GET(req: NextRequest) {
         if (item) items.push(item);
       }
 
+      // 가지 않은 길 — 정산됐고 기각 대안이 기록된 케이스에서만. 없으면 없는
+      // 대로 간다 (기각 대안을 지어내면 그 순간 허구가 두 겹이 된다).
+      for (const path of await unreplayedUntakenPaths(userId, 1)) {
+        const item = await replayUntakenPath(userId, path, profile);
+        if (item) items.push(item);
+      }
+
       if (items.length === 0) {
         // 보낼 것이 없으면 보내지 않는다 — 빈 극장에 초대하는 것이 과발화다.
         skipped += 1;
@@ -79,7 +89,7 @@ export async function GET(req: NextRequest) {
         continue;
       }
 
-      const report = buildTheaterReport(items);
+      const report = buildTheaterReport(items, await twinScore(userId));
       const result = await resend.emails.send({
         from: `Argus <hello@${fromDomain}>`,
         to: email,

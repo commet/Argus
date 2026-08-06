@@ -121,6 +121,57 @@ export async function setShadowVerdict(id: string, verdict: ShadowVerdict, quote
   if (error) console.error('[twin/shadow] verdict write failed:', error.message);
 }
 
+/**
+ * 분신 성적표 — TWIN §4.2 의 두 숫자를 **절대 섞지 않고** 낸다.
+ *
+ * · matchRate    — 분신이 사용자를 아는가 (choice/deviation, 채택과 대조)
+ * · outcomeRate  — 분신이 현실을 맞히는가 (outcome, 관찰과 대조)
+ *
+ * 규칙:
+ * · indeterminate 와 late 는 **모수에서 뺀다** — 판정하지 못한 것을 맞혔다고도
+ *   틀렸다고도 세지 않는다 (정직한 공백).
+ * · 오염된 choice 예측(lean 이 있었던 것)은 match 모수에서 뺀다 — 자명한 예측을
+ *   성적에 넣으면 숫자가 부풀려진다 (PRD 반박 1).
+ * · 표본 수를 항상 함께 돌려준다. 호출부는 표본 미달이면 숫자를 감춘다.
+ */
+export interface TwinScore {
+  matchRate: number | null;
+  matchSample: number;
+  outcomeRate: number | null;
+  outcomeSample: number;
+}
+
+export async function twinScore(userId: string): Promise<TwinScore> {
+  const empty: TwinScore = { matchRate: null, matchSample: 0, outcomeRate: null, outcomeSample: 0 };
+  try {
+    const admin = adminClient();
+    const { data, error } = await admin
+      .from('argus_shadow_predictions')
+      .select('target, verdict, status, contaminated_by_lean')
+      .eq('user_id', userId)
+      .eq('status', 'revealed')
+      .in('verdict', ['supported', 'contradicted']);
+    if (error || !data) return empty;
+
+    const rows = data as Array<Pick<ShadowRow, 'target' | 'verdict' | 'contaminated_by_lean'>>;
+    const match = rows.filter(
+      (r) => (r.target === 'deviation' || (r.target === 'choice' && !r.contaminated_by_lean)),
+    );
+    const outcome = rows.filter((r) => r.target === 'outcome');
+    const rate = (xs: typeof rows) =>
+      xs.length === 0 ? null : xs.filter((r) => r.verdict === 'supported').length / xs.length;
+
+    return {
+      matchRate: rate(match),
+      matchSample: match.length,
+      outcomeRate: rate(outcome),
+      outcomeSample: outcome.length,
+    };
+  } catch {
+    return empty;
+  }
+}
+
 // 크론 백스톱: 최근에 열렸는데 그림자가 없는 케이스. after() 가 실패한 경우다.
 export async function recentCasesMissingShadows(hours = 48, limit = 20): Promise<Array<{ id: string; user_id: string }>> {
   const admin = adminClient();

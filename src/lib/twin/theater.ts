@@ -109,6 +109,40 @@ export async function playBankCase(
   };
 }
 
+/**
+ * 아직 재생하지 않은 "가지 않은 길" 후보 — 정산됐고 기각 대안이 기록된 케이스.
+ * 기각 대안이 없으면 재생할 길도 없다 (지어내지 않는다).
+ */
+export async function unreplayedUntakenPaths(userId: string, limit = 1) {
+  const admin = adminClient();
+  const { data: cases } = await admin
+    .from('argus_cases')
+    .select('id, title, choice, rejected_alternative')
+    .eq('user_id', userId)
+    .not('settled_at', 'is', null)
+    .not('rejected_alternative', 'is', null)
+    .order('settled_at', { ascending: false })
+    .limit(limit * 5);
+  if (!cases || cases.length === 0) return [];
+
+  const { data: done } = await admin
+    .from('argus_simulation_runs')
+    .select('source_ref')
+    .eq('user_id', userId)
+    .eq('source', 'untaken');
+  const replayed = new Set((done ?? []).map((r) => r.source_ref as string));
+
+  return (cases as Array<{ id: string; title: string | null; choice: string | null; rejected_alternative: string }>)
+    .filter((c) => !replayed.has(c.id) && c.choice)
+    .slice(0, limit)
+    .map((c) => ({
+      caseId: c.id,
+      question: c.title ?? c.id,
+      choice: c.choice!,
+      rejectedAlternative: c.rejected_alternative,
+    }));
+}
+
 // 이 사용자가 아직 안 푼 bank 사례를 고른다.
 export async function unplayedBankCases(userId: string, limit = 2) {
   const admin = adminClient();
@@ -173,12 +207,34 @@ export async function replayUntakenPath(
 }
 
 // ── 주간 리포트 문안 ─────────────────────────────────────────────────────
-export function buildTheaterReport(items: TheaterItem[]): { subject: string; text: string } {
+export function buildTheaterReport(
+  items: TheaterItem[],
+  score?: { matchRate: number | null; matchSample: number; outcomeRate: number | null; outcomeSample: number },
+): { subject: string; text: string } {
   const graded = items.filter((i) => i.gradeLabel === 'graded');
   const fiction = items.filter((i) => i.gradeLabel === 'fiction');
   const hits = graded.filter((i) => i.correct).length;
 
   const lines: string[] = ['분신 극장 — 이번 주 당신의 분신이 생각한 것들.'];
+
+  // 성적표. 표본이 임계 미달이면 숫자를 감추고 "아직 모른다"고 말한다 —
+  // 표본 3건짜리 퍼센트는 정보가 아니라 소음이다 (TWIN §6.2).
+  if (score) {
+    const MIN = 3;
+    const pct = (r: number | null) => (r === null ? '—' : `${Math.round(r * 100)}%`);
+    const parts: string[] = [];
+    parts.push(
+      score.matchSample >= MIN
+        ? `· 분신이 당신의 선택을 맞힌 비율: ${pct(score.matchRate)} (${score.matchSample}건)`
+        : `· 분신이 당신의 선택을 맞힌 비율: 아직 모릅니다 (정산 ${score.matchSample}건, ${MIN}건부터 표시)`,
+    );
+    parts.push(
+      score.outcomeSample >= MIN
+        ? `· 분신이 현실을 맞힌 비율: ${pct(score.outcomeRate)} (${score.outcomeSample}건)`
+        : `· 분신이 현실을 맞힌 비율: 아직 모릅니다 (정산 ${score.outcomeSample}건, ${MIN}건부터 표시)`,
+    );
+    lines.push('', '■ 분신 성적 — 당신이 아니라 분신의 예측을 채점한 것입니다', ...parts);
+  }
   if (graded.length > 0) {
     lines.push('', `■ 채점된 것 (결과가 이미 나온 공개 사례, ${hits}/${graded.length} 적중)`);
     for (const i of graded) lines.push('', `[채점됨] ${i.title}`, i.body);

@@ -194,9 +194,32 @@ describe('gradeRevealedShadows', () => {
     expect(updates.some((u) => u.values.verdict === 'contradicted')).toBe(true);
   });
 
-  it('outcome 아닌 행은 LLM 채점을 하지 않는다', async () => {
+  it('choice 예측은 채택 기록이 있어야 채점된다 — 없으면 건너뛴다', async () => {
     llmResponse = { verdict: 'supported', quote: '인용' };
     await gradeRevealedShadows([sealedRow({ target: 'choice', status: 'revealed' })], '관찰');
+    expect(updates).toHaveLength(0); // adopted 미전달
+  });
+
+  it('채택 기록을 넘기면 choice 예측도 채점된다 — match rate 의 모수가 생긴다', async () => {
+    llmResponse = { verdict: 'supported', quote: '3개월 계약직' };
+    await gradeRevealedShadows([sealedRow({ target: 'choice', status: 'revealed' })], '관찰', {
+      choice: '3개월 계약직',
+    });
+    expect(updates.some((u) => u.values.verdict === 'supported')).toBe(true);
+  });
+
+  it('deviation 예측은 기울기와 채택을 함께 대조한다', async () => {
+    llmResponse = { verdict: 'contradicted', quote: '정규직으로 갔다' };
+    await gradeRevealedShadows([sealedRow({ target: 'deviation', status: 'revealed' })], '관찰', {
+      choice: '정규직',
+      lean: '계약직',
+    });
+    expect(updates.some((u) => u.values.verdict === 'contradicted')).toBe(true);
+  });
+
+  it('late 봉인은 채점하지 않는다 — 채택을 보고 쓴 예측이다', async () => {
+    llmResponse = { verdict: 'supported', quote: '인용' };
+    await gradeRevealedShadows([sealedRow({ target: 'outcome', status: 'late' })], '관찰');
     expect(updates).toHaveLength(0);
   });
 });

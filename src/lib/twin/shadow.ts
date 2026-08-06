@@ -7,6 +7,7 @@
 
 import { callAnthropicJson } from '@/lib/llm-server';
 import {
+  buildChoiceVerdictUser,
   buildShadowSystem,
   buildShadowUser,
   buildVerdictSystem,
@@ -116,14 +117,34 @@ export async function revealShadowsText(userId: string, caseId: string): Promise
   }
 }
 
-/** 공개된 outcome 예측을 관찰과 대조해 3치 판정. 비동기 — 정산을 막지 않는다. */
-export async function gradeRevealedShadows(rows: ShadowRow[], observation: string): Promise<void> {
+/**
+ * 공개된 예측 전부를 3치 판정한다. 비동기 — 정산을 막지 않는다.
+ *
+ * 대조 대상이 target 마다 다르다:
+ * · outcome            → **현실**(사용자의 관찰문). accuracy 의 재료
+ * · choice / deviation → **사용자의 실제 채택**. match rate 의 재료
+ *
+ * 봉인만 하고 채점하지 않으면 그 데이터는 죽은 데이터다 — 두 지표 중 하나가
+ * 영영 계산되지 않는다.
+ */
+export async function gradeRevealedShadows(
+  rows: ShadowRow[],
+  observation: string,
+  adopted?: { choice: string; lean?: string },
+): Promise<void> {
   for (const r of rows) {
-    if (r.target !== 'outcome') continue; // choice/deviation 판정은 채택 기록과의 결정론 대조로 별도 처리(M2)
+    // 늦게 봉인된 예측은 채점하지 않는다 — 채택을 보고 쓴 예측이므로.
+    if (r.status === 'late') continue;
+
+    const isChoiceLike = r.target === 'choice' || r.target === 'deviation';
+    if (isChoiceLike && !adopted) continue; // 채택 기록이 없으면 대조할 것이 없다
+
     try {
       const out = await callAnthropicJson({
         system: buildVerdictSystem(),
-        user: buildVerdictUser(r.expectation, observation),
+        user: isChoiceLike
+          ? buildChoiceVerdictUser(r.target as 'choice' | 'deviation', r.expectation, adopted!.choice, adopted!.lean)
+          : buildVerdictUser(r.expectation, observation),
         toolName: 'grade_prediction',
         schema: VERDICT_SCHEMA,
         model: 'fast',

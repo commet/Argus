@@ -657,6 +657,10 @@ export default function SettingsPage() {
             <div className="border-t border-[var(--border-subtle)] my-4" />
             <PluginTokenBlock locale={locale} />
 
+            {/* TWIN 판단 프로필 — 편집 가능한 거울 */}
+            <div className="border-t border-[var(--border-subtle)] my-4" />
+            <JudgmentProfileBlock locale={locale} />
+
             {/* Public share links */}
             <div className="border-t border-[var(--border-subtle)] my-4" />
             <SharedLinksBlock locale={locale} />
@@ -1248,6 +1252,100 @@ function TelegramBlock({ locale }: { locale: string }) {
         <button type="button" onClick={() => loadConnections()} className="min-h-[44px] text-[13px] text-[var(--text-tertiary)] hover:text-[var(--accent)] mt-1.5 cursor-pointer transition-colors">
           {L('연결 상태 다시 확인', 'Check connection again')}
         </button>
+      )}
+    </IntegrationSection>
+  );
+}
+
+interface ProfileItem {
+  id: string;
+  layer: string;
+  domain: string;
+  content: string;
+  evidence_case_ids: string[];
+  confidence: number;
+  created_at: string;
+}
+
+/**
+ * TWIN 판단 프로필 (기획서 §4.1) — **편집 가능한 거울**.
+ *
+ * 이 블록이 없으면 프로필은 "사용자가 못 고치는, 기계가 사용자에 대해 갖는
+ * 기록"이 된다. 그건 정확히 이 제품이 되지 않기로 한 것이다. 항목마다 근거
+ * 케이스 id 를 함께 보여주는 이유도 같다 — **왜 이렇게 아는지**를 볼 수
+ * 없으면 고칠지 말지 판단할 수 없다.
+ *
+ * 삭제는 RLS(본인 delete 정책)로 브라우저에서 직접 한다. 수정은 v1 범위 밖 —
+ * 지우고 다음 정산에서 다시 관찰되게 하는 것이 현재의 경로다.
+ */
+function JudgmentProfileBlock({ locale }: { locale: string }) {
+  const L = (ko: string, en: string) => (locale === 'ko' ? ko : en);
+  const [items, setItems] = useState<ProfileItem[]>([]);
+  const [error, setError] = useState('');
+
+  const load = useCallback(async () => {
+    const { data, error: loadError } = await supabase
+      .from('argus_profile_items')
+      .select('id, layer, domain, content, evidence_case_ids, confidence, created_at')
+      .eq('status', 'active')
+      .order('created_at', { ascending: false });
+    // 마이그레이션 전이거나 테이블이 없으면 조용히 빈 목록 — 없는 기능을
+    // 에러로 알리지 않는다 (아직 정산이 없으면 프로필도 없는 것이 정상이다).
+    if (loadError) { setItems([]); return; }
+    setItems((data || []) as ProfileItem[]);
+  }, []);
+  useEffect(() => { void load(); }, [load]);
+
+  const retire = async (id: string) => {
+    const { error: delError } = await supabase.from('argus_profile_items').delete().eq('id', id);
+    if (delError) { setError(L('항목을 지우지 못했습니다.', 'Could not remove the item.')); return; }
+    setError('');
+    await load();
+  };
+
+  const LAYER_LABEL: Record<string, string> = locale === 'ko'
+    ? { L1: '가치·기준', L2: '믿음·보정', L3: '정책' }
+    : { L1: 'values', L2: 'beliefs', L3: 'policy' };
+
+  return (
+    <IntegrationSection title={L('판단 프로필 (분신)', 'Judgment profile (twin)')} defaultOpen={items.length > 0}>
+      <p className="text-[12px] text-[var(--text-secondary)]">
+        {L(
+          '정산이 끝난 결정에서 관찰된 패턴입니다. 분신은 이 위에서 예측합니다. 틀렸다고 생각되는 항목은 지우세요 — 지우면 분신이 더 이상 그것을 근거로 쓰지 않습니다.',
+          'Patterns observed from settled decisions. Your twin predicts on top of these. Remove any that look wrong — the twin stops using them as grounds.',
+        )}
+      </p>
+      {error && <p className="text-[12px] text-[var(--danger)] mt-2">{error}</p>}
+
+      {items.length === 0 ? (
+        <p className="text-[12px] text-[var(--text-tertiary)] mt-3">
+          {L(
+            '아직 항목이 없습니다. 결정을 정산하면 여기에 쌓입니다.',
+            'Nothing yet. Items appear here once you settle decisions.',
+          )}
+        </p>
+      ) : (
+        <div className="mt-3 space-y-1.5">
+          {items.map((it) => (
+            <div key={it.id} className="flex items-start justify-between gap-3 text-[12px] px-2.5 py-2 rounded-md bg-[var(--bg)]">
+              <span className="text-[var(--text-secondary)]">
+                <span className="text-[var(--text-tertiary)]">[{LAYER_LABEL[it.layer] ?? it.layer} · {it.domain}]</span>{' '}
+                {it.content}
+                {/* 근거 없이는 항목이 존재할 수 없다 — 그 사실을 화면에서도 보인다. */}
+                <span className="block text-[11px] text-[var(--text-tertiary)] mt-0.5">
+                  {L('근거 정산 ', 'from ')}{it.evidence_case_ids.length}{L('건', ' settlement(s)')}: {it.evidence_case_ids.join(', ')}
+                </span>
+              </span>
+              <button
+                type="button"
+                onClick={() => retire(it.id)}
+                className="min-h-11 px-2 shrink-0 text-[var(--text-tertiary)] hover:text-[var(--danger)] cursor-pointer transition-colors"
+              >
+                {L('지우기', 'Remove')}
+              </button>
+            </div>
+          ))}
+        </div>
       )}
     </IntegrationSection>
   );
