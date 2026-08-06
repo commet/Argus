@@ -111,6 +111,8 @@ const ROGUE_ALLOWLIST: Record<string, string> = {
   argus_shadow_cron_run: '스토리지 키 아님 — 그림자 백스톱 크론 실행 요약 이벤트 (cron/argus-shadow). after() 경로의 건강 지표',
   argus_profile_items: '스토리지 키 아님 — TWIN 판단 프로필 서버 테이블 (동). 증거 없는 항목은 CHECK 로 차단',
   argus_simulation_runs: '스토리지 키 아님 — TWIN 시뮬레이션 극장 산출물 서버 테이블 (동). 등급 라벨 not null',
+  argus_case_bank: '스토리지 키 아님 — TWIN 전역 resolved 사례 서버 테이블 (동). user_id 없음, 출처 필수, 반사실 채점 금지(후일담 예측형만)',
+  argus_theater_cron_run: '스토리지 키 아님 — 극장 주간 크론 실행 요약 이벤트 (cron/argus-theater)',
   argus_oauth_clients: '스토리지 키 아님 — 원격 커넥터 동적 등록 클라이언트 테이블 (마이그레이션 20260805170000)',
   argus_oauth_grants: '스토리지 키 아님 — 원격 커넥터 1회용 인가 코드 테이블 (동). 해시만 저장',
   argus_client_: '스토리지 키 아님 — 동적 등록 client_id 접두사 (api/mcp/v2/oauth/lib.ts). 비밀이 아니며 공개 식별자다',
