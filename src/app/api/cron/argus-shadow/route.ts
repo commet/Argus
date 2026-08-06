@@ -11,6 +11,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { generateAndSealShadow } from '@/lib/twin/shadow';
+import { gradeStatedBeliefs, type StatedBelief } from '@/lib/twin/beliefs';
 import { extractProfileFromSettlement, settledCasesMissingProfile } from '@/lib/twin/profile';
 import { recentCasesMissingShadows } from '@/lib/twin/store';
 import { loadEngine } from '@/app/api/mcp/v2/store';
@@ -81,6 +82,18 @@ export async function GET(req: NextRequest) {
     try {
       await extractProfileFromSettlement(p.userId, p.facts);
       extracted += 1;
+
+      // 사전등록 믿음 채점도 같은 after() 안에서 돌았으므로 같은 후보를 쓴다.
+      // 이미 채점됐으면 (case_id, belief) 유일 색인이 두 번째 삽입을 거절한다 —
+      // 조용한 중복보다 시끄러운 거절이 낫다.
+      //
+      // 남는 정직한 공백: 프로필 추출은 성공했는데 믿음 채점만 실패한 경우는
+      // 표식(profile_extracted_at)이 이미 찍혀 있어 다시 집히지 않는다. 둘은
+      // 같은 after() 안에서 각자 try/catch 로 돌므로 한쪽만 죽는 경우가 드물고,
+      // 표식을 둘로 쪼개는 비용이 그 드묾보다 크다고 판단했다.
+      const engine = await loadEngine(p.userId, p.facts.caseId);
+      const beliefs = (engine.state().card?.rationale?.materialBeliefs ?? []) as StatedBelief[];
+      if (beliefs.length > 0) await gradeStatedBeliefs(p.userId, p.facts.caseId, beliefs, p.facts.observation);
     } catch (e) {
       failures.push(`profile ${p.facts.caseId}: ${e instanceof Error ? e.message : String(e)}`);
     }

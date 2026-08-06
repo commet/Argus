@@ -23,6 +23,7 @@ import {
   type Reversibility,
   type StakesWeight,
 } from '../../../../../method-harness/types';
+import { beliefCalibration, calibrationLines, gradeStatedBeliefs, type StatedBelief } from '@/lib/twin/beliefs';
 import { divergenceCrux } from '@/lib/twin/divergence';
 import {
   applyDelegation,
@@ -123,18 +124,37 @@ function readStakes(v: unknown): { stakes: { weight: StakesWeight; reversibility
   return { stakes: { weight: weight ?? 'major', reversibility: rev ?? 'one_way' }, assumed: true };
 }
 
-function readBeliefs(v: unknown): MaterialBelief[] {
-  if (!Array.isArray(v)) return [];
-  return v
+/**
+ * 믿음 읽기. **확신도가 없으면 그 믿음은 기록하지 않는다.**
+ *
+ * 예전에는 없는 확신도를 'uncertain' 으로 메웠다. 그 시절에는 아무도 그 값을
+ * 읽지 않아 무해해 보였지만, 이제 정산이 이 등급을 채점하고 그 결과가 보정
+ * 거울의 숫자가 된다 — 우리가 채운 등급이 사용자의 성적으로 표시되는 것이다.
+ * 그것은 "사용자가 하지 않은 판단을 원장에 쓴 것"이고 이 파일 상단이 금지한
+ * 바로 그 형태다. 몇 건을 뺐는지는 응답에 적는다 (dropped).
+ */
+function readBeliefs(v: unknown): { beliefs: MaterialBelief[]; dropped: number } {
+  if (!Array.isArray(v)) return { beliefs: [], dropped: 0 };
+  let dropped = 0;
+  const beliefs = v
     .map((x) => {
-      if (typeof x === 'string') return { belief: x.trim(), confidence: 'uncertain' as BeliefConfidence };
+      // 문자열만 온 것은 확신도가 없는 것이다.
+      if (typeof x === 'string') {
+        if (x.trim()) dropped += 1;
+        return null;
+      }
       const o = (x ?? {}) as Args;
       const belief = str(o.belief);
       if (!belief) return null;
       const c = str(o.confidence) as BeliefConfidence;
-      return { belief, confidence: CONFIDENCES.includes(c) ? c : ('uncertain' as BeliefConfidence) };
+      if (!CONFIDENCES.includes(c)) {
+        dropped += 1;
+        return null;
+      }
+      return { belief, confidence: c };
     })
     .filter((x): x is MaterialBelief => x !== null);
+  return { beliefs, dropped };
 }
 
 // 하네스가 크게 실패하면(HarnessViolation) 그것은 버그가 아니라 **규칙이 지켜진
@@ -368,7 +388,7 @@ export async function handleAdopt(userId: string, args: Args) {
   // 조용히 박아 넣었는데, 그것은 사용자가 하지 않은 판단을 원장에 쓴 것이다.
   const { stakes, assumed } = readStakes(args.stakes);
   const values = strArr(args.values);
-  const materialBeliefs = readBeliefs(args.materialBeliefs);
+  const { beliefs: materialBeliefs, dropped: droppedBeliefs } = readBeliefs(args.materialBeliefs);
   const rejected = (args.rejectedAlternative ?? null) as Args | null;
   const rejectedAlternative =
     rejected && str(rejected.alternative)
@@ -415,6 +435,12 @@ export async function handleAdopt(userId: string, args: Args) {
   if (assumed) gaps.push('하중(stakes)이 오지 않아 가장 엄격한 쪽(major / one_way)으로 기록했습니다 — 실제와 다르면 stakes와 함께 다시 부르십시오.');
   if (values.length === 0 && materialBeliefs.length === 0) {
     gaps.push('이 선택을 떠받치는 가치·사실 믿음이 비어 있습니다 — 사용자가 말한 것이 있으면 values / materialBeliefs 로 보내십시오.');
+  }
+  if (droppedBeliefs > 0) {
+    gaps.push(
+      `믿음 ${droppedBeliefs}건은 확신도(confident / uncertain / contested)가 없어 기록하지 않았습니다 — ` +
+        '확신도는 정산 때 현실과 대조되므로 우리가 대신 정할 수 없습니다. 사용자가 말한 등급과 함께 다시 보내십시오.',
+    );
   }
 
   // 이 채택이 기존 위임을 따랐다면 케이스에 도장을 찍는다 — 정산 때 위임을
@@ -649,6 +675,15 @@ export async function handleReturn(userId: string, args: Args) {
   const delegationId = await caseDelegationId(userId, caseId);
   const delegationGrade = delegationId ? await gradeDelegation(userId, delegationId, observation) : null;
 
+  // 사전등록 믿음 채점 (TWIN M5). 채택 때 사용자가 **자기 손으로** confident/
+  // uncertain/contested 를 붙인 믿음들을 관찰과 대조한다. 채점 대상은 사용자가
+  // 아니라 그 문장들이고, 결과는 argus_recall 을 직접 불렀을 때만 보인다 —
+  // 정산 직후에 성적을 들이미는 것은 요청받지 않은 성적표다 (§9 위험표).
+  runAfterResponse(async () => {
+    const beliefs = (revealed.card?.rationale?.materialBeliefs ?? []) as StatedBelief[];
+    await gradeStatedBeliefs(userId, caseId, beliefs, observation);
+  });
+
   // 프로필 추출 (TWIN §4.1) — 방금 정산된 케이스 하나에서만. 검증(증거 실존·
   // 판정 언어 린트)을 통과한 항목만 저장되고, 실패는 정산을 막지 않는다.
   runAfterResponse(async () => {
@@ -793,6 +828,11 @@ export async function handleRecall(userId: string, args: Args) {
           retired.map((l) => `· ${l}`).join('\n'),
       );
     }
+    // 보정 거울 (TWIN M5). **당김 표면에서만** 나온다 — 사용자가 argus_recall
+    // 을 직접 불렀을 때. 등급별 표본이 차지 않으면 아무것도 나오지 않는다.
+    const calibration = calibrationLines(await beliefCalibration(userId));
+    if (calibration) parts.push(calibration);
+
     // 분신 성적 (TWIN §4.2). **사람이 아니라 예측을 채점한 것**이고, 표본
     // 미달이면 숫자를 감춘다 — 3건짜리 퍼센트는 정보가 아니라 소음이다.
     const score = await twinScore(userId);

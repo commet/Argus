@@ -133,9 +133,14 @@ export const TOOLS: ToolDef[] = [
             type: 'object',
             properties: {
               belief: { type: 'string' },
-              confidence: { type: 'string', enum: ['confident', 'uncertain', 'contested'] },
+              confidence: {
+                type: 'string',
+                enum: ['confident', 'uncertain', 'contested'],
+                description:
+                  '사용자가 이 믿음에 대해 실제로 표현한 확신 정도. **추측해서 채우지 말 것** — 이 등급은 정산 때 현실과 대조되어 사용자의 보정 기록이 된다. 사용자가 말하지 않았으면 그 믿음은 보내지 말 것.',
+              },
             },
-            required: ['belief'],
+            required: ['belief', 'confidence'],
           },
           description: '이 선택을 떠받치는 사실 믿음. 틀리면 결정이 바뀌는 것만.',
         },

@@ -45,6 +45,9 @@ const INTERNAL_ONLY: Record<string, string> = {
   'twin/divergence.ts:qualifiedPatterns':
     'divergenceCrux 의 앞단 관문. 같은 파일에서만 호출된다. 테스트가 "LLM 호출 전에 ' +
     '결정론 관문이 먼저 돈다"를 직접 확인하기 위해 노출돼 있다.',
+  'twin/beliefs.ts:CALIBRATION_MIN_SAMPLE':
+    '보정 거울의 표본 임계. beliefs 내부에서만 쓰이고, 테스트가 "표본 미달 등급은 숫자를 ' +
+    '보여주지 않는다"를 이 상수로 검증한다 — 표면에서 낮출 수 있으면 3건짜리 퍼센트가 성적표가 된다.',
   'twin/noise.ts:disguiseCase':
     '잡음 거울의 변장 단계 — playDisguisedCase 안에서만 호출된다. 테스트가 "원문 어구가 ' +
     '변장문에 남으면 그 케이스를 버린다"를 이것으로 직접 확인한다 (오염된 문제로 낸 성적은 가짜다).',

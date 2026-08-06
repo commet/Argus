@@ -142,7 +142,7 @@ const LIVE_USER_SCOPED_TABLES = [
   // R3-B 원격 MCP 파일럿 (2026-08-05). 파일럿 전용 테이블이지만 user_id가 있으므로
   // 계정 삭제·내보내기가 반드시 훑어야 한다 — "폐기 전제" 계약은 사용자가 지울 수
   // 있을 때만 참이다.
-  'argus_cases', 'argus_delegations', 'argus_events', 'argus_oauth_grants',
+  'argus_belief_checks', 'argus_cases', 'argus_delegations', 'argus_events', 'argus_oauth_grants',
   // TWIN (2026-08-06) — case_bank 는 전역이라 없음
   'argus_profile_items', 'argus_returns', 'argus_shadow_predictions', 'argus_simulation_runs',
   'decision_items', 'decision_quality_scores', 'deep_judgment_usage', 'epistemic_account_policies',
