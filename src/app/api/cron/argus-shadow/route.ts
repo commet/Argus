@@ -1,0 +1,80 @@
+// TWIN 그림자 백스톱 크론 — after() 가 실패한 케이스를 쓸어담는다.
+//
+// 왜 필요한가: 그림자 생성은 결정 열기를 막지 않으려고 응답 뒤(after())에서
+// 도는데, 서버리스에서 그 실행은 보장이 아니라 최선 노력이다. 실패하면 그
+// 케이스는 분신의 시험지가 영영 없다 — 조용한 구멍. 이 크론이 "최근에 열렸는데
+// 그림자가 없는 케이스"를 찾아 재시도하므로, 실패는 침묵이 아니라 지연이 된다.
+//
+// 늦은 봉인의 정직성: 여기서 봉인하는 시점에 이미 채택이 끝났을 수 있다.
+// 그 경우 late 로 봉인된다(generateAndSealShadow 가 처리) — 채점에서 빠지되,
+// 늦었다는 사실 자체가 기록된다.
+
+import { NextRequest, NextResponse } from 'next/server';
+import { generateAndSealShadow } from '@/lib/twin/shadow';
+import { recentCasesMissingShadows } from '@/lib/twin/store';
+import { loadEngine } from '@/app/api/mcp/v2/store';
+import { persistServerEvent } from '@/lib/server-events';
+
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
+function safeCompare(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i += 1) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return diff === 0;
+}
+
+export async function GET(req: NextRequest) {
+  const authHeader = req.headers.get('authorization') || '';
+  if (!process.env.CRON_SECRET || !safeCompare(authHeader, `Bearer ${process.env.CRON_SECRET}`)) {
+    return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
+  }
+  if (!process.env.ANTHROPIC_API_KEY) {
+    // 키가 없으면 생성이 전부 실패할 것이므로 성공한 척하지 않는다.
+    return NextResponse.json({ error: 'missing ANTHROPIC_API_KEY' }, { status: 503 });
+  }
+
+  const missing = await recentCasesMissingShadows();
+  let generated = 0;
+  const failures: string[] = [];
+
+  for (const c of missing) {
+    try {
+      const engine = await loadEngine(c.user_id, c.id);
+      const state = engine.state();
+      const opening = engine.ledger
+        .forCase(c.id)
+        .find((e) => e.type === 'user_utterance') as { text?: string } | undefined;
+      if (!opening?.text) continue; // 원문 없는 케이스는 시험지도 없다
+
+      const baseline = state.baseline !== 'not_captured' ? state.baseline : undefined;
+      await generateAndSealShadow(
+        c.user_id,
+        c.id,
+        {
+          utterance: opening.text,
+          lean: baseline && baseline.lean !== 'none_stated' ? baseline.lean : undefined,
+          statedReasons: baseline?.statedReasons ?? [],
+          // 하네스 baseline 타입에는 대안 필드가 없다 (원장에는 있지만 fold 가
+          // 안 나른다). 없는 것을 없는 대로 — 빈 배열이 정직한 값이다.
+          consideredAlternatives: [],
+        },
+        { alreadyAdopted: Boolean(state.card) },
+      );
+      generated += 1;
+    } catch (e) {
+      failures.push(`${c.id}: ${e instanceof Error ? e.message : String(e)}`);
+    }
+  }
+
+  // 크론은 흔적을 남긴다 (cron-instrumentation 규약) — 몇 건을 재시도했는지가
+  // 곧 after() 경로의 건강 지표다. 이 수가 크면 본 경로가 병든 것이다.
+  await persistServerEvent('argus_shadow_cron_run', {
+    scanned: missing.length,
+    generated,
+    failed: failures.length,
+  }, { path: '/api/cron/argus-shadow' });
+
+  return NextResponse.json({ scanned: missing.length, generated, failed: failures.length });
+}

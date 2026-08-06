@@ -23,6 +23,7 @@ import {
   type Reversibility,
   type StakesWeight,
 } from '../../../../../method-harness/types';
+import { generateAndSealShadow, gradeRevealedShadows, revealShadowsText, runAfterResponse } from '@/lib/twin/shadow';
 import { toolText } from './protocol';
 import {
   armReturns,
@@ -174,6 +175,18 @@ export async function handleOpen(userId: string, args: Args) {
 
   await upsertCase(userId, caseId, utterance.slice(0, 120), engine.state().state);
   await persistNewEvents(userId, caseId, engine, new Set());
+
+  // 그림자 시험 (TWIN §4.2) — 분신이 같은 시험을 몰래 친다. 응답을 막지 않고
+  // (after()), 실패해도 열기는 무사하다. **이 예측은 정산 전에는 어떤 표면에도
+  // 나오지 않는다** — 여기서 생성만 하고 응답에는 아무것도 싣지 않는 것이 규칙.
+  runAfterResponse(() =>
+    generateAndSealShadow(userId, caseId, {
+      utterance,
+      lean: lean || undefined,
+      statedReasons: reasons,
+      consideredAlternatives: alternatives,
+    }),
+  );
 
   return ok(
     userId,
@@ -513,6 +526,14 @@ export async function handleReturn(userId: string, args: Args) {
     settledAt: now(),
   });
 
+  // 그림자 공개 (TWIN §4.2) — 봉인은 정산 순간에만 열린다. 여기가 그 순간이다:
+  // 관찰과 회상이 이미 원장에 들어간 뒤라 §7.3 순서와 충돌하지 않는다.
+  // 채점(3치 판정)은 LLM 호출이므로 응답을 막지 않고 뒤에서 돈다.
+  const shadow = await revealShadowsText(userId, caseId);
+  if (shadow.revealed.length > 0) {
+    runAfterResponse(() => gradeRevealedShadows(shadow.revealed, observation));
+  }
+
   return ok(
     userId,
     '이제 그때의 기록입니다.\n' +
@@ -521,7 +542,8 @@ export async function handleReturn(userId: string, args: Args) {
         revealed.baseline && revealed.baseline !== 'not_captured' ? revealed.baseline.lean : '기록하지 않고 시작'
       }\n\n` +
       `방금의 기억: "${recall}"\n실제로 일어난 일: "${observation}"\n\n` +
-      '둘이 다르다면 그 차이가 이 기록이 존재하는 이유입니다 — 결과를 알고 나면 누구나 이유를 다시 씁니다.',
+      '둘이 다르다면 그 차이가 이 기록이 존재하는 이유입니다 — 결과를 알고 나면 누구나 이유를 다시 씁니다.' +
+      shadow.text,
     caseId,
   );
 }
