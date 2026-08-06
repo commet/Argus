@@ -23,6 +23,7 @@ import {
   type Reversibility,
   type StakesWeight,
 } from '../../../../../method-harness/types';
+import { divergenceCrux } from '@/lib/twin/divergence';
 import { extractProfileFromSettlement, profileLines } from '@/lib/twin/profile';
 import { generateAndSealShadow, gradeRevealedShadows, revealShadowsText, runAfterResponse } from '@/lib/twin/shadow';
 import { toolText } from './protocol';
@@ -196,13 +197,21 @@ export async function handleOpen(userId: string, args: Args) {
     );
   });
 
+  // 자기 이탈 감지 (TWIN §4.4). 침묵이 기본값 — 같은 도메인 정산 증거 5건
+  // 이상의 패턴이 있고, 새 기울기가 그것과 명확히 어긋날 때만 한 문장을
+  // 붙인다. 기준점은 기계의 의견이 아니라 사용자 자신의 기록이고, 질문 문장은
+  // 결정론 템플릿이 만든다. 동기 호출인 이유: MCP 는 push 가 없어 응답에
+  // 실리지 못한 발화는 존재하지 않는 발화다 — 대신 관문이 빈도를 누른다.
+  const crux = await divergenceCrux(userId, utterance, lean || undefined);
+
   return ok(
     userId,
     `결정을 열었습니다 (id: ${caseId}, 발동 사유: ${gate.reason}).\n` +
       (lean
         ? `AI가 말하기 전의 기울기를 보존했습니다: "${lean}"\n`
         : '기울기 없이 시작했습니다 — 그것도 정직한 출발점입니다.\n') +
-      '다음: argus_sharpen 으로 가장 무게가 실리는 가정 하나를 확인하십시오.',
+      '다음: argus_sharpen 으로 가장 무게가 실리는 가정 하나를 확인하십시오.' +
+      crux,
     caseId,
   );
 }
