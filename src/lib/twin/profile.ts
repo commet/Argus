@@ -170,7 +170,12 @@ export async function extractProfileFromSettlement(
       model: PROFILE_MODEL_TIER,
       maxTokens: 600,
     });
+    // 시도 표식은 **모델이 답한 순간** 찍는다. 결과가 0건인 것은 흔한 정상
+    // 결과이므로(없음이 정직한 답일 수 있다) 그것을 미시도로 남겨 두면 크론
+    // 백스톱이 같은 케이스를 48시간 동안 매시간 다시 집는다. 반대로 LLM 호출
+    // 자체가 실패한 경로(위의 조기 반환)에는 표식이 없어 백스톱이 그것만 집는다.
     if (!raw) return result;
+    await markProfileExtracted(userId, facts.caseId);
 
     const candidates = parseCandidates(raw);
     const { reinforces, contradicts } = resolveIndexFeedback(raw, existing.length);
@@ -346,6 +351,78 @@ export async function recentlyRetiredLines(userId: string, days = 30, limit = 3)
         `[${r.layer}·${r.domain}] <user-data>${sanitizeForPrompt(r.content ?? '')}</user-data> ` +
         `— 반례 ${(r.counterexamples ?? []).length}건으로 물러남 (근거였던 정산: ${(r.evidence_case_ids ?? []).join(', ')})`,
     );
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * 추출 **시도** 표식. 결과가 0건이어도 찍는다 — "없음"은 정상 결과이고, 그것을
+ * 미시도로 오인하면 백스톱이 같은 케이스를 48시간 동안 매시간 다시 집는다.
+ * 표식 쓰기 실패는 삼킨다: 최악의 결과가 "한 번 더 시도"이므로 fail-open 이 맞다.
+ */
+async function markProfileExtracted(userId: string, caseId: string): Promise<void> {
+  try {
+    const admin = adminClient();
+    const { error } = await admin
+      .from('argus_cases')
+      .update({ profile_extracted_at: new Date().toISOString() })
+      .eq('id', caseId)
+      .eq('user_id', userId);
+    if (error) console.error('[twin/profile] mark failed:', error.message);
+  } catch (e) {
+    console.error('[twin/profile] mark threw:', e);
+  }
+}
+
+/**
+ * 백스톱 후보: 정산은 됐는데 추출을 시도한 적이 없는 케이스.
+ *
+ * 왜 필요한가 — 추출은 `after()` 안에서 돈다. 서버리스에서 그 경로가 죽으면
+ * 사용자에게는 아무 표시도 나지 않고, 정산은 됐는데 분신만 배우지 못한 상태가
+ * 영구히 남는다. 그림자에는 이미 같은 성격의 백스톱이 있다 (recentCasesMissingShadows).
+ */
+export async function settledCasesMissingProfile(
+  hours = 48,
+  limit = 10,
+): Promise<Array<{ userId: string; facts: SettledCaseFacts }>> {
+  try {
+    const admin = adminClient();
+    const since = new Date(Date.now() - hours * 3600 * 1000).toISOString();
+    const { data, error } = await admin
+      .from('argus_cases')
+      .select('id, user_id, title, choice, last_observation, recall_gap')
+      .not('settled_at', 'is', null)
+      .gte('settled_at', since)
+      .is('profile_extracted_at', null)
+      .limit(limit);
+    if (error || !data) return [];
+
+    return (
+      data as Array<{
+        id: string;
+        user_id: string;
+        title: string | null;
+        choice: string | null;
+        last_observation: string | null;
+        recall_gap: string | null;
+      }>
+    )
+      // 관찰이 없으면 추출할 재료가 없다 — 지어내지 않고 건너뛴다.
+      .filter((c) => c.last_observation)
+      .map((c) => ({
+        userId: c.user_id,
+        facts: {
+          caseId: c.id,
+          question: c.title ?? c.id,
+          choice: c.choice ?? '',
+          // 원장에만 있는 값이다. 백스톱은 케이스 행만 보므로 **비운다** —
+          // 지어내는 것보다 적은 입력으로 추출하는 편이 정직하다.
+          statedReasons: [],
+          observation: c.last_observation ?? '',
+          recall: c.recall_gap ?? '',
+        },
+      }));
   } catch {
     return [];
   }

@@ -1437,6 +1437,11 @@ function DelegationBlock({ locale }: { locale: string }) {
                     {L('적용 ', 'applied ')}{d.applications}{L('건 · 맞음 ', ' · supported ')}{d.supported}
                     {L(' · 어긋남 ', ' · contradicted ')}{d.contradicted}
                     {L(' · 만료 ', ' · expires ')}{d.expires_at.slice(0, 10)}
+                    {/* 만료된 위임은 더 이상 꺼내지지 않는다. 목록에 남되 그
+                        사실을 적는다 — 왜 안 나오는지 모르는 것이 더 나쁘다. */}
+                    {new Date(d.expires_at).getTime() < Date.now() && (
+                      <> · {L('만료됨 (더 이상 꺼내지 않습니다)', 'expired — no longer surfaced')}</>
+                    )}
                   </span>
                   {d.status === 'suspended' && (
                     <span className="block text-[11px] text-[var(--danger)] mt-0.5">

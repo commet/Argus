@@ -190,18 +190,31 @@ export async function handleOpen(userId: string, args: Args) {
   await upsertCase(userId, caseId, utterance.slice(0, 120), engine.state().state);
   await persistNewEvents(userId, caseId, engine, new Set());
 
+  // 범위 위임 (TWIN §4.5). 사용자가 **자기 말로** 미리 승인해 둔 정책이 이
+  // 조건에 해당하면 그것을 꺼내 놓는다. 꺼내는 것까지가 위임의 전부다 —
+  // 채택은 여전히 argus_adopt(사용자의 명시)로만 일어난다. 침묵이 기본값이다.
+  //
+  // **그림자보다 먼저 부르는 이유**가 아래 오염 방지선이다.
+  const delegation = await applyDelegation(userId, utterance);
+
   // 그림자 시험 (TWIN §4.2) — 분신이 같은 시험을 몰래 친다. 응답을 막지 않고
   // (after()), 실패해도 열기는 무사하다. **이 예측은 정산 전에는 어떤 표면에도
   // 나오지 않는다** — 여기서 생성만 하고 응답에는 아무것도 싣지 않는 것이 규칙.
   runAfterResponse(async () => {
     // 프로필이 있으면 분신이 그 위에서 예측한다 — 없으면 없다고 프롬프트가 밝힌다.
     const lines = await profileLines(userId);
+    // 위임이 꺼내진 결정에서 "무엇을 고를까"는 **자명한 예측**이다 — 사용자가
+    // 방금 자기 정책을 눈앞에서 봤기 때문이다. 이것은 lean 오염과 정확히 같은
+    // 형태이므로 같은 방식으로 처리한다: 정책을 기울기로 넘겨 분신이 choice
+    // 대신 **이탈**을 예측하게 하고, 그 행은 오염 플래그와 함께 봉인된다.
+    // (원장의 baseline 은 손대지 않는다 — 사용자가 이번에 말한 기울기가 아니다.)
+    const effectiveLean = lean || (delegation ? delegation.delegation.policy : undefined);
     await generateAndSealShadow(
       userId,
       caseId,
       {
         utterance,
-        lean: lean || undefined,
+        lean: effectiveLean,
         statedReasons: reasons,
         consideredAlternatives: alternatives,
       },
@@ -214,13 +227,12 @@ export async function handleOpen(userId: string, args: Args) {
   // 붙인다. 기준점은 기계의 의견이 아니라 사용자 자신의 기록이고, 질문 문장은
   // 결정론 템플릿이 만든다. 동기 호출인 이유: MCP 는 push 가 없어 응답에
   // 실리지 못한 발화는 존재하지 않는 발화다 — 대신 관문이 빈도를 누른다.
-  const crux = await divergenceCrux(userId, utterance, lean || undefined);
-
-  // 범위 위임 (TWIN §4.5). 사용자가 **자기 말로** 미리 승인해 둔 정책이 이
-  // 조건에 해당하면 그것을 꺼내 놓는다. 꺼내는 것까지가 위임의 전부다 —
-  // 채택은 여전히 argus_adopt(사용자의 명시)로만 일어난다. 위임도 이탈 crux 도
-  // 없는 것이 정상이고, 둘 다 침묵이 기본값이다.
-  const delegation = await applyDelegation(userId, utterance);
+  // **둘 중 하나만 발화한다.** 위임과 이탈 crux 가 같은 응답에 함께 붙으면
+  // 한 번 열었는데 기계가 두 번 말하는 것이고, 그것은 거울 조항이 금지한
+  // 과발화다 (divergence 자신도 "여러 패턴이 걸려도 하나만" 규칙을 갖는다).
+  // 위임이 이긴다: 그것은 사용자가 **미리 시켜 둔** 발화이고, 이탈 crux 는
+  // 기계가 먼저 꺼내는 발화다. 요청받은 말이 요청받지 않은 말보다 앞선다.
+  const crux = delegation ? '' : await divergenceCrux(userId, utterance, lean || undefined);
 
   return ok(
     userId,

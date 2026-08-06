@@ -16,6 +16,10 @@ const updates: Array<Record<string, unknown>> = [];
 let llmResponse: Record<string, unknown> | null = null;
 let settledRow: { id: string; settled_at: string } | null = { id: 'case-1', settled_at: '2026-08-06T00:00:00Z' };
 let profileRows: Array<Record<string, unknown>> = [];
+// argus_cases 는 두 가지로 읽힌다: 단건(정산 확인, maybeSingle)과 목록(백스톱
+// 후보 조회). 하나로 합치면 "행이 없다"와 "빈 목록"이 구분되지 않는다.
+let caseRows: Array<Record<string, unknown>> = [];
+const caseUpdates: Array<Record<string, unknown>> = [];
 
 vi.mock('@/lib/llm-server', () => ({
   callAnthropicJson: vi.fn(async () => llmResponse),
@@ -25,14 +29,17 @@ vi.mock('@/lib/llm-server', () => ({
 // 쿼리를 흉내내되, 마지막에 await 되면 정해진 결과를 낸다. 체인 길이를 고정한
 // mock 은 쿼리에 조건 하나만 붙어도 무너지고, 그때 깨지는 것은 **테스트지
 // 코드가 아니다** — 그런 mock 은 가드가 아니라 유지보수 부채다.
-function query(result: () => { data: unknown; error: unknown }) {
+function query(
+  listResult: () => { data: unknown; error: unknown },
+  singleResult: () => { data: unknown; error: unknown } = listResult,
+) {
   const chain: Record<string, unknown> = {};
   for (const k of ['eq', 'or', 'not', 'order', 'limit', 'gte', 'lt', 'in', 'is', 'select']) {
     chain[k] = () => chain;
   }
-  chain.maybeSingle = () => Promise.resolve(result());
+  chain.maybeSingle = () => Promise.resolve(singleResult());
   chain.then = (res: (v: unknown) => unknown, rej?: (e: unknown) => unknown) =>
-    Promise.resolve(result()).then(res, rej);
+    Promise.resolve(listResult()).then(res, rej);
   return chain;
 }
 
@@ -45,20 +52,23 @@ vi.mock('@/lib/share-guard', () => ({
       },
       update: (values: Record<string, unknown>) => {
         if (table === 'argus_profile_items') updates.push(values);
+        if (table === 'argus_cases') caseUpdates.push(values);
         return query(() => ({ data: null, error: null }));
       },
       select: () =>
-        query(() =>
-          table === 'argus_cases'
-            ? { data: settledRow, error: null }
-            : { data: profileRows, error: null },
-        ),
+        table === 'argus_cases'
+          ? query(
+              () => ({ data: caseRows, error: null }),
+              () => ({ data: settledRow, error: null }),
+            )
+          : query(() => ({ data: profileRows, error: null })),
     }),
   }),
 }));
 
 import {
   deriveConfidence,
+  settledCasesMissingProfile,
   extractProfileFromSettlement,
   profileLines,
   recentlyRetiredLines,
@@ -91,7 +101,9 @@ function existingItem(over: Record<string, unknown> = {}) {
 beforeEach(() => {
   inserted.length = 0;
   updates.length = 0;
+  caseUpdates.length = 0;
   profileRows = [];
+  caseRows = [];
   settledRow = { id: 'case-1', settled_at: '2026-08-06T00:00:00Z' };
   llmResponse = {
     items: [{ layer: 'L1', domain: '채용', content: '이 결정에서 가역성을 비용보다 무겁게 쳤다' }],
@@ -299,5 +311,32 @@ describe('recentlyRetiredLines', () => {
     ];
     const lines = await recentlyRetiredLines('user-1');
     expect(lines[0]).toContain('반례 2건으로 물러남');
+  });
+});
+
+describe('백스톱 — 정산은 됐는데 추출을 시도한 적 없는 케이스', () => {
+  it('시도 표식은 모델이 답한 순간 찍힌다 — 0건도 시도다', async () => {
+    // 결과가 0건인 것은 흔한 정상이다. 그것을 미시도로 남기면 크론이 같은
+    // 케이스를 48시간 동안 매시간 다시 집는다.
+    llmResponse = { items: [], reinforces: [], contradicts: [] };
+    await extractProfileFromSettlement('user-1', FACTS);
+    expect(caseUpdates.some((u) => typeof u.profile_extracted_at === 'string')).toBe(true);
+  });
+
+  it('LLM 이 답을 못 내면 표식을 찍지 않는다 — 그것만 다시 집혀야 한다', async () => {
+    llmResponse = null;
+    await extractProfileFromSettlement('user-1', FACTS);
+    expect(caseUpdates).toHaveLength(0);
+  });
+
+  it('관찰이 없는 케이스는 후보에서 빠진다 — 추출할 재료가 없다', async () => {
+    caseRows = [
+      { id: 'c1', user_id: 'u1', title: '질문', choice: '선택', last_observation: null, recall_gap: null },
+      { id: 'c2', user_id: 'u1', title: '질문2', choice: '선택2', last_observation: '실제로 이랬다', recall_gap: '기억' },
+    ];
+    const out = await settledCasesMissingProfile();
+    expect(out.map((o) => o.facts.caseId)).toEqual(['c2']);
+    // 원장에만 있는 값은 지어내지 않고 비운다.
+    expect(out[0].facts.statedReasons).toEqual([]);
   });
 });

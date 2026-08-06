@@ -11,6 +11,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { generateAndSealShadow } from '@/lib/twin/shadow';
+import { extractProfileFromSettlement, settledCasesMissingProfile } from '@/lib/twin/profile';
 import { recentCasesMissingShadows } from '@/lib/twin/store';
 import { loadEngine } from '@/app/api/mcp/v2/store';
 import { persistServerEvent } from '@/lib/server-events';
@@ -68,13 +69,38 @@ export async function GET(req: NextRequest) {
     }
   }
 
+  // ── 프로필 추출 백스톱 ────────────────────────────────────────────────
+  //
+  // 같은 성격의 구멍이 프로필 쪽에도 있었다. 추출도 after() 안에서 돌지만
+  // 그림자와 달리 백스톱이 없어서, 그 경로가 죽으면 **정산은 됐는데 분신만
+  // 아무것도 배우지 못한 상태**가 영구히 남았다 — 화면에 아무 표시도 나지
+  // 않는 종류의 실패다. 시도 표식(profile_extracted_at)이 없는 정산만 집는다.
+  const pending = await settledCasesMissingProfile();
+  let extracted = 0;
+  for (const p of pending) {
+    try {
+      await extractProfileFromSettlement(p.userId, p.facts);
+      extracted += 1;
+    } catch (e) {
+      failures.push(`profile ${p.facts.caseId}: ${e instanceof Error ? e.message : String(e)}`);
+    }
+  }
+
   // 크론은 흔적을 남긴다 (cron-instrumentation 규약) — 몇 건을 재시도했는지가
   // 곧 after() 경로의 건강 지표다. 이 수가 크면 본 경로가 병든 것이다.
   await persistServerEvent('argus_shadow_cron_run', {
     scanned: missing.length,
     generated,
+    profileScanned: pending.length,
+    profileExtracted: extracted,
     failed: failures.length,
   }, { path: '/api/cron/argus-shadow' });
 
-  return NextResponse.json({ scanned: missing.length, generated, failed: failures.length });
+  return NextResponse.json({
+    scanned: missing.length,
+    generated,
+    profileScanned: pending.length,
+    profileExtracted: extracted,
+    failed: failures.length,
+  });
 }

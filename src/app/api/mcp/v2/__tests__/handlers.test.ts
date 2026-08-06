@@ -69,6 +69,59 @@ vi.mock('../store', () => ({
     returns.filter((r) => ['armed', 'sent'].includes(r.status) && r.due_at <= at),
 }));
 
+// ── TWIN 표면 (그림자·위임) ──────────────────────────────────────────────
+// 이 둘은 실제로는 service role DB 와 LLM 을 탄다. mock 하지 않으면 try/catch 가
+// 삼켜서 **조용히 아무 일도 없는 것처럼** 통과하고, 배선이 맞는지 아무것도
+// 증명하지 못한다 (이 파일이 존재하는 이유와 정확히 같은 함정).
+const sealed: Array<{ lean?: string }> = [];
+let delegationMatch: { delegation: { id: string; policy: string }; text: string } | null = null;
+let delegationCreate: { ok: true; id: string; expiresAt: string } | { ok: false; reason: string } = {
+  ok: true,
+  id: 'deleg-1',
+  expiresAt: '2026-09-05T00:00:00Z',
+};
+const marked: Array<{ caseId: string; delegationId: string }> = [];
+
+vi.mock('@/lib/twin/shadow', () => ({
+  // after() 를 즉시 실행한다 — 봉인이 무엇을 받았는지 테스트가 보려면 필요하다.
+  runAfterResponse: (fn: () => Promise<unknown> | unknown) => { void fn(); },
+  generateAndSealShadow: async (_u: string, _c: string, opening: { lean?: string }) => {
+    sealed.push({ lean: opening.lean });
+  },
+  revealShadowsText: async () => ({ text: '', revealed: [] }),
+  gradeRevealedShadows: async () => {},
+}));
+
+vi.mock('@/lib/twin/delegation', () => ({
+  applyDelegation: async () => delegationMatch,
+  createDelegation: async () => delegationCreate,
+  markCaseDelegation: async (_u: string, caseId: string, delegationId: string) => {
+    marked.push({ caseId, delegationId });
+  },
+  caseDelegationId: async () => null,
+  gradeDelegation: async () => null,
+  describeDelegationGrade: () => '',
+  DELEGATION_DEFAULT_DAYS: 30,
+  DELEGATION_MAX_DAYS: 90,
+}));
+
+let cruxText = '';
+let cruxCalls = 0;
+vi.mock('@/lib/twin/divergence', () => ({
+  divergenceCrux: async () => {
+    cruxCalls += 1;
+    return cruxText;
+  },
+}));
+vi.mock('@/lib/twin/profile', () => ({
+  profileLines: async () => [],
+  recentlyRetiredLines: async () => [],
+  extractProfileFromSettlement: async () => ({ inserted: 0, reinforced: 0, contradicted: 0, retired: 0 }),
+}));
+vi.mock('@/lib/twin/store', () => ({
+  twinScore: async () => ({ matchRate: null, matchSample: 0, outcomeRate: null, outcomeSample: 0 }),
+}));
+
 const {
   handleAdopt,
   handleOpen,
@@ -88,6 +141,12 @@ beforeEach(() => {
   events.clear();
   cases.clear();
   returns = [];
+  sealed.length = 0;
+  marked.length = 0;
+  delegationMatch = null;
+  cruxText = '';
+  cruxCalls = 0;
+  delegationCreate = { ok: true, id: 'deleg-1', expiresAt: '2026-09-05T00:00:00Z' };
 });
 
 async function openCase(utterance = '가격을 올릴까 말까 고민이야') {
@@ -500,5 +559,104 @@ describe('argus_recall — 정산된 것이 실제로 돌아온다', () => {
     const res = await handleRecall(U, { query: '매출' });
     expect(text(res)).toContain('현실이 답을 준 결정 1건');
     expect(text(res)).not.toContain('채용을 미룰까');
+  });
+});
+
+// ── 범위 위임 (TWIN §4.5) ─────────────────────────────────────────────────
+//
+// 이 표면의 실패 형태는 "안 되는 것"이 아니라 **사용자가 말하지 않은 위임이
+// 생기는 것**, 그리고 **위임을 꺼내 놓고도 그 사실이 성적에 반영되지 않는
+// 것**이다. 둘 다 조용히 그럴듯하게 동작하므로 여기서 기계로 잡는다.
+describe('argus_open — 위임 적용', () => {
+  it('위임이 없으면 응답에 아무것도 붙지 않는다 (침묵이 기본값)', async () => {
+    const res = await handleOpen(U, { utterance: '가격을 올릴까', lean: '올린다' });
+    expect(text(res)).not.toContain('위임');
+  });
+
+  it('위임이 맞으면 정책 원문과 채택 시 보낼 id 를 함께 싣는다', async () => {
+    delegationMatch = {
+      delegation: { id: 'deleg-1', policy: '현금이 빠듯하면 고정비를 늘리지 않는다' },
+      text: '\n\n---\n당신이 위임해 둔 정책이 이 조건에 해당합니다.',
+    };
+    const res = await handleOpen(U, { utterance: '사람을 더 뽑을까', lean: '뽑는다', userInvoked: true });
+    expect(text(res)).toContain('위임해 둔 정책');
+    expect(text(res)).toContain('deleg-1');
+  });
+
+  it('위임이 꺼내지면 그림자는 그 정책을 기울기로 받는다 — choice 예측이 자명해지기 때문', async () => {
+    delegationMatch = {
+      delegation: { id: 'deleg-1', policy: '현금이 빠듯하면 고정비를 늘리지 않는다' },
+      text: '',
+    };
+    await handleOpen(U, { utterance: '사람을 더 뽑을까', userInvoked: true });
+    expect(sealed).toHaveLength(1);
+    expect(sealed[0].lean).toBe('현금이 빠듯하면 고정비를 늘리지 않는다');
+  });
+
+  it('사용자가 말한 기울기가 있으면 그것이 우선한다 — 위임이 사용자 발화를 덮지 않는다', async () => {
+    delegationMatch = { delegation: { id: 'deleg-1', policy: '정책 문장' }, text: '' };
+    await handleOpen(U, { utterance: '사람을 더 뽑을까', lean: '정규직으로 뽑는다', userInvoked: true });
+    expect(sealed[0].lean).toBe('정규직으로 뽑는다');
+  });
+});
+
+describe('argus_adopt — 위임 생성·표시', () => {
+  it('만들었으면 만료와 함께 밝히고, 결정을 대신하지 않는다고 적는다', async () => {
+    const id = await openCase();
+    const res = await handleAdopt(U, {
+      caseId: id,
+      choiceOrPolicy: '계약직으로 간다',
+      delegation: {
+        policy: '현금이 빠듯하면 계약직',
+        scopeDomain: '채용',
+        scopeCondition: '현금이 빠듯할 때',
+        userWords: '앞으로는 늘 이렇게 하자',
+      },
+    });
+    expect(text(res)).toContain('위임이 만들어졌습니다');
+    expect(text(res)).toContain('결정을 대신하지는 않습니다');
+  });
+
+  it('거부되면 **왜 거부했는지** 응답에 그대로 적는다 (조용히 안 만들지 않는다)', async () => {
+    delegationCreate = { ok: false, reason: '위임은 사용자가 직접 말한 문장으로만 생깁니다.' };
+    const id = await openCase();
+    const res = await handleAdopt(U, {
+      caseId: id,
+      choiceOrPolicy: '계약직으로 간다',
+      delegation: { policy: 'p', scopeDomain: 'd', scopeCondition: 'c', userWords: '' },
+    });
+    expect(text(res)).toContain('위임은 만들지 않았습니다');
+    expect(text(res)).toContain('사용자가 직접 말한 문장');
+  });
+
+  it('위임을 따른 채택은 케이스에 도장이 찍힌다 — 정산이 채점할 대상이 여기서 생긴다', async () => {
+    const id = await openCase();
+    await handleAdopt(U, { caseId: id, choiceOrPolicy: '계약직으로 간다', appliedDelegationId: 'deleg-1' });
+    expect(marked).toEqual([{ caseId: id, delegationId: 'deleg-1' }]);
+  });
+
+  it('위임 인자가 없으면 위임 이야기를 꺼내지 않는다', async () => {
+    const id = await openCase();
+    const res = await handleAdopt(U, { caseId: id, choiceOrPolicy: '계약직으로 간다' });
+    expect(text(res)).not.toContain('위임');
+  });
+});
+
+// ── 한 번 열었으면 기계는 한 번만 말한다 (거울 조항) ─────────────────────
+describe('argus_open — 발화는 한 건만', () => {
+  it('위임이 발화하면 이탈 crux 는 부르지도 않는다', async () => {
+    delegationMatch = { delegation: { id: 'deleg-1', policy: 'P' }, text: '\n\n---\n위임 문장' };
+    cruxText = '\n\n---\n이탈 질문';
+    const res = await handleOpen(U, { utterance: '사람을 더 뽑을까', userInvoked: true, lean: '뽑는다' });
+    expect(cruxCalls).toBe(0);
+    expect(text(res)).toContain('위임 문장');
+    expect(text(res)).not.toContain('이탈 질문');
+  });
+
+  it('위임이 없으면 이탈 crux 가 그 자리를 쓴다', async () => {
+    cruxText = '\n\n---\n이탈 질문';
+    const res = await handleOpen(U, { utterance: '사람을 더 뽑을까', userInvoked: true, lean: '뽑는다' });
+    expect(cruxCalls).toBe(1);
+    expect(text(res)).toContain('이탈 질문');
   });
 });

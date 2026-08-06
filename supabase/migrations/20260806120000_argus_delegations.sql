@@ -65,6 +65,19 @@ drop policy if exists argus_delegations_own_update on public.argus_delegations;
 create policy argus_delegations_own_update on public.argus_delegations
   for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
+-- **RLS 만으로는 부족하다.** 위 정책은 "본인 행"만 제한할 뿐 어느 컬럼을
+-- 고치는지는 보지 않으므로, 브라우저에서 `policy` 를 다시 쓰거나 `expires_at`
+-- 을 2099년으로 밀거나 `contradicted` 를 0 으로 되돌릴 수 있다. 그러면 이
+-- 테이블이 지키기로 한 것 셋이 한꺼번에 무너진다: 사용자 원문과 정책의 일치 ·
+-- 만료의 실재 · **성적으로 스스로 멈추는 안전장치**. (RLS 의 WITH CHECK 는 OLD
+-- 행을 볼 수 없어 "이 컬럼은 그대로여야 한다"를 표현할 수 없다.)
+--
+-- 컬럼 단위 권한이 그것을 정확히 표현한다. 사용자가 브라우저에서 바꿀 수 있는
+-- 것은 **status 하나** — 철회와 재개, 즉 되돌리기뿐이다. 나머지는 정산 경로
+-- (service role)만 쓴다. 되돌리기는 가장 쉬워야 하고, 성적 조작은 불가능해야 한다.
+revoke update on public.argus_delegations from authenticated;
+grant update (status) on public.argus_delegations to authenticated;
+
 drop policy if exists argus_delegations_own_delete on public.argus_delegations;
 create policy argus_delegations_own_delete on public.argus_delegations
   for delete using (auth.uid() = user_id);

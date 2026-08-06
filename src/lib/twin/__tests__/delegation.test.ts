@@ -66,6 +66,7 @@ import {
   createDelegation,
   describeDelegationGrade,
   gradeDelegation,
+  markCaseDelegation,
   DELEGATION_MAX_DAYS,
 } from '../delegation';
 
@@ -240,5 +241,20 @@ describe('describeDelegationGrade', () => {
     const t = describeDelegationGrade({ verdict: 'contradicted', suspended: true, policy: 'P' });
     expect(t).toContain('자동으로 멈췄습니다');
     expect(t).toContain('설정');
+  });
+});
+
+describe('markCaseDelegation — 소유 확인이 먼저다', () => {
+  it('남의 위임 id 면 케이스에 도장을 찍지 않는다', async () => {
+    singleRow = null; // 이 사용자 소유가 아님
+    await markCaseDelegation('user-1', 'case-1', 'someone-elses');
+    expect(updates).toHaveLength(0);
+  });
+
+  it('내 위임이면 케이스에 찍고 적용 횟수를 올린다', async () => {
+    singleRow = { applications: 2 };
+    await markCaseDelegation('user-1', 'case-1', 'deleg-1');
+    expect(updates.some((u) => u.table === 'argus_cases' && u.delegation_id === 'deleg-1')).toBe(true);
+    expect(updates.some((u) => u.table === 'argus_delegations' && u.applications === 3)).toBe(true);
   });
 });

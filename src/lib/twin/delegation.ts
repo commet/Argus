@@ -164,8 +164,14 @@ export async function applyDelegation(userId: string, utterance: string): Promis
         '해당하는 것이 없거나 애매하면 -1 — 억지로 맞추는 것이 최악이다.',
       user:
         `새 결정: "${sanitizeForPrompt(utterance)}"\n\n위임 목록:\n` +
+        // 정책·조건도 사용자 데이터다 (사용자가 쓴 문장이 DB 를 거쳐 돌아온다).
+        // 자기 데이터라도 프롬프트에 그대로 이어붙이지 않는 것이 리포 규약이다.
         rows
-          .map((r, i) => `${i}. [${r.scope_domain}] 조건: ${r.scope_condition} / 정책: ${r.policy}`)
+          .map(
+            (r, i) =>
+              `${i}. [${sanitizeForPrompt(r.scope_domain)}] 조건: ${sanitizeForPrompt(r.scope_condition)} ` +
+              `/ 정책: ${sanitizeForPrompt(r.policy)}`,
+          )
           .join('\n'),
       toolName: 'pick_delegation',
       schema: MATCH_SCHEMA,
@@ -201,26 +207,38 @@ export async function applyDelegation(userId: string, utterance: string): Promis
 export async function markCaseDelegation(userId: string, caseId: string, delegationId: string): Promise<void> {
   try {
     const admin = adminClient();
-    await admin
-      .from('argus_cases')
-      .update({ delegation_id: delegationId })
-      .eq('id', caseId)
-      .eq('user_id', userId);
-    // 적용 횟수는 채택 시점에 센다. 정산은 나중에 오고, 오지 않을 수도 있다 —
-    // "몇 번 쓰였나"와 "몇 번 맞았나"는 다른 숫자이므로 따로 센다.
+
+    // **소유 확인이 먼저다.** delegationId 는 모델이 보낸 값이고, 남의 위임 id
+    // 라도 FK 는 통과한다(FK 는 존재만 보지 소유를 보지 않는다). 그러면 케이스가
+    // 남의 정책을 가리킨 채 남고, 정산은 소유 필터에 걸려 조용히 채점하지 않는다
+    // — 위임이 적용된 것처럼 보이는데 성적이 영영 안 붙는 유령 상태가 된다.
     const { data } = await admin
       .from('argus_delegations')
       .select('applications')
       .eq('id', delegationId)
       .eq('user_id', userId)
       .maybeSingle();
-    if (data) {
-      await admin
-        .from('argus_delegations')
-        .update({ applications: (data.applications as number) + 1, updated_at: new Date().toISOString() })
-        .eq('id', delegationId)
-        .eq('user_id', userId);
+    if (!data) {
+      console.error(`[twin/delegation] ${delegationId} is not this user's delegation — not marking`);
+      return;
     }
+
+    await admin
+      .from('argus_cases')
+      .update({ delegation_id: delegationId })
+      .eq('id', caseId)
+      .eq('user_id', userId);
+
+    // 적용 횟수는 채택 시점에 센다. 정산은 나중에 오고, 오지 않을 수도 있다 —
+    // "몇 번 쓰였나"와 "몇 번 맞았나"는 다른 숫자이므로 따로 센다.
+    // (읽고-쓰기라 동시 채택 둘이 겹치면 한 건이 덜 세어질 수 있다. 이 숫자는
+    //  표시용이고 정지 판정에는 쓰이지 않으므로 원자적 증가를 위한 RPC 를
+    //  들이지 않았다 — 정지는 supported/contradicted 로만 판단한다.)
+    await admin
+      .from('argus_delegations')
+      .update({ applications: (data.applications as number) + 1, updated_at: new Date().toISOString() })
+      .eq('id', delegationId)
+      .eq('user_id', userId);
   } catch (e) {
     console.error('[twin/delegation] mark failed:', e);
   }
@@ -286,7 +304,7 @@ export async function gradeDelegation(
         '어긋나는지 판정하라. 셋 중 하나만: supported / contradicted / indeterminate.\n' +
         '근거 문장을 관찰문에서 **그대로 인용**해야 하며, 인용 없는 판정은 무효다. ' +
         '의심스러우면 indeterminate. 사람을 평가하지 말고 정책만 본다.',
-      user: `정책:\n"${policy}"\n\n정산 때 사용자가 말한 실제 관찰:\n"${sanitizeForPrompt(observation)}"`,
+      user: `정책:\n"${sanitizeForPrompt(policy)}"\n\n정산 때 사용자가 말한 실제 관찰:\n"${sanitizeForPrompt(observation)}"`,
       toolName: 'grade_delegation',
       schema: DELEGATION_VERDICT_SCHEMA,
       model: 'fast',
