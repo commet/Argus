@@ -23,6 +23,7 @@ import {
   type Reversibility,
   type StakesWeight,
 } from '../../../../../method-harness/types';
+import { extractProfileFromSettlement, profileLines } from '@/lib/twin/profile';
 import { generateAndSealShadow, gradeRevealedShadows, revealShadowsText, runAfterResponse } from '@/lib/twin/shadow';
 import { toolText } from './protocol';
 import {
@@ -179,14 +180,21 @@ export async function handleOpen(userId: string, args: Args) {
   // 그림자 시험 (TWIN §4.2) — 분신이 같은 시험을 몰래 친다. 응답을 막지 않고
   // (after()), 실패해도 열기는 무사하다. **이 예측은 정산 전에는 어떤 표면에도
   // 나오지 않는다** — 여기서 생성만 하고 응답에는 아무것도 싣지 않는 것이 규칙.
-  runAfterResponse(() =>
-    generateAndSealShadow(userId, caseId, {
-      utterance,
-      lean: lean || undefined,
-      statedReasons: reasons,
-      consideredAlternatives: alternatives,
-    }),
-  );
+  runAfterResponse(async () => {
+    // 프로필이 있으면 분신이 그 위에서 예측한다 — 없으면 없다고 프롬프트가 밝힌다.
+    const lines = await profileLines(userId);
+    await generateAndSealShadow(
+      userId,
+      caseId,
+      {
+        utterance,
+        lean: lean || undefined,
+        statedReasons: reasons,
+        consideredAlternatives: alternatives,
+      },
+      { profileLines: lines },
+    );
+  });
 
   return ok(
     userId,
@@ -534,6 +542,20 @@ export async function handleReturn(userId: string, args: Args) {
     runAfterResponse(() => gradeRevealedShadows(shadow.revealed, observation));
   }
 
+  // 프로필 추출 (TWIN §4.1) — 방금 정산된 케이스 하나에서만. 검증(증거 실존·
+  // 판정 언어 린트)을 통과한 항목만 저장되고, 실패는 정산을 막지 않는다.
+  runAfterResponse(async () => {
+    await extractProfileFromSettlement(userId, {
+      caseId,
+      question: revealed.card?.question ?? '',
+      choice: revealed.card?.choiceOrPolicy ?? '',
+      statedReasons:
+        revealed.baseline && revealed.baseline !== 'not_captured' ? revealed.baseline.statedReasons : [],
+      observation,
+      recall,
+    });
+  });
+
   return ok(
     userId,
     '이제 그때의 기록입니다.\n' +
@@ -636,6 +658,16 @@ export async function handleRecall(userId: string, args: Args) {
   }
   if (settled.length > 0) {
     parts.push('한 건을 자세히 보려면 caseId 와 함께 다시 부르십시오 — 그때의 가정과 실제가 나란히 나옵니다.');
+  }
+
+  // 판단 프로필 절 (TWIN §4.1). 검색 없는 목록 조회에서만 — 검색 결과에 끼면
+  // 소음이다. 항목마다 근거 케이스 id 가 붙어 있어 "왜 이렇게 아는지"가 보인다.
+  // 비어 있으면 절 자체를 만들지 않는다 (없는 것을 있는 척하지 않음).
+  if (!query) {
+    const lines = await profileLines(userId, 5);
+    if (lines.length > 0) {
+      parts.push('정산에서 관찰된 판단 패턴 (편집·삭제 가능, 근거 케이스 첨부):\n' + lines.map((l) => `· ${l}`).join('\n'));
+    }
   }
 
   return ok(userId, parts.join('\n\n'));

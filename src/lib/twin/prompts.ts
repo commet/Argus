@@ -94,3 +94,64 @@ export const VERDICT_SCHEMA = {
   },
   required: ['verdict', 'quote'],
 };
+
+// ── 판단 프로필 추출 (정산 직후) ──────────────────────────────────────────
+//
+// 추출은 **이번에 정산된 케이스 하나**에서만 한다. 여러 케이스에 걸친 일반화는
+// 표본이 쌓인 뒤의 일이고, 그때도 증거 링크가 실존 검사를 통과해야 한다.
+// 프로필은 사용자를 판정하는 문장이 아니라 **관찰된 패턴 + 증거**다.
+
+export interface SettledCaseFacts {
+  caseId: string;
+  question: string;
+  choice: string;
+  statedReasons: string[];
+  observation: string;
+  recall: string;
+}
+
+export function buildExtractSystem(): string {
+  return (
+    '정산이 끝난 결정 하나에서, 이 사용자의 판단 패턴 후보를 추출한다.\n\n' +
+    '층 구분:\n' +
+    '· L1 가치·기준 — 이 선택에서 드러난, 사용자가 무겁게 치는 기준\n' +
+    '· L2 믿음·보정 — 사용자의 가정이 현실과 어떻게 맞았/틀렸는가\n' +
+    '· L3 정책 — "이 조건에서는 이렇게 한다"로 읽히는 규칙\n\n' +
+    '규칙 (위반 항목은 기계 검증이 버린다):\n' +
+    '· 이 케이스에서 **실제로 관찰된 것만**. 일반화·추측 금지 — 한 건은 한 건이다.\n' +
+    '· 사용자에 대한 판정 언어 금지: "~한 사람", "~형", 점수, 등급, 성향 진단 전부.\n' +
+    '  패턴은 "이 결정에서 X를 Y보다 무겁게 쳤다" 형태의 관찰 문장으로.\n' +
+    '· 근거 없는 항목을 만드느니 빈 배열을 낼 것 — 없음이 정직한 답일 수 있다.'
+  );
+}
+
+export function buildExtractUser(f: SettledCaseFacts): string {
+  return (
+    `결정 질문: "${f.question}"\n` +
+    `채택한 것: "${f.choice}"\n` +
+    (f.statedReasons.length > 0 ? `그때 말한 이유: ${f.statedReasons.join(' / ')}\n` : '') +
+    `정산 직전의 기억: "${f.recall}"\n` +
+    `실제로 일어난 일: "${f.observation}"`
+  );
+}
+
+export const EXTRACT_SCHEMA = {
+  type: 'object' as const,
+  properties: {
+    items: {
+      type: 'array',
+      maxItems: 3,
+      items: {
+        type: 'object',
+        properties: {
+          layer: { type: 'string', enum: ['L1', 'L2', 'L3'] },
+          domain: { type: 'string', description: '결정의 영역 한 단어 (예: 채용, 가격, 일정)' },
+          content: { type: 'string', description: '관찰 문장. 판정 언어 금지.' },
+          confidence: { type: 'number', minimum: 0, maximum: 1 },
+        },
+        required: ['layer', 'domain', 'content', 'confidence'],
+      },
+    },
+  },
+  required: ['items'],
+};
