@@ -133,9 +133,14 @@ export const TOOLS: ToolDef[] = [
             type: 'object',
             properties: {
               belief: { type: 'string' },
-              confidence: { type: 'string', enum: ['confident', 'uncertain', 'contested'] },
+              confidence: {
+                type: 'string',
+                enum: ['confident', 'uncertain', 'contested'],
+                description:
+                  '사용자가 이 믿음에 대해 실제로 표현한 확신 정도. **추측해서 채우지 말 것** — 이 등급은 정산 때 현실과 대조되어 사용자의 보정 기록이 된다. 사용자가 말하지 않았으면 그 믿음은 보내지 말 것.',
+              },
             },
-            required: ['belief'],
+            required: ['belief', 'confidence'],
           },
           description: '이 선택을 떠받치는 사실 믿음. 틀리면 결정이 바뀌는 것만.',
         },
@@ -143,6 +148,23 @@ export const TOOLS: ToolDef[] = [
           type: 'object',
           properties: { alternative: { type: 'string' }, reason: { type: 'string' } },
           description: '사용자가 버린 대안과 그 이유.',
+        },
+        delegation: {
+          type: 'object',
+          description:
+            '사용자가 **스스로** "앞으로 이런 조건에서는 늘 이렇게 하겠다"고 말했을 때만 보낸다. 다음 결정에서 이 정책이 자동으로 꺼내진다. 사용자가 말하지 않은 위임을 제안하거나 대신 만들지 말 것 — userWords 가 없으면 서버가 거부하고 그 사실을 응답에 밝힌다.',
+          properties: {
+            policy: { type: 'string', description: '사용자가 승인한 규칙 문장. 사용자의 말 그대로.' },
+            scopeDomain: { type: 'string', description: '적용 영역 한 단어 (예: 채용, 가격, 일정).' },
+            scopeCondition: { type: 'string', description: '어떤 조건에서 적용되는가. 사용자의 말로.' },
+            userWords: { type: 'string', description: '사용자가 위임을 말한 **원문 인용**. 요약이 아니라 그대로.' },
+            days: { type: 'number', description: `유효 기간(일). 기본 30, 최대 90 — 넘으면 서버가 자르고 밝힌다.` },
+          },
+          required: ['policy', 'scopeDomain', 'scopeCondition', 'userWords'],
+        },
+        appliedDelegationId: {
+          type: 'string',
+          description: '이 채택이 argus_open 응답에 나온 위임 정책을 따른 것이면 그 위임 id. 아니면 보내지 말 것.',
         },
       },
       required: ['caseId', 'choiceOrPolicy'],

@@ -132,7 +132,11 @@ export interface SettledCaseFacts {
 
 export function buildExtractSystem(): string {
   return (
-    '정산이 끝난 결정 하나에서, 이 사용자의 판단 패턴 후보를 추출한다.\n\n' +
+    '정산이 끝난 결정 하나를, 이 사용자의 기존 판단 프로필에 비추어 읽는다.\n' +
+    '할 일은 셋이고, 셋 다 하지 않아도 된다 (빈 답이 정직한 답일 수 있다):\n\n' +
+    '1. items — 이번에 **새로** 관찰된 패턴\n' +
+    '2. reinforces — 기존 항목 중 이번 정산이 **뒷받침한** 것의 번호\n' +
+    '3. contradicts — 기존 항목 중 이번 정산이 **어긋난** 것의 번호\n\n' +
     '층 구분:\n' +
     '· L1 가치·기준 — 이 선택에서 드러난, 사용자가 무겁게 치는 기준\n' +
     '· L2 믿음·보정 — 사용자의 가정이 현실과 어떻게 맞았/틀렸는가\n' +
@@ -141,18 +145,23 @@ export function buildExtractSystem(): string {
     '· 이 케이스에서 **실제로 관찰된 것만**. 일반화·추측 금지 — 한 건은 한 건이다.\n' +
     '· 사용자에 대한 판정 언어 금지: "~한 사람", "~형", 점수, 등급, 성향 진단 전부.\n' +
     '  패턴은 "이 결정에서 X를 Y보다 무겁게 쳤다" 형태의 관찰 문장으로.\n' +
-    '· 근거 없는 항목을 만드느니 빈 배열을 낼 것 — 없음이 정직한 답일 수 있다.'
+    '· 기존 항목과 **같은 말이면 items 에 새로 쓰지 말고 reinforces 에 번호를 넣을 것.**\n' +
+    '  같은 관찰이 항목 다섯 개로 흩어지면 근거 다섯 건짜리 패턴 하나가 영영 생기지 않는다.\n' +
+    '· 애매하면 아무 번호도 넣지 말 것 — 억지 연결은 반례를 조작하는 것과 같다.\n' +
+    '· 확신도는 쓰지 않는다. 그것은 근거·반례 개수에서 기계가 계산한다.'
   );
 }
 
-export function buildExtractUser(f: SettledCaseFacts): string {
-  return (
+/** 기존 항목은 번호와 함께 보여 준다 — 모델이 돌려주는 것은 번호뿐이다. */
+export function buildExtractUser(f: SettledCaseFacts, existing: string[] = []): string {
+  const head =
     `결정 질문: "${f.question}"\n` +
     `채택한 것: "${f.choice}"\n` +
     (f.statedReasons.length > 0 ? `그때 말한 이유: ${f.statedReasons.join(' / ')}\n` : '') +
     `정산 직전의 기억: "${f.recall}"\n` +
-    `실제로 일어난 일: "${f.observation}"`
-  );
+    `실제로 일어난 일: "${f.observation}"`;
+  if (existing.length === 0) return `${head}\n\n기존 프로필 항목: 없음.`;
+  return `${head}\n\n기존 프로필 항목 (번호로 참조):\n${existing.map((l, i) => `${i}. ${l}`).join('\n')}`;
 }
 
 export const EXTRACT_SCHEMA = {
@@ -161,17 +170,27 @@ export const EXTRACT_SCHEMA = {
     items: {
       type: 'array',
       maxItems: 3,
+      description: '이번 정산에서 새로 관찰된 패턴. 기존 항목과 같은 말이면 여기 넣지 말 것.',
       items: {
         type: 'object',
         properties: {
           layer: { type: 'string', enum: ['L1', 'L2', 'L3'] },
           domain: { type: 'string', description: '결정의 영역 한 단어 (예: 채용, 가격, 일정)' },
           content: { type: 'string', description: '관찰 문장. 판정 언어 금지.' },
-          confidence: { type: 'number', minimum: 0, maximum: 1 },
         },
-        required: ['layer', 'domain', 'content', 'confidence'],
+        required: ['layer', 'domain', 'content'],
       },
     },
+    reinforces: {
+      type: 'array',
+      description: '이번 정산이 뒷받침한 기존 항목의 번호들. 없으면 빈 배열.',
+      items: { type: 'number' },
+    },
+    contradicts: {
+      type: 'array',
+      description: '이번 정산이 어긋난 기존 항목의 번호들. 없으면 빈 배열. 애매하면 넣지 말 것.',
+      items: { type: 'number' },
+    },
   },
-  required: ['items'],
+  required: ['items', 'reinforces', 'contradicts'],
 };

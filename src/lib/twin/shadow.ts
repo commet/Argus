@@ -5,6 +5,7 @@
 // 없는 최근 케이스"를 쓸어담아 재시도하므로, 실패는 침묵이 아니라 지연이 된다.
 // (ANTHROPIC_API_KEY 없는 환경에서도 같은 경로 — 지어내는 폴백은 없다.)
 
+import { after } from 'next/server';
 import { callAnthropicJson } from '@/lib/llm-server';
 import {
   buildChoiceVerdictUser,
@@ -178,12 +179,17 @@ export async function gradeRevealedShadows(
  * 어느 쪽이든 호출자의 응답 경로를 막지 않는다.
  */
 export function runAfterResponse(fn: () => Promise<void>): void {
-  void (async () => {
-    try {
-      const { after } = await import('next/server');
-      after(fn);
-    } catch {
-      fn().catch((e) => console.error('[twin] after-fallback failed:', e));
-    }
-  })();
+  // **동기 호출이어야 한다.** 예전 구현은 `await import('next/server')` 뒤에
+  // after() 를 불렀는데, 그 await 가 마이크로태스크를 하나 끼워 넣어 응답이
+  // 이미 나간 뒤에 after() 가 불릴 수 있었다. 그러면 "요청 범위 밖" 오류가 나고
+  // catch 로 떨어져 **그냥 떠 있는 promise** 가 되며, 서버리스에서 그것은
+  // 람다가 얼면 죽는다 — 그림자는 크론 백스톱이 있으나 프로필 추출은 없어서
+  // "정산했는데 분신이 아무것도 배우지 않는" 조용한 실패가 된다.
+  try {
+    after(fn);
+  } catch (e) {
+    // 요청 범위 밖(테스트·스크립트)에서는 그냥 돌린다. 여기서 죽으면 안 된다.
+    console.error('[twin] after() unavailable, running inline:', e);
+    fn().catch((err) => console.error('[twin] after-fallback failed:', err));
+  }
 }

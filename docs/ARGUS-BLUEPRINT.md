@@ -511,6 +511,25 @@ handleTextInputSubmit = () => move("down")                 // 칸 안에서 Retu
 
 ## §8. 대기 목록 — 여기 적고, 짓지 않는다
 
+- **`src/lib/epistemic/` 50건이 테스트에만 소비된다 (2026-08-06 기계 확인).**
+  TWIN 트랙에 도입한 함수 수준 선언↔소비 가드(`twin-wiring.test.ts`)를
+  E-트랙 디렉터리에 시험 삼아 겨눴더니 `evaluatePromptInfluence` ·
+  `compileAuthorityContext` · `recordUserAuthorizedGrant` 를 포함해 **모듈 밖
+  소비처가 없는 값 export 가 50개** 나왔다(호출처는 전부 `__tests__`). CLAUDE.md
+  가 "파생 기억의 유일한 권위"라 적어 둔 control-plane 이 라이브 표면 어디에도
+  배선되지 않았다는 뜻일 수 있다 — 다만 이것은 별도 공정의 현황이고 TWIN 작업
+  중에 몰래 손댈 것이 아니다. **해야 할 일은 "고치기"가 아니라 "판정하기"**다:
+  각 항목이 (a) 아직 안 배선된 것인지 (b) 폐기됐어야 하는 것인지 (c) 의도적
+  라이브러리인지. 판정 뒤에야 가드를 그 디렉터리에 켤 수 있다.
+
+- ~~**M5 보정 거울의 선행 조건 = 확신도 사전등록 입력**~~ → **틀린 판단이었고
+  같은 밤에 지었다 (2026-08-06).** 입력은 이미 있었다 — `argus_adopt` 의
+  `materialBeliefs` 가 믿음마다 confident/uncertain/contested 를 받고 있었고,
+  없던 것은 입력이 아니라 **소비**였다. 소비가 없으니 입력도 없는 것처럼 보였고
+  그래서 기능 하나를 "지을 수 없다"로 분류했다 — 선언↔소비 구멍이 코드를 넘어
+  **기획 판단까지 오염시킨** 첫 사례다. 남은 것은 도메인별 분해뿐이며, 도메인을
+  어디서 얻을지가 선행 결정이다 (TWIN 기획서 부록 C.5).
+
 - **Codex 플러그인 v1** — 지금 Codex 사용자는 `codex mcp add argus-decision --
   npx -y argus-decision-mcp@<pin>` 한 줄을 손으로 친다. 실기기로 확인했고
   README에 넣었다(2026-07-29). 원클릭 설치는 O4 관문 뒤. **선행 사실로 확정:**

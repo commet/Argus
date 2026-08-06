@@ -23,10 +23,22 @@ import {
   type Reversibility,
   type StakesWeight,
 } from '../../../../../method-harness/types';
+import { beliefCalibration, calibrationLines, gradeStatedBeliefs, type StatedBelief } from '@/lib/twin/beliefs';
 import { divergenceCrux } from '@/lib/twin/divergence';
-import { extractProfileFromSettlement, profileLines } from '@/lib/twin/profile';
+import {
+  applyDelegation,
+  caseDelegationId,
+  createDelegation,
+  describeDelegationGrade,
+  gradeDelegation,
+  markCaseDelegation,
+  DELEGATION_DEFAULT_DAYS,
+  DELEGATION_MAX_DAYS,
+} from '@/lib/twin/delegation';
+import { extractProfileFromSettlement, profileLines, recentlyRetiredLines } from '@/lib/twin/profile';
 import { generateAndSealShadow, gradeRevealedShadows, revealShadowsText, runAfterResponse } from '@/lib/twin/shadow';
 import { twinScore } from '@/lib/twin/store';
+import { persistServerEvent } from '@/lib/server-events';
 import { toolText } from './protocol';
 import {
   armReturns,
@@ -112,18 +124,37 @@ function readStakes(v: unknown): { stakes: { weight: StakesWeight; reversibility
   return { stakes: { weight: weight ?? 'major', reversibility: rev ?? 'one_way' }, assumed: true };
 }
 
-function readBeliefs(v: unknown): MaterialBelief[] {
-  if (!Array.isArray(v)) return [];
-  return v
+/**
+ * 믿음 읽기. **확신도가 없으면 그 믿음은 기록하지 않는다.**
+ *
+ * 예전에는 없는 확신도를 'uncertain' 으로 메웠다. 그 시절에는 아무도 그 값을
+ * 읽지 않아 무해해 보였지만, 이제 정산이 이 등급을 채점하고 그 결과가 보정
+ * 거울의 숫자가 된다 — 우리가 채운 등급이 사용자의 성적으로 표시되는 것이다.
+ * 그것은 "사용자가 하지 않은 판단을 원장에 쓴 것"이고 이 파일 상단이 금지한
+ * 바로 그 형태다. 몇 건을 뺐는지는 응답에 적는다 (dropped).
+ */
+function readBeliefs(v: unknown): { beliefs: MaterialBelief[]; dropped: number } {
+  if (!Array.isArray(v)) return { beliefs: [], dropped: 0 };
+  let dropped = 0;
+  const beliefs = v
     .map((x) => {
-      if (typeof x === 'string') return { belief: x.trim(), confidence: 'uncertain' as BeliefConfidence };
+      // 문자열만 온 것은 확신도가 없는 것이다.
+      if (typeof x === 'string') {
+        if (x.trim()) dropped += 1;
+        return null;
+      }
       const o = (x ?? {}) as Args;
       const belief = str(o.belief);
       if (!belief) return null;
       const c = str(o.confidence) as BeliefConfidence;
-      return { belief, confidence: CONFIDENCES.includes(c) ? c : ('uncertain' as BeliefConfidence) };
+      if (!CONFIDENCES.includes(c)) {
+        dropped += 1;
+        return null;
+      }
+      return { belief, confidence: c };
     })
     .filter((x): x is MaterialBelief => x !== null);
+  return { beliefs, dropped };
 }
 
 // 하네스가 크게 실패하면(HarnessViolation) 그것은 버그가 아니라 **규칙이 지켜진
@@ -179,18 +210,31 @@ export async function handleOpen(userId: string, args: Args) {
   await upsertCase(userId, caseId, utterance.slice(0, 120), engine.state().state);
   await persistNewEvents(userId, caseId, engine, new Set());
 
+  // 범위 위임 (TWIN §4.5). 사용자가 **자기 말로** 미리 승인해 둔 정책이 이
+  // 조건에 해당하면 그것을 꺼내 놓는다. 꺼내는 것까지가 위임의 전부다 —
+  // 채택은 여전히 argus_adopt(사용자의 명시)로만 일어난다. 침묵이 기본값이다.
+  //
+  // **그림자보다 먼저 부르는 이유**가 아래 오염 방지선이다.
+  const delegation = await applyDelegation(userId, utterance);
+
   // 그림자 시험 (TWIN §4.2) — 분신이 같은 시험을 몰래 친다. 응답을 막지 않고
   // (after()), 실패해도 열기는 무사하다. **이 예측은 정산 전에는 어떤 표면에도
   // 나오지 않는다** — 여기서 생성만 하고 응답에는 아무것도 싣지 않는 것이 규칙.
   runAfterResponse(async () => {
     // 프로필이 있으면 분신이 그 위에서 예측한다 — 없으면 없다고 프롬프트가 밝힌다.
     const lines = await profileLines(userId);
+    // 위임이 꺼내진 결정에서 "무엇을 고를까"는 **자명한 예측**이다 — 사용자가
+    // 방금 자기 정책을 눈앞에서 봤기 때문이다. 이것은 lean 오염과 정확히 같은
+    // 형태이므로 같은 방식으로 처리한다: 정책을 기울기로 넘겨 분신이 choice
+    // 대신 **이탈**을 예측하게 하고, 그 행은 오염 플래그와 함께 봉인된다.
+    // (원장의 baseline 은 손대지 않는다 — 사용자가 이번에 말한 기울기가 아니다.)
+    const effectiveLean = lean || (delegation ? delegation.delegation.policy : undefined);
     await generateAndSealShadow(
       userId,
       caseId,
       {
         utterance,
-        lean: lean || undefined,
+        lean: effectiveLean,
         statedReasons: reasons,
         consideredAlternatives: alternatives,
       },
@@ -203,7 +247,12 @@ export async function handleOpen(userId: string, args: Args) {
   // 붙인다. 기준점은 기계의 의견이 아니라 사용자 자신의 기록이고, 질문 문장은
   // 결정론 템플릿이 만든다. 동기 호출인 이유: MCP 는 push 가 없어 응답에
   // 실리지 못한 발화는 존재하지 않는 발화다 — 대신 관문이 빈도를 누른다.
-  const crux = await divergenceCrux(userId, utterance, lean || undefined);
+  // **둘 중 하나만 발화한다.** 위임과 이탈 crux 가 같은 응답에 함께 붙으면
+  // 한 번 열었는데 기계가 두 번 말하는 것이고, 그것은 거울 조항이 금지한
+  // 과발화다 (divergence 자신도 "여러 패턴이 걸려도 하나만" 규칙을 갖는다).
+  // 위임이 이긴다: 그것은 사용자가 **미리 시켜 둔** 발화이고, 이탈 crux 는
+  // 기계가 먼저 꺼내는 발화다. 요청받은 말이 요청받지 않은 말보다 앞선다.
+  const crux = delegation ? '' : await divergenceCrux(userId, utterance, lean || undefined);
 
   return ok(
     userId,
@@ -212,7 +261,10 @@ export async function handleOpen(userId: string, args: Args) {
         ? `AI가 말하기 전의 기울기를 보존했습니다: "${lean}"\n`
         : '기울기 없이 시작했습니다 — 그것도 정직한 출발점입니다.\n') +
       '다음: argus_sharpen 으로 가장 무게가 실리는 가정 하나를 확인하십시오.' +
-      crux,
+      crux +
+      (delegation
+        ? `${delegation.text}\n(채택할 때 appliedDelegationId: "${delegation.delegation.id}" 를 함께 보내면 이 정책이 정산으로 채점됩니다.)`
+        : ''),
     caseId,
   );
 }
@@ -336,7 +388,7 @@ export async function handleAdopt(userId: string, args: Args) {
   // 조용히 박아 넣었는데, 그것은 사용자가 하지 않은 판단을 원장에 쓴 것이다.
   const { stakes, assumed } = readStakes(args.stakes);
   const values = strArr(args.values);
-  const materialBeliefs = readBeliefs(args.materialBeliefs);
+  const { beliefs: materialBeliefs, dropped: droppedBeliefs } = readBeliefs(args.materialBeliefs);
   const rejected = (args.rejectedAlternative ?? null) as Args | null;
   const rejectedAlternative =
     rejected && str(rejected.alternative)
@@ -384,13 +436,55 @@ export async function handleAdopt(userId: string, args: Args) {
   if (values.length === 0 && materialBeliefs.length === 0) {
     gaps.push('이 선택을 떠받치는 가치·사실 믿음이 비어 있습니다 — 사용자가 말한 것이 있으면 values / materialBeliefs 로 보내십시오.');
   }
+  if (droppedBeliefs > 0) {
+    gaps.push(
+      `믿음 ${droppedBeliefs}건은 확신도(confident / uncertain / contested)가 없어 기록하지 않았습니다 — ` +
+        '확신도는 정산 때 현실과 대조되므로 우리가 대신 정할 수 없습니다. 사용자가 말한 등급과 함께 다시 보내십시오.',
+    );
+  }
+
+  // 이 채택이 기존 위임을 따랐다면 케이스에 도장을 찍는다 — 정산 때 위임을
+  // 채점할 대상이 여기서 생긴다. 실패해도 채택은 무사하다 (부가 기록).
+  const appliedDelegationId = str(args.appliedDelegationId);
+  if (appliedDelegationId) {
+    runAfterResponse(() => markCaseDelegation(userId, caseId, appliedDelegationId));
+  }
+
+  // 새 위임. **거부가 기본값**이고, 거부하면 왜 거부했는지 응답에 그대로 적는다 —
+  // 조용히 안 만들면 사용자는 위임이 생긴 줄 알고 다음 결정을 기다린다.
+  let delegationNote = '';
+  const delegationArg = (args.delegation ?? null) as Args | null;
+  if (delegationArg) {
+    const created = await createDelegation(userId, {
+      policy: str(delegationArg.policy),
+      scopeDomain: str(delegationArg.scopeDomain),
+      scopeCondition: str(delegationArg.scopeCondition),
+      userWords: str(delegationArg.userWords),
+      days: typeof delegationArg.days === 'number' ? delegationArg.days : undefined,
+      fromCaseId: caseId,
+    });
+    if (created.ok) {
+      const requested = typeof delegationArg.days === 'number' ? Math.trunc(delegationArg.days) : DELEGATION_DEFAULT_DAYS;
+      const truncated = requested > DELEGATION_MAX_DAYS;
+      delegationNote =
+        `\n\n위임이 만들어졌습니다 (${created.expiresAt.slice(0, 10)}까지` +
+        (truncated ? `, 요청하신 ${requested}일은 최대 ${DELEGATION_MAX_DAYS}일로 줄였습니다` : '') +
+        ').\n' +
+        '다음에 같은 조건의 결정을 열면 이 정책을 꺼내 놓습니다. 결정을 대신하지는 않습니다 — ' +
+        '채택은 여전히 사용자가 하고, 정산 때마다 이 정책 자체가 채점됩니다. ' +
+        '어긋남이 쌓이면 위임은 스스로 멈춥니다.';
+    } else {
+      delegationNote = `\n\n위임은 만들지 않았습니다: ${created.reason}`;
+    }
+  }
 
   return ok(
     userId,
     `채택되었습니다 — 이 결정은 이제 사용자의 것으로 기록됩니다${edited ? ' (수정분 포함)' : ''}.\n` +
       `하중: ${stakes.weight} / ${stakes.reversibility}\n` +
       (gaps.length > 0 ? `\n비어 있는 자리 (채우지 않고 그대로 둡니다):\n· ${gaps.join('\n· ')}\n` : '') +
-      '\n다음: argus_plan 으로 실행 계획을 만들면, 그 기한들이 그대로 돌아보기 약속이 됩니다.',
+      '\n다음: argus_plan 으로 실행 계획을 만들면, 그 기한들이 그대로 돌아보기 약속이 됩니다.' +
+      delegationNote,
     caseId,
   );
 }
@@ -574,10 +668,26 @@ export async function handleReturn(userId: string, args: Args) {
     );
   }
 
+  // 위임 채점 (TWIN §4.5). 위임을 따른 결정에서만 돈다 — 대부분의 정산에는
+  // 위임이 없고 그러면 LLM 호출도 없다. **동기 호출인 이유**: 위임이 자동으로
+  // 멈췄다는 사실은 사용자가 지금 알아야 하는 것이다. 다음에 그 정책을 다시
+  // 꺼내지 않을 것이므로, 말하지 않으면 사용자는 위임이 여전히 도는 줄 안다.
+  const delegationId = await caseDelegationId(userId, caseId);
+  const delegationGrade = delegationId ? await gradeDelegation(userId, delegationId, observation) : null;
+
+  // 사전등록 믿음 채점 (TWIN M5). 채택 때 사용자가 **자기 손으로** confident/
+  // uncertain/contested 를 붙인 믿음들을 관찰과 대조한다. 채점 대상은 사용자가
+  // 아니라 그 문장들이고, 결과는 argus_recall 을 직접 불렀을 때만 보인다 —
+  // 정산 직후에 성적을 들이미는 것은 요청받지 않은 성적표다 (§9 위험표).
+  runAfterResponse(async () => {
+    const beliefs = (revealed.card?.rationale?.materialBeliefs ?? []) as StatedBelief[];
+    await gradeStatedBeliefs(userId, caseId, beliefs, observation);
+  });
+
   // 프로필 추출 (TWIN §4.1) — 방금 정산된 케이스 하나에서만. 검증(증거 실존·
   // 판정 언어 린트)을 통과한 항목만 저장되고, 실패는 정산을 막지 않는다.
   runAfterResponse(async () => {
-    await extractProfileFromSettlement(userId, {
+    const update = await extractProfileFromSettlement(userId, {
       caseId,
       question: revealed.card?.question ?? '',
       choice: revealed.card?.choiceOrPolicy ?? '',
@@ -586,6 +696,13 @@ export async function handleReturn(userId: string, args: Args) {
       observation,
       recall,
     });
+    // 산출을 소비한다 — after() 안이라 이번 응답에는 실을 수 없고, 그렇다고
+    // 버리면 "프로필이 정말 갱신되고 있는가"를 확인할 방법이 사라진다. 다음
+    // recall 이 사용자에게 결과를 보이고(물러난 관찰 절), 이 이벤트가 운영에
+    // 보인다. 아무 변화도 없었으면 기록하지 않는다 — 없는 일은 이벤트가 아니다.
+    if (update.inserted + update.reinforced + update.contradicted > 0) {
+      await persistServerEvent('argus_profile_updated', { ...update, caseId }, { userId, path: '/api/mcp/v2' });
+    }
   });
 
   return ok(
@@ -597,7 +714,8 @@ export async function handleReturn(userId: string, args: Args) {
       }\n\n` +
       `방금의 기억: "${recall}"\n실제로 일어난 일: "${observation}"\n\n` +
       '둘이 다르다면 그 차이가 이 기록이 존재하는 이유입니다 — 결과를 알고 나면 누구나 이유를 다시 씁니다.' +
-      shadow.text,
+      shadow.text +
+      describeDelegationGrade(delegationGrade),
     caseId,
   );
 }
@@ -700,6 +818,21 @@ export async function handleRecall(userId: string, args: Args) {
     if (lines.length > 0) {
       parts.push('정산에서 관찰된 판단 패턴 (편집·삭제 가능, 근거 케이스 첨부):\n' + lines.map((l) => `· ${l}`).join('\n'));
     }
+    // 물러난 관찰 (TWIN §4.1). 반례가 쌓여 은퇴한 항목은 **말해야 한다** —
+    // 조용히 빼면 기계가 자기 기록을 몰래 고치는 형태가 되고, 사용자는 이의를
+    // 제기할 기회를 잃는다. 거울이 스스로 취소한 것도 거울에 비쳐야 한다.
+    const retired = await recentlyRetiredLines(userId);
+    if (retired.length > 0) {
+      parts.push(
+        '최근 물러난 관찰 (현실이 반대로 답해서 분신이 더 이상 쓰지 않습니다):\n' +
+          retired.map((l) => `· ${l}`).join('\n'),
+      );
+    }
+    // 보정 거울 (TWIN M5). **당김 표면에서만** 나온다 — 사용자가 argus_recall
+    // 을 직접 불렀을 때. 등급별 표본이 차지 않으면 아무것도 나오지 않는다.
+    const calibration = calibrationLines(await beliefCalibration(userId));
+    if (calibration) parts.push(calibration);
+
     // 분신 성적 (TWIN §4.2). **사람이 아니라 예측을 채점한 것**이고, 표본
     // 미달이면 숫자를 감춘다 — 3건짜리 퍼센트는 정보가 아니라 소음이다.
     const score = await twinScore(userId);

@@ -11,6 +11,8 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { generateAndSealShadow } from '@/lib/twin/shadow';
+import { gradeStatedBeliefs, type StatedBelief } from '@/lib/twin/beliefs';
+import { extractProfileFromSettlement, settledCasesMissingProfile } from '@/lib/twin/profile';
 import { recentCasesMissingShadows } from '@/lib/twin/store';
 import { loadEngine } from '@/app/api/mcp/v2/store';
 import { persistServerEvent } from '@/lib/server-events';
@@ -68,13 +70,50 @@ export async function GET(req: NextRequest) {
     }
   }
 
+  // ── 프로필 추출 백스톱 ────────────────────────────────────────────────
+  //
+  // 같은 성격의 구멍이 프로필 쪽에도 있었다. 추출도 after() 안에서 돌지만
+  // 그림자와 달리 백스톱이 없어서, 그 경로가 죽으면 **정산은 됐는데 분신만
+  // 아무것도 배우지 못한 상태**가 영구히 남았다 — 화면에 아무 표시도 나지
+  // 않는 종류의 실패다. 시도 표식(profile_extracted_at)이 없는 정산만 집는다.
+  const pending = await settledCasesMissingProfile();
+  let extracted = 0;
+  for (const p of pending) {
+    try {
+      await extractProfileFromSettlement(p.userId, p.facts);
+      extracted += 1;
+
+      // 사전등록 믿음 채점도 같은 after() 안에서 돌았으므로 같은 후보를 쓴다.
+      // 이미 채점됐으면 (case_id, belief) 유일 색인이 두 번째 삽입을 거절한다 —
+      // 조용한 중복보다 시끄러운 거절이 낫다.
+      //
+      // 남는 정직한 공백: 프로필 추출은 성공했는데 믿음 채점만 실패한 경우는
+      // 표식(profile_extracted_at)이 이미 찍혀 있어 다시 집히지 않는다. 둘은
+      // 같은 after() 안에서 각자 try/catch 로 돌므로 한쪽만 죽는 경우가 드물고,
+      // 표식을 둘로 쪼개는 비용이 그 드묾보다 크다고 판단했다.
+      const engine = await loadEngine(p.userId, p.facts.caseId);
+      const beliefs = (engine.state().card?.rationale?.materialBeliefs ?? []) as StatedBelief[];
+      if (beliefs.length > 0) await gradeStatedBeliefs(p.userId, p.facts.caseId, beliefs, p.facts.observation);
+    } catch (e) {
+      failures.push(`profile ${p.facts.caseId}: ${e instanceof Error ? e.message : String(e)}`);
+    }
+  }
+
   // 크론은 흔적을 남긴다 (cron-instrumentation 규약) — 몇 건을 재시도했는지가
   // 곧 after() 경로의 건강 지표다. 이 수가 크면 본 경로가 병든 것이다.
   await persistServerEvent('argus_shadow_cron_run', {
     scanned: missing.length,
     generated,
+    profileScanned: pending.length,
+    profileExtracted: extracted,
     failed: failures.length,
   }, { path: '/api/cron/argus-shadow' });
 
-  return NextResponse.json({ scanned: missing.length, generated, failed: failures.length });
+  return NextResponse.json({
+    scanned: missing.length,
+    generated,
+    profileScanned: pending.length,
+    profileExtracted: extracted,
+    failed: failures.length,
+  });
 }
