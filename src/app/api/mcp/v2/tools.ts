@@ -55,7 +55,7 @@ export const TOOLS: ToolDef[] = [
     name: 'argus_sharpen',
     title: '한 가지만 점검',
     description:
-      '**두 번 부른다.** 처음에 caseId만 보내면 무엇을 지켜야 하는지와 사용자가 실제로 말한 것을 돌려준다. 그다음 당신이 정한 짚기를 assumption·falsifier와 함께 다시 보내면 검증기를 통과시켜 원장에 남긴다. 두 번째 호출을 하지 않으면 그 짚기는 기록되지 않는다. 한 턴에 한 가지만, 방향은 정해주지 않는다.',
+      '**두 번 부른다.** 처음에 caseId만 보내면 무엇을 지켜야 하는지와 사용자가 실제로 말한 것을 돌려준다. 그다음 당신이 정한 짚기를 assumption·falsifier와 함께 다시 보내면 검증기를 통과시켜 원장에 남긴다. 두 번째 호출을 하지 않으면 그 짚기는 기록되지 않는다. 한 턴에 한 가지만, 방향은 정해주지 않는다. **생각의 노동은 당신 몫이다**: 사용자에게 "이게 틀렸다면 뭘 보면 알까요?"를 백지로 묻지 말 것 — 반증 지표는 당신이 구체적으로 제안하고, 사용자는 맞는지 확인하거나 고치기만 하게 한다.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -63,7 +63,8 @@ export const TOOLS: ToolDef[] = [
         assumption: { type: 'string', description: '하중이 가장 큰 가정 하나. 방향 문장이 아니라 가정이어야 한다.' },
         falsifier: {
           type: 'string',
-          description: '이 가정이 틀렸음을 보여줄 관찰 가능한 사실. 없으면 검증기가 짚기를 질문으로 낮춘다.',
+          description:
+            '이 가정이 틀렸음을 보여줄 관찰 가능한 사실. **당신이 제안한다** — 사용자에게 숙제로 넘기지 말 것 ("지난 3개월 수주 건수가 꺾였는가"처럼 구체적으로). 없으면 검증기가 짚기를 질문으로 낮춘다.',
         },
         whyNow: { type: 'string', description: '왜 지금 이것을 짚는가.' },
         moveType: {
