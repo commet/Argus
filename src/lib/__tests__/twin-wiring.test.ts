@@ -144,6 +144,65 @@ describe('TWIN 선언↔소비 대조', () => {
   });
 });
 
+/**
+ * E-트랙 래칫 — 강제가 아니라 **더 나빠지지 않게** 하는 장치.
+ *
+ * 같은 규칙을 `src/lib/epistemic/`에 그냥 켜면 49건이 한꺼번에 붉어진다.
+ * 그것은 이 트랙의 결함이 아니라 별도 공정의 현황이고, TWIN 작업 중에 몰래
+ * 처리할 것도 아니다 (BLUEPRINT §8에 판정 과제로 올려 뒀다).
+ *
+ * 그렇다고 아무것도 안 하면 그 수는 조용히 는다. 그래서 **상한만 건다**:
+ * 오늘의 수를 천장으로 두고, 새 미소비 export 가 하나라도 늘면 실패한다.
+ * 줄이는 것은 언제나 환영이고, 줄었으면 이 상수를 내려 못을 박는다.
+ *
+ * (커버리지 ratchet 과 같은 정신이다 — 지금 다 고칠 수 없는 것을 인정하되
+ *  더 나빠지는 것은 기계가 막는다.)
+ */
+const EPISTEMIC_UNCONSUMED_CEILING = 49;
+
+describe('E-트랙 미소비 래칫', () => {
+  it(`src/lib/epistemic 의 미소비 export 가 ${EPISTEMIC_UNCONSUMED_CEILING}건을 넘지 않는다`, () => {
+    const dir = 'src/lib/epistemic';
+    const orphans: string[] = [];
+    for (const file of walk(dir).filter((f) => !f.includes('__tests__'))) {
+      const text = readFileSync(file, 'utf8');
+      let m: RegExpExecArray | null;
+      EXPORT_RE.lastIndex = 0;
+      while ((m = EXPORT_RE.exec(text))) {
+        const word = new RegExp(`\\b${m[1]}\\b`);
+        if (!NON_TEST_SRC.some((g) => g !== file && word.test(FILE_TEXT.get(g) ?? ''))) {
+          orphans.push(`${file}:${m[1]}`);
+        }
+      }
+    }
+    expect(
+      orphans.length,
+      orphans.length > EPISTEMIC_UNCONSUMED_CEILING
+        ? `미소비 export 가 늘었습니다. 배선하거나, 지우거나, 왜 늘었는지 설명하고 천장을 올리십시오:\n${orphans.join('\n')}`
+        : '',
+    ).toBeLessThanOrEqual(EPISTEMIC_UNCONSUMED_CEILING);
+  });
+
+  it('천장이 실제 수보다 크게 벌어져 있지 않다 (줄었으면 못을 다시 박는다)', () => {
+    // 천장과 실제가 벌어지면 래칫이 헐거워져 다시 늘 자리가 생긴다.
+    const dir = 'src/lib/epistemic';
+    let count = 0;
+    for (const file of walk(dir).filter((f) => !f.includes('__tests__'))) {
+      const text = readFileSync(file, 'utf8');
+      let m: RegExpExecArray | null;
+      EXPORT_RE.lastIndex = 0;
+      while ((m = EXPORT_RE.exec(text))) {
+        const word = new RegExp(`\\b${m[1]}\\b`);
+        if (!NON_TEST_SRC.some((g) => g !== file && word.test(FILE_TEXT.get(g) ?? ''))) count += 1;
+      }
+    }
+    expect(
+      EPISTEMIC_UNCONSUMED_CEILING - count,
+      `실제 ${count}건인데 천장이 ${EPISTEMIC_UNCONSUMED_CEILING}건입니다 — 천장을 ${count}로 내리십시오.`,
+    ).toBeLessThanOrEqual(3);
+  });
+});
+
 describe('argus_* 테이블 쓰기 전용 금지', () => {
   // 쓰기만 있고 읽기가 없는 테이블은 "저장했다"는 착시를 만든다. 실제로 그
   // 데이터를 쓰는 경로가 없으므로, 그 기능은 존재하지 않는 것과 같다.
