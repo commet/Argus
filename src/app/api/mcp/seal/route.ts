@@ -273,22 +273,38 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'predicate and check_by (YYYY-MM-DD) required' }, { status: 400 });
   }
   const receipt = buildReceipt(body, now);
-  const { error } = await admin.from('review_receipts').upsert(
-    {
-      id: rowId(id),
-      user_id: auth.userId,
-      state: 'sealed',
-      source_title: receipt.source_title,
-      source_kind: 'mcp_file',
-      next_check_by: String(body.check_by),
-      data: receipt,
-      deleted_at: null,
-    },
-    { onConflict: 'id' },
-  );
-  if (error) {
-    console.error('[mcp/seal] upsert:', error.message);
+  // upsert(onConflict:'id') 를 쓰지 않는 이유 — **계정 간 탈취(IDOR)**.
+  // rowId(id) 는 `mcp_${호출자가 고른 id}` 이므로 두 계정이 같은 행 키를 만들 수
+  // 있고, onConflict 는 소유자를 조건에 걸 수 없어서 나중에 부른 쪽이 남의
+  // review_receipts 행을 **user_id 까지 덮어써서 가져간다** (봉인된 판단이 남의
+  // 대시보드와 Companion Brief 로 옮겨간다). 소유자 조건 갱신 → 없으면 삽입으로
+  // 바꾼다: 남의 행이면 갱신이 0건이고 삽입은 기본키 충돌로 **크게 실패한다**.
+  const row = {
+    user_id: auth.userId,
+    state: 'sealed',
+    source_title: receipt.source_title,
+    source_kind: 'mcp_file',
+    next_check_by: String(body.check_by),
+    data: receipt,
+    deleted_at: null,
+  };
+  const { data: touched, error: updateError } = await admin
+    .from('review_receipts')
+    .update(row)
+    .eq('id', rowId(id))
+    .eq('user_id', auth.userId)
+    .select('id')
+    .maybeSingle();
+  if (updateError) {
+    console.error('[mcp/seal] update:', updateError.message);
     return NextResponse.json({ error: 'seal sync failed' }, { status: 502 });
+  }
+  if (!touched) {
+    const { error } = await admin.from('review_receipts').insert({ id: rowId(id), ...row });
+    if (error) {
+      console.error('[mcp/seal] insert:', error.message);
+      return NextResponse.json({ error: 'seal sync failed' }, { status: 502 });
+    }
   }
   return NextResponse.json({ ok: true, synced: true, id: rowId(id), check_by: body.check_by });
 }

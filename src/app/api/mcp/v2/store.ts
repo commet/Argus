@@ -208,13 +208,17 @@ export async function dueReturns(userId: string, now: string, limit = 3) {
 // 크론이 이미 status 를 'sent' 로 옮기는 것과 같은 층위의 갱신이다.
 export async function completeReturns(userId: string, caseId: string): Promise<void> {
   const admin = adminClient();
-  await admin
+  const { error } = await admin
     .from('argus_returns')
     .update({ status: 'completed', completed_at: new Date().toISOString() })
     .eq('user_id', userId)
     .eq('case_id', caseId)
     .in('status', ['armed', 'sent']);
   // 실패해도 던지지 않는다 — 정산은 이미 원장에 기록됐고, 이건 큐 정리다.
+  // 그러나 **조용히 지나가지도 않는다**: 이 갱신이 실패하면 큐 행이 armed/sent
+  // 로 남아 정산된 결정에 크론 메일과 채팅 알림이 계속 간다 — 이 파일이 막으려는
+  // 바로 그 과발화이고, 로그가 없으면 진단할 신호조차 없다.
+  if (error) console.error(`[mcp/v2] return queue close failed (user ${userId}, case ${caseId}):`, error.message);
 }
 
 export async function knownEventIds(userId: string, caseId: string): Promise<Set<string>> {

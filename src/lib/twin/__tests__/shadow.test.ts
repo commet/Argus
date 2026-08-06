@@ -74,6 +74,9 @@ function sealedRow(over: Partial<ShadowRow> = {}): ShadowRow {
     reasoning: '업무량 근거',
     confidence: 0.6,
     modelId: 'anthropic:default-tier',
+    // 해시는 채점 조건(오염 플래그)까지 덮는다 — 성적을 좌우하는 값이
+    // 무결성 검사를 통과한 채 바뀌면 안 되기 때문.
+    contaminatedByLean: false,
   };
   return {
     id: 'sp1',
@@ -167,6 +170,7 @@ describe('revealShadowsText', () => {
       reasoning: 'r',
       confidence: 0.5,
       modelId: 'anthropic:default-tier',
+      contaminatedByLean: false,
     };
     selectRows = [sealedRow({ ...base, status: 'late', content_hash: shadowContentHash(base) })];
     const { text } = await revealShadowsText('user-1', 'case-1');

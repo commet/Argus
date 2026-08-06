@@ -37,15 +37,17 @@ export async function qualifiedPatterns(userId: string): Promise<PolicyPattern[]
     if (error || !data) return [];
 
     // 도메인별 고유 증거 수를 세고, 임계를 넘는 도메인의 패턴만 남긴다.
+    // ?? [] 는 방어적 읽기 규약 — 한 행이 null 이어도 나머지 유효한 행을 잃지 않는다.
+    const rows = data as Array<{ domain: string; content: string; evidence_case_ids: string[] | null }>;
     const byDomain = new Map<string, Set<string>>();
-    for (const r of data as Array<{ domain: string; evidence_case_ids: string[] }>) {
+    for (const r of rows) {
       const set = byDomain.get(r.domain) ?? new Set<string>();
-      for (const id of r.evidence_case_ids) set.add(id);
+      for (const id of r.evidence_case_ids ?? []) set.add(id);
       byDomain.set(r.domain, set);
     }
-    return (data as Array<{ domain: string; content: string; evidence_case_ids: string[] }>)
+    return rows
       .filter((r) => (byDomain.get(r.domain)?.size ?? 0) >= DIVERGENCE_MIN_EVIDENCE)
-      .map((r) => ({ content: r.content, domain: r.domain, evidenceIds: r.evidence_case_ids }));
+      .map((r) => ({ content: r.content, domain: r.domain, evidenceIds: r.evidence_case_ids ?? [] }));
   } catch {
     return [];
   }
@@ -95,7 +97,10 @@ export async function divergenceCrux(userId: string, utterance: string, lean: st
     return (
       `\n\n---\n당신의 지난 ${p.domain} 정산 ${p.evidenceIds.length}건에서는 이런 패턴이 관찰됐습니다: ` +
       `"${p.content}" (근거: ${p.evidenceIds.join(', ')})\n` +
-      `이번 기울기("${lean}")는 그와 달라 보입니다 — 새로 알게 된 것이 있어서인가요, 아니면 같은 조건인가요?`
+      // 맨 중립 crux 한 문장. **양극 fork 금지**(거울 조항) — "A인가요, 아니면
+      // B인가요"는 답을 둘로 가두는 형태이고, 그것도 사용자 대신 틀을 정하는
+      // 것이다. 열린 질문 하나만 남긴다.
+      `이번 기울기("${lean}")는 그와 다릅니다. 이번에는 무엇이 다릅니까?`
     );
   } catch (e) {
     console.error('[twin/divergence] failed:', e);

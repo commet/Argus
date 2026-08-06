@@ -40,9 +40,14 @@ export interface ShadowDraft {
 
 // 봉인 해시 — 공개 시점에 같은 함수로 재계산해 대조한다. 여기 들어가는 필드가
 // 곧 "봉인된 내용"의 정의다.
-export function shadowContentHash(d: Pick<ShadowDraft, 'target' | 'expectation' | 'reasoning' | 'confidence' | 'modelId'>): string {
+export function shadowContentHash(
+  d: Pick<ShadowDraft, 'target' | 'expectation' | 'reasoning' | 'confidence' | 'modelId' | 'contaminatedByLean'>,
+): string {
+  // contaminatedByLean 도 해시에 넣는다 — 이 플래그가 twinScore 의 match 모수
+  // 포함 여부를 정하므로, 해시 밖에 두면 성적을 좌우하는 값이 무결성 검사를
+  // 통과한 채 바뀔 수 있다. 봉인은 "내용"뿐 아니라 **채점 조건**까지 덮어야 한다.
   return createHash('sha256')
-    .update(JSON.stringify([d.target, d.expectation, d.reasoning, d.confidence, d.modelId]))
+    .update(JSON.stringify([d.target, d.expectation, d.reasoning, d.confidence, d.modelId, d.contaminatedByLean]))
     .digest('hex');
 }
 
@@ -92,6 +97,7 @@ export async function revealShadowsForCase(
       reasoning: r.reasoning,
       confidence: r.confidence,
       modelId: r.model_id,
+      contaminatedByLean: r.contaminated_by_lean,
     });
     if (expected === r.content_hash) intact.push(r);
     else {

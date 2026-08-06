@@ -63,7 +63,9 @@ create table if not exists public.argus_profile_items (
   content         text not null,
   -- 증거는 정산된 케이스 id 만 (극장 산출물 금지 — 분신이 자기 상상을 배우면
   -- 안 된다). 실존·정산 여부는 결정론 층이 삽입 전 검증한다.
-  evidence_case_ids text[] not null check (array_length(evidence_case_ids, 1) >= 1),
+  -- cardinality() 를 쓴다: array_length 는 빈 배열에 NULL 을 돌려주고
+  -- CHECK 는 NULL 을 통과시켜 빈 증거가 새어 들어온다 (20260806090000 에서 교정).
+  evidence_case_ids text[] not null check (cardinality(evidence_case_ids) >= 1),
   confidence      real not null check (confidence >= 0 and confidence <= 1),
   counterexamples text[] not null default '{}',
   -- ai_extracted = 추출 파이프라인이 만듦, user_edited = 사용자가 고침.

@@ -9,7 +9,7 @@
 // 화면이 지켜야 할 것: **아직 아무것도 판정하지 않는다.** 여기서 하는 일은
 // 붙이는 법을 알려주는 것뿐이고, 무엇을 결정해야 하는지 말하지 않는다.
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useLocale } from '@/hooks/useLocale';
 import { Button } from '@/components/ui/Button';
 
@@ -21,8 +21,12 @@ export default function ConnectGuidePage() {
   const [copied, setCopied] = useState(false);
 
   // origin 은 브라우저에서만 확실하다 (프리뷰 배포·커스텀 도메인이 다 다르다).
-  // 서버에서 상수로 박으면 프리뷰에서 프로덕션 URL을 복사하게 된다.
-  const url = typeof window === 'undefined' ? MCP_PATH : `${window.location.origin}${MCP_PATH}`;
+  // 렌더 중에 window 를 읽으면 서버 프리렌더(경로만)와 첫 클라이언트 렌더(전체
+  // URL)가 달라 하이드레이션 불일치가 나고, 사용자가 **잘못된 주소를 잠깐 본다**
+  // — 이 화면에서 사용자가 하는 유일한 행동이 그 주소 복사이므로 치명적이다.
+  const [origin, setOrigin] = useState('');
+  useEffect(() => { setOrigin(window.location.origin); }, []);
+  const url = `${origin}${MCP_PATH}`;
 
   const copy = async () => {
     try {

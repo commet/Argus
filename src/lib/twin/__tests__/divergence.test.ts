@@ -72,9 +72,12 @@ describe('LLM 은 인덱스만 고른다', () => {
     expect(text).toContain('지난 채용 정산 5건');
     expect(text).toContain('현금이 빠듯할 때 고정비 증가를 기각해 왔다');
     expect(text).toContain('c1');
-    expect(text).toContain('새로 알게 된 것이 있어서인가요');
+    expect(text).toContain('이번에는 무엇이 다릅니까?');
     // 방향 문장이 아니다 — 어느 쪽이 낫다는 말이 없다.
     expect(text).not.toMatch(/낫|추천|해야 합니다/);
+    // **양극 fork 도 아니다** (거울 조항). "A인가요, 아니면 B인가요" 는 답을
+    // 둘로 가두므로 사용자 대신 틀을 정하는 것이다.
+    expect(text).not.toMatch(/인가요[,\s]*아니면/);
   });
 
   it('-1(충돌 없음)이면 침묵', async () => {

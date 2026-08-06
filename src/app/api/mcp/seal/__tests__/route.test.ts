@@ -4,7 +4,10 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
  * Stub the admin Supabase client with a minimal chainable so the route's
  * token-resolution + review_receipts upsert can be asserted without a real DB.
  */
+// seal 은 upsert 를 버리고 소유자 조건 update → miss 시 insert 로 바뀌었다
+// (계정 간 행 탈취 IDOR 차단). 스파이는 "실제로 저장된 행"을 잡는다.
 const upsertSpy = vi.fn(() => Promise.resolve({ error: null }));
+let receiptExists = false;
 const updateEqSpy = vi.fn(() => Promise.resolve({ error: null }));
 
 function makeAdmin(tokenUserId: string | null, existingData: unknown = null) {
@@ -18,9 +21,23 @@ function makeAdmin(tokenUserId: string | null, existingData: unknown = null) {
       }
       // review_receipts
       return {
-        upsert: (...args: unknown[]) => { upsertSpy(...args); return Promise.resolve({ error: null }); },
+        insert: (...args: unknown[]) => { upsertSpy(...args); return Promise.resolve({ error: null }); },
         select: () => ({ eq: () => ({ eq: () => ({ is: () => ({ single: () => Promise.resolve({ data: existingData ? { data: existingData } : null }) }) }) }) }),
-        update: (...args: unknown[]) => { updateEqSpy(...args); return { eq: () => ({ eq: () => Promise.resolve({ error: null }) }) }; },
+        update: (...args: unknown[]) => {
+          updateEqSpy(...args);
+          // seal 경로: .eq('id').eq('user_id').select().maybeSingle()
+          // 다른 경로(dismiss/settle): .eq().eq() 로 끝난다.
+          const settle = Promise.resolve({ error: null }) as unknown as Record<string, unknown>;
+          const inner = {
+            eq: () => ({
+              select: () => ({ maybeSingle: () => Promise.resolve({ data: receiptExists ? { id: 'r' } : null, error: null }) }),
+              then: (cb: (r: { error: null }) => void) => cb({ error: null }),
+            }),
+            select: () => ({ maybeSingle: () => Promise.resolve({ data: receiptExists ? { id: 'r' } : null, error: null }) }),
+          };
+          void settle;
+          return { eq: () => inner };
+        },
       };
     },
   };
@@ -41,6 +58,7 @@ function req(body: unknown, token = 'argus_pat_test'): Request {
 
 beforeEach(() => {
   upsertSpy.mockClear();
+  receiptExists = false;
   updateEqSpy.mockClear();
   currentAdmin = makeAdmin('user-1');
 });

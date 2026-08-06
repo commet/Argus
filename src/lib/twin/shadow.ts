@@ -30,8 +30,11 @@ import {
 const SHADOW_MODEL_TIER = 'default' as const;
 const SHADOW_MODEL_LABEL = 'anthropic:default-tier';
 
-function num(v: unknown, fallback = 0.5): number {
-  return typeof v === 'number' && v >= 0 && v <= 1 ? v : fallback;
+// 확신도는 **지어내지 않는다.** 0.5 로 메우면 "확신 50%"가 사용자에게 표시되고,
+// 그것이 모델이 말한 값인지 우리가 채운 값인지 구분할 수 없다 — 이 파일 상단이
+// 금지한 바로 그 형태다. 범위 밖·부재면 null 을 돌려주고 호출부가 그 예측을 버린다.
+function num(v: unknown): number | null {
+  return typeof v === 'number' && v >= 0 && v <= 1 ? v : null;
 }
 
 /**
@@ -61,30 +64,38 @@ export async function generateAndSealShadow(
 
     const hasLean = Boolean(opening.lean);
     const late = opts.alreadyAdopted === true;
-    const drafts: ShadowDraft[] = ([
-      {
-        target: 'outcome' as const,
-        expectation: String(out.outcome_expectation ?? ''),
-        reasoning: String(out.reasoning ?? ''),
-        confidence: num(out.outcome_confidence),
-        contaminatedByLean: hasLean,
-        modelId: SHADOW_MODEL_LABEL,
-        late,
-      },
-      {
-        // lean 이 있으면 선택 예측은 자명하므로(오염) 이탈 예측으로 전환한다.
-        target: hasLean ? ('deviation' as const) : ('choice' as const),
-        expectation: String(out.second_expectation ?? ''),
-        reasoning: String(out.reasoning ?? ''),
-        confidence: num(out.second_confidence),
-        contaminatedByLean: hasLean,
-        modelId: SHADOW_MODEL_LABEL,
-        late,
-      },
-    ] satisfies ShadowDraft[]).filter((d) => d.expectation.length > 0);
+    const outcomeConfidence = num(out.outcome_confidence);
+    const secondConfidence = num(out.second_confidence);
+
+    const candidates: Array<ShadowDraft | null> = [
+      outcomeConfidence === null
+        ? null
+        : {
+            target: 'outcome' as const,
+            expectation: String(out.outcome_expectation ?? ''),
+            reasoning: String(out.reasoning ?? ''),
+            confidence: outcomeConfidence,
+            contaminatedByLean: hasLean,
+            modelId: SHADOW_MODEL_LABEL,
+            late,
+          },
+      secondConfidence === null
+        ? null
+        : {
+            // lean 이 있으면 선택 예측은 자명하므로(오염) 이탈 예측으로 전환한다.
+            target: hasLean ? ('deviation' as const) : ('choice' as const),
+            expectation: String(out.second_expectation ?? ''),
+            reasoning: String(out.reasoning ?? ''),
+            confidence: secondConfidence,
+            contaminatedByLean: hasLean,
+            modelId: SHADOW_MODEL_LABEL,
+            late,
+          },
+    ];
+    const drafts = candidates.filter((d): d is ShadowDraft => d !== null && d.expectation.length > 0);
 
     if (drafts.length === 0) {
-      console.error('[twin/shadow] empty expectations — nothing sealed');
+      console.error('[twin/shadow] no usable prediction (empty expectation or unstated confidence) — nothing sealed');
       return;
     }
     await sealShadows(userId, caseId, drafts);

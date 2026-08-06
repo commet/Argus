@@ -48,6 +48,9 @@ export interface TheaterItem {
   title: string;
   body: string;
   correct?: boolean;
+  // 생산한 필드는 소비하거나 명시적으로 포기한다 — 저장만 하고 아무도 읽지
+  // 않으면 그 숫자는 dead-on-arrival 이다. 리포트의 보정 줄이 이것을 쓴다.
+  brier?: number;
 }
 
 export async function playBankCase(
@@ -75,7 +78,10 @@ export async function playBankCase(
   const valid = bank.options.some((o) => o.key === choiceKey);
   if (!valid) return null; // options 밖의 답은 답이 아니다
 
-  const confidence = typeof out.confidence === 'number' ? Math.min(Math.max(out.confidence, 0), 1) : 0.5;
+  // 확신도를 0.5 로 메우지 않는다 — 그 값이 Brier 성분을 만들고 성적표에 실린다.
+  // 지어낸 확신으로 계산한 보정 점수는 그럴듯한 가짜 숫자다.
+  if (typeof out.confidence !== 'number' || out.confidence < 0 || out.confidence > 1) return null;
+  const confidence = out.confidence;
   const correct = choiceKey === bank.outcome_key;
   // Brier 성분: 맞으면 (1-p)^2, 틀리면 p^2 — 낮을수록 좋다.
   const brier = correct ? (1 - confidence) ** 2 : confidence ** 2;
@@ -106,6 +112,7 @@ export async function playBankCase(
       `실제: ${bank.outcome_note}\n` +
       `채점: ${correct ? '적중' : '빗나감'} · 출처: ${bank.source_url}`,
     correct,
+    brier,
   };
 }
 
@@ -237,6 +244,13 @@ export function buildTheaterReport(
   }
   if (graded.length > 0) {
     lines.push('', `■ 채점된 것 (결과가 이미 나온 공개 사례, ${hits}/${graded.length} 적중)`);
+    // 보정(Brier): 맞고 틀림만이 아니라 **확신의 크기가 맞았는지**. 낮을수록
+    // 좋고, 슈퍼포캐스터 0.166 / 일반 0.259 가 외부 기준선이다.
+    const briers = graded.map((i) => i.brier).filter((b): b is number => typeof b === 'number');
+    if (briers.length > 0) {
+      const avg = briers.reduce((a, b) => a + b, 0) / briers.length;
+      lines.push(`보정 점수(Brier) 평균 ${avg.toFixed(3)} — 낮을수록 확신의 크기까지 맞은 것입니다.`);
+    }
     for (const i of graded) lines.push('', `[채점됨] ${i.title}`, i.body);
   }
   if (fiction.length > 0) {

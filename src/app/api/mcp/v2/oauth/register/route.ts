@@ -27,7 +27,14 @@ function err(error: string, description: string, status = 400) {
 export async function POST(req: NextRequest) {
   let body: Record<string, unknown>;
   try {
-    body = (await req.json()) as Record<string, unknown>;
+    const parsed = await req.json();
+    // JSON.parse('null') 은 null 을 돌려주고, 배열도 typeof 'object' 다. 검사
+    // 없이 캐스팅하면 아래 body.redirect_uris 접근이 try 밖에서 던져 사양 밖의
+    // 500 이 나간다 — 클라이언트는 그것을 OAuth 오류로 분류하지 못한다.
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+      return err('invalid_client_metadata', 'body must be a JSON object');
+    }
+    body = parsed as Record<string, unknown>;
   } catch {
     return err('invalid_client_metadata', 'body must be JSON');
   }

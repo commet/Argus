@@ -33,7 +33,12 @@ export async function POST(req: NextRequest) {
 
   let body: Record<string, unknown>;
   try {
-    body = (await req.json()) as Record<string, unknown>;
+    const parsed = await req.json();
+    // null 과 배열도 통과시키면 아래 body.client_id 접근이 try 밖에서 던진다.
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+      return NextResponse.json({ error: 'invalid_request' }, { status: 400 });
+    }
+    body = parsed as Record<string, unknown>;
   } catch {
     return NextResponse.json({ error: 'invalid_request' }, { status: 400 });
   }

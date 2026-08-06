@@ -9,6 +9,7 @@
 
 import { adminClient } from '@/lib/share-guard';
 import { callAnthropicJson } from '@/lib/llm-server';
+import { sanitizeForPrompt } from '@/lib/persona-prompt';
 import { buildExtractSystem, buildExtractUser, EXTRACT_SCHEMA, type SettledCaseFacts } from './prompts';
 
 const PROFILE_MODEL_TIER = 'default' as const;
@@ -129,8 +130,17 @@ export async function profileLines(userId: string, limit = 8): Promise<string[]>
       .order('created_at', { ascending: false })
       .limit(limit);
     if (error || !data) return [];
-    return (data as Array<{ layer: string; domain: string; content: string; evidence_case_ids: string[] }>).map(
-      (r) => `[${r.layer}·${r.domain}] ${r.content} (근거: ${r.evidence_case_ids.join(', ')})`,
+    // 프로필 내용은 사용자 발화에서 추출된 것이므로 **사용자 데이터**다. 이것이
+    // 그대로 system 프롬프트에 이어붙으면 주입 표면이 된다 — 리포 규약대로
+    // sanitizeForPrompt 를 통과시키고 <user-data> 로 감싼다.
+    // 배열 fallback(?? []) 은 방어적 읽기 규약 (스키마상 not null 이지만
+    // Supabase 응답을 믿고 dereference 하면 한 행 때문에 전체가 죽는다).
+    return (
+      data as Array<{ layer: string; domain: string; content: string; evidence_case_ids: string[] | null }>
+    ).map(
+      (r) =>
+        `[${r.layer}·${r.domain}] <user-data>${sanitizeForPrompt(r.content ?? '')}</user-data> ` +
+        `(근거: ${(r.evidence_case_ids ?? []).join(', ')})`,
     );
   } catch {
     return [];

@@ -466,8 +466,15 @@ export async function handleReturn(userId: string, args: Args) {
   if (!state.card) return toolText('이 결정에는 채택된 기록이 없습니다.', true);
 
   const observation = str(args.observation);
+  // 스키마가 ISO 8601 이라고 적어도 호스트가 그것을 검증한다는 보장이 없다.
+  // 원장은 append-only 라 잘못 들어간 시각은 **영영 고칠 수 없다** — "지난주"
+  // 같은 문자열이 IsoTime 자리에 박히면 그 케이스의 시간축이 죽는다.
+  // (같은 이유로 validatePlan 이 dueDate 를 다시 검사한다.)
+  const parsedObservedAt = str(args.observedAt);
+  const observedAt =
+    parsedObservedAt && !Number.isNaN(new Date(parsedObservedAt).getTime()) ? parsedObservedAt : now();
   const recordObservation = () =>
-    engine.recordObservation(observation, args.relayed === true ? 'relayed' : 'direct', str(args.observedAt) || now(), now());
+    engine.recordObservation(observation, args.relayed === true ? 'relayed' : 'direct', observedAt, now());
 
   // 이미 정산이 끝난 결정(활성 귀환 없음). 나중 사실은 덧붙지만(§AUTHORITY),
   // 회상 탐침과 기록 열기는 **다시 하지 않는다** — 정산된 결정을 다시 여는 것은

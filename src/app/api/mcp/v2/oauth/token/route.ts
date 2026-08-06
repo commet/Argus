@@ -94,29 +94,37 @@ export async function POST(req: NextRequest) {
 
   if (Date.parse(grant.expires_at) <= Date.now()) return oauthError('invalid_grant', 400, 'authorization code expired');
   if (grant.status !== 'issued') return oauthError('invalid_grant', 400, 'authorization code already used');
-  if (params.client_id && params.client_id !== grant.client_id) return oauthError('invalid_grant');
+  // 공개 클라이언트만 지원하므로(auth method 'none') RFC 6749 §4.1.3 상
+  // client_id 는 **필수**다 — 없으면 비교를 건너뛰는 것이 아니라 거절한다.
+  if (!params.client_id || params.client_id !== grant.client_id) return oauthError('invalid_client');
   // redirect_uri 는 인가 때와 **정확히** 같아야 한다 (RFC 6749 §4.1.3).
   if (!params.redirect_uri || params.redirect_uri !== grant.redirect_uri) return oauthError('invalid_grant');
   if (pkceChallenge(params.code_verifier) !== grant.code_challenge) return oauthError('invalid_grant');
 
-  // 코드를 먼저 소모(claim)한 뒤에 자격증명을 만든다. 순서를 뒤집으면 동시에
+  // 토큰 상한은 **코드를 소모하기 전에** 본다. 뒤에 두면 상한에 걸린 사용자가
+  // 이미 태워 버린 코드로 거절당해, 다시 시도해도 같은 코드로는 영영 안 된다.
+  // 만료된 행은 세지 않는다 — 크론이 지우기 전까지 남아 있는 죽은 토큰이
+  // 살아 있는 자리를 차지하면 안 된다.
+  const nowIso = new Date().toISOString();
+  const { count } = await admin
+    .from('plugin_tokens')
+    .select('id', { count: 'exact', head: true })
+    .eq('user_id', grant.user_id)
+    .or(`expires_at.is.null,expires_at.gt.${nowIso}`);
+  if ((count ?? 0) >= MAX_TOKENS_PER_USER) {
+    return oauthError('access_denied', 429, 'Token limit reached; revoke one in Settings.');
+  }
+
+  // 코드를 소모(claim)한 뒤에 자격증명을 만든다. 순서를 뒤집으면 동시에
   // 도착한 두 요청이 같은 코드로 토큰을 두 개 만든다.
   const { data: claimed } = await admin
     .from('argus_oauth_grants')
-    .update({ status: 'consumed', consumed_at: new Date().toISOString() })
+    .update({ status: 'consumed', consumed_at: nowIso })
     .eq('id', grant.id)
     .eq('status', 'issued')
     .select('id')
     .maybeSingle();
   if (!claimed) return oauthError('invalid_grant', 400, 'authorization code already used');
-
-  const { count } = await admin
-    .from('plugin_tokens')
-    .select('id', { count: 'exact', head: true })
-    .eq('user_id', grant.user_id);
-  if ((count ?? 0) >= MAX_TOKENS_PER_USER) {
-    return oauthError('access_denied', 429, 'Token limit reached; revoke one in Settings.');
-  }
 
   const { data: client } = await admin
     .from('argus_oauth_clients')

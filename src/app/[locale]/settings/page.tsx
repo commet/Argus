@@ -1333,7 +1333,7 @@ function JudgmentProfileBlock({ locale }: { locale: string }) {
                 {it.content}
                 {/* 근거 없이는 항목이 존재할 수 없다 — 그 사실을 화면에서도 보인다. */}
                 <span className="block text-[11px] text-[var(--text-tertiary)] mt-0.5">
-                  {L('근거 정산 ', 'from ')}{it.evidence_case_ids.length}{L('건', ' settlement(s)')}: {it.evidence_case_ids.join(', ')}
+                  {L('근거 정산 ', 'from ')}{(it.evidence_case_ids || []).length}{L('건', ' settlement(s)')}: {(it.evidence_case_ids || []).join(', ')}
                 </span>
               </span>
               <button

@@ -3,7 +3,7 @@ import { randomBytes } from 'crypto';
 import { validateContentType } from '@/lib/api-security';
 import { adminClient } from '@/lib/share-guard';
 import { pluginTokenExpiry, PLUGIN_TOKEN_TTL_DAYS } from '@/lib/plugin-token';
-import { insertFullScopeToken } from '@/lib/plugin-token-auth';
+import { hashPluginToken, insertFullScopeToken } from '@/lib/plugin-token-auth';
 import {
   MCP_ACCOUNT_SCOPE,
   isValidPkceVerifier,
@@ -111,7 +111,7 @@ export async function POST(req: NextRequest) {
   // 자기 터미널을 계정에 붙이는 것이므로 계정 전체 범위다.
   const { error: tokenError } = await insertFullScopeToken(admin, {
     user_id: grant.user_id,
-    token_hash: sha256(accessToken),
+    token_hash: hashPluginToken(accessToken),
     label: grant.client_name,
     expires_at: expiresAt,
   });
