@@ -24,9 +24,20 @@ import {
   type StakesWeight,
 } from '../../../../../method-harness/types';
 import { divergenceCrux } from '@/lib/twin/divergence';
-import { extractProfileFromSettlement, profileLines } from '@/lib/twin/profile';
+import {
+  applyDelegation,
+  caseDelegationId,
+  createDelegation,
+  describeDelegationGrade,
+  gradeDelegation,
+  markCaseDelegation,
+  DELEGATION_DEFAULT_DAYS,
+  DELEGATION_MAX_DAYS,
+} from '@/lib/twin/delegation';
+import { extractProfileFromSettlement, profileLines, recentlyRetiredLines } from '@/lib/twin/profile';
 import { generateAndSealShadow, gradeRevealedShadows, revealShadowsText, runAfterResponse } from '@/lib/twin/shadow';
 import { twinScore } from '@/lib/twin/store';
+import { persistServerEvent } from '@/lib/server-events';
 import { toolText } from './protocol';
 import {
   armReturns,
@@ -205,6 +216,12 @@ export async function handleOpen(userId: string, args: Args) {
   // 실리지 못한 발화는 존재하지 않는 발화다 — 대신 관문이 빈도를 누른다.
   const crux = await divergenceCrux(userId, utterance, lean || undefined);
 
+  // 범위 위임 (TWIN §4.5). 사용자가 **자기 말로** 미리 승인해 둔 정책이 이
+  // 조건에 해당하면 그것을 꺼내 놓는다. 꺼내는 것까지가 위임의 전부다 —
+  // 채택은 여전히 argus_adopt(사용자의 명시)로만 일어난다. 위임도 이탈 crux 도
+  // 없는 것이 정상이고, 둘 다 침묵이 기본값이다.
+  const delegation = await applyDelegation(userId, utterance);
+
   return ok(
     userId,
     `결정을 열었습니다 (id: ${caseId}, 발동 사유: ${gate.reason}).\n` +
@@ -212,7 +229,10 @@ export async function handleOpen(userId: string, args: Args) {
         ? `AI가 말하기 전의 기울기를 보존했습니다: "${lean}"\n`
         : '기울기 없이 시작했습니다 — 그것도 정직한 출발점입니다.\n') +
       '다음: argus_sharpen 으로 가장 무게가 실리는 가정 하나를 확인하십시오.' +
-      crux,
+      crux +
+      (delegation
+        ? `${delegation.text}\n(채택할 때 appliedDelegationId: "${delegation.delegation.id}" 를 함께 보내면 이 정책이 정산으로 채점됩니다.)`
+        : ''),
     caseId,
   );
 }
@@ -385,12 +405,48 @@ export async function handleAdopt(userId: string, args: Args) {
     gaps.push('이 선택을 떠받치는 가치·사실 믿음이 비어 있습니다 — 사용자가 말한 것이 있으면 values / materialBeliefs 로 보내십시오.');
   }
 
+  // 이 채택이 기존 위임을 따랐다면 케이스에 도장을 찍는다 — 정산 때 위임을
+  // 채점할 대상이 여기서 생긴다. 실패해도 채택은 무사하다 (부가 기록).
+  const appliedDelegationId = str(args.appliedDelegationId);
+  if (appliedDelegationId) {
+    runAfterResponse(() => markCaseDelegation(userId, caseId, appliedDelegationId));
+  }
+
+  // 새 위임. **거부가 기본값**이고, 거부하면 왜 거부했는지 응답에 그대로 적는다 —
+  // 조용히 안 만들면 사용자는 위임이 생긴 줄 알고 다음 결정을 기다린다.
+  let delegationNote = '';
+  const delegationArg = (args.delegation ?? null) as Args | null;
+  if (delegationArg) {
+    const created = await createDelegation(userId, {
+      policy: str(delegationArg.policy),
+      scopeDomain: str(delegationArg.scopeDomain),
+      scopeCondition: str(delegationArg.scopeCondition),
+      userWords: str(delegationArg.userWords),
+      days: typeof delegationArg.days === 'number' ? delegationArg.days : undefined,
+      fromCaseId: caseId,
+    });
+    if (created.ok) {
+      const requested = typeof delegationArg.days === 'number' ? Math.trunc(delegationArg.days) : DELEGATION_DEFAULT_DAYS;
+      const truncated = requested > DELEGATION_MAX_DAYS;
+      delegationNote =
+        `\n\n위임이 만들어졌습니다 (${created.expiresAt.slice(0, 10)}까지` +
+        (truncated ? `, 요청하신 ${requested}일은 최대 ${DELEGATION_MAX_DAYS}일로 줄였습니다` : '') +
+        ').\n' +
+        '다음에 같은 조건의 결정을 열면 이 정책을 꺼내 놓습니다. 결정을 대신하지는 않습니다 — ' +
+        '채택은 여전히 사용자가 하고, 정산 때마다 이 정책 자체가 채점됩니다. ' +
+        '어긋남이 쌓이면 위임은 스스로 멈춥니다.';
+    } else {
+      delegationNote = `\n\n위임은 만들지 않았습니다: ${created.reason}`;
+    }
+  }
+
   return ok(
     userId,
     `채택되었습니다 — 이 결정은 이제 사용자의 것으로 기록됩니다${edited ? ' (수정분 포함)' : ''}.\n` +
       `하중: ${stakes.weight} / ${stakes.reversibility}\n` +
       (gaps.length > 0 ? `\n비어 있는 자리 (채우지 않고 그대로 둡니다):\n· ${gaps.join('\n· ')}\n` : '') +
-      '\n다음: argus_plan 으로 실행 계획을 만들면, 그 기한들이 그대로 돌아보기 약속이 됩니다.',
+      '\n다음: argus_plan 으로 실행 계획을 만들면, 그 기한들이 그대로 돌아보기 약속이 됩니다.' +
+      delegationNote,
     caseId,
   );
 }
@@ -574,10 +630,17 @@ export async function handleReturn(userId: string, args: Args) {
     );
   }
 
+  // 위임 채점 (TWIN §4.5). 위임을 따른 결정에서만 돈다 — 대부분의 정산에는
+  // 위임이 없고 그러면 LLM 호출도 없다. **동기 호출인 이유**: 위임이 자동으로
+  // 멈췄다는 사실은 사용자가 지금 알아야 하는 것이다. 다음에 그 정책을 다시
+  // 꺼내지 않을 것이므로, 말하지 않으면 사용자는 위임이 여전히 도는 줄 안다.
+  const delegationId = await caseDelegationId(userId, caseId);
+  const delegationGrade = delegationId ? await gradeDelegation(userId, delegationId, observation) : null;
+
   // 프로필 추출 (TWIN §4.1) — 방금 정산된 케이스 하나에서만. 검증(증거 실존·
   // 판정 언어 린트)을 통과한 항목만 저장되고, 실패는 정산을 막지 않는다.
   runAfterResponse(async () => {
-    await extractProfileFromSettlement(userId, {
+    const update = await extractProfileFromSettlement(userId, {
       caseId,
       question: revealed.card?.question ?? '',
       choice: revealed.card?.choiceOrPolicy ?? '',
@@ -586,6 +649,13 @@ export async function handleReturn(userId: string, args: Args) {
       observation,
       recall,
     });
+    // 산출을 소비한다 — after() 안이라 이번 응답에는 실을 수 없고, 그렇다고
+    // 버리면 "프로필이 정말 갱신되고 있는가"를 확인할 방법이 사라진다. 다음
+    // recall 이 사용자에게 결과를 보이고(물러난 관찰 절), 이 이벤트가 운영에
+    // 보인다. 아무 변화도 없었으면 기록하지 않는다 — 없는 일은 이벤트가 아니다.
+    if (update.inserted + update.reinforced + update.contradicted > 0) {
+      await persistServerEvent('argus_profile_updated', { ...update, caseId }, { userId, path: '/api/mcp/v2' });
+    }
   });
 
   return ok(
@@ -597,7 +667,8 @@ export async function handleReturn(userId: string, args: Args) {
       }\n\n` +
       `방금의 기억: "${recall}"\n실제로 일어난 일: "${observation}"\n\n` +
       '둘이 다르다면 그 차이가 이 기록이 존재하는 이유입니다 — 결과를 알고 나면 누구나 이유를 다시 씁니다.' +
-      shadow.text,
+      shadow.text +
+      describeDelegationGrade(delegationGrade),
     caseId,
   );
 }
@@ -699,6 +770,16 @@ export async function handleRecall(userId: string, args: Args) {
     const lines = await profileLines(userId, 5);
     if (lines.length > 0) {
       parts.push('정산에서 관찰된 판단 패턴 (편집·삭제 가능, 근거 케이스 첨부):\n' + lines.map((l) => `· ${l}`).join('\n'));
+    }
+    // 물러난 관찰 (TWIN §4.1). 반례가 쌓여 은퇴한 항목은 **말해야 한다** —
+    // 조용히 빼면 기계가 자기 기록을 몰래 고치는 형태가 되고, 사용자는 이의를
+    // 제기할 기회를 잃는다. 거울이 스스로 취소한 것도 거울에 비쳐야 한다.
+    const retired = await recentlyRetiredLines(userId);
+    if (retired.length > 0) {
+      parts.push(
+        '최근 물러난 관찰 (현실이 반대로 답해서 분신이 더 이상 쓰지 않습니다):\n' +
+          retired.map((l) => `· ${l}`).join('\n'),
+      );
     }
     // 분신 성적 (TWIN §4.2). **사람이 아니라 예측을 채점한 것**이고, 표본
     // 미달이면 숫자를 감춘다 — 3건짜리 퍼센트는 정보가 아니라 소음이다.

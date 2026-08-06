@@ -1,7 +1,9 @@
 // TWIN 시뮬레이션 극장 — 사용자가 쉬는 동안 분신이 도는 무대.
 //
 // 등급 라벨이 이 파일의 헌법이다:
-// · graded    — 결과가 이미 나온 공개 사례에 대한 예측을 실결과로 채점한 것
+// · graded    — 정답이 실재하는 문제를 푼 것. 두 트랙이 있고 리포트에서 절이
+//               갈린다: 공개 사례(정답=역사) 와 변장 재제시(정답=사용자의 실제
+//               선택, noise.ts). 한 절에 묶으면 "공개 사례"가 거짓말이 된다
 // · fiction   — 가지 않은 길의 재생. **현실 결과가 없으므로 채점 불가**이며,
 //               사실처럼 쓰는 순간 LLM-glue 위반이다
 // 라벨 없는 산출물은 DB 제약(not null)이 거부하고, 리포트 문안도 라벨을
@@ -9,12 +11,17 @@
 
 import { adminClient } from '@/lib/share-guard';
 import { callAnthropicJson } from '@/lib/llm-server';
-import { CASE_BANK_SEED } from './case-bank-seed';
+import { CASE_BANK_SEED, type CaseBankItem } from './case-bank-seed';
 import { profileLines } from './profile';
 
 const THEATER_MODEL_LABEL = 'anthropic:fast-tier';
 
 // ── case bank 시드 적재 (멱등) ────────────────────────────────────────────
+//
+// 시드는 코드가 갖고 **정본은 테이블이 갖는다.** 읽기까지 코드 상수로 하면
+// 테이블은 장식이 되고(지워도 아무도 눈치채지 못한다), 사례를 한 건 늘리는 데
+// 배포가 필요해진다 — 기획서가 "확장은 별도 콘텐츠 작업"이라 적어 둔 것과
+// 어긋난다. 그래서 시드는 밀어 넣고, 재생은 테이블에서 읽는다.
 export async function ensureCaseBankSeeded(): Promise<void> {
   const admin = adminClient();
   const { error } = await admin.from('argus_case_bank').upsert(
@@ -45,6 +52,10 @@ const BANK_SCHEMA = {
 
 export interface TheaterItem {
   gradeLabel: 'graded' | 'fiction';
+  // 채점된 것끼리도 **무엇에 대한 채점인지**가 다르다. 공개 사례 채점과 변장
+  // 재제시를 한 절에 묶으면 "결과가 이미 나온 공개 사례"라는 문장이 변장
+  // 항목에 대해 거짓말이 된다. 라벨이 헌법인 파일에서 그건 자기모순이다.
+  track?: 'bank' | 'disguised';
   title: string;
   body: string;
   correct?: boolean;
@@ -55,7 +66,7 @@ export interface TheaterItem {
 
 export async function playBankCase(
   userId: string,
-  bank: (typeof CASE_BANK_SEED)[number],
+  bank: CaseBankItem,
   profile: string[],
 ): Promise<TheaterItem | null> {
   const out = await callAnthropicJson({
@@ -105,6 +116,7 @@ export async function playBankCase(
 
   return {
     gradeLabel: 'graded',
+    track: 'bank',
     title: `${bank.domain} — ${bank.id}`,
     body:
       `상황: ${bank.situation}\n` +
@@ -150,16 +162,42 @@ export async function unreplayedUntakenPaths(userId: string, limit = 1) {
     }));
 }
 
-// 이 사용자가 아직 안 푼 bank 사례를 고른다.
-export async function unplayedBankCases(userId: string, limit = 2) {
+// 이 사용자가 아직 안 푼 bank 사례를 고른다 — **테이블에서** 읽는다.
+// 읽기 실패는 던진다: 조용히 빈 배열을 돌려주면 "이번 주엔 풀 사례가 없었다"와
+// "은행을 못 읽었다"가 구분되지 않고, 크론은 아무 일도 없었던 것처럼 끝난다.
+export async function unplayedBankCases(userId: string, limit = 2): Promise<CaseBankItem[]> {
   const admin = adminClient();
-  const { data } = await admin
+  const { data: runs } = await admin
     .from('argus_simulation_runs')
     .select('source_ref')
     .eq('user_id', userId)
     .eq('source', 'case_bank');
-  const played = new Set((data ?? []).map((r) => r.source_ref as string));
-  return CASE_BANK_SEED.filter((c) => !played.has(c.id)).slice(0, limit);
+  const played = new Set((runs ?? []).map((r) => r.source_ref as string));
+
+  const { data, error } = await admin
+    .from('argus_case_bank')
+    .select('id, domain, situation, options, outcome_key, outcome_note, source_url')
+    .order('id');
+  if (error) throw new Error(`case bank read failed: ${error.message}`);
+
+  const rows = (data ?? []) as Array<CaseBankItem & { options: unknown }>;
+  return rows
+    .filter((c) => !played.has(c.id))
+    .map((c) => ({ ...c, options: normalizeOptions(c.options) }))
+    // 선택지가 둘 미만이면 채점할 수 있는 문제가 아니다 — 지어내지 않고 건너뛴다.
+    .filter((c) => c.options.length >= 2 && c.options.some((o) => o.key === c.outcome_key))
+    .slice(0, limit);
+}
+
+// jsonb 는 무엇이든 들어올 수 있다 (사람이 손으로 사례를 넣을 수 있는 테이블이다).
+// 모양이 아니면 빈 배열 — 위 필터가 그런 행을 걸러 낸다.
+function normalizeOptions(raw: unknown): Array<{ key: string; label: string }> {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .filter((o): o is { key: string; label: string } =>
+      Boolean(o) && typeof (o as { key?: unknown }).key === 'string' && typeof (o as { label?: unknown }).label === 'string',
+    )
+    .map((o) => ({ key: o.key, label: o.label }));
 }
 
 // ── 가지 않은 길 (허구 트랙) ─────────────────────────────────────────────
@@ -218,7 +256,8 @@ export function buildTheaterReport(
   items: TheaterItem[],
   score?: { matchRate: number | null; matchSample: number; outcomeRate: number | null; outcomeSample: number },
 ): { subject: string; text: string } {
-  const graded = items.filter((i) => i.gradeLabel === 'graded');
+  const graded = items.filter((i) => i.gradeLabel === 'graded' && i.track !== 'disguised');
+  const disguised = items.filter((i) => i.track === 'disguised');
   const fiction = items.filter((i) => i.gradeLabel === 'fiction');
   const hits = graded.filter((i) => i.correct).length;
 
@@ -252,6 +291,17 @@ export function buildTheaterReport(
       lines.push(`보정 점수(Brier) 평균 ${avg.toFixed(3)} — 낮을수록 확신의 크기까지 맞은 것입니다.`);
     }
     for (const i of graded) lines.push('', `[채점됨] ${i.title}`, i.body);
+  }
+  if (disguised.length > 0) {
+    // 잡음 거울. 같은 'graded' 라벨이지만 채점의 **대상**이 다르다 —
+    // 여기서 맞았다는 것은 "표면을 바꿔도 같은 답이 나왔다"는 뜻이다.
+    const dHits = disguised.filter((i) => i.correct).length;
+    lines.push(
+      '',
+      `■ 변장 재제시 (당신의 지난 결정을 다른 업종·다른 숫자로 바꿔 분신에게 다시 물은 것, ${dHits}/${disguised.length} 일치)`,
+      '표면을 바꿔도 같은 답이 나오는지를 본 것입니다. 채점 대상은 분신이며, 당신에 대한 평가가 아닙니다.',
+    );
+    for (const i of disguised) lines.push('', `[변장 재제시] ${i.title}`, i.body);
   }
   if (fiction.length > 0) {
     lines.push('', '■ 허구 — 가지 않은 길의 재생. 일어나지 않은 일이므로 채점할 수 없습니다.');

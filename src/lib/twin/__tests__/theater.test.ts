@@ -13,6 +13,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const inserted: Array<Record<string, unknown>> = [];
 let llmResponse: Record<string, unknown> | null = null;
 let playedRefs: Array<{ source_ref: string }> = [];
+// 은행은 이제 **테이블이 정본**이다 — 코드 상수는 시드일 뿐이므로 mock 도
+// 테이블을 흉내낸다. 기본값은 시드와 같은 내용.
+let bankRows: Array<Record<string, unknown>> = [];
+let bankError: { message: string } | null = null;
 
 vi.mock('@/lib/llm-server', () => ({
   callAnthropicJson: vi.fn(async () => llmResponse),
@@ -26,11 +30,10 @@ vi.mock('@/lib/share-guard', () => ({
         return Promise.resolve({ error: null });
       },
       upsert: () => Promise.resolve({ error: null }),
-      select: () => ({
-        eq: () => ({
-          eq: () => Promise.resolve({ data: playedRefs, error: null }),
-        }),
-      }),
+      select: () =>
+        table === 'argus_case_bank'
+          ? { order: () => Promise.resolve({ data: bankRows, error: bankError }) }
+          : { eq: () => ({ eq: () => Promise.resolve({ data: playedRefs, error: null }) }) },
     }),
   }),
 }));
@@ -43,6 +46,8 @@ import { buildTheaterReport, playBankCase, replayUntakenPath, unplayedBankCases 
 beforeEach(() => {
   inserted.length = 0;
   playedRefs = [];
+  bankRows = CASE_BANK_SEED.map((c) => ({ ...c }));
+  bankError = null;
   llmResponse = { choice_key: CASE_BANK_SEED[0].outcome_key, confidence: 0.8, reasoning: '근거' };
 });
 
@@ -115,6 +120,22 @@ describe('unplayedBankCases', () => {
     const next = await unplayedBankCases('user-1', 2);
     expect(next.map((c) => c.id)).not.toContain(CASE_BANK_SEED[0].id);
     expect(next).toHaveLength(2);
+  });
+
+  it('은행을 못 읽으면 던진다 — "풀 사례가 없었다"와 구분되어야 한다', async () => {
+    bankError = { message: 'relation does not exist' };
+    await expect(unplayedBankCases('user-1', 2)).rejects.toThrow(/case bank read failed/);
+  });
+
+  it('모양이 깨진 행은 건너뛴다 — 손으로 넣은 사례가 채점을 오염시키지 않는다', async () => {
+    bankRows = [
+      { ...CASE_BANK_SEED[0], options: 'not-an-array' },
+      { ...CASE_BANK_SEED[1], options: [{ key: 'a', label: 'A' }] }, // 선택지 1개 = 문제가 아니다
+      { ...CASE_BANK_SEED[2], outcome_key: 'nonexistent' }, // 정답이 선택지 밖 = 채점 불가
+      { ...CASE_BANK_SEED[3] },
+    ];
+    const next = await unplayedBankCases('user-1', 5);
+    expect(next.map((c) => c.id)).toEqual([CASE_BANK_SEED[3].id]);
   });
 });
 

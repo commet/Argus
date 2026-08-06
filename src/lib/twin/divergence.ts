@@ -13,6 +13,7 @@
 
 import { adminClient } from '@/lib/share-guard';
 import { callAnthropicJson } from '@/lib/llm-server';
+import { RETIRE_CONFIDENCE } from './profile';
 
 // 같은 도메인의 정산 증거가 이 수를 넘어야 "패턴"이라 부를 자격이 있다.
 // 얇은 프로필에서 LLM 이 아무 데서나 패턴을 "발견"하는 과발화의 방지선.
@@ -30,10 +31,15 @@ export async function qualifiedPatterns(userId: string): Promise<PolicyPattern[]
     const admin = adminClient();
     const { data, error } = await admin
       .from('argus_profile_items')
-      .select('domain, content, evidence_case_ids')
+      .select('domain, content, evidence_case_ids, counterexamples, confidence')
       .eq('user_id', userId)
       .eq('status', 'active')
-      .eq('layer', 'L3');
+      .eq('layer', 'L3')
+      // 만료된 관찰로 "당신은 늘 이랬습니다"라고 물으면 그것은 과발화다.
+      .or(`expires_at.is.null,expires_at.gt.${new Date().toISOString()}`)
+      // 이미 반례로 흔들린 패턴(확신도 미달)은 이탈을 물을 자격이 없다 —
+      // "당신의 패턴과 다릅니다"의 전제가 그 패턴이 아직 서 있다는 것이다.
+      .gte('confidence', RETIRE_CONFIDENCE);
     if (error || !data) return [];
 
     // 도메인별 고유 증거 수를 세고, 임계를 넘는 도메인의 패턴만 남긴다.

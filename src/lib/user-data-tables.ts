@@ -57,6 +57,9 @@ export const USER_DATA_TABLES = [
   // 계정 삭제·내보내기에 반드시 포함된다 — 파일럿이라는 이유로 빠뜨리면
   // "폐기 전제" 계약이 지켜지지 않는다.
   'argus_cases',
+  // TWIN Phase 4 (2026-08-06) — 범위 위임. 사용자가 자기 말로 만든 정책이므로
+  // 계정 삭제·반출이 반드시 훑어야 한다.
+  'argus_delegations',
   'argus_events',
   // 원격 커넥터 OAuth 인가 코드 (2026-08-05). 1회용·단명이지만 user_id가 있으므로
   // 같은 규칙이 적용된다. 짝인 argus_oauth_clients 는 user_id가 없어 여기 없다.

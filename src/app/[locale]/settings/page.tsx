@@ -661,6 +661,8 @@ export default function SettingsPage() {
             <div className="border-t border-[var(--border-subtle)] my-4" />
             <JudgmentProfileBlock locale={locale} />
 
+            <DelegationBlock locale={locale} />
+
             {/* Public share links */}
             <div className="border-t border-[var(--border-subtle)] my-4" />
             <SharedLinksBlock locale={locale} />
@@ -1263,7 +1265,9 @@ interface ProfileItem {
   domain: string;
   content: string;
   evidence_case_ids: string[];
+  counterexamples: string[] | null;
   confidence: number;
+  status: string;
   created_at: string;
 }
 
@@ -1284,11 +1288,14 @@ function JudgmentProfileBlock({ locale }: { locale: string }) {
   const [error, setError] = useState('');
 
   const load = useCallback(async () => {
+    // 은퇴 항목도 함께 읽는다. 반례가 쌓여 물러난 항목을 화면에서 지워 버리면
+    // 사용자가 아는 것은 "언젠가 있던 것이 사라졌다"뿐이고, 그것은 기계가 몰래
+    // 자기 기록을 고치는 형태다 — 물러난 사실과 이유가 보여야 이의를 제기한다.
     const { data, error: loadError } = await supabase
       .from('argus_profile_items')
-      .select('id, layer, domain, content, evidence_case_ids, confidence, created_at')
-      .eq('status', 'active')
-      .order('created_at', { ascending: false });
+      .select('id, layer, domain, content, evidence_case_ids, counterexamples, confidence, status, created_at')
+      .in('status', ['active', 'retired'])
+      .order('confidence', { ascending: false });
     // 마이그레이션 전이거나 테이블이 없으면 조용히 빈 목록 — 없는 기능을
     // 에러로 알리지 않는다 (아직 정산이 없으면 프로필도 없는 것이 정상이다).
     if (loadError) { setItems([]); return; }
@@ -1311,8 +1318,8 @@ function JudgmentProfileBlock({ locale }: { locale: string }) {
     <IntegrationSection title={L('판단 프로필 (분신)', 'Judgment profile (twin)')} defaultOpen={items.length > 0}>
       <p className="text-[12px] text-[var(--text-secondary)]">
         {L(
-          '정산이 끝난 결정에서 관찰된 패턴입니다. 분신은 이 위에서 예측합니다. 틀렸다고 생각되는 항목은 지우세요 — 지우면 분신이 더 이상 그것을 근거로 쓰지 않습니다.',
-          'Patterns observed from settled decisions. Your twin predicts on top of these. Remove any that look wrong — the twin stops using them as grounds.',
+          '정산이 끝난 결정에서 관찰된 패턴입니다. 분신은 이 위에서 예측합니다. 같은 관찰이 반복되면 근거가 쌓이고, 현실이 반대로 답하면 반례가 쌓여 결국 물러납니다(취소선). 틀렸다고 생각되는 항목은 지우세요 — 지우면 분신이 더 이상 그것을 근거로 쓰지 않습니다.',
+          'Patterns observed from settled decisions. Your twin predicts on top of these. Repeated observations add evidence; when reality answers otherwise, counterexamples accumulate until the item retires (struck through). Remove any that look wrong — the twin stops using them as grounds.',
         )}
       </p>
       {error && <p className="text-[12px] text-[var(--danger)] mt-2">{error}</p>}
@@ -1328,12 +1335,20 @@ function JudgmentProfileBlock({ locale }: { locale: string }) {
         <div className="mt-3 space-y-1.5">
           {items.map((it) => (
             <div key={it.id} className="flex items-start justify-between gap-3 text-[12px] px-2.5 py-2 rounded-md bg-[var(--bg)]">
-              <span className="text-[var(--text-secondary)]">
+              <span className={it.status === 'retired' ? 'text-[var(--text-tertiary)] line-through decoration-1' : 'text-[var(--text-secondary)]'}>
                 <span className="text-[var(--text-tertiary)]">[{LAYER_LABEL[it.layer] ?? it.layer} · {it.domain}]</span>{' '}
                 {it.content}
-                {/* 근거 없이는 항목이 존재할 수 없다 — 그 사실을 화면에서도 보인다. */}
-                <span className="block text-[11px] text-[var(--text-tertiary)] mt-0.5">
+                {/* 근거 없이는 항목이 존재할 수 없다 — 그 사실을 화면에서도 보인다.
+                    반례와 은퇴도 같은 줄에 적는다: 기계가 자기 관찰을 취소한
+                    사실은 사용자가 볼 수 있어야 이의를 제기할 수 있다. */}
+                <span className="block text-[11px] text-[var(--text-tertiary)] mt-0.5 no-underline">
                   {L('근거 정산 ', 'from ')}{(it.evidence_case_ids || []).length}{L('건', ' settlement(s)')}: {(it.evidence_case_ids || []).join(', ')}
+                  {(it.counterexamples || []).length > 0 && (
+                    <> · {L('반례 ', 'counterexamples ')}{(it.counterexamples || []).length}{L('건', '')}</>
+                  )}
+                  {it.status === 'retired' && (
+                    <> · {L('현실이 반대로 답해서 물러남 — 분신이 더 이상 쓰지 않습니다', 'retired: reality answered otherwise — the twin no longer uses it')}</>
+                  )}
                 </span>
               </span>
               <button
@@ -1343,6 +1358,111 @@ function JudgmentProfileBlock({ locale }: { locale: string }) {
               >
                 {L('지우기', 'Remove')}
               </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </IntegrationSection>
+  );
+}
+
+// ── 범위 위임 (TWIN Phase 4) ────────────────────────────────────────────────
+//
+// 신뢰 사다리의 마지막 칸이자, 사용자가 **가장 쉽게 되돌릴 수 있어야 하는** 칸.
+// 그래서 이 블록의 기본 동작은 목록과 철회다. 만드는 것은 여기서 할 수 없다 —
+// 위임은 대화 중 사용자의 명시적 채택으로만 태어나고(argus_adopt), 화면에서
+// 만들 수 있게 하는 순간 "사용자가 자기 말로 만든 것"이라는 보증이 약해진다.
+interface Delegation {
+  id: string;
+  policy: string;
+  scope_domain: string;
+  scope_condition: string;
+  user_words: string;
+  expires_at: string;
+  status: string;
+  suspended_reason: string | null;
+  applications: number;
+  supported: number;
+  contradicted: number;
+}
+
+function DelegationBlock({ locale }: { locale: string }) {
+  const L = (ko: string, en: string) => (locale === 'ko' ? ko : en);
+  const [items, setItems] = useState<Delegation[]>([]);
+  const [error, setError] = useState('');
+
+  const load = useCallback(async () => {
+    const { data, error: loadError } = await supabase
+      .from('argus_delegations')
+      .select('id, policy, scope_domain, scope_condition, user_words, expires_at, status, suspended_reason, applications, supported, contradicted')
+      .neq('status', 'revoked')
+      .order('created_at', { ascending: false });
+    if (loadError) { setItems([]); return; }
+    setItems((data || []) as Delegation[]);
+  }, []);
+  useEffect(() => { void load(); }, [load]);
+
+  const setStatus = async (id: string, status: 'active' | 'revoked') => {
+    const { error: upError } = await supabase.from('argus_delegations').update({ status }).eq('id', id);
+    if (upError) { setError(L('바꾸지 못했습니다.', 'Could not update.')); return; }
+    setError('');
+    await load();
+  };
+
+  return (
+    <IntegrationSection title={L('범위 위임', 'Scoped delegation')} defaultOpen={items.length > 0}>
+      <p className="text-[12px] text-[var(--text-secondary)]">
+        {L(
+          '대화 중에 "앞으로 이런 경우엔 늘 이렇게 하자"고 하신 것들입니다. 같은 조건의 결정을 열면 이 정책이 먼저 꺼내집니다 — 결정을 대신하지는 않습니다. 정산할 때마다 정책 자체가 채점되고, 어긋남이 쌓이면 스스로 멈춥니다.',
+          'Policies you authorized in conversation. When a matching decision opens, the policy is surfaced first — it never decides for you. Each settlement grades the policy itself, and it suspends itself once contradictions pile up.',
+        )}
+      </p>
+      {error && <p className="text-[12px] text-[var(--danger)] mt-2">{error}</p>}
+
+      {items.length === 0 ? (
+        <p className="text-[12px] text-[var(--text-tertiary)] mt-3">
+          {L('아직 위임이 없습니다.', 'No delegations yet.')}
+        </p>
+      ) : (
+        <div className="mt-3 space-y-1.5">
+          {items.map((d) => (
+            <div key={d.id} className="text-[12px] px-2.5 py-2 rounded-md bg-[var(--bg)]">
+              <div className="flex items-start justify-between gap-3">
+                <span className={d.status === 'suspended' ? 'text-[var(--text-tertiary)]' : 'text-[var(--text-secondary)]'}>
+                  <span className="text-[var(--text-tertiary)]">[{d.scope_domain}]</span> {d.policy}
+                  <span className="block text-[11px] text-[var(--text-tertiary)] mt-0.5">
+                    {L('그때 하신 말: ', 'your words: ')}&ldquo;{d.user_words}&rdquo;
+                  </span>
+                  <span className="block text-[11px] text-[var(--text-tertiary)]">
+                    {L('적용 ', 'applied ')}{d.applications}{L('건 · 맞음 ', ' · supported ')}{d.supported}
+                    {L(' · 어긋남 ', ' · contradicted ')}{d.contradicted}
+                    {L(' · 만료 ', ' · expires ')}{d.expires_at.slice(0, 10)}
+                  </span>
+                  {d.status === 'suspended' && (
+                    <span className="block text-[11px] text-[var(--danger)] mt-0.5">
+                      {d.suspended_reason || L('자동으로 멈췄습니다.', 'Suspended automatically.')}
+                    </span>
+                  )}
+                </span>
+                <div className="flex shrink-0 gap-1">
+                  {d.status === 'suspended' && (
+                    <button
+                      type="button"
+                      onClick={() => setStatus(d.id, 'active')}
+                      className="min-h-11 px-2 text-[var(--text-tertiary)] hover:text-[var(--accent)] cursor-pointer transition-colors"
+                    >
+                      {L('다시 켜기', 'Resume')}
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setStatus(d.id, 'revoked')}
+                    className="min-h-11 px-2 text-[var(--text-tertiary)] hover:text-[var(--danger)] cursor-pointer transition-colors"
+                  >
+                    {L('철회', 'Revoke')}
+                  </button>
+                </div>
+              </div>
             </div>
           ))}
         </div>

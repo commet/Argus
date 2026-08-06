@@ -16,6 +16,7 @@ import {
   unreplayedUntakenPaths,
   type TheaterItem,
 } from '@/lib/twin/theater';
+import { playDisguisedCase, unplayedDisguiseSources } from '@/lib/twin/noise';
 import { profileLines } from '@/lib/twin/profile';
 import { twinScore } from '@/lib/twin/store';
 import { persistServerEvent } from '@/lib/server-events';
@@ -73,6 +74,14 @@ export async function GET(req: NextRequest) {
       // 대로 간다 (기각 대안을 지어내면 그 순간 허구가 두 겹이 된다).
       for (const path of await unreplayedUntakenPaths(userId, 1)) {
         const item = await replayUntakenPath(userId, path, profile);
+        if (item) items.push(item);
+      }
+
+      // 잡음 거울 (TWIN §4.4) — 오래된 자기 케이스를 변장시켜 분신에게 다시
+      // 묻는다. 원문 그대로 물으면 프로필에 근거로 박혀 있어 자명하게 맞히므로,
+      // 변장을 통과해야 "구조를 배웠다"고 말할 수 있다. 채점 대상은 분신이다.
+      for (const src of await unplayedDisguiseSources(userId, 30, 1)) {
+        const item = await playDisguisedCase(userId, src, profile);
         if (item) items.push(item);
       }
 

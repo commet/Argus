@@ -16,16 +16,20 @@ vi.mock('@/lib/llm-server', () => ({
   }),
 }));
 
+// 체인 길이를 고정하지 않는 fake — 쿼리에 조건 하나만 더 붙어도 깨지는 mock 은
+// 코드가 아니라 테스트를 지키는 것이 된다.
+function query(result: () => { data: unknown; error: unknown }) {
+  const chain: Record<string, unknown> = {};
+  for (const k of ['eq', 'or', 'not', 'order', 'limit', 'gte', 'in', 'is']) chain[k] = () => chain;
+  chain.then = (res: (v: unknown) => unknown, rej?: (e: unknown) => unknown) =>
+    Promise.resolve(result()).then(res, rej);
+  return chain;
+}
+
 vi.mock('@/lib/share-guard', () => ({
   adminClient: () => ({
     from: () => ({
-      select: () => ({
-        eq: () => ({
-          eq: () => ({
-            eq: () => Promise.resolve({ data: profileRows, error: null }),
-          }),
-        }),
-      }),
+      select: () => query(() => ({ data: profileRows, error: null })),
     }),
   }),
 }));
