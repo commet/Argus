@@ -3,6 +3,7 @@ import { randomBytes } from 'crypto';
 import { validateContentType } from '@/lib/api-security';
 import { adminClient } from '@/lib/share-guard';
 import { pluginTokenExpiry, PLUGIN_TOKEN_TTL_DAYS } from '@/lib/plugin-token';
+import { hashPluginToken, insertFullScopeToken } from '@/lib/plugin-token-auth';
 import {
   MCP_ACCOUNT_SCOPE,
   isValidPkceVerifier,
@@ -106,9 +107,11 @@ export async function POST(req: NextRequest) {
 
   const accessToken = `argus_pat_${randomBytes(24).toString('hex')}`;
   const expiresAt = pluginTokenExpiry(now);
-  const { error: tokenError } = await admin.from('plugin_tokens').insert({
+  // 로컬 CLI 흐름 — loopback redirect 로 같은 기기임이 강제되고, 사용자가
+  // 자기 터미널을 계정에 붙이는 것이므로 계정 전체 범위다.
+  const { error: tokenError } = await insertFullScopeToken(admin, {
     user_id: grant.user_id,
-    token_hash: sha256(accessToken),
+    token_hash: hashPluginToken(accessToken),
     label: grant.client_name,
     expires_at: expiresAt,
   });

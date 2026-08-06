@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createHash } from 'crypto';
 import { adminClient } from '@/lib/share-guard';
 import { ingestPluginFiles, type FileInput } from '@/lib/plugin-ingest-core';
-import { isTokenExpired } from '@/lib/plugin-token';
+import { authenticatePluginToken, SCOPE_FULL } from '@/lib/plugin-token-auth';
 
 /**
  * Automatic plugin push target. The `argus push` CLI command POSTs the local
@@ -13,10 +12,6 @@ import { isTokenExpired } from '@/lib/plugin-token';
  * This is a server-to-server endpoint (no browser Origin); auth is the PAT, not
  * a session, so we deliberately don't run the CSRF Origin check.
  */
-function hashToken(raw: string): string {
-  return createHash('sha256').update(raw).digest('hex');
-}
-
 const MAX_BODY_BYTES = 16 * 1024 * 1024; // 16 MB — core caps content at 15 MB
 
 export async function POST(req: NextRequest) {
@@ -29,25 +24,20 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Payload too large' }, { status: 413 });
   }
 
-  const authHeader = req.headers.get('authorization');
-  if (!authHeader?.startsWith('Bearer ')) {
-    return NextResponse.json({ error: 'Missing token. Run: argus push --token <pat>' }, { status: 401 });
-  }
-  const raw = authHeader.slice(7).trim();
-  if (!raw.startsWith('argus_pat_')) {
-    return NextResponse.json({ error: 'Invalid token format' }, { status: 401 });
+  // 계정 전체 범위. 원격 커넥터가 동의로 받아 가는 `argus.decisions` 토큰으로는
+  // 남의 계정에 파일을 적재할 수 없다 — 그 동의는 적재를 말한 적이 없다.
+  const auth = await authenticatePluginToken(req.headers.get('authorization'), SCOPE_FULL);
+  if (!auth.ok) {
+    if (auth.reason === 'insufficient_scope') {
+      return NextResponse.json({ error: 'This token is not scoped for ingest' }, { status: 403 });
+    }
+    return NextResponse.json(
+      { error: 'Missing, invalid, revoked, or expired token. Re-issue with /argus:settings connect.' },
+      { status: 401 },
+    );
   }
 
   const admin = adminClient();
-  const { data: tokenRow } = await admin
-    .from('plugin_tokens')
-    .select('id, user_id, expires_at')
-    .eq('token_hash', hashToken(raw))
-    .single();
-  if (!tokenRow || isTokenExpired(tokenRow.expires_at)) {
-    return NextResponse.json({ error: 'Unknown, revoked, or expired token. Re-issue with /argus:settings connect.' }, { status: 401 });
-  }
-
   let body: { files?: unknown };
   try {
     body = await req.json();
@@ -69,14 +59,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'No valid files' }, { status: 400 });
   }
 
-  const summary = await ingestPluginFiles(admin, tokenRow.user_id, clean, 'push');
+  const summary = await ingestPluginFiles(admin, auth.userId, clean, 'push');
 
-  // Best-effort: stamp last-used so the user can see the token is live.
-  admin.from('plugin_tokens')
-    .update({ last_used_at: new Date().toISOString() })
-    .eq('id', tokenRow.id)
-    .then(({ error }) => { if (error) console.error('[plugin/ingest] last_used stamp:', error.message); });
-
+  // last_used 스탬프는 authenticatePluginToken 이 이미 찍었다 (한 곳에서만).
   if (summary.error && summary.decisions.written === 0 && summary.bearings.written === 0) {
     return NextResponse.json({ error: summary.error, summary }, { status: 502 });
   }

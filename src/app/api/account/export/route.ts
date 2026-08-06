@@ -8,7 +8,41 @@ import { collectServerJudgmentArchive, createJudgmentArchive } from '@/lib/epist
  * as one portable JSON. The old Settings "export" only dumped localStorage, so server-only
  * data (synced history, plugin imports, analytics) was invisible to the user who
  * owns it. Data ownership/portability is a trust dimension: you can take it with you.
+ *
+ * 단 하나의 예외가 있다 — 아래 redactUnsettledSeals 를 보라.
  */
+
+/**
+ * 소유권과 봉인의 충돌, 그리고 그 타협.
+ *
+ * TWIN 의 그림자 예측은 **정산 전에 사용자에게 보이면 안 된다** (§7.3 의 기계
+ * 쌍둥이 — 자기 예측을 미리 보면 봉인 자체가 무의미해진다). 그런데 사용자는
+ * 자기 데이터를 전부 반출할 권리가 있다. 이 라우트가 `select('*')` 를 그대로
+ * 내보내면 **사용자가 export 버튼 하나로 자기 봉인을 깰 수 있다** — RLS 로
+ * 막아 둔 문을 service role 이 열어 주는 꼴이다.
+ *
+ * 타협: 미정산(revealed_at is null) 예측은 **존재와 해시와 메타데이터만** 내보낸다.
+ * 사용자는 "그때 봉인된 예측이 있었고 내용이 이 해시다"를 가져가므로 소유권과
+ * 검증 가능성을 잃지 않고, 내용은 정산 때 열린다. 정산된 행은 전문 그대로다.
+ */
+function redactUnsettledSeals(table: string, rows: unknown): unknown {
+  if (table !== 'argus_shadow_predictions' || !Array.isArray(rows)) return rows;
+  return rows.map((row) => {
+    const r = row as Record<string, unknown>;
+    if (r.revealed_at) return r; // 정산된 예측은 전문 반출
+    const { expectation, reasoning, verdict_quote, ...meta } = r;
+    void expectation;
+    void reasoning;
+    void verdict_quote;
+    return {
+      ...meta,
+      _redacted: 'sealed_until_settlement',
+      _note:
+        '아직 정산되지 않은 분신 예측입니다. 내용을 미리 보면 봉인이 무의미해지므로 ' +
+        'content_hash 와 메타데이터만 반출됩니다. 해당 결정을 정산하면 전문이 열립니다.',
+    };
+  });
+}
 export async function GET(req: NextRequest) {
   // Reject anonymous callers before exposing deployment configuration state.
   const authHeader = req.headers.get('authorization');
@@ -58,7 +92,7 @@ export async function GET(req: NextRequest) {
 
   for (const table of USER_DATA_TABLES) {
     const { data: rows, error } = await admin.from(table).select('*').eq('user_id', user.id);
-    tables[table] = error ? { error: error.message } : rows;
+    tables[table] = error ? { error: error.message } : redactUnsettledSeals(table, rows);
   }
 
   return new NextResponse(JSON.stringify(data, null, 2), {

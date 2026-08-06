@@ -58,7 +58,17 @@ export const USER_DATA_TABLES = [
   // "폐기 전제" 계약이 지켜지지 않는다.
   'argus_cases',
   'argus_events',
+  // 원격 커넥터 OAuth 인가 코드 (2026-08-05). 1회용·단명이지만 user_id가 있으므로
+  // 같은 규칙이 적용된다. 짝인 argus_oauth_clients 는 user_id가 없어 여기 없다.
+  'argus_oauth_grants',
+  // TWIN (2026-08-06). 봉인 예측·프로필·극장 산출물 — 전부 user_id 가 있으므로
+  // 삭제·내보내기에 포함된다. 반출 시 미정산 예측은 해시+메타만 나가는 규칙은
+  // export 층이 갖는다 (PRD 반박 3, 소유권 vs 봉인의 타협). argus_case_bank 는
+  // 전역 테이블(user_id 없음)이라 여기 없다.
+  'argus_profile_items',
   'argus_returns',
+  'argus_shadow_predictions',
+  'argus_simulation_runs',
   'mcp_account_authorizations',
   'outcome_records',
   'personas',

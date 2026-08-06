@@ -33,16 +33,25 @@ export interface PlanValidation {
 
 // 계획 자체의 정합성. 방법 위반이 아니라 형태 오류를 잡는다 — 모델이 낸 계획이
 // 조용히 반쪽짜리로 저장되는 것을 막는다.
-export function validatePlan(plan: ExecutionPlan): PlanValidation {
+export function validatePlan(plan: ExecutionPlan, now?: IsoTime): PlanValidation {
   const problems: string[] = [];
   if (plan.steps.length === 0) {
     problems.push('계획에 단계가 하나도 없다 — 계획을 낼 수 없으면 openQuestions로 이유를 남겨야 한다');
   }
+  // now를 아는 호출자만 과거 기한을 검사한다. 하네스는 시계를 읽지 않으므로
+  // (§types 상단) 시각은 언제나 주입받는다 — 여기서 Date.now()를 부르면
+  // 원장 재생이 실행 시각에 따라 달라진다.
+  const nowMs = now ? new Date(now).getTime() : null;
   plan.steps.forEach((s, i) => {
     if (!s.what.trim()) problems.push(`단계 ${i + 1}: 무엇을 할지가 비어 있다`);
     if (!s.byOrWhen.trim()) problems.push(`단계 ${i + 1}: 언제까지인지가 비어 있다`);
     if (s.dueDate && Number.isNaN(new Date(s.dueDate).getTime())) {
       problems.push(`단계 ${i + 1}: dueDate가 날짜가 아니다 (${s.dueDate})`);
+    } else if (s.dueDate && nowMs !== null && !Number.isNaN(nowMs) && new Date(s.dueDate).getTime() < nowMs) {
+      // 과거 기한은 조용히 통과시키지 않는다. 통과시키면 방금 세운 계획이
+      // 곧바로 "돌아볼 때가 됐다"고 알리는 과발화가 되고, 사용자는 아직
+      // 아무것도 하지 않았으므로 정산할 것도 없다.
+      problems.push(`단계 ${i + 1}: dueDate가 이미 지난 날짜다 (${s.dueDate}) — 앞으로 확인할 날짜여야 한다`);
     }
   });
   if (plan.horizonDays <= 0) problems.push('horizonDays는 양수여야 한다');

@@ -1,13 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createHash } from 'crypto';
 import { adminClient } from '@/lib/share-guard';
-import { isTokenExpired } from '@/lib/plugin-token';
+import { authenticatePluginToken, SCOPE_FULL } from '@/lib/plugin-token-auth';
 
 export const dynamic = 'force-dynamic';
-
-function hashToken(raw: string): string {
-  return createHash('sha256').update(raw).digest('hex');
-}
 
 function parseLimit(value: string | null): number {
   const n = Number(value || 200);
@@ -16,27 +11,19 @@ function parseLimit(value: string | null): number {
 }
 
 export async function GET(req: NextRequest) {
-  const authHeader = req.headers.get('authorization');
-  if (!authHeader?.startsWith('Bearer ')) {
-    return NextResponse.json({ error: 'Missing token. Run: /argus:settings connect <pat>' }, { status: 401 });
-  }
-
-  const raw = authHeader.slice(7).trim();
-  if (!raw.startsWith('argus_pat_')) {
-    return NextResponse.json({ error: 'Invalid token format' }, { status: 401 });
+  // 계정 전체 범위. 원격 커넥터의 `argus.decisions` 토큰은 여기 못 들어온다.
+  const auth = await authenticatePluginToken(req.headers.get('authorization'), SCOPE_FULL);
+  if (!auth.ok) {
+    if (auth.reason === 'insufficient_scope') {
+      return NextResponse.json({ error: 'This token is not scoped for plugin events' }, { status: 403 });
+    }
+    return NextResponse.json(
+      { error: 'Missing, invalid, revoked, or expired token. Run: /argus:settings connect <pat>' },
+      { status: 401 },
+    );
   }
 
   const admin = adminClient();
-  const { data: tokenRow } = await admin
-    .from('plugin_tokens')
-    .select('id, user_id, expires_at')
-    .eq('token_hash', hashToken(raw))
-    .single();
-
-  if (!tokenRow || isTokenExpired(tokenRow.expires_at)) {
-    return NextResponse.json({ error: 'Unknown, revoked, or expired token' }, { status: 401 });
-  }
-
   const { searchParams } = new URL(req.url);
   const limit = parseLimit(searchParams.get('limit'));
   const after = searchParams.get('after');
@@ -44,7 +31,7 @@ export async function GET(req: NextRequest) {
   let query = admin
     .from('plugin_events')
     .select('event_id, ledger_id, event, payload, created_at')
-    .eq('user_id', tokenRow.user_id)
+    .eq('user_id', auth.userId)
     .order('created_at', { ascending: true })
     .limit(limit);
 
@@ -56,12 +43,6 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Could not read plugin events' }, { status: 500 });
   }
 
-  admin.from('plugin_tokens')
-    .update({ last_used_at: new Date().toISOString() })
-    .eq('id', tokenRow.id)
-    .then(({ error: stampError }) => {
-      if (stampError) console.error('[plugin/events] last_used stamp:', stampError.message);
-    });
-
+  // last_used 스탬프는 authenticatePluginToken 이 이미 찍었다 (한 곳에서만).
   return NextResponse.json({ ok: true, events: data ?? [] });
 }

@@ -18,6 +18,15 @@ export interface CaseRow {
   title: string | null;
   state: string;
   updated_at: string;
+  // 정산 투영 (마이그레이션 20260805180000). 원장에서 재생 가능한 캐시이며,
+  // 이 넷이 있어야 `argus_recall` 이 "지난번에 실제로 어떻게 됐는지"를 말할 수
+  // 있다 — 그것이 범용 AI가 못 하는 유일한 것이다.
+  choice?: string | null;
+  last_observation?: string | null;
+  recall_gap?: string | null;
+  settled_at?: string | null;
+  // TWIN — 극장의 "가지 않은 길" 재료 (마이그레이션 20260806080000).
+  rejected_alternative?: string | null;
 }
 
 // 원장을 읽어 하네스 엔진을 복원한다. 케이스가 없으면 빈 엔진 —
@@ -65,12 +74,29 @@ export async function persistNewEvents(
   return fresh.length;
 }
 
+// upsert 를 쓰지 않는 이유: `onConflict: 'id'` 는 소유자를 조건에 걸 수 없어서,
+// 남의 case_id 로 부르면 그 행의 `user_id` 를 **덮어써서 가져간다**. 지금은
+// caseId 를 서버가 만들고 다른 핸들러가 먼저 원장으로 막기 때문에 도달 불가능한
+// 경로지만, 그 안전이 이 함수 바깥의 불변식에 기대고 있다. 여기서 잠근다:
+// 갱신은 소유자 조건으로만, 그리고 남의 행이면 PK 충돌로 **크게 실패한다**.
 export async function upsertCase(userId: string, caseId: string, title: string, state: string): Promise<void> {
   const admin = adminClient();
-  const { error } = await admin
+  const updated_at = new Date().toISOString();
+
+  const { data: touched, error: updateError } = await admin
     .from('argus_cases')
-    .upsert({ id: caseId, user_id: userId, title, state, updated_at: new Date().toISOString() }, { onConflict: 'id' });
-  if (error) throw new Error(`case upsert failed: ${error.message}`);
+    .update({ title, state, updated_at })
+    .eq('id', caseId)
+    .eq('user_id', userId)
+    .select('id')
+    .maybeSingle();
+  if (updateError) throw new Error(`case update failed: ${updateError.message}`);
+  if (touched) return;
+
+  const { error: insertError } = await admin
+    .from('argus_cases')
+    .insert({ id: caseId, user_id: userId, title, state, updated_at });
+  if (insertError) throw new Error(`case insert failed: ${insertError.message}`);
 }
 
 // 귀환 계약을 크론이 읽을 수 있는 자리에 둔다. 계획의 마일스톤이 여기로 온다.
@@ -94,16 +120,105 @@ export async function armReturns(
   if (error) throw new Error(`return arm failed: ${error.message}`);
 }
 
+// `*` 인 이유: 정산 투영 넷은 마이그레이션 20260805180000 이후에만 있다. 컬럼을
+// 명시하면 그 마이그레이션 전에는 **조회 자체가 실패해** argus_recall 이 통째로
+// 죽는다 — 의도한 것은 "투영이 없으면 제목 목록으로 물러난다"였지 "도구가
+// 에러를 낸다"가 아니었다. `*` 면 있으면 읽고 없으면 undefined 로 물러난다.
+const CASE_COLUMNS = '*';
+
 export async function listCases(userId: string, limit = 20): Promise<CaseRow[]> {
   const admin = adminClient();
   const { data, error } = await admin
     .from('argus_cases')
-    .select('id, title, state, updated_at')
+    .select(CASE_COLUMNS)
     .eq('user_id', userId)
     .order('updated_at', { ascending: false })
     .limit(limit);
   if (error) throw new Error(`case list failed: ${error.message}`);
   return (data ?? []) as CaseRow[];
+}
+
+export async function getCase(userId: string, caseId: string): Promise<CaseRow | null> {
+  const admin = adminClient();
+  const { data, error } = await admin
+    .from('argus_cases')
+    .select(CASE_COLUMNS)
+    .eq('user_id', userId)
+    .eq('id', caseId)
+    .maybeSingle();
+  if (error) throw new Error(`case read failed: ${error.message}`);
+  return (data ?? null) as CaseRow | null;
+}
+
+// 정산 결과를 케이스 행에 투영한다. 원장이 정본이고 이것은 캐시다 — 그래서
+// 실패해도 던지지 않는다. 던지면 이미 원장에 들어간 정산이 사용자에게는
+// 실패로 보인다(실제로는 성공했다).
+export async function projectOutcome(
+  userId: string,
+  caseId: string,
+  outcome: {
+    choice?: string;
+    observation: string;
+    recall: string;
+    settledAt: string;
+    // TWIN: 극장의 "가지 않은 길" 재생 재료. 원장 안(카드 rationale)에 있지만
+    // 주간 배치가 케이스마다 원장을 fold 하면 그것이 배치의 지연이 된다.
+    rejectedAlternative?: string;
+  },
+): Promise<void> {
+  const admin = adminClient();
+  const { error } = await admin
+    .from('argus_cases')
+    .update({
+      ...(outcome.choice ? { choice: outcome.choice } : {}),
+      ...(outcome.rejectedAlternative ? { rejected_alternative: outcome.rejectedAlternative } : {}),
+      last_observation: outcome.observation,
+      recall_gap: outcome.recall,
+      settled_at: outcome.settledAt,
+    })
+    .eq('id', caseId)
+    .eq('user_id', userId);
+  if (error) console.error('[mcp/v2] outcome projection failed:', error.message);
+}
+
+// 기한이 지난 귀환 — **채팅 안에서 알리기 위한** 조회.
+//
+// 이메일은 진짜 push지만 받은편지함 → 클릭 → 웹페이지라는 이동을 요구한다.
+// 사용자가 이미 AI 채팅에 있다면 거기서 알리는 것이 이동 0이다. MCP 서버는
+// 먼저 말을 걸 수 없으므로, **다음에 어떤 도구든 불릴 때 그 응답에 얹는다.**
+// 이메일은 채팅으로 다시 오지 않는 사람을 위한 backstop으로 남는다.
+export async function dueReturns(userId: string, now: string, limit = 3) {
+  const admin = adminClient();
+  const { data, error } = await admin
+    .from('argus_returns')
+    .select('case_id, kind, due_at, from_step, status')
+    .eq('user_id', userId)
+    .in('status', ['armed', 'sent'])
+    .lte('due_at', now)
+    .order('due_at', { ascending: true })
+    .limit(limit);
+  if (error) return []; // 알림은 부가 기능이다 — 실패해도 본 작업을 막지 않는다
+  return data ?? [];
+}
+
+// 정산이 끝난 귀환은 닫는다. 안 닫으면 채팅 안 알림이 영원히 같은 결정을
+// 다시 부른다 — 그것이 곧 과발화다(닫힌 결정을 다시 여는 것, CLAUDE.md 거울 조항).
+//
+// argus_events 와 달리 이 테이블은 원장이 아니라 **스케줄러의 작업 큐**다.
+// 크론이 이미 status 를 'sent' 로 옮기는 것과 같은 층위의 갱신이다.
+export async function completeReturns(userId: string, caseId: string): Promise<void> {
+  const admin = adminClient();
+  const { error } = await admin
+    .from('argus_returns')
+    .update({ status: 'completed', completed_at: new Date().toISOString() })
+    .eq('user_id', userId)
+    .eq('case_id', caseId)
+    .in('status', ['armed', 'sent']);
+  // 실패해도 던지지 않는다 — 정산은 이미 원장에 기록됐고, 이건 큐 정리다.
+  // 그러나 **조용히 지나가지도 않는다**: 이 갱신이 실패하면 큐 행이 armed/sent
+  // 로 남아 정산된 결정에 크론 메일과 채팅 알림이 계속 간다 — 이 파일이 막으려는
+  // 바로 그 과발화이고, 로그가 없으면 진단할 신호조차 없다.
+  if (error) console.error(`[mcp/v2] return queue close failed (user ${userId}, case ${caseId}):`, error.message);
 }
 
 export async function knownEventIds(userId: string, caseId: string): Promise<Set<string>> {

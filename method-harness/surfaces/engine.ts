@@ -169,7 +169,7 @@ export class SessionEngine {
   adoptPlan(plan: ExecutionPlan, now: IsoTime): { returnsArmed: number; summary: string } {
     const state = this.state();
     assertPlanAllowed(state);
-    const check = validatePlan(plan);
+    const check = validatePlan(plan, now);
     if (!check.ok) {
       throw new HarnessViolation('PLAN_INVALID', `계획이 형태를 갖추지 못했다: ${check.problems.join('; ')}`);
     }

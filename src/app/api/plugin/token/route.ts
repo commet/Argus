@@ -1,18 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { randomBytes, createHash } from 'crypto';
+import { randomBytes } from 'crypto';
 import { validateContentType, validateOrigin } from '@/lib/api-security';
 import { adminClient } from '@/lib/share-guard';
 import { pluginTokenExpiry } from '@/lib/plugin-token';
+import { hashPluginToken, insertFullScopeToken } from '@/lib/plugin-token-auth';
 
 /**
  * Issue a personal access token for `argus push`. The raw token is returned
  * ONCE and never stored; we keep only its SHA-256 hash. Listing and revoking
  * happen client-side against plugin_tokens (RLS, metadata columns only).
+ *
+ * 다이제스트는 `hashPluginToken` 하나만 쓴다 — 발급과 검증이 같은 함수여야
+ * 한다. 갈라지면 이 경로로 발급된 토큰이 전부 검증에 실패한다.
  */
-function hashToken(raw: string): string {
-  return createHash('sha256').update(raw).digest('hex');
-}
 
 export async function POST(req: NextRequest) {
   const ctError = validateContentType(req);
@@ -51,9 +52,10 @@ export async function POST(req: NextRequest) {
   }
 
   const raw = `argus_pat_${randomBytes(24).toString('hex')}`;
-  const { error: insErr } = await admin.from('plugin_tokens').insert({
+  // 사용자가 자기 브라우저 세션으로 직접 뽑은 토큰 — CLI 가 쓰는 계정 전체 범위.
+  const { error: insErr } = await insertFullScopeToken(admin, {
     user_id: user.id,
-    token_hash: hashToken(raw),
+    token_hash: hashPluginToken(raw),
     label,
     expires_at: pluginTokenExpiry(),
   });

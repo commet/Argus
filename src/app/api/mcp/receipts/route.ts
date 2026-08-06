@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createHash } from 'crypto';
 import { adminClient } from '@/lib/share-guard';
-import { isTokenExpired } from '@/lib/plugin-token';
+import { authenticatePluginToken, SCOPE_FULL } from '@/lib/plugin-token-auth';
 import type { JudgmentReceipt } from '@/lib/review';
 
 /**
@@ -14,34 +13,22 @@ import type { JudgmentReceipt } from '@/lib/review';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-function hashToken(raw: string): string {
-  return createHash('sha256').update(raw).digest('hex');
-}
-
 export async function GET(req: NextRequest) {
-  const authHeader = req.headers.get('authorization');
-  if (!authHeader?.startsWith('Bearer ')) {
-    return NextResponse.json({ error: 'Missing token' }, { status: 401 });
-  }
-  const raw = authHeader.slice(7).trim();
-  if (!raw.startsWith('argus_pat_')) {
-    return NextResponse.json({ error: 'Invalid token format' }, { status: 401 });
+  // 계정 전체 범위를 요구한다. 원격 커넥터가 동의로 받아 가는 `argus.decisions`
+  // 토큰은 여기 들어올 수 없다 — 그 동의 화면은 결정 기록만 말했다.
+  const auth = await authenticatePluginToken(req.headers.get('authorization'), SCOPE_FULL);
+  if (!auth.ok) {
+    if (auth.reason === 'insufficient_scope') {
+      return NextResponse.json({ error: 'This token is not scoped for account receipts' }, { status: 403 });
+    }
+    return NextResponse.json({ error: 'Missing, invalid, revoked, or expired token' }, { status: 401 });
   }
 
   const admin = adminClient();
-  const { data: tokenRow } = await admin
-    .from('plugin_tokens')
-    .select('user_id, expires_at')
-    .eq('token_hash', hashToken(raw))
-    .single();
-  if (!tokenRow || isTokenExpired(tokenRow.expires_at)) {
-    return NextResponse.json({ error: 'Unknown, revoked, or expired token' }, { status: 401 });
-  }
-
   const { data: rows, error } = await admin
     .from('review_receipts')
     .select('id, state, next_check_by, data')
-    .eq('user_id', tokenRow.user_id)
+    .eq('user_id', auth.userId)
     .is('deleted_at', null)
     .order('next_check_by', { ascending: true, nullsFirst: false })
     .limit(500);

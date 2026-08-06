@@ -6,7 +6,8 @@
 //
 // 규칙 셋:
 //  1. 기록을 보내지 않는다 (§7.3) — 문안은 argus-return-email.ts가 정한다.
-//  2. 하루 전역 예산 3건 (봉인 계약 §1). 예산을 넘으면 남기고 다음 날 보낸다.
+//  2. **사용자당** 하루 예산 3건 (봉인 계약 §1). 예산을 넘으면 남기고 다음 날
+//     보낸다 — 한 사람이 같은 날 네 통을 받는 일은 없다.
 //  3. 한 번 보낸 것은 다시 보내지 않는다 (status로 멱등).
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -41,7 +42,6 @@ export async function GET(req: NextRequest) {
   const admin = createClient(url, serviceKey, { auth: { persistSession: false } });
   const resend = new Resend(apiKey);
   const now = new Date().toISOString();
-  const origin = new URL(req.url).origin;
   const fromDomain = process.env.RESEND_FROM_DOMAIN || 'argus.voyage';
 
   // 만기이고 아직 안 보낸 것. 이른 것부터 — 곧 닥친 약속이 정산 가치가 높다.
@@ -85,11 +85,13 @@ export async function GET(req: NextRequest) {
       continue;
     }
 
+    // returnUrl 을 넘기지 않는다: 예전에 넘기던 /method-pilot?case=… 는 그
+    // 페이지가 case 파라미터를 읽지 않으므로 죽은 링크였다. 정산은 채팅에서
+    // 일어나며, 이메일 문안이 그리로 안내한다 (argus-return-email.ts 상단 참조).
     const mail = buildReturnEmail({
       question: caseRow?.title ?? '지난 결정',
       fromStep: r.from_step ?? undefined,
       kind: r.kind,
-      returnUrl: `${origin}/method-pilot?case=${encodeURIComponent(r.case_id)}`,
     });
 
     const result = await resend.emails.send({

@@ -34,6 +34,14 @@
     {
       "path": "/api/cron/argus-returns",
       "schedule": "0 8 * * *"
+    },
+    {
+      "path": "/api/cron/argus-shadow",
+      "schedule": "23 * * * *"
+    },
+    {
+      "path": "/api/cron/argus-theater",
+      "schedule": "41 9 * * 1"
     }
   ]
 }
