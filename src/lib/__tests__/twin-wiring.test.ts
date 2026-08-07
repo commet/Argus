@@ -240,3 +240,43 @@ describe('argus_* 테이블 쓰기 전용 금지', () => {
     expect(refs.size).toBeGreaterThan(5);
   });
 });
+
+/**
+ * 준비 상태 패널의 목록이 마이그레이션과 어긋나지 않게 한다.
+ *
+ * 그 패널은 "마이그레이션이 실제로 들어갔는가"를 사람이 눈으로 확인하는
+ * 유일한 자리다. 새 argus_* 테이블을 만들고 패널에 등재하지 않으면, 패널은
+ * **초록인데 실제로는 빠진 상태**를 보여준다 — 없는 것보다 나쁜 계기판이다.
+ * (같은 형태를 이 리포는 이미 여러 번 겪었다: 감시 장치 자신의 침묵.)
+ */
+describe('서버 준비 상태 패널 ↔ 마이그레이션 대조', () => {
+  const SETTINGS = 'src/app/[locale]/settings/page.tsx';
+
+  it('마이그레이션이 만든 모든 argus_* 테이블이 패널에 등재돼 있다', () => {
+    const created = new Set<string>();
+    for (const file of readdirSync('supabase/migrations').filter((f) => f.endsWith('.sql'))) {
+      const sql = readFileSync(join('supabase/migrations', file), 'utf8');
+      for (const m of sql.matchAll(/create table if not exists public\.(argus_[a-z_]+)/g)) {
+        created.add(m[1]);
+      }
+    }
+    expect(created.size).toBeGreaterThan(5); // 정규식이 조용히 0건이 되는 것을 막는다
+
+    const page = readFileSync(SETTINGS, 'utf8');
+    const missing = [...created].filter((t) => !page.includes(`'${t}'`)).sort();
+    expect(
+      missing,
+      `준비 상태 패널(SCHEMA_PROBES)에 빠진 테이블입니다 — 등재하지 않으면 패널이 초록인데 실제로는 빠진 상태가 됩니다:\n${missing.join('\n')}`,
+    ).toEqual([]);
+  });
+
+  it('나중에 추가된 컬럼도 패널이 본다 (alter table … add column)', () => {
+    // 테이블은 있는데 컬럼만 없는 경우가 실제로 가장 흔한 미적용 형태다
+    // (마이그레이션 하나를 건너뛰었을 때). 컬럼 탐침이 최소 둘은 있어야 한다.
+    const page = readFileSync(SETTINGS, 'utf8');
+    const columnProbes = [...page.matchAll(/column:\s*'([a-z_]+)'/g)].map((m) => m[1]);
+    expect(columnProbes.length).toBeGreaterThanOrEqual(2);
+    expect(columnProbes).toContain('delegation_id');
+    expect(columnProbes).toContain('profile_extracted_at');
+  });
+});
