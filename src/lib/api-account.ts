@@ -113,3 +113,23 @@ export async function deleteAccount(): Promise<DeleteAccountResult> {
 export function totalRowsDeleted(receipt: Record<string, number | string>): number {
   return Object.values(receipt).reduce<number>((sum, v) => sum + (typeof v === 'number' ? v : 0), 0);
 }
+
+/** 분신 상태 — **개수만**. 봉인 내용은 이 경로로 나오지 않는다 (api/twin/status). */
+export interface TwinStatus {
+  cases: { open: number | null; settled: number | null };
+  shadows: { sealed: number | null; revealed: number | null; graded: number | null; late: number | null };
+  profile: { active: number | null; retired: number | null };
+  delegations: { active: number | null; suspended: number | null };
+  beliefs: { graded: number | null };
+  theater: { runs: number | null };
+}
+
+export async function fetchTwinStatus(): Promise<TwinStatus> {
+  const token = await bearer();
+  const res = await fetch('/api/twin/status', {
+    headers: { Authorization: `Bearer ${token}` },
+    signal: timeoutSignal(15_000),
+  });
+  if (!res.ok) throw new Error(`twin-status-failed-${res.status}`);
+  return (await res.json()) as TwinStatus;
+}

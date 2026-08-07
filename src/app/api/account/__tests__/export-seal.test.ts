@@ -39,3 +39,78 @@ describe('account export — 봉인 계약', () => {
     expect(EXPORT).toContain('content_hash');
   });
 });
+
+/**
+ * 분신 상태 계기판이 봉인을 깨지 못한다 — 같은 부류의 두 번째 문.
+ *
+ * `/api/twin/status` 는 service role 로 shadow 테이블을 만진다. export 와
+ * 정확히 같은 위험이 있고(RLS 를 우회할 수 있는 자리), 다른 점은 여기서는
+ * **애초에 본문 컬럼을 select 하지 않는다**는 것이다. "흘리지 않도록 조심한다"
+ * 보다 "흘릴 코드가 존재하지 않는다"가 강하므로, 그 부재를 소스로 고정한다.
+ */
+const TWIN_STATUS = readFileSync(join(process.cwd(), 'src/app/api/twin/status/route.ts'), 'utf-8');
+
+/**
+ * 이 라우트를 절대 통과할 수 없는 컬럼 — **계약의 정본은 여기다.**
+ * (schema-drift 의 TABLE_COLUMNS 와 같은 방식: 계약은 그것을 강제하는 테스트가
+ *  갖는다. 라우트 파일에 상수로 두면 Next 가 빌드에서 거절한다.)
+ */
+const NEVER_EXPOSED = ['expectation', 'reasoning', 'verdict_quote'] as const;
+
+describe('twin status — 봉인 계약', () => {
+  it('예측 본문 컬럼을 select 하지 않는다', () => {
+    for (const forbidden of NEVER_EXPOSED) {
+      expect(TWIN_STATUS).not.toMatch(new RegExp(`select\\([^)]*${forbidden}`));
+    }
+  });
+
+  it('라우트가 이 계약을 가리키고 있다 — 목록이 여기 있다는 사실이 코드에 남는다', () => {
+    for (const forbidden of NEVER_EXPOSED) expect(TWIN_STATUS).toContain(forbidden);
+    expect(TWIN_STATUS).toContain('export-seal.test.ts');
+  });
+
+  it('route 파일이 허용되지 않은 이름을 export 하지 않는다', () => {
+    // Next 의 route 파일은 정해진 이름만 export 하도록 되어 있다. 이 파일도
+    // 한 번 그 규칙을 어긴 상태였고 **그때 next build 는 통과했다** — 현재
+    // 버전이 관대한 것이지 규칙이 없는 것이 아니다.
+    //
+    // 이 가드가 필요한 이유는 검사 순서에 있다: tsc·vitest 는 route export
+    // 규칙을 보지 않고, CI 의 check 잡도 next build 를 돌리지 않는다. 실제로
+    // 이것을 잡는 것은 푸시 뒤의 Vercel 프리뷰 빌드뿐이다 — 즉 **로컬 관문이
+    // 전부 초록인 채로 배포 단계에서만 죽는다.** 그 왕복을 여기서 없앤다.
+    const ALLOWED = new Set([
+      'GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS',
+      'dynamic', 'dynamicParams', 'revalidate', 'fetchCache', 'runtime',
+      'preferredRegion', 'maxDuration', 'generateStaticParams',
+    ]);
+    // 주석을 먼저 걷어낸다. 안 걷으면 "여기에 export 하지 말라"고 **설명하는
+    // 주석**이 실제 export 로 읽혀 가드가 자기 문서에 걸린다 (실제로 걸렸다).
+    const code = TWIN_STATUS.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/.*$/gm, '$1');
+    const exported = [...code.matchAll(/export\s+(?:async\s+)?(?:function|const|let|var|class)\s+([A-Za-z0-9_]+)/g)]
+      .map((m) => m[1]);
+    expect(exported).toContain('GET'); // 정규식이 조용히 0건이 되는 것을 막는다
+    const bad = exported.filter((name) => !ALLOWED.has(name));
+    expect(bad, `Next route 가 export 할 수 없는 이름입니다: ${bad.join(', ')}`).toEqual([]);
+  });
+
+  it('셀 때도 head 모드다 — 행 자체를 가져오지 않는다', () => {
+    expect(TWIN_STATUS).toContain("head: true");
+    expect(TWIN_STATUS).toContain("count: 'exact'");
+  });
+
+  it('본인 것만 센다 — user_id 필터 없는 집계가 없다', () => {
+    const counts = TWIN_STATUS.match(/countOrNull\([\s\S]*?\)\),/g) ?? [];
+    expect(counts.length).toBeGreaterThan(8);
+    for (const c of counts) expect(c).toContain('user_id');
+  });
+
+  it('로그인 없이는 아무것도 돌려주지 않는다', () => {
+    expect(TWIN_STATUS).toContain('Unauthorized');
+    expect(TWIN_STATUS).toContain('auth.getUser');
+  });
+
+  it('표가 없으면 0 으로 위장하지 않는다 — null 로 남긴다', () => {
+    // 0 과 "아직 준비 안 됨"을 같은 숫자로 칠하면 미적용이 정상으로 보인다.
+    expect(TWIN_STATUS).toMatch(/return error \? null : count \?\? 0;/);
+  });
+});

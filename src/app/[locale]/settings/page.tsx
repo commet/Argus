@@ -8,7 +8,7 @@ import { Modal } from '@/components/ui/Modal';
 import { clearAllStorage, STORAGE_KEYS, getStorage } from '@/lib/storage';
 import { downloadJson } from '@/lib/export';
 import { toast } from '@/lib/toast';
-import { exportAccountData, exportJudgmentArchive, deleteAccount } from '@/lib/api-account';
+import { exportAccountData, exportJudgmentArchive, deleteAccount, fetchTwinStatus, type TwinStatus } from '@/lib/api-account';
 import { purgeCurrentBrowserContinuity } from '@/lib/epistemic/browser-lifecycle';
 import { useAuth } from '@/lib/auth';
 import type { LLMMode, LLMProvider } from '@/stores/types';
@@ -663,6 +663,10 @@ export default function SettingsPage() {
 
             <DelegationBlock locale={locale} />
 
+            <TwinStatusBlock locale={locale} />
+
+            <SchemaReadinessBlock locale={locale} />
+
             {/* Public share links */}
             <div className="border-t border-[var(--border-subtle)] my-4" />
             <SharedLinksBlock locale={locale} />
@@ -1148,6 +1152,205 @@ function IntegrationSection({ title, defaultOpen, children }: {
       </summary>
       <div className="mt-3">{children}</div>
     </details>
+  );
+}
+
+// ── 분신 상태 (TWIN) ───────────────────────────────────────────────────────
+//
+// 분신이 하는 일의 대부분은 사용자가 볼 수 없는 자리에서 일어난다 — 봉인
+// 예측은 정산 전에 본인도 못 읽고(설계다), 프로필 갱신은 응답 뒤에서 돌고,
+// 위임 채점은 정산 시점에만 움직인다. **보이지 않는 것과 없는 것을 구분할 수
+// 없으면 "일할수록 쌓인다"는 이 제품의 약속이 검증 불가능한 주장이 된다.**
+//
+// 그래서 내용이 아니라 **개수**를 연다. 봉인된 예측이 몇 건인지는 봉인의
+// 내용이 아니고, 사용자가 결정을 몇 건 열었는지에서 이미 따라 나오는 사실이다.
+function TwinStatusBlock({ locale }: { locale: string }) {
+  const L = (ko: string, en: string) => (locale === 'ko' ? ko : en);
+  const [status, setStatus] = useState<TwinStatus | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [failed, setFailed] = useState(false);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setFailed(false);
+    try {
+      setStatus(await fetchTwinStatus());
+    } catch {
+      setFailed(true);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+  useEffect(() => { void load(); }, [load]);
+
+  // null 은 "0" 이 아니라 "못 읽었다"(대개 마이그레이션 미적용)다. 둘을 같은
+  // 화면 문자로 칠하면 준비 안 된 것이 조용히 정상으로 보인다.
+  const n = (v: number | null | undefined) => (v === null || v === undefined ? '—' : String(v));
+
+  const rows: Array<{ label: string; value: string; note?: string }> = status
+    ? [
+        {
+          label: L('결정', 'Decisions'),
+          value: `${n(status.cases.open)} ${L('열림', 'open')} · ${n(status.cases.settled)} ${L('정산됨', 'settled')}`,
+        },
+        {
+          label: L('분신의 봉인 예측', 'Sealed predictions'),
+          value: `${n(status.shadows.sealed)} ${L('잠김', 'sealed')} · ${n(status.shadows.revealed)} ${L('열림', 'revealed')} · ${n(status.shadows.graded)} ${L('채점됨', 'graded')}`,
+          note: L('내용은 정산 전에 아무 화면에도 나오지 않습니다 — 개수만 보여드립니다.', 'Contents never appear before settlement — counts only.'),
+        },
+        {
+          label: L('판단 프로필', 'Judgment profile'),
+          value: `${n(status.profile.active)} ${L('활성', 'active')} · ${n(status.profile.retired)} ${L('물러남', 'retired')}`,
+        },
+        {
+          label: L('범위 위임', 'Delegations'),
+          value: `${n(status.delegations.active)} ${L('활성', 'active')} · ${n(status.delegations.suspended)} ${L('자동 정지', 'suspended')}`,
+        },
+        {
+          label: L('사전등록 믿음 채점', 'Graded beliefs'),
+          value: `${n(status.beliefs.graded)}${L('건', '')}`,
+        },
+        {
+          label: L('시뮬레이션 극장 산출물', 'Theater runs'),
+          value: `${n(status.theater.runs)}${L('건', '')}`,
+        },
+      ]
+    : [];
+
+  return (
+    <IntegrationSection title={L('분신 상태', 'Twin status')} defaultOpen={false}>
+      <p className="text-[12px] text-[var(--text-secondary)]">
+        {L(
+          '분신이 실제로 무엇을 했는지 개수로 봅니다. 봉인된 예측의 내용은 정산 전에는 이 화면에도 나오지 않습니다. — 는 "0건"이 아니라 "읽지 못했다"는 뜻입니다 (대개 마이그레이션 미적용).',
+          'What your twin has actually done, as counts. Sealed contents never appear here before settlement. A — means “could not read”, not “zero” — usually a migration that has not been applied.',
+        )}
+      </p>
+
+      {failed && (
+        <p className="text-[12px] text-[var(--danger)] mt-2">
+          {L('상태를 읽지 못했습니다. 로그인 상태를 확인해 주세요.', 'Could not read status. Check that you are signed in.')}
+        </p>
+      )}
+
+      {status && (
+        <div className="mt-3 space-y-1">
+          {rows.map((r) => (
+            <div key={r.label} className="text-[12px] px-2.5 py-2 rounded-md bg-[var(--bg)]">
+              <span className="text-[var(--text-tertiary)]">{r.label}</span>{' '}
+              <span className="text-[var(--text-secondary)]">{r.value}</span>
+              {r.note && <span className="block text-[11px] text-[var(--text-tertiary)] mt-0.5">{r.note}</span>}
+            </div>
+          ))}
+        </div>
+      )}
+
+      <Button variant="secondary" size="sm" onClick={load} disabled={loading} className="mt-3">
+        {loading ? <Loader2 size={14} className="animate-spin" /> : null} {L('새로고침', 'Refresh')}
+      </Button>
+    </IntegrationSection>
+  );
+}
+
+// ── 서버 준비 상태 (TWIN) ──────────────────────────────────────────────────
+//
+// 왜 화면에 있어야 하는가: 이 제품의 서버 기능은 **마이그레이션이 적용돼야만**
+// 돈다. 그런데 적용을 잊으면 아무 데서도 빨간불이 나지 않는다 — 코드는 실패를
+// 삼키고(정산을 막지 않으려고), 화면은 멀쩡하고, 데이터만 조용히 안 쌓인다.
+// 이 리포가 네 번 겪은 그 실패다.
+//
+// 그래서 사람이 눈으로 확인할 수 있는 자리를 만든다. 서비스 롤을 쓰지 않고
+// **로그인한 사용자의 권한 그대로** 탐침하므로 새 권한 표면이 생기지 않는다:
+// 테이블이 없으면 PostgREST 가 오류를 주고, 있으면 (내 행이 없어) 빈 배열을 준다.
+// 그 둘의 차이가 곧 답이다.
+const SCHEMA_PROBES: Array<{ table: string; column?: string; label: string; since: string }> = [
+  { table: 'argus_cases', label: '결정 케이스', since: '20260805100000' },
+  { table: 'argus_events', label: '원장 (append-only)', since: '20260805100000' },
+  { table: 'argus_returns', label: '귀환 약속', since: '20260805100000' },
+  { table: 'argus_oauth_clients', label: '커넥터 등록', since: '20260805170000' },
+  { table: 'argus_oauth_grants', label: '커넥터 인가 코드', since: '20260805170000' },
+  { table: 'argus_shadow_predictions', label: '분신의 봉인 예측', since: '20260806080000' },
+  { table: 'argus_profile_items', label: '판단 프로필', since: '20260806080000' },
+  { table: 'argus_simulation_runs', label: '시뮬레이션 극장', since: '20260806080000' },
+  { table: 'argus_case_bank', label: '공개 사례 은행', since: '20260806080000' },
+  { table: 'argus_delegations', label: '범위 위임', since: '20260806120000' },
+  { table: 'argus_cases', column: 'delegation_id', label: '위임 집행 흔적', since: '20260806120000' },
+  { table: 'argus_cases', column: 'profile_extracted_at', label: '프로필 추출 표식', since: '20260806130000' },
+  { table: 'argus_belief_checks', label: '사전등록 믿음 채점', since: '20260806140000' },
+];
+
+type ProbeState = { ok: boolean; detail: string };
+
+function SchemaReadinessBlock({ locale }: { locale: string }) {
+  const L = (ko: string, en: string) => (locale === 'ko' ? ko : en);
+  const [results, setResults] = useState<Record<string, ProbeState> | null>(null);
+  const [running, setRunning] = useState(false);
+
+  const run = useCallback(async () => {
+    setRunning(true);
+    const out: Record<string, ProbeState> = {};
+    for (const probe of SCHEMA_PROBES) {
+      const key = probe.column ? `${probe.table}.${probe.column}` : probe.table;
+      // 관심사는 데이터가 아니라 **존재**이므로 head 모드로 센다 — 행을 아예
+      // 가져오지 않는다.
+      //
+      // 테이블 탐침에 컬럼 이름을 쓰지 않는 이유: `id` 를 가정했다가
+      // argus_oauth_clients(PK 가 client_id) 에서 42703 이 나 **있는 테이블을
+      // 없다고 보고**했다. 계기판이 거짓말하면 없는 것보다 나쁘다.
+      const { error } = probe.column
+        ? await supabase.from(probe.table).select(probe.column, { head: true }).limit(1)
+        : await supabase.from(probe.table).select('*', { count: 'exact', head: true }).limit(1);
+      out[key] = error
+        ? { ok: false, detail: error.code ? `${error.code}` : error.message.slice(0, 60) }
+        : { ok: true, detail: '' };
+    }
+    setResults(out);
+    setRunning(false);
+  }, []);
+
+  const missing = results ? Object.values(results).filter((r) => !r.ok).length : 0;
+
+  return (
+    <IntegrationSection title={L('서버 준비 상태', 'Server readiness')} defaultOpen={false}>
+      <p className="text-[12px] text-[var(--text-secondary)]">
+        {L(
+          '마이그레이션이 실제로 적용됐는지 확인합니다. 빠진 것이 있으면 서버 기능이 조용히 멈춘 채 화면은 멀쩡해 보입니다 — 그래서 여기서 눈으로 봅니다.',
+          'Checks whether the migrations actually landed. A missing one stops server features silently while every screen still looks fine — so you check it here, with your eyes.',
+        )}
+      </p>
+
+      <Button variant="secondary" size="sm" onClick={run} disabled={running} className="mt-3">
+        {running ? <Loader2 size={14} className="animate-spin" /> : null} {L('확인하기', 'Check')}
+      </Button>
+
+      {results && (
+        <>
+          <p className={`text-[12px] mt-3 ${missing === 0 ? 'text-[var(--text-secondary)]' : 'text-[var(--danger)]'}`}>
+            {missing === 0
+              ? L('전부 준비됐습니다.', 'Everything is in place.')
+              : L(`${missing}건이 빠졌습니다 — 아래 마이그레이션을 적용하세요.`, `${missing} missing — apply the migrations below.`)}
+          </p>
+          <div className="mt-2 space-y-1">
+            {SCHEMA_PROBES.map((probe) => {
+              const key = probe.column ? `${probe.table}.${probe.column}` : probe.table;
+              const r = results[key];
+              return (
+                <div key={key} className="flex items-start justify-between gap-3 text-[12px] px-2.5 py-1.5 rounded-md bg-[var(--bg)]">
+                  <span className={r?.ok ? 'text-[var(--text-secondary)]' : 'text-[var(--danger)]'}>
+                    {r?.ok ? '✓' : '✗'} {probe.label}
+                    <span className="text-[11px] text-[var(--text-tertiary)]"> · {key}</span>
+                  </span>
+                  {!r?.ok && (
+                    <span className="text-[11px] text-[var(--text-tertiary)] shrink-0">
+                      {L('마이그레이션 ', 'migration ')}{probe.since}
+                    </span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </>
+      )}
+    </IntegrationSection>
   );
 }
 
