@@ -148,7 +148,7 @@ export function JudgmentReceipt(props: Props) {
             // 손대지 않은 AI 초안은 **연하게** 보인다 — 확정된 내 문장처럼 보이면
             // 그대로 지나칠 확률이 높아진다. 흐린 글씨가 "이건 아직 네 말이 아니다"를
             // 말한다. 손대는 순간 진해진다.
-            className={`w-full text-[13px] px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface-2)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)] ${
+            className={`w-full text-[13px] px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--bg)] placeholder:text-[var(--text-tertiary)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)] ${
               isAiDraft ? 'text-[var(--text-tertiary)] italic' : 'text-[var(--text-primary)]'
             }`}
           />
@@ -209,7 +209,7 @@ export function JudgmentReceipt(props: Props) {
       {showAnchor && (
         <>
           <div className="px-4 py-2.5 bg-[var(--surface)] border-b border-[var(--border)]">
-            <p className="text-[12.5px] text-[var(--text-muted)]">
+            <p className="text-[12.5px] text-[var(--text-tertiary)]">
               {L(`${sealedOn}에 기록한 판단`, `Decision saved on ${sealedOn}`)}
             </p>
           </div>
@@ -276,7 +276,7 @@ export function JudgmentReceipt(props: Props) {
               ? L('선택 사항 · 실제로 일어난 일', 'Optional · what actually happened')
               : L('선택 사항 · 결과와 함께 남길 한 줄', 'Optional · one line to keep with your outcome')}
           </p>
-          <p className="mb-2 text-[12.5px] leading-[1.45] text-[var(--text-muted)]">
+          <p className="mb-2 text-[12.5px] leading-[1.45] text-[var(--text-tertiary)]">
             {outcomeRecorded
               ? L('결과 선택은 이미 저장됐어요. 나중에 기억할 구체적인 사실이 있다면 덧붙이세요.', 'Your outcome choice is already saved. Add a concrete fact only if it will help later.')
               : L('이 메모는 필수가 아니에요. 결과 선택만으로도 기록은 남습니다.', 'This note is not required. The outcome tap is enough to keep the record.')}
@@ -294,7 +294,7 @@ export function JudgmentReceipt(props: Props) {
               }}
               placeholder={L('예: 2주차 재방문율은 24%였다', 'For example: week-two retention was 24%')}
               maxLength={280}
-              className="min-w-0 flex-1 text-[13px] px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface-2)] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)]"
+              className="min-w-0 flex-1 text-[13px] px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--bg)] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)]"
             />
             {onSave && visibleWhatHappened.trim() && visibleWhatHappened.trim() !== (receipt.what_happened || '').trim() && (
               <button

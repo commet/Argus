@@ -118,7 +118,11 @@ vi.mock('@/lib/twin/profile', () => ({
   recentlyRetiredLines: async () => [],
   extractProfileFromSettlement: async () => ({ inserted: 0, reinforced: 0, contradicted: 0, retired: 0 }),
 }));
-vi.mock('@/lib/twin/store', () => ({
+// 부분 목이다 — `twinScore` 만 갈아끼우고 나머지는 진짜를 쓴다. 전체 목으로
+// 두면 store 가 내보내는 상수(TWIN_SCORE_MIN_SAMPLE 등)가 목에서 빠져
+// undefined 가 되고, 그러면 임계 비교가 조용히 무너진다.
+vi.mock('@/lib/twin/store', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/lib/twin/store')>()),
   twinScore: async () => ({ matchRate: null, matchSample: 0, outcomeRate: null, outcomeSample: 0 }),
 }));
 

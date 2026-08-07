@@ -223,7 +223,7 @@ export function RetroSeal({ onExit, onRealSeal }: {
                   className={`inline-flex items-center gap-1.5 rounded-xl px-4 py-2 text-[13.5px] font-semibold transition-opacity ${
                     leanTrimmed
                       ? 'bg-[var(--primary)] text-[var(--bg)]'
-                      : 'cursor-default bg-[var(--surface-2)] text-[var(--text-tertiary)] opacity-50'
+                      : 'cursor-default bg-[var(--bg)] text-[var(--text-tertiary)] opacity-50'
                   }`}
                 >
                   {L('기록하고 계속', 'Record and continue')}
@@ -282,7 +282,7 @@ export function RetroSeal({ onExit, onRealSeal }: {
                   className={`inline-flex items-center gap-1.5 rounded-xl px-4 py-2 text-[13.5px] font-semibold transition-opacity ${
                     outcomeTrimmed && !aligning
                       ? 'bg-[var(--primary)] text-[var(--bg)]'
-                      : 'cursor-default bg-[var(--surface-2)] text-[var(--text-tertiary)] opacity-50'
+                      : 'cursor-default bg-[var(--bg)] text-[var(--text-tertiary)] opacity-50'
                   }`}
                 >
                   {aligning

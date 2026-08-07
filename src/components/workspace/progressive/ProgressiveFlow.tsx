@@ -2896,7 +2896,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
                 the stamp belong to the seal only (copy unchanged, color only). */}
             <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.5, ease: EASE }}
               className="flex flex-col items-center justify-center gap-2 py-6">
-              <div className="w-10 h-10 rounded-full flex items-center justify-center bg-[var(--surface-2)] border border-[var(--border)]">
+              <div className="w-10 h-10 rounded-full flex items-center justify-center bg-[var(--bg)] border border-[var(--border)]">
                 <Check size={16} className="text-[var(--accent)]" />
               </div>
               <p className="text-[16px] font-semibold text-[var(--text-primary)]">

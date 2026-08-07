@@ -1244,9 +1244,16 @@ function TwinStatusBlock({ locale }: { locale: string }) {
         </div>
       )}
 
-      <Button variant="secondary" size="sm" onClick={load} disabled={loading} className="mt-3">
-        {loading ? <Loader2 size={14} className="animate-spin" /> : null} {L('새로고침', 'Refresh')}
-      </Button>
+      <div className="mt-3 flex items-center gap-3">
+        <Button variant="secondary" size="sm" onClick={load} disabled={loading}>
+          {loading ? <Loader2 size={14} className="animate-spin" /> : null} {L('새로고침', 'Refresh')}
+        </Button>
+        {/* 여기는 계기판이고 전체 기록은 분신의 집에 있다 — 두 곳에 같은 것을
+            두 벌 그리는 대신 문을 낸다. */}
+        <a href={withLocale(locale === 'ko' ? 'ko' : 'en', '/twin')} className="text-[12px] text-[var(--accent)] hover:underline">
+          {L('분신의 집에서 전체 보기', 'See the full record')}
+        </a>
+      </div>
     </IntegrationSection>
   );
 }

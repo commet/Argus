@@ -133,3 +133,45 @@ export async function fetchTwinStatus(): Promise<TwinStatus> {
   if (!res.ok) throw new Error(`twin-status-failed-${res.status}`);
   return (await res.json()) as TwinStatus;
 }
+
+/**
+ * 분신의 집이 쓰는 봉인 데이터 (api/twin/home).
+ *
+ * 이 하나만 서버를 거치는 이유: `argus_shadow_predictions` 는 RLS 정책이 0개라
+ * 본인도 직접 못 읽는다 (정산 전에 자기 시험지를 보면 봉인이 무의미해진다).
+ * 프로필·위임·케이스는 본인 read 정책이 있어 화면이 직접 읽는다.
+ */
+export interface SealedShadow {
+  case_id: string;
+  target: 'outcome' | 'choice' | 'deviation';
+  sealed_at: string;
+  status: 'sealed' | 'late';
+  // expectation·reasoning 은 여기 **없다** — 서버가 조회조차 하지 않는다.
+}
+
+export interface RevealedShadow {
+  case_id: string;
+  target: 'outcome' | 'choice' | 'deviation';
+  expectation: string;
+  confidence: number;
+  verdict: 'supported' | 'contradicted' | 'indeterminate' | null;
+  verdict_quote: string | null;
+  revealed_at: string;
+}
+
+export interface TwinHome {
+  /** null = 읽지 못했다 (대개 마이그레이션 미적용). 빈 배열 = 아직 없다. */
+  sealed: SealedShadow[] | null;
+  revealed: RevealedShadow[] | null;
+  score: { matchRate: number | null; matchSample: number; outcomeRate: number | null; outcomeSample: number };
+}
+
+export async function fetchTwinHome(): Promise<TwinHome> {
+  const token = await bearer();
+  const res = await fetch('/api/twin/home', {
+    headers: { Authorization: `Bearer ${token}` },
+    signal: timeoutSignal(15_000),
+  });
+  if (!res.ok) throw new Error(`twin-home-failed-${res.status}`);
+  return (await res.json()) as TwinHome;
+}

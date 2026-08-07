@@ -108,7 +108,7 @@ export function ForeignDataNotice() {
             type="button"
             disabled={busy}
             onClick={() => { setBusy(true); void signOut(); }}
-            className="min-h-8 rounded-md border border-[var(--border-subtle)] px-2.5 py-1 text-[12px] text-[var(--text-primary)] hover:bg-[var(--surface-hover)] disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+            className="min-h-8 rounded-md border border-[var(--border-subtle)] px-2.5 py-1 text-[12px] text-[var(--text-primary)] hover:bg-[var(--bg-hover)] disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
           >
             {L('그 계정으로 로그인', 'Sign in to that account')}
           </button>
@@ -120,7 +120,7 @@ export function ForeignDataNotice() {
               discardForeignLocalData(user.id, user.email);
               window.location.reload();
             }}
-            className="min-h-8 rounded-md border border-[var(--border-subtle)] px-2.5 py-1 text-[12px] text-[var(--text-secondary)] hover:bg-[var(--surface-hover)] disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+            className="min-h-8 rounded-md border border-[var(--border-subtle)] px-2.5 py-1 text-[12px] text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
           >
             {L('이 기기에서 정리', 'Clear from this device')}
           </button>

@@ -140,6 +140,18 @@ export async function setShadowVerdict(id: string, verdict: ShadowVerdict, quote
  *   성적에 넣으면 숫자가 부풀려진다 (PRD 반박 1).
  * · 표본 수를 항상 함께 돌려준다. 호출부는 표본 미달이면 숫자를 감춘다.
  */
+/**
+ * 분신 성적을 숫자로 보여줄 최소 표본. **정본은 여기 하나다.**
+ *
+ * 표본 2건짜리 "50%"는 정보가 아니라 소음이고, 소음을 성적처럼 보이게 하는
+ * 것이 이 제품이 하지 않기로 한 일이다. 임계 미달이면 숫자 대신 "아직
+ * 모릅니다"를 말한다 (TWIN §6.2).
+ *
+ * 이 상수가 표면마다 복사되면 한 곳만 낮춰도 나머지가 조용히 따라가지 않는다 —
+ * 실제로 극장 리포트와 recall 에 `const MIN = 3` 이 각각 박혀 있었다.
+ */
+export const TWIN_SCORE_MIN_SAMPLE = 3;
+
 export interface TwinScore {
   matchRate: number | null;
   matchSample: number;

@@ -246,8 +246,8 @@ export function JudgmentGraph({
             className="shrink-0 rounded-full px-3 py-1.5 text-[12px] font-medium transition-colors"
             style={
               hubsOnly
-                ? { background: 'var(--accent)', color: 'var(--bg-primary)' }
-                : { background: 'var(--bg-tertiary)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }
+                ? { background: 'var(--accent)', color: 'var(--accent-fg)' }
+                : { background: 'var(--bg-hover)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }
             }
           >
             {L('공유 전제만', 'Shared only')}

@@ -114,3 +114,49 @@ describe('twin status — 봉인 계약', () => {
     expect(TWIN_STATUS).toMatch(/return error \? null : count \?\? 0;/);
   });
 });
+
+/**
+ * 분신의 집 라우트가 봉인을 깨지 못한다 — 세 번째 문.
+ *
+ * status·export 와 다른 점: 이 라우트는 **공개된 예측의 전문을 일부러 낸다**
+ * (정산이 끝났으므로 그것이 봉인의 목적이다). 그래서 "본문을 안 낸다"로는
+ * 검사할 수 없고, **봉인 행과 공개 행이 서로 다른 쿼리인지**를 검사한다.
+ *
+ * 한 쿼리로 전부 읽고 코드에서 골라 내보내는 형태였다면 필드 하나 빠뜨리는
+ * 실수가 곧 봉인 파기가 된다. 두 쿼리로 나누면 봉인 쪽에는 그 컬럼 이름이
+ * 아예 등장하지 않는다 — 흘릴 코드가 존재하지 않는다.
+ */
+const TWIN_HOME = readFileSync(join(process.cwd(), 'src/app/api/twin/home/route.ts'), 'utf-8');
+
+describe('twin home — 봉인 계약', () => {
+  it('봉인 행과 공개 행을 서로 다른 쿼리로 읽는다', () => {
+    const selects = [...TWIN_HOME.matchAll(/\.select\('([^']*)'\)/g)].map((m) => m[1]);
+    const sealedSelect = selects.find((s) => s.includes('sealed_at') && !s.includes('expectation'));
+    const revealedSelect = selects.find((s) => s.includes('expectation'));
+    expect(sealedSelect, '봉인 전용 쿼리가 없습니다').toBeTruthy();
+    expect(revealedSelect, '공개 전용 쿼리가 없습니다').toBeTruthy();
+    expect(sealedSelect).not.toBe(revealedSelect);
+  });
+
+  it('봉인 쿼리에는 본문 컬럼 이름이 아예 없다', () => {
+    const selects = [...TWIN_HOME.matchAll(/\.select\('([^']*)'\)/g)].map((m) => m[1]);
+    const sealedSelect = selects.find((s) => s.includes('sealed_at'))!;
+    for (const forbidden of NEVER_EXPOSED) expect(sealedSelect).not.toContain(forbidden);
+    // 확신도도 봉인 내용의 일부다 (해시에 들어간다) — 미리 보이면 예측이 샌다.
+    expect(sealedSelect).not.toContain('confidence');
+  });
+
+  it('공개 행만 전문을 낸다 — status=revealed 로 좁힌다', () => {
+    expect(TWIN_HOME).toMatch(/\.eq\('status',\s*'revealed'\)/);
+  });
+
+  it('두 쿼리 모두 본인 것만 읽는다', () => {
+    const userFilters = [...TWIN_HOME.matchAll(/\.eq\('user_id',\s*user\.id\)/g)];
+    expect(userFilters.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it('로그인 없이는 아무것도 돌려주지 않는다', () => {
+    expect(TWIN_HOME).toContain('Unauthorized');
+    expect(TWIN_HOME).toContain('auth.getUser');
+  });
+});

@@ -4,7 +4,7 @@ import { LocaleLink } from '@/components/ui/LocaleLink';
 import { Logo } from '@/components/brand/Logo';
 import { usePathname, useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { Menu, X, LogOut, Sun, Moon, Lock, MoreHorizontal, Download, Users, BookOpen, BarChart3, UserCheck, Search, Compass, FolderKanban, Settings2, Waves } from 'lucide-react';
+import { Menu, X, LogOut, Sun, Moon, Lock, MoreHorizontal, Download, Users, BookOpen, BarChart3, UserCheck, Search, Compass, FolderKanban, Settings2, Waves, Fingerprint } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { useAuth } from '@/lib/auth';
 import { useDueCount } from '@/hooks/useDueCount';
@@ -66,6 +66,10 @@ export function Header() {
     // /boss moved here from the workspace idle chips (P0-7) — the route lives on,
     // only the extra doorway on the landing was removed.
     { href: '/boss', label: L('팀장 시뮬레이터', 'Boss Simulator'), desc: L('실제 1:1 전에 팀장의 반응과 다음 질문을 미리 연습합니다.', "Rehearse a manager's response and follow-up questions before a real 1:1."), icon: UserCheck, section: 'tools' },
+    // 분신은 최상단 nav 에 올리지 않았다. W1.3 "단일 진입"(워크스페이스·프로젝트·
+    // 설정·가이드 넷)은 창업자가 정한 것이고, 다섯 번째 문을 여는 것은 그 결정을
+    // 뒤집는 일이라 내 몫이 아니다. 여기(부차 도구)와 설정의 분신 블록에서 닿는다.
+    { href: '/twin', label: L('분신', 'Your twin'), desc: L('분신이 봉인해 둔 예측과, 정산에서 열린 대조를 봅니다.', 'See what your twin sealed, and how it compared when reality answered.'), icon: Fingerprint, section: 'tools' },
     { href: '/import', label: L('기록 가져오기', 'Import records'), desc: L('터미널·MCP에서 기록한 결정을 이 계정으로 모읍니다.', 'Gather decisions recorded in the terminal or MCP here.'), icon: Download, section: 'tools' },
     ...(e3bReleased ? [{ href: '/patterns', label: L('판단 패턴', 'Decision patterns'), desc: L('근거와 반례를 검토하고 AI 영향 권한을 관리합니다.', 'Review evidence and manage AI influence grants.'), icon: Waves, section: 'operator' as const }] : []),
     ...(isOperator ? [{ href: '/admin', label: L('운영 현황', 'Operations'), desc: L('가입부터 결과 기록까지의 흐름을 확인합니다.', 'See the flow from sign-up to recorded results.'), icon: BarChart3, section: 'operator' as const }] : []),
