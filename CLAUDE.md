@@ -201,6 +201,13 @@ localStorage-first 아키텍처에서 UI는 로컬만 읽는다 — 서버에 �
 2. **기존 사용자 세션 창에 키 입력·클릭을 시뮬레이션하지 않는다.** 실기기
    검증은 새로 띄운 전용 창에서만; 기존 창은 관찰만.
 
+## Agent Skills (참고 규칙집, 2026-08-07)
+
+`docs/agent-skills/`에 선별된 외부 규칙집이 있다 — **Postgres/스키마/RLS/
+마이그레이션을 만지기 전에 `supabase-postgres-best-practices/SKILL.md`를 먼저
+읽는다.** React 성능 작업은 `vercel-react-best-practices/`. `.claude/skills/`에
+두면 안 된다 (플러그인 검증 게이트가 빈 디렉토리를 강제 — 사유는 그 폴더 README).
+
 ## Principle: Defensive Data Access
 
 세 출처는 반드시 옵셔널 체이닝 + fallback으로 읽는다 — **localStorage**(옛 데이터에

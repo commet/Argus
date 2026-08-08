@@ -53,7 +53,7 @@ export async function GET(req: NextRequest) {
   // ── 공개 (정산된 것 — 전문) ──────────────────────────────────────────
   const { data: revealedRaw, error: revealedErr } = await admin
     .from('argus_shadow_predictions')
-    .select('case_id, target, expectation, confidence, verdict, verdict_quote, revealed_at')
+    .select('case_id, target, expectation, confidence, verdict, verdict_quote, revealed_at, was_late')
     .eq('user_id', user.id)
     .eq('status', 'revealed')
     .order('revealed_at', { ascending: false })

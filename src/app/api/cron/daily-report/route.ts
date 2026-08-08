@@ -1056,7 +1056,7 @@ export async function GET(req: Request) {
     <tr><td style="padding: 20px;">
       <p style="font-size: 10px; font-weight: 700; color: ${C.faint}; margin: 0 0 12px; letter-spacing: 0.12em; text-transform: uppercase;">신규 가입자 · 어제의 여정</p>
       ${signupDetails.map(s => `
-      <div style="border-left: 3px solid ${s.reached.length > 0 ? C.primary : C.border}; padding: 8px 0 8px 14px; margin-bottom: 14px;">
+      <div style="background: ${C.bg}; padding: 10px 14px; border-radius: 10px; margin-bottom: 14px;">
         <p style="font-size: 14px; font-weight: 700; margin: 0; color: ${C.text};">${escHtml(s.name || '(이름 없음)')}</p>
         <p style="font-size: 12px; color: ${C.muted}; margin: 2px 0 0;">${escHtml(s.email)} · <span style="color: ${C.primary}; font-weight: 600;">${escHtml(s.source)}</span></p>
         <p style="font-size: 12px; color: ${C.muted}; margin: 6px 0 0;">세션 ${s.sessionCount} · 이벤트 ${s.eventCount} · 체류 ${s.durationMin}분</p>

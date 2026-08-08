@@ -59,7 +59,7 @@ describe('premise tracking — promote, re-check, caps', () => {
     S().saveReceipt(r);
     // seal the follow-up so premises are armed
     const fid = r.falsifiable_followups[0].followup_id;
-    S().sealFollowup(r.receipt_id, fid, { predicate: 'p', pass_condition: 'a', fail_condition: 'b', check_by: '2027-01-01' });
+    S().sealFollowup(r.receipt_id, fid, { predicate: 'p', predicate_owner: 'user', pass_condition: 'a', fail_condition: 'b', check_by: '2027-01-01' });
 
     S().promotePremise(r.receipt_id, { text: '금리가 3.5% 근처에 머문다', load_bearing: true, external: true });
     let rec = S().getReceipt(r.receipt_id)!;

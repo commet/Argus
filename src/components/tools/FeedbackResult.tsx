@@ -335,7 +335,7 @@ export function FeedbackResult({ record, personas, onUpdateRecord, onStartDiscus
 
           {/* ── 잘한 부분 ── */}
           {(selectedResult.praise || []).length > 0 && (
-            <Card className="!border-l-4 !border-l-[var(--success)]">
+            <Card className="!bg-[var(--success)]/[0.04]">
               <div className="flex items-center gap-2 mb-2">
                 <ThumbsUp size={14} className="text-[var(--success)]" />
                 <span className="text-[13px] font-bold text-[var(--success)]">{L('잘한 부분', 'What works')}</span>

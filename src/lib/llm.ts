@@ -617,6 +617,30 @@ export async function verifyCurrentLlmConnection(): Promise<void> {
 
 // ━━━ Provider tier mapping (업무 성격에 따라 모델 자동 선택) ━━━
 
+/**
+ * 지금 설정으로 호출하면 실제로 어떤 모델·제공자가 도는가 — provenance 기록용.
+ *
+ * 영수증 provenance 가 하드코딩 상수였을 때, 실제 호출은 설정에 따라 다른
+ * 모델(다른 제공자까지)로 갔고 감사 필드가 거짓이 됐다. 호출 라우팅
+ * (callProxy/직접 경로 선택)과 같은 규칙으로 여기 한 곳에서만 계산한다.
+ * 한계도 적는다: 익명 프록시 경로는 서버가 허용 목록 밖 모델을 기본값으로
+ * 낮출 수 있어, 그 경우 이 값은 "요청한 모델"이다 — 상수 거짓말보다는 좁은
+ * 오차고, 카탈로그에서 고른 모델은 전부 허용 목록 안이다.
+ */
+export function llmIdentityForProvenance(): {
+  model_name: string;
+  model_provider: 'anthropic' | 'openai' | 'gemini';
+} {
+  const settings = getSettings();
+  if (settings.llm_provider === 'openai') {
+    return { model_name: resolveOpenAIModel(settings.openai_model || DEFAULT_OPENAI_MODEL), model_provider: 'openai' };
+  }
+  if (settings.llm_provider === 'gemini') {
+    return { model_name: resolveGeminiModel(settings.gemini_model || DEFAULT_GEMINI_MODEL), model_provider: 'gemini' };
+  }
+  return { model_name: settings.anthropic_model || DEFAULT_ANTHROPIC_MODEL, model_provider: 'anthropic' };
+}
+
 function resolveOpenAIModel(baseModel: string, tier?: ModelTier): string {
   void tier;
   return baseModel;

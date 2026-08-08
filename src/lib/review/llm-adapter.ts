@@ -6,7 +6,7 @@
  * lens/receipt pipeline, not which model runs it.
  */
 
-import { callLLMJson, visionCapable, type FieldSchema, type LLMContentBlock } from '../llm';
+import { callLLMJson, visionCapable, llmIdentityForProvenance, type FieldSchema, type LLMContentBlock } from '../llm';
 
 // Mirrors the (non-exported) SchemaFieldType in ../llm.
 type SchemaFieldType = 'string' | 'number' | 'boolean' | 'array' | 'object';
@@ -29,13 +29,21 @@ export interface ReviewLLM {
   json<T = Record<string, unknown>>(args: ReviewLLMArgs): Promise<T>;
   /** identifies the model for provenance. */
   readonly model_name: string;
-  readonly model_provider: 'anthropic' | 'openai' | 'local' | 'unknown';
+  readonly model_provider: 'anthropic' | 'openai' | 'gemini' | 'local' | 'unknown';
 }
 
-/** Default adapter: the webapp's authenticated proxy (Anthropic via /api/llm). */
+/**
+ * Default adapter: the webapp's LLM seam — 실제 라우팅은 설정이 정한다
+ * (Anthropic 프록시 / OpenAI / Gemini / BYOK direct).
+ *
+ * provenance 를 getter 로 둔 이유: 예전엔 'claude-sonnet-4-6' 이 하드코딩돼
+ * 있었는데 실제 기본 모델도, 사용자가 고른 제공자도 그게 아니었다 — 영수증의
+ * 감사 필드가 실행되지 않은 모델을 기록했다. 지금은 호출 순간의 설정에서
+ * 읽으므로 영수증에 남는 이름이 실제로 돈 (요청한) 모델과 같다.
+ */
 export const defaultReviewLLM: ReviewLLM = {
-  model_name: 'claude-sonnet-4-6',
-  model_provider: 'anthropic',
+  get model_name() { return llmIdentityForProvenance().model_name; },
+  get model_provider() { return llmIdentityForProvenance().model_provider; },
   json<T = Record<string, unknown>>(args: ReviewLLMArgs): Promise<T> {
     const useAttachments = !!args.attachments?.length && visionCapable();
     const content = useAttachments

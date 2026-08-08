@@ -87,6 +87,7 @@ function sealedRow(over: Partial<ShadowRow> = {}): ShadowRow {
     content_hash: shadowContentHash(base),
     sealed_at: '2026-08-06T00:00:00Z',
     status: 'sealed',
+    was_late: false,
     verdict: null,
     ...base,
     ...over,
@@ -124,6 +125,9 @@ describe('generateAndSealShadow', () => {
   it('이미 채택된 케이스면 late 로 봉인 — 늦었다는 사실을 지우지 않는다', async () => {
     await generateAndSealShadow('user-1', 'case-1', OPENING, { alreadyAdopted: true });
     expect(inserted.every((r) => r.status === 'late')).toBe(true);
+    // was_late 는 상태와 별개의 **사실** — 공개가 status 를 revealed 로 덮은
+    // 뒤에도 "왜 채점에서 빠졌는지"를 설명할 유일한 근거다.
+    expect(inserted.every((r) => r.was_late === true)).toBe(true);
   });
 
   it('봉인 해시가 내용에서 결정론적으로 나온다', async () => {
@@ -224,6 +228,12 @@ describe('gradeRevealedShadows', () => {
   it('late 봉인은 채점하지 않는다 — 채택을 보고 쓴 예측이다', async () => {
     llmResponse = { verdict: 'supported', quote: '인용' };
     await gradeRevealedShadows([sealedRow({ target: 'outcome', status: 'late' })], '관찰');
+    expect(updates).toHaveLength(0);
+  });
+
+  it('공개가 status 를 덮은 뒤에도 was_late 가 채점을 막는다 — 사실은 상태보다 오래 산다', async () => {
+    llmResponse = { verdict: 'supported', quote: '인용' };
+    await gradeRevealedShadows([sealedRow({ target: 'outcome', status: 'revealed', was_late: true })], '관찰');
     expect(updates).toHaveLength(0);
   });
 });

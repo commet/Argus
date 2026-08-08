@@ -453,6 +453,7 @@ export function ReceiptView({
                     <p className="text-[12.5px] text-[var(--text-tertiary)]">
                       {L(`확인일 ${f.check_by}`, `Check by ${f.check_by}`)} · {L('맞음', 'Pass')}: {f.pass_condition || '—'} · {L('틀림', 'Fail')}: {f.fail_condition || '—'}
                       {f.predicate_owner === 'user' && ` · ${L('내가 기록함', 'Recorded by me')}`}
+                      {f.predicate_owner === 'ai_surfaced' && f.sealed_at && ` · ${L('AI 문장을 그대로 채택함', 'AI wording, adopted as-is')}`}
                       {f.revise_count ? ` · ${L(`${f.revise_count}회 미룸`, `Postponed ${f.revise_count} time${f.revise_count === 1 ? '' : 's'}`)}` : ''}
                       {f.first_check_by ? ` · ${L(`원래 ${f.first_check_by}`, `originally ${f.first_check_by}`)}` : ''}
                     </p>

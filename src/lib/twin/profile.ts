@@ -119,6 +119,7 @@ interface ProfileRow {
   content: string;
   evidence_case_ids: string[] | null;
   counterexamples: string[] | null;
+  status: 'active' | 'retired';
 }
 
 /** 정산 한 건이 프로필에 무엇을 했는가 — 호출부가 사용자에게 그대로 옮긴다. */
@@ -151,19 +152,30 @@ export async function extractProfileFromSettlement(
     // (만료 항목을 보강 후보로 내면 유령이 되살아난다).
     const { data: existingRaw } = await admin
       .from('argus_profile_items')
-      .select('id, layer, domain, content, evidence_case_ids, counterexamples')
+      .select('id, layer, domain, content, evidence_case_ids, counterexamples, status')
       .eq('user_id', userId)
       .eq('status', 'active')
       .or(`expires_at.is.null,expires_at.gt.${new Date().toISOString()}`)
       .order('updated_at', { ascending: false })
       .limit(20);
-    const existing = (existingRaw ?? []) as ProfileRow[];
+    // 은퇴 항목도 뒤에 붙여 보여준다 (부활 비대칭 수리, 2026-08-07). 안 보여주면
+    // 같은 관찰이 반례 이력 없는 **새 행**으로 태어난다 — 반례 2건으로 물러난
+    // 항목이 새 관찰 1건에 0.67 로 돌아오는 비대칭이 실제로 있었다. 모델이 은퇴
+    // 항목 번호로 보강을 매핑하면 이력을 승계한 채 아래 부활 판정을 거친다.
+    const { data: retiredRaw } = await admin
+      .from('argus_profile_items')
+      .select('id, layer, domain, content, evidence_case_ids, counterexamples, status')
+      .eq('user_id', userId)
+      .eq('status', 'retired')
+      .order('updated_at', { ascending: false })
+      .limit(10);
+    const existing = [...(existingRaw ?? []), ...(retiredRaw ?? [])] as ProfileRow[];
 
     const raw = await callAnthropicJson({
       system: buildExtractSystem(),
       user: buildExtractUser(
         facts,
-        existing.map((r) => `[${r.layer}·${r.domain}] ${r.content}`),
+        existing.map((r) => `[${r.layer}·${r.domain}]${r.status === 'retired' ? ' [은퇴 — 반례가 쌓여 물러난 관찰]' : ''} ${r.content}`),
       ),
       toolName: 'extract_profile_items',
       schema: EXTRACT_SCHEMA,
@@ -202,11 +214,18 @@ export async function extractProfileFromSettlement(
       const evidence = row.evidence_case_ids ?? [];
       if (evidence.includes(facts.caseId)) continue; // 같은 케이스로 두 번 세지 않는다
       const next = [...evidence, facts.caseId];
+      const confidence = deriveConfidence(next.length, (row.counterexamples ?? []).length);
+      // 은퇴 항목의 보강 = 부활 후보. 반례 이력을 승계한 채 확신도를 다시 계산해
+      // 은퇴 임계를 **넘어설 때만** 활성으로 돌아온다. 은퇴는 2건이 필요한데
+      // 부활은 1건이면 되는 비대칭을 없앤다 — 이력이 남으므로 부활해도
+      // "깨끗한 새 항목"이 아니라 "흔들렸다 회복 중인 항목"으로 보인다.
+      const revive = row.status === 'retired' && confidence > RETIRE_CONFIDENCE;
       const { error } = await admin
         .from('argus_profile_items')
         .update({
           evidence_case_ids: next,
-          confidence: deriveConfidence(next.length, (row.counterexamples ?? []).length),
+          confidence,
+          ...(revive ? { status: 'active' } : {}),
           expires_at: ttlFromNow(),
           updated_at: new Date().toISOString(),
         })
@@ -224,7 +243,10 @@ export async function extractProfileFromSettlement(
       const support = (row.evidence_case_ids ?? []).length;
       const confidence = deriveConfidence(support, next.length);
       // 은퇴 판정은 상수 둘로만 — 반례가 임계 이상이고 확신도가 무너졌을 때.
-      const retire = next.length >= RETIRE_MIN_COUNTEREXAMPLES && confidence < RETIRE_CONFIDENCE;
+      // 경계는 <= 다: 근거 2 / 반례 2 는 정확히 0.5 인데, 반례가 근거와 같은
+      // 관찰은 이미 이 사람의 패턴이라 부를 수 없다. < 로 두면 동률이 영영
+      // 은퇴하지 않은 채 프롬프트에 계속 실린다 (2026-08-07 리뷰에서 발견).
+      const retire = next.length >= RETIRE_MIN_COUNTEREXAMPLES && confidence <= RETIRE_CONFIDENCE;
       const { error } = await admin
         .from('argus_profile_items')
         .update({
@@ -243,9 +265,18 @@ export async function extractProfileFromSettlement(
     }
 
     // ── 새 항목 ─────────────────────────────────────────────────────────
+    const normContent = (s: string) => s.replace(/\s+/g, ' ').trim();
+    const knownContent = new Set(existing.map((r) => normContent(r.content)));
     const accepted = candidates.filter((c) => {
       if (violatesJudgmentLanguage(c.content)) {
         console.error(`[twin/profile] judgment language rejected: "${c.content.slice(0, 60)}"`);
+        return false;
+      }
+      // 이미 있는 문장(활성이든 은퇴든)과 같은 내용의 새 행은 만들지 않는다 —
+      // 같은 관찰은 보강(또는 부활)으로만 자란다. 새 행으로 태어나면 반례
+      // 이력이 지워진다.
+      if (knownContent.has(normContent(c.content))) {
+        console.error(`[twin/profile] duplicate of an existing item — not inserting: "${c.content.slice(0, 60)}"`);
         return false;
       }
       return true;

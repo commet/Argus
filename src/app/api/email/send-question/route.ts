@@ -135,7 +135,7 @@ export async function POST(req: NextRequest) {
         ${askLine}
       </p>
 
-      <div style="background: #FEF3C7; border-left: 3px solid #D97706; padding: 16px; border-radius: 0 8px 8px 0; margin-bottom: 24px;">
+      <div style="background: #FEF3C7; padding: 16px; border-radius: 8px; margin-bottom: 24px;">
         <p style="font-size: 15px; font-weight: 600; color: #92400E; margin: 0;">${eQuestion}</p>
       </div>
 

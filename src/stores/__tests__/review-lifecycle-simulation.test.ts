@@ -71,7 +71,7 @@ describe('review lifecycle simulation — a full session', () => {
 
     // seal with user-owned lean + assumption
     const fu = r.falsifiable_followups[0];
-    s.sealFollowup(r.receipt_id, fu.followup_id, { predicate: '내 말로 쓴 예측', lean: '지금이 맞다', key_assumption: '온보딩이 원인', pass_condition: 'p', fail_condition: 'f', check_by: '2027-02-01' });
+    s.sealFollowup(r.receipt_id, fu.followup_id, { predicate: '내 말로 쓴 예측', predicate_owner: 'user', lean: '지금이 맞다', key_assumption: '온보딩이 원인', pass_condition: 'p', fail_condition: 'f', check_by: '2027-02-01' });
     let cur = useReviewStore.getState().getReceipt(r.receipt_id)!;
     expect(cur.state).toBe('sealed');
     expect(cur.falsifiable_followups[0].predicate_owner).toBe('user');
@@ -89,7 +89,7 @@ describe('review lifecycle simulation — a full session', () => {
     const r = await reviewInto('# 전략\n본문');
     s.saveReceipt(r);
     const fu = r.falsifiable_followups[0];
-    s.sealFollowup(r.receipt_id, fu.followup_id, { predicate: 'p', pass_condition: 'a', fail_condition: 'b', check_by: '2026-06-20' });
+    s.sealFollowup(r.receipt_id, fu.followup_id, { predicate: 'p', predicate_owner: 'user', pass_condition: 'a', fail_condition: 'b', check_by: '2026-06-20' });
     // past-due before revise
     expect(summarizeReceipt(useReviewStore.getState().getReceipt(r.receipt_id)!, '2026-07-01').derived).toBe('due');
     // revise into the future
@@ -108,15 +108,15 @@ describe('review lifecycle simulation — a full session', () => {
     // sealed, due (past)
     const b = await reviewInto('# B\n본문');
     s.saveReceipt(b);
-    s.sealFollowup(b.receipt_id, b.falsifiable_followups[0].followup_id, { predicate: 'p', pass_condition: '', fail_condition: '', check_by: '2026-06-01' });
+    s.sealFollowup(b.receipt_id, b.falsifiable_followups[0].followup_id, { predicate: 'p', predicate_owner: 'user', pass_condition: '', fail_condition: '', check_by: '2026-06-01' });
     // sealed, future
     const c = await reviewInto('# C\n본문');
     s.saveReceipt(c);
-    s.sealFollowup(c.receipt_id, c.falsifiable_followups[0].followup_id, { predicate: 'p', pass_condition: '', fail_condition: '', check_by: '2026-12-01' });
+    s.sealFollowup(c.receipt_id, c.falsifiable_followups[0].followup_id, { predicate: 'p', predicate_owner: 'user', pass_condition: '', fail_condition: '', check_by: '2026-12-01' });
     // settled
     const d = await reviewInto('# D\n본문');
     s.saveReceipt(d);
-    s.sealFollowup(d.receipt_id, d.falsifiable_followups[0].followup_id, { predicate: 'p', pass_condition: '', fail_condition: '', check_by: '2026-06-01' });
+    s.sealFollowup(d.receipt_id, d.falsifiable_followups[0].followup_id, { predicate: 'p', predicate_owner: 'user', pass_condition: '', fail_condition: '', check_by: '2026-06-01' });
     s.settleFollowup(d.receipt_id, d.falsifiable_followups[0].followup_id, 'happened', 'done');
 
     const order = sortByUrgency(useReviewStore.getState().receipts, '2026-07-01').map((r) => summarizeReceipt(r, '2026-07-01').derived);

@@ -32,6 +32,8 @@ import {
   describeDelegationGrade,
   gradeDelegation,
   markCaseDelegation,
+  markCaseDelegationOffered,
+  offeredDelegationId,
   DELEGATION_DEFAULT_DAYS,
   DELEGATION_MAX_DAYS,
 } from '@/lib/twin/delegation';
@@ -216,6 +218,13 @@ export async function handleOpen(userId: string, args: Args) {
   //
   // **그림자보다 먼저 부르는 이유**가 아래 오염 방지선이다.
   const delegation = await applyDelegation(userId, utterance);
+
+  // 꺼내진 위임을 서버가 직접 케이스에 남긴다 (결정론 백스톱). 채택 때 모델이
+  // appliedDelegationId 를 빼먹어도, 정산이 "꺼내졌는데 확인이 안 됐다"를
+  // 정직한 공백으로 말할 수 있는 근거가 여기서 생긴다.
+  if (delegation) {
+    runAfterResponse(() => markCaseDelegationOffered(userId, caseId, delegation.delegation.id));
+  }
 
   // 그림자 시험 (TWIN §4.2) — 분신이 같은 시험을 몰래 친다. 응답을 막지 않고
   // (after()), 실패해도 열기는 무사하다. **이 예측은 정산 전에는 어떤 표면에도
@@ -674,6 +683,14 @@ export async function handleReturn(userId: string, args: Args) {
   // 꺼내지 않을 것이므로, 말하지 않으면 사용자는 위임이 여전히 도는 줄 안다.
   const delegationId = await caseDelegationId(userId, caseId);
   const delegationGrade = delegationId ? await gradeDelegation(userId, delegationId, observation) : null;
+  // 채점 누락을 조용히 넘기지 않는다: 열 때 위임이 꺼내졌는데(서버 기록) 채택에
+  // appliedDelegationId 가 없으면, 따랐는지 안 따랐는지 알 수 없어 채점하지
+  // 않는다 — 그리고 그 사실을 말한다. 모르는 것을 아는 것처럼 채점하는 것도,
+  // 누락을 침묵으로 덮는 것도 둘 다 조작이다.
+  const offeredButUnconfirmed = !delegationId && (await offeredDelegationId(userId, caseId));
+  const delegationGap = offeredButUnconfirmed
+    ? '\n\n이 결정을 열 때 위임 정책이 꺼내져 있었지만, 채택에 appliedDelegationId 가 기록되지 않아 정책을 채점하지 않았습니다 — 따랐는지 여부를 지어내지 않습니다.'
+    : '';
 
   // 사전등록 믿음 채점 (TWIN M5). 채택 때 사용자가 **자기 손으로** confident/
   // uncertain/contested 를 붙인 믿음들을 관찰과 대조한다. 채점 대상은 사용자가
@@ -715,7 +732,8 @@ export async function handleReturn(userId: string, args: Args) {
       `방금의 기억: "${recall}"\n실제로 일어난 일: "${observation}"\n\n` +
       '둘이 다르다면 그 차이가 이 기록이 존재하는 이유입니다 — 결과를 알고 나면 누구나 이유를 다시 씁니다.' +
       shadow.text +
-      describeDelegationGrade(delegationGrade),
+      describeDelegationGrade(delegationGrade) +
+      delegationGap,
     caseId,
   );
 }
@@ -834,18 +852,30 @@ export async function handleRecall(userId: string, args: Args) {
     if (calibration) parts.push(calibration);
 
     // 분신 성적 (TWIN §4.2). **사람이 아니라 예측을 채점한 것**이고, 표본
-    // 미달이면 숫자를 감춘다 — 3건짜리 퍼센트는 정보가 아니라 소음이다.
+    // 미달이면 숫자를 감춘다 — 게이트는 twinScore 안에서 돈다(rate 가 null 로
+    // 옴). TWIN 수정조항의 세 조건: 표본 임계 + 근거 케이스 id 동반 + 채점
+    // 대상이 분신임을 문장에서 밝히기. 근거 id 는 여기서 싣는다 — 숫자만 있고
+    // 출처가 없으면 "어떻게 아는지"를 물을 수 없다.
     const score = await twinScore(userId);
-    const MIN = TWIN_SCORE_MIN_SAMPLE;
-    if (score.matchSample >= MIN || score.outcomeSample >= MIN) {
+    const evidence = (ids: string[]) => (ids.length > 0 ? ` — 근거: ${ids.slice(0, 5).join(', ')}` : '');
+    // 게이트는 twinScore 안에서 돌지만, 표면도 스스로 지킨다 (표본 미달 rate 는
+    // 어디서 왔든 싣지 않는다 — 계약 밖 입력에 대한 이중 방어).
+    const matchReady = score.matchRate !== null && score.matchSample >= TWIN_SCORE_MIN_SAMPLE;
+    const outcomeReady = score.outcomeRate !== null && score.outcomeSample >= TWIN_SCORE_MIN_SAMPLE;
+    if (matchReady || outcomeReady) {
       const bits: string[] = [];
-      if (score.matchSample >= MIN) {
-        bits.push(`당신의 선택을 맞힌 비율 ${Math.round(score.matchRate! * 100)}% (${score.matchSample}건)`);
+      if (matchReady) {
+        bits.push(`당신의 선택을 맞힌 비율 ${Math.round(score.matchRate! * 100)}% (${score.matchSample}건${evidence(score.matchCases)})`);
       }
-      if (score.outcomeSample >= MIN) {
-        bits.push(`현실을 맞힌 비율 ${Math.round(score.outcomeRate! * 100)}% (${score.outcomeSample}건)`);
+      if (outcomeReady) {
+        bits.push(`현실을 맞힌 비율 ${Math.round(score.outcomeRate! * 100)}% (${score.outcomeSample}건${evidence(score.outcomeCases)})`);
       }
       parts.push(`분신 성적 (분신의 예측을 채점한 것입니다 — 사용자에 대한 평가가 아닙니다): ${bits.join(' · ')}`);
+    } else if (score.matchSample + score.outcomeSample > 0) {
+      // 표본이 임계(3) 미달이면 숫자를 만들지 않는다 — "아직 모릅니다"가 정답이다.
+      parts.push(
+        `분신 성적: 아직 모릅니다 — 채점된 예측이 ${score.matchSample + score.outcomeSample}건뿐입니다 (표본 ${TWIN_SCORE_MIN_SAMPLE}건부터 숫자를 냅니다).`,
+      );
     }
   }
 

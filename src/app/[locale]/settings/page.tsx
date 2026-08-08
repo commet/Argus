@@ -1283,6 +1283,8 @@ const SCHEMA_PROBES: Array<{ table: string; column?: string; label: string; sinc
   { table: 'argus_cases', column: 'delegation_id', label: '위임 집행 흔적', since: '20260806120000' },
   { table: 'argus_cases', column: 'profile_extracted_at', label: '프로필 추출 표식', since: '20260806130000' },
   { table: 'argus_belief_checks', label: '사전등록 믿음 채점', since: '20260806140000' },
+  { table: 'argus_shadow_predictions', column: 'was_late', label: '늦은 봉인 사실 보존', since: '20260807080000' },
+  { table: 'argus_cases', column: 'offered_delegation_id', label: '위임 제시 흔적 (채점 누락 감지)', since: '20260807080000' },
 ];
 
 type ProbeState = { ok: boolean; detail: string };
@@ -1478,6 +1480,7 @@ interface ProfileItem {
   counterexamples: string[] | null;
   confidence: number;
   status: string;
+  provenance: 'ai_extracted' | 'user_edited';
   created_at: string;
 }
 
@@ -1496,6 +1499,8 @@ function JudgmentProfileBlock({ locale }: { locale: string }) {
   const L = (ko: string, en: string) => (locale === 'ko' ? ko : en);
   const [items, setItems] = useState<ProfileItem[]>([]);
   const [error, setError] = useState('');
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [draft, setDraft] = useState('');
 
   const load = useCallback(async () => {
     // 은퇴 항목도 함께 읽는다. 반례가 쌓여 물러난 항목을 화면에서 지워 버리면
@@ -1503,7 +1508,7 @@ function JudgmentProfileBlock({ locale }: { locale: string }) {
     // 자기 기록을 고치는 형태다 — 물러난 사실과 이유가 보여야 이의를 제기한다.
     const { data, error: loadError } = await supabase
       .from('argus_profile_items')
-      .select('id, layer, domain, content, evidence_case_ids, counterexamples, confidence, status, created_at')
+      .select('id, layer, domain, content, evidence_case_ids, counterexamples, confidence, status, provenance, created_at')
       .in('status', ['active', 'retired'])
       .order('confidence', { ascending: false });
     // 마이그레이션 전이거나 테이블이 없으면 조용히 빈 목록 — 없는 기능을
@@ -1517,6 +1522,22 @@ function JudgmentProfileBlock({ locale }: { locale: string }) {
     const { error: delError } = await supabase.from('argus_profile_items').delete().eq('id', id);
     if (delError) { setError(L('항목을 지우지 못했습니다.', 'Could not remove the item.')); return; }
     setError('');
+    await load();
+  };
+
+  // 편집은 문장만 — 근거·반례·확신도는 기계 관할이라 컬럼 grant 자체가 닫혀
+  // 있다 (20260807080000). 고친 문장은 provenance='user_edited' 로 남는다:
+  // 거울에 사용자가 손댄 자리는 사용자가 손댔다고 적혀야 한다.
+  const saveEdit = async (id: string) => {
+    const content = draft.trim();
+    if (!content) return;
+    const { error: upError } = await supabase
+      .from('argus_profile_items')
+      .update({ content, provenance: 'user_edited', updated_at: new Date().toISOString() })
+      .eq('id', id);
+    if (upError) { setError(L('항목을 고치지 못했습니다.', 'Could not edit the item.')); return; }
+    setError('');
+    setEditingId(null);
     await load();
   };
 
@@ -1545,6 +1566,24 @@ function JudgmentProfileBlock({ locale }: { locale: string }) {
         <div className="mt-3 space-y-1.5">
           {items.map((it) => (
             <div key={it.id} className="flex items-start justify-between gap-3 text-[12px] px-2.5 py-2 rounded-md bg-[var(--bg)]">
+              {editingId === it.id ? (
+                <div className="flex-1">
+                  <textarea
+                    value={draft}
+                    onChange={(e) => setDraft(e.target.value)}
+                    maxLength={280}
+                    className="w-full h-16 resize-y rounded border border-[var(--border-subtle)] bg-[var(--surface)] px-2 py-1.5 text-[12px] leading-relaxed outline-none focus:border-[var(--accent)]"
+                  />
+                  <div className="flex gap-2 mt-1">
+                    <button type="button" onClick={() => void saveEdit(it.id)} className="text-[11px] font-semibold text-[var(--accent)] hover:underline">
+                      {L('저장', 'Save')}
+                    </button>
+                    <button type="button" onClick={() => setEditingId(null)} className="text-[11px] text-[var(--text-tertiary)] hover:underline">
+                      {L('취소', 'Cancel')}
+                    </button>
+                  </div>
+                </div>
+              ) : (
               <span className={it.status === 'retired' ? 'text-[var(--text-tertiary)] line-through decoration-1' : 'text-[var(--text-secondary)]'}>
                 <span className="text-[var(--text-tertiary)]">[{LAYER_LABEL[it.layer] ?? it.layer} · {it.domain}]</span>{' '}
                 {it.content}
@@ -1556,18 +1595,33 @@ function JudgmentProfileBlock({ locale }: { locale: string }) {
                   {(it.counterexamples || []).length > 0 && (
                     <> · {L('반례 ', 'counterexamples ')}{(it.counterexamples || []).length}{L('건', '')}</>
                   )}
+                  {it.provenance === 'user_edited' && (
+                    <> · {L('내가 고쳐 씀', 'edited by me')}</>
+                  )}
                   {it.status === 'retired' && (
                     <> · {L('현실이 반대로 답해서 물러남 — 분신이 더 이상 쓰지 않습니다', 'retired: reality answered otherwise — the twin no longer uses it')}</>
                   )}
                 </span>
               </span>
-              <button
-                type="button"
-                onClick={() => retire(it.id)}
-                className="min-h-11 px-2 shrink-0 text-[var(--text-tertiary)] hover:text-[var(--danger)] cursor-pointer transition-colors"
-              >
-                {L('지우기', 'Remove')}
-              </button>
+              )}
+              <div className="flex shrink-0 items-center">
+                {it.status === 'active' && editingId !== it.id && (
+                  <button
+                    type="button"
+                    onClick={() => { setEditingId(it.id); setDraft(it.content); }}
+                    className="min-h-11 px-2 text-[var(--text-tertiary)] hover:text-[var(--accent)] cursor-pointer transition-colors"
+                  >
+                    {L('고치기', 'Edit')}
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => retire(it.id)}
+                  className="min-h-11 px-2 text-[var(--text-tertiary)] hover:text-[var(--danger)] cursor-pointer transition-colors"
+                >
+                  {L('지우기', 'Remove')}
+                </button>
+              </div>
             </div>
           ))}
         </div>

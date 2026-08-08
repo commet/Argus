@@ -427,8 +427,9 @@ function VoyageFilmStage({ onEnded }: { onEnded?: () => void }) {
           </AnimatePresence>
           <div className="flex items-center" style={{ position: 'absolute', left: 18, bottom: 14, gap: 9 }} aria-hidden="true">
             {CHAPTERS.map((c, i) => {
-              const on = i === shownIdx; const passed = i < shownIdx; const size = on ? 7 : 5;
-              return <span key={c.num} style={{ width: size, height: size, borderRadius: '50%', background: on ? (c.gold ? 'var(--bp-gold)' : 'var(--bp-ink)') : passed ? 'var(--bp-ink-soft)' : 'transparent', border: !on && !passed ? '1px solid var(--bp-ink-faint)' : 'none', opacity: on ? 1 : passed ? 0.55 : 0.5, transition: 'width 360ms ease, height 360ms ease, background 360ms ease, opacity 360ms ease' }} />;
+              // 크기 변화는 transform 으로 — width/height 트랜지션은 레이아웃을 흔든다 (옆 점까지 밀림).
+              const on = i === shownIdx; const passed = i < shownIdx;
+              return <span key={c.num} style={{ width: 7, height: 7, borderRadius: '50%', transform: on ? 'scale(1)' : 'scale(0.72)', background: on ? (c.gold ? 'var(--bp-gold)' : 'var(--bp-ink)') : passed ? 'var(--bp-ink-soft)' : 'transparent', border: !on && !passed ? '1px solid var(--bp-ink-faint)' : 'none', opacity: on ? 1 : passed ? 0.55 : 0.5, transition: 'transform 360ms ease, background 360ms ease, opacity 360ms ease' }} />;
             })}
           </div>
         </div>
@@ -555,16 +556,17 @@ function VoyageFilmStage({ onEnded }: { onEnded?: () => void }) {
         {CHAPTERS.map((c, i) => {
           const on = i === shownIdx;
           const passed = i < shownIdx;
-          const size = on ? 7 : 5;
           return (
             <span
               key={c.num}
               style={{
-                width: size, height: size, borderRadius: '50%',
+                /* 크기 변화는 transform 으로 — width/height 트랜지션은 레이아웃을 흔든다. */
+                width: 7, height: 7, borderRadius: '50%',
+                transform: on ? 'scale(1)' : 'scale(0.72)',
                 background: on ? (c.gold ? 'var(--bp-gold)' : 'var(--bp-ink)') : passed ? 'var(--bp-ink-soft)' : 'transparent',
                 border: !on && !passed ? '1px solid var(--bp-ink-faint)' : 'none',
                 opacity: on ? 1 : passed ? 0.55 : 0.5,
-                transition: 'width 360ms ease, height 360ms ease, background 360ms ease, opacity 360ms ease',
+                transition: 'transform 360ms ease, background 360ms ease, opacity 360ms ease',
               }}
             />
           );

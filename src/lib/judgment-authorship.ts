@@ -32,12 +32,14 @@ export function closingJudgmentAuthorship(input: {
   /** 사용자가 그 칸을 한 번이라도 건드렸는가. */
   touched: boolean;
   now: number;
+  /** 기록 표면. 기본은 워크스페이스 봉인 — 리뷰 봉인 등 다른 표면은 자기 이름을 넘긴다. */
+  sourceRef?: string;
 }): ClosingJudgmentAuthorship {
   const norm = (s: string) => s.replace(/\s+/g, ' ').trim();
   const text = norm(input.text);
   const draft = norm(input.aiDraft);
   const recorded_at = new Date(input.now).toISOString();
-  const base = { surface: 'web' as const, recorded_at, source_ref: 'workspace:closing_judgment' };
+  const base = { surface: 'web' as const, recorded_at, source_ref: input.sourceRef ?? 'workspace:closing_judgment' };
 
   // 손댔더라도 결과가 초안과 **글자까지 같으면** 그건 여전히 기계 문장이다.
   // (지웠다가 똑같이 다시 친 경우까지 사람 것으로 쳐줄 이유가 없다 — 판정 기준은

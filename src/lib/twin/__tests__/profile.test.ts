@@ -16,6 +16,7 @@ const updates: Array<Record<string, unknown>> = [];
 let llmResponse: Record<string, unknown> | null = null;
 let settledRow: { id: string; settled_at: string } | null = { id: 'case-1', settled_at: '2026-08-06T00:00:00Z' };
 let profileRows: Array<Record<string, unknown>> = [];
+let retiredRows: Array<Record<string, unknown>> = [];
 // argus_cases 는 두 가지로 읽힌다: 단건(정산 확인, maybeSingle)과 목록(백스톱
 // 후보 조회). 하나로 합치면 "행이 없다"와 "빈 목록"이 구분되지 않는다.
 let caseRows: Array<Record<string, unknown>> = [];
@@ -43,6 +44,24 @@ function query(
   return chain;
 }
 
+// 프로필 조회는 이제 상태별로 두 번 온다 (활성 + 은퇴 — 부활 비대칭 수리).
+// .eq('status', …) 를 캡처해 각각 다른 픽스처를 돌려준다.
+function profileQuery() {
+  let status: string | null = null;
+  const chain: Record<string, unknown> = {};
+  for (const k of ['or', 'not', 'order', 'limit', 'gte', 'lt', 'in', 'is', 'select']) {
+    chain[k] = () => chain;
+  }
+  chain.eq = (col: string, v: unknown) => {
+    if (col === 'status') status = String(v);
+    return chain;
+  };
+  chain.maybeSingle = () => Promise.resolve({ data: null, error: null });
+  chain.then = (res: (v: unknown) => unknown, rej?: (e: unknown) => unknown) =>
+    Promise.resolve({ data: status === 'retired' ? retiredRows : profileRows, error: null }).then(res, rej);
+  return chain;
+}
+
 vi.mock('@/lib/share-guard', () => ({
   adminClient: () => ({
     from: (table: string) => ({
@@ -61,7 +80,7 @@ vi.mock('@/lib/share-guard', () => ({
               () => ({ data: caseRows, error: null }),
               () => ({ data: settledRow, error: null }),
             )
-          : query(() => ({ data: profileRows, error: null })),
+          : profileQuery(),
     }),
   }),
 }));
@@ -103,6 +122,7 @@ beforeEach(() => {
   updates.length = 0;
   caseUpdates.length = 0;
   profileRows = [];
+  retiredRows = [];
   caseRows = [];
   settledRow = { id: 'case-1', settled_at: '2026-08-06T00:00:00Z' };
   llmResponse = {
@@ -300,7 +320,7 @@ describe('profileLines', () => {
 
 describe('recentlyRetiredLines', () => {
   it('물러난 항목을 반례 수와 함께 말한다 — 조용히 사라지지 않는다', async () => {
-    profileRows = [
+    retiredRows = [
       {
         layer: 'L3',
         domain: '채용',
@@ -311,6 +331,56 @@ describe('recentlyRetiredLines', () => {
     ];
     const lines = await recentlyRetiredLines('user-1');
     expect(lines[0]).toContain('반례 2건으로 물러남');
+  });
+});
+
+describe('은퇴 항목의 부활 — 이력을 승계한다 (비대칭 수리)', () => {
+  it('은퇴 항목이 보강돼 임계를 넘으면 반례 이력을 지닌 채 활성으로 돌아온다', async () => {
+    // 근거 2 + 반례 2 로 은퇴해 있던 항목. 새 보강 1건 → 근거 3 / 반례 2
+    // → 4/7 ≈ 0.571 > 0.5 → 부활. 반례는 update 에 없다 = 그대로 남는다.
+    retiredRows = [existingItem({
+      id: 'item-r', status: 'retired',
+      evidence_case_ids: ['case-0', 'case-8'], counterexamples: ['case-2', 'case-3'],
+    })];
+    llmResponse = { items: [], reinforces: [0], contradicts: [] };
+    const u = await extractProfileFromSettlement('user-1', FACTS);
+    expect(u.reinforced).toBe(1);
+    expect(updates[0].status).toBe('active');
+    expect(updates[0].evidence_case_ids).toEqual(['case-0', 'case-8', 'case-1']);
+    expect(Number(updates[0].confidence)).toBeCloseTo(4 / 7);
+    expect('counterexamples' in updates[0]).toBe(false); // 이력은 지워지지 않는다
+  });
+
+  it('보강돼도 임계를 못 넘으면 은퇴로 남는다 — 은퇴 2건, 부활 1건의 비대칭을 만들지 않는다', async () => {
+    // 근거 1 + 반례 2 → 보강 후 근거 2 / 반례 2 → 정확히 0.5 → 부활 아님.
+    retiredRows = [existingItem({
+      id: 'item-r', status: 'retired',
+      evidence_case_ids: ['case-0'], counterexamples: ['case-2', 'case-3'],
+    })];
+    llmResponse = { items: [], reinforces: [0], contradicts: [] };
+    await extractProfileFromSettlement('user-1', FACTS);
+    expect(updates[0].evidence_case_ids).toEqual(['case-0', 'case-1']);
+    expect(updates[0].status).toBeUndefined(); // 여전히 retired
+  });
+
+  it('이미 있는 문장(은퇴 포함)과 같은 새 항목은 만들지 않는다 — 새 행으로 태어나면 반례가 지워진다', async () => {
+    retiredRows = [existingItem({ id: 'item-r', status: 'retired', counterexamples: ['case-2', 'case-3'] })];
+    llmResponse = {
+      items: [{ layer: 'L3', domain: '채용', content: '현금이 빠듯할 때 계약직을 먼저 본다' }],
+      reinforces: [], contradicts: [],
+    };
+    const u = await extractProfileFromSettlement('user-1', FACTS);
+    expect(u.inserted).toBe(0);
+    expect(inserted).toHaveLength(0);
+  });
+
+  it('근거와 반례가 동률(0.5)이면 은퇴한다 — 반례가 근거만큼 쌓인 관찰은 패턴이 아니다', async () => {
+    profileRows = [existingItem({ evidence_case_ids: ['case-0', 'case-8'], counterexamples: ['case-9'] })];
+    llmResponse = { items: [], reinforces: [], contradicts: [0] };
+    const u = await extractProfileFromSettlement('user-1', FACTS);
+    // 근거 2 / 반례 2 → 정확히 0.5 → <= 경계에 걸려 은퇴.
+    expect(u.retired).toBe(1);
+    expect(updates[0].status).toBe('retired');
   });
 });
 

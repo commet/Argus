@@ -5,9 +5,10 @@
  * §Activation Event). Sealing one falsifiable follow-up IS the activation event.
  *
  * Spine rules baked in:
- *  - The user writes/edits the predicate themselves — Argus only pre-fills its
- *    ai_surfaced draft and offers a falsifiability nudge. Sealing flips
- *    predicate_owner to 'user' (honest authorship; no relabeled AI line).
+ *  - 저자성은 정본 판정기(closingJudgmentAuthorship)가 정한다: AI 초안을 고치면
+ *    사용자 문장이 되고, **한 글자도 안 고치고 봉인하면 ai_surfaced 로 남는다.**
+ *    그대로 채택하는 것은 허용된 탈출구다 — 기록만 정직하게 남긴다. (예전엔
+ *    봉인이 무조건 'user' 로 승격해서, 판정기가 세탁이라 부르는 바로 그 형태였다.)
  *  - No verdict, no "proceed". The user owns the lean, the conditions, the date.
  */
 
@@ -20,6 +21,7 @@ import { SealStamp } from '@/components/workspace/progressive/SealStamp';
 import { useLocale } from '@/hooks/useLocale';
 import { type FalsifiableFollowup } from '@/lib/review';
 import { type SealPatch } from '@/stores/useReviewStore';
+import { closingJudgmentAuthorship } from '@/lib/judgment-authorship';
 
 export function SealModal({
   followups,
@@ -46,6 +48,8 @@ export function SealModal({
   const selected = followups.find((f) => f.followup_id === selectedId) ?? followups[0];
 
   const [predicate, setPredicate] = useState(selected?.predicate ?? '');
+  // 저자성 판정 재료 — 이 칸을 건드렸는가 (판정기의 touched 입력).
+  const [predicateTouched, setPredicateTouched] = useState(false);
   const [lean, setLean] = useState(selected?.lean ?? '');
   const [assumption, setAssumption] = useState(selected?.key_assumption ?? '');
   const [pass, setPass] = useState(selected?.pass_condition ?? '');
@@ -56,6 +60,7 @@ export function SealModal({
   const pickFollowup = (f: FalsifiableFollowup) => {
     setSelectedId(f.followup_id);
     setPredicate(f.predicate);
+    setPredicateTouched(false);
     setLean(f.lean ?? '');
     setAssumption(f.key_assumption ?? '');
     setPass(f.pass_condition);
@@ -91,8 +96,27 @@ export function SealModal({
 
   if (!selected && !obligation) return null;
 
-  const commitSeal = () =>
-    onSeal(selected?.followup_id ?? '', { predicate, lean, key_assumption: assumption, pass_condition: pass, fail_condition: fail, check_by: checkBy });
+  const commitSeal = () => {
+    // 초안이 AI 것일 때만 판정 대상 — 이미 사용자 소유였던 술어의 재봉인은
+    // 동일 문장이어도 세탁이 아니다.
+    const aiDraft = selected?.predicate_owner === 'ai_surfaced' ? (selected?.predicate ?? '') : '';
+    const { authored } = closingJudgmentAuthorship({
+      text: predicate,
+      aiDraft,
+      touched: predicateTouched,
+      now: Date.now(),
+      sourceRef: 'review:seal_followup',
+    });
+    onSeal(selected?.followup_id ?? '', {
+      predicate,
+      predicate_owner: authored,
+      lean,
+      key_assumption: assumption,
+      pass_condition: pass,
+      fail_condition: fail,
+      check_by: checkBy,
+    });
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 p-3 backdrop-blur-[2px] sm:p-5" onClick={stamping ? undefined : onClose}>
@@ -172,7 +196,7 @@ export function SealModal({
           <textarea
             id="record-predicate"
             value={predicate}
-            onChange={(e) => setPredicate(e.target.value)}
+            onChange={(e) => { setPredicate(e.target.value); setPredicateTouched(true); }}
             maxLength={400}
             className="h-20 w-full resize-y rounded border border-[var(--border-subtle)] bg-transparent px-3 py-2 text-[13px] leading-relaxed outline-none focus:border-[var(--accent)]"
           />
