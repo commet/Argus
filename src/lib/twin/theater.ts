@@ -255,7 +255,14 @@ export async function replayUntakenPath(
 // ── 주간 리포트 문안 ─────────────────────────────────────────────────────
 export function buildTheaterReport(
   items: TheaterItem[],
-  score?: { matchRate: number | null; matchSample: number; outcomeRate: number | null; outcomeSample: number },
+  score?: {
+    matchRate: number | null;
+    matchSample: number;
+    outcomeRate: number | null;
+    outcomeSample: number;
+    matchCases?: string[];
+    outcomeCases?: string[];
+  },
 ): { subject: string; text: string } {
   const graded = items.filter((i) => i.gradeLabel === 'graded' && i.track !== 'disguised');
   const disguised = items.filter((i) => i.track === 'disguised');
@@ -265,20 +272,26 @@ export function buildTheaterReport(
   const lines: string[] = ['분신 극장 — 이번 주 당신의 분신이 생각한 것들.'];
 
   // 성적표. 표본이 임계 미달이면 숫자를 감추고 "아직 모른다"고 말한다 —
-  // 표본 3건짜리 퍼센트는 정보가 아니라 소음이다 (TWIN §6.2).
+  // 게이트는 twinScore 안에서 돌므로 미달 rate 는 null 로 도착한다 (임계의
+  // 정본은 TWIN_SCORE_MIN_SAMPLE 하나). 근거 케이스 id 를 함께 싣는 것이
+  // TWIN 수정조항의 세 번째 조건이다.
   if (score) {
-    const MIN = TWIN_SCORE_MIN_SAMPLE;
-    const pct = (r: number | null) => (r === null ? '—' : `${Math.round(r * 100)}%`);
+    const evidence = (ids?: string[]) => (ids && ids.length > 0 ? ` — 근거: ${ids.slice(0, 5).join(', ')}` : '');
     const parts: string[] = [];
+    // 렌더러도 스스로 지킨다: twinScore 가 게이트를 돌지만, 이 함수는 순수
+    // 렌더러라 계약 밖 입력이 올 수 있다 — 표본 미달 rate 는 어디서 왔든 싣지
+    // 않는다.
+    const matchReady = score.matchRate !== null && score.matchSample >= TWIN_SCORE_MIN_SAMPLE;
+    const outcomeReady = score.outcomeRate !== null && score.outcomeSample >= TWIN_SCORE_MIN_SAMPLE;
     parts.push(
-      score.matchSample >= MIN
-        ? `· 분신이 당신의 선택을 맞힌 비율: ${pct(score.matchRate)} (${score.matchSample}건)`
-        : `· 분신이 당신의 선택을 맞힌 비율: 아직 모릅니다 (정산 ${score.matchSample}건, ${MIN}건부터 표시)`,
+      matchReady
+        ? `· 분신이 당신의 선택을 맞힌 비율: ${Math.round(score.matchRate! * 100)}% (${score.matchSample}건${evidence(score.matchCases)})`
+        : `· 분신이 당신의 선택을 맞힌 비율: 아직 모릅니다 (정산 ${score.matchSample}건, ${TWIN_SCORE_MIN_SAMPLE}건부터 표시)`,
     );
     parts.push(
-      score.outcomeSample >= MIN
-        ? `· 분신이 현실을 맞힌 비율: ${pct(score.outcomeRate)} (${score.outcomeSample}건)`
-        : `· 분신이 현실을 맞힌 비율: 아직 모릅니다 (정산 ${score.outcomeSample}건, ${MIN}건부터 표시)`,
+      outcomeReady
+        ? `· 분신이 현실을 맞힌 비율: ${Math.round(score.outcomeRate! * 100)}% (${score.outcomeSample}건${evidence(score.outcomeCases)})`
+        : `· 분신이 현실을 맞힌 비율: 아직 모릅니다 (정산 ${score.outcomeSample}건, ${TWIN_SCORE_MIN_SAMPLE}건부터 표시)`,
     );
     lines.push('', '■ 분신 성적 — 당신이 아니라 분신의 예측을 채점한 것입니다', ...parts);
   }

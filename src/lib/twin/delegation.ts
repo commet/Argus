@@ -260,6 +260,45 @@ export async function caseDelegationId(userId: string, caseId: string): Promise<
   }
 }
 
+/**
+ * 결정을 열 때 위임이 꺼내졌다는 사실을 **서버가 직접** 남긴다 (2026-08-07).
+ *
+ * delegation_id(위 markCaseDelegation)는 모델이 채택 때 appliedDelegationId 를
+ * 에코해 줘야만 채워진다 — 프롬프트 산문에 기대는 LLM 홉이고, 모델이 빼먹으면
+ * 그 정책은 영영 조용히 채점에서 빠졌다. 그림자·프로필에는 크론 백스톱이
+ * 있는데 위임에만 없던 구멍. 이 기록은 applyDelegation 이 성공한 그 자리에서
+ * 결정론으로 남으므로 모델의 기억력과 무관하다. 소유 확인이 불필요한 이유:
+ * applyDelegation 은 본인 위임만 돌려준다.
+ */
+export async function markCaseDelegationOffered(userId: string, caseId: string, delegationId: string): Promise<void> {
+  try {
+    const admin = adminClient();
+    await admin
+      .from('argus_cases')
+      .update({ offered_delegation_id: delegationId })
+      .eq('id', caseId)
+      .eq('user_id', userId);
+  } catch (e) {
+    console.error('[twin/delegation] mark offered failed:', e);
+  }
+}
+
+/** 열 때 꺼내졌던 위임 — 정산에서 delegation_id 가 비어 있을 때 채점 누락을 정직하게 말할 근거. */
+export async function offeredDelegationId(userId: string, caseId: string): Promise<string | null> {
+  try {
+    const admin = adminClient();
+    const { data } = await admin
+      .from('argus_cases')
+      .select('offered_delegation_id')
+      .eq('id', caseId)
+      .eq('user_id', userId)
+      .maybeSingle();
+    return (data?.offered_delegation_id as string | null) ?? null;
+  } catch {
+    return null;
+  }
+}
+
 const DELEGATION_VERDICT_SCHEMA = {
   type: 'object' as const,
   properties: {

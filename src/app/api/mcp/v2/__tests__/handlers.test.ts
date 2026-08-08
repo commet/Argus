@@ -81,6 +81,9 @@ let delegationCreate: { ok: true; id: string; expiresAt: string } | { ok: false;
   expiresAt: '2026-09-05T00:00:00Z',
 };
 const marked: Array<{ caseId: string; delegationId: string }> = [];
+// 열 때 꺼내진 위임의 서버 기록 (결정론 백스톱) — 모델의 에코와 무관하게 남는다.
+const offeredMarks: Array<{ caseId: string; delegationId: string }> = [];
+let offeredId: string | null = null;
 
 vi.mock('@/lib/twin/shadow', () => ({
   // after() 를 즉시 실행한다 — 봉인이 무엇을 받았는지 테스트가 보려면 필요하다.
@@ -98,6 +101,10 @@ vi.mock('@/lib/twin/delegation', () => ({
   markCaseDelegation: async (_u: string, caseId: string, delegationId: string) => {
     marked.push({ caseId, delegationId });
   },
+  markCaseDelegationOffered: async (_u: string, caseId: string, delegationId: string) => {
+    offeredMarks.push({ caseId, delegationId });
+  },
+  offeredDelegationId: async () => offeredId,
   caseDelegationId: async () => null,
   gradeDelegation: async () => null,
   describeDelegationGrade: () => '',
@@ -118,12 +125,14 @@ vi.mock('@/lib/twin/profile', () => ({
   recentlyRetiredLines: async () => [],
   extractProfileFromSettlement: async () => ({ inserted: 0, reinforced: 0, contradicted: 0, retired: 0 }),
 }));
-// 부분 목이다 — `twinScore` 만 갈아끼우고 나머지는 진짜를 쓴다. 전체 목으로
-// 두면 store 가 내보내는 상수(TWIN_SCORE_MIN_SAMPLE 등)가 목에서 빠져
-// undefined 가 되고, 그러면 임계 비교가 조용히 무너진다.
+// 부분 목 — 전체 목은 이 모듈의 다른 export(TWIN_SCORE_MIN_SAMPLE)를 전부
+// 없애서, 상수가 undefined 가 된 채 비교가 조용히 무너진다 (CLAUDE.md 함정).
 vi.mock('@/lib/twin/store', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/lib/twin/store')>()),
-  twinScore: async () => ({ matchRate: null, matchSample: 0, outcomeRate: null, outcomeSample: 0 }),
+  twinScore: async () => ({
+    matchRate: null, matchSample: 0, outcomeRate: null, outcomeSample: 0,
+    matchCases: [], outcomeCases: [],
+  }),
 }));
 
 const {
@@ -147,6 +156,8 @@ beforeEach(() => {
   returns = [];
   sealed.length = 0;
   marked.length = 0;
+  offeredMarks.length = 0;
+  offeredId = null;
   delegationMatch = null;
   cruxText = '';
   cruxCalls = 0;
@@ -585,6 +596,31 @@ describe('argus_open — 위임 적용', () => {
     const res = await handleOpen(U, { utterance: '사람을 더 뽑을까', lean: '뽑는다', userInvoked: true });
     expect(text(res)).toContain('위임해 둔 정책');
     expect(text(res)).toContain('deleg-1');
+  });
+
+  it('위임이 꺼내지면 서버가 직접 케이스에 남긴다 — 모델의 에코에 기대지 않는 결정론 백스톱', async () => {
+    delegationMatch = {
+      delegation: { id: 'deleg-1', policy: '현금이 빠듯하면 고정비를 늘리지 않는다' },
+      text: '',
+    };
+    const res = await handleOpen(U, { utterance: '사람을 더 뽑을까', userInvoked: true });
+    const id = /id: (case_[a-z0-9_]+)/.exec(text(res))?.[1];
+    expect(offeredMarks).toEqual([{ caseId: id, delegationId: 'deleg-1' }]);
+  });
+
+  it('꺼내진 위임이 채택에서 확인되지 않았으면, 정산이 그 누락을 말한다 — 침묵이 아니라 정직한 공백', async () => {
+    const id = await openCase();
+    await handleAdopt(U, { caseId: id, choiceOrPolicy: '10% 인상' });
+    await handlePlan(U, {
+      caseId: id,
+      steps: [{ what: '이탈률 확인', kind: 'investigate', byOrWhen: '2주', dueDate: '2026-09-01T00:00:00Z' }],
+    });
+    // 서버 기록(offered)은 있는데 모델이 appliedDelegationId 를 빼먹은 상황.
+    offeredId = 'deleg-1';
+    await handleReturn(U, { caseId: id, observation: '이탈률 3%였다' });
+    const res = await handleReturn(U, { caseId: id, observation: '이탈률 3%였다', recall: '마진 때문' });
+    expect(text(res)).toContain('채점하지 않았습니다');
+    expect(text(res)).toContain('지어내지 않습니다');
   });
 
   it('위임이 꺼내지면 그림자는 그 정책을 기울기로 받는다 — choice 예측이 자명해지기 때문', async () => {

@@ -115,7 +115,9 @@ export async function revealShadowsText(userId: string, caseId: string): Promise
     const lines: string[] = ['\n\n---\n분신의 봉인 예측 — 당신이 정하기 전에 잠겨 있던 것입니다:'];
     for (const r of revealed) {
       const label = r.target === 'outcome' ? '결과 예측' : r.target === 'deviation' ? '이탈 예측' : '선택 예측';
-      const late = r.status === 'late' ? ' (봉인이 채택보다 늦어 채점 제외)' : '';
+      // was_late 가 정본 — status 는 공개 순간 revealed 로 덮여서 이 설명이
+      // 사라진다. (구식 행 대비로 status==='late' 도 함께 본다.)
+      const late = r.was_late || r.status === 'late' ? ' (봉인이 채택보다 늦어 채점 제외)' : '';
       lines.push(`· [${label}] "${r.expectation}" (확신 ${Math.round(r.confidence * 100)}%)${late}`);
     }
     if (integrityFailures > 0) {
@@ -146,7 +148,8 @@ export async function gradeRevealedShadows(
 ): Promise<void> {
   for (const r of rows) {
     // 늦게 봉인된 예측은 채점하지 않는다 — 채택을 보고 쓴 예측이므로.
-    if (r.status === 'late') continue;
+    // (was_late 가 정본. 공개가 status 를 revealed 로 덮은 뒤에도 참으로 남는다.)
+    if (r.was_late || r.status === 'late') continue;
 
     const isChoiceLike = r.target === 'choice' || r.target === 'deviation';
     if (isChoiceLike && !adopted) continue; // 채택 기록이 없으면 대조할 것이 없다

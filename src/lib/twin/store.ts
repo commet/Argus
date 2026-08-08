@@ -25,6 +25,12 @@ export interface ShadowRow {
   content_hash: string;
   sealed_at: string;
   status: 'sealed' | 'late' | 'revealed';
+  /**
+   * 봉인이 채택보다 늦었다는 **사실**. status 는 공개 때 'revealed' 로 덮이므로
+   * 상태만 믿으면 "왜 채점에서 빠졌는지"의 설명이 정확히 사용자가 찾아볼 시점에
+   * 사라진다 (2026-08-07 리뷰에서 발견). 채점·표시 모두 이 플래그를 본다.
+   */
+  was_late: boolean;
   verdict: ShadowVerdict | null;
 }
 
@@ -66,6 +72,7 @@ export async function sealShadows(userId: string, caseId: string, drafts: Shadow
       model_id: d.modelId,
       content_hash: shadowContentHash(d),
       status: d.late ? 'late' : 'sealed',
+      was_late: d.late,
     })),
   );
   if (error) throw new Error(`shadow seal failed: ${error.message}`);
@@ -148,7 +155,9 @@ export async function setShadowVerdict(id: string, verdict: ShadowVerdict, quote
  * 모릅니다"를 말한다 (TWIN §6.2).
  *
  * 이 상수가 표면마다 복사되면 한 곳만 낮춰도 나머지가 조용히 따라가지 않는다 —
- * 실제로 극장 리포트와 recall 에 `const MIN = 3` 이 각각 박혀 있었다.
+ * 실제로 극장 리포트와 recall 에 `const MIN = 3` 이 각각 박혀 있었다. 그리고
+ * 게이트 자체를 twinScore 안에서 돌린다: 표본 미달 rate 는 아예 null 로 나가
+ * **와이어에도 실리지 않는다** (UI 가림은 게이트가 아니다).
  */
 export const TWIN_SCORE_MIN_SAMPLE = 3;
 
@@ -157,33 +166,45 @@ export interface TwinScore {
   matchSample: number;
   outcomeRate: number | null;
   outcomeSample: number;
+  /** 성적의 근거가 된 케이스 id — TWIN 수정조항의 "증거 동반" 조건. */
+  matchCases: string[];
+  outcomeCases: string[];
 }
 
 export async function twinScore(userId: string): Promise<TwinScore> {
-  const empty: TwinScore = { matchRate: null, matchSample: 0, outcomeRate: null, outcomeSample: 0 };
+  const empty: TwinScore = {
+    matchRate: null, matchSample: 0, outcomeRate: null, outcomeSample: 0,
+    matchCases: [], outcomeCases: [],
+  };
   try {
     const admin = adminClient();
     const { data, error } = await admin
       .from('argus_shadow_predictions')
-      .select('target, verdict, status, contaminated_by_lean')
+      .select('target, verdict, status, contaminated_by_lean, case_id')
       .eq('user_id', userId)
       .eq('status', 'revealed')
       .in('verdict', ['supported', 'contradicted']);
     if (error || !data) return empty;
 
-    const rows = data as Array<Pick<ShadowRow, 'target' | 'verdict' | 'contaminated_by_lean'>>;
+    const rows = data as Array<Pick<ShadowRow, 'target' | 'verdict' | 'contaminated_by_lean' | 'case_id'>>;
     const match = rows.filter(
       (r) => (r.target === 'deviation' || (r.target === 'choice' && !r.contaminated_by_lean)),
     );
     const outcome = rows.filter((r) => r.target === 'outcome');
+    // 표본 미달이면 rate 는 null — 게이트를 여기서 돌리므로 미달 퍼센트는
+    // 어떤 표면(와이어 포함)에도 존재하지 않는다. 표본 수는 그대로 나가서
+    // "아직 모릅니다 · n/3" 을 그릴 수 있다.
     const rate = (xs: typeof rows) =>
-      xs.length === 0 ? null : xs.filter((r) => r.verdict === 'supported').length / xs.length;
+      xs.length < TWIN_SCORE_MIN_SAMPLE ? null : xs.filter((r) => r.verdict === 'supported').length / xs.length;
+    const cases = (xs: typeof rows) => [...new Set(xs.map((r) => r.case_id))];
 
     return {
       matchRate: rate(match),
       matchSample: match.length,
       outcomeRate: rate(outcome),
       outcomeSample: outcome.length,
+      matchCases: cases(match),
+      outcomeCases: cases(outcome),
     };
   } catch {
     return empty;

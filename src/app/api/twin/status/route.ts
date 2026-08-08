@@ -93,8 +93,11 @@ export async function GET(req: NextRequest) {
       q.select('id', head).eq('user_id', user.id).eq('status', 'revealed')),
     countOrNull('argus_shadow_predictions', (q) =>
       q.select('id', head).eq('user_id', user.id).in('verdict', ['supported', 'contradicted'])),
+    // was_late 로 센다 — status='late' 는 공개 순간 'revealed' 로 덮여서, 정산이
+    // 끝나면 이 숫자가 0 으로 떨어지며 "늦은 봉인이 있었다"는 사실이 계기판에서
+    // 사라진다. 사실은 상태보다 오래 살아야 한다.
     countOrNull('argus_shadow_predictions', (q) =>
-      q.select('id', head).eq('user_id', user.id).eq('status', 'late')),
+      q.select('id', head).eq('user_id', user.id).eq('was_late', true)),
     countOrNull('argus_profile_items', (q) =>
       q.select('id', head).eq('user_id', user.id).eq('status', 'active')),
     countOrNull('argus_profile_items', (q) =>
