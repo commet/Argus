@@ -293,6 +293,9 @@ export default function TwinPage() {
                             {(ko ? TARGET_LABEL[p.target]?.ko : TARGET_LABEL[p.target]?.en) ?? p.target}
                             {' · '}
                             {L(`확신 ${Math.round(p.confidence * 100)}%`, `${Math.round(p.confidence * 100)}% confident`)}
+                            {/* was_late 는 공개 뒤에도 남는 사실 — 성적에 왜 안 들어갔는지는
+                                열린 봉투에서도 설명돼야 한다 (예전엔 공개 순간 사라졌다). */}
+                            {p.was_late && ` · ${L('봉인이 채택보다 늦어 채점 제외', 'sealed after adoption — not graded')}`}
                           </span>
                           <p className="text-[var(--text-secondary)] break-keep leading-relaxed mt-0.5">
                             &ldquo;{p.expectation}&rdquo;

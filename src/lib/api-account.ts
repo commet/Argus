@@ -157,6 +157,8 @@ export interface RevealedShadow {
   verdict: 'supported' | 'contradicted' | 'indeterminate' | null;
   verdict_quote: string | null;
   revealed_at: string;
+  /** 봉인이 채택보다 늦었다 — 채점 제외 사유. 공개 후에도 남는 사실 (was_late 컬럼). */
+  was_late?: boolean;
 }
 
 export interface TwinHome {
