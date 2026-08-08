@@ -235,7 +235,6 @@ export function WorkflowGraph({
                   className={`rounded-xl overflow-hidden transition-all cursor-pointer bg-[var(--surface)] ${
                     isCritical ? 'ring-1 ring-red-200' : ''
                   } ${isExpanded ? 'shadow-md border border-[var(--border)]' : 'border border-[var(--border-subtle)] hover:border-[var(--border)]'}`}
-                  style={{ borderLeft: `3px solid ${a.color}` }}
                   onClick={() => toggleStep(i)}
                 >
                   {/* Card body — clean white, no pastel tint */}
