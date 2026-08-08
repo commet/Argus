@@ -211,6 +211,15 @@ html {
 /* a11y: honor the OS reduced-motion setting for anchor scrolling (was global) */
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
+  /* 스크롤 게이트 연출(uc-card 등 useScrollReveal 소비자)은 인라인 opacity/
+     transform 으로 움직이므로 !important 로만 이길 수 있다. 움직임을 줄여 달라는
+     사용자에게는 연출 없이 콘텐츠가 그냥 있어야 한다 — 게이트째 연다.
+     (UseCases 의 주석이 오래 이 규칙을 가리켰지만 실재하지 않았다. 2026-08-08) */
+  .uc-card {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+  }
 }
 
 /* a11y: ONE global keyboard focus ring. The workspace tree shipped with zero

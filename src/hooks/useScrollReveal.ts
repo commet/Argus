@@ -12,6 +12,14 @@ export function useScrollReveal<T extends HTMLElement = HTMLDivElement>(
     const el = ref.current;
     if (!el) return;
 
+    // IO 미지원(구형 webview 등)이면 게이트 없이 바로 보여준다 — 연출은
+    // 개선(progressive enhancement)이지 콘텐츠의 조건이 아니다. 가드가 없으면
+    // 생성자가 던져서 카드가 opacity 0 에 영영 갇힌다.
+    if (typeof IntersectionObserver === 'undefined') {
+      setIsVisible(true);
+      return;
+    }
+
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
