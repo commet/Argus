@@ -1,0 +1,22 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "argus",
+  "version": "3.0.20",
+  "description": "Captures consequential judgments and their return conditions. Explicit deep review uses a bounded set of evidence, domain, and risk roles; standard use has no agent team.",
+  "author": {
+    "name": "Argus",
+    "email": "sayucurator@gmail.com",
+    "url": "https://github.com/commet"
+  },
+  "homepage": "https://argus.voyage",
+  "repository": "https://github.com/commet/Argus",
+  "license": "MIT",
+  "keywords": [
+    "decision-making",
+    "structured-thinking",
+    "judgment-harness",
+    "decision-tracking",
+    "verification-ledger",
+    "argus"
+  ]
+}
