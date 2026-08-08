@@ -1,0 +1,14 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json",
+  "mcpServers": {
+    "argus-decision-local": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "argus-decision-mcp"]
+    },
+    "argus-remote": {
+      "type": "streamable-http",
+      "url": "https://argus.voyage/api/mcp/v2"
+    }
+  }
+}
