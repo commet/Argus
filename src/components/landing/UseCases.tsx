@@ -147,8 +147,10 @@ export function UseCases() {
         borderRadius: 4,
         padding: 'clamp(20px, 2.4vw, 26px)',
         boxShadow: '0 10px 30px -16px rgba(48,34,14,0.20), inset 0 1px 0 rgba(255,255,255,0.4)',
-        // Scroll-gated fade-up, staggered card to card. Holds the resolved frame
-        // under prefers-reduced-motion (handled in globals.css bp-reveal rules).
+        // Scroll-gated fade-up, staggered card to card. prefers-reduced-motion
+        // 은 globals.css 의 `.uc-card` reduced-motion 규칙이 !important 로 이겨
+        // 게이트째 연다 (이 주석이 가리키던 규칙은 오래 실재하지 않았다 —
+        // 2026-08-08 에 실제로 만들었다).
         opacity: isVisible ? 1 : 0,
         transform: isVisible ? 'translateY(0)' : 'translateY(10px)',
         transition: `opacity 620ms cubic-bezier(.22,.61,.36,1) ${i * 110}ms, transform 620ms cubic-bezier(.22,.61,.36,1) ${i * 110}ms`,
