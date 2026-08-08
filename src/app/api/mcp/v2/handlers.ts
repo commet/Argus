@@ -37,7 +37,7 @@ import {
 } from '@/lib/twin/delegation';
 import { extractProfileFromSettlement, profileLines, recentlyRetiredLines } from '@/lib/twin/profile';
 import { generateAndSealShadow, gradeRevealedShadows, revealShadowsText, runAfterResponse } from '@/lib/twin/shadow';
-import { twinScore } from '@/lib/twin/store';
+import { twinScore, TWIN_SCORE_MIN_SAMPLE } from '@/lib/twin/store';
 import { persistServerEvent } from '@/lib/server-events';
 import { toolText } from './protocol';
 import {
@@ -836,7 +836,7 @@ export async function handleRecall(userId: string, args: Args) {
     // 분신 성적 (TWIN §4.2). **사람이 아니라 예측을 채점한 것**이고, 표본
     // 미달이면 숫자를 감춘다 — 3건짜리 퍼센트는 정보가 아니라 소음이다.
     const score = await twinScore(userId);
-    const MIN = 3;
+    const MIN = TWIN_SCORE_MIN_SAMPLE;
     if (score.matchSample >= MIN || score.outcomeSample >= MIN) {
       const bits: string[] = [];
       if (score.matchSample >= MIN) {

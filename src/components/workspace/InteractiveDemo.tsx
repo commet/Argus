@@ -949,7 +949,7 @@ function DemoDMFeedback({ fb, onToggle, onDone, showDoneButton = true, readOnly 
                       <div className={`mt-0.5 w-[18px] h-[18px] rounded-full border-[1.5px] flex items-center justify-center shrink-0 transition-all duration-300 ${
                         c.applied
                           ? 'bg-[var(--accent)] border-[var(--accent)]'
-                          : 'border-[var(--border-strong)] group-hover:border-[var(--accent)]/60'
+                          : 'border-[var(--border)] group-hover:border-[var(--accent)]/60'
                       }`}>
                         {c.applied && <Check size={11} strokeWidth={3} className="text-white" />}
                       </div>

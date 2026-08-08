@@ -122,7 +122,7 @@ export function BindCard({
             before visually re-establishing what the person had actually said,
             making the machine's prompt feel like the subject. */}
         {problem && (
-          <figure className="border-b border-[var(--border-subtle)] bg-[var(--surface-2)]/65 px-5 py-4 sm:px-6 sm:py-5">
+          <figure className="border-b border-[var(--border-subtle)] bg-[var(--bg)]/65 px-5 py-4 sm:px-6 sm:py-5">
             <figcaption className="mb-2 flex items-center justify-between gap-3 text-[11.5px] font-bold tracking-[0.11em] text-[var(--text-tertiary)]">
               <span className="flex items-center gap-2">
                 <Quote size={13} className="text-[var(--accent)]" aria-hidden />
@@ -265,7 +265,7 @@ export function BindCard({
           </div>
         </div>
 
-        <div className="-mx-5 mt-5 flex flex-col gap-3 border-t border-[var(--border-subtle)] bg-[var(--surface-2)]/45 px-5 py-4 sm:-mx-6 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+        <div className="-mx-5 mt-5 flex flex-col gap-3 border-t border-[var(--border-subtle)] bg-[var(--bg)]/45 px-5 py-4 sm:-mx-6 sm:flex-row sm:items-center sm:justify-between sm:px-6">
           <p className="text-[12px] leading-[1.5] text-[var(--text-tertiary)]">
             {L('입력과 날짜는 모두 선택 사항이에요.', 'The note and date are both optional.')}
           </p>

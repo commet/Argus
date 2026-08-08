@@ -13,6 +13,7 @@ import { adminClient } from '@/lib/share-guard';
 import { callAnthropicJson } from '@/lib/llm-server';
 import { CASE_BANK_SEED, type CaseBankItem } from './case-bank-seed';
 import { profileLines } from './profile';
+import { TWIN_SCORE_MIN_SAMPLE } from './store';
 
 const THEATER_MODEL_LABEL = 'anthropic:fast-tier';
 
@@ -266,7 +267,7 @@ export function buildTheaterReport(
   // 성적표. 표본이 임계 미달이면 숫자를 감추고 "아직 모른다"고 말한다 —
   // 표본 3건짜리 퍼센트는 정보가 아니라 소음이다 (TWIN §6.2).
   if (score) {
-    const MIN = 3;
+    const MIN = TWIN_SCORE_MIN_SAMPLE;
     const pct = (r: number | null) => (r === null ? '—' : `${Math.round(r * 100)}%`);
     const parts: string[] = [];
     parts.push(
