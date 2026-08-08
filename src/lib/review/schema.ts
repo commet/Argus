@@ -495,7 +495,7 @@ export interface ReviewProvenance {
   extraction_tool: string;
   extraction_version: string;
   lens_versions: Record<string, string>;
-  model_provider: 'anthropic' | 'openai' | 'local' | 'unknown';
+  model_provider: 'anthropic' | 'openai' | 'gemini' | 'local' | 'unknown';
   model_name: string;
   prompt_hash: string;
   created_at: string;

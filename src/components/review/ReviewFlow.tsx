@@ -1120,8 +1120,8 @@ export function ReviewFlow() {
           <span className="block text-[12.5px] text-[var(--text-tertiary)]">
             {storeSource
               ? L(
-                  '원문을 저장해 검수 결과 옆에서 나란히 볼 수 있습니다.',
-                  'The original is stored so you can view it side by side with the review.',
+                  '원문이 계정에 저장됩니다(로그인 시 서버 동기화 포함) — 검수 결과 옆에서 나란히 볼 수 있습니다.',
+                  'The original is stored with your account (synced to the server when signed in) — so you can view it side by side with the review.',
                 )
               : L(
                   '기본은 결과 요약만 저장해요(원문은 저장 안 함) — 판단과 확인 조건만 남깁니다.',

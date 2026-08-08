@@ -60,6 +60,14 @@ export type RecheckStatus = Materiality | 'baseline';
 /** Fields the user owns when sealing a prediction (design doc §Ownership Modal). */
 export interface SealPatch {
   predicate: string;
+  /**
+   * 봉인되는 술어를 누가 썼는가 — 호출부가 `closingJudgmentAuthorship`
+   * (judgment-authorship.ts, 정본 판정기)로 판정해 넘긴다. 필수인 이유:
+   * 예전엔 이 스토어가 무조건 'user'를 박아서, AI 초안을 한 글자도 안 고치고
+   * 봉인해도 사용자 문장으로 기록됐다 — 정확히 그 판정기가 세탁이라 부르는
+   * 형태다. 그대로 채택하는 것은 허용된 탈출구지만, 기록은 정직해야 한다.
+   */
+  predicate_owner: 'user' | 'ai_surfaced';
   /** user-owned lean + assumption (Ownership Modal §890) — never Argus-filled. */
   lean?: string;
   key_assumption?: string;
@@ -206,7 +214,9 @@ export const useReviewStore = create<ReviewState>((set, get) => ({
               pass_condition: patch.pass_condition,
               fail_condition: patch.fail_condition,
               check_by: patch.check_by,
-              predicate_owner: 'user', // the user now owns it — no longer ai_surfaced
+              // 판정된 저자성을 그대로 기록한다 — 여기서 'user'로 승격하지 않는다.
+              // (초안 그대로면 ai_surfaced 로 남고, 그래도 봉인은 성립한다.)
+              predicate_owner: patch.predicate_owner,
               sealed_at: now,
             }
           : f,
