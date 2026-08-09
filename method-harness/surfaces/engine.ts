@@ -124,6 +124,25 @@ export class SessionEngine {
         payloadKind: 'move',
       });
     }
+    // The same H2 argument covers the bare primary move (reframe crux,
+    // premortem probe …): the MCP sharpen surface tells the model "그래야 그
+    // 짚기가 원장에 남습니다", and until 2026-08-09 that sentence was false —
+    // a validated turn with neither card nor recommendation appended NOTHING,
+    // so the delivered crux existed only in chat scrollback. Every ok turn now
+    // leaves at least one provenance event.
+    if (result.ok && !result.turn.decisionRecordCandidate && !result.turn.recommendation) {
+      const move = result.turn.primaryMove;
+      this.ledger.append({
+        id: nextEventId('prp'),
+        caseId: this.caseId,
+        at: now,
+        type: 'ai_proposal',
+        description:
+          `${move.type}: ${move.content.slice(0, 160)}` +
+          (move.falsifier ? ` | 반증: ${move.falsifier.slice(0, 160)}` : ''),
+        payloadKind: 'move',
+      });
+    }
     return result;
   }
 

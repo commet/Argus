@@ -112,6 +112,33 @@ describe('append-only 안전 — 위반 이벤트는 원장에 들어가지 않�
   });
 });
 
+// 검증을 통과한 턴은 반드시 흔적을 남긴다 (H2 — 전달됐는데 원장에 없으면
+// 회상 탐침이 대조할 것이 없다). 카드·추천이 없는 맨 primaryMove 도 포함.
+describe('통과한 턴은 원장에 남는다 — receiveTurn 의 provenance 보장', () => {
+  beforeEach(() => resetEventIds());
+
+  it('카드도 추천도 없는 짚기(primaryMove)가 ai_proposal 로 남는다', () => {
+    const e = new SessionEngine('t1');
+    e.recordUtterance('가격 인상 고민', T(0));
+    e.recordBaseline(undefined, T(1));
+    const result = e.receiveTurn(
+      {
+        phase: 'improve',
+        route: 'decision',
+        caseFit: 'in_scope',
+        primaryMove: { type: 'reframe', content: '고객이 가격에 둔감하다', whyNow: 'x', falsifier: '이탈률 5% 초과면 틀림' },
+        claims: [{ text: '고객이 가격에 둔감하다', source: 'ai', authority: 'inferred' }],
+      },
+      T(2),
+    );
+    expect(result.ok).toBe(true);
+    const trace = e.ledger.forCase('t1').find((ev) => ev.type === 'ai_proposal');
+    expect(trace).toBeTruthy();
+    expect((trace as { description: string }).description).toContain('고객이 가격에 둔감하다');
+    expect((trace as { description: string }).description).toContain('이탈률 5%');
+  });
+});
+
 // 콜드스타트 인테이크 (handoff §6-A): 기존 자료는 증거 채널로만 들어온다.
 describe('기존 자료는 증거로만 남는다 — recordSource', () => {
   beforeEach(() => resetEventIds());
