@@ -29,8 +29,11 @@ import {
 } from '../../../method-harness/types';
 import { STORAGE_KEYS, getStorage, setStorage } from '@/lib/storage';
 import { callLLMJson } from '@/lib/llm';
+import { FIRST_CASE_ID, activeCaseId, deriveStep, type FlowStep } from './derive';
 
-const CASE_ID = 'pilot_case';
+const CASE_ID = FIRST_CASE_ID;
+
+const newPilotCaseId = () => `pilot_case_${Date.now().toString(36)}`;
 
 // ArgusTurn envelope 스키마 지시.
 // 대부분은 출력 형태지만, 마지막 두 줄(합법 claim 쌍·평평하면 stop/mirror)은
@@ -217,8 +220,6 @@ function Btn({ children, onClick, kind = 'primary', disabled }: { children: Reac
 
 // ---------------------------------------------------------------------------
 
-type FlowStep = 'listen' | 'baseline' | 'coach' | 'acting' | 'return_observe' | 'return_probe' | 'return_reveal' | 'reviewed';
-
 export default function MethodPilotPage() {
   const engineRef = useRef<SessionEngine | null>(null);
   const [version, setVersion] = useState(0);
@@ -252,13 +253,14 @@ export default function MethodPilotPage() {
     setVersion((v) => v + 1);
   }, []);
 
-  // restore on mount
+  // restore on mount — 활성 케이스(마지막 이벤트의 케이스)로 복원한다.
   useEffect(() => {
     try {
       const events = getStorage<LedgerEvent[]>(STORAGE_KEYS.METHOD_PILOT_LEDGER, []);
       if (events.length > 0) {
-        engineRef.current = new SessionEngine(CASE_ID, restoreLedger(events));
-        setStep(deriveStep(engineRef.current.state(), events));
+        const caseId = activeCaseId(events);
+        engineRef.current = new SessionEngine(caseId, restoreLedger(events));
+        setStep(deriveStep(engineRef.current.state(), events.filter((e) => e.caseId === caseId)));
       } else {
         engineRef.current = new SessionEngine(CASE_ID);
       }
@@ -292,7 +294,7 @@ export default function MethodPilotPage() {
       // pulled 로 뒤집어 major/one_way 방어를 끈다. 그래서 외부 출처로 기록한다.
       engine.ledger.append({
         id: `ext_${Date.now().toString(36)}`,
-        caseId: CASE_ID,
+        caseId: engine.caseId,
         at: now(),
         type: 'external_source',
         description: `붙여넣은 AI 대화 (${text.length}자)`,
@@ -366,7 +368,7 @@ export default function MethodPilotPage() {
   };
 
   const runDemo = () => {
-    const utteranceEvent = [...engine.ledger.forCase(CASE_ID)].reverse().find((e) => e.type === 'user_utterance');
+    const utteranceEvent = [...engine.ledger.forCase(engine.caseId)].reverse().find((e) => e.type === 'user_utterance');
     if (!utteranceEvent || utteranceEvent.type !== 'user_utterance') return;
     applyTurn(demoTurn(utteranceEvent.id, utteranceEvent.text));
   };
@@ -403,7 +405,7 @@ export default function MethodPilotPage() {
       setPendingCard(null);
       setEditingCard(false);
       setLiveError(
-        `결정은 기록됐지만 돌아보기 예약에 실패했습니다: ${e instanceof Error ? e.message : String(e)} — 아래에서 직접 예약할 수 있습니다.`,
+        `결정은 기록됐지만 돌아보기 예약에 실패했습니다: ${e instanceof Error ? e.message : String(e)} — 결과가 나오면 "돌아보기" 버튼으로 언제든 정산할 수 있습니다.`,
       );
       setStep('acting');
       return;
@@ -417,7 +419,11 @@ export default function MethodPilotPage() {
   const submitObservation = () => {
     const text = observation.trim();
     if (!text) return;
-    engine.recordObservation(text, obsKind, now(), now());
+    // 같은 문장의 재전송은 새 관찰이 아니다 — 탭을 닫았다 돌아온 사용자가
+    // 같은 관찰을 다시 적으면 append-only 원장에 중복이 영구히 남는다.
+    if (engine.state().observations.at(-1)?.text !== text) {
+      engine.recordObservation(text, obsKind, now(), now());
+    }
     setObservation('');
     persist();
     setStep('return_probe');
@@ -435,13 +441,37 @@ export default function MethodPilotPage() {
   const closeReturn = () => {
     if (lessonText.trim()) {
       const id = `les_${Date.now().toString(36)}`;
-      engine.ledger.append({ id, caseId: CASE_ID, at: now(), type: 'lesson_candidate', text: lessonText.trim(), scope: lessonScope.trim() || '이 결정 유형' });
+      engine.ledger.append({ id, caseId: engine.caseId, at: now(), type: 'lesson_candidate', text: lessonText.trim(), scope: lessonScope.trim() || '이 결정 유형' });
     }
-    engine.closeReturn(now());
+    // 귀환 계약 없이 정산한 케이스(모델이 returnContract 를 빠뜨린 채택)는 닫을
+    // 귀환이 없다 — closeReturn 을 부르면 CLOSE_WITHOUT_ACTIVE_RETURN 으로
+    // 죽는다. 없는 것을 닫지 않고, 완주로 취급한다 (MCP #360 과 같은 구멍의 웹판).
+    if (engine.state().activeReturn) engine.closeReturn(now());
     persist();
     setLessonText('');
     const s = engine.state();
-    setStep(s.state === 'REVIEWED' ? 'reviewed' : 'acting');
+    setStep(s.state === 'REVIEWED' || (s.recordRevealed && !s.activeReturn) ? 'reviewed' : 'acting');
+  };
+
+  // 한 바퀴 완주 뒤 다음 결정 — 같은 원장 위에 새 케이스를 연다. "전부 삭제"가
+  // 새 결정의 대가가 되면 두 번째 루프는 영영 없다.
+  const startNewDecision = () => {
+    engineRef.current = new SessionEngine(newPilotCaseId(), restoreLedger(engine.ledger.all()));
+    setUtterance('');
+    setView(null);
+    setLastTurn(null);
+    setPendingCard(null);
+    setEditingCard(false);
+    setObservation('');
+    setProbeAnswer('');
+    setLessonText('');
+    setLessonScope('');
+    setLiveError(null);
+    setPasteError(null);
+    setBaselineLean('');
+    setBaselineReasons('');
+    persist();
+    setStep('listen');
   };
 
   const resetAll = () => {
@@ -744,11 +774,11 @@ export default function MethodPilotPage() {
             )}
             <div className="flex items-center justify-between">
               <Btn kind="ghost" onClick={() => { engine.reportAction('행동 시작 보고', now()); persist(); }}>행동을 시작했어요</Btn>
-              {activeReturn && (
-                <Btn onClick={() => setStep('return_observe')} disabled={false}>
-                  {returnDue ? '지금 돌아보기' : '미리 돌아보기'}
-                </Btn>
-              )}
+              {/* 귀환 계약이 없어도 결과는 온다 — 돌아보기 입구를 닫으면 그
+                  결정은 웹에서 영영 정산 불가가 된다 (MCP #360 과 같은 구멍). */}
+              <Btn onClick={() => setStep('return_observe')} disabled={false}>
+                {activeReturn ? (returnDue ? '지금 돌아보기' : '미리 돌아보기') : '결과가 나왔어요 — 돌아보기'}
+              </Btn>
             </div>
           </Panel>
         )}
@@ -856,6 +886,11 @@ export default function MethodPilotPage() {
                 ))}
               </div>
             )}
+            {/* 다음 결정의 입구 — 이 버튼이 없으면 두 번째 루프의 대가가 "전부
+                삭제"가 된다. 지난 기록은 같은 원장에 그대로 남는다. */}
+            <div className="mt-4 flex justify-end">
+              <Btn onClick={startNewDecision}>다음 결정 기록하기 — 지난 기록은 그대로 남습니다</Btn>
+            </div>
           </Panel>
         )}
 
@@ -929,13 +964,3 @@ function stepJourney(step: FlowStep): number {
   }
 }
 
-function deriveStep(s: CaseState, events: LedgerEvent[]): FlowStep {
-  if (s.state === 'REVIEWED') return 'reviewed';
-  if (s.recordRevealed) return 'return_reveal';
-  if (s.card) return 'acting';
-  const hasBaseline = s.baseline !== undefined;
-  const hasUtterance = events.some((e) => e.type === 'user_utterance');
-  if (hasBaseline) return 'coach';
-  if (hasUtterance) return 'baseline';
-  return 'listen';
-}

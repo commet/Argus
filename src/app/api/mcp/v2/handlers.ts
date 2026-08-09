@@ -17,6 +17,7 @@ import {
   type ArgusTurn,
   type BeliefConfidence,
   type ExecutionPlan,
+  type LedgerEvent,
   type MaterialBelief,
   type MoveType,
   type PlanStep,
@@ -42,9 +43,10 @@ import { generateAndSealShadow, gradeRevealedShadows, revealShadowsText, runAfte
 import { twinScore, TWIN_SCORE_MIN_SAMPLE } from '@/lib/twin/store';
 import { persistServerEvent } from '@/lib/server-events';
 import { toolText } from './protocol';
-import { MATERIAL_EXCERPT_MAX, MATERIAL_MAX_COUNT } from './tools';
+import { MATERIAL_EXCERPT_MAX, MATERIAL_MAX_COUNT, TEXT_INPUT_MAX } from './tools';
 import {
   armReturns,
+  completeOneReturn,
   completeReturns,
   dueReturns,
   getCase,
@@ -53,6 +55,7 @@ import {
   listCases,
   persistNewEvents,
   projectOutcome,
+  updateLastObservation,
   upsertCase,
   type CaseRow,
 } from './store';
@@ -78,12 +81,21 @@ export interface DueRow {
 
 // 순수 포매터 — DB 없이 테스트된다. 조회와 문안을 나눠 두면 "무엇을 말하는가"를
 // Supabase 없이 고정할 수 있다.
+//
+// 호출자는 상한+1 건을 조회해 넘긴다 — 상한을 넘는지 알아야 "2건 있습니다"가
+// 조용한 절삭이 되지 않는다 (세 번째가 있는데 2건이라고 말하면 그 문장이 거짓이다).
 export function formatDueNotice(rows: readonly DueRow[], excludeCaseId?: string): string {
-  const due = rows.filter((r) => r.case_id !== excludeCaseId).slice(0, MAX_INLINE_NOTICES);
+  const eligible = rows.filter((r) => r.case_id !== excludeCaseId);
+  const due = eligible.slice(0, MAX_INLINE_NOTICES);
   if (due.length === 0) return '';
+  const overflow = eligible.length > due.length;
   const items = due.map((r) => `· ${r.from_step || '지난 결정'} (id: ${r.case_id})`).join('\n');
   return (
-    `\n\n---\n돌아볼 때가 된 결정이 ${due.length}건 있습니다:\n${items}\n` +
+    `\n\n---\n${
+      overflow
+        ? `돌아볼 때가 된 결정이 여럿 있습니다 — 기한이 이른 ${due.length}건만 먼저 (이 밖에도 더 있습니다):`
+        : `돌아볼 때가 된 결정이 ${due.length}건 있습니다:`
+    }\n${items}\n` +
     'argus_return 으로 여시면 됩니다 — 먼저 무슨 일이 있었는지만 물어봅니다.'
   );
 }
@@ -109,6 +121,47 @@ const newCaseId = () => `case_${Date.now().toString(36)}_${Math.random().toStrin
 type Args = Record<string, unknown>;
 const str = (v: unknown): string => (typeof v === 'string' ? v.trim() : '');
 const strArr = (v: unknown): string[] => (Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : []);
+
+// 자유 텍스트 상한 검사. 넘으면 **기록 전에** 거절한다 — 자료 인테이크와 같은
+// 규율이다: 잘라서 받으면 그 사람의 말이 아니게 되므로 자르지 않고 말한다.
+// (원장은 append-only 라 비대한 입력 하나가 영구히 남는다 — 들어가기 전이 유일한 관문.)
+function refuseOversize(fields: Record<string, string>): ReturnType<typeof toolText> | null {
+  for (const [label, value] of Object.entries(fields)) {
+    if (value.length > TEXT_INPUT_MAX) {
+      return toolText(
+        `${label}이(가) ${value.length}자로 상한(${TEXT_INPUT_MAX}자)을 넘습니다. ` +
+          '자르면 기록이 왜곡되므로 자르지 않고 거절합니다 — 하중이 실린 대목만 남겨 다시 보내주십시오.',
+        true,
+      );
+    }
+  }
+  return null;
+}
+
+// 목록 입력의 상한 — 같은 규율. 항목 수와 항목 길이 둘 다 본다: 25개짜리 가치
+// 목록이나 5천 자짜리 이유 하나가 append-only 원장에 박히면 지울 수 없다.
+function refuseOversizeList(
+  label: string,
+  items: readonly string[],
+  maxItems = 20,
+  maxItemLen = 1000,
+): ReturnType<typeof toolText> | null {
+  if (items.length > maxItems) {
+    return toolText(
+      `${label}이(가) ${items.length}건으로 상한(${maxItems}건)을 넘습니다. 하중이 실린 것만 남겨 다시 보내주십시오.`,
+      true,
+    );
+  }
+  const over = items.find((s) => s.length > maxItemLen);
+  if (over) {
+    return toolText(
+      `${label}의 항목 하나가 ${over.length}자로 상한(${maxItemLen}자)을 넘습니다. ` +
+        '자르면 기록이 왜곡되므로 자르지 않고 거절합니다 — 요지만 남겨 다시 보내주십시오.',
+      true,
+    );
+  }
+  return null;
+}
 
 const STAKES_WEIGHTS: StakesWeight[] = ['minor', 'significant', 'major'];
 const REVERSIBILITIES: Reversibility[] = ['reversible', 'costly', 'one_way'];
@@ -205,7 +258,9 @@ export function readMaterials(v: unknown): MaterialRead {
     const kind = (MATERIAL_KINDS as readonly string[]).includes(str(o.kind))
       ? (str(o.kind) as MaterialKind)
       : 'document';
-    parsed.push({ title: title.slice(0, 120), kind, excerpt, ...(str(o.whyRelevant) ? { whyRelevant: str(o.whyRelevant) } : {}) });
+    // whyRelevant 는 모델이 쓴 한 문장 gloss 다 — 인용(절단 금지)이 아니므로
+    // 300자에서 자른다. 인용의 규율(excerpt: 거절)과 다른 이유가 여기 있다.
+    parsed.push({ title: title.slice(0, 120), kind, excerpt, ...(str(o.whyRelevant) ? { whyRelevant: str(o.whyRelevant).slice(0, 300) } : {}) });
   }
   const accepted = parsed.slice(0, MATERIAL_MAX_COUNT);
   return { accepted, droppedLong, droppedMalformed, droppedOverCap: parsed.length - accepted.length };
@@ -251,6 +306,8 @@ async function guard<T>(fn: () => Promise<T>): Promise<T | { violation: string }
 export async function handleOpen(userId: string, args: Args) {
   const utterance = str(args.utterance);
   if (!utterance) return toolText('결정을 연 원문이 필요합니다.', true);
+  const oversize = refuseOversize({ utterance });
+  if (oversize) return oversize;
 
   // fire-gate가 먼저 돈다 (§4.6).
   //
@@ -271,13 +328,18 @@ export async function handleOpen(userId: string, args: Args) {
     );
   }
 
-  const caseId = newCaseId();
-  const engine = await loadEngine(userId, caseId);
-  engine.recordUtterance(utterance, now());
-
   const lean = str(args.lean);
   const reasons = strArr(args.statedReasons);
   const alternatives = strArr(args.consideredAlternatives);
+  const oversizeMore =
+    refuseOversize({ lean }) ||
+    refuseOversizeList('statedReasons', reasons) ||
+    refuseOversizeList('consideredAlternatives', alternatives);
+  if (oversizeMore) return oversizeMore;
+
+  const caseId = newCaseId();
+  const engine = await loadEngine(userId, caseId);
+  engine.recordUtterance(utterance, now());
   if (lean || reasons.length > 0 || alternatives.length > 0) {
     engine.recordBaseline({ lean: lean || 'none_stated', statedReasons: reasons, consideredAlternatives: alternatives }, now());
   } else {
@@ -386,6 +448,8 @@ export async function handleSharpen(userId: string, args: Args) {
   }
 
   const assumption = str(args.assumption);
+  const oversize = refuseOversize({ assumption, falsifier: str(args.falsifier), whyNow: str(args.whyNow) });
+  if (oversize) return oversize;
   const said = state.baseline && state.baseline !== 'not_captured' ? state.baseline : null;
 
   // 1단계 — 아직 짚기가 없다: 무엇을 지켜야 하는지 알려주고, 사용자가 이미 말한
@@ -468,6 +532,8 @@ export async function handleAdopt(userId: string, args: Args) {
   const caseId = str(args.caseId);
   const choice = str(args.choiceOrPolicy);
   if (!caseId || !choice) return toolText('caseId와 choiceOrPolicy가 필요합니다.', true);
+  const oversize = refuseOversize({ choiceOrPolicy: choice, question: str(args.question) });
+  if (oversize) return oversize;
 
   const engine = await loadEngine(userId, caseId);
   const known = await knownEventIds(userId, caseId);
@@ -478,6 +544,19 @@ export async function handleAdopt(userId: string, args: Args) {
   // (원문이 없으니까), 그 문장이 제목이 되어 귀환 메일 제목으로 새어 나간다.
   if (engine.ledger.forCase(caseId).length === 0) {
     return toolText('이 caseId 로 열린 결정이 없습니다. 먼저 argus_open 으로 여십시오.', true);
+  }
+
+  // 이미 채택된 결정을 다시 채택할 수 없다 — 과거는 편집 대상이 아니다.
+  // 엔진도 append 전에 같은 검사로 막지만(오염 이벤트가 원장에 들어가는 것을
+  // 차단), 여기서 먼저 잡아 다음 행동까지 일러 준다. 모델의 재시도, 사용자의
+  // "다시 말하지만 이대로" — 채택이 두 번 오는 경로는 현실에 흔하다.
+  if (state.card) {
+    return toolText(
+      `이 결정에는 이미 채택된 기록이 있습니다: "${state.card.choiceOrPolicy}". ` +
+        '과거의 채택은 고칠 수 없습니다 — 선택이 실제로 바뀌었다면 새 결정으로 여시고(argus_open), ' +
+        '결과가 나왔다면 argus_return 으로 돌아보십시오.',
+      true,
+    );
   }
 
   // 하중·이유를 지어내지 않는다. 안 온 것은 (a) 가장 엄격한 쪽으로 닫고
@@ -491,6 +570,13 @@ export async function handleAdopt(userId: string, args: Args) {
     rejected && str(rejected.alternative)
       ? { alternative: str(rejected.alternative), reason: str(rejected.reason) || '이유가 기록되지 않음' }
       : undefined;
+  const oversizeLists =
+    refuseOversizeList('values', values) ||
+    refuseOversizeList('materialBeliefs', materialBeliefs.map((b) => b.belief)) ||
+    (rejectedAlternative
+      ? refuseOversize({ rejectedAlternative: rejectedAlternative.alternative, rejectedReason: rejectedAlternative.reason })
+      : null);
+  if (oversizeLists) return oversizeLists;
 
   const adoptedState = (['decide', 'test', 'research', 'defer', 'reframe', 'stop'] as const).includes(
     str(args.adoptedState) as 'decide',
@@ -505,8 +591,9 @@ export async function handleAdopt(userId: string, args: Args) {
   const openingUtterance = engine.ledger
     .forCase(caseId)
     .find((e) => e.type === 'user_utterance') as { text: string } | undefined;
-  const question =
-    str(args.question) || state.card?.question || openingUtterance?.text.slice(0, 120) || choice.slice(0, 120);
+  // 위의 이중 채택 거절로 여기서는 카드가 없다 — 질문의 출처는 모델이 보낸
+  // question 아니면 결정을 연 원문뿐이다.
+  const question = str(args.question) || openingUtterance?.text.slice(0, 120) || choice.slice(0, 120);
 
   const violation = await guard(async () =>
     engine.adoptCard(
@@ -618,8 +705,30 @@ export async function handlePlan(userId: string, args: Args) {
     }),
   };
 
+  // 단계 문장은 귀환 큐(from_step)와 이메일 문안까지 흐른다 — 상한을 여기서 잡는다.
+  const oversizePlan =
+    refuseOversizeList('계획 단계(what)', plan.steps.map((s) => s.what), 20, 500) ||
+    refuseOversizeList('계획 단계(byOrWhen)', plan.steps.map((s) => s.byOrWhen), 20, 500) ||
+    refuseOversizeList('openQuestions', plan.openQuestions, 20, 500);
+  if (oversizePlan) return oversizePlan;
+
   const engine = await loadEngine(userId, caseId);
   const known = await knownEventIds(userId, caseId);
+
+  // 케이스당 계획 하나 (하네스 assertPlanAllowed 도 같은 규칙으로 잠근다).
+  // 여기서 먼저 잡는 이유는 문안이다 — 지금 걸려 있는 계획을 보여주며 거절해야
+  // 모델이 다음 턴에 무엇을 할지 안다. 두 번째 계획을 조용히 받으면 돌아보기
+  // 약속이 3+3 으로 쌓인다 (2026-08-09 라운드 2 시뮬레이션에서 실증된 과발화).
+  const existing = engine.state().plan;
+  if (existing) {
+    const currentSteps = existing.steps.map((s, i) => `${i + 1}. ${s.what} — ${s.byOrWhen}`).join('\n');
+    return toolText(
+      `이 결정에는 이미 실행 계획이 있습니다:\n${currentSteps}\n\n` +
+        '계획을 갈아끼우면 걸어 둔 돌아보기 약속이 조용히 불어나므로 받지 않습니다. ' +
+        '남은 마일스톤은 그대로 진행하시고, 새로 확인할 것이 생겼으면 새 결정으로 여십시오.',
+      true,
+    );
+  }
 
   const result = await guard(async () => engine.adoptPlan(plan, now()));
   if ('violation' in result) return toolText(result.violation, true);
@@ -657,6 +766,9 @@ export async function handleReturn(userId: string, args: Args) {
   if (!state.card) return toolText('이 결정에는 채택된 기록이 없습니다.', true);
 
   const observation = str(args.observation);
+  const recall = str(args.recall);
+  const oversize = refuseOversize({ observation, recall });
+  if (oversize) return oversize;
   // 스키마가 ISO 8601 이라고 적어도 호스트가 그것을 검증한다는 보장이 없다.
   // 원장은 append-only 라 잘못 들어간 시각은 **영영 고칠 수 없다** — "지난주"
   // 같은 문자열이 IsoTime 자리에 박히면 그 케이스의 시간축이 죽는다.
@@ -666,6 +778,8 @@ export async function handleReturn(userId: string, args: Args) {
     parsedObservedAt && !Number.isNaN(new Date(parsedObservedAt).getTime()) ? parsedObservedAt : now();
   const recordObservation = () =>
     engine.recordObservation(observation, args.relayed === true ? 'relayed' : 'direct', observedAt, now());
+
+  const caseEvents = engine.ledger.forCase(caseId);
 
   // 이미 정산이 끝난 결정(기록이 공개된 적 있고, 기다리는 귀환도 없음). 나중
   // 사실은 덧붙지만(§AUTHORITY), 회상 탐침과 기록 열기는 **다시 하지 않는다** —
@@ -681,18 +795,40 @@ export async function handleReturn(userId: string, args: Args) {
   //   사이클을 위해 그 플래그를 **리셋한다** (reducer §7.2). 정산된 적 있는지는
   //   원장의 record_revealed 이벤트 실존으로 본다.
   // activeReturn 이 살아 있으면(연쇄 귀환의 다음 사이클 포함) 정상 흐름이다.
-  const everRevealed = engine.ledger.forCase(caseId).some((e) => e.type === 'record_revealed');
+  const everRevealed = caseEvents.some((e) => e.type === 'record_revealed');
   if (!state.activeReturn && everRevealed) {
+    // 투영 자기 치유. projectOutcome 은 캐시라 실패해도 던지지 않는다 — 정산
+    // 직후 투영만 유실되면 return 은 "정산 끝", recall 은 "미정산"이라는 모순이
+    // 영구히 남는다. 원장이 정본이므로 접촉할 때 원장에서 재생한다.
+    const row = await getCase(userId, caseId);
+    const projectionLost = !row?.settled_at;
+    const rebuildProjection = async () => {
+      const lastRecall = [...caseEvents].reverse().find((e) => e.type === 'recall_probe_answer');
+      const lastReveal = [...caseEvents].reverse().find((e) => e.type === 'record_revealed');
+      await projectOutcome(userId, caseId, {
+        choice: state.card?.choiceOrPolicy,
+        rejectedAlternative: state.card?.rationale?.rejectedAlternative?.alternative,
+        observation: engine.state().observations.at(-1)?.text ?? '',
+        recall: lastRecall && 'text' in lastRecall ? lastRecall.text : '',
+        settledAt: lastReveal?.at ?? now(),
+      });
+    };
+
     if (!observation) {
+      if (projectionLost) await rebuildProjection();
       return toolText(
         '이 결정은 이미 정산이 끝났습니다 (기다리는 귀환이 없습니다). ' +
           '새로 알게 된 사실이 있으면 observation 으로 보내주시면 덧붙입니다.',
         true,
       );
     }
-    recordObservation();
+    if (state.observations.at(-1)?.text !== observation) recordObservation();
     await persistNewEvents(userId, caseId, engine, known);
     await upsertCase(userId, caseId, state.card.question, engine.state().state);
+    // 나중 사실은 투영에도 도달해야 한다 — "덧붙였습니다"라고 말해 놓고 recall
+    // 의 "실제로 일어난 일"이 낡은 채면 그 말이 화면에서 거짓이 된다.
+    if (projectionLost) await rebuildProjection();
+    else await updateLastObservation(userId, caseId, observation);
     return ok(
       userId,
       '나중 사실로 덧붙였습니다. 이 결정은 이미 정산이 끝났으므로 회상 탐침은 다시 하지 않습니다 — ' +
@@ -701,14 +837,23 @@ export async function handleReturn(userId: string, args: Args) {
     );
   }
 
+  // 이번 사이클의 관찰만 센다. 연쇄 귀환에서 마지막 record_revealed 뒤의 관찰이
+  // 다음 사이클의 것이다 — 지난 사이클의 관찰로 다음 기록을 열면 관찰 우선(§7.3)이
+  // 두 번째 사이클부터 장식이 된다 (2026-08-09 라운드 2 시뮬레이션에서 실증:
+  // 회상만 들고 온 2사이클 호출이 1사이클의 관찰을 재사용해 기록을 열었다).
+  const lastRevealIdx = caseEvents.reduce((acc, e, i) => (e.type === 'record_revealed' ? i : acc), -1);
+  const cycleObservations = caseEvents
+    .slice(lastRevealIdx + 1)
+    .filter((e): e is Extract<LedgerEvent, { type: 'observation' }> => e.type === 'observation');
+
   // 관찰이 없으면 기록을 열지 않는다 — 이 순서가 §7.3의 전부다.
   //
-  // "없다"는 **이번 호출 + 원장**을 합쳐 본다. 1차 호출(관찰만)의 응답이
-  // "답을 recall 로 보내주시면"이라고 안내하므로, 그 말대로 recall 만 들고 온
-  // 2차 호출을 원장의 관찰을 무시하고 거절하면 안내문이 거짓말이 된다 —
+  // "없다"는 **이번 호출 + 원장(이번 사이클)**을 합쳐 본다. 1차 호출(관찰만)의
+  // 응답이 "답을 recall 로 보내주시면"이라고 안내하므로, 그 말대로 recall 만
+  // 들고 온 2차 호출을 원장의 관찰을 무시하고 거절하면 안내문이 거짓말이 된다 —
   // 그리고 모델은 우회하느라 같은 관찰을 다시 보내 append-only 원장에 중복
   // 이벤트를 영구히 남긴다 (2026-08-09 프로덕션 도그푸드에서 실제로 걸림).
-  if (!observation && state.observations.length === 0) {
+  if (!observation && cycleObservations.length === 0) {
     const opening = engine.openReturn();
     return toolText(
       `먼저 실제로 무슨 일이 있었는지 들어야 합니다.\n\n"${opening.question}"\n기다리던 것: ${opening.awaitedSignal}\n\n` +
@@ -719,10 +864,9 @@ export async function handleReturn(userId: string, args: Args) {
 
   // 새 사실만 덧붙인다. 같은 문장을 다시 보낸 것은 새 관찰이 아니라 재전송이다
   // — append-only 원장에 같은 이벤트가 두 번 남으면 지울 수 없다.
-  if (observation && state.observations.at(-1)?.text !== observation) recordObservation();
-  // 이번 정산이 대조할 관찰: 이번 호출에 왔으면 그것, 아니면 원장의 마지막 관찰.
-  const effectiveObservation = observation || state.observations.at(-1)?.text || '';
-  const recall = str(args.recall);
+  if (observation && cycleObservations.at(-1)?.text !== observation) recordObservation();
+  // 이번 정산이 대조할 관찰: 이번 호출에 왔으면 그것, 아니면 이번 사이클의 마지막 관찰.
+  const effectiveObservation = observation || cycleObservations.at(-1)?.text || '';
 
   if (!recall) {
     await persistNewEvents(userId, caseId, engine, known);
@@ -753,7 +897,12 @@ export async function handleReturn(userId: string, args: Args) {
   await persistNewEvents(userId, caseId, engine, known);
   await upsertCase(userId, caseId, revealed.card?.question ?? caseId, engine.state().state);
   // 스케줄러 큐도 닫는다 — 안 닫으면 크론 메일과 채팅 알림이 계속 온다.
-  await completeReturns(userId, caseId);
+  // 단, 연쇄가 계속되면(닫힌 귀환이 다음 마일스톤을 승격) **이번 사이클의 행
+  // 하나만** 닫는다. 전건을 닫으면 엔진은 다음 귀환을 기다리는데 스케줄러 큐는
+  // 비어 있는 단선이 되고, 남은 마일스톤의 이메일·채팅 알림이 소리 없이 영영
+  // 오지 않는다 (2026-08-09 라운드 2 시뮬레이션에서 실증).
+  if (engine.state().activeReturn) await completeOneReturn(userId, caseId);
+  else await completeReturns(userId, caseId);
   // 정산 결과를 케이스 행에 투영한다. **이 한 줄이 해자다**: 다음에 비슷한
   // 결정을 만났을 때 argus_recall 이 "지난번엔 이렇게 가정했고 실제로는
   // 이랬다"를 돌려줄 수 있는 것은 여기서 남긴 것 때문이다. 없으면 이 제품은
@@ -890,40 +1039,49 @@ export async function handleRecall(userId: string, args: Args) {
   const query = str(args.query);
   // query는 선언만 하고 버리면 모델이 걸러졌다고 믿는다 — 유령 파라미터는
   // "그럴듯함이 맞음으로 위장"하는 전형이다. 실제로 거르고, 걸렀다고 말한다.
-  const all = await listCases(userId, query ? 100 : limit);
+  //
+  // 목록도 항상 풀에서 뽑는다. 최근 갱신순 상위 limit 건을 먼저 뽑고 나서
+  // 정산/미정산을 나누면, 열린 결정이 limit 개를 넘는 순간 정산된 결정 —
+  // 이 목록의 존재 이유 — 이 통째로 사라진다 (2026-08-09 라운드 3 시뮬레이션
+  // 에서 실증). "정산된 것 먼저"는 표시 순서가 아니라 **자리 배정**의 약속이다.
+  const SEARCH_POOL = 100;
+  const all = await listCases(userId, SEARCH_POOL);
+  // 검색 모수도 정직하게 — 풀이 상한에 닿았으면 "전체"가 아니라 "최근 N건"이다.
+  const poolLabel = all.length >= SEARCH_POOL ? `최근 ${SEARCH_POOL}건` : `전체 ${all.length}건`;
   const needle = query.toLowerCase();
   const matches = query
     ? all.filter((c) =>
         [c.title ?? c.id, c.choice ?? '', c.last_observation ?? ''].some((f) => f.toLowerCase().includes(needle)),
       )
     : all;
-  const cases = matches.slice(0, limit);
 
-  if (cases.length === 0) {
+  if (matches.length === 0) {
     return ok(
       userId,
       query
-        ? `"${query}"와(과) 겹치는 지난 결정이 없습니다 (전체 ${all.length}건 중). 검색어 없이 다시 부르면 전체를 봅니다.`
+        ? `"${query}"와(과) 겹치는 지난 결정이 없습니다 (${poolLabel} 중). 검색어 없이 다시 부르면 전체를 봅니다.`
         : '아직 기록된 결정이 없습니다.',
     );
   }
 
-  // 정산된 것을 먼저 보여준다. 이 목록에서 가치가 있는 것은 "무엇을 정했나"가
+  // 정산된 것에 자리를 먼저 준다. 이 목록에서 가치가 있는 것은 "무엇을 정했나"가
   // 아니라 "무엇이 실제로 일어났나"이기 때문이다.
-  const settled = cases.filter((c) => c.settled_at);
-  const open = cases.filter((c) => !c.settled_at);
+  const settledAll = matches.filter((c) => c.settled_at);
+  const openAll = matches.filter((c) => !c.settled_at);
+  const settled = settledAll.slice(0, limit);
+  const open = openAll.slice(0, Math.max(0, limit - settled.length));
   const parts: string[] = [];
   if (query) {
     // 조용한 절삭 금지: 몇 건이 걸렸고 그중 몇 건을 보여주는지 밝힌다.
     parts.push(
-      `"${query}"로 거른 지난 결정 ${matches.length}건 (기록 전체 ${all.length}건)` +
-        (cases.length < matches.length ? ` — 최근 ${cases.length}건만 표시합니다.` : ''),
+      `"${query}"로 거른 지난 결정 ${matches.length}건 (기록 ${poolLabel})` +
+        (settled.length + open.length < matches.length ? ` — ${settled.length + open.length}건만 표시합니다.` : ''),
     );
   }
 
   if (settled.length > 0) {
     parts.push(
-      `현실이 답을 준 결정 ${settled.length}건:\n` +
+      `현실이 답을 준 결정 ${settledAll.length}건${settled.length < settledAll.length ? ` (최근 ${settled.length}건 표시)` : ''}:\n` +
         settled
           .map((c) => `· ${c.title ?? c.id} → 실제로: "${c.last_observation}" (${c.settled_at!.slice(0, 10)}, id: ${c.id})`)
           .join('\n'),
@@ -931,9 +1089,13 @@ export async function handleRecall(userId: string, args: Args) {
   }
   if (open.length > 0) {
     parts.push(
-      `아직 정산되지 않은 결정 ${open.length}건:\n` +
+      `아직 정산되지 않은 결정 ${openAll.length}건${open.length < openAll.length ? ` (최근 ${open.length}건 표시)` : ''}:\n` +
         open.map((c) => `· ${c.title ?? c.id} — ${c.state} (${c.updated_at.slice(0, 10)}, id: ${c.id})`).join('\n'),
     );
+  } else if (openAll.length > 0) {
+    // 반대 방향의 조용한 절삭도 금지 — 정산이 창을 다 채워 열린 결정이 밀렸으면
+    // 밀렸다고 말한다.
+    parts.push(`아직 정산되지 않은 결정 ${openAll.length}건은 표시 공간이 차서 생략했습니다 — limit 을 늘리면 보입니다.`);
   }
   if (settled.length > 0) {
     parts.push('한 건을 자세히 보려면 caseId 와 함께 다시 부르십시오 — 그때의 가정과 실제가 나란히 나옵니다.');

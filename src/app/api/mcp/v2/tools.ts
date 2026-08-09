@@ -23,6 +23,13 @@ export interface ToolDef {
 export const MATERIAL_MAX_COUNT = 8;
 export const MATERIAL_EXCERPT_MAX = 1200;
 
+// 자유 텍스트 입력의 상한. MCP 입력은 폼이 아니라 모델이 만든다 — maxLength 를
+// 강제할 브라우저가 없으므로 서버가 같은 규율을 갖는다 (CLAUDE.md: 모든 텍스트
+// 입력에 상한). 넘으면 인테이크와 같은 이유로 **자르지 않고 거절한다** —
+// 절단된 발화·관찰은 그 사람의 말이 아니다. 4000자 ≈ 서너 문단, 실사용의
+// 어떤 정상 입력보다 넉넉하다.
+export const TEXT_INPUT_MAX = 4000;
+
 const STEP_SCHEMA = {
   type: 'object',
   properties: {

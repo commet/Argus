@@ -151,6 +151,18 @@ export class SessionEngine {
   // Adoption is ONE act on ONE card (§6.6) and it must be a real user act —
   // surfaces that cannot prove one (MCP host-approve, plugin) never call this.
   adoptCard(card: DecisionCardDraft, adoption: AdoptionMode, now: IsoTime): string {
+    // 넣기 전에 검사한다 (recordRecallProbeAnswer 와 같은 이유). reducer 의
+    // OVERWRITE_FORBIDDEN 은 fold 시점에 던지는데, 원격 표면의 append-only
+    // 원장에서는 그때 이미 두 번째 card_adopted 가 들어간 뒤다 — 지울 수 없는
+    // 오염 이벤트 하나가 그 케이스의 이후 모든 fold 를 영구히 실패시킨다.
+    // (2026-08-09 라운드 2 케이스 시뮬레이션에서 실증 — 모델의 채택 재시도라는
+    // 흔한 경로 하나로 케이스가 통째로 죽었다.)
+    if (adoption.mode !== 'decline' && this.state().card) {
+      throw new HarnessViolation(
+        'OVERWRITE_FORBIDDEN',
+        'case already has an adopted card; use card_superseded, the past is not editable (rejected before append)',
+      );
+    }
     const cardId = nextEventId('card');
     this.ledger.append({ id: nextEventId('adp'), caseId: this.caseId, at: now, type: 'card_adopted', cardId, card, adoption });
     if (adoption.mode !== 'decline' && card.returnContract) {
