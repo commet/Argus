@@ -70,6 +70,15 @@ export function assertPlanAllowed(state: CaseState): void {
   if (state.state === 'STOPPED') {
     throw new HarnessViolation('PLAN_ON_STOPPED_CASE', '멈추기로 한 결정에 실행 계획을 붙이지 않는다.');
   }
+  // 케이스당 계획 하나. 두 번째 계획을 조용히 받으면 귀환 계약이 3+3 으로 쌓여
+  // 전역 예산(3)을 혼자 다 먹고, 연쇄 큐에는 낡은 계약이 남는다 — 과발화 제조기.
+  // 계획 수정 지원은 §8 대기 목록 사안이고, 그 전까지는 정직하게 거절한다.
+  if (state.plan) {
+    throw new HarnessViolation(
+      'PLAN_ALREADY_ADOPTED',
+      '이 결정에는 이미 실행 계획이 있다. 계획을 갈아끼우면 걸어 둔 돌아보기 약속이 조용히 불어난다 — 수정이 필요하면 남은 마일스톤은 그대로 두고, 새로 확인할 것은 새 결정으로 연다.',
+    );
+  }
 }
 
 // ---------------------------------------------------------------------------

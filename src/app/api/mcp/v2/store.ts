@@ -181,6 +181,20 @@ export async function projectOutcome(
   if (error) console.error('[mcp/v2] outcome projection failed:', error.message);
 }
 
+// 정산 뒤에 온 나중 사실을 투영에도 반영한다. "덧붙였습니다"라고 응답하면서
+// argus_recall 의 "실제로 일어난 일"이 정산 시점 값에 머물면 그 말이 화면에서
+// 거짓이 된다. 갱신되는 것은 현실 쪽(last_observation)뿐이다 — 정산 시점의
+// 회상 격차(recall_gap)와 settled_at 은 그때의 기록이므로 손대지 않는다.
+export async function updateLastObservation(userId: string, caseId: string, observation: string): Promise<void> {
+  const admin = adminClient();
+  const { error } = await admin
+    .from('argus_cases')
+    .update({ last_observation: observation })
+    .eq('id', caseId)
+    .eq('user_id', userId);
+  if (error) console.error('[mcp/v2] late observation projection failed:', error.message);
+}
+
 // 기한이 지난 귀환 — **채팅 안에서 알리기 위한** 조회.
 //
 // 이메일은 진짜 push지만 받은편지함 → 클릭 → 웹페이지라는 이동을 요구한다.
@@ -199,6 +213,35 @@ export async function dueReturns(userId: string, now: string, limit = 3) {
     .limit(limit);
   if (error) return []; // 알림은 부가 기능이다 — 실패해도 본 작업을 막지 않는다
   return data ?? [];
+}
+
+// 연쇄의 한 사이클이 정산되면 **그 사이클의 큐 행 하나만** 닫는다. 전건을 닫으면
+// 엔진은 다음 귀환을 승격했는데 스케줄러 큐는 비어 있는 단선이 된다 — 남은
+// 마일스톤 2건의 이메일과 채팅 알림이 소리 없이 영영 오지 않는다 (2026-08-09
+// 라운드 2 케이스 시뮬레이션에서 실증). 가장 이른 기한의 행이 지금 정산된
+// 사이클이다 — armReturns 가 기한순으로 계약을 걸고 연쇄도 그 순서로 돈다.
+export async function completeOneReturn(userId: string, caseId: string): Promise<void> {
+  const admin = adminClient();
+  const { data, error } = await admin
+    .from('argus_returns')
+    .select('id')
+    .eq('user_id', userId)
+    .eq('case_id', caseId)
+    .in('status', ['armed', 'sent'])
+    .order('due_at', { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  if (error || !data) {
+    if (error) console.error(`[mcp/v2] return queue lookup failed (user ${userId}, case ${caseId}):`, error.message);
+    return;
+  }
+  const { error: updateError } = await admin
+    .from('argus_returns')
+    .update({ status: 'completed', completed_at: new Date().toISOString() })
+    .eq('id', (data as { id: string }).id);
+  if (updateError) {
+    console.error(`[mcp/v2] return queue close failed (user ${userId}, case ${caseId}):`, updateError.message);
+  }
 }
 
 // 정산이 끝난 귀환은 닫는다. 안 닫으면 채팅 안 알림이 영원히 같은 결정을

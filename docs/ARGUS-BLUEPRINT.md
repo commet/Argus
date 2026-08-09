@@ -511,6 +511,12 @@ handleTextInputSubmit = () => move("down")                 // 칸 안에서 Retu
 
 ## §8. 대기 목록 — 여기 적고, 짓지 않는다
 
+- **MCP 실행 계획 수정 (re-plan) 지원 (2026-08-09).** 케이스당 계획 하나가 현행
+  규칙이다 — 두 번째 `argus_plan` 은 정직하게 거절된다(귀환 계약이 3+3 으로
+  쌓이는 과발화를 라운드 2 시뮬레이션이 실증). 수정을 지원하려면 낡은 귀환
+  계약의 명시적 폐기 이벤트(`plan_superseded` 류)가 원장·reducer·큐에 같이
+  필요하다.
+
 - **`src/lib/epistemic/` 50건이 테스트에만 소비된다 (2026-08-06 기계 확인).**
   TWIN 트랙에 도입한 함수 수준 선언↔소비 가드(`twin-wiring.test.ts`)를
   E-트랙 디렉터리에 시험 삼아 겨눴더니 `evaluatePromptInfluence` ·

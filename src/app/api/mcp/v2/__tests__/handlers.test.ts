@@ -65,6 +65,17 @@ vi.mock('../store', () => ({
   completeReturns: async (_u: string, caseId: string) => {
     returns = returns.map((r) => (r.case_id === caseId ? { ...r, status: 'completed' } : r));
   },
+  completeOneReturn: async (_u: string, caseId: string) => {
+    const open = returns
+      .filter((r) => r.case_id === caseId && ['armed', 'sent'].includes(r.status))
+      .sort((a, b) => a.due_at.localeCompare(b.due_at));
+    const target = open[0];
+    if (target) returns = returns.map((r) => (r === target ? { ...r, status: 'completed' } : r));
+  },
+  updateLastObservation: async (_u: string, caseId: string, observation: string) => {
+    const row = cases.get(caseId);
+    if (row) cases.set(caseId, { ...row, last_observation: observation });
+  },
   dueReturns: async (_u: string, at: string) =>
     returns.filter((r) => ['armed', 'sent'].includes(r.status) && r.due_at <= at),
 }));
