@@ -122,6 +122,11 @@ export interface TwinStatus {
   delegations: { active: number | null; suspended: number | null };
   beliefs: { graded: number | null };
   theater: { runs: number | null };
+  /**
+   * 엔진 설정이 **있는가만**. 값·길이·접두사는 서버가 내보내지 않는다.
+   * 옵셔널인 이유는 방어적 읽기(CLAUDE.md) — 구버전 서버 응답에는 없다.
+   */
+  engine?: { anthropic: boolean; resend: boolean; cronSecret: boolean };
 }
 
 export async function fetchTwinStatus(): Promise<TwinStatus> {

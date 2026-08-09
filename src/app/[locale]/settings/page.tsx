@@ -1232,6 +1232,32 @@ function TwinStatusBlock({ locale }: { locale: string }) {
         </p>
       )}
 
+      {/*
+        가장 비싼 침묵을 이름으로 부른다.
+
+        `ANTHROPIC_API_KEY` 가 서버에 없으면 결정은 정상적으로 열리고 봉인만
+        조용히 실패한다 — 봉인은 부가 기능이라 사용자 흐름을 막지 않는 것이
+        옳고, 크론 백스톱이 재시도하므로 코드에는 결함이 없다. 문제는 그
+        상태에서 사용자가 보는 것이 "봉인 0건" 하나뿐이고, 그것이 **"아직 안
+        열었다"와 구분되지 않는다**는 것이다. 스키마 진단은 전부 초록인 채로.
+
+        그래서 "0건"을 원인과 함께 말한다. 설정을 안 건드리는 사용자에게는
+        아무것도 보이지 않는다 — 키가 있으면 이 블록은 렌더되지 않는다.
+      */}
+      {status?.engine && !status.engine.anthropic && (
+        <div className="mt-3 rounded-lg bg-[var(--accent)]/[0.04] px-4 py-3">
+          <p className="text-[12px] font-semibold text-[var(--text-primary)]">
+            {L('분신 엔진이 설정되지 않았습니다', 'The twin engine is not configured')}
+          </p>
+          <p className="text-[12px] text-[var(--text-secondary)] mt-1 break-keep leading-relaxed">
+            {L(
+              '서버에 ANTHROPIC_API_KEY 가 없습니다. 결정은 정상적으로 열리고 기록되지만, 분신의 봉인 예측은 하나도 만들어지지 않습니다 — 위의 "잠김 0건"은 아직 결정을 안 열어서가 아니라 이 때문입니다.',
+              'The server has no ANTHROPIC_API_KEY. Decisions still open and record normally, but no sealed prediction is ever created — the “0 sealed” above is this, not an empty history.',
+            )}
+          </p>
+        </div>
+      )}
+
       {status && (
         <div className="mt-3 space-y-1">
           {rows.map((r) => (
