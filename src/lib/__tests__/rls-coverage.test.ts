@@ -75,7 +75,10 @@ function parseMigrations(): Schema {
   const bumpPolicy = (t: string) => policyCount.set(t, (policyCount.get(t) ?? 0) + 1);
 
   for (const file of readdirSync(MIGRATIONS).filter((f) => f.endsWith('.sql')).sort()) {
-    const sql = readFileSync(join(MIGRATIONS, file), 'utf8');
+    // 줄 주석을 먼저 걷는다 — 주석으로 적어 둔 DDL 예시가 실재 테이블로
+    // 등록되면 가드가 유령을 감시하게 된다. `erasure-coverage.test.ts` 가
+    // 이미 같은 이유로 같은 처리를 한다 (이 리포가 배운 것을 다시 배우지 않는다).
+    const sql = readFileSync(join(MIGRATIONS, file), 'utf8').replace(/--[^\n]*/g, '');
 
     for (const m of sql.matchAll(
       /create\s+table\s+(?:if\s+not\s+exists\s+)?(?:public\.)?([a-z_][a-z0-9_]*)\s*\(([\s\S]*?)\n\)\s*;/gi,

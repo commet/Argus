@@ -43,7 +43,10 @@ function definedColumns(): Map<string, Set<string>> {
   };
 
   for (const file of readdirSync(MIGRATIONS).filter((f) => f.endsWith('.sql')).sort()) {
-    const sql = readFileSync(join(MIGRATIONS, file), 'utf8');
+    // 줄 주석 제거 — 주석 속 DDL 예시가 실재 컬럼으로 등록되면, 없는 컬럼을
+    // 있다고 믿어 **가드가 통과시키면 안 될 것을 통과시킨다**(위험한 방향의
+    // 오류다). `erasure-coverage.test.ts` 가 같은 이유로 같은 처리를 한다.
+    const sql = readFileSync(join(MIGRATIONS, file), 'utf8').replace(/--[^\n]*/g, '');
 
     // create table … ( … );
     for (const m of sql.matchAll(
