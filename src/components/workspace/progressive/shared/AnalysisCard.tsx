@@ -184,6 +184,13 @@ export function AnalysisCard({
   const safeInsight = integrityPending
     ? undefined
     : initialOpenInsight;
+  // The opening snapshot deliberately uses the real question as its only safe
+  // thesis while integrity checks finish. Rendering that value again under
+  // "지금 보이는 것" produced two identical paragraphs within one card — the
+  // very first thing a visitor saw in both the landing demo and live flow.
+  // Later snapshots still show a genuinely distinct insight/delta.
+  const showInsight = !!safeInsight
+    && (terminalRoute || safeInsight.trim() !== snapshot.real_question.trim());
   const visibleSkeleton = snapshot.version === 0 ? [] : snapshot.skeleton;
   // Render from the TYPED records. `hidden_assumptions` deliberately carries
   // claims only — every legacy surface prints it under the words "확인할 가정" —
@@ -358,7 +365,7 @@ export function AnalysisCard({
             {/* Insight — editorial thesis + support. A quiet tint separates the
                 thought without introducing another ornamental card. */}
             <AnimatePresence>
-              {safeInsight && (
+              {showInsight && safeInsight && (
                 <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
                   transition={{ duration: 0.4, ease: EASE }} className="overflow-hidden mb-6">
                   <div className="border-t border-[var(--border-subtle)] pt-4">

@@ -434,18 +434,31 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem, fr
     if (searchParams.get('demo')) return;
     const text = initialProblem.trim();
     if (!text) return;
-    autoStartedRef.current = true;
-    // Consume the param IMMEDIATELY: leaving ?q= in the URL meant every
-    // refresh (and "새 프로젝트", which remounts HeroFlow) re-ran the same
-    // analysis — duplicate projects, quota burned twice (audit P0 #1).
-    window.history.replaceState(null, '', window.location.pathname);
-    // Defuse the persisted-project restore: loadProjects() restores the last
-    // open project synchronously, which would unmount HeroFlow mid-analysis —
-    // aborting this run and hijacking the screen to an old project while the
-    // typed text is already gone from the URL (adversarial review P0 #1).
-    useProjectStore.getState().setCurrentProjectId(null);
-    setProblemInput(text);
-    handleSubmit(text);
+
+    // Start on the next task instead of during the effect setup itself. React
+    // StrictMode intentionally runs setup → cleanup → setup once in development.
+    // Starting synchronously here created an AbortController during the first
+    // setup; the shared unmount cleanup immediately aborted it, while the
+    // one-shot ref prevented the second setup from trying again. Visitors who
+    // entered through the landing input were then stranded at "읽고 있어요".
+    // A cancellable task is never started by the discarded setup and the real
+    // setup still starts exactly once.
+    const autoStartTimer = window.setTimeout(() => {
+      if (autoStartedRef.current) return;
+      autoStartedRef.current = true;
+      // Consume the param IMMEDIATELY: leaving ?q= in the URL meant every
+      // refresh (and "새 프로젝트", which remounts HeroFlow) re-ran the same
+      // analysis — duplicate projects, quota burned twice (audit P0 #1).
+      window.history.replaceState(null, '', window.location.pathname);
+      // Defuse the persisted-project restore: loadProjects() restores the last
+      // open project synchronously, which would unmount HeroFlow mid-analysis —
+      // aborting this run and hijacking the screen to an old project while the
+      // typed text is already gone from the URL (adversarial review P0 #1).
+      useProjectStore.getState().setCurrentProjectId(null);
+      setProblemInput(text);
+      handleSubmit(text);
+    }, 0);
+    return () => window.clearTimeout(autoStartTimer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialProblem]);
 

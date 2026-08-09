@@ -184,6 +184,14 @@ describe('QuestionCard — meta + skip', () => {
     pressOn(input, 'Enter', false);
     expect(onAnswer).toHaveBeenCalledWith('한글');
   });
+
+  it('lets the answer field shrink beside its action on narrow screens', () => {
+    render(createElement(QuestionCard, {
+      question: { id: 'q', text: '답은?' }, onAnswer: vi.fn(), locale: 'ko',
+    }));
+    const input = container.querySelector('input[name="question-answer"]')!;
+    expect(input.className).toContain('min-w-0');
+  });
 });
 
 describe('CrewAtWork — progress + report disclosure', () => {

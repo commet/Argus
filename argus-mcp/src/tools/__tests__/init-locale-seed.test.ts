@@ -31,12 +31,13 @@ describe('argus_init locale seeding', () => {
     expect(resolveResponseLocale(dir, 'conversion stays above 3.2%')).toBe('en');
   });
 
-  it('on a Korean env, seeds locale:ko once so the first contentless surface is Korean', async () => {
+  it('does not mistake a Korean machine locale for the user\'s conversation language', async () => {
     process.env['LANG'] = 'ko_KR.UTF-8';
     delete process.env['LC_ALL'];
     const dir = tmpArgusDir();
     await init.handler({ argus_dir: dir });
-    expect(fs.readFileSync(configPath(dir), 'utf8')).toMatch(/^locale:\s*ko\b/m);
-    expect(resolveResponseLocale(dir, undefined)).toBe('ko');
+    expect(fs.readFileSync(configPath(dir), 'utf8')).not.toMatch(/^locale:/m);
+    expect(resolveResponseLocale(dir, undefined)).toBe('en');
+    expect(resolveResponseLocale(dir, '이번 주에 출시할지 결정한다')).toBe('ko');
   });
 });

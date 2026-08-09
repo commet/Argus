@@ -61,17 +61,12 @@ export const init: ToolModule = {
       writeBoundMarker(dir);
 
       if (!fsSync.existsSync(configPath(dir))) {
-        // Seed a locale ONLY on a positive Korean env signal (KST machine → ko
-        // once, so the very first contentless surface is Korean). On the default
-        // English/Intl fallback, OMIT locale so runtime content-detection stays
-        // live — otherwise a Korean user on an English-locale OS gets locale:en
-        // pinned on first use, and config-wins means their Korean text can NEVER
-        // reclaim a Korean surface. (Found via the check_in localization yellow,
-        // 2026-07-14: an all-Korean session came back in English forever.)
-        const seededLocale = detectLocale(dir);
+        // Do not pin a locale from LANG/Intl. A machine locale is not the user's
+        // voice, and config wins over later content detection. Leaving the field
+        // absent lets the first real Korean sentence teach the session while a
+        // contentless first read uses the deterministic English base voice.
         const cfg: ArgusConfig = {
           schema_version: SCHEMA_VERSION,
-          ...(seededLocale === 'ko' ? { locale: 'ko' as const } : {}),
           boss: null, team: null, archive: null,
         };
         await atomicWriteText(configPath(dir), yaml.dump(cfg));

@@ -1,6 +1,6 @@
 import fs from 'fs';
 import { configPath } from './layout.js';
-import { detectLocaleFromText, osLocaleHint } from './locale.js';
+import { detectLocaleFromText } from './locale.js';
 
 /**
  * surfaces.ts — the ONE locale brain for user-facing surface strings
@@ -78,13 +78,15 @@ export function configLocale(argusDir?: string | null): SurfaceLocale | null {
 
 /**
  * resolveResponseLocale — the M4 detection chain (spec §4):
- *   explicit config > input-text detection > env/Intl > 'en'.
+ *   explicit config > input-text detection > 'en'.
  *
  * Each tool passes the CALL'S representative user-authored text (the decision
  * sentence, the predicate, the finding, …). If the user has pinned a locale in
  * config.yaml, that ALWAYS wins — an explicit setting is an escape hatch the
  * detector never overrides. With no explicit config, a confident text sniff
- * decides; a null/low-confidence sniff falls through to env/Intl, then 'en'.
+ * decides; a null/low-confidence sniff falls through to the deterministic
+ * English base voice. The machine locale is not evidence of what language the
+ * person is using in this conversation.
  *
  * This never writes config. It only chooses the VOICE of one response, so a
  * bilingual user gets Korean surfaces on Korean input and English on English
@@ -95,9 +97,7 @@ export function resolveResponseLocale(argusDir: string | null | undefined, text?
   if (explicit) return explicit;
   const fromText = detectLocaleFromText(text);
   if (fromText) return fromText;
-  // One probe, one rule — the env→Intl chain used to be duplicated here and
-  // in detectLocale, drifting independently (§9.7 O1 방1).
-  return osLocaleHint();
+  return 'en';
 }
 
 /** Shape shared by both locales — a key added to one MUST exist in the other

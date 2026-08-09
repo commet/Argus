@@ -98,6 +98,9 @@ Installing the plugin is the whole setup — there is no separate init step:
   rejected. `argus_check_in` reports the version actually running
   (`data.server_version`) and `/argus:settings doctor` checks the wiring, so a
   stale cache is visible instead of being felt as missing behavior.
+  Portable Agent Plugins clients use the root [`mcp.json`](./mcp.json) and get
+  the same local-only default. It intentionally contains no remote MCP entry;
+  connecting the webapp remains an explicit action.
 - **Quiet hooks** — a session-start check that mentions decisions whose check-by
   date has arrived (and refreshes a stale decision view), plus an ambient trigger
   that may ask about at most one due item

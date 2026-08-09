@@ -81,7 +81,12 @@ export function RetroSeal({ onExit, onRealSeal }: {
   function sealRetro() {
     if (!leanTrimmed) return;
     const name = leanTrimmed.slice(0, 40);
-    const pid = createProject(name);
+    // RetroSeal is embedded inside HeroFlow, whose parent switches to the
+    // legacy workspace whenever currentProjectId becomes non-null. Creating an
+    // active project here used to unmount this rehearsal between steps 1 and 2.
+    // Keep the durable record, but leave it inactive until the user deliberately
+    // opens it; this flow has its own activation telemetry.
+    const pid = createProject(name, '', { activate: false, trackCreation: false });
     const now = Date.now();
     // check_in_at = TODAY → contractStatus.checkInDue is immediately true (local
     // date granularity), so step 3's SettlementModal opens right away.
@@ -148,22 +153,30 @@ export function RetroSeal({ onExit, onRealSeal }: {
   // ═══ STEP 3: the real SettlementModal (user self-grades) ═══
   if (step === 'settle' && project) {
     return (
-      <SettlementModal
-        project={project}
-        draftVerdicts={draftVerdicts}
-        onClose={onExit}
-        onRealSeal={() => {
-          // [C4/활성화] retro loop → real seal handoff. Fire the transition
-          // event first (item 10), then hand off to the real-decision entry.
-          track('retro_to_real_onramp_clicked', {});
-          (onRealSeal ?? onExit)();
-        }}
-      />
+      <>
+        <h1 className="sr-only">
+          {L('지난 결정 결과 확인 연습', 'Past-decision outcome practice')}
+        </h1>
+        <SettlementModal
+          project={project}
+          draftVerdicts={draftVerdicts}
+          onClose={onExit}
+          onRealSeal={() => {
+            // [C4/활성화] retro loop → real seal handoff. Fire the transition
+            // event first (item 10), then hand off to the real-decision entry.
+            track('retro_to_real_onramp_clicked', {});
+            (onRealSeal ?? onExit)();
+          }}
+        />
+      </>
     );
   }
 
   return (
     <div className="relative max-w-xl mx-auto px-5 md:px-6 pt-8 md:pt-16 pb-16">
+      <h1 className="sr-only">
+        {L('지난 결정 결과 확인 연습', 'Past-decision outcome practice')}
+      </h1>
       {/* Practice framing — this is a rehearsal on a KNOWN outcome, said plainly. */}
       <div className="flex items-center gap-3 mb-8 text-[var(--text-tertiary)]/60">
         <div className="h-px flex-1 bg-[var(--border-subtle)]" />

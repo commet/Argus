@@ -89,12 +89,14 @@ export function osLocaleHint(): Locale {
 }
 
 /**
- * detectLocale — CONFIG/ENV detection seeded at argus_init write time.
+ * detectLocale — explicit config, otherwise the deterministic base voice.
  *
- * Chain (write-time): explicit config > osLocaleHint (env, then Intl) > 'en'.
+ * Chain: explicit config > 'en'.
  * The runtime input-text step lives in resolveResponseLocale (surfaces.ts),
- * which layers text detection on TOP of a persisted config. This function
- * stays env-only so a fresh dir on a KST machine seeds locale:ko once.
+ * which layers text detection on TOP of a persisted config. An operating-system
+ * locale is not a user-authored language signal: a Korean-locale laptop may be
+ * used in an English conversation (and vice versa), so fresh records never pin
+ * a language from the machine.
  */
 export function detectLocale(argusDir: string): Locale {
   try {
@@ -102,7 +104,7 @@ export function detectLocale(argusDir: string): Locale {
     const m = cfg.match(/^locale:\s*(ko|en)\b/m);
     if (m) return m[1] as Locale;
   } catch { /* no config */ }
-  return osLocaleHint();
+  return 'en';
 }
 
 /**

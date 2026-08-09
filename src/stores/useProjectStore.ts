@@ -33,7 +33,11 @@ interface ProjectState {
   projects: Project[];
   currentProjectId: string | null;
   loadProjects: () => void;
-  createProject: (name: string, description?: string) => string;
+  createProject: (
+    name: string,
+    description?: string,
+    options?: { activate?: boolean; trackCreation?: boolean },
+  ) => string;
   updateProject: (id: string, data: Partial<Project>) => void;
   updateDecisionContract: (
     id: string,
@@ -70,15 +74,22 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       }
     }),
 
-  createProject: (name, description = '') => {
+  createProject: (name, description = '', options) => {
     const now = new Date().toISOString();
     const isFirst = get().projects.length === 0;
-    const id = addNewItem(KEY, TABLE, () => get().projects, (projects, pid) => set({ projects, currentProjectId: pid }), {
+    const activate = options?.activate ?? true;
+    const id = addNewItem(KEY, TABLE, () => get().projects, (projects, pid) => set(
+      activate ? { projects, currentProjectId: pid } : { projects },
+    ), {
       id: generateId(), name, description, refs: [],
       created_at: now, updated_at: now,
     });
     // Activation funnel milestone (was missing) — distinguish the very first.
-    track(isFirst ? 'first_project_created' : 'project_created', { has_description: !!description });
+    // Embedded rehearsal records have their own retro_seal_started event and
+    // must not masquerade as a real first-project activation.
+    if (options?.trackCreation ?? true) {
+      track(isFirst ? 'first_project_created' : 'project_created', { has_description: !!description });
+    }
     return id;
   },
 

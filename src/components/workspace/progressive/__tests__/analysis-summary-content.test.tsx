@@ -35,6 +35,21 @@ describe('AnalysisCard 요약 — 접속사가 아니라 내용', () => {
     expect(html).toContain('국토부 실거래가에서 최근 추이를 직접 뽑아보세요.');
     expect(html).toContain('공인중개사 2~3곳을 직접 방문해 최근 거래 케이스를 물어보세요.');
   });
+
+  it('첫 화면의 핵심 질문을 인사이트처럼 한 번 더 반복하지 않는다', () => {
+    const opening = {
+      ...snapshot,
+      version: 0,
+      real_question: '출시 전에 반드시 확인할 한 가지는 무엇인가?',
+      lean_flags: [],
+      honesty_flags: [],
+    } as AnalysisSnapshot;
+    const html = renderToStaticMarkup(
+      <AnalysisCard snapshot={opening} prevSnapshot={null} locale="ko" />,
+    );
+    expect(html.match(/출시 전에 반드시 확인할 한 가지는 무엇인가\?/g)).toHaveLength(1);
+    expect(html).not.toContain('지금 보이는 것');
+  });
 });
 
 describe('AnalysisCard 접힌 항로 — 결론, 이유, 근거가 한 흐름', () => {
