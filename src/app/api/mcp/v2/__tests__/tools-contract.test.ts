@@ -52,6 +52,14 @@ describe('도구 스키마 ↔ 핸들러 소비', () => {
     }
   });
 
+  it('자료 항목의 하위 필드도 핸들러가 실제로 읽는다 (선언만 된 인테이크 금지)', () => {
+    const open = TOOLS.find((t) => t.name === 'argus_open')!;
+    const materialSchema = (open.inputSchema.properties.materials as { items: { properties: Record<string, unknown> } }).items;
+    for (const key of Object.keys(materialSchema.properties)) {
+      expect(handlersSrc, `materials[].${key} 가 소비되지 않는다`).toContain(`o.${key}`);
+    }
+  });
+
   it('enum 을 선언한 인자는 핸들러도 같은 목록으로 거른다 (모르는 값을 조용히 통과시키지 않는다)', () => {
     // 스키마의 enum 은 힌트일 뿐 강제가 아니다 — 호스트가 검증한다는 보장이 없으므로
     // 서버가 다시 걸러야 한다. 각 enum 값이 핸들러 소스에 문자열로 존재하는지 본다.

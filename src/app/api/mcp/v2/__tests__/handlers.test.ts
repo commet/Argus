@@ -143,8 +143,11 @@ const {
   handleReturn,
   handleSharpen,
   formatDueNotice,
+  formatMaterialNote,
+  readMaterials,
   MAX_INLINE_NOTICES,
 } = await import('../handlers');
+const { MATERIAL_EXCERPT_MAX, MATERIAL_MAX_COUNT } = await import('../tools');
 
 const U = 'user-1';
 const text = (r: { content: Array<{ text: string }> }) => r.content[0].text;
@@ -698,5 +701,78 @@ describe('argus_open — 발화는 한 건만', () => {
     const res = await handleOpen(U, { utterance: '사람을 더 뽑을까', userInvoked: true, lean: '뽑는다' });
     expect(cruxCalls).toBe(1);
     expect(text(res)).toContain('이탈 질문');
+  });
+});
+
+// ── 콜드스타트 인테이크 (handoff §6-A) — 자료는 증거로만 ─────────────────
+describe('argus_open — 기존 자료 인테이크', () => {
+  const MATERIALS = [
+    { title: '2월 가격 회의록', kind: 'document', excerpt: '"인상 시 이탈 3% 추정" — 재무팀', whyRelevant: '이탈 추정의 근거' },
+    { title: '작년 대화', kind: 'conversation', excerpt: '작년에는 인상을 미루기로 했었다' },
+  ];
+
+  it('자료가 external_source 이벤트로 원장에 남고, 응답이 건수를 말한다', async () => {
+    const res = await handleOpen(U, { utterance: '가격을 올릴까 말까 고민이야', materials: MATERIALS });
+    expect(isErr(res)).toBe(false);
+    expect(text(res)).toContain('기존 자료 2건');
+    const evs = [...events.values()][0];
+    const sources = evs.filter((e) => e.type === 'external_source') as Array<{ description: string; sourceRef: string }>;
+    expect(sources).toHaveLength(2);
+    expect(sources[0].description).toContain('이탈 3% 추정'); // 인용이 그대로 남는다
+    expect(sources[0].sourceRef).toBe('chat-material:document:2월 가격 회의록');
+  });
+
+  it('자료가 있어도 사용자가 말하지 않은 기울기는 생기지 않는다 (저자성 세탁 차단)', async () => {
+    // 자료에 "인상한다"는 과거 문장이 있어도, lean 을 안 보냈으면 부재가 부재로 남는다.
+    await handleOpen(U, {
+      utterance: '가격을 올릴까 말까 고민이야',
+      materials: [{ title: '작년 계획서', kind: 'document', excerpt: '올해는 인상한다' }],
+    });
+    const evs = [...events.values()][0];
+    expect(evs.some((e) => e.type === 'baseline_not_captured')).toBe(true);
+    expect(evs.some((e) => e.type === 'baseline_captured')).toBe(false);
+  });
+
+  it('상한을 넘는 인용은 자르지 않고 거절하며, 그 사실을 말한다', async () => {
+    const res = await handleOpen(U, {
+      utterance: '가격을 올릴까 말까 고민이야',
+      materials: [
+        { title: '통째 문서', excerpt: 'a'.repeat(MATERIAL_EXCERPT_MAX + 1) },
+        { title: '정상 인용', excerpt: '마진 8%' },
+      ],
+    });
+    expect(text(res)).toContain('기존 자료 1건');
+    expect(text(res)).toContain('1건은 인용이');
+    const evs = [...events.values()][0];
+    const sources = evs.filter((e) => e.type === 'external_source') as Array<{ description: string }>;
+    expect(sources).toHaveLength(1); // 잘린 인용이 몰래 들어가지 않았다
+    expect(sources[0].description).toContain('마진 8%');
+  });
+
+  it('건수 상한을 넘으면 넘친 만큼 기록하지 않고 말한다', async () => {
+    const many = Array.from({ length: MATERIAL_MAX_COUNT + 2 }, (_, i) => ({ title: `자료 ${i}`, excerpt: `대목 ${i}` }));
+    const res = await handleOpen(U, { utterance: '가격을 올릴까 말까 고민이야', materials: many });
+    expect(text(res)).toContain(`기존 자료 ${MATERIAL_MAX_COUNT}건`);
+    expect(text(res)).toContain('2건은 한도');
+    const evs = [...events.values()][0];
+    expect(evs.filter((e) => e.type === 'external_source')).toHaveLength(MATERIAL_MAX_COUNT);
+  });
+
+  it('readMaterials — title/excerpt 없는 항목은 기록하지 않고 센다', () => {
+    const r = readMaterials([
+      { title: '', excerpt: '대목' },
+      { title: '이름만' },
+      { title: '정상', excerpt: '대목' },
+      'garbage',
+    ]);
+    expect(r.accepted).toHaveLength(1);
+    expect(r.droppedMalformed).toBe(3);
+    expect(formatMaterialNote(r)).toContain('3건은 title/excerpt');
+  });
+
+  it('자료 없이 열면 인테이크 문안이 붙지 않는다 (조용한 기본값)', async () => {
+    const res = await handleOpen(U, { utterance: '가격을 올릴까 말까 고민이야' });
+    expect(text(res)).not.toContain('기존 자료');
+    expect(text(res)).not.toContain('기록하지 않은 자료');
   });
 });

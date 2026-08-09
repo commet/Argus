@@ -112,6 +112,33 @@ describe('append-only 안전 — 위반 이벤트는 원장에 들어가지 않�
   });
 });
 
+// 콜드스타트 인테이크 (handoff §6-A): 기존 자료는 증거 채널로만 들어온다.
+describe('기존 자료는 증거로만 남는다 — recordSource', () => {
+  beforeEach(() => resetEventIds());
+
+  it('external_source 로 원장에 남고, 재derivation 입력에 포함된다', () => {
+    const e = new SessionEngine('m1');
+    e.recordUtterance('가격을 올릴까 고민이야', T(0));
+    e.recordBaseline(undefined, T(1));
+    e.recordSource('document: 2월 가격 회의록\n"인상 시 이탈 3% 추정"', 'chat-material:document:2월 가격 회의록', T(2));
+
+    const src = e.ledger.forCase('m1').find((ev) => ev.type === 'external_source');
+    expect(src).toBeTruthy();
+    expect((src as { description: string }).description).toContain('이탈 3% 추정');
+  });
+
+  it('자료가 몇 건이든 baseline 은 변하지 않는다 — 부재는 부재로 남는다', () => {
+    const e = new SessionEngine('m2');
+    e.recordUtterance('가격을 올릴까 고민이야', T(0));
+    e.recordBaseline(undefined, T(1)); // 사용자는 기울기를 말하지 않았다
+    e.recordSource('document: 작년 계획서\n"올해는 인상한다"', 'chat-material:document:작년 계획서', T(2));
+    e.recordSource('log: 지표\n"마진 8%"', 'chat-material:log:지표', T(3));
+
+    // 과거 문서가 "인상한다"고 적혀 있어도 지금의 기울기가 되지 않는다.
+    expect(e.state().baseline).toBe('not_captured');
+  });
+});
+
 describe('원격에서도 계획이 귀환을 만든다 (크론이 읽을 것)', () => {
   beforeEach(() => resetEventIds());
 

@@ -42,6 +42,7 @@ import { generateAndSealShadow, gradeRevealedShadows, revealShadowsText, runAfte
 import { twinScore, TWIN_SCORE_MIN_SAMPLE } from '@/lib/twin/store';
 import { persistServerEvent } from '@/lib/server-events';
 import { toolText } from './protocol';
+import { MATERIAL_EXCERPT_MAX, MATERIAL_MAX_COUNT } from './tools';
 import {
   armReturns,
   completeReturns,
@@ -159,6 +160,81 @@ function readBeliefs(v: unknown): { beliefs: MaterialBelief[]; dropped: number }
   return { beliefs, dropped };
 }
 
+// ── 기존 자료 읽기 (콜드스타트 인테이크, handoff §6-A) ────────────────────
+//
+// 웹의 /tools/review 가 가진 답("이미 쓴 것에서 시작한다")을 채팅 입구에도 연다.
+// 자료는 원장에 **증거(external_source)로만** 남는다 — baseline 은 이 경로로
+// 절대 채워지지 않는다. 과거 문서의 문장은 그때의 기록이지 지금의 입장이
+// 아니고, 그 둘을 섞는 순간 /import 가 "다시 기록" 버튼으로 막은 저자성 세탁이
+// 뒷문으로 돌아온다.
+
+const MATERIAL_KINDS = ['document', 'conversation', 'log', 'plan', 'data'] as const;
+type MaterialKind = (typeof MATERIAL_KINDS)[number];
+
+export interface IntakeMaterial {
+  title: string;
+  kind: MaterialKind;
+  excerpt: string;
+  whyRelevant?: string;
+}
+
+export interface MaterialRead {
+  accepted: IntakeMaterial[];
+  droppedLong: number; // 인용이 상한을 넘어 거절 — 잘라서 받으면 인용이 아니게 된다
+  droppedMalformed: number; // title/excerpt 없음
+  droppedOverCap: number; // 건수 상한 초과
+}
+
+export function readMaterials(v: unknown): MaterialRead {
+  if (!Array.isArray(v)) return { accepted: [], droppedLong: 0, droppedMalformed: 0, droppedOverCap: 0 };
+  let droppedLong = 0;
+  let droppedMalformed = 0;
+  const parsed: IntakeMaterial[] = [];
+  for (const x of v) {
+    const o = (x ?? {}) as Args;
+    const title = str(o.title);
+    const excerpt = typeof o.excerpt === 'string' ? o.excerpt.trim() : '';
+    if (!title || !excerpt) {
+      droppedMalformed += 1;
+      continue;
+    }
+    if (excerpt.length > MATERIAL_EXCERPT_MAX) {
+      droppedLong += 1;
+      continue;
+    }
+    const kind = (MATERIAL_KINDS as readonly string[]).includes(str(o.kind))
+      ? (str(o.kind) as MaterialKind)
+      : 'document';
+    parsed.push({ title: title.slice(0, 120), kind, excerpt, ...(str(o.whyRelevant) ? { whyRelevant: str(o.whyRelevant) } : {}) });
+  }
+  const accepted = parsed.slice(0, MATERIAL_MAX_COUNT);
+  return { accepted, droppedLong, droppedMalformed, droppedOverCap: parsed.length - accepted.length };
+}
+
+// 순수 포매터 (formatDueNotice 와 같은 이유로 분리 — 문안을 DB 없이 고정한다).
+// 받은 것과 안 받은 것을 **둘 다** 말한다: 조용히 버리면 모델은 기록됐다고 믿는다.
+export function formatMaterialNote(r: MaterialRead): string {
+  const parts: string[] = [];
+  if (r.accepted.length > 0) {
+    parts.push(
+      `기존 자료 ${r.accepted.length}건을 증거로 원장에 남겼습니다. ` +
+        '자료는 근거일 뿐입니다 — 자료에서 가정 후보를 찾았으면 사용자에게 한 번에 하나만 확인한 뒤 ' +
+        'argus_sharpen 으로 기록하고, 자료 속 문장을 사용자의 지금 입장으로 승격하지 마십시오.',
+    );
+  }
+  const dropped: string[] = [];
+  if (r.droppedLong > 0) {
+    dropped.push(
+      `${r.droppedLong}건은 인용이 ${MATERIAL_EXCERPT_MAX}자를 넘어 기록하지 않았습니다 ` +
+        '(잘라서 받으면 인용이 아니게 되므로 자르지 않습니다 — 하중이 실린 대목만 골라 다시 보내십시오)',
+    );
+  }
+  if (r.droppedMalformed > 0) dropped.push(`${r.droppedMalformed}건은 title/excerpt 가 없어 기록하지 않았습니다`);
+  if (r.droppedOverCap > 0) dropped.push(`${r.droppedOverCap}건은 한도(${MATERIAL_MAX_COUNT}건)를 넘어 기록하지 않았습니다`);
+  if (dropped.length > 0) parts.push(`기록하지 않은 자료: ${dropped.join(' · ')}.`);
+  return parts.length > 0 ? `${parts.join('\n')}\n` : '';
+}
+
 // 하네스가 크게 실패하면(HarnessViolation) 그것은 버그가 아니라 **규칙이 지켜진
 // 것**이다. 모델에게 이유를 그대로 돌려줘서 다음 턴에 바르게 행동하게 한다.
 async function guard<T>(fn: () => Promise<T>): Promise<T | { violation: string }> {
@@ -207,6 +283,17 @@ export async function handleOpen(userId: string, args: Args) {
   } else {
     // 말하지 않은 것을 지어내지 않는다 — 부재를 부재로 기록한다.
     engine.recordBaseline(undefined, now());
+  }
+
+  // 기존 자료 (콜드스타트 인테이크). baseline 뒤에 붙지만 baseline 과 다른
+  // 채널이다 — 자료가 몇 건이든 위의 기울기 기록은 사용자가 말한 것만 담는다.
+  const materials = readMaterials(args.materials);
+  for (const m of materials.accepted) {
+    engine.recordSource(
+      `${m.kind}: ${m.title}${m.whyRelevant ? ` — ${m.whyRelevant}` : ''}\n${m.excerpt}`,
+      `chat-material:${m.kind}:${m.title}`,
+      now(),
+    );
   }
 
   await upsertCase(userId, caseId, utterance.slice(0, 120), engine.state().state);
@@ -269,6 +356,7 @@ export async function handleOpen(userId: string, args: Args) {
       (lean
         ? `AI가 말하기 전의 기울기를 보존했습니다: "${lean}"\n`
         : '기울기 없이 시작했습니다 — 그것도 정직한 출발점입니다.\n') +
+      formatMaterialNote(materials) +
       '다음: argus_sharpen 으로 가장 무게가 실리는 가정 하나를 확인하십시오.' +
       crux +
       (delegation
