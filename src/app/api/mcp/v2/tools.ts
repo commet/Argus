@@ -18,6 +18,11 @@ export interface ToolDef {
   inputSchema: { type: 'object'; properties: Record<string, unknown>; required?: string[] };
 }
 
+// 콜드스타트 인테이크의 상한 — 스키마 안내문과 핸들러 검증이 같은 숫자를 본다.
+// 인용이 이보다 길면 **자르지 않고 거절한다**: 절단된 인용은 인용이 아니다.
+export const MATERIAL_MAX_COUNT = 8;
+export const MATERIAL_EXCERPT_MAX = 1200;
+
 const STEP_SCHEMA = {
   type: 'object',
   properties: {
@@ -34,14 +39,37 @@ export const TOOLS: ToolDef[] = [
     name: 'argus_open',
     title: '결정 열기',
     description:
-      '사용자가 앞에 둔 결정을 연다. 사용자가 이미 말한 것에서 현재 기울기와 이유를 추출해 함께 기록한다(심문하지 않는다). 아직 조언하지 않는다. 결정이 열려 있지 않거나 평평한 상황이면 이 도구를 부르지 말 것 — 서버도 같은 관문을 다시 돌리며, 통과하지 못하면 열지 않는다.',
+      '사용자가 앞에 둔 결정을 연다. 사용자가 이미 말한 것에서 현재 기울기와 이유를 추출해 함께 기록한다(심문하지 않는다). 대화에 이 결정에 관한 기존 자료(문서·지난 대화·로그)가 있으면 materials 로 함께 실어라 — 사용자에게 이미 쓴 것을 다시 타이핑시키지 않는다. 아직 조언하지 않는다. 결정이 열려 있지 않거나 평평한 상황이면 이 도구를 부르지 말 것 — 서버도 같은 관문을 다시 돌리며, 통과하지 못하면 열지 않는다.',
     inputSchema: {
       type: 'object',
       properties: {
         utterance: { type: 'string', description: '사용자가 결정을 말한 원문. 요약하지 말고 그대로.' },
-        lean: { type: 'string', description: '사용자가 밝힌 현재 기울기. 말하지 않았으면 생략(지어내지 말 것).' },
-        statedReasons: { type: 'array', items: { type: 'string' }, description: '사용자가 실제로 말한 이유만.' },
+        lean: { type: 'string', description: '사용자가 밝힌 현재 기울기. 말하지 않았으면 생략(지어내지 말 것). **자료 속 문장으로 채우지 말 것** — 과거의 기록은 지금의 입장이 아니다.' },
+        statedReasons: { type: 'array', items: { type: 'string' }, description: '사용자가 실제로 말한 이유만. 자료에서 뽑은 문장은 여기가 아니라 materials 로.' },
         consideredAlternatives: { type: 'array', items: { type: 'string' }, description: '사용자가 이미 저울질한 대안만.' },
+        materials: {
+          type: 'array',
+          description:
+            '사용자가 이미 가진 자료(과거 문서·지난 대화·로그·계획·데이터)에서 이 결정과 하중 관계가 있는 대목. 자료는 **증거로만** 원장에 남는다 — 지금의 기울기·이유는 사용자가 이 대화에서 말한 것만 기록되고, 자료에서 뽑은 가정은 사용자 확인을 거쳐 argus_sharpen 으로 간다. 최대 ' +
+            `${MATERIAL_MAX_COUNT}건.`,
+          items: {
+            type: 'object',
+            properties: {
+              title: { type: 'string', description: '자료를 가리키는 이름 (파일명·대화 주제·출처).' },
+              kind: {
+                type: 'string',
+                enum: ['document', 'conversation', 'log', 'plan', 'data'],
+                description: '자료의 종류. 생략하면 document.',
+              },
+              excerpt: {
+                type: 'string',
+                description: `결정과 관련된 대목의 **원문 인용 그대로** (요약·의역 금지, ${MATERIAL_EXCERPT_MAX}자 이내 — 넘으면 자르지 않고 거절된다). 전체를 붓지 말고 하중이 실린 대목만.`,
+              },
+              whyRelevant: { type: 'string', description: '이 대목이 왜 이 결정에 걸리는가. 한 문장.' },
+            },
+            required: ['title', 'excerpt'],
+          },
+        },
         userInvoked: {
           type: 'boolean',
           description:

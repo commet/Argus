@@ -60,6 +60,15 @@ export class SessionEngine {
     }
   }
 
+  // Existing material (documents, past conversations, logs) enters the ledger
+  // as EVIDENCE — external_source feeds re-derivation (§6.1) but never fills
+  // baseline. A sentence in last month's document is a record of then, not the
+  // user's position now; letting material become lean/statedReasons would be
+  // authorship laundering by another door. Callers keep the two channels apart.
+  recordSource(description: string, sourceRef: string, now: IsoTime): void {
+    this.ledger.append({ id: nextEventId('src'), caseId: this.caseId, at: now, type: 'external_source', description, sourceRef });
+  }
+
   // -- IMPROVE --------------------------------------------------------------
 
   compilePacket(surface: Surface, latestUserTurn: string, task: TurnTask, lens?: LensKey): string {
