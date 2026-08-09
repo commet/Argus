@@ -333,6 +333,12 @@ function loadLedger() {
         }
         break;
       case "seal":
+        // Settled is terminal: a stray seal line after settlement (the pre-guard
+        // record bug, or a hand-written line) must not resurrect the record —
+        // that re-arms the SessionStart nag for a decision the user already
+        // settled. Read-side protection also HEALS ledgers the old bug already
+        // corrupted, which a write-side guard alone cannot do.
+        if (cur && cur.status === "settled") break;
         if (cur) {
           Object.assign(cur, {
             status: "sealed",
@@ -364,6 +370,21 @@ function loadLedger() {
             falsified_if: event.falsified_if || cur.falsified_if,
             check_by: event.check_by || cur.check_by,
           });
+        }
+        break;
+      case "defer":
+        // The MCP surface's honest date move (settle still_pending → defer).
+        // The record stays sealed and comes due again; the original date and
+        // count survive so a receipt can say "originally due X · deferred N×".
+        if (cur && cur.status === "sealed") {
+          cur.defer_count = (cur.defer_count || 0) + 1;
+          (cur.defer_history ||= []).push({
+            from: event.from || cur.check_by,
+            to: event.check_by,
+            at: event.at,
+            ...(event.note ? { note: event.note } : {}),
+          });
+          if (event.check_by) cur.check_by = event.check_by;
         }
         break;
       case "dismiss":
@@ -1157,6 +1178,25 @@ function cmdSettle() {
     process.exit(1);
   }
 
+  // Settlement is terminal and irreversible, so it gets the same guard that
+  // wake / correct-kind / revise already have — it was the ONLY writer without
+  // one (2026-08-09 audit). Without this: a typo'd id becomes a ghost
+  // settlement (appended forever, visible nowhere — the reducer's `if (cur)`
+  // filters it), and a model retry double-settles, silently overwriting
+  // outcome/settled_at while journal prints the same return twice.
+  const settleTarget = loadLedger().get(id);
+  if (!settleTarget) {
+    console.error(`${id} is not in the ledger — nothing to settle. Check the id with /argus:history scan --list.`);
+    process.exit(1);
+  }
+  if (settleTarget.status === "settled") {
+    console.error(
+      `${id} is already settled (${String(settleTarget.settled_at || "").slice(0, 10) || "earlier"}) — refusing a second settlement. ` +
+        "A later fact belongs in a new record, not on top of the old one (append-only).",
+    );
+    process.exit(1);
+  }
+
   // Historic calls remain readable, but all new skill writes use the three
   // independent axes below. They are never collapsed into a score or record.
   const rawOutcome = String(flags.outcome || "");
@@ -1178,7 +1218,7 @@ function cmdSettle() {
     process.exit(1);
   }
   if (rawOutcome) {
-    const current = loadLedger().get(id);
+    const current = settleTarget;
     if (current?.kind_evidence) {
       console.error("--outcome is read-compatibility only. New records require --option, independent axes, and --present-standard.");
       process.exit(1);
@@ -1323,6 +1363,35 @@ function cmdRecord() {
     console.error("--proposal-ref is required when the sealed wording began as an AI proposal.");
     process.exit(1);
   }
+
+  // The id is deterministic (sha256(session|quote)), so a retry hits the same
+  // record — and until 2026-08-09 a rerun appended a second seal that RESURRECTED
+  // a settled record (the reducer's seal case flips status back to "sealed",
+  // so the SessionStart hook nags about a decision the user already settled).
+  // Rerun must be safe because preapprove.md advertises it as the recovery path:
+  //  · same wording, still sealed  → idempotent success, zero new lines
+  //  · already settled             → refuse (terminal state is not reopenable)
+  //  · dismissed                   → refuse (a silent re-seal would undo the user's "no")
+  //  · sealed with other wording   → refuse (overwrite needs amend, not record)
+  const existingRecord = loadLedger().get(id);
+  if (existingRecord) {
+    if (existingRecord.status === "settled") {
+      console.error(`${id} is already settled — a settled record cannot be re-sealed (append-only). Record a new decision under a new id.`);
+      process.exit(1);
+    }
+    if (existingRecord.status === "dismissed") {
+      console.error(`${id} was dismissed by the user — refusing to re-seal it silently. Record a new decision under a new id if it is back on the table.`);
+      process.exit(1);
+    }
+    if (existingRecord.status === "sealed") {
+      if ((existingRecord.predicate || "") === predicate) {
+        console.log(`Recorded ${id} (already sealed with the same wording — rerun is safe, nothing new was appended).`);
+        return;
+      }
+      console.error(`${id} is already sealed with different wording — refusing to overwrite. Use amend ${id}, or record a new id.`);
+      process.exit(1);
+    }
+  }
   const harvest = {
     event: "harvest",
     id,
@@ -1373,6 +1442,28 @@ function cmdAmend() {
     console.error("--check-by must be an ISO date (YYYY-MM-DD).");
     process.exit(1);
   }
+  // Same ledger, same rules as the MCP surface (state-machine.ts): once a
+  // record is DUE, moving check_by via amend is GOALPOST_MOVED — the exact
+  // dishonesty this product exists to prevent, and it also skips the defer
+  // bookkeeping ("originally due X · deferred N×" on the eventual receipt).
+  // Pre-due corrections (typo'd date) stay allowed; a due record defers.
+  const amendTarget = loadLedger().get(id);
+  if (!amendTarget) {
+    console.error(`${id} is not in the ledger — nothing to amend.`);
+    process.exit(1);
+  }
+  if (amendTarget.status === "settled" || amendTarget.status === "dismissed") {
+    console.error(`${id} is ${amendTarget.status} — a closed record's dates are not editable (append-only).`);
+    process.exit(1);
+  }
+  const localToday = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+  if (amendTarget.check_by && String(amendTarget.check_by) <= localToday) {
+    console.error(
+      `${id} is already due (check_by ${amendTarget.check_by}) — moving the date now would be moving the goalpost. ` +
+        `Use: defer ${id} --to ${checkBy} --authorization-ref <host-ref> (records the deferral honestly, like the MCP surface).`,
+    );
+    process.exit(1);
+  }
   appendEvent({
     event: "amend",
     id,
@@ -1380,6 +1471,52 @@ function cmdAmend() {
     authorization_ref: String(flags["authorization-ref"]),
   });
   console.log(`Amended ${id}${checkBy ? ` → check_by ${checkBy}` : ""}`);
+}
+
+// Deferral — the honest way to move a DUE record's return date. Mirrors the
+// MCP surface's `settle outcome="still_pending" + defer_to` path byte-for-byte
+// in event shape ({event:"defer", from, check_by}), so MCP replay counts
+// defer_count/defer_history and the eventual receipt can say
+// "originally due X · deferred N×" instead of pretending the date never moved.
+function cmdDefer() {
+  const id = flags._[0];
+  const to = flags.to ? String(flags.to) : "";
+  if (!id || !to) {
+    console.error('Usage: decision-ledger.js defer <id> --to YYYY-MM-DD [--note "why"] --authorization-ref <host-ref>');
+    process.exit(1);
+  }
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(to)) {
+    console.error("--to must be an ISO date (YYYY-MM-DD).");
+    process.exit(1);
+  }
+  if (!flags["authorization-ref"]) {
+    console.error("--authorization-ref is required; only the user can defer a promised return date.");
+    process.exit(1);
+  }
+  const cur = loadLedger().get(id);
+  if (!cur) {
+    console.error(`${id} is not in the ledger — nothing to defer.`);
+    process.exit(1);
+  }
+  if (cur.status !== "sealed") {
+    console.error(`${id} is ${cur.status} — only a sealed (open) record can be deferred.`);
+    process.exit(1);
+  }
+  const localToday = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+  if (to <= localToday) {
+    console.error(`--to must be a future date (got ${to}, today is ${localToday}).`);
+    process.exit(1);
+  }
+  const event = {
+    event: "defer",
+    id,
+    from: cur.check_by,
+    check_by: to,
+    authorization_ref: String(flags["authorization-ref"]),
+  };
+  if (flags.note) event.note = String(flags.note);
+  appendEvent(event);
+  console.log(`Deferred ${id} → check_by ${to} (was ${cur.check_by || "unset"}).`);
 }
 
 function cmdCorrectKind() {
@@ -1594,6 +1731,7 @@ const commands = {
   settle: cmdSettle,
   record: cmdRecord,
   amend: cmdAmend,
+  defer: cmdDefer,
   "correct-kind": cmdCorrectKind,
   revise: cmdRevise,
   journal: cmdJournal,

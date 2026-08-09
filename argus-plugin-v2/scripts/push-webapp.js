@@ -138,9 +138,14 @@ function loadPullState() {
     return {
       appliedEventIds: Array.isArray(parsed.appliedEventIds) ? parsed.appliedEventIds : [],
       lastPulledAt: parsed.lastPulledAt || null,
+      // Forward page cursor (server: created_at > cursor, ascending). Without
+      // it a backlog larger than one page (max 500) re-fetched the SAME first
+      // page forever — every event deduped, "Pulled 0", and the tail never
+      // arrived (2026-08-09 audit).
+      cursor: typeof parsed.cursor === "string" ? parsed.cursor : null,
     };
   } catch {
-    return { appliedEventIds: [], lastPulledAt: null };
+    return { appliedEventIds: [], lastPulledAt: null, cursor: null };
   }
 }
 
@@ -226,17 +231,156 @@ function readSemanticEventIds() {
   return ids;
 }
 
+// ── Ledger write discipline (mirror of decision-ledger.js, which itself
+// mirrors argus-mcp lib/ledger-append.ts) ──────────────────────────────────
+//
+// Until 2026-08-09 this file wrote the SAME ledger.jsonl with a bare
+// appendFileSync — no lock (interleaves with a settle running in another
+// window), no torn-tail heal (a crash-torn last line fuses with the pulled
+// event and replay drops BOTH), no fsync (power loss eats a pull the CLI
+// already reported as done). The lock path protocol (`${file}.lock`) matches
+// decision-ledger.js so the two writers exclude each other cross-process.
+
+const PULL_LOCK_TRIES = 60;
+const PULL_LOCK_WAIT_MS = 50;
+const PULL_LOCK_STALE_MS = 30_000;
+
+function pullSleepSync(ms) {
+  const buf = new SharedArrayBuffer(4);
+  Atomics.wait(new Int32Array(buf), 0, 0, ms);
+}
+
+function pullLockStealable(lockPath) {
+  try {
+    const stat = fs.statSync(lockPath);
+    return Date.now() - stat.mtimeMs > PULL_LOCK_STALE_MS;
+  } catch {
+    return false;
+  }
+}
+
+function pullWithFileLockSync(file, fn) {
+  const lockPath = `${file}.lock`;
+  const nonce = crypto.randomUUID();
+  const body = JSON.stringify({ nonce, pid: process.pid, started_at: new Date().toISOString() });
+  const tmp = `${lockPath}.${nonce}.tmp`;
+  let acquired = false;
+  for (let i = 0; i < PULL_LOCK_TRIES && !acquired; i++) {
+    try {
+      fs.writeFileSync(tmp, body, "utf8");
+      fs.linkSync(tmp, lockPath);
+      acquired = true;
+    } catch (error) {
+      if (error && error.code !== "EEXIST") {
+        try {
+          const fd = fs.openSync(lockPath, fs.constants.O_CREAT | fs.constants.O_EXCL | fs.constants.O_WRONLY);
+          fs.writeSync(fd, body, null, "utf8");
+          fs.closeSync(fd);
+          acquired = true;
+        } catch { /* another writer holds the lock */ }
+      }
+      if (!acquired) {
+        if (pullLockStealable(lockPath)) {
+          try {
+            const grave = `${lockPath}.stale-${nonce}`;
+            fs.renameSync(lockPath, grave);
+            fs.unlinkSync(grave);
+          } catch { /* another contender won the steal */ }
+          continue;
+        }
+        pullSleepSync(PULL_LOCK_WAIT_MS);
+      }
+    } finally {
+      try { fs.unlinkSync(tmp); } catch { /* linked or never created */ }
+    }
+  }
+  if (!acquired) throw new Error(`ARGUS_LEDGER_BUSY: could not acquire ${lockPath}; nothing was written`);
+  try {
+    return fn();
+  } finally {
+    try {
+      const current = JSON.parse(fs.readFileSync(lockPath, "utf8"));
+      if (current.nonce === nonce) fs.unlinkSync(lockPath);
+    } catch { /* gone, malformed, or no longer ours */ }
+  }
+}
+
+function pullNeedsLeadingNewline(file) {
+  let fd;
+  try {
+    const size = fs.statSync(file).size;
+    if (size === 0) return false;
+    fd = fs.openSync(file, fs.constants.O_RDONLY);
+    const buf = Buffer.alloc(1);
+    fs.readSync(fd, buf, 0, 1, size - 1);
+    return buf[0] !== 0x0a;
+  } catch {
+    return false;
+  } finally {
+    if (fd !== undefined) { try { fs.closeSync(fd); } catch { /* already closed */ } }
+  }
+}
+
+function pullAppendJsonlBatch(file, objects) {
+  return pullWithFileLockSync(file, () => {
+    const body = objects.map((object) => JSON.stringify(object)).join("\n") + "\n";
+    const lines = (pullNeedsLeadingNewline(file) ? "\n" : "") + body;
+    let fd;
+    try {
+      fd = fs.openSync(file, fs.constants.O_APPEND | fs.constants.O_CREAT | fs.constants.O_WRONLY);
+      fs.writeSync(fd, lines, null, "utf8");
+      try {
+        fs.fsyncSync(fd);
+      } catch (error) {
+        if (!["EINVAL", "ENOTSUP", "EOPNOTSUPP"].includes(error && error.code)) throw error;
+      }
+    } finally {
+      if (fd !== undefined) fs.closeSync(fd);
+    }
+  });
+}
+
+// Network events cross a trust boundary before they land in the permanent
+// ledger (same rule as argus-mcp sync.ts, where `outcome:"constructor"` once
+// slipped through a prototype chain). Strings are stripped of control chars
+// and capped at 4000 chars WITH a visible marker — silent truncation would
+// make the record lie about itself.
+const PULL_TEXT_CAP = 4000;
+const PULL_BANNED_KEYS = new Set(["__proto__", "constructor", "prototype"]);
+
+function sanitizeWebValue(value, depth = 0) {
+  if (depth > 8) return null;
+  if (typeof value === "string") {
+    const clean = value.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, "");
+    return clean.length > PULL_TEXT_CAP ? `${clean.slice(0, PULL_TEXT_CAP)}…(truncated)` : clean;
+  }
+  if (typeof value === "number" || typeof value === "boolean" || value === null) return value;
+  if (Array.isArray(value)) return value.slice(0, 200).map((item) => sanitizeWebValue(item, depth + 1));
+  if (typeof value === "object") {
+    const out = {};
+    for (const key of Object.keys(value)) {
+      if (PULL_BANNED_KEYS.has(key)) continue;
+      out[key] = sanitizeWebValue(value[key], depth + 1);
+    }
+    return out;
+  }
+  return null; // functions/symbols cannot come from JSON; drop honestly
+}
+
 function appendWebEvent(event) {
   if (!event || typeof event !== "object") throw new Error("web event payload is not an object");
   if (!event.event || !event.id) throw new Error("web event payload must include event and id");
+  if (typeof event.event !== "string" || !/^[a-z0-9_.-]{1,64}$/i.test(event.event)) {
+    throw new Error(`web event has an invalid event kind: ${String(event.event).slice(0, 80)}`);
+  }
   ensureLedgerIgnored();
   fs.mkdirSync(ledgerDir(), { recursive: true });
-  const line = {
+  const line = sanitizeWebValue({
     ...event,
     origin: event.origin || "webapp",
     pulled_at: new Date().toISOString(),
-  };
-  fs.appendFileSync(ledgerFile(), `${JSON.stringify(line)}\n`);
+  });
+  pullAppendJsonlBatch(ledgerFile(), [line]);
 }
 
 /** Append an already-shaped v3 event byte-for-byte in meaning. Unlike the v2
@@ -250,7 +394,7 @@ function appendSemanticEvents(events) {
   }
   ensureLedgerIgnored();
   fs.mkdirSync(ledgerDir(), { recursive: true });
-  fs.appendFileSync(semanticLedgerFile(), `${events.map((event) => JSON.stringify(event)).join("\n")}\n`);
+  pullAppendJsonlBatch(semanticLedgerFile(), events.map((event) => sanitizeWebValue(event)));
 }
 
 function postJson(url, body, headers) {
@@ -549,7 +693,10 @@ async function pull() {
   const limit = Number(flags.limit || 200);
   const endpoint = new URL(`${url}/api/plugin/events`);
   endpoint.searchParams.set("limit", String(Math.max(1, Math.min(500, limit || 200))));
-  if (flags.after) endpoint.searchParams.set("after", String(flags.after));
+  // Manual --after wins; otherwise resume from the saved cursor so a backlog
+  // longer than one page advances instead of re-reading page one forever.
+  const afterCursor = flags.after ? String(flags.after) : state.cursor;
+  if (afterCursor) endpoint.searchParams.set("after", afterCursor);
 
   let res;
   try {
@@ -567,6 +714,15 @@ async function pull() {
   const events = Array.isArray(res.data.events) ? res.data.events : [];
   let written = 0;
   let skipped = 0;
+  // The page is created_at-ascending; the last item's stamp is the next cursor.
+  // The dedup set covers the `>` boundary (an equal-stamp sibling on the next
+  // page would be filtered by the server; the applied-ids set catches re-reads).
+  let nextCursor = state.cursor;
+  for (const item of events) {
+    if (item && typeof item.created_at === "string" && (!nextCursor || item.created_at > nextCursor)) {
+      nextCursor = item.created_at;
+    }
+  }
   for (const item of events) {
     const eventId = item && item.event_id ? String(item.event_id) : null;
     if (!eventId || applied.has(eventId)) {
@@ -606,10 +762,16 @@ async function pull() {
   savePullState({
     appliedEventIds: [...applied].slice(-5000),
     lastPulledAt: new Date().toISOString(),
+    cursor: nextCursor,
   });
 
   console.log(`Pulled ${written} web event(s) into ${path.relative(root, ledgerFile()).replace(/\\/g, "/")}.`);
   if (skipped) console.log(`Skipped ${skipped} already-applied or invalid event(s).`);
+  // A full page means more may be waiting — say so instead of letting the user
+  // believe the pull was complete (no-silent-caps).
+  if (events.length >= Math.max(1, Math.min(500, limit || 200))) {
+    console.log("More events may remain — run pull again to continue from the saved cursor.");
+  }
 }
 
 async function sync() {

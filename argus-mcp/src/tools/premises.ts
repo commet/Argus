@@ -367,7 +367,9 @@ async function opAdd(
       recovery: 'Reword this premise slightly so it gets its own id, then add it again.',
     });
   }
-  const skippedDup = inputs.length - fresh.length;
+  // dupRetired rows are reported separately as skipped_retired — counting them
+  // here too would double-count the same premise in two buckets.
+  const skippedDup = inputs.length - fresh.length - dupRetired.length;
 
   const activeCount = existing.filter((p) => p.status === 'active').length;
   if (activeCount + fresh.length > MAX_ACTIVE_PREMISES) {
@@ -604,7 +606,12 @@ async function opAmend(
     ...(typeof a['recheck_cadence_days'] === 'number' ? { recheck_cadence_days: a['recheck_cadence_days'] as number } : {}),
     ...(typeof a['reponder_cadence_days'] === 'number' && premise.kind === 'open_question' ? { reponder_cadence_days: a['reponder_cadence_days'] as number } : {}),
   };
-  await appendLedger(dir, [ev], now);
+  // §9.4: append under the ledger lock like seal/settle/opAdd — this op was one
+  // of three writers left outside it (2026-08-09 audit), so two sessions on the
+  // same .argus could interleave their lines.
+  await withLedgerLock(dir, async () => {
+    await appendLedger(dir, [ev], now);
+  });
 
   const nowExternal = typeof ev.external === 'boolean' ? ev.external : premise.external;
   const nowLb = typeof ev.load_bearing === 'boolean' ? ev.load_bearing : premise.load_bearing;
@@ -686,6 +693,17 @@ async function opResolve(
     }
     const content = got.kind === 'accepted' ? got.content : null;
     decision = typeof content?.['decision'] === 'string' ? (content['decision'] as string).trim() : '';
+    // Picker input lands after zod ran — enforce the schema's cap here too, and
+    // hand the user's own words back instead of making them retype (same rule
+    // as seal.ts reword and settle.ts what_happened).
+    if (decision.length > 400) {
+      return toolError({
+        ok: false, tool: 'argus_premises', error_code: 'RESOLVE_NEEDS_DECISION',
+        message: 'The closing call is too long for the record (max 400 chars).',
+        recovery: 'data.user_input.decision below is what the user just typed. Offer it back trimmed to the load-bearing sentence, confirm, then call op="resolve" again.',
+        data: { id, ref: `P${premise.ordinal}`, user_input: { decision }, retry_hint: 'trim data.user_input.decision to <=400 chars with the user, then call again' },
+      });
+    }
   }
   if (!decision) {
     return toolError({
@@ -705,7 +723,23 @@ async function opResolve(
   // this is the same rule. `today` is unchanged: the logical date is the date
   // they were asked about, and only the intra-day time was wrong.
   const answeredAt = a['today_override'] ? now : logicalNow(now.slice(0, 10), false);
-  await appendLedger(dir, [{ id, event: 'premise_resolve', premise_id: premise.premise_id, decision }], answeredAt);
+  // §9.4 read-check-append-under-lock: while the picker sat waiting, another
+  // session may have resolved the same question — re-guard on a fresh fold so
+  // the second answer doesn't stack a duplicate resolve line.
+  const raced = await withLedgerLock(dir, async () => {
+    const freshPremise = (replayLedger(dir, answeredAt.slice(0, 10)).contracts.get(id)?.premises ?? [])
+      .find((p) => p.premise_id === premise.premise_id);
+    if (freshPremise && freshPremise.status !== 'active') return true;
+    await appendLedger(dir, [{ id, event: 'premise_resolve', premise_id: premise.premise_id, decision }], answeredAt);
+    return false;
+  });
+  if (raced) {
+    return toolError({
+      ok: false, tool: 'argus_premises', error_code: 'PREMISE_RETIRED',
+      message: `P${premise.ordinal} was already closed in another session — nothing was written twice.`,
+      recovery: 'Read the current state via argus_patterns view="decision_context".',
+    });
+  }
 
   // Voice follows the user's own closing call (their words ARE the sample).
   const ko = resolveResponseLocale(dir, decision || premise.text) === 'ko';
@@ -744,10 +778,13 @@ async function opStillOpen(
     return toolError({ ok: false, tool: 'argus_premises', error_code: 'PREMISE_RETIRED', message: `P${premise.ordinal} is already ${premise.status}.`, recovery: 'Read it via argus_patterns view="decision_context".' });
   }
 
-  await appendLedger(dir, [{
-    id, event: 'premise_reconsider', premise_id: premise.premise_id, anchor_date: today,
-    ...(typeof a['reponder_cadence_days'] === 'number' ? { reponder_cadence_days: a['reponder_cadence_days'] as number } : {}),
-  }], now);
+  // §9.4: same lock discipline as the other writers (2026-08-09 audit).
+  await withLedgerLock(dir, async () => {
+    await appendLedger(dir, [{
+      id, event: 'premise_reconsider', premise_id: premise.premise_id, anchor_date: today,
+      ...(typeof a['reponder_cadence_days'] === 'number' ? { reponder_cadence_days: a['reponder_cadence_days'] as number } : {}),
+    }], now);
+  });
 
   const ko = resolveResponseLocale(dir, premise.text) === 'ko';
   return envelope({

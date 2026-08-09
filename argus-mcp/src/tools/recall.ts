@@ -270,6 +270,10 @@ export const recall: ToolModule = {
           .sort((a, b) => (a.status === 'settled') !== (b.status === 'settled')
             ? (a.status === 'settled' ? -1 : 1)
             : byCheckBy(a, b));
+        // Cap the page, never the count: "되읽을 결정 30건" over a 45-record
+        // ledger is a silent truncation lying as a total (the contracts view
+        // two branches up ships `truncated` for exactly this reason).
+        const reflectionTotal = withReasoning.length;
         const reflections = withReasoning.slice(0, 30).map((c) => ({
           id: c.id, status: c.status, predicate: c.predicate ?? c.text, check_by: c.check_by,
           ...(c.status === 'settled' ? { outcome: c.outcome, ...(c.settled_on ? { settled_on: c.settled_on } : {}) } : {}),
@@ -288,19 +292,24 @@ export const recall: ToolModule = {
         }));
         const rfreq = frequencyStatement(ledger.stats, rl);
         const rn = ledger.stats.total_settled;
+        const reflectionsShownNote =
+          reflectionTotal > reflections.length
+            ? (rl === 'ko' ? ` (최근 ${reflections.length}건 표시)` : ` (showing the ${reflections.length} most recent)`)
+            : '';
         const framing = reflections.length === 0
           ? (rl === 'ko'
               ? '되읽을 결정이 아직 없습니다. 예측과 전제를 기록하면, 여기서 당신의 판단을 다시 만납니다.'
               : 'Nothing to re-read yet. Once you record predictions and premises, this is where you meet your own judgment again.')
           : (rl === 'ko'
-              ? `되읽을 결정 ${reflections.length}건. 당신이 쓴 예측과 전제, 그리고 현실이 한 일입니다.`
-              : `${reflections.length} decision(s) to re-read: your own predictions and premises, and what reality did.`);
+              ? `되읽을 결정 ${reflectionTotal}건${reflectionsShownNote}. 당신이 쓴 예측과 전제, 그리고 현실이 한 일입니다.`
+              : `${reflectionTotal} decision(s) to re-read${reflectionsShownNote}: your own predictions and premises, and what reality did.`);
         return envelope({
           ok: true, tool: 'argus_recall',
           surface: rn > 0 ? `${framing} ${rfreq}` : framing,
           next_actions: ledger.ids.size === 0 ? ['argus_capture'] : ['stop'], // empty ledger → a handle, not a dead end
           data: {
-            reflections, reflection_count: reflections.length,
+            reflections, reflection_count: reflectionTotal,
+            ...(reflectionTotal > reflections.length ? { truncated: reflectionTotal - reflections.length } : {}),
             revisit_statement: rfreq,
             revisit_count: rn,
             today,

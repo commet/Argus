@@ -195,7 +195,22 @@ export const settle: ToolModule = {
         if (v === 'held' || v === 'avoided' || v === 'partial' || v === 'still_pending' || v === 'missed') outcome = v;
         // If the model didn't already supply what_happened, take the user's
         // picker text (their own words) so the settle completes in one round.
+        //
+        // The picker path enters AFTER zod ran (server.ts validates on entry),
+        // so the schema's .max(600) never sees this value — without the cap
+        // below, a pasted essay lands uncapped in the append-only ledger and
+        // every future replay carries it (2026-08-09 audit; seal.ts guards its
+        // reword picker the same way, and sync.ts caps account imports at 4000
+        // for the same reason).
         const pickedWhat = typeof picked?.['what_happened'] === 'string' ? (picked['what_happened'] as string).trim() : '';
+        if (pickedWhat.length > 600) {
+          return toolError({
+            ok: false, tool: 'argus_settle', error_code: 'SETTLE_INVALID',
+            message: 'What happened is too long for the record (max 600 chars).',
+            recovery: 'data.user_input.what_happened below is what the user just typed. Do not make them retype it: offer it back trimmed to the load-bearing part, confirm, then call again with outcome + what_happened.',
+            data: { id, user_input: { what_happened: pickedWhat }, retry_hint: 'trim data.user_input.what_happened to <=600 chars with the user, then call argus_resolve again' },
+          });
+        }
         if (pickedWhat && !(typeof a['what_happened'] === 'string' && (a['what_happened'] as string).trim())) {
           a = { ...a, what_happened: pickedWhat };
         }

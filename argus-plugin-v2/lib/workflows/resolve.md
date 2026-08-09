@@ -44,7 +44,14 @@ Keep sealed, non-`witness` records whose ISO `check_by` is today or earlier.
 Do not auto-import an unsealed `current_bearing.json` seed. A seed is an AI
 proposal, not a human-authorized record.
 
-Sort oldest first and handle at most three. If none are due, say:
+Sort oldest first and handle at most three. If MORE than three are due, say so
+before starting — e.g. `{{n}} records are due; taking the three oldest first,
+{{n-3}} remain for the next /argus:check.` — and repeat the remaining count in
+the §6 report. Handling three of ten while sounding finished is a silent cap;
+the user walks away believing settlement is done. (premises.md's "note if more"
+is the same rule.)
+
+If none are due, say:
 
 `No records are due. Next check: {{date or "none"}}.`
 
@@ -156,16 +163,20 @@ For commitment/declaration, replace `--reality` with:
 --commitment enacted|maintained|revised|withdrawn|superseded
 ```
 
-If the user says the answer is not available yet and wants another date, append
-only a date change:
+If the user says the answer is not available yet and wants another date, record
+an honest deferral (NOT an amend — a due record's date move is a deferral, and
+the ledger must remember it so the eventual receipt can say "originally due X ·
+deferred N×", exactly like the MCP surface's still_pending path):
 
 ```bash
-node "${CLAUDE_PLUGIN_ROOT}/scripts/decision-ledger.js" amend <id> \
-  --check-by "<new YYYY-MM-DD>" \
+node "${CLAUDE_PLUGIN_ROOT}/scripts/decision-ledger.js" defer <id> \
+  --to "<new YYYY-MM-DD>" \
   --authorization-ref "plugin:resolve:<id>:defer"
 ```
 
-Never amend the sealed sentence or falsification condition.
+Never amend the sealed sentence or falsification condition. `amend` remains for
+correcting a typo'd date BEFORE the record comes due; once due, the CLI refuses
+it and points here.
 
 ## 6. Report without aggregation
 

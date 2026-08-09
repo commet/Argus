@@ -72,11 +72,14 @@ const inputSchema = z.strictObject({
   argus_dir: zArgusDir,
   id: zId.describe('The decision id.'),
   ref: z.string().max(64).describe('Which premise — ordinal ("P1"), premise_id, or unambiguous prefix.'),
-  finding: z.string().min(3).max(400).describe('The CURRENT state of the fact, one literal comparable sentence. e.g. "base rate 3.75% after a 25bp hike".'),
+  // Caps match the PUBLIC surface (public-tools.ts) — runPublic calls this
+  // handler directly, so the public schema is the only one that ever runs;
+  // a stricter number here would be a dead declaration lying about the contract.
+  finding: z.string().min(1).max(800).describe('The CURRENT state of the fact, one literal comparable sentence. e.g. "base rate 3.75% after a 25bp hike".'),
   numeric_value: z.number().finite().optional().describe('The fact\'s current number, named EXPLICITLY (e.g. 3.75). Never extracted from prose by regex. When present, drift is decided mechanically (>=10% move or sign flip).'),
   changed: z.boolean().optional().describe('Text premises only: has the FACT materially changed vs the recorded baseline? A research finding about external reality (provenance required) — never a judgment of the user.'),
   source: z.enum(['url', 'user_stated', 'host_reported']).describe('Where the finding comes from. host_reported = the model\'s own research without a citation — recorded honestly as such.'),
-  source_detail: z.string().max(300).optional().describe('URL or short citation when source="url".'),
+  source_detail: z.string().max(1000).optional().describe('URL or short citation when source="url".'),
   apply_to_matching: z.boolean().default(false).describe('Also record this re-check on OTHER decisions whose monitored premise has the same normalized text (same fact, same evidence — an explicit mechanical fan-out, plan v5 P1).'),
   today_override: zDate.optional(),
 });
