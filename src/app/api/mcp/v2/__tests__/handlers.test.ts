@@ -238,6 +238,22 @@ describe('argus_sharpen — 검증기 배선', () => {
     expect(text(res)).toContain('이탈률');
   });
 
+  it('"기록했습니다"가 거짓말이 아니다 — 통과한 짚기는 원장에 ai_proposal 로 남는다', async () => {
+    // 2026-08-09 프로덕션 도그푸드에서 걸린 결함: 검증기는 통과시키는데 카드도
+    // 추천도 없는 턴은 아무 이벤트도 append 하지 않아, 응답 문구("원장에
+    // 남습니다")가 거짓이었다. 짚기는 채팅 스크롤백에만 존재했다.
+    const id = await openCase();
+    await handleSharpen(U, {
+      caseId: id,
+      assumption: '고객이 가격에 둔감하다',
+      falsifier: '인상 후 2주간 이탈률이 5%를 넘으면 틀렸다',
+    });
+    const trace = events.get(id)!.find((e) => e.type === 'ai_proposal') as { description: string } | undefined;
+    expect(trace).toBeTruthy();
+    expect(trace!.description).toContain('고객이 가격에 둔감하다');
+    expect(trace!.description).toContain('이탈률이 5%');
+  });
+
   it('열리지 않은 결정에는 짚지 않는다', async () => {
     const res = await handleSharpen(U, { caseId: 'case_없음' });
     expect(isErr(res)).toBe(true);
@@ -362,22 +378,44 @@ describe('argus_return — 순서가 규칙이다', () => {
     expect(text(res)).not.toContain('10% 인상'); // 선택이 새면 안 된다
   });
 
-  it('관찰만 왔을 때는 회상을 묻고, 여전히 기록을 열지 않는다', async () => {
+  it('관찰만 왔을 때는 회상을 묻고, 여전히 기록을 열지 않는다 — 성공 스텝이지 에러가 아니다', async () => {
     const id = await plannedCase();
     const res = await handleReturn(U, { caseId: id, observation: '이탈률 3%였다' });
+    // 관찰은 방금 원장에 들어갔다 — isError 로 신고하면 호스트 모델이 재시도부터 한다.
+    expect(isErr(res)).toBe(false);
     expect(text(res)).toContain('왜 그렇게 정했는지');
     expect(text(res)).not.toContain('10% 인상');
     expect(events.get(id)!.some((e) => e.type === 'record_revealed')).toBe(false);
   });
 
-  it('관찰과 회상이 다 오면 그때 기록을 열고, 귀환을 닫는다', async () => {
+  it('안내문이 약속한 경로가 실제로 열린다 — 회상만 들고 온 2차 호출로 정산이 끝난다', async () => {
+    // 1차 응답이 "답을 recall 로 보내주시면"이라고 안내한다. 그 말대로 한 호출이
+    // 거절되면 안내문이 거짓말이다 (2026-08-09 프로덕션 도그푸드에서 실제로 걸림).
+    const id = await plannedCase();
+    await handleReturn(U, { caseId: id, observation: '이탈률 3%였다' });
+    const res = await handleReturn(U, { caseId: id, recall: '마진 때문이었던 듯' });
+    expect(isErr(res)).toBe(false);
+    expect(text(res)).toContain('10% 인상');
+    expect(text(res)).toContain('마진 때문이었던 듯');
+    expect(text(res)).toContain('이탈률 3%였다'); // 원장의 관찰이 정산에 쓰였다
+    expect(returns.every((r) => r.status === 'completed')).toBe(true);
+    expect(events.get(id)!.some((e) => e.type === 'return_closed')).toBe(true);
+  });
+
+  it('관찰과 회상을 같이 다시 보내도 같은 관찰이 두 번 남지 않는다 (append-only 오염 방지)', async () => {
     const id = await plannedCase();
     await handleReturn(U, { caseId: id, observation: '이탈률 3%였다' });
     const res = await handleReturn(U, { caseId: id, observation: '이탈률 3%였다', recall: '마진 때문이었던 듯' });
     expect(text(res)).toContain('10% 인상');
-    expect(text(res)).toContain('마진 때문이었던 듯');
-    expect(returns.every((r) => r.status === 'completed')).toBe(true);
-    expect(events.get(id)!.some((e) => e.type === 'return_closed')).toBe(true);
+    expect(events.get(id)!.filter((e) => e.type === 'observation').length).toBe(1);
+  });
+
+  it('원장에 관찰이 없는 채로 회상만 오면 여전히 관찰부터 요구한다', async () => {
+    const id = await plannedCase();
+    const res = await handleReturn(U, { caseId: id, recall: '기억은 이렇다' });
+    expect(isErr(res)).toBe(true);
+    expect(text(res)).toContain('먼저 실제로 무슨 일이 있었는지');
+    expect(events.get(id)!.some((e) => e.type === 'recall_probe_answer')).toBe(false);
   });
 
   it('기록이 열린 뒤의 회상은 다시 받지 않는다 — 오염된 기억이기 때문', async () => {

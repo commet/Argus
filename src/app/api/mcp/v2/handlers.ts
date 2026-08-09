@@ -690,7 +690,13 @@ export async function handleReturn(userId: string, args: Args) {
   }
 
   // 관찰이 없으면 기록을 열지 않는다 — 이 순서가 §7.3의 전부다.
-  if (!observation) {
+  //
+  // "없다"는 **이번 호출 + 원장**을 합쳐 본다. 1차 호출(관찰만)의 응답이
+  // "답을 recall 로 보내주시면"이라고 안내하므로, 그 말대로 recall 만 들고 온
+  // 2차 호출을 원장의 관찰을 무시하고 거절하면 안내문이 거짓말이 된다 —
+  // 그리고 모델은 우회하느라 같은 관찰을 다시 보내 append-only 원장에 중복
+  // 이벤트를 영구히 남긴다 (2026-08-09 프로덕션 도그푸드에서 실제로 걸림).
+  if (!observation && state.observations.length === 0) {
     const opening = engine.openReturn();
     return toolText(
       `먼저 실제로 무슨 일이 있었는지 들어야 합니다.\n\n"${opening.question}"\n기다리던 것: ${opening.awaitedSignal}\n\n` +
@@ -699,16 +705,21 @@ export async function handleReturn(userId: string, args: Args) {
     );
   }
 
-  recordObservation();
+  // 새 사실만 덧붙인다. 같은 문장을 다시 보낸 것은 새 관찰이 아니라 재전송이다
+  // — append-only 원장에 같은 이벤트가 두 번 남으면 지울 수 없다.
+  if (observation && state.observations.at(-1)?.text !== observation) recordObservation();
+  // 이번 정산이 대조할 관찰: 이번 호출에 왔으면 그것, 아니면 원장의 마지막 관찰.
+  const effectiveObservation = observation || state.observations.at(-1)?.text || '';
   const recall = str(args.recall);
 
   if (!recall) {
     await persistNewEvents(userId, caseId, engine, known);
+    // isError 가 아니다 — 관찰은 방금 원장에 들어갔고, 이 응답은 다음 단계 안내다.
+    // 성공한 append 를 실패로 신고하면 호스트 모델이 재시도·사과부터 한다.
     return toolText(
       '기록했습니다. 기록을 열기 전에 하나만 —\n\n' +
         '"당시 왜 그렇게 정했는지, 기억나는 대로 말씀해 주시겠어요?"\n\n' +
         '답을 recall 로 보내주시면 그때의 기록과 나란히 보여드립니다.',
-      true,
     );
   }
 
@@ -738,7 +749,7 @@ export async function handleReturn(userId: string, args: Args) {
   await projectOutcome(userId, caseId, {
     choice: revealed.card?.choiceOrPolicy,
     rejectedAlternative: revealed.card?.rationale?.rejectedAlternative?.alternative,
-    observation,
+    observation: effectiveObservation,
     recall,
     settledAt: now(),
   });
@@ -759,7 +770,7 @@ export async function handleReturn(userId: string, args: Args) {
     runAfterResponse(() =>
       gradeRevealedShadows(
         shadow.revealed,
-        observation,
+        effectiveObservation,
         adoptedChoice ? { choice: adoptedChoice, lean: adoptedLean } : undefined,
       ),
     );
@@ -770,7 +781,7 @@ export async function handleReturn(userId: string, args: Args) {
   // 멈췄다는 사실은 사용자가 지금 알아야 하는 것이다. 다음에 그 정책을 다시
   // 꺼내지 않을 것이므로, 말하지 않으면 사용자는 위임이 여전히 도는 줄 안다.
   const delegationId = await caseDelegationId(userId, caseId);
-  const delegationGrade = delegationId ? await gradeDelegation(userId, delegationId, observation) : null;
+  const delegationGrade = delegationId ? await gradeDelegation(userId, delegationId, effectiveObservation) : null;
   // 채점 누락을 조용히 넘기지 않는다: 열 때 위임이 꺼내졌는데(서버 기록) 채택에
   // appliedDelegationId 가 없으면, 따랐는지 안 따랐는지 알 수 없어 채점하지
   // 않는다 — 그리고 그 사실을 말한다. 모르는 것을 아는 것처럼 채점하는 것도,
@@ -786,7 +797,7 @@ export async function handleReturn(userId: string, args: Args) {
   // 정산 직후에 성적을 들이미는 것은 요청받지 않은 성적표다 (§9 위험표).
   runAfterResponse(async () => {
     const beliefs = (revealed.card?.rationale?.materialBeliefs ?? []) as StatedBelief[];
-    await gradeStatedBeliefs(userId, caseId, beliefs, observation);
+    await gradeStatedBeliefs(userId, caseId, beliefs, effectiveObservation);
   });
 
   // 프로필 추출 (TWIN §4.1) — 방금 정산된 케이스 하나에서만. 검증(증거 실존·
@@ -798,7 +809,7 @@ export async function handleReturn(userId: string, args: Args) {
       choice: revealed.card?.choiceOrPolicy ?? '',
       statedReasons:
         revealed.baseline && revealed.baseline !== 'not_captured' ? revealed.baseline.statedReasons : [],
-      observation,
+      observation: effectiveObservation,
       recall,
     });
     // 산출을 소비한다 — after() 안이라 이번 응답에는 실을 수 없고, 그렇다고
@@ -817,7 +828,7 @@ export async function handleReturn(userId: string, args: Args) {
       `그때의 기울기: ${
         revealed.baseline && revealed.baseline !== 'not_captured' ? revealed.baseline.lean : '기록하지 않고 시작'
       }\n\n` +
-      `방금의 기억: "${recall}"\n실제로 일어난 일: "${observation}"\n\n` +
+      `방금의 기억: "${recall}"\n실제로 일어난 일: "${effectiveObservation}"\n\n` +
       '둘이 다르다면 그 차이가 이 기록이 존재하는 이유입니다 — 결과를 알고 나면 누구나 이유를 다시 씁니다.' +
       shadow.text +
       describeDelegationGrade(delegationGrade) +
