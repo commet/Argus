@@ -69,6 +69,20 @@ export const openDecision: ToolModule = {
           recovery: 'To record what reality did, call argus_resolve. Closed decisions are not reopened.',
         });
       }
+      // Idempotent re-open (2026-08-09 audit): a model retry with the same id
+      // was the ONLY guardless write path left — every retry appended another
+      // gate_input + harvest pair, ghost lines the replay absorbs but the
+      // ledger carries forever (and "record since" drifts to the retry time).
+      if (current.state === 'opened') {
+        return envelope({
+          ok: true, tool: 'argus_open_decision',
+          surface: locale === 'ko'
+            ? '이미 열려 있는 결정입니다. 다시 기록하지 않았습니다. 예측을 봉인하려면 argus_predict 를 부르세요.'
+            : 'This decision is already open — nothing was recorded twice. Seal a prediction with argus_predict.',
+          next_actions: ['argus_predict', 'stop'],
+          data: { id, state: current.state, idempotent: true },
+        });
+      }
 
       const signals = {
         stakes: a['stakes'] as Stakes,

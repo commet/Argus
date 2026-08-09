@@ -340,6 +340,35 @@ function itemsLines(cwd) {
   rmSync(p, { recursive: true, force: true });
 }
 
+// --- defer: the honest date move for a DUE record (MCP rule parity) -----------
+// Same ledger, same rules: MCP's state machine refuses `amend` on a due record
+// (GOALPOST_MOVED) and routes it through a `defer` event that keeps the original
+// date and count. The plugin CLI used amend for this — a bypass that also broke
+// defer bookkeeping. Now: amend = pre-due typo fix only; defer = due-date move.
+{
+  const p = freshProject();
+  run(p, ['record', '--predicate', 'a due record sentence', '--id', 'd1', '--check-by', '2020-01-01', ...AUTH]);
+
+  const goalpost = run(p, ['amend', 'd1', '--check-by', '2099-01-01', ...AUTH]);
+  ok('amend on a DUE record is refused (goalpost move)', goalpost.status !== 0 && /goalpost|defer/i.test(goalpost.stderr));
+
+  const deferred = run(p, ['defer', 'd1', '--to', '2099-01-01', ...AUTH]);
+  ok('defer moves the due date honestly', deferred.status === 0);
+  const dEv = ledgerLines(p).find((e) => e.event === 'defer' && e.id === 'd1');
+  ok('defer event keeps the original date (from) — MCP replay shape', dEv?.from === '2020-01-01' && dEv?.check_by === '2099-01-01');
+
+  const j = run(p, ['list', '--status', 'sealed']);
+  ok('deferred record stays sealed with the new date', j.stdout.includes('d1'));
+
+  const ghostDefer = run(p, ['defer', 'no-such', '--to', '2099-01-01', ...AUTH]);
+  ok('defer refuses an unknown id', ghostDefer.status !== 0);
+
+  // amend before due still works (typo fix) — the guard is due-scoped.
+  run(p, ['record', '--predicate', 'a future record sentence', '--id', 'd2', '--check-by', '2098-01-01', ...AUTH]);
+  ok('amend on a pre-due record still works', run(p, ['amend', 'd2', '--check-by', '2099-06-01', ...AUTH]).status === 0);
+  rmSync(p, { recursive: true, force: true });
+}
+
 // --- record rerun is exactly as safe as preapprove.md advertises --------------
 {
   const p = freshProject();

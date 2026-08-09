@@ -369,6 +369,14 @@ export const checkIn: ToolModule = {
           // 머신-전역 durable-home 저장소를 읽어 다른 프로젝트의 결정 원문을
           // 모든 프로젝트 대화에 노출했다(교차-프로젝트 누출) — 관찰용 진단은
           // 옵트인 디버그로만. capture_status도 사용자-무의미 진단이라 동거.
+          //
+          // 단, harvest.ts 가 "조용한 truncation 금지"로 세는 capped **숫자만**은
+          // 항상 내보낸다 — 주간 캡에 걸려 버려진 후보가 있었다는 사실이 디버그
+          // 뒤에 숨으면 그 금지가 게이트에 의해 무효가 된다. 숫자 하나라 결정
+          // 원문 누출(위 사건)과 무관하다.
+          ...(captureStatus.last_drain && captureStatus.last_drain.capped > 0
+            ? { capture_capped: captureStatus.last_drain.capped }
+            : {}),
           ...(process.env['ARGUS_V2_DEBUG'] === '1' ? {
             capture_status: captureStatus,
             v2_brief: readV2Brief(dir, today),

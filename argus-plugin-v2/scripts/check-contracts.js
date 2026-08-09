@@ -106,6 +106,10 @@ function applyV2Line(e, map, ids, sealedPredicates) {
       if (!cur) map.set(id, { status: "candidate", text: val("text") || "" });
       break;
     case "seal": {
+      // Settled is terminal — a stray seal line after settlement must not flip
+      // the record back to sealed, or this hook re-nags a decision the user
+      // already answered (mirror of decision-ledger.js's read-side heal).
+      if (cur && cur.status === "settled") break;
       const rec = cur || {};
       rec.status = "sealed";
       if (val("predicate")) { rec.text = val("predicate"); sealedPredicates.add(rec.text); }
@@ -118,6 +122,11 @@ function applyV2Line(e, map, ids, sealedPredicates) {
         if (val("predicate")) cur.text = val("predicate");
         if (val("check_by")) cur.check_by = val("check_by");
       }
+      break;
+    case "defer":
+      // Plugin-side honest date move (decision-ledger.js defer) — same event
+      // the durable fold below already understands (O2 방1 finding ③).
+      if (cur && val("check_by")) cur.check_by = val("check_by");
       break;
     case "dismiss":
       if (cur) cur.status = "dismissed";
@@ -179,6 +188,10 @@ function foldV1Raw(raw, map, ids, sealedPredicates) {
         break;
       case "seal":
         if (typeof ev.predicate === "string") sealedPredicates.add(ev.predicate);
+        // Settled is terminal — a stray seal after settlement must not flip
+        // the record back and re-arm this hook's nag (read-side heal, mirror
+        // of decision-ledger.js).
+        if (cur && cur.status === "settled") break;
         if (cur) {
           cur.status = "sealed";
           if (ev.predicate != null) cur.text = ev.predicate;

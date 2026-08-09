@@ -1,7 +1,7 @@
 ---
 name: preapprove
 user-invocable: false
-description: EXPERIMENTAL — pre-approval evidence check for agent plans (the "pre-approval scan"), separate from the sail pipeline. Before the user approves a plan (ExitPlanMode, a plan doc, a migration/deploy/delete proposal), preapprove runs a silent load-bearing scan and speaks ONLY when an unsupported claim touches an irreversible operation. Default output is silence. Full divergence probe is opt-in. Seals accepted bets into .argus/ledger/ (same schema as argus-watch). Invoked as `/argus:preapprove`.
+description: EXPERIMENTAL — pre-approval evidence check for agent plans (the "pre-approval scan"), separate from the sail pipeline. Before the user approves a plan (ExitPlanMode, a plan doc, a migration/deploy/delete proposal), preapprove runs a silent load-bearing scan and speaks ONLY when an unsupported claim touches an irreversible operation. Default output is silence. Full divergence probe is opt-in. Seals accepted bets into .argus/ledger/ (same schema as argus-watch). Invoked as `/argus:check preapprove <plan text>` (routed by the check skill — there is no standalone /argus:preapprove command; a sixth skill would break the five-skill pledge).
 ---
 
 # Internal preapprove workflow — 계획 승인 전 근거 점검

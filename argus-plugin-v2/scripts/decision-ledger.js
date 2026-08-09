@@ -372,6 +372,21 @@ function loadLedger() {
           });
         }
         break;
+      case "defer":
+        // The MCP surface's honest date move (settle still_pending → defer).
+        // The record stays sealed and comes due again; the original date and
+        // count survive so a receipt can say "originally due X · deferred N×".
+        if (cur && cur.status === "sealed") {
+          cur.defer_count = (cur.defer_count || 0) + 1;
+          (cur.defer_history ||= []).push({
+            from: event.from || cur.check_by,
+            to: event.check_by,
+            at: event.at,
+            ...(event.note ? { note: event.note } : {}),
+          });
+          if (event.check_by) cur.check_by = event.check_by;
+        }
+        break;
       case "dismiss":
         if (cur) {
           cur.status = "dismissed";
@@ -1427,6 +1442,28 @@ function cmdAmend() {
     console.error("--check-by must be an ISO date (YYYY-MM-DD).");
     process.exit(1);
   }
+  // Same ledger, same rules as the MCP surface (state-machine.ts): once a
+  // record is DUE, moving check_by via amend is GOALPOST_MOVED — the exact
+  // dishonesty this product exists to prevent, and it also skips the defer
+  // bookkeeping ("originally due X · deferred N×" on the eventual receipt).
+  // Pre-due corrections (typo'd date) stay allowed; a due record defers.
+  const amendTarget = loadLedger().get(id);
+  if (!amendTarget) {
+    console.error(`${id} is not in the ledger — nothing to amend.`);
+    process.exit(1);
+  }
+  if (amendTarget.status === "settled" || amendTarget.status === "dismissed") {
+    console.error(`${id} is ${amendTarget.status} — a closed record's dates are not editable (append-only).`);
+    process.exit(1);
+  }
+  const localToday = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+  if (amendTarget.check_by && String(amendTarget.check_by) <= localToday) {
+    console.error(
+      `${id} is already due (check_by ${amendTarget.check_by}) — moving the date now would be moving the goalpost. ` +
+        `Use: defer ${id} --to ${checkBy} --authorization-ref <host-ref> (records the deferral honestly, like the MCP surface).`,
+    );
+    process.exit(1);
+  }
   appendEvent({
     event: "amend",
     id,
@@ -1434,6 +1471,52 @@ function cmdAmend() {
     authorization_ref: String(flags["authorization-ref"]),
   });
   console.log(`Amended ${id}${checkBy ? ` → check_by ${checkBy}` : ""}`);
+}
+
+// Deferral — the honest way to move a DUE record's return date. Mirrors the
+// MCP surface's `settle outcome="still_pending" + defer_to` path byte-for-byte
+// in event shape ({event:"defer", from, check_by}), so MCP replay counts
+// defer_count/defer_history and the eventual receipt can say
+// "originally due X · deferred N×" instead of pretending the date never moved.
+function cmdDefer() {
+  const id = flags._[0];
+  const to = flags.to ? String(flags.to) : "";
+  if (!id || !to) {
+    console.error('Usage: decision-ledger.js defer <id> --to YYYY-MM-DD [--note "why"] --authorization-ref <host-ref>');
+    process.exit(1);
+  }
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(to)) {
+    console.error("--to must be an ISO date (YYYY-MM-DD).");
+    process.exit(1);
+  }
+  if (!flags["authorization-ref"]) {
+    console.error("--authorization-ref is required; only the user can defer a promised return date.");
+    process.exit(1);
+  }
+  const cur = loadLedger().get(id);
+  if (!cur) {
+    console.error(`${id} is not in the ledger — nothing to defer.`);
+    process.exit(1);
+  }
+  if (cur.status !== "sealed") {
+    console.error(`${id} is ${cur.status} — only a sealed (open) record can be deferred.`);
+    process.exit(1);
+  }
+  const localToday = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+  if (to <= localToday) {
+    console.error(`--to must be a future date (got ${to}, today is ${localToday}).`);
+    process.exit(1);
+  }
+  const event = {
+    event: "defer",
+    id,
+    from: cur.check_by,
+    check_by: to,
+    authorization_ref: String(flags["authorization-ref"]),
+  };
+  if (flags.note) event.note = String(flags.note);
+  appendEvent(event);
+  console.log(`Deferred ${id} → check_by ${to} (was ${cur.check_by || "unset"}).`);
 }
 
 function cmdCorrectKind() {
@@ -1648,6 +1731,7 @@ const commands = {
   settle: cmdSettle,
   record: cmdRecord,
   amend: cmdAmend,
+  defer: cmdDefer,
   "correct-kind": cmdCorrectKind,
   revise: cmdRevise,
   journal: cmdJournal,

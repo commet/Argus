@@ -163,16 +163,20 @@ For commitment/declaration, replace `--reality` with:
 --commitment enacted|maintained|revised|withdrawn|superseded
 ```
 
-If the user says the answer is not available yet and wants another date, append
-only a date change:
+If the user says the answer is not available yet and wants another date, record
+an honest deferral (NOT an amend — a due record's date move is a deferral, and
+the ledger must remember it so the eventual receipt can say "originally due X ·
+deferred N×", exactly like the MCP surface's still_pending path):
 
 ```bash
-node "${CLAUDE_PLUGIN_ROOT}/scripts/decision-ledger.js" amend <id> \
-  --check-by "<new YYYY-MM-DD>" \
+node "${CLAUDE_PLUGIN_ROOT}/scripts/decision-ledger.js" defer <id> \
+  --to "<new YYYY-MM-DD>" \
   --authorization-ref "plugin:resolve:<id>:defer"
 ```
 
-Never amend the sealed sentence or falsification condition.
+Never amend the sealed sentence or falsification condition. `amend` remains for
+correcting a typo'd date BEFORE the record comes due; once due, the CLI refuses
+it and points here.
 
 ## 6. Report without aggregation
 

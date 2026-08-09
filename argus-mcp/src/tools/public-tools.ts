@@ -211,7 +211,11 @@ const settingsSchema = z.discriminatedUnion('action', [
     argus_dir: zArgusDir,
     action: z.literal('sync').describe('로컬 기록과 Argus 계정 기록을 지금 동기화합니다.'),
     due_only: z.boolean().default(false).describe('확인일이 된 기록만 가져옵니다.'),
-    import_settlements: z.boolean().default(true).describe('웹에서 기록한 실제 결과를 로컬 판단 기록에 반영합니다.'),
+    // sync.ts 의 실계약과 일치시킨다: settle 이벤트를 원장에 쓰는 동작이므로
+    // 명시적 opt-in(true 전달) 없이는 켜지지 않는다. 예전 선언(default true)은
+    // superRefine 이 파싱 결과를 버리는 탓에 어차피 적용된 적이 없는 유령
+    // 기본값이었고, 실제 동작(false)과 어긋난 채 광고되고 있었다.
+    import_settlements: z.boolean().default(false).describe('웹에서 기록한 실제 결과를 로컬 판단 기록에 반영합니다 (settle 이벤트를 쓰므로 명시적으로 true 를 보낼 때만).'),
     push_local: z.boolean().default(true).describe('계정에 닿지 못한 로컬 변경을 다시 보냅니다.'),
   }),
 ]);

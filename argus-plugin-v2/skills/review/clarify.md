@@ -506,6 +506,23 @@ Then:
   Never infer a return date from stakes, and never silently promote a passing
   sentence into a durable judgment.
 
+  **On that explicit confirmation, this is the write** (without it the lean rope
+  never exists and pipeline Step 7.5's wake silently skips forever — the writer
+  was documented nowhere until the 2026-08-09 audit):
+
+  ```bash
+  node "${CLAUDE_PLUGIN_ROOT}/scripts/decision-ledger.js" record \
+    --id "lean:<session-id>" --session "<session-id>" --type open \
+    --author user --predicate "<their lean, verbatim>" \
+    <--check-by "YYYY-MM-DD" if the user named a date | --kind witness if they did not> \
+    --authorization-ref "plugin:clarify:<session-id>:lean-confirmation"
+  ```
+
+  `--author user` is correct: the lean is the user's own volunteered sentence.
+  Never invent the `--check-by` date — if the user named no date, `--kind
+  witness` records the lean with no return promise (honest absence beats a
+  fabricated deadline), and the in-session wake at Step 7.5 still settles it.
+
 **Ears open (reviewers never see the lean):** the lean is NEVER handed to the reviewers as a directive and
 NEVER suppresses Phase 2 generation — it is only the anchor that `settle` re-confronts
 later ("시작할 때 당신은 X로 기울어 있었다 — 지금도?", a bare neutral question, never a

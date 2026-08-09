@@ -15,6 +15,7 @@ not additional user commands:
 | (none), `due`, or a natural "what should I check?" | `${CLAUDE_PLUGIN_ROOT}/lib/workflows/resolve.md` |
 | a candidate/seed id (or `--list`, `--latest-seed`) | `${CLAUDE_PLUGIN_ROOT}/lib/workflows/predict.md` |
 | `premises` (+ remaining args) | `${CLAUDE_PLUGIN_ROOT}/lib/workflows/premises.md` |
+| `preapprove` (+ plan text), or "이 계획 미리 봉인해줘" | `${CLAUDE_PLUGIN_ROOT}/lib/workflows/preapprove.md` |
 
 Spine: settlement is the user's answer against reality — never grade, never
 auto-settle, never invent an outcome. If nothing is due and no argument was

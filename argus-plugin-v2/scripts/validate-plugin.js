@@ -362,13 +362,16 @@ if (fs.existsSync(settleSkillPath)) {
   // through decision-ledger.js so the JSON shape can't drift from what the readers
   // replay (the Honest-Structure invariant — a hand-written template is a wire the
   // compiler/CI can't see). resolve imports a due seed via `record` and pushes a
-  // pending contract via `amend`; neither may hand-write harvest/seal/amend JSON.
+  // pending contract via `defer` (2026-08-09: `amend` on a due record is a
+  // goalpost move — the CLI refuses it, mirroring MCP's GOALPOST_MOVED, and the
+  // defer event keeps the original date for the receipt); neither may hand-write
+  // harvest/seal/amend/defer JSON.
   check(/decision-ledger\.js" settle\b/.test(settle), "resolve must append through `decision-ledger.js settle`");
-  check(/decision-ledger\.js" amend\b/.test(settle), "resolve must push a pending contract through `decision-ledger.js amend`, not hand-written amend JSON");
+  check(/decision-ledger\.js" defer\b/.test(settle), "resolve must push a pending contract through `decision-ledger.js defer`, not hand-written JSON (amend on a due record is a goalpost move)");
   check(/--present-standard-response/.test(settle), "resolve must preserve the user-selected present-standard wording");
   check(/same call under the same conditions/.test(settle), "resolve must use kind-specific present-standard wording");
   check(/--authorization-ref/.test(settle), "resolve writes must carry a user authorization receipt");
-  check(!/\{"event":"(harvest|seal|amend)"/.test(settle), "resolve must not hand-write harvest/seal/amend ledger JSON — route through decision-ledger.js (single-source shape)");
+  check(!/\{"event":"(harvest|seal|amend|defer)"/.test(settle), "resolve must not hand-write harvest/seal/amend ledger JSON — route through decision-ledger.js (single-source shape)");
   check(/Do not show held\/missed totals/.test(settle), "resolve must forbid outcome aggregates and score proxies");
 }
 
@@ -379,13 +382,13 @@ if (fs.existsSync(clarifyLeanPath)) {
   const clarify = fs.readFileSync(clarifyLeanPath, "utf8");
   check(/keep it as an in-session draft, not a ledger row/i.test(clarify), "clarify must keep a passing lean ephemeral");
   check(/explicit confirmation or direct record command/i.test(clarify), "clarify must forbid silent promotion without human authorization");
-  check(!/\{"event":"(harvest|seal|amend)"/.test(clarify), "clarify must not hand-write harvest/seal ledger JSON — route through decision-ledger.js");
+  check(!/\{"event":"(harvest|seal|amend|defer)"/.test(clarify), "clarify must not hand-write harvest/seal ledger JSON — route through decision-ledger.js");
 }
 const preapproveLedgerPath = path.join(root, "lib", "workflows", "preapprove.md");
 if (fs.existsSync(preapproveLedgerPath)) {
   const preapprove = fs.readFileSync(preapproveLedgerPath, "utf8");
   check(/decision-ledger\.js" record\b/.test(preapprove), "preapprove must seal a plan through `decision-ledger.js record`, not hand-written harvest+seal JSON");
-  check(!/\{"event":"(harvest|seal|amend)"/.test(preapprove), "preapprove must not hand-write harvest/seal ledger JSON — route through decision-ledger.js");
+  check(!/\{"event":"(harvest|seal|amend|defer)"/.test(preapprove), "preapprove must not hand-write harvest/seal ledger JSON — route through decision-ledger.js");
 }
 // sail's in-session Wake (Step 7.5) records the lean's 1st settlement — a ledger
 // `wake` event that must go through the single-source CLI, never hand-written JSON.
