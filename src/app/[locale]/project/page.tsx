@@ -631,9 +631,9 @@ export default function ProjectPage() {
       {!currentProject && (
         <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
           <div>
-            <h1 ref={listHeadingRef} tabIndex={-1} className="text-[22px] font-bold text-[var(--text-primary)] tracking-tight outline-none">{L('프로젝트', 'Projects')}</h1>
+            <h1 ref={listHeadingRef} tabIndex={-1} className="text-[22px] font-bold text-[var(--text-primary)] tracking-tight outline-none">{L('결정 데스크', 'Decision Desk')}</h1>
             <p className="text-[13px] text-[var(--text-secondary)] mt-1">
-              {L('진행 중인 결정과 결과 확인 기록을 한눈에 봅니다.', 'See decisions in progress and records due for outcome review at a glance.')}
+              {L('오늘 움직일 결정, 기다리는 신호, 현실이 돌아온 기록을 한곳에서 봅니다.', 'See what needs a move today, what is waiting on reality, and what came back.')}
             </p>
           </div>
           {projects.length > 0 && (
@@ -643,7 +643,7 @@ export default function ProjectPage() {
               className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-[var(--accent-fg)] text-[12.5px] font-semibold hover:shadow-[var(--shadow-md)] transition-all cursor-pointer self-start sm:self-auto"
               style={{ background: 'var(--gradient-gold)' }}
             >
-              <Plus size={13} /> {L('새 프로젝트', 'New project')}
+              <Plus size={13} /> {L('새 결정', 'New decision')}
             </LocaleLink>
           )}
         </div>
@@ -678,26 +678,48 @@ export default function ProjectPage() {
               </div>
             </Card>
           ) : projects.length === 0 ? (
-            <Card className="text-center py-12">
-              <ArgusMascot moment="companion" size="lg" loading="eager" alt={L('첫 결정을 기다리는 Argus', 'Argus waiting for your first decision')} className="mx-auto mb-4" />
-              <p className="text-[14px] text-[var(--text-secondary)] font-medium">{L('아직 시작한 결정이 없어요', 'No decisions started yet')}</p>
-              <p className="text-[12px] text-[var(--text-secondary)] mt-1 max-w-sm mx-auto break-keep">
-                {L('워크스페이스에서 첫 결정을 적으면, 이곳에서 진행 상태와 확인일을 이어서 볼 수 있어요. ', 'Write your first decision in the workspace, then track its progress and review date here. ')}
-                {L('확인일이 오면 이 페이지가 먼저 물어요 — ', 'When the review date comes, this page asks — ')}
-                <span className="whitespace-nowrap">{L('그래서, 어떻게 됐어요?', 'so, how did it go?')}</span>
-              </p>
-              <div className="mt-4 flex items-center justify-center gap-2 flex-wrap">
-                <LocaleLink
-                  href="/workspace"
-                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[var(--primary)] text-[var(--bg)] text-[13px] font-semibold hover:shadow-[var(--shadow-sm)] hover:-translate-y-[1px] active:translate-y-0 transition-all cursor-pointer"
-                >
-                  {L('워크스페이스에서 시작하기', 'Start in workspace')} <ArrowRight size={14} />
-                </LocaleLink>
-                <LocaleLink href="/workspace?demo=planning" className="text-[12px] text-[var(--text-tertiary)] hover:text-[var(--accent)] transition-colors">
-                  {L('데모 먼저 보기 →', 'See the demo first →')}
-                </LocaleLink>
+            <section className="overflow-hidden rounded-2xl bg-[var(--surface)] shadow-[0_18px_44px_-30px_rgba(17,49,46,.48)]" aria-labelledby="empty-decision-desk-heading">
+              <div className="grid gap-8 px-6 pb-7 pt-8 md:grid-cols-[minmax(0,1fr)_170px] md:px-9 md:pt-9">
+                <div>
+                  <h2 id="empty-decision-desk-heading" className="max-w-xl text-[21px] font-bold leading-tight text-[var(--text-primary)]" style={{ fontFamily: 'var(--font-display)' }}>
+                    {L('결정은 끝나는 대신, 현실이 답할 때까지 여기 머뭅니다.', 'A decision stays here until reality has something to say.')}
+                  </h2>
+                  <p className="mt-3 max-w-xl text-[13px] leading-6 text-[var(--text-secondary)]">
+                    {L('Argus는 답을 쌓는 곳이 아닙니다. 오늘 할 움직임을 정하고, 무엇을 확인할지 남기고, 돌아온 결과를 다음 판단의 규칙으로 바꾸는 곳입니다.', 'Argus is not a pile of answers. Choose a move for today, name what to watch, and turn the result into a rule for the next call.')}
+                  </p>
+                  <div className="mt-5 flex flex-wrap items-center gap-3">
+                    <LocaleLink
+                      href="/workspace"
+                      className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-[var(--primary)] px-4 py-2.5 text-[13px] font-semibold text-[var(--bg)] transition-[box-shadow,transform] hover:-translate-y-px hover:shadow-[var(--shadow-sm)] active:translate-y-0"
+                    >
+                      {L('첫 다음 움직임 만들기', 'Build your first next move')} <ArrowRight size={14} aria-hidden="true" />
+                    </LocaleLink>
+                    <LocaleLink href="/workspace?demo=planning" className="inline-flex min-h-11 items-center text-[12.5px] font-semibold text-[var(--text-tertiary)] transition-colors hover:text-[var(--accent)]">
+                      {L('30초 예시 보기', 'Watch a 30s example')}
+                    </LocaleLink>
+                  </div>
+                </div>
+                <div className="hidden self-end md:block">
+                  <ArgusMascot moment="companion" size="lg" loading="eager" alt={L('첫 결정을 기다리는 Argus', 'Argus waiting for your first decision')} className="mx-auto" />
+                </div>
               </div>
-            </Card>
+              <div className="border-t border-[var(--border-subtle)] bg-[var(--bg)]/55 px-6 py-5 md:px-9">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.11em] text-[var(--text-tertiary)]">{L('결정 데스크에 쌓이는 것 · 예시', 'What builds up here · example')}</p>
+                <ol className="mt-3 grid gap-4 md:grid-cols-3 md:items-start md:gap-8">
+                  {[
+                    [L('지금 움직일 것', 'Move now'), L('신규 가입자 절반에 14일 실험', 'Run a 14-day test with half of new sign-ups')],
+                    [L('현실에 물어본 것', 'Waiting on reality'), L('전환과 첫 가치 도달을 함께 확인', 'Watch conversion and time-to-first-value together')],
+                    [L('다음에 가져갈 것', 'Carry forward'), L('돌아온 결과를 다음 판단의 규칙으로', 'Turn the result into a rule for the next call')],
+                  ].map(([label, value], index) => (
+                    <li key={label} className="relative border-b border-[var(--border-subtle)] pb-3 last:border-0 last:pb-0 md:border-b-0 md:pb-0">
+                      {index > 0 && <ArrowRight size={14} aria-hidden="true" className="absolute -left-[23px] top-5 hidden text-[var(--accent)]/65 md:block" />}
+                      <span className="text-[11.5px] font-semibold text-[var(--accent)]">{label}</span>
+                      <p className="mt-1 text-[12.5px] leading-5 text-[var(--text-primary)]">{value}</p>
+                    </li>
+                  ))}
+                </ol>
+              </div>
+            </section>
           ) : (
             <>
               {/* ── 항구의 위계 (구조 선언, 창업자 재확정 2026-07-11:

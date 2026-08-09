@@ -93,16 +93,22 @@ describe('SettlementModal foundation return', () => {
       root.render(createElement(SettlementModal, { project, onClose }));
     });
 
-    expect(document.body.textContent).toContain('Date-only decision');
+    expect(document.body.textContent).not.toContain('Date-only decision');
     expect(button('Show the original')).toBeUndefined();
 
     await act(async () => {
       button('I cannot tell from the evidence')!.click();
     });
+    expect(document.body.textContent).not.toContain('Date-only decision');
+    expect(mocks.updateDecisionContract).not.toHaveBeenCalled();
+    await act(async () => {
+      button('Answer one last question')!.click();
+    });
     await act(async () => {
       button('I would use a different standard now')!.click();
     });
 
+    expect(document.body.textContent).toContain('Date-only decision');
     expect(mocks.updateDecisionContract).toHaveBeenCalledWith('p1', expect.any(Function));
     const updater = mocks.updateDecisionContract.mock.calls[0]?.[1] as
       | ((contract: Project['decision_contract']) => Project['decision_contract'])
@@ -200,6 +206,7 @@ describe('SettlementModal foundation return', () => {
     expect(document.body.textContent).toContain('AI draft · choose for yourself');
     expect(button('It did not happen')).toBeDefined();
     await act(async () => button('It did not happen')!.click());
+    await act(async () => button('Answer one last question')!.click());
     await act(async () => button('I would use a different standard now')!.click());
 
     const onramp = button('Now for real');

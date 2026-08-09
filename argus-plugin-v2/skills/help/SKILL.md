@@ -21,7 +21,9 @@ The default is quiet: just talk about your decision as usual. Argus can capture
 it, offer to save a testable check, and remind you when the check-by date
 arrives. Nothing heavy runs on its own.
 
-Commands (5):
+Commands (6):
+  /argus:loop      turn one stuck decision into a next move, a signal to watch,
+                   and a return condition. The default decision-to-reality loop.
   /argus:review    deep pressure-test of a decision or artifact (PR, file,
                    branch, document) by the full reviewer pipeline.
                    Explicit opt-in only — it never fires by itself.
@@ -49,6 +51,7 @@ Background:
 **Situational routing** — if the user described a situation instead of asking
 for the list, answer with the ONE command that fits, plus one sentence why:
 
+- wants to get unstuck, choose a next move, or design a small test → `/argus:loop "<decision>"`
 - wants a decision/PR/plan pressure-tested by the reviewer team → `/argus:review "<it>"`
 - a reminder fired / "how did that bet go?" / "what should I check now?" → `/argus:check`
 - wants to seal one candidate or seed for later → `/argus:check <id>`

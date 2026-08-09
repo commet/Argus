@@ -805,6 +805,13 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem, fr
 
   return (
     <div className="relative min-h-[calc(100vh-64px)] overflow-hidden">
+      <div
+        hidden
+        aria-hidden="true"
+        dangerouslySetInnerHTML={{
+          __html: '<!-- impeccable:product-schema 1 | surface=workspace | seed=58195e0f | THESIS=Turn one stuck decision into one observable move and a return contract. | OWN-WORLD=A calm decision desk; the input is the work surface and the loop is shown as one continuous sequence. | STORY=Name the decision → choose a move and signal → return with reality → keep the next rule. | FIRST VIEWPORT=Plain promise, loop orientation, one input, one primary action. | FORM=One work surface with a sequence band; no dashboard card grid. | FINISH=Honest copy, focus-visible input, disabled action, responsive sequence, preserved due-return state. -->',
+        }}
+      />
       {/* Top heading rung for the document outline — the shell was built from
           spans + h2s with no h1, so screen-reader heading nav started mid-level.
           Visually hidden; the real orientation stays the on-screen h2 below. */}
@@ -849,13 +856,13 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem, fr
                   mid-step. Same loop, same vocabulary (audit P0 #3). */}
               <div className="mb-5">
                 <h2 className="text-[19px] md:text-[23px] font-semibold text-[var(--text-primary)] leading-tight mb-2.5" style={{ fontFamily: 'var(--font-display)' }}>
-                  {L('요즘 정해야 하는 일, 편하게 적어주세요', 'Tell me what you have to decide')}
+                  {L('막힌 결정을, 오늘 움직일 수 있게', 'Turn a stuck decision into a move you can make today')}
                 </h2>
                 <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5 text-[12.5px] text-[var(--text-tertiary)]">
                   {[
-                    L('읽고 되짚어 드리고', 'I read it back to you'),
-                    L('딱 한 가지를 여쭤보고', 'I ask one thing'),
-                    L('결정과 확인할 날짜를 남겨요', 'You keep your call and a date'),
+                    L('핵심을 잡고', 'Find the crux'),
+                    L('다음 움직임을 정하고', 'Choose the next move'),
+                    L('현실이 답할 때 돌아와요', 'Return when reality answers'),
                   ].map((step, i) => (
                     <React.Fragment key={i}>
                       {i > 0 && <ChevronRight size={11} className="text-[var(--text-tertiary)]/50 shrink-0" />}
@@ -906,34 +913,40 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem, fr
                   is reserved for first-time users (no projects yet). */}
               <div className="mb-3">
                 <label htmlFor="workspace-decision-input" className="block text-[15px] md:text-[16px] font-semibold text-[var(--text-primary)] mb-1.5">
-                  {L('무슨 일인지 적어주세요', 'What is going on?')}
+                  {L('지금 막혀 있는 결정', 'The decision that is stuck')}
                 </label>
                 <p id="workspace-decision-help" className="text-[13px] text-[var(--text-secondary)] mb-2 leading-relaxed">
-                  {L('정리해서 안 쓰셔도 돼요. 말하듯이 적으면 됩니다.', "No need to tidy it up — write it the way you'd say it.")}
+                  {L('맥락이 엉켜 있어도 괜찮아요. 말하듯 적으면 먼저 이해한 내용을 되짚어 드립니다.', "It can be messy. Write it the way you'd say it, and Argus will first reflect what it understood.")}
                 </p>
                 {projects.length === 0 && (
                   <figure
-                    className="relative -mx-2 h-[180px] overflow-hidden rounded-[22px] border border-[var(--border)]/70 bg-[var(--surface)] shadow-[var(--shadow-sm)] md:-mx-16 md:h-[230px]"
-                    aria-label={L('한 줄의 생각이 확인할 항로로 이어지는 해도', 'A chart where one line of thought becomes a course to check')}
+                    className="-mx-2 border-y border-[var(--border)]/80 bg-[var(--surface)]/75 px-4 py-5 md:-mx-10 md:px-8"
+                    aria-label={L('한 결정이 다음 움직임과 현실의 회신으로 이어지는 과정', 'A decision continuing into a next move and reality returning')}
                   >
-                    <Image
-                      src="/images/workspace/decision-course-entry-v1.webp"
-                      alt=""
-                      fill
-                      priority
-                      sizes="(max-width: 768px) 100vw, 800px"
-                      className="object-cover object-[50%_48%]"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-b from-[var(--surface)]/5 via-transparent to-[var(--surface)]/45" aria-hidden />
-                    <figcaption className="absolute left-4 top-4 rounded-full border border-white/30 bg-[#f7efe0]/75 px-3 py-1.5 text-[12px] font-semibold text-[#4a4439] shadow-sm backdrop-blur-sm md:left-5 md:top-5">
-                      {L('한 문장이면 충분해요', 'One sentence is enough')}
+                    <figcaption className="text-[12.5px] font-semibold text-[var(--text-primary)]">
+                      {L('한 문장에서 시작해, 현실이 답할 자리까지 만듭니다', 'Start with one sentence and make a place for reality to answer')}
                     </figcaption>
+                    <ol className="mt-3 grid grid-cols-[1fr_auto_1fr_auto_1fr] items-start gap-2">
+                      {[
+                        [L('오늘', 'Today'), L('다음 움직임', 'Next move')],
+                        [L('확인할 때', 'At check-in'), L('현실의 회신', 'Reality returns')],
+                        [L('그 다음', 'Then'), L('다음 판단', 'Next call')],
+                      ].map(([when, action], index) => (
+                        <React.Fragment key={action}>
+                          {index > 0 && <ChevronRight size={13} aria-hidden className="mt-6 text-[var(--accent)]/65" />}
+                          <li className="min-w-0">
+                            <span className="font-mono text-[11px] uppercase tracking-[0.08em] text-[var(--text-tertiary)]">{when}</span>
+                            <strong className="mt-1 block text-[12.5px] leading-5 text-[var(--text-primary)]">{action}</strong>
+                          </li>
+                        </React.Fragment>
+                      ))}
+                    </ol>
                   </figure>
                 )}
                 {/* PRIMARY input — lifted off the page with a soft shadow + a faint
                     accent border so it reads as THE thing to do, not just one more
                     same-toned card among the demo tiles below. */}
-                <div className={`relative rounded-2xl border border-[var(--accent)]/25 bg-[var(--surface)]/95 overflow-hidden shadow-[var(--shadow-md)] focus-within:border-[var(--accent)]/55 focus-within:shadow-[var(--shadow-lg)] transition-all ${projects.length === 0 ? '-mt-12 mx-2 md:-mt-14 md:mx-0' : ''}`}>
+                <div className={`relative rounded-2xl border border-[var(--accent)]/25 bg-[var(--surface)]/95 overflow-hidden shadow-[var(--shadow-md)] focus-within:border-[var(--accent)]/55 focus-within:shadow-[var(--shadow-lg)] transition-[border-color,box-shadow] ${projects.length === 0 ? 'mx-2 mt-3 md:mx-0' : ''}`}>
                   {justFromDemo && (
                     <div className="px-4 md:px-5 py-2.5 bg-[var(--accent)]/8 border-b border-[var(--accent)]/15 text-[12px] text-[var(--accent)] flex items-center gap-2">
                       <Sparkles size={12} className="shrink-0" />
@@ -946,7 +959,7 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem, fr
                     <textarea ref={inputRef} id="workspace-decision-input" value={problemInput}
                       onChange={(e) => { setProblemInput(e.target.value); if (justFromDemo) setJustFromDemo(false); }}
                       onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSubmit(); } }}
-                      placeholder={L('예: 다음 주까지 보고서를 써야 하는데 어디서 시작해야 할지 모르겠어', "e.g., I need to write a report by next week but don't know where to start")}
+                      placeholder={L('예: 무료 체험을 없앨지 고민인데, 전환율만 보고 결정해도 될지 모르겠어', "e.g., I’m considering removing the free trial, but I’m not sure conversion alone should decide it")}
                       aria-describedby="workspace-decision-help"
                       name="decision-problem"
                       rows={3} maxLength={5000}
@@ -966,7 +979,7 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem, fr
                           (opacity-30) visually erased the page's one next action. */}
                       <Button variant="accent" size="md" onClick={() => { setJustFromDemo(false); handleSubmit(); }} disabled={!problemInput.trim()}
                         className={`shrink-0 min-h-[44px] md:min-h-[40px] ${justFromDemo ? 'animate-pulse' : ''}`}>
-                        {L('시작', 'Start')} <ChevronRight size={12} />
+                        {L('다음 움직임 만들기', 'Build the next move')} <ChevronRight size={12} />
                       </Button>
                     </div>
                   </div>

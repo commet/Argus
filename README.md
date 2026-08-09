@@ -9,7 +9,7 @@ Argus binds a decision to its premises and return condition before fluency — o
 <h1 align="center">Argus</h1>
 
 <p align="center"><strong>Keeping Judgment Human.</strong></p>
-<p align="center">AI took over the execution. Where does your judgment accumulate?</p>
+<p align="center">Turn a decision into movement. Let reality shape the next call.</p>
 
 <p align="center">
   <a href="https://www.npmjs.com/package/argus-decision-mcp"><img src="https://img.shields.io/npm/v/argus-decision-mcp?color=A8842F&label=npm%20%C2%B7%20argus-decision-mcp" alt="npm version"></a>
@@ -27,11 +27,10 @@ Argus binds a decision to its premises and return condition before fluency — o
   <a href="./README.ko.md">한국어</a>
 </p>
 
-Argus records the judgment *behind* a decision — your first words, the premises
-it rests on, **whose wording is whose** (yours vs. the AI's), and what should
-bring it back. The record may be a claim reality can answer, a commitment, a
-standard you chose, or simply a moment worth preserving. Not a better answer: a
-living, append-only record of your calls.
+Argus turns a stuck decision into one observable next move, keeps the words and
+assumptions you actually adopted, and brings the record back when reality can
+answer. The durable output is not another AI answer: it is a closed,
+append-only loop that can improve the next call without scoring the person.
 
 ---
 
@@ -64,9 +63,9 @@ Three doors, one loop. Start with whichever fits.
 |---|---|---|
 | 🌐 **Web app** | Anyone. Nothing to install, no signup. | Open **[argus.voyage](https://argus.voyage)** |
 | 🧩 **MCP server** | Any AI assistant that speaks MCP — Claude Code, Claude Desktop, Codex, Cursor… | `claude mcp add argus -- npx -y argus-decision-mcp`<br><sub>other hosts → [argus-mcp/README.md](./argus-mcp/README.md)</sub> |
-| 🔌 **Claude Code plugin** | Deciding *inside* a codebase, over real PRs and files. | `/plugin marketplace add commet/Argus`<br>`/plugin install argus@argus` |
+| 🔌 **Agent Plugin** | The same loop inside agent hosts; Claude Code also gets the full review suite. | Agent Plugins: install `argus-plugin-v2/`<br>Claude Code: `/plugin marketplace add commet/Argus` then `/plugin install argus@argus` |
 
-<sub>New and not sure? The **web app** needs zero setup. Want Argus in every AI chat? The **MCP server** is the one. (MCP = Model Context Protocol — the open standard assistants use to load tools.) Full setup + tool list in **[argus-mcp/README.md](./argus-mcp/README.md)** and **[argus-plugin-v2/README.md](./argus-plugin-v2/README.md)**.</sub>
+<sub>New and not sure? The **web app** is the durable Decision Desk and needs zero setup. Want Argus inside existing AI work? Use the **MCP server** or portable **Agent Plugin**. Full setup + tool list in **[argus-mcp/README.md](./argus-mcp/README.md)** and **[argus-plugin-v2/README.md](./argus-plugin-v2/README.md)**.</sub>
 
 <sub>**What you need:** the web app needs only a browser. The MCP server and the plugin need **Node.js 18+** on your `PATH` — check with `node --version`, and get it from [nodejs.org](https://nodejs.org) if that prints nothing (20 LTS is the tested version). No API key, no account, no config file: records are local files from the first use.</sub>
 

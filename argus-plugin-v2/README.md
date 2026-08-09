@@ -2,25 +2,27 @@
 
 [**English**](./README.md) | [한국어](./README.ko.md)
 
-Argus is a decision loop for Claude Code.
+Argus is a portable decision-to-reality loop for Agent Plugins hosts, with an
+extended review suite for Claude Code.
 
 It helps you:
 
-1. sharpen what a decision rests on,
-2. confirm the sentence you want to preserve and what should reopen it,
-3. come back to the original and append your answer.
+1. turn a stuck decision into one observable next move,
+2. confirm the sentence and return condition you want to preserve,
+3. record reality before reopening the original, then carry a lesson forward.
 
 ```text
 /plugin marketplace add commet/Argus
 /plugin install argus@argus
 # restart Claude Code, then:
-/argus:review "Should we ...?"
+/argus:loop "Should we ...?"
 ```
 
-After a decision, Argus lets you keep a claim reality can answer, a commitment,
-a chosen standard, or simply the moment as written. A return uses the event or
-fallback date you chose, shows the original first, and records your answer
-without a score or win rate.
+Across Agent Plugins hosts, the portable MCP path durably keeps a falsifiable
+prediction, its check-by, and the user's observed result. Claude Code's extended
+commands can additionally preserve a commitment, chosen standard, or moment as
+written. On the first return Argus collects what happened before revealing the
+old wording, then appends the answer without a score or win rate.
 
 What remains is a Judgment Receipt — your prediction and reality side by side,
 with no grade:
