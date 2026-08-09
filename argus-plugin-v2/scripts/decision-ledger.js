@@ -333,6 +333,12 @@ function loadLedger() {
         }
         break;
       case "seal":
+        // Settled is terminal: a stray seal line after settlement (the pre-guard
+        // record bug, or a hand-written line) must not resurrect the record —
+        // that re-arms the SessionStart nag for a decision the user already
+        // settled. Read-side protection also HEALS ledgers the old bug already
+        // corrupted, which a write-side guard alone cannot do.
+        if (cur && cur.status === "settled") break;
         if (cur) {
           Object.assign(cur, {
             status: "sealed",
@@ -1157,6 +1163,25 @@ function cmdSettle() {
     process.exit(1);
   }
 
+  // Settlement is terminal and irreversible, so it gets the same guard that
+  // wake / correct-kind / revise already have — it was the ONLY writer without
+  // one (2026-08-09 audit). Without this: a typo'd id becomes a ghost
+  // settlement (appended forever, visible nowhere — the reducer's `if (cur)`
+  // filters it), and a model retry double-settles, silently overwriting
+  // outcome/settled_at while journal prints the same return twice.
+  const settleTarget = loadLedger().get(id);
+  if (!settleTarget) {
+    console.error(`${id} is not in the ledger — nothing to settle. Check the id with /argus:history scan --list.`);
+    process.exit(1);
+  }
+  if (settleTarget.status === "settled") {
+    console.error(
+      `${id} is already settled (${String(settleTarget.settled_at || "").slice(0, 10) || "earlier"}) — refusing a second settlement. ` +
+        "A later fact belongs in a new record, not on top of the old one (append-only).",
+    );
+    process.exit(1);
+  }
+
   // Historic calls remain readable, but all new skill writes use the three
   // independent axes below. They are never collapsed into a score or record.
   const rawOutcome = String(flags.outcome || "");
@@ -1178,7 +1203,7 @@ function cmdSettle() {
     process.exit(1);
   }
   if (rawOutcome) {
-    const current = loadLedger().get(id);
+    const current = settleTarget;
     if (current?.kind_evidence) {
       console.error("--outcome is read-compatibility only. New records require --option, independent axes, and --present-standard.");
       process.exit(1);
@@ -1322,6 +1347,35 @@ function cmdRecord() {
   if (flags.author === "ai_surfaced" && !flags["proposal-ref"]) {
     console.error("--proposal-ref is required when the sealed wording began as an AI proposal.");
     process.exit(1);
+  }
+
+  // The id is deterministic (sha256(session|quote)), so a retry hits the same
+  // record — and until 2026-08-09 a rerun appended a second seal that RESURRECTED
+  // a settled record (the reducer's seal case flips status back to "sealed",
+  // so the SessionStart hook nags about a decision the user already settled).
+  // Rerun must be safe because preapprove.md advertises it as the recovery path:
+  //  · same wording, still sealed  → idempotent success, zero new lines
+  //  · already settled             → refuse (terminal state is not reopenable)
+  //  · dismissed                   → refuse (a silent re-seal would undo the user's "no")
+  //  · sealed with other wording   → refuse (overwrite needs amend, not record)
+  const existingRecord = loadLedger().get(id);
+  if (existingRecord) {
+    if (existingRecord.status === "settled") {
+      console.error(`${id} is already settled — a settled record cannot be re-sealed (append-only). Record a new decision under a new id.`);
+      process.exit(1);
+    }
+    if (existingRecord.status === "dismissed") {
+      console.error(`${id} was dismissed by the user — refusing to re-seal it silently. Record a new decision under a new id if it is back on the table.`);
+      process.exit(1);
+    }
+    if (existingRecord.status === "sealed") {
+      if ((existingRecord.predicate || "") === predicate) {
+        console.log(`Recorded ${id} (already sealed with the same wording — rerun is safe, nothing new was appended).`);
+        return;
+      }
+      console.error(`${id} is already sealed with different wording — refusing to overwrite. Use amend ${id}, or record a new id.`);
+      process.exit(1);
+    }
   }
   const harvest = {
     event: "harvest",

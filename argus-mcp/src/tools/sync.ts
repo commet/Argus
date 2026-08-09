@@ -124,7 +124,7 @@ export const sync: ToolModule = {
         return toolError({
           ok: false, tool: 'argus_sync', error_code: 'NOT_CONNECTED',
           message: 'This terminal is not connected to an Argus account.',
-          recovery: 'Run `npx argus-decision-mcp connect` in a terminal — one browser approve and you are done (plugin users: /argus:connect). For CI, issue a token in the web app (Settings, sync token) and set ARGUS_TOKEN instead.',
+          recovery: 'Run `npx argus-decision-mcp connect` in a terminal — one browser approve and you are done (plugin users: /argus:settings connect). For CI, issue a token in the web app (Settings, sync token) and set ARGUS_TOKEN instead.',
         });
       }
       // An expired / unreadable connection is NOT "never connected" and not a
@@ -137,7 +137,7 @@ export const sync: ToolModule = {
           message: pull.reason === 'credential_expired'
             ? 'The account connection for this terminal has expired, so recent seals and settles have not been reaching your account.'
             : 'The stored account connection could not be read, so recent seals and settles have not been reaching your account.',
-          recovery: 'Reconnect by running `npx argus-decision-mcp connect` in a terminal (plugin users: /argus:connect). Nothing local was lost: every decision is intact in the ledger here, and running argus_settings action="sync" afterwards pushes the backlog up.',
+          recovery: 'Reconnect by running `npx argus-decision-mcp connect` in a terminal (plugin users: /argus:settings connect). Nothing local was lost: every decision is intact in the ledger here, and running argus_settings action="sync" afterwards pushes the backlog up.',
         });
       }
       if (!pull.ok) {

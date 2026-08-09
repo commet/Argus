@@ -44,7 +44,14 @@ Keep sealed, non-`witness` records whose ISO `check_by` is today or earlier.
 Do not auto-import an unsealed `current_bearing.json` seed. A seed is an AI
 proposal, not a human-authorized record.
 
-Sort oldest first and handle at most three. If none are due, say:
+Sort oldest first and handle at most three. If MORE than three are due, say so
+before starting — e.g. `{{n}} records are due; taking the three oldest first,
+{{n-3}} remain for the next /argus:check.` — and repeat the remaining count in
+the §6 report. Handling three of ten while sounding finished is a silent cap;
+the user walks away believing settlement is done. (premises.md's "note if more"
+is the same rule.)
+
+If none are due, say:
 
 `No records are due. Next check: {{date or "none"}}.`
 

@@ -686,6 +686,17 @@ async function opResolve(
     }
     const content = got.kind === 'accepted' ? got.content : null;
     decision = typeof content?.['decision'] === 'string' ? (content['decision'] as string).trim() : '';
+    // Picker input lands after zod ran — enforce the schema's cap here too, and
+    // hand the user's own words back instead of making them retype (same rule
+    // as seal.ts reword and settle.ts what_happened).
+    if (decision.length > 400) {
+      return toolError({
+        ok: false, tool: 'argus_premises', error_code: 'RESOLVE_NEEDS_DECISION',
+        message: 'The closing call is too long for the record (max 400 chars).',
+        recovery: 'data.user_input.decision below is what the user just typed. Offer it back trimmed to the load-bearing sentence, confirm, then call op="resolve" again.',
+        data: { id, ref: `P${premise.ordinal}`, user_input: { decision }, retry_hint: 'trim data.user_input.decision to <=400 chars with the user, then call again' },
+      });
+    }
   }
   if (!decision) {
     return toolError({

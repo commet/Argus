@@ -216,6 +216,15 @@ export function replayLedger(argusDir: string, today: string): LedgerState {
 
       case 'seal': {
         if (!cur) { cur = freshEntry(id); map.set(id, cur); } // B1: self-create instead of drop
+        // Settled is terminal. A stray seal line after settlement (a buggy
+        // writer, or a hand-edited ledger) must not flip the record back to
+        // "sealed" — that re-arms due nags for a decision reality already
+        // answered. Read-side protection also heals ledgers a past writer
+        // corrupted, which write guards alone cannot do.
+        if (cur.status === 'settled') {
+          if (typeof ev['predicate'] === 'string') sealedPredicates.add(ev['predicate']);
+          break;
+        }
         if (typeof ev['predicate'] === 'string') {
           sealedPredicates.add(ev['predicate']);
           cur.predicate = ev['predicate'];

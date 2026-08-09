@@ -413,6 +413,32 @@ t("alert turned off → silence", () => {
   assert(run(r) === "", "explicitly muted premise must be silent");
 });
 
+// 2026-08-09 journey audit: the premise workflow derives deterministic ids
+// (item_{decision}_q{n}), so re-running it re-adds the same id — and a re-add
+// used to RESET dismissal back-off, alert mode, and even an `edit reject`
+// retirement. The user's "stop asking" must survive a re-add (first add wins,
+// mirroring argus-mcp ledger-replay's idempotent re-add).
+t("re-add after dismissal back-off → still silent (no reset)", () => {
+  const r = repo();
+  items(r, [
+    premise("item_p1"),
+    { event: "dismiss", id: "item_p1" },
+    { event: "dismiss", id: "item_p1" },
+    premise("item_p1"), // 워크플로 재실행이 같은 id 를 다시 add
+  ]);
+  assert(run(r) === "", "a re-added premise must keep the user's back-off");
+});
+
+t("re-add after edit-reject retirement → still silent (no resurrection)", () => {
+  const r = repo();
+  items(r, [
+    premise("item_p1"),
+    { event: "edit", id: "item_p1", action: "reject" },
+    premise("item_p1"),
+  ]);
+  assert(run(r) === "", "a retired premise must stay retired through a re-add");
+});
+
 t("rejected premise → silence", () => {
   const r = repo();
   items(r, [premise("item_p1"), { event: "edit", id: "item_p1", action: "reject" }]);

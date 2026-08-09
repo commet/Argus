@@ -275,6 +275,13 @@ function duePremises(argusDir, today) {
     switch (ev.event) {
       case "extract":
       case "add": {
+        // Idempotent re-add (mirrors argus-mcp ledger-replay.ts). The premise
+        // workflow derives deterministic ids (item_{decision}_q{n}), so a
+        // re-run re-adds the same id — and until 2026-08-09 that RESET the
+        // user's accumulated state: dismissal backoff, alert mode, recheck
+        // history, even an explicit `edit reject` retirement all silently
+        // came back to life. The first add wins; the user's "stop asking" stays.
+        if (cur) break;
         const external = ev.external === true;
         const load = ev.load_bearing === true;
         // Mirror decision-items.ts defaultAlertMode: only a load-bearing external

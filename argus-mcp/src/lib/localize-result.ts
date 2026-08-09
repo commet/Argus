@@ -64,6 +64,7 @@ const KO_ERRORS: Record<string, ErrorCopy> = {
   SYNC_FAILED: { message: 'Argus 계정과 동기화하지 못했습니다.', recovery: '네트워크와 ARGUS_API_URL을 확인한 뒤 다시 시도하세요. 로컬 기록은 영향을 받지 않습니다.' },
   TEXT_REQUIRED: { message: '기록할 문장이 필요합니다.', recovery: '사용자의 문장을 고치거나 요약하지 말고 그대로 text에 전달하세요.' },
   SEAL_INVALID: { message: '다시 쓴 예측 문장의 길이가 맞지 않습니다 (8~400자).', recovery: '사용자에게 예측 문장을 8~400자로 다시 물어 그대로 저장하세요.' },
+  SETTLE_INVALID: { message: '무슨 일이 있었는지가 기록 상한(600자)을 넘습니다.', recovery: 'data.user_input.what_happened 가 사용자가 방금 쓴 문장입니다. 다시 타이핑시키지 말고, 하중이 실린 대목만 600자 이내로 줄여 확인받은 뒤 outcome 과 함께 다시 부르세요.' },
   INTERNAL_ERROR: { message: '내부 오류가 발생했습니다.', recovery: '같은 작업을 다시 시도하세요. 반복되면 MCP 서버 로그를 확인하세요.' },
   UNKNOWN_TOOL: { message: '알 수 없는 도구입니다.', recovery: 'tools/list에 나온 정확한 도구 이름을 사용하세요.' },
 };

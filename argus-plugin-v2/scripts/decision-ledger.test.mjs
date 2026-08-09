@@ -302,5 +302,56 @@ function itemsLines(cwd) {
   rmSync(p, { recursive: true, force: true });
 }
 
+// --- 2026-08-09 journey-audit guards: settlement is terminal ------------------
+// settle was the ONLY writer without an existence/state guard (wake, revise,
+// correct-kind all had one) — a typo'd id became a ghost settlement the reducer
+// filters forever, a retry double-settled and silently overwrote outcome, and a
+// record rerun RESURRECTED a settled decision (seal flips status back), which
+// re-armed the SessionStart nag for something the user already answered.
+{
+  const p = freshProject();
+  const SETTLE_ARGS = [
+    '--option', 'condition_met', '--response', 'It held',
+    '--reality', 'met', '--question-validity', 'valid',
+    '--present-standard', 'same', '--present-standard-response', 'Same',
+    ...AUTH,
+  ];
+
+  const ghost = run(p, ['settle', 'no-such-id', ...SETTLE_ARGS]);
+  ok('settle refuses an unknown id (ghost settlement)', ghost.status !== 0);
+  ok('ghost settle appends nothing', !existsSync(join(p, '.argus', 'ledger', 'ledger.jsonl')));
+
+  run(p, ['record', '--predicate', 'terminal guard sentence', '--id', 'g1', '--check-by', '2099-01-01', ...AUTH]);
+  ok('first settle succeeds', run(p, ['settle', 'g1', ...SETTLE_ARGS]).status === 0);
+  const dbl = run(p, ['settle', 'g1', ...SETTLE_ARGS]);
+  ok('second settle refused (double settlement overwrites outcome)', dbl.status !== 0);
+  ok('double settle appends nothing new', ledgerLines(p).filter((e) => e.event === 'settle').length === 1);
+
+  const reseal = run(p, ['record', '--predicate', 'terminal guard sentence', '--id', 'g1', '--check-by', '2099-01-01', ...AUTH]);
+  ok('record refuses to re-seal a settled id (no resurrection)', reseal.status !== 0);
+
+  // Read-side heal: a stray seal line that an OLD writer already appended after
+  // settlement must not flip the record back to sealed on replay.
+  const ledgerPath = join(p, '.argus', 'ledger', 'ledger.jsonl');
+  writeFileSync(ledgerPath, readFileSync(ledgerPath, 'utf8')
+    + JSON.stringify({ event: 'seal', id: 'g1', predicate: 'terminal guard sentence', check_by: '2099-01-01', at: new Date().toISOString() }) + '\n');
+  const sealedList = run(p, ['list', '--status', 'sealed']);
+  ok('stray seal after settle does not resurrect the record (read-side heal)', !sealedList.stdout.includes('g1'));
+  rmSync(p, { recursive: true, force: true });
+}
+
+// --- record rerun is exactly as safe as preapprove.md advertises --------------
+{
+  const p = freshProject();
+  run(p, ['record', '--predicate', 'idempotent sentence', '--id', 'g2', '--check-by', '2099-01-01', ...AUTH]);
+  const before = ledgerLines(p).length;
+  const rerun = run(p, ['record', '--predicate', 'idempotent sentence', '--id', 'g2', '--check-by', '2099-01-01', ...AUTH]);
+  ok('record rerun with the same wording is an idempotent success', rerun.status === 0);
+  ok('idempotent rerun appends nothing', ledgerLines(p).length === before);
+  const overwrite = run(p, ['record', '--predicate', 'a different sentence entirely', '--id', 'g2', '--check-by', '2099-01-01', ...AUTH]);
+  ok('record refuses a silent overwrite with different wording', overwrite.status !== 0);
+  rmSync(p, { recursive: true, force: true });
+}
+
 console.log(`\ndecision-ledger.test: ${pass} passed, ${fail} failed`);
 process.exit(fail === 0 ? 0 : 1);

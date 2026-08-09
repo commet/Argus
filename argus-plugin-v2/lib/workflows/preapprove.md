@@ -121,8 +121,12 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/decision-ledger.js" record \
   **AI 초안**이고, 사용자의 "네"는 기록 승인이지 그 문장을 자기 말로 삼은 게
   아니다. author 부재가 정직한 AI-경로 출처 표시이며(`author:"user"`는 사용자가
   직접 쓴 문장 전용), 초안 계보는 `--proposal-ref`가 싣는다.
-- **쓰기 검증**: 명령 성공 후 `/argus:check --list`(또는 `status`)로 방금 봉인이
-  잡히는지 확인. 실패했다면 다시 실행 — CLI는 append-only라 재실행이 안전하다.
+- **쓰기 검증**: 명령 성공 후 `node decision-ledger.js journal` 출력에 방금 봉인한
+  id가 있는지 확인. (`/argus:check --list`는 **후보(candidate)만** 보여주므로
+  `record`로 이미 봉인된 항목은 절대 나오지 않는다 — 그 경로로 검증하면 항상
+  실패로 읽힌다. 2026-08-09 감사에서 실증.) 정말 실패했다면 같은 명령을 다시
+  실행 — `record`는 같은 문장에 대해 멱등이라(이미 봉인돼 있으면 아무것도
+  덧붙이지 않고 성공을 알린다) 재실행이 안전하다.
 - `.argus/ledger/` 생성 시 `.argus/.gitignore`에 `ledger/` 줄이 있는지 확인하고
   없으면 추가 (sail Step 0 프라이버시 기본값 — preapprove이 판단 기록을 처음 만드는
   경우도 있으므로 여기서도 보장한다).
