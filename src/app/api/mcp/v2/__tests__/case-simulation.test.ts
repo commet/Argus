@@ -350,7 +350,31 @@ describe('여정: 돌아올 것이 상한보다 많을 때', () => {
   });
 });
 
-// ── 여정 6 · 입력 상한 — 자르지 않고 거절한다 ────────────────────────────
+// ── 여정 6 · 정산된 결정은 최근성에 밀려나지 않는다 ──────────────────────
+//
+// 목록은 "정산된 것 먼저"를 약속하는데, 라운드 3 전에는 **최근 갱신순 상위
+// limit 건을 먼저 뽑은 뒤에** 정산/미정산을 나눴다 — 열린 결정이 limit 개를
+// 넘는 순간 정산된 결정(이 제품이 범용 AI와 구분되는 유일한 것)이 목록에서
+// 통째로 사라졌다.
+describe('여정: 열린 결정이 많아도 정산 기록은 보인다', () => {
+  it('open 케이스 12건 뒤에서도 정산된 케이스가 목록에 나온다', async () => {
+    // 정산된 케이스 하나를 먼저 만든다.
+    const settled = await openAdopted('작년 가격 인상 결정');
+    await handleReturn(U, { caseId: settled, observation: '이탈 없이 매출 12% 증가' });
+    await handleReturn(U, { caseId: settled, recall: '수요가 비탄력적이라 봤다' });
+
+    // 그 위에 열린 결정 12건을 쌓는다 (전부 더 최근).
+    for (let i = 0; i < 12; i += 1) {
+      await handleOpen(U, { utterance: `신규 검토 ${i} — 채용을 할지 말지`, userInvoked: true });
+    }
+
+    const list = await handleRecall(U, {}); // 기본 limit 10
+    expect(text(list)).toContain('현실이 답을 준 결정');
+    expect(text(list)).toContain('이탈 없이 매출 12% 증가');
+  });
+});
+
+// ── 여정 7 · 입력 상한 — 자르지 않고 거절한다 ────────────────────────────
 //
 // MCP 입력은 폼이 아니라 모델이 만든다: maxLength 를 강제할 브라우저가 없다.
 // 상한 없는 자유 텍스트는 원장(payload jsonb)을 무한히 불릴 수 있다. 자료
@@ -369,5 +393,41 @@ describe('여정: 비대한 입력', () => {
     const r = await handleReturn(U, { caseId, observation: 'ㅇ'.repeat(20_000) });
     expect(isErr(r)).toBe(true);
     expect((events.get(caseId) ?? []).length).toBe(before);
+  });
+
+  it('목록 입력도 상한이 있다 — 25건짜리 values 는 거절되고 케이스는 멀쩡하다', async () => {
+    const opened = await handleOpen(U, { utterance: '가격을 올릴까', userInvoked: true });
+    const caseId = caseIdOf(opened);
+    const r = await handleAdopt(U, {
+      caseId,
+      choiceOrPolicy: '올린다',
+      values: Array.from({ length: 25 }, (_, i) => `가치 ${i}`),
+    });
+    expect(isErr(r)).toBe(true);
+    expect(text(r)).toContain('상한');
+    // 거절 뒤 정상 채택은 그대로 된다.
+    const retry = await handleAdopt(U, { caseId, choiceOrPolicy: '올린다', values: ['지속가능성'] });
+    expect(isErr(retry)).toBe(false);
+  });
+
+  it('계획 단계 문장도 상한이 있다 — 귀환 큐와 이메일까지 흐르기 때문', async () => {
+    const caseId = await openAdopted();
+    const r = await handlePlan(U, {
+      caseId,
+      steps: [{ what: 'ㅎ'.repeat(2_000), kind: 'execute', byOrWhen: '내일' }],
+    });
+    expect(isErr(r)).toBe(true);
+    expect(text(r)).toContain('상한');
+  });
+
+  it('음수 horizonDays 는 조용히 저장되지 않고 이유가 돌아온다', async () => {
+    const caseId = await openAdopted();
+    const r = await handlePlan(U, {
+      caseId,
+      horizonDays: -5,
+      steps: [{ what: '페이지 갱신', kind: 'execute', byOrWhen: '내일' }],
+    });
+    expect(isErr(r)).toBe(true);
+    expect(text(r)).toContain('양수');
   });
 });

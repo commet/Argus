@@ -138,6 +138,31 @@ function refuseOversize(fields: Record<string, string>): ReturnType<typeof toolT
   return null;
 }
 
+// 목록 입력의 상한 — 같은 규율. 항목 수와 항목 길이 둘 다 본다: 25개짜리 가치
+// 목록이나 5천 자짜리 이유 하나가 append-only 원장에 박히면 지울 수 없다.
+function refuseOversizeList(
+  label: string,
+  items: readonly string[],
+  maxItems = 20,
+  maxItemLen = 1000,
+): ReturnType<typeof toolText> | null {
+  if (items.length > maxItems) {
+    return toolText(
+      `${label}이(가) ${items.length}건으로 상한(${maxItems}건)을 넘습니다. 하중이 실린 것만 남겨 다시 보내주십시오.`,
+      true,
+    );
+  }
+  const over = items.find((s) => s.length > maxItemLen);
+  if (over) {
+    return toolText(
+      `${label}의 항목 하나가 ${over.length}자로 상한(${maxItemLen}자)을 넘습니다. ` +
+        '자르면 기록이 왜곡되므로 자르지 않고 거절합니다 — 요지만 남겨 다시 보내주십시오.',
+      true,
+    );
+  }
+  return null;
+}
+
 const STAKES_WEIGHTS: StakesWeight[] = ['minor', 'significant', 'major'];
 const REVERSIBILITIES: Reversibility[] = ['reversible', 'costly', 'one_way'];
 const CONFIDENCES: BeliefConfidence[] = ['confident', 'uncertain', 'contested'];
@@ -233,7 +258,9 @@ export function readMaterials(v: unknown): MaterialRead {
     const kind = (MATERIAL_KINDS as readonly string[]).includes(str(o.kind))
       ? (str(o.kind) as MaterialKind)
       : 'document';
-    parsed.push({ title: title.slice(0, 120), kind, excerpt, ...(str(o.whyRelevant) ? { whyRelevant: str(o.whyRelevant) } : {}) });
+    // whyRelevant 는 모델이 쓴 한 문장 gloss 다 — 인용(절단 금지)이 아니므로
+    // 300자에서 자른다. 인용의 규율(excerpt: 거절)과 다른 이유가 여기 있다.
+    parsed.push({ title: title.slice(0, 120), kind, excerpt, ...(str(o.whyRelevant) ? { whyRelevant: str(o.whyRelevant).slice(0, 300) } : {}) });
   }
   const accepted = parsed.slice(0, MATERIAL_MAX_COUNT);
   return { accepted, droppedLong, droppedMalformed, droppedOverCap: parsed.length - accepted.length };
@@ -301,13 +328,18 @@ export async function handleOpen(userId: string, args: Args) {
     );
   }
 
-  const caseId = newCaseId();
-  const engine = await loadEngine(userId, caseId);
-  engine.recordUtterance(utterance, now());
-
   const lean = str(args.lean);
   const reasons = strArr(args.statedReasons);
   const alternatives = strArr(args.consideredAlternatives);
+  const oversizeMore =
+    refuseOversize({ lean }) ||
+    refuseOversizeList('statedReasons', reasons) ||
+    refuseOversizeList('consideredAlternatives', alternatives);
+  if (oversizeMore) return oversizeMore;
+
+  const caseId = newCaseId();
+  const engine = await loadEngine(userId, caseId);
+  engine.recordUtterance(utterance, now());
   if (lean || reasons.length > 0 || alternatives.length > 0) {
     engine.recordBaseline({ lean: lean || 'none_stated', statedReasons: reasons, consideredAlternatives: alternatives }, now());
   } else {
@@ -538,6 +570,13 @@ export async function handleAdopt(userId: string, args: Args) {
     rejected && str(rejected.alternative)
       ? { alternative: str(rejected.alternative), reason: str(rejected.reason) || '이유가 기록되지 않음' }
       : undefined;
+  const oversizeLists =
+    refuseOversizeList('values', values) ||
+    refuseOversizeList('materialBeliefs', materialBeliefs.map((b) => b.belief)) ||
+    (rejectedAlternative
+      ? refuseOversize({ rejectedAlternative: rejectedAlternative.alternative, rejectedReason: rejectedAlternative.reason })
+      : null);
+  if (oversizeLists) return oversizeLists;
 
   const adoptedState = (['decide', 'test', 'research', 'defer', 'reframe', 'stop'] as const).includes(
     str(args.adoptedState) as 'decide',
@@ -665,6 +704,13 @@ export async function handlePlan(userId: string, args: Args) {
       };
     }),
   };
+
+  // 단계 문장은 귀환 큐(from_step)와 이메일 문안까지 흐른다 — 상한을 여기서 잡는다.
+  const oversizePlan =
+    refuseOversizeList('계획 단계(what)', plan.steps.map((s) => s.what), 20, 500) ||
+    refuseOversizeList('계획 단계(byOrWhen)', plan.steps.map((s) => s.byOrWhen), 20, 500) ||
+    refuseOversizeList('openQuestions', plan.openQuestions, 20, 500);
+  if (oversizePlan) return oversizePlan;
 
   const engine = await loadEngine(userId, caseId);
   const known = await knownEventIds(userId, caseId);
@@ -993,8 +1039,13 @@ export async function handleRecall(userId: string, args: Args) {
   const query = str(args.query);
   // query는 선언만 하고 버리면 모델이 걸러졌다고 믿는다 — 유령 파라미터는
   // "그럴듯함이 맞음으로 위장"하는 전형이다. 실제로 거르고, 걸렀다고 말한다.
+  //
+  // 목록도 항상 풀에서 뽑는다. 최근 갱신순 상위 limit 건을 먼저 뽑고 나서
+  // 정산/미정산을 나누면, 열린 결정이 limit 개를 넘는 순간 정산된 결정 —
+  // 이 목록의 존재 이유 — 이 통째로 사라진다 (2026-08-09 라운드 3 시뮬레이션
+  // 에서 실증). "정산된 것 먼저"는 표시 순서가 아니라 **자리 배정**의 약속이다.
   const SEARCH_POOL = 100;
-  const all = await listCases(userId, query ? SEARCH_POOL : limit);
+  const all = await listCases(userId, SEARCH_POOL);
   // 검색 모수도 정직하게 — 풀이 상한에 닿았으면 "전체"가 아니라 "최근 N건"이다.
   const poolLabel = all.length >= SEARCH_POOL ? `최근 ${SEARCH_POOL}건` : `전체 ${all.length}건`;
   const needle = query.toLowerCase();
@@ -1003,9 +1054,8 @@ export async function handleRecall(userId: string, args: Args) {
         [c.title ?? c.id, c.choice ?? '', c.last_observation ?? ''].some((f) => f.toLowerCase().includes(needle)),
       )
     : all;
-  const cases = matches.slice(0, limit);
 
-  if (cases.length === 0) {
+  if (matches.length === 0) {
     return ok(
       userId,
       query
@@ -1014,22 +1064,24 @@ export async function handleRecall(userId: string, args: Args) {
     );
   }
 
-  // 정산된 것을 먼저 보여준다. 이 목록에서 가치가 있는 것은 "무엇을 정했나"가
+  // 정산된 것에 자리를 먼저 준다. 이 목록에서 가치가 있는 것은 "무엇을 정했나"가
   // 아니라 "무엇이 실제로 일어났나"이기 때문이다.
-  const settled = cases.filter((c) => c.settled_at);
-  const open = cases.filter((c) => !c.settled_at);
+  const settledAll = matches.filter((c) => c.settled_at);
+  const openAll = matches.filter((c) => !c.settled_at);
+  const settled = settledAll.slice(0, limit);
+  const open = openAll.slice(0, Math.max(0, limit - settled.length));
   const parts: string[] = [];
   if (query) {
     // 조용한 절삭 금지: 몇 건이 걸렸고 그중 몇 건을 보여주는지 밝힌다.
     parts.push(
       `"${query}"로 거른 지난 결정 ${matches.length}건 (기록 ${poolLabel})` +
-        (cases.length < matches.length ? ` — 최근 ${cases.length}건만 표시합니다.` : ''),
+        (settled.length + open.length < matches.length ? ` — ${settled.length + open.length}건만 표시합니다.` : ''),
     );
   }
 
   if (settled.length > 0) {
     parts.push(
-      `현실이 답을 준 결정 ${settled.length}건:\n` +
+      `현실이 답을 준 결정 ${settledAll.length}건${settled.length < settledAll.length ? ` (최근 ${settled.length}건 표시)` : ''}:\n` +
         settled
           .map((c) => `· ${c.title ?? c.id} → 실제로: "${c.last_observation}" (${c.settled_at!.slice(0, 10)}, id: ${c.id})`)
           .join('\n'),
@@ -1037,9 +1089,13 @@ export async function handleRecall(userId: string, args: Args) {
   }
   if (open.length > 0) {
     parts.push(
-      `아직 정산되지 않은 결정 ${open.length}건:\n` +
+      `아직 정산되지 않은 결정 ${openAll.length}건${open.length < openAll.length ? ` (최근 ${open.length}건 표시)` : ''}:\n` +
         open.map((c) => `· ${c.title ?? c.id} — ${c.state} (${c.updated_at.slice(0, 10)}, id: ${c.id})`).join('\n'),
     );
+  } else if (openAll.length > 0) {
+    // 반대 방향의 조용한 절삭도 금지 — 정산이 창을 다 채워 열린 결정이 밀렸으면
+    // 밀렸다고 말한다.
+    parts.push(`아직 정산되지 않은 결정 ${openAll.length}건은 표시 공간이 차서 생략했습니다 — limit 을 늘리면 보입니다.`);
   }
   if (settled.length > 0) {
     parts.push('한 건을 자세히 보려면 caseId 와 함께 다시 부르십시오 — 그때의 가정과 실제가 나란히 나옵니다.');
