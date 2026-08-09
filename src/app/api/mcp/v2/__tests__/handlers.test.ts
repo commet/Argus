@@ -418,6 +418,33 @@ describe('argus_return — 순서가 규칙이다', () => {
     expect(events.get(id)!.some((e) => e.type === 'recall_probe_answer')).toBe(false);
   });
 
+  it('계획 없이 채택만 한 결정도 정산할 수 있다 — "이미 정산 끝"이라는 거짓말 금지', async () => {
+    // 귀환이 무장된 적 없는 케이스(계획·귀환 계약 없이 채택만)를 activeReturn
+    // 부재만 보고 "이미 정산이 끝났습니다"로 돌려보내면, 그 케이스는 영영 정산
+    // 불가가 된다 (2026-08-09 프로덕션 도그푸드 2회차에서 실제로 걸림).
+    const id = await openCase();
+    await handleAdopt(U, { caseId: id, choiceOrPolicy: '10% 인상' });
+    const first = await handleReturn(U, { caseId: id, observation: '이탈률 3%였다' });
+    expect(text(first)).not.toContain('이미 정산이 끝났습니다');
+    expect(text(first)).toContain('왜 그렇게 정했는지');
+    const res = await handleReturn(U, { caseId: id, recall: '마진 때문이었다' });
+    expect(isErr(res)).toBe(false);
+    expect(text(res)).toContain('10% 인상');
+    expect(events.get(id)!.some((e) => e.type === 'record_revealed')).toBe(true);
+    expect(events.get(id)!.some((e) => e.type === 'return_closed')).toBe(false); // 닫을 귀환이 없었다
+    expect(cases.get(id)?.settled_at).toBeTruthy(); // 정산 투영이 남았다 — recall 이 말할 수 있다
+  });
+
+  it('기록이 공개된 뒤에는 귀환 유무와 무관하게 나중 사실만 덧붙는다', async () => {
+    const id = await openCase();
+    await handleAdopt(U, { caseId: id, choiceOrPolicy: '10% 인상' });
+    await handleReturn(U, { caseId: id, observation: '이탈률 3%였다' });
+    await handleReturn(U, { caseId: id, recall: '마진 때문이었다' });
+    const res = await handleReturn(U, { caseId: id, observation: '한 달 뒤 이탈률이 4%로 올랐다' });
+    expect(text(res)).toContain('나중 사실로 덧붙였습니다');
+    expect(events.get(id)!.filter((e) => e.type === 'recall_probe_answer').length).toBe(1);
+  });
+
   it('기록이 열린 뒤의 회상은 다시 받지 않는다 — 오염된 기억이기 때문', async () => {
     const id = await plannedCase();
     await handleReturn(U, { caseId: id, observation: 'o' });

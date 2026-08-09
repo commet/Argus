@@ -667,10 +667,22 @@ export async function handleReturn(userId: string, args: Args) {
   const recordObservation = () =>
     engine.recordObservation(observation, args.relayed === true ? 'relayed' : 'direct', observedAt, now());
 
-  // 이미 정산이 끝난 결정(활성 귀환 없음). 나중 사실은 덧붙지만(§AUTHORITY),
-  // 회상 탐침과 기록 열기는 **다시 하지 않는다** — 정산된 결정을 다시 여는 것은
-  // 과발화이고, 결과를 본 뒤의 기억은 더 이상 오염되지 않은 기억이 아니다.
-  if (!state.activeReturn) {
+  // 이미 정산이 끝난 결정(기록이 공개된 적 있고, 기다리는 귀환도 없음). 나중
+  // 사실은 덧붙지만(§AUTHORITY), 회상 탐침과 기록 열기는 **다시 하지 않는다** —
+  // 정산된 결정을 다시 여는 것은 과발화이고, 결과를 본 뒤의 기억은 더 이상
+  // 오염되지 않은 기억이 아니다.
+  //
+  // 판정 기준 둘 다 필요하다:
+  // · activeReturn 부재만 보면 안 된다 — 계획도 귀환 계약도 없이 채택만 한
+  //   케이스는 activeReturn 이 처음부터 없는데, 그것을 "이미 정산 끝"으로 읽으면
+  //   거짓말이고(정산은 시작도 안 했다) 그 케이스는 영영 정산 불가가 된다
+  //   (2026-08-09 프로덕션 도그푸드 2회차에서 실제로 걸림).
+  // · fold 의 recordRevealed 만 봐도 안 된다 — return_closed 가 다음 연쇄
+  //   사이클을 위해 그 플래그를 **리셋한다** (reducer §7.2). 정산된 적 있는지는
+  //   원장의 record_revealed 이벤트 실존으로 본다.
+  // activeReturn 이 살아 있으면(연쇄 귀환의 다음 사이클 포함) 정상 흐름이다.
+  const everRevealed = engine.ledger.forCase(caseId).some((e) => e.type === 'record_revealed');
+  if (!state.activeReturn && everRevealed) {
     if (!observation) {
       return toolText(
         '이 결정은 이미 정산이 끝났습니다 (기다리는 귀환이 없습니다). ' +
