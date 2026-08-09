@@ -54,14 +54,7 @@ export async function GET(req: NextRequest) {
     .limit(200);
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  if (!due || due.length === 0) {
-    // due 0건이어도 실행 사실은 남긴다 — 안 남기면 "스케줄러 고장"과
-    // "돌았는데 할 일 없음"이 텔레메트리에서 영원히 구분되지 않는다.
-    await persistServerEvent('argus_return_cron_run', { sent: 0, deferred: 0, failed: 0, due_total: 0 }, {
-      path: '/api/cron/argus-returns',
-    });
-    return NextResponse.json({ sent: 0, skipped: 0 });
-  }
+  if (!due || due.length === 0) return NextResponse.json({ sent: 0, skipped: 0 });
 
   // 사용자별 하루 예산. 넘는 것은 건드리지 않고 남긴다 — 다음 날 다시 만기다.
   const perUser = new Map<string, number>();

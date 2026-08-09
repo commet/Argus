@@ -82,7 +82,6 @@ vi.mock('resend', () => ({
 vi.mock('@/lib/server-events', () => ({ persistServerEvent: vi.fn(() => Promise.resolve()) }));
 
 import { NextRequest } from 'next/server';
-import { persistServerEvent } from '@/lib/server-events';
 import { GET } from '../route';
 
 const SECRET = 'test-cron-secret';
@@ -111,7 +110,6 @@ beforeEach(() => {
   caseSelects.length = 0;
   dueRows = [];
   userEmails = { 'user-1': 'founder@example.com' };
-  vi.mocked(persistServerEvent).mockClear();
   process.env.CRON_SECRET = SECRET;
   process.env.RESEND_API_KEY = 'rk';
   process.env.SUPABASE_SERVICE_ROLE_KEY = 'sk';
@@ -182,17 +180,9 @@ describe('GET /api/cron/argus-returns', () => {
     expect(statusUpdates).toHaveLength(0); // 못 보냈으면 armed 로 남아 다음에 재시도
   });
 
-  it('만기가 없으면 안 보내되, 실행 사실은 이벤트로 남긴다', async () => {
+  it('만기가 없으면 아무것도 안 보내고 조용히 끝난다', async () => {
     const res = await GET(req(`Bearer ${SECRET}`));
     expect(await res.json()).toMatchObject({ sent: 0 });
     expect(sentMails).toHaveLength(0);
-    // due 0건의 실행도 argus_return_cron_run 을 남겨야 한다 — 안 남기면
-    // "스케줄러 고장"과 "할 일 없음"이 텔레메트리에서 구분되지 않는다.
-    // (실제로 8/7–8/9 사흘간 이벤트 0건이 크론 고장으로 오진될 뻔했다.)
-    expect(vi.mocked(persistServerEvent)).toHaveBeenCalledWith(
-      'argus_return_cron_run',
-      expect.objectContaining({ due_total: 0 }),
-      expect.objectContaining({ path: '/api/cron/argus-returns' }),
-    );
   });
 });
