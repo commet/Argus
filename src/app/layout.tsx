@@ -19,17 +19,17 @@ type Lang = 'ko' | 'en';
 
 const META_STRINGS: Record<Lang, { title: string; description: string; descriptionShort: string; descriptionTwitter: string; ogLocale: string }> = {
   ko: {
-    title: 'Argus — 그래서, 어떻게 됐어요?',
-    description: '중요한 결정을 그대로 적으면, 그 안에 깔린 숨은 전제를 짚어주고 — 정한 날짜에 먼저 돌아와 묻습니다.',
-    descriptionShort: '중요한 결정을 그대로 적으면, 그 안에 깔린 숨은 전제를 짚어주고 — 정한 날짜에 먼저 돌아와 묻습니다.',
-    descriptionTwitter: '중요한 결정을 그대로 적으면, 그 안에 깔린 숨은 전제를 짚어주고 — 정한 날짜에 돌아와 묻습니다.',
+    title: 'Argus — 결정을 다음 움직임으로',
+    description: '막힌 결정을 다음 움직임으로 바꾸고, 현실이 답할 때 돌아와 결과를 다음 판단의 규칙으로 남깁니다.',
+    descriptionShort: '막힌 결정을 다음 움직임으로 바꾸고, 현실이 답하면 다음 판단까지 이어갑니다.',
+    descriptionTwitter: '결정을 다음 움직임으로. 현실이 답하면, 다음 판단까지.',
     ogLocale: 'ko_KR',
   },
   en: {
-    title: 'Argus — So, how did it go?',
-    description: 'Write down a decision that matters, as-is — Argus surfaces the question it rests on, and comes back first on the date you set to ask.',
-    descriptionShort: 'Write down a decision that matters, as-is — Argus surfaces the question it rests on, and comes back on the date you set to ask.',
-    descriptionTwitter: 'Argus surfaces the question your decision rests on — and comes back on the date you set to ask.',
+    title: 'Argus — Turn decisions into movement',
+    description: 'Turn a stuck decision into one observable next move, then return when reality can shape the next call.',
+    descriptionShort: 'Turn a stuck decision into a next move, then return when reality answers.',
+    descriptionTwitter: 'Turn decisions into movement. Let reality shape the next call.',
     ogLocale: 'en_US',
   },
 };

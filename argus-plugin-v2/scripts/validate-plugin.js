@@ -52,10 +52,11 @@ if (manifest) {
   check(typeof manifest.version === "string" && manifest.version.length > 0, "manifest must declare a version");
 }
 
-// The host sees exactly five skills. Detailed workflows live outside skills/
+// The host sees exactly six skills: one portable product loop plus the five
+// established Claude entry points. Detailed workflows live outside skills/
 // so they are loaded only after a public router selects them; they do not tax
 // every model turn or create undocumented slash commands.
-const SKILLS = ["review", "check", "history", "settings", "help"];
+const SKILLS = ["loop", "review", "check", "history", "settings", "help"];
 const WORKFLOWS = ["configure", "connect", "doctor", "journal", "preapprove", "predict", "premises", "principles", "pull", "push", "resolve", "scan", "sync", "versions"];
 const REVIEW_STEPS = ["pipeline", "clarify", "team", "verify", "boss", "revise"];
 const discoveredSkills = fs.readdirSync(path.join(root, "skills"), { withFileTypes: true })
@@ -72,12 +73,12 @@ const discoveredCommands = fs.existsSync(path.join(root, "commands"))
   : [];
 check(
   discoveredCommands.length === 0,
-  `commands/ must expose no extra slash commands; route everything through the five public skills (found ${discoveredCommands.join(", ")})`,
+  `commands/ must expose no extra slash commands; route everything through the six public skills (found ${discoveredCommands.join(", ")})`,
 );
 // A repository-local .claude/ surface is loaded alongside the installed
 // plugin and silently creates extra commands/agents. That is how the retired
 // argus-doctor, argus-help, watch, and a dozen early product skills survived
-// after the packaged plugin itself had been reduced to five commands.
+// after the packaged plugin itself had been reduced to a small public menu.
 for (const surface of ["skills", "commands", "agents"]) {
   const dir = path.join(repoRoot, ".claude", surface);
   const entries = fs.existsSync(dir)

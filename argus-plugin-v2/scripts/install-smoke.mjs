@@ -89,7 +89,7 @@ else {
 const skillsDir = path.join(pluginRoot, 'skills');
 const skills = fs.readdirSync(skillsDir)
   .filter((name) => !name.startsWith('_') && fs.statSync(path.join(skillsDir, name)).isDirectory());
-const expectedSkills = ['check', 'help', 'history', 'review', 'settings'];
+const expectedSkills = ['check', 'help', 'history', 'loop', 'review', 'settings'];
 if (JSON.stringify(skills.sort()) !== JSON.stringify(expectedSkills)) {
   fail(`skills/ must expose exactly ${expectedSkills.join(', ')}; found ${skills.join(', ')}`);
 }

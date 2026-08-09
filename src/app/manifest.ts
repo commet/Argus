@@ -4,7 +4,7 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     name: 'Argus',
     short_name: 'Argus',
-    description: '결정을 정리해 기록하고, 정한 날짜에 결과를 다시 확인합니다.',
+    description: '막힌 결정을 다음 움직임으로 바꾸고, 현실이 답하면 다음 판단까지 이어갑니다.',
     start_url: '/workspace',
     display: 'standalone',
     background_color: '#f4ede0',

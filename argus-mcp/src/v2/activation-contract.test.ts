@@ -49,13 +49,13 @@ function skillDirs(): string[] {
 const FANOUT = /argus:(domain-reviewer|evidence-reviewer|risk-reviewer|synthesizer)|\b(domain-reviewer|evidence-reviewer|risk-reviewer|synthesizer)\b|subagent_type|Task tool.*parallel|에이전트를 spawn/;
 
 describe('activation 계약 — 자동 deep review 0 (O3 방2, exit②)', () => {
-  it('① 공개 메뉴는 정확히 5축 — 내부 워크플로는 명령이 아니다', () => {
+  it('① 공개 메뉴는 제품 루프를 포함한 정확히 6축 — 내부 워크플로는 명령이 아니다', () => {
     const visible: string[] = [];
     for (const dir of skillDirs()) {
       const fm = frontmatter(path.join(SKILLS, dir, 'SKILL.md'));
       if (fm['user-invocable'] !== 'false') visible.push(dir);
     }
-    expect(visible.sort()).toEqual(['check', 'help', 'history', 'review', 'settings']);
+    expect(visible.sort()).toEqual(['check', 'help', 'history', 'loop', 'review', 'settings']);
   });
 
   it('② deep-review 문(review)은 모델이 자동으로 열 수 없다', () => {
@@ -63,7 +63,7 @@ describe('activation 계약 — 자동 deep review 0 (O3 방2, exit②)', () => 
     expect(fm['disable-model-invocation'], 'review: disable-model-invocation 필수').toBe('true');
     // 조용한 축(check/history/settings/help)은 모델-호출 가능해야 한다 —
     // 전부 잠그면 자연어 기본이 죽는다 (침묵이 아니라 서비스가 목표).
-    for (const quiet of ['check', 'history', 'settings', 'help']) {
+    for (const quiet of ['check', 'history', 'loop', 'settings', 'help']) {
       const fm = frontmatter(path.join(SKILLS, quiet, 'SKILL.md'));
       expect(fm['disable-model-invocation'], `${quiet}: 조용한 축은 잠그지 않는다`).not.toBe('true');
     }
@@ -100,7 +100,7 @@ describe('activation 계약 — 자동 deep review 0 (O3 방2, exit②)', () => 
   it('⑤ help는 공개 표면만 가르친다', () => {
     const help = fs.readFileSync(path.join(SKILLS, 'help', 'SKILL.md'), 'utf8');
     const taught = new Set([...help.matchAll(/\/argus:([a-z-]+)/g)].map((m) => m[1]!));
-    const allowed = new Set(['review', 'check', 'history', 'settings', 'help', 'doctor']);
+    const allowed = new Set(['loop', 'review', 'check', 'history', 'settings', 'help', 'doctor']);
     const leaks = [...taught].filter((t) => !allowed.has(t));
     expect(leaks, 'help가 은퇴 명령을 다시 가르친다').toEqual([]);
   });

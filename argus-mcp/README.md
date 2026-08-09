@@ -2,15 +2,18 @@
 
 [**English**](./README.md) | [한국어](./README.ko.md)
 
-Argus preserves consequential judgments, the assumptions behind them, and what
-reality later did. It does not score people or give verdicts.
+Argus carries a consequential decision across conversations: the user-adopted
+prediction, what reality should show, when to return, and what actually happened.
+The result becomes context for the next judgment. Argus never scores the person
+or invents a verdict.
 
 Part of [Argus](https://github.com/commet/Argus) · web app at
 [argus.voyage](https://argus.voyage) · MIT licensed.
 
 ## What using it looks like
 
-You talk normally. Argus offers to keep one thing, and comes back later.
+You talk normally. Argus offers to keep one testable thing, then brings it back
+when reality can answer.
 
 ```text
 2026-08-19

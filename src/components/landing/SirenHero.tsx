@@ -1,28 +1,26 @@
 'use client';
 
 /**
- * SirenHero — one thesis, one entry, one scene.
+ * SirenHero — one promise, one entry, one closed-loop proof.
  *
  * The hero must show why Argus is more than a reminder: a raw decision is
  * sharpened around one load-bearing question, the user owns the closing line,
  * and that exact record later meets reality. Document review remains a quiet
  * feeder, never a competing first-screen product.
  *
- * The proof beside the entry field is the Odyssey film, not a worked example
- * (restored 2026-07-28 — see the note at its render site). The concrete
- * first-person examples live one section below in `UseCases`, which is where a
- * reader who asks "is this for MY decision?" is actually looking.
+ * The Odyssey remains part of the long-form world below the fold. The first
+ * viewport earns clarity first: a worked product/market decision makes the
+ * move → reality → next judgment loop visible before anyone has to infer it.
  */
 
 import { useEffect, useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
-import { ArrowRight, FileSearch, Play } from 'lucide-react';
+import { ArrowDown, ArrowRight, FileSearch, Play } from 'lucide-react';
 import { useLocale } from '@/hooks/useLocale';
 import { useLocaleRouter } from '@/hooks/useLocaleRouter';
 import { LocaleLink } from '@/components/ui/LocaleLink';
 import { PaperGrain } from './voyage/atmosphere/PaperGrain';
 import { ClauseText } from '@/components/landing/ClauseText';
-import { VoyageFilm } from './films/VoyageFilm';
 import { track } from '@/lib/analytics';
 
 // Loaded only when a demo chip is clicked — the fixture data (real precomputed
@@ -49,9 +47,9 @@ export function SirenHero() {
   const [demoId, setDemoId] = useState<string | null>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const prompts = [
-    L('예) 받은 이직 제안, 받아들일까?', 'e.g. Take the job offer I just got?'),
-    L('예) 이 기능, 이번 분기에 낼까?', 'e.g. Ship this feature this quarter?'),
-    L('예) 다음 달 마케팅 예산을 늘릴까?', 'e.g. Increase the marketing budget next month?'),
+    L('예) 무료 체험을 없애도 활성화율이 버틸까?', 'e.g. Can we remove the free trial without hurting activation?'),
+    L('예) 이 기능을 이번 분기에 내는 게 맞을까?', 'e.g. Should we ship this feature this quarter?'),
+    L('예) 다음 달 마케팅 예산을 늘려도 될까?', 'e.g. Should we increase next month’s marketing budget?'),
   ];
   const [promptIndex, setPromptIndex] = useState(0);
   const reducedMotion = useRef(false);
@@ -81,33 +79,24 @@ export function SirenHero() {
         paddingBottom: 'clamp(44px, 7vh, 86px)',
       }}
     >
+      <div
+        hidden
+        aria-hidden="true"
+        dangerouslySetInnerHTML={{
+          __html: '<!-- impeccable:product-schema 1 | surface=landing | seed=020492d7 | THESIS=Turn a stuck product decision into one observable move, then preserve reality as the input to the next judgment. | OWN-WORLD=Quiet editorial decision desk in paper, ink, and brass; evidence is concrete and illustrative values are labeled. | STORY=Decision → next move → reality returns → next judgment. | FIRST VIEWPORT=Promise, one-line input, working loop proof, one primary action. | FORM=One continuous proof ledger, not a dashboard of cards. | FINISH=Keyboard-visible controls, honest example data, responsive proof, reduced-motion-safe transitions. -->',
+        }}
+      />
       <PaperGrain opacity={0.045} />
 
       <div className="relative mx-auto grid w-full max-w-6xl items-center gap-9 px-5 sm:px-7 lg:grid-cols-[minmax(0,1.02fr)_minmax(390px,.98fr)] lg:gap-14 lg:px-10">
         <div className="text-center lg:text-left">
-          <p
-            className="bp-fade-up bp-mono"
-            style={{
-              color: 'var(--bp-gold-deep)',
-              fontSize: 12,
-              fontWeight: 700,
-              // English is the longer string AND carries wider tracking, so at the
-              // legibility-bumped size it wrapped to two lines. Tighten the Latin
-              // tracking rather than shrinking the type back down.
-              letterSpacing: ko ? '0.11em' : '0.145em',
-              textTransform: 'uppercase',
-            }}
-          >
-            {L('판단을 다듬고 · 전제를 남기고 · 현실로 확인한다', 'Sharpen · keep the assumptions · check against reality')}
-          </p>
-
           <h1
             id="siren-heading"
-            className={`bp-fade-up mt-4 ${ko ? 'break-keep' : ''}`}
+            className={`bp-fade-up ${ko ? 'break-keep' : ''}`}
             style={{
               color: 'var(--bp-ink)',
               fontFamily: 'var(--font-display)',
-              fontSize: 'clamp(31px, 5vw, 52px)',
+              fontSize: 'clamp(31px, 4.45vw, 46px)',
               fontWeight: 700,
               lineHeight: ko ? 1.2 : 1.08,
               letterSpacing: '-0.025em',
@@ -115,9 +104,9 @@ export function SirenHero() {
             }}
           >
             {ko ? (
-              <>AI가 실행을 가져간다.<br />판단은 어디에 쌓이나?</>
+              <>결정을 다음 움직임으로.<br />현실이 답하면, 다음 판단까지.</>
             ) : (
-              <>Decisions pass.<br />Judgment compounds.</>
+              <>Turn decisions into movement.<br />Let reality shape the next call.</>
             )}
           </h1>
 
@@ -137,18 +126,27 @@ export function SirenHero() {
             <ClauseText
               className="block"
               text={L(
-                '결정 전에 생각을 한 번 다듬고, 그 결정을 떠받치는 전제를 남기세요.',
-                'Sharpen the thinking before the call and keep the assumptions that moved it.',
+                '막힌 결정을 한 줄로 적으면, Argus가 가장 약한 지점을 짚고 오늘 할 수 있는 다음 움직임을 함께 만듭니다.',
+                'Write the decision that is stuck. Argus finds the weakest point and helps shape one move you can make now.',
               )}
             />
             <ClauseText
               className="mt-1.5 block"
               text={L(
-                'Argus는 답을 대신 내리지 않고, 현실이 답할 때 그 기록을 다시 엽니다.',
-                "Argus doesn't decide for you; it reopens the record when reality can answer.",
+                '무엇을 확인할지 약속해 두면, 현실이 답하는 날 돌아와 결과를 다음 판단의 규칙으로 남깁니다.',
+                'Set what reality should answer, then return when it does and keep the result as a rule for the next decision.',
               )}
             />
           </p>
+
+          <ol className="bp-fade-up mx-auto mt-5 flex max-w-xl items-center justify-center gap-2 text-[12px] font-semibold text-[var(--bp-ink-soft)] lg:hidden" style={{ animationDelay: '150ms' }} aria-label={L('Argus의 결정 루프', 'The Argus decision loop')}>
+            {[L('다음 움직임', 'Next move'), L('현실의 회신', 'Reality returns'), L('다음 판단', 'Next call')].map((label, index) => (
+              <li key={label} className="flex min-w-0 items-center gap-2">
+                {index > 0 && <ArrowRight size={11} aria-hidden className="shrink-0 text-[var(--bp-gold-deep)]" />}
+                <span>{label}</span>
+              </li>
+            ))}
+          </ol>
 
           <div
             className="bp-fade-up relative mx-auto mt-7 max-w-xl overflow-hidden rounded-[4px] lg:mx-0"
@@ -171,7 +169,7 @@ export function SirenHero() {
                 }}
               >
                 <span aria-hidden style={{ width: 18, height: 1, background: 'var(--bp-ink-soft)', opacity: 0.55 }} />
-                {L('지금 붙잡고 싶은 결정 하나', 'One decision worth examining')}
+                {L('지금 막혀 있는 결정', 'The decision that is stuck')}
               </label>
               <textarea
                 id="hero-decision"
@@ -185,11 +183,11 @@ export function SirenHero() {
                   if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') begin();
                 }}
                 placeholder={prompts[promptIndex]}
-                className="mt-3 w-full resize-none border-0 border-b border-[var(--bp-ink-faint)] bg-transparent px-1 pb-3 text-[16px] leading-7 text-[var(--bp-ink)] outline-none [font-family:var(--font-display)] placeholder:italic placeholder:text-[var(--bp-ink-soft)]/75 focus:ring-0"
+                className="mt-3 w-full resize-none border-0 border-b border-[var(--bp-ink-faint)] bg-transparent px-1 pb-3 text-[16px] leading-7 text-[var(--bp-ink)] outline-none [font-family:var(--font-display)] placeholder:italic placeholder:text-[var(--bp-ink-soft)]/75 focus-visible:border-[var(--bp-gold-deep)] focus-visible:ring-2 focus-visible:ring-[var(--bp-gold)]/25 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bp-paper)]"
               />
               <div className="mt-3 flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
                 <span className="text-left text-[13px] leading-5 text-[var(--bp-ink-soft)]">
-                  {L('한 줄이면 충분해요 · 기록할 내용은 직접 확인합니다', 'One line is enough · you choose what becomes part of the record')}
+                  {L('한 줄이면 충분해요 · 무엇을 남길지는 직접 확인합니다', 'One line is enough · you choose what becomes part of the record')}
                 </span>
                 <button
                   type="button"
@@ -198,7 +196,7 @@ export function SirenHero() {
                   className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-[2px] px-4 text-[14px] font-semibold transition-[transform,opacity] active:scale-[.98] disabled:cursor-default disabled:opacity-40"
                   style={{ background: 'var(--bp-gold)', color: 'var(--bp-ink)' }}
                 >
-                  {L('가장 중요한 질문 찾기', 'Find the question that matters')}
+                  {L('다음 움직임 만들기', 'Build the next move')}
                   <ArrowRight size={14} aria-hidden />
                 </button>
               </div>
@@ -241,20 +239,8 @@ export function SirenHero() {
           </div>
         </div>
 
-        {/* Signature object (2026-07-28): the Odyssey film, restored.
-            It replaces a four-row example table that EXPLAINED the loop in
-            labelled cells (원문 / 한 질문 / 최종 판단 / RETURN). The table was
-            accurate but inert — the implementation report (§11.2) found it
-            "설명하고 있고 체험시키지 않는다", gave the hero two competing
-            protagonists, and pushed its payoff below the fold on mobile.
-            The film carries the same four beats as MOVEMENT — 묶기(seal) ·
-            듣기(listen) · 닿기(reality judges) · 알아봄(the dog Argos returns) —
-            which is the thesis the headline states one line above. A resting
-            plate here, the full film in a lightbox on play, so the entry field
-            stays the first-screen focal point (the reason the table was put
-            here in #290 to begin with). */}
-        <div className="bp-fade-up mx-auto w-full max-w-[520px]" style={{ animationDelay: '230ms' }}>
-          <VoyageFilm />
+        <div className="bp-fade-up mx-auto hidden w-full max-w-[520px] lg:block" style={{ animationDelay: '230ms' }}>
+          <DecisionLoopProof ko={ko} />
         </div>
       </div>
 
@@ -276,5 +262,60 @@ export function SirenHero() {
         />
       )}
     </section>
+  );
+}
+
+function DecisionLoopProof({ ko }: { ko: boolean }) {
+  const L = (k: string, e: string) => (ko ? k : e);
+  const beats = [
+    {
+      label: L('막힌 결정', 'Stuck decision'),
+      value: L('무료 체험을 없앨까?', 'Should we remove the free trial?'),
+      note: L('가입은 늘 수 있지만 활성화가 흔들릴 수 있다', 'Sign-ups may rise while activation slips'),
+    },
+    {
+      label: L('다음 움직임', 'Next move'),
+      value: L('신규 가입자 50%에 14일 실험', 'Run a 14-day test with 50% of new sign-ups'),
+      note: L('가입 전환과 첫 가치 도달을 함께 본다', 'Watch conversion and time-to-first-value together'),
+    },
+    {
+      label: L('현실의 회신', 'Reality returns'),
+      value: L('가입 +18% · 첫 가치 도달 −9%', 'Sign-ups +18% · activation −9%'),
+      note: L('설명을 위한 예시 결과', 'Illustrative result'),
+    },
+    {
+      label: L('다음 판단', 'Next call'),
+      value: L('전환보다 활성화 손실을 먼저 줄인다', 'Fix the activation loss before optimizing conversion'),
+      note: L('결과가 다음 결정의 규칙으로 남는다', 'The result becomes a rule for the next decision'),
+    },
+  ];
+
+  return (
+    <figure
+      className="relative overflow-hidden rounded-[18px] bg-[var(--bp-ink)] px-7 py-6 text-left"
+      style={{ boxShadow: '0 28px 60px -30px rgba(25,18,8,.72), 0 12px 24px -18px rgba(25,18,8,.45)' }}
+      aria-label={L('한 결정이 현실을 거쳐 다음 판단으로 이어지는 예시', 'Example of a decision becoming a move, a result, and the next call')}
+    >
+      <div className="flex items-baseline justify-between gap-4 border-b border-white/15 pb-4">
+        <figcaption className="text-[15px] font-semibold text-[var(--bp-paper)]" style={{ fontFamily: 'var(--font-display)' }}>
+          {L('한 결정의 닫힌 루프', 'One closed decision loop')}
+        </figcaption>
+        <span className="bp-mono text-[10px] uppercase tracking-[0.14em] text-[var(--bp-gold)]">{L('제품 예시', 'Product example')}</span>
+      </div>
+      <ol className="relative mt-1">
+        {beats.map((beat, index) => (
+          <li key={beat.label} className="relative grid grid-cols-[100px_1fr] gap-4 border-b border-white/10 py-4 last:border-0 last:pb-1">
+            <div className="relative">
+              <span className="bp-mono text-[10.5px] font-semibold uppercase tracking-[0.11em] text-[var(--bp-gold)]">{beat.label}</span>
+              {index < beats.length - 1 && <ArrowDown size={12} aria-hidden className="absolute -bottom-5 left-0 text-[var(--bp-gold)]/65" />}
+            </div>
+            <div>
+              <p className="text-[15px] font-semibold leading-6 text-[var(--bp-paper)]">{beat.value}</p>
+              <p className="mt-0.5 text-[11.5px] leading-5 text-[var(--bp-paper)]/58">{beat.note}</p>
+            </div>
+          </li>
+        ))}
+      </ol>
+    </figure>
   );
 }

@@ -111,22 +111,22 @@ export function LandingHeader() {
             {/* Auth area — min 44px tap area */}
             {!loading && (
               user ? (
-                <LocaleLink
-                  href="/workspace"
-                  onClick={() => track('landing_cta_click', { cta: 'header_workspace' })}
-                  className="bp-mono transition-opacity hover:opacity-70 inline-flex items-center"
-                  style={{
-                    color: 'var(--bp-ink)',
-                    fontSize: 12.5,
-                    letterSpacing: locale === 'ko' ? '0.04em' : '0.16em',
-                    textTransform: 'uppercase',
-                    padding: '12px 6px',
-                    minHeight: 44,
-                    minWidth: 44,
-                    justifyContent: 'center',
-                  }}
-                >
-                  {dueCount > 0 && (
+                dueCount > 0 ? (
+                  <LocaleLink
+                    href="/project"
+                    onClick={() => track('landing_cta_click', { cta: 'header_workspace' })}
+                    className="bp-mono transition-opacity hover:opacity-70 inline-flex items-center"
+                    style={{
+                      color: 'var(--bp-ink)',
+                      fontSize: 12.5,
+                      letterSpacing: locale === 'ko' ? '0.04em' : '0.16em',
+                      textTransform: 'uppercase',
+                      padding: '12px 6px',
+                      minHeight: 44,
+                      minWidth: 44,
+                      justifyContent: 'center',
+                    }}
+                  >
                     <span
                       aria-hidden
                       style={{
@@ -138,9 +138,27 @@ export function LandingHeader() {
                         flexShrink: 0,
                       }}
                     />
-                  )}
-                  {L('워크스페이스 →', 'Workspace →')}
-                </LocaleLink>
+                    {L(`돌아온 결정 ${dueCount}건 →`, `${dueCount} decision${dueCount === 1 ? '' : 's'} returned →`)}
+                  </LocaleLink>
+                ) : (
+                  <LocaleLink
+                    href="/workspace"
+                    onClick={() => track('landing_cta_click', { cta: 'header_workspace' })}
+                    className="bp-mono transition-opacity hover:opacity-70 inline-flex items-center"
+                    style={{
+                      color: 'var(--bp-ink)',
+                      fontSize: 12.5,
+                      letterSpacing: locale === 'ko' ? '0.04em' : '0.16em',
+                      textTransform: 'uppercase',
+                      padding: '12px 6px',
+                      minHeight: 44,
+                      minWidth: 44,
+                      justifyContent: 'center',
+                    }}
+                  >
+                    {L('새 결정 →', 'Decide →')}
+                  </LocaleLink>
+                )
               ) : (
                 <LocaleLink
                   href="/login"

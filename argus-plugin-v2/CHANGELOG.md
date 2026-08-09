@@ -1,5 +1,17 @@
 # Changelog
 
+## 3.0.22 - 2026-08-10
+
+- **One portable product loop.** A new host-neutral `loop` skill explains the
+  same decision → next move → reality → next judgment contract in every Agent
+  Plugins client, routes all six public MCP tools, and tells the truth when MCP
+  persistence is unavailable.
+- **The promise is visible in the manifest.** Both Agent Plugins and Claude
+  manifests now describe the next-move and return loop, not only record capture.
+- **Portability is executable.** The conformance gate fails if the default loop
+  depends on Claude-only commands or paths, omits a public tool, or hides the
+  no-MCP fallback.
+
 ## 3.0.21 - 2026-08-09
 
 - **Portable installs are local-first again.** The Agent Plugins `mcp.json`

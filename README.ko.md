@@ -9,7 +9,7 @@ Argus는 유창한 답이나 사후 확신이 덮어쓰기 전에, 결정을 그
 <h1 align="center">Argus</h1>
 
 <p align="center"><strong>Keeping Judgment Human.</strong></p>
-<p align="center">AI가 실행을 가져간다. 판단은 어디에 쌓이나?</p>
+<p align="center">결정을 다음 움직임으로. 현실이 답하면, 다음 판단까지.</p>
 
 <p align="center">
   <a href="https://www.npmjs.com/package/argus-decision-mcp"><img src="https://img.shields.io/npm/v/argus-decision-mcp?color=A8842F&label=npm%20%C2%B7%20argus-decision-mcp" alt="npm 버전"></a>
@@ -27,11 +27,10 @@ Argus는 유창한 답이나 사후 확신이 덮어쓰기 전에, 결정을 그
   <a href="./README.md">English</a>
 </p>
 
-Argus는 결정의 뒤편에 남는 것을 기록합니다. 처음 한 말, 결정이 기대던 전제,
-내가 직접 확정한 문장, AI 제안을 채택했는지, 그리고 무엇이 생기면 다시 볼지까지요.
-기록은 현실이 답할 생각일 수도, 내가 지킬 약속이나 세운 기준일 수도, 그저 오늘
-그대로 남길 순간일 수도 있습니다. 더 나은 답을 주는 도구가 아니라, 시간이 지나도
-과거를 덮어쓰지 않는 **살아 있는 판단 기록**입니다.
+Argus는 막힌 결정을 현실에서 확인할 수 있는 다음 움직임으로 바꾸고, 내가 실제로
+채택한 말과 전제를 지킨 채, 현실이 답할 때 그 기록을 다시 가져옵니다. 또 하나의 AI
+답이 아니라, 사람을 채점하지 않으면서 다음 판단을 더 낫게 만드는 **닫힌 결정 루프**를
+남깁니다.
 
 ---
 
@@ -64,9 +63,9 @@ Argus는 결정의 뒤편에 남는 것을 기록합니다. 처음 한 말, 결�
 |---|---|---|
 | 🌐 **웹앱** | 누구나. 설치·가입 필요 없음. | **[argus.voyage](https://argus.voyage)** 열기 |
 | 🧩 **MCP 서버** | MCP를 지원하는 AI 어시스턴트라면 어디든 — Claude Code, Claude Desktop, Codex, Cursor… | `claude mcp add argus -- npx -y argus-decision-mcp`<br><sub>다른 호스트 → [argus-mcp/README.ko.md](./argus-mcp/README.ko.md)</sub> |
-| 🔌 **Claude Code 플러그인** | 코드베이스 *안에서*, 실제 PR·파일 위에서 결정할 때. | `/plugin marketplace add commet/Argus`<br>`/plugin install argus@argus` |
+| 🔌 **Agent Plugin** | 에이전트 호스트 안에서 같은 루프를 쓸 때. Claude Code에서는 전체 리뷰 스위트도 제공. | Agent Plugins: `argus-plugin-v2/` 설치<br>Claude Code: `/plugin marketplace add commet/Argus` 후 `/plugin install argus@argus` |
 
-<sub>잘 모르겠으면 **웹앱**이 제일 편합니다 — 아무것도 설치 안 해도 됩니다. 모든 AI 대화에서 쓰고 싶다면 **MCP 서버**가 답이고요. (MCP = Model Context Protocol, 어시스턴트가 도구를 불러올 때 쓰는 공개 표준입니다.) 자세한 설정과 도구 목록은 **[argus-mcp/README.ko.md](./argus-mcp/README.ko.md)**, **[argus-plugin-v2/README.ko.md](./argus-plugin-v2/README.ko.md)** 를 보세요.</sub>
+<sub>잘 모르겠으면 설치가 필요 없는 **웹앱**을 결정 데스크로 쓰면 됩니다. 이미 쓰는 AI 안에서 이어가려면 **MCP 서버**나 이식 가능한 **Agent Plugin**을 쓰세요. 자세한 설정과 도구 목록은 **[argus-mcp/README.ko.md](./argus-mcp/README.ko.md)**, **[argus-plugin-v2/README.ko.md](./argus-plugin-v2/README.ko.md)** 를 보세요.</sub>
 
 <sub>**필요한 것:** 웹앱은 브라우저만 있으면 됩니다. MCP 서버와 플러그인은 `PATH`에 **Node.js 18 이상**이 필요합니다 — `node --version`으로 확인하고, 아무것도 안 나오면 [nodejs.org](https://nodejs.org)에서 설치하세요 (20 LTS로 검증했습니다). API 키도, 계정도, 설정 파일도 필요 없습니다 — 기록은 처음 쓰는 순간부터 로컬 파일로 남습니다.</sub>
 

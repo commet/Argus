@@ -26,7 +26,7 @@ export function Header() {
   } = useLocaleSwitch();
   const L = (ko: string, en: string) => locale === 'ko' ? ko : en;
 
-  // W1.3 단일 진입: first-line nav is [워크스페이스·프로젝트·설정·가이드].
+  // W1.3 단일 진입: first-line nav is [새 결정·내 결정·설정·가이드].
   // /agents·/boss routes are NOT deleted — they're reachable from
   // inside the workspace (crew-roster row), just no longer top-level doors.
   // /guide was promoted out of the overflow (창업자 2026-07-19): a first-run
@@ -37,8 +37,8 @@ export function Header() {
   // told the exact cohort we courted that their own decision was off-limits (they never
   // clicked, the loop never closed). Login is nudged for SYNC at the seal, not here.
   const navItems: Array<{ href: string; label: string; primary?: boolean; requiresAuth?: boolean }> = [
-    { href: '/workspace', label: L('워크스페이스', 'Workspace'), primary: true },
-    { href: '/project', label: L('프로젝트', 'Projects') },
+    { href: '/workspace', label: L('새 결정', 'Decide'), primary: true },
+    { href: '/project', label: L('내 결정', 'Decisions') },
     { href: '/settings', label: L('설정', 'Settings') },
     { href: '/guide', label: L('가이드', 'Guide') },
   ];
@@ -78,16 +78,16 @@ export function Header() {
   const commandItems: CommandPaletteItem[] = [
     {
       href: '/workspace',
-      label: L('워크스페이스', 'Workspace'),
-      description: L('새 결정을 시작하거나 진행 중인 작업으로 돌아갑니다.', 'Start a decision or return to work in progress.'),
+      label: L('새 결정', 'Decide'),
+      description: L('막힌 결정에서 오늘 할 다음 움직임을 만듭니다.', 'Turn a stuck decision into one move you can make now.'),
       group: L('핵심', 'Core'),
       keywords: ['decision', 'voyage', '결정', '항해'],
       icon: Compass,
     },
     {
       href: '/project',
-      label: L('프로젝트', 'Projects'),
-      description: L('결정 기록, 체크인, 결과를 한곳에서 봅니다.', 'Review decision records, check-ins, and outcomes.'),
+      label: L('내 결정', 'Decisions'),
+      description: L('움직이는 결정, 기다리는 신호, 돌아온 결과를 한곳에서 봅니다.', 'See moving decisions, waiting signals, and returned results in one place.'),
       group: L('핵심', 'Core'),
       keywords: ['history', 'logbook', '기록', '체크인'],
       icon: FolderKanban,

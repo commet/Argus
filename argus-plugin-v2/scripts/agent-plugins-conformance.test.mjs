@@ -147,6 +147,23 @@ for (const d of skillDirs) {
   assert.ok(/^description:\s*\S/m.test(fm[1]), `skills/${d}: description 프론트매터 필수`);
 }
 
+// The portable first-use contract must stay host-neutral. Claude-specific
+// commands may coexist in dedicated skills, but a conforming host needs one
+// discoverable path that explains the same product loop through public MCP.
+const loopSkill = fs.readFileSync(path.join(skillsDir, 'loop', 'SKILL.md'), 'utf8');
+const loopFrontmatter = loopSkill.match(/^---\n([\s\S]*?)\n---/)?.[1] ?? '';
+const loopFields = loopFrontmatter.split('\n').map((line) => line.split(':', 1)[0]?.trim()).filter(Boolean);
+assert.deepEqual(loopFields.sort(), ['description', 'name'], 'portable loop skill frontmatter must use only Agent Skills core fields');
+for (const publicTool of [
+  'argus_capture', 'argus_predict', 'argus_check_in',
+  'argus_resolve', 'argus_patterns', 'argus_settings',
+]) {
+  assert.ok(loopSkill.includes(`\`${publicTool}\``), `portable loop skill must route ${publicTool}`);
+}
+assert.ok(loopSkill.includes('MCP tools are unavailable'), 'portable loop skill must disclose the no-MCP fallback');
+assert.ok(!loopSkill.includes('${CLAUDE_PLUGIN_ROOT}'), 'portable loop skill must not require a Claude-only path');
+assert.ok(!loopSkill.includes('/argus:'), 'portable loop skill must not require Claude-only commands');
+
 // ── 버전 정합 (리포 자체 규율) ────────────────────────────────────────────
 // 표준 매니페스트가 여섯 번째 버전 사본이 됐다 — Claude 매니페스트와 어긋나면
 // 설치 표면마다 다른 버전을 주장하게 된다. version-lockstep 게이트와 동일 원칙.

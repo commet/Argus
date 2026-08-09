@@ -1,8 +1,8 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "argus",
-  "version": "3.0.21",
-  "description": "Captures consequential judgments and their return conditions. Explicit deep review uses a bounded set of evidence, domain, and risk roles; standard use has no agent team.",
+  "version": "3.0.22",
+  "description": "Turns a stuck decision into one observable next move, preserves the user-adopted record, and returns when reality can shape the next judgment.",
   "author": {
     "name": "Argus",
     "email": "sayucurator@gmail.com",

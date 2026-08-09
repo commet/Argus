@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useLocale } from '@/hooks/useLocale';
 import { useProjectStore } from '@/stores/useProjectStore';
-import type { ContractSettlement, DecisionContract, PredicateVerdict, Project } from '@/stores/types';
+import type { ContractSettlement, DecisionContract, DecisionKind, PredicateVerdict, Project } from '@/stores/types';
 import { appendContractSettlement, decisionKind, gradePredicate } from '@/lib/decision-contract';
 import { premisesToRevisit } from '@/lib/decisive-premises';
 import {
@@ -28,9 +28,9 @@ export interface FoundationSettlementModalProps {
 }
 
 /**
- * Show the sealed sentence before any outcome control, accept one
- * kind-appropriate answer, then ask exactly one present-standard question.
- * Saving appends a return instead of rewriting the past.
+ * On the first return, collect reality before revealing the sealed sentence.
+ * Later returns may reopen the record first because the baseline is no longer
+ * blind. Saving appends a return instead of rewriting the past.
  */
 export function FoundationSettlementModal({
   project,
@@ -57,8 +57,8 @@ export function FoundationSettlementModal({
     : null;
   const [selected, setSelected] = useState<FoundationSettlementOption | null>(null);
   const [saved, setSaved] = useState<ContractSettlement | null>(null);
-  const [returnStage, setReturnStage] = useState<'gate' | 'memory' | 'revealed'>(
-    (contract.settlements?.length ?? 0) > 0 ? 'gate' : 'revealed',
+  const [returnStage, setReturnStage] = useState<'observation' | 'gate' | 'memory' | 'standard' | 'revealed'>(
+    (contract.settlements?.length ?? 0) > 0 ? 'gate' : 'observation',
   );
   const [memoryDraft, setMemoryDraft] = useState('');
   const [saveMemory, setSaveMemory] = useState(false);
@@ -123,16 +123,61 @@ export function FoundationSettlementModal({
       present_standard: status,
     });
     setSaved(settlement);
+    // A first return does not reveal the old wording until both human answers
+    // are durably appended. Closing anywhere before this line leaves the old
+    // record unseen and the next opening correctly starts blind again.
+    setReturnStage('revealed');
   };
 
   return (
     <Modal open onClose={onClose} title={L('그때의 문장으로 돌아왔어요', 'Return to what you recorded')}>
       <div className="space-y-4">
-        {returnStage === 'gate' ? (
+        {returnStage === 'observation' ? (
           <div className="space-y-3">
             <div>
               <p className="text-[15px] font-semibold leading-6 text-[var(--text-primary)]">
-                {L('그때의 문장을 바로 볼까요?', 'Ready to see what you wrote?')}
+                {kind === 'prediction'
+                  ? L('원문을 열기 전에, 실제로는 어떻게 되었나요?', 'Before reopening the record, what actually happened?')
+                  : kind === 'commitment'
+                    ? L('원문을 열기 전에, 그 약속은 어떻게 되었나요?', 'Before reopening the record, what happened to that commitment?')
+                    : L('원문을 열기 전에, 지금은 그 기준을 어떻게 보나요?', 'Before reopening the record, how do you see that standard now?')}
+              </p>
+              <p className="mt-1 text-[12.5px] leading-5 text-[var(--text-secondary)]">
+                {L('그때 적은 문장에 끌려가지 않도록, 지금 기억하는 현실부터 남깁니다.', 'Record reality as you remember it now, before the old wording can pull your answer.')}
+              </p>
+            </div>
+            <div className="grid gap-2">
+              {FOUNDATION_SETTLEMENT_OPTIONS[kind].map((option) => (
+                <button
+                  key={option.id}
+                  type="button"
+                  onClick={() => {
+                    setSelected(option);
+                    setReturnStage('gate');
+                  }}
+                  className={`rounded-xl border bg-[var(--surface)] px-3.5 py-3 text-left text-[13px] font-medium leading-5 text-[var(--text-primary)] transition-colors hover:border-[var(--accent)]/50 hover:bg-[var(--bg)] ${
+                    option.id === draftOptionId
+                      ? 'border-dashed border-[var(--accent)]/70'
+                      : 'border-[var(--border)]'
+                  }`}
+                >
+                  <span>{ko ? option.ko : option.en}</span>
+                  {option.id === draftOptionId && (
+                    <span className="mt-0.5 block text-[11px] font-medium text-[var(--accent)]">
+                      {L('AI가 미리 짚은 초안 · 직접 선택해 주세요', 'AI draft · choose for yourself')}
+                    </span>
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : returnStage === 'gate' ? (
+          <div className="space-y-3">
+            <div>
+              <p className="text-[15px] font-semibold leading-6 text-[var(--text-primary)]">
+                {selected
+                  ? L('현실의 답은 정했어요. 원문을 열기 전에 한 가지만 더 확인할게요.', 'Reality comes first. One last answer before the old wording is revealed.')
+                  : L('그때의 문장을 바로 볼까요?', 'Ready to see what you wrote?')}
               </p>
               <p className="mt-1 text-[12.5px] leading-5 text-[var(--text-secondary)]">
                 {L(
@@ -141,8 +186,8 @@ export function FoundationSettlementModal({
                 )}
               </p>
             </div>
-            <PrimaryButton onClick={() => setReturnStage('revealed')}>
-              {L('그때 문장 보기', 'Show the original')}
+            <PrimaryButton onClick={() => setReturnStage(selected ? 'standard' : 'revealed')}>
+              {selected ? L('한 가지만 더 확인하기', 'Answer one last question') : L('그때 문장 보기', 'Show the original')}
             </PrimaryButton>
             <button
               type="button"
@@ -159,7 +204,7 @@ export function FoundationSettlementModal({
                 {L('그때 무엇이 가장 중요했나요?', 'What mattered most to you then?')}
               </p>
               <p className="mt-1 text-[13px] leading-5 text-[var(--text-tertiary)]">
-                {L('이 메모는 저장하지 않아요.', 'This note is not saved.')}
+                {L('아래에서 직접 선택할 때만 이번 귀환에 저장합니다.', 'It is saved with this return only if you opt in below.')}
               </p>
             </div>
             <textarea
@@ -171,20 +216,39 @@ export function FoundationSettlementModal({
               placeholder={L('기억나는 만큼만 적어보세요', 'Write only what you remember')}
               className="w-full resize-none rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3.5 py-3 text-[13px] leading-6 text-[var(--text-primary)] outline-none transition-colors placeholder:text-[var(--text-tertiary)] focus:border-[var(--accent)]/60"
             />
-            <PrimaryButton onClick={() => setReturnStage('revealed')}>
-              {L('원문과 비교하기', 'Compare with the original')}
+            {memoryDraft.trim() && (
+              <label className="flex cursor-pointer items-start gap-2 text-[13px] leading-5 text-[var(--text-secondary)]">
+                <input
+                  type="checkbox"
+                  checked={saveMemory}
+                  onChange={(event) => setSaveMemory(event.target.checked)}
+                  className="mt-0.5 size-3.5 accent-[var(--accent)]"
+                />
+                <span>{L('이 메모도 이번 귀환 기록에 남기기', 'Save this note with this return')}</span>
+              </label>
+            )}
+            <PrimaryButton onClick={() => setReturnStage(selected ? 'standard' : 'revealed')}>
+              {selected ? L('다음 질문으로', 'Continue') : L('원문과 비교하기', 'Compare with the original')}
             </PrimaryButton>
             <button
               type="button"
               onClick={() => {
                 setMemoryDraft('');
-                setReturnStage('revealed');
+                setSaveMemory(false);
+                setReturnStage(selected ? 'standard' : 'revealed');
               }}
               className="w-full text-[12px] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]"
             >
-              {L('건너뛰고 원문 보기', 'Skip and show the original')}
+              {selected ? L('건너뛰고 계속하기', 'Skip and continue') : L('건너뛰고 원문 보기', 'Skip and show the original')}
             </button>
           </div>
+        ) : returnStage === 'standard' && selected ? (
+          <PresentStandardStep
+            kind={kind}
+            ko={ko}
+            onSave={save}
+            onBack={() => setReturnStage('gate')}
+          />
         ) : (
           <>
             <OriginalStatement
@@ -202,20 +266,23 @@ export function FoundationSettlementModal({
                 <p className="mt-1.5 whitespace-pre-wrap text-[12.5px] leading-5 text-[var(--text-secondary)]">
                   {memoryDraft.trim()}
                 </p>
-                <label className="mt-2.5 flex cursor-pointer items-start gap-2 border-t border-[var(--border)] pt-2.5 text-[13px] leading-5 text-[var(--text-secondary)]">
-                  <input
-                    type="checkbox"
-                    checked={saveMemory}
-                    onChange={(event) => setSaveMemory(event.target.checked)}
-                    className="mt-0.5 size-3.5 accent-[var(--accent)]"
-                  />
-                  <span>
-                    {L(
-                      '이 메모도 이번 귀환 기록에 남기기',
-                      'Save this note with this return',
-                    )}
-                  </span>
-                </label>
+                {!saved ? (
+                  <label className="mt-2.5 flex cursor-pointer items-start gap-2 border-t border-[var(--border)] pt-2.5 text-[13px] leading-5 text-[var(--text-secondary)]">
+                    <input
+                      type="checkbox"
+                      checked={saveMemory}
+                      onChange={(event) => setSaveMemory(event.target.checked)}
+                      className="mt-0.5 size-3.5 accent-[var(--accent)]"
+                    />
+                    <span>{L('이 메모도 이번 귀환 기록에 남기기', 'Save this note with this return')}</span>
+                  </label>
+                ) : (
+                  <p className="mt-2.5 border-t border-[var(--border)] pt-2.5 text-[12px] text-[var(--text-tertiary)]">
+                    {saveMemory
+                      ? L('이번 귀환 기록에 함께 저장됐어요.', 'Saved with this return.')
+                      : L('이 메모는 저장하지 않았어요.', 'This note was not saved.')}
+                  </p>
+                )}
               </div>
             )}
 
@@ -257,31 +324,7 @@ export function FoundationSettlementModal({
             )}
               </div>
             ) : selected ? (
-              <div className="space-y-3">
-            <div>
-              <p className="text-[14px] font-semibold leading-6 text-[var(--text-primary)]">
-                {presentStandardQuestion(kind, ko ? 'ko' : 'en')}
-              </p>
-              <p className="mt-1 text-[12px] leading-5 text-[var(--text-tertiary)]">
-                {L('한 가지만 더 확인하면 끝나요.', 'One last answer, then you are done.')}
-              </p>
-            </div>
-            <div className="grid gap-2 sm:grid-cols-2">
-              {PRESENT_STANDARD_STATUSES.map((status) => (
-                <button
-                  key={status}
-                  type="button"
-                  onClick={() => save(status)}
-                  className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-3 text-left text-[13px] font-medium leading-5 text-[var(--text-primary)] transition-colors hover:border-[var(--accent)]/50"
-                >
-                  {presentStandardLabel(kind, status, ko ? 'ko' : 'en')}
-                </button>
-              ))}
-            </div>
-            <button type="button" onClick={() => setSelected(null)} className="text-[12px] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]">
-              {L('앞으로 돌아가기', 'Back')}
-            </button>
-              </div>
+              <PresentStandardStep kind={kind} ko={ko} onSave={save} onBack={() => setSelected(null)} />
             ) : (
               <div className="space-y-3">
             <p className="text-[14px] font-semibold leading-6 text-[var(--text-primary)]">
@@ -364,6 +407,47 @@ function PrimaryButton({ onClick, children }: { onClick: () => void; children: R
     <button type="button" onClick={onClick} className="w-full rounded-xl bg-[var(--text-primary)] px-4 py-3 text-[13px] font-semibold text-[var(--bg)]">
       {children}
     </button>
+  );
+}
+
+function PresentStandardStep({
+  kind,
+  ko,
+  onSave,
+  onBack,
+}: {
+  kind: Exclude<DecisionKind, 'witness'>;
+  ko: boolean;
+  onSave: (status: NonNullable<ContractSettlement['present_standard']>['status']) => void;
+  onBack: () => void;
+}) {
+  const L = (k: string, e: string) => (ko ? k : e);
+  return (
+    <div className="space-y-3">
+      <div>
+        <p className="text-[14px] font-semibold leading-6 text-[var(--text-primary)]">
+          {presentStandardQuestion(kind, ko ? 'ko' : 'en')}
+        </p>
+        <p className="mt-1 text-[12px] leading-5 text-[var(--text-tertiary)]">
+          {L('이 답까지 저장한 뒤, 그때의 문장을 엽니다.', 'After this answer is saved, the old wording is revealed.')}
+        </p>
+      </div>
+      <div className="grid gap-2 sm:grid-cols-2">
+        {PRESENT_STANDARD_STATUSES.map((status) => (
+          <button
+            key={status}
+            type="button"
+            onClick={() => onSave(status)}
+            className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-3 text-left text-[13px] font-medium leading-5 text-[var(--text-primary)] transition-colors hover:border-[var(--accent)]/50"
+          >
+            {presentStandardLabel(kind, status, ko ? 'ko' : 'en')}
+          </button>
+        ))}
+      </div>
+      <button type="button" onClick={onBack} className="text-[12px] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]">
+        {L('앞으로 돌아가기', 'Back')}
+      </button>
+    </div>
   );
 }
 

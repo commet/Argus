@@ -373,7 +373,7 @@ describe('philosophy foundation Phase 0 guards', () => {
     expect(source).toContain('kindOverride ?? contract?.kind ?? derivedKind.kind');
   });
 
-  it('the return surface reveals the first sealed wording before revisions and saves recall only by opt-in', () => {
+  it('the first return records reality before revealing the sealed wording and saves recall only by opt-in', () => {
     const source = readFileSync(
       join(process.cwd(), 'src/components/projects/FoundationSettlementModal.tsx'),
       'utf8',
@@ -383,7 +383,11 @@ describe('philosophy foundation Phase 0 guards', () => {
     expect(source).toContain('saveMemory && memoryDraft.trim()');
     expect(source).toContain('memory_before_reveal');
     expect(source).toContain('Save this note with this return');
-    expect(source).toContain("(contract.settlements?.length ?? 0) > 0 ? 'gate' : 'revealed'");
+    expect(source).toContain("(contract.settlements?.length ?? 0) > 0 ? 'gate' : 'observation'");
+    expect(source).toContain("setReturnStage('gate')");
+    expect(source).toContain("setReturnStage('revealed')");
+    expect(source).toContain("returnStage === 'standard'");
+    expect(source.indexOf("returnStage === 'observation'")).toBeLessThan(source.indexOf("returnStage === 'gate'"));
     expect(source).toContain('response_text: presentResponse');
   });
 });

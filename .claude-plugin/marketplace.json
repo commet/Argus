@@ -7,15 +7,15 @@
     "url": "https://github.com/commet"
   },
   "metadata": {
-    "description": "Argus — keeps important decisions alive as courses.",
-    "version": "3.0.21"
+    "description": "Argus — turns stuck decisions into observable moves and returns with reality.",
+    "version": "3.0.22"
   },
   "plugins": [
     {
       "name": "argus",
       "source": "./argus-plugin-v2",
-      "description": "Captures consequential judgments and their return conditions. Explicit deep review is bounded; standard use has no agent team.",
-      "version": "3.0.21",
+      "description": "Turns a stuck decision into one observable next move, preserves the user-adopted record, and returns when reality can shape the next judgment.",
+      "version": "3.0.22",
       "license": "MIT",
       "category": "productivity",
       "keywords": [
