@@ -5,10 +5,6 @@
       "type": "stdio",
       "command": "npx",
       "args": ["-y", "argus-decision-mcp"]
-    },
-    "argus-remote": {
-      "type": "streamable-http",
-      "url": "https://argus.voyage/api/mcp/v2"
     }
   }
 }

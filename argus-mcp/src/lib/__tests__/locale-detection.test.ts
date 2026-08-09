@@ -24,7 +24,7 @@ describe('detectLocaleFromText (M4 — script-first, short-text safe)', () => {
     expect(detectLocaleFromText('we migrate with under 5 minutes of downtime')).toBe('en');
   });
 
-  it('empty / too-short / whitespace ⇒ null (fall through to config/env)', () => {
+  it('empty / too-short / whitespace ⇒ null (fall through to config/base voice)', () => {
     expect(detectLocaleFromText(undefined)).toBeNull();
     expect(detectLocaleFromText(null)).toBeNull();
     expect(detectLocaleFromText('')).toBeNull();
@@ -33,7 +33,7 @@ describe('detectLocaleFromText (M4 — script-first, short-text safe)', () => {
   });
 });
 
-describe('resolveResponseLocale (M4 chain: config > text > env > en)', () => {
+describe('resolveResponseLocale (M4 chain: config > text > en)', () => {
   it('explicit config ALWAYS wins — even against contrary text (the escape hatch)', () => {
     const dir = tmpArgusDir();
     writeLocale(dir, 'en');
@@ -49,11 +49,9 @@ describe('resolveResponseLocale (M4 chain: config > text > env > en)', () => {
     expect(resolveResponseLocale(dir, 'seal this contract?')).toBe('en');
   });
 
-  it('no config and no usable text ⇒ falls through (env/Intl, else en)', () => {
+  it('no config and no usable text ⇒ deterministic English base voice', () => {
     const dir = tmpArgusDir();
-    // With no ko env in CI, the base voice is en.
-    const r = resolveResponseLocale(dir, undefined);
-    expect(r === 'en' || r === 'ko').toBe(true); // env-dependent, never throws
+    expect(resolveResponseLocale(dir, undefined)).toBe('en');
   });
 });
 

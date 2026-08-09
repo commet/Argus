@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.0.21 - A voice comes from the person, not the machine
+
+- A fresh, contentless decision-history read now uses the deterministic English
+  base voice instead of guessing from the operating-system locale. Korean is
+  selected by Korean user-authored text or an explicit `locale: ko` setting, so
+  an English conversation on a Korean-locale machine no longer opens in Korean.
+- The real Codex app-server gate now prefers the runnable npm-vendored binary
+  over an inaccessible WindowsApps resource path, and ignores stale npm atomic-
+  install scratch packages when the canonical package is present.
+
 ## 2.0.20 - The horizon follows the decision, and small honesty fixes
 
 - **Default horizon scales with the decision.** SERVER_INSTRUCTIONS no longer

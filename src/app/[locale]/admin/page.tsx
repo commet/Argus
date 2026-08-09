@@ -5,7 +5,7 @@ import { useAuth } from '@/lib/auth';
 import { useLocale } from '@/hooks/useLocale';
 import { supabase } from '@/lib/supabase';
 import { Card } from '@/components/ui/Card';
-import { Compass, RefreshCw } from 'lucide-react';
+import { ChevronDown, Compass, RefreshCw } from 'lucide-react';
 
 interface Metrics {
   generated_at: string;
@@ -83,10 +83,10 @@ function SurfaceFunnel({ rows, L }: { rows: Record<'web' | 'mcp' | 'plugin', Fun
     { key: 'plugin', label: L('플러그인', 'Plugin'), hint: 'plugin_decisions' },
   ];
   const stages: Array<{ key: keyof FunnelStageCounts; label: string }> = [
-    { key: 'opened', label: 'opened' },
-    { key: 'sealed', label: 'sealed' },
-    { key: 'returned', label: 'returned' },
-    { key: 'settled', label: 'settled' },
+    { key: 'opened', label: L('열어봄', 'Opened') },
+    { key: 'sealed', label: L('결정 기록', 'Decision recorded') },
+    { key: 'returned', label: L('다시 방문', 'Returned') },
+    { key: 'settled', label: L('결과 확인', 'Outcome recorded') },
   ];
 
   return (
@@ -152,12 +152,20 @@ export default function AdminPage() {
   }
 
   const fmtDate = (s: string | null) => (s ? new Date(s).toISOString().slice(0, 10) : '—');
+  const outcomeLabels: Record<string, string> = {
+    happened: L('예상한 일이 일어남', 'Expected event happened'),
+    partial: L('일부만 일어남', 'Partly happened'),
+    avoided: L('피하려던 일을 피함', 'Avoided the unwanted event'),
+    condition_met: L('기준을 충족함', 'Standard met'),
+    condition_not_met: L('기준을 충족하지 못함', 'Standard not met'),
+    mixed: L('결과가 엇갈림', 'Mixed outcome'),
+  };
 
   return (
     <div className="max-w-4xl mx-auto px-6 py-10">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-[var(--text-primary)]">{L('운영 지표', 'Operations')}</h1>
+          <h1 className="text-2xl font-bold text-[var(--text-primary)]">{L('운영 현황', 'Operations')}</h1>
           {metrics && (
             <p className="text-[12px] text-[var(--text-tertiary)] mt-0.5">
               {L('기준', 'as of')} {new Date(metrics.generated_at).toLocaleString()}
@@ -176,28 +184,37 @@ export default function AdminPage() {
 
       {metrics && (
         <>
-          {/* IA (창업자 2026-07-19 재설계): lead with the ONE question the
-              blueprint's 준공 검사 asks — is anyone completing opened→sealed→
-              returned→settled, on which surface? Growth vanity moves below. */}
-          {metrics.surface_funnel && (
-            <>
-              <h2 className="text-[12px] font-bold uppercase tracking-wider text-[var(--text-tertiary)] mb-2">
-                {L('표면별 4단 퍼널', 'Four-stage funnel by surface')}
-              </h2>
-              <SurfaceFunnel rows={metrics.surface_funnel} L={L} />
-            </>
-          )}
+          <h2 className="mb-2 text-[12px] font-bold uppercase tracking-wider text-[var(--text-tertiary)]">
+            {L('전체 흐름', 'Overall journey')}
+          </h2>
+          <div className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-4">
+            <Stat label={L('가입 계정', 'Registered accounts')} value={metrics.users_total} hint={`+${metrics.signups_7d} ${L('최근 7일', 'last 7d')}`} />
+            <Stat label={L('프로젝트를 시작한 계정', 'Accounts that started a project')} value={metrics.users_with_projects} />
+            <Stat label={L('결정을 기록한 프로젝트', 'Projects with a recorded decision')} value={metrics.projects_sealed} accent />
+            <Stat label={L('결과를 확인한 프로젝트', 'Projects with a recorded outcome')} value={metrics.projects_settled} accent />
+          </div>
 
-          {/* Return loop — the BEHAVIORAL funnel from user_events (anon-inclusive).
-              The account funnel below only sees logged-in users; anon seals/settles
-              live only as events. This is where the first real settle 0→1 shows up. */}
+          <h2 className="text-[12px] font-bold uppercase tracking-wider text-[var(--text-tertiary)] mb-2">{L('프로젝트 진행', 'Project activity')}</h2>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-2">
+            <Stat label={L('전체 프로젝트', 'All projects')} value={metrics.projects_total} />
+            <Stat label={L('최근 7일 시작', 'Started in 7d')} value={metrics.projects_7d} />
+            <Stat label={L('최근 30일 시작', 'Started in 30d')} value={metrics.projects_30d} />
+            <Stat label={L('최근 프로젝트', 'Latest project')} value={fmtDate(metrics.latest_project)} />
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+            <Stat label={L('익명 사용자', 'Anonymous users')} value={metrics.anonymous_users_total ?? 0} hint={`${L('프로젝트 보유', 'with project')} ${metrics.anonymous_users_with_projects ?? 0}`} />
+            <Stat label={L('결정 기록 · 계정 기준', 'Decisions · accounts')} value={metrics.projects_sealed} />
+            <Stat label={L('결과 확인 · 계정 기준', 'Outcomes · accounts')} value={metrics.projects_settled} />
+            <Stat label={L('플러그인 결정', 'Plugin decisions')} value={metrics.tables.plugin_decisions ?? 0} />
+          </div>
+
           {metrics.return_loop && (() => {
             const r = metrics.return_loop!;
             const verdictPairs = Object.entries(r.verdicts || {}).filter(([k]) => k !== '(none)');
             return (
               <>
                 <h2 className="text-[12px] font-bold uppercase tracking-wider text-[var(--text-tertiary)] mb-2 mt-2">
-                  {L('귀환 루프 (행동 이벤트 기준, 익명 포함)', 'Return loop (behavioral events, anon-inclusive)')}
+                  {L('결정 이후 확인 흐름 · 행동 기록 기준', 'After-decision follow-up · based on activity records')}
                 </h2>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-2">
                   <Stat label={L('봉인 (seal)', 'Sealed')} value={r.sealed_total} accent
@@ -223,19 +240,28 @@ export default function AdminPage() {
                   <div className="flex flex-wrap gap-2 mb-2">
                     {verdictPairs.map(([verdict, n]) => (
                       <span key={verdict} className="inline-flex items-center gap-1.5 rounded-full border border-[var(--border-subtle)] bg-[var(--surface)] px-3 py-1 text-[12px] text-[var(--text-secondary)]">
-                        <span className="font-semibold text-[var(--text-primary)]">{verdict}</span> {n}
+                        <span className="font-semibold text-[var(--text-primary)]">{outcomeLabels[verdict] ?? verdict}</span> {n}
                       </span>
                     ))}
                   </div>
                 )}
 
                 <p className="text-[12.5px] text-[var(--text-tertiary)] mb-6 leading-snug">
-                  {L('익명 정산은 며칠 뒤 새 세션에서 일어나 세션 단위로는 과소집계됩니다 — 전환율 대신 원시 카운트를 봅니다.',
-                     'Anon settle happens days later in a new session, so session-based conversion undercounts — read raw counts, not a %.')}
+                  {L('결정 기록과 결과 확인은 서로 다른 방문에서 일어날 수 있어 전환율로 계산하지 않습니다. 익명 기록을 포함한 행동 횟수입니다.',
+                     'Decision recording and outcome review can happen in different visits, so these are activity counts rather than a conversion rate.')}
                 </p>
               </>
             );
           })()}
+
+          {metrics.surface_funnel && (
+            <>
+              <h2 className="text-[12px] font-bold uppercase tracking-wider text-[var(--text-tertiary)] mb-2">
+                {L('사용 경로별 흐름', 'Journey by entry point')}
+              </h2>
+              <SurfaceFunnel rows={metrics.surface_funnel} L={L} />
+            </>
+          )}
 
           {/* LLM health — the silent-degradation sensors (2026-07-31). A cut-at-cap
               generation errors NOWHERE (the client fallback recovers it), which is
@@ -285,37 +311,23 @@ export default function AdminPage() {
             </>
           )}
 
-          {/* Accounts & growth — context, not the spine. One merged block:
-              the old page said "funnel" twice and scattered 7d/30d deltas
-              across three grids. */}
-          <h2 className="text-[12px] font-bold uppercase tracking-wider text-[var(--text-tertiary)] mb-2">{L('계정 · 성장', 'Accounts & growth')}</h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-2">
-            <Stat label={L('실제 가입', 'Registered users')} value={metrics.users_total} hint={`+${metrics.signups_7d} ${L('7일', '7d')} · +${metrics.signups_30d} ${L('30일', '30d')}`} />
-            <Stat label={L('익명 사용자', 'Anonymous users')} value={metrics.anonymous_users_total ?? 0} hint={`${L('프로젝트 보유', 'with project')} ${metrics.anonymous_users_with_projects ?? 0}`} />
-            <Stat label={L('프로젝트 보유 계정', 'Accounts w/ project')} value={metrics.users_with_projects} />
-            <Stat label={L('프로젝트', 'Projects')} value={metrics.projects_total} hint={`+${metrics.projects_7d} ${L('7일', '7d')} · +${metrics.projects_30d} ${L('30일', '30d')}`} />
-            <Stat label={L('최근 프로젝트', 'Latest project')} value={fmtDate(metrics.latest_project)} />
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-            <Stat label={L('봉인 (계정 기준)', 'Sealed (accounts)')} value={metrics.projects_sealed} />
-            <Stat label={L('정산 (계정 기준)', 'Settled (accounts)')} value={metrics.projects_settled} />
-            <Stat label={L('플러그인 결정', 'Plugin decisions')} value={metrics.tables.plugin_decisions ?? 0} />
-          </div>
-
-          {/* Per-table row counts — "did the data actually arrive" (지속성 원칙:
-              UI가 멀쩡한 것과 행이 늘어난 것은 다른 사실) */}
-          <h2 className="text-[12px] font-bold uppercase tracking-wider text-[var(--text-tertiary)] mb-2">{L('테이블별 행수', 'Rows per table')}</h2>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mb-6">
-            {Object.entries(metrics.tables).map(([name, count]) => (
-              <div key={name} className="flex items-center justify-between rounded-lg border border-[var(--border-subtle)] bg-[var(--surface)] px-3 py-2">
-                <span className="min-w-0 text-[12px] text-[var(--text-secondary)] truncate flex items-center gap-1.5">
-                  {name.startsWith('plugin_') && <Compass size={11} className="text-[var(--accent)] shrink-0" />}
-                  {name}
-                </span>
-                <span className="shrink-0 text-[13px] font-semibold text-[var(--text-primary)]">{count}</span>
-              </div>
-            ))}
-          </div>
+          <details className="group mb-6 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface)]">
+            <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-3 text-[13px] font-semibold text-[var(--text-secondary)]">
+              <span>{L('시스템 데이터 상세', 'System data details')}</span>
+              <ChevronDown size={16} className="transition-transform group-open:rotate-180" />
+            </summary>
+            <div className="grid grid-cols-2 gap-2 border-t border-[var(--border-subtle)] p-3 md:grid-cols-3">
+              {Object.entries(metrics.tables).map(([key, count]) => ({ key, count })).map((item) => (
+                <div key={item.key} className="flex items-center justify-between rounded-lg border border-[var(--border-subtle)] bg-[var(--bg)] px-3 py-2">
+                  <span className="min-w-0 text-[12px] text-[var(--text-secondary)] truncate flex items-center gap-1.5">
+                    {item.key.startsWith('plugin_') && <Compass size={11} className="text-[var(--accent)] shrink-0" />}
+                    {item.key}
+                  </span>
+                  <span className="shrink-0 text-[13px] font-semibold text-[var(--text-primary)]">{item.count}</span>
+                </div>
+              ))}
+            </div>
+          </details>
         </>
       )}
     </div>

@@ -171,4 +171,40 @@ describe('SettlementModal foundation return', () => {
     expect(button('Write what I remember first')).toBeDefined();
     expect(button('I cannot tell from the evidence')).toBeUndefined();
   });
+
+  it('keeps the retro reading non-binding and offers the real-decision onramp after saving', async () => {
+    const onRealSeal = vi.fn();
+    const retroProject: Project = {
+      ...project,
+      decision_contract: {
+        ...project.decision_contract!,
+        origin: 'retro',
+        predicates: [{
+          id: 'retro-predicate',
+          text: 'The team can hold the date without hiring',
+          source: 'user_lean',
+          authored: 'user',
+        }],
+      },
+    };
+
+    await act(async () => {
+      root.render(createElement(SettlementModal, {
+        project: retroProject,
+        onClose: vi.fn(),
+        onRealSeal,
+        draftVerdicts: { 'retro-predicate': 'avoided' },
+      }));
+    });
+
+    expect(document.body.textContent).toContain('AI draft · choose for yourself');
+    expect(button('It did not happen')).toBeDefined();
+    await act(async () => button('It did not happen')!.click());
+    await act(async () => button('I would use a different standard now')!.click());
+
+    const onramp = button('Now for real');
+    expect(onramp).toBeDefined();
+    await act(async () => onramp!.click());
+    expect(onRealSeal).toHaveBeenCalledTimes(1);
+  });
 });

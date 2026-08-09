@@ -35,7 +35,16 @@ function vendoredExe(dir) {
   const scopes = [path.join(dir, 'node_modules', '@openai')];
   for (const scope of scopes) {
     if (!fs.existsSync(scope)) continue;
-    for (const pkg of fs.readdirSync(scope)) {
+    // npm may leave atomic-install scratch directories such as `.codex-abc123`
+    // beside the live `codex` package. Prefer the canonical package so a stale
+    // scratch binary cannot silently decide which host version the gate tests.
+    const packages = fs.readdirSync(scope).sort((a, b) => {
+      if (a === 'codex') return -1;
+      if (b === 'codex') return 1;
+      if (a.startsWith('.') !== b.startsWith('.')) return a.startsWith('.') ? 1 : -1;
+      return a.localeCompare(b);
+    });
+    for (const pkg of packages) {
       const pkgDir = path.join(scope, pkg);
       // Depth 2: the package nests its own platform package (the npm layout).
       const nested = path.join(pkgDir, 'node_modules', '@openai');
@@ -81,14 +90,17 @@ function firstRunnable(lines) {
     const hit = lines[0];
     return hit ? { path: hit, kind: 'posix' } : null;
   }
-  const direct = lines.find((l) => /\.exe$/i.test(l));
-  if (direct) return { path: direct, kind: 'exe' };
   // Prefer the real executable the shim would launch — spawning it directly
-  // avoids an extra cmd.exe in the process tree and its stdio buffering.
+  // avoids an extra cmd.exe in the process tree and its stdio buffering. This
+  // must run before selecting an arbitrary .exe from PATH: the Codex desktop
+  // app exposes a WindowsApps resource path that exists but returns EPERM when
+  // child_process tries to launch it, while the npm-vendored binary is runnable.
   for (const shim of lines) {
     const exe = vendoredExe(path.dirname(shim));
     if (exe) return { path: exe, kind: 'vendored' };
   }
+  const direct = lines.find((l) => /\.exe$/i.test(l));
+  if (direct) return { path: direct, kind: 'exe' };
   const shim = lines.find((l) => /\.(cmd|bat)$/i.test(l));
   return shim ? { path: shim, kind: 'shim' } : null;
 }

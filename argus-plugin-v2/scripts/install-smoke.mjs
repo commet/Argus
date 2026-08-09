@@ -46,7 +46,7 @@ const fail = (message) => errors.push(message);
 const readJson = (file) => JSON.parse(fs.readFileSync(file, 'utf8'));
 
 function command(bin, args, options = {}) {
-  const result = spawnSync(bin, args, {
+  const run = () => spawnSync(bin, args, {
     cwd: options.cwd ?? repoRoot,
     env: options.env ?? process.env,
     encoding: 'utf8',
@@ -58,6 +58,13 @@ function command(bin, args, options = {}) {
     // installed claude/npm shim through cmd.exe is both bounded and portable.
     shell: process.platform === 'win32',
   });
+  let result = run();
+  // Measured 2026-08-09: Windows can occasionally fail a freshly spawned
+  // Claude CLI with STATUS_DLL_INIT_FAILED (0xC0000142) while the same isolated
+  // lifecycle succeeds immediately afterwards. Retry this host-start failure
+  // once; a repeated crash is still reported as a real red gate.
+  const windowsDllInitFailure = result.status === 0xC0000142 || result.status === -1073741502;
+  if (process.platform === 'win32' && windowsDllInitFailure) result = run();
   const output = `${result.stdout ?? ''}${result.stderr ?? ''}`;
   if (result.error) throw new Error(`${bin} ${args.join(' ')}: ${result.error.message}`);
   if (result.status !== 0) {

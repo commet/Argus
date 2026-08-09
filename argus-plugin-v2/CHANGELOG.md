@@ -1,5 +1,15 @@
 # Changelog
 
+## 3.0.21 - 2026-08-09
+
+- **Portable installs are local-first again.** The Agent Plugins `mcp.json`
+  now registers only the local stdio server. The former additional remote
+  entry was a second server, not a fallback transport, so conforming clients
+  could connect to the web endpoint merely by loading the plugin. Web sync
+  remains an explicit user-authorized action.
+- **The privacy promise is executable.** The Agent Plugins conformance gate now
+  fails if the portable package grows an implicit remote MCP server.
+
 ## 3.0.20 - 2026-07-31
 
 - **One Argus ask per reply, three per session — across ALL five ambient

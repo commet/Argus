@@ -73,6 +73,21 @@ assert.equal(
   'mcp.json $schema 는 plugin.json 과 같은 1.0.0 을 겨냥해야 한다 (§10.1)',
 );
 
+// Argus's product contract is local-first: merely installing the plugin must
+// never open a remote MCP connection. Agent Plugins treats every mcpServers
+// member as an independent server to load; entries are not fallback transport
+// variants. Optional web sync remains an explicit, user-authorized workflow.
+assert.deepEqual(
+  Object.keys(mcp.mcpServers),
+  ['argus-decision-local'],
+  'portable plugin must expose exactly one local MCP server (no implicit remote connection)',
+);
+assert.equal(
+  mcp.mcpServers['argus-decision-local']?.type,
+  'stdio',
+  'portable Argus MCP must use local stdio; web sync is explicit opt-in',
+);
+
 const VARIANT_FIELDS = {
   stdio: { required: ['type', 'command'], optional: ['args', 'env', 'cwd'] },
   'streamable-http': { required: ['type', 'url'], optional: ['headers'] },

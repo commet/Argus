@@ -444,6 +444,19 @@ describe('useProjectStore mutations', () => {
     expect(mockUpsert).toHaveBeenCalledWith('projects', expect.objectContaining({ id }));
   });
 
+  it('createProject — can persist an embedded rehearsal without navigating away', () => {
+    const id = useProjectStore.getState().createProject(
+      '지난 결정 연습',
+      '',
+      { activate: false, trackCreation: false },
+    );
+
+    const state = useProjectStore.getState();
+    expect(state.getProject(id)?.name).toBe('지난 결정 연습');
+    expect(state.currentProjectId).toBeNull();
+    expect(mockUpsert).toHaveBeenCalledWith('projects', expect.objectContaining({ id }));
+  });
+
   it('addRef — adds ref to project', () => {
     const projectId = useProjectStore.getState().createProject('Test Project');
     vi.clearAllMocks();

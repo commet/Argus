@@ -84,7 +84,14 @@ export function SettlementModal(props: SettlementModalProps) {
   // readable, but coming back to one appends a type-appropriate answer instead
   // of writing another verdict/score-shaped field.
   if (props.project.decision_contract) {
-    return <FoundationSettlementModal project={props.project} onClose={props.onClose} />;
+    return (
+      <FoundationSettlementModal
+        project={props.project}
+        onClose={props.onClose}
+        draftVerdicts={props.draftVerdicts}
+        onRealSeal={props.onRealSeal}
+      />
+    );
   }
   return <LegacySettlementModal {...props} />;
 }

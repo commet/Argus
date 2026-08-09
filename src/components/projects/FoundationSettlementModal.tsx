@@ -21,6 +21,10 @@ import { generateId } from '@/lib/uuid';
 export interface FoundationSettlementModalProps {
   project: Project;
   onClose: () => void;
+  /** Non-binding reading aid used only by the past-decision rehearsal. */
+  draftVerdicts?: Record<string, 'happened' | 'avoided' | 'partial'>;
+  /** Leaves a completed rehearsal at the real, still-unknown decision input. */
+  onRealSeal?: () => void;
 }
 
 /**
@@ -28,13 +32,29 @@ export interface FoundationSettlementModalProps {
  * kind-appropriate answer, then ask exactly one present-standard question.
  * Saving appends a return instead of rewriting the past.
  */
-export function FoundationSettlementModal({ project, onClose }: FoundationSettlementModalProps) {
+export function FoundationSettlementModal({
+  project,
+  onClose,
+  draftVerdicts,
+  onRealSeal,
+}: FoundationSettlementModalProps) {
   const locale = useLocale();
   const ko = locale === 'ko';
   const L = (k: string, e: string) => (ko ? k : e);
   const updateDecisionContract = useProjectStore((state) => state.updateDecisionContract);
   const contract = project.decision_contract!;
   const kind = decisionKind(contract);
+  const isRetro = contract.origin === 'retro';
+  const draftVerdict = Object.values(draftVerdicts ?? {})[0];
+  const draftOptionId = kind === 'prediction'
+    ? draftVerdict === 'happened'
+      ? 'condition_met'
+      : draftVerdict === 'avoided'
+        ? 'condition_not_met'
+        : draftVerdict === 'partial'
+          ? 'mixed'
+          : null
+    : null;
   const [selected, setSelected] = useState<FoundationSettlementOption | null>(null);
   const [saved, setSaved] = useState<ContractSettlement | null>(null);
   const [returnStage, setReturnStage] = useState<'gate' | 'memory' | 'revealed'>(
@@ -220,7 +240,21 @@ export function FoundationSettlementModal({ project, onClose }: FoundationSettle
                 'The original stays intact. A later answer will be appended as another return.',
               )}
             </p>
-            <PrimaryButton onClick={onClose}>{L('기록 보기', 'View record')}</PrimaryButton>
+            <PrimaryButton onClick={onClose}>
+              {isRetro ? L('연습 닫고 기록 보기', 'Close practice and view record') : L('기록 보기', 'View record')}
+            </PrimaryButton>
+            {isRetro && onRealSeal && (
+              <button
+                type="button"
+                onClick={onRealSeal}
+                className="w-full text-[12.5px] font-semibold leading-5 text-[var(--accent)] hover:underline"
+              >
+                {L(
+                  '이제 진짜 — 결과를 아직 모르는 결정 하나 걸어볼까요? →',
+                  'Now for real — want to record a decision whose outcome you do not know yet? →',
+                )}
+              </button>
+            )}
               </div>
             ) : selected ? (
               <div className="space-y-3">
@@ -263,9 +297,18 @@ export function FoundationSettlementModal({ project, onClose }: FoundationSettle
                   key={option.id}
                   type="button"
                   onClick={() => setSelected(option)}
-                  className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3.5 py-3 text-left text-[13px] font-medium leading-5 text-[var(--text-primary)] transition-colors hover:border-[var(--accent)]/50 hover:bg-[var(--bg)]"
+                  className={`rounded-xl border bg-[var(--surface)] px-3.5 py-3 text-left text-[13px] font-medium leading-5 text-[var(--text-primary)] transition-colors hover:border-[var(--accent)]/50 hover:bg-[var(--bg)] ${
+                    option.id === draftOptionId
+                      ? 'border-dashed border-[var(--accent)]/70'
+                      : 'border-[var(--border)]'
+                  }`}
                 >
-                  {ko ? option.ko : option.en}
+                  <span>{ko ? option.ko : option.en}</span>
+                  {option.id === draftOptionId && (
+                    <span className="mt-0.5 block text-[11px] font-medium text-[var(--accent)]">
+                      {L('AI가 미리 짚은 초안 · 직접 선택해 주세요', 'AI draft · choose for yourself')}
+                    </span>
+                  )}
                 </button>
               ))}
             </div>

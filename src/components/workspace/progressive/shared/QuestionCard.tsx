@@ -150,7 +150,7 @@ export function QuestionCard({
                 placeholder={L('또는 직접 입력...', 'Or type your own...')}
                 disabled={disabled || submitted}
                 maxLength={1000}
-                className="flex-1 px-3.5 py-2.5 min-h-[44px] rounded-xl bg-[var(--bg)]/55 border border-[var(--border-subtle)] text-base md:text-[12px] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:border-[var(--accent)]/30 focus:bg-[var(--surface)] disabled:opacity-30 transition-colors"
+                className="min-w-0 flex-1 px-3.5 py-2.5 min-h-[44px] rounded-xl bg-[var(--bg)]/55 border border-[var(--border-subtle)] text-base md:text-[12px] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:border-[var(--accent)]/30 focus:bg-[var(--surface)] disabled:opacity-30 transition-colors"
                 onKeyDown={e => { if (e.key === 'Enter' && !e.nativeEvent.isComposing) { e.preventDefault(); goText(); } }}
               />
               {input.trim() && (
@@ -181,7 +181,7 @@ export function QuestionCard({
             autoFocus
             disabled={disabled || submitted}
             maxLength={1000}
-            className="flex-1 px-3.5 py-2.5 min-h-[44px] md:min-h-0 rounded-xl bg-[var(--surface)] border border-[var(--border-subtle)] text-base md:text-[13px] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:border-[var(--accent)]/30 disabled:opacity-30"
+            className="min-w-0 flex-1 px-3.5 py-2.5 min-h-[44px] md:min-h-0 rounded-xl bg-[var(--surface)] border border-[var(--border-subtle)] text-base md:text-[13px] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:border-[var(--accent)]/30 disabled:opacity-30"
             onKeyDown={e => { if (e.key === 'Enter' && !e.nativeEvent.isComposing) { e.preventDefault(); goText(); } }}
           />
           <motion.button

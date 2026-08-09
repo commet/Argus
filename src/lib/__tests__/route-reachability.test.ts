@@ -99,6 +99,6 @@ describe('라우트 도달 가능성', () => {
     expect(from.length, '분신 페이지로 가는 링크가 없습니다').toBeGreaterThan(0);
     // 헤더(오버플로 메뉴 + 커맨드 팔레트)에서 닿아야 한다 — 설정 안에서만
     // 닿으면 "설정에 들어간 사람만 아는 화면"이 된다.
-    expect(from.some((f) => f.includes('layout/Header'))).toBe(true);
+    expect(from.some((f) => f.replaceAll('\\', '/').includes('layout/Header'))).toBe(true);
   });
 });

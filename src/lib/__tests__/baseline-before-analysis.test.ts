@@ -20,4 +20,14 @@ describe('pre-review baseline enters the first heavy analysis', () => {
     );
     expect(submit).not.toContain('beginHeavyAnalysis(');
   });
+
+  it('defers landing auto-start past StrictMode effect replay', () => {
+    const autoStart = page.slice(
+      page.indexOf('// Auto-submit from ?q= param'),
+      page.indexOf('// Start heavy analysis only after'),
+    );
+    expect(autoStart).toContain('const autoStartTimer = window.setTimeout(() =>');
+    expect(autoStart.indexOf('window.setTimeout')).toBeLessThan(autoStart.indexOf('handleSubmit(text)'));
+    expect(autoStart).toContain('return () => window.clearTimeout(autoStartTimer)');
+  });
 });

@@ -102,7 +102,8 @@ function declarations(): Declared[] {
       const name = m[1];
       const word = new RegExp(`\\b${name}\\b`);
       const consumers = NON_TEST_SRC.filter((g) => g !== file && word.test(FILE_TEXT.get(g) ?? ''));
-      out.push({ key: `${file.replace('src/lib/', '')}:${name}`, file, name, consumers });
+      const portableFile = file.replaceAll('\\', '/');
+      out.push({ key: `${portableFile.replace('src/lib/', '')}:${name}`, file, name, consumers });
     }
   }
   return out;
