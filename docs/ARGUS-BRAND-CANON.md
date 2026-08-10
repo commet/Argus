@@ -1,7 +1,7 @@
 # Argus Brand Canon
 
 Status: canonical product identity
-Updated: 2026-07-18
+Updated: 2026-08-10
 
 ## One Sentence
 
@@ -111,6 +111,63 @@ states what changed with provenance, and names its own limits plainly.
 - Do not use celebratory cuteness for loss, error, or a broken prediction.
 - Do not add a full mascot to navigation, every empty card, or routine loading.
 - Do not create pose variants without assigning them a canonical product state.
+
+## Narrative System
+
+Status: **founder-finalized 2026-08-10.** This layer is settled — execute it.
+Do not reopen, deepen, or add narrative material without founder direction.
+
+### Three layers, one dependency direction
+
+| Layer | Content | Rule |
+|---|---|---|
+| Product / UI | 봉인 · 귀환 · 정산 · 분신 · 기록 — plain vocabulary only | Myth names never appear in UI, feature names, or in-product copy |
+| Identity | Argus the loyal hound, alone, with the five promises above | One character forever; no second mascot or persona |
+| Story (marketing only) | Odyssey and Frost material below | Campaign layer; product and identity must be complete without it |
+
+The story layer explains the **etymology** of the product vocabulary (귀환 is
+the homecoming, 봉인 is the mast); it never renames anything. A user must be
+able to use the product knowing no myth; the myth only deepens meaning for
+those who meet the marketing.
+
+### Master line
+
+> 결정은 내리는 날이 아니라, 돌아오는 날 완성됩니다.
+> Argus는 그날 먼저 찾아옵니다.
+
+### The only two supporting references
+
+1. **Siren — AI-era positioning.** One landing section plus ads, copy only,
+   never a drawn character. Anchor: "노래는 다 들으세요. 항로는 당신
+   것입니다." The enemy is not AI's song but losing the helm — Argus is
+   itself an AI voice, so the siren framing must never read as "AI answers
+   are bad."
+2. **Frost, "The Road Not Taken" — the seal.** Marketing copy for the seal
+   moment only. Anchor: "우리는 언젠가 한숨과 함께 그 갈림길을 다르게
+   말하게 됩니다 — 그날의 기록이 없다면." The Twin's marketing story is
+   "가지 않은 길을 대신 걷는 나"; the feature name stays 분신.
+
+### Content bank (post-launch drip)
+
+One piece each, structure fixed: one scene → one universal decision pain →
+one feature. Bow test = authorship · scar = record as identity ·
+lotus-eaters = sweet chat that never returns · Calypso = deferral without a
+date. Easter-egg tier (blog/etymology page only): Penelope's loom, the bard
+of Phaeacia, Cavafy's "Ithaka".
+
+### Admission rules for any future story candidate
+
+1. Users never need to memorize it.
+2. It lands in one sentence without explanation.
+3. It never competes with the dog.
+4. No judging or surveillance connotation.
+
+### Excluded, permanently
+
+- **Argus Panoptes** (the all-seeing watcher): founder decision; also
+  conflicts with "never imply it sees every fact" above.
+- Myth-derived user-facing module names. Internal codenames (repos, crons)
+  are allowed but optional and carry no obligation.
 
 ## Canonical Assets
 
