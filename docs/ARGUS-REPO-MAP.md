@@ -1,5 +1,10 @@
 # Argus — Repository Map (for reviewer model)
 
+> **2026-08-10 notice:** this is a historical snapshot. Start with
+> [`HANDOFF-2026-08-10-DECISION-LOOP-AUDIT.md`](./HANDOFF-2026-08-10-DECISION-LOOP-AUDIT.md)
+> for the current product/domain/architecture diagnosis. Do not infer current web/MCP/plugin semantic
+> convergence or package versions from the descriptions below.
+>
 > Snapshot of the `main` branch. Purpose: let a reviewer go straight to judgment
 > without exploring the repo. Paths are relative to the repo root.
 > Note: the active branch `feat/decision-contract-loop` (merging to main soon) renames
