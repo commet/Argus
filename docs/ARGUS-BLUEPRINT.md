@@ -526,6 +526,15 @@ handleTextInputSubmit = () => move("down")                 // 칸 안에서 Retu
 
 ## §8. 대기 목록 — 여기 적고, 짓지 않는다
 
+- **Sonnet의 닫힌-결정 capture 잔존 (2026-08-10, M1 over-fire eval 발견).**
+  플랫 작업은 두 라운드 24/24 청정(M1 exit 충족·체크됨)이나, "어제 확정했고
+  재론 불요" 니어미스에서 sonnet이 3표본 중 2회 자발 `argus_capture`를 작성 —
+  "논의는 존중, 기록으로 재개봉" 패턴. 전역 절제 문구 수리("Ignore" →
+  "Never act on", spine.ts)로도 잔존. 다음 수리 후보는 문구가 아니라 **위치**:
+  Assumption 불릿 로컬 제약("live decision", 바이트 예산과 상충) 또는 capture
+  도구 필드 설명 레벨(호출 순간에 읽힘, 예산 밖 — claim-band 규칙의 선례).
+  근거 리시트: `docs/receipts/2026-08-10-m1-overfire-eval/`.
+
 - **판단 기록 표준의 제품 접점 9건 (트랙 AF, 2026-08-10).** 시공은 전부 이
   목록 뒤, 공정표 순서로만: C1 봉인 시 settleability 린트 · C2 정산 4값화 +
   봉인 원문 diff 화면 · C3 전제 treatment 깃발 · C4 반-resulting 정산 UX ·
@@ -793,7 +802,7 @@ Desktop은 README 설정 그대로가 전 도구 실패, 영수증 렌더러는 
   SERVER_INSTRUCTIONS 안무(§9.2 원칙 명문화) + snippets/ + README 두 궤도
   재포지셔닝 + 어휘 validator의 스캔 범위에 argus-mcp surfaces 편입(공정 3
   누락분 상환).
-- exit: [x] 당직 여정 fixture(anchor→capture→다음 세션 미러) [ ] over-fire
+- exit: [x] 당직 여정 fixture(anchor→capture→다음 세션 미러) [x] over-fire
   eval: 플랫 작업 시나리오에서 모델 자발 capture 제안 0건 (모델 실행 필요 —
   결정론 절반인 instructions 가드만 테스트로 고정됨, eval 실행 후 체크)
   [x] 앵커 비산입 테스트(track record에 앵커가 안 섞임) [x] validator가 MCP
