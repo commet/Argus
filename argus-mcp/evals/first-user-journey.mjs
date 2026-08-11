@@ -81,8 +81,20 @@ const PERSONA_SYS = [
 
 // ── 3. 서버 기동 + 실제 도구 목록 읽기 ───────────────────────────────────────
 const ledgerDir = fs.mkdtempSync(path.join(os.tmpdir(), 'journey-argus-'));
-const env = { ...process.env, ARGUS_DIR: ledgerDir, NODE_ENV: 'test' };
-delete env.ARGUS_TOKEN;
+/**
+ * 자식 프로세스는 npm에서 방금 내려받은 코드다. process.env를 통째로 물려주면
+ * ANTHROPIC_API_KEY를 비롯한 호스트 비밀이 그 코드의 손에 들어간다 — 발행본을
+ * 신뢰하는 것과 비밀을 넘기는 것은 다른 문제이고, 이 하네스는 "낯선 패키지를
+ * 처음 켜보는" 상황을 재현하는 물건이다. 허용목록만 넘긴다.
+ */
+const env = {
+  ARGUS_DIR: ledgerDir,
+  NODE_ENV: 'test',
+  PATH: process.env.PATH,
+  HOME: process.env.HOME,
+  TMPDIR: process.env.TMPDIR,
+  ...(process.env.SystemRoot ? { SystemRoot: process.env.SystemRoot } : {}),
+};
 
 /** 확인창을 페르소나가 답한다. 자동 accept는 사람이 눌렀다는 날조다. */
 const elicitLog = [];
@@ -189,6 +201,12 @@ async function assistantTurn(history, userTurn, priorError = null) {
 // ── 4. 여정 ──────────────────────────────────────────────────────────────────
 const history = [];
 const journey = { stages: [], toolCalls: [], errors: [], rejections: [] };
+// 재시작 관문의 증거: 세션2의 도구 출력이 재시작 '전'에 만들어진 식별자를
+// 실제로 되돌려주는가. 도구 개수 비교는 서버가 같은 바이너리라는 뜻일 뿐,
+// 원장을 읽었다는 증거가 아니다.
+let afterRestart = false;
+const postRestartOutputs = [];
+let preRestartIds = [];
 
 async function stage(n, title, userPromptSpec) {
   rule(`${n}단계 · ${title}`);
@@ -227,6 +245,7 @@ async function stage(n, title, userPromptSpec) {
     } else {
       say(`  📦 서버 응답:\n     ${okSurface.split('\n').join('\n     ')}`);
       journey.toolCalls.push({ n, tool: act.tool, ok: true });
+      if (afterRestart) postRestartOutputs.push(okSurface);
       called.push(act.tool);
       lastErr = null;
     }
@@ -255,7 +274,22 @@ await stage(6, '예측을 남긴다 — 확인일과 함께',
 // ── 재시작: 실사용자의 "내일 다시 켰다" ──────────────────────────────────────
 rule('7단계 · 재시작 — 사용자가 터미널을 닫았다가 다음 날 다시 켠다 (같은 원장)');
 await client.close();
-say('  세션1 종료. 원장 폴더는 그대로 두고 새 세션을 연다 (실사용자의 다음 날).');
+// 재시작 '전' 원장에 무엇이 있었는지 지금 기록해 둔다 — 나중에 세션2가 이걸
+// 되돌려주는지가 재시작 관문의 유일한 정직한 증거다.
+(function collectPre(dir) {
+  for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+    const fp = path.join(dir, e.name);
+    if (e.isDirectory()) collectPre(fp);
+    else if (e.name.endsWith('.jsonl')) {
+      for (const line of fs.readFileSync(fp, 'utf8').split('\n').filter(Boolean)) {
+        try { const ev = JSON.parse(line); if (ev.id) preRestartIds.push(String(ev.id)); } catch { /* 파싱 불가 줄은 증거로 쓰지 않는다 */ }
+      }
+    }
+  }
+})(ledgerDir);
+preRestartIds = [...new Set(preRestartIds)];
+say(`  세션1 종료. 재시작 전 원장의 식별자 ${preRestartIds.length}개: ${preRestartIds.join(', ') || '(없음)'}`);
+afterRestart = true;
 client = await makeClient('세션2');
 const tools2 = (await client.listTools()).tools;
 say(`  세션2 도구 ${tools2.length}종 재노출 — 첫 세션과 ${tools2.length === toolList.length ? '동일' : '다름 ⚠'}`);
@@ -284,27 +318,53 @@ const jsonl = [];
     else if (e.name.endsWith('.jsonl')) jsonl.push(p);
   }
 })(ledgerDir);
+// 원문 그대로 남긴다. 220자에서 자른 재직렬화본은 "원장 원문"이 아니다 —
+// 리시트가 자기 주장과 어긋나는 자리가 정확히 여기다.
+fs.mkdirSync(OUT, { recursive: true });
+const ledgerCopies = [];
 for (const f of jsonl) {
-  say(`\n  ── ${f.replace(ledgerDir, '<원장>')} ──`);
-  for (const line of fs.readFileSync(f, 'utf8').trim().split('\n').filter(Boolean)) {
-    const ev = JSON.parse(line);
-    say(`  ${ev.type ?? ev.kind ?? '?'}  ${JSON.stringify(ev).slice(0, 220)}`);
-  }
+  const rel = f.replace(ledgerDir, '').replace(/^[/\\]/, '').replace(/[/\\]/g, '_');
+  const dest = path.join(OUT, `ledger_${rel}`);
+  fs.copyFileSync(f, dest);
+  ledgerCopies.push(path.basename(dest));
+  say(`\n  ── ${f.replace(ledgerDir, '<원장>')} (원문 사본: ${path.basename(dest)}) ──`);
+  for (const line of fs.readFileSync(f, 'utf8').split('\n').filter(Boolean)) say(`  ${line}`);
 }
 
 // ── 6. 완주 판정 (결정론) ────────────────────────────────────────────────────
 rule('완주 판정 — M4 exit 3항의 4관문');
-const allEvents = jsonl.flatMap((f) => fs.readFileSync(f, 'utf8').trim().split('\n').filter(Boolean).map((l) => JSON.parse(l)));
-const evText = JSON.stringify(allEvents);
+const seenAfter = preRestartIds.filter((id) => postRestartOutputs.some((o) => o.includes(id)));
+const restartEvidence = {
+  ok: preRestartIds.length > 0 && seenAfter.length > 0,
+  preRestartIds, echoedAfterRestart: seenAfter,
+  detail: preRestartIds.length === 0
+    ? '재시작 전 원장이 비어 있어 판정 불가 (봉인이 실패한 실행)'
+    : seenAfter.length
+      ? `세션2 응답이 재시작 전 식별자를 되돌려줌: ${seenAfter.join(', ')}`
+      : `세션2 응답에서 재시작 전 식별자(${preRestartIds.join(', ')})를 찾지 못함`,
+};
+const allEvents = jsonl.flatMap((f) => fs.readFileSync(f, 'utf8').split('\n').filter(Boolean).map((l) => {
+  try { return JSON.parse(l); } catch { return { __unparsed: l }; }
+}));
+// 관문은 각자 주장하는 그것을 검사한다. 이전 판은 정규식으로 원장 전체 문자열을
+// 훑었는데, 사용자 문장에 "settle"이 들어가기만 해도 정산 관문이 초록이 됐다 —
+// 통과할 수 없어야 할 것이 통과하는 관문은 관문이 아니다.
+const eventName = (e) => String(e.event ?? e.type ?? e.kind ?? '');
+const hasEvent = (re) => allEvents.some((e) => re.test(eventName(e)));
+const sealEvents = allEvents.filter((e) => /^seal$/i.test(eventName(e)));
+const settleEvents = allEvents.filter((e) => /^(settle|resolve|outcome)$/i.test(eventName(e)));
 const gates = [
-  ['설치 후 첫 도구 호출이 성공했다', journey.toolCalls.some((c) => c.ok)],
-  ['봉인이 원장에 남았다', /seal|predict/i.test(evText) && allEvents.length > 0],
-  ['재시작 후 같은 원장이 읽혔다', tools2.length === toolList.length && allEvents.length > 0],
-  ['정산이 원장에 남았다', /settle|resolve|outcome/i.test(evText)],
+  ['설치 후 첫 도구 호출이 성공했다', journey.toolCalls.length > 0 && journey.toolCalls[0].ok === true],
+  ['봉인이 원장에 남았다 (seal 이벤트)', sealEvents.length > 0],
+  ['재시작 후 세션2가 재시작 전 기록을 읽었다', restartEvidence.ok],
+  ['정산이 원장에 남았다 (settle 이벤트)', settleEvents.length > 0],
 ];
+say(`  (원장 이벤트 ${allEvents.length}건 — seal ${sealEvents.length} · settle ${settleEvents.length}${hasEvent(/harvest/i) ? ' · harvest 포함' : ''})`);
+say(`  재시작 증거: ${restartEvidence.detail}`);
 let passed = 0;
 for (const [label, ok] of gates) { say(`  ${ok ? '✅' : '❌'} ${label}`); if (ok) passed++; }
-say(`\n  관문 ${passed}/${gates.length} 통과 · 도구 호출 ${journey.toolCalls.length}회(실패 ${journey.errors.length}) · 확인창 ${elicitLog.length}회`);
+const failedCalls = journey.toolCalls.filter((c) => !c.ok).length;
+say(`\n  관문 ${passed}/${gates.length} 통과 · 도구 호출 ${journey.toolCalls.length}회(거부 ${failedCalls}) · 서버 거부 이력 ${journey.rejections.length}건 · 확인창 ${elicitLog.length}회`);
 say(`  ${passed === gates.length ? '완주 — 외부 개입 없이 전 구간 통과' : '미완주 — 위 ❌ 지점이 실사용자가 막힐 곳이다'}`);
 if (journey.errors.length) {
   say('\n  실패한 호출:');
@@ -313,7 +373,17 @@ if (journey.errors.length) {
 
 fs.mkdirSync(OUT, { recursive: true });
 fs.writeFileSync(path.join(OUT, 'TRANSCRIPT.txt'), log.join('\n'));
-fs.writeFileSync(path.join(OUT, 'summary.json'), JSON.stringify({ version: declared, persona: persona.id, gates: gates.map(([l, ok]) => ({ gate: l, ok })), passed, toolCalls: journey.toolCalls, errors: journey.errors, elicitations: elicitLog }, null, 2));
+// rejections를 반드시 싣는다. 재시도로 끝내 성공하면 errors가 비는데, 그것만
+// 실으면 요약이 "실패 0"이라 말하고 트랜스크립트는 거부를 보여주는 모순이 된다.
+fs.writeFileSync(path.join(OUT, 'summary.json'), JSON.stringify({
+  version: declared, persona: persona.id,
+  gates: gates.map(([l, ok]) => ({ gate: l, ok })), passed,
+  toolCalls: journey.toolCalls, failedCalls,
+  rejections: journey.rejections, errors: journey.errors,
+  restartEvidence, ledgerFiles: ledgerCopies,
+  ledgerEventCounts: { total: allEvents.length, seal: sealEvents.length, settle: settleEvents.length },
+  elicitations: elicitLog,
+}, null, 2));
 say(`\n  기록: ${OUT}/TRANSCRIPT.txt · summary.json`);
 
 await client.close();
