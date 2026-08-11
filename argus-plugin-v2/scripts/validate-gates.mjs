@@ -72,7 +72,13 @@ const VIBE_KO = /(잘\s*될|잘\s*풀릴|괜찮을|좋아질|나아질)\s*(것|�
 // that. Two tiers, conservative by construction — see validate-seal.ts for why
 // each one is shaped this way, and keep both files in step by hand.
 const ISO_DATE = /\d{4}-\d{2}-\d{2}/g;
-const STRONG_SPLIT = /\s*(?:[;·|]|\n+|\.\s+)\s*/;
+// TIER 1: list-making punctuation only. A full stop was demoted after it
+// refused the MCP's injection-battery fixtures, where the leading sentence is
+// an imperative rather than a claim (see validate-seal.ts).
+const HARD_ENUM_SPLIT = /\s*(?:[;·|]|\n+)\s*/;
+const SENTENCE_BREAK = /\.\s+/;
+// Terminal-escape digits are not magnitudes (\x1b[2J counted its own "2").
+const CONTROL_SEQ = /\u001b\[[0-9;]*[A-Za-z]|[\u0000-\u001f]/g;
 // A bare comma must not match a thousands separator ("CAC < ₩45,000").
 const WEAK_SPLIT = /\s*(?:,\s*(?:and|but|then|so|plus)\b|\s+(?:and|but|plus)\s+|\s+(?:as well as|along with)\s+|(?<!\d),(?!\d)|、|그리고|하지만|및)\s*/i;
 // Trimmings, not claims ("…, with Friday as buffer").
@@ -100,10 +106,11 @@ function bundledClaims(predicate) {
     });
   };
   const notAClaim = (c) => CONDITIONAL_HEAD.test(c) || CONDITIONAL_TAIL_KO.test(c) || APPOSITIVE_HEAD.test(c);
-  const hasMagnitude = (c) => GRADEABLE.test(c.replace(ISO_DATE, ' ').replace(METRIC_NAME, ' '));
-  const strong = pieces(predicate, STRONG_SPLIT).filter((c) => c.length >= MIN_CLAIM && !notAClaim(c));
-  if (strong.length > 1) return strong;
-  const weak = pieces(predicate, WEAK_SPLIT).filter((c) => c.length >= MIN_CLAIM && !notAClaim(c));
+  const hasMagnitude = (c) => GRADEABLE.test(c.replace(CONTROL_SEQ, ' ').replace(ISO_DATE, ' ').replace(METRIC_NAME, ' '));
+  const claimish = (c) => c.length >= MIN_CLAIM && !notAClaim(c);
+  const listed = pieces(predicate, HARD_ENUM_SPLIT).filter(claimish);
+  if (listed.length > 1) return listed;
+  const weak = pieces(predicate, new RegExp(`${SENTENCE_BREAK.source}|${WEAK_SPLIT.source}`, 'i')).filter(claimish);
   if (weak.filter(hasMagnitude).length > 1) return weak;
   // Three or more coordinate clauses is enumeration whether or not any number
   // rides along — see the RUN9 note in validate-seal.ts.
