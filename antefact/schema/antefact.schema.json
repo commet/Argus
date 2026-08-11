@@ -63,9 +63,22 @@
         "seal": {
           "type": "object",
           "required": ["level", "proj", "hash", "statement_rev", "nonce"],
+          "allOf": [
+            {
+              "$comment": "ts is required by the v2 recipe, which hashes it. A v2 seal missing ts is broken, not lenient.",
+              "if": { "properties": { "proj": { "const": "v2" } }, "required": ["proj"] },
+              "then": { "required": ["ts"] }
+            },
+            {
+              "$comment": "v1 does not hash ts, so a v1 seal carrying one would expose an unsealed, freely editable date — the exact back-dating hazard ts exists to close.",
+              "if": { "properties": { "proj": { "const": "v1" } }, "required": ["proj"] },
+              "then": { "not": { "required": ["ts"] } }
+            }
+          ],
           "properties": {
             "level": { "enum": ["L0", "L1", "L2"] },
-            "proj": { "enum": ["v1"], "description": "canonical-projection recipe version — a hash without a named recipe proves nothing" },
+            "proj": { "enum": ["v1", "v2"], "description": "canonical-projection recipe version — a hash without a named recipe proves nothing. Recipes are additive: v1 records keep verifying forever, because dropping a recipe would orphan every record sealed under it" },
+            "ts": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}Z$", "description": "seal time, minute precision UTC — inside the v2 hashed projection, so back-dating breaks the seal. At L0 this is the author's own clock; the seal level, not this field, is what a reader weighs" },
             "hash": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
             "statement_rev": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
             "nonce": { "type": "string", "pattern": "^[0-9a-f]+$" },

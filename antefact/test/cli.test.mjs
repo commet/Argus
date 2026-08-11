@@ -7,7 +7,7 @@ import { readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import {
-  parseFlow,
+  parseFlow, parseActorList,
   parseRecord, lint, lintDir, sealRecord, verifyRecord, settleRecord,
   canon, statementRev, stakeHash,
 } from "../cli/antefact.mjs";
@@ -115,7 +115,7 @@ test("warning vector raises the full warning cluster", () => {
 test("seal → verify round-trip, and Stake immutability", () => {
   const { text: sealed, hash } = sealRecord(load("valid", "v2-unsealed.antefact.md"));
   assert.match(sealed, /state: sealed/);
-  assert.match(sealed, /proj: v1/);
+  assert.match(sealed, /proj: v2/);
   const v = verifyRecord(sealed);
   assert.equal(v.ok, true, JSON.stringify(v));
   assert.equal(v.hash, hash);
@@ -140,10 +140,50 @@ test("amending the Statement after sealing is visible but legal", () => {
 
 test("a seal without a projection version does not verify", () => {
   const { text: sealed } = sealRecord(load("valid", "v2-unsealed.antefact.md"));
-  const stripped = sealed.replace("proj: v1, ", "");
+  const stripped = sealed.replace(/proj: v2, /, "");
   const v = verifyRecord(stripped);
   assert.equal(v.ok, false);
   assert.match(v.reason, /projection version/);
+});
+
+test("v1 seals keep verifying after v2 exists — old recipes are never dropped", () => {
+  const { text: sealedV1 } = sealRecord(load("valid", "v2-unsealed.antefact.md"), { proj: "v1" });
+  assert.match(sealedV1, /proj: v1/);
+  assert.ok(!/ts:/.test(sealedV1), "a v1 seal must not carry a field its recipe does not hash");
+  assert.equal(verifyRecord(sealedV1).ok, true, "a record sealed under v1 must still verify once v2 is the default");
+  // the golden vector on disk is a v1 seal too — it is the regression anchor
+  assert.equal(verifyRecord(load("valid", "v6-sealed-v1.antefact.md")).ok, true);
+});
+
+test("the seal timestamp is sealed, not decoration", () => {
+  const { text: sealed } = sealRecord(load("valid", "v2-unsealed.antefact.md"), { now: new Date("2026-08-11T02:15:00Z") });
+  assert.match(sealed, /ts: "2026-08-11T02:15Z"/);
+  assert.equal(verifyRecord(sealed).ok, true);
+  // back-dating is the attack this field exists to make visible
+  const backdated = sealed.replace('ts: "2026-08-11T02:15Z"', 'ts: "2020-01-01T00:00Z"');
+  const v = verifyRecord(backdated);
+  assert.equal(v.ok, false, "editing the seal time must break the seal");
+  assert.match(v.reason, /SEAL BROKEN/);
+  // and stripping it is not a way around that
+  const stripped = sealed.replace(/, ts: "[^"]*"/, "");
+  assert.equal(verifyRecord(stripped).ok, false);
+  assert.match(verifyRecord(stripped).reason, /carries no ts/);
+});
+
+test("an unknown recipe is refused, not guessed at", () => {
+  const { text: sealed } = sealRecord(load("valid", "v2-unsealed.antefact.md"));
+  const future = sealed.replace(/proj: v2/, "proj: v9");
+  const v = verifyRecord(future);
+  assert.equal(v.ok, false);
+  assert.match(v.reason, /unknown projection version "v9"/);
+});
+
+test("actor lists reject unknown keys in both forms, loudly", () => {
+  // the object form used to accept any key — [{x: "Nobody"}] parsed clean and
+  // only failed silently where the key was finally read (PROV agent typing)
+  assert.throws(() => parseActorList('[{x: "Nobody"}]'), /actor key must be one of h\/ai\/u/);
+  assert.throws(() => parseActorList('[x:Nobody]'), /unparseable actor entry/);
+  assert.deepEqual(parseActorList('[{ai: "argus"}]'), [{ key: "ai", name: "argus" }]);
 });
 
 test("settlement: named settler only, append-only, state transition", () => {

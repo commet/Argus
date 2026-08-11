@@ -7,6 +7,12 @@
 import { readFileSync, writeFileSync, readdirSync, statSync } from "node:fs";
 import { createHash, randomBytes } from "node:crypto";
 import path from "node:path";
+// Static circular import, deliberate: spokes.mjs imports parse/lint back from
+// this file. Both modules bind functions only and call them only at runtime,
+// so ESM resolves the cycle deterministically. (A dynamic import inside main()
+// deadlocked instead: top-level `await main()` parked this module mid-
+// evaluation while spokes waited for it to finish evaluating.)
+import { embedLine, renderReceipt, provJsonLd, storeReport } from "./spokes.mjs";
 
 // ---------- canonicalization ----------
 export function canon(v) {
@@ -104,12 +110,19 @@ export function parseFlow(src) {
 }
 
 // authors / settled_by entries: [{h: "name"}] or token form [h:name]
+const ACTOR_KEYS = ["h", "ai", "u"];
 export function parseActorList(src) {
   const v = parseFlow(src);
   return v.map((item) => {
     if (typeof item === "object" && !Array.isArray(item)) {
       const keys = Object.keys(item);
       if (keys.length !== 1) throw new Error(`actor entry must have exactly one key: ${JSON.stringify(item)}`);
+      // The token form always enforced h/ai/u; the object form accepted any
+      // key, so [{x: "Nobody"}] parsed clean and then failed SILENTLY only
+      // where the key was finally read (e.g. the PROV export dropping the
+      // settler association). Same vocabulary at both doors, loudly.
+      if (!ACTOR_KEYS.includes(keys[0]))
+        throw new Error(`actor key must be one of ${ACTOR_KEYS.join("/")}, got: ${keys[0]}`);
       return { key: keys[0], name: String(item[keys[0]]) };
     }
     const m = String(item).match(/^(h|ai|u)\s*:\s*(.+)$/);
@@ -253,9 +266,35 @@ export function statementProjection(rec) {
 }
 export function statementRev(rec) { return sha256(canon(statementProjection(rec))); }
 
-export function stakeProjection(rec, nonce, stmtRev) {
+/**
+ * Projection recipes, oldest first. `v1` is what every record sealed before
+ * 2026-08-11 used; `v2` adds the seal timestamp. Old recipes are never removed —
+ * a record names its recipe in `seal.proj`, and dropping a recipe would turn
+ * every record sealed under it into an unverifiable file.
+ *
+ * One table on purpose: which recipe hashes which field was previously spread
+ * across four sites, and the seal-time site tested `proj !== "v1"` — a negative
+ * test that would have silently granted `ts` to any future recipe instead of
+ * making its author decide. A v3 is now one entry here plus its projection
+ * shape, and every consumer reads the same answer.
+ */
+export const RECIPES = {
+  v1: { ts: false },
+  v2: { ts: true },
+};
+export const PROJ_VERSIONS = Object.keys(RECIPES);
+export const PROJ_CURRENT = "v2";
+
+/**
+ * `ts` lives INSIDE the hashed projection, not beside it. A seal time that is
+ * not itself sealed is the one field an adversary edits: the whole claim of
+ * this format is that the record existed before the outcome, so a freely
+ * rewritable date would let a record be back-dated without breaking its hash.
+ * Under v2, editing `ts` breaks verification like any other sealed field.
+ */
+export function stakeProjection(rec, nonce, stmtRev, { proj = "v1", ts = null } = {}) {
   const s = rec.stake;
-  return {
+  const base = {
     claim: s.raw.claim ?? null,
     p: s.p ? { raw: String(s.p.raw), mode: s.p.mode ?? null, canonical: s.p.canonical ?? null, granularity: s.p.granularity ?? null } : null,
     confidence: s.raw.confidence ?? null,
@@ -266,8 +305,11 @@ export function stakeProjection(rec, nonce, stmtRev) {
     nonce,
     statement_rev: stmtRev,
   };
+  if (proj === "v1") return base;
+  if (proj === "v2") return { ...base, ts: ts ?? null };
+  throw new Error(`unknown projection recipe "${proj}" — known: ${PROJ_VERSIONS.join("/")}`);
 }
-export function stakeHash(rec, nonce, stmtRev) { return sha256(canon(stakeProjection(rec, nonce, stmtRev))); }
+export function stakeHash(rec, nonce, stmtRev, opts) { return sha256(canon(stakeProjection(rec, nonce, stmtRev, opts))); }
 
 // ---------- lint ----------
 export function lint(rec, { now = new Date() } = {}) {
@@ -358,13 +400,15 @@ export function lintDir(dir, opts) {
         results.find(x => x.file === byId.get(rec.front.id))?.result.errors.push({ code: "E_ID_DUP", msg });
       } else byId.set(rec.front.id, f);
     }
-    results.push({ file: f, result: r });
+    // rec rides along so aggregators (spokes.mjs storeReport) read the parse
+    // they were linted against, instead of re-parsing and risking divergence.
+    results.push({ file: f, result: r, rec });
   }
   return results;
 }
 
 // ---------- seal / verify / settle ----------
-export function sealRecord(text, { level = "L0", ref = null } = {}) {
+export function sealRecord(text, { level = "L0", ref = null, now = new Date(), proj = PROJ_CURRENT } = {}) {
   const rec = parseRecord(text);
   if (rec.errors.length) throw new Error("cannot seal a record with parse errors: " + rec.errors.map(e => e.code).join(","));
   if (!SEAL_LEVELS.includes(level)) throw new Error(`seal level must be one of ${SEAL_LEVELS.join("/")}, got: ${level}`);
@@ -377,10 +421,16 @@ export function sealRecord(text, { level = "L0", ref = null } = {}) {
   const pre = lint({ ...rec, front: { ...rec.front, state: "sealed" }, stake: { ...rec.stake, seal: { hash: "x" } } });
   const blocking = pre.errors.filter(e => !SEAL_CODES.includes(e.code));
   if (blocking.length) throw new Error("seal blocked by lint: " + blocking.map(e => `${e.code}(${e.msg})`).join("; "));
+  if (!PROJ_VERSIONS.includes(proj)) throw new Error(`unknown projection recipe "${proj}" — known: ${PROJ_VERSIONS.join("/")}`);
   const nonce = randomBytes(6).toString("hex");
   const stmtRev = statementRev(rec);
-  const hash = stakeHash(rec, nonce, stmtRev);
-  const sealLine = `seal:       { level: ${level}, proj: v1, hash: "sha256:${hash}", statement_rev: "sha256:${stmtRev}", nonce: "${nonce}"${ref ? `, ref: "${ref}"` : ""} }`;
+  // Minute precision, matching settlement entries. A seal claims "before", not
+  // "at 10:42:07" — and at L0 the clock is the author's own, which is why the
+  // seal level, not this field, is what a reader weighs.
+  const ts = RECIPES[proj].ts ? now.toISOString().slice(0, 16) + "Z" : null;
+  const hash = stakeHash(rec, nonce, stmtRev, { proj, ts });
+  const tsPart = ts ? `, ts: "${ts}"` : "";
+  const sealLine = `seal:       { level: ${level}, proj: ${proj}${tsPart}, hash: "sha256:${hash}", statement_rev: "sha256:${stmtRev}", nonce: "${nonce}"${ref ? `, ref: "${ref}"` : ""} }`;
   let out = text;
   if (/^seal:.*$/m.test(out)) out = out.replace(/^seal:.*$/m, sealLine);
   else if (/## Settlement/.test(out)) out = out.replace(/## Settlement/, sealLine + "\n\n## Settlement");
@@ -400,8 +450,14 @@ export function verifyRecord(text) {
   if (!seal?.hash) return { ok: false, reason: "record is not sealed" };
   if (seal.proj === undefined)
     return { ok: false, reason: "seal carries no projection version (pre-v1 harness) — verify with the sealing harness or re-seal; a hash whose recipe is unknown proves nothing" };
-  if (seal.proj !== "v1")
-    return { ok: false, reason: `unknown projection version "${seal.proj}" — this CLI verifies proj v1 only` };
+  if (!PROJ_VERSIONS.includes(seal.proj))
+    return { ok: false, reason: `unknown projection version "${seal.proj}" — this CLI verifies ${PROJ_VERSIONS.join("/")}` };
+  // A v2 seal without its timestamp is not a v1 seal wearing a v2 label: the
+  // recipe it names includes `ts`, so a missing one is a broken seal, not an
+  // absent optional field. Falling back to null here would let anyone strip the
+  // date off a back-dating claim and still verify.
+  if (RECIPES[seal.proj].ts && !seal.ts)
+    return { ok: false, reason: `proj ${seal.proj} seal carries no ts — the recipe it names includes the seal time, so it cannot be verified without one` };
   if (!SEAL_LEVELS.includes(String(seal.level)))
     return { ok: false, reason: `unknown seal level "${seal.level}" — the format defines ${SEAL_LEVELS.join("/")} only` };
   const nonce = String(seal.nonce ?? "");
@@ -414,7 +470,7 @@ export function verifyRecord(text) {
     if (!FULL_SHA256.test(v))
       return { ok: false, reason: `seal.${k} is not a complete sha256 digest (need 64 lowercase hex characters) — abbreviated digests cannot be verified` };
   const currentStmtRev = statementRev(rec);
-  const recomputed = stakeHash(rec, nonce, recordedStmtRev);
+  const recomputed = stakeHash(rec, nonce, recordedStmtRev, { proj: seal.proj, ts: seal.ts ?? null });
   const matches = recomputed === recordedHash;
   const statementAmended = currentStmtRev !== recordedStmtRev;
   return matches
@@ -473,7 +529,11 @@ function main() {
       if (rec.errors.length) die(JSON.stringify(rec.errors), 2);
       const seal = rec.stake?.seal ?? {};
       const stmtRev = String(seal.statement_rev ?? "").replace(/^sha256:/, "") || statementRev(rec);
-      console.log(canon(stakeProjection(rec, String(seal.nonce ?? ""), stmtRev)));
+      // An unsealed record has no recipe of its own yet, so show what it would
+      // be sealed under today rather than silently projecting it as v1.
+      const proj = seal.proj ?? PROJ_CURRENT;
+      if (!PROJ_VERSIONS.includes(proj)) die(`unknown projection version "${proj}"`, 2);
+      console.log(canon(stakeProjection(rec, String(seal.nonce ?? ""), stmtRev, { proj, ts: seal.ts ?? null })));
       break;
     }
     case "lint": {
@@ -512,8 +572,28 @@ function main() {
       } catch (e) { die(e.message, 2); }
       break;
     }
+    // Spokes — machine-generated projections out of the one original record.
+    case "embed": {
+      try { console.log(embedLine(load())); } catch (e) { die(e.message, 2); }
+      break;
+    }
+    case "render": {
+      try { process.stdout.write(renderReceipt(load())); } catch (e) { die(e.message, 2); }
+      break;
+    }
+    case "prov": {
+      try { console.log(JSON.stringify(provJsonLd(load()), null, 2)); } catch (e) { die(e.message, 2); }
+      break;
+    }
+    case "report": {
+      try {
+        if (!statSync(target).isDirectory()) die("report takes a directory of .antefact.md files", 2);
+        process.stdout.write(storeReport(target));
+      } catch (e) { die(e.message, 2); }
+      break;
+    }
     default:
-      die(`usage: antefact <parse|projection|lint|seal|verify|settle> <file|dir> [--strict] [--level L0|L1|L2] [--ref git:abc] [--outcome yes|no|ambiguous|annulled] [--by "h:Name"] [--observed X] [--source ref] [--note text]`);
+      die(`usage: antefact <parse|projection|lint|seal|verify|settle|embed|render|prov|report> <file|dir> [--strict] [--level L0|L1|L2] [--ref git:abc] [--outcome yes|no|ambiguous|annulled] [--by "h:Name"] [--observed X] [--source ref] [--note text]`);
   }
 }
 if (process.argv[1] && import.meta.url.endsWith(path.basename(process.argv[1]))) main();
