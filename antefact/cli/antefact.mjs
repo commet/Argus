@@ -110,12 +110,19 @@ export function parseFlow(src) {
 }
 
 // authors / settled_by entries: [{h: "name"}] or token form [h:name]
+const ACTOR_KEYS = ["h", "ai", "u"];
 export function parseActorList(src) {
   const v = parseFlow(src);
   return v.map((item) => {
     if (typeof item === "object" && !Array.isArray(item)) {
       const keys = Object.keys(item);
       if (keys.length !== 1) throw new Error(`actor entry must have exactly one key: ${JSON.stringify(item)}`);
+      // The token form always enforced h/ai/u; the object form accepted any
+      // key, so [{x: "Nobody"}] parsed clean and then failed SILENTLY only
+      // where the key was finally read (e.g. the PROV export dropping the
+      // settler association). Same vocabulary at both doors, loudly.
+      if (!ACTOR_KEYS.includes(keys[0]))
+        throw new Error(`actor key must be one of ${ACTOR_KEYS.join("/")}, got: ${keys[0]}`);
       return { key: keys[0], name: String(item[keys[0]]) };
     }
     const m = String(item).match(/^(h|ai|u)\s*:\s*(.+)$/);
@@ -264,8 +271,18 @@ export function statementRev(rec) { return sha256(canon(statementProjection(rec)
  * 2026-08-11 used; `v2` adds the seal timestamp. Old recipes are never removed —
  * a record names its recipe in `seal.proj`, and dropping a recipe would turn
  * every record sealed under it into an unverifiable file.
+ *
+ * One table on purpose: which recipe hashes which field was previously spread
+ * across four sites, and the seal-time site tested `proj !== "v1"` — a negative
+ * test that would have silently granted `ts` to any future recipe instead of
+ * making its author decide. A v3 is now one entry here plus its projection
+ * shape, and every consumer reads the same answer.
  */
-export const PROJ_VERSIONS = ["v1", "v2"];
+export const RECIPES = {
+  v1: { ts: false },
+  v2: { ts: true },
+};
+export const PROJ_VERSIONS = Object.keys(RECIPES);
 export const PROJ_CURRENT = "v2";
 
 /**
@@ -410,7 +427,7 @@ export function sealRecord(text, { level = "L0", ref = null, now = new Date(), p
   // Minute precision, matching settlement entries. A seal claims "before", not
   // "at 10:42:07" — and at L0 the clock is the author's own, which is why the
   // seal level, not this field, is what a reader weighs.
-  const ts = proj === "v1" ? null : now.toISOString().slice(0, 16) + "Z";
+  const ts = RECIPES[proj].ts ? now.toISOString().slice(0, 16) + "Z" : null;
   const hash = stakeHash(rec, nonce, stmtRev, { proj, ts });
   const tsPart = ts ? `, ts: "${ts}"` : "";
   const sealLine = `seal:       { level: ${level}, proj: ${proj}${tsPart}, hash: "sha256:${hash}", statement_rev: "sha256:${stmtRev}", nonce: "${nonce}"${ref ? `, ref: "${ref}"` : ""} }`;
@@ -439,8 +456,8 @@ export function verifyRecord(text) {
   // recipe it names includes `ts`, so a missing one is a broken seal, not an
   // absent optional field. Falling back to null here would let anyone strip the
   // date off a back-dating claim and still verify.
-  if (seal.proj === "v2" && !seal.ts)
-    return { ok: false, reason: "proj v2 seal carries no ts — the recipe it names includes the seal time, so it cannot be verified without one" };
+  if (RECIPES[seal.proj].ts && !seal.ts)
+    return { ok: false, reason: `proj ${seal.proj} seal carries no ts — the recipe it names includes the seal time, so it cannot be verified without one` };
   if (!SEAL_LEVELS.includes(String(seal.level)))
     return { ok: false, reason: `unknown seal level "${seal.level}" — the format defines ${SEAL_LEVELS.join("/")} only` };
   const nonce = String(seal.nonce ?? "");

@@ -7,7 +7,7 @@ import { readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import {
-  parseFlow,
+  parseFlow, parseActorList,
   parseRecord, lint, lintDir, sealRecord, verifyRecord, settleRecord,
   canon, statementRev, stakeHash,
 } from "../cli/antefact.mjs";
@@ -168,6 +168,22 @@ test("the seal timestamp is sealed, not decoration", () => {
   const stripped = sealed.replace(/, ts: "[^"]*"/, "");
   assert.equal(verifyRecord(stripped).ok, false);
   assert.match(verifyRecord(stripped).reason, /carries no ts/);
+});
+
+test("an unknown recipe is refused, not guessed at", () => {
+  const { text: sealed } = sealRecord(load("valid", "v2-unsealed.antefact.md"));
+  const future = sealed.replace(/proj: v2/, "proj: v9");
+  const v = verifyRecord(future);
+  assert.equal(v.ok, false);
+  assert.match(v.reason, /unknown projection version "v9"/);
+});
+
+test("actor lists reject unknown keys in both forms, loudly", () => {
+  // the object form used to accept any key — [{x: "Nobody"}] parsed clean and
+  // only failed silently where the key was finally read (PROV agent typing)
+  assert.throws(() => parseActorList('[{x: "Nobody"}]'), /actor key must be one of h\/ai\/u/);
+  assert.throws(() => parseActorList('[x:Nobody]'), /unparseable actor entry/);
+  assert.deepEqual(parseActorList('[{ai: "argus"}]'), [{ key: "ai", name: "argus" }]);
 });
 
 test("settlement: named settler only, append-only, state transition", () => {

@@ -81,6 +81,10 @@ node antefact/cli/antefact.mjs report my-records/      # 분모 줄(MUST) + 구�
 - `seal.stream`(봉인 연쇄)·L2 서명은 스펙에 있으나 CLI 미구현 (v0.2 예정).
 - `report`의 캘리브레이션 곡선은 이진 point-p 정산(yes/no)만 집계한다 — 구간
   p·수량 스테이크는 스펙대로 기록·정산은 되나 채점이 v0.2(CRPS)까지 무채점이다.
+- **`report`는 저장소 내부 뷰이지 공개 캘리브레이션 주장(SPEC §8)이 아니다.**
+  공개 주장은 무결점 `seal.stream` 연쇄 위에서만 성립하는데 그 연쇄가 CLI
+  미구현이므로, 임의 디렉토리에 `report`를 돌린 결과를 적합 공개 주장으로
+  제시하면 안 된다 — 골라 담은 디렉토리는 골라 담은 분모다.
 
 (2026-08-11 갱신: CI 배선 완료 — ci.yml "Antefact conformance suite" 스텝.
 스포크 4종도 이 날 시공되어 "투영이 설계만 있다"는 공백 항목이 닫혔다.)

@@ -2,7 +2,7 @@
 // The hub is the .antefact.md file; every other shape of the same judgment is
 // produced by code from a parse, never written by hand, so the shapes cannot
 // drift from the record or from each other. Zero-dependency, like the CLI.
-import { parseRecord, lintDir } from "./antefact.mjs";
+import { parseRecord, lintDir, verifyRecord } from "./antefact.mjs";
 
 // ---------- one-line embed (SPEC Annex H) ----------
 /**
@@ -23,6 +23,12 @@ export function embedLine(text) {
   if (!seal?.hash) throw new Error("cannot embed an unsealed record — the line asserts a seal that does not exist");
   if (!seal.ts)
     throw new Error("this seal has no sealed time (recipe v1) — re-seal under proj v2 to carry ts; inventing a date here would defeat the embed's whole claim");
+  // The line is a claim, not a display: "sealed <date>" pasted into a README
+  // asserts the seal holds. Emitting it from a record whose Stake was edited
+  // after sealing would put a confident line on top of a broken seal — so the
+  // seal is verified first, the same check `verify` runs.
+  const v = verifyRecord(text);
+  if (!v.ok) throw new Error("refusing to embed: " + v.reason);
   const hash8 = String(seal.hash).replace(/^sha256:/, "").slice(0, 8);
   const date = String(seal.ts).slice(0, 10);
   return `Antefact: ${rec.front.id} sealed ${date} sha256:${hash8}`;
@@ -64,6 +70,11 @@ export function renderReceipt(text) {
     if (seal?.hash) {
       const short = String(seal.hash).replace(/^sha256:/, "").slice(0, 16);
       L.push(`- **seal** ${seal.level} · ${seal.ts ? `sealed ${seal.ts} · ` : "no sealed time (recipe v1) · "}\`sha256:${short}…\` (proj ${seal.proj})`);
+      // A receipt of a record whose seal no longer verifies must say so in the
+      // receipt itself — rendering the seal line alone would dress a broken
+      // seal in the typography of an intact one.
+      const v = verifyRecord(text);
+      if (!v.ok) L.push(`- ⚠ **SEAL DOES NOT VERIFY** — ${v.reason}`);
     }
   }
   if (rec.settlements.length) {
@@ -78,6 +89,16 @@ export function renderReceipt(text) {
 
 // ---------- PROV-O JSON-LD (SPEC Annex E) ----------
 const NS = "https://antefact.org/ns#";
+
+// Minute-precision Antefact timestamps become second-precision xsd:dateTime.
+// A value that already carries seconds passes through unchanged: the schema
+// pins seal.ts to minute precision but settlements[].ts is a plain string, and
+// blindly appending ":00" turned a legal "…T00:00:00Z" into "…T00:00:00:00Z" —
+// malformed RDF shipped to every consumer.
+function xsdDateTime(ts) {
+  const s = String(ts);
+  return /T[0-9]{2}:[0-9]{2}Z$/.test(s) ? s.replace(/Z$/, ":00Z") : s;
+}
 
 function agentNode(actor) {
   return {
@@ -105,7 +126,9 @@ export function provJsonLd(text) {
   const rec = parseRecord(text);
   if (rec.errors.length) throw new Error("cannot export: parse errors " + rec.errors.map(e => e.code).join(","));
   const id = rec.front.id;
-  const recordIri = `antefact:record/${id}`;
+  // Content-derived ids are legal (SPEC §1), so the id is escaped exactly like
+  // agent names are — an IRI with a raw space is not an IRI.
+  const recordIri = `antefact:record/${encodeURIComponent(id)}`;
   const graph = [];
   const agents = new Map();
   const agent = (actor) => {
@@ -151,7 +174,7 @@ export function provJsonLd(text) {
     };
     // v1 seals carry no time — the export mirrors the record instead of
     // improving on it; an invented endedAtTime here would be plausible and false.
-    if (seal.ts) activity["prov:endedAtTime"] = { "@value": String(seal.ts).replace(/Z$/, ":00Z"), "@type": "xsd:dateTime" };
+    if (seal.ts) activity["prov:endedAtTime"] = { "@value": xsdDateTime(seal.ts), "@type": "xsd:dateTime" };
     graph.push(activity);
   }
 
@@ -162,7 +185,10 @@ export function provJsonLd(text) {
       "@type": ["prov:Activity", "antefact:Settlement"],
       "prov:used": { "@id": recordIri },
       "antefact:outcome": s.outcome,
-      "prov:endedAtTime": { "@value": String(s.ts).replace(/Z$/, ":00Z"), "@type": "xsd:dateTime" },
+      "prov:endedAtTime": { "@value": xsdDateTime(s.ts), "@type": "xsd:dateTime" },
+      // `by` rides verbatim so the settler survives the export even when the
+      // key form cannot be mapped to a typed agent (hand-written records).
+      "antefact:by": String(s.by ?? ""),
     };
     if (m) node["prov:wasAssociatedWith"] = { "@id": agent({ key: m[1], name: m[2].trim() }) };
     if (s.observed != null) node["antefact:observed"] = String(s.observed);
@@ -212,9 +238,14 @@ export function storeReport(dir, { now = new Date() } = {}) {
     }
   }
 
-  const everSealed = states.sealed + states.settled + states.disputed +
-    results.filter(({ rec }) => rec?.front?.state === "withdrawn" && rec?.stake?.seal?.hash).length;
-  const unscoredExits = states.withdrawn + states.disputed + ambiguous + annulled + lapsed;
+  // The denominator norm counts POST-SEAL exits. A record withdrawn before it
+  // was ever sealed never entered the denominator, so counting it as an exit
+  // made "0 sealed · 1 unscored exits" possible — exits exceeding entries.
+  const withdrawnSealed = results.filter(
+    ({ rec }) => rec?.front?.state === "withdrawn" && rec?.stake?.seal?.hash,
+  ).length;
+  const everSealed = states.sealed + states.settled + states.disputed + withdrawnSealed;
+  const unscoredExits = withdrawnSealed + states.disputed + ambiguous + annulled + lapsed;
 
   const L = [];
   L.push(`# Antefact store report`);
@@ -222,7 +253,7 @@ export function storeReport(dir, { now = new Date() } = {}) {
   L.push(`records: ${results.length} · invalid: ${invalid}`);
   L.push(`states: recorded ${states.recorded} · sealed ${states.sealed} · settled ${states.settled} · disputed ${states.disputed} · withdrawn ${states.withdrawn}`);
   L.push("");
-  L.push(`**Denominator: ${everSealed} sealed · ${scored.length} scored · ${unscoredExits} unscored exits** (withdrawn ${states.withdrawn} · disputed ${states.disputed} · ambiguous ${ambiguous} · annulled ${annulled} · lapsed ${lapsed})`);
+  L.push(`**Denominator: ${everSealed} sealed · ${scored.length} scored · ${unscoredExits} unscored exits** (withdrawn-after-seal ${withdrawnSealed} · disputed ${states.disputed} · ambiguous ${ambiguous} · annulled ${annulled} · lapsed ${lapsed})`);
   L.push("");
   if (scored.length) {
     L.push(`## Calibration (binned curve, n=${scored.length})`);

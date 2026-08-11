@@ -68,6 +68,11 @@
               "$comment": "ts is required by the v2 recipe, which hashes it. A v2 seal missing ts is broken, not lenient.",
               "if": { "properties": { "proj": { "const": "v2" } }, "required": ["proj"] },
               "then": { "required": ["ts"] }
+            },
+            {
+              "$comment": "v1 does not hash ts, so a v1 seal carrying one would expose an unsealed, freely editable date — the exact back-dating hazard ts exists to close.",
+              "if": { "properties": { "proj": { "const": "v1" } }, "required": ["proj"] },
+              "then": { "not": { "required": ["ts"] } }
             }
           ],
           "properties": {

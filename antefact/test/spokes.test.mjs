@@ -2,7 +2,7 @@
 // conforming record and must refuse to fabricate what the record lacks.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync, writeFileSync, mkdtempSync } from "node:fs";
+import { readFileSync, writeFileSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -39,6 +39,27 @@ test("render: receipt carries claim, authorship labels, seal, and settlement", (
   assert.match(md, /\*\*yes\*\* by h:Dana Park · observed 9\.4%/);
   // display abbreviation is allowed; the full 64-hex digest is not a display
   assert.ok(!/[0-9a-f]{64}/.test(md), "receipt shows abbreviated digests only");
+});
+
+test("embed and render refuse to dress a broken seal as intact", () => {
+  const { text: sealed } = sealRecord(load("valid", "v2-unsealed.antefact.md"), { now: new Date("2026-08-11T02:15:00Z") });
+  const tampered = sealed.replace("exceeds 8%", "exceeds 5%");
+  // the embed is a claim line — a broken seal must refuse it outright
+  assert.throws(() => embedLine(tampered), /refusing to embed.*SEAL BROKEN/);
+  // the receipt still renders (it displays the record) but names the break
+  assert.match(renderReceipt(tampered), /SEAL DOES NOT VERIFY/);
+  assert.ok(!/SEAL DOES NOT VERIFY/.test(renderReceipt(sealed)), "an intact seal draws no warning");
+});
+
+test("prov: a settlement timestamp that already carries seconds is not corrupted", () => {
+  const { text: sealed } = sealRecord(load("valid", "v2-unsealed.antefact.md"), { now: new Date("2026-08-11T02:15:00Z") });
+  const settled = settleRecord(sealed, { outcome: "yes", by: "h:Dana Park", now: new Date("2026-08-12T00:00:00Z") });
+  // hand-edit the entry to second precision — legal, the schema types it as a plain string
+  const secondPrecision = settled.replace(/^- 2026-08-12T00:00Z/m, "- 2026-08-12T00:00:00Z");
+  const doc = provJsonLd(secondPrecision);
+  const st = doc["@graph"].find((n) => [].concat(n["@type"]).includes("antefact:Settlement"));
+  assert.equal(st["prov:endedAtTime"]["@value"], "2026-08-12T00:00:00Z",
+    "appending :00 to a value that already has seconds produced ...T00:00:00:00Z");
 });
 
 test("render: a v1 seal is shown with its missing time named, not padded", () => {
@@ -83,8 +104,9 @@ test("prov: delegation carries authorship + policyRef, and no fabricated actedOn
     "the record names a policy, not the policy's owner — an agent-to-agent edge would be invented");
 });
 
-test("report: denominator line counts every unscored exit next to the scored count", () => {
+test("report: denominator line counts every unscored exit next to the scored count", (t) => {
   const dir = mkdtempSync(path.join(tmpdir(), "antefact-report-"));
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
   const base = load("valid", "v2-unsealed.antefact.md");
   const mk = (id, p) => base
     .replace(/^id: .*$/m, `id: 018f0000-0000-7000-8000-0000000002${id}`)
@@ -101,15 +123,32 @@ test("report: denominator line counts every unscored exit next to the scored cou
   const md = storeReport(dir, { now });
   assert.match(md, /\*\*Denominator: 4 sealed · 2 scored · 1 unscored exits\*\*/);
   assert.match(md, /ambiguous 1/);
+  assert.match(md, /withdrawn-after-seal 0/);
   assert.match(md, /\| 0\.8–1\.0 \| 1 \| 0\.90 \| 1\.00 \|/);
   assert.match(md, /\| 0\.0–0\.2 \| 1 \| 0\.15 \| 0\.00 \|/);
-  assert.ok(!/brier|Brier|single score:/i.test(md) || /intentionally absent/.test(md),
-    "no single aggregate score");
+  // asserted directly — the earlier `!A || B` form was vacuously true because
+  // the report always contains B, so it could never catch a Brier line
+  assert.ok(!/brier|single score:/i.test(md), "no single aggregate score");
+  assert.match(md, /intentionally absent/);
   assert.match(md, /non-ranking clause/);
 });
 
-test("report: a lapsed sealed record lands in the denominator", () => {
+test("report: a record withdrawn before sealing is not a post-seal exit", (t) => {
+  const dir = mkdtempSync(path.join(tmpdir(), "antefact-neversealed-"));
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  // recorded → withdrawn without ever sealing: no seal, state withdrawn
+  const never = load("valid", "v1-recorded.antefact.md")
+    .replace(/^state: recorded$/m, "state: withdrawn")
+    .replace(/^id: .*$/m, "id: 018f0000-0000-7000-8000-0000000003aa");
+  writeFileSync(path.join(dir, "never.antefact.md"), never);
+  const md = storeReport(dir, { now: new Date("2026-08-11T03:00:00Z") });
+  // exits must not exceed entries: nothing was sealed, so nothing exited
+  assert.match(md, /\*\*Denominator: 0 sealed · 0 scored · 0 unscored exits\*\*/);
+});
+
+test("report: a lapsed sealed record lands in the denominator", (t) => {
   const dir = mkdtempSync(path.join(tmpdir(), "antefact-lapsed-"));
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
   const base = load("valid", "v2-unsealed.antefact.md")
     .replace(/^settle_by: .*$/m, "settle_by:  2020-01-01T00:00Z");
   writeFileSync(path.join(dir, "lapsed.antefact.md"), sealRecord(base, { now: new Date("2026-08-11T03:00:00Z") }).text);
