@@ -55,6 +55,28 @@ export const settle: ToolModule = {
       const current = resolveContract(dir, id, today);
       const blind = refuseIfLedgerUnreadable('argus_settle', current);
       if (blind) return blind;
+      // HAND BACK THE IDS WE HAVE (journey RUN A3, measured). Settling happens
+      // in a LATER session than sealing, so the caller no longer holds the id —
+      // it reconstructs one from the predicate's wording and misses. That run
+      // sealed `queue-migration-no-runtime-regressions` and tried to settle
+      // `no-major-runtime-regressions`; the refusal said only "never saved",
+      // which reads as "your record is gone" and ended the turn. The server is
+      // holding the exact list. Same lesson as the check_by clock: a refusal
+      // that withholds what the server already knows turns a typo into a dead
+      // end. Runtime data, so no tool-surface budget cost.
+      if (current.state === 'opened' || current.state === 'absent') {
+        const sealed = [...replayLedger(dir, today).contracts]
+          .filter(([, c]) => c.predicate)
+          .map(([sealedId]) => sealedId);
+        if (sealed.length) {
+          return toolError({
+            ok: false, tool: 'argus_settle', error_code: 'NO_PRIOR_SEAL',
+            message: `No prediction is saved under "${id}".`,
+            recovery: `Use one of the ids that IS saved (data.saved_ids), matching by what each prediction says — argus_patterns view="all" shows the sentences. Never invent an id from the wording.`,
+            data: { saved_ids: sealed },
+          });
+        }
+      }
       guardTransition(current.state, 'settle'); // NO_PRIOR_SEAL / ALREADY_SETTLED / DECISION_CLOSED
 
       // Outcome is the user's — recorded, never inferred. If the model didn't

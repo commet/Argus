@@ -224,16 +224,8 @@ let afterRestart = false;
 const postRestartOutputs = [];
 let preRestartIds = [];
 
-async function stage(n, title, userPromptSpec) {
-  rule(`${n}단계 · ${title}`);
-  const userTurn = (await complete({
-    model: SUBJECT, system: PERSONA_SYS,
-    user: `${userPromptSpec}\n\nWrite only the message you send to your AI assistant. No preamble.`,
-    maxTokens: 600,
-  })).trim();
-  say(`  👤 사용자: ${userTurn.split('\n').join('\n     ')}`);
-  history.push(`USER: ${userTurn}`);
-
+// 한 사용자 발화에 대한 어시스턴트의 도구 루프 한 바퀴.
+async function assistantExchange(n, userTurn) {
   // 실제 호스트는 한 턴에 도구를 여러 번 부르고 결과를 모델에 돌려주며 루프를
   // 돈다("기록을 먼저 읽고 정산하겠다" 같은 계획이 실제로 실행되려면 필수).
   // 한 번만 허용하면 제품이 아니라 하네스의 턴 구조를 재게 된다. 상한 5.
@@ -274,7 +266,51 @@ async function stage(n, title, userPromptSpec) {
   if (calls >= 5) say(`  ⚠ 도구 호출 상한 5회 도달 — 실사용자라면 루프에 갇힌 것`);
   if (lastErr) journey.errors.push({ n, tool: 'last', error: String(lastErr).slice(0, 300) });
   history.push(`ASSISTANT: ${reply}`);
-  journey.stages.push({ n, title, tools: called });
+  return { called, reply, calls };
+}
+
+// 어시스턴트가 되물었는데 아무것도 기록하지 않았으면, 실사용자는 답을 한다.
+// 발화당 사용자 턴이 하나뿐인 하네스는 "좋은 질문을 했다"를 언제나 0점으로
+// 적는다 — 그건 제품이 아니라 하네스의 턴 구조를 잰 것이다. 그래서 왕복을
+// 한 번 허용한다. 편향을 막는 조건 셋:
+//   1. 모든 단계에 같은 규칙으로 적용한다 (특정 단계를 겨냥하지 않는다).
+//   2. 답은 페르소나 모델이 어시스턴트의 실제 문장을 보고 스스로 쓴다.
+//      무엇을 답하라고 지시하지 않는다 — 지시하면 결과를 각본에 쓰는 것이다.
+//   3. 딱 한 번. 대화가 아니라 왕복 하나를 재는 것이다.
+// 이 옵션으로 잰 숫자는 옵션 없이 잰 숫자와 비교하면 안 된다. 베이스라인도
+// 같은 하네스로 다시 재야 한다.
+const FOLLOW_UP = !process.argv.includes('--no-follow-up');
+const ASKED = /[?？]/;
+
+async function stage(n, title, userPromptSpec) {
+  rule(`${n}단계 · ${title}`);
+  const userTurn = (await complete({
+    model: SUBJECT, system: PERSONA_SYS,
+    user: `${userPromptSpec}\n\nWrite only the message you send to your AI assistant. No preamble.`,
+    maxTokens: 600,
+  })).trim();
+  say(`  👤 사용자: ${userTurn.split('\n').join('\n     ')}`);
+  history.push(`USER: ${userTurn}`);
+
+  const first = await assistantExchange(n, userTurn);
+  const called = [...first.called];
+  let followedUp = false;
+
+  if (FOLLOW_UP && !first.called.length && ASKED.test(first.reply)) {
+    const answer = (await complete({
+      model: SUBJECT, system: PERSONA_SYS,
+      user: `You asked your assistant about this: "${userTurn}"\n\nIt replied:\n"""\n${first.reply}\n"""\n\nReply as you naturally would. Write only the message you send. No preamble.`,
+      maxTokens: 400,
+    })).trim();
+    followedUp = true;
+    say(`  ↩ 왕복 — 어시스턴트가 되물었고 사용자가 답한다`);
+    say(`  👤 사용자: ${answer.split('\n').join('\n     ')}`);
+    history.push(`USER: ${answer}`);
+    const second = await assistantExchange(n, answer);
+    called.push(...second.called);
+  }
+
+  journey.stages.push({ n, title, tools: called, followedUp });
   return called;
 }
 
@@ -380,7 +416,11 @@ say(`  재시작 증거: ${restartEvidence.detail}`);
 let passed = 0;
 for (const [label, ok] of gates) { say(`  ${ok ? '✅' : '❌'} ${label}`); if (ok) passed++; }
 const failedCalls = journey.toolCalls.filter((c) => !c.ok).length;
+// 왕복 옵션은 점수의 의미를 바꾼다. 두 설정의 숫자가 섞이면 비교가 거짓이
+// 되므로, 설정을 점수와 같은 줄에 붙여 둔다.
+const followUps = journey.stages.filter((s) => s.followedUp).length;
 say(`\n  관문 ${passed}/${gates.length} 통과 · 도구 호출 ${journey.toolCalls.length}회(거부 ${failedCalls}) · 서버 거부 이력 ${journey.rejections.length}건 · 확인창 ${elicitLog.length}회`);
+say(`  왕복 설정: ${FOLLOW_UP ? `켬 (실제 사용 ${followUps}회)` : '끔 — 사용자 발화 단계당 1회'}`);
 say(`  ${passed === gates.length ? '완주 — 외부 개입 없이 전 구간 통과' : '미완주 — 위 ❌ 지점이 실사용자가 막힐 곳이다'}`);
 if (journey.errors.length) {
   say('\n  실패한 호출:');

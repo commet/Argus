@@ -47,7 +47,10 @@ const KO_ERRORS: Record<string, ErrorCopy> = {
     message: '이 터미널의 계정 연결이 만료됐습니다. 그동안의 저장·정산이 계정에 닿지 않았습니다.',
     recovery: '터미널에서 `npx argus-decision-mcp connect`를 실행해 다시 연결하세요 (플러그인 사용자는 /argus:connect). 로컬에서 잃은 것은 없습니다. 모든 결정은 여기 기록에 그대로 있고, 다시 연결한 뒤 argus_settings action="sync"를 돌리면 밀린 것들이 올라갑니다.',
   },
-  NO_PRIOR_SEAL: { message: '이 id로 저장된 예측이 없습니다.', recovery: 'argus_predict로 나중에 확인할 수 있는 예측과 확인일을 먼저 저장하세요. (id가 argus_settings sync에서 온 "mcp_" 접두사라면 접두사를 뗀 id를 쓰세요.)' },
+  // 저장된 id가 있으면 settle.ts가 data.saved_ids로 실어 보낸다. 이 문구는
+  // 그때도 그대로 쓰인다 — 목록을 가리키는 문장이 지역화에서 사라지지 않도록
+  // 여기서도 그 필드를 지목한다.
+  NO_PRIOR_SEAL: { message: '이 id로 저장된 예측이 없습니다.', recovery: '저장된 id가 있으면 data.saved_ids에 들어 있습니다. 예측 문장을 보고 맞는 id를 고르세요 (argus_patterns view="all"에 문장이 있습니다). 문장에서 id를 지어내지 마세요. 저장된 것이 없으면 argus_predict로 먼저 저장하세요. (id가 argus_settings sync에서 온 "mcp_" 접두사라면 접두사를 뗀 id를 쓰세요.)' },
   // 복구문이 "무엇을 건드리지 말지"를 말하지 않으면 전체 재작성을 부른다
   // (RUN12: 날짜만 틀렸는데 예측문까지 고쳐 써서 묶음이 됐고 다시 거절됐다).
   BAD_CHECK_BY: { message: '확인일이 오늘 이후의 실제 달력 날짜(YYYY-MM-DD)가 아닙니다 (예: 2026-13-01처럼 없는 달·날짜는 불가).', recovery: 'check_by만 고쳐서 같은 호출을 다시 보내세요. 예측 문장은 사용자의 표현 그대로 두세요. 날짜는 오늘 이후여야 하고, 정산하러 돌아올 날입니다.' },

@@ -120,6 +120,36 @@ describe('MCP protocol round-trip (real server, stdio)', () => {
     expect(String(sc['recovery'])).toContain(String(sc['today']));
   });
 
+  it('settling an unknown id hands back the ids that ARE saved', async () => {
+    // Journey RUN A3: sealing and settling happen in different sessions, so the
+    // caller no longer holds the id and reconstructs one from the predicate's
+    // wording. It sealed `queue-migration-no-runtime-regressions` and settled
+    // `no-major-runtime-regressions`; "never saved" reads as "your record is
+    // gone" and the turn ended with the outcome unrecorded.
+    const future = new Date();
+    future.setUTCDate(future.getUTCDate() + 7);
+    await client.callTool({
+      name: 'argus_predict',
+      arguments: {
+        argus_dir: dir, id: 'queue-migration-no-runtime-regressions',
+        predicate: 'no major runtime regressions after the cutover',
+        check_by: future.toISOString().slice(0, 10), predicate_owner: 'user',
+      },
+    });
+    const missed = await client.callTool({
+      name: 'argus_resolve',
+      arguments: {
+        argus_dir: dir, id: 'no-major-runtime-regressions',
+        outcome: 'missed', what_happened: 'failures stayed flat',
+      },
+    });
+    expect(missed.isError).toBe(true);
+    const sc = structured(missed);
+    expect(sc['error_code']).toBe('NO_PRIOR_SEAL');
+    const saved = (sc['data'] as Record<string, unknown>)?.['saved_ids'] as string[];
+    expect(saved).toContain('queue-migration-no-runtime-regressions');
+  });
+
   it('an invalid argument with no date at fault carries no clock', async () => {
     // The date belongs in the refusals it can act on. Everywhere else it is
     // noise, and noise in an error is how the actionable line gets skimmed.
