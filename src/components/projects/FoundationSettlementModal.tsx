@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useLocale } from '@/hooks/useLocale';
 import { useProjectStore } from '@/stores/useProjectStore';
 import type { ContractSettlement, DecisionContract, DecisionKind, PredicateVerdict, Project } from '@/stores/types';
-import { appendContractSettlement, decisionKind, gradePredicate } from '@/lib/decision-contract';
+import { appendContractSettlement, attachSettlementLesson, decisionKind, gradePredicate } from '@/lib/decision-contract';
 import { premisesToRevisit } from '@/lib/decisive-premises';
 import {
   axesWithPresentStandard,
@@ -71,6 +71,9 @@ export function FoundationSettlementModal({
   );
   const [memoryDraft, setMemoryDraft] = useState('');
   const [saveMemory, setSaveMemory] = useState(false);
+  // 다음 규칙 — 저장이 끝난 뒤에만 묻고, 사용자가 쓴 그대로만 남는다.
+  const [lessonDraft, setLessonDraft] = useState('');
+  const [lessonAsked, setLessonAsked] = useState(false);
 
   const original = contract.sealed_statement?.trim()
     || contract.statement_revisions?.[0]?.from_statement
@@ -132,10 +135,25 @@ export function FoundationSettlementModal({
       present_standard: status,
     });
     setSaved(settlement);
+    // 기준이 달라졌다고 답한 귀환에서만 규칙을 묻는다. 매번 물으면 아무것도
+    // 바뀌지 않은 귀환에까지 규칙을 만들어 내는 과발화가 된다 (거울 조항).
+    setLessonAsked(status !== 'changed');
     // A first return does not reveal the old wording until both human answers
     // are durably appended. Closing anywhere before this line leaves the old
     // record unseen and the next opening correctly starts blind again.
     setReturnStage('revealed');
+  };
+
+  /** 사용자가 적은 규칙을 이번 귀환에 붙인다. 비어 있으면 아무것도 안 쓴다. */
+  const adoptLesson = () => {
+    const text = lessonDraft.trim();
+    if (!text || !saved) return;
+    const now = Date.now();
+    updateDecisionContract(project.id, (latest) =>
+      (latest ? attachSettlementLesson(latest, saved.authorization?.authorization_ref, text, now) : latest));
+    track('foundation_return_lesson_saved', { kind });
+    setSaved({ ...saved, lesson: { text, authored: 'user', recorded_at: new Date(now).toISOString() } });
+    setLessonAsked(true);
   };
 
   return (
@@ -316,6 +334,80 @@ export function FoundationSettlementModal({
                 'The original stays intact. A later answer will be appended as another return.',
               )}
             </p>
+
+            {/* 귀환의 값어치는 관찰이 아니라 그 뒤에 남는 규칙이다 (감사 DLP-5).
+                기준이 달라졌다고 답했을 때만 묻고, 사용자가 쓴 그대로만 남긴다 —
+                기계가 요약해 채우면 다음 결정으로 가는 것은 그의 기준이 아니다. */}
+            {!lessonAsked && (
+              <div className="rounded-lg bg-[var(--accent)]/[0.04] px-4 py-3">
+                <p className="text-[13.5px] font-semibold leading-6 text-[var(--text-primary)]">
+                  {L('기준이 달라졌다고 하셨어요. 다음 판단에 가져갈 한 줄이 있나요?',
+                     'You said your standard changed. One line to carry into the next decision?')}
+                </p>
+                <p className="mt-1 text-[12px] leading-5 text-[var(--text-tertiary)]">
+                  {L('적은 그대로 이번 귀환에 남습니다. 없으면 없는 대로 괜찮아요.',
+                     'It is kept with this return, in your words. Having none is a fine answer.')}
+                </p>
+                <textarea
+                  value={lessonDraft}
+                  onChange={(event) => setLessonDraft(event.target.value)}
+                  rows={2}
+                  maxLength={300}
+                  placeholder={L('예: 이런 상황에선 2주 더 보고 정한다', 'e.g. In this situation, wait two more weeks')}
+                  aria-label={L('다음에 가져갈 한 줄', 'The rule to carry forward')}
+                  className="mt-2.5 w-full resize-none rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3.5 py-3 text-[13px] leading-6 text-[var(--text-primary)] outline-none transition-colors placeholder:text-[var(--text-tertiary)] focus:border-[var(--accent)]/60"
+                />
+                <div className="mt-2 flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={adoptLesson}
+                    disabled={!lessonDraft.trim()}
+                    className="rounded-xl bg-[var(--text-primary)] px-3.5 py-2 text-[12.5px] font-semibold text-[var(--bg)] transition-opacity disabled:opacity-40"
+                  >
+                    {L('이 규칙 남기기', 'Keep this rule')}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      track('foundation_return_lesson_skipped', { kind });
+                      setLessonAsked(true);
+                    }}
+                    className="rounded-xl px-3.5 py-2 text-[12.5px] font-semibold text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]"
+                  >
+                    {L('아니요, 없어요', 'Not this time')}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* 귀환이 끝나는 자리에서 사슬을 한 번에 보여 준다:
+                그때의 판단(위 원문) → 실제 → 지금 기준 → 다음 규칙. */}
+            {saved.lesson && (
+              <div className="rounded-lg bg-[var(--accent)]/[0.04] px-4 py-3">
+                <p className="text-[12px] font-semibold leading-5 text-[var(--text-tertiary)]">
+                  {L('이번 귀환이 남긴 것', 'What this return left you')}
+                </p>
+                <dl className="mt-2 space-y-1.5 text-[12.5px] leading-5">
+                  <div className="flex gap-2">
+                    <dt className="shrink-0 text-[var(--text-tertiary)]">{L('실제', 'Reality')}</dt>
+                    <dd className="text-[var(--text-secondary)]">{saved.response_text}</dd>
+                  </div>
+                  {saved.present_standard?.response_text && (
+                    <div className="flex gap-2">
+                      <dt className="shrink-0 text-[var(--text-tertiary)]">{L('지금 기준', 'Standard now')}</dt>
+                      <dd className="text-[var(--text-secondary)]">{saved.present_standard.response_text}</dd>
+                    </div>
+                  )}
+                  <div className="flex gap-2">
+                    <dt className="shrink-0 text-[var(--text-tertiary)]">{L('다음 규칙', 'Next rule')}</dt>
+                    <dd className="font-medium text-[var(--text-primary)]">{saved.lesson.text}</dd>
+                  </div>
+                </dl>
+                <p className="mt-2 text-[12px] leading-5 text-[var(--text-tertiary)]">
+                  {L('이 줄은 당신이 쓴 그대로예요.', 'That line is yours, word for word.')}
+                </p>
+              </div>
+            )}
             {/* 도착지를 아는 호출자만 기록을 약속한다. 없으면 닫기라고 말한다 —
                 "기록 보기"가 빈 화면으로 끝나면 사용자는 방금 남긴 것이
                 사라졌다고 읽는다. */}

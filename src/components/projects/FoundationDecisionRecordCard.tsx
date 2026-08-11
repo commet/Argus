@@ -316,6 +316,16 @@ export function FoundationDecisionRecordCard({
                         : L('현재 기준은 답하지 않았어요.', 'The present standard was left unanswered.'))}
                 </p>
               )}
+              {/* 사용자가 남긴 다음 규칙 — 귀환이 실제로 남긴 것. 모달을 닫고
+                  나면 이 카드가 그 줄을 다시 볼 수 있는 유일한 자리다. */}
+              {latest.lesson && (
+                <div className="mt-2.5 rounded-lg bg-[var(--accent)]/[0.04] px-3 py-2.5">
+                  <p className="text-[12px] font-semibold text-[var(--text-tertiary)]">
+                    {L('다음 규칙 · 내가 쓴 그대로', 'Next rule · in your words')}
+                  </p>
+                  <p className="mt-1 text-[13px] leading-6 text-[var(--text-primary)]">{latest.lesson.text}</p>
+                </div>
+              )}
             </div>
           )}
 

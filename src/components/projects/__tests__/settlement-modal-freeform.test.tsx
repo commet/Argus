@@ -159,6 +159,61 @@ describe('SettlementModal foundation return', () => {
     expect(mocks.track).not.toHaveBeenCalledWith('settle_abandoned', expect.anything());
   });
 
+  it('기준이 달라진 귀환만 다음 규칙을 묻고, 사용자가 쓴 그대로만 남긴다', async () => {
+    // 감사 DLP-5 의 나머지 절반: 귀환은 관찰까지만 하고 끝났다. 정작 값어치는
+    // 그 뒤에 남는 규칙인데, 어디에도 저장되지 않았다.
+    await act(async () => {
+      root.render(createElement(SettlementModal, { project, onClose: vi.fn() }));
+    });
+    await act(async () => button('I cannot tell from the evidence')!.click());
+    await act(async () => button('Answer one last question')!.click());
+    await act(async () => button('I would use a different standard now')!.click());
+
+    const field = Array.from(document.body.querySelectorAll('textarea'))
+      .find((t) => t.getAttribute('aria-label') === 'The rule to carry forward');
+    expect(field, '기준이 달라졌는데 다음 규칙을 묻지 않습니다').toBeDefined();
+    // 빈 채로는 아무것도 채택되지 않는다.
+    expect((button('Keep this rule') as HTMLButtonElement).disabled).toBe(true);
+
+    await act(async () => {
+      const setter = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')!.set!;
+      setter.call(field!, '이런 상황에선 2주 더 보고 정한다');
+      field!.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    await act(async () => button('Keep this rule')!.click());
+
+    // 규칙은 방금 그 귀환에 붙는다 — 새 정산을 만들지 않는다.
+    const updater = mocks.updateDecisionContract.mock.calls.at(-1)?.[1] as
+      (c: Project['decision_contract']) => Project['decision_contract'];
+    const saved = mocks.updateDecisionContract.mock.calls[0][1](project.decision_contract);
+    const written = updater(saved);
+    expect(written!.settlements).toHaveLength(1);
+    expect(written!.settlements![0].lesson).toEqual({
+      text: '이런 상황에선 2주 더 보고 정한다',
+      authored: 'user',
+      recorded_at: '2026-01-09T00:00:00.000Z',
+    });
+    // 사슬이 화면에서 닫힌다: 실제 → 지금 기준 → 다음 규칙.
+    expect(document.body.textContent).toContain('What this return left you');
+    expect(document.body.textContent).toContain('이런 상황에선 2주 더 보고 정한다');
+    expect(mocks.track).toHaveBeenCalledWith('foundation_return_lesson_saved', expect.anything());
+  });
+
+  it('기준이 그대로인 귀환에는 규칙을 만들어 내지 않는다', async () => {
+    // 매번 물으면 아무것도 바뀌지 않은 귀환에까지 규칙을 제조하는 과발화가 된다.
+    await act(async () => {
+      root.render(createElement(SettlementModal, { project, onClose: vi.fn() }));
+    });
+    await act(async () => button('I cannot tell from the evidence')!.click());
+    await act(async () => button('Answer one last question')!.click());
+    const same = button('I would make the same call under the same conditions');
+    expect(same, '기준이 그대로라는 선택지가 있어야 합니다').toBeDefined();
+    await act(async () => same!.click());
+
+    expect(document.body.textContent).not.toContain('One line to carry into the next decision?');
+    expect(mocks.updateDecisionContract).toHaveBeenCalledTimes(1);
+  });
+
   it('promises the record only when a caller declares where it is', async () => {
     // 감사 DLP-5: 정산을 끝낸 사람이 "기록 보기"를 눌렀는데 빈 화면으로
     // 돌아왔다. 방금 남긴 것이 사라진 것처럼 보이는 마무리다.

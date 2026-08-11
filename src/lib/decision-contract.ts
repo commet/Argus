@@ -266,6 +266,38 @@ export function appendContractSettlement(
   return { ...contract, settlements: [...(contract.settlements ?? []), settlement] };
 }
 
+/**
+ * Attach the user's own next-decision rule to the return it came from.
+ *
+ * The lesson arrives after the settlement is already durable (the return is
+ * saved the moment reality is answered, so abandoning here loses nothing), so
+ * it completes that record rather than opening a new one. Two refusals keep it
+ * honest: empty text writes nothing, and a return that already carries a lesson
+ * is closed — a second write would silently replace a rule the user adopted.
+ * Both return the contract untouched, so the caller cannot mistake a refusal
+ * for a write.
+ */
+export function attachSettlementLesson(
+  contract: DecisionContract,
+  authorizationRef: string | undefined,
+  text: string,
+  now: number,
+): DecisionContract {
+  const lesson = text.trim();
+  if (!lesson || !authorizationRef) return contract;
+  const settlements = contract.settlements ?? [];
+  const index = settlements.findIndex(
+    (s) => s.authorization?.authorization_ref === authorizationRef,
+  );
+  if (index < 0 || settlements[index].lesson) return contract;
+  const next = [...settlements];
+  next[index] = {
+    ...next[index],
+    lesson: { text: lesson, authored: 'user', recorded_at: new Date(now).toISOString() },
+  };
+  return { ...contract, settlements: next };
+}
+
 /** Stable id for an open check (djb2 of its text) — the settle-verdict join key. */
 export function stableCheckId(text: string): string {
   const key = text.trim().toLowerCase().replace(/\s+/g, ' ');
