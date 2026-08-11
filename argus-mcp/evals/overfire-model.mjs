@@ -26,9 +26,14 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { SERVER_INSTRUCTIONS } from '../dist/lib/spine.js';
+import { decide } from '../dist/tools/public-tools.js';
 
+// Run-3 harness change (documented): argus_capture's real tool description is
+// shown inline, imported from the built module — real hosts expose tool
+// descriptions, and the closed-decision guard now lives there. Other tools
+// stay name-only as before.
 export const TOOLS =
-  'argus_capture, argus_predict, argus_resolve, argus_patterns, argus_check_in, argus_settings';
+  `argus_capture — "${decide.description}" · argus_predict, argus_resolve, argus_patterns, argus_check_in, argus_settings`;
 
 export const SCENARIOS = [
   {

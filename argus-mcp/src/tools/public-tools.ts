@@ -27,7 +27,7 @@ const premiseInput = z.strictObject({
   // Public callers cannot use the internal from_capture shortcut, so allowing a
   // text-less premise here only postpones a deterministic failure until AFTER
   // action=open has already persisted gate_input + harvest.
-  text: z.string().min(3).max(400).describe('필수: 기록할 전제 또는 미결 질문의 원문입니다. Required premise/open-question text.'),
+  text: z.string().min(3).max(400).describe('필수: 기록할 전제 또는 미결 질문의 원문입니다. 사용자가 닫은 결정("어제 확정했어", "재론 불요")에서는 전제를 만들지 않습니다. 전제는 아직 열려 있는 판단을 위한 것입니다.\n\nRequired premise/open-question text. Never build a premise from a decision the user closed ("we decided yesterday", "no need to revisit"); premises serve judgments that are still open.'),
   kind: z.enum(['premise', 'open_question']).default('premise').describe('premise는 확인할 전제, open_question은 사용자가 아직 답하지 않은 질문입니다.'),
   external: z.boolean().default(false).describe('외부 현실에서 나중에 다시 확인할 수 있는 사실인지 표시합니다.'),
   load_bearing: z.boolean().default(false).describe('틀리면 결정이 바뀌는 핵심 전제인지 표시합니다.'),
@@ -377,7 +377,12 @@ async function runPublic(
 
 export const decide: ToolModule = {
   name: 'argus_capture',
-  description: 'Capture a decision and its user-stated context without deciding for the user. Preserve at most one load-bearing assumption; tag an AI-drafted premise as ai_surfaced.',
+  // "closed is never capture material": the 2026-08-10 over-fire eval showed a
+  // model SAYING it would not reopen a closed decision and capturing it anyway
+  // — the instruction-level restraint line alone did not hold at the moment of
+  // temptation, so the rule also lives here, where the tool is considered.
+  // Receipt: docs/receipts/2026-08-10-m1-overfire-eval/.
+  description: 'Capture a decision and its user-stated context without deciding for the user. Preserve at most one load-bearing assumption; tag an AI-drafted premise as ai_surfaced. A decision the user has closed or told you not to revisit is never capture material — acknowledge it and move on; recording it re-opens it.',
   inputSchema: decidePublicSchema,
   outputSchema: ENVELOPE_OUTPUT_SCHEMA,
   annotations: { title: 'Work with a decision', readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
