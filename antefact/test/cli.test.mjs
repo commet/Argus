@@ -7,6 +7,7 @@ import { readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import {
+  parseFlow,
   parseRecord, lint, lintDir, sealRecord, verifyRecord, settleRecord,
   canon, statementRev, stakeHash,
 } from "../cli/antefact.mjs";
@@ -29,12 +30,73 @@ test("invalid vectors fail with their expected codes", () => {
     "i3-delegation-no-policy.antefact.md": ["E_POLICY_REF"],
     "i4-recorded-with-seal.antefact.md": ["E_STATE_MISMATCH"],
     "i6-bad-outcome.antefact.md": ["E_OUTCOME"],
+    "i7-settlement-no-settler.antefact.md": ["E_SETTLEMENT_BY"],
+    "i8-bad-seal-level.antefact.md": ["E_SEAL_LEVEL"],
+    "i9-abbreviated-digest.antefact.md": ["E_SEAL_DIGEST"],
   };
   for (const [f, codes] of Object.entries(expected)) {
     const r = lint(parseRecord(load("invalid", f), f));
     for (const code of codes)
       assert.ok(r.errors.some(e => e.code === code), `${f} must raise ${code}; got ${JSON.stringify(r.errors)}`);
   }
+});
+
+test("a seal missing any required field is an error, field by field", () => {
+  const base = readFileSync(vec("invalid", "i8-bad-seal-level.antefact.md"), "utf8");
+  const full = base.replace("level: L9", "level: L0");
+  for (const [field, drop] of [
+    ["proj", /, proj: v1/],
+    ["statement_rev", /, statement_rev: "sha256:0{63}4"/],
+    ["nonce", /, nonce: "aaaaaaaaaaaa"/],
+  ]) {
+    const r = lint(parseRecord(full.replace(drop, "")));
+    assert.ok(r.errors.some(e => e.code === "E_SEAL_FIELD" && e.msg.includes(field)),
+      `dropping seal.${field} must raise E_SEAL_FIELD; got ${JSON.stringify(r.errors)}`);
+  }
+});
+
+test("verification refuses abbreviated digests instead of prefix-matching them", () => {
+  const { text: sealed } = sealRecord(load("valid", "v2-unsealed.antefact.md"));
+  const full = /hash: "sha256:([0-9a-f]{64})"/.exec(sealed)[1];
+  const abbreviated = sealed.replace(`sha256:${full}`, `sha256:${full.slice(0, 8)}`);
+  const v = verifyRecord(abbreviated);
+  assert.equal(v.ok, false);
+  assert.match(v.reason, /complete sha256 digest/);
+  // the one-character case the prefix comparison used to accept outright
+  const single = sealed.replace(`sha256:${full}`, `sha256:${full.slice(0, 1)}`);
+  assert.equal(verifyRecord(single).ok, false);
+});
+
+test("sealing rejects levels the format does not define", () => {
+  assert.throws(() => sealRecord(load("valid", "v2-unsealed.antefact.md"), { level: "L9" }), /seal level must be one of/);
+  assert.equal(verifyRecord(readFileSync(vec("invalid", "i8-bad-seal-level.antefact.md"), "utf8")).ok, false);
+});
+
+test("a record with no Settlement heading still gets its seal written", () => {
+  const source = load("valid", "v2-unsealed.antefact.md").replace(/\n## Settlement\n?/, "\n");
+  assert.ok(!/## Settlement/.test(source), "fixture must have no Settlement heading");
+  const { text: sealed } = sealRecord(source);
+  assert.match(sealed, /^seal:/m, "state was changed to sealed, so a seal must exist");
+  assert.match(sealed, /state: sealed/);
+  assert.equal(verifyRecord(sealed).ok, true);
+});
+
+test("quoted escapes are parsed, not passed through", () => {
+  assert.deepEqual(parseFlow('{ a: "say \\"hi\\"", b: "back\\\\slash" }'), { a: 'say "hi"', b: "back\\slash" });
+  assert.throws(() => parseFlow('{ a: "bad \\n escape" }'), /unsupported escape/);
+});
+
+test("conflicting outcomes from different settlers make the record disputed, keeping both", () => {
+  const { text: sealed } = sealRecord(load("valid", "v5-korean.antefact.md"));
+  const first = settleRecord(sealed, { outcome: "yes", by: "h:김서진", observed: "감소율 3%" });
+  assert.match(first, /state: settled/);
+  const second = settleRecord(first, { outcome: "no", by: "h:박다인", observed: "감소율 14%" });
+  const rec = parseRecord(second);
+  assert.match(second, /state: disputed/);
+  assert.equal(rec.settlements.length, 2, "both entries survive — neither settler overwrites the other");
+  assert.equal(rec.settlements[0].by, "h:김서진");
+  assert.equal(rec.settlements[1].by, "h:박다인");
+  assert.deepEqual(lint(rec).errors, [], "a disputed record with conflicting named outcomes is well-formed");
 });
 
 test("duplicate ids across a store invalidate both records", () => {

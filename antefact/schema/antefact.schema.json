@@ -13,7 +13,7 @@
         "antefact": { "type": "string", "pattern": "^0\\.[0-9]+$" },
         "id": { "type": "string", "minLength": 1 },
         "authors": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/actor" } },
-        "state": { "enum": ["recorded", "sealed", "settled", "withdrawn"] },
+        "state": { "enum": ["recorded", "sealed", "settled", "disputed", "withdrawn"] },
         "policy_ref": { "type": "string" },
         "superseded_by": { "type": "string" }
       }
@@ -62,12 +62,12 @@
         "annul_if": { "type": "string" },
         "seal": {
           "type": "object",
-          "required": ["level", "hash", "nonce"],
+          "required": ["level", "proj", "hash", "statement_rev", "nonce"],
           "properties": {
             "level": { "enum": ["L0", "L1", "L2"] },
             "proj": { "enum": ["v1"], "description": "canonical-projection recipe version — a hash without a named recipe proves nothing" },
-            "hash": { "type": "string", "pattern": "^sha256:[0-9a-f…]+$" },
-            "statement_rev": { "type": "string", "pattern": "^sha256:[0-9a-f…]+$" },
+            "hash": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+            "statement_rev": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
             "nonce": { "type": "string", "pattern": "^[0-9a-f]+$" },
             "ref": { "type": "string" },
             "stream": {
@@ -87,10 +87,11 @@
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["ts", "outcome"],
+        "required": ["ts", "outcome", "by"],
         "properties": {
           "ts": { "type": "string" },
           "outcome": { "enum": ["yes", "no", "ambiguous", "annulled"] },
+          "by": { "type": "string", "description": "the named settler who appended this entry, as key:name — authorization that is checked and then discarded proves nothing later" },
           "observed": { "type": ["string", "null"], "description": "measured value, string-encoded to preserve precision" },
           "source_ref": { "type": ["string", "null"] }
         }
