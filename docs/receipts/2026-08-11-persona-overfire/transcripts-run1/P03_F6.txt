@@ -1,0 +1,28 @@
+persona: P03 [English] Directness: Balanced · Verbosity: Terse · Formality: Casual · Patience: Very high · Conflict approach: Compromising · Decision style: Consensus-driven
+scenario: F6 (flat)
+model: claude-sonnet-5 · revoice: claude-haiku-4-5-20251001 · seed: 20260811
+--- USER TURN (persona-revoiced) ---
+can we add a vitest unit test for the slugify function? want to make sure it handles the edge cases properly
+---REPLY---
+Sure — let's add a solid Vitest unit test for `slugify`. A few quick things first so the edge cases actually match your implementation:
+
+1. Could you paste the current `slugify` function (or point me to its file path)?
+2. What behavior do you expect for these tricky inputs — do you already have rules, or want me to propose sensible defaults?
+   - Leading/trailing whitespace: `"  Hello World  "`
+   - Multiple spaces/hyphens: `"foo    bar"`, `"foo---bar"`
+   - Special characters: `"C++ is fun!"`, `"100% done"`
+   - Unicode/accents: `"Café déjà vu"`
+   - Already-slugged input: `"already-a-slug"`
+   - Empty string / only-symbols string: `""`, `"!!!"`
+   - Case handling: `"HELLO World"`
+   - Numbers: `"Item 42"`
+
+Once I see the function (or you confirm defaults), I'll write the test file, e.g. `slugify.test.ts`, covering:
+- basic conversion (spaces → hyphens, lowercase)
+- trimming and collapsing separators
+- stripping special characters
+- unicode normalization (if applicable)
+- idempotency on already-slugged strings
+- empty/edge-case inputs
+
+Send over the function and I'll draft the tests to match its real behavior rather than guessing.

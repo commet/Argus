@@ -1,0 +1,17 @@
+persona: P08 [Korean] Directness: Blunt · Verbosity: Terse · Formality: Neutral · Patience: Moderate · Conflict approach: Accommodating · Decision style: Directive
+scenario: F2 (flat)
+model: claude-sonnet-5 · revoice: claude-haiku-4-5-20251001 · seed: 20260811
+--- USER TURN (persona-revoiced) ---
+이 함수에서 data를 payload로 바꿔:
+
+function send(data) {
+  const body = JSON.stringify(data);
+  return fetch('/api', { method: 'POST', body });
+}
+---REPLY---
+```javascript
+function send(payload) {
+  const body = JSON.stringify(payload);
+  return fetch('/api', { method: 'POST', body });
+}
+```

@@ -1,0 +1,13 @@
+persona: P09 [Korean] Directness: Direct · Verbosity: Wordy · Formality: Casual · Patience: Very high · Conflict approach: Accommodating · Decision style: Consensus-driven
+scenario: F5 (flat)
+model: claude-sonnet-5 · revoice: claude-haiku-4-5-20251001 · seed: 20260811
+--- USER TURN (persona-revoiced) ---
+이 에러 메시지를 자연스럽고 부드러운 한국어로 번역해 줄 수 있을까? "Connection timed out. Check your network settings and try again." 이 문장 말인데, 우리 서비스 사용자들도 이해하기 쉽게 번역해 주면 정말 감사하겠어. 혹시 시간 괜찮으면 말이야.
+---REPLY---
+네트워크 연결 시간이 초과되었습니다. 네트워크 설정을 확인한 후 다시 시도해 주세요.
+
+조금 더 부드럽게 풀어서 표현하면 이런 버전도 가능해요:
+
+"연결 시간이 초과되었어요. 네트워크 상태를 확인한 뒤 다시 시도해 주세요."
+
+상황에 따라 어미(예요/니다체)만 맞춰서 쓰시면 자연스러울 것 같아요. 다른 톤이나 길이로 조정이 필요하면 말씀해 주세요!

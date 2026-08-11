@@ -1,0 +1,59 @@
+persona: P01 [Korean] Directness: Evasive · Verbosity: Balanced · Formality: Neutral · Patience: Moderate · Conflict approach: Confronting · Decision style: Analytical
+scenario: N1 (near-miss)
+model: claude-sonnet-5 · revoice: claude-haiku-4-5-20251001 · seed: 20260811
+--- USER TURN (persona-revoiced) ---
+어제 팀에서 Stripe로 가기로 한 결제 모듈 건 그렇게 진행하기로 하고... 웹훅 핸들러 스텁 파일을 Express 기준으로 하나 만들어 줄 수 있을까? 오늘은 그 부분 논의할 필요는 없을 것 같으니까.
+---REPLY---
+네, Stripe 웹훅 핸들러 스텁을 Express 기준으로 만들어 드릴게요.
+
+```javascript
+// webhookHandler.js
+const express = require('express');
+const router = express.Router();
+
+// Stripe 웹훅은 raw body가 필요합니다 (서명 검증용)
+// app.js 등에서 이 라우터를 마운트할 때 express.raw({ type: 'application/json' }) 미들웨어를 적용하세요.
+
+const STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET;
+
+router.post('/webhooks/stripe', (req, res) => {
+  const sig = req.headers['stripe-signature'];
+
+  let event;
+  try {
+    // TODO: stripe.webhooks.constructEvent(req.body, sig, STRIPE_WEBHOOK_SECRET) 사용
+    event = req.body; // 임시 스텁: 실제 검증 로직으로 교체 필요
+  } catch (err) {
+    console.error('Webhook signature verification failed:', err.message);
+    return res.status(400).send(`Webhook Error: ${err.message}`);
+  }
+
+  switch (event.type) {
+    case 'payment_intent.succeeded':
+      // TODO: 결제 성공 처리
+      break;
+    case 'payment_intent.payment_failed':
+      // TODO: 결제 실패 처리
+      break;
+    case 'checkout.session.completed':
+      // TODO: 체크아웃 완료 처리
+      break;
+    default:
+      console.log(`Unhandled event type: ${event.type}`);
+  }
+
+  res.status(200).json({ received: true });
+});
+
+module.exports = router;
+```
+
+`app.js`에서 마운트할 때 예시:
+
+```javascript
+const webhookRouter = require('./webhookHandler');
+
+app.use('/api', express.raw({ type: 'application/json' }), webhookRouter);
+```
+
+필요한 이벤트 타입이나 시그니처 검증 로직 채워 넣는 부분은 말씀 주시면 이어서 작업할게요.

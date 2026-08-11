@@ -1,0 +1,86 @@
+persona: P09 [Korean] Directness: Direct · Verbosity: Wordy · Formality: Casual · Patience: Very high · Conflict approach: Accommodating · Decision style: Consensus-driven
+scenario: F6 (flat)
+model: claude-sonnet-5 · revoice: claude-haiku-4-5-20251001 · seed: 20260811
+--- USER TURN (persona-revoiced) ---
+이 함수에 대해서 vitest로 단위 테스트를 만들어 주면 좋겠어요. 물론 시간이 되실 때 괜찮으시면 말이에요.
+
+```javascript
+export function slugify(s) {
+  return s.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+}
+```
+
+이 함수를 테스트하는 코드를 작성해 주실 수 있을까요? 여러 가지 경우들을 다 커버할 수 있게 말이에요.
+---REPLY---
+네, `slugify` 함수에 대한 vitest 단위 테스트를 작성해 드릴게요. 다양한 케이스(공백, 특수문자, 대소문자, 앞뒤 하이픈, 연속 구분자, 숫자 포함, 빈 문자열 등)를 커버했습니다.
+
+```javascript
+// slugify.test.js
+import { describe, it, expect } from 'vitest';
+import { slugify } from './slugify.js';
+
+describe('slugify', () => {
+  it('converts uppercase letters to lowercase', () => {
+    expect(slugify('Hello World')).toBe('hello-world');
+  });
+
+  it('trims leading and trailing whitespace', () => {
+    expect(slugify('  hello world  ')).toBe('hello-world');
+  });
+
+  it('replaces spaces with a single hyphen', () => {
+    expect(slugify('hello world')).toBe('hello-world');
+  });
+
+  it('collapses multiple consecutive non-alphanumeric characters into one hyphen', () => {
+    expect(slugify('hello   world')).toBe('hello-world');
+    expect(slugify('hello---world')).toBe('hello-world');
+    expect(slugify('hello!!!world')).toBe('hello-world');
+  });
+
+  it('removes special characters', () => {
+    expect(slugify('Hello, World! @2024')).toBe('hello-world-2024');
+  });
+
+  it('keeps numbers intact', () => {
+    expect(slugify('Post 123')).toBe('post-123');
+  });
+
+  it('removes leading and trailing hyphens after conversion', () => {
+    expect(slugify('!!!Hello World!!!')).toBe('hello-world');
+    expect(slugify('---start and end---')).toBe('start-and-end');
+  });
+
+  it('returns an empty string for input that has no valid characters', () => {
+    expect(slugify('!!!')).toBe('');
+    expect(slugify('   ')).toBe('');
+  });
+
+  it('returns an empty string when given an empty string', () => {
+    expect(slugify('')).toBe('');
+  });
+
+  it('handles strings with mixed unicode/non-ascii characters by stripping them', () => {
+    expect(slugify('café münchen')).toBe('caf-m-nchen');
+  });
+
+  it('handles already-slugified input without change', () => {
+    expect(slugify('already-a-slug')).toBe('already-a-slug');
+  });
+
+  it('handles single word input', () => {
+    expect(slugify('Word')).toBe('word');
+  });
+
+  it('handles strings that are entirely numbers', () => {
+    expect(slugify('2024')).toBe('2024');
+  });
+});
+```
+
+몇 가지 참고할 점이 있어요:
+
+- `café münchen` 케이스처럼 유니코드 문자(`é`, `ü`)는 정규식 `[^a-z0-9]`에 매칭되어 제거되기 때문에 `caf-m-nchen`처럼 다소 어색한 결과가 나옵니다. 의도한 동작인지 확인해 보시면 좋을 것 같아요. 만약 유니코드도 보존하고 싶으시다면 정규식을 유니코드 대응 형태로 바꾸는 게 필요할 수 있어요.
+- 테스트 파일 경로나 함수의 import 경로는 실제 프로젝트 구조에 맞게 조정해 주세요.
+
+필요하시면 엣지 케이스를 더 추가하거나, 유니코드 처리 방식을 바꾸는 것도 도와드릴 수 있어요.

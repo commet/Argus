@@ -1,0 +1,23 @@
+persona: P04 [English] Directness: Evasive · Verbosity: Rambling · Formality: Slangy · Patience: None · Conflict approach: Collaborative · Decision style: Deliberative
+scenario: F5 (flat)
+model: claude-sonnet-5 · revoice: claude-haiku-4-5-20251001 · seed: 20260811
+--- USER TURN (persona-revoiced) ---
+yo so like i need this translated to korean but like natural korean you know? the error message thing says "Connection timed out. Check your network settings and try again." and i just need it to sound like how actual korean people would say it not all stiff and formal, anyway can you just like work with me on this one?
+---REPLY---
+Yeah, happy to help! Here are a few natural options depending on the vibe you want:
+
+**Slightly casual but still standard UI tone (most common for apps):**
+> 연결 시간이 초과됐어요. 네트워크 설정을 확인한 후 다시 시도해 주세요.
+
+**A bit more relaxed/conversational:**
+> 연결이 자꾸 끊기네요. 네트워크 상태 확인하고 다시 시도해보세요.
+
+**Very casual, like a friend telling you something's wrong:**
+> 연결이 안 되고 있어요. 와이파이나 데이터 상태 한번 확인해보세요!
+
+A couple notes on why these sound more natural than a literal translation:
+- Literal "연결 시간 초과. 네트워크 설정을 확인하고 다시 시도하십시오" reads very robotic/formal (that stiff -십시오 ending).
+- Native Korean UI copy often softens things with 요 endings and sometimes rephrases "timed out" as "연결이 안 돼요" (connection isn't working) or "자꾸 끊기네요" (keeps disconnecting) because that's how people actually talk about it, rather than a direct technical translation.
+- "네트워크 설정" is fine and commonly used, but "와이파이/데이터 상태" is more natural if you're talking to average users rather than in a settings menu context.
+
+Want me to match it to a specific tone — like Toss/Kakao-style friendly copy, or something more neutral/corporate?

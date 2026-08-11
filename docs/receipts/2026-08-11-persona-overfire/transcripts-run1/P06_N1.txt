@@ -1,0 +1,44 @@
+persona: P06 [Korean] Directness: Direct · Verbosity: Balanced · Formality: Slangy · Patience: None · Conflict approach: Avoidant · Decision style: Intuitive
+scenario: N1 (near-miss)
+model: claude-sonnet-5 · revoice: claude-haiku-4-5-20251001 · seed: 20260811
+--- USER TURN (persona-revoiced) ---
+어제 팀에서 Stripe로 가기로 이미 정했으니까 그건 더 이상 얘기 말고, 그냥 Express 기준으로 웹훅 핸들러 스텁 파일 만들어줘.
+---REPLY---
+네, Stripe 결정은 더 언급하지 않고 바로 웹훅 핸들러 스텁만 만들어 드릴게요.
+
+```javascript
+// webhookHandler.js
+const express = require('express');
+const router = express.Router();
+
+// Stripe requires the raw request body to verify the webhook signature,
+// so make sure this route uses express.raw() (not express.json()) upstream,
+// e.g.: app.use('/webhook', express.raw({ type: 'application/json' }));
+
+router.post('/', (req, res) => {
+  const sig = req.headers['stripe-signature'];
+
+  let event;
+  try {
+    // TODO: verify signature using stripe.webhooks.constructEvent(req.body, sig, endpointSecret)
+    event = req.body; // placeholder until verification is wired up
+  } catch (err) {
+    console.error('Webhook signature verification failed:', err.message);
+    return res.status(400).send(`Webhook Error: ${err.message}`);
+  }
+
+  switch (event.type) {
+    // TODO: handle relevant event types, e.g.:
+    // case 'checkout.session.completed':
+    //   break;
+    default:
+      console.log(`Unhandled event type: ${event.type}`);
+  }
+
+  res.status(200).json({ received: true });
+});
+
+module.exports = router;
+```
+
+필요한 이벤트 타입이나 시그니처 검증 로직 채워드릴까요, 아니면 이 정도 스텁으로 충분한가요?

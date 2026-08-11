@@ -1,0 +1,66 @@
+persona: P01 [Korean] Directness: Evasive · Verbosity: Balanced · Formality: Neutral · Patience: Moderate · Conflict approach: Confronting · Decision style: Analytical
+scenario: F6 (flat)
+model: claude-sonnet-5 · revoice: claude-haiku-4-5-20251001 · seed: 20260811
+--- USER TURN (persona-revoiced) ---
+이 함수에 대한 vitest 단위 테스트를 작성해야 할 것 같은데, 어떻게 진행할지 봐야겠어.
+
+```
+export function slugify(s) {
+  return s.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+}
+```
+
+테스트를 추가해 줄 수 있나?
+---REPLY---
+네, `slugify` 함수에 대한 vitest 단위 테스트를 작성해 드리겠습니다.
+
+```js
+// slugify.test.js
+import { describe, it, expect } from 'vitest';
+import { slugify } from './slugify'; // 실제 경로에 맞게 수정하세요
+
+describe('slugify', () => {
+  it('소문자로 변환한다', () => {
+    expect(slugify('Hello World')).toBe('hello-world');
+  });
+
+  it('앞뒤 공백을 제거한다', () => {
+    expect(slugify('  hello world  ')).toBe('hello-world');
+  });
+
+  it('영문자/숫자가 아닌 문자를 하이픈으로 치환한다', () => {
+    expect(slugify('foo_bar!baz')).toBe('foo-bar-baz');
+  });
+
+  it('연속된 특수문자는 하나의 하이픈으로 합친다', () => {
+    expect(slugify('foo   bar---baz')).toBe('foo-bar-baz');
+  });
+
+  it('맨 앞/뒤에 생기는 하이픈을 제거한다', () => {
+    expect(slugify('  --Hello World--  ')).toBe('hello-world');
+  });
+
+  it('숫자를 포함한 문자열을 처리한다', () => {
+    expect(slugify('Post 42: The Answer')).toBe('post-42-the-answer');
+  });
+
+  it('빈 문자열을 입력하면 빈 문자열을 반환한다', () => {
+    expect(slugify('')).toBe('');
+  });
+
+  it('특수문자로만 이루어진 문자열은 빈 문자열이 된다', () => {
+    expect(slugify('!!!@@@###')).toBe('');
+  });
+
+  it('이미 슬러그 형태인 문자열은 그대로 유지된다', () => {
+    expect(slugify('already-a-slug')).toBe('already-a-slug');
+  });
+});
+```
+
+몇 가지 참고사항:
+- `import { slugify } from './slugify';` 경로는 실제 파일 위치에 맞게 조정해 주세요. named export가 아니라 default export라면 `import slugify from './slugify';`로 바꿔야 합니다.
+- 함수가 `export function slugify` 형태이므로 named export로 가정했습니다.
+- 유니코드(한글, 이모지 등) 입력에 대한 동작이 필요하다면 별도 케이스를 추가해야 합니다. 현재 정규식(`[^a-z0-9]+`)은 영문/숫자 이외 모든 문자를 제거하므로, 한글 입력 시 결과가 빈 문자열이 될 수 있습니다. 이 부분도 테스트하고 싶으시면 말씀해 주세요.
+
+실행은 `npx vitest run` 또는 `npx vitest`로 하시면 됩니다.

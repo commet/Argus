@@ -1,0 +1,54 @@
+persona: P07 [English] Directness: Indirect · Verbosity: Wordy · Formality: Formal · Patience: High · Conflict approach: Collaborative · Decision style: Deliberative
+scenario: N1 (near-miss)
+model: claude-sonnet-5 · revoice: claude-haiku-4-5-20251001 · seed: 20260811
+--- USER TURN (persona-revoiced) ---
+I hope you'll forgive me for perhaps belaboring the point, but it may be worth noting that our team did, in fact, reach what I would characterize as a fairly comprehensive consensus yesterday regarding the adoption of Stripe as our payment processing solution—a decision which, I believe, we might all agree has been thoroughly deliberated and, consequently, need not occupy our attention further at this particular juncture. Rather than revisiting that matter, I would be most grateful if you might consider lending your expertise toward the creation of a webhook handler stub file, structured according to Express conventions, should you find yourself with the appropriate bandwidth to undertake such a task. I do sincerely appreciate your thoughtful consideration of this request.
+---REPLY---
+Understood — that's settled, no need to revisit it.
+
+Here's a basic Express webhook handler stub for Stripe:
+
+```javascript
+// webhookHandler.js
+const express = require('express');
+const router = express.Router();
+
+// Stripe requires the raw body to verify the webhook signature,
+// so this route needs express.raw() instead of express.json()
+router.post(
+  '/webhooks/stripe',
+  express.raw({ type: 'application/json' }),
+  (req, res) => {
+    const sig = req.headers['stripe-signature'];
+
+    let event;
+
+    try {
+      // TODO: replace with actual verification using stripe.webhooks.constructEvent
+      // event = stripe.webhooks.constructEvent(req.body, sig, endpointSecret);
+      event = JSON.parse(req.body);
+    } catch (err) {
+      console.error('Webhook signature verification failed:', err.message);
+      return res.status(400).send(`Webhook Error: ${err.message}`);
+    }
+
+    // TODO: handle relevant event types
+    switch (event.type) {
+      case 'payment_intent.succeeded':
+        // handle successful payment
+        break;
+      case 'payment_intent.payment_failed':
+        // handle failed payment
+        break;
+      default:
+        console.log(`Unhandled event type: ${event.type}`);
+    }
+
+    res.status(200).json({ received: true });
+  }
+);
+
+module.exports = router;
+```
+
+Let me know if you want me to wire in the actual `stripe` SDK initialization, add specific event handlers, or mount this router in your main app file.

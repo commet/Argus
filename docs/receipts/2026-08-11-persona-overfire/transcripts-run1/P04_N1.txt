@@ -1,0 +1,58 @@
+persona: P04 [English] Directness: Evasive · Verbosity: Rambling · Formality: Slangy · Patience: None · Conflict approach: Collaborative · Decision style: Deliberative
+scenario: N1 (near-miss)
+model: claude-sonnet-5 · revoice: claude-haiku-4-5-20251001 · seed: 20260811
+--- USER TURN (persona-revoiced) ---
+Yo so like, look, the team basically already locked in on Stripe yesterday and honestly we don't really need to hash all that out again, you feel me? But anyway what I'm kinda getting at is could you maybe whip up a webhook handler stub file for me, like just the basic Express setup and whatnot? Just trying to move forward with the actual implementation, yeah?
+---REPLY---
+Got it — Stripe's locked in, no need to relitigate that. Here's a basic Express webhook handler stub to get you moving:
+
+```javascript
+// webhookHandler.js
+const express = require('express');
+const router = express.Router();
+
+// Stripe requires the raw body to verify the webhook signature,
+// so make sure this route uses express.raw() (not express.json())
+// when you mount it, e.g.:
+// app.use('/webhook', express.raw({ type: 'application/json' }), webhookHandler);
+
+const STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET;
+
+router.post('/', async (req, res) => {
+  const sig = req.headers['stripe-signature'];
+
+  let event;
+
+  try {
+    // TODO: uncomment once stripe package is installed
+    // const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+    // event = stripe.webhooks.constructEvent(req.body, sig, STRIPE_WEBHOOK_SECRET);
+
+    // Placeholder until signature verification is wired up:
+    event = JSON.parse(req.body);
+  } catch (err) {
+    console.error('Webhook signature verification failed:', err.message);
+    return res.status(400).send(`Webhook Error: ${err.message}`);
+  }
+
+  switch (event.type) {
+    case 'checkout.session.completed':
+      // TODO: handle successful checkout
+      break;
+    case 'invoice.payment_succeeded':
+      // TODO: handle successful payment
+      break;
+    case 'invoice.payment_failed':
+      // TODO: handle failed payment
+      break;
+    default:
+      console.log(`Unhandled event type: ${event.type}`);
+  }
+
+  res.status(200).json({ received: true });
+});
+
+module.exports = router;
+```
+
+Just mount it in your app entry point with the raw body parser as noted in the comment, drop in your `STRIPE_SECRET_KEY` / `STRIPE_WEBHOOK_SECRET` env vars, and fill in the TODO branches for whatever events you actually care about. Let me know which events you want fleshed out first and I'll build those out.

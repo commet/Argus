@@ -1,0 +1,32 @@
+persona: P03 [English] Directness: Balanced · Verbosity: Terse · Formality: Casual · Patience: Very high · Conflict approach: Compromising · Decision style: Consensus-driven
+scenario: F3 (flat)
+model: claude-sonnet-5 · revoice: claude-haiku-4-5-20251001 · seed: 20260811
+--- USER TURN (persona-revoiced) ---
+Hey, could you write me a formatDate function in JavaScript that outputs dates as YYYY-MM-DD? Just vanilla JS, no external libraries needed.
+---REPLY---
+Here's a simple `formatDate` function in vanilla JavaScript:
+
+```javascript
+function formatDate(date) {
+  const d = new Date(date);
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+```
+
+**Usage examples:**
+
+```javascript
+formatDate(new Date());           // e.g. "2024-06-15"
+formatDate("2024-06-15T10:30:00"); // "2024-06-15"
+formatDate(1718445000000);        // works with timestamps too
+```
+
+**Notes:**
+- Uses local time (based on the browser/Node's timezone). If you need UTC instead, swap in `getUTCFullYear()`, `getUTCMonth()`, and `getUTCDate()`.
+- `padStart(2, '0')` ensures single-digit months/days get a leading zero.
+- If you pass an invalid date, `d` will be `Invalid Date` and the output will contain `NaN` — let me know if you want input validation added.
+
+Let me know if you need a version that also handles time, or want it as a `Date.prototype` extension instead.

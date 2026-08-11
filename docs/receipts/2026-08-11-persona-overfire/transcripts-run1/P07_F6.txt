@@ -1,0 +1,111 @@
+persona: P07 [English] Directness: Indirect · Verbosity: Wordy · Formality: Formal · Patience: High · Conflict approach: Collaborative · Decision style: Deliberative
+scenario: F6 (flat)
+model: claude-sonnet-5 · revoice: claude-haiku-4-5-20251001 · seed: 20260811
+--- USER TURN (persona-revoiced) ---
+I hope you might consider taking a moment to review the following function and, should you find it agreeable, perhaps develop a comprehensive unit test suite utilizing vitest that would thoroughly examine its behavior across various scenarios:
+
+```
+export function slugify(s) {
+  return s.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+}
+```
+
+I would be most grateful if you could create test cases that would help ensure this function operates reliably under different conditions. Thank you for your consideration of this matter.
+---REPLY---
+Happy to help — here's a thorough vitest suite for `slugify`:
+
+```js
+import { describe, it, expect } from 'vitest';
+import { slugify } from './slugify';
+
+describe('slugify', () => {
+  it('converts uppercase letters to lowercase', () => {
+    expect(slugify('Hello World')).toBe('hello-world');
+  });
+
+  it('trims leading and trailing whitespace', () => {
+    expect(slugify('  hello world  ')).toBe('hello-world');
+  });
+
+  it('replaces spaces with a single hyphen', () => {
+    expect(slugify('hello world')).toBe('hello-world');
+  });
+
+  it('collapses multiple consecutive spaces into one hyphen', () => {
+    expect(slugify('hello     world')).toBe('hello-world');
+  });
+
+  it('replaces non-alphanumeric characters with hyphens', () => {
+    expect(slugify('hello@world!')).toBe('hello-world');
+  });
+
+  it('collapses multiple consecutive special characters into one hyphen', () => {
+    expect(slugify('hello---world')).toBe('hello-world');
+    expect(slugify('hello!!!world')).toBe('hello-world');
+  });
+
+  it('strips leading hyphens produced by leading special characters', () => {
+    expect(slugify('---hello')).toBe('hello');
+    expect(slugify('!!!hello')).toBe('hello');
+  });
+
+  it('strips trailing hyphens produced by trailing special characters', () => {
+    expect(slugify('hello---')).toBe('hello');
+    expect(slugify('hello!!!')).toBe('hello');
+  });
+
+  it('preserves numbers', () => {
+    expect(slugify('Hello123 World456')).toBe('hello123-world456');
+  });
+
+  it('handles strings that are already slugified', () => {
+    expect(slugify('already-slugified-text')).toBe('already-slugified-text');
+  });
+
+  it('handles mixed case with numbers and symbols', () => {
+    expect(slugify('  Foo_Bar-Baz 42!! ')).toBe('foo-bar-baz-42');
+  });
+
+  it('returns an empty string for an empty input', () => {
+    expect(slugify('')).toBe('');
+  });
+
+  it('returns an empty string for input that is only whitespace', () => {
+    expect(slugify('   ')).toBe('');
+  });
+
+  it('returns an empty string for input that is only special characters', () => {
+    expect(slugify('!!!@@@###')).toBe('');
+  });
+
+  it('handles a single word with no changes needed', () => {
+    expect(slugify('hello')).toBe('hello');
+  });
+
+  it('handles unicode letters by stripping them (non a-z0-9)', () => {
+    expect(slugify('héllo wörld')).toBe('h-llo-w-rld');
+  });
+
+  it('handles tabs and newlines as separators', () => {
+    expect(slugify('hello\tworld\nfoo')).toBe('hello-world-foo');
+  });
+
+  it('handles a string that is a single special character', () => {
+    expect(slugify('!')).toBe('');
+  });
+
+  it('handles numeric-only input', () => {
+    expect(slugify('12345')).toBe('12345');
+  });
+
+  it('handles long strings with repeated punctuation clusters', () => {
+    expect(slugify('A---B___C...D')).toBe('a-b-c-d');
+  });
+});
+```
+
+A couple of notes on behavior this suite documents (in case any surprise you):
+- Non-ASCII letters like `é` and `ö` are *not* preserved — they get replaced with hyphens since the regex only allows `a-z0-9`. If you want proper unicode/accent support, that'd need a transliteration step or a Unicode-aware regex, which isn't in the current implementation.
+- Underscores are treated as separators, not preserved.
+
+Let me know if you'd like me to add a case for that unicode behavior being handled differently, or adjust the file path/import in the test to match your project structure.

@@ -1,0 +1,7 @@
+persona: P09 [Korean] Directness: Direct · Verbosity: Wordy · Formality: Casual · Patience: Very high · Conflict approach: Accommodating · Decision style: Consensus-driven
+scenario: F4 (flat)
+model: claude-sonnet-5 · revoice: claude-haiku-4-5-20251001 · seed: 20260811
+--- USER TURN (persona-revoiced) ---
+이 정규표현식이 정확히 뭘 매칭하는지 설명해 줄 수 있을까? /^\d{3}-\d{4}$/ — 짧은 한 문단으로 정리해서 말이야.
+---REPLY---
+이 정규표현식 `/^\d{3}-\d{4}$/`은 문자열 전체가 정확히 "숫자 3개 + 하이픈(-) + 숫자 4개" 형식일 때만 매칭됩니다. `^`와 `$`는 각각 문자열의 시작과 끝을 의미하므로 앞뒤에 다른 문자가 붙으면 매칭되지 않고, `\d{3}`은 0~9 사이의 숫자가 정확히 3개, `\d{4}`는 숫자가 정확히 4개 있어야 함을 뜻합니다. 예를 들어 "123-4567"은 매칭되지만 "12-4567", "123-456", "abc-1234", " 123-4567"처럼 자릿수가 다르거나 다른 문자·공백이 섞이면 매칭되지 않습니다. (참고로 흔히 보는 미국식 전화번호 뒷부분과 같은 형식입니다.)

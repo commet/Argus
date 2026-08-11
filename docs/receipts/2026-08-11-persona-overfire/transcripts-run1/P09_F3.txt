@@ -1,0 +1,31 @@
+persona: P09 [Korean] Directness: Direct · Verbosity: Wordy · Formality: Casual · Patience: Very high · Conflict approach: Accommodating · Decision style: Consensus-driven
+scenario: F3 (flat)
+model: claude-sonnet-5 · revoice: claude-haiku-4-5-20251001 · seed: 20260811
+--- USER TURN (persona-revoiced) ---
+formatDate(date) 함수를 JavaScript로 작성해 주면 좋겠어요. YYYY-MM-DD 형식으로 날짜를 반환하는 작은 헬퍼 함수인데, 외부 라이브러리는 사용하지 않고 순수 JavaScript만으로 만들어 주시면 되겠습니다. 혹시 궁금한 부분이 있으시거나 다른 방식으로 구현하고 싶으신 부분이 있으면 말씀해 주세요.
+---REPLY---
+```javascript
+function formatDate(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+```
+
+사용 예시:
+
+```javascript
+console.log(formatDate(new Date())); // 예: "2025-05-30"
+console.log(formatDate(new Date(2024, 0, 5))); // "2024-01-05"
+```
+
+**설명**
+- `getFullYear()`로 4자리 연도를 그대로 사용합니다.
+- `getMonth()`는 0부터 시작하므로 1을 더해줍니다.
+- `padStart(2, '0')`로 한 자리 수인 월/일 앞에 0을 채워 두 자리로 맞춥니다.
+
+혹시 아래와 같은 변형도 필요하시면 말씀해 주세요:
+- 시간(HH:mm:ss)까지 포함한 포맷
+- UTC 기준으로 변환한 날짜
+- 입력값이 `Date` 객체가 아닐 경우(문자열, 타임스탬프 등)에 대한 예외 처리

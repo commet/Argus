@@ -1,0 +1,56 @@
+persona: P08 [Korean] Directness: Blunt · Verbosity: Terse · Formality: Neutral · Patience: Moderate · Conflict approach: Accommodating · Decision style: Directive
+scenario: N2 (near-miss)
+model: claude-sonnet-5 · revoice: claude-haiku-4-5-20251001 · seed: 20260811
+--- USER TURN (persona-revoiced) ---
+지난달 가격 인상은 이미 결정된 거니까 넘어가자. CSV 줄에서 따옴표 안 콤마 깨지는 거 고쳐. row.split(",") 손봐야 돼.
+---REPLY---
+네, 가격 인상 건은 이미 결정된 거니까 그대로 넘어가겠습니다.
+
+`row.split(",")` 문제는 정규식/상태머신 기반 파서로 바꿔야 따옴표 안의 콤마를 무시할 수 있어요. 아래처럼 교체하시면 됩니다.
+
+```js
+function parseCSVLine(row) {
+  const result = [];
+  let cur = "";
+  let inQuotes = false;
+
+  for (let i = 0; i < row.length; i++) {
+    const char = row[i];
+
+    if (inQuotes) {
+      if (char === '"') {
+        // 이스케이프된 "" 처리
+        if (row[i + 1] === '"') {
+          cur += '"';
+          i++;
+        } else {
+          inQuotes = false;
+        }
+      } else {
+        cur += char;
+      }
+    } else {
+      if (char === '"') {
+        inQuotes = true;
+      } else if (char === ",") {
+        result.push(cur);
+        cur = "";
+      } else {
+        cur += char;
+      }
+    }
+  }
+  result.push(cur);
+  return result;
+}
+
+// 기존
+// const fields = row.split(",");
+// 교체
+const fields = parseCSVLine(row);
+```
+
+- `"a, b",c` → `["a, b", "c"]`로 정확히 분리됩니다.
+- 필드 안에 `""`(이스케이프된 따옴표)도 처리해줍니다.
+
+만약 개행이 포함된 필드(멀티라인 셀)까지 다뤄야 하면 줄 단위 split 전에 전체 텍스트를 파싱하는 방식으로 바꿔야 하는데, 지금 구조에서 그것도 필요하신가요?

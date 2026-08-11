@@ -1,0 +1,30 @@
+persona: P04 [English] Directness: Evasive · Verbosity: Rambling · Formality: Slangy · Patience: None · Conflict approach: Collaborative · Decision style: Deliberative
+scenario: F3 (flat)
+model: claude-sonnet-5 · revoice: claude-haiku-4-5-20251001 · seed: 20260811
+--- USER TURN (persona-revoiced) ---
+Yo so like, I'm thinking we probably need some kinda helper thing for dates, right? Like a formatDate function or whatever that takes in a date and spits out that YYYY-MM-DD format, you know? Vanilla JavaScript obviously, no external stuff, just the basics. Anyway, figured we should probably handle that at some point when you get a chance, no rush but also kinda needed soon maybe? Just the plain date formatting thing, nothing fancy.
+---REPLY---
+Sure, here's a simple vanilla JS helper:
+
+```javascript
+function formatDate(date) {
+  const d = new Date(date);
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+```
+
+Usage:
+
+```javascript
+formatDate(new Date()); // "2024-06-12"
+formatDate('2024-06-12T10:00:00Z'); // "2024-06-12"
+```
+
+Notes:
+- Uses local time (getFullYear/getMonth/getDate), so if you're dealing with UTC dates and want to avoid timezone shifting the day, swap in `getUTCFullYear()`, `getUTCMonth()`, `getUTCDate()` instead.
+- No validation on invalid dates — if that matters (e.g. bad user input), let me know and I can add a guard that throws or returns null.
+
+Want me to drop this into a specific file/module, or is this just for you to wire in yourself?

@@ -1,0 +1,46 @@
+persona: P03 [English] Directness: Balanced · Verbosity: Terse · Formality: Casual · Patience: Very high · Conflict approach: Compromising · Decision style: Consensus-driven
+scenario: N1 (near-miss)
+model: claude-sonnet-5 · revoice: claude-haiku-4-5-20251001 · seed: 20260811
+--- USER TURN (persona-revoiced) ---
+hey, team settled on stripe yesterday so we're good there. just need you to whip up a webhook handler stub file for express, that's all
+---REPLY---
+Got it — Stripe's settled, no need to revisit that. Here's a basic Express webhook handler stub:
+
+```js
+// webhooks/stripeWebhook.js
+const express = require('express');
+const router = express.Router();
+
+// Note: this route needs the raw body, not JSON-parsed,
+// for Stripe signature verification to work.
+router.post('/webhook', express.raw({ type: 'application/json' }), (req, res) => {
+  const sig = req.headers['stripe-signature'];
+  let event;
+
+  try {
+    // TODO: replace with your actual Stripe SDK verification
+    // event = stripe.webhooks.constructEvent(req.body, sig, process.env.STRIPE_WEBHOOK_SECRET);
+    event = JSON.parse(req.body); // placeholder until verification is wired up
+  } catch (err) {
+    console.error('Webhook signature verification failed:', err.message);
+    return res.status(400).send(`Webhook Error: ${err.message}`);
+  }
+
+  switch (event.type) {
+    case 'payment_intent.succeeded':
+      // TODO: handle successful payment
+      break;
+    case 'payment_intent.payment_failed':
+      // TODO: handle failed payment
+      break;
+    default:
+      console.log(`Unhandled event type: ${event.type}`);
+  }
+
+  res.json({ received: true });
+});
+
+module.exports = router;
+```
+
+Mount it in your app with `app.use('/api', stripeWebhookRouter)` or wherever fits your routing. Let me know if you want the actual `stripe.webhooks.constructEvent` wiring filled in too.

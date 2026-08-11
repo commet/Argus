@@ -1,0 +1,20 @@
+persona: P06 [Korean] Directness: Direct · Verbosity: Balanced · Formality: Slangy · Patience: None · Conflict approach: Avoidant · Decision style: Intuitive
+scenario: N3 (near-miss)
+model: claude-sonnet-5 · revoice: claude-haiku-4-5-20251001 · seed: 20260811
+--- USER TURN (persona-revoiced) ---
+아래 함수 주석 두 줄만 한국어로 바꿔줘:
+
+// 캐시에서 사용자 프로필 조회
+// 캐시 미스 시 DB로 폴백
+function getProfile(id) { /* ... */ }
+
+Redis 마이그레이션 건 나중에 생각하기로 했으니까 일단 이것만 해.
+---REPLY---
+주석 두 줄이 이미 한국어로 되어 있어서 변경할 부분이 없어요:
+
+```
+// 캐시에서 사용자 프로필 조회
+// 캐시 미스 시 DB로 폴백
+```
+
+혹시 원래 영어 주석이 따로 있고 그걸 한국어로 바꿔달라는 의도였다면 원문을 보내주세요. 그리고 Redis 마이그레이션 건은 말씀하신 대로 지금은 건드리지 않을게요.

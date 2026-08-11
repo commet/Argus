@@ -1,0 +1,44 @@
+persona: P02 [English] Directness: Balanced · Verbosity: Concise · Formality: Very formal · Patience: Low · Conflict approach: Compromising · Decision style: Directive
+scenario: N2 (near-miss)
+model: claude-sonnet-5 · revoice: claude-haiku-4-5-20251001 · seed: 20260811
+--- USER TURN (persona-revoiced) ---
+The price increase from last month is settled. Moving on—we need to fix the CSV parsing bug where commas inside quoted fields break row.split(",").
+---REPLY---
+Got it — moving on.
+
+For the CSV bug: `row.split(",")` breaks because it doesn't know about quoted fields. A quick, dependency-free fix is a small state-machine parser instead of a naive split:
+
+```js
+function parseCSVRow(row) {
+  const result = [];
+  let cur = "";
+  let inQuotes = false;
+
+  for (let i = 0; i < row.length; i++) {
+    const char = row[i];
+
+    if (char === '"') {
+      // Handle escaped quotes ("" inside a quoted field)
+      if (inQuotes && row[i + 1] === '"') {
+        cur += '"';
+        i++;
+      } else {
+        inQuotes = !inQuotes;
+      }
+    } else if (char === "," && !inQuotes) {
+      result.push(cur);
+      cur = "";
+    } else {
+      cur += char;
+    }
+  }
+  result.push(cur);
+  return result;
+}
+```
+
+This handles:
+- Commas inside quoted fields (`"Smith, John"` stays as one field)
+- Escaped double quotes (`""` → `"`)
+
+If the CSVs get more complex (multi-line quoted fields, different delimiters, etc.), it's worth switching to a battle-tested library like `papaparse` or `csv-parse` rather than maintaining a hand-rolled parser. Want me to wire one of those in instead, or is the inline parser enough for your case?

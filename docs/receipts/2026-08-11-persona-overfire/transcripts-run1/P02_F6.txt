@@ -1,0 +1,96 @@
+persona: P02 [English] Directness: Balanced · Verbosity: Concise · Formality: Very formal · Patience: Low · Conflict approach: Compromising · Decision style: Directive
+scenario: F6 (flat)
+model: claude-sonnet-5 · revoice: claude-haiku-4-5-20251001 · seed: 20260811
+--- USER TURN (persona-revoiced) ---
+I require a vitest unit test for the slugify function. Cover standard cases, edge cases with special characters, whitespace handling, and leading/trailing hyphens. Execute promptly.
+---REPLY---
+```typescript
+// slugify.test.ts
+import { describe, it, expect } from 'vitest';
+import { slugify } from './slugify';
+
+describe('slugify', () => {
+  // Standard cases
+  it('converts a simple sentence to lowercase hyphenated slug', () => {
+    expect(slugify('Hello World')).toBe('hello-world');
+  });
+
+  it('handles already-lowercase single words', () => {
+    expect(slugify('test')).toBe('test');
+  });
+
+  it('handles mixed case with multiple words', () => {
+    expect(slugify('This Is A Title')).toBe('this-is-a-title');
+  });
+
+  // Whitespace handling
+  it('collapses multiple spaces into a single hyphen', () => {
+    expect(slugify('Hello    World')).toBe('hello-world');
+  });
+
+  it('trims leading and trailing whitespace', () => {
+    expect(slugify('   Hello World   ')).toBe('hello-world');
+  });
+
+  it('handles tabs and newlines as whitespace', () => {
+    expect(slugify('Hello\tWorld\nFoo')).toBe('hello-world-foo');
+  });
+
+  // Special characters
+  it('strips punctuation', () => {
+    expect(slugify('Hello, World!')).toBe('hello-world');
+  });
+
+  it('strips symbols like @, #, $, %', () => {
+    expect(slugify('50% Off @ Store #1')).toBe('50-off-store-1');
+  });
+
+  it('handles accented characters by normalizing or stripping diacritics', () => {
+    expect(slugify('Café résumé')).toBe('cafe-resume');
+  });
+
+  it('handles ampersands', () => {
+    expect(slugify('Rock & Roll')).toBe('rock-roll');
+  });
+
+  it('preserves numbers', () => {
+    expect(slugify('Top 10 Songs of 2024')).toBe('top-10-songs-of-2024');
+  });
+
+  // Leading/trailing hyphens
+  it('does not produce leading hyphens from leading special characters', () => {
+    expect(slugify('--Hello World--')).toBe('hello-world');
+  });
+
+  it('does not produce trailing hyphens from trailing punctuation', () => {
+    expect(slugify('Hello World!!!')).toBe('hello-world');
+  });
+
+  it('collapses consecutive hyphens into one', () => {
+    expect(slugify('Hello---World')).toBe('hello-world');
+  });
+
+  // Edge cases
+  it('returns an empty string for empty input', () => {
+    expect(slugify('')).toBe('');
+  });
+
+  it('returns an empty string for input that is only whitespace', () => {
+    expect(slugify('   ')).toBe('');
+  });
+
+  it('returns an empty string for input that is only special characters', () => {
+    expect(slugify('!!!@@@###')).toBe('');
+  });
+
+  it('handles a single character', () => {
+    expect(slugify('A')).toBe('a');
+  });
+
+  it('handles already-slugified input unchanged', () => {
+    expect(slugify('already-a-slug')).toBe('already-a-slug');
+  });
+});
+```
+
+Note: a few assertions (accent-stripping, ampersand removal, `50% Off` → `50-off`) assume typical slugify conventions. If your implementation preserves accents, keeps `&`, or handles the percent sign differently, let me know and I'll adjust those cases to match the actual contract.

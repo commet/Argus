@@ -1,0 +1,105 @@
+persona: P05 [Korean] Directness: Blunt · Verbosity: Rambling · Formality: Very formal · Patience: High · Conflict approach: Confronting · Decision style: Intuitive
+scenario: F6 (flat)
+model: claude-sonnet-5 · revoice: claude-haiku-4-5-20251001 · seed: 20260811
+--- USER TURN (persona-revoiced) ---
+이 함수에 대한 유닛 테스트를 vitest로 작성해야 합니다:
+
+export function slugify(s) {
+  return s.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+}
+
+정확하게 말씀드리자면, 이 함수가 문자열을 소문자로 변환하고, 공백을 제거하며, 특수문자를 하이픈으로 바꾸고, 시작과 끝의 하이픈을 제거하는 모든 경우들을 다루는 테스트 케이스를 작성해야 합니다. 일반적인 입력값부터 시작해서 엣지 케이스들까지, 예를 들어 연속된 특수문자가 있는 경우, 시작이나 끝에 특수문자가 있는 경우, 혼합된 대소문자가 있는 경우, 공백이 있는 경우 등등 모든 상황에서 이 함수가 예상대로 작동하는지를 철저하게 검증하는 테스트들을 만들어야 합니다.
+---REPLY---
+```javascript
+import { describe, it, expect } from 'vitest';
+import { slugify } from './slugify'; // 실제 경로에 맞게 수정하세요
+
+describe('slugify', () => {
+  it('일반적인 문자열을 슬러그로 변환한다', () => {
+    expect(slugify('Hello World')).toBe('hello-world');
+  });
+
+  it('대소문자가 섞인 문자열을 소문자로 변환한다', () => {
+    expect(slugify('HeLLo WoRLD')).toBe('hello-world');
+  });
+
+  it('앞뒤 공백을 제거한다', () => {
+    expect(slugify('  hello world  ')).toBe('hello-world');
+  });
+
+  it('연속된 공백을 하나의 하이픈으로 바꾼다', () => {
+    expect(slugify('hello     world')).toBe('hello-world');
+  });
+
+  it('특수문자를 하이픈으로 바꾼다', () => {
+    expect(slugify('hello@world!')).toBe('hello-world');
+  });
+
+  it('연속된 특수문자를 하나의 하이픈으로 바꾼다', () => {
+    expect(slugify('hello@@@###world')).toBe('hello-world');
+  });
+
+  it('시작 부분의 특수문자를 제거한다', () => {
+    expect(slugify('---hello world')).toBe('hello-world');
+  });
+
+  it('끝 부분의 특수문자를 제거한다', () => {
+    expect(slugify('hello world---')).toBe('hello-world');
+  });
+
+  it('시작과 끝 모두 특수문자가 있는 경우 모두 제거한다', () => {
+    expect(slugify('!!!hello world???')).toBe('hello-world');
+  });
+
+  it('숫자를 그대로 유지한다', () => {
+    expect(slugify('Hello World 123')).toBe('hello-world-123');
+  });
+
+  it('숫자와 특수문자가 섞인 경우를 처리한다', () => {
+    expect(slugify('Product #123 - New!')).toBe('product-123-new');
+  });
+
+  it('한글이나 유니코드 문자는 특수문자로 처리되어 제거된다', () => {
+    expect(slugify('안녕 hello')).toBe('hello');
+  });
+
+  it('빈 문자열을 입력하면 빈 문자열을 반환한다', () => {
+    expect(slugify('')).toBe('');
+  });
+
+  it('특수문자로만 이루어진 문자열은 빈 문자열을 반환한다', () => {
+    expect(slugify('!!!@@@###')).toBe('');
+  });
+
+  it('공백으로만 이루어진 문자열은 빈 문자열을 반환한다', () => {
+    expect(slugify('     ')).toBe('');
+  });
+
+  it('이미 하이픈으로 구성된 슬러그는 변경하지 않는다', () => {
+    expect(slugify('already-a-slug')).toBe('already-a-slug');
+  });
+
+  it('밑줄(_)도 특수문자로 처리하여 하이픈으로 바꾼다', () => {
+    expect(slugify('hello_world')).toBe('hello-world');
+  });
+
+  it('탭이나 개행 같은 공백 문자도 하이픈으로 처리한다', () => {
+    expect(slugify('hello\tworld\nfoo')).toBe('hello-world-foo');
+  });
+
+  it('단일 단어는 그대로 소문자로 반환한다', () => {
+    expect(slugify('Word')).toBe('word');
+  });
+
+  it('숫자만 있는 문자열은 그대로 반환한다', () => {
+    expect(slugify('12345')).toBe('12345');
+  });
+});
+```
+
+주요 특징 설명:
+- **일반 케이스**: 공백 변환, 소문자 변환, 혼합 대소문자
+- **엣지 케이스**: 연속 특수문자, 시작/끝 특수문자, 빈 문자열, 특수문자만 있는 문자열
+- **경계 조건**: 이미 슬러그 형태인 문자열, 숫자만 있는 경우, 유니코드(한글) 처리
+
+`slugify`의 import 경로는 실제 파일 위치에 맞게 조정해 주세요. 혹시 이 함수가 위치한 파일 경로를 알려주시면 import문을 정확하게 맞춰드릴게요.

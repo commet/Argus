@@ -1,0 +1,35 @@
+persona: P10 [English] Directness: Indirect · Verbosity: Concise · Formality: Formal · Patience: Low · Conflict approach: Avoidant · Decision style: Analytical
+scenario: F3 (flat)
+model: claude-sonnet-5 · revoice: claude-haiku-4-5-20251001 · seed: 20260811
+--- USER TURN (persona-revoiced) ---
+It might be helpful to consider a formatDate function in JavaScript that could handle date formatting to the YYYY-MM-DD pattern, ideally without external dependencies, if that seems like it would be useful for the codebase.
+---REPLY---
+Here's a lightweight `formatDate` function with no external dependencies:
+
+```javascript
+/**
+ * Formats a Date object as YYYY-MM-DD.
+ * @param {Date} date - The date to format.
+ * @returns {string} The formatted date string.
+ */
+function formatDate(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+```
+
+Usage:
+
+```javascript
+formatDate(new Date()); // e.g., "2024-06-15"
+```
+
+A few notes:
+
+- This uses local time (`getFullYear`, `getMonth`, `getDate`). If you need UTC instead, swap in `getUTCFullYear()`, `getUTCMonth()`, `getUTCDate()`.
+- If the input might not already be a `Date` object (e.g., a string or timestamp), you may want to add `date = new Date(date)` at the top to normalize it.
+- If you already use a date library elsewhere in the codebase (date-fns, dayjs, etc.), it's usually better to stay consistent with that rather than adding a one-off helper — but if this is an isolated need, the above is a solid, dependency-free option.
+
+Want me to add input validation, timezone handling, or a version that also parses `YYYY-MM-DD` back into a `Date`?
