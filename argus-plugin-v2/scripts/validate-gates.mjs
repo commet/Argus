@@ -74,7 +74,11 @@ const VIBE_KO = /(잘\s*될|잘\s*풀릴|괜찮을|좋아질|나아질)\s*(것|�
 const ISO_DATE = /\d{4}-\d{2}-\d{2}/g;
 const STRONG_SPLIT = /\s*(?:[;·|]|\n+|\.\s+)\s*/;
 // A bare comma must not match a thousands separator ("CAC < ₩45,000").
-const WEAK_SPLIT = /\s*(?:,\s*(?:and|but|then|so)\b|\s+and\s+|\s+but\s+|(?<!\d),(?!\d)|、|그리고|하지만)\s*/i;
+const WEAK_SPLIT = /\s*(?:,\s*(?:and|but|then|so|plus)\b|\s+(?:and|but|plus)\s+|\s+(?:as well as|along with)\s+|(?<!\d),(?!\d)|、|그리고|하지만|및)\s*/i;
+// Trimmings, not claims ("…, with Friday as buffer").
+const APPOSITIVE_HEAD = /^(?:including|excluding|with|without|based|using|measured|per|according|assuming)\b/i;
+// A digit in a metric's NAME (P95, D7, Q3) is not a magnitude.
+const METRIC_NAME = /\b[A-Za-z]{1,4}\d+\b/g;
 const GRADEABLE = /\d|[%<>=≤≥]/;
 const MIN_CLAIM = 8;
 // A conditional states the terms the claim is graded under, not a second claim.
@@ -95,15 +99,15 @@ function bundledClaims(predicate) {
       return true;
     });
   };
-  const isAntecedent = (c) => CONDITIONAL_HEAD.test(c) || CONDITIONAL_TAIL_KO.test(c);
-  const strong = pieces(predicate, STRONG_SPLIT).filter((c) => c.length >= MIN_CLAIM && !isAntecedent(c));
+  const notAClaim = (c) => CONDITIONAL_HEAD.test(c) || CONDITIONAL_TAIL_KO.test(c) || APPOSITIVE_HEAD.test(c);
+  const hasMagnitude = (c) => GRADEABLE.test(c.replace(ISO_DATE, ' ').replace(METRIC_NAME, ' '));
+  const strong = pieces(predicate, STRONG_SPLIT).filter((c) => c.length >= MIN_CLAIM && !notAClaim(c));
   if (strong.length > 1) return strong;
-  const weak = pieces(predicate, WEAK_SPLIT).filter((c) => !isAntecedent(c));
-  const gradeable = weak.filter((c) => GRADEABLE.test(c.replace(ISO_DATE, ' ')));
-  if (gradeable.length > 1) return weak;
-  // A list of three with one magnitude in it is enumeration — see the RUN7
-  // note in validate-seal.ts for the seal that made this necessary.
-  if (weak.length > 2 && gradeable.length > 0) return weak;
+  const weak = pieces(predicate, WEAK_SPLIT).filter((c) => c.length >= MIN_CLAIM && !notAClaim(c));
+  if (weak.filter(hasMagnitude).length > 1) return weak;
+  // Three or more coordinate clauses is enumeration whether or not any number
+  // rides along — see the RUN9 note in validate-seal.ts.
+  if (weak.length > 2) return weak;
   return null;
 }
 // Hand-synced with validate-seal.ts: an observable anchor (number, date,

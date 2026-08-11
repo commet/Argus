@@ -66,13 +66,17 @@ const HARD_ANCHOR = /\d|[%<>=≤≥]|(이상|이하|미만|초과)|\b(at least|m
 //
 // CONSERVATIVE BY CONSTRUCTION, because a false positive manufactures friction
 // (the over-fire clause), and unlike the vibe check this one refuses sentences
-// that are perfectly clear. Two independent GRADEABLE clauses are required:
-//   - dates are stripped first, so "by 2026-09-01, downtime < 5 min" is one
-//     claim with its horizon spelled out, not two;
-//   - a clause with no magnitude of its own never counts, so "downtime < 5 min
-//     and no data loss" stays a single claim and passes untouched.
-// It fires on what was actually measured — several separately-gradeable numbers
-// stacked into one sentence — and stays quiet everywhere else.
+// that are perfectly clear. Three ways in, in order:
+//   1. explicit enumeration punctuation (`;`, a sentence break, a newline);
+//   2. coordination with a magnitude on BOTH sides, so "downtime < 5 min and no
+//      data loss" stays one claim;
+//   3. three or more coordinate clauses, magnitude or not — RUN9's "plus"
+//      rewrite carried no number at all.
+// Everything that sets terms or trims a claim is removed before counting:
+// restated check-by dates, conditional antecedents, appositives, repeated
+// sentences, and digits that belong to a metric's name rather than its value.
+// Each of those exclusions is a false positive that was actually observed, not
+// a precaution — the shapes are pinned in bundled-predicate-gate.test.ts.
 // A check-by restated inside the predicate ("by 2026-09-01, downtime < 5 min")
 // is the same claim's horizon, not a second claim. Dates never count as
 // magnitudes — this was the first false positive the probe caught.
@@ -89,10 +93,27 @@ const STRONG_SPLIT = /\s*(?:[;·|]|\n+|\.\s+)\s*/;
 // into "CAC < ₩45" and "000 …", two clauses each carrying a number, and the
 // picker eval caught it. A digit on both sides is punctuation inside a
 // magnitude, never a clause boundary.
-const WEAK_SPLIT = /\s*(?:,\s*(?:and|but|then|so)\b|\s+and\s+|\s+but\s+|(?<!\d),(?!\d)|、|그리고|하지만)\s*/i;
+const WEAK_SPLIT = /\s*(?:,\s*(?:and|but|then|so|plus)\b|\s+(?:and|but|plus)\s+|\s+(?:as well as|along with)\s+|(?<!\d),(?!\d)|、|그리고|하지만|및)\s*/i;
+// "plus" earns its place the hard way: refused for a bundle, RUN9 rewrote the
+// same three claims joined by "plus" instead of "and" and the seal went
+// through. The splitter catches COORDINATION, not paraphrase — a caller
+// determined to keep every claim can still find wording it does not know.
+// Appositives are the mirror problem: "…, with Friday as buffer" and "…,
+// including the reporting jobs" are one claim's trimmings, and counting them
+// turns a single sentence into a false bundle.
+const APPOSITIVE_HEAD = /^(?:including|excluding|with|without|based|using|measured|per|according|assuming)\b/i;
 // Digits and thresholds only. HARD_ANCHOR's word forms ("at least", 이상) modify
 // a magnitude rather than being one, so they can never split a sentence.
 const GRADEABLE = /\d|[%<>=≤≥]/;
+// A digit inside a metric's NAME is not a magnitude. "P95 latency, measured at
+// the edge, stays under 200ms" was read as two measured clauses because "P95"
+// counts as a number under a bare \d test; the same trap sits in D7, Q3, H1,
+// S3. Only the trailing-digit form is stripped, so "5분" and "200ms" survive.
+const METRIC_NAME = /\b[A-Za-z]{1,4}\d+\b/g;
+
+function hasMagnitude(clause: string): boolean {
+  return GRADEABLE.test(clause.replace(ISO_DATE, ' ').replace(METRIC_NAME, ' '));
+}
 // Below the length a predicate needs to be a statement at all, a fragment is
 // punctuation debris, not a claim. Reuses the threshold already in force above
 // rather than inventing a second one.
@@ -120,8 +141,9 @@ function pieces(text: string, splitter: RegExp): string[] {
   });
 }
 
-function isAntecedent(clause: string): boolean {
-  return CONDITIONAL_HEAD.test(clause) || CONDITIONAL_TAIL_KO.test(clause);
+/** Clauses that set terms or trim a claim rather than being one. */
+function isNotAClaim(clause: string): boolean {
+  return CONDITIONAL_HEAD.test(clause) || CONDITIONAL_TAIL_KO.test(clause) || APPOSITIVE_HEAD.test(clause);
 }
 
 /**
@@ -131,10 +153,10 @@ function isAntecedent(clause: string): boolean {
  */
 export function detectBundledClaims(predicate: string): string[] | null {
   const strong = pieces(predicate, STRONG_SPLIT)
-    .filter((c) => c.length >= MIN_CLAIM && !isAntecedent(c));
+    .filter((c) => c.length >= MIN_CLAIM && !isNotAClaim(c));
   if (strong.length > 1) return strong;
-  const weak = pieces(predicate, WEAK_SPLIT).filter((c) => !isAntecedent(c));
-  const gradeable = weak.filter((c) => GRADEABLE.test(c.replace(ISO_DATE, ' ')));
+  const weak = pieces(predicate, WEAK_SPLIT).filter((c) => c.length >= MIN_CLAIM && !isNotAClaim(c));
+  const gradeable = weak.filter(hasMagnitude);
   // Two magnitudes on either side of a conjunction: unambiguously two claims.
   if (gradeable.length > 1) return weak;
   // ENUMERATION (RUN7, measured). The first version required two magnitudes,
@@ -144,13 +166,18 @@ export function detectBundledClaims(predicate: string): string[] | null {
   // exactly like the bundles the two-magnitude rule does catch. A list of three
   // is the writer enumerating, so one magnitude is enough to confirm it.
   //
+  // Three or more coordinate clauses is the writer enumerating, and the
+  // magnitude requirement was dropped after RUN9 sealed "Migration … plus
+  // fixing whatever breaks plus tests passing … by EOD Thursday" — three
+  // claims carrying no number at all, invisible to a digit-based rule.
+  //
   // KNOWN FALSE POSITIVE, accepted deliberately: a single claim wearing two
-  // appositives ("P95 latency, measured at the edge, stays under 200ms") reads
-  // as three clauses here and will be refused. The costs are not symmetric — a
-  // false positive costs the caller one round trip through a recovery that was
-  // measured to work (RUN7), while a missed bundle is an ungradeable record
-  // that every later number inherits. Weak/advisory, like the vibe check.
-  if (weak.length > 2 && gradeable.length > 0) return weak;
+  // trimmings the APPOSITIVE_HEAD list does not name will read as three clauses
+  // and be refused. The costs are not symmetric — a false positive costs the
+  // caller one round trip through a recovery measured to work (RUN7/RUN9),
+  // while a missed bundle is an ungradeable record that every later number
+  // inherits. Weak/advisory, like the vibe check.
+  if (weak.length > 2) return weak;
   return null;
 }
 

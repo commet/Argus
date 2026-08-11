@@ -41,6 +41,9 @@ const FIRES: Array<[string, string]> = [
   // 규칙을 빠져나갔고, 정산은 이것도 "절반만 맞음"으로만 매길 수 있다.
   ['Clean cutover with no data loss, roughly 15-30 min of downtime during the switch, and query latency improving or staying flat once indexes rebuild.',
     'RUN7이 통과시킨 3절 열거 (숫자 하나)'],
+  // RUN9: 게이트에 걸린 뒤 같은 세 주장을 "and" 대신 "plus"로 이어 통과시켰다.
+  ['Migration (moving cron jobs to Sidekiq/queue) plus fixing whatever breaks plus tests passing will be done by EOD Thursday, with Friday as buffer.',
+    'RUN9의 "plus" 우회 (숫자가 하나도 없는 묶음)'],
 ];
 
 // Single claims. Each of these refusing would be manufactured friction.
@@ -66,6 +69,10 @@ const PASSES: Array<[string, string]> = [
     '천 단위 쉼표는 절 경계가 아니다 (picker-surfaces 픽스처)'],
   ['이번 분기 리텐션 개편이 D7 잔존을 끌어올린다고 보는 이유를 길게 적으면 이렇게 된다. '.repeat(6),
     '같은 문장 반복은 강조지 여러 주장이 아니다 (picker-surfaces 픽스처)'],
+  ['The migration, including the reporting jobs, completes with no manual intervention',
+    '부가절(including …)은 주장이 아니다 — 3절 규칙의 오탐 방지'],
+  ['P95 latency, measured at the edge, stays under 200ms',
+    '부가절(measured …)이 낀 단일 주장'],
 ];
 
 describe('묶음 예측 게이트 (BUNDLED_PREDICATE)', () => {
