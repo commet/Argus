@@ -1,0 +1,28 @@
+레지스트리에서 argus-decision-mcp@2.0.22 내려받는 중…
+런타임 의존성 설치 중 (npx가 하는 것과 같은 해석)…
+✅ 버전이 2.0.22
+✅ npm bin이 POSIX에서 실행 가능하다 (2.0.7)
+✅ 10분 타임아웃이 담겨 있다 (2.0.4)
+✅ 이모지 폭 측정이 담겨 있다 (2.0.4)
+✅ 답한 시각 기록이 담겨 있다 (2.0.4)
+✅ 봉인 이벤트가 출처를 싣는다 (2.0.5)
+✅ decline 의미를 시간으로 바꾸지 않는다 (2.0.12)
+✅ 거절해도 초안을 되돌려준다 (2.0.13)
+✅ 실패 fallback은 decline과 분리된다
+✅ 물음표 없는 격식 의문문을 잡는다 (2.0.14)
+✅ 대화 승인 재시도가 가능하다 (2.0.15)
+✅ 지침이 대화 승인 경로를 가르친다 (2.0.16)
+✅ 봉인 확인이 정리된 문장을 쓴다 (2.0.17)
+✅ 직접 실행하면 첫 화면이 뜬다 (2.0.18)
+✅ 앱 대화가 원장을 조각내지 않는다 (2.0.19)
+✅ check_in 설명이 정직하다 (2.0.20)
+✅ 닫힌 결정을 capture하지 않는다 (2.0.22)
+✅ 닫힌 결정에서 전제를 만들지 않는다 (2.0.22)
+✅ 지침의 절제가 무시가 아니라 부작위다 (2.0.22)
+argus-decision-mcp: your decisions stay on your machine; this server makes no network calls by default. Optional: to share anonymous usage counts (a random install id + which tool ran + version, never your decisions), set ARGUS_TELEMETRY=1.
+✅ 확인창이 실제로 떴다
+✅ 확인창에 입력칸이 없다
+✅ 그대로 Accept가 기록됐다
+✅ 되읽으면 기록이 남아 있다
+
+✅ npm의 2.0.22가 오늘 수정을 담고 있고, 확인창이 한 번의 Accept로 기록됩니다.

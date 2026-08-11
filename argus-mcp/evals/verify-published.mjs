@@ -80,10 +80,12 @@ const BUNDLE_MARKERS = [
   // 폴더를 만들 수 있다). 앵커는 그 설명의 ASCII 문장 — 이스케이프 함정 없음.
   ['check_in 설명이 정직하다 (2.0.20)', 'first call may initialize the ledger folder'],
   // 2.0.22 — 닫힌 결정은 capture 대상이 아니다. 마커 셋 다 순수 ASCII라
-  // \uXXXX 이스케이프 함정이 없고, 셋 다 실제로 published 2.0.21 커밋
-  // (c20a9016)에는 없다 — 즉 이 줄들은 빨간불이 될 수 있다. 앞의 두 줄은
-  // 유혹의 지점(도구 설명)에 놓인 규칙이고, 세 번째는 서버 지침의 절제 문장이
-  // "Ignore"에서 "Never act on"으로 바뀐 자리다.
+  // \uXXXX 이스케이프 함정이 없고, 셋 다 2.0.21 릴리스 커밋(c20a9016)에는
+  // 없다 — 즉 이 줄들은 빨간불이 될 수 있다. (그 커밋을 처음엔 "published
+  // 2.0.21"이라 불렀는데 오기다: 2.0.21은 npm에 발행된 적이 없고 발행 직전
+  // 레지스트리 최신은 2.0.20이었다. 부재 대조 자체는 두 기준 모두에서 성립.)
+  // 앞의 두 줄은 유혹의 지점(도구 설명)에 놓인 규칙이고, 세 번째는 서버
+  // 지침의 절제 문장이 "Ignore"에서 "Never act on"으로 바뀐 자리다.
   ['닫힌 결정을 capture하지 않는다 (2.0.22)', 'acknowledge it and move on; recording it re-opens it'],
   ['닫힌 결정에서 전제를 만들지 않는다 (2.0.22)', 'premises serve judgments that are still open'],
   ['지침의 절제가 무시가 아니라 부작위다 (2.0.22)', 'Restraint is the default. Never act on trivial'],
@@ -117,8 +119,17 @@ console.log(`레지스트리에서 argus-decision-mcp@${VERSION} 내려받는 �
 // execFileSync with an argument array — no shell, so the version string cannot
 // become a command even if it ever came from somewhere less trusted. On Windows
 // `npm` is a .cmd shim that execFile cannot launch, so call npm's own entry
-// script with the node binary already running this file.
-const npmCli = path.join(path.dirname(process.execPath), 'node_modules', 'npm', 'bin', 'npm-cli.js');
+// script with the node binary already running this file. That script lives
+// next to the exe on Windows but under ../lib on unix — probing only the
+// Windows layout made this gate crash on every Linux machine it ran on.
+const npmCli = [
+  path.join(path.dirname(process.execPath), 'node_modules', 'npm', 'bin', 'npm-cli.js'),
+  path.join(path.dirname(process.execPath), '..', 'lib', 'node_modules', 'npm', 'bin', 'npm-cli.js'),
+].find((p) => fs.existsSync(p));
+if (!npmCli) {
+  console.error('npm-cli.js를 찾지 못했습니다 — node 설치 배치가 알려진 두 형태(bin/, ../lib/) 밖입니다.');
+  process.exit(1);
+}
 execFileSync(process.execPath, [npmCli, 'pack', `argus-decision-mcp@${VERSION}`, '--prefer-online'], { cwd: work, stdio: 'pipe' });
 const tgz = fs.readdirSync(work).find((f) => f.endsWith('.tgz'));
 const tarListing = execFileSync('tar', ['-tvzf', tgz], { cwd: work, encoding: 'utf8' });

@@ -86,6 +86,7 @@ const EVIDENCE_M: Record<string, string[]> = {
     'src/lib/__tests__/mcp-premise-optin-journey.test.ts', // opt-in 전제 → T2 게이트 도달
   ],
   '공정 M4': [
+    'docs/receipts/2026-08-11-v2022-publish/README.md', // npm 2.0.22 == package.json == v2.0.22 태그 — 발행 검증 리시트 (shasum 사슬 · 마커 17/17 · 라이브 4종)
     'src/components/import/__tests__/McpInstallGuide.test.tsx', // /import Windows 블록 렌더
   ],
 };
