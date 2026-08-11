@@ -70,7 +70,7 @@ const KO_ERRORS: Record<string, ErrorCopy> = {
   GOALPOST_MOVED: { message: '봉인된 예측 문장은 확인일 전에 바꿀 수 없습니다.', recovery: '일정 변경은 outcome="still_pending"과 defer_to로, 예측 자체가 달라졌다면 새 결정으로 여세요.' },
   NO_SUCH_PREMISE: { message: '해당 번호의 전제를 찾지 못했습니다 (이 결정에 아직 전제가 없을 수 있습니다).', recovery: 'argus_patterns view="decision_context"로 목록과 번호를 확인하고, 전제가 없으면 argus_capture action="add_context"로 먼저 추가하세요.' },
   WHAT_HAPPENED_REQUIRED: { message: '실제로 일어난 일을 기록해야 합니다.', recovery: '사용자에게 실제 결과를 물어 what_happened에 그대로 전달하세요.' },
-  DEFER_DATE_REQUIRED: { message: '다시 확인할 날짜가 필요합니다.', recovery: '사용자에게 날짜를 물어 defer_to에 YYYY-MM-DD로 전달하세요. 더는 중요하지 않다면 argus_capture action="close"를 사용하세요.' },
+  DEFER_DATE_REQUIRED: { message: '다시 확인할 날짜가 필요합니다.', recovery: '사용자에게 언제 다시 볼지 물어 defer_to에 전달하세요 (+2w / +3m 또는 YYYY-MM-DD). 더는 중요하지 않다면 argus_capture action="close"를 사용하세요.' },
   NOT_CONNECTED: { message: '이 터미널은 Argus 계정과 연결돼 있지 않습니다.', recovery: '터미널에서 `npx argus-decision-mcp connect`를 실행하면 브라우저에서 한 번 승인하고 끝납니다 (플러그인은 /argus:connect). CI 등에서는 웹 설정의 동기화 토큰을 ARGUS_TOKEN에 넣어도 됩니다.' },
   SYNC_FAILED: { message: 'Argus 계정과 동기화하지 못했습니다.', recovery: '네트워크와 ARGUS_API_URL을 확인한 뒤 다시 시도하세요. 로컬 기록은 영향을 받지 않습니다.' },
   TEXT_REQUIRED: { message: '기록할 문장이 필요합니다.', recovery: '사용자의 문장을 고치거나 요약하지 말고 그대로 text에 전달하세요.' },
@@ -160,6 +160,7 @@ function koReason(issue: InvalidField, field: string): string {
     case 'invalid_format':
     case 'invalid_string':
       if (key === 'id') return '영문·숫자와 . _ - 만 쓸 수 있습니다 (한글·공백·특수문자 불가, 예: "career-move")';
+      if (key === 'check_by' || key === 'defer_to') return 'YYYY-MM-DD 날짜이거나 +7d / +2w / +3m 형태여야 합니다';
       if (DATE_FIELDS.has(key)) return 'YYYY-MM-DD 형식의 날짜여야 합니다';
       return '형식이 올바르지 않습니다';
     default:
@@ -200,7 +201,7 @@ function localizeInvalidInput(fields: InvalidField[], today?: string): ErrorCopy
   return {
     message: `입력값이 올바르지 않습니다: ${parts.join(', ')}.`,
     recovery: today
-      ? `위에 표시된 인자를 고친 뒤 같은 도구를 다시 호출하세요. 오늘은 ${today}입니다. 학습 시점의 "지금"이 아니라 이 날짜를 기준으로 계산해 YYYY-MM-DD로 보내세요. 사용자가 정해야 할 값은 추측하지 마세요.`
+      ? `위에 표시된 인자를 고친 뒤 같은 도구를 다시 호출하세요. 오늘은 ${today}입니다. 학습 시점의 "지금"이 아니라 이 날짜를 기준으로 계산해 YYYY-MM-DD로 보내거나, 시계가 없으면 +7d / +2w / +3m로 보내세요. 사용자가 정해야 할 값은 추측하지 마세요.`
       : '위에 표시된 인자를 고친 뒤 같은 도구를 다시 호출하세요. 사용자가 정해야 할 값은 추측하지 마세요.',
   };
 }
@@ -228,6 +229,7 @@ function enReason(issue: InvalidField): string {
     case 'invalid_format':
     case 'invalid_string':
       if (key === 'id') return 'may use only letters, digits and . _ - (no spaces or other characters, e.g. "career-move")';
+      if (key === 'check_by' || key === 'defer_to') return 'must be a YYYY-MM-DD date, or a horizon like +7d / +2w / +3m';
       if (DATE_FIELDS.has(key)) return 'must be a YYYY-MM-DD date';
       return 'has the wrong format';
     default:
@@ -243,7 +245,7 @@ function englishInvalidInput(fields: InvalidField[], today?: string): ErrorCopy 
   // the handler's recovery wholesale, so a sentence written upstream never
   // reaches the caller — the date has to be re-applied here or it is lost.
   const recovery = today
-    ? `Fix the named argument(s) and call the same tool again. Today is ${today} \u2014 compute the date from that, not from what "now" was when you were trained, and send it as YYYY-MM-DD. Do not infer missing user-owned fields.`
+    ? `Fix the named argument(s) and call the same tool again. Today is ${today} \u2014 compute the date from that, not from what "now" was when you were trained, and send it as YYYY-MM-DD \u2014 or send the horizon itself (+7d / +2w / +3m) and Argus resolves it. Do not infer missing user-owned fields.`
     : 'Fix the named argument(s) and call the same tool again. Do not infer missing user-owned fields.';
   if (!fields.length) return { message: 'Invalid input.', recovery };
   const seen = new Set<string>();

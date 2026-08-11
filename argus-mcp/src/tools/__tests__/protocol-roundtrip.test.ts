@@ -178,24 +178,33 @@ describe('MCP protocol round-trip (real server, stdio)', () => {
   it('이미 정산된 id는 saved_ids에 들어가지 않는다', async () => {
     // 그걸 고르면 다음 호출이 ALREADY_SETTLED다. 거절이 또 다른 거절을
     // 가리키는 것은 복구가 아니다.
-    const past = new Date();
-    past.setUTCDate(past.getUTCDate() - 3);
-    const today = new Date().toISOString().slice(0, 10);
-    await client.callTool({
+    // 날짜 셋이 순서대로 필요하다: 봉인 시점 → 그보다 뒤인 확인일 → 그보다 뒤인
+    // 정산 시점. check_by를 today와 같게 두면 validateSeal이 봉인을 거절하고,
+    // 그러면 정산될 계약이 아예 없어서 아래 단언이 공허하게 통과한다.
+    const sealDay = new Date();
+    sealDay.setUTCDate(sealDay.getUTCDate() - 10);
+    const checkDay = new Date(sealDay);
+    checkDay.setUTCDate(checkDay.getUTCDate() + 3);
+    const settleDay = new Date(checkDay);
+    settleDay.setUTCDate(settleDay.getUTCDate() + 2);
+    const iso = (d: Date) => d.toISOString().slice(0, 10);
+
+    const sealed = await client.callTool({
       name: 'argus_predict',
       arguments: {
         argus_dir: dir, id: 'already-done', predicate: 'the pilot reaches twenty teams',
-        check_by: past.toISOString().slice(0, 10), predicate_owner: 'user',
-        today_override: past.toISOString().slice(0, 10),
+        check_by: iso(checkDay), predicate_owner: 'user', today_override: iso(sealDay),
       },
     });
-    await client.callTool({
+    expect(structured(sealed)['ok']).toBe(true);
+    const settled = await client.callTool({
       name: 'argus_resolve',
       arguments: {
         argus_dir: dir, id: 'already-done', outcome: 'held',
-        what_happened: 'twenty-two teams', today_override: today,
+        what_happened: 'twenty-two teams', today_override: iso(settleDay),
       },
     });
+    expect(structured(settled)['ok']).toBe(true);
     const missed = await client.callTool({
       name: 'argus_resolve',
       arguments: { argus_dir: dir, id: 'no-such-id', outcome: 'missed', what_happened: 'x' },

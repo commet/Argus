@@ -93,5 +93,19 @@ describe('elicitation 카드 발사 (봉인 confirm_draft)', () => {
     // 피커를 못 띄우니 초안 출처를 위조하지 않는다 — ai_surfaced 그대로(정직한 미확인).
     expect(res.data['predicate_owner']).toBe('ai_surfaced');
     expect(elicitorCalled).toBe(false); // 미선언이면 elicitInput을 아예 부르지 않는다
+    // 그리고 그 사실을 호출자에게 말한다. confirm_draft 설명에서 665B를 덜어내
+    // 런타임으로 옮겼으므로, 이 줄이 없으면 그 문장은 이동한 게 아니라 삭제된
+    // 것이다. 생산된 필드는 소비를 가드한다 (CLAUDE.md: 명사만이 아니라 동사를
+    // 타입한다).
+    expect(String(res.data['confirm_note'])).toMatch(/no confirm dialog/i);
+    expect(String(res.data['confirm_note'])).toMatch(/ai_surfaced/);
+  });
+
+  it('피커가 실제로 뜬 경로에는 confirm_note가 없다 (확인받았는데 못 받았다고 말하지 않는다)', async () => {
+    setElicitor(async () => ({ action: 'accept', content: {} }), () => true);
+    await call(init, { argus_dir: argusDir });
+    const res = await call(seal, { argus_dir: argusDir, ...SEAL_ARGS });
+    expect(res.ok).toBe(true);
+    expect(res.data['confirm_note']).toBeUndefined();
   });
 });

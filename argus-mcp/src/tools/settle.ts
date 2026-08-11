@@ -562,7 +562,7 @@ async function deferStillPending(args: {
     return toolError({
       ok: false, tool: 'argus_settle', error_code: 'DEFER_DATE_REQUIRED',
       message: "Reality hasn't answered yet. This needs a new check-by, not a settlement.",
-      recovery: 'Ask the user when to look again and pass it as `defer_to` (YYYY-MM-DD). If the prediction no longer matters, close it with argus_capture action="close".',
+      recovery: 'Ask the user when to look again and pass it as `defer_to` — a horizon (+2w / +3m) or YYYY-MM-DD. If the prediction no longer matters, close it with argus_capture action="close".',
     });
   }
 

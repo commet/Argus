@@ -118,9 +118,24 @@ export function resolveHorizon(value: unknown, today: string): string | null {
   // Parse as UTC noon so a DST shift can never roll the date backwards.
   const base = new Date(`${today}T12:00:00Z`);
   if (Number.isNaN(base.getTime())) return null;
+  // `Date` NORMALIZES an impossible date instead of rejecting it: 2026-02-30
+  // parses to 2026-03-02. Accepting that would resolve a horizon against a day
+  // that does not exist and hand back a date nobody asked for. Round-trip the
+  // parse and refuse any input the parser had to move.
+  if (base.toISOString().slice(0, 10) !== today) return null;
   if (unit === 'd') base.setUTCDate(base.getUTCDate() + n);
   else if (unit === 'w') base.setUTCDate(base.getUTCDate() + n * 7);
-  else base.setUTCMonth(base.getUTCMonth() + n);
+  else {
+    // CLAMP, don't roll. setUTCMonth overflows the day into the next month —
+    // "+1m" from 2026-01-31 became 2026-03-03, two calendar months out, which
+    // is exactly the surprise a horizon exists to prevent. A month from the
+    // 31st is the last day of the shorter month.
+    const day = base.getUTCDate();
+    base.setUTCDate(1);
+    base.setUTCMonth(base.getUTCMonth() + n);
+    const lastOfMonth = new Date(Date.UTC(base.getUTCFullYear(), base.getUTCMonth() + 1, 0)).getUTCDate();
+    base.setUTCDate(Math.min(day, lastOfMonth));
+  }
   return base.toISOString().slice(0, 10);
 }
 

@@ -37,6 +37,23 @@ describe('지평선 해석', () => {
     expect(resolveHorizon('+30d', '2026-12-20')).toBe('2027-01-19');
   });
 
+  it('월말에서 한 달 뒤는 다음 달을 건너뛰지 않는다 (롤오버 금지)', () => {
+    // setUTCMonth는 날을 다음 달로 넘겨버린다: 1월 31일 + 1개월 = 3월 3일.
+    // 두 달 뒤로 튀는 것은 지평선이 막으려는 바로 그 놀라움이다.
+    expect(resolveHorizon('+1m', '2026-01-31')).toBe('2026-02-28');
+    expect(resolveHorizon('+1m', '2028-01-31')).toBe('2028-02-29'); // 윤년
+    expect(resolveHorizon('+1m', '2026-03-31')).toBe('2026-04-30');
+    expect(resolveHorizon('+1m', '2026-01-30')).toBe('2026-02-28');
+  });
+
+  it('존재하지 않는 날짜를 기준으로 삼지 않는다', () => {
+    // Date는 2026-02-30을 거절하지 않고 2026-03-02로 **정규화**한다.
+    // 그대로 받으면 아무도 요청하지 않은 날짜를 돌려주게 된다.
+    expect(resolveHorizon('+7d', '2026-02-30')).toBeNull();
+    expect(resolveHorizon('+7d', '2026-13-01')).toBeNull();
+    expect(resolveHorizon('+7d', 'not-a-date')).toBeNull();
+  });
+
   it('윤년 2월을 넘겨도 날짜를 잃지 않는다', () => {
     expect(resolveHorizon('+1d', '2028-02-28')).toBe('2028-02-29');
   });
