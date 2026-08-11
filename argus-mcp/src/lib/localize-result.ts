@@ -166,7 +166,7 @@ function koReason(issue: InvalidField, field: string): string {
 }
 
 /** Korean INVALID_INPUT that NAMES each offending argument and why. */
-function localizeInvalidInput(fields: InvalidField[]): ErrorCopy {
+function localizeInvalidInput(fields: InvalidField[], today?: string): ErrorCopy {
   if (!fields.length) return KO_ERRORS.INVALID_INPUT!;
   const seen = new Set<string>();
   const parts: string[] = [];
@@ -188,9 +188,15 @@ function localizeInvalidInput(fields: InvalidField[]): ErrorCopy {
     parts.push(part);
     if (parts.length >= 4) break;
   }
+  // 날짜 인자가 문제면 오늘을 함께 준다 (server.ts의 같은 수리와 짝). 모델은
+  // 시계가 없어서 미래 날짜를 계산할 수 없고, 여정 실행에서 가장 흔한 첫 호출
+  // 실패가 이것이었다. 영어 recovery의 문장은 이 맵으로 대체되므로 여기에도
+  // 없으면 한국어 사용자만 날짜를 못 받는다.
   return {
     message: `입력값이 올바르지 않습니다: ${parts.join(', ')}.`,
-    recovery: '위에 표시된 인자를 고친 뒤 같은 도구를 다시 호출하세요. 사용자가 정해야 할 값은 추측하지 마세요.',
+    recovery: today
+      ? `위에 표시된 인자를 고친 뒤 같은 도구를 다시 호출하세요. 오늘은 ${today}입니다. 학습 시점의 "지금"이 아니라 이 날짜를 기준으로 계산해 YYYY-MM-DD로 보내세요. 사용자가 정해야 할 값은 추측하지 마세요.`
+      : '위에 표시된 인자를 고친 뒤 같은 도구를 다시 호출하세요. 사용자가 정해야 할 값은 추측하지 마세요.',
   };
 }
 
@@ -227,8 +233,13 @@ function enReason(issue: InvalidField): string {
 
 /** English INVALID_INPUT that NAMES the offending argument(s), instead of raw
  *  Zod ("(root): Unrecognized key", "expected string, received undefined"). */
-function englishInvalidInput(fields: InvalidField[]): ErrorCopy {
-  const recovery = 'Fix the named argument(s) and call the same tool again. Do not infer missing user-owned fields.';
+function englishInvalidInput(fields: InvalidField[], today?: string): ErrorCopy {
+  // Same clock hand-over as server.ts and the Korean mirror. This map REPLACES
+  // the handler's recovery wholesale, so a sentence written upstream never
+  // reaches the caller — the date has to be re-applied here or it is lost.
+  const recovery = today
+    ? `Fix the named argument(s) and call the same tool again. Today is ${today} \u2014 compute the date from that, not from what "now" was when you were trained, and send it as YYYY-MM-DD. Do not infer missing user-owned fields.`
+    : 'Fix the named argument(s) and call the same tool again. Do not infer missing user-owned fields.';
   if (!fields.length) return { message: 'Invalid input.', recovery };
   const seen = new Set<string>();
   const parts: string[] = [];
@@ -263,7 +274,7 @@ const EN_FRIENDLY: Record<string, ErrorCopy> = {
 
 function englishHumanize(code: string, sc: Record<string, unknown>): ErrorCopy | null {
   if (code === 'INVALID_INPUT' && Array.isArray(sc['invalid_fields'])) {
-    return englishInvalidInput(sc['invalid_fields'] as InvalidField[]);
+    return englishInvalidInput(sc['invalid_fields'] as InvalidField[], typeof sc['today'] === 'string' ? sc['today'] : undefined);
   }
   return EN_FRIENDLY[code] ?? null;
 }
@@ -315,7 +326,7 @@ export function localizeToolResult(
     ? { message: existingMsg, ...(existingRec ? { recovery: existingRec } : {}) }
     : { message: '요청을 처리하지 못했습니다.', recovery: '입력값과 현재 결정 상태를 확인한 뒤 다시 시도하세요.' };
   let copy = code === 'INVALID_INPUT' && Array.isArray(sc['invalid_fields'])
-    ? localizeInvalidInput(sc['invalid_fields'] as InvalidField[])
+    ? localizeInvalidInput(sc['invalid_fields'] as InvalidField[], typeof sc['today'] === 'string' ? sc['today'] : undefined)
     : KO_ERRORS[code] ?? genericFallback;
   // A handler-authored KOREAN message is at least as specific as the generic
   // map — KO_ERRORS exists to replace ENGLISH copy, not better Korean. Without

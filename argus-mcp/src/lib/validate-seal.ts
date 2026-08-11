@@ -119,7 +119,23 @@ export function detectBundledClaims(predicate: string): string[] | null {
     .filter((c) => c.length >= MIN_CLAIM && !isAntecedent(c));
   if (strong.length > 1) return strong;
   const weak = pieces(predicate, WEAK_SPLIT).filter((c) => !isAntecedent(c));
-  if (weak.filter((c) => GRADEABLE.test(c.replace(ISO_DATE, ' '))).length > 1) return weak;
+  const gradeable = weak.filter((c) => GRADEABLE.test(c.replace(ISO_DATE, ' ')));
+  // Two magnitudes on either side of a conjunction: unambiguously two claims.
+  if (gradeable.length > 1) return weak;
+  // ENUMERATION (RUN7, measured). The first version required two magnitudes,
+  // and the seal it let through was "Clean cutover with no data loss, roughly
+  // 15-30 min of downtime, and query latency improving or staying flat" —
+  // three claims carrying one number between them, which settles as `partial`
+  // exactly like the bundles the two-magnitude rule does catch. A list of three
+  // is the writer enumerating, so one magnitude is enough to confirm it.
+  //
+  // KNOWN FALSE POSITIVE, accepted deliberately: a single claim wearing two
+  // appositives ("P95 latency, measured at the edge, stays under 200ms") reads
+  // as three clauses here and will be refused. The costs are not symmetric — a
+  // false positive costs the caller one round trip through a recovery that was
+  // measured to work (RUN7), while a missed bundle is an ungradeable record
+  // that every later number inherits. Weak/advisory, like the vibe check.
+  if (weak.length > 2 && gradeable.length > 0) return weak;
   return null;
 }
 

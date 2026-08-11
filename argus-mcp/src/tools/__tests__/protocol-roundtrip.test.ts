@@ -103,6 +103,31 @@ describe('MCP protocol round-trip (real server, stdio)', () => {
     expect((invalid.content as Array<{ text: string }>)[0]?.text).toContain('INVALID_INPUT');
   });
 
+  it('a bad date argument hands the caller the server clock', async () => {
+    // RUN8 (docs/receipts/2026-08-11-first-user-journey/): the model sent
+    // check_by:"" and the refusal said only "must be YYYY-MM-DD" — the one
+    // thing it already knew. A caller has no clock and cannot compute a future
+    // date; the server has one. This must survive BOTH localizers, which
+    // replace `recovery` from static per-locale maps.
+    const bad = await client.callTool({
+      name: 'argus_predict',
+      arguments: { id: 'clock-probe', predicate: 'p95 latency stays under 200ms', check_by: '', predicate_owner: 'user' },
+    });
+    expect(bad.isError).toBe(true);
+    const sc = structured(bad);
+    expect(sc['error_code']).toBe('INVALID_INPUT');
+    expect(String(sc['today'])).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    expect(String(sc['recovery'])).toContain(String(sc['today']));
+  });
+
+  it('an invalid argument with no date at fault carries no clock', async () => {
+    // The date belongs in the refusals it can act on. Everywhere else it is
+    // noise, and noise in an error is how the actionable line gets skimmed.
+    const bad = await client.callTool({ name: 'argus_patterns', arguments: { view: 'not-a-view' } });
+    expect(bad.isError).toBe(true);
+    expect(structured(bad)['today']).toBeUndefined();
+  });
+
   it('rejects an invalid nested premise before writing any part of action=open', async () => {
     const id = 'atomic-invalid-open';
     const invalid = await client.callTool({

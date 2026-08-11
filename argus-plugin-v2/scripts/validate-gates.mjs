@@ -88,7 +88,11 @@ function bundledClaims(predicate) {
   const strong = pieces(predicate, STRONG_SPLIT).filter((c) => c.length >= MIN_CLAIM && !isAntecedent(c));
   if (strong.length > 1) return strong;
   const weak = pieces(predicate, WEAK_SPLIT).filter((c) => !isAntecedent(c));
-  if (weak.filter((c) => GRADEABLE.test(c.replace(ISO_DATE, ' '))).length > 1) return weak;
+  const gradeable = weak.filter((c) => GRADEABLE.test(c.replace(ISO_DATE, ' ')));
+  if (gradeable.length > 1) return weak;
+  // A list of three with one magnitude in it is enumeration — see the RUN7
+  // note in validate-seal.ts for the seal that made this necessary.
+  if (weak.length > 2 && gradeable.length > 0) return weak;
   return null;
 }
 // Hand-synced with validate-seal.ts: an observable anchor (number, date,

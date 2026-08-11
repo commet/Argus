@@ -37,6 +37,10 @@ const FIRES: Array<[string, string]> = [
   ['이번 분기 매출 1억 넘고, 이탈률은 5% 아래로 유지된다', '한국어 등위 접속 + 양쪽에 크기'],
   ['P95 latency stays under 200ms; error rate stays under 1%', '세미콜론 열거'],
   ['배포는 금요일에 끝난다\n다운타임은 5분 미만이다', '줄바꿈 열거'],
+  // RUN7이 실제로 봉인해 통과시킨 문장. 절 셋에 숫자는 하나뿐이라 2-크기
+  // 규칙을 빠져나갔고, 정산은 이것도 "절반만 맞음"으로만 매길 수 있다.
+  ['Clean cutover with no data loss, roughly 15-30 min of downtime during the switch, and query latency improving or staying flat once indexes rebuild.',
+    'RUN7이 통과시킨 3절 열거 (숫자 하나)'],
 ];
 
 // Single claims. Each of these refusing would be manufactured friction.

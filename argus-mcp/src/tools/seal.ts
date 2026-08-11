@@ -39,11 +39,20 @@ export function resetSealSession(): void {
 const inputSchema = z.strictObject({
   argus_dir: zArgusDir,
   id: zId.describe('A short slug you pick for this decision (e.g. "q3-cutover"). A fresh id starts the record on its own.'),
-  // ONE claim, stated here because this is the field the model is writing when
-  // it decides. The bundle gate in validate-seal.ts enforces it either way; this
-  // line exists so the caller is not surprised by a refusal, and so the rule
-  // stops living only in argus-plugin-v2's prompt (single-source drift).
-  predicate: z.string().min(8).max(400).describe('ONE prediction reality can mark true/false — never two joined by "and". Good: "cutover downtime < 5 min". Bad: "it will go well"; bad: "ships Friday and no rollback".'),
+  // MUST NAME THE MOVE, NOT THE PROHIBITION (RUN6, measured).
+  //
+  // The first version of this line said "ONE prediction … never two joined by
+  // and". The gate in validate-seal.ts is deterministic and correct, but a gate
+  // only fires on a call that happens — and a prohibition here produces the one
+  // outcome no gate can catch: the assistant read it, agreed the user's
+  // sentence was a bundle, announced that Argus takes one clean predicate, and
+  // never called. Zero records, which is strictly worse than a refusal it could
+  // have recovered from. That is RUN4's failure reproduced by RUN6.
+  //
+  // A caller that is told what not to do, and not what to do instead, declines
+  // on the user's behalf. So this states the permitted action first and keeps
+  // the prohibition subordinate to it.
+  predicate: z.string().min(8).max(400).describe('ONE prediction reality can mark true/false. If the user bundled several, seal the most load-bearing one now and tell them which you set aside; never stop at saying it is a bundle, and never join two with "and". Good: "cutover downtime < 5 min". Bad: "it will go well".'),
   check_by: zDate.describe('YYYY-MM-DD, a real future date when the result can be checked.'),
   predicate_owner: z.enum(['user', 'ai_surfaced']).describe('Provenance. Never forge. "user" = the user wrote or affirmed it. "ai_surfaced" = Argus drafted, unconfirmed — on a host with a picker this AUTOMATICALLY shows a one-tap confirm before saving.'),
   // WAS 665 SERVED BYTES — the single most expensive line on the whole tool
