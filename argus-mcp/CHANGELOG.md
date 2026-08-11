@@ -1,5 +1,25 @@
 # Changelog
 
+## 2.0.22 - A decision you closed stays closed
+
+- **A closed decision is no longer capture material.** Asked to act on a call
+  the user had already made ("we decided yesterday, no need to revisit"), the
+  server's guidance let a host model acknowledge the closure and record it
+  anyway — respecting the decision in words while re-opening it as a record.
+  The rule now sits where the temptation is: in the `argus_capture` tool
+  description and in the premise text field, both of which a model reads at the
+  moment it is choosing to call. A guard test keeps both from disappearing in a
+  refactor.
+- **Restraint says what it means.** The instruction line changed from "Ignore
+  ... already-closed ... signals" to "Never act on" — "ignore" was read as
+  "don't discuss", not "don't record".
+- **The restraint gate is now measured against real models, not only asserted.**
+  `evals/overfire-model.mjs` runs flat-work and near-miss scenarios through host
+  models and scores spontaneous tool proposals deterministically. Flat work: 24
+  of 24 clean. The near-miss failure above is what it found; the transcripts,
+  the two failed repairs and the one that held are recorded in
+  `docs/receipts/2026-08-10-m1-overfire-eval/`.
+
 ## 2.0.21 - A voice comes from the person, not the machine
 
 - A fresh, contentless decision-history read now uses the deterministic English

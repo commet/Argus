@@ -79,6 +79,14 @@ const BUNDLE_MARKERS = [
   // 2.0.20 — check_in 설명이 readOnlyHint:false와 일치한다 (첫 호출은 원장
   // 폴더를 만들 수 있다). 앵커는 그 설명의 ASCII 문장 — 이스케이프 함정 없음.
   ['check_in 설명이 정직하다 (2.0.20)', 'first call may initialize the ledger folder'],
+  // 2.0.22 — 닫힌 결정은 capture 대상이 아니다. 마커 셋 다 순수 ASCII라
+  // \uXXXX 이스케이프 함정이 없고, 셋 다 실제로 published 2.0.21 커밋
+  // (c20a9016)에는 없다 — 즉 이 줄들은 빨간불이 될 수 있다. 앞의 두 줄은
+  // 유혹의 지점(도구 설명)에 놓인 규칙이고, 세 번째는 서버 지침의 절제 문장이
+  // "Ignore"에서 "Never act on"으로 바뀐 자리다.
+  ['닫힌 결정을 capture하지 않는다 (2.0.22)', 'acknowledge it and move on; recording it re-opens it'],
+  ['닫힌 결정에서 전제를 만들지 않는다 (2.0.22)', 'premises serve judgments that are still open'],
+  ['지침의 절제가 무시가 아니라 부작위다 (2.0.22)', 'Restraint is the default. Never act on trivial'],
 ];
 
 /**
