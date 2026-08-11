@@ -3,7 +3,7 @@
 import React, { useEffect, useRef, useState, Suspense } from 'react';
 import Image from 'next/image';
 import dynamic from 'next/dynamic';
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useWorkspaceStore, type StepId } from '@/stores/useWorkspaceStore';
 import { useProjectStore } from '@/stores/useProjectStore';
 import { useProgressiveStore } from '@/stores/useProgressiveStore';
@@ -16,6 +16,7 @@ import { QuickChatBar } from '@/components/workspace/QuickChatBar';
 import { NavigatorStrip } from '@/components/workspace/NavigatorStrip';
 import { useSettingsStore } from '@/stores/useSettingsStore';
 import { useLocale } from '@/hooks/useLocale';
+import { withLocale } from '@/lib/locale-path';
 import { buildEarlyContract, summarizeRecord } from '@/lib/decision-contract';
 import { recordCompactLine } from '@/lib/record-summary';
 import { VoyageEta } from '@/components/workspace/VoyageEta';
@@ -351,6 +352,7 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem, fr
 }) {
   const locale = useLocale();
   const L = (ko: string, en: string) => locale === 'ko' ? ko : en;
+  const router = useRouter();
   const [phase, setPhase] = useState<HeroPhase>('idle');
   const demoScenarios = getDemoScenarios(locale);
   const [demoScenario, setDemoScenario] = useState<DemoScenario | null>(null);
@@ -759,6 +761,13 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem, fr
         <div className="relative">
           <RetroSeal
             onExit={() => setPhase('idle')}
+            onViewRecord={(projectId) => {
+              // 정산을 끝낸 사람이 "기록 보기"를 누르면 그 결정의 기록으로 간다.
+              // 예전에는 빈 워크스페이스로 돌아왔고, 방금 남긴 것이 어디에도
+              // 없어 보였다 (감사 DLP-5).
+              useProjectStore.getState().setCurrentProjectId(projectId);
+              router.push(withLocale(locale, '/project'));
+            }}
             onRealSeal={() => {
               // [C3] real-decision onramp: clear the just-closed retro project so
               // the idle main input starts a fresh, blind decision (not the retro).

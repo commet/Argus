@@ -77,6 +77,8 @@ export interface SettlementModalProps {
   remainingDue?: number;
   draftVerdicts?: Record<string, 'happened' | 'avoided' | 'partial'>;
   onRealSeal?: () => void;
+  /** Where this decision's record is. Absent → the closing button says 닫기. */
+  onViewRecord?: () => void;
 }
 
 export function SettlementModal(props: SettlementModalProps) {
@@ -90,6 +92,7 @@ export function SettlementModal(props: SettlementModalProps) {
         onClose={props.onClose}
         draftVerdicts={props.draftVerdicts}
         onRealSeal={props.onRealSeal}
+        onViewRecord={props.onViewRecord}
       />
     );
   }

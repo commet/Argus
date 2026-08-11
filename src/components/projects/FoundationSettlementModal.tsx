@@ -25,6 +25,14 @@ export interface FoundationSettlementModalProps {
   draftVerdicts?: Record<string, 'happened' | 'avoided' | 'partial'>;
   /** Leaves a completed rehearsal at the real, still-unknown decision input. */
   onRealSeal?: () => void;
+  /**
+   * Lands the user on **this decision's record**. Only a caller knows where
+   * that is — behind the modal on the record page, or a route away from the
+   * rehearsal — so the destination is declared, never assumed. Absent means
+   * the closing button says `닫기` instead of promising a record it cannot
+   * reach: a return that ends on a blank screen reads as lost work.
+   */
+  onViewRecord?: () => void;
 }
 
 /**
@@ -37,6 +45,7 @@ export function FoundationSettlementModal({
   onClose,
   draftVerdicts,
   onRealSeal,
+  onViewRecord,
 }: FoundationSettlementModalProps) {
   const locale = useLocale();
   const ko = locale === 'ko';
@@ -307,8 +316,17 @@ export function FoundationSettlementModal({
                 'The original stays intact. A later answer will be appended as another return.',
               )}
             </p>
-            <PrimaryButton onClick={onClose}>
-              {isRetro ? L('연습 닫고 기록 보기', 'Close practice and view record') : L('기록 보기', 'View record')}
+            {/* 도착지를 아는 호출자만 기록을 약속한다. 없으면 닫기라고 말한다 —
+                "기록 보기"가 빈 화면으로 끝나면 사용자는 방금 남긴 것이
+                사라졌다고 읽는다. */}
+            <PrimaryButton onClick={onViewRecord ?? onClose}>
+              {onViewRecord
+                ? isRetro
+                  ? L('연습 닫고 기록 보기', 'Close practice and view record')
+                  : L('기록 보기', 'View record')
+                : isRetro
+                  ? L('연습 닫기', 'Close practice')
+                  : L('닫기', 'Close')}
             </PrimaryButton>
             {isRetro && onRealSeal && (
               <button

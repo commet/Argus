@@ -142,8 +142,10 @@ describe('SettlementModal foundation return', () => {
     expect(written).not.toHaveProperty('outcome_note');
     expect(written).not.toHaveProperty('score');
 
+    // 도착지를 받지 않았으므로 기록을 약속하지 않는다 — 닫기라고 말하고 닫는다.
+    expect(button('View record')).toBeUndefined();
     await act(async () => {
-      button('View record')!.click();
+      button('Close')!.click();
     });
     expect(onClose).toHaveBeenCalledTimes(1);
 
@@ -155,6 +157,27 @@ describe('SettlementModal foundation return', () => {
       present_standard: 'changed',
     }));
     expect(mocks.track).not.toHaveBeenCalledWith('settle_abandoned', expect.anything());
+  });
+
+  it('promises the record only when a caller declares where it is', async () => {
+    // 감사 DLP-5: 정산을 끝낸 사람이 "기록 보기"를 눌렀는데 빈 화면으로
+    // 돌아왔다. 방금 남긴 것이 사라진 것처럼 보이는 마무리다.
+    const onClose = vi.fn();
+    const onViewRecord = vi.fn();
+
+    await act(async () => {
+      root.render(createElement(SettlementModal, { project, onClose, onViewRecord }));
+    });
+    await act(async () => button('I cannot tell from the evidence')!.click());
+    await act(async () => button('Answer one last question')!.click());
+    await act(async () => button('I would use a different standard now')!.click());
+
+    const cta = button('View record');
+    expect(cta, '도착지를 받았는데도 기록을 약속하지 않습니다').toBeDefined();
+    await act(async () => cta!.click());
+    expect(onViewRecord).toHaveBeenCalledTimes(1);
+    // 닫기로 새면 기록이 아니라 그 아래 화면에 도착한다 — 그것이 이 결함이었다.
+    expect(onClose, '기록 보기가 그냥 닫기로 갔습니다').not.toHaveBeenCalled();
   });
 
   it('offers memory-before-reveal only from the second return onward', async () => {

@@ -3217,7 +3217,13 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
         </div>
       )}
       {settleOpen && contractProject && (
-        <SettlementModal project={contractProject} onClose={() => setSettleOpen(false)} />
+        <SettlementModal
+          project={contractProject}
+          onClose={() => setSettleOpen(false)}
+          /* 모달 뒤의 SealMoment 는 계약이 있으면 DecisionContractCard 로
+             위임한다 — 닫으면 이 결정의 기록이 그대로 보인다. */
+          onViewRecord={() => setSettleOpen(false)}
+        />
       )}
     </>
   );

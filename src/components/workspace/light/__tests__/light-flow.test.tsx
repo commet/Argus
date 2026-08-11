@@ -118,7 +118,7 @@ async function answerOnce(answer: string, turn: LightTurn) {
 
 /** Every button on a light screen must be one of the FIXED action affordances —
  *  a generated option would show up as an unexpected button label. */
-const FIXED_BUTTONS = ['보내기', '더 깊이 보기', '물어봐 주세요', '괜찮아요, 그냥 갈게요', '고쳐도 돼요', '저장', '지금 조금 더 볼래요', '다음에 볼래요', '처음으로', '지금까지 나눈 이야기'];
+const FIXED_BUTTONS = ['보내기', '더 깊이 보기', '물어봐 주세요', '괜찮아요, 그냥 갈게요', '고쳐도 돼요', '저장', '취소', '지금 조금 더 볼래요', '다음에 볼래요', '처음으로', '지금까지 나눈 이야기'];
 function assertNoGeneratedOptionButtons() {
   for (const b of Array.from(container.querySelectorAll('button'))) {
     const label = (b.textContent || '').trim();
@@ -176,7 +176,7 @@ describe('answer → next screen', () => {
   });
 });
 
-describe('offer (남기기) — permission to return, not sentence-approval', () => {
+describe('offer (남기기) — the exact line is visible and adoptable before anything is stored', () => {
   const ASK = '그럼 케이크만 자르고 나오는 걸로 하고, 내일 아침에 안 피곤했는지 제가 한 번만 물어볼까요?';
   const OFFER_TURN: LightTurn = {
     mirror: '내일 피곤만 아니면 되는 거네요.',
@@ -184,20 +184,49 @@ describe('offer (남기기) — permission to return, not sentence-approval', ()
     offer: { sentence: '케이크 자르고 나오면 내일 안 피곤하다', when: 'tomorrow_morning', ask: ASK },
   };
 
-  it('the ask is one flowing sentence — the falsifiable line is NOT shown before accept', async () => {
+  it('the ask keeps its one flowing sentence AND shows the exact line that will be kept', async () => {
+    // 이 화면은 예전에 그 문장을 숨겼다. 알림 허락만 받고, 사용자가 읽은 적 없는
+    // 기계의 문장이 그의 기록이 됐다 — 출처를 `ai_surfaced` 로 정직하게 달아도
+    // 그것은 채택이 아니다 (2026-08-10 루프 감사 DLP-2). 이제 저장 전에 보인다.
     renderFlow();
     await answerOnce('내일 피곤할까 봐요', OFFER_TURN);
     expect(mockTrack).toHaveBeenCalledWith('light_seal_offered');
     expect(container.textContent).toContain(ASK);
-    // the sentence stays an internal record until the user says yes
-    expect(container.textContent).not.toContain('케이크 자르고 나오면 내일 안 피곤하다');
+    expect(container.textContent).toContain('케이크 자르고 나오면 내일 안 피곤하다');
+    // 누가 쓴 말인지 밝힌 채로 보여 준다 — 조용히 사용자 것이 되지 않는다.
+    expect(container.textContent).toContain('제 말이니 고쳐도 돼요');
     expect(container.textContent).not.toContain('「');
-    // nothing to approve: no editable input on the ask screen
+    // 보여 주는 것과 타이핑을 시키는 것은 다르다 — 고치기 전에는 입력창이 없다.
     expect(container.querySelectorAll('textarea')).toHaveLength(0);
-    // permission buttons carry the check slot in plain words
-    expect(buttonByText('내일 아침에 물어봐 주세요')).toBeTruthy();
+    // 버튼은 무엇을 채택하는지와 언제 물을지를 함께 말한다.
+    expect(buttonByText('이대로 남기고, 내일 아침에 물어봐 주세요')).toBeTruthy();
     expect(buttonByText('괜찮아요, 그냥 갈게요')).toBeTruthy();
     assertNoGeneratedOptionButtons();
+  });
+
+  it('고치고 나서 남기면 그 기록은 처음부터 사용자의 말이다', async () => {
+    renderFlow();
+    await answerOnce('내일 피곤할까 봐요', OFFER_TURN);
+
+    await click(buttonByText('고쳐도 돼요')!);
+    const editable = Array.from(container.querySelectorAll('textarea')).find(
+      (t) => t.value === '케이크 자르고 나오면 내일 안 피곤하다',
+    );
+    expect(editable, '저장 전 문장이 고칠 수 있게 열려야 합니다').toBeTruthy();
+    setTextarea(editable!, '케이크만 자르고 11시에 나온다');
+    await click(buttonByText('저장')!);
+    // 고친 뒤에는 기계의 말이 아니라 사용자의 말로 보인다.
+    expect(container.textContent).toContain('당신이 고친 문장이에요');
+    expect(container.textContent).not.toContain('케이크 자르고 나오면 내일 안 피곤하다');
+
+    await click(buttonByText('이대로 남기고')!);
+    const contract = useProjectStore.getState().projects[0].decision_contract!;
+    expect(contract.sealed_statement).toBe('케이크만 자르고 11시에 나온다');
+    // 사후 수정이 아니라 채택 시점부터 저자가 사용자다 — 계보도 남지 않는다.
+    expect(contract.predicates[0].authored).toBe('user');
+    expect(contract.predicates[0].attribution?.wording_source).toBe('user_reworded');
+    expect(contract.adoption_lineage).toBeUndefined();
+    expect(mockTrack).toHaveBeenCalledWith('light_seal_accepted', { edited: true });
   });
 
   it('a missing ask names what the later check will ask instead of showing a vague permission question', async () => {
