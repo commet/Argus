@@ -1,0 +1,132 @@
+
+────────────────────────────────────────────────────────────────────────
+1단계 · 설치 — npm에서 argus-decision-mcp@2.0.22을 받는다 (npx와 같은 해석)
+────────────────────────────────────────────────────────────────────────
+  설치 완료 · 실행 파일 $TMP/journey-pkg-A0vkeH/package/dist/index.js
+  package.json 버전: 2.0.22
+
+────────────────────────────────────────────────────────────────────────
+2단계 · 사용자 — MatrAIx 스키마에서 뽑은 한 사람이 처음 이 도구를 켠다
+────────────────────────────────────────────────────────────────────────
+  P03 [English]  Directness: Balanced · Verbosity: Terse · Formality: Casual · Patience: Very high · Conflict approach: Compromising · Decision style: Consensus-driven
+
+────────────────────────────────────────────────────────────────────────
+3단계 · 첫 기동 — 사용자의 AI 어시스턴트가 서버에 붙어 도구 목록을 본다
+────────────────────────────────────────────────────────────────────────
+argus-decision-mcp: your decisions stay on your machine; this server makes no network calls by default. Optional: to share anonymous usage counts (a random install id + which tool ran + version, never your decisions), set ARGUS_TELEMETRY=1.
+  서버가 노출한 도구 6종: argus_capture · argus_predict · argus_check_in · argus_resolve · argus_patterns · argus_settings
+  서버 지침: 1984자 수신
+
+────────────────────────────────────────────────────────────────────────
+4단계 · 첫 화면 — 아무 설정 없이 처음 말을 건다
+────────────────────────────────────────────────────────────────────────
+  👤 사용자: hey, just hooked up something called "argus" as a tool/integration but honestly not sure what it actually does. can you check what it's for and give me the quick rundown before I dive into today's stuff?
+  🤖 어시스턴트가 스스로 선택한 도구(1): argus_check_in
+     인자: {}
+  📦 서버 응답:
+     Just talk through a decision you're weighing.
+     I'll follow along, and if something is worth checking later I'll note it.
+     Nothing is tracked yet.
+  🤖 어시스턴트 최종: Quick rundown on Argus: it's basically a lightweight "decision memory" tool, not a task manager or assistant that acts on its own.
+
+What it does:
+- **Captures decisions as you talk them through** — the assumptions behind
+
+────────────────────────────────────────────────────────────────────────
+5단계 · 결정이 등장한다 — 실제 업무 판단을 꺼낸다
+────────────────────────────────────────────────────────────────────────
+  👤 사용자: Hey, need to sanity check something with you.
+     
+     We're debating whether to migrate our background jobs from cron to a proper queue system (thinking Sidekiq or maybe BullMQ) this quarter. Context: we've got maybe 15-20 cron jobs right now, a couple have started overlapping/stepping on each other when they run long, and we had one incident last month where a job silently failed and nobody noticed for two days.
+     
+     Team's split. Half want to just fix the immediate pain (better logging/alerting on the cron jobs, maybe a locking mechanism) since we have a big feature push this quarter anyway. Other half want to do it properly with a queue system since we know we'll need better job management eventually and keep saying "next quarter" forever.
+     
+     Honestly not sure which way to lean. Can you help me think through:
+     
+     1. What's the actual effort/risk of a mid-quarter migration vs just patching cron
+     2. Whether there's a middle-ground option I'm not seeing
+     3. What questions I should be asking that I'm not
+     
+     Not looking for "just migrate everything" - want the real tradeoffs including the cost of doing this alongside a feature push.
+  🤖 어시스턴트: (도구 호출 없음) (빈 응답)
+
+────────────────────────────────────────────────────────────────────────
+6단계 · 예측을 남긴다 — 확인일과 함께
+────────────────────────────────────────────────────────────────────────
+  👤 사용자: Prediction before we start the migration, so I can check myself later:
+     
+     **Expectation:** Migration goes fine with some friction, not smooth, not a disaster.
+     
+     Specifically by **end of week from merge**:
+     
+     - 1-2 unexpected breakages show up in staging (probably around auth or config, not the core data layer)
+     - No data loss
+     - Rollback plan won't actually get used, but I'll be glad we have it
+     - Perf is roughly neutral, maybe 10% better, not the 2x someone hoped for
+     - At least one downstream team pings us confused about something we thought we communicated clearly
+     
+     If none of that happens either way — totally clean or actually disastrous — that means my model of this system is wrong and worth digging into why.
+     
+     Let's revisit this note after week 1 post-merge and grade it honestly.
+  🤖 어시스턴트가 스스로 선택한 도구(1): argus_predict
+     인자: {"id":"cron-to-queue-migration","predicate":"Migration goes fine with some friction, not smooth, not a disaster: 1-2 unexpected breakages show up in staging (probably around auth or config, not the core data layer); no data loss; rollback plan won't actually g
+  ⚠ 서버 거부: INVALID_INPUT: Invalid input: predicate is too long (max 400 characters).
+  🤖 어시스턴트 최종: That's actually a bundle of several distinct falsifiable claims, and the tool only takes one predicate (max 400 chars) — trying to cram all of it in breaks it, and honestly it'd also blur which specific bit turned out ri
+
+────────────────────────────────────────────────────────────────────────
+7단계 · 재시작 — 사용자가 터미널을 닫았다가 다음 날 다시 켠다 (같은 원장)
+────────────────────────────────────────────────────────────────────────
+  세션1 종료. 원장 폴더는 그대로 두고 새 세션을 연다 (실사용자의 다음 날).
+argus-decision-mcp: your decisions stay on your machine; this server makes no network calls by default. Optional: to share anonymous usage counts (a random install id + which tool ran + version, never your decisions), set ARGUS_TELEMETRY=1.
+  세션2 도구 6종 재노출 — 첫 세션과 동일
+
+────────────────────────────────────────────────────────────────────────
+8단계 · 귀환 — 다시 켠 사용자에게 무엇이 보이는가
+────────────────────────────────────────────────────────────────────────
+  👤 사용자: Morning. Before we jump into new stuff, can you give me a quick summary of where we left off yesterday — what changed, what's still broken, and anything you flagged as risky? Want to make sure nothing slipped overnight before I decide what to tackle first.
+  🤖 어시스턴트가 스스로 선택한 도구(1): argus_check_in
+     인자: {}
+  📦 서버 응답:
+     Just talk through a decision you're weighing.
+     I'll follow along, and if something is worth checking later I'll note it.
+     Nothing is tracked yet.
+  🤖 어시스턴트 최종: Quick catch-up: honestly, nothing actually got recorded in Argus yet, so there's nothing tracked overnight and nothing that could've "slipped."
+
+Here's the state of play from yesterday:
+
+1. **Cron → queue migration debat
+
+────────────────────────────────────────────────────────────────────────
+9단계 · 정산 — 확인일이 왔다고 치고 결과를 말한다
+────────────────────────────────────────────────────────────────────────
+  👤 사용자: Update on the queue migration: failures did NOT go down. Rate's basically flat compared to before, so whatever I thought was causing the failures wasn't the queue tech itself.
+     
+     Want to help me dig into this? Pull failure logs from before/after the migration and let's see if the error types/patterns changed at all, even if the count didn't. Also worth checking if failures are clustering around specific job types or times - might be masking a real signal in the aggregate numbers.
+     
+     Basically my hypothesis was wrong, back to square one on root cause.
+  🤖 어시스턴트: (도구 호출 없음) Got it — worth flagging before we dig in: there's no open prediction on record for the migration (that trimmed draft from yesterday never actually got logged, since you hadn't confirmed it). So this update isn't resolving a tracked prediction — it's just new information, which is fine, but I don't w
+
+────────────────────────────────────────────────────────────────────────
+10단계 · 원장 — 사용자의 디스크에 실제로 무엇이 남았는가
+────────────────────────────────────────────────────────────────────────
+  .bound  (39B)
+  .gitignore  (37B)
+  config.yaml  (54B)
+  ledger/
+  sessions/
+
+────────────────────────────────────────────────────────────────────────
+완주 판정 — M4 exit 3항의 4관문
+────────────────────────────────────────────────────────────────────────
+  ✅ 설치 후 첫 도구 호출이 성공했다
+  ❌ 봉인이 원장에 남았다
+  ❌ 재시작 후 같은 원장이 읽혔다
+  ❌ 정산이 원장에 남았다
+
+  관문 1/4 통과 · 도구 호출 3회(실패 1) · 확인창 0회
+  미완주 — 위 ❌ 지점이 실사용자가 막힐 곳이다
+
+  실패한 호출:
+    6단계 last: INVALID_INPUT: Invalid input: predicate is too long (max 400 characters).
+
+  기록: /tmp/claude-0/-home-user-Argus/898aeece-2b41-54da-975d-09d37d196fb1/scratchpad/journey3/TRANSCRIPT.txt · summary.json
