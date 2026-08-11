@@ -222,7 +222,7 @@ function enReason(issue: InvalidField): string {
 /** English INVALID_INPUT that NAMES the offending argument(s), instead of raw
  *  Zod ("(root): Unrecognized key", "expected string, received undefined"). */
 function englishInvalidInput(fields: InvalidField[]): ErrorCopy {
-  const recovery = 'Fix the named argument(s) and call the same tool again. Do not infer missing user-owned fields. If a predicate was rejected for length, it is usually several predictions bundled into one — split it and seal each separately rather than shortening it into vagueness.';
+  const recovery = 'Fix the named argument(s) and call the same tool again. Do not infer missing user-owned fields.';
   if (!fields.length) return { message: 'Invalid input.', recovery };
   const seen = new Set<string>();
   const parts: string[] = [];

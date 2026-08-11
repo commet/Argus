@@ -168,7 +168,7 @@ export async function createServer(): Promise<Server> {
         error_code: 'INVALID_INPUT',
         message: `Invalid arguments. ${issues}`,
         invalid_fields: invalidFields,
-        recovery: 'Fix the named argument(s) and call the same tool again. Do not infer missing user-owned fields. If a predicate was rejected for length, it is usually several predictions bundled into one — split it and seal each separately rather than shortening it into vagueness.',
+        recovery: 'Fix the named argument(s) and call the same tool again. Do not infer missing user-owned fields.',
       };
       return localizeToolResult((args ?? {}) as Record<string, unknown>, {
         content: [{ type: 'text' as const, text: JSON.stringify(error) }],
