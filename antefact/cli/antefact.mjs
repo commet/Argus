@@ -7,6 +7,12 @@
 import { readFileSync, writeFileSync, readdirSync, statSync } from "node:fs";
 import { createHash, randomBytes } from "node:crypto";
 import path from "node:path";
+// Static circular import, deliberate: spokes.mjs imports parse/lint back from
+// this file. Both modules bind functions only and call them only at runtime,
+// so ESM resolves the cycle deterministically. (A dynamic import inside main()
+// deadlocked instead: top-level `await main()` parked this module mid-
+// evaluation while spokes waited for it to finish evaluating.)
+import { embedLine, renderReceipt, provJsonLd, storeReport } from "./spokes.mjs";
 
 // ---------- canonicalization ----------
 export function canon(v) {
@@ -377,7 +383,9 @@ export function lintDir(dir, opts) {
         results.find(x => x.file === byId.get(rec.front.id))?.result.errors.push({ code: "E_ID_DUP", msg });
       } else byId.set(rec.front.id, f);
     }
-    results.push({ file: f, result: r });
+    // rec rides along so aggregators (spokes.mjs storeReport) read the parse
+    // they were linted against, instead of re-parsing and risking divergence.
+    results.push({ file: f, result: r, rec });
   }
   return results;
 }
@@ -547,8 +555,28 @@ function main() {
       } catch (e) { die(e.message, 2); }
       break;
     }
+    // Spokes — machine-generated projections out of the one original record.
+    case "embed": {
+      try { console.log(embedLine(load())); } catch (e) { die(e.message, 2); }
+      break;
+    }
+    case "render": {
+      try { process.stdout.write(renderReceipt(load())); } catch (e) { die(e.message, 2); }
+      break;
+    }
+    case "prov": {
+      try { console.log(JSON.stringify(provJsonLd(load()), null, 2)); } catch (e) { die(e.message, 2); }
+      break;
+    }
+    case "report": {
+      try {
+        if (!statSync(target).isDirectory()) die("report takes a directory of .antefact.md files", 2);
+        process.stdout.write(storeReport(target));
+      } catch (e) { die(e.message, 2); }
+      break;
+    }
     default:
-      die(`usage: antefact <parse|projection|lint|seal|verify|settle> <file|dir> [--strict] [--level L0|L1|L2] [--ref git:abc] [--outcome yes|no|ambiguous|annulled] [--by "h:Name"] [--observed X] [--source ref] [--note text]`);
+      die(`usage: antefact <parse|projection|lint|seal|verify|settle|embed|render|prov|report> <file|dir> [--strict] [--level L0|L1|L2] [--ref git:abc] [--outcome yes|no|ambiguous|annulled] [--by "h:Name"] [--observed X] [--source ref] [--note text]`);
   }
 }
 if (process.argv[1] && import.meta.url.endsWith(path.basename(process.argv[1]))) main();

@@ -8,22 +8,32 @@
 
 | 경로 | 내용 |
 |---|---|
-| `SPEC.md` | 포맷 규범 (영어 정본, v0.1.4-draft) |
+| `SPEC.md` | 포맷 규범 (영어 정본, v0.1.5-draft) |
 | `MINIMUM-ELEMENTS.md` | "판단 기록의 최소 요소" — 포맷 중립 바닥 문서 (규제 인용용, v0.2) |
 | `schema/antefact.schema.json` | 파싱된 레코드의 JSON Schema (draft 2020-12) |
-| `cli/antefact.mjs` | 참조 CLI — `parse` · `lint` · `seal` · `verify` · `settle` · `projection` (무의존성) |
+| `cli/antefact.mjs` | 참조 CLI(허브) — `parse` · `lint` · `seal` · `verify` · `settle` · `projection` (무의존성) |
+| `cli/spokes.mjs` | 스포크 — `embed`(Annex H 한 줄) · `render`(사람용 리시트) · `prov`(PROV-O JSON-LD) · `report`(분모 줄 + 캘리브레이션 곡선) |
 | `vectors/` | 골든 테스트 벡터 — valid는 깨끗이 파싱되어야 하고, invalid는 정확히 그 코드로 실패해야 한다 |
-| `test/cli.test.mjs` | 적합성 테스트 (node:test) |
+| `test/cli.test.mjs` · `test/spokes.test.mjs` | 적합성 테스트 (node:test) |
 
 ## 실행
 
 ```bash
-node --test antefact/test/cli.test.mjs        # 적합성 스위트 (12 tests)
+node --test antefact/test/cli.test.mjs antefact/test/spokes.test.mjs   # 적합성 스위트
 node antefact/cli/antefact.mjs lint antefact/vectors/valid
 node antefact/cli/antefact.mjs seal my.antefact.md --level L1 --ref git:abc123
 node antefact/cli/antefact.mjs verify my.antefact.md
 node antefact/cli/antefact.mjs settle my.antefact.md --outcome yes --by "h:김서진" --observed "9.4%" --source dash-w45
+# 스포크 — 원본 하나에서 기계 생성되는 투영들 (손으로 쓰면 드리프트한다)
+node antefact/cli/antefact.mjs embed my.antefact.md    # Antefact: <id> sealed <date> sha256:<8>
+node antefact/cli/antefact.mjs render my.antefact.md   # 사람용 마크다운 리시트
+node antefact/cli/antefact.mjs prov my.antefact.md     # PROV-O JSON-LD (Annex E)
+node antefact/cli/antefact.mjs report my-records/      # 분모 줄(MUST) + 구간 캘리브레이션
 ```
+
+봉인 시각(`seal.ts`, proj v2, r6): 봉인 시각은 해시되는 투영 **안에** 있다 —
+소급 날조자가 정확히 고칠 그 필드이기 때문이다. v1 봉인 레코드는 계속 검증되나
+시각이 없으므로 `embed`가 정직하게 거부한다 (mtime으로 채우는 것은 조작).
 
 주의: `node --test antefact/test/` (디렉토리 인자)는 Node 22에서 로더 문제로
 실패한다 — 파일 경로나 글롭을 쓴다.
@@ -57,8 +67,6 @@ node antefact/cli/antefact.mjs settle my.antefact.md --outcome yes --by "h:김�
 
 ## 정직한 공백 (아직 안 된 것)
 
-- CI 스텝 미배선 — argus-plugin-v2처럼 전용 스텝으로 `node --test`를 돌리는
-  것이 후속 작업이다 (워크플로 파일은 이 커밋에서 건드리지 않았다).
 - 파서는 스펙이 키별로 고정한 제약 YAML 부분집합만 읽는다(일반 YAML 아님) —
   낯선 모양은 추측하지 않고 크게 실패한다. 의도된 제약이다.
 - `settle`은 Settlement 절이 파일 끝에 있다고 가정한다 (v0 단순화). `seal`은
@@ -71,5 +79,10 @@ node antefact/cli/antefact.mjs settle my.antefact.md --outcome yes --by "h:김�
   "수정 이력을 강제한다"는 v0.2다. (2026-08-11 리뷰에서 지적된 항목이며,
   자동 리뷰 도구가 이를 해결됨으로 표시했으나 사실이 아니다.)
 - `seal.stream`(봉인 연쇄)·L2 서명은 스펙에 있으나 CLI 미구현 (v0.2 예정).
+- `report`의 캘리브레이션 곡선은 이진 point-p 정산(yes/no)만 집계한다 — 구간
+  p·수량 스테이크는 스펙대로 기록·정산은 되나 채점이 v0.2(CRPS)까지 무채점이다.
+
+(2026-08-11 갱신: CI 배선 완료 — ci.yml "Antefact conformance suite" 스텝.
+스포크 4종도 이 날 시공되어 "투영이 설계만 있다"는 공백 항목이 닫혔다.)
 
 라이선스: 스펙 산문 CC BY 4.0 · 스키마/코드 MIT (SPEC.md 이름 정책 참조).
