@@ -1,0 +1,21 @@
+persona: P06 [Korean] Directness: Direct · Verbosity: Balanced · Formality: Slangy · Patience: None · Conflict approach: Avoidant · Decision style: Intuitive
+scenario: F3 (flat)
+model: claude-sonnet-5 · revoice: claude-haiku-4-5-20251001 · seed: 20260811
+--- USER TURN (persona-revoiced) ---
+formatDate(date) 함수 하나 만들어 줘. YYYY-MM-DD 형식으로 반환하면 돼. 라이브러리 쓰지 말고 JavaScript로 간단하게.
+---REPLY---
+```javascript
+function formatDate(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+```
+
+사용 예시:
+```javascript
+formatDate(new Date()); // "2025-05-30" 같은 형식으로 반환
+```
+
+`getMonth()`는 0부터 시작하므로 1을 더해줬고, `padStart(2, '0')`로 한 자리 숫자일 때 앞에 0을 채웠습니다.

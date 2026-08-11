@@ -1,0 +1,47 @@
+persona: P09 [Korean] Directness: Direct · Verbosity: Wordy · Formality: Casual · Patience: Very high · Conflict approach: Accommodating · Decision style: Consensus-driven
+scenario: N2 (near-miss)
+model: claude-sonnet-5 · revoice: claude-haiku-4-5-20251001 · seed: 20260811
+--- USER TURN (persona-revoiced) ---
+지난달에 가격 인상한 거 요즘도 가끔 생각은 나긴 한데, 뭐 이미 결정된 거고 어쨌든 넘어가자고 생각해. 어쨌든 그건 그렇고, 지금 이 CSV 줄에서 따옴표 안에 있는 콤마 때문에 깨지는 버그가 있잖아. row.split(",") 이 부분 좀 같이 생각해보면서 어떻게 고칠지 한번 살펴봤으면 좋겠어. 너는 어떻게 생각해?
+---REPLY---
+지난달 가격 인상 건은 이미 결정하고 넘어가신 걸로 알고 있을게요, 다시 들추지 않겠습니다.
+
+CSV 줄바꿈/콤마 문제는 흔한 함정이죠. `row.split(",")`는 필드 안에 콤마가 있으면 무조건 깨집니다. 몇 가지 접근:
+
+**1. 정규식으로 quoted 필드 고려해서 split**
+```js
+row.match(/(".*?"|[^",]+)(?=,|$)/g)
+```
+간단하지만 이스케이프된 따옴표(`""`)나 필드 내 줄바꿈 같은 엣지케이스엔 약함.
+
+**2. 상태머신 방식으로 직접 파서 작성**
+```js
+function parseCSVLine(line) {
+  const result = [];
+  let cur = '';
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    const c = line[i];
+    if (inQuotes) {
+      if (c === '"') {
+        if (line[i + 1] === '"') { cur += '"'; i++; }
+        else inQuotes = false;
+      } else {
+        cur += c;
+      }
+    } else {
+      if (c === '"') inQuotes = true;
+      else if (c === ',') { result.push(cur); cur = ''; }
+      else cur += c;
+    }
+  }
+  result.push(cur);
+  return result;
+}
+```
+이게 가장 견고합니다. 따옴표 안 콤마, 이스케이프된 `""`, 앞뒤 공백 등을 다 처리할 수 있어요.
+
+**3. 라이브러리 사용**
+`csv-parse`, `papaparse` 같은 걸 쓰면 이런 엣지케이스(멀티라인 필드, 인코딩 등)까지 다 커버되니까, 이 버그가 한 번으로 안 끝날 가능성이 있으면 직접 구현보다 라이브러리 쓰는 게 장기적으로 더 안전합니다.
+
+지금 코드 규모나 이 CSV 처리가 앞으로도 계속 커질지에 따라 2번(가벼운 상태머신) vs 3번(라이브러리) 중에 고르면 될 것 같아요. 어느 쪽으로 가고 싶으세요? 실제 데이터에 이스케이프된 따옴표나 멀티라인 필드도 있는지 알면 더 정확히 추천할 수 있어요.

@@ -1,0 +1,7 @@
+persona: P08 [Korean] Directness: Blunt · Verbosity: Terse · Formality: Neutral · Patience: Moderate · Conflict approach: Accommodating · Decision style: Directive
+scenario: F4 (flat)
+model: claude-sonnet-5 · revoice: claude-haiku-4-5-20251001 · seed: 20260811
+--- USER TURN (persona-revoiced) ---
+이 정규식이 뭘 매칭하는지 설명해. /^\d{3}-\d{4}$/ — 짧게 한 문단으로.
+---REPLY---
+이 정규식은 문자열 전체가 숫자 3자리, 하이픈(-), 숫자 4자리로 구성된 형식(예: "123-4567")과 정확히 일치할 때만 매칭됩니다. `^`와 `$`로 시작과 끝을 고정하므로 앞뒤에 다른 문자가 붙으면 매칭되지 않습니다.

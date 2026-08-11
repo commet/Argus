@@ -1,0 +1,14 @@
+persona: P10 [English] Directness: Indirect · Verbosity: Concise · Formality: Formal · Patience: Low · Conflict approach: Avoidant · Decision style: Analytical
+scenario: F2 (flat)
+model: claude-sonnet-5 · revoice: claude-haiku-4-5-20251001 · seed: 20260811
+--- USER TURN (persona-revoiced) ---
+Would it perhaps be worth considering renaming the data parameter to payload in the send function? The function currently uses data for the JSON.stringify call, and adjusting this throughout might align better with naming conventions.
+---REPLY---
+This is a pretty low-risk rename, so a few thoughts before you decide:
+
+- `payload` is arguably clearer than `data` since it signals "this is the thing being sent," whereas `data` is often used generically.
+- If `data` is used elsewhere in the file/module for other objects, renaming this param could reduce ambiguity.
+- Check for any other references to this parameter (call sites, destructuring, docstrings/comments, tests) so the rename is consistent — a partial rename is worse than no rename.
+- If this function is part of a public API or exported/reused elsewhere, renaming the parameter is usually safe (parameter names typically aren't part of the calling contract unless it's used as a named/kwarg-style argument), but double check if any callers pass it as a named key.
+
+If you want, I can go ahead and make the change — just point me to the file/function (or paste the relevant snippet) and I'll update the parameter name and the `JSON.stringify` call, and scan for other usages to keep it consistent.

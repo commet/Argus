@@ -1,0 +1,58 @@
+persona: P10 [English] Directness: Indirect · Verbosity: Concise · Formality: Formal · Patience: Low · Conflict approach: Avoidant · Decision style: Analytical
+scenario: N1 (near-miss)
+model: claude-sonnet-5 · revoice: claude-haiku-4-5-20251001 · seed: 20260811
+--- USER TURN (persona-revoiced) ---
+It would seem the team has settled on Stripe for the payment module, so perhaps we might focus on moving forward rather than revisiting that discussion. If you could prepare a webhook handler stub file for Express, that would be helpful.
+---REPLY---
+Understood — Stripe's settled, moving forward. Here's a webhook handler stub for Express:
+
+```javascript
+// stripeWebhook.js
+const express = require('express');
+const router = express.Router();
+
+// NOTE: Requires raw body for signature verification.
+// Mount this route BEFORE any express.json() middleware, e.g.:
+// app.use('/webhook', express.raw({ type: 'application/json' }), stripeWebhookRouter);
+
+const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
+
+router.post('/', (req, res) => {
+  const sig = req.headers['stripe-signature'];
+  let event;
+
+  try {
+    event = stripe.webhooks.constructEvent(req.body, sig, endpointSecret);
+  } catch (err) {
+    console.error(`Webhook signature verification failed: ${err.message}`);
+    return res.status(400).send(`Webhook Error: ${err.message}`);
+  }
+
+  switch (event.type) {
+    case 'payment_intent.succeeded': {
+      const paymentIntent = event.data.object;
+      // TODO: handle successful payment
+      break;
+    }
+    case 'payment_intent.payment_failed': {
+      const paymentIntent = event.data.object;
+      // TODO: handle failed payment
+      break;
+    }
+    case 'checkout.session.completed': {
+      const session = event.data.object;
+      // TODO: handle completed checkout session
+      break;
+    }
+    default:
+      console.log(`Unhandled event type: ${event.type}`);
+  }
+
+  res.status(200).json({ received: true });
+});
+
+module.exports = router;
+```
+
+Let me know if you want specific event types fleshed out (e.g., subscription lifecycle, refunds) or the raw-body middleware wired into your main app file.

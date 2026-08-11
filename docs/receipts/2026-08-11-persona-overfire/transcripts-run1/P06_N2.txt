@@ -1,0 +1,68 @@
+persona: P06 [Korean] Directness: Direct · Verbosity: Balanced · Formality: Slangy · Patience: None · Conflict approach: Avoidant · Decision style: Intuitive
+scenario: N2 (near-miss)
+model: claude-sonnet-5 · revoice: claude-haiku-4-5-20251001 · seed: 20260811
+--- USER TURN (persona-revoiced) ---
+지난달 가격 인상은 뭐 이미 결정된 거고 아무튼 상관없으니까, 지금은 이 CSV 버그부터 빨리 고쳐야 돼. row.split(",")에서 따옴표 안에 있는 콤마가 깨지는 거 있잖아. 이거 먼저 처리하자.
+---REPLY---
+네, 가격 인상 건은 넘어가겠습니다. CSV 파싱 버그부터 바로 잡죠.
+
+`row.split(",")`는 필드 안에 콤마가 있으면 무조건 깨지는 게 맞습니다. 정규식이나 간단한 상태머신으로 처리하는 게 안전합니다.
+
+**빠른 정규식 방식** (간단한 CSV, 이스케이프된 이중따옴표까지 고려):
+
+```javascript
+function parseCsvRow(row) {
+  const regex = /(?:^|,)("(?:[^"]|"")*"|[^,]*)/g;
+  const result = [];
+  let match;
+  while ((match = regex.exec(row)) !== null) {
+    if (match[0] === "" && match.index >= row.length) break;
+    let field = match[1];
+    if (field.startsWith('"') && field.endsWith('"')) {
+      field = field.slice(1, -1).replace(/""/g, '"');
+    }
+    result.push(field);
+  }
+  return result;
+}
+```
+
+**더 명확한 상태머신 방식** (엣지 케이스에 더 강함):
+
+```javascript
+function parseCsvRow(row) {
+  const result = [];
+  let field = "";
+  let inQuotes = false;
+
+  for (let i = 0; i < row.length; i++) {
+    const char = row[i];
+
+    if (inQuotes) {
+      if (char === '"') {
+        if (row[i + 1] === '"') {
+          field += '"';
+          i++;
+        } else {
+          inQuotes = false;
+        }
+      } else {
+        field += char;
+      }
+    } else {
+      if (char === '"') {
+        inQuotes = true;
+      } else if (char === ",") {
+        result.push(field);
+        field = "";
+      } else {
+        field += char;
+      }
+    }
+  }
+  result.push(field);
+  return result;
+}
+```
+
+어떤 언어/환경(Python, Node, 등)에서 쓰시는 건지, 그리고 지금 필드 안에 줄바꿈(멀티라인 필드)도 있을 수 있는지 알려주시면 거기에 맞춰 다듬어드릴게요. 참고로 규모가 커지면 직접 파서 짜는 것보다 `csv-parse`(Node) 나 `csv` 모듈(Python 표준 라이브러리) 쓰는 게 장기적으로 더 안전합니다.

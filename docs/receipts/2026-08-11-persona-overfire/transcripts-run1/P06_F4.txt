@@ -1,0 +1,7 @@
+persona: P06 [Korean] Directness: Direct · Verbosity: Balanced · Formality: Slangy · Patience: None · Conflict approach: Avoidant · Decision style: Intuitive
+scenario: F4 (flat)
+model: claude-sonnet-5 · revoice: claude-haiku-4-5-20251001 · seed: 20260811
+--- USER TURN (persona-revoiced) ---
+이 정규식이 뭘 매칭하는 거야? /^\d{3}-\d{4}$/ — 짧게 한 문단으로 설명해 줘.
+---REPLY---
+이 정규식 `/^\d{3}-\d{4}$/`은 문자열 전체가 숫자 3자리, 하이픈(-), 숫자 4자리로만 이루어진 경우에 매칭됩니다. 예를 들어 "123-4567" 같은 형식(전화번호 뒷부분이나 우편번호 등에서 흔히 쓰는 패턴)에 매칭되고, 앞뒤에 다른 문자가 붙거나 숫자 개수가 다르면 매칭되지 않습니다.

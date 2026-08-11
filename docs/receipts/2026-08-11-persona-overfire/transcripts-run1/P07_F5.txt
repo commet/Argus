@@ -1,0 +1,14 @@
+persona: P07 [English] Directness: Indirect · Verbosity: Wordy · Formality: Formal · Patience: High · Conflict approach: Collaborative · Decision style: Deliberative
+scenario: F5 (flat)
+model: claude-sonnet-5 · revoice: claude-haiku-4-5-20251001 · seed: 20260811
+--- USER TURN (persona-revoiced) ---
+I would be most grateful if you could assist me with translating the following error message into natural and idiomatic Korean language. The English text that requires translation is as follows: "Connection timed out. Check your network settings and try again." I would deeply appreciate your careful consideration of this matter, as I believe your expertise would be invaluable in ensuring that the translation captures the appropriate tone and terminology for Korean users.
+---REPLY---
+"연결 시간이 초과되었습니다. 네트워크 설정을 확인한 후 다시 시도해 주세요."
+
+이 표현은 일반적인 오류 메시지 톤에 맞춰 정중하면서도 간결하게 작성했습니다. 필요에 따라 아래와 같은 변형도 가능합니다:
+
+- 더 간결한 버전: "연결 시간 초과. 네트워크 설정을 확인 후 다시 시도하세요."
+- 더 격식 있는 버전: "연결 시간이 초과되었습니다. 네트워크 설정을 확인하신 후 다시 시도해 주시기 바랍니다."
+
+사용하시려는 제품이나 플랫폼의 톤(캐주얼/격식체)에 따라 선택하시면 좋을 것 같습니다.

@@ -1,0 +1,58 @@
+persona: P06 [Korean] Directness: Direct · Verbosity: Balanced · Formality: Slangy · Patience: None · Conflict approach: Avoidant · Decision style: Intuitive
+scenario: F6 (flat)
+model: claude-sonnet-5 · revoice: claude-haiku-4-5-20251001 · seed: 20260811
+--- USER TURN (persona-revoiced) ---
+이 함수 vitest 유닛 테스트 좀 만들어줘:
+
+export function slugify(s) {
+  return s.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+}
+---REPLY---
+```js
+import { describe, it, expect } from 'vitest';
+import { slugify } from './slugify';
+
+describe('slugify', () => {
+  it('converts to lowercase', () => {
+    expect(slugify('Hello World')).toBe('hello-world');
+  });
+
+  it('trims leading and trailing whitespace', () => {
+    expect(slugify('  Hello World  ')).toBe('hello-world');
+  });
+
+  it('replaces non-alphanumeric sequences with a single hyphen', () => {
+    expect(slugify('foo   bar!!baz')).toBe('foo-bar-baz');
+  });
+
+  it('removes leading and trailing hyphens', () => {
+    expect(slugify('--hello world--')).toBe('hello-world');
+  });
+
+  it('handles strings with numbers', () => {
+    expect(slugify('Item 42 - Special Edition')).toBe('item-42-special-edition');
+  });
+
+  it('handles underscores and symbols', () => {
+    expect(slugify('foo_bar@baz.com')).toBe('foo-bar-baz-com');
+  });
+
+  it('returns an empty string for an all-symbol input', () => {
+    expect(slugify('!!!')).toBe('');
+  });
+
+  it('returns an empty string for empty input', () => {
+    expect(slugify('')).toBe('');
+  });
+
+  it('handles already-slugified strings unchanged', () => {
+    expect(slugify('already-a-slug')).toBe('already-a-slug');
+  });
+
+  it('handles unicode letters by stripping them (non a-z0-9)', () => {
+    expect(slugify('héllo wörld')).toBe('h-llo-w-rld');
+  });
+});
+```
+
+파일 경로는 실제 함수가 있는 위치에 맞춰서 `import { slugify } from './slugify'` 부분만 조정하시면 됩니다. 혹시 유니코드(한글 등)도 슬러그에 포함시키고 싶으시면 정규식 자체를 바꿔야 해서, 그 부분 필요하면 말씀해주세요.

@@ -1,0 +1,17 @@
+persona: P04 [English] Directness: Evasive · Verbosity: Rambling · Formality: Slangy · Patience: None · Conflict approach: Collaborative · Decision style: Deliberative
+scenario: F6 (flat)
+model: claude-sonnet-5 · revoice: claude-haiku-4-5-20251001 · seed: 20260811
+--- USER TURN (persona-revoiced) ---
+yo so like, we probably should think about maybe getting some kinda vitest unit test going for that slugify function right? i mean not to rush or anything but it'd be pretty solid to have some coverage on there, you know? the whole toLowerCase().trim().replace thing with the regex and all that—anyway yeah if you could just, whenever, add a test for it that'd be sick. just the slugify function obvi, same file and all that
+---REPLY---
+Sounds good — I'll add a Vitest unit test for `slugify` in the same file. Quick check before I write it: can you point me to (or paste) the current `slugify` implementation so I match its exact behavior (e.g., how it handles multiple spaces, leading/trailing dashes, special characters, unicode)?
+
+Once I see it, I'll cover cases like:
+- Basic string → lowercase + hyphenated
+- Leading/trailing whitespace trimmed
+- Multiple consecutive spaces/symbols collapsed to a single hyphen
+- Existing hyphens/underscores handling
+- Empty string edge case
+- Non-alphanumeric characters stripped
+
+Just paste the function (or the file path) and I'll drop the test right below/near it.

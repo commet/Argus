@@ -1,0 +1,7 @@
+persona: P02 [English] Directness: Balanced · Verbosity: Concise · Formality: Very formal · Patience: Low · Conflict approach: Compromising · Decision style: Directive
+scenario: F1 (flat)
+model: claude-sonnet-5 · revoice: claude-haiku-4-5-20251001 · seed: 20260811
+--- USER TURN (persona-revoiced) ---
+Correct the spelling error in the README file. Change "recieve" to "receive" in the line "The server will recieve the payload." Provide the corrected line only.
+---REPLY---
+The server will receive the payload.

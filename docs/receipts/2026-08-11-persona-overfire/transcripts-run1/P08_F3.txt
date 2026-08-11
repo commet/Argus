@@ -1,0 +1,24 @@
+persona: P08 [Korean] Directness: Blunt · Verbosity: Terse · Formality: Neutral · Patience: Moderate · Conflict approach: Accommodating · Decision style: Directive
+scenario: F3 (flat)
+model: claude-sonnet-5 · revoice: claude-haiku-4-5-20251001 · seed: 20260811
+--- USER TURN (persona-revoiced) ---
+formatDate 함수 만들어. JavaScript, YYYY-MM-DD 포맷, 라이브러리 쓰지 말고.
+---REPLY---
+```javascript
+function formatDate(date) {
+  const d = date instanceof Date ? date : new Date(date);
+
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+
+  return `${year}-${month}-${day}`;
+}
+
+// 사용 예
+console.log(formatDate(new Date())); // 예: 2025-05-20
+console.log(formatDate('2024-03-05T10:00:00')); // 2024-03-05
+```
+
+- `date`에 `Date` 객체나 날짜 문자열을 넣어도 동작합니다.
+- 로컬 타임존 기준(`getFullYear`, `getMonth`, `getDate`)으로 계산합니다. UTC 기준이 필요하면 `getUTCFullYear` 등으로 바꿔주세요.

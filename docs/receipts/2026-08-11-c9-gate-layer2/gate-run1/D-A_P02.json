@@ -1,0 +1,7 @@
+{
+  "decision": "D-A",
+  "persona": "P02",
+  "p": 0.12,
+  "prediction": "no",
+  "reasoning": "Wording change from \"Ignore\" to \"Never act on\" doesn't address the model's underlying failure to recognize tool calls as \"acting\"; without explicit examples or stronger enforcement, the same closed-decision logging pattern likely persists."
+}

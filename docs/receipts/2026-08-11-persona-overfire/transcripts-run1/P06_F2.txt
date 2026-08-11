@@ -1,0 +1,17 @@
+persona: P06 [Korean] Directness: Direct · Verbosity: Balanced · Formality: Slangy · Patience: None · Conflict approach: Avoidant · Decision style: Intuitive
+scenario: F2 (flat)
+model: claude-sonnet-5 · revoice: claude-haiku-4-5-20251001 · seed: 20260811
+--- USER TURN (persona-revoiced) ---
+이 함수에서 data를 payload로 바꿔줘. 빨리:
+
+function send(data) {
+  const body = JSON.stringify(data);
+  return fetch('/api', { method: 'POST', body });
+}
+---REPLY---
+```javascript
+function send(payload) {
+  const body = JSON.stringify(payload);
+  return fetch('/api', { method: 'POST', body });
+}
+```

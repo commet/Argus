@@ -1,0 +1,23 @@
+persona: P05 [Korean] Directness: Blunt · Verbosity: Rambling · Formality: Very formal · Patience: High · Conflict approach: Confronting · Decision style: Intuitive
+scenario: F2 (flat)
+model: claude-sonnet-5 · revoice: claude-haiku-4-5-20251001 · seed: 20260811
+--- USER TURN (persona-revoiced) ---
+이 함수에서 변수 이름 data를 payload로 바꿔야 하는데, 지금 당장 처리해 주기 바랍니다. 구체적으로 말씀드리자면, send 함수 내에서 매개변수로 사용되는 data라는 변수명을 payload로 변경하고, 함수 본문 내에서도 그에 맞춰서 JSON.stringify와 fetch 호출 부분에서 모두 payload로 통일해 주시기 바랍니다:
+
+function send(payload) {
+  const body = JSON.stringify(payload);
+  return fetch('/api', { method: 'POST', body });
+}
+
+이렇게 변경해 주시면 되겠습니다.
+---REPLY---
+코드를 확인해 보니 이미 매개변수명이 `data`가 아니라 `payload`로 되어 있고, 함수 본문의 `JSON.stringify`와 `fetch` 호출 부분에서도 모두 `payload`로 일관되게 사용되고 있습니다.
+
+```js
+function send(payload) {
+  const body = JSON.stringify(payload);
+  return fetch('/api', { method: 'POST', body });
+}
+```
+
+요청하신 변경 사항이 이미 반영된 상태라 추가로 수정할 부분은 없어 보입니다. 혹시 다른 버전의 코드가 있으시면 공유해 주세요.

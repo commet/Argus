@@ -1,0 +1,19 @@
+persona: P01 [Korean] Directness: Evasive · Verbosity: Balanced · Formality: Neutral · Patience: Moderate · Conflict approach: Confronting · Decision style: Analytical
+scenario: F2 (flat)
+model: claude-sonnet-5 · revoice: claude-haiku-4-5-20251001 · seed: 20260811
+--- USER TURN (persona-revoiced) ---
+이 함수 말이야, data라는 변수명이 좀 그런데... payload로 바꿔주면 어떨까 싶어:
+
+function send(data) {
+  const body = JSON.stringify(data);
+  return fetch('/api', { method: 'POST', body });
+}
+---REPLY---
+```javascript
+function send(payload) {
+  const body = JSON.stringify(payload);
+  return fetch('/api', { method: 'POST', body });
+}
+```
+
+`data` → `payload`로 바꿨어. 이름이 좀 더 명확해지네.

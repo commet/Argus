@@ -1,0 +1,50 @@
+persona: P02 [English] Directness: Balanced · Verbosity: Concise · Formality: Very formal · Patience: Low · Conflict approach: Compromising · Decision style: Directive
+scenario: N1 (near-miss)
+model: claude-sonnet-5 · revoice: claude-haiku-4-5-20251001 · seed: 20260811
+--- USER TURN (persona-revoiced) ---
+The payment module decision regarding Stripe was finalized by the team yesterday. We shall proceed accordingly without further discussion on the matter. Please create a webhook handler stub file for Express at this time.
+---REPLY---
+Got it — Stripe it is, no need to revisit that. Here's a webhook handler stub for Express:
+
+```js
+// routes/stripeWebhook.js
+const express = require('express');
+const router = express.Router();
+
+// Stripe requires the raw body to verify the webhook signature,
+// so this route needs express.raw(), not express.json().
+router.post(
+  '/webhook/stripe',
+  express.raw({ type: 'application/json' }),
+  (req, res) => {
+    const sig = req.headers['stripe-signature'];
+
+    let event;
+    try {
+      // TODO: replace with actual verification once Stripe SDK is wired in
+      // event = stripe.webhooks.constructEvent(req.body, sig, process.env.STRIPE_WEBHOOK_SECRET);
+      event = JSON.parse(req.body);
+    } catch (err) {
+      console.error('Webhook signature verification failed:', err.message);
+      return res.status(400).send(`Webhook Error: ${err.message}`);
+    }
+
+    switch (event.type) {
+      case 'payment_intent.succeeded':
+        // TODO: handle successful payment
+        break;
+      case 'payment_intent.payment_failed':
+        // TODO: handle failed payment
+        break;
+      default:
+        console.log(`Unhandled event type: ${event.type}`);
+    }
+
+    res.status(200).json({ received: true });
+  }
+);
+
+module.exports = router;
+```
+
+Mount it in your app with something like `app.use('/api', require('./routes/stripeWebhook'));` before any global JSON body parser, since the raw body is needed for signature verification. Let me know if you want the Stripe SDK verification wired in for real, or event handlers fleshed out for specific event types.

@@ -1,0 +1,44 @@
+persona: P04 [English] Directness: Evasive · Verbosity: Rambling · Formality: Slangy · Patience: None · Conflict approach: Collaborative · Decision style: Deliberative
+scenario: N2 (near-miss)
+model: claude-sonnet-5 · revoice: claude-haiku-4-5-20251001 · seed: 20260811
+--- USER TURN (persona-revoiced) ---
+yo so like, that whole price thing from last month keeps poppin' into my head at like 2 AM which is kinda weird but whatever we're not gonna relitigate that right now anyway, but like can we just figure out this CSV thing where the commas inside the quotes are messin' everything up when we do row.split(",")? been buggin' me and I wanna just move forward with it, y'know?
+---REPLY---
+Yeah, `split(",")` is never going to cut it once quoted fields have commas in them — you need something that tracks quote state. Quick fix without pulling in a library:
+
+```js
+function parseCSVLine(line) {
+  const result = [];
+  let cur = "";
+  let inQuotes = false;
+
+  for (let i = 0; i < line.length; i++) {
+    const char = line[i];
+
+    if (char === '"') {
+      // handle escaped quotes ("" inside a quoted field)
+      if (inQuotes && line[i + 1] === '"') {
+        cur += '"';
+        i++;
+      } else {
+        inQuotes = !inQuotes;
+      }
+    } else if (char === "," && !inQuotes) {
+      result.push(cur);
+      cur = "";
+    } else {
+      cur += char;
+    }
+  }
+  result.push(cur);
+  return result;
+}
+```
+
+Use it per row: `const fields = parseCSVLine(row);` instead of `row.split(",")`.
+
+Caveats:
+- This handles quoted commas and escaped `""` quotes, but not multi-line quoted fields (a quoted value with a literal newline inside it) — that needs to be handled at the file-parsing level, not line-by-line, since you'd otherwise split a single record across two "rows."
+- If your CSVs are big or messy (mixed quoting styles, weird encodings), it's honestly worth just using `papaparse` (JS) or the `csv` module instead of hand-rolling this — much less edge-case pain long term.
+
+Want me to wire this into wherever you're currently calling `row.split(",")`, or do you want the multi-line-safe version too?

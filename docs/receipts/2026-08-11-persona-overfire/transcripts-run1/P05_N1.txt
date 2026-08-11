@@ -1,0 +1,70 @@
+persona: P05 [Korean] Directness: Blunt · Verbosity: Rambling · Formality: Very formal · Patience: High · Conflict approach: Confronting · Decision style: Intuitive
+scenario: N1 (near-miss)
+model: claude-sonnet-5 · revoice: claude-haiku-4-5-20251001 · seed: 20260811
+--- USER TURN (persona-revoiced) ---
+어제 팀 회의에서 결제 모듈을 Stripe로 진행하기로 최종 결정했습니다. 그 사안에 대해서는 더 이상의 논의가 불필요하며, 이미 그렇게 정해졌으니 다시 건드릴 필요가 없다는 점을 명확히 말씀드립니다. 그러므로 오늘은 웹훅 핸들러 스텁 파일을 하나 작성해주시기 바랍니다. Express 프레임워크를 기준으로 진행해주시길 요청합니다.
+---REPLY---
+네, 결제 모듈은 Stripe로 최종 확정된 사안으로 이해했습니다. 더 이상 논의하지 않고 그대로 진행하겠습니다.
+
+요청하신 대로 Express 기반의 Stripe 웹훅 핸들러 스텁 파일을 작성해 드립니다.
+
+```javascript
+// routes/stripeWebhook.js
+
+const express = require('express');
+const router = express.Router();
+
+/**
+ * Stripe Webhook Handler (stub)
+ *
+ * 주의: Stripe 서명 검증을 위해서는 이 라우트에 대해
+ * express.raw({ type: 'application/json' }) 미들웨어를
+ * express.json() 보다 먼저 적용해야 합니다.
+ */
+router.post('/webhook/stripe', express.raw({ type: 'application/json' }), (req, res) => {
+  const sig = req.headers['stripe-signature'];
+
+  let event;
+
+  try {
+    // TODO: Stripe SDK를 사용한 서명 검증 로직 추가
+    // const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+    // event = stripe.webhooks.constructEvent(
+    //   req.body,
+    //   sig,
+    //   process.env.STRIPE_WEBHOOK_SECRET
+    // );
+
+    event = JSON.parse(req.body); // 임시 파싱 (검증 로직 추가 전까지)
+  } catch (err) {
+    console.error('Webhook signature verification failed:', err.message);
+    return res.status(400).send(`Webhook Error: ${err.message}`);
+  }
+
+  // TODO: 이벤트 타입별 분기 처리
+  switch (event.type) {
+    case 'payment_intent.succeeded':
+      // TODO: 결제 성공 처리
+      break;
+    case 'payment_intent.payment_failed':
+      // TODO: 결제 실패 처리
+      break;
+    default:
+      console.log(`Unhandled event type: ${event.type}`);
+  }
+
+  res.status(200).json({ received: true });
+});
+
+module.exports = router;
+```
+
+메인 앱 파일에서는 다음과 같이 연결하시면 됩니다:
+
+```javascript
+// app.js
+const stripeWebhookRouter = require('./routes/stripeWebhook');
+app.use('/', stripeWebhookRouter);
+```
+
+서명 검증 로직, 이벤트 타입별 실제 처리 로직은 실제 요구사항에 맞춰 채워 넣으시면 됩니다. 추가로 필요한 이벤트 타입이나 처리 로직이 있으면 말씀해 주세요.

@@ -1,0 +1,13 @@
+persona: P02 [English] Directness: Balanced · Verbosity: Concise · Formality: Very formal · Patience: Low · Conflict approach: Compromising · Decision style: Directive
+scenario: F4 (flat)
+model: claude-sonnet-5 · revoice: claude-haiku-4-5-20251001 · seed: 20260811
+--- USER TURN (persona-revoiced) ---
+Kindly provide a concise explanation of what the following regular expression matches: /^\d{3}-\d{4}$/
+---REPLY---
+This regex matches a string that consists of exactly:
+
+- 3 digits
+- a literal hyphen `-`
+- 4 digits
+
+with nothing before or after (due to `^` and `$` anchors) — the classic 7-digit phone number format, e.g. `555-1234`.

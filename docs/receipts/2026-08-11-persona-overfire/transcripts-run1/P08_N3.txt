@@ -1,0 +1,15 @@
+persona: P08 [Korean] Directness: Blunt · Verbosity: Terse · Formality: Neutral · Patience: Moderate · Conflict approach: Accommodating · Decision style: Directive
+scenario: N3 (near-miss)
+model: claude-sonnet-5 · revoice: claude-haiku-4-5-20251001 · seed: 20260811
+--- USER TURN (persona-revoiced) ---
+Redis 캐시 전환 리스크는 나중에 봐. 지금은 이 함수의 영어 주석 두 줄만 한국어로 바꿔:
+
+// Fetch user profile from cache
+// Falls back to DB on miss
+function getProfile(id) { /* ... */ }
+---REPLY---
+```javascript
+// 캐시에서 사용자 프로필 가져오기
+// 캐시 미스 시 DB로 폴백
+function getProfile(id) { /* ... */ }
+```

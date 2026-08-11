@@ -1,0 +1,28 @@
+레코드 120 · 방향 적중 113/120
+보정 곡선 (p 구간 → 실제 yes 비율 · n):
+  [0,0.2) → 실제 yes 15% (n=47) — 완벽 보정이면 10% 부근
+  [0.2,0.4) — 표본 없음
+  [0.4,0.6) — 표본 없음
+  [0.6,0.8) — 표본 없음
+  [0.8,1.001) → 실제 yes 100% (n=73) — 완벽 보정이면 90% 부근
+
+--- antefact report 스포크 (분모 규범 검증) ---
+# Antefact store report
+
+records: 120 · invalid: 0
+states: recorded 0 · sealed 0 · settled 120 · disputed 0 · withdrawn 0
+
+**Denominator: 120 sealed · 120 scored · 0 unscored exits** (withdrawn-after-seal 0 · disputed 0 · ambiguous 0 · annulled 0 · lapsed 0)
+
+## Calibration (binned curve, n=120)
+
+| p bin | n | predicted mean | observed yes |
+|---|---|---|---|
+| 0.0–0.2 | 47 | 0.02 | 0.15 |
+| 0.2–0.4 | 0 | — | — |
+| 0.4–0.6 | 0 | — | — |
+| 0.6–0.8 | 0 | — | — |
+| 0.8–1.0 | 73 | 0.97 | 1.00 |
+
+_A single aggregate score is intentionally absent (SPEC §8: curve over score); nothing here aggregates per author (non-ranking clause)._
+

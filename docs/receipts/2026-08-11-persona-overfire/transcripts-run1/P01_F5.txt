@@ -1,0 +1,17 @@
+persona: P01 [Korean] Directness: Evasive · Verbosity: Balanced · Formality: Neutral · Patience: Moderate · Conflict approach: Confronting · Decision style: Analytical
+scenario: F5 (flat)
+model: claude-sonnet-5 · revoice: claude-haiku-4-5-20251001 · seed: 20260811
+--- USER TURN (persona-revoiced) ---
+이 에러 메시지를 한국어로 옮겨야 하는데, 어떻게 처리할 생각인지 먼저 알고 싶네: "Connection timed out. Check your network settings and try again."
+---REPLY---
+"Connection timed out. Check your network settings and try again." 이 문장을 한국어로 옮긴다면, 아래처럼 자연스럽게 풀어볼 수 있을 것 같습니다.
+
+**제안:**
+"연결 시간이 초과되었습니다. 네트워크 설정을 확인한 후 다시 시도해 주세요."
+
+몇 가지 참고할 만한 포인트:
+- "Connection timed out" → "연결 시간이 초과되었습니다" (에러 메시지에서 흔히 쓰는 표현)
+- "Check your network settings" → "네트워크 설정을 확인한 후" (사용자에게 행동을 안내하는 톤)
+- "try again" → "다시 시도해 주세요" (정중한 요청형)
+
+혹시 이 메시지가 들어가는 UI의 톤(더 캐주얼한지, 격식체인지)이나 글자 수 제한이 있다면 그에 맞게 조정할 수 있어요. 어떤 방향이 좋을지 알려주시면 다듬어볼게요.

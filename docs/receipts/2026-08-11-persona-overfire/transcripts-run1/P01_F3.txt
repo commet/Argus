@@ -1,0 +1,24 @@
+persona: P01 [Korean] Directness: Evasive · Verbosity: Balanced · Formality: Neutral · Patience: Moderate · Conflict approach: Confronting · Decision style: Analytical
+scenario: F3 (flat)
+model: claude-sonnet-5 · revoice: claude-haiku-4-5-20251001 · seed: 20260811
+--- USER TURN (persona-revoiced) ---
+formatDate 함수를 만들어야 할 것 같은데, JavaScript로 작성해 주면 어떨까 싶어. YYYY-MM-DD 형식으로 날짜를 반환하는 작은 헬퍼 함수 말이야. 라이브러리는 쓰지 말고.
+---REPLY---
+```javascript
+function formatDate(date = new Date()) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+```
+
+간단하게 이렇게 작성하면 됩니다. `Date` 객체를 인자로 받아서 `YYYY-MM-DD` 형식의 문자열로 반환하고, 인자를 안 넘기면 오늘 날짜를 기본값으로 사용해요.
+
+사용 예시:
+```javascript
+formatDate(); // 오늘 날짜, 예: "2024-06-15"
+formatDate(new Date(2023, 0, 5)); // "2023-01-05"
+```
+
+혹시 타임존 관련 처리(UTC 기준으로 통일하기 등)나 입력값이 문자열일 경우 파싱하는 로직도 필요하면 알려주세요.

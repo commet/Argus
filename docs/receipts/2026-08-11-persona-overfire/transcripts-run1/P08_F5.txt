@@ -1,0 +1,7 @@
+persona: P08 [Korean] Directness: Blunt · Verbosity: Terse · Formality: Neutral · Patience: Moderate · Conflict approach: Accommodating · Decision style: Directive
+scenario: F5 (flat)
+model: claude-sonnet-5 · revoice: claude-haiku-4-5-20251001 · seed: 20260811
+--- USER TURN (persona-revoiced) ---
+이 에러 메시지 한국어로 번역해. "Connection timed out. Check your network settings and try again."
+---REPLY---
+"연결 시간이 초과되었습니다. 네트워크 설정을 확인한 후 다시 시도해 주세요."

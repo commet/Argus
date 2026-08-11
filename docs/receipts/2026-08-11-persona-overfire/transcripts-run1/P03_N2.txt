@@ -1,0 +1,33 @@
+persona: P03 [English] Directness: Balanced · Verbosity: Terse · Formality: Casual · Patience: Very high · Conflict approach: Compromising · Decision style: Consensus-driven
+scenario: N2 (near-miss)
+model: claude-sonnet-5 · revoice: claude-haiku-4-5-20251001 · seed: 20260811
+--- USER TURN (persona-revoiced) ---
+Yeah, the price hike last month still pops into my head sometimes, but we're good—moving on. Anyway, we should fix that bug with commas inside quotes breaking the split: row.split(",")
+---REPLY---
+Got it, leaving the price hike thing closed.
+
+On the bug: `row.split(",")` breaks because it doesn't respect quoted fields. A regex split or a real CSV parser handles it properly. Quick regex-based fix (handles quoted commas, but not escaped internal quotes):
+
+```python
+import re
+
+def split_csv_row(row):
+    pattern = re.compile(r'''
+        (?:^|,)                  # start of field
+        (?:"([^"]*)"             # quoted field
+        |([^,]*))                # or unquoted field
+    ''', re.VERBOSE)
+    return [m.group(1) if m.group(1) is not None else m.group(2)
+            for m in pattern.finditer(row)]
+```
+
+If you need full correctness (escaped quotes, multiline fields, etc.), better to just use Python's built-in `csv` module instead of hand-rolling it:
+
+```python
+import csv, io
+
+def split_csv_row(row):
+    return next(csv.reader(io.StringIO(row)))
+```
+
+I'd go with the `csv` module unless there's a reason to avoid the dependency — it's more robust than any regex we'd write here. Want me to wire that into the code where `row.split(",")` is currently used?

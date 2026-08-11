@@ -1,0 +1,19 @@
+persona: P03 [English] Directness: Balanced · Verbosity: Terse · Formality: Casual · Patience: Very high · Conflict approach: Compromising · Decision style: Consensus-driven
+scenario: F2 (flat)
+model: claude-sonnet-5 · revoice: claude-haiku-4-5-20251001 · seed: 20260811
+--- USER TURN (persona-revoiced) ---
+can we rename the data variable to payload in this function? just want to make the param name clearer:
+
+function send(data) {
+  const body = JSON.stringify(data);
+  return fetch('/api', { method: 'POST', body });
+}
+---REPLY---
+```js
+function send(payload) {
+  const body = JSON.stringify(payload);
+  return fetch('/api', { method: 'POST', body });
+}
+```
+
+Renamed `data` to `payload` throughout.

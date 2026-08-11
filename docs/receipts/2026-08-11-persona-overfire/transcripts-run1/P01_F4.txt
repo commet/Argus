@@ -1,0 +1,7 @@
+persona: P01 [Korean] Directness: Evasive · Verbosity: Balanced · Formality: Neutral · Patience: Moderate · Conflict approach: Confronting · Decision style: Analytical
+scenario: F4 (flat)
+model: claude-sonnet-5 · revoice: claude-haiku-4-5-20251001 · seed: 20260811
+--- USER TURN (persona-revoiced) ---
+이 정규식이 정확히 뭘 매칭하는지 설명 좀 해줄 수 있나? /^\d{3}-\d{4}$/ — 한 문단 정도면 충분해.
+---REPLY---
+이 정규식 `/^\d{3}-\d{4}$/`은 문자열 전체가 "숫자 3자리 + 하이픈(-) + 숫자 4자리" 형태로만 이루어져 있는지 검사합니다. `^`와 `$`는 각각 문자열의 시작과 끝을 의미하므로, 이 패턴 앞뒤로 다른 문자가 붙으면 매칭되지 않습니다. `\d{3}`은 정확히 3개의 숫자(0-9), `-`는 리터럴 하이픈 하나, `\d{4}`는 정확히 4개의 숫자를 뜻합니다. 예를 들어 "123-4567"은 매칭되지만, "12-3456", "123-45678", "abc-1234", 앞뒤에 공백이 있는 " 123-4567" 등은 모두 매칭되지 않습니다. 참고로 이 형태는 옛날 미국 전화번호 뒷자리(국번-가입자번호) 같은 포맷과 유사합니다.
