@@ -832,8 +832,9 @@ Desktop은 README 설정 그대로가 전 도구 실패, 영수증 렌더러는 
 **공정 M4 · 재공개 (S~M)**
 - 작업: 버전 lockstep publish + /import에 OS별 설치(Windows `cmd /c` 포함,
   웹 시공) + 소개글↔README 카피 정합 + 외부인 검사 준비.
-- exit: [ ] npm 최신 버전 == package.json == 태그 (publish는 창업자 행동 —
-  실행 후 체크) [x] /import에 Windows 블록 렌더 테스트 [ ] 신규 사용자 1명이
+- exit: [x] npm 최신 버전 == package.json == 태그 (2026-08-11 실행: npm
+  2.0.22 == package.json 2.0.22 == v2.0.22@9a76bf38, shasum 사슬·마커 17/17은
+  리시트) [x] /import에 Windows 블록 렌더 테스트 [ ] 신규 사용자 1명이
   설치→당직 앵커→봉인→(모의)귀환을 외부 개입 없이 완주(manual: 검증 기록)
 - 금지: 새 기능. 공개는 지은 것을 도달시키는 공정이다.
 
