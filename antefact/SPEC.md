@@ -1,9 +1,9 @@
-# Antefact 0.1.4-draft — the judgment record format
+# Antefact 0.1.5-draft — the judgment record format
 
 > A judgment record is a claim about the future, **sealed** before the outcome,
 > owned by named **authors**, and settled against named **reality**.
 
-2026-08-10 (r5) · Requirement terms per RFC 2119 (MUST/SHOULD/MAY) ·
+2026-08-11 (r6) · Requirement terms per RFC 2119 (MUST/SHOULD/MAY) ·
 License: prose CC BY 4.0, schema/tooling MIT · English is the normative text;
 a Korean translation is maintained alongside.
 
@@ -30,6 +30,11 @@ MAY be recorded via Annex A).
   are string-encoded (MUST). Hashing, sealing, and verification are defined over
   this projection only, and a seal MUST name its projection recipe version
   (`proj`) — a hash whose recipe is unknown proves nothing.
+- **Recipe versions are additive** (MUST): a conforming verifier keeps every
+  published recipe. Recipes are `v1` (Stake fields + `nonce` + `statement_rev`)
+  and `v2` (`v1` + `ts`, the seal time). Dropping a recipe would turn every
+  record sealed under it into an unverifiable file, so recipes are never
+  removed — only added. New seals SHOULD use the newest recipe.
 
 ## 2. States
 
@@ -87,6 +92,13 @@ MAY be recorded via Annex A).
   Stake's canonical projection plus the content hash of the Statement revision
   current at seal time (MUST). `nonce` is a random value inside the sealed
   projection (MUST) — public log entries must not be dictionary-attackable.
+- `seal.ts` — seal time, minute-precision UTC; REQUIRED under recipe `v2` and
+  absent under `v1`. It sits **inside** the hashed projection (MUST): a format
+  whose whole claim is "this was written before the outcome" cannot carry a
+  freely rewritable date, so editing or stripping `ts` breaks verification.
+  **Honest limit**: at L0 the clock is the author's own and `ts` proves only
+  self-consistency; what a reader weighs is the seal level (L1 git ref, L2
+  external anchor), not this field.
 - `seal.stream` — `{ stream_id, seq, prev_hash }` (MAY): a seal chain grounding
   public calibration claims (§8). Content stays private — the chain proves only
   count and order.
@@ -223,3 +235,12 @@ namespace collision (decision ledger D14). Adds `proj` (projection recipe
 version) to the seal, the self-settled visibility norm (adversarial review
 2026-08-10), file convention `name.antefact.md`, and announces Annex H.
 r2–r4 history lives in the decision ledger with full rationale.
+
+**r6 changelog** — adds projection recipe **`v2`**, which brings `seal.ts` (seal
+time) inside the hashed projection. r5 announced Annex H's one-line embed
+`Antefact: <id> sealed <date> sha256:<8>` while the format recorded no seal
+time at all, so that line could not be produced from a conforming record
+without inventing the date — the gap was found by trying to build it. Placing
+`ts` inside the projection rather than beside it is the point: an unsealed date
+is the one field a back-dating author would edit. Recipes are additive and `v1`
+records keep verifying (golden vector `v6-sealed-v1`).
