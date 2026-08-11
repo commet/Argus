@@ -71,6 +71,7 @@ const EVIDENCE_M: Record<string, string[]> = {
   ],
   '공정 M1': [
     'argus-mcp/src/tools/__tests__/public-surface-names.test.ts', // 은퇴 watch가 공개 표면으로 부활하지 않음
+    'docs/receipts/2026-08-10-m1-overfire-eval/README.md', // over-fire eval 모델 실행 — 플랫 24/24 청정(2라운드×2모델), 니어미스 잔존 결함은 §8 등재
     'argus-mcp/src/tools/__tests__/protocol-roundtrip.test.ts', // 실제 tools/list는 최종 6종뿐
     'argus-mcp/src/v2/activation-contract.test.ts', // 플러그인도 최종 5축만 공개
   ],

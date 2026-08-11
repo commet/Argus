@@ -1,0 +1,1 @@
+This regex matches a string consisting of exactly 3 digits, a literal hyphen, and exactly 4 digits — nothing before or after (the `^` and `$` anchors pin it to the whole string) — like the classic US local phone number format `123-4567`. It won't match if there are extra characters, a different number of digits, or no hyphen.

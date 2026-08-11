@@ -28,7 +28,10 @@ export default defineConfig({
     // .claude/worktrees/** are isolated git worktrees with their own (often
     // stale) node_modules — a duplicate React there throws "useState of null"
     // and would fail the gate on code that isn't even on this branch.
-    exclude: [...configDefaults.exclude, 'argus-plugin-v2/**', 'argus-mcp/**', '**/.claude/worktrees/**'],
+    // antefact/ is the judgment-record standard's isolated zone with its own
+    // node:test harness (node --test antefact/test/cli.test.mjs) — same
+    // one-suite-one-runner rule as the plugin.
+    exclude: [...configDefaults.exclude, 'argus-plugin-v2/**', 'argus-mcp/**', 'antefact/**', '**/.claude/worktrees/**'],
     coverage: {
       provider: 'v8',
       // text → console summary; json-summary → machine-readable ratchet; html →

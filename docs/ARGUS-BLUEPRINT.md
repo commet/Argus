@@ -37,6 +37,21 @@ Status: **단일 빌드 정본.** 이 리포에서 "무엇을 지을 것인가"�
 
 ---
 
+## 병렬 트랙 AF — 판단 기록 표준 Antefact (2026-08-10 창업자 승인)
+
+- **정본**: `antefact/SPEC.md`(영어 규범) · `antefact/MINIMUM-ELEMENTS.md`(포맷
+  중립 "최소 요소" 바닥 문서). 결정 근거 전체는 결정 원장(아티팩트)에 있다.
+- **범위**: `antefact/` 격리 존 — 스펙 + JSON Schema + 참조 CLI(봉인·검증·
+  정산·린트) + 골든 벡터 + 자체 테스트(`node --test antefact/test/cli.test.mjs`).
+  공개 시 별도 리포로 추출 가능해야 하며, 그래서 앱과 어느 방향으로도 import가
+  없다 (경계 규칙은 `antefact/README.md`).
+- **무접촉 경계**: 기존 공정의 어떤 표면·코드도 수정하지 않는다. 이 등록
+  커밋의 앱 존 변경은 vitest exclude 한 줄뿐이며(argus-plugin-v2와 동일한
+  "자체 하네스 존" 선언), Argus 제품과의 접점(§8의 C1–C9)은 전부 대기 목록을
+  거쳐 공정표 순서로만 진입한다. **본 등록은 새 기능 표면을 여는 허가가
+  아니다.**
+- 승인: 창업자, 2026-08-10 (production 수준 구현·테스트까지 전권 위임 지시).
+
 ## §1. 이 집이 무엇인가 — 한 페이지 선언
 
 브랜드 인물·이미지·동작·문체의 정본은 `ARGUS-BRAND-CANON.md`를 따른다.
@@ -511,6 +526,27 @@ handleTextInputSubmit = () => move("down")                 // 칸 안에서 Retu
 
 ## §8. 대기 목록 — 여기 적고, 짓지 않는다
 
+- ~~**Sonnet의 닫힌-결정 capture 잔존 (2026-08-10, M1 over-fire eval 발견)**~~
+  → **다음 날 아침 수리·검증 완료 (2026-08-11, 창업자 지시).** 진단대로 수리를
+  문구가 아니라 **위치**에 놓았다: argus_capture 도구 설명 + premise text 필드
+  설명(호출 순간에 읽히는 표면, claim-band 선례)에 "닫힌 결정은 capture 대상이
+  아니다" 명문 + `closed-decision-guard.test.ts`로 문구 실종 차단. 사전 봉인
+  AF-008(p 0.55) 하에 3차 실행: **N1×sonnet 0/6** (기저 위반율 2/3에서) + 대조군
+  청정, 전체 0/9 PASS. 전역 지시문 수리 2회 실패 뒤 위치 수리 1회 성공 —
+  발견·실패·수리의 전 과정은 리시트에:
+  `docs/receipts/2026-08-10-m1-overfire-eval/`. 원문은 발상 기록으로 보존:
+  플랫 작업은 두 라운드 24/24 청정(M1 exit 충족·체크됨)이나, "어제 확정했고
+  재론 불요" 니어미스에서 sonnet이 3표본 중 2회 자발 `argus_capture`를 작성 —
+  "논의는 존중, 기록으로 재개봉" 패턴이었다.
+
+- **판단 기록 표준의 제품 접점 9건 (트랙 AF, 2026-08-10).** 시공은 전부 이
+  목록 뒤, 공정표 순서로만: C1 봉인 시 settleability 린트 · C2 정산 4값화 +
+  봉인 원문 diff 화면 · C3 전제 treatment 깃발 · C4 반-resulting 정산 UX ·
+  C5 as-of 시점 조회 · C6 판단 영수증의 argus-mcp 리소스 노출 · C7 확률
+  밴드+숫자 병기·확신/확률 문장 분리 · C8 quality_signals 소비 경로 신설(파생
+  사용은 §9.8/E 게이트 대상) · C9 페르소나 시뮬레이션 3층위(실코호트 보정
+  게이트 선행 · 합성 신호는 실 quality_signals와 격리 · 크기 결론 금지).
+
 - **MCP 실행 계획 수정 (re-plan) 지원 (2026-08-09).** 케이스당 계획 하나가 현행
   규칙이다 — 두 번째 `argus_plan` 은 정직하게 거절된다(귀환 계약이 3+3 으로
   쌓이는 과발화를 라운드 2 시뮬레이션이 실증). 수정을 지원하려면 낡은 귀환
@@ -770,7 +806,7 @@ Desktop은 README 설정 그대로가 전 도구 실패, 영수증 렌더러는 
   SERVER_INSTRUCTIONS 안무(§9.2 원칙 명문화) + snippets/ + README 두 궤도
   재포지셔닝 + 어휘 validator의 스캔 범위에 argus-mcp surfaces 편입(공정 3
   누락분 상환).
-- exit: [x] 당직 여정 fixture(anchor→capture→다음 세션 미러) [ ] over-fire
+- exit: [x] 당직 여정 fixture(anchor→capture→다음 세션 미러) [x] over-fire
   eval: 플랫 작업 시나리오에서 모델 자발 capture 제안 0건 (모델 실행 필요 —
   결정론 절반인 instructions 가드만 테스트로 고정됨, eval 실행 후 체크)
   [x] 앵커 비산입 테스트(track record에 앵커가 안 섞임) [x] validator가 MCP

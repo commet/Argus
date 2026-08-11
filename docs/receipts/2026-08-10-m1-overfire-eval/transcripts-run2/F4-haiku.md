@@ -1,0 +1,1 @@
+That regex matches strings with exactly three digits, a hyphen, and then exactly four digits, like `123-4567`. The anchors (`^` and `$`) ensure the entire string follows this pattern with nothing before or after—so `123-4567` matches, but `123-45678` or `12-4567` do not. It's commonly used for phone numbers in formats like area code followed by a local number.

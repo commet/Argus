@@ -56,6 +56,10 @@ const WAIVED = new Map([
   ['anthropic', 'shared client used by manual LLM reviews, not a gate'],
   ['architecture-review', 'manual, LLM-judged review; intentionally not merge-blocking'],
   ['copy-audit', 'manual, paid LLM prose review; intentionally not merge-blocking'],
+  [
+    'overfire-model',
+    'model-in-the-loop restraint eval for the BLUEPRINT M1 exit: needs ANTHROPIC_API_KEY (run mode) or externally collected transcripts (score mode); scored receipts live in docs/receipts/2026-08-10-m1-overfire-eval/ and are intentionally not merge-blocking',
+  ],
   ['codex-elicit-wire-probe', 'wire investigation tool that reports observations and asserts no product contract'],
   ['discover', 'raw host-payload investigation tool, superseded as a gate by host-matrix and picker-surfaces'],
   ['live-roundtrip', 'real-network investigation kept outside deterministic pre-merge verification'],
