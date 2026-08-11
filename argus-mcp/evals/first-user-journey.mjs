@@ -287,7 +287,11 @@ async function stage(n, title, userPromptSpec) {
   const userTurn = (await complete({
     model: SUBJECT, system: PERSONA_SYS,
     user: `${userPromptSpec}\n\nWrite only the message you send to your AI assistant. No preamble.`,
-    maxTokens: 600,
+    // 한국어는 같은 내용에 토큰을 훨씬 많이 쓴다. 600에서는 한국어 페르소나의
+    // 발화가 반쪽 문장으로 잘려 나갔고, 어시스턴트는 옳게도 "말씀이 끊겼다"고
+    // 되물었으며, 여정은 도구 호출 0회로 끝났다. 상한이 언어에 따라 다른
+    // 사용자를 만들면 그 하네스는 제품이 아니라 자기 상한을 재는 것이다.
+    maxTokens: 1600,
   })).trim();
   say(`  👤 사용자: ${userTurn.split('\n').join('\n     ')}`);
   history.push(`USER: ${userTurn}`);
@@ -300,7 +304,7 @@ async function stage(n, title, userPromptSpec) {
     const answer = (await complete({
       model: SUBJECT, system: PERSONA_SYS,
       user: `You asked your assistant about this: "${userTurn}"\n\nIt replied:\n"""\n${first.reply}\n"""\n\nReply as you naturally would. Write only the message you send. No preamble.`,
-      maxTokens: 400,
+      maxTokens: 1000, // 왕복 답변도 같은 이유로 넉넉히 (한국어 밀도)
     })).trim();
     followedUp = true;
     say(`  ↩ 왕복 — 어시스턴트가 되물었고 사용자가 답한다`);
