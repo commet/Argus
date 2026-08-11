@@ -84,6 +84,46 @@ export function isRealDate(value: unknown): boolean {
   return dt.getUTCFullYear() === y && dt.getUTCMonth() === mo - 1 && dt.getUTCDate() === d;
 }
 
+/**
+ * A caller-computable horizon: `+7d`, `+2w`, `+3m`.
+ *
+ * WHY THIS EXISTS. Dates were 44% of every refusal across 21 recorded journey
+ * runs — more than double the next cause. The reason is structural, not
+ * sloppiness: an absolute check-by can only be computed from "now", the caller
+ * has no clock, and it does not know that it does not know. So it confidently
+ * sends the year it was trained in (2025-06-13 against a 2026 today), burns a
+ * call on the refusal, and in two recorded runs rewrote the whole predicate
+ * while fixing the date and lost the seal entirely.
+ *
+ * The user never said an absolute date either. They said "in a couple of
+ * weeks". Making the caller do clockless arithmetic to convert that is the
+ * defect. This lets it pass through what it actually knows, and the side
+ * holding the clock does the conversion.
+ *
+ * Absolute dates keep working unchanged — this is a second accepted form, not
+ * a replacement.
+ */
+const HORIZON = /^\+(\d{1,3})([dwm])$/i;
+
+export function isHorizon(value: unknown): boolean {
+  return typeof value === 'string' && HORIZON.test(value.trim());
+}
+
+/** Resolve a horizon against `today` → YYYY-MM-DD. Returns null if not one. */
+export function resolveHorizon(value: unknown, today: string): string | null {
+  const m = typeof value === 'string' ? value.trim().match(HORIZON) : null;
+  if (!m) return null;
+  const n = Number(m[1]);
+  const unit = m[2]!.toLowerCase();
+  // Parse as UTC noon so a DST shift can never roll the date backwards.
+  const base = new Date(`${today}T12:00:00Z`);
+  if (Number.isNaN(base.getTime())) return null;
+  if (unit === 'd') base.setUTCDate(base.getUTCDate() + n);
+  else if (unit === 'w') base.setUTCDate(base.getUTCDate() + n * 7);
+  else base.setUTCMonth(base.getUTCMonth() + n);
+  return base.toISOString().slice(0, 10);
+}
+
 export function isFutureDate(check: string, today: string): boolean {
   const c = asDate(check);
   return !!c && c > today;

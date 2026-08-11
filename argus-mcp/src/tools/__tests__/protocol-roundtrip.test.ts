@@ -120,6 +120,31 @@ describe('MCP protocol round-trip (real server, stdio)', () => {
     expect(String(sc['recovery'])).toContain(String(sc['today']));
   });
 
+  it('accepts a horizon for check_by and stores the resolved DATE', async () => {
+    // The caller has no clock; the user said "in two weeks". What must never
+    // happen is the horizon leaking past the boundary — every downstream
+    // consumer (replay, receipts, calendar, the overdue sweep) compares dates
+    // as strings, and a stored "+2w" would silently never come due.
+    const today = new Date().toISOString().slice(0, 10);
+    const expected = new Date(`${today}T12:00:00Z`);
+    expected.setUTCDate(expected.getUTCDate() + 14);
+    const sealed = structured(await client.callTool({
+      name: 'argus_predict',
+      arguments: {
+        argus_dir: dir, id: 'horizon-probe',
+        predicate: 'the cutover finishes with no data loss',
+        check_by: '+2w', predicate_owner: 'user', today_override: today,
+      },
+    }));
+    expect(sealed.ok).toBe(true);
+    const ledger = fs.readFileSync(path.join(dir, 'ledger', 'ledger.jsonl'), 'utf8');
+    const row = ledger.split(/\r?\n/).filter(Boolean)
+      .map((l) => JSON.parse(l) as Record<string, unknown>)
+      .find((e) => e['id'] === 'horizon-probe' && e['event'] === 'seal')!;
+    expect(row['check_by']).toBe(expected.toISOString().slice(0, 10));
+    expect(JSON.stringify(row)).not.toContain('+2w');
+  });
+
   it('settling an unknown id hands back the ids that ARE saved', async () => {
     // Journey RUN A3: sealing and settling happen in different sessions, so the
     // caller no longer holds the id and reconstructs one from the predicate's

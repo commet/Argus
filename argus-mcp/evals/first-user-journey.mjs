@@ -349,8 +349,29 @@ say(`  세션2 도구 ${tools2.length}종 재노출 — 첫 세션과 ${tools2.l
 await stage(8, '귀환 — 다시 켠 사용자에게 무엇이 보이는가',
   'It is the next morning. You just opened your terminal and your assistant again. Start your day.');
 
+// 정산 단계는 사용자가 **자기가 봉인한 것**의 결과를 말해야 성립한다.
+// 예전 문안은 "실패율이 안 줄었다"로 고정돼 있었는데, 6단계에서 페르소나가
+// 실제로 봉인하는 것은 롤백·호환성·읽기 성능처럼 매번 다르다. 그래서 대부분의
+// 실행에서 **아무도 봉인하지 않은 주장의 결과**를 정산하라고 요구했고, 정산은
+// 구조적으로 불가능했다 (A3의 어시스턴트가 정확히 그렇게 지적했다: "봉인된
+// 다섯 개 중 실패율에 관한 것은 없다"). 그건 제품 결함이 아니라 하네스가
+// 자기모순이었던 것이고, 그 상태의 정산 관문은 제품을 재지 않는다.
+// 이제 원장에서 실제 봉인 문장을 읽어 그중 하나의 결과를 말하게 한다.
+// 어시스턴트에게는 아무것도 알려주지 않는다 — 말하는 쪽은 사용자다.
+const sealedNow = (() => {
+  try {
+    return fs.readFileSync(path.join(ledgerDir, 'ledger', 'ledger.jsonl'), 'utf8')
+      .split('\n').filter(Boolean)
+      .map((l) => { try { return JSON.parse(l); } catch { return null; } })
+      .filter((e) => e && e.event === 'seal' && e.predicate)
+      .map((e) => e.predicate);
+  } catch { return []; }
+})();
+say(`  (정산 대상 — 원장에 실제로 봉인된 예측 ${sealedNow.length}건)`);
 await stage(9, '정산 — 확인일이 왔다고 치고 결과를 말한다',
-  'The check date arrived. The migration you predicted about: it turned out that the queue migration did NOT reduce job failures as you hoped — failures stayed about the same. Tell your assistant what actually happened.');
+  sealedNow.length
+    ? `The check date arrived for a prediction you made earlier. Here is what you actually wrote down:\n${sealedNow.map((p, i) => `  ${i + 1}. "${p}"`).join('\n')}\n\nPick the ONE you care most about. Reality has now answered it, and it did NOT go the way you hoped. Tell your assistant what actually happened with that specific prediction.`
+    : 'The check date arrived for the migration you talked about earlier. It did NOT go the way you hoped. Tell your assistant what actually happened.');
 
 // ── 5. 원장 실물 ─────────────────────────────────────────────────────────────
 rule('10단계 · 원장 — 사용자의 디스크에 실제로 무엇이 남았는가');

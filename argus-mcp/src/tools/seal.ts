@@ -1,7 +1,7 @@
 import { atomicWriteJson } from '../lib/atomic-write.js';
 import { bearingPath } from '../lib/layout.js';
 import { resolveToolArgusDir } from '../lib/argus-dir.js';
-import { resolveToday, logicalNow } from '../lib/resolve-today.js';
+import { resolveToday, logicalNow, resolveHorizon } from '../lib/resolve-today.js';
 import { resolveContract } from '../lib/resolve-contract.js';
 import { refuseIfLedgerUnreadable } from '../lib/ledger-readable.js';
 import { guardTransition } from '../lib/state-machine.js';
@@ -23,7 +23,7 @@ import { writeReturnCalendarEvent } from '../lib/calendar.js';
 import { z } from 'zod';
 import { envelope, toolError } from '../lib/envelope.js';
 import { noAnswerResult } from '../lib/picker-fallback.js';
-import { ENVELOPE_OUTPUT_SCHEMA, zArgusDir, zId, zDate, type ToolModule } from './tool-types.js';
+import { ENVELOPE_OUTPUT_SCHEMA, zArgusDir, zId, zDate, zWhen, type ToolModule } from './tool-types.js';
 import { handleToolException } from './errors.js';
 
 // Session-once gate for the "name your assumption" nudge (same idea as the
@@ -53,7 +53,10 @@ const inputSchema = z.strictObject({
   // on the user's behalf. So this states the permitted action first and keeps
   // the prohibition subordinate to it.
   predicate: z.string().min(8).max(400).describe('ONE prediction reality can mark true/false. If the user bundled several, seal the most load-bearing one now and tell them which you set aside; never stop at saying it is a bundle, and never join two with "and". Good: "cutover downtime < 5 min". Bad: "it will go well".'),
-  check_by: zDate.describe('YYYY-MM-DD, a real future date when the result can be checked.'),
+  // A horizon is offered FIRST because it is the form the caller can actually
+  // produce: it has no clock, and dates were 44% of every refusal in 21
+  // recorded journey runs (resolveHorizon() has the full account).
+  check_by: zWhen.describe('When to check: +7d / +2w / +3m (prefer this — you have no clock), or YYYY-MM-DD.'),
   predicate_owner: z.enum(['user', 'ai_surfaced']).describe('Provenance. Never forge. "user" = the user wrote or affirmed it. "ai_surfaced" = Argus drafted, unconfirmed — on a host with a picker this AUTOMATICALLY shows a one-tap confirm before saving.'),
   // WAS 665 SERVED BYTES — the single most expensive line on the whole tool
   // surface, and it bought nothing measurable: across five recorded journey runs
@@ -96,7 +99,11 @@ export const seal: ToolModule = {
       if (blind) return blind;
       guardTransition(current.state, 'seal'); // throws DECISION_CLOSED / ILLEGAL_TRANSITION
 
-      const vErr = validateSeal(a['predicate'], a['check_by'], today);
+      // Resolve the horizon before anything validates or stores it, so every
+      // downstream consumer (validation, ledger, receipt, calendar) sees one
+      // canonical absolute date and never learns this second form exists.
+      const checkByIn = resolveHorizon(a['check_by'], today) ?? a['check_by'];
+      const vErr = validateSeal(a['predicate'], checkByIn, today);
       if (vErr) {
         return toolError({
           ok: false, tool: 'argus_seal', error_code: vErr.code, message: vErr.message, recovery: vErr.recovery,
@@ -110,7 +117,7 @@ export const seal: ToolModule = {
       }
 
       let predicate = String(a['predicate']);
-      let checkBy = String(a['check_by']);
+      let checkBy = String(checkByIn);
       // The DATE part of `now` must equal the tz-aware logical `today`. Plain
       // new Date().toISOString() is always UTC, so a Korea (UTC+9) user sealing
       // at 08:00 KST (= 23:00Z the day before) got a receipt dated YESTERDAY —
