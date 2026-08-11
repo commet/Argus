@@ -330,6 +330,10 @@ export function localizeToolResult(
   const genericFallback = /[가-힣]/.test(existingMsg)
     ? { message: existingMsg, ...(existingRec ? { recovery: existingRec } : {}) }
     : { message: '요청을 처리하지 못했습니다.', recovery: '입력값과 현재 결정 상태를 확인한 뒤 다시 시도하세요.' };
+  // 시계는 어떤 지역화 맵보다 우선한다. KO_ERRORS는 정적 문자열이라 영어
+  // 메시지 끝의 "(today is …)"를 통째로 지웠고, 한국어 호출자만 오늘을 모른 채
+  // 날짜를 더듬었다 (KOC8: 네 번 연속 실패). 아래 맵 조회 뒤에 다시 붙인다.
+  const clock = typeof sc['today'] === 'string' ? sc['today'] : null;
   let copy = code === 'INVALID_INPUT' && Array.isArray(sc['invalid_fields'])
     ? localizeInvalidInput(sc['invalid_fields'] as InvalidField[], typeof sc['today'] === 'string' ? sc['today'] : undefined)
     : KO_ERRORS[code] ?? genericFallback;
@@ -357,9 +361,18 @@ export function localizeToolResult(
     const m = String(sc['message'] ?? '').match(/check-by (\d{4}-\d{2}-\d{2}), today (\d{4}-\d{2}-\d{2})/);
     if (m) copy = { message: `아직 확인일이 되지 않았습니다 (확인일 ${m[1]} · 오늘 ${m[2]}).`, recovery: copy.recovery };
   }
+  // 시계를 다시 붙인다. 영어 메시지는 "(today is 2026-08-11)"로 끝나는데
+  // KO_ERRORS는 정적 문자열이라 그 한 조각을 통째로 지웠고, 한국어 호출자는
+  // 날짜가 틀렸다는 말만 듣고 오늘이 언제인지는 못 들었다. KOC8에서 그
+  // 어시스턴트는 학습 연도에서 하루씩 더듬으며(2025-06-17 → 06-18 → 06-24)
+  // 네 번 실패하고 아무것도 기록하지 못했다. 거절을 복구 가능하게 만드는 단
+  // 하나의 사실을 지역화가 지울 수 있어서는 안 된다.
+  const withClock = clock && !copy.message.includes(clock)
+    ? `${copy.message} 오늘은 ${clock}입니다.`
+    : copy.message;
   const localized = {
     ...sc,
-    message: copy.message,
+    message: withClock,
     ...(copy.recovery ? { recovery: copy.recovery } : {}),
   };
   result.structuredContent = localized;

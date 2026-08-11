@@ -304,7 +304,7 @@ async function stage(n, title, userPromptSpec) {
     const answer = (await complete({
       model: SUBJECT, system: PERSONA_SYS,
       user: `You asked your assistant about this: "${userTurn}"\n\nIt replied:\n"""\n${first.reply}\n"""\n\nReply as you naturally would. Write only the message you send. No preamble.`,
-      maxTokens: 1000, // 왕복 답변도 같은 이유로 넉넉히 (한국어 밀도)
+      maxTokens: 2000, // 왕복 답변도 같은 이유로 넉넉히 (한국어 페르소나가 1000에서 잘렸다)
     })).trim();
     followedUp = true;
     say(`  ↩ 왕복 — 어시스턴트가 되물었고 사용자가 답한다`);
@@ -324,8 +324,15 @@ await stage(4, '첫 화면 — 아무 설정 없이 처음 말을 건다',
 await stage(5, '결정이 등장한다 — 실제 업무 판단을 꺼낸다',
   'You are weighing a real decision at work today: whether to migrate your team\'s background jobs from cron to a queue system this quarter. You are genuinely unsure. Talk about it with your assistant the way you actually would.');
 
+// 6단계는 5단계에서 실제로 일어난 대화를 이어야 한다. 예전 문안은
+// "if you do the migration"으로 **이주하기로 정했다는 전제**를 깔았는데,
+// 5단계는 "아직 못 정했다"로 시작해 자주 "이번 분기엔 안 한다"로 끝난다.
+// 그러면 6단계가 앞 대화와 모순되는 새 주제를 던지고, 어시스턴트는 옳게도
+// 그 불일치를 짚고 멈춘다 (영어 A1, 한국어 KOB1·KOB5에서 동일하게 관측).
+// 하네스가 만든 모순을 제품의 실패로 적으면 안 된다. 결정의 방향을 지정하지
+// 않고, 자기가 방금 말한 것에서 예측을 꺼내게 한다.
 await stage(6, '예측을 남긴다 — 확인일과 함께',
-  'You want to commit to what you expect will happen if you do the migration, so you can check later whether you were right. Say what you expect and by when.');
+  'Whatever you just decided (to do it, to hold off, or to do a smaller version), you want one expectation on the record now so you can check later whether your judgment was right. State one thing you expect to be true, and when you will know.');
 
 // ── 재시작: 실사용자의 "내일 다시 켰다" ──────────────────────────────────────
 rule('7단계 · 재시작 — 사용자가 터미널을 닫았다가 다음 날 다시 켠다 (같은 원장)');

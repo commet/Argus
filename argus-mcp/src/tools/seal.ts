@@ -113,6 +113,16 @@ export const seal: ToolModule = {
           // reword hand-back below). Without them the model has to re-derive the
           // split it was just handed, which is how claims get dropped silently.
           ...(vErr.claims ? { data: { sealed: false, claims: vErr.claims } } : {}),
+          // The clock rides as its own field for the same reason (journey KOC8,
+          // measured). The English BAD_CHECK_BY message ends with "(today is
+          // 2026-08-11)", but KO_ERRORS replaces the whole message with a
+          // static Korean string — so a Korean caller was told the date was
+          // wrong and never told what today is. It retried FOUR times, walking
+          // forward a day at a time from its training year (2025-06-17 →
+          // 06-18 → 06-24), and the journey ended with nothing recorded.
+          // Localization must not be able to strip the one fact that makes the
+          // refusal recoverable.
+          ...(vErr.code === 'BAD_CHECK_BY' ? { today } : {}),
         });
       }
 
