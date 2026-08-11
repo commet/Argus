@@ -27,7 +27,29 @@ export async function complete({ model, system, user, maxTokens = 1024 }) {
     throw new Error(`anthropic ${res.status}: ${body.slice(0, 300)}`);
   }
   const json = await res.json();
-  return json.content.map((b) => (b.type === 'text' ? b.text : '')).join('').trim();
+  const text = json.content.map((b) => (b.type === 'text' ? b.text : '')).join('').trim();
+  // A TRUNCATED completion is never what a caller wants, and swallowing
+  // stop_reason made the harness lie about the product (2026-08-11).
+  //
+  // The Korean personas write long, and Korean costs far more tokens per
+  // sentence than English, so their turns hit the ceiling and arrived as half
+  // sentences. The assistant did the RIGHT thing — "your message got cut off,
+  // please continue" — and the harness scored the whole journey 0/4 with zero
+  // tool calls. Read only the score, and the conclusion is "the product fails
+  // Korean users." The product never saw a complete sentence.
+  //
+  // This is the LLM-glue invariant turned on the harness itself: a measuring
+  // instrument that silently feeds broken input and records the subject's
+  // confusion as the subject's defect is worse than no instrument. Every gap
+  // fails loudly or is surfaced honestly — including our own.
+  if (json.stop_reason === 'max_tokens') {
+    throw new Error(
+      `completion truncated at max_tokens=${maxTokens} (produced ${text.length} chars). `
+      + 'Raise maxTokens for this call — a half sentence must never reach the subject under test. '
+      + `Tail: ${JSON.stringify(text.slice(-90))}`,
+    );
+  }
+  return text;
 }
 
 /**

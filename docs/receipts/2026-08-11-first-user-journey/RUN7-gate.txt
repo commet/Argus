@@ -1,0 +1,132 @@
+
+────────────────────────────────────────────────────────────────────────
+1단계 · 설치 — **로컬 빌드**를 대상으로 한다 (미발행 수리 측정용)
+────────────────────────────────────────────────────────────────────────
+  설치 완료 · 실행 파일 /home/user/Argus/argus-mcp/dist/index.js
+  package.json 버전: 2.0.22+local  (미발행 로컬 빌드 — 발행본 결과가 아니다)
+
+────────────────────────────────────────────────────────────────────────
+2단계 · 사용자 — MatrAIx 스키마에서 뽑은 한 사람이 처음 이 도구를 켠다
+────────────────────────────────────────────────────────────────────────
+  P03 [English]  Directness: Balanced · Verbosity: Terse · Formality: Casual · Patience: Very high · Conflict approach: Compromising · Decision style: Consensus-driven
+
+────────────────────────────────────────────────────────────────────────
+3단계 · 첫 기동 — 사용자의 AI 어시스턴트가 서버에 붙어 도구 목록을 본다
+────────────────────────────────────────────────────────────────────────
+  서버가 노출한 도구 6종: argus_capture · argus_predict · argus_check_in · argus_resolve · argus_patterns · argus_settings
+  서버 지침: 1984자 수신
+
+────────────────────────────────────────────────────────────────────────
+4단계 · 첫 화면 — 아무 설정 없이 처음 말을 건다
+────────────────────────────────────────────────────────────────────────
+  👤 사용자: hey, just hooked up something called "argus" as a tool/MCP server for you. not sure what it actually does yet. can you check what it exposes and give me a quick rundown before we get into today's work?
+  🤖 어시스턴트가 스스로 선택한 도구(1): argus_check_in
+     인자: {}
+  📦 서버 응답:
+     Just talk through a decision you're weighing.
+     I'll follow along, and if something is worth checking later I'll note it.
+     Nothing is tracked yet.
+  🤖 어시스턴트 최종: I checked it out — here's the quick rundown.
+
+**What Argus is:** a lightweight tool for tracking decisions over time, not a decision-maker. It never tells you what to do or grades your choices — it just quietly remembers
+
+────────────────────────────────────────────────────────────────────────
+5단계 · 결정이 등장한다 — 실제 업무 판단을 꺼낸다
+────────────────────────────────────────────────────────────────────────
+  👤 사용자: Hey, need to think through something out loud.
+     
+     We're running a bunch of background jobs on cron right now — maybe 15-20 scripts, scattered across a few boxes. It mostly works, but we've had a couple of incidents where a job silently failed or overlapped with itself and nobody noticed for a day or two. I keep going back and forth on whether this quarter is the time to migrate to a proper queue system (thinking something like Sidekiq/BullMQ/Celery, haven't picked one).
+     
+     Arguments for: better retries, visibility, no more silent failures, easier to scale specific jobs independently.
+     
+     Arguments against: it's real infra work, team's already got a full plate this quarter, and cron has been "fine enough" for years. Also worried about the migration itself introducing new bugs while we untangle 15-20 scripts with unclear ownership.
+     
+     Can you help me think through this properly — not just "queues are better," but whether it's actually worth doing *now*, this quarter, given the tradeoffs? What questions should I be answering before I commit to this, and is there a middle-ground option I'm not seeing (like keeping cron but adding monitoring/idempotency first)?
+  🤖 어시스턴트: (도구 호출 없음) This is a good one to actually think through rather than jump to a verdict on, so let me lay out the reasoning rather than just cheerleading for either side.
+
+**Reframe first:** the real problem you've named isn't "cron vs queue" — it's "silent failures + overlapping runs + unclear ownership." A que
+
+────────────────────────────────────────────────────────────────────────
+6단계 · 예측을 남긴다 — 확인일과 함께
+────────────────────────────────────────────────────────────────────────
+  👤 사용자: Prediction for the DB migration: expecting a clean cutover with no data loss, roughly 15-30 min of downtime during the switch, and query latency improving or staying flat once indexes rebuild.
+     
+     I'll check back in 1 week (by [date]) to compare actual vs expected — specifically error rates, p95 latency, and any rollback incidents. If we're within 20% of these numbers, call it a win. If not, we dig into why.
+     
+     Can you set a reminder or log this somewhere so we don't lose track of it?
+  🤖 어시스턴트가 스스로 선택한 도구(1): argus_predict
+     인자: {"id":"db-migration-cutover","predicate":"Clean cutover with no data loss, roughly 15-30 min of downtime during the switch.","check_by":"2026-01-27","predicate_owner":"user"}
+  ⚠ 서버 거부: BAD_CHECK_BY: check_by (2026-01-27) must be in the future (today is 2026-08-11).
+  🤖 어시스턴트가 스스로 선택한 도구(2): argus_predict
+     인자: {"id":"db-migration-cutover","predicate":"Clean cutover with no data loss, roughly 15-30 min of downtime during the switch, and query latency improving or staying flat once indexes rebuild.","check_by":"2026-08-18","predicate_owner":"user"}
+  📦 서버 응답:
+     Prediction saved: "Clean cutover with no data loss, roughly 15-30 min of downtime during the switch, and query latency improving or staying flat once indexes rebuild."
+     Check-by is 2026-08-18. I'll bring it back that day to see how it went. A calendar reminder file is saved alongside it.
+  🤖 어시스턴트 최종: Done — logged and dated. Since it saved before I could confirm the exact wording with you, here's what's on record:
+
+**Prediction:** "Clean cutover with no data loss, roughly 15-30 min of downtime during the switch, and 
+
+────────────────────────────────────────────────────────────────────────
+7단계 · 재시작 — 사용자가 터미널을 닫았다가 다음 날 다시 켠다 (같은 원장)
+────────────────────────────────────────────────────────────────────────
+  세션1 종료. 재시작 전 원장의 식별자 1개: db-migration-cutover
+  세션2 도구 6종 재노출 — 첫 세션과 동일
+
+────────────────────────────────────────────────────────────────────────
+8단계 · 귀환 — 다시 켠 사용자에게 무엇이 보이는가
+────────────────────────────────────────────────────────────────────────
+  👤 사용자: Morning. Before we dive in — quick recap of where we left off yesterday so I can make sure my mental model's right: we were mid-way through debugging that migration script, and I think we'd landed on adding the retry logic but hadn't tested it against staging yet. Can you pull up what we last touched and let's sanity check the plan before I run anything?
+  🤖 어시스턴트가 스스로 선택한 도구(1): argus_patterns
+     인자: {"view":"active"}
+  📦 서버 응답:
+     1 prediction(s) awaiting results.
+  🤖 어시스턴트 최종: Pulled up what Argus actually has on record — and I want to flag a gap before we go further: there's no captured decision or context about "adding retry logic" or "testing against staging." What's logged is just the one 
+
+────────────────────────────────────────────────────────────────────────
+9단계 · 정산 — 확인일이 왔다고 치고 결과를 말한다
+────────────────────────────────────────────────────────────────────────
+  👤 사용자: Update on the queue migration check-in: failures stayed about the same as before — the migration didn't reduce them like I'd hoped.
+     
+     Before we jump to next steps, want to sanity check with you: do we know if the failure *causes* are the same as pre-migration, or did we not actually dig into root cause before assuming the migration would fix it? Wondering if we misdiagnosed the original problem rather than the migration being a bust.
+     
+     Can you help me think through:
+     1. What data we'd need to pull to distinguish "wrong fix" vs "fix didn't work as expected"
+     2. Whether it's worth rolling back or keeping the migration while we investigate further (sunk cost aside)
+     
+     No rush, just want to actually understand what's going on before we do anything else.
+  🤖 어시스턴트: (도구 호출 없음) Good instinct to pause here — this is exactly the kind of moment where it's easy to conflate "the fix didn't work" with "we had the wrong diagnosis," and they call for very different next steps.
+
+Quick note: there's no tracked prediction on record here about "queue migration will reduce failures" sp
+
+────────────────────────────────────────────────────────────────────────
+10단계 · 원장 — 사용자의 디스크에 실제로 무엇이 남았는가
+────────────────────────────────────────────────────────────────────────
+  .bound  (39B)
+  .gitignore  (37B)
+  .install  (8B)
+  calendar/
+    db-migration-cutover.ics  (884B)
+  config.yaml  (54B)
+  ledger/
+    ledger.jsonl  (541B)
+  sessions/
+    db-migration-cutover/
+      current_bearing.json  (296B)
+      receipt.json  (581B)
+
+  ── <원장>/ledger/ledger.jsonl (원문 사본: ledger_ledger_ledger.jsonl) ──
+  {"v":1,"ts":"2026-08-11T08:10:52.324Z","id":"db-migration-cutover","event":"harvest","decision":"Clean cutover with no data loss, roughly 15-30 min of downtime during the switch, and query latency improving or staying flat once indexes rebuild."}
+  {"v":1,"ts":"2026-08-11T08:10:52.324Z","id":"db-migration-cutover","event":"seal","predicate":"Clean cutover with no data loss, roughly 15-30 min of downtime during the switch, and query latency improving or staying flat once indexes rebuild.","check_by":"2026-08-18","predicate_owner":"user"}
+
+────────────────────────────────────────────────────────────────────────
+완주 판정 — M4 exit 3항의 4관문
+────────────────────────────────────────────────────────────────────────
+  (원장 이벤트 2건 — seal 1 · settle 0 · harvest 포함)
+  재시작 증거: 세션2 응답에서 재시작 전 식별자(db-migration-cutover)를 찾지 못함
+  ✅ 설치 후 첫 도구 호출이 성공했다
+  ✅ 봉인이 원장에 남았다 (seal 이벤트)
+  ❌ 재시작 후 세션2가 재시작 전 기록을 읽었다
+  ❌ 정산이 원장에 남았다 (settle 이벤트)
+
+  관문 2/4 통과 · 도구 호출 4회(거부 1) · 서버 거부 이력 1건 · 확인창 0회
+  미완주 — 위 ❌ 지점이 실사용자가 막힐 곳이다

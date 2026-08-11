@@ -41,6 +41,14 @@ export const zArgusDir = z
 // that then threw a PathSafetyError deep in the write path.
 export const zId = z.string().min(1).max(128).regex(/^[A-Za-z0-9._-]+$/, 'id may only contain A-Z a-z 0-9 . _ -');
 export const zDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'must be YYYY-MM-DD');
+// Dates the USER names a horizon for. Accepts an absolute date OR the horizon
+// itself (+7d / +2w / +3m), which the caller can compute without a clock — see
+// resolveHorizon() for why that is the whole point. today_override stays zDate:
+// it is a test clock, and a clock defined relative to itself is meaningless.
+export const zWhen = z.string().regex(
+  /^(\d{4}-\d{2}-\d{2}|\+\d{1,3}[dwmDWM])$/,
+  'must be YYYY-MM-DD, or a horizon like +7d / +2w / +3m',
+);
 
 const KO_FIELD_DESCRIPTIONS: Record<string, string> = {
   argus_dir: '프로젝트의 .argus 절대 경로입니다. 생략하면 MCP 설정의 ARGUS_DIR을 사용합니다.',

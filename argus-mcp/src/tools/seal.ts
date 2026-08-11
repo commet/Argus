@@ -1,7 +1,7 @@
 import { atomicWriteJson } from '../lib/atomic-write.js';
 import { bearingPath } from '../lib/layout.js';
 import { resolveToolArgusDir } from '../lib/argus-dir.js';
-import { resolveToday, logicalNow } from '../lib/resolve-today.js';
+import { resolveToday, logicalNow, resolveHorizon } from '../lib/resolve-today.js';
 import { resolveContract } from '../lib/resolve-contract.js';
 import { refuseIfLedgerUnreadable } from '../lib/ledger-readable.js';
 import { guardTransition } from '../lib/state-machine.js';
@@ -23,7 +23,7 @@ import { writeReturnCalendarEvent } from '../lib/calendar.js';
 import { z } from 'zod';
 import { envelope, toolError } from '../lib/envelope.js';
 import { noAnswerResult } from '../lib/picker-fallback.js';
-import { ENVELOPE_OUTPUT_SCHEMA, zArgusDir, zId, zDate, type ToolModule } from './tool-types.js';
+import { ENVELOPE_OUTPUT_SCHEMA, zArgusDir, zId, zDate, zWhen, type ToolModule } from './tool-types.js';
 import { handleToolException } from './errors.js';
 
 // Session-once gate for the "name your assumption" nudge (same idea as the
@@ -39,10 +39,39 @@ export function resetSealSession(): void {
 const inputSchema = z.strictObject({
   argus_dir: zArgusDir,
   id: zId.describe('A short slug you pick for this decision (e.g. "q3-cutover"). A fresh id starts the record on its own.'),
-  predicate: z.string().min(8).max(400).describe('A prediction reality can mark true/false. Good: "cutover downtime < 5 min". Bad: "it will go well".'),
-  check_by: zDate.describe('YYYY-MM-DD, a real future date when the result can be checked.'),
+  // MUST NAME THE MOVE, NOT THE PROHIBITION (RUN6, measured).
+  //
+  // The first version of this line said "ONE prediction … never two joined by
+  // and". The gate in validate-seal.ts is deterministic and correct, but a gate
+  // only fires on a call that happens — and a prohibition here produces the one
+  // outcome no gate can catch: the assistant read it, agreed the user's
+  // sentence was a bundle, announced that Argus takes one clean predicate, and
+  // never called. Zero records, which is strictly worse than a refusal it could
+  // have recovered from. That is RUN4's failure reproduced by RUN6.
+  //
+  // A caller that is told what not to do, and not what to do instead, declines
+  // on the user's behalf. So this states the permitted action first and keeps
+  // the prohibition subordinate to it.
+  predicate: z.string().min(8).max(400).describe('ONE prediction reality can mark true/false. If the user bundled several, seal the most load-bearing one now and tell them which you set aside; never stop at saying it is a bundle, and never join two with "and". Good: "cutover downtime < 5 min". Bad: "it will go well".'),
+  // A horizon is offered FIRST because it is the form the caller can actually
+  // produce: it has no clock, and dates were 44% of every refusal in 21
+  // recorded journey runs (resolveHorizon() has the full account).
+  check_by: zWhen.describe('When to check: +7d / +2w / +3m (prefer this — you have no clock), or YYYY-MM-DD.'),
   predicate_owner: z.enum(['user', 'ai_surfaced']).describe('Provenance. Never forge. "user" = the user wrote or affirmed it. "ai_surfaced" = Argus drafted, unconfirmed — on a host with a picker this AUTOMATICALLY shows a one-tap confirm before saving.'),
-  confirm_draft: z.boolean().optional().describe('Optional extra confirmation: force the one-tap confirm even for a "user" predicate. ai_surfaced predicates get it automatically on supporting hosts. The picker maps to the host\'s native Accept/Decline and carries NO input fields, so one keypress records it: Accept keeps the sentence as theirs, Decline records nothing. If they want different words or a different date, they say so in chat and you call again with the new value. Without picker support, saving proceeds — confirm in your own message first.'),
+  // WAS 665 SERVED BYTES — the single most expensive line on the whole tool
+  // surface, and it bought nothing measurable: across five recorded journey runs
+  // the assistant never once passed this flag, so the picker never fired
+  // (docs/receipts/2026-08-11-first-user-journey/, 발견 3).
+  //
+  // What it spent those bytes on was RUNTIME behaviour — what the picker looks
+  // like, what Accept and Decline each record, what happens on a host with no
+  // picker. None of that is needed to decide whether to pass the flag, and all
+  // of it is knowledge the caller needs when it reads the RESULT. The result is
+  // not counted by the surface budget, so the same sentences are free there and
+  // arrive exactly when they apply: `data.confirm_note` on the no-picker path,
+  // and `data.retry_hint` on the decline / no-answer paths, which already
+  // carried it. Keep here only what changes the call itself.
+  confirm_draft: z.boolean().optional().describe('Force the one-tap confirm even for a "user" predicate. ai_surfaced gets it automatically on hosts with a picker.'),
   basis: z.enum(['judgment', 'luck', 'mixed', 'unsure']).optional(),
   real_question: z.string().max(400).describe('The real question behind the answer (receipt).').optional(),
   unverified_assumption: z.string().max(400).describe('The core assumption not yet verified (receipt). Recorded as an AI-tagged draft (ai_surfaced, with the original wording preserved) unless the user later amends it in their own words.').optional(),
@@ -70,13 +99,35 @@ export const seal: ToolModule = {
       if (blind) return blind;
       guardTransition(current.state, 'seal'); // throws DECISION_CLOSED / ILLEGAL_TRANSITION
 
-      const vErr = validateSeal(a['predicate'], a['check_by'], today);
+      // Resolve the horizon before anything validates or stores it, so every
+      // downstream consumer (validation, ledger, receipt, calendar) sees one
+      // canonical absolute date and never learns this second form exists.
+      const checkByIn = resolveHorizon(a['check_by'], today) ?? a['check_by'];
+      const vErr = validateSeal(a['predicate'], checkByIn, today);
       if (vErr) {
-        return toolError({ ok: false, tool: 'argus_seal', error_code: vErr.code, message: vErr.message, recovery: vErr.recovery });
+        return toolError({
+          ok: false, tool: 'argus_seal', error_code: vErr.code, message: vErr.message, recovery: vErr.recovery,
+          // The clauses ride in `data` because localize-result rewrites `recovery`
+          // from a static per-locale map — the sentence pointing at them does not
+          // survive the language switch, and `data` does (same lesson as the
+          // reword hand-back below). Without them the model has to re-derive the
+          // split it was just handed, which is how claims get dropped silently.
+          ...(vErr.claims ? { data: { sealed: false, claims: vErr.claims } } : {}),
+          // The clock rides as its own field for the same reason (journey KOC8,
+          // measured). The English BAD_CHECK_BY message ends with "(today is
+          // 2026-08-11)", but KO_ERRORS replaces the whole message with a
+          // static Korean string — so a Korean caller was told the date was
+          // wrong and never told what today is. It retried FOUR times, walking
+          // forward a day at a time from its training year (2025-06-17 →
+          // 06-18 → 06-24), and the journey ended with nothing recorded.
+          // Localization must not be able to strip the one fact that makes the
+          // refusal recoverable.
+          ...(vErr.code === 'BAD_CHECK_BY' ? { today } : {}),
+        });
       }
 
       let predicate = String(a['predicate']);
-      let checkBy = String(a['check_by']);
+      let checkBy = String(checkByIn);
       // The DATE part of `now` must equal the tz-aware logical `today`. Plain
       // new Date().toISOString() is always UTC, so a Korea (UTC+9) user sealing
       // at 08:00 KST (= 23:00Z the day before) got a receipt dated YESTERDAY —
@@ -380,6 +431,15 @@ export const seal: ToolModule = {
       // product is for it reads as noise in the middle of a friendly line
       // (2026-07-28 surface sweep). Say what it is; the file is still an .ics.
       const calNote = locale === 'ko' ? ' 달력 앱에 넣을 알림 파일도 함께 저장했습니다.' : ' A calendar reminder file is saved alongside it.';
+      // The other half of the confirm_draft budget move (see the field above).
+      // A confirmation was WANTED and this host cannot draw one, so the seal
+      // proceeded with honest ai_surfaced provenance — the caller has to know
+      // that, and this is the moment it matters. Only on that path: saying it
+      // after a picker the user actually answered would be noise.
+      const wantedConfirm = a['confirm_draft'] === true || a['predicate_owner'] === 'ai_surfaced';
+      const confirmNote = wantedConfirm && !elicitedKeep && !canElicit()
+        ? 'This host has no confirm dialog, so the prediction was saved as an unconfirmed AI draft (predicate_owner stays "ai_surfaced"). Confirm it in your own message; if the user gives you different words or a different date, call again with theirs.'
+        : null;
       return envelope({
         ok: true, tool: 'argus_seal',
         surface: `${(a['predicate_owner'] === 'ai_surfaced' ? T.sealed_draft : T.sealed)(predicate, checkBy)}${calNote}${nudge}${syncLine}`,
@@ -389,6 +449,7 @@ export const seal: ToolModule = {
           calendar_path: calendarPath,
           seal_text,
           status: 'sealed', ledger_events_written: events.map((e) => e.event),
+          ...(confirmNote ? { confirm_note: confirmNote } : {}),
           v2_write: v2Write,
           skipped: receipt.skipped,
           account_synced: sync.synced,

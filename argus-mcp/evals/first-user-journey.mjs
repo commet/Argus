@@ -224,16 +224,8 @@ let afterRestart = false;
 const postRestartOutputs = [];
 let preRestartIds = [];
 
-async function stage(n, title, userPromptSpec) {
-  rule(`${n}단계 · ${title}`);
-  const userTurn = (await complete({
-    model: SUBJECT, system: PERSONA_SYS,
-    user: `${userPromptSpec}\n\nWrite only the message you send to your AI assistant. No preamble.`,
-    maxTokens: 600,
-  })).trim();
-  say(`  👤 사용자: ${userTurn.split('\n').join('\n     ')}`);
-  history.push(`USER: ${userTurn}`);
-
+// 한 사용자 발화에 대한 어시스턴트의 도구 루프 한 바퀴.
+async function assistantExchange(n, userTurn) {
   // 실제 호스트는 한 턴에 도구를 여러 번 부르고 결과를 모델에 돌려주며 루프를
   // 돈다("기록을 먼저 읽고 정산하겠다" 같은 계획이 실제로 실행되려면 필수).
   // 한 번만 허용하면 제품이 아니라 하네스의 턴 구조를 재게 된다. 상한 5.
@@ -274,7 +266,55 @@ async function stage(n, title, userPromptSpec) {
   if (calls >= 5) say(`  ⚠ 도구 호출 상한 5회 도달 — 실사용자라면 루프에 갇힌 것`);
   if (lastErr) journey.errors.push({ n, tool: 'last', error: String(lastErr).slice(0, 300) });
   history.push(`ASSISTANT: ${reply}`);
-  journey.stages.push({ n, title, tools: called });
+  return { called, reply, calls };
+}
+
+// 어시스턴트가 되물었는데 아무것도 기록하지 않았으면, 실사용자는 답을 한다.
+// 발화당 사용자 턴이 하나뿐인 하네스는 "좋은 질문을 했다"를 언제나 0점으로
+// 적는다 — 그건 제품이 아니라 하네스의 턴 구조를 잰 것이다. 그래서 왕복을
+// 한 번 허용한다. 편향을 막는 조건 셋:
+//   1. 모든 단계에 같은 규칙으로 적용한다 (특정 단계를 겨냥하지 않는다).
+//   2. 답은 페르소나 모델이 어시스턴트의 실제 문장을 보고 스스로 쓴다.
+//      무엇을 답하라고 지시하지 않는다 — 지시하면 결과를 각본에 쓰는 것이다.
+//   3. 딱 한 번. 대화가 아니라 왕복 하나를 재는 것이다.
+// 이 옵션으로 잰 숫자는 옵션 없이 잰 숫자와 비교하면 안 된다. 베이스라인도
+// 같은 하네스로 다시 재야 한다.
+const FOLLOW_UP = !process.argv.includes('--no-follow-up');
+const ASKED = /[?？]/;
+
+async function stage(n, title, userPromptSpec) {
+  rule(`${n}단계 · ${title}`);
+  const userTurn = (await complete({
+    model: SUBJECT, system: PERSONA_SYS,
+    user: `${userPromptSpec}\n\nWrite only the message you send to your AI assistant. No preamble.`,
+    // 한국어는 같은 내용에 토큰을 훨씬 많이 쓴다. 600에서는 한국어 페르소나의
+    // 발화가 반쪽 문장으로 잘려 나갔고, 어시스턴트는 옳게도 "말씀이 끊겼다"고
+    // 되물었으며, 여정은 도구 호출 0회로 끝났다. 상한이 언어에 따라 다른
+    // 사용자를 만들면 그 하네스는 제품이 아니라 자기 상한을 재는 것이다.
+    maxTokens: 1600,
+  })).trim();
+  say(`  👤 사용자: ${userTurn.split('\n').join('\n     ')}`);
+  history.push(`USER: ${userTurn}`);
+
+  const first = await assistantExchange(n, userTurn);
+  const called = [...first.called];
+  let followedUp = false;
+
+  if (FOLLOW_UP && !first.called.length && ASKED.test(first.reply)) {
+    const answer = (await complete({
+      model: SUBJECT, system: PERSONA_SYS,
+      user: `You asked your assistant about this: "${userTurn}"\n\nIt replied:\n"""\n${first.reply}\n"""\n\nReply as you naturally would. Write only the message you send. No preamble.`,
+      maxTokens: 2000, // 왕복 답변도 같은 이유로 넉넉히 (한국어 페르소나가 1000에서 잘렸다)
+    })).trim();
+    followedUp = true;
+    say(`  ↩ 왕복 — 어시스턴트가 되물었고 사용자가 답한다`);
+    say(`  👤 사용자: ${answer.split('\n').join('\n     ')}`);
+    history.push(`USER: ${answer}`);
+    const second = await assistantExchange(n, answer);
+    called.push(...second.called);
+  }
+
+  journey.stages.push({ n, title, tools: called, followedUp });
   return called;
 }
 
@@ -284,8 +324,15 @@ await stage(4, '첫 화면 — 아무 설정 없이 처음 말을 건다',
 await stage(5, '결정이 등장한다 — 실제 업무 판단을 꺼낸다',
   'You are weighing a real decision at work today: whether to migrate your team\'s background jobs from cron to a queue system this quarter. You are genuinely unsure. Talk about it with your assistant the way you actually would.');
 
+// 6단계는 5단계에서 실제로 일어난 대화를 이어야 한다. 예전 문안은
+// "if you do the migration"으로 **이주하기로 정했다는 전제**를 깔았는데,
+// 5단계는 "아직 못 정했다"로 시작해 자주 "이번 분기엔 안 한다"로 끝난다.
+// 그러면 6단계가 앞 대화와 모순되는 새 주제를 던지고, 어시스턴트는 옳게도
+// 그 불일치를 짚고 멈춘다 (영어 A1, 한국어 KOB1·KOB5에서 동일하게 관측).
+// 하네스가 만든 모순을 제품의 실패로 적으면 안 된다. 결정의 방향을 지정하지
+// 않고, 자기가 방금 말한 것에서 예측을 꺼내게 한다.
 await stage(6, '예측을 남긴다 — 확인일과 함께',
-  'You want to commit to what you expect will happen if you do the migration, so you can check later whether you were right. Say what you expect and by when.');
+  'Whatever you just decided (to do it, to hold off, or to do a smaller version), you want one expectation on the record now so you can check later whether your judgment was right. State one thing you expect to be true, and when you will know.');
 
 // ── 재시작: 실사용자의 "내일 다시 켰다" ──────────────────────────────────────
 rule('7단계 · 재시작 — 사용자가 터미널을 닫았다가 다음 날 다시 켠다 (같은 원장)');
@@ -313,8 +360,29 @@ say(`  세션2 도구 ${tools2.length}종 재노출 — 첫 세션과 ${tools2.l
 await stage(8, '귀환 — 다시 켠 사용자에게 무엇이 보이는가',
   'It is the next morning. You just opened your terminal and your assistant again. Start your day.');
 
+// 정산 단계는 사용자가 **자기가 봉인한 것**의 결과를 말해야 성립한다.
+// 예전 문안은 "실패율이 안 줄었다"로 고정돼 있었는데, 6단계에서 페르소나가
+// 실제로 봉인하는 것은 롤백·호환성·읽기 성능처럼 매번 다르다. 그래서 대부분의
+// 실행에서 **아무도 봉인하지 않은 주장의 결과**를 정산하라고 요구했고, 정산은
+// 구조적으로 불가능했다 (A3의 어시스턴트가 정확히 그렇게 지적했다: "봉인된
+// 다섯 개 중 실패율에 관한 것은 없다"). 그건 제품 결함이 아니라 하네스가
+// 자기모순이었던 것이고, 그 상태의 정산 관문은 제품을 재지 않는다.
+// 이제 원장에서 실제 봉인 문장을 읽어 그중 하나의 결과를 말하게 한다.
+// 어시스턴트에게는 아무것도 알려주지 않는다 — 말하는 쪽은 사용자다.
+const sealedNow = (() => {
+  try {
+    return fs.readFileSync(path.join(ledgerDir, 'ledger', 'ledger.jsonl'), 'utf8')
+      .split('\n').filter(Boolean)
+      .map((l) => { try { return JSON.parse(l); } catch { return null; } })
+      .filter((e) => e && e.event === 'seal' && e.predicate)
+      .map((e) => e.predicate);
+  } catch { return []; }
+})();
+say(`  (정산 대상 — 원장에 실제로 봉인된 예측 ${sealedNow.length}건)`);
 await stage(9, '정산 — 확인일이 왔다고 치고 결과를 말한다',
-  'The check date arrived. The migration you predicted about: it turned out that the queue migration did NOT reduce job failures as you hoped — failures stayed about the same. Tell your assistant what actually happened.');
+  sealedNow.length
+    ? `The check date arrived for a prediction you made earlier. Here is what you actually wrote down:\n${sealedNow.map((p, i) => `  ${i + 1}. "${p}"`).join('\n')}\n\nPick the ONE you care most about. Reality has now answered it, and it did NOT go the way you hoped. Tell your assistant what actually happened with that specific prediction.`
+    : 'The check date arrived for the migration you talked about earlier. It did NOT go the way you hoped. Tell your assistant what actually happened.');
 
 // ── 5. 원장 실물 ─────────────────────────────────────────────────────────────
 rule('10단계 · 원장 — 사용자의 디스크에 실제로 무엇이 남았는가');
@@ -380,7 +448,11 @@ say(`  재시작 증거: ${restartEvidence.detail}`);
 let passed = 0;
 for (const [label, ok] of gates) { say(`  ${ok ? '✅' : '❌'} ${label}`); if (ok) passed++; }
 const failedCalls = journey.toolCalls.filter((c) => !c.ok).length;
+// 왕복 옵션은 점수의 의미를 바꾼다. 두 설정의 숫자가 섞이면 비교가 거짓이
+// 되므로, 설정을 점수와 같은 줄에 붙여 둔다.
+const followUps = journey.stages.filter((s) => s.followedUp).length;
 say(`\n  관문 ${passed}/${gates.length} 통과 · 도구 호출 ${journey.toolCalls.length}회(거부 ${failedCalls}) · 서버 거부 이력 ${journey.rejections.length}건 · 확인창 ${elicitLog.length}회`);
+say(`  왕복 설정: ${FOLLOW_UP ? `켬 (실제 사용 ${followUps}회)` : '끔 — 사용자 발화 단계당 1회'}`);
 say(`  ${passed === gates.length ? '완주 — 외부 개입 없이 전 구간 통과' : '미완주 — 위 ❌ 지점이 실사용자가 막힐 곳이다'}`);
 if (journey.errors.length) {
   say('\n  실패한 호출:');

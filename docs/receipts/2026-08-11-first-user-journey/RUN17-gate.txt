@@ -1,0 +1,117 @@
+
+────────────────────────────────────────────────────────────────────────
+1단계 · 설치 — **로컬 빌드**를 대상으로 한다 (미발행 수리 측정용)
+────────────────────────────────────────────────────────────────────────
+  설치 완료 · 실행 파일 /home/user/Argus/argus-mcp/dist/index.js
+  package.json 버전: 2.0.22+local  (미발행 로컬 빌드 — 발행본 결과가 아니다)
+
+────────────────────────────────────────────────────────────────────────
+2단계 · 사용자 — MatrAIx 스키마에서 뽑은 한 사람이 처음 이 도구를 켠다
+────────────────────────────────────────────────────────────────────────
+  P03 [English]  Directness: Balanced · Verbosity: Terse · Formality: Casual · Patience: Very high · Conflict approach: Compromising · Decision style: Consensus-driven
+
+────────────────────────────────────────────────────────────────────────
+3단계 · 첫 기동 — 사용자의 AI 어시스턴트가 서버에 붙어 도구 목록을 본다
+────────────────────────────────────────────────────────────────────────
+  서버가 노출한 도구 6종: argus_capture · argus_predict · argus_check_in · argus_resolve · argus_patterns · argus_settings
+  서버 지침: 1984자 수신
+
+────────────────────────────────────────────────────────────────────────
+4단계 · 첫 화면 — 아무 설정 없이 처음 말을 건다
+────────────────────────────────────────────────────────────────────────
+  👤 사용자: hey, just hooked up a tool called argus but honestly not sure what it does. can you check what it gives you access to and give me a quick rundown? no rush, just want the lay of the land before I dive into anything today.
+  🤖 어시스턴트가 스스로 선택한 도구(1): argus_check_in
+     인자: {}
+  📦 서버 응답:
+     Just talk through a decision you're weighing.
+     I'll follow along, and if something is worth checking later I'll note it.
+     Nothing is tracked yet.
+  🤖 어시스턴트 최종: Alright, I peeked under the hood. Here's the gist of what Argus does — it's basically a lightweight memory/follow-up system for decisions, not a task-runner or code tool.
+
+What it's for:
+- **Capturing decisions as you ta
+
+────────────────────────────────────────────────────────────────────────
+5단계 · 결정이 등장한다 — 실제 업무 판단을 꺼낸다
+────────────────────────────────────────────────────────────────────────
+  👤 사용자: Hey, need to think through something with you.
+     
+     We're on cron for background jobs right now — like a dozen scripts scattered across a couple boxes. Been fine, but we've had two silent failures this month that nobody caught for days. The argument for moving to a real queue (thinking Sidekiq or maybe SQS-based) is retries, visibility, better failure handling. The argument against is: it's a quarter of eng time we'd be pulling from feature work, and cron has been "good enough" for like 2 years.
+     
+     Team's split. A couple people are pushing hard for the migration, a couple think we should just add monitoring/alerting to cron and call it a day.
+     
+     Can you help me actually think this through rather than just pick a side? Like — what questions should I be asking to figure out if this is a "fix the symptom" situation or an actual "the foundation is wrong" situation? Also curious if there's a middle path we're not seeing.
+  🤖 어시스턴트: (도구 호출 없음) Good problem to think through out loud — this is a classic "symptom vs. foundation" question, and I don't think you need to resolve it by vibes or by who argues loudest. Let me lay out how I'd break it apart.
+
+**First, separate the two failure modes you're actually worried about:**
+1. Jobs silently 
+
+────────────────────────────────────────────────────────────────────────
+6단계 · 예측을 남긴다 — 확인일과 함께
+────────────────────────────────────────────────────────────────────────
+  👤 사용자: Prediction I want on record before we start the migration:
+     
+     **By 2 weeks after deploy**, I expect:
+     - p95 API latency flat or better (currently ~180ms)
+     - Error rate stays under 0.5%
+     - No data loss/corruption incidents
+     - Maybe 1-2 minor bugs from edge cases we didn't catch, nothing critical
+     
+     **By 1 month after deploy**, I expect:
+     - Infra cost either flat or down slightly (we're doing this partly for cost)
+     - No rollback needed
+     
+     If any of these are wrong — especially latency regression or a rollback — I want to know so I can recalibrate how I scope migrations like this in future. Put this in the ticket/doc now, and let's actually check it against reality at the 2-week and 1-month marks instead of just moving on.
+  🤖 어시스턴트: (도구 호출 없음) Good — this is exactly the kind of thing worth pinning down before you start, since "did this actually work" tends to get fuzzy in hindsight. One thing though: you bundled several distinct claims (latency, error rate, data integrity, bug count, cost, rollback) across two different checkpoints. Per A
+
+────────────────────────────────────────────────────────────────────────
+7단계 · 재시작 — 사용자가 터미널을 닫았다가 다음 날 다시 켠다 (같은 원장)
+────────────────────────────────────────────────────────────────────────
+  세션1 종료. 재시작 전 원장의 식별자 0개: (없음)
+  세션2 도구 6종 재노출 — 첫 세션과 동일
+
+────────────────────────────────────────────────────────────────────────
+8단계 · 귀환 — 다시 켠 사용자에게 무엇이 보이는가
+────────────────────────────────────────────────────────────────────────
+  👤 사용자: Morning. Before I dive into new stuff, can you remind me what we ended on yesterday? Any pending changes, failing tests, or half-finished refactors I should pick back up first?
+  🤖 어시스턴트: (도구 호출 없음) Good morning! Quick honesty check: I don't have visibility into your actual codebase, test runs, or git state — I can't see pending changes, failing tests, or half-finished refactors directly. What I *do* have from our conversation yesterday is the decision-thread we were mid-way through:
+
+**Where w
+
+────────────────────────────────────────────────────────────────────────
+9단계 · 정산 — 확인일이 왔다고 치고 결과를 말한다
+────────────────────────────────────────────────────────────────────────
+  👤 사용자: Update on the queue migration: failures did NOT go down. Roughly same failure rate as before, over the check period.
+     
+     So my hypothesis was wrong (or at least incomplete) — moving queues wasn't the fix.
+     
+     Want to dig into this with me:
+     
+     1. Pull failure logs from before/after migration — same job types failing, or did the mix shift?
+     2. Check if failures cluster around specific job types/times, or evenly spread
+     3. Any chance the migration introduced new failure modes even while fixing others (net wash)?
+     
+     Not looking to defend the original theory — just want to figure out what's actually going on before we try another fix blind. What do you need from me to start looking at this?
+  🤖 어시스턴트: (도구 호출 없음) Good to know — and worth flagging: nothing about the latency/rollback/error-rate predictions actually got logged yesterday, since we paused waiting on how to split them. So there's no open prediction of record to resolve here — this "failures didn't go down" update is new information, not a resoluti
+
+────────────────────────────────────────────────────────────────────────
+10단계 · 원장 — 사용자의 디스크에 실제로 무엇이 남았는가
+────────────────────────────────────────────────────────────────────────
+  .bound  (39B)
+  .gitignore  (37B)
+  config.yaml  (54B)
+  ledger/
+  sessions/
+
+────────────────────────────────────────────────────────────────────────
+완주 판정 — M4 exit 3항의 4관문
+────────────────────────────────────────────────────────────────────────
+  (원장 이벤트 0건 — seal 0 · settle 0)
+  재시작 증거: 재시작 전 원장이 비어 있어 판정 불가 (봉인이 실패한 실행)
+  ✅ 설치 후 첫 도구 호출이 성공했다
+  ❌ 봉인이 원장에 남았다 (seal 이벤트)
+  ❌ 재시작 후 세션2가 재시작 전 기록을 읽었다
+  ❌ 정산이 원장에 남았다 (settle 이벤트)
+
+  관문 1/4 통과 · 도구 호출 1회(거부 0) · 서버 거부 이력 0건 · 확인창 0회
+  미완주 — 위 ❌ 지점이 실사용자가 막힐 곳이다

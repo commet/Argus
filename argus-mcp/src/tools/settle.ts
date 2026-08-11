@@ -1,5 +1,5 @@
 import { resolveToolArgusDir } from '../lib/argus-dir.js';
-import { resolveToday, asDate, logicalNow } from '../lib/resolve-today.js';
+import { resolveToday, asDate, logicalNow, resolveHorizon } from '../lib/resolve-today.js';
 import { resolveContract } from '../lib/resolve-contract.js';
 import { refuseIfLedgerUnreadable } from '../lib/ledger-readable.js';
 import { guardTransition } from '../lib/state-machine.js';
@@ -22,7 +22,7 @@ import { envelope, toolError } from '../lib/envelope.js';
 import { noAnswerResult } from '../lib/picker-fallback.js';
 import { appsCapable } from '../lib/apps-ui.js';
 import { daysBetween } from '../lib/premises-core.js';
-import { ENVELOPE_OUTPUT_SCHEMA, zArgusDir, zId, zDate, type ToolModule } from './tool-types.js';
+import { ENVELOPE_OUTPUT_SCHEMA, zArgusDir, zId, zDate, zWhen, type ToolModule } from './tool-types.js';
 import { handleToolException } from './errors.js';
 
 const inputSchema = z.strictObject({
@@ -32,7 +32,11 @@ const inputSchema = z.strictObject({
   outcome_source: z.literal('user_stated').default('user_stated').describe('Always "user_stated" — an AI-inferred outcome cannot be expressed. Defaulted, so you may omit it.'),
   what_happened: z.string().min(1).max(600).optional().describe("What reality did, in the user's words. Required when recording held/avoided/partial/missed. Omit for still_pending and pass defer_to instead."),
   broken_premise_ref: z.string().max(64).optional().describe('Optional, USER-attributed: which tracked premise (ordinal like "P1"), if any, broke and drove the outcome. Never inferred by the model — ask, or omit.'),
-  defer_to: zDate.optional().describe("Only with outcome='still_pending': the new check-by (YYYY-MM-DD, a real future date) — when to look again, taken from the horizon the user names (\"the data lands next Friday\"). The decision stays alive and comes due again then. Omit only if the user has not said when; on elicitation hosts Argus will ask."),
+  // Trimmed to what picks the value. "The decision stays alive and comes due
+  // again then" describes what happens AFTER the call, and the success surface
+  // already says it — paying surface budget to say it twice is the same
+  // misplacement that made confirm_draft the most expensive line on the tool.
+  defer_to: zWhen.optional().describe("Only with outcome='still_pending': when to look again, from the horizon the user names (\"when the data lands\"). +2w / +3m, or YYYY-MM-DD. Omit if they have not said when; Argus asks on picker hosts."),
   today_override: zDate.optional(),
 });
 
@@ -55,6 +59,32 @@ export const settle: ToolModule = {
       const current = resolveContract(dir, id, today);
       const blind = refuseIfLedgerUnreadable('argus_settle', current);
       if (blind) return blind;
+      // HAND BACK THE IDS WE HAVE (journey RUN A3, measured). Settling happens
+      // in a LATER session than sealing, so the caller no longer holds the id —
+      // it reconstructs one from the predicate's wording and misses. That run
+      // sealed `queue-migration-no-runtime-regressions` and tried to settle
+      // `no-major-runtime-regressions`; the refusal said only "never saved",
+      // which reads as "your record is gone" and ended the turn. The server is
+      // holding the exact list. Same lesson as the check_by clock: a refusal
+      // that withholds what the server already knows turns a typo into a dead
+      // end. Runtime data, so no tool-surface budget cost.
+      if (current.state === 'opened' || current.state === 'absent') {
+        // status==='sealed' only. A settled or dismissed decision still carries
+        // its predicate, so listing every contract would hand the caller an id
+        // that answers ALREADY_SETTLED on the next call — a refusal that points
+        // at another refusal is not a recovery.
+        const sealed = [...replayLedger(dir, today).contracts]
+          .filter(([, c]) => c.status === 'sealed' && c.predicate)
+          .map(([sealedId]) => sealedId);
+        if (sealed.length) {
+          return toolError({
+            ok: false, tool: 'argus_settle', error_code: 'NO_PRIOR_SEAL',
+            message: `No prediction is saved under "${id}".`,
+            recovery: `Use one of the ids that IS saved (data.saved_ids), matching by what each prediction says — argus_patterns view="all" shows the sentences. Never invent an id from the wording.`,
+            data: { saved_ids: sealed },
+          });
+        }
+      }
       guardTransition(current.state, 'settle'); // NO_PRIOR_SEAL / ALREADY_SETTLED / DECISION_CLOSED
 
       // Outcome is the user's — recorded, never inferred. If the model didn't
@@ -450,7 +480,9 @@ async function deferStillPending(args: {
 
   // 1) the date from the conversation (model captured the horizon) wins.
   let newDate: string | undefined;
-  const provided = asDate(deferTo);
+  // A horizon (+2w) resolves here for the same reason it does in seal: the
+  // caller has no clock, and the user said "in two weeks", not a date.
+  const provided = asDate(resolveHorizon(deferTo, today) ?? deferTo);
   if (provided && provided > today) newDate = provided;
 
   // 2) else ASK — coarse buckets + a dismiss escape (a prediction that no longer
@@ -530,7 +562,7 @@ async function deferStillPending(args: {
     return toolError({
       ok: false, tool: 'argus_settle', error_code: 'DEFER_DATE_REQUIRED',
       message: "Reality hasn't answered yet. This needs a new check-by, not a settlement.",
-      recovery: 'Ask the user when to look again and pass it as `defer_to` (YYYY-MM-DD). If the prediction no longer matters, close it with argus_capture action="close".',
+      recovery: 'Ask the user when to look again and pass it as `defer_to` — a horizon (+2w / +3m) or YYYY-MM-DD. If the prediction no longer matters, close it with argus_capture action="close".',
     });
   }
 

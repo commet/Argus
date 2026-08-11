@@ -1,0 +1,104 @@
+
+────────────────────────────────────────────────────────────────────────
+1단계 · 설치 — **로컬 빌드**를 대상으로 한다 (미발행 수리 측정용)
+────────────────────────────────────────────────────────────────────────
+  설치 완료 · 실행 파일 /home/user/Argus/argus-mcp/dist/index.js
+  package.json 버전: 2.0.22+local  (미발행 로컬 빌드 — 발행본 결과가 아니다)
+
+────────────────────────────────────────────────────────────────────────
+2단계 · 사용자 — MatrAIx 스키마에서 뽑은 한 사람이 처음 이 도구를 켠다
+────────────────────────────────────────────────────────────────────────
+  P03 [English]  Directness: Balanced · Verbosity: Terse · Formality: Casual · Patience: Very high · Conflict approach: Compromising · Decision style: Consensus-driven
+
+────────────────────────────────────────────────────────────────────────
+3단계 · 첫 기동 — 사용자의 AI 어시스턴트가 서버에 붙어 도구 목록을 본다
+────────────────────────────────────────────────────────────────────────
+  서버가 노출한 도구 6종: argus_capture · argus_predict · argus_check_in · argus_resolve · argus_patterns · argus_settings
+  서버 지침: 1984자 수신
+
+────────────────────────────────────────────────────────────────────────
+4단계 · 첫 화면 — 아무 설정 없이 처음 말을 건다
+────────────────────────────────────────────────────────────────────────
+  👤 사용자: hey, just hooked up a tool called "argus" to you - not sure what it actually does yet. can you check what it gives you access to and give me a quick rundown? no need to use it for anything, just want to know what we're working with before I dive into today's stuff.
+  🤖 어시스턴트: (도구 호출 없음) Here's the rundown on Argus, based on its toolset:
+
+**What it's for:** It's a decision-tracking assistant that follows a decision from the moment you make it through to what actually happens in reality — without ever grading you or telling you what to decide.
+
+**The six tools it gives me:**
+
+1. **ar
+
+────────────────────────────────────────────────────────────────────────
+5단계 · 결정이 등장한다 — 실제 업무 판단을 꺼낸다
+────────────────────────────────────────────────────────────────────────
+  👤 사용자: Hey — thinking through whether we should migrate our background jobs from cron to a proper queue system this quarter, and I'm genuinely on the fence.
+     
+     Context: we've got maybe 15-20 cron jobs right now, mix of things like report generation, email sends, data syncs with a couple external APIs. Pain points are real but not catastrophic — occasional overlapping runs when a job takes longer than expected, no retry logic so failures just... sit there until someone notices, and zero visibility into job history beyond grepping logs. Nobody's core workflow is broken, but it's the kind of thing that's slowly eating small amounts of everyone's time.
+     
+     Counter-argument: we've got a decent-sized roadmap this quarter already, team's only 4 engineers, and I don't want to sink 2-3 weeks into infra work if the actual pain is more "mildly annoying" than "urgent." Also not sure if we go with something like Sidekiq/BullMQ/Celery depending on stack, or if there's a lighter-weight middle step I'm not thinking of (better cron wrapper with locking + alerting?).
+     
+     Can you help me think through:
+     1. Whether this is actually worth prioritizing now vs next quarter
+     2. What questions I should be asking to figure out real cost of the current pain
+     3. If there's a smaller intermediate fix that gets us 80% of the value without the full migration
+     
+     Not looking for a instant answer, want to actually reason through it.
+  🤖 어시스턴트: (도구 호출 없음) (빈 응답)
+
+────────────────────────────────────────────────────────────────────────
+6단계 · 예측을 남긴다 — 확인일과 함께
+────────────────────────────────────────────────────────────────────────
+  👤 사용자: Prediction before we start the migration:
+     
+     I expect that within 2 weeks of merging, we'll see:
+     
+     1. **Build/CI**: passes clean, no lingering config errors
+     2. **Perf**: p95 response time flat or better (within 5% of current baseline) — not expecting a regression
+     3. **Bugs**: 1-3 minor issues surface from edge cases we didn't catch, nothing critical, fixed within days
+     4. **Rollback**: won't need it — confidence is high enough that I don't think we hit a wall requiring revert
+     
+     Let's timestamp this now. Can you save this prediction (with today's date) somewhere in the repo — like a `MIGRATION_NOTES.md` or similar — so in 2 weeks I can check it against what actually happened? If I'm wrong, I want to know where my judgment was off.
+  🤖 어시스턴트: (도구 호출 없음) Good instinct to timestamp this — but a quick flag before I save anything: what you've written is actually four separate falsifiable claims bundled together (CI passes, perf within 5%, 1-3 minor bugs, no rollback needed). Argus is built to track one clean predicate per prediction — if I mash them in
+
+────────────────────────────────────────────────────────────────────────
+7단계 · 재시작 — 사용자가 터미널을 닫았다가 다음 날 다시 켠다 (같은 원장)
+────────────────────────────────────────────────────────────────────────
+  세션1 종료. 재시작 전 원장의 식별자 0개: (없음)
+  세션2 도구 6종 재노출 — 첫 세션과 동일
+
+────────────────────────────────────────────────────────────────────────
+8단계 · 귀환 — 다시 켠 사용자에게 무엇이 보이는가
+────────────────────────────────────────────────────────────────────────
+  👤 사용자: morning. before we dive in — yesterday we were mid-way through debugging that flaky test in the payment retry logic. can you pull up where we left off and give me a quick summary of what we tried already before we try anything new?
+  🤖 어시스턴트: (도구 호출 없음) I don't actually have a record of yesterday's debugging session on the flaky payment retry test — my context here starts with the cron-vs-queue discussion and then your migration prediction from this morning. Nothing about a payment retry test came up in what I can see, and Argus (the tool we just w
+
+────────────────────────────────────────────────────────────────────────
+9단계 · 정산 — 확인일이 왔다고 치고 결과를 말한다
+────────────────────────────────────────────────────────────────────────
+  👤 사용자: Update on the queue migration: failures did NOT improve. Rate's basically the same as before we switched.
+     
+     So my theory was wrong — it wasn't the queue backend causing the failures. Before I go chase another theory, can we actually look at this properly:
+     
+     1. Pull failure logs from before and after migration, side by side
+     2. Break failures down by job type / error type — is it the same jobs failing, or different ones?
+     3. Check if anything else changed around the same time (deploys, config, traffic patterns)
+     
+     Want to find the actual pattern this time instead of guessing. What do you need from me to start digging?
+  🤖 어시스턴트: (도구 호출 없음) Got it — noted that the queue migration didn't fix the failure rate. That's a real, falsifiable outcome for one of the things we were tracking, but a quick honest check first: we never actually got your yes/no on logging those 4 original predictions (CI, perf, bugs, rollback) in Argus, so there's no
+
+────────────────────────────────────────────────────────────────────────
+10단계 · 원장 — 사용자의 디스크에 실제로 무엇이 남았는가
+────────────────────────────────────────────────────────────────────────
+
+────────────────────────────────────────────────────────────────────────
+완주 판정 — M4 exit 3항의 4관문
+────────────────────────────────────────────────────────────────────────
+  (원장 이벤트 0건 — seal 0 · settle 0)
+  재시작 증거: 재시작 전 원장이 비어 있어 판정 불가 (봉인이 실패한 실행)
+  ❌ 설치 후 첫 도구 호출이 성공했다
+  ❌ 봉인이 원장에 남았다 (seal 이벤트)
+  ❌ 재시작 후 세션2가 재시작 전 기록을 읽었다
+  ❌ 정산이 원장에 남았다 (settle 이벤트)
+
+  관문 0/4 통과 · 도구 호출 0회(거부 0) · 서버 거부 이력 0건 · 확인창 0회
+  미완주 — 위 ❌ 지점이 실사용자가 막힐 곳이다

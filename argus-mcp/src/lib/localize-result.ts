@@ -47,19 +47,30 @@ const KO_ERRORS: Record<string, ErrorCopy> = {
     message: '이 터미널의 계정 연결이 만료됐습니다. 그동안의 저장·정산이 계정에 닿지 않았습니다.',
     recovery: '터미널에서 `npx argus-decision-mcp connect`를 실행해 다시 연결하세요 (플러그인 사용자는 /argus:connect). 로컬에서 잃은 것은 없습니다. 모든 결정은 여기 기록에 그대로 있고, 다시 연결한 뒤 argus_settings action="sync"를 돌리면 밀린 것들이 올라갑니다.',
   },
-  NO_PRIOR_SEAL: { message: '이 id로 저장된 예측이 없습니다.', recovery: 'argus_predict로 나중에 확인할 수 있는 예측과 확인일을 먼저 저장하세요. (id가 argus_settings sync에서 온 "mcp_" 접두사라면 접두사를 뗀 id를 쓰세요.)' },
-  BAD_CHECK_BY: { message: '확인일이 오늘 이후의 실제 달력 날짜(YYYY-MM-DD)가 아닙니다 (예: 2026-13-01처럼 없는 달·날짜는 불가).', recovery: '오늘 이후의 올바른 날짜를 YYYY-MM-DD로 다시 전달하세요.' },
+  // 저장된 id가 있으면 settle.ts가 data.saved_ids로 실어 보낸다. 이 문구는
+  // 그때도 그대로 쓰인다 — 목록을 가리키는 문장이 지역화에서 사라지지 않도록
+  // 여기서도 그 필드를 지목한다.
+  NO_PRIOR_SEAL: { message: '이 id로 저장된 예측이 없습니다.', recovery: '저장된 id가 있으면 data.saved_ids에 들어 있습니다. 예측 문장을 보고 맞는 id를 고르세요 (argus_patterns view="all"에 문장이 있습니다). 문장에서 id를 지어내지 마세요. 저장된 것이 없으면 argus_predict로 먼저 저장하세요. (id가 argus_settings sync에서 온 "mcp_" 접두사라면 접두사를 뗀 id를 쓰세요.)' },
+  // 복구문이 "무엇을 건드리지 말지"를 말하지 않으면 전체 재작성을 부른다
+  // (RUN12: 날짜만 틀렸는데 예측문까지 고쳐 써서 묶음이 됐고 다시 거절됐다).
+  BAD_CHECK_BY: { message: '확인일이 오늘 이후의 실제 달력 날짜(YYYY-MM-DD)가 아닙니다 (예: 2026-13-01처럼 없는 달·날짜는 불가).', recovery: 'check_by만 고쳐서 같은 호출을 다시 보내세요. 예측 문장은 사용자의 표현 그대로 두세요. 날짜는 오늘 이후여야 하고, 정산하러 돌아올 날입니다.' },
   ILLEGAL_TRANSITION: { message: '이 결정에 지금은 할 수 없는 작업입니다 (id 오타이거나, 이미 저장·정산·종료된 상태일 수 있습니다).', recovery: 'argus_patterns view="all"로 id와 현재 상태를 확인하세요. 없는 id면 argus_capture 또는 argus_predict로 새로 시작하세요.' },
   PREMISE_LOCKED: { message: '확인일이 지나 전제를 더는 바꿀 수 없습니다.', recovery: '먼저 argus_resolve로 실제 결과를 기록하세요. 확인일이 온 뒤에는 전제/예측을 고칠 수 없습니다.' },
   ARGUS_DIR_INVALID: { message: 'Argus 기록 경로(argus_dir / ARGUS_DIR)가 올바르지 않습니다.', recovery: '절대 경로여야 하고 ".."을 포함할 수 없습니다. MCP 설정에서 절대 경로(예: C:\\Users\\이름\\.argus, /Users/이름/.argus)로 바꾸거나 ARGUS_DIR을 지워 기본값(~/.argus)을 쓰세요. ${...} 같은 변수는 호스트가 확장하지 못할 수 있습니다.' },
   ARGUS_DIR_UNWRITABLE: { message: 'Argus가 기록 폴더를 만들거나 쓰지 못했습니다.', recovery: 'ARGUS_DIR(또는 argus_dir)을 실제로 있고 쓸 수 있는 폴더로 바꿔 주세요. 실제 드라이브의 절대 경로여야 하고 ".."은 넣을 수 없습니다. 그다음 다시 시도하세요.' },
   EMPTY_PREDICATE: { message: '확인 가능한 예측 문장이 필요합니다 (공백 제외 최소 8자).', recovery: '현실이 참/거짓으로 확인할 수 있는 문장으로 다시 적으세요. 예: "컷오버 다운타임 5분 미만".' },
+  // 없으면 generic fallback('요청을 처리하지 못했습니다')이 이 구체적 안내를
+  // 통째로 지운다 — 한국어 사용자만 왜 막혔는지 모르게 된다.
+  BUNDLED_PREDICATE: {
+    message: '한 문장에 따로 확인해야 할 주장이 여러 개 들어 있습니다. 예측 하나는 하나만 채점할 수 있어서, 이대로 저장하면 결과가 무엇이든 "절반만 맞음"으로만 남습니다.',
+    recovery: '가장 하중이 큰 주장 하나만 사용자의 표현 그대로 저장하세요. 빼놓은 주장들은 data.claims에 있습니다. 사용자에게 무엇을 빼놨는지 알리고 원하는지 물어보세요. 조용히 버리거나 "그리고"로 다시 붙이지 마세요.',
+  },
   ALREADY_SETTLED: { message: '이미 실제 결과가 기록된 결정입니다.', recovery: '영수증은 argus_patterns view="receipt"로 볼 수 있습니다. 새 결정이면 새 id로 여세요.' },
   DECISION_CLOSED: { message: '닫힌 결정이라 더 진행할 수 없습니다.', recovery: '필요하면 새 id로 다시 여세요. 닫힌 기록은 그대로 남습니다.' },
   GOALPOST_MOVED: { message: '봉인된 예측 문장은 확인일 전에 바꿀 수 없습니다.', recovery: '일정 변경은 outcome="still_pending"과 defer_to로, 예측 자체가 달라졌다면 새 결정으로 여세요.' },
   NO_SUCH_PREMISE: { message: '해당 번호의 전제를 찾지 못했습니다 (이 결정에 아직 전제가 없을 수 있습니다).', recovery: 'argus_patterns view="decision_context"로 목록과 번호를 확인하고, 전제가 없으면 argus_capture action="add_context"로 먼저 추가하세요.' },
   WHAT_HAPPENED_REQUIRED: { message: '실제로 일어난 일을 기록해야 합니다.', recovery: '사용자에게 실제 결과를 물어 what_happened에 그대로 전달하세요.' },
-  DEFER_DATE_REQUIRED: { message: '다시 확인할 날짜가 필요합니다.', recovery: '사용자에게 날짜를 물어 defer_to에 YYYY-MM-DD로 전달하세요. 더는 중요하지 않다면 argus_capture action="close"를 사용하세요.' },
+  DEFER_DATE_REQUIRED: { message: '다시 확인할 날짜가 필요합니다.', recovery: '사용자에게 언제 다시 볼지 물어 defer_to에 전달하세요 (+2w / +3m 또는 YYYY-MM-DD). 더는 중요하지 않다면 argus_capture action="close"를 사용하세요.' },
   NOT_CONNECTED: { message: '이 터미널은 Argus 계정과 연결돼 있지 않습니다.', recovery: '터미널에서 `npx argus-decision-mcp connect`를 실행하면 브라우저에서 한 번 승인하고 끝납니다 (플러그인은 /argus:connect). CI 등에서는 웹 설정의 동기화 토큰을 ARGUS_TOKEN에 넣어도 됩니다.' },
   SYNC_FAILED: { message: 'Argus 계정과 동기화하지 못했습니다.', recovery: '네트워크와 ARGUS_API_URL을 확인한 뒤 다시 시도하세요. 로컬 기록은 영향을 받지 않습니다.' },
   TEXT_REQUIRED: { message: '기록할 문장이 필요합니다.', recovery: '사용자의 문장을 고치거나 요약하지 말고 그대로 text에 전달하세요.' },
@@ -149,6 +160,7 @@ function koReason(issue: InvalidField, field: string): string {
     case 'invalid_format':
     case 'invalid_string':
       if (key === 'id') return '영문·숫자와 . _ - 만 쓸 수 있습니다 (한글·공백·특수문자 불가, 예: "career-move")';
+      if (key === 'check_by' || key === 'defer_to') return 'YYYY-MM-DD 날짜이거나 +7d / +2w / +3m 형태여야 합니다';
       if (DATE_FIELDS.has(key)) return 'YYYY-MM-DD 형식의 날짜여야 합니다';
       return '형식이 올바르지 않습니다';
     default:
@@ -160,7 +172,7 @@ function koReason(issue: InvalidField, field: string): string {
 }
 
 /** Korean INVALID_INPUT that NAMES each offending argument and why. */
-function localizeInvalidInput(fields: InvalidField[]): ErrorCopy {
+function localizeInvalidInput(fields: InvalidField[], today?: string): ErrorCopy {
   if (!fields.length) return KO_ERRORS.INVALID_INPUT!;
   const seen = new Set<string>();
   const parts: string[] = [];
@@ -182,9 +194,15 @@ function localizeInvalidInput(fields: InvalidField[]): ErrorCopy {
     parts.push(part);
     if (parts.length >= 4) break;
   }
+  // 날짜 인자가 문제면 오늘을 함께 준다 (server.ts의 같은 수리와 짝). 모델은
+  // 시계가 없어서 미래 날짜를 계산할 수 없고, 여정 실행에서 가장 흔한 첫 호출
+  // 실패가 이것이었다. 영어 recovery의 문장은 이 맵으로 대체되므로 여기에도
+  // 없으면 한국어 사용자만 날짜를 못 받는다.
   return {
     message: `입력값이 올바르지 않습니다: ${parts.join(', ')}.`,
-    recovery: '위에 표시된 인자를 고친 뒤 같은 도구를 다시 호출하세요. 사용자가 정해야 할 값은 추측하지 마세요.',
+    recovery: today
+      ? `위에 표시된 인자를 고친 뒤 같은 도구를 다시 호출하세요. 오늘은 ${today}입니다. 학습 시점의 "지금"이 아니라 이 날짜를 기준으로 계산해 YYYY-MM-DD로 보내거나, 시계가 없으면 +7d / +2w / +3m로 보내세요. 사용자가 정해야 할 값은 추측하지 마세요.`
+      : '위에 표시된 인자를 고친 뒤 같은 도구를 다시 호출하세요. 사용자가 정해야 할 값은 추측하지 마세요.',
   };
 }
 
@@ -211,6 +229,7 @@ function enReason(issue: InvalidField): string {
     case 'invalid_format':
     case 'invalid_string':
       if (key === 'id') return 'may use only letters, digits and . _ - (no spaces or other characters, e.g. "career-move")';
+      if (key === 'check_by' || key === 'defer_to') return 'must be a YYYY-MM-DD date, or a horizon like +7d / +2w / +3m';
       if (DATE_FIELDS.has(key)) return 'must be a YYYY-MM-DD date';
       return 'has the wrong format';
     default:
@@ -221,8 +240,13 @@ function enReason(issue: InvalidField): string {
 
 /** English INVALID_INPUT that NAMES the offending argument(s), instead of raw
  *  Zod ("(root): Unrecognized key", "expected string, received undefined"). */
-function englishInvalidInput(fields: InvalidField[]): ErrorCopy {
-  const recovery = 'Fix the named argument(s) and call the same tool again. Do not infer missing user-owned fields.';
+function englishInvalidInput(fields: InvalidField[], today?: string): ErrorCopy {
+  // Same clock hand-over as server.ts and the Korean mirror. This map REPLACES
+  // the handler's recovery wholesale, so a sentence written upstream never
+  // reaches the caller — the date has to be re-applied here or it is lost.
+  const recovery = today
+    ? `Fix the named argument(s) and call the same tool again. Today is ${today} \u2014 compute the date from that, not from what "now" was when you were trained, and send it as YYYY-MM-DD \u2014 or send the horizon itself (+7d / +2w / +3m) and Argus resolves it. Do not infer missing user-owned fields.`
+    : 'Fix the named argument(s) and call the same tool again. Do not infer missing user-owned fields.';
   if (!fields.length) return { message: 'Invalid input.', recovery };
   const seen = new Set<string>();
   const parts: string[] = [];
@@ -257,7 +281,7 @@ const EN_FRIENDLY: Record<string, ErrorCopy> = {
 
 function englishHumanize(code: string, sc: Record<string, unknown>): ErrorCopy | null {
   if (code === 'INVALID_INPUT' && Array.isArray(sc['invalid_fields'])) {
-    return englishInvalidInput(sc['invalid_fields'] as InvalidField[]);
+    return englishInvalidInput(sc['invalid_fields'] as InvalidField[], typeof sc['today'] === 'string' ? sc['today'] : undefined);
   }
   return EN_FRIENDLY[code] ?? null;
 }
@@ -308,8 +332,12 @@ export function localizeToolResult(
   const genericFallback = /[가-힣]/.test(existingMsg)
     ? { message: existingMsg, ...(existingRec ? { recovery: existingRec } : {}) }
     : { message: '요청을 처리하지 못했습니다.', recovery: '입력값과 현재 결정 상태를 확인한 뒤 다시 시도하세요.' };
+  // 시계는 어떤 지역화 맵보다 우선한다. KO_ERRORS는 정적 문자열이라 영어
+  // 메시지 끝의 "(today is …)"를 통째로 지웠고, 한국어 호출자만 오늘을 모른 채
+  // 날짜를 더듬었다 (KOC8: 네 번 연속 실패). 아래 맵 조회 뒤에 다시 붙인다.
+  const clock = typeof sc['today'] === 'string' ? sc['today'] : null;
   let copy = code === 'INVALID_INPUT' && Array.isArray(sc['invalid_fields'])
-    ? localizeInvalidInput(sc['invalid_fields'] as InvalidField[])
+    ? localizeInvalidInput(sc['invalid_fields'] as InvalidField[], typeof sc['today'] === 'string' ? sc['today'] : undefined)
     : KO_ERRORS[code] ?? genericFallback;
   // A handler-authored KOREAN message is at least as specific as the generic
   // map — KO_ERRORS exists to replace ENGLISH copy, not better Korean. Without
@@ -335,9 +363,18 @@ export function localizeToolResult(
     const m = String(sc['message'] ?? '').match(/check-by (\d{4}-\d{2}-\d{2}), today (\d{4}-\d{2}-\d{2})/);
     if (m) copy = { message: `아직 확인일이 되지 않았습니다 (확인일 ${m[1]} · 오늘 ${m[2]}).`, recovery: copy.recovery };
   }
+  // 시계를 다시 붙인다. 영어 메시지는 "(today is 2026-08-11)"로 끝나는데
+  // KO_ERRORS는 정적 문자열이라 그 한 조각을 통째로 지웠고, 한국어 호출자는
+  // 날짜가 틀렸다는 말만 듣고 오늘이 언제인지는 못 들었다. KOC8에서 그
+  // 어시스턴트는 학습 연도에서 하루씩 더듬으며(2025-06-17 → 06-18 → 06-24)
+  // 네 번 실패하고 아무것도 기록하지 못했다. 거절을 복구 가능하게 만드는 단
+  // 하나의 사실을 지역화가 지울 수 있어서는 안 된다.
+  const withClock = clock && !copy.message.includes(clock)
+    ? `${copy.message} 오늘은 ${clock}입니다.`
+    : copy.message;
   const localized = {
     ...sc,
-    message: copy.message,
+    message: withClock,
     ...(copy.recovery ? { recovery: copy.recovery } : {}),
   };
   result.structuredContent = localized;

@@ -17,6 +17,7 @@ import { appendDueNote } from './lib/due-note.js';
 import { logError } from './lib/log.js';
 import { packageMeta } from './lib/package-meta.js';
 import { localizeToolResult } from './lib/localize-result.js';
+import { resolveToday } from './lib/resolve-today.js';
 import { learnLocaleFromContent } from './lib/locale.js';
 import { appendLocaleMismatchNote } from './lib/locale-mismatch.js';
 import { resolveToolArgusDir } from './lib/argus-dir.js';
@@ -162,13 +163,30 @@ export async function createServer(): Promise<Server> {
           ...(raw.origin !== undefined ? { origin: String(raw.origin) } : raw.type !== undefined ? { origin: String(raw.type) } : {}),
         };
       });
+      // HAND OVER THE CLOCK (RUN8, measured). A date argument is the most common
+      // first-call failure in the recorded journeys: once a 2025 date (the
+      // model's training "now" against a 2026 today) and once check_by:"" —
+      // and the refusal said only "must be YYYY-MM-DD", which is the single
+      // thing the caller already knew. It cannot compute a future date without
+      // a clock, and the server is holding one. Runtime only, so this costs
+      // nothing against the tool-surface budget.
+      const dateFieldAtFault = invalidFields.some(
+        (f) => /check_by|defer_to|_date$|^date$/.test(f.field) || /YYYY-MM-DD/.test(f.message),
+      );
+      const today = resolveToday({});
       const error = {
         ok: false,
         tool: name,
         error_code: 'INVALID_INPUT',
         message: `Invalid arguments. ${issues}`,
         invalid_fields: invalidFields,
-        recovery: 'Fix the named argument(s) and call the same tool again. Do not infer missing user-owned fields.',
+        // Also a field of its own: localize-result rewrites `recovery` from a
+        // static per-locale map, so the sentence carrying the date does not
+        // survive a Korean response. The field does.
+        ...(dateFieldAtFault ? { today } : {}),
+        recovery: dateFieldAtFault
+          ? `Fix the named argument(s) and call the same tool again. Today is ${today} — compute the date from that, not from what "now" was when you were trained, and send it as YYYY-MM-DD. Do not infer missing user-owned fields.`
+          : 'Fix the named argument(s) and call the same tool again. Do not infer missing user-owned fields.',
       };
       return localizeToolResult((args ?? {}) as Record<string, unknown>, {
         content: [{ type: 'text' as const, text: JSON.stringify(error) }],

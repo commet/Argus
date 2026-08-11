@@ -103,6 +103,124 @@ describe('MCP protocol round-trip (real server, stdio)', () => {
     expect((invalid.content as Array<{ text: string }>)[0]?.text).toContain('INVALID_INPUT');
   });
 
+  it('a bad date argument hands the caller the server clock', async () => {
+    // RUN8 (docs/receipts/2026-08-11-first-user-journey/): the model sent
+    // check_by:"" and the refusal said only "must be YYYY-MM-DD" — the one
+    // thing it already knew. A caller has no clock and cannot compute a future
+    // date; the server has one. This must survive BOTH localizers, which
+    // replace `recovery` from static per-locale maps.
+    const bad = await client.callTool({
+      name: 'argus_predict',
+      arguments: { id: 'clock-probe', predicate: 'p95 latency stays under 200ms', check_by: '', predicate_owner: 'user' },
+    });
+    expect(bad.isError).toBe(true);
+    const sc = structured(bad);
+    expect(sc['error_code']).toBe('INVALID_INPUT');
+    expect(String(sc['today'])).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    expect(String(sc['recovery'])).toContain(String(sc['today']));
+  });
+
+  it('accepts a horizon for check_by and stores the resolved DATE', async () => {
+    // The caller has no clock; the user said "in two weeks". What must never
+    // happen is the horizon leaking past the boundary — every downstream
+    // consumer (replay, receipts, calendar, the overdue sweep) compares dates
+    // as strings, and a stored "+2w" would silently never come due.
+    const today = new Date().toISOString().slice(0, 10);
+    const expected = new Date(`${today}T12:00:00Z`);
+    expected.setUTCDate(expected.getUTCDate() + 14);
+    const sealed = structured(await client.callTool({
+      name: 'argus_predict',
+      arguments: {
+        argus_dir: dir, id: 'horizon-probe',
+        predicate: 'the cutover finishes with no data loss',
+        check_by: '+2w', predicate_owner: 'user', today_override: today,
+      },
+    }));
+    expect(sealed.ok).toBe(true);
+    const ledger = fs.readFileSync(path.join(dir, 'ledger', 'ledger.jsonl'), 'utf8');
+    const row = ledger.split(/\r?\n/).filter(Boolean)
+      .map((l) => JSON.parse(l) as Record<string, unknown>)
+      .find((e) => e['id'] === 'horizon-probe' && e['event'] === 'seal')!;
+    expect(row['check_by']).toBe(expected.toISOString().slice(0, 10));
+    expect(JSON.stringify(row)).not.toContain('+2w');
+  });
+
+  it('settling an unknown id hands back the ids that ARE saved', async () => {
+    // Journey RUN A3: sealing and settling happen in different sessions, so the
+    // caller no longer holds the id and reconstructs one from the predicate's
+    // wording. It sealed `queue-migration-no-runtime-regressions` and settled
+    // `no-major-runtime-regressions`; "never saved" reads as "your record is
+    // gone" and the turn ended with the outcome unrecorded.
+    const future = new Date();
+    future.setUTCDate(future.getUTCDate() + 7);
+    await client.callTool({
+      name: 'argus_predict',
+      arguments: {
+        argus_dir: dir, id: 'queue-migration-no-runtime-regressions',
+        predicate: 'no major runtime regressions after the cutover',
+        check_by: future.toISOString().slice(0, 10), predicate_owner: 'user',
+      },
+    });
+    const missed = await client.callTool({
+      name: 'argus_resolve',
+      arguments: {
+        argus_dir: dir, id: 'no-major-runtime-regressions',
+        outcome: 'missed', what_happened: 'failures stayed flat',
+      },
+    });
+    expect(missed.isError).toBe(true);
+    const sc = structured(missed);
+    expect(sc['error_code']).toBe('NO_PRIOR_SEAL');
+    const saved = (sc['data'] as Record<string, unknown>)?.['saved_ids'] as string[];
+    expect(saved).toContain('queue-migration-no-runtime-regressions');
+  });
+
+  it('이미 정산된 id는 saved_ids에 들어가지 않는다', async () => {
+    // 그걸 고르면 다음 호출이 ALREADY_SETTLED다. 거절이 또 다른 거절을
+    // 가리키는 것은 복구가 아니다.
+    // 날짜 셋이 순서대로 필요하다: 봉인 시점 → 그보다 뒤인 확인일 → 그보다 뒤인
+    // 정산 시점. check_by를 today와 같게 두면 validateSeal이 봉인을 거절하고,
+    // 그러면 정산될 계약이 아예 없어서 아래 단언이 공허하게 통과한다.
+    const sealDay = new Date();
+    sealDay.setUTCDate(sealDay.getUTCDate() - 10);
+    const checkDay = new Date(sealDay);
+    checkDay.setUTCDate(checkDay.getUTCDate() + 3);
+    const settleDay = new Date(checkDay);
+    settleDay.setUTCDate(settleDay.getUTCDate() + 2);
+    const iso = (d: Date) => d.toISOString().slice(0, 10);
+
+    const sealed = await client.callTool({
+      name: 'argus_predict',
+      arguments: {
+        argus_dir: dir, id: 'already-done', predicate: 'the pilot reaches twenty teams',
+        check_by: iso(checkDay), predicate_owner: 'user', today_override: iso(sealDay),
+      },
+    });
+    expect(structured(sealed)['ok']).toBe(true);
+    const settled = await client.callTool({
+      name: 'argus_resolve',
+      arguments: {
+        argus_dir: dir, id: 'already-done', outcome: 'held',
+        what_happened: 'twenty-two teams', today_override: iso(settleDay),
+      },
+    });
+    expect(structured(settled)['ok']).toBe(true);
+    const missed = await client.callTool({
+      name: 'argus_resolve',
+      arguments: { argus_dir: dir, id: 'no-such-id', outcome: 'missed', what_happened: 'x' },
+    });
+    const saved = (structured(missed)['data'] as Record<string, unknown>)?.['saved_ids'] as string[];
+    expect(saved).not.toContain('already-done');
+  });
+
+  it('an invalid argument with no date at fault carries no clock', async () => {
+    // The date belongs in the refusals it can act on. Everywhere else it is
+    // noise, and noise in an error is how the actionable line gets skimmed.
+    const bad = await client.callTool({ name: 'argus_patterns', arguments: { view: 'not-a-view' } });
+    expect(bad.isError).toBe(true);
+    expect(structured(bad)['today']).toBeUndefined();
+  });
+
   it('rejects an invalid nested premise before writing any part of action=open', async () => {
     const id = 'atomic-invalid-open';
     const invalid = await client.callTool({
