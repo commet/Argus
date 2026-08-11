@@ -64,6 +64,33 @@ function firstExisting(dir, names) {
 // for Hangul).
 const VIBE = /\b(go well|be fine|be good|be great|work out|feel right|be successful|do better|improve somehow)\b/i;
 const VIBE_KO = /(잘\s*될|잘\s*풀릴|괜찮을|좋아질|나아질)\s*(것|거)\s*(같|이)|아마도|어떻게든\s*(될|되)/;
+// Bundle gate, hand-synced with validate-seal.ts (2026-08-11). sense-signal.js
+// has told the model "exactly ONE falsifiable claim per predicate" since this
+// plugin shipped, but nothing checked it, so a bundled seed reached the ledger
+// whenever the model did not comply. A bundle cannot settle true or false: it
+// grades `partial` whatever reality does, and every number built on it inherits
+// that. Two tiers, conservative by construction — see validate-seal.ts for why
+// each one is shaped this way, and keep both files in step by hand.
+const ISO_DATE = /\d{4}-\d{2}-\d{2}/g;
+const STRONG_SPLIT = /\s*(?:[;·|]|\n+|\.\s+)\s*/;
+const WEAK_SPLIT = /\s*(?:,\s*(?:and|but|then|so)\b|\s+and\s+|\s+but\s+|,|、|그리고|하지만)\s*/i;
+const GRADEABLE = /\d|[%<>=≤≥]/;
+const MIN_CLAIM = 8;
+// A conditional states the terms the claim is graded under, not a second claim.
+// The four-part seed fixture below ("If we compress the crew to 5, 30-day
+// completion stays at or above 62%") is exactly this shape.
+const CONDITIONAL_HEAD = /^(?:if|when|unless|once|assuming|provided|given|만약|만일)\b/i;
+const CONDITIONAL_TAIL_KO = /(?:으면|다면|라면|이면|하면|되면|거든|든지)$/;
+
+function bundledClaims(predicate) {
+  const pieces = (text, splitter) => text.split(splitter).map((c) => c.trim()).filter(Boolean);
+  const isAntecedent = (c) => CONDITIONAL_HEAD.test(c) || CONDITIONAL_TAIL_KO.test(c);
+  const strong = pieces(predicate, STRONG_SPLIT).filter((c) => c.length >= MIN_CLAIM && !isAntecedent(c));
+  if (strong.length > 1) return strong;
+  const weak = pieces(predicate, WEAK_SPLIT).filter((c) => !isAntecedent(c));
+  if (weak.filter((c) => GRADEABLE.test(c.replace(ISO_DATE, ' '))).length > 1) return weak;
+  return null;
+}
 // Hand-synced with validate-seal.ts: an observable anchor (number, date,
 // threshold, concrete completion verb) makes the predicate checkable even when
 // vibe wording rides along — the vibe lists catch PURE feelings only.
@@ -203,6 +230,11 @@ export function checkVersion(dir) {
       const predicate = seed.predicate;
       if (typeof predicate !== 'string' || predicate.trim().length < 8) {
         v.push('SEED: contract_seed.predicate is empty or under 8 chars — a seal needs a statement reality can mark true or false');
+      } else if (bundledClaims(predicate)) {
+        // Checked BEFORE the HARD_ANCHOR bypass for the same reason as in
+        // validate-seal.ts: a bundle is made of numbers, so the bypass would
+        // wave through every sentence this exists to catch.
+        v.push(`SEED: contract_seed.predicate stacks ${bundledClaims(predicate).length} separately checkable claims — a seal grades one, so this can only ever settle as "partial". Keep the single most load-bearing claim and leave the rest out of the predicate`);
       } else if (!HARD_ANCHOR.test(predicate) && (VIBE.test(predicate) || VIBE_KO.test(predicate))) {
         v.push('SEED: contract_seed.predicate reads like a vibe, not a checkable prediction — restate with a number, threshold, or observable event (weak heuristic; may miss cases)');
       }

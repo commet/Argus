@@ -39,10 +39,27 @@ export function resetSealSession(): void {
 const inputSchema = z.strictObject({
   argus_dir: zArgusDir,
   id: zId.describe('A short slug you pick for this decision (e.g. "q3-cutover"). A fresh id starts the record on its own.'),
-  predicate: z.string().min(8).max(400).describe('A prediction reality can mark true/false. Good: "cutover downtime < 5 min". Bad: "it will go well".'),
+  // ONE claim, stated here because this is the field the model is writing when
+  // it decides. The bundle gate in validate-seal.ts enforces it either way; this
+  // line exists so the caller is not surprised by a refusal, and so the rule
+  // stops living only in argus-plugin-v2's prompt (single-source drift).
+  predicate: z.string().min(8).max(400).describe('ONE prediction reality can mark true/false — never two joined by "and". Good: "cutover downtime < 5 min". Bad: "it will go well"; bad: "ships Friday and no rollback".'),
   check_by: zDate.describe('YYYY-MM-DD, a real future date when the result can be checked.'),
   predicate_owner: z.enum(['user', 'ai_surfaced']).describe('Provenance. Never forge. "user" = the user wrote or affirmed it. "ai_surfaced" = Argus drafted, unconfirmed — on a host with a picker this AUTOMATICALLY shows a one-tap confirm before saving.'),
-  confirm_draft: z.boolean().optional().describe('Optional extra confirmation: force the one-tap confirm even for a "user" predicate. ai_surfaced predicates get it automatically on supporting hosts. The picker maps to the host\'s native Accept/Decline and carries NO input fields, so one keypress records it: Accept keeps the sentence as theirs, Decline records nothing. If they want different words or a different date, they say so in chat and you call again with the new value. Without picker support, saving proceeds — confirm in your own message first.'),
+  // WAS 665 SERVED BYTES — the single most expensive line on the whole tool
+  // surface, and it bought nothing measurable: across five recorded journey runs
+  // the assistant never once passed this flag, so the picker never fired
+  // (docs/receipts/2026-08-11-first-user-journey/, 발견 3).
+  //
+  // What it spent those bytes on was RUNTIME behaviour — what the picker looks
+  // like, what Accept and Decline each record, what happens on a host with no
+  // picker. None of that is needed to decide whether to pass the flag, and all
+  // of it is knowledge the caller needs when it reads the RESULT. The result is
+  // not counted by the surface budget, so the same sentences are free there and
+  // arrive exactly when they apply: `data.confirm_note` on the no-picker path,
+  // and `data.retry_hint` on the decline / no-answer paths, which already
+  // carried it. Keep here only what changes the call itself.
+  confirm_draft: z.boolean().optional().describe('Force the one-tap confirm even for a "user" predicate. ai_surfaced gets it automatically on hosts with a picker.'),
   basis: z.enum(['judgment', 'luck', 'mixed', 'unsure']).optional(),
   real_question: z.string().max(400).describe('The real question behind the answer (receipt).').optional(),
   unverified_assumption: z.string().max(400).describe('The core assumption not yet verified (receipt). Recorded as an AI-tagged draft (ai_surfaced, with the original wording preserved) unless the user later amends it in their own words.').optional(),
@@ -72,7 +89,15 @@ export const seal: ToolModule = {
 
       const vErr = validateSeal(a['predicate'], a['check_by'], today);
       if (vErr) {
-        return toolError({ ok: false, tool: 'argus_seal', error_code: vErr.code, message: vErr.message, recovery: vErr.recovery });
+        return toolError({
+          ok: false, tool: 'argus_seal', error_code: vErr.code, message: vErr.message, recovery: vErr.recovery,
+          // The clauses ride in `data` because localize-result rewrites `recovery`
+          // from a static per-locale map — the sentence pointing at them does not
+          // survive the language switch, and `data` does (same lesson as the
+          // reword hand-back below). Without them the model has to re-derive the
+          // split it was just handed, which is how claims get dropped silently.
+          ...(vErr.claims ? { data: { sealed: false, claims: vErr.claims } } : {}),
+        });
       }
 
       let predicate = String(a['predicate']);
@@ -380,6 +405,15 @@ export const seal: ToolModule = {
       // product is for it reads as noise in the middle of a friendly line
       // (2026-07-28 surface sweep). Say what it is; the file is still an .ics.
       const calNote = locale === 'ko' ? ' 달력 앱에 넣을 알림 파일도 함께 저장했습니다.' : ' A calendar reminder file is saved alongside it.';
+      // The other half of the confirm_draft budget move (see the field above).
+      // A confirmation was WANTED and this host cannot draw one, so the seal
+      // proceeded with honest ai_surfaced provenance — the caller has to know
+      // that, and this is the moment it matters. Only on that path: saying it
+      // after a picker the user actually answered would be noise.
+      const wantedConfirm = a['confirm_draft'] === true || a['predicate_owner'] === 'ai_surfaced';
+      const confirmNote = wantedConfirm && !elicitedKeep && !canElicit()
+        ? 'This host has no confirm dialog, so the prediction was saved as an unconfirmed AI draft (predicate_owner stays "ai_surfaced"). Confirm it in your own message; if the user gives you different words or a different date, call again with theirs.'
+        : null;
       return envelope({
         ok: true, tool: 'argus_seal',
         surface: `${(a['predicate_owner'] === 'ai_surfaced' ? T.sealed_draft : T.sealed)(predicate, checkBy)}${calNote}${nudge}${syncLine}`,
@@ -389,6 +423,7 @@ export const seal: ToolModule = {
           calendar_path: calendarPath,
           seal_text,
           status: 'sealed', ledger_events_written: events.map((e) => e.event),
+          ...(confirmNote ? { confirm_note: confirmNote } : {}),
           v2_write: v2Write,
           skipped: receipt.skipped,
           account_synced: sync.synced,

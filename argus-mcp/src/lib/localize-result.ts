@@ -54,6 +54,12 @@ const KO_ERRORS: Record<string, ErrorCopy> = {
   ARGUS_DIR_INVALID: { message: 'Argus 기록 경로(argus_dir / ARGUS_DIR)가 올바르지 않습니다.', recovery: '절대 경로여야 하고 ".."을 포함할 수 없습니다. MCP 설정에서 절대 경로(예: C:\\Users\\이름\\.argus, /Users/이름/.argus)로 바꾸거나 ARGUS_DIR을 지워 기본값(~/.argus)을 쓰세요. ${...} 같은 변수는 호스트가 확장하지 못할 수 있습니다.' },
   ARGUS_DIR_UNWRITABLE: { message: 'Argus가 기록 폴더를 만들거나 쓰지 못했습니다.', recovery: 'ARGUS_DIR(또는 argus_dir)을 실제로 있고 쓸 수 있는 폴더로 바꿔 주세요. 실제 드라이브의 절대 경로여야 하고 ".."은 넣을 수 없습니다. 그다음 다시 시도하세요.' },
   EMPTY_PREDICATE: { message: '확인 가능한 예측 문장이 필요합니다 (공백 제외 최소 8자).', recovery: '현실이 참/거짓으로 확인할 수 있는 문장으로 다시 적으세요. 예: "컷오버 다운타임 5분 미만".' },
+  // 없으면 generic fallback('요청을 처리하지 못했습니다')이 이 구체적 안내를
+  // 통째로 지운다 — 한국어 사용자만 왜 막혔는지 모르게 된다.
+  BUNDLED_PREDICATE: {
+    message: '한 문장에 따로 확인해야 할 주장이 여러 개 들어 있습니다. 예측 하나는 하나만 채점할 수 있어서, 이대로 저장하면 결과가 무엇이든 "절반만 맞음"으로만 남습니다.',
+    recovery: '가장 하중이 큰 주장 하나만 사용자의 표현 그대로 저장하세요. 빼놓은 주장들은 data.claims에 있습니다. 사용자에게 무엇을 빼놨는지 알리고 원하는지 물어보세요. 조용히 버리거나 "그리고"로 다시 붙이지 마세요.',
+  },
   ALREADY_SETTLED: { message: '이미 실제 결과가 기록된 결정입니다.', recovery: '영수증은 argus_patterns view="receipt"로 볼 수 있습니다. 새 결정이면 새 id로 여세요.' },
   DECISION_CLOSED: { message: '닫힌 결정이라 더 진행할 수 없습니다.', recovery: '필요하면 새 id로 다시 여세요. 닫힌 기록은 그대로 남습니다.' },
   GOALPOST_MOVED: { message: '봉인된 예측 문장은 확인일 전에 바꿀 수 없습니다.', recovery: '일정 변경은 outcome="still_pending"과 defer_to로, 예측 자체가 달라졌다면 새 결정으로 여세요.' },

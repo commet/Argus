@@ -14,11 +14,13 @@ import { asDate, isRealDate } from './resolve-today.js';
  */
 
 export interface SealValidationError {
-  code: 'EMPTY_PREDICATE' | 'BAD_CHECK_BY' | 'NOT_FALSIFIABLE';
+  code: 'EMPTY_PREDICATE' | 'BAD_CHECK_BY' | 'NOT_FALSIFIABLE' | 'BUNDLED_PREDICATE';
   message: string;
   recovery: string;
   /** weak heuristics are advisory — the caller may downgrade them to a warning */
   weak?: boolean;
+  /** BUNDLED_PREDICATE only: the clauses the splitter found, in source order. */
+  claims?: string[];
 }
 
 // Obvious non-falsifiable vibes. Weak/advisory only.
@@ -41,6 +43,85 @@ const VIBE_KO = /(잘\s*될|잘\s*풀릴|괜찮을|좋아질|나아질)\s*(것|�
 // over-fire: the vibe check only runs when vibe wording is actually present, so
 // a plain "we ship the app by Friday" still passes untouched.
 const HARD_ANCHOR = /\d|[%<>=≤≥]|(이상|이하|미만|초과)|\b(at least|more than|less than|no more than)\b/i;
+
+// ── Bundle gate (2026-08-11) ────────────────────────────────────────────────
+// The first-user journey died here five times out of five. A practitioner's
+// real sentence is a BUNDLE — "migration mostly smooth · 1-2 edge cases break ·
+// done in ~3 days" — and one predicate can hold one of those. Two failures were
+// measured, both fatal: the assistant read the contract, saw no way to keep the
+// other claims, and never called at all; or it crammed the bundle into 400
+// chars, producing a record settle can only ever mark `partial`. A bundled seal
+// is not a smaller truth, it is an ungradeable one — every downstream number
+// (calibration, the settled receipt) is built on a true/false that cannot be
+// given honestly.
+//
+// The rule itself is not new. argus-plugin-v2's sense-signal.js has carried it
+// since the plugin shipped ("Record exactly ONE falsifiable claim per predicate
+// … never conjoin them"), but only as PROSE, in only one of the two zones, and
+// as a gate in neither. So a user on the plugin got the rule and a user on bare
+// MCP got nothing — the exact drift CLAUDE.md's single-source rule exists to
+// stop. Position repair could not close it: the served tool surface is at its
+// byte ceiling, and wording had already failed to change this behaviour once.
+// A gate here fires no matter what the caller read.
+//
+// CONSERVATIVE BY CONSTRUCTION, because a false positive manufactures friction
+// (the over-fire clause), and unlike the vibe check this one refuses sentences
+// that are perfectly clear. Two independent GRADEABLE clauses are required:
+//   - dates are stripped first, so "by 2026-09-01, downtime < 5 min" is one
+//     claim with its horizon spelled out, not two;
+//   - a clause with no magnitude of its own never counts, so "downtime < 5 min
+//     and no data loss" stays a single claim and passes untouched.
+// It fires on what was actually measured — several separately-gradeable numbers
+// stacked into one sentence — and stays quiet everywhere else.
+// A check-by restated inside the predicate ("by 2026-09-01, downtime < 5 min")
+// is the same claim's horizon, not a second claim. Dates never count as
+// magnitudes — this was the first false positive the probe caught.
+const ISO_DATE = /\d{4}-\d{2}-\d{2}/g;
+// TIER 1 — the writer marked the boundary themselves. Semicolons, sentence
+// breaks, bullets and newlines are enumeration: people do not punctuate a
+// single claim this way. `\.\s+` needs the trailing space so decimals ("5.5s")
+// and a trailing full stop survive intact.
+const STRONG_SPLIT = /\s*(?:[;·|]|\n+|\.\s+)\s*/;
+// TIER 2 — coordination. "and" joins noun phrases as readily as claims
+// ("downtime and latency stay under 5 min"), so this tier only counts when both
+// sides carry their own magnitude.
+const WEAK_SPLIT = /\s*(?:,\s*(?:and|but|then|so)\b|\s+and\s+|\s+but\s+|,|、|그리고|하지만)\s*/i;
+// Digits and thresholds only. HARD_ANCHOR's word forms ("at least", 이상) modify
+// a magnitude rather than being one, so they can never split a sentence.
+const GRADEABLE = /\d|[%<>=≤≥]/;
+// Below the length a predicate needs to be a statement at all, a fragment is
+// punctuation debris, not a claim. Reuses the threshold already in force above
+// rather than inventing a second one.
+const MIN_CLAIM = 8;
+// A conditional sets the terms the claim is graded under; it is not a second
+// claim. "If we compress the crew to 5, 30-day completion stays above 62%" has
+// a magnitude on both sides of the comma and is still ONE prediction — the
+// plugin's own SEED fixture, which caught this the moment the gate was mirrored
+// over there. Antecedents are dropped before anything is counted.
+const CONDITIONAL_HEAD = /^(?:if|when|unless|once|assuming|provided|given|만약|만일)\b/i;
+const CONDITIONAL_TAIL_KO = /(?:으면|다면|라면|이면|하면|되면|거든|든지)$/;
+
+function pieces(text: string, splitter: RegExp): string[] {
+  return text.split(splitter).map((c) => c.trim()).filter((c) => c.length > 0);
+}
+
+function isAntecedent(clause: string): boolean {
+  return CONDITIONAL_HEAD.test(clause) || CONDITIONAL_TAIL_KO.test(clause);
+}
+
+/**
+ * The separately-checkable claims stacked into one predicate, in source order —
+ * or null when it is a single claim. Exported so the guard test can pin the
+ * two tiers directly instead of only through validateSeal.
+ */
+export function detectBundledClaims(predicate: string): string[] | null {
+  const strong = pieces(predicate, STRONG_SPLIT)
+    .filter((c) => c.length >= MIN_CLAIM && !isAntecedent(c));
+  if (strong.length > 1) return strong;
+  const weak = pieces(predicate, WEAK_SPLIT).filter((c) => !isAntecedent(c));
+  if (weak.filter((c) => GRADEABLE.test(c.replace(ISO_DATE, ' '))).length > 1) return weak;
+  return null;
+}
 
 export function validateSeal(predicate: unknown, checkBy: unknown, today: string): SealValidationError | null {
   if (typeof predicate !== 'string' || predicate.trim().length < 8) {
@@ -67,6 +148,23 @@ export function validateSeal(predicate: unknown, checkBy: unknown, today: string
       code: 'BAD_CHECK_BY',
       message: `check_by (${date}) must be in the future (today is ${today}).`,
       recovery: 'Pick a future date. The check-by is when you will come back to settle.',
+    };
+  }
+
+  // Runs BEFORE the HARD_ANCHOR bypass on purpose. A bundle is made OF numbers,
+  // so the bypass would return null on every sentence this gate exists to catch.
+  const claims = detectBundledClaims(predicate);
+  if (claims) {
+    return {
+      code: 'BUNDLED_PREDICATE',
+      message: `This holds ${claims.length} separately checkable claims, and a seal grades one. Whatever reality does, a bundle can only ever settle as "partial".`,
+      // Names the ONE move that works, and forbids the silent version of it.
+      // Dropping the rest quietly is the failure this refusal is preventing —
+      // the user said those things and is owed the choice.
+      recovery:
+        'Seal the single most load-bearing claim, in the user\'s own words. Tell the user which claims you set aside (they are in data.claims) and let them ask for any of them; never drop them silently, and never rejoin them with "and".',
+      weak: true,
+      claims,
     };
   }
 
