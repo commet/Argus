@@ -60,6 +60,14 @@ const WAIVED = new Map([
     'overfire-model',
     'model-in-the-loop restraint eval for the BLUEPRINT M1 exit: needs ANTHROPIC_API_KEY (run mode) or externally collected transcripts (score mode); scored receipts live in docs/receipts/2026-08-10-m1-overfire-eval/ and are intentionally not merge-blocking',
   ],
+  [
+    'persona-overfire',
+    'persona-conditioned variant of overfire-model (phrasing-population robustness of the closed-decision repair): same API-key/run-mode constraints, deterministic scorer shared by import; not merge-blocking',
+  ],
+  [
+    'persona-sampling',
+    'pure deterministic sampler over MIT-licensed MatrAIx schema axes, not a gate; its two load-bearing properties (level coverage, no axis confounding) are vitest-guarded by persona-sampling-guard.test.ts',
+  ],
   ['codex-elicit-wire-probe', 'wire investigation tool that reports observations and asserts no product contract'],
   ['discover', 'raw host-payload investigation tool, superseded as a gate by host-matrix and picker-surfaces'],
   ['live-roundtrip', 'real-network investigation kept outside deterministic pre-merge verification'],

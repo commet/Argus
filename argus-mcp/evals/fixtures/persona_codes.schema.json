@@ -1,0 +1,80 @@
+{
+  "_provenance": "Excerpt of persona_codes.schema.json (format_version 2) from github.com/MatrAIx-ai/MatrAIx-Persona-8B (MIT). Only the 6 columns persona-sampling.mjs transcribes, kept so the guard test can machine-check the transcription. Full schema: 1290 columns. Citation: arXiv:2608.04205. Fetched 2026-08-11.",
+  "format": "persona_codes",
+  "format_version": 2,
+  "total_columns_in_source": 1290,
+  "columns": [
+    {
+      "id": "decision_style",
+      "label": "Decision style",
+      "category": "Risk & Decision",
+      "values": [
+        "Analytical",
+        "Intuitive",
+        "Consensus-driven",
+        "Directive",
+        "Deliberative"
+      ]
+    },
+    {
+      "id": "cog_verbosity",
+      "label": "Verbosity",
+      "category": "Linguistic: Communication",
+      "values": [
+        "Terse",
+        "Concise",
+        "Balanced",
+        "Wordy",
+        "Rambling"
+      ]
+    },
+    {
+      "id": "cog_formality",
+      "label": "Formality",
+      "category": "Linguistic: Communication",
+      "values": [
+        "Very formal",
+        "Formal",
+        "Neutral",
+        "Casual",
+        "Slangy"
+      ]
+    },
+    {
+      "id": "cog_directness",
+      "label": "Directness",
+      "category": "Linguistic: Communication",
+      "values": [
+        "Blunt",
+        "Direct",
+        "Balanced",
+        "Indirect",
+        "Evasive"
+      ]
+    },
+    {
+      "id": "cog_patience",
+      "label": "Patience",
+      "category": "Linguistic: Communication",
+      "values": [
+        "Very high",
+        "High",
+        "Moderate",
+        "Low",
+        "None"
+      ]
+    },
+    {
+      "id": "cog_conflict_approach",
+      "label": "Conflict approach",
+      "category": "Linguistic: Communication",
+      "values": [
+        "Confronting",
+        "Collaborative",
+        "Compromising",
+        "Avoidant",
+        "Accommodating"
+      ]
+    }
+  ]
+}

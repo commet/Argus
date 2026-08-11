@@ -25,6 +25,7 @@
  */
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { SERVER_INSTRUCTIONS } from '../dist/lib/spine.js';
 import { decide } from '../dist/tools/public-tools.js';
 
@@ -151,13 +152,21 @@ async function runApi(models = ['claude-haiku-4-5-20251001', 'claude-sonnet-5'])
   scoreDir(outDir);
 }
 
-const cmd = process.argv[2];
-if (cmd === 'prompts') {
-  for (const s of SCENARIOS) console.log(`\n===== ${s.id} (${s.kind}) =====\n${buildPrompt(s)}`);
-} else if (cmd === 'score') {
-  scoreDir(process.argv[3]);
-} else if (cmd === 'run') {
-  await runApi();
-} else if (cmd !== undefined || process.argv[1]?.endsWith('overfire-model.mjs')) {
-  console.log('usage: node evals/overfire-model.mjs <prompts|run --api|score <dir>>');
+// Only dispatch when this file IS the entry point. Without the guard, importing
+// SCENARIOS/score from a sibling harness ran this CLI on the importer's argv —
+// `other-harness.mjs score <dir>` would silently run THIS scoreDir over that
+// directory as an import side effect. A module meant to be the single source of
+// its scenarios and scorer has to be safe to import.
+const isMain = process.argv[1] && path.resolve(process.argv[1]) === path.resolve(fileURLToPath(import.meta.url));
+if (isMain) {
+  const cmd = process.argv[2];
+  if (cmd === 'prompts') {
+    for (const s of SCENARIOS) console.log(`\n===== ${s.id} (${s.kind}) =====\n${buildPrompt(s)}`);
+  } else if (cmd === 'score') {
+    scoreDir(process.argv[3]);
+  } else if (cmd === 'run') {
+    await runApi();
+  } else {
+    console.log('usage: node evals/overfire-model.mjs <prompts|run --api|score <dir>>');
+  }
 }
