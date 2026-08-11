@@ -44,7 +44,7 @@ playwrightExecutablePath() })`로 띄운다(`scripts/lib/playwright-executable.m
 |---|---|---|
 | `src/` | Next.js 16 앱 (App Router, `[locale]` 라우팅은 `src/proxy.ts`가 처리) | 앱 |
 | `src/lib/__tests__/` | **가드 테스트 276개** — 아래 원칙 대부분을 기계로 강제 | 앱 |
-| `method-harness/` | Track R 오프라인 하네스. `src/`와 상호 import 금지 (테스트가 차단) | 앱 |
+| `method-harness/` | Track R 오프라인 하네스. `src/`와 상호 import 금지 (테스트가 차단; 승인 예외 2채널: `src/app/method-pilot/`·`src/app/api/mcp/v2/`) | 앱 |
 | `docs/` | 정본 문서 (BLUEPRINT = 빌드 순서, ARGUS-METHOD-V1.0 = 방법 정본) | — |
 | `argus-mcp/`, `argus-plugin-v2/` | MIT 존 — **PR은 앱 존과 섞지 않는다** | MIT |
 
@@ -251,7 +251,7 @@ SELECT column_name FROM information_schema.columns WHERE table_name = 'TABLE_NAM
 - **Handoff store** — 단계 간 임시 데이터, mount 시 `useEffect([], [])`로 소비
 - **Quality signals** — `signal-recorder.ts`가 암묵적 사용자 행동을 기록
 - **Track R (`method-harness/`)** — 이벤트 소싱 원장 + 결정론 validator.
-  `src/`와 무접촉, 유일한 예외는 `src/app/method-pilot/` (경계는 테스트가 강제).
+  `src/`와 무접촉, 승인 예외는 `src/app/method-pilot/`과 `src/app/api/mcp/v2/` 2채널 (경계·예외 목록 모두 harness.test.ts가 강제).
 
 ## LLM Prompt Injection Guidelines
 
