@@ -60,9 +60,20 @@ export function parseFlow(src) {
       err("expected ',' or ']'");
     }
   }
+  // Escapes are parsed, not passed through: a value containing \" used to end
+  // the string early and change the canonical projection — i.e. silently alter
+  // what a seal covers. Only the two escapes the format uses are accepted; any
+  // other backslash form fails loudly rather than being guessed at.
   function qstr() {
     i++; let s = "";
-    while (i < src.length && src[i] !== '"') { s += src[i]; i++; }
+    while (i < src.length && src[i] !== '"') {
+      if (src[i] === "\\") {
+        const next = src[i + 1];
+        if (next !== '"' && next !== "\\") err(`unsupported escape \\${next ?? "<eof>"}`);
+        s += next; i += 2; continue;
+      }
+      s += src[i]; i++;
+    }
     if (src[i] !== '"') err("unterminated string");
     i++; return s;
   }
@@ -108,9 +119,11 @@ export function parseActorList(src) {
 }
 
 // ---------- record parser ----------
-const STATES = ["recorded", "sealed", "settled", "withdrawn"];
+const STATES = ["recorded", "sealed", "settled", "disputed", "withdrawn"];
 const OUTCOMES = ["yes", "no", "ambiguous", "annulled"];
 const AUTH_VALUES = ["h", "ai", "h←ai", "ai←h", "u"];
+const SEAL_LEVELS = ["L0", "L1", "L2"];
+const FULL_SHA256 = /^[0-9a-f]{64}$/;
 
 export function parseRecord(text, file = "<memory>") {
   const errors = [];
@@ -216,11 +229,13 @@ export function parseRecord(text, file = "<memory>") {
   const settlements = [];
   if (settleRaw) {
     for (const line of settleRaw.split("\n")) {
-      const m = line.match(/^- (\S+)\s+outcome:\s*(\S+)(?:\s*·\s*observed:\s*"([^"]*)")?(?:\s*·\s*source_ref:\s*(.+))?$/);
+      // `by` runs to the next · or end of line: settler names contain spaces
+      // ("h:Dana Park"), and a \S+ capture silently truncated the whole entry.
+      const m = line.match(/^- (\S+)\s+outcome:\s*(\S+)(?:\s*·\s*by:\s*([^·\n]+?))?(?:\s*·\s*observed:\s*"([^"]*)")?(?:\s*·\s*source_ref:\s*(.+))?$/);
       if (!m) continue;
-      const [, ts, outcome, observed, source_ref] = m;
+      const [, ts, outcome, by, observed, source_ref] = m;
       if (!OUTCOMES.includes(outcome)) fail("E_OUTCOME", `unknown outcome "${outcome}"`);
-      settlements.push({ ts, outcome, observed: observed ?? null, source_ref: source_ref ? source_ref.trim() : null });
+      settlements.push({ ts, outcome, by: by ?? null, observed: observed ?? null, source_ref: source_ref ? source_ref.trim() : null });
     }
   }
 
@@ -262,7 +277,7 @@ export function lint(rec, { now = new Date() } = {}) {
   const W = (code, msg) => warnings.push({ code, msg });
   const state = rec.front?.state;
 
-  if (state === "sealed" || state === "settled") {
+  if (state === "sealed" || state === "settled" || state === "disputed") {
     if (!rec.stake) E("E_NO_STAKE", `state=${state} requires a Stake block`);
     else {
       for (const k of ["claim", "settle_by"])
@@ -279,7 +294,23 @@ export function lint(rec, { now = new Date() } = {}) {
         if (rec.stake.settled_by.some(s => authorNames.has(`${s.key}:${s.name}`)))
           W("W_SELF_SETTLED", "a named settler is also an author — allowed, but the record is self-settled and tools must show it; an independent settler strengthens it");
       }
-      if (!rec.stake.seal?.hash) E("E_SEAL", `state=${state} requires seal.hash`);
+      // The whole seal, not just its hash: a hash with no recipe version, no
+      // Statement binding or no nonce cannot establish the commitment the spec
+      // requires, and a record missing them would lint clean while being
+      // unverifiable — the silent dead end this format exists to prevent.
+      const seal = rec.stake.seal;
+      if (!seal?.hash) E("E_SEAL", `state=${state} requires seal.hash`);
+      else {
+        for (const k of ["level", "proj", "statement_rev", "nonce"])
+          if (seal[k] === undefined) E("E_SEAL_FIELD", `state=${state} requires seal.${k}`);
+        if (seal.level !== undefined && !SEAL_LEVELS.includes(String(seal.level)))
+          E("E_SEAL_LEVEL", `seal.level must be one of ${SEAL_LEVELS.join("/")}, got: ${seal.level}`);
+        for (const k of ["hash", "statement_rev"]) {
+          const v = String(seal[k] ?? "").replace(/^sha256:/, "");
+          if (seal[k] !== undefined && !FULL_SHA256.test(v))
+            E("E_SEAL_DIGEST", `seal.${k} must be sha256: + 64 lowercase hex characters (abbreviated digests can never verify)`);
+        }
+      }
       if (!rec.stake.criteria) W("W_CRITERIA", "no settlement criteria — settleability lint: name source/threshold/edge before sealing");
       if (rec.stake.raw.settle_by && state === "sealed") {
         const d = new Date(String(rec.stake.raw.settle_by).replace(/Z?$/, "Z"));
@@ -290,10 +321,16 @@ export function lint(rec, { now = new Date() } = {}) {
   }
   if (state === "recorded" && rec.stake?.seal?.hash)
     E("E_STATE_MISMATCH", "record carries a seal but state=recorded — set state: sealed");
-  if (state === "settled" && rec.settlements.length === 0)
-    E("E_NO_SETTLEMENT", "state=settled requires at least one Settlement entry");
-  if (state !== "settled" && rec.settlements.length > 0)
+  if ((state === "settled" || state === "disputed") && rec.settlements.length === 0)
+    E("E_NO_SETTLEMENT", `state=${state} requires at least one Settlement entry`);
+  if (state !== "settled" && state !== "disputed" && rec.settlements.length > 0)
     E("E_STATE_MISMATCH", `Settlement entries present but state=${state} — set state: settled`);
+  // Every settlement names its settler: authorization checked only in memory
+  // and then discarded leaves a record that cannot show who closed the claim.
+  for (const s of rec.settlements)
+    if (!s.by) E("E_SETTLEMENT_BY", `settlement ${s.ts} does not name the settler (by:)`);
+  if (state === "disputed" && new Set(rec.settlements.map(s => s.outcome)).size < 2)
+    E("E_NOT_DISPUTED", "state=disputed requires conflicting outcomes from named settlers");
 
   const delegated = rec.premises.some(p => p.author === "ai←h") ||
     rec.authors.some(a => a.key === "ai" && (state === "sealed" || state === "settled") && false); // authors use h/ai/u only
@@ -330,21 +367,29 @@ export function lintDir(dir, opts) {
 export function sealRecord(text, { level = "L0", ref = null } = {}) {
   const rec = parseRecord(text);
   if (rec.errors.length) throw new Error("cannot seal a record with parse errors: " + rec.errors.map(e => e.code).join(","));
+  if (!SEAL_LEVELS.includes(level)) throw new Error(`seal level must be one of ${SEAL_LEVELS.join("/")}, got: ${level}`);
   if (rec.stake?.seal?.hash && rec.stake.seal.hash !== "TBS")
     throw new Error("record is already sealed — Stake is immutable once sealed (amend via a new record + superseded_by)");
   if (!rec.stake) throw new Error("no Stake block to seal");
+  // Everything the sealed state requires EXCEPT the seal itself — that is what
+  // this call is about to write, so its absence is not a reason to refuse.
+  const SEAL_CODES = ["E_SEAL", "E_SEAL_FIELD", "E_SEAL_LEVEL", "E_SEAL_DIGEST"];
   const pre = lint({ ...rec, front: { ...rec.front, state: "sealed" }, stake: { ...rec.stake, seal: { hash: "x" } } });
-  const blocking = pre.errors.filter(e => e.code !== "E_SEAL");
+  const blocking = pre.errors.filter(e => !SEAL_CODES.includes(e.code));
   if (blocking.length) throw new Error("seal blocked by lint: " + blocking.map(e => `${e.code}(${e.msg})`).join("; "));
   const nonce = randomBytes(6).toString("hex");
   const stmtRev = statementRev(rec);
   const hash = stakeHash(rec, nonce, stmtRev);
   const sealLine = `seal:       { level: ${level}, proj: v1, hash: "sha256:${hash}", statement_rev: "sha256:${stmtRev}", nonce: "${nonce}"${ref ? `, ref: "${ref}"` : ""} }`;
   let out = text;
-  out = /^seal:.*$/m.test(out)
-    ? out.replace(/^seal:.*$/m, sealLine)
-    : out.replace(/## Settlement/, sealLine + "\n\n## Settlement");
+  if (/^seal:.*$/m.test(out)) out = out.replace(/^seal:.*$/m, sealLine);
+  else if (/## Settlement/.test(out)) out = out.replace(/## Settlement/, sealLine + "\n\n## Settlement");
+  // No Settlement heading is legal (settleRecord adds one), but the seal still
+  // has to land somewhere: appending it after the Stake block keeps a record
+  // from being stamped `sealed` while carrying no seal at all.
+  else out = out.trimEnd() + "\n" + sealLine + "\n";
   out = out.replace(/^state: recorded$/m, "state: sealed");
+  if (!/^seal:/m.test(out)) throw new Error("internal: seal line was not written");
   return { text: out, hash, statementRev: stmtRev, nonce };
 }
 
@@ -357,14 +402,21 @@ export function verifyRecord(text) {
     return { ok: false, reason: "seal carries no projection version (pre-v1 harness) — verify with the sealing harness or re-seal; a hash whose recipe is unknown proves nothing" };
   if (seal.proj !== "v1")
     return { ok: false, reason: `unknown projection version "${seal.proj}" — this CLI verifies proj v1 only` };
+  if (!SEAL_LEVELS.includes(String(seal.level)))
+    return { ok: false, reason: `unknown seal level "${seal.level}" — the format defines ${SEAL_LEVELS.join("/")} only` };
   const nonce = String(seal.nonce ?? "");
-  const recordedStmtRev = String(seal.statement_rev ?? "").replace(/^sha256:/, "").replace(/…$/, "");
-  const recordedHash = String(seal.hash).replace(/^sha256:/, "").replace(/…$/, "");
+  const recordedStmtRev = String(seal.statement_rev ?? "").replace(/^sha256:/, "");
+  const recordedHash = String(seal.hash).replace(/^sha256:/, "");
+  // Whole digests only. Comparing a prefix meant `sha256:a` verified against
+  // any hash starting with "a" — a verifier that accepts an abbreviation is
+  // not a verifier. Display may abbreviate; verification never does.
+  for (const [k, v] of [["hash", recordedHash], ["statement_rev", recordedStmtRev]])
+    if (!FULL_SHA256.test(v))
+      return { ok: false, reason: `seal.${k} is not a complete sha256 digest (need 64 lowercase hex characters) — abbreviated digests cannot be verified` };
   const currentStmtRev = statementRev(rec);
-  const recomputed = stakeHash(rec, nonce, recordedStmtRev.length === 64 ? recordedStmtRev : currentStmtRev);
-  const matches = recordedHash.length === 64 ? recomputed === recordedHash : recomputed.startsWith(recordedHash);
-  const statementAmended = recordedStmtRev.length > 0 && !currentStmtRev.startsWith(recordedStmtRev) &&
-    (recordedStmtRev.length === 64 ? currentStmtRev !== recordedStmtRev : true);
+  const recomputed = stakeHash(rec, nonce, recordedStmtRev);
+  const matches = recomputed === recordedHash;
+  const statementAmended = currentStmtRev !== recordedStmtRev;
   return matches
     ? { ok: true, statementAmended, hash: recomputed }
     : { ok: false, reason: "SEAL BROKEN — sealed Stake fields do not match the recorded hash", recomputed, recorded: recordedHash };
@@ -380,14 +432,22 @@ export function settleRecord(text, { outcome, by, observed = null, sourceRef = n
   const allowed = (rec.stake.settled_by ?? []).map(a => `${a.key}:${a.name}`);
   if (!allowed.includes(by)) throw new Error(`settler "${by}" is not named in settled_by [${allowed.join(", ")}] — only named settlers may settle`);
   const ts = now.toISOString().slice(0, 16) + "Z";
-  let entry = `- ${ts}  outcome: ${outcome}`;
+  // `by` is written into the entry, not just checked: the record has to show
+  // which named settler closed it, or a later dispute has no counterparties.
+  let entry = `- ${ts}  outcome: ${outcome} · by: ${by}`;
   if (observed !== null) entry += ` · observed: "${observed}"`;
   if (sourceRef !== null) entry += ` · source_ref: ${sourceRef}`;
   if (note) entry += `\n  note: ${note}`;
   let out = text.replace(/\(미정산[^\n]*\)\n?/, "");
   if (!/## Settlement/.test(out)) out = out.trimEnd() + "\n\n## Settlement\n";
   out = out.trimEnd() + "\n" + entry + "\n";
-  out = out.replace(/^state: sealed$/m, "state: settled");
+  // Conflicting outcomes from different named settlers do not overwrite each
+  // other — both entries stay and the record becomes `disputed` (unscored).
+  const priorOutcomes = new Set(rec.settlements.map(s => s.outcome));
+  const conflicting = rec.settlements.some(s => s.outcome !== outcome && s.by && s.by !== by);
+  const nextState = conflicting || (priorOutcomes.size && !priorOutcomes.has(outcome) && rec.settlements.some(s => s.by !== by))
+    ? "disputed" : "settled";
+  out = out.replace(/^state: (sealed|settled|disputed)$/m, `state: ${nextState}`);
   return out;
 }
 

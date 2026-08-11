@@ -61,7 +61,15 @@ node antefact/cli/antefact.mjs settle my.antefact.md --outcome yes --by "h:김�
   것이 후속 작업이다 (워크플로 파일은 이 커밋에서 건드리지 않았다).
 - 파서는 스펙이 키별로 고정한 제약 YAML 부분집합만 읽는다(일반 YAML 아님) —
   낯선 모양은 추측하지 않고 크게 실패한다. 의도된 제약이다.
-- `settle`은 Settlement 절이 파일 끝에 있다고 가정한다 (v0 단순화).
+- `settle`은 Settlement 절이 파일 끝에 있다고 가정한다 (v0 단순화). `seal`은
+  그 절이 없어도 Stake 뒤에 봉인을 기록한다.
+- **append-only 리비전 레코드가 미구현이다.** 스펙 §3.1은 Statement 수정을
+  저자성이 붙은 append-only 리비전으로 요구하지만, CLI는 그 형식을 아직
+  파싱하지 못한다. 그래서 봉인 후 Statement를 직접 고치면 `verify`는 이를
+  **막지 않고 `statementAmended: true`로 드러낸다** — 봉인 해시는 봉인 시점
+  리비전에 걸려 있어 깨지지 않는다. 즉 현재 구현은 "수정을 보이게 한다"까지고
+  "수정 이력을 강제한다"는 v0.2다. (2026-08-11 리뷰에서 지적된 항목이며,
+  자동 리뷰 도구가 이를 해결됨으로 표시했으나 사실이 아니다.)
 - `seal.stream`(봉인 연쇄)·L2 서명은 스펙에 있으나 CLI 미구현 (v0.2 예정).
 
 라이선스: 스펙 산문 CC BY 4.0 · 스키마/코드 MIT (SPEC.md 이름 정책 참조).

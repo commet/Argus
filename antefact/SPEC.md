@@ -38,6 +38,7 @@ MAY be recorded via Annex A).
 | `recorded` | No Stake — valid, carries no judgment credit | Excluded from scoring aggregates (MUST) |
 | `sealed` | Stake sealed | Stake immutable thereafter (MUST) |
 | `settled` | Settlement exists | Settlement is append-only (MUST) |
+| `disputed` | Named settlers appended conflicting outcomes | Every conflicting entry is preserved; the record is unscored and counted in the denominator (MUST) |
 | `withdrawn` | Tombstoned | Reason ∈ {error, retracted} (MUST) |
 
 - **Denominator-line norm**: conforming tools MUST display, next to any scored
@@ -79,7 +80,10 @@ MAY be recorded via Annex A).
   settler(s), as author-key references (MUST): the seal names its judge.
   `criteria { source, threshold, edge }` (SHOULD; Annex B lint). `annul_if`
   (MAY).
-- `seal` — `{ level, proj, hash, statement_rev, nonce }`. The hash covers the
+- `seal` — `{ level, proj, hash, statement_rev, nonce }`, all five required on a
+  sealed record (MUST); `hash` and `statement_rev` are complete SHA-256 digests
+  (64 lowercase hex characters) — verification never accepts an abbreviation,
+  however a display may shorten it. The hash covers the
   Stake's canonical projection plus the content hash of the Statement revision
   current at seal time (MUST). `nonce` is a random value inside the sealed
   projection (MUST) — public log entries must not be dictionary-attackable.
@@ -91,9 +95,11 @@ MAY be recorded via Annex A).
 
 - **Literal-text rule**: settlement follows the literal sealed text — the words
   win over the intent (MUST).
-- Only settlers named in `settled_by` may append an outcome (MUST). Conflicting
-  outcomes from named settlers render the record `disputed` — unscored, both
-  entries preserved (MUST).
+- Only settlers named in `settled_by` may append an outcome (MUST), and each
+  settlement entry records which of them appended it (`by`, MUST) —
+  authorization that is checked and then discarded cannot be audited later.
+  Conflicting outcomes from named settlers render the record `disputed` —
+  unscored, both entries preserved (MUST).
 - Corrections are **reversing entries**: append with a reason, never edit (MUST).
 - `outcome ∈ {yes, no, ambiguous, annulled}`; `ambiguous` and `annulled` are
   unscored (MUST). Quantitative stakes record `observed` (SHOULD). A settlement
