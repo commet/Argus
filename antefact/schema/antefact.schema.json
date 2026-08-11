@@ -1,0 +1,110 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://antefact.org/schema/0.1/antefact.schema.json",
+  "title": "Antefact record (parsed canonical form, v0.1 draft)",
+  "description": "Schema for the parsed form of an .antefact.md record. The file itself is Markdown + constrained YAML; this schema fixes per-key types (no implicit typing) as required by the canonical-projection rule.",
+  "type": "object",
+  "required": ["front", "premises"],
+  "properties": {
+    "front": {
+      "type": "object",
+      "required": ["antefact", "id", "authors", "state"],
+      "properties": {
+        "antefact": { "type": "string", "pattern": "^0\\.[0-9]+$" },
+        "id": { "type": "string", "minLength": 1 },
+        "authors": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/actor" } },
+        "state": { "enum": ["recorded", "sealed", "settled", "disputed", "withdrawn"] },
+        "policy_ref": { "type": "string" },
+        "superseded_by": { "type": "string" }
+      }
+    },
+    "title": { "type": "string" },
+    "premises": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["pid", "author", "text"],
+        "properties": {
+          "pid": { "type": "string", "pattern": "^P[0-9]+$" },
+          "author": { "enum": ["h", "ai", "h←ai", "ai←h", "u"] },
+          "kind": { "enum": ["fact", "assumption", "inference", null] },
+          "confidence": { "enum": ["high", "moderate", "low", null] },
+          "text": { "type": "string", "minLength": 1 },
+          "extra": { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    },
+    "stake": {
+      "type": "object",
+      "properties": {
+        "claim": { "type": "string", "minLength": 1 },
+        "p": {
+          "type": "object",
+          "required": ["raw", "mode", "canonical"],
+          "properties": {
+            "raw": { "type": "string", "description": "the original input gesture — precision-bearing, string-encoded" },
+            "mode": { "enum": ["direct", "band", "frequency", "slider", "ai_suggested"] },
+            "canonical": { "type": "number", "minimum": 0, "maximum": 1, "description": "derived scoring number, marked as derived by living in this field" },
+            "granularity": { "type": ["number", "null"] }
+          }
+        },
+        "confidence": { "enum": ["high", "moderate", "low"] },
+        "settle_by": { "type": "string", "format": "date-time" },
+        "settled_by": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/actor" } },
+        "criteria": {
+          "type": "object",
+          "properties": {
+            "source": { "type": "string" },
+            "threshold": { "type": ["string", "number"] },
+            "edge": { "type": "string" }
+          }
+        },
+        "annul_if": { "type": "string" },
+        "seal": {
+          "type": "object",
+          "required": ["level", "proj", "hash", "statement_rev", "nonce"],
+          "properties": {
+            "level": { "enum": ["L0", "L1", "L2"] },
+            "proj": { "enum": ["v1"], "description": "canonical-projection recipe version — a hash without a named recipe proves nothing" },
+            "hash": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+            "statement_rev": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+            "nonce": { "type": "string", "pattern": "^[0-9a-f]+$" },
+            "ref": { "type": "string" },
+            "stream": {
+              "type": "object",
+              "required": ["stream_id", "seq", "prev_hash"],
+              "properties": {
+                "stream_id": { "type": "string" },
+                "seq": { "type": "integer", "minimum": 1 },
+                "prev_hash": { "type": "string" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "settlements": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["ts", "outcome", "by"],
+        "properties": {
+          "ts": { "type": "string" },
+          "outcome": { "enum": ["yes", "no", "ambiguous", "annulled"] },
+          "by": { "type": "string", "description": "the named settler who appended this entry, as key:name — authorization that is checked and then discarded proves nothing later" },
+          "observed": { "type": ["string", "null"], "description": "measured value, string-encoded to preserve precision" },
+          "source_ref": { "type": ["string", "null"] }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "actor": {
+      "type": "object",
+      "minProperties": 1,
+      "maxProperties": 1,
+      "patternProperties": { "^(h|ai|u)$": { "type": "string", "minLength": 1 } },
+      "additionalProperties": false
+    }
+  }
+}

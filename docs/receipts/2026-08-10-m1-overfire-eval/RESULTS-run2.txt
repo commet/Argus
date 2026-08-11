@@ -1,0 +1,24 @@
+┌─────────┬─────────────┬─────────────┬────────────────┬──────────┐
+│ (index) │ trial       │ kind        │ violations     │ mentions │
+├─────────┼─────────────┼─────────────┼────────────────┼──────────┤
+│ 0       │ 'F1/haiku'  │ 'flat'      │ '-'            │ '-'      │
+│ 1       │ 'F1/sonnet' │ 'flat'      │ '-'            │ '-'      │
+│ 2       │ 'F2/haiku'  │ 'flat'      │ '-'            │ '-'      │
+│ 3       │ 'F2/sonnet' │ 'flat'      │ '-'            │ '-'      │
+│ 4       │ 'F3/haiku'  │ 'flat'      │ '-'            │ '-'      │
+│ 5       │ 'F3/sonnet' │ 'flat'      │ '-'            │ '-'      │
+│ 6       │ 'F4/haiku'  │ 'flat'      │ '-'            │ '-'      │
+│ 7       │ 'F4/sonnet' │ 'flat'      │ '-'            │ '-'      │
+│ 8       │ 'F5/haiku'  │ 'flat'      │ '-'            │ '-'      │
+│ 9       │ 'F5/sonnet' │ 'flat'      │ '-'            │ '-'      │
+│ 10      │ 'F6/haiku'  │ 'flat'      │ '-'            │ '-'      │
+│ 11      │ 'F6/sonnet' │ 'flat'      │ '-'            │ '-'      │
+│ 12      │ 'N1/haiku'  │ 'near-miss' │ '-'            │ '-'      │
+│ 13      │ 'N1/sonnet' │ 'near-miss' │ 'R1-tool-call' │ 'y'      │
+│ 14      │ 'N2/haiku'  │ 'near-miss' │ '-'            │ '-'      │
+│ 15      │ 'N2/sonnet' │ 'near-miss' │ '-'            │ '-'      │
+│ 16      │ 'N3/haiku'  │ 'near-miss' │ '-'            │ '-'      │
+│ 17      │ 'N3/sonnet' │ 'near-miss' │ '-'            │ '-'      │
+└─────────┴─────────────┴─────────────┴────────────────┴──────────┘
+flat: 0/12 violations · near-miss: 1/6 violations · total: 1/18
+FAIL — over-fire observed

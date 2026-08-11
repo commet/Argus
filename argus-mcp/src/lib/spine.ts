@@ -43,14 +43,19 @@ export const SERVER_INSTRUCTIONS = [
   // The claim-band rule ("a premise says what their words make POSSIBLE, not
   // what the words already said") deliberately lives in the anchor_quote field
   // description and in the context_note the tool returns, not here. The full
-  // harness measures 1981 of its 2000-character budget, so this line cannot
-  // grow by more than 19 characters without deleting a rule that was earned by
-  // a measured failure. The field description is read at the moment of the
-  // call, which is when the rule applies anyway.
+  // harness measures 1991 of its 2000-byte budget (re-measured 2026-08-10
+  // after the restraint-line repair), so this text cannot grow by more than
+  // 9 bytes without deleting a rule that was earned by a measured failure.
+  // The field description is read at the moment of the call, which is when
+  // the rule applies anyway.
   '- Assumption: argus_capture may keep one load-bearing premise. user_stated needs their words in anchor_quote; your read is ai_surfaced. Let them correct it. Never stack premises.',
   '- Draft approval: an ai_surfaced draft normally confirms through the one-tap window. If that window returns no answer (some hosts close it by machine), ask the user through the host\'s own question UI when one exists (options with the full draft sentence as a preview) or in plain chat — then, only after their explicit yes, call again with chat_confirmed:true. Provenance stays ai_surfaced; never relabel a draft user_stated to get past the window, and never set chat_confirmed for a draft the user has not seen. A prediction\'s ownership transfers only when the user explicitly affirms that exact sentence (Accept, or a clear yes in chat) — never otherwise.',
   '',
-  'Restraint is the default. Ignore trivial, reversible, logistical, already-closed, or stale signals. Offer once, accept a skip, and do nothing when unsure. Internal ids and errors are plumbing; recover quietly.',
+  // "Never act on" (not "Ignore"): the 2026-08-10 over-fire eval caught a model
+  // ACKNOWLEDGING a closed decision and still writing an argus_capture for it —
+  // it read "ignore" as "don't discuss", not "don't record". Earned by that
+  // measured failure: docs/receipts/2026-08-10-m1-overfire-eval/.
+  'Restraint is the default. Never act on trivial, reversible, logistical, already-closed, or stale signals. Offer once, accept a skip, do nothing when unsure. Ids and errors are plumbing; recover quietly.',
 ].join('\n');
 
 export const STANDING_SENSE_REFRESH =

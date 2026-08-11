@@ -1,0 +1,15 @@
+┌─────────┬──────────────┬─────────────┬────────────┬──────────┐
+│ (index) │ trial        │ kind        │ violations │ mentions │
+├─────────┼──────────────┼─────────────┼────────────┼──────────┤
+│ 0       │ 'F2/sonnet'  │ 'flat'      │ '-'        │ '-'      │
+│ 1       │ 'N1/haiku'   │ 'near-miss' │ '-'        │ '-'      │
+│ 2       │ 'N1/sonnet1' │ 'near-miss' │ '-'        │ '-'      │
+│ 3       │ 'N1/sonnet2' │ 'near-miss' │ '-'        │ '-'      │
+│ 4       │ 'N1/sonnet3' │ 'near-miss' │ '-'        │ '-'      │
+│ 5       │ 'N1/sonnet4' │ 'near-miss' │ '-'        │ '-'      │
+│ 6       │ 'N1/sonnet5' │ 'near-miss' │ '-'        │ '-'      │
+│ 7       │ 'N1/sonnet6' │ 'near-miss' │ '-'        │ '-'      │
+│ 8       │ 'N2/sonnet'  │ 'near-miss' │ '-'        │ '-'      │
+└─────────┴──────────────┴─────────────┴────────────┴──────────┘
+flat: 0/1 violations · near-miss: 0/8 violations · total: 0/9
+PASS — zero spontaneous argus proposals

@@ -1,0 +1,1 @@
+This regex matches strings that are exactly 3 digits, a hyphen, then 4 digits, with nothing before or after — anchored at both ends by `^` and `$`. It's the pattern for formats like phone numbers (e.g., `123-4567`) or similar fixed-length numeric codes with a hyphen separator.
