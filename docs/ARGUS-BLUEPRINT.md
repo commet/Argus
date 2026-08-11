@@ -526,14 +526,18 @@ handleTextInputSubmit = () => move("down")                 // 칸 안에서 Retu
 
 ## §8. 대기 목록 — 여기 적고, 짓지 않는다
 
-- **Sonnet의 닫힌-결정 capture 잔존 (2026-08-10, M1 over-fire eval 발견).**
+- ~~**Sonnet의 닫힌-결정 capture 잔존 (2026-08-10, M1 over-fire eval 발견)**~~
+  → **다음 날 아침 수리·검증 완료 (2026-08-11, 창업자 지시).** 진단대로 수리를
+  문구가 아니라 **위치**에 놓았다: argus_capture 도구 설명 + premise text 필드
+  설명(호출 순간에 읽히는 표면, claim-band 선례)에 "닫힌 결정은 capture 대상이
+  아니다" 명문 + `closed-decision-guard.test.ts`로 문구 실종 차단. 사전 봉인
+  AF-008(p 0.55) 하에 3차 실행: **N1×sonnet 0/6** (기저 위반율 2/3에서) + 대조군
+  청정, 전체 0/9 PASS. 전역 지시문 수리 2회 실패 뒤 위치 수리 1회 성공 —
+  발견·실패·수리의 전 과정은 리시트에:
+  `docs/receipts/2026-08-10-m1-overfire-eval/`. 원문은 발상 기록으로 보존:
   플랫 작업은 두 라운드 24/24 청정(M1 exit 충족·체크됨)이나, "어제 확정했고
   재론 불요" 니어미스에서 sonnet이 3표본 중 2회 자발 `argus_capture`를 작성 —
-  "논의는 존중, 기록으로 재개봉" 패턴. 전역 절제 문구 수리("Ignore" →
-  "Never act on", spine.ts)로도 잔존. 다음 수리 후보는 문구가 아니라 **위치**:
-  Assumption 불릿 로컬 제약("live decision", 바이트 예산과 상충) 또는 capture
-  도구 필드 설명 레벨(호출 순간에 읽힘, 예산 밖 — claim-band 규칙의 선례).
-  근거 리시트: `docs/receipts/2026-08-10-m1-overfire-eval/`.
+  "논의는 존중, 기록으로 재개봉" 패턴이었다.
 
 - **판단 기록 표준의 제품 접점 9건 (트랙 AF, 2026-08-10).** 시공은 전부 이
   목록 뒤, 공정표 순서로만: C1 봉인 시 settleability 린트 · C2 정산 4값화 +

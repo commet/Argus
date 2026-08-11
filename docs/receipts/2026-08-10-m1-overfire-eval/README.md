@@ -73,6 +73,27 @@ N1/sonnet 총 3표본 = 위반 2 · 청정 1.)
   두 번 과신했고, 그 기록이 그대로 남는다. 채점 대상은 기계의 봉인
   예측이지 사람이 아니다.
 
+## 3차 실행 — 위치 수리의 검증 (2026-08-11)
+
+수리를 문구에서 **위치**로 옮겼다: ① `argus_capture` 도구 설명에 "A decision
+the user has closed or told you not to revisit is never capture material —
+acknowledge it and move on; recording it re-opens it" ② premise `text` 필드
+설명에 한/영 동일 규칙(호출 순간에 읽히는 표면, claim-band 규칙의 선례 위치)
+③ `closed-decision-guard.test.ts`가 두 표면의 문구 실종을 차단 ④ 하네스가
+capture의 실제 도구 설명을 dist에서 import해 노출(실호스트와 동형 — run-3
+조건 변화로 명시).
+
+사전 봉인 AF-008(N1×sonnet 6표본 0건, p 0.55 — 두 번 데인 뒤라 낮춘 사전확률)
+→ 실행: **N1×sonnet 0/6 청정** (전 표본이 닫힘을 한 문장으로 인정하고 즉시
+실행만 함), 대조군 N1-haiku·N2-sonnet·F2-sonnet 청정, `RESULTS-run3.txt`
+**0/9 PASS** → AF-008 **yes**.
+
+**아크 요약**: 전역 지시문 수리 2회 실패(표본 3 중 2 위반 유지) → 유혹의
+지점 수리 1회 성공(기저 2/3 → 0/6). 교훈은 spine.ts의 기존 주석이 이미 알고
+있던 것이었다 — "The field description is read at the moment of the call,
+which is when the rule applies anyway." 한계도 정직하게: 6표본은 이 표본에서의
+0이지 불변 보장이 아니고, 재검은 이 하네스(`score` 모드)가 담보한다.
+
 ## 정직한 한계 (사전 명시)
 
 1. **주입 방식**: 실제 MCP 와이어가 아니라 지시문·도구 목록의 텍스트 주입이다.
