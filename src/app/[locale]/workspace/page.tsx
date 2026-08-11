@@ -986,7 +986,12 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem, fr
                       {/* Shared Button, accent variant (H1-C3): the raw inline-gold
                           button had no active/hover depth and its disabled state
                           (opacity-30) visually erased the page's one next action. */}
-                      <Button variant="accent" size="md" onClick={() => { setJustFromDemo(false); handleSubmit(); }} disabled={!problemInput.trim()}
+                      {/* `id` 는 결정 루프 E2E 가 잡는 손잡이다. 이 화면의 문구는
+                          제품 재정의 때마다 바뀌는데(2026-08-10 "시작" → "다음 움직임
+                          만들기"), 문구로 잡으면 그때마다 라이브 루프가 조용히 눈이
+                          멀고 프로덕션이 깨져도 아무도 모른다. 실제로 그렇게 됐다. */}
+                      <Button id="workspace-start"
+                        variant="accent" size="md" onClick={() => { setJustFromDemo(false); handleSubmit(); }} disabled={!problemInput.trim()}
                         className={`shrink-0 min-h-[44px] md:min-h-[40px] ${justFromDemo ? 'animate-pulse' : ''}`}>
                         {L('다음 움직임 만들기', 'Build the next move')} <ChevronRight size={12} />
                       </Button>
