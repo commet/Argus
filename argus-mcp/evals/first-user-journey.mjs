@@ -50,21 +50,37 @@ const say = (s = '') => { console.log(s); log.push(s); };
 const rule = (t) => say(`\n${'─'.repeat(72)}\n${t}\n${'─'.repeat(72)}`);
 
 // ── 1. 사용자가 하는 것과 똑같이 설치 ────────────────────────────────────────
-rule(`1단계 · 설치 — npm에서 argus-decision-mcp@${VERSION}을 받는다 (npx와 같은 해석)`);
+// --local: 아직 발행되지 않은 수리를 측정할 때만 쓴다. 발행본이 아니므로
+// 리시트에 반드시 그렇게 적는다 — 로컬 빌드 결과를 "발행본에서 확인됨"으로
+// 적는 것이 이 하네스가 막으려는 바로 그 거짓이다.
+const USE_LOCAL = process.argv.includes('--local');
+rule(USE_LOCAL
+  ? '1단계 · 설치 — **로컬 빌드**를 대상으로 한다 (미발행 수리 측정용)'
+  : `1단계 · 설치 — npm에서 argus-decision-mcp@${VERSION}을 받는다 (npx와 같은 해석)`);
 const work = fs.mkdtempSync(path.join(os.tmpdir(), 'journey-pkg-'));
 const npmCli = [
   path.join(path.dirname(process.execPath), 'node_modules', 'npm', 'bin', 'npm-cli.js'),
   path.join(path.dirname(process.execPath), '..', 'lib', 'node_modules', 'npm', 'bin', 'npm-cli.js'),
 ].find((p) => fs.existsSync(p));
-execFileSync(process.execPath, [npmCli, 'pack', `argus-decision-mcp@${VERSION}`, '--prefer-online'], { cwd: work, stdio: 'pipe' });
-const tgz = fs.readdirSync(work).find((f) => f.endsWith('.tgz'));
-execFileSync('tar', ['xzf', tgz], { cwd: work, stdio: 'pipe' });
-const pkgDir = path.join(work, 'package');
-execFileSync(process.execPath, [npmCli, 'install', '--omit=dev', '--no-audit', '--no-fund'], { cwd: pkgDir, stdio: 'pipe' });
-const entry = path.join(pkgDir, 'dist', 'index.js');
-const declared = JSON.parse(fs.readFileSync(path.join(pkgDir, 'package.json'), 'utf8')).version;
+if (!USE_LOCAL)
+  execFileSync(process.execPath, [npmCli, 'pack', `argus-decision-mcp@${VERSION}`, '--prefer-online'], { cwd: work, stdio: 'pipe' });
+const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+let pkgDir, entry, declared;
+if (USE_LOCAL) {
+  pkgDir = repoRoot;
+  entry = path.join(repoRoot, 'dist', 'index.js');
+  if (!fs.existsSync(entry)) { console.error('로컬 dist가 없습니다 — npm run build 후 다시 실행하세요.'); process.exit(1); }
+  declared = `${JSON.parse(fs.readFileSync(path.join(repoRoot, 'package.json'), 'utf8')).version}+local`;
+} else {
+  const tgz = fs.readdirSync(work).find((f) => f.endsWith('.tgz'));
+  execFileSync('tar', ['xzf', tgz], { cwd: work, stdio: 'pipe' });
+  pkgDir = path.join(work, 'package');
+  execFileSync(process.execPath, [npmCli, 'install', '--omit=dev', '--no-audit', '--no-fund'], { cwd: pkgDir, stdio: 'pipe' });
+  entry = path.join(pkgDir, 'dist', 'index.js');
+  declared = JSON.parse(fs.readFileSync(path.join(pkgDir, 'package.json'), 'utf8')).version;
+}
 say(`  설치 완료 · 실행 파일 ${entry.replace(os.tmpdir(), '$TMP')}`);
-say(`  package.json 버전: ${declared}${declared === VERSION ? '' : `  ⚠ 요청 ${VERSION}과 불일치`}`);
+say(`  package.json 버전: ${declared}${USE_LOCAL ? '  (미발행 로컬 빌드 — 발행본 결과가 아니다)' : declared === VERSION ? '' : `  ⚠ 요청 ${VERSION}과 불일치`}`);
 
 // ── 2. 이 사람이 누구인가 ────────────────────────────────────────────────────
 const persona = samplePersonas()[Number(argOf('--persona', '3')) - 1];
