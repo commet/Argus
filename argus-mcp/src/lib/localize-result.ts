@@ -48,7 +48,9 @@ const KO_ERRORS: Record<string, ErrorCopy> = {
     recovery: '터미널에서 `npx argus-decision-mcp connect`를 실행해 다시 연결하세요 (플러그인 사용자는 /argus:connect). 로컬에서 잃은 것은 없습니다. 모든 결정은 여기 기록에 그대로 있고, 다시 연결한 뒤 argus_settings action="sync"를 돌리면 밀린 것들이 올라갑니다.',
   },
   NO_PRIOR_SEAL: { message: '이 id로 저장된 예측이 없습니다.', recovery: 'argus_predict로 나중에 확인할 수 있는 예측과 확인일을 먼저 저장하세요. (id가 argus_settings sync에서 온 "mcp_" 접두사라면 접두사를 뗀 id를 쓰세요.)' },
-  BAD_CHECK_BY: { message: '확인일이 오늘 이후의 실제 달력 날짜(YYYY-MM-DD)가 아닙니다 (예: 2026-13-01처럼 없는 달·날짜는 불가).', recovery: '오늘 이후의 올바른 날짜를 YYYY-MM-DD로 다시 전달하세요.' },
+  // 복구문이 "무엇을 건드리지 말지"를 말하지 않으면 전체 재작성을 부른다
+  // (RUN12: 날짜만 틀렸는데 예측문까지 고쳐 써서 묶음이 됐고 다시 거절됐다).
+  BAD_CHECK_BY: { message: '확인일이 오늘 이후의 실제 달력 날짜(YYYY-MM-DD)가 아닙니다 (예: 2026-13-01처럼 없는 달·날짜는 불가).', recovery: 'check_by만 고쳐서 같은 호출을 다시 보내세요. 예측 문장은 사용자의 표현 그대로 두세요. 날짜는 오늘 이후여야 하고, 정산하러 돌아올 날입니다.' },
   ILLEGAL_TRANSITION: { message: '이 결정에 지금은 할 수 없는 작업입니다 (id 오타이거나, 이미 저장·정산·종료된 상태일 수 있습니다).', recovery: 'argus_patterns view="all"로 id와 현재 상태를 확인하세요. 없는 id면 argus_capture 또는 argus_predict로 새로 시작하세요.' },
   PREMISE_LOCKED: { message: '확인일이 지나 전제를 더는 바꿀 수 없습니다.', recovery: '먼저 argus_resolve로 실제 결과를 기록하세요. 확인일이 온 뒤에는 전제/예측을 고칠 수 없습니다.' },
   ARGUS_DIR_INVALID: { message: 'Argus 기록 경로(argus_dir / ARGUS_DIR)가 올바르지 않습니다.', recovery: '절대 경로여야 하고 ".."을 포함할 수 없습니다. MCP 설정에서 절대 경로(예: C:\\Users\\이름\\.argus, /Users/이름/.argus)로 바꾸거나 ARGUS_DIR을 지워 기본값(~/.argus)을 쓰세요. ${...} 같은 변수는 호스트가 확장하지 못할 수 있습니다.' },

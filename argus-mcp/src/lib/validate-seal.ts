@@ -205,7 +205,13 @@ export function validateSeal(predicate: unknown, checkBy: unknown, today: string
     return {
       code: 'BAD_CHECK_BY',
       message: `check_by (${date}) must be in the future (today is ${today}).`,
-      recovery: 'Pick a future date. The check-by is when you will come back to settle.',
+      // SCOPE THE REFUSAL (RUN12, measured). A refusal that does not say what
+      // to leave alone invites a full rewrite: the caller sent one nearly-clean
+      // claim with a stale date, and while fixing the date it rewrote the
+      // predicate into three claims, which the bundle gate then refused too.
+      // Two refusals later it gave up with nothing recorded. Naming the one
+      // field to touch costs nothing and keeps the user's sentence intact.
+      recovery: `Change ONLY check_by and send the same call again. Keep the predicate exactly as it is, in the user's words. Today is ${today}, so pick a date after it: the day you will come back to settle.`,
     };
   }
 
