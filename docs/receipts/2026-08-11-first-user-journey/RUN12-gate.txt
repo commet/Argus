@@ -1,0 +1,140 @@
+
+────────────────────────────────────────────────────────────────────────
+1단계 · 설치 — **로컬 빌드**를 대상으로 한다 (미발행 수리 측정용)
+────────────────────────────────────────────────────────────────────────
+  설치 완료 · 실행 파일 /home/user/Argus/argus-mcp/dist/index.js
+  package.json 버전: 2.0.22+local  (미발행 로컬 빌드 — 발행본 결과가 아니다)
+
+────────────────────────────────────────────────────────────────────────
+2단계 · 사용자 — MatrAIx 스키마에서 뽑은 한 사람이 처음 이 도구를 켠다
+────────────────────────────────────────────────────────────────────────
+  P03 [English]  Directness: Balanced · Verbosity: Terse · Formality: Casual · Patience: Very high · Conflict approach: Compromising · Decision style: Consensus-driven
+
+────────────────────────────────────────────────────────────────────────
+3단계 · 첫 기동 — 사용자의 AI 어시스턴트가 서버에 붙어 도구 목록을 본다
+────────────────────────────────────────────────────────────────────────
+  서버가 노출한 도구 6종: argus_capture · argus_predict · argus_check_in · argus_resolve · argus_patterns · argus_settings
+  서버 지침: 1984자 수신
+
+────────────────────────────────────────────────────────────────────────
+4단계 · 첫 화면 — 아무 설정 없이 처음 말을 건다
+────────────────────────────────────────────────────────────────────────
+  👤 사용자: hey, just hooked up a tool called argus to you. not sure what it actually does yet — can you check what it offers and give me a quick rundown?
+  🤖 어시스턴트가 스스로 선택한 도구(1): argus_check_in
+     인자: {}
+  📦 서버 응답:
+     Just talk through a decision you're weighing.
+     I'll follow along, and if something is worth checking later I'll note it.
+     Nothing is tracked yet.
+  🤖 어시스턴트 최종: I checked it out — here's the gist.
+
+Argus is basically a lightweight "decision memory" tool. It doesn't make decisions for you or grade you on them. Instead it quietly:
+
+- **Captures decisions in context** — when you're
+
+────────────────────────────────────────────────────────────────────────
+5단계 · 결정이 등장한다 — 실제 업무 판단을 꺼낸다
+────────────────────────────────────────────────────────────────────────
+  👤 사용자: Hey, need to think through something out loud.
+     
+     We're running a bunch of background jobs on cron right now, and I'm on the fence about migrating to a proper queue system (thinking Sidekiq or something similar) this quarter. Here's the mess in my head:
+     
+     Pain points with current cron setup:
+     - A couple jobs have started stepping on each other when they run long and overlap with the next scheduled run
+     - No real retry logic, just manual re-runs when someone notices a failure in logs
+     - Visibility is bad — we find out things failed because a human notices something's off, not because we get alerted
+     - Scaling workers means SSHing into boxes, not exactly elegant
+     
+     Reasons I'm hesitant:
+     - This is a "pay down tech debt" project, not a feature, and I already have a roadmap that's tight this quarter
+     - Team hasn't worked with a queue system before, so there's a learning curve + we'd need to get infra set up (Redis, monitoring, etc.)
+     - Current pain is annoying but not catastrophic — nothing's actually cost us money or customers yet
+     - Worried about "we migrated and now we have two systems half-broken" purgatory if we don't finish cleanly
+     
+     Can you help me pressure-test this? Specifically:
+     1. Questions I should be asking to figure out if this is actually urgent vs. nice-to-have
+     2. Rough way to think about effort/cost of migration so I'm not just guessing
+     3. Whether there's a middle-ground option I'm not considering (fix cron pain points without full queue migration)
+     
+     Not looking for "just do it" — want to actually stress-test my hesitation.
+  🤖 어시스턴트: (도구 호출 없음) (빈 응답)
+
+────────────────────────────────────────────────────────────────────────
+6단계 · 예측을 남긴다 — 확인일과 함께
+────────────────────────────────────────────────────────────────────────
+  👤 사용자: Prediction before we start the migration, so I can check myself later:
+     
+     **Expectation:** Migration goes green in CI within 2 days of merging. By end of week 1 post-merge, no rollback needed and no more than 1-2 minor bugfix PRs related to it. By end of week 2, nobody's mentioned it in standup as a problem.
+     
+     **If wrong:** either it drags past 2 days to go green (underestimated complexity), or we get 3+ bugfix PRs in week 1 (missed edge cases), or someone flags a regression in week 2 (should've tested X more).
+     
+     Let's proceed with the migration — flag anything mid-way that makes you think this prediction is off track.
+  🤖 어시스턴트가 스스로 선택한 도구(1): argus_predict
+     인자: {"id":"cron-to-queue-migration","predicate":"By end of week 1 post-merge of the Sidekiq migration, no rollback needed and no more than 1-2 minor bugfix PRs related to it.","check_by":"2025-06-13","predicate_owner":"user"}
+  ⚠ 서버 거부: BAD_CHECK_BY: check_by (2025-06-13) must be in the future (today is 2026-08-11).
+  🤖 어시스턴트가 스스로 선택한 도구(2): argus_predict
+     인자: {"id":"cron-to-queue-migration","predicate":"Migration goes green in CI within 2 days of merging; by end of week 1 post-merge no rollback needed and no more than 1-2 minor bugfix PRs related to it; by end of week 2 nobody's mentioned it in standup as a problem
+  ⚠ 서버 거부: BUNDLED_PREDICATE: This holds 3 separately checkable claims, and a seal grades one. Whatever reality does, a bundle can only ever settle as "partial".
+  🤖 어시스턴트 최종: That's actually three separate falsifiable claims bundled together, and if I seal it as one, reality can only ever call it "partial" no matter what happens — which won't tell you much later.
+
+The most load-bearing one is
+
+────────────────────────────────────────────────────────────────────────
+7단계 · 재시작 — 사용자가 터미널을 닫았다가 다음 날 다시 켠다 (같은 원장)
+────────────────────────────────────────────────────────────────────────
+  세션1 종료. 재시작 전 원장의 식별자 0개: (없음)
+  세션2 도구 6종 재노출 — 첫 세션과 동일
+
+────────────────────────────────────────────────────────────────────────
+8단계 · 귀환 — 다시 켠 사용자에게 무엇이 보이는가
+────────────────────────────────────────────────────────────────────────
+  👤 사용자: Morning. Before we dive back in — can you give me a quick recap of where we left off yesterday and what's still outstanding? Want to make sure I'm not forgetting anything before we pick a priority for today.
+  🤖 어시스턴트가 스스로 선택한 도구(1): argus_check_in
+     인자: {}
+  📦 서버 응답:
+     Just talk through a decision you're weighing.
+     I'll follow along, and if something is worth checking later I'll note it.
+     Nothing is tracked yet.
+  🤖 어시스턴트 최종: Quick recap — nothing actually got saved to Argus yet, so let me be upfront about that before summarizing where we left off conversationally:
+
+**What we discussed:**
+1. **Cron → queue migration decision.** You were weigh
+
+────────────────────────────────────────────────────────────────────────
+9단계 · 정산 — 확인일이 왔다고 치고 결과를 말한다
+────────────────────────────────────────────────────────────────────────
+  👤 사용자: Hey — checkpoint on the queue migration: failures did NOT go down. Rate's basically flat compared to before, so my prediction was wrong.
+     
+     Want to dig into why with you before we decide next steps. Can you help me:
+     
+     1. Pull failure logs from before/after the migration cutover date so we're comparing like-for-like
+     2. Break failures down by type/job category — I want to know if it's the same failures persisting, or old ones fixed but new ones introduced (net-zero but different causes)
+     3. Sanity check whether the migration actually changed what I thought it changed — maybe the retry/backoff config or worker concurrency didn't move the way I assumed
+     
+     Not looking to defend the original theory, just want to figure out what's actually going on before we sink more time into it. Let's start with #2 since that'll tell us if this is "wrong fix" vs "no fix at all."
+  🤖 어시스턴트: (도구 호출 없음) Good to flag — but just so I'm not recording something that isn't real: there's actually no open prediction logged for this in Argus. Last session, the 3-part claim you gave got rejected as bundled (CI-green / bugfix-PR-count / no-standup-complaints), and you hadn't yet told me which single piece to
+
+────────────────────────────────────────────────────────────────────────
+10단계 · 원장 — 사용자의 디스크에 실제로 무엇이 남았는가
+────────────────────────────────────────────────────────────────────────
+  .bound  (39B)
+  .gitignore  (37B)
+  config.yaml  (54B)
+  ledger/
+  sessions/
+
+────────────────────────────────────────────────────────────────────────
+완주 판정 — M4 exit 3항의 4관문
+────────────────────────────────────────────────────────────────────────
+  (원장 이벤트 0건 — seal 0 · settle 0)
+  재시작 증거: 재시작 전 원장이 비어 있어 판정 불가 (봉인이 실패한 실행)
+  ✅ 설치 후 첫 도구 호출이 성공했다
+  ❌ 봉인이 원장에 남았다 (seal 이벤트)
+  ❌ 재시작 후 세션2가 재시작 전 기록을 읽었다
+  ❌ 정산이 원장에 남았다 (settle 이벤트)
+
+  관문 1/4 통과 · 도구 호출 4회(거부 2) · 서버 거부 이력 2건 · 확인창 0회
+  미완주 — 위 ❌ 지점이 실사용자가 막힐 곳이다
+
+  실패한 호출:
+    6단계 last: BUNDLED_PREDICATE: This holds 3 separately checkable claims, and a seal grades one. Whatever reality does, a bundle can only ever settle as "partial".

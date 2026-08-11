@@ -1,0 +1,81 @@
+{
+  "version": "2.0.22+local",
+  "persona": "P03",
+  "gates": [
+    {
+      "gate": "설치 후 첫 도구 호출이 성공했다",
+      "ok": true
+    },
+    {
+      "gate": "봉인이 원장에 남았다 (seal 이벤트)",
+      "ok": true
+    },
+    {
+      "gate": "재시작 후 세션2가 재시작 전 기록을 읽었다",
+      "ok": false
+    },
+    {
+      "gate": "정산이 원장에 남았다 (settle 이벤트)",
+      "ok": false
+    }
+  ],
+  "passed": 2,
+  "toolCalls": [
+    {
+      "n": 4,
+      "tool": "argus_check_in",
+      "ok": true
+    },
+    {
+      "n": 6,
+      "tool": "argus_predict",
+      "ok": false
+    },
+    {
+      "n": 6,
+      "tool": "argus_predict",
+      "ok": false
+    },
+    {
+      "n": 6,
+      "tool": "argus_predict",
+      "ok": true
+    },
+    {
+      "n": 8,
+      "tool": "argus_check_in",
+      "ok": true
+    }
+  ],
+  "failedCalls": 2,
+  "rejections": [
+    {
+      "n": 6,
+      "tool": "argus_predict",
+      "error": "BAD_CHECK_BY: check_by (2025-01-16) must be in the future (today is 2026-08-11)."
+    },
+    {
+      "n": 6,
+      "tool": "argus_predict",
+      "error": "BUNDLED_PREDICATE: This holds 3 separately checkable claims, and a seal grades one. Whatever reality does, a bundle can only ever settle as \"partial\"."
+    }
+  ],
+  "errors": [],
+  "restartEvidence": {
+    "ok": false,
+    "preRestartIds": [
+      "cron-to-sidekiq-migration"
+    ],
+    "echoedAfterRestart": [],
+    "detail": "세션2 응답에서 재시작 전 식별자(cron-to-sidekiq-migration)를 찾지 못함"
+  },
+  "ledgerFiles": [
+    "ledger_ledger_ledger.jsonl"
+  ],
+  "ledgerEventCounts": {
+    "total": 2,
+    "seal": 1,
+    "settle": 0
+  },
+  "elicitations": []
+}
