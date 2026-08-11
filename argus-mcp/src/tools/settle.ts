@@ -69,8 +69,12 @@ export const settle: ToolModule = {
       // that withholds what the server already knows turns a typo into a dead
       // end. Runtime data, so no tool-surface budget cost.
       if (current.state === 'opened' || current.state === 'absent') {
+        // status==='sealed' only. A settled or dismissed decision still carries
+        // its predicate, so listing every contract would hand the caller an id
+        // that answers ALREADY_SETTLED on the next call — a refusal that points
+        // at another refusal is not a recovery.
         const sealed = [...replayLedger(dir, today).contracts]
-          .filter(([, c]) => c.predicate)
+          .filter(([, c]) => c.status === 'sealed' && c.predicate)
           .map(([sealedId]) => sealedId);
         if (sealed.length) {
           return toolError({

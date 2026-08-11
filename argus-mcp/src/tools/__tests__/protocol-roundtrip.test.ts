@@ -175,6 +175,35 @@ describe('MCP protocol round-trip (real server, stdio)', () => {
     expect(saved).toContain('queue-migration-no-runtime-regressions');
   });
 
+  it('이미 정산된 id는 saved_ids에 들어가지 않는다', async () => {
+    // 그걸 고르면 다음 호출이 ALREADY_SETTLED다. 거절이 또 다른 거절을
+    // 가리키는 것은 복구가 아니다.
+    const past = new Date();
+    past.setUTCDate(past.getUTCDate() - 3);
+    const today = new Date().toISOString().slice(0, 10);
+    await client.callTool({
+      name: 'argus_predict',
+      arguments: {
+        argus_dir: dir, id: 'already-done', predicate: 'the pilot reaches twenty teams',
+        check_by: past.toISOString().slice(0, 10), predicate_owner: 'user',
+        today_override: past.toISOString().slice(0, 10),
+      },
+    });
+    await client.callTool({
+      name: 'argus_resolve',
+      arguments: {
+        argus_dir: dir, id: 'already-done', outcome: 'held',
+        what_happened: 'twenty-two teams', today_override: today,
+      },
+    });
+    const missed = await client.callTool({
+      name: 'argus_resolve',
+      arguments: { argus_dir: dir, id: 'no-such-id', outcome: 'missed', what_happened: 'x' },
+    });
+    const saved = (structured(missed)['data'] as Record<string, unknown>)?.['saved_ids'] as string[];
+    expect(saved).not.toContain('already-done');
+  });
+
   it('an invalid argument with no date at fault carries no clock', async () => {
     // The date belongs in the refusals it can act on. Everywhere else it is
     // noise, and noise in an error is how the actionable line gets skimmed.
