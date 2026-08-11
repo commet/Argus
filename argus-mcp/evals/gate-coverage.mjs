@@ -65,6 +65,10 @@ const WAIVED = new Map([
     'persona-conditioned variant of overfire-model (phrasing-population robustness of the closed-decision repair): same API-key/run-mode constraints, deterministic scorer shared by import; not merge-blocking',
   ],
   [
+    'first-user-journey',
+    'installs the PUBLISHED tarball from npm and drives a persona through the whole install→seal→restart→return→settle journey: needs ANTHROPIC_API_KEY and network, and a first-user journey has no pass/fail contract a merge can block on — its value is the friction it surfaces, recorded in docs/receipts/2026-08-11-first-user-journey/',
+  ],
+  [
     'persona-sampling',
     'pure deterministic sampler over MIT-licensed MatrAIx schema axes, not a gate; its two load-bearing properties (level coverage, no axis confounding) are vitest-guarded by persona-sampling-guard.test.ts',
   ],

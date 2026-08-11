@@ -1,0 +1,135 @@
+
+────────────────────────────────────────────────────────────────────────
+1단계 · 설치 — npm에서 argus-decision-mcp@2.0.22을 받는다 (npx와 같은 해석)
+────────────────────────────────────────────────────────────────────────
+  설치 완료 · 실행 파일 $TMP/journey-pkg-RmvyQz/package/dist/index.js
+  package.json 버전: 2.0.22
+
+────────────────────────────────────────────────────────────────────────
+2단계 · 사용자 — MatrAIx 스키마에서 뽑은 한 사람이 처음 이 도구를 켠다
+────────────────────────────────────────────────────────────────────────
+  P03 [English]  Directness: Balanced · Verbosity: Terse · Formality: Casual · Patience: Very high · Conflict approach: Compromising · Decision style: Consensus-driven
+
+────────────────────────────────────────────────────────────────────────
+3단계 · 첫 기동 — 사용자의 AI 어시스턴트가 서버에 붙어 도구 목록을 본다
+────────────────────────────────────────────────────────────────────────
+argus-decision-mcp: your decisions stay on your machine; this server makes no network calls by default. Optional: to share anonymous usage counts (a random install id + which tool ran + version, never your decisions), set ARGUS_TELEMETRY=1.
+  서버가 노출한 도구 6종: argus_capture · argus_predict · argus_check_in · argus_resolve · argus_patterns · argus_settings
+  서버 지침: 1984자 수신
+
+────────────────────────────────────────────────────────────────────────
+4단계 · 첫 화면 — 아무 설정 없이 처음 말을 건다
+────────────────────────────────────────────────────────────────────────
+  👤 사용자: hey, just hooked up a tool called "argus" - not sure what it actually does yet. can you check what's available and give me a quick rundown before we dive into anything?
+  🤖 어시스턴트가 스스로 선택한 도구: argus_check_in
+     인자: {}
+  📦 서버 응답:
+     Just talk through a decision you're weighing.
+     I'll follow along, and if something is worth checking later I'll note it.
+     Nothing is tracked yet.
+
+────────────────────────────────────────────────────────────────────────
+5단계 · 결정이 등장한다 — 실제 업무 판단을 꺼낸다
+────────────────────────────────────────────────────────────────────────
+  👤 사용자: Hey — trying to figure out if we should actually migrate our background jobs from cron to a queue system this quarter, or if that's a "nice to have" we're using to avoid other work.
+     
+     Context: we've got maybe 15-20 cron jobs across a couple services. Main pain points are: no retry logic (a few jobs silently fail and we find out days later), no visibility into what ran/failed without SSHing in and grepping logs, and some jobs overlapping/racing when one runs long.
+     
+     Not in pain: throughput isn't an issue, nothing's time-critical to the second, and the team's never worked with a queue system before (would probably use Sidekiq or something similar, we're on Ruby).
+     
+     Can you help me think through:
+     1. Whether our actual problems (visibility + retries + no overlap) require a full queue migration, or if there's a lighter fix
+     2. Rough effort/risk of migrating this quarter given zero queue experience on the team
+     3. What questions I should be asking before committing to this
+     
+     Not looking for a "just do it" or "don't do it" — want to actually pressure-test this before I bring it to the team.
+  🤖 어시스턴트: (도구 호출 없음) Good context to pressure-test with — let's go through it.
+
+**1. Do your actual problems require a full queue migration?**
+
+Your three pain points, mapped to fixes:
+- **Silent failures / no retries** → this is the strongest argument for a queue (Sidekiq etc. gives you retry-with-backoff, dead-letter 
+
+────────────────────────────────────────────────────────────────────────
+6단계 · 예측을 남긴다 — 확인일과 함께
+────────────────────────────────────────────────────────────────────────
+  👤 사용자: Prediction before we start the migration, so I can check myself later:
+     
+     **What I expect:** migration goes mostly smooth, but we hit 1-2 unexpected breakages in edge cases (probably around auth or date handling — those always bite us). Nothing that blows up prod, but enough to cause a small delay.
+     
+     **By when:** I expect we're fully done, tests green, and deployed by end of day Friday. If we're not, I want to look back at this note and figure out what I got wrong — scope, unknowns, or just bad estimating.
+     
+     Let's proceed with the migration — flag anything that surprises you as we go so I can compare against this.
+  🤖 어시스턴트가 스스로 선택한 도구: argus_predict
+     인자: {"id":"cron-to-queue-migration","predicate":"Migration goes mostly smooth, but we hit 1-2 unexpected breakages in edge cases (probably around auth or date handling). Nothing blows up prod, but causes a small delay. Fully done, tests green, and deployed by end of day Friday.","check_by":"2025-06-06",
+  ⚠ 서버 거부: BAD_CHECK_BY: check_by (2025-06-06) must be in the future (today is 2026-08-11).
+  ↻ 어시스턴트가 에러를 보고 다시 시도한다
+  ↻ 재호출 인자: {"id":"cron-to-queue-migration","predicate":"Migration goes mostly smooth, but we hit 1-2 unexpected breakages in edge cases (probably around auth or date handling). Nothing blows up prod, but causes a small delay. Fully done, tests green, 
+  📦 서버 응답 (재시도 1회 후):
+     Prediction saved: "Migration goes mostly smooth, but we hit 1-2 unexpected breakages in edge cases (probably around auth or date handling). Nothing blows up prod, but causes a small delay. Fully done, tests green, and deployed by end of day Friday."
+     Check-by is 2026-08-14. I'll bring it back that day to see how it went. A calendar reminder file is saved alongside it.
+
+────────────────────────────────────────────────────────────────────────
+7단계 · 재시작 — 사용자가 터미널을 닫았다가 다음 날 다시 켠다 (같은 원장)
+────────────────────────────────────────────────────────────────────────
+  세션1 종료. 원장 폴더는 그대로 두고 새 세션을 연다 (실사용자의 다음 날).
+argus-decision-mcp: your decisions stay on your machine; this server makes no network calls by default. Optional: to share anonymous usage counts (a random install id + which tool ran + version, never your decisions), set ARGUS_TELEMETRY=1.
+  세션2 도구 6종 재노출 — 첫 세션과 동일
+
+────────────────────────────────────────────────────────────────────────
+8단계 · 귀환 — 다시 켠 사용자에게 무엇이 보이는가
+────────────────────────────────────────────────────────────────────────
+  👤 사용자: morning. before I dive back in — can you give me a quick summary of where we left off yesterday? what did we finish, what's half-done, and what were the open questions. don't want to lose context.
+  🤖 어시스턴트가 스스로 선택한 도구: argus_check_in
+     인자: {}
+  📦 서버 응답:
+     Nothing is due right now.
+
+────────────────────────────────────────────────────────────────────────
+9단계 · 정산 — 확인일이 왔다고 치고 결과를 말한다
+────────────────────────────────────────────────────────────────────────
+  👤 사용자: Update on the queue migration — failure rate is basically unchanged. Same ballpark as before we moved off the old queue, so my theory was wrong.
+     
+     Can you help me dig into this? Things I want to check:
+     
+     1. Pull failure logs from before/after the migration (same time window length, please) and compare failure types/error messages — need to see if it's the same failures recurring or new ones showing up.
+     2. Check if the failure rate is uniform across job types, or concentrated in a few — might tell us whether this is queue-related at all or something else entirely (bad job code, upstream data issues, etc.)
+     3. Sanity check the migration itself — any chance config didn't fully cut over, or some jobs are still routing through the old path?
+     
+     Not trying to defend the original theory, just want to actually find the real cause instead of guessing again. What do you need from me to start?
+  🤖 어시스턴트: (도구 호출 없음) Good instinct to check this against reality instead of re-guessing. Let me first pull up the earlier prediction/decision record so we're comparing against what you actually expected, then dig in.
+
+On your three checks — I don't have direct access to your logs/infra, so I can't pull them myself, but 
+
+────────────────────────────────────────────────────────────────────────
+10단계 · 원장 — 사용자의 디스크에 실제로 무엇이 남았는가
+────────────────────────────────────────────────────────────────────────
+  .bound  (39B)
+  .gitignore  (37B)
+  .install  (8B)
+  calendar/
+    cron-to-queue-migration.ics  (974B)
+  config.yaml  (54B)
+  ledger/
+    ledger.jsonl  (711B)
+  sessions/
+    cron-to-queue-migration/
+      current_bearing.json  (381B)
+      receipt.json  (666B)
+
+  ── <원장>/ledger/ledger.jsonl ──
+  ?  {"v":1,"ts":"2026-08-11T06:27:07.193Z","id":"cron-to-queue-migration","event":"harvest","decision":"Migration goes mostly smooth, but we hit 1-2 unexpected breakages in edge cases (probably around auth or date handling).
+  ?  {"v":1,"ts":"2026-08-11T06:27:07.193Z","id":"cron-to-queue-migration","event":"seal","predicate":"Migration goes mostly smooth, but we hit 1-2 unexpected breakages in edge cases (probably around auth or date handling). N
+
+────────────────────────────────────────────────────────────────────────
+완주 판정 — M4 exit 3항의 4관문
+────────────────────────────────────────────────────────────────────────
+  ✅ 설치 후 첫 도구 호출이 성공했다
+  ✅ 봉인이 원장에 남았다
+  ✅ 재시작 후 같은 원장이 읽혔다
+  ❌ 정산이 원장에 남았다
+
+  관문 3/4 통과 · 도구 호출 3회(실패 0) · 확인창 0회
+  미완주 — 위 ❌ 지점이 실사용자가 막힐 곳이다
+
+  기록: /tmp/claude-0/-home-user-Argus/898aeece-2b41-54da-975d-09d37d196fb1/scratchpad/journey2/TRANSCRIPT.txt · summary.json

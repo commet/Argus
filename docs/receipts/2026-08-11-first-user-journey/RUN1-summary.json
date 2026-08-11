@@ -1,0 +1,37 @@
+{
+  "version": "2.0.22",
+  "persona": "P03",
+  "gates": [
+    {
+      "gate": "설치 후 첫 도구 호출이 성공했다",
+      "ok": true
+    },
+    {
+      "gate": "봉인이 원장에 남았다",
+      "ok": false
+    },
+    {
+      "gate": "재시작 후 같은 원장이 읽혔다",
+      "ok": false
+    },
+    {
+      "gate": "정산이 원장에 남았다",
+      "ok": false
+    }
+  ],
+  "passed": 1,
+  "toolCalls": [
+    {
+      "n": 6,
+      "tool": "argus_predict",
+      "ok": true
+    },
+    {
+      "n": 8,
+      "tool": "argus_check_in",
+      "ok": true
+    }
+  ],
+  "errors": [],
+  "elicitations": []
+}

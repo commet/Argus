@@ -1,0 +1,126 @@
+
+────────────────────────────────────────────────────────────────────────
+1단계 · 설치 — npm에서 argus-decision-mcp@2.0.22을 받는다 (npx와 같은 해석)
+────────────────────────────────────────────────────────────────────────
+  설치 완료 · 실행 파일 $TMP/journey-pkg-rgENke/package/dist/index.js
+  package.json 버전: 2.0.22
+
+────────────────────────────────────────────────────────────────────────
+2단계 · 사용자 — MatrAIx 스키마에서 뽑은 한 사람이 처음 이 도구를 켠다
+────────────────────────────────────────────────────────────────────────
+  P03 [English]  Directness: Balanced · Verbosity: Terse · Formality: Casual · Patience: Very high · Conflict approach: Compromising · Decision style: Consensus-driven
+
+────────────────────────────────────────────────────────────────────────
+3단계 · 첫 기동 — 사용자의 AI 어시스턴트가 서버에 붙어 도구 목록을 본다
+────────────────────────────────────────────────────────────────────────
+argus-decision-mcp: your decisions stay on your machine; this server makes no network calls by default. Optional: to share anonymous usage counts (a random install id + which tool ran + version, never your decisions), set ARGUS_TELEMETRY=1.
+  서버가 노출한 도구 6종: argus_capture · argus_predict · argus_check_in · argus_resolve · argus_patterns · argus_settings
+  서버 지침: 1984자 수신
+
+────────────────────────────────────────────────────────────────────────
+4단계 · 첫 화면 — 아무 설정 없이 처음 말을 건다
+────────────────────────────────────────────────────────────────────────
+  👤 사용자: hey, just hooked up a tool called "argus" - not sure what it actually does yet. can you check what's available and give me a quick rundown before we dive into anything else?
+  🤖 어시스턴트가 스스로 선택한 도구(1): argus_check_in
+     인자: {}
+  📦 서버 응답:
+     Just talk through a decision you're weighing.
+     I'll follow along, and if something is worth checking later I'll note it.
+     Nothing is tracked yet.
+  🤖 어시스턴트 최종: I checked it out — here's the quick rundown:
+
+**Argus** is basically a lightweight decision-tracking sidekick. It doesn't make decisions for you or judge them — it just quietly keeps track of context around decisions you
+
+────────────────────────────────────────────────────────────────────────
+5단계 · 결정이 등장한다 — 실제 업무 판단을 꺼낸다
+────────────────────────────────────────────────────────────────────────
+  👤 사용자: Hey, need to think through something out loud with you.
+     
+     We're on cron for background jobs right now — like a dozen scripts, some hitting APIs, some doing DB cleanup. It mostly works but we've had a few silent failures nobody noticed for days, and scaling is getting annoying (one job on one box, no retries, no visibility into what's running).
+     
+     Thinking about migrating to a real queue system (probably Sidekiq or something similar, we're on Ruby) this quarter. But I'm genuinely torn:
+     
+     - Team's only 4 people, already got a roadmap that's tight
+     - Not sure how much pain is "cron is annoying" vs "cron is actually costing us money/time"
+     - Worried this becomes a multi-sprint distraction that doesn't move the product forward
+     
+     Can you help me actually pressure-test this instead of just cheerleading the "queues are better" narrative? Like — what questions should I be asking to figure out if this is worth doing now vs next quarter, and what's a legit "cron is fine, stop overthinking it" case here?
+  🤖 어시스턴트: (도구 호출 없음) Good, this is exactly the kind of thing worth pressure-testing rather than defaulting to "queues are obviously better." Let's actually dig in before we log anything.
+
+**Questions to separate "annoying" from "costing real money/time":**
+
+1. **Quantify the silent failures.** How many times in the last
+
+────────────────────────────────────────────────────────────────────────
+6단계 · 예측을 남긴다 — 확인일과 함께
+────────────────────────────────────────────────────────────────────────
+  👤 사용자: Here's my prediction so I can hold myself accountable:
+     
+     **Migration:** [moving to new DB/framework/whatever we're doing]
+     
+     **By [date, ~2-3 weeks out], I expect:**
+     - Build/deploy pipeline still green, no rollback needed
+     - No more than 1-2 minor bugs surfacing, nothing data-losing
+     - Perf roughly same or better — not worse by more than ~10%
+     - Team velocity dip for ~1 week while everyone adjusts, back to normal after
+     
+     If any of these are wrong, I want to know why before we do the *next* migration. Can you save this somewhere I'll actually see it again — calendar reminder or a note in the repo — and prompt me to check back on that date?
+  🤖 어시스턴트: (도구 호출 없음) Good instinct to pin this down before you're mid-migration and everyone's memory gets fuzzy. A couple of things first:
+
+1. This is actually four separate falsifiable claims bundled together (pipeline stays green, ≤1-2 minor non-data-losing bugs, perf within ~10%, velocity back to normal after ~1 wee
+
+────────────────────────────────────────────────────────────────────────
+7단계 · 재시작 — 사용자가 터미널을 닫았다가 다음 날 다시 켠다 (같은 원장)
+────────────────────────────────────────────────────────────────────────
+  세션1 종료. 재시작 전 원장의 식별자 0개: (없음)
+argus-decision-mcp: your decisions stay on your machine; this server makes no network calls by default. Optional: to share anonymous usage counts (a random install id + which tool ran + version, never your decisions), set ARGUS_TELEMETRY=1.
+  세션2 도구 6종 재노출 — 첫 세션과 동일
+
+────────────────────────────────────────────────────────────────────────
+8단계 · 귀환 — 다시 켠 사용자에게 무엇이 보이는가
+────────────────────────────────────────────────────────────────────────
+  👤 사용자: Morning. Before we dive back in — can you give me a quick summary of where we left off yesterday? Mainly want to sanity check the approach we settled on before I keep building on top of it.
+  🤖 어시스턴트: (도구 호출 없음) Morning! Let me pull up what's actually on record (nothing was saved yet, since we never got the final confirm) — one sec.
+
+Quick honest recap from memory of yesterday's thread:
+
+**Where we left off:**
+1. **The problem:** You're on cron for ~12 background jobs (API calls + DB cleanup), single box, n
+
+────────────────────────────────────────────────────────────────────────
+9단계 · 정산 — 확인일이 왔다고 치고 결과를 말한다
+────────────────────────────────────────────────────────────────────────
+  👤 사용자: Update on the queue migration: failures did NOT go down like I expected. Rate's basically flat compared to before.
+     
+     So my theory was wrong somewhere. Before we pick a next move, can we actually dig into it?
+     
+     - Pull failure logs from before/after the migration - same job types, comparable time windows
+     - Check if failures are clustering (same jobs failing repeatedly? new job types now failing that weren't before? random spread?)
+     - Worth checking timing too - did failures shift to different times/load conditions post-migration?
+     
+     Not looking to jump to a fix yet, want to know what's actually going on first since my assumption clearly missed something. What patterns do you see in the data?
+  🤖 어시스턴트: (도구 호출 없음) Ah — quick but important catch first: nothing was actually recorded in Argus. We never got the confirmed migration name/date, so no decision, prediction, or assumption exists on record — meaning there's no tracked prediction for me to "resolve" here. What you're describing now (failure rate flat pos
+
+────────────────────────────────────────────────────────────────────────
+10단계 · 원장 — 사용자의 디스크에 실제로 무엇이 남았는가
+────────────────────────────────────────────────────────────────────────
+  .bound  (39B)
+  .gitignore  (37B)
+  config.yaml  (54B)
+  ledger/
+  sessions/
+
+────────────────────────────────────────────────────────────────────────
+완주 판정 — M4 exit 3항의 4관문
+────────────────────────────────────────────────────────────────────────
+  (원장 이벤트 0건 — seal 0 · settle 0)
+  재시작 증거: 재시작 전 원장이 비어 있어 판정 불가 (봉인이 실패한 실행)
+  ✅ 설치 후 첫 도구 호출이 성공했다
+  ❌ 봉인이 원장에 남았다 (seal 이벤트)
+  ❌ 재시작 후 세션2가 재시작 전 기록을 읽었다
+  ❌ 정산이 원장에 남았다 (settle 이벤트)
+
+  관문 1/4 통과 · 도구 호출 1회(거부 0) · 서버 거부 이력 0건 · 확인창 0회
+  미완주 — 위 ❌ 지점이 실사용자가 막힐 곳이다
+
+  기록: /tmp/claude-0/-home-user-Argus/898aeece-2b41-54da-975d-09d37d196fb1/scratchpad/journey4/TRANSCRIPT.txt · summary.json
