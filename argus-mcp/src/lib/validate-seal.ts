@@ -85,7 +85,11 @@ const STRONG_SPLIT = /\s*(?:[;·|]|\n+|\.\s+)\s*/;
 // TIER 2 — coordination. "and" joins noun phrases as readily as claims
 // ("downtime and latency stay under 5 min"), so this tier only counts when both
 // sides carry their own magnitude.
-const WEAK_SPLIT = /\s*(?:,\s*(?:and|but|then|so)\b|\s+and\s+|\s+but\s+|,|、|그리고|하지만)\s*/i;
+// The bare comma must NOT match a thousands separator: "CAC < ₩45,000" split
+// into "CAC < ₩45" and "000 …", two clauses each carrying a number, and the
+// picker eval caught it. A digit on both sides is punctuation inside a
+// magnitude, never a clause boundary.
+const WEAK_SPLIT = /\s*(?:,\s*(?:and|but|then|so)\b|\s+and\s+|\s+but\s+|(?<!\d),(?!\d)|、|그리고|하지만)\s*/i;
 // Digits and thresholds only. HARD_ANCHOR's word forms ("at least", 이상) modify
 // a magnitude rather than being one, so they can never split a sentence.
 const GRADEABLE = /\d|[%<>=≤≥]/;
@@ -102,7 +106,18 @@ const CONDITIONAL_HEAD = /^(?:if|when|unless|once|assuming|provided|given|만약
 const CONDITIONAL_TAIL_KO = /(?:으면|다면|라면|이면|하면|되면|거든|든지)$/;
 
 function pieces(text: string, splitter: RegExp): string[] {
-  return text.split(splitter).map((c) => c.trim()).filter((c) => c.length > 0);
+  const seen = new Set<string>();
+  // DEDUP (picker eval). Saying the same sentence twice is emphasis, not a
+  // second claim — the long-predicate fixture repeats one sentence six times
+  // and was read as six stacked claims. Compare case- and space-insensitively
+  // so trivial variation does not defeat it.
+  return text.split(splitter).map((c) => c.trim()).filter((c) => {
+    if (c.length === 0) return false;
+    const key = c.toLowerCase().replace(/\s+/g, ' ');
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }
 
 function isAntecedent(clause: string): boolean {

@@ -60,6 +60,12 @@ const PASSES: Array<[string, string]> = [
   ['If we compress the crew to 5, 30-day first-run completion stays at or above the 62% baseline.',
     '조건문 — 양쪽에 숫자가 있어도 주장은 하나 (플러그인 픽스처가 잡아낸 오탐)'],
   ['수수료를 3% 올리면 이탈률은 5% 아래로 유지된다', '한국어 조건문 (…면)'],
+  // 아래 둘은 evals/picker-surfaces.mjs의 정본 픽스처다. 게이트를 처음 넣었을 때
+  // 둘 다 오탐으로 걸려 봉인 픽커가 아예 안 떴고, 그 eval이 잡아냈다.
+  ['CAC < ₩45,000 & LTV/CAC > 3.0 을 4분기에 동시에 만족한다',
+    '천 단위 쉼표는 절 경계가 아니다 (picker-surfaces 픽스처)'],
+  ['이번 분기 리텐션 개편이 D7 잔존을 끌어올린다고 보는 이유를 길게 적으면 이렇게 된다. '.repeat(6),
+    '같은 문장 반복은 강조지 여러 주장이 아니다 (picker-surfaces 픽스처)'],
 ];
 
 describe('묶음 예측 게이트 (BUNDLED_PREDICATE)', () => {

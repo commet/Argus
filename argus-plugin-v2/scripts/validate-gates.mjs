@@ -73,7 +73,8 @@ const VIBE_KO = /(잘\s*될|잘\s*풀릴|괜찮을|좋아질|나아질)\s*(것|�
 // each one is shaped this way, and keep both files in step by hand.
 const ISO_DATE = /\d{4}-\d{2}-\d{2}/g;
 const STRONG_SPLIT = /\s*(?:[;·|]|\n+|\.\s+)\s*/;
-const WEAK_SPLIT = /\s*(?:,\s*(?:and|but|then|so)\b|\s+and\s+|\s+but\s+|,|、|그리고|하지만)\s*/i;
+// A bare comma must not match a thousands separator ("CAC < ₩45,000").
+const WEAK_SPLIT = /\s*(?:,\s*(?:and|but|then|so)\b|\s+and\s+|\s+but\s+|(?<!\d),(?!\d)|、|그리고|하지만)\s*/i;
 const GRADEABLE = /\d|[%<>=≤≥]/;
 const MIN_CLAIM = 8;
 // A conditional states the terms the claim is graded under, not a second claim.
@@ -83,7 +84,17 @@ const CONDITIONAL_HEAD = /^(?:if|when|unless|once|assuming|provided|given|만약
 const CONDITIONAL_TAIL_KO = /(?:으면|다면|라면|이면|하면|되면|거든|든지)$/;
 
 function bundledClaims(predicate) {
-  const pieces = (text, splitter) => text.split(splitter).map((c) => c.trim()).filter(Boolean);
+  // Dedup: one sentence repeated is emphasis, not stacked claims.
+  const pieces = (text, splitter) => {
+    const seen = new Set();
+    return text.split(splitter).map((c) => c.trim()).filter((c) => {
+      if (!c) return false;
+      const key = c.toLowerCase().replace(/\s+/g, ' ');
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  };
   const isAntecedent = (c) => CONDITIONAL_HEAD.test(c) || CONDITIONAL_TAIL_KO.test(c);
   const strong = pieces(predicate, STRONG_SPLIT).filter((c) => c.length >= MIN_CLAIM && !isAntecedent(c));
   if (strong.length > 1) return strong;
