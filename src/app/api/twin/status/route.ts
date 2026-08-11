@@ -120,5 +120,18 @@ export async function GET(req: NextRequest) {
     delegations: { active: delegationsActive, suspended: delegationsSuspended },
     beliefs: { graded: beliefsGraded },
     theater: { runs: theaterRuns },
+    // 엔진 설정 — **있는가만** 말한다 (daily-report 의 'configured' 관용구와 같다).
+    // 값도, 길이도, 접두사도 나가지 않는다.
+    //
+    // 왜 개수만으로는 부족한가: 스키마가 전부 초록이어도 `ANTHROPIC_API_KEY` 가
+    // 없으면 결정은 정상적으로 열리고, 봉인만 조용히 실패하고(부가 기능이라
+    // 사용자 흐름을 막지 않는 것이 옳다), 크론 백스톱은 영원히 재시도한다.
+    // 그 상태에서 사용자가 보는 것은 "봉인 0건" 하나뿐이고, 그것은 "아직 안
+    // 열었다"와 구분되지 않는다. 이 제품에서 가장 비싼 침묵이 정확히 그것이다.
+    engine: {
+      anthropic: Boolean(process.env.ANTHROPIC_API_KEY),
+      resend: Boolean(process.env.RESEND_API_KEY),
+      cronSecret: Boolean(process.env.CRON_SECRET),
+    },
   });
 }

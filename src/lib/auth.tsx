@@ -54,10 +54,19 @@ const AUTH_ERRORS: Array<{ match: string; ko: string; en: string }> = [
     ko: '가입을 완료할 수 없습니다. 이미 계정이 있다면 로그인해주세요.',
     en: "Couldn't complete sign-up. If you already have an account, please sign in.",
   },
+  // 이것은 **로그인 경로에서만** 나온다 (`signInWithPassword`). Supabase 는
+  // 자격증명이 맞을 때에만 이 오류를 주기 때문이다 — 틀리면 위의
+  // 'Invalid login credentials' 가 먼저 걸린다.
+  //
+  // 그래서 위의 열거 방지 문구를 여기 그대로 쓰면 안 된다. 이전 문구는
+  // "가입을 완료할 수 없습니다. 이미 계정이 있다면 로그인해주세요" 였는데,
+  // **지금 로그인하는 사람에게** 로그인하라고 말하는 막다른 골목이었고 정작
+  // 해야 할 일(받은편지함의 확인 링크)은 말해주지 않았다. 열거 위험도 여기서는
+  // 없다 — 이 문구를 보려면 이미 그 계정의 비밀번호를 알고 있어야 한다.
   {
     match: 'Email not confirmed',
-    ko: '가입을 완료할 수 없습니다. 이미 계정이 있다면 로그인해주세요.',
-    en: "Couldn't complete sign-up. If you already have an account, please sign in.",
+    ko: '가입 확인이 아직 안 됐습니다. 받은편지함에서 확인 링크를 눌러 주세요 (스팸함도 확인).',
+    en: 'This email is not confirmed yet. Open the confirmation link we sent you (check spam too).',
   },
   {
     match: 'Password should be at least 6 characters',

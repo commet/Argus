@@ -109,6 +109,37 @@ describe('twin status — 봉인 계약', () => {
     expect(TWIN_STATUS).toContain('auth.getUser');
   });
 
+  // ── 엔진 설정 보고 — 있는가만, 절대 값은 아니다 ────────────────────────
+  //
+  // 이 필드가 생긴 이유는 "봉인 0건"이 두 가지 전혀 다른 사실을 뜻했기
+  // 때문이다: 아직 결정을 안 열었거나, 키가 없어 하나도 안 만들어졌거나.
+  // 원인을 말해 주는 대신 **값을 흘리면** 고치려던 것보다 나쁜 것을 만든다.
+  it('설정은 Boolean 으로만 나간다 — 키 값이 응답에 실릴 수 없다', () => {
+    const engineBlock = /engine:\s*\{[\s\S]*?\},/.exec(TWIN_STATUS)?.[0] ?? '';
+    expect(engineBlock, 'engine 블록을 찾지 못했습니다').toContain('anthropic');
+    // 각 항목이 Boolean() 을 통과한다 — 원문 문자열이 그대로 실리는 형태 금지.
+    for (const key of ['anthropic', 'resend', 'cronSecret']) {
+      expect(engineBlock).toMatch(new RegExp(`${key}:\\s*Boolean\\(`));
+    }
+    // slice/substring/length 로 "앞 4글자"·"길이"를 흘리는 우회로도 막는다.
+    expect(engineBlock).not.toMatch(/slice|substring|\.length|charAt/);
+  });
+
+  it('비밀 값이 응답 본문에 직접 들어가는 경로가 없다', () => {
+    // **마지막** return 부터 본다. 첫 번째부터 잡으면 그 위의 401/503 반환과
+    // 그 사이의 설정 읽기 줄(`const url = process.env…`)까지 "본문"으로
+    // 삼켜서, 정상 코드를 유출로 고발한다 (초안이 실제로 그랬다).
+    const start = TWIN_STATUS.lastIndexOf('return NextResponse.json({');
+    const body = start >= 0 ? TWIN_STATUS.slice(start) : '';
+    expect(body, '응답 본문을 찾지 못했습니다').toContain('engine');
+    // `process.env.X` 가 Boolean() 밖에서 본문에 실리면 그게 곧 유출이다.
+    for (const m of body.matchAll(/process\.env\.([A-Z0-9_]+)/g)) {
+      const at = m.index;
+      const before = body.slice(Math.max(0, at - 12), at);
+      expect(before, `${m[1]} 가 Boolean() 없이 본문에 실립니다`).toContain('Boolean(');
+    }
+  });
+
   it('표가 없으면 0 으로 위장하지 않는다 — null 로 남긴다', () => {
     // 0 과 "아직 준비 안 됨"을 같은 숫자로 칠하면 미적용이 정상으로 보인다.
     expect(TWIN_STATUS).toMatch(/return error \? null : count \?\? 0;/);
