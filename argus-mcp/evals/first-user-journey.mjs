@@ -34,6 +34,9 @@ import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js'
 import { ElicitRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 import { samplePersonas, AXES } from './persona-overfire.mjs';
 import { complete, completeJson } from './anthropic.mjs';
+// 모델에게 넘기는 채널의 정본. 여기 두 함수만이 "제품이 말한 것"과 "모델이 들은
+// 것" 사이에 있고, model-channel 게이트가 그 사이가 무손실인지 매번 검사한다.
+import { toolsForModel, resultForModel } from './model-channel.mjs';
 
 const argOf = (flag, dflt) => (process.argv.includes(flag) ? process.argv[process.argv.indexOf(flag) + 1] : dflt);
 const VERSION = argOf('--version', '2.0.22');
@@ -143,7 +146,7 @@ async function makeClient(label) {
           why: { type: 'string', description: 'one sentence, in character' },
         },
       },
-      maxTokens: 512,
+      maxTokens: 1200, // 한국어 "why"는 512에서 잘린다 — 이제 잘리면 실행이 죽으므로 넉넉히.
     });
     elicitLog.push({ label, message, fields, action: decision.action, why: decision.why });
     say(`  └─ 사용자: ${decision.action === 'accept' ? '✔ 수락' : '✘ 거절'} — "${decision.why}"`);
@@ -162,24 +165,26 @@ const SERVER_INSTRUCTIONS = (typeof client.getInstructions === 'function' ? clie
 say(`  서버 지침: ${SERVER_INSTRUCTIONS ? `${SERVER_INSTRUCTIONS.length}자 수신` : '없음(호스트가 못 읽음) ⚠'}`);
 
 /**
- * 설명은 도구별로 자르고 목록 전체는 절대 자르지 않는다. 처음엔 직렬화 결과를
- * 통째로 6000자에서 잘랐는데, capture 설명 하나가 길어서 나머지 5종이 통째로
- * 사라졌고 어시스턴트는 "도구가 1개뿐"이라고 자신 있게 답했다 — 제품이 아니라
- * 계측기가 만든 거짓이다. 목록의 길이는 어떤 경우에도 보존한다.
+ * 도구 표면은 **한 글자도 자르지 않고** 넘긴다. 실제 호스트는 tools/list
+ * 페이로드를 통째로 모델 컨텍스트에 넣는다 — 도구 표면에 16,000B 예산 테스트가
+ * 있는 이유가 그것이다. 계측기가 그걸 다시 자르면 예산 안에서 고른 문장이
+ * 모델에 닿지 않는다.
+ *
+ * 처음엔 직렬화 결과를 통째로 6000자에서 잘랐고, capture 설명 하나가 길어서
+ * 나머지 5종이 사라졌다 — 어시스턴트는 "도구가 1개뿐"이라고 자신 있게 답했다.
+ * 그때 목록 길이는 지키게 고쳤지만 **설명별 상한(700/200)은 남겨뒀고, 그게
+ * 같은 거짓을 더 조용한 형태로 계속 만들었다** (2026-08-12 실측, 필드 60개 중
+ * 6개 잘림 · 735자 손실):
+ *   - `argus_resolve.outcome` 449자 손실 — held/avoided/partial/missed 정의
+ *     용어집 전체가 "Definition"에서 잘렸다. 모델은 그 넷을 구분할 근거를
+ *     한 번도 못 받았다.
+ *   - `argus_predict.predicate` 147자 손실 — 묶음을 만났을 때 무엇을 하라는
+ *     지시와 좋은/나쁜 예시가 절 중간에서 잘렸다.
+ * 게다가 스키마를 {type, description}으로 재조립하면서 **enum 값이 사라졌다** —
+ * outcome의 다섯 값이 스키마에 없었다. 서버가 내보낸 스키마를 그대로 준다.
  */
-const TOOLS_FOR_MODEL = toolList.map((t) => ({
-  name: t.name,
-  description: (t.description ?? '').slice(0, 700),
-  input_schema: {
-    type: 'object',
-    properties: Object.fromEntries(
-      Object.entries(t.inputSchema?.properties ?? {}).map(([k, v]) => [
-        k, { type: v.type, description: String(v.description ?? '').slice(0, 200) },
-      ]),
-    ),
-    required: t.inputSchema?.required ?? [],
-  },
-}));
+const TOOLS_FOR_MODEL = toolsForModel(toolList);
+say(`  모델에게 넘기는 도구 표면: ${Buffer.byteLength(JSON.stringify(TOOLS_FOR_MODEL), 'utf8')}B (무절단)`);
 
 /** 어시스턴트 역: 진짜 도구 스키마를 주고, 부를지 말지도 스스로 정하게 한다. */
 async function assistantTurn(history, userTurn, priorError = null) {
@@ -209,7 +214,9 @@ async function assistantTurn(history, userTurn, priorError = null) {
         reply: { type: 'string', description: 'what you say to the user' },
       },
     },
-    maxTokens: 1500,
+    // 인자(what_happened 600자 + predicate)와 reply를 한 번에 낸다. 잘린 도구
+    // 호출은 이제 예외로 죽으므로, 상한은 실패하지 않을 만큼 둔다.
+    maxTokens: 2500,
   });
   return res;
 }
@@ -236,7 +243,7 @@ async function assistantExchange(n, userTurn) {
     say(`  🤖 어시스턴트가 스스로 선택한 도구(${calls}): ${act.tool}`);
     say(`     인자: ${JSON.stringify(act.arguments ?? {}).slice(0, 260)}`);
     const callArgs = { argus_dir: ledgerDir, ...(act.arguments ?? {}) };
-    let errText = null, okSurface = null;
+    let errText = null, okSurface = null, okForModel = null;
     try {
       const r = await client.callTool({ name: act.tool, arguments: callArgs }, undefined, { timeout: 90_000 });
       const sc = r.structuredContent ?? {};
@@ -250,9 +257,28 @@ async function assistantExchange(n, userTurn) {
       // 결함이다: 측정 도구가 피검체의 출력을 숨기면 그 위의 모든 결론이 거짓이
       // 된다. 거절 봉투는 작으니 1,200자면 통째로 들어간다.
       if (sc.ok === false || /"error_code"/.test(raw)) {
-        errText = String(r.content?.[0]?.text ?? raw).slice(0, 1200);
+        errText = resultForModel(r).slice(0, 1200);
       }
-      else okSurface = String(sc.surface ?? r.content?.[0]?.text ?? raw).slice(0, 700);
+      else {
+        // 성공도 똑같이 봉투 전문이다. envelope()와 toolError()는 대칭으로
+        // content[0].text에 봉투를 JSON으로 싣는데, 여기서는 거절만 고치고
+        // **성공 분기는 surface만 넘기고 있었다** — 같은 결함의 반대편 가지.
+        // 실측(2026-08-12)으로 그 대가가 정확히 드러난다: 봉인 성공 봉투에는
+        // data.id와 data.open_predictions[{id,predicate,check_by}]가 들어 있는데
+        // surface는 술어와 날짜만 말하고 id는 한 번도 말하지 않는다. 그래서
+        // 정산 때 모델이 가진 유일한 재료가 술어 문장이었고, Q1~Q3 세 실행 전부
+        // 거기서 id를 지어내 NO_PRIOR_SEAL을 맞았다. 제품은 id를 주고 있었고
+        // 계측기가 버렸다.
+        okSurface = String(sc.surface ?? r.content?.[0]?.text ?? raw).slice(0, 700);
+        okForModel = resultForModel(r);
+        // 상한은 실측 최대 봉투(첫 정산 영수증 2,504자)의 두 배 위에 둔다.
+        // 걸리면 조용히 자르지 않고 말한다 — 이 파일의 상한들이 만든 거짓이
+        // 전부 "조용히" 잘렸기 때문이다.
+        if (okForModel.length > 6000) {
+          say(`  ⚠ 응답 봉투 ${okForModel.length}자 — 6000자로 자름 (모델이 뒷부분을 못 봄)`);
+          okForModel = okForModel.slice(0, 6000);
+        }
+      }
     } catch (e) { errText = e.message; }
 
     if (errText) {
@@ -273,8 +299,29 @@ async function assistantExchange(n, userTurn) {
       called.push(act.tool);
       lastErr = null;
     }
-    history.push(`ASSISTANT called ${act.tool} -> ${errText ? `ERROR ${String(errText).slice(0, 200)}` : String(okSurface).slice(0, 400)}`);
-    act = await assistantTurn(history, userTurn, errText ? String(errText).slice(0, 500) : null);
+    // 실제 호스트의 대화에는 어시스턴트의 tool_use 블록(**인자 포함**)과 그
+    // 결과가 통째로 남는다. 여기서는 도구 **이름과 surface만** 남기고 있었다 —
+    // 즉 모델은 자기가 방금 지은 id조차 다음 턴에 기억할 수 없었다. 서버 채널
+    // (data.id)과 자기 기억(자기 인자) 둘 다 계측기가 끊어놓은 상태에서
+    // NO_PRIOR_SEAL을 세고 있었던 것이다. 두 채널 다 복원한다.
+    // history는 매 턴 프롬프트에 통째로 다시 실린다. 인자만 상한 없이 두면
+    // 모델이 한 번 크게 뱉었을 때 그 뒤 모든 턴이 그걸 지고 간다 — "실제로는 그럴
+    // 일 없다"가 이 PR이 거절하는 바로 그 추론이다. 실측 최대는 546자(Q·P 6회
+    // 실행의 인자 전문)이므로 2,000자면 3.7배 위이고, 걸리면 조용히 자르지 않고
+    // 말한다. 이 파일의 다른 상한들과 같은 규율.
+    let argText = JSON.stringify(act.arguments ?? {});
+    if (argText.length > 2000) {
+      say(`  ⚠ 인자 ${argText.length}자 — history에 2000자로 자름 (모델이 다음 턴에 뒷부분을 못 봄)`);
+      argText = `${argText.slice(0, 2000)}…`;
+    }
+    history.push(
+      `ASSISTANT called ${act.tool}(${argText}) -> `
+      + (errText ? `ERROR ${String(errText).slice(0, 600)}` : String(okForModel).slice(0, 1800)),
+    );
+    // errText는 이미 1,200자로 잡아둔 봉투 전문이다. 여기서 500자로 다시 자르면
+    // message까지만 남고 recovery 꼬리와 data.saved_ids가 날아간다 — #380이
+    // 복원한 바로 그 손잡이를, 한 줄 아래에서 다시 버리는 셈이다.
+    act = await assistantTurn(history, userTurn, errText);
   }
   const reply = String(act.reply ?? '(빈 응답)');
   if (!calls) say(`  🤖 어시스턴트: (도구 호출 없음) ${reply.slice(0, 300)}`);

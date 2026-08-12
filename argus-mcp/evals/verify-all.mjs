@@ -181,6 +181,7 @@ function skipBuildEnv(gateCmd) {
   if (gateCmd.includes('codex-app-server')) return { CODEX_APP_SERVER_SKIP_BUILD: '1' };
   if (gateCmd.includes('answer-time')) return { ANSWER_TIME_SKIP_BUILD: '1' };
   if (gateCmd.includes('slow-human')) return { SLOW_HUMAN_SKIP_BUILD: '1', SLOW_HUMAN_THINK_MS: '61500' };
+  if (gateCmd.includes('model-channel')) return { MODEL_CHANNEL_SKIP_BUILD: '1' };
   return {};
 }
 
@@ -198,6 +199,7 @@ function gateFailureFor(gateCmd) {
   if (gateCmd.includes('answer-time')) return /\b[1-9]\d* violations?\b/i;
   if (gateCmd.includes('slow-human')) return /\b[1-9]\d* violations?\b/i;
   if (gateCmd.includes('version-lockstep')) return /\b[1-9]\d* violations?\b/i;
+  if (gateCmd.includes('model-channel')) return /\b[1-9]\d* violations?\b/i;
   // e2e-picker does not print "violations" — it prints its own tally. Without
   // this line the self-test that uses it throws here and takes the whole verify
   // with it, which is exactly what this function is for: a gate whose failure
@@ -251,6 +253,10 @@ run('간직하는 화면의 액자 (영수증·봉인·항해일지)', 'node eva
 // '한 번도 문 적 없는 게이트'는 아무도 안 잡았다. 이 파일이 그 자리다.
 run('게이트를 지키는 게이트', 'node evals/gate-coverage.mjs', { extract: COUNTS });
 run('버전 다섯 곳 일치', 'node evals/version-lockstep.mjs', { extract: COUNTS });
+// 계측기가 제품의 말을 지우지 못하게 한다. 같은 결함이 세 번 반복됐고(잘린 발화,
+// 버려진 거절 봉투, 잘린 도구 표면) 매번 제품이 아니라 하네스가 만든 거짓이었다.
+// 마지막 것은 발행본 도구 표면의 29%를 삭제한 채 모델에 넘기고 있었다.
+run('계측기가 제품의 말을 지우지 않는가', 'node evals/model-channel.mjs', { env: { ...process.env, MODEL_CHANNEL_SKIP_BUILD: '1' }, extract: COUNTS });
 run('게이트가 실제로 빨개질 수 있는가', 'node evals/gate-coverage.mjs');
 // Judges our asks with the submit gate read out of the shipped Claude Code
 // binary — including how many Returns it takes, which is what three previous
@@ -527,6 +533,20 @@ selfTest(
   'package.json',
   (s) => s.replace(/"version":\s*"[^"]+"/, '"version": "0.0.0"'),
   'node evals/version-lockstep.mjs',
+);
+// 심는 회귀는 실제로 있었던 것 그대로다 — 스키마를 {type, description}으로
+// 재조립하며 필드 설명을 200자로 자르고 enum을 통째로 버리던 옛 변환. 이것 하나가
+// 발행본 표면 11,946B 중 3,473B를 삭제했고, 그 상태로 잰 여정 결과가 제품 판정에
+// 쓰였다. 다른 자기검증과 달리 대상 파일이 제품이 아니라 계측기인데, 그게 요점이다:
+// 이 게이트가 지키는 것은 제품의 동작이 아니라 **측정의 정직함**이다.
+selfTest(
+  '자기검증 ㉘ 계측기가 제품의 말을 지우는 회귀를 잡는가',
+  'evals/model-channel.mjs',
+  (s) => s.replace(
+    "    input_schema: t.inputSchema ?? { type: 'object', properties: {} },",
+    "    input_schema: { type: 'object', properties: Object.fromEntries(Object.entries(t.inputSchema?.properties ?? {}).map(([k, v]) => [k, { type: v.type, description: String(v.description ?? '').slice(0, 200) }])), required: t.inputSchema?.required ?? [] },",
+  ),
+  'node evals/model-channel.mjs',
 );
 
 } finally {
