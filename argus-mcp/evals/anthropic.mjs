@@ -89,6 +89,17 @@ export async function completeJson({ model, system, user, toolName = 'result', s
         : `judge did not call ${toolName} (stop_reason=${json.stop_reason}): ${text.slice(0, 200)}`,
     );
   }
+  // 블록이 **있어도** max_tokens면 인자가 중간에서 잘린 것이다. 위의 `!block`
+  // 분기는 아무것도 못 낸 경우만 잡는다 — 절반짜리 인자(잘린 predicate, 빈
+  // what_happened)는 그대로 통과해서, 제품이 못 채운 것처럼 기록된다. complete()가
+  // 한국어 페르소나 실행에서 겪은 것과 같은 실패이고, 여기만 안 고쳐져 있었다.
+  if (json.stop_reason === 'max_tokens') {
+    throw new Error(
+      `${toolName} tool call truncated at max_tokens=${maxTokens} — arguments are incomplete. `
+      + 'Raise maxTokens for this call; a half-written tool call must never be scored as the subject\'s output. '
+      + `Partial input: ${JSON.stringify(block.input).slice(0, 200)}`,
+    );
+  }
   return block.input;
 }
 

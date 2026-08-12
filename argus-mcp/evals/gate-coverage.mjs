@@ -29,6 +29,7 @@ const EXPECTED_BASELINE = new Set([
   'gate-coverage',
   'host-matrix',
   'keepsake-frames',
+  'model-channel',
   'package-executable',
   'picker-surfaces',
   'slow-human',
