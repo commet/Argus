@@ -35,7 +35,9 @@ export function stuckDecisions(state: LedgerState): StuckDecision[] {
   const out: StuckDecision[] = [];
   for (const [id, c] of state.contracts) {
     if (c.status !== 'candidate' || c.predicate) continue;
-    const premises = Array.isArray(c.premises) ? c.premises : [];
+    // 살아있는 전제만 센다. 사용자가 닫은(retired) 전제는 스스로 정리한 것이라
+    // 다시 부르면 잔소리다 — 잃을 것이 이미 없다.
+    const premises = (Array.isArray(c.premises) ? c.premises : []).filter((p) => p?.status === 'active');
     if (premises.length === 0) continue;
     out.push({ id, decision: String(c.text ?? id), premise_count: premises.length });
   }

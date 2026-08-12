@@ -81,6 +81,24 @@ describe('고아 판정', () => {
     expect(stuckDecisions(replayLedger(dir, T))).toHaveLength(0);
   });
 
+  it('사용자가 닫은 전제만 남았으면 세지 않는다 (스스로 정리한 것)', async () => {
+    await openWithPremise('tidied', '정리한 결정');
+    await decide.handler({
+      argus_dir: dir, action: 'amend_context', id: 'tidied', ref: 'P1', amendment: 'retire',
+      today_override: T,
+    });
+    expect(stuckDecisions(replayLedger(dir, T))).toHaveLength(0);
+  });
+
+  it('긴 결정 문장이 귀환 화면을 삼키지 않는다', async () => {
+    await openWithPremise('verbose', '가'.repeat(400));
+    const r = body(await publicCheckIn.handler({ argus_dir: dir, today_override: '2026-08-12' }));
+    // 표면은 잘린 채로, 손잡이(data)는 온전하게.
+    expect(String(r['surface']).length).toBeLessThan(400);
+    const stuck = (r['data'] as Record<string, unknown>)['stuck_decisions'] as Array<{ decision: string }>;
+    expect(stuck[0]!.decision.length).toBe(400);
+  });
+
   it('건강하게 기다리는 봉인된 결정은 절대 세지 않는다 (침묵 계약의 경계)', async () => {
     await sealOn('far-future', '컷오버 다운타임이 5분 미만이다', '2099-01-01');
     expect(stuckDecisions(replayLedger(dir, T))).toHaveLength(0);

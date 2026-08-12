@@ -2,6 +2,7 @@ import { resolveToolArgusDir } from '../lib/argus-dir.js';
 import { resolveToday, asDate } from '../lib/resolve-today.js';
 import { replayLedger, bearingContracts } from '../lib/ledger-replay.js';
 import { stuckDecisions } from '../lib/stuck-decisions.js';
+import { sanitizeLine } from '../v2/sanitize.js';
 import { duePremises, groupDuePremises, dueOpenQuestions } from '../lib/premises.js';
 import { readReceipt, SKIPPED } from '../lib/receipt.js';
 import { SURFACES, resolveResponseLocale, surfaceLocale } from '../lib/surfaces.js';
@@ -255,7 +256,9 @@ export const checkIn: ToolModule = {
       // 사실만 말하고 재촉하지 않는다 — 손잡이(id)는 data에 있고, 필요 없으면
       // argus_capture action="close"로 닫으면 된다.
       const stuck = stuckDecisions(ledger);
-      const stuckLine = stuck.length > 0 ? S.stuck(stuck.length, stuck[0]!.decision) : '';
+      // 사용자 텍스트는 표면에 그대로 넣지 않는다 (집안 규칙, 규칙 19) — 길이도
+      // 제어문자도 여기서 막는다. 안 하면 500자짜리 결정 문장이 화면을 삼킨다.
+      const stuckLine = stuck.length > 0 ? S.stuck(stuck.length, sanitizeLine(stuck[0]!.decision, 60)) : '';
 
       // Fleet view (M2, §9.4): due counts across the OTHER projects the global
       // registry knows. Counts + paths only — each project settles in its own
