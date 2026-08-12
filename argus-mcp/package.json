@@ -1,6 +1,6 @@
 {
   "name": "argus-decision-mcp",
-  "version": "2.0.22",
+  "version": "2.0.23",
   "description": "Argus decision-to-reality MCP — preserve a user-adopted prediction, its return condition, and what actually happened without scoring the person.",
   "type": "module",
   "main": "dist/index.js",
