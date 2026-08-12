@@ -1,5 +1,43 @@
 # Changelog
 
+## 2.0.23 - The refusal hands back what the server already knew
+
+Six repairs, all in the response rather than the tool surface, so the served
+schema did not grow. Every one came out of running a simulated first user
+through install → decision → prediction → return → settle and reading what
+actually blocked them.
+
+- **A bundled prediction is refused, and the refusal shows the split.** One
+  predicate holds one claim; a sentence stacking several can only ever settle
+  as "partial", whatever reality does — and every later number inherits that.
+  The rule already existed in the plugin's prompt and nowhere in this server,
+  so which rule you got depended on which surface you arrived through. It is
+  now a gate in both, with the detected clauses returned in `data.claims` so
+  the caller can tell the user what was set aside instead of dropping it.
+- **Refusals about a date now say what today is.** A caller has no clock, so it
+  cannot compute a future check-by; it sends the year it was trained in and
+  gets back "must be YYYY-MM-DD", the one thing it already knew. Dates were the
+  single most common first-call failure. `check_by` and `defer_to` also accept
+  a horizon now — `+7d`, `+2w`, `+3m` — which is the form the user actually
+  spoke and the caller can actually produce.
+- **Korean users were getting worse guidance than English users** on that exact
+  failure: the English message ends with "(today is …)" and the Korean map,
+  being static text, dropped the date entirely. One recorded session walked
+  forward a day at a time from its training year and never recovered.
+- **A refusal names the one field to change.** Told only that the date was
+  wrong, a caller rewrote the whole call — including the user's own sentence,
+  which then failed a different check. The second refusal was caused by the
+  first.
+- **Settling an id that was never saved returns the ids that were.** Sealing
+  and settling happen in different sessions, so the caller no longer holds the
+  id and reconstructs one from the prediction's wording. "Never saved" reads as
+  "your record is gone".
+- **A decision with your premises but no prediction stops being invisible.**
+  Nothing could ever check it — no prediction, no settle, no recheck — and it
+  appeared on no surface. Sealing onto that decision already worked; only the
+  handle was missing, so the handle is what this returns. Decisions that are
+  sealed and simply waiting for their date stay quiet, as before.
+
 ## 2.0.22 - A decision you closed stays closed
 
 - **A closed decision is no longer capture material.** Asked to act on a call
