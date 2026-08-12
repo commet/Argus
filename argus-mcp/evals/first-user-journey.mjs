@@ -241,7 +241,17 @@ async function assistantExchange(n, userTurn) {
       const r = await client.callTool({ name: act.tool, arguments: callArgs }, undefined, { timeout: 90_000 });
       const sc = r.structuredContent ?? {};
       const raw = JSON.stringify(sc);
-      if (sc.ok === false || /"error_code"/.test(raw)) errText = `${sc.error_code ?? '?'}: ${sc.message ?? raw.slice(0, 200)}`;
+      // 실제 호스트가 받는 것을 그대로 넘긴다. 예전에는 `code: message`만
+      // 넘기고 **recovery와 data를 통째로 버렸다** — 그런데 toolError는
+      // content[0].text에 봉투 전체를 JSON으로 싣고, 진짜 MCP 호스트는 그걸
+      // 모델에게 보여준다. 즉 이 하네스는 제품이 실제로 말하는 것의 절반만
+      // 들려주고 모델이 못 알아들었다고 적고 있었다 — 복구문도, data.saved_ids
+      // 같은 손잡이도 한 번도 도달하지 않았다. 잘린 발화 때와 같은 계열의
+      // 결함이다: 측정 도구가 피검체의 출력을 숨기면 그 위의 모든 결론이 거짓이
+      // 된다. 거절 봉투는 작으니 1,200자면 통째로 들어간다.
+      if (sc.ok === false || /"error_code"/.test(raw)) {
+        errText = String(r.content?.[0]?.text ?? raw).slice(0, 1200);
+      }
       else okSurface = String(sc.surface ?? r.content?.[0]?.text ?? raw).slice(0, 700);
     } catch (e) { errText = e.message; }
 
